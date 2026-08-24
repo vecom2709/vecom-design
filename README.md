@@ -335,3 +335,55 @@ Qualitätswahl ausgeblendet.
 rendert in Software; die dort gemessenen Werte sagen nichts aus. Vor dem
 Livegang auf einem normalen Rechner und einem Mittelklasse-Telefon ansehen und
 bei Bedarf die Standardstufe in `quality.js` senken.
+
+
+---
+
+## 15. Suchmaschinen: Sprachen als eigene Adressen
+
+Die Umschaltung im Browser reicht Menschen, aber nicht Google: Indexiert wird
+eine Adresse, kein Zustand. Deshalb gibt es jetzt drei Adressen:
+
+| Adresse | Sprache | Rolle |
+|---|---|---|
+| `/` | Italienisch | Standard, `x-default` |
+| `/de/` | Deutsch | eigene Seite, eigener Titel |
+| `/en/` | Englisch | eigene Seite, eigener Titel |
+
+Erzeugt werden `/de/` und `/en/` aus `index.html` und `i18n-data.js`:
+
+```
+node build.mjs
+```
+
+Das Skript setzt die Texte fest ein, tauscht `<html lang>`, Titel, Beschreibung,
+`canonical`, `og:*` und `hreflang`, korrigiert die Pfade (`../assets/`) und macht
+aus der Sprachwahl **echte Links** — Knöpfe folgt keine Suchmaschine.
+`data-lang-fixed` auf `<html>` verhindert, dass die gespeicherte Sprachwahl eine
+statische Seite überschreibt.
+
+**Nach jeder Textänderung `node build.mjs` laufen lassen.** Der GitHub-Actions-
+Workflow tut das bei jedem Push automatisch.
+
+Weiter enthalten:
+- `sitemap.xml` mit allen vier Adressen und wechselseitigen `hreflang`-Angaben
+- strukturierte Daten (`ProfessionalService`) inklusive der drei Pakete als
+  `Offer` mit Preis und Währung — damit kann Google Preise als Merkmal lesen
+- `robots.txt` mit Verweis auf die Sitemap, Rechtsseite ausgenommen
+
+**Was für lokale Suche noch fehlt:** Ort und Adresse. Sobald `[Città]` und die
+Anschrift feststehen, gehören sie in `hero.m3d`, in `contact.dd3` und als
+`address` plus `geo` in die strukturierten Daten. Ohne Ort ist eine lokale
+Platzierung („webdesign + Stadt") praktisch nicht zu erreichen.
+
+---
+
+## 16. Schrift
+
+Display ist **Archivo** (variabel, Breitenachse 62–125 %), Text bleibt **Inter**.
+
+Die Breitenachse ist der eigentliche Grund für die Wahl: Überschriften laufen auf
+110 % leicht breit und nehmen damit die weite Sperrung der Wortmarke
+„VECOM DESIGN" auf; Labels und Marke laufen auf 92–96 % schmaler. Eine Schrift,
+zwei Stimmungen, kein zweiter Font. Beide Schriften sind auf die benötigten
+Zeichen verkleinert und liegen lokal (kein Google-Request).

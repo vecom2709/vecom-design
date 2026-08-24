@@ -96,7 +96,9 @@ function build(lang) {
     h = h.replace(/href="index\.html"/g, `href="${up}"`);
     h = h.replace(/href="#top"/g, 'href="#top"');
   }
-  h = h.replace(/<div class="lang" role="group"[\s\S]*?<\/div>/, langLinks(lang, up || './'));
+  // Muster passt auch auf eine bereits gebaute Seite — sonst erbt der zweite
+  // Lauf die Sprachwahl des ersten (index.html ist zugleich Quelle und Ziel).
+  h = h.replace(/<div class="lang[^"]*" role="group"[\s\S]*?<\/div>/, langLinks(lang, up || './'));
 
   return h;
 }
