@@ -387,3 +387,31 @@ Die Breitenachse ist der eigentliche Grund für die Wahl: Überschriften laufen 
 „VECOM DESIGN" auf; Labels und Marke laufen auf 92–96 % schmaler. Eine Schrift,
 zwei Stimmungen, kein zweiter Font. Beide Schriften sind auf die benötigten
 Zeichen verkleinert und liegen lokal (kein Google-Request).
+
+
+---
+
+## 17. Projektkarten: Vorführung echter Seiten
+
+Die vier Karten mit Browserrahmen zeigen **echte Vollseiten-Aufnahmen** der
+laufenden Projekte (mensaena.de, dragis-kitchen.de, Charme Color, Buchwebsite),
+aufgenommen mit Playwright bei 1280 px Breite. Darüber läuft ein Drehbuch:
+scrollen, Zeiger bewegen, klicken, Ladebalken, weiterscrollen. Es wirkt wie eine
+Bildschirmaufnahme, ist aber **ein einziges Bild** — ein Video derselben Länge
+wöge ungefähr das Zwanzigfache.
+
+- Aufnahmen erneuern: `node capture.mjs` (Skript liegt im Projektordner unter
+  `tools/`, falls die Seiten sich ändern) — Cookie-Schichten werden vor der
+  Aufnahme nur **ausgeblendet**, nicht bestätigt.
+- Steuerung: `assets/js/screens.js`. Das Drehbuch steht dort oben als Liste
+  (`SCRIPT`) — scrollen, zielen, klicken, laden. Werte sind Anteile, keine Pixel,
+  damit es in jeder Kartengröße stimmt.
+- Läuft nur, wenn die Karte im Bild ist, hält im Hintergrund-Tab an, bei
+  `prefers-reduced-motion` bleibt ein Standbild. Klick auf die Karte hält an
+  oder setzt fort.
+- In der Adresszeile steht die **tatsächliche** Adresse. Für Projekte ohne
+  eigene Domain ist das die GitHub-Pages-Vorschau — keine erfundenen Adressen.
+
+TerraViva Sicilia und Vecom Shop haben noch keine laufende Seite; sie behalten
+ihr Motivbild, aber dieselbe Kartenstruktur (Medium oben, Text unten). Sobald
+diese Seiten online sind, dieselbe Behandlung geben.

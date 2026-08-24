@@ -571,6 +571,10 @@ body.scrolled .scrollcue { opacity: 0; }
 [id] { scroll-margin-top: 100px; }
 .card:hover { transform: translateY(-6px); box-shadow: var(--elev-hover); }
 /* Poster-Fläche: prozedural aus Farbe statt Platzhalterbild */
+.card > img.card__poster {
+  position: relative; inset: auto; z-index: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
 .card__poster {
   position: absolute; inset: 0; z-index: -2;
   width: 100%; height: 100%; object-fit: cover;
@@ -589,7 +593,8 @@ body.scrolled .scrollcue { opacity: 0; }
   background:
     linear-gradient(to top, rgba(4, 6, 11, .96) 2%, rgba(4, 6, 11, .82) 26%, rgba(4, 6, 11, .3) 58%, transparent 86%);
 }
-.card__initial {
+.card__initial { display: none; }
+.card__initial--unused {
   font-stretch: 118%;
   position: absolute; top: clamp(1.2rem, 2.4vw, 2rem); left: clamp(1.4rem, 2.4vw, 2.2rem); z-index: -1;
   font-family: var(--f-display); font-weight: 700; font-size: clamp(4rem, 9vw, 8rem);
@@ -796,4 +801,102 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   display: inline-block; padding: .1rem .5rem; border-radius: 6px;
   background: rgba(31, 232, 255, .1); border: 1px dashed rgba(31, 232, 255, .45);
   color: var(--c-cyan); font-size: .92em; letter-spacing: .02em;
+}
+
+/* ---------- 20. Vorführung echter Projektseiten ------------------------- */
+/* Der Rahmen sitzt als Hintergrund in der Projektkarte. Die Aufnahme scrollt,
+   ein Zeiger bewegt sich, klickt, die Seite "lädt" — die Anmutung einer
+   Bildschirmaufnahme, technisch ein einziges Bild. */
+.screen {
+  position: absolute; inset: 0; z-index: -2; margin: 0;
+  container-type: size;                 /* cqw/cqh für die Zeigerposition */
+  background: #070b13;
+  overflow: hidden;
+  display: grid; grid-template-rows: auto 1fr;
+}
+.screen__chrome {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .7rem; min-height: 34px;
+  background: linear-gradient(180deg, #131a28, #0c111b);
+  box-shadow: inset 0 -1px 0 rgba(150, 180, 230, .16);
+  position: relative; z-index: 2;
+}
+.screen__dots { display: flex; gap: 5px; flex: none; }
+.screen__dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(150, 180, 230, .28); }
+.screen__url {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; letter-spacing: .04em; color: var(--c-text-faint);
+  background: rgba(255, 255, 255, .04); border-radius: 6px; padding: .18rem .55rem;
+  box-shadow: inset 0 0 0 1px rgba(150, 180, 230, .12);
+}
+.screen__url::before { content: "🔒"; font-size: 8px; margin-right: .4rem; opacity: .6; filter: grayscale(1); }
+/* Ladebalken wie im echten Browser */
+.screen__progress {
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 100%;
+  background: var(--grad-brand); transform: scaleX(0); transform-origin: 0 50%;
+  opacity: 0;
+}
+.screen.is-loading .screen__progress { animation: screenLoad 700ms var(--e-std) forwards; }
+@keyframes screenLoad {
+  0% { transform: scaleX(0); opacity: 1; }
+  70% { transform: scaleX(.85); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+.screen__viewport { position: relative; overflow: hidden; }
+.screen__page {
+  position: absolute; top: 0; left: 0; width: 100%; height: auto;
+  will-change: transform;
+}
+/* Kurzes Aufblitzen beim „Laden" — wie ein Seitenwechsel */
+.screen.is-loading .screen__page { filter: brightness(.82); transition: filter 200ms linear; }
+
+.screen__cursor {
+  position: absolute; top: 0; left: 0; width: 22px; height: 22px; margin: -2px 0 0 -2px;
+  z-index: 3; pointer-events: none; opacity: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='24' height='24'%3E%3Cpath d='M5 2l14 9-6 1.2 3.2 6.4-2.6 1.3L10.4 13 5 17z' fill='%23fff' stroke='%23000' stroke-width='1.1' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, .8));
+  transition: opacity var(--d-move) var(--e-std);
+}
+.screen.is-playing .screen__cursor { opacity: 1; }
+/* Klick: Ring läuft vom Zeiger weg */
+.screen__cursor::after {
+  content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px;
+  border-radius: 50%; border: 2px solid rgba(31, 232, 255, .9); opacity: 0;
+}
+.screen.is-clicking .screen__cursor::after { animation: screenClick 420ms var(--e-std); }
+@keyframes screenClick {
+  0% { transform: scale(.4); opacity: 1; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+
+/* Karten mit Vorführung: Text bleibt lesbar, Verlauf etwas kräftiger */
+.card--live::after {
+  background: linear-gradient(to top, rgba(4, 6, 11, .96) 6%, rgba(4, 6, 11, .55) 42%, rgba(4, 6, 11, .12) 72%);
+}
+.card--live .card__initial { display: none; }
+.card__initial--unused { display: none; }
+.card--live:hover .screen__page { filter: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .screen__cursor { display: none; }
+  .screen__page { transform: none !important; }
+}
+
+/* Karten mit Vorführung sind anders gebaut: oben der Browserrahmen, unten der
+   Text auf eigener Fläche. Text über einer laufenden Aufnahme ist unlesbar. */
+.card--live {
+  padding: 0; gap: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-content: stretch;
+  min-height: clamp(340px, 38vw, 500px);
+}
+.card--live .screen { position: relative; inset: auto; z-index: 0; height: 100%; }
+.card--live::after { display: none; }
+.card--live .card__poster { display: none; }
+.card .card__body, .card--live .card__body {
+  display: grid; gap: .45rem; align-content: start;
+  padding: clamp(1.2rem, 2vw, 1.9rem);
+  background: linear-gradient(180deg, rgba(9, 13, 22, .96), var(--c-surface));
+  box-shadow: inset 0 1px 0 rgba(150, 180, 230, .14);
 }
