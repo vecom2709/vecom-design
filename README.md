@@ -268,3 +268,70 @@ Schrift und Betriebssystem unterschiedlich hoch gesetzt.
 hoch. Ursache war nicht der Knopf, sondern das Formularraster: Die Kontaktspalte
 daneben ist höher, das Raster verteilte die Resthöhe auf seine Zeilen. Gelöst
 mit `align-content: start` auf `.form`.
+
+
+---
+
+## 14. Die immersive Fassung (`world.html`)
+
+Zweite, eigenständige Seite. Die klassische Startseite bleibt unberührt und ist
+aus der Erfahrung heraus jederzeit erreichbar ("Klassische Fassung").
+
+**Konzept:** Die Bildmarke ist kein Bild, sondern ein Körper. Die Silhouette
+wurde per Konturerkennung aus der Logodatei ausgelesen (zwei Polygone: linker
+Schenkel, rechter Schenkel mit Kerbe) und in `assets/js/world/logo-shape.js`
+abgelegt. Daraus entsteht zur Laufzeit eine extrudierte Geometrie mit Fase —
+kein nachgebautes „V", keine 3D-Datei, 0 KB Ladekosten.
+
+**Drehbuch — sechs Beats über die Scrollstrecke:**
+
+| Beat | Aussage | Kamera | Licht |
+|---|---|---|---|
+| 01 Ankunft | Jede Marke beginnt im Dunkeln | weit, tief, ruhig | nur Kantenlicht |
+| 02 Das Licht | Zuerst kommt das Licht | Dolly seitlich heran | Hauptlicht fährt hoch |
+| 03 Das Material | Dann das Material | Dreiviertel, mittlere Distanz | Klarlack, Reflexe |
+| 04 Der Schnitt | Ein Zeichen entsteht durch das Weglassen | nah an der Kerbe | hartes Kantenlicht |
+| 05 Der Raum | Und dann bekommt es einen Raum | Kranfahrt zurück | Boden, Kontaktlicht |
+| 06 Ruhelage | Deine Marke, im Licht | frontal, Augenhöhe | ausgeglichen, CTA |
+
+Alle Werte je Beat stehen in `assets/js/world/story.js` in einer einzigen
+Tabelle — Kameraposition, Blickpunkt, Position und Drehung der Marke,
+Nebeldichte, Lichtstärke und -position, Bloom, Rauheit, Lichtsaum. Wer die
+Inszenierung ändern will, ändert Zahlen in dieser Tabelle, nichts anderes.
+
+**Wichtig beim Bearbeiten:** Die Timeline-Startzeiten sind Sekunden (0,1,2,…),
+nicht Anteile. Zusammen mit `end: story.offsetHeight - innerHeight` liegt Beat i
+dadurch exakt auf Kapitel i. Beides zusammen ändern oder gar nicht.
+
+**Stack:** Three.js 0.185 (lokal), GSAP + ScrollTrigger, Lenis. Ein Scrollsystem:
+Lenis treibt ScrollTrigger. Kein CDN, keine Buildkette.
+
+**Warum es teuer aussieht** (in dieser Reihenfolge gebaut, nicht andersherum):
+1. *Licht vor Material.* Eigene Studioumgebung aus emissiven Flächen (Softbox
+   oben, blaue Wand links, cyan Kante rechts). Metall kann nur spiegeln, was da
+   ist — in einer schwarzen Umgebung wird jede Metallfläche schwarz.
+2. *Struktur statt Farbe.* Gebürstete Rauheitskarte und anisotrope Reflexe.
+   Ohne sie bleibt die Vorderfläche eine tote Farbe: der häufigste Grund, warum
+   3D im Web nach Plastik aussieht.
+3. *Kamera über ein Rig.* Nie direkte Positionen, immer gedämpft angefahren.
+4. *Zurückhaltendes Bloom* (Schwelle 0.95). Bloom rettet kein schlechtes Licht.
+
+**Adaptive Qualität:** vier Stufen (ultra/hoch/mittel/niedrig), automatisch nach
+Gerät gewählt und über die Frame-Zeit nachgeregelt — reduziert wird in fester
+Reihenfolge: Postprocessing → Partikel → Pixeldichte → Schatten. Manuell
+umstellbar in der Kopfzeile. Es wird nie automatisch hochgestuft; ein Sprung hin
+und her fällt mehr auf als eine dauerhaft niedrigere Stufe.
+
+**Drei Fallback-Wege**, alle geprüft: kein WebGL, `prefers-reduced-motion`,
+verlorener GL-Kontext. In jedem Fall wird die Seite zur ruhigen, vollständig
+lesbaren Textfassung — es fehlt kein Inhalt, weil der Inhalt im DOM liegt und
+die Inszenierung nur die Schicht darüber ist.
+
+**Mobil** ist eine eigene Komposition, keine verkleinerte: Marke mittig statt
+seitlich versetzt, Kamera weiter zurück, Kapitelleiste unten statt rechts,
+Qualitätswahl ausgeblendet.
+
+**Noch nicht geprüft:** die Bildrate auf echter Hardware. Der Testbrowser
+rendert in Software; die dort gemessenen Werte sagen nichts aus. Vor dem
+Livegang auf einem normalen Rechner und einem Mittelklasse-Telefon ansehen und
+bei Bedarf die Standardstufe in `quality.js` senken.

@@ -1,0 +1,196 @@
+/* ==========================================================================
+   VECOM WORLD — Oberfläche über der 3D-Bühne.
+   Regel: Der Inhalt liegt im DOM und ist ohne WebGL vollständig lesbar.
+   Alles hier ist die Schicht darüber.
+   ========================================================================== */
+
+html { background: #030509; overflow-x: clip; }
+/* Die Kornschicht ist bewusst größer als der Bildschirm (sie wandert).
+   Ohne clip erzeugt sie auf Tablets eine waagerechte Scrollleiste. */
+body.world { overflow-x: clip; }
+
+/* Bühne */
+.stage {
+  position: fixed; inset: 0; z-index: 0;
+  width: 100%; height: 100svh;
+  display: block;
+}
+.stage[hidden] { display: none; }
+
+/* Statischer Ersatz, wenn kein WebGL läuft oder Bewegung reduziert ist */
+.stage-fallback {
+  position: fixed; inset: 0; z-index: 0; display: none;
+  background:
+    radial-gradient(46% 40% at 50% 34%, rgba(10, 120, 245, .30), transparent 70%),
+    radial-gradient(26% 20% at 50% 26%, rgba(31, 232, 255, .22), transparent 72%),
+    #030509;
+}
+.stage-fallback img {
+  position: absolute; top: 44%; left: 50%; transform: translate(-50%, -50%);
+  width: clamp(240px, 34vw, 460px); opacity: .5;
+  filter: drop-shadow(0 0 90px rgba(10, 120, 245, .55));
+}
+[data-state="fallback"] .stage-fallback { display: block; }
+
+/* Ladezustand als Gestaltung, nicht als Spinner */
+.loader {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-content: center; gap: 1.4rem;
+  background: #030509; text-align: center;
+}
+.loader[hidden] { display: none; }
+.loader__mark { width: 76px; margin-inline: auto; opacity: .9; animation: breathe 2.6s var(--e-std) infinite; }
+.loader__label {
+  font-size: var(--t-xs); letter-spacing: .3em; text-transform: uppercase; color: var(--c-text-faint);
+}
+.loader__bar { width: min(240px, 60vw); height: 1px; background: rgba(150,180,230,.18); overflow: hidden; }
+.loader__bar i { display: block; height: 100%; width: 40%; background: var(--grad-brand); animation: slideBar 1.4s var(--e-std) infinite; }
+@keyframes breathe { 0%,100% { opacity: .45; transform: scale(.98); } 50% { opacity: 1; transform: scale(1.02); } }
+@keyframes slideBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(350%); } }
+
+/* Kopfzeile der Erfahrung */
+.world-head {
+  position: fixed; inset-inline: 0; top: 0; z-index: 40;
+  padding: clamp(1rem, 2vw, 1.5rem) var(--page-x);
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-2);
+  pointer-events: none;
+}
+.world-head > * { pointer-events: auto; }
+.world-head .brand img { width: clamp(30px, 3.4vw, 40px); }
+
+.world-tools { display: flex; align-items: center; gap: .6rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: .5rem; min-height: 40px;
+  padding: .5rem .9rem; border-radius: 12px;
+  background: rgba(8, 12, 20, .55); backdrop-filter: blur(14px);
+  box-shadow: inset 0 0 0 1px rgba(150, 180, 230, .16), 0 12px 30px -18px rgba(0,0,0,.9);
+  font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-dim);
+  transition: color var(--d-ui) linear, box-shadow var(--d-ui) linear;
+}
+.chip:hover { color: var(--c-text); box-shadow: inset 0 0 0 1px rgba(31,232,255,.4), 0 14px 34px -16px rgba(10,120,245,.7); }
+.chip select { background: none; border: 0; color: inherit; font: inherit; letter-spacing: inherit; }
+.chip select option { background: #0c1119; color: #e9eef8; letter-spacing: 0; text-transform: none; }
+
+/* Kapitel */
+.story { position: relative; z-index: 10; }
+.chapter {
+  min-height: 100svh; display: grid; align-content: center;
+  padding: 14svh var(--page-x) 12svh;
+  max-width: 1320px; margin-inline: auto;
+}
+.chapter--right { justify-items: end; text-align: right; }
+.chapter__inner { max-width: 46ch; position: relative; }
+/* Der Text liegt über einem bewegten Bild. Ohne Abdunklung darunter ist er
+   je nach Kameraposition mal lesbar, mal nicht. */
+.chapter__inner::before {
+  content: ""; position: absolute; z-index: -1;
+  inset: -14% -22% -18% -18%;
+  background: radial-gradient(60% 60% at 32% 50%, rgba(2, 4, 10, .88), rgba(2, 4, 10, .55) 55%, transparent 78%);
+  filter: blur(6px);
+}
+.chapter--right .chapter__inner::before {
+  background: radial-gradient(60% 60% at 68% 50%, rgba(2, 4, 10, .88), rgba(2, 4, 10, .55) 55%, transparent 78%);
+}
+.chapter--right .chapter__inner { margin-left: auto; }
+.chapter__meta {
+  font-size: var(--t-xs); letter-spacing: .3em; text-transform: uppercase;
+  color: var(--c-cyan); margin-bottom: var(--s-2);
+  text-shadow: 0 2px 10px rgba(0,0,0,.8);
+}
+.chapter h2 {
+  font-size: clamp(2rem, 1.1rem + 3.6vw, 3.9rem); font-weight: 700; letter-spacing: -.04em;
+  overflow-wrap: break-word; hyphens: auto;
+  line-height: 1.02; text-shadow: none;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.7)) drop-shadow(0 22px 44px rgba(0,0,0,.85));
+}
+.chapter__line { display: block; overflow: hidden; padding-bottom: .06em; }
+.chapter__line > span { display: block; }
+.chapter__line--accent > span {
+  background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.chapter__body {
+  margin-top: var(--s-3); font-size: var(--t-md); color: var(--c-text-dim); max-width: 44ch;
+  text-shadow: 0 2px 12px rgba(0,0,0,.8);
+}
+.chapter--right .chapter__body { margin-left: auto; }
+.chapter__cta { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-4); }
+.chapter--right .chapter__cta { justify-content: flex-end; }
+
+/* Kapitelleiste */
+.chapters {
+  position: fixed; right: clamp(.9rem, 2vw, 1.8rem); top: 50%; transform: translateY(-50%);
+  z-index: 40; display: grid; gap: .85rem; padding: .9rem .55rem;
+  border-radius: 999px; background: rgba(8, 12, 20, .5); backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 1px rgba(150, 180, 230, .14);
+}
+.chapters__dot {
+  width: 26px; height: 26px; display: grid; place-content: center;
+  background: none; border: 0; cursor: pointer; padding: 0;
+}
+.chapters__dot::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(150, 180, 230, .3);
+  transition: background-color var(--d-move) var(--e-std), transform var(--d-move) var(--e-std),
+              box-shadow var(--d-move) var(--e-std);
+}
+.chapters__dot:hover::before { background: rgba(200, 225, 255, .8); transform: scale(1.25); }
+.chapters__dot[aria-current="step"]::before {
+  background: var(--c-cyan); transform: scale(1.5);
+  box-shadow: 0 0 14px 2px rgba(31, 232, 255, .55);
+}
+
+/* Scroll-Hinweis */
+.world-cue {
+  position: fixed; bottom: clamp(1rem, 3vh, 2rem); left: 50%; transform: translateX(-50%);
+  z-index: 40; display: grid; justify-items: center; gap: .6rem;
+  font-size: var(--t-xs); letter-spacing: .26em; text-transform: uppercase; color: var(--c-text-faint);
+  transition: opacity var(--d-move) var(--e-std);
+}
+.world-cue i { width: 1px; height: 40px; background: linear-gradient(var(--c-cyan), transparent); animation: cue 2.4s var(--e-std) infinite; transform-origin: 50% 0; }
+body.scrolled .world-cue { opacity: 0; }
+
+/* Abschluss */
+.world-end {
+  position: relative; z-index: 10; text-align: center;
+  padding: 12svh var(--page-x) 8svh;
+  background: linear-gradient(to bottom, transparent, rgba(3, 5, 9, .92) 45%, #030509);
+}
+.world-end__logo { width: clamp(180px, 24vw, 300px); margin: 0 auto var(--s-3); }
+.world-end p { color: var(--c-text-faint); font-size: var(--t-sm); }
+.world-end .chapter__cta { justify-content: center; }
+
+@media (max-width: 860px) {
+  /* Kapitelleiste nach unten: rechts am Rand schneidet sie in den Text. */
+  .chapters {
+    top: auto; bottom: calc(1rem + env(safe-area-inset-bottom));
+    right: 50%; transform: translateX(50%);
+    grid-auto-flow: column; gap: .5rem; padding: .5rem .8rem;
+  }
+  .world-cue { display: none; }
+  .chapter { padding-bottom: 18svh; }
+  .chapter--right { justify-items: start; text-align: left; }
+  .chapter--right .chapter__inner, .chapter--right .chapter__body { margin-left: 0; }
+  .chapter--right .chapter__cta { justify-content: flex-start; }
+  .chapter--right .chapter__inner::before {
+    background: radial-gradient(62% 60% at 32% 50%, rgba(2, 4, 10, .9), rgba(2, 4, 10, .6) 55%, transparent 78%);
+  }
+  /* Die Qualitätswahl braucht auf kleinen Bildschirmen keinen Platz —
+     dort läuft ohnehin die automatische Stufe. */
+  .world-head .chip:has(select) { display: none; }
+  .world-head { gap: .5rem; align-items: flex-start; }
+  /* Auf sehr schmalen Geräten reicht die Bildmarke — der Schriftzug steht
+     ohnehin im Ladebild und im Abspann. */
+  .world-head .brand__name { display: none; }
+  .world-head .chip { font-size: .6rem; padding: .45rem .7rem; min-height: 36px; }
+}
+
+/* Reduzierte Bewegung: die Erfahrung wird zur ruhigen, vollständigen Seite */
+@media (prefers-reduced-motion: reduce) {
+  .loader { display: none; }
+  .world-cue i, .loader__mark, .loader__bar i { animation: none; }
+  .chapter { min-height: auto; padding-block: 8svh; }
+  .chapter__line > span { transform: none !important; }
+}
+[data-state="fallback"] .chapter { min-height: auto; padding-block: 9svh; }
+[data-state="fallback"] .chapter__line > span,
+[data-state="fallback"] .chapter__body,
+[data-state="fallback"] .chapter__meta { opacity: 1 !important; transform: none !important; }

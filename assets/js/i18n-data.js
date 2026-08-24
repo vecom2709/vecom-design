@@ -8,8 +8,8 @@ window.VECOM_I18N = {
   /* ----------------------------- ITALIANO ------------------------------- */
   it: {
     meta: {
-      title: "Vecom Design — Webdesign, Logo e Branding",
-      desc: "Studio creativo per siti web, marchi e negozi online. Progettazione su misura, trilingue, veloce e curata nel dettaglio.",
+      title: "Web design, logo e branding su misura | Vecom Design",
+      desc: "Studio creativo per siti web, marchi e negozi online: progettazione su misura, siti trilingue (IT/DE/EN), veloci e ottimizzati. Pacchetti da 499 €.",
       locale: "it_IT"
     },
     nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Pacchetti", contact: "Contatti", cta: "Avvia un progetto" },
@@ -20,6 +20,7 @@ window.VECOM_I18N = {
       lead: "Progettiamo siti web, marchi e negozi online per chi non vuole un modello preconfezionato, ma un'identità propria. Dalla prima idea al lancio — in italiano, tedesco e inglese.",
       cta1: "Avvia un progetto",
       cta2: "Guarda i lavori",
+      cta3: "Entra nell'esperienza 3D",
       m1t: "Lingue dal primo giorno", m1d: "IT · DE · EN",
       m2t: "Ambito", m2d: "Web · Marchio · Shop",
       m3t: "Sede", m3d: "[Città], Italia",
@@ -135,8 +136,8 @@ window.VECOM_I18N = {
   /* ------------------------------ DEUTSCH ------------------------------- */
   de: {
     meta: {
-      title: "Vecom Design — Webdesign, Logo & Branding",
-      desc: "Kreativstudio für Websites, Marken und Online-Shops. Maßgeschneidert, dreisprachig, schnell und bis ins Detail gepflegt.",
+      title: "Webdesign, Logo & Branding nach Maß | Vecom Design",
+      desc: "Kreativstudio für Websites, Marken und Online-Shops: individuelles Design, dreisprachig (IT/DE/EN), schnell und suchmaschinenfreundlich. Pakete ab 499 €.",
       locale: "de_DE"
     },
     nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Pakete", contact: "Kontakt", cta: "Projekt starten" },
@@ -147,6 +148,7 @@ window.VECOM_I18N = {
       lead: "Wir gestalten Websites, Marken und Online-Shops für alle, die kein fertiges Template wollen, sondern eine eigene Handschrift. Von der ersten Idee bis zum Launch — auf Italienisch, Deutsch und Englisch.",
       cta1: "Projekt starten",
       cta2: "Arbeiten ansehen",
+      cta3: "In die 3D-Welt eintreten",
       m1t: "Sprachen ab Tag eins", m1d: "IT · DE · EN",
       m2t: "Bereiche", m2d: "Web · Marke · Shop",
       m3t: "Sitz", m3d: "[Ort], Italien",
@@ -262,8 +264,8 @@ window.VECOM_I18N = {
   /* ------------------------------ ENGLISH ------------------------------- */
   en: {
     meta: {
-      title: "Vecom Design — Web design, logo & branding",
-      desc: "Creative studio for websites, brands and online stores. Built to measure, trilingual, fast and finished with care.",
+      title: "Web design, logo & branding, built to measure | Vecom Design",
+      desc: "Creative studio for websites, brands and online stores: custom design, trilingual (IT/DE/EN), fast and search-friendly. Packages from €499.",
       locale: "en_GB"
     },
     nav: { services: "Services", work: "Work", process: "Process", plans: "Packages", contact: "Contact", cta: "Start a project" },
@@ -274,6 +276,7 @@ window.VECOM_I18N = {
       lead: "We design websites, brands and online stores for anyone who wants a signature rather than a template. From first idea to launch — in Italian, German and English.",
       cta1: "Start a project",
       cta2: "See the work",
+      cta3: "Enter the 3D experience",
       m1t: "Languages from day one", m1d: "IT · DE · EN",
       m2t: "Scope", m2d: "Web · Brand · Store",
       m3t: "Based in", m3d: "[City], Italy",

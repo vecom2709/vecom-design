@@ -20,6 +20,10 @@
   }
 
   function pickLang() {
+    // Statisch vorgerenderte Sprachseite (/de/, /en/): die URL entscheidet,
+    // nicht der gespeicherte Wunsch — sonst zeigt /de/ plötzlich Italienisch.
+    var fixed = document.documentElement.getAttribute('data-lang-fixed');
+    if (fixed && LANGS.indexOf(fixed) > -1) return fixed;
     var url = new URLSearchParams(location.search).get('lang');
     if (LANGS.indexOf(url) > -1) return url;
     try {
@@ -96,7 +100,9 @@
     document.querySelectorAll('[data-lang]').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang));
     });
-    try { localStorage.setItem(STORE, lang); } catch (e) {}
+    if (!document.documentElement.getAttribute('data-lang-fixed')) {
+      try { localStorage.setItem(STORE, lang); } catch (e) {}
+    }
   }
 
   apply(pickLang());
