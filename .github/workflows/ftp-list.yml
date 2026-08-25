@@ -1,6 +1,5 @@
 # Einmaliger Helfer: listet die Verzeichnisse auf dem Webspace auf, damit das
 # richtige Zielverzeichnis der Domain feststeht. Läuft nur von Hand.
-# Kann gelöscht werden, sobald FTP_SERVER_DIR eingetragen ist.
 name: FTP-Verzeichnis ermitteln
 
 on:
@@ -10,16 +9,22 @@ jobs:
   list:
     runs-on: ubuntu-latest
     steps:
-      - name: Wurzelverzeichnis auflisten
+      - name: Verzeichnisse auflisten
         env:
           PW: ${{ secrets.FTP_PASSWORD }}
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-          lftp -u f018ae3f,"$PW" -e "
-            set ssl:verify-certificate no;
-            set ftp:ssl-force true;
-            set ftp:ssl-protect-data true;
-            echo '--- Wurzel ---'; cls -1;
-            echo '--- /vecom-design.it ---'; cls -1 /vecom-design.it || true;
-            echo '--- /www ---'; cls -1 /www || true;
-            bye" w021fb9a.kasserver.com
+          cat > /tmp/cmds <<'CMDS'
+          set ssl:verify-certificate no
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set cmd:fail-exit no
+          echo ===WURZEL===
+          cls -1
+          echo ===VECOM===
+          cls -1 /vecom-design.it
+          echo ===WWW===
+          cls -1 /www
+          bye
+          CMDS
+          lftp -u "f018ae3f,$PW" w021fb9a.kasserver.com -f /tmp/cmds
