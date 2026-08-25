@@ -75,6 +75,18 @@ function build(lang) {
   h = h.replace(/<div class="marquee__track" data-marquee>[\s\S]*?<\/div>/,
     `<div class="marquee__track" data-marquee><span>${esc(mq)}</span><span aria-hidden="true">${esc(mq)}</span></div>`);
 
+  // 1b. FAQ-Schema: Google zeigt die Fragen direkt im Suchergebnis an
+  const faq = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
+      '@type': 'Question',
+      name: get(lang, `faq.q${n}`),
+      acceptedAnswer: { '@type': 'Answer', text: get(lang, `faq.a${n}`) },
+    })),
+  };
+  h = h.replace('</head>', `<script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n</script>\n</head>`);
+
   // 2. Kopfdaten
   const url = `${BASE}/${LANGS[lang]}`;
   h = h.replace(/<html lang="[^"]*"/, `<html lang="${lang}" data-lang-fixed="${lang}"`);

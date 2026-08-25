@@ -12,7 +12,7 @@ window.VECOM_I18N = {
       desc: "Studio creativo per siti web, marchi e negozi online: progettazione su misura, siti trilingue (IT/DE/EN), veloci e ottimizzati. Pacchetti da 499 €.",
       locale: "it_IT"
     },
-    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Pacchetti", contact: "Contatti", cta: "Avvia un progetto" },
+    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Pacchetti", faq: "FAQ", contact: "Contatti", cta: "Avvia un progetto" },
     hero: {
       eyebrow: "Studio creativo — Italia & Germania",
       t1: "Siti che",
@@ -93,6 +93,26 @@ window.VECOM_I18N = {
       cta: "Richiedi un preventivo",
       note: "Tutti i prezzi sono IVA esclusa. Durata e disdetta della manutenzione mensile: [da definire]."
     },
+    faq: {
+      head: "Domande frequenti",
+      lead: "Le domande che ci arrivano prima di ogni progetto — con risposte chiare.",
+      q1: "Quanto dura la realizzazione di un sito?",
+      a1: "Per il pacchetto Starter di norma da una a due settimane, per Business due o tre, per Premium da quattro a sei. Il fattore che decide non è il nostro lavoro ma i testi e le immagini: se il materiale c'è, si va veloci.",
+      q2: "La manutenzione mensile è obbligatoria?",
+      a2: "No. Il sito resta tuo anche senza. La manutenzione copre backup, aggiornamenti di sicurezza e piccole modifiche — senza di essa questi passaggi restano a carico tuo o del tuo tecnico. Durata e disdetta: [da definire].",
+      q3: "A chi appartiene il sito una volta finito?",
+      a3: "A te. Codice, immagini e file di progetto vengono consegnati. Non c'è nessun vincolo tecnico che ti leghi a noi: puoi portare il sito da un altro fornitore quando vuoi.",
+      q4: "Cosa succede se voglio cambiare qualcosa dopo il lancio?",
+      a4: "Piccole modifiche di testo e immagini sono incluse in tutti i pacchetti con manutenzione. Interventi più grandi vengono preventivati a parte, sempre prima di iniziare.",
+      q5: "Serve un sito trilingue anche se lavoro solo in Italia?",
+      a5: "Non sempre. Ha senso se hai clienti stranieri, turisti o partner all'estero. Se non è il tuo caso, un sito in una lingua costa meno e si aggiorna più in fretta — lo diciamo anche quando significa vendere meno.",
+      q6: "Il sito è veloce e trovabile su Google?",
+      a6: "La velocità è parte del progetto, non un'aggiunta: struttura leggera, immagini ottimizzate, nessuno script di terze parti superfluo. Le basi SEO sono incluse in tutti i pacchetti; il posizionamento su ricerche competitive richiede però lavoro continuo nel tempo.",
+      q7: "Il sito usa cookie?",
+      a7: "Nella configurazione base no: nessun cookie di tracciamento, nessun carattere caricato da server esterni, nessuna profilazione. Perciò non serve nemmeno il banner. Se in seguito aggiungi statistiche o mappe, cambia — e in quel caso servono consenso e informativa aggiornata.",
+      q8: "Come si paga?",
+      a8: "Metà all'accettazione del preventivo, metà alla consegna. La manutenzione parte dal mese successivo al lancio."
+    },
     contact: {
       head: "Parliamo del progetto.",
       lead: "Descrivi in poche righe cosa ti serve. Rispondiamo entro un giorno lavorativo, in italiano, tedesco o inglese.",
@@ -140,7 +160,7 @@ window.VECOM_I18N = {
       desc: "Kreativstudio für Websites, Marken und Online-Shops: individuelles Design, dreisprachig (IT/DE/EN), schnell und suchmaschinenfreundlich. Pakete ab 499 €.",
       locale: "de_DE"
     },
-    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Pakete", contact: "Kontakt", cta: "Projekt starten" },
+    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Pakete", faq: "Fragen", contact: "Kontakt", cta: "Projekt starten" },
     hero: {
       eyebrow: "Kreativstudio — Italien & Deutschland",
       t1: "Websites, die",
@@ -221,6 +241,26 @@ window.VECOM_I18N = {
       cta: "Angebot anfragen",
       note: "Alle Preise zzgl. MwSt. Laufzeit und Kündigungsfrist der monatlichen Wartung: [bitte ergänzen]."
     },
+    faq: {
+      head: "Häufige Fragen",
+      lead: "Die Fragen, die vor jedem Projekt kommen — mit klaren Antworten.",
+      q1: "Wie lange dauert die Umsetzung?",
+      a1: "Beim Paket Starter in der Regel ein bis zwei Wochen, bei Business zwei bis drei, bei Premium vier bis sechs. Ausschlaggebend ist selten unsere Arbeit, sondern Texte und Bilder: Liegt das Material vor, geht es schnell.",
+      q2: "Ist die monatliche Wartung Pflicht?",
+      a2: "Nein. Die Website gehört Ihnen auch ohne sie. Die Wartung deckt Backups, Sicherheitsupdates und kleine Änderungen ab — ohne sie bleiben diese Aufgaben bei Ihnen oder Ihrem Techniker. Laufzeit und Kündigungsfrist: [bitte ergänzen].",
+      q3: "Wem gehört die Website nach dem Launch?",
+      a3: "Ihnen. Code, Bilder und Projektdateien werden übergeben. Es gibt keine technische Bindung an uns: Sie können die Seite jederzeit zu einem anderen Anbieter mitnehmen.",
+      q4: "Was, wenn ich nach dem Launch etwas ändern will?",
+      a4: "Kleine Text- und Bildänderungen sind in allen Paketen mit Wartung enthalten. Größere Erweiterungen werden vorher separat angeboten — nie im Nachhinein abgerechnet.",
+      q5: "Brauche ich eine dreisprachige Seite, wenn ich nur regional arbeite?",
+      a5: "Nicht zwingend. Sinnvoll ist sie bei ausländischen Kunden, Gästen oder Partnern. Trifft das nicht zu, ist eine einsprachige Seite günstiger und schneller zu pflegen — das sagen wir auch dann, wenn es weniger Auftrag bedeutet.",
+      q6: "Ist die Seite schnell und bei Google auffindbar?",
+      a6: "Tempo gehört zum Entwurf, nicht als Zusatz: schlanke Struktur, optimierte Bilder, keine unnötigen fremden Skripte. SEO-Grundlagen sind in allen Paketen enthalten; eine Platzierung bei umkämpften Suchbegriffen braucht darüber hinaus laufende Arbeit.",
+      q7: "Verwendet die Seite Cookies?",
+      a7: "In der Grundkonfiguration nicht: keine Tracking-Cookies, keine Schriften von fremden Servern, keine Profilbildung. Deshalb ist auch kein Banner nötig. Kommen später Statistiken oder Karten dazu, ändert sich das — dann braucht es Einwilligung und angepasste Datenschutzerklärung.",
+      q8: "Wie wird abgerechnet?",
+      a8: "Die Hälfte bei Auftragserteilung, die Hälfte bei Übergabe. Die Wartung beginnt im Monat nach dem Launch."
+    },
     contact: {
       head: "Sprechen wir über das Projekt.",
       lead: "Beschreiben Sie in wenigen Zeilen, worum es geht. Antwort innerhalb eines Werktags — auf Italienisch, Deutsch oder Englisch.",
@@ -268,7 +308,7 @@ window.VECOM_I18N = {
       desc: "Creative studio for websites, brands and online stores: custom design, trilingual (IT/DE/EN), fast and search-friendly. Packages from €499.",
       locale: "en_GB"
     },
-    nav: { services: "Services", work: "Work", process: "Process", plans: "Packages", contact: "Contact", cta: "Start a project" },
+    nav: { services: "Services", work: "Work", process: "Process", plans: "Packages", faq: "FAQ", contact: "Contact", cta: "Start a project" },
     hero: {
       eyebrow: "Creative studio — Italy & Germany",
       t1: "Websites people",
@@ -348,6 +388,26 @@ window.VECOM_I18N = {
       priceNote: "one-off · plus VAT",
       cta: "Request a quote",
       note: "All prices exclude VAT. Term and notice period for the monthly maintenance: [to be defined]."
+    },
+    faq: {
+      head: "Frequent questions",
+      lead: "The questions that come up before every project — answered plainly.",
+      q1: "How long does a site take?",
+      a1: "Starter usually one to two weeks, Business two to three, Premium four to six. What decides the pace is rarely our work but your copy and images: once the material is there, it moves fast.",
+      q2: "Is the monthly maintenance compulsory?",
+      a2: "No. The site is yours without it. Maintenance covers backups, security updates and small changes — without it those tasks stay with you or your technician. Term and notice period: [to be defined].",
+      q3: "Who owns the site after launch?",
+      a3: "You do. Code, images and project files are handed over. There is no technical lock-in: you can move the site to another provider at any time.",
+      q4: "What if I want changes after launch?",
+      a4: "Small text and image changes are included in every package with maintenance. Larger additions are quoted separately, always before the work starts.",
+      q5: "Do I need a trilingual site if I only work locally?",
+      a5: "Not necessarily. It pays off with foreign customers, visitors or partners. If that isn't you, a single-language site is cheaper and quicker to keep current — we say so even when it means a smaller job.",
+      q6: "Will the site be fast and findable on Google?",
+      a6: "Speed is part of the design, not an add-on: lean structure, optimised images, no unnecessary third-party scripts. SEO groundwork is included in every package; ranking for competitive terms takes ongoing work beyond that.",
+      q7: "Does the site use cookies?",
+      a7: "Not in the basic setup: no tracking cookies, no fonts from third-party servers, no profiling. That is why no banner is needed. If analytics or maps are added later, that changes — then consent and an updated privacy notice are required.",
+      q8: "How is payment handled?",
+      a8: "Half on commissioning, half on handover. Maintenance starts the month after launch."
     },
     contact: {
       head: "Let's talk about the project.",

@@ -25,6 +25,7 @@ export const SITE_BEATS = [
   { id: 'process',  cam: [-1.9, -0.1, 6.6], look: [-1.6, 0.25, 0], pos: [-1.8, 0.1, 0], rotY: 0.36, rotX: -0.03, fog: 0.028, key: 280, spec: 26, bloom: 0.42, rough: 0.19, keyPos: [-5.0, 4.5, 6.5], halo: 0.12, scrim: 0.66 },
   { id: 'pillars',  cam: [1.2, 4.4, 17.5], look: [1.5, -1.9, 0], pos: [2.0, -1.3, 0], rotY: 0.12,  rotX: 0.0,  fog: 0.036, key: 560, spec: 34, bloom: 0.50, rough: 0.22, keyPos: [-3.0, 9.5, 8.0], halo: 0.34, scrim: 0.48 },
   { id: 'plans',    cam: [-0.4, 0.6, 10.4], look: [-1.0, 0.0, 0], pos: [-1.6, 0.0, 0], rotY: 0.02, rotX: 0.0,  fog: 0.038, key: 300, spec: 18, bloom: 0.40, rough: 0.22, keyPos: [-4.0, 7.0, 7.0], halo: 0.22, scrim: 0.78 },
+  { id: 'faq',      cam: [2.4, 0.9, 12.6], look: [1.6, 0.1, 0],  pos: [2.4, 0.0, 0],  rotY: 0.44,  rotX: 0.02, fog: 0.038, key: 300, spec: 24, bloom: 0.40, rough: 0.24, keyPos: [4.5, 6.5, 7.0], halo: 0.20, scrim: 0.80 },
   { id: 'contact',  cam: [0.6, 1.7, 16.0], look: [0.4, -0.9, 0], pos: [0.2, -1.9, 0], rotY: -0.18, rotX: 0.0,  fog: 0.042, key: 420, spec: 22, bloom: 0.40, rough: 0.20, keyPos: [-3.2, 7.0, 8.0], halo: 0.30, scrim: 0.78 },
 ];
 
