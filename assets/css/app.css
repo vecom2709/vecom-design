@@ -193,14 +193,6 @@ body[data-frame="gold"] {
   opacity: 0;
   transition: opacity 1.4s var(--e-std);
 }
-body.world-on #world { opacity: 1; }
-/* Sobald die Szene läuft, verschwindet das Standbild der Marke im Hero */
-body.world-on .hero__mark { opacity: 0; }
-body.world-on .hero__grid { opacity: .55; }
-/* Inhalt liegt immer über der Szene */
-.header, main, .footer, .progress, .grain, .vignette { position: relative; z-index: 1; }
-.header { position: fixed; }
-.progress, .grain, .vignette { position: fixed; }
 
 /* ---------- 3. Filmische Grundschicht: Korn, Vignette, Licht ------------- */
 .grain {
@@ -937,8 +929,12 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 }
 
 /* Alles Inhaltliche liegt über der Bühne. */
-.header, main, .footer, .progress, .grain, .vignette, .cursor, .cursor-dot { position: relative; z-index: 2; }
-.header { position: fixed; }
+main, .footer { position: relative; z-index: 2; }
+.progress, .grain, .vignette, .cursor, .cursor-dot { position: fixed; }
+/* Die Kopfzeile liegt über dem Inhalt. Vorher hatten Kopfzeile und main
+   denselben Stapelwert — dann gewinnt das spätere Element im Dokument, und
+   der Hero-Abschnitt fing sämtliche Klicks auf Menü und Sprachwahl ab. */
+.header { position: fixed; z-index: 100; }
 .progress, .grain, .vignette, .cursor, .cursor-dot { position: fixed; }
 
 /* Wenn die Welt läuft, braucht der Hero seine gemalten Ersatzteile nicht mehr:

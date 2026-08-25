@@ -135,6 +135,29 @@
     render('once');
   }
 
+  /* ---------- 8b. Sprungmarken sauber anfahren ---------------------------- */
+  // Mit weichem Scrollen (Lenis) hakt der native Sprung über #anker: Der Browser
+  // springt, Lenis scrollt gleichzeitig zurück. Deshalb übernehmen wir die
+  // Sprünge selbst — inklusive Abstand für die feste Kopfzeile.
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const id = a.getAttribute('href').slice(1);
+    if (!id) return;
+    const target = document.getElementById(id);
+    if (!target) return;
+    e.preventDefault();
+    const lenis = window.__vecomLenis;
+    if (lenis) {
+      lenis.scrollTo(target, { offset: -84, duration: 1.1 });
+    } else {
+      const y = target.getBoundingClientRect().top + window.scrollY - 84;
+      window.scrollTo({ top: y, behavior: reduced ? 'auto' : 'smooth' });
+    }
+    history.replaceState(null, '', '#' + id);
+    document.body.classList.remove('nav-open');
+  });
+
   /* ---------- 9. Sprachwechsel gestaffelt --------------------------------- */
   if (!reduced) {
     document.querySelectorAll('[data-lang]').forEach((b) => {
