@@ -265,7 +265,12 @@ body[data-frame="gold"] {
   box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 1);
 }
 .header__inner { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
-.brand { display: flex; align-items: center; gap: .7rem; }
+/* Marke und Werkzeuge dürfen nicht schrumpfen: Sonst wird ihr Kasten kleiner,
+   der Schriftzug läuft heraus und legt sich über das Menü. Nur das Menü in der
+   Mitte gibt nach. */
+.brand { display: flex; align-items: center; gap: .7rem; flex: 0 0 auto; }
+.header__tools { flex: 0 0 auto; }
+.header .nav { flex: 1 1 auto; min-width: 0; justify-content: center; }
 .brand img { width: clamp(34px, 4vw, 44px); }
 .brand__name {
   font-family: var(--f-display); font-stretch: 96%; font-weight: 600; font-size: var(--t-sm);
@@ -954,6 +959,10 @@ main, .footer { position: relative; z-index: 2; }
 [data-world="device"] .stage { display: none; }
 
 @media (prefers-reduced-motion: reduce) { .stage, .world-scrim { display: none; } }
+
+/* Ab hier wird es in der Kopfzeile eng — die deutschen Menüpunkte sind länger
+   als die italienischen. Dann trägt die Marke nur noch das Zeichen. */
+@media (max-width: 1350px) { .header .brand__name { display: none; } }
 
 /* Qualitätswahl in der Kopfzeile — nur sichtbar, wenn die Bühne wirklich läuft */
 .chip--quality { display: none; }
