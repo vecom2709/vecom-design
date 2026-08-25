@@ -85,6 +85,9 @@ function build(lang) {
       acceptedAnswer: { '@type': 'Answer', text: get(lang, `faq.a${n}`) },
     })),
   };
+  // Erst entfernen, dann setzen: index.html ist Quelle und Ziel zugleich —
+  // ohne das sammelt sich bei jedem Lauf ein weiteres FAQ-Schema an.
+  h = h.replace(/<script type="application\/ld\+json">\s*\{\s*"@context"[^<]*"FAQPage"[\s\S]*?<\/script>\s*/g, '');
   h = h.replace('</head>', `<script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n</script>\n</head>`);
 
   // 2. Kopfdaten
