@@ -993,3 +993,10 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   padding: 0 clamp(1.2rem, 2.4vw, 2rem) clamp(1.3rem, 2.2vw, 1.8rem);
   max-width: 74ch; color: var(--c-text-dim); font-size: var(--t-sm);
 }
+
+/* Angeheftetes Kapitel „Ablauf": Der jeweils aktive Schritt tritt hervor,
+   die anderen treten zurück. Ohne JS bleiben alle gleichwertig sichtbar. */
+.step { transition: opacity var(--d-move) var(--e-std), transform var(--d-move) var(--e-std); }
+#process:has(.is-active) .step { opacity: .32; }
+#process:has(.is-active) .step.is-active { opacity: 1; transform: translateX(6px); }
+#process:has(.is-active) .step.is-active .step__no { filter: drop-shadow(0 0 18px rgba(31, 232, 255, .5)); }

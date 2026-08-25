@@ -7,6 +7,8 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { FinishShader } from './finish-pass.js';
 import { LOGO_CONTOURS } from './logo-shape.js';
 
 const BLUE = 0x0648e8;
@@ -163,6 +165,11 @@ export class World {
       envMapIntensity: 1.9,
       anisotropy: 0.6,           // längliche Reflexe wie bei geschliffenem Metall
       anisotropyRotation: Math.PI / 3,
+      transmission: 0.0,          // wird für den Glaszustand hochgefahren
+      thickness: 0.0,
+      ior: 1.5,
+      emissive: new THREE.Color(0x1a6cff),
+      emissiveIntensity: 0.0,
       iridescence: 0.08,          // nur ein Hauch — mehr kippt ins Violette
       iridescenceIOR: 1.35,
       iridescenceThicknessRange: [180, 420],
@@ -330,6 +337,13 @@ export class World {
       new THREE.Vector2(window.innerWidth, window.innerHeight), 0.46, 0.75, 0.95
     );
     this.composer.addPass(this.bloom);
+
+    // Abschluss-Pass: Lichtstreuung, Tiefenunschärfe, Farbsaum, Vignette.
+    this.finish = new ShaderPass(FinishShader);
+    this.finish.uniforms.uLightPos.value = new THREE.Vector2(0.5, 0.35);
+    this.finish.uniforms.uAspect.value = window.innerWidth / window.innerHeight;
+    this.composer.addPass(this.finish);
+
     this.composer.addPass(new OutputPass());
     this.bloom.enabled = this.q.settings.bloom;
   }
@@ -338,11 +352,34 @@ export class World {
     this.renderer.setPixelRatio(Math.min(s.dpr, window.devicePixelRatio || 1));
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
     this.bloom.enabled = s.bloom;
+    if (this.finish) this.finish.enabled = s.bloom;   // gleiche Schwelle wie Bloom
     this.renderer.shadowMap.enabled = s.shadow > 0;
     this.logo.castShadow = s.shadow > 0;
     this.key.castShadow = s.shadow > 0;
     this._buildDust();
     this.resize();
+  }
+
+  /* Drei Aggregatzustände desselben Motivs. Die Werte werden von außen
+     angetweent, hier stehen nur die Ziele. */
+  static MATERIALS = {
+    metal: { metalness: 0.86, roughness: 0.30, transmission: 0.0, ior: 1.5, thickness: 0.0,
+             clearcoatRoughness: 0.07, iridescence: 0.08, emissiveIntensity: 0.0, envMapIntensity: 1.9, opacity: 1 },
+    glass: { metalness: 0.05, roughness: 0.06, transmission: 0.92, ior: 1.62, thickness: 1.6,
+             clearcoatRoughness: 0.02, iridescence: 0.55, emissiveIntensity: 0.12, envMapIntensity: 2.4, opacity: 1 },
+    glow:  { metalness: 0.75, roughness: 0.22, transmission: 0.0, ior: 1.5, thickness: 0.0,
+             clearcoatRoughness: 0.05, iridescence: 0.2, emissiveIntensity: 1.5, envMapIntensity: 1.4, opacity: 1 },
+  };
+
+  /* Die Lichtquelle in Bildkoordinaten — die Strahlen müssen dort ansetzen,
+     wo das Licht im Bild wirklich steht, sonst wirkt der Effekt aufgeklebt. */
+  _updateLightScreenPos() {
+    if (!this.finish) return;
+    this.tmp.copy(this.key.position).project(this.camera);
+    this.finish.uniforms.uLightPos.value.set(
+      this.tmp.x * 0.5 + 0.5,
+      this.tmp.y * 0.5 + 0.5
+    );
   }
 
   resize() {
@@ -354,6 +391,7 @@ export class World {
     this.renderer.setSize(w, h, false);
     this.composer.setSize(w, h);
     this.bloom.setSize(w, h);
+    if (this.finish) this.finish.uniforms.uAspect.value = w / h;
   }
 
   setParallax(x, y) { this.parallax.set(x, y); }
@@ -376,6 +414,7 @@ export class World {
     this.key.target.position.set(0, 0, 0);
     this.key.target.updateMatrixWorld();
 
+    this._updateLightScreenPos();
     this.composer.render();
     this.q.sample(performance.now() - t0);
   }

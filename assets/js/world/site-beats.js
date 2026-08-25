@@ -19,15 +19,25 @@
    ========================================================================== */
 
 export const SITE_BEATS = [
-  { id: 'hero',     cam: [0.6, 0.8, 12.0], look: [1.1, 0.1, 0],  pos: [2.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, scrim: 0.00 },
-  { id: 'services', cam: [-2.2, 1.0, 8.8], look: [-1.2, 0.1, 0], pos: [-2.0, 0.0, 0], rotY: -0.22, rotX: 0.02, fog: 0.034, key: 420, spec: 40, bloom: 0.52, rough: 0.26, keyPos: [-5.5, 6.0, 5.0], halo: 0.24, scrim: 0.62 },
-  { id: 'work',     cam: [2.7, 1.1, 9.6],  look: [1.4, 0.0, 0],  pos: [1.8, -0.1, 0], rotY: 0.34,  rotX: -0.04, fog: 0.030, key: 330, spec: 42, bloom: 0.44, rough: 0.16, keyPos: [5.5, 5.5, 7.5], halo: 0.16, scrim: 0.74 },
-  { id: 'process',  cam: [-1.9, -0.1, 6.6], look: [-1.6, 0.25, 0], pos: [-1.8, 0.1, 0], rotY: 0.36, rotX: -0.03, fog: 0.028, key: 280, spec: 26, bloom: 0.42, rough: 0.19, keyPos: [-5.0, 4.5, 6.5], halo: 0.12, scrim: 0.66 },
-  { id: 'pillars',  cam: [1.2, 4.4, 17.5], look: [1.5, -1.9, 0], pos: [2.0, -1.3, 0], rotY: 0.12,  rotX: 0.0,  fog: 0.036, key: 560, spec: 34, bloom: 0.50, rough: 0.22, keyPos: [-3.0, 9.5, 8.0], halo: 0.34, scrim: 0.48 },
-  { id: 'plans',    cam: [-0.4, 0.6, 10.4], look: [-1.0, 0.0, 0], pos: [-1.6, 0.0, 0], rotY: 0.02, rotX: 0.0,  fog: 0.038, key: 300, spec: 18, bloom: 0.40, rough: 0.22, keyPos: [-4.0, 7.0, 7.0], halo: 0.22, scrim: 0.78 },
-  { id: 'faq',      cam: [2.4, 0.9, 12.6], look: [1.6, 0.1, 0],  pos: [2.4, 0.0, 0],  rotY: 0.44,  rotX: 0.02, fog: 0.038, key: 300, spec: 24, bloom: 0.40, rough: 0.24, keyPos: [4.5, 6.5, 7.0], halo: 0.20, scrim: 0.80 },
-  { id: 'contact',  cam: [0.6, 1.7, 16.0], look: [0.4, -0.9, 0], pos: [0.2, -1.9, 0], rotY: -0.18, rotX: 0.0,  fog: 0.042, key: 420, spec: 22, bloom: 0.40, rough: 0.20, keyPos: [-3.2, 7.0, 8.0], halo: 0.30, scrim: 0.78 },
+  // id, Kamera, Blickpunkt, Position der Marke, Drehung, Atmosphäre, Licht,
+  // Material (metal|glass|glow), Bildeffekte (rays/blur/focus), Schleier.
+  { id: 'hero',     cam: [0.6, 0.8, 12.0],  look: [1.1, 0.1, 0],  pos: [2.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, mat: 'metal', rays: 0.40, blur: 0.30, focus: 0.34, scrim: 0.00 },
+  { id: 'services', cam: [-2.2, 1.0, 8.8],  look: [-1.2, 0.1, 0], pos: [-2.0, 0.0, 0], rotY: -0.22, rotX: 0.02, fog: 0.034, key: 420, spec: 40, bloom: 0.52, rough: 0.26, keyPos: [-5.5, 6.0, 5.0], halo: 0.24, mat: 'metal', rays: 0.55, blur: 0.40, focus: 0.28, scrim: 0.62 },
+  { id: 'work',     cam: [2.7, 1.1, 9.6],   look: [1.4, 0.0, 0],  pos: [1.8, -0.1, 0], rotY: 0.34,  rotX: -0.04, fog: 0.030, key: 330, spec: 42, bloom: 0.44, rough: 0.16, keyPos: [5.5, 5.5, 7.5], halo: 0.16, mat: 'glass', rays: 0.30, blur: 0.55, focus: 0.24, scrim: 0.74 },
+  { id: 'process',  cam: [-1.9, -0.1, 6.6], look: [-1.6, 0.25, 0], pos: [-1.8, 0.1, 0], rotY: 0.36, rotX: -0.03, fog: 0.028, key: 280, spec: 26, bloom: 0.42, rough: 0.19, keyPos: [-5.0, 4.5, 6.5], halo: 0.12, mat: 'glass', rays: 0.22, blur: 0.60, focus: 0.20, scrim: 0.66 },
+  { id: 'pillars',  cam: [1.2, 4.4, 17.5],  look: [1.5, -1.9, 0], pos: [2.0, -1.3, 0], rotY: 0.12,  rotX: 0.0,  fog: 0.036, key: 560, spec: 34, bloom: 0.50, rough: 0.22, keyPos: [-3.0, 9.5, 8.0], halo: 0.34, mat: 'glow',  rays: 0.75, blur: 0.35, focus: 0.30, scrim: 0.48 },
+  { id: 'plans',    cam: [-0.4, 0.6, 10.4], look: [-1.0, 0.0, 0], pos: [-1.6, 0.0, 0], rotY: 0.02, rotX: 0.0,  fog: 0.038, key: 300, spec: 18, bloom: 0.40, rough: 0.22, keyPos: [-4.0, 7.0, 7.0], halo: 0.22, mat: 'metal', rays: 0.25, blur: 0.45, focus: 0.26, scrim: 0.78 },
+  { id: 'faq',      cam: [2.4, 0.9, 12.6],  look: [1.6, 0.1, 0],  pos: [2.4, 0.0, 0],  rotY: 0.44,  rotX: 0.02, fog: 0.038, key: 300, spec: 24, bloom: 0.40, rough: 0.24, keyPos: [4.5, 6.5, 7.0], halo: 0.20, mat: 'metal', rays: 0.22, blur: 0.50, focus: 0.24, scrim: 0.80 },
+  { id: 'contact',  cam: [0.6, 1.7, 16.0],  look: [0.4, -0.9, 0], pos: [0.2, -1.9, 0], rotY: -0.18, rotX: 0.0,  fog: 0.042, key: 420, spec: 22, bloom: 0.40, rough: 0.20, keyPos: [-3.2, 7.0, 8.0], halo: 0.30, mat: 'glow',  rays: 0.60, blur: 0.30, focus: 0.32, scrim: 0.78 },
 ];
+
+/* Der Eröffnungsflug. Startpunkt weit außerhalb des Nebels; von hier fährt die
+   Kamera beim Laden in 3,4 s auf den Hero-Zustand zu. Nur einmal, nie wieder. */
+export const OPENING = {
+  cam: [7.5, 3.4, 34.0], look: [0.4, 0.4, 0], pos: [2.3, 0.1, 0],
+  rotY: -1.35, rotX: 0.16, fog: 0.115, key: 60, spec: 8, bloom: 0.22, rough: 0.42,
+  keyPos: [-6.5, 9.0, 4.0], halo: 0.12, mat: 'metal', rays: 0.15, blur: 0.85, focus: 0.10, scrim: 0.0,
+};
 
 /* Bindet die Zustände an die Abschnitte. Kein Scrub, sondern ein gleitender
    Wechsel beim Betreten — die Kamera „fährt nach", statt am Rad zu kleben. */
@@ -51,6 +61,23 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     gsap.to(w.spec, { intensity: b.spec, duration: d, ease: e, overwrite: true });
     gsap.to(w.bloom, { strength: b.bloom, duration: d, ease: e, overwrite: true });
     gsap.to(w.mat, { roughness: b.rough, duration: d, ease: e, overwrite: true });
+
+    // Materialwechsel als Dramaturgie: gebürstetes Metall → Glas → glühende Kante.
+    const M = w.constructor.MATERIALS[b.mat] || w.constructor.MATERIALS.metal;
+    gsap.to(w.mat, {
+      metalness: M.metalness, transmission: M.transmission, ior: M.ior,
+      thickness: M.thickness, clearcoatRoughness: M.clearcoatRoughness,
+      iridescence: M.iridescence, emissiveIntensity: M.emissiveIntensity,
+      envMapIntensity: M.envMapIntensity,
+      duration: d * 1.2, ease: e, overwrite: 'auto',
+    });
+
+    if (w.finish) {
+      const u = w.finish.uniforms;
+      gsap.to(u.uRays,  { value: b.rays,  duration: d, ease: e, overwrite: true });
+      gsap.to(u.uBlur,  { value: b.blur,  duration: d, ease: e, overwrite: true });
+      gsap.to(u.uFocus, { value: b.focus, duration: d, ease: e, overwrite: true });
+    }
     gsap.to(w.contact.material, { opacity: b.id === 'pillars' ? 0.42 : 0.16, duration: d, ease: e, overwrite: true });
     gsap.to(w.halo.material, {
       opacity: b.halo, duration: d, ease: e, overwrite: true,
@@ -60,19 +87,88 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     gsap.to(root, { '--world-scrim': b.scrim, duration: d * 0.8, ease: e, overwrite: true });
   };
 
-  applyTween(SITE_BEATS[0], true);
+  /* Eröffnungsflug: einmal beim Laden von weit außen an die Marke heran.
+     Danach übernimmt das Scrollen. */
+  applyTween(OPENING, true);
+  const opening = gsap.delayedCall(0.25, () => applyOpening());
+  function applyOpening() {
+    const b = SITE_BEATS[0];
+    const d = 3.4;
+    const e = 'power3.out';
+    gsap.to(w.camGoal,  { x: b.cam[0] * k, y: b.cam[1], z: b.cam[2] * zk, duration: d, ease: e, overwrite: true });
+    gsap.to(w.lookGoal, { x: b.look[0] * k, y: b.look[1], z: b.look[2], duration: d, ease: e, overwrite: true });
+    gsap.to(w.logoRig.rotation, { x: b.rotX, y: b.rotY, duration: d * 1.1, ease: e, overwrite: true });
+    gsap.to(w.scene.fog, { density: b.fog, duration: d, ease: e, overwrite: true });
+    gsap.to(w.key, { intensity: b.key, duration: d * 0.8, ease: e, overwrite: true });
+    gsap.to(w.key.position, { x: b.keyPos[0], y: b.keyPos[1], z: b.keyPos[2], duration: d, ease: e, overwrite: true });
+    gsap.to(w.spec, { intensity: b.spec, duration: d, ease: e, overwrite: true });
+    gsap.to(w.bloom, { strength: b.bloom, duration: d, ease: e, overwrite: true });
+    gsap.to(w.halo.material, { opacity: b.halo, duration: d, ease: e, overwrite: true });
+    if (w.finish) {
+      gsap.to(w.finish.uniforms.uRays,  { value: b.rays,  duration: d, ease: e, overwrite: true });
+      gsap.to(w.finish.uniforms.uBlur,  { value: b.blur,  duration: d, ease: e, overwrite: true });
+      gsap.to(w.finish.uniforms.uFocus, { value: b.focus, duration: d, ease: e, overwrite: true });
+    }
+    document.documentElement.setAttribute('data-opening', 'done');
+  }
+  // Wer sofort scrollt, will die Show nicht — dann sofort in den Hero-Zustand.
+  window.addEventListener('wheel', () => { if (opening.progress() < 1) { opening.kill(); applyOpening(); } }, { once: true, passive: true });
 
   SITE_BEATS.forEach((b, i) => {
     const el = i === 0 ? document.querySelector('.hero') : document.getElementById(b.id);
     if (!el) return;
+    // Der Hero-Zustand kommt beim Laden aus dem Eröffnungsflug; der Trigger
+    // greift erst, wenn man später zurückscrollt.
     ScrollTrigger.create({
       trigger: el,
       start: 'top 62%',
       end: 'bottom 38%',
-      onEnter: () => applyTween(b),
-      onEnterBack: () => applyTween(b),
+      onEnter: () => { if (i > 0 || opening.progress() >= 1) applyTween(b); },
+      onEnterBack: () => { if (i > 0 || opening.progress() >= 1) applyTween(b); },
     });
   });
+
+  /* --------------------------------------------------------------------
+     Angeheftetes Kapitel: Der Ablauf bleibt stehen, während die Kamera um die
+     Marke fährt und die vier Schritte nacheinander in den Vordergrund treten.
+     Das ist der Unterschied zwischen „Hintergrund bewegt sich" und wirklichem
+     Scrollytelling — man bleibt an einer Stelle und die Szene erzählt weiter.
+     -------------------------------------------------------------------- */
+  const process = document.getElementById('process');
+  const steps = process ? [...process.querySelectorAll('.step')] : [];
+  if (process && steps.length && !narrow) {
+    const from = SITE_BEATS.find((b) => b.id === 'process');
+    const to = { cam: [2.2, 0.9, 7.4], look: [1.3, -0.1, 0], rotY: -0.30 };
+
+    ScrollTrigger.create({
+      trigger: process,
+      start: 'top top',
+      end: () => '+=' + Math.round(window.innerHeight * 1.6),
+      pin: true,
+      pinSpacing: true,
+      scrub: 0.8,
+      invalidateOnRefresh: true,
+      onUpdate: (self) => {
+        const t = self.progress;
+        // Kamera fährt über die gesamte Strecke einmal um die Marke herum.
+        w.camGoal.set(
+          gsap.utils.interpolate(from.cam[0], to.cam[0], t) * k,
+          gsap.utils.interpolate(from.cam[1], to.cam[1], t),
+          gsap.utils.interpolate(from.cam[2], to.cam[2], t) * zk
+        );
+        w.lookGoal.set(
+          gsap.utils.interpolate(from.look[0], to.look[0], t) * k,
+          gsap.utils.interpolate(from.look[1], to.look[1], t), 0
+        );
+        w.logoRig.rotation.y = gsap.utils.interpolate(from.rotY, to.rotY, t);
+
+        // Schritt für Schritt: immer genau einer im Vordergrund.
+        const active = Math.min(steps.length - 1, Math.floor(t * steps.length));
+        steps.forEach((el, i) => el.classList.toggle('is-active', i === active));
+      },
+      onLeaveBack: () => steps.forEach((el) => el.classList.remove('is-active')),
+    });
+  }
 
   return { applyTween, beats: SITE_BEATS };
 }
