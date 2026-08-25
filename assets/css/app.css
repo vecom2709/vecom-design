@@ -738,21 +738,28 @@ body.scrolled .scrollcue { opacity: 0; }
   background: linear-gradient(to bottom, rgba(3, 5, 9, .82), #03050a 45%);
   backdrop-filter: blur(4px);
 }
-.footer__top { display: grid; gap: var(--s-4); }
-@media (min-width: 860px) { .footer__top { grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(0, .6fr)); } }
-.footer__brand img { width: 190px; opacity: .95; }
-.footer__brand p { margin-top: var(--s-2); color: var(--c-text-faint); font-size: var(--t-sm); max-width: 34ch; }
-.footer h3 { font-family: var(--f-display); font-size: var(--t-xs); letter-spacing: .22em; text-transform: uppercase; color: var(--c-text-faint); margin-bottom: var(--s-2); }
-.footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
-.footer li a {
-  display: inline-block; padding-block: .3rem;   /* min. 24px Zielgröße */
-  font-size: var(--t-sm); color: var(--c-text-dim); transition: color var(--d-ui) linear;
+/* Zentrierte Fußzeile: Marke, ein Satz, eine Zeile Verweise. Die frühere
+   dreispaltige Aufteilung ließ links eine große Leerfläche stehen. */
+.footer__top { display: grid; justify-items: center; text-align: center; gap: var(--s-3); }
+.footer__logo { width: clamp(150px, 18vw, 230px); opacity: .95; }
+.footer__claim { color: var(--c-text-faint); font-size: var(--t-sm); max-width: 52ch; }
+.footer__links {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: .4rem clamp(1rem, 2.2vw, 2rem); margin-top: var(--s-1);
 }
-.footer li a:hover { color: var(--c-text); }
+.footer__links a {
+  display: inline-block; padding-block: .3rem;
+  font-size: var(--t-sm); color: var(--c-text-dim);
+  transition: color var(--d-ui) linear;
+}
+.footer__links a:hover { color: var(--c-text); }
+.footer__sep { width: 5px; height: 5px; border-radius: 50%; background: var(--c-line-strong); }
+@media (max-width: 560px) { .footer__sep { display: none; } }
+
 .footer__bottom {
-  margin-top: var(--s-5); padding-top: var(--s-3); border-top: 1px solid var(--c-line);
-  display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: space-between;
-  font-size: var(--t-xs); color: var(--c-text-faint);
+  margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--c-line);
+  display: flex; flex-wrap: wrap; gap: .3rem clamp(1rem, 3vw, 2.5rem); justify-content: center;
+  text-align: center; font-size: var(--t-xs); color: var(--c-text-faint);
 }
 
 /* ---------- 16. Reveal-Choreografie ------------------------------------- */
