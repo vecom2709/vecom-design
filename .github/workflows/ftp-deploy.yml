@@ -58,23 +58,32 @@ jobs:
           fi
           echo "ok=true" >> "$GITHUB_OUTPUT"
 
+      # Übertragung mit lftp statt mit einer fertigen Action: Der Webspace von
+      # All-Inkl bricht bei verschlüsselten Datenverbindungen sonst die
+      # Verbindung ab (ECONNRESET). lftp behandelt passive Verbindungen
+      # nachsichtiger und überträgt nur Geändertes.
       - name: Auf den Webspace hochladen
         if: steps.check.outputs.ok == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: w021fb9a.kasserver.com
-          username: f018ae3f
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps            # verschlüsselt; bei Problemen auf ftp ändern
-          port: 21
-          server-dir: ${{ vars.FTP_SERVER_DIR }}
-          local-dir: ./
-          # Nur Geändertes wird übertragen. Diese Dinge gehören nicht auf den Server:
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            caps/**
-            tools/**
-            build.mjs
-            README.md
+        env:
+          PW: ${{ secrets.FTP_PASSWORD }}
+          DIR: ${{ vars.FTP_SERVER_DIR }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          lftp -c "
+            set ssl:verify-certificate no;
+            set ftp:ssl-force true;
+            set ftp:ssl-protect-data true;
+            set ftp:passive-mode true;
+            set net:timeout 20;
+            set net:max-retries 3;
+            set mirror:parallel-transfer-count 3;
+            open -u 'f018ae3f,$PW' w021fb9a.kasserver.com;
+            mirror --reverse --continue --verbose=1 \
+              --exclude-glob .git* \
+              --exclude-glob node_modules/ \
+              --exclude-glob caps/ \
+              --exclude-glob tools/ \
+              --exclude-glob build.mjs \
+              --exclude-glob README.md \
+              ./ $DIR;
+            bye"
