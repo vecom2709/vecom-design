@@ -57,6 +57,10 @@ export class World {
     this.camGoal = new THREE.Vector3(0, 0.6, 9);
     this.lookGoal = new THREE.Vector3(0, 0, 0);
     this.parallax = new THREE.Vector2();
+    /* Dauerbewegung: Sie hängt am Scrollfortschritt der ganzen Seite, nicht am
+       Abschnitt. Dadurch steht die Marke nie still — auch nicht in langen
+       Abschnitten und nicht am Seitenende. */
+    this.drift = { rotY: 0, rotX: 0, bob: 0, vel: 0 };
 
     this._buildLights();
     this._buildLogo();
@@ -438,6 +442,16 @@ export class World {
     this.tmp.y += this.parallax.y * 0.35;
     this.camTarget.lerp(this.tmp, 1 - Math.pow(0.004, dt));
     this.camera.lookAt(this.camTarget);
+
+    // Dauerbewegung auf der inneren Gruppe: überlagert die Beats, ohne sie zu
+    // überschreiben (die setzen die Drehung des Rigs, nicht die des Körpers).
+    const dl = 1 - Math.pow(0.02, dt);
+    this.logo.rotation.y += (this.drift.rotY - this.logo.rotation.y) * dl;
+    this.logo.rotation.x += (this.drift.rotX - this.logo.rotation.x) * dl;
+    this.logo.position.y += ((Math.sin(time * 0.35) * 0.12 + this.drift.bob) - this.logo.position.y) * dl;
+    // Scrollgeschwindigkeit gibt einen kurzen Schub — das macht die Bewegung
+    // greifbar, statt sie nur ablaufen zu lassen.
+    this.camera.position.z += (this.drift.vel * 0.9 - 0) * dt * 2.0;
 
     if (this.dust) this.dust.material.uniforms.uTime.value = time;
     this.key.target.position.set(0, 0, 0);

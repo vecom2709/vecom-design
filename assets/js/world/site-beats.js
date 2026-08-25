@@ -141,6 +141,44 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   });
 
   /* --------------------------------------------------------------------
+     Dauerbewegung über die gesamte Seite. Die Beats setzen Zielpunkte, aber
+     zwischen zwei Abschnitten stand die Marke bisher still — besonders im
+     langen Hero und im Bereich unter dem Kontakt. Diese Spur läuft durchgehend
+     mit dem Scrollbalken und hört nie auf.
+     -------------------------------------------------------------------- */
+  ScrollTrigger.create({
+    trigger: document.body,
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: 0.5,
+    onUpdate: (self) => {
+      const t = self.progress;
+      w.drift.rotY = t * 2.4;                       // gut eine Dreivierteldrehung
+      w.drift.rotX = Math.sin(t * Math.PI * 2) * 0.12;
+      w.drift.bob = Math.sin(t * Math.PI * 3) * 0.25;
+      w.drift.vel = Math.max(-1, Math.min(1, self.getVelocity() / 4000));
+    },
+  });
+
+  /* Abspann: Unter dem Kontakt lief nichts mehr. Jetzt zieht sich die Marke
+     langsam in die Tiefe zurück, während der Fuß erscheint. */
+  const footer = document.querySelector('.footer');
+  if (footer) {
+    ScrollTrigger.create({
+      trigger: footer,
+      start: 'top 90%',
+      end: 'bottom bottom',
+      scrub: 0.8,
+      onUpdate: (self) => {
+        const t = self.progress;
+        w.camGoal.z = (16.0 + t * 12) * zk;
+        w.camGoal.y = 1.7 + t * 2.6;
+        w.lookGoal.y = -0.9 - t * 1.2;
+      },
+    });
+  }
+
+  /* --------------------------------------------------------------------
      Angeheftetes Kapitel: Der Ablauf bleibt stehen, während die Kamera um die
      Marke fährt und die vier Schritte nacheinander in den Vordergrund treten.
      Das ist der Unterschied zwischen „Hintergrund bewegt sich" und wirklichem
