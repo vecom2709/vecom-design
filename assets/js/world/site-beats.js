@@ -21,7 +21,7 @@
 export const SITE_BEATS = [
   // id, Kamera, Blickpunkt, Position der Marke, Drehung, Atmosphäre, Licht,
   // Material (metal|glass|glow), Bildeffekte (rays/blur/focus), Schleier.
-  { id: 'hero',     cam: [0.6, 0.8, 12.0],  look: [1.1, 0.1, 0],  pos: [2.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, mat: 'metal', rays: 0.0, blur: 0.22, focus: 0.34, scrim: 0.00 },
+  { id: 'hero',     cam: [1.1, 0.8, 12.4],  look: [1.7, 0.1, 0],  pos: [3.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, mat: 'metal', rays: 0.0, blur: 0.22, focus: 0.34, scrim: 0.00 },
   { id: 'services', cam: [-2.2, 1.0, 8.8],  look: [-1.2, 0.1, 0], pos: [-2.0, 0.0, 0], rotY: -0.22, rotX: 0.02, fog: 0.034, key: 420, spec: 40, bloom: 0.52, rough: 0.26, keyPos: [-5.5, 6.0, 5.0], halo: 0.24, mat: 'metal', rays: 0.0, blur: 0.26, focus: 0.28, scrim: 0.62 },
   { id: 'work',     cam: [2.7, 1.1, 9.6],   look: [1.4, 0.0, 0],  pos: [1.8, -0.1, 0], rotY: 0.34,  rotX: -0.04, fog: 0.030, key: 330, spec: 42, bloom: 0.44, rough: 0.16, keyPos: [5.5, 5.5, 7.5], halo: 0.16, mat: 'glass', rays: 0.0, blur: 0.32, focus: 0.24, scrim: 0.74 },
   { id: 'process',  cam: [-1.9, -0.1, 6.6], look: [-1.6, 0.25, 0], pos: [-1.8, 0.1, 0], rotY: 0.36, rotX: -0.03, fog: 0.028, key: 280, spec: 26, bloom: 0.42, rough: 0.19, keyPos: [-5.0, 4.5, 6.5], halo: 0.12, mat: 'glass', rays: 0.0, blur: 0.34, focus: 0.20, scrim: 0.66 },
@@ -34,7 +34,7 @@ export const SITE_BEATS = [
 /* Der Eröffnungsflug. Startpunkt weit außerhalb des Nebels; von hier fährt die
    Kamera beim Laden in 3,4 s auf den Hero-Zustand zu. Nur einmal, nie wieder. */
 export const OPENING = {
-  cam: [7.5, 3.4, 34.0], look: [0.4, 0.4, 0], pos: [2.3, 0.1, 0],
+  cam: [7.5, 3.4, 34.0], look: [0.9, 0.4, 0], pos: [3.3, 0.1, 0],
   rotY: -1.35, rotX: 0.16, fog: 0.115, key: 60, spec: 8, bloom: 0.22, rough: 0.42,
   keyPos: [-6.5, 9.0, 4.0], halo: 0.12, mat: 'metal', rays: 0.0, blur: 0.45, focus: 0.10, scrim: 0.0,
 };
@@ -153,7 +153,9 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     scrub: 0.5,
     onUpdate: (self) => {
       const t = self.progress;
-      w.drift.rotY = t * 2.4;                       // gut eine Dreivierteldrehung
+      // Genau eine volle Umdrehung über die ganze Seite: Am Ende steht die
+      // Marke wieder frontal wie beim Eintreten.
+      w.drift.rotY = t * Math.PI * 2;
       w.drift.rotX = Math.sin(t * Math.PI * 2) * 0.12;
       w.drift.bob = Math.sin(t * Math.PI * 3) * 0.25;
       w.drift.vel = Math.max(-1, Math.min(1, self.getVelocity() / 4000));

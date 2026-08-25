@@ -35,7 +35,7 @@
   --t-lg:   clamp(1.5rem, 1.25rem + 1.1vw, 2.1rem);
   --t-xl:   clamp(2rem, 1.5rem + 2.2vw, 3.4rem);
   --t-2xl:  clamp(2.6rem, 1.6rem + 4.4vw, 5.6rem);
-  --t-3xl:  clamp(3.2rem, 1.5rem + 7.4vw, 9rem);
+  --t-3xl:  clamp(2.6rem, 1.6rem + 4.0vw, 5.2rem);
 
   /* Raster & Abstände — 8px-Skala */
   --s-1: .5rem;  --s-2: 1rem;   --s-3: 1.5rem; --s-4: 2rem;
@@ -466,7 +466,12 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 }
 .hero h1 {
   font-size: var(--t-3xl); font-weight: 700; letter-spacing: -.04em;
-  margin-top: var(--s-3); max-width: 15ch;
+  margin-top: var(--s-3); max-width: 13ch;
+}
+/* Auf breiten Bildschirmen bleibt die rechte Hälfte für die Marke frei. */
+@media (min-width: 1200px) {
+  .hero h1 { max-width: 42%; }
+  .hero__lead { max-width: 44%; }
 }
 .hero h1 .accent {
   background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
