@@ -168,14 +168,32 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   if (footer) {
     ScrollTrigger.create({
       trigger: footer,
-      start: 'top 90%',
+      start: 'top bottom',        // sobald der Fuß ins Bild kommt
       end: 'bottom bottom',
       scrub: 0.8,
+      onEnter: () => {
+        // Die Beat-Tweens laufen noch nach und würden die Werte hier gleich
+        // wieder überschreiben — deshalb erst anhalten, dann übernehmen.
+        gsap.killTweensOf([w.mat, w.bloom, w.spec, w.halo.material]);
+      },
       onUpdate: (self) => {
         const t = self.progress;
         w.camGoal.z = (16.0 + t * 12) * zk;
         w.camGoal.y = 1.7 + t * 2.6;
         w.lookGoal.y = -0.9 - t * 1.2;
+
+        // Finale: Auf den letzten Metern zieht die Drehung noch einmal an und
+        // die Marke leuchtet von innen auf — ein Schlussbild statt Auslaufen.
+        w.drift.extraRot = t * Math.PI * 1.4;
+        w.mat.emissiveIntensity = t * 1.3;
+        w.bloom.strength = 0.40 + t * 0.55;
+        w.spec.intensity = 20 + t * 45;
+        w.halo.material.opacity = 0.26 + t * 0.34;
+        w.halo.visible = true;
+      },
+      onLeaveBack: () => {
+        w.drift.extraRot = 0;
+        w.mat.emissiveIntensity = 0;
       },
     });
   }
