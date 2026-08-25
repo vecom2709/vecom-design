@@ -91,6 +91,9 @@ function build(lang) {
   const up = lang === 'it' ? '' : '../';
   if (up) {
     h = h.replace(/(href|src|content)="assets\//g, `$1="${up}assets/`);
+    // Die Importmap steht als JSON im HTML — sie wird von der Regel oben nicht
+    // erfasst und muss eigens umgeschrieben werden, sonst fehlt three.js in /de/.
+    h = h.replace(/"\.\/assets\//g, `"${up}assets/`);
     h = h.replace(/href="legal\.html/g, `href="${up}legal.html`);
     h = h.replace(/href="world\.html/g, `href="${up}world.html`);
     h = h.replace(/href="index\.html"/g, `href="${up}"`);

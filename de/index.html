@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-lang-fixed="de" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-title-key="meta.title">
+<html lang="de" data-lang-fixed="de" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-title-key="meta.title">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,6 +32,15 @@
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css">
 <link rel="stylesheet" href="../assets/css/app.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "../assets/vendor/three/three.module.min.js",
+    "three/addons/": "../assets/vendor/three/jsm/"
+  }
+}
+</script>
 
 <script type="application/ld+json">
 {
@@ -151,6 +160,8 @@
 
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
+<canvas class="stage" data-canvas aria-hidden="true"></canvas>
+<div class="world-scrim" aria-hidden="true"></div>
 <div class="progress" aria-hidden="true"></div>
 <div class="grain" aria-hidden="true"></div>
 <div class="vignette" aria-hidden="true"></div>
@@ -177,6 +188,16 @@
       <div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
         <a href="../" hreflang="it" lang="it">IT</a><span class="lang__current" aria-current="true">DE</span><a href="../en/" hreflang="en" lang="en">EN</a>
       </div>
+      <label class="chip chip--quality">
+        <span data-i18n="world.quality">Qualità</span>
+        <select data-quality aria-label="Qualität / Qualità / Quality">
+          <option value="auto" data-i18n="world.qAuto">Automatica</option>
+          <option value="ultra" data-i18n="world.qUltra">Ultra</option>
+          <option value="high" data-i18n="world.qHigh">Alta</option>
+          <option value="medium" data-i18n="world.qMedium">Media</option>
+          <option value="low" data-i18n="world.qLow">Bassa</option>
+        </select>
+      </label>
       <a class="btn btn--primary" href="#contact" data-i18n="nav.cta">Projekt starten</a>
       <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu">
         <span></span><span></span><span></span>
@@ -211,7 +232,6 @@
         <svg class="btn__arrow" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"/><path d="m13 6 6 6-6 6"/></svg>
       </a>
       <a class="btn" href="#work" data-i18n="hero.cta2">Arbeiten ansehen</a>
-      <a class="btn" href="../world.html" data-i18n="hero.cta3">In die 3D-Welt eintreten</a>
     </div>
 
     <dl class="hero__meta" data-reveal>
@@ -653,5 +673,9 @@
 <script src="../assets/js/i18n-data.js"></script>
 <script src="../assets/js/app.js"></script>
 <script src="../assets/js/screens.js" defer></script>
+<script src="../assets/vendor/gsap.min.js"></script>
+<script src="../assets/vendor/ScrollTrigger.min.js"></script>
+<script src="../assets/vendor/lenis.min.js"></script>
+<script type="module" src="../assets/js/world/site-world.js"></script>
 </body>
 </html>

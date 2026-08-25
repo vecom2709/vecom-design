@@ -272,69 +272,50 @@ mit `align-content: start` auf `.form`.
 
 ---
 
-## 14. Die immersive Fassung (`world.html`)
+## 14. Die 3D-Bühne hinter der ganzen Seite
 
-Zweite, eigenständige Seite. Die klassische Startseite bleibt unberührt und ist
-aus der Erfahrung heraus jederzeit erreichbar ("Klassische Fassung").
+Es gibt **keine getrennte 3D-Unterseite** mehr. Die Welt liegt jetzt hinter der
+kompletten Startseite; `world.html` ist nur noch eine Weiterleitung für alte
+Verweise.
 
 **Konzept:** Die Bildmarke ist kein Bild, sondern ein Körper. Die Silhouette
 wurde per Konturerkennung aus der Logodatei ausgelesen (zwei Polygone: linker
-Schenkel, rechter Schenkel mit Kerbe) und in `assets/js/world/logo-shape.js`
-abgelegt. Daraus entsteht zur Laufzeit eine extrudierte Geometrie mit Fase —
-kein nachgebautes „V", keine 3D-Datei, 0 KB Ladekosten.
+Schenkel, rechter Schenkel mit Kerbe) und liegt in
+`assets/js/world/logo-shape.js`. Daraus entsteht zur Laufzeit eine extrudierte
+Geometrie mit Fase — kein nachgebautes „V", keine 3D-Datei, 0 KB Ladekosten.
 
-**Drehbuch — sechs Beats über die Scrollstrecke:**
+**Kamerafahrten je Abschnitt** (`assets/js/world/site-beats.js`):
 
-| Beat | Aussage | Kamera | Licht |
-|---|---|---|---|
-| 01 Ankunft | Jede Marke beginnt im Dunkeln | weit, tief, ruhig | nur Kantenlicht |
-| 02 Das Licht | Zuerst kommt das Licht | Dolly seitlich heran | Hauptlicht fährt hoch |
-| 03 Das Material | Dann das Material | Dreiviertel, mittlere Distanz | Klarlack, Reflexe |
-| 04 Der Schnitt | Ein Zeichen entsteht durch das Weglassen | nah an der Kerbe | hartes Kantenlicht |
-| 05 Der Raum | Und dann bekommt es einen Raum | Kranfahrt zurück | Boden, Kontaktlicht |
-| 06 Ruhelage | Deine Marke, im Licht | frontal, Augenhöhe | ausgeglichen, CTA |
+| Abschnitt | Kamera | Licht |
+|---|---|---|
+| hero | weit, leicht seitlich | Kante + Softbox |
+| services | Dolly heran, von links | Hauptlicht hoch |
+| work | Dreiviertel von rechts | Reflexe, Klarlack |
+| process | nah an der Kerbe | hartes Kantenlicht |
+| pillars | Kranfahrt zurück | Bodenkontakt |
+| plans | frontal, ruhig | ausgeglichen |
+| contact | Weitwinkel, Marke tief | weich, Schlussbild |
 
-Alle Werte je Beat stehen in `assets/js/world/story.js` in einer einzigen
-Tabelle — Kameraposition, Blickpunkt, Position und Drehung der Marke,
-Nebeldichte, Lichtstärke und -position, Bloom, Rauheit, Lichtsaum. Wer die
-Inszenierung ändern will, ändert Zahlen in dieser Tabelle, nichts anderes.
+Kein durchgehend gescrubbter Zeitstrahl, sondern **ein Kamerazustand je
+Abschnitt**: Beim Betreten gleitet die Kamera in 1,9 s dorthin. Grund: Die
+Abschnitte wachsen mit dem Inhalt. Ein fester Zeitstrahl verrutscht bei jeder
+Textänderung, Zustände bleiben richtig.
 
-**Wichtig beim Bearbeiten:** Die Timeline-Startzeiten sind Sekunden (0,1,2,…),
-nicht Anteile. Zusammen mit `end: story.offsetHeight - innerHeight` liegt Beat i
-dadurch exakt auf Kapitel i. Beides zusammen ändern oder gar nicht.
+**Der Schleier** (`--world-scrim`, 0–0,78 je Abschnitt) dunkelt die Bühne genau
+dort ab, wo gelesen wird. Im Hero ist er auf 0 — dort ist die Welt die
+Hauptsache; bei den Paketen auf 0,78 — dort zählt der Text.
 
-**Stack:** Three.js 0.185 (lokal), GSAP + ScrollTrigger, Lenis. Ein Scrollsystem:
-Lenis treibt ScrollTrigger. Kein CDN, keine Buildkette.
+**Warum echtes 3D und keine Videodateien:** siehe Abschnitt 18.
 
-**Warum es teuer aussieht** (in dieser Reihenfolge gebaut, nicht andersherum):
-1. *Licht vor Material.* Eigene Studioumgebung aus emissiven Flächen (Softbox
-   oben, blaue Wand links, cyan Kante rechts). Metall kann nur spiegeln, was da
-   ist — in einer schwarzen Umgebung wird jede Metallfläche schwarz.
-2. *Struktur statt Farbe.* Gebürstete Rauheitskarte und anisotrope Reflexe.
-   Ohne sie bleibt die Vorderfläche eine tote Farbe: der häufigste Grund, warum
-   3D im Web nach Plastik aussieht.
-3. *Kamera über ein Rig.* Nie direkte Positionen, immer gedämpft angefahren.
-4. *Zurückhaltendes Bloom* (Schwelle 0.95). Bloom rettet kein schlechtes Licht.
+**Adaptive Qualität:** vier Stufen, automatisch nach Gerät gewählt und über die
+Frame-Zeit nachgeregelt (Postprocessing → Partikel → Pixeldichte → Schatten).
+Manuell umstellbar in der Kopfzeile (ab 1100 px sichtbar).
 
-**Adaptive Qualität:** vier Stufen (ultra/hoch/mittel/niedrig), automatisch nach
-Gerät gewählt und über die Frame-Zeit nachgeregelt — reduziert wird in fester
-Reihenfolge: Postprocessing → Partikel → Pixeldichte → Schatten. Manuell
-umstellbar in der Kopfzeile. Es wird nie automatisch hochgestuft; ein Sprung hin
-und her fällt mehr auf als eine dauerhaft niedrigere Stufe.
-
-**Drei Fallback-Wege**, alle geprüft: kein WebGL, `prefers-reduced-motion`,
-verlorener GL-Kontext. In jedem Fall wird die Seite zur ruhigen, vollständig
-lesbaren Textfassung — es fehlt kein Inhalt, weil der Inhalt im DOM liegt und
-die Inszenierung nur die Schicht darüber ist.
-
-**Mobil** ist eine eigene Komposition, keine verkleinerte: Marke mittig statt
-seitlich versetzt, Kamera weiter zurück, Kapitelleiste unten statt rechts,
-Qualitätswahl ausgeblendet.
-
-**Noch nicht geprüft:** die Bildrate auf echter Hardware. Der Testbrowser
-rendert in Software; die dort gemessenen Werte sagen nichts aus. Vor dem
-Livegang auf einem normalen Rechner und einem Mittelklasse-Telefon ansehen und
-bei Bedarf die Standardstufe in `quality.js` senken.
+**Wann die Bühne gar nicht erst geladen wird:** kein WebGL, `prefers-reduced-motion`,
+Datensparmodus, oder ein Telefon mit weniger als 4 GB Speicher bzw. unter 6
+Kernen. `three.js` wird per dynamischem Import erst geholt, wenn diese Prüfung
+bestanden ist — auf schwachen Geräten spart das rund 750 KB. Übrig bleibt exakt
+die Seite, die auch vorher da war; es fehlt kein Inhalt.
 
 
 ---
@@ -415,3 +396,27 @@ wöge ungefähr das Zwanzigfache.
 TerraViva Sicilia und Vecom Shop haben noch keine laufende Seite; sie behalten
 ihr Motivbild, aber dieselbe Kartenstruktur (Medium oben, Text unten). Sobald
 diese Seiten online sind, dieselbe Behandlung geben.
+
+
+---
+
+## 18. Warum die Kamerafahrten kein Video sind
+
+Der Wunsch war, Kamerafahrten über Videodateien zu lösen. Das wurde geprüft und
+verworfen — aus vier Gründen, die sich im Betrieb sofort zeigen:
+
+1. **Gewicht.** Die sieben Fahrten wären zusammen 15–40 MB. Die gesamte Seite
+   inklusive three.js wiegt aktuell rund 990 KB — und die 750 KB davon lädt nur,
+   wer ein Gerät hat, das sie nutzen kann.
+2. **Scroll-Bindung.** An den Scrollbalken gekoppelte Videos ruckeln: Browser
+   dürfen nur an Keyframes springen, und auf iOS ist das Scrubbing seit Jahren
+   unzuverlässig. Eine Kamera in der Szene folgt jeder Bewegung exakt.
+3. **Kein Zeiger, kein Licht.** Ein Video reagiert nicht auf die Maus, hat keine
+   Parallaxe und keine Reflexion, die sich mitbewegt. Genau das erzeugt aber den
+   Eindruck von Tiefe.
+4. **Änderbarkeit.** Ein anderer Winkel ist in der Szene eine Zahl in
+   `site-beats.js`. Im Video ist es ein neuer Rendervorgang und ein neuer Upload.
+
+Was ein Video besser kann, ist ein einzelner, aufwendig gerenderter Vorspann.
+Falls das gewünscht ist, gehört er als kurze Schleife über den Hero — nicht als
+Ersatz für die Fahrten.
