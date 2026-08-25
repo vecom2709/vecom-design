@@ -1148,3 +1148,32 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   .partner__logo img { animation: none; }
   .partner__sheen { display: none; }
 }
+
+/* Adresszeile unter der Marke — Serifenschrift und weite Sperrung nehmen den
+   Schriftzug des Logos auf, der Goldverlauf die Farbe. */
+.partner__url {
+  margin-top: clamp(.9rem, 1.6vw, 1.4rem);
+  text-align: center;
+}
+.partner__url a {
+  display: inline-block;
+  font-family: 'Marcellus', Georgia, 'Times New Roman', serif;
+  font-size: clamp(.78rem, .62rem + .5vw, 1rem);
+  letter-spacing: .22em;
+  background: linear-gradient(100deg, #b8912f 0%, #f4e3a8 45%, #c9a227 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  padding-block: .3rem;
+  transition: filter var(--d-move) var(--e-std), letter-spacing var(--d-move) var(--e-std);
+}
+.partner__url a:hover {
+  filter: drop-shadow(0 0 12px rgba(240, 217, 138, .55));
+  letter-spacing: .26em;
+}
+/* Feine Goldlinie darunter, wie im Logo unter dem Schriftzug */
+.partner__url a::after {
+  content: ""; display: block; height: 1px; margin-top: .45rem;
+  background: linear-gradient(90deg, transparent, rgba(201, 162, 39, .7), transparent);
+  transform: scaleX(.7); transform-origin: 50% 50%;
+  transition: transform var(--d-move) var(--e-std);
+}
+.partner__url a:hover::after { transform: scaleX(1); }
