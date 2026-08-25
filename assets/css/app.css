@@ -1075,3 +1075,22 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   .hero h1 .line-mask > span { transform: none !important; transition: none !important; }
 }
+
+/* ---------- 24. Rechtsseite ---------------------------------------------- */
+.legal__lead { max-width: 70ch; color: var(--c-text-dim); margin-top: var(--s-2); }
+.legal__updated { margin-top: .4rem; font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-faint); }
+.legal__nav { display: flex; flex-wrap: wrap; gap: .5rem; margin: var(--s-4) 0 var(--s-3); }
+.legal__nav a {
+  padding: .55rem 1rem; border-radius: 999px; font-size: var(--t-xs);
+  letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-dim);
+  box-shadow: inset 0 0 0 1px var(--c-line);
+  transition: color var(--d-ui) linear, box-shadow var(--d-ui) linear;
+}
+.legal__nav a:hover { color: var(--c-text); box-shadow: inset 0 0 0 1px var(--c-line-strong); }
+.legal__sec { padding-top: var(--s-4); scroll-margin-top: 110px; }
+.legal__sec + .legal__sec { border-top: 1px solid var(--c-line); margin-top: var(--s-4); }
+.legal__sec h2 { font-size: var(--t-xl); margin-bottom: var(--s-2); }
+.legal__sec h3 { font-size: var(--t-md); margin-top: var(--s-3); }
+.legal__sec p { margin-top: .5rem; }
+/* Zeilenumbrüche in der Anbieteranschrift bleiben erhalten */
+.legal .pre { white-space: pre-line; }
