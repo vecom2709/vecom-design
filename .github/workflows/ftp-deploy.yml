@@ -78,12 +78,14 @@ jobs:
             set net:max-retries 3;
             set mirror:parallel-transfer-count 3;
             open -u 'f018ae3f,$PW' w021fb9a.kasserver.com;
+            rm -rf $DIR.git;
             mirror --reverse --continue --verbose=1 \
-              --exclude-glob .git* \
-              --exclude-glob node_modules/ \
-              --exclude-glob caps/ \
-              --exclude-glob tools/ \
-              --exclude-glob build.mjs \
-              --exclude-glob README.md \
+              --exclude '^\.git' \
+              --exclude '^\.github/' \
+              --exclude '^node_modules/' \
+              --exclude '^caps/' \
+              --exclude '^tools/' \
+              --exclude '^build\.mjs$' \
+              --exclude '^README\.md$' \
               ./ $DIR;
             bye"
