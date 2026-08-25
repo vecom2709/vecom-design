@@ -1057,3 +1057,20 @@ body main { transition: opacity 220ms var(--e-std), transform 220ms var(--e-std)
   .world-cut { display: none; }
   body.is-swapping main { opacity: 1; transform: none; }
 }
+
+/* Kinetische Titelzeilen: Startzustand hier, Endzustand über .hero-in.
+   Reine CSS-Lösung — unabhängig von JS-Bibliotheken. */
+.hero h1 .line-mask > span {
+  transform: translate3d(0, 108%, 0);
+  transition: transform 1.25s var(--e-std);
+}
+.hero h1 .line-mask:nth-of-type(2) > span { transition-delay: .12s; }
+.hero h1 .line-mask:nth-of-type(3) > span { transition-delay: .24s; }
+html.hero-in .hero h1 .line-mask > span { transform: none; }
+
+/* Der Knopf in der Kopfzeile darf nicht umbrechen */
+.header .btn { white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero h1 .line-mask > span { transform: none !important; transition: none !important; }
+}

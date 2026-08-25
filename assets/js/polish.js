@@ -10,13 +10,17 @@
   const gsap = window.gsap;
 
   /* ---------- 1. Kinetische Überschrift im Hero -------------------------- */
-  // Die Zeilen fahren versetzt aus ihrer Maske hoch, synchron zum Anflug.
-  if (gsap && !reduced) {
-    const lines = document.querySelectorAll('.hero h1 .line-mask > span');
-    if (lines.length) {
-      gsap.set(lines, { yPercent: 108 });
-      gsap.to(lines, { yPercent: 0, duration: 1.3, ease: 'expo.out', stagger: 0.11, delay: 0.35 });
-    }
+  // Bewusst ohne GSAP: Der Auftritt der Titelzeilen darf nicht davon abhängen,
+  // ob eine Bibliothek geladen und ihr Ticker aktiv ist. Zwei CSS-Klassen und
+  // eine Verzögerung je Zeile reichen — und es läuft auch, wenn 3D ausfällt.
+  if (!reduced) {
+    const showHero = () => document.documentElement.classList.add('hero-in');
+    requestAnimationFrame(() => requestAnimationFrame(showHero));
+    // Sicherheitsnetz: Läuft die Bildschleife gedrosselt (schwaches Gerät,
+    // 3D-Aufbau), käme der zweite Frame sonst erst nach Sekunden.
+    setTimeout(showHero, 400);
+  } else {
+    document.documentElement.classList.add('hero-in');
   }
 
   /* ---------- 5. Überschriften wortweise (nur Überschriften) ------------- */
