@@ -299,7 +299,7 @@ export class World {
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
-      uniforms: { uTime: { value: 0 }, uSize: { value: 26 * (this.q.settings.dpr || 1) } },
+      uniforms: { uTime: { value: 0 }, uSize: { value: 17 * (this.q.settings.dpr || 1) } },
       vertexShader: `
         attribute float aSeed;
         uniform float uTime; uniform float uSize;
@@ -318,7 +318,7 @@ export class World {
         void main() {
           float d = length(gl_PointCoord - 0.5);
           if (d > 0.5) discard;
-          float a = smoothstep(0.5, 0.0, d) * vA * 0.14;
+          float a = smoothstep(0.5, 0.0, d) * vA * 0.10;
           gl_FragColor = vec4(vec3(0.55, 0.74, 1.0), a);
         }`,
     });
@@ -365,8 +365,11 @@ export class World {
   static MATERIALS = {
     metal: { metalness: 0.86, roughness: 0.30, transmission: 0.0, ior: 1.5, thickness: 0.0,
              clearcoatRoughness: 0.07, iridescence: 0.08, emissiveIntensity: 0.0, envMapIntensity: 1.9, opacity: 1 },
-    glass: { metalness: 0.05, roughness: 0.06, transmission: 0.92, ior: 1.62, thickness: 1.6,
-             clearcoatRoughness: 0.02, iridescence: 0.55, emissiveIntensity: 0.12, envMapIntensity: 2.4, opacity: 1 },
+    /* Kein Glas mehr: Durchsichtigkeit zeigt bei einem massiven Körper die
+       Rückseiten mit — das sah wie doppelte Spiegelungen aus. Stattdessen
+       poliertes Metall: schärfere Reflexe, mehr Glanz, keine Doppelbilder. */
+    glass: { metalness: 0.95, roughness: 0.09, transmission: 0.0, ior: 1.5, thickness: 0.0,
+             clearcoatRoughness: 0.02, iridescence: 0.22, emissiveIntensity: 0.0, envMapIntensity: 2.2, opacity: 1 },
     glow:  { metalness: 0.75, roughness: 0.22, transmission: 0.0, ior: 1.5, thickness: 0.0,
              clearcoatRoughness: 0.05, iridescence: 0.2, emissiveIntensity: 1.5, envMapIntensity: 1.4, opacity: 1 },
   };
