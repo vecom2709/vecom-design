@@ -1160,6 +1160,9 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   font-family: 'Marcellus', Georgia, 'Times New Roman', serif;
   font-size: clamp(.78rem, .62rem + .5vw, 1rem);
   letter-spacing: .22em;
+  /* Sperrung hängt auch hinter dem letzten Zeichen — ohne Ausgleich sitzt der
+     sichtbare Text minimal links der Mitte. */
+  text-indent: .22em;
   background: linear-gradient(100deg, #b8912f 0%, #f4e3a8 45%, #c9a227 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   padding-block: .3rem;

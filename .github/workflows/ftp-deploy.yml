@@ -1,0 +1,80 @@
+# Veröffentlicht die Seite bei jedem Push auf main per FTP auf den Webspace
+# von All-Inkl (kasserver.com) — damit läuft vecom-design.it auf dem bezahlten
+# Hosting, und E-Mail sowie DNS bleiben unangetastet.
+#
+# EINMALIG EINZURICHTEN (im Browser, dauert zwei Minuten):
+#   1. GitHub → Repository → Settings → Secrets and variables → Actions
+#      → "New repository secret"
+#         Name:  FTP_PASSWORD
+#         Wert:  das FTP-Passwort aus dem KAS
+#      Das Passwort gehört ausschließlich hierher — nie in eine Datei,
+#      nie in einen Chat, nie in einen Commit.
+#   2. Ebenda unter "Variables" → "New repository variable"
+#         Name:  FTP_SERVER_DIR
+#         Wert:  das Zielverzeichnis der Domain im KAS,
+#                z. B. /vecom-design.it/  (mit Schrägstrich am Ende)
+#      Steht im KAS unter "Domain" in der Spalte Verzeichnis.
+#
+# Ohne diese beiden Angaben bricht der Ablauf sauber ab und meldet, was fehlt.
+
+name: Deploy per FTP (All-Inkl)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ftp-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Sprachseiten /de/ und /en/ aus index.html + i18n-data.js neu erzeugen
+      - name: Sprachseiten bauen
+        run: node build.mjs
+
+      - name: Zugangsdaten prüfen
+        id: check
+        env:
+          PW: ${{ secrets.FTP_PASSWORD }}
+          DIR: ${{ vars.FTP_SERVER_DIR }}
+        run: |
+          if [ -z "$PW" ]; then
+            echo "::warning::FTP_PASSWORD fehlt — siehe Kopf dieser Datei. Kein Upload."
+            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ -z "$DIR" ]; then
+            echo "::warning::Variable FTP_SERVER_DIR fehlt — Zielverzeichnis der Domain eintragen. Kein Upload."
+            echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Auf den Webspace hochladen
+        if: steps.check.outputs.ok == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: w021fb9a.kasserver.com
+          username: f018ae3f
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps            # verschlüsselt; bei Problemen auf ftp ändern
+          port: 21
+          server-dir: ${{ vars.FTP_SERVER_DIR }}
+          local-dir: ./
+          # Nur Geändertes wird übertragen. Diese Dinge gehören nicht auf den Server:
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            caps/**
+            tools/**
+            build.mjs
+            README.md
