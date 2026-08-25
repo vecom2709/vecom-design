@@ -1094,3 +1094,57 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .legal__sec p { margin-top: .5rem; }
 /* Zeilenumbrüche in der Anbieteranschrift bleiben erhalten */
 .legal .pre { white-space: pre-line; }
+
+/* ---------- 25. Partnermarke ---------------------------------------------- */
+/* Zurückhaltend platziert: keine zweite Marke, die um Aufmerksamkeit kämpft,
+   sondern eine ruhige Nennung mit einem einzigen filmischen Moment. */
+.partner { padding-block: clamp(3.5rem, 7vw, 6rem); }
+.partner__inner { display: grid; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; }
+@media (min-width: 860px) { .partner__inner { grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); } }
+
+.partner__logo {
+  position: relative; margin: 0; isolation: isolate;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(70% 70% at 50% 45%, rgba(198, 160, 60, .10), transparent 72%);
+  box-shadow: inset 0 0 0 1px rgba(198, 160, 60, .18);
+}
+.partner__logo img {
+  width: 100%; max-width: 340px; margin-inline: auto; display: block;
+  /* Gold auf dunklem Grund braucht einen warmen Schein, sonst wirkt es flach */
+  filter: drop-shadow(0 0 26px rgba(198, 160, 60, .35)) drop-shadow(0 14px 30px rgba(0, 0, 0, .7));
+  animation: partnerFloat 9s var(--e-std) infinite;
+}
+@keyframes partnerFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-7px) scale(1.012); }
+}
+
+/* Der filmische Moment: ein Goldschimmer läuft einmal über die Marke.
+   Er liegt als Maske über dem Logo, nicht daneben — deshalb folgt er exakt
+   den Schwüngen der Schrift statt als Rechteck darüberzuziehen. */
+.partner__sheen {
+  position: absolute; inset: clamp(1.5rem, 3vw, 2.5rem); z-index: 1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 240, 200, .85) 50%, transparent 62%);
+  -webkit-mask: url("../img/trendonix.webp") no-repeat center / contain;
+  mask: url("../img/trendonix.webp") no-repeat center / contain;
+  mix-blend-mode: screen; opacity: 0;
+  transform: translateX(-60%);
+}
+.partner__logo.in .partner__sheen,
+.partner__logo:hover .partner__sheen { animation: partnerSheen 2.6s var(--e-std) .4s; }
+@keyframes partnerSheen {
+  0% { transform: translateX(-60%); opacity: 0; }
+  18% { opacity: 1; }
+  70% { transform: translateX(60%); opacity: 0; }
+  100% { transform: translateX(60%); opacity: 0; }
+}
+
+.partner__text h2 { font-size: var(--t-lg); letter-spacing: .04em; }
+.partner__text > p:last-child { margin-top: var(--s-2); color: var(--c-text-dim); max-width: 46ch; }
+.partner .eyebrow::before { background: linear-gradient(90deg, #c6a03c, #f0d98a); }
+
+@media (prefers-reduced-motion: reduce) {
+  .partner__logo img { animation: none; }
+  .partner__sheen { display: none; }
+}

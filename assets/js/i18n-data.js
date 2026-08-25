@@ -135,6 +135,12 @@ window.VECOM_I18N = {
       hint: "Il pulsante apre il tuo programma di posta con il messaggio già scritto. Nessun dato viene salvato su questo sito.",
       lang: "Si parla italiano, tedesco e inglese."
     },
+    partner: {
+      eyebrow: "In collaborazione con",
+      head: "Trendonix",
+      text: "Marchio editoriale per libri illustrati e progetti narrativi. Dalla stessa mano: concezione, identità visiva e presenza online.",
+      cta: "Scopri Trendonix"
+    },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
@@ -281,6 +287,12 @@ window.VECOM_I18N = {
       hint: "Der Knopf öffnet Ihr E-Mail-Programm mit fertig geschriebener Nachricht. Auf dieser Seite werden keine Daten gespeichert.",
       lang: "Wir sprechen Italienisch, Deutsch und Englisch."
     },
+    partner: {
+      eyebrow: "In Zusammenarbeit mit",
+      head: "Trendonix",
+      text: "Buchmarke für illustrierte Sachbücher und erzählende Projekte. Aus derselben Hand: Konzept, Erscheinungsbild und Auftritt im Netz.",
+      cta: "Trendonix ansehen"
+    },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
@@ -426,6 +438,12 @@ window.VECOM_I18N = {
       send: "Send enquiry",
       hint: "The button opens your email programme with the message already written. No data is stored on this site.",
       lang: "We speak Italian, German and English."
+    },
+    partner: {
+      eyebrow: "In collaboration with",
+      head: "Trendonix",
+      text: "A publishing brand for illustrated non-fiction and narrative projects. From the same hand: concept, visual identity and online presence.",
+      cta: "See Trendonix"
     },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
