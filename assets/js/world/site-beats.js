@@ -83,6 +83,12 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
       opacity: b.halo, duration: d, ease: e, overwrite: true,
       onUpdate: () => { w.halo.visible = w.halo.material.opacity > 0.08; },
     });
+    // Filmischer Schnitt: ein kurzer Lichtschleier kaschiert den Wechsel.
+    if (!instant) {
+      root.setAttribute('data-cut', '1');
+      gsap.delayedCall(0.6, () => root.removeAttribute('data-cut'));
+    }
+
     // Der Schleier dunkelt die Welt ab, sobald Text gelesen werden soll.
     gsap.to(root, { '--world-scrim': b.scrim, duration: d * 0.8, ease: e, overwrite: true });
   };
@@ -90,6 +96,12 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   /* Eröffnungsflug: einmal beim Laden von weit außen an die Marke heran.
      Danach übernimmt das Scrollen. */
   applyTween(OPENING, true);
+
+  /* Aufbau der Bühne: Die Marke materialisiert sich, statt einfach da zu sein.
+     Zwei Sekunden, die den Ton setzen. */
+  w.logo.scale.setScalar(0.55);
+  gsap.to(w.logo.scale, { x: 1.75, y: 1.75, z: 1.75, duration: 2.6, ease: 'expo.out', delay: 0.15 });
+  gsap.fromTo(w.mat, { emissiveIntensity: 1.4 }, { emissiveIntensity: 0, duration: 2.2, ease: 'power2.out', delay: 0.15 });
   const opening = gsap.delayedCall(0.25, () => applyOpening());
   function applyOpening() {
     const b = SITE_BEATS[0];
@@ -162,11 +174,24 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
         );
         w.logoRig.rotation.y = gsap.utils.interpolate(from.rotY, to.rotY, t);
 
+        // Die beiden Schenkel gehen auseinander und wieder zusammen — das Motiv
+        // erzählt „ein Zeichen entsteht durch das Weggelassene" ohne Worte.
+        const split = Math.sin(t * Math.PI) * 0.55;      // 0 → max → 0
+        w.logoLeft.position.x = -split;
+        w.logoRight.position.x = split;
+        w.gap.intensity = split * 26;
+
         // Schritt für Schritt: immer genau einer im Vordergrund.
         const active = Math.min(steps.length - 1, Math.floor(t * steps.length));
         steps.forEach((el, i) => el.classList.toggle('is-active', i === active));
       },
-      onLeaveBack: () => steps.forEach((el) => el.classList.remove('is-active')),
+      onLeaveBack: () => {
+        steps.forEach((el) => el.classList.remove('is-active'));
+        w.logoLeft.position.x = 0; w.logoRight.position.x = 0; w.gap.intensity = 0;
+      },
+      onLeave: () => {
+        w.logoLeft.position.x = 0; w.logoRight.position.x = 0; w.gap.intensity = 0;
+      },
     });
   }
 

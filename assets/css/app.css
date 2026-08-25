@@ -1000,3 +1000,60 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 #process:has(.is-active) .step { opacity: .32; }
 #process:has(.is-active) .step.is-active { opacity: 1; transform: translateX(6px); }
 #process:has(.is-active) .step.is-active .step__no { filter: drop-shadow(0 0 18px rgba(31, 232, 255, .5)); }
+
+/* ---------- 23. Feinschliff ---------------------------------------------- */
+/* Wortweise Enthüllung (nur Überschriften) */
+.sechead h2 .w, .contact h2 .w { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .06em; }
+.sechead h2 .w > i, .contact h2 .w > i { display: inline-block; font-style: normal; }
+
+/* Projektkarten neigen sich zum Zeiger */
+.card {
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+}
+.card:hover { transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-6px); }
+.card.is-tilted::before {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
+  background: radial-gradient(30% 30% at var(--lx, 50%) var(--ly, 50%), rgba(120, 190, 255, .16), transparent 70%);
+}
+
+/* Preisumschalter */
+.ptoggle {
+  display: inline-flex; gap: 3px; padding: 4px; margin-bottom: var(--s-3);
+  border-radius: 999px; background: rgba(255, 255, 255, .03);
+  box-shadow: inset 0 0 0 1px var(--c-line);
+}
+.ptoggle button {
+  border: 0; background: none; cursor: pointer; border-radius: 999px;
+  padding: .5rem 1rem; min-height: 40px;
+  font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-faint);
+  transition: color var(--d-ui) linear, background-color var(--d-ui) linear;
+}
+.ptoggle button:hover { color: var(--c-text); }
+.ptoggle button[aria-pressed="true"] {
+  background: var(--c-surface-2); color: var(--c-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 14px -8px rgba(0, 0, 0, .9);
+}
+.plan__price > span { transition: opacity var(--d-move) var(--e-std); }
+
+/* Filmischer Schnitt zwischen den Kapiteln */
+.world-cut {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
+  background: linear-gradient(100deg, transparent 38%, rgba(120, 190, 255, .10) 50%, transparent 62%);
+}
+[data-cut] .world-cut { animation: worldCut 600ms var(--e-std); }
+@keyframes worldCut {
+  0% { opacity: 0; transform: translateX(-30%); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(30%); }
+}
+
+/* Sprachwechsel: Inhalt tritt kurz zurück statt schlagartig zu springen */
+body.is-swapping main { opacity: .35; transform: translateY(4px); }
+body main { transition: opacity 220ms var(--e-std), transform 220ms var(--e-std); }
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transform: none !important; }
+  .world-cut { display: none; }
+  body.is-swapping main { opacity: 1; transform: none; }
+}

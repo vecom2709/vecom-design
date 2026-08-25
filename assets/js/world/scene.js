@@ -128,7 +128,9 @@ export class World {
     this.fill.position.set(0, 3.2, 7.5);
     this.spec = new THREE.PointLight(0xffffff, 34, 20, 2);   // Glanzpunkt
     this.spec.position.set(2.4, 3.0, 5.2);
-    this.scene.add(this.rimA, this.rimB, this.fill, this.spec);
+    this.pointerLight = new THREE.PointLight(0x9fd0ff, 26, 16, 2);
+    this.pointerLight.position.set(0, 0, 5.2);
+    this.scene.add(this.rimA, this.rimB, this.fill, this.spec, this.pointerLight);
   }
 
   /* ---------- Die Marke als Körper ---------- */
@@ -140,16 +142,24 @@ export class World {
       return s;
     });
 
-    const geo = new THREE.ExtrudeGeometry(shapes, {
-      depth: 0.34,
-      bevelEnabled: true,
-      bevelThickness: 0.045,
-      bevelSize: 0.035,
-      bevelSegments: 4,
-      curveSegments: 6,
+    const EXTRUDE = {
+      depth: 0.34, bevelEnabled: true, bevelThickness: 0.045,
+      bevelSize: 0.035, bevelSegments: 4, curveSegments: 6,
+    };
+    // Zwei getrennte Körper statt eines: nur so lassen sich die beiden Schenkel
+    // im Kapitel „Ablauf" auseinanderziehen. Beide werden um denselben Betrag
+    // verschoben, damit sie zusammengesetzt exakt das Logo ergeben.
+    const geo = new THREE.ExtrudeGeometry(shapes, EXTRUDE);
+    geo.computeBoundingBox();
+    const c = geo.boundingBox.getCenter(new THREE.Vector3());
+    geo.dispose();
+
+    const parts = shapes.map((sh) => {
+      const g = new THREE.ExtrudeGeometry([sh], EXTRUDE);
+      g.translate(-c.x, -c.y, -c.z);
+      g.computeVertexNormals();
+      return g;
     });
-    geo.center();
-    geo.computeVertexNormals();
 
     // Gebürstetes, blau eingefärbtes Metall mit Klarlack — der Klarlack erzeugt
     // die zweite, schärfere Reflexionsschicht, die Metall teuer aussehen lässt.
@@ -175,10 +185,20 @@ export class World {
       iridescenceThicknessRange: [180, 420],
     });
 
-    this.logo = new THREE.Mesh(geo, this.mat);
+    this.logo = new THREE.Group();
+    this.logoLeft = new THREE.Mesh(parts[0], this.mat);
+    this.logoRight = new THREE.Mesh(parts[1], this.mat);
+    [this.logoLeft, this.logoRight].forEach((m) => {
+      m.castShadow = this.q.settings.shadow > 0;
+      m.receiveShadow = false;
+      this.logo.add(m);
+    });
     this.logo.scale.setScalar(1.75);
-    this.logo.castShadow = this.q.settings.shadow > 0;
-    this.logo.receiveShadow = false;
+
+    // Licht im Spalt: wird sichtbar, sobald die Schenkel auseinandergehen.
+    this.gap = new THREE.PointLight(0x39d8ff, 0, 6, 2);
+    this.gap.position.set(0, 0, 0.3);
+    this.logo.add(this.gap);
 
     this.logoRig = new THREE.Group();      // Rig trägt die Story-Bewegung (Position + Drehung)
     this.logoRig.add(this.logo);
@@ -397,7 +417,13 @@ export class World {
     if (this.finish) this.finish.uniforms.uAspect.value = w / h;
   }
 
-  setParallax(x, y) { this.parallax.set(x, y); }
+  setParallax(x, y) {
+    this.parallax.set(x, y);
+    // Zeigerlicht: eine kleine Quelle, die vor der Marke mitwandert. Dadurch
+    // bewegen sich die Reflexe unter dem Zeiger — echte Interaktion mit der
+    // Szene statt eines nachgezeichneten Cursors.
+    if (this.pointerLight) this.pointerLight.position.set(x * 6.5, y * 4.2, 5.2);
+  }
 
   render() {
     const t0 = performance.now();

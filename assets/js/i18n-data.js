@@ -90,6 +90,7 @@ window.VECOM_I18N = {
 
       badge: "Consigliato",
       priceNote: "una tantum · IVA esclusa",
+      togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno · IVA esclusa",
       cta: "Richiedi un preventivo",
       note: "Tutti i prezzi sono IVA esclusa. Durata e disdetta della manutenzione mensile: [da definire]."
     },
@@ -238,6 +239,7 @@ window.VECOM_I18N = {
 
       badge: "Empfehlung",
       priceNote: "einmalig · zzgl. MwSt.",
+      togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr · zzgl. MwSt.",
       cta: "Angebot anfragen",
       note: "Alle Preise zzgl. MwSt. Laufzeit und Kündigungsfrist der monatlichen Wartung: [bitte ergänzen]."
     },
@@ -386,6 +388,7 @@ window.VECOM_I18N = {
 
       badge: "Recommended",
       priceNote: "one-off · plus VAT",
+      togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year · plus VAT",
       cta: "Request a quote",
       note: "All prices exclude VAT. Term and notice period for the monthly maintenance: [to be defined]."
     },
