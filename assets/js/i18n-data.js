@@ -121,6 +121,52 @@ window.VECOM_I18N = {
       q8: "Come si paga?",
       a8: "Metà all'accettazione del preventivo, metà alla consegna. L'assistenza parte dal mese successivo al lancio. Fatturazione regolare, tutto tracciato."
     },
+    form: {
+      head: "Raccontami il tuo progetto",
+      lead: "Sei domande brevi, quasi tutte da cliccare. Così al primo colloquio posso già dirti qualcosa di concreto, invece del solito „dipende“.",
+      step: "Passo", of: "di",
+      s1: "Il progetto", s2: "Contesto", s3: "Contatti",
+
+      q1: "Cosa vorresti realizzare?",
+      q1h: "Puoi scegliere più opzioni",
+      q1o: "Un nuovo sito|Rifare il sito esistente|Un negozio online|Una landing page|Logo e identità di marca|Altro",
+
+      q2: "Cosa deve ottenere soprattutto il tuo sito?",
+      q2h: "Scegli ciò che conta di più",
+      q2o: "Più richieste e più clienti|Mostrare servizi e offerta|Vendere prodotti|Apparire più professionale|Farmi trovare su Google|Altro",
+
+      q3: "Hai già un sito?",
+      q3o: "Sì|No, non ancora",
+      q3url: "Qual è l'indirizzo?",
+      q3urlph: "es. la-mia-azienda.it",
+
+      q4: "Che budget hai previsto?",
+      q4h: "Basta un ordine di grandezza — da lì dipende cosa ha senso fare",
+      q4o: "Meno di 1.500 €|1.500–3.000 €|3.000–5.000 €|5.000–10.000 €|Più di 10.000 €|Preferisco parlarne",
+
+      q5: "Quando vorresti iniziare?",
+      q5o: "Il prima possibile|Tra 1–2 mesi|Tra 3–6 mesi|Ancora da decidere",
+
+      q6: "Di cosa si tratta esattamente?",
+      q6h: "Facoltativo, ma utile",
+      q6ph: "Raccontami in breve il tuo progetto: cosa non funziona con il sito attuale, cosa ti sta più a cuore, che esperienze hai avuto finora.",
+
+      name: "Come ti chiami?", nameph: "nome e cognome",
+      mail: "Dove posso risponderti?", mailph: "tuo@indirizzo.it",
+      phone: "Telefono", phoneopt: "facoltativo", phoneph: "se preferisci una risposta più rapida",
+
+      back: "Indietro", next: "Avanti",
+      send: "Invia la richiesta",
+      trust: "Gratuito e senza impegno · Risposta entro un giorno lavorativo · I tuoi dati arrivano solo a me",
+      required: "Scegli ancora un'opzione, per favore.",
+      requiredField: "Questo campo mi serve.",
+      mailInvalid: "Questo indirizzo e-mail non sembra corretto.",
+
+      doneHead: "Grazie — la tua richiesta è partita.",
+      doneText: "Guardo con calma il tuo progetto e ti rispondo entro un giorno lavorativo. Se hai fretta, scrivimi direttamente a kontakt@vecom-design.it.",
+      doneNote: "Si è aperto il tuo programma di posta — invia pure il messaggio già pronto.",
+      doneBack: "Torna al sito"
+    },
     contact: {
       head: "Parliamone. Il preventivo è gratuito.",
       lead: "Raccontaci in poche righe cosa vendi e cosa ti serve. Rispondiamo entro un giorno lavorativo con una prima indicazione di prezzo e tempi — in italiano, tedesco o inglese.",
@@ -273,6 +319,52 @@ window.VECOM_I18N = {
       q8: "Wie wird abgerechnet?",
       a8: "Die Hälfte bei Auftragserteilung, die Hälfte bei Übergabe. Die Betreuung beginnt im Monat nach dem Launch. Ordentliche Rechnung, alles nachvollziehbar."
     },
+    form: {
+      head: "Erzähl mir von deinem Projekt",
+      lead: "Sechs kurze Fragen, meist nur Klicks. Damit ich dir schon beim ersten Gespräch etwas Konkretes sagen kann — statt nur „kommt darauf an“.",
+      step: "Schritt", of: "von",
+      s1: "Dein Vorhaben", s2: "Rahmen", s3: "Kontakt",
+
+      q1: "Was möchtest du umsetzen?",
+      q1h: "Mehrfachauswahl möglich",
+      q1o: "Neue Website|Bestehende Website überarbeiten|Onlineshop|Landingpage|Logo & Markenauftritt|Etwas anderes",
+
+      q2: "Was soll deine Website vor allem erreichen?",
+      q2h: "Wähl aus, was am wichtigsten ist",
+      q2o: "Mehr Anfragen und Kunden gewinnen|Leistungen und Angebot zeigen|Produkte verkaufen|Professioneller auftreten|Bei Google gefunden werden|Etwas anderes",
+
+      q3: "Hast du schon eine Website?",
+      q3o: "Ja|Nein, noch nicht",
+      q3url: "Wie lautet die Adresse?",
+      q3urlph: "z. B. meine-firma.de",
+
+      q4: "Welches Budget hast du eingeplant?",
+      q4h: "Grober Rahmen genügt — davon hängt ab, was sinnvoll machbar ist",
+      q4o: "Unter 1.500 €|1.500–3.000 €|3.000–5.000 €|5.000–10.000 €|Mehr als 10.000 €|Sag ich lieber im Gespräch",
+
+      q5: "Wann möchtest du starten?",
+      q5o: "So bald wie möglich|In 1–2 Monaten|In 3–6 Monaten|Noch offen",
+
+      q6: "Worum geht es genau?",
+      q6h: "Optional, aber hilfreich",
+      q6ph: "Erzähl mir kurz von deinem Vorhaben: Was läuft mit deiner jetzigen Seite nicht, was ist dir besonders wichtig, welche Erfahrungen hast du bisher gemacht?",
+
+      name: "Wie heißt du?", nameph: "Vor- und Nachname",
+      mail: "Wohin darf ich antworten?", mailph: "deine@adresse.de",
+      phone: "Telefon", phoneopt: "optional", phoneph: "für Rückfragen, falls es schneller gehen soll",
+
+      back: "Zurück", next: "Weiter",
+      send: "Anfrage abschicken",
+      trust: "Kostenlos und unverbindlich · Antwort innerhalb eines Werktags · Deine Angaben gehen ausschließlich an mich",
+      required: "Bitte wähl hier noch etwas aus.",
+      requiredField: "Dieses Feld brauche ich noch.",
+      mailInvalid: "Diese E-Mail-Adresse sieht nicht ganz richtig aus.",
+
+      doneHead: "Danke — deine Anfrage ist unterwegs.",
+      doneText: "Ich schaue mir dein Vorhaben in Ruhe an und melde mich innerhalb eines Werktags bei dir. Wenn es dringend ist, schreib mir einfach direkt an kontakt@vecom-design.it.",
+      doneNote: "Dein E-Mail-Programm hat sich geöffnet — bitte schick die vorbereitete Nachricht noch ab.",
+      doneBack: "Zurück zur Seite"
+    },
     contact: {
       head: "Sprechen wir darüber. Das Angebot ist kostenlos.",
       lead: "Schreiben Sie uns in wenigen Zeilen, was Sie anbieten und was Sie brauchen. Antwort innerhalb eines Werktags mit einer ersten Einschätzung zu Preis und Zeitrahmen — auf Italienisch, Deutsch oder Englisch.",
@@ -424,6 +516,52 @@ window.VECOM_I18N = {
       a7: "In the basic setup there are no tracking cookies and no fonts from third-party servers — so no banner is needed. If analytics or maps are added later that changes: then consent and an updated privacy notice are required.",
       q8: "How does payment work?",
       a8: "Half on commissioning, half on handover. Care starts the month after launch. Proper invoicing, everything traceable."
+    },
+    form: {
+      head: "Tell me about your project",
+      lead: "Six short questions, mostly just clicks. So that in our first conversation I can already say something concrete instead of „it depends“.",
+      step: "Step", of: "of",
+      s1: "Your project", s2: "Context", s3: "Contact",
+
+      q1: "What would you like to build?",
+      q1h: "You can pick more than one",
+      q1o: "A new website|Rework an existing site|An online store|A landing page|Logo & brand identity|Something else",
+
+      q2: "What should your website mainly achieve?",
+      q2h: "Pick what matters most",
+      q2o: "More enquiries and clients|Show services and offering|Sell products|Look more professional|Get found on Google|Something else",
+
+      q3: "Do you already have a website?",
+      q3o: "Yes|Not yet",
+      q3url: "What's the address?",
+      q3urlph: "e.g. my-company.com",
+
+      q4: "What budget do you have in mind?",
+      q4h: "A rough range is enough — it decides what's sensibly possible",
+      q4o: "Under €1,500|€1,500–3,000|€3,000–5,000|€5,000–10,000|More than €10,000|I'd rather discuss it",
+
+      q5: "When would you like to start?",
+      q5o: "As soon as possible|In 1–2 months|In 3–6 months|Still open",
+
+      q6: "What exactly is it about?",
+      q6h: "Optional, but helpful",
+      q6ph: "Tell me briefly about your project: what isn't working with your current site, what matters most to you, what experiences you've had so far.",
+
+      name: "What's your name?", nameph: "first and last name",
+      mail: "Where may I reply?", mailph: "you@address.com",
+      phone: "Phone", phoneopt: "optional", phoneph: "if a quick call would be easier",
+
+      back: "Back", next: "Next",
+      send: "Send my enquiry",
+      trust: "Free and without obligation · Reply within one working day · Your details come only to me",
+      required: "Please pick one more option here.",
+      requiredField: "I still need this field.",
+      mailInvalid: "That email address doesn't look quite right.",
+
+      doneHead: "Thank you — your enquiry is on its way.",
+      doneText: "I'll look at your project properly and get back to you within one working day. If it's urgent, just write to kontakt@vecom-design.it.",
+      doneNote: "Your email programme has opened — please send the prepared message.",
+      doneBack: "Back to the site"
     },
     contact: {
       head: "Let's talk. The quote is free.",

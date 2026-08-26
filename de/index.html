@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de" data-lang-fixed="de" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-title-key="meta.title">
+<html lang="de" data-lang-fixed="de" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-lang-fixed="it" data-title-key="meta.title">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -756,8 +756,8 @@
   <div class="contact__light" aria-hidden="true"></div>
   <div class="wrap contact__grid">
     <div data-stagger>
-      <h2 data-reveal data-i18n="contact.head">Sprechen wir darüber. Das Angebot ist kostenlos.</h2>
-      <p class="contact__lead" data-reveal data-i18n="contact.lead">Schreiben Sie uns in wenigen Zeilen, was Sie anbieten und was Sie brauchen. Antwort innerhalb eines Werktags mit einer ersten Einschätzung zu Preis und Zeitrahmen — auf Italienisch, Deutsch oder Englisch.</p>
+      <h2 data-reveal data-i18n="form.head">Erzähl mir von deinem Projekt</h2>
+      <p class="contact__lead" data-reveal data-i18n="form.lead">Sechs kurze Fragen, meist nur Klicks. Damit ich dir schon beim ersten Gespräch etwas Konkretes sagen kann — statt nur „kommt darauf an“.</p>
 
       <dl class="contact__data" data-reveal>
         <div><dt data-i18n="contact.dt1">E-Mail</dt><dd data-i18n="contact.dd1">kontakt@vecom-design.it</dd></div>
@@ -767,41 +767,90 @@
       </dl>
     </div>
 
-    <form class="form" data-mailto="kontakt@vecom-design.it" data-reveal novalidate>
-      <div class="form__row">
-        <div class="field">
-          <label for="f-name" data-i18n="contact.fname">Name</label>
-          <input id="f-name" name="name" type="text" required autocomplete="name"
-                 data-i18n-attr="placeholder:contact.phName" placeholder="Come ti chiami">
+    <form class="qform" data-mailto="kontakt@vecom-design.it" novalidate>
+      <div class="qform__bar" aria-hidden="true"><i style="--p:.33"></i></div>
+      <p class="qform__count">
+        <span data-i18n="form.step">Schritt</span>
+        <b data-step-now>1</b>
+        <span data-i18n="form.of">von</span> 3 — <span data-step-name data-i18n="form.s1">Dein Vorhaben</span>
+      </p>
+
+      <!-- Schritt 1 -->
+      <fieldset class="qform__step is-active" data-step="1">
+        <div class="qfield">
+          <legend class="qform__q" data-i18n="form.q1">Was möchtest du umsetzen?</legend>
+          <p class="qform__hint" data-i18n="form.q1h">Mehrfachauswahl möglich</p>
+          <div class="chips" data-chips="form.q1o" data-name="Vorhaben" data-multi data-required></div>
         </div>
-        <div class="field">
-          <label for="f-mail" data-i18n="contact.fmail">E-Mail</label>
-          <input id="f-mail" name="email" type="email" required autocomplete="email"
-                 data-i18n-attr="placeholder:contact.phMail" placeholder="dove possiamo risponderti">
+        <div class="qfield">
+          <p class="qform__q" data-i18n="form.q2">Was soll deine Website vor allem erreichen?</p>
+          <p class="qform__hint" data-i18n="form.q2h">Wähl aus, was am wichtigsten ist</p>
+          <div class="chips" data-chips="form.q2o" data-name="Ziel" data-multi></div>
         </div>
-      </div>
+        <div class="qfield">
+          <p class="qform__q" data-i18n="form.q3">Hast du schon eine Website?</p>
+          <div class="chips" data-chips="form.q3o" data-name="Bestehende Website" data-reveal-url></div>
+          <label class="qform__url" hidden>
+            <span data-i18n="form.q3url">Wie lautet die Adresse?</span>
+            <input type="url" name="url" data-i18n-attr="placeholder:form.q3urlph" autocomplete="url" placeholder="es. la-mia-azienda.it">
+          </label>
+        </div>
+      </fieldset>
 
-      <div class="field">
-        <label for="f-type" data-i18n="contact.ftype">Worum geht es</label>
-        <select id="f-type" name="type">
-          <option data-i18n="contact.o1">Maßgeschneiderte Website</option>
-          <option data-i18n="contact.o2">Logo &amp; Markenauftritt</option>
-          <option data-i18n="contact.o3">Online-Shop</option>
-          <option data-i18n="contact.o4">Überarbeitung einer bestehenden Seite</option>
-          <option data-i18n="contact.o5">Anderes</option>
-        </select>
-      </div>
+      <!-- Schritt 2 -->
+      <fieldset class="qform__step" data-step="2">
+        <div class="qfield">
+          <p class="qform__q" data-i18n="form.q4">Welches Budget hast du eingeplant?</p>
+          <p class="qform__hint" data-i18n="form.q4h">Grober Rahmen genügt — davon hängt ab, was sinnvoll machbar ist</p>
+          <div class="chips" data-chips="form.q4o" data-name="Budget"></div>
+        </div>
+        <div class="qfield">
+          <p class="qform__q" data-i18n="form.q5">Wann möchtest du starten?</p>
+          <div class="chips" data-chips="form.q5o" data-name="Start"></div>
+        </div>
+      </fieldset>
 
-      <div class="field">
-        <label for="f-msg" data-i18n="contact.fmsg">Das Vorhaben in Kürze</label>
-        <textarea id="f-msg" name="message" required data-i18n-attr="placeholder:contact.phMsg" placeholder="Chi sei, cosa ti serve e per quando."></textarea>
-      </div>
+      <!-- Schritt 3 -->
+      <fieldset class="qform__step" data-step="3">
+        <div class="qfield">
+          <p class="qform__q" data-i18n="form.q6">Worum geht es genau?</p>
+          <p class="qform__hint" data-i18n="form.q6h">Optional, aber hilfreich</p>
+          <textarea name="text" rows="4" data-i18n-attr="placeholder:form.q6ph" placeholder="Raccontami in breve il tuo progetto: cosa non funziona con il sito attuale, cosa ti sta più a cuore, che esperienze hai avuto finora."></textarea>
+        </div>
+        <div class="qform__row">
+          <label class="qfield">
+            <span class="qform__label" data-i18n="form.name">Wie heißt du?</span>
+            <input type="text" name="name" required autocomplete="name" data-i18n-attr="placeholder:form.nameph" placeholder="nome e cognome">
+          </label>
+          <label class="qfield">
+            <span class="qform__label" data-i18n="form.mail">Wohin darf ich antworten?</span>
+            <input type="email" name="email" required autocomplete="email" data-i18n-attr="placeholder:form.mailph" placeholder="tuo@indirizzo.it">
+          </label>
+        </div>
+        <label class="qfield">
+          <span class="qform__label"><span data-i18n="form.phone">Telefon</span> <em data-i18n="form.phoneopt">optional</em></span>
+          <input type="tel" name="phone" autocomplete="tel" data-i18n-attr="placeholder:form.phoneph" placeholder="se preferisci una risposta più rapida">
+        </label>
+      </fieldset>
 
-      <button class="btn btn--primary" type="submit" data-magnetic>
-        <span data-i18n="contact.send">Anfrage senden</span>
-        <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
-      </button>
-      <p class="form__hint" data-i18n="contact.hint">Der Knopf öffnet Ihr E-Mail-Programm mit fertig geschriebener Nachricht. Auf dieser Seite werden keine Daten gespeichert.</p>
+      <div class="qform__nav">
+        <button type="button" class="btn qform__back" data-i18n="form.back" hidden>Zurück</button>
+        <button type="button" class="btn btn--primary qform__next">
+          <span data-i18n="form.next">Weiter</span>
+          <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
+        </button>
+      </div>
+      <p class="qform__trust" data-i18n="form.trust">Kostenlos und unverbindlich · Antwort innerhalb eines Werktags · Deine Angaben gehen ausschließlich an mich</p>
+
+      <!-- Bestätigung -->
+      <div class="qform__done" hidden>
+        <span class="qform__check" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5.5 5.5L20 7"/></svg>
+        </span>
+        <h3 data-i18n="form.doneHead">Danke — deine Anfrage ist unterwegs.</h3>
+        <p data-i18n="form.doneText">Ich schaue mir dein Vorhaben in Ruhe an und melde mich innerhalb eines Werktags bei dir. Wenn es dringend ist, schreib mir einfach direkt an kontakt@vecom-design.it.</p>
+        <p class="qform__hint" data-i18n="form.doneNote">Dein E-Mail-Programm hat sich geöffnet — bitte schick die vorbereitete Nachricht noch ab.</p>
+      </div>
     </form>
   </div>
 </section>
@@ -836,6 +885,7 @@
 <script src="../assets/js/app.js"></script>
 <script src="../assets/js/screens.js" defer></script>
 <script src="../assets/js/polish.js" defer></script>
+<script src="../assets/js/qform.js" defer></script>
 <script src="../assets/vendor/gsap.min.js"></script>
 <script src="../assets/vendor/ScrollTrigger.min.js"></script>
 <script src="../assets/vendor/lenis.min.js"></script>
