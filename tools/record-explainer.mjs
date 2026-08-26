@@ -10,7 +10,10 @@
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
-const URL = process.argv[2] || 'http://localhost:8181/explainer.html';
+const LANG = (process.argv[3] || process.argv[2] || 'de').replace(/^--/, '');
+const BASE = (process.argv[2] && process.argv[2].startsWith('http'))
+  ? process.argv[2] : 'http://localhost:8181/explainer.html';
+const URL = `${BASE}?lang=${LANG}`;
 mkdirSync('video', { recursive: true });
 
 // Szene → Standzeit in Millisekunden
@@ -37,4 +40,4 @@ for (let i = 1; i <= HOLD.length; i++) {
 }
 
 await ctx.close();
-console.log('Fertig — Video liegt im Ordner video');
+console.log(`Fertig (${LANG}) — Video liegt im Ordner video`);

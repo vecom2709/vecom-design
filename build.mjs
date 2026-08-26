@@ -90,6 +90,16 @@ function build(lang) {
   h = h.replace(/<script type="application\/ld\+json">\s*\{\s*"@context"[^<]*"FAQPage"[\s\S]*?<\/script>\s*/g, '');
   h = h.replace('</head>', `<script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n</script>\n</head>`);
 
+  // Das Rundgang-Video hat noch deutsche Titelkarten — deshalb erscheint es
+  // vorerst nur auf der deutschen Seite. Sobald es in allen Sprachen vorliegt,
+  // diese fünf Zeilen entfernen.
+  if (lang !== 'de') {
+    h = h.replace(/<figure class="vid framed"[^>]*data-src="[^"]*webseite-erstellen[^"]*"[\s\S]*?<\/figure>\s*/, '');
+  }
+
+  // Erklärvideo je Sprache: erklaervideo-it/de/en.mp4
+  h = h.replace(/erklaervideo-[a-z]{2}\.mp4/g, `erklaervideo-${lang}.mp4`);
+
   // 2. Kopfdaten
   const url = `${BASE}/${LANGS[lang]}`;
   h = h.replace(/<html lang="[^"]*"/, `<html lang="${lang}" data-lang-fixed="${lang}"`);

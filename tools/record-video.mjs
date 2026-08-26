@@ -15,7 +15,8 @@
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
-const URL = process.argv[2] || 'https://vecom-design.it/de/';
+const LANG = (process.argv[3] || 'de').replace(/^--/, '');
+const URL = process.argv[2] || `https://vecom-design.it/${LANG === 'it' ? '' : LANG + '/'}`;
 const WITH_3D = process.argv.includes('--3d');
 const OUT = 'video';
 mkdirSync(OUT, { recursive: true });
