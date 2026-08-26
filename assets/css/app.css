@@ -1464,3 +1464,33 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .e404 h1 { font-size: var(--t-xl); }
 .e404__lead { color: var(--c-text-dim); font-size: var(--t-md); max-width: 46ch; }
 .e404__cta { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
+
+/* ---------- 29. Videos ---------------------------------------------------- */
+.vids { display: grid; gap: clamp(1rem, 2vw, 1.6rem); }
+@media (min-width: 900px) { .vids { grid-template-columns: 1fr 1fr; } }
+.vid {
+  position: relative; margin: 0; border-radius: var(--radius-lg); overflow: hidden;
+  background: var(--c-surface); box-shadow: var(--elev-1);
+  display: grid; grid-template-rows: minmax(0, 1fr) auto;
+  transition: transform var(--d-move) var(--e-std), box-shadow var(--d-move) var(--e-std);
+}
+.vid:hover { transform: translateY(-4px); box-shadow: var(--elev-hover); }
+.vid img, .vid video { width: 100%; height: auto; display: block; background: #05070d; }
+.vid__play {
+  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: .6rem; cursor: pointer;
+  padding: .8rem 1.3rem .8rem 1.05rem; border: 0; border-radius: 999px;
+  background: linear-gradient(180deg, #fff, #e2e9f7); color: var(--c-base);
+  font-size: var(--t-sm); font-weight: 600; letter-spacing: .01em;
+  box-shadow: 0 3px 8px -2px rgba(0,0,0,.7), 0 22px 45px -20px rgba(0,0,0,1);
+  transition: transform var(--d-move) var(--e-std), box-shadow var(--d-move) var(--e-std);
+}
+.vid__play:hover { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 4px 10px -2px rgba(0,0,0,.75), 0 28px 55px -18px rgba(10,120,245,.8); }
+.vid.is-playing .vid__play { display: none; }
+.vid figcaption {
+  display: grid; gap: .25rem; padding: clamp(1rem, 2vw, 1.4rem);
+  background: linear-gradient(180deg, rgba(9, 13, 22, .96), var(--c-surface));
+  box-shadow: inset 0 1px 0 rgba(150, 180, 230, .14);
+}
+.vid figcaption b { font-family: var(--f-display); font-stretch: 104%; font-size: var(--t-md); }
+.vid figcaption span { font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase; color: var(--c-text-faint); }

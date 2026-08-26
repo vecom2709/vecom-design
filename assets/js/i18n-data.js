@@ -205,6 +205,13 @@ window.VECOM_I18N = {
     },
     marg: { m1: "sei ambiti", m2: "progetti reali", m3: "prezzi pubblici" },
     e404: { title: "Pagina non trovata — Vecom Design", head: "Questa pagina non esiste.", lead: "Forse l'indirizzo è cambiato, o c'è un refuso. Da qui torni subito al punto giusto.", home: "Torna alla home", contact: "Scrivimi" },
+    video: {
+      head: "Guarda come funziona",
+      lead: "Due video brevi: uno spiega il metodo, l'altro mostra il sito in funzione. Senza audio — puoi guardarli ovunque.",
+      t1: "Come nasce il tuo sito", d1: "Il metodo in quattro passi · 1:07",
+      t2: "Il sito in funzione", d2: "Un giro completo, compreso il modulo · 1:02",
+      play: "Riproduci", nav: "Video"
+    },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
@@ -421,6 +428,13 @@ window.VECOM_I18N = {
     },
     marg: { m1: "sechs Bereiche", m2: "echte Projekte", m3: "Preise offen" },
     e404: { title: "Seite nicht gefunden — Vecom Design", head: "Diese Seite gibt es nicht.", lead: "Vielleicht hat sich die Adresse geändert, vielleicht ist ein Tippfehler drin. Von hier kommst du direkt zurück.", home: "Zur Startseite", contact: "Schreib mir" },
+    video: {
+      head: "Sieh dir an, wie es läuft",
+      lead: "Zwei kurze Videos: eins erklärt den Ablauf, das andere zeigt die Seite in Bewegung. Ohne Ton — du kannst sie überall ansehen.",
+      t1: "Wie deine Website entsteht", d1: "Der Ablauf in vier Schritten · 1:07",
+      t2: "Die Seite in Bewegung", d2: "Ein Rundgang, inklusive Formular · 1:02",
+      play: "Abspielen", nav: "Video"
+    },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
@@ -637,6 +651,13 @@ window.VECOM_I18N = {
     },
     marg: { m1: "six areas", m2: "real projects", m3: "prices published" },
     e404: { title: "Page not found — Vecom Design", head: "This page doesn't exist.", lead: "The address may have changed, or there's a typo. From here you're one click from the right place.", home: "Back to the home page", contact: "Write to me" },
+    video: {
+      head: "See how it works",
+      lead: "Two short videos: one explains the process, the other shows the site in motion. No sound — you can watch them anywhere.",
+      t1: "How your website is made", d1: "The process in four steps · 1:07",
+      t2: "The site in motion", d2: "A full walkthrough, form included · 1:02",
+      play: "Play", nav: "Video"
+    },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
       h1: "Studio", h2: "Legal",

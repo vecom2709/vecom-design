@@ -111,6 +111,9 @@ function build(lang) {
     h = h.replace(/"\.\/assets\//g, `"${up}assets/`);
     h = h.replace(/href="legal\.html/g, `href="${up}legal.html`);
     h = h.replace(/href="world\.html/g, `href="${up}world.html`);
+    // Videopfade gehören ebenfalls eine Ebene höher — sonst suchen /de/ und
+    // /en/ die Dateien in einem Unterordner, den es nicht gibt.
+    h = h.replace(/data-src="video\//g, `data-src="${up}video/`);
     h = h.replace(/href="index\.html"/g, `href="${up}"`);
     h = h.replace(/href="#top"/g, 'href="#top"');
   }
