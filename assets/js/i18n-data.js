@@ -59,7 +59,13 @@ window.VECOM_I18N = {
       w4tag: "Ristorazione", w4t: "Dragi's Kitchen", w4p: "Street food a Schiffdorf: menù sempre aggiornato, raggiungibile via QR direttamente al furgone. Meno domande al banco, più ordini.", w4l: "dragis-kitchen.de",
       w5tag: "Sito trilingue", w5t: "Charme Color", w5p: "Salone di parrucchiere con listino, appuntamenti e presentazione in tre lingue — perché la clientela parla italiano, tedesco e inglese.", w5l: "In lavorazione",
       w6tag: "Esperienza immersiva", w6t: "I fili invisibili", w6p: "Sito-esperienza per una collana di libri illustrati: navigazione in profondità, sequenze animate, WebGL. Un esempio di cosa è possibile quando il budget lo consente.", w6l: "In lavorazione",
-      note: "Selezione di progetti. Le riprese mostrano i siti realmente online."
+      note: "Selezione di progetti. Le riprese mostrano i siti realmente online.",
+      w1r: "Struttura complessa, uso semplice",
+      w2r: "Dal prodotto al pagamento in una pagina",
+      w3r: "Posizionamento premium visibile a colpo d'occhio",
+      w4r: "Meno domande al banco, più ordini",
+      w5r: "Una clientela, tre lingue",
+      w6r: "Un libro che si può attraversare",
     },
     process: {
       head: "Come lavoriamo",
@@ -67,7 +73,8 @@ window.VECOM_I18N = {
       p1t: "Colloquio", p1p: "Un'ora al telefono o di persona: cosa vendi, a chi, e cosa succede oggi al posto del risultato che vorresti. Da qui esce il preventivo — gratuito e vincolante per noi.",
       p2t: "Direzione", p2p: "Ti mostriamo la prima schermata prima di costruire tutto il resto: colore, carattere, ritmo, tono. Si approva l'idea quando cambiarla costa ancora poco.",
       p3t: "Realizzazione", p3p: "Costruzione per sezioni, ognuna finita davvero prima della successiva. Vedi il sito crescere con un link privato, non ricevi un file alla fine.",
-      p4t: "Lancio e crescita", p4p: "Dominio, e-mail, misurazione, testi legali. Dopo il lancio restiamo raggiungibili: un sito che nessuno cura perde posizioni su Google mese dopo mese."
+      p4t: "Lancio e crescita", p4p: "Dominio, e-mail, misurazione, testi legali. Dopo il lancio restiamo raggiungibili: un sito che nessuno cura perde posizioni su Google mese dopo mese.",
+      p1d: "Giorno 1", p2d: "Giorni 2–3", p3d: "Settimane 1–2", p4d: "Giorno del lancio",
     },
     pillars: {
       head: "Perché sceglierci",
@@ -99,7 +106,12 @@ window.VECOM_I18N = {
       priceNote: "una tantum · IVA esclusa",
       togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno · IVA esclusa",
       cta: "Richiedi questo pacchetto",
-      note: "Tutti i prezzi sono IVA esclusa. Durata e disdetta dell'assistenza mensile: [da definire]. Preventivo e primo colloquio sono gratuiti."
+      note: "Tutti i prezzi sono IVA esclusa. Durata e disdetta dell'assistenza mensile: [da definire]. Preventivo e primo colloquio sono gratuiti.",
+      cmp: "Confronto rapido",
+      cmpRow: "Pagine|Lingue|Modifiche al mese|Assistenza",
+      cmp1: "fino a 5|1|piccole modifiche|diretta",
+      cmp2: "fino a 10|fino a 3|60 minuti|diretta + sicurezza",
+      cmp3: "fino a 20|fino a 3|2 ore|prioritaria",
     },
     faq: {
       head: "Domande frequenti",
@@ -187,6 +199,10 @@ window.VECOM_I18N = {
       text: "Marchio editoriale per libri illustrati e progetti narrativi. Dalla stessa mano: concezione, identità visiva e presenza online.",
       cta: "Scopri Trendonix"
     },
+    inter: {
+      a: "Un sito non è un biglietto da visita. È il primo colloquio di vendita — e avviene senza di te.",
+      b: "Il design che nessuno nota è quello che funziona. Si vede solo quando manca.",
+    },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
@@ -257,7 +273,13 @@ window.VECOM_I18N = {
       w4tag: "Gastronomie", w4t: "Dragi's Kitchen", w4p: "Imbisswagen in Schiffdorf: Speisekarte immer aktuell, per QR-Code direkt am Wagen abrufbar. Weniger Rückfragen am Tresen, mehr Bestellungen.", w4l: "dragis-kitchen.de",
       w5tag: "Dreisprachige Seite", w5t: "Charme Color", w5p: "Friseursalon mit Leistungen, Terminen und Auftritt in drei Sprachen — weil die Kundschaft italienisch, deutsch und englisch spricht.", w5l: "In Arbeit",
       w6tag: "Immersive Welt", w6t: "Die unsichtbaren Fäden", w6p: "Erlebnisseite zu einer illustrierten Buchreihe: Navigation in die Tiefe, animierte Sequenzen, WebGL. Ein Beispiel dafür, was möglich ist, wenn das Budget es zulässt.", w6l: "In Arbeit",
-      note: "Auswahl an Projekten. Die Aufnahmen zeigen die tatsächlich laufenden Seiten."
+      note: "Auswahl an Projekten. Die Aufnahmen zeigen die tatsächlich laufenden Seiten.",
+      w1r: "Komplexe Struktur, einfache Bedienung",
+      w2r: "Vom Produkt zur Zahlung auf einer Seite",
+      w3r: "Premium-Anspruch auf den ersten Blick",
+      w4r: "Weniger Rückfragen am Tresen, mehr Bestellungen",
+      w5r: "Eine Kundschaft, drei Sprachen",
+      w6r: "Ein Buch, durch das man hindurchgehen kann",
     },
     process: {
       head: "So arbeiten wir",
@@ -265,7 +287,8 @@ window.VECOM_I18N = {
       p1t: "Gespräch", p1p: "Eine Stunde am Telefon oder vor Ort: Was verkaufen Sie, an wen, und was passiert heute statt des Ergebnisses, das Sie sich wünschen. Daraus entsteht das Angebot — kostenlos und für uns verbindlich.",
       p2t: "Richtung", p2p: "Sie sehen den ersten Bildschirm, bevor der Rest gebaut wird: Farbe, Schrift, Rhythmus, Ton. Freigegeben wird, solange Ändern noch wenig kostet.",
       p3t: "Umsetzung", p3p: "Sektion für Sektion, jede wirklich fertig, bevor die nächste beginnt. Sie sehen die Seite über einen privaten Link wachsen und bekommen nicht erst am Ende eine Datei.",
-      p4t: "Launch & Wachstum", p4p: "Domain, E-Mail, Messung, Rechtstexte. Danach bleiben wir erreichbar: Eine Seite, die niemand pflegt, verliert bei Google Monat für Monat an Boden."
+      p4t: "Launch & Wachstum", p4p: "Domain, E-Mail, Messung, Rechtstexte. Danach bleiben wir erreichbar: Eine Seite, die niemand pflegt, verliert bei Google Monat für Monat an Boden.",
+      p1d: "Tag 1", p2d: "Tag 2–3", p3d: "Woche 1–2", p4d: "Launch-Tag",
     },
     pillars: {
       head: "Warum Vecom Design",
@@ -297,7 +320,12 @@ window.VECOM_I18N = {
       priceNote: "einmalig · zzgl. MwSt.",
       togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr · zzgl. MwSt.",
       cta: "Dieses Paket anfragen",
-      note: "Alle Preise zzgl. MwSt. Laufzeit und Kündigungsfrist der monatlichen Betreuung: [bitte ergänzen]. Angebot und Erstgespräch sind kostenlos."
+      note: "Alle Preise zzgl. MwSt. Laufzeit und Kündigungsfrist der monatlichen Betreuung: [bitte ergänzen]. Angebot und Erstgespräch sind kostenlos.",
+      cmp: "Kurzer Vergleich",
+      cmpRow: "Seiten|Sprachen|Änderungen pro Monat|Betreuung",
+      cmp1: "bis 5|1|kleine Änderungen|direkt",
+      cmp2: "bis 10|bis 3|60 Minuten|direkt + Sicherheit",
+      cmp3: "bis 20|bis 3|2 Stunden|bevorzugt",
     },
     faq: {
       head: "Häufige Fragen",
@@ -385,6 +413,10 @@ window.VECOM_I18N = {
       text: "Buchmarke für illustrierte Sachbücher und erzählende Projekte. Aus derselben Hand: Konzept, Erscheinungsbild und Auftritt im Netz.",
       cta: "Trendonix ansehen"
     },
+    inter: {
+      a: "Eine Website ist keine Visitenkarte. Sie ist das erste Verkaufsgespräch — und es findet ohne dich statt.",
+      b: "Gestaltung, die niemand bemerkt, ist die, die funktioniert. Auffallen tut sie erst, wenn sie fehlt.",
+    },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
@@ -455,7 +487,13 @@ window.VECOM_I18N = {
       w4tag: "Food", w4t: "Dragi's Kitchen", w4p: "A street-food van in Schiffdorf: menu always current, reachable by QR code right at the counter. Fewer questions, more orders.", w4l: "dragis-kitchen.de",
       w5tag: "Trilingual site", w5t: "Charme Color", w5p: "A hair salon with services, appointments and presentation in three languages — because the clientele speaks Italian, German and English.", w5l: "In progress",
       w6tag: "Immersive world", w6t: "The Invisible Threads", w6p: "An experience site for an illustrated book series: depth navigation, animated sequences, WebGL. An example of what's possible when the budget allows.", w6l: "In progress",
-      note: "A selection of projects. The recordings show the sites as they are actually live."
+      note: "A selection of projects. The recordings show the sites as they are actually live.",
+      w1r: "Complex structure, simple to use",
+      w2r: "From product to payment on one page",
+      w3r: "Premium positioning at first glance",
+      w4r: "Fewer questions at the counter, more orders",
+      w5r: "One clientele, three languages",
+      w6r: "A book you can walk through",
     },
     process: {
       head: "How we work",
@@ -463,7 +501,8 @@ window.VECOM_I18N = {
       p1t: "Conversation", p1p: "An hour on the phone or in person: what you sell, to whom, and what happens today instead of the result you want. The quote comes out of that — free, and binding on us.",
       p2t: "Direction", p2p: "You see the first screen before the rest gets built: colour, type, rhythm, tone. It's approved while changing it still costs little.",
       p3t: "Build", p3p: "Section by section, each properly finished before the next begins. You watch it grow through a private link instead of receiving a file at the end.",
-      p4t: "Launch & growth", p4p: "Domain, email, measurement, legal pages. After launch we stay reachable: a site nobody tends loses ground on Google month after month."
+      p4t: "Launch & growth", p4p: "Domain, email, measurement, legal pages. After launch we stay reachable: a site nobody tends loses ground on Google month after month.",
+      p1d: "Day 1", p2d: "Days 2–3", p3d: "Weeks 1–2", p4d: "Launch day",
     },
     pillars: {
       head: "Why Vecom Design",
@@ -495,7 +534,12 @@ window.VECOM_I18N = {
       priceNote: "one-off · plus VAT",
       togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year · plus VAT",
       cta: "Request this package",
-      note: "All prices exclude VAT. Term and notice period for the monthly care: [to be defined]. Quote and first conversation are free."
+      note: "All prices exclude VAT. Term and notice period for the monthly care: [to be defined]. Quote and first conversation are free.",
+      cmp: "Quick comparison",
+      cmpRow: "Pages|Languages|Changes per month|Support",
+      cmp1: "up to 5|1|small changes|direct",
+      cmp2: "up to 10|up to 3|60 minutes|direct + security",
+      cmp3: "up to 20|up to 3|2 hours|priority",
     },
     faq: {
       head: "Frequent questions",
@@ -582,6 +626,10 @@ window.VECOM_I18N = {
       head: "Trendonix",
       text: "A publishing brand for illustrated non-fiction and narrative projects. From the same hand: concept, visual identity and online presence.",
       cta: "See Trendonix"
+    },
+    inter: {
+      a: "A website isn't a business card. It's the first sales conversation — and it happens without you.",
+      b: "Design nobody notices is the design that works. You only see it when it's missing.",
     },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",

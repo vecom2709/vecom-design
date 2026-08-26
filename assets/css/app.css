@@ -1293,3 +1293,73 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 }
 .qform__done h3 { font-size: var(--t-lg); }
 .qform__done p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch; }
+
+/* ---------- 27. Aufwertung: Rhythmus, Ergebnis, Vergleich ---------------- */
+
+/* 1 — Leistungen entstapeln: zwei Bereiche tragen, vier begleiten. */
+@media (min-width: 1120px) {
+  .services { grid-template-columns: repeat(4, 1fr); }
+  .service--wide { grid-column: span 2; }
+  .service--wide h3 { font-size: var(--t-xl); }
+  .service--wide p { font-size: var(--t-base); max-width: 44ch; }
+}
+
+/* 2 — Ergebniszeile: was das Projekt gebracht hat, nicht was es ist. */
+.card__result {
+  margin-top: .4rem; padding-top: .55rem;
+  border-top: 1px solid var(--c-line);
+  font-family: var(--f-display); font-stretch: 102%; font-weight: 600;
+  font-size: var(--t-sm); color: var(--c-text);
+}
+.card__result::before { content: "→ "; color: var(--c-cyan); }
+
+/* 3 — Dauer je Schritt: aus einem Versprechen wird ein Plan. */
+.step__time {
+  font-size: var(--t-xs); letter-spacing: .18em; text-transform: uppercase;
+  color: var(--c-cyan); align-self: start;
+}
+@media (min-width: 860px) {
+  .step { grid-template-columns: 5rem 8rem minmax(0, 1fr) minmax(0, 1.1fr); }
+}
+
+/* 4 — Vergleichszeile unter den Paketen */
+.cmp { margin-top: var(--s-4); }
+.cmp__head { font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase; color: var(--c-text-faint); margin-bottom: var(--s-2); }
+.cmp__grid {
+  display: grid; gap: 1px; background: var(--c-line);
+  border-radius: var(--radius); overflow: hidden; box-shadow: var(--elev-1);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 780px) { .cmp__grid { grid-template-columns: 1.1fr 1fr 1fr 1fr; } }
+.cmp__labels, .cmp__col ul { list-style: none; margin: 0; padding: 0; display: grid; }
+/* Gleiche Zeilenhöhe in allen Spalten — sonst laufen Bezeichnung und Wert
+   auseinander, weil die Bezeichnungen kleiner gesetzt sind. */
+.cmp__labels li, .cmp__col li { display: flex; align-items: center; min-height: 2.1rem; }
+.cmp__labels, .cmp__col { background: var(--c-base-2); padding: clamp(.9rem, 1.6vw, 1.3rem); display: grid; gap: .55rem; align-content: start; }
+.cmp__labels li { font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase; color: var(--c-text-faint); }
+.cmp__labels { padding-top: calc(clamp(.9rem, 1.6vw, 1.3rem) + 1.9rem); }
+.cmp__name {
+  font-family: var(--f-display); font-stretch: 104%; font-weight: 600;
+  font-size: var(--t-sm); letter-spacing: .04em; color: var(--c-text); margin-bottom: .35rem;
+}
+.cmp__col ul { gap: .55rem; }
+.cmp__col li { font-size: var(--t-sm); color: var(--c-text-dim); }
+.cmp__col--best { background: rgba(10, 120, 245, .07); box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .22); }
+.cmp__col--best .cmp__name { color: var(--c-cyan); }
+@media (max-width: 779px) {
+  .cmp__labels { display: none; }   /* auf schmalen Schirmen wären zwei Spalten unlesbar */
+  .cmp__col li::before { content: attr(data-label) " "; color: var(--c-text-faint); }
+}
+
+/* 5 — Zwischenruf: ein Satz, viel Luft, die Marke dahinter sichtbar. */
+.interlude {
+  position: relative; z-index: 2;
+  padding-block: clamp(5rem, 12vw, 11rem);
+}
+.interlude p {
+  font-family: var(--f-display); font-stretch: 108%; font-weight: 600;
+  font-size: clamp(1.5rem, .9rem + 2.2vw, 3rem);
+  line-height: 1.18; letter-spacing: -.03em;
+  max-width: 22ch; margin-inline: auto; text-align: center;
+  text-shadow: 0 2px 2px rgba(0,0,0,.6), 0 18px 40px rgba(0,0,0,.75);
+}
