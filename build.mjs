@@ -127,6 +127,8 @@ function build(lang) {
     // Videopfade gehören ebenfalls eine Ebene höher — sonst suchen /de/ und
     // /en/ die Dateien in einem Unterordner, den es nicht gibt.
     h = h.replace(/data-src="video\//g, `data-src="${up}video/`);
+    // data-img der Tiefenkarten wird von der href/src-Regel nicht erfasst
+    h = h.replace(/data-img="assets\//g, `data-img="${up}assets/`);
     h = h.replace(/href="index\.html"/g, `href="${up}"`);
     h = h.replace(/href="#top"/g, 'href="#top"');
   }
