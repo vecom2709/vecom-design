@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+  explainer.html — Bühne für das animierte Erklärvideo.
+  Wird nicht veröffentlicht, sondern von tools/record-explainer.mjs abgefilmt.
+  Jede Szene ist ein <section class="sc">; das Aufnahmeskript blendet sie
+  nacheinander ein. Texte ändern = hier ändern, nichts anderes.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Vecom Design — Erklärvideo</title>
+<link rel="stylesheet" href="assets/css/fonts.css">
+<style>
+  :root{
+    --blau:#0648e8; --cyan:#1fe8ff; --grund:#05070d; --flaeche:#0c1119;
+    --text:#e9eef8; --leise:#8b9ab5; --linie:rgba(150,180,230,.16);
+    --e:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1280px;height:720px;overflow:hidden;background:var(--grund);
+       color:var(--text);font-family:'Inter',system-ui,sans-serif}
+  .stage{position:relative;width:1280px;height:720px}
+
+  /* Grundlicht + Korn, damit es zur Website passt */
+  .glow{position:absolute;inset:0;background:
+    radial-gradient(52% 44% at 50% 38%,rgba(10,120,245,.22),transparent 70%),
+    radial-gradient(40% 34% at 80% 85%,rgba(6,72,232,.14),transparent 72%)}
+  .grain{position:absolute;inset:0;opacity:.035;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .sc{position:absolute;inset:0;display:grid;place-content:center;
+      padding:0 110px;gap:26px;opacity:0;visibility:hidden;
+      transition:opacity .6s var(--e)}
+  .sc.on{opacity:1;visibility:visible}
+
+  h1{font-family:'Archivo',sans-serif;font-stretch:112%;font-weight:700;
+     font-size:66px;line-height:1.04;letter-spacing:-.03em;max-width:16ch}
+  h2{font-family:'Archivo',sans-serif;font-stretch:110%;font-weight:700;
+     font-size:52px;line-height:1.08;letter-spacing:-.028em;max-width:18ch}
+  p{font-size:24px;line-height:1.5;color:var(--leise);max-width:48ch}
+  .kicker{font-family:'Archivo',sans-serif;font-stretch:94%;font-size:15px;
+     letter-spacing:.3em;text-transform:uppercase;color:var(--cyan)}
+  .grad{background:linear-gradient(100deg,#cfe0ff,#fff 35%,#79c8ff 70%,var(--cyan));
+     -webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* Einfahrende Zeilen */
+  .up{transform:translateY(26px);opacity:0;transition:all .8s var(--e)}
+  .sc.on .up{transform:none;opacity:1}
+  .sc.on .d1{transition-delay:.12s}.sc.on .d2{transition-delay:.24s}
+  .sc.on .d3{transition-delay:.36s}.sc.on .d4{transition-delay:.48s}
+
+  /* Bausteine der Illustrationen */
+  .row{display:flex;gap:22px;align-items:stretch;margin-top:10px}
+  .box{background:var(--flaeche);border-radius:16px;padding:22px 24px;
+       box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 60px -30px #000;
+       min-width:210px}
+  .box b{display:block;font-family:'Archivo',sans-serif;font-size:19px;margin-bottom:6px}
+  .box span{font-size:15px;color:var(--leise);line-height:1.4;display:block}
+  .num{font-family:'Archivo',sans-serif;font-stretch:112%;font-weight:700;
+       font-size:15px;color:var(--cyan);letter-spacing:.18em;margin-bottom:12px;display:block}
+
+  /* Fensterattrappe */
+  .win{width:560px;border-radius:14px;overflow:hidden;background:#070b13;
+       box-shadow:0 40px 90px -40px #000,inset 0 0 0 1px var(--linie)}
+  .win__bar{display:flex;gap:6px;align-items:center;padding:10px 12px;background:#131a28}
+  .win__bar i{width:8px;height:8px;border-radius:50%;background:rgba(150,180,230,.3)}
+  .win__url{margin-left:10px;font-size:11px;color:var(--leise);letter-spacing:.05em}
+  .win__body{padding:22px;display:grid;gap:12px}
+  .bar{height:12px;border-radius:6px;background:rgba(150,180,230,.16)}
+  .bar.w70{width:70%}.bar.w45{width:45%}.bar.w90{width:90%}
+  .bar.blue{background:linear-gradient(90deg,var(--blau),var(--cyan))}
+
+  /* Fortschritt */
+  .prog{height:3px;background:rgba(150,180,230,.18);border-radius:3px;overflow:hidden;width:460px}
+  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blau),var(--cyan))}
+  .sc.on .prog i{width:100%;transition:width 2.6s var(--e) .3s}
+
+  .price{font-family:'Archivo',sans-serif;font-stretch:112%;font-weight:700;
+     font-size:92px;letter-spacing:-.04em}
+  .mark{width:150px;display:block;margin-bottom:6px}
+  .foot{position:absolute;left:110px;bottom:54px;font-size:16px;letter-spacing:.24em;
+     text-transform:uppercase;color:var(--leise)}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow"></div>
+
+  <!-- 1 Titel -->
+  <section class="sc" data-sc="1">
+    <img class="mark up" src="assets/img/logo-mark.webp" alt="" width="150">
+    <h1 class="up d1">Wie deine Website <span class="grad">entsteht</span></h1>
+    <p class="up d2">In vier Schritten — verständlich erklärt, ohne Fachbegriffe.</p>
+  </section>
+
+  <!-- 2 Das Problem -->
+  <section class="sc" data-sc="2">
+    <span class="kicker up">Der Ausgangspunkt</span>
+    <h2 class="up d1">Die meisten Websites erklären, was jemand macht.</h2>
+    <p class="up d2">Aber kaum eine sagt, warum man dort kaufen soll. Genau das ist der Unterschied zwischen einer Seite, die es gibt — und einer, die Kunden bringt.</p>
+  </section>
+
+  <!-- 3 Schritt 1 -->
+  <section class="sc" data-sc="3">
+    <span class="kicker up">Schritt 1 — Tag 1</span>
+    <h2 class="up d1">Wir reden. Eine Stunde.</h2>
+    <p class="up d2">Was verkaufst du, an wen, und was passiert heute statt des Ergebnisses, das du dir wünschst?</p>
+    <div class="row up d3">
+      <div class="box"><span class="num">DU BEKOMMST</span><b>Ein Festpreis-Angebot</b><span>Kostenlos, und für uns verbindlich.</span></div>
+      <div class="box"><span class="num">DU GIBST</span><b>Eine Stunde Zeit</b><span>Telefon oder vor Ort.</span></div>
+    </div>
+  </section>
+
+  <!-- 4 Schritt 2 -->
+  <section class="sc" data-sc="4">
+    <span class="kicker up">Schritt 2 — Tag 2–3</span>
+    <h2 class="up d1">Du siehst den ersten Bildschirm.</h2>
+    <p class="up d2">Farbe, Schrift, Aufbau. Freigegeben wird, solange Ändern noch nichts kostet — nicht am Ende.</p>
+    <div class="win up d3">
+      <div class="win__bar"><i></i><i></i><i></i><span class="win__url">deine-firma.de</span></div>
+      <div class="win__body">
+        <div class="bar w70 blue"></div><div class="bar w45"></div><div class="bar w90"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 Schritt 3 -->
+  <section class="sc" data-sc="5">
+    <span class="kicker up">Schritt 3 — Woche 1–2</span>
+    <h2 class="up d1">Wir bauen. Du schaust zu.</h2>
+    <p class="up d2">Abschnitt für Abschnitt, jeder wirklich fertig, bevor der nächste beginnt. Über einen privaten Link siehst du die Seite wachsen.</p>
+    <div class="prog up d3"><i></i></div>
+  </section>
+
+  <!-- 6 Schritt 4 -->
+  <section class="sc" data-sc="6">
+    <span class="kicker up">Schritt 4 — Launch-Tag</span>
+    <h2 class="up d1">Online. Und danach nicht allein.</h2>
+    <p class="up d2">Domain, E-Mail, Rechtstexte, Messung. Backups, Updates und kleine Änderungen übernehmen wir — du kümmerst dich um dein Geschäft.</p>
+  </section>
+
+  <!-- 7 Was du bekommst -->
+  <section class="sc" data-sc="7">
+    <span class="kicker up">Was du bekommst</span>
+    <div class="row up d1">
+      <div class="box"><b>Der Code gehört dir</b><span>Dateien werden übergeben, keine Bindung an uns.</span></div>
+      <div class="box"><b>Kein Cookie-Banner</b><span>Keine Tracker, keine fremden Schriften.</span></div>
+      <div class="box"><b>Ein Ansprechpartner</b><span>Vom ersten Gespräch bis zur Betreuung.</span></div>
+    </div>
+  </section>
+
+  <!-- 8 Preis -->
+  <section class="sc" data-sc="8">
+    <span class="kicker up">Klare Preise</span>
+    <p class="price up d1 grad">ab 499 €</p>
+    <p class="up d2">einmalig, zzgl. monatlicher Betreuung ab 39 €. Angebot und Erstgespräch sind kostenlos.</p>
+  </section>
+
+  <!-- 9 Abbinder -->
+  <section class="sc" data-sc="9">
+    <img class="mark up" src="assets/img/logo-full-dark.webp" alt="" width="300" style="width:300px">
+    <h2 class="up d1 grad">vecom-design.it</h2>
+    <p class="up d2">kontakt@vecom-design.it · Italienisch · Deutsch · Englisch</p>
+  </section>
+
+  <div class="grain"></div>
+</div>
+</body>
+</html>
