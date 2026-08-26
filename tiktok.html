@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!--
+  tiktok.html — Bühne für Hochkant-Clips (720 × 1280).
+  Wird von tools/record-tiktok.mjs abgefilmt, nicht veröffentlicht.
+  Jeder Clip ist ein <div class="spot" data-spot="N"> mit mehreren <p class="beat">.
+  Das Aufnahmeskript blendet die Beats nacheinander ein.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Vecom Design — Clips</title>
+<link rel="stylesheet" href="assets/css/fonts.css">
+<style>
+  :root{--cyan:#1fe8ff;--blau:#0648e8;--grund:#05070d;--text:#e9eef8;--leise:#93a2bd;
+        --e:cubic-bezier(.16,1,.3,1)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:720px;height:1280px;overflow:hidden;background:var(--grund);color:var(--text);
+       font-family:'Inter',system-ui,sans-serif}
+  .stage{position:relative;width:720px;height:1280px;display:grid;place-content:center;padding:0 64px}
+  .glow{position:absolute;inset:0;background:
+    radial-gradient(55% 34% at 50% 32%,rgba(10,120,245,.26),transparent 70%),
+    radial-gradient(45% 28% at 70% 85%,rgba(6,72,232,.16),transparent 72%)}
+  .grain{position:absolute;inset:0;opacity:.04;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .spot{display:none}
+  .spot.on{display:grid;gap:30px;position:relative;z-index:2}
+
+  .beat{opacity:0;transform:translateY(22px);transition:all .55s var(--e);
+        font-family:'Archivo',sans-serif;font-stretch:110%;font-weight:700;
+        font-size:60px;line-height:1.06;letter-spacing:-.03em}
+  .beat.on{opacity:1;transform:none}
+  .beat.small{font-family:'Inter',sans-serif;font-weight:400;font-stretch:100%;
+        font-size:27px;line-height:1.45;color:var(--leise);letter-spacing:0}
+  .beat.kick{font-size:19px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);
+        font-stretch:94%;font-weight:600}
+  .grad{background:linear-gradient(100deg,#cfe0ff,#fff 30%,#79c8ff 65%,var(--cyan));
+        -webkit-background-clip:text;background-clip:text;color:transparent}
+  .no{color:#ff8a8a}
+  .price{font-size:110px;letter-spacing:-.045em}
+
+  .brand{position:absolute;left:64px;bottom:74px;display:flex;align-items:center;gap:14px;z-index:3;
+         opacity:0;transition:opacity .6s var(--e)}
+  .brand.on{opacity:1}
+  .brand img{width:44px}
+  .brand span{font-family:'Archivo',sans-serif;font-stretch:96%;font-weight:600;
+              font-size:17px;letter-spacing:.26em;text-transform:uppercase}
+  .brand small{display:block;font-family:'Inter',sans-serif;font-size:13px;letter-spacing:.14em;
+               color:var(--leise);text-transform:none;margin-top:3px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow"></div>
+
+  <!-- Clip 1 — Der häufigste Fehler -->
+  <div class="spot" data-spot="1">
+    <p class="beat kick">Webdesign · 15 Sekunden</p>
+    <p class="beat">Deine Website erklärt, <span class="no">was du machst</span>.</p>
+    <p class="beat">Sie sagt nicht, <span class="grad">warum man bei dir kauft</span>.</p>
+    <p class="beat small">Das ist der Unterschied zwischen einer Seite, die es gibt — und einer, die Anfragen bringt.</p>
+  </div>
+
+  <!-- Clip 2 — Preis -->
+  <div class="spot" data-spot="2">
+    <p class="beat kick">Was kostet eine Website?</p>
+    <p class="beat">Die meisten sagen: <span class="no">„Kommt drauf an."</span></p>
+    <p class="beat price grad">ab 499 €</p>
+    <p class="beat small">Festpreis, vorher. Online in zwei Wochen. Der Code gehört dir.</p>
+  </div>
+
+  <!-- Clip 3 — Ablauf -->
+  <div class="spot" data-spot="3">
+    <p class="beat kick">In 2 Wochen online</p>
+    <p class="beat">Tag 1: <span class="grad">Wir reden.</span></p>
+    <p class="beat">Tag 3: Du siehst den ersten Entwurf.</p>
+    <p class="beat">Woche 2: Deine Seite ist live.</p>
+    <p class="beat small">Kein Baukasten. Kein Abo-Zwang. Ein Ansprechpartner.</p>
+  </div>
+
+  <div class="brand">
+    <img src="assets/img/logo-mark.webp" alt="">
+    <span>Vecom Design<small>vecom-design.it</small></span>
+  </div>
+  <div class="grain"></div>
+</div>
+</body>
+</html>
