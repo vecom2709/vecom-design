@@ -120,6 +120,9 @@ function build(lang) {
     // erfasst und muss eigens umgeschrieben werden, sonst fehlt three.js in /de/.
     h = h.replace(/"\.\/assets\//g, `"${up}assets/`);
     h = h.replace(/href="legal\.html/g, `href="${up}legal.html`);
+    // Unterseiten kennen die Sprache nur über ?lang= — sonst öffnen sie
+    // italienisch, egal von welcher Sprachseite man kommt.
+    h = h.replace(/href="pakete\.html#([a-z]+)"/g, `href="${up}pakete.html?lang=${lang}#$1"`);
     h = h.replace(/href="world\.html/g, `href="${up}world.html`);
     // Videopfade gehören ebenfalls eine Ebene höher — sonst suchen /de/ und
     // /en/ die Dateien in einem Unterordner, den es nicht gibt.

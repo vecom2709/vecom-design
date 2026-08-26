@@ -105,7 +105,7 @@ window.VECOM_I18N = {
       badge: "Più richiesto",
       priceNote: "una tantum · IVA esclusa",
       togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno · IVA esclusa",
-      cta: "Richiedi questo pacchetto",
+      cta: "Richiedi questo pacchetto", more: "Tutti i dettagli",
       note: "Tutti i prezzi sono IVA esclusa. Durata e disdetta dell'assistenza mensile: [da definire]. Preventivo e primo colloquio sono gratuiti.",
       cmp: "Confronto rapido",
       cmpRow: "Pagine|Lingue|Modifiche al mese|Assistenza",
@@ -234,6 +234,32 @@ window.VECOM_I18N = {
       s8b: "una tantum, più assistenza mensile da 39 €. Preventivo e primo colloquio sono gratuiti.",
       s9b: "kontakt@vecom-design.it · Italiano · Tedesco · Inglese"
     },
+    det: {
+      title: "Pacchetti in dettaglio — Vecom Design",
+      head: "I pacchetti in dettaglio",
+      lead: "Cosa è compreso, per chi ha senso e — altrettanto importante — cosa non è compreso. Se il tuo progetto esce da questi confini, lo definiamo insieme prima di iniziare.",
+      back: "Torna ai prezzi",
+      forWho: "Per chi ha senso",
+      inc: "Cosa è compreso",
+      notInc: "Cosa non è compreso",
+      care: "Assistenza mensile",
+      cta: "Richiedi questo pacchetto",
+
+      l1: "Il pacchetto d'ingresso per farsi trovare e ricevere richieste. Una pagina curata, veloce, con tutto ciò che serve perché un cliente ti trovi e ti scriva — niente di più.",
+      w1: "Liberi professionisti, artigiani e attività locali che oggi hanno solo i social o un sito vecchio di anni. Chi vende soprattutto con la fiducia e ha bisogno di un biglietto da visita serio online.",
+      n1: "Negozio online e pagamenti|Prenotazione appuntamenti|Area blog o news|Più di 5 pagine",
+      c1: "39 € al mese: backup mensile, aggiornamenti di sicurezza, piccole modifiche di testo e immagini, assistenza diretta senza sistema di ticket.",
+
+      l2: "Il pacchetto per chi deve convincere e distinguersi. Più spazio, design premium su misura, e la parte SEO curata sul serio — perché ti trovino anche chi non ti conosce.",
+      w2: "Aziende, studi, ristoranti, hotel e artigiani con concorrenza forte. Chi ha già clienti e vuole crescere, non solo esserci.",
+      n2: "Negozio online completo|Sistema di prenotazione avanzato|Fotografia professionale in loco|Più di 10 pagine",
+      c2: "69 € al mese: tutto dello Starter, più monitoraggio della sicurezza e 60 minuti di modifiche al mese.",
+
+      l3: "La presenza digitale completa: sito ampio, marchio, contenuti e sistemi collegati. Il pacchetto per chi vuole smettere di rincorrere il proprio sito.",
+      w3: "Chi punta a una presenza duratura: marchi, studi con più sedi, attività con offerta ampia. Anche chi ha bisogno di logo e immagine coordinata da zero.",
+      n3: "Campagne pubblicitarie a pagamento|Gestione quotidiana dei social|Traduzioni professionali certificate|Sviluppo di software su misura",
+      c3: "99 € al mese: tutto del Business, più controlli di prestazione, 2 ore di modifiche al mese e assistenza prioritaria."
+    },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
@@ -350,7 +376,7 @@ window.VECOM_I18N = {
       badge: "Am häufigsten gewählt",
       priceNote: "einmalig · zzgl. MwSt.",
       togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr · zzgl. MwSt.",
-      cta: "Dieses Paket anfragen",
+      cta: "Dieses Paket anfragen", more: "Alle Details",
       note: "Alle Preise zzgl. MwSt. Laufzeit und Kündigungsfrist der monatlichen Betreuung: [bitte ergänzen]. Angebot und Erstgespräch sind kostenlos.",
       cmp: "Kurzer Vergleich",
       cmpRow: "Seiten|Sprachen|Änderungen pro Monat|Betreuung",
@@ -479,6 +505,32 @@ window.VECOM_I18N = {
       s8b: "einmalig, zzgl. monatlicher Betreuung ab 39 €. Angebot und Erstgespräch sind kostenlos.",
       s9b: "kontakt@vecom-design.it · Italienisch · Deutsch · Englisch"
     },
+    det: {
+      title: "Pakete im Detail — Vecom Design",
+      head: "Die Pakete im Detail",
+      lead: "Was enthalten ist, für wen es sich lohnt und — genauso wichtig — was nicht enthalten ist. Fällt dein Vorhaben aus diesem Rahmen, legen wir es vorher gemeinsam fest.",
+      back: "Zurück zu den Preisen",
+      forWho: "Für wen es sich lohnt",
+      inc: "Was enthalten ist",
+      notInc: "Was nicht enthalten ist",
+      care: "Monatliche Betreuung",
+      cta: "Dieses Paket anfragen",
+
+      l1: "Das Einstiegspaket, um gefunden zu werden und Anfragen zu bekommen. Eine gepflegte, schnelle Seite mit allem, was nötig ist, damit ein Kunde dich findet und schreibt — mehr nicht.",
+      w1: "Selbstständige, Handwerker und lokale Betriebe, die bisher nur Social Media haben oder eine Seite von vor Jahren. Wer über Vertrauen verkauft und online eine ernsthafte Visitenkarte braucht.",
+      n1: "Online-Shop und Zahlungen|Terminbuchung|Blog- oder Newsbereich|Mehr als 5 Seiten",
+      c1: "39 € im Monat: monatliche Backups, Sicherheitsupdates, kleine Text- und Bildänderungen, direkte Betreuung ohne Ticketsystem.",
+
+      l2: "Das Paket für alle, die überzeugen und sich abheben müssen. Mehr Raum, individuelles Premium-Design und eine SEO, die wirklich gemacht wird — damit dich auch findet, wer dich noch nicht kennt.",
+      w2: "Unternehmen, Praxen, Restaurants, Hotels und Handwerksbetriebe mit starkem Wettbewerb. Wer schon Kunden hat und wachsen will, statt nur dabei zu sein.",
+      n2: "Vollständiger Online-Shop|Erweitertes Buchungssystem|Professionelle Fotografie vor Ort|Mehr als 10 Seiten",
+      c2: "69 € im Monat: alles aus Starter, dazu Sicherheitsüberwachung und 60 Minuten Änderungen pro Monat.",
+
+      l3: "Der vollständige digitale Auftritt: umfangreiche Seite, Marke, Inhalte und angebundene Systeme. Das Paket für alle, die ihrer Website nicht mehr hinterherlaufen wollen.",
+      w3: "Wer dauerhaft sichtbar bleiben will: Marken, Praxen mit mehreren Standorten, Betriebe mit breitem Angebot. Auch alle, die Logo und Markenauftritt von Grund auf brauchen.",
+      n3: "Bezahlte Werbekampagnen|Tägliche Betreuung der Social-Media-Kanäle|Beglaubigte Fachübersetzungen|Entwicklung eigener Software",
+      c3: "99 € im Monat: alles aus Business, dazu Performance-Checks, 2 Stunden Änderungen pro Monat und bevorzugte Betreuung."
+    },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
@@ -595,7 +647,7 @@ window.VECOM_I18N = {
       badge: "Most chosen",
       priceNote: "one-off · plus VAT",
       togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year · plus VAT",
-      cta: "Request this package",
+      cta: "Request this package", more: "Full details",
       note: "All prices exclude VAT. Term and notice period for the monthly care: [to be defined]. Quote and first conversation are free.",
       cmp: "Quick comparison",
       cmpRow: "Pages|Languages|Changes per month|Support",
@@ -723,6 +775,32 @@ window.VECOM_I18N = {
       s8k: "Clear pricing", s8a: "from €499",
       s8b: "one-off, plus monthly care from €39. Quote and first conversation are free.",
       s9b: "kontakt@vecom-design.it · Italian · German · English"
+    },
+    det: {
+      title: "Packages in detail — Vecom Design",
+      head: "The packages in detail",
+      lead: "What's included, who it suits and — just as important — what isn't included. If your project falls outside this frame, we define it together before we start.",
+      back: "Back to pricing",
+      forWho: "Who it suits",
+      inc: "What's included",
+      notInc: "What isn't included",
+      care: "Monthly care",
+      cta: "Request this package",
+
+      l1: "The entry package to get found and receive enquiries. A well-made, fast site with everything needed for a client to find you and write — nothing more.",
+      w1: "Freelancers, trades and local businesses who currently only have social media or a site from years ago. Anyone who sells on trust and needs a serious calling card online.",
+      n1: "Online store and payments|Appointment booking|Blog or news area|More than 5 pages",
+      c1: "€39 a month: monthly backups, security updates, small text and image changes, direct support without a ticket system.",
+
+      l2: "The package for those who need to convince and stand apart. More room, custom premium design and SEO that is actually done — so people who don't know you yet can find you.",
+      w2: "Companies, practices, restaurants, hotels and trades facing real competition. Those who already have clients and want to grow, not just exist.",
+      n2: "Full online store|Advanced booking system|Professional on-site photography|More than 10 pages",
+      c2: "€69 a month: everything in Starter, plus security monitoring and 60 minutes of changes per month.",
+
+      l3: "The complete digital presence: an extensive site, brand, content and connected systems. The package for those who want to stop chasing their own website.",
+      w3: "Anyone aiming to stay visible long-term: brands, multi-site practices, businesses with a broad offering. Also those who need logo and brand identity from scratch.",
+      n3: "Paid advertising campaigns|Daily social media management|Certified professional translations|Custom software development",
+      c3: "€99 a month: everything in Business, plus performance checks, 2 hours of changes per month and priority support."
     },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
