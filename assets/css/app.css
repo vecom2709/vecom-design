@@ -635,7 +635,17 @@ body.scrolled .scrollcue { opacity: 0; }
 .work__note { margin-top: var(--s-3); font-size: var(--t-sm); color: var(--c-text-faint); }
 
 /* ---------- 11. Prozess -------------------------------------------------- */
-.process { display: grid; gap: 0; border-top: 1px solid var(--c-line); }
+.process {
+  display: grid; gap: 0; border-top: 1px solid var(--c-line);
+  position: relative; isolation: isolate;
+}
+/* Eigener Schleier hinter den Schritten: Im angehefteten Kapitel fährt die
+   Kamera nah heran, dann reicht der allgemeine Schleier nicht. */
+.process::before {
+  content: ""; position: absolute; inset: -2rem -3vw; z-index: -1; pointer-events: none;
+  background: radial-gradient(70% 60% at 30% 50%, rgba(3, 5, 9, .92), rgba(3, 5, 9, .6) 60%, transparent 85%);
+  filter: blur(4px);
+}
 .step {
   display: grid; gap: var(--s-2); padding-block: clamp(1.8rem, 3.5vw, 3rem);
   border-bottom: 1px solid var(--c-line); position: relative;
@@ -650,7 +660,7 @@ body.scrolled .scrollcue { opacity: 0; }
   background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .step h3 { font-size: var(--t-lg); }
-.step p { color: var(--c-text-dim); font-size: var(--t-sm); }
+.step p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch; }
 
 /* ---------- 12. Prinzipien ----------------------------------------------- */
 .pillars {
@@ -1039,8 +1049,14 @@ main, .footer { position: relative; z-index: 2; }
 /* Angeheftetes Kapitel „Ablauf": Der jeweils aktive Schritt tritt hervor,
    die anderen treten zurück. Ohne JS bleiben alle gleichwertig sichtbar. */
 .step { transition: opacity var(--d-move) var(--e-std), transform var(--d-move) var(--e-std); }
-#process:has(.is-active) .step { opacity: .32; }
+#process:has(.is-active) .step { opacity: .45; }
 #process:has(.is-active) .step.is-active { opacity: 1; transform: translateX(6px); }
+/* Der aktive Schritt bekommt eine Kante statt nur mehr Deckkraft */
+#process .step.is-active { position: relative; }
+#process .step.is-active::before {
+  content: ""; position: absolute; left: -1.2rem; top: 1.2rem; bottom: 1.2rem; width: 2px;
+  background: var(--grad-brand); border-radius: 2px;
+}
 #process:has(.is-active) .step.is-active .step__no { filter: drop-shadow(0 0 18px rgba(31, 232, 255, .5)); }
 
 /* ---------- 23. Feinschliff ---------------------------------------------- */
@@ -1319,7 +1335,9 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   color: var(--c-cyan); align-self: start;
 }
 @media (min-width: 860px) {
-  .step { grid-template-columns: 5rem 8rem minmax(0, 1fr) minmax(0, 1.1fr); }
+  /* Zahl und Dauer schmal, Titel und Beschreibung nah beieinander — vorher
+     stand die Beschreibung so weit rechts, dass sie zu einem eigenen Block wurde. */
+  .step { grid-template-columns: 4rem 7rem minmax(0, .8fr) minmax(0, 1.4fr); gap: var(--s-3); }
 }
 
 /* 4 — Vergleichszeile unter den Paketen */
