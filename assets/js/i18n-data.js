@@ -203,6 +203,8 @@ window.VECOM_I18N = {
       a: "Un sito non è un biglietto da visita. È il primo colloquio di vendita — e avviene senza di te.",
       b: "Il design che nessuno nota è quello che funziona. Si vede solo quando manca.",
     },
+    marg: { m1: "sei ambiti", m2: "progetti reali", m3: "prezzi pubblici" },
+    e404: { title: "Pagina non trovata — Vecom Design", head: "Questa pagina non esiste.", lead: "Forse l'indirizzo è cambiato, o c'è un refuso. Da qui torni subito al punto giusto.", home: "Torna alla home", contact: "Scrivimi" },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
@@ -417,6 +419,8 @@ window.VECOM_I18N = {
       a: "Eine Website ist keine Visitenkarte. Sie ist das erste Verkaufsgespräch — und es findet ohne dich statt.",
       b: "Gestaltung, die niemand bemerkt, ist die, die funktioniert. Auffallen tut sie erst, wenn sie fehlt.",
     },
+    marg: { m1: "sechs Bereiche", m2: "echte Projekte", m3: "Preise offen" },
+    e404: { title: "Seite nicht gefunden — Vecom Design", head: "Diese Seite gibt es nicht.", lead: "Vielleicht hat sich die Adresse geändert, vielleicht ist ein Tippfehler drin. Von hier kommst du direkt zurück.", home: "Zur Startseite", contact: "Schreib mir" },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
@@ -631,6 +635,8 @@ window.VECOM_I18N = {
       a: "A website isn't a business card. It's the first sales conversation — and it happens without you.",
       b: "Design nobody notices is the design that works. You only see it when it's missing.",
     },
+    marg: { m1: "six areas", m2: "real projects", m3: "prices published" },
+    e404: { title: "Page not found — Vecom Design", head: "This page doesn't exist.", lead: "The address may have changed, or there's a typo. From here you're one click from the right place.", home: "Back to the home page", contact: "Write to me" },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
       h1: "Studio", h2: "Legal",

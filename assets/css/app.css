@@ -1363,3 +1363,86 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   max-width: 22ch; margin-inline: auto; text-align: center;
   text-shadow: 0 2px 2px rgba(0,0,0,.6), 0 18px 40px rgba(0,0,0,.75);
 }
+
+/* ---------- 28. Icons, Randnotizen, Kapitelleiste, Ladebild -------------- */
+
+/* 6 — Eigene Strichzeichnungen, auf dasselbe Raster gezeichnet wie die Schrift */
+.service__ico {
+  display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px;
+  color: var(--c-cyan); background: rgba(31, 232, 255, .06);
+  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .18);
+  transition: transform var(--d-move) var(--e-std), background-color var(--d-ui) linear;
+}
+.service:hover .service__ico { transform: translateY(-2px); background: rgba(31, 232, 255, .12); }
+
+/* 7 — Randnotiz: Kniff aus dem Buchsatz, wirkt sofort redaktionell */
+.marg {
+  display: block; margin-bottom: .5rem;
+  font-size: var(--t-xs); letter-spacing: .28em; text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+.marg::before { content: "— "; color: var(--c-cyan); }
+@media (min-width: 1400px) {
+  .sechead { position: relative; }
+  .marg { position: absolute; left: -9.5rem; top: .55rem; margin: 0; width: 8rem; text-align: right; }
+  .marg::before { content: none; }
+  .marg::after {
+    content: ""; position: absolute; right: -1.6rem; top: .55em; width: 1.1rem; height: 1px;
+    background: var(--c-cyan); opacity: .6;
+  }
+}
+
+/* 8 — Kapitelleiste */
+.rail {
+  position: fixed; right: clamp(.8rem, 1.6vw, 1.6rem); top: 50%; transform: translateY(-50%);
+  z-index: 40; display: grid; gap: .1rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--d-move) var(--e-std);
+}
+.rail.is-on { opacity: 1; pointer-events: auto; }
+.rail a {
+  display: flex; align-items: center; gap: .6rem; justify-content: flex-end;
+  padding: .35rem .2rem; color: var(--c-text-faint);
+  font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase;
+}
+.rail span {
+  opacity: 0; transform: translateX(6px);
+  transition: opacity var(--d-move) var(--e-std), transform var(--d-move) var(--e-std);
+}
+.rail a:hover span, .rail a[aria-current="true"] span { opacity: 1; transform: none; }
+.rail i {
+  width: 22px; height: 1px; background: var(--c-line-strong); flex: none;
+  transition: width var(--d-move) var(--e-std), background-color var(--d-ui) linear;
+}
+.rail a:hover i { width: 30px; background: var(--c-text-dim); }
+.rail a[aria-current="true"] { color: var(--c-text); }
+.rail a[aria-current="true"] i { width: 38px; background: var(--c-cyan); box-shadow: 0 0 10px rgba(31,232,255,.6); }
+@media (max-width: 1100px) { .rail { display: none; } }
+
+/* 12 — Ladebild: der Umriss zeichnet sich, dann übernimmt die Szene */
+.boot {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center;
+  background: #03050a;
+  animation: bootOut 600ms var(--e-std) 1900ms forwards;
+}
+.boot path {
+  stroke-dasharray: 400; stroke-dashoffset: 400;
+  animation: bootDraw 1500ms var(--e-std) 120ms forwards;
+  filter: drop-shadow(0 0 12px rgba(31, 232, 255, .45));
+}
+.boot path:nth-child(2) { animation-delay: 320ms; }
+@keyframes bootDraw { to { stroke-dashoffset: 0; } }
+@keyframes bootOut { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .boot { display: none; } }
+
+/* 11 — Fehlerseite */
+.e404 { padding-top: clamp(9rem, 20vh, 14rem); padding-bottom: clamp(5rem, 12vh, 9rem); display: grid; gap: var(--s-2); justify-items: start; }
+.e404__code {
+  font-family: var(--f-display); font-stretch: 118%; font-weight: 800;
+  font-size: clamp(5rem, 3rem + 12vw, 13rem); line-height: .85; letter-spacing: -.05em;
+  background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 20px 50px rgba(0,0,0,.8));
+}
+.e404 h1 { font-size: var(--t-xl); }
+.e404__lead { color: var(--c-text-dim); font-size: var(--t-md); max-width: 46ch; }
+.e404__cta { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }

@@ -1,0 +1,7 @@
+# Eigene Fehlerseite statt der Standardmeldung des Servers
+ErrorDocument 404 /404.html
+
+# Immer über https ausliefern
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
