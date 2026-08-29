@@ -1543,3 +1543,58 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .depth canvas { opacity: 0; transition: opacity 500ms var(--e-std); }
 .depth.is-live canvas { opacity: 1; }
 .depth.is-live img { opacity: 0; transition: opacity 500ms var(--e-std); }
+
+/* ---------- 32. Über mich ------------------------------------------------ */
+.about__grid { display: grid; gap: clamp(1.6rem, 4vw, 3.5rem); align-items: center; }
+@media (min-width: 900px) { .about__grid { grid-template-columns: minmax(0, .72fr) minmax(0, 1fr); } }
+.about__photo {
+  margin: 0; border-radius: var(--radius-lg); overflow: hidden;
+  box-shadow: var(--elev-2); max-width: 420px;
+}
+.about__photo img { width: 100%; height: auto; display: block; }
+.about__text { display: grid; gap: var(--s-2); }
+.about__text h2 { font-size: var(--t-xl); }
+.about__role {
+  font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase;
+  color: var(--c-text-faint); margin-top: -.4rem;
+}
+.about__text p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 58ch; }
+
+/* Handschriftlicher Namenszug — schreibt sich, wenn er ins Bild kommt.
+   Die Maske läuft von links nach rechts, der Punkt markiert die Federspitze. */
+.sig { position: relative; margin-top: var(--s-3); width: fit-content; }
+.sig__name {
+  display: block; font-family: 'Signatur', cursive;
+  font-size: clamp(3rem, 2rem + 3.4vw, 5rem); line-height: 1;
+  color: var(--c-text); padding-right: .2em;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, .8));
+  clip-path: inset(0 100% 0 0);
+}
+.sig.is-writing .sig__name { animation: sigWrite 2.6s cubic-bezier(.4, .06, .3, 1) forwards; }
+@keyframes sigWrite {
+  0%   { clip-path: inset(0 100% 0 0); }
+  22%  { clip-path: inset(0 74% 0 0); }
+  46%  { clip-path: inset(0 52% 0 0); }
+  70%  { clip-path: inset(0 26% 0 0); }
+  100% { clip-path: inset(0 -2% 0 0); }
+}
+.sig__pen {
+  position: absolute; top: 52%; left: 0; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--c-cyan); box-shadow: 0 0 14px 3px rgba(31, 232, 255, .7);
+  opacity: 0; transform: translate(-50%, -50%);
+}
+.sig.is-writing .sig__pen { animation: sigPen 2.6s cubic-bezier(.4, .06, .3, 1) forwards; }
+@keyframes sigPen {
+  0%   { left: 0%;   opacity: 0; }
+  6%   { opacity: 1; }
+  22%  { left: 26%; top: 40%; }
+  46%  { left: 48%; top: 60%; }
+  70%  { left: 74%; top: 44%; }
+  94%  { left: 100%; top: 55%; opacity: 1; }
+  100% { left: 102%; opacity: 0; }
+}
+.sig__note { font-size: var(--t-xs); color: var(--c-text-faint); margin-top: .2rem; }
+@media (prefers-reduced-motion: reduce) {
+  .sig__name { clip-path: none; animation: none; }
+  .sig__pen { display: none; }
+}

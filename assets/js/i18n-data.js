@@ -260,6 +260,16 @@ window.VECOM_I18N = {
       n3: "Campagne pubblicitarie a pagamento|Gestione quotidiana dei social|Traduzioni professionali certificate|Sviluppo di software su misura",
       c3: "99 € al mese: tutto del Business, più controlli di prestazione, 2 ore di modifiche al mese e assistenza prioritaria."
     },
+    about: {
+      kicker: "Chi sono",
+      head: "Uwe Vetter",
+      role: "Web designer · Aragona, Sicilia",
+      p1: "Non vengo dal marketing. Vengo dalla pratica: ho costruito i miei progetti online — un negozio di prodotti siciliani, una piattaforma di quartiere, una casa editrice di libri illustrati — e ho imparato ogni volta cosa funziona davvero e cosa costa solo tempo.",
+      p2: "Per questo lavoro come lavoro: prezzi pubblicati, un preventivo che vale, e la sincerità di dirti quando una cosa non ti serve. Se un sito in una lingua basta, te lo dico — anche se guadagno meno.",
+      p3: "Sono tedesco e vivo in Sicilia. Lavoro in italiano, tedesco e inglese, e conosco entrambe le mentalità: la precisione dell'una, il rapporto personale dell'altra. Le due cose insieme sono il mio modo di lavorare.",
+      sig: "Uwe Vetter",
+      sigNote: "Parliamone — il primo colloquio è gratuito.", nav: "Chi sono"
+    },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
@@ -531,6 +541,16 @@ window.VECOM_I18N = {
       n3: "Bezahlte Werbekampagnen|Tägliche Betreuung der Social-Media-Kanäle|Beglaubigte Fachübersetzungen|Entwicklung eigener Software",
       c3: "99 € im Monat: alles aus Business, dazu Performance-Checks, 2 Stunden Änderungen pro Monat und bevorzugte Betreuung."
     },
+    about: {
+      kicker: "Wer hinter Vecom Design steht",
+      head: "Uwe Vetter",
+      role: "Webdesigner · Aragona, Sizilien",
+      p1: "Ich komme nicht aus dem Marketing. Ich komme aus der Praxis: Ich habe meine eigenen Projekte ins Netz gebracht — einen Shop für sizilianische Produkte, eine Nachbarschaftsplattform, einen Verlag für illustrierte Bücher — und dabei jedes Mal gelernt, was wirklich funktioniert und was nur Zeit kostet.",
+      p2: "Deshalb arbeite ich, wie ich arbeite: Preise stehen offen auf der Seite, ein Angebot ist verbindlich, und ich sage Ihnen auch, wenn Sie etwas nicht brauchen. Reicht eine einsprachige Seite, sage ich das — auch wenn ich daran weniger verdiene.",
+      p3: "Ich bin Deutscher und lebe in Sizilien. Ich arbeite auf Italienisch, Deutsch und Englisch und kenne beide Mentalitäten: die Genauigkeit der einen, das Persönliche der anderen. Beides zusammen ist meine Arbeitsweise.",
+      sig: "Uwe Vetter",
+      sigNote: "Sprechen wir darüber — das Erstgespräch ist kostenlos.", nav: "Über mich"
+    },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
@@ -801,6 +821,16 @@ window.VECOM_I18N = {
       w3: "Anyone aiming to stay visible long-term: brands, multi-site practices, businesses with a broad offering. Also those who need logo and brand identity from scratch.",
       n3: "Paid advertising campaigns|Daily social media management|Certified professional translations|Custom software development",
       c3: "€99 a month: everything in Business, plus performance checks, 2 hours of changes per month and priority support."
+    },
+    about: {
+      kicker: "Who is behind Vecom Design",
+      head: "Uwe Vetter",
+      role: "Web designer · Aragona, Sicily",
+      p1: "I don't come from marketing. I come from practice: I built my own projects online — a shop for Sicilian products, a neighbourhood platform, a publishing imprint for illustrated books — and learned each time what really works and what only costs time.",
+      p2: "That's why I work the way I do: prices published openly, a quote that holds, and the honesty to tell you when you don't need something. If a single-language site is enough, I'll say so — even though I earn less that way.",
+      p3: "I'm German and live in Sicily. I work in Italian, German and English and know both mentalities: the precision of one, the personal touch of the other. Together, that's how I work.",
+      sig: "Uwe Vetter",
+      sigNote: "Let's talk — the first conversation is free.", nav: "About"
     },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
