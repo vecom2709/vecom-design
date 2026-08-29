@@ -1157,7 +1157,12 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
    sondern eine ruhige Nennung mit einem einzigen filmischen Moment. */
 .partner { padding-block: clamp(3.5rem, 7vw, 6rem); }
 .partner__inner { display: grid; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; }
-@media (min-width: 860px) { .partner__inner { grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); } }
+@media (min-width: 1000px) { .partner__inner { grid-template-columns: minmax(0, 1.3fr) minmax(0, .7fr); } }
+/* Zwei Marken nebeneinander, gleich große Felder — keine ist wichtiger. */
+.partner__logos { display: grid; gap: clamp(.8rem, 1.6vw, 1.2rem); }
+@media (min-width: 620px) { .partner__logos { grid-template-columns: 1fr 1fr; } }
+.partner__logo > a { display: grid; place-items: center; min-height: 140px; }
+.partner__logo img { max-height: 130px; width: auto; object-fit: contain; }
 
 .partner__logo {
   position: relative; margin: 0; isolation: isolate;
@@ -1167,7 +1172,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   box-shadow: inset 0 0 0 1px rgba(198, 160, 60, .18);
 }
 .partner__logo img {
-  width: 100%; max-width: 340px; margin-inline: auto; display: block;
+  width: 100%; max-width: 300px; margin-inline: auto; display: block;
   /* Gold auf dunklem Grund braucht einen warmen Schein, sonst wirkt es flach */
   filter: drop-shadow(0 0 26px rgba(198, 160, 60, .35)) drop-shadow(0 14px 30px rgba(0, 0, 0, .7));
   animation: partnerFloat 9s var(--e-std) infinite;
@@ -1183,11 +1188,14 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .partner__sheen {
   position: absolute; inset: clamp(1.5rem, 3vw, 2.5rem); z-index: 1; pointer-events: none;
   background: linear-gradient(105deg, transparent 38%, rgba(255, 240, 200, .85) 50%, transparent 62%);
-  -webkit-mask: url("../img/trendonix.webp") no-repeat center / contain;
-  mask: url("../img/trendonix.webp") no-repeat center / contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  -webkit-mask-size: contain; mask-size: contain;
   mix-blend-mode: screen; opacity: 0;
   transform: translateX(-60%);
 }
+.partner__sheen--tx { -webkit-mask-image: url("../img/trendonix.webp"); mask-image: url("../img/trendonix.webp"); }
+.partner__sheen--jv { -webkit-mask-image: url("../img/jonika.webp"); mask-image: url("../img/jonika.webp"); }
 .partner__logo.in .partner__sheen,
 .partner__logo:hover .partner__sheen { animation: partnerSheen 2.6s var(--e-std) .4s; }
 @keyframes partnerSheen {
@@ -1215,11 +1223,11 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .partner__url a {
   display: inline-block;
   font-family: 'Marcellus', Georgia, 'Times New Roman', serif;
-  font-size: clamp(.78rem, .62rem + .5vw, 1rem);
-  letter-spacing: .22em;
+  font-size: clamp(.66rem, .58rem + .28vw, .82rem);
+  letter-spacing: .12em; white-space: nowrap;
   /* Sperrung hängt auch hinter dem letzten Zeichen — ohne Ausgleich sitzt der
      sichtbare Text minimal links der Mitte. */
-  text-indent: .22em;
+  text-indent: .12em;
   background: linear-gradient(100deg, #b8912f 0%, #f4e3a8 45%, #c9a227 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   padding-block: .3rem;

@@ -195,8 +195,8 @@ window.VECOM_I18N = {
     },
     partner: {
       eyebrow: "In collaborazione con",
-      head: "Trendonix",
-      text: "Marchio editoriale per libri illustrati e progetti narrativi. Dalla stessa mano: concezione, identità visiva e presenza online.",
+      head: "Trendonix & Jonika Venturis",
+      text: "Il marchio editoriale Trendonix e l'autrice Jonika Venturis: libri illustrati e progetti narrativi. Dalla stessa mano: concezione, identità visiva e presenza online.",
       cta: "Scopri Trendonix"
     },
     inter: {
@@ -476,8 +476,8 @@ window.VECOM_I18N = {
     },
     partner: {
       eyebrow: "In Zusammenarbeit mit",
-      head: "Trendonix",
-      text: "Buchmarke für illustrierte Sachbücher und erzählende Projekte. Aus derselben Hand: Konzept, Erscheinungsbild und Auftritt im Netz.",
+      head: "Trendonix & Jonika Venturis",
+      text: "Die Buchmarke Trendonix und die Autorin Jonika Venturis: illustrierte Sachbücher und erzählende Projekte. Aus derselben Hand: Konzept, Erscheinungsbild und Auftritt im Netz.",
       cta: "Trendonix ansehen"
     },
     inter: {
@@ -757,8 +757,8 @@ window.VECOM_I18N = {
     },
     partner: {
       eyebrow: "In collaboration with",
-      head: "Trendonix",
-      text: "A publishing brand for illustrated non-fiction and narrative projects. From the same hand: concept, visual identity and online presence.",
+      head: "Trendonix & Jonika Venturis",
+      text: "The Trendonix imprint and the author Jonika Venturis: illustrated non-fiction and narrative projects. From the same hand: concept, visual identity and online presence.",
       cta: "See Trendonix"
     },
     inter: {
