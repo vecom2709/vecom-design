@@ -8,6 +8,15 @@
    Pflicht ist nur, was ich wirklich brauche: eine Angabe zum Vorhaben,
    Name und E-Mail. Alles andere ist freiwillig.
    ========================================================================== */
+/* --------------------------------------------------------------------------
+   HIER die Adresse des Formulardienstes eintragen (Formspree oder Basin).
+   Solange sie leer ist, öffnet der Knopf wie bisher das E-Mail-Programm.
+
+   Beispiel Formspree:  'https://formspree.io/f/abcdwxyz'
+   Beispiel Basin:      'https://usebasin.com/f/abcd1234'
+   -------------------------------------------------------------------------- */
+window.VECOM_FORM_ENDPOINT = '';
+
 (function () {
   'use strict';
   const form = document.querySelector('.qform');
@@ -107,8 +116,8 @@
   form.addEventListener('input', (e) => e.target.classList.remove('is-missing'));
 
   /* ---------- Absenden --------------------------------------------------- */
-  // Noch über das E-Mail-Programm. Sobald ein Formulardienst eingerichtet ist,
-  // wird hier ein fetch() daraus — der Rest bleibt unverändert.
+  // Mit Formulardienst: die Anfrage geht direkt weg, der Besucher bleibt auf
+  // der Seite. Ohne Dienst: das E-Mail-Programm öffnet sich wie bisher.
   function send() {
     const answers = [];
     form.querySelectorAll('[data-chips]').forEach((box) => {
@@ -127,9 +136,24 @@
       ...answers,
     ].filter(Boolean).join('\n');
 
-    window.location.href = 'mailto:' + (form.dataset.mailto || '') +
-      '?subject=' + encodeURIComponent('Projektanfrage — ' + val('name')) +
-      '&body=' + encodeURIComponent(body);
+    const endpoint = window.VECOM_FORM_ENDPOINT;
+    if (endpoint) {
+      const data = new FormData();
+      data.append('name', val('name'));
+      data.append('email', val('email'));
+      if (val('phone')) data.append('telefon', val('phone'));
+      data.append('nachricht', body);
+      data.append('_subject', 'Projektanfrage — ' + val('name'));
+      nextBtn.disabled = true;
+      fetch(endpoint, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
+        .catch(() => {})                       // Auch bei Netzfehler nicht im Nichts enden:
+        .finally(() => { nextBtn.disabled = false; });
+      form.classList.add('is-sent');           // Bestätigung ohne Mailprogramm-Hinweis
+    } else {
+      window.location.href = 'mailto:' + (form.dataset.mailto || '') +
+        '?subject=' + encodeURIComponent('Projektanfrage — ' + val('name')) +
+        '&body=' + encodeURIComponent(body);
+    }
 
     steps.forEach((s) => s.classList.remove('is-active'));
     nav.hidden = true;

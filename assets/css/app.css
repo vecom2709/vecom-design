@@ -1315,6 +1315,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   color: var(--c-cyan); background: rgba(31, 232, 255, .10);
   box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .4), 0 0 34px -10px rgba(31, 232, 255, .6);
 }
+.qform.is-sent .qform__done .qform__hint { display: none; }
 .qform__done h3 { font-size: var(--t-lg); }
 .qform__done p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch; }
 
