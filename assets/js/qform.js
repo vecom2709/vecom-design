@@ -9,13 +9,14 @@
    Name und E-Mail. Alles andere ist freiwillig.
    ========================================================================== */
 /* --------------------------------------------------------------------------
-   HIER die Adresse des Formulardienstes eintragen (Formspree oder Basin).
-   Solange sie leer ist, öffnet der Knopf wie bisher das E-Mail-Programm.
+   Ziel des Formulars. Standard ist der eigene Endpunkt auf dem Webspace
+   (formular.php), der die Anfrage über Brevo verschickt — dadurch bleibt der
+   Schlüssel auf dem Server und die Daten laufen nicht über einen Dritten
+   in den USA.
 
-   Beispiel Formspree:  'https://formspree.io/f/abcdwxyz'
-   Beispiel Basin:      'https://usebasin.com/f/abcd1234'
+   Leer lassen, um wieder das E-Mail-Programm zu öffnen.
    -------------------------------------------------------------------------- */
-window.VECOM_FORM_ENDPOINT = 'https://formspree.io/f/mvkogqrp';
+window.VECOM_FORM_ENDPOINT = '/formular.php';
 
 (function () {
   'use strict';
@@ -143,7 +144,7 @@ window.VECOM_FORM_ENDPOINT = 'https://formspree.io/f/mvkogqrp';
       data.append('email', val('email'));
       if (val('phone')) data.append('telefon', val('phone'));
       data.append('nachricht', body);
-      data.append('_subject', 'Projektanfrage — ' + val('name'));
+      data.append('website', '');            // Honigtopf gegen Bots, bleibt leer
       nextBtn.disabled = true;
       fetch(endpoint, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
         .catch(() => {})                       // Auch bei Netzfehler nicht im Nichts enden:
