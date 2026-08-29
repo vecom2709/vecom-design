@@ -15,7 +15,7 @@
    Beispiel Formspree:  'https://formspree.io/f/abcdwxyz'
    Beispiel Basin:      'https://usebasin.com/f/abcd1234'
    -------------------------------------------------------------------------- */
-window.VECOM_FORM_ENDPOINT = '';
+window.VECOM_FORM_ENDPOINT = 'https://formspree.io/f/mvkogqrp';
 
 (function () {
   'use strict';
