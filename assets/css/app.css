@@ -1622,3 +1622,22 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   .sig__name { clip-path: none; animation: none; }
   .sig__pen { display: none; }
 }
+
+/* ---------- 33. Soziale Kanäle ------------------------------------------- */
+.social { display: flex; justify-content: center; gap: .6rem; margin-top: var(--s-1); }
+.social[hidden] { display: none; }
+.social__a {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px;
+  color: var(--c-text-dim);
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 0 1px var(--c-line),
+              0 10px 24px -18px rgba(0,0,0,.9);
+  transition: color var(--d-ui) linear, transform var(--d-move) var(--e-std),
+              box-shadow var(--d-move) var(--e-std);
+}
+.social__a:hover {
+  color: #fff; transform: translateY(-3px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(31,232,255,.45),
+              0 16px 32px -16px rgba(10,120,245,.8);
+}
+.social__a:active { transform: translateY(0); }
