@@ -1571,19 +1571,15 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 
 /* Handschriftlicher Namenszug — wie mit der Feder geschrieben.
    Technik: Die Mittellinie der Schrift wurde aus dem gerenderten Zug
-   errechnet (Skelettierung) und in 18 einzelne Federzüge zerlegt. Jeder Zug
+   errechnet (Skelettierung) und in einzelne Federzüge zerlegt. Jeder Zug
    zeichnet sich als Maske über der eigentlichen Buchstabenform — dadurch
    erscheint die volle Strichstärke genau dort, wo die Feder gerade war.
    Nicht ein Vorhang, der aufgeht, sondern ein Strich, der entsteht. */
 .sig { position: relative; margin-top: var(--s-3); width: fit-content; max-width: 100%; }
 .sig__svg { display: block; width: clamp(240px, 30vw, 420px); height: auto; overflow: visible; }
-.sig__text {
-  font-family: 'Signatur', cursive; font-size: 420px;
-  fill: var(--c-text);
-  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, .8));
-}
+.sig__svg image { filter: drop-shadow(0 2px 10px rgba(0, 0, 0, .8)); }
 .feder {
-  fill: none; stroke: #fff; stroke-width: 42;
+  fill: none; stroke: #fff; stroke-width: 46;
   stroke-linecap: round; stroke-linejoin: round;
   stroke-dasharray: var(--zug); stroke-dashoffset: var(--zug);
 }

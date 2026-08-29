@@ -129,6 +129,7 @@ function build(lang) {
     h = h.replace(/data-src="video\//g, `data-src="${up}video/`);
     // data-img der Tiefenkarten wird von der href/src-Regel nicht erfasst
     h = h.replace(/data-img="assets\//g, `data-img="${up}assets/`);
+    h = h.replace(/href="assets\/img\//g, `href="${up}assets/img/`);
     h = h.replace(/href="index\.html"/g, `href="${up}"`);
     h = h.replace(/href="#top"/g, 'href="#top"');
   }
