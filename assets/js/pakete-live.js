@@ -21,6 +21,7 @@
   var original = behaelter.innerHTML;          // Rückfall, falls etwas schiefgeht
   var muster = vorlage.cloneNode(true);
   var letzte = null;                           // zuletzt geladene Pakete
+  var kaufText = '';                           // Beschriftung des Kaufknopfs, je Sprache
 
   /* Dieselbe Reihenfolge wie pickLang() in app.js — sonst holt dieses Skript
      die Texte in einer anderen Sprache, als die Seite gerade zeigt. */
@@ -108,6 +109,21 @@
     var detail = k.querySelector('.det-link');
     if (detail) { detail.setAttribute('href', p.detail); }
 
+    // Kaufknopf nur, wenn das Paket dafür freigegeben und Stripe bereit ist.
+    // Er wird aus dem vorhandenen Anfrage-Knopf geklont, damit Form und
+    // Verhalten (auch das magnetische Mitziehen) erhalten bleiben.
+    if (p.kaufbar && kaufText) {
+      var anfrage = k.querySelector('a.btn:not(.det-link)');
+      if (anfrage) {
+        var kauf = anfrage.cloneNode(true);
+        kauf.className = anfrage.className + ' plan__kauf';
+        kauf.removeAttribute('data-i18n');
+        kauf.setAttribute('href', p.kauf_url);
+        kauf.textContent = kaufText;
+        anfrage.parentNode.insertBefore(kauf, anfrage);
+      }
+    }
+
     k.classList.add('in');                     // die Einblendung lief schon
     return k;
   }
@@ -132,6 +148,7 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.pakete || !d.pakete.length) { return; }
+        kaufText = d.kauf_text || '';
         letzte = d.pakete;
         zeichnen(letzte);
       })

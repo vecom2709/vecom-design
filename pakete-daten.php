@@ -30,10 +30,25 @@ require_once __DIR__ . '/app/src/Db.php';
 $sprache = strtolower((string) ($_GET['lang'] ?? 'it'));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
+/* Der Kaufknopf zeigt sich nur, wenn Stripe wirklich einsatzbereit ist und
+   der Livemodus laeuft. Zum Ausprobieren laesst er sich in der Verwaltung
+   voruebergehend auch fuer den Testmodus freigeben. */
+require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+$kaufbar = false;
+try {
+    $stripe = new StripeAnbieter();
+    $testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
+    $kaufbar = $stripe->bereit() && $stripe->webhookBereit()
+        && ($stripe->modus() === 'live' || $testSichtbar);
+} catch (Throwable $e) { $kaufbar = false; }
+
+$kaufText = ['it' => 'Prenota ora', 'de' => 'Jetzt buchen', 'en' => 'Book now'][$sprache];
+
 try {
     $reihen = Db::all(
         'SELECT slug, name, description, sub, ideal, price_cents, monthly_cents, currency,
-                features, texte, popular, detail_url
+                features, texte, popular, detail_url, direktkauf
          FROM packages
          WHERE active = 1 AND oeffentlich = 1
          ORDER BY sort, price_cents'
@@ -59,7 +74,12 @@ foreach ($reihen as $r) {
         'waehrung'  => $r['currency'],
         'beliebt'   => (bool) $r['popular'],
         'detail'    => (string) ($r['detail_url'] ?? ('pakete.html#' . $r['slug'])),
+        'kaufbar'   => $kaufbar && (bool) $r['direktkauf'],
+        'kauf_url'  => '/buchen.php?paket=' . rawurlencode((string) $r['slug']) . '&lang=' . $sprache,
     ];
 }
 
-echo json_encode(['pakete' => $pakete, 'sprache' => $sprache], JSON_UNESCAPED_UNICODE);
+echo json_encode([
+    'pakete' => $pakete, 'sprache' => $sprache,
+    'kauf_text' => $kaufText,
+], JSON_UNESCAPED_UNICODE);

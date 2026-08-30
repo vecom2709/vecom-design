@@ -1,0 +1,208 @@
+<?php
+declare(strict_types=1);
+/* ==========================================================================
+   Direktbuchung eines Pakets von der Website aus.
+
+   Ablauf: Besucher klickt auf der Paketkarte "Jetzt buchen"
+        →  diese Seite fragt Name, E-Mail und Firma ab
+        →  Kunde und Bestellung entstehen, die Anzahlung wird angelegt
+        →  weiter zur Bezahlseite von Stripe
+
+   Bewusst mit drei Feldern statt direkt zu Stripe: Springt jemand auf der
+   Bezahlseite ab, bleibt wenigstens der Kontakt — dann ist es eben eine
+   Anfrage statt einer Bestellung.
+
+   Der Weg ist nur offen, wenn das Paket dafuer freigeschaltet ist, Stripe
+   eingerichtet ist und der Livemodus laeuft. Zum Ausprobieren laesst sich das
+   in der Verwaltung voruebergehend auch fuer den Testmodus oeffnen.
+   ========================================================================== */
+
+$konfig = __DIR__ . '/app/config.local.php';
+if (!is_file($konfig)) { http_response_code(503); exit('Buchung ist derzeit nicht möglich.'); }
+
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
+    require_once __DIR__ . "/app/src/$k.php";
+}
+require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+
+date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
+session_name('vecombuchung');
+session_start();
+
+/* ---------- Sprache ---------- */
+$sprache = strtolower((string) ($_REQUEST['lang'] ?? 'it'));
+if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+$T = [
+  'it' => [
+    'titel' => 'Prenota il pacchetto', 'name' => 'Nome e cognome', 'email' => 'E-mail',
+    'firma' => 'Azienda (facoltativo)', 'weiter' => 'Continua al pagamento',
+    'anzahlung' => 'Acconto ora', 'rest' => 'Saldo alla consegna', 'gesamt' => 'Totale',
+    'hinweis' => 'Ora paghi solo l’acconto. Il saldo è dovuto alla consegna del sito.',
+    'zurueck' => 'Torna al sito', 'fehlerFelder' => 'Inserisci nome e un indirizzo e-mail valido.',
+    'zu' => 'Questo pacchetto al momento non è prenotabile online. Scrivici — ti rispondiamo entro un giorno lavorativo.',
+    'testmodus' => 'Modalità di prova — nessun pagamento reale.',
+    'monat' => 'poi al mese',
+  ],
+  'de' => [
+    'titel' => 'Paket buchen', 'name' => 'Name', 'email' => 'E-Mail',
+    'firma' => 'Firma (freiwillig)', 'weiter' => 'Weiter zur Zahlung',
+    'anzahlung' => 'Anzahlung jetzt', 'rest' => 'Rest bei Übergabe', 'gesamt' => 'Gesamt',
+    'hinweis' => 'Jetzt wird nur die Anzahlung fällig. Der Rest kommt bei Übergabe der Website.',
+    'zurueck' => 'Zurück zur Website', 'fehlerFelder' => 'Bitte Name und eine gültige E-Mail-Adresse eintragen.',
+    'zu' => 'Dieses Paket ist gerade nicht direkt buchbar. Schreib uns — wir antworten innerhalb eines Werktags.',
+    'testmodus' => 'Testmodus — es fließt kein echtes Geld.',
+    'monat' => 'danach monatlich',
+  ],
+  'en' => [
+    'titel' => 'Book this package', 'name' => 'Name', 'email' => 'Email',
+    'firma' => 'Company (optional)', 'weiter' => 'Continue to payment',
+    'anzahlung' => 'Deposit now', 'rest' => 'Balance on handover', 'gesamt' => 'Total',
+    'hinweis' => 'Only the deposit is due now. The balance follows when the site is handed over.',
+    'zurueck' => 'Back to the site', 'fehlerFelder' => 'Please enter a name and a valid email address.',
+    'zu' => 'This package can’t be booked online right now. Write to us — we answer within one working day.',
+    'testmodus' => 'Test mode — no real money is charged.',
+    'monat' => 'then per month',
+  ],
+][$sprache];
+
+$basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+$zurueck = $basis . ($sprache === 'it' ? '/' : "/$sprache/") . '#plans';
+
+/* ---------- Darf hier ueberhaupt gebucht werden? ---------- */
+$stripe = new StripeAnbieter();
+$testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
+$stripeOffen  = $stripe->bereit() && $stripe->webhookBereit() && ($stripe->modus() === 'live' || $testSichtbar);
+
+$slug  = preg_replace('~[^a-z0-9\-]~i', '', (string) ($_REQUEST['paket'] ?? ''));
+$paket = $slug !== '' ? Db::one('SELECT * FROM packages WHERE slug = ? AND active = 1 AND oeffentlich = 1 AND direktkauf = 1', [$slug]) : null;
+
+$fehler = [];
+$eingabe = ['name' => '', 'email' => '', 'firma' => ''];
+
+if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    foreach ($eingabe as $k => $_) { $eingabe[$k] = trim((string) ($_POST[$k] ?? '')); }
+
+    // Honigtopf — Menschen fuellen dieses Feld nie aus, Bots schon.
+    if (!empty($_POST['website'])) { header('Location: ' . $zurueck); exit; }
+
+    if (empty($_SESSION['csrf']) || !hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
+        $fehler[] = $T['fehlerFelder'];
+    }
+    if ($eingabe['name'] === '' || !filter_var($eingabe['email'], FILTER_VALIDATE_EMAIL)) {
+        $fehler[] = $T['fehlerFelder'];
+    }
+    // Einfache Bremse gegen wiederholtes Abschicken.
+    $sperre = sys_get_temp_dir() . '/vecombuchung_' . md5($_SERVER['REMOTE_ADDR'] ?? '');
+    if (is_file($sperre) && (time() - filemtime($sperre)) < 20) { $fehler[] = $T['fehlerFelder']; }
+
+    if (!$fehler) {
+        touch($sperre);
+        try {
+            $kundeId = Events::kundeFinden([
+                'name' => mb_substr($eingabe['name'], 0, 120),
+                'email' => mb_strtolower($eingabe['email']),
+                'company' => mb_substr($eingabe['firma'], 0, 120) ?: null,
+            ]);
+            $bestellId = Events::bestellungAnlegen($kundeId, (int) $paket['id'],
+                'Direkt auf der Website gebucht (' . strtoupper($sprache) . ')');
+
+            $zahlung = Db::one("SELECT * FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$bestellId]);
+            $bestell = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
+            $kunde   = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
+
+            $url = $stripe->bezahlseite($zahlung, $bestell, $kunde);
+            Db::update('payments', (int) $zahlung['id'], [
+                'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+            ]);
+            Events::melden('bestellung_neu', 'Direktbuchung auf der Website', 'info',
+                $paket['name'] . ' — ' . $eingabe['name'], '/bestellungen/' . $bestellId);
+
+            header('Location: ' . $url);
+            exit;
+        } catch (Throwable $e) {
+            // Der Kontakt ist trotzdem da — das ist der Sinn der drei Felder.
+            Events::melden('integration_fehler', 'Direktbuchung fehlgeschlagen', 'schlecht',
+                mb_substr($e->getMessage(), 0, 200), '/integrationen');
+            $fehler[] = $T['zu'];
+        }
+    }
+}
+
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); }
+$h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+
+$texte = $paket && $paket['texte'] ? (json_decode((string) $paket['texte'], true)[$sprache] ?? []) : [];
+$name  = trim((string) ($texte['name'] ?? '')) !== '' ? $texte['name'] : (string) ($paket['name'] ?? '');
+$preis = (int) ($paket['price_cents'] ?? 0);
+$anz   = (int) round($preis * 50 / 100);
+?><!doctype html>
+<html lang="<?= $h($sprache) ?>">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title><?= $h($T['titel']) ?> — Vecom Design</title>
+<link rel="stylesheet" href="/app/assets/admin.css">
+<style>
+  body{display:flex;align-items:center;justify-content:center;padding:24px}
+  .karte{width:100%;max-width:480px}
+  .zeile{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
+  .zeile:first-of-type{border-top:0}
+  .zeile b{font-variant-numeric:tabular-nums}
+  .gross{font-size:19px;font-weight:650}
+</style>
+</head>
+<body>
+<div class="karte">
+  <div class="marke" style="justify-content:center;font-size:18px;margin-bottom:14px"><b>VECOM</b>&nbsp;DESIGN</div>
+
+  <?php if (!$paket || !$stripeOffen): ?>
+    <div class="block">
+      <div class="hinweis schlecht"><?= $h($T['zu']) ?></div>
+      <a class="knopf haupt" href="<?= $h($zurueck) ?>"><?= $h($T['zurueck']) ?></a>
+    </div>
+  <?php else: ?>
+    <div class="block">
+      <h2 style="font-size:17px;margin-bottom:14px"><?= $h($T['titel']) ?>: <?= $h($name) ?></h2>
+
+      <?php if ($stripe->modus() !== 'live'): ?>
+        <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb)">
+          <?= $h($T['testmodus']) ?>
+        </div>
+      <?php endif; ?>
+      <?php foreach ($fehler as $f): ?><div class="hinweis schlecht"><?= $h($f) ?></div><?php endforeach; ?>
+
+      <div class="zeile"><span><?= $h($T['gesamt']) ?></span><b><?= Fmt::geld($preis, (string) $paket['currency']) ?></b></div>
+      <div class="zeile gross"><span><?= $h($T['anzahlung']) ?></span><b><?= Fmt::geld($anz, (string) $paket['currency']) ?></b></div>
+      <div class="zeile" style="color:var(--dim)"><span><?= $h($T['rest']) ?></span><b><?= Fmt::geld($preis - $anz, (string) $paket['currency']) ?></b></div>
+      <?php if ((int) $paket['monthly_cents'] > 0): ?>
+        <div class="zeile" style="color:var(--leise)"><span><?= $h($T['monat']) ?></span><b><?= Fmt::geld((int) $paket['monthly_cents'], (string) $paket['currency']) ?></b></div>
+      <?php endif; ?>
+
+      <p style="color:var(--dim);font-size:13px;margin:12px 0 16px"><?= $h($T['hinweis']) ?></p>
+
+      <form method="post">
+        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+        <input type="hidden" name="paket" value="<?= $h((string) $paket['slug']) ?>">
+        <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
+        <div style="position:absolute;left:-9999px" aria-hidden="true">
+          <label>Website<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+        </div>
+        <div class="feld"><label><?= $h($T['name']) ?> *</label>
+          <input name="name" required value="<?= $h($eingabe['name']) ?>" autocomplete="name"></div>
+        <div class="feld"><label><?= $h($T['email']) ?> *</label>
+          <input type="email" name="email" required value="<?= $h($eingabe['email']) ?>" autocomplete="email"></div>
+        <div class="feld"><label><?= $h($T['firma']) ?></label>
+          <input name="firma" value="<?= $h($eingabe['firma']) ?>" autocomplete="organization"></div>
+        <button class="knopf haupt" style="width:100%;justify-content:center"><?= $h($T['weiter']) ?></button>
+      </form>
+      <p style="text-align:center;margin-top:14px">
+        <a href="<?= $h($zurueck) ?>" style="color:var(--leise);font-size:13px"><?= $h($T['zurueck']) ?></a></p>
+    </div>
+  <?php endif; ?>
+</div>
+</body>
+</html>

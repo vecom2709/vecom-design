@@ -30,7 +30,10 @@ $tx = static function (array $texte, string $l, string $feld): string {
 <div class="feld"><label>Sichtbarkeit</label>
   <label style="color:var(--text);display:block;margin-bottom:4px"><input type="checkbox" name="active" style="width:auto" <?= (!$p || $p['active']) ? 'checked' : '' ?>> aktiv (kann bestellt werden)</label>
   <label style="color:var(--text);display:block;margin-bottom:4px"><input type="checkbox" name="oeffentlich" style="width:auto" <?= (!$p || !empty($p['oeffentlich'])) ? 'checked' : '' ?>> auf vecom-design.it zeigen</label>
-  <label style="color:var(--text);display:block"><input type="checkbox" name="popular" style="width:auto" <?= ($p && $p['popular']) ? 'checked' : '' ?>> als „Meistgefragt“ hervorheben</label>
+  <label style="color:var(--text);display:block;margin-bottom:4px"><input type="checkbox" name="popular" style="width:auto" <?= ($p && $p['popular']) ? 'checked' : '' ?>> als „Meistgefragt“ hervorheben</label>
+  <label style="color:var(--text);display:block"><input type="checkbox" name="direktkauf" style="width:auto" <?= ($p && !empty($p['direktkauf'])) ? 'checked' : '' ?>> direkt auf der Website buchbar (Knopf „Jetzt buchen“)</label>
+  <p style="color:var(--leise);font-size:12px;margin-top:6px">Der Knopf erscheint erst, wenn Stripe eingerichtet ist und der Livemodus läuft.
+  Zum Ausprobieren lässt er sich unter <a href="<?= Fmt::h(url('integrationen')) ?>">Integrationen</a> vorübergehend auch im Testmodus einblenden.</p>
 </div>
 
 <div style="margin:22px 0 10px;padding-top:16px;border-top:1px solid var(--linie)">

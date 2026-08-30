@@ -29,7 +29,10 @@ final class Kennzahlen
             'gesamtumsatz'  => (int) Db::wert($bezahlt),
             'monatsumsatz'  => (int) Db::wert($bezahlt . " AND paid_at >= ?", [date('Y-m-01 00:00:00')]),
             'heute'         => (int) Db::wert($bezahlt . " AND paid_at >= ?", [date('Y-m-d 00:00:00')]),
-            'offen'         => (int) Db::wert("SELECT COALESCE(SUM(amount_cents),0) FROM payments WHERE status IN ('ausstehend','in_bearbeitung')"),
+            // Dieselbe Abgrenzung wie Events::offenerBetrag(): Eine fehlgeschlagene
+            // Zahlung ist Geld, das weiterhin aussteht. Ohne das zeigten Dashboard
+            // und Bestellung zwei verschiedene Summen fuer dasselbe Wort.
+            'offen'         => (int) Db::wert("SELECT COALESCE(SUM(amount_cents),0) FROM payments WHERE status IN ('ausstehend','in_bearbeitung','fehlgeschlagen')"),
             'bezahlte_bestellungen' => (int) Db::wert("SELECT COUNT(DISTINCT order_id) FROM payments WHERE status = 'bezahlt'"),
             'fehlgeschlagen'=> (int) Db::wert("SELECT COUNT(*) FROM payments WHERE status = 'fehlgeschlagen'"),
             'schnitt'       => (int) Db::wert("SELECT COALESCE(AVG(amount_cents),0) FROM payments WHERE status = 'bezahlt'"),

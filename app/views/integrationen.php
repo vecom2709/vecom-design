@@ -38,6 +38,18 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
       Repository, und angezeigt wird hier nie mehr als der Anfang und die letzten vier Zeichen.</p>
   </form>
 
+  <?php $testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey='direktkauf_test'", [], '0') === '1'; ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linie);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="direktkauf_test">
+    <input type="hidden" name="zurueck" value="integrationen">
+    <label style="color:var(--text);margin:0;font-size:13.5px">
+      <input type="checkbox" name="an" style="width:auto" <?= $testSichtbar ? 'checked' : '' ?>>
+      Kaufknopf auf der Website auch im Testmodus zeigen</label>
+    <button class="knopf">Übernehmen</button>
+    <span style="color:var(--leise);font-size:12.5px">Nur zum Ausprobieren. Solange das an ist, sehen auch
+      Besucher den Knopf — und landen auf einer Bezahlseite, auf der kein echtes Geld fließt.</span>
+  </form>
+
   <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
     Kartendaten erreichen diesen Server nie — bezahlt wird auf einer Seite, die Stripe selbst ausliefert.
     Eingehende Meldungen werden auf ihre Unterschrift geprüft und können durch den Eindeutigkeitsschlüssel

@@ -135,6 +135,7 @@ if ($post) {
                     'texte' => json_encode(paketTexte($_POST), JSON_UNESCAPED_UNICODE),
                     'active' => isset($_POST['active']) ? 1 : 0,
                     'oeffentlich' => isset($_POST['oeffentlich']) ? 1 : 0,
+                    'direktkauf' => isset($_POST['direktkauf']) ? 1 : 0,
                     'popular' => isset($_POST['popular']) ? 1 : 0,
                     'sort' => (int) ($_POST['sort'] ?? 0),
                 ];
@@ -240,6 +241,15 @@ if ($post) {
                 // Die Schluessel selbst tauchen nirgends im Protokoll auf.
                 Events::protokoll('integration', 'Stripe-Zugangsdaten gespeichert (Modus: ' . $modus . ')');
                 Events::pruefspur('speichern', 'integration', null, [], ['dienst' => 'stripe', 'modus' => $modus]);
+                weiter('integrationen');
+
+            case 'direktkauf_test':
+                $an = isset($_POST['an']) ? '1' : '0';
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('direktkauf_test', ?)
+                         ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$an]);
+                Events::protokoll('integration', $an === '1'
+                    ? 'Kaufknopf auch im Testmodus sichtbar geschaltet'
+                    : 'Kaufknopf im Testmodus wieder ausgeblendet');
                 weiter('integrationen');
 
             case 'migrieren':
