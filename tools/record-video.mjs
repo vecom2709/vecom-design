@@ -22,25 +22,56 @@ const OUT = 'video';
 mkdirSync(OUT, { recursive: true });
 
 /* Das Drehbuch: Titelkarten und was dazwischen zu sehen ist. */
+const KARTEN = {
+  de: {
+    intro:  ['Wie deine Website entsteht', 'In vier Schritten — vom ersten Gespräch bis zum Launch'],
+    s1:     ['01 — Gespräch', 'Eine Stunde. Was verkaufst du, an wen, und was fehlt heute?'],
+    s2:     ['02 — Richtung', 'Du siehst den ersten Bildschirm, bevor der Rest gebaut wird.'],
+    s3:     ['03 — Umsetzung', 'Sektion für Sektion. Du siehst die Seite wachsen, nicht erst am Ende eine Datei.'],
+    s4:     ['04 — Launch & Wachstum', 'Domain, E-Mail, Rechtstexte — und danach bleiben wir erreichbar.'],
+    preis:  ['Ab 499 € einmalig', 'Angebot und Erstgespräch sind kostenlos.'],
+    ende:   ['vecom-design.it', 'kontakt@vecom-design.it'],
+  },
+  it: {
+    intro:  ['Come nasce il tuo sito', 'In quattro passi — dal primo colloquio alla pubblicazione'],
+    s1:     ['01 — Il colloquio', "Un'ora. Cosa vendi, a chi, e cosa manca oggi?"],
+    s2:     ['02 — La direzione', 'Vedi la prima schermata prima che venga costruito il resto.'],
+    s3:     ['03 — La realizzazione', 'Sezione per sezione. Vedi il sito crescere, non un file alla fine.'],
+    s4:     ['04 — Lancio e crescita', 'Dominio, e-mail, testi legali — e restiamo raggiungibili.'],
+    preis:  ['Da 499 € una tantum', 'Preventivo e primo colloquio sono gratuiti.'],
+    ende:   ['vecom-design.it', 'kontakt@vecom-design.it'],
+  },
+  en: {
+    intro:  ['How your website is made', 'In four steps — from the first conversation to launch'],
+    s1:     ['01 — The conversation', 'One hour. What do you sell, to whom, and what is missing today?'],
+    s2:     ['02 — The direction', 'You see the first screen before the rest gets built.'],
+    s3:     ['03 — The build', 'Section by section. You watch it grow instead of getting a file at the end.'],
+    s4:     ['04 — Launch & growth', 'Domain, email, legal pages — and we stay reachable afterwards.'],
+    preis:  ['From €499 one-off', 'Quote and first conversation are free.'],
+    ende:   ['vecom-design.it', 'kontakt@vecom-design.it'],
+  },
+};
+const K = KARTEN[LANG] || KARTEN.de;
+
 const SCRIPT = [
-  { card: ['Wie deine Website entsteht', 'In vier Schritten — vom ersten Gespräch bis zum Launch'], hold: 3200 },
+  { card: K.intro, hold: 3200 },
   { scroll: '.hero', pan: 900, hold: 2600, label: 'vecom-design.it' },
 
-  { card: ['01 — Gespräch', 'Eine Stunde. Was verkaufst du, an wen, und was fehlt heute?'], hold: 3000 },
+  { card: K.s1, hold: 3000 },
   { scroll: '#contact', hold: 1200 },
   { form: true },
 
-  { card: ['02 — Richtung', 'Du siehst den ersten Bildschirm, bevor der Rest gebaut wird.'], hold: 3000 },
+  { card: K.s2, hold: 3000 },
   { scroll: '#services', pan: 1400, hold: 2400 },
 
-  { card: ['03 — Umsetzung', 'Sektion für Sektion. Du siehst die Seite wachsen, nicht erst am Ende eine Datei.'], hold: 3200 },
+  { card: K.s3, hold: 3200 },
   { scroll: '#work', pan: 1800, hold: 3400 },
 
-  { card: ['04 — Launch & Wachstum', 'Domain, E-Mail, Rechtstexte — und danach bleiben wir erreichbar.'], hold: 3200 },
+  { card: K.s4, hold: 3200 },
   { scroll: '#plans', pan: 1200, hold: 2600 },
 
-  { card: ['Ab 499 € einmalig', 'Angebot und Erstgespräch sind kostenlos.'], hold: 2800 },
-  { card: ['vecom-design.it', 'kontakt@vecom-design.it'], hold: 3000, brand: true },
+  { card: K.preis, hold: 2800 },
+  { card: K.ende, hold: 3000, brand: true },
 ];
 
 const overlayCSS = `
