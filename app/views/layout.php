@@ -53,6 +53,7 @@ $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
       <?php endif; ?>
     <?php endforeach; ?>
     <div class="gruppe"><?= Fmt::h(Auth::name()) ?></div>
+    <a href="/cockpit/">Zum Cockpit</a>
     <a href="<?= Fmt::h(url('abmelden')) ?>">Abmelden</a>
   </nav>
   <main class="inhalt">
