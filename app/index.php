@@ -167,6 +167,24 @@ if ($post) {
                     (string) ($_POST['anbieter'] ?? 'manuell'));
                 weiter('bestellungen/' . (int) $_POST['order_id']);
 
+            case 'zahlungslink':
+                require_once __DIR__ . '/src/Zahlung/Anbieter.php';
+                require_once __DIR__ . '/src/Zahlung/Stripe.php';
+                $z = Db::one('SELECT * FROM payments WHERE id = ?', [(int) $_POST['id']]);
+                if (!$z) { throw new RuntimeException('Zahlung nicht gefunden.'); }
+                if ($z['status'] === 'bezahlt') { throw new RuntimeException('Diese Rate ist bereits bezahlt.'); }
+                $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
+                $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $b['customer_id']]);
+                $stripe = new StripeAnbieter();
+                $url = $stripe->bezahlseite($z, $b, $k);
+                Db::update('payments', (int) $z['id'], [
+                    'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                    'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+                ]);
+                Events::protokoll('zahlungslink', 'Zahlungslink erstellt: ' . ($z['bezeichnung'] ?: 'Zahlung')
+                    . ' · ' . Fmt::geld((int) $z['amount_cents']), (int) $b['customer_id'], (int) $b['id']);
+                weiter('bestellungen/' . (int) $b['id']);
+
             case 'zahlung_fehler':
                 Events::zahlungFehlgeschlagen((int) $_POST['id'], trim((string) ($_POST['grund'] ?? '')));
                 weiter('bestellungen/' . (int) $_POST['order_id']);
@@ -340,8 +358,27 @@ switch ($route) {
         ]]);
         break;
 
-    case 'nachrichten': case 'onboarding': case 'dateien': case 'zahlungen':
-    case 'rechnungen': case 'statistiken': case 'integrationen': case 'monitoring': case 'einstellungen':
+    case 'zahlungen':
+        ansicht('zahlungen', ['liste' => Db::all(
+            "SELECT p.*, o.order_no, c.name AS kunde, c.id AS kunde_id
+             FROM payments p JOIN orders o ON o.id = p.order_id JOIN customers c ON c.id = o.customer_id
+             ORDER BY FIELD(p.status,'ausstehend','in_bearbeitung','fehlgeschlagen') DESC, p.id DESC")]);
+        break;
+
+    case 'integrationen':
+        require_once __DIR__ . '/src/Zahlung/Anbieter.php';
+        require_once __DIR__ . '/src/Zahlung/Stripe.php';
+        $stripe = new StripeAnbieter();
+        ansicht('integrationen', [
+            'stripe'   => $stripe,
+            'liste'    => Db::all('SELECT * FROM integrations ORDER BY category, name'),
+            'ereignisse' => Db::all('SELECT * FROM webhook_events ORDER BY id DESC LIMIT 25'),
+            'offen'    => (int) Db::wert("SELECT COUNT(*) FROM webhook_events WHERE status = 'fehler'"),
+        ]);
+        break;
+
+    case 'nachrichten': case 'onboarding': case 'dateien':
+    case 'rechnungen': case 'statistiken': case 'monitoring': case 'einstellungen':
         ansicht('spaeter', ['bereich' => $route]);
         break;
 

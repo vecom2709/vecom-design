@@ -1,28 +1,59 @@
 <div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('bestellungen')) ?>">Bestellungen</a></div>
 <h1><?= Fmt::h($b['order_no']) ?></h1></div></div>
 <div class="zwei"><div>
-  <div class="block"><h2>Zahlungen</h2><div class="tabellenrahmen"><table>
-  <thead><tr><th>Anbieter</th><th class="num">Betrag</th><th>Status</th><th>Bezahlt</th><th></th></tr></thead><tbody>
-  <?php foreach ($zahlungen as $z): ?><tr>
-    <td><?= Fmt::h($z['provider']) ?><?= $z['provider_ref'] ? '<br><small style="color:var(--leise)">' . Fmt::h($z['provider_ref']) . '</small>' : '' ?></td>
-    <td class="num"><?= Fmt::geld((int) $z['amount_cents'], $z['currency']) ?></td>
-    <td><span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span></td>
-    <td><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></td>
-    <td style="text-align:right"><?php if ($z['status'] !== 'bezahlt'): ?>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
-        <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlung_bestaetigen">
-        <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
-        <input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><input type="hidden" name="order_id" value="<?= (int) $b['id'] ?>">
-        <button class="knopf">Als bezahlt buchen</button></form>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
-        <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlung_fehler">
-        <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
-        <input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><input type="hidden" name="order_id" value="<?= (int) $b['id'] ?>">
-        <button class="knopf stumm">Fehlgeschlagen</button></form>
-    <?php endif; ?></td></tr><?php endforeach; ?>
-  </tbody></table></div>
-  <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Später übernimmt der Zahlungsanbieter diesen Schritt per Webhook —
-  die Wirkung ist dieselbe, weil beide Wege dieselbe Ereignislogik aufrufen.</p></div>
+  <?php
+  $bezahlt = 0; $offen = 0;
+  foreach ($zahlungen as $z) {
+      if ($z['status'] === 'bezahlt') { $bezahlt += (int) $z['amount_cents']; }
+      elseif (in_array($z['status'], ['ausstehend','in_bearbeitung','fehlgeschlagen'], true)) { $offen += (int) $z['amount_cents']; }
+  }
+  ?>
+  <div class="block"><h2>Zahlungen
+    <span class="mehr"><?= Fmt::geld($bezahlt) ?> bezahlt · <?= Fmt::geld($offen) ?> offen</span></h2>
+
+  <?php foreach ($zahlungen as $z): ?>
+    <div style="border-top:1px solid var(--linie);padding:13px 0">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <div style="min-width:180px">
+          <strong><?= Fmt::h($z['bezeichnung'] ?: ucfirst((string) $z['art'])) ?></strong><br>
+          <small style="color:var(--leise)"><?= Fmt::h($z['provider'] === 'offen' ? 'noch kein Anbieter' : $z['provider']) ?>
+          <?= $z['provider_ref'] ? ' · ' . Fmt::h($z['provider_ref']) : '' ?></small>
+        </div>
+        <div style="font-variant-numeric:tabular-nums;font-size:17px;font-weight:600"><?= Fmt::geld((int) $z['amount_cents'], $z['currency']) ?></div>
+        <span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span>
+        <?php if ($z['paid_at']): ?><small style="color:var(--leise)"><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></small><?php endif; ?>
+
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <?php if ($z['status'] !== 'bezahlt'): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink">
+            <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
+            <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+            <button class="knopf haupt"><?= $z['link_url'] ? 'Neuen Link erzeugen' : 'Zahlungslink erzeugen' ?></button></form>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlung_bestaetigen">
+            <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
+            <input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><input type="hidden" name="order_id" value="<?= (int) $b['id'] ?>">
+            <button class="knopf">Von Hand buchen</button></form>
+        <?php endif; ?>
+        </div>
+      </div>
+
+      <?php if ($z['link_url'] && $z['status'] !== 'bezahlt'): ?>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input readonly value="<?= Fmt::h($z['link_url']) ?>" onclick="this.select()"
+                 style="flex:1;min-width:240px;font-size:12.5px;font-family:ui-monospace,monospace">
+          <a class="knopf" href="<?= Fmt::h($z['link_url']) ?>" target="_blank" rel="noopener">Öffnen</a>
+          <a class="knopf" href="mailto:<?= Fmt::h($b['kunde_email']) ?>?subject=<?= rawurlencode('Zahlung ' . $b['order_no'] . ' — ' . ($z['bezeichnung'] ?: '')) ?>&body=<?= rawurlencode("Hallo " . $b['kunde'] . ",\n\nhier ist der Link für die " . ($z['bezeichnung'] ?: 'Zahlung') . " über " . Fmt::geld((int) $z['amount_cents'], $z['currency']) . ":\n\n" . $z['link_url'] . "\n\nHerzliche Grüße\nUwe Vetter · Vecom Design") ?>">Per E-Mail senden</a>
+          <small style="color:var(--leise)">gültig bis <?= Fmt::h(Fmt::zeit($z['link_bis'])) ?></small>
+        </div>
+      <?php endif; ?>
+    </div>
+  <?php endforeach; ?>
+
+  <p style="color:var(--leise);font-size:12.5px;margin-top:12px">Zahlt der Kunde über den Link, meldet Stripe das an den Server —
+  und dieselbe Ereignislogik läuft, die auch „Von Hand buchen“ auslöst: Zahlung, Bestellung, Projekt, Aktivität, Dashboard.
+  Kartendaten erreichen diesen Server dabei nie.</p></div>
 
   <div class="block"><h2>Verlauf</h2>
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">

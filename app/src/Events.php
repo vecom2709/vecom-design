@@ -102,13 +102,28 @@ final class Events
                 'notes'         => $notiz,
             ]);
 
+            // Bei Webdesign wird in zwei Schritten gezahlt: die Haelfte bei
+            // Auftrag, der Rest bei Uebergabe. Die zweite Rate entsteht gleich
+            // mit, damit der offene Betrag von Anfang an stimmt.
+            $gesamt    = (int) $paket['price_cents'];
+            $prozent   = (int) Db::wert('SELECT anzahlung_prozent FROM orders WHERE id = ?', [$bestellId], 50);
+            $anzahlung = (int) round($gesamt * $prozent / 100);
+            $rest      = $gesamt - $anzahlung;
+
             Db::insert('payments', [
-                'order_id'     => $bestellId,
-                'provider'     => 'manuell',
-                'amount_cents' => (int) $paket['price_cents'],
-                'currency'     => $paket['currency'],
-                'status'       => 'ausstehend',
+                'order_id' => $bestellId, 'art' => 'anzahlung',
+                'bezeichnung' => "Anzahlung ($prozent %) bei Auftrag",
+                'provider' => 'offen', 'amount_cents' => $anzahlung,
+                'currency' => $paket['currency'], 'status' => 'ausstehend',
             ]);
+            if ($rest > 0) {
+                Db::insert('payments', [
+                    'order_id' => $bestellId, 'art' => 'restzahlung',
+                    'bezeichnung' => 'Restzahlung bei Übergabe',
+                    'provider' => 'offen', 'amount_cents' => $rest,
+                    'currency' => $paket['currency'], 'status' => 'ausstehend',
+                ]);
+            }
 
             self::protokoll('bestellung_neu', 'Neue Bestellung: ' . $paket['name'] . ' — ' . $kunde['name'],
                 $kundeId, $bestellId);
@@ -142,17 +157,43 @@ final class Events
             ]);
 
             $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
-            Db::update('orders', (int) $z['order_id'], ['status' => 'bezahlt']);
+            $art = (string) ($z['art'] ?? 'gesamt');
 
-            $projektId = self::projektAusBestellung((int) $z['order_id']);
-            self::projektStatus($projektId, 'zahlung_bestaetigt', false);
+            $projektId = null;
+            if ($art === 'anzahlung' || $art === 'gesamt') {
+                // Die erste Zahlung startet das Projekt und schaltet das
+                // Onboarding frei. Die Restzahlung tut das nicht noch einmal.
+                Db::update('orders', (int) $z['order_id'], ['status' => 'bezahlt']);
+                $projektId = self::projektAusBestellung((int) $z['order_id']);
+                self::projektStatus($projektId, 'zahlung_bestaetigt', false);
+            } else {
+                $vorhanden = Db::one('SELECT id, status FROM projects WHERE order_id = ?', [(int) $z['order_id']]);
+                $projektId = $vorhanden ? (int) $vorhanden['id'] : null;
+                // Restzahlung bei Uebergabe: Ist die Seite schon online, ist
+                // damit alles erledigt. Sonst bleibt der Status, wie er ist.
+                if ($vorhanden && in_array($vorhanden['status'], ['online', 'abgeschlossen'], true)) {
+                    Db::update('orders', (int) $z['order_id'], ['status' => 'abgeschlossen']);
+                }
+            }
 
-            self::protokoll('zahlung_ok', 'Zahlung eingegangen: ' . Fmt::geld((int) $z['amount_cents'], $z['currency']),
-                (int) $b['customer_id'], (int) $z['order_id'], $projektId);
-            self::melden('zahlung_ok', 'Zahlung eingegangen', 'gut',
-                $b['order_no'] . ' — ' . Fmt::geld((int) $z['amount_cents'], $z['currency']),
+            $was = $z['bezeichnung'] ?: ucfirst($art);
+            self::protokoll('zahlung_ok', $was . ' eingegangen: ' . Fmt::geld((int) $z['amount_cents'], $z['currency']),
+                (int) $b['customer_id'], (int) $z['order_id'], $projektId, ['art' => $art, 'anbieter' => $anbieter]);
+            self::melden('zahlung_ok', $was . ' eingegangen', 'gut',
+                $b['order_no'] . ' — ' . Fmt::geld((int) $z['amount_cents'], $z['currency'])
+                    . ' · offen: ' . Fmt::geld(self::offenerBetrag((int) $z['order_id'])),
                 '/bestellungen/' . (int) $z['order_id']);
         });
+    }
+
+    /** Was bei einer Bestellung noch offen ist — in Cent. */
+    public static function offenerBetrag(int $bestellId): int
+    {
+        return (int) Db::wert(
+            "SELECT COALESCE(SUM(amount_cents),0) FROM payments
+             WHERE order_id = ? AND status IN ('ausstehend','in_bearbeitung','fehlgeschlagen')",
+            [$bestellId]
+        );
     }
 
     public static function zahlungFehlgeschlagen(int $zahlungId, string $grund = ''): void

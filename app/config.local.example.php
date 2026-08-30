@@ -13,4 +13,15 @@ return [
     'firma'   => 'Vecom Design',
     'mwst'    => 0.0,                          // Steuersatz in Prozent, 0 = keine
     'zeitzone'=> 'Europe/Rome',
+    'website' => 'https://vecom-design.it',
+
+    /* Stripe. Die Schluessel stehen ausschliesslich hier auf dem Server —
+       nie im Repository, nie im Browser. Solange 'geheim' leer ist, bleibt
+       alles Uebrige unberuehrt: Zahlungen lassen sich weiter von Hand buchen.
+       Im Testmodus braucht es weder Partita IVA noch echtes Geld. */
+    'stripe' => [
+        'modus'          => 'test',          // 'test' oder 'live'
+        'geheim'         => '',              // sk_test_… bzw. sk_live_…
+        'webhook_geheim' => '',              // whsec_… aus "Entwickler → Webhooks"
+    ],
 ];
