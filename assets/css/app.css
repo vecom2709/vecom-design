@@ -1617,3 +1617,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
               0 16px 32px -16px rgba(10,120,245,.8);
 }
 .social__a:active { transform: translateY(0); }
+
+/* Besucherzähler in der Fußzeile — gleiche Schriftgröße und Farbe wie das
+   Copyright daneben, nur die Zahl im Markenton. */
+.zaehler { font-size: var(--t-xs); color: var(--c-text-faint); font-variant-numeric: tabular-nums; }
+.zaehler b { color: var(--c-cyan); font-weight: 600; }

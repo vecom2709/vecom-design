@@ -5,3 +5,11 @@ ErrorDocument 404 /404.html
 RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Die Zähldatei ist nicht für Besucher bestimmt
+<Files "besuche.csv">
+  Require all denied
+</Files>
+<Files "config.local.php">
+  Require all denied
+</Files>
