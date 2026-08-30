@@ -4,3 +4,5 @@ caps/
 video/*.webm
 config.local.php
 besuche.csv
+app/config.local.php
+app/uploads/
