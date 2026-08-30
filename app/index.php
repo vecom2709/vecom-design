@@ -186,6 +186,16 @@ if ($post) {
                 Events::pruefspur('aendern', 'project', $pid, [], $daten);
                 weiter('projekte/' . $pid);
 
+            case 'migrieren':
+                require_once __DIR__ . '/src/Einrichtung.php';
+                $neu = Einrichtung::migrieren();
+                $ergaenzt = $neu ? Einrichtung::texteNachtragen() : 0;
+                Events::protokoll('system_migration', $neu
+                    ? 'Datenbank aktualisiert: ' . implode(', ', $neu)
+                      . ($ergaenzt ? " · Website-Texte bei $ergaenzt Paket(en) ergänzt" : '')
+                    : 'Datenbank war bereits aktuell');
+                weiter($_POST['zurueck'] ?? '');
+
             case 'meldungen_gelesen':
                 Db::run('UPDATE notifications SET read_at = NOW() WHERE read_at IS NULL');
                 weiter('benachrichtigungen');

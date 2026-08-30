@@ -4,6 +4,18 @@ declare(strict_types=1);
 /** Die Einrichtungsschritte. Wird vom Einrichter und von der Kommandozeile benutzt. */
 final class Einrichtung
 {
+    /** Welche Migrationen sind noch nicht eingespielt? Faellt nie um. */
+    public static function offene(): array
+    {
+        try {
+            $dateien = array_map('basename', glob(dirname(__DIR__) . '/migrations/*.sql') ?: []);
+            $erledigt = array_column(Db::all('SELECT datei FROM migrations'), 'datei');
+            return array_values(array_diff($dateien, $erledigt));
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
     /** Spielt alle noch nicht angewandten Migrationen ein. Gibt die Namen zurueck. */
     public static function migrieren(): array
     {
@@ -63,6 +75,30 @@ final class Einrichtung
             else     { Db::insert('packages', $daten); $ergebnis[] = $p['name'] . ' (angelegt)'; }
         }
         return $ergebnis;
+    }
+
+    /**
+     * Traegt fehlende Website-Texte bei den bekannten Paketen nach — aber nur
+     * dort, wo noch nichts steht. Was Uwe selbst eingetragen hat, bleibt.
+     * Wird nach einer Aktualisierung aufgerufen, damit die drei Pakete auf der
+     * Website nicht ploetzlich ohne Untertitel und in einer Sprache dastehen.
+     */
+    public static function texteNachtragen(): int
+    {
+        $ergaenzt = 0;
+        foreach (require __DIR__ . '/Standardpakete.php' as $p) {
+            $da = Db::one('SELECT id, sub, ideal, texte, detail_url FROM packages WHERE slug = ?', [$p['slug']]);
+            if (!$da) { continue; }
+            $neu = [];
+            if (trim((string) $da['texte']) === '' && isset($p['texte'])) {
+                $neu['texte'] = json_encode($p['texte'], JSON_UNESCAPED_UNICODE);
+            }
+            if (trim((string) $da['sub']) === '' && ($p['sub'] ?? '') !== '')       { $neu['sub'] = $p['sub']; }
+            if (trim((string) $da['ideal']) === '' && ($p['ideal'] ?? '') !== '')   { $neu['ideal'] = $p['ideal']; }
+            if (trim((string) $da['detail_url']) === '' && ($p['detail_url'] ?? '') !== '') { $neu['detail_url'] = $p['detail_url']; }
+            if ($neu) { Db::update('packages', (int) $da['id'], $neu); $ergaenzt++; }
+        }
+        return $ergaenzt;
     }
 
     /** Schreibt die Konfigurationsdatei. Werte werden nie in den Text eingesetzt,

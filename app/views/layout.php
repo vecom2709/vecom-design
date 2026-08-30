@@ -58,6 +58,22 @@ $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
   </nav>
   <main class="inhalt">
     <?php if ($fehler): ?><div class="hinweis schlecht"><?= Fmt::h($fehler) ?></div><?php endif; ?>
+    <?php
+    /* Neue Tabellen oder Spalten aus einer Aktualisierung. Ohne SSH liesse sich
+       das sonst nicht einspielen. Nur der angemeldete Admin sieht den Knopf,
+       und er ist wie jedes Formular gegen Fremdaufrufe geschuetzt. */
+    require_once __DIR__ . '/../src/Einrichtung.php';
+    $offeneMigrationen = Einrichtung::offene();
+    if ($offeneMigrationen): ?>
+      <div class="hinweis" style="background:rgba(31,232,255,.08);border-color:rgba(31,232,255,.32);color:var(--text);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span>Die Datenbank ist nicht auf dem neuesten Stand — <?= count($offeneMigrationen) ?> Aktualisierung<?= count($offeneMigrationen) === 1 ? '' : 'en' ?> steht bereit.</span>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-left:auto">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="migrieren">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($route) ?>">
+          <button class="knopf haupt">Jetzt aktualisieren</button>
+        </form>
+      </div>
+    <?php endif; ?>
     <?php require $inhaltsdatei; ?>
   </main>
 </div>
