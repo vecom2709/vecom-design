@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vecom Design — Cockpit</title>
+<style>
+  :root{
+    --grund:#05070d; --flaeche:#0c1119; --flaeche2:#111827;
+    --text:#e9eef8; --dim:#97a5bf; --leise:#7a88a3;
+    --linie:rgba(150,180,230,.16); --linie2:rgba(150,180,230,.3);
+    --cyan:#1fe8ff; --blau:#0648e8; --gruen:#4ade80; --rot:#ff8a8a; --gelb:#fbbf24;
+    --e:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--grund);color:var(--text);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+       line-height:1.5;padding:16px 14px 60px;
+       background-image:radial-gradient(60% 40% at 50% 0%,rgba(10,120,245,.14),transparent 70%)}
+  .wrap{max-width:760px;margin:0 auto}
+
+  header{margin-bottom:22px}
+  h1{font-size:22px;letter-spacing:-.02em}
+  .stand{font-size:12px;color:var(--leise);margin-top:3px}
+
+  h2{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--leise);
+     margin:28px 0 10px}
+
+  .kacheln{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(min-width:620px){.kacheln{grid-template-columns:repeat(4,1fr)}}
+  .k{background:var(--flaeche);border-radius:14px;padding:14px;
+     box-shadow:inset 0 0 0 1px var(--linie)}
+  .k b{display:block;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+  .k span{display:block;font-size:11px;color:var(--leise);margin-top:5px;
+          letter-spacing:.06em;text-transform:uppercase}
+  .k .delta{font-size:12px;margin-top:6px;color:var(--dim);text-transform:none;letter-spacing:0}
+  .up{color:var(--gruen)} .down{color:var(--rot)} .flat{color:var(--leise)}
+
+  .karte{background:var(--flaeche);border-radius:14px;padding:15px;
+         box-shadow:inset 0 0 0 1px var(--linie);margin-bottom:9px}
+  .hinweis{background:rgba(251,191,36,.07);box-shadow:inset 0 0 0 1px rgba(251,191,36,.25);
+           border-radius:14px;padding:14px;font-size:14px;color:var(--dim)}
+  .hinweis b{color:var(--gelb)}
+
+  .proj{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .proj b{font-size:16px}
+  .proj small{display:block;color:var(--leise);font-size:12px;margin-top:2px}
+  .pill{font-size:11px;padding:4px 10px;border-radius:999px;white-space:nowrap;
+        background:rgba(31,232,255,.1);color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(31,232,255,.3)}
+  .pill.warten{background:rgba(251,191,36,.1);color:var(--gelb);box-shadow:inset 0 0 0 1px rgba(251,191,36,.3)}
+
+  details.tun{background:var(--flaeche);border-radius:14px;margin-bottom:9px;
+              box-shadow:inset 0 0 0 1px var(--linie);overflow:hidden}
+  details.tun[open]{box-shadow:inset 0 0 0 1px var(--linie2)}
+  details.tun summary{list-style:none;cursor:pointer;padding:14px 15px;display:grid;gap:5px}
+  details.tun summary::-webkit-details-marker{display:none}
+  .wohin{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+  .wohin.selbst{color:var(--gelb)}
+  .titel{font-size:16px;font-weight:600;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .meta{font-size:12px;color:var(--leise)}
+  .gewinn{font-size:10px;padding:3px 8px;border-radius:999px;white-space:nowrap;
+          background:rgba(74,222,128,.12);color:var(--gruen)}
+  .gewinn.mittel{background:rgba(251,191,36,.12);color:var(--gelb)}
+  .gewinn.klein{background:rgba(150,180,230,.12);color:var(--dim)}
+  .inhalt{padding:0 15px 15px;font-size:14px;color:var(--dim);display:grid;gap:12px}
+  .inhalt ol{margin:0;padding-left:20px;display:grid;gap:7px}
+  .inhalt li{color:var(--dim)}
+  .promptZiel{font-size:11px;color:var(--leise);letter-spacing:.04em}
+  textarea{width:100%;min-height:150px;background:#080c14;color:var(--text);
+           border:1px solid var(--linie);border-radius:10px;padding:11px;
+           font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;resize:vertical}
+  .kopf{display:flex;gap:8px;align-items:center;margin-top:-4px}
+  button.kopieren{background:linear-gradient(180deg,#fff,#dde5f3);color:#05070d;border:0;
+          border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  button.kopieren:active{transform:scale(.97)}
+  .ok{font-size:12px;color:var(--gruen)}
+
+  .zeile{display:flex;justify-content:space-between;gap:12px;font-size:14px;
+         padding:11px 0;border-bottom:1px solid var(--linie)}
+  .zeile:last-child{border-bottom:0}
+  .zeile b{font-weight:600}
+  .summe{margin-top:10px;font-size:13px;color:var(--dim)}
+  .summe b{color:var(--text)}
+
+  .log{font-size:13px;color:var(--dim);display:grid;gap:8px}
+  .log div{display:flex;gap:10px}
+  .log time{color:var(--leise);flex:none;font-variant-numeric:tabular-nums}
+  footer{margin-top:34px;font-size:11px;color:var(--leise);text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   DATENBLÖCKE — nur diese Variablen ändern sich. Der Rest der Seite liest
+   ausschließlich hieraus. Wer welchen Block schreibt, steht als Kommentar
+   darüber.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* BESUCHE — wird beim Öffnen live von vecom-design.it/zahl.php geholt.
+   Niemand trägt hier etwas ein. gestern/vorwoche pflegt die geplante Aufgabe. */
+var BESUCHE = {
+  gestern: null,        // Zahl von gestern, für den Vergleich
+  stand:   null         // wird beim Laden gesetzt
+};
+
+/* PROJEKTE — geschrieben von dir oder von Claude, wenn sich ein Stand ändert. */
+var PROJEKTE = [
+  { name:"Cavaleri Trasporti", stand:"In Arbeit", amZug:"Claude",
+    notiz:"Transportfirma — Vorgaben liegen vor" },
+  { name:"Charme Color",       stand:"In Arbeit", amZug:"Claude",
+    notiz:"Friseursalon Favara — Designrichtung „Editorial Blanc“ gewählt" },
+  { name:"Ristorante Boulevard", stand:"In Arbeit", amZug:"Claude",
+    notiz:"Agrigento — Vorgaben liegen vor" }
+];
+
+/* GELD — Stand der Zahlungen. Von dir zu pflegen, sobald etwas eingeht. */
+var GELD = {
+  eingegangen: 0,
+  offen: null,          // null = noch kein Angebot verschickt
+  hinweis: "Bei keinem der drei Projekte ist bisher Geld geflossen. Es gibt noch keine verschickte Rechnung und keine vereinbarte Anzahlung."
+};
+
+/* KOSTEN — von dir genannt, ändert sich selten. */
+var KOSTEN = [
+  { was:"Claude",   betrag:276.00 },
+  { was:"All-Inkl", betrag:5.99 }
+];
+
+/* OFFEN — Punkte, die hängen. Claude trägt hier ein, was aus Gesprächen offen bleibt. */
+var OFFEN = [
+  { was:"Brevo-Schlüssel fehlt — Kontaktformular verschickt nichts",
+    seit:"29.08.2026", haengt:"config.local.php liegt noch nicht auf dem Server" },
+  { was:"Betreuungslaufzeit nicht festgelegt",
+    seit:"26.08.2026", haengt:"steht als Platzhalter in AGB, FAQ und Preishinweis" },
+  { was:"Frage an den Commercialista: „zzgl. MwSt.“ ohne Partita IVA",
+    seit:"26.08.2026", haengt:"Antwort steht aus" },
+  { was:"FTP-Passwort und GitHub-Token stehen im Chatverlauf",
+    seit:"25.08.2026", haengt:"beide noch nicht gewechselt" }
+];
+
+/* TUN — der Kern. Höchstens sechs, sortiert nach Wirkung. Claude pflegt das. */
+var TUN = [
+  {
+    wohin:"Nur du — kein Prompt", selbst:true,
+    titel:"Angebot an Cavaleri, Charme Color und Boulevard schicken",
+    gewinn:"hoch", wer:"30 Min du",
+    warum:"Drei Projekte sind in Arbeit, aber kein einziges Angebot ist verschickt und kein Euro geflossen. Dem stehen 281,99 € Kosten im Monat gegenüber. Solange nichts unterschrieben ist, arbeitest du auf eigene Rechnung — und hast bei Streit nichts in der Hand.",
+    schritte:[
+      "Pro Kunde entscheiden: Starter (499 €), Business (899 €) oder Premium (1.499 €).",
+      "Angebot schreiben mit: Leistungsumfang, Preis, 50 % bei Auftragserteilung / 50 % bei Übergabe, Laufzeit der Betreuung.",
+      "Per E-Mail an den Kunden schicken und um schriftliche Bestätigung bitten — eine Antwortmail genügt.",
+      "Erst nach der Bestätigung weiterbauen.",
+      "Sobald die erste Anzahlung da ist: hier im Cockpit den Block GELD anpassen."
+    ]
+  },
+  {
+    wohin:"Erst im Konto, dann Claude",
+    titel:"Brevo-Schlüssel hinterlegen",
+    gewinn:"hoch", wer:"10 Min du, dann läuft es",
+    warum:"Das Kontaktformular ist eingebaut und sieht fertig aus — aber ohne Schlüssel verschickt es nichts. Jede Anfrage, die jemand heute abschickt, ist verloren. Auf der Seite steht sichtbar „Antwort innerhalb eines Werktags“.",
+    schritte:[
+      "Bei Brevo einloggen → oben rechts auf deinen Namen → SMTP & API → Reiter „API-Schlüssel“ → „Neuen API-Schlüssel erstellen“.",
+      "Bei Brevo unter „Absender & IP“ die Adresse kontakt@vecom-design.it eintragen und die Bestätigungsmail anklicken.",
+      "Per FTP in das Verzeichnis /vecom-design.it/ wechseln (dort liegt die index.html).",
+      "Die vorhandene Datei config.local.example.php kopieren und in config.local.php umbenennen.",
+      "Darin bei 'key' den Schlüssel eintragen, speichern.",
+      "Auf vecom-design.it/de/ eine Testanfrage abschicken und prüfen, ob sie im Postfach ankommt."
+    ],
+    promptZiel:"Danach in eine neue Unterhaltung einfügen — nicht vorher.",
+    prompt:"Auf meinem Webspace bei All-Inkl liegt im Verzeichnis /vecom-design.it/ die Datei formular.php, die Anfragen über Brevo verschickt. Ich habe die Datei config.local.php mit meinem Brevo-Schlüssel dort abgelegt und die Absenderadresse kontakt@vecom-design.it in Brevo bestätigt.\n\nBitte prüfe, ob der Versand funktioniert: Schick über das Formular auf https://vecom-design.it/de/ eine Testanfrage mit dem Namen „Testlauf“ und der Adresse kontakt@vecom-design.it, und sag mir, mit welchem Status der Server geantwortet hat.\n\nFrag mich NICHT nach dem Schlüssel und schreib ihn nirgendwo hin. Wenn der Versand fehlschlägt, nenne mir den Fehler und sag mir, was ich im Brevo-Konto prüfen soll — ändere nichts an den Dateien ohne meine Zustimmung."
+  },
+  {
+    wohin:"Nur du — kein Prompt", selbst:true,
+    titel:"FTP-Passwort ändern und GitHub-Token widerrufen",
+    gewinn:"hoch", wer:"10 Min du",
+    warum:"Beide stehen im Klartext in einem Chatverlauf. Mit dem FTP-Zugang kann jemand deine Website austauschen, mit dem Token in deinem Namen Code veröffentlichen. Das trifft nicht nur dich, sondern auch die drei Kundenprojekte auf demselben Webspace.",
+    schritte:[
+      "Im KAS von All-Inkl: FTP → Zugang f018ae3f bearbeiten → neues Passwort setzen.",
+      "Bei GitHub: Settings → Developer settings → Personal access tokens → das betroffene Token auf „Revoke“.",
+      "Bei GitHub im Repository vecom2709/vecom-design: Settings → Secrets and variables → Actions → FTP_PASSWORD auf das neue Passwort setzen.",
+      "Einmal etwas auf main pushen und prüfen, ob der Deploy grün durchläuft."
+    ]
+  },
+  {
+    wohin:"Erst im Konto, dann Claude",
+    titel:"Eigene Kanäle für Vecom Design anlegen",
+    gewinn:"mittel", wer:"20 Min du, dann gemeinsam",
+    warum:"Deine drei Profile laufen unter „Uwe Von Tirol“ und „the sound of 80er“ — beide passen nicht zu einem Webdesign-Studio. Die fertigen Clips liegen seit Tagen ungenutzt herum, weil es keinen Ort gibt, wo sie hingehören.",
+    schritte:[
+      "TikTok: neues Konto anlegen, Handle @vecomdesign (oder ähnlich, falls vergeben).",
+      "Facebook: über dein Profil eine Seite anlegen → Name „Vecom Design“ → Kategorie „Webdesigner“.",
+      "Bei beiden: vecom-design.it als Website eintragen und das Logo als Profilbild setzen.",
+      "Danach die Handles an Claude geben — die Symbole in der Fußzeile der Website sind bereits eingebaut und warten nur auf die Adressen."
+    ],
+    promptZiel:"Nach dem Anlegen in eine neue Unterhaltung einfügen. Handles vorher eintragen.",
+    prompt:"Ich habe für mein Webdesign-Studio Vecom Design neue Kanäle angelegt:\nTikTok: [HANDLE EINTRAGEN]\nFacebook: [SEITEN-ADRESSE EINTRAGEN]\n\nMeine Website liegt im GitHub-Repo vecom2709/vecom-design und wird per FTP-Deploy auf https://vecom-design.it veröffentlicht. In der Datei assets/js/social.js stehen ganz oben die Adressen der sozialen Kanäle; leere Einträge werden automatisch ausgeblendet.\n\nBitte trage meine Handles dort ein und veröffentliche die Änderung. Zeig mir vorher, wie die Zeilen aussehen werden. Ändere sonst nichts an der Seite."
+  },
+  {
+    wohin:"Nur du — kein Prompt", selbst:true,
+    titel:"Betreuungslaufzeit festlegen",
+    gewinn:"mittel", wer:"5 Min du",
+    warum:"In AGB, FAQ und unter den Preisen steht an drei Stellen „[bitte ergänzen]“. Bei einem monatlichen Beitrag ist die Laufzeit die meistgestellte Frage — und wer sie auf der Seite nicht findet, fragt nicht nach, sondern klickt weg.",
+    schritte:[
+      "Entscheiden: monatlich kündbar, oder 12 Monate mit 3 Monaten Kündigungsfrist.",
+      "Die Entscheidung Claude nennen — er trägt sie an allen drei Stellen ein.",
+      "Dabei gleich mit entscheiden: Was passiert nach Kündigung mit Domain und E-Mail-Postfächern?"
+    ]
+  },
+  {
+    wohin:"Direkt an Claude",
+    titel:"Erste Kundenstimme einholen",
+    gewinn:"mittel", wer:"10 Min du",
+    warum:"Auf der Website stehen sechs Referenzen, aber kein einziger Satz von einem Menschen. Bei einem neuen Studio ohne Bewertungen ist das die größte Lücke — ein einziger echter Satz von Nadia Bosco wiegt mehr als jede weitere Funktion auf der Seite.",
+    schritte:[
+      "Nadia Bosco (Charme Color) fragen, sobald ihre Seite steht: zwei bis drei Sätze, was ihr an der Zusammenarbeit gefallen hat.",
+      "Nach Vor- und Nachnamen, Betrieb und Ort fragen — anonyme Stimmen wirken erfunden.",
+      "Um ein Foto bitten, oder das Salonbild verwenden."
+    ],
+    promptZiel:"Wenn die Antwort da ist, in eine neue Unterhaltung einfügen — Text unten ersetzen.",
+    prompt:"Meine Website vecom-design.it (GitHub-Repo vecom2709/vecom-design, Deploy per FTP auf All-Inkl) hat bisher keinen Abschnitt mit Kundenstimmen.\n\nIch habe jetzt die erste:\n[NAME, BETRIEB, ORT]\n„[ZITAT HIER EINFÜGEN]“\n\nBitte baue einen Abschnitt für Kundenstimmen ein, dreisprachig (Italienisch, Deutsch, Englisch), im Stil der übrigen Seite. Die Texte gehören in assets/js/i18n-data.js, die Sprachseiten werden mit „node build.mjs“ neu erzeugt.\n\nSchreib mir ZUERST, wo du den Abschnitt einbauen willst und wie er aussehen soll. Erst nach meinem Ja veröffentlichen."
+  }
+];
+
+/* AENDERUNGEN — Claude trägt hier ein, was gemacht wurde. Neueste zuerst. */
+var AENDERUNGEN = [
+  { datum:"29.08.", was:"Besucherzähler eingebaut — eigener Webspace, kein Cookie, kein fremder Dienst" },
+  { datum:"29.08.", was:"Echte Unterschrift eingebaut, schreibt sich in vier Federzügen" },
+  { datum:"29.08.", was:"Jonika Venturis als Referenz statt Dragi's Kitchen" },
+  { datum:"29.08.", was:"Über-mich-Abschnitt mit Porträt und Vorstellungstext" },
+  { datum:"28.08.", was:"Kontaktformular auf drei Schritte umgebaut, Versand über Brevo vorbereitet" },
+  { datum:"28.08.", was:"Paket-Detailseite mit eigenem Knopf je Paket" },
+  { datum:"27.08.", was:"Domain vecom-design.it aufgeschaltet, Deploy per Push eingerichtet" }
+];
+</script>
+
+<header>
+  <h1>Vecom Design</h1>
+  <p class="stand">Cockpit · Stand <span id="stand">wird geladen …</span></p>
+</header>
+
+<h2>Lage</h2>
+<div class="kacheln" id="lage"></div>
+
+<h2>Was ankommt</h2>
+<div id="ankommt"></div>
+
+<h2>Projekte</h2>
+<div id="projekte"></div>
+
+<h2>Offene Punkte</h2>
+<div id="offen"></div>
+
+<h2>Was ich als Nächstes tun würde</h2>
+<div id="tun"></div>
+
+<h2>Kosten</h2>
+<div id="kosten"></div>
+
+<h2>Was sich geändert hat</h2>
+<div class="karte"><div class="log" id="log"></div></div>
+
+<footer>
+  Alle Zahlen stammen aus deinem eigenen Webspace.<br>
+  Besucher: vecom-design.it/zahl.php · alles Übrige von dir und Claude gepflegt.
+</footer>
+
+<script>
+/* ── Darstellung. Liest nur die Blöcke oben, rechnet nichts dazu. ────────── */
+
+var $ = function(id){ return document.getElementById(id); };
+var nf = function(n){ return Number(n).toLocaleString('de-DE'); };
+var eur = function(n){ return Number(n).toLocaleString('de-DE',{minimumFractionDigits:2}) + ' €'; };
+
+$('stand').textContent = new Date().toLocaleDateString('de-DE',
+  {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+
+/* Lage — die Besucherzahlen kommen live, der Rest aus den Blöcken. */
+function lage(){
+  var offenZahl = OFFEN.length;
+  var k = [
+    { wert:'…', label:'Besuche gesamt', id:'kGesamt' },
+    { wert:'…', label:'Besuche heute', id:'kHeute' },
+    { wert:PROJEKTE.length, label:'Projekte in Arbeit',
+      delta:'<span class="flat">alle noch ohne Anzahlung</span>' },
+    { wert:offenZahl, label:'Offene Punkte',
+      delta:'<span class="'+(offenZahl>2?'down':'flat')+'">'+(offenZahl>2?'zu viele':'im Rahmen')+'</span>' }
+  ];
+  $('lage').innerHTML = k.map(function(x){
+    return '<div class="k"><b'+(x.id?' id="'+x.id+'"':'')+'>'+x.wert+'</b>'+
+           '<span>'+x.label+'</span>'+(x.delta?'<div class="delta">'+x.delta+'</div>':'')+'</div>';
+  }).join('');
+}
+lage();
+
+/* Besuche live holen. Klappt es nicht, steht dort ein Satz — keine Null. */
+fetch('https://vecom-design.it/zahl.php', {cache:'no-store'})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    BESUCHE.stand = d;
+    $('kGesamt').textContent = nf(d.gesamt);
+    $('kHeute').textContent  = nf(d.heute);
+    var v = '';
+    if (BESUCHE.gestern === null) {
+      v = '<span class="flat">Vergleich ab morgen</span>';
+    } else {
+      var diff = d.heute - BESUCHE.gestern;
+      v = '<span class="'+(diff>0?'up':diff<0?'down':'flat')+'">'+
+          (diff>0?'▲ ':diff<0?'▼ ':'– ')+Math.abs(diff)+' zu gestern</span>';
+    }
+    $('kGesamt').parentNode.insertAdjacentHTML('beforeend',
+      '<div class="delta"><span class="flat">seit 29.08.</span></div>');
+    $('kHeute').parentNode.insertAdjacentHTML('beforeend','<div class="delta">'+v+'</div>');
+  })
+  .catch(function(){
+    $('kGesamt').textContent = '—';
+    $('kHeute').textContent  = '—';
+    $('kHeute').parentNode.insertAdjacentHTML('beforeend',
+      '<div class="delta"><span class="down">Zähler nicht erreichbar</span></div>');
+  });
+
+/* Was ankommt */
+$('ankommt').innerHTML = GELD.eingegangen > 0
+  ? '<div class="karte"><div class="zeile"><span>Eingegangen</span><b>'+eur(GELD.eingegangen)+'</b></div></div>'
+  : '<div class="hinweis"><b>Noch keine Einnahmen.</b> '+GELD.hinweis+
+    ' Sobald die erste Anzahlung da ist, trägst du sie im Block <code>GELD</code> oben im Quelltext ein.</div>';
+
+/* Projekte */
+$('projekte').innerHTML = PROJEKTE.map(function(p){
+  return '<div class="karte"><div class="proj"><div><b>'+p.name+'</b><small>'+p.notiz+'</small></div>'+
+         '<span class="pill">'+p.stand+'</span></div></div>';
+}).join('');
+
+/* Offene Punkte */
+$('offen').innerHTML = OFFEN.length
+  ? OFFEN.map(function(o){
+      return '<div class="karte"><div class="proj"><div><b>'+o.was+'</b><small>hängt an: '+o.haengt+'</small></div>'+
+             '<span class="pill warten">seit '+o.seit+'</span></div></div>';
+    }).join('')
+  : '<div class="karte">Nichts offen.</div>';
+
+/* Was ich als Nächstes tun würde */
+$('tun').innerHTML = TUN.map(function(t, i){
+  var s = t.schritte ? '<div><b style="color:var(--text)">Schritte</b><ol>'+
+          t.schritte.map(function(x){ return '<li>'+x+'</li>'; }).join('')+'</ol></div>' : '';
+  var p = t.prompt ? '<div><p class="promptZiel">'+(t.promptZiel||'')+'</p>'+
+          '<textarea readonly id="p'+i+'">'+t.prompt.replace(/</g,'&lt;')+'</textarea>'+
+          '<div class="kopf"><button class="kopieren" data-i="'+i+'">Prompt kopieren</button>'+
+          '<span class="ok" id="ok'+i+'"></span></div></div>' : '';
+  return '<details class="tun"><summary>'+
+    '<span class="wohin'+(t.selbst?' selbst':'')+'">'+t.wohin+'</span>'+
+    '<span class="titel">'+t.titel+'<span class="gewinn '+t.gewinn+'">'+t.gewinn+'</span></span>'+
+    '<span class="meta">'+t.wer+'</span></summary>'+
+    '<div class="inhalt"><p>'+t.warum+'</p>'+s+p+'</div></details>';
+}).join('');
+
+document.addEventListener('click', function(e){
+  var b = e.target.closest('.kopieren');
+  if(!b) return;
+  var i = b.dataset.i, ta = $('p'+i);
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(function(){
+    $('ok'+i).textContent = 'kopiert';
+    setTimeout(function(){ $('ok'+i).textContent = ''; }, 2000);
+  }).catch(function(){ document.execCommand('copy'); $('ok'+i).textContent = 'kopiert'; });
+});
+
+/* Kosten */
+var summe = KOSTEN.reduce(function(a,k){ return a + k.betrag; }, 0);
+$('kosten').innerHTML = '<div class="karte">'+
+  KOSTEN.map(function(k){ return '<div class="zeile"><span>'+k.was+'</span><b>'+eur(k.betrag)+'</b></div>'; }).join('')+
+  '<p class="summe"><b>'+eur(summe)+'</b> im Monat — dem stehen derzeit '+eur(GELD.eingegangen)+' Einnahmen gegenüber.</p></div>';
+
+/* Was sich geändert hat */
+$('log').innerHTML = AENDERUNGEN.map(function(a){
+  return '<div><time>'+a.datum+'</time><span>'+a.was+'</span></div>';
+}).join('');
+</script>
+</div>
+</body>
+</html>

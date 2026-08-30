@@ -1,0 +1,6 @@
+# Das Cockpit ist nicht für Besucher bestimmt.
+# Suchmaschinen aussperren:
+Header set X-Robots-Tag "noindex, nofollow"
+
+# Passwortschutz: im KAS unter „Verzeichnisschutz" für /cockpit/ einschalten.
+# All-Inkl trägt die nötigen Zeilen dann selbst hier ein.
