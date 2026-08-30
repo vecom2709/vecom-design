@@ -109,7 +109,14 @@ final class Einrichtung
                 . "   gehoert nicht ins Repository und wird vom Deploy nie ueberschrieben. */\n"
                 . 'return ' . var_export($daten, true) . ";\n";
         $ok = @file_put_contents($pfad, $inhalt, LOCK_EX) !== false;
-        if ($ok) { @chmod($pfad, 0600); }
+        if ($ok) {
+            @chmod($pfad, 0600);
+            // Ohne das koennte der naechste Aufruf noch die alte Fassung sehen:
+            // Der Zwischenspeicher fuer uebersetzten PHP-Code prueft auf vielen
+            // Servern nur alle paar Sekunden nach, ob sich eine Datei geaendert hat.
+            if (function_exists('opcache_invalidate')) { @opcache_invalidate($pfad, true); }
+            clearstatcache(true, $pfad);
+        }
         return $ok;
     }
 

@@ -15,16 +15,28 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
     <tr><td>Fehlgeschlagene Ereignisse</td><td><?= $offen ?></td></tr>
   </tbody></table>
 
-  <?php if (!$stripe->bereit() || !$stripe->webhookBereit()): ?>
-    <div class="hinweis" style="margin-top:14px;background:rgba(31,232,255,.08);border-color:rgba(31,232,255,.32);color:var(--text)">
-      <strong>So wird Stripe verbunden</strong><br>
-      Trage in <code>app/config.local.php</code> auf dem Webspace einen Abschnitt <code>'stripe'</code> ein:
-      <code>modus</code> (<em>test</em> oder <em>live</em>), <code>geheim</code> (der geheime Schlüssel aus dem
-      Stripe-Konto) und <code>webhook_geheim</code> (das Signaturgeheimnis, das Stripe beim Anlegen des Webhooks zeigt).
-      Die Schlüssel gehören ausschließlich dorthin — nie ins Repository, nie in den Browser.
-      Die Vorlage steht in <code>app/config.local.example.php</code>.
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--linie)">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="stripe_speichern">
+    <input type="hidden" name="zurueck" value="integrationen">
+    <div class="feld"><label>Modus</label>
+      <select name="modus">
+        <option value="test" <?= $stripe->modus() === 'test' ? 'selected' : '' ?>>Testmodus — kein echtes Geld</option>
+        <option value="live" <?= $stripe->modus() === 'live' ? 'selected' : '' ?>>Livemodus — echte Zahlungen</option>
+      </select></div>
+    <div class="reihe">
+      <div class="feld"><label>Geheimer Schlüssel<?= $stripe->bereit() ? ' (leer lassen = unverändert)' : '' ?></label>
+        <input type="password" name="geheim" autocomplete="off" placeholder="sk_test_… bzw. sk_live_…"></div>
+      <div class="feld"><label>Webhook-Geheimnis<?= $stripe->webhookBereit() ? ' (leer lassen = unverändert)' : '' ?></label>
+        <input type="password" name="webhook_geheim" autocomplete="off" placeholder="whsec_…"></div>
     </div>
-  <?php endif; ?>
+    <button class="knopf haupt">Speichern</button>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Beides findest du im Stripe-Konto:
+      der geheime Schlüssel unter <em>Entwickler → API-Schlüssel</em>, das Webhook-Geheimnis unter
+      <em>Entwickler → Webhooks</em> beim Eintrag für
+      <code>https://vecom-design.it/stripe-webhook.php</code>.
+      Gespeichert wird ausschließlich in <code>app/config.local.php</code> auf deinem Webspace — nie im
+      Repository, und angezeigt wird hier nie mehr als der Anfang und die letzten vier Zeichen.</p>
+  </form>
 
   <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
     Kartendaten erreichen diesen Server nie — bezahlt wird auf einer Seite, die Stripe selbst ausliefert.

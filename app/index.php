@@ -204,6 +204,44 @@ if ($post) {
                 Events::pruefspur('aendern', 'project', $pid, [], $daten);
                 weiter('projekte/' . $pid);
 
+            case 'stripe_speichern':
+                require_once __DIR__ . '/src/Einrichtung.php';
+                $alt = Config::all();
+                $bisher = (array) ($alt['stripe'] ?? []);
+                $modus  = ($_POST['modus'] ?? 'test') === 'live' ? 'live' : 'test';
+                $geheim = trim((string) ($_POST['geheim'] ?? ''));
+                $whsec  = trim((string) ($_POST['webhook_geheim'] ?? ''));
+
+                // Leer gelassene Felder behalten ihren bisherigen Wert — so laesst
+                // sich der Modus umstellen, ohne die Schluessel neu einzutippen.
+                if ($geheim === '') { $geheim = (string) ($bisher['geheim'] ?? ''); }
+                if ($whsec === '')  { $whsec  = (string) ($bisher['webhook_geheim'] ?? ''); }
+
+                if ($geheim !== '' && !preg_match('~^(sk|rk)_(test|live)_~', $geheim)) {
+                    throw new RuntimeException('Das sieht nicht nach einem geheimen Stripe-Schlüssel aus (er beginnt mit sk_test_ oder sk_live_).');
+                }
+                if ($whsec !== '' && !str_starts_with($whsec, 'whsec_')) {
+                    throw new RuntimeException('Das Webhook-Geheimnis beginnt mit whsec_.');
+                }
+                if ($geheim !== '' && $modus === 'live' && str_contains($geheim, '_test_')) {
+                    throw new RuntimeException('Livemodus gewählt, aber der Schlüssel ist ein Testschlüssel.');
+                }
+                if ($geheim !== '' && $modus === 'test' && str_contains($geheim, '_live_')) {
+                    throw new RuntimeException('Testmodus gewählt, aber der Schlüssel ist ein Liveschlüssel. Im Testmodus fließt kein echtes Geld — das ist Absicht.');
+                }
+
+                $alt['stripe'] = ['modus' => $modus, 'geheim' => $geheim, 'webhook_geheim' => $whsec]
+                    + array_diff_key($bisher, array_flip(['modus', 'geheim', 'webhook_geheim']));
+                if (!Einrichtung::konfigSchreiben(dirname(__DIR__) . '/app/config.local.php', $alt)) {
+                    throw new RuntimeException('app/config.local.php konnte nicht geschrieben werden.');
+                }
+                Db::run("UPDATE integrations SET status=?, last_error=NULL WHERE ikey='stripe'",
+                    [$geheim !== '' && $whsec !== '' ? 'verbunden' : 'nicht_verbunden']);
+                // Die Schluessel selbst tauchen nirgends im Protokoll auf.
+                Events::protokoll('integration', 'Stripe-Zugangsdaten gespeichert (Modus: ' . $modus . ')');
+                Events::pruefspur('speichern', 'integration', null, [], ['dienst' => 'stripe', 'modus' => $modus]);
+                weiter('integrationen');
+
             case 'migrieren':
                 require_once __DIR__ . '/src/Einrichtung.php';
                 $neu = Einrichtung::migrieren();
