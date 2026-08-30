@@ -9,27 +9,26 @@ automatisch mit auf den Webspace.
 **1. Datenbank im KAS anlegen**
 KAS → *Datenbanken* → neue Datenbank. Notiere Name, Benutzer und Passwort.
 
-**2. Zugangsdaten hinterlegen**
-`app/config.local.example.php` auf dem Server nach `app/config.local.php`
-kopieren und ausfüllen. Diese Datei kommt nie ins Repository und wird vom
-Deploy nie überschrieben — genau wie beim Kontaktformular.
+**2. Einrichter aufrufen**
 
-**3. Tabellen anlegen**
-Über SSH oder den KAS-Cronjob einmalig ausführen:
+    https://vecom-design.it/app/einrichten.php
+
+Dort Einrichtungsschlüssel, die Datenbankdaten und deinen gewünschten Zugang
+eintragen. Der Einrichter legt die Tabellen an, richtet den Zugang ein und
+übernimmt die drei Pakete von vecom-design.it — alles in einem Schritt.
+
+Danach riegelt er sich selbst ab: Sobald `app/config.local.php` existiert,
+nimmt er keine Eingaben mehr an.
+
+### Der Weg über die Kommandozeile
+
+Wer SSH hat, kann es auch von Hand machen:
 
     php app/tools/migrate.php
-
-**4. Eigenen Zugang anlegen**
-
     php app/tools/admin_anlegen.php "Uwe Vetter" kontakt@vecom-design.it
-
-Das Passwort wird abgefragt und steht nicht in der Befehlszeile.
-
-**5. Pakete übernehmen** (die drei von vecom-design.it)
-
     php app/tools/pakete_uebernehmen.php
 
-Danach erreichbar unter `https://vecom-design.it/app/`.
+Beide Wege benutzen dieselbe Logik in `app/src/Einrichtung.php`.
 
 ## Wie das System zusammenhängt
 
