@@ -2,6 +2,9 @@
 /* Liefert nur die Besuchszahl. Keine personenbezogenen Daten. */
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, max-age=0');
+/* Damit das Cockpit die Zahlen von außerhalb lesen darf. Ausgegeben werden
+   nur zwei Summen — keine personenbezogenen Daten. */
+header('Access-Control-Allow-Origin: *');
 $d = __DIR__ . '/besuche.csv';
 $gesamt = 0; $heute = 0; $t = date('Y-m-d');
 if (is_readable($d)) {
