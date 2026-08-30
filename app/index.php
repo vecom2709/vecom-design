@@ -30,6 +30,29 @@ function ansicht(string $datei, array $daten = []): void {
     require __DIR__ . '/views/layout.php';
 }
 
+/** Ein Textfeld mit einer Angabe je Zeile in eine Liste verwandeln. */
+function zeilen(string $text): array {
+    return array_values(array_filter(array_map('trim', preg_split('~\R~', $text) ?: [])));
+}
+
+/** Baut aus den Formularfeldern die Texte je Sprache fuer die Website. */
+function paketTexte(array $post): array {
+    $aus = [];
+    foreach (['it', 'de', 'en'] as $l) {
+        $eintrag = [
+            'name'     => trim((string) ($post["t_{$l}_name"] ?? '')),
+            'sub'      => trim((string) ($post["t_{$l}_sub"] ?? '')),
+            'ideal'    => trim((string) ($post["t_{$l}_ideal"] ?? '')),
+            'features' => zeilen((string) ($post["t_{$l}_features"] ?? '')),
+        ];
+        // Leere Sprachen gar nicht erst speichern — dann greift der Haupttext.
+        if ($eintrag['name'] !== '' || $eintrag['sub'] !== '' || $eintrag['ideal'] !== '' || $eintrag['features']) {
+            $aus[$l] = $eintrag;
+        }
+    }
+    return $aus;
+}
+
 /* ---------- Anmeldung ---------- */
 if ($route === 'anmelden') {
     $fehler = null;
@@ -105,9 +128,13 @@ if ($post) {
                     'seo' => trim((string) ($_POST['seo'] ?? '')) ?: null,
                     'hosting' => trim((string) ($_POST['hosting'] ?? '')) ?: null,
                     'extras' => trim((string) ($_POST['extras'] ?? '')) ?: null,
-                    'features' => json_encode(array_values(array_filter(array_map('trim',
-                        explode("\n", (string) ($_POST['features'] ?? ''))))), JSON_UNESCAPED_UNICODE),
+                    'features' => json_encode(zeilen((string) ($_POST['features'] ?? '')), JSON_UNESCAPED_UNICODE),
+                    'sub' => trim((string) ($_POST['sub'] ?? '')) ?: null,
+                    'ideal' => trim((string) ($_POST['ideal'] ?? '')) ?: null,
+                    'detail_url' => trim((string) ($_POST['detail_url'] ?? '')) ?: null,
+                    'texte' => json_encode(paketTexte($_POST), JSON_UNESCAPED_UNICODE),
                     'active' => isset($_POST['active']) ? 1 : 0,
+                    'oeffentlich' => isset($_POST['oeffentlich']) ? 1 : 0,
                     'popular' => isset($_POST['popular']) ? 1 : 0,
                     'sort' => (int) ($_POST['sort'] ?? 0),
                 ];

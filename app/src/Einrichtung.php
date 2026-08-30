@@ -51,9 +51,12 @@ final class Einrichtung
         foreach (require __DIR__ . '/Standardpakete.php' as $p) {
             $daten = [
                 'slug' => $p['slug'], 'name' => $p['name'], 'description' => $p['description'],
+                'sub' => $p['sub'] ?? null, 'ideal' => $p['ideal'] ?? null,
                 'price_cents' => $p['price_cents'], 'monthly_cents' => $p['monthly_cents'], 'currency' => 'EUR',
                 'features' => json_encode($p['features'], JSON_UNESCAPED_UNICODE),
-                'active' => 1, 'popular' => $p['popular'], 'sort' => $p['sort'],
+                'texte' => isset($p['texte']) ? json_encode($p['texte'], JSON_UNESCAPED_UNICODE) : null,
+                'detail_url' => $p['detail_url'] ?? null,
+                'active' => 1, 'oeffentlich' => 1, 'popular' => $p['popular'], 'sort' => $p['sort'],
             ];
             $da = Db::one('SELECT id FROM packages WHERE slug = ?', [$p['slug']]);
             if ($da) { Db::update('packages', (int) $da['id'], $daten); $ergebnis[] = $p['name'] . ' (aktualisiert)'; }

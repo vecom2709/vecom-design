@@ -1,0 +1,237 @@
+[
+  {
+    "slug": "starter",
+    "price_cents": 49900,
+    "monthly_cents": 3900,
+    "sort": 1,
+    "popular": 0,
+    "name": "Starter",
+    "description": "Gefunden werden und Anfragen bekommen",
+    "sub": "Gefunden werden und Anfragen bekommen",
+    "ideal": "Ideal für Selbstständige, Handwerker und lokale Betriebe, die bisher nur Social Media haben.",
+    "features": [
+      "Enthalten:",
+      "Individuelle Website bis 5 Seiten",
+      "Perfekt auf Smartphone, Tablet und PC",
+      "Kontaktformular und Google Maps",
+      "SSL-Zertifikat und Einrichtung",
+      "SEO-Grundlage, um gefunden zu werden",
+      "1 eigene E-Mail-Adresse",
+      "Monatliche Backups und Updates",
+      "Kleine Änderungen inklusive",
+      "Direkte Betreuung ohne Ticketsystem"
+    ],
+    "texte": {
+      "it": {
+        "name": "Starter",
+        "sub": "Per farsi trovare e contattare",
+        "ideal": "Ideale per liberi professionisti, artigiani e attività locali che oggi hanno solo i social.",
+        "features": [
+          "Incluso:",
+          "Sito su misura fino a 5 pagine",
+          "Perfetto su smartphone, tablet e PC",
+          "Modulo di contatto e Google Maps",
+          "Certificato SSL e configurazione",
+          "Base SEO per farsi trovare",
+          "1 indirizzo e-mail personalizzato",
+          "Backup mensile e aggiornamenti",
+          "Piccole modifiche incluse",
+          "Assistenza diretta, senza ticket"
+        ]
+      },
+      "de": {
+        "name": "Starter",
+        "sub": "Gefunden werden und Anfragen bekommen",
+        "ideal": "Ideal für Selbstständige, Handwerker und lokale Betriebe, die bisher nur Social Media haben.",
+        "features": [
+          "Enthalten:",
+          "Individuelle Website bis 5 Seiten",
+          "Perfekt auf Smartphone, Tablet und PC",
+          "Kontaktformular und Google Maps",
+          "SSL-Zertifikat und Einrichtung",
+          "SEO-Grundlage, um gefunden zu werden",
+          "1 eigene E-Mail-Adresse",
+          "Monatliche Backups und Updates",
+          "Kleine Änderungen inklusive",
+          "Direkte Betreuung ohne Ticketsystem"
+        ]
+      },
+      "en": {
+        "name": "Starter",
+        "sub": "Get found and get enquiries",
+        "ideal": "Ideal for freelancers, trades and local businesses who currently only have social media.",
+        "features": [
+          "Included:",
+          "Custom site with up to 5 pages",
+          "Perfect on phone, tablet and desktop",
+          "Contact form and Google Maps",
+          "SSL certificate and setup",
+          "SEO groundwork so you get found",
+          "1 custom email address",
+          "Monthly backups and updates",
+          "Small changes included",
+          "Direct support, no ticket system"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#starter"
+  },
+  {
+    "slug": "business",
+    "price_cents": 89900,
+    "monthly_cents": 6900,
+    "sort": 2,
+    "popular": 1,
+    "name": "Business",
+    "description": "Überzeugen und verkaufen",
+    "sub": "Überzeugen und verkaufen",
+    "ideal": "Ideal für Unternehmen, Praxen, Restaurants und Hotels, die sich vom Wettbewerb abheben müssen.",
+    "features": [
+      "Alles aus Starter, plus:",
+      "Bis zu 10 Seiten",
+      "Individuelles Premium-Design",
+      "Logo-Optimierung oder neues Logo",
+      "Erweiterte SEO und Google-Unternehmensprofil",
+      "Mehrere Anfrageformulare und WhatsApp-Button",
+      "Bildergalerie und Referenzen",
+      "Bis zu 5 E-Mail-Adressen",
+      "Sicherheitsüberwachung",
+      "60 Minuten Änderungen pro Monat"
+    ],
+    "texte": {
+      "it": {
+        "name": "Business",
+        "sub": "Per convincere e vendere",
+        "ideal": "Ideale per aziende, studi, ristoranti e hotel che devono distinguersi dalla concorrenza.",
+        "features": [
+          "Tutto di Starter, più:",
+          "Fino a 10 pagine",
+          "Design premium personalizzato",
+          "Ottimizzazione logo o nuovo logo",
+          "SEO avanzata e profilo Google Business",
+          "Più moduli di richiesta e pulsante WhatsApp",
+          "Galleria lavori e referenze",
+          "Fino a 5 indirizzi e-mail",
+          "Monitoraggio sicurezza",
+          "60 minuti di modifiche al mese"
+        ]
+      },
+      "de": {
+        "name": "Business",
+        "sub": "Überzeugen und verkaufen",
+        "ideal": "Ideal für Unternehmen, Praxen, Restaurants und Hotels, die sich vom Wettbewerb abheben müssen.",
+        "features": [
+          "Alles aus Starter, plus:",
+          "Bis zu 10 Seiten",
+          "Individuelles Premium-Design",
+          "Logo-Optimierung oder neues Logo",
+          "Erweiterte SEO und Google-Unternehmensprofil",
+          "Mehrere Anfrageformulare und WhatsApp-Button",
+          "Bildergalerie und Referenzen",
+          "Bis zu 5 E-Mail-Adressen",
+          "Sicherheitsüberwachung",
+          "60 Minuten Änderungen pro Monat"
+        ]
+      },
+      "en": {
+        "name": "Business",
+        "sub": "Convince and sell",
+        "ideal": "Ideal for companies, practices, restaurants and hotels that need to stand apart from competitors.",
+        "features": [
+          "Everything in Starter, plus:",
+          "Up to 10 pages",
+          "Custom premium design",
+          "Logo refinement or a new logo",
+          "Advanced SEO and Google Business Profile",
+          "Multiple enquiry forms and WhatsApp button",
+          "Gallery and references",
+          "Up to 5 email addresses",
+          "Security monitoring",
+          "60 minutes of changes per month"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#business"
+  },
+  {
+    "slug": "premium",
+    "price_cents": 149900,
+    "monthly_cents": 9900,
+    "sort": 3,
+    "popular": 0,
+    "name": "Premium",
+    "description": "Der komplette digitale Auftritt",
+    "sub": "Der komplette digitale Auftritt",
+    "ideal": "Ideal für alle, die dauerhaft sichtbar bleiben und ihrer Website nicht mehr hinterherlaufen wollen.",
+    "features": [
+      "Alles aus Business, plus:",
+      "Umfangreiche Website bis 20 Seiten",
+      "Individuelles Logo und Markenauftritt",
+      "Professionelle Farb- und Schriftgestaltung",
+      "Blog- oder Newsbereich",
+      "Terminbuchung oder Anfragesystem",
+      "Newsletter und Social-Media-Anbindung",
+      "Bis zu 10 E-Mail-Adressen",
+      "Sicherheits- und Performance-Checks",
+      "2 Stunden Änderungen pro Monat",
+      "Bevorzugte Betreuung"
+    ],
+    "texte": {
+      "it": {
+        "name": "Premium",
+        "sub": "Presenza digitale completa",
+        "ideal": "Ideale per chi vuole una presenza duratura e smettere di rincorrere il proprio sito.",
+        "features": [
+          "Tutto di Business, più:",
+          "Sito ampio fino a 20 pagine",
+          "Logo su misura e immagine coordinata",
+          "Colori e caratteri professionali",
+          "Blog o area news",
+          "Prenotazione appuntamenti o richieste",
+          "Newsletter e integrazione social",
+          "Fino a 10 indirizzi e-mail",
+          "Controlli di sicurezza e prestazioni",
+          "2 ore di modifiche al mese",
+          "Assistenza prioritaria"
+        ]
+      },
+      "de": {
+        "name": "Premium",
+        "sub": "Der komplette digitale Auftritt",
+        "ideal": "Ideal für alle, die dauerhaft sichtbar bleiben und ihrer Website nicht mehr hinterherlaufen wollen.",
+        "features": [
+          "Alles aus Business, plus:",
+          "Umfangreiche Website bis 20 Seiten",
+          "Individuelles Logo und Markenauftritt",
+          "Professionelle Farb- und Schriftgestaltung",
+          "Blog- oder Newsbereich",
+          "Terminbuchung oder Anfragesystem",
+          "Newsletter und Social-Media-Anbindung",
+          "Bis zu 10 E-Mail-Adressen",
+          "Sicherheits- und Performance-Checks",
+          "2 Stunden Änderungen pro Monat",
+          "Bevorzugte Betreuung"
+        ]
+      },
+      "en": {
+        "name": "Premium",
+        "sub": "The complete digital presence",
+        "ideal": "Ideal for anyone who wants to stay visible long-term and stop chasing their own website.",
+        "features": [
+          "Everything in Business, plus:",
+          "Extensive site with up to 20 pages",
+          "Custom logo and full brand look",
+          "Professional colour and type design",
+          "Blog or news area",
+          "Appointment booking or enquiry system",
+          "Newsletter and social integration",
+          "Up to 10 email addresses",
+          "Security and performance checks",
+          "2 hours of changes per month",
+          "Priority support"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#premium"
+  }
+]

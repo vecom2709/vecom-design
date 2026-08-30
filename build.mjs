@@ -96,7 +96,9 @@ function build(lang) {
 
   // 2. Kopfdaten
   const url = `${BASE}/${LANGS[lang]}`;
-  h = h.replace(/<html lang="[^"]*"/, `<html lang="${lang}" data-lang-fixed="${lang}"`);
+  // Vorhandene data-lang-fixed mit einsammeln — sonst haengt sich bei jedem
+  // Lauf ein weiteres an, weil index.html Quelle und Ziel zugleich ist.
+  h = h.replace(/<html lang="[^"]*"(?:\s+data-lang-fixed="[^"]*")*/, `<html lang="${lang}" data-lang-fixed="${lang}"`);
   h = h.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(get(lang, 'meta.title'))}</title>`);
   h = h.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escAttr(get(lang, 'meta.desc'))}">`);
   h = h.replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${url}">`);

@@ -94,9 +94,9 @@
   /* ---------- 6. Preise: einmalig oder Gesamtkosten über 12 Monate -------- */
   const toggle = document.querySelector('[data-price-toggle]');
   if (toggle) {
-    const plans = [...document.querySelectorAll('.plan')];
-    // Zahlen einmal auslesen, damit später nur noch gerechnet wird.
-    const data = plans.map((plan) => {
+    // Zahlen auslesen, damit später nur noch gerechnet wird. Als Funktion,
+    // weil die Karten aus der Verwaltung nachgeladen werden können.
+    const sammeln = () => [...document.querySelectorAll('.plan')].map((plan) => {
       const once = plan.querySelector('.plan__price > span');
       const month = plan.querySelector('.plan__month');
       const parse = (el) => {
@@ -105,6 +105,7 @@
       };
       return { once, month, o: parse(once), m: parse(month), oText: once ? once.textContent : '' };
     });
+    let data = sammeln();
     const fmt = (n) => n.toLocaleString(document.documentElement.lang || 'de-DE');
 
     const render = (mode) => {
@@ -128,11 +129,24 @@
       if (b) render(b.dataset.mode);
     });
     // Beschriftungen für beide Zustände merken, bevor sie überschrieben werden.
-    document.querySelectorAll('.plan__price small').forEach((s) => {
-      s.dataset.once = s.textContent;
-      s.dataset.year = toggle.dataset.yearNote || s.textContent;
-    });
+    const beschriftungenMerken = () => {
+      document.querySelectorAll('.plan__price small').forEach((s) => {
+        if (s.dataset.once) return;
+        s.dataset.once = s.textContent;
+        s.dataset.year = toggle.dataset.yearNote || s.textContent;
+      });
+    };
+    beschriftungenMerken();
     render('once');
+
+    // Kommen die Karten aus der Verwaltung, sind es andere Elemente —
+    // dann müssen Zahlen und Beschriftungen neu eingelesen werden.
+    document.addEventListener('vecom:pakete', () => {
+      data = sammeln();
+      beschriftungenMerken();
+      const aktiv = toggle.querySelector('button[aria-pressed="true"]');
+      render(aktiv ? aktiv.dataset.mode : 'once');
+    });
   }
 
   /* ---------- 8b. Sprungmarken sauber anfahren ---------------------------- */
