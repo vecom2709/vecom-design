@@ -69,6 +69,11 @@ jobs:
           DIR: ${{ vars.FTP_SERVER_DIR }}
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          # cockpit/.htaccess liegt nicht mehr im Repository (siehe
+          # cockpit/LIESMICH.md). Der Ausschluss unten ist nur die zweite
+          # Sicherung — verlassen wird sich darauf nicht: am 30.08.2026 wurde
+          # genau diese Zeile von einem parallelen Commit entfernt, und der
+          # naechste Deploy hat den Passwortschutz still ueberschrieben.
           lftp -c "
             set ssl:verify-certificate no;
             set ftp:ssl-force true;
@@ -85,7 +90,19 @@ jobs:
               --exclude '^node_modules/' \
               --exclude '^caps/' \
               --exclude '^tools/' \
+              --exclude '^cockpit/\.htaccess$' \
               --exclude '^build\.mjs$' \
               --exclude '^README\.md$' \
               ./ $DIR;
             bye"
+
+      - name: Cockpit-Schutz nachsehen
+        if: steps.check.outputs.ok == 'true'
+        run: |
+          sleep 5
+          C=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 https://vecom-design.it/cockpit/ || echo 000)
+          if [ "$C" = "401" ]; then
+            echo "Cockpit ist passwortgeschuetzt (401)."
+          else
+            echo "::warning::Cockpit antwortet $C statt 401 — der Passwortschutz ist NICHT aktiv. Im KAS unter Verzeichnisschutz fuer /cockpit/ einschalten."
+          fi
