@@ -3,4 +3,7 @@
 Header set X-Robots-Tag "noindex, nofollow"
 
 # Passwortschutz: im KAS unter „Verzeichnisschutz" für /cockpit/ einschalten.
-# All-Inkl trägt die nötigen Zeilen dann selbst hier ein.
+# All-Inkl trägt die nötigen Zeilen dann selbst hier ein — auf dem Server,
+# nicht hier. Deshalb ist diese Datei vom FTP-Deploy ausgenommen
+# (.github/workflows/ftp-deploy.yml). Auf dem Server gilt die Fassung
+# von All-Inkl, hier steht nur die Notiz.
