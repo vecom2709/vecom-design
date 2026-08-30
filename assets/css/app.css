@@ -1622,3 +1622,12 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
    Copyright daneben, nur die Zahl im Markenton. */
 .zaehler { font-size: var(--t-xs); color: var(--c-text-faint); font-variant-numeric: tabular-nums; }
 .zaehler b { color: var(--c-cyan); font-weight: 600; }
+
+/* Zugang zum Cockpit — bewusst klein und unbeschriftet. Er soll für dich
+   erreichbar sein, ohne Besuchern ins Auge zu springen. */
+.admin {
+  display: inline-grid; place-items: center; width: 30px; height: 30px;
+  border-radius: 9px; color: var(--c-text-faint); opacity: .5;
+  transition: opacity var(--d-ui) linear, color var(--d-ui) linear, background-color var(--d-ui) linear;
+}
+.admin:hover { opacity: 1; color: var(--c-cyan); background: rgba(31, 232, 255, .08); }
