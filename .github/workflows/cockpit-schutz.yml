@@ -1,0 +1,113 @@
+# Schaltet den Passwortschutz fuer /cockpit/ ein — ohne KAS, ohne Browser.
+#
+# EINMALIG EINZURICHTEN (im Browser, dauert eine Minute):
+#   GitHub → Repository → Settings → Secrets and variables → Actions
+#     → "New repository secret"
+#        Name:  COCKPIT_PASSWORD
+#        Wert:  das gewuenschte Passwort fuer das Cockpit
+#   Das Passwort gehoert ausschliesslich dorthin — nie in eine Datei,
+#   nie in einen Commit, nie in einen Chat.
+#
+# Danach unter "Actions" von Hand starten (Run workflow).
+
+name: Cockpit schuetzen
+
+on:
+  workflow_dispatch:
+    inputs:
+      benutzer:
+        description: "Benutzername fuer den Zugang"
+        required: false
+        default: "uwe"
+
+jobs:
+  schuetzen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Angaben pruefen
+        env:
+          PW: ${{ secrets.COCKPIT_PASSWORD }}
+          FTPPW: ${{ secrets.FTP_PASSWORD }}
+          DIR: ${{ vars.FTP_SERVER_DIR }}
+        run: |
+          fehlt=0
+          if [ -z "$PW" ];    then echo "::error::Secret COCKPIT_PASSWORD fehlt — siehe Kopf dieser Datei."; fehlt=1; fi
+          if [ -z "$FTPPW" ]; then echo "::error::Secret FTP_PASSWORD fehlt."; fehlt=1; fi
+          if [ -z "$DIR" ];   then echo "::error::Variable FTP_SERVER_DIR fehlt."; fehlt=1; fi
+          if [ "$fehlt" = "1" ]; then exit 1; fi
+          echo "Alle Angaben vorhanden."
+
+      - name: Werkzeuge holen
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq apache2-utils lftp
+
+      # Der Pfad fuer AuthUserFile muss absolut sein und ist von aussen nicht zu
+      # erraten. Deshalb legen wir kurz eine winzige Datei ab, die ihn nennt,
+      # lesen sie einmal und loeschen sie im naechsten Schritt wieder.
+      - name: Absoluten Serverpfad ermitteln
+        id: pfad
+        env:
+          FTPPW: ${{ secrets.FTP_PASSWORD }}
+          DIR: ${{ vars.FTP_SERVER_DIR }}
+        run: |
+          mkdir -p out
+          printf '%s' '<?php echo __DIR__;' > out/pfad.php
+          lftp -c "
+            set ssl:verify-certificate no; set ftp:ssl-force true;
+            set ftp:ssl-protect-data true; set ftp:passive-mode true;
+            set net:timeout 20; set net:max-retries 3;
+            open -u 'f018ae3f,$FTPPW' w021fb9a.kasserver.com;
+            cd '$DIR'cockpit;
+            put out/pfad.php -o pfad.php;
+            bye"
+          sleep 3
+          P=$(curl -sS --max-time 25 "https://vecom-design.it/cockpit/pfad.php")
+          case "$P" in
+            /*cockpit) echo "Serverpfad gefunden." ;;
+            *) echo "::error::Unerwartete Antwort beim Pfad-Test. Abbruch, es wurde nichts geaendert." ; exit 1 ;;
+          esac
+          echo "pfad=$P" >> "$GITHUB_OUTPUT"
+
+      - name: Schutz einrichten und hochladen
+        env:
+          PW: ${{ secrets.COCKPIT_PASSWORD }}
+          FTPPW: ${{ secrets.FTP_PASSWORD }}
+          DIR: ${{ vars.FTP_SERVER_DIR }}
+          BENUTZER: ${{ inputs.benutzer }}
+          PFAD: ${{ steps.pfad.outputs.pfad }}
+        run: |
+          htpasswd -nbm "$BENUTZER" "$PW" > out/.htpasswd
+          {
+            echo '# Das Cockpit ist nicht fuer Besucher bestimmt.'
+            echo '# Erzeugt vom Ablauf "Cockpit schuetzen" — liegt nur auf dem Server,'
+            echo '# der FTP-Deploy laesst diese Datei ausdruecklich in Ruhe.'
+            echo 'Header set X-Robots-Tag "noindex, nofollow"'
+            echo ''
+            echo 'AuthType Basic'
+            echo 'AuthName "Vecom Design Cockpit"'
+            echo "AuthUserFile \"$PFAD/.htpasswd\""
+            echo 'Require valid-user'
+            echo ''
+            echo '<Files ".htpasswd">'
+            echo '  Require all denied'
+            echo '</Files>'
+          } > out/.htaccess
+          lftp -c "
+            set ssl:verify-certificate no; set ftp:ssl-force true;
+            set ftp:ssl-protect-data true; set ftp:passive-mode true;
+            set net:timeout 20; set net:max-retries 3;
+            open -u 'f018ae3f,$FTPPW' w021fb9a.kasserver.com;
+            cd '$DIR'cockpit;
+            put out/.htpasswd -o .htpasswd;
+            put out/.htaccess -o .htaccess;
+            rm -f pfad.php;
+            bye"
+
+      - name: Gegenprobe
+        run: |
+          sleep 5
+          C=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 https://vecom-design.it/cockpit/)
+          S=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 https://vecom-design.it/)
+          echo "cockpit: $C   startseite: $S"
+          if [ "$C" != "401" ]; then echo "::error::/cockpit/ antwortet $C statt 401 — Schutz greift nicht."; exit 1; fi
+          if [ "$S" != "200" ]; then echo "::error::Startseite antwortet $S — bitte pruefen."; exit 1; fi
+          echo "Cockpit ist geschuetzt, Startseite unberuehrt."
