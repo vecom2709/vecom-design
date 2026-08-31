@@ -25,6 +25,7 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
 }
 require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
 require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+require_once __DIR__ . '/app/src/Onboarding.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecombuchung');
@@ -116,6 +117,8 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email' => mb_strtolower($eingabe['email']),
                 'company' => mb_substr($eingabe['firma'], 0, 120) ?: null,
             ]);
+            // In welcher Sprache er gebucht hat, in der schreiben wir ihm auch.
+            Onboarding::spracheMerken($kundeId, $sprache);
             $bestellId = Events::bestellungAnlegen($kundeId, (int) $paket['id'],
                 'Direkt auf der Website gebucht (' . strtoupper($sprache) . ')');
 
@@ -160,6 +163,12 @@ $anz   = (int) round($preis * 50 / 100);
 <style>
   body{display:flex;align-items:center;justify-content:center;padding:24px}
   .karte{width:100%;max-width:480px}
+  /* Eigene Wortmarke: die aus admin.css verschwindet unter 900 Pixeln,
+     und genau dort — auf dem Handy — wird am meisten gebucht. */
+  .wortmarke{display:flex;justify-content:center;align-items:center;gap:2px;
+    font-weight:700;letter-spacing:.02em;font-size:18px;margin-bottom:14px}
+  .wortmarke b{background:linear-gradient(135deg,var(--blau),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
   .zeile{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
   .zeile:first-of-type{border-top:0}
   .zeile b{font-variant-numeric:tabular-nums}
@@ -168,7 +177,7 @@ $anz   = (int) round($preis * 50 / 100);
 </head>
 <body>
 <div class="karte">
-  <div class="marke" style="justify-content:center;font-size:18px;margin-bottom:14px"><b>VECOM</b>&nbsp;DESIGN</div>
+  <div class="wortmarke"><b>VECOM</b>&nbsp;DESIGN</div>
 
   <?php if (!$paket || !$stripeOffen): ?>
     <div class="block">

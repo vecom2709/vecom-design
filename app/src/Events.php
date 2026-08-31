@@ -144,10 +144,10 @@ final class Events
      */
     public static function zahlungBestaetigen(int $zahlungId, ?string $referenz = null, string $anbieter = 'manuell'): void
     {
-        Db::transaktion(static function () use ($zahlungId, $referenz, $anbieter) {
+        $nachlauf = Db::transaktion(static function () use ($zahlungId, $referenz, $anbieter) {
             $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zahlungId]);
             if (!$z) { throw new RuntimeException('Zahlung nicht gefunden.'); }
-            if ($z['status'] === 'bezahlt') { return; }   // schon verarbeitet, nichts doppelt tun
+            if ($z['status'] === 'bezahlt') { return null; }   // schon verarbeitet, nichts doppelt tun
 
             Db::update('payments', $zahlungId, [
                 'status'       => 'bezahlt',
@@ -183,7 +183,23 @@ final class Events
                 $b['order_no'] . ' — ' . Fmt::geld((int) $z['amount_cents'], $z['currency'])
                     . ' · offen: ' . Fmt::geld(self::offenerBetrag((int) $z['order_id'])),
                 '/bestellungen/' . (int) $z['order_id']);
+
+            return ['projekt' => $projektId, 'art' => $art];
         });
+
+        // E-Mails erst nach dem Festschreiben. Ein langsamer oder toter
+        // Mailserver darf eine bestaetigte Zahlung nicht zurueckrollen — und
+        // eine Zahlung ohne Bestaetigungsmail ist immer noch eine Zahlung.
+        if (is_array($nachlauf) && $nachlauf['projekt'] !== null
+            && in_array($nachlauf['art'], ['anzahlung', 'gesamt'], true)) {
+            try {
+                require_once __DIR__ . '/Onboarding.php';
+                Onboarding::einladen((int) $nachlauf['projekt']);
+            } catch (Throwable $e) {
+                self::melden('mail_fehler', 'Fragebogen konnte nicht verschickt werden', 'schlecht',
+                    $e->getMessage(), '/projekte/' . (int) $nachlauf['projekt']);
+            }
+        }
     }
 
     /** Was bei einer Bestellung noch offen ist — in Cent. */

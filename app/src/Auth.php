@@ -24,7 +24,11 @@ final class Auth
     {
         $u = Db::one('SELECT * FROM users WHERE email = ? AND active = 1', [mb_strtolower(trim($email))]);
         // Auch bei unbekannter Adresse rechnen, damit die Antwortzeit nichts verraet.
-        $hash = $u['password_hash'] ?? '$2y$12$ungueltigungueltigungueltigungueltigungueltigungueltigun';
+        // Der Zugriff geht ueber $u === null, sonst schreibt PHP bei jeder
+        // unbekannten Adresse eine Warnung ins Fehlerprotokoll.
+        $hash = $u !== null
+            ? (string) $u['password_hash']
+            : '$2y$12$ungueltigungueltigungueltigungueltigungueltigungueltigun';
         if (!password_verify($passwort, $hash) || $u === null) {
             return false;
         }

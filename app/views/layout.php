@@ -29,6 +29,7 @@ $menue = [
   ['einstellungen', 'Einstellungen', 'einstellungen'],
 ];
 $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
+$gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
 ?><!doctype html>
 <html lang="de">
 <head>
@@ -58,6 +59,7 @@ $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
   </nav>
   <main class="inhalt">
     <?php if ($fehler): ?><div class="hinweis schlecht"><?= Fmt::h($fehler) ?></div><?php endif; ?>
+    <?php if ($gut): ?><div class="hinweis gut"><?= Fmt::h($gut) ?></div><?php endif; ?>
     <?php
     /* Neue Tabellen oder Spalten aus einer Aktualisierung. Ohne SSH liesse sich
        das sonst nicht einspielen. Nur der angemeldete Admin sieht den Knopf,

@@ -30,6 +30,16 @@ function ansicht(string $datei, array $daten = []): void {
     require __DIR__ . '/views/layout.php';
 }
 
+/**
+ * Eine Abfrage, die auch dann noch eine Seite liefert, wenn die Tabelle
+ * dahinter erst mit der naechsten Aktualisierung entsteht. Zwischen Deploy
+ * und Klick auf "Jetzt aktualisieren" liegen ein paar Minuten — in denen
+ * soll keine Ansicht auf die Nase fallen.
+ */
+function sicher(callable $fn, mixed $ersatz = []): mixed {
+    try { return $fn(); } catch (Throwable $e) { return $ersatz; }
+}
+
 /** Ein Textfeld mit einer Angabe je Zeile in eine Liste verwandeln. */
 function zeilen(string $text): array {
     return array_values(array_filter(array_map('trim', preg_split('~\R~', $text) ?: [])));
@@ -262,6 +272,34 @@ if ($post) {
                     : 'Datenbank war bereits aktuell');
                 weiter($_POST['zurueck'] ?? '');
 
+            case 'fragebogen_einladen':
+                require_once __DIR__ . '/src/Onboarding.php';
+                $pid = (int) $_POST['id'];
+                if (!Onboarding::einladen($pid, true)) {
+                    throw new RuntimeException('Die Einladung ging nicht raus. Steht der Brevo-Schlüssel? Ist der Fragebogen schon abgeschlossen?');
+                }
+                $_SESSION['gut'] = 'Fragebogen verschickt.';
+                weiter('projekte/' . $pid);
+
+            case 'fragebogen_link':
+                // Nur den Zugang erzeugen — zum Weitergeben ueber WhatsApp
+                // oder am Telefon, ohne den Umweg ueber eine E-Mail.
+                require_once __DIR__ . '/src/Onboarding.php';
+                $pid = (int) $_POST['id'];
+                $fb = Db::one('SELECT id FROM questionnaires WHERE project_id = ?', [$pid]);
+                if (!$fb) { throw new RuntimeException('Zu diesem Projekt gibt es keinen Fragebogen.'); }
+                Onboarding::token((int) $fb['id']);
+                $_SESSION['gut'] = 'Der Zugangslink steht jetzt unten und lässt sich kopieren.';
+                weiter('projekte/' . $pid);
+
+            case 'fragebogen_erinnern':
+                require_once __DIR__ . '/src/Onboarding.php';
+                $anzahl = Onboarding::erinnerungen((int) ($_POST['tage'] ?? Onboarding::ERINNERUNG_NACH_TAGEN));
+                $_SESSION['gut'] = $anzahl === 0
+                    ? 'Es war keine Erinnerung fällig.'
+                    : "Erinnerungen verschickt: $anzahl.";
+                weiter('onboarding');
+
             case 'meldungen_gelesen':
                 Db::run('UPDATE notifications SET read_at = NOW() WHERE read_at IS NULL');
                 weiter('benachrichtigungen');
@@ -360,6 +398,7 @@ switch ($route) {
         break;
 
     case 'projekte':
+        require_once __DIR__ . '/src/Onboarding.php';
         if ($id !== null) {
             $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, o.order_no
                           FROM projects p JOIN customers c ON c.id = p.customer_id
@@ -369,6 +408,7 @@ switch ($route) {
                 'p' => $p,
                 'website' => Db::one('SELECT * FROM websites WHERE project_id = ?', [$id]),
                 'fragebogen' => Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [$id]),
+                'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
                 'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
                 'aktivitaeten' => Db::all('SELECT * FROM activities WHERE project_id = ? ORDER BY id DESC', [$id]),
             ]);
@@ -425,7 +465,21 @@ switch ($route) {
         ]);
         break;
 
-    case 'nachrichten': case 'onboarding': case 'dateien':
+    case 'onboarding':
+        require_once __DIR__ . '/src/Onboarding.php';
+        ansicht('onboarding', [
+            'liste' => sicher(static fn() => Db::all(
+                "SELECT q.*, c.name AS kunde, c.company AS firma, c.email AS kunde_email,
+                        p.name AS projekt, p.status AS projekt_status
+                 FROM questionnaires q
+                 JOIN customers c ON c.id = q.customer_id
+                 JOIN projects  p ON p.id = q.project_id
+                 ORDER BY FIELD(q.status,'offen') DESC, q.id DESC")),
+            'mails' => sicher(static fn() => Db::all('SELECT * FROM mails ORDER BY id DESC LIMIT 30')),
+        ]);
+        break;
+
+    case 'nachrichten': case 'dateien':
     case 'rechnungen': case 'statistiken': case 'monitoring': case 'einstellungen':
         ansicht('spaeter', ['bereich' => $route]);
         break;
