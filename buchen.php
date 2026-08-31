@@ -71,12 +71,23 @@ $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 $zurueck = $basis . ($sprache === 'it' ? '/' : "/$sprache/") . '#plans';
 
 /* ---------- Darf hier ueberhaupt gebucht werden? ---------- */
+/* Alles hier in einen Rettungsring: Fehlt eine Aktualisierung der Datenbank
+   oder hakt etwas anderes, soll die Seite eine Meldung zeigen — niemals eine
+   leere Seite. Das ist eine oeffentliche Adresse. */
 $stripe = new StripeAnbieter();
-$testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
-$stripeOffen  = $stripe->bereit() && $stripe->webhookBereit() && ($stripe->modus() === 'live' || $testSichtbar);
-
-$slug  = preg_replace('~[^a-z0-9\-]~i', '', (string) ($_REQUEST['paket'] ?? ''));
-$paket = $slug !== '' ? Db::one('SELECT * FROM packages WHERE slug = ? AND active = 1 AND oeffentlich = 1 AND direktkauf = 1', [$slug]) : null;
+$stripeOffen = false;
+$paket = null;
+$slug = preg_replace('~[^a-z0-9\-]~i', '', (string) ($_REQUEST['paket'] ?? ''));
+try {
+    $testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
+    $stripeOffen  = $stripe->bereit() && $stripe->webhookBereit() && ($stripe->modus() === 'live' || $testSichtbar);
+    if ($slug !== '') {
+        $paket = Db::one('SELECT * FROM packages WHERE slug = ? AND active = 1 AND oeffentlich = 1 AND direktkauf = 1', [$slug]);
+    }
+} catch (Throwable $e) {
+    $stripeOffen = false;
+    $paket = null;
+}
 
 $fehler = [];
 $eingabe = ['name' => '', 'email' => '', 'firma' => ''];
