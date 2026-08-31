@@ -101,6 +101,8 @@ final class Texte
         'vonUns'      => ['it' => 'da noi', 'de' => 'von uns', 'en' => 'from us'],
         'vonDir'      => ['it' => 'da te', 'de' => 'von dir', 'en' => 'from you'],
         'leer'        => ['it' => 'Scrivi qualcosa prima di inviare.', 'de' => 'Bitte schreib etwas, bevor du absendest.', 'en' => 'Please write something first.'],
+        'belege'      => ['it' => 'Ricevute', 'de' => 'Belege', 'en' => 'Receipts'],
+        'keineBelege' => ['it' => 'Ancora nessuna ricevuta.', 'de' => 'Noch keine Belege.', 'en' => 'No receipts yet.'],
     ];
 
     /** Die Stufen des Projekts, wie der Kunde sie sieht. */
@@ -137,6 +139,22 @@ final class Texte
                 "Hallo {name},\n\nfür dein Projekt fehlt noch der Fragebogen. Ohne die Angaben können wir nicht richtig loslegen.\n\nHier ist er — zehn Minuten reichen:\n\n{link}\n\nWenn etwas unklar ist, antworte einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
             'en' => ['A quick reminder about your questionnaire',
                 "Hello {name},\n\nthe questionnaire for your project is still open. Without it we can’t really start.\n\nHere it is — ten minutes is enough:\n\n{link}\n\nIf anything is unclear, just reply to this email.\n\nUwe Vetter · Vecom Design"],
+        ],
+        'vorschau' => [
+            'it' => ['La tua anteprima è pronta — {paket}',
+                "Ciao {name},\n\nl’anteprima del tuo sito è pronta. Guardala con calma:\n\n{link}\n\nDicci cosa ne pensi — quello che non va lo sistemiamo. Puoi rispondere a questa e-mail o scrivere direttamente dalla pagina.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Deine Vorschau steht bereit — {paket}',
+                "Hallo {name},\n\ndie Vorschau deiner Website steht. Schau sie dir in Ruhe an:\n\n{link}\n\nSag uns, was du denkst — was nicht passt, ändern wir. Du kannst auf diese E-Mail antworten oder direkt auf der Seite schreiben.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your preview is ready — {paket}',
+                "Hello {name},\n\nthe preview of your site is ready. Take your time with it:\n\n{link}\n\nTell us what you think — whatever doesn’t fit, we’ll change. Reply to this email or write from the page itself.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        'online' => [
+            'it' => ['Il tuo sito è online — {paket}',
+                "Ciao {name},\n\nil sito è online:\n{link}\n\nGrazie per la fiducia. Se serve qualcosa, siamo qui.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Deine Website ist online — {paket}',
+                "Hallo {name},\n\ndie Website ist online:\n{link}\n\nDanke für dein Vertrauen. Wenn etwas ist, melde dich einfach.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your site is live — {paket}',
+                "Hello {name},\n\nthe site is live:\n{link}\n\nThank you for your trust. If anything comes up, just get in touch.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'nachricht' => [
             'it' => ['Un messaggio sul tuo progetto',

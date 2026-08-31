@@ -319,6 +319,53 @@ if ($post) {
                 $_SESSION['gut'] = 'Fragebogen verschickt.';
                 weiter('projekte/' . $pid);
 
+            case 'rechnung_erzeugen':
+                require_once __DIR__ . '/src/Rechnung.php';
+                $zid = (int) $_POST['id'];
+                $neu = Rechnung::ausZahlung($zid);
+                $_SESSION['gut'] = $neu !== null
+                    ? Rechnung::bezeichnung() . ' erstellt.'
+                    : 'Dazu gibt es schon einen Beleg — oder die Zahlung ist nicht als bezahlt gebucht.';
+                weiter($_POST['zurueck'] ?? 'rechnungen');
+
+            case 'rechnung_schicken':
+                require_once __DIR__ . '/src/Rechnung.php';
+                require_once __DIR__ . '/src/Mail.php';
+                $r = Db::one('SELECT * FROM invoices WHERE id = ?', [(int) $_POST['id']]);
+                if (!$r) { throw new RuntimeException('Beleg nicht gefunden.'); }
+                $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $r['customer_id']]);
+                $ziel = rtrim((string) Config::get('website', ''), '/');
+                $wort = Rechnung::bezeichnung();
+                $ok = Mail::senden('rechnung', (string) $k['email'],
+                    $wort . ' ' . $r['invoice_no'],
+                    "Hallo " . $k['name'] . ",\n\nanbei der " . $wort . ' ' . $r['invoice_no']
+                    . ' über ' . Fmt::geld((int) $r['total_cents'], (string) $r['currency']) . ".\n\n"
+                    . "Zum Herunterladen:\n" . $ziel . Config::basis() . '/rechnungen/' . (int) $r['id'] . "/pdf\n\n"
+                    . "Herzliche Grüße\nUwe Vetter · Vecom Design\n",
+                    ['customer_id' => (int) $r['customer_id'],
+                     'order_id' => $r['order_id'] !== null ? (int) $r['order_id'] : null,
+                     'antwortAn' => Mail::eigeneAdresse()]);
+                if ($ok) { Db::update('invoices', (int) $r['id'], ['sent_at' => date('Y-m-d H:i:s')]); }
+                $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
+                weiter('rechnungen/' . (int) $r['id']);
+
+            case 'firma_speichern':
+                require_once __DIR__ . '/src/Firma.php';
+                Firma::speichern($_POST);
+                Events::protokoll('einstellungen', 'Firmendaten gespeichert');
+                $_SESSION['gut'] = 'Firmendaten gespeichert.';
+                weiter('einstellungen');
+
+            case 'restzahlung_anfordern':
+                require_once __DIR__ . '/src/Nachricht.php';
+                $bid = (int) $_POST['id'];
+                $pr = Db::one('SELECT id FROM projects WHERE order_id = ?', [$bid]);
+                if (!$pr) { throw new RuntimeException('Zu dieser Bestellung gibt es kein Projekt.'); }
+                $_SESSION['gut'] = Nachricht::restzahlungAnfordern((int) $pr['id'])
+                    ? 'Die Restzahlung ist angefordert — der Kunde hat die E-Mail mit dem Zahlungslink.'
+                    : 'Nichts zu tun: Entweder ist nichts mehr offen, oder die Anforderung ging schon raus.';
+                weiter('bestellungen/' . $bid);
+
             case 'nachricht_senden':
                 require_once __DIR__ . '/src/Nachricht.php';
                 $pid = (int) $_POST['id'];
@@ -659,9 +706,11 @@ switch ($route) {
 
     case 'einstellungen':
         require_once __DIR__ . '/src/Beispieldaten.php';
+        require_once __DIR__ . '/src/Firma.php';
         ansicht('einstellungen', [
             'beispiele'  => sicher(static fn() => Beispieldaten::anzahl(), 0),
             'echteDaten' => sicher(static fn() => Beispieldaten::echteDatenDa(), true),
+            'firma'      => sicher(static fn() => Firma::alle(), []),
         ]);
         break;
 
@@ -688,7 +737,46 @@ switch ($route) {
         ]);
         break;
 
-    case 'rechnungen': case 'statistiken':
+    case 'rechnungen':
+        require_once __DIR__ . '/src/Rechnung.php';
+        if ($id !== null) {
+            $r = sicher(static fn() => Db::one(
+                'SELECT r.*, c.name AS kunde, c.company AS firma, c.email AS kunde_email, o.order_no
+                 FROM invoices r JOIN customers c ON c.id = r.customer_id
+                 LEFT JOIN orders o ON o.id = r.order_id WHERE r.id = ?', [$id]), null);
+            if (!$r) { http_response_code(404); exit('Beleg nicht gefunden.'); }
+            if (($teile[2] ?? '') === 'pdf') {
+                $daten = Rechnung::pdf($r);
+                header('Content-Type: application/pdf');
+                header('Content-Length: ' . strlen($daten));
+                header('Content-Disposition: attachment; filename="' . Rechnung::dateiname($r) . '"');
+                header('X-Content-Type-Options: nosniff');
+                echo $daten;
+                exit;
+            }
+            ansicht('rechnung', ['r' => $r, 'posten' => Rechnung::posten($r)]);
+            break;
+        }
+        ansicht('rechnungen', [
+            'liste' => sicher(static fn() => Db::all(
+                'SELECT r.*, c.name AS kunde, c.company AS firma, o.order_no
+                 FROM invoices r JOIN customers c ON c.id = r.customer_id
+                 LEFT JOIN orders o ON o.id = r.order_id
+                 ORDER BY r.id DESC LIMIT 300')),
+            'summe' => (int) sicher(static fn() => Db::wert(
+                'SELECT COALESCE(SUM(total_cents),0) FROM invoices WHERE YEAR(issued_at) = ?', [date('Y')]), 0),
+            'ohneBeleg' => sicher(static fn() => Db::all(
+                "SELECT p.*, o.order_no, c.name AS kunde, c.company AS firma
+                 FROM payments p
+                 JOIN orders o ON o.id = p.order_id
+                 JOIN customers c ON c.id = o.customer_id
+                 LEFT JOIN invoices r ON r.payment_id = p.id
+                 WHERE p.status = 'bezahlt' AND r.id IS NULL ORDER BY p.id DESC")),
+            'istRechnung' => Rechnung::istRechnung(),
+        ]);
+        break;
+
+    case 'statistiken':
         ansicht('spaeter', ['bereich' => $route]);
         break;
 

@@ -109,6 +109,153 @@ final class Nachricht
         return $basis . '/projekt.php?t=' . rawurlencode(Onboarding::token((int) $f['id']));
     }
 
+    /* ---------- Was der Kunde von allein erfaehrt ---------- */
+
+    /**
+     * Sagt dem Kunden Bescheid, wenn sich am Projekt etwas aendert, das ihn
+     * angeht. Wird beim Statuswechsel gerufen — aber nur bei einem, den ein
+     * Mensch ausgeloest hat, nie bei den automatischen Zwischenschritten.
+     *
+     * Jede dieser Nachrichten geht genau einmal raus. Das Protokoll in der
+     * Tabelle mails ist das Gedaechtnis dafuer: Wer den Status zweimal
+     * setzt, schickt nicht zweimal.
+     */
+    public static function beiStatuswechsel(int $projektId, string $neu): void
+    {
+        try {
+            match ($neu) {
+                'vorschau'        => self::vorschauBereit($projektId),
+                'finale_freigabe' => self::restzahlungAnfordern($projektId),
+                'online'          => self::onlineUndRest($projektId),
+                default           => null,
+            };
+        } catch (Throwable $e) {
+            // Eine E-Mail darf einen Statuswechsel nicht rueckgaengig machen.
+            try {
+                Events::melden('mail_fehler', 'Nachricht an den Kunden ging nicht raus', 'schlecht',
+                    $e->getMessage(), '/projekte/' . $projektId);
+            } catch (Throwable $e2) { }
+        }
+    }
+
+    /** Die Vorschau steht — mit Link auf die Kundenseite, wo sie verlinkt ist. */
+    public static function vorschauBereit(int $projektId): bool
+    {
+        $p = self::projektMitKunde($projektId);
+        if (!$p) { return false; }
+        if (Mail::schonGeschickt('vorschau', 'project_id', $projektId)) { return false; }
+
+        [$betreff, $text] = Texte::mail('vorschau', self::sprache($p), [
+            'name'  => (string) $p['kunde'],
+            'paket' => (string) ($p['paket'] ?? ''),
+            'link'  => self::link($projektId) ?? (string) $p['preview_url'],
+        ]);
+        return self::raus('vorschau', $p, $betreff, $text);
+    }
+
+    /** Die Seite ist online — und wenn noch Geld offen ist, steht es dabei. */
+    private static function onlineUndRest(int $projektId): void
+    {
+        $p = self::projektMitKunde($projektId);
+        if (!$p) { return; }
+
+        if (!Mail::schonGeschickt('online', 'project_id', $projektId)) {
+            $w = Db::one('SELECT url FROM websites WHERE project_id = ?', [$projektId]);
+            [$betreff, $text] = Texte::mail('online', self::sprache($p), [
+                'name'  => (string) $p['kunde'],
+                'paket' => (string) ($p['paket'] ?? ''),
+                'link'  => (string) ($w['url'] ?? self::link($projektId) ?? ''),
+            ]);
+            self::raus('online', $p, $betreff, $text);
+        }
+        // Falls die finale Freigabe uebersprungen wurde, jetzt nachholen.
+        self::restzahlungAnfordern($projektId);
+    }
+
+    /**
+     * Fordert die zweite Haelfte an. Bewusst bei der finalen Freigabe und
+     * nicht erst, wenn die Seite online ist: Danach hat man nichts mehr in
+     * der Hand.
+     */
+    public static function restzahlungAnfordern(int $projektId): bool
+    {
+        $p = self::projektMitKunde($projektId);
+        if (!$p || $p['order_id'] === null) { return false; }
+        $bestellId = (int) $p['order_id'];
+
+        $z = Db::one("SELECT * FROM payments WHERE order_id = ? AND art = 'restzahlung'
+                      AND status IN ('ausstehend','fehlgeschlagen') ORDER BY id LIMIT 1", [$bestellId]);
+        if (!$z) { return false; }   // nichts offen
+        if (Mail::schonGeschickt('restzahlung', 'order_id', $bestellId)) { return false; }
+
+        // Wenn Stripe bereit ist, kommt ein Bezahlknopf in die E-Mail. Wenn
+        // nicht, bekommt der Kunde trotzdem Bescheid — dann eben mit dem
+        // Hinweis auf seine Projektseite.
+        $link = self::link($projektId) ?? '';
+        try {
+            require_once __DIR__ . '/Zahlung/Anbieter.php';
+            require_once __DIR__ . '/Zahlung/Stripe.php';
+            $stripe = new StripeAnbieter();
+            if ($stripe->bereit()) {
+                $b = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
+                $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $p['customer_id']]);
+                $link = $stripe->bezahlseite($z, $b, $k);
+                Db::update('payments', (int) $z['id'], [
+                    'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                    'link_url' => $link, 'link_bis' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+                ]);
+            }
+        } catch (Throwable $e) {
+            Events::melden('integration_fehler', 'Zahlungslink für die Restzahlung ging nicht', 'warnung',
+                $e->getMessage() . ' — die E-Mail geht trotzdem raus, mit dem Link auf die Projektseite.',
+                '/bestellungen/' . $bestellId);
+        }
+
+        [$betreff, $text] = Texte::mail('restzahlung', self::sprache($p), [
+            'name'   => (string) $p['kunde'],
+            'paket'  => (string) ($p['paket'] ?? ''),
+            'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+            'link'   => $link,
+        ]);
+        $ok = self::raus('restzahlung', $p, $betreff, $text);
+        if ($ok) {
+            Events::protokoll('restzahlung_angefordert',
+                'Restzahlung angefordert: ' . Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+                (int) $p['customer_id'], $bestellId, $projektId);
+        }
+        return $ok;
+    }
+
+    /** @return array<string,mixed>|null */
+    private static function projektMitKunde(int $projektId): ?array
+    {
+        return Db::one(
+            'SELECT p.*, c.name AS kunde, c.company AS firma, c.email AS kunde_email,
+                    c.sprache AS kunde_sprache, o.package_name AS paket
+             FROM projects p
+             JOIN customers c ON c.id = p.customer_id
+             LEFT JOIN orders o ON o.id = p.order_id
+             WHERE p.id = ?',
+            [$projektId]
+        );
+    }
+
+    private static function sprache(array $p): string
+    {
+        $s = strtolower((string) ($p['kunde_sprache'] ?? 'it'));
+        return in_array($s, ['it', 'de', 'en'], true) ? $s : 'it';
+    }
+
+    private static function raus(string $anlass, array $p, string $betreff, string $text): bool
+    {
+        return Mail::senden($anlass, (string) $p['kunde_email'], $betreff, $text, [
+            'customer_id' => (int) $p['customer_id'],
+            'project_id'  => (int) $p['id'],
+            'order_id'    => $p['order_id'] !== null ? (int) $p['order_id'] : null,
+            'antwortAn'   => Mail::eigeneAdresse(),
+        ]);
+    }
+
     /** Alles vom Kunden auf gelesen setzen. */
     public static function gelesen(int $projektId): int
     {

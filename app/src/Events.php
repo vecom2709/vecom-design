@@ -200,6 +200,14 @@ final class Events
             return ['projekt' => $projektId, 'art' => $art];
         });
 
+        // Zu jeder bezahlten Rate ein Beleg — ebenfalls erst nach dem
+        // Festschreiben, und so, dass ein Fehler dabei die Zahlung nicht
+        // umwirft. Ohne Umsatzsteuernummer ist es ein Zahlungsbeleg.
+        if (is_array($nachlauf)) {
+            require_once __DIR__ . '/Rechnung.php';
+            Rechnung::automatisch($zahlungId);
+        }
+
         // E-Mails erst nach dem Festschreiben. Ein langsamer oder toter
         // Mailserver darf eine bestaetigte Zahlung nicht zurueckrollen — und
         // eine Zahlung ohne Bestaetigungsmail ist immer noch eine Zahlung.
@@ -317,6 +325,14 @@ final class Events
         if ($melden) {
             self::melden('projekt_status', 'Projektstatus geändert', 'info',
                 $p['name'] . ' → ' . Status::PROJEKT[$neu], '/projekte/' . $projektId);
+
+            // Nur bei einem Wechsel, den ein Mensch ausgeloest hat, erfaehrt
+            // auch der Kunde davon. Die automatischen Zwischenschritte
+            // (Zahlung bestaetigt, Fragebogen da) rufen mit $melden = false
+            // und laufen ausserdem in einer Transaktion — dort haette eine
+            // E-Mail nichts zu suchen.
+            require_once __DIR__ . '/Nachricht.php';
+            Nachricht::beiStatuswechsel($projektId, $neu);
         }
     }
 

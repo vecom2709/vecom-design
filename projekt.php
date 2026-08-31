@@ -20,6 +20,7 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
 require_once __DIR__ . '/app/src/Onboarding.php';
 require_once __DIR__ . '/app/src/Nachricht.php';
 require_once __DIR__ . '/app/src/Ablage.php';
+require_once __DIR__ . '/app/src/Rechnung.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecomprojekt');
@@ -51,6 +52,21 @@ if ($f && isset($_GET['datei'])) {
         [(int) $_GET['datei'], (int) $f['projekt_id']]);
     if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
     Ablage::ausliefern($d);
+}
+
+/* ---------- Einen eigenen Beleg herunterladen ---------- */
+if ($f && isset($_GET['beleg'])) {
+    // Ueber die Bestellung geprueft, nicht ueber die Belegnummer: So kann
+    // niemand mit einer geratenen Nummer einen fremden Beleg ziehen.
+    $r = Db::one('SELECT * FROM invoices WHERE id = ? AND customer_id = ? AND project_id = ?',
+        [(int) $_GET['beleg'], (int) $f['customer_id'], (int) $f['projekt_id']]);
+    if (!$r) { http_response_code(404); exit('Nicht gefunden.'); }
+    $daten = Rechnung::pdf($r);
+    header('Content-Type: application/pdf');
+    header('Content-Length: ' . strlen($daten));
+    header('Content-Disposition: attachment; filename="' . Rechnung::dateiname($r) . '"');
+    echo $daten;
+    exit;
 }
 
 /* ---------- Schreiben und Hochladen ---------- */
@@ -98,10 +114,12 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); }
 
 $nachrichten = [];
 $dateien = [];
+$belege = [];
 if ($f) {
     try {
         $nachrichten = Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [(int) $f['projekt_id']]);
         $dateien = Db::all('SELECT * FROM files WHERE project_id = ? ORDER BY id DESC', [(int) $f['projekt_id']]);
+        $belege = Db::all('SELECT * FROM invoices WHERE project_id = ? ORDER BY id DESC', [(int) $f['projekt_id']]);
     } catch (Throwable $e) { /* Anzeige reicht auch ohne */ }
 }
 
@@ -240,6 +258,19 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
       <button class="knopf"><?= $h($T('senden')) ?></button>
     </form>
   </div>
+
+  <?php if ($belege): ?>
+    <div class="block">
+      <h2><?= $h($T('belege')) ?></h2>
+      <?php foreach ($belege as $r): ?>
+        <div class="datei">
+          <span><a href="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;beleg=<?= (int) $r['id'] ?>"><?= $h((string) $r['invoice_no']) ?></a>
+            <br><small style="color:var(--leise)"><?= $h(Fmt::datum((string) $r['issued_at'])) ?></small></span>
+          <b style="white-space:nowrap"><?= $h(Fmt::geld((int) $r['total_cents'], (string) $r['currency'])) ?></b>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
 
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>

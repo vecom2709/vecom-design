@@ -23,7 +23,19 @@
         <span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span>
         <?php if ($z['paid_at']): ?><small style="color:var(--leise)"><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></small><?php endif; ?>
 
-        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+        <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <?php if ($z['status'] === 'bezahlt'): ?>
+          <?php $beleg = Db::one('SELECT id, invoice_no FROM invoices WHERE payment_id = ?', [(int) $z['id']]); ?>
+          <?php if ($beleg): ?>
+            <a class="knopf" href="<?= Fmt::h(url('rechnungen/' . (int) $beleg['id'])) ?>"><?= Fmt::h((string) $beleg['invoice_no']) ?></a>
+          <?php else: ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="rechnung_erzeugen">
+              <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+              <button class="knopf">Beleg erstellen</button></form>
+          <?php endif; ?>
+        <?php endif; ?>
         <?php if ($z['status'] !== 'bezahlt'): ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink">
@@ -35,6 +47,13 @@
             <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
             <input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><input type="hidden" name="order_id" value="<?= (int) $b['id'] ?>">
             <button class="knopf">Von Hand buchen</button></form>
+          <?php if ($z['art'] === 'restzahlung' && $projekt): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="restzahlung_anfordern">
+              <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+              <button class="knopf" title="Schickt dem Kunden die Aufforderung samt Zahlungslink">Restzahlung anfordern</button></form>
+          <?php endif; ?>
         <?php endif; ?>
         </div>
       </div>
