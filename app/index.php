@@ -84,6 +84,28 @@ if ($route === 'abmelden') { Auth::abmelden(); weiter('anmelden'); }
 
 Auth::nurAdmin();
 
+/* Die Datenbank bringt sich beim Oeffnen selbst auf Stand: offene
+   Aktualisierungen einspielen und, solange noch gar nichts da ist,
+   Beispieldaten anlegen. Frueher wartete beides auf einen Knopfdruck —
+   das hat nur dafuer gesorgt, dass hochgeladener Code halb arbeitete. */
+require_once __DIR__ . '/src/Einrichtung.php';
+$einrichtung = Einrichtung::selbsttaetig();
+if ($einrichtung['migrationen']) {
+    Events::protokoll('system_migration', 'Datenbank von selbst aktualisiert: '
+        . implode(', ', $einrichtung['migrationen'])
+        . ($einrichtung['texte'] ? ' · Website-Texte bei ' . $einrichtung['texte'] . ' Paket(en) ergänzt' : ''));
+    $_SESSION['gut'] = 'Die Datenbank wurde auf den neuesten Stand gebracht ('
+        . count($einrichtung['migrationen']) . ' Aktualisierung(en)).';
+}
+if ($einrichtung['beispiele'] > 0) {
+    Events::protokoll('beispieldaten', 'Beispieldaten von selbst angelegt');
+    $_SESSION['gut'] = ($_SESSION['gut'] ?? '')
+        . ' Weil noch nichts da war, stehen jetzt Beispieldaten drin — oben kannst du sie jederzeit löschen.';
+}
+if ($einrichtung['fehler'] !== null) {
+    $_SESSION['fehler'] = 'Die Datenbank konnte nicht vollständig aktualisiert werden: ' . $einrichtung['fehler'];
+}
+
 /* ---------- Lebenszeichen fuer die laufende Aktualisierung ---------- */
 if ($route === 'puls') {
     header('Content-Type: application/json; charset=utf-8');

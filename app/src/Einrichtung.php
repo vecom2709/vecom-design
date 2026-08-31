@@ -42,6 +42,79 @@ final class Einrichtung
         return $neu;
     }
 
+    /**
+     * Bringt die Datenbank beim Oeffnen der Verwaltung von allein auf Stand.
+     *
+     * Frueher stand hier ein Knopf. Das war gut gemeint — auf dem Webspace
+     * gibt es kein SSH, also sollte ein Mensch entscheiden, wann eine
+     * Aenderung an der Datenbank passiert. In der Praxis hat der Knopf nur
+     * dafuer gesorgt, dass frisch hochgeladener Code tagelang halb arbeitet,
+     * weil niemand ihn gedrueckt hat.
+     *
+     * Die Migrationen sind ausschliesslich ergaenzend (neue Tabellen, neue
+     * Spalten) und werden vorher gegen dieselbe MariaDB-Fassung geprueft, die
+     * auf dem Server laeuft. Der Knopf bleibt trotzdem stehen: Geht hier
+     * etwas schief, laesst es sich damit erneut versuchen.
+     *
+     * @return array{migrationen:list<string>,texte:int,beispiele:int,fehler:?string}
+     */
+    public static function selbsttaetig(): array
+    {
+        $bilanz = ['migrationen' => [], 'texte' => 0, 'beispiele' => 0, 'fehler' => null];
+
+        // Erst billig nachsehen, ob ueberhaupt etwas zu tun ist. Das laeuft
+        // bei jedem Seitenaufruf, also darf es im Normalfall nichts kosten.
+        $migrationenOffen = self::offene() !== [];
+        $beispieleFaellig = !$migrationenOffen && self::beispieleFaellig();
+        if (!$migrationenOffen && !$beispieleFaellig) { return $bilanz; }
+
+        // Zwei gleichzeitige Anfragen duerfen nicht dieselbe Spalte anlegen.
+        // Wer die Sperre nicht bekommt, laesst den anderen machen.
+        try {
+            if ((int) Db::wert('SELECT GET_LOCK(?, ?)', ['vecom_einrichtung', 5]) !== 1) {
+                return $bilanz;
+            }
+        } catch (Throwable $e) {
+            return $bilanz;   // ohne Sperre lieber gar nicht
+        }
+
+        try {
+            // Hinter der Sperre noch einmal nachsehen: Vielleicht war ein
+            // anderer Aufruf schneller und hat es schon erledigt.
+            if (self::offene()) {
+                $bilanz['migrationen'] = self::migrieren();
+                if ($bilanz['migrationen']) { $bilanz['texte'] = self::texteNachtragen(); }
+            }
+            if (self::beispieleFaellig()) {
+                require_once __DIR__ . '/Beispieldaten.php';
+                $bilanz['beispiele'] = Beispieldaten::anlegen();
+            }
+        } catch (Throwable $e) {
+            $bilanz['fehler'] = $e->getMessage();
+        } finally {
+            try { Db::run('SELECT RELEASE_LOCK(?)', ['vecom_einrichtung']); } catch (Throwable $e) { }
+        }
+
+        return $bilanz;
+    }
+
+    /**
+     * Beispieldaten beim ersten Mal von selbst anlegen — aber nur, wenn die
+     * Verwaltung wirklich leer ist und die Beispiele noch nie entfernt
+     * wurden. Wer sie einmal geloescht hat, will sie nicht wiedersehen.
+     */
+    private static function beispieleFaellig(): bool
+    {
+        try {
+            require_once __DIR__ . '/Beispieldaten.php';
+            return !Beispieldaten::erledigt()
+                && !Beispieldaten::vorhanden()
+                && !Beispieldaten::echteDatenDa();
+        } catch (Throwable $e) {
+            return false;   // Spalte demo noch nicht da — dann spaeter
+        }
+    }
+
     /** Legt den Admin an oder setzt sein Passwort neu. */
     public static function admin(string $name, string $email, string $passwort): string
     {

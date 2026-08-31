@@ -36,6 +36,23 @@ final class Beispieldaten
         return (int) Db::wert('SELECT COUNT(*) FROM customers WHERE demo = 1');
     }
 
+    /**
+     * Wurden die Beispiele schon einmal entfernt? Dann kommen sie nicht von
+     * allein zurueck — nur noch ueber den Knopf unter Einstellungen.
+     */
+    public static function erledigt(): bool
+    {
+        return (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'beispiele_erledigt'", [], '') === '1';
+    }
+
+    private static function merken(string $wert): void
+    {
+        try {
+            Db::run("INSERT INTO settings (skey, svalue) VALUES ('beispiele_erledigt', ?)
+                     ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$wert]);
+        } catch (Throwable $e) { /* Merker ist Beiwerk */ }
+    }
+
     public static function vorhanden(): bool { return self::anzahl() > 0; }
 
     /** Gibt es ausser den Beispielen schon etwas Echtes? */
@@ -50,6 +67,8 @@ final class Beispieldaten
     public static function anlegen(): int
     {
         if (self::vorhanden()) { return 0; }
+        // Wer sie ausdruecklich anlegt, will sie auch behalten duerfen.
+        self::merken('0');
 
         return (int) Db::transaktion(static function (): int {
             $pakete = self::pakete();
@@ -505,6 +524,9 @@ final class Beispieldaten
      */
     public static function entfernen(): int
     {
+        // Ab jetzt entstehen sie nicht mehr von allein.
+        self::merken('1');
+
         return (int) Db::transaktion(static function (): int {
             $zahl = 0;
             foreach (self::TABELLEN as $tabelle) {
