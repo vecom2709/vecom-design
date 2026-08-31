@@ -149,6 +149,54 @@
       <div class="feld"><label>Vorschau-Link</label><input name="preview_url" value="<?= Fmt::h($p['preview_url'] ?? '') ?>"></div>
       <button class="knopf">Speichern</button></form></div>
 
+  <div class="block"><h2>Website</h2>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="website_speichern">
+      <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+      <input type="hidden" name="project_id" value="<?= (int) $p['id'] ?>">
+      <div class="feld"><label>Domain</label>
+        <input name="domain" placeholder="beispiel.it" value="<?= Fmt::h((string) ($website['domain'] ?? '')) ?>"></div>
+      <div class="feld"><label>Adresse</label>
+        <input name="url" placeholder="https://beispiel.it" value="<?= Fmt::h((string) ($website['url'] ?? '')) ?>"></div>
+      <div class="feld" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" name="monitoring" id="mon" style="width:auto"
+               <?= (int) ($website['monitoring'] ?? 0) === 1 ? 'checked' : '' ?>>
+        <label for="mon" style="margin:0">Regelmäßig überwachen</label></div>
+      <button class="knopf">Speichern</button></form>
+
+    <?php if ($website): ?>
+      <table style="margin-top:14px"><tbody>
+        <tr><td>Zustand</td><td><span class="marke2 <?= Status::ton((string) $website['status']) ?>">
+          <?= Fmt::h(Status::label(Status::WEBSITE, (string) $website['status'])) ?></span></td></tr>
+        <tr><td>Letzte Antwort</td><td><?= $website['last_status']
+            ? (int) $website['last_status'] . ($website['last_ms'] !== null ? ' · ' . (int) $website['last_ms'] . ' ms' : '')
+            : 'noch nicht geprüft' ?></td></tr>
+        <tr><td>Zuletzt erreichbar</td><td><?= Fmt::h($website['last_ok_at'] ? Fmt::seit($website['last_ok_at']) : '—') ?></td></tr>
+        <tr><td>Zertifikat bis</td><td><?= Fmt::h($website['ssl_expires_at'] ? Fmt::datum((string) $website['ssl_expires_at']) : '—') ?></td></tr>
+      </tbody></table>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="website_pruefen">
+        <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+        <input type="hidden" name="id" value="<?= (int) $website['id'] ?>">
+        <button class="knopf">Jetzt prüfen</button></form>
+
+      <?php if ($pruefungen): ?>
+        <h3 style="font-size:12.5px;color:var(--leise);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.06em">Letzte Prüfungen</h3>
+        <table><tbody>
+        <?php foreach ($pruefungen as $k): ?>
+          <tr>
+            <td style="width:22px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:<?= (int) $k['ok'] ? 'var(--gruen)' : 'var(--rot)' ?>"></span></td>
+            <td style="color:var(--dim);font-size:13px"><?= Fmt::h(Fmt::seit($k['checked_at'])) ?>
+              <?php if ($k['error']): ?><br><small style="color:var(--rot)"><?= Fmt::h($k['error']) ?></small><?php endif; ?></td>
+            <td style="text-align:right;color:var(--leise);font-size:12.5px;white-space:nowrap">
+              <?= $k['http_status'] ? (int) $k['http_status'] : '—' ?><?= $k['response_ms'] !== null ? ' · ' . (int) $k['response_ms'] . ' ms' : '' ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody></table>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+
   <div class="block"><h2>E-Mails</h2>
     <?php if (!$mails): ?><div class="leer">Noch keine verschickt.</div><?php else: ?>
       <table><tbody>

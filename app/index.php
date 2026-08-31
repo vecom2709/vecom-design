@@ -288,6 +288,53 @@ if ($post) {
                 $_SESSION['gut'] = 'Fragebogen verschickt.';
                 weiter('projekte/' . $pid);
 
+            case 'website_speichern':
+                require_once __DIR__ . '/src/Monitoring.php';
+                $pid = (int) $_POST['project_id'];
+                $pr = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]);
+                if (!$pr) { throw new RuntimeException('Projekt nicht gefunden.'); }
+
+                $domain = strtolower(trim((string) ($_POST['domain'] ?? '')));
+                $domain = preg_replace('~^https?://~', '', $domain);
+                $domain = rtrim((string) $domain, '/');
+                if ($domain === '' || !preg_match('~^[a-z0-9.-]+\.[a-z]{2,}$~', $domain)) {
+                    throw new RuntimeException('Bitte eine Domain wie beispiel.it eintragen — ohne https:// davor.');
+                }
+                $url = trim((string) ($_POST['url'] ?? '')) ?: 'https://' . $domain;
+
+                $daten = [
+                    'domain' => $domain, 'url' => $url,
+                    'monitoring' => isset($_POST['monitoring']) ? 1 : 0,
+                ];
+                $w = Db::one('SELECT * FROM websites WHERE project_id = ?', [$pid]);
+                if ($w) {
+                    Db::update('websites', (int) $w['id'], $daten);
+                } else {
+                    $daten += ['project_id' => $pid, 'customer_id' => (int) $pr['customer_id'],
+                               'status' => 'nicht_veroeffentlicht'];
+                    Db::insert('websites', $daten);
+                }
+                Events::protokoll('website_gespeichert', 'Website hinterlegt: ' . $domain,
+                    (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
+                $_SESSION['gut'] = 'Website gespeichert.';
+                weiter('projekte/' . $pid);
+
+            case 'website_pruefen':
+                require_once __DIR__ . '/src/Monitoring.php';
+                $wid = (int) $_POST['id'];
+                $e = Monitoring::eine($wid);
+                if ($e === null) { throw new RuntimeException('Website nicht gefunden.'); }
+                $_SESSION['gut'] = $e['ok']
+                    ? 'Erreichbar — ' . (int) $e['pruefung']['ms'] . ' ms, Status ' . (int) $e['pruefung']['status'] . '.'
+                    : 'Nicht erreichbar: ' . ($e['pruefung']['fehler'] ?? 'unbekannter Grund');
+                weiter($_POST['zurueck'] ?? 'monitoring');
+
+            case 'cron_jetzt':
+                require_once __DIR__ . '/src/Cron.php';
+                $b = Cron::laufen(true);
+                $_SESSION['gut'] = 'Lauf erledigt: ' . json_encode($b, JSON_UNESCAPED_UNICODE);
+                weiter('monitoring');
+
             case 'aufgabe_umschalten':
                 $aid = (int) $_POST['id'];
                 $a = Db::one('SELECT * FROM tasks WHERE id = ?', [$aid]);
@@ -446,6 +493,9 @@ switch ($route) {
                 'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
                 'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
                 'nachrichten' => Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [$id]),
+                'pruefungen' => sicher(static fn() => Db::all(
+                    'SELECT c.* FROM website_checks c JOIN websites w ON w.id = c.website_id
+                     WHERE w.project_id = ? ORDER BY c.id DESC LIMIT 8', [$id])),
                 'aktivitaeten' => Db::all('SELECT * FROM activities WHERE project_id = ? ORDER BY id DESC', [$id]),
             ]);
             break;
@@ -524,7 +574,30 @@ switch ($route) {
         break;
 
     case 'nachrichten': case 'dateien':
-    case 'rechnungen': case 'statistiken': case 'monitoring':
+    case 'monitoring':
+        require_once __DIR__ . '/src/Monitoring.php';
+        require_once __DIR__ . '/src/Cron.php';
+        ansicht('monitoring', [
+            'liste' => sicher(static fn() => Db::all(
+                "SELECT w.*, c.name AS kunde, c.company AS firma, p.name AS projekt,
+                        (SELECT COUNT(*) FROM website_checks k WHERE k.website_id = w.id
+                           AND k.checked_at >= NOW() - INTERVAL 30 DAY) AS pruefungen,
+                        (SELECT COUNT(*) FROM website_checks k WHERE k.website_id = w.id
+                           AND k.checked_at >= NOW() - INTERVAL 30 DAY AND k.ok = 1) AS gute
+                 FROM websites w
+                 JOIN customers c ON c.id = w.customer_id
+                 LEFT JOIN projects p ON p.id = w.project_id
+                 ORDER BY w.monitoring DESC, FIELD(w.status,'offline','fehler','ssl_problem','domain_problem') DESC, w.domain")),
+            'letzte' => sicher(static fn() => Db::all(
+                "SELECT k.*, w.domain FROM website_checks k JOIN websites w ON w.id = k.website_id
+                 ORDER BY k.id DESC LIMIT 20")),
+            'adresse' => sicher(static fn() => Cron::adresse(), ''),
+            'lauf'    => sicher(static fn() => Cron::zuletzt(), null),
+            'bilanz'  => sicher(static fn() => Cron::letzteBilanz(), null),
+        ]);
+        break;
+
+    case 'rechnungen': case 'statistiken':
         ansicht('spaeter', ['bereich' => $route]);
         break;
 
