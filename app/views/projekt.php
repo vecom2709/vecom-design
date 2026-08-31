@@ -122,8 +122,49 @@
           <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
           <button class="knopf">Als gelesen markieren</button></form>
       <?php endif; ?>
-      <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Antworten direkt von hier aus kommt im nächsten Schritt.</p>
-    <?php endif; ?></div>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="nachricht_senden">
+      <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+      <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <div class="feld"><label>Antworten</label>
+        <textarea name="text" rows="4" maxlength="5000" style="min-height:90px"
+                  placeholder="Der Kunde bekommt den Text auch per E-Mail."></textarea></div>
+      <button class="knopf haupt">Absenden</button></form>
+    <?php if ($kundenlink): ?>
+      <div class="feld" style="margin-top:14px"><label>Seine Projektseite</label>
+        <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>"></div>
+    <?php endif; ?>
+  </div>
+
+  <div class="block"><h2>Dateien</h2>
+    <?php if (!$dateien): ?><div class="leer">Noch keine Dateien.</div><?php else: ?>
+      <table><tbody>
+      <?php foreach ($dateien as $d): ?>
+        <tr>
+          <td><a href="<?= Fmt::h(url('dateien/' . (int) $d['id'])) ?>"><?= Fmt::h($d['orig_name']) ?></a>
+            <br><small style="color:var(--leise)"><?= Fmt::h(Fmt::bytes((int) $d['size_bytes'])) ?> ·
+              <?= $d['uploaded_by'] === 'kunde' ? 'vom Kunden' : 'von dir' ?> ·
+              <?= Fmt::h(Fmt::seit($d['created_at'])) ?></small></td>
+          <td style="text-align:right;width:90px">
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="datei_weg">
+              <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $d['id'] ?>">
+              <button class="knopf">Löschen</button></form></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody></table>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data" style="margin-top:14px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="datei_hoch">
+      <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+      <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <div class="feld"><label>Datei hinterlegen</label><input type="file" name="datei" required></div>
+      <button class="knopf">Hochladen</button></form>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+      Der Kunde sieht diese Dateien auf seiner Projektseite und kann selbst welche schicken.</p>
+  </div>
 
   <div class="block"><h2>Verlauf</h2>
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">

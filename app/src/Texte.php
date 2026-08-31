@@ -73,6 +73,53 @@ final class Texte
                          'en' => 'Something went wrong. Please try again shortly — or write to us and we’ll sort it out.'],
     ];
 
+    /** Die Seite, auf der der Kunde seinem Projekt zusieht. */
+    public const PROJEKT = [
+        'titel'       => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
+        'stand'       => ['it' => 'A che punto siamo', 'de' => 'Wo wir stehen', 'en' => 'Where we are'],
+        'vorschau'    => ['it' => 'Guarda l’anteprima', 'de' => 'Vorschau ansehen', 'en' => 'View the preview'],
+        'fragebogen'  => ['it' => 'Compila il questionario', 'de' => 'Zum Fragebogen', 'en' => 'Fill in the questionnaire'],
+        'fragebogenOffen' => ['it' => 'Il questionario è ancora aperto — senza quelle informazioni non possiamo andare avanti.',
+                              'de' => 'Der Fragebogen ist noch offen — ohne die Angaben kommen wir nicht weiter.',
+                              'en' => 'The questionnaire is still open — we can’t move on without it.'],
+        'nachrichten' => ['it' => 'Messaggi', 'de' => 'Nachrichten', 'en' => 'Messages'],
+        'schreiben'   => ['it' => 'Scrivi un messaggio', 'de' => 'Nachricht schreiben', 'en' => 'Write a message'],
+        'senden'      => ['it' => 'Invia', 'de' => 'Absenden', 'en' => 'Send'],
+        'gesendet'    => ['it' => 'Messaggio inviato. Rispondiamo il prima possibile.',
+                          'de' => 'Nachricht ist raus. Wir melden uns so schnell wie möglich.',
+                          'en' => 'Message sent. We’ll get back to you as soon as we can.'],
+        'nochNichts'  => ['it' => 'Ancora nessun messaggio.', 'de' => 'Noch keine Nachrichten.', 'en' => 'No messages yet.'],
+        'du'          => ['it' => 'Tu', 'de' => 'Du', 'en' => 'You'],
+        'wir'         => ['it' => 'Vecom Design', 'de' => 'Vecom Design', 'en' => 'Vecom Design'],
+        'dateien'     => ['it' => 'File', 'de' => 'Dateien', 'en' => 'Files'],
+        'hochladen'   => ['it' => 'Carica file', 'de' => 'Datei hochladen', 'en' => 'Upload a file'],
+        'dateiHinweis'=> ['it' => 'Foto, logo, testi, PDF — al massimo {max} per file.',
+                          'de' => 'Fotos, Logo, Texte, PDF — höchstens {max} je Datei.',
+                          'en' => 'Photos, logo, copy, PDFs — {max} per file at most.'],
+        'dateiOk'     => ['it' => 'File ricevuto. Grazie!', 'de' => 'Datei ist da. Danke!', 'en' => 'File received. Thank you!'],
+        'keineDateien'=> ['it' => 'Ancora nessun file.', 'de' => 'Noch keine Dateien.', 'en' => 'No files yet.'],
+        'vonUns'      => ['it' => 'da noi', 'de' => 'von uns', 'en' => 'from us'],
+        'vonDir'      => ['it' => 'da te', 'de' => 'von dir', 'en' => 'from you'],
+        'leer'        => ['it' => 'Scrivi qualcosa prima di inviare.', 'de' => 'Bitte schreib etwas, bevor du absendest.', 'en' => 'Please write something first.'],
+    ];
+
+    /** Die Stufen des Projekts, wie der Kunde sie sieht. */
+    public const PROJEKT_STAND = [
+        'bestellung_eingegangen' => ['it' => 'Ordine ricevuto', 'de' => 'Bestellung eingegangen', 'en' => 'Order received'],
+        'zahlung_bestaetigt'     => ['it' => 'Pagamento confermato', 'de' => 'Zahlung bestätigt', 'en' => 'Payment confirmed'],
+        'onboarding'             => ['it' => 'Raccogliamo le informazioni', 'de' => 'Wir sammeln die Angaben', 'en' => 'Gathering information'],
+        'informationen_erhalten' => ['it' => 'Informazioni ricevute', 'de' => 'Informationen erhalten', 'en' => 'Information received'],
+        'design'                 => ['it' => 'Progettazione', 'de' => 'Gestaltung', 'en' => 'Design'],
+        'entwicklung'            => ['it' => 'Realizzazione', 'de' => 'Umsetzung', 'en' => 'Development'],
+        'vorschau'               => ['it' => 'Anteprima pronta', 'de' => 'Vorschau steht', 'en' => 'Preview ready'],
+        'kundenfeedback'         => ['it' => 'Aspettiamo il tuo parere', 'de' => 'Wir warten auf deine Rückmeldung', 'en' => 'Waiting for your feedback'],
+        'aenderungen'            => ['it' => 'Modifiche in corso', 'de' => 'Änderungen laufen', 'en' => 'Making changes'],
+        'finale_freigabe'        => ['it' => 'Ultima approvazione', 'de' => 'Letzte Freigabe', 'en' => 'Final approval'],
+        'veroeffentlichung'      => ['it' => 'Pubblicazione', 'de' => 'Veröffentlichung', 'en' => 'Publishing'],
+        'online'                 => ['it' => 'Online', 'de' => 'Online', 'en' => 'Live'],
+        'abgeschlossen'          => ['it' => 'Concluso', 'de' => 'Abgeschlossen', 'en' => 'Completed'],
+    ];
+
     /** Betreff und Text je Anlass. {name}, {paket}, {link}, {betrag} werden ersetzt. */
     public const MAILS = [
         'zahlung_ok' => [
@@ -90,6 +137,14 @@ final class Texte
                 "Hallo {name},\n\nfür dein Projekt fehlt noch der Fragebogen. Ohne die Angaben können wir nicht richtig loslegen.\n\nHier ist er — zehn Minuten reichen:\n\n{link}\n\nWenn etwas unklar ist, antworte einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
             'en' => ['A quick reminder about your questionnaire',
                 "Hello {name},\n\nthe questionnaire for your project is still open. Without it we can’t really start.\n\nHere it is — ten minutes is enough:\n\n{link}\n\nIf anything is unclear, just reply to this email.\n\nUwe Vetter · Vecom Design"],
+        ],
+        'nachricht' => [
+            'it' => ['Un messaggio sul tuo progetto',
+                "Ciao {name},\n\nti abbiamo scritto sul tuo progetto:\n\n{text}\n\nPuoi rispondere qui:\n{link}\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Eine Nachricht zu deinem Projekt',
+                "Hallo {name},\n\nwir haben dir zu deinem Projekt geschrieben:\n\n{text}\n\nAntworten kannst du hier:\n{link}\n\nUwe Vetter · Vecom Design"],
+            'en' => ['A message about your project',
+                "Hello {name},\n\nwe’ve written to you about your project:\n\n{text}\n\nYou can reply here:\n{link}\n\nUwe Vetter · Vecom Design"],
         ],
         'restzahlung' => [
             'it' => ['Saldo per {paket}',

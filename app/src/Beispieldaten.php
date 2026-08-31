@@ -199,6 +199,10 @@ final class Beispieldaten
         }
 
         foreach ($f['dateien'] ?? [] as $d) {
+            // Auch eine Beispieldatei soll sich herunterladen lassen. Ein
+            // Eintrag ohne Bytes waere eine Attrappe, die beim ersten Klick
+            // auffliegt.
+            self::platzhalterAblegen($d['gespeichert'], (string) $d['art']);
             Db::insert('files', [
                 'customer_id' => $kundeId, 'project_id' => $projektId,
                 'stored_name' => $d['gespeichert'], 'orig_name' => $d['name'],
@@ -236,6 +240,24 @@ final class Beispieldaten
                 'status' => 'gesendet', 'created_at' => $m['wann'], 'demo' => 1,
             ]);
         }
+    }
+
+    /**
+     * Legt zu einer Beispieldatei etwas Echtes auf die Platte — ein winziges
+     * Bild bzw. ein kurzer Text, je nach Art.
+     */
+    private static function platzhalterAblegen(string $name, string $art): void
+    {
+        try {
+            require_once __DIR__ . '/Ablage.php';
+            $pfad = Ablage::ordner() . '/' . basename($name);
+            if (is_file($pfad)) { return; }
+            $inhalt = str_starts_with($art, 'image/')
+                // Ein 1x1-PNG, 68 Byte.
+                ? base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+                : "Beispieldatei von Vecom Design.\nSie verschwindet mit den ubrigen Beispieldaten.\n";
+            @file_put_contents($pfad, $inhalt);
+        } catch (Throwable $e) { /* ohne Platzhalter geht es auch */ }
     }
 
     /** Ein paar ungelesene Meldungen, damit das Dashboard nicht leer wirkt. */
@@ -529,6 +551,15 @@ final class Beispieldaten
 
         return (int) Db::transaktion(static function (): int {
             $zahl = 0;
+            // Erst die Bytes, dann die Eintraege — danach ist die Zuordnung weg.
+            try {
+                require_once __DIR__ . '/Ablage.php';
+                foreach (Db::all('SELECT stored_name FROM files WHERE demo = 1') as $d) {
+                    $pfad = Ablage::ordner() . '/' . basename((string) $d['stored_name']);
+                    if (is_file($pfad)) { @unlink($pfad); }
+                }
+            } catch (Throwable $e) { /* Eintraege verschwinden trotzdem */ }
+
             foreach (self::TABELLEN as $tabelle) {
                 try {
                     $zahl += Db::run("DELETE FROM `$tabelle` WHERE demo = 1")->rowCount();

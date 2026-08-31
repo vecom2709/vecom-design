@@ -183,7 +183,7 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
   <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
   <?php if ($zustand === 'gespeichert'): ?><div class="hinweis gut"><?= $h($S('gespeichert')) ?></div><?php endif; ?>
 
-  <form method="post" action="fragebogen.php">
+  <form method="post" action="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
     <input type="hidden" name="t" value="<?= $h($token) ?>">
     <input type="hidden" name="lang" value="<?= $h($sprache) ?>">

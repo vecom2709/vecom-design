@@ -53,7 +53,9 @@ final class Onboarding
         if ($token === '' || !preg_match('~^[a-f0-9]{32,64}$~', $token)) { return null; }
         return Db::one(
             'SELECT q.*, c.name AS kunde, c.email AS kunde_email, c.company AS kunde_firma,
-                    c.sprache AS kunde_sprache, p.name AS projekt, p.status AS projekt_status
+                    c.sprache AS kunde_sprache, p.id AS projekt_id, p.name AS projekt,
+                    p.status AS projekt_status, p.progress AS projekt_fortschritt,
+                    p.preview_url AS projekt_vorschau, p.deadline AS projekt_deadline
              FROM questionnaires q
              JOIN customers c ON c.id = q.customer_id
              JOIN projects  p ON p.id = q.project_id

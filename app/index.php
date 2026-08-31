@@ -122,6 +122,15 @@ if ($route === 'puls') {
 
 /* ---------- Schreibende Vorgaenge ---------- */
 if ($post) {
+    // Eine zu grosse Datei verwirft der Server, bevor PHP sie sieht — dann
+    // sind $_POST und $_FILES leer und die CSRF-Pruefung schlaegt fehl. Der
+    // Grund waere dann falsch benannt.
+    require_once __DIR__ . '/src/Ablage.php';
+    if (Ablage::zuGrossFuerDenServer()) {
+        $_SESSION['fehler'] = 'Die Datei ist größer als ' . Fmt::bytes(Ablage::grenze())
+            . ' und wurde vom Server abgewiesen.';
+        weiter('');
+    }
     Csrf::pruefen();
     $tat = (string) ($_POST['tat'] ?? '');
     try {
@@ -309,6 +318,36 @@ if ($post) {
                 }
                 $_SESSION['gut'] = 'Fragebogen verschickt.';
                 weiter('projekte/' . $pid);
+
+            case 'nachricht_senden':
+                require_once __DIR__ . '/src/Nachricht.php';
+                $pid = (int) $_POST['id'];
+                Nachricht::schreiben($pid, (string) ($_POST['text'] ?? ''), 'admin');
+                $_SESSION['gut'] = 'Nachricht ist raus — der Kunde bekommt sie auch per E-Mail.';
+                weiter('projekte/' . $pid);
+
+            case 'datei_hoch':
+                require_once __DIR__ . '/src/Ablage.php';
+                $pid = (int) $_POST['id'];
+                $pr = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]);
+                if (!$pr) { throw new RuntimeException('Projekt nicht gefunden.'); }
+                Ablage::annehmen($_FILES['datei'] ?? [], $pid, (int) $pr['customer_id'], 'admin');
+                Events::protokoll('datei_hoch', 'Datei hinterlegt: ' . ($_FILES['datei']['name'] ?? ''),
+                    (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
+                $_SESSION['gut'] = 'Datei liegt beim Projekt — der Kunde sieht sie auf seiner Seite.';
+                weiter('projekte/' . $pid);
+
+            case 'datei_weg':
+                require_once __DIR__ . '/src/Ablage.php';
+                $did = (int) $_POST['id'];
+                $d = Db::one('SELECT * FROM files WHERE id = ?', [$did]);
+                if (!$d) { throw new RuntimeException('Datei nicht gefunden.'); }
+                Ablage::loeschen($did);
+                Events::protokoll('datei_weg', 'Datei gelöscht: ' . $d['orig_name'],
+                    $d['customer_id'] !== null ? (int) $d['customer_id'] : null, null,
+                    $d['project_id'] !== null ? (int) $d['project_id'] : null);
+                $_SESSION['gut'] = 'Datei gelöscht.';
+                weiter('projekte/' . (int) $d['project_id']);
 
             case 'website_speichern':
                 require_once __DIR__ . '/src/Monitoring.php';
@@ -515,6 +554,12 @@ switch ($route) {
                 'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
                 'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
                 'nachrichten' => Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [$id]),
+                'kundenlink' => sicher(static function () use ($id) {
+                    require_once __DIR__ . '/src/Nachricht.php';
+                    return Nachricht::link($id);
+                }, null),
+                'dateien' => sicher(static fn() => Db::all(
+                    'SELECT * FROM files WHERE project_id = ? ORDER BY id DESC', [$id])),
                 'pruefungen' => sicher(static fn() => Db::all(
                     'SELECT c.* FROM website_checks c JOIN websites w ON w.id = c.website_id
                      WHERE w.project_id = ? ORDER BY c.id DESC LIMIT 8', [$id])),
@@ -530,6 +575,31 @@ switch ($route) {
              LEFT JOIN websites w ON w.project_id = p.id $wo
              ORDER BY FIELD(p.status,'abgeschlossen') ASC, p.deadline IS NULL, p.deadline ASC",
             $st !== '' ? ['st' => $st] : [])]);
+        break;
+
+    case 'dateien':
+        require_once __DIR__ . '/src/Ablage.php';
+        if ($id !== null) {
+            $d = Db::one('SELECT * FROM files WHERE id = ?', [$id]);
+            if (!$d) { http_response_code(404); exit('Datei nicht gefunden.'); }
+            Ablage::ausliefern($d);
+        }
+        ansicht('dateien', ['liste' => sicher(static fn() => Db::all(
+            "SELECT f.*, c.name AS kunde, c.company AS firma, p.name AS projekt
+             FROM files f
+             LEFT JOIN customers c ON c.id = f.customer_id
+             LEFT JOIN projects  p ON p.id = f.project_id
+             ORDER BY f.id DESC LIMIT 200")),
+            'bereit' => Ablage::bereit()]);
+        break;
+
+    case 'nachrichten':
+        ansicht('nachrichten', ['liste' => sicher(static fn() => Db::all(
+            "SELECT m.*, c.name AS kunde, c.company AS firma, p.name AS projekt
+             FROM messages m
+             JOIN customers c ON c.id = m.customer_id
+             LEFT JOIN projects p ON p.id = m.project_id
+             ORDER BY m.read_at IS NULL DESC, m.id DESC LIMIT 200"))]);
         break;
 
     case 'aktivitaeten':
@@ -595,7 +665,6 @@ switch ($route) {
         ]);
         break;
 
-    case 'nachrichten': case 'dateien':
     case 'monitoring':
         require_once __DIR__ . '/src/Monitoring.php';
         require_once __DIR__ . '/src/Cron.php';
