@@ -73,6 +73,58 @@
     <?php endif; ?>
   </div>
 
+  <div class="block"><h2>Aufgaben</h2>
+    <?php if (!$aufgaben): ?><div class="leer">Noch keine Aufgaben.</div><?php else: ?>
+      <?php $offen = 0; foreach ($aufgaben as $a) { if (!(int) $a['done']) { $offen++; } } ?>
+      <p style="color:var(--leise);font-size:12.5px;margin-bottom:10px">
+        <?= count($aufgaben) - $offen ?> von <?= count($aufgaben) ?> erledigt</p>
+      <table><tbody>
+      <?php foreach ($aufgaben as $a): ?>
+        <?php $fertig = (int) $a['done'] === 1; ?>
+        <tr>
+          <td style="width:34px">
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="aufgabe_umschalten">
+              <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+              <button class="knopf" style="padding:2px 9px;min-width:0"
+                title="<?= $fertig ? 'Wieder offen' : 'Erledigt' ?>"><?= $fertig ? '✓' : '&nbsp;&nbsp;' ?></button></form>
+          </td>
+          <td style="<?= $fertig ? 'color:var(--leise);text-decoration:line-through' : '' ?>"><?= Fmt::h($a['title']) ?></td>
+          <td style="text-align:right;white-space:nowrap;color:var(--leise);font-size:12.5px">
+            <?= Fmt::h($a['due_date'] ? Fmt::datum($a['due_date']) : '') ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody></table>
+    <?php endif; ?></div>
+
+  <div class="block"><h2>Nachrichten</h2>
+    <?php if (!$nachrichten): ?><div class="leer">Noch keine Nachrichten.</div><?php else: ?>
+      <?php $ungelesen = 0; foreach ($nachrichten as $n) { if ($n['sender'] === 'kunde' && $n['read_at'] === null) { $ungelesen++; } } ?>
+      <?php foreach ($nachrichten as $n): ?>
+        <?php $vomKunden = $n['sender'] === 'kunde'; ?>
+        <div style="padding:11px 13px;border-radius:11px;margin-bottom:9px;border:1px solid var(--linie);
+                    background:<?= $vomKunden ? 'var(--flaeche2)' : 'transparent' ?>">
+          <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
+            <b style="font-size:12.5px;color:<?= $vomKunden ? 'var(--cyan)' : 'var(--leise)' ?>">
+              <?= $vomKunden ? Fmt::h((string) $p['kunde']) : 'Du' ?>
+              <?php if ($vomKunden && $n['read_at'] === null): ?><span class="marke2 warnung" style="margin-left:6px">neu</span><?php endif; ?>
+            </b>
+            <small style="color:var(--leise)"><?= Fmt::h(Fmt::seit($n['created_at'])) ?></small>
+          </div>
+          <div style="white-space:pre-wrap;font-size:14px;line-height:1.55"><?= Fmt::h($n['body']) ?></div>
+        </div>
+      <?php endforeach; ?>
+      <?php if ($ungelesen > 0): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="nachrichten_gelesen">
+          <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+          <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <button class="knopf">Als gelesen markieren</button></form>
+      <?php endif; ?>
+      <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Antworten direkt von hier aus kommt im nächsten Schritt.</p>
+    <?php endif; ?></div>
+
   <div class="block"><h2>Verlauf</h2>
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">
     <?php foreach ($aktivitaeten as $a): ?><li><span class="punkt"></span><span><?= Fmt::h($a['title']) ?><br><small><?= Fmt::h($a['actor']) ?></small></span>

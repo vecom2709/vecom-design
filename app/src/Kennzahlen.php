@@ -55,7 +55,7 @@ final class Kennzahlen
             'neu'      => (int) Db::wert("SELECT COUNT(*) FROM projects WHERE status IN ('bestellung_eingegangen','zahlung_bestaetigt')"),
             'laufend'  => (int) Db::wert("SELECT COUNT(*) FROM projects WHERE status IN ('onboarding','informationen_erhalten','design','entwicklung','vorschau','aenderungen','finale_freigabe','veroeffentlichung')"),
             'feedback' => (int) Db::wert("SELECT COUNT(*) FROM projects WHERE status = 'kundenfeedback'"),
-            'deadline' => (int) Db::wert("SELECT COUNT(*) FROM projects WHERE deadline IS NOT NULL AND deadline <= ? AND status <> 'abgeschlossen'", [date('Y-m-d', strtotime('+7 days'))]),
+            'deadline' => (int) Db::wert("SELECT COUNT(*) FROM projects WHERE deadline IS NOT NULL AND deadline <= ? AND status NOT IN ('online','abgeschlossen')", [date('Y-m-d', strtotime('+7 days'))]),
             'fertig'   => (int) Db::wert("SELECT COUNT(*) FROM projects WHERE status IN ('online','abgeschlossen')"),
         ];
     }
@@ -131,7 +131,10 @@ final class Kennzahlen
     public static function beliebtestePakete(int $limit = 5): array
     {
         return Db::all(
-            "SELECT o.package_name AS name, COUNT(*) AS anzahl,
+            // COUNT(DISTINCT o.id), nicht COUNT(*): Durch den Verbund mit den
+            // Zahlungen steht jede Bestellung zweimal in der Zwischenmenge —
+            // einmal je Rate. COUNT(*) haette ueberall das Doppelte gezeigt.
+            "SELECT o.package_name AS name, COUNT(DISTINCT o.id) AS anzahl,
                     COALESCE(SUM(CASE WHEN p.status='bezahlt' THEN p.amount_cents END),0) AS umsatz
              FROM orders o LEFT JOIN payments p ON p.order_id = o.id
              GROUP BY o.package_name ORDER BY anzahl DESC, umsatz DESC LIMIT $limit"
@@ -146,8 +149,10 @@ final class Kennzahlen
     public static function naheDeadlines(int $limit = 6): array
     {
         return Db::all(
+            // Eine Seite, die online ist, hat keinen Termin mehr — sonst stuende
+            // sie hier fuer immer als ueberfaellig.
             "SELECT p.*, c.name AS kunde FROM projects p JOIN customers c ON c.id = p.customer_id
-             WHERE p.deadline IS NOT NULL AND p.status <> 'abgeschlossen'
+             WHERE p.deadline IS NOT NULL AND p.status NOT IN ('online','abgeschlossen')
              ORDER BY p.deadline ASC LIMIT $limit"
         );
     }

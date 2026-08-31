@@ -25,6 +25,10 @@ $post  = $_SERVER['REQUEST_METHOD'] === 'POST';
 function url(string $ziel = ''): string { return Config::basis() . '/' . ltrim($ziel, '/'); }
 function weiter(string $ziel): never { header('Location: ' . url($ziel)); exit; }
 function ansicht(string $datei, array $daten = []): void {
+    // $route steht im aeusseren Gueltigkeitsbereich. Ohne dieses global ist es
+    // in layout.php leer — dann steht im Menue immer "Dashboard" hervorgehoben,
+    // egal wo man ist, und Formulare im Rahmen wissen nicht, wohin zurueck.
+    global $route;
     extract($daten, EXTR_SKIP);
     $inhaltsdatei = __DIR__ . "/views/$datei.php";
     require __DIR__ . '/views/layout.php';
@@ -158,7 +162,10 @@ if ($post) {
 
             case 'paket_loeschen':
                 $pid = (int) $_POST['id'];
-                $benutzt = (int) Db::wert('SELECT COUNT(*) FROM orders WHERE package_id = ?', [$pid]);
+                // Beispielbestellungen zaehlen hier nicht: Sie sollen ein Paket
+                // nicht festhalten, das Uwe wieder loswerden will.
+                $benutzt = (int) sicher(static fn() => Db::wert('SELECT COUNT(*) FROM orders WHERE package_id = ? AND demo = 0', [$pid]),
+                    Db::wert('SELECT COUNT(*) FROM orders WHERE package_id = ?', [$pid]));
                 if ($benutzt > 0) { throw new RuntimeException("Das Paket hängt an $benutzt Bestellung(en) und wird deshalb nicht gelöscht. Deaktiviere es stattdessen."); }
                 Db::run('DELETE FROM packages WHERE id = ?', [$pid]);
                 Events::pruefspur('loeschen', 'package', $pid);
@@ -280,6 +287,34 @@ if ($post) {
                 }
                 $_SESSION['gut'] = 'Fragebogen verschickt.';
                 weiter('projekte/' . $pid);
+
+            case 'aufgabe_umschalten':
+                $aid = (int) $_POST['id'];
+                $a = Db::one('SELECT * FROM tasks WHERE id = ?', [$aid]);
+                if (!$a) { throw new RuntimeException('Aufgabe nicht gefunden.'); }
+                Db::update('tasks', $aid, ['done' => (int) $a['done'] === 1 ? 0 : 1]);
+                weiter('projekte/' . (int) $a['project_id']);
+
+            case 'nachrichten_gelesen':
+                $pid = (int) $_POST['id'];
+                Db::run("UPDATE messages SET read_at = NOW() WHERE project_id = ? AND read_at IS NULL AND sender = 'kunde'", [$pid]);
+                weiter('projekte/' . $pid);
+
+            case 'beispiel_anlegen':
+                require_once __DIR__ . '/src/Beispieldaten.php';
+                $wieviele = Beispieldaten::anlegen();
+                $_SESSION['gut'] = $wieviele > 0
+                    ? "Beispieldaten angelegt: $wieviele Vorgänge in drei Sprachen. Sie verschwinden von allein, sobald die erste echte Bestellung kommt."
+                    : 'Es waren schon Beispieldaten da.';
+                Events::protokoll('beispieldaten', 'Beispieldaten angelegt');
+                weiter('einstellungen');
+
+            case 'beispiel_loeschen':
+                require_once __DIR__ . '/src/Beispieldaten.php';
+                $zeilen = Beispieldaten::entfernen();
+                $_SESSION['gut'] = "Beispieldaten entfernt ($zeilen Einträge). Echte Daten wurden nicht angerührt.";
+                Events::protokoll('beispieldaten', 'Beispieldaten von Hand entfernt');
+                weiter($_POST['zurueck'] ?? 'einstellungen');
 
             case 'fragebogen_link':
                 // Nur den Zugang erzeugen — zum Weitergeben ueber WhatsApp
@@ -410,6 +445,7 @@ switch ($route) {
                 'fragebogen' => Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [$id]),
                 'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
                 'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
+                'nachrichten' => Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [$id]),
                 'aktivitaeten' => Db::all('SELECT * FROM activities WHERE project_id = ? ORDER BY id DESC', [$id]),
             ]);
             break;
@@ -479,8 +515,16 @@ switch ($route) {
         ]);
         break;
 
+    case 'einstellungen':
+        require_once __DIR__ . '/src/Beispieldaten.php';
+        ansicht('einstellungen', [
+            'beispiele'  => sicher(static fn() => Beispieldaten::anzahl(), 0),
+            'echteDaten' => sicher(static fn() => Beispieldaten::echteDatenDa(), true),
+        ]);
+        break;
+
     case 'nachrichten': case 'dateien':
-    case 'rechnungen': case 'statistiken': case 'monitoring': case 'einstellungen':
+    case 'rechnungen': case 'statistiken': case 'monitoring':
         ansicht('spaeter', ['bereich' => $route]);
         break;
 

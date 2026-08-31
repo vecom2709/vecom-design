@@ -48,10 +48,15 @@ final class Events
     public static function naechsteBestellnummer(): string
     {
         $jahr = date('Y');
-        $n = (int) Db::wert(
-            "SELECT COUNT(*) FROM orders WHERE order_no LIKE ?", ["VD-$jahr-%"]
+        // Von der hoechsten vergebenen Nummer aus weiterzaehlen, nicht von der
+        // Anzahl: Wird eine Bestellung geloescht, wuerde sonst eine Nummer ein
+        // zweites Mal vergeben — und der eindeutige Schluessel schlaegt zu.
+        $hoechste = (int) Db::wert(
+            "SELECT COALESCE(MAX(CAST(SUBSTRING(order_no, ?) AS UNSIGNED)), 0)
+             FROM orders WHERE order_no LIKE ?",
+            [strlen("VD-$jahr-") + 1, "VD-$jahr-%"]
         );
-        return sprintf('VD-%s-%04d', $jahr, $n + 1);
+        return sprintf('VD-%s-%04d', $jahr, $hoechste + 1);
     }
 
     /* ---------- Kunde ---------- */
@@ -84,7 +89,7 @@ final class Events
      */
     public static function bestellungAnlegen(int $kundeId, int $paketId, ?string $notiz = null): int
     {
-        return Db::transaktion(static function () use ($kundeId, $paketId, $notiz) {
+        $bestellId = (int) Db::transaktion(static function () use ($kundeId, $paketId, $notiz) {
             $paket = Db::one('SELECT * FROM packages WHERE id = ?', [$paketId]);
             if (!$paket) { throw new RuntimeException('Paket nicht gefunden.'); }
             $kunde = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
@@ -133,6 +138,14 @@ final class Events
 
             return $bestellId;
         });
+
+        // Der erste echte Vorgang raeumt die Beispieldaten weg. Bewusst erst
+        // nach dem Festschreiben — und in einem eigenen Anlauf, damit ein
+        // Fehler beim Aufraeumen die Bestellung nicht mitreisst.
+        require_once __DIR__ . '/Beispieldaten.php';
+        Beispieldaten::beiEchtenDatenEntfernen();
+
+        return $bestellId;
     }
 
     /* ---------- Zahlung ---------- */

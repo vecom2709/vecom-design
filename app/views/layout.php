@@ -61,6 +61,21 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
     <?php if ($fehler): ?><div class="hinweis schlecht"><?= Fmt::h($fehler) ?></div><?php endif; ?>
     <?php if ($gut): ?><div class="hinweis gut"><?= Fmt::h($gut) ?></div><?php endif; ?>
     <?php
+    /* Solange Beispieldaten geladen sind, muss das auf jeder Seite zu sehen
+       sein — sonst haelt man erfundene Umsaetze fuer die eigenen. */
+    $beispielZahl = 0;
+    try { $beispielZahl = (int) Db::wert('SELECT COUNT(*) FROM customers WHERE demo = 1'); } catch (Throwable $e) { }
+    ?>
+    <?php if ($beispielZahl > 0): ?>
+      <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="flex:1;min-width:240px">Beispieldaten geladen (<?= $beispielZahl ?> Kunden) — die Zahlen sind noch nicht deine echten.</span>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="beispiel_loeschen">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($aktiv === 'dashboard' ? '' : $aktiv) ?>">
+          <button class="knopf">Löschen</button></form>
+      </div>
+    <?php endif; ?>
+    <?php
     /* Neue Tabellen oder Spalten aus einer Aktualisierung. Ohne SSH liesse sich
        das sonst nicht einspielen. Nur der angemeldete Admin sieht den Knopf,
        und er ist wie jedes Formular gegen Fremdaufrufe geschuetzt. */
