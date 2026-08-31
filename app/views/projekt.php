@@ -74,7 +74,14 @@
   </div>
 
   <div class="block"><h2>Aufgaben</h2>
-    <?php if (!$aufgaben): ?><div class="leer">Noch keine Aufgaben.</div><?php else: ?>
+    <?php if (!$aufgaben): ?>
+      <div class="leer">Noch keine Aufgaben.</div>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="text-align:center;margin-top:-10px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="aufgaben_vorlage">
+        <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+        <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <button class="knopf">Übliche zwölf Schritte einfügen</button></form>
+    <?php else: ?>
       <?php $offen = 0; foreach ($aufgaben as $a) { if (!(int) $a['done']) { $offen++; } } ?>
       <p style="color:var(--leise);font-size:12.5px;margin-bottom:10px">
         <?= count($aufgaben) - $offen ?> von <?= count($aufgaben) ?> erledigt</p>
@@ -93,10 +100,26 @@
           <td style="<?= $fertig ? 'color:var(--leise);text-decoration:line-through' : '' ?>"><?= Fmt::h($a['title']) ?></td>
           <td style="text-align:right;white-space:nowrap;color:var(--leise);font-size:12.5px">
             <?= Fmt::h($a['due_date'] ? Fmt::datum($a['due_date']) : '') ?></td>
+          <td style="width:34px;text-align:right">
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="aufgabe_weg">
+              <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+              <button class="knopf" style="padding:2px 8px;min-width:0;color:var(--leise)" title="Löschen">×</button></form></td>
         </tr>
       <?php endforeach; ?>
       </tbody></table>
-    <?php endif; ?></div>
+    <?php endif; ?>
+
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="aufgabe_anlegen">
+      <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+      <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <input name="titel" placeholder="Neue Aufgabe" style="flex:1;min-width:180px" required>
+      <input type="date" name="due_date" style="width:auto;flex:0 0 150px" title="Bis wann">
+      <button class="knopf">Hinzufügen</button>
+    </form>
+  </div>
 
   <div class="block"><h2>Nachrichten</h2>
     <?php if (!$nachrichten): ?><div class="leer">Noch keine Nachrichten.</div><?php else: ?>

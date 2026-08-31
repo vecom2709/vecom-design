@@ -349,6 +349,65 @@ if ($post) {
                 $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
                 weiter('rechnungen/' . (int) $r['id']);
 
+            case 'passwort_aendern':
+                // Das eigene Passwort. Das alte muss stimmen — sonst koennte
+                // jemand an einem offen stehenden Rechner den Zugang uebernehmen.
+                $alt  = (string) ($_POST['alt'] ?? '');
+                $neu1 = (string) ($_POST['neu'] ?? '');
+                $neu2 = (string) ($_POST['neu2'] ?? '');
+                $ich  = Db::one('SELECT * FROM users WHERE id = ?', [Auth::id()]);
+                if (!$ich || !password_verify($alt, (string) $ich['password_hash'])) {
+                    throw new RuntimeException('Das bisherige Passwort stimmt nicht.');
+                }
+                if (mb_strlen($neu1) < 10) {
+                    throw new RuntimeException('Das neue Passwort braucht mindestens zehn Zeichen.');
+                }
+                if ($neu1 !== $neu2) {
+                    throw new RuntimeException('Die beiden neuen Passwörter sind nicht gleich.');
+                }
+                Db::update('users', (int) $ich['id'], ['password_hash' => password_hash($neu1, PASSWORD_DEFAULT)]);
+                Events::pruefspur('passwort', 'user', (int) $ich['id']);
+                $_SESSION['gut'] = 'Passwort geändert.';
+                weiter('einstellungen');
+
+            case 'zugang_anlegen':
+                $name  = trim((string) ($_POST['name'] ?? ''));
+                $mail  = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+                $pass  = (string) ($_POST['passwort'] ?? '');
+                if ($name === '' || !filter_var($mail, FILTER_VALIDATE_EMAIL)) {
+                    throw new RuntimeException('Name und eine gültige E-Mail sind Pflicht.');
+                }
+                if (mb_strlen($pass) < 10) {
+                    throw new RuntimeException('Das Passwort braucht mindestens zehn Zeichen.');
+                }
+                if (Db::one('SELECT id FROM users WHERE email = ?', [$mail])) {
+                    throw new RuntimeException('Diese Adresse hat schon einen Zugang.');
+                }
+                $uid = Db::insert('users', [
+                    'email' => $mail, 'password_hash' => password_hash($pass, PASSWORD_DEFAULT),
+                    'name' => $name, 'role' => 'admin', 'active' => 1,
+                ]);
+                Events::protokoll('zugang', 'Zugang angelegt: ' . $name);
+                Events::pruefspur('anlegen', 'user', $uid, [], ['email' => $mail]);
+                $_SESSION['gut'] = 'Zugang angelegt.';
+                weiter('einstellungen');
+
+            case 'zugang_umschalten':
+                $uid = (int) $_POST['id'];
+                if ($uid === Auth::id()) {
+                    throw new RuntimeException('Den eigenen Zugang kannst du nicht abschalten.');
+                }
+                $u = Db::one('SELECT * FROM users WHERE id = ?', [$uid]);
+                if (!$u) { throw new RuntimeException('Zugang nicht gefunden.'); }
+                $an = (int) $u['active'] === 1 ? 0 : 1;
+                if ($an === 0 && (int) Db::wert("SELECT COUNT(*) FROM users WHERE active = 1 AND role = 'admin'") <= 1) {
+                    throw new RuntimeException('Das ist der letzte aktive Zugang — der bleibt an.');
+                }
+                Db::update('users', $uid, ['active' => $an]);
+                Events::pruefspur($an ? 'aktivieren' : 'abschalten', 'user', $uid);
+                $_SESSION['gut'] = $an ? 'Zugang wieder aktiv.' : 'Zugang abgeschaltet.';
+                weiter('einstellungen');
+
             case 'firma_speichern':
                 require_once __DIR__ . '/src/Firma.php';
                 Firma::speichern($_POST);
@@ -442,6 +501,52 @@ if ($post) {
                 $b = Cron::laufen(true);
                 $_SESSION['gut'] = 'Lauf erledigt: ' . json_encode($b, JSON_UNESCAPED_UNICODE);
                 weiter('monitoring');
+
+            case 'aufgabe_anlegen':
+                $pid = (int) $_POST['id'];
+                $titel = trim((string) ($_POST['titel'] ?? ''));
+                if ($titel === '') { throw new RuntimeException('Die Aufgabe braucht einen Namen.'); }
+                Db::insert('tasks', [
+                    'project_id' => $pid, 'title' => mb_substr($titel, 0, 255),
+                    'due_date' => ($_POST['due_date'] ?? '') !== '' ? (string) $_POST['due_date'] : null,
+                    'sort' => (int) Db::wert('SELECT COALESCE(MAX(sort),0)+1 FROM tasks WHERE project_id = ?', [$pid]),
+                ]);
+                weiter('projekte/' . $pid);
+
+            case 'aufgabe_weg':
+                $aid = (int) $_POST['id'];
+                $a = Db::one('SELECT project_id FROM tasks WHERE id = ?', [$aid]);
+                if (!$a) { throw new RuntimeException('Aufgabe nicht gefunden.'); }
+                Db::run('DELETE FROM tasks WHERE id = ?', [$aid]);
+                weiter('projekte/' . (int) $a['project_id']);
+
+            case 'aufgaben_vorlage':
+                // Bei jedem Webdesign-Projekt sind es dieselben Schritte. Sie
+                // von Hand zwoelfmal einzutippen ist verlorene Zeit.
+                $pid = (int) $_POST['id'];
+                $vorhanden = array_column(Db::all('SELECT title FROM tasks WHERE project_id = ?', [$pid]), 'title');
+                $n = (int) Db::wert('SELECT COALESCE(MAX(sort),0) FROM tasks WHERE project_id = ?', [$pid]);
+                $zahl = 0;
+                foreach ([
+                    'Fragebogen auswerten',
+                    'Struktur und Seitenaufbau abstimmen',
+                    'Entwurf Startseite',
+                    'Unterseiten umsetzen',
+                    'Texte einpflegen',
+                    'Bilder aufbereiten und einbinden',
+                    'Auf dem Handy prüfen',
+                    'SEO-Grundlagen setzen',
+                    'Vorschau an den Kunden schicken',
+                    'Änderungen einarbeiten',
+                    'Domain und SSL prüfen',
+                    'Veröffentlichen und übergeben',
+                ] as $titel) {
+                    if (in_array($titel, $vorhanden, true)) { continue; }
+                    Db::insert('tasks', ['project_id' => $pid, 'title' => $titel, 'sort' => ++$n]);
+                    $zahl++;
+                }
+                $_SESSION['gut'] = $zahl > 0 ? "$zahl Aufgaben eingefügt." : 'Die Vorlage steht schon vollständig da.';
+                weiter('projekte/' . $pid);
 
             case 'aufgabe_umschalten':
                 $aid = (int) $_POST['id'];
@@ -711,6 +816,9 @@ switch ($route) {
             'beispiele'  => sicher(static fn() => Beispieldaten::anzahl(), 0),
             'echteDaten' => sicher(static fn() => Beispieldaten::echteDatenDa(), true),
             'firma'      => sicher(static fn() => Firma::alle(), []),
+            'zugaenge'   => sicher(static fn() => Db::all(
+                'SELECT id, name, email, role, active, last_login_at, created_at
+                 FROM users ORDER BY active DESC, id')),
         ]);
         break;
 

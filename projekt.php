@@ -95,6 +95,29 @@ if ($f && Ablage::zuGrossFuerDenServer()) {
                     Nachricht::schreiben((int) $f['projekt_id'], $text, 'kunde');
                     $meldung = $T('gesendet');
                 }
+            } elseif ($tat === 'freigabe') {
+                // Der Kunde gibt frei. Damit rueckt das Projekt auf die finale
+                // Freigabe — und genau daran haengt die Restzahlungs-Anfrage.
+                if (in_array((string) $f['projekt_status'], ['vorschau', 'kundenfeedback', 'aenderungen'], true)) {
+                    Events::protokoll('freigabe', 'Der Kunde hat die Vorschau freigegeben',
+                        (int) $f['customer_id'], null, (int) $f['projekt_id']);
+                    Events::melden('freigabe', 'Vorschau freigegeben', 'gut',
+                        ($f['kunde_firma'] ?: $f['kunde']) . ' — ' . $f['projekt'],
+                        '/projekte/' . (int) $f['projekt_id']);
+                    Events::projektStatus((int) $f['projekt_id'], 'finale_freigabe');
+                }
+                $meldung = $T('freigegeben');
+            } elseif ($tat === 'aenderung') {
+                $text = trim((string) ($_POST['text'] ?? ''));
+                if ($text === '') {
+                    $fehler[] = $T('aendernWie');
+                } else {
+                    Nachricht::schreiben((int) $f['projekt_id'], $text, 'kunde');
+                    if ((string) $f['projekt_status'] !== 'aenderungen') {
+                        Events::projektStatus((int) $f['projekt_id'], 'aenderungen');
+                    }
+                    $meldung = $T('aenderungOk');
+                }
             } elseif ($tat === 'datei') {
                 Ablage::annehmen($_FILES['datei'] ?? [], (int) $f['projekt_id'], (int) $f['customer_id'], 'kunde');
                 Events::melden('datei_neu', 'Neue Datei vom Kunden', 'info',
@@ -107,6 +130,9 @@ if ($f && Ablage::zuGrossFuerDenServer()) {
             // ("zu groß", "Format nicht angenommen") — keine Serverinterna.
             $fehler[] = $e->getMessage();
         }
+        // Frisch lesen: Eine Freigabe aendert den Projektstand, und die Seite
+        // soll den neuen zeigen — nicht den von vor einer Zehntelsekunde.
+        try { $f = Onboarding::laden($token) ?? $f; } catch (Throwable $e) { /* Anzeige reicht */ }
     }
 }
 
@@ -199,6 +225,29 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
       <a class="knopf" href="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>"><?= $h($T('fragebogen')) ?></a>
     <?php endif; ?>
   </div>
+
+  <?php if (in_array((string) $f['projekt_status'], ['vorschau', 'kundenfeedback', 'aenderungen'], true)): ?>
+    <div class="block">
+      <h2><?= $h($T('freigabe')) ?></h2>
+      <p style="color:var(--dim);font-size:14px;line-height:1.6;margin-bottom:14px"><?= $h($T('freigabeText')) ?></p>
+      <form method="post" action="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
+        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+        <input type="hidden" name="t" value="<?= $h($token) ?>">
+        <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
+        <input type="hidden" name="tat" value="freigabe">
+        <button class="knopf haupt" style="width:100%;justify-content:center"><?= $h($T('freigeben')) ?></button>
+      </form>
+      <form method="post" action="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>" style="margin-top:12px">
+        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+        <input type="hidden" name="t" value="<?= $h($token) ?>">
+        <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
+        <input type="hidden" name="tat" value="aenderung">
+        <div class="feld"><textarea name="text" rows="3" maxlength="5000"
+          placeholder="<?= $h($T('aendern')) ?>"></textarea></div>
+        <button class="knopf" style="width:100%;justify-content:center"><?= $h($T('aendern')) ?></button>
+      </form>
+    </div>
+  <?php endif; ?>
 
   <div class="block">
     <h2><?= $h($T('nachrichten')) ?></h2>
