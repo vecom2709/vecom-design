@@ -349,6 +349,30 @@ if ($post) {
                 $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
                 weiter('rechnungen/' . (int) $r['id']);
 
+            case 'cockpit_schuetzen':
+                require_once __DIR__ . '/src/Cockpit.php';
+                $e = Cockpit::einrichten(trim((string) ($_POST['benutzer'] ?? 'uwe')) ?: 'uwe');
+                if (!$e['ok']) { throw new RuntimeException((string) $e['grund']); }
+                // Genau einmal anzeigen, danach ist es weg. Im Protokoll steht
+                // nur, DASS es passiert ist — nie das Passwort.
+                $_SESSION['cockpit_zugang'] = ['benutzer' => $e['benutzer'], 'passwort' => $e['passwort']];
+                Events::protokoll('cockpit', 'Passwortschutz für /cockpit/ eingerichtet (Benutzer '
+                    . $e['benutzer'] . ', Verfahren ' . $e['verfahren'] . ')');
+                if ($e['bestaetigt']) {
+                    $_SESSION['gut'] = 'Das Cockpit ist geschützt. Das Passwort steht unten — schreib es dir auf.';
+                } else {
+                    $_SESSION['fehler'] = (string) $e['grund'];
+                    $_SESSION['gut'] = 'Das Passwort steht unten — schreib es dir auf.';
+                }
+                weiter('einstellungen');
+
+            case 'cockpit_frei':
+                require_once __DIR__ . '/src/Cockpit.php';
+                Cockpit::entfernen();
+                Events::protokoll('cockpit', 'Passwortschutz für /cockpit/ entfernt');
+                $_SESSION['gut'] = 'Der Schutz ist weg — das Cockpit ist wieder offen.';
+                weiter('einstellungen');
+
             case 'passwort_aendern':
                 // Das eigene Passwort. Das alte muss stimmen — sonst koennte
                 // jemand an einem offen stehenden Rechner den Zugang uebernehmen.
@@ -816,6 +840,12 @@ switch ($route) {
             'beispiele'  => sicher(static fn() => Beispieldaten::anzahl(), 0),
             'echteDaten' => sicher(static fn() => Beispieldaten::echteDatenDa(), true),
             'firma'      => sicher(static fn() => Firma::alle(), []),
+            'cockpit'    => sicher(static function () {
+                require_once __DIR__ . '/src/Cockpit.php';
+                return ['geschuetzt' => Cockpit::geschuetzt(), 'eingerichtet' => Cockpit::eingerichtet(),
+                        'beschreibbar' => Cockpit::beschreibbar(), 'benutzer' => Cockpit::benutzer(),
+                        'adresse' => Cockpit::adresse()];
+            }, ['geschuetzt' => null, 'eingerichtet' => false, 'beschreibbar' => false, 'benutzer' => null, 'adresse' => '']),
             'zugaenge'   => sicher(static fn() => Db::all(
                 'SELECT id, name, email, role, active, last_login_at, created_at
                  FROM users ORDER BY active DESC, id')),

@@ -6,3 +6,8 @@ config.local.php
 besuche.csv
 app/config.local.php
 app/uploads/
+
+# Der Passwortschutz des Cockpits entsteht auf dem Server und gehoert
+# nicht ins Repository — sonst laege die Pruefsumme oeffentlich einsehbar.
+cockpit/.htaccess
+cockpit/.htpasswd

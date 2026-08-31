@@ -66,6 +66,20 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
     $beispielZahl = 0;
     try { $beispielZahl = (int) Db::wert('SELECT COUNT(*) FROM customers WHERE demo = 1'); } catch (Throwable $e) { }
     ?>
+    <?php
+    /* Der Stand kommt aus dem regelmaessigen Lauf, nicht aus einer Anfrage
+       bei jedem Seitenaufruf. Steht er auf "nein", ist das wichtig genug,
+       um ueberall zu stehen. */
+    $cockpitOffen = false;
+    try { $cockpitOffen = (string) Db::wert("SELECT svalue FROM settings WHERE skey='cockpit_geschuetzt'", [], '') === 'nein'; }
+    catch (Throwable $e) { }
+    ?>
+    <?php if ($cockpitOffen && $aktiv !== 'einstellungen'): ?>
+      <div class="hinweis schlecht" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="flex:1;min-width:240px"><b>Das Cockpit steht offen.</b> Jeder, der die Adresse kennt, sieht deine Zahlen.</span>
+        <a class="knopf" href="<?= Fmt::h(url('einstellungen')) ?>">Schützen</a>
+      </div>
+    <?php endif; ?>
     <?php if ($beispielZahl > 0): ?>
       <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="flex:1;min-width:240px">Beispieldaten geladen (<?= $beispielZahl ?> Kunden) — die Zahlen sind noch nicht deine echten.</span>

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Monitoring.php';
 require_once __DIR__ . '/Onboarding.php';
+require_once __DIR__ . '/Cockpit.php';
 
 /**
  * Der regelmaessige Lauf. Auf dem Webspace gibt es kein SSH und keinen
@@ -84,6 +85,9 @@ final class Cron
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
             'erinnerungen'=> static fn() => Onboarding::erinnerungen(),
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
+            // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
+            // jedem Aufruf eine HTTP-Anfrage zu stellen.
+            'cockpit'     => static fn() => self::cockpitPruefen(),
         ];
         // Einmal am Tag genuegt: alte Pruefungen wegraeumen.
         if (self::heuteNochNicht('cron_aufraeumen')) {
@@ -99,6 +103,23 @@ final class Cron
         self::merken('cron_zuletzt', date('Y-m-d H:i:s'));
         self::merken('cron_bilanz', json_encode($bilanz, JSON_UNESCAPED_UNICODE));
         return $bilanz;
+    }
+
+    /** Merkt sich, ob /cockpit/ geschuetzt ist. Meldet nur den Wechsel. */
+    private static function cockpitPruefen(): string
+    {
+        $jetzt = Cockpit::geschuetzt();
+        if ($jetzt === null) { return 'nicht erreichbar'; }
+        $wert = $jetzt ? 'ja' : 'nein';
+        $vorher = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'cockpit_geschuetzt'", [], '');
+        self::merken('cockpit_geschuetzt', $wert);
+
+        if ($vorher === 'ja' && $wert === 'nein') {
+            Events::melden('cockpit_offen', 'Das Cockpit ist nicht mehr geschützt', 'schlecht',
+                'Vorher war es geschützt, jetzt antwortet es ohne Passwort. In den Einstellungen wieder einrichten.',
+                '/einstellungen');
+        }
+        return $wert;
     }
 
     private static function heuteNochNicht(string $schluessel): bool

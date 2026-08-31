@@ -92,6 +92,65 @@
 </div>
 
 <div class="block">
+  <h2>Cockpit-Schutz</h2>
+  <?php
+    $zugang = $_SESSION['cockpit_zugang'] ?? null;
+    unset($_SESSION['cockpit_zugang']);
+  ?>
+  <?php if ($zugang): ?>
+    <div class="hinweis gut" style="margin-bottom:14px">
+      <b>Schreib dir das jetzt auf — es wird nicht wieder angezeigt.</b>
+    </div>
+    <table style="margin-bottom:16px"><tbody>
+      <tr><td style="width:130px">Benutzername</td>
+        <td><input readonly onclick="this.select()" value="<?= Fmt::h($zugang['benutzer']) ?>"></td></tr>
+      <tr><td>Passwort</td>
+        <td><input readonly onclick="this.select()" style="font-size:16px;letter-spacing:.04em"
+                   value="<?= Fmt::h($zugang['passwort']) ?>"></td></tr>
+    </tbody></table>
+  <?php endif; ?>
+
+  <?php if ($cockpit['geschuetzt'] === true): ?>
+    <div class="hinweis gut">Das Cockpit ist geschützt — es antwortet mit 401 und fragt nach dem Passwort.
+      <?php if ($cockpit['benutzer']): ?> Benutzer: <b><?= Fmt::h($cockpit['benutzer']) ?></b>.<?php endif; ?></div>
+  <?php elseif ($cockpit['geschuetzt'] === false): ?>
+    <div class="hinweis schlecht"><b>Das Cockpit steht offen.</b> Jeder, der die Adresse kennt, sieht deine Zahlen.</div>
+  <?php else: ?>
+    <div class="hinweis">Der Zustand ließ sich gerade nicht prüfen — die Adresse war nicht erreichbar.</div>
+  <?php endif; ?>
+
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:12px 0 14px">
+    Die Verwaltung liegt auf demselben Server wie das Cockpit und kann den Schutz selbst setzen —
+    ohne KAS und ohne FTP. Das Passwort wird dabei erzeugt, einmal angezeigt und nirgends
+    gespeichert; in der Datei auf dem Server steht nur seine Prüfsumme.
+    Danach ruft die Verwaltung die Adresse selbst auf und sieht nach, ob wirklich 401 kommt.
+  </p>
+
+  <?php if (!$cockpit['beschreibbar']): ?>
+    <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb)">
+      In den Ordner <code>cockpit/</code> darf von hier aus nicht geschrieben werden. Im KAS unter
+      Dateiverwaltung die Schreibrechte prüfen — dann geht es auf Knopfdruck.
+    </div>
+  <?php else: ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;margin:0">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="cockpit_schuetzen">
+        <input type="hidden" name="zurueck" value="einstellungen">
+        <div class="feld" style="margin:0"><label>Benutzername</label>
+          <input name="benutzer" value="<?= Fmt::h((string) ($cockpit['benutzer'] ?: 'uwe')) ?>" style="width:180px"></div>
+        <button class="knopf haupt"><?= $cockpit['eingerichtet'] ? 'Neues Passwort setzen' : 'Jetzt schützen' ?></button>
+      </form>
+      <?php if ($cockpit['eingerichtet']): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="cockpit_frei">
+          <input type="hidden" name="zurueck" value="einstellungen">
+          <button class="knopf">Schutz entfernen</button></form>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
+</div>
+
+<div class="block">
   <h2>Zugänge</h2>
   <table style="margin-bottom:18px"><thead><tr><th>Name</th><th>E-Mail</th><th>Zuletzt angemeldet</th><th></th></tr></thead><tbody>
   <?php foreach ($zugaenge as $u): ?>
