@@ -469,3 +469,45 @@ und in Brevo unter Transaktionale → Logs stehen beide Mails auf **Zugestellt**
 
 **Offen:** Der Brevo-Schlüssel, der jetzt hinterlegt ist (endet auf `Cqpb`), stand einmal im
 Klartext in einem Chat. In Brevo einen neuen erzeugen, hier eintragen, den alten löschen.
+
+### Der Kundenweg, tief durchgegangen (01.09.2026)
+
+Alles vor dem Auftrag und danach einmal wirklich gegangen — mit echten
+Schlüsseln gegen eine echte Datenbank, in drei Sprachen, auf 390 und 820 Pixel
+Breite, und live mit einer Testanfrage.
+
+**Was steht und trägt.** Vorgangsseite, Fragebogen, Projektseite und
+Buchungsseite antworten in allen drei Sprachen ohne eine einzige PHP-Meldung,
+weisen einen falschen oder fehlenden Schlüssel freundlich ab statt
+abzustürzen, und haben durchgehend CSRF, `no-store`, `noindex` und
+`Referrer-Policy: no-referrer`. Dateien und Belege sind über Kunde **und**
+Projekt geprüft, nicht über die geratene Nummer. Kein Überlauf auf keiner
+Breite. Der Fragebogen speichert 22 Felder zwischen und erzwingt beim
+endgültigen Absenden den Firmennamen. Eine gefälschte CSRF-Marke kommt
+weder örtlich noch live durch.
+
+**Sechs Stellen, an denen etwas still blieb** — dieselbe Fehlerklasse wie beim
+Formular, siehe den Commit dazu: Kundennachricht vor dem Auftrag meldete sich
+nirgends; der Zähler neben „Nachrichten" konnte für solche Nachrichten nie
+wieder auf null gehen; die Nachrichtenliste zeigte einen Strich statt eines
+Wegs zum Antworten; die private Adresse des Kunden stand in der Verwaltung
+nirgends; der Fragebogen ersetzte beim Speichern statt zusammenzuführen; und
+„Integrationen" sagte „Brevo — Nicht verbunden", während Brevo zustellte.
+Alles behoben und live nachgeprüft.
+
+**Neu als Dauerwache:** Der Cron fragt jetzt einmal täglich bei Brevo nach und
+meldet sich, wenn der Versand nicht mehr antwortet. Diese eine Frage hätte den
+toten Schlüssel am ersten Tag gezeigt statt nach Monaten.
+
+**Was noch nicht offen ist, und warum.**
+
+- **Direktbuchung ist zu.** `buchen.php` verlangt Stripe im Livemodus mit
+  eingerichtetem Webhook. Stripe steht auf Testmodus mit `sk_test_`, und
+  „Kaufknopf auch im Testmodus zeigen" ist aus. Das ist richtig so, solange
+  nicht live geschaltet ist — aber es heißt: Der Kaufweg ist gebaut und
+  ungenutzt. Zum Ausprobieren reicht der Schalter in den Integrationen.
+- **Stripe-Webhook: fünf ungültige Unterschriften an einem Tag**, die nicht von
+  eigenen Aufrufen stammen. Wenn das echte Stripe-Ereignisse waren, passt das
+  hinterlegte Webhook-Geheimnis nicht zu dem, das Stripe für
+  `https://vecom-design.it/stripe-webhook.php` anzeigt — dann würde keine
+  Zahlung je von allein bestätigt. Vor dem Livegang prüfen.
