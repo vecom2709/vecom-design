@@ -587,3 +587,42 @@ Oberfläche, die für den Betreiber gebaut ist. Jetzt: Logo, Blau-Cyan,
 Archivo und Inter, ruhige Karten, Fingerziele ab 44 px. Ohne `font-stretch`
 auf den kleinen Überschriften — Archivos Breitenachse reißt dort einzelne
 Buchstabenpaare sichtbar auseinander.
+
+### Wie Rechnungen versendet werden — und was rechtlich dazugehört (01.09.2026)
+
+Die Frage war „wie werden Rechnungen versendet". Die ehrliche Antwort war:
+gar nicht. `Mail::senden` kannte keine Anhänge, der Beleg lag nur zum
+Herunterladen auf der Projektseite, und die Mail „Zahlung erhalten" erwähnte
+ihn mit keinem Wort.
+
+**Der schwerere Fund kam beim Nachlesen.** Art. 51 Abs. 7 Codice del Consumo
+verlangt bei einem Fernabsatzvertrag mit einem Verbraucher die Bestätigung
+des geschlossenen Vertrags auf einem **dauerhaften Datenträger**, spätestens
+bevor die Leistung beginnt. Eine Webseite ist keiner, eine E-Mail mit Anhang
+schon. Die beiden Haken auf `buchen.php` (AGB, ausdrückliches Verlangen nach
+sofortigem Beginn nach Art. 51 Abs. 8) wurden korrekt eingeholt und wörtlich
+gespeichert — nur nie zurückbestätigt.
+
+**Jetzt geht bei bestätigter Anzahlung eine Auftragsbestätigung raus**, in
+der Sprache des Kunden, mit dem was Art. 49 Abs. 1 verlangt: wer die Leistung
+erbringt samt Anschrift, Telefon und Steuernummer; Bestellung, Gesamtpreis
+und beide Raten mit Stand; Widerrufsrecht mit Frist und Verfahren; der
+wörtliche Zustimmungstext mit Zeitpunkt; AGB und Datenschutz als Verweis. Im
+Anhang das Muster-Widerrufsformular (Anhang I Teil B, vorbelegt) und der
+Beleg.
+
+`Widerruf.php` hält die Widerrufstexte an **einer** Stelle; `buchen.php` zieht
+sie von dort. Was der Kunde beim Buchen liest, ist damit wörtlich das, was
+ihm bestätigt wird.
+
+**Was ausdrücklich NICHT hier passiert:** die elektronische Rechnung über das
+SDI. Sie ist für Forfettari seit 2024 ohne Umsatzschwelle Pflicht, auch
+gegenüber Privatpersonen (Empfängerkode `0000000`). Was diese Anwendung
+verschickt, ist die *copia di cortesia* — gute Praxis, aber kein Ersatz. Der
+SDI-Weg gehört zum Commercialista oder zu einem Rechnungsdienst.
+
+**Offen und Uwes Entscheidung:** Auf dem Weg über eine Anfrage (Uwe legt die
+Bestellung von Hand an) gibt es keine Haken — dort wird kein ausdrückliches
+Verlangen nach sofortigem Beginn eingeholt. Die Auftragsbestätigung geht
+trotzdem raus, nur ohne diesen Absatz. Ob das genügt, gehört vor einen
+Anwalt.
