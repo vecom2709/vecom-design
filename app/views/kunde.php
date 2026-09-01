@@ -1,7 +1,9 @@
 <div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a></div>
 <h1><?= Fmt::h($k['name']) ?></h1></div>
-<div class="rechts"><a class="knopf" href="<?= Fmt::h(url('kunden/' . $k['id'] . '/bearbeiten')) ?>">Bearbeiten</a>
-<a class="knopf haupt" href="<?= Fmt::h(url('bestellungen/neu')) ?>">Bestellung erfassen</a></div></div>
+<div class="rechts"><?php if (!($anonym ?? false)): ?>
+<a class="knopf" href="<?= Fmt::h(url('kunden/' . $k['id'] . '/bearbeiten')) ?>">Bearbeiten</a>
+<a class="knopf haupt" href="<?= Fmt::h(url('bestellungen/neu')) ?>">Bestellung erfassen</a>
+<?php else: ?><span class="marke2 schlecht">Anonymisiert</span><?php endif; ?></div></div>
 <div class="zwei"><div>
   <div class="block"><h2>Bestellungen</h2><div class="tabellenrahmen"><table>
     <thead><tr><th>Nummer</th><th>Paket</th><th class="num">Preis</th><th>Status</th><th>Datum</th></tr></thead><tbody>
@@ -29,6 +31,10 @@
       <td><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></td></tr><?php endforeach; ?>
     </tbody></table></div></div>
   <div class="block"><h2>Nachricht an den Kunden</h2>
+    <?php if ($anonym ?? false): ?>
+      <div class="leer">Der Datensatz ist anonymisiert — es gibt keine Adresse mehr,
+        an die etwas gehen könnte.</div>
+    <?php else: ?>
     <p style="color:var(--leise);font-size:13px;margin:0 0 12px">Geht als E-Mail raus und steht danach hier
       — und auf der Seite des Kunden. Antwortet er dort, landet es ebenfalls hier.</p>
     <?php if ($nachrichten): ?>
@@ -55,6 +61,7 @@
         <?php endforeach; ?>
       </div>
     </form>
+    <?php endif; ?>
   </div>
 
   <div class="block"><h2>Dateien</h2>
@@ -91,4 +98,94 @@
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">
     <?php foreach ($aktivitaeten as $a): ?><li><span class="punkt"></span><span><?= Fmt::h($a['title']) ?></span>
       <span class="wann"><?= Fmt::h(Fmt::seit($a['created_at'])) ?></span></li><?php endforeach; ?></ul><?php endif; ?></div>
+
+  <?php /* -------------------------------------------------------------------
+       Kunde entfernen. Zwei Wege, weil es zwei verschiedene Faelle sind:
+       ein Testkunde, den es nie gab, und ein echter Kunde, der sein
+       Loeschrecht ausuebt. Der zweite darf die Buchhaltung nicht mitnehmen.
+       Beides steckt in einem zugeklappten Bereich — nichts davon soll
+       aus Versehen angeklickt werden.
+  ------------------------------------------------------------------- */ ?>
+  <div class="block" style="border-color:rgba(255,138,138,.28)">
+    <h2 style="color:var(--rot)">Kunde entfernen</h2>
+
+    <?php if ($anonym ?? false): ?>
+      <div class="hinweis schlecht" style="margin:0">Dieser Datensatz ist am
+        <?= Fmt::h(Fmt::datum((string) $k['anonym_am'])) ?> anonymisiert worden.
+        Die personenbezogenen Daten sind weg; Bestellungen, Zahlungen und Belege
+        stehen weiter in den Büchern und tragen ihren Empfänger auf dem Dokument.</div>
+
+    <?php else: ?>
+      <p style="color:var(--leise);font-size:13px;margin:0 0 12px;line-height:1.6">
+        Zwei Wege, und sie sind nicht dasselbe. <strong style="color:var(--dim)">Löschen</strong>
+        ist für Testkunden und Vertipper — alles verschwindet.
+        <strong style="color:var(--dim)">Anonymisieren</strong> ist für den echten Kunden,
+        der die Löschung seiner Daten verlangt: Der Mensch verschwindet, die Buchhaltung bleibt.
+        Beides lässt sich nicht rückgängig machen.</p>
+
+      <?php if ($umfang ?? []): ?>
+        <div style="font-size:12.5px;color:var(--leise);border:1px solid var(--linie);
+                    border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-weight:650;color:var(--dim);margin-bottom:6px">An diesem Kunden hängen</div>
+          <?= Fmt::h(Kunde::umfangText($umfang)) ?>
+        </div>
+      <?php endif; ?>
+
+      <?php /* --- Weg 1 --- */ ?>
+      <?php if ($riegel ?? []): ?>
+        <div class="hinweis schlecht" style="margin-bottom:12px">
+          <strong>Löschen ist hier gesperrt.</strong>
+          <ul style="margin:7px 0 0;padding-left:18px">
+            <?php foreach ($riegel as $grund): ?><li style="margin-bottom:4px"><?= Fmt::h($grund) ?></li><?php endforeach; ?>
+          </ul>
+          <div style="margin-top:8px">Nimm den Weg darunter — er entfernt die
+            personenbezogenen Daten und lässt die Belege stehen.</div>
+        </div>
+      <?php else: ?>
+        <details style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+          <summary style="cursor:pointer;font-weight:650;font-size:13.5px">Vollständig löschen</summary>
+          <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:10px 0 12px">
+            Der Kunde verschwindet mit allem, was oben aufgezählt ist — samt hochgeladener
+            Dateien. Es gibt keine Rechnung und keine eingegangene Zahlung, die dem im Weg
+            stünde. Danach ist nichts davon wiederherstellbar.</p>
+          <form method="post" action="<?= Fmt::h(url('')) ?>"
+                style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_loeschen">
+            <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+            <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+            <input name="bestaetigung" required autocomplete="off" placeholder="LÖSCHEN"
+                   aria-label="Zur Bestätigung LÖSCHEN eingeben"
+                   style="max-width:150px;text-transform:uppercase;letter-spacing:.06em">
+            <button class="knopf" style="border-color:rgba(255,138,138,.45);color:var(--rot)">
+              Endgültig löschen</button>
+          </form>
+        </details>
+      <?php endif; ?>
+
+      <?php /* --- Weg 2 --- */ ?>
+      <details style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px">
+        <summary style="cursor:pointer;font-weight:650;font-size:13.5px">Anonymisieren (DSGVO-Auskunft)</summary>
+        <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:10px 0 8px">
+          <strong style="color:var(--dim)">Weg:</strong> Name, Adresse, Telefon, Steuernummern,
+          Nachrichten, Dateien, Fragebogen, Anfragen, der Zugang des Kunden und sein Verlauf.<br>
+          <strong style="color:var(--dim)">Bleibt:</strong> Bestellungen, Zahlungen und Belege.
+          Jeder Beleg bekommt vorher seinen Empfänger eingefroren, damit er auch danach zeigt,
+          an wen er ging — das verlangt die zehnjährige Aufbewahrung (Art. 2220 c.c.), und die
+          DSGVO nimmt diesen Fall in Art. 17 Abs. 3 b ausdrücklich vom Löschrecht aus.<br>
+          <strong style="color:var(--dim)">Bleibt ebenfalls:</strong> eine eingetragene Website.
+          Solange sie online ist, läuft der Vertrag — dann ist Anonymisieren verfrüht.</p>
+        <form method="post" action="<?= Fmt::h(url('')) ?>"
+              style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_anonymisieren">
+          <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+          <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+          <input name="bestaetigung" required autocomplete="off" placeholder="ANONYM"
+                 aria-label="Zur Bestätigung ANONYM eingeben"
+                 style="max-width:150px;text-transform:uppercase;letter-spacing:.06em">
+          <button class="knopf" style="border-color:rgba(251,191,36,.45);color:var(--gelb)">
+            Daten anonymisieren</button>
+        </form>
+      </details>
+    <?php endif; ?>
+  </div>
 </div></div>

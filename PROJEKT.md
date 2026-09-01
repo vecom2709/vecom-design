@@ -120,7 +120,6 @@ Jede Änderung wird an diesen fünf Punkten gemessen:
 
 ## Offen
 - **Statistiken** ist die letzte Platzhalterseite.
-- **Kunden löschen** ist nicht vorgesehen — bearbeiten ja.
 - **Monatliche Betreuung als Stripe-Abo** — braucht ein freigeschaltetes Stripe-Konto.
 - **Stripe ist nicht live**: offen ist das Ausweisdokument (`company.verification.document`).
 - **Der Cronjob im KAS ist noch nicht angelegt.** Ohne ihn läuft weder Monitoring noch die
@@ -626,3 +625,43 @@ Bestellung von Hand an) gibt es keine Haken — dort wird kein ausdrückliches
 Verlangen nach sofortigem Beginn eingeholt. Die Auftragsbestätigung geht
 trotzdem raus, nur ohne diesen Absatz. Ob das genügt, gehört vor einen
 Anwalt.
+
+### Kunden löschen — zwei Wege, weil es zwei Fälle sind (01.09.2026)
+
+Es gab keine Löschfunktion. Ein schlichtes `DELETE` wäre auch nicht gegangen:
+`orders`, `projects`, `invoices` und `websites` stehen auf `ON DELETE RESTRICT`,
+die Datenbank hätte es verweigert. Und selbst wenn nicht — ein ausgestellter
+Beleg muss zehn Jahre aufbewahrt werden (Art. 2220 Codice civile), auch dann,
+wenn der Kunde seine Löschung verlangt. Die DSGVO nimmt genau diesen Fall in
+Art. 17 Abs. 3 Buchst. b vom Löschrecht aus.
+
+Deshalb `app/src/Kunde.php` mit zwei Wegen, beide in der Kundenakte unten:
+
+**Löschen** — für Testkunden, Vertipper und Anfragen, aus denen nichts wurde.
+`riegel()` prüft vorher auf ausgestellte Belege und eingegangene Zahlungen und
+verweigert mit genau diesem Grund im Klartext, statt in einen Datenbankfehler zu
+laufen. Sonst verschwindet der Kunde in einer Transaktion mit allem, was an ihm
+hängt — Kindtabellen zuerst, hochgeladene Dateien erst nach dem Commit, weil ein
+Rollback keine Bytes zurückholt.
+
+**Anonymisieren** — für den echten Kunden, der sein Löschrecht ausübt. Weg sind
+Name, Adresse, Steuernummern, Nachrichten, Dateien, Fragebogen, Anfragen, Zugang
+und Verlauf; die Projektnamen werden neutralisiert, weil dort fast immer der
+Kundenname steht. Bestellungen, Zahlungen und Belege bleiben.
+
+Der entscheidende Punkt dabei: `Rechnung::pdf()` las die Anschrift bisher bei
+jedem Aufruf frisch aus `customers` — nach einer Anonymisierung hätte jede alte
+Rechnung ohne Empfänger dagestanden. Migration 013 gibt `invoices` deshalb die
+Spalte `empfaenger`; sie wird beim Ausstellen gefüllt und vor dem Anonymisieren
+für alle Altbelege nachgetragen. Gegen eine Prüfdatenbank ist das Beleg-PDF vor
+und nach der Anonymisierung Byte für Byte dasselbe.
+
+Dazu: `customers.anonym_am` kennzeichnet den Datensatz, die Kundenliste zeigt es,
+die Akte sperrt Bearbeiten, Bestellung und Nachrichtenfeld — und `Mail::senden()`
+schickt nichts mehr an eine Adresse unter `.invalid` (RFC 2606), sondern vermerkt
+den Grund. Beide Wege verlangen ein getipptes Wort (`LÖSCHEN` bzw. `ANONYM`);
+ein Klick allein ist zu wenig für etwas, das nicht rückgängig zu machen ist.
+
+**Offen:** Eine noch eingetragene Website bleibt beim Anonymisieren stehen —
+solange sie online ist, läuft der Vertrag, und dann ist der Zeitpunkt falsch.
+Das steht als Hinweis über dem Knopf, ist aber nicht erzwungen.

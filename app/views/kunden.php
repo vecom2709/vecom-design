@@ -7,7 +7,9 @@
 <tbody>
 <?php if (!$liste): ?><tr><td colspan="6"><div class="leer">Noch keine Kunden erfasst.</div></td></tr><?php endif; ?>
 <?php foreach ($liste as $k): ?>
-<tr><td><a href="<?= Fmt::h(url('kunden/' . $k['id'])) ?>"><strong><?= Fmt::h($k['name']) ?></strong></a></td>
+<tr><td><a href="<?= Fmt::h(url('kunden/' . $k['id'])) ?>"><strong><?= Fmt::h($k['name']) ?></strong></a>
+<?php if (trim((string) ($k['anonym_am'] ?? '')) !== ''): ?>
+  <span class="marke2 schlecht" style="margin-left:7px">anonymisiert</span><?php endif; ?></td>
 <td><?= Fmt::h($k['company'] ?: '—') ?></td><td><?= Fmt::h($k['email']) ?></td>
 <td class="num"><?= (int) $k['bestellungen'] ?></td><td class="num"><?= (int) $k['projekte'] ?></td>
 <td><?= Fmt::h(Fmt::datum($k['created_at'])) ?></td></tr>

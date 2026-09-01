@@ -212,6 +212,39 @@ if ($post) {
                 Ablage::annehmen($_FILES['datei'] ?? [], null, $kid, 'admin');
                 weiter('kunden/' . $kid);
 
+            /* Zwei Wege, einen Kunden loszuwerden — und ein getipptes Wort
+               davor. Ein Klick allein ist zu wenig fuer etwas, das sich
+               nicht rueckgaengig machen laesst. */
+            case 'kunde_loeschen':
+                require_once __DIR__ . '/src/Kunde.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                $wort = mb_strtoupper(trim((string) ($_POST['bestaetigung'] ?? '')));
+                if (!in_array($wort, ['LOESCHEN', 'LÖSCHEN'], true)) {
+                    throw new RuntimeException('Zum Löschen muss LÖSCHEN im Feld stehen. Es ist nichts passiert.');
+                }
+                $weg = Kunde::loeschen($kid);
+                $_SESSION['gut'] = 'Kunde „' . $weg['name'] . '" gelöscht — '
+                    . $weg['zeilen'] . ' Einträge'
+                    . ($weg['dateien'] > 0 ? ' und ' . $weg['dateien'] . ' Datei(en)' : '')
+                    . ' sind weg.';
+                weiter('kunden');
+
+            case 'kunde_anonymisieren':
+                require_once __DIR__ . '/src/Kunde.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                $wort = mb_strtoupper(trim((string) ($_POST['bestaetigung'] ?? '')));
+                if ($wort !== 'ANONYM') {
+                    throw new RuntimeException('Zum Anonymisieren muss ANONYM im Feld stehen. Es ist nichts passiert.');
+                }
+                $an = Kunde::anonymisieren($kid);
+                $_SESSION['gut'] = 'Kunde ' . $an['nummer'] . ' anonymisiert. '
+                    . ($an['belege'] > 0
+                        ? $an['belege'] . ' Beleg(e) behalten ihren Empfänger und bleiben in den Büchern. '
+                        : '')
+                    . $an['zeilen'] . ' Einträge geleert'
+                    . ($an['dateien'] > 0 ? ', ' . $an['dateien'] . ' Datei(en) gelöscht' : '') . '.';
+                weiter('kunden/' . $kid);
+
             case 'anfrage_bestellung':
                 require_once __DIR__ . '/src/Anfrage.php';
                 $bid = Anfrage::zuBestellung((int) ($_POST['id'] ?? 0), (int) ($_POST['paket_id'] ?? 0));
@@ -771,9 +804,15 @@ switch ($route) {
             // Oeffnen eines Projekts — nur gab es fuer die Nachrichten ohne
             // Projekt bisher keine Stelle, an der es passiert waere.
             require_once __DIR__ . '/src/Nachricht.php';
+            require_once __DIR__ . '/src/Kunde.php';
             sicher(static fn() => Nachricht::gelesenKunde($id), 0);
             ansicht('kunde', [
                 'k' => $k,
+                // Was einer Loeschung im Weg steht und was mitginge — beides
+                // gehoert vor den Knopf, nicht in eine Fehlermeldung danach.
+                'riegel' => sicher(static fn() => Kunde::riegel($id), []),
+                'umfang' => sicher(static fn() => Kunde::umfang($id), []),
+                'anonym' => sicher(static fn() => Kunde::istAnonym($k), false),
                 'bestellungen' => Db::all('SELECT * FROM orders WHERE customer_id = ? ORDER BY id DESC', [$id]),
                 'projekte' => Db::all('SELECT * FROM projects WHERE customer_id = ? ORDER BY id DESC', [$id]),
                 'zahlungen' => Db::all('SELECT p.*, o.order_no FROM payments p JOIN orders o ON o.id = p.order_id WHERE o.customer_id = ? ORDER BY p.id DESC', [$id]),

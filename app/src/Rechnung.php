@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Firma.php';
 require_once __DIR__ . '/Pdf.php';
+require_once __DIR__ . '/Kunde.php';
 
 /**
  * Belege und Rechnungen.
@@ -68,6 +69,10 @@ final class Rechnung
         $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
         if (!$b) { return null; }
         $p = Db::one('SELECT id FROM projects WHERE order_id = ?', [(int) $z['order_id']]);
+        // Die Anschrift wird jetzt festgehalten, nicht spaeter geholt. Ein
+        // Beleg muss zeigen, an wen er ging — auch dann noch, wenn der Kunde
+        // inzwischen aus der Verwaltung verschwunden ist.
+        $kunde = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $b['customer_id']]);
 
         $brutto = (int) $z['amount_cents'];
         $satz   = Firma::mwst();
@@ -76,25 +81,30 @@ final class Rechnung
         $netto  = $satz > 0 ? (int) round($brutto / (1 + $satz / 100)) : $brutto;
         $steuer = $brutto - $netto;
 
+        $zeile = [
+            'invoice_no' => self::naechsteNummer(),
+            'customer_id'=> (int) $b['customer_id'],
+            'order_id'   => (int) $b['id'],
+            'project_id' => $p ? (int) $p['id'] : null,
+            'payment_id' => $zahlungId,
+            'art'        => (string) ($z['art'] ?? 'gesamt'),
+            'titel'      => self::bezeichnung(),
+            'net_cents'  => $netto,
+            'tax_rate'   => $satz,
+            'tax_cents'  => $steuer,
+            'total_cents'=> $brutto,
+            'currency'   => (string) $z['currency'],
+            'status'     => 'bezahlt',
+            'hinweis'    => Firma::get('hinweis') ?: null,
+            'issued_at'  => date('Y-m-d', strtotime((string) ($z['paid_at'] ?? 'now'))),
+            'due_at'     => date('Y-m-d', strtotime((string) ($z['paid_at'] ?? 'now'))),
+        ];
+        if ($kunde && Kunde::belegSpalte()) {
+            $zeile['empfaenger'] = json_encode(Kunde::empfaenger($kunde), JSON_UNESCAPED_UNICODE);
+        }
+
         try {
-            return Db::insert('invoices', [
-                'invoice_no' => self::naechsteNummer(),
-                'customer_id'=> (int) $b['customer_id'],
-                'order_id'   => (int) $b['id'],
-                'project_id' => $p ? (int) $p['id'] : null,
-                'payment_id' => $zahlungId,
-                'art'        => (string) ($z['art'] ?? 'gesamt'),
-                'titel'      => self::bezeichnung(),
-                'net_cents'  => $netto,
-                'tax_rate'   => $satz,
-                'tax_cents'  => $steuer,
-                'total_cents'=> $brutto,
-                'currency'   => (string) $z['currency'],
-                'status'     => 'bezahlt',
-                'hinweis'    => Firma::get('hinweis') ?: null,
-                'issued_at'  => date('Y-m-d', strtotime((string) ($z['paid_at'] ?? 'now'))),
-                'due_at'     => date('Y-m-d', strtotime((string) ($z['paid_at'] ?? 'now'))),
-            ]);
+            return Db::insert('invoices', $zeile);
         } catch (Throwable $e) {
             // Zwei gleichzeitige Aufrufe: Der zweite faellt in den
             // eindeutigen Schluessel. Das ist kein Fehler, sondern der Sinn.
@@ -151,7 +161,11 @@ final class Rechnung
     /** Das fertige PDF. */
     public static function pdf(array $r): string
     {
-        $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $r['customer_id']]);
+        // Der Empfaenger, wie er auf diesem Beleg steht: der eingefrorene,
+        // wenn er beim Ausstellen festgehalten wurde, sonst der aus der
+        // Kundentabelle. Ein Beleg darf seinen Empfaenger nicht verlieren,
+        // nur weil der Kunde spaeter seine Loeschung verlangt hat.
+        $k = Kunde::belegEmpfaenger($r);
         $b = $r['order_id'] !== null ? Db::one('SELECT * FROM orders WHERE id = ?', [(int) $r['order_id']]) : null;
         $w = (string) $r['currency'];
         // Der Satz aus der Zeile — aber nur, wenn ueberhaupt Steuer

@@ -81,6 +81,15 @@ final class Mail
             'payment_id'  => $bezug['payment_id'] ?? null,
         ];
 
+        // Ein anonymisierter Kunde traegt eine Adresse unter .invalid. Die
+        // gibt es garantiert nicht (RFC 2606) — ein Versuch waere nur ein
+        // Fehlschlag bei Brevo und ein rotes Feld in der Verwaltung. Also
+        // gar nicht erst losschicken, aber sichtbar vermerken.
+        if (str_ends_with(mb_strtolower($an), '.invalid')) {
+            self::vermerken($eintrag + ['status' => 'fehler',
+                'fehler' => 'Empfänger ist anonymisiert — es wurde nichts verschickt.']);
+            return false;
+        }
         $z = self::zugang();
         if ($z === null) {
             self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => 'Kein Brevo-Schlüssel hinterlegt.']);
