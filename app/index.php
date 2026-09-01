@@ -160,6 +160,16 @@ if ($post) {
                 }
                 weiter('kunden/' . $kid);
 
+            case 'anfrage_bestellung':
+                require_once __DIR__ . '/src/Anfrage.php';
+                $bid = Anfrage::zuBestellung((int) ($_POST['id'] ?? 0), (int) ($_POST['paket_id'] ?? 0));
+                weiter('bestellungen/' . $bid);
+
+            case 'anfrage_status':
+                require_once __DIR__ . '/src/Anfrage.php';
+                Anfrage::status((int) ($_POST['id'] ?? 0), (string) ($_POST['status'] ?? ''));
+                weiter('anfragen/' . (int) ($_POST['id'] ?? 0));
+
             case 'paket_speichern':
                 $daten = [
                     'name' => trim((string) $_POST['name']),
@@ -767,6 +777,19 @@ switch ($route) {
              LEFT JOIN projects  p ON p.id = f.project_id
              ORDER BY f.id DESC LIMIT 200")),
             'bereit' => Ablage::bereit()]);
+        break;
+
+    case 'anfragen':
+        require_once __DIR__ . '/src/Anfrage.php';
+        if ($id !== null) {
+            $a = Db::one('SELECT * FROM anfragen WHERE id = ?', [$id]);
+            if (!$a) { http_response_code(404); exit('Anfrage nicht gefunden.'); }
+            ansicht('anfrage', ['a' => $a, 'pakete' => Db::all(
+                'SELECT id, name, price_cents, currency FROM packages WHERE active = 1 ORDER BY sort, price_cents')]);
+            break;
+        }
+        ansicht('anfragen', ['liste' => Db::all(
+            'SELECT * FROM anfragen ORDER BY created_at DESC LIMIT 200')]);
         break;
 
     case 'nachrichten':

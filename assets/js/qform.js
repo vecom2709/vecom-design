@@ -52,6 +52,7 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
     var name = karte.querySelector('h3');
     var preis = karte.querySelector('.plan__price span');
     return {
+      slug: slug,
       name: name ? name.textContent.trim() : slug,
       preis: preis ? preis.textContent.trim() : '',
     };
@@ -186,6 +187,9 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
       data.append('email', val('email'));
       if (val('phone')) data.append('telefon', val('phone'));
       data.append('nachricht', body);
+      if (paket) { data.append('paket', paket.slug); data.append('paket_name', paket.name); }
+      if (val('url')) data.append('seite', val('url'));
+      data.append('sprache', document.documentElement.lang || 'it');
       data.append('website', '');            // Honigtopf gegen Bots, bleibt leer
       nextBtn.disabled = true;
       fetch(endpoint, { method: 'POST', body: data, headers: { Accept: 'application/json' } })

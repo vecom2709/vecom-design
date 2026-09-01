@@ -54,6 +54,34 @@ $name    = $clean($_POST['name'] ?? '', 120);
 $email   = $clean($_POST['email'] ?? '', 160);
 $telefon = $clean($_POST['telefon'] ?? '', 60);
 $text    = $clean($_POST['nachricht'] ?? '');
+$paket     = $clean($_POST['paket'] ?? '', 60);
+$paketName = $clean($_POST['paket_name'] ?? '', 120);
+$seite     = $clean($_POST['seite'] ?? '', 190);
+$sprache   = $clean($_POST['sprache'] ?? 'it', 2);
+
+/* --------------------------------------------------------------------------
+   Die Anfrage zusaetzlich in der Verwaltung festhalten: Kunde anlegen oder
+   finden, Anfrage daranhaengen. Bewusst NACH dem Versand und in einem
+   try/catch — die E-Mail hat Vorrang. Steht die Datenbank still, soll die
+   Anfrage trotzdem ankommen; sie ist dann eben nur im Postfach.
+   -------------------------------------------------------------------------- */
+$merken = static function () use ($name, $email, $telefon, $text, $paket, $paketName, $seite, $sprache): void {
+    $konfig = __DIR__ . '/app/config.local.php';
+    if (!is_file($konfig)) { return; }
+    try {
+        foreach (['Config', 'Db', 'Status', 'Auth', 'Events', 'Anfrage'] as $k) {
+            require_once __DIR__ . "/app/src/$k.php";
+        }
+        Anfrage::annehmen([
+            'name' => $name, 'email' => $email, 'telefon' => $telefon,
+            'nachricht' => $text, 'paket' => $paket, 'paket_name' => $paketName,
+            'website_url' => $seite, 'sprache' => $sprache,
+        ]);
+    } catch (Throwable $e) {
+        // Bewusst still: Der Besucher hat abgeschickt, die Mail ist unterwegs.
+        error_log('Anfrage konnte nicht gespeichert werden: ' . $e->getMessage());
+    }
+};
 
 if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $text === '') {
     http_response_code(422);
@@ -72,6 +100,7 @@ $body = "Neue Projektanfrage über vecom-design.it\n\n"
       . "Name:    $name\n"
       . "E-Mail:  $email\n"
       . ($telefon !== '' ? "Telefon: $telefon\n" : '')
+      . ($paketName !== '' ? "Paket:   $paketName\n" : '')
       . "\n$text\n";
 
 $payload = [
@@ -99,6 +128,7 @@ $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($code >= 200 && $code < 300) {
+    $merken();
     exit(json_encode(['ok' => true]));
 }
 
@@ -107,5 +137,6 @@ if ($code >= 200 && $code < 300) {
 $sent = @mail($cfg['to'], 'Projektanfrage — ' . $name, $body,
     "From: {$cfg['from']}\r\nReply-To: $email\r\nContent-Type: text/plain; charset=utf-8");
 
+$merken();
 http_response_code($sent ? 200 : 502);
 echo json_encode(['ok' => (bool) $sent, 'error' => $sent ? null : 'send']);

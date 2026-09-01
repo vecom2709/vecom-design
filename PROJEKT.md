@@ -242,3 +242,29 @@ Uwe hat die Dreiteilung für Premium ausdrücklich abgelehnt.
 
 **Noch von Uwe:** Den Belehrungstext (`buchen.php`, Schlüssel `widText`) juristisch gegenlesen
 lassen, bevor Stripe live geht. Ich bin kein Anwalt.
+
+## Anfragen landen in der Verwaltung (01.09.2026)
+
+Weg A war ein Bruch: Die Anfrage kam nur als E-Mail an, Kunde und Bestellung wurden von Hand
+abgetippt — obwohl der Kunde die Angaben gerade erst eingegeben hatte.
+
+- **`Anfrage::annehmen()`** legt den Kunden an oder findet ihn über die E-Mail (kein Doppel bei
+  Stammkunden) und hängt die Anfrage daran: Name, E-Mail, Telefon, bestehende Seite, Sprache,
+  gewähltes Paket (über den Slug der `packages`-Tabelle zugeordnet) und der volle Fragebogentext.
+- **Eigene Tabelle `anfragen`**, nicht `orders` mit Status „Anfrage". Eine Anfrage ist kein
+  Auftrag; in `orders` würde sie jede Umsatzzahl und jede Abschlussquote verfälschen.
+- **Die E-Mail hat Vorrang.** `formular.php` ruft die Klasse erst NACH dem Versand auf, in einem
+  try/catch. Steht die Datenbank still, kommt die Anfrage trotzdem an — sie ist dann eben nur im
+  Postfach. Fehlt `app/config.local.php`, passiert einfach nichts.
+- **Verwaltung → Kontakt → Anfragen**: Liste mit Stand, Detailseite mit allem Geschriebenen und
+  einem Knopf **„Bestellung anlegen"** — Paket vorausgewählt, wenn eines mitkam. Daraus entsteht
+  die Bestellung samt Anzahlung und Restzahlung; den Zahlungslink erzeugt man wie gewohnt in der
+  Bestellung. Die Anfrage bleibt verlinkt stehen.
+- Zähler in der Navigation für offene Anfragen, über `sicher()` abgesichert, damit die Seite auch
+  vor der Migration lädt.
+- **Datenschutzerklärung ergänzt** (drei Sprachen): Die Anfrage wird zusätzlich in der
+  Projektverwaltung auf demselben Server in Deutschland gespeichert.
+
+Getestet: Formular abgeschickt → Kunde #7 mit Telefonnummer angelegt, Anfrage mit Paket Business
+verknüpft; ein Klick → Bestellung VD-2026-0005 über 899 € mit Anzahlung und Restzahlung je
+449,50 €; Anfrage steht danach auf „bestellung" und verlinkt die Bestellung.
