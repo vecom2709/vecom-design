@@ -109,6 +109,13 @@
     var detail = k.querySelector('.det-link');
     if (detail) { detail.setAttribute('href', p.detail); }
 
+    // Auch die Karten aus der Verwaltung tragen ihre Wahl ins Formular.
+    if (p.slug) {
+      k.setAttribute('data-paket', p.slug);
+      var anfr = k.querySelector('a.btn:not(.det-link)');
+      if (anfr) { anfr.setAttribute('href', '?paket=' + encodeURIComponent(p.slug) + '#contact'); }
+    }
+
     // Kaufknopf nur, wenn das Paket dafür freigegeben und Stripe bereit ist.
     // Er wird aus dem vorhandenen Anfrage-Knopf geklont, damit Form und
     // Verhalten (auch das magnetische Mitziehen) erhalten bleiben.

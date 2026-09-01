@@ -38,6 +38,46 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
   const trust = form.querySelector('.qform__trust');
   let current = 1;
 
+  /* ---------- Gewähltes Paket ------------------------------------------- */
+  /* Wer auf einer Paketkarte anfragt, hat sich entschieden. Bisher ging diese
+     Entscheidung auf dem Weg zum Formular verloren und musste unten im Freitext
+     wiederholt werden. Sie reist jetzt über ?paket= mit, steht sichtbar über den
+     Fragen und geht mit der Anfrage raus. Name und Preis kommen aus der Karte
+     selbst — damit stimmt es auch, wenn die Pakete aus der Verwaltung kommen. */
+  function gewaehltesPaket() {
+    var slug = new URLSearchParams(location.search).get('paket');
+    if (!slug || !/^[a-z0-9-]{1,40}$/.test(slug)) return null;
+    var karte = document.querySelector('.plan[data-paket="' + slug + '"]');
+    if (!karte) return null;
+    var name = karte.querySelector('h3');
+    var preis = karte.querySelector('.plan__price span');
+    return {
+      name: name ? name.textContent.trim() : slug,
+      preis: preis ? preis.textContent.trim() : '',
+    };
+  }
+
+  var paket = gewaehltesPaket();
+
+  function paketZeigen() {
+    if (!paket) return;
+    var alt = document.querySelector('.qform__paket');
+    if (alt) alt.remove();
+    var box = document.createElement('p');
+    box.className = 'qform__paket';
+    var label = document.createElement('span');
+    label.className = 'qform__paket-label';
+    label.textContent = t('form.paketLabel') || 'Paket';
+    var wert = document.createElement('strong');
+    wert.textContent = paket.preis ? paket.name + ' · ' + paket.preis : paket.name;
+    var wechseln = document.createElement('a');
+    wechseln.href = '#plans';
+    wechseln.className = 'qform__paket-wechsel';
+    wechseln.textContent = t('form.paketWechseln') || 'ändern';
+    box.append(label, wert, wechseln);
+    form.prepend(box);   // in die Formularspalte, nicht als eigene Rasterzelle
+  }
+
   /* ---------- Auswahlfelder aus den Sprachdaten bauen -------------------- */
   function buildChips() {
     form.querySelectorAll('[data-chips]').forEach((box) => {
@@ -57,8 +97,9 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
     });
   }
   buildChips();
+  paketZeigen();
   // Bei Sprachwechsel neu beschriften, Auswahl bleibt erhalten
-  document.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setTimeout(buildChips, 30)));
+  document.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => setTimeout(() => { buildChips(); paketZeigen(); }, 30)));
 
   form.addEventListener('click', (e) => {
     const chip = e.target.closest('.chip-opt');
@@ -121,6 +162,7 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
   // der Seite. Ohne Dienst: das E-Mail-Programm öffnet sich wie bisher.
   function send() {
     const answers = [];
+    if (paket) answers.push('Paket: ' + paket.name + (paket.preis ? ' (' + paket.preis + ')' : ''));
     form.querySelectorAll('[data-chips]').forEach((box) => {
       const picked = [...box.querySelectorAll('[aria-pressed="true"]')].map((b) => b.textContent);
       if (picked.length) answers.push(box.dataset.name + ': ' + picked.join(', '));

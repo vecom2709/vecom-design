@@ -213,3 +213,32 @@ stehen. Dadurch bricht `p.frase` lange Wörter mitten durch — auf der Startsei
 Anzufragen ist **Cavaleri** — das einzige fremde, fertige Projekt. Mensaena, TerraViva und
 Trendonix sind Uwes eigene Projekte und scheiden aus. Charme Color erst, wenn
 charme-color.it live ist (steht derzeit leer). Anfragetext liegt im Chatverlauf vom 01.09.
+
+## Der Kaufweg (01.09.2026)
+
+Recherchiert, was bei Webdesign üblich ist, und vier Lücken geschlossen. Das Zahlungsmodell
+selbst blieb: 50 % Anzahlung, 50 % bei Übergabe, Betreuung monatlich — genau der Standard.
+Uwe hat die Dreiteilung für Premium ausdrücklich abgelehnt.
+
+1. **Die Paketwahl reist mit.** Alle Knöpfe zeigten auf `#contact`; wer „Business anfragen"
+   drückte, landete in einem Formular, das nichts davon wusste. Jetzt `?paket=<slug>#contact`,
+   und über den Fragen steht „Gewähltes Paket · Business · 899 €" mit einem Link zum Ändern.
+   Name und Preis liest `qform.js` aus der Karte selbst, damit es auch stimmt, wenn die Pakete
+   aus der Verwaltung kommen. Die Wahl geht als erste Zeile mit der Anfrage raus.
+2. **`pakete.html` ist jetzt die Verkaufsseite**: zusätzlich „Wie lange es dauert" je Paket
+   und die vier Schritte vom Ja bis online. Der Knopf trägt das Paket weiter. Bleibt
+   `noindex` — sonst konkurriert sie mit dem Preisabschnitt der Startseite.
+3. **`buchen.php` zeigt den Ablauf** über dem Bezahlknopf: Anzahlung, sechs Fragen, Entwurf,
+   Freigabe und Rest. Nichts davon ist neu gebaut — es war nur unsichtbar für den, der noch
+   nicht bezahlt hatte.
+4. **Widerrufsrecht im Kauf.** Zwei Pflichthaken: AGB und Datenschutz, und der ausdrückliche
+   Wunsch nach sofortigem Beginn samt Kenntnis, dass das Widerrufsrecht mit vollständiger
+   Leistung erlischt (Codice del Consumo). Dazu eine aufklappbare Belehrung. Serverseitig
+   geprüft — ohne beide Haken entsteht keine Bestellung. Migration `008_widerruf.sql` legt
+   `agb_ok_am`, `widerruf_ok_am`, `zustimmung_text` und `zustimmung_lang` an; gespeichert wird
+   der **Wortlaut**, nicht nur der Haken, weil sich der Text der Seite später ändern kann.
+   Getestet: ohne Haken kommt die Fehlermeldung und keine Bestellung, mit Haken stehen beide
+   Zeitstempel und der Wortlaut in der Zeile.
+
+**Noch von Uwe:** Den Belehrungstext (`buchen.php`, Schlüssel `widText`) juristisch gegenlesen
+lassen, bevor Stripe live geht. Ich bin kein Anwalt.

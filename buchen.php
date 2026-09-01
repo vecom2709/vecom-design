@@ -45,6 +45,16 @@ $T = [
     'zu' => 'Questo pacchetto al momento non è prenotabile online. Scrivici — ti rispondiamo entro un giorno lavorativo.',
     'testmodus' => 'Modalità di prova — nessun pagamento reale.',
     'monat' => 'poi al mese',
+    'ablauf' => 'Come funziona',
+    'a1' => 'Paghi l’acconto', 'a1d' => 'Con carta o altri metodi, tramite un fornitore certificato.',
+    'a2' => 'Rispondi a sei domande', 'a2d' => 'Un breve questionario: obiettivo, contenuti, gusto. Bastano pochi minuti.',
+    'a3' => 'Ricevi la bozza', 'a3d' => 'La costruisco e ti mando un indirizzo privato dove seguirla.',
+    'a4' => 'Approvi e saldi', 'a4d' => 'Il sito va online solo dopo la tua approvazione.',
+    'agb' => 'Ho letto e accetto le <a href="/legal.html#agb" target="_blank" rel="noopener">condizioni</a> e l’<a href="/legal.html#privacy" target="_blank" rel="noopener">informativa privacy</a>.',
+    'wid' => 'Chiedo espressamente che il lavoro inizi subito e prendo atto che, a servizio interamente prestato, perderò il diritto di recesso.',
+    'widTitel' => 'Informazioni sul diritto di recesso',
+    'widText' => 'Come consumatore hai quattordici giorni per recedere dal contratto, senza motivazione. Se chiedi che il lavoro inizi prima della scadenza di questo termine, il diritto si estingue nel momento in cui il servizio è stato interamente prestato; se receti prima, ti verrà addebitata la parte già svolta. Per recedere basta una comunicazione chiara a kontakt@vecom-design.it.',
+    'fehlerZust' => 'Per proseguire servono entrambe le conferme.',
   ],
   'de' => [
     'titel' => 'Paket buchen', 'name' => 'Name', 'email' => 'E-Mail',
@@ -55,6 +65,16 @@ $T = [
     'zu' => 'Dieses Paket ist gerade nicht direkt buchbar. Schreib uns — wir antworten innerhalb eines Werktags.',
     'testmodus' => 'Testmodus — es fließt kein echtes Geld.',
     'monat' => 'danach monatlich',
+    'ablauf' => 'So läuft es',
+    'a1' => 'Anzahlung zahlen', 'a1d' => 'Mit Karte oder anderen Wegen, über einen geprüften Anbieter.',
+    'a2' => 'Sechs Fragen beantworten', 'a2d' => 'Ein kurzer Fragebogen: Ziel, Inhalte, Geschmack. Dauert wenige Minuten.',
+    'a3' => 'Entwurf bekommen', 'a3d' => 'Ich baue ihn und schicke dir eine eigene Adresse, unter der du ihn verfolgst.',
+    'a4' => 'Freigeben und Rest zahlen', 'a4d' => 'Online geht die Seite erst nach deiner Freigabe.',
+    'agb' => 'Ich habe die <a href="/legal.html#agb" target="_blank" rel="noopener">AGB</a> und die <a href="/legal.html#privacy" target="_blank" rel="noopener">Datenschutzerklärung</a> gelesen und akzeptiere sie.',
+    'wid' => 'Ich verlange ausdrücklich, dass die Arbeit sofort beginnt, und weiß, dass mein Widerrufsrecht mit der vollständigen Leistung erlischt.',
+    'widTitel' => 'Hinweise zum Widerrufsrecht',
+    'widText' => 'Als Verbraucher kannst du den Vertrag innerhalb von vierzehn Tagen ohne Angabe von Gründen widerrufen. Verlangst du, dass die Arbeit schon vor Ablauf dieser Frist beginnt, erlischt das Recht in dem Moment, in dem die Leistung vollständig erbracht ist; widerrufst du vorher, wird der bis dahin geleistete Teil berechnet. Für den Widerruf genügt eine eindeutige Nachricht an kontakt@vecom-design.it.',
+    'fehlerZust' => 'Zum Fortfahren werden beide Bestätigungen gebraucht.',
   ],
   'en' => [
     'titel' => 'Book this package', 'name' => 'Name', 'email' => 'Email',
@@ -65,6 +85,16 @@ $T = [
     'zu' => 'This package can’t be booked online right now. Write to us — we answer within one working day.',
     'testmodus' => 'Test mode — no real money is charged.',
     'monat' => 'then per month',
+    'ablauf' => 'How it works',
+    'a1' => 'Pay the deposit', 'a1d' => 'By card or other methods, through a certified provider.',
+    'a2' => 'Answer six questions', 'a2d' => 'A short questionnaire: goal, content, taste. It takes a few minutes.',
+    'a3' => 'Receive the draft', 'a3d' => 'I build it and send you a private address where you can follow it.',
+    'a4' => 'Approve and pay the balance', 'a4d' => 'The site goes live only after your approval.',
+    'agb' => 'I have read and accept the <a href="/legal.html#agb" target="_blank" rel="noopener">terms</a> and the <a href="/legal.html#privacy" target="_blank" rel="noopener">privacy notice</a>.',
+    'wid' => 'I expressly ask for the work to begin at once and acknowledge that my right of withdrawal ends once the service has been fully performed.',
+    'widTitel' => 'About the right of withdrawal',
+    'widText' => 'As a consumer you may withdraw from the contract within fourteen days without giving a reason. If you ask for the work to start before that period ends, the right lapses at the moment the service has been fully performed; if you withdraw earlier, the part already carried out is charged. A clear message to kontakt@vecom-design.it is enough to withdraw.',
+    'fehlerZust' => 'Both confirmations are needed to continue.',
   ],
 ][$sprache];
 
@@ -105,6 +135,11 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($eingabe['name'] === '' || !filter_var($eingabe['email'], FILTER_VALIDATE_EMAIL)) {
         $fehler[] = $T['fehlerFelder'];
     }
+    // Beide Zustimmungen sind Pflicht. Ohne die zweite laeuft die Widerrufsfrist
+    // von vierzehn Tagen weiter, auch wenn laengst gearbeitet wird.
+    $agbOk = !empty($_POST['agb']);
+    $widOk = !empty($_POST['widerruf']);
+    if (!$agbOk || !$widOk) { $fehler[] = $T['fehlerZust']; }
     // Einfache Bremse gegen wiederholtes Abschicken.
     $sperre = sys_get_temp_dir() . '/vecombuchung_' . md5($_SERVER['REMOTE_ADDR'] ?? '');
     if (is_file($sperre) && (time() - filemtime($sperre)) < 20) { $fehler[] = $T['fehlerFelder']; }
@@ -121,6 +156,17 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
             Onboarding::spracheMerken($kundeId, $sprache);
             $bestellId = Events::bestellungAnlegen($kundeId, (int) $paket['id'],
                 'Direkt auf der Website gebucht (' . strtoupper($sprache) . ')');
+
+            // Nicht nur der Haken wird festgehalten, sondern der Wortlaut, den er
+            // vor sich hatte: Was heute auf der Seite steht, kann morgen anders
+            // lauten — belegbar ist nur das Gezeigte.
+            $jetzt = date('Y-m-d H:i:s');
+            Db::update('orders', $bestellId, [
+                'agb_ok_am'       => $jetzt,
+                'widerruf_ok_am'  => $jetzt,
+                'zustimmung_lang' => $sprache,
+                'zustimmung_text' => trim(strip_tags((string) $T['agb'])) . "\n" . trim((string) $T['wid']),
+            ]);
 
             $zahlung = Db::one("SELECT * FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$bestellId]);
             $bestell = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
@@ -165,6 +211,24 @@ $anz   = (int) round($preis * 50 / 100);
   .karte{width:100%;max-width:480px}
   /* Eigene Wortmarke: die aus admin.css verschwindet unter 900 Pixeln,
      und genau dort — auf dem Handy — wird am meisten gebucht. */
+  .ablauf{list-style:none;counter-reset:s;margin:0 0 20px;padding:0;display:grid;gap:10px}
+  .ablauf li{counter-increment:s;display:grid;grid-template-columns:26px 1fr;gap:2px 10px;align-items:start}
+  /* Beide Textzeilen gehoeren in die zweite Spalte — sonst faellt die
+     Beschreibung in die 26px schmale Ziffernspalte und bricht Wort fuer Wort. */
+  .ablauf li>*{grid-column:2}
+  .ablauf li::before{grid-column:1;grid-row:1/span 2}
+  .ablauf li::before{content:counter(s);width:26px;height:26px;border-radius:50%;
+    display:grid;place-items:center;font-size:12px;font-weight:700;
+    background:rgba(31,232,255,.12);color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(31,232,255,.3)}
+  .ablauf b{display:block;font-size:14px}
+  .ablauf span{display:block;font-size:12.5px;color:var(--dim);line-height:1.45}
+  .zustimmung{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;
+    margin:14px 0;font-size:12.5px;line-height:1.5;color:var(--dim);cursor:pointer}
+  .zustimmung input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--blau);cursor:pointer}
+  .zustimmung a{color:var(--cyan)}
+  .widerruf{margin:0 0 18px;font-size:12.5px;color:var(--leise)}
+  .widerruf summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--dim)}
+  .widerruf p{margin:0 0 4px;line-height:1.55}
   .wortmarke{display:flex;justify-content:center;align-items:center;gap:2px;
     font-weight:700;letter-spacing:.02em;font-size:18px;margin-bottom:14px}
   .wortmarke b{background:linear-gradient(135deg,var(--blau),var(--cyan));
@@ -204,6 +268,14 @@ $anz   = (int) round($preis * 50 / 100);
 
       <p style="color:var(--dim);font-size:13px;margin:12px 0 16px"><?= $h($T['hinweis']) ?></p>
 
+      <!-- Was nach dem Klick kommt. Alles davon laeuft ohnehin schon; sichtbar
+           war es bisher nur denen, die bereits bezahlt hatten. -->
+      <ol class="ablauf" aria-label="<?= $h($T['ablauf']) ?>">
+        <?php foreach ([1, 2, 3, 4] as $i): ?>
+          <li><b><?= $h($T['a' . $i]) ?></b><span><?= $h($T['a' . $i . 'd']) ?></span></li>
+        <?php endforeach; ?>
+      </ol>
+
       <form method="post">
         <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
         <input type="hidden" name="paket" value="<?= $h((string) $paket['slug']) ?>">
@@ -217,6 +289,18 @@ $anz   = (int) round($preis * 50 / 100);
           <input type="email" name="email" required value="<?= $h($eingabe['email']) ?>" autocomplete="email"></div>
         <div class="feld"><label><?= $h($T['firma']) ?></label>
           <input name="firma" value="<?= $h($eingabe['firma']) ?>" autocomplete="organization"></div>
+        <label class="zustimmung">
+          <input type="checkbox" name="agb" value="1" required <?= !empty($_POST['agb']) ? 'checked' : '' ?>>
+          <span><?= $T['agb'] /* enthaelt bewusst zwei Links */ ?></span>
+        </label>
+        <label class="zustimmung">
+          <input type="checkbox" name="widerruf" value="1" required <?= !empty($_POST['widerruf']) ? 'checked' : '' ?>>
+          <span><?= $h($T['wid']) ?></span>
+        </label>
+        <details class="widerruf">
+          <summary><?= $h($T['widTitel']) ?></summary>
+          <p><?= $h($T['widText']) ?></p>
+        </details>
         <button class="knopf haupt" style="width:100%;justify-content:center"><?= $h($T['weiter']) ?></button>
       </form>
       <p style="text-align:center;margin-top:14px">
