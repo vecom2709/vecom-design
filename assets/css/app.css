@@ -1455,6 +1455,18 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .qform__done h3 { font-size: var(--t-lg); }
 .qform__done p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch; }
 
+/* Fehlschlag — gleiche Form wie die Bestätigung, andere Farbe. Der Besucher
+   soll auf den ersten Blick sehen, dass etwas anderes passiert ist. */
+.qform__fail { display: grid; gap: .7rem; justify-items: start; padding-top: var(--s-2); animation: qstep var(--d-scene) var(--e-std); }
+.qform__fail[hidden] { display: none; }
+.qform__fail h3 { font-size: var(--t-lg); }
+.qform__fail p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch; }
+.qform__warn {
+  display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%;
+  color: #ffb454; background: rgba(255, 180, 84, .10);
+  box-shadow: inset 0 0 0 1px rgba(255, 180, 84, .4), 0 0 34px -10px rgba(255, 180, 84, .55);
+}
+
 /* ---------- 27. Aufwertung: Rhythmus, Ergebnis, Vergleich ---------------- */
 
 /* 1 — Leistungen entstapeln: zwei Bereiche tragen, vier begleiten. */

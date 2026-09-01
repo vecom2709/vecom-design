@@ -1092,6 +1092,18 @@
         <p data-i18n="form.doneText">I'll look at your project properly and get back to you within one working day. If it's urgent, just write to kontakt@vecom-design.it.</p>
         <p class="qform__hint" data-i18n="form.doneNote">Your email programme has opened — please send the prepared message.</p>
       </div>
+
+      <!-- Fehlschlag: erscheint nur, wenn der Server die Anfrage nicht annehmen konnte.
+           Ohne diesen Kasten wäre ein Fehler unsichtbar — genau daran ist das
+           Formular schon einmal gescheitert. -->
+      <div class="qform__fail" hidden>
+        <span class="qform__warn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+        </span>
+        <h3 data-i18n="form.failHead">That didn't go through.</h3>
+        <p data-i18n="form.failText">Your enquiry could not be delivered just now. Please try again in a moment — or write to me directly at kontakt@vecom-design.it: everything you typed is already in the button below.</p>
+        <a class="btn" data-i18n="form.failBtn" href="mailto:kontakt@vecom-design.it">Write me an email</a>
+      </div>
     </form>
   </div>
 </section>

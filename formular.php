@@ -1,142 +1,238 @@
 <?php
 /* ==========================================================================
-   formular.php — nimmt das Anfrageformular entgegen und verschickt es
-   über Brevo. Läuft auf dem eigenen Webspace bei All-Inkl.
+   formular.php — nimmt das Anfrageformular der Website entgegen.
 
-   Warum über den eigenen Server und nicht direkt aus dem Browser:
-   Der Brevo-Schlüssel darf niemals im Quelltext der Seite stehen — dort
-   könnte ihn jeder auslesen und in deinem Namen E-Mails verschicken.
-   Deshalb liegt er in config.local.php, die nie ins Repository kommt.
+   WAS HIER PASSIERT, IN DER REIHENFOLGE DER WICHTIGKEIT:
 
-   EINRICHTUNG (einmalig, zwei Minuten):
-   1. Bei Brevo einloggen → oben rechts auf den Namen → "SMTP & API"
-      → Reiter "API-Schlüssel" → "Neuen API-Schlüssel erstellen".
-   2. Neben dieser Datei eine Datei config.local.php anlegen mit:
+   1. Die Anfrage wird in der Verwaltung festgehalten (Kunde + Anfrage +
+      Zugangslink + Eingangsbestaetigung an den Kunden). Das ist der
+      dauerhafte Nachweis — er ueberlebt jeden Mailausfall.
+   2. Uwe bekommt eine E-Mail darueber.
+   3. Geht beides schief, landet die Anfrage als Zeile in einer geschuetzten
+      Datei. Verloren gehen darf sie nicht.
 
-        <?php
-        return [
-          'key'  => 'xkeysib-hier-der-schluessel',
-          'to'   => 'kontakt@vecom-design.it',
-          'from' => 'kontakt@vecom-design.it',
-          'name' => 'Vecom Design Website',
-        ];
+   Und ganz gleich, was passiert: Die Antwort sagt die Wahrheit. Genau das
+   war frueher das Problem — die Seite meldete "unterwegs", waehrend hier
+   ein Fehler 500 herauskam und die Anfrage im Nichts verschwand.
 
-   3. In Brevo unter "Absender & IP" die Adresse kontakt@vecom-design.it
-      als Absender bestätigen — sonst lehnt Brevo den Versand ab.
+   ZUGANGSDATEN: Der Brevo-Schluessel steht in der Verwaltung unter
+   Einstellungen → E-Mail-Versand. Als Rueckfall gelten weiterhin
+   app/config.local.php und config.local.php — beide liegen nur auf dem
+   Webspace und nie im Repository.
    ========================================================================== */
 
 header('Content-Type: application/json; charset=utf-8');
+header('X-Robots-Tag: noindex');
+header('Cache-Control: no-store');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    exit(json_encode(['ok' => false, 'error' => 'method']));
+/** Eine Antwort, ein Ende. Nie zwei Wege offen lassen. */
+function antwort(int $code, array $daten): never
+{
+    http_response_code($code);
+    echo json_encode($daten, JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
-$cfgFile = __DIR__ . '/config.local.php';
-if (!is_file($cfgFile)) {
-    http_response_code(500);
-    exit(json_encode(['ok' => false, 'error' => 'config']));
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    antwort(405, ['ok' => false, 'error' => 'method']);
 }
-$cfg = require $cfgFile;
 
-/* Honigtopf: Ein Feld, das Menschen nie ausfüllen, Bots aber schon. */
+/* Honigtopf: ein Feld, das Menschen nie ausfuellen, Bots aber schon.
+   Der Bot bekommt ein freundliches Ja und merkt nichts. */
 if (!empty($_POST['website'])) {
-    exit(json_encode(['ok' => true]));      // still verwerfen
+    antwort(200, ['ok' => true]);
 }
 
-$clean = static function ($v, $max = 4000) {
+$sauber = static function ($v, int $max = 4000): string {
     $v = is_string($v) ? trim($v) : '';
+    // \r und \0 raus: damit niemand ueber ein Eingabefeld eigene
+    // Kopfzeilen in eine E-Mail schmuggeln kann.
     $v = str_replace(["\r", "\0"], '', $v);
     return mb_substr($v, 0, $max);
 };
 
-$name    = $clean($_POST['name'] ?? '', 120);
-$email   = $clean($_POST['email'] ?? '', 160);
-$telefon = $clean($_POST['telefon'] ?? '', 60);
-$text    = $clean($_POST['nachricht'] ?? '');
-$paket     = $clean($_POST['paket'] ?? '', 60);
-$paketName = $clean($_POST['paket_name'] ?? '', 120);
-$seite     = $clean($_POST['seite'] ?? '', 190);
-$sprache   = $clean($_POST['sprache'] ?? 'it', 2);
-
-/* --------------------------------------------------------------------------
-   Die Anfrage zusaetzlich in der Verwaltung festhalten: Kunde anlegen oder
-   finden, Anfrage daranhaengen. Bewusst NACH dem Versand und in einem
-   try/catch — die E-Mail hat Vorrang. Steht die Datenbank still, soll die
-   Anfrage trotzdem ankommen; sie ist dann eben nur im Postfach.
-   -------------------------------------------------------------------------- */
-$merken = static function () use ($name, $email, $telefon, $text, $paket, $paketName, $seite, $sprache): void {
-    $konfig = __DIR__ . '/app/config.local.php';
-    if (!is_file($konfig)) { return; }
-    try {
-        foreach (['Config', 'Db', 'Status', 'Auth', 'Events', 'Anfrage'] as $k) {
-            require_once __DIR__ . "/app/src/$k.php";
-        }
-        Anfrage::annehmen([
-            'name' => $name, 'email' => $email, 'telefon' => $telefon,
-            'nachricht' => $text, 'paket' => $paket, 'paket_name' => $paketName,
-            'website_url' => $seite, 'sprache' => $sprache,
-        ]);
-    } catch (Throwable $e) {
-        // Bewusst still: Der Besucher hat abgeschickt, die Mail ist unterwegs.
-        error_log('Anfrage konnte nicht gespeichert werden: ' . $e->getMessage());
-    }
-};
+$name      = $sauber($_POST['name'] ?? '', 120);
+$email     = mb_strtolower($sauber($_POST['email'] ?? '', 160));
+$telefon   = $sauber($_POST['telefon'] ?? '', 60);
+$text      = $sauber($_POST['nachricht'] ?? '');
+$paket     = $sauber($_POST['paket'] ?? '', 60);
+$paketName = $sauber($_POST['paket_name'] ?? '', 120);
+$seite     = $sauber($_POST['seite'] ?? '', 190);
+$sprache   = $sauber($_POST['sprache'] ?? 'it', 2);
+if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
 if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $text === '') {
-    http_response_code(422);
-    exit(json_encode(['ok' => false, 'error' => 'fields']));
+    antwort(422, ['ok' => false, 'error' => 'fields']);
 }
 
-/* Einfache Bremse: höchstens eine Anfrage alle 20 Sekunden je Adresse. */
-$lock = sys_get_temp_dir() . '/vecom_' . md5($_SERVER['REMOTE_ADDR'] ?? '');
-if (is_file($lock) && (time() - filemtime($lock)) < 20) {
-    http_response_code(429);
-    exit(json_encode(['ok' => false, 'error' => 'slow down']));
+/* Einfache Bremse: hoechstens eine Anfrage alle 20 Sekunden je Adresse. */
+$sperre = sys_get_temp_dir() . '/vecom_' . md5((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+if (is_file($sperre) && (time() - (int) filemtime($sperre)) < 20) {
+    antwort(429, ['ok' => false, 'error' => 'slow down']);
 }
-touch($lock);
+@touch($sperre);
 
+$betreff = 'Projektanfrage — ' . $name;
 $body = "Neue Projektanfrage über vecom-design.it\n\n"
       . "Name:    $name\n"
       . "E-Mail:  $email\n"
-      . ($telefon !== '' ? "Telefon: $telefon\n" : '')
+      . ($telefon   !== '' ? "Telefon: $telefon\n" : '')
       . ($paketName !== '' ? "Paket:   $paketName\n" : '')
+      . ($seite     !== '' ? "Seite:   $seite\n" : '')
+      . "Sprache: $sprache\n"
       . "\n$text\n";
 
-$payload = [
-    'sender'      => ['email' => $cfg['from'], 'name' => $cfg['name'] ?? 'Website'],
-    'to'          => [['email' => $cfg['to']]],
-    'replyTo'     => ['email' => $email, 'name' => $name],
-    'subject'     => 'Projektanfrage — ' . $name,
-    'textContent' => $body,
-];
+$gespeichert = false;   // steht die Anfrage in der Verwaltung?
+$verschickt  = false;   // ist die Meldung an Uwe raus?
+$anfrageId   = null;
+$kundeId     = null;
+$pannen      = [];
 
-$ch = curl_init('https://api.brevo.com/v3/smtp/email');
-curl_setopt_array($ch, [
-    CURLOPT_POST           => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT        => 15,
-    CURLOPT_HTTPHEADER     => [
-        'accept: application/json',
-        'content-type: application/json',
-        'api-key: ' . $cfg['key'],
-    ],
-    CURLOPT_POSTFIELDS     => json_encode($payload, JSON_UNESCAPED_UNICODE),
-]);
-$res  = curl_exec($ch);
-$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
+/* --------------------------------------------------------------------------
+   1. In der Verwaltung festhalten. Das ist der eigentliche Zweck: Danach
+      steht die Anfrage in der Datenbank, der Kunde ist angelegt, der
+      Zugangslink existiert und der Kunde hat seine Eingangsbestaetigung.
 
-if ($code >= 200 && $code < 300) {
-    $merken();
-    exit(json_encode(['ok' => true]));
+      Config::all() beendet das Skript mit einer HTML-Meldung, wenn die
+      Konfiguration fehlt. Deshalb wird vorher nachgesehen — sonst kaeme
+      hier statt JSON eine Textseite heraus, und genau daran ist das
+      Formular schon einmal gescheitert.
+   -------------------------------------------------------------------------- */
+if (!is_file(__DIR__ . '/app/config.local.php')) {
+    $pannen[] = 'verwaltung: app/config.local.php fehlt';
+} else {
+    try {
+        foreach (['Config', 'Db', 'Status', 'Auth', 'Fmt', 'Events', 'Mail', 'Anfrage'] as $klasse) {
+            require_once __DIR__ . "/app/src/$klasse.php";
+        }
+        date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
+
+        $anfrageId = Anfrage::annehmen([
+            'name'        => $name,
+            'email'       => $email,
+            'telefon'     => $telefon,
+            'nachricht'   => $text,
+            'paket'       => $paket,
+            'paket_name'  => $paketName,
+            'website_url' => $seite,
+            'sprache'     => $sprache,
+        ]);
+        $gespeichert = $anfrageId !== null;
+        if ($gespeichert) {
+            $kundeId = Db::wert('SELECT customer_id FROM anfragen WHERE id = ?', [$anfrageId], null);
+            $kundeId = $kundeId !== null ? (int) $kundeId : null;
+        }
+    } catch (Throwable $e) {
+        $pannen[] = 'verwaltung: ' . $e->getMessage();
+        error_log('formular.php — Verwaltung: ' . $e->getMessage());
+    }
 }
 
-/* Fällt Brevo aus, geht die Anfrage trotzdem nicht verloren:
-   dann übernimmt der Mailserver des Webspace. */
-$sent = @mail($cfg['to'], 'Projektanfrage — ' . $name, $body,
-    "From: {$cfg['from']}\r\nReply-To: $email\r\nContent-Type: text/plain; charset=utf-8");
+/* --------------------------------------------------------------------------
+   2. Die Meldung an Uwe. Ueber Mail::senden, weil das den Versand im
+      Nachrichtenprotokoll der Verwaltung festhaelt — eine E-Mail, die
+      niemand nachsehen kann, ist eine halbe E-Mail.
+   -------------------------------------------------------------------------- */
+if (class_exists('Mail')) {
+    try {
+        $verschickt = Mail::senden(
+            'anfrage_intern',
+            Mail::eigeneAdresse(),
+            $betreff,
+            $body . ($anfrageId ? "\n— In der Verwaltung: /app/anfragen/$anfrageId\n" : ''),
+            ['antwortAn' => $email, 'customer_id' => $kundeId]
+        );
+        if (!$verschickt) {
+            // Mail::senden schreibt den Grund in die Tabelle mails. Steht die
+            // Datenbank still, waere er sonst nirgends — deshalb hier noch
+            // einmal fuer die Notfalldatei.
+            $pannen[] = 'mail: Brevo hat die Meldung nicht angenommen';
+        }
+    } catch (Throwable $e) {
+        $pannen[] = 'mail: ' . $e->getMessage();
+        error_log('formular.php — Mail: ' . $e->getMessage());
+    }
+}
 
-$merken();
-http_response_code($sent ? 200 : 502);
-echo json_encode(['ok' => (bool) $sent, 'error' => $sent ? null : 'send']);
+/* --------------------------------------------------------------------------
+   3. Rueckfall auf den alten Weg: config.local.php im Stammverzeichnis,
+      direkt an Brevo. Bleibt, damit ein Webspace ohne Verwaltung weiter
+      funktioniert.
+   -------------------------------------------------------------------------- */
+if (!$verschickt) {
+    $datei = __DIR__ . '/config.local.php';
+    $cfg = is_file($datei) ? require $datei : null;
+    if (is_array($cfg) && !empty($cfg['key']) && !empty($cfg['to']) && !empty($cfg['from'])) {
+        $inhalt = [
+            'sender'      => ['email' => $cfg['from'], 'name' => $cfg['name'] ?? 'Website'],
+            'to'          => [['email' => $cfg['to']]],
+            'replyTo'     => ['email' => $email, 'name' => $name],
+            'subject'     => $betreff,
+            'textContent' => $body,
+        ];
+        $ch = curl_init('https://api.brevo.com/v3/smtp/email');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 15,
+            CURLOPT_HTTPHEADER     => [
+                'accept: application/json',
+                'content-type: application/json',
+                'api-key: ' . $cfg['key'],
+            ],
+            CURLOPT_POSTFIELDS => json_encode($inhalt, JSON_UNESCAPED_UNICODE),
+        ]);
+        $antwort = curl_exec($ch);
+        $code    = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code >= 200 && $code < 300) {
+            $verschickt = true;
+        } else {
+            $pannen[] = 'brevo-datei: HTTP ' . $code . ' ' . mb_substr((string) $antwort, 0, 160);
+        }
+    }
+}
+
+/* --------------------------------------------------------------------------
+   4. Letzter Rueckfall: der Mailserver des Webspace.
+   -------------------------------------------------------------------------- */
+if (!$verschickt) {
+    $an = 'kontakt@vecom-design.it';
+    if (class_exists('Mail')) { $an = Mail::eigeneAdresse(); }
+    $verschickt = @mail($an, $betreff, $body,
+        "From: kontakt@vecom-design.it\r\nReply-To: $email\r\n"
+        . "Content-Type: text/plain; charset=utf-8");
+    if (!$verschickt) { $pannen[] = 'mail(): abgelehnt'; }
+}
+
+/* --------------------------------------------------------------------------
+   5. Netz unter dem Netz: Ist die Anfrage weder gespeichert noch verschickt,
+      wird sie in eine gesperrte Datei geschrieben. Lieber eine Zeile in
+      einer Datei als eine Anfrage, die es nie gegeben hat.
+   -------------------------------------------------------------------------- */
+if (!$gespeichert && !$verschickt) {
+    $ordner = __DIR__ . '/app/notfall';
+    if (is_dir($ordner) || @mkdir($ordner, 0755, true)) {
+        if (!is_file($ordner . '/.htaccess')) {
+            @file_put_contents($ordner . '/.htaccess',
+                "Require all denied\nOptions -Indexes -ExecCGI\nphp_flag engine off\n");
+        }
+        @file_put_contents($ordner . '/anfragen.jsonl',
+            json_encode([
+                'zeit' => date('c'), 'name' => $name, 'email' => $email,
+                'telefon' => $telefon, 'paket' => $paketName ?: $paket,
+                'seite' => $seite, 'sprache' => $sprache, 'nachricht' => $text,
+                'pannen' => $pannen,
+            ], JSON_UNESCAPED_UNICODE) . "\n",
+            FILE_APPEND | LOCK_EX);
+    }
+    error_log('formular.php — Anfrage weder gespeichert noch verschickt: ' . implode(' | ', $pannen));
+    antwort(502, ['ok' => false, 'error' => 'send']);
+}
+
+/* Angekommen ist sie, sobald einer der beiden Wege getragen hat. */
+antwort(200, [
+    'ok'          => true,
+    'gespeichert' => $gespeichert,
+    'gemeldet'    => $verschickt,
+]);

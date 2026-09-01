@@ -321,3 +321,101 @@ Der Kunde soll nicht raten müssen, was diese Seite ist und was er tun soll.
 benutzt seit der Dateigrenze `Fmt`, lud die Klasse aber nicht. Der Fatal wurde vom eigenen
 try/catch geschluckt — die Anfrage stand da, die Mail ging nie raus, und in den Meldungen stand
 nur „Eingangsbestätigung nicht verschickt". Aufgefallen beim Nachmessen, nicht beim Lesen.
+
+### Handbuch als PDF (01.09.2026)
+
+Ein Dokument, beide Sichten darin — nicht zwei. 40 Seiten A4, im Vecom-Design gesetzt
+(Archivo/Inter als Base64 eingebettet, dunkle Deckel- und Teilerseiten, helle Inhaltsseiten):
+
+- **Vorab** — Ablauf auf einen Blick als Drei-Bahnen-Diagramm (Kunde / Automatisch / Du,
+  Schritte 1–15), die drei Beteiligten, was der Kunde ausdrücklich nicht sieht.
+- **Teil 1 · Die Verwaltung** — 1.1 Anmelden/Cockpit/Menü, Bildschirmdarstellung der
+  Verwaltung, Dashboard, Anfragen, Kundenakte, Bestellungen und Zahlungen, Projekte führen
+  (inkl. Projektdarstellung und allen 13 Ständen), Fragebögen/Nachrichten/Dateien, Belege und
+  Rechnungen, Pakete, Monitoring, Einstellungen und Integrationen, die tägliche Runde.
+- **Teil 2 · Der Kunde** — Anfrage auf der Website, die Bestätigungsmail (als Mail-Darstellung),
+  seine eigene Seite (als Bildschirmdarstellung), Angebot/Zahlungslink/Anzahlung, Fragebogen,
+  Entwurf/Vorschau/Freigabe, Restzahlung/Veröffentlichung, neun häufige Fragen mit fertigen
+  Antworten zum Weiterschicken.
+- **Anhang A–E** — alle acht automatischen Mails mit Auslöser, alle vier Statuslisten, was der
+  Cronjob je Lauf tut, eine Störungstabelle Symptom → Ursache → erster Griff, Begriffe.
+
+Gebaut als HTML-Teile plus `stil.css`, gerendert über Playwright `page.pdf()` bei A4. Jede Seite
+wurde nachgemessen (Sollhöhe 1123 px bei 96 dpi); sechs Seiten liefen über und wurden gekürzt
+oder umgebaut, bis die 40 gedruckten Seitenzahlen genau den 40 PDF-Seiten entsprechen.
+
+Zwei Dinge, die beim Rendern auffielen und im Stylesheet stehen bleiben müssen:
+
+- **Verlaufstext auf Blockelementen** (`background-clip:text`) zeichnet der PDF-Export als feine
+  Rahmenlinien um die Verlaufsfläche mit. Deckelmarke, Titelakzent und die Ziffern der
+  Teilerseiten stehen deshalb in voller Farbe statt im Verlauf.
+- **Das Inhaltsverzeichnis** passt einspaltig nicht auf eine Seite (1666 px). Zweispaltig mit
+  `break-inside:avoid` je Zeile.
+
+Zwei Angaben im Entwurf waren falsch und wurden gegen den Quelltext korrigiert: der Fragebogen
+hat vier Abschnitte mit 22 Feldern (nicht „sechs Fragen"), und es lassen sich sehr wohl weitere
+Zugänge anlegen. Merksatz bleibt: nur was gerendert vor mir stand, gilt als geprüft.
+
+Liegt als `Vecom-Design-Handbuch.pdf` im Projektordner.
+
+### KAS, Brevo und der E-Mail-Versand (01.09.2026)
+
+Der Auftrag war „richte alles ein, was auf KAS gebraucht wird". Gefunden wurden dabei drei
+Dinge, die seit Wochen still kaputt waren.
+
+**Der Cronjob lief ins Leere.** Er war da, aktiv, alle zehn Minuten — nur endete die Adresse
+mit `cron.php?` und ohne Schlüssel. Aufgerufen antwortete sie `Nicht gefunden.` Seit der
+Einrichtung hatte der Lauf also kein einziges Mal etwas getan: keine Erinnerungen, keine
+Überwachung, kein Zurücksetzen abgelaufener Zahlungslinks. Schlüssel eingetragen, geprüft,
+läuft. Zusätzlich meldet der Job jetzt an kontakt@vecom-design.it, wenn ein Lauf schiefgeht —
+der E-Mail-Filter steht auf `ok`, und weil der Tooltip sagt „Schlüsselwort, das vorkommen muss,
+um KEINE E-Mail zu erhalten", schweigt er bei gelungenen Läufen und schreibt nur bei Fehlern.
+
+**Der Brevo-Schlüssel war ein Platzhalter.** 18 Zeichen statt achtzig, `xkeysib-` plus Rest.
+Gegen die API geprüft: HTTP 401, `Key not found`. Dazu passend: im Brevo-Konto existierte gar
+kein API-Schlüssel, und die Transaktions-Logs waren leer — null Einträge. Es war also noch nie
+eine einzige automatische Mail rausgegangen. Die lokalen Tests liefen gegen den Mailfänger und
+sahen deshalb gut aus.
+
+**Die Domain war bei Brevo nicht authentifiziert.** Alle Mails gehen über die Brevo-API mit
+Absender kontakt@vecom-design.it, im DNS stand aber weder Brevo-Code noch Brevo-DKIM.
+Nachgeholt: Brevo-Code (TXT), brevo1/brevo2._domainkey (CNAME), DMARC um
+`rua=mailto:rua@dmarc.brevo.com` ergänzt. Brevo bestätigt alle vier. Einen SPF-Eintrag braucht
+Brevo ausdrücklich nicht — nachgelesen statt geraten. Absender `Vecom Design
+<kontakt@vecom-design.it>` angelegt; vorher gab es nur den GMX-Absender, den Brevo als
+Freemail-Domain beanstandet.
+
+Ebenfalls im KAS: SSL auf allen vier Domains aktiv, PHP 8.5, Webspace-Sicherung vorhanden —
+**Datenbank-Sicherung dagegen: null**. Subdomain `vorschau.vecom-design.it` angelegt, Let's
+Encrypt bezogen, SSL erzwungen. Cockpit-Schutz hat Uwe über KAS → Verzeichnisschutz gesetzt;
+die Adresse antwortet jetzt mit 401, und der Cronlauf meldet `cockpit: ja`.
+
+### Zwei neue Klassen (01.09.2026)
+
+**`Versand.php` — Zugangsdaten in der Verwaltung statt in einer Datei.** Einstellungen bekommt
+den Block „E-Mail-Versand": Schlüssel, Absenderadresse, Name, Meldungsadresse. Was dort steht,
+hat Vorrang vor config.local.php; ist nichts hinterlegt, greift weiterhin die Datei. Der
+Schlüssel wird nie wieder ausgegeben, nur seine letzten vier Zeichen — im Protokoll steht bloß,
+DASS er geändert wurde. „Speichern und prüfen" fragt sofort bei Brevo nach, ob er gilt. Und ein
+Schlüssel, der nicht mit `xkeysib-` beginnt oder unter 40 Zeichen hat, wird abgelehnt: genau
+der Fehler, der monatelang unbemerkt blieb, läuft jetzt in eine Meldung.
+
+**`Sicherung.php` — nächtlicher Datenbank-Auszug.** Kein mysqldump, kein exec: reines PDO,
+ungepuffert gelesen und beim Schreiben gzip-komprimiert. Landet in `app/sicherungen/` hinter
+einer eigenen `.htaccess` — absichtlich auf dem Webspace, denn die Webspace-Sicherung des
+Hosters nimmt ihn dann mit. Vierzehn Tage Aufbewahrung. Hängt als Tagesaufgabe im Cronlauf.
+
+Beim Testen gegen eine echte MariaDB fielen zwei eigene Fehler auf, die ohne Test durchgerutscht
+wären: `array_column($zeilen, 0, 1)` benutzte die Tabellenart als Schlüssel und verschluckte
+dadurch alle Tabellen bis auf eine; und eine Sicht wurde mit `DROP TABLE` abgeräumt und vor der
+Tabelle angelegt, auf die sie zugreift. Nachher: 20.004 Zeilen gesichert, in eine leere Datenbank
+zurückgespielt, Prüfsummen beider Stände identisch — inklusive Umlauten, Emoji, Zeilenumbrüchen
+und NULL-Werten. Spitzenspeicher 2 MB.
+
+Auf dem Server geprüft: `sicherung {"datei":"vecom-2026-09-01.sql.gz","bytes":11738,
+"tabellen":22}`, der Ordner antwortet mit 403, alle vierzehn Verwaltungsseiten mit 200 und ohne
+PHP-Fehler.
+
+**Merksatz dazu:** `app/` liegt nicht im Repository — der GitHub-Deploy trägt die Verwaltung
+nicht mit. Sie wird per FTP hochgeladen. Wer das vergisst, sucht lange nach einem Block, der
+gar nicht da sein kann.

@@ -1092,6 +1092,18 @@
         <p data-i18n="form.doneText">Guardo con calma il tuo progetto e ti rispondo entro un giorno lavorativo. Se hai fretta, scrivimi direttamente a kontakt@vecom-design.it.</p>
         <p class="qform__hint" data-i18n="form.doneNote">Si è aperto il tuo programma di posta — invia pure il messaggio già pronto.</p>
       </div>
+
+      <!-- Fehlschlag: erscheint nur, wenn der Server die Anfrage nicht annehmen konnte.
+           Ohne diesen Kasten wäre ein Fehler unsichtbar — genau daran ist das
+           Formular schon einmal gescheitert. -->
+      <div class="qform__fail" hidden>
+        <span class="qform__warn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+        </span>
+        <h3 data-i18n="form.failHead">Non è andata a buon fine.</h3>
+        <p data-i18n="form.failText">La tua richiesta non è stata inviata. Riprova tra un momento — oppure scrivimi direttamente a kontakt@vecom-design.it: il testo che hai compilato è già pronto nel pulsante qui sotto.</p>
+        <a class="btn" data-i18n="form.failBtn" href="mailto:kontakt@vecom-design.it">Scrivimi via e-mail</a>
+      </div>
     </form>
   </div>
 </section>

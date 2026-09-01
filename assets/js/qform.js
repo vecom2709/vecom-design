@@ -159,8 +159,68 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
   form.addEventListener('input', (e) => e.target.classList.remove('is-missing'));
 
   /* ---------- Absenden --------------------------------------------------- */
-  // Mit Formulardienst: die Anfrage geht direkt weg, der Besucher bleibt auf
-  // der Seite. Ohne Dienst: das E-Mail-Programm öffnet sich wie bisher.
+  /* Die Bestätigung erscheint erst, wenn der Server sie bestätigt hat.
+
+     Das ist die wichtigste Zeile in dieser Datei. Vorher wurde „deine Anfrage
+     ist unterwegs" angezeigt, sobald das Formular abgeschickt war — ohne je
+     nachzusehen, was zurückkam. Der Server antwortete mit einem Fehler, der
+     Besucher sah einen Haken, und die Anfrage war weg. Monatelang.
+
+     Ohne Endpunkt bleibt es beim E-Mail-Programm wie bisher. */
+
+  function abschlussZeigen(el) {
+    steps.forEach((s) => s.classList.remove('is-active'));
+    nav.hidden = true;
+    if (trust) trust.hidden = true;
+    form.querySelector('.qform__count').hidden = true;
+    bar.style.setProperty('--p', '1');
+    el.hidden = false;
+    const top = form.getBoundingClientRect().top + window.scrollY - 110;
+    if (window.__vecomLenis) window.__vecomLenis.scrollTo(top, { duration: 0.6 });
+    else window.scrollTo({ top, behavior: 'smooth' });
+  }
+
+  /* Der Fehlerkasten steht im HTML. Fehlt er — alte Seite im Cache —, wird er
+     hier erzeugt, damit ein Fehler nie stumm bleibt. */
+  function fehlerkasten() {
+    let box = form.querySelector('.qform__fail');
+    if (box) return box;
+    box = document.createElement('div');
+    box.className = 'qform__fail';
+    box.hidden = true;
+    box.innerHTML = '<h3 data-i18n="form.failHead"></h3><p data-i18n="form.failText"></p>'
+      + '<a class="btn" data-i18n="form.failBtn" href="mailto:kontakt@vecom-design.it"></a>';
+    form.appendChild(box);
+    return box;
+  }
+
+  function fehlerZeigen(grund) {
+    const box = fehlerkasten();
+    const kopf = box.querySelector('[data-i18n="form.failHead"]');
+    const text = box.querySelector('[data-i18n="form.failText"]');
+    const knopf = box.querySelector('[data-i18n="form.failBtn"]');
+    if (kopf && !kopf.textContent.trim()) kopf.textContent = t('form.failHead');
+    if (text && !text.textContent.trim()) text.textContent = t('form.failText');
+    if (knopf) {
+      if (!knopf.textContent.trim()) knopf.textContent = t('form.failBtn');
+      // Der Notausgang: der ganze Text wandert in eine vorbereitete E-Mail,
+      // damit niemand alles noch einmal tippen muss.
+      knopf.setAttribute('href', 'mailto:' + (form.dataset.mailto || 'kontakt@vecom-design.it')
+        + '?subject=' + encodeURIComponent('Projektanfrage — ' + (letzterName || ''))
+        + '&body=' + encodeURIComponent(letzterText || ''));
+    }
+    if (grund) box.setAttribute('data-grund', grund);
+
+    // Anders als die Bestaetigung raeumt der Fehler das Formular NICHT ab.
+    // Die Eingaben bleiben stehen und der Knopf bleibt da: Wer es noch einmal
+    // versuchen will, soll das koennen, ohne alles neu zu tippen.
+    box.hidden = false;
+    box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  let letzterName = '';
+  let letzterText = '';
+
   function send() {
     const answers = [];
     if (paket) answers.push('Paket: ' + paket.name + (paket.preis ? ' (' + paket.preis + ')' : ''));
@@ -180,34 +240,55 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
       ...answers,
     ].filter(Boolean).join('\n');
 
+    letzterName = val('name');
+    letzterText = body;
+
     const endpoint = window.VECOM_FORM_ENDPOINT;
-    if (endpoint) {
-      const data = new FormData();
-      data.append('name', val('name'));
-      data.append('email', val('email'));
-      if (val('phone')) data.append('telefon', val('phone'));
-      data.append('nachricht', body);
-      if (paket) { data.append('paket', paket.slug); data.append('paket_name', paket.name); }
-      if (val('url')) data.append('seite', val('url'));
-      data.append('sprache', document.documentElement.lang || 'it');
-      data.append('website', '');            // Honigtopf gegen Bots, bleibt leer
-      nextBtn.disabled = true;
-      fetch(endpoint, { method: 'POST', body: data, headers: { Accept: 'application/json' } })
-        .catch(() => {})                       // Auch bei Netzfehler nicht im Nichts enden:
-        .finally(() => { nextBtn.disabled = false; });
-      form.classList.add('is-sent');           // Bestätigung ohne Mailprogramm-Hinweis
-    } else {
+    if (!endpoint) {
       window.location.href = 'mailto:' + (form.dataset.mailto || '') +
         '?subject=' + encodeURIComponent('Projektanfrage — ' + val('name')) +
         '&body=' + encodeURIComponent(body);
+      abschlussZeigen(done);
+      return;
     }
 
-    steps.forEach((s) => s.classList.remove('is-active'));
-    nav.hidden = true;
-    if (trust) trust.hidden = true;
-    form.querySelector('.qform__count').hidden = true;
-    bar.style.setProperty('--p', '1');
-    done.hidden = false;
+    const data = new FormData();
+    data.append('name', val('name'));
+    data.append('email', val('email'));
+    if (val('phone')) data.append('telefon', val('phone'));
+    data.append('nachricht', body);
+    if (paket) { data.append('paket', paket.slug); data.append('paket_name', paket.name); }
+    if (val('url')) data.append('seite', val('url'));
+    data.append('sprache', document.documentElement.lang || 'it');
+    data.append('website', '');            // Honigtopf gegen Bots, bleibt leer
+
+    const altbox = form.querySelector('.qform__fail');
+    if (altbox) altbox.hidden = true;      // beim neuen Versuch erst mal weg
+
+    nextBtn.disabled = true;
+    const vorher = nextLabel.textContent;
+    nextLabel.textContent = t('form.sending') || vorher;
+
+    // Ein hängender Server darf den Besucher nicht ewig warten lassen.
+    const abbruch = new AbortController();
+    const uhr = setTimeout(() => abbruch.abort(), 20000);
+
+    fetch(endpoint, {
+      method: 'POST', body: data,
+      headers: { Accept: 'application/json' },
+      signal: abbruch.signal,
+    })
+      .then((r) => r.json().catch(() => ({})).then((d) => ({ status: r.status, d: d })))
+      .then((a) => {
+        if (a.d && a.d.ok === true) { form.classList.add('is-sent'); abschlussZeigen(done); }
+        else { fehlerZeigen((a.d && a.d.error) || ('http' + a.status)); }
+      })
+      .catch(() => fehlerZeigen('netz'))
+      .finally(() => {
+        clearTimeout(uhr);
+        nextBtn.disabled = false;
+        nextLabel.textContent = vorher;
+      });
   }
 
   show(1);

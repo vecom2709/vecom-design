@@ -190,7 +190,12 @@ window.VECOM_I18N = {
       doneHead: "Grazie — la tua richiesta è partita.",
       doneText: "Guardo con calma il tuo progetto e ti rispondo entro un giorno lavorativo. Se hai fretta, scrivimi direttamente a kontakt@vecom-design.it.",
       doneNote: "Si è aperto il tuo programma di posta — invia pure il messaggio già pronto.",
-      doneBack: "Torna al sito"
+      doneBack: "Torna al sito",
+
+      sending: "Invio in corso …",
+      failHead: "Non è andata a buon fine.",
+      failText: "La tua richiesta non è stata inviata. Riprova tra un momento — oppure scrivimi direttamente a kontakt@vecom-design.it: il testo che hai compilato è già pronto nel pulsante qui sotto.",
+      failBtn: "Scrivimi via e-mail"
     },
     contact: {
       head: "Parliamone. Il preventivo è gratuito.",
@@ -496,7 +501,12 @@ window.VECOM_I18N = {
       doneHead: "Danke — deine Anfrage ist unterwegs.",
       doneText: "Ich schaue mir dein Vorhaben in Ruhe an und melde mich innerhalb eines Werktags bei dir. Wenn es dringend ist, schreib mir einfach direkt an kontakt@vecom-design.it.",
       doneNote: "Dein E-Mail-Programm hat sich geöffnet — bitte schick die vorbereitete Nachricht noch ab.",
-      doneBack: "Zurück zur Seite"
+      doneBack: "Zurück zur Seite",
+
+      sending: "Wird gesendet …",
+      failHead: "Das hat nicht geklappt.",
+      failText: "Deine Anfrage konnte gerade nicht zugestellt werden. Versuch es gleich noch einmal — oder schreib mir direkt an kontakt@vecom-design.it: Der Text, den du eingegeben hast, steckt schon im Knopf hier unten.",
+      failBtn: "Per E-Mail schreiben"
     },
     contact: {
       head: "Sprechen wir darüber. Das Angebot ist kostenlos.",
@@ -802,7 +812,12 @@ window.VECOM_I18N = {
       doneHead: "Thank you — your enquiry is on its way.",
       doneText: "I'll look at your project properly and get back to you within one working day. If it's urgent, just write to kontakt@vecom-design.it.",
       doneNote: "Your email programme has opened — please send the prepared message.",
-      doneBack: "Back to the site"
+      doneBack: "Back to the site",
+
+      sending: "Sending …",
+      failHead: "That didn't go through.",
+      failText: "Your enquiry could not be delivered just now. Please try again in a moment — or write to me directly at kontakt@vecom-design.it: everything you typed is already in the button below.",
+      failBtn: "Write me an email"
     },
     contact: {
       head: "Let's talk. The quote is free.",
