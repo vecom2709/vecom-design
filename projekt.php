@@ -159,36 +159,19 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
-<link rel="stylesheet" href="/app/assets/admin.css">
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="stylesheet" href="/assets/css/kunde.css">
 <style>
-  body{padding:26px 18px 60px}
-  .seite{max-width:680px;margin:0 auto}
-  .kopfzeile{text-align:center;margin-bottom:20px}
-  .wortmarke{display:flex;justify-content:center;align-items:center;gap:2px;
-    font-weight:700;letter-spacing:.02em;font-size:18px;padding-bottom:16px}
-  .wortmarke b{background:linear-gradient(135deg,var(--blau),var(--cyan));
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  .block h2{font-size:15px;margin-bottom:14px}
-  textarea{min-height:96px;resize:vertical;line-height:1.5}
-  .stufen{list-style:none;padding:0;margin:0}
-  .stufen li{display:flex;align-items:center;gap:11px;padding:6px 0;font-size:14px;color:var(--leise)}
-  .stufen li .kreis{width:11px;height:11px;border-radius:50%;background:var(--linie);flex:none}
-  .stufen li.durch{color:var(--dim)} .stufen li.durch .kreis{background:var(--gruen)}
-  .stufen li.jetzt{color:var(--text);font-weight:650} .stufen li.jetzt .kreis{background:var(--cyan);box-shadow:0 0 0 4px rgba(31,232,255,.18)}
-  .nachricht{padding:11px 13px;border-radius:11px;margin-bottom:9px;border:1px solid var(--linie)}
-  .nachricht.wir{background:var(--flaeche2)}
-  .nachricht .wer{font-size:12.5px;font-weight:650;margin-bottom:5px;display:flex;justify-content:space-between;gap:10px}
-  .nachricht .text{white-space:pre-wrap;font-size:14px;line-height:1.55}
-  .datei{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
-  .datei:first-of-type{border-top:0}
-  .sprachen{text-align:center;margin-top:22px;font-size:13px;color:var(--leise)}
-  .sprachen a{color:var(--leise);margin:0 6px}
-  .sprachen a.jetzt{color:var(--cyan)}
+  .lead{color:var(--dim); font-size:15px; line-height:1.65}
+  .vorschau{display:block; margin-top:6px}
 </style>
 </head>
 <body>
 <div class="seite">
-  <div class="kopfzeile"><div class="wortmarke"><b>VECOM</b>&nbsp;DESIGN</div></div>
+  <div class="wortmarke">
+    <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
+    <span class="wort"><b>VECOM</b> DESIGN</span>
+  </div>
 
 <?php if ($panne || !$f): ?>
   <div class="block">

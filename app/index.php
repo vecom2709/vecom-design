@@ -146,6 +146,9 @@ if ($post) {
                     'city' => trim((string) ($_POST['city'] ?? '')) ?: null,
                     'country' => trim((string) ($_POST['country'] ?? '')) ?: null,
                     'notes' => trim((string) ($_POST['notes'] ?? '')) ?: null,
+                    'tax_code' => mb_strtoupper(trim((string) ($_POST['tax_code'] ?? ''))) ?: null,
+                    'vat_id'   => trim((string) ($_POST['vat_id'] ?? '')) ?: null,
+                    'sdi'      => trim((string) ($_POST['sdi'] ?? '')) ?: null,
                 ];
                 // Die Sprache entscheidet, in welcher jede automatische Mail
                 // an diesen Kunden hinausgeht. Sie wird beim Anfragen gesetzt;

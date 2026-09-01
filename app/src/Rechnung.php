@@ -139,29 +139,66 @@ final class Rechnung
         ]];
     }
 
+    /** Wo das Logo fuer den Briefkopf liegt. */
+    public static function logo(): ?string
+    {
+        $pfad = dirname(__DIR__) . '/assets/briefkopf.jpg';
+        if (!is_file($pfad)) { return null; }
+        $d = @file_get_contents($pfad);
+        return ($d === false || $d === '') ? null : $d;
+    }
+
     /** Das fertige PDF. */
     public static function pdf(array $r): string
     {
         $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $r['customer_id']]);
         $b = $r['order_id'] !== null ? Db::one('SELECT * FROM orders WHERE id = ?', [(int) $r['order_id']]) : null;
         $w = (string) $r['currency'];
+        // Der Satz aus der Zeile — aber nur, wenn ueberhaupt Steuer
+        // ausgewiesen werden darf. Steht in einem alten Datensatz noch ein
+        // Satz aus einer Zeit, in der die Einstellung widerspruechlich war,
+        // wird er hier nicht gedruckt: Ein Dokument, das sich selbst als
+        // "keine Rechnung im steuerlichen Sinn" bezeichnet, darf keine IVA
+        // aufschluesseln.
+        $satz = Firma::istRechnungsberechtigt() ? (float) $r['tax_rate'] : 0.0;
+
+        // Farben einmal oben, damit der Beleg dieselbe Handschrift hat wie
+        // die Website: Blau als einziger Akzent, alles andere Tinte und Grau.
+        $blau  = [0.024, 0.282, 0.910];
+        $cyan  = [0.122, 0.910, 1.0];
+        $tinte = [0.051, 0.106, 0.165];
+        $grau  = [0.42, 0.46, 0.53];
+        $leise = [0.60, 0.64, 0.70];
+        $linie = [0.87, 0.89, 0.92];
 
         $p = new Pdf();
-        $rand  = 56.0;
+        $rand   = 56.0;
         $rechts = Pdf::A4_BREIT - $rand;
 
-        /* Kopf: Wortmarke links, Anschrift rechts */
-        // Die Breite kommt aus der Zeichnung selbst — geraten waere sie
-        // bei einer anderen Groesse sofort falsch.
-        $breiteVecom = $p->text($rand, 60, 'VECOM', 17, true, 'links', [0.12, 0.55, 0.95]);
-        $p->text($rand + $breiteVecom + 5, 60, 'DESIGN', 17, true);
+        /* ---------- Briefkopf ---------- */
+        // Das echte Logo, nicht nachgebaut. Fehlt die Datei, tritt der
+        // Schriftzug an seine Stelle — ein Beleg darf daran nicht scheitern.
+        $logo = self::logo();
+        $gesetzt = false;
+        if ($logo !== null) {
+            $gesetzt = $p->bild($logo, $rand, 44, 98, 67);
+        }
+        if (!$gesetzt) {
+            $bv = $p->text($rand, 62, 'VECOM', 17, true, 'links', $blau);
+            $p->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+        }
+
         $y = 46;
-        foreach (Firma::anschrift() as $zeile) {
-            $p->text($rechts, $y, $zeile, 8.5, false, 'rechts', [0.35, 0.35, 0.38]);
+        foreach (Firma::anschrift() as $i => $zeile) {
+            $p->text($rechts, $y, $zeile, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau);
             $y += 11.5;
         }
 
-        /* Empfaenger */
+        // Ein schmaler Strich in den Markenfarben statt einer grauen Linie.
+        $p->flaeche($rand, 124, ($rechts - $rand) * 0.38, 1.6, $blau);
+        $p->flaeche($rand + ($rechts - $rand) * 0.38, 124, ($rechts - $rand) * 0.12, 1.6, $cyan);
+
+        /* ---------- Empfaenger und Eckdaten nebeneinander ---------- */
         $empfaenger = array_values(array_filter([
             (string) ($k['company'] ?? ''),
             (string) ($k['name'] ?? ''),
@@ -169,83 +206,121 @@ final class Rechnung
             trim((string) ($k['zip'] ?? '') . ' ' . (string) ($k['city'] ?? '')),
             (string) ($k['country'] ?? ''),
         ], static fn($z) => trim($z) !== ''));
-        $p->text($rand, 150, 'An', 8, false, 'links', [0.5, 0.5, 0.55]);
-        $p->zeilen($rand, 164, $empfaenger, 10.5);
 
-        /* Titel und Eckdaten */
-        $titel = (string) ($r['titel'] ?: self::bezeichnung());
-        $p->text($rand, 262, $titel . ' ' . $r['invoice_no'], 17, true);
+        $p->text($rand, 158, 'RECHNUNGSEMPFÄNGER', 7.5, true, 'links', $leise);
+        $yy = 174;
+        foreach ($empfaenger as $i => $zeile) {
+            $p->text($rand, $yy, $zeile, $i === 0 ? 11 : 10, $i === 0, 'links', $i === 0 ? $tinte : $grau);
+            $yy += 14;
+        }
+        // Steuerangaben des Kunden, sobald sie erfasst sind.
+        $ksteuer = array_values(array_filter([
+            trim((string) ($k['vat_id'] ?? '')) !== ''   ? 'P. IVA ' . $k['vat_id'] : '',
+            trim((string) ($k['tax_code'] ?? '')) !== '' ? 'C.F. ' . $k['tax_code'] : '',
+            trim((string) ($k['sdi'] ?? '')) !== ''      ? 'SDI ' . $k['sdi'] : '',
+        ]));
+        foreach ($ksteuer as $zeile) {
+            $p->text($rand, $yy, $zeile, 8.5, false, 'links', $leise);
+            $yy += 11;
+        }
 
-        $eck = [
-            ['Datum', Fmt::datum((string) $r['issued_at'])],
-            ['Bestellung', (string) ($b['order_no'] ?? '—')],
+        $eck = array_filter([
+            ['Nummer',       (string) $r['invoice_no']],
+            ['Datum',        Fmt::datum((string) $r['issued_at'])],
+            ['Bestellung',   (string) ($b['order_no'] ?? '')],
             ['Kundennummer', str_pad((string) $r['customer_id'], 4, '0', STR_PAD_LEFT)],
-        ];
-        $y = 288;
+        ], static fn($z) => trim((string) $z[1]) !== '');
+
+        $ey = 174;
         foreach ($eck as [$was, $wert]) {
-            $p->text($rand, $y, $was, 9, false, 'links', [0.45, 0.45, 0.5]);
-            $p->text($rand + 92, $y, $wert, 9.5);
-            $y += 14;
+            $p->text($rechts - 132, $ey, $was, 8.5, false, 'links', $leise);
+            $p->text($rechts, $ey, $wert, 9.5, false, 'rechts', $tinte);
+            $ey += 14;
         }
 
-        /* Posten */
-        $tabelleOben = 350.0;
-        $p->flaeche($rand, $tabelleOben - 14, $rechts - $rand, 22, [0.94, 0.95, 0.97]);
-        $p->text($rand + 8, $tabelleOben, 'Leistung', 9, true);
-        if ((float) $r['tax_rate'] > 0) {
-            $p->text($rechts - 150, $tabelleOben, 'Netto', 9, true, 'rechts');
-            $p->text($rechts - 78, $tabelleOben, 'MwSt.', 9, true, 'rechts');
-        }
-        $p->text($rechts - 8, $tabelleOben, 'Betrag', 9, true, 'rechts');
+        /* ---------- Titel ---------- */
+        $titel = (string) ($r['titel'] ?: self::bezeichnung());
+        $oben  = max($yy, $ey) + 30;
+        $p->text($rand, $oben, $titel, 20, true, 'links', $tinte);
+        $p->text($rand, $oben + 20, 'Nr. ' . $r['invoice_no'], 10, false, 'links', $grau);
 
-        $y = $tabelleOben + 26;
+        /* ---------- Posten ---------- */
+        $tab = $oben + 58;
+        $p->flaeche($rand, $tab - 13, $rechts - $rand, 22, [0.965, 0.972, 0.984]);
+        $p->text($rand + 10, $tab, 'LEISTUNG', 7.5, true, 'links', $grau);
+        if ($satz > 0) {
+            $p->text($rechts - 158, $tab, 'NETTO', 7.5, true, 'rechts', $grau);
+            $p->text($rechts - 84, $tab, 'IVA', 7.5, true, 'rechts', $grau);
+        }
+        $p->text($rechts - 10, $tab, 'BETRAG', 7.5, true, 'rechts', $grau);
+
+        $y = $tab + 28;
         foreach (self::posten($r) as $posten) {
-            foreach ($p->umbrechen((string) $posten['text'], 250, 10) as $i => $zeile) {
-                $p->text($rand + 8, $y + $i * 14, $zeile, 10);
+            $zeilen = $p->umbrechen((string) $posten['text'], $satz > 0 ? 240 : 320, 10.5);
+            foreach ($zeilen as $i => $zeile) {
+                $p->text($rand + 10, $y + $i * 14, $zeile, 10.5, false, 'links', $tinte);
             }
-            if ((float) $r['tax_rate'] > 0) {
-                $p->text($rechts - 150, $y, Fmt::geld((int) $posten['netto'], $w), 10, false, 'rechts');
-                $p->text($rechts - 78, $y, Fmt::geld((int) $posten['steuer'], $w), 10, false, 'rechts');
+            if ($satz > 0) {
+                $p->text($rechts - 158, $y, Fmt::geld((int) $posten['netto'], $w), 10.5, false, 'rechts', $grau);
+                $p->text($rechts - 84, $y, Fmt::geld((int) $posten['steuer'], $w), 10.5, false, 'rechts', $grau);
             }
-            $p->text($rechts - 8, $y, Fmt::geld((int) $posten['brutto'], $w), 10, false, 'rechts');
-            $y += 24;
+            $p->text($rechts - 10, $y, Fmt::geld((int) $posten['brutto'], $w), 10.5, false, 'rechts', $tinte);
+            $y += 20 + (count($zeilen) - 1) * 14;
         }
 
-        /* Summe */
-        $p->linie($rand, $y, $rechts, $y);
+        /* ---------- Summe ---------- */
+        $p->linie($rand, $y, $rechts, $y, 0.6, $linie);
         $y += 20;
-        if ((float) $r['tax_rate'] > 0) {
-            $p->text($rechts - 110, $y, 'Netto', 10, false, 'rechts', [0.4, 0.4, 0.45]);
-            $p->text($rechts - 8, $y, Fmt::geld((int) $r['net_cents'], $w), 10, false, 'rechts');
+        if ($satz > 0) {
+            $p->text($rechts - 130, $y, 'Netto', 10, false, 'rechts', $grau);
+            $p->text($rechts - 10, $y, Fmt::geld((int) $r['net_cents'], $w), 10, false, 'rechts', $tinte);
             $y += 16;
-            $p->text($rechts - 110, $y, 'MwSt. ' . rtrim(rtrim(number_format((float) $r['tax_rate'], 2, ',', '.'), '0'), ',') . ' %',
-                10, false, 'rechts', [0.4, 0.4, 0.45]);
-            $p->text($rechts - 8, $y, Fmt::geld((int) $r['tax_cents'], $w), 10, false, 'rechts');
+            $bez = 'IVA ' . rtrim(rtrim(number_format($satz, 2, ',', '.'), '0'), ',') . ' %';
+            $p->text($rechts - 130, $y, $bez, 10, false, 'rechts', $grau);
+            $p->text($rechts - 10, $y, Fmt::geld((int) $r['tax_cents'], $w), 10, false, 'rechts', $tinte);
+            $y += 20;
+        }
+        $p->flaeche($rechts - 210, $y - 13, 210, 30, [0.965, 0.972, 0.984]);
+        $p->text($rechts - 130, $y, 'Gesamt', 11, true, 'rechts', $tinte);
+        $p->text($rechts - 10, $y, Fmt::geld((int) $r['total_cents'], $w), 13.5, true, 'rechts', $tinte);
+        $y += 40;
+
+        /* ---------- Zahlungsstand ---------- */
+        $p->flaeche($rand, $y - 12, 3, 22, [0.043, 0.494, 0.353]);
+        $p->text($rand + 12, $y, 'Bezahlt am ' . Fmt::datum((string) $r['issued_at'])
+            . '. Es ist nichts mehr offen.', 10, false, 'links', [0.043, 0.494, 0.353]);
+        $y += 34;
+
+        /* ---------- Pflichtangaben ---------- */
+        $pflicht = Firma::pflichthinweis();
+        if ($pflicht !== '') {
+            foreach ($p->umbrechen($pflicht, $rechts - $rand, 8.5) as $zeile) {
+                $p->text($rand, $y, $zeile, 8.5, false, 'links', $grau);
+                $y += 12;
+            }
+            $y += 6;
+        }
+        if (Firma::bolloNoetig((int) $r['total_cents'])) {
+            $p->text($rand, $y, 'Marca da bollo da 2,00 € assolta sull\'originale.', 8.5, false, 'links', $grau);
             $y += 18;
         }
-        $p->text($rechts - 110, $y, 'Gesamt', 12, true, 'rechts');
-        $p->text($rechts - 8, $y, Fmt::geld((int) $r['total_cents'], $w), 13, true, 'rechts');
-        $y += 26;
-
-        $p->text($rand, $y, 'Betrag bezahlt am ' . Fmt::datum((string) $r['issued_at'])
-            . '. Es ist nichts mehr offen.', 9.5, false, 'links', [0.25, 0.5, 0.3]);
-        $y += 30;
-
-        /* Hinweis vom Commercialista, und der Vermerk ohne Umsatzsteuernummer */
-        if (!self::istRechnung()) {
-            $p->text($rand, $y, 'Dies ist ein Zahlungsbeleg, keine Rechnung im steuerlichen Sinn.',
-                9, false, 'links', [0.45, 0.45, 0.5]);
-            $y += 14;
-        }
-        $hinweis = (string) ($r['hinweis'] ?? '');
-        if (trim($hinweis) !== '') {
-            $y = $p->zeilen($rand, $y, $p->umbrechen($hinweis, $rechts - $rand, 9), 9, false, 1.5, [0.45, 0.45, 0.5]);
+        $hinweis = trim((string) ($r['hinweis'] ?? ''));
+        if ($hinweis !== '') {
+            foreach ($p->umbrechen($hinweis, $rechts - $rand, 8.5) as $zeile) {
+                $p->text($rand, $y, $zeile, 8.5, false, 'links', $grau);
+                $y += 12;
+            }
         }
 
-        /* Fuss */
-        $fuss = Pdf::A4_HOCH - 74;
-        $p->linie($rand, $fuss, $rechts, $fuss, 0.5, [0.85, 0.85, 0.88]);
-        $p->zeilen($rand, $fuss + 16, Firma::fusszeilen(), 8, false, 1.5, [0.45, 0.45, 0.5]);
+        /* ---------- Fuss ---------- */
+        $fuss = Pdf::A4_HOCH - 82;
+        $p->flaeche($rand, $fuss, ($rechts - $rand) * 0.10, 1.2, $blau);
+        $p->linie($rand + ($rechts - $rand) * 0.10, $fuss + 0.6, $rechts, $fuss + 0.6, 0.5, $linie);
+        $fy = $fuss + 18;
+        foreach (Firma::fusszeilen() as $zeile) {
+            $p->text($rand, $fy, $zeile, 8, false, 'links', $leise);
+            $fy += 11;
+        }
 
         return $p->fertig();
     }

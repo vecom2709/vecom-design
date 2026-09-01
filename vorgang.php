@@ -95,46 +95,19 @@ $dateien = $a ? Db::all(
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
-<link rel="stylesheet" href="/app/assets/admin.css">
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="stylesheet" href="/assets/css/kunde.css">
 <style>
-  body{padding:26px 18px 60px}
-  .seite{max-width:680px;margin:0 auto}
-  .wortmarke{display:flex;justify-content:center;align-items:center;gap:2px;
-    font-weight:700;letter-spacing:.02em;font-size:18px;padding-bottom:16px}
-  .wortmarke b{background:linear-gradient(135deg,var(--blau),var(--cyan));
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  .block h2{font-size:15px;margin-bottom:14px}
-  textarea{min-height:96px;resize:vertical;line-height:1.5}
-  .nachricht{padding:11px 13px;border-radius:11px;margin-bottom:9px;border:1px solid var(--linie)}
-  .nachricht.wir{background:var(--flaeche2)}
-  .nachricht .wer{font-size:12.5px;font-weight:650;margin-bottom:5px;display:flex;justify-content:space-between;gap:10px}
-  .nachricht .text{white-space:pre-wrap;font-size:14px;line-height:1.55}
-  .datei{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
-  .datei:first-of-type{border-top:0}
-  /* .zeile steht nicht in admin.css, sondern jeweils in der Seite, die sie
-     braucht — hier also auch. */
-  .zeile{display:flex;justify-content:space-between;align-items:baseline;gap:16px;
-    padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
-  .zeile:first-of-type{border-top:0}
-  .zeile span{color:var(--leise)}
-  .schritte{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;gap:12px}
-  .schritte li{counter-increment:s;display:grid;grid-template-columns:26px 1fr;gap:2px 10px;align-items:start}
-  .schritte li::before{content:counter(s);grid-column:1;grid-row:1/span 2;
-    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
-    font-size:12px;font-weight:700;background:rgba(31,232,255,.12);color:var(--cyan);
-    box-shadow:inset 0 0 0 1px rgba(31,232,255,.3)}
-  .schritte li>*{grid-column:2}
-  .schritte b{display:block;font-size:14px}
-  .schritte span{display:block;font-size:13px;color:var(--dim);line-height:1.5}
-  .angefragt{white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--dim)}
-  .sprachen{text-align:center;margin-top:22px;font-size:13px;color:var(--leise)}
-  .sprachen a{color:var(--leise);margin:0 6px}
-  .sprachen a.jetzt{color:var(--cyan)}
+  .angefragt{white-space:pre-wrap; font-size:14.5px; line-height:1.65; color:var(--dim)}
+  .lead{color:var(--dim); font-size:15px; line-height:1.65}
 </style>
 </head>
 <body>
 <div class="seite">
-  <div class="wortmarke"><b>VECOM</b>&nbsp;DESIGN</div>
+  <div class="wortmarke">
+    <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
+    <span class="wort"><b>VECOM</b> DESIGN</span>
+  </div>
 
 <?php if ($panne): ?>
   <div class="block"><div class="hinweis schlecht"><?= $h($T('panne')) ?></div></div>

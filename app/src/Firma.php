@@ -31,6 +31,7 @@ final class Firma
         'firma_iban'      => '',
         'firma_bank'      => '',
         'firma_mwst'      => '0',
+        'firma_regime'    => 'normal',
         'firma_hinweis'   => '',
     ];
 
@@ -73,10 +74,70 @@ final class Firma
         self::$werte = null;
     }
 
-    /** Der Steuersatz als Zahl, zum Beispiel 22.0 fuer 22 %. */
+    /**
+     * Der Steuersatz als Zahl, zum Beispiel 22.0 fuer 22 %.
+     *
+     * Zwei Riegel davor, und beide sind wichtig genug, um hier zu stehen und
+     * nicht im Formular:
+     *
+     * 1. OHNE Partita IVA ist der Satz immer 0. Wer keine Nummer hat, darf
+     *    keine Steuer ausweisen — steht trotzdem ein Satz in den
+     *    Einstellungen, waere das Ergebnis ein Dokument, das Steuer
+     *    aufschluesselt und im selben Atemzug erklaert, es sei keine
+     *    Rechnung. Genau dieser Widerspruch stand hier am 01.09.2026.
+     * 2. Im regime forfettario wird ebenfalls keine Steuer ausgewiesen —
+     *    dafuer gehoert der gesetzliche Hinweis auf die Rechnung, siehe
+     *    pflichthinweis().
+     */
     public static function mwst(): float
     {
+        if (!self::istRechnungsberechtigt()) { return 0.0; }
+        if (self::regime() === 'forfettario') { return 0.0; }
         return (float) str_replace(',', '.', self::get('mwst', '0'));
+    }
+
+    /** Der eingetragene Satz, ungeachtet der Riegel — fuer die Anzeige. */
+    public static function mwstEingetragen(): float
+    {
+        return (float) str_replace(',', '.', self::get('mwst', '0'));
+    }
+
+    /** 'normal' oder 'forfettario'. Ohne Partita IVA ohne Wirkung. */
+    public static function regime(): string
+    {
+        return self::get('regime', 'normal') === 'forfettario' ? 'forfettario' : 'normal';
+    }
+
+    /**
+     * Der Satz, der von Gesetzes wegen auf dem Dokument stehen muss.
+     *
+     * Ohne Partita IVA ist es kein Rechnungshinweis, sondern die schlichte
+     * Feststellung, dass es keine Rechnung ist. Im forfettario ist es der
+     * vorgeschriebene Wortlaut aus der Legge 190/2014. Welcher Fall gilt,
+     * sagt der Commercialista — hier wird nur ausgegeben, was zur
+     * Einstellung passt.
+     */
+    public static function pflichthinweis(): string
+    {
+        if (!self::istRechnungsberechtigt()) {
+            return 'Dies ist ein Zahlungsbeleg, keine Rechnung im steuerlichen Sinn.';
+        }
+        if (self::regime() === 'forfettario') {
+            return 'Operazione senza applicazione dell\'IVA ai sensi dell\'articolo 1, '
+                . 'commi da 54 a 89, della Legge n. 190/2014 e successive modificazioni.';
+        }
+        return '';
+    }
+
+    /**
+     * Marca da bollo: im forfettario ab 77,47 EUR faellig, 2 EUR.
+     * Der Betrag kommt in Cent herein.
+     */
+    public static function bolloNoetig(int $betragCent): bool
+    {
+        return self::istRechnungsberechtigt()
+            && self::regime() === 'forfettario'
+            && $betragCent > 7747;
     }
 
     /** Ohne Umsatzsteuernummer ist es ein Beleg, keine Rechnung. */

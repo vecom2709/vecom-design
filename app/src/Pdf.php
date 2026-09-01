@@ -24,6 +24,9 @@ final class Pdf
 
     private array $teile = [];
 
+    /** Eingebettete Bilder: je Eintrag [daten, breite, hoehe, farbraum]. */
+    private array $bilder = [];
+
     public function __construct(
         private float $breite = self::A4_BREIT,
         private float $hoehe  = self::A4_HOCH,
@@ -103,21 +106,114 @@ final class Pdf
         return $aus;
     }
 
+    /**
+     * Ein JPEG an eine feste Stelle setzen, Groesse in Punkt.
+     *
+     * Warum ausgerechnet JPEG: Ein PDF kann einen JPEG-Datenstrom
+     * unveraendert aufnehmen (Filter DCTDecode) — das Bild wird also nicht
+     * umgerechnet, sondern durchgereicht. Fuer PNG mit Transparenz muesste
+     * die Klasse Zlib-Stroeme und eine Maske bauen; das braucht ein Briefkopf
+     * nicht, der ohnehin auf weissem Papier steht.
+     *
+     * Gibt zurueck, ob das Bild angenommen wurde. Ein kaputtes oder fehlendes
+     * Logo darf keinen Beleg verhindern — dann steht eben nur der Schriftzug.
+     */
+    public function bild(string $jpeg, float $x, float $y, float $breite, float $hoehe): bool
+    {
+        $kopf = self::jpegKopf($jpeg);
+        if ($kopf === null) { return false; }
+
+        $this->bilder[] = [$jpeg, $kopf['breite'], $kopf['hoehe'], $kopf['farbraum']];
+        $name = 'Im' . count($this->bilder);
+
+        // q/Q klammert die Verschiebung ein, damit sie nichts danach betrifft.
+        // Die Matrix skaliert das Einheitsquadrat auf die gewuenschte Groesse.
+        $this->teile[] = sprintf(
+            "q\n%.2F 0 0 %.2F %.2F %.2F cm\n/%s Do\nQ",
+            $breite, $hoehe, $x, $this->hoehe - $y - $hoehe, $name
+        );
+        return true;
+    }
+
+    /**
+     * Breite, Hoehe und Farbraum aus dem JPEG-Kopf lesen.
+     *
+     * Gesucht wird der SOF-Abschnitt. Er kann hinter beliebig vielen anderen
+     * Abschnitten stehen, deshalb wird die Kette der Marker abgelaufen statt
+     * an einer festen Stelle nachzusehen.
+     *
+     * @return array{breite:int,hoehe:int,farbraum:string}|null
+     */
+    private static function jpegKopf(string $d): ?array
+    {
+        $n = strlen($d);
+        if ($n < 4 || substr($d, 0, 2) !== "\xFF\xD8") { return null; }
+
+        $i = 2;
+        while ($i + 3 < $n) {
+            if ($d[$i] !== "\xFF") { return null; }
+            $marker = ord($d[$i + 1]);
+            // Fuellbytes und Marker ohne Nutzlast ueberspringen.
+            if ($marker === 0xFF) { $i++; continue; }
+            if ($marker === 0xD8 || ($marker >= 0xD0 && $marker <= 0xD9)) { $i += 2; continue; }
+
+            $laenge = (ord($d[$i + 2]) << 8) + ord($d[$i + 3]);
+            if ($laenge < 2) { return null; }
+
+            // SOF0/1/2/9/10 tragen die Masse. DHT, DAC und SOS nicht.
+            $istSof = in_array($marker, [0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7,
+                                         0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF], true);
+            if ($istSof) {
+                if ($i + 9 >= $n) { return null; }
+                $hoehe  = (ord($d[$i + 5]) << 8) + ord($d[$i + 6]);
+                $breite = (ord($d[$i + 7]) << 8) + ord($d[$i + 8]);
+                $kanaele = ord($d[$i + 9]);
+                $farbraum = match ($kanaele) {
+                    1 => 'DeviceGray',
+                    4 => 'DeviceCMYK',
+                    default => 'DeviceRGB',
+                };
+                if ($breite < 1 || $hoehe < 1) { return null; }
+                return ['breite' => $breite, 'hoehe' => $hoehe, 'farbraum' => $farbraum];
+            }
+            if ($marker === 0xDA) { return null; }   // Bilddaten beginnen, kein SOF gefunden
+            $i += 2 + $laenge;
+        }
+        return null;
+    }
+
     /** Fertiges PDF als Zeichenkette. */
     public function fertig(): string
     {
         $inhalt = implode("\n", $this->teile);
 
+        // Die Bilder bekommen die Nummern nach den beiden Schriften.
+        $xobjekte = '';
+        foreach ($this->bilder as $nr => $_) {
+            $xobjekte .= sprintf('/Im%d %d 0 R ', $nr + 1, 7 + $nr);
+        }
+        $mittel = $xobjekte !== ''
+            ? sprintf('/Font << /F1 5 0 R /F2 6 0 R >> /XObject << %s>>', $xobjekte)
+            : '/Font << /F1 5 0 R /F2 6 0 R >>';
+
         $objekte = [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2F %.2F] "
-                . "/Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>",
-                $this->breite, $this->hoehe),
+                . "/Resources << %s >> /Contents 4 0 R >>",
+                $this->breite, $this->hoehe, $mittel),
             sprintf("<< /Length %d >>\nstream\n%s\nendstream", strlen($inhalt) + 1, $inhalt),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
         ];
+
+        foreach ($this->bilder as [$daten, $bb, $bh, $farbraum]) {
+            $objekte[] = sprintf(
+                "<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /%s "
+                . "/BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n%s\nendstream",
+                $bb, $bh, $farbraum, strlen($daten) + 1, $daten
+            );
+        }
 
         $pdf = "%PDF-1.4\n";
         $stellen = [];

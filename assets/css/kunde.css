@@ -1,0 +1,285 @@
+/* ==========================================================================
+   kunde.css — der Auftritt der Kundenseiten.
+
+   Vorgangsseite, Fragebogen und Projektseite liefen bisher mit dem
+   Stylesheet der Verwaltung. Das war praktisch und falsch: Der Kunde kommt
+   von vecom-design.it, klickt einen Link aus einer E-Mail und landete in
+   einer Oberfläche, die für den Betreiber gebaut ist. Diese Datei gibt den
+   drei Seiten dieselbe Handschrift wie die Website — dieselben Farben,
+   dieselben Schriften, dieselbe Ruhe.
+
+   Bewusst eine eigene Datei und nicht app.css: Die Website bringt Animation,
+   3D und einiges mehr mit. Hier trägt jemand Angaben ein und liest, wo sein
+   Projekt steht. Das braucht nichts davon.
+   ========================================================================== */
+
+:root{
+  /* Farben wie auf der Website, aus dem Logo abgeleitet */
+  --grund:      #05070d;
+  --grund2:     #080b13;
+  --flaeche:    #0c1119;
+  --flaeche2:   #111826;
+  --linie:      rgba(150,180,230,.13);
+  --linie2:     rgba(150,180,230,.26);
+
+  --text:       #e9eef8;
+  --dim:        #97a5bf;
+  --leise:      #808ea9;
+
+  --blau:       #0648e8;
+  --blau2:      #0a78f5;
+  --cyan:       #1fe8ff;
+  --verlauf:    linear-gradient(135deg, var(--blau) 0%, var(--blau2) 45%, var(--cyan) 100%);
+
+  --gut:        #34d39b;
+  --gut-grund:  rgba(52,211,155,.10);
+  --schlecht:   #ff7a6b;
+  --schl-grund: rgba(255,122,107,.10);
+
+  --f-display:  'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-text:     'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --r:          14px;
+  --schatten:   0 24px 60px -40px rgba(0,0,0,.95);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--grund); color:var(--text);
+  font:400 16px/1.65 var(--f-text);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  padding:0 0 72px;
+}
+
+/* Ein ruhiger Lichtschein oben, damit die Seite nicht als schwarze Fläche
+   beginnt — dieselbe Geste wie auf der Startseite, nur leiser. */
+body::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(62vw 44vh at 50% -12%, rgba(10,120,245,.15), transparent 64%),
+    radial-gradient(46vw 34vh at 88% 104%, rgba(31,232,255,.07), transparent 62%);
+}
+
+.seite{position:relative; z-index:1; max-width:760px; margin:0 auto; padding:0 20px}
+
+/* ---------- Kopf mit Wortmarke ---------- */
+.wortmarke{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:34px 0 26px;
+}
+.wortmarke img{display:block; height:46px; width:auto}
+.wortmarke .wort{
+  font:800 19px/1 var(--f-display); letter-spacing:.02em;
+  font-stretch:108%;
+}
+.wortmarke .wort b{
+  background:var(--verlauf); -webkit-background-clip:text; background-clip:text;
+  color:transparent; font-weight:800;
+}
+
+/* ---------- Block ---------- */
+.block{
+  background:linear-gradient(180deg, var(--flaeche), var(--grund2));
+  border:1px solid var(--linie); border-radius:var(--r);
+  padding:26px 26px 24px; margin-bottom:18px; box-shadow:var(--schatten);
+}
+.block > h1,
+.block > h2{margin-top:0}
+
+h1{
+  font:700 clamp(1.5rem,1.25rem + 1.1vw,2rem)/1.2 var(--f-display);
+  font-stretch:104%; letter-spacing:-.015em; margin:0 0 10px; text-wrap:balance;
+}
+h2{
+  /* Ohne font-stretch: Archivo hat eine Breitenachse, und bei kleinen
+     Überschriften reisst sie einzelne Buchstabenpaare sichtbar auseinander
+     ("So läuf t es"). Bei der grossen h1 faellt das nicht auf, hier schon. */
+  font:650 15px/1.35 var(--f-display); font-stretch:100%;
+  letter-spacing:0; margin:0 0 16px;
+}
+p{margin:0 0 14px}
+p:last-child{margin-bottom:0}
+a{color:var(--cyan)}
+a:focus-visible,button:focus-visible,input:focus-visible,
+textarea:focus-visible,select:focus-visible{
+  outline:2px solid var(--cyan); outline-offset:2px; border-radius:6px;
+}
+
+/* ---------- Zeilen (Beschriftung + Wert) ---------- */
+.zeile{
+  display:flex; justify-content:space-between; align-items:baseline; gap:18px;
+  padding:11px 0; border-top:1px solid var(--linie); font-size:14.5px;
+}
+.zeile:first-of-type{border-top:0; padding-top:0}
+.zeile span{color:var(--leise)}
+.zeile b{font-weight:600; text-align:right}
+
+/* ---------- Felder ---------- */
+.feld{margin-bottom:16px}
+.feld label{
+  display:block; font-size:12.5px; font-weight:600; letter-spacing:.02em;
+  color:var(--dim); margin-bottom:7px;
+}
+input[type=text],input[type=email],input[type=tel],input:not([type]),
+textarea,select{
+  width:100%; padding:12px 14px; min-height:46px;
+  background:rgba(255,255,255,.03); color:var(--text);
+  border:1px solid var(--linie2); border-radius:10px;
+  font:400 15px/1.5 var(--f-text); transition:border-color .18s, background .18s;
+}
+input::placeholder,textarea::placeholder{color:var(--leise)}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--cyan); background:rgba(255,255,255,.05); outline:none;
+}
+textarea{min-height:112px; resize:vertical; line-height:1.6}
+input[type=file]{
+  width:100%; padding:11px 14px; background:rgba(255,255,255,.03);
+  border:1px dashed var(--linie2); border-radius:10px; color:var(--dim); font-size:14px;
+}
+
+/* ---------- Knöpfe ---------- */
+.knopf{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 20px; min-height:46px; border-radius:11px; cursor:pointer;
+  border:1px solid var(--linie2); background:rgba(255,255,255,.04); color:var(--text);
+  font:600 14.5px/1 var(--f-text); text-decoration:none;
+  transition:transform .18s cubic-bezier(.16,1,.3,1), border-color .18s, box-shadow .18s;
+}
+.knopf:hover{transform:translateY(-1px); border-color:var(--linie2)}
+.knopf.haupt{
+  background:var(--verlauf); border-color:transparent; color:#fff; font-weight:650;
+}
+.knopf.haupt:hover{box-shadow:0 14px 34px -16px rgba(10,120,245,.85)}
+.knopf.stumm{background:transparent; color:var(--dim); border-color:transparent}
+
+/* ---------- Hinweise ---------- */
+.hinweis{
+  padding:14px 16px; border-radius:11px; font-size:14.5px; line-height:1.55;
+  border:1px solid var(--linie2); background:rgba(255,255,255,.03); color:var(--dim);
+}
+.hinweis.gut{border-color:rgba(52,211,155,.35); background:var(--gut-grund); color:var(--gut)}
+.hinweis.schlecht{border-color:rgba(255,122,107,.4); background:var(--schl-grund); color:var(--schlecht)}
+
+/* ---------- Nachrichten ---------- */
+.nachricht{
+  padding:14px 16px; border-radius:12px; margin-bottom:10px;
+  border:1px solid var(--linie); background:rgba(255,255,255,.02);
+}
+.nachricht.wir{
+  background:linear-gradient(135deg, rgba(10,120,245,.10), rgba(31,232,255,.05));
+  border-color:rgba(31,232,255,.20);
+}
+.nachricht .wer{
+  display:flex; justify-content:space-between; gap:12px;
+  font-size:12.5px; font-weight:650; margin-bottom:6px; color:var(--dim);
+}
+.nachricht .wer .zeit{font-weight:400; color:var(--leise)}
+.nachricht .text{white-space:pre-wrap; font-size:14.5px; line-height:1.6; color:var(--text)}
+
+/* ---------- Dateien ---------- */
+.datei{
+  display:flex; justify-content:space-between; align-items:center; gap:14px;
+  padding:12px 0; border-top:1px solid var(--linie); font-size:14.5px;
+}
+.datei:first-of-type{border-top:0}
+.datei small{color:var(--leise)}
+.datei .knopf{min-width:46px; padding:10px 14px}
+
+/* ---------- Ablauf in Schritten ---------- */
+.schritte{list-style:none; counter-reset:s; margin:0; padding:0; display:grid; gap:16px}
+.schritte li{
+  counter-increment:s; display:grid; grid-template-columns:30px 1fr; gap:2px 12px; align-items:start;
+}
+.schritte li::before{
+  content:counter(s); grid-column:1; grid-row:1 / span 2;
+  width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+  font:650 12.5px/1 var(--f-text); color:var(--cyan);
+  background:rgba(31,232,255,.10); box-shadow:inset 0 0 0 1px rgba(31,232,255,.30);
+}
+.schritte li > *{grid-column:2}
+.schritte b{display:block; font-size:14.5px; font-weight:650}
+.schritte span{display:block; font-size:13.5px; color:var(--dim); line-height:1.55}
+
+/* ---------- Fortschritt (Projektseite) ---------- */
+.stufen{list-style:none; margin:0; padding:0; display:grid; gap:0}
+.stufen li{
+  display:grid; grid-template-columns:26px 1fr; gap:14px; align-items:start;
+  padding:0 0 18px; position:relative;
+}
+.stufen li:last-child{padding-bottom:0}
+.stufen li::after{
+  content:''; position:absolute; left:12.5px; top:24px; bottom:0; width:1px; background:var(--linie);
+}
+.stufen li:last-child::after{display:none}
+.kreis{
+  width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
+  border:1px solid var(--linie2); background:var(--grund2); position:relative; z-index:1;
+  font-size:11px; color:var(--leise);
+}
+.stufen li.durch .kreis{
+  background:var(--verlauf); border-color:transparent; color:#fff;
+}
+.stufen li.jetzt .kreis{
+  border-color:var(--cyan); color:var(--cyan);
+  box-shadow:0 0 0 4px rgba(31,232,255,.12);
+}
+.stufen li.jetzt > div b{color:var(--cyan)}
+.stufen b{display:block; font-size:14.5px; font-weight:600}
+.stufen span{display:block; font-size:13px; color:var(--leise)}
+
+/* ---------- Fortschrittsbalken (Fragebogen) ---------- */
+.balken{
+  height:6px; border-radius:99px; background:rgba(255,255,255,.06);
+  overflow:hidden; margin:14px 0 6px;
+}
+.balken i{
+  display:block; height:100%; border-radius:99px; background:var(--verlauf);
+  transition:width .4s cubic-bezier(.16,1,.3,1);
+}
+.stand{font-size:13px; color:var(--leise)}
+
+/* ---------- Fragebogen-Abschnitte ---------- */
+.kopfzeile{
+  display:flex; align-items:baseline; justify-content:space-between; gap:16px;
+  margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--linie);
+}
+.kopfzeile h2{margin:0}
+.antwort{margin-bottom:18px}
+.leer{color:var(--leise); font-size:14.5px}
+
+/* Knopfleiste — zwei Knöpfe nebeneinander, auf dem Handy untereinander
+   und über die volle Breite, damit der Daumen sie trifft. */
+.leiste2{display:flex; gap:10px; flex-wrap:wrap}
+.leiste2 .knopf{flex:1 1 auto; min-width:150px}
+
+/* ---------- Sprachwahl ---------- */
+.sprachen{
+  text-align:center; margin:26px 0 0; font-size:13.5px; color:var(--leise);
+}
+.sprachen a{
+  color:var(--leise); text-decoration:none; padding:11px 10px;
+  display:inline-block; min-height:44px; line-height:22px;
+}
+.sprachen a:hover{color:var(--dim)}
+.sprachen a.jetzt{color:var(--cyan); font-weight:600}
+
+/* ---------- Fuß ---------- */
+.fussleiste{
+  text-align:center; margin-top:30px; font-size:12.5px; color:var(--leise);
+}
+.fussleiste a{color:var(--leise); text-decoration:none}
+.fussleiste a:hover{color:var(--dim)}
+
+@media (max-width:560px){
+  .seite{padding:0 14px}
+  .block{padding:20px 18px 18px; border-radius:12px}
+  .wortmarke{padding:24px 0 18px}
+  .wortmarke img{height:38px}
+  .zeile{flex-direction:column; align-items:flex-start; gap:3px}
+  .zeile b{text-align:left}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important; transition-duration:.01ms!important}
+}

@@ -81,10 +81,48 @@
         <div class="feld"><label>Codice fiscale</label><input name="firma_steuernr" value="<?= Fmt::h((string) ($firma['firma_steuernr'] ?? '')) ?>"></div>
       </div>
     </div>
-    <div class="feld"><label>Mehrwertsteuersatz in Prozent</label>
-      <input name="firma_mwst" style="max-width:140px" value="<?= Fmt::h((string) ($firma['firma_mwst'] ?? '0')) ?>">
-      <small style="color:var(--leise);font-size:12px">0 heißt: keine Steuer ausgewiesen. Die Preise auf der Website
-        gelten als Endpreise — bei einem Satz über 0 wird die Steuer herausgerechnet, nicht aufgeschlagen.</small></div>
+    <div class="zwei" style="margin-top:4px">
+      <div>
+        <div class="feld"><label>Steuerregime</label>
+          <?php $reg = (string) ($firma['firma_regime'] ?? 'normal'); ?>
+          <select name="firma_regime">
+            <option value="normal" <?= $reg !== 'forfettario' ? 'selected' : '' ?>>Normal — IVA wird ausgewiesen</option>
+            <option value="forfettario" <?= $reg === 'forfettario' ? 'selected' : '' ?>>Regime forfettario — keine IVA</option>
+          </select>
+          <small style="color:var(--leise);font-size:12px">Wirkt erst mit einer Partita IVA. Im forfettario steht der
+            gesetzliche Hinweis nach L. 190/2014 automatisch auf der Rechnung, und ab 77,47 € der Vermerk zur Marca da bollo.</small></div>
+      </div>
+      <div>
+        <div class="feld"><label>Mehrwertsteuersatz in Prozent</label>
+          <input name="firma_mwst" style="max-width:140px" value="<?= Fmt::h((string) ($firma['firma_mwst'] ?? '0')) ?>">
+          <small style="color:var(--leise);font-size:12px">Die Preise auf der Website gelten als Endpreise — die Steuer
+            wird herausgerechnet, nicht aufgeschlagen.</small></div>
+      </div>
+    </div>
+
+    <?php
+      $hatPiva = trim((string) ($firma['firma_piva'] ?? '')) !== '';
+      $satzEin = (float) str_replace(',', '.', (string) ($firma['firma_mwst'] ?? '0'));
+    ?>
+    <?php if (!$hatPiva): ?>
+      <div class="hinweis<?= $satzEin > 0 ? ' warnung' : '' ?>" style="margin:14px 0 4px">
+        <b>Solange keine Partita IVA hier steht</b>, heißen die Dokumente <b>Zahlungsbeleg</b> (BE-…), es wird
+        <b>keine Steuer ausgewiesen</b> — auch dann nicht, wenn oben ein Satz eingetragen ist —, und unten steht
+        der Satz „keine Rechnung im steuerlichen Sinn".
+        <?php if ($satzEin > 0): ?>
+          <br><br>Gerade stehen <b><?= Fmt::h(rtrim(rtrim(number_format($satzEin, 2, ',', '.'), '0'), ',')) ?> %</b> im
+          Feld, ohne dass sie irgendwo wirken. Das ist in Ordnung als Vormerkung — sobald du die Nummer einträgst,
+          greift der Satz sofort und aus den Belegen werden Rechnungen (RE-…) mit eigener Nummernreihe ab 0001.
+        <?php endif; ?>
+      </div>
+    <?php else: ?>
+      <div class="hinweis gut" style="margin:14px 0 4px">
+        <b>Partita IVA hinterlegt.</b> Die Dokumente heißen <b>Rechnung</b> (RE-…)
+        <?= (string) ($firma['firma_regime'] ?? 'normal') === 'forfettario'
+            ? 'und tragen den Hinweis nach L. 190/2014, ohne IVA.'
+            : 'und weisen die Steuer aus.' ?>
+      </div>
+    <?php endif; ?>
     <div class="feld"><label>Hinweis auf dem Beleg</label>
       <textarea name="firma_hinweis" rows="3" placeholder="Den genauen Wortlaut gibt dir dein Commercialista."><?= Fmt::h((string) ($firma['firma_hinweis'] ?? '')) ?></textarea></div>
     <button class="knopf haupt">Firmendaten speichern</button>

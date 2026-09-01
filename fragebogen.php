@@ -109,36 +109,18 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($S('titel')) ?> — Vecom Design</title>
-<link rel="stylesheet" href="/app/assets/admin.css">
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="stylesheet" href="/assets/css/kunde.css">
 <style>
-  /* Bewusst NICHT .huelle und nicht .marke aus admin.css: beide sind fuer
-     die Verwaltung gedacht und werden unter 900 Pixeln umgebaut bzw. ganz
-     ausgeblendet. Diese Seite steht fuer sich. */
-  body{padding:26px 18px 60px}
-  .seite{max-width:680px;margin:0 auto}
-  .kopfzeile{text-align:center;margin-bottom:20px}
-  .wortmarke{display:flex;justify-content:center;align-items:center;gap:2px;
-    font-weight:700;letter-spacing:.02em;font-size:18px;padding-bottom:16px}
-  .wortmarke b{background:linear-gradient(135deg,var(--blau),var(--cyan));
-    -webkit-background-clip:text;background-clip:text;color:transparent}
-  .kopfzeile p{color:var(--dim);font-size:14px;margin-top:10px;line-height:1.55}
-  .balken{height:6px;border-radius:99px;background:var(--linie);overflow:hidden;margin:16px 0 4px}
-  .balken i{display:block;height:100%;background:var(--cyan);border-radius:99px;transition:width .3s}
-  .stand{font-size:12.5px;color:var(--leise);text-align:right}
-  .block h2{font-size:15px;margin-bottom:14px}
-  textarea{min-height:88px;resize:vertical;line-height:1.5}
-  .leiste2{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-  .leiste2 .knopf{flex:1 1 200px;justify-content:center}
-  .sprachen{text-align:center;margin-top:22px;font-size:13px;color:var(--leise)}
-  .sprachen a{color:var(--leise);margin:0 6px}
-  .sprachen a.jetzt{color:var(--cyan)}
-  .antwort{white-space:pre-wrap;color:var(--dim);font-size:14px;line-height:1.55}
+  .lead{color:var(--dim); font-size:15px; line-height:1.65}
+  .abschnitt + .abschnitt{margin-top:6px}
 </style>
 </head>
 <body>
 <div class="seite">
-  <div class="kopfzeile">
-    <div class="wortmarke"><b>VECOM</b>&nbsp;DESIGN</div>
+  <div class="wortmarke">
+    <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
+    <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
 
 <?php if ($panne): ?>

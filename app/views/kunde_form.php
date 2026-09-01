@@ -21,6 +21,11 @@
   <small style="color:var(--leise);display:block;margin-top:5px">In dieser Sprache gehen alle
   automatischen E-Mails an ihn — Zahlung, Vorschau, Restzahlung, „ist online".
   Sie wird beim Anfragen gesetzt und lässt sich hier ändern.</small></div></div>
+<div class="reihe"><div class="feld"><label>Codice fiscale</label><input name="tax_code" value="<?= Fmt::h($k['tax_code'] ?? '') ?>" placeholder="MRNRSO78T41C351K"></div>
+<div class="feld"><label>Partita IVA</label><input name="vat_id" value="<?= Fmt::h($k['vat_id'] ?? '') ?>" placeholder="01234567890"></div></div>
+<div class="feld"><label>Empfängerkode oder PEC (SDI)</label><input name="sdi" value="<?= Fmt::h($k['sdi'] ?? '') ?>" placeholder="M5UXCR1">
+  <small style="color:var(--leise);display:block;margin-top:5px">Auf einem Zahlungsbeleg braucht es diese drei nicht. Sobald du eine Partita IVA hast und
+  echte Rechnungen stellst, gehören sie bei Unternehmen und Freiberuflern auf jede Rechnung — dann stehen sie schon hier.</small></div>
 <div class="feld"><label>Interne Notizen</label><textarea name="notes" rows="4"><?= Fmt::h($k['notes'] ?? '') ?></textarea></div>
 <button class="knopf haupt">Speichern</button> <a class="knopf stumm" href="<?= Fmt::h(url('kunden')) ?>">Abbrechen</a>
 </form></div>
