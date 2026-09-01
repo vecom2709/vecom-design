@@ -511,3 +511,49 @@ toten Schlüssel am ersten Tag gezeigt statt nach Monaten.
   hinterlegte Webhook-Geheimnis nicht zu dem, das Stripe für
   `https://vecom-design.it/stripe-webhook.php` anzeigt — dann würde keine
   Zahlung je von allein bestätigt. Vor dem Livegang prüfen.
+
+### Der ganze Ablauf, einmal wirklich durchlaufen (01.09.2026)
+
+Nicht gelesen, sondern gefahren: zweimal die volle Kette gegen eine echte
+MariaDB, mit einer Stripe-Attrappe (gültige HMAC-Unterschrift, echter
+Webhook-Weg) und einer Brevo-Attrappe.
+
+**Jedes Glied hält.** Formular → Anfrage + Kunde + Zugangsschlüssel + zwei
+Mails · Anfrage → Bestellung `VD-2026-0004`, Anzahlung und Restzahlung
+entstehen sofort mit · Zahlungslink über Stripe · Webhook mit geprüfter
+Unterschrift → Anzahlung bezahlt · daraus von allein: Projekt, Fragebogen,
+Beleg, Zahlungs- und Einladungsmail · Fragebogen (21 Felder, Zwischenstand
+und Absenden) → Projekt auf „Informationen erhalten" · Vorschau gesetzt →
+Mail · Freigabe → finale Freigabe → **Restzahlung wird angefordert, Link
+erzeugt, Mail raus** · Restzahlung bezahlt → offen 0,00 €, zweiter Beleg ·
+online → Projekt online, Bestellung fertig, Mail an den Kunden.
+
+**Drei Funde, alle behoben:**
+
+1. **Der schwerste: die Sprache stand nur an der Anfrage, nie am Kunden.**
+   Die Eingangsbestätigung kam deutsch, die vier folgenden Mails italienisch
+   — Zahlung, Vorschau, Restzahlung, „ist online". Nur `buchen.php` merkte
+   sich die Sprache; der übliche Weg über das Formular nicht.
+2. Geht ein Projekt online, ohne dass eine Adresse im Monitoring steht,
+   passierte nichts. Kein Eintrag, keine Prüfung — ein stiller Ausfall genau
+   des Dienstes, mit dem geworben wird. Jetzt meldet es sich.
+3. Die Sprache war in der Verwaltung weder sichtbar noch änderbar. Jetzt in
+   der Kundenakte und im Formular.
+
+**Was nur noch eingeschaltet werden muss** (kein Fehler, Entscheidungen):
+
+- **Direktkauf ist zweifach zu**: Stripe steht auf Testmodus, und bei keinem
+  Paket ist „direkt auf der Website buchbar" gesetzt. Beides muss an, sonst
+  erscheint kein Kaufknopf.
+- **Partita IVA fehlt, MwSt steht auf 22 %.** Die Belege rechnen damit
+  449,50 € in 368,44 € netto + 81,06 € MwSt auf — und tragen zugleich die
+  Fußzeile „kein Rechnung im steuerlichen Sinn", weil keine P. IVA
+  hinterlegt ist. Entweder die Nummer fehlt nur in den Einstellungen, dann
+  werden aus Belegen (BE-) Rechnungen (RE-); oder es gibt keine, dann darf
+  der Satz nicht 22 % sein. Das gehört vor den Commercialista, nicht in
+  meine Hand.
+- Stripe-Webhook: fünf ungültige Unterschriften an einem Tag, nicht von
+  eigenen Aufrufen. Vor dem Livegang das Webhook-Geheimnis mit dem
+  abgleichen, das Stripe für den Endpunkt zeigt.
+- Beispieldaten sind noch geladen; der erste echte Auftrag räumt sie
+  automatisch weg.
