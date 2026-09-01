@@ -15,6 +15,9 @@ declare(strict_types=1);
    ========================================================================== */
 final class Anfrage
 {
+    /** So lange bleibt der private Zugang offen, wenn kein Auftrag daraus wird. */
+    public const GUELTIG_TAGE = 90;
+
     /** Nimmt eine Anfrage an: Kunde anlegen oder finden, Anfrage festhalten. */
     public static function annehmen(array $d): ?int
     {
@@ -55,11 +58,87 @@ final class Anfrage
             'status'      => 'neu',
         ]);
 
+        // Der Zugang entsteht sofort mit. Er laeuft nach GUELTIG_TAGE ab: Wird
+        // nichts daraus, soll kein Link ewig offen stehen.
+        self::token($id);
+
         Events::protokoll('anfrage_neu', 'Anfrage von ' . $name, $kundeId);
         Events::melden('anfrage_neu', 'Neue Anfrage über die Website', 'gut',
             $name . ($paketName !== '' ? ' — ' . $paketName : ''), '/anfragen/' . $id);
 
+        // Die Bestaetigung geht ganz zum Schluss und in einem eigenen Netz:
+        // Die Anfrage steht bereits, ein stummer Mailserver darf sie nicht
+        // mehr gefaehrden.
+        try { self::bestaetigen($id); } catch (Throwable $e) {
+            Events::melden('mail_fehler', 'Eingangsbestätigung nicht verschickt', 'schlecht',
+                mb_substr($e->getMessage(), 0, 180), '/anfragen/' . $id);
+        }
+
         return $id;
+    }
+
+    /** Erzeugt den Zugangsschluessel oder gibt den vorhandenen zurueck. */
+    public static function token(int $anfrageId): string
+    {
+        $a = Db::one('SELECT token, token_bis FROM anfragen WHERE id = ?', [$anfrageId]);
+        if (!$a) { throw new RuntimeException('Anfrage nicht gefunden.'); }
+        $bis = date('Y-m-d H:i:s', strtotime('+' . self::GUELTIG_TAGE . ' days'));
+        if ($a['token']) {
+            // Vorhandenen Schluessel behalten, aber die Frist auffrischen —
+            // wer sich meldet, soll nicht am naechsten Tag ausgesperrt sein.
+            Db::update('anfragen', $anfrageId, ['token_bis' => $bis]);
+            return (string) $a['token'];
+        }
+        for ($i = 0; $i < 5; $i++) {
+            $neu = bin2hex(random_bytes(24));
+            if (!Db::one('SELECT id FROM anfragen WHERE token = ?', [$neu])) {
+                Db::update('anfragen', $anfrageId, ['token' => $neu, 'token_bis' => $bis]);
+                return $neu;
+            }
+        }
+        throw new RuntimeException('Zugang konnte nicht erzeugt werden.');
+    }
+
+    public static function link(string $token): string
+    {
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        return $basis . '/vorgang.php?t=' . rawurlencode($token);
+    }
+
+    /** Findet die Anfrage zu einem gueltigen, nicht abgelaufenen Schluessel. */
+    public static function ausToken(string $token): ?array
+    {
+        if (!preg_match('/^[0-9a-f]{48}$/', $token)) { return null; }
+        $a = Db::one('SELECT * FROM anfragen WHERE token = ?', [$token]);
+        if (!$a) { return null; }
+        if ($a['token_bis'] && strtotime((string) $a['token_bis']) < time()) { return null; }
+        return $a;
+    }
+
+    /** Schickt dem Kunden die Eingangsbestaetigung. Nur einmal je Anfrage. */
+    public static function bestaetigen(int $anfrageId, bool $erneut = false): bool
+    {
+        $a = Db::one('SELECT * FROM anfragen WHERE id = ?', [$anfrageId]);
+        if (!$a) { return false; }
+        if ($a['bestaetigt_am'] && !$erneut) { return false; }
+
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Texte.php';
+        $sprache = (string) ($a['sprache'] ?: 'it');
+        $paketsatz = $a['paket_name']
+            ? ['it' => ' per il pacchetto ' . $a['paket_name'],
+               'de' => ' zum Paket ' . $a['paket_name'],
+               'en' => ' about the ' . $a['paket_name'] . ' package'][$sprache] ?? ''
+            : '';
+        [$betreff, $text] = Texte::mail('anfrage_eingegangen', $sprache, [
+            'name'      => (string) $a['name'],
+            'paketsatz' => $paketsatz,
+            'link'      => self::link(self::token($anfrageId)),
+        ]);
+        $ok = Mail::senden('anfrage_eingegangen', (string) $a['email'], $betreff, $text,
+            ['customer_id' => $a['customer_id'] ? (int) $a['customer_id'] : null]);
+        if ($ok) { Db::update('anfragen', $anfrageId, ['bestaetigt_am' => date('Y-m-d H:i:s')]); }
+        return $ok;
     }
 
     /** Macht aus einer Anfrage eine Bestellung. Der Kunde ist schon da. */

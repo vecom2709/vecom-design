@@ -28,6 +28,53 @@
       <td><span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span></td>
       <td><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></td></tr><?php endforeach; ?>
     </tbody></table></div></div>
+  <div class="block"><h2>Nachricht an den Kunden</h2>
+    <p style="color:var(--leise);font-size:13px;margin:0 0 12px">Geht als E-Mail raus und steht danach hier
+      — und auf der Seite des Kunden. Antwortet er dort, landet es ebenfalls hier.</p>
+    <?php if ($nachrichten): ?>
+      <div style="margin-bottom:14px">
+      <?php foreach ($nachrichten as $m): ?>
+        <div style="padding:10px 12px;border:1px solid var(--linie);border-radius:10px;margin-bottom:8px;
+                    <?= $m['sender'] === 'kunde' ? '' : 'background:var(--flaeche2)' ?>">
+          <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
+            <span><?= $m['sender'] === 'kunde' ? Fmt::h($k['name']) : 'du' ?></span>
+            <span style="color:var(--leise);font-weight:400"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></span></div>
+          <div style="white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
+        </div>
+      <?php endforeach; ?></div>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_nachricht">
+      <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+      <div class="feld"><textarea name="text" rows="5" required
+        placeholder="Hallo <?= Fmt::h(explode(' ', (string) $k['name'])[0]) ?>, …"></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="knopf haupt">Senden</button>
+        <?php foreach ($vorlagen as $titel => $inhalt): ?>
+          <button type="button" class="knopf" onclick="var t=this.closest('form').querySelector('textarea');t.value=<?= Fmt::h(json_encode($inhalt, JSON_UNESCAPED_UNICODE)) ?>;t.focus()"><?= Fmt::h($titel) ?></button>
+        <?php endforeach; ?>
+      </div>
+    </form>
+  </div>
+
+  <div class="block"><h2>Dateien</h2>
+    <?php if (!$dateien): ?><div class="leer">Noch nichts.</div><?php else: ?>
+      <?php foreach ($dateien as $d): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">
+          <span><?= Fmt::h($d['orig_name']) ?><br><small style="color:var(--leise)">
+            <?= Fmt::h(Fmt::bytes((int) $d['size_bytes'])) ?> · <?= $d['uploaded_by'] === 'kunde' ? 'vom Kunden' : 'von dir' ?>
+            · <?= Fmt::h(Fmt::datum($d['created_at'])) ?></small></span>
+          <a class="knopf" href="<?= Fmt::h(url('dateien/' . (int) $d['id'])) ?>">Herunterladen</a>
+        </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_datei">
+      <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+      <input type="file" name="datei" required style="max-width:260px">
+      <button class="knopf">Hochladen</button>
+    </form>
+  </div>
 </div><div>
   <div class="block"><h2>Kontakt</h2><table><tbody>
     <tr><td>E-Mail</td><td><?= Fmt::h($k['email']) ?></td></tr>

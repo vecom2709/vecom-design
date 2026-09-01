@@ -65,6 +65,7 @@ final class Mail
             'customer_id' => $bezug['customer_id'] ?? null,
             'project_id'  => $bezug['project_id'] ?? null,
             'order_id'    => $bezug['order_id'] ?? null,
+            'payment_id'  => $bezug['payment_id'] ?? null,
         ];
 
         $z = self::zugang();
@@ -120,7 +121,7 @@ final class Mail
     /** Wurde zu diesem Anlass für diesen Bezug schon einmal geschrieben? */
     public static function schonGeschickt(string $anlass, string $feld, int $id): bool
     {
-        $erlaubt = ['project_id', 'order_id', 'customer_id'];
+        $erlaubt = ['project_id', 'order_id', 'customer_id', 'payment_id'];
         if (!in_array($feld, $erlaubt, true)) { return false; }
         return (int) Db::wert(
             "SELECT COUNT(*) FROM mails WHERE anlass = ? AND `$feld` = ? AND status = 'gesendet'",

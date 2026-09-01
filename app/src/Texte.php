@@ -136,7 +136,62 @@ final class Texte
     ];
 
     /** Betreff und Text je Anlass. {name}, {paket}, {link}, {betrag} werden ersetzt. */
+    /* Die Seite vor dem Auftrag. Bewusst knapp: Es gibt noch keinen Stand,
+       keine Rechnung und keine Vorschau — nur reden und Unterlagen schicken. */
+    public const VORGANG = [
+        'titel'      => ['it' => 'La tua richiesta', 'de' => 'Deine Anfrage', 'en' => 'Your enquiry'],
+        'lead'       => ['it' => 'Qui seguiamo la conversazione finché non decidiamo insieme. Niente di quanto vedi qui ti impegna.',
+                         'de' => 'Hier läuft unser Austausch, bis wir uns einig sind. Nichts davon verpflichtet dich zu etwas.',
+                         'en' => 'This is where our conversation runs until we agree. None of it commits you to anything.'],
+        'angefragt'  => ['it' => 'Cosa hai chiesto', 'de' => 'Was du angefragt hast', 'en' => 'What you asked for'],
+        'paket'      => ['it' => 'Pacchetto scelto', 'de' => 'Gewähltes Paket', 'en' => 'Chosen package'],
+        'am'         => ['it' => 'Ricevuta il', 'de' => 'Eingegangen am', 'en' => 'Received on'],
+        'unverbind'  => ['it' => 'Gratuita e senza impegno — un incarico nasce solo con il contratto firmato.',
+                         'de' => 'Kostenlos und unverbindlich — ein Auftrag entsteht erst mit dem unterschriebenen Vertrag.',
+                         'en' => 'Free and without obligation — a project only begins with a signed contract.'],
+        'nachrichten'=> ['it' => 'Messaggi', 'de' => 'Nachrichten', 'en' => 'Messages'],
+        'schreiben'  => ['it' => 'Scrivimi', 'de' => 'Schreib mir', 'en' => 'Write to me'],
+        'senden'     => ['it' => 'Invia', 'de' => 'Senden', 'en' => 'Send'],
+        'gesendet'   => ['it' => 'Messaggio inviato.', 'de' => 'Nachricht ist raus.', 'en' => 'Message sent.'],
+        'nochNichts' => ['it' => 'Ancora nessun messaggio.', 'de' => 'Noch keine Nachricht.', 'en' => 'No messages yet.'],
+        'du'         => ['it' => 'Tu', 'de' => 'Du', 'en' => 'You'],
+        'wir'        => ['it' => 'Vecom Design', 'de' => 'Vecom Design', 'en' => 'Vecom Design'],
+        'dateien'    => ['it' => 'I tuoi documenti', 'de' => 'Deine Unterlagen', 'en' => 'Your files'],
+        'hochladen'  => ['it' => 'Carica un file', 'de' => 'Datei hochladen', 'en' => 'Upload a file'],
+        'dateiHinweis'=> ['it' => 'Logo, immagini, testi — quello che dovrei vedere. Massimo {max} per file.',
+                          'de' => 'Logo, Bilder, Texte — was ich sehen sollte. Höchstens {max} je Datei.',
+                          'en' => 'Logo, images, text — whatever I should see. At most {max} per file.'],
+        'dateiOk'    => ['it' => 'Ricevuto, grazie.', 'de' => 'Angekommen, danke.', 'en' => 'Received, thank you.'],
+        'keineDateien'=> ['it' => 'Ancora nessun documento.', 'de' => 'Noch nichts hochgeladen.', 'en' => 'Nothing uploaded yet.'],
+        'weg'        => ['it' => 'Questo link non è più valido. Scrivimi a kontakt@vecom-design.it e te ne mando uno nuovo.',
+                         'de' => 'Dieser Link gilt nicht mehr. Schreib an kontakt@vecom-design.it, dann kommt ein neuer.',
+                         'en' => 'This link is no longer valid. Write to kontakt@vecom-design.it and you will get a new one.'],
+        'panne'      => ['it' => 'Al momento non raggiungibile. Riprova tra poco.',
+                         'de' => 'Gerade nicht erreichbar. Versuch es gleich noch einmal.',
+                         'en' => 'Not reachable right now. Please try again shortly.'],
+    ];
+
     public const MAILS = [
+        /* Sofort nach dem Absenden. Zwei Aufgaben: der Kunde weiss, dass es
+           angekommen ist — und er hat schwarz auf weiss, dass ihn nichts
+           bindet. Beides fehlte bisher ganz. */
+        'anfrage_eingegangen' => [
+            'it' => ['Abbiamo ricevuto la tua richiesta',
+                "Ciao {name},\n\ngrazie per la tua richiesta{paketsatz}. È arrivata e la sto leggendo con calma.\n\nTi rispondo entro un giorno lavorativo con una prima indicazione concreta — non con un „dipende\".\n\nUna cosa importante: la richiesta è del tutto gratuita e senza impegno. Nasce un incarico soltanto quando ci accordiamo per iscritto e firmiamo il contratto. Fino ad allora non ti costa nulla e non ti obbliga a niente.\n\nQui trovi la tua pagina privata: puoi seguire la conversazione, scrivermi e caricare logo, immagini o testi che ho bisogno di vedere.\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Deine Anfrage ist angekommen',
+                "Hallo {name},\n\ndanke für deine Anfrage{paketsatz}. Sie ist da und ich lese sie in Ruhe durch.\n\nDu hörst innerhalb eines Werktags von mir, mit einer ersten konkreten Einschätzung — nicht mit einem „kommt darauf an\".\n\nEines vorweg: Die Anfrage ist kostenlos und völlig unverbindlich. Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind und den Vertrag schließen. Bis dahin kostet dich das nichts und verpflichtet dich zu nichts.\n\nHier ist deine eigene Seite: Dort kannst du den Verlauf verfolgen, mir schreiben und Logo, Bilder oder Texte hochladen, die ich sehen sollte.\n\n{link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your enquiry has arrived',
+                "Hello {name},\n\nthank you for your enquiry{paketsatz}. It has arrived and I am reading it properly.\n\nYou will hear from me within one working day, with a first concrete assessment — not with an „it depends\".\n\nOne thing up front: the enquiry is free and entirely without obligation. A project only comes into being once we agree in writing and sign the contract. Until then it costs you nothing and commits you to nothing.\n\nHere is your own page: you can follow the conversation there, write to me, and upload a logo, images or text I should see.\n\n{link}\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* Der Zahlungslink, wenn der Kunde zugesagt hat. */
+        'zahlungslink' => [
+            'it' => ['Il link per il pagamento — {paket}',
+                "Ciao {name},\n\ncome concordato, ecco il link per {was} di {betrag}:\n\n{link}\n\nIl pagamento avviene tramite un fornitore certificato; i dati della carta non passano da me. Appena arriva ti scrivo e partiamo.\n\nSe qualcosa non torna, rispondi a questa e-mail prima di pagare.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Dein Zahlungslink — {paket}',
+                "Hallo {name},\n\nwie besprochen hier der Link für {was} über {betrag}:\n\n{link}\n\nBezahlt wird über einen geprüften Anbieter; deine Kartendaten sehe ich nicht. Sobald die Zahlung da ist, melde ich mich und wir legen los.\n\nWenn etwas nicht stimmt, antworte einfach auf diese E-Mail, bevor du zahlst.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your payment link — {paket}',
+                "Hello {name},\n\nas agreed, here is the link for {was} of {betrag}:\n\n{link}\n\nPayment runs through a certified provider; I never see your card details. As soon as it arrives I will write and we start.\n\nIf anything looks wrong, just reply to this email before paying.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
         'zahlung_ok' => [
             'it' => ['Pagamento ricevuto — {paket}',
                 "Ciao {name},\n\nabbiamo ricevuto il tuo acconto di {betrag}. Grazie!\n\nOra iniziamo: il prossimo passo è raccontarci il tuo progetto.\nApri questo link e compila con calma — puoi salvare e continuare più tardi:\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],

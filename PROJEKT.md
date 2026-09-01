@@ -268,3 +268,37 @@ abgetippt — obwohl der Kunde die Angaben gerade erst eingegeben hatte.
 Getestet: Formular abgeschickt → Kunde #7 mit Telefonnummer angelegt, Anfrage mit Paket Business
 verknüpft; ein Klick → Bestellung VD-2026-0005 über 899 € mit Anzahlung und Restzahlung je
 449,50 €; Anfrage steht danach auf „bestellung" und verlinkt die Bestellung.
+
+## Der Weg vor dem Auftrag (01.09.2026)
+
+Erkenntnis vorweg: Es fehlte nichts, es ging nur alles erst nach der Zahlung auf. Die
+Kundenseite konnte Nachrichten und Dateien längst — sie hing nur am Projekt, und ein Projekt
+gibt es erst mit bezahlter Bestellung. `messages.project_id` und `files.project_id` durften
+schon immer leer bleiben; genutzt hat es niemand.
+
+- **`vorgang.php`** — die Seite, die der Kunde mit der Anfrage bekommt. Was er angefragt hat,
+  Nachrichten in beide Richtungen, Unterlagen hochladen und herunterladen, dreisprachig. Wird
+  daraus ein Auftrag, **leitet derselbe Link auf `projekt.php` weiter** — eine Adresse vom
+  ersten Kontakt bis online.
+- **Zugang**: eigener Schlüssel an der Anfrage, 90 Tage gültig (`Anfrage::GUELTIG_TAGE`), bei
+  jeder Berührung aufgefrischt. Wird nichts daraus, schließt er sich von selbst.
+- **Eingangsbestätigung** an den Kunden, sofort nach dem Absenden, in seiner Sprache: was er
+  angefragt hat, ausdrücklich unverbindlich, Antwort innerhalb eines Werktags, sein Link.
+  Läuft ganz am Ende von `Anfrage::annehmen()` in eigenem try/catch — die Anfrage steht da
+  bereits, ein stummer Mailserver darf sie nicht mehr gefährden.
+- **`Nachricht::vorab()`** schreibt am Kunden statt am Projekt, bewusst getrennt von
+  `schreiben()`, wo Projektstand und Projektlink mit drinhängen. **`Ablage::annehmen()`** nimmt
+  jetzt `?int $projektId`; ohne Projekt zählt die Dateigrenze je Kunde.
+- **Kundenakte**: Nachrichtenverlauf, Schreibfeld mit vier Vorlagen (Nachfassen, Rückfrage,
+  Angebot, Absage) und ein Dateien-Block mit Herunterladen und eigenem Hochladen. Die
+  ausgehende Mail trägt den Link zur Kundenseite mit, wenn eine offene Anfrage existiert.
+- **Bestellung**: Knopf „Link an den Kunden senden" verschickt den Zahlungslink direkt über
+  Brevo, in der Sprache des Kunden, mit Betrag und Anlass. Migration `011` gibt `mails` eine
+  `payment_id` — sonst hielte die Warnung vor doppeltem Versand die Restzahlung für eine
+  Wiederholung der Anzahlung. Der zweite Klick fragt nach, statt doppelt zu schicken.
+- **Datenschutz**: bereits im vorigen Schritt um die Speicherung ergänzt.
+
+Getestet mit einem lokalen Mailfänger: Bestätigung auf Italienisch raus, Kundennachricht kam
+bei Uwe an, Antwort aus der Akte ging mit Link zurück, Datei hochgeladen und als Anhang wieder
+heruntergeladen (`Content-Disposition: attachment`, richtiger Typ), Zahlungslink verschickt und
+der Knopf wechselte auf „Nochmal senden".

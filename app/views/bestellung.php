@@ -63,7 +63,17 @@
           <input readonly value="<?= Fmt::h($z['link_url']) ?>" onclick="this.select()"
                  style="flex:1;min-width:240px;font-size:12.5px;font-family:ui-monospace,monospace">
           <a class="knopf" href="<?= Fmt::h($z['link_url']) ?>" target="_blank" rel="noopener">Öffnen</a>
-          <a class="knopf" href="mailto:<?= Fmt::h($b['kunde_email']) ?>?subject=<?= rawurlencode('Zahlung ' . $b['order_no'] . ' — ' . ($z['bezeichnung'] ?: '')) ?>&body=<?= rawurlencode("Hallo " . $b['kunde'] . ",\n\nhier ist der Link für die " . ($z['bezeichnung'] ?: 'Zahlung') . " über " . Fmt::geld((int) $z['amount_cents'], $z['currency']) . ":\n\n" . $z['link_url'] . "\n\nHerzliche Grüße\nUwe Vetter · Vecom Design") ?>">Per E-Mail senden</a>
+          <?php $schonRaus = Mail::schonGeschickt('zahlungslink', 'payment_id', (int) $z['id']); ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+                <?= $schonRaus ? 'onsubmit="return confirm(\'Der Link ging schon einmal raus. Noch einmal senden?\')"' : '' ?>>
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink_senden">
+            <input type="hidden" name="order_id" value="<?= (int) $b['id'] ?>">
+            <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+            <button class="knopf <?= $schonRaus ? '' : 'haupt' ?>"
+                    title="Schickt den Link direkt an <?= Fmt::h($b['kunde_email']) ?>">
+              <?= $schonRaus ? 'Nochmal senden' : 'Link an den Kunden senden' ?></button>
+          </form>
+          <a class="knopf" href="mailto:<?= Fmt::h($b['kunde_email']) ?>?subject=<?= rawurlencode('Zahlung ' . $b['order_no'] . ' — ' . ($z['bezeichnung'] ?: '')) ?>&body=<?= rawurlencode("Hallo " . $b['kunde'] . ",\n\nhier ist der Link für die " . ($z['bezeichnung'] ?: 'Zahlung') . " über " . Fmt::geld((int) $z['amount_cents'], $z['currency']) . ":\n\n" . $z['link_url'] . "\n\nHerzliche Grüße\nUwe Vetter · Vecom Design") ?>" title="Öffnet dein Mailprogramm">im Mailprogramm</a>
           <small style="color:var(--leise)">gültig bis <?= Fmt::h(Fmt::zeit($z['link_bis'])) ?></small>
         </div>
       <?php endif; ?>

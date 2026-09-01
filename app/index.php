@@ -160,6 +160,50 @@ if ($post) {
                 }
                 weiter('kunden/' . $kid);
 
+            case 'zahlungslink_senden':
+                require_once __DIR__ . '/src/Mail.php';
+                require_once __DIR__ . '/src/Texte.php';
+                $zid = (int) ($_POST['id'] ?? 0);
+                $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zid]);
+                $bst = $z ? Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache
+                                     FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?',
+                                     [(int) $z['order_id']]) : null;
+                if (!$z || !$bst || !$z['link_url']) { throw new RuntimeException('Für diese Zahlung gibt es noch keinen Link.'); }
+                $spr = (string) ($bst['kunde_sprache'] ?: 'it');
+                $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo', 'gesamt' => 'il pagamento'],
+                        'de' => ['anzahlung' => 'die Anzahlung', 'restzahlung' => 'die Restzahlung', 'gesamt' => 'die Zahlung'],
+                        'en' => ['anzahlung' => 'the deposit', 'restzahlung' => 'the balance', 'gesamt' => 'the payment']
+                       ][$spr][(string) $z['art']] ?? (string) $z['art'];
+                [$betreff, $text] = Texte::mail('zahlungslink', $spr, [
+                    'name' => (string) $bst['kunde'], 'paket' => (string) $bst['package_name'],
+                    'was' => $was, 'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+                    'link' => (string) $z['link_url'],
+                ]);
+                Mail::senden('zahlungslink', (string) $bst['kunde_email'], $betreff, $text,
+                    ['customer_id' => (int) $bst['customer_id'], 'order_id' => (int) $bst['id'], 'payment_id' => $zid]);
+                Events::melden('zahlungslink', 'Zahlungslink verschickt', 'info',
+                    $bst['kunde'] . ' — ' . Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+                    '/bestellungen/' . (int) $bst['id']);
+                weiter('bestellungen/' . (int) ($_POST['order_id'] ?? $bst['id']));
+
+            case 'kunde_nachricht':
+                require_once __DIR__ . '/src/Nachricht.php';
+                require_once __DIR__ . '/src/Anfrage.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                // Wenn eine offene Anfrage da ist, kommt ihr Link mit in die Mail.
+                $tok = sicher(static fn() => Db::wert(
+                    'SELECT token FROM anfragen WHERE customer_id = ? AND order_id IS NULL ORDER BY id DESC LIMIT 1',
+                    [$kid], ''), '');
+                Nachricht::vorab($kid, (string) ($_POST['text'] ?? ''), 'admin',
+                    $tok ? Anfrage::link((string) $tok) : null);
+                weiter('kunden/' . $kid);
+
+            case 'kunde_datei':
+                require_once __DIR__ . '/src/Ablage.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                Ablage::annehmen($_FILES['datei'] ?? [], null, $kid, 'admin');
+                weiter('kunden/' . $kid);
+
             case 'anfrage_bestellung':
                 require_once __DIR__ . '/src/Anfrage.php';
                 $bid = Anfrage::zuBestellung((int) ($_POST['id'] ?? 0), (int) ($_POST['paket_id'] ?? 0));
@@ -666,6 +710,16 @@ switch ($route) {
                 'projekte' => Db::all('SELECT * FROM projects WHERE customer_id = ? ORDER BY id DESC', [$id]),
                 'zahlungen' => Db::all('SELECT p.*, o.order_no FROM payments p JOIN orders o ON o.id = p.order_id WHERE o.customer_id = ? ORDER BY p.id DESC', [$id]),
                 'aktivitaeten' => Db::all('SELECT * FROM activities WHERE customer_id = ? ORDER BY id DESC LIMIT 20', [$id]),
+                'nachrichten' => sicher(static fn() => Db::all(
+                    'SELECT * FROM messages WHERE customer_id = ? ORDER BY id ASC LIMIT 100', [$id])),
+                'dateien' => sicher(static fn() => Db::all(
+                    'SELECT * FROM files WHERE customer_id = ? ORDER BY id DESC LIMIT 60', [$id])),
+                'vorlagen' => [
+                    'Nachfassen' => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\nich wollte kurz nachhaken, ob meine letzte Nachricht angekommen ist und ob noch Fragen offen sind.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
+                    'Rückfrage'  => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\ndanke für deine Anfrage. Bevor ich dir einen Festpreis nennen kann, brauche ich noch eine Angabe:\n\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
+                    'Angebot'    => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\nanbei mein Vorschlag. Der Preis ist ein Festpreis, das Angebot ist unverbindlich — verbindlich wird es erst, wenn wir den Vertrag schließen.\n\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
+                    'Absage'     => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\ndanke für dein Interesse. Für dieses Vorhaben bin ich nicht der Richtige — ich sage das lieber gleich, als deine Zeit zu binden.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
+                ],
             ]);
             break;
         }
@@ -693,6 +747,7 @@ switch ($route) {
         break;
 
     case 'bestellungen':
+        require_once __DIR__ . '/src/Mail.php';   // die Ansicht fragt, ob der Link schon raus ist
         if ($unter === 'neu') {
             ansicht('bestellung_form', [
                 'kunden' => Db::all('SELECT id, name, company, email FROM customers ORDER BY name'),

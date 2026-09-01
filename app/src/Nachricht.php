@@ -23,6 +23,55 @@ final class Nachricht
      *
      * @param string $von 'admin' oder 'kunde'
      */
+    /**
+     * Schreiben, bevor es ein Projekt gibt. Dieselbe Tabelle, dasselbe
+     * Postfach — nur haengt die Nachricht am Kunden statt am Projekt.
+     * Absichtlich getrennt von schreiben(): Dort haengen Projektstand und
+     * Projektlink mit drin, die es hier noch nicht gibt.
+     */
+    public static function vorab(int $kundeId, string $text, string $von, ?string $link = null): int
+    {
+        $text = trim($text);
+        if ($text === '') { throw new RuntimeException('Die Nachricht ist leer.'); }
+        $text = mb_substr($text, 0, self::MAX_LAENGE);
+
+        $k = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
+        if (!$k) { throw new RuntimeException('Kunde nicht gefunden.'); }
+
+        $vomKunden = $von === 'kunde';
+        $id = Db::insert('messages', [
+            'project_id'  => null,
+            'customer_id' => $kundeId,
+            'sender'      => $vomKunden ? 'kunde' : 'admin',
+            'user_id'     => $vomKunden ? null : Auth::id(),
+            'body'        => $text,
+            'read_at'     => $vomKunden ? null : date('Y-m-d H:i:s'),
+        ]);
+
+        try {
+            require_once __DIR__ . '/Mail.php';
+            if ($vomKunden) {
+                Mail::senden('nachricht_vorab', Mail::eigeneAdresse(),
+                    'Nachricht von ' . $k['name'], $text . "\n\n— " . $k['name'] . ' <' . $k['email'] . '>',
+                    ['customer_id' => $kundeId]);
+            } else {
+                $sprache = (string) ($k['sprache'] ?: 'it');
+                $anrede = ['it' => 'Ciao', 'de' => 'Hallo', 'en' => 'Hello'][$sprache] ?? 'Ciao';
+                $gruss  = ['it' => "A presto\nUwe Vetter · Vecom Design",
+                           'de' => "Herzliche Grüße\nUwe Vetter · Vecom Design",
+                           'en' => "Best regards\nUwe Vetter · Vecom Design"][$sprache] ?? '';
+                $anhang = $link ? "\n\n" . (['it' => 'La tua pagina:', 'de' => 'Deine Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link : '';
+                $betreff = ['it' => 'Messaggio da Vecom Design', 'de' => 'Nachricht von Vecom Design',
+                            'en' => 'A message from Vecom Design'][$sprache] ?? 'Vecom Design';
+                Mail::senden('nachricht_vorab', (string) $k['email'], $betreff,
+                    $anrede . ' ' . $k['name'] . ",\n\n" . $text . $anhang . "\n\n" . $gruss,
+                    ['customer_id' => $kundeId]);
+            }
+        } catch (Throwable $e) { /* geschrieben ist geschrieben */ }
+
+        return $id;
+    }
+
     public static function schreiben(int $projektId, string $text, string $von): int
     {
         $text = trim($text);

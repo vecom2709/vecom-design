@@ -115,7 +115,10 @@ final class Ablage
      * @param string $wer  'kunde' oder 'admin'
      * @return int Die Nummer der abgelegten Datei
      */
-    public static function annehmen(array $datei, int $projektId, int $kundeId, string $wer = 'kunde'): int
+    /* Das Projekt darf fehlen: Vor dem Auftrag gibt es noch keins, aber der
+       Kunde soll sein Logo trotzdem schicken koennen. Dann zaehlt die Grenze
+       je Kunde statt je Projekt. */
+    public static function annehmen(array $datei, ?int $projektId, int $kundeId, string $wer = 'kunde'): int
     {
         $fehlercode = (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($fehlercode !== UPLOAD_ERR_OK) {
@@ -131,9 +134,11 @@ final class Ablage
         if ($groesse <= 0)        { throw new RuntimeException('Die Datei ist leer.'); }
         if ($groesse > $grenze)   { throw new RuntimeException('Die Datei ist größer als ' . Fmt::bytes($grenze) . '.'); }
 
-        $wieViele = (int) Db::wert('SELECT COUNT(*) FROM files WHERE project_id = ?', [$projektId]);
+        $wieViele = $projektId !== null
+            ? (int) Db::wert('SELECT COUNT(*) FROM files WHERE project_id = ?', [$projektId])
+            : (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ? AND project_id IS NULL', [$kundeId]);
         if ($wieViele >= self::MAX_JE_PROJEKT) {
-            throw new RuntimeException('Zu diesem Projekt liegen schon ' . self::MAX_JE_PROJEKT . ' Dateien.');
+            throw new RuntimeException('Hier liegen schon ' . self::MAX_JE_PROJEKT . ' Dateien.');
         }
 
         // Der Typ kommt aus dem Inhalt, nicht aus dem, was der Browser sagt.
