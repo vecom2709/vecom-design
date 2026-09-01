@@ -618,6 +618,10 @@ body.scrolled .scrollcue { opacity: 0; }
   .card--a    { grid-column: span 4; min-height: 460px; }
   .card--b    { grid-column: span 2; min-height: 460px; }
   .card--half { grid-column: span 3; }
+  /* Volle Breite für die eine fertige Fremdreferenz: Sie führt den Abschnitt an,
+     die eigenen Projekte kommen danach. Sechs Spalten, damit die Reihen darunter
+     aufgehen. */
+  .card--voll { grid-column: span 6; min-height: 780px; }
 }
 [id] { scroll-margin-top: 100px; }
 .card:hover { transform: translateY(-6px); box-shadow: var(--elev-hover); }
@@ -1011,6 +1015,10 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 .card--live .screen { position: relative; inset: auto; z-index: 0; height: 100%; }
 .card--live::after { display: none; }
 .card--live .card__poster { display: none; }
+/* Die eine volle Breite braucht mehr Hoehe als die schmalen Karten: Der Rahmen
+   zeigt sonst nur den Navigationsstreifen. Muss nach .card--live stehen, sonst
+   gewinnt dessen min-height. */
+.card--live.card--voll { min-height: clamp(600px, 70vw, 1040px); }
 .card .card__body, .card--live .card__body {
   display: grid; gap: .45rem; align-content: start;
   padding: clamp(1.2rem, 2vw, 1.9rem);

@@ -189,3 +189,27 @@ Alles hier ist nachgemessen, nicht geschätzt — dieselben Messungen vorher und
   (`legal-i18n.js`, Abschnitt Kontaktformular/Empfänger) aufgenommen werden.
 - **Kundenstimmen** gibt es keine. Nicht erfinden: bei Mensaena, TerraViva und Trendonix
   nach zwei Sätzen mit Namen fragen.
+
+## Arbeiten: Cavaleri aufgenommen (01.09.2026)
+
+- **Cavaleri Srl war nicht auf der Seite** — die einzige fertige Arbeit für ein fremdes
+  Unternehmen fehlte, während drei eigene Projekte dort standen. Jetzt führt sie den
+  Abschnitt an, als einzige Karte über die volle Breite (`card--voll`, span 6; die
+  Mindesthöhe muss NACH `.card--live` stehen, sonst gewinnt dessen `min-height`).
+- Das Kartenbild ist aus dem eigenen Repo `vecom2709/cavaleri-transporte` erzeugt: lokal
+  ausgeliefert, mit Playwright aufgenommen, auf 1400×540 zugeschnitten. Kein Abruf von einer
+  fremden Domain nötig.
+- Verlinkt ist `cavaleri-trasporti.netlify.app`. **Sobald cavaleri.it live ist, umstellen.**
+
+### Nebenbefund im Cavaleri-Projekt (nicht behoben, anderes Repo)
+`assets/css/site.css` Zeile 1514/1515: `p, li, figcaption, .guida { hyphens:auto;
+overflow-wrap:break-word; }` und darunter `h1, h2, h3, .frase, … { hyphens:none; }`.
+Die zweite Zeile schaltet die Silbentrennung ab, lässt aber `overflow-wrap: break-word`
+stehen. Dadurch bricht `p.frase` lange Wörter mitten durch — auf der Startseite steht
+„UN SOLO INTERLOCUTOR / E." und „IL BARICENTRO / È…". Ein Wort genügt als Korrektur:
+`overflow-wrap: normal` in dieselbe Regel.
+
+### Kundenstimmen
+Anzufragen ist **Cavaleri** — das einzige fremde, fertige Projekt. Mensaena, TerraViva und
+Trendonix sind Uwes eigene Projekte und scheiden aus. Charme Color erst, wenn
+charme-color.it live ist (steht derzeit leer). Anfragetext liegt im Chatverlauf vom 01.09.
