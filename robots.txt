@@ -1,6 +1,5 @@
 User-agent: *
 Allow: /
-Disallow: /legal.html
 Disallow: /cockpit/
 
 Sitemap: https://vecom-design.it/sitemap.xml
