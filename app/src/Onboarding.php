@@ -208,11 +208,31 @@ final class Onboarding
         return $aus;
     }
 
-    /** Zwischenstand sichern. Der Fragebogen bleibt offen. */
+    /**
+     * Zwischenstand sichern. Der Fragebogen bleibt offen.
+     *
+     * Zusammengefuehrt statt ersetzt: Was schon dasteht, bleibt stehen, wenn
+     * ein Feld diesmal nicht mitkommt. Beim gewoehnlichen Absenden aus dem
+     * Browser kommen ohnehin alle Felder mit — aber ein Formular, das nur
+     * einen Teil schickt, darf die Arbeit einer halben Stunde nicht loeschen.
+     * Leeren kann der Kunde ein Feld weiterhin: dazu schickt der Browser es
+     * leer mit, und ein leeres Feld ueberschreibt den alten Wert.
+     */
     public static function speichern(int $fragebogenId, array $antworten): void
     {
+        $alt = [];
+        $f = Db::one('SELECT data FROM questionnaires WHERE id = ?', [$fragebogenId]);
+        if ($f && $f['data']) { $alt = json_decode((string) $f['data'], true) ?: []; }
+
+        $neu = self::saeubern($antworten);
+        // Nur Felder, die diesmal wirklich im Formular standen, duerfen den
+        // alten Wert verdraengen.
+        foreach ($alt as $name => $wert) {
+            if (!array_key_exists($name, $antworten)) { $neu[$name] = $wert; }
+        }
+
         Db::update('questionnaires', $fragebogenId, [
-            'data' => json_encode(self::saeubern($antworten), JSON_UNESCAPED_UNICODE),
+            'data' => json_encode($neu, JSON_UNESCAPED_UNICODE),
         ]);
     }
 

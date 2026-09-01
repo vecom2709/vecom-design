@@ -48,6 +48,19 @@ final class Nachricht
             'read_at'     => $vomKunden ? null : date('Y-m-d H:i:s'),
         ]);
 
+        // Vor dem Versand ins Haus melden. Die E-Mail ist der Weg nach draussen,
+        // die Meldung der Weg nach innen — und nur die ueberlebt einen
+        // stummen Mailserver. Ohne sie stand eine Kundennachricht vor dem
+        // Auftrag nirgends im Dashboard: nicht unter den Aktivitaeten, nicht
+        // unter den Benachrichtigungen. Genau so verschwindet etwas.
+        if ($vomKunden) {
+            try {
+                Events::protokoll('nachricht_rein', 'Nachricht von ' . $k['name'], $kundeId);
+                Events::melden('nachricht_rein', 'Neue Nachricht von ' . $k['name'], 'info',
+                    mb_substr($text, 0, 200), '/kunden/' . $kundeId);
+            } catch (Throwable $e) { /* die Nachricht steht, das zaehlt */ }
+        }
+
         try {
             require_once __DIR__ . '/Mail.php';
             if ($vomKunden) {
@@ -311,6 +324,24 @@ final class Nachricht
         return Db::run(
             "UPDATE messages SET read_at = NOW() WHERE project_id = ? AND read_at IS NULL AND sender = 'kunde'",
             [$projektId]
+        )->rowCount();
+    }
+
+    /**
+     * Dasselbe fuer die Nachrichten, die noch an keinem Projekt haengen.
+     *
+     * Ohne diesen Weg blieb der Zaehler neben "Nachrichten" fuer immer
+     * stehen: Der Zaehler zaehlt jede ungelesene Kundennachricht, gelesen
+     * gesetzt wurde aber nur, was ein Projekt hatte. Ein Zaehler, der nie
+     * wieder auf null geht, wird nach zwei Wochen nicht mehr angesehen —
+     * und dann faellt auch die naechste echte Nachricht nicht mehr auf.
+     */
+    public static function gelesenKunde(int $kundeId): int
+    {
+        return Db::run(
+            "UPDATE messages SET read_at = NOW()
+             WHERE customer_id = ? AND project_id IS NULL AND read_at IS NULL AND sender = 'kunde'",
+            [$kundeId]
         )->rowCount();
     }
 }

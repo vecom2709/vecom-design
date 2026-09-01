@@ -14,6 +14,23 @@
 </div>
 
 <div class="block">
+  <h2>Seine private Seite</h2>
+  <p style="color:var(--leise);font-size:13px;margin:0 0 10px">Dieselbe Adresse, die in der Eingangsbestätigung
+  steht. Dort sieht er seine Anfrage, kann schreiben und Unterlagen hochladen. Kein Konto, kein Passwort —
+  wer den Link hat, kommt hinein. Also nur an ihn weitergeben.</p>
+  <?php $vorgang = sicher(static fn() => $a['token'] ? Anfrage::link((string) $a['token']) : '', ''); ?>
+  <?php if ($vorgang): ?>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="text" readonly value="<?= Fmt::h($vorgang) ?>" onclick="this.select()"
+             style="flex:1;min-width:280px;font-size:13px">
+      <a class="knopf" href="<?= Fmt::h($vorgang) ?>" target="_blank" rel="noopener">Ansehen</a>
+    </div>
+  <?php else: ?>
+    <p style="color:var(--leise);font-size:13px;margin:0">Für diese Anfrage gibt es keinen Zugang.</p>
+  <?php endif; ?>
+</div>
+
+<div class="block">
   <h2>Was er geschrieben hat</h2>
   <pre style="white-space:pre-wrap;font:inherit;color:var(--dim);line-height:1.6;margin:0"><?= Fmt::h((string) $a['nachricht']) ?></pre>
 </div>

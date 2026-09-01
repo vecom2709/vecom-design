@@ -759,6 +759,11 @@ switch ($route) {
             $k = Db::one('SELECT * FROM customers WHERE id = ?', [$id]);
             if (!$k) { http_response_code(404); exit('Kunde nicht gefunden.'); }
             if (($teile[2] ?? '') === 'bearbeiten') { ansicht('kunde_form', ['k' => $k]); break; }
+            // Wer die Akte oeffnet, hat gelesen. Dasselbe passiert beim
+            // Oeffnen eines Projekts — nur gab es fuer die Nachrichten ohne
+            // Projekt bisher keine Stelle, an der es passiert waere.
+            require_once __DIR__ . '/src/Nachricht.php';
+            sicher(static fn() => Nachricht::gelesenKunde($id), 0);
             ansicht('kunde', [
                 'k' => $k,
                 'bestellungen' => Db::all('SELECT * FROM orders WHERE customer_id = ? ORDER BY id DESC', [$id]),

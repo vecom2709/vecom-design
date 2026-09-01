@@ -94,6 +94,22 @@ final class Cron
         if (self::heuteNochNicht('cron_aufraeumen')) {
             $aufgaben['aufgeraeumt'] = static fn() => Monitoring::aufraeumen();
         }
+        // Einmal taeglich nachfragen, ob der E-Mail-Versand ueberhaupt noch
+        // geht. Der Grund steht in der Projektgeschichte: Der Brevo-Schluessel
+        // war monatelang ein abgeschnittener Platzhalter, jede Mail scheiterte
+        // still, und niemand erfuhr davon — weil niemand fragte. Eine Frage
+        // am Tag kostet nichts und haette es am ersten Tag gezeigt.
+        if (self::heuteNochNicht('cron_versand')) {
+            $aufgaben['versand'] = static function () {
+                require_once __DIR__ . '/Versand.php';
+                $e = Versand::pruefen();
+                if (!$e['ok']) {
+                    Events::melden('mail_fehler', 'Der E-Mail-Versand antwortet nicht mehr', 'schlecht',
+                        $e['text'], '/einstellungen');
+                }
+                return ['ok' => $e['ok'], 'text' => mb_substr($e['text'], 0, 120)];
+            };
+        }
         // Ebenfalls einmal taeglich: der Auszug der Datenbank. Er steht
         // bewusst am Ende der Liste — er dauert am laengsten, und wenn er
         // scheitert, sollen die schnellen Aufgaben trotzdem gelaufen sein.

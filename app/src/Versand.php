@@ -155,6 +155,33 @@ final class Versand
      */
     public static function pruefen(): array
     {
+        $ergebnis = self::fragen();
+        self::vermerken($ergebnis);
+        return $ergebnis;
+    }
+
+    /**
+     * Haelt fest, was die Pruefung ergeben hat — in derselben Liste, die die
+     * Seite "Integrationen" anzeigt.
+     *
+     * Der Grund: Dort stand monatelang "Brevo — Nicht verbunden", weil die
+     * Zeile beim Einrichten der Datenbank angelegt und danach von niemandem
+     * mehr angefasst wurde. Ein Statusbrett, das immer dasselbe sagt, sagt
+     * nichts. Jetzt sagt es, was zuletzt wirklich herauskam.
+     */
+    private static function vermerken(array $e): void
+    {
+        try {
+            Db::run(
+                "UPDATE integrations SET status = ?, last_error = ?, last_sync_at = NOW() WHERE ikey = 'brevo'",
+                [$e['ok'] ? 'verbunden' : 'fehler', $e['ok'] ? null : mb_substr($e['text'], 0, 500)]
+            );
+        } catch (Throwable $x) { /* die Anzeige ist Beiwerk, die Antwort zaehlt */ }
+    }
+
+    /** @return array{ok:bool,code:int,text:string} */
+    private static function fragen(): array
+    {
         $z = self::zugang();
         if ($z === null) {
             // Kein eigener Schluessel: dann pruefen wir den aus der Datei.
