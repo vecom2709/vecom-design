@@ -213,6 +213,20 @@ final class Events
         // eine Zahlung ohne Bestaetigungsmail ist immer noch eine Zahlung.
         if (is_array($nachlauf) && $nachlauf['projekt'] !== null
             && in_array($nachlauf['art'], ['anzahlung', 'gesamt'], true)) {
+            // Zuerst die Auftragsbestaetigung. Sie ist die Pflicht — die
+            // Bestaetigung des Fernabsatzvertrags auf einem dauerhaften
+            // Datentraeger, spaetestens bevor die Leistung beginnt. Und ab
+            // hier beginnt die Leistung. Sie traegt das Widerrufsformular
+            // und den Beleg im Anhang.
+            try {
+                require_once __DIR__ . '/Nachricht.php';
+                Nachricht::auftragsbestaetigung((int) $nachlauf['projekt']);
+            } catch (Throwable $e) {
+                self::melden('mail_fehler', 'Auftragsbestätigung ging nicht raus', 'schlecht',
+                    mb_substr($e->getMessage(), 0, 200) . ' — sie enthält die Pflichtangaben zum Widerruf.',
+                    '/projekte/' . (int) $nachlauf['projekt']);
+            }
+
             try {
                 require_once __DIR__ . '/Onboarding.php';
                 Onboarding::einladen((int) $nachlauf['projekt']);

@@ -50,10 +50,6 @@ $T = [
     'a2' => 'Rispondi a sei domande', 'a2d' => 'Un breve questionario: obiettivo, contenuti, gusto. Bastano pochi minuti.',
     'a3' => 'Ricevi la bozza', 'a3d' => 'La costruisco e ti mando un indirizzo privato dove seguirla.',
     'a4' => 'Approvi e saldi', 'a4d' => 'Il sito va online solo dopo la tua approvazione.',
-    'agb' => 'Ho letto e accetto le <a href="/legal.html#agb" target="_blank" rel="noopener">condizioni</a> e l’<a href="/legal.html#privacy" target="_blank" rel="noopener">informativa privacy</a>.',
-    'wid' => 'Chiedo espressamente che il lavoro inizi subito e prendo atto che, a servizio interamente prestato, perderò il diritto di recesso.',
-    'widTitel' => 'Informazioni sul diritto di recesso',
-    'widText' => 'Come consumatore hai quattordici giorni per recedere dal contratto, senza motivazione. Se chiedi che il lavoro inizi prima della scadenza di questo termine, il diritto si estingue nel momento in cui il servizio è stato interamente prestato; se receti prima, ti verrà addebitata la parte già svolta. Per recedere basta una comunicazione chiara a kontakt@vecom-design.it.',
     'fehlerZust' => 'Per proseguire servono entrambe le conferme.',
   ],
   'de' => [
@@ -70,10 +66,6 @@ $T = [
     'a2' => 'Sechs Fragen beantworten', 'a2d' => 'Ein kurzer Fragebogen: Ziel, Inhalte, Geschmack. Dauert wenige Minuten.',
     'a3' => 'Entwurf bekommen', 'a3d' => 'Ich baue ihn und schicke dir eine eigene Adresse, unter der du ihn verfolgst.',
     'a4' => 'Freigeben und Rest zahlen', 'a4d' => 'Online geht die Seite erst nach deiner Freigabe.',
-    'agb' => 'Ich habe die <a href="/legal.html#agb" target="_blank" rel="noopener">AGB</a> und die <a href="/legal.html#privacy" target="_blank" rel="noopener">Datenschutzerklärung</a> gelesen und akzeptiere sie.',
-    'wid' => 'Ich verlange ausdrücklich, dass die Arbeit sofort beginnt, und weiß, dass mein Widerrufsrecht mit der vollständigen Leistung erlischt.',
-    'widTitel' => 'Hinweise zum Widerrufsrecht',
-    'widText' => 'Als Verbraucher kannst du den Vertrag innerhalb von vierzehn Tagen ohne Angabe von Gründen widerrufen. Verlangst du, dass die Arbeit schon vor Ablauf dieser Frist beginnt, erlischt das Recht in dem Moment, in dem die Leistung vollständig erbracht ist; widerrufst du vorher, wird der bis dahin geleistete Teil berechnet. Für den Widerruf genügt eine eindeutige Nachricht an kontakt@vecom-design.it.',
     'fehlerZust' => 'Zum Fortfahren werden beide Bestätigungen gebraucht.',
   ],
   'en' => [
@@ -90,13 +82,16 @@ $T = [
     'a2' => 'Answer six questions', 'a2d' => 'A short questionnaire: goal, content, taste. It takes a few minutes.',
     'a3' => 'Receive the draft', 'a3d' => 'I build it and send you a private address where you can follow it.',
     'a4' => 'Approve and pay the balance', 'a4d' => 'The site goes live only after your approval.',
-    'agb' => 'I have read and accept the <a href="/legal.html#agb" target="_blank" rel="noopener">terms</a> and the <a href="/legal.html#privacy" target="_blank" rel="noopener">privacy notice</a>.',
-    'wid' => 'I expressly ask for the work to begin at once and acknowledge that my right of withdrawal ends once the service has been fully performed.',
-    'widTitel' => 'About the right of withdrawal',
-    'widText' => 'As a consumer you may withdraw from the contract within fourteen days without giving a reason. If you ask for the work to start before that period ends, the right lapses at the moment the service has been fully performed; if you withdraw earlier, the part already carried out is charged. A clear message to kontakt@vecom-design.it is enough to withdraw.',
     'fehlerZust' => 'Both confirmations are needed to continue.',
   ],
 ][$sprache];
+
+/* Die Widerrufstexte kommen aus Widerruf.php und nicht aus dieser Datei.
+   Der Grund ist nicht Ordnungsliebe: Was hier angezeigt wird, wird spaeter
+   in der Auftragsbestaetigung woertlich bestaetigt. Zwei Stellen waeren zwei
+   Wortlaute, sobald einer davon einmal geaendert wird. */
+require_once __DIR__ . '/app/src/Widerruf.php';
+$T += Widerruf::texte($sprache);
 
 $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 $zurueck = $basis . ($sprache === 'it' ? '/' : "/$sprache/") . '#plans';

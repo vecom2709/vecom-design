@@ -252,6 +252,56 @@ final class Texte
             'en' => ['A message about your project',
                 "Hello {name},\n\nwe’ve written to you about your project:\n\n{text}\n\nYou can reply here:\n{link}\n\nUwe Vetter · Vecom Design"],
         ],
+        /* Die Auftragsbestaetigung. Sie ist kein Freundlichkeitsschreiben,
+           sondern die Bestaetigung des Fernabsatzvertrags auf einem
+           dauerhaften Datentraeger — Art. 51 Abs. 7 Codice del Consumo.
+           Deshalb steht hier, was Art. 49 Abs. 1 verlangt, und deshalb
+           haengen das Widerrufsformular und der Beleg daran. */
+        'auftragsbestaetigung' => [
+            'it' => ['Conferma d’ordine {bestellnr} — {paket}',
+                "Ciao {name},\n\n"
+                . "questa è la conferma del tuo ordine. Conservala: contiene tutte le informazioni sul contratto.\n\n"
+                . "--------------------------------------------------\nIL TUO ORDINE\n--------------------------------------------------\n"
+                . "Ordine:     {bestellnr}\nData:       {datum}\nServizio:   {paket}\n"
+                . "Totale:     {gesamt}\n{raten}\n\n"
+                . "--------------------------------------------------\nCHI TI FORNISCE IL SERVIZIO\n--------------------------------------------------\n"
+                . "{firma}\n\n"
+                . "--------------------------------------------------\nDIRITTO DI RECESSO\n--------------------------------------------------\n"
+                . "{widerruf}\n\n"
+                . "In allegato trovi il modulo di recesso tipo. Non devi usarlo per forza: basta una comunicazione chiara.\n\n"
+                . "{zustimmung}\n\n"
+                . "Condizioni generali: {agb}\nInformativa privacy: {privacy}\n\n"
+                . "La tua pagina di progetto: {link}\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Auftragsbestätigung {bestellnr} — {paket}',
+                "Hallo {name},\n\n"
+                . "das ist die Bestätigung deines Auftrags. Heb sie auf — sie enthält alle Angaben zum Vertrag.\n\n"
+                . "--------------------------------------------------\nDEIN AUFTRAG\n--------------------------------------------------\n"
+                . "Bestellung: {bestellnr}\nDatum:      {datum}\nLeistung:   {paket}\n"
+                . "Gesamt:     {gesamt}\n{raten}\n\n"
+                . "--------------------------------------------------\nWER DIE LEISTUNG ERBRINGT\n--------------------------------------------------\n"
+                . "{firma}\n\n"
+                . "--------------------------------------------------\nWIDERRUFSRECHT\n--------------------------------------------------\n"
+                . "{widerruf}\n\n"
+                . "Im Anhang findest du das Muster-Widerrufsformular. Du musst es nicht benutzen — eine eindeutige Nachricht genügt.\n\n"
+                . "{zustimmung}\n\n"
+                . "AGB: {agb}\nDatenschutzerklärung: {privacy}\n\n"
+                . "Deine Projektseite: {link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Order confirmation {bestellnr} — {paket}',
+                "Hello {name},\n\n"
+                . "this is the confirmation of your order. Please keep it — it holds all the contract details.\n\n"
+                . "--------------------------------------------------\nYOUR ORDER\n--------------------------------------------------\n"
+                . "Order:    {bestellnr}\nDate:     {datum}\nService:  {paket}\n"
+                . "Total:    {gesamt}\n{raten}\n\n"
+                . "--------------------------------------------------\nWHO PROVIDES THE SERVICE\n--------------------------------------------------\n"
+                . "{firma}\n\n"
+                . "--------------------------------------------------\nRIGHT OF WITHDRAWAL\n--------------------------------------------------\n"
+                . "{widerruf}\n\n"
+                . "The model withdrawal form is attached. You do not have to use it — a clear statement is enough.\n\n"
+                . "{zustimmung}\n\n"
+                . "Terms: {agb}\nPrivacy notice: {privacy}\n\n"
+                . "Your project page: {link}\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+
         'restzahlung' => [
             'it' => ['Saldo per {paket}',
                 "Ciao {name},\n\nil sito è pronto per la consegna. Resta il saldo di {betrag}:\n\n{link}\n\nGrazie!\nUwe Vetter · Vecom Design"],

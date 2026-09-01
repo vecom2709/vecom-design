@@ -16,6 +16,9 @@ declare(strict_types=1);
  */
 final class Mail
 {
+    /** Zusammen duerfen die Anhaenge einer Mail so gross sein. */
+    private const ANHANG_GRENZE = 6 * 1024 * 1024;
+
     /** @return array{key:string,from:string,name:string,to:string,api:string}|null */
     private static function zugang(): ?array
     {
@@ -96,6 +99,35 @@ final class Mail
         ];
         if (!empty($bezug['antwortAn']) && filter_var($bezug['antwortAn'], FILTER_VALIDATE_EMAIL)) {
             $inhalt['replyTo'] = ['email' => $bezug['antwortAn']];
+        }
+
+        // Anhaenge. Brevo nimmt sie als base64 mit Dateinamen entgegen.
+        //
+        // Der Grund, warum es das ueberhaupt gibt: Ein Beleg, der nur zum
+        // Herunterladen auf einer Projektseite liegt, erreicht den Kunden
+        // nicht — und die Bestaetigung eines Fernabsatzvertrags muss auf
+        // einem dauerhaften Datentraeger kommen, nicht auf einer Webseite.
+        // Beides geht nur als Anhang.
+        if (!empty($bezug['anhaenge']) && is_array($bezug['anhaenge'])) {
+            $anhaenge = [];
+            $summe = 0;
+            foreach ($bezug['anhaenge'] as $a) {
+                $name  = trim((string) ($a['name'] ?? ''));
+                $daten = (string) ($a['daten'] ?? '');
+                if ($name === '' || $daten === '') { continue; }
+                $summe += strlen($daten);
+                // Brevo weist zu grosse Nachrichten ab. Lieber die Mail ohne
+                // Anhang als gar keine Mail: Der Beleg liegt ohnehin auch auf
+                // der Projektseite.
+                if ($summe > self::ANHANG_GRENZE) {
+                    self::vermerken($eintrag + ['status' => 'fehler',
+                        'fehler' => 'Anhänge zusammen über ' . (self::ANHANG_GRENZE >> 20) . ' MB — weggelassen.']);
+                    $anhaenge = [];
+                    break;
+                }
+                $anhaenge[] = ['name' => mb_substr($name, 0, 120), 'content' => base64_encode($daten)];
+            }
+            if ($anhaenge) { $inhalt['attachment'] = $anhaenge; }
         }
 
         $ch = curl_init(rtrim($z['api'], '/') . '/v3/smtp/email');

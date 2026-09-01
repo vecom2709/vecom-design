@@ -288,6 +288,128 @@ final class Nachricht
         return $ok;
     }
 
+    /**
+     * Die Auftragsbestaetigung — auf einem dauerhaften Datentraeger.
+     *
+     * Art. 51 Abs. 7 Codice del Consumo verlangt sie bei einem
+     * Fernabsatzvertrag mit einem Verbraucher, spaetestens bevor die
+     * Leistung beginnt. Deshalb geht sie hier raus, wenn die Anzahlung
+     * bestaetigt ist: Ab dann wird gearbeitet.
+     *
+     * Sie traegt, was Art. 49 Abs. 1 verlangt — wer die Leistung erbringt
+     * samt Anschrift und Kontakt, was bestellt wurde, der Gesamtpreis, die
+     * Raten, das Widerrufsrecht mit Frist und Verfahren — und im Anhang das
+     * Muster-Widerrufsformular. Liegt schon ein Beleg vor, kommt er mit:
+     * Ein Dokument, das nur zum Herunterladen irgendwo liegt, erreicht
+     * niemanden.
+     *
+     * Geht genau einmal raus. Das Protokoll in der Tabelle mails ist das
+     * Gedaechtnis dafuer.
+     */
+    public static function auftragsbestaetigung(int $projektId): bool
+    {
+        $p = self::projektMitKunde($projektId);
+        if (!$p || $p['order_id'] === null) { return false; }
+        $bestellId = (int) $p['order_id'];
+        if (Mail::schonGeschickt('auftragsbestaetigung', 'order_id', $bestellId)) { return false; }
+
+        require_once __DIR__ . '/Firma.php';
+        require_once __DIR__ . '/Widerruf.php';
+        require_once __DIR__ . '/Rechnung.php';
+
+        $sprache = self::sprache($p);
+        $b = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
+        if (!$b) { return false; }
+        $waehrung = (string) ($b['currency'] ?? 'EUR');
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+
+        /* Die Raten, so wie sie tatsaechlich in der Bestellung stehen. */
+        $zeilen = [];
+        foreach (Db::all('SELECT * FROM payments WHERE order_id = ? ORDER BY id', [$bestellId]) as $z) {
+            $stand = (string) $z['status'] === 'bezahlt'
+                ? ['it' => 'pagato', 'de' => 'bezahlt', 'en' => 'paid'][$sprache]
+                : ['it' => 'da pagare', 'de' => 'offen', 'en' => 'outstanding'][$sprache];
+            // mb_str_pad, nicht str_pad: Ein "Ü" ist zwei Bytes, und mit
+            // str_pad rutscht jede Zeile mit Umlaut aus der Spalte.
+            $bez = (string) $z['bezeichnung'];
+            $fuell = max(0, 34 - mb_strlen($bez));
+            $zeilen[] = '            ' . $bez . str_repeat(' ', $fuell)
+                . Fmt::geld((int) $z['amount_cents'], $waehrung) . '  (' . $stand . ')';
+        }
+
+        /* Wer die Leistung erbringt — Art. 49 Abs. 1 Buchstabe c. */
+        $firma = array_merge(Firma::anschrift(), array_filter([
+            Firma::get('telefon') !== '' ? 'Tel. ' . Firma::get('telefon') : '',
+            Firma::get('email'),
+            Firma::get('steuernr') !== '' ? 'C.F. ' . Firma::get('steuernr') : '',
+            Firma::get('piva') !== '' ? 'P. IVA ' . Firma::get('piva') : '',
+        ]));
+
+        /* Was der Kunde beim Buchen bestaetigt hat, im Wortlaut und mit
+           Zeitpunkt — das ist der Nachweis nach Art. 51 Abs. 8. */
+        $zustimmung = '';
+        if (!empty($b['zustimmung_text'])) {
+            $wann = (string) ($b['widerruf_ok_am'] ?? $b['agb_ok_am'] ?? '');
+            $kopf = ['it' => 'Hai confermato al momento dell\'ordine',
+                     'de' => 'Beim Bestellen hast du bestätigt',
+                     'en' => 'At the time of ordering you confirmed'][$sprache];
+            $zustimmung = $kopf . ($wann !== '' ? ' (' . Fmt::datum($wann) . '):' : ':') . "\n"
+                . preg_replace('~^~m', '  ', trim((string) $b['zustimmung_text']));
+        }
+
+        [$betreff, $text] = Texte::mail('auftragsbestaetigung', $sprache, [
+            'name'      => (string) $p['kunde'],
+            'paket'     => (string) ($p['paket'] ?? $b['package_name'] ?? ''),
+            'bestellnr' => (string) $b['order_no'],
+            'datum'     => Fmt::datum((string) $b['created_at']),
+            'gesamt'    => Fmt::geld((int) $b['price_cents'], $waehrung),
+            'raten'     => $zeilen ? "\n" . implode("\n", $zeilen) : '',
+            'firma'     => implode("\n", $firma),
+            'widerruf'  => Widerruf::t('widText', $sprache),
+            'zustimmung'=> $zustimmung,
+            'agb'       => $basis . '/legal.html#agb',
+            'privacy'   => $basis . '/legal.html#privacy',
+            'link'      => self::link($projektId) ?? $basis,
+        ]);
+
+        /* Anhaenge: das Formular immer, der Beleg wenn es ihn gibt. */
+        $anhaenge = [[
+            'name'  => Widerruf::dateiname($sprache),
+            'daten' => Widerruf::formularPdf($sprache, [
+                'leistung'  => trim((string) ($p['paket'] ?? '') . ' — ' . $b['order_no']),
+                'datum'     => Fmt::datum((string) $b['created_at']),
+                'name'      => (string) $p['kunde'],
+                'anschrift' => self::kundenanschrift((int) $p['customer_id']),
+            ]),
+        ]];
+        foreach (Db::all('SELECT * FROM invoices WHERE order_id = ? ORDER BY id', [$bestellId]) as $r) {
+            try {
+                $anhaenge[] = ['name' => Rechnung::dateiname($r), 'daten' => Rechnung::pdf($r)];
+            } catch (Throwable $e) { /* der Beleg liegt auch auf der Projektseite */ }
+        }
+
+        return Mail::senden('auftragsbestaetigung', (string) $p['kunde_email'], $betreff, $text, [
+            'customer_id' => (int) $p['customer_id'],
+            'project_id'  => (int) $p['id'],
+            'order_id'    => $bestellId,
+            'antwortAn'   => Mail::eigeneAdresse(),
+            'anhaenge'    => $anhaenge,
+        ]);
+    }
+
+    /** Die Anschrift des Kunden in einer Zeile, fuer das Formular. */
+    private static function kundenanschrift(int $kundeId): string
+    {
+        $k = Db::one('SELECT street, zip, city, country FROM customers WHERE id = ?', [$kundeId]);
+        if (!$k) { return ''; }
+        $teile = array_filter([
+            trim((string) $k['street']),
+            trim(trim((string) $k['zip']) . ' ' . trim((string) $k['city'])),
+            trim((string) $k['country']),
+        ], static fn($z) => $z !== '');
+        return implode(', ', $teile);
+    }
+
     /** @return array<string,mixed>|null */
     private static function projektMitKunde(int $projektId): ?array
     {
