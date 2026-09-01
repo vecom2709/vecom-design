@@ -20,3 +20,32 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 <FilesMatch "\.(md|markdown)$">
   Require all denied
 </FilesMatch>
+
+# --------------------------------------------------------------------------
+# Zwischenspeicher im Browser.
+#
+# Der Webspace schickt von sich aus kein Cache-Control. Dann raet der Browser
+# — und ein wiederkehrender Besucher kann stundenlang eine alte Datei
+# weiterbenutzen. Bei einer kaputten qform.js hiesse das: weiter verlorene
+# Anfragen, obwohl die Reparatur laengst oben liegt.
+#
+# Deshalb: HTML immer nachfragen, Bilder und Schriften lange behalten. Die
+# eigenen CSS- und JS-Dateien tragen seit dem 01.09.2026 einen
+# Fingerabdruck in der Adresse (build.mjs) — aendert sich der Inhalt,
+# aendert sich die Adresse. Sie duerfen deshalb kurz gehalten und muessen
+# nur nachgeprueft werden.
+#
+# In IfModule gekapselt: Fehlt das Modul auf dem Tarif, wird der Block
+# uebersprungen, statt die ganze Seite mit einem 500 lahmzulegen.
+# --------------------------------------------------------------------------
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|php)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "public, max-age=3600, must-revalidate"
+  </FilesMatch>
+  <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>

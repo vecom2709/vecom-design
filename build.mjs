@@ -10,7 +10,8 @@
    Danach:  /            → Italienisch (Standard, x-default)
             /de/, /en/   → statisch vorgerendert
    ========================================================================== */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const BASE = 'https://vecom-design.it';
 const LANGS = { it: '', de: 'de/', en: 'en/' };
@@ -42,6 +43,40 @@ function langLinks(current, up) {
   return `<div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
         ${item('it', 'IT')}${item('de', 'DE')}${item('en', 'EN')}
       </div>`;
+}
+
+/* --------------------------------------------------------------------------
+   Fingerabdruck an jede eigene CSS- und JS-Datei haengen.
+
+   Der Grund steht in PROJEKT.md: Am 01.09.2026 wurde eine kaputte qform.js
+   ersetzt, die jede Anfrage still verschluckte — und der Browser eines
+   wiederkehrenden Besuchers haette die alte noch stundenlang weiterbenutzt.
+   Der Webspace schickt kein Cache-Control, also entscheidet der Browser nach
+   Gutduenken. Aendert sich der Inhalt, aendert sich die Adresse: dann gibt es
+   nichts mehr zu raten.
+
+   Der Wert kommt aus dem Inhalt der Datei, nicht aus einem Datum — ein Deploy
+   ohne Aenderung laesst die Adresse in Ruhe und wirft keinen Cache weg.
+   -------------------------------------------------------------------------- */
+const stempelSpeicher = new Map();
+function stempel(pfad) {
+  if (!stempelSpeicher.has(pfad)) {
+    let wert = '0';
+    if (existsSync(pfad)) {
+      wert = createHash('sha1').update(readFileSync(pfad)).digest('hex').slice(0, 8);
+    }
+    stempelSpeicher.set(pfad, wert);
+  }
+  return stempelSpeicher.get(pfad);
+}
+
+function fingerabdruecke(h) {
+  // Greift auch auf eine bereits gestempelte Seite zu (index.html ist Quelle
+  // und Ziel zugleich): ein vorhandenes ?v=... wird ersetzt, nicht ergaenzt.
+  return h.replace(
+    /((?:href|src)=")((?:\.\.\/)?assets\/(?:css|js)\/[A-Za-z0-9._\/-]+\.(?:css|js))(\?v=[A-Za-z0-9]*)?(")/g,
+    (m, vorn, pfad, alt, hinten) => `${vorn}${pfad}?v=${stempel(pfad.replace(/^\.\.\//, ''))}${hinten}`
+  );
 }
 
 function build(lang) {
@@ -132,6 +167,9 @@ function build(lang) {
   // Muster passt auch auf eine bereits gebaute Seite — sonst erbt der zweite
   // Lauf die Sprachwahl des ersten (index.html ist zugleich Quelle und Ziel).
   h = h.replace(/<div class="lang[^"]*" role="group"[\s\S]*?<\/div>/, langLinks(lang, up || './'));
+
+  // Zum Schluss, damit die Pfade schon eine Ebene hoeher zeigen.
+  h = fingerabdruecke(h);
 
   return h;
 }
