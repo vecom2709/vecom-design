@@ -123,7 +123,11 @@ h2, h3, h4 { text-shadow: var(--ink-drop-s); }
 .hero h1 { text-shadow: none; filter: var(--ink-filter); }
 .sechead h2, .contact h2 { text-shadow: var(--ink-drop); }
 .step__no, .pillar strong { text-shadow: none; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .55)); }
-.hero__lead, .sechead p, .contact__lead { text-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+.sechead p, .contact__lead { text-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+/* Der Hero-Fließtext liegt als einziger Absatz direkt vor der Marke. Der weite
+   Schatten trägt die Fläche, der enge zweite hält die Buchstabenkanten frei,
+   wenn doch einmal ein Glanzlicht dahinter durchwandert. */
+.hero__lead { text-shadow: 0 2px 8px rgba(0, 0, 0, .5), 0 0 3px rgba(0, 0, 0, .85); }
 .eyebrow, .brand__name { text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
 ::selection { background: var(--c-blue); color: #fff; }
 
@@ -271,7 +275,7 @@ body[data-frame="gold"] {
 /* Marke und Werkzeuge dürfen nicht schrumpfen: Sonst wird ihr Kasten kleiner,
    der Schriftzug läuft heraus und legt sich über das Menü. Nur das Menü in der
    Mitte gibt nach. */
-.brand { display: flex; align-items: center; gap: .7rem; flex: 0 0 auto; }
+.brand { display: flex; align-items: center; gap: .7rem; flex: 0 0 auto; min-height: 44px; min-width: 44px; }
 .header__tools { flex: 0 0 auto; }
 .header .nav { flex: 1 1 auto; min-width: 0; justify-content: center; }
 .brand img { width: clamp(34px, 4vw, 44px); }
@@ -284,7 +288,8 @@ body[data-frame="gold"] {
 .nav { display: flex; align-items: center; flex-wrap: nowrap; gap: clamp(.75rem, 1.3vw, 1.6rem); }
 .nav a {
   font-size: var(--t-sm); color: var(--c-text-dim); position: relative;
-  padding-block: .35rem; transition: color var(--d-ui) linear;
+  display: inline-flex; align-items: center; min-height: 44px;
+  transition: color var(--d-ui) linear;
 }
 .nav a::after {
   content: ""; position: absolute; left: 0; bottom: 0; height: 1px; width: 100%;
@@ -299,9 +304,17 @@ body[data-frame="gold"] {
 .lang { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--c-line); border-radius: 999px; }
 .lang button {
   background: none; border: 0; cursor: pointer; border-radius: 999px;
-  padding: .34rem .66rem; font-size: var(--t-xs); letter-spacing: .1em;
+  position: relative;
+  padding: .34rem .82rem; font-size: var(--t-xs); letter-spacing: .1em;
   text-transform: uppercase; color: var(--c-text-faint);
   transition: color var(--d-ui) linear, background-color var(--d-ui) linear;
+}
+/* Die Kapsel ist so groß, wie sie aussehen soll. Der Daumen bekommt trotzdem
+   44px — aber nur in der Höhe: seitlich stehen die Pillen 2px auseinander, ein
+   breiterer Bereich würde in den Nachbarn greifen und die falsche Sprache treffen. */
+.lang button::before, .lang--links a::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 44px; transform: translateY(-50%);
 }
 .lang button:hover { color: var(--c-text); }
 .lang button[aria-pressed="true"] {
@@ -311,7 +324,7 @@ body[data-frame="gold"] {
 
 .lang--links { align-items: center; }
 .lang--links a, .lang--links .lang__current {
-  border-radius: 999px; padding: .34rem .66rem;
+  border-radius: 999px; padding: .34rem .82rem; position: relative;
   font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase;
   color: var(--c-text-faint); transition: color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
@@ -321,7 +334,11 @@ body[data-frame="gold"] {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 14px -8px rgba(0, 0, 0, .9);
 }
 
-.burger { display: none; background: none; border: 0; cursor: pointer; padding: .5rem; }
+.burger {
+  display: none; background: none; border: 0; cursor: pointer; padding: .5rem;
+  min-width: 44px; min-height: 44px;
+  flex-direction: column; justify-content: center; align-items: center;
+}
 .burger span { display: block; width: 24px; height: 1.5px; background: var(--c-text); transition: transform var(--d-move) var(--e-std), opacity var(--d-ui) linear; }
 .burger span + span { margin-top: 6px; }
 body.nav-open .burger span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
@@ -490,16 +507,23 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
   font-size: var(--t-3xl); font-weight: 700; letter-spacing: -.04em;
   margin-top: var(--s-3); max-width: 13ch;
 }
-/* Auf breiten Bildschirmen bleibt die rechte Hälfte für die Marke frei. */
-@media (min-width: 1200px) {
-  .hero h1 { max-width: 42%; }
-  .hero__lead { max-width: 44%; }
-}
 .hero h1 .accent {
   background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 .hero__lead {
   margin-top: var(--s-3); max-width: 54ch; font-size: var(--t-md); color: var(--c-text-dim);
+}
+/* Auf breiten Bildschirmen bleibt die rechte Hälfte für die Marke frei.
+   Dieser Block muss NACH den Grundregeln stehen: gleiche Spezifität, also
+   entscheidet die Reihenfolge. Weiter oben stand er zwar da, wirkte aber nie —
+   `max-width: 13ch` und `54ch` kamen danach und haben ihn überschrieben. */
+@media (min-width: 900px) {
+  .hero h1 { max-width: 52%; }
+  .hero__lead { max-width: 54%; }
+}
+@media (min-width: 1200px) {
+  .hero h1 { max-width: 42%; }
+  .hero__lead { max-width: 44%; }
 }
 .hero__cta { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-4); }
 .hero__meta {
@@ -632,6 +656,31 @@ body.scrolled .scrollcue { opacity: 0; }
 .card h3 { font-size: var(--t-lg); }
 .card p { font-size: var(--t-sm); color: var(--c-text-dim); max-width: 46ch; }
 .card__link { font-size: var(--t-sm); color: var(--c-text-faint); margin-top: .3rem; }
+
+/* Karten, die auf eine erreichbare Seite zeigen, sind anklickbar — der Beleg für
+   diese Arbeit ist die Seite selbst, nicht ihr Bild. Die übrigen bleiben Text. */
+.card__link--live {
+  display: inline-flex; align-items: center; gap: .45rem;
+  min-height: 44px; margin-top: 0;
+  color: var(--c-text); text-decoration: none;
+  transition: color var(--d-ui) var(--e-std);
+}
+/* Diagonalpfeil statt Winkel: Er sagt „öffnet die fremde Seite", nicht
+   „weiter im Text" — der Unterschied entscheidet, ob jemand klickt. */
+.card__link--live::after {
+  content: '\2197'; font-size: 1.05em; line-height: 1;
+  text-decoration: none;   /* sonst zieht die Unterstreichung unter dem Pfeil mit */
+  transition: transform var(--d-ui) var(--e-std);
+}
+/* Kein Unterstrich beim Überfahren: Der Pfeil ist ein Flex-Kind derselben
+   Zeile, die Linie liefe unter ihm mit durch und sähe nach Versehen aus.
+   Als Hinweis ohne Farbe trägt der Pfeil ohnehin — das genügt der Regel,
+   dass ein Link nicht allein an der Farbe erkennbar sein darf. */
+.card__link--live:hover { color: var(--c-cyan); }
+.card__link--live:hover::after { transform: translate(.12em, -.12em); }
+@media (prefers-reduced-motion: reduce) {
+  .card__link--live, .card__link--live::after { transition: none; }
+}
 .work__note { margin-top: var(--s-3); font-size: var(--t-sm); color: var(--c-text-faint); }
 
 /* ---------- 11. Prozess -------------------------------------------------- */
@@ -783,7 +832,7 @@ body.scrolled .scrollcue { opacity: 0; }
   gap: .4rem clamp(1rem, 2.2vw, 2rem); margin-top: var(--s-1);
 }
 .footer__links a {
-  display: inline-block; padding-block: .3rem;
+  display: inline-flex; align-items: center; min-height: 44px;
   font-size: var(--t-sm); color: var(--c-text-dim);
   transition: color var(--d-ui) linear;
 }
@@ -816,7 +865,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 
 /* ---------- 17. Mobile Navigation --------------------------------------- */
 @media (max-width: 900px) {
-  .burger { display: block; }
+  .burger { display: flex; }
   .nav {
     position: fixed; inset: 0; z-index: 99;
     background: rgba(5, 7, 13, .97); backdrop-filter: blur(20px);
@@ -827,6 +876,21 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   body.nav-open .nav { opacity: 1; pointer-events: auto; transform: none; }
   .nav a { font-family: var(--f-display); font-size: var(--t-lg); color: var(--c-text); }
   .header__tools .btn { display: none; }
+
+  /* Die Überlagerung liegt im Header und ist sein Kind. z-index: 100 am Header
+     gilt gegenüber der Seite, nicht gegenüber den eigenen Kindern — drinnen
+     schlug die Fläche (99) Wortmarke und Werkzeuge (auto) und legte sich über
+     den Knopf, der sie schließen soll. Beide gehören darüber: sonst lässt sich
+     das geöffnete Menü weder schließen noch die Sprache wechseln. */
+  .brand, .header__tools { position: relative; z-index: 100; }
+
+  /* Und der Header darf, solange das Menü offen ist, kein backdrop-filter
+     tragen: Ein Filter macht das Element zum Bezugsrahmen für alles, was
+     darin `position: fixed` ist. Sobald man gescrollt hatte (.is-stuck), schrumpfte
+     die Menüfläche damit auf die Höhe des Headers — die Einträge lagen ohne
+     Grund über dem Seiteninhalt. Die Fläche selbst bringt ihre eigene
+     Unschärfe mit, es geht optisch nichts verloren. */
+  body.nav-open .header.is-stuck { backdrop-filter: none; background: transparent; border-bottom-color: transparent; box-shadow: none; }
 }
 
 /* ---------- 18. Reduzierte Bewegung ------------------------------------- */
@@ -1083,7 +1147,7 @@ main, .footer { position: relative; z-index: 2; }
 }
 .ptoggle button {
   border: 0; background: none; cursor: pointer; border-radius: 999px;
-  padding: .5rem 1rem; min-height: 40px;
+  padding: .5rem 1rem; min-height: 44px;
   font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-faint);
   transition: color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
@@ -1230,7 +1294,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   text-indent: .12em;
   background: linear-gradient(100deg, #b8912f 0%, #f4e3a8 45%, #c9a227 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
-  padding-block: .3rem;
+  padding-block: .62rem;
   transition: filter var(--d-move) var(--e-std), letter-spacing var(--d-move) var(--e-std);
 }
 .partner__url a:hover {
@@ -1277,7 +1341,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .chips.is-missing { box-shadow: inset 0 0 0 1px rgba(255, 120, 120, .55); }
 .chip-opt {
   border: 0; cursor: pointer; border-radius: 999px;
-  padding: .6rem 1.05rem; min-height: 42px;
+  padding: .6rem 1.05rem; min-height: 44px;
   background: rgba(255, 255, 255, .035); color: var(--c-text-dim);
   box-shadow: inset 0 0 0 1px var(--c-line);
   font-size: var(--t-sm); line-height: 1.2; text-align: left;
@@ -1429,7 +1493,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .rail.is-on { opacity: 1; pointer-events: auto; }
 .rail a {
   display: flex; align-items: center; gap: .6rem; justify-content: flex-end;
-  padding: .35rem .2rem; color: var(--c-text-faint);
+  padding: .2rem; min-height: 44px; color: var(--c-text-faint);
   font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase;
 }
 .rail span {
@@ -1626,8 +1690,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 /* Zugang zum Cockpit — bewusst klein und unbeschriftet. Er soll für dich
    erreichbar sein, ohne Besuchern ins Auge zu springen. */
 .admin {
-  display: inline-grid; place-items: center; width: 30px; height: 30px;
-  border-radius: 9px; color: var(--c-text-faint); opacity: .5;
+  display: inline-grid; place-items: center; width: 44px; height: 44px;
+  border-radius: 12px; color: var(--c-text-faint); opacity: .5;
   transition: opacity var(--d-ui) linear, color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
 .admin:hover { opacity: 1; color: var(--c-cyan); background: rgba(31, 232, 255, .08); }

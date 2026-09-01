@@ -16,7 +16,7 @@ window.VECOM_I18N = {
   it: {
     meta: {
       title: "Realizzazione siti web su misura | Vecom Design",
-      desc: "Web agency per siti web su misura, e-commerce e identità di marca. Design personalizzato, trilingue IT/DE/EN, veloce e ottimizzato per Google. Pacchetti chiari da 499 €.",
+      desc: "Web agency in Sicilia: siti su misura, e-commerce e identità di marca. Trilingue IT/DE/EN, veloci e trovabili su Google. Pacchetti chiari da 499 €.",
       locale: "it_IT"
     },
     nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", cta: "Richiedi preventivo" },
@@ -106,7 +106,7 @@ window.VECOM_I18N = {
       priceNote: "una tantum · IVA esclusa",
       togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno · IVA esclusa",
       cta: "Richiedi questo pacchetto", more: "Tutti i dettagli",
-      note: "Tutti i prezzi sono IVA esclusa. Durata e disdetta dell'assistenza mensile: [da definire]. Preventivo e primo colloquio sono gratuiti.",
+      note: "Tutti i prezzi sono IVA esclusa. L'assistenza mensile si disdice mese per mese, senza durata minima. Preventivo e primo colloquio sono gratuiti e senza impegno: l'incarico diventa vincolante solo con la firma del contratto.",
       cmp: "Confronto rapido",
       cmpRow: "Pagine|Lingue|Modifiche al mese|Assistenza",
       cmp1: "fino a 5|1|piccole modifiche|diretta",
@@ -117,11 +117,11 @@ window.VECOM_I18N = {
       head: "Domande frequenti",
       lead: "Le domande che ci arrivano prima di ogni incarico — con risposte chiare.",
       q1: "Quanto costa un sito web su misura?",
-      a1: "I nostri pacchetti partono da 499 € una tantum più 39 € al mese di assistenza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e, una volta approvato, è il prezzo finale.",
+      a1: "I nostri pacchetti partono da 499 € una tantum più 39 € al mese di assistenza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e senza impegno; quando lo approvi e firmiamo il contratto, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.",
       q2: "Quanto tempo serve per essere online?",
       a2: "Starter di norma una o due settimane, Business due o tre, Premium quattro o sei. A decidere il ritmo non è il nostro lavoro ma testi e immagini: se il materiale c'è, si va veloci.",
       q3: "L'assistenza mensile è obbligatoria?",
-      a3: "No, il sito resta tuo anche senza. Copre backup, aggiornamenti di sicurezza e piccole modifiche: senza di essa questi passaggi restano a carico tuo. Durata e disdetta: [da definire].",
+      a3: "No, il sito resta tuo anche senza. Copre backup, aggiornamenti di sicurezza e piccole modifiche: senza di essa questi passaggi restano a carico tuo. Si disdice mese per mese, senza durata minima e senza penali.",
       q4: "A chi appartiene il sito?",
       a4: "A te. Codice, immagini e file di progetto vengono consegnati e non c'è nessun vincolo tecnico: puoi portare il sito da un altro fornitore quando vuoi.",
       q5: "Il sito sarà trovabile su Google?",
@@ -131,7 +131,9 @@ window.VECOM_I18N = {
       q7: "Il sito usa cookie? Serve il banner?",
       a7: "Nella configurazione base non usa cookie di tracciamento né carica caratteri da server esterni: quindi non serve alcun banner. Se in seguito aggiungi statistiche o mappe, servono consenso e informativa aggiornata.",
       q8: "Come si paga?",
-      a8: "Metà all'accettazione del preventivo, metà alla consegna. L'assistenza parte dal mese successivo al lancio. Fatturazione regolare, tutto tracciato."
+      a8: "Metà all'accettazione del preventivo, metà alla consegna. L'assistenza parte dal mese successivo al lancio. Fatturazione regolare, tutto tracciato.",
+      q9: "Il preventivo è vincolante?",
+      a9: "Il preventivo no, il contratto sì. Preventivo e primo colloquio sono gratuiti e senza impegno: puoi prendere tempo, confrontare, dire di no. L'incarico nasce solo quando firmiamo il contratto — da quel momento vale il prezzo fisso concordato, e nessuno dei due può cambiarlo per strada.",
     },
     form: {
       head: "Raccontami il tuo progetto",
@@ -263,12 +265,12 @@ window.VECOM_I18N = {
     about: {
       kicker: "Chi sono",
       head: "Uwe Vetter",
-      role: "Web designer · Aragona, Sicilia",
-      p1: "Non vengo dal marketing. Vengo dalla pratica: ho costruito i miei progetti online — un negozio di prodotti siciliani, una piattaforma di quartiere, una casa editrice di libri illustrati — e ho imparato ogni volta cosa funziona davvero e cosa costa solo tempo.",
-      p2: "Per questo lavoro come lavoro: prezzi pubblicati, un preventivo che vale, e la sincerità di dirti quando una cosa non ti serve. Se un sito in una lingua basta, te lo dico — anche se guadagno meno.",
-      p3: "Sono tedesco e vivo in Sicilia. Lavoro in italiano, tedesco e inglese, e conosco entrambe le mentalità: la precisione dell'una, il rapporto personale dell'altra. Le due cose insieme sono il mio modo di lavorare.",
+      role: "Web designer ad Aragona (Agrigento) · Sicilia",
+      p1: "Non vengo dal marketing. Vengo dalla pratica: ho costruito i miei progetti online — un negozio di prodotti siciliani, una piattaforma di quartiere, una casa editrice di libri illustrati — e ogni volta ho imparato che cosa in un sito porta davvero clienti e che cosa costa solo tempo.",
+      p2: "Per questo lavoro come lavoro: i prezzi sono pubblicati e ogni preventivo arriva per iscritto, a prezzo fisso e senza impegno — vincolante lo diventa soltanto con la firma del contratto. E ti dico anche quando una cosa non ti serve: se basta un sito in una lingua, te lo dico, anche se ci guadagno meno.",
+      p3: "Sono tedesco e vivo in Sicilia. Da Aragona, in provincia di Agrigento, lavoro per clienti in tutta Italia, Germania, Austria e Svizzera — in italiano, tedesco e inglese. Conosco entrambe le mentalità: la precisione dell'una, il rapporto personale dell'altra. Le due cose insieme sono il mio modo di lavorare.",
       sig: "Uwe Vetter",
-      sigNote: "Parliamone — il primo colloquio è gratuito.", nav: "Chi sono"
+      sigNote: "Parliamone — il primo colloquio è gratuito e senza impegno.", nav: "Chi sono"
     },
     footer: {
       claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
@@ -286,7 +288,7 @@ window.VECOM_I18N = {
       h5: "Protezione dei dati",
       p5: "Questo sito non usa cookie di tracciamento, non carica caratteri o script da server esterni e non profila i visitatori. I moduli di contatto aprono il programma di posta locale: nessun dato viene trasmesso o salvato da questo sito.",
       h6: "Hosting",
-      p6: "Il sito è ospitato presso [fornitore di hosting], che registra dati tecnici di accesso per motivi di sicurezza.",
+      p6: "Il sito è ospitato presso ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Deutschland, che registra dati tecnici di accesso per motivi di sicurezza.",
       h7: "Diritti dell'interessato",
       p7: "Hai diritto di accesso, rettifica, cancellazione, limitazione, portabilità e opposizione, oltre al diritto di reclamo all'autorità di controllo competente.",
       back: "Torna alla home"
@@ -297,7 +299,7 @@ window.VECOM_I18N = {
   de: {
     meta: {
       title: "Website erstellen lassen — maßgeschneidert | Vecom Design",
-      desc: "Webdesign-Agentur für maßgeschneiderte Websites, Online-Shops und Logos. Individuelles Design, dreisprachig IT/DE/EN, schnell und für Google optimiert. Klare Preise ab 499 €.",
+      desc: "Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Klare Preise ab 499 €.",
       locale: "de_DE"
     },
     nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", cta: "Angebot anfordern" },
@@ -387,7 +389,7 @@ window.VECOM_I18N = {
       priceNote: "einmalig · zzgl. MwSt.",
       togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr · zzgl. MwSt.",
       cta: "Dieses Paket anfragen", more: "Alle Details",
-      note: "Alle Preise zzgl. MwSt. Laufzeit und Kündigungsfrist der monatlichen Betreuung: [bitte ergänzen]. Angebot und Erstgespräch sind kostenlos.",
+      note: "Alle Preise zzgl. MwSt. Die monatliche Betreuung ist monatlich kündbar, ohne Mindestlaufzeit. Angebot und Erstgespräch sind kostenlos und unverbindlich — verbindlich wird der Auftrag erst mit dem Vertragsabschluss.",
       cmp: "Kurzer Vergleich",
       cmpRow: "Seiten|Sprachen|Änderungen pro Monat|Betreuung",
       cmp1: "bis 5|1|kleine Änderungen|direkt",
@@ -398,11 +400,11 @@ window.VECOM_I18N = {
       head: "Häufige Fragen",
       lead: "Die Fragen, die vor jedem Auftrag kommen — mit klaren Antworten.",
       q1: "Was kostet eine maßgeschneiderte Website?",
-      a1: "Unsere Pakete beginnen bei 499 € einmalig plus 39 € monatlicher Betreuung. Der Preis hängt vom Umfang, den Funktionen und davon ab, wie viel Material Sie bereits haben. Das Angebot ist kostenlos — und nach Freigabe ist es der Endpreis.",
+      a1: "Unsere Pakete beginnen bei 499 € einmalig plus 39 € monatlicher Betreuung. Der Preis hängt vom Umfang, den Funktionen und davon ab, wie viel Material Sie bereits haben. Das Angebot ist kostenlos und unverbindlich; sobald Sie es freigeben und wir den Vertrag schließen, ist diese Summe der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.",
       q2: "Wie lange dauert es, bis die Seite online ist?",
       a2: "Starter in der Regel ein bis zwei Wochen, Business zwei bis drei, Premium vier bis sechs. Über das Tempo entscheidet selten unsere Arbeit, sondern Texte und Bilder: Liegt das Material vor, geht es schnell.",
       q3: "Ist die monatliche Betreuung Pflicht?",
-      a3: "Nein, die Website gehört Ihnen auch ohne sie. Sie deckt Backups, Sicherheitsupdates und kleine Änderungen ab — ohne sie bleiben diese Aufgaben bei Ihnen. Laufzeit und Kündigungsfrist: [bitte ergänzen].",
+      a3: "Nein, die Website gehört Ihnen auch ohne sie. Sie deckt Backups, Sicherheitsupdates und kleine Änderungen ab — ohne sie bleiben diese Aufgaben bei Ihnen. Sie ist monatlich kündbar, ohne Mindestlaufzeit und ohne Gebühr.",
       q4: "Wem gehört die Website?",
       a4: "Ihnen. Code, Bilder und Projektdateien werden übergeben, und es gibt keine technische Bindung: Sie können die Seite jederzeit zu einem anderen Anbieter mitnehmen.",
       q5: "Wird meine Seite bei Google gefunden?",
@@ -412,7 +414,9 @@ window.VECOM_I18N = {
       q7: "Verwendet die Seite Cookies? Brauche ich ein Banner?",
       a7: "In der Grundkonfiguration keine Tracking-Cookies und keine Schriften von fremden Servern — deshalb ist auch kein Banner nötig. Kommen später Statistiken oder Karten dazu, ändert sich das: Dann braucht es Einwilligung und angepasste Datenschutzerklärung.",
       q8: "Wie wird abgerechnet?",
-      a8: "Die Hälfte bei Auftragserteilung, die Hälfte bei Übergabe. Die Betreuung beginnt im Monat nach dem Launch. Ordentliche Rechnung, alles nachvollziehbar."
+      a8: "Die Hälfte bei Auftragserteilung, die Hälfte bei Übergabe. Die Betreuung beginnt im Monat nach dem Launch. Ordentliche Rechnung, alles nachvollziehbar.",
+      q9: "Ist das Angebot verbindlich?",
+      a9: "Das Angebot nicht, der Vertrag schon. Angebot und Erstgespräch sind kostenlos und unverbindlich: Sie können in Ruhe vergleichen, nachfragen oder absagen. Der Auftrag entsteht erst mit dem Vertragsabschluss — ab dann gilt der vereinbarte Festpreis, und keiner von uns beiden kann ihn unterwegs ändern.",
     },
     form: {
       head: "Erzähl mir von deinem Projekt",
@@ -544,12 +548,12 @@ window.VECOM_I18N = {
     about: {
       kicker: "Wer hinter Vecom Design steht",
       head: "Uwe Vetter",
-      role: "Webdesigner · Aragona, Sizilien",
-      p1: "Ich komme nicht aus dem Marketing. Ich komme aus der Praxis: Ich habe meine eigenen Projekte ins Netz gebracht — einen Shop für sizilianische Produkte, eine Nachbarschaftsplattform, einen Verlag für illustrierte Bücher — und dabei jedes Mal gelernt, was wirklich funktioniert und was nur Zeit kostet.",
-      p2: "Deshalb arbeite ich, wie ich arbeite: Preise stehen offen auf der Seite, ein Angebot ist verbindlich, und ich sage Ihnen auch, wenn Sie etwas nicht brauchen. Reicht eine einsprachige Seite, sage ich das — auch wenn ich daran weniger verdiene.",
-      p3: "Ich bin Deutscher und lebe in Sizilien. Ich arbeite auf Italienisch, Deutsch und Englisch und kenne beide Mentalitäten: die Genauigkeit der einen, das Persönliche der anderen. Beides zusammen ist meine Arbeitsweise.",
+      role: "Webdesigner in Aragona (Agrigent) · Sizilien",
+      p1: "Ich komme nicht aus dem Marketing. Ich komme aus der Praxis: Ich habe meine eigenen Projekte ins Netz gebracht — einen Shop für sizilianische Produkte, eine Nachbarschaftsplattform, einen Verlag für illustrierte Bücher — und dabei jedes Mal gelernt, was an einer Website wirklich Kunden bringt und was nur Zeit kostet.",
+      p2: "Deshalb arbeite ich, wie ich arbeite: Die Preise stehen offen auf der Seite, und jedes Angebot kommt schriftlich, zum Festpreis und unverbindlich — verbindlich wird es erst mit dem Vertragsabschluss. Und ich sage Ihnen auch, wenn Sie etwas nicht brauchen: Reicht eine einsprachige Seite, sage ich das, auch wenn ich daran weniger verdiene.",
+      p3: "Ich bin Deutscher und lebe in Sizilien. Von Aragona in der Provinz Agrigent aus arbeite ich für Kunden in ganz Italien, Deutschland, Österreich und der Schweiz — auf Italienisch, Deutsch und Englisch. Ich kenne beide Mentalitäten: die Genauigkeit der einen, das Persönliche der anderen. Beides zusammen ist meine Arbeitsweise.",
       sig: "Uwe Vetter",
-      sigNote: "Sprechen wir darüber — das Erstgespräch ist kostenlos.", nav: "Über mich"
+      sigNote: "Sprechen wir darüber — das Erstgespräch ist kostenlos und unverbindlich.", nav: "Über mich"
     },
     footer: {
       claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
@@ -567,7 +571,7 @@ window.VECOM_I18N = {
       h5: "Datenschutz",
       p5: "Diese Seite verwendet keine Tracking-Cookies, lädt keine Schriften oder Skripte von fremden Servern und erstellt keine Profile. Das Kontaktformular öffnet das lokale E-Mail-Programm: Es werden keine Daten von dieser Seite übertragen oder gespeichert.",
       h6: "Hosting",
-      p6: "Die Seite wird bei [Hosting-Anbieter] betrieben. Dort fallen aus Sicherheitsgründen technische Zugriffsdaten an.",
+      p6: "Die Seite wird bei ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Deutschland betrieben. Dort fallen aus Sicherheitsgründen technische Zugriffsdaten an.",
       h7: "Ihre Rechte",
       p7: "Sie haben das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch sowie ein Beschwerderecht bei der zuständigen Aufsichtsbehörde.",
       back: "Zurück zur Startseite"
@@ -578,7 +582,7 @@ window.VECOM_I18N = {
   en: {
     meta: {
       title: "Custom website design that wins clients | Vecom Design",
-      desc: "Web design studio for custom websites, online stores and brand identity. Tailored design, trilingual IT/DE/EN, fast and built to rank on Google. Clear packages from €499.",
+      desc: "Custom websites, online stores and brand identity, made in Sicily. Trilingual IT/DE/EN, fast and built to rank on Google. Packages from €499.",
       locale: "en_GB"
     },
     nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", cta: "Get a quote" },
@@ -668,7 +672,7 @@ window.VECOM_I18N = {
       priceNote: "one-off · plus VAT",
       togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year · plus VAT",
       cta: "Request this package", more: "Full details",
-      note: "All prices exclude VAT. Term and notice period for the monthly care: [to be defined]. Quote and first conversation are free.",
+      note: "All prices exclude VAT. The monthly care can be cancelled month by month, with no minimum term. Quote and first conversation are free and without obligation — the job becomes binding only when the contract is signed.",
       cmp: "Quick comparison",
       cmpRow: "Pages|Languages|Changes per month|Support",
       cmp1: "up to 5|1|small changes|direct",
@@ -679,11 +683,11 @@ window.VECOM_I18N = {
       head: "Frequent questions",
       lead: "The questions that come up before every project — answered plainly.",
       q1: "What does a custom website cost?",
-      a1: "Our packages start at €499 one-off plus €39 per month for care. The price depends on scope, functionality and how much material you already have. The quote is free — and once approved, it's the final price.",
+      a1: "Our packages start at €499 one-off plus €39 per month for care. The price depends on scope, functionality and how much material you already have. The quote is free and without obligation; once you approve it and we sign the contract, that figure is the final price — nothing appears on the invoice that wasn't in the quote.",
       q2: "How long until the site is live?",
       a2: "Starter usually one to two weeks, Business two to three, Premium four to six. What sets the pace is rarely our work but your copy and images: once the material is there, it moves fast.",
       q3: "Is the monthly care compulsory?",
-      a3: "No, the site is yours without it. It covers backups, security updates and small changes — without it those tasks stay with you. Term and notice period: [to be defined].",
+      a3: "No, the site is yours without it. It covers backups, security updates and small changes — without it those tasks stay with you. It can be cancelled month by month, with no minimum term and no fee.",
       q4: "Who owns the website?",
       a4: "You do. Code, images and project files are handed over, and there is no technical lock-in: you can move the site to another provider at any time.",
       q5: "Will my site be found on Google?",
@@ -693,7 +697,9 @@ window.VECOM_I18N = {
       q7: "Does the site use cookies? Do I need a banner?",
       a7: "In the basic setup there are no tracking cookies and no fonts from third-party servers — so no banner is needed. If analytics or maps are added later that changes: then consent and an updated privacy notice are required.",
       q8: "How does payment work?",
-      a8: "Half on commissioning, half on handover. Care starts the month after launch. Proper invoicing, everything traceable."
+      a8: "Half on commissioning, half on handover. Care starts the month after launch. Proper invoicing, everything traceable.",
+      q9: "Is the quote binding?",
+      a9: "The quote isn't, the contract is. Quote and first conversation are free and without obligation: take your time, compare, say no. The job only comes into being when we sign the contract — from then the agreed fixed price applies, and neither of us can change it along the way.",
     },
     form: {
       head: "Tell me about your project",
@@ -825,12 +831,12 @@ window.VECOM_I18N = {
     about: {
       kicker: "Who is behind Vecom Design",
       head: "Uwe Vetter",
-      role: "Web designer · Aragona, Sicily",
-      p1: "I don't come from marketing. I come from practice: I built my own projects online — a shop for Sicilian products, a neighbourhood platform, a publishing imprint for illustrated books — and learned each time what really works and what only costs time.",
-      p2: "That's why I work the way I do: prices published openly, a quote that holds, and the honesty to tell you when you don't need something. If a single-language site is enough, I'll say so — even though I earn less that way.",
-      p3: "I'm German and live in Sicily. I work in Italian, German and English and know both mentalities: the precision of one, the personal touch of the other. Together, that's how I work.",
+      role: "Web designer in Aragona (Agrigento) · Sicily",
+      p1: "I don't come from marketing. I come from practice: I built my own projects online — a shop for Sicilian products, a neighbourhood platform, a publishing imprint for illustrated books — and learned each time what actually brings a website customers and what only costs time.",
+      p2: "That's why I work the way I do: prices are published openly, and every quote comes in writing, at a fixed price and without obligation — it only becomes binding once the contract is signed. And I'll tell you when you don't need something: if a single-language site is enough, I'll say so, even though I earn less that way.",
+      p3: "I'm German and live in Sicily. From Aragona in the province of Agrigento I work for clients across Italy, Germany, Austria and Switzerland — in Italian, German and English. I know both mentalities: the precision of one, the personal touch of the other. Together, that's how I work.",
       sig: "Uwe Vetter",
-      sigNote: "Let's talk — the first conversation is free.", nav: "About"
+      sigNote: "Let's talk — the first conversation is free and without obligation.", nav: "About"
     },
     footer: {
       claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
@@ -848,7 +854,7 @@ window.VECOM_I18N = {
       h5: "Data protection",
       p5: "This site uses no tracking cookies, loads no fonts or scripts from third-party servers and builds no profiles. The contact form opens your local email programme: no data is transmitted or stored by this site.",
       h6: "Hosting",
-      p6: "The site is hosted with [hosting provider], where technical access data is recorded for security reasons.",
+      p6: "The site is hosted with ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Deutschland, where technical access data is recorded for security reasons.",
       h7: "Your rights",
       p7: "You have the right to access, rectification, erasure, restriction, portability and objection, as well as the right to complain to the competent supervisory authority.",
       back: "Back to the home page"

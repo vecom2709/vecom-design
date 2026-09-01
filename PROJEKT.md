@@ -128,3 +128,52 @@ Jede Änderung wird an diesen fünf Punkten gemessen:
 - **Partita IVA und der steuerliche Hinweistext** fehlen — solange bleiben es Belege.
 - **Firmendaten** (Straße, IBAN) sind in den Einstellungen noch nicht gefüllt; sie stehen auf
   jedem Beleg.
+
+## Politurdurchgang 01.09.2026
+
+Alles hier ist nachgemessen, nicht geschätzt — dieselben Messungen vorher und nachher.
+
+**Behoben:**
+- **Mobiles Menü ließ sich nicht schließen.** Die Überlagerung liegt im Header und ist sein
+  Kind; `z-index: 100` am Header gilt gegenüber der Seite, nicht gegenüber den eigenen
+  Kindern. Die Fläche (99) schlug Wortmarke und Werkzeuge (auto) und legte sich über den
+  Knopf, der sie schließen soll. Dazu machte das `backdrop-filter` des gescrollten Headers
+  ihn zum Bezugsrahmen für alles `position: fixed` darin — die Menüfläche schrumpfte auf
+  Headerhöhe, die Einträge lagen ohne Grund über dem Seiteninhalt. Beides war schon vorher
+  so; nachgeprüft am unveränderten Stand aus `git archive HEAD`.
+- **Lavori verlinkt jetzt die drei erreichbaren Seiten** (mensaena.de, jonika-venturis.com,
+  trendonix-buecher.de). Vorher: null `href` im ganzen Abschnitt, die Domains standen als
+  `<span>` da. Nebenbei: die Partnerlinks zeigten auf `www.jonika-venturis.com`, das mit
+  401 antwortet — jetzt auf die Apex-Domain, die lädt.
+- **Trefferflächen:** 30 von 80 Zielen unter 44px → 3, und die drei sind nur in der Breite
+  kurz („FAQ", „AGB"), 44px hoch. Keine überlappenden Flächen (geprüft).
+- **Hero-Fließtext über der 3D-Marke:** Fläche unter 4.5:1 von 17,9 % (Handy) und 21,4 %
+  (900px) auf 0,0–0,7 % über 390/768/900/1024/1199/1280/1920px. Ursache war doppelt: die
+  Spaltentrennung `max-width` stand VOR den Grundregeln und wirkte nie, und unterhalb davon
+  stand die Marke mitten hinter dem Text. Jetzt trennt die Komposition ab 900px, darunter
+  tritt die Marke zurück (`HERO_GEDRAENGT` in site-beats.js).
+- **404-Seite** lädt absolut; unter `/de/…` war sie unformatiert. Titel und `lang` stimmen überein.
+- **`pakete.html`** aus der Sitemap genommen (stand dort und trug `noindex`).
+- **Meta-Beschreibungen** 169–174 → 143–150 Zeichen.
+
+**Inhaltlich:**
+- **Über mich** SEO-geschärft: Aragona, Provinz Agrigent, Sizilien; Kunden in IT/DE/AT/CH;
+  drei Sprachen. Der persönliche Ton bleibt.
+- **Angebote sind unverbindlich.** „Ein Angebot ist verbindlich" stand im Über-mich-Text und
+  ist ersetzt: Angebot und Erstgespräch kostenlos und unverbindlich, verbindlich erst mit dem
+  Vertragsabschluss. Durchgezogen in Preisnotiz, FAQ 1 und 3, neuer FAQ 9 („Ist das Angebot
+  verbindlich?") — in allen drei Sprachen und in den strukturierten Daten.
+- **Neun sichtbare Platzhalter entfernt**: Laufzeit der Betreuung (jetzt monatlich kündbar,
+  ohne Mindestlaufzeit — **bitte bestätigen**, das ist eine Vertragszusage) und der
+  Hosting-Anbieter im Rechtstext (ALL-INKL, Angaben aus deren Impressum).
+- **Strukturierte Daten**: Uwe Vetter als `founder`, Adresse Aragona/Agrigento/IT,
+  `areaServed` um Provinz und Sizilien ergänzt.
+
+**Dringend offen:**
+- **Die Rechtsseite ist leer.** `legal.html` verlangt 67 Textschlüssel; im Wörterbuch stehen
+  6 (IT), 6 (DE), 0 (EN). Impressum, Datenschutz und AGB rendern als Überschriften ohne
+  Inhalt, und die Seite sagt selbst, sie sei „noch nicht vollständig". Für einen Betrieb in
+  Italien ist das eine Pflichtangabe. Es fehlen: Rechtsform, Anschrift, Partita IVA,
+  Codice Fiscale, REA, PEC — und danach eine fachliche Durchsicht.
+- **Kundenstimmen** gibt es keine. Nicht erfinden: bei Mensaena, TerraViva und Trendonix
+  nach zwei Sätzen mit Namen fragen.

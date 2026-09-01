@@ -49,6 +49,20 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   const narrow = window.matchMedia('(max-width: 860px)').matches;
   const k = narrow ? 0.12 : 1;
   const zk = narrow ? 1.7 : 1;
+
+  /* Ab 900px trennt die Komposition: Text links (.hero__lead bekommt dort eine
+     max-width), Marke rechts. Darunter gibt es kein Rechts — der Text läuft
+     über die volle Breite und die Marke steht mitten dahinter. Gemessen lagen
+     dadurch 17,9 % der Fließtextfläche auf dem Handy unter 4.5:1, an der
+     hellsten Stelle 2.4:1. Deshalb tritt die Marke genau dort zurück, wo die
+     Spaltentrennung nicht greift: weniger Licht, kaum Glanzlichter, mehr Nebel
+     und derselbe Schleier, den jeder andere Abschnitt ohnehin benutzt. Sie
+     bleibt sichtbar — sie hört nur auf, mit dem Text um dieselbe Fläche zu
+     streiten. Der Bruch liegt bewusst auf demselben Wert wie in app.css; wer
+     den einen ändert, muss den anderen mitziehen. */
+  const heroGeteilt = window.matchMedia('(min-width: 900px)').matches;
+  const HERO_GEDRAENGT = { fog: 0.088, key: 125, spec: 3, bloom: 0.09, halo: 0.16, scrim: 0.60 };
+  const BEATS = SITE_BEATS.map((b, i) => (!heroGeteilt && i === 0 ? { ...b, ...HERO_GEDRAENGT } : b));
   const root = document.documentElement;
 
   const applyTween = (b, instant) => {
@@ -107,7 +121,7 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   gsap.fromTo(w.mat, { emissiveIntensity: 1.4 }, { emissiveIntensity: 0, duration: 2.2, ease: 'power2.out', delay: 0.15 });
   const opening = gsap.delayedCall(0.25, () => applyOpening());
   function applyOpening() {
-    const b = SITE_BEATS[0];
+    const b = BEATS[0];
     const d = 3.4;
     const e = 'power3.out';
     gsap.to(w.camGoal,  { x: b.cam[0] * k, y: b.cam[1], z: b.cam[2] * zk, duration: d, ease: e, overwrite: true });
@@ -124,12 +138,15 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
       gsap.to(w.finish.uniforms.uBlur,  { value: b.blur,  duration: d, ease: e, overwrite: true });
       gsap.to(w.finish.uniforms.uFocus, { value: b.focus, duration: d, ease: e, overwrite: true });
     }
+    // Der Eröffnungsflug muss den Schleier mitziehen, sonst bliebe der Hero im
+    // Hochformat ungeschleiert, bis man einmal weg- und zurückgescrollt hat.
+    gsap.to(root, { '--world-scrim': b.scrim, duration: d * 0.7, ease: e, overwrite: true });
     document.documentElement.setAttribute('data-opening', 'done');
   }
   // Wer sofort scrollt, will die Show nicht — dann sofort in den Hero-Zustand.
   window.addEventListener('wheel', () => { if (opening.progress() < 1) { opening.kill(); applyOpening(); } }, { once: true, passive: true });
 
-  SITE_BEATS.forEach((b, i) => {
+  BEATS.forEach((b, i) => {
     const el = i === 0 ? document.querySelector('.hero') : document.getElementById(b.id);
     if (!el) return;
     // Der Hero-Zustand kommt beim Laden aus dem Eröffnungsflug; der Trigger
