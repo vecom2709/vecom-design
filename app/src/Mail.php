@@ -3,9 +3,12 @@ declare(strict_types=1);
 
 /**
  * E-Mails über Brevo — derselbe Weg, den das Kontaktformular der Website
- * schon nutzt. Die Zugangsdaten stehen dort, wo sie ohnehin liegen:
- * in config.local.php im Stammverzeichnis (Schlüssel 'key', 'from', 'name').
- * Ein eigener Abschnitt 'brevo' in app/config.local.php hat Vorrang.
+ * schon nutzt.
+ *
+ * Die Zugangsdaten kommen in dieser Reihenfolge: was in der Verwaltung unter
+ * Einstellungen eingetragen ist, sonst der Abschnitt 'brevo' in
+ * app/config.local.php, sonst config.local.php im Stammverzeichnis — die
+ * Datei, die das Kontaktformular ohnehin benutzt.
  *
  * Grundsatz: Eine E-Mail darf nie einen Vorgang zum Scheitern bringen. Geht
  * der Versand schief, wird das festgehalten und im Dashboard sichtbar — die
@@ -16,6 +19,13 @@ final class Mail
     /** @return array{key:string,from:string,name:string,to:string,api:string}|null */
     private static function zugang(): ?array
     {
+        // Zuerst das, was in der Verwaltung eingetragen wurde. Wer dort einen
+        // Schluessel hinterlegt, will genau den benutzen — nicht den alten aus
+        // einer Datei, an die er nicht mehr herankommt.
+        require_once __DIR__ . '/Versand.php';
+        $ausVerwaltung = Versand::zugang();
+        if ($ausVerwaltung !== null) { return $ausVerwaltung; }
+
         $eigen = (array) Config::get('brevo', []);
         if (!empty($eigen['key'])) {
             return [

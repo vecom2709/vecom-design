@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Monitoring.php';
 require_once __DIR__ . '/Onboarding.php';
 require_once __DIR__ . '/Cockpit.php';
+require_once __DIR__ . '/Sicherung.php';
 
 /**
  * Der regelmaessige Lauf. Auf dem Webspace gibt es kein SSH und keinen
@@ -92,6 +93,12 @@ final class Cron
         // Einmal am Tag genuegt: alte Pruefungen wegraeumen.
         if (self::heuteNochNicht('cron_aufraeumen')) {
             $aufgaben['aufgeraeumt'] = static fn() => Monitoring::aufraeumen();
+        }
+        // Ebenfalls einmal taeglich: der Auszug der Datenbank. Er steht
+        // bewusst am Ende der Liste — er dauert am laengsten, und wenn er
+        // scheitert, sollen die schnellen Aufgaben trotzdem gelaufen sein.
+        if (self::heuteNochNicht('cron_sicherung')) {
+            $aufgaben['sicherung'] = static fn() => Sicherung::laufen();
         }
 
         foreach ($aufgaben as $name => $tun) {

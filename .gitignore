@@ -11,3 +11,9 @@ app/uploads/
 # nicht ins Repository — sonst laege die Pruefsumme oeffentlich einsehbar.
 cockpit/.htaccess
 cockpit/.htpasswd
+
+# Datenbankauszuege und die Notfallablage des Formulars entstehen auf dem
+# Server und enthalten Kundendaten. Das Repository ist oeffentlich — sie
+# duerfen dort unter keinen Umstaenden landen.
+app/sicherungen/
+app/notfall/

@@ -405,19 +405,74 @@ if ($post) {
 
             case 'cockpit_schuetzen':
                 require_once __DIR__ . '/src/Cockpit.php';
-                $e = Cockpit::einrichten(trim((string) ($_POST['benutzer'] ?? 'uwe')) ?: 'uwe');
+                // Ein leeres Feld heisst weiterhin: das System denkt sich eins
+                // aus. Wer selbst eins waehlt, bekommt es nicht noch einmal
+                // angezeigt — er kennt es ja.
+                $eigenes = trim((string) ($_POST['passwort'] ?? ''));
+                if ($eigenes !== '') {
+                    if (mb_strlen($eigenes) < 10) {
+                        $_SESSION['fehler'] = 'Das Passwort ist zu kurz — mindestens zehn Zeichen.';
+                        weiter('einstellungen');
+                    }
+                    // Zeilenumbrueche wuerden die .htpasswd-Datei zerreissen.
+                    if (preg_match('~[\r\n\t]~', $eigenes)) {
+                        $_SESSION['fehler'] = 'Das Passwort darf keine Zeilenumbrüche enthalten.';
+                        weiter('einstellungen');
+                    }
+                }
+                $e = Cockpit::einrichten(trim((string) ($_POST['benutzer'] ?? 'uwe')) ?: 'uwe',
+                                         $eigenes !== '' ? $eigenes : null);
                 if (!$e['ok']) { throw new RuntimeException((string) $e['grund']); }
+                $selbstGewaehlt = $eigenes !== '';
                 // Genau einmal anzeigen, danach ist es weg. Im Protokoll steht
                 // nur, DASS es passiert ist — nie das Passwort.
-                $_SESSION['cockpit_zugang'] = ['benutzer' => $e['benutzer'], 'passwort' => $e['passwort']];
+                if (!$selbstGewaehlt) {
+                    $_SESSION['cockpit_zugang'] = ['benutzer' => $e['benutzer'], 'passwort' => $e['passwort']];
+                }
                 Events::protokoll('cockpit', 'Passwortschutz für /cockpit/ eingerichtet (Benutzer '
                     . $e['benutzer'] . ', Verfahren ' . $e['verfahren'] . ')');
                 if ($e['bestaetigt']) {
-                    $_SESSION['gut'] = 'Das Cockpit ist geschützt. Das Passwort steht unten — schreib es dir auf.';
+                    $_SESSION['gut'] = $selbstGewaehlt
+                        ? 'Das Cockpit ist geschützt — mit deinem Passwort.'
+                        : 'Das Cockpit ist geschützt. Das Passwort steht unten — schreib es dir auf.';
                 } else {
                     $_SESSION['fehler'] = (string) $e['grund'];
-                    $_SESSION['gut'] = 'Das Passwort steht unten — schreib es dir auf.';
+                    $_SESSION['gut'] = $selbstGewaehlt
+                        ? 'Gesetzt — aber ungeprüft, siehe oben.'
+                        : 'Das Passwort steht unten — schreib es dir auf.';
                 }
+                weiter('einstellungen');
+
+            case 'versand_speichern':
+                require_once __DIR__ . '/src/Versand.php';
+                $fehler = Versand::speichern(
+                    (string) ($_POST['key'] ?? ''),
+                    (string) ($_POST['from'] ?? ''),
+                    (string) ($_POST['name'] ?? ''),
+                    (string) ($_POST['to'] ?? '')
+                );
+                if ($fehler) {
+                    $_SESSION['fehler'] = implode(' ', $fehler);
+                } else {
+                    // Im Protokoll steht, DASS gespeichert wurde — nie der Schlüssel.
+                    Events::protokoll('versand', 'Zugangsdaten für den E-Mail-Versand geändert');
+                    // Gleich nachsehen, ob es wirklich geht. Ein gespeicherter
+                    // Schlüssel ist noch kein gültiger.
+                    $_SESSION['versand_test'] = Versand::pruefen();
+                    $_SESSION['gut'] = 'Gespeichert.';
+                }
+                weiter('einstellungen');
+
+            case 'versand_pruefen':
+                require_once __DIR__ . '/src/Versand.php';
+                $_SESSION['versand_test'] = Versand::pruefen();
+                weiter('einstellungen');
+
+            case 'versand_schluessel_weg':
+                require_once __DIR__ . '/src/Versand.php';
+                Versand::schluesselEntfernen();
+                Events::protokoll('versand', 'Hinterlegter Brevo-Schlüssel entfernt');
+                $_SESSION['gut'] = 'Der Schlüssel ist entfernt. Es gilt wieder, was in config.local.php steht.';
                 weiter('einstellungen');
 
             case 'cockpit_frei':
@@ -927,7 +982,15 @@ switch ($route) {
             'zugaenge'   => sicher(static fn() => Db::all(
                 'SELECT id, name, email, role, active, last_login_at, created_at
                  FROM users ORDER BY active DESC, id')),
+            'versand'    => sicher(static function () {
+                require_once __DIR__ . '/src/Versand.php';
+                return ['herkunft' => Versand::herkunft(), 'ende' => Versand::schluesselEnde(),
+                        'from' => Versand::absender(), 'name' => Versand::name(),
+                        'to' => Versand::meldungenAn()];
+            }, ['herkunft' => 'keine', 'ende' => '', 'from' => '', 'name' => '', 'to' => '']),
+            'versandTest' => $_SESSION['versand_test'] ?? null,
         ]);
+        unset($_SESSION['versand_test']);
         break;
 
     case 'monitoring':
