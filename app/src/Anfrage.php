@@ -34,6 +34,18 @@ final class Anfrage
             'notes' => 'Über das Formular auf der Website angefragt.',
         ]);
 
+        // Die Sprache gehoert an den KUNDEN, nicht nur an die Anfrage.
+        //
+        // Hier lag ein Fehler, den man erst am Ende der Kette sieht: Die
+        // Eingangsbestaetigung nimmt die Sprache aus der Anfrage und kommt
+        // richtig an. Jede spaetere Mail — Zahlung, Vorschau, Restzahlung,
+        // "deine Seite ist online" — liest sie vom Kunden. Und dort stand sie
+        // nie. Ein deutscher Kunde bekam eine deutsche Bestaetigung und danach
+        // vier italienische Mails.
+        $sprache = in_array(($d['sprache'] ?? 'it'), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : 'it';
+        require_once __DIR__ . '/Onboarding.php';
+        Onboarding::spracheMerken($kundeId, $sprache);
+
         // Ein gewaehltes Paket kommt als Kennung mit; existiert es nicht mehr,
         // bleibt wenigstens der Name stehen.
         $paketId = null;
@@ -53,7 +65,7 @@ final class Anfrage
             'email'       => mb_substr($email, 0, 190),
             'telefon'     => mb_substr(trim((string) ($d['telefon'] ?? '')), 0, 60) ?: null,
             'website'     => mb_substr(trim((string) ($d['website_url'] ?? '')), 0, 190) ?: null,
-            'sprache'     => in_array(($d['sprache'] ?? 'it'), ['it', 'de', 'en'], true) ? $d['sprache'] : 'it',
+            'sprache'     => $sprache,
             'nachricht'   => mb_substr((string) ($d['nachricht'] ?? ''), 0, 20000) ?: null,
             'status'      => 'neu',
         ]);

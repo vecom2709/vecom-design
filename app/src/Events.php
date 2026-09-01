@@ -308,6 +308,18 @@ final class Events
         // Website-Status ist eigenstaendig und wird nur beim Onlinegang beruehrt.
         if ($neu === 'online') {
             $w = Db::one('SELECT * FROM websites WHERE project_id = ?', [$projektId]);
+            if (!$w) {
+                // Die Ueberwachung greift nur, wenn die Adresse eingetragen
+                // ist — und eingetragen wird sie von Hand. Ohne diesen Hinweis
+                // geht eine Seite online und niemand merkt, dass sie in keiner
+                // Pruefung auftaucht: kein SSL-Ablauf, kein "war kurz nicht
+                // erreichbar". Ein stiller Ausfall genau des Dienstes, mit dem
+                // geworben wird.
+                self::melden('website_fehlt', 'Website steht in keiner Überwachung', 'warnung',
+                    'Das Projekt ist online, aber unter „Website-Monitoring" ist keine Adresse '
+                    . 'hinterlegt. Trag sie im Projekt ein, dann wird sie geprüft.',
+                    '/projekte/' . $projektId);
+            }
             if ($w && $w['status'] === 'nicht_veroeffentlicht') {
                 Db::update('websites', (int) $w['id'], [
                     'status' => 'wird_geprueft', 'monitoring' => 1, 'published_at' => date('Y-m-d H:i:s'),
