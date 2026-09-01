@@ -169,11 +169,23 @@ Alles hier ist nachgemessen, nicht geschätzt — dieselben Messungen vorher und
 - **Strukturierte Daten**: Uwe Vetter als `founder`, Adresse Aragona/Agrigento/IT,
   `areaServed` um Provinz und Sizilien ergänzt.
 
+**Korrigiert (mein Irrtum):**
+- Ich hatte gemeldet, die Rechtsseite sei leer, weil in `i18n-data.js` nur 12 der 67
+  Textschlüssel stehen. Falsch: `legal.html` lädt zusätzlich **`assets/js/legal-i18n.js`**,
+  und dort sind alle 67 in drei Sprachen gefüllt, mit echter Anschrift und Codice Fiscale.
+  Aufgefallen ist es erst, als ich die Seite im Browser angesehen habe — die Prüfung im
+  Wörterbuch allein war zu kurz gesprungen. Merksatz für das nächste Mal: eine Seite gilt
+  erst als geprüft, wenn sie gerendert vor einem lag.
+- Dabei aber ein echter Fehler gefunden und behoben: Die Datenschutzerklärung nannte in
+  allen drei Sprachen **GitHub Pages (GitHub Inc., USA)** als Hoster samt Hinweis auf die
+  Übermittlung in die USA. Die Seite liegt seit dem Umzug bei All-Inkl auf Servern in
+  Deutschland. Jetzt korrekt benannt, ohne Drittlandübermittlung.
+- `t2` in den AGB sagte schon immer „Angebote sind kostenlos und für den Kunden
+  unverbindlich" — die neue Formulierung auf der Startseite stimmt damit jetzt überein.
+
 **Dringend offen:**
-- **Die Rechtsseite ist leer.** `legal.html` verlangt 67 Textschlüssel; im Wörterbuch stehen
-  6 (IT), 6 (DE), 0 (EN). Impressum, Datenschutz und AGB rendern als Überschriften ohne
-  Inhalt, und die Seite sagt selbst, sie sei „noch nicht vollständig". Für einen Betrieb in
-  Italien ist das eine Pflichtangabe. Es fehlen: Rechtsform, Anschrift, Partita IVA,
-  Codice Fiscale, REA, PEC — und danach eine fachliche Durchsicht.
+- **Partita IVA und REA** stehen weiterhin nicht im Impressum, weil sie noch nicht vorliegen.
+- **Wenn Stripe live geht**, muss der Zahlungsdienstleister in die Datenschutzerklärung
+  (`legal-i18n.js`, Abschnitt Kontaktformular/Empfänger) aufgenommen werden.
 - **Kundenstimmen** gibt es keine. Nicht erfinden: bei Mensaena, TerraViva und Trendonix
   nach zwei Sätzen mit Namen fragen.

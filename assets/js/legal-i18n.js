@@ -5,7 +5,7 @@
    Grundlage: die vom Betreiber gelieferte Fassung des Impressums.
    Datenschutz und AGB sind daraus und aus dem tatsächlichen Verhalten der
    Seite abgeleitet (keine Cookies, keine fremden Schriften, Formular per
-   E-Mail-Programm, Hosting bei GitHub Pages).
+   E-Mail-Programm, Hosting bei All-Inkl).
 
    WICHTIG: Diese Texte ersetzen keine Rechtsberatung. Sie sollten vor der
    Veröffentlichung von einem Anwalt oder Commercialista geprüft werden —
@@ -52,7 +52,7 @@
         p2h: "In breve",
         p2: "Questo sito non utilizza cookie di tracciamento, non carica caratteri da server esterni e non crea profili degli utenti. Per questo motivo non è presente alcun banner sui cookie. I dati vengono trasmessi solo quando invii il modulo di contatto — vedi sotto.",
         p3h: "Dati raccolti visitando il sito",
-        p3: "Il sito è ospitato su GitHub Pages (GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA). Per motivi di sicurezza e di funzionamento il fornitore registra dati tecnici di accesso, tra cui indirizzo IP, data e ora della richiesta, pagina richiesta, tipo di browser e sistema operativo. Base giuridica: legittimo interesse a un funzionamento sicuro (art. 6 par. 1 lett. f GDPR). Il trasferimento negli USA avviene sulla base delle clausole contrattuali standard e del quadro UE-USA sulla privacy dei dati.",
+        p3: "Il sito è ospitato presso ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Germania, su server situati in Germania. Per motivi di sicurezza e di funzionamento il fornitore registra dati tecnici di accesso, tra cui indirizzo IP, data e ora della richiesta, pagina richiesta, tipo di browser e sistema operativo. Base giuridica: legittimo interesse a un funzionamento sicuro (art. 6 par. 1 lett. f GDPR). I dati restano all'interno dell'Unione europea; non avviene alcun trasferimento verso paesi terzi.",
         p4h: "Modulo di contatto",
         p4a: "I dati inseriti nel modulo vengono trasmessi al nostro server e da lì recapitati via e-mail. Per l'invio utilizziamo Brevo (Sendinblue GmbH, Köpenicker Straße 126, 10179 Berlino, Germania). Vengono trattati nome, e-mail, telefono (se indicato) e il contenuto della richiesta. Base giuridica: esecuzione di misure precontrattuali su tua richiesta (art. 6 par. 1 lett. b GDPR). Il trattamento avviene all'interno dell'UE; con Brevo è in essere un accordo sul trattamento dei dati. I dati vengono conservati per il tempo necessario alla risposta e all'eventuale incarico, poi nei termini di legge.",
         p4: "Puoi contattarci anche direttamente via e-mail: in quel caso valgono le stesse regole di conservazione.",
@@ -129,7 +129,7 @@
         p2h: "Kurz gefasst",
         p2: "Diese Webseite verwendet keine Tracking-Cookies, lädt keine Schriften von fremden Servern und erstellt keine Nutzerprofile. Deshalb gibt es auch kein Cookie-Banner. Daten werden nur übertragen, wenn Sie das Kontaktformular absenden — siehe unten.",
         p3h: "Daten beim Aufruf der Seite",
-        p3: "Die Seite wird bei GitHub Pages betrieben (GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA). Aus Sicherheits- und Betriebsgründen erfasst der Anbieter technische Zugriffsdaten, darunter IP-Adresse, Datum und Uhrzeit der Anfrage, aufgerufene Seite, Browsertyp und Betriebssystem. Rechtsgrundlage ist das berechtigte Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Die Übermittlung in die USA erfolgt auf Grundlage der Standardvertragsklauseln und des EU-US Data Privacy Framework.",
+        p3: "Die Seite wird bei ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Deutschland auf Servern in Deutschland betrieben. Aus Sicherheits- und Betriebsgründen erfasst der Anbieter technische Zugriffsdaten, darunter IP-Adresse, Datum und Uhrzeit der Anfrage, aufgerufene Seite, Browsertyp und Betriebssystem. Rechtsgrundlage ist das berechtigte Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Die Daten bleiben innerhalb der Europäischen Union; eine Übermittlung in Drittländer findet nicht statt.",
         p4h: "Kontaktformular",
         p4a: "Die im Formular eingegebenen Daten werden an unseren eigenen Server übertragen und von dort per E-Mail an uns zugestellt. Für den Versand nutzen wir Brevo (Sendinblue GmbH, Köpenicker Straße 126, 10179 Berlin, Deutschland). Verarbeitet werden Name, E-Mail-Adresse, Telefonnummer (falls angegeben) und der Inhalt der Anfrage. Rechtsgrundlage ist die Durchführung vorvertraglicher Maßnahmen auf Ihre Anfrage hin (Art. 6 Abs. 1 lit. b DSGVO). Die Verarbeitung erfolgt innerhalb der EU; ein Auftragsverarbeitungsvertrag mit Brevo liegt vor. Die Daten werden so lange gespeichert, wie es zur Beantwortung und zur Abwicklung eines etwaigen Auftrags nötig ist, danach im Rahmen der gesetzlichen Aufbewahrungsfristen.",
         p4: "Sie können uns auch direkt per E-Mail schreiben; dann gelten dieselben Aufbewahrungsregeln.",
@@ -205,7 +205,7 @@
         p2h: "In short",
         p2: "This website uses no tracking cookies, loads no fonts from third-party servers and builds no user profiles. That is why there is no cookie banner. Data is only transmitted when you send the contact form — see below.",
         p3h: "Data collected when visiting",
-        p3: "The site is hosted on GitHub Pages (GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA). For security and operational reasons the provider records technical access data including IP address, date and time of the request, page requested, browser type and operating system. Legal basis: legitimate interest in secure operation (Art. 6(1)(f) GDPR). Transfer to the USA takes place on the basis of standard contractual clauses and the EU-US Data Privacy Framework.",
+        p3: "The site is hosted with ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Germany, on servers located in Germany. For security and operational reasons the provider records technical access data including IP address, date and time of the request, page requested, browser type and operating system. Legal basis: legitimate interest in secure operation (Art. 6(1)(f) GDPR). The data stays within the European Union; no transfer to third countries takes place.",
         p4h: "Contact form",
         p4a: "Data entered in the form is transmitted to our own server and delivered from there by email. For sending we use Brevo (Sendinblue GmbH, Köpenicker Straße 126, 10179 Berlin, Germany). Name, email address, phone number (if given) and the content of the enquiry are processed. Legal basis: taking steps at your request prior to entering into a contract (Art. 6(1)(b) GDPR). Processing takes place within the EU; a data processing agreement with Brevo is in place. Data is kept as long as needed to reply and handle any resulting project, then within statutory retention periods.",
         p4: "You can also write to us directly by email; the same retention rules apply.",
