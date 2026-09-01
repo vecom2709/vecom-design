@@ -557,3 +557,33 @@ online → Projekt online, Bestellung fertig, Mail an den Kunden.
   abgleichen, das Stripe für den Endpunkt zeigt.
 - Beispieldaten sind noch geladen; der erste echte Auftrag räumt sie
   automatisch weg.
+
+### Rechnung mit dem echten Logo, Kundenseiten im Auftritt der Website (01.09.2026)
+
+**Der PDF-Erzeuger kann jetzt Bilder.** Ein JPEG geht als DCTDecode-XObject
+unverändert in die Datei — kein Umrechnen, keine fremde Bibliothek. Die Maße
+liest `Pdf::jpegKopf()` aus der Markerkette des JPEG statt sie zu raten, und
+ein fehlendes oder kaputtes Bild fällt still auf den gesetzten Schriftzug
+zurück. Der Briefkopf liegt als `app/assets/briefkopf.jpg`, aus
+`logo-full-light.png` ohne die Claim-Zeile (bei 98 pt Breite war sie nur noch
+ein Grauschleier).
+
+**Die steuerliche Widersprüchlichkeit ist im Code geschlossen, nicht im
+Formular.** `Firma::mwst()` gibt ohne Partita IVA immer 0 zurück, und die
+Rechnung druckt selbst dann keine IVA, wenn in einem alten Datensatz noch ein
+Satz steht. Vorher standen 22 % im Feld, wurden herausgerechnet, und dasselbe
+Dokument erklärte darunter, es sei keine Rechnung.
+
+**Die P. IVA ist beantragt** — deshalb steht schon alles bereit, was der Tag
+der Eintragung braucht: das Steuerregime als Einstellung (normal /
+forfettario), der Pflichthinweis nach L. 190/2014 samt Marca-da-bollo-Vermerk
+ab 77,47 €, und Codice fiscale, Partita IVA und Empfängerkode am Kunden
+(Migration 012). Eintragen genügt: aus BE-Belegen werden RE-Rechnungen mit
+eigener Nummernreihe ab 0001. Geprüft in allen drei Zuständen.
+
+**Die Kundenseiten haben eine eigene `assets/css/kunde.css`** statt des
+Verwaltungs-Stylesheets. Der Kunde kam von der Website und landete in einer
+Oberfläche, die für den Betreiber gebaut ist. Jetzt: Logo, Blau-Cyan,
+Archivo und Inter, ruhige Karten, Fingerziele ab 44 px. Ohne `font-stretch`
+auf den kleinen Überschriften — Archivos Breitenachse reißt dort einzelne
+Buchstabenpaare sichtbar auseinander.
