@@ -93,6 +93,7 @@ jobs:
               --exclude '^cockpit/\.htaccess$' \
               --exclude '^build\.mjs$' \
               --exclude '^README\.md$' \
+              --exclude '^PROJEKT\.md$' \
               ./ $DIR;
             bye"
 

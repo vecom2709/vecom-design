@@ -13,3 +13,10 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 <Files "config.local.php">
   Require all denied
 </Files>
+# Arbeitsnotizen gehoeren nicht auf die Kundendomain. PROJEKT.md lag bis
+# zum 01.09.2026 offen unter / — im Repository ist das gewollt, auf dem
+# Webspace nicht. Der Deploy laedt sie ab sofort nicht mehr hoch; diese
+# Sperre gilt fuer die Kopie, die schon dort liegt.
+<FilesMatch "\.(md|markdown)$">
+  Require all denied
+</FilesMatch>
