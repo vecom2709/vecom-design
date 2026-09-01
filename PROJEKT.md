@@ -302,3 +302,22 @@ Getestet mit einem lokalen Mailfänger: Bestätigung auf Italienisch raus, Kunde
 bei Uwe an, Antwort aus der Akte ging mit Link zurück, Datei hochgeladen und als Anhang wieder
 heruntergeladen (`Content-Disposition: attachment`, richtiger Typ), Zahlungslink verschickt und
 der Knopf wechselte auf „Nochmal senden".
+
+### Anleitung für den Kunden (01.09.2026)
+
+Der Kunde soll nicht raten müssen, was diese Seite ist und was er tun soll.
+
+- **In der Eingangsbestätigung** steht jetzt ein abgesetzter Block „So läuft es — alles über
+  einen Link" mit vier nummerierten Schritten: Link ablegen, dort schreiben statt mailen,
+  Unterlagen hochladen, und was danach kommt. Die Dateigrenze wird zur Laufzeit eingesetzt
+  (`Fmt::bytes(Ablage::grenze())`) — auf manchen Tarifen ist sie kleiner als die 15 MB, die die
+  Anwendung erlaubt.
+- **Oben auf `vorgang.php`** dieselben vier Schritte, sichtbar beim Ankommen. Wer nach drei
+  Wochen zurückkommt, weiß sonst nicht mehr, wofür die Seite da war.
+- Dreisprachig, ohne Fachbegriffe, mit dem wichtigsten Satz zuerst: kein Konto, kein Passwort,
+  der Link ist der Zugang.
+
+**Dabei einen Fehler gefunden und behoben**, der jede Bestätigung stillgelegt hätte: `bestaetigen()`
+benutzt seit der Dateigrenze `Fmt`, lud die Klasse aber nicht. Der Fatal wurde vom eigenen
+try/catch geschluckt — die Anfrage stand da, die Mail ging nie raus, und in den Meldungen stand
+nur „Eingangsbestätigung nicht verschickt". Aufgefallen beim Nachmessen, nicht beim Lesen.

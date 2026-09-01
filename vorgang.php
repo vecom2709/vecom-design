@@ -117,6 +117,15 @@ $dateien = $a ? Db::all(
     padding:9px 0;border-top:1px solid var(--linie);font-size:14px}
   .zeile:first-of-type{border-top:0}
   .zeile span{color:var(--leise)}
+  .schritte{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;gap:12px}
+  .schritte li{counter-increment:s;display:grid;grid-template-columns:26px 1fr;gap:2px 10px;align-items:start}
+  .schritte li::before{content:counter(s);grid-column:1;grid-row:1/span 2;
+    width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+    font-size:12px;font-weight:700;background:rgba(31,232,255,.12);color:var(--cyan);
+    box-shadow:inset 0 0 0 1px rgba(31,232,255,.3)}
+  .schritte li>*{grid-column:2}
+  .schritte b{display:block;font-size:14px}
+  .schritte span{display:block;font-size:13px;color:var(--dim);line-height:1.5}
   .angefragt{white-space:pre-wrap;font-size:14px;line-height:1.6;color:var(--dim)}
   .sprachen{text-align:center;margin-top:22px;font-size:13px;color:var(--leise)}
   .sprachen a{color:var(--leise);margin:0 6px}
@@ -136,6 +145,18 @@ $dateien = $a ? Db::all(
   <div class="block">
     <h1 style="font-size:20px;margin:0 0 8px"><?= $h($T('titel')) ?></h1>
     <p style="color:var(--dim);font-size:14px;line-height:1.6;margin:0"><?= $h($T('lead')) ?></p>
+  </div>
+
+  <!-- Die Anleitung steht oben, nicht versteckt: Wer nach drei Wochen
+       zurueckkommt, weiss sonst nicht mehr, wofuer diese Seite da war. -->
+  <div class="block">
+    <h2><?= $h($T('soGehts')) ?></h2>
+    <p style="color:var(--dim);font-size:14px;line-height:1.6;margin:0 0 14px"><?= $h($T('g0')) ?></p>
+    <ol class="schritte">
+      <?php foreach ([1, 2, 3, 4] as $i): ?>
+        <li><b><?= $h($T('g' . $i)) ?></b><span><?= $h($T('g' . $i . 'd')) ?></span></li>
+      <?php endforeach; ?>
+    </ol>
   </div>
 
   <?php if ($meldung): ?><div class="block"><div class="hinweis gut"><?= $h($meldung) ?></div></div><?php endif; ?>

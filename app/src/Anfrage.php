@@ -130,10 +130,15 @@ final class Anfrage
                'de' => ' zum Paket ' . $a['paket_name'],
                'en' => ' about the ' . $a['paket_name'] . ' package'][$sprache] ?? ''
             : '';
+        require_once __DIR__ . '/Fmt.php';
+        require_once __DIR__ . '/Ablage.php';
         [$betreff, $text] = Texte::mail('anfrage_eingegangen', $sprache, [
             'name'      => (string) $a['name'],
             'paketsatz' => $paketsatz,
             'link'      => self::link(self::token($anfrageId)),
+            // Die echte Grenze des Servers, nicht die im Kopf: Auf manchen
+            // Tarifen ist sie kleiner als das, was die Anwendung erlaubt.
+            'maxdatei'  => Fmt::bytes(Ablage::grenze()),
         ]);
         $ok = Mail::senden('anfrage_eingegangen', (string) $a['email'], $betreff, $text,
             ['customer_id' => $a['customer_id'] ? (int) $a['customer_id'] : null]);
