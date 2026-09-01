@@ -253,9 +253,9 @@ abgetippt — obwohl der Kunde die Angaben gerade erst eingegeben hatte.
   gewähltes Paket (über den Slug der `packages`-Tabelle zugeordnet) und der volle Fragebogentext.
 - **Eigene Tabelle `anfragen`**, nicht `orders` mit Status „Anfrage". Eine Anfrage ist kein
   Auftrag; in `orders` würde sie jede Umsatzzahl und jede Abschlussquote verfälschen.
-- **Die E-Mail hat Vorrang.** `formular.php` ruft die Klasse erst NACH dem Versand auf, in einem
-  try/catch. Steht die Datenbank still, kommt die Anfrage trotzdem an — sie ist dann eben nur im
-  Postfach. Fehlt `app/config.local.php`, passiert einfach nichts.
+- **Die E-Mail hatte Vorrang** — `formular.php` rief die Klasse erst NACH dem Versand auf. Am
+  01.09. umgedreht (siehe unten): Erst wird die Anfrage festgehalten, dann gemeldet. Der
+  Datenbankeintrag überlebt einen Mailausfall, umgekehrt nicht.
 - **Verwaltung → Kontakt → Anfragen**: Liste mit Stand, Detailseite mit allem Geschriebenen und
   einem Knopf **„Bestellung anlegen"** — Paket vorausgewählt, wenn eines mitkam. Daraus entsteht
   die Bestellung samt Anzahlung und Restzahlung; den Zahlungslink erzeugt man wie gewohnt in der
@@ -416,6 +416,56 @@ Auf dem Server geprüft: `sicherung {"datei":"vecom-2026-09-01.sql.gz","bytes":1
 "tabellen":22}`, der Ordner antwortet mit 403, alle vierzehn Verwaltungsseiten mit 200 und ohne
 PHP-Fehler.
 
-**Merksatz dazu:** `app/` liegt nicht im Repository — der GitHub-Deploy trägt die Verwaltung
-nicht mit. Sie wird per FTP hochgeladen. Wer das vergisst, sucht lange nach einem Block, der
-gar nicht da sein kann.
+**Merksatz dazu — und eine Korrektur:** `app/` liegt sehr wohl im Repository (78 Dateien);
+ausgenommen sind nur `app/config.local.php`, `app/uploads/` und seit heute `app/sicherungen/`
+und `app/notfall/`. Der Deploy trägt die Verwaltung also mit. Wer sie per FTP hochlädt und
+danach nicht committet, bekommt sie beim nächsten Push still wieder überschrieben — mit dem
+alten Stand aus dem Repository. Genau das drohte hier; deshalb sind die sechs Dateien
+nachträglich in einem eigenen Commit gelandet.
+
+Der Irrtum kam vom Klon in der Cloud-Sitzung: Der hängt Commits hinterher, dort war `app/`
+tatsächlich unbekannt. **Maßgeblich ist immer der Klon auf dem Mac** — dort wird auch
+ausschließlich gepusht, weil die Cloud unter fremder GitHub-Kennung schriebe.
+
+### Das Kontaktformular hat nie funktioniert (01.09.2026)
+
+Der schwerste Fund dieses Projekts, und er lag fünf Monate offen. Zwei Fehler, die einander
+gedeckt haben:
+
+1. `formular.php` verlangte `config.local.php` im **Stammverzeichnis**. Die Datei lag dort nie —
+   der Brevo-Zugang steht in `app/config.local.php`. Der Server antwortete auf jede Anfrage mit
+   `500 {"ok":false,"error":"config"}`.
+2. `qform.js` sah die Antwort überhaupt nicht an: `fetch(...).catch(() => {})` und direkt danach
+   `done.hidden = false`. Der Besucher las „Danke — deine Anfrage ist unterwegs", ganz gleich was
+   zurückkam.
+
+Jede Anfrage seit dem Start ist so verschwunden, ohne Eintrag, ohne Mail, ohne Spur. Aufgefallen
+ist es erst, weil eine Testanfrage in Brevo nicht auftauchte — und weil die Antwort direkt mit
+`curl` geprüft wurde statt im Browser.
+
+**Die Lehre daraus, allgemeiner als dieser Fall:** Eine Erfolgsmeldung, die nicht an eine
+Serverantwort gebunden ist, ist keine Meldung, sondern eine Behauptung. Sie verhindert genau das
+Feedback, aus dem man den Fehler bemerkt hätte. Wo etwas „still" scheitern kann, muss geprüft
+werden, ob es je gelaufen ist — nicht, ob es laufen könnte.
+
+Beides repariert:
+
+- **`formular.php`** hält die Anfrage zuerst in der Verwaltung fest (Kunde, Anfrage, Zugangslink,
+  Eingangsbestätigung an den Kunden) und meldet sie danach per E-Mail über `Mail::senden()` —
+  damit steht der Versand auch im Nachrichtenprotokoll. Alter Weg über die Wurzel-Konfiguration
+  und `mail()` bleiben als Rückfall. Trägt keiner der Wege, landet die Anfrage als JSON-Zeile in
+  `app/notfall/anfragen.jsonl` (über das Web gesperrt) und die Antwort sagt ehrlich 502.
+- **`qform.js`** zeigt die Bestätigung nur bei `ok:true`. Sonst erscheint ein Fehlerkasten —
+  **die Eingaben und der Absendeknopf bleiben stehen**, ein zweiter Versuch kostet nichts, und
+  ein vorbereiteter `mailto:` mit dem ganzen Text ist der Notausgang. Eine HTML-Seite statt JSON
+  gilt als Fehler, nicht als Erfolg. Neue Texte in `i18n-data.js`: `sending`, `failHead`,
+  `failText`, `failBtn` (it/de/en).
+
+Geprüft, örtlich gegen eine echte MariaDB und eine Brevo-Attrappe: Vollprobe (Anfrage, Kunde,
+Token, beide Mails), Pflichtfelder 422, Honigtopf still verworfen und nichts gespeichert, Bremse
+429, GET 405, Totalausfall 502 mit Eintrag in der Notfalldatei; beide Bildschirme im Testbrowser.
+Danach live: `{"ok":true,"gespeichert":true,"gemeldet":true}`, Anfrage steht in der Verwaltung,
+und in Brevo unter Transaktionale → Logs stehen beide Mails auf **Zugestellt**.
+
+**Offen:** Der Brevo-Schlüssel, der jetzt hinterlegt ist (endet auf `Cqpb`), stand einmal im
+Klartext in einem Chat. In Brevo einen neuen erzeugen, hier eintragen, den alten löschen.
