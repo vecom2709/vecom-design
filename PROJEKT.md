@@ -163,9 +163,9 @@ Alles hier ist nachgemessen, nicht geschätzt — dieselben Messungen vorher und
   ist ersetzt: Angebot und Erstgespräch kostenlos und unverbindlich, verbindlich erst mit dem
   Vertragsabschluss. Durchgezogen in Preisnotiz, FAQ 1 und 3, neuer FAQ 9 („Ist das Angebot
   verbindlich?") — in allen drei Sprachen und in den strukturierten Daten.
-- **Neun sichtbare Platzhalter entfernt**: Laufzeit der Betreuung (jetzt monatlich kündbar,
-  ohne Mindestlaufzeit — **bitte bestätigen**, das ist eine Vertragszusage) und der
-  Hosting-Anbieter im Rechtstext (ALL-INKL, Angaben aus deren Impressum).
+- **Neun sichtbare Platzhalter entfernt**: Laufzeit der Betreuung (von Uwe bestätigt: zwölf
+  Monate Erstlaufzeit, danach jederzeit zum Monatsende kündbar) und der Hosting-Anbieter im
+  Rechtstext (ALL-INKL, Angaben aus deren Impressum).
 - **Strukturierte Daten**: Uwe Vetter als `founder`, Adresse Aragona/Agrigento/IT,
   `areaServed` um Provinz und Sizilien ergänzt.
 
