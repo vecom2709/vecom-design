@@ -82,6 +82,8 @@
     <tr><td>Firma</td><td><?= Fmt::h($k['company'] ?: '—') ?></td></tr>
     <tr><td>Branche</td><td><?= Fmt::h($k['industry'] ?: '—') ?></td></tr>
     <tr><td>Adresse</td><td><?= Fmt::h(trim(($k['street'] ?? '') . ' ' . ($k['zip'] ?? '') . ' ' . ($k['city'] ?? '') . ' ' . ($k['country'] ?? ''))) ?: '—' ?></td></tr>
+    <tr><td>Sprache</td><td><?= Fmt::h(['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][strtolower((string) ($k['sprache'] ?? 'it'))] ?? 'Italiano') ?>
+      <small style="color:var(--leise)">— so gehen die automatischen E-Mails raus</small></td></tr>
     <tr><td>Kunde seit</td><td><?= Fmt::h(Fmt::datum($k['created_at'])) ?></td></tr>
   </tbody></table></div>
   <?php if ($k['notes']): ?><div class="block"><h2>Interne Notizen</h2><p style="color:var(--dim);white-space:pre-wrap"><?= Fmt::h($k['notes']) ?></p></div><?php endif; ?>

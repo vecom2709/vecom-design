@@ -10,7 +10,17 @@
 <div class="feld"><label>Straße</label><input name="street" value="<?= Fmt::h($k['street'] ?? '') ?>"></div></div>
 <div class="reihe"><div class="feld"><label>PLZ</label><input name="zip" value="<?= Fmt::h($k['zip'] ?? '') ?>"></div>
 <div class="feld"><label>Ort</label><input name="city" value="<?= Fmt::h($k['city'] ?? '') ?>"></div></div>
-<div class="feld"><label>Land</label><input name="country" value="<?= Fmt::h($k['country'] ?? 'Italien') ?>"></div>
+<div class="reihe"><div class="feld"><label>Land</label><input name="country" value="<?= Fmt::h($k['country'] ?? 'Italien') ?>"></div>
+<div class="feld"><label>Sprache</label>
+  <?php $sp = strtolower((string) ($k['sprache'] ?? 'it')); ?>
+  <select name="sprache">
+    <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $wert => $wort): ?>
+      <option value="<?= $wert ?>" <?= $sp === $wert ? 'selected' : '' ?>><?= $wort ?></option>
+    <?php endforeach; ?>
+  </select>
+  <small style="color:var(--leise);display:block;margin-top:5px">In dieser Sprache gehen alle
+  automatischen E-Mails an ihn — Zahlung, Vorschau, Restzahlung, „ist online".
+  Sie wird beim Anfragen gesetzt und lässt sich hier ändern.</small></div></div>
 <div class="feld"><label>Interne Notizen</label><textarea name="notes" rows="4"><?= Fmt::h($k['notes'] ?? '') ?></textarea></div>
 <button class="knopf haupt">Speichern</button> <a class="knopf stumm" href="<?= Fmt::h(url('kunden')) ?>">Abbrechen</a>
 </form></div>

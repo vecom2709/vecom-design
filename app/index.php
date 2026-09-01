@@ -147,6 +147,11 @@ if ($post) {
                     'country' => trim((string) ($_POST['country'] ?? '')) ?: null,
                     'notes' => trim((string) ($_POST['notes'] ?? '')) ?: null,
                 ];
+                // Die Sprache entscheidet, in welcher jede automatische Mail
+                // an diesen Kunden hinausgeht. Sie wird beim Anfragen gesetzt;
+                // hier laesst sie sich richtigstellen.
+                $sp = strtolower(trim((string) ($_POST['sprache'] ?? '')));
+                if (in_array($sp, ['it', 'de', 'en'], true)) { $daten['sprache'] = $sp; }
                 if ($daten['name'] === '' || !filter_var($daten['email'], FILTER_VALIDATE_EMAIL)) {
                     throw new RuntimeException('Name und eine gültige E-Mail sind Pflicht.');
                 }
