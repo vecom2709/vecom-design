@@ -848,3 +848,39 @@ Störung klingelt, zweite gleiche schweigt, andere Art klingelt, „info" und
 die alte zu überschreiben, Dienst kaputt wird vermerkt ohne Meldungsschleife,
 Warteschlange mit Wiederholung und Deckelung, Formular wartet nicht, Cronlauf
 holt nach. Alle 19 Verwaltungsseiten 200, keine PHP-Meldung, Konsole sauber.
+
+### Testdaten mit Belegen löschen (02.09.2026)
+
+Nach dem Anonymisieren stand „Gelöschter Kunde #5" dauerhaft in der Liste und
+ließ sich nicht entfernen: `Kunde::riegel()` sperrt das Löschen, sobald ein
+Beleg ausgestellt oder eine Zahlung eingegangen ist. Das ist richtig — für
+echte Vorgänge.
+
+Für den Probelauf ist es falsch. Wer die eigene Verwaltung durchtestet, erzeugt
+Bestellungen, Zahlungen und Belege für Vorgänge, die es nie gegeben hat. Diese
+Belege sind keine Dokumente, die man aufbewahrt, sondern Fehleinträge — und sie
+blockieren obendrein den Nummernkreis: Bleibt der Testbeleg BE-2026-0001
+stehen, fängt der erste echte bei 0002 an, und eine italienische Nummerierung
+muss im Jahr lückenlos sein. Das stand seit Tagen als offener Punkt.
+
+`Kunde::loeschen($id, $auchBelege = true)` überspringt den Riegel und nimmt
+Belege und Zahlungen mit. In der Kundenakte erscheint der Weg nur dort, wo das
+normale Löschen gesperrt ist, mit einem eigenen Bestätigungswort (`ALLES
+LÖSCHEN` statt `LÖSCHEN` — nicht damit es schwerer ist, sondern damit niemand
+aus Gewohnheit das falsche tippt), einer Liste der betroffenen Belege mit
+Nummer, Betrag und Datum, und dem Satz: *Hat der Kunde wirklich gezahlt, darfst
+du das nicht.*
+
+Was danach bleibt, ist die Prüfspur: `loeschen_mit_belegen` mit Nummer, Betrag
+und Datum jedes vernichteten Belegs, plus ein Verlaufseintrag. Das ist das
+Einzige, was noch bezeugt, dass es sie gab — und der Grund, warum dieser Weg
+verantwortbar ist.
+
+Geprüft: Riegel sperrt weiter, ohne Flag verweigert die Methode, falsches Wort
+ändert nichts, mit richtigem Wort verschwinden Kunde, Bestellung, Projekt,
+Zahlung und Beleg, Prüfspur und Verlauf nennen die Nummern — und
+`Rechnung::naechsteNummer()` liefert danach wieder BE-2026-0001.
+
+**Nebenbefund am selben Tag:** Das Brevo-Problem war vorübergehend. „Verbindung
+prüfen" meldet wieder „Verbunden"; die tägliche Cron-Prüfung und die neue
+Meldung bei jedem einzelnen Fehlschlag fangen den nächsten Ausfall ab.

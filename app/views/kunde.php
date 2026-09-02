@@ -141,6 +141,47 @@
           <div style="margin-top:8px">Nimm den Weg darunter — er entfernt die
             personenbezogenen Daten und lässt die Belege stehen.</div>
         </div>
+        <?php /* Der Ausweg fuer den Probelauf. Ein Testbeleg ist kein
+             Dokument, das man aufbewahrt, sondern ein Fehleintrag — und er
+             blockiert den Nummernkreis: Bleibt BE-2026-0001 stehen, faengt
+             der erste echte Beleg bei 0002 an, und eine italienische
+             Nummerierung muss im Jahr lueckenlos sein. */ ?>
+        <details style="border:1px solid rgba(255,138,138,.3);border-radius:10px;padding:10px 12px">
+          <summary style="cursor:pointer;font-weight:650;font-size:13.5px;color:var(--rot)">
+            Es war nur ein Testlauf — alles weg, auch die Belege</summary>
+          <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:10px 0 10px">
+            Nur für Vorgänge, die es nie gegeben hat: dein eigener Probelauf. Dann sind die
+            Belege unten keine Dokumente, die du aufbewahren musst, sondern Fehleinträge —
+            und sie blockieren deinen Nummernkreis. Nach dem Löschen fängt der nächste Beleg
+            wieder bei 0001 an.<br>
+            <strong style="color:var(--rot)">Hat der Kunde wirklich gezahlt, darfst du das nicht.</strong>
+            Dann ist „Anonymisieren" der richtige Weg.</p>
+          <?php if ($belege ?? []): ?>
+            <div style="font-size:12.5px;color:var(--dim);border:1px solid var(--linie);
+                        border-radius:10px;padding:9px 11px;margin-bottom:11px">
+              <div style="font-weight:650;margin-bottom:5px">Diese Belege würden vernichtet</div>
+              <?php foreach ($belege as $b): ?>
+                <div><?= Fmt::h($b['nummer']) ?> · <?= Fmt::geld($b['betrag'], $b['waehrung']) ?>
+                  <?= $b['datum'] ? ' · ' . Fmt::h(Fmt::datum($b['datum'])) : '' ?></div>
+              <?php endforeach; ?>
+              <div style="margin-top:6px;color:var(--leise)">Nummer, Betrag und Datum bleiben
+                danach in der Prüfspur stehen — das ist das Einzige, was noch bezeugt, dass es
+                sie gab.</div>
+            </div>
+          <?php endif; ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>"
+                style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_loeschen">
+            <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+            <input type="hidden" name="auch_belege" value="1">
+            <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+            <input name="bestaetigung" required autocomplete="off" placeholder="ALLES LÖSCHEN"
+                   aria-label="Zur Bestätigung ALLES LÖSCHEN eingeben"
+                   style="max-width:190px;text-transform:uppercase;letter-spacing:.06em">
+            <button class="knopf" style="border-color:rgba(255,138,138,.55);color:var(--rot)">
+              Testdaten endgültig löschen</button>
+          </form>
+        </details>
       <?php else: ?>
         <details style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px;margin-bottom:10px">
           <summary style="cursor:pointer;font-weight:650;font-size:13.5px">Vollständig löschen</summary>

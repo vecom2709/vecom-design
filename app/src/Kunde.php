@@ -91,6 +91,32 @@ final class Kunde
         return $gruende;
     }
 
+    /**
+     * Die ausgestellten Belege dieses Kunden — Nummer, Betrag, Datum.
+     *
+     * Gebraucht an zwei Stellen: um vor dem Loeschen zu zeigen, was
+     * verschwinden wuerde, und um hinterher in der Pruefspur festzuhalten,
+     * was verschwunden IST. Das zweite ist das wichtigere.
+     *
+     * @return list<array{nummer:string,betrag:int,waehrung:string,datum:?string}>
+     */
+    public static function belege(int $kundeId): array
+    {
+        $aus = [];
+        foreach (self::zeilen(
+            "SELECT invoice_no, total_cents, currency, issued_at FROM invoices
+              WHERE customer_id = ? AND (issued_at IS NOT NULL OR status <> 'entwurf')
+              ORDER BY id", [$kundeId]) as $r) {
+            $aus[] = [
+                'nummer'   => (string) $r['invoice_no'],
+                'betrag'   => (int) $r['total_cents'],
+                'waehrung' => (string) $r['currency'],
+                'datum'    => $r['issued_at'] !== null ? (string) $r['issued_at'] : null,
+            ];
+        }
+        return $aus;
+    }
+
     /** Ist dieser Kunde schon geleert worden? */
     public static function istAnonym(array $k): bool
     {
@@ -169,16 +195,39 @@ final class Kunde
     /**
      * Loescht den Kunden mit allem, was an ihm haengt.
      *
-     * @return array{name:string,zeilen:int,dateien:int}
-     * @throws RuntimeException wenn ein Riegel vorliegt
+     * DER ZWEITE WEG, UND WARUM ES IHN GIBT
+     *
+     * Normalerweise verweigert diese Methode die Arbeit, sobald ein Beleg
+     * ausgestellt oder eine Zahlung eingegangen ist — aus gutem Grund: Solche
+     * Belege muessen zehn Jahre aufbewahrt werden (Art. 2220 Codice civile).
+     *
+     * Es gibt aber einen Fall, in dem genau das falsch ist: den Probelauf.
+     * Wer die eigene Verwaltung durchtestet, erzeugt Bestellungen, Zahlungen
+     * und Belege fuer Vorgaenge, die es nie gegeben hat. Diese Belege sind
+     * keine Dokumente, die man aufbewahrt, sondern Fehleintraege — und sie
+     * blockieren obendrein den Nummernkreis: Bleibt ein Testbeleg BE-2026-0001
+     * stehen, faengt der erste echte bei 0002 an, und eine italienische
+     * Belegnummerierung muss im Jahr lueckenlos sein.
+     *
+     * Deshalb $auchBelege. Der Weg ist absichtlich unbequem: In der Verwaltung
+     * verlangt er ein getipptes Wort, und was er zerstoert hat — Nummern,
+     * Betraege, Daten — steht danach in der Pruefspur. Wer ihn auf einen
+     * echten Geschaeftsvorfall anwendet, handelt gegen das Gesetz; das kann
+     * ihm kein Programm abnehmen, aber es kann dafuer sorgen, dass es
+     * nachvollziehbar bleibt.
+     *
+     * @param bool $auchBelege Belege und Zahlungen mit vernichten
+     * @return array{name:string,zeilen:int,dateien:int,belege:list<array>}
+     * @throws RuntimeException wenn ein Riegel vorliegt und $auchBelege falsch ist
      */
-    public static function loeschen(int $kundeId): array
+    public static function loeschen(int $kundeId, bool $auchBelege = false): array
     {
         $k = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
         if (!$k) { throw new RuntimeException('Diesen Kunden gibt es nicht (mehr).'); }
 
+        $belege = self::belege($kundeId);
         $riegel = self::riegel($kundeId);
-        if ($riegel) {
+        if ($riegel && !$auchBelege) {
             throw new RuntimeException(
                 'Dieser Kunde lässt sich nicht löschen: ' . implode(' ', $riegel)
                 . ' Für diesen Fall gibt es "Anonymisieren" — damit verschwinden die '
@@ -223,16 +272,21 @@ final class Kunde
         }
 
         // Der Vorgang selbst wird festgehalten — ohne die Daten, um die es
-        // ging. Was bleibt, ist der Nachweis, dass geloescht wurde.
-        self::spur('loeschen', $kundeId, [
+        // ging. Was bleibt, ist der Nachweis, dass geloescht wurde. Wurden
+        // Belege mit vernichtet, stehen ihre Nummern und Betraege hier: Das
+        // ist das Einzige, was danach noch bezeugt, dass es sie gab.
+        self::spur($auchBelege ? 'loeschen_mit_belegen' : 'loeschen', $kundeId, [
             'kunde'   => self::kuerzel($name, $email),
             'zeilen'  => $zeilen,
             'dateien' => $weg,
+            'belege'  => $belege,
         ]);
         Events::protokoll('kunde_geloescht',
-            'Kunde gelöscht: ' . self::kuerzel($name, $email) . ' (' . $zeilen . ' Einträge)');
+            'Kunde gelöscht: ' . self::kuerzel($name, $email) . ' (' . $zeilen . ' Einträge'
+            . ($belege ? ', dabei vernichtet: ' . implode(', ', array_column($belege, 'nummer')) : '')
+            . ')');
 
-        return ['name' => $name, 'zeilen' => $zeilen, 'dateien' => $weg];
+        return ['name' => $name, 'zeilen' => $zeilen, 'dateien' => $weg, 'belege' => $belege];
     }
 
     /* ---------------------------------------------------------------- */

@@ -229,16 +229,29 @@ if ($post) {
                nicht rueckgaengig machen laesst. */
             case 'kunde_loeschen':
                 require_once __DIR__ . '/src/Kunde.php';
-                $kid = (int) ($_POST['id'] ?? 0);
+                $kid  = (int) ($_POST['id'] ?? 0);
                 $wort = mb_strtoupper(trim((string) ($_POST['bestaetigung'] ?? '')));
-                if (!in_array($wort, ['LOESCHEN', 'LÖSCHEN'], true)) {
-                    throw new RuntimeException('Zum Löschen muss LÖSCHEN im Feld stehen. Es ist nichts passiert.');
+                // Der zweite Weg vernichtet auch Belege. Er verlangt deshalb
+                // ein anderes, laengeres Wort — nicht damit es schwerer wird,
+                // sondern damit niemand aus Gewohnheit das falsche tippt.
+                $auchBelege = !empty($_POST['auch_belege']);
+                $erwartet = $auchBelege
+                    ? ['ALLES LOESCHEN', 'ALLES LÖSCHEN']
+                    : ['LOESCHEN', 'LÖSCHEN'];
+                if (!in_array($wort, $erwartet, true)) {
+                    throw new RuntimeException('Zum Löschen muss „' . $erwartet[1]
+                        . '" im Feld stehen. Es ist nichts passiert.');
                 }
-                $weg = Kunde::loeschen($kid);
+                $weg = Kunde::loeschen($kid, $auchBelege);
                 $_SESSION['gut'] = 'Kunde „' . $weg['name'] . '" gelöscht — '
                     . $weg['zeilen'] . ' Einträge'
                     . ($weg['dateien'] > 0 ? ' und ' . $weg['dateien'] . ' Datei(en)' : '')
-                    . ' sind weg.';
+                    . ' sind weg.'
+                    . ($weg['belege']
+                        ? ' Vernichtet wurden dabei auch die Belege '
+                          . implode(', ', array_column($weg['belege'], 'nummer'))
+                          . ' — sie stehen mit Betrag und Datum in der Prüfspur.'
+                        : '');
                 weiter('kunden');
 
             case 'kunde_anonymisieren':
@@ -931,6 +944,7 @@ switch ($route) {
                 // gehoert vor den Knopf, nicht in eine Fehlermeldung danach.
                 'riegel' => sicher(static fn() => Kunde::riegel($id), []),
                 'umfang' => sicher(static fn() => Kunde::umfang($id), []),
+                'belege' => sicher(static fn() => Kunde::belege($id), []),
                 'anonym' => sicher(static fn() => Kunde::istAnonym($k), false),
                 'bestellungen' => Db::all('SELECT * FROM orders WHERE customer_id = ? ORDER BY id DESC', [$id]),
                 'projekte' => Db::all('SELECT * FROM projects WHERE customer_id = ? ORDER BY id DESC', [$id]),
