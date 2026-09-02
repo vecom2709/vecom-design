@@ -125,6 +125,17 @@ final class Cron
         // Ebenfalls einmal taeglich: der Auszug der Datenbank. Er steht
         // bewusst am Ende der Liste — er dauert am laengsten, und wenn er
         // scheitert, sollen die schnellen Aufgaben trotzdem gelaufen sein.
+        // Einmal taeglich nachsehen, ob die Absenderdomain noch richtig im DNS
+        // steht. SPF, DKIM und DMARC richtet man einmal ein und sieht sie nie
+        // wieder an — genau deshalb faellt es niemandem auf, wenn einer
+        // verschwindet. Nach aussen merkt man davon nichts: Die Mails gehen
+        // weiter raus, sie landen nur zunehmend im Spam.
+        if (self::heuteNochNicht('cron_zustellbarkeit')) {
+            $aufgaben['zustellbarkeit'] = static function () {
+                require_once __DIR__ . '/Zustellbarkeit.php';
+                return Zustellbarkeit::taeglich();
+            };
+        }
         if (self::heuteNochNicht('cron_sicherung')) {
             $aufgaben['sicherung'] = static fn() => Sicherung::laufen();
         }

@@ -1041,3 +1041,68 @@ Mailfänger nachgelesen — Kennung vorn, kein doppelter Rahmen, Link genau einm
 ohne Betreff bleibt der alte Weg unverändert; Eingangsbestätigung trägt die
 Kennung jetzt ebenfalls; Betreff steht im Verlauf der Verwaltung und auf der
 Kundenseite.
+
+## Zustellbarkeit: SPF, DKIM, DMARC (02.09.2026)
+
+Uwe wollte SPF und DKIM eingerichtet haben. Erster Schritt war nachsehen statt
+loslegen — und der Befund war ein anderer als erwartet:
+
+| Eintrag | Zustand |
+|---|---|
+| `brevo1._domainkey` / `brevo2._domainkey` | **stand schon**, beide CNAME zeigen auf Brevo, beide Schlüssel lösen auf |
+| `_dmarc` | **stand schon**: `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com;` |
+| `brevo-code` TXT | steht — die Domain ist bei Brevo bestätigt |
+| SPF | `v=spf1 a mx include:spf.kasserver.com ~all` — **kennt Brevo nicht** |
+
+DKIM war also längst erledigt. Brevo verlangt SPF für die Domain-Authentifizierung
+ausdrücklich nicht (die Zustellung hängt an DKIM, und den Rückweg setzt Brevo auf
+eine eigene Domain), aber `include:spf.brevo.com` schadet nicht und manche Filter
+sehen darauf.
+
+### Was gebaut wurde: `app/src/Zustellbarkeit.php`
+
+Wichtiger als die einmalige Korrektur ist, dass es jemand merkt, wenn einer der
+Einträge verschwindet. Diese drei richtet man einmal ein und sieht sie nie wieder
+an — genau die Art Sache, die ein Jahr später still kaputt ist. Nach außen merkt
+man nichts: Die Mails gehen weiter raus, sie landen nur zunehmend im Spam, bis
+jemand anruft und sagt, er habe nie eine Rechnung bekommen.
+
+- `pruefen()` schlägt SPF, beide DKIM-Selektoren und DMARC nach und beurteilt sie
+  im Klartext, nicht mit „OK/FAIL".
+- **Der Cronjob fragt täglich**, meldet aber nur bei *Verschlechterung* — und
+  einmal, wenn es sich erholt. Eine Meldung, die jeden Tag dasselbe sagt, liest
+  nach einer Woche niemand mehr.
+- **Die Ansicht liest nie live**, sondern den gespeicherten Befund. Grund ist
+  gemessen: `dns_get_record` kennt keine Zeitgrenze, und eine hängende Abfrage
+  hätte die Verwaltung festgehalten.
+- Beim allerersten Lauf heißt die Meldung „stimmt etwas nicht" statt „nicht
+  **mehr**" — vorher war nie etwas in Ordnung, das jetzt kaputt sein könnte, und
+  die falsche Formulierung schickt einen auf die Suche nach einer Änderung, die
+  es nicht gab.
+
+**Ein gemessener Fallstrick:** `dns_get_record('brevo1._domainkey.…', DNS_TXT)`
+läuft in eine Zeitüberschreitung, die PHP nicht abbrechen kann — der Name ist ein
+CNAME auf einen fremden Server. Erst den CNAME holen und dann den Text beim Ziel
+lesen dauert Millisekunden. Die Reihenfolge steht deshalb ausdrücklich so im Code,
+mit dem Grund daneben.
+
+### Und was DNS nicht beantwortet
+
+Dass die Einträge dastehen, heißt nicht, dass Brevo auch mit ihnen signiert. Das
+sagt nur eine zugestellte Mail. Deshalb sitzt unter dem Block ein Feld
+„Probenachricht senden": Adresse von mail-tester.com eintragen, senden, dort
+nachladen.
+
+Bewusst **nicht** `check-auth@verifier.port25.com`, obwohl das der bekanntere
+Dienst ist: Der antwortet an den Rückweg der Mail, und den setzt Brevo auf eine
+eigene Domain — die Auswertung käme bei Brevo an, nicht bei Uwe.
+
+Geprüft: Befund für vecom-design.it in 0,48 s (SPF Warnung, DKIM und DMARC gut),
+Ansicht ohne DNS-Abfrage, „Jetzt nachschlagen" schreibt den Befund neu, tägliche
+Meldung feuert einmal und dann nicht mehr, Probenachricht im Mailfänger
+angekommen — ohne Kundennummer im Betreff, weil sie zu keinem Kunden gehört.
+
+**Offen und bei Uwe:** die SPF-Zeile im KAS auf
+`v=spf1 a mx include:spf.kasserver.com include:spf.brevo.com ~all` ändern.
+Und, wenn über Wochen alles sauber signiert ist, DMARC von `p=none` auf
+`p=quarantine` heben.

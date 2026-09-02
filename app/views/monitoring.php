@@ -16,6 +16,62 @@
     <button class="knopf haupt">Jetzt prüfen</button></form>
 </div>
 
+<?php /* ---------- Zustellbarkeit der Absenderdomain ---------- */ ?>
+<?php $zp = (array) ($zustell['punkte'] ?? []); ?>
+<div class="block">
+  <h2>Zustellbarkeit
+    <span class="mehr" style="font-weight:400;color:var(--leise)">
+      <?= Fmt::h((string) ($zustell['domain'] ?? '')) ?><?php
+        if (!empty($zustell['geprueft'])): ?> · geprüft <?= Fmt::h(Fmt::seit((string) $zustell['geprueft'])) ?><?php endif; ?>
+    </span>
+  </h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    Ob Postfächer deine Mails als echt erkennen. Diese drei Einträge richtet man einmal ein
+    und sieht sie nie wieder an — deshalb fragt der Cronjob täglich nach.</p>
+
+  <?php if (!$zp): ?>
+    <div class="leer">Noch nicht geprüft.</div>
+  <?php else: ?>
+    <div class="tabellenrahmen"><table><tbody>
+    <?php foreach ($zp as $p): ?>
+      <tr>
+        <td style="width:80px"><b><?= Fmt::h((string) $p['name']) ?></b></td>
+        <td style="width:110px">
+          <span class="marke2 <?= $p['stand'] === 'gut' ? 'gut' : ($p['stand'] === 'schlecht' ? 'schlecht' : 'warnung') ?>">
+            <?= Fmt::h(['gut' => 'in Ordnung', 'warnung' => 'prüfen', 'schlecht' => 'fehlt',
+                        'unbekannt' => 'unbekannt'][$p['stand']] ?? (string) $p['stand']) ?></span></td>
+        <td><?= Fmt::h((string) $p['text']) ?>
+          <?php if (($p['wert'] ?? '') !== ''): ?>
+            <div style="color:var(--leise);font-size:12px;margin-top:4px;word-break:break-all;font-family:ui-monospace,monospace">
+              <?= Fmt::h(mb_substr((string) $p['wert'], 0, 160)) ?></div>
+          <?php endif; ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody></table></div>
+  <?php endif; ?>
+
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="zustellbarkeit_pruefen">
+      <button class="knopf">Jetzt nachschlagen</button></form>
+  </div>
+
+  <div style="border-top:1px solid var(--linie);margin-top:14px;padding-top:14px">
+    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">
+      Das oben liest nur das DNS. Ob Brevo auch wirklich mit deinem Schlüssel signiert, sagt nur eine
+      zugestellte Mail. Der sichere Weg: <a href="https://www.mail-tester.com" target="_blank" rel="noopener">mail-tester.com</a>
+      öffnen, die dort angezeigte Adresse hier einsetzen, senden — und auf der Seite nachladen.
+      Das Ergebnis steht dort, nicht im Postfach; eine Antwortmail käme bei Brevo an, nicht bei dir.</p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>"
+          style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="zustellbarkeit_probe">
+      <input name="an" type="email" required placeholder="test-xxxxx@srv1.mail-tester.com"
+             style="flex:1 1 280px;width:auto">
+      <button class="knopf">Probenachricht senden</button>
+    </form>
+  </div>
+</div>
+
 <div class="block">
   <?php if (!$liste): ?>
     <div class="leer">Noch keine Website hinterlegt. Trag sie im jeweiligen Projekt ein.</div>

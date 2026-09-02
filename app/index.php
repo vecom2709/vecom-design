@@ -272,6 +272,22 @@ if ($post) {
                     . ($an['dateien'] > 0 ? ', ' . $an['dateien'] . ' Datei(en) gelöscht' : '') . '.';
                 weiter('kunden/' . $kid);
 
+            case 'zustellbarkeit_pruefen':
+                require_once __DIR__ . '/src/Zustellbarkeit.php';
+                $z = Zustellbarkeit::pruefen();
+                $_SESSION[$z['stand'] === 'gut' ? 'gut' : 'fehler'] = match ($z['stand']) {
+                    'gut'       => 'SPF, DKIM und DMARC stehen für ' . $z['domain'] . '.',
+                    'unbekannt' => 'Die Einträge liessen sich von hier aus nicht nachschlagen.',
+                    default     => 'An den Einträgen für ' . $z['domain'] . ' stimmt etwas nicht — siehe unten.',
+                };
+                zurueck('monitoring');
+
+            case 'zustellbarkeit_probe':
+                require_once __DIR__ . '/src/Zustellbarkeit.php';
+                $pr = Zustellbarkeit::probemail((string) ($_POST['an'] ?? ''));
+                $_SESSION[$pr['ok'] ? 'gut' : 'fehler'] = $pr['text'];
+                zurueck('monitoring');
+
             case 'kundenlink_neu':
                 // Zieht den alten Zugang zurueck. Gedacht fuer den Fall, dass
                 // ein Kunde den Link weitergegeben hat — oder ihn selbst nicht
@@ -1212,7 +1228,11 @@ switch ($route) {
     case 'monitoring':
         require_once __DIR__ . '/src/Monitoring.php';
         require_once __DIR__ . '/src/Cron.php';
+        require_once __DIR__ . '/src/Zustellbarkeit.php';
         ansicht('monitoring', [
+            // Der gespeicherte Befund, keine frische Abfrage: Eine haengende
+            // Namensaufloesung darf diese Seite nicht festhalten.
+            'zustell' => sicher(static fn() => Zustellbarkeit::stand(), []),
             'liste' => sicher(static fn() => Db::all(
                 "SELECT w.*, c.name AS kunde, c.company AS firma, p.name AS projekt,
                         (SELECT COUNT(*) FROM website_checks k WHERE k.website_id = w.id
