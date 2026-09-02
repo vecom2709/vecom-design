@@ -222,7 +222,7 @@
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="versand_speichern">
     <input type="hidden" name="zurueck" value="einstellungen">
     <div class="feld"><label>Brevo-Schlüssel <span style="color:var(--leise);font-weight:400">— leer lassen ändert nichts</span></label>
-      <input name="key" type="password" autocomplete="off" spellcheck="false"
+      <input name="key" type="password" autocomplete="new-password" spellcheck="false"
              placeholder="<?= $versand['herkunft'] === 'verwaltung' ? '•••• ' . Fmt::h($versand['ende']) : 'xkeysib-…' ?>"></div>
     <div class="feld"><label>Absenderadresse</label>
       <input name="from" value="<?= Fmt::h((string) $versand['from']) ?>" placeholder="kontakt@vecom-design.it"></div>
@@ -282,6 +282,13 @@
     oder so in der Verwaltung, auch wenn er ausfällt.
   </p>
 
+  <?php /* autocomplete="new-password" und nicht "off": Chrome ignoriert "off"
+       bei Passwortfeldern und fuellt sie trotzdem aus dem Passwortspeicher.
+       Genau das ist beim Einrichten passiert — das Speichern der Nummer
+       scheiterte an einem Schluessel, den niemand eingegeben hatte. Waere der
+       eingefuellte Wert zufaellig eine Ziffernfolge gewesen, waere er
+       stillschweigend als Schluessel gelandet und der Zuruf haette fuer immer
+       ins Leere gefunkt. "new-password" respektieren die Browser. */ ?>
   <form method="post" action="<?= Fmt::h(url('')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="zuruf_speichern">
     <input type="hidden" name="zurueck" value="einstellungen">
@@ -289,7 +296,7 @@
       <input name="nummer" value="<?= Fmt::h($zuruf['nummer']) ?>" placeholder="+39 320 1234567"></div>
     <div class="feld"><label>Schlüssel von CallMeBot
       <span style="color:var(--leise);font-weight:400">— leer lassen ändert nichts</span></label>
-      <input name="key" type="password" autocomplete="off" spellcheck="false"
+      <input name="key" type="password" autocomplete="new-password" spellcheck="false"
              placeholder="<?= $zuruf['schluessel'] ? '•••• hinterlegt' : '1234567' ?>"></div>
     <label style="display:flex;gap:9px;align-items:center;margin-bottom:14px;cursor:pointer">
       <input type="checkbox" name="an" value="1" style="width:auto" <?= $zuruf['an'] ? 'checked' : '' ?>>
