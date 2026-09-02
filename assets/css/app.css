@@ -2040,7 +2040,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 @keyframes auftaktAus { from { opacity: 1; visibility: visible; } to { opacity: 0; visibility: hidden; } }
 
 [data-auftakt="laeuft"] .stage { z-index: 141; }
-[data-auftakt="fertig"] .stage { z-index: 141; animation: buehneRunter 1ms linear 660ms forwards; }
+[data-auftakt="fertig"] .stage { z-index: 141; animation: buehneRunter 1ms linear 700ms forwards; }
 @keyframes buehneRunter { to { z-index: 0; } }
 
 .auftakt-weg {

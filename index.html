@@ -26,7 +26,20 @@
     };
     window.__auftaktFrei = frei;
     addEventListener('vecom:auftakt-bruch', frei);
-    setTimeout(frei, 4500);                       /* Notausgang, kein Regelweg */
+    /* Notausgang, kein Regelweg. Er haengt am Start der 3D-Welt, nicht am
+       Seitenaufruf: auf langsamen Geraeten laedt three.js mehrere Sekunden,
+       und ein fester Zaehler ab Aufruf haette die Sequenz mittendrin
+       abgeschnitten. Absolute Obergrenze bleibt daneben bestehen. */
+    var notaus = setTimeout(frei, 7500);
+    var beob = new MutationObserver(function () {
+      if (r.getAttribute('data-world') === 'on') {
+        beob.disconnect();
+        clearTimeout(notaus);
+        setTimeout(frei, 5500);
+      }
+    });
+    beob.observe(r, { attributes: true, attributeFilter: ['data-world'] });
+    setTimeout(frei, 11000);                      /* harte Obergrenze */
     ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (t) {
       addEventListener(t, frei, { once: true, passive: true });
     });
@@ -58,7 +71,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=9165e45e">
+<link rel="stylesheet" href="assets/css/app.css?v=e138fdc3">
 
 <script type="importmap">
 {
