@@ -93,6 +93,10 @@ final class Cron
         // Einmal am Tag genuegt: alte Pruefungen wegraeumen.
         if (self::heuteNochNicht('cron_aufraeumen')) {
             $aufgaben['aufgeraeumt'] = static fn() => Monitoring::aufraeumen();
+            // Und gelesene Meldungen, die aelter sind als ein Monat. Sonst
+            // waechst die Liste ewig — und wo hundert alte Zeilen stehen,
+            // sieht niemand mehr die eine neue. Ungelesenes bleibt stehen.
+            $aufgaben['meldungen'] = static fn() => Events::meldungenAufraeumen();
         }
         // Einmal taeglich nachfragen, ob der E-Mail-Versand ueberhaupt noch
         // geht. Der Grund steht in der Projektgeschichte: Der Brevo-Schluessel

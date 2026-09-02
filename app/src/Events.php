@@ -31,6 +31,53 @@ final class Events
         ]);
     }
 
+    /**
+     * Meldungen wegraeumen.
+     *
+     * Eine Meldung ist ein Zuruf, kein Beleg. Ist sie gelesen und ein paar
+     * Wochen alt, hat sie ihren Zweck erfuellt — was wirklich passiert ist,
+     * steht im Verlauf (activities) und in der Pruefspur (audit_log), und
+     * die bleiben unangetastet. Ohne dieses Wegraeumen wuerde die Liste nur
+     * noch laenger und damit unbrauchbar: Wo hundert alte Zeilen stehen,
+     * sieht niemand mehr die eine neue.
+     *
+     * UNGELESENES BLEIBT IMMER STEHEN. Eine Warnung, die noch niemand
+     * gesehen hat, verschwindet nicht von selbst — das waere genau der
+     * stille Ausfall, gegen den die Meldungen da sind.
+     *
+     * @param int $tage    Gelesene aelter als so viele Tage fliegen raus.
+     * @param int $hoechst Und darueber hinaus bleiben hoechstens so viele
+     *                     gelesene Zeilen stehen, damit die Tabelle auch bei
+     *                     einem Schwall nicht ins Kraut schiesst.
+     * @return int Anzahl geloeschter Zeilen
+     */
+    public static function meldungenAufraeumen(int $tage = 30, int $hoechst = 300): int
+    {
+        $weg = 0;
+        try {
+            $weg += Db::run(
+                'DELETE FROM notifications
+                  WHERE read_at IS NOT NULL AND read_at < DATE_SUB(NOW(), INTERVAL ? DAY)',
+                [max(1, $tage)])->rowCount();
+
+            // Was danach noch an gelesenen Zeilen uebrig ist, auf $hoechst
+            // kuerzen — die aeltesten zuerst. MySQL laesst in einem DELETE
+            // keine Unterabfrage auf dieselbe Tabelle zu, deshalb erst die
+            // Grenze holen und dann daran entlang loeschen.
+            $grenze = Db::wert(
+                'SELECT id FROM notifications WHERE read_at IS NOT NULL
+                  ORDER BY id DESC LIMIT 1 OFFSET ?', [max(0, $hoechst)], null);
+            if ($grenze !== null) {
+                $weg += Db::run(
+                    'DELETE FROM notifications WHERE read_at IS NOT NULL AND id <= ?',
+                    [(int) $grenze])->rowCount();
+            }
+        } catch (Throwable $e) {
+            // Aufraeumen ist Kuer. Es darf nie einen Cron-Lauf umwerfen.
+        }
+        return $weg;
+    }
+
     public static function pruefspur(string $aktion, string $entitaet, ?int $id, array $vorher = [], array $nachher = []): void
     {
         Db::insert('audit_log', [

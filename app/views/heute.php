@@ -77,6 +77,15 @@ $zeile = static function (array $v) {
           <?php if ($m['link']): ?>
             <a class="knopf" href="<?= Fmt::h(url(ltrim((string) $m['link'], '/'))) ?>">Ansehen</a>
           <?php endif; ?>
+          <?php /* Erledigt heisst gelesen, nicht geloescht: Die Meldung
+                   verschwindet von dieser Liste, bleibt aber unter
+                   Benachrichtigungen stehen, bis sie dort wegfliegt. */ ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="meldung_gelesen">
+            <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
+            <input type="hidden" name="zurueck" value="heute">
+            <button class="knopf">Erledigt</button>
+          </form>
         </div>
       </div>
     <?php endforeach; ?>

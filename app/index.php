@@ -782,7 +782,30 @@ if ($post) {
 
             case 'meldungen_gelesen':
                 Db::run('UPDATE notifications SET read_at = NOW() WHERE read_at IS NULL');
-                weiter('benachrichtigungen');
+                zurueck('benachrichtigungen');
+
+            /* Meldungen wegraeumen. Eine Meldung ist ein Zuruf, kein Beleg —
+               was passiert ist, steht im Verlauf und in der Pruefspur, und die
+               bleiben unangetastet. Deshalb darf sie weg, sobald sie erledigt
+               ist. */
+            case 'meldung_gelesen':
+                Db::run('UPDATE notifications SET read_at = NOW() WHERE id = ? AND read_at IS NULL',
+                    [(int) ($_POST['id'] ?? 0)]);
+                zurueck('benachrichtigungen');
+
+            case 'meldung_weg':
+                Db::run('DELETE FROM notifications WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
+                zurueck('benachrichtigungen');
+
+            case 'meldungen_weg':
+                // Nur Gelesenes. Eine Warnung, die noch niemand gesehen hat,
+                // raeumt dieser Knopf nicht weg — das waere genau der stille
+                // Ausfall, gegen den die Meldungen da sind.
+                $anzahl = Db::run('DELETE FROM notifications WHERE read_at IS NOT NULL')->rowCount();
+                $_SESSION['gut'] = $anzahl === 0
+                    ? 'Es war nichts Gelesenes da.'
+                    : $anzahl . ' gelesene Meldung(en) gelöscht.';
+                zurueck('benachrichtigungen');
         }
         throw new RuntimeException('Unbekannter Vorgang.');
     } catch (Throwable $e) {
@@ -1034,7 +1057,15 @@ switch ($route) {
         break;
 
     case 'benachrichtigungen':
-        ansicht('benachrichtigungen', ['liste' => Db::all('SELECT * FROM notifications ORDER BY id DESC LIMIT 200')]);
+        ansicht('benachrichtigungen', [
+            // Ungelesenes zuerst, darin das Neueste oben. Nach Nummer allein
+            // sortiert rutscht eine frische Warnung unter alte gelesene
+            // Zeilen — auf einer Liste, die man wegen der Warnungen aufmacht.
+            'liste'   => Db::all(
+                'SELECT * FROM notifications ORDER BY read_at IS NOT NULL, id DESC LIMIT 200'),
+            'offen'   => (int) Db::wert('SELECT COUNT(*) FROM notifications WHERE read_at IS NULL'),
+            'gelesen' => (int) Db::wert('SELECT COUNT(*) FROM notifications WHERE read_at IS NOT NULL'),
+        ]);
         break;
 
     case 'suche':
