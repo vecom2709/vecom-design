@@ -616,20 +616,19 @@ body.scrolled .scrollcue { opacity: 0; }
   border: 1px solid var(--c-line);
   display: grid; align-content: end; gap: .5rem;
   padding: clamp(1.4rem, 2.4vw, 2.2rem);
-  min-height: clamp(300px, 34vw, 420px);
-  isolation: isolate;
+  isolation: isolate;   /* keine Mindesthoehe: sie fuellte die Karten mit Leerraum */
   transition: transform var(--d-move) var(--e-std), border-color var(--d-ui) linear;
 }
 /* Asymmetrischer Rhythmus statt drei gleicher Kacheln: 4+2 / 2+4 / 3+3 */
 @media (min-width: 1180px) {
   .card { grid-column: span 2; }
-  .card--a    { grid-column: span 4; min-height: 460px; }
-  .card--b    { grid-column: span 2; min-height: 460px; }
+  .card--a    { grid-column: span 4; }
+  .card--b    { grid-column: span 2; }
   .card--half { grid-column: span 3; }
   /* Volle Breite für die eine fertige Fremdreferenz: Sie führt den Abschnitt an,
      die eigenen Projekte kommen danach. Sechs Spalten, damit die Reihen darunter
      aufgehen. */
-  .card--voll { grid-column: span 6; min-height: 780px; }
+  .card--voll { grid-column: span 6; }
 }
 [id] { scroll-margin-top: 100px; }
 .card:hover { transform: translateY(-4px); border-color: var(--c-line-strong); }
@@ -665,7 +664,10 @@ body.scrolled .scrollcue { opacity: 0; }
   mix-blend-mode: overlay;
 }
 .card__tag { font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase; color: var(--c-cyan); }
-.card h3 { font-size: var(--t-lg); }
+/* War --t-lg (bis 2,1 rem) und damit auf Augenhoehe mit "Lavori realizzati"
+   darueber. Ein Projektname darf etwas mehr Praesenz haben als eine
+   Leistungsueberschrift, aber nicht die des Abschnitts. */
+.card h3 { font-size: 1.35rem; line-height: 1.2; letter-spacing: -.02em; }
 .card p { font-size: var(--t-sm); color: var(--c-text-dim); max-width: 46ch; }
 .card__link { font-size: var(--t-sm); color: var(--c-text-faint); margin-top: .3rem; }
 
@@ -1068,6 +1070,11 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   padding: 0; gap: 0;
   grid-template-rows: minmax(0, 1fr) auto;
   align-content: stretch;
+  /* Diese Mindesthoehe bleibt: die Vorfuehrkarten haben oben einen
+     Browserrahmen, der ohne sie auf null zusammenfaellt. Ein Versuch, die
+     Hoehe ueber container queries an die Kartenbreite zu binden, hat es
+     verschlimmert - im Raster gleichen sich Karten einer Reihe in der Hoehe
+     an, dadurch wurde der ganze Abschnitt auf die groesste Karte gezogen. */
   min-height: clamp(340px, 38vw, 500px);
 }
 .card--live .screen { position: relative; inset: auto; z-index: 0; height: 100%; }
@@ -1076,7 +1083,11 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 /* Die eine volle Breite braucht mehr Hoehe als die schmalen Karten: Der Rahmen
    zeigt sonst nur den Navigationsstreifen. Muss nach .card--live stehen, sonst
    gewinnt dessen min-height. */
-.card--live.card--voll { min-height: clamp(600px, 70vw, 1040px); }
+/* Die Fremdreferenz fuehrt den Abschnitt an und steht als einzige in ihrer
+   Reihe - hier darf die Hoehe steigen, ohne dass Nachbarkarten mitgezogen
+   werden. Mit der allgemeinen Mindesthoehe von 500 px blieb vom Bildschirm-
+   foto nur ein Streifen uebrig, weil der Text darunter den Rest nahm. */
+.card--live.card--voll { min-height: clamp(560px, 56vw, 880px); }
 .card .card__body, .card--live .card__body {
   display: grid; gap: .45rem; align-content: start;
   padding: clamp(1.2rem, 2vw, 1.9rem);
