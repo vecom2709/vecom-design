@@ -61,7 +61,7 @@ function langLinks(current, up) {
 const stempelSpeicher = new Map();
 function stempel(pfad) {
   if (!stempelSpeicher.has(pfad)) {
-    let wert = '0';
+    let wert = '';   // leer = Datei nicht da, dann lieber gar kein Stempel
     if (existsSync(pfad)) {
       wert = createHash('sha1').update(readFileSync(pfad)).digest('hex').slice(0, 8);
     }
@@ -73,9 +73,20 @@ function stempel(pfad) {
 function fingerabdruecke(h) {
   // Greift auch auf eine bereits gestempelte Seite zu (index.html ist Quelle
   // und Ziel zugleich): ein vorhandenes ?v=... wird ersetzt, nicht ergaenzt.
+  //
+  // WARUM AUCH BILDER UND VIDEOS
+  // Der Server sagt "public, max-age=2592000" — dreissig Tage. Solange die
+  // Adresse gleich bleibt, holt kein wiederkehrender Besucher die Datei neu.
+  // Als das Erklaervideo eine Tonspur bekam, lag auf dem Server die neue
+  // Fassung und im Browser weiter die alte, stumme. Der Fingerabdruck steht
+  // deshalb an allem, was sich aendern kann, nicht nur an CSS und Skripten.
   return h.replace(
-    /((?:href|src)=")((?:\.\.\/)?assets\/(?:css|js)\/[A-Za-z0-9._\/-]+\.(?:css|js))(\?v=[A-Za-z0-9]*)?(")/g,
-    (m, vorn, pfad, alt, hinten) => `${vorn}${pfad}?v=${stempel(pfad.replace(/^\.\.\//, ''))}${hinten}`
+    /((?:href|src|data-src)=")((?:\.\.\/)?(?:assets\/(?:css|js|img)|video)\/[A-Za-z0-9._\/-]+\.(?:css|js|mp4|webm|webp|png|jpg|svg))(\?v=[A-Za-z0-9]*)?(")/g,
+    (m, vorn, pfad, alt, hinten) => {
+      const stempelwert = stempel(pfad.replace(/^\.\.\//, ''));
+      // Fehlt die Datei, lieber ohne Stempel ausliefern als mit einem falschen.
+      return stempelwert ? `${vorn}${pfad}?v=${stempelwert}${hinten}` : `${vorn}${pfad}${hinten}`;
+    }
   );
 }
 
@@ -194,7 +205,7 @@ function pruefen(h, lang, ziel) {
   const fehler = [];
   const tief = lang === 'it' ? '' : '../';
 
-  for (const m of h.matchAll(/(?:data-src|src|href)="((?:\.\.\/)?(?:video|assets\/img)\/[^"?]*?-([a-z]{2})\.(?:mp4|webp))"/g)) {
+  for (const m of h.matchAll(/(?:data-src|src|href)="((?:\.\.\/)?(?:video|assets\/img)\/[^"?]*?-([a-z]{2})\.(?:mp4|webp))(?:\?v=[A-Za-z0-9]*)?"/g)) {
     const [, pfad, sprache] = m;
     // Nur Dateien, deren Name auf eine Sprache endet, sind gemeint.
     if (!Object.keys(LANGS).includes(sprache)) { continue; }

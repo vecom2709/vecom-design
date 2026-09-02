@@ -1917,3 +1917,34 @@ Mit Tonspur lässt Safari das nicht mehr zu — Ton nur aus einer echten
 Nutzeraktion heraus. Der Klick auf den Knopf ist eine, also wird jetzt dort
 `play()` gerufen. Weigert sich ein Browser trotzdem, läuft es stumm weiter
 statt gar nicht.
+
+## Warum die neuen Videos nicht ankamen (02.09.2026)
+
+Uwe: „Videos sind nicht auf der Seite aktualisiert." Auf dem Server lagen sie
+längst — 5,4 MB mit Tonspur, geprüft. Im Browser lag die alte, stumme Fassung.
+
+**Der Grund:** Der Server liefert `cache-control: public, max-age=2592000` —
+dreißig Tage. Solange die Adresse gleich bleibt, holt kein wiederkehrender
+Besucher die Datei neu. `build.mjs` hängt zwar einen Fingerabdruck an, aber
+nur an **CSS und JavaScript**. Video und Vorschaubild bekamen keinen.
+
+Das war kein Ausrutscher an einer Datei, sondern eine Lücke im System: Jedes
+Bild, das er künftig austauscht — ein neues Projektfoto, ein anderes Portrait
+— wäre für wiederkehrende Besucher einen Monat lang unsichtbar geblieben, und
+niemand hätte den Zusammenhang erraten.
+
+Der Fingerabdruck steht jetzt an **allem, was sich ändern kann**: css, js, img,
+video, und auch am Attribut `data-src`, über das das Video geladen wird. In der
+deutschen Fassung sind das 35 Verweise. Ändert sich eine Datei, ändert sich
+ihre Adresse, und der Browser holt sie.
+
+Zwei Dinge dabei, die leicht schiefgegangen wären:
+
+- `stempel()` gab für eine fehlende Datei `'0'` zurück. Damit hätte eine
+  vertippte Adresse ein munteres `?v=0` bekommen statt aufzufallen. Jetzt
+  liefert sie einen leeren Wert, und der Verweis bleibt ungestempelt.
+- Die Deploy-Prüfung, die falsche Sprachdateien abfängt, verlangte das
+  Anführungszeichen direkt hinter der Dateiendung. Mit angehängtem `?v=` hätte
+  sie **nichts mehr gefunden und stillschweigend „alles gut" gemeldet** — die
+  gefährlichste Art, wie eine Prüfung kaputtgeht. Sie verträgt den Stempel
+  jetzt; gegengeprüft mit einem absichtlich falschen Pfad: bricht ab.
