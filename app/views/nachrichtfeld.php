@@ -29,8 +29,8 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
       <label for="<?= $nfNr ?>_v">Vorlage</label>
       <select id="<?= $nfNr ?>_v">
         <option value="">— eigener Text —</option>
-        <?php foreach (Vorlage::GRUPPEN as $gruppe => $wie): ?>
-          <optgroup label="<?= Fmt::h($wie) ?>">
+        <?php foreach (Vorlage::gruppen() as $gruppe => $wie): ?>
+          <optgroup label="<?= Fmt::h((string) ($wie['de'] ?? $gruppe)) ?>">
             <?php foreach ($nfVorlagen as $i => $vl): ?>
               <?php if ($vl['gruppe'] !== $gruppe) { continue; } ?>
               <option value="<?= (int) $i ?>"><?= Fmt::h($vl['name']) ?></option>
@@ -51,7 +51,7 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
     </div>
   </div>
 
-  <div class="feld"><textarea id="<?= $nfNr ?>_t" name="text" rows="7" required
+  <div class="feld"><textarea id="<?= $nfNr ?>_t" name="text" rows="8" required
     placeholder="Hallo <?= Fmt::h((string) $nfVorname) ?>, …"></textarea></div>
 
   <button class="knopf haupt">Senden</button>
@@ -62,8 +62,13 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
 (function () {
   var f = document.getElementById(<?= json_encode($nfNr) ?>);
   if (!f) { return; }
+  // JSON_HEX_TAG wandelt spitze Klammern um. Ohne das wuerde ein schliessendes
+  // Skript-Tag in einem Vorlagentext diesen Block vorzeitig beenden. Heute
+  // steht in keiner Vorlage so etwas — aber Vorlagen sind zum Bearbeiten da.
+  // (Dieser Kommentar hat es beim ersten Anlauf selbst ausgeloest, weil das
+  //  Tag woertlich darin stand. Deshalb steht es hier nicht mehr.)
   var v = <?= json_encode(array_map(static fn($x) => ['betreff' => $x['betreff'], 'text' => $x['text']],
-      $nfVorlagen), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+      $nfVorlagen), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
   var wahl = f.querySelector('select'),
       betreff = f.querySelector('input[name=betreff]'),
       text = f.querySelector('textarea');
@@ -77,8 +82,21 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
     }
     betreff.value = x.betreff;
     text.value = x.text;
+    wachsen();
     text.focus();
+    text.setSelectionRange(0, 0);
+    text.scrollTop = 0;
   });
+
+  // Die Vorlagen sind ganze Briefe. In sieben Zeilen muesste man in einem
+  // winzigen Fenster scrollen, um zu sehen, was man verschickt — also waechst
+  // das Feld mit dem Text mit.
+  function wachsen() {
+    text.style.height = 'auto';
+    text.style.height = Math.min(text.scrollHeight + 4, 900) + 'px';
+  }
+  text.addEventListener('input', wachsen);
+  wachsen();
 })();
 </script>
 <?php endif; ?>

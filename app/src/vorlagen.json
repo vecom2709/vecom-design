@@ -1,0 +1,757 @@
+{
+  "gruppen": {
+    "anfrage": {
+      "it": "Prima dell'incarico",
+      "de": "Vor dem Auftrag",
+      "en": "Before the order"
+    },
+    "start": {
+      "it": "Incarico e avvio",
+      "de": "Auftrag und Start",
+      "en": "Order and start"
+    },
+    "arbeit": {
+      "it": "Durante il lavoro",
+      "de": "Während der Arbeit",
+      "en": "During the work"
+    },
+    "abschluss": {
+      "it": "Chiusura e pagamento",
+      "de": "Abschluss und Zahlung",
+      "en": "Completion and payment"
+    },
+    "danach": {
+      "it": "Dopo e manutenzione",
+      "de": "Danach und Betreuung",
+      "en": "Afterwards and care"
+    }
+  },
+  "betreuung": {
+    "starter": {
+      "it": [
+        "· Aggiornamenti e patch di sicurezza, ogni mese",
+        "· Backup mensile dell'intero sito",
+        "· Controllo della raggiungibilità e del certificato SSL — me ne accorgo prima di te",
+        "· Piccole modifiche incluse: testi, foto, orari, recapiti",
+        "· Assistenza diretta, senza ticket: scrivi a me e rispondo io"
+      ],
+      "de": [
+        "· Aktualisierungen und Sicherheitspatches, jeden Monat",
+        "· Monatliche Sicherung der ganzen Seite",
+        "· Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+        "· Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+        "· Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte"
+      ],
+      "en": [
+        "· Updates and security patches, every month",
+        "· Monthly backup of the whole site",
+        "· Uptime and SSL certificate monitoring — I notice before you do",
+        "· Small changes included: text, photos, opening hours, contact details",
+        "· Direct support, no ticket system: you write to me, I answer"
+      ]
+    },
+    "business": {
+      "it": [
+        "· Sorveglianza della sicurezza",
+        "· 60 minuti di modifiche al mese",
+        "· Fino a 5 indirizzi e-mail seguiti"
+      ],
+      "de": [
+        "· Sicherheitsüberwachung",
+        "· 60 Minuten Änderungen pro Monat",
+        "· Bis zu 5 E-Mail-Adressen mit betreut"
+      ],
+      "en": [
+        "· Security monitoring",
+        "· 60 minutes of changes per month",
+        "· Up to 5 email addresses looked after"
+      ]
+    },
+    "premium": {
+      "it": [
+        "· Controlli di sicurezza e di velocità",
+        "· 2 ore di modifiche al mese",
+        "· Assistenza prioritaria: le tue richieste passano per prime"
+      ],
+      "de": [
+        "· Sicherheits- und Performance-Checks",
+        "· 2 Stunden Änderungen pro Monat",
+        "· Bevorzugte Betreuung: deine Anliegen zuerst"
+      ],
+      "en": [
+        "· Security and performance checks",
+        "· 2 hours of changes per month",
+        "· Priority support: your requests go first"
+      ]
+    }
+  },
+  "vorlagen": {
+    "eingang": {
+      "gruppe": "anfrage",
+      "name": "Anfrage angekommen",
+      "betreff": {
+        "it": "Ho ricevuto la tua richiesta",
+        "de": "Deine Anfrage ist bei mir angekommen",
+        "en": "Your enquiry has reached me"
+      },
+      "text": {
+        "it": "grazie per avermi scritto. La tua richiesta è arrivata e la sto leggendo con calma.\n\nEntro un giorno lavorativo ti rispondo con una prima indicazione concreta: cosa mi sembra sensato, quanto tempo serve e cosa costa. Non con un «dipende».\n\nSe nel frattempo ti viene in mente qualcosa, scrivimi pure dalla tua pagina — il link è qui sotto.\n\n{seite}",
+        "de": "danke für deine Nachricht. Deine Anfrage ist da und ich lese sie in Ruhe durch.\n\nInnerhalb eines Werktags hörst du von mir, mit einer ersten konkreten Einschätzung: was ich für sinnvoll halte, wie lange es dauert und was es kostet. Nicht mit einem «kommt darauf an».\n\nWenn dir zwischendurch noch etwas einfällt, schreib es mir einfach auf deiner Seite — der Link steht hier:\n\n{seite}",
+        "en": "thank you for writing. Your enquiry has arrived and I am reading it properly.\n\nWithin one working day you will hear from me with a first concrete assessment: what I think makes sense, how long it takes and what it costs. Not an «it depends».\n\nIf anything else comes to mind meanwhile, write it on your page — the link is here:\n\n{seite}"
+      }
+    },
+    "rueckfrage": {
+      "gruppe": "anfrage",
+      "name": "Rückfrage vor dem Angebot",
+      "betreff": {
+        "it": "Tre domande, poi ti mando la proposta",
+        "de": "Drei Fragen, dann kommt mein Vorschlag",
+        "en": "Three questions, then my proposal follows"
+      },
+      "text": {
+        "it": "per darti un prezzo fisso invece di una stima vaga, mi servono ancora tre risposte brevi:\n\n1. Quante pagine ti servono davvero? (Home, chi siamo, servizi, contatti — di solito bastano quattro o cinque)\n2. Hai già logo, foto e testi, oppure devo occuparmene io?\n3. Il sito deve solo farsi trovare, o deve anche far fare qualcosa — prenotazioni, moduli, un negozio?\n\nRispondi come ti viene, anche in due righe. Con queste informazioni ti mando la proposta entro un giorno lavorativo.\n\nPuoi rispondere qui o direttamente dalla tua pagina: {seite}",
+        "de": "damit ich dir einen Festpreis nennen kann statt einer vagen Schätzung, brauche ich noch drei kurze Antworten:\n\n1. Wie viele Seiten brauchst du wirklich? (Start, Über uns, Leistungen, Kontakt — meist reichen vier oder fünf)\n2. Hast du Logo, Fotos und Texte schon, oder soll ich mich darum kümmern?\n3. Soll die Seite nur gefunden werden, oder soll sie auch etwas können — Termine, Formulare, ein Shop?\n\nAntworte so, wie es dir einfällt, zwei Zeilen reichen. Mit diesen Angaben schicke ich dir den Vorschlag innerhalb eines Werktags.\n\nDu kannst hier antworten oder direkt auf deiner Seite: {seite}",
+        "en": "so I can give you a fixed price instead of a vague estimate, I need three short answers:\n\n1. How many pages do you really need? (Home, about, services, contact — four or five is usually enough)\n2. Do you already have a logo, photos and text, or should I take care of that?\n3. Should the site simply be found, or should it also do something — bookings, forms, a shop?\n\nAnswer however it comes to you, two lines is plenty. With that I'll send you the proposal within one working day.\n\nYou can reply here or on your page: {seite}"
+      }
+    },
+    "termin": {
+      "gruppe": "anfrage",
+      "name": "Telefontermin vorschlagen",
+      "betreff": {
+        "it": "Ci sentiamo dieci minuti?",
+        "de": "Zehn Minuten telefonieren?",
+        "en": "Ten minutes on the phone?"
+      },
+      "text": {
+        "it": "molte cose si chiariscono in due frasi al telefono, dove per iscritto servirebbero tre giri. Ti propongo una chiamata di dieci minuti — senza impegno, non è una chiamata di vendita.\n\nTi andrebbe bene uno di questi momenti?\n\n· domani mattina tra le 9 e le 11\n· domani pomeriggio tra le 15 e le 18\n· dopodomani, orario a tua scelta\n\nScrivimi solo quale preferisci, ti chiamo io. Se preferisci scrivere, va benissimo lo stesso — dimmelo e restiamo così.",
+        "de": "vieles ist in zwei Sätzen am Telefon geklärt, was schriftlich drei Runden braucht. Ich schlage ein Gespräch von zehn Minuten vor — unverbindlich, es ist kein Verkaufsgespräch.\n\nWürde dir einer dieser Zeitpunkte passen?\n\n· morgen vormittags zwischen 9 und 11 Uhr\n· morgen nachmittags zwischen 15 und 18 Uhr\n· übermorgen, Uhrzeit nach deiner Wahl\n\nSchreib mir einfach, was dir lieber ist, dann rufe ich an. Wenn du lieber schreibst, ist das genauso in Ordnung — sag Bescheid, dann bleiben wir dabei.",
+        "en": "much is settled in two sentences on the phone that would take three rounds in writing. I'd suggest a ten-minute call — no obligation, it isn't a sales call.\n\nWould one of these suit you?\n\n· tomorrow morning between 9 and 11\n· tomorrow afternoon between 3 and 6\n· the day after, any time you like\n\nJust tell me which you prefer and I'll call. If you'd rather write, that's equally fine — say so and we'll keep it that way."
+      }
+    },
+    "angebot_starter": {
+      "gruppe": "anfrage",
+      "name": "Angebot Starter (Festpreis)",
+      "betreff": {
+        "it": "La mia proposta per {firma}",
+        "de": "Mein Vorschlag für {firma}",
+        "en": "My proposal for {firma}"
+      },
+      "text": {
+        "it": "ecco la mia proposta per il tuo sito.\n\nPACCHETTO {paket} — {paketpreis}\n{paketinhalt}\n\nCOME SI PAGA\n{anzahlung} all'inizio, {rest} alla consegna. Nessun costo nascosto: quello che c'è scritto è quello che paghi.\n\nDOPO\n{betreuung} al mese per la manutenzione — aggiornamenti, backup, piccole modifiche. Il primo periodo è di dodici mesi, poi disdici quando vuoi a fine mese. Se non la vuoi, il sito resta comunque tuo.\n\nQUANTO CI VUOLE\nDi solito da due a quattro settimane dal momento in cui ho i tuoi materiali. La parte più lenta di solito non sono io — sono i testi e le foto.\n\nLa proposta non ti impegna. Un incarico nasce soltanto quando ci accordiamo per iscritto. Se ti va bene così, ti mando il link per l'acconto e partiamo. Se qualcosa non torna, dimmelo: si aggiusta.",
+        "de": "hier mein Vorschlag für deine Website.\n\nPAKET {paket} — {paketpreis}\n{paketinhalt}\n\nWIE BEZAHLT WIRD\n{anzahlung} zu Beginn, {rest} bei der Übergabe. Keine versteckten Kosten: Was dasteht, zahlst du.\n\nDANACH\n{betreuung} im Monat für die Betreuung — Aktualisierungen, Sicherungen, kleine Änderungen. Die erste Laufzeit sind zwölf Monate, danach jederzeit zum Monatsende kündbar. Willst du sie nicht, gehört die Seite trotzdem dir.\n\nWIE LANGE ES DAUERT\nMeist zwei bis vier Wochen, ab dem Moment, in dem ich deine Unterlagen habe. Das Langsamste bin dabei selten ich — es sind die Texte und die Fotos.\n\nDer Vorschlag ist unverbindlich. Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind. Passt es so, schicke ich dir den Link für die Anzahlung und wir legen los. Stimmt etwas nicht, sag es mir: Das lässt sich anpassen.",
+        "en": "here is my proposal for your website.\n\n{paket} PACKAGE — {paketpreis}\n{paketinhalt}\n\nHOW PAYMENT WORKS\n{anzahlung} up front, {rest} on handover. No hidden costs: what it says is what you pay.\n\nAFTERWARDS\n{betreuung} per month for care — updates, backups, small changes. The first term is twelve months, after that cancellable at any month's end. If you don't want it, the site is still yours.\n\nHOW LONG IT TAKES\nUsually two to four weeks from the moment I have your material. The slow part is rarely me — it's the text and the photos.\n\nThe proposal commits you to nothing. A project only comes about once we agree in writing. If it suits you, I'll send the deposit link and we start. If something is off, tell me: it can be adjusted."
+      },
+      "paket": "starter"
+    },
+    "angebot_business": {
+      "gruppe": "anfrage",
+      "name": "Angebot Business (Festpreis)",
+      "betreff": {
+        "it": "La mia proposta per {firma}",
+        "de": "Mein Vorschlag für {firma}",
+        "en": "My proposal for {firma}"
+      },
+      "text": {
+        "it": "ecco la mia proposta per il tuo sito.\n\nPACCHETTO {paket} — {paketpreis}\n{paketinhalt}\n\nCOME SI PAGA\n{anzahlung} all'inizio, {rest} alla consegna. Nessun costo nascosto: quello che c'è scritto è quello che paghi.\n\nDOPO\n{betreuung} al mese per la manutenzione — aggiornamenti, backup, piccole modifiche. Il primo periodo è di dodici mesi, poi disdici quando vuoi a fine mese. Se non la vuoi, il sito resta comunque tuo.\n\nQUANTO CI VUOLE\nDi solito da due a quattro settimane dal momento in cui ho i tuoi materiali. La parte più lenta di solito non sono io — sono i testi e le foto.\n\nLa proposta non ti impegna. Un incarico nasce soltanto quando ci accordiamo per iscritto. Se ti va bene così, ti mando il link per l'acconto e partiamo. Se qualcosa non torna, dimmelo: si aggiusta.",
+        "de": "hier mein Vorschlag für deine Website.\n\nPAKET {paket} — {paketpreis}\n{paketinhalt}\n\nWIE BEZAHLT WIRD\n{anzahlung} zu Beginn, {rest} bei der Übergabe. Keine versteckten Kosten: Was dasteht, zahlst du.\n\nDANACH\n{betreuung} im Monat für die Betreuung — Aktualisierungen, Sicherungen, kleine Änderungen. Die erste Laufzeit sind zwölf Monate, danach jederzeit zum Monatsende kündbar. Willst du sie nicht, gehört die Seite trotzdem dir.\n\nWIE LANGE ES DAUERT\nMeist zwei bis vier Wochen, ab dem Moment, in dem ich deine Unterlagen habe. Das Langsamste bin dabei selten ich — es sind die Texte und die Fotos.\n\nDer Vorschlag ist unverbindlich. Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind. Passt es so, schicke ich dir den Link für die Anzahlung und wir legen los. Stimmt etwas nicht, sag es mir: Das lässt sich anpassen.",
+        "en": "here is my proposal for your website.\n\n{paket} PACKAGE — {paketpreis}\n{paketinhalt}\n\nHOW PAYMENT WORKS\n{anzahlung} up front, {rest} on handover. No hidden costs: what it says is what you pay.\n\nAFTERWARDS\n{betreuung} per month for care — updates, backups, small changes. The first term is twelve months, after that cancellable at any month's end. If you don't want it, the site is still yours.\n\nHOW LONG IT TAKES\nUsually two to four weeks from the moment I have your material. The slow part is rarely me — it's the text and the photos.\n\nThe proposal commits you to nothing. A project only comes about once we agree in writing. If it suits you, I'll send the deposit link and we start. If something is off, tell me: it can be adjusted."
+      },
+      "paket": "business"
+    },
+    "angebot_premium": {
+      "gruppe": "anfrage",
+      "name": "Angebot Premium (Festpreis)",
+      "betreff": {
+        "it": "La mia proposta per {firma}",
+        "de": "Mein Vorschlag für {firma}",
+        "en": "My proposal for {firma}"
+      },
+      "text": {
+        "it": "ecco la mia proposta per il tuo sito.\n\nPACCHETTO {paket} — {paketpreis}\n{paketinhalt}\n\nCOME SI PAGA\n{anzahlung} all'inizio, {rest} alla consegna. Nessun costo nascosto: quello che c'è scritto è quello che paghi.\n\nDOPO\n{betreuung} al mese per la manutenzione — aggiornamenti, backup, piccole modifiche. Il primo periodo è di dodici mesi, poi disdici quando vuoi a fine mese. Se non la vuoi, il sito resta comunque tuo.\n\nQUANTO CI VUOLE\nDi solito da due a quattro settimane dal momento in cui ho i tuoi materiali. La parte più lenta di solito non sono io — sono i testi e le foto.\n\nLa proposta non ti impegna. Un incarico nasce soltanto quando ci accordiamo per iscritto. Se ti va bene così, ti mando il link per l'acconto e partiamo. Se qualcosa non torna, dimmelo: si aggiusta.",
+        "de": "hier mein Vorschlag für deine Website.\n\nPAKET {paket} — {paketpreis}\n{paketinhalt}\n\nWIE BEZAHLT WIRD\n{anzahlung} zu Beginn, {rest} bei der Übergabe. Keine versteckten Kosten: Was dasteht, zahlst du.\n\nDANACH\n{betreuung} im Monat für die Betreuung — Aktualisierungen, Sicherungen, kleine Änderungen. Die erste Laufzeit sind zwölf Monate, danach jederzeit zum Monatsende kündbar. Willst du sie nicht, gehört die Seite trotzdem dir.\n\nWIE LANGE ES DAUERT\nMeist zwei bis vier Wochen, ab dem Moment, in dem ich deine Unterlagen habe. Das Langsamste bin dabei selten ich — es sind die Texte und die Fotos.\n\nDer Vorschlag ist unverbindlich. Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind. Passt es so, schicke ich dir den Link für die Anzahlung und wir legen los. Stimmt etwas nicht, sag es mir: Das lässt sich anpassen.",
+        "en": "here is my proposal for your website.\n\n{paket} PACKAGE — {paketpreis}\n{paketinhalt}\n\nHOW PAYMENT WORKS\n{anzahlung} up front, {rest} on handover. No hidden costs: what it says is what you pay.\n\nAFTERWARDS\n{betreuung} per month for care — updates, backups, small changes. The first term is twelve months, after that cancellable at any month's end. If you don't want it, the site is still yours.\n\nHOW LONG IT TAKES\nUsually two to four weeks from the moment I have your material. The slow part is rarely me — it's the text and the photos.\n\nThe proposal commits you to nothing. A project only comes about once we agree in writing. If it suits you, I'll send the deposit link and we start. If something is off, tell me: it can be adjusted."
+      },
+      "paket": "premium"
+    },
+    "angebot_klein": {
+      "gruppe": "anfrage",
+      "name": "Kleineres Paket anbieten",
+      "betreff": {
+        "it": "Una versione più piccola per iniziare",
+        "de": "Eine kleinere Lösung zum Anfangen",
+        "en": "A smaller version to start with"
+      },
+      "text": {
+        "it": "capisco che il preventivo sia più alto di quanto avevi in mente. Ti dico onestamente come la vedo: meglio una versione più piccola fatta bene che una grande fatta a metà.\n\nPACCHETTO {paket} — {paketpreis}\n{paketinhalt}\n\nÈ lo stesso lavoro e la stessa cura, solo con meno pagine e meno funzioni. Per farsi trovare su Google e ricevere richieste basta quasi sempre.\n\n{anzahlung} all'inizio, {rest} alla consegna. La manutenzione sarebbe {betreuung} al mese, facoltativa.\n\nIl sito può crescere più avanti: le pagine si aggiungono, non si ricomincia da capo. Se invece preferisci aspettare e farlo completo, va benissimo anche quello — dimmelo e ti ricontatto quando vuoi tu.",
+        "de": "ich verstehe, dass der Preis über dem liegt, was du dir vorgestellt hattest. Ehrlich gesagt sehe ich es so: Lieber eine kleinere Lösung, die gut gemacht ist, als eine große, die halb fertig ist.\n\nPAKET {paket} — {paketpreis}\n{paketinhalt}\n\nEs ist dieselbe Arbeit und dieselbe Sorgfalt, nur mit weniger Seiten und weniger Funktionen. Um bei Google gefunden zu werden und Anfragen zu bekommen, reicht das fast immer.\n\n{anzahlung} zu Beginn, {rest} bei der Übergabe. Die Betreuung wäre {betreuung} im Monat, freiwillig.\n\nDie Seite kann später wachsen: Weitere Seiten kommen dazu, es fängt nichts von vorn an. Wenn du lieber wartest und es gleich vollständig machst, ist das genauso richtig — sag Bescheid, dann melde ich mich, wann es dir passt.",
+        "en": "I understand the price is higher than you had in mind. Honestly, I see it this way: better a smaller thing done well than a big one done halfway.\n\n{paket} PACKAGE — {paketpreis}\n{paketinhalt}\n\nIt's the same work and the same care, just with fewer pages and fewer features. To be found on Google and receive enquiries, that's almost always enough.\n\n{anzahlung} up front, {rest} on handover. Care would be {betreuung} per month, optional.\n\nThe site can grow later: pages get added, nothing starts over. If you'd rather wait and do it fully, that's just as right — say so and I'll come back when it suits you."
+      },
+      "paket": "starter"
+    },
+    "nachfassen": {
+      "gruppe": "anfrage",
+      "name": "Nachfassen nach dem Angebot",
+      "betreff": {
+        "it": "La mia proposta è arrivata?",
+        "de": "Ist mein Vorschlag angekommen?",
+        "en": "Did my proposal reach you?"
+      },
+      "text": {
+        "it": "volevo solo assicurarmi che la mia proposta sia arrivata — a volte finisce nello spam.\n\nSe c'è qualcosa che non ti convince, dimmelo pure apertamente: prezzo, tempi, o semplicemente non è il momento. Su tutte e tre le cose si può parlare, e una risposta negativa mi è più utile di nessuna risposta.\n\nSe adesso non è il periodo giusto, dimmi solo quando ti fa comodo che ti ricontatti.",
+        "de": "ich wollte nur sichergehen, dass mein Vorschlag angekommen ist — manchmal landet so etwas im Spam.\n\nWenn dir etwas daran nicht passt, sag es ruhig offen: Preis, Zeitrahmen, oder es ist einfach gerade nicht der Moment. Über alle drei Dinge lässt sich reden, und eine Absage ist mir lieber als gar keine Antwort.\n\nWenn es zeitlich gerade nicht passt, sag mir einfach, wann ich mich wieder melden soll.",
+        "en": "I just wanted to make sure my proposal arrived — sometimes it lands in spam.\n\nIf something about it doesn't sit right, say so plainly: the price, the timing, or simply that now isn't the moment. All three are things we can talk about, and a no is more useful to me than no answer.\n\nIf the timing is wrong, just tell me when I should come back to you."
+      }
+    },
+    "preisfrage": {
+      "gruppe": "anfrage",
+      "name": "Antwort: Was kostet eine Website?",
+      "betreff": {
+        "it": "Cosa costa un sito — i miei prezzi, senza giri di parole",
+        "de": "Was eine Website kostet — meine Preise, ohne Umwege",
+        "en": "What a website costs — my prices, plainly"
+      },
+      "text": {
+        "it": "hai chiesto quanto costa. Te lo dico subito e per intero, senza doverti prima vendere qualcosa.\n\n{alle_pakete}\n\nOgni prezzo è fisso: quello che c'è scritto è quello che paghi. Metà all'inizio, metà alla consegna.\n\nLa manutenzione mensile è facoltativa e comprende aggiornamenti, backup, controllo della raggiungibilità e piccole modifiche. Senza di essa il sito funziona lo stesso — solo che le piccole cose si accumulano.\n\nQuale sia quello giusto per te dipende da cosa deve fare il sito. Scrivimi due righe sulla tua attività e te lo dico, anche se la risposta è il pacchetto più piccolo.",
+        "de": "du hast gefragt, was es kostet. Ich sage es dir gleich und vollständig, ohne dir vorher etwas verkaufen zu müssen.\n\n{alle_pakete}\n\nJeder Preis ist ein Festpreis: Was dasteht, zahlst du. Die Hälfte zu Beginn, die Hälfte bei der Übergabe.\n\nDie monatliche Betreuung ist freiwillig und umfasst Aktualisierungen, Sicherungen, Überwachung der Erreichbarkeit und kleine Änderungen. Ohne sie läuft die Seite genauso — nur sammeln sich die kleinen Dinge mit der Zeit an.\n\nWelches das richtige für dich ist, hängt davon ab, was die Seite können soll. Schreib mir zwei Zeilen über deinen Betrieb, dann sage ich es dir — auch wenn die Antwort das kleinste Paket ist.",
+        "en": "you asked what it costs. Here it is in full, without having to sell you something first.\n\n{alle_pakete}\n\nEvery price is fixed: what it says is what you pay. Half up front, half on handover.\n\nMonthly care is optional and covers updates, backups, uptime monitoring and small changes. Without it the site runs just the same — the small things simply pile up over time.\n\nWhich one is right for you depends on what the site has to do. Write me two lines about your business and I'll tell you — even if the answer is the smallest package."
+      }
+    },
+    "dauerfrage": {
+      "gruppe": "anfrage",
+      "name": "Antwort: Wie lange dauert es?",
+      "betreff": {
+        "it": "Quanto ci vuole — e da cosa dipende davvero",
+        "de": "Wie lange es dauert — und woran es wirklich hängt",
+        "en": "How long it takes — and what it really depends on"
+      },
+      "text": {
+        "it": "la risposta breve: da due a quattro settimane, a partire dal momento in cui ho i tuoi materiali.\n\nLa risposta onesta: la parte lenta di solito non sono io. Sono i testi e le foto. Chi me li manda in tre giorni ha il sito online in due settimane; chi ci mette un mese, aspetta un mese.\n\nQuindi il modo più veloce è questo: appena partiamo, ti mando un questionario breve — quattro passaggi, dieci minuti — e tu carichi logo e foto sulla tua pagina. Da lì in poi lavoro io e ti faccio vedere la bozza.\n\nSe hai una scadenza precisa, dimmela adesso: così ti dico subito se è realistica, invece di prometterla e poi non rispettarla.",
+        "de": "die kurze Antwort: zwei bis vier Wochen, gerechnet ab dem Moment, in dem ich deine Unterlagen habe.\n\nDie ehrliche Antwort: Das Langsamste bin dabei selten ich. Es sind die Texte und die Fotos. Wer sie mir in drei Tagen schickt, ist in zwei Wochen online; wer einen Monat braucht, wartet einen Monat.\n\nDer schnellste Weg ist deshalb dieser: Sobald wir loslegen, bekommst du einen kurzen Fragebogen — vier Schritte, zehn Minuten — und lädst Logo und Fotos auf deiner Seite hoch. Ab da bin ich dran und zeige dir den Entwurf.\n\nWenn du einen festen Termin hast, sag ihn mir jetzt: Dann sage ich dir gleich, ob er realistisch ist, statt ihn zu versprechen und nicht zu halten.",
+        "en": "the short answer: two to four weeks, counted from the moment I have your material.\n\nThe honest answer: the slow part is rarely me. It's the text and the photos. Someone who sends them in three days is live in two weeks; someone who takes a month waits a month.\n\nSo the fastest route is this: as soon as we start you get a short questionnaire — four steps, ten minutes — and you upload your logo and photos on your page. From there it's on me, and I show you the draft.\n\nIf you have a fixed deadline, tell me now: then I'll say straight away whether it's realistic, rather than promising it and missing it."
+      }
+    },
+    "absage": {
+      "gruppe": "anfrage",
+      "name": "Absage",
+      "betreff": {
+        "it": "La tua richiesta — una risposta onesta",
+        "de": "Deine Anfrage — eine ehrliche Antwort",
+        "en": "Your enquiry — an honest answer"
+      },
+      "text": {
+        "it": "grazie per avermi pensato. Per questo progetto non sono la persona giusta, e preferisco dirtelo subito invece di farti perdere tempo con una proposta poco convinta.\n\nNon è un giudizio sul tuo progetto — è che quello che ti serve non è quello che so fare meglio.\n\nSe ti è utile, ti indico volentieri qualcuno più adatto: scrivimi e ci penso. E se più avanti ti serve qualcosa che rientra nel mio lavoro, scrivi pure senza problemi.",
+        "de": "danke, dass du an mich gedacht hast. Für dieses Vorhaben bin ich nicht der Richtige, und ich sage das lieber gleich, als dir mit einem halbherzigen Angebot Zeit zu stehlen.\n\nDas ist kein Urteil über dein Projekt — es ist schlicht so, dass das, was du brauchst, nicht das ist, was ich am besten kann.\n\nWenn es dir hilft, nenne ich dir gern jemanden, der besser passt: Schreib mir, dann überlege ich mit. Und wenn später einmal etwas ansteht, das in mein Fach fällt, melde dich ohne Weiteres.",
+        "en": "thank you for thinking of me. I'm not the right person for this project, and I'd rather say so now than take your time with a half-hearted proposal.\n\nThat's no judgement on your project — what you need simply isn't what I do best.\n\nIf it helps, I'm glad to point you to someone better suited: write to me and I'll think it through. And if something later comes up that is my field, get in touch without hesitation."
+      }
+    },
+    "auftrag_da": {
+      "gruppe": "start",
+      "name": "Auftrag bestätigt — so läuft es",
+      "betreff": {
+        "it": "Partiamo — ecco come funziona",
+        "de": "Wir legen los — so läuft es ab",
+        "en": "We're starting — here's how it works"
+      },
+      "text": {
+        "it": "grazie della fiducia, il tuo incarico è confermato. Ti spiego in breve cosa succede adesso, così non devi chiedere.\n\n1. Compili il questionario: quattro passaggi brevi, circa dieci minuti. Si salva da solo, puoi interrompere e riprendere.\n2. Carichi logo, foto e testi sulla tua pagina — direttamente dal telefono, se ti è comodo.\n3. Io costruisco. Di solito due o tre settimane.\n4. Ti mostro la bozza. Guardi con calma, mi dici cosa cambiare — le modifiche fanno parte del lavoro.\n5. Quando va bene, saldo e messa online.\n\nTutto passa da questa pagina, non serve nessun account:\n{seite}\n\nSe qualcosa non è chiaro, scrivimi lì. Rispondo di solito entro un giorno lavorativo.",
+        "de": "danke für dein Vertrauen, dein Auftrag ist bestätigt. Ich sage dir kurz, was jetzt passiert, dann musst du nicht fragen.\n\n1. Du füllst den Fragebogen aus: vier kurze Schritte, etwa zehn Minuten. Er speichert von allein, du kannst zwischendurch aufhören.\n2. Du lädst Logo, Fotos und Texte auf deiner Seite hoch — direkt vom Handy, wenn dir das lieber ist.\n3. Ich baue. Meist zwei bis drei Wochen.\n4. Ich zeige dir den Entwurf. Du siehst ihn dir in Ruhe an und sagst, was anders soll — Änderungen gehören dazu.\n5. Wenn es passt: Restzahlung und Onlinegang.\n\nAlles läuft über diese eine Seite, du brauchst kein Konto:\n{seite}\n\nWenn etwas unklar ist, schreib es mir dort. Ich antworte meist innerhalb eines Werktags.",
+        "en": "thank you for your trust, your order is confirmed. Here in short is what happens now, so you don't have to ask.\n\n1. You fill in the questionnaire: four short steps, about ten minutes. It saves by itself, you can stop and continue.\n2. You upload your logo, photos and text on your page — straight from your phone if that's easier.\n3. I build. Usually two to three weeks.\n4. I show you the draft. You look at it properly and tell me what should change — changes are part of the job.\n5. When it's right: balance and going live.\n\nEverything runs through this one page, no account needed:\n{seite}\n\nIf anything is unclear, write it there. I usually answer within one working day."
+      }
+    },
+    "anzahlung": {
+      "gruppe": "start",
+      "name": "Anzahlung erinnern",
+      "betreff": {
+        "it": "Manca solo l'acconto per partire",
+        "de": "Es fehlt nur noch die Anzahlung",
+        "en": "Only the deposit is missing"
+      },
+      "text": {
+        "it": "per iniziare manca solo l'acconto di {betrag}. Probabilmente è semplicemente sfuggito — capita a tutti.\n\nIl link per il pagamento è sulla tua pagina, in alto:\n{seite}\n\nSi paga tramite un fornitore certificato; i dati della tua carta non passano da me. Appena arriva ti scrivo e partiamo lo stesso giorno.\n\nSe invece hai cambiato idea o vuoi rimandare, dimmelo tranquillamente: non è un problema e non ti costa nulla.",
+        "de": "zum Loslegen fehlt nur noch die Anzahlung über {betrag}. Wahrscheinlich ist sie einfach untergegangen — das passiert.\n\nDen Zahlungslink findest du oben auf deiner Seite:\n{seite}\n\nBezahlt wird über einen geprüften Anbieter; deine Kartendaten sehe ich nicht. Sobald sie da ist, melde ich mich und wir fangen noch am selben Tag an.\n\nWenn du es dir anders überlegt hast oder verschieben willst, sag es ruhig: Das ist kein Problem und kostet dich nichts.",
+        "en": "only the deposit of {betrag} is missing before we can start. It probably just slipped through — that happens.\n\nThe payment link is at the top of your page:\n{seite}\n\nPayment runs through a certified provider; I never see your card details. As soon as it arrives I'll write and we start the same day.\n\nIf you've changed your mind or want to postpone, just say so: that's no problem and costs you nothing."
+      }
+    },
+    "fragebogen": {
+      "gruppe": "start",
+      "name": "Fragebogen-Erinnerung",
+      "betreff": {
+        "it": "Mancano ancora le tue informazioni",
+        "de": "Deine Angaben fehlen noch",
+        "en": "Your details are still missing"
+      },
+      "text": {
+        "it": "per il tuo sito manca ancora il questionario. Sono quattro passaggi brevi, circa dieci minuti, e si salva da solo — puoi interrompere e riprendere quando vuoi.\n\nLo trovi qui, primo pulsante in alto:\n{seite}\n\nQuello che non sai, lascialo pure vuoto: le cose importanti sono il nome esatto dell'azienda, cosa fai e come ti si contatta. Il resto lo sistemiamo insieme.\n\nSenza quelle informazioni non posso partire davvero, e non vorrei farti aspettare per questo.",
+        "de": "für deine Seite fehlt noch der Fragebogen. Es sind vier kurze Schritte, etwa zehn Minuten, und er speichert von allein — du kannst zwischendurch aufhören und später weitermachen.\n\nHier ist er, der erste Knopf oben:\n{seite}\n\nWas du nicht weißt, lass ruhig leer: Wichtig sind der genaue Firmenname, was du machst und wie man dich erreicht. Den Rest klären wir zusammen.\n\nOhne die Angaben kann ich nicht richtig loslegen, und ich möchte dich deswegen nicht warten lassen.",
+        "en": "the questionnaire for your site is still open. It's four short steps, about ten minutes, and it saves by itself — you can stop and come back any time.\n\nHere it is, the first button at the top:\n{seite}\n\nLeave blank whatever you don't know: what matters is the exact company name, what you do and how to reach you. We'll sort the rest together.\n\nWithout it I can't really start, and I'd rather not keep you waiting for that."
+      }
+    },
+    "material": {
+      "gruppe": "start",
+      "name": "Material anfordern",
+      "betreff": {
+        "it": "Mi serve ancora il tuo materiale",
+        "de": "Mir fehlt noch dein Material",
+        "en": "Your material is still missing"
+      },
+      "text": {
+        "it": "per andare avanti mi manca ancora qualcosa da parte tua:\n\n· Logo — meglio se in alta risoluzione o come file vettoriale (.svg, .ai, .pdf). Se hai solo lo screenshot di un biglietto da visita, mandalo lo stesso: ci penso io.\n· Foto — della tua attività, dei prodotti, del team. Meglio poche buone che venti sfocate. Le foto fatte col telefono vanno benissimo, se c'è luce.\n· Testi — anche solo appunti. Non devono essere belli, li sistemo io.\n\nPuoi caricare tutto qui, direttamente dal telefono:\n{seite}\n\nSe una cosa non ce l'hai, dimmelo: si trova sempre una soluzione, e per le foto esistono alternative decorose.",
+        "de": "um weiterzukommen, fehlt mir noch etwas von dir:\n\n· Logo — am besten hochauflösend oder als Vektordatei (.svg, .ai, .pdf). Wenn du nur ein Foto von einer Visitenkarte hast, schick es trotzdem: Darum kümmere ich mich.\n· Fotos — von deinem Betrieb, den Produkten, dem Team. Lieber wenige gute als zwanzig unscharfe. Handyfotos sind völlig in Ordnung, wenn Licht da ist.\n· Texte — auch nur Stichpunkte. Sie müssen nicht schön sein, das mache ich.\n\nDu kannst alles hier hochladen, direkt vom Handy:\n{seite}\n\nWenn du etwas nicht hast, sag Bescheid: Dafür findet sich immer eine Lösung, und für Fotos gibt es ordentliche Alternativen.",
+        "en": "to move on, I still need a few things from you:\n\n· Logo — high resolution or a vector file (.svg, .ai, .pdf) if possible. If all you have is a photo of a business card, send that: I'll deal with it.\n· Photos — of your business, your products, your team. A few good ones beat twenty blurry ones. Phone photos are perfectly fine if there's light.\n· Text — even just bullet points. It doesn't have to be polished, that's my job.\n\nYou can upload everything here, straight from your phone:\n{seite}\n\nIf you don't have something, tell me: there's always a way around it, and for photos there are decent alternatives."
+      }
+    },
+    "logo": {
+      "gruppe": "start",
+      "name": "Logo in besserer Qualität",
+      "betreff": {
+        "it": "Il tuo logo mi serve più grande",
+        "de": "Dein Logo brauche ich größer",
+        "en": "I need your logo larger"
+      },
+      "text": {
+        "it": "il logo che mi hai mandato è troppo piccolo: sullo schermo di un computer si vedrebbero i bordi sgranati, e sul sito è la prima cosa che si nota.\n\nMi servirebbe uno di questi:\n\n· il file originale del grafico che l'ha fatto (.ai, .eps, .svg, .pdf)\n· oppure un PNG largo almeno 1000 pixel\n\nSe non hai nessuno dei due — succede spesso — posso ridisegnarlo pulito partendo da quello che c'è. Dimmelo e ti faccio sapere cosa comporta, spesso è poca cosa.\n\nPuoi caricarlo qui: {seite}",
+        "de": "das Logo, das du mir geschickt hast, ist zu klein: Auf einem Rechnerbildschirm sähe man ausgefranste Kanten, und auf der Seite ist es das Erste, was auffällt.\n\nIch bräuchte eines davon:\n\n· die Originaldatei von dem, der es gemacht hat (.ai, .eps, .svg, .pdf)\n· oder ein PNG mit mindestens 1000 Pixel Breite\n\nWenn du keines von beidem hast — das kommt oft vor — kann ich es sauber nachzeichnen, ausgehend von dem, was da ist. Sag Bescheid, dann sage ich dir, was das bedeutet; meistens ist es wenig.\n\nHochladen kannst du es hier: {seite}",
+        "en": "the logo you sent is too small: on a desktop screen the edges would look ragged, and on the site it's the first thing people notice.\n\nI'd need one of these:\n\n· the original file from whoever made it (.ai, .eps, .svg, .pdf)\n· or a PNG at least 1000 pixels wide\n\nIf you have neither — which happens often — I can redraw it cleanly from what exists. Tell me and I'll say what that involves; usually it's little.\n\nYou can upload it here: {seite}"
+      }
+    },
+    "domain": {
+      "gruppe": "start",
+      "name": "Domain und Zugänge klären",
+      "betreff": {
+        "it": "Il tuo dominio — chi ce l'ha in mano",
+        "de": "Deine Domain — wem sie gehört",
+        "en": "Your domain — who holds it"
+      },
+      "text": {
+        "it": "prima della messa online devo sapere una cosa: chi possiede oggi il tuo dominio, cioè l'indirizzo del sito.\n\nTre casi possibili:\n\n1. Non ne hai ancora uno. Allora lo registro io a tuo nome — resta tuo, non mio.\n2. Ce l'hai tu presso un fornitore. Perfetto: mi basta l'accesso al pannello, oppure fai tu una modifica che ti spiego passo passo.\n3. Ce l'ha un'altra agenzia o un conoscente. Allora conviene riportarlo a tuo nome adesso, non fra due anni quando servirà in fretta.\n\nUna cosa importante: non mandarmi mai password per e-mail. Se serve un accesso, ti dico come crearne uno separato che puoi revocare quando vuoi — oppure lo facciamo insieme al telefono in cinque minuti.\n\nScrivimi solo in quale dei tre casi ti trovi.",
+        "de": "vor dem Onlinegang muss ich eines wissen: Wem gehört deine Domain, also die Adresse der Seite, heute?\n\nDrei mögliche Fälle:\n\n1. Du hast noch keine. Dann melde ich sie auf deinen Namen an — sie gehört dir, nicht mir.\n2. Du hast sie bei einem Anbieter. Gut: Dann brauche ich entweder Zugang zur Verwaltung, oder du machst eine Einstellung, die ich dir Schritt für Schritt erkläre.\n3. Eine andere Agentur oder ein Bekannter hat sie. Dann holen wir sie jetzt auf deinen Namen, nicht erst in zwei Jahren, wenn es schnell gehen muss.\n\nEines ist wichtig: Schick mir niemals Passwörter per E-Mail. Wenn ein Zugang nötig ist, sage ich dir, wie du einen eigenen anlegst, den du jederzeit wieder entziehen kannst — oder wir machen es zusammen am Telefon, das dauert fünf Minuten.\n\nSchreib mir einfach, welcher der drei Fälle bei dir zutrifft.",
+        "en": "before going live I need to know one thing: who owns your domain — the address of the site — today?\n\nThree possible cases:\n\n1. You don't have one yet. Then I register it in your name — it's yours, not mine.\n2. You have it with a provider. Good: then I either need access to the control panel, or you make one setting that I'll talk you through.\n3. Another agency or an acquaintance holds it. Then let's move it into your name now, not in two years when it's suddenly urgent.\n\nOne thing matters: never send me passwords by email. If access is needed, I'll show you how to create a separate login you can revoke at any time — or we do it together on the phone in five minutes.\n\nJust write which of the three applies to you."
+      }
+    },
+    "texte": {
+      "gruppe": "arbeit",
+      "name": "Texte fehlen — ich schreibe sie",
+      "betreff": {
+        "it": "I testi: te li scrivo io?",
+        "de": "Die Texte: soll ich sie schreiben?",
+        "en": "The text: shall I write it?"
+      },
+      "text": {
+        "it": "il punto in cui quasi tutti si bloccano sono i testi. Non perché sia difficile, ma perché scrivere di sé è la cosa più scomoda che c'è.\n\nTe lo tolgo di mezzo: mandami cinque risposte brevi, anche a voce con un messaggio vocale, e scrivo io.\n\n1. Cosa fai, spiegato a un vicino di casa?\n2. Perché uno dovrebbe scegliere te e non quello a due strade da qui?\n3. Da quanto tempo lo fai?\n4. Cosa ti chiedono più spesso i clienti?\n5. Cosa vuoi che facciano quando arrivano sul sito — chiamarti, scriverti, passare in negozio?\n\nCon queste cinque cose scrivo la prima versione, poi tu correggi. Correggere è dieci volte più facile che scrivere da zero.",
+        "de": "die Stelle, an der fast alle hängen bleiben, sind die Texte. Nicht weil es schwer wäre, sondern weil über sich selbst zu schreiben das Unangenehmste überhaupt ist.\n\nIch nehme es dir ab: Schick mir fünf kurze Antworten, gern auch als Sprachnachricht, dann schreibe ich.\n\n1. Was machst du, einem Nachbarn erklärt?\n2. Warum sollte jemand dich nehmen und nicht den zwei Straßen weiter?\n3. Wie lange machst du das schon?\n4. Was fragen Kunden dich am häufigsten?\n5. Was sollen die Leute tun, wenn sie auf der Seite landen — anrufen, schreiben, vorbeikommen?\n\nAus diesen fünf Dingen schreibe ich die erste Fassung, und du korrigierst. Korrigieren ist zehnmal leichter als anfangen.",
+        "en": "the place where nearly everyone gets stuck is the text. Not because it's hard, but because writing about yourself is the most uncomfortable thing there is.\n\nLet me take it off you: send me five short answers, a voice message is fine, and I'll write it.\n\n1. What do you do, explained to a neighbour?\n2. Why should someone pick you over the one two streets away?\n3. How long have you been doing it?\n4. What do customers ask you most often?\n5. What should people do when they land on the site — call, write, come by?\n\nFrom those five things I'll write the first version and you correct it. Correcting is ten times easier than starting."
+      }
+    },
+    "vorschau": {
+      "gruppe": "arbeit",
+      "name": "Vorschau ist fertig",
+      "betreff": {
+        "it": "La tua anteprima è pronta",
+        "de": "Deine Vorschau steht",
+        "en": "Your preview is ready"
+      },
+      "text": {
+        "it": "l'anteprima di {firma} è pronta. Guardala con calma:\n{seite}\n\nSe va bene così, la approvi con un clic sulla stessa pagina. Se qualcosa non ti convince, scrivilo nel campo lì sotto — le modifiche fanno parte del lavoro e non costano niente in più.\n\nTre cose che aiutano a guardarla bene:\n\n1. Aprila una volta sul telefono e una sul computer. La maggior parte dei tuoi clienti la vedrà dal telefono.\n2. Chiediti cosa penserebbe un tuo cliente, non cosa piace a me.\n3. Se qualcosa non ti torna ma non sai dire cosa, scrivilo lo stesso così com'è. Ci arrivo io.",
+        "de": "die Vorschau von {firma} ist fertig. Sieh sie dir in Ruhe an:\n{seite}\n\nWenn sie so passt, gibst du sie dort mit einem Klick frei. Wenn dir etwas nicht gefällt, schreib es ins Feld darunter — Änderungen gehören dazu und kosten nichts extra.\n\nDrei Dinge helfen beim Draufschauen:\n\n1. Öffne sie einmal auf dem Handy und einmal am Rechner. Die meisten deiner Kunden sehen sie auf dem Handy.\n2. Frag dich, was ein Kunde von dir denken würde, nicht was mir gefällt.\n3. Wenn dir etwas komisch vorkommt und du nicht sagen kannst was, schreib es trotzdem genau so hin. Den Rest finde ich.",
+        "en": "the preview of {firma} is ready. Take your time with it:\n{seite}\n\nIf it's right, you approve it there with one click. If something doesn't sit well, write it in the field below — changes are part of the job and cost nothing extra.\n\nThree things that help you look properly:\n\n1. Open it once on a phone and once on a computer. Most of your customers will see it on a phone.\n2. Ask what one of your customers would think, not what I would like.\n3. If something feels off and you can't say what, write it down exactly like that. I'll find the rest."
+      }
+    },
+    "vorschau_erinnerung": {
+      "gruppe": "arbeit",
+      "name": "Vorschau — schon reingeschaut?",
+      "betreff": {
+        "it": "Hai dato un'occhiata all'anteprima?",
+        "de": "Hast du schon reingeschaut?",
+        "en": "Have you had a look yet?"
+      },
+      "text": {
+        "it": "l'anteprima è online da qualche giorno e non ho ancora avuto un tuo parere. Nessuna fretta da parte mia — volevo solo assicurarmi che il messaggio sia arrivato.\n\nEccola di nuovo: {seite}\n\nBastano due minuti e una frase: «va bene così» oppure «cambia questo». Anche «non mi convince, ma non so dire perché» è una risposta utile.\n\nFinché non mi dici nulla il progetto resta fermo, ed è un peccato: manca poco.",
+        "de": "die Vorschau steht seit ein paar Tagen und ich habe noch keine Rückmeldung von dir. Kein Drängen von meiner Seite — ich wollte nur sichergehen, dass die Nachricht angekommen ist.\n\nHier ist sie noch einmal: {seite}\n\nZwei Minuten und ein Satz reichen: «passt so» oder «ändere das». Auch «gefällt mir nicht, ich weiß aber nicht warum» ist eine brauchbare Antwort.\n\nSolange ich nichts höre, liegt das Projekt — und das wäre schade, es fehlt nicht mehr viel.",
+        "en": "the preview has been up for a few days and I haven't heard back. No pressure from my side — I just wanted to be sure the message arrived.\n\nHere it is again: {seite}\n\nTwo minutes and one sentence is enough: \"that's right\" or \"change this\". Even \"something's off and I can't say what\" is a useful answer.\n\nWhile I hear nothing the project sits still — which would be a shame, there isn't much left."
+      }
+    },
+    "aenderungen": {
+      "gruppe": "arbeit",
+      "name": "Änderungen umgesetzt",
+      "betreff": {
+        "it": "Modifiche fatte — dai un'altra occhiata",
+        "de": "Änderungen sind drin — schau nochmal",
+        "en": "Changes are in — have another look"
+      },
+      "text": {
+        "it": "ho sistemato tutto quello che mi hai scritto. Ricarica la pagina, così vedi la versione nuova e non quella salvata dal browser:\n{seite}\n\nSe adesso va bene, puoi approvare direttamente da lì. Se è rimasto qualcosa, scrivimelo pure — anche piccolezze, è il momento giusto per dirle.\n\nDove non ero sicuro di aver capito bene, ho scelto la strada più semplice. Dimmi se preferivi diversamente.",
+        "de": "ich habe alles umgesetzt, was du mir geschrieben hast. Lad die Seite einmal neu, dann siehst du die neue Fassung und nicht die vom Browser gespeicherte:\n{seite}\n\nWenn es jetzt passt, kannst du dort direkt freigeben. Wenn noch etwas offen ist, schreib es mir — auch Kleinigkeiten, jetzt ist der richtige Moment dafür.\n\nWo ich nicht sicher war, ob ich dich richtig verstanden habe, habe ich den einfacheren Weg gewählt. Sag Bescheid, wenn du es anders wolltest.",
+        "en": "I've made everything you asked for. Reload the page once so you see the new version and not the one your browser saved:\n{seite}\n\nIf it's right now, you can approve it there. If something is still open, write it to me — small things too, now is the right moment for them.\n\nWhere I wasn't sure I'd understood you correctly, I took the simpler route. Tell me if you meant it differently."
+      }
+    },
+    "mehraufwand": {
+      "gruppe": "arbeit",
+      "name": "Wunsch geht über den Umfang hinaus",
+      "betreff": {
+        "it": "La tua richiesta — si può fare, ma va detta una cosa",
+        "de": "Dein Wunsch — machbar, aber eines dazu",
+        "en": "Your request — doable, with one thing to say"
+      },
+      "text": {
+        "it": "quello che chiedi si può fare volentieri, e ha anche senso. Devo però dirti onestamente che va oltre quello che avevamo concordato — non è una modifica, è una funzione in più.\n\nTe lo dico adesso e non alla fine, perché una fattura a sorpresa è il modo più veloce per rovinare un buon lavoro.\n\nDue possibilità:\n\n1. Lo facciamo adesso. Ti mando un preventivo breve a prezzo fisso, tu decidi, e solo dopo lo costruisco.\n2. Lo rimandiamo. Mettiamo il sito online come previsto e questo lo aggiungiamo più avanti, con calma.\n\nEntrambe vanno bene per me. Dimmi solo quale preferisci.",
+        "de": "was du dir wünschst, mache ich gern, und es ergibt auch Sinn. Ich muss dir aber ehrlich sagen: Das geht über das hinaus, was wir vereinbart haben — es ist keine Änderung, es ist eine zusätzliche Funktion.\n\nIch sage es jetzt und nicht am Ende, weil eine überraschende Rechnung der schnellste Weg ist, eine gute Zusammenarbeit zu verderben.\n\nZwei Möglichkeiten:\n\n1. Wir machen es jetzt. Du bekommst ein kurzes Angebot zum Festpreis, entscheidest, und erst danach baue ich.\n2. Wir verschieben es. Die Seite geht wie geplant online, und das hier kommt später in Ruhe dazu.\n\nBeides ist mir recht. Sag mir einfach, was dir lieber ist.",
+        "en": "what you're asking for I'll happily do, and it makes sense. But I have to tell you plainly: it goes beyond what we agreed — it isn't a change, it's an extra feature.\n\nI'm saying it now rather than at the end, because a surprise invoice is the fastest way to spoil good work.\n\nTwo options:\n\n1. We do it now. You get a short fixed-price quote, you decide, and only then do I build it.\n2. We postpone it. The site goes live as planned and this gets added later, calmly.\n\nEither is fine by me. Just tell me which you prefer."
+      }
+    },
+    "rueckfrage_feedback": {
+      "gruppe": "arbeit",
+      "name": "Rückfrage zum Feedback",
+      "betreff": {
+        "it": "Una domanda sulle tue modifiche",
+        "de": "Eine Rückfrage zu deinen Änderungen",
+        "en": "One question about your changes"
+      },
+      "text": {
+        "it": "grazie del riscontro, mi metto subito. Su un punto però preferisco chiedere invece di indovinare, così non ti faccio guardare due volte la stessa cosa sbagliata.\n\nQuando dici che una parte «non ti convince»: intendi il colore, la dimensione del testo, la posizione, o proprio il contenuto?\n\nSe non sai dirlo con precisione, va benissimo anche così: mandami uno screenshot col dito sopra il punto, o dimmi semplicemente «la parte in alto». Con quello ci arrivo.",
+        "de": "danke für die Rückmeldung, ich mache mich gleich dran. An einer Stelle frage ich aber lieber nach, statt zu raten — dann musst du dir nicht zweimal dasselbe Falsche ansehen.\n\nWenn du sagst, ein Teil «passt nicht»: Meinst du die Farbe, die Textgröße, die Position, oder wirklich den Inhalt?\n\nWenn du es nicht genau sagen kannst, ist das auch in Ordnung: Schick mir einen Screenshot mit dem Finger auf der Stelle, oder sag einfach «der Bereich oben». Damit komme ich weiter.",
+        "en": "thank you for the feedback, I'll get on it. On one point I'd rather ask than guess — then you don't have to look at the same wrong thing twice.\n\nWhen you say a part \"doesn't work\": do you mean the colour, the text size, the position, or actually the content?\n\nIf you can't pin it down, that's fine too: send me a screenshot with your finger on the spot, or just say \"the bit at the top\". That's enough for me."
+      }
+    },
+    "verzoegerung": {
+      "gruppe": "arbeit",
+      "name": "Es dauert länger (von mir aus)",
+      "betreff": {
+        "it": "Ci vuole qualche giorno in più",
+        "de": "Es dauert ein paar Tage länger",
+        "en": "It'll take a few more days"
+      },
+      "text": {
+        "it": "ti scrivo prima che te ne accorga tu: il tuo sito sarà pronto qualche giorno più tardi del previsto. La colpa è mia, non tua, e non dipende dal tuo progetto.\n\nNuova data realistica: entro la fine della prossima settimana. Preferisco dirti una data che rispetto piuttosto che una che suona meglio.\n\nSe hai una scadenza che dipende da questo — un'apertura, una fiera, una campagna — dimmelo subito e la sistemo io, anche facendo prima le parti che ti servono.",
+        "de": "ich schreibe dir, bevor es dir auffällt: Deine Seite wird ein paar Tage später fertig als geplant. Das liegt an mir, nicht an dir, und nicht an deinem Projekt.\n\nRealistischer neuer Termin: bis Ende nächster Woche. Ich nenne dir lieber einen Termin, den ich halte, als einen, der sich besser anhört.\n\nWenn davon etwas abhängt — eine Eröffnung, eine Messe, eine Aktion — sag es mir jetzt, dann richte ich mich danach und ziehe die Teile vor, die du zuerst brauchst.",
+        "en": "I'm writing before you notice: your site will be ready a few days later than planned. That's on me, not on you, and not on your project.\n\nRealistic new date: by the end of next week. I'd rather give you a date I keep than one that sounds better.\n\nIf something depends on this — an opening, a trade fair, a campaign — tell me now and I'll work around it, doing the parts you need first."
+      }
+    },
+    "ruht": {
+      "gruppe": "arbeit",
+      "name": "Ruhendes Projekt",
+      "betreff": {
+        "it": "Andiamo avanti con {firma}?",
+        "de": "Machen wir bei {firma} weiter?",
+        "en": "Shall we carry on with {firma}?"
+      },
+      "text": {
+        "it": "da un po' non ci sentiamo e il progetto è fermo. Non è un rimprovero — succede, e di solito perché nel frattempo è arrivato altro.\n\nDue possibilità, entrambe vanno bene:\n\n1. Riprendiamo. Dimmi solo cosa ti serve da me per ripartire, e da dove.\n2. Lo mettiamo in pausa. Tengo tutto da parte e ti ricontatto quando dici tu — fra un mese, fra sei, come preferisci.\n\nQualsiasi risposta va bene, anche «adesso no». È il non sapere che mi complica la pianificazione, non il no.",
+        "de": "wir haben länger nichts voneinander gehört und das Projekt liegt gerade. Das ist kein Vorwurf — das passiert, meist weil zwischendurch anderes dazwischenkommt.\n\nZwei Möglichkeiten, beide sind in Ordnung:\n\n1. Wir machen weiter. Sag mir nur, was du von mir brauchst und wo wir wieder ansetzen.\n2. Wir legen es auf Eis. Ich halte alles bereit und melde mich, wann du sagst — in einem Monat, in einem halben Jahr, wie du willst.\n\nJede Antwort ist mir recht, auch «gerade nicht». Was mir die Planung schwer macht, ist das Nichtwissen, nicht das Nein.",
+        "en": "we haven't heard from each other in a while and the project is on hold. That's no reproach — it happens, usually because something else came up.\n\nTwo options, both fine:\n\n1. We carry on. Just tell me what you need from me and where we pick up.\n2. We park it. I'll keep everything ready and come back when you say — in a month, in six, as you like.\n\nAny answer works for me, including \"not right now\". What makes planning hard is not knowing, not the no."
+      }
+    },
+    "freigabe_bitte": {
+      "gruppe": "abschluss",
+      "name": "Bitte um Freigabe",
+      "betreff": {
+        "it": "Manca solo il tuo ok",
+        "de": "Es fehlt nur noch dein Ok",
+        "en": "Only your go-ahead is missing"
+      },
+      "text": {
+        "it": "il sito è finito da parte mia — tutte le modifiche che mi hai chiesto sono dentro.\n\nManca solo il tuo ok. Lo dai con un clic sulla tua pagina, sul pulsante verde:\n{seite}\n\nCosa significa: confermi che il sito va bene così. Dopo di che ti mando il saldo e lo mettiamo online, di solito lo stesso giorno.\n\nSe preferisci guardarlo ancora una volta con calma, fai pure — non c'è nessuna fretta da parte mia.",
+        "de": "die Seite ist von meiner Seite fertig — alle Änderungen, die du wolltest, sind drin.\n\nEs fehlt nur noch dein Ok. Das gibst du mit einem Klick auf deiner Seite, auf dem grünen Knopf:\n{seite}\n\nWas das bedeutet: Du bestätigst, dass die Seite so passt. Danach schicke ich dir die Restzahlung und wir stellen sie online, meist noch am selben Tag.\n\nWenn du sie lieber noch einmal in Ruhe ansehen willst, tu das — von meiner Seite drängt nichts.",
+        "en": "the site is finished on my side — every change you asked for is in.\n\nOnly your go-ahead is missing. You give it with one click on your page, the green button:\n{seite}\n\nWhat it means: you confirm the site is right as it stands. After that I send the balance and we put it live, usually the same day.\n\nIf you'd rather look at it once more in peace, do — nothing is pressing from my side."
+      }
+    },
+    "restzahlung": {
+      "gruppe": "abschluss",
+      "name": "Restzahlung",
+      "betreff": {
+        "it": "Il saldo per {paket}",
+        "de": "Die Restzahlung für {paket}",
+        "en": "The balance for {paket}"
+      },
+      "text": {
+        "it": "hai approvato il sito, grazie. Resta il saldo di {betrag}, poi lo mettiamo online.\n\nIl link per il pagamento è sulla tua pagina, in alto:\n{seite}\n\nCome sempre tramite un fornitore certificato; i dati della carta non passano da me. Appena arriva ricevi la ricevuta e il sito va online lo stesso giorno o il giorno dopo.\n\nSe hai bisogno di più tempo o preferisci un'altra modalità, dimmelo: si trova sempre un accordo.",
+        "de": "du hast die Seite freigegeben, danke dafür. Offen ist noch die Restzahlung über {betrag}, dann geht sie online.\n\nDen Zahlungslink findest du oben auf deiner Seite:\n{seite}\n\nWie immer über einen geprüften Anbieter; deine Kartendaten sehe ich nicht. Sobald sie da ist, bekommst du den Beleg, und die Seite geht am selben oder am nächsten Tag online.\n\nWenn du mehr Zeit brauchst oder einen anderen Weg bevorzugst, sag es mir: Da findet sich immer eine Lösung.",
+        "en": "you've approved the site, thank you. The balance of {betrag} is still open, then it goes live.\n\nThe payment link is at the top of your page:\n{seite}\n\nAs always through a certified provider; I never see your card details. As soon as it arrives you get the receipt, and the site goes live the same or the next day.\n\nIf you need more time or prefer another way, tell me: there's always an arrangement."
+      }
+    },
+    "mahnung": {
+      "gruppe": "abschluss",
+      "name": "Zweite Zahlungserinnerung",
+      "betreff": {
+        "it": "{betrag} ancora aperti — parliamone",
+        "de": "{betrag} noch offen — reden wir darüber",
+        "en": "{betrag} still open — let's talk"
+      },
+      "text": {
+        "it": "ti avevo già scritto per il saldo di {betrag} e non ho ancora avuto risposta. Non voglio insistere in modo antipatico, quindi te lo dico chiaramente e una volta sola.\n\nIl link è sempre qui: {seite}\n\nSe c'è un problema di liquidità, dimmelo: possiamo dividerlo in due o tre volte, e non ti costa nulla in più. È una cosa che capita, e preferisco saperlo che immaginarmelo.\n\nSe invece c'è qualcosa che non va con il lavoro, dimmi cosa e lo sistemo prima di parlare di soldi.\n\nUna risposta, qualunque essa sia, chiude la questione.",
+        "de": "ich hatte dir schon wegen der Restzahlung über {betrag} geschrieben und noch keine Antwort bekommen. Ich möchte nicht unangenehm werden, deshalb sage ich es klar und ein einziges Mal.\n\nDer Link steht weiterhin hier: {seite}\n\nWenn es gerade knapp ist, sag es mir: Wir können auf zwei oder drei Raten aufteilen, das kostet dich nichts extra. Das kommt vor, und ich weiß es lieber, als es mir auszumalen.\n\nWenn stattdessen etwas an der Arbeit nicht stimmt, sag mir was, dann bringe ich das in Ordnung, bevor wir über Geld reden.\n\nEine Antwort, welche auch immer, bringt die Sache aus der Welt.",
+        "en": "I wrote to you about the balance of {betrag} and haven't heard back. I don't want to become a nuisance, so I'll say this clearly and once.\n\nThe link is still here: {seite}\n\nIf money is tight right now, tell me: we can split it into two or three payments, at no extra cost. It happens, and I'd rather know than imagine.\n\nIf instead something about the work is wrong, tell me what, and I'll put it right before we talk about money.\n\nAn answer, whatever it is, settles this."
+      }
+    },
+    "beleg": {
+      "gruppe": "abschluss",
+      "name": "Beleg erklärt",
+      "betreff": {
+        "it": "La tua ricevuta",
+        "de": "Dein Beleg",
+        "en": "Your receipt"
+      },
+      "text": {
+        "it": "in allegato trovi la ricevuta del pagamento. Conservala per la tua contabilità.\n\nDue cose che a volte generano domande:\n\n· L'importo è quello concordato, senza aggiunte. Non ci sono costi nascosti e non ce ne saranno.\n· La ricevuta la trovi sempre anche sulla tua pagina, sotto «Ricevute e fatture», anche fra due anni: {seite}\n\nSe il tuo commercialista ha bisogno di qualcosa di diverso o di un dato in più, scrivimi: te lo rifaccio come serve.",
+        "de": "im Anhang findest du den Beleg über deine Zahlung. Heb ihn für deine Unterlagen auf.\n\nZwei Dinge, die manchmal Fragen aufwerfen:\n\n· Der Betrag ist der vereinbarte, ohne Zusätze. Es gibt keine versteckten Kosten und wird auch keine geben.\n· Den Beleg findest du jederzeit auch auf deiner Seite unter «Belege und Rechnungen», auch noch in zwei Jahren: {seite}\n\nWenn dein Steuerberater etwas anderes braucht oder eine Angabe fehlt, schreib mir: Ich stelle ihn dir so aus, wie ihr ihn braucht.",
+        "en": "attached is the receipt for your payment. Keep it for your records.\n\nTwo things that sometimes raise questions:\n\n· The amount is the one we agreed, with nothing added. There are no hidden costs and there won't be.\n· You can always find the receipt on your page too, under \"Receipts and invoices\", even in two years: {seite}\n\nIf your accountant needs something different or a detail is missing, write to me: I'll reissue it the way you need it."
+      }
+    },
+    "online": {
+      "gruppe": "abschluss",
+      "name": "Seite ist online",
+      "betreff": {
+        "it": "{firma} è online",
+        "de": "{firma} ist online",
+        "en": "{firma} is live"
+      },
+      "text": {
+        "it": "il sito è online. Da adesso chiunque cerchi la tua attività può trovarlo.\n\nTre cose che vale la pena fare questa settimana, ognuna dieci minuti:\n\n1. Metti l'indirizzo su Google Business, sui tuoi profili social e nella firma delle e-mail. È il modo più veloce per portarci le prime persone.\n2. Guarda il sito dal telefono di un conoscente. Così lo vedi come lo vede un cliente, non come lo vedi tu che lo conosci.\n3. Dillo ai tuoi clienti abituali. Le prime visite arrivano quasi sempre da chi ti conosce già.\n\nLa pagina che conosci resta valida per sempre: lì vedi tutto e da lì puoi chiedermi modifiche anche fra mesi.\n{seite}\n\nGrazie della fiducia — mi ha fatto piacere lavorarci.",
+        "de": "die Website ist online. Ab jetzt kann jeder, der deinen Betrieb sucht, sie finden.\n\nDrei Dinge lohnen sich diese Woche, je zehn Minuten:\n\n1. Trag die Adresse bei Google Business, in deinen Social-Media-Profilen und in deine E-Mail-Signatur ein. Das ist der schnellste Weg, die ersten Leute hinzubringen.\n2. Sieh dir die Seite auf dem Handy von jemand anderem an. So siehst du sie, wie ein Kunde sie sieht, und nicht, wie du sie kennst.\n3. Sag es deinen Stammkunden. Die ersten Besucher kommen fast immer von Leuten, die dich schon kennen.\n\nDeine gewohnte Seite bleibt für immer gültig: Dort siehst du alles und kannst mir auch in Monaten noch Änderungen schreiben.\n{seite}\n\nDanke für dein Vertrauen — ich habe gern daran gearbeitet.",
+        "en": "the site is live. From now on anyone looking for your business can find it.\n\nThree things worth doing this week, ten minutes each:\n\n1. Add the address to Google Business, your social profiles and your email signature. That's the fastest way to bring the first people there.\n2. Look at the site on someone else's phone. That's how a customer sees it, not how you know it.\n3. Tell your regulars. The first visitors nearly always come from people who already know you.\n\nThe page you know stays valid forever: everything is there, and you can send me changes months from now.\n{seite}\n\nThank you for your trust — I enjoyed working on it."
+      }
+    },
+    "betreuung": {
+      "gruppe": "danach",
+      "name": "Betreuung anbieten (mit Preisen)",
+      "betreff": {
+        "it": "La manutenzione del sito — cosa comprende e cosa costa",
+        "de": "Die Betreuung deiner Seite — was drin ist und was sie kostet",
+        "en": "Looking after your site — what's included and what it costs"
+      },
+      "text": {
+        "it": "il sito è online e funziona. Una domanda onesta: vuoi occupartene tu o preferisci che ci pensi io?\n\nTi scrivo tutto per intero, così decidi con i numeri davanti.\n\nMANUTENZIONE {paket} — {betreuung} AL MESE\n{betreuunginhalt}\n\nCONDIZIONI\nPrimo periodo dodici mesi, poi disdici quando vuoi a fine mese. Nessun aumento a sorpresa. Se disdici, il sito resta tuo e continua a funzionare — ti do i dati e te ne occupi tu o chi vuoi.\n\nCOSA SUCCEDE SENZA\nIl sito continua a funzionare. Solo che gli aggiornamenti non li fa nessuno, e dopo un anno o due sono le piccole cose ad accumularsi: un modulo che smette di inviare, un certificato scaduto, una foto da cambiare che resta lì.\n\nNessuna fretta e nessun obbligo. Se preferisci di no, va benissimo così e non te lo chiedo più.",
+        "de": "die Seite ist online und läuft. Eine ehrliche Frage: Willst du dich selbst darum kümmern oder soll ich das übernehmen?\n\nIch schreibe dir alles vollständig hin, dann entscheidest du mit den Zahlen vor dir.\n\nBETREUUNG {paket} — {betreuung} IM MONAT\n{betreuunginhalt}\n\nBEDINGUNGEN\nErste Laufzeit zwölf Monate, danach jederzeit zum Monatsende kündbar. Keine Erhöhungen aus dem Nichts. Wenn du kündigst, gehört die Seite weiterhin dir und läuft weiter — du bekommst die Zugänge und kümmerst dich selbst darum oder lässt jemanden anders ran.\n\nWAS OHNE PASSIERT\nDie Seite läuft weiter. Nur macht die Aktualisierungen niemand, und nach ein, zwei Jahren sind es die kleinen Dinge, die sich sammeln: ein Formular, das nicht mehr verschickt, ein abgelaufenes Zertifikat, ein Foto, das ausgetauscht gehört und liegen bleibt.\n\nKein Druck und keine Verpflichtung. Wenn du lieber nicht möchtest, ist das völlig in Ordnung, und ich frage nicht noch einmal.",
+        "en": "the site is live and running. An honest question: do you want to look after it yourself, or shall I?\n\nI'm writing it out in full so you can decide with the numbers in front of you.\n\n{paket} CARE — {betreuung} PER MONTH\n{betreuunginhalt}\n\nTERMS\nFirst term twelve months, after that cancellable at any month's end. No increases out of nowhere. If you cancel, the site stays yours and keeps running — you get the logins and look after it yourself or hand it to someone else.\n\nWHAT HAPPENS WITHOUT IT\nThe site keeps working. Nobody does the updates, though, and after a year or two it's the small things that pile up: a form that stops sending, an expired certificate, a photo that should be swapped and never is.\n\nNo pressure and no obligation. If you'd rather not, that's perfectly fine and I won't ask again."
+      }
+    },
+    "betreuung_laeuft": {
+      "gruppe": "danach",
+      "name": "Betreuung: erste Laufzeit endet",
+      "betreff": {
+        "it": "Il primo anno di manutenzione sta per finire",
+        "de": "Das erste Jahr Betreuung geht zu Ende",
+        "en": "The first year of care is ending"
+      },
+      "text": {
+        "it": "tra poco finisce il primo periodo di dodici mesi della manutenzione. Non devi fare nulla: continua e puoi disdire quando vuoi a fine mese.\n\nTi scrivo comunque, perché trovo giusto che tu lo sappia invece di accorgertene sull'estratto conto.\n\nCosa ho fatto in questo anno per il tuo sito: aggiornamenti e backup regolari, controllo della raggiungibilità e del certificato, e le piccole modifiche che mi hai chiesto.\n\nSe vuoi cambiare qualcosa — più o meno servizi, un altro ritmo — dimmelo e lo adattiamo. E se non ti serve più, basta una riga: nessun modulo, nessuna trattativa.",
+        "de": "die erste Laufzeit der Betreuung von zwölf Monaten endet bald. Du musst nichts tun: Sie läuft weiter und ist jederzeit zum Monatsende kündbar.\n\nIch schreibe trotzdem, weil ich es richtig finde, dass du es weißt, statt es auf dem Kontoauszug zu bemerken.\n\nWas in diesem Jahr für deine Seite passiert ist: regelmäßige Aktualisierungen und Sicherungen, Überwachung der Erreichbarkeit und des Zertifikats, und die kleinen Änderungen, um die du gebeten hast.\n\nWenn du etwas ändern willst — mehr oder weniger Leistung, ein anderer Rhythmus — sag Bescheid, dann passen wir es an. Und wenn du sie nicht mehr brauchst, genügt eine Zeile: kein Formular, keine Rückgewinnungsversuche.",
+        "en": "the first twelve-month term of your care plan is ending soon. You don't have to do anything: it continues and can be cancelled at any month's end.\n\nI'm writing anyway, because I think you should know rather than notice it on a bank statement.\n\nWhat happened for your site this year: regular updates and backups, uptime and certificate monitoring, and the small changes you asked for.\n\nIf you want to change something — more or less service, a different rhythm — say so and we'll adjust. And if you no longer need it, one line is enough: no form, no win-back attempts."
+      }
+    },
+    "bewertung": {
+      "gruppe": "danach",
+      "name": "Um Bewertung bitten",
+      "betreff": {
+        "it": "Due frasi da te varrebbero molto",
+        "de": "Zwei Sätze von dir wären viel wert",
+        "en": "Two sentences from you would mean a lot"
+      },
+      "text": {
+        "it": "il sito è online da qualche settimana e spero ti stia portando qualcosa.\n\nSe sei contento del risultato, mi faresti un favore vero con due frasi. Non serve niente di elaborato — bastano risposte a queste due domande:\n\n1. Com'è andata a lavorare insieme?\n2. Cos'è cambiato per la tua attività da quando il sito è online?\n\nPuoi scrivermele qui sotto. Se me lo permetti, le metto sul mio sito con il nome della tua azienda — solo con il tuo consenso esplicito, e me lo dici tu.\n\nE se qualcosa non ti è piaciuto, quello mi interessa ancora di più: la volta dopo lo faccio meglio.",
+        "de": "die Seite ist seit ein paar Wochen online, und ich hoffe, sie bringt dir etwas.\n\nWenn du mit dem Ergebnis zufrieden bist, würdest du mir mit zwei Sätzen wirklich helfen. Es muss nichts Ausgefeiltes sein — Antworten auf diese zwei Fragen reichen:\n\n1. Wie war die Zusammenarbeit?\n2. Was hat sich für deinen Betrieb geändert, seit die Seite online ist?\n\nDu kannst sie mir einfach hier hinschreiben. Wenn du es erlaubst, stelle ich sie mit deinem Firmennamen auf meine Seite — nur mit deinem ausdrücklichen Ja, und das sagst du mir.\n\nUnd wenn dir etwas nicht gefallen hat, interessiert mich das noch mehr: Dann mache ich es beim nächsten Mal besser.",
+        "en": "the site has been live for a few weeks and I hope it's bringing you something.\n\nIf you're happy with the result, two sentences from you would genuinely help. Nothing polished — answers to these two questions are enough:\n\n1. What was it like working together?\n2. What has changed for your business since the site went live?\n\nYou can just write them here. If you allow it, I'll put them on my site with your company name — only with your explicit yes, and you tell me that.\n\nAnd if something wasn't right, I want to hear that even more: then I do it better next time."
+      }
+    },
+    "nachfassen_spaet": {
+      "gruppe": "danach",
+      "name": "Nach Monaten melden",
+      "betreff": {
+        "it": "Come va il sito?",
+        "de": "Wie läuft die Seite?",
+        "en": "How's the site doing?"
+      },
+      "text": {
+        "it": "è passato qualche mese da quando il sito è online e volevo solo sapere come va.\n\nTre domande, rispondi a quella che ti va:\n\n1. Ti arrivano richieste dal sito, o ancora poco?\n2. C'è qualcosa che vorresti cambiare e che finora hai rimandato?\n3. È cambiato qualcosa nella tua attività che sul sito ancora non si vede — orari, servizi, indirizzo?\n\nLe piccole modifiche le faccio volentieri, e spesso sono questione di minuti. Scrivimi qui: {seite}\n\nSe non serve nulla, va benissimo anche quello — buon lavoro.",
+        "de": "die Seite ist jetzt ein paar Monate online, und ich wollte einfach hören, wie es läuft.\n\nDrei Fragen, antworte auf die, die dir passt:\n\n1. Kommen Anfragen über die Seite, oder ist es noch ruhig?\n2. Gibt es etwas, das du ändern wolltest und bisher aufgeschoben hast?\n3. Hat sich in deinem Betrieb etwas geändert, das auf der Seite noch nicht steht — Öffnungszeiten, Leistungen, Adresse?\n\nKleine Änderungen mache ich gern, und oft sind sie eine Sache von Minuten. Schreib mir hier: {seite}\n\nWenn nichts ansteht, ist das genauso in Ordnung — dann weiterhin gutes Geschäft.",
+        "en": "the site has been live for a few months now and I simply wanted to hear how it's going.\n\nThree questions, answer whichever suits:\n\n1. Are enquiries coming through the site, or is it still quiet?\n2. Is there something you wanted changed and have been putting off?\n3. Has anything changed in your business that the site doesn't show yet — hours, services, address?\n\nSmall changes I'll happily do, and they're often a matter of minutes. Write to me here: {seite}\n\nIf nothing's needed, that's just as good — best of luck with the work."
+      }
+    },
+    "stoerung": {
+      "gruppe": "danach",
+      "name": "Störung gemeldet — ich kümmere mich",
+      "betreff": {
+        "it": "Ho visto il problema, ci sono già",
+        "de": "Ich habe die Störung gesehen und bin dran",
+        "en": "I've seen the problem and I'm on it"
+      },
+      "text": {
+        "it": "ho ricevuto la tua segnalazione e ci sto già lavorando. Non devi fare altro.\n\nTi scrivo appena è risolto — di solito entro poche ore, e comunque oggi ti faccio sapere a che punto sono, anche se non è ancora finito.\n\nSe nel frattempo qualcuno ti chiede del sito: se non è raggiungibile, di solito è una cosa temporanea e i tuoi contenuti non si perdono. Abbiamo backup regolari.\n\nSe hai altri dettagli — a che ora l'hai visto, da quale dispositivo, uno screenshot — mandameli, aiutano.",
+        "de": "deine Meldung ist angekommen und ich bin schon dran. Du musst nichts weiter tun.\n\nIch schreibe dir, sobald es behoben ist — meist innerhalb weniger Stunden, und in jedem Fall sage ich dir heute noch, wo ich stehe, auch wenn es dann noch nicht fertig ist.\n\nFalls dich zwischendurch jemand auf die Seite anspricht: Wenn sie nicht erreichbar ist, ist das in aller Regel vorübergehend, und deine Inhalte gehen nicht verloren. Es gibt regelmäßige Sicherungen.\n\nWenn du weitere Angaben hast — wann du es gesehen hast, auf welchem Gerät, ein Screenshot — schick sie mir, das hilft.",
+        "en": "your report has arrived and I'm already on it. You don't need to do anything else.\n\nI'll write as soon as it's fixed — usually within a few hours, and in any case I'll tell you today where I stand, even if it isn't done yet.\n\nIf anyone asks you about the site meanwhile: if it's unreachable, that's almost always temporary, and your content isn't lost. There are regular backups.\n\nIf you have more detail — when you saw it, on which device, a screenshot — send it over, it helps."
+      }
+    },
+    "stoerung_weg": {
+      "gruppe": "danach",
+      "name": "Störung behoben",
+      "betreff": {
+        "it": "Risolto — il sito funziona di nuovo",
+        "de": "Behoben — die Seite läuft wieder",
+        "en": "Fixed — the site is back"
+      },
+      "text": {
+        "it": "è risolto, il sito funziona di nuovo normalmente. Dai un'occhiata quando puoi:\n{seite}\n\nSe vedi ancora la versione vecchia o l'errore, ricarica la pagina tenendo premuto per qualche secondo il pulsante di aggiornamento: spesso è solo il browser che ha salvato la vecchia copia.\n\nScusa il disagio. Se ti è costato qualcosa — una richiesta persa, una telefonata — dimmelo, e ne teniamo conto.",
+        "de": "es ist behoben, die Seite läuft wieder normal. Sieh es dir an, wenn du magst:\n{seite}\n\nWenn du noch die alte Fassung oder den Fehler siehst, lade die Seite einmal neu und halte dabei den Aktualisieren-Knopf ein paar Sekunden gedrückt: Oft hat nur der Browser die alte Kopie gespeichert.\n\nEntschuldige die Unannehmlichkeit. Wenn es dich etwas gekostet hat — eine verlorene Anfrage, ein Anruf — sag es mir, dann rechnen wir das an.",
+        "en": "it's fixed, the site is running normally again. Take a look when you can:\n{seite}\n\nIf you still see the old version or the error, reload the page and hold the refresh button for a couple of seconds: often it's just your browser holding the old copy.\n\nSorry for the trouble. If it cost you something — a lost enquiry, a phone call — tell me and we'll account for it."
+      }
+    }
+  },
+  "betreuung_reihe": [
+    "starter",
+    "business",
+    "premium"
+  ],
+  "betreuung_titel": {
+    "it": "Incluso:",
+    "de": "Enthalten:",
+    "en": "Included:"
+  },
+  "paketinhalt": {
+    "starter": {
+      "it": [
+        "· Sito su misura fino a 5 pagine",
+        "· Perfetto su smartphone, tablet e PC",
+        "· Modulo di contatto e Google Maps",
+        "· Certificato SSL e configurazione",
+        "· Base SEO per farsi trovare",
+        "· 1 indirizzo e-mail personalizzato",
+        "· Backup mensile e aggiornamenti",
+        "· Piccole modifiche incluse",
+        "· Assistenza diretta, senza ticket"
+      ],
+      "de": [
+        "· Individuelle Website bis 5 Seiten",
+        "· Perfekt auf Smartphone, Tablet und PC",
+        "· Kontaktformular und Google Maps",
+        "· SSL-Zertifikat und Einrichtung",
+        "· SEO-Grundlage, um gefunden zu werden",
+        "· 1 eigene E-Mail-Adresse",
+        "· Monatliche Backups und Updates",
+        "· Kleine Änderungen inklusive",
+        "· Direkte Betreuung ohne Ticketsystem"
+      ],
+      "en": [
+        "· Custom site with up to 5 pages",
+        "· Perfect on phone, tablet and desktop",
+        "· Contact form and Google Maps",
+        "· SSL certificate and setup",
+        "· SEO groundwork so you get found",
+        "· 1 custom email address",
+        "· Monthly backups and updates",
+        "· Small changes included",
+        "· Direct support, no ticket system"
+      ]
+    },
+    "business": {
+      "it": [
+        "· Fino a 10 pagine",
+        "· Perfetto su smartphone, tablet e PC",
+        "· Design premium personalizzato",
+        "· Ottimizzazione logo o nuovo logo",
+        "· Modulo di contatto e Google Maps",
+        "· Certificato SSL e configurazione",
+        "· Più moduli di richiesta e pulsante WhatsApp",
+        "· Galleria lavori e referenze",
+        "· SEO avanzata e profilo Google Business",
+        "· Fino a 5 indirizzi e-mail",
+        "· Backup mensile e aggiornamenti",
+        "· Monitoraggio sicurezza",
+        "· 60 minuti di modifiche al mese",
+        "· Assistenza diretta, senza ticket"
+      ],
+      "de": [
+        "· Bis zu 10 Seiten",
+        "· Perfekt auf Smartphone, Tablet und PC",
+        "· Individuelles Premium-Design",
+        "· Logo-Optimierung oder neues Logo",
+        "· Kontaktformular und Google Maps",
+        "· SSL-Zertifikat und Einrichtung",
+        "· Mehrere Anfrageformulare und WhatsApp-Button",
+        "· Bildergalerie und Referenzen",
+        "· Erweiterte SEO und Google-Unternehmensprofil",
+        "· Bis zu 5 E-Mail-Adressen",
+        "· Monatliche Backups und Updates",
+        "· Sicherheitsüberwachung",
+        "· 60 Minuten Änderungen pro Monat",
+        "· Direkte Betreuung ohne Ticketsystem"
+      ],
+      "en": [
+        "· Up to 10 pages",
+        "· Perfect on phone, tablet and desktop",
+        "· Custom premium design",
+        "· Logo refinement or a new logo",
+        "· Contact form and Google Maps",
+        "· SSL certificate and setup",
+        "· Multiple enquiry forms and WhatsApp button",
+        "· Gallery and references",
+        "· Advanced SEO and Google Business Profile",
+        "· Up to 5 email addresses",
+        "· Monthly backups and updates",
+        "· Security monitoring",
+        "· 60 minutes of changes per month",
+        "· Direct support, no ticket system"
+      ]
+    },
+    "premium": {
+      "it": [
+        "· Sito ampio fino a 20 pagine",
+        "· Perfetto su smartphone, tablet e PC",
+        "· Logo su misura e immagine coordinata",
+        "· Colori e caratteri professionali",
+        "· Blog o area news",
+        "· Prenotazione appuntamenti o richieste",
+        "· Newsletter e integrazione social",
+        "· Più moduli di richiesta e pulsante WhatsApp",
+        "· Galleria lavori e referenze",
+        "· Modulo di contatto e Google Maps",
+        "· Certificato SSL e configurazione",
+        "· SEO avanzata e profilo Google Business",
+        "· Fino a 10 indirizzi e-mail",
+        "· Backup mensile e aggiornamenti",
+        "· Controlli di sicurezza e prestazioni",
+        "· 2 ore di modifiche al mese",
+        "· Assistenza prioritaria",
+        "· Assistenza diretta, senza ticket"
+      ],
+      "de": [
+        "· Umfangreiche Website bis 20 Seiten",
+        "· Perfekt auf Smartphone, Tablet und PC",
+        "· Individuelles Logo und Markenauftritt",
+        "· Professionelle Farb- und Schriftgestaltung",
+        "· Blog- oder Newsbereich",
+        "· Terminbuchung oder Anfragesystem",
+        "· Newsletter und Social-Media-Anbindung",
+        "· Mehrere Anfrageformulare und WhatsApp-Button",
+        "· Bildergalerie und Referenzen",
+        "· Kontaktformular und Google Maps",
+        "· SSL-Zertifikat und Einrichtung",
+        "· Erweiterte SEO und Google-Unternehmensprofil",
+        "· Bis zu 10 E-Mail-Adressen",
+        "· Monatliche Backups und Updates",
+        "· Sicherheits- und Performance-Checks",
+        "· 2 Stunden Änderungen pro Monat",
+        "· Bevorzugte Betreuung",
+        "· Direkte Betreuung ohne Ticketsystem"
+      ],
+      "en": [
+        "· Extensive site with up to 20 pages",
+        "· Perfect on phone, tablet and desktop",
+        "· Custom logo and full brand look",
+        "· Professional colour and type design",
+        "· Blog or news area",
+        "· Appointment booking or enquiry system",
+        "· Newsletter and social integration",
+        "· Multiple enquiry forms and WhatsApp button",
+        "· Gallery and references",
+        "· Contact form and Google Maps",
+        "· SSL certificate and setup",
+        "· Advanced SEO and Google Business Profile",
+        "· Up to 10 email addresses",
+        "· Monthly backups and updates",
+        "· Security and performance checks",
+        "· 2 hours of changes per month",
+        "· Priority support",
+        "· Direct support, no ticket system"
+      ]
+    }
+  }
+}

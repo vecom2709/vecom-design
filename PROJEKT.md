@@ -1199,3 +1199,67 @@ Stufe wechselt auf „Dein Entwurf ist fertig", Knopf da, E-Mail mit Kennung im
 Betreff angekommen; Adresse getauscht → neue Adresse beim Kunden, keine zweite
 Mail; wieder gesperrt → Knopf weg, grauer Kasten zurück; Freischalten ohne
 Adresse abgelehnt; Status von Hand auf „Vorschau" ohne Freigabe warnt.
+
+## Sechsunddreißig Vorlagen, alle fertig ausgefüllt (02.09.2026)
+
+Uwes Wunsch: alle Vorlagen vollständig, eine Betreuungs-Vorlage mit Preisen und
+Inhalt, und deutlich mehr Vorlagen, die den Alltag abdecken.
+
+Aus vier wurden **36**, in drei Sprachen, in fünf Gruppen:
+
+| Gruppe | Anzahl | Beispiele |
+|---|---|---|
+| Vor dem Auftrag | 11 | Rückfrage vor dem Angebot · Angebot Starter/Business/Premium · „Was kostet eine Website?" · „Wie lange dauert es?" · Kleineres Paket · Absage |
+| Auftrag und Start | 6 | Auftrag bestätigt · Anzahlung · Fragebogen · Material · Logo in besserer Qualität · Domain und Zugänge |
+| Während der Arbeit | 8 | Texte schreibe ich · Vorschau fertig · Schon reingeschaut? · Änderungen umgesetzt · Über den Umfang hinaus · Verzögerung |
+| Abschluss und Zahlung | 5 | Bitte um Freigabe · Restzahlung · Zweite Erinnerung · Beleg erklärt · Seite ist online |
+| Danach und Betreuung | 6 | Betreuung mit Preisen · Laufzeit endet · Bewertung · Nach Monaten melden · Störung / behoben |
+
+**Keine Lücken mehr.** Vorher standen in mehreren Vorlagen leere Absätze, in die
+Uwe selbst schreiben musste. Jetzt ist jede ein fertiger Brief. Geprüft wird das
+maschinell: kein `\n\n\n`, kein unersetzter Platzhalter, jede Sprache gefüllt.
+
+**Die Betreuung mit Zahlen.** `{betreuung}` und `{betreuunginhalt}` setzen den
+Monatspreis des bestellten Pakets und die vollständige Leistungsliste ein, dazu
+die Bedingungen (zwölf Monate Erstlaufzeit, danach zum Monatsende kündbar) und
+ausdrücklich, was ohne Betreuung passiert.
+
+**Zwei Dinge, die beim Lesen des Ergebnisses auffielen:**
+
+1. *„Alles aus der Starter-Betreuung, plus:"* — so steht es auf der Website, und
+   dort ist es richtig. In einem Brief ist es wertlos: Der Kunde hat die
+   Starter-Liste nie gesehen. Die Listen werden deshalb aufsummiert.
+2. Beim Aufsummieren der Paketmerkmale stand dann „Website bis 5 Seiten" und drei
+   Zeilen später „bis zu 10 Seiten". Die aufgelösten, widerspruchsfreien Listen
+   liegen deshalb fertig in `vorlagen.json`, statt zur Laufzeit zusammengeklebt
+   zu werden.
+
+**Angebote nageln ihr Paket selbst fest.** Die Preise kamen bisher aus der
+Bestellung des Kunden — nur schreibt man ein Angebot, *bevor* es eine Bestellung
+gibt. Genau die wichtigste Vorlage war also leer, wenn man sie brauchte. Deshalb
+gibt es das Angebot dreimal, je Paket, jeweils mit echtem Preis, Anzahlung,
+Restzahlung und vollständiger Leistungsliste. Für einen Kunden mit Bestellung
+sind alle 36 Vorlagen vollständig gefüllt; ohne Bestellung bleiben vier mit „…",
+und die betreffen alle einen offenen Betrag, den es noch nicht gibt.
+
+**Wo sie liegen:** `app/src/vorlagen.json` — 36 mal drei Sprachen sind zu viel
+für eine PHP-Konstante, und in JSON lassen sie sich ohne Escaping pflegen.
+Dieselbe Lösung wie bei `standardpakete.json`.
+
+**Ein Fehler, den ich selbst gebaut und selbst ausgelöst habe:** Ich hatte in das
+Skript einen Kommentar geschrieben, warum `JSON_HEX_TAG` nötig ist, damit ein
+schließendes Skript-Tag in einer Vorlage den Block nicht vorzeitig beendet — und
+das Tag wörtlich in den Kommentar gesetzt. Der Kommentar über die Gefahr war die
+Gefahr; die Seite warf „Unexpected end of input" und die Vorlagenauswahl tat
+nichts. Aufgefallen im Browser, nicht beim Lesen.
+
+**Kleinigkeit mit großer Wirkung:** Das Textfeld wächst jetzt mit dem Inhalt. Ein
+fertiger Brief in einem sieben Zeilen hohen Fenster heißt, dass man scrollen muss,
+um zu sehen, was man verschickt.
+
+Geprüft: 36 Vorlagen mal drei Sprachen ohne unersetzte Platzhalter und ohne
+Lücken; die aufsummierten Listen widerspruchsfrei; alle drei Angebotsvorlagen
+auch ohne Bestellung vollständig; das Betreuungsschreiben über den echten
+Versandweg verschickt und im Mailfänger Zeichen für Zeichen mit der Vorlage
+verglichen — identisch, nichts abgeschnitten; beide Skriptblöcke der Seite mit
+`node --check` geprüft.
