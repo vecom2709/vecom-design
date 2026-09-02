@@ -41,8 +41,21 @@
       /* Ton kann nicht von selbst starten — das blockiert jeder Browser ohne
          Geste. Also stumm losspielen und beim ersten Tippen aufdrehen. */
       v.muted = true;
-      var los = v.play();
-      if (los && los.catch) { los.catch(function () { frei(true); }); }
+      /* Nicht sofort abspielen: erst wenn genug im Puffer liegt. Ein Film, der
+         anfaengt und dann stockt, ist schlechter als einer, der 300 ms spaeter
+         sauber durchlaeuft. */
+      var gestartet = false;
+      function anfangen() {
+        if (gestartet) { return; }
+        gestartet = true;
+        var los = v.play();
+        if (los && los.catch) { los.catch(function () { frei(true); }); }
+      }
+      if (v.readyState >= 4) { anfangen(); }
+      else {
+        v.addEventListener('canplaythrough', anfangen, { once: true });
+        setTimeout(anfangen, 1800);
+      }
 
       function tonAn() {
         v.muted = false;
@@ -69,7 +82,7 @@
       v.addEventListener('ended', function () { frei(false); });
       v.addEventListener('error', function () { frei(true); });
       /* Laeuft er nach 2,5 s immer noch nicht, kommt er auch nicht mehr. */
-      var start = setTimeout(function () { if (!v.currentTime) { frei(true); } }, 2500);
+      var start = setTimeout(function () { if (!v.currentTime) { frei(true); } }, 5000);
       v.addEventListener('playing', function () { clearTimeout(start); });
       setTimeout(function () { frei(true); }, 14000);   /* harte Obergrenze */
     });
@@ -355,8 +368,8 @@
 <div class="auftakt-vorhang" aria-hidden="true">
   <video class="auftakt-video" data-auftakt-video muted playsinline autoplay preload="auto"
          poster="assets/img/auftakt-poster.webp" disablepictureinpicture>
-    <source src="video/auftakt.webm?v=7622cd34" type="video/webm">
     <source src="video/auftakt.mp4?v=c572d331" type="video/mp4">
+    <source src="video/auftakt.webm?v=7622cd34" type="video/webm">
   </video>
 </div>
 <div class="auftakt-leiste">
@@ -1354,7 +1367,7 @@
 <script src="assets/vendor/gsap.min.js"></script>
 <script src="assets/vendor/ScrollTrigger.min.js"></script>
 <script src="assets/vendor/lenis.min.js"></script>
-<script type="module" src="assets/js/world/site-world.js?v=05f587c0"></script>
+<script type="module" src="assets/js/world/site-world.js?v=ef652227"></script>
 
 <!-- Besucherzählung: läuft ausschließlich auf dem eigenen Webspace.
      Kein fremder Dienst, kein Cookie, keine IP-Speicherung. -->

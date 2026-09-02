@@ -39,8 +39,34 @@ if (!canvas) {
   off('device');
 } else if (!window.gsap || !window.ScrollTrigger) {
   off('no-gsap');
+} else if (auftaktLaeuft()) {
+  /* Waehrend der Auftakt laeuft, gehoert der Hauptthread dem Film.
+     three.js laden, parsen und die Buehne bauen kostet gemessen mehrere
+     Sekunden Blockade am Stueck — dabei fielen 42 % der Videobilder aus und
+     es ruckelte sichtbar. Also erst, wenn der Film durch ist. */
+  warteAufAuftakt(start);
 } else {
   start();
+}
+
+function auftaktLaeuft() {
+  const z = root.getAttribute('data-auftakt');
+  return z === 'laeuft' || z === 'oeffnet';
+}
+function warteAufAuftakt(fn) {
+  const notfall = setTimeout(los, 16000);          /* haengt der Auftakt, faellt die Welt nicht aus */
+  const beob = new MutationObserver(() => { if (!auftaktLaeuft()) { los(); } });
+  beob.observe(root, { attributes: true, attributeFilter: ['data-auftakt'] });
+  let gestartet = false;
+  function los() {
+    if (gestartet) { return; }
+    gestartet = true;
+    beob.disconnect();
+    clearTimeout(notfall);
+    /* Einen Tick warten, damit die Aufblende der Seite nicht in denselben
+       Frame faellt wie der Beginn des Szenenaufbaus. */
+    setTimeout(fn, 120);
+  }
 }
 
 async function start() {

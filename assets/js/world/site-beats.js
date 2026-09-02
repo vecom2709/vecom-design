@@ -145,7 +145,15 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   const opening = gsap.timeline();
   opening.call(() => applyOpening(), null, 0.25);
 
-  if (w.bruchMesh && w.bruchU) {
+  /* Lief der Film, hat der Besucher den Bruch gerade gesehen. Dann faellt die
+     Echtzeit-Fassung aus: sonst zerspringt die Marke zweimal hintereinander,
+     und der Aufbau der Szene faellt genau in den Moment, in dem die Seite
+     erscheint. */
+  const filmLief = (() => {
+    try { return sessionStorage.getItem('vd-auftakt') === '1'; } catch (e) { return false; }
+  })();
+
+  if (!filmLief && w.bruchMesh && w.bruchU) {
     const U = w.bruchU;
     opening
       /* Anziehen. Eigener Griff, nicht extraRot: den setzt der Schluss-Trigger
