@@ -150,30 +150,35 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     opening
       /* Anziehen. Eigener Griff, nicht extraRot: den setzt der Schluss-Trigger
          direkt, und er wuerde die Auftaktdrehung stumm ueberschreiben. */
-      .fromTo(w.drift, { auftaktRot: 0 }, { auftaktRot: Math.PI * 6.4, duration: 1.25, ease: 'power3.in' }, 0.85)
+      .fromTo(w.drift, { auftaktRot: 0 }, { auftaktRot: Math.PI * 5.0, duration: 1.00, ease: 'power3.in' }, 0.55)
       /* auf den Bruchkörper umschalten; bei uBruch = 0 deckungsgleich, kein Sprung */
       .call(() => {
         w.bruchMat.emissiveIntensity = w.mat.emissiveIntensity;
         w.bruchMesh.visible = true;
         if (w.logoLeft) w.logoLeft.visible = false;
         if (w.logoRight) w.logoRight.visible = false;
-      }, null, 2.02)
-      /* der Bruch */
-      .fromTo(U.uGlut, { value: 1 }, { value: 0, duration: 1.05, ease: 'power2.out' }, 2.10)
-      .fromTo(U.uBruch, { value: 0 }, { value: 1, duration: 0.62, ease: 'power2.out' }, 2.10)
-      .to(w.bloom, { strength: 1.25, duration: 0.16, ease: 'power2.out' }, 2.10)
-      .to(w.bloom, { strength: BEATS[0].bloom, duration: 1.2, ease: 'power2.out' }, 2.32)
+      }, null, 1.50)
+      /* Der Bruch. Er lief vorher in 0,62 s bis zum Anschlag — dabei waren die
+         Brocken nach drei Zehntelsekunden aus dem Bild und der Bruch war weg,
+         bevor man ihn gesehen hatte. Jetzt: 0,9 s auseinander, ein halber
+         Takt Halt auf dem Hoehepunkt, dann zurueck. */
+      .fromTo(U.uGlut, { value: 1 }, { value: 0, duration: 1.30, ease: 'power2.out' }, 1.60)
+      .fromTo(U.uBruch, { value: 0 }, { value: 0.62, duration: 0.90, ease: 'power2.out' }, 1.60)
+      .to(U.uBruch, { value: 0.74, duration: 0.50, ease: 'none' }, 2.50)
+      .to(w.bloom, { strength: 1.25, duration: 0.16, ease: 'power2.out' }, 1.60)
+      .to(w.bloom, { strength: BEATS[0].bloom, duration: 1.3, ease: 'power2.out' }, 1.85)
+      /* Kamera weicht im Bruch etwas zurueck, damit die Truemmer ins Bild passen */
+      .to(w.camGoal, { z: '+=2.2', duration: 0.75, ease: 'power2.out' }, 1.60)
+      .to(w.camGoal, { z: '-=2.2', duration: 1.30, ease: 'power2.inOut' }, 2.95)
       /* Drall läuft aus, Brocken kehren zurück */
-      .to(w.drift, { auftaktRot: 0, duration: 1.7, ease: 'power2.out' }, 2.10)
-      .to(U.uBruch, { value: 0, duration: 1.10, ease: 'power2.inOut' }, 2.80)
-      .call(bruchZurueck, null, 3.95)
+      .to(w.drift, { auftaktRot: 0, duration: 1.8, ease: 'power2.out' }, 1.60)
+      .to(U.uBruch, { value: 0, duration: 1.15, ease: 'power2.inOut' }, 3.00)
+      .call(bruchZurueck, null, 4.15)
       /* Ein Atemzug auf der wieder ganzen Marke — ein Schluss braucht ein Bild,
          auf dem er stehen bleibt, sonst wirkt er abgeschnitten. */
-      .to({}, { duration: 0.45 }, 3.95)
-      /* Erst jetzt oeffnet die Seite. Der Vorhang blendet 620 ms lang aus,
-         die Buehne bleibt dabei oben — man sieht die Marke noch, waehrend
-         der Inhalt hochkommt. */
-      .call(function () { window.dispatchEvent(new Event('vecom:auftakt-bruch')); }, null, 4.30);
+      .to({}, { duration: 0.40 }, 4.15)
+      /* Erst jetzt oeffnet die Seite. */
+      .call(function () { window.dispatchEvent(new Event('vecom:auftakt-bruch')); }, null, 4.55);
   }
   function applyOpening() {
     const b = BEATS[0];
