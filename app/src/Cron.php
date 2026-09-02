@@ -146,6 +146,22 @@ final class Cron
         if (self::heuteNochNicht('cron_sicherung')) {
             $aufgaben['sicherung'] = static fn() => Sicherung::laufen();
         }
+        // Ganz zuletzt das Jahrespaket fuers Finanzamt. Es baut jeden Beleg
+        // als PDF neu und wird mit jedem Jahr laenger — und was am laengsten
+        // dauert, darf nicht vor der Sicherung stehen: Steigt der Server
+        // mittendrin aus, gilt der Tag als erledigt, und die Sicherung waere
+        // still ausgefallen.
+        //
+        // Warum ueberhaupt taeglich und nicht auf Knopfdruck: Wer die Belege
+        // einmal im Jahr zusammensucht, sucht im Maerz nach einem Beleg vom
+        // Maerz davor. Liegt das Paket jeden Morgen fertig da, ist die Frage
+        // "hast du alles?" mit einem Klick beantwortet.
+        if (self::heuteNochNicht('cron_steuerakte')) {
+            $aufgaben['steuerakte'] = static function () {
+                require_once __DIR__ . '/Steuerakte.php';
+                return Steuerakte::taeglich();
+            };
+        }
 
         foreach ($aufgaben as $name => $tun) {
             try { $bilanz[$name] = $tun(); }

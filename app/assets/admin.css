@@ -133,6 +133,11 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 
 @media(max-width:900px){
   .zwei{grid-template-columns:1fr}
+  /* Eine Spalte im Raster ist von sich aus so breit wie ihr breitester
+     Inhalt — auch wenn der Inhalt selbst scrollen koennte. Ohne diese Zeile
+     schiebt eine Tabelle die ganze Seite nach rechts, obwohl sie in einem
+     scrollenden Rahmen sitzt. */
+  .zwei > *,.huelle > *,.inhalt > *{min-width:0}
   .huelle{flex-direction:column}
   .nav{width:auto;flex:none;height:auto;position:static;display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--linie);padding:10px}
   .nav .gruppe,.marke{display:none}
@@ -146,6 +151,14 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
    kommt per E-Mail und wird unterwegs angetippt. 34 Pixel sind dafuer zu
    wenig; die uebliche Untergrenze liegt bei 44. */
 @media(max-width:700px){
+  /* Eine Tabelle mit sechs Spalten passt auf kein Telefon. Bisher schob sie
+     die ganze Seite nach rechts: Man wischte, und die Kopfzeile wanderte mit,
+     als waere die Verwaltung kaputt. Jetzt scrollt die Tabelle in sich selbst,
+     der Rest der Seite bleibt stehen. Auf dem Rechner aendert sich nichts. */
+  .block table{display:block;overflow-x:auto;max-width:100%}
+  /* Wer schon in einem scrollenden Rahmen steckt, bleibt eine echte Tabelle —
+     sonst schrumpfte sie dort auf ihre Inhaltsbreite zusammen. */
+  .tabellenrahmen table{display:table;width:100%}
   .knopf,button.knopf,button:not(.chip-opt){min-height:44px;padding-top:11px;padding-bottom:11px}
   .sprachen a{display:inline-block;padding:10px 8px}
   .datei .knopf{min-width:44px;justify-content:center}

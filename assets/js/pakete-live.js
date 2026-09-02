@@ -150,6 +150,37 @@
     }
   }
 
+  /* Der Betreuungsblock. Dieselbe Karte, nur zeigt sie den Monatspreis als
+     Preis — ein Vertrag ohne Einmalbetrag hat keinen anderen. Fehlt der Block
+     auf der Seite, passiert hier nichts. */
+  function betreuungZeichnen(liste, monatsWort) {
+    var kasten = document.querySelector('[data-betreuung]');
+    if (!kasten || !liste || !liste.length) { return; }
+    var vorher = kasten.innerHTML;
+    try {
+      var neu = document.createDocumentFragment();
+      liste.forEach(function (p) {
+        var karte = karteBauen({
+          slug: p.slug, name: p.name, sub: p.sub, ideal: p.ideal,
+          features: p.features, preis: p.monat, monat: 0,
+          waehrung: p.waehrung, beliebt: p.beliebt, detail: p.detail,
+          kaufbar: false, kauf_url: p.kauf_url
+        }, '');
+        var klein = karte.querySelector('.plan__price > small');
+        if (klein && monatsWort) { klein.removeAttribute('data-i18n'); klein.textContent = monatsWort; }
+        // Fuer die Betreuung gibt es keine Detailseite — ein Link, der ins
+        // Leere zeigt, ist schlimmer als kein Link.
+        var det = karte.querySelector('.det-link');
+        if (det) { det.remove(); }
+        neu.appendChild(karte);
+      });
+      kasten.innerHTML = '';
+      kasten.appendChild(neu);
+    } catch (e) {
+      kasten.innerHTML = vorher;
+    }
+  }
+
   function holen() {
     fetch('/pakete-daten.php?lang=' + encodeURIComponent(sprache()), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -157,7 +188,9 @@
         if (!d || !d.pakete || !d.pakete.length) { return; }
         kaufText = d.kauf_text || '';
         letzte = d.pakete;
+        var monatsWort = (document.querySelector('[data-betreuung] .plan__price > small') || {}).textContent || '';
         zeichnen(letzte);
+        betreuungZeichnen(d.betreuung, monatsWort);
       })
       .catch(function () { /* Website behält ihre eingebauten Karten */ });
   }

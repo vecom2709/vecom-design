@@ -38,7 +38,7 @@
   <?php if (!$liste): ?>
     <div class="leer">Noch keine Belege. Der erste entsteht mit der ersten bezahlten Rate.</div>
   <?php else: ?>
-    <table><thead><tr><th>Nummer</th><th>Kunde</th><th>Leistung</th><th>Datum</th><th>Betrag</th><th></th></tr></thead><tbody>
+    <div class="tabellenrahmen"><table><thead><tr><th>Nummer</th><th>Kunde</th><th>Leistung</th><th>Datum</th><th>Betrag</th><th></th></tr></thead><tbody>
     <?php foreach ($liste as $r): ?>
       <tr>
         <td><a href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'])) ?>"><?= Fmt::h($r['invoice_no']) ?></a>
@@ -52,6 +52,6 @@
         <td style="text-align:right"><a class="knopf" href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'] . '/pdf')) ?>">PDF</a></td>
       </tr>
     <?php endforeach; ?>
-    </tbody></table>
+    </tbody></table></div>
   <?php endif; ?>
 </div>

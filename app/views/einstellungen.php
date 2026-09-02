@@ -172,7 +172,7 @@
     </div>
   <?php else: ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;margin:0">
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="cockpit_schuetzen">
         <input type="hidden" name="zurueck" value="einstellungen">
         <div class="feld" style="margin:0"><label>Benutzername</label>

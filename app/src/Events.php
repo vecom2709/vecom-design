@@ -173,22 +173,47 @@ final class Events
      * Kunde kauft ein Paket. Erzeugt in einem Zug: Bestellung, offene Zahlung,
      * Aktivitaet und Benachrichtigung. Entweder alles oder nichts.
      */
-    public static function bestellungAnlegen(int $kundeId, int $paketId, ?string $notiz = null): int
+    /**
+     * Eine Bestellung von Hand.
+     *
+     * WARUM DER PREIS FREI SEIN DARF
+     *
+     * Das Paket ist der Ausgangspunkt, nicht das Gesetz. Wer am Telefon einen
+     * Nachlass zugesagt hat, eine Seite mehr eingerechnet oder einen alten
+     * Kunden anders behandelt, hat das getan, bevor er hier klickt — die
+     * Bestellung muss dann sagen, was besprochen war, sonst stimmen Belege
+     * und Zahlungen von Anfang an nicht. Ohne Angabe bleibt alles beim
+     * Paketpreis, so wie vorher.
+     *
+     * @param int|null $preisCents  Vereinbarter Gesamtpreis statt des Paketpreises
+     * @param int|null $prozent     Anzahlung in Prozent (1 bis 100)
+     * @param string|null $name     Abweichende Bezeichnung auf Bestellung und Beleg
+     */
+    public static function bestellungAnlegen(int $kundeId, int $paketId, ?string $notiz = null,
+                                             ?int $preisCents = null, ?int $prozent = null,
+                                             ?string $name = null): int
     {
-        $bestellId = (int) Db::transaktion(static function () use ($kundeId, $paketId, $notiz) {
+        $bestellId = (int) Db::transaktion(static function () use ($kundeId, $paketId, $notiz, $preisCents, $prozent, $name) {
             $paket = Db::one('SELECT * FROM packages WHERE id = ?', [$paketId]);
             if (!$paket) { throw new RuntimeException('Paket nicht gefunden.'); }
             $kunde = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
             if (!$kunde) { throw new RuntimeException('Kunde nicht gefunden.'); }
 
+            // Ein Preis von null waere kein Nachlass, sondern ein Versehen.
+            $preis = $preisCents !== null && $preisCents > 0 ? $preisCents : (int) $paket['price_cents'];
+            $anteil = $prozent !== null && $prozent >= 1 && $prozent <= 100 ? $prozent : 50;
+            $bezeichnung = $name !== null && trim($name) !== ''
+                ? mb_substr(trim($name), 0, 190) : (string) $paket['name'];
+
             $bestellId = Db::insert('orders', [
                 'order_no'      => self::naechsteBestellnummer(),
                 'customer_id'   => $kundeId,
                 'package_id'    => $paketId,
-                'package_name'  => $paket['name'],
-                'price_cents'   => (int) $paket['price_cents'],
+                'package_name'  => $bezeichnung,
+                'price_cents'   => $preis,
                 'monthly_cents' => (int) $paket['monthly_cents'],
                 'currency'      => $paket['currency'],
+                'anzahlung_prozent' => $anteil,
                 'status'        => 'zahlung_ausstehend',
                 'notes'         => $notiz,
             ]);
@@ -196,8 +221,8 @@ final class Events
             // Bei Webdesign wird in zwei Schritten gezahlt: die Haelfte bei
             // Auftrag, der Rest bei Uebergabe. Die zweite Rate entsteht gleich
             // mit, damit der offene Betrag von Anfang an stimmt.
-            $gesamt    = (int) $paket['price_cents'];
-            $prozent   = (int) Db::wert('SELECT anzahlung_prozent FROM orders WHERE id = ?', [$bestellId], 50);
+            $gesamt    = $preis;
+            $prozent   = (int) Db::wert('SELECT anzahlung_prozent FROM orders WHERE id = ?', [$bestellId], $anteil);
             $anzahlung = (int) round($gesamt * $prozent / 100);
             $rest      = $gesamt - $anzahlung;
 
@@ -216,7 +241,8 @@ final class Events
                 ]);
             }
 
-            self::protokoll('bestellung_neu', 'Neue Bestellung: ' . $paket['name'] . ' — ' . $kunde['name'],
+            self::protokoll('bestellung_neu', 'Neue Bestellung: ' . $bezeichnung . ' — ' . $kunde['name']
+                . ($preis !== (int) $paket['price_cents'] ? ' (vereinbarter Preis)' : ''),
                 $kundeId, $bestellId);
             // Keine Meldung: Hierher kommt nur, was Uwe selbst angelegt hat.
             // Eine Direktbuchung ueber die Website meldet sich in buchen.php

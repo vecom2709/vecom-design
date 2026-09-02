@@ -221,8 +221,10 @@ final class Kundenzugang
             'vorschau'      => $vorschau,
             'vorschau_frei' => $vorschauFrei,
             'live'          => $live,
+            // Der Fallback steht zweimal da, weil der zweite Zugriff sonst
+            // eine Meldung ausloest, wenn die Spalte gar nicht mitgelesen wurde.
             'sprache'  => in_array((string) ($kunde['sprache'] ?? 'it'), ['it','de','en'], true)
-                          ? (string) $kunde['sprache'] : 'it',
+                          ? (string) ($kunde['sprache'] ?? 'it') : 'it',
         ];
     }
 

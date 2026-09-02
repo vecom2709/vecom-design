@@ -57,7 +57,10 @@ final class Abo
         $p = $slug !== '' ? Db::one('SELECT * FROM packages WHERE slug = ?', [$slug]) : null;
         if (!$p) { throw new RuntimeException('Kein Betreuungspaket gewählt.'); }
 
-        $betrag = (int) ($wahl['betrag_cents'] ?? $p['monthly_cents']);
+        // Der Paketpreis ist der Ausgangspunkt. Wurde etwas anderes vereinbart,
+        // gilt das Vereinbarte — sonst steht im Vertrag eine Zahl, die nie
+        // besprochen war.
+        $betrag = (int) (($wahl['betrag_cents'] ?? null) ?: $p['monthly_cents']);
         if ($betrag <= 0) { throw new RuntimeException('Ein Betreuungsvertrag braucht einen Monatsbetrag.'); }
 
         $zahlart = (string) ($wahl['zahlart'] ?? 'karte');

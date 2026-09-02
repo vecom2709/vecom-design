@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<!--
+  explainer-ablauf.html — Bühne für das Erklärvideo „Wie es für dich abläuft".
+
+  Wird nicht veröffentlicht, sondern von tools/record-ablauf.mjs abgefilmt.
+  Jede Szene ist ein <section class="sc">; das Aufnahmeskript blendet sie
+  nacheinander ein und hält sie so lange, wie in der HALT-Liste steht.
+
+  WARUM ECHTE BILDSCHIRME UND KEINE ZEICHNUNGEN
+  Das Video verspricht dem Kunden zu zeigen, wie es bei ihm aussieht. Also
+  zeigt es genau das: Aufnahmen der laufenden Kundenseite, aus video/quellen/.
+  Erfundene Oberflächen wären eine Behauptung, keine Erklärung — und der
+  Unterschied fällt spätestens auf, wenn der Kunde die echte Seite öffnet.
+
+  Texte ändern = in assets/js/i18n-data.js unter „abl" ändern, nicht hier.
+-->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Vecom Design — Ablauf</title>
+<link rel="stylesheet" href="assets/css/fonts.css">
+<style>
+  :root{
+    --blau:#0648e8; --hellblau:#0a78f5; --cyan:#1fe8ff;
+    --grund:#05070d; --flaeche:#0c1119; --flaeche2:#111826;
+    --text:#e9eef8; --dim:#97a5bf; --leise:#808ea9;
+    --linie:rgba(150,180,230,.14);
+    --e:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:1280px;height:720px;overflow:hidden;background:var(--grund);
+       color:var(--text);font-family:'Inter',system-ui,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  .stage{position:relative;width:1280px;height:720px;overflow:hidden}
+
+  .glow{position:absolute;inset:0;background:
+    radial-gradient(54% 46% at 26% 34%,rgba(10,120,245,.20),transparent 70%),
+    radial-gradient(42% 36% at 86% 82%,rgba(6,72,232,.13),transparent 72%)}
+  .grain{position:absolute;inset:0;opacity:.032;pointer-events:none;z-index:9;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .sc{position:absolute;inset:0;opacity:0;visibility:hidden;
+      transition:opacity .55s var(--e)}
+  .sc.on{opacity:1;visibility:visible}
+
+  /* Zwei Grundformen: mittig für Titel und Abbinder, geteilt für alles dazwischen. */
+  .sc--mitte{display:grid;place-content:center;justify-items:start;
+             padding:0 110px;gap:22px}
+  .sc--teil{display:grid;grid-template-columns:404px 1fr;align-items:center;
+            gap:48px;padding:0 68px}
+
+  h1{font-family:'Archivo',sans-serif;font-stretch:112%;font-weight:700;
+     font-size:70px;line-height:1.02;letter-spacing:-.034em;max-width:15ch}
+  h2{font-family:'Archivo',sans-serif;font-stretch:110%;font-weight:700;
+     font-size:44px;line-height:1.06;letter-spacing:-.028em}
+  p{font-size:21px;line-height:1.55;color:var(--dim);max-width:44ch}
+  .sc--mitte p{font-size:24px;max-width:46ch}
+  .kicker{font-family:'Archivo',sans-serif;font-stretch:94%;font-size:13px;
+     letter-spacing:.3em;text-transform:uppercase;color:var(--cyan)}
+  .grad{background:linear-gradient(100deg,#cfe0ff,#fff 35%,#79c8ff 70%,var(--cyan));
+     -webkit-background-clip:text;background-clip:text;color:transparent}
+  .mark{display:block}
+
+  /* Einfahrende Zeilen — 24 px Weg, mehr wirkt billig. */
+  .up{transform:translateY(24px);opacity:0;
+      transition:transform .62s var(--e),opacity .62s var(--e)}
+  .sc.on .up{transform:none;opacity:1}
+  .sc.on .d1{transition-delay:.10s}.sc.on .d2{transition-delay:.20s}
+  .sc.on .d3{transition-delay:.30s}.sc.on .d4{transition-delay:.40s}
+
+  /* --- Browserfenster mit dem echten Bildschirm darin ------------------- */
+  .win{position:relative;border-radius:13px;overflow:hidden;background:#070b13;
+       box-shadow:0 46px 100px -44px #000,0 0 0 1px var(--linie);
+       transform:translateY(26px) scale(.985);opacity:0;
+       transition:transform .72s var(--e) .14s,opacity .72s var(--e) .14s}
+  .sc.on .win{transform:none;opacity:1}
+  .win__bar{display:flex;gap:6px;align-items:center;padding:9px 13px;background:#121a28}
+  .win__bar i{width:8px;height:8px;border-radius:50%;background:rgba(150,180,230,.28)}
+  .win__url{margin-left:12px;font-size:11px;color:var(--leise);letter-spacing:.04em;
+            font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .win__glas{position:relative;aspect-ratio:880/470;overflow:hidden}
+  /* Jede Szene hat ihren eigenen, schon passend geschnittenen Ausschnitt aus
+     video/quellen/. Frueher lag hier ein einziges langes Bild, das je Szene
+     verschoben wurde — dabei rutschte eine Szene ueber den unteren Rand hinaus
+     und zeigte eine leere Flaeche. Ein Bild je Szene kann das nicht. */
+  .win__glas img{position:absolute;top:0;left:0;width:100%;display:block}
+  /* Der Ausschnitt wird je Szene gesetzt, damit die wichtige Stelle groß ist. */
+
+  /* --- E-Mail-Attrappe -------------------------------------------------- */
+  .mail{border-radius:13px;overflow:hidden;background:var(--flaeche);
+        box-shadow:0 46px 100px -44px #000,0 0 0 1px var(--linie);
+        transform:translateY(26px);opacity:0;
+        transition:transform .72s var(--e) .14s,opacity .72s var(--e) .14s}
+  .sc.on .mail{transform:none;opacity:1}
+  .mail__kopf{padding:18px 24px;border-bottom:1px solid var(--linie);background:var(--flaeche2)}
+  .mail__betreff{font-family:'Archivo',sans-serif;font-size:19px;font-weight:600;margin-bottom:6px}
+  .mail__betreff em{font-style:normal;color:var(--cyan)}
+  .mail__von{font-size:13px;color:var(--leise)}
+  .mail__leib{padding:22px 24px;font-size:15px;line-height:1.62;color:var(--dim);
+              display:grid;gap:12px}
+  .mail__link{display:inline-block;padding:9px 15px;border-radius:9px;
+    background:linear-gradient(100deg,var(--blau),var(--hellblau));color:#fff;
+    font-size:14px;font-weight:600;text-decoration:none}
+
+  /* --- Kleine Bausteine -------------------------------------------------- */
+  .merk{display:grid;gap:11px;margin-top:6px}
+  .merk div{display:flex;gap:11px;align-items:flex-start;font-size:17px;color:var(--dim)}
+  .merk i{flex:0 0 auto;width:7px;height:7px;border-radius:2px;margin-top:9px;
+          background:linear-gradient(120deg,var(--blau),var(--cyan))}
+
+  .weg{display:flex;gap:5px;width:100%;margin-top:4px}
+  .weg span{flex:1;height:3px;border-radius:3px;background:rgba(150,180,230,.18)}
+  .weg span.durch{background:var(--blau)}
+  .weg span.jetzt{background:var(--cyan)}
+
+  .foot{position:absolute;left:68px;bottom:44px;font-size:13px;letter-spacing:.26em;
+     text-transform:uppercase;color:var(--leise);opacity:.75}
+  .zahl{position:absolute;right:68px;bottom:44px;font-family:'Archivo',sans-serif;
+     font-stretch:112%;font-weight:700;font-size:13px;letter-spacing:.2em;color:var(--leise);opacity:.7}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="glow"></div>
+
+  <!-- 1 — Titel -->
+  <section class="sc sc--mitte" data-sc="1">
+    <img class="mark up" src="assets/img/logo-full-dark.webp" alt="" style="width:260px">
+    <h1 class="up d1 grad" data-i18n="abl.s1a"></h1>
+    <p class="up d2" data-i18n="abl.s1b"></p>
+  </section>
+
+  <!-- 2 — Du schreibst -->
+  <section class="sc sc--teil" data-sc="2">
+    <div>
+      <p class="kicker up" data-i18n="abl.s2k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s2a"></h2>
+      <p class="up d2" data-i18n="abl.s2b"></p>
+      <div class="merk up d3">
+        <div><i></i><span data-i18n="abl.s2m1"></span></div>
+        <div><i></i><span data-i18n="abl.s2m2"></span></div>
+      </div>
+    </div>
+    <div class="mail">
+      <div class="mail__kopf">
+        <p class="mail__betreff"><em>[VD-2026-0031]</em> <span data-i18n="abl.s2mail"></span></p>
+        <p class="mail__von">Uwe Vetter · kontakt@vecom-design.it</p>
+      </div>
+      <div class="mail__leib">
+        <p data-i18n="abl.s2z1"></p>
+        <p data-i18n="abl.s2z2"></p>
+        <p><a class="mail__link" href="#" data-i18n="abl.s2knopf"></a></p>
+      </div>
+    </div>
+    <span class="zahl">01 / 07</span>
+  </section>
+
+  <!-- 3 — Deine eigene Seite -->
+  <section class="sc sc--teil" data-sc="3">
+    <div>
+      <p class="kicker up" data-i18n="abl.s3k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s3a"></h2>
+      <p class="up d2" data-i18n="abl.s3b"></p>
+      <div class="weg up d3" style="margin-top:22px">
+        <span class="jetzt"></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="win">
+      <div class="win__bar"><i></i><i></i><i></i>
+        <span class="win__url">vecom-design.it/kunde.php?t=…</span></div>
+      <div class="win__glas"><img src="video/quellen/de/s3.webp" data-quelle="s3" alt=""></div>
+    </div>
+    <span class="zahl">02 / 07</span>
+  </section>
+
+  <!-- 4 — Immer nur eine Sache -->
+  <section class="sc sc--teil" data-sc="4">
+    <div>
+      <p class="kicker up" data-i18n="abl.s4k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s4a"></h2>
+      <p class="up d2" data-i18n="abl.s4b"></p>
+      <div class="merk up d3">
+        <div><i></i><span data-i18n="abl.s4m1"></span></div>
+        <div><i></i><span data-i18n="abl.s4m2"></span></div>
+      </div>
+    </div>
+    <div class="win">
+      <div class="win__bar"><i></i><i></i><i></i>
+        <span class="win__url">vecom-design.it/kunde.php?t=…</span></div>
+      <div class="win__glas"><img src="video/quellen/de/s4.webp" data-quelle="s4" alt=""></div>
+    </div>
+    <span class="zahl">03 / 07</span>
+  </section>
+
+  <!-- 5 — Angebot und Anzahlung -->
+  <section class="sc sc--teil" data-sc="5">
+    <div>
+      <p class="kicker up" data-i18n="abl.s5k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s5a"></h2>
+      <p class="up d2" data-i18n="abl.s5b"></p>
+      <div class="merk up d3">
+        <div><i></i><span data-i18n="abl.s5m1"></span></div>
+        <div><i></i><span data-i18n="abl.s5m2"></span></div>
+      </div>
+    </div>
+    <div class="win">
+      <div class="win__bar"><i></i><i></i><i></i>
+        <span class="win__url">vecom-design.it/kunde.php?t=…</span></div>
+      <div class="win__glas"><img src="video/quellen/de/s5.webp" data-quelle="s5" alt=""></div>
+    </div>
+    <span class="zahl">04 / 07</span>
+  </section>
+
+  <!-- 6 — Ich baue, du siehst zu -->
+  <section class="sc sc--teil" data-sc="6">
+    <div>
+      <p class="kicker up" data-i18n="abl.s6k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s6a"></h2>
+      <p class="up d2" data-i18n="abl.s6b"></p>
+      <div class="weg up d3" style="margin-top:22px">
+        <span class="durch"></span><span class="durch"></span><span class="durch"></span>
+        <span class="jetzt"></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="win">
+      <div class="win__bar"><i></i><i></i><i></i>
+        <span class="win__url">vecom-design.it/kunde.php?t=…</span></div>
+      <div class="win__glas"><img src="video/quellen/de/s6.webp" data-quelle="s6" alt=""></div>
+    </div>
+    <span class="zahl">05 / 07</span>
+  </section>
+
+  <!-- 7 — Entwurf und Freigabe -->
+  <section class="sc sc--teil" data-sc="7">
+    <div>
+      <p class="kicker up" data-i18n="abl.s7k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s7a"></h2>
+      <p class="up d2" data-i18n="abl.s7b"></p>
+      <div class="merk up d3">
+        <div><i></i><span data-i18n="abl.s7m1"></span></div>
+        <div><i></i><span data-i18n="abl.s7m2"></span></div>
+      </div>
+    </div>
+    <div class="win">
+      <div class="win__bar"><i></i><i></i><i></i>
+        <span class="win__url">vecom-design.it/kunde.php?t=…</span></div>
+      <div class="win__glas"><img src="video/quellen/de/s7.webp" data-quelle="s7" alt=""></div>
+    </div>
+    <span class="zahl">06 / 07</span>
+  </section>
+
+  <!-- 8 — Online, und die Belege bleiben -->
+  <section class="sc sc--teil" data-sc="8">
+    <div>
+      <p class="kicker up" data-i18n="abl.s8k"></p>
+      <h2 class="up d1" style="margin:14px 0 16px" data-i18n="abl.s8a"></h2>
+      <p class="up d2" data-i18n="abl.s8b"></p>
+      <div class="weg up d3" style="margin-top:22px">
+        <span class="durch"></span><span class="durch"></span><span class="durch"></span>
+        <span class="durch"></span><span class="durch"></span><span class="durch"></span>
+        <span class="jetzt"></span>
+      </div>
+    </div>
+    <div class="win">
+      <div class="win__bar"><i></i><i></i><i></i>
+        <span class="win__url">vecom-design.it/kunde.php?t=…</span></div>
+      <div class="win__glas"><img src="video/quellen/de/s8.webp" data-quelle="s8" alt=""></div>
+    </div>
+    <span class="zahl">07 / 07</span>
+  </section>
+
+  <!-- 9 — Betreuung, freiwillig -->
+  <section class="sc sc--mitte" data-sc="9">
+    <p class="kicker up" data-i18n="abl.s9k"></p>
+    <h2 class="up d1" style="font-size:52px;max-width:20ch" data-i18n="abl.s9a"></h2>
+    <p class="up d2" data-i18n="abl.s9b"></p>
+  </section>
+
+  <!-- 10 — Was du davon hast -->
+  <section class="sc sc--mitte" data-sc="10">
+    <p class="kicker up" data-i18n="abl.s10k"></p>
+    <h2 class="up d1" style="font-size:52px;max-width:20ch" data-i18n="abl.s10a"></h2>
+    <div class="merk up d2" style="gap:14px;margin-top:10px">
+      <div><i></i><span style="font-size:20px" data-i18n="abl.s10m1"></span></div>
+      <div><i></i><span style="font-size:20px" data-i18n="abl.s10m2"></span></div>
+      <div><i></i><span style="font-size:20px" data-i18n="abl.s10m3"></span></div>
+    </div>
+  </section>
+
+  <!-- 11 — Abbinder -->
+  <section class="sc sc--mitte" data-sc="11" style="justify-items:start">
+    <img class="mark up" src="assets/img/logo-full-dark.webp" alt="" style="width:300px">
+    <h2 class="up d1 grad" style="font-size:56px">vecom-design.it</h2>
+    <p class="up d2" data-i18n="abl.s11b"></p>
+  </section>
+
+  <div class="grain"></div>
+</div>
+<script src="assets/js/i18n-data.js"></script>
+<script>
+  /* Sprache über ?lang= — aus einer Bühne entsteht jede Sprachfassung. */
+  (function () {
+    var lang = new URLSearchParams(location.search).get('lang') || 'de';
+    var d = (window.VECOM_I18N || {})[lang] || {};
+    var get = function (p) { return p.split('.').reduce(function (o, k) { return (o || {})[k]; }, d); };
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      var v = get(el.getAttribute('data-i18n'));
+      if (typeof v === 'string') { el.textContent = v; }
+    });
+    /* Die Bildschirme in derselben Sprache wie der Text. Eine italienische
+       Fassung mit deutschen Bildschirmen wäre genau die Art Nachlässigkeit,
+       die ein Kunde bemerkt und ein Video unglaubwürdig macht. */
+    document.querySelectorAll('img[data-quelle]').forEach(function (el) {
+      el.setAttribute('src', 'video/quellen/' + lang + '/' + el.getAttribute('data-quelle') + '.webp');
+    });
+  })();
+</script>
+</body>
+</html>

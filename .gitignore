@@ -17,3 +17,16 @@ cockpit/.htpasswd
 # duerfen dort unter keinen Umstaenden landen.
 app/sicherungen/
 app/notfall/
+
+# Eingangsbelege und die fertigen Jahrespakete fuers Finanzamt. Beides
+# entsteht auf dem Server, beides enthaelt Rechnungen mit Namen und
+# Betraegen — und das Repository ist oeffentlich.
+app/eingang/
+app/steuerakte/
+
+# Zwischenschritte der Videoaufnahme. Die fertigen .mp4 gehoeren ins
+# Repository, die rohen .webm und der Ordner, in den Playwright sie legt,
+# nicht — sie sind dreimal so gross und entstehen jederzeit neu.
+video/roh/
+video/*.webm
+node_modules/

@@ -47,7 +47,10 @@ window.VECOM_FORM_ENDPOINT = '/formular.php';
   function gewaehltesPaket() {
     var slug = new URLSearchParams(location.search).get('paket');
     if (!slug || !/^[a-z0-9-]{1,40}$/.test(slug)) return null;
-    var karte = document.querySelector('.plan[data-paket="' + slug + '"]');
+    /* Nicht nur Preiskarten: Das individuelle Projekt traegt dasselbe
+       Merkmal, hat aber bewusst keinen Preis. Deshalb wird hier nach dem
+       Merkmal gesucht und nicht nach der Karte. */
+    var karte = document.querySelector('[data-paket="' + slug + '"]');
     if (!karte) return null;
     var name = karte.querySelector('h3');
     var preis = karte.querySelector('.plan__price span');

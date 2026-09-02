@@ -30,7 +30,7 @@
       <td><span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span></td>
       <td><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></td></tr><?php endforeach; ?>
     </tbody></table></div></div>
-  <div class="block"><h2>Nachricht an den Kunden</h2>
+  <div class="block" id="schreiben"><h2>Nachricht an den Kunden</h2>
     <?php if ($anonym ?? false): ?>
       <div class="leer">Der Datensatz ist anonymisiert — es gibt keine Adresse mehr,
         an die etwas gehen könnte.</div>
@@ -56,6 +56,7 @@
       $nfTat = 'kunde_nachricht'; $nfId = (int) $k['id'];
       $nfKennung = (string) ($kennung ?? ''); $nfVorlagen = (array) ($vorlagen ?? []);
       $nfVorname = explode(' ', (string) $k['name'])[0]; $nfZurueck = '';
+      $nfVorwahl = (string) ($vorwahl ?? '');
       require __DIR__ . '/nachrichtfeld.php';
     ?>
     <?php endif; ?>
@@ -144,6 +145,10 @@
                 — <?= Fmt::h(Fmt::geld((int) $bp['monthly_cents'], (string) $bp['currency'])) ?> im Monat</option>
             <?php endforeach; ?>
           </select></div>
+        <div class="feld"><label>Monatsbetrag, wenn abweichend vereinbart</label>
+          <input name="betrag" inputmode="decimal" placeholder="leer = Paketpreis">
+          <small style="color:var(--leise);display:block;margin-top:5px">Nur ausfüllen, wenn ihr
+            etwas anderes besprochen habt. Was hier steht, steht danach im Vertrag.</small></div>
         <div class="feld"><label>Zahlart</label>
           <select name="zahlart">
             <option value="manuell">Von Hand abrechnen — bis Stripe bereit ist</option>
@@ -175,6 +180,12 @@
     <div class="feld">
       <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>" style="font-size:12px"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <?php /* Der Weg fuer den Kunden, den es hier vorher nicht gab: einen, den
+               du selbst angelegt hast, weil ihr euch getroffen oder telefoniert
+               habt. Er hat nie ein Formular ausgefuellt und kennt seine Adresse
+               deshalb nicht. Ein Klick, und der fertige Brief steht unten im
+               Schreibfeld — mit dem Link darin. */ ?>
+      <a class="knopf haupt" href="<?= Fmt::h(url('kunden/' . (int) $k['id'] . '?vorlage=zugang#schreiben')) ?>">Link schicken</a>
       <a class="knopf" href="<?= Fmt::h($kundenlink) ?>" target="_blank" rel="noopener">Ansehen</a>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
             onsubmit="return confirm('Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?')">

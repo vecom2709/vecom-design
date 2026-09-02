@@ -9,12 +9,23 @@
      $nfVorlagen — aus Vorlage::fuer()
      $nfVorname  — fuer den Platzhalter im Textfeld
      $nfZurueck  — Adresse, auf die nach dem Senden zurueckgesprungen wird ('' = keine)
+     $nfVorwahl  — Schluessel einer Vorlage, die schon ausgewaehlt sein soll ('' = keine)
 
    Die Kennung steht fest vor dem Betreff und ist nicht editierbar: Sie ist
    kein Text, sondern ein Aktenzeichen. Aendert man sie von Hand, faellt genau
    das weg, wozu sie da ist — dass zusammengehoerige Mails zusammenbleiben.
    ========================================================================== */
 $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
+/* Wer von einem Knopf herkommt ("Link schicken"), soll die Vorlage schon
+   ausgewaehlt und ausgefuellt vorfinden — sonst haette der Knopf nur einen
+   Sprung gespart und keinen Handgriff. */
+$nfVorwahl = (string) ($nfVorwahl ?? '');
+$nfGewaehlt = -1;
+if ($nfVorwahl !== '') {
+    foreach ($nfVorlagen as $i => $vl) {
+        if ((string) ($vl['schluessel'] ?? '') === $nfVorwahl) { $nfGewaehlt = (int) $i; break; }
+    }
+}
 ?>
 <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px" id="<?= $nfNr ?>">
   <?= Csrf::feld() ?>
@@ -33,7 +44,7 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
           <optgroup label="<?= Fmt::h((string) ($wie['de'] ?? $gruppe)) ?>">
             <?php foreach ($nfVorlagen as $i => $vl): ?>
               <?php if ($vl['gruppe'] !== $gruppe) { continue; } ?>
-              <option value="<?= (int) $i ?>"><?= Fmt::h($vl['name']) ?></option>
+              <option value="<?= (int) $i ?>" <?= $nfGewaehlt === (int) $i ? 'selected' : '' ?>><?= Fmt::h($vl['name']) ?></option>
             <?php endforeach; ?>
           </optgroup>
         <?php endforeach; ?>
@@ -96,6 +107,13 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
     text.style.height = Math.min(text.scrollHeight + 4, 900) + 'px';
   }
   text.addEventListener('input', wachsen);
+
+  // Kommt die Seite mit schon gewaehlter Vorlage, wird sie hier einmal
+  // eingesetzt: ein "change" feuert beim Laden nicht von selbst.
+  if (wahl.value !== '' && text.value.trim() === '' && v[wahl.value]) {
+    betreff.value = v[wahl.value].betreff;
+    text.value = v[wahl.value].text;
+  }
   wachsen();
 })();
 </script>

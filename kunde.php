@@ -21,7 +21,7 @@ if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
-foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo'] as $k) {
+foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 
@@ -132,6 +132,17 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     Events::projektStatus((int) $pid, 'finale_freigabe');
                 }
                 $meldung = Texte::h(Texte::PROJEKT['freigegeben'] ?? [], $sprache, 'Danke für die Freigabe.');
+
+            } elseif ($tat === 'stimme') {
+                $wort = trim((string) ($_POST['text'] ?? ''));
+                if ($wort === '') {
+                    $fehler[] = Texte::h(Texte::PROJEKT['leer'] ?? [], $sprache, 'Bitte etwas hineinschreiben.');
+                } elseif (!Stimme::vonKunde((int) $kunde['id'])) {
+                    Stimme::abgeben((int) $kunde['id'], $wort,
+                        !empty($_POST['erlaubnis']),
+                        isset($_POST['sterne']) ? (int) $_POST['sterne'] : null);
+                    $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke dir!');
+                }
 
             } elseif ($tat === 'kuendigen') {
                 // Der Kunde kuendigt selbst. Das Enddatum rechnet Abo aus, der
@@ -331,6 +342,44 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php endif; ?>
     </div>
   </div>
+
+  <?php /* ---------- Wie war es? Erst wenn die Seite steht. ---------- */ ?>
+  <?php $stimme = $kunde ? sicherLesen(fn() => Stimme::vonKunde((int) $kunde['id']), null) : null; ?>
+  <?php if ($kunde && in_array($stufe, ['online', 'fertig'], true)): ?>
+    <details class="klapp" <?= $stimme ? '' : 'open' ?>>
+      <summary><?= $h($T('stimme')) ?></summary>
+      <?php if ($stimme): ?>
+        <p class="mini" style="margin-top:10px"><?= $h($T('stimmeSchon')) ?></p>
+        <div style="padding:11px 13px;border:1px solid var(--linie);border-radius:12px;margin-top:9px;
+                    white-space:pre-wrap;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $stimme['text']) ?></div>
+      <?php else: ?>
+        <p class="mini" style="margin-top:10px"><?= $h($T('stimmeHilfe')) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:12px">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="stimme">
+          <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
+                 style="position:absolute;left:-9999px" aria-hidden="true">
+          <div class="feld">
+            <label for="sterne"><?= $h($T('stimmeSterne')) ?></label>
+            <select id="sterne" name="sterne" style="width:auto;min-width:200px">
+              <option value="5">★★★★★</option>
+              <option value="4">★★★★</option>
+              <option value="3">★★★</option>
+              <option value="2">★★</option>
+              <option value="1">★</option>
+            </select>
+          </div>
+          <div class="feld"><textarea name="text" rows="5" required
+            placeholder="<?= $h($T('stimmeFeld')) ?>"></textarea></div>
+          <label style="display:flex;gap:9px;align-items:flex-start;margin-bottom:12px;cursor:pointer">
+            <input type="checkbox" name="erlaubnis" value="1" style="width:auto;margin-top:3px">
+            <span style="font-size:14px;line-height:1.5"><?= $h($T('stimmeErlaubnis')) ?><br>
+              <span class="mini"><?= $h($T('stimmeErlaubnisNein')) ?></span></span>
+          </label>
+          <button class="knopf haupt"><?= $h($T('stimmeSenden')) ?></button>
+        </form>
+      <?php endif; ?>
+    </details>
+  <?php endif; ?>
 
   <?php /* ---------- Deine Betreuung: der zweite Vertrag ---------- */ ?>
   <?php $abo = $kunde ? sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null) : null; ?>

@@ -1432,3 +1432,317 @@ und Semikolon öffnet in Excel; alle Verwaltungsseiten ohne Fehler.
   gar nicht erst angeboten. Automatischer Stopp exakt zum Kündigungsdatum
   (`cancel_at`), Meldung bei fehlgeschlagener Abbuchung.
 - Monatlicher Beleg je Abrechnung, mit `abo_id`, in derselben Nummernreihe.
+
+## Die Betreuung steht jetzt auch auf der Website getrennt (02.09.2026)
+
+Uwes Hinweis, und er hatte recht: Die Datenbank war getrennt, die Website nicht.
+Die Betreuung hing weiter als Zusatzzeile an der Paketkarte — dann liest sie sich
+wie ein Aufschlag, den man nicht abwählen kann.
+
+**Drei Stellen waren betroffen, nicht eine:**
+
+1. Die Karten auf der Startseite kommen aus der Datenbank und waren sauber. Die
+   **eingebauten Ersatzkarten** im HTML und die **Übersetzungsdaten** trugen aber
+   noch die alten, vermischten Listen. Wer die Seite mit blockiertem JavaScript
+   öffnet — und jede Suchmaschine, die den Quelltext liest — sah die alte Fassung.
+2. Die Monatszeile stand ohne Einordnung da. Jetzt: „+ 39 € Betreuung im Monat —
+   freiwillig".
+3. Es gab keinen Betreuungsblock.
+
+**Neu: ein eigener Abschnitt unter den Preiskarten**, abgesetzt durch eine Linie —
+sichtbar getrennt, ohne einen zweiten Preisbereich zu erfinden. Drei Karten mit
+dem Monatspreis als Preis, die vollständige Leistungsliste, und darunter der Satz
+zur Bestandsaufnahme für fremde Seiten. Gespeist aus **derselben Quelle** wie die
+Paketkarten (`pakete-daten.php`), damit die Preise nicht an zwei Orten leben.
+
+**Zwei Dinge dabei bewusst nicht gemacht:**
+
+- Kein „Alle Details"-Knopf auf den Betreuungskarten. Es gibt keine Detailseite
+  dafür, und ein Link ins Leere ist schlimmer als kein Link.
+- **Das Abzeichen „Am häufigsten gewählt" wieder entfernt**, das ich der mittleren
+  Betreuung zuerst gegeben hatte. Es hat noch nie jemand eine Betreuung gewählt —
+  eine unverdiente Auszeichnung ist genau die Art Kleinigkeit, die Vertrauen
+  kostet, wenn sie auffällt.
+
+Die alte Preisnotiz wurde gekürzt: Was sie über Laufzeit und Freiwilligkeit sagte,
+steht jetzt im Betreuungsblock. Zweimal dasselbe untereinander liest niemand.
+
+Geprüft: drei Betreuungskarten in allen drei Sprachen, kein JS-Fehler, kein
+waagerechter Überlauf bei 390 und 1400 Pixeln, die alten vermischten Listen
+kommen im Quelltext nicht mehr vor.
+
+## Die Steuerakte legt sich selbst an (02.09.2026)
+
+Uwe: „Prüfe nun meine gesamte Seite einfach alles und recherchiere was das
+Finanzamt alles braucht — entsprechend lege automatisch immer alles an für
+Finanzamt zum download."
+
+Vorher gab es ein ZIP auf Knopfdruck: Belege als PDF, ein Verzeichnis, eine
+Übersicht. Das war die halbe Miete, und die falsche Hälfte.
+
+### Was die Recherche ergeben hat — und was daran wehtut
+
+Drei Dinge waren neu und haben den Bau verändert:
+
+**1. Es zählt der Zahlungseingang, nicht das Rechnungsdatum.** In Italien wird
+beim Einzelunternehmer nach dem *principio di cassa* besteuert (Art. 1 comma 64
+L. 190/2014). Eine Rechnung vom 20. Dezember, bezahlt am 15. Januar, gehört ins
+Folgejahr. Das Verzeichnis sortierte nach Belegdatum — es zeigte also die
+falsche Zahl. Schlimmer: Die Agenzia delle Entrate füllt das *Quadro LM*
+inzwischen selbst vor und **unterstellt dabei, jede Rechnung sei am
+Ausstellungstag bezahlt worden**. Bei jedem Zahlungsziel ist die Vorbefüllung
+falsch, und widersprechen kann nur, wer die echten Eingänge belegen kann. Genau
+das ist jetzt die Hauptliste: `einnahmen-nach-zahlung.csv`, dazu
+`abgrenzung.csv` mit den drei Fällen, die über den Jahreswechsel fallen.
+
+**2. Eingangsrechnungen sind Pflicht, auch im Forfettario.** Comma 59 nimmt den
+Forfettario von fast allem aus — ausdrücklich *nicht* von der „numerazione e
+conservazione delle fatture di acquisto". Kosten werden nicht abgezogen,
+aufbewahrt und nummeriert werden müssen sie trotzdem.
+
+**3. Reverse Charge ist die Falle, die niemand kommen sieht.** Stripe (Irland),
+Google, Hosting im Ausland: Auf solche Leistungen fällt für den Forfettario
+italienische IVA an, die tatsächlich zu zahlen und **nicht** abziehbar ist. Wer
+das nicht mitschreibt, erfährt es im März vom Commercialista. Deshalb ist das
+ein eigenes Feld und eine eigene Liste, keine Notiz.
+
+Und der Punkt, der ehrlich gesagt werden musste: **Ein selbstgebautes ZIP ist
+keine *conservazione a norma*.** Die verlangt Zeitstempel und Signatur auf dem
+Archivpaket, einen Index nach UNI 11386, Pflichtmetadaten, einen benannten
+Verantwortlichen und ein Handbuch (DM 17.06.2014, Linee Guida AgID). Die
+Agenzia formuliert es selbst: das ist nicht „einfach auf dem Rechner speichern".
+Der richtige Weg ist ihr **kostenloser Dienst im Portal „Fatture e
+Corrispettivi"** — er muss aber aktiv eingeschaltet werden, sonst passiert
+nichts, und der Opt-in „Consultazione e acquisizione" ist noch einmal ein
+eigener Klick. Das steht jetzt sowohl auf der Seite als auch in der `LIESMICH.txt`
+im Paket, weil es die Frage ist, die man sich sonst falsch beantwortet.
+
+### Neu gebaut
+
+- **`app/src/Ausgabe.php` + Migration `021`, Tabelle `ausgaben`.** Eigene
+  Nummernreihe `EA-Jahr-lfd` (das ist die Nummerierung nach comma 59), Datum und
+  Zahlungsdatum getrennt, Land, Reverse-Charge-Merkmal, Beleg als Datei in
+  `app/eingang/` hinter einer `.htaccess`-Sperre. Die Betragsfelder verstehen
+  `12,50`, `12.50` und `1.234,56` — wer tippt, denkt nicht an Trennzeichen; fehlt
+  eins der drei Felder Netto/Steuer/Brutto, wird es ausgerechnet.
+- **`payments.gebuehr_cents`.** Stripe zahlt netto aus. Vereinnahmt sind trotzdem
+  die vollen 499 €, die Gebühr ist eine Ausgabe. Wer den Kontoeingang bucht,
+  weist zu wenig aus — deshalb steht die Differenz daneben und wird nicht
+  abgezogen.
+- **`Steuerakte::taeglich()` im Cronlauf.** Baut jede Nacht das laufende Jahr und
+  das Vorjahr neu, in `app/steuerakte/`. Erst in eine Nebendatei, dann umbenennen
+  — bricht der Lauf ab, steht das vollständige Paket von gestern da und keine
+  halbe Datei. Ältere Jahre bleiben liegen, wie sie waren.
+- **Grenzwertwächter.** 68.000 / 85.000 / 100.000 €, gerechnet nach
+  Zahlungseingang. Über 85.000 endet das Regime zum Folgejahr, über 100.000
+  sofort — das ist nichts, was man im Nachhinein erfahren will.
+- **Fristen auf der Seite:** Marca da bollo je Quartal, Archivierungsfrist,
+  Termin der Steuererklärung. Jede mit dem Satz, warum sie dasteht.
+
+Das Paket enthält jetzt: `belege/`, `eingang/`, `verzeichnis.csv`,
+`einnahmen-nach-zahlung.csv`, `abgrenzung.csv`, `ausgaben.csv`,
+`reverse-charge.csv`, `uebersicht.txt`, `pruefsummen.txt` (SHA-256 je Datei),
+`LIESMICH.txt` und — wenn etwas fehlt — `FEHLENDE-BELEGE.txt`. Ein Eingangsbeleg
+ohne hinterlegte Datei steht dort namentlich; sonst sucht im März jemand nach
+einer Rechnung, die es nie als Datei gab.
+
+**Der Cronlauf baut das Paket ganz zuletzt**, nach der Sicherung. Es dauert am
+längsten und wird mit jedem Jahr länger — steigt der Server mittendrin aus, gilt
+der Tag als erledigt, und die Sicherung wäre still ausgefallen.
+
+### Kann das direkt ans Finanzamt gehen?
+
+Nein, und zwar nicht aus Bequemlichkeit: **Es gibt keinen Kanal dafür.** Belege
+werden aufbewahrt und auf Anforderung vorgelegt. Nur Rechnungen haben einen
+eigenen Weg, das SdI — das setzt eine Partita IVA voraus und läuft über das
+Portal, eine PEC oder den Commercialista. Eine offene Schnittstelle für Dritte
+gibt es nicht; der Webservice des SdI ist ein Akkreditierungsverfahren für
+Anbieter mit sehr hohem Volumen. Steht in der Übersicht auf der Seite, damit die
+Frage nicht wiederkommt.
+
+## Kunde von Hand angelegt: Link und freier Preis (02.09.2026)
+
+Zweite Frage von Uwe, und sie deckte zwei echte Lücken auf.
+
+**Der Link.** Er existierte für jeden Kunden, auch für den handangelegten — nur
+musste man ihn kopieren und selbst eine Mail schreiben. Jetzt steht neben
+„Ansehen" ein **„Link schicken"**: ein Klick, und unten im Schreibfeld steht der
+fertige Brief mit dem Link darin, in der Sprache des Kunden. Dafür gibt es die
+**38. Vorlage `zugang`** („Deine eigene Seite bei mir") und in `nachrichtfeld.php`
+eine Vorauswahl über `?vorlage=…` — beim Laden feuert kein `change`, also setzt
+das Skript den Text einmal selbst ein.
+
+**Der Preis.** `bestellungAnlegen()` nahm ausschließlich den Paketpreis. Wer am
+Telefon 750 € statt 899 € zugesagt hatte, konnte das nirgends eintragen — und
+dann stimmten Bestellung, Zahlungen und Beleg von Anfang an nicht. Jetzt gibt es
+im Bestellformular einen zugeklappten Bereich **„Preis abweichend vereinbart"**:
+Gesamtpreis, Anzahlung in Prozent, abweichende Bezeichnung. Leer heißt weiterhin
+Paketpreis. Geprüft: 750 € bei 30 % ergibt 225 € und 525 €.
+
+Dasselbe für die Betreuung — `Abo::anlegen()` konnte einen eigenen Monatsbetrag
+schon, es fehlte nur das Feld in der Kundenakte.
+
+**Nebenbei aufgefallen:** Im Bestellformular standen die drei Betreuungspakete
+als Nullzeilen mit — eine Bestellung darüber wäre eine Bestellung über null Euro
+gewesen. Sie sind jetzt raus; Betreuung wird in der Kundenakte als Vertrag
+gebucht, nicht als Bestellung.
+
+## Die Verwaltung lief auf dem Telefon aus dem Rand (02.09.2026)
+
+Beim Durchmessen aller 23 Verwaltungsseiten bei 390 Pixeln: **drei Seiten
+schoben die ganze Seite nach rechts.** Man wischte, und die Kopfzeile wanderte
+mit — es sah aus, als wäre die Verwaltung kaputt.
+
+Drei verschiedene Ursachen, und die zweite war die eigentliche:
+
+1. Tabellen ohne scrollenden Rahmen (`rechnungen`, und meine neue
+   `ausgaben`). Auf dem Telefon scrollen Tabellen in `.block` jetzt in sich selbst.
+2. **Eine Rasterspalte ist von sich aus so breit wie ihr breitester Inhalt** —
+   auch wenn dieser Inhalt selbst scrollen könnte. Deshalb schob eine Tabelle die
+   Seite auseinander, obwohl sie längst in einem scrollenden Rahmen saß. Ein
+   `min-width:0` auf die Spalten, und es war weg. Das erklärt auch, warum die
+   Rahmen bisher nur manchmal geholfen haben.
+3. Ein Formular in den Einstellungen mit festen Feldbreiten und ohne Umbruch.
+
+Danach: **23 von 23 Seiten ohne waagerechten Überlauf**, bei 390 und bei 1280
+Pixeln, keine Konsolenfehler. Am Rechner sieht alles aus wie vorher.
+
+## Ein Bereich für Projekte, die in kein Paket passen (02.09.2026)
+
+Uwe wollte einen eigenen Bereich für individuelle Vorhaben — Preis nach Aufwand
+und Vorstellung, besprochen statt ausgeschildert. Auf die Frage, wie der Preis
+dort auftreten soll, hat er sich für **kein Preis, nur Gespräch** entschieden.
+
+**Die eine Gestaltungsentscheidung, auf die es ankam:** Es ist ausdrücklich
+*keine vierte Preiskarte*. Neben 499, 899 und 1499 € liest sich eine Karte ohne
+Zahl als die teuerste — die Leerstelle wird gefüllt, und zwar mit dem
+schlimmsten Wert, den der Leser sich vorstellen kann. In eigener Form, als
+breites zweigeteiltes Feld unter den Paketen, steht der Bereich nicht im
+Vergleich, sondern daneben: ein anderer Weg, kein teureres Paket.
+
+Links die Begründung und der Knopf, rechts sechs typische Fälle — die
+beantworten „bin ich damit gemeint?" schneller als jeder Fließtext. Der Satz,
+der die Preisfrage trägt: *„Am Ende weißt du, was es kostet und warum — auch
+wenn du dann nein sagst."*
+
+Die Anfrage reist über `?paket=individuell` mit; dafür sucht `qform.js` jetzt
+nach dem Merkmal `data-paket` statt nach der Preiskarte, weil dieser Bereich
+bewusst keinen Preis hat.
+
+## Der Ablauf klappt auf (02.09.2026)
+
+Vier ausgeschriebene Absätze untereinander sind viel Text an einer Stelle, an
+der der Leser nur wissen will, wie es läuft. Jetzt bleiben Nummer, Titel und
+Zeitangabe sichtbar, der Rest kommt auf Klick.
+
+Gebaut mit `<details>` — Tastatur, Vorleseprogramm und die Suchfunktion des
+Browsers können das von Haus aus, ohne eine Zeile JavaScript. Der **erste
+Schritt steht offen**, sonst sähe der Abschnitt wie eine leere Liste aus. Das
+Zeichen ist ein Plus, das sich zum Minus dreht, kein Pfeil: ein Pfeil verspricht
+einen Sprung woandershin. Weiches Auf- und Zuklappen über `::details-content`,
+wo der Browser es kann — wo nicht, springt es auf, und das ist kein Fehler.
+
+## Das Foto lebt (02.09.2026)
+
+Ein Portrait neben drei Absätzen Text ist die statischste Stelle der Seite — und
+ausgerechnet die, an der jemand entscheidet, ob er es mit einem Menschen zu tun
+hat. Drei Bewegungen, alle so klein, dass man sie nicht als Animation wahrnimmt:
+ein Atmen über 24 Sekunden (`scale`), ein Mitlaufen beim Scrollen (`translate`
+über `animation-timeline: view()`), und alle 14 Sekunden ein schräger
+Lichtstreifen. Schräg, weil senkrecht nach Scanner aussieht und waagerecht nach
+Ladebalken.
+
+Möglich ist das ohne verschachtelte Hüllen, weil `scale` und `translate` in CSS
+eigene Eigenschaften sind — zwei Animationen können sie gleichzeitig steuern,
+ohne sich zu überschreiben. Bei `prefers-reduced-motion` steht alles still.
+
+## Das neue Erklärvideo: der ganze Ablauf, in drei Sprachen (02.09.2026)
+
+Der Rundgang „Die Seite in Bewegung" ist raus. An seiner Stelle steht **ein**
+Video von 1:31, das den kompletten Weg des Kunden zeigt: erste Nachricht,
+Bestätigungsmail, eigene Seite, Fragebogen, Angebot und Anzahlung, Bau,
+Entwurf und Freigabe, online, Belege, Betreuung.
+
+**Zur Frage, womit es gemacht wird.** Uwe wollte es über kie.ai und „so wie es
+tatsächlich aus Kundensicht aussieht, mit allen E-Mails, Seiten, jedem Klick".
+Das zweite schließt das erste aus: Ein Videogenerator erfindet Oberflächen, er
+kann seine Seite nicht kennen. Was im Video zu sehen ist, sind deshalb
+**echte Aufnahmen der laufenden Kundenseite** (`video/quellen/<sprache>/`),
+gesetzt in eine Fensterattrappe, dazu Titelkarten in der Schrift und den Farben
+der Website. Kein Stockmaterial, keine erfundenen Bildschirme.
+
+**Drei Sprachfassungen, und zwar vollständig.** Nicht nur der Text ist
+italienisch, deutsch oder englisch — auch die abgebildeten Bildschirme. Eine
+italienische Fassung mit deutschen Screenshots wäre genau die Art
+Nachlässigkeit, die ein Kunde bemerkt. Jede Sprachseite bindet ihr eigenes
+Video und ihr eigenes Vorschaubild ein.
+
+**Werkzeuge:** `explainer-ablauf.html` ist die Bühne (elf Szenen, Sprache über
+`?lang=`), `tools/record-ablauf.mjs` filmt sie ab, ffmpeg macht das mp4. Texte
+ändert man in `assets/js/i18n-data.js` unter `abl`, nicht im HTML.
+
+**Zum Ton:** Uwe wollte eine KI-Stimme. Das Guthaben beim einzigen dafür
+verbundenen Dienst liegt bei 0,15 Einheiten — das reicht für keine einzige
+Aufnahme, geschweige denn drei. Das Video ist deshalb stumm, wie die bisherigen
+auch; auf dem Handy, wo die meisten es sehen, läuft es ohnehin ohne Ton. Der
+Sprechertext steht fertig in den Sprachdaten und lässt sich jederzeit
+darunterlegen.
+
+## Sprachprüfung: was dabei herauskam (02.09.2026)
+
+Vor der Aufnahme haben je ein italienischer und ein englischer Muttersprachler
+die neuen Texte gelesen. Ergebnis: **55 Korrekturen**, fast alle Germanismen.
+
+Die lehrreichsten:
+
+- *„un gestionale che ti toglie lavoro dalle mani"* — die wörtliche Übersetzung
+  von „jemandem Arbeit abnehmen". Gibt es im Italienischen nicht.
+- *„niente indovinelli"* für „kein Rätselraten" — `indovinelli` sind
+  Scherzrätsel für Kinder.
+- *„Prezzo fisso, scritto"* — im Geschäftskontext heißt es `per iscritto`.
+- *„An admin that takes work off your hands"* — im Englischen ist ein `admin`
+  eine Person, kein System.
+- *„Bookings that genuinely calculate"* — inhaltsleer; `really do the maths`.
+- *„Care, if you want it."* — `care` trägt allein im britischen Englisch keinen
+  Wartungsvertrag. Als Produktname bleibt es (er heißt auf der ganzen Seite so),
+  die alleinstehende Überschrift heißt jetzt `Ongoing care`.
+
+Dabei fielen zwei echte Fehler in den **bestehenden** Kundentexten auf:
+`„Tienila d'occhio noi."` (grammatikalisch kaputt) und `„Two sentences is
+enough."`
+
+**Und der eigentliche Fund:** Die Kundenseite sprach auf Italienisch und
+Englisch noch im Firmen-Wir („Ci pensiamo noi", „We're building your site"),
+während die Website längst „ich" sagt. Im Video hätte „Io costruisco" direkt
+neben „Ci pensiamo noi" gestanden. Beide Sprachen sind jetzt nachgezogen — 32
+italienische und 31 englische Stellen, jede einzeln umformuliert statt ersetzt.
+Wo „wir" wirklich Uwe **und** den Kunden meint („quando siamo d'accordo",
+„once we agree"), steht es weiter.
+
+## Die eingebauten HTML-Texte waren älter als die Sprachdaten (02.09.2026)
+
+Beim Nachziehen ist ein Fehler aufgefallen, der seit Monaten dastand: Im
+deutschen Quelltext hieß es *„Mehrsprachig, von Ihnen pflegbar"* und *„Sauberer
+Code, der Ihnen gehört"* — Siezen, auf einer Seite, die durchgehend duzt. Auf
+dem Bildschirm war davon nichts zu sehen, weil die Sprachdaten die eingebaute
+Vorgabe überschreiben. Wer aber kein JavaScript hat — und **jede Suchmaschine,
+die den Quelltext liest** — bekam die alte Fassung.
+
+Das ist die Sorte Fehler, die nie auffällt, weil sie nur dort steht, wo niemand
+hinsieht. Deshalb gibt es jetzt `tools/sync-html-texte.mjs`: es zieht alle
+eingebauten Texte aus den Sprachdaten nach und meldet mit `--pruefen` nur die
+Abweichungen, ohne etwas zu ändern — geeignet für eine Kontrolle vor dem Deploy.
+Beim ersten Lauf: **54 Abweichungen** in drei Dateien.
+
+Der erste Anlauf hatte selbst einen Fehler — er ließ die Zeile mit
+`class="is-lead"` stehen *und* baute sie aus den Daten neu, sodass „Enthalten:"
+zweimal in der Liste stand. Gefunden von der eigenen Kontrollausgabe, behoben:
+Die Liste wird vollständig aus den Daten gebaut, die Klasse kommt nur auf die
+erste Zeile zurück, wenn sie vorher da war.
+
+**Ebenfalls gefunden und behoben:** Im Videobereich der Sprachseiten `/de/` und
+`/en/` fehlte das `../` im Pfad — dort hätten weder Vorschaubild noch Video
+geladen. Aufgefallen erst beim Prüfen von `naturalWidth`; die Anfrage schlug
+wegen `loading="lazy"` erst nach dem Netzwerk-Leerlauf fehl und tauchte in der
+ersten Kontrolle gar nicht auf. Lesson: bei Bildern nicht das Attribut prüfen,
+sondern ob wirklich Pixel angekommen sind.

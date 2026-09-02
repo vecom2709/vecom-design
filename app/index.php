@@ -349,13 +349,36 @@ if ($post) {
                 $_SESSION['gut'] = 'Vorschau ist wieder gesperrt. Der Kunde sieht sie nicht mehr.';
                 zurueck('vorgaenge');
 
+            case 'stimme_frei':
+                require_once __DIR__ . '/src/Stimme.php';
+                Stimme::veroeffentlichen((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Die Stimme steht jetzt auf der Website.';
+                zurueck('stimmen');
+
+            case 'stimme_weg':
+                require_once __DIR__ . '/src/Stimme.php';
+                Stimme::verstecken((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Von der Website genommen.';
+                zurueck('stimmen');
+
+            case 'stimme_erlaubnis':
+                require_once __DIR__ . '/src/Stimme.php';
+                Stimme::erlaubnisSetzen((int) ($_POST['id'] ?? 0), true);
+                $_SESSION['gut'] = 'Vermerkt. Jetzt lässt sie sich veröffentlichen.';
+                zurueck('stimmen');
+
             case 'abo_anlegen':
                 require_once __DIR__ . '/src/Abo.php';
                 $kid = (int) ($_POST['id'] ?? 0);
+                require_once __DIR__ . '/src/Ausgabe.php';
+                // Leer heisst "wie im Paket". Ein Betrag hier ueberschreibt ihn,
+                // fuer den Fall, dass am Telefon etwas anderes vereinbart war.
+                $freiMonat = trim((string) ($_POST['betrag'] ?? ''));
                 $aid = Abo::anlegen($kid, [
-                    'paket_slug' => (string) ($_POST['paket_slug'] ?? ''),
-                    'zahlart'    => (string) ($_POST['zahlart'] ?? 'karte'),
-                    'projekt_id' => (int) ($_POST['projekt_id'] ?? 0) ?: null,
+                    'paket_slug'   => (string) ($_POST['paket_slug'] ?? ''),
+                    'zahlart'      => (string) ($_POST['zahlart'] ?? 'karte'),
+                    'projekt_id'   => (int) ($_POST['projekt_id'] ?? 0) ?: null,
+                    'betrag_cents' => $freiMonat !== '' ? Ausgabe::cents($freiMonat) : null,
                 ]);
                 $a = Db::one('SELECT * FROM abos WHERE id = ?', [$aid]);
                 $_SESSION['gut'] = 'Betreuung angelegt: ' . $a['paket_name'] . ', '
@@ -378,6 +401,29 @@ if ($post) {
                        . ($e['mail'] ? 'Der Kunde hat die Bestätigung bekommen.'
                                      : 'Die Bestätigung ging nicht raus — bitte selbst Bescheid geben.'));
                 zurueck('kunden/' . (int) $a['customer_id']);
+
+            case 'ausgabe_speichern':
+                require_once __DIR__ . '/src/Ausgabe.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                $datei = $_FILES['beleg'] ?? null;
+                $aid = Ausgabe::speichern($_POST, is_array($datei) ? $datei : null, $aid);
+                $_SESSION['gut'] = 'Ausgabe gespeichert.';
+                weiter('ausgaben/' . $aid);
+
+            case 'ausgabe_loeschen':
+                require_once __DIR__ . '/src/Ausgabe.php';
+                Ausgabe::loeschen((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Der Eintrag ist weg.';
+                weiter('ausgaben');
+
+            case 'steuerakte_bauen':
+                // Von Hand anstossen, wenn es nicht bis zur Nacht warten soll.
+                require_once __DIR__ . '/src/Steuerakte.php';
+                @set_time_limit(300);
+                $sj = (int) ($_POST['jahr'] ?? date('Y'));
+                Steuerakte::archivieren($sj);
+                $_SESSION['gut'] = 'Das Paket für ' . $sj . ' ist neu gebaut und liegt bereit.';
+                zurueck('steuerakte');
 
             case 'kundenlink_neu':
                 // Zieht den alten Zugang zurueck. Gedacht fuer den Fall, dass
@@ -444,8 +490,16 @@ if ($post) {
                 weiter('pakete');
 
             case 'bestellung_anlegen':
+                // Der Preis darf abweichen — siehe Events::bestellungAnlegen.
+                // Leere Felder heissen "wie im Paket", nicht "null Euro".
+                require_once __DIR__ . '/src/Ausgabe.php';
+                $freierPreis = trim((string) ($_POST['preis'] ?? ''));
+                $freiProzent = trim((string) ($_POST['prozent'] ?? ''));
                 $bid = Events::bestellungAnlegen((int) $_POST['customer_id'], (int) $_POST['package_id'],
-                    trim((string) ($_POST['notes'] ?? '')) ?: null);
+                    trim((string) ($_POST['notes'] ?? '')) ?: null,
+                    $freierPreis !== '' ? Ausgabe::cents($freierPreis) : null,
+                    $freiProzent !== '' ? (int) $freiProzent : null,
+                    trim((string) ($_POST['bezeichnung'] ?? '')) ?: null);
                 weiter('bestellungen/' . $bid);
 
             case 'bestellung_status':
@@ -1101,6 +1155,9 @@ switch ($route) {
                 // eingesetzten Angaben. Siehe app/src/Vorlage.php.
                 'vorlagen' => sicher(static fn() => Vorlage::fuer($id), []),
                 'kennung'  => sicher(static fn() => Vorlage::kennung($id), ''),
+                // Kommt jemand vom Knopf "Link schicken", ist die Vorlage
+                // schon gewaehlt, wenn er unten ankommt.
+                'vorwahl'  => preg_replace('~[^a-z_]~', '', strtolower((string) ($_GET['vorlage'] ?? ''))),
             ]);
             break;
         }
@@ -1132,7 +1189,13 @@ switch ($route) {
         if ($unter === 'neu') {
             ansicht('bestellung_form', [
                 'kunden' => Db::all('SELECT id, name, company, email FROM customers ORDER BY name'),
-                'pakete' => Db::all('SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents'),
+                // Alles ausser der Betreuung. Die Betreuungspakete haben
+                // keinen Einmalpreis — sie standen hier als Nullzeilen in der
+                // Liste und haetten eine Bestellung ueber null Euro angelegt.
+                // Sie werden in der Kundenakte als Vertrag gebucht, nicht hier.
+                'pakete' => Db::all("SELECT * FROM packages WHERE active = 1
+                                       AND (art IS NULL OR art <> 'betreuung')
+                                     ORDER BY sort, price_cents"),
             ]);
             break;
         }
@@ -1332,6 +1395,11 @@ switch ($route) {
         unset($_SESSION['versand_test']);
         break;
 
+    case 'stimmen':
+        require_once __DIR__ . '/src/Stimme.php';
+        ansicht('stimmen', ['liste' => sicher(static fn() => Stimme::alle(), [])]);
+        break;
+
     case 'abos':
         require_once __DIR__ . '/src/Abo.php';
         ansicht('abos', [
@@ -1340,35 +1408,110 @@ switch ($route) {
         ]);
         break;
 
+    case 'ausgaben':
+        require_once __DIR__ . '/src/Ausgabe.php';
+
+        if ($id !== null) {
+            $a = sicher(static fn() => Ausgabe::eine($id), null);
+            if (!$a) { http_response_code(404); exit('Diese Ausgabe gibt es nicht.'); }
+
+            // Die hinterlegte Datei. Sie liegt ausserhalb des Webs — der
+            // einzige Weg dorthin fuehrt durch die Anmeldung.
+            if (($teile[2] ?? '') === 'datei') {
+                $pfad = Ausgabe::dateipfad($a);
+                if ($pfad === null) { http_response_code(404); exit('Zu diesem Beleg liegt keine Datei.'); }
+                header('Content-Type: ' . ((string) ($a['mime'] ?? 'application/octet-stream')));
+                header('Content-Length: ' . (string) filesize($pfad));
+                header('Content-Disposition: inline; filename="'
+                    . str_replace('"', '', (string) ($a['orig_name'] ?: $a['beleg_nr'])) . '"');
+                header('X-Content-Type-Options: nosniff');
+                readfile($pfad);
+                exit;
+            }
+            ansicht('ausgabe_form', ['a' => $a, 'naechste' => (string) $a['beleg_nr']]);
+            break;
+        }
+
+        if (($unter ?? '') === 'neu') {
+            ansicht('ausgabe_form', ['a' => null, 'naechste' => sicher(static fn() => Ausgabe::naechsteNummer(), 'EA-…')]);
+            break;
+        }
+
+        $jahre = sicher(static fn() => Ausgabe::jahre(), []);
+        $jahr  = isset($_GET['jahr']) ? (int) $_GET['jahr'] : (int) ($jahre[0] ?? date('Y'));
+        ansicht('ausgaben', [
+            'jahre' => $jahre,
+            'jahr'  => $jahr,
+            'liste' => sicher(static fn() => Ausgabe::alle($jahr), []),
+            'summe' => sicher(static fn() => Ausgabe::summe($jahr),
+                              ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]),
+        ]);
+        break;
+
     case 'steuerakte':
         require_once __DIR__ . '/src/Steuerakte.php';
         $jahr = $id !== null ? (int) $id : 0;
         $was  = (string) ($teile[2] ?? '');
 
-        if ($jahr > 0 && ($was === 'paket' || $was === 'verzeichnis')) {
-            if ($was === 'verzeichnis') {
-                header('Content-Type: text/csv; charset=utf-8');
-                header('Content-Disposition: attachment; filename="verzeichnis-' . $jahr . '.csv"');
-                echo Steuerakte::verzeichnis($jahr);
-                exit;
-            }
-            // Das Paket kann bei vielen Belegen dauern — PDFs entstehen dabei
-            // einzeln. Der Server darf hier nicht nach dreissig Sekunden
-            // aussteigen und eine halbe Datei ausliefern.
+        // Die einzelnen Tabellen. Jede fuer sich abrufbar, weil der
+        // Commercialista meistens genau eine davon will und nicht das
+        // ganze Paket.
+        $tabellen = [
+            'verzeichnis'    => ['verzeichnis-',            static fn() => Steuerakte::verzeichnis($jahr)],
+            'einnahmen'      => ['einnahmen-nach-zahlung-', static fn() => Steuerakte::einnahmenCsv($jahr)],
+            'abgrenzung'     => ['abgrenzung-',             static fn() => Steuerakte::abgrenzungCsv($jahr)],
+            'ausgaben'       => ['ausgaben-',               static fn() => Steuerakte::ausgabenCsv($jahr)],
+            'reversecharge'  => ['reverse-charge-',         static fn() => Steuerakte::reverseChargeCsv($jahr)],
+        ];
+        if ($jahr > 0 && isset($tabellen[$was])) {
+            [$vorne, $bauen] = $tabellen[$was];
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $vorne . $jahr . '.csv"');
+            echo $bauen();
+            exit;
+        }
+        if ($jahr > 0 && $was === 'paket') {
+            // Liegt das Paket vom naechtlichen Lauf schon fertig da und ist
+            // es von heute, geht es sofort raus. Sonst wird es gebaut — das
+            // kann bei vielen Belegen dauern, weil jedes PDF einzeln
+            // entsteht, und der Server darf dabei nicht nach dreissig
+            // Sekunden aussteigen und eine halbe Datei ausliefern.
             @set_time_limit(300);
-            $datei = Steuerakte::paket($jahr);
+            $fertig = sicher(static fn() => Steuerakte::archiv($jahr), ['stand' => null, 'datei' => '']);
+            $frisch = $fertig['stand'] !== null && strtotime((string) $fertig['stand']) > strtotime('-12 hours');
+            $datei  = $frisch ? (string) $fertig['datei'] : Steuerakte::paket($jahr);
             header('Content-Type: application/zip');
             header('Content-Length: ' . (string) filesize($datei));
             header('Content-Disposition: attachment; filename="' . Steuerakte::paketname($jahr) . '"');
             readfile($datei);
-            @unlink($datei);
+            if (!$frisch) { @unlink($datei); }
             exit;
         }
 
         $jahre = Steuerakte::jahre();
-        $uebersicht = [];
-        foreach ($jahre as $j) { $uebersicht[$j] = sicher(static fn() => Steuerakte::zusammenfassung($j), null); }
-        ansicht('steuerakte', ['jahre' => $jahre, 'uebersicht' => array_filter($uebersicht)]);
+        // Auch ein Jahr, in dem es nur Ausgaben gibt, ist ein Jahr.
+        require_once __DIR__ . '/src/Ausgabe.php';
+        foreach (sicher(static fn() => Ausgabe::jahre(), []) as $j) {
+            if (!in_array($j, $jahre, true)) { $jahre[] = $j; }
+        }
+        rsort($jahre);
+        $uebersicht = $ausgaben = $grenzen = $archiv = [];
+        foreach ($jahre as $j) {
+            $uebersicht[$j] = sicher(static fn() => Steuerakte::zusammenfassung($j), null);
+            $ausgaben[$j]   = sicher(static fn() => Ausgabe::summe($j),
+                                     ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]);
+            $grenzen[$j]    = sicher(static fn() => Steuerakte::grenzen($j),
+                                     ['summe' => 0, 'waehrung' => 'EUR', 'anteil' => 0.0, 'warnung' => null]);
+            $archiv[$j]     = sicher(static fn() => Steuerakte::archiv($j), ['stand' => null, 'bytes' => 0]);
+        }
+        ansicht('steuerakte', [
+            'jahre'      => $jahre,
+            'uebersicht' => array_filter($uebersicht),
+            'ausgaben'   => $ausgaben,
+            'grenzen'    => $grenzen,
+            'archiv'     => $archiv,
+            'fristen'    => sicher(static fn() => Steuerakte::fristen(), []),
+        ]);
         break;
 
     case 'monitoring':

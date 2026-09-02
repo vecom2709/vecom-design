@@ -699,21 +699,71 @@ body.scrolled .scrollcue { opacity: 0; }
   background: radial-gradient(70% 60% at 30% 50%, rgba(3, 5, 9, .92), rgba(3, 5, 9, .6) 60%, transparent 85%);
   filter: blur(4px);
 }
+/* Die vier Schritte sind aufklappbar — vier ausgeschriebene Absaetze
+   untereinander sind viel Text an einer Stelle, an der der Leser eigentlich
+   nur wissen will, wie es ablaeuft. Ueberschriften bleiben sichtbar, der
+   Fliesstext kommt auf Wunsch. Gebaut mit <details>: das koennen Tastatur,
+   Vorleseprogramm und die Suche des Browsers von Haus aus, ohne eine Zeile
+   JavaScript. Der erste Schritt steht offen, damit der Abschnitt nicht wie
+   eine leere Liste wirkt. */
 .step {
-  display: grid; gap: var(--s-2); padding-block: clamp(1.8rem, 3.5vw, 3rem);
+  padding-block: clamp(1.4rem, 2.6vw, 2.2rem);
   border-bottom: 1px solid var(--c-line); position: relative;
   transition: padding-left var(--d-move) var(--e-std);
 }
-@media (min-width: 860px) {
-  .step { grid-template-columns: 7rem minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; gap: var(--s-4); }
-  .step:hover { padding-left: 1rem; }
+.step__kopf {
+  display: grid; grid-template-columns: 4rem minmax(0, 1fr) 1.6rem;
+  align-items: center; gap: var(--s-2);
+  cursor: pointer; list-style: none;
+  border-radius: 12px; outline-offset: 4px;
 }
+.step__kopf::-webkit-details-marker { display: none; }
+.step__kopf:focus-visible { outline: 2px solid var(--c-cyan); }
+.step__wort { display: flex; flex-direction: column; gap: .2rem; }
 .step__no {
   font-family: var(--f-display); font-size: var(--t-lg); font-weight: 700;
   background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.step h3 { font-size: var(--t-lg); }
-.step p { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch; }
+.step h3 { font-size: var(--t-md); margin: 0; }
+.step p {
+  color: var(--c-text-dim); font-size: var(--t-sm); max-width: 52ch;
+  margin: var(--s-2) 0 0;
+}
+/* Das Zeichen ist ein Plus, das sich beim Oeffnen zum Minus dreht — kein
+   Pfeil: ein Pfeil verspricht einen Sprung woandershin. */
+.step__zeichen {
+  position: relative; width: 1.15rem; height: 1.15rem; justify-self: end;
+  opacity: .75; transition: opacity var(--d-ui) var(--e-std), transform var(--d-move) var(--e-std);
+}
+.step__zeichen::before, .step__zeichen::after {
+  content: ""; position: absolute; inset: 50% 0 auto 0;
+  height: 1.5px; border-radius: 2px; background: var(--c-text-dim);
+  transition: transform var(--d-move) var(--e-std);
+}
+.step__zeichen::after { transform: rotate(90deg); }
+.step[open] .step__zeichen::after { transform: rotate(0deg); }
+.step__kopf:hover .step__zeichen { opacity: 1; }
+
+@media (min-width: 860px) {
+  .step__kopf { grid-template-columns: 7rem minmax(0, 1fr) 1.6rem; gap: var(--s-4); }
+  .step__wort { flex-direction: row; align-items: baseline; gap: var(--s-3); }
+  .step__wort h3 { order: -1; flex: 0 0 auto; min-width: 12rem; }
+  .step p { padding-left: calc(7rem + var(--s-4)); max-width: 68ch; }
+  .step:hover { padding-left: 1rem; }
+}
+
+/* Weich auf- und zuklappen, wo der Browser es kann. Wo nicht, springt es
+   auf — das ist kein Fehler, nur weniger huebsch. */
+@supports (interpolate-size: allow-keywords) {
+  :root { interpolate-size: allow-keywords; }
+  .step::details-content {
+    block-size: 0; overflow: hidden; opacity: 0;
+    transition: block-size var(--d-move) var(--e-std),
+                content-visibility var(--d-move) allow-discrete,
+                opacity var(--d-move) var(--e-std);
+  }
+  .step[open]::details-content { block-size: auto; opacity: 1; }
+}
 
 /* ---------- 12. Prinzipien ----------------------------------------------- */
 .pillars {
@@ -1625,6 +1675,11 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 /* ---------- 29. Videos ---------------------------------------------------- */
 .vids { display: grid; gap: clamp(1rem, 2vw, 1.6rem); }
 @media (min-width: 900px) { .vids { grid-template-columns: 1fr 1fr; } }
+/* Ein einzelnes Video haelt die halbe Spalte nicht — es stuende links und
+   liesse rechts ein Loch. Also mittig und breiter. */
+@media (min-width: 900px) {
+  .vids--eins { grid-template-columns: minmax(0, 780px); justify-content: center; }
+}
 .vid {
   position: relative; margin: 0; border-radius: var(--radius-lg); overflow: hidden;
   background: var(--c-surface); box-shadow: var(--elev-1);
@@ -1709,6 +1764,70 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   box-shadow: var(--elev-2); max-width: 420px;
 }
 .about__photo img { width: 100%; height: auto; display: block; }
+
+/* ---------- Das Foto lebt ein wenig ---------------------------------------
+   Ein Portrait neben drei Absaetzen Text ist die statischste Stelle der
+   Seite — und ausgerechnet die, an der jemand entscheidet, ob er es mit
+   einem Menschen zu tun hat. Also bewegt es sich. Aber so wenig, dass man
+   es nicht als Animation wahrnimmt, sondern nur bemerkt, dass das Bild
+   nicht tot ist.
+
+   Drei Dinge, absichtlich getrennt gehalten:
+     scale     — ein sehr langsames Atmen, 24 Sekunden je Richtung
+     translate — beim Scrollen laeuft das Bild etwas langsamer als sein
+                 Rahmen; das ist die Bewegung, die Tiefe erzeugt
+     ::before  — ein Lichtstreifen, der einmal alle 14 Sekunden darueber geht
+
+   Weil `scale` und `translate` in CSS eigene Eigenschaften sind, koennen
+   zwei Animationen sie gleichzeitig steuern, ohne sich zu ueberschreiben.
+   Frueher haette dafuer eine verschachtelte Huelle gebraucht. */
+.about__photo { position: relative; isolation: isolate; }
+.about__photo img {
+  transform-origin: 50% 42%;   /* etwa auf Augenhoehe, nicht in der Bildmitte */
+  will-change: scale, translate;
+  animation: fotoAtmen 24s var(--e-std, ease-in-out) infinite alternate;
+}
+@keyframes fotoAtmen {
+  from { scale: 1; }
+  to   { scale: 1.045; }
+}
+
+/* Der Lichtstreifen. Er laeuft schraeg, weil senkrecht nach Scanner aussieht
+   und waagerecht nach Ladebalken. */
+.about__photo::before {
+  content: ""; position: absolute; inset: -30% -60%; z-index: 2; pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 42%, rgba(255, 255, 255, .10) 50%, transparent 58%);
+  translate: -60% 0;
+  animation: fotoLicht 14s var(--e-std, ease-in-out) 3s infinite;
+}
+@keyframes fotoLicht {
+  0%   { translate: -60% 0; opacity: 0; }
+  8%   { opacity: 1; }
+  26%  { translate: 60% 0; opacity: 0; }
+  100% { translate: 60% 0; opacity: 0; }
+}
+
+/* Das Mitlaufen beim Scrollen — nur dort, wo der Browser Zeitleisten aus dem
+   Scrollen bauen kann. Wo nicht, fehlt genau diese eine Feinheit und sonst
+   nichts. */
+@supports (animation-timeline: view()) {
+  .about__photo img {
+    animation: fotoAtmen 24s var(--e-std, ease-in-out) infinite alternate,
+               fotoTiefe linear both;
+    animation-timeline: auto, view();
+    animation-range: normal, cover 0% cover 100%;
+  }
+  @keyframes fotoTiefe {
+    from { translate: 0 -3.5%; }
+    to   { translate: 0 3.5%; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about__photo img { animation: none !important; scale: 1 !important; translate: none !important; }
+  .about__photo::before { animation: none !important; opacity: 0; }
+}
 .about__text { display: grid; gap: var(--s-2); }
 .about__text h2 { font-size: var(--t-xl); }
 .about__role {
@@ -1779,3 +1898,91 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   transition: opacity var(--d-ui) linear, color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
 .admin:hover { opacity: 1; color: var(--c-cyan); background: rgba(31, 232, 255, .08); }
+
+
+/* ---------- Betreuung als eigener Block ----------------------------------
+   Sie ist ein eigener Vertrag, kein Aufschlag auf das Paket. Deshalb steht sie
+   abgesetzt, mit einer Linie darueber — sichtbar getrennt, ohne einen zweiten
+   Preisbereich zu erfinden. */
+.care{scroll-margin-top:clamp(72px,10vh,110px);margin-top:clamp(48px,7vw,88px);padding-top:clamp(32px,5vw,56px);border-top:1px solid var(--linie,rgba(255,255,255,.1))}
+.care__head{font-size:clamp(20px,2.4vw,26px);margin:0 0 8px}
+.care__lead{max-width:62ch;color:var(--dim,#9aa4b2);line-height:1.65;margin:0 0 clamp(20px,3vw,32px)}
+
+
+/* ---------- Kundenstimmen ------------------------------------------------
+   Ruhige Karten, kein Karussell: Wer drei Zitate lesen will, soll sie
+   nebeneinander sehen und nicht auf das naechste warten muessen. */
+.stimmen{display:grid;gap:clamp(16px,2vw,24px);grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.stimme{margin:0;padding:clamp(20px,2.4vw,28px);border:1px solid var(--linie,rgba(255,255,255,.1));border-radius:16px;background:var(--flaeche2,rgba(255,255,255,.02))}
+.stimme__sterne{display:block;letter-spacing:2px;margin-bottom:12px;color:var(--cyan,#1fe8ff);font-size:14px}
+.stimme__sterne i{color:var(--linie2,rgba(255,255,255,.18));font-style:normal}
+.stimme blockquote{margin:0;font-size:clamp(15px,1.5vw,17px);line-height:1.65}
+.stimme blockquote::before{content:"\201E"}
+.stimme blockquote::after{content:"\201C"}
+.stimme figcaption{margin-top:14px;font-size:13px;color:var(--leise,#6b7280)}
+
+
+/* ---------- Individuelle Projekte ----------------------------------------
+   Bewusst KEINE vierte Preiskarte, sondern eine andere Form: ein breites
+   Feld, zweigeteilt. Der Grund ist nicht Geschmack. Neben drei Karten mit
+   499, 899 und 1499 Euro liest sich eine Karte ohne Zahl als die teuerste —
+   die Leerstelle wird gefuellt, und zwar mit dem schlimmsten Wert, den der
+   Leser sich vorstellen kann. In eigener Form steht sie nicht im Vergleich,
+   sondern daneben: ein anderer Weg, kein teureres Paket. */
+.masz { padding-top: 0; }
+.masz__panel {
+  display: grid;
+  grid-template-columns: 1.15fr .85fr;
+  gap: clamp(28px, 4vw, 68px);
+  align-items: start;
+  padding: clamp(26px, 4vw, 56px);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--c-line);
+  background:
+    radial-gradient(130% 150% at 6% 0%, rgba(10, 120, 245, .17), transparent 60%),
+    linear-gradient(180deg, var(--c-surface-2), var(--c-surface));
+  box-shadow: var(--elev-1);
+}
+.masz__panel > * { min-width: 0; }
+.masz__text h3 {
+  font-family: var(--f-display);
+  font-size: var(--t-lg);
+  line-height: 1.12;
+  margin: .35rem 0 1rem;
+  text-wrap: balance;
+}
+.masz__lead { font-size: var(--t-md); line-height: 1.5; margin: 0 0 1.1rem; max-width: 48ch; }
+.masz__p    { color: var(--c-text-dim); line-height: 1.7; margin: 0 0 1.6rem; max-width: 56ch; }
+.masz__tun  { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.masz__note {
+  margin: 1rem 0 0; max-width: 52ch;
+  font-size: var(--t-sm); line-height: 1.6; color: var(--c-text-faint);
+}
+
+/* Die rechte Spalte ist die Belegseite: was hier steht, beantwortet die
+   Frage "bin ich damit gemeint?" schneller als jeder Fliesstext. */
+.masz__liste {
+  padding: clamp(20px, 2.4vw, 28px);
+  border-radius: var(--radius);
+  border: 1px solid var(--c-line);
+  background: rgba(150, 180, 230, .045);
+}
+.masz__listhead {
+  margin: 0 0 .9rem;
+  font-size: var(--t-xs); letter-spacing: .18em; text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+.masz__liste ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.masz__liste li {
+  position: relative; padding-left: 1.6rem;
+  font-size: var(--t-sm); line-height: 1.55; color: var(--c-text-dim);
+}
+.masz__liste li::before {
+  content: ""; position: absolute; left: 0; top: .58em;
+  width: .55rem; height: .55rem; border-radius: 2px;
+  background: var(--grad-brand); opacity: .85;
+}
+
+@media (max-width: 900px) {
+  .masz__panel { grid-template-columns: 1fr; }
+}

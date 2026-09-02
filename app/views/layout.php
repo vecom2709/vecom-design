@@ -8,6 +8,10 @@ $navZahlen = [
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
 // Menue, die eine Handlung meint und nicht nur einen Bestand.
+$navZahlen['stimmen'] = (int) sicher(static function (): int {
+    require_once __DIR__ . '/../src/Stimme.php';
+    return Stimme::offene();
+}, 0);
 $navZahlen['heute'] = (int) sicher(static function (): int {
     require_once dirname(__DIR__) . '/src/Vorgang.php';
     require_once dirname(__DIR__) . '/src/Mail.php';
@@ -31,7 +35,9 @@ $menue = [
   ['__gruppe', 'Geld', null],
   ['zahlungen', 'Zahlungen', 'zahlungen'],
   ['rechnungen', 'Rechnungen', 'rechnungen'],
+  ['ausgaben', 'Ausgaben', 'ausgaben'],
   ['abos', 'Betreuung', 'abos'],
+  ['stimmen', 'Kundenstimmen', 'stimmen'],
   ['steuerakte', 'Fürs Finanzamt', 'steuerakte'],
   ['statistiken', 'Statistiken', 'statistiken'],
   ['__gruppe', 'System', null],
