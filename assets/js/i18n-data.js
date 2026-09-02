@@ -104,10 +104,10 @@ window.VECOM_I18N = {
       i3: "Ideale per chi vuole una presenza duratura e smettere di rincorrere il proprio sito.",
 
       badge: "Più richiesto",
-      priceNote: "una tantum · IVA esclusa",
-      togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno · IVA esclusa",
+      priceNote: "una tantum",
+      togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno",
       cta: "Richiedi questo pacchetto", more: "Tutti i dettagli",
-      note: "Tutti i prezzi sono IVA esclusa. L'assistenza mensile ha una durata iniziale di dodici mesi e poi si disdice in qualsiasi momento, con effetto a fine mese. Preventivo e primo colloquio sono gratuiti e senza impegno: l'incarico diventa vincolante solo con la firma del contratto.",
+      note: "I prezzi indicati sono quelli che paghi. L'assistenza mensile è facoltativa e si può prendere anche da sola; ha una durata iniziale di dodici mesi e poi si disdice in qualsiasi momento, con effetto a fine mese. Preventivo e primo colloquio sono gratuiti e senza impegno: l'incarico diventa vincolante solo con la firma del contratto.",
       cmp: "Confronto rapido",
       cmpRow: "Pagine|Lingue|Modifiche al mese|Assistenza",
       cmp1: "fino a 5|1|piccole modifiche|diretta",
@@ -249,7 +249,7 @@ window.VECOM_I18N = {
       s7b: "Nessun banner cookie", s7bs: "Nessun tracciamento, nessun font esterno.",
       s7c: "Un solo referente", s7cs: "Dal primo colloquio all'assistenza.",
       s8k: "Prezzi chiari", s8a: "da 499 €",
-      s8b: "una tantum, più assistenza mensile da 39 €. Preventivo e primo colloquio sono gratuiti.",
+      s8b: "una tantum. L'assistenza mensile parte da 39 € ed è facoltativa. Preventivo e primo colloquio sono gratuiti.",
       s9b: "kontakt@vecom-design.it · Italiano · Tedesco · Inglese"
     },
     det: {
@@ -415,10 +415,10 @@ window.VECOM_I18N = {
       i3: "Ideal für alle, die dauerhaft sichtbar bleiben und ihrer Website nicht mehr hinterherlaufen wollen.",
 
       badge: "Am häufigsten gewählt",
-      priceNote: "einmalig · zzgl. MwSt.",
-      togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr · zzgl. MwSt.",
+      priceNote: "einmalig",
+      togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr",
       cta: "Dieses Paket anfragen", more: "Alle Details",
-      note: "Alle Preise zzgl. MwSt. Die monatliche Betreuung läuft zwölf Monate und ist danach jederzeit zum Monatsende kündbar. Angebot und Erstgespräch sind kostenlos und unverbindlich — verbindlich wird der Auftrag erst mit dem Vertragsabschluss.",
+      note: "Die genannten Preise sind die, die du zahlst. Die monatliche Betreuung ist freiwillig und auch allein erhältlich; sie läuft zwölf Monate und ist danach jederzeit zum Monatsende kündbar. Angebot und Erstgespräch sind kostenlos und unverbindlich — verbindlich wird der Auftrag erst mit dem Vertragsabschluss.",
       cmp: "Kurzer Vergleich",
       cmpRow: "Seiten|Sprachen|Änderungen pro Monat|Betreuung",
       cmp1: "bis 5|1|kleine Änderungen|direkt",
@@ -560,7 +560,7 @@ window.VECOM_I18N = {
       s7b: "Kein Cookie-Banner", s7bs: "Keine Tracker, keine fremden Schriften.",
       s7c: "Ein Ansprechpartner", s7cs: "Vom ersten Gespräch bis zur Betreuung.",
       s8k: "Klare Preise", s8a: "ab 499 €",
-      s8b: "einmalig, zzgl. monatlicher Betreuung ab 39 €. Angebot und Erstgespräch sind kostenlos.",
+      s8b: "einmalig. Die monatliche Betreuung beginnt bei 39 € und ist freiwillig. Angebot und Erstgespräch sind kostenlos.",
       s9b: "kontakt@vecom-design.it · Italienisch · Deutsch · Englisch"
     },
     det: {
@@ -726,10 +726,10 @@ window.VECOM_I18N = {
       i3: "Ideal for anyone who wants to stay visible long-term and stop chasing their own website.",
 
       badge: "Most chosen",
-      priceNote: "one-off · plus VAT",
-      togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year · plus VAT",
+      priceNote: "one-off",
+      togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year",
       cta: "Request this package", more: "Full details",
-      note: "All prices exclude VAT. The monthly care runs for twelve months and can then be cancelled at any time, effective at the end of the month. Quote and first conversation are free and without obligation — the job becomes binding only when the contract is signed.",
+      note: "The prices shown are what you pay. Monthly care is optional and also available on its own; it runs for twelve months and can then be cancelled at any time, effective at the end of the month. Quote and first conversation are free and without obligation — the job becomes binding only when the contract is signed.",
       cmp: "Quick comparison",
       cmpRow: "Pages|Languages|Changes per month|Support",
       cmp1: "up to 5|1|small changes|direct",
@@ -871,7 +871,7 @@ window.VECOM_I18N = {
       s7b: "No cookie banner", s7bs: "No trackers, no third-party fonts.",
       s7c: "One contact", s7cs: "From first call through ongoing care.",
       s8k: "Clear pricing", s8a: "from €499",
-      s8b: "one-off, plus monthly care from €39. Quote and first conversation are free.",
+      s8b: "one-off. Monthly care starts at €39 and is optional. Quote and first conversation are free.",
       s9b: "kontakt@vecom-design.it · Italian · German · English"
     },
     det: {

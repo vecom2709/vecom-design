@@ -89,7 +89,14 @@ final class Einrichtung
             // anderer Aufruf schneller und hat es schon erledigt.
             if (self::offene()) {
                 $bilanz['migrationen'] = self::migrieren();
-                if ($bilanz['migrationen']) { $bilanz['texte'] = self::texteNachtragen(); }
+                if ($bilanz['migrationen']) {
+                    $bilanz['texte'] = self::texteNachtragen();
+                    // Nach 018: Betreuung als eigene Produkte anlegen und die
+                    // Listen der Website-Pakete entwirren. Tut nichts, wenn es
+                    // schon geschehen ist.
+                    try { $bilanz['pakete'] = self::paketeTrennen(); }
+                    catch (Throwable $e) { $bilanz['pakete'] = ['fehler' => $e->getMessage()]; }
+                }
             }
             if ($auchBeispiele && self::beispieleFaellig()) {
                 require_once __DIR__ . '/Beispieldaten.php';
@@ -149,12 +156,115 @@ final class Einrichtung
                 'detail_url' => $p['detail_url'] ?? null,
                 'active' => 1, 'oeffentlich' => 1, 'popular' => $p['popular'], 'sort' => $p['sort'],
             ];
+            if (self::spalteDa('packages', 'art')) { $daten['art'] = $p['art'] ?? 'website'; }
             $da = Db::one('SELECT id FROM packages WHERE slug = ?', [$p['slug']]);
             if ($da) { Db::update('packages', (int) $da['id'], $daten); $ergebnis[] = $p['name'] . ' (aktualisiert)'; }
             else     { Db::insert('packages', $daten); $ergebnis[] = $p['name'] . ' (angelegt)'; }
         }
         return $ergebnis;
     }
+
+    /** Gibt es die Spalte schon? Zwischen Deploy und Cronlauf kann sie fehlen. */
+    private static function spalteDa(string $tabelle, string $spalte): bool
+    {
+        static $bekannt = [];
+        $k = $tabelle . '.' . $spalte;
+        if (!isset($bekannt[$k])) {
+            try {
+                Db::run("SELECT `$spalte` FROM `$tabelle` LIMIT 1");
+                $bekannt[$k] = true;
+            } catch (Throwable $e) { $bekannt[$k] = false; }
+        }
+        return $bekannt[$k];
+    }
+
+    /**
+     * Legt die Betreuungspakete an und entwirrt die Listen der Website-Pakete.
+     *
+     * Laeuft genau einmal, nach der Migration 018. Zwei Dinge tut sie, und
+     * beide vorsichtig:
+     *
+     * 1. Fehlende Pakete anlegen. Was es schon gibt, wird nicht angefasst —
+     *    ein Preis, den Uwe von Hand geaendert hat, bleibt seiner.
+     * 2. Aus den Website-Paketen die Betreuungszeilen entfernen. Aber nur
+     *    dort, wo die Liste noch die ausgelieferte ist: Steht dort etwas
+     *    Eigenes, ruehrt sie nichts an und sagt es.
+     *
+     * @return array{angelegt:list<string>,entwirrt:list<string>,unberuehrt:list<string>}
+     */
+    public static function paketeTrennen(): array
+    {
+        $bilanz = ['angelegt' => [], 'entwirrt' => [], 'unberuehrt' => []];
+        if (!self::spalteDa('packages', 'art')) { return $bilanz; }
+
+        $vorlage = require __DIR__ . '/Standardpakete.php';
+        foreach ($vorlage as $p) {
+            $da = Db::one('SELECT * FROM packages WHERE slug = ?', [$p['slug']]);
+
+            if (!$da) {
+                Db::insert('packages', [
+                    'slug' => $p['slug'], 'art' => $p['art'] ?? 'website',
+                    'name' => $p['name'], 'description' => $p['description'],
+                    'sub' => $p['sub'] ?? null, 'ideal' => $p['ideal'] ?? null,
+                    'price_cents' => $p['price_cents'], 'monthly_cents' => $p['monthly_cents'],
+                    'currency' => 'EUR',
+                    'features' => json_encode($p['features'], JSON_UNESCAPED_UNICODE),
+                    'texte' => isset($p['texte']) ? json_encode($p['texte'], JSON_UNESCAPED_UNICODE) : null,
+                    'detail_url' => $p['detail_url'] ?? null,
+                    'active' => 1, 'oeffentlich' => 1, 'popular' => $p['popular'], 'sort' => $p['sort'],
+                ]);
+                $bilanz['angelegt'][] = (string) $p['name'];
+                continue;
+            }
+
+            if (($p['art'] ?? 'website') !== 'website') { continue; }
+
+            // Nur die Website-Pakete entwirren — und nur, wenn dort noch die
+            // ausgelieferte Liste steht.
+            $jetzt = json_decode((string) ($da['texte'] ?? ''), true);
+            $alt   = is_array($jetzt) ? (array) ($jetzt['de']['features'] ?? []) : [];
+            $hatBetreuung = false;
+            foreach ($alt as $zeile) {
+                if (in_array(trim((string) $zeile), self::BETREUUNGSZEILEN, true)) { $hatBetreuung = true; break; }
+            }
+            if (!$hatBetreuung) { continue; }
+
+            $neu = [];
+            foreach ((array) ($jetzt ?: []) as $spr => $inhalt) {
+                $neu[$spr] = $inhalt;
+                $neu[$spr]['features'] = array_values(array_filter((array) ($inhalt['features'] ?? []),
+                    static fn($z) => !in_array(trim((string) $z), self::BETREUUNGSZEILEN, true)));
+            }
+            $grund = array_values(array_filter(
+                (array) (json_decode((string) ($da['features'] ?? '[]'), true) ?: []),
+                static fn($z) => !in_array(trim((string) $z), self::BETREUUNGSZEILEN, true)));
+
+            Db::update('packages', (int) $da['id'], [
+                'art'      => 'website',
+                'texte'    => json_encode($neu, JSON_UNESCAPED_UNICODE),
+                'features' => json_encode($grund, JSON_UNESCAPED_UNICODE),
+            ]);
+            $bilanz['entwirrt'][] = (string) $da['name'];
+        }
+        return $bilanz;
+    }
+
+    /**
+     * Zeilen, die monatliche Betreuung beschreiben und deshalb nicht in die
+     * Liste eines Einmalpreises gehoeren — in allen drei Sprachen, weil die
+     * Listen je Sprache gepflegt werden.
+     */
+    private const BETREUUNGSZEILEN = [
+        'Backup mensile e aggiornamenti', 'Piccole modifiche incluse', 'Assistenza diretta, senza ticket',
+        'Monitoraggio sicurezza', '60 minuti di modifiche al mese',
+        'Controlli di sicurezza e prestazioni', '2 ore di modifiche al mese', 'Assistenza prioritaria',
+        'Monatliche Backups und Updates', 'Kleine Änderungen inklusive', 'Direkte Betreuung ohne Ticketsystem',
+        'Sicherheitsüberwachung', '60 Minuten Änderungen pro Monat',
+        'Sicherheits- und Performance-Checks', '2 Stunden Änderungen pro Monat', 'Bevorzugte Betreuung',
+        'Monthly backups and updates', 'Small changes included', 'Direct support, no ticket system',
+        'Security monitoring', '60 minutes of changes per month',
+        'Security and performance checks', '2 hours of changes per month', 'Priority support',
+    ];
 
     /**
      * Traegt fehlende Website-Texte bei den bekannten Paketen nach — aber nur

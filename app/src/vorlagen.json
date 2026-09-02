@@ -53,18 +53,15 @@
     "business": {
       "it": [
         "· Sorveglianza della sicurezza",
-        "· 60 minuti di modifiche al mese",
-        "· Fino a 5 indirizzi e-mail seguiti"
+        "· 60 minuti di modifiche al mese"
       ],
       "de": [
         "· Sicherheitsüberwachung",
-        "· 60 Minuten Änderungen pro Monat",
-        "· Bis zu 5 E-Mail-Adressen mit betreut"
+        "· 60 Minuten Änderungen pro Monat"
       ],
       "en": [
         "· Security monitoring",
-        "· 60 minutes of changes per month",
-        "· Up to 5 email addresses looked after"
+        "· 60 minutes of changes per month"
       ]
     },
     "premium": {
@@ -211,9 +208,9 @@
         "en": "What a website costs — my prices, plainly"
       },
       "text": {
-        "it": "hai chiesto quanto costa. Te lo dico subito e per intero, senza doverti prima vendere qualcosa.\n\n{alle_pakete}\n\nOgni prezzo è fisso: quello che c'è scritto è quello che paghi. Metà all'inizio, metà alla consegna.\n\nLa manutenzione mensile è facoltativa e comprende aggiornamenti, backup, controllo della raggiungibilità e piccole modifiche. Senza di essa il sito funziona lo stesso — solo che le piccole cose si accumulano.\n\nQuale sia quello giusto per te dipende da cosa deve fare il sito. Scrivimi due righe sulla tua attività e te lo dico, anche se la risposta è il pacchetto più piccolo.",
-        "de": "du hast gefragt, was es kostet. Ich sage es dir gleich und vollständig, ohne dir vorher etwas verkaufen zu müssen.\n\n{alle_pakete}\n\nJeder Preis ist ein Festpreis: Was dasteht, zahlst du. Die Hälfte zu Beginn, die Hälfte bei der Übergabe.\n\nDie monatliche Betreuung ist freiwillig und umfasst Aktualisierungen, Sicherungen, Überwachung der Erreichbarkeit und kleine Änderungen. Ohne sie läuft die Seite genauso — nur sammeln sich die kleinen Dinge mit der Zeit an.\n\nWelches das richtige für dich ist, hängt davon ab, was die Seite können soll. Schreib mir zwei Zeilen über deinen Betrieb, dann sage ich es dir — auch wenn die Antwort das kleinste Paket ist.",
-        "en": "you asked what it costs. Here it is in full, without having to sell you something first.\n\n{alle_pakete}\n\nEvery price is fixed: what it says is what you pay. Half up front, half on handover.\n\nMonthly care is optional and covers updates, backups, uptime monitoring and small changes. Without it the site runs just the same — the small things simply pile up over time.\n\nWhich one is right for you depends on what the site has to do. Write me two lines about your business and I'll tell you — even if the answer is the smallest package."
+        "it": "hai chiesto quanto costa. Te lo dico subito e per intero, senza doverti prima vendere qualcosa.\n\nCOSTRUZIONE DEL SITO — una volta sola\n{alle_pakete}\n\nOgni prezzo è fisso: quello che c'è scritto è quello che paghi. Metà all'inizio, metà alla consegna.\n\nASSISTENZA MENSILE — facoltativa, si può anche non prenderla\n{alle_betreuung}\n\nLe due cose sono separate: puoi far costruire il sito senza assistenza, oppure prendere solo l'assistenza per un sito che hai già. Nel secondo caso guardo prima cosa c'è — {bestandsaufnahme} una tantum, che ti scalo se poi prendi l'assistenza.\n\nQuale sia il pacchetto giusto dipende da cosa deve fare il sito. Scrivimi due righe sulla tua attività e te lo dico, anche se la risposta è quello più piccolo.",
+        "de": "du hast gefragt, was es kostet. Ich sage es dir gleich und vollständig, ohne dir vorher etwas verkaufen zu müssen.\n\nDIE SEITE BAUEN — einmalig\n{alle_pakete}\n\nJeder Preis ist ein Festpreis: Was dasteht, zahlst du. Die Hälfte zu Beginn, die Hälfte bei der Übergabe.\n\nBETREUUNG IM MONAT — freiwillig, du musst sie nicht nehmen\n{alle_betreuung}\n\nBeides ist getrennt: Du kannst die Seite bauen lassen ohne Betreuung, oder nur die Betreuung nehmen für eine Seite, die du schon hast. Im zweiten Fall sehe ich mir vorher an, was da ist — {bestandsaufnahme} einmalig, die ich dir anrechne, wenn du danach die Betreuung nimmst.\n\nWelches Paket das richtige ist, hängt davon ab, was die Seite können soll. Schreib mir zwei Zeilen über deinen Betrieb, dann sage ich es dir — auch wenn die Antwort das kleinste ist.",
+        "en": "you asked what it costs. Here it is in full, without having to sell you something first.\n\nBUILDING THE SITE — one-off\n{alle_pakete}\n\nEvery price is fixed: what it says is what you pay. Half up front, half on handover.\n\nMONTHLY CARE — optional, you don't have to take it\n{alle_betreuung}\n\nThe two are separate: you can have the site built without care, or take only the care for a site you already have. In the second case I look at what's there first — {bestandsaufnahme} one-off, credited if you then take a care plan.\n\nWhich package is right depends on what the site has to do. Write me two lines about your business and I'll tell you — even if the answer is the smallest one."
       }
     },
     "dauerfrage": {
@@ -522,6 +519,20 @@
         "it": "il sito è online e funziona. Una domanda onesta: vuoi occupartene tu o preferisci che ci pensi io?\n\nTi scrivo tutto per intero, così decidi con i numeri davanti.\n\nMANUTENZIONE {paket} — {betreuung} AL MESE\n{betreuunginhalt}\n\nCONDIZIONI\nPrimo periodo dodici mesi, poi disdici quando vuoi a fine mese. Nessun aumento a sorpresa. Se disdici, il sito resta tuo e continua a funzionare — ti do i dati e te ne occupi tu o chi vuoi.\n\nCOSA SUCCEDE SENZA\nIl sito continua a funzionare. Solo che gli aggiornamenti non li fa nessuno, e dopo un anno o due sono le piccole cose ad accumularsi: un modulo che smette di inviare, un certificato scaduto, una foto da cambiare che resta lì.\n\nNessuna fretta e nessun obbligo. Se preferisci di no, va benissimo così e non te lo chiedo più.",
         "de": "die Seite ist online und läuft. Eine ehrliche Frage: Willst du dich selbst darum kümmern oder soll ich das übernehmen?\n\nIch schreibe dir alles vollständig hin, dann entscheidest du mit den Zahlen vor dir.\n\nBETREUUNG {paket} — {betreuung} IM MONAT\n{betreuunginhalt}\n\nBEDINGUNGEN\nErste Laufzeit zwölf Monate, danach jederzeit zum Monatsende kündbar. Keine Erhöhungen aus dem Nichts. Wenn du kündigst, gehört die Seite weiterhin dir und läuft weiter — du bekommst die Zugänge und kümmerst dich selbst darum oder lässt jemanden anders ran.\n\nWAS OHNE PASSIERT\nDie Seite läuft weiter. Nur macht die Aktualisierungen niemand, und nach ein, zwei Jahren sind es die kleinen Dinge, die sich sammeln: ein Formular, das nicht mehr verschickt, ein abgelaufenes Zertifikat, ein Foto, das ausgetauscht gehört und liegen bleibt.\n\nKein Druck und keine Verpflichtung. Wenn du lieber nicht möchtest, ist das völlig in Ordnung, und ich frage nicht noch einmal.",
         "en": "the site is live and running. An honest question: do you want to look after it yourself, or shall I?\n\nI'm writing it out in full so you can decide with the numbers in front of you.\n\n{paket} CARE — {betreuung} PER MONTH\n{betreuunginhalt}\n\nTERMS\nFirst term twelve months, after that cancellable at any month's end. No increases out of nowhere. If you cancel, the site stays yours and keeps running — you get the logins and look after it yourself or hand it to someone else.\n\nWHAT HAPPENS WITHOUT IT\nThe site keeps working. Nobody does the updates, though, and after a year or two it's the small things that pile up: a form that stops sending, an expired certificate, a photo that should be swapped and never is.\n\nNo pressure and no obligation. If you'd rather not, that's perfectly fine and I won't ask again."
+      }
+    },
+    "betreuung_fremd": {
+      "gruppe": "danach",
+      "name": "Betreuung für bestehende Seite",
+      "betreff": {
+        "it": "Assistenza per il sito che hai già",
+        "de": "Betreuung für deine bestehende Seite",
+        "en": "Care for the site you already have"
+      },
+      "text": {
+        "it": "mi hai chiesto se seguo anche siti che non ho costruito io. Sì, lo faccio — ma con un passaggio prima, e ti spiego perché.\n\nPRIMA: PRESA IN CARICO — {bestandsaufnahme} una tantum\nGuardo com'è fatto il sito, se gli aggiornamenti sono a posto, se esistono backup, quanto è veloce, come si vede da telefono, e se dominio, certificato e caselle sono in ordine. Alla fine ricevi una relazione scritta: cosa va bene, cosa va sistemato, cosa costerebbe.\n\nLo faccio perché prendere in assistenza un sito senza averlo guardato significa promettere qualcosa su un lavoro che non conosco. Se poi prendi l'assistenza, l'importo te lo scalo — quindi non ci perdi.\n\nPOI: ASSISTENZA MENSILE\n{alle_betreuung}\n\nUna cosa da dire subito: se il sito è ospitato altrove, posso tenerlo d'occhio e avvisarti, ma non posso garantire che sia raggiungibile — quel server non è mio. Se lo sposti da me, quella garanzia te la posso dare.\n\nScrivimi l'indirizzo del sito e ti dico entro un giorno se ha senso.",
+        "de": "du hast gefragt, ob ich auch Seiten betreue, die ich nicht gebaut habe. Ja, mache ich — aber mit einem Schritt davor, und ich sage dir warum.\n\nZUERST: BESTANDSAUFNAHME — {bestandsaufnahme} einmalig\nIch sehe mir an, womit die Seite gebaut ist, ob die Aktualisierungen nachgezogen sind, ob es Sicherungen gibt, wie schnell sie lädt, wie sie auf dem Handy aussieht, und ob Domain, Zertifikat und Postfächer in Ordnung sind. Am Ende bekommst du einen schriftlichen Befund: was in Ordnung ist, was zu tun ist, was es kosten würde.\n\nIch mache das, weil eine Seite zu betreuen, die ich nie angesehen habe, hieße, für fremde Arbeit geradezustehen. Nimmst du danach die Betreuung, rechne ich den Betrag an — du zahlst also nicht doppelt.\n\nDANACH: BETREUUNG IM MONAT\n{alle_betreuung}\n\nEines gleich vorweg: Liegt die Seite bei einem anderen Anbieter, kann ich sie überwachen und dich warnen, aber nicht für ihre Erreichbarkeit geradestehen — der Server gehört mir nicht. Ziehst du zu mir um, kann ich das zusagen.\n\nSchreib mir die Adresse der Seite, dann sage ich dir innerhalb eines Tages, ob es sich lohnt.",
+        "en": "you asked whether I also look after sites I didn't build. I do — but with one step first, and here's why.\n\nFIRST: SITE REVIEW — {bestandsaufnahme} one-off\nI check what the site is built with, whether updates are current, whether backups exist, how fast it loads, how it looks on a phone, and whether the domain, certificate and mailboxes are in order. At the end you get written findings: what's fine, what needs doing, what it would cost.\n\nI do this because looking after a site I've never examined would mean vouching for someone else's work. If you then take a care plan, the amount is credited — so you don't pay twice.\n\nTHEN: MONTHLY CARE\n{alle_betreuung}\n\nOne thing up front: if the site is hosted elsewhere, I can monitor it and warn you, but I can't vouch for its uptime — that server isn't mine. If you move it to me, I can.\n\nSend me the address of the site and I'll tell you within a day whether it's worth it."
       }
     },
     "betreuung_laeuft": {

@@ -48,7 +48,7 @@ $kaufText = ['it' => 'Prenota ora', 'de' => 'Jetzt buchen', 'en' => 'Book now'][
 try {
     $reihen = Db::all(
         'SELECT slug, name, description, sub, ideal, price_cents, monthly_cents, currency,
-                features, texte, popular, detail_url, direktkauf
+                features, texte, popular, detail_url, direktkauf, art
          FROM packages
          WHERE active = 1 AND oeffentlich = 1
          ORDER BY sort, price_cents'
@@ -57,14 +57,23 @@ try {
     $leer('Datenbank nicht erreichbar');
 }
 
+/* Getrennt ausgeliefert, seit Erstellung und Betreuung zwei Produkte sind:
+   "pakete" sind die einmaligen Website-Pakete — sie ersetzen die Preiskarten
+   auf der Seite und muessen deshalb genau das bleiben, was sie waren.
+   "betreuung" und "zusatz" stehen daneben; wer sie anzeigen will, holt sie
+   ausdruecklich. So kann eine neue Produktart die Preiskarten nicht kapern. */
 $pakete = [];
+$betreuung = [];
+$zusatz = [];
 foreach ($reihen as $r) {
     $t = $r['texte'] ? (json_decode((string) $r['texte'], true) ?: []) : [];
     $s = $t[$sprache] ?? [];
     $grund = json_decode((string) ($r['features'] ?? '[]'), true) ?: [];
 
-    $pakete[] = [
+    $eintrag = [
         'slug'      => $r['slug'],
+        // website (einmalig) · betreuung (monatlich) · zusatz (einmalig)
+        'art'       => (string) ($r['art'] ?? 'website'),
         'name'      => trim((string) ($s['name'] ?? '')) !== '' ? $s['name'] : $r['name'],
         'sub'       => trim((string) ($s['sub'] ?? '')) !== '' ? $s['sub'] : (string) ($r['sub'] ?? ''),
         'ideal'     => trim((string) ($s['ideal'] ?? '')) !== '' ? $s['ideal'] : (string) ($r['ideal'] ?? ''),
@@ -77,9 +86,15 @@ foreach ($reihen as $r) {
         'kaufbar'   => $kaufbar && (bool) $r['direktkauf'],
         'kauf_url'  => '/buchen.php?paket=' . rawurlencode((string) $r['slug']) . '&lang=' . $sprache,
     ];
+
+    switch ($eintrag['art']) {
+        case 'betreuung': $betreuung[] = $eintrag; break;
+        case 'zusatz':    $zusatz[]    = $eintrag; break;
+        default:          $pakete[]    = $eintrag;
+    }
 }
 
 echo json_encode([
-    'pakete' => $pakete, 'sprache' => $sprache,
-    'kauf_text' => $kaufText,
+    'pakete' => $pakete, 'betreuung' => $betreuung, 'zusatz' => $zusatz,
+    'sprache' => $sprache, 'kauf_text' => $kaufText,
 ], JSON_UNESCAPED_UNICODE);

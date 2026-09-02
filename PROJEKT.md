@@ -1263,3 +1263,72 @@ auch ohne Bestellung vollständig; das Betreuungsschreiben über den echten
 Versandweg verschickt und im Mailfänger Zeichen für Zeichen mit der Vorlage
 verglichen — identisch, nichts abgeschnitten; beide Skriptblöcke der Seite mit
 `node --check` geprüft.
+
+## Erstellung und Betreuung sind zwei Produkte (02.09.2026)
+
+Uwes Vorgabe: Website-Preise und Betreuungspreise getrennt halten, damit der
+Kunde die Betreuung zusätzlich **oder allein** kaufen kann. Dazu die Frage, was
+der Kunde eigentlich bekommt und was in der Branche üblich ist.
+
+**Beim Nachsehen zwei Widersprüche im eigenen Bestand gefunden:**
+
+1. Die Paketlisten mischten genau das, was getrennt werden sollte. Im
+   Starter-Paket für 499 € standen „Monatliche Backups und Updates", „Kleine
+   Änderungen inklusive" und „Direkte Betreuung ohne Ticketsystem" — alles
+   Leistungen, die zusätzlich mit 39 € im Monat berechnet werden. Wer genau
+   liest, fragt zu Recht, wofür er monatlich zahlt.
+2. Auf der Website stand „zzgl. MwSt.", auf den Belegen 0 %. Ohne P. IVA gibt es
+   keine ausgewiesene IVA — der Satz versprach eine Rechnung, die es nicht gibt,
+   und ließ den Preis niedriger aussehen, als er ist.
+
+**Was gebaut wurde** (Migration `018`, Spalte `packages.art`):
+
+- Drei Produktarten: `website` (einmalig), `betreuung` (monatlich), `zusatz`
+  (einmalig). `monthly_cents` bleibt beim Website-Paket stehen — als *empfohlene*
+  Betreuung zur Größe, die das Angebotsschreiben nennt, aber nicht mitverkauft.
+- **Drei Betreuungspakete** als eigene Produkte: Basis 39 €, Plus 69 €,
+  Premium 99 € im Monat, mit vollständigen, aufsummierten Listen.
+- **Bestandsaufnahme, 99 € einmalig**, für Seiten, die Uwe nicht gebaut hat:
+  Prüfung von Bau, Aktualisierungen, Sicherungen, Tempo, Domain und Zertifikat,
+  schriftlicher Befund — und wird auf die Betreuung angerechnet. Der Grund steht
+  in der Vorlage: eine Seite zu betreuen, die man nie angesehen hat, hieße für
+  fremde Arbeit geradezustehen.
+- **`Einrichtung::paketeTrennen()`** legt die neuen Pakete an und entwirrt die
+  Listen der Website-Pakete — aber nur dort, wo noch die ausgelieferte Liste
+  steht. Was Uwe selbst eingetragen hat, bleibt seins. Läuft einmal, nach der
+  Migration, vom Cronjob angestoßen.
+
+**Ein Fallstrick, der beinahe live gegangen wäre:** Die Betreuungspakete stehen
+auf `öffentlich`, und `pakete-live.js` **ersetzt** die Preiskarten der Startseite
+aus genau dieser Liste. Ohne Filter wären sofort drei zusätzliche Karten mit
+„0 €" erschienen. `pakete-daten.php` liefert die Arten deshalb getrennt aus:
+`pakete` bleibt exakt das, was es war, `betreuung` und `zusatz` stehen daneben
+und werden nur angezeigt, wer sie ausdrücklich holt. Eine neue Produktart kann
+die Preiskarten so nicht kapern.
+
+**Zwei neue Vorlagen-Bausteine:** `{alle_betreuung}` (alle Betreuungspakete mit
+Preis und Inhalt) und `{bestandsaufnahme}`. Die Antwort „Was kostet eine
+Website?" hat jetzt zwei getrennte Blöcke und sagt ausdrücklich, dass beides
+einzeln geht. Dazu die 37. Vorlage: **„Betreuung für bestehende Seite"** — mit
+dem ehrlichen Satz, dass Uwe für eine fremd gehostete Seite zwar überwachen und
+warnen, aber nicht für die Erreichbarkeit geradestehen kann.
+
+**MwSt.-Angaben korrigiert** in `i18n-data.js` und in den drei `index.html`
+(die tragen den Text vor dem Übersetzen und für Suchmaschinen): aus „einmalig ·
+zzgl. MwSt." wird „einmalig", aus „Alle Preise zzgl. MwSt." wird „Die genannten
+Preise sind die, die du zahlst. Die monatliche Betreuung ist freiwillig und auch
+allein erhältlich." In allen drei Sprachen.
+
+Geprüft: Migration und Trennung liefen sauber durch (drei Pakete entwirrt, vier
+angelegt, keins unberührt übergangen); `pakete-daten.php` gibt drei Website-,
+drei Betreuungs- und ein Zusatzpaket in getrennten Listen; die Startseite zeigt
+in allen drei Sprachen weiterhin genau drei Karten, jetzt mit „einmalig" statt
+„zzgl. MwSt."; alle Verwaltungsseiten und alle Kundenseiten ohne Fehler.
+
+**Offen und bewusst nicht mitgemacht:** Die Preis-Sektion der Website zeigt die
+Betreuung weiterhin nur als Zusatzzeile an der Karte, nicht als eigenen Block.
+Die Daten dafür liegen bereit (`betreuung`, `zusatz` in `pakete-daten.php`) — die
+Gestaltung ist ein eigener Durchgang. Und: **Betreuung allein lässt sich noch
+nicht bezahlen.** Dafür braucht es Stripe-Abonnements, und das steht seit Längerem
+als offener Punkt. Bis dahin ist die Betreuung allein ein Angebot per Nachricht,
+kein Kaufknopf.

@@ -175,6 +175,8 @@ final class Vorlage
             '{betreuunginhalt}'=> self::betreuungInhalt($slug, $sprache),
             '{paketinhalt}'    => self::paketInhalt($slug, $sprache),
             '{alle_pakete}'    => self::allePakete($sprache),
+            '{alle_betreuung}' => self::alleBetreuung($sprache),
+            '{bestandsaufnahme}' => self::preisVon('bestandsaufnahme'),
             '{betrag}'         => $offen > 0 ? Fmt::geld($offen) : '…',
             '{seite}'          => $punkte($seite),
             '{vorschau}'       => $punkte($vorschau),
@@ -263,8 +265,14 @@ final class Vorlage
     /** Alle Pakete mit Preis — fuer die Antwort auf "Was kostet eine Website?". */
     private static function allePakete(string $sprache): string
     {
+        // Nur die Website-Pakete. Seit Erstellung und Betreuung getrennte
+        // Produkte sind, stuenden hier sonst Zeilen mit 0 € Einmalpreis.
         $liste = (array) self::still(fn() => Db::all(
-            'SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents'), []);
+            "SELECT * FROM packages WHERE active = 1 AND art = 'website' ORDER BY sort, price_cents"), []);
+        if (!$liste) {
+            $liste = (array) self::still(fn() => Db::all(
+                'SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents'), []);
+        }
         if (!$liste) { return '…'; }
 
         $wort = ['it' => ['una tantum', 'al mese'], 'de' => ['einmalig', 'im Monat'],
@@ -275,13 +283,47 @@ final class Vorlage
             $t = $p['texte'] !== null && $p['texte'] !== '' ? json_decode((string) $p['texte'], true) : null;
             $name = (string) (is_array($t) ? ($t[$sprache]['name'] ?? $p['name']) : $p['name']);
             $sub  = (string) (is_array($t) ? ($t[$sprache]['sub'] ?? ($p['sub'] ?? '')) : ($p['sub'] ?? ''));
+            // Ohne Monatspreis: Die Betreuung steht als eigener Block darunter,
+            // weil sie ein eigenes Produkt ist und nicht am Paket haengt.
             $zeile = $name . ' — ' . Fmt::geld((int) $p['price_cents'], (string) $p['currency']) . ' ' . $wort[0];
-            if ((int) $p['monthly_cents'] > 0) {
-                $zeile .= ', ' . Fmt::geld((int) $p['monthly_cents'], (string) $p['currency']) . ' ' . $wort[1];
-            }
             $aus[] = $zeile . ($sub !== '' ? "\n  " . $sub : '');
         }
         return implode("\n\n", $aus);
+    }
+
+    /** Die Betreuungspakete mit Preis und Inhalt — fuer ein Angebot ohne Website. */
+    private static function alleBetreuung(string $sprache): string
+    {
+        $liste = (array) self::still(fn() => Db::all(
+            "SELECT * FROM packages WHERE active = 1 AND art = 'betreuung' ORDER BY sort, monthly_cents"), []);
+        if (!$liste) { return '…'; }
+
+        $wort = ['it' => 'al mese', 'de' => 'im Monat', 'en' => 'per month'][$sprache] ?? 'al mese';
+        $aus = [];
+        foreach ($liste as $p) {
+            $t = ($p['texte'] ?? '') !== '' ? json_decode((string) $p['texte'], true) : null;
+            $name = (string) (is_array($t) ? ($t[$sprache]['name'] ?? $p['name']) : $p['name']);
+            $merk = is_array($t) ? (array) ($t[$sprache]['features'] ?? []) : [];
+
+            $zeilen = [$name . ' — ' . Fmt::geld((int) $p['monthly_cents'], (string) $p['currency']) . ' ' . $wort];
+            foreach ($merk as $i => $m) {
+                $m = trim((string) $m);
+                if ($m === '' || ($i === 0 && str_ends_with($m, ':'))) { continue; }
+                $zeilen[] = '  · ' . $m;
+            }
+            $aus[] = implode("\n", $zeilen);
+        }
+        return implode("\n\n", $aus);
+    }
+
+    /** Der Einmalpreis eines Zusatzes, etwa der Bestandsaufnahme. */
+    private static function preisVon(string $slug): string
+    {
+        $p = (array) self::still(fn() => Db::one(
+            'SELECT price_cents, currency FROM packages WHERE slug = ?', [$slug]), []);
+        return !empty($p['price_cents'])
+            ? Fmt::geld((int) $p['price_cents'], (string) ($p['currency'] ?? 'EUR'))
+            : '…';
     }
 
     private static function still(callable $fn, mixed $ersatz = null): mixed

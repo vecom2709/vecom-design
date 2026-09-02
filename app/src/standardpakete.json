@@ -16,10 +16,7 @@
       "Kontaktformular und Google Maps",
       "SSL-Zertifikat und Einrichtung",
       "SEO-Grundlage, um gefunden zu werden",
-      "1 eigene E-Mail-Adresse",
-      "Monatliche Backups und Updates",
-      "Kleine Änderungen inklusive",
-      "Direkte Betreuung ohne Ticketsystem"
+      "1 eigene E-Mail-Adresse"
     ],
     "texte": {
       "it": {
@@ -33,10 +30,7 @@
           "Modulo di contatto e Google Maps",
           "Certificato SSL e configurazione",
           "Base SEO per farsi trovare",
-          "1 indirizzo e-mail personalizzato",
-          "Backup mensile e aggiornamenti",
-          "Piccole modifiche incluse",
-          "Assistenza diretta, senza ticket"
+          "1 indirizzo e-mail personalizzato"
         ]
       },
       "de": {
@@ -50,10 +44,7 @@
           "Kontaktformular und Google Maps",
           "SSL-Zertifikat und Einrichtung",
           "SEO-Grundlage, um gefunden zu werden",
-          "1 eigene E-Mail-Adresse",
-          "Monatliche Backups und Updates",
-          "Kleine Änderungen inklusive",
-          "Direkte Betreuung ohne Ticketsystem"
+          "1 eigene E-Mail-Adresse"
         ]
       },
       "en": {
@@ -67,14 +58,12 @@
           "Contact form and Google Maps",
           "SSL certificate and setup",
           "SEO groundwork so you get found",
-          "1 custom email address",
-          "Monthly backups and updates",
-          "Small changes included",
-          "Direct support, no ticket system"
+          "1 custom email address"
         ]
       }
     },
-    "detail_url": "pakete.html#starter"
+    "detail_url": "pakete.html#starter",
+    "art": "website"
   },
   {
     "slug": "business",
@@ -94,9 +83,7 @@
       "Erweiterte SEO und Google-Unternehmensprofil",
       "Mehrere Anfrageformulare und WhatsApp-Button",
       "Bildergalerie und Referenzen",
-      "Bis zu 5 E-Mail-Adressen",
-      "Sicherheitsüberwachung",
-      "60 Minuten Änderungen pro Monat"
+      "Bis zu 5 E-Mail-Adressen"
     ],
     "texte": {
       "it": {
@@ -111,9 +98,7 @@
           "SEO avanzata e profilo Google Business",
           "Più moduli di richiesta e pulsante WhatsApp",
           "Galleria lavori e referenze",
-          "Fino a 5 indirizzi e-mail",
-          "Monitoraggio sicurezza",
-          "60 minuti di modifiche al mese"
+          "Fino a 5 indirizzi e-mail"
         ]
       },
       "de": {
@@ -128,9 +113,7 @@
           "Erweiterte SEO und Google-Unternehmensprofil",
           "Mehrere Anfrageformulare und WhatsApp-Button",
           "Bildergalerie und Referenzen",
-          "Bis zu 5 E-Mail-Adressen",
-          "Sicherheitsüberwachung",
-          "60 Minuten Änderungen pro Monat"
+          "Bis zu 5 E-Mail-Adressen"
         ]
       },
       "en": {
@@ -145,13 +128,12 @@
           "Advanced SEO and Google Business Profile",
           "Multiple enquiry forms and WhatsApp button",
           "Gallery and references",
-          "Up to 5 email addresses",
-          "Security monitoring",
-          "60 minutes of changes per month"
+          "Up to 5 email addresses"
         ]
       }
     },
-    "detail_url": "pakete.html#business"
+    "detail_url": "pakete.html#business",
+    "art": "website"
   },
   {
     "slug": "premium",
@@ -171,10 +153,7 @@
       "Blog- oder Newsbereich",
       "Terminbuchung oder Anfragesystem",
       "Newsletter und Social-Media-Anbindung",
-      "Bis zu 10 E-Mail-Adressen",
-      "Sicherheits- und Performance-Checks",
-      "2 Stunden Änderungen pro Monat",
-      "Bevorzugte Betreuung"
+      "Bis zu 10 E-Mail-Adressen"
     ],
     "texte": {
       "it": {
@@ -189,10 +168,7 @@
           "Blog o area news",
           "Prenotazione appuntamenti o richieste",
           "Newsletter e integrazione social",
-          "Fino a 10 indirizzi e-mail",
-          "Controlli di sicurezza e prestazioni",
-          "2 ore di modifiche al mese",
-          "Assistenza prioritaria"
+          "Fino a 10 indirizzi e-mail"
         ]
       },
       "de": {
@@ -207,10 +183,7 @@
           "Blog- oder Newsbereich",
           "Terminbuchung oder Anfragesystem",
           "Newsletter und Social-Media-Anbindung",
-          "Bis zu 10 E-Mail-Adressen",
-          "Sicherheits- und Performance-Checks",
-          "2 Stunden Änderungen pro Monat",
-          "Bevorzugte Betreuung"
+          "Bis zu 10 E-Mail-Adressen"
         ]
       },
       "en": {
@@ -225,13 +198,291 @@
           "Blog or news area",
           "Appointment booking or enquiry system",
           "Newsletter and social integration",
-          "Up to 10 email addresses",
-          "Security and performance checks",
-          "2 hours of changes per month",
-          "Priority support"
+          "Up to 10 email addresses"
         ]
       }
     },
-    "detail_url": "pakete.html#premium"
+    "detail_url": "pakete.html#premium",
+    "art": "website"
+  },
+  {
+    "slug": "betreuung-basis",
+    "art": "betreuung",
+    "price_cents": 0,
+    "monthly_cents": 3900,
+    "sort": 11,
+    "popular": 0,
+    "name": "Betreuung Basis",
+    "description": "Die Seite bleibt aktuell und erreichbar",
+    "sub": "Die Seite bleibt aktuell und erreichbar",
+    "ideal": "Für kleine Seiten, die einfach laufen sollen.",
+    "features": [
+      "Enthalten:",
+      "Aktualisierungen und Sicherheitspatches, jeden Monat",
+      "Monatliche Sicherung der ganzen Seite",
+      "Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+      "Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+      "Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte"
+    ],
+    "texte": {
+      "it": {
+        "name": "Assistenza Base",
+        "sub": "Il sito resta aggiornato e raggiungibile",
+        "ideal": "Per siti piccoli che devono semplicemente funzionare.",
+        "features": [
+          "Incluso:",
+          "Aggiornamenti e patch di sicurezza, ogni mese",
+          "Backup mensile dell'intero sito",
+          "Controllo della raggiungibilità e del certificato SSL — me ne accorgo prima di te",
+          "Piccole modifiche incluse: testi, foto, orari, recapiti",
+          "Assistenza diretta, senza ticket: scrivi a me e rispondo io"
+        ]
+      },
+      "de": {
+        "name": "Betreuung Basis",
+        "sub": "Die Seite bleibt aktuell und erreichbar",
+        "ideal": "Für kleine Seiten, die einfach laufen sollen.",
+        "features": [
+          "Enthalten:",
+          "Aktualisierungen und Sicherheitspatches, jeden Monat",
+          "Monatliche Sicherung der ganzen Seite",
+          "Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+          "Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+          "Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte"
+        ]
+      },
+      "en": {
+        "name": "Care Basic",
+        "sub": "The site stays current and reachable",
+        "ideal": "For small sites that simply have to work.",
+        "features": [
+          "Included:",
+          "Updates and security patches, every month",
+          "Monthly backup of the whole site",
+          "Uptime and SSL certificate monitoring — I notice before you do",
+          "Small changes included: text, photos, opening hours, contact details",
+          "Direct support, no ticket system: you write to me, I answer"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#betreuung-basis"
+  },
+  {
+    "slug": "betreuung-plus",
+    "art": "betreuung",
+    "price_cents": 0,
+    "monthly_cents": 6900,
+    "sort": 12,
+    "popular": 1,
+    "name": "Betreuung Plus",
+    "description": "Mit Überwachung und einer Stunde Änderungen",
+    "sub": "Mit Überwachung und einer Stunde Änderungen",
+    "ideal": "Für alle, die regelmäßig etwas ändern lassen.",
+    "features": [
+      "Enthalten:",
+      "Aktualisierungen und Sicherheitspatches, jeden Monat",
+      "Monatliche Sicherung der ganzen Seite",
+      "Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+      "Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+      "Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte",
+      "Sicherheitsüberwachung",
+      "60 Minuten Änderungen pro Monat"
+    ],
+    "texte": {
+      "it": {
+        "name": "Assistenza Plus",
+        "sub": "Con sorveglianza e un’ora di modifiche",
+        "ideal": "Per chi aggiorna il sito con regolarità.",
+        "features": [
+          "Incluso:",
+          "Aggiornamenti e patch di sicurezza, ogni mese",
+          "Backup mensile dell'intero sito",
+          "Controllo della raggiungibilità e del certificato SSL — me ne accorgo prima di te",
+          "Piccole modifiche incluse: testi, foto, orari, recapiti",
+          "Assistenza diretta, senza ticket: scrivi a me e rispondo io",
+          "Sorveglianza della sicurezza",
+          "60 minuti di modifiche al mese"
+        ]
+      },
+      "de": {
+        "name": "Betreuung Plus",
+        "sub": "Mit Überwachung und einer Stunde Änderungen",
+        "ideal": "Für alle, die regelmäßig etwas ändern lassen.",
+        "features": [
+          "Enthalten:",
+          "Aktualisierungen und Sicherheitspatches, jeden Monat",
+          "Monatliche Sicherung der ganzen Seite",
+          "Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+          "Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+          "Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte",
+          "Sicherheitsüberwachung",
+          "60 Minuten Änderungen pro Monat"
+        ]
+      },
+      "en": {
+        "name": "Care Plus",
+        "sub": "With monitoring and an hour of changes",
+        "ideal": "For anyone who updates the site regularly.",
+        "features": [
+          "Included:",
+          "Updates and security patches, every month",
+          "Monthly backup of the whole site",
+          "Uptime and SSL certificate monitoring — I notice before you do",
+          "Small changes included: text, photos, opening hours, contact details",
+          "Direct support, no ticket system: you write to me, I answer",
+          "Security monitoring",
+          "60 minutes of changes per month"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#betreuung-plus"
+  },
+  {
+    "slug": "betreuung-premium",
+    "art": "betreuung",
+    "price_cents": 0,
+    "monthly_cents": 9900,
+    "sort": 13,
+    "popular": 0,
+    "name": "Betreuung Premium",
+    "description": "Vorrang, Tempo und zwei Stunden im Monat",
+    "sub": "Vorrang, Tempo und zwei Stunden im Monat",
+    "ideal": "Für alle, die mit der Seite wirklich arbeiten.",
+    "features": [
+      "Enthalten:",
+      "Aktualisierungen und Sicherheitspatches, jeden Monat",
+      "Monatliche Sicherung der ganzen Seite",
+      "Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+      "Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+      "Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte",
+      "Sicherheitsüberwachung",
+      "60 Minuten Änderungen pro Monat",
+      "Sicherheits- und Performance-Checks",
+      "2 Stunden Änderungen pro Monat",
+      "Bevorzugte Betreuung: deine Anliegen zuerst"
+    ],
+    "texte": {
+      "it": {
+        "name": "Assistenza Premium",
+        "sub": "Priorità, prestazioni e due ore al mese",
+        "ideal": "Per chi sul sito ci lavora davvero.",
+        "features": [
+          "Incluso:",
+          "Aggiornamenti e patch di sicurezza, ogni mese",
+          "Backup mensile dell'intero sito",
+          "Controllo della raggiungibilità e del certificato SSL — me ne accorgo prima di te",
+          "Piccole modifiche incluse: testi, foto, orari, recapiti",
+          "Assistenza diretta, senza ticket: scrivi a me e rispondo io",
+          "Sorveglianza della sicurezza",
+          "60 minuti di modifiche al mese",
+          "Controlli di sicurezza e di velocità",
+          "2 ore di modifiche al mese",
+          "Assistenza prioritaria: le tue richieste passano per prime"
+        ]
+      },
+      "de": {
+        "name": "Betreuung Premium",
+        "sub": "Vorrang, Tempo und zwei Stunden im Monat",
+        "ideal": "Für alle, die mit der Seite wirklich arbeiten.",
+        "features": [
+          "Enthalten:",
+          "Aktualisierungen und Sicherheitspatches, jeden Monat",
+          "Monatliche Sicherung der ganzen Seite",
+          "Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir",
+          "Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten",
+          "Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte",
+          "Sicherheitsüberwachung",
+          "60 Minuten Änderungen pro Monat",
+          "Sicherheits- und Performance-Checks",
+          "2 Stunden Änderungen pro Monat",
+          "Bevorzugte Betreuung: deine Anliegen zuerst"
+        ]
+      },
+      "en": {
+        "name": "Care Premium",
+        "sub": "Priority, performance and two hours a month",
+        "ideal": "For anyone who really works with the site.",
+        "features": [
+          "Included:",
+          "Updates and security patches, every month",
+          "Monthly backup of the whole site",
+          "Uptime and SSL certificate monitoring — I notice before you do",
+          "Small changes included: text, photos, opening hours, contact details",
+          "Direct support, no ticket system: you write to me, I answer",
+          "Security monitoring",
+          "60 minutes of changes per month",
+          "Security and performance checks",
+          "2 hours of changes per month",
+          "Priority support: your requests go first"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#betreuung-premium"
+  },
+  {
+    "slug": "bestandsaufnahme",
+    "art": "zusatz",
+    "price_cents": 9900,
+    "monthly_cents": 0,
+    "sort": 20,
+    "popular": 0,
+    "name": "Bestandsaufnahme",
+    "description": "Für Seiten, die ich nicht gebaut habe",
+    "sub": "Für Seiten, die ich nicht gebaut habe",
+    "ideal": "Bevor ich eine bestehende Seite übernehme, sehe ich mir an, was da ist.",
+    "features": [
+      "Enthalten:",
+      "Prüfung, womit und wie die Seite gebaut ist",
+      "Stand von Aktualisierungen, Sicherheit und vorhandenen Sicherungen",
+      "Tempo und Darstellung auf dem Handy",
+      "Domain, Zertifikat und Postfächer geprüft",
+      "Schriftlicher Befund: was in Ordnung ist, was zu tun ist, was es kostet",
+      "Wird die Betreuung danach gebucht, rechne ich den Betrag an"
+    ],
+    "texte": {
+      "it": {
+        "name": "Presa in carico",
+        "sub": "Per siti che non ho costruito io",
+        "ideal": "Prima di prendere in assistenza un sito esistente, guardo cosa c’è.",
+        "features": [
+          "Cosa comprende:",
+          "Controllo di come è fatto il sito e con quali strumenti",
+          "Verifica di aggiornamenti, sicurezza e backup esistenti",
+          "Controllo di velocità e visualizzazione su telefono",
+          "Verifica di dominio, certificato e caselle e-mail",
+          "Relazione scritta: cosa è a posto, cosa va sistemato, cosa costa",
+          "Se poi prendi l’assistenza, l’importo viene scalato"
+        ]
+      },
+      "de": {
+        "name": "Bestandsaufnahme",
+        "sub": "Für Seiten, die ich nicht gebaut habe",
+        "ideal": "Bevor ich eine bestehende Seite übernehme, sehe ich mir an, was da ist.",
+        "features": [
+          "Enthalten:",
+          "Prüfung, womit und wie die Seite gebaut ist",
+          "Stand von Aktualisierungen, Sicherheit und vorhandenen Sicherungen",
+          "Tempo und Darstellung auf dem Handy",
+          "Domain, Zertifikat und Postfächer geprüft",
+          "Schriftlicher Befund: was in Ordnung ist, was zu tun ist, was es kostet",
+          "Wird die Betreuung danach gebucht, rechne ich den Betrag an"
+        ]
+      },
+      "en": {
+        "name": "Site review",
+        "sub": "For sites I didn’t build",
+        "ideal": "Before taking on an existing site, I look at what’s there.",
+        "features": [
+          "Included:",
+          "A check of how and with what the site is built",
+          "State of updates, security and existing backups",
+          "Speed and how it looks on a phone",
+          "Domain, certificate and mailboxes checked",
+          "Written findings: what is fine, what needs doing, what it costs",
+          "If you then take a care plan, the amount is credited"
+        ]
+      }
+    },
+    "detail_url": "pakete.html#bestandsaufnahme"
   }
 ]
