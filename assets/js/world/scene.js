@@ -10,6 +10,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { FinishShader } from './finish-pass.js';
 import { LOGO_CONTOURS } from './logo-shape.js';
+import { bruchGeometrie, bruchMaterial } from './bruch.js';
 
 const BLUE = 0x0648e8;
 const CYAN = 0x1fe8ff;
@@ -60,7 +61,7 @@ export class World {
     /* Dauerbewegung: Sie hängt am Scrollfortschritt der ganzen Seite, nicht am
        Abschnitt. Dadurch steht die Marke nie still — auch nicht in langen
        Abschnitten und nicht am Seitenende. */
-    this.drift = { rotY: 0, rotX: 0, bob: 0, vel: 0, extraRot: 0 };
+    this.drift = { rotY: 0, rotX: 0, bob: 0, vel: 0, extraRot: 0, auftaktRot: 0 };
 
     this._buildLights();
     this._buildLogo();
@@ -197,6 +198,20 @@ export class World {
       m.receiveShadow = false;
       this.logo.add(m);
     });
+    /* Der Bruchkörper: dieselbe Kontur, dieselbe Materialinstanz-Vorlage, nur in
+       Voronoi-Brocken zerlegt. Steht bei uBruch = 0 deckungsgleich über dem
+       heilen Körper — deshalb springt im Moment des Bruchs nichts. Er ist
+       normalerweise unsichtbar und kostet dann auch nichts. */
+    const bruch = bruchMaterial(THREE, this.mat);
+    this.bruchMat = bruch.mat;
+    this.bruchU = bruch.uniformen;
+    this.bruchMesh = new THREE.Mesh(
+      bruchGeometrie({ tiefe: EXTRUDE.depth, mitte: c, zellen: 30 }),
+      this.bruchMat
+    );
+    this.bruchMesh.visible = false;
+    this.logo.add(this.bruchMesh);
+
     this.logo.scale.setScalar(1.75);
 
     // Licht im Spalt: wird sichtbar, sobald die Schenkel auseinandergehen.
@@ -446,7 +461,7 @@ export class World {
     // Dauerbewegung auf der inneren Gruppe: überlagert die Beats, ohne sie zu
     // überschreiben (die setzen die Drehung des Rigs, nicht die des Körpers).
     const dl = 1 - Math.pow(0.02, dt);
-    this.logo.rotation.y += ((this.drift.rotY + this.drift.extraRot) - this.logo.rotation.y) * dl;
+    this.logo.rotation.y += ((this.drift.rotY + this.drift.extraRot + this.drift.auftaktRot) - this.logo.rotation.y) * dl;
     this.logo.rotation.x += (this.drift.rotX - this.logo.rotation.x) * dl;
     this.logo.position.y += ((Math.sin(time * 0.35) * 0.12 + this.drift.bob) - this.logo.position.y) * dl;
     // Scrollgeschwindigkeit gibt einen kurzen Schub — das macht die Bewegung

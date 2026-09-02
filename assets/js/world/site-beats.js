@@ -21,15 +21,17 @@
 export const SITE_BEATS = [
   // id, Kamera, Blickpunkt, Position der Marke, Drehung, Atmosphäre, Licht,
   // Material (metal|glass|glow), Bildeffekte (rays/blur/focus), Schleier.
+  /* Reihenfolge folgt der Seite. Wer einen Abschnitt verschiebt, muss die
+     Zeile hier mitnehmen — sonst springt die Kamera unmotiviert. */
   { id: 'hero',     cam: [1.1, 0.8, 12.4],  look: [1.7, 0.1, 0],  pos: [3.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, mat: 'metal', rays: 0.0, blur: 0.22, focus: 0.34, scrim: 0.00 },
-  { id: 'services', cam: [-2.2, 1.0, 8.8],  look: [-1.2, 0.1, 0], pos: [-2.0, 0.0, 0], rotY: -0.22, rotX: 0.02, fog: 0.034, key: 420, spec: 40, bloom: 0.52, rough: 0.26, keyPos: [-5.5, 6.0, 5.0], halo: 0.24, mat: 'metal', rays: 0.0, blur: 0.26, focus: 0.28, scrim: 0.62 },
-  { id: 'work',     cam: [2.7, 1.1, 9.6],   look: [1.4, 0.0, 0],  pos: [1.8, -0.1, 0], rotY: 0.34,  rotX: -0.04, fog: 0.030, key: 330, spec: 42, bloom: 0.44, rough: 0.16, keyPos: [5.5, 5.5, 7.5], halo: 0.16, mat: 'glass', rays: 0.0, blur: 0.32, focus: 0.24, scrim: 0.74 },
+  { id: 'work',     cam: [-2.4, 1.1, 9.6],   look: [-1.3, 0.0, 0],  pos: [-1.8, -0.1, 0], rotY: -0.34,  rotX: -0.04, fog: 0.030, key: 330, spec: 42, bloom: 0.44, rough: 0.16, keyPos: [-5.5, 5.5, 7.5], halo: 0.16, mat: 'glass', rays: 0.0, blur: 0.32, focus: 0.24, scrim: 0.74 },
+  { id: 'services', cam: [2.4, 1.0, 8.8],  look: [1.2, 0.1, 0], pos: [2.0, 0.0, 0], rotY: 0.22, rotX: 0.02, fog: 0.034, key: 420, spec: 40, bloom: 0.52, rough: 0.26, keyPos: [5.5, 6.0, 5.0], halo: 0.24, mat: 'metal', rays: 0.0, blur: 0.26, focus: 0.28, scrim: 0.62 },
+  { id: 'plans',    cam: [-0.4, 0.6, 10.4], look: [-1.0, 0.0, 0], pos: [-1.6, 0.0, 0], rotY: 0.02, rotX: 0.0,  fog: 0.038, key: 300, spec: 18, bloom: 0.40, rough: 0.22, keyPos: [-4.0, 7.0, 7.0], halo: 0.22, mat: 'metal', rays: 0.0, blur: 0.28, focus: 0.26, scrim: 0.78 },
   { id: 'process',  cam: [-2.2, 0.6, 19.0], look: [-1.6, -0.2, 0], pos: [6.4, -0.4, 0], rotY: 0.36, rotX: -0.03, fog: 0.040, key: 320, spec: 26, bloom: 0.36, rough: 0.19, keyPos: [5.0, 5.5, 7.0], halo: 0.16, mat: 'glass', rays: 0.0, blur: 0.30, focus: 0.24, scrim: 0.86 },
   { id: 'about',    cam: [1.6, 0.7, 13.0], look: [1.2, 0.1, 0],  pos: [-3.2, 0.0, 0], rotY: -0.34, rotX: 0.0,  fog: 0.040, key: 300, spec: 24, bloom: 0.36, rough: 0.24, keyPos: [-5.0, 6.5, 7.0], halo: 0.18, mat: 'metal', rays: 0.0, blur: 0.28, focus: 0.26, scrim: 0.84 },
   { id: 'video',    cam: [-1.0, 0.8, 14.5], look: [-0.6, 0.1, 0], pos: [3.4, 0.0, 0],  rotY: 0.20,  rotX: 0.0,  fog: 0.040, key: 300, spec: 24, bloom: 0.38, rough: 0.24, keyPos: [4.5, 6.5, 7.0], halo: 0.18, mat: 'metal', rays: 0.0, blur: 0.28, focus: 0.26, scrim: 0.84 },
   { id: 'pillars',  cam: [1.2, 4.4, 17.5],  look: [1.5, -1.9, 0], pos: [2.0, -1.3, 0], rotY: 0.12,  rotX: 0.0,  fog: 0.036, key: 560, spec: 34, bloom: 0.50, rough: 0.22, keyPos: [-3.0, 9.5, 8.0], halo: 0.34, mat: 'glow',  rays: 0.0, blur: 0.24, focus: 0.30, scrim: 0.48 },
   { id: 'partner',  cam: [-1.4, 1.4, 14.0], look: [-1.4, 0.2, 0], pos: [-2.6, 0.2, 0], rotY: -0.40, rotX: 0.02, fog: 0.040, key: 300, spec: 22, bloom: 0.36, rough: 0.26, keyPos: [-5.0, 7.0, 6.5], halo: 0.18, mat: 'metal', rays: 0.0, blur: 0.30, focus: 0.26, scrim: 0.80 },
-  { id: 'plans',    cam: [-0.4, 0.6, 10.4], look: [-1.0, 0.0, 0], pos: [-1.6, 0.0, 0], rotY: 0.02, rotX: 0.0,  fog: 0.038, key: 300, spec: 18, bloom: 0.40, rough: 0.22, keyPos: [-4.0, 7.0, 7.0], halo: 0.22, mat: 'metal', rays: 0.0, blur: 0.28, focus: 0.26, scrim: 0.78 },
   { id: 'faq',      cam: [2.4, 0.9, 12.6],  look: [1.6, 0.1, 0],  pos: [2.4, 0.0, 0],  rotY: 0.44,  rotX: 0.02, fog: 0.038, key: 300, spec: 24, bloom: 0.40, rough: 0.24, keyPos: [4.5, 6.5, 7.0], halo: 0.20, mat: 'metal', rays: 0.0, blur: 0.22, focus: 0.24, scrim: 0.80 },
   { id: 'contact',  cam: [0.6, 1.7, 16.0],  look: [0.4, -0.9, 0], pos: [0.2, -1.9, 0], rotY: -0.18, rotX: 0.0,  fog: 0.042, key: 420, spec: 22, bloom: 0.40, rough: 0.20, keyPos: [-3.2, 7.0, 8.0], halo: 0.30, mat: 'glow',  rays: 0.0, blur: 0.22, focus: 0.32, scrim: 0.78 },
 ];
@@ -117,9 +119,55 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   /* Aufbau der Bühne: Die Marke materialisiert sich, statt einfach da zu sein.
      Zwei Sekunden, die den Ton setzen. */
   w.logo.scale.setScalar(0.55);
-  gsap.to(w.logo.scale, { x: 1.75, y: 1.75, z: 1.75, duration: 2.6, ease: 'expo.out', delay: 0.15 });
-  gsap.fromTo(w.mat, { emissiveIntensity: 1.4 }, { emissiveIntensity: 0, duration: 2.2, ease: 'power2.out', delay: 0.15 });
-  const opening = gsap.delayedCall(0.25, () => applyOpening());
+  gsap.to(w.logo.scale, { x: 1.75, y: 1.75, z: 1.75, duration: 2.2, ease: 'expo.out', delay: 0.15 });
+  gsap.fromTo(w.mat, { emissiveIntensity: 1.4 }, { emissiveIntensity: 0, duration: 1.9, ease: 'power2.out', delay: 0.15 });
+
+  /* --------------------------------------------------------------------
+     Der Auftakt. Die Marke fährt heran, zieht an, zerspringt — und setzt
+     sich wieder zusammen, während die Kamera auf dem Hero landet.
+
+     Das Zusammensetzen ist kein Schmuck, sondern die Lösung eines Problems:
+     dieselbe Marke fliegt danach durch die ganze Seite. Ein Auftakt, der sie
+     zerstört und liegen lässt, hätte kein Ende, sondern ein Loch.
+
+     Der Inhalt der Seite wird nie verdeckt. Ein Vorhang vor dem Text kostet
+     genau die Besucher, die auf einem alten Telefon in der Sonne stehen.
+     -------------------------------------------------------------------- */
+  const bruchZurueck = () => {
+    if (!w.bruchMesh) return;
+    w.bruchMesh.visible = false;
+    if (w.logoLeft) w.logoLeft.visible = true;
+    if (w.logoRight) w.logoRight.visible = true;
+    if (w.bruchU) { w.bruchU.uBruch.value = 0; w.bruchU.uGlut.value = 0; }
+    w.drift.auftaktRot = 0;
+  };
+
+  const opening = gsap.timeline();
+  opening.call(() => applyOpening(), null, 0.25);
+
+  if (w.bruchMesh && w.bruchU) {
+    const U = w.bruchU;
+    opening
+      /* Anziehen. Eigener Griff, nicht extraRot: den setzt der Schluss-Trigger
+         direkt, und er wuerde die Auftaktdrehung stumm ueberschreiben. */
+      .fromTo(w.drift, { auftaktRot: 0 }, { auftaktRot: Math.PI * 6.4, duration: 1.25, ease: 'power3.in' }, 0.85)
+      /* auf den Bruchkörper umschalten; bei uBruch = 0 deckungsgleich, kein Sprung */
+      .call(() => {
+        w.bruchMat.emissiveIntensity = w.mat.emissiveIntensity;
+        w.bruchMesh.visible = true;
+        if (w.logoLeft) w.logoLeft.visible = false;
+        if (w.logoRight) w.logoRight.visible = false;
+      }, null, 2.02)
+      /* der Bruch */
+      .fromTo(U.uGlut, { value: 1 }, { value: 0, duration: 1.05, ease: 'power2.out' }, 2.10)
+      .fromTo(U.uBruch, { value: 0 }, { value: 1, duration: 0.62, ease: 'power2.out' }, 2.10)
+      .to(w.bloom, { strength: 1.25, duration: 0.16, ease: 'power2.out' }, 2.10)
+      .to(w.bloom, { strength: BEATS[0].bloom, duration: 1.2, ease: 'power2.out' }, 2.32)
+      /* Drall läuft aus, Brocken kehren zurück */
+      .to(w.drift, { auftaktRot: 0, duration: 1.7, ease: 'power2.out' }, 2.10)
+      .to(U.uBruch, { value: 0, duration: 1.10, ease: 'power2.inOut' }, 2.80)
+      .call(bruchZurueck, null, 3.95);
+  }
   function applyOpening() {
     const b = BEATS[0];
     const d = 3.4;
@@ -144,7 +192,9 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     document.documentElement.setAttribute('data-opening', 'done');
   }
   // Wer sofort scrollt, will die Show nicht — dann sofort in den Hero-Zustand.
-  window.addEventListener('wheel', () => { if (opening.progress() < 1) { opening.kill(); applyOpening(); } }, { once: true, passive: true });
+  window.addEventListener('wheel', () => {
+    if (opening.progress() < 1) { opening.kill(); bruchZurueck(); applyOpening(); }
+  }, { once: true, passive: true });
 
   BEATS.forEach((b, i) => {
     const el = i === 0 ? document.querySelector('.hero') : document.getElementById(b.id);
