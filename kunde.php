@@ -21,7 +21,7 @@ if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
-foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail'] as $k) {
+foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 
@@ -132,6 +132,17 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     Events::projektStatus((int) $pid, 'finale_freigabe');
                 }
                 $meldung = Texte::h(Texte::PROJEKT['freigegeben'] ?? [], $sprache, 'Danke für die Freigabe.');
+
+            } elseif ($tat === 'kuendigen') {
+                // Der Kunde kuendigt selbst. Das Enddatum rechnet Abo aus, der
+                // Kunde hat es vor dem Klick gesehen, und die Bestaetigung geht
+                // von dort aus raus — hier steht keine Logik doppelt.
+                $abo = sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null);
+                if ($abo && in_array((string) $abo['status'], ['aktiv', 'angelegt'], true)) {
+                    $e = Abo::kuendigen((int) $abo['id'], 'kunde');
+                    $meldung = str_replace('{datum}', Fmt::datum($e['ende']),
+                        Texte::h(Texte::KUNDE['gekuendigt'] ?? [], $sprache, 'Kündigung ist angekommen.'));
+                }
 
             } elseif ($tat === 'datei') {
                 Ablage::annehmen($_FILES['datei'] ?? [], $pid ? (int) $pid : null, (int) $kunde['id'], 'kunde');
@@ -320,6 +331,46 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php endif; ?>
     </div>
   </div>
+
+  <?php /* ---------- Deine Betreuung: der zweite Vertrag ---------- */ ?>
+  <?php $abo = $kunde ? sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null) : null; ?>
+  <?php if ($abo && (string) $abo['status'] !== 'angelegt'): ?>
+    <?php $vor = sicherLesen(fn() => Abo::kuendigungsvorschau($abo), ['moeglich' => false, 'ende' => '']); ?>
+    <details class="klapp">
+      <summary><?= $h($T('betreuung')) ?><?php if ($abo['laeuft_bis']): ?>
+        <span class="mini"> · <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['laeuft_bis']), $T('laeuftBis'))) ?></span>
+      <?php endif; ?></summary>
+
+      <div style="margin-top:12px">
+        <div style="font-size:17px;font-weight:650"><?= $h((string) $abo['paket_name']) ?></div>
+        <div style="color:var(--dim);margin-top:4px">
+          <?= Fmt::geld((int) $abo['betrag_cents'], (string) $abo['currency']) ?> <?= $h($T('betreuungMtl')) ?></div>
+        <p class="mini" style="margin-top:10px">
+          <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['beginn']), $T('betreuungSeit'))) ?><br>
+          <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['mindestlaufzeit_bis']), $T('betreuungMind'))) ?>
+        </p>
+
+        <?php if ((string) $abo['status'] === 'beendet'): ?>
+          <p class="mini"><?= $h(str_replace('{datum}', Fmt::datum((string) $abo['laeuft_bis']), $T('betreuungWeg'))) ?></p>
+
+        <?php elseif ((string) $abo['status'] === 'gekuendigt'): ?>
+          <div class="hinweis gut" style="margin-top:12px">
+            <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['laeuft_bis']), $T('gekuendigt'))) ?></div>
+
+        <?php elseif (!empty($vor['moeglich'])): ?>
+          <?php /* Das Datum steht DA, bevor er klickt. Eine Kuendigung, deren
+                   Wirkung man erst hinterher erfaehrt, ist eine Zumutung. */ ?>
+          <p class="mini" style="margin-top:12px">
+            <?= $h(str_replace('{datum}', Fmt::datum((string) $vor['ende']), $T('kuendigenWann'))) ?></p>
+          <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px"
+                onsubmit="return confirm('<?= $h($T('kuendigenSicher')) ?>')">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="kuendigen">
+            <button class="knopf"><?= $h($T('kuendigen')) ?></button>
+          </form>
+        <?php endif; ?>
+      </div>
+    </details>
+  <?php endif; ?>
 
   <?php /* ---------- Deine Website: Entwurf und, sobald da, die echte ---------- */ ?>
   <?php /* Noch nichts freigeschaltet: Der Kasten steht trotzdem da, nur grau.

@@ -1332,3 +1332,103 @@ Gestaltung ist ein eigener Durchgang. Und: **Betreuung allein lässt sich noch
 nicht bezahlen.** Dafür braucht es Stripe-Abonnements, und das steht seit Längerem
 als offener Punkt. Bis dahin ist die Betreuung allein ein Angebot per Nachricht,
 kein Kaufknopf.
+
+## Betreuungsverträge und der Ordner fürs Finanzamt (02.09.2026)
+
+Uwes Auftrag: Ein monatliches Paket muss vollständig funktionieren — Zahlart,
+zwölf Monate Mindestlaufzeit, danach monatlich, automatisch geprüfte Kündigung
+mit Bestätigung, und zum Kündigungsdatum wird nicht mehr abgebucht. Dazu: nur
+abbuchen, kein Überweisen. Und ein Ordner mit allem, was das Finanzamt braucht.
+
+**Zwei Dinge musste ich vorweg sagen, bevor irgendetwas gebaut wurde:**
+
+1. **Der Stripe-Webhook stimmt nicht** — sieben fehlgeschlagene Ereignisse.
+   Bei einer Einmalzahlung ärgerlich, bei einem Abo tödlich: Wiederkehrende
+   Abbuchungen laufen vollständig über Webhooks. Ohne sie erfährt das System
+   nie, dass eine Zahlung kam, nie, dass eine scheiterte.
+2. **Es gibt noch keine P. IVA.** Wiederkehrende monatliche Einnahmen sind der
+   Kern dessen, wofür sie da ist. Das gehört vor das erste echte Abo, und zwar
+   zum Commercialista, nicht zu mir.
+
+Deshalb in zwei Stufen. **Gebaut wurde Stufe 1** — alles, was ohne Stripe
+richtig ist:
+
+### Der Vertrag (Migration `019`, Tabelle `abos`)
+
+Eine Bestellung hat einen Endpreis, eine Anzahlung und eine Restzahlung. Ein
+Vertrag, der monatlich weiterläuft, hat nichts davon — er hat einen Monatspreis,
+eine Mindestlaufzeit und ein Datum, an dem er endet. Deshalb eine eigene Tabelle
+und keine weitere Spalte an `orders`: Wer beides hat, hat **zwei Verträge, zwei
+Laufzeiten, zwei Kündigungen** — genau wie gewünscht. `invoices.abo_id` sagt,
+zu welchem Vertrag ein Beleg gehört; die Nummernreihe bleibt eine einzige, weil
+lückenlos im Jahr so am sichersten ist.
+
+### Die Kündigung, die sich selbst prüft
+
+`Abo::kuendigungsvorschau()` rechnet das Ende aus, ohne etwas zu ändern:
+während der Mindestlaufzeit zu deren Ende (auf das Monatsende gerundet), danach
+zum Ende des laufenden Monats.
+
+**Der Kunde sieht dieses Datum, bevor er klickt.** Eine Kündigung, deren Wirkung
+man erst hinterher erfährt, ist eine Zumutung — und der Grund für genau die
+Rückfrage, die man sich sparen wollte. Auf seiner Seite steht: *„Wenn du jetzt
+kündigst, läuft die Betreuung noch bis zum 30.09.2027 — bis dahin zahlst du,
+danach nicht mehr."*
+
+Nach dem Klick: Status und Enddatum gesetzt, **Bestätigung automatisch raus** in
+seiner Sprache, Meldung an Uwe. Die Bestätigung nennt das Datum, sagt, dass die
+Website online bleibt und ihm gehört, dass Aktualisierungen aufhören, und dass
+er auf Wunsch alle Zugänge und eine Sicherung bekommt. Zweimal kündigen ändert
+nichts und wirft keinen Fehler — der Kunde hat nur nicht gesehen, dass es schon
+erledigt ist.
+
+Der Cronjob setzt abgelaufene Verträge täglich auf „beendet". **Das ist die
+Stelle, an der später der Zahlungsanbieter abbestellt wird** — deshalb steht sie
+jetzt schon da.
+
+Kündigen kann auch Uwe, aus der Kundenakte, mit demselben ausgerechneten Datum
+und derselben Bestätigung.
+
+### Der Ordner fürs Finanzamt
+
+Ein Jahr, ein Klick, eine Datei: `belege/` mit jedem Beleg als PDF,
+`verzeichnis.csv` mit einer Zeile je Beleg (Nummer, Datum, Kunde, Bezug, Netto,
+Steuersatz, Steuer, Brutto, Status, Zahldatum, Art) und `uebersicht.txt` mit
+Summen je Monat und fürs Jahr.
+
+Zwei Dinge, die die Übersicht **prüft statt nur zu addieren**:
+
+- **Lücken in der Nummernreihe.** Eine italienische Belegnummerierung muss im
+  Jahr lückenlos sein. Fällt eine Nummer aus, will man das hier sehen und nicht
+  beim Steuerberater. Die Seite zeigt es rot.
+- **Entwürfe ohne Nummer** stehen ausdrücklich *nicht* im Paket, und die
+  Übersicht sagt, wie viele es sind — sie sind keine Belege.
+
+Ein Beleg, dessen PDF sich nicht bauen lässt, verhindert das Paket nicht, landet
+aber in `FEHLENDE-BELEGE.txt`. Sonst fiele er niemandem auf.
+
+Nicht drin: die elektronische Rechnung über das SdI. Das war nie Teil dieser
+Anwendung und bleibt Sache des Commercialista.
+
+**Beim Prüfen einen Fehler gefunden:** Die Lückenerkennung nahm die Breite der
+Nummer aus dem größten Wert statt aus den führenden Nullen — zwischen `0004` und
+`0011` meldete sie brav „BE-2026-05". Behoben; jetzt kommt die Breite aus den
+echten Nummern.
+
+Geprüft: Vertrag angelegt (Mindestlaufzeit korrekt auf den Tag), Kündigung durch
+den Kunden über die echte Seite — Datum ausgerechnet, Bestätigungsmail im
+Mailfänger mit Kennung im Betreff, Meldung an Uwe; zweite Kündigung ändert
+nichts; Kündigung nach abgelaufener Mindestlaufzeit endet zum Monatsende;
+abgelaufener Vertrag wird vom Cronlauf auf „beendet" gesetzt; ZIP über die
+Verwaltung heruntergeladen (283 KB, 9 PDFs, Verzeichnis, Übersicht), CSV mit BOM
+und Semikolon öffnet in Excel; alle Verwaltungsseiten ohne Fehler.
+
+### Offen, für Stufe 2
+
+- **Stripe-Webhook in Ordnung bringen** — das ist die Bedingung, nicht ein
+  Detail. Solange er nicht stimmt, steht bei einem Vertrag „von Hand abrechnen",
+  und das steht auch so in der Rückmeldung, wenn man einen anlegt.
+- Abo bei Stripe anlegen, **nur Karte und SEPA-Lastschrift**, Überweisung wird
+  gar nicht erst angeboten. Automatischer Stopp exakt zum Kündigungsdatum
+  (`cancel_at`), Meldung bei fehlgeschlagener Abbuchung.
+- Monatlicher Beleg je Abrechnung, mit `abo_id`, in derselben Nummernreihe.

@@ -349,6 +349,36 @@ if ($post) {
                 $_SESSION['gut'] = 'Vorschau ist wieder gesperrt. Der Kunde sieht sie nicht mehr.';
                 zurueck('vorgaenge');
 
+            case 'abo_anlegen':
+                require_once __DIR__ . '/src/Abo.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                $aid = Abo::anlegen($kid, [
+                    'paket_slug' => (string) ($_POST['paket_slug'] ?? ''),
+                    'zahlart'    => (string) ($_POST['zahlart'] ?? 'karte'),
+                    'projekt_id' => (int) ($_POST['projekt_id'] ?? 0) ?: null,
+                ]);
+                $a = Db::one('SELECT * FROM abos WHERE id = ?', [$aid]);
+                $_SESSION['gut'] = 'Betreuung angelegt: ' . $a['paket_name'] . ', '
+                    . Fmt::geld((int) $a['betrag_cents'], (string) $a['currency']) . ' im Monat. '
+                    . 'Mindestlaufzeit bis ' . Fmt::datum((string) $a['mindestlaufzeit_bis']) . '.'
+                    . ((string) $a['zahlart'] === 'manuell'
+                        ? ' Abgerechnet wird von Hand — solange Stripe nicht bereit ist, geht es nicht anders.'
+                        : '');
+                zurueck('kunden/' . $kid);
+
+            case 'abo_kuendigen':
+                require_once __DIR__ . '/src/Abo.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                $a = Db::one('SELECT * FROM abos WHERE id = ?', [$aid]);
+                if (!$a) { throw new RuntimeException('Vertrag nicht gefunden.'); }
+                $e = Abo::kuendigen($aid, 'uwe');
+                $_SESSION['gut'] = $e['schon']
+                    ? 'Der Vertrag war schon gekündigt — er läuft bis ' . Fmt::datum($e['ende']) . '.'
+                    : ('Gekündigt zum ' . Fmt::datum($e['ende']) . '. '
+                       . ($e['mail'] ? 'Der Kunde hat die Bestätigung bekommen.'
+                                     : 'Die Bestätigung ging nicht raus — bitte selbst Bescheid geben.'));
+                zurueck('kunden/' . (int) $a['customer_id']);
+
             case 'kundenlink_neu':
                 // Zieht den alten Zugang zurueck. Gedacht fuer den Fall, dass
                 // ein Kunde den Link weitergegeben hat — oder ihn selbst nicht
@@ -1300,6 +1330,45 @@ switch ($route) {
             'versandTest' => $_SESSION['versand_test'] ?? null,
         ]);
         unset($_SESSION['versand_test']);
+        break;
+
+    case 'abos':
+        require_once __DIR__ . '/src/Abo.php';
+        ansicht('abos', [
+            'liste' => sicher(static fn() => Abo::alle(), []),
+            'monatlich' => (int) sicher(static fn() => Abo::monatlich(), 0),
+        ]);
+        break;
+
+    case 'steuerakte':
+        require_once __DIR__ . '/src/Steuerakte.php';
+        $jahr = $id !== null ? (int) $id : 0;
+        $was  = (string) ($teile[2] ?? '');
+
+        if ($jahr > 0 && ($was === 'paket' || $was === 'verzeichnis')) {
+            if ($was === 'verzeichnis') {
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename="verzeichnis-' . $jahr . '.csv"');
+                echo Steuerakte::verzeichnis($jahr);
+                exit;
+            }
+            // Das Paket kann bei vielen Belegen dauern — PDFs entstehen dabei
+            // einzeln. Der Server darf hier nicht nach dreissig Sekunden
+            // aussteigen und eine halbe Datei ausliefern.
+            @set_time_limit(300);
+            $datei = Steuerakte::paket($jahr);
+            header('Content-Type: application/zip');
+            header('Content-Length: ' . (string) filesize($datei));
+            header('Content-Disposition: attachment; filename="' . Steuerakte::paketname($jahr) . '"');
+            readfile($datei);
+            @unlink($datei);
+            exit;
+        }
+
+        $jahre = Steuerakte::jahre();
+        $uebersicht = [];
+        foreach ($jahre as $j) { $uebersicht[$j] = sicher(static fn() => Steuerakte::zusammenfassung($j), null); }
+        ansicht('steuerakte', ['jahre' => $jahre, 'uebersicht' => array_filter($uebersicht)]);
         break;
 
     case 'monitoring':

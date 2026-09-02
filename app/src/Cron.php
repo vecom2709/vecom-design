@@ -130,6 +130,13 @@ final class Cron
         // wieder an — genau deshalb faellt es niemandem auf, wenn einer
         // verschwindet. Nach aussen merkt man davon nichts: Die Mails gehen
         // weiter raus, sie landen nur zunehmend im Spam.
+        // Gekuendigte Vertraege, deren Datum durch ist, auf "beendet" setzen.
+        // Das ist die Stelle, an der spaeter auch der Zahlungsanbieter
+        // abbestellt wird — deshalb steht sie jetzt schon da.
+        $aufgaben['abos'] = static function () {
+            require_once __DIR__ . '/Abo.php';
+            return Abo::taeglich();
+        };
         if (self::heuteNochNicht('cron_zustellbarkeit')) {
             $aufgaben['zustellbarkeit'] = static function () {
                 require_once __DIR__ . '/Zustellbarkeit.php';

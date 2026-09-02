@@ -176,6 +176,29 @@ final class Texte
             'it' => 'Scrivi cosa cambiare. Ti diciamo se rientra nella manutenzione o cosa costa.',
             'de' => 'Schreib, was anders soll. Wir sagen dir, ob es zur Betreuung gehört oder was es kostet.',
             'en' => 'Tell us what should change. We’ll say whether it’s covered or what it costs.'],
+        /* Die Betreuung ist ein eigener Vertrag. Der Kunde soll ihn sehen —
+           und kuendigen koennen, ohne jemandem schreiben zu muessen. Ein
+           Vertrag, aus dem man nur per Bittbrief herauskommt, ist keiner. */
+        'betreuung'     => ['it' => 'La tua assistenza', 'de' => 'Deine Betreuung', 'en' => 'Your care plan'],
+        'betreuungMtl'  => ['it' => 'al mese', 'de' => 'im Monat', 'en' => 'per month'],
+        'betreuungSeit' => ['it' => 'Attiva dal {datum}', 'de' => 'Läuft seit {datum}', 'en' => 'Running since {datum}'],
+        'betreuungMind' => ['it' => 'Durata minima fino al {datum}', 'de' => 'Mindestlaufzeit bis {datum}',
+                            'en' => 'Minimum term until {datum}'],
+        'kuendigen'     => ['it' => 'Disdici l’assistenza', 'de' => 'Betreuung kündigen', 'en' => 'Cancel the care plan'],
+        'kuendigenWann' => ['it' => 'Se disdici adesso, l’assistenza resta attiva fino al {datum} — fino ad allora paghi, dopo no.',
+                            'de' => 'Wenn du jetzt kündigst, läuft die Betreuung noch bis zum {datum} — bis dahin zahlst du, danach nicht mehr.',
+                            'en' => 'If you cancel now, care runs until {datum} — you pay until then, not after.'],
+        'kuendigenSicher' => ['it' => 'Vuoi davvero disdire? Ricevi subito la conferma scritta.',
+                              'de' => 'Wirklich kündigen? Du bekommst sofort die schriftliche Bestätigung.',
+                              'en' => 'Really cancel? You’ll get the written confirmation straight away.'],
+        'gekuendigt'    => ['it' => 'Disdetta ricevuta. L’assistenza resta attiva fino al {datum}. La conferma è nella tua posta.',
+                            'de' => 'Kündigung ist angekommen. Die Betreuung läuft bis zum {datum}. Die Bestätigung liegt in deinem Postfach.',
+                            'en' => 'Cancellation received. Care runs until {datum}. The confirmation is in your inbox.'],
+        'laeuftBis'     => ['it' => 'Disdetta — attiva fino al {datum}', 'de' => 'Gekündigt — läuft bis {datum}',
+                            'en' => 'Cancelled — runs until {datum}'],
+        'betreuungWeg'  => ['it' => 'L’assistenza è terminata il {datum}. Il sito resta tuo e resta online.',
+                            'de' => 'Die Betreuung ist am {datum} ausgelaufen. Die Website bleibt deine und bleibt online.',
+                            'en' => 'Care ended on {datum}. The site stays yours and stays online.'],
         'lesenswert' => [
             'it' => 'Questa pagina resta tua. Salvala tra i preferiti — la trovi sempre qui, anche fra mesi.',
             'de' => 'Diese Seite bleibt deine. Leg sie dir als Lesezeichen an — du findest sie hier auch noch in Monaten.',
@@ -424,6 +447,43 @@ final class Texte
                 . "{zustimmung}\n\n"
                 . "Terms: {agb}\nPrivacy notice: {privacy}\n\n"
                 . "Your project page: {link}\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+
+        /* Die Kuendigungsbestaetigung. Sie geht von allein raus, sobald der
+           Kunde auf seiner Seite kuendigt — und sie nennt genau ein Datum:
+           bis wann die Betreuung laeuft und bis wann er zahlt. Beides
+           dasselbe, und genau deshalb muss es dastehen. */
+        'kuendigung' => [
+            'it' => ['Disdetta confermata — {paket}',
+                "Ciao {name},\n\nho ricevuto la tua disdetta e te la confermo per iscritto.\n\n"
+                . "{paket} resta attiva fino al {ende}.\n"
+                . "Fino a quella data ti viene addebitato {betrag} al mese, dopo non più — l'ultimo addebito è quello del mese in cui rientra il {ende}.\n\n"
+                . "Cosa succede dopo:\n\n"
+                . "· Il sito resta online e resta tuo. Non si spegne nulla.\n"
+                . "· Aggiornamenti, backup e controlli si fermano. Da quel giorno il sito è nelle tue mani o in quelle di chi vorrai.\n"
+                . "· Su richiesta ti do tutti gli accessi e un backup completo, così puoi spostarlo dove preferisci.\n\n"
+                . "La tua pagina resta raggiungibile anche dopo: {seite}\n\n"
+                . "Se hai disdetto per qualcosa che non ha funzionato, scrivimelo — mi interessa davvero, anche se non cambi idea."],
+            'de' => ['Kündigung bestätigt — {paket}',
+                "Hallo {name},\n\ndeine Kündigung ist angekommen, und hiermit bestätige ich sie dir schriftlich.\n\n"
+                . "{paket} läuft noch bis zum {ende}.\n"
+                . "Bis dahin werden {betrag} im Monat abgebucht, danach nicht mehr — die letzte Abbuchung ist die für den Monat, in den der {ende} fällt.\n\n"
+                . "Was danach passiert:\n\n"
+                . "· Die Website bleibt online und bleibt deine. Es wird nichts abgeschaltet.\n"
+                . "· Aktualisierungen, Sicherungen und Überwachung hören auf. Ab dem Tag liegt die Seite in deiner Hand oder in der von jemandem, den du beauftragst.\n"
+                . "· Auf Wunsch bekommst du alle Zugänge und eine vollständige Sicherung, damit du sie mitnehmen kannst.\n\n"
+                . "Deine Seite bleibt auch danach erreichbar: {seite}\n\n"
+                . "Wenn du gekündigt hast, weil etwas nicht gepasst hat, schreib es mir — das interessiert mich wirklich, auch wenn du es dir nicht anders überlegst."],
+            'en' => ['Cancellation confirmed — {paket}',
+                "Hello {name},\n\nyour cancellation has arrived, and this is your written confirmation.\n\n"
+                . "{paket} runs until {ende}.\n"
+                . "Until then {betrag} per month is charged, after that no longer — the last charge is the one for the month that {ende} falls in.\n\n"
+                . "What happens afterwards:\n\n"
+                . "· The site stays online and stays yours. Nothing gets switched off.\n"
+                . "· Updates, backups and monitoring stop. From that day the site is in your hands, or in those of whoever you appoint.\n"
+                . "· On request you get all the logins and a full backup, so you can take it anywhere.\n\n"
+                . "Your page stays reachable afterwards too: {seite}\n\n"
+                . "If you cancelled because something wasn't right, tell me — I genuinely want to know, even if you don't change your mind."],
         ],
 
         'restzahlung' => [

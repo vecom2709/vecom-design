@@ -90,6 +90,76 @@
       <small style="color:var(--leise)">— so gehen die automatischen E-Mails raus</small></td></tr>
     <tr><td>Kunde seit</td><td><?= Fmt::h(Fmt::datum($k['created_at'])) ?></td></tr>
   </tbody></table></div>
+  <?php /* ---------- Betreuung: der zweite Vertrag ---------- */ ?>
+  <?php
+    require_once __DIR__ . '/../src/Abo.php';
+    $abo = sicher(static fn() => Abo::fuerKunde((int) $k['id']), null);
+    $betreuungspakete = sicher(static fn() => Db::all(
+        "SELECT * FROM packages WHERE active = 1 AND art = 'betreuung' ORDER BY sort, monthly_cents"), []);
+  ?>
+  <?php if (empty($k['anonym_am'])): ?>
+  <div class="block"><h2>Betreuung
+    <?php if ($abo): ?>
+      <span class="mehr"><span class="marke2 <?= ['aktiv'=>'gut','gekuendigt'=>'warnung'][$abo['status']] ?? '' ?>">
+        <?= Fmt::h(['aktiv'=>'läuft','gekuendigt'=>'gekündigt','beendet'=>'beendet','angelegt'=>'angelegt'][$abo['status']] ?? $abo['status']) ?></span></span>
+    <?php endif; ?></h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+      Ein eigener Vertrag, getrennt von der Website: monatlich, zwölf Monate Mindestlaufzeit,
+      danach zum Monatsende kündbar.</p>
+
+    <?php if ($abo): ?>
+      <div class="tabellenrahmen"><table><tbody>
+        <tr><td style="width:38%">Paket</td><td><?= Fmt::h((string) $abo['paket_name']) ?></td></tr>
+        <tr><td>Monatlich</td><td><b><?= Fmt::h(Fmt::geld((int) $abo['betrag_cents'], (string) $abo['currency'])) ?></b></td></tr>
+        <tr><td>Zahlart</td><td><?= Fmt::h(Abo::ZAHLARTEN[$abo['zahlart']] ?? (string) $abo['zahlart']) ?></td></tr>
+        <tr><td>Läuft seit</td><td><?= Fmt::h(Fmt::datum((string) $abo['beginn'])) ?></td></tr>
+        <tr><td>Mindestens bis</td><td><?= Fmt::h(Fmt::datum((string) $abo['mindestlaufzeit_bis'])) ?></td></tr>
+        <?php if ($abo['laeuft_bis']): ?>
+          <tr><td>Gekündigt zum</td><td><b><?= Fmt::h(Fmt::datum((string) $abo['laeuft_bis'])) ?></b>
+            <small style="color:var(--leise)">— danach wird nicht mehr abgebucht</small></td></tr>
+        <?php endif; ?>
+      </tbody></table></div>
+
+      <?php if (in_array((string) $abo['status'], ['aktiv', 'angelegt'], true)): ?>
+        <?php $vor = sicher(static fn() => Abo::kuendigungsvorschau($abo), ['ende' => '', 'mindestlaufzeit' => false]); ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
+              onsubmit="return confirm('Kündigen zum <?= Fmt::h(Fmt::datum((string) $vor['ende'])) ?>? Der Kunde bekommt sofort die Bestätigung.')">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="abo_kuendigen">
+          <input type="hidden" name="id" value="<?= (int) $abo['id'] ?>">
+          <button class="knopf">Für den Kunden kündigen</button>
+          <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+            Ende wäre der <?= Fmt::h(Fmt::datum((string) $vor['ende'])) ?><?= $vor['mindestlaufzeit'] ? ' (Mindestlaufzeit)' : ' (Monatsende)' ?>.
+            Kündigen kann er auch selbst auf seiner Seite.</span>
+        </form>
+      <?php endif; ?>
+
+    <?php elseif ($betreuungspakete): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="abo_anlegen">
+        <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+        <div class="feld"><label>Paket</label>
+          <select name="paket_slug">
+            <?php foreach ($betreuungspakete as $bp): ?>
+              <option value="<?= Fmt::h((string) $bp['slug']) ?>"><?= Fmt::h((string) $bp['name']) ?>
+                — <?= Fmt::h(Fmt::geld((int) $bp['monthly_cents'], (string) $bp['currency'])) ?> im Monat</option>
+            <?php endforeach; ?>
+          </select></div>
+        <div class="feld"><label>Zahlart</label>
+          <select name="zahlart">
+            <option value="manuell">Von Hand abrechnen — bis Stripe bereit ist</option>
+            <option value="karte">Karte</option>
+            <option value="sepa">SEPA-Lastschrift</option>
+          </select></div>
+        <button class="knopf">Betreuung anlegen</button>
+        <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+          Die Mindestlaufzeit beginnt heute.</span>
+      </form>
+    <?php else: ?>
+      <div class="leer">Es gibt keine Betreuungspakete. Leg sie unter „Pakete" an.</div>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <?php /* Die eine Adresse des Kunden — dieselbe, die in allen E-Mails steht. */ ?>
   <?php
     require_once __DIR__ . '/../src/Kundenzugang.php';

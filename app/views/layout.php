@@ -31,6 +31,8 @@ $menue = [
   ['__gruppe', 'Geld', null],
   ['zahlungen', 'Zahlungen', 'zahlungen'],
   ['rechnungen', 'Rechnungen', 'rechnungen'],
+  ['abos', 'Betreuung', 'abos'],
+  ['steuerakte', 'Fürs Finanzamt', 'steuerakte'],
   ['statistiken', 'Statistiken', 'statistiken'],
   ['__gruppe', 'System', null],
   ['aktivitaeten', 'Aktivitäten', 'aktivitaeten'],
