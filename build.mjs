@@ -125,9 +125,16 @@ function build(lang) {
   h = h.replace(/<script type="application\/ld\+json">\s*\{\s*"@context"[^<]*"FAQPage"[\s\S]*?<\/script>\s*/g, '');
   h = h.replace('</head>', `<script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n</script>\n</head>`);
 
-  // Erklärvideo je Sprache: erklaervideo-it/de/en.mp4
-  h = h.replace(/erklaervideo-[a-z]{2}\.mp4/g, `erklaervideo-${lang}.mp4`);
-  h = h.replace(/rundgang-[a-z]{2}\.mp4/g, `rundgang-${lang}.mp4`);
+  // Erklärvideo je Sprache — Datei UND Vorschaubild.
+  //
+  // Hier stand vorher nur eine Regel für die alten Dateinamen. Als das neue
+  // Video dazukam, blieb sie stehen: /de/ und /en/ zeigten die italienische
+  // Fassung, weil index.html die Quelle für alle drei Sprachen ist und der
+  // Name unverändert mitwanderte. Auf dem Prüfstand war davon nichts zu
+  // sehen — dort liegen die drei Dateien einzeln und richtig; erst der Build
+  // baut sie auseinander. Deshalb weiter unten zusätzlich eine Prüfung.
+  h = h.replace(/ablauf-[a-z]{2}\.mp4/g, `ablauf-${lang}.mp4`);
+  h = h.replace(/video-ablauf-[a-z]{2}\.webp/g, `video-ablauf-${lang}.webp`);
 
   // 2. Kopfdaten
   const url = `${BASE}/${LANGS[lang]}`;
@@ -174,14 +181,40 @@ function build(lang) {
   return h;
 }
 
+/**
+ * Nach dem Bauen: Zeigt jede Sprachseite auch wirklich auf ihre eigenen
+ * Dateien — und gibt es die?
+ *
+ * Der Anlass steht oben bei der Videoregel: Eine vergessene Umbenennung
+ * schickte /de/ und /en/ auf das italienische Video, und niemandem fiel es
+ * auf. Ein falscher Pfad soll den Build abbrechen und nicht still
+ * hochgeladen werden — hochgeladen wird er nämlich zuverlässig.
+ */
+function pruefen(h, lang, ziel) {
+  const fehler = [];
+  const tief = lang === 'it' ? '' : '../';
+
+  for (const m of h.matchAll(/(?:data-src|src|href)="((?:\.\.\/)?(?:video|assets\/img)\/[^"?]*?-([a-z]{2})\.(?:mp4|webp))"/g)) {
+    const [, pfad, sprache] = m;
+    // Nur Dateien, deren Name auf eine Sprache endet, sind gemeint.
+    if (!Object.keys(LANGS).includes(sprache)) { continue; }
+    if (sprache !== lang) { fehler.push(`${pfad} gehört zu "${sprache}", die Seite ist "${lang}"`); }
+    if (!pfad.startsWith(tief)) { fehler.push(`${pfad} zeigt nicht ${tief ? 'eine Ebene höher' : 'ins Wurzelverzeichnis'}`); }
+    if (!existsSync(pfad.replace(/^\.\.\//, ''))) { fehler.push(`${pfad} gibt es auf der Platte nicht`); }
+  }
+  if (fehler.length) {
+    console.error(`\nFEHLER in ${ziel}:`);
+    fehler.forEach((f) => console.error('  ' + f));
+    console.error('\nNichts wurde hochgeladen. Erst den Pfad richtigstellen.');
+    process.exit(1);
+  }
+}
+
 for (const lang of Object.keys(LANGS)) {
   const out = build(lang);
-  if (lang === 'it') {
-    writeFileSync('index.html', out);
-    console.log('geschrieben: index.html (Italienisch, x-default)');
-  } else {
-    mkdirSync(lang, { recursive: true });
-    writeFileSync(`${lang}/index.html`, out);
-    console.log(`geschrieben: ${lang}/index.html`);
-  }
+  const ziel = lang === 'it' ? 'index.html' : `${lang}/index.html`;
+  pruefen(out, lang, ziel);
+  if (lang !== 'it') { mkdirSync(lang, { recursive: true }); }
+  writeFileSync(ziel, out);
+  console.log(`geschrieben: ${ziel}${lang === 'it' ? ' (Italienisch, x-default)' : ''}`);
 }

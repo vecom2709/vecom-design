@@ -1719,30 +1719,39 @@ italienische und 31 englische Stellen, jede einzeln umformuliert statt ersetzt.
 Wo „wir" wirklich Uwe **und** den Kunden meint („quando siamo d'accordo",
 „once we agree"), steht es weiter.
 
-## Die eingebauten HTML-Texte waren älter als die Sprachdaten (02.09.2026)
+## Zwei Fehlersuchen: eine echte, eine eingebildete (02.09.2026)
 
-Beim Nachziehen ist ein Fehler aufgefallen, der seit Monaten dastand: Im
-deutschen Quelltext hieß es *„Mehrsprachig, von Ihnen pflegbar"* und *„Sauberer
-Code, der Ihnen gehört"* — Siezen, auf einer Seite, die durchgehend duzt. Auf
-dem Bildschirm war davon nichts zu sehen, weil die Sprachdaten die eingebaute
-Vorgabe überschreiben. Wer aber kein JavaScript hat — und **jede Suchmaschine,
-die den Quelltext liest** — bekam die alte Fassung.
+**Der eingebildete.** Im deutschen Quelltext stand *„Mehrsprachig, von Ihnen
+pflegbar"* — Siezen auf einer Seite, die durchgehend duzt. Ich hielt das für
+einen Fehler, der monatelang live stand, baute ein Werkzeug dagegen und schrieb
+es hier als Fund auf. Dann habe ich die laufende Seite abgefragt: dort stand
+längst *„von dir pflegbar"*.
 
-Das ist die Sorte Fehler, die nie auffällt, weil sie nur dort steht, wo niemand
-hinsieht. Deshalb gibt es jetzt `tools/sync-html-texte.mjs`: es zieht alle
-eingebauten Texte aus den Sprachdaten nach und meldet mit `--pruefen` nur die
-Abweichungen, ohne etwas zu ändern — geeignet für eine Kontrolle vor dem Deploy.
-Beim ersten Lauf: **54 Abweichungen** in drei Dateien.
+Der Grund: **`build.mjs` erzeugt alle drei Sprachseiten beim Deploy neu**, aus
+`index.html` als Quelle plus den Sprachdaten. Was im Repository an eingebauten
+Texten steht, ist ein Zwischenstand, der beim nächsten Deploy überschrieben
+wird — Besucher und Suchmaschinen bekommen immer die Fassung aus den
+Sprachdaten. Das Werkzeug ist wieder raus; ein zweites, das dasselbe anders
+macht, hätte nur dazu verleitet, erzeugte Dateien von Hand zu „reparieren".
 
-Der erste Anlauf hatte selbst einen Fehler — er ließ die Zeile mit
-`class="is-lead"` stehen *und* baute sie aus den Daten neu, sodass „Enthalten:"
-zweimal in der Liste stand. Gefunden von der eigenen Kontrollausgabe, behoben:
-Die Liste wird vollständig aus den Daten gebaut, die Klasse kommt nur auf die
-erste Zeile zurück, wenn sie vorher da war.
+Merksatz für das nächste Mal: erst die laufende Seite fragen, dann den Befund
+aufschreiben.
 
-**Ebenfalls gefunden und behoben:** Im Videobereich der Sprachseiten `/de/` und
-`/en/` fehlte das `../` im Pfad — dort hätten weder Vorschaubild noch Video
-geladen. Aufgefallen erst beim Prüfen von `naturalWidth`; die Anfrage schlug
-wegen `loading="lazy"` erst nach dem Netzwerk-Leerlauf fehl und tauchte in der
-ersten Kontrolle gar nicht auf. Lesson: bei Bildern nicht das Attribut prüfen,
-sondern ob wirklich Pixel angekommen sind.
+**Der echte — und der stand wirklich live.** `build.mjs` benannte das Video je
+Sprache um, kannte aber nur die alten Dateinamen (`erklaervideo-`, `rundgang-`).
+Das neue `ablauf-de.mp4` fiel durch das Raster: `/de/` und `/en/` bekamen das
+**italienische** Video ausgeliefert. Auf dem Prüfstand war davon nichts zu
+sehen, weil dort die drei Sprachdateien einzeln und richtig danebenliegen —
+erst der Build baut sie auseinander. Aufgefallen ist es nur, weil ich nach dem
+Deploy die echte Seite abgefragt habe statt die lokale.
+
+Die Regel ist jetzt allgemein, und darunter steht eine **Prüfung, die den Build
+abbricht**: Zeigt eine Sprachseite auf eine Datei einer anderen Sprache, auf die
+falsche Ebene oder auf eine, die es nicht gibt, wird gar nichts hochgeladen.
+Gegenprobe mit einem absichtlich falschen Pfad: bricht ab, wie gewollt.
+
+**Ebenfalls behoben:** Im Videobereich fehlte anfangs das `../`. Aufgefallen
+erst beim Prüfen von `naturalWidth` — die Anfrage schlug wegen `loading="lazy"`
+erst nach dem Netzwerk-Leerlauf fehl und tauchte in der ersten Kontrolle gar
+nicht auf. Bei Bildern also nicht das Attribut prüfen, sondern ob Pixel
+angekommen sind.
