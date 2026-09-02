@@ -229,6 +229,11 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   details.klapp>summary::before{content:"+ ";color:var(--leise)}
   details.klapp[open]>summary::before{content:"– "}
   .mini{color:var(--leise);font-size:12.5px;line-height:1.55}
+  /* Der Kasten fuer etwas, das es noch nicht gibt: dieselbe Form wie die
+     anderen, nur ohne Griff daran. Er soll erwartet aussehen, nicht defekt. */
+  .klapp.ruht{border:1px dashed var(--linie);border-radius:14px;padding:13px 16px;margin-bottom:12px;opacity:.72}
+  .klapp.ruht .summe{font-weight:650;font-size:15px;color:var(--leise)}
+  .klapp.ruht .summe::before{content:"○ ";color:var(--linie2)}
 </style>
 </head>
 <body>
@@ -317,6 +322,16 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   </div>
 
   <?php /* ---------- Deine Website: Entwurf und, sobald da, die echte ---------- */ ?>
+  <?php /* Noch nichts freigeschaltet: Der Kasten steht trotzdem da, nur grau.
+           Ab der Stufe, auf der wir bauen — vorher waere er verfrueht. */ ?>
+  <?php if ($seite['vorschau'] === '' && $seite['live'] === ''
+            && in_array($stufe, ['arbeit', 'entwurf'], true)): ?>
+    <div class="klapp ruht">
+      <div class="summe"><?= $h($T('deineSeite')) ?></div>
+      <p class="mini" style="margin:8px 0 0"><?= $h($T('nochNichts')) ?></p>
+    </div>
+  <?php endif; ?>
+
   <?php if ($seite['vorschau'] !== '' || $seite['live'] !== ''): ?>
     <details class="klapp" <?= $stufe === 'online' || $stufe === 'fertig' ? 'open' : '' ?>>
       <summary><?= $h($T('deineSeite')) ?></summary>

@@ -242,6 +242,15 @@ final class Nachricht
     {
         $p = self::projektMitKunde($projektId);
         if (!$p) { return false; }
+
+        /* Nur wenn es wirklich etwas zu sehen gibt.
+           Vorher hing diese Mail allein am Projektstatus. Stand der auf
+           "Vorschau", ohne dass eine Adresse eingetragen war, bekam der Kunde
+           "Deine Vorschau steht", klickte — und fand auf seiner Seite keinen
+           Knopf. Er schreibt dann und fragt, wo die Seite sei. */
+        if (trim((string) ($p['preview_url'] ?? '')) === '') { return false; }
+        if (array_key_exists('vorschau_frei_am', $p) && $p['vorschau_frei_am'] === null) { return false; }
+
         if (Mail::schonGeschickt('vorschau', 'project_id', $projektId)) { return false; }
 
         [$betreff, $text] = Texte::mail('vorschau', self::sprache($p), [

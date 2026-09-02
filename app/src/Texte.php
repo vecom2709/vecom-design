@@ -163,6 +163,12 @@ final class Texte
             'en' => 'Logo, photos, copy — whatever the site needs.'],
         'hochladen'  => ['it' => 'Carica', 'de' => 'Hochladen', 'en' => 'Upload'],
         'deineSeite' => ['it' => 'Il tuo sito', 'de' => 'Deine Website', 'en' => 'Your website'],
+        /* Der Bereich steht auch dann da, wenn es noch nichts zu sehen gibt.
+           Versteckt waere er eine Leerstelle, die Fragen erzeugt: Wo sehe ich
+           denn nun meine Seite? So weiss der Kunde, wo sie erscheinen wird. */
+        'nochNichts'  => ['it' => 'Appena la bozza è pronta, la trovi qui — ti avvisiamo.',
+                          'de' => 'Sobald dein Entwurf fertig ist, kannst du ihn hier ansehen — wir sagen dir Bescheid.',
+                          'en' => 'As soon as your draft is ready you can view it here — we’ll let you know.'],
         'entwurfAnsehen' => ['it' => 'Guarda l’anteprima', 'de' => 'Entwurf ansehen', 'en' => 'View the draft'],
         'seiteAnsehen'   => ['it' => 'Apri il sito', 'de' => 'Website öffnen', 'en' => 'Open the site'],
         'aenderung'  => ['it' => 'Vorrei una modifica', 'de' => 'Ich möchte etwas ändern', 'en' => 'I’d like a change'],

@@ -288,6 +288,67 @@ if ($post) {
                 $_SESSION[$pr['ok'] ? 'gut' : 'fehler'] = $pr['text'];
                 zurueck('monitoring');
 
+            /* Vorschau: eintragen und freischalten sind zweierlei.
+               Der Kunde sieht den Entwurf erst nach dem Freischalten — vorher
+               steht bei ihm ein grauer Kasten mit dem Satz, dass es hier
+               erscheinen wird. */
+            case 'vorschau_speichern':
+                $pid = (int) ($_POST['id'] ?? 0);
+                $url = trim((string) ($_POST['preview_url'] ?? ''));
+                if ($url !== '' && !preg_match('~^https?://~i', $url)) { $url = 'https://' . $url; }
+                if ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
+                    throw new RuntimeException('Das sieht nicht nach einer Adresse aus. Es wurde nichts geändert.');
+                }
+                Db::update('projects', $pid, ['preview_url' => $url !== '' ? $url : null]);
+                Events::pruefspur('aendern', 'project', $pid, [], ['preview_url' => $url]);
+                // Eine bestehende Freigabe bleibt: Der Kunde klickt weiter
+                // denselben Knopf und sieht ab sofort die neue Adresse. Eine
+                // zweite E-Mail bekommt er nicht — er hat nichts Neues zu tun.
+                $frei = sicher(static fn() => Db::wert(
+                    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$pid], null), null);
+                $_SESSION['gut'] = $url === ''
+                    ? 'Vorschau-Adresse entfernt.'
+                    : ('Vorschau-Adresse gespeichert.' . ($frei !== null
+                        ? ' Der Kunde sieht ab sofort die neue Adresse.'
+                        : ' Der Kunde sieht sie noch nicht — dazu freischalten.'));
+                zurueck('vorgaenge');
+
+            case 'vorschau_frei':
+                require_once __DIR__ . '/src/Nachricht.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $url = (string) sicher(static fn() => Db::wert(
+                    'SELECT preview_url FROM projects WHERE id = ?', [$pid], ''), '');
+                if (trim($url) === '') {
+                    throw new RuntimeException('Ohne Vorschau-Adresse gibt es nichts freizuschalten. '
+                        . 'Trag sie zuerst ein — sonst bekommt der Kunde eine E-Mail und findet nichts.');
+                }
+                Db::update('projects', $pid, ['vorschau_frei_am' => date('Y-m-d H:i:s')]);
+                // Der Projektstand zieht mit, damit beides nicht auseinanderlaeuft.
+                // melden = false: Die E-Mail schicken wir gleich selbst, und zwar
+                // genau einmal.
+                sicher(static fn() => Events::projektStatus($pid, 'vorschau', false), null);
+                Events::protokoll('vorschau_frei', 'Vorschau für den Kunden freigeschaltet', null, null, $pid);
+                // Ob die E-Mail schon einmal draussen war, muss VOR dem
+                // Verschicken feststehen — danach ist sie es in jedem Fall,
+                // und die Rueckmeldung waere nicht mehr zu unterscheiden.
+                require_once __DIR__ . '/src/Mail.php';
+                $schonMal = (bool) sicher(static fn() => Mail::schonGeschickt('vorschau', 'project_id', $pid), false);
+                $raus = (bool) sicher(static fn() => Nachricht::vorschauBereit($pid), false);
+                $_SESSION['gut'] = 'Vorschau ist freigeschaltet.' . match (true) {
+                    $raus     => ' Der Kunde hat die E-Mail bekommen.',
+                    $schonMal => ' Eine zweite E-Mail bekommt er nicht — die erste ist schon draußen. '
+                                 . 'Auf seiner Seite sieht er den Entwurf sofort.',
+                    default   => ' Die E-Mail ging nicht raus — er sieht die Vorschau aber auf seiner Seite.',
+                };
+                zurueck('vorgaenge');
+
+            case 'vorschau_sperren':
+                $pid = (int) ($_POST['id'] ?? 0);
+                Db::update('projects', $pid, ['vorschau_frei_am' => null]);
+                Events::protokoll('vorschau_gesperrt', 'Vorschau wieder gesperrt', null, null, $pid);
+                $_SESSION['gut'] = 'Vorschau ist wieder gesperrt. Der Kunde sieht sie nicht mehr.';
+                zurueck('vorgaenge');
+
             case 'kundenlink_neu':
                 // Zieht den alten Zugang zurueck. Gedacht fuer den Fall, dass
                 // ein Kunde den Link weitergegeben hat — oder ihn selbst nicht
@@ -389,8 +450,24 @@ if ($post) {
                 zurueck('bestellungen/' . (int) $_POST['order_id']);
 
             case 'projekt_status':
-                Events::projektStatus((int) $_POST['id'], (string) $_POST['status']);
-                zurueck('projekte/' . (int) $_POST['id']);
+                $pid = (int) $_POST['id'];
+                $neuerStand = (string) $_POST['status'];
+                Events::projektStatus($pid, $neuerStand);
+                // Der Stand sagt "Vorschau", der Kunde hat aber nichts zum
+                // Anklicken: Dann sagen wir es hier, statt ihn auf eine leere
+                // Seite zu schicken.
+                if ($neuerStand === 'vorschau') {
+                    $frei = sicher(static fn() => Db::one(
+                        'SELECT preview_url, vorschau_frei_am FROM projects WHERE id = ?', [$pid]), []);
+                    if (trim((string) ($frei['preview_url'] ?? '')) === '') {
+                        $_SESSION['fehler'] = 'Der Stand steht auf „Vorschau“, aber es ist keine '
+                            . 'Vorschau-Adresse eingetragen. Der Kunde sieht nichts zum Anklicken.';
+                    } elseif (($frei['vorschau_frei_am'] ?? null) === null) {
+                        $_SESSION['fehler'] = 'Der Stand steht auf „Vorschau“, die Adresse ist aber noch '
+                            . 'nicht freigeschaltet. Der Kunde sieht sie erst nach dem Freischalten.';
+                    }
+                }
+                zurueck('projekte/' . $pid);
 
             case 'projekt_felder':
                 $pid = (int) $_POST['id'];

@@ -292,6 +292,67 @@ $tage   = Vorgang::ruhtSeitTagen($v);
   </div>
   <?php endif; ?>
 
+  <?php /* ---------- Vorschau ---------- */ ?>
+  <?php if ($pid && !empty($v['vorschau']['spalte'])): ?>
+  <?php $vs = $v['vorschau']; ?>
+  <div class="block"><h2>Vorschau
+    <span class="mehr">
+      <?php if ($vs['frei_am']): ?>
+        <span class="marke2 gut">freigeschaltet</span>
+      <?php elseif ($vs['url'] !== ''): ?>
+        <span class="marke2 warnung">nur für dich</span>
+      <?php else: ?>
+        <span class="marke2">keine Adresse</span>
+      <?php endif; ?>
+    </span></h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+      Eintragen und Freischalten sind zweierlei. Der Kunde sieht den Entwurf erst nach dem
+      Freischalten — vorher steht bei ihm ein grauer Kasten mit dem Hinweis, dass er hier erscheint.</p>
+
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_speichern">
+      <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+      <input type="hidden" name="id" value="<?= (int) $pid ?>">
+      <div class="feld"><label>Adresse des Entwurfs</label>
+        <input name="preview_url" placeholder="https://vorschau.vecom-design.it/…"
+               value="<?= Fmt::h($vs['url']) ?>"></div>
+      <button class="knopf">Adresse speichern</button>
+      <?php if ($vs['url'] !== ''): ?>
+        <a class="knopf" href="<?= Fmt::h($vs['url']) ?>" target="_blank" rel="noopener"
+           style="margin-left:8px">Selbst ansehen</a>
+      <?php endif; ?>
+    </form>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;
+                border-top:1px solid var(--linie);padding-top:12px">
+      <?php if (!$vs['frei_am']): ?>
+        <?php if ($vs['url'] === ''): ?>
+          <button class="knopf" disabled title="Erst eine Adresse eintragen">Für den Kunden freischalten</button>
+          <span style="color:var(--leise);font-size:12.5px">Erst die Adresse eintragen — sonst bekäme er
+            eine E-Mail und fände nichts.</span>
+        <?php else: ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_frei">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+            <input type="hidden" name="id" value="<?= (int) $pid ?>">
+            <button class="knopf haupt">Für den Kunden freischalten</button></form>
+          <span style="color:var(--leise);font-size:12.5px">Setzt den Stand auf „Vorschau“
+            und schickt ihm die E-Mail.</span>
+        <?php endif; ?>
+      <?php else: ?>
+        <span style="color:var(--leise);font-size:12.5px">Freigegeben am
+          <?= Fmt::h(Fmt::zeit((string) $vs['frei_am'])) ?></span>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+              onsubmit="return confirm('Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?')">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_sperren">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+          <input type="hidden" name="id" value="<?= (int) $pid ?>">
+          <button class="knopf">Wieder sperren</button></form>
+      <?php endif; ?>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <?php /* ---------- Website ---------- */ ?>
   <?php if ($pid): ?>
   <div class="block"><h2>Website</h2>

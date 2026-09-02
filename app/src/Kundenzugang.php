@@ -171,11 +171,27 @@ final class Kundenzugang
         $nr    = array_search($stufe, self::REIHE, true);
 
         // Die Adresse der Seite: solange sie nicht online ist, der Entwurf.
-        $vorschau = '';
-        $live     = '';
+        //
+        // Der Entwurf erscheint erst, wenn er ausdruecklich freigeschaltet ist,
+        // nicht schon beim Speichern der Adresse. Sonst waere jeder
+        // Zwischenstand sofort offen — und Uwe koennte die Adresse nicht
+        // eintragen, bevor er sie zeigen will.
+        $vorschau     = '';
+        $vorschauFrei = null;
+        $live         = '';
         if ($v && $v['projekt_id']) {
-            $vorschau = trim((string) self::still(fn() => Db::wert(
-                'SELECT preview_url FROM projects WHERE id = ?', [(int) $v['projekt_id']], ''), ''));
+            $p = (array) self::still(fn() => Db::one(
+                'SELECT * FROM projects WHERE id = ?', [(int) $v['projekt_id']]), []);
+
+            // Zwischen Deploy und naechstem Cronlauf kann die Spalte noch
+            // fehlen. Dann gilt die alte Regel weiter — sonst verschwaende
+            // eine schon freigegebene Vorschau fuer zehn Minuten, und der
+            // Kunde stuende vor einem Knopf, der eben noch da war.
+            $spalteDa = array_key_exists('vorschau_frei_am', $p);
+            $vorschauFrei = $spalteDa ? ($p['vorschau_frei_am'] ?? null) : ($p['preview_url'] ?? null);
+            if ($vorschauFrei !== null && $vorschauFrei !== '') {
+                $vorschau = trim((string) ($p['preview_url'] ?? ''));
+            }
         }
         if ($v && !empty($v['website']['url']) && in_array((string) $v['website']['status'], ['online', 'wird_geprueft'], true)) {
             $live = (string) $v['website']['url'];
@@ -202,8 +218,9 @@ final class Kundenzugang
             'stufe'    => $stufe,
             'stufe_nr' => $nr === false ? 0 : (int) $nr,
             'dran'     => $wer,
-            'vorschau' => $vorschau,
-            'live'     => $live,
+            'vorschau'      => $vorschau,
+            'vorschau_frei' => $vorschauFrei,
+            'live'          => $live,
             'sprache'  => in_array((string) ($kunde['sprache'] ?? 'it'), ['it','de','en'], true)
                           ? (string) $kunde['sprache'] : 'it',
         ];

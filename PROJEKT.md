@@ -1140,3 +1140,62 @@ Erholung meldet einmal.
 
 **Offen:** Wenn über Wochen alles sauber signiert ist, DMARC von `p=none` auf
 `p=quarantine` heben.
+
+## Die Vorschau wird freigeschaltet, nicht gespeichert (02.09.2026)
+
+Uwes Beobachtung: Der Vorschau-Link ist je Kunde ein anderer und muss von Hand
+gesetzt werden — der Bereich beim Kunden sollte deshalb inaktiv sein und erst
+aktiv werden, wenn der Link freigegeben ist. Beim Nachsehen zeigte sich, dass
+das nicht nur fehlte, sondern in einer Richtung einen Kunden ins Leere schickte.
+
+**Was vorher war:**
+
+- Der Link wurde in dem Moment sichtbar, in dem er **gespeichert** wurde. Kein
+  Vorbereiten, kein Zwischenstand für sich behalten.
+- Schlimmer die andere Richtung: Die Stufe „Dein Entwurf ist fertig" hing am
+  Projektstatus, der Knopf am Vorschau-Link — zwei Dinge, die nichts voneinander
+  wussten. Status auf „Vorschau" ohne eingetragene Adresse hieß: Der Kunde bekam
+  die E-Mail *„Deine Vorschau steht"*, klickte, las „Dein Entwurf ist fertig" und
+  fand nichts zum Anklicken.
+- Das Feld stand nur auf der alten Projektseite, nicht auf der Vorgangsseite, mit
+  der seit dem Umbau gearbeitet wird.
+
+**Was jetzt gilt** (Migration `017`, Spalte `projects.vorschau_frei_am`):
+
+- **Eintragen und Freischalten sind zwei Dinge.** Die Adresse darf lange
+  dastehen; der Kunde sieht sie erst nach einem ausdrücklichen Klick.
+- **Beim Kunden steht der Bereich trotzdem** — gestrichelt, grau, mit einem Satz:
+  *„Sobald dein Entwurf fertig ist, kannst du ihn hier ansehen — wir sagen dir
+  Bescheid."* Versteckt wäre er eine Leerstelle, die Fragen erzeugt. Er erscheint
+  ab der Stufe „Wir bauen"; vorher wäre er verfrüht.
+- **Die E-Mail hängt an der Freigabe**, nicht mehr am Projektstatus.
+  `Nachricht::vorschauBereit()` verweigert zusätzlich den Dienst, wenn keine
+  Adresse eingetragen oder nichts freigegeben ist — die Mail kann also nicht mehr
+  rausgehen, bevor es etwas zu sehen gibt.
+- **Freischalten zieht den Projektstand mit** auf „Vorschau". Und wer den Stand
+  von Hand auf „Vorschau" setzt, ohne dass eine Adresse eingetragen oder
+  freigegeben ist, bekommt das gesagt — statt dass der Kunde es merkt.
+- **Wieder sperren** geht mit einem Klick, mit Rückfrage. Gedacht für den Fall,
+  dass beim Draufschauen doch noch etwas auffällt.
+- **Adresse tauschen bei laufender Freigabe wechselt still**: Der Kunde klickt
+  weiter denselben Knopf und sieht ab sofort die neue Adresse. Keine zweite
+  E-Mail — er hat nichts Neues zu tun. Die Rückmeldung in der Verwaltung sagt
+  das ausdrücklich, damit es keine Überraschung ist.
+
+**Rückwirkend:** Wer seine Vorschau nach der alten Regel schon sehen konnte,
+verliert sie nicht. Die Migration gibt allen Projekten mit Adresse, die im Ablauf
+bei der Vorschau oder dahinter stehen, ein Freigabedatum. Früher stehende
+Projekte bleiben gesperrt — dort war die Adresse ohnehin nur ein Zwischenstand.
+
+**Zwischen Deploy und Cronlauf** fehlt die Spalte für bis zu zehn Minuten. Beide
+Seiten behandeln das ausdrücklich: die Kundenseite fällt auf die alte Regel
+zurück (sonst verschwände eine freigegebene Vorschau kurz), die Verwaltung zeigt
+den Schalter so lange gar nicht (statt einen Knopf anzubieten, der auf einen
+Fehler läuft).
+
+Geprüft am laufenden Stand: ohne Adresse grauer Kasten und gesperrter Knopf mit
+Begründung; Adresse gespeichert → Kunde sieht weiterhin nichts; freigeschaltet →
+Stufe wechselt auf „Dein Entwurf ist fertig", Knopf da, E-Mail mit Kennung im
+Betreff angekommen; Adresse getauscht → neue Adresse beim Kunden, keine zweite
+Mail; wieder gesperrt → Knopf weg, grauer Kasten zurück; Freischalten ohne
+Adresse abgelehnt; Status von Hand auf „Vorschau" ohne Freigabe warnt.

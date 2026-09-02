@@ -398,6 +398,21 @@ final class Vorgang
             'SELECT * FROM mails WHERE customer_id = ? ORDER BY id DESC LIMIT 20', [$kid]) : [];
         $v['website'] = $pid !== null ? self::eine(
             'SELECT * FROM websites WHERE project_id = ?', [$pid]) : null;
+
+        // Vorschau: Adresse und Freigabe getrennt. Die Adresse darf lange
+        // dastehen, bevor der Kunde sie sieht.
+        $v['vorschau'] = ['url' => '', 'frei_am' => null, 'spalte' => true];
+        if ($pid !== null) {
+            $p = (array) self::eine('SELECT * FROM projects WHERE id = ?', [$pid]);
+            $v['vorschau'] = [
+                'url'     => trim((string) ($p['preview_url'] ?? '')),
+                'frei_am' => $p['vorschau_frei_am'] ?? null,
+                // Solange die Spalte fehlt (zwischen Deploy und Cronlauf),
+                // zeigt die Verwaltung den Schalter nicht an, statt einen
+                // Knopf anzubieten, der auf einen Fehler laeuft.
+                'spalte'  => array_key_exists('vorschau_frei_am', $p),
+            ];
+        }
         $v['aufgaben'] = $pid !== null ? self::zeilen(
             'SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$pid]) : [];
         $v['ungelesen'] = $kid !== null ? (int) self::wert(
