@@ -1680,6 +1680,25 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 @media (min-width: 900px) {
   .vids--eins { grid-template-columns: minmax(0, 780px); justify-content: center; }
 }
+
+/* ---------- Das Video im Ablauf ------------------------------------------
+   Es stand vorher als eigener Abschnitt zwischen "Ueber mich" und den
+   Prinzipien — mitten in der Strecke, in der sich der Leser ein Bild von der
+   Person macht, und weit weg von der Frage, die es beantwortet.
+   Jetzt schliesst es den Ablauf ab: oben die vier Schritte in einem Satz,
+   darunter dieselbe Sache in Bewegung. Das spart ausserdem einen Abschnitt
+   und einen Navigationspunkt — die Seite wirkt weniger voll, ohne dass etwas
+   fehlt. Die Sprungmarke #video bleibt bestehen, damit alte Verweise aus
+   E-Mails und Suchergebnissen weiter dort landen, wo sie sollen. */
+.ablaufvideo {
+  margin-top: clamp(2.4rem, 5vw, 4rem);
+  scroll-margin-top: clamp(72px, 10vh, 110px);
+}
+.ablaufvideo__zu {
+  max-width: 62ch; margin: 0 auto clamp(1.2rem, 2.5vw, 1.9rem);
+  text-align: center; color: var(--c-text-dim);
+  font-size: var(--t-sm); line-height: 1.65;
+}
 .vid {
   position: relative; margin: 0; border-radius: var(--radius-lg); overflow: hidden;
   background: var(--c-surface); box-shadow: var(--elev-1);
@@ -1689,7 +1708,10 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .vid:hover { transform: translateY(-4px); box-shadow: var(--elev-hover); }
 .vid img, .vid video { width: 100%; height: auto; display: block; background: #05070d; }
 .vid__play {
-  position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%);
+  /* Tief statt mittig: Das Vorschaubild ist die Titelkarte des Videos, und die
+     traegt oben Logo und Ueberschrift. Ein Knopf in der Bildmitte lag genau
+     darauf und sah aus wie ein Versehen. Unten ist die Flaeche frei. */
+  position: absolute; left: 50%; top: 76%; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; gap: .6rem; cursor: pointer;
   padding: .8rem 1.3rem .8rem 1.05rem; border: 0; border-radius: 999px;
   background: linear-gradient(180deg, #fff, #e2e9f7); color: var(--c-base);
@@ -1700,7 +1722,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .vid__play:hover { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 4px 10px -2px rgba(0,0,0,.75), 0 28px 55px -18px rgba(10,120,245,.8); }
 .vid.is-playing .vid__play { display: none; }
 .vid figcaption {
-  display: grid; gap: .25rem; padding: clamp(1rem, 2vw, 1.4rem);
+  display: grid; gap: .25rem; padding: clamp(.75rem, 1.6vw, 1rem) clamp(1rem, 2vw, 1.4rem);
   background: linear-gradient(180deg, rgba(9, 13, 22, .96), var(--c-surface));
   box-shadow: inset 0 1px 0 rgba(150, 180, 230, .14);
 }

@@ -15,10 +15,11 @@
    ruckelt.
    ========================================================================== */
 import { chromium } from 'playwright';
-import { mkdirSync, renameSync, readdirSync } from 'node:fs';
+import { mkdirSync, renameSync, readdirSync, readFileSync, existsSync } from 'node:fs';
 
 const BASIS   = process.argv[2] || 'http://localhost:8181';
 const SPRACHE = (process.argv[3] || 'de').replace(/^--/, '');
+const ZEITEN  = process.argv[4] || '';   // optional: Standzeiten aus dem Ton
 const URL     = `${BASIS}/explainer-ablauf.html?lang=${SPRACHE}`;
 
 /* Szene → Standzeit in Millisekunden. Reihenfolge wie in der Bühne. */
@@ -35,7 +36,20 @@ const HALT = [
   7600,   // 10 Was du davon hast
   5200,   // 11 Abbinder
 ];
-const SCHNITT = 650;   // Dunkelphase zwischen zwei Szenen
+let SCHNITT = 650;   // Dunkelphase zwischen zwei Szenen
+
+/* Gibt es eine Tonspur, richtet sich das Bild nach ihr und nicht umgekehrt.
+   tools/ton-einbauen.mjs misst jede Aufnahme und schreibt die Standzeiten
+   hierher — dann endet eine Szene, wenn der Satz zu Ende ist. */
+if (ZEITEN && existsSync(ZEITEN)) {
+  const z = JSON.parse(readFileSync(ZEITEN, 'utf8'));
+  if (Array.isArray(z.halten) && z.halten.length) {
+    HALT.length = 0;
+    HALT.push(...z.halten);
+    if (z.schnitt) { SCHNITT = z.schnitt; }
+    console.log(`Standzeiten aus ${ZEITEN} uebernommen (${HALT.length} Szenen).`);
+  }
+}
 
 mkdirSync('video', { recursive: true });
 

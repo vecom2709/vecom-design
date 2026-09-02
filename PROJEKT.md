@@ -1755,3 +1755,124 @@ erst beim Prüfen von `naturalWidth` — die Anfrage schlug wegen `loading="lazy
 erst nach dem Netzwerk-Leerlauf fehl und tauchte in der ersten Kontrolle gar
 nicht auf. Bei Bildern also nicht das Attribut prüfen, sondern ob Pixel
 angekommen sind.
+
+## Das Video sitzt jetzt da, wo die Frage gestellt wird (02.09.2026)
+
+Es stand als eigener Abschnitt zwischen „Über mich" und den Prinzipien —
+mitten in der Strecke, in der sich der Leser ein Bild von der Person macht,
+und weit weg von der Frage, die es beantwortet.
+
+Jetzt schließt es den **Ablauf** ab: oben die vier Schritte in je einem Satz,
+darunter dieselbe Sache in Bewegung. Das spart einen Abschnitt und einen
+Navigationspunkt — die Seite wirkt weniger voll, ohne dass etwas fehlt. Die
+Sprungmarke `#video` bleibt bestehen, damit Verweise aus alten E-Mails und
+Suchergebnissen weiter dort landen, wo sie sollen.
+
+Zwei Kleinigkeiten, die beim Ansehen auffielen: Der Abspielknopf lag genau auf
+der Überschrift des Vorschaubilds — das Vorschaubild ist die Titelkarte des
+Videos, und die trägt oben Logo und Titel. Er sitzt jetzt tief, wo die Fläche
+frei ist. Und der Titel stand zweimal: einmal auf der Titelkarte, drei
+Zentimeter darunter noch einmal als Bildunterschrift. Die Wiederholung ist
+raus, geblieben ist die Zeile, die etwas sagt: „Der ganze Ablauf · 1:31 ·
+ohne Ton".
+
+## „Klingt wie eine Prototyp-Webseite" (02.09.2026)
+
+Uwes Kritik, ausgelöst an einem einzigen Satz: *„Ein Video, anderthalb
+Minuten: … Ohne Ton, du kannst es überall ansehen."* Der Satz beschreibt den
+Abspieler statt die Sache — und daran hing mehr.
+
+Ein Werbetexter hat die ganze deutsche Seite gelesen. Sein Befund in einem
+Satz: **Der Ton ist gut, die Bindeglieder sind es nicht.** Genau dort, wo Uwe
+aufhört zu sprechen und anfängt, die Seite zu beschriften, klingt es nach
+Baukasten. Und das sind ausgerechnet die meistgesehenen Stellen.
+
+**Was geändert wurde — und warum:**
+
+- **„Webdesign-Agentur"** in der allerersten Zeile und im Abbinder, dazu
+  „Gestaltet und entwickelt im eigenen Haus". Er ist einer. Das ganze
+  Verkaufsargument der Seite lautet „kein Vertrieb, keine Weitergabe,
+  dieselbe Person" — und Zeile eins sagte „Agentur". Jetzt: „Webdesign aus
+  Sizilien" und „Gestaltet und gebaut in Aragona. Von mir." Der Suchbegriff
+  bleibt in Title und Beschreibung, wo er hingehört.
+- **Achtmal „kostenlos und unverbindlich".** Wer achtmal beteuert, dass es
+  nichts kostet, klingt, als rechne er damit, dass man ihm nicht glaubt. Jetzt
+  steht es an zwei bis drei Stellen — dort, wo die Frage tatsächlich gestellt
+  wird.
+- **„Kostenloses Angebot anfordern"** auf dem wichtigsten Knopf. „Anfordern"
+  ist Behördensprache und bricht das Du der ganzen Seite. Jetzt „Angebot
+  holen".
+- **„dein Vertriebsmitarbeiter, der nachts arbeitet"** — der abgegriffenste
+  Satz der Branche, und `inter.a` sagt dasselbe schon in gut („Sie ist das
+  erste Verkaufsgespräch — und es findet ohne dich statt"). Von zwei Bildern
+  für einen Gedanken musste das schwächere weg.
+- **„Individuelles Premium-Design", „Professionelle Farb- und
+  Schriftgestaltung"** — die drei Wörter, die jeder Wettbewerber in dieselbe
+  Preisbox schreibt, genau in der Zeile, in der jemand 899 € gegen 1499 €
+  abwägt. Jetzt steht dort, was tatsächlich geliefert wird.
+- **„Die Aufnahmen zeigen die tatsächlich laufenden Seiten"** stellte die
+  Frage erst, die es beantwortet. Jetzt: „Alle diese Seiten sind online. Die
+  Links führen direkt hin." Ein Link beweist es, ohne sie zu stellen.
+- **Der Formularhinweis** erklärte den Knopf. Jetzt sagt er, was der Vorteil
+  ist: „Kein Formular, keine gespeicherten Daten."
+
+**Was ausdrücklich nicht angefasst wurde:** `about.p1` („Ich kenne den Moment,
+in dem eine Seite online ist und trotzdem niemand anruft"), `inter.a`/`inter.b`,
+`faq.a5` („wer dir Platz eins in einem Monat verspricht, verkauft dir Luft"),
+der Satz „auch wenn ich daran weniger verdiene" und der ganze `masz.`-Block.
+Das sind die Stellen, die die Seite tragen — sie waren nie das Problem.
+
+### Italienisch und Englisch: dasselbe, plus das Firmen-Wir
+
+Beide Sprachen sagten auf den Verkaufsseiten noch „noi" und „we" — nachdem die
+Kundenseite schon umgestellt war. Das ist derselbe Widerspruch wie dort, nur an
+der sichtbareren Stelle. Beide Fassungen sind von Muttersprachlern überarbeitet
+worden: **68 Änderungen**, Personalform und Redaktion in einem Zug.
+
+**Dabei kam ein echter Sachfehler heraus**, der live stand: Die italienische und
+die englische FAQ verkauften die Betreuung noch als Pflichtaufschlag — *„499 €
+una tantum più 39 € al mese"*, *„€499 one-off plus €39 per month"*. Das
+widerspricht der Trennung von Erstellung und Betreuung, die im Deutschen und in
+der Verwaltung längst gilt, und es widersprach der eigenen Antwort zwei Fragen
+weiter unten. Beide Sprachen sagen jetzt dasselbe wie die deutsche.
+
+## Der Ton für das Video steht bereit (02.09.2026)
+
+Uwe will eine gesprochene Fassung über kie.ai. Zwei Dinge dazu, beide
+unverhandelbar auf der einen und beide gelöst auf der anderen Seite:
+
+**Ich arbeite nicht mit seinem Zugangsschlüssel.** Nicht aus Förmlichkeit —
+Schlüssel eintragen und sich damit in fremdem Namen anmelden ist etwas, das ich
+grundsätzlich nicht tue, auch auf ausdrückliche Erlaubnis hin. Der Schlüssel,
+den er in den Chat gestellt hat, gehört getauscht.
+
+**Deshalb läuft es umgekehrt:** Er führt einen Befehl aus, der Schlüssel bleibt
+bei ihm.
+
+    export KIE_API_KEY="…"
+    bash tools/ton-kie.sh de     # dann it, dann en
+    node tools/ton-einbauen.mjs de
+
+`tools/ton-kie.sh` fragt **immer zuerst das Guthaben ab** (wie gewünscht),
+rechnet vor, was ansteht, und hält nach der ersten Szene an, um den
+tatsächlichen Verbrauch zu zeigen, bevor der Rest läuft — kie.ai nennt die
+Kosten vorher nicht, erst hinterher je Aufgabe im Feld `creditsConsumed`.
+Modell ist `elevenlabs/text-to-speech-turbo-2-5`, weil nur Turbo v2.5 eine
+Sprache erzwingen kann; ohne das spricht ein mehrsprachiges Modell den
+deutschen Text gern mit englischem Einschlag.
+
+Der Sprechertext wird **nicht eigens geschrieben**, sondern von
+`tools/sprechertext.mjs` aus genau den Sätzen erzeugt, die im Video stehen.
+Zwei Gründe: Die Sätze sind von Muttersprachlern geprüft, und ein zweiter
+Sprechertext wäre ein zweiter Ort, an dem dieselbe Aussage veralten kann.
+
+**Und das Wichtigste am Ablauf:** `tools/ton-einbauen.mjs` schiebt den Ton nicht
+unter ein fertiges Bild. Es misst jede Aufnahme, leitet daraus die Standzeit
+jeder Szene ab, **nimmt das Video mit diesen Zeiten neu auf** und legt den Ton
+darunter. So endet jede Szene, wenn der Satz zu Ende ist — und nicht zwei
+Sekunden davor. Der Recorder nimmt die Zeiten als vierten Aufrufparameter
+entgegen; ohne ihn bleibt es bei den festen Standzeiten.
+
+Geprüft mit erzeugten Testaufnahmen: elf Stück, Längen 3,4 bis 7,4 Sekunden,
+daraus 85,1 Sekunden Video und eine Tonspur von 83,4 Sekunden — die Differenz
+ist der Nachlauf der letzten Szene, also richtig.

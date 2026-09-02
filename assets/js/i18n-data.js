@@ -16,16 +16,16 @@ window.VECOM_I18N = {
   it: {
     meta: {
       title: "Realizzazione siti web su misura | Vecom Design",
-      desc: "Web agency in Sicilia: siti su misura, e-commerce e identità di marca. Trilingue IT/DE/EN, veloci e trovabili su Google. Pacchetti chiari da 499 €.",
+      desc: "Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi chiari da 499 €.",
       locale: "it_IT"
     },
     nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", cta: "Richiedi preventivo" },
     hero: {
-      eyebrow: "Web agency — siti su misura, marchi, e-commerce",
+      eyebrow: "Webdesign dalla Sicilia — siti, marchi, e-commerce",
       t1: "Il tuo sito deve",
       t2: "portarti clienti.",
-      lead: "Realizziamo siti web su misura per aziende, professionisti e attività locali: progettati sul tuo obiettivo, veloci, trovabili su Google e pronti in due settimane. Niente modelli preconfezionati, niente costi a sorpresa.",
-      cta1: "Richiedi un preventivo gratuito",
+      lead: "Costruisco siti per aziende, professionisti e attività locali — ognuno da zero, nessuno da un modello. Online in due settimane, a un prezzo fisso che approvi tu prima.",
+      cta1: "Parliamo del tuo progetto",
       cta2: "Guarda i lavori",
       cta3: "Entra nell'esperienza 3D",
       m1t: "Online in", m1d: "2–6 settimane",
@@ -35,19 +35,19 @@ window.VECOM_I18N = {
     },
     marquee: "Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza",
     services: {
-      head: "Cosa realizziamo",
-      lead: "Sei ambiti, un unico interlocutore. Puoi partire da uno solo o affidarci tutta la presenza online.",
-      s1t: "Siti web su misura", s1p: "Il sito non è una brochure: è il tuo commerciale che lavora di notte. Struttura, testi e design nascono attorno all'azione che vuoi ottenere — una chiamata, una prenotazione, un ordine.",
-      s1l: "Landing page e siti completi|Struttura pensata per convertire|Multilingua gestibile da te|Codice pulito, consegnato a te",
-      s2t: "Logo e identità di marca", s2p: "Un marchio riconoscibile fa sembrare grande anche un'attività piccola. Definiamo logo, colori e caratteri — e le regole per usarli ovunque allo stesso modo.",
+      head: "Cosa realizzo per te",
+      lead: "Sei ambiti, un unico interlocutore. Puoi partire da uno solo o affidarmi tutta la presenza online.",
+      s1t: "Siti web su misura", s1p: "La maggior parte dei clienti ha già deciso prima ancora di averti parlato. Per questo struttura, testi e design nascono attorno all'azione che ti serve — una chiamata, una prenotazione, un ordine.",
+      s1l: "Landing page e siti completi|Struttura che porta alla richiesta|Multilingua gestibile da te|Codice pulito, che resta tuo",
+      s2t: "Logo e identità di marca", s2p: "Un marchio riconoscibile fa sembrare grande anche un'attività piccola. Definisco logo, colori e caratteri — e le regole per usarli ovunque allo stesso modo.",
       s2l: "Logo e varianti per ogni supporto|Palette e tipografia|Manuale d'uso del marchio|Biglietti, insegne, social",
-      s3t: "E-commerce e prenotazioni", s3p: "Vendere online senza attriti. Ogni passaggio in più tra prodotto e pagamento costa ordini: li togliamo.",
-      s3l: "Catalogo e schede prodotto|Pagamenti e spedizioni|Prenotazione appuntamenti|Formazione per gestirlo da soli",
+      s3t: "E-commerce e prenotazioni", s3p: "Vendere online senza attriti. Ogni passaggio in più tra prodotto e pagamento costa ordini: li tolgo.",
+      s3l: "Catalogo e schede prodotto|Pagamenti e spedizioni|Prenotazione appuntamenti|Formazione per gestirlo da solo",
       s4t: "Motion, 3D e contenuti visivi", s4p: "Movimento con una ragione: guidare lo sguardo dove serve. Un sito che si muove bene resta in mente più a lungo di uno che si limita a esistere.",
       s4l: "Animazioni allo scorrimento|Scene 3D leggere|Immagini e video su misura|Ottimizzazione dei tuoi materiali",
       s5t: "SEO e prestazioni", s5p: "Un sito bello che nessuno trova non produce nulla. Struttura, velocità e testi lavorano insieme perché Google capisca cosa offri e a chi.",
       s5l: "Ricerca delle parole chiave|Core Web Vitals e velocità|Dati strutturati e Google Business|Testi scritti per essere trovati",
-      s6t: "Hosting e assistenza", s6p: "Dopo il lancio comincia il lavoro vero. Backup, aggiornamenti e modifiche restano a noi — tu ti occupi della tua attività.",
+      s6t: "Hosting e assistenza", s6p: "Dopo il lancio comincia il lavoro vero. Backup, aggiornamenti e modifiche restano a me — tu ti occupi della tua attività.",
       s6l: "Dominio, e-mail, certificati SSL|Backup e aggiornamenti regolari|Modifiche incluse ogni mese|Un referente raggiungibile"
     },
     work: {
@@ -60,7 +60,7 @@ window.VECOM_I18N = {
       w5tag: "Sito trilingue", w5t: "Charme Color", w5p: "Salone di parrucchiere con listino, appuntamenti e presentazione in tre lingue — perché la clientela parla italiano, tedesco e inglese.", w5l: "In lavorazione",
       w6tag: "Casa editrice", w6t: "Trendonix", w6p: "Sito di una collana di libri illustrati: mondo scuro e dorato, navigazione in profondità, presentazione dei volumi e vendita.", w6l: "trendonix-buecher.de",
       w7tag: "Trasporti e logistica", w7t: "Cavaleri Srl", w7p: "Azienda di trasporti dal 1974: trasporti nazionali e internazionali, groupage e distribuzione pallet, deposito televigilato e ingrosso di materiale edile. Quattro attività molto diverse su un unico sito trilingue, senza che il visitatore debba chiedersi dove ha sbagliato strada.", w7r: "Quattro servizi, una sola catena", w7l: "cavaleri-trasporti.netlify.app",
-      note: "Selezione di progetti. Le riprese mostrano i siti realmente online.",
+      note: "Tutti questi siti sono online. I link portano direttamente lì.",
       w1r: "Struttura complessa, uso semplice",
       w2r: "Dal prodotto al pagamento in una pagina",
       w3r: "Posizionamento premium visibile a colpo d'occhio",
@@ -71,10 +71,10 @@ window.VECOM_I18N = {
     process: {
       head: "Come lavoriamo",
       lead: "Quattro passaggi, un preventivo fisso. Nessuna sorpresa in fattura.",
-      p1t: "Colloquio", p1p: "Un'ora al telefono o di persona: cosa vendi, a chi, e cosa succede oggi al posto del risultato che vorresti. Da qui esce il preventivo — gratuito e vincolante per noi.",
-      p2t: "Direzione", p2p: "Ti mostriamo la prima schermata prima di costruire tutto il resto: colore, carattere, ritmo, tono. Si approva l'idea quando cambiarla costa ancora poco.",
+      p1t: "Colloquio", p1p: "Un'ora al telefono o di persona: cosa vendi, a chi, e cosa succede oggi al posto del risultato che vorresti. Da qui esce il preventivo — gratuito e vincolante per me.",
+      p2t: "Direzione", p2p: "Ti mostro la prima schermata prima di costruire tutto il resto: colore, carattere, ritmo, tono. Si approva l'idea quando cambiarla costa ancora poco.",
       p3t: "Realizzazione", p3p: "Costruzione per sezioni, ognuna finita davvero prima della successiva. Vedi il sito crescere con un link privato, non ricevi un file alla fine.",
-      p4t: "Lancio e crescita", p4p: "Dominio, e-mail, misurazione, testi legali. Dopo il lancio restiamo raggiungibili: un sito che nessuno cura perde posizioni su Google mese dopo mese.",
+      p4t: "Lancio e crescita", p4p: "Dominio, e-mail, misurazione, testi legali. Dopo il lancio resto raggiungibile: un sito che nessuno cura perde posizioni su Google mese dopo mese.",
       p1d: "Giorno 1", p2d: "Giorni 2–3", p3d: "Settimane 1–2", p4d: "Giorno del lancio",
     },
     pillars: {
@@ -86,7 +86,7 @@ window.VECOM_I18N = {
     },
     plans: {
       voicesHead: "Cosa dicono i clienti",
-      voicesLead: "Parole loro, non mie. Ogni frase viene da un cliente che ha autorizzato la pubblicazione con il proprio nome.",
+      voicesLead: "Parole loro, non mie. Ogni frase è qui con il nome di chi l'ha detta.",
       voicesMarg: "voci dei clienti",
       careHead: "Assistenza mensile",
       careLead: "Un contratto a parte, non legato alla costruzione del sito: puoi prenderla in aggiunta, oppure da sola per un sito che hai già. Dodici mesi di durata minima, poi disdici quando vuoi a fine mese.",
@@ -106,24 +106,24 @@ window.VECOM_I18N = {
 
       n1: "Starter", s1: "Per farsi trovare e contattare",
       p1: "499 €", m1: "+ 39 € di assistenza al mese — facoltativa",
-      f1: "Incluso:|Sito su misura fino a 5 pagine|Perfetto su smartphone, tablet e PC|Modulo di contatto e Google Maps|Certificato SSL e configurazione|Base SEO per farsi trovare|1 indirizzo e-mail personalizzato",
-      i1: "Ideale per liberi professionisti, artigiani e attività locali che oggi hanno solo i social.",
+      f1: "Incluso:|Sito costruito da zero, fino a 5 pagine|Perfetto su smartphone, tablet e PC|Modulo di contatto e Google Maps|Certificato SSL e configurazione|Base SEO per farsi trovare|1 indirizzo e-mail sul tuo dominio",
+      i1: "Per liberi professionisti, artigiani e attività locali che oggi hanno solo i social.",
 
       n2: "Business", s2: "Per convincere e vendere",
       p2: "899 €", m2: "+ 69 € di assistenza al mese — facoltativa",
-      f2: "Tutto di Starter, più:|Fino a 10 pagine|Design premium personalizzato|Ottimizzazione logo o nuovo logo|SEO avanzata e profilo Google Business|Più moduli di richiesta e pulsante WhatsApp|Galleria lavori e referenze|Fino a 5 indirizzi e-mail",
-      i2: "Ideale per aziende, studi, ristoranti e hotel che devono distinguersi dalla concorrenza.",
+      f2: "Tutto di Starter, più:|Fino a 10 pagine|Design costruito sul tuo marchio|Ottimizzazione logo o nuovo logo|SEO avanzata e profilo Google Business|Più moduli di richiesta e pulsante WhatsApp|Galleria lavori e referenze|Fino a 5 indirizzi e-mail",
+      i2: "Per aziende, studi, ristoranti e hotel che devono distinguersi dalla concorrenza.",
 
       n3: "Premium", s3: "Presenza digitale completa",
       p3: "1.499 €", m3: "+ 99 € di assistenza al mese — facoltativa",
-      f3: "Tutto di Business, più:|Sito ampio fino a 20 pagine|Logo su misura e immagine coordinata|Colori e caratteri professionali|Blog o area news|Prenotazione appuntamenti o richieste|Newsletter e integrazione social|Fino a 10 indirizzi e-mail",
-      i3: "Ideale per chi vuole una presenza duratura e smettere di rincorrere il proprio sito.",
+      f3: "Tutto di Business, più:|Sito ampio fino a 20 pagine|Logo disegnato per te e immagine coordinata|Colori e caratteri definiti, con manuale d'uso|Blog o area news|Prenotazione appuntamenti o richieste|Newsletter e integrazione social|Fino a 10 indirizzi e-mail",
+      i3: "Per chi vuole restare visibile e smettere di rincorrere il proprio sito.",
 
       badge: "Più richiesto",
       priceNote: "una tantum",
       togOnce: "Una tantum", togYear: "Totale 12 mesi", yearNote: "primo anno",
       cta: "Richiedi questo pacchetto", more: "Tutti i dettagli",
-      note: "I prezzi indicati sono quelli che paghi. Preventivo e primo colloquio sono gratuiti e senza impegno: l'incarico diventa vincolante solo con la firma del contratto.",
+      note: "I prezzi indicati sono quelli che paghi.",
       cmp: "Confronto rapido",
       cmpRow: "Pagine|Lingue|Modifiche al mese|Assistenza",
       cmp1: "fino a 5|1|piccole modifiche|diretta",
@@ -132,11 +132,11 @@ window.VECOM_I18N = {
     },
     faq: {
       head: "Domande frequenti",
-      lead: "Le domande che ci arrivano prima di ogni incarico — con risposte chiare.",
+      lead: "Le domande che mi arrivano prima di ogni incarico.",
       q1: "Quanto costa un sito web su misura?",
-      a1: "I nostri pacchetti partono da 499 € una tantum più 39 € al mese di assistenza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e senza impegno; quando lo approvi e firmiamo il contratto, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.",
+      a1: "I pacchetti partono da 499 € una tantum. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte — il sito puoi farlo costruire anche senza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e senza impegno; quando lo approvi e firmiamo il contratto, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.",
       q2: "Quanto tempo serve per essere online?",
-      a2: "Starter di norma una o due settimane, Business due o tre, Premium quattro o sei. A decidere il ritmo non è il nostro lavoro ma testi e immagini: se il materiale c'è, si va veloci.",
+      a2: "Starter di norma una o due settimane, Business due o tre, Premium quattro o sei. A decidere il ritmo non è il mio lavoro ma testi e immagini: se il materiale c'è, si va veloci.",
       q3: "L'assistenza mensile è obbligatoria?",
       a3: "No, il sito resta tuo anche senza. Copre backup, aggiornamenti di sicurezza e piccole modifiche: senza di essa questi passaggi restano a carico tuo. Se la prendi, la durata iniziale è di dodici mesi; dopo si disdice in qualsiasi momento, con effetto a fine mese.",
       q4: "A chi appartiene il sito?",
@@ -144,7 +144,7 @@ window.VECOM_I18N = {
       q5: "Il sito sarà trovabile su Google?",
       a5: "Le basi ci sono in ogni pacchetto: struttura corretta, velocità, dati strutturati, testi scritti per la ricerca. Posizionarsi su parole chiave molto contese richiede però lavoro continuo — e chi promette la prima posizione in un mese sta vendendo fumo.",
       q6: "Posso aggiornare il sito da solo?",
-      a6: "Sì, dove ha senso. Ti mostriamo come cambiare testi, prezzi e immagini, e restiamo disponibili per il resto. Nessun sistema costruito apposta per costringerti a chiamarci.",
+      a6: "Sì, dove ha senso. Ti mostro come cambiare testi, prezzi e immagini, e resto disponibile per il resto. Nessun sistema costruito apposta per costringerti a chiamarmi.",
       q7: "Il sito usa cookie? Serve il banner?",
       a7: "Nella configurazione base non usa cookie di tracciamento né carica caratteri da server esterni: quindi non serve alcun banner. Se in seguito aggiungi statistiche o mappe, servono consenso e informativa aggiornata.",
       q8: "Come si paga?",
@@ -215,7 +215,7 @@ window.VECOM_I18N = {
     },
     contact: {
       head: "Parliamone. Il preventivo è gratuito.",
-      lead: "Raccontaci in poche righe cosa vendi e cosa ti serve. Rispondiamo entro un giorno lavorativo con una prima indicazione di prezzo e tempi — in italiano, tedesco o inglese.",
+      lead: "Raccontami in poche righe cosa vendi e cosa ti serve. Rispondo entro un giorno lavorativo con una prima indicazione di prezzo e tempi — in italiano, tedesco o inglese.",
       dt1: "E-mail", dd1: "kontakt@vecom-design.it",
       dt2: "Sede", dd2: "Aragona (AG), Sicilia",
       dt3: "Indirizzo", dd3: "Via d'Ascoli 25, 92021 Aragona (AG)",
@@ -224,8 +224,8 @@ window.VECOM_I18N = {
       phName: "Come ti chiami", phMail: "dove possiamo risponderti", phMsg: "Che attività hai, cosa vuoi ottenere e per quando.",
       o1: "Sito web su misura", o2: "Logo e identità", o3: "E-commerce", o4: "Restyling di un sito esistente", o5: "Altro",
       send: "Invia richiesta",
-      hint: "Il pulsante apre il tuo programma di posta con il messaggio già scritto. Nessun dato viene salvato su questo sito.",
-      lang: "Si parla italiano, tedesco e inglese."
+      hint: "Il messaggio è già scritto — devi solo premere invia. Nessun modulo, nessun dato salvato.",
+      lang: "Parlo italiano, tedesco e inglese."
     },
     partner: {
       eyebrow: "In collaborazione con",
@@ -251,9 +251,9 @@ masz: {
     },
     e404: { title: "Pagina non trovata — Vecom Design", head: "Questa pagina non esiste.", lead: "Forse l'indirizzo è cambiato, o c'è un refuso. Da qui torni subito al punto giusto.", home: "Torna alla home", contact: "Scrivimi" },
     video: {
-      head: "Guarda come funziona",
-      lead: "Un video di un minuto e mezzo: tutto il percorso, dal primo messaggio al sito finito — con le schermate vere che vedrai anche tu. Senza audio, puoi guardarlo ovunque.",
-      t1: "Come funziona", d1: "Tutto il percorso · 1:31",
+      head: "Cosa succede dopo che mi hai scritto",
+      lead: "Tutto il percorso, dal primo messaggio al sito finito — con le schermate esatte che vedrai anche tu. Alla fine sai a cosa vai incontro.",
+      t1: "Come funziona", d1: "Tutto il percorso · 1:31 · senza audio",
       play: "Riproduci", nav: "Video"
     },
     abl: {
@@ -367,18 +367,18 @@ masz: {
       head: "Uwe Vetter",
       role: "Web designer ad Aragona (Agrigento) · Sicilia",
       p1: "Non vengo dal marketing, vengo dalla pratica: prima di costruire siti per altri li ho dovuti costruire per me — un negozio di prodotti siciliani, una piattaforma di quartiere, una casa editrice di libri illustrati. Conosco per esperienza quel momento in cui il sito è online e non chiama nessuno. E so da che cosa dipende, quasi sempre.",
-      p2: "Che cosa significa per te: i prezzi sono pubblicati qui, non devi chiedere per saperli. Ricevi un preventivo scritto a prezzo fisso — gratuito, senza impegno, vincolante solo quando firmiamo il contratto. In fattura non comparirà nulla che non fosse nel preventivo. E se una cosa non ti serve te lo dico: se ti basta un sito in una lingua sola, te lo dico, anche se ci guadagno meno.",
+      p2: "Che cosa significa per te: i prezzi sono pubblicati qui, non devi chiedere per saperli. Ricevi un preventivo scritto a prezzo fisso. In fattura non comparirà nulla che non fosse nel preventivo. E se una cosa non ti serve te lo dico: se ti basta un sito in una lingua sola, te lo dico, anche se ci guadagno meno.",
       p3: "Sono tedesco e vivo in Sicilia. Da Aragona, in provincia di Agrigento, lavoro per clienti in tutta Italia, Germania, Austria e Svizzera — in italiano, tedesco e inglese. Conosco entrambe le mentalità: la precisione dell'una, il rapporto personale dell'altra. E parli sempre con la stessa persona che poi costruisce il tuo sito: niente commerciali, niente passaggi di mano. Alle richieste rispondo entro un giorno lavorativo.",
       sig: "Uwe Vetter",
-      sigNote: "Parliamone — il primo colloquio è gratuito e senza impegno.", nav: "Chi sono"
+      sigNote: "Parliamone.", nav: "Chi sono"
     },
     footer: {
-      claim: "Web agency per siti su misura, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
+      claim: "Siti, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
       l1: "Servizi", l2: "Lavori", l3: "Metodo", l4: "Contatti",
       g1: "Note legali", g2: "Privacy", g3: "Condizioni",
       rights: "Tutti i diritti riservati.",
-      made: "Progettato e sviluppato internamente."
+      made: "Progettato e sviluppato ad Aragona. Da me."
     },
     legal: {
       title: "Note legali & Privacy — Vecom Design",
@@ -404,11 +404,11 @@ masz: {
     },
     nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", cta: "Angebot anfordern" },
     hero: {
-      eyebrow: "Webdesign-Agentur — Websites, Marken, Online-Shops",
+      eyebrow: "Webdesign aus Sizilien — Websites, Marken, Online-Shops",
       t1: "Deine Website soll",
       t2: "Kunden bringen.",
-      lead: "Ich baue maßgeschneiderte Websites für Unternehmen, Selbstständige und lokale Betriebe: entworfen auf dein Ziel, schnell, bei Google auffindbar und in zwei Wochen online. Keine fertigen Vorlagen, keine Überraschungen auf der Rechnung.",
-      cta1: "Kostenloses Angebot anfordern",
+      lead: "Ich baue Websites für Unternehmen, Selbstständige und lokale Betriebe — jede von Grund auf, keine aus der Vorlage. In zwei Wochen online, zum Festpreis, den du vorher freigibst.",
+      cta1: "Angebot holen",
       cta2: "Arbeiten ansehen",
       cta3: "In die 3D-Welt eintreten",
       m1t: "Online in", m1d: "2–6 Wochen",
@@ -419,8 +419,8 @@ masz: {
     marquee: "Maßgeschneiderte Websites · Online-Shops · Logo & Markenauftritt · SEO · Online-Terminbuchung · Hosting & Betreuung",
     services: {
       head: "Was ich für dich umsetze",
-      lead: "Sechs Bereiche, ein Ansprechpartner. Du kannst mit einem anfangen oder den gesamten Auftritt abgeben.",
-      s1t: "Maßgeschneiderte Websites", s1p: "Eine Website ist kein Prospekt, sondern dein Vertriebsmitarbeiter, der nachts arbeitet. Struktur, Texte und Gestaltung entstehen rund um die Handlung, die du brauchst — Anruf, Termin oder Bestellung.",
+      lead: "Alles aus einer Hand. Du kannst mit einem Bereich anfangen oder den ganzen Auftritt abgeben.",
+      s1t: "Maßgeschneiderte Websites", s1p: "Die meisten haben sich entschieden, bevor sie dich je gesprochen haben. Struktur, Texte und Gestaltung entstehen deshalb rund um die Handlung, die du brauchst — Anruf, Termin oder Bestellung.",
       s1l: "Landingpages und vollständige Websites|Aufbau, der zur Anfrage führt|Mehrsprachig, von dir pflegbar|Sauberer Code, der dir gehört",
       s2t: "Logo & Markenauftritt", s2p: "Eine wiedererkennbare Marke lässt auch einen kleinen Betrieb groß wirken. Ich lege Logo, Farben und Schriften fest — und die Regeln, damit überall dasselbe ankommt.",
       s2l: "Logo und Varianten für jeden Einsatz|Farbpalette und Typografie|Handbuch zur Anwendung|Visitenkarten, Schilder, Social Media",
@@ -443,7 +443,7 @@ masz: {
       w5tag: "Dreisprachige Seite", w5t: "Charme Color", w5p: "Friseursalon mit Leistungen, Terminen und Auftritt in drei Sprachen — weil die Kundschaft italienisch, deutsch und englisch spricht.", w5l: "In Arbeit",
       w6tag: "Buchverlag", w6t: "Trendonix", w6p: "Auftritt einer illustrierten Buchreihe: dunkle Goldwelt, Navigation in die Tiefe, Vorstellung der Bände und Verkauf.", w6l: "trendonix-buecher.de",
       w7tag: "Transport & Logistik", w7t: "Cavaleri Srl", w7p: "Transportunternehmen seit 1974: nationale und internationale Transporte, Sammelgut und Palettenverteilung, überwachtes Lager und Baustoffgroßhandel. Vier sehr verschiedene Geschäftsfelder auf einem dreisprachigen Auftritt — ohne dass ein Besucher sich fragen muss, wo er falsch abgebogen ist.", w7r: "Vier Geschäftsfelder, eine Kette", w7l: "cavaleri-trasporti.netlify.app",
-      note: "Auswahl an Projekten. Die Aufnahmen zeigen die tatsächlich laufenden Seiten.",
+      note: "Alle diese Seiten sind online. Die Links führen direkt hin.",
       w1r: "Komplexe Struktur, einfache Bedienung",
       w2r: "Vom Produkt zur Zahlung auf einer Seite",
       w3r: "Premium-Anspruch auf den ersten Blick",
@@ -464,15 +464,15 @@ masz: {
       head: "Warum Vecom Design",
       v1: "2", l1: "Wochen bis zur fertigen Seite im Paket Starter",
       v2: "0", l2: "Versteckte Kosten — das freigegebene Angebot ist der Endpreis",
-      v3: "100%", l3: "Eigentum bei dir: Code und Dateien werden übergeben",
+      v3: "100%", l3: "Du bekommst Code und Dateien — Eigentum bei dir",
       v4: "1", l4: "Ansprechpartner, vom ersten Gespräch bis zur Betreuung"
     },
     plans: {
       voicesHead: "Was Kunden sagen",
-      voicesLead: "Ihre Worte, nicht meine. Jeder Satz stammt von einem Kunden, der der Veröffentlichung mit Namen zugestimmt hat.",
+      voicesLead: "Nicht meine Worte — ihre. Jeder Satz steht hier mit Namen.",
       voicesMarg: "Stimmen von Kunden",
       careHead: "Monatliche Betreuung",
-      careLead: "Ein eigener Vertrag, nicht an den Bau der Seite gebunden: Du kannst sie dazunehmen — oder allein, für eine Seite, die du schon hast. Zwölf Monate Mindestlaufzeit, danach jederzeit zum Monatsende kündbar.",
+      careLead: "Ein eigener Vertrag, nicht an den Bau der Seite gebunden: Du kannst sie dazunehmen oder allein buchen, für eine Seite, die du schon hast. Zwölf Monate Mindestlaufzeit, danach jederzeit zum Monatsende kündbar.",
       careNote: "Für eine Seite, die ich nicht gebaut habe, sehe ich mir vorher an, was da ist: Bestandsaufnahme 99 € einmalig, die ich anrechne, wenn du danach die Betreuung nimmst. Ohne Betreuung läuft die Seite genauso — nur macht die Aktualisierungen niemand.",
       careMonth: "im Monat",
       bn1: "Betreuung Basis", bs1: "Die Seite bleibt aktuell und erreichbar", bp1: "39 €",
@@ -488,25 +488,25 @@ masz: {
       lead: "Drei Pakete mit veröffentlichten Preisen. Alles ist anpassbar: Fällt dein Vorhaben aus diesem Rahmen, legen wir es vorher gemeinsam fest.",
 
       n1: "Starter", s1: "Gefunden werden und Anfragen bekommen",
-      p1: "499 €", m1: "+ 39 € Betreuung im Monat — freiwillig",
+      p1: "499 €", m1: "+ 39 € Betreuung im Monat, optional",
       f1: "Enthalten:|Individuelle Website bis 5 Seiten|Perfekt auf Smartphone, Tablet und PC|Kontaktformular und Google Maps|SSL-Zertifikat und Einrichtung|SEO-Grundlage, um gefunden zu werden|1 eigene E-Mail-Adresse",
       i1: "Ideal für Selbstständige, Handwerker und lokale Betriebe, die bisher nur Social Media haben.",
 
       n2: "Business", s2: "Überzeugen und verkaufen",
-      p2: "899 €", m2: "+ 69 € Betreuung im Monat — freiwillig",
-      f2: "Alles aus Starter, plus:|Bis zu 10 Seiten|Individuelles Premium-Design|Logo-Optimierung oder neues Logo|Erweiterte SEO und Google-Unternehmensprofil|Mehrere Anfrageformulare und WhatsApp-Button|Bildergalerie und Referenzen|Bis zu 5 E-Mail-Adressen",
-      i2: "Ideal für Unternehmen, Praxen, Restaurants und Hotels, die sich vom Wettbewerb abheben müssen.",
+      p2: "899 €", m2: "+ 69 € Betreuung im Monat, optional",
+      f2: "Alles aus Starter, plus:|Bis zu 10 Seiten|Eigenes Design, an deiner Marke entlang gebaut|Logo-Optimierung oder neues Logo|Erweiterte SEO und Google-Unternehmensprofil|Mehrere Anfrageformulare und WhatsApp-Button|Bildergalerie und Referenzen|Bis zu 5 E-Mail-Adressen",
+      i2: "Für Unternehmen, Praxen, Restaurants und Hotels, die sich vom Wettbewerb abheben müssen.",
 
       n3: "Premium", s3: "Der komplette digitale Auftritt",
-      p3: "1.499 €", m3: "+ 99 € Betreuung im Monat — freiwillig",
-      f3: "Alles aus Business, plus:|Umfangreiche Website bis 20 Seiten|Individuelles Logo und Markenauftritt|Professionelle Farb- und Schriftgestaltung|Blog- oder Newsbereich|Terminbuchung oder Anfragesystem|Newsletter und Social-Media-Anbindung|Bis zu 10 E-Mail-Adressen",
-      i3: "Ideal für alle, die dauerhaft sichtbar bleiben und ihrer Website nicht mehr hinterherlaufen wollen.",
+      p3: "1.499 €", m3: "+ 99 € Betreuung im Monat, optional",
+      f3: "Alles aus Business, plus:|Umfangreiche Website bis 20 Seiten|Individuelles Logo und Markenauftritt|Farben und Schriften festgelegt, mit Handbuch|Blog- oder Newsbereich|Terminbuchung oder Anfragesystem|Newsletter und Social-Media-Anbindung|Bis zu 10 E-Mail-Adressen",
+      i3: "Für alle, die sichtbar bleiben und ihrer Website nicht mehr hinterherlaufen wollen.",
 
       badge: "Am häufigsten gewählt",
       priceNote: "einmalig",
       togOnce: "Einmalig", togYear: "Gesamt 12 Monate", yearNote: "erstes Jahr",
       cta: "Dieses Paket anfragen", more: "Alle Details",
-      note: "Die genannten Preise sind die, die du zahlst. Angebot und Erstgespräch sind kostenlos und unverbindlich — verbindlich wird der Auftrag erst mit dem Vertragsabschluss.",
+      note: "Die genannten Preise sind die, die du zahlst.",
       cmp: "Kurzer Vergleich",
       cmpRow: "Seiten|Sprachen|Änderungen pro Monat|Betreuung",
       cmp1: "bis 5|1|kleine Änderungen|direkt",
@@ -515,7 +515,7 @@ masz: {
     },
     faq: {
       head: "Häufige Fragen",
-      lead: "Die Fragen, die vor jedem Auftrag kommen — mit klaren Antworten.",
+      lead: "Die Fragen, die vor jedem Auftrag kommen.",
       q1: "Was kostet eine maßgeschneiderte Website?",
       a1: "Die Pakete beginnen bei 499 € einmalig. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag — du kannst die Seite auch ohne sie bauen lassen. Der Preis hängt vom Umfang, den Funktionen und davon ab, wie viel Material du schon hast. Das Angebot ist kostenlos und unverbindlich; sobald du es freigibst und wir den Vertrag schließen, ist diese Summe der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.",
       q2: "Wie lange dauert es, bis die Seite online ist?",
@@ -607,7 +607,7 @@ masz: {
       phName: "Wie heißt du", phMail: "wohin ich antworten darf", phMsg: "Was du anbietest, was du erreichen willst und bis wann.",
       o1: "Maßgeschneiderte Website", o2: "Logo & Markenauftritt", o3: "Online-Shop", o4: "Überarbeitung einer bestehenden Seite", o5: "Anderes",
       send: "Anfrage senden",
-      hint: "Der Knopf öffnet dein E-Mail-Programm mit fertig geschriebener Nachricht. Auf dieser Seite werden keine Daten gespeichert.",
+      hint: "Die Nachricht ist schon geschrieben — du drückst nur auf Senden. Kein Formular, keine gespeicherten Daten.",
       lang: "Ich spreche Italienisch, Deutsch und Englisch."
     },
     partner: {
@@ -634,9 +634,9 @@ masz: {
     },
     e404: { title: "Seite nicht gefunden — Vecom Design", head: "Diese Seite gibt es nicht.", lead: "Vielleicht hat sich die Adresse geändert, vielleicht ist ein Tippfehler drin. Von hier kommst du direkt zurück.", home: "Zur Startseite", contact: "Schreib mir" },
     video: {
-      head: "Sieh dir an, wie es abläuft",
-      lead: "Ein Video, anderthalb Minuten: der ganze Weg von der ersten Nachricht bis zur fertigen Seite — mit genau den Bildschirmen, die du dabei zu sehen bekommst. Ohne Ton, du kannst es überall ansehen.",
-      t1: "Wie es für dich abläuft", d1: "Der ganze Ablauf · 1:31",
+      head: "Was passiert, nachdem du geschrieben hast",
+      lead: "Der ganze Weg von der ersten Nachricht bis zur fertigen Seite — mit genau den Bildschirmen, die du dabei zu sehen bekommst. Danach weißt du, worauf du dich einlässt.",
+      t1: "Wie es für dich abläuft", d1: "Der ganze Ablauf · 1:31 · ohne Ton",
       play: "Abspielen", nav: "Video"
     },
     abl: {
@@ -750,18 +750,18 @@ masz: {
       head: "Uwe Vetter",
       role: "Webdesigner in Aragona (Agrigent) · Sizilien",
       p1: "Ich komme nicht aus dem Marketing, sondern aus der Praxis: Bevor ich Websites für andere gebaut habe, habe ich sie für mich selbst gebraucht — einen Shop für sizilianische Produkte, eine Nachbarschaftsplattform, einen Verlag für illustrierte Bücher. Ich kenne deshalb aus eigener Erfahrung den Moment, in dem eine Seite online ist und trotzdem niemand anruft. Und ich weiß, woran es meistens liegt.",
-      p2: "Was das für dich heißt: Die Preise stehen offen auf dieser Seite, du musst nicht erst anfragen, um sie zu erfahren. Du bekommst ein schriftliches Angebot zum Festpreis — kostenlos, unverbindlich, verbindlich wird es erst mit dem Vertragsabschluss. Und auf der Rechnung steht später nichts, was nicht im Angebot stand. Brauchst du etwas nicht, sage ich dir das: Reicht dir eine einsprachige Seite, sage ich das — auch wenn ich daran weniger verdiene.",
+      p2: "Was das für dich heißt: Die Preise stehen offen auf dieser Seite, du musst nicht erst anfragen, um sie zu erfahren. Du bekommst ein schriftliches Angebot zum Festpreis. Und auf der Rechnung steht später nichts, was nicht im Angebot stand. Brauchst du etwas nicht, sage ich dir das: Reicht dir eine einsprachige Seite, sage ich das — auch wenn ich daran weniger verdiene.",
       p3: "Ich bin Deutscher und lebe in Sizilien. Von Aragona in der Provinz Agrigent aus arbeite ich für Kunden in ganz Italien, Deutschland, Österreich und der Schweiz — auf Italienisch, Deutsch und Englisch. Ich kenne beide Mentalitäten: die Genauigkeit der einen, das Persönliche der anderen. Und du sprichst immer mit derselben Person, die deine Seite dann auch baut: kein Vertrieb, keine Weitergabe. Auf Anfragen antworte ich innerhalb eines Werktags.",
       sig: "Uwe Vetter",
-      sigNote: "Sprechen wir darüber — das Erstgespräch ist kostenlos und unverbindlich.", nav: "Über mich"
+      sigNote: "Sprechen wir darüber.", nav: "Über mich"
     },
     footer: {
-      claim: "Webdesign-Agentur für maßgeschneiderte Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
+      claim: "Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
       l1: "Leistungen", l2: "Arbeiten", l3: "Ablauf", l4: "Kontakt",
       g1: "Impressum", g2: "Datenschutz", g3: "AGB",
       rights: "Alle Rechte vorbehalten.",
-      made: "Gestaltet und entwickelt im eigenen Haus."
+      made: "Gestaltet und gebaut in Aragona. Von mir."
     },
     legal: {
       title: "Impressum & Datenschutz — Vecom Design",
@@ -790,8 +790,8 @@ masz: {
       eyebrow: "Web design studio — websites, brands, online stores",
       t1: "Your website should",
       t2: "bring you clients.",
-      lead: "We build custom websites for companies, professionals and local businesses: designed around your goal, fast, findable on Google and live in two weeks. No off-the-shelf templates, no surprises on the invoice.",
-      cta1: "Get a free quote",
+      lead: "I build websites for companies, professionals and local businesses — each one from scratch, none from a template. Live in two weeks, at a fixed price you approve first.",
+      cta1: "Tell me what you need",
       cta2: "See the work",
       cta3: "Enter the 3D experience",
       m1t: "Live in", m1d: "2–6 weeks",
@@ -801,19 +801,19 @@ masz: {
     },
     marquee: "Custom websites · Online stores · Logo & brand identity · SEO · Online booking · Hosting & care",
     services: {
-      head: "What we build for you",
-      lead: "Six areas, one point of contact. Start with a single one or hand over the whole presence.",
-      s1t: "Custom websites", s1p: "A website isn't a brochure — it's the salesperson who works at night. Structure, copy and design are built around the action you need: a call, a booking, an order.",
-      s1l: "Landing pages and full sites|Structure built to convert|Multilingual, editable by you|Clean code that belongs to you",
-      s2t: "Logo & brand identity", s2p: "A recognisable brand makes a small business look substantial. We settle logo, colour and type — and the rules that keep them consistent everywhere.",
+      head: "What I build for you",
+      lead: "All of it from one pair of hands. Start with one area, or hand over the whole presence.",
+      s1t: "Custom websites", s1p: "Most people have decided before they ever speak to you. So structure, copy and design are built around the action you need: a call, a booking, an order.",
+      s1l: "Landing pages and full sites|Structure that leads to an enquiry|Multilingual, editable by you|Clean code that belongs to you",
+      s2t: "Logo & brand identity", s2p: "A recognisable brand makes a small business look substantial. I settle logo, colour and type — and the rules that keep them consistent everywhere.",
       s2l: "Logo and variants for every use|Palette and typography|Short brand manual|Cards, signage, social profiles",
-      s3t: "Online stores & booking", s3p: "Selling online without friction. Every extra step between product and payment costs orders — we take them out.",
+      s3t: "Online stores & booking", s3p: "Selling online without friction. Every extra step between product and payment costs orders — I take them out.",
       s3l: "Catalogue and product pages|Payment and shipping|Online appointment booking|Training so you can run it yourself",
       s4t: "Motion, 3D & imagery", s4p: "Movement with a reason: leading the eye where it needs to go. A site that moves well is remembered longer than one that merely exists.",
       s4l: "Scroll-driven animation|Light 3D scenes|Purpose-made images and video|Reworking the material you already have",
       s5t: "SEO & performance", s5p: "A beautiful site nobody finds earns nothing. Structure, speed and copy work together so Google understands what you offer and to whom.",
       s5l: "Keyword research|Core Web Vitals and load time|Structured data and Google Business Profile|Copy written to be found",
-      s6t: "Hosting & care", s6p: "The real work starts after launch. Backups, updates and changes stay with us — you get on with your business.",
+      s6t: "Hosting & care", s6p: "The real work starts after launch. Backups, updates and changes stay with me — you get on with your business.",
       s6l: "Domain, email, SSL certificates|Regular backups and updates|Changes included every month|One contact, reachable"
     },
     work: {
@@ -826,7 +826,7 @@ masz: {
       w5tag: "Trilingual site", w5t: "Charme Color", w5p: "A hair salon with services, appointments and presentation in three languages — because the clientele speaks Italian, German and English.", w5l: "In progress",
       w6tag: "Book imprint", w6t: "Trendonix", w6p: "The site of an illustrated book series: a dark golden world, depth navigation, presentation of the volumes and sales.", w6l: "trendonix-buecher.de",
       w7tag: "Transport & logistics", w7t: "Cavaleri Srl", w7p: "A haulage company since 1974: national and international transport, groupage and pallet distribution, guarded warehousing and a builders' merchant. Four very different lines of business on one trilingual site — without a visitor ever wondering where they took a wrong turn.", w7r: "Four services, one chain", w7l: "cavaleri-trasporti.netlify.app",
-      note: "A selection of projects. The recordings show the sites as they are actually live.",
+      note: "Every one of these sites is live. The links go straight there.",
       w1r: "Complex structure, simple to use",
       w2r: "From product to payment on one page",
       w3r: "Premium positioning at first glance",
@@ -837,10 +837,10 @@ masz: {
     process: {
       head: "How we work",
       lead: "Four steps, one fixed price. No surprises on the invoice.",
-      p1t: "Conversation", p1p: "An hour on the phone or in person: what you sell, to whom, and what happens today instead of the result you want. The quote comes out of that — free, and binding on us.",
+      p1t: "Conversation", p1p: "An hour on the phone or in person: what you sell, to whom, and what happens today instead of the result you want. The quote comes out of that — free, and binding on me.",
       p2t: "Direction", p2p: "You see the first screen before the rest gets built: colour, type, rhythm, tone. It's approved while changing it still costs little.",
       p3t: "Build", p3p: "Section by section, each properly finished before the next begins. You watch it grow through a private link instead of receiving a file at the end.",
-      p4t: "Launch & growth", p4p: "Domain, email, measurement, legal pages. After launch we stay reachable: a site nobody tends loses ground on Google month after month.",
+      p4t: "Launch & growth", p4p: "Domain, email, measurement, legal pages. After launch I stay reachable: a site nobody tends loses ground on Google month after month.",
       p1d: "Day 1", p2d: "Days 2–3", p3d: "Weeks 1–2", p4d: "Launch day",
     },
     pillars: {
@@ -852,7 +852,7 @@ masz: {
     },
     plans: {
       voicesHead: "What clients say",
-      voicesLead: "Their words, not mine. Every sentence comes from a client who agreed to be named.",
+      voicesLead: "Not my words — theirs. Every sentence here carries a name.",
       voicesMarg: "client voices",
       careHead: "Monthly care",
       careLead: "A separate contract, not tied to building the site: take it alongside, or on its own for a site you already have. Twelve-month minimum term, then cancellable at any month’s end.",
@@ -872,24 +872,24 @@ masz: {
 
       n1: "Starter", s1: "Get found and get enquiries",
       p1: "€499", m1: "+ €39 care per month — optional",
-      f1: "Included:|Custom site with up to 5 pages|Perfect on phone, tablet and desktop|Contact form and Google Maps|SSL certificate and setup|SEO groundwork so you get found|1 custom email address",
+      f1: "Included:|A site of your own, up to 5 pages|Perfect on phone, tablet and desktop|Contact form and Google Maps|SSL certificate and setup|SEO groundwork so you get found|1 email address at your own domain",
       i1: "Ideal for freelancers, trades and local businesses who currently only have social media.",
 
       n2: "Business", s2: "Convince and sell",
       p2: "€899", m2: "+ €69 care per month — optional",
-      f2: "Everything in Starter, plus:|Up to 10 pages|Custom premium design|Logo refinement or a new logo|Advanced SEO and Google Business Profile|Multiple enquiry forms and WhatsApp button|Gallery and references|Up to 5 email addresses",
-      i2: "Ideal for companies, practices, restaurants and hotels that need to stand apart from competitors.",
+      f2: "Everything in Starter, plus:|Up to 10 pages|A design of your own, built along your brand|Logo refinement or a new logo|Advanced SEO and Google Business Profile|Multiple enquiry forms and WhatsApp button|Gallery and references|Up to 5 email addresses",
+      i2: "For companies, practices, restaurants and hotels that need to stand apart from competitors.",
 
       n3: "Premium", s3: "The complete digital presence",
       p3: "€1,499", m3: "+ €99 care per month — optional",
-      f3: "Everything in Business, plus:|Extensive site with up to 20 pages|Custom logo and full brand look|Professional colour and type design|Blog or news area|Appointment booking or enquiry system|Newsletter and social integration|Up to 10 email addresses",
-      i3: "Ideal for anyone who wants to stay visible long-term and stop chasing their own website.",
+      f3: "Everything in Business, plus:|Extensive site with up to 20 pages|Your own logo and brand identity|Colours and type settled, with a manual|Blog or news area|Appointment booking or enquiry system|Newsletter and social integration|Up to 10 email addresses",
+      i3: "For anyone who wants to stay visible and stop chasing their own website.",
 
       badge: "Most chosen",
       priceNote: "one-off",
       togOnce: "One-off", togYear: "Total over 12 months", yearNote: "first year",
       cta: "Request this package", more: "Full details",
-      note: "The prices shown are what you pay. Quote and first conversation are free and without obligation — the job becomes binding only when the contract is signed.",
+      note: "The prices shown are what you pay.",
       cmp: "Quick comparison",
       cmpRow: "Pages|Languages|Changes per month|Support",
       cmp1: "up to 5|1|small changes|direct",
@@ -898,11 +898,11 @@ masz: {
     },
     faq: {
       head: "Frequent questions",
-      lead: "The questions that come up before every project — answered plainly.",
+      lead: "The questions that come up before every project.",
       q1: "What does a custom website cost?",
-      a1: "Our packages start at €499 one-off plus €39 per month for care. The price depends on scope, functionality and how much material you already have. The quote is free and without obligation; once you approve it and we sign the contract, that figure is the final price — nothing appears on the invoice that wasn't in the quote.",
+      a1: "Packages start at €499 one-off. The monthly care plan from €39 is optional and a separate contract — the site can be built without it. Beyond that the price depends on scope, functions and how much material you already have. The quote is free and without obligation; once you approve it and we sign the contract, that figure is the final price — nothing appears on the invoice that wasn't in the quote.",
       q2: "How long until the site is live?",
-      a2: "Starter usually one to two weeks, Business two to three, Premium four to six. What sets the pace is rarely our work but your copy and images: once the material is there, it moves fast.",
+      a2: "Starter usually one to two weeks, Business two to three, Premium four to six. What sets the pace is rarely my work but your copy and images: once the material is there, it moves fast.",
       q3: "Is the monthly care compulsory?",
       a3: "No, the site is yours without it. It covers backups, security updates and small changes — without it those tasks stay with you. If you take it, the initial term is twelve months; after that it can be cancelled at any time, effective at the end of the month.",
       q4: "Who owns the website?",
@@ -910,7 +910,7 @@ masz: {
       q5: "Will my site be found on Google?",
       a5: "The groundwork is in every package: clean structure, load time, structured data, copy written for search. Competitive terms need ongoing work beyond that — and anyone promising you position one within a month is selling air.",
       q6: "Can I update the site myself?",
-      a6: "Yes, wherever it makes sense. We show you how to change copy, prices and images, and stay reachable for the rest. No system built to force you to call us.",
+      a6: "Yes, wherever it makes sense. I show you how to change copy, prices and images, and stay reachable for the rest. No system built to force you to call me.",
       q7: "Does the site use cookies? Do I need a banner?",
       a7: "In the basic setup there are no tracking cookies and no fonts from third-party servers — so no banner is needed. If analytics or maps are added later that changes: then consent and an updated privacy notice are required.",
       q8: "How does payment work?",
@@ -981,7 +981,7 @@ masz: {
     },
     contact: {
       head: "Let's talk. The quote is free.",
-      lead: "Tell us in a few lines what you offer and what you need. We reply within one working day with a first indication of price and timing — in Italian, German or English.",
+      lead: "Tell me in a few lines what you offer and what you need. I reply within one working day with a first indication of price and timing — in Italian, German or English.",
       dt1: "Email", dd1: "kontakt@vecom-design.it",
       dt2: "Based in", dd2: "Aragona (AG), Sicily",
       dt3: "Address", dd3: "Via d'Ascoli 25, 92021 Aragona (AG)",
@@ -990,8 +990,8 @@ masz: {
       phName: "Your name", phMail: "where we may reply", phMsg: "What you offer, what you want to achieve and by when.",
       o1: "Custom website", o2: "Logo & brand identity", o3: "Online store", o4: "Redesign of an existing site", o5: "Something else",
       send: "Send enquiry",
-      hint: "The button opens your email programme with the message already written. No data is stored on this site.",
-      lang: "We speak Italian, German and English."
+      hint: "The message is already written — you just press send. No form, no stored data.",
+      lang: "I speak Italian, German and English."
     },
     partner: {
       eyebrow: "In collaboration with",
@@ -1017,9 +1017,9 @@ masz: {
     },
     e404: { title: "Page not found — Vecom Design", head: "This page doesn't exist.", lead: "The address may have changed, or there's a typo. From here you're one click from the right place.", home: "Back to the home page", contact: "Write to me" },
     video: {
-      head: "See how it works",
-      lead: "One video, a minute and a half: the whole path from the first message to the finished site — with the very screens you'll see yourself. No sound, so you can watch it anywhere.",
-      t1: "How it works for you", d1: "The whole process · 1:31",
+      head: "What happens after you write",
+      lead: "The whole path from your first message to the finished site — with the very screens you'll see along the way. Afterwards you know what you're getting into.",
+      t1: "How it works for you", d1: "The whole process · 1:31 · no sound",
       play: "Play", nav: "Video"
     },
     abl: {
@@ -1133,18 +1133,18 @@ masz: {
       head: "Uwe Vetter",
       role: "Web designer in Aragona (Agrigento) · Sicily",
       p1: "I don't come from marketing, I come from practice: before I built websites for other people, I had to build them for myself — a shop for Sicilian products, a neighbourhood platform, a publishing imprint for illustrated books. So I know the moment when a site is live and the phone still doesn't ring. And I know what it usually comes down to.",
-      p2: "What that means for you: the prices are published right here, you don't have to ask to find out. You get a written quote at a fixed price — free, without obligation, and binding only once we sign the contract. Nothing appears on the invoice that wasn't in the quote. And if you don't need something, I'll say so: if a single-language site is enough for you, that's what I'll tell you, even though I earn less that way.",
+      p2: "What that means for you: the prices are published right here, you don't have to ask to find out. You get a written quote at a fixed price. Nothing appears on the invoice that wasn't in the quote. And if you don't need something, I'll say so: if a single-language site is enough for you, that's what I'll tell you, even though I earn less that way.",
       p3: "I'm German and live in Sicily. From Aragona in the province of Agrigento I work for clients across Italy, Germany, Austria and Switzerland — in Italian, German and English. I know both mentalities: the precision of one, the personal touch of the other. And you always talk to the same person who then builds your site: no sales team, no handover. I answer enquiries within one working day.",
       sig: "Uwe Vetter",
-      sigNote: "Let's talk — the first conversation is free and without obligation.", nav: "About"
+      sigNote: "Let's talk.", nav: "About"
     },
     footer: {
-      claim: "Web design studio for custom websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
+      claim: "Websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
       h1: "Studio", h2: "Legal",
       l1: "Services", l2: "Work", l3: "Process", l4: "Contact",
       g1: "Legal notice", g2: "Privacy", g3: "Terms",
       rights: "All rights reserved.",
-      made: "Designed and built in house."
+      made: "Designed and built in Aragona. By me."
     },
     legal: {
       title: "Legal notice & privacy — Vecom Design",
