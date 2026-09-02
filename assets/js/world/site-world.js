@@ -23,6 +23,8 @@ const weak = coarse && ((navigator.deviceMemory || 4) < 4 || (navigator.hardware
 function off(reason) {
   root.setAttribute('data-world', reason);
   if (canvas) canvas.hidden = true;
+  /* Ohne Welt gibt es keinen Bruch, der die Seite freigibt. Also sofort. */
+  if (window.__auftaktFrei) { window.__auftaktFrei(); }
 }
 
 if (!canvas) {

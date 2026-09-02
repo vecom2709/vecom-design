@@ -161,6 +161,8 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
       /* der Bruch */
       .fromTo(U.uGlut, { value: 1 }, { value: 0, duration: 1.05, ease: 'power2.out' }, 2.10)
       .fromTo(U.uBruch, { value: 0 }, { value: 1, duration: 0.62, ease: 'power2.out' }, 2.10)
+      /* Der Bruch gibt die Seite frei — die Explosion oeffnet sie. */
+      .call(function () { window.dispatchEvent(new Event('vecom:auftakt-bruch')); }, null, 2.20)
       .to(w.bloom, { strength: 1.25, duration: 0.16, ease: 'power2.out' }, 2.10)
       .to(w.bloom, { strength: BEATS[0].bloom, duration: 1.2, ease: 'power2.out' }, 2.32)
       /* Drall läuft aus, Brocken kehren zurück */

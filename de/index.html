@@ -6,6 +6,33 @@
 <title>Website erstellen lassen — maßgeschneidert | Vecom Design</title>
 <meta name="description" content="Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Klare Preise ab 499 €.">
 <meta name="theme-color" content="#05070d">
+
+<!-- Auftakt: der Inhalt erscheint erst, wenn die Marke zerspringt. Steht hier
+     inline und ganz vorn, damit kein Text kurz aufblitzt, bevor er verschwindet.
+     Fällt in jeder Zweifelslage sofort auf die normale Seite zurück. -->
+<script>
+(function () {
+  try {
+    var r = document.documentElement;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (navigator.connection && navigator.connection.saveData) return;
+    if (!window.WebGLRenderingContext) return;
+    try { if (sessionStorage.getItem('vd-auftakt') === '1') return; } catch (e) { return; }
+    r.setAttribute('data-auftakt', 'laeuft');
+    var frei = function () {
+      if (r.getAttribute('data-auftakt') !== 'laeuft') return;
+      r.setAttribute('data-auftakt', 'fertig');
+      try { sessionStorage.setItem('vd-auftakt', '1'); } catch (e) {}
+    };
+    window.__auftaktFrei = frei;
+    addEventListener('vecom:auftakt-bruch', frei);
+    setTimeout(frei, 4500);                       /* Notausgang, kein Regelweg */
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (t) {
+      addEventListener(t, frei, { once: true, passive: true });
+    });
+  } catch (e) { document.documentElement.removeAttribute('data-auftakt'); }
+})();
+</script>
 <link rel="canonical" href="https://vecom-design.it/de/">
 
 <!-- Sprachvarianten: die Seite merkt sich die Wahl, ?lang= macht sie teilbar -->
@@ -31,7 +58,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=3c929938">
+<link rel="stylesheet" href="../assets/css/app.css?v=9165e45e">
 
 <script type="importmap">
 {
@@ -282,6 +309,10 @@
     <path d="M94.86 3.78 L68.79 4.06 L64.44 7.13 L59.23 17.74 L54.24 30.87 L71.40 31.15 L67.70 38.97 L51.63 38.97 L53.80 45.95 L64.88 69.41 L73.79 51.81 Z"/>
   </svg>
 </div>
+<div class="auftakt-vorhang" aria-hidden="true"></div>
+<button type="button" class="auftakt-weg" data-auftakt-weg hidden>
+  <span data-i18n="auftakt.skip">Überspringen</span>
+</button>
 <canvas class="stage" data-canvas aria-hidden="true"></canvas>
 <div class="world-scrim" aria-hidden="true"></div>
 <div class="world-cut" aria-hidden="true"></div>
@@ -1254,8 +1285,8 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-data.js?v=12c7ca93"></script>
-<script src="../assets/js/app.js?v=7ffcf032"></script>
+<script src="../assets/js/i18n-data.js?v=c1a5734d"></script>
+<script src="../assets/js/app.js?v=fbdcc7d6"></script>
 <script src="../assets/js/screens.js?v=19e37ebd" defer></script>
 <script src="../assets/js/polish.js?v=4f1bcb02" defer></script>
 <script src="../assets/js/pakete-live.js?v=62312dcb" defer></script>
@@ -1269,7 +1300,7 @@
 <script src="../assets/vendor/gsap.min.js"></script>
 <script src="../assets/vendor/ScrollTrigger.min.js"></script>
 <script src="../assets/vendor/lenis.min.js"></script>
-<script type="module" src="../assets/js/world/site-world.js?v=8802a04a"></script>
+<script type="module" src="../assets/js/world/site-world.js?v=05f587c0"></script>
 
 <!-- Besucherzählung: läuft ausschließlich auf dem eigenen Webspace.
      Kein fremder Dienst, kein Cookie, keine IP-Speicherung. -->

@@ -302,3 +302,13 @@
   var year = document.querySelector('[data-year]');
   if (year) year.textContent = new Date().getFullYear();
 })();
+
+
+/* Auftakt: der Ueberspringen-Knopf existiert nur, solange der Auftakt laeuft. */
+(function () {
+  var k = document.querySelector('[data-auftakt-weg]');
+  if (!k) { return; }
+  if (document.documentElement.getAttribute('data-auftakt') !== 'laeuft') { return; }
+  k.hidden = false;
+  k.addEventListener('click', function () { if (window.__auftaktFrei) { window.__auftaktFrei(); } });
+})();

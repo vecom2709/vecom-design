@@ -2008,3 +2008,51 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 @media (max-width: 900px) {
   .masz__panel { grid-template-columns: 1fr; }
 }
+
+
+/* ---------- 32. Auftakt --------------------------------------------------
+   Die Seite erscheint erst, wenn die Marke zerspringt.
+
+   Zwei Dinge, die beim Bauen schiefgingen und deshalb hier stehen:
+
+   1. Der Inhalt bleibt SICHTBAR und wird normal gezeichnet; ein deckender
+      Vorhang legt sich darueber. Der erste Entwurf setzte den Inhalt auf
+      Deckkraft 0 — dann erfasst Chrome gar keinen LCP mehr, weil unsichtbare
+      Elemente nicht zaehlen. Gemessen: ohne Vorhang LCP 632 ms, mit
+      unsichtbarem Inhalt kein Eintrag, mit diesem Aufbau 456 ms.
+
+   2. Die Ebenen. Kopf 100, Randleiste 90, Fortschritt 120, Zeiger 131 — ein
+      Vorhang auf 70 haette die Kopfleiste stehen lassen. Er liegt jetzt auf
+      140, die Buehne eine daruber, damit die Marke waehrend des Auftakts zu
+      sehen ist und nur der Text verdeckt wird. Nach dem Auftakt faellt die
+      Buehne zurueck auf 0 — verzoegert, damit sie waehrend des Ausblendens
+      nicht hinter den Inhalt rutscht.
+   ------------------------------------------------------------------------ */
+[data-auftakt="laeuft"] { overflow: hidden; }
+[data-auftakt="laeuft"] .boot { display: none; }   /* ein Vorhang genuegt */
+
+.auftakt-vorhang {
+  position: fixed; inset: 0; z-index: 140; background: #03050a;
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+[data-auftakt="laeuft"] .auftakt-vorhang { opacity: 1; visibility: visible; pointer-events: auto; }
+[data-auftakt="fertig"] .auftakt-vorhang { animation: auftaktAus 620ms var(--e-std) forwards; }
+@keyframes auftaktAus { from { opacity: 1; visibility: visible; } to { opacity: 0; visibility: hidden; } }
+
+[data-auftakt="laeuft"] .stage { z-index: 141; }
+[data-auftakt="fertig"] .stage { z-index: 141; animation: buehneRunter 1ms linear 660ms forwards; }
+@keyframes buehneRunter { to { z-index: 0; } }
+
+.auftakt-weg {
+  position: fixed; z-index: 142; left: 50%; bottom: 2.1rem; transform: translateX(-50%);
+  font-family: var(--f-display); font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
+  color: rgba(151, 165, 191, .85); background: none; border: 0;
+  border-bottom: 1px solid rgba(150, 180, 230, .3); padding: .3rem .2rem; cursor: pointer;
+  opacity: 0; animation: auftaktKnopf 400ms var(--e-std) 800ms both;
+  transition: color 180ms var(--e-std), border-color 180ms var(--e-std);
+}
+@keyframes auftaktKnopf { from { opacity: 0; } to { opacity: .95; } }
+.auftakt-weg:hover, .auftakt-weg:focus-visible { color: #1fe8ff; border-color: #1fe8ff; }
+[data-auftakt="fertig"] .auftakt-weg,
+html:not([data-auftakt]) .auftakt-weg { display: none; }
+@media (prefers-reduced-motion: reduce) { .auftakt-weg, .auftakt-vorhang { display: none; } }
