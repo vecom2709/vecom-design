@@ -73,6 +73,19 @@ final class Mail
      */
     public static function senden(string $anlass, string $an, string $betreff, string $text, array $bezug = []): bool
     {
+        // Jede Mail zu einem Kunden traegt seine Kennung im Betreff — die
+        // Bestellnummer, sonst die Kundennummer. Zwei Gruende: Der Kunde
+        // findet zusammengehoerige Mails wieder, und gleichlautende
+        // Serienbetreffe sind ein Merkmal, auf das Spamfilter achten.
+        // Zentral hier, damit es keinen Weg nach draussen gibt, der sie
+        // vergisst.
+        if (!empty($bezug['customer_id'])) {
+            try {
+                require_once __DIR__ . '/Vorlage.php';
+                $betreff = Vorlage::betreff((int) $bezug['customer_id'], $betreff);
+            } catch (Throwable $e) { /* dann eben ohne */ }
+        }
+
         $eintrag = [
             'anlass' => $anlass, 'empfaenger' => mb_substr($an, 0, 190), 'betreff' => mb_substr($betreff, 0, 255),
             'customer_id' => $bezug['customer_id'] ?? null,

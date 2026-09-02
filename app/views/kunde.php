@@ -45,22 +45,19 @@
           <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
             <span><?= $m['sender'] === 'kunde' ? Fmt::h($k['name']) : 'du' ?></span>
             <span style="color:var(--leise);font-weight:400"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></span></div>
+          <?php if (!empty($m['betreff'])): ?>
+            <div style="font-size:12.5px;color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
+          <?php endif; ?>
           <div style="white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
         </div>
       <?php endforeach; ?></div>
     <?php endif; ?>
-    <form method="post" action="<?= Fmt::h(url('')) ?>">
-      <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_nachricht">
-      <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
-      <div class="feld"><textarea name="text" rows="5" required
-        placeholder="Hallo <?= Fmt::h(explode(' ', (string) $k['name'])[0]) ?>, …"></textarea></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button class="knopf haupt">Senden</button>
-        <?php foreach ($vorlagen as $titel => $inhalt): ?>
-          <button type="button" class="knopf" onclick="var t=this.closest('form').querySelector('textarea');t.value=<?= Fmt::h(json_encode($inhalt, JSON_UNESCAPED_UNICODE)) ?>;t.focus()"><?= Fmt::h($titel) ?></button>
-        <?php endforeach; ?>
-      </div>
-    </form>
+    <?php
+      $nfTat = 'kunde_nachricht'; $nfId = (int) $k['id'];
+      $nfKennung = (string) ($kennung ?? ''); $nfVorlagen = (array) ($vorlagen ?? []);
+      $nfVorname = explode(' ', (string) $k['name'])[0]; $nfZurueck = '';
+      require __DIR__ . '/nachrichtfeld.php';
+    ?>
     <?php endif; ?>
   </div>
 

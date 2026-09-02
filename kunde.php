@@ -349,6 +349,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
           <span><?= $m['sender'] === 'kunde' ? $h(explode(' ', (string) $kunde['name'])[0]) : 'Vecom Design' ?></span>
           <span style="color:var(--leise);font-weight:400"><?= $h(Fmt::datum($m['created_at'])) ?></span></div>
+        <?php if (!empty($m['betreff'])): ?>
+          <div style="font-size:13px;color:var(--cyan);margin-bottom:5px"><?= $h((string) $m['betreff']) ?></div>
+        <?php endif; ?>
         <div style="white-space:pre-wrap;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $m['body']) ?></div>
       </div>
     <?php endforeach; ?>

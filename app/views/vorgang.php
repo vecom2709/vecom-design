@@ -108,6 +108,9 @@ $tage   = Vorgang::ruhtSeitTagen($v);
         <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
           <span><?= $m['sender'] === 'kunde' ? Fmt::h($v['kunde']) : 'du' ?></span>
           <span style="color:var(--leise);font-weight:400"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></span></div>
+        <?php if (!empty($m['betreff'])): ?>
+          <div style="font-size:12.5px;color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
+        <?php endif; ?>
         <div style="white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
       </div>
     <?php endforeach; ?>
@@ -115,16 +118,13 @@ $tage   = Vorgang::ruhtSeitTagen($v);
     <?php if ($v['anonym']): ?>
       <div class="leer">Der Datensatz ist anonymisiert — es gibt keine Adresse mehr.</div>
     <?php else: ?>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
-        <?= Csrf::feld() ?>
-        <input type="hidden" name="tat" value="<?= $pid ? 'nachricht_senden' : 'kunde_nachricht' ?>">
-        <input type="hidden" name="id" value="<?= (int) ($pid ?: $v['kunde_id']) ?>">
-        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
-        <div class="feld"><textarea name="text" rows="4" required
-          placeholder="Hallo <?= Fmt::h(explode(' ', $v['kunde'])[0]) ?>, …"></textarea></div>
-        <button class="knopf haupt">Senden</button>
-        <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Geht als E-Mail raus und steht auf seiner Seite.</span>
-      </form>
+      <?php
+        $nfTat = $pid ? 'nachricht_senden' : 'kunde_nachricht';
+        $nfId = (int) ($pid ?: $v['kunde_id']);
+        $nfKennung = (string) ($kennung ?? ''); $nfVorlagen = (array) ($vorlagen ?? []);
+        $nfVorname = explode(' ', (string) $v['kunde'])[0]; $nfZurueck = $hier;
+        require __DIR__ . '/nachrichtfeld.php';
+      ?>
     <?php endif; ?>
   </div>
 

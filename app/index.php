@@ -215,7 +215,9 @@ if ($post) {
                     'SELECT token FROM anfragen WHERE customer_id = ? AND order_id IS NULL ORDER BY id DESC LIMIT 1',
                     [$kid], ''), '');
                 Nachricht::vorab($kid, (string) ($_POST['text'] ?? ''), 'admin',
-                    $tok ? Anfrage::link((string) $tok) : null);
+                    $tok ? Anfrage::link((string) $tok) : null,
+                    (string) ($_POST['betreff'] ?? ''));
+                $_SESSION['gut'] = 'Nachricht ist raus — der Kunde bekommt sie per E-Mail.';
                 zurueck('kunden/' . $kid);
 
             case 'kunde_datei':
@@ -670,7 +672,8 @@ if ($post) {
             case 'nachricht_senden':
                 require_once __DIR__ . '/src/Nachricht.php';
                 $pid = (int) $_POST['id'];
-                Nachricht::schreiben($pid, (string) ($_POST['text'] ?? ''), 'admin');
+                Nachricht::schreiben($pid, (string) ($_POST['text'] ?? ''), 'admin',
+                    (string) ($_POST['betreff'] ?? ''));
                 $_SESSION['gut'] = 'Nachricht ist raus — der Kunde bekommt sie auch per E-Mail.';
                 zurueck('projekte/' . $pid);
 
@@ -916,8 +919,12 @@ switch ($route) {
             }
             require_once __DIR__ . '/src/Texte.php';
             require_once __DIR__ . '/src/Onboarding.php';
+            require_once __DIR__ . '/src/Vorlage.php';
+            $vkid = (int) ($v['kunde_id'] ?? 0);
             ansicht('vorgang', [
                 'v' => $v,
+                'vorlagen' => $vkid > 0 ? sicher(static fn() => Vorlage::fuer($vkid), []) : [],
+                'kennung'  => $vkid > 0 ? sicher(static fn() => Vorlage::kennung($vkid), '') : '',
                 'pakete' => sicher(static fn() => Db::all(
                     'SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents')),
             ]);
@@ -949,6 +956,7 @@ switch ($route) {
             // Projekt bisher keine Stelle, an der es passiert waere.
             require_once __DIR__ . '/src/Nachricht.php';
             require_once __DIR__ . '/src/Kunde.php';
+            require_once __DIR__ . '/src/Vorlage.php';
             sicher(static fn() => Nachricht::gelesenKunde($id), 0);
             ansicht('kunde', [
                 'k' => $k,
@@ -966,12 +974,10 @@ switch ($route) {
                     'SELECT * FROM messages WHERE customer_id = ? ORDER BY id ASC LIMIT 100', [$id])),
                 'dateien' => sicher(static fn() => Db::all(
                     'SELECT * FROM files WHERE customer_id = ? ORDER BY id DESC LIMIT 60', [$id])),
-                'vorlagen' => [
-                    'Nachfassen' => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\nich wollte kurz nachhaken, ob meine letzte Nachricht angekommen ist und ob noch Fragen offen sind.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
-                    'Rückfrage'  => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\ndanke für deine Anfrage. Bevor ich dir einen Festpreis nennen kann, brauche ich noch eine Angabe:\n\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
-                    'Angebot'    => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\nanbei mein Vorschlag. Der Preis ist ein Festpreis, das Angebot ist unverbindlich — verbindlich wird es erst, wenn wir den Vertrag schließen.\n\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
-                    'Absage'     => "Hallo " . explode(' ', (string) $k['name'])[0] . ",\n\ndanke für dein Interesse. Für dieses Vorhaben bin ich nicht der Richtige — ich sage das lieber gleich, als deine Zeit zu binden.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design",
-                ],
+                // Vorlagen samt Betreff, in der Sprache des Kunden und mit
+                // eingesetzten Angaben. Siehe app/src/Vorlage.php.
+                'vorlagen' => sicher(static fn() => Vorlage::fuer($id), []),
+                'kennung'  => sicher(static fn() => Vorlage::kennung($id), ''),
             ]);
             break;
         }

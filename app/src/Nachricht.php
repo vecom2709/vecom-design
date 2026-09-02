@@ -29,7 +29,8 @@ final class Nachricht
      * Absichtlich getrennt von schreiben(): Dort haengen Projektstand und
      * Projektlink mit drin, die es hier noch nicht gibt.
      */
-    public static function vorab(int $kundeId, string $text, string $von, ?string $link = null): int
+    public static function vorab(int $kundeId, string $text, string $von, ?string $link = null,
+                                 ?string $betreff = null): int
     {
         $text = trim($text);
         if ($text === '') { throw new RuntimeException('Die Nachricht ist leer.'); }
@@ -39,14 +40,15 @@ final class Nachricht
         if (!$k) { throw new RuntimeException('Kunde nicht gefunden.'); }
 
         $vomKunden = $von === 'kunde';
-        $id = Db::insert('messages', [
+        $id = Db::insert('messages', self::spalten([
             'project_id'  => null,
             'customer_id' => $kundeId,
             'sender'      => $vomKunden ? 'kunde' : 'admin',
+            'betreff'     => $betreff !== null && trim($betreff) !== '' ? mb_substr(trim($betreff), 0, 200) : null,
             'user_id'     => $vomKunden ? null : Auth::id(),
             'body'        => $text,
             'read_at'     => $vomKunden ? null : date('Y-m-d H:i:s'),
-        ]);
+        ]));
 
         // Vor dem Versand ins Haus melden. Die E-Mail ist der Weg nach draussen,
         // die Meldung der Weg nach innen — und nur die ueberlebt einen
@@ -73,11 +75,25 @@ final class Nachricht
                 $gruss  = ['it' => "A presto\nUwe Vetter · Vecom Design",
                            'de' => "Herzliche Grüße\nUwe Vetter · Vecom Design",
                            'en' => "Best regards\nUwe Vetter · Vecom Design"][$sprache] ?? '';
-                $anhang = $link ? "\n\n" . (['it' => 'La tua pagina:', 'de' => 'Deine Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link : '';
-                $betreff = ['it' => 'Messaggio da Vecom Design', 'de' => 'Nachricht von Vecom Design',
-                            'en' => 'A message from Vecom Design'][$sprache] ?? 'Vecom Design';
-                Mail::senden('nachricht_vorab', (string) $k['email'], $betreff,
-                    $anrede . ' ' . $k['name'] . ",\n\n" . $text . $anhang . "\n\n" . $gruss,
+                // Der Link nur, wenn er nicht ohnehin schon im Text steht —
+                // eine Vorlage bringt ihn oft selbst mit.
+                $anhang = ($link && !str_contains($text, $link))
+                    ? "\n\n" . (['it' => 'La tua pagina:', 'de' => 'Deine Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link
+                    : '';
+
+                // Ein eigener Betreff heisst: Der Text ist ein fertiger Brief
+                // mit Anrede und Gruss. Dann darf kein zweiter Rahmen drum.
+                require_once __DIR__ . '/Vorlage.php';
+                if ($betreff !== null && trim($betreff) !== '') {
+                    $zeile = Vorlage::betreff($kundeId, $betreff);
+                    $rumpf = $text . $anhang;
+                } else {
+                    $zeile = Vorlage::betreff($kundeId,
+                        ['it' => 'Messaggio da Vecom Design', 'de' => 'Nachricht von Vecom Design',
+                         'en' => 'A message from Vecom Design'][$sprache] ?? 'Vecom Design');
+                    $rumpf = $anrede . ' ' . $k['name'] . ",\n\n" . $text . $anhang . "\n\n" . $gruss;
+                }
+                Mail::senden('nachricht_vorab', (string) $k['email'], $zeile, $rumpf,
                     ['customer_id' => $kundeId]);
             }
         } catch (Throwable $e) { /* geschrieben ist geschrieben */ }
@@ -85,7 +101,7 @@ final class Nachricht
         return $id;
     }
 
-    public static function schreiben(int $projektId, string $text, string $von): int
+    public static function schreiben(int $projektId, string $text, string $von, ?string $betreff = null): int
     {
         $text = trim($text);
         if ($text === '') { throw new RuntimeException('Die Nachricht ist leer.'); }
@@ -99,35 +115,51 @@ final class Nachricht
         if (!$p) { throw new RuntimeException('Projekt nicht gefunden.'); }
 
         $vomKunden = $von === 'kunde';
-        $id = Db::insert('messages', [
+        $id = Db::insert('messages', self::spalten([
             'project_id'  => $projektId,
             'customer_id' => (int) $p['customer_id'],
             'sender'      => $vomKunden ? 'kunde' : 'admin',
+            'betreff'     => $betreff !== null && trim($betreff) !== '' ? mb_substr(trim($betreff), 0, 200) : null,
             'user_id'     => $vomKunden ? null : Auth::id(),
             'body'        => $text,
             // Was ich selbst schreibe, habe ich gelesen.
             'read_at'     => $vomKunden ? null : date('Y-m-d H:i:s'),
-        ]);
+        ]));
 
         // Der Versand steht ausserhalb: Eine Nachricht ist geschrieben, auch
         // wenn der Mailserver gerade nicht mag.
         try {
-            $vomKunden ? self::anUwe($p, $text) : self::anKunden($p, $text);
+            $vomKunden ? self::anUwe($p, $text) : self::anKunden($p, $text, $betreff);
         } catch (Throwable $e) { /* im Protokoll steht der Fehlschlag */ }
 
         return $id;
     }
 
-    private static function anKunden(array $p, string $text): void
+    private static function anKunden(array $p, string $text, ?string $eigenerBetreff = null): void
     {
         $sprache = strtolower((string) ($p['kunde_sprache'] ?? 'it'));
         if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
-        [$betreff, $inhalt] = Texte::mail('nachricht', $sprache, [
-            'name' => (string) $p['kunde'],
-            'text' => $text,
-            'link' => self::link((int) $p['id']) ?? rtrim((string) Config::get('website', ''), '/'),
-        ]);
+        require_once __DIR__ . '/Vorlage.php';
+        $kid  = (int) $p['customer_id'];
+        $link = self::link((int) $p['id']) ?? rtrim((string) Config::get('website', ''), '/');
+
+        if ($eigenerBetreff !== null && trim($eigenerBetreff) !== '') {
+            // Ein Brief mit eigenem Betreff traegt Anrede und Gruss schon in
+            // sich. Der alte Rahmen ("wir haben dir geschrieben:") waere ein
+            // zweiter Umschlag um einen fertigen Brief.
+            $betreff = Vorlage::betreff($kid, $eigenerBetreff);
+            $inhalt  = $text . (str_contains($text, $link) ? '' : "\n\n"
+                . (['it' => 'La tua pagina:', 'de' => 'Deine Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link);
+        } else {
+            [$betreff, $inhalt] = Texte::mail('nachricht', $sprache, [
+                'name' => (string) $p['kunde'],
+                'text' => $text,
+                'link' => $link,
+            ]);
+            $betreff = Vorlage::betreff($kid, $betreff);
+        }
+
         Mail::senden('nachricht', (string) $p['kunde_email'], $betreff, $inhalt, [
             'customer_id' => (int) $p['customer_id'],
             'project_id'  => (int) $p['id'],
@@ -413,6 +445,22 @@ final class Nachricht
             trim((string) $k['country']),
         ], static fn($z) => $z !== '');
         return implode(', ', $teile);
+    }
+
+    /**
+     * Laesst die Spalte betreff weg, solange die Migration noch nicht durch
+     * ist. Zwischen Deploy und naechstem Cronlauf liegen bis zu zehn Minuten —
+     * in denen darf keine Nachricht an einer fehlenden Spalte scheitern.
+     */
+    private static function spalten(array $daten): array
+    {
+        static $gibtBetreff = null;
+        if ($gibtBetreff === null) {
+            try { Db::run('SELECT betreff FROM messages LIMIT 1'); $gibtBetreff = true; }
+            catch (Throwable $e) { $gibtBetreff = false; }
+        }
+        if (!$gibtBetreff) { unset($daten['betreff']); }
+        return $daten;
     }
 
     /** @return array<string,mixed>|null */

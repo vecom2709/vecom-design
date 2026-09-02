@@ -973,3 +973,71 @@ Datei-Upload und beide Downloadwege, fremder Beleg und fremde Datei je 404, alte
 Links leiten um, „Neuen Link erzeugen" entwertet den alten (die alte Adresse
 zeigt danach die Meldung, nicht die Seite), Formular → Bestätigungsmail →
 Kundenseite als durchgehende Kette, Handy- und Rechneransicht ohne Überlauf.
+
+## Vorlagen und Betreffzeilen (02.09.2026)
+
+Uwes Beobachtung: Jede Nachricht aus der Verwaltung ging mit demselben Betreff
+raus — *„Eine Nachricht zu deinem Projekt"*. Zehn Nachrichten, zehn gleiche
+Betreffzeilen. Der Kunde findet nichts wieder, und gleichlautende Serienbetreffe
+sind ein Merkmal, auf das Spamfilter achten.
+
+### Kennung im Betreff
+
+`Vorlage::kennung()` liefert die Bestellnummer, wenn es eine gibt, sonst eine aus
+der Kundennummer gebildete (`VD-K-0023`). Berechnet, nicht gespeichert — eine
+weitere Spalte wäre eine weitere Stelle, die auseinanderlaufen kann.
+
+`Vorlage::betreff()` setzt sie **genau einmal** davor: `[VD-2026-0005] Deine
+Vorschau steht`. Eingebaut ist das nicht im Formular, sondern zentral in
+`Mail::senden()`, sobald ein `customer_id` mitkommt — damit es keinen Weg nach
+draußen gibt, der die Kennung vergisst. Auftragsbestätigung, Zahlungslink,
+Vorschau, Rechnung: alle tragen sie jetzt.
+
+**Ehrlich zur Wirkung:** Die Kennung hilft beim Wiederfinden und beim Threading.
+Gegen Spamfilter wirken vor allem SPF/DKIM für die Domain und der Wegfall der
+Brevo-Fußzeile — das bleibt offen.
+
+### Vierzehn Vorlagen, dreisprachig
+
+Vorher vier Vorlagen, nur deutsch. Der freie Text geht wörtlich raus: Wer
+deutsch an eine italienische Kundin schreibt, schickt ihr deutsch. `Vorlage::ALLE`
+hat jetzt vierzehn Vorlagen in drei Sprachen, nach Phase gruppiert:
+
+- **Vor dem Auftrag** — Rückfrage vor dem Angebot · Angebot zum Festpreis ·
+  Termin vorschlagen · Nachfassen · Absage
+- **Während der Arbeit** — Material anfordern · Fragebogen-Erinnerung · Vorschau
+  ist fertig · Änderungen umgesetzt · Zahlungserinnerung
+- **Danach** — Seite ist online · Betreuung anbieten · Um Bewertung bitten ·
+  Ruhendes Projekt
+
+`Vorlage::fuer($kundeId)` setzt sie in der Sprache des Kunden zusammen und füllt
+`{vorname} {firma} {paket} {betrag} {seite} {vorschau}`. Was unbekannt ist, wird
+zu „…" — eine leere Stelle rutscht beim Lesen durch, drei Punkte nicht. Anrede
+und Gruß hängen an der Sprache, nicht am Anlass, und stehen deshalb einmal in
+der Klasse statt zweiundvierzig Mal in den Vorlagen.
+
+### Was sonst nötig war
+
+- **Migration `016`**: `messages.betreff`. Der Betreff gehört an die Nachricht,
+  nicht nur an die E-Mail — sonst stünde im Verlauf, bei Uwe wie beim Kunden, ein
+  Text ohne die Zeile, unter der er verschickt wurde. `Nachricht::spalten()` lässt
+  die Spalte weg, solange die Migration noch nicht durch ist: Zwischen Deploy und
+  nächstem Cronlauf liegen bis zu zehn Minuten, in denen keine Nachricht an einer
+  fehlenden Spalte scheitern darf.
+- **Kein doppelter Umschlag**: Eine Vorlage ist ein fertiger Brief mit Anrede und
+  Gruß. Mit eigenem Betreff entfällt deshalb der alte Rahmen („wir haben dir zu
+  deinem Projekt geschrieben:"). Ohne Betreff bleibt alles wie bisher.
+- Der Link auf die Kundenseite wird nur angehängt, wenn er nicht ohnehin schon im
+  Text steht — die Vorlagen bringen ihn oft selbst mit.
+- **Ein gemeinsames Feld**: `app/views/nachrichtfeld.php`, eingebunden von
+  Kundenakte und Vorgangsseite. Die Kennung steht fest davor und ist nicht
+  editierbar: Sie ist kein Text, sondern ein Aktenzeichen. Ein Vorlagenwechsel
+  über bereits Getipptem fragt nach, bevor er überschreibt.
+
+Geprüft: vierzehn Vorlagen für einen italienischen und einen deutschen Kunden
+gefüllt, Betreffzeilen und Platzhalter richtig; Nachricht mit Betreff über beide
+Wege (Kundenakte ohne Projekt, Vorgangsseite mit Projekt) verschickt und im
+Mailfänger nachgelesen — Kennung vorn, kein doppelter Rahmen, Link genau einmal;
+ohne Betreff bleibt der alte Weg unverändert; Eingangsbestätigung trägt die
+Kennung jetzt ebenfalls; Betreff steht im Verlauf der Verwaltung und auf der
+Kundenseite.
