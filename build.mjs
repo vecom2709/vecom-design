@@ -164,7 +164,7 @@ function build(lang) {
   // 3. Pfade und Sprachwahl
   const up = lang === 'it' ? '' : '../';
   if (up) {
-    h = h.replace(/(href|src|content)="assets\//g, `$1="${up}assets/`);
+    h = h.replace(/(href|src|content|poster)="assets\//g, `$1="${up}assets/`);
     // Die Importmap steht als JSON im HTML — sie wird von der Regel oben nicht
     // erfasst und muss eigens umgeschrieben werden, sonst fehlt three.js in /de/.
     h = h.replace(/"\.\/assets\//g, `"${up}assets/`);
@@ -175,7 +175,7 @@ function build(lang) {
     h = h.replace(/href="world\.html/g, `href="${up}world.html`);
     // Videopfade gehören ebenfalls eine Ebene höher — sonst suchen /de/ und
     // /en/ die Dateien in einem Unterordner, den es nicht gibt.
-    h = h.replace(/data-src="video\//g, `data-src="${up}video/`);
+    h = h.replace(/(data-src|src|href|poster)="video\//g, `$1="${up}video/`);
     // data-img der Tiefenkarten wird von der href/src-Regel nicht erfasst
     h = h.replace(/data-img="assets\//g, `data-img="${up}assets/`);
     h = h.replace(/href="assets\/img\//g, `href="${up}assets/img/`);
@@ -213,6 +213,15 @@ function pruefen(h, lang, ziel) {
     if (!pfad.startsWith(tief)) { fehler.push(`${pfad} zeigt nicht ${tief ? 'eine Ebene höher' : 'ins Wurzelverzeichnis'}`); }
     if (!existsSync(pfad.replace(/^\.\.\//, ''))) { fehler.push(`${pfad} gibt es auf der Platte nicht`); }
   }
+  // Zusaetzlich: jede relative Referenz auf video/ oder assets/ muss auf der
+  // richtigen Ebene liegen. Die Regel oben prueft nur Dateien mit Sprachkuerzel
+  // im Namen — auftakt.mp4 hat keins und rutschte deshalb ungeprueft nach /de/.
+  for (const m of h.matchAll(/(?:data-src|src|href|poster|content)="((?:\.\.\/)?(?:video|assets)\/[^"?]+?)(?:\?v=[A-Za-z0-9]*)?"/g)) {
+    const pfad = m[1];
+    if (!pfad.startsWith(tief)) { fehler.push(`${pfad} zeigt nicht ${tief ? 'eine Ebene hoeher' : 'ins Wurzelverzeichnis'}`); }
+    if (!existsSync(pfad.replace(/^\.\.\//, ''))) { fehler.push(`${pfad} gibt es auf der Platte nicht`); }
+  }
+
   if (fehler.length) {
     console.error(`\nFEHLER in ${ziel}:`);
     fehler.forEach((f) => console.error('  ' + f));

@@ -2011,48 +2011,67 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 
 
 /* ---------- 32. Auftakt --------------------------------------------------
-   Die Seite erscheint erst, wenn die Marke zerspringt.
+   Der Film laeuft, dann zoomt das Bild in die Mitte und die Seite oeffnet
+   sich von dort, wo die Bruchstuecke sind.
 
    Zwei Dinge, die beim Bauen schiefgingen und deshalb hier stehen:
 
    1. Der Inhalt bleibt SICHTBAR und wird normal gezeichnet; ein deckender
-      Vorhang legt sich darueber. Der erste Entwurf setzte den Inhalt auf
+      Vorhang legt sich darueber. Ein frueherer Entwurf setzte den Inhalt auf
       Deckkraft 0 — dann erfasst Chrome gar keinen LCP mehr, weil unsichtbare
-      Elemente nicht zaehlen. Gemessen: ohne Vorhang LCP 632 ms, mit
-      unsichtbarem Inhalt kein Eintrag, mit diesem Aufbau 456 ms.
+      Elemente nicht zaehlen. Gemessen: ohne Vorhang 608 ms, mit unsichtbarem
+      Inhalt kein Eintrag, so herum 616 ms.
 
    2. Die Ebenen. Kopf 100, Randleiste 90, Fortschritt 120, Zeiger 131 — ein
-      Vorhang auf 70 haette die Kopfleiste stehen lassen. Er liegt jetzt auf
-      140, die Buehne eine daruber, damit die Marke waehrend des Auftakts zu
-      sehen ist und nur der Text verdeckt wird. Nach dem Auftakt faellt die
-      Buehne zurueck auf 0 — verzoegert, damit sie waehrend des Ausblendens
-      nicht hinter den Inhalt rutscht.
+      Vorhang auf 70 haette die Kopfleiste stehen lassen. Er liegt auf 140.
    ------------------------------------------------------------------------ */
-[data-auftakt="laeuft"] { overflow: hidden; }
-[data-auftakt="laeuft"] .boot { display: none; }   /* ein Vorhang genuegt */
+[data-auftakt="laeuft"], [data-auftakt="oeffnet"] { overflow: hidden; }
+[data-auftakt="laeuft"] .boot, [data-auftakt="oeffnet"] .boot { display: none; }
 
 .auftakt-vorhang {
   position: fixed; inset: 0; z-index: 140; background: #03050a;
-  opacity: 0; visibility: hidden; pointer-events: none;
+  display: none; place-items: center; overflow: hidden;
+  transform-origin: 50% 50%; will-change: transform, clip-path, opacity;
 }
-[data-auftakt="laeuft"] .auftakt-vorhang { opacity: 1; visibility: visible; pointer-events: auto; }
-[data-auftakt="fertig"] .auftakt-vorhang { animation: auftaktAus 620ms var(--e-std) forwards; }
-@keyframes auftaktAus { from { opacity: 1; visibility: visible; } to { opacity: 0; visibility: hidden; } }
+[data-auftakt="laeuft"] .auftakt-vorhang { display: grid; }
+.auftakt-video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-[data-auftakt="laeuft"] .stage { z-index: 141; }
-[data-auftakt="fertig"] .stage { z-index: 141; animation: buehneRunter 1ms linear 700ms forwards; }
-@keyframes buehneRunter { to { z-index: 0; } }
+/* Der Zoom in die Mitte, und die Blende von dort. Die Iris laeuft auf dem
+   Vorhang, nicht auf dem Inhalt — so wird die Seite freigelegt, statt
+   eingeblendet zu werden. */
+[data-auftakt="oeffnet"] .auftakt-vorhang {
+  display: grid;
+  animation: auftaktZoom 1200ms cubic-bezier(.5, 0, .25, 1) forwards;
+}
+@keyframes auftaktZoom {
+  0%   { transform: scale(1);    clip-path: circle(150% at 50% 50%); opacity: 1; }
+  55%  { transform: scale(1.42); clip-path: circle(46% at 50% 50%);  opacity: 1; }
+  100% { transform: scale(2.05); clip-path: circle(0% at 50% 50%);   opacity: 0; }
+}
+/* Die Seite kommt aus derselben Mitte heran — leicht groesser, dann auf Mass. */
+[data-auftakt="oeffnet"] .header,
+[data-auftakt="oeffnet"] #main,
+[data-auftakt="oeffnet"] .footer,
+[data-auftakt="oeffnet"] .rail {
+  animation: auftaktHeran 1200ms cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes auftaktHeran {
+  0%   { opacity: .25; transform: scale(1.045); }
+  45%  { opacity: .45; transform: scale(1.030); }
+  100% { opacity: 1;   transform: none; }
+}
 
-.auftakt-weg {
+.auftakt-leiste {
   position: fixed; z-index: 142; left: 50%; bottom: 2.1rem; transform: translateX(-50%);
+  display: none; gap: 1.6rem; align-items: center;
+}
+[data-auftakt="laeuft"] .auftakt-leiste { display: flex; }
+.auftakt-leiste button {
   font-family: var(--f-display); font-size: .68rem; letter-spacing: .2em; text-transform: uppercase;
   color: rgba(151, 165, 191, .85); background: none; border: 0;
   border-bottom: 1px solid rgba(150, 180, 230, .3); padding: .3rem .2rem; cursor: pointer;
-  opacity: 0; animation: auftaktKnopf 400ms var(--e-std) 800ms both;
   transition: color 180ms var(--e-std), border-color 180ms var(--e-std);
 }
-@keyframes auftaktKnopf { from { opacity: 0; } to { opacity: .95; } }
-.auftakt-weg:hover, .auftakt-weg:focus-visible { color: #1fe8ff; border-color: #1fe8ff; }
-[data-auftakt="fertig"] .auftakt-weg,
-html:not([data-auftakt]) .auftakt-weg { display: none; }
-@media (prefers-reduced-motion: reduce) { .auftakt-weg, .auftakt-vorhang { display: none; } }
+.auftakt-leiste button:hover, .auftakt-leiste button:focus-visible { color: #1fe8ff; border-color: #1fe8ff; }
+.auftakt-ton[data-an] { color: #1fe8ff; border-color: #1fe8ff; }
+@media (prefers-reduced-motion: reduce) { .auftakt-leiste, .auftakt-vorhang { display: none !important; } }

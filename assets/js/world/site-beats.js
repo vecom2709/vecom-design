@@ -177,7 +177,8 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
       /* Ein Atemzug auf der wieder ganzen Marke — ein Schluss braucht ein Bild,
          auf dem er stehen bleibt, sonst wirkt er abgeschnitten. */
       .to({}, { duration: 0.40 }, 4.15)
-      /* Erst jetzt oeffnet die Seite. */
+      /* Meldung bleibt als Rueckfall, falls der Film gar nicht erst existiert.
+         Im Regelfall gibt der Film die Seite frei, nicht dieser Auftakt. */
       .call(function () { window.dispatchEvent(new Event('vecom:auftakt-bruch')); }, null, 4.55);
   }
   function applyOpening() {

@@ -29,6 +29,11 @@ app/steuerakte/
 # nicht — sie sind dreimal so gross und entstehen jederzeit neu.
 video/roh/
 video/*.webm
+
+# Ausnahme: video/auftakt.webm ist keine Rohaufnahme, sondern die kleine
+# Fassung des Auftakts, die die Seite als erste Quelle anbietet. Sie muss
+# ins Repository, weil der Deploy nur hochlaedt, was dort liegt.
+!video/auftakt.webm
 node_modules/
 
 # Die einzelnen Sprachaufnahmen. Sie stecken fertig im Video; einzeln braucht

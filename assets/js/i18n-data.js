@@ -20,7 +20,7 @@ window.VECOM_I18N = {
       locale: "it_IT"
     },
     nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", cta: "Richiedi preventivo" },
-    auftakt: { skip: "Salta" },
+    auftakt: { skip: "Salta", sound: "Audio" },
     hero: {
       eyebrow: "Webdesign dalla Sicilia — siti, marchi, e-commerce",
       t1: "Il tuo sito deve",
@@ -404,7 +404,7 @@ masz: {
       locale: "de_DE"
     },
     nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", cta: "Angebot anfordern" },
-    auftakt: { skip: "Überspringen" },
+    auftakt: { skip: "Überspringen", sound: "Ton" },
     hero: {
       eyebrow: "Webdesign aus Sizilien — Websites, Marken, Online-Shops",
       t1: "Deine Website soll",
@@ -788,7 +788,7 @@ masz: {
       locale: "en_GB"
     },
     nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", cta: "Get a quote" },
-    auftakt: { skip: "Skip" },
+    auftakt: { skip: "Skip", sound: "Sound" },
     hero: {
       eyebrow: "Web design studio — websites, brands, online stores",
       t1: "Your website should",
