@@ -665,3 +665,63 @@ ein Klick allein ist zu wenig für etwas, das nicht rückgängig zu machen ist.
 **Offen:** Eine noch eingetragene Website bleibt beim Anonymisieren stehen —
 solange sie online ist, läuft der Vertrag, und dann ist der Zeitpunkt falsch.
 Das steht als Hinweis über dem Knopf, ist aber nicht erzwungen.
+
+## Umbau der Verwaltung, Schritt 1: Heute und Vorgänge (02.09.2026)
+
+Uwes Auftrag: die Verwaltung leichter und verständlicher, aber ohne eine
+Funktion zu verlieren — und der Ablauf soll von selbst weiterlaufen, bis
+eine Entscheidung nötig ist. Vereinbart sind drei Schritte; das hier ist der
+erste, und er ändert bewusst **kein** Verhalten, nur die Anordnung.
+
+**Was das Problem war.** Derselbe Kunde stand in sechs Tabellen und auf
+ebenso vielen Seiten: Anfrage, Bestellung, Projekt, Fragebogen, Zahlungen,
+Nachrichten. Wer wissen wollte, wie weit einer ist, sah an vier Stellen nach.
+Und das Dashboard zeigte Zahlen — Zahlen sagen aber nicht, was zu tun ist.
+
+**`app/src/Vorgang.php`** legt über die Tabellen eine Sicht: einen Vorgang.
+Das ist entweder eine Anfrage ohne Bestellung oder eine Bestellung samt
+Projekt. Die Stufe wird **nicht gespeichert, sondern gerechnet** — aus
+Tatsachen, nicht aus einem Statusfeld: Gibt es eine Bestellung? Ist die
+Anzahlung da? Ist der Zahlungslink schon rausgegangen (`mails`)? Liegt der
+Fragebogen ausgefüllt vor? Ein zweiter gespeicherter Fortschritt wäre ein
+zweiter Ort für eine Wahrheit, die schon in den Daten steht, und zwei Orte
+für eine Wahrheit driften auseinander. Der Projektstatus bleibt daneben — er
+ist das, was der Kunde auf seiner Seite liest.
+
+Daraus fällt die einzige Frage ab, die morgens zählt: **wer ist dran und was
+ist der nächste Handgriff.** Acht Stufen: Gespräch · Angebot · Fragebogen ·
+In Arbeit · Vorschau · Freigegeben · Online · Abgeschlossen.
+
+**`/app/heute`** ist die Arbeitsliste: was auf dich wartet, was auf den
+Kunden wartet (mit „seit X Tagen still"), und ganz oben, was klemmt — nur
+Meldungen der Stufe Warnung und Fehler, damit ein echter Fehler nicht
+zwischen Infomeldungen verschwindet. Jede Zeile trägt den Knopf, der den
+Schritt macht.
+
+**`/app/vorgaenge/<schlüssel>`** ist ein Kunde auf einer Seite: Gespräch,
+Zahlungen, Fragebogen, Dateien, Belege, Website, Verlauf. Schlüssel sind
+`a<id>` für eine reine Anfrage und `b<id>` für eine Bestellung; eine Anfrage,
+aus der eine Bestellung wurde, leitet auf deren Vorgang um, damit ein Kunde
+nie zwei Seiten hat.
+
+**Was ausdrücklich nicht passiert ist.** Kein Knopf hat eine neue Logik. Alle
+Formulare schicken an dieselben `tat`-Aktionen wie vorher. Geändert wurde nur,
+dass diese Aktionen jetzt dorthin zurückkehren, wo der Knopf stand
+(`zurueck()` in `app/index.php`, 27 Aktionen) — vorher sprang „Fragebogen
+verschickt" immer ins Projekt, egal woher man kam. Für die alten Seiten
+ändert das nichts: Sie schickten schon immer dasselbe Ziel mit.
+
+Direkt aus der Liste abgeschickt wird nur, was eine Nachricht auslöst
+(Zahlungslink, Einladung, Erinnerung, Restzahlung). Was den Projektstand
+verschiebt, führt erst auf die Vorgangsseite — erkennbar am `›` am Knopf.
+
+**Geprüft** gegen eine Prüfdatenbank mit zwölf Vorgängen über alle acht
+Stufen, über den echten Router mit Anmeldung: jede Stufe landet in der
+richtigen Gruppe mit dem richtigen Knopf, alle Seiten 200, keine PHP-Meldung,
+Konsole sauber. Die Zahl im Menü neben „Heute" kostet rund 10 ms.
+
+**Offen für Schritt 2:** „Angebot verbindlich machen" soll Bestellung,
+Zahlungslink und Mail in einem Zug erledigen; „Vorschau ist fertig" und
+„Seite ist online" sollen die Adresse gleich mitnehmen. **Schritt 3** ist das
+Zusammenräumen des Menüs auf fünf Punkte. Das alte Menü steht bis dahin
+vollständig.

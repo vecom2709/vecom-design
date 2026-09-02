@@ -6,8 +6,17 @@ $navZahlen = [
   'benachrichtigungen' => (int) Db::wert('SELECT COUNT(*) FROM notifications WHERE read_at IS NULL'),
   'bestellungen'=> (int) Db::wert("SELECT COUNT(*) FROM orders WHERE status IN ('neu','zahlung_ausstehend')"),
 ];
+// Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
+// Menue, die eine Handlung meint und nicht nur einen Bestand.
+$navZahlen['heute'] = (int) sicher(static function (): int {
+    require_once dirname(__DIR__) . '/src/Vorgang.php';
+    require_once dirname(__DIR__) . '/src/Mail.php';
+    return count(Vorgang::arbeitsliste()['du']);
+}, 0);
 $aktiv = $route ?: 'dashboard';
 $menue = [
+  ['heute', 'Heute', 'heute'],
+  ['vorgaenge', 'Vorgänge', 'vorgaenge'],
   ['', 'Dashboard', 'dashboard'],
   ['__gruppe', 'Geschäft', null],
   ['pakete', 'Pakete', 'pakete'],

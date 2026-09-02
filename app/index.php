@@ -24,6 +24,17 @@ $post  = $_SERVER['REQUEST_METHOD'] === 'POST';
 
 function url(string $ziel = ''): string { return Config::basis() . '/' . ltrim($ziel, '/'); }
 function weiter(string $ziel): never { header('Location: ' . url($ziel)); exit; }
+
+/**
+ * Nach einem erledigten Vorgang dorthin zurueck, wo der Knopf stand.
+ *
+ * Frueher sprang jede Aktion auf ihre angestammte Seite — "Fragebogen
+ * verschickt" landete immer im Projekt, auch wenn man den Knopf woanders
+ * gedrueckt hatte. Mit mehreren Ansichten auf dieselben Vorgaenge ist das
+ * ein Sprung aus dem Zusammenhang heraus. Steht kein Ziel im Formular,
+ * bleibt alles wie bisher.
+ */
+function zurueck(string $vorgabe): never { weiter(trim((string) ($_POST['zurueck'] ?? '')) ?: $vorgabe); }
 function ansicht(string $datei, array $daten = []): void {
     // $route steht im aeusseren Gueltigkeitsbereich. Ohne dieses global ist es
     // in layout.php leer — dann steht im Menue immer "Dashboard" hervorgehoben,
@@ -166,7 +177,7 @@ if ($post) {
                 } else {
                     $kid = Events::kundeFinden($daten);
                 }
-                weiter('kunden/' . $kid);
+                zurueck('kunden/' . $kid);
 
             case 'zahlungslink_senden':
                 require_once __DIR__ . '/src/Mail.php';
@@ -192,7 +203,7 @@ if ($post) {
                 Events::melden('zahlungslink', 'Zahlungslink verschickt', 'info',
                     $bst['kunde'] . ' — ' . Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
                     '/bestellungen/' . (int) $bst['id']);
-                weiter('bestellungen/' . (int) ($_POST['order_id'] ?? $bst['id']));
+                zurueck('bestellungen/' . (int) ($_POST['order_id'] ?? $bst['id']));
 
             case 'kunde_nachricht':
                 require_once __DIR__ . '/src/Nachricht.php';
@@ -204,13 +215,13 @@ if ($post) {
                     [$kid], ''), '');
                 Nachricht::vorab($kid, (string) ($_POST['text'] ?? ''), 'admin',
                     $tok ? Anfrage::link((string) $tok) : null);
-                weiter('kunden/' . $kid);
+                zurueck('kunden/' . $kid);
 
             case 'kunde_datei':
                 require_once __DIR__ . '/src/Ablage.php';
                 $kid = (int) ($_POST['id'] ?? 0);
                 Ablage::annehmen($_FILES['datei'] ?? [], null, $kid, 'admin');
-                weiter('kunden/' . $kid);
+                zurueck('kunden/' . $kid);
 
             /* Zwei Wege, einen Kunden loszuwerden — und ein getipptes Wort
                davor. Ein Klick allein ist zu wenig fuer etwas, das sich
@@ -248,12 +259,12 @@ if ($post) {
             case 'anfrage_bestellung':
                 require_once __DIR__ . '/src/Anfrage.php';
                 $bid = Anfrage::zuBestellung((int) ($_POST['id'] ?? 0), (int) ($_POST['paket_id'] ?? 0));
-                weiter('bestellungen/' . $bid);
+                zurueck('bestellungen/' . $bid);
 
             case 'anfrage_status':
                 require_once __DIR__ . '/src/Anfrage.php';
                 Anfrage::status((int) ($_POST['id'] ?? 0), (string) ($_POST['status'] ?? ''));
-                weiter('anfragen/' . (int) ($_POST['id'] ?? 0));
+                zurueck('anfragen/' . (int) ($_POST['id'] ?? 0));
 
             case 'paket_speichern':
                 $daten = [
@@ -304,12 +315,12 @@ if ($post) {
 
             case 'bestellung_status':
                 Events::bestellungStatus((int) $_POST['id'], (string) $_POST['status']);
-                weiter('bestellungen/' . (int) $_POST['id']);
+                zurueck('bestellungen/' . (int) $_POST['id']);
 
             case 'zahlung_bestaetigen':
                 Events::zahlungBestaetigen((int) $_POST['id'], trim((string) ($_POST['referenz'] ?? '')) ?: null,
                     (string) ($_POST['anbieter'] ?? 'manuell'));
-                weiter('bestellungen/' . (int) $_POST['order_id']);
+                zurueck('bestellungen/' . (int) $_POST['order_id']);
 
             case 'zahlungslink':
                 require_once __DIR__ . '/src/Zahlung/Anbieter.php';
@@ -327,15 +338,15 @@ if ($post) {
                 ]);
                 Events::protokoll('zahlungslink', 'Zahlungslink erstellt: ' . ($z['bezeichnung'] ?: 'Zahlung')
                     . ' · ' . Fmt::geld((int) $z['amount_cents']), (int) $b['customer_id'], (int) $b['id']);
-                weiter('bestellungen/' . (int) $b['id']);
+                zurueck('bestellungen/' . (int) $b['id']);
 
             case 'zahlung_fehler':
                 Events::zahlungFehlgeschlagen((int) $_POST['id'], trim((string) ($_POST['grund'] ?? '')));
-                weiter('bestellungen/' . (int) $_POST['order_id']);
+                zurueck('bestellungen/' . (int) $_POST['order_id']);
 
             case 'projekt_status':
                 Events::projektStatus((int) $_POST['id'], (string) $_POST['status']);
-                weiter('projekte/' . (int) $_POST['id']);
+                zurueck('projekte/' . (int) $_POST['id']);
 
             case 'projekt_felder':
                 $pid = (int) $_POST['id'];
@@ -346,7 +357,7 @@ if ($post) {
                 ];
                 Db::update('projects', $pid, $daten);
                 Events::pruefspur('aendern', 'project', $pid, [], $daten);
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'stripe_speichern':
                 require_once __DIR__ . '/src/Einrichtung.php';
@@ -412,7 +423,7 @@ if ($post) {
                     throw new RuntimeException('Die Einladung ging nicht raus. Steht der Brevo-Schlüssel? Ist der Fragebogen schon abgeschlossen?');
                 }
                 $_SESSION['gut'] = 'Fragebogen verschickt.';
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'rechnung_erzeugen':
                 require_once __DIR__ . '/src/Rechnung.php';
@@ -421,7 +432,7 @@ if ($post) {
                 $_SESSION['gut'] = $neu !== null
                     ? Rechnung::bezeichnung() . ' erstellt.'
                     : 'Dazu gibt es schon einen Beleg — oder die Zahlung ist nicht als bezahlt gebucht.';
-                weiter($_POST['zurueck'] ?? 'rechnungen');
+                zurueck($_POST['zurueck'] ?? 'rechnungen');
 
             case 'rechnung_schicken':
                 require_once __DIR__ . '/src/Rechnung.php';
@@ -442,7 +453,7 @@ if ($post) {
                      'antwortAn' => Mail::eigeneAdresse()]);
                 if ($ok) { Db::update('invoices', (int) $r['id'], ['sent_at' => date('Y-m-d H:i:s')]); }
                 $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
-                weiter('rechnungen/' . (int) $r['id']);
+                zurueck('rechnungen/' . (int) $r['id']);
 
             case 'cockpit_schuetzen':
                 require_once __DIR__ . '/src/Cockpit.php';
@@ -597,14 +608,14 @@ if ($post) {
                 $_SESSION['gut'] = Nachricht::restzahlungAnfordern((int) $pr['id'])
                     ? 'Die Restzahlung ist angefordert — der Kunde hat die E-Mail mit dem Zahlungslink.'
                     : 'Nichts zu tun: Entweder ist nichts mehr offen, oder die Anforderung ging schon raus.';
-                weiter('bestellungen/' . $bid);
+                zurueck('bestellungen/' . $bid);
 
             case 'nachricht_senden':
                 require_once __DIR__ . '/src/Nachricht.php';
                 $pid = (int) $_POST['id'];
                 Nachricht::schreiben($pid, (string) ($_POST['text'] ?? ''), 'admin');
                 $_SESSION['gut'] = 'Nachricht ist raus — der Kunde bekommt sie auch per E-Mail.';
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'datei_hoch':
                 require_once __DIR__ . '/src/Ablage.php';
@@ -615,7 +626,7 @@ if ($post) {
                 Events::protokoll('datei_hoch', 'Datei hinterlegt: ' . ($_FILES['datei']['name'] ?? ''),
                     (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
                 $_SESSION['gut'] = 'Datei liegt beim Projekt — der Kunde sieht sie auf seiner Seite.';
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'datei_weg':
                 require_once __DIR__ . '/src/Ablage.php';
@@ -627,7 +638,7 @@ if ($post) {
                     $d['customer_id'] !== null ? (int) $d['customer_id'] : null, null,
                     $d['project_id'] !== null ? (int) $d['project_id'] : null);
                 $_SESSION['gut'] = 'Datei gelöscht.';
-                weiter('projekte/' . (int) $d['project_id']);
+                zurueck('projekte/' . (int) $d['project_id']);
 
             case 'website_speichern':
                 require_once __DIR__ . '/src/Monitoring.php';
@@ -658,7 +669,7 @@ if ($post) {
                 Events::protokoll('website_gespeichert', 'Website hinterlegt: ' . $domain,
                     (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
                 $_SESSION['gut'] = 'Website gespeichert.';
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'website_pruefen':
                 require_once __DIR__ . '/src/Monitoring.php';
@@ -668,7 +679,7 @@ if ($post) {
                 $_SESSION['gut'] = $e['ok']
                     ? 'Erreichbar — ' . (int) $e['pruefung']['ms'] . ' ms, Status ' . (int) $e['pruefung']['status'] . '.'
                     : 'Nicht erreichbar: ' . ($e['pruefung']['fehler'] ?? 'unbekannter Grund');
-                weiter($_POST['zurueck'] ?? 'monitoring');
+                zurueck($_POST['zurueck'] ?? 'monitoring');
 
             case 'cron_jetzt':
                 require_once __DIR__ . '/src/Cron.php';
@@ -685,14 +696,14 @@ if ($post) {
                     'due_date' => ($_POST['due_date'] ?? '') !== '' ? (string) $_POST['due_date'] : null,
                     'sort' => (int) Db::wert('SELECT COALESCE(MAX(sort),0)+1 FROM tasks WHERE project_id = ?', [$pid]),
                 ]);
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'aufgabe_weg':
                 $aid = (int) $_POST['id'];
                 $a = Db::one('SELECT project_id FROM tasks WHERE id = ?', [$aid]);
                 if (!$a) { throw new RuntimeException('Aufgabe nicht gefunden.'); }
                 Db::run('DELETE FROM tasks WHERE id = ?', [$aid]);
-                weiter('projekte/' . (int) $a['project_id']);
+                zurueck('projekte/' . (int) $a['project_id']);
 
             case 'aufgaben_vorlage':
                 // Bei jedem Webdesign-Projekt sind es dieselben Schritte. Sie
@@ -720,19 +731,19 @@ if ($post) {
                     $zahl++;
                 }
                 $_SESSION['gut'] = $zahl > 0 ? "$zahl Aufgaben eingefügt." : 'Die Vorlage steht schon vollständig da.';
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'aufgabe_umschalten':
                 $aid = (int) $_POST['id'];
                 $a = Db::one('SELECT * FROM tasks WHERE id = ?', [$aid]);
                 if (!$a) { throw new RuntimeException('Aufgabe nicht gefunden.'); }
                 Db::update('tasks', $aid, ['done' => (int) $a['done'] === 1 ? 0 : 1]);
-                weiter('projekte/' . (int) $a['project_id']);
+                zurueck('projekte/' . (int) $a['project_id']);
 
             case 'nachrichten_gelesen':
                 $pid = (int) $_POST['id'];
                 Db::run("UPDATE messages SET read_at = NOW() WHERE project_id = ? AND read_at IS NULL AND sender = 'kunde'", [$pid]);
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'beispiel_anlegen':
                 require_once __DIR__ . '/src/Beispieldaten.php';
@@ -759,7 +770,7 @@ if ($post) {
                 if (!$fb) { throw new RuntimeException('Zu diesem Projekt gibt es keinen Fragebogen.'); }
                 Onboarding::token((int) $fb['id']);
                 $_SESSION['gut'] = 'Der Zugangslink steht jetzt unten und lässt sich kopieren.';
-                weiter('projekte/' . $pid);
+                zurueck('projekte/' . $pid);
 
             case 'fragebogen_erinnern':
                 require_once __DIR__ . '/src/Onboarding.php';
@@ -782,6 +793,59 @@ if ($post) {
 
 /* ---------- Ansichten ---------- */
 switch ($route) {
+    /* ------------------------------------------------------------------
+       Heute und Vorgaenge — die neue, kuerzere Art durch dieselben Daten.
+       Die alten Seiten bleiben daneben bestehen; hier entsteht nichts
+       Neues, es wird nur anders gebuendelt.
+       ------------------------------------------------------------------ */
+    case 'heute':
+        require_once __DIR__ . '/src/Vorgang.php';
+        require_once __DIR__ . '/src/Mail.php';
+        require_once __DIR__ . '/src/Anfrage.php';
+        $arbeit = sicher(static fn() => Vorgang::arbeitsliste(), ['du' => [], 'kunde' => [], 'ruht' => []]);
+        $offen  = 0;
+        foreach (array_merge($arbeit['du'], $arbeit['kunde'], $arbeit['ruht']) as $v) {
+            $offen += (int) $v['offen_cent'];
+        }
+        ansicht('heute', [
+            'liste'     => $arbeit,
+            'offenGeld' => $offen,
+            // Nur das, was wirklich klemmt. Info-Meldungen gehoeren nicht
+            // auf eine Arbeitsliste — sonst sieht man den Fehler nicht mehr.
+            'stoerungen' => sicher(static fn() => Db::all(
+                "SELECT * FROM notifications
+                  WHERE read_at IS NULL AND level IN ('warnung','schlecht')
+                  ORDER BY id DESC LIMIT 8")),
+        ]);
+        break;
+
+    case 'vorgaenge':
+        require_once __DIR__ . '/src/Vorgang.php';
+        require_once __DIR__ . '/src/Mail.php';
+        require_once __DIR__ . '/src/Anfrage.php';
+        require_once __DIR__ . '/src/Nachricht.php';
+        if ($unter !== null && $unter !== '') {
+            $v = sicher(static fn() => Vorgang::laden((string) $unter), null);
+            if (!$v) { http_response_code(404); exit('Diesen Vorgang gibt es nicht.'); }
+            // Wer die Seite oeffnet, hat das Gespraech gelesen.
+            if ($v['kunde_id']) {
+                sicher(static fn() => Db::run(
+                    "UPDATE messages SET read_at = NOW()
+                      WHERE customer_id = ? AND sender = 'kunde' AND read_at IS NULL",
+                    [(int) $v['kunde_id']]), 0);
+            }
+            require_once __DIR__ . '/src/Texte.php';
+            require_once __DIR__ . '/src/Onboarding.php';
+            ansicht('vorgang', [
+                'v' => $v,
+                'pakete' => sicher(static fn() => Db::all(
+                    'SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents')),
+            ]);
+            break;
+        }
+        ansicht('vorgaenge', ['liste' => sicher(static fn() => Vorgang::alle(), [])]);
+        break;
+
     case '':
     case 'dashboard':
         ansicht('dashboard', [

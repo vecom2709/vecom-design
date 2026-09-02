@@ -98,6 +98,39 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .anmeldung{max-width:370px;margin:min(16vh,140px) auto;padding:26px}
 .anmeldung .block{padding:24px}
 
+/* ---------------------------------------------------------------------
+   Vorgaenge. Eine Zeile ist ein Kunde und der naechste Handgriff — nicht
+   eine Tabelle mit Spalten, die man erst lesen und dann deuten muss.
+   --------------------------------------------------------------------- */
+.vg{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:13px 0;border-top:1px solid var(--linie)}
+.vg:first-of-type{border-top:0}
+.vg__wer{flex:0 1 250px;min-width:180px}
+.vg__name{font-weight:600;font-size:15px}
+.vg__unter{color:var(--leise);font-size:12.5px;margin-top:2px}
+.vg__warum{flex:2 1 260px;color:var(--dim);font-size:13.5px;line-height:1.5}
+.vg__tun{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.vg__ruht{color:var(--leise);font-size:12px;white-space:nowrap}
+.vg__ruht.lang{color:var(--gelb)}
+
+/* Die Fortschrittsleiste eines Vorgangs. */
+.stufen{display:flex;gap:4px;margin:0 0 18px;flex-wrap:wrap}
+.stufen span{flex:1 1 0;min-width:54px;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--leise);padding-top:7px;border-top:3px solid var(--linie);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stufen span.da{border-top-color:var(--blau);color:var(--dim)}
+.stufen span.jetzt{border-top-color:var(--cyan);color:var(--text);font-weight:650}
+
+/* Der naechste Handgriff — das Erste, was auf einer Vorgangsseite steht. */
+.dran{border:1px solid var(--linie2);border-radius:var(--r);padding:15px 17px;margin-bottom:16px;
+  background:linear-gradient(135deg,rgba(6,72,232,.16),rgba(31,232,255,.05))}
+.dran h2{font-size:13px;font-weight:600;margin-bottom:7px;display:flex;gap:8px;align-items:center}
+.dran p{color:var(--dim);font-size:13.5px;line-height:1.55;margin:0 0 12px}
+.dran.wartet{background:none;border-color:var(--linie)}
+.dran h2 .mehr{margin-left:auto;font-size:12.5px;font-weight:400;color:var(--dim)}
+.dran .tun{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* Wie in form.leiste: Felder bleiben so breit, wie sie sein muessen. */
+.dran .tun input,.dran .tun select{width:auto;min-width:170px}
+
 @media(max-width:900px){
   .zwei{grid-template-columns:1fr}
   .huelle{flex-direction:column}

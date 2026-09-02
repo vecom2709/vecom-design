@@ -18,6 +18,24 @@ final class Fmt
         return $t ? date('d.m.Y', $t) : '—';
     }
 
+    /**
+     * "Montag, 2. September 2026" — auf Deutsch, ohne Locale-Einstellung.
+     *
+     * strftime() ist seit PHP 8.1 abgekuendigt und IntlDateFormatter setzt
+     * eine Erweiterung voraus, die auf diesem Webspace nicht da sein muss.
+     * Zwoelf Woerter sind billiger als eine Abhaengigkeit.
+     */
+    public static function langesDatum(?string $wert = null): string
+    {
+        $t = $wert ? strtotime($wert) : time();
+        if ($t === false) { return '—'; }
+        $tage = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+        $monate = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+                   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+        return $tage[(int) date('w', $t)] . ', ' . (int) date('j', $t) . '. '
+             . $monate[(int) date('n', $t)] . ' ' . date('Y', $t);
+    }
+
     public static function zeit(?string $wert): string
     {
         if (!$wert) { return '—'; }
