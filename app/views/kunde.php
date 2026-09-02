@@ -106,46 +106,18 @@
        Beides steckt in einem zugeklappten Bereich — nichts davon soll
        aus Versehen angeklickt werden.
   ------------------------------------------------------------------- */ ?>
-  <div class="block" style="border-color:rgba(255,138,138,.28)">
-    <h2 style="color:var(--rot)">Kunde entfernen</h2>
-
-    <?php if ($anonym ?? false): ?>
-      <div class="hinweis schlecht" style="margin:0">Dieser Datensatz ist am
-        <?= Fmt::h(Fmt::datum((string) $k['anonym_am'])) ?> anonymisiert worden.
-        Die personenbezogenen Daten sind weg; Bestellungen, Zahlungen und Belege
-        stehen weiter in den Büchern und tragen ihren Empfänger auf dem Dokument.</div>
-
-    <?php else: ?>
-      <p style="color:var(--leise);font-size:13px;margin:0 0 12px;line-height:1.6">
-        Zwei Wege, und sie sind nicht dasselbe. <strong style="color:var(--dim)">Löschen</strong>
-        ist für Testkunden und Vertipper — alles verschwindet.
-        <strong style="color:var(--dim)">Anonymisieren</strong> ist für den echten Kunden,
-        der die Löschung seiner Daten verlangt: Der Mensch verschwindet, die Buchhaltung bleibt.
-        Beides lässt sich nicht rückgängig machen.</p>
-
-      <?php if ($umfang ?? []): ?>
-        <div style="font-size:12.5px;color:var(--leise);border:1px solid var(--linie);
-                    border-radius:10px;padding:10px 12px;margin-bottom:12px">
-          <div style="font-weight:650;color:var(--dim);margin-bottom:6px">An diesem Kunden hängen</div>
-          <?= Fmt::h(Kunde::umfangText($umfang)) ?>
-        </div>
-      <?php endif; ?>
-
-      <?php /* --- Weg 1 --- */ ?>
-      <?php if ($riegel ?? []): ?>
-        <div class="hinweis schlecht" style="margin-bottom:12px">
-          <strong>Löschen ist hier gesperrt.</strong>
-          <ul style="margin:7px 0 0;padding-left:18px">
-            <?php foreach ($riegel as $grund): ?><li style="margin-bottom:4px"><?= Fmt::h($grund) ?></li><?php endforeach; ?>
-          </ul>
-          <div style="margin-top:8px">Nimm den Weg darunter — er entfernt die
-            personenbezogenen Daten und lässt die Belege stehen.</div>
-        </div>
-        <?php /* Der Ausweg fuer den Probelauf. Ein Testbeleg ist kein
-             Dokument, das man aufbewahrt, sondern ein Fehleintrag — und er
-             blockiert den Nummernkreis: Bleibt BE-2026-0001 stehen, faengt
-             der erste echte Beleg bei 0002 an, und eine italienische
-             Nummerierung muss im Jahr lueckenlos sein. */ ?>
+  <?php
+  /**
+   * Der Ausweg fuer den Probelauf — gebraucht an zwei Stellen: wenn das
+   * normale Loeschen an einem Beleg scheitert, und bei einem bereits
+   * anonymisierten Datensatz, wo er der einzige Weg ist, der noch bleibt.
+   * Deshalb einmal geschrieben und zweimal gerufen.
+   */
+  $testweg = static function () use ($k, $belege) {
+    /* Ein Testbeleg ist kein Dokument, das man aufbewahrt, sondern ein
+       Fehleintrag — und er blockiert den Nummernkreis: Bleibt BE-2026-0001
+       stehen, faengt der erste echte Beleg bei 0002 an, und eine
+       italienische Nummerierung muss im Jahr lueckenlos sein. */ ?>
         <details style="border:1px solid rgba(255,138,138,.3);border-radius:10px;padding:10px 12px">
           <summary style="cursor:pointer;font-weight:650;font-size:13.5px;color:var(--rot)">
             Es war nur ein Testlauf — alles weg, auch die Belege</summary>
@@ -182,6 +154,49 @@
               Testdaten endgültig löschen</button>
           </form>
         </details>
+  <?php };   /* Ende des Bausteins — PHP wurde oben fuer das HTML verlassen */ ?>
+
+  <div class="block" style="border-color:rgba(255,138,138,.28)">
+    <h2 style="color:var(--rot)">Kunde entfernen</h2>
+
+    <?php if ($anonym ?? false): ?>
+      <div class="hinweis schlecht" style="margin:0 0 12px">Dieser Datensatz ist am
+        <?= Fmt::h(Fmt::datum((string) $k['anonym_am'])) ?> anonymisiert worden.
+        Die personenbezogenen Daten sind weg; Bestellungen, Zahlungen und Belege
+        stehen weiter in den Büchern und tragen ihren Empfänger auf dem Dokument.</div>
+      <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:0 0 12px">
+        Damit bleibt er in der Liste stehen — und das ist bei einem echten Kunden auch
+        richtig so. War es dein eigener Probelauf, geht er unten ganz weg.</p>
+      <?php $testweg(); ?>
+
+    <?php else: ?>
+      <p style="color:var(--leise);font-size:13px;margin:0 0 12px;line-height:1.6">
+        Zwei Wege, und sie sind nicht dasselbe. <strong style="color:var(--dim)">Löschen</strong>
+        ist für Testkunden und Vertipper — alles verschwindet.
+        <strong style="color:var(--dim)">Anonymisieren</strong> ist für den echten Kunden,
+        der die Löschung seiner Daten verlangt: Der Mensch verschwindet, die Buchhaltung bleibt.
+        Beides lässt sich nicht rückgängig machen.</p>
+
+      <?php if ($umfang ?? []): ?>
+        <div style="font-size:12.5px;color:var(--leise);border:1px solid var(--linie);
+                    border-radius:10px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-weight:650;color:var(--dim);margin-bottom:6px">An diesem Kunden hängen</div>
+          <?= Fmt::h(Kunde::umfangText($umfang)) ?>
+        </div>
+      <?php endif; ?>
+
+      <?php /* --- Weg 1 --- */ ?>
+      <?php if ($riegel ?? []): ?>
+        <div class="hinweis schlecht" style="margin-bottom:12px">
+          <strong>Löschen ist hier gesperrt.</strong>
+          <ul style="margin:7px 0 0;padding-left:18px">
+            <?php foreach ($riegel as $grund): ?><li style="margin-bottom:4px"><?= Fmt::h($grund) ?></li><?php endforeach; ?>
+          </ul>
+          <div style="margin-top:8px">Nimm den Weg darunter — er entfernt die
+            personenbezogenen Daten und lässt die Belege stehen.</div>
+        </div>
+        <?php $testweg(); ?>
+
       <?php else: ?>
         <details style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px;margin-bottom:10px">
           <summary style="cursor:pointer;font-weight:650;font-size:13.5px">Vollständig löschen</summary>
