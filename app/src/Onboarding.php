@@ -47,6 +47,19 @@ final class Onboarding
         return $basis . '/fragebogen.php?t=' . rawurlencode($token);
     }
 
+    /**
+     * Der Link fuer die E-Mail. Er zeigt auf die eine Kundenseite, nicht
+     * direkt auf den Fragebogen: Der Kunde soll sich eine Adresse merken,
+     * und dort steht der Fragebogen als erster Knopf. Geht das schief,
+     * bekommt er weiterhin den direkten Fragebogenlink.
+     */
+    private static function mailLink(int $kundeId, int $fragebogenId): string
+    {
+        require_once __DIR__ . '/Kundenzugang.php';
+        try { return Kundenzugang::linkFuer($kundeId); }
+        catch (Throwable $e) { return self::link(self::token($fragebogenId)); }
+    }
+
     /** Fragebogen samt Kunde und Projekt anhand des Zugangsschluessels. */
     public static function laden(string $token): ?array
     {
@@ -113,7 +126,7 @@ final class Onboarding
             'name'   => (string) $f['kunde'],
             'paket'  => (string) ($f['paket'] ?? ''),
             'betrag' => Fmt::geld($betrag),
-            'link'   => self::link(self::token((int) $f['id'])),
+            'link'   => self::mailLink((int) $f['customer_id'], (int) $f['id']),
         ]);
 
         $ok = Mail::senden('zahlung_ok', (string) $f['kunde_email'], $betreff, $text, [
@@ -166,7 +179,7 @@ final class Onboarding
             [$betreff, $text] = Texte::mail('fragebogen_erinnerung', self::sprache($f), [
                 'name'  => (string) $f['kunde'],
                 'paket' => (string) ($f['paket'] ?? ''),
-                'link'  => self::link(self::token((int) $f['id'])),
+                'link'  => self::mailLink((int) $f['customer_id'], (int) $f['id']),
             ]);
             $ok = Mail::senden('fragebogen_erinnerung', (string) $f['kunde_email'], $betreff, $text, [
                 'customer_id' => (int) $f['customer_id'],
@@ -242,7 +255,18 @@ final class Onboarding
      */
     public static function absenden(int $fragebogenId, array $antworten): void
     {
+        // Zusammenfuehren, nicht ersetzen — genau wie beim Zwischenspeichern.
+        // Der Fragebogen laeuft in Abschnitten: Beim letzten Abschnitt schickt
+        // der Browser nur dessen Felder mit. Ohne diese Zeilen wuerden die
+        // ersten drei Abschnitte im Moment des Absendens geloescht.
+        $alt = [];
+        $vorher = Db::one('SELECT data FROM questionnaires WHERE id = ?', [$fragebogenId]);
+        if ($vorher && $vorher['data']) { $alt = json_decode((string) $vorher['data'], true) ?: []; }
+
         $daten = self::saeubern($antworten);
+        foreach ($alt as $name => $wert) {
+            if (!array_key_exists($name, $antworten)) { $daten[$name] = $wert; }
+        }
 
         $f = Db::transaktion(static function () use ($fragebogenId, $daten) {
             $f = Db::one('SELECT * FROM questionnaires WHERE id = ?', [$fragebogenId]);

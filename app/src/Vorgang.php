@@ -404,7 +404,15 @@ final class Vorgang
             "SELECT COUNT(*) FROM messages WHERE customer_id = ? AND sender = 'kunde' AND read_at IS NULL",
             [$kid]) : 0;
 
-        // Die beiden Adressen, die der Kunde bekommen hat.
+        // Die eine Adresse des Kunden. Alles, was er per E-Mail bekommt,
+        // zeigt hierher; die beiden alten Links leiten dorthin weiter.
+        $v['link_kunde'] = '';
+        if ($kid !== null) {
+            require_once __DIR__ . '/Kundenzugang.php';
+            $v['link_kunde'] = (string) self::still(static fn() => Kundenzugang::linkFuer($kid), '');
+        }
+
+        // Die beiden alten Adressen — nur noch zur Kontrolle.
         $v['link_anfrage'] = '';
         if ($v['anfrage_token'] !== '') {
             $v['link_anfrage'] = self::still(static fn() => Anfrage::link($v['anfrage_token']), '');

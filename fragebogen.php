@@ -7,8 +7,17 @@ declare(strict_types=1);
    Zufallsschluessel und oeffnet genau diesen einen Fragebogen. Wer den Link
    nicht hat, sieht nichts — wer ihn hat, muss sich nichts merken.
 
-   Zwei Knoepfe: zwischenspeichern (der Link bleibt gueltig) und endgueltig
-   absenden (dann rueckt das Projekt weiter und ich bekomme Bescheid).
+   WARUM IN ABSCHNITTEN
+
+   Vorher standen einundzwanzig Felder auf einer Seite. Wer das auf dem Handy
+   oeffnet, sieht eine Wand und macht sie zu. Jetzt sind es vier kurze
+   Schritte mit fuenf bis sechs Feldern, und zwischen den Schritten wird
+   gespeichert — ohne dass der Kunde an einen Knopf denken muss. Er kann
+   jederzeit zumachen und mit demselben Link an derselben Stelle weiter.
+
+   Nach jedem Schreiben wird umgeleitet (POST → Redirect → GET). Dann laesst
+   sich die Seite neu laden, ohne dass etwas doppelt passiert, und der Zurueck-
+   Knopf des Browsers tut, was er soll.
 
    Das ist eine oeffentliche Adresse. Sie zeigt im Zweifel eine Meldung,
    niemals eine leere Seite und niemals eine Fehlermeldung aus der Datenbank.
@@ -21,6 +30,7 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 require_once __DIR__ . '/app/src/Onboarding.php';
+require_once __DIR__ . '/app/src/Kundenzugang.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecomfragebogen');
@@ -31,6 +41,7 @@ session_start();
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, private');
 header('X-Robots-Tag: noindex, nofollow');
+header('X-Content-Type-Options: nosniff');
 
 $token = trim((string) ($_REQUEST['t'] ?? ''));
 $f = null;
@@ -56,37 +67,60 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
 $basis   = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 $zurueck = $basis . ($sprache === 'it' ? '/' : "/$sprache/");
 
-/* ---------- Absenden ---------- */
-$zustand = null;          // 'gespeichert' oder 'danke'
-$fehler  = [];
+/* Zurueck zur einen Kundenseite — dorthin, wo der Kunde hergekommen ist. */
+$heim = $zurueck;
+if ($f) {
+    try { $heim = Kundenzugang::linkFuer((int) $f['customer_id']); } catch (Throwable $e) { /* dann die Startseite */ }
+}
 
+/* ---------- Die vier Abschnitte ---------- */
+$abschnitte = array_keys(Texte::FRAGEBOGEN);
+$anzahl     = count($abschnitte);
+
+$adresse = static function (int $schritt, string $meldung = '') use ($token, $sprache): string {
+    $u = 'fragebogen.php?t=' . rawurlencode($token) . '&lang=' . rawurlencode($sprache) . '&schritt=' . $schritt;
+    return $meldung !== '' ? $u . '&m=' . rawurlencode($meldung) : $u;
+};
+
+/* ---------- Schreiben, dann umleiten ---------- */
 if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $jetzt = max(1, min($anzahl, (int) ($_POST['schritt'] ?? 1)));
+
     if (empty($_SESSION['csrf']) || !hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
-        $fehler[] = $S('panne');
-    } elseif ($f['status'] === 'abgeschlossen') {
-        $zustand = 'schon';
-    } else {
-        $endgueltig = ($_POST['tat'] ?? '') === 'absenden';
-        try {
-            if ($endgueltig && trim((string) ($_POST['firmenname'] ?? '')) === '') {
-                $fehler[] = $S('pflicht');
+        header('Location: ' . $adresse($jetzt, 'panne')); exit;
+    }
+    if ($f['status'] === 'abgeschlossen') {
+        header('Location: ' . $adresse(1, 'schon')); exit;
+    }
+
+    $tat = (string) ($_POST['tat'] ?? 'weiter');
+    try {
+        if ($tat === 'absenden') {
+            // Der Firmenname steht im ersten Abschnitt. Beim Absenden kommt er
+            // nicht mehr mit — also gegen das pruefen, was gespeichert ist.
+            $bisher = [];
+            if ($f['data'] !== null && $f['data'] !== '') { $bisher = json_decode((string) $f['data'], true) ?: []; }
+            $name = trim((string) ($_POST['firmenname'] ?? ($bisher['firmenname'] ?? '')));
+            if ($name === '') {
                 Onboarding::speichern((int) $f['id'], $_POST);
-            } elseif ($endgueltig) {
-                Onboarding::absenden((int) $f['id'], $_POST);
-                $zustand = 'danke';
-            } else {
-                Onboarding::speichern((int) $f['id'], $_POST);
-                $zustand = 'gespeichert';
+                header('Location: ' . $adresse(1, 'pflicht')); exit;
             }
-        } catch (Throwable $e) {
-            $fehler[] = $S('panne');
-            try {
-                Events::melden('fragebogen_fehler', 'Fragebogen konnte nicht gespeichert werden', 'schlecht',
-                    $e->getMessage(), '/projekte/' . (int) $f['project_id']);
-            } catch (Throwable $e2) { /* dann eben nicht */ }
+            Onboarding::absenden((int) $f['id'], $_POST);
+            header('Location: ' . $adresse(1, 'danke')); exit;
         }
-        // Nach dem Schreiben frisch lesen: Das Formular zeigt, was wirklich steht.
-        try { $f = Onboarding::laden($token) ?? $f; } catch (Throwable $e) { /* Anzeige reicht */ }
+
+        Onboarding::speichern((int) $f['id'], $_POST);
+
+        if ($tat === 'zurueck')      { header('Location: ' . $adresse(max(1, $jetzt - 1))); exit; }
+        if ($tat === 'pause')        { header('Location: ' . $adresse($jetzt, 'gespeichert')); exit; }
+        header('Location: ' . $adresse(min($anzahl, $jetzt + 1))); exit;
+
+    } catch (Throwable $e) {
+        try {
+            Events::melden('fragebogen_fehler', 'Fragebogen konnte nicht gespeichert werden', 'schlecht',
+                $e->getMessage(), '/projekte/' . (int) $f['project_id']);
+        } catch (Throwable $e2) { /* dann eben nicht */ }
+        header('Location: ' . $adresse($jetzt, 'panne')); exit;
     }
 }
 
@@ -96,9 +130,25 @@ $daten = [];
 if ($f && $f['data'] !== null && $f['data'] !== '') {
     $daten = json_decode((string) $f['data'], true) ?: [];
 }
-$fertig = $f && ($f['status'] === 'abgeschlossen' || $zustand === 'danke');
 
-/* Wie viele Felder schon ausgefuellt sind — ein kleiner Anreiz, weiterzumachen. */
+$m      = (string) ($_GET['m'] ?? '');
+$fertig = $f && ($f['status'] === 'abgeschlossen' || $m === 'danke');
+
+/* Wo geht es weiter? Beim ersten Abschnitt, in dem noch nichts steht — wer
+   zurueckkommt, landet dort, wo er aufgehoert hat, nicht wieder ganz vorn. */
+$vorschlag = 1;
+foreach ($abschnitte as $i => $name) {
+    $leer = true;
+    foreach (array_keys(Texte::FRAGEBOGEN[$name]['felder']) as $feldName) {
+        if (trim((string) ($daten[$feldName] ?? '')) !== '') { $leer = false; break; }
+    }
+    if ($leer) { $vorschlag = $i + 1; break; }
+    $vorschlag = min($anzahl, $i + 2);
+}
+$schritt = isset($_GET['schritt']) ? max(1, min($anzahl, (int) $_GET['schritt'])) : $vorschlag;
+$name    = $abschnitte[$schritt - 1];
+$inhalt  = Texte::FRAGEBOGEN[$name];
+
 $gesamtFelder = count(Onboarding::felder());
 $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !== ''));
 ?><!doctype html>
@@ -113,7 +163,24 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
 <link rel="stylesheet" href="/assets/css/kunde.css">
 <style>
   .lead{color:var(--dim); font-size:15px; line-height:1.65}
-  .abschnitt + .abschnitt{margin-top:6px}
+  /* Ein eigener Kopf statt der Kopfzeile aus der gemeinsamen Datei: Die
+     stellt alles nebeneinander, und nebeneinander ist auf dem Handy
+     untereinander mit Gewalt. */
+  .fbkopf{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--linie)}
+  /* Vier Punkte statt eines Prozentbalkens: Man sieht auf einen Blick,
+     wie viel noch kommt — und dass es wenig ist. */
+  .punkte{display:flex;gap:6px;margin:14px 0 4px;list-style:none;padding:0}
+  .punkte li{flex:1 1 0;height:4px;border-radius:2px;background:var(--linie)}
+  .punkte li.durch{background:var(--blau)}
+  .punkte li.jetzt{background:var(--cyan)}
+  .zaehler{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
+  .beiseite{color:var(--leise);font-size:12.5px;line-height:1.6;margin-top:10px}
+  .leiste2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .leiste2 .rechts{margin-left:auto}
+  /* Auf dem Rechner haben Knoepfe ihre eigene Breite, auf dem Handy die
+     volle — dort trifft der Daumen sonst daneben. */
+  .leiste2 .knopf{flex:0 1 auto;min-width:0;padding-left:26px;padding-right:26px}
+  @media (max-width:520px){ .leiste2 .knopf{flex:1 1 auto} .leiste2 .rechts{display:none} }
 </style>
 </head>
 <body>
@@ -137,67 +204,85 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
 
 <?php elseif ($fertig): ?>
   <div class="block">
-    <div class="hinweis gut"><?= $h($zustand === 'danke' ? $S('danke') : $S('schon')) ?></div>
+    <div class="hinweis gut"><?= $h($m === 'danke' ? $S('danke') : $S('schon')) ?></div>
     <p style="color:var(--dim);font-size:14px"><?= $h((string) $f['projekt']) ?></p>
-    <a class="knopf haupt" style="margin-top:12px" href="<?= $h($zurueck) ?>">Vecom Design</a>
+    <a class="knopf haupt" style="margin-top:12px" href="<?= $h($heim) ?>"><?= $h(Texte::h(Texte::PROJEKT['titel'] ?? [], $sprache, 'Dein Projekt')) ?></a>
   </div>
-  <?php foreach (Texte::FRAGEBOGEN as $abschnitt => $inhalt): ?>
-    <?php $hat = array_filter($inhalt['felder'], static fn($_, $n) => trim((string) ($daten[$n] ?? '')) !== '', ARRAY_FILTER_USE_BOTH); ?>
+  <?php foreach (Texte::FRAGEBOGEN as $abschnitt => $teil): ?>
+    <?php $hat = array_filter($teil['felder'], static fn($_, $n) => trim((string) ($daten[$n] ?? '')) !== '', ARRAY_FILTER_USE_BOTH); ?>
     <?php if ($hat): ?>
-      <div class="block"><h2 style="margin-bottom:12px"><?= $h(Texte::h($inhalt, $sprache)) ?></h2>
+      <div class="block"><h2 style="margin-bottom:12px"><?= $h(Texte::h($teil, $sprache)) ?></h2>
         <table><tbody>
-        <?php foreach ($hat as $name => $feld): ?>
+        <?php foreach ($hat as $feldName => $feld): ?>
           <tr><td style="width:38%"><?= $h(Texte::h($feld, $sprache)) ?></td>
-              <td><div class="antwort"><?= $h((string) $daten[$name]) ?></div></td></tr>
+              <td><div class="antwort"><?= $h((string) $daten[$feldName]) ?></div></td></tr>
         <?php endforeach; ?>
         </tbody></table></div>
     <?php endif; ?>
   <?php endforeach; ?>
 
 <?php else: ?>
-  <div class="kopfzeile">
-    <h1 style="font-size:21px"><?= $h($S('titel')) ?></h1>
-    <p><?= $h($S('lead')) ?></p>
-    <div class="balken"><i style="width:<?= $gesamtFelder ? (int) round($gefuellt / $gesamtFelder * 100) : 0 ?>%"></i></div>
-    <div class="stand"><?= (int) $gefuellt ?> / <?= (int) $gesamtFelder ?></div>
+  <div class="fbkopf">
+    <h1 style="font-size:21px;margin:0 0 6px"><?= $h($S('titel')) ?></h1>
+    <p class="lead" style="margin:0"><?= $h($S('lead')) ?></p>
+    <ul class="punkte">
+      <?php foreach ($abschnitte as $i => $_): ?>
+        <li class="<?= $i + 1 < $schritt ? 'durch' : ($i + 1 === $schritt ? 'jetzt' : '') ?>"></li>
+      <?php endforeach; ?>
+    </ul>
+    <div class="zaehler"><?= $h(strtr($S('schritt'), ['{n}' => (string) $schritt, '{g}' => (string) $anzahl])) ?></div>
   </div>
 
-  <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
-  <?php if ($zustand === 'gespeichert'): ?><div class="hinweis gut"><?= $h($S('gespeichert')) ?></div><?php endif; ?>
+  <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($S('panne')) ?></div><?php endif; ?>
+  <?php if ($m === 'pflicht'): ?><div class="hinweis schlecht"><?= $h($S('pflicht')) ?></div><?php endif; ?>
+  <?php if ($m === 'gespeichert'): ?><div class="hinweis gut"><?= $h($S('gespeichert')) ?></div><?php endif; ?>
 
   <form method="post" action="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
     <input type="hidden" name="t" value="<?= $h($token) ?>">
     <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
-
-    <?php foreach (Texte::FRAGEBOGEN as $abschnitt => $inhalt): ?>
-      <div class="block">
-        <h2><?= $h(Texte::h($inhalt, $sprache)) ?></h2>
-        <?php foreach ($inhalt['felder'] as $name => $feld): ?>
-          <div class="feld">
-            <label for="f_<?= $h($name) ?>"><?= $h(Texte::h($feld, $sprache)) ?><?= $name === 'firmenname' ? ' *' : '' ?></label>
-            <?php if ($feld['art'] === 'lang'): ?>
-              <textarea id="f_<?= $h($name) ?>" name="<?= $h($name) ?>" rows="3"><?= $h((string) ($daten[$name] ?? '')) ?></textarea>
-            <?php else: ?>
-              <input id="f_<?= $h($name) ?>" name="<?= $h($name) ?>" value="<?= $h((string) ($daten[$name] ?? '')) ?>">
-            <?php endif; ?>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endforeach; ?>
+    <input type="hidden" name="schritt" value="<?= (int) $schritt ?>">
 
     <div class="block">
+      <h2><?= $h(Texte::h($inhalt, $sprache)) ?></h2>
+      <p class="beiseite" style="margin-top:0"><?= $h($S('leerOk')) ?></p>
+      <?php foreach ($inhalt['felder'] as $feldName => $feld): ?>
+        <div class="feld">
+          <label for="f_<?= $h($feldName) ?>"><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
+          <?php if ($feld['art'] === 'lang'): ?>
+            <textarea id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" rows="3"><?= $h((string) ($daten[$feldName] ?? '')) ?></textarea>
+          <?php else: ?>
+            <input id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" value="<?= $h((string) ($daten[$feldName] ?? '')) ?>">
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+
+    <div class="block">
+      <?php if ($schritt === $anzahl): ?><p class="beiseite" style="margin-top:0"><?= $h($S('letzter')) ?></p><?php endif; ?>
       <div class="leiste2">
-        <button class="knopf" name="tat" value="speichern"><?= $h($S('speichern')) ?></button>
-        <button class="knopf haupt" name="tat" value="absenden"><?= $h($S('absenden')) ?></button>
+        <?php if ($schritt > 1): ?>
+          <button class="knopf" name="tat" value="zurueck"><?= $h($S('zurueck')) ?></button>
+        <?php endif; ?>
+        <span class="rechts"></span>
+        <?php if ($schritt < $anzahl): ?>
+          <button class="knopf haupt" name="tat" value="weiter"><?= $h($S('weiter')) ?></button>
+        <?php else: ?>
+          <button class="knopf" name="tat" value="pause"><?= $h($S('speichern')) ?></button>
+          <button class="knopf haupt" name="tat" value="absenden"><?= $h($S('absenden')) ?></button>
+        <?php endif; ?>
       </div>
+      <p class="beiseite"><?= $h($S('autoOk')) ?>
+        <?php if ($gefuellt > 0 && $gesamtFelder > 0): ?>
+          · <?= (int) $gefuellt ?>/<?= (int) $gesamtFelder ?>
+        <?php endif; ?></p>
     </div>
   </form>
 
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
       <a class="<?= $l === $sprache ? 'jetzt' : '' ?>"
-         href="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $l ?>"><?= $h($wie) ?></a>
+         href="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $l ?>&amp;schritt=<?= (int) $schritt ?>"><?= $h($wie) ?></a>
     <?php endforeach; ?>
   </div>
 <?php endif; ?>

@@ -54,9 +54,9 @@ final class Texte
 
     public const SEITE = [
         'titel'      => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
-        'lead'       => ['it' => 'Più cose ci racconti, meno domande dovremo farti dopo. Puoi salvare e continuare più tardi.',
-                         'de' => 'Je mehr du uns erzählst, desto weniger müssen wir später nachfragen. Du kannst zwischendurch speichern und später weitermachen.',
-                         'en' => 'The more you tell us, the fewer questions we’ll need later. You can save and come back any time.'],
+        'lead'       => ['it' => 'Quattro passi brevi, circa dieci minuti. Più cose ci racconti, meno domande dovremo farti dopo.',
+                         'de' => 'Vier kurze Schritte, etwa zehn Minuten. Je mehr du uns erzählst, desto weniger müssen wir später nachfragen.',
+                         'en' => 'Four short steps, about ten minutes. The more you tell us, the fewer questions we’ll need later.'],
         'speichern'  => ['it' => 'Salva e continua dopo', 'de' => 'Zwischenspeichern', 'en' => 'Save for later'],
         'absenden'   => ['it' => 'Invia definitivamente', 'de' => 'Endgültig absenden', 'en' => 'Send'],
         'gespeichert'=> ['it' => 'Salvato. Puoi tornare quando vuoi con lo stesso link.',
@@ -71,6 +71,21 @@ final class Texte
         'panne'      => ['it' => 'Qualcosa non ha funzionato. Riprova tra poco — oppure scrivici e ce ne occupiamo noi.',
                          'de' => 'Da hat etwas nicht geklappt. Versuch es gleich noch einmal — oder schreib uns, dann kümmern wir uns.',
                          'en' => 'Something went wrong. Please try again shortly — or write to us and we’ll sort it out.'],
+
+        /* Der Fragebogen laeuft in Abschnitten. Vier kurze Seiten statt einer
+           langen — und zwischen den Seiten wird gespeichert, ohne dass der
+           Kunde daran denken muss. */
+        'schritt'    => ['it' => 'Passo {n} di {g}', 'de' => 'Schritt {n} von {g}', 'en' => 'Step {n} of {g}'],
+        'weiter'     => ['it' => 'Avanti', 'de' => 'Weiter', 'en' => 'Continue'],
+        'zurueck'    => ['it' => 'Indietro', 'de' => 'Zurück', 'en' => 'Back'],
+        'letzter'    => ['it' => 'Ultimo passo — poi hai finito.', 'de' => 'Letzter Schritt — dann bist du durch.', 'en' => 'Last step — then you’re done.'],
+        'leerOk'     => ['it' => 'Quello che non sai, lascialo pure vuoto.',
+                         'de' => 'Was du nicht weißt, lass einfach leer.',
+                         'en' => 'Leave anything you don’t know blank.'],
+        'autoOk'     => ['it' => 'Salviamo automaticamente a ogni passo. Puoi chiudere e tornare quando vuoi.',
+                         'de' => 'Wir speichern bei jedem Schritt automatisch. Du kannst zumachen und später zurückkommen.',
+                         'en' => 'We save at every step. You can close this and come back any time.'],
+        'weiterMachen' => ['it' => 'Continua il questionario', 'de' => 'Fragebogen weiter ausfüllen', 'en' => 'Continue the questionnaire'],
     ];
 
     /** Die Seite, auf der der Kunde seinem Projekt zusieht. */
@@ -119,6 +134,109 @@ final class Texte
     ];
 
     /** Die Stufen des Projekts, wie der Kunde sie sieht. */
+    /**
+     * Die eine Kundenseite (kunde.php).
+     *
+     * Acht Stufen, in der Sprache des Kunden — nicht in Uwes. "In Arbeit"
+     * heisst fuer ihn "Wir bauen", und was fuer Uwe "Angebot" ist, ist fuer
+     * den Kunden die Anzahlung. Zu jeder Stufe genau ein Satz, was jetzt
+     * dran ist, und ob er selbst etwas tun muss.
+     */
+    public const KUNDE = [
+        'hallo'      => ['it' => 'Ciao {name}', 'de' => 'Hallo {name}', 'en' => 'Hi {name}'],
+        'titel'      => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
+        'duBistDran' => ['it' => 'Tocca a te', 'de' => 'Jetzt bist du dran', 'en' => 'Over to you'],
+        'wirSindDran'=> ['it' => 'Ci pensiamo noi', 'de' => 'Wir sind dran', 'en' => 'We are on it'],
+        'nichtsOffen'=> ['it' => 'Tutto a posto', 'de' => 'Alles erledigt', 'en' => 'All done'],
+        'gespraech'  => ['it' => 'Scrivici', 'de' => 'Schreib uns', 'en' => 'Write to us'],
+        'gespraechHilfe' => [
+            'it' => 'Qui rispondiamo — di solito entro un giorno lavorativo.',
+            'de' => 'Hier antworten wir dir — meist innerhalb eines Werktags.',
+            'en' => 'We answer here — usually within one working day.'],
+        /* "Unterlagen" und "Dateien" standen frueher untereinander und klangen
+           gleich. Das eine sind Belege von uns, das andere sein Material. */
+        'unterlagen' => ['it' => 'Ricevute e fatture', 'de' => 'Belege und Rechnungen', 'en' => 'Receipts and invoices'],
+        'dateien'    => ['it' => 'Il tuo materiale', 'de' => 'Dein Material', 'en' => 'Your material'],
+        'dateienHilfe' => [
+            'it' => 'Logo, foto, testi — quello che serve per il sito.',
+            'de' => 'Logo, Fotos, Texte — alles, was für die Seite gebraucht wird.',
+            'en' => 'Logo, photos, copy — whatever the site needs.'],
+        'hochladen'  => ['it' => 'Carica', 'de' => 'Hochladen', 'en' => 'Upload'],
+        'deineSeite' => ['it' => 'Il tuo sito', 'de' => 'Deine Website', 'en' => 'Your website'],
+        'entwurfAnsehen' => ['it' => 'Guarda l’anteprima', 'de' => 'Entwurf ansehen', 'en' => 'View the draft'],
+        'seiteAnsehen'   => ['it' => 'Apri il sito', 'de' => 'Website öffnen', 'en' => 'Open the site'],
+        'aenderung'  => ['it' => 'Vorrei una modifica', 'de' => 'Ich möchte etwas ändern', 'en' => 'I’d like a change'],
+        'aenderungHilfe' => [
+            'it' => 'Scrivi cosa cambiare. Ti diciamo se rientra nella manutenzione o cosa costa.',
+            'de' => 'Schreib, was anders soll. Wir sagen dir, ob es zur Betreuung gehört oder was es kostet.',
+            'en' => 'Tell us what should change. We’ll say whether it’s covered or what it costs.'],
+        'lesenswert' => [
+            'it' => 'Questa pagina resta tua. Salvala tra i preferiti — la trovi sempre qui, anche fra mesi.',
+            'de' => 'Diese Seite bleibt deine. Leg sie dir als Lesezeichen an — du findest sie hier auch noch in Monaten.',
+            'en' => 'This page stays yours. Bookmark it — it will still be here months from now.'],
+        'nichtGefunden' => [
+            'it' => 'Questo link non è valido. Scrivici e te ne mandiamo uno nuovo.',
+            'de' => 'Dieser Link gilt nicht mehr. Schreib uns kurz, dann schicken wir dir einen neuen.',
+            'en' => 'This link is no longer valid. Write to us and we’ll send a new one.'],
+    ];
+
+    /**
+     * Was auf jeder Stufe dransteht — Ueberschrift, ein Satz, und wer
+     * handeln muss. "kunde" heisst: Er selbst. "wir" heisst: Er wartet.
+     */
+    public const KUNDE_STUFEN = [
+        'anfrage'  => ['wer' => 'wir',
+            'kurz' => ['it' => 'Richiesta', 'de' => 'Anfrage', 'en' => 'Enquiry'],
+            'it' => 'La tua richiesta è arrivata', 'de' => 'Deine Anfrage ist da', 'en' => 'We have your enquiry',
+            'text' => ['it' => 'La stiamo guardando e ti scriviamo con una proposta.',
+                       'de' => 'Wir sehen sie uns an und melden uns mit einem Vorschlag.',
+                       'en' => 'We’re looking at it and will come back with a proposal.']],
+        'angebot'  => ['wer' => 'kunde',
+            'kurz' => ['it' => 'Acconto', 'de' => 'Anzahlung', 'en' => 'Deposit'],
+            'it' => 'Il tuo preventivo', 'de' => 'Dein Angebot steht', 'en' => 'Your quote is ready',
+            'text' => ['it' => 'Con l’acconto iniziamo. Il pagamento avviene su una pagina di Stripe.',
+                       'de' => 'Mit der Anzahlung fangen wir an. Bezahlt wird auf einer Seite von Stripe.',
+                       'en' => 'The deposit gets us started. Payment happens on a Stripe page.']],
+        'angaben'  => ['wer' => 'kunde',
+            'kurz' => ['it' => 'Dati', 'de' => 'Angaben', 'en' => 'Details'],
+            'it' => 'Adesso servono le tue informazioni', 'de' => 'Jetzt brauchen wir deine Angaben',
+            'en' => 'Now we need your details',
+            'text' => ['it' => 'Poche domande sulla tua azienda e sul sito. Puoi interrompere e riprendere.',
+                       'de' => 'Ein paar Fragen zu deinem Betrieb und zur Seite. Du kannst zwischendurch aufhören und später weitermachen.',
+                       'en' => 'A few questions about your business and the site. You can stop and continue later.']],
+        'arbeit'   => ['wer' => 'wir',
+            'kurz' => ['it' => 'In corso', 'de' => 'Bau', 'en' => 'Build'],
+            'it' => 'Stiamo costruendo', 'de' => 'Wir bauen deine Seite', 'en' => 'We’re building your site',
+            'text' => ['it' => 'Ti avvisiamo appena c’è qualcosa da guardare.',
+                       'de' => 'Wir melden uns, sobald es etwas zu sehen gibt.',
+                       'en' => 'We’ll let you know as soon as there’s something to look at.']],
+        'entwurf'  => ['wer' => 'kunde',
+            'kurz' => ['it' => 'Anteprima', 'de' => 'Entwurf', 'en' => 'Draft'],
+            'it' => 'La tua anteprima è pronta', 'de' => 'Dein Entwurf ist fertig', 'en' => 'Your draft is ready',
+            'text' => ['it' => 'Guardala con calma. Va bene così? Scrivicelo. Vuoi cambiare qualcosa? Anche.',
+                       'de' => 'Sieh sie dir in Ruhe an. Passt sie? Schreib uns. Soll etwas anders? Auch.',
+                       'en' => 'Take your time. Happy with it? Tell us. Want changes? Tell us too.']],
+        'freigabe' => ['wer' => 'kunde',
+            'kurz' => ['it' => 'Saldo', 'de' => 'Restzahlung', 'en' => 'Balance'],
+            'it' => 'Manca solo il saldo', 'de' => 'Es fehlt nur noch die Restzahlung',
+            'en' => 'Only the balance is left',
+            'text' => ['it' => 'Appena arriva, mettiamo il sito online.',
+                       'de' => 'Sobald sie da ist, stellen wir die Seite online.',
+                       'en' => 'As soon as it arrives, we put the site live.']],
+        'online'   => ['wer' => 'niemand',
+            'kurz' => ['it' => 'Online', 'de' => 'Online', 'en' => 'Live'],
+            'it' => 'Il tuo sito è online', 'de' => 'Deine Website ist online', 'en' => 'Your site is live',
+            'text' => ['it' => 'Tienila d’occhio noi. Se vuoi cambiare qualcosa, scrivi qui sotto.',
+                       'de' => 'Wir haben ein Auge darauf. Wenn du etwas ändern willst, schreib es unten.',
+                       'en' => 'We keep an eye on it. If you want a change, write below.']],
+        'fertig'   => ['wer' => 'niemand',
+            'kurz' => ['it' => 'Concluso', 'de' => 'Fertig', 'en' => 'Done'],
+            'it' => 'Progetto concluso', 'de' => 'Projekt abgeschlossen', 'en' => 'Project completed',
+            'text' => ['it' => 'Grazie. Se ti serve qualcosa, siamo qui.',
+                       'de' => 'Danke dir. Wenn du etwas brauchst, sind wir da.',
+                       'en' => 'Thank you. If you need anything, we’re here.']],
+    ];
+
     public const PROJEKT_STAND = [
         'bestellung_eingegangen' => ['it' => 'Ordine ricevuto', 'de' => 'Bestellung eingegangen', 'en' => 'Order received'],
         'zahlung_bestaetigt'     => ['it' => 'Pagamento confermato', 'de' => 'Zahlung bestätigt', 'en' => 'Payment confirmed'],
@@ -197,11 +315,11 @@ final class Texte
            bindet. Beides fehlte bisher ganz. */
         'anfrage_eingegangen' => [
             'it' => ['Abbiamo ricevuto la tua richiesta',
-                "Ciao {name},\n\ngrazie per la tua richiesta{paketsatz}. È arrivata e la sto leggendo con calma.\n\nTi rispondo entro un giorno lavorativo con una prima indicazione concreta — non con un «dipende».\n\nUna cosa importante: la richiesta è gratuita e senza alcun impegno. Un incarico nasce soltanto quando ci accordiamo per iscritto e firmiamo il contratto. Fino ad allora non ti costa nulla e non ti obbliga a niente.\n\n--------------------------------------------------\nCOME FUNZIONA — tutto passa da un link\n--------------------------------------------------\n\n{link}\n\nSu questa pagina si svolge tutto il nostro scambio. Nessun account, nessuna password, nessuna app: il link è il tuo accesso. Funziona dal telefono come dal computer.\n\n1) Apri il link e mettilo da parte\n   Salvalo tra i preferiti oppure tieni questa e-mail. Se lo perdi, scrivimi e te ne mando uno nuovo.\n\n2) Scrivimi lì, non per e-mail\n   Così resta tutto in un posto solo e niente si perde in una casella di posta. Ogni messaggio mi arriva subito.\n\n3) Carica i tuoi documenti\n   Logo, foto, testi, il sito vecchio — quello che dovrei vedere. Scegli il file e invia. Fino a {maxdatei} per file.\n\n4) E poi?\n   Ti mando una proposta a prezzo fisso. Se ti convince, ricevi il link per il pagamento. Da lì la stessa pagina cresce con noi: questionario, bozza, approvazione, messa online.\n\nA presto\nUwe Vetter · Vecom Design"],
+                "Ciao {name},\n\ngrazie per la tua richiesta{paketsatz}. È arrivata e la sto leggendo con calma. Ti rispondo entro un giorno lavorativo con una prima indicazione concreta.\n\nLa richiesta è gratuita e senza impegno: un incarico nasce soltanto quando ci accordiamo per iscritto.\n\nDa qui in poi passa tutto da questa pagina:\n\n{link}\n\nLì vedi sempre a che punto siamo, puoi scrivermi e caricare i tuoi documenti (fino a {maxdatei} per file). Nessun account, nessuna password. Salvala tra i preferiti: il link resta valido, dal primo contatto fino a molto dopo la messa online.\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Deine Anfrage ist angekommen',
-                "Hallo {name},\n\ndanke für deine Anfrage{paketsatz}. Sie ist da und ich lese sie in Ruhe durch.\n\nDu hörst innerhalb eines Werktags von mir, mit einer ersten konkreten Einschätzung — nicht mit einem «kommt darauf an».\n\nEines vorweg: Die Anfrage ist kostenlos und völlig unverbindlich. Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind und den Vertrag schließen. Bis dahin kostet dich das nichts und verpflichtet dich zu nichts.\n\n--------------------------------------------------\nSO LÄUFT ES — alles über einen Link\n--------------------------------------------------\n\n{link}\n\nAuf dieser Seite läuft unser ganzer Austausch. Kein Konto, kein Passwort, keine App: Der Link ist dein Zugang. Er funktioniert auf dem Handy genauso wie am Rechner.\n\n1) Link öffnen und ablegen\n   Speichere ihn als Lesezeichen oder behalte diese E-Mail. Wenn du ihn verlierst, schreib mir — dann kommt ein neuer.\n\n2) Schreib mir dort, nicht per E-Mail\n   So steht alles an einer Stelle und nichts geht im Postfach unter. Jede Nachricht erreicht mich sofort.\n\n3) Lade deine Unterlagen hoch\n   Logo, Fotos, Texte, die alte Seite — was ich sehen sollte. Datei auswählen und senden. Bis {maxdatei} je Datei.\n\n4) Und dann?\n   Ich schicke dir einen Vorschlag zum Festpreis. Passt er, bekommst du den Zahlungslink. Ab da wächst dieselbe Seite mit: Fragebogen, Entwurf, Freigabe, Veröffentlichung.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                "Hallo {name},\n\ndanke für deine Anfrage{paketsatz}. Sie ist da und ich lese sie in Ruhe durch. Innerhalb eines Werktags hörst du von mir, mit einer ersten konkreten Einschätzung.\n\nDie Anfrage ist kostenlos und unverbindlich: Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind.\n\nAlles Weitere läuft über diese eine Seite:\n\n{link}\n\nDort siehst du jederzeit, was gerade dran ist, kannst mir schreiben und Unterlagen hochladen (bis {maxdatei} je Datei). Kein Konto, kein Passwort. Leg sie als Lesezeichen ab — der Link bleibt gültig, vom ersten Kontakt bis lange nach dem Onlinegang.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your enquiry has arrived',
-                "Hello {name},\n\nthank you for your enquiry{paketsatz}. It has arrived and I am reading it properly.\n\nYou will hear from me within one working day, with a first concrete assessment — not with an «it depends».\n\nOne thing up front: the enquiry is free and entirely without obligation. A project only comes into being once we agree in writing and sign the contract. Until then it costs you nothing and commits you to nothing.\n\n--------------------------------------------------\nHOW IT WORKS — everything runs through one link\n--------------------------------------------------\n\n{link}\n\nThat page carries our whole exchange. No account, no password, no app: the link is your way in. It works on a phone just as well as on a computer.\n\n1) Open the link and keep it\n   Bookmark it or keep this email. If you lose it, write to me and a new one comes.\n\n2) Write to me there, not by email\n   That way everything stays in one place and nothing gets buried in an inbox. Every message reaches me at once.\n\n3) Upload your material\n   Logo, photos, text, the old site — whatever I should see. Pick the file and send. Up to {maxdatei} per file.\n\n4) And then?\n   I send you a proposal at a fixed price. If it suits you, you get the payment link. From there the same page grows with us: questionnaire, draft, approval, going live.\n\nBest regards\nUwe Vetter · Vecom Design"],
+                "Hello {name},\n\nthank you for your enquiry{paketsatz}. It has arrived and I am reading it properly. You will hear from me within one working day, with a first concrete assessment.\n\nThe enquiry is free and without obligation: a project only comes about once we agree in writing.\n\nEverything else runs through this one page:\n\n{link}\n\nThere you can always see what is due next, write to me and upload your material (up to {maxdatei} per file). No account, no password. Bookmark it — the link stays valid, from the first contact until long after going live.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         /* Der Zahlungslink, wenn der Kunde zugesagt hat. */
         'zahlungslink' => [

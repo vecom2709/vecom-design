@@ -165,6 +165,11 @@ final class Nachricht
      */
     public static function link(int $projektId): ?string
     {
+        require_once __DIR__ . '/Kundenzugang.php';
+        $kid = (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$projektId], 0);
+        if ($kid > 0) {
+            try { return Kundenzugang::linkFuer($kid); } catch (Throwable $e) { /* dann der alte Weg */ }
+        }
         $f = Db::one('SELECT id FROM questionnaires WHERE project_id = ?', [$projektId]);
         if (!$f) { return null; }
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');

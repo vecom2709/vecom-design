@@ -123,8 +123,20 @@ final class Anfrage
         throw new RuntimeException('Zugang konnte nicht erzeugt werden.');
     }
 
+    /**
+     * Der Link, den der Kunde bekommt. Er zeigt auf die eine Kundenseite —
+     * dieselbe Adresse vom ersten Kontakt bis lange nach dem Onlinegang.
+     * Nur wenn zur Anfrage kein Kunde gefunden wird (sehr alte Daten), bleibt
+     * es beim alten Weg; der leitet seinerseits hierher weiter.
+     */
     public static function link(string $token): string
     {
+        require_once __DIR__ . '/Kundenzugang.php';
+        try {
+            $kid = Kundenzugang::kundeZuAltemToken('anfrage', $token);
+            if ($kid) { return Kundenzugang::linkFuer($kid); }
+        } catch (Throwable $e) { /* dann der alte Weg */ }
+
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
         return $basis . '/vorgang.php?t=' . rawurlencode($token);
     }

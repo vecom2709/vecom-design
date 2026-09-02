@@ -93,6 +93,32 @@
       <small style="color:var(--leise)">— so gehen die automatischen E-Mails raus</small></td></tr>
     <tr><td>Kunde seit</td><td><?= Fmt::h(Fmt::datum($k['created_at'])) ?></td></tr>
   </tbody></table></div>
+  <?php /* Die eine Adresse des Kunden — dieselbe, die in allen E-Mails steht. */ ?>
+  <?php
+    require_once __DIR__ . '/../src/Kundenzugang.php';
+    $kundenlink = '';
+    if (empty($k['anonym_am'])) {
+        try { $kundenlink = Kundenzugang::linkFuer((int) $k['id']); } catch (Throwable $e) { $kundenlink = ''; }
+    }
+  ?>
+  <?php if ($kundenlink !== ''): ?>
+  <div class="block"><h2>Seine Seite</h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
+      bis lange nach dem Onlinegang. Wer den Link hat, kommt hinein — also nur an ihn.</p>
+    <div class="feld">
+      <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>" style="font-size:12px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <a class="knopf" href="<?= Fmt::h($kundenlink) ?>" target="_blank" rel="noopener">Ansehen</a>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+            onsubmit="return confirm('Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?')">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kundenlink_neu">
+        <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+        <button class="knopf">Neuen Link erzeugen</button>
+      </form>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <?php if ($k['notes']): ?><div class="block"><h2>Interne Notizen</h2><p style="color:var(--dim);white-space:pre-wrap"><?= Fmt::h($k['notes']) ?></p></div><?php endif; ?>
   <div class="block"><h2>Verlauf</h2>
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">

@@ -262,15 +262,33 @@ $tage   = Vorgang::ruhtSeitTagen($v);
     <tr><td>Begonnen</td><td><?= Fmt::h(Fmt::datum($v['begonnen'])) ?></td></tr>
   </tbody></table></div>
 
-  <?php /* ---------- Seine Seiten ---------- */ ?>
-  <?php if ($v['link_anfrage'] || $v['link_projekt']): ?>
-  <div class="block"><h2>Seine Seiten</h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Kein Konto, kein Passwort —
-      wer den Link hat, kommt hinein. Also nur an ihn.</p>
-    <?php foreach (array_filter(['Anfrage' => $v['link_anfrage'], 'Projekt' => $v['link_projekt']]) as $was => $adr): ?>
-      <div class="feld"><label><?= Fmt::h($was) ?></label>
-        <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adr) ?>" style="font-size:12px"></div>
-    <?php endforeach; ?>
+  <?php /* ---------- Seine Seite ---------- */ ?>
+  <?php if ($v['link_kunde']): ?>
+  <div class="block"><h2>Seine Seite</h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
+      bis lange nach dem Onlinegang. Kein Konto, kein Passwort — wer den Link hat, kommt hinein.
+      Also nur an ihn.</p>
+    <div class="feld">
+      <input readonly onclick="this.select()" value="<?= Fmt::h((string) $v['link_kunde']) ?>" style="font-size:12px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <a class="knopf" href="<?= Fmt::h((string) $v['link_kunde']) ?>" target="_blank" rel="noopener">Ansehen</a>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+            onsubmit="return confirm('Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?')">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kundenlink_neu">
+        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+        <input type="hidden" name="id" value="<?= (int) ($v['kunde_id'] ?? 0) ?>">
+        <button class="knopf">Neuen Link erzeugen</button>
+      </form>
+    </div>
+    <?php if ($v['link_anfrage'] || $v['link_projekt']): ?>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;color:var(--leise);font-size:12.5px">Ältere Links (leiten weiter)</summary>
+        <?php foreach (array_filter(['Anfrage' => $v['link_anfrage'], 'Projekt' => $v['link_projekt']]) as $was => $adr): ?>
+          <div class="feld" style="margin-top:8px"><label><?= Fmt::h($was) ?></label>
+            <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adr) ?>" style="font-size:12px"></div>
+        <?php endforeach; ?>
+      </details>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 

@@ -884,3 +884,92 @@ Zahlung und Beleg, Prüfspur und Verlauf nennen die Nummern — und
 **Nebenbefund am selben Tag:** Das Brevo-Problem war vorübergehend. „Verbindung
 prüfen" meldet wieder „Verbunden"; die tägliche Cron-Prüfung und die neue
 Meldung bei jedem einzelnen Fehlschlag fangen den nächsten Ausfall ab.
+
+## Eine Seite für den Kunden (02.09.2026)
+
+Ausgangspunkt war Uwes Satz: *„für den kunde ist der ablauf etwas verwirrend."*
+Er hatte recht, und der Grund stand im Code. Der Kunde bekam mehrere Adressen —
+`vorgang.php` mit der Anfrage, `projekt.php` nach dem Auftrag, `fragebogen.php`
+für die Angaben. Die erste leitete auf die zweite weiter, was gut gedacht war,
+aber zwei Dinge nicht löste:
+
+- **`projekt.php` hing am Fragebogen.** Es lud über `Onboarding::laden($token)`.
+  Kein Fragebogen, keine Seite.
+- **Nach dem Onlinegang gab es gar nichts mehr.** Wer ein halbes Jahr später
+  eine Änderung wollte, musste eine alte E-Mail suchen.
+
+### Der Schlüssel gehört an den Kunden
+
+Migration `015_kundenlink.sql` gibt `customers` eine Spalte `token CHAR(48)`
+(eindeutig) und `token_seit`. `Kundenzugang` verwaltet ihn: `token()` legt beim
+ersten Mal einen an, `neu()` zieht den alten zurück, `ausToken()` findet den
+Kunden, `linkFuer()` baut die Adresse. Damit ist es **eine** Adresse, vom ersten
+Kontakt bis Jahre danach — und dieselbe, wenn der Kunde später eine zweite Seite
+bestellt.
+
+Er läuft **nicht ab**. Ein Zugang, der abläuft, ist genau dann kaputt, wenn man
+ihn braucht: beim Kunden, der sich nach acht Monaten meldet. Die Seite zeigt
+nichts, was Schaden anrichtet — kein Geld, keine fremden Daten, keine
+Verwaltung. Gegen Weitergabe hilft kein Ablaufdatum, sondern ein Knopf: In der
+Kundenakte und auf der Vorgangsseite steht *„Neuen Link erzeugen"*. Der nimmt
+den alten Kundenschlüssel **und** die alten Anfrage- und Fragebogenschlüssel
+zurück — sonst wäre das Zurückziehen eine Beruhigung ohne Wirkung, weil die
+alten Links weiterhin auf die neue Seite geleitet hätten.
+
+### `kunde.php`
+
+Eine Seite, acht Stufen, immer genau ein Schritt hervorgehoben:
+
+- **Fortschrittsleiste** mit sieben Marken. Auf dem Handy nur die Balken plus
+  „Schritt 3 von 7" — sieben Beschriftungen bei 390 px sind sieben Wortanfänge
+  mit Auslassungspunkten.
+- **Ein Kasten** sagt, wer dran ist und was zu tun ist. Der Rest (Website,
+  Gespräch, Belege, Material) liegt zugeklappt darunter.
+- **Wer dran ist, wird aus SEINER Sicht bestimmt.** Uwes Arbeitsliste kennt
+  Zwischenschritte, die den Kunden nichts angehen: Solange der Fragebogen nicht
+  verschickt ist, wartet Uwe dort auf sich selbst. Auf der Kundenseite stünde
+  dann „Wir sind dran" über einem Knopf, den nur der Kunde drücken kann.
+  `Kundenzugang::seite()` nimmt deshalb `Texte::KUNDE_STUFEN[...]['wer']` und
+  prüft nur nach, ob es den Knopf wirklich gibt.
+- **Herunterladen** von Belegen und Dateien wird über die Kundennummer geprüft,
+  nie über die Zahl im Link allein. Ein fremder Beleg gibt 404.
+- **Alte Links sterben nicht**: `vorgang.php` und `projekt.php` schlagen den
+  alten Schlüssel nach und leiten auf `kunde.php` um.
+
+### Fragebogen in vier Schritten
+
+Vorher standen einundzwanzig Felder auf einer Seite. Jetzt sind es vier
+Abschnitte mit fünf bis sechs Feldern, mit POST → Redirect → GET dazwischen:
+Neuladen wiederholt nichts, der Zurück-Knopf des Browsers tut, was er soll. Wer
+zurückkommt, landet im ersten Abschnitt, in dem noch nichts steht.
+
+**Dabei einen Fehler gefunden, den es vorher nicht geben konnte:**
+`Onboarding::absenden()` ersetzte die Daten, statt sie zusammenzuführen — beim
+alten Formular kamen ohnehin alle Felder mit. In Abschnitten hätte der letzte
+Klick die ersten drei gelöscht. Jetzt führt `absenden()` zusammen wie
+`speichern()`, und der Firmenname wird gegen das Gespeicherte geprüft, nicht
+gegen das, was gerade im Formular steht.
+
+### Kürzere E-Mails
+
+Die Eingangsbestätigung war eine Wand: ein abgesetzter Block mit vier
+nummerierten Schritten, der erklärte, wie die Seite funktioniert. Das gehört auf
+die Seite, nicht in die E-Mail — auf der Seite steht es ohnehin. Die Mail ist
+jetzt etwa ein Drittel so lang und behält, was zählt: unverbindlich, Antwort
+innerhalb eines Werktags, der eine Link, die Dateigrenze.
+
+Alle Kunden-Mails zeigen jetzt auf `kunde.php`: `Anfrage::link()`,
+`Nachricht::link()` und `Onboarding::mailLink()` lösen über den Kunden auf und
+fallen nur zurück, wenn keiner gefunden wird.
+
+**Nebenbei:** „Deine Unterlagen" (Belege) und „Dateien" (sein Material) standen
+untereinander und klangen gleich. Jetzt „Belege und Rechnungen" und „Dein
+Material".
+
+Geprüft am laufenden Stand mit MariaDB und echtem Server: alle acht Stufen in
+drei Sprachen ohne Fehler, Fragebogen über vier Schritte ausgefüllt und
+abgesendet (alle Abschnitte überlebten das Absenden), Nachricht, Freigabe,
+Datei-Upload und beide Downloadwege, fremder Beleg und fremde Datei je 404, alte
+Links leiten um, „Neuen Link erzeugen" entwertet den alten (die alte Adresse
+zeigt danach die Meldung, nicht die Seite), Formular → Bestätigungsmail →
+Kundenseite als durchgehende Kette, Handy- und Rechneransicht ohne Überlauf.

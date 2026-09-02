@@ -27,6 +27,23 @@ header('Cache-Control: no-store, private');
 header('X-Robots-Tag: noindex, nofollow');
 header('X-Content-Type-Options: nosniff');
 
+/* --------------------------------------------------------------------------
+   Ab hier fuehrt ein Weg zur neuen, einen Kundenseite. Dieser Link liegt in
+   Postfaechern und darf nicht sterben — er zeigt jetzt nur woanders hin.
+   Findet sich zum alten Schluessel kein Kunde, laeuft unten alles wie bisher.
+   -------------------------------------------------------------------------- */
+require_once __DIR__ . '/app/src/Kundenzugang.php';
+$altToken = trim((string) ($_REQUEST['t'] ?? ''));
+if ($altToken !== '' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    try {
+        $kid = Kundenzugang::kundeZuAltemToken('anfrage', $altToken);
+        if ($kid) {
+            header('Location: ' . Kundenzugang::linkFuer($kid), true, 302);
+            exit;
+        }
+    } catch (Throwable $e) { /* dann eben die alte Seite */ }
+}
+
 $token = trim((string) ($_REQUEST['t'] ?? ''));
 $a = null; $panne = false;
 try { $a = Anfrage::ausToken($token); } catch (Throwable $e) { $panne = true; }

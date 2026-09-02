@@ -270,6 +270,18 @@ if ($post) {
                     . ($an['dateien'] > 0 ? ', ' . $an['dateien'] . ' Datei(en) gelöscht' : '') . '.';
                 weiter('kunden/' . $kid);
 
+            case 'kundenlink_neu':
+                // Zieht den alten Zugang zurueck. Gedacht fuer den Fall, dass
+                // ein Kunde den Link weitergegeben hat — oder ihn selbst nicht
+                // mehr haben soll. Der alte Link zeigt danach nichts mehr.
+                require_once __DIR__ . '/src/Kundenzugang.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                if ($kid <= 0) { throw new RuntimeException('Kein Kunde angegeben.'); }
+                $neuLink = Kundenzugang::link(Kundenzugang::neu($kid));
+                $_SESSION['gut'] = 'Neuer Zugangslink erzeugt. Der alte gilt nicht mehr — '
+                    . 'schick dem Kunden den neuen: ' . $neuLink;
+                zurueck('kunden/' . $kid);
+
             case 'anfrage_bestellung':
                 require_once __DIR__ . '/src/Anfrage.php';
                 $bid = Anfrage::zuBestellung((int) ($_POST['id'] ?? 0), (int) ($_POST['paket_id'] ?? 0));
