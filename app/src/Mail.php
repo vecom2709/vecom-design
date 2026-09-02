@@ -157,16 +157,61 @@ final class Mail
 
         $grund = $netz !== '' ? $netz : mb_substr((string) $antwort, 0, 300);
         self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => "Brevo antwortete $code: $grund"]);
-        try {
-            Events::melden('mail_fehler', 'E-Mail konnte nicht zugestellt werden', 'schlecht',
-                $betreff . ' → ' . $an, '/nachrichten');
-        } catch (Throwable $e) { /* nicht weiter stoeren */ }
         return false;
     }
 
+    /**
+     * Jede verschickte oder gescheiterte E-Mail wird festgehalten — und ein
+     * Fehlschlag meldet sich.
+     *
+     * DIE MELDUNG STAND FRUEHER AN DER FALSCHEN STELLE. Sie hing an dem
+     * Zweig, in dem Brevo geantwortet hat. Fehlt aber der Schluessel ganz
+     * oder ist die Adresse ungueltig, kehrt senden() vorher um — und dann
+     * scheiterte jede Mail still. Genau so ist es hier schon einmal
+     * gelaufen: Der Schluessel war monatelang ein abgeschnittener
+     * Platzhalter, saemtliche Post an Kunden verschwand, und niemand erfuhr
+     * davon. Jetzt laeuft JEDER Fehlschlag durch diese eine Stelle.
+     *
+     * Aber nur eine Meldung je Stunde. Ist der Versand kaputt, scheitern
+     * zehn Mails hintereinander — zehn gleichlautende Zeilen sind keine
+     * bessere Warnung als eine, sie begraben nur alles andere. Wie viele es
+     * waren, steht in der Meldung.
+     */
     private static function vermerken(array $daten): void
     {
         try { Db::insert('mails', $daten); } catch (Throwable $e) { /* Protokoll ist Beiwerk */ }
+
+        if (($daten['status'] ?? '') !== 'fehler') { return; }
+
+        try {
+            $zahl = (int) Db::wert(
+                "SELECT COUNT(*) FROM mails
+                  WHERE status = 'fehler' AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)",
+                [], 1);
+
+            $titel = $zahl > 1 ? "$zahl E-Mails gingen nicht raus" : 'Eine E-Mail ging nicht raus';
+            $text  = mb_substr((string) ($daten['fehler'] ?? 'Grund unbekannt'), 0, 200)
+                   . ' — zuletzt „' . mb_substr((string) ($daten['betreff'] ?? ''), 0, 60)
+                   . '" an ' . (string) ($daten['empfaenger'] ?? '?')
+                   . '. Solange das so bleibt, bekommt kein Kunde Post.';
+
+            // Gibt es aus der letzten Stunde schon eine, wird sie
+            // fortgeschrieben statt eine zweite danebenzustellen. So bleibt
+            // es eine Zeile, und die Zahl darin stimmt.
+            $da = Db::wert(
+                "SELECT id FROM notifications
+                  WHERE type = 'mail_fehler' AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                  ORDER BY id DESC LIMIT 1", [], null);
+
+            if ($da !== null) {
+                Db::run('UPDATE notifications SET title = ?, body = ?, read_at = NULL WHERE id = ?',
+                    [$titel, $text, (int) $da]);
+                return;
+            }
+            Events::melden('mail_fehler', $titel, 'schlecht', $text, '/einstellungen');
+        } catch (Throwable $e) {
+            // Das Melden darf den Versandversuch nie umwerfen.
+        }
     }
 
     /** Wurde zu diesem Anlass für diesen Bezug schon einmal geschrieben? */

@@ -78,6 +78,18 @@ final class Anfrage
         Events::melden('anfrage_neu', 'Neue Anfrage über die Website', 'gut',
             $name . ($paketName !== '' ? ' — ' . $paketName : ''), '/anfragen/' . $id);
 
+        // Und ein Zuruf aufs Handy. Ohne Namen und ohne den Text der
+        // Anfrage — wer sie geschrieben hat, steht drei Sekunden spaeter in
+        // der Verwaltung. Keine Sperre: Eine Anfrage ist selten genug, dass
+        // jede einzelne klingeln darf.
+        try {
+            require_once __DIR__ . '/Zuruf.php';
+            Zuruf::vormerken('anfrage',
+                'Vecom Design: Neue Anfrage über die Website'
+                    . ($paketName !== '' ? ' (' . $paketName . ')' : '') . ".\n"
+                    . rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/app/heute');
+        } catch (Throwable $e) { /* der Zuruf ist Beiwerk */ }
+
         // Die Bestaetigung geht ganz zum Schluss und in einem eigenen Netz:
         // Die Anfrage steht bereits, ein stummer Mailserver darf sie nicht
         // mehr gefaehrden.

@@ -725,3 +725,126 @@ Zahlungslink und Mail in einem Zug erledigen; „Vorschau ist fertig" und
 „Seite ist online" sollen die Adresse gleich mitnehmen. **Schritt 3** ist das
 Zusammenräumen des Menüs auf fünf Punkte. Das alte Menü steht bis dahin
 vollständig.
+
+### Meldungen: löschbar, weniger davon — und die wichtigen kommen wirklich an (02.09.2026)
+
+Uwes Beobachtung war „die Liste wird immer länger". Beim Nachsehen war das
+Problem ein anderes und schlimmeres: In seiner Liste standen zwanzig Zeilen,
+und die beiden echten Störungen — *„Der E-Mail-Versand antwortet nicht mehr"*
+und *„Fragebogen nicht erreichbar"* — lagen zwischen sechsmal „Neue
+Bestellung" und sechsmal „Neue Anfrage" begraben. Eine Warnung, die niemand
+findet, ist keine Warnung.
+
+Drei Eingriffe, in dieser Reihenfolge wichtig:
+
+**1. Fehlgeschlagene E-Mails melden sich jetzt überhaupt.** `Mail::senden()`
+rief `Events::melden()` nur in dem Zweig, in dem Brevo geantwortet hatte.
+Fehlt der Schlüssel ganz oder ist die Adresse ungültig, kehrt die Methode
+vorher um — und dann scheiterte jede Mail still. Ein Probelauf zeigte es:
+fünf gescheiterte Kundenmails, null Meldungen. Genau dieser Ausfall ist hier
+schon einmal monatelang gelaufen. Die Meldung sitzt jetzt in `vermerken()`,
+durch die **jeder** Fehlschlag läuft, und wird innerhalb einer Stunde
+fortgeschrieben statt vervielfacht: eine Zeile, „5 E-Mails gingen nicht raus".
+
+**2. Weniger Meldungen erzeugen.** Die Regel steht jetzt im Kopf von
+`Events::melden()`: Gemeldet wird, was gestört ist oder von außen kam und eine
+Reaktion braucht. Nicht gemeldet wird, was Uwe selbst ausgelöst hat — er hat
+gerade geklickt. Entfernt: „Neuer Kunde", „Neue Bestellung" (die Direktbuchung
+über die Website meldet sich weiterhin selbst), „Projektstatus geändert",
+„Zahlungslink verschickt", „Beispieldaten entfernt". Alle fünf stehen
+unverändert im Verlauf.
+
+Gemessen an einem vollen Durchlauf (Anfrage → Bestellung → Zahlung → drei
+Statuswechsel → Kundennachricht): vorher **acht** Meldungen, jetzt **drei** —
+neue Anfrage, Geld da, Kunde hat geschrieben. Der Verlauf hat unverändert elf
+Einträge.
+
+**3. Löschen.** Jede Zeile hat ein `×`, ungelesene zusätzlich „Gelesen"; oben
+„Gelesene löschen (N)". Ungelesenes räumt kein Knopf weg. Ungelesene stehen
+oben. Auf „Heute" haben die Störungen ein „Erledigt". Der Cronjob entfernt
+täglich gelesene Meldungen älter als 30 Tage und deckelt sie bei 300.
+
+### Der Cronjob zieht die Datenbank nach (02.09.2026)
+
+In den Meldungen stand vom 31.08.: *„Fragebogen nicht erreichbar — Unknown
+column 'c.sprache'"*. Ein Kunde hatte seinen Link angeklickt und eine
+Fehlerseite bekommen.
+
+Die Ursache war strukturell: Migrationen spielte ausschließlich
+`app/index.php` ein — also erst, wenn **Uwe** die Verwaltung öffnete. Nach
+jedem Deploy mit einer neuen Spalte lief der neue Code bis dahin auf der alten
+Datenbank, und zwar auch für `fragebogen.php`, `projekt.php`, `vorgang.php`,
+`buchen.php`, `formular.php` und `stripe-webhook.php` — die Seiten, die dem
+Kunden gehören und die niemanden fragen.
+
+`cron.php` ruft jetzt `Einrichtung::selbsttaetig(false)` auf, direkt nach der
+Schlüsselprüfung (vorher wäre es ein Weg für Fremde, Schreibvorgänge
+anzustoßen). Der neue Schalter unterdrückt dabei die Beispieldaten — die
+gehören an den ersten Blick eines Menschen, nicht an einen Lauf um drei Uhr
+nachts. Da der KAS alle zehn Minuten aufruft, ist das Fenster nie größer als
+zehn Minuten, und niemand muss daran denken.
+
+Geprüft: ohne Schlüssel 404 und keine Migration, mit Schlüssel wird die
+Testspalte angelegt und im Verlauf vermerkt, keine Beispieldaten, zweiter Lauf
+tut nichts doppelt. Alle 19 Verwaltungsseiten weiterhin 200, keine PHP-Meldung.
+
+### Zuruf aufs Handy: WhatsApp bei neuer Anfrage und bei Störungen (02.09.2026)
+
+Uwe wollte zusätzlich per WhatsApp benachrichtigt werden. Der offizielle Weg
+über Meta hätte Facebook-Business-Konto, Unternehmensverifizierung, eine eigene
+Absendernummer, genehmigte Vorlagen und gekauftes Guthaben bedeutet — viel
+Bürokratie dafür, sich selbst „neue Anfrage" zuzurufen. Gebaut ist deshalb der
+Weg über CallMeBot: kostenlos, ausdrücklich für den eigenen Gebrauch, ein
+HTTP-Aufruf.
+
+**Der eigentliche Grund für diesen und keinen anderen Weg:** Er läuft an Brevo
+vorbei. Während dieser Weg gebaut wurde, antwortete Brevo mit 500 — die
+E-Mail über eine neue Anfrage kam gar nicht an. Ein zweiter Kanal ist nur dann
+etwas wert, wenn er nicht an derselben Sache hängt wie der erste. Über Brevos
+eigene WhatsApp-Schnittstelle wäre es derselbe Kanal gewesen.
+
+**Keine personenbezogenen Daten.** Verschickt wird, *dass* etwas ist, und der
+Link zur Verwaltung. Nie ein Kundenname, nie eine Adresse, nie der Text einer
+Anfrage. Bei Störungen geht ausschließlich der TITEL der Meldung raus — die
+Titel sind durchweg allgemein („Website nicht erreichbar"), Domain und
+Einzelheiten stehen im Text, der nicht mitkommt. Damit ist die Frage nach einem
+Auftragsverarbeiter gar nicht erst da.
+
+**Warum eine Warteschlange und kein direkter Aufruf.** Der erste Bau rief den
+Dienst am Ende der Anfrage über `register_shutdown_function` auf, mit
+`fastcgi_finish_request()` davor. Beim Durchtesten mit einem absichtlich
+langsamen Dienst wartete das Kontaktformular trotzdem **fünf Sekunden** — die
+Funktion gibt es nur unter FastCGI. Darauf soll sich nichts verlassen müssen.
+
+Jetzt legt `Zuruf::vormerken()` den Zuruf in `zurufe` ab (Migration 014) und
+verschickt nichts. Abgearbeitet wird er sofort, wo der Server die Antwort
+vorher abschließen kann, und sonst beim nächsten Cronlauf — dann ein paar
+Minuten später, aber ohne dass jemand darauf wartet. Fehlschläge bleiben offen
+und werden bis zu dreimal wiederholt, danach aufgegeben. Höchstens fünf je
+Lauf. Mit dem langsamen Dienst antwortet das Formular jetzt in 14 ms.
+
+**Sperre:** Bei Störungen höchstens eine Nachricht je Meldungsart alle 15
+Minuten — sonst klingelt ein kaputter Mailversand das Handy leer. Neue Anfragen
+haben keine Sperre; die sind selten genug.
+
+`Zuruf::hinschicken()` meldet **niemals** über `Events::melden()` — der Zuruf
+hängt selbst an jeder Störungsmeldung, das wäre eine Schleife. Was schiefging,
+steht in der Warteschlange und in den Einstellungen unter „Zuletzt".
+
+Eingerichtet wird in den Einstellungen direkt unter dem E-Mail-Versand: Nummer,
+Schlüssel, Ein/Aus, Testnachricht. Der Schlüssel wird nie wieder angezeigt.
+Die Dienstadresse ist wie beim Mailversand nur zum Durchtesten umstellbar
+(`zuruf_api`).
+
+**Der ehrliche Vorbehalt:** CallMeBot ist inoffiziell und kann ohne Ankündigung
+verschwinden. Deshalb liegt der Aufruf hinter genau einer Klasse — fällt er
+weg oder soll später der offizielle Weg her, wird dort das Innere getauscht und
+sonst nichts. Und der Zuruf ist nie tragend: Die Anfrage steht in der
+Datenbank und geht als E-Mail raus, egal was WhatsApp macht.
+
+Geprüft mit einem eigenen Gegenstück statt des echten Dienstes: 28 Prüfungen —
+Störung klingelt, zweite gleiche schweigt, andere Art klingelt, „info" und
+„gut" nie, Anfrage ohne Namen und ohne Text, krumme Nummer wird abgelehnt ohne
+die alte zu überschreiben, Dienst kaputt wird vermerkt ohne Meldungsschleife,
+Warteschlange mit Wiederholung und Deckelung, Formular wartet nicht, Cronlauf
+holt nach. Alle 19 Verwaltungsseiten 200, keine PHP-Meldung, Konsole sauber.

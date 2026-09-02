@@ -583,9 +583,9 @@ final class Beispieldaten
             if (!self::vorhanden()) { return; }
             $zahl = self::entfernen();
             if ($zahl > 0) {
+                // Keine Meldung: Das Banner im Dashboard verschwindet damit
+                // von selbst, und das ist die Nachricht. Im Verlauf steht es.
                 Events::protokoll('beispieldaten', 'Beispieldaten entfernt — es sind echte Daten da.');
-                Events::melden('beispieldaten', 'Beispieldaten entfernt', 'info',
-                    'Der erste echte Vorgang ist eingetroffen. Die Zahlen im Dashboard sind ab jetzt deine eigenen.', '/');
             }
         } catch (Throwable $e) {
             // Beispieldaten sind Beiwerk. Sie duerfen nie einen echten

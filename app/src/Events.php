@@ -23,12 +23,50 @@ final class Events
         ]);
     }
 
+    /**
+     * Eine Benachrichtigung.
+     *
+     * WANN GEMELDET WIRD — UND WANN NICHT
+     *
+     * Gemeldet wird nur, was (a) gestoert ist oder (b) von aussen kam und
+     * eine Reaktion braucht: eine Anfrage, eine Nachricht, eine Zahlung,
+     * eine Freigabe, eine hochgeladene Datei.
+     *
+     * NICHT gemeldet wird, was Uwe selbst ausgeloest hat. Er hat gerade
+     * geklickt; er braucht keinen Zettel darueber. Frueher stand genau das
+     * hier drin — "Neue Bestellung", "Projektstatus geaendert",
+     * "Zahlungslink verschickt" — und die Folge war, dass in einer Liste aus
+     * zwanzig Zeilen die beiden echten Stoerungen dazwischen begraben lagen.
+     * Eine Warnung, die niemand findet, ist keine Warnung.
+     *
+     * Verloren geht dabei nichts: Jeder dieser Vorgaenge steht weiterhin im
+     * Verlauf (activities) und, wo es zaehlt, in der Pruefspur.
+     */
     public static function melden(string $typ, string $titel, string $stufe = 'info', ?string $text = null, ?string $link = null): void
     {
         Db::insert('notifications', [
             'type' => $typ, 'level' => $stufe, 'title' => $titel,
             'body' => $text, 'link' => $link,
         ]);
+
+        // Was klemmt, klingelt zusaetzlich auf dem Handy — wenn der Zuruf
+        // eingerichtet ist. Nur der TITEL geht raus: Die Titel sind durchweg
+        // allgemein ("Website nicht erreichbar"), waehrend Domain, Adresse
+        // und Einzelheiten im Text stehen. Damit verlaesst nie ein
+        // Kundendatum den Server auf diesem Weg.
+        //
+        // Eine Viertelstunde Sperre je Meldungsart: Ist der Mailversand
+        // kaputt, scheitern zehn Mails hintereinander — zehn Klingeln machen
+        // die Lage nicht klarer, sie machen nur, dass man das Handy weglegt.
+        if ($stufe === 'schlecht' || $stufe === 'warnung') {
+            try {
+                require_once __DIR__ . '/Zuruf.php';
+                Zuruf::vormerken('stoerung_' . $typ,
+                    'Vecom Design — Störung: ' . $titel . "\n"
+                        . rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/app/heute',
+                    15);
+            } catch (Throwable $e) { /* der Zuruf ist Beiwerk */ }
+        }
     }
 
     /**
@@ -124,7 +162,8 @@ final class Events
             'country' => $daten['country'] ?? 'Italien', 'notes' => $daten['notes'] ?? null,
         ]);
         self::protokoll('kunde_neu', 'Neuer Kunde: ' . $daten['name'], $id);
-        self::melden('kunde_neu', 'Neuer Kunde', 'info', (string) $daten['name'], '/kunden/' . $id);
+        // Keine Meldung: Entsteht der Kunde aus einer Anfrage, meldet die
+        // Anfrage schon; legt Uwe ihn selbst an, weiss er es ohnehin.
         return $id;
     }
 
@@ -179,8 +218,9 @@ final class Events
 
             self::protokoll('bestellung_neu', 'Neue Bestellung: ' . $paket['name'] . ' — ' . $kunde['name'],
                 $kundeId, $bestellId);
-            self::melden('bestellung_neu', 'Neue Bestellung', 'info',
-                $paket['name'] . ' — ' . $kunde['name'], '/bestellungen/' . $bestellId);
+            // Keine Meldung: Hierher kommt nur, was Uwe selbst angelegt hat.
+            // Eine Direktbuchung ueber die Website meldet sich in buchen.php
+            // selbst — die kam von aussen und ist eine Nachricht wert.
             self::pruefspur('anlegen', 'order', $bestellId, [], ['paket' => $paket['name']]);
 
             return $bestellId;
@@ -396,8 +436,8 @@ final class Events
         self::pruefspur('status', 'project', $projektId, ['status' => $p['status']], ['status' => $neu]);
 
         if ($melden) {
-            self::melden('projekt_status', 'Projektstatus geändert', 'info',
-                $p['name'] . ' → ' . Status::PROJEKT[$neu], '/projekte/' . $projektId);
+            // Keine Meldung an Uwe: Er hat den Status gerade selbst gesetzt.
+            // Wo das Projekt steht, zeigt "Heute" und die Vorgangsseite.
 
             // Nur bei einem Wechsel, den ein Mensch ausgeloest hat, erfaehrt
             // auch der Kunde davon. Die automatischen Zwischenschritte

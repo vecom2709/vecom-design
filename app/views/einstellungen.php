@@ -249,6 +249,72 @@
   </div>
 </div>
 
+<?php /* -----------------------------------------------------------------
+     Zuruf aufs Handy. Steht bewusst direkt unter dem E-Mail-Versand: Es ist
+     der zweite Kanal, und sein Sinn ist gerade, NICHT an Brevo zu haengen.
+     ----------------------------------------------------------------- */ ?>
+<div class="block">
+  <h2>Zuruf aufs Handy (WhatsApp)</h2>
+
+  <?php if ($zuruf['an'] && $zuruf['nummer'] !== '' && $zuruf['schluessel']): ?>
+    <div class="hinweis gut">Eingeschaltet für <b><?= Fmt::h($zuruf['nummer']) ?></b>.
+      Du bekommst eine Nachricht bei jeder neuen Anfrage und bei jeder Störung.</div>
+  <?php elseif ($zuruf['nummer'] !== '' && $zuruf['schluessel']): ?>
+    <div class="hinweis">Eingerichtet, aber ausgeschaltet.</div>
+  <?php else: ?>
+    <div class="hinweis">Noch nicht eingerichtet. Kostet nichts und dauert zwei Minuten.</div>
+  <?php endif; ?>
+
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:12px 0 14px">
+    <b>So bekommst du den Schlüssel:</b> Speichere <b>+34 684 72 39 62</b> als Kontakt
+    (Name egal) und schick ihm über WhatsApp genau diesen Satz:
+    <code style="user-select:all">I allow callmebot to send me messages</code>.
+    Nach ein bis zwei Minuten antwortet er mit deinem Schlüssel — eine Zahlenfolge.
+    Die trägst du hier ein.
+  </p>
+
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 14px">
+    Verschickt wird nur, <i>dass</i> etwas ist, und der Link zur Verwaltung — nie ein
+    Kundenname, keine Adresse, nicht der Text einer Anfrage. Der Weg läuft über einen
+    fremden Dienst, und was dort nicht ankommt, kann dort auch nicht liegen bleiben.
+    Bei Störungen kommt höchstens alle 15 Minuten eine Nachricht je Art, sonst klingelt
+    ein kaputter Mailversand das Handy leer. Der Zuruf ist Zugabe: Die Anfrage steht so
+    oder so in der Verwaltung, auch wenn er ausfällt.
+  </p>
+
+  <form method="post" action="<?= Fmt::h(url('')) ?>">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="zuruf_speichern">
+    <input type="hidden" name="zurueck" value="einstellungen">
+    <div class="feld"><label>Deine WhatsApp-Nummer <span style="color:var(--leise);font-weight:400">— mit Landesvorwahl</span></label>
+      <input name="nummer" value="<?= Fmt::h($zuruf['nummer']) ?>" placeholder="+39 320 1234567"></div>
+    <div class="feld"><label>Schlüssel von CallMeBot
+      <span style="color:var(--leise);font-weight:400">— leer lassen ändert nichts</span></label>
+      <input name="key" type="password" autocomplete="off" spellcheck="false"
+             placeholder="<?= $zuruf['schluessel'] ? '•••• hinterlegt' : '1234567' ?>"></div>
+    <label style="display:flex;gap:9px;align-items:center;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" name="an" value="1" style="width:auto" <?= $zuruf['an'] ? 'checked' : '' ?>>
+      <span>Zuruf einschalten</span></label>
+    <button class="knopf haupt">Speichern</button>
+  </form>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">
+    <?php if ($zuruf['nummer'] !== '' && $zuruf['schluessel']): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="zuruf_pruefen">
+        <input type="hidden" name="zurueck" value="einstellungen">
+        <button class="knopf">Testnachricht senden</button></form>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+            onsubmit="return confirm('Nummer und Schlüssel löschen und den Zuruf abschalten?')">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="zuruf_weg">
+        <input type="hidden" name="zurueck" value="einstellungen">
+        <button class="knopf">Entfernen</button></form>
+    <?php endif; ?>
+    <?php if ($zuruf['zuletzt'] !== ''): ?>
+      <span style="color:var(--leise);font-size:12.5px">Zuletzt: <?= Fmt::h($zuruf['zuletzt']) ?></span>
+    <?php endif; ?>
+  </div>
+</div>
+
 <div class="block">
   <h2>Zugänge</h2>
   <table style="margin-bottom:18px"><thead><tr><th>Name</th><th>E-Mail</th><th>Zuletzt angemeldet</th><th></th></tr></thead><tbody>

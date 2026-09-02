@@ -200,9 +200,10 @@ if ($post) {
                 ]);
                 Mail::senden('zahlungslink', (string) $bst['kunde_email'], $betreff, $text,
                     ['customer_id' => (int) $bst['customer_id'], 'order_id' => (int) $bst['id'], 'payment_id' => $zid]);
-                Events::melden('zahlungslink', 'Zahlungslink verschickt', 'info',
-                    $bst['kunde'] . ' — ' . Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
-                    '/bestellungen/' . (int) $bst['id']);
+                // Keine Meldung: Der Knopf wurde gerade gedrueckt, und die
+                // gruene Zeile oben sagt es schon. Dass die Mail rausging,
+                // steht im Mailprotokoll des Vorgangs.
+                $_SESSION['gut'] = 'Der Zahlungslink ist an ' . $bst['kunde_email'] . ' raus.';
                 zurueck('bestellungen/' . (int) ($_POST['order_id'] ?? $bst['id']));
 
             case 'kunde_nachricht':
@@ -514,6 +515,37 @@ if ($post) {
                     $_SESSION['gut'] = 'Gespeichert.';
                 }
                 weiter('einstellungen');
+
+            /* Der Zuruf aufs Handy. Nummer und Schluessel traegt Uwe selbst
+               ein — sie stehen nur in der Datenbank auf dem Webspace. */
+            case 'zuruf_speichern':
+                require_once __DIR__ . '/src/Zuruf.php';
+                $fehler = Zuruf::speichern(
+                    (string) ($_POST['nummer'] ?? ''),
+                    (string) ($_POST['key'] ?? ''),
+                    !empty($_POST['an'])
+                );
+                if ($fehler) {
+                    $_SESSION['fehler'] = implode(' ', $fehler);
+                } else {
+                    // Im Protokoll steht, DASS gespeichert wurde — nie der Schluessel.
+                    Events::protokoll('zuruf', 'Einstellungen für den Zuruf aufs Handy geändert');
+                    $_SESSION['gut'] = 'Gespeichert. Schick dir am besten gleich eine Testnachricht.';
+                }
+                zurueck('einstellungen');
+
+            case 'zuruf_pruefen':
+                require_once __DIR__ . '/src/Zuruf.php';
+                $e = Zuruf::pruefen();
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                zurueck('einstellungen');
+
+            case 'zuruf_weg':
+                require_once __DIR__ . '/src/Zuruf.php';
+                Zuruf::entfernen();
+                Events::protokoll('zuruf', 'Zuruf aufs Handy abgeschaltet');
+                $_SESSION['gut'] = 'Der Zuruf ist aus, Nummer und Schlüssel sind gelöscht.';
+                zurueck('einstellungen');
 
             case 'versand_pruefen':
                 require_once __DIR__ . '/src/Versand.php';
@@ -1129,6 +1161,11 @@ switch ($route) {
             'zugaenge'   => sicher(static fn() => Db::all(
                 'SELECT id, name, email, role, active, last_login_at, created_at
                  FROM users ORDER BY active DESC, id')),
+            'zuruf'      => sicher(static function () {
+                require_once __DIR__ . '/src/Zuruf.php';
+                return ['an' => Zuruf::an(), 'nummer' => Zuruf::nummer(),
+                        'schluessel' => Zuruf::hatSchluessel(), 'zuletzt' => Zuruf::zuletzt()];
+            }, ['an' => false, 'nummer' => '', 'schluessel' => false, 'zuletzt' => '']),
             'versand'    => sicher(static function () {
                 require_once __DIR__ . '/src/Versand.php';
                 return ['herkunft' => Versand::herkunft(), 'ende' => Versand::schluesselEnde(),

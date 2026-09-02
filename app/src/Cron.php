@@ -89,6 +89,14 @@ final class Cron
             // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
             // jedem Aufruf eine HTTP-Anfrage zu stellen.
             'cockpit'     => static fn() => self::cockpitPruefen(),
+            // Zurufe aufs Handy, die noch in der Warteschlange liegen. Auf
+            // FastCGI gehen sie schon beim Ausloesen raus; wo der Server das
+            // nicht kann, ist hier die Stelle. Ausserdem der zweite Versuch,
+            // wenn der Dienst gerade nicht erreichbar war.
+            'zurufe'      => static function () {
+                require_once __DIR__ . '/Zuruf.php';
+                return Zuruf::abarbeiten();
+            },
         ];
         // Einmal am Tag genuegt: alte Pruefungen wegraeumen.
         if (self::heuteNochNicht('cron_aufraeumen')) {

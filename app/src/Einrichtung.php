@@ -56,16 +56,22 @@ final class Einrichtung
      * auf dem Server laeuft. Der Knopf bleibt trotzdem stehen: Geht hier
      * etwas schief, laesst es sich damit erneut versuchen.
      *
+     * Der Cronjob ruft dieselbe Stelle mit $auchBeispiele = false auf. Er
+     * soll die Datenbank nachziehen, aber niemals von sich aus Beispieldaten
+     * anlegen — das gehoert an den ersten Blick eines Menschen, nicht an
+     * einen Lauf um drei Uhr nachts.
+     *
+     * @param bool $auchBeispiele Beispieldaten anlegen, wenn noch nichts da ist?
      * @return array{migrationen:list<string>,texte:int,beispiele:int,fehler:?string}
      */
-    public static function selbsttaetig(): array
+    public static function selbsttaetig(bool $auchBeispiele = true): array
     {
         $bilanz = ['migrationen' => [], 'texte' => 0, 'beispiele' => 0, 'fehler' => null];
 
         // Erst billig nachsehen, ob ueberhaupt etwas zu tun ist. Das laeuft
         // bei jedem Seitenaufruf, also darf es im Normalfall nichts kosten.
         $migrationenOffen = self::offene() !== [];
-        $beispieleFaellig = !$migrationenOffen && self::beispieleFaellig();
+        $beispieleFaellig = $auchBeispiele && !$migrationenOffen && self::beispieleFaellig();
         if (!$migrationenOffen && !$beispieleFaellig) { return $bilanz; }
 
         // Zwei gleichzeitige Anfragen duerfen nicht dieselbe Spalte anlegen.
@@ -85,7 +91,7 @@ final class Einrichtung
                 $bilanz['migrationen'] = self::migrieren();
                 if ($bilanz['migrationen']) { $bilanz['texte'] = self::texteNachtragen(); }
             }
-            if (self::beispieleFaellig()) {
+            if ($auchBeispiele && self::beispieleFaellig()) {
                 require_once __DIR__ . '/Beispieldaten.php';
                 $bilanz['beispiele'] = Beispieldaten::anlegen();
             }
