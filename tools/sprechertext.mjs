@@ -41,7 +41,14 @@ const SZENEN = [
 ];
 
 for (const teile of SZENEN) {
-  const text = teile.map((k) => (a[k] || '').trim()).filter(Boolean).join(' ');
+  /* Die Ueberschrift endet oft ohne Satzzeichen ("Wie es fuer dich ablaeuft").
+     Ohne Punkt liest eine Stimme sie in den naechsten Satz hinein, und aus
+     zwei Aussagen wird ein Wortschwall. Also einen setzen, wo keiner ist. */
+  const text = teile
+    .map((k) => (a[k] || '').trim())
+    .filter(Boolean)
+    .map((t) => (/[.!?:…]$/.test(t) ? t : t + '.'))
+    .join(' ');
   // Eine Zeile je Szene — das Aufnahmeskript liest sie mit mapfile ein.
   console.log(text.replace(/\s+/g, ' '));
 }

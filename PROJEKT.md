@@ -1876,3 +1876,44 @@ entgegen; ohne ihn bleibt es bei den festen Standzeiten.
 Geprüft mit erzeugten Testaufnahmen: elf Stück, Längen 3,4 bis 7,4 Sekunden,
 daraus 85,1 Sekunden Video und eine Tonspur von 83,4 Sekunden — die Differenz
 ist der Nachlauf der letzten Szene, also richtig.
+
+## Das Video hat jetzt eine Stimme (02.09.2026)
+
+Uwe hat bei kie.ai aufgeladen, den Schlüssel selbst in eine Datei auf seinem
+Schreibtisch gelegt (`kie-schluessel.txt`, außerhalb des Repositorys) und die
+Aufnahme lief über die Schnittstelle auf seinem Mac — der Schlüssel ist nie
+durch den Chat gegangen und steht nirgends im Code.
+
+**Modell:** `elevenlabs/text-to-speech-turbo-2-5`, Stimme „Benjamin"
+(`LruHrtVF6PSyGItzMNHS`), `speed 0.96`, `language_code` je Sprache. Turbo, weil
+nur dieses Modell eine Sprache erzwingen kann; ohne das spricht ein
+mehrsprachiges Modell den deutschen Text mit englischem Einschlag.
+
+**Was dabei zu lernen war — und was es gekostet hat, es zu lernen:**
+
+Die Schnittstelle verträgt keine parallelen Aufträge. 32 Aufträge auf einmal:
+4 gelungen, 28 mit „Internal Error". Acht auf einmal mit zwei Sekunden Abstand:
+1 von 8. Vier auf einmal: 0 von 4. **Einer nach dem anderen, jeder abgewartet,
+bevor der nächste losgeht: fast alles beim ersten oder zweiten Versuch.** Es
+lag nicht am Text — dieselbe Szene, die fünfmal ausfiel, lief einzeln durch.
+
+Der zweite Fehler war meiner: Mein Wartefenster war mit 24 Sekunden zu kurz,
+also habe ich Aufträge als gescheitert verworfen, die noch liefen. Mit 44
+Sekunden Fenster stieg die Ausbeute sofort.
+
+**Fehlversuche kosten nichts** — nachgerechnet am Guthaben: 240 Credits für 40
+gelungene Aufnahmen, also 6 je Stück, unabhängig von der Textlänge. Eine
+Aufnahme über 30 Zeichen kostet genauso viel wie eine über 211.
+
+**Die Folge fürs Video:** Gesprochen dauert der Ablauf deutlich länger als
+gelesen. Aus 1:31 werden **2:54 (de), 2:48 (it), 2:33 (en)**. Die Standzeiten
+kommen jetzt aus den Aufnahmen: `tools/ton-einbauen.mjs` misst jede Datei,
+rechnet Vorlauf und Nachlauf dazu, nimmt das Video mit diesen Zeiten neu auf
+und legt die Tonspur darunter. Jede Szene endet also, wenn der Satz zu Ende ist.
+
+**Und eine Zeile, die mit dem Ton nötig wurde:** `assets/js/vids.js` startete
+das Video über das `autoplay`-Attribut. Solange es stumm war, ging das überall.
+Mit Tonspur lässt Safari das nicht mehr zu — Ton nur aus einer echten
+Nutzeraktion heraus. Der Klick auf den Knopf ist eine, also wird jetzt dort
+`play()` gerufen. Weigert sich ein Browser trotzdem, läuft es stumm weiter
+statt gar nicht.

@@ -30,3 +30,7 @@ app/steuerakte/
 video/roh/
 video/*.webm
 node_modules/
+
+# Die einzelnen Sprachaufnahmen. Sie stecken fertig im Video; einzeln braucht
+# sie nur, wer den Ton neu mischen will — und dann liegen sie hier lokal.
+video/ton/

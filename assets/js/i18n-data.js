@@ -253,7 +253,7 @@ masz: {
     video: {
       head: "Cosa succede dopo che mi hai scritto",
       lead: "Tutto il percorso, dal primo messaggio al sito finito — con le schermate esatte che vedrai anche tu. Alla fine sai a cosa vai incontro.",
-      t1: "Come funziona", d1: "Tutto il percorso · 1:31 · senza audio",
+      t1: "Come funziona", d1: "Tutto il percorso · 2:48 · con audio",
       play: "Riproduci", nav: "Video"
     },
     abl: {
@@ -636,7 +636,7 @@ masz: {
     video: {
       head: "Was passiert, nachdem du geschrieben hast",
       lead: "Der ganze Weg von der ersten Nachricht bis zur fertigen Seite — mit genau den Bildschirmen, die du dabei zu sehen bekommst. Danach weißt du, worauf du dich einlässt.",
-      t1: "Wie es für dich abläuft", d1: "Der ganze Ablauf · 1:31 · ohne Ton",
+      t1: "Wie es für dich abläuft", d1: "Der ganze Ablauf · 2:54 · mit Ton",
       play: "Abspielen", nav: "Video"
     },
     abl: {
@@ -1019,7 +1019,7 @@ masz: {
     video: {
       head: "What happens after you write",
       lead: "The whole path from your first message to the finished site — with the very screens you'll see along the way. Afterwards you know what you're getting into.",
-      t1: "How it works for you", d1: "The whole process · 1:31 · no sound",
+      t1: "How it works for you", d1: "The whole process · 2:33 · with sound",
       play: "Play", nav: "Video"
     },
     abl: {
