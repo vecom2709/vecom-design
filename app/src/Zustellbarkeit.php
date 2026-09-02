@@ -210,40 +210,78 @@ final class Zustellbarkeit
      */
     public static function taeglich(): array
     {
-        $e = self::pruefen();
-        $vorher = (string) self::still(fn() => Db::wert(
-            "SELECT svalue FROM settings WHERE skey = 'zustellbarkeit_stand'", [], ''), '');
-
         $rang = ['gut' => 0, 'unbekannt' => 1, 'warnung' => 2, 'schlecht' => 3];
-        $jetzt = $rang[$e['stand']] ?? 1;
-        $alt   = $rang[$vorher] ?? 0;
 
+        $e     = self::pruefen();
+        $jetzt = $rang[$e['stand']] ?? 1;
+
+        $vorher   = (string) self::merkzettel('zustellbarkeit_stand');
+        $verdacht = (string) self::merkzettel('zustellbarkeit_verdacht');
+        $alt      = $rang[$vorher] ?? 0;
+
+        /* Eine schlechte Nachricht muss zweimal kommen, bevor sie herausgeht.
+           Der Grund ist gemessen, nicht vorsichtshalber: Waehrend der
+           Gueltigkeitsdauer eines gerade geaenderten Eintrags antworten selbst
+           die beiden Server desselben Anbieters verschieden — acht Abfragen
+           hintereinander ergaben sechsmal den alten und zweimal den neuen
+           Stand. Wer daraus sofort eine Meldung macht, meldet einen Ausfall,
+           den es nie gab, und am naechsten Tag die Entwarnung dazu. Genau so
+           gewoehnt man sich ab hinzusehen.
+
+           Zwei Laeufe liegen einen Tag auseinander, und ein Tag ist hier kein
+           Problem: Es brennt nichts. Ein Fehlalarm waere teurer.
+
+           Der angezeigte Befund bleibt davon unberuehrt — die Seite zeigt
+           immer die letzte Messung. Nur die Meldung wartet auf Bestaetigung. */
         if ($jetzt > $alt) {
-            $schlimm = array_values(array_filter($e['punkte'],
-                static fn($p) => $p['stand'] === 'schlecht' || $p['stand'] === 'warnung'));
-            $text = implode(' · ', array_map(static fn($p) => $p['name'] . ': ' . $p['text'], $schlimm));
-            // "nicht mehr" nur, wenn es vorher schon einen Befund gab. Beim
-            // allerersten Lauf war nie etwas in Ordnung, das jetzt kaputt sein
-            // koennte — und eine Meldung, die das Gegenteil behauptet, schickt
-            // Uwe auf die Suche nach einer Aenderung, die es nicht gab.
-            $zuvor = $vorher !== '';
-            self::still(fn() => Events::melden('zustellbarkeit',
-                $e['stand'] === 'schlecht'
-                    ? ('Die Absenderdomain ist nicht' . ($zuvor ? ' mehr' : '') . ' richtig eingetragen')
-                    : ('An der Absenderdomain stimmt etwas nicht' . ($zuvor ? ' mehr' : '')),
-                $e['stand'] === 'schlecht' ? 'schlecht' : 'warnung',
-                mb_substr($text, 0, 400), '/monitoring'), null);
-        } elseif ($jetzt < $alt && $jetzt === 0) {
+            if ($verdacht !== '' && ($rang[$verdacht] ?? 0) > $alt) {
+                $schlimm = array_values(array_filter($e['punkte'],
+                    static fn($p) => $p['stand'] === 'schlecht' || $p['stand'] === 'warnung'));
+                $text = implode(' · ', array_map(static fn($p) => $p['name'] . ': ' . $p['text'], $schlimm));
+
+                // "nicht mehr" nur, wenn es vorher schon einen Befund gab. Beim
+                // allerersten Lauf war nie etwas in Ordnung, das jetzt kaputt
+                // sein koennte — und eine Meldung, die das Gegenteil behauptet,
+                // schickt Uwe auf die Suche nach einer Aenderung, die es nie gab.
+                $zuvor = $vorher !== '';
+                self::still(fn() => Events::melden('zustellbarkeit',
+                    $e['stand'] === 'schlecht'
+                        ? ('Die Absenderdomain ist nicht' . ($zuvor ? ' mehr' : '') . ' richtig eingetragen')
+                        : ('An der Absenderdomain stimmt etwas nicht' . ($zuvor ? ' mehr' : '')),
+                    $e['stand'] === 'schlecht' ? 'schlecht' : 'warnung',
+                    mb_substr($text, 0, 400), '/monitoring'), null);
+
+                self::merken2('zustellbarkeit_stand', $e['stand']);
+                self::merken2('zustellbarkeit_verdacht', '');
+            } else {
+                // Erstmal nur vormerken. Beim naechsten Lauf zaehlt es.
+                self::merken2('zustellbarkeit_verdacht', $e['stand']);
+            }
+            return ['stand' => $e['stand'], 'domain' => $e['domain'],
+                    'gemeldet' => $verdacht !== '' && ($rang[$verdacht] ?? 0) > $alt];
+        }
+
+        if ($jetzt < $alt && $jetzt === 0) {
             self::still(fn() => Events::melden('zustellbarkeit',
                 'Die Absenderdomain ist wieder in Ordnung', 'gut',
                 'SPF, DKIM und DMARC stehen wieder vollständig.', '/monitoring'), null);
         }
+        self::merken2('zustellbarkeit_stand', $e['stand']);
+        self::merken2('zustellbarkeit_verdacht', '');
+        return ['stand' => $e['stand'], 'domain' => $e['domain'], 'gemeldet' => false];
+    }
 
+    private static function merkzettel(string $schluessel): string
+    {
+        return (string) self::still(fn() => Db::wert(
+            'SELECT svalue FROM settings WHERE skey = ?', [$schluessel], ''), '');
+    }
+
+    private static function merken2(string $schluessel, string $wert): void
+    {
         self::still(fn() => Db::run(
-            "INSERT INTO settings (skey, svalue) VALUES ('zustellbarkeit_stand', ?)
-             ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$e['stand']]), null);
-
-        return ['stand' => $e['stand'], 'domain' => $e['domain']];
+            'INSERT INTO settings (skey, svalue) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schluessel, $wert]), null);
     }
 
     /* ================================================================== */

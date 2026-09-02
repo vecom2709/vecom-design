@@ -1102,7 +1102,41 @@ Ansicht ohne DNS-Abfrage, „Jetzt nachschlagen" schreibt den Befund neu, tägli
 Meldung feuert einmal und dann nicht mehr, Probenachricht im Mailfänger
 angekommen — ohne Kundennummer im Betreff, weil sie zu keinem Kunden gehört.
 
-**Offen und bei Uwe:** die SPF-Zeile im KAS auf
-`v=spf1 a mx include:spf.kasserver.com include:spf.brevo.com ~all` ändern.
-Und, wenn über Wochen alles sauber signiert ist, DMARC von `p=none` auf
+### Die SPF-Zeile ist geändert (02.09.2026)
+
+Uwe hat sich im KAS angemeldet, ich habe den Eintrag über seinen Browser
+geändert — Zugangsdaten habe ich keine eingegeben, er war bereits angemeldet.
+Aus
+
+    v=spf1 a mx include:spf.kasserver.com ~all
+
+wurde
+
+    v=spf1 a mx include:spf.kasserver.com include:spf.brevo.com ~all
+
+Der autoritative Nameserver liefert es, die Prüfung in der Verwaltung steht auf
+allen drei Punkten grün.
+
+**Dabei ein Fehler in der eigenen Prüfung aufgefallen — durch Messen, nicht durch
+Nachdenken.** Direkt nach der Änderung meldete der tägliche Lauf abwechselnd
+„alles gut" und „stimmt etwas nicht mehr". Grund: Solange die alte Gültigkeitsdauer
+läuft, antworten selbst die beiden Server desselben Anbieters verschieden — acht
+Abfragen hintereinander ergaben sechsmal den alten und zweimal den neuen Stand.
+
+Eine Prüfung, die daraus sofort eine Meldung macht, meldet einen Ausfall, den es
+nie gab, und am nächsten Tag die Entwarnung dazu. Genau so gewöhnt man sich ab
+hinzusehen — und dann fehlt sie an dem Tag, an dem wirklich etwas kaputt ist.
+
+Deshalb muss eine schlechte Nachricht jetzt **zweimal kommen**: Der erste
+schlechte Befund wird nur vorgemerkt (`zustellbarkeit_verdacht`), gemeldet wird
+erst, wenn der nächste Lauf ihn bestätigt. Zwei Läufe liegen einen Tag
+auseinander, und ein Tag ist hier kein Problem: Es brennt nichts, ein Fehlalarm
+wäre teurer. Der **angezeigte** Befund bleibt davon unberührt — die Seite zeigt
+immer die letzte Messung, nur die Meldung wartet.
+
+Geprüft: einmal schlecht und dann wieder gut meldet nichts und löscht den
+Verdacht; zweimal schlecht meldet genau einmal und danach nie wieder; die
+Erholung meldet einmal.
+
+**Offen:** Wenn über Wochen alles sauber signiert ist, DMARC von `p=none` auf
 `p=quarantine` heben.
