@@ -1337,11 +1337,36 @@ switch ($route) {
             if (!$b) { http_response_code(404); exit('Bedarf nicht gefunden.'); }
             $antworten = Bedarf::antworten($b);
             $katalog   = Baukasten::katalog(false);
+            $aktive    = Baukasten::katalog();
+            $rechnung  = Baukasten::rechnen($antworten, $aktive);
+
+            /* Der Vorschlagspreis und die fertige Nachricht dazu. Beide
+               entstehen erst hier und werden nirgends gespeichert: Sie sind
+               eine Ansicht auf den heutigen Katalog, keine Zusage. Wer sie
+               speichern wuerde, haette morgen eine zweite Wahrheit neben dem
+               Angebot. */
+            $vorschlag = Baukasten::vorschlag($rechnung, $aktive);
+            $preisnachricht = ['betreff' => '', 'text' => ''];
+            $vorlagen = [];
+            $kennung  = '';
+            if ($b['customer_id'] && $vorschlag['summe_cents'] > 0) {
+                require_once __DIR__ . '/src/Vorlage.php';
+                $preisnachricht = sicher(
+                    static fn() => Bedarf::preisnachricht($b, $vorschlag, $aktive),
+                    ['betreff' => '', 'text' => '']);
+                $vorlagen = sicher(static fn() => Vorlage::fuer((int) $b['customer_id']), []);
+                $kennung  = (string) sicher(static fn() => Vorlage::kennung((int) $b['customer_id']), '');
+            }
+
             ansicht('bedarf', [
                 'b'         => $b,
                 'antworten' => $antworten,
                 'katalog'   => $katalog,
-                'rechnung'  => Baukasten::rechnen($antworten, Baukasten::katalog()),
+                'rechnung'  => $rechnung,
+                'vorschlag' => $vorschlag,
+                'nachricht' => $preisnachricht,
+                'vorlagen'  => $vorlagen,
+                'kennung'   => $kennung,
                 'angebotId' => (int) sicher(static fn() => Db::wert(
                     'SELECT id FROM angebote WHERE bedarf_id = ? LIMIT 1', [$id], 0), 0),
             ]);
@@ -1452,8 +1477,37 @@ switch ($route) {
         if ($id !== null) {
             $a = Db::one('SELECT * FROM anfragen WHERE id = ?', [$id]);
             if (!$a) { http_response_code(404); exit('Anfrage nicht gefunden.'); }
-            ansicht('anfrage', ['a' => $a, 'pakete' => Db::all(
-                'SELECT id, name, price_cents, currency FROM packages WHERE active = 1 ORDER BY sort, price_cents')]);
+
+            /* Kam die Anfrage aus dem Konfigurator, ist ihre Nachricht keine
+               geschriebene Nachricht, sondern eine erzeugte Zusammenfassung —
+               und zwar in der Sprache des Kunden, weil er sie auf seiner
+               eigenen Seite liest. Fuer die Verwaltung wird sie hier frisch
+               auf Deutsch gerechnet. Vorher stand hier Italienisch, und wer
+               die Anfrage las, musste raten, was angekreuzt war. */
+            $bedarf = sicher(static fn() => Db::one(
+                'SELECT * FROM bedarf WHERE anfrage_id = ? LIMIT 1', [$id]), null);
+            $bAntworten = [];
+            $bVorschlag = null;
+            $bKatalog   = [];
+            if ($bedarf) {
+                require_once __DIR__ . '/src/Baukasten.php';
+                require_once __DIR__ . '/src/Bedarf.php';
+                $bAntworten = sicher(static fn() => Bedarf::antworten($bedarf), []);
+                $bKatalog   = sicher(static fn() => Baukasten::katalog(false), []);
+                $aktiv      = sicher(static fn() => Baukasten::katalog(), []);
+                $bVorschlag = sicher(static fn() => Baukasten::vorschlag(
+                    Baukasten::rechnen($bAntworten, $aktiv), $aktiv), null);
+            }
+
+            ansicht('anfrage', [
+                'a'          => $a,
+                'bedarf'     => $bedarf,
+                'bAntworten' => $bAntworten,
+                'bKatalog'   => $bKatalog,
+                'bVorschlag' => $bVorschlag,
+                'pakete'     => Db::all(
+                    'SELECT id, name, price_cents, currency FROM packages WHERE active = 1 ORDER BY sort, price_cents'),
+            ]);
             break;
         }
         ansicht('anfragen', ['liste' => Db::all(

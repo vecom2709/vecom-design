@@ -138,11 +138,18 @@ final class Angebot
         });
     }
 
-    /** Die Mitte zwischen zwei Preisen, auf volle Euro gerundet. */
+    /**
+     * Die Mitte zwischen zwei Preisen.
+     *
+     * Die Regel liegt jetzt in Baukasten::mitte(), weil die Verwaltung
+     * denselben Preis schon vor dem Angebot anzeigt und dem Kunden nennt.
+     * Zwei Kopien derselben Rundung waeren zwei Zahlen, die irgendwann
+     * auseinanderlaufen — und zwar unbemerkt.
+     */
     private static function mitte(int $von, int $bis): int
     {
-        if ($bis <= $von) { return $von; }
-        return (int) (round((($von + $bis) / 2) / 100) * 100);
+        require_once __DIR__ . '/Baukasten.php';
+        return Baukasten::mitte($von, $bis);
     }
 
     /* ----------------------------------------------------------------------

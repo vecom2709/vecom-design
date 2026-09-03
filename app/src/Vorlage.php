@@ -59,6 +59,22 @@ final class Vorlage
     ];
 
     /**
+     * Anrede und Gruss um einen fertigen Text legen.
+     *
+     * Die beiden Konstanten sind privat, und das soll so bleiben — aber die
+     * Preisnachricht aus dem Bedarf braucht denselben Rahmen wie jede
+     * Vorlage. Ohne diese Methode haette sie ihre eigene Anrede, und
+     * spaetestens beim ersten "Hallo" gegen "Ciao" faellt auf, dass es zwei
+     * Wahrheiten gibt.
+     */
+    public static function rahmen(string $sprache, string $vorname, string $text): string
+    {
+        $anrede = (self::ANREDE[$sprache] ?? self::ANREDE['it']) . ' ' . $vorname . ",\n\n";
+        $gruss  = "\n\n" . (self::GRUSS[$sprache] ?? self::GRUSS['it']);
+        return $anrede . $text . $gruss;
+    }
+
+    /**
      * Die Kennung fuer den Betreff. Die Bestellnummer, wenn es eine gibt —
      * sonst eine aus der Kundennummer gebildete. Berechnet, nicht gespeichert:
      * eine weitere Spalte waere eine weitere Stelle, die auseinanderlaufen kann.

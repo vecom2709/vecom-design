@@ -231,11 +231,93 @@ final class Bedarf
         }
 
         if ($spanne) {
-            $e = static fn(int $c): string => number_format($c / 100, 0, ',', '.') . ' EUR';
             $zeilen[] = '';
-            $zeilen[] = 'Errechnete Spanne: ' . $e($spanne['von_cents']) . ' bis ' . $e($spanne['bis_cents']);
-            if ($monatlich > 0) { $zeilen[] = 'Betreuung gewuenscht: ' . $e($monatlich) . ' im Monat'; }
+            $zeilen[] = strtr(Texte::h(Texte::BEDARF['fasseSpanne'], $sprache), [
+                '{von}' => self::geld((int) $spanne['von_cents'], $sprache),
+                '{bis}' => self::geld((int) $spanne['bis_cents'], $sprache),
+            ]);
+            if ($monatlich > 0) {
+                $zeilen[] = strtr(Texte::h(Texte::BEDARF['fasseBetreuung'], $sprache), [
+                    '{betrag}' => self::geld($monatlich, $sprache),
+                ]);
+            }
         }
         return implode("\n", $zeilen);
+    }
+
+    /**
+     * Ein Betrag so, wie er im jeweiligen Land geschrieben wird.
+     *
+     * Vorher stand hier ein festes "1.234 EUR" fuer alle drei Sprachen. Auf
+     * Englisch schreibt niemand so, und "EUR" statt des Zeichens liest sich
+     * wie ein Kontoauszug.
+     */
+    private static function geld(int $cents, string $sprache): string
+    {
+        $euro = (int) round($cents / 100);
+        if ($sprache === 'en') { return '€' . number_format($euro, 0, '.', ','); }
+        return number_format($euro, 0, ',', '.') . ' €';
+    }
+
+    /**
+     * Die fertige Preisnachricht an den Kunden.
+     *
+     * WARUM DAS HIER ENTSTEHT UND NICHT IN UWES KOPF
+     *
+     * Bisher stand in der Verwaltung nur die Spanne. Wer daraus eine Zahl
+     * machen wollte, rechnete von Hand — und wer von Hand rechnet, rechnet
+     * irgendwann anders als das Angebot, das die Anwendung spaeter selbst
+     * erzeugt. Dann steht in der Nachricht eine Zahl und im Angebot eine
+     * andere, und erklaeren muss es der, der beides geschrieben hat.
+     *
+     * Deshalb kommt die Zahl aus Baukasten::vorschlag(), also aus demselben
+     * Rechenweg wie das Angebot, und der Text steht in der Sprache des
+     * Kunden fertig da.
+     *
+     * @return array{betreff:string,text:string}
+     */
+    public static function preisnachricht(array $bedarf, array $vorschlag, array $katalog): array
+    {
+        require_once __DIR__ . '/Vorlage.php';
+
+        $sprache = (string) ($bedarf['sprache'] ?? 'it');
+        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+        $name    = trim((string) ($bedarf['name'] ?? ''));
+        $vorname = $name !== '' ? explode(' ', $name)[0] : '';
+
+        $teile = [];
+        $teile[] = strtr(Texte::h(Texte::BEDARF['preisEinleitung'], $sprache), [
+            '{preis}' => self::geld((int) $vorschlag['summe_cents'], $sprache),
+        ]);
+
+        /* Die Posten mit ihren Einzelpreisen. Wer eine Summe ohne Aufstellung
+           bekommt, fragt zurueck, wofuer sie ist — und dann schreibt Uwe die
+           Aufstellung doch noch, nur einen Tag spaeter. */
+        $zeilen = [];
+        foreach ($vorschlag['positionen'] as $p) {
+            if ((int) $p['monatlich']) { continue; }
+            $b = $katalog[$p['slug']] ?? null;
+            if (!$b) { continue; }
+            $menge = (int) $p['menge'] > 1 ? ' (' . (int) $p['menge'] . ')' : '';
+            $zeilen[] = '· ' . Baukasten::name($b, $sprache) . $menge
+                      . ' — ' . self::geld((int) $p['summe_cents'], $sprache);
+        }
+        if ($zeilen) {
+            $teile[] = Texte::h(Texte::BEDARF['preisInhalt'], $sprache) . "\n" . implode("\n", $zeilen);
+        }
+
+        if ((int) $vorschlag['monatlich_cents'] > 0) {
+            $teile[] = strtr(Texte::h(Texte::BEDARF['preisBetreuung'], $sprache), [
+                '{betrag}' => self::geld((int) $vorschlag['monatlich_cents'], $sprache),
+            ]);
+        }
+
+        $teile[] = Texte::h(Texte::BEDARF['preisSchluss'], $sprache);
+
+        return [
+            'betreff' => Texte::h(Texte::BEDARF['preisBetreff'], $sprache),
+            'text'    => Vorlage::rahmen($sprache, $vorname, implode("\n\n", $teile)),
+        ];
     }
 }

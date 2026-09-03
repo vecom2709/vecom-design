@@ -10,6 +10,13 @@
      $nfVorname  — fuer den Platzhalter im Textfeld
      $nfZurueck  — Adresse, auf die nach dem Senden zurueckgesprungen wird ('' = keine)
      $nfVorwahl  — Schluessel einer Vorlage, die schon ausgewaehlt sein soll ('' = keine)
+     $nfBetreff  — Betreff, der schon dringestehen soll ('' = leer)
+     $nfText     — Text, der schon dringestehen soll ('' = leer)
+
+   Betreff und Text koennen vorbelegt werden, weil der Bedarf eine fertige
+   Preisnachricht mitbringt: Sie ist keine Vorlage im Sinne der Auswahlliste
+   (sie enthaelt gerechnete Zahlen dieses einen Falls), soll aber genauso
+   fertig dastehen. Die Vorlagenauswahl ueberschreibt sie nur nach Rueckfrage.
 
    Die Kennung steht fest vor dem Betreff und ist nicht editierbar: Sie ist
    kein Text, sondern ein Aktenzeichen. Aendert man sie von Hand, faellt genau
@@ -20,6 +27,8 @@ $nfNr = 'nf' . substr(md5((string) $nfTat . '-' . (string) $nfId), 0, 6);
    ausgewaehlt und ausgefuellt vorfinden — sonst haette der Knopf nur einen
    Sprung gespart und keinen Handgriff. */
 $nfVorwahl = (string) ($nfVorwahl ?? '');
+$nfBetreff = (string) ($nfBetreff ?? '');
+$nfText    = (string) ($nfText ?? '');
 $nfGewaehlt = -1;
 if ($nfVorwahl !== '') {
     foreach ($nfVorlagen as $i => $vl) {
@@ -58,12 +67,13 @@ if ($nfVorwahl !== '') {
       <span style="white-space:nowrap;font-size:12.5px;letter-spacing:.03em;color:var(--leise);
                    border:1px solid var(--linie);border-radius:8px;padding:8px 11px">[<?= Fmt::h((string) $nfKennung) ?>]</span>
       <input id="<?= $nfNr ?>_b" name="betreff" style="flex:1 1 220px;width:auto"
-             maxlength="180" placeholder="Worum es geht">
+             maxlength="180" placeholder="Worum es geht" value="<?= Fmt::h($nfBetreff) ?>">
     </div>
   </div>
 
-  <div class="feld"><textarea id="<?= $nfNr ?>_t" name="text" rows="8" required
-    placeholder="Hallo <?= Fmt::h((string) $nfVorname) ?>, …"></textarea></div>
+  <div class="feld"><textarea id="<?= $nfNr ?>_t" name="text"
+    rows="<?= $nfText !== '' ? max(8, min(30, substr_count($nfText, "\n") + 3)) : 8 ?>" required
+    placeholder="Hallo <?= Fmt::h((string) $nfVorname) ?>, …"><?= Fmt::h($nfText) ?></textarea></div>
 
   <button class="knopf haupt">Senden</button>
   <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Geht als E-Mail raus und steht auf seiner Seite.</span>

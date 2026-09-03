@@ -458,4 +458,76 @@ final class Baukasten
         if ($bis <= $von) { $bis = $von + $r; }
         return ['von_cents' => $von, 'bis_cents' => $bis];
     }
+
+    /**
+     * Die Mitte zwischen zwei Preisen, auf volle Euro gerundet.
+     *
+     * WARUM DIESE REGEL HIER STEHT UND NICHT MEHR IM ANGEBOT
+     *
+     * Sie stand im Angebot, und das ging gut, solange nur das Angebot aus
+     * einer Spanne eine Zahl machte. Seit die Verwaltung einen
+     * Vorschlagspreis anzeigt, den Uwe dem Kunden in einer Nachricht nennt,
+     * beantworten zwei Stellen dieselbe Frage — und zwei Stellen mit
+     * derselben Regel sind eine zu viel. Laufen sie auseinander, steht in
+     * der Nachricht 508 Euro und im Angebot danach 510, und der Kunde hat
+     * den Widerspruch schriftlich.
+     */
+    public static function mitte(int $von, int $bis): int
+    {
+        if ($bis <= $von) { return $von; }
+        return (int) (round((($von + $bis) / 2) / 100) * 100);
+    }
+
+    /**
+     * Aus der Spanne wird eine Zahl, die man nennen kann.
+     *
+     * Die Spanne ist ehrlich, aber sie ist keine Antwort: Wer sie bekommt,
+     * fragt zurueck, was es denn nun kostet. Diese Methode beantwortet genau
+     * das — Posten fuer Posten die Mitte, und zwar mit demselben Rechenweg,
+     * den Angebot::ausBedarf() spaeter geht. Die genannte Zahl und die Zahl
+     * im Angebot sind deshalb dieselbe, ohne dass jemand sie abgleichen muss.
+     *
+     * Gerechnet wird ueber die Einzelpreise aus dem Katalog, nicht ueber die
+     * schon multiplizierten Zeilensummen der Rechnung: Vier Seiten zu je
+     * 46 Euro sind 184 — die Mitte aus 160 und 208 waere 184, die Mitte aus
+     * 40 und 52 mal vier auch, aber nur, solange nicht gerundet wird. Sobald
+     * gerundet wird, laufen die beiden Wege auseinander, und das Angebot
+     * geht den ersten.
+     */
+    public static function vorschlag(array $rechnung, ?array $katalog = null): array
+    {
+        $katalog ??= self::katalog();
+
+        $positionen = [];
+        $summe = 0;
+        $monatlich = 0;
+
+        foreach (($rechnung['positionen'] ?? []) as $p) {
+            $b = $katalog[$p['slug']] ?? null;
+            if (!$b) { continue; }
+
+            $menge  = max(1, (int) $p['menge']);
+            $einzel = self::mitte(
+                (int) $b['preis_cents'],
+                (int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']
+            );
+            $zeile = $einzel * $menge;
+
+            if ((int) $p['monatlich']) { $monatlich += $zeile; } else { $summe += $zeile; }
+
+            $positionen[] = [
+                'slug'         => (string) $p['slug'],
+                'menge'        => $menge,
+                'einzel_cents' => $einzel,
+                'summe_cents'  => $zeile,
+                'monatlich'    => (int) $p['monatlich'],
+            ];
+        }
+
+        return [
+            'positionen'      => $positionen,
+            'summe_cents'     => $summe,
+            'monatlich_cents' => $monatlich,
+        ];
+    }
 }

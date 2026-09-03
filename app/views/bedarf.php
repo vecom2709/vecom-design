@@ -129,6 +129,63 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
       <?php endif; ?>
     </div>
 
+    <?php /* Die Spanne ist ehrlich, aber sie ist keine Antwort: Wer sie
+             bekommt, fragt zurueck, was es denn nun kostet. Hier steht die
+             Zahl, die man nennen kann — aus demselben Rechenweg wie das
+             Angebot, damit nicht zwei verschiedene im Umlauf sind. */ ?>
+    <?php if ((int) ($vorschlag['summe_cents'] ?? 0) > 0): ?>
+      <div class="block">
+        <h2 style="font-size:15px;margin:0 0 10px">Was du nennen kannst</h2>
+        <p style="font-size:28px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em">
+          <?= Fmt::geld((int) $vorschlag['summe_cents']) ?>
+        </p>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+          Die Mitte jeder Spanne, gerundet wie im Angebot. Nennst du diese Zahl,
+          steht später dieselbe im Angebot — nachrechnen musst du nichts.
+        </p>
+        <div class="tabellenrahmen"><table>
+          <tbody>
+          <?php foreach ($vorschlag['positionen'] as $p): ?>
+            <?php if ((int) $p['monatlich']) { continue; } ?>
+            <?php $bs = $katalog[$p['slug']] ?? null; if (!$bs) { continue; } ?>
+            <tr>
+              <td><?= Fmt::h(Baukasten::name($bs, 'de')) ?><?= (int) $p['menge'] > 1 ? ' (' . (int) $p['menge'] . ')' : '' ?></td>
+              <td class="num"><?= Fmt::geld((int) $p['summe_cents']) ?></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table></div>
+        <?php if ((int) ($vorschlag['monatlich_cents'] ?? 0) > 0): ?>
+          <p style="color:var(--dim);font-size:14px;margin:12px 0 0">
+            Dazu <?= Fmt::geld((int) $vorschlag['monatlich_cents']) ?> im Monat.
+          </p>
+        <?php endif; ?>
+      </div>
+
+      <?php if (($nachricht['text'] ?? '') !== '' && $b['customer_id']): ?>
+        <div class="block">
+          <h2 style="font-size:15px;margin:0 0 6px">Als Nachricht an den Kunden</h2>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 4px">
+            Fertig formuliert auf <?= Fmt::h($spracheLang) ?> — mit derselben Zahl wie oben und den
+            Posten, aus denen sie besteht. Lies drüber, ändere was du willst, sende.
+            Die Nachricht geht als E-Mail raus und steht auf seiner Seite.
+          </p>
+          <?php
+            $nfTat      = 'kunde_nachricht';
+            $nfId       = (int) $b['customer_id'];
+            $nfKennung  = $kennung;
+            $nfVorlagen = $vorlagen;
+            $nfVorname  = explode(' ', trim((string) $b['name']))[0] ?? '';
+            $nfZurueck  = 'bedarf/' . (int) $b['id'];
+            $nfVorwahl  = '';
+            $nfBetreff  = (string) ($nachricht['betreff'] ?? '');
+            $nfText     = (string) ($nachricht['text'] ?? '');
+            include __DIR__ . '/nachrichtfeld.php';
+          ?>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
+
     <?php if (!empty($rechnung['vorschlaege'])): ?>
       <div class="block">
         <h2 style="font-size:15px;margin:0 0 6px">Könntest du anbieten</h2>

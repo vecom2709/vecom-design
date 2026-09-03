@@ -30,10 +30,57 @@
   <?php endif; ?>
 </div>
 
-<div class="block">
-  <h2>Was er geschrieben hat</h2>
-  <pre style="white-space:pre-wrap;font:inherit;color:var(--dim);line-height:1.6;margin:0"><?= Fmt::h((string) $a['nachricht']) ?></pre>
-</div>
+<?php if ($bedarf): ?>
+  <?php /* Aus dem Konfigurator. Die gespeicherte Nachricht steht in der
+           Sprache des Kunden, weil er sie auf seiner Seite liest — hier wird
+           sie deshalb frisch auf Deutsch aus den Antworten gebaut. */ ?>
+  <div class="block">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h2 style="margin:0">Was im Konfigurator angekreuzt wurde</h2>
+      <a class="knopf" href="<?= Fmt::h(url('bedarf/' . (int) $bedarf['id'])) ?>">Zum Bedarf</a>
+    </div>
+    <table style="margin-top:12px"><tbody>
+    <?php foreach (Baukasten::FRAGEN as $schluessel => $frage): ?>
+      <?php
+        $wert = $bAntworten[$schluessel] ?? null;
+        if ($wert === null || $wert === '' || $wert === []) { continue; }
+        $lesbar = [];
+        foreach ((is_array($wert) ? $wert : [$wert]) as $w) {
+            $o = $frage['optionen'][$w] ?? null;
+            if ($o) { $lesbar[] = Texte::h($o, 'de'); }
+        }
+      ?>
+      <tr>
+        <td style="width:42%"><?= Fmt::h(Texte::h($frage['frage'], 'de')) ?></td>
+        <td><?= Fmt::h(implode(', ', $lesbar)) ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody></table>
+  </div>
+
+  <?php if ($bVorschlag && (int) $bVorschlag['summe_cents'] > 0): ?>
+    <div class="block">
+      <h2>Was du nennen kannst</h2>
+      <p style="font-size:26px;font-weight:600;margin:8px 0 4px;letter-spacing:-.01em">
+        <?= Fmt::geld((int) $bVorschlag['summe_cents']) ?>
+        <?php if ((int) $bVorschlag['monatlich_cents'] > 0): ?>
+          <span style="font-size:15px;font-weight:400;color:var(--dim)">
+            + <?= Fmt::geld((int) $bVorschlag['monatlich_cents']) ?> im Monat</span>
+        <?php endif; ?>
+      </p>
+      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0">
+        Errechnet aus den Antworten, gerundet wie im Angebot. Die fertige Nachricht
+        an den Kunden — in seiner Sprache, mit dieser Zahl und den Posten dazu —
+        steht beim Bedarf und muss nur noch abgeschickt werden.
+      </p>
+    </div>
+  <?php endif; ?>
+<?php elseif (trim((string) $a['nachricht']) !== ''): ?>
+  <div class="block">
+    <h2>Was geschrieben wurde</h2>
+    <pre style="white-space:pre-wrap;font:inherit;color:var(--dim);line-height:1.6;margin:0"><?= Fmt::h((string) $a['nachricht']) ?></pre>
+  </div>
+<?php endif; ?>
 
 <?php if ($a['order_id']): ?>
   <div class="block">

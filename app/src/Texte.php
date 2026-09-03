@@ -617,6 +617,55 @@ final class Texte
             'de' => 'Ich speichere bei jedem Schritt. Du kannst zumachen und mit demselben Link zurückkommen.',
             'en' => 'I save at every step. You can close this and return with the same link.',
         ],
+
+        /* Die beiden Zeilen unter der Zusammenfassung. Sie standen fest auf
+           Deutsch im Code — und die Zusammenfassung liegt auf der privaten
+           Seite des Kunden. Ein italienischer Kunde las dort also mitten in
+           seinem Text "Errechnete Spanne". */
+        'fasseSpanne' => [
+            'it' => 'Fascia di prezzo calcolata: da {von} a {bis}',
+            'de' => 'Errechnete Spanne: {von} bis {bis}',
+            'en' => 'Calculated range: {von} to {bis}',
+        ],
+        'fasseBetreuung' => [
+            'it' => 'Assistenza richiesta: {betrag} al mese',
+            'de' => 'Betreuung gewünscht: {betrag} im Monat',
+            'en' => 'Care requested: {betrag} per month',
+        ],
+
+        /* ------------------------------------------------------------------
+           Die fertige Preisnachricht.
+
+           Sie entsteht aus denselben Zahlen wie das spaetere Angebot und
+           steht in der Verwaltung schon ausgefuellt im Nachrichtenfeld. Der
+           Sinn ist, dass Uwe nichts abtippt und nichts nachrechnet: lesen,
+           gegebenenfalls einen Satz aendern, senden.
+           ------------------------------------------------------------------ */
+        'preisBetreff' => [
+            'it' => 'Il prezzo per il tuo sito',
+            'de' => 'Der Preis für deine Website',
+            'en' => 'The price for your website',
+        ],
+        'preisEinleitung' => [
+            'it' => 'grazie per le tue indicazioni. In base a quello che mi hai descritto, il sito viene {preis}.',
+            'de' => 'danke für deine Angaben. Nach dem, was du beschrieben hast, kostet die Website {preis}.',
+            'en' => 'thank you for your answers. Based on what you described, the website comes to {preis}.',
+        ],
+        'preisInhalt' => [
+            'it' => 'Che cosa comprende:',
+            'de' => 'Was darin enthalten ist:',
+            'en' => 'What that includes:',
+        ],
+        'preisBetreuung' => [
+            'it' => 'In più c\'è l\'assistenza mensile, {betrag} al mese. È un contratto a parte e puoi anche farne a meno: il sito funziona lo stesso.',
+            'de' => 'Dazu kommt die monatliche Betreuung, {betrag} im Monat. Das ist ein eigener Vertrag, den du auch weglassen kannst — die Website läuft genauso.',
+            'en' => 'On top of that there is the monthly care, {betrag} a month. That is a separate contract and you can do without it — the site runs just the same.',
+        ],
+        'preisSchluss' => [
+            'it' => 'Se ti va bene, ti mando il preventivo dettagliato voce per voce: da lì basta un clic per accettarlo. Se invece c\'è qualcosa da aggiungere o da togliere, dimmelo e rifaccio il conto.',
+            'de' => 'Wenn das für dich passt, schicke ich dir das Angebot Posten für Posten — von dort genügt ein Klick zum Annehmen. Soll etwas dazu oder weg, sag Bescheid, dann rechne ich es neu.',
+            'en' => 'If that works for you, I will send you the detailed quote line by line — from there a single click accepts it. If something should be added or removed, tell me and I will redo the figures.',
+        ],
     ];
 
     /* ----------------------------------------------------------------------
