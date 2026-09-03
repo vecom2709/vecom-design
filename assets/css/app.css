@@ -2468,7 +2468,7 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
   letter-spacing:-.01em;
 }
 .bedarfsweg p{color:var(--dim,#9aa4b2); line-height:1.7; margin:0}
-.bedarfsweg__tun{margin-top:clamp(18px,2.4vw,26px)}
+.bedarfsweg__tun{margin-top:clamp(18px,2.4vw,26px); display:flex; flex-wrap:wrap; align-items:center; gap:clamp(14px,2vw,22px)}
 .bedarfsweg__note{
   margin-top:14px !important; font-size:13px; color:var(--leise,#6b7280); line-height:1.6;
 }
@@ -2521,6 +2521,15 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 /* Solange die Leiste steht, rueckt die feste Kopfzeile um ihre Hoehe nach
    unten. Sonst legt sie sich darueber und beide streiten um dieselbe Zeile. */
 html.hat-sprachhinweis .header{top:var(--sprachhinweis-h,0px)}
+/* Die Kopfzeile faehrt beim Abwaertsscrollen aus dem Bild — mit
+   translateY(-104%), gemessen an ihrer eigenen Hoehe. Das genuegt nur, solange
+   sie bei top:0 sitzt. Steht die Sprachleiste darueber, beginnt sie 82 Pixel
+   tiefer und bleibt nach demselben Weg zur Haelfte sichtbar: als Streifen, der
+   quer ueber der Sprachleiste parkt. Also muss der Weg um genau diese Hoehe
+   laenger werden. */
+html.hat-sprachhinweis .header.ist-weg{transform:translateY(calc(-104% - var(--sprachhinweis-h,0px)))}
+/* Sprungziele muessen auch an der Leiste vorbei. */
+html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--sprachhinweis-h,0px))}
 .sprachhinweis__text{flex:1 1 auto; min-width:12ch}
 .sprachhinweis__ja{
   flex:0 0 auto; padding:7px 16px; border-radius:999px; text-decoration:none;
@@ -2540,3 +2549,171 @@ html.hat-sprachhinweis .header{top:var(--sprachhinweis-h,0px)}
   .sprachhinweis{font-size:13.5px; gap:8px}
   .sprachhinweis__text{flex:1 1 100%}
 }
+
+/* ==========================================================================
+   PREISSEITE — /prezzi.html, /de/preise.html, /en/pricing.html
+
+   Eine Textseite, keine Buehne. Sie hat genau eine Aufgabe: die Zahl zeigen,
+   die jemand gesucht hat, und danach den Weg in den Baukasten. Deshalb kein
+   Vorhang, kein 3D, keine Bewegung, die auf sich aufmerksam macht — hier
+   liest jemand, und Lesen vertraegt keine Ablenkung.
+
+   Der Rhythmus kommt aus zwei abwechselnden Gruenden (Basis / Surface). Das
+   ersetzt Trennlinien und haelt lange Textstrecken lesbar, ohne dass ein
+   einziges neues Farbtoken dazukommt.
+   ========================================================================== */
+
+.preisseite { padding-top: clamp(5rem, 9vw, 7rem); }
+.preisseite .section { padding-block: clamp(3.5rem, 7vw, 6.5rem); }
+.preisseite .section--dunkel { background: var(--c-base-2); }
+
+/* Ein Abstand fuer alle Abschnitte. Vorher hing er an dem, was zufaellig
+   folgte: Karten mit Innenabstand sahen luftig aus, blanke Ueberschriften
+   klebten am Vorspann. */
+.preis-lead { color: var(--c-text-dim); font-size: var(--t-md); max-width: 62ch;
+  margin-bottom: clamp(2rem, 4vw, 3rem); }
+.preis-note { color: var(--c-text-faint); font-size: var(--t-sm); max-width: 68ch; margin-top: var(--s-3); line-height: 1.65; }
+.preisseite h2 { font-size: var(--t-xl); margin-bottom: var(--s-2); }
+.preisseite h3 { font-size: var(--t-base); }
+
+/* ---------- Kopf: die Antwort steht ueber allem anderen ------------------ */
+.preis-kopf h1 { font-size: var(--t-2xl); line-height: 1.02; letter-spacing: -.02em; margin-bottom: var(--s-2); }
+.preis-kopf .preis-lead { font-size: var(--t-md); max-width: 58ch; }
+
+.antwort {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border-radius: var(--radius-lg);
+  background: var(--c-surface);
+  box-shadow: var(--elev-1);
+  max-width: 74ch;
+}
+.antwort__titel {
+  font-family: var(--f-display); font-size: var(--t-xs);
+  text-transform: uppercase; letter-spacing: .16em;
+  color: var(--c-cyan); margin-bottom: var(--s-1);
+}
+.antwort__text { font-size: var(--t-md); line-height: 1.55; color: var(--c-text); }
+.antwort__note { font-size: var(--t-xs); color: var(--c-text-faint); margin-top: var(--s-2); }
+
+/* ---------- Vier Faelle -------------------------------------------------- */
+.faelle { display: grid; gap: var(--s-2); grid-template-columns: 1fr; }
+@media (min-width: 620px) { .faelle { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1080px) { .faelle { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.fall {
+  padding: var(--s-3); border-radius: var(--radius-lg);
+  background: var(--c-surface); box-shadow: var(--elev-1);
+  display: flex; flex-direction: column; gap: var(--s-1);
+}
+.fall h3 { color: var(--c-text-dim); font-weight: 500; font-size: var(--t-sm); }
+/* Die Zahl ist der Grund, warum jemand hier ist — also traegt sie die Karte. */
+.fall__preis {
+  font-family: var(--f-display); font-size: var(--t-lg);
+  line-height: 1.05; letter-spacing: -.015em; color: var(--c-text);
+  font-variant-numeric: tabular-nums;
+}
+.fall__was { font-size: var(--t-sm); color: var(--c-text-faint); line-height: 1.6; }
+
+/* ---------- Das Listenblatt ---------------------------------------------- */
+.tabellenrahmen {
+  border: 1px solid var(--c-line); border-radius: var(--radius-lg);
+  background: var(--c-surface); overflow-x: auto;
+}
+.listen { width: 100%; border-collapse: collapse; font-size: var(--t-sm); }
+.listen th, .listen td { text-align: left; padding: .85rem clamp(.9rem, 2vw, 1.4rem); vertical-align: top; }
+.listen thead th {
+  font-family: var(--f-display); font-size: var(--t-xs);
+  text-transform: uppercase; letter-spacing: .12em; color: var(--c-text-faint);
+  font-weight: 500; border-bottom: 1px solid var(--c-line);
+}
+.listen tbody tr + tr th, .listen tbody tr + tr td { border-top: 1px solid var(--c-line); }
+.listen tbody th { font-weight: 400; }
+.listen tbody th b { display: block; color: var(--c-text); font-weight: 600; }
+.listen tbody th span { display: block; color: var(--c-text-faint); line-height: 1.55; margin-top: .15rem; max-width: 62ch; }
+.listen .num {
+  text-align: right; white-space: nowrap;
+  font-variant-numeric: tabular-nums; color: var(--c-text);
+}
+.listen .num small { display: block; color: var(--c-text-faint); font-size: var(--t-xs); }
+
+/* ---------- Was jedes Jahr wiederkommt ----------------------------------- */
+.laufend { display: grid; gap: var(--s-2); grid-template-columns: 1fr; margin: 0; }
+@media (min-width: 780px) { .laufend { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3); } }
+.laufend__z { border-left: 2px solid var(--c-line-strong); padding-left: var(--s-2); }
+.laufend dt { font-weight: 600; color: var(--c-text); margin-bottom: .2rem; }
+.laufend dd { margin: 0; color: var(--c-text-dim); font-size: var(--t-sm); line-height: 1.65; }
+
+/* ---------- Drei Wege ---------------------------------------------------- */
+.vgle { display: grid; gap: var(--s-2); grid-template-columns: 1fr; }
+@media (min-width: 900px) { .vgle { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.vgl {
+  padding: var(--s-3); border-radius: var(--radius-lg);
+  background: var(--c-base); box-shadow: var(--elev-1);
+  display: flex; flex-direction: column; gap: .6rem;
+}
+.vgl p:last-child { color: var(--c-text-faint); font-size: var(--t-sm); line-height: 1.65; margin: 0; }
+.vgl__preis {
+  font-family: var(--f-display); font-size: var(--t-md);
+  color: var(--c-text); font-variant-numeric: tabular-nums;
+}
+/* Die eigene Zeile wird markiert, nicht angepriesen: eine Kante genuegt. */
+.vgl--wir { box-shadow: var(--elev-2); }
+.vgl--wir .vgl__preis { color: var(--c-cyan); }
+
+/* ---------- Drei Gruende ------------------------------------------------- */
+.gruende { display: grid; gap: var(--s-3); grid-template-columns: 1fr; }
+@media (min-width: 900px) { .gruende { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.grund h3 { color: var(--c-text); margin-bottom: .4rem; }
+.grund p { color: var(--c-text-dim); font-size: var(--t-sm); line-height: 1.7; margin: 0; }
+.grund__zaehler {
+  margin-top: var(--s-2) !important; font-size: var(--t-xs) !important;
+  color: var(--c-text-faint) !important;
+}
+.grund__zaehler b { color: var(--c-text); font-variant-numeric: tabular-nums; }
+
+/* ---------- Fragen ------------------------------------------------------- */
+.fragen { display: grid; gap: 0; max-width: 82ch; border-top: 1px solid var(--c-line); }
+.frage { border-bottom: 1px solid var(--c-line); }
+.frage summary {
+  cursor: pointer; padding: var(--s-2) 0; list-style: none;
+  font-size: var(--t-base); color: var(--c-text);
+  display: flex; align-items: baseline; gap: var(--s-2);
+}
+.frage summary::-webkit-details-marker { display: none; }
+.frage summary::after {
+  content: "+"; margin-left: auto; color: var(--c-text-faint);
+  font-family: var(--f-display); transition: transform var(--d-ui) var(--e-std);
+}
+.frage[open] summary::after { content: "–"; }
+.frage p { margin: 0 0 var(--s-2); color: var(--c-text-dim); font-size: var(--t-sm); line-height: 1.75; max-width: 72ch; }
+
+/* ---------- Der Weg in den Baukasten ------------------------------------- */
+.preis-cta { text-align: center; background: var(--c-surface); }
+.preis-cta .preis-lead, .preis-cta .preis-note { margin-inline: auto; }
+.preis-cta .preis-lead { max-width: 56ch; }
+.preis-cta .preis-note { max-width: 56ch; }
+/* Der eine Knopf, um den es auf dieser Seite geht. Er darf groesser sein
+   als jeder andere - alles andere hier ist Text zum Lesen. */
+.btn--gross { font-size: var(--t-md); padding: 1.15rem 2.6rem; margin-top: var(--s-1); }
+.preis-alt { margin-top: var(--s-4); font-size: var(--t-sm); color: var(--c-text-faint); }
+.preis-alt a { color: var(--c-text-dim); text-decoration: underline; text-underline-offset: 3px; }
+.preis-alt a:hover { color: var(--c-cyan); }
+
+.preis-ort .preis-lead { max-width: 70ch; margin-bottom: var(--s-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .frage summary::after { transition: none; }
+}
+
+/* Der Verweis von der Startseite auf die Preisseite. Steht neben dem Knopf,
+   nicht darunter: Es ist eine Alternative fuer den Zoegernden, kein zweiter
+   Aufruf zum Handeln. */
+.bedarfsweg__mehr {
+  align-self: center;
+  font-size: var(--t-sm); color: var(--c-text-dim);
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: var(--c-line-strong);
+  transition: color var(--d-ui) var(--e-std);
+}
+.bedarfsweg__mehr:hover { color: var(--c-cyan); }

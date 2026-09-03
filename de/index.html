@@ -114,7 +114,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=c24f9f49">
+<link rel="stylesheet" href="../assets/css/app.css?v=6f8ab530">
 
 <script type="importmap">
 {
@@ -838,6 +838,11 @@
         <p data-i18n="weg.lead">Acht kurze Fragen, etwa anderthalb Minuten. Am Ende weißt du, in welcher Größenordnung du liegst — unverbindlich und ohne vorher mit jemandem sprechen zu müssen. Das verbindliche Angebot bekommst du binnen 24 Stunden, Position für Position.</p>
         <div class="bedarfsweg__tun">
           <a class="btn btn--primary" href="/bedarf.php"><span data-i18n="weg.cta">Preis herausfinden</span></a>
+          <!-- Wer erst lesen will, was es kostet, bevor er acht Fragen
+               beantwortet, geht hier lang. Ohne diesen Verweis waere die
+               Preisseite von der Startseite aus nicht erreichbar - und eine
+               Seite, auf die nichts zeigt, wird auch nicht gefunden. -->
+          <a class="bedarfsweg__mehr" href="preise.html" data-i18n="weg.preisseite">Alle Preise, Posten für Posten</a>
         </div>
         <p class="bedarfsweg__note" data-i18n="weg.note">Kostenlos und unverbindlich. Deine Daten frage ich erst am Ende, wenn du das Angebot wirklich willst.</p>
       </div>
@@ -1333,6 +1338,7 @@
         <a href="#services" data-i18n="footer.l1">Leistungen</a>
         <a href="#work" data-i18n="footer.l2">Arbeiten</a>
         <a href="#process" data-i18n="footer.l3">Ablauf</a>
+        <a href="preise.html" data-i18n="footer.l5">Preise</a>
         <a href="#contact" data-i18n="footer.l4">Kontakt</a>
         <span class="footer__sep" aria-hidden="true"></span>
         <a href="../legal.html#impressum" data-i18n="footer.g1">Impressum</a>
@@ -1355,7 +1361,7 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-data.js?v=84a70b81" defer></script>
+<script src="../assets/js/i18n-data.js?v=92c3cb6b" defer></script>
 <script src="../assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="../assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="../assets/vendor/gsap.min.js" defer></script>

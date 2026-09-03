@@ -114,7 +114,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=c24f9f49">
+<link rel="stylesheet" href="assets/css/app.css?v=6f8ab530">
 
 <script type="importmap">
 {
@@ -838,6 +838,11 @@
         <p data-i18n="weg.lead">Otto domande brevi, circa un minuto e mezzo. Alla fine sai in che ordine di prezzo ti muovi — senza impegno e senza dover prima parlare con qualcuno. Il preventivo vincolante ti arriva entro 24 ore, voce per voce.</p>
         <div class="bedarfsweg__tun">
           <a class="btn btn--primary" href="/bedarf.php"><span data-i18n="weg.cta">Scopri il prezzo</span></a>
+          <!-- Wer erst lesen will, was es kostet, bevor er acht Fragen
+               beantwortet, geht hier lang. Ohne diesen Verweis waere die
+               Preisseite von der Startseite aus nicht erreichbar - und eine
+               Seite, auf die nichts zeigt, wird auch nicht gefunden. -->
+          <a class="bedarfsweg__mehr" href="prezzi.html" data-i18n="weg.preisseite">Tutti i prezzi, voce per voce</a>
         </div>
         <p class="bedarfsweg__note" data-i18n="weg.note">Gratuito e senza impegno. I tuoi dati te li chiedo solo alla fine, quando il preventivo lo vuoi davvero.</p>
       </div>
@@ -1333,6 +1338,7 @@
         <a href="#services" data-i18n="footer.l1">Servizi</a>
         <a href="#work" data-i18n="footer.l2">Lavori</a>
         <a href="#process" data-i18n="footer.l3">Metodo</a>
+        <a href="prezzi.html" data-i18n="footer.l5">Prezzi</a>
         <a href="#contact" data-i18n="footer.l4">Contatti</a>
         <span class="footer__sep" aria-hidden="true"></span>
         <a href="legal.html#impressum" data-i18n="footer.g1">Note legali</a>
@@ -1355,7 +1361,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-data.js?v=84a70b81" defer></script>
+<script src="assets/js/i18n-data.js?v=92c3cb6b" defer></script>
 <script src="assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js" defer></script>

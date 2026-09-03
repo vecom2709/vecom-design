@@ -25,21 +25,61 @@ const get = (lang, path) => path.split('.').reduce((o, k) => (o || {})[k], DICT[
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const escAttr = (s) => esc(s).replace(/"/g, '&quot;');
 
-const src = readFileSync('index.html', 'utf8');
+/* --------------------------------------------------------------------------
+   Die Seiten, die dreisprachig ausgegeben werden.
 
-function hreflang(prefixDepth) {
+   Bis hierher gab es genau eine: index.html. Mit der Preisseite sind es zwei,
+   und ab zwei muss die Liste erklaerlich sein statt verstreut.
+
+   quelle  Die italienische Fassung. Sie ist zugleich Quelle und Ziel — was
+           schon gebaut ist, wird beim naechsten Lauf sauber ueberschrieben,
+           deshalb sind alle Regeln unten auf eine bereits gebaute Seite
+           anwendbar.
+   ziele   Wohin je Sprache geschrieben wird. Die Adressen sind bewusst in der
+           jeweiligen Sprache: /prezzi.html, /de/preise.html, /en/pricing.html.
+           Eine Suchmaschine liest die Adresse mit, und ein deutscher Leser
+           auch.
+   meta    Der Ast im Woerterbuch, aus dem Titel und Beschreibung kommen.
+   faq     Aus welchen Schluesseln das FAQ-Schema gebaut wird. null = keins.
+   heim    Ob Verweise auf index.html auf die Startseite der jeweiligen Sprache
+           umgeschrieben werden. Auf der Startseite selbst waere das unsinnig.
+   -------------------------------------------------------------------------- */
+const SEITEN = [
+  {
+    quelle: 'index.html',
+    ziele: { it: 'index.html', de: 'de/index.html', en: 'en/index.html' },
+    adressen: { it: '', de: 'de/', en: 'en/' },
+    meta: { titel: 'meta.title', text: 'meta.desc' },
+    faq: { ast: 'faq', von: 1, bis: 8 },
+    heim: false,
+  },
+  {
+    quelle: 'prezzi.html',
+    ziele: { it: 'prezzi.html', de: 'de/preise.html', en: 'en/pricing.html' },
+    adressen: { it: 'prezzi.html', de: 'de/preise.html', en: 'en/pricing.html' },
+    meta: { titel: 'preise.metaTitle', text: 'preise.metaDesc' },
+    faq: { ast: 'preise', von: 1, bis: 6 },
+    heim: true,
+  },
+];
+
+function hreflang(seite) {
   return Object.keys(LANGS)
-    .map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE}/${LANGS[l]}">`)
-    .concat(`<link rel="alternate" hreflang="x-default" href="${BASE}/">`)
+    .map((l) => `<link rel="alternate" hreflang="${l}" href="${BASE}/${seite.adressen[l]}">`)
+    .concat(`<link rel="alternate" hreflang="x-default" href="${BASE}/${seite.adressen.it}">`)
     .join('\n');
 }
 
 // Sprachwahl als echte Links statt Knöpfe — nur so folgt eine Suchmaschine ihnen.
-function langLinks(current, up) {
+function langLinks(current, up, seite) {
+  // Die Sprachwahl muss auf dieselbe Seite in der anderen Sprache zeigen, nicht
+  // pauschal auf die Startseite. Wer auf der Preisseite DE anklickt, will die
+  // Preisseite auf Deutsch und nicht wieder von vorn anfangen.
+  const ziel = (l) => `${up || './'}${seite.adressen[l]}`;
   const item = (l, label) =>
     l === current
       ? `<span class="lang__current" aria-current="true">${label}</span>`
-      : `<a href="${up}${LANGS[l]}" hreflang="${l}" lang="${l}">${label}</a>`;
+      : `<a href="${ziel(l)}" hreflang="${l}" lang="${l}">${label}</a>`;
   return `<div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
         ${item('it', 'IT')}${item('de', 'DE')}${item('en', 'EN')}
       </div>`;
@@ -90,8 +130,8 @@ function fingerabdruecke(h) {
   );
 }
 
-function build(lang) {
-  let h = src;
+function build(lang, seite) {
+  let h = readFileSync(seite.quelle, 'utf8');
 
   // 1. Texte in der Zielsprache fest einsetzen
   h = h.replace(/(<(\w+)[^>]*\bdata-i18n="([a-zA-Z0-9_.]+)"[^>]*>)([\s\S]*?)<\/\2>/g, (m, open, tag, key) => {
@@ -122,19 +162,23 @@ function build(lang) {
     `<div class="marquee__track" data-marquee><span>${esc(mq)}</span><span aria-hidden="true">${esc(mq)}</span></div>`);
 
   // 1b. FAQ-Schema: Google zeigt die Fragen direkt im Suchergebnis an
-  const faq = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
-      '@type': 'Question',
-      name: get(lang, `faq.q${n}`),
-      acceptedAnswer: { '@type': 'Answer', text: get(lang, `faq.a${n}`) },
-    })),
-  };
-  // Erst entfernen, dann setzen: index.html ist Quelle und Ziel zugleich —
-  // ohne das sammelt sich bei jedem Lauf ein weiteres FAQ-Schema an.
+  // Erst entfernen, dann setzen: die Quelle ist zugleich das Ziel — ohne das
+  // sammelt sich bei jedem Lauf ein weiteres FAQ-Schema an.
   h = h.replace(/<script type="application\/ld\+json">\s*\{\s*"@context"[^<]*"FAQPage"[\s\S]*?<\/script>\s*/g, '');
-  h = h.replace('</head>', `<script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n</script>\n</head>`);
+  if (seite.faq) {
+    const nummern = [];
+    for (let n = seite.faq.von; n <= seite.faq.bis; n++) { nummern.push(n); }
+    const faq = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: nummern.map((n) => ({
+        '@type': 'Question',
+        name: get(lang, `${seite.faq.ast}.q${n}`),
+        acceptedAnswer: { '@type': 'Answer', text: get(lang, `${seite.faq.ast}.a${n}`) },
+      })),
+    };
+    h = h.replace('</head>', `<script type="application/ld+json">\n${JSON.stringify(faq, null, 2)}\n</script>\n</head>`);
+  }
 
   // Erklärvideo je Sprache — Datei UND Vorschaubild.
   //
@@ -148,17 +192,17 @@ function build(lang) {
   h = h.replace(/video-ablauf-[a-z]{2}\.webp/g, `video-ablauf-${lang}.webp`);
 
   // 2. Kopfdaten
-  const url = `${BASE}/${LANGS[lang]}`;
+  const url = `${BASE}/${seite.adressen[lang]}`;
   // Vorhandene data-lang-fixed mit einsammeln — sonst haengt sich bei jedem
   // Lauf ein weiteres an, weil index.html Quelle und Ziel zugleich ist.
   h = h.replace(/<html lang="[^"]*"(?:\s+data-lang-fixed="[^"]*")*/, `<html lang="${lang}" data-lang-fixed="${lang}"`);
-  h = h.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(get(lang, 'meta.title'))}</title>`);
-  h = h.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escAttr(get(lang, 'meta.desc'))}">`);
+  h = h.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(get(lang, seite.meta.titel))}</title>`);
+  h = h.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escAttr(get(lang, seite.meta.text))}">`);
   h = h.replace(/<link rel="canonical"[^>]*>/, `<link rel="canonical" href="${url}">`);
-  h = h.replace(/<link rel="alternate"[\s\S]*?x-default"[^>]*>/, hreflang());
+  h = h.replace(/<link rel="alternate"[\s\S]*?x-default"[^>]*>/, hreflang(seite));
   h = h.replace(/<meta property="og:url"[^>]*>/, `<meta property="og:url" content="${url}">`);
-  h = h.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escAttr(get(lang, 'meta.title'))}">`);
-  h = h.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escAttr(get(lang, 'meta.desc'))}">`);
+  h = h.replace(/<meta property="og:title"[^>]*>/, `<meta property="og:title" content="${escAttr(get(lang, seite.meta.titel))}">`);
+  h = h.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${escAttr(get(lang, seite.meta.text))}">`);
   h = h.replace(/<meta property="og:locale"[^>]*>/, `<meta property="og:locale" content="${LOCALES[lang]}">`);
 
   // 3. Pfade und Sprachwahl
@@ -182,9 +226,51 @@ function build(lang) {
     h = h.replace(/href="index\.html"/g, `href="${up}"`);
     h = h.replace(/href="#top"/g, 'href="#top"');
   }
+  /* --------------------------------------------------------------------------
+     Verweise von einer Unterseite zurueck auf die Startseite.
+
+     Auf der Startseite selbst waere das falsch: dort ist "#work" ein Sprung
+     innerhalb derselben Seite. Von der Preisseite aus ist es ein Verweis auf
+     eine andere Seite und braucht deren Adresse davor — sonst sucht der
+     Browser den Abschnitt auf der Preisseite und findet nichts.
+
+     Deshalb absolut und nicht relativ: /de/preise.html und /de/index.html
+     liegen zwar im selben Ordner, aber die italienische Fassung liegt eine
+     Ebene hoeher als ihre Startseite nicht — eine Regel fuer beide Faelle
+     gibt es nur ueber die volle Adresse.
+     -------------------------------------------------------------------------- */
+  if (seite.heim) {
+    const heim = `/${LANGS[lang]}`;
+    /* Die Muster fassen auch eine bereits gebaute Seite: prezzi.html ist
+       Quelle und italienisches Ziel zugleich, steht beim naechsten Lauf also
+       schon umgeschrieben da. Wer hier nur "index.html#" abfaengt, baut beim
+       zweiten Durchgang eine deutsche Seite, deren Verweise auf die
+       italienische Startseite zeigen — und merkt es nie, weil die Adresse
+       ja funktioniert. */
+    h = h.replace(/href="(?:index\.html|\/(?:de\/|en\/)?)#/g, `href="${heim}#`);
+    h = h.replace(/href="\.\.\/"/g, `href="${heim}"`);
+    // Der Baukasten liegt im Wurzelverzeichnis und kennt die Sprache nur
+    // ueber ?lang= — ohne das oeffnet er italienisch, egal woher man kommt.
+    h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
+  }
+  /* --------------------------------------------------------------------------
+     Verweise auf die Preisseite.
+
+     Sie heisst in jeder Sprache anders — prezzi.html, preise.html,
+     pricing.html — und liegt jeweils neben der Startseite derselben Sprache.
+     Deshalb genuegt der blosse Dateiname, und deshalb steht die Regel hier
+     und nicht in einem der drei Seitenbloecke: Wer im Quelltext irgendeine
+     der drei Schreibweisen verlinkt, bekommt die richtige.
+     -------------------------------------------------------------------------- */
+  const preisseite = SEITEN.find((x) => x.quelle === 'prezzi.html');
+  if (preisseite) {
+    const datei = preisseite.ziele[lang].split('/').pop();
+    h = h.replace(/href="(?:prezzi|preise|pricing)\.html"/g, `href="${datei}"`);
+  }
+
   // Muster passt auch auf eine bereits gebaute Seite — sonst erbt der zweite
   // Lauf die Sprachwahl des ersten (index.html ist zugleich Quelle und Ziel).
-  h = h.replace(/<div class="lang[^"]*" role="group"[\s\S]*?<\/div>/, langLinks(lang, up || './'));
+  h = h.replace(/<div class="lang[^"]*" role="group"[\s\S]*?<\/div>/, langLinks(lang, up, seite));
 
   // Zum Schluss, damit die Pfade schon eine Ebene hoeher zeigen.
   h = fingerabdruecke(h);
@@ -230,11 +316,13 @@ function pruefen(h, lang, ziel) {
   }
 }
 
-for (const lang of Object.keys(LANGS)) {
-  const out = build(lang);
-  const ziel = lang === 'it' ? 'index.html' : `${lang}/index.html`;
-  pruefen(out, lang, ziel);
-  if (lang !== 'it') { mkdirSync(lang, { recursive: true }); }
-  writeFileSync(ziel, out);
-  console.log(`geschrieben: ${ziel}${lang === 'it' ? ' (Italienisch, x-default)' : ''}`);
+for (const seite of SEITEN) {
+  for (const lang of Object.keys(LANGS)) {
+    const out = build(lang, seite);
+    const ziel = seite.ziele[lang];
+    pruefen(out, lang, ziel);
+    if (lang !== 'it') { mkdirSync(lang, { recursive: true }); }
+    writeFileSync(ziel, out);
+    console.log(`geschrieben: ${ziel}${lang === 'it' ? ' (Italienisch, x-default)' : ''}`);
+  }
 }
