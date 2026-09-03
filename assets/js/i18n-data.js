@@ -15,8 +15,8 @@ window.VECOM_I18N = {
   /* ----------------------------- ITALIANO ------------------------------- */
   it: {
     meta: {
-      title: "Realizzazione siti web su misura | Vecom Design",
-      desc: "Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Preventivo su misura in 90 secondi.",
+      title: "Realizzazione siti web ad Agrigento e in Sicilia | Vecom Design",
+      desc: "Siti su misura, e-commerce e loghi da Aragona (AG). Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi allo scoperto, preventivo in 90 secondi.",
       locale: "it_IT"
     },
     nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", cta: "Richiedi preventivo" },
@@ -393,8 +393,8 @@ masz: {
       made: "Progettato e sviluppato ad Aragona. Da me."
     },
     preise: {
-      metaTitle: "Quanto costa un sito web? I prezzi veri, voce per voce | Vecom Design",
-      metaDesc: "I prezzi con cui faccio davvero i preventivi: sito vetrina 450–575 €, assistenza 39 € al mese. Nessun pacchetto, nessuna sorpresa in fattura. Calcola il tuo in 90 secondi.",
+      metaTitle: "Quanto costa un sito web? Prezzi veri, voce per voce | Vecom Design",
+      metaDesc: "I prezzi con cui faccio i preventivi: sito vetrina 450–575 €, assistenza 39 € al mese. Nessun pacchetto, nessuna sorpresa. Calcola il tuo in 90 secondi.",
 
       kicker: "Prezzi allo scoperto",
       h1: "Quanto costa un sito web?",
@@ -532,8 +532,8 @@ masz: {
   /* ------------------------------ DEUTSCH ------------------------------- */
   de: {
     meta: {
-      title: "Website erstellen lassen — maßgeschneidert | Vecom Design",
-      desc: "Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Angebot nach Bedarf in 90 Sekunden. Klare Preise ab 499 €.",
+      title: "Website erstellen lassen — deutschsprachig, aus Sizilien | Vecom Design",
+      desc: "Maßgeschneiderte Websites und Online-Shops aus Sizilien, deutschsprachig. Dreisprachig IT/DE/EN, für Google gebaut. Preise offen gelegt, Angebot in 90 Sekunden.",
       locale: "de_DE"
     },
     nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", cta: "Angebot anfordern" },
@@ -910,8 +910,8 @@ masz: {
       made: "Gestaltet und gebaut in Aragona. Von mir."
     },
     preise: {
-      metaTitle: "Was kostet eine Website? Die echten Preise, Posten für Posten | Vecom Design",
-      metaDesc: "Die Zahlen, mit denen ich wirklich rechne: Website mit fünf Seiten 450–575 €, Betreuung 39 € im Monat. Keine Pakete, keine Überraschung auf der Rechnung. In 90 Sekunden selbst ausrechnen.",
+      metaTitle: "Was kostet eine Website? Alle Preise offen | Vecom Design",
+      metaDesc: "Die Zahlen, mit denen ich wirklich rechne: fünf Seiten 450–575 €, Betreuung 39 € im Monat. Keine Pakete, keine Überraschung. In 90 Sekunden selbst ausrechnen.",
 
       kicker: "Preise offen gelegt",
       h1: "Was kostet eine Website?",
@@ -1049,8 +1049,8 @@ masz: {
   /* ------------------------------ ENGLISH ------------------------------- */
   en: {
     meta: {
-      title: "Custom website design that wins clients | Vecom Design",
-      desc: "Custom websites, online stores and brand identity, made in Sicily. Trilingual IT/DE/EN, fast and built to rank on Google. Packages from €499.",
+      title: "Website design in Sicily — trilingual IT/DE/EN | Vecom Design",
+      desc: "Custom websites and online stores from Aragona, Sicily. Trilingual IT/DE/EN, built to rank on Google. Prices in the open, quote in 90 seconds.",
       locale: "en_GB"
     },
     nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", cta: "Get a quote" },
@@ -1427,7 +1427,7 @@ masz: {
       made: "Designed and built in Aragona. By me."
     },
     preise: {
-      metaTitle: "What does a website cost? The real prices, line by line | Vecom Design",
+      metaTitle: "What does a website cost? Real prices, line by line | Vecom Design",
       metaDesc: "The figures I actually quote with: a five-page site €450–575, care from €39 a month. No packages, no surprises on the invoice. Work out your own in 90 seconds.",
 
       kicker: "Prices in the open",
