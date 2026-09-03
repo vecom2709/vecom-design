@@ -7,6 +7,17 @@ foreach (['Config','Db','Status','Csrf','Auth','Fmt','Events','Kennzahlen'] as $
     require_once __DIR__ . "/src/$k.php";
 }
 
+/* Auffangnetz. Jede Route laedt weiterhin ausdruecklich, was sie braucht --
+   das bleibt die Dokumentation, welche Seite auf welchem Baustein sitzt.
+   Vergisst eine Ansicht aber eine Klasse, gab es bisher einen weissen
+   Bildschirm mitten in einer Tabelle. Ab hier wird sie stattdessen
+   nachgeladen. Nur Namen aus src/, nichts aus der Anfrage. */
+spl_autoload_register(static function (string $klasse): void {
+    if (!preg_match('/^[A-Z][A-Za-z0-9]*$/', $klasse)) { return; }
+    $datei = __DIR__ . '/src/' . $klasse . '.php';
+    if (is_file($datei)) { require_once $datei; }
+});
+
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 Auth::start();
 
@@ -1331,6 +1342,7 @@ switch ($route) {
 
     case 'bedarf':
         require_once __DIR__ . '/src/Baukasten.php';
+        require_once __DIR__ . '/src/Texte.php';   // die Ansichten schreiben die Antworten deutsch
         require_once __DIR__ . '/src/Bedarf.php';
         if ($id !== null) {
             $b = Db::one('SELECT * FROM bedarf WHERE id = ?', [$id]);
@@ -1426,6 +1438,7 @@ switch ($route) {
 
     case 'projekte':
         require_once __DIR__ . '/src/Onboarding.php';
+        require_once __DIR__ . '/src/Texte.php';   // die Ansicht beschriftet den Fragebogen
         if ($id !== null) {
             $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, o.order_no
                           FROM projects p JOIN customers c ON c.id = p.customer_id
@@ -1479,6 +1492,7 @@ switch ($route) {
 
     case 'anfragen':
         require_once __DIR__ . '/src/Anfrage.php';
+        require_once __DIR__ . '/src/Texte.php';   // die Ansicht schreibt die Antworten deutsch
         if ($id !== null) {
             $a = Db::one('SELECT * FROM anfragen WHERE id = ?', [$id]);
             if (!$a) { http_response_code(404); exit('Anfrage nicht gefunden.'); }
