@@ -18,6 +18,7 @@ final class Texte
                 'zielgruppe' => ['it' => 'Chi sono i vostri clienti', 'de' => 'Wer sind eure Kunden', 'en' => 'Who are your customers', 'art' => 'lang'],
                 'standort'   => ['it' => 'Sede e zona servita', 'de' => 'Standort und Einzugsgebiet', 'en' => 'Location and area served', 'art' => 'text'],
                 'kontakt'    => ['it' => 'Telefono, e-mail, orari', 'de' => 'Telefon, E-Mail, Öffnungszeiten', 'en' => 'Phone, email, opening hours', 'art' => 'lang'],
+                'impressum' => ['it' => 'Dati per le note legali: ragione sociale esatta, indirizzo, P. IVA o codice fiscale', 'de' => 'Angaben fürs Impressum: genaue Firmierung, Anschrift, Partita IVA oder Codice Fiscale', 'en' => 'Details for the legal notice: exact company name, address, VAT or tax number', 'art' => 'lang'],
             ],
         ],
         'website' => [
@@ -28,6 +29,10 @@ final class Texte
                 'ziel'       => ['it' => 'Cosa deve ottenere il sito', 'de' => 'Was die Website erreichen soll', 'en' => 'What the site should achieve', 'art' => 'lang'],
                 'inhalte'    => ['it' => 'Quali contenuti avete già', 'de' => 'Welche Inhalte gibt es schon', 'en' => 'What content do you already have', 'art' => 'lang'],
                 'beispiele'  => ['it' => 'Siti che vi piacciono', 'de' => 'Websites, die euch gefallen', 'en' => 'Websites you like', 'art' => 'lang'],
+                'handlung' => ['it' => 'Che cosa deve fare un visitatore? (telefonare, scrivere, prenotare, venire)', 'de' => 'Was soll ein Besucher tun? (anrufen, schreiben, buchen, vorbeikommen)', 'en' => 'What should a visitor do? (call, write, book, come by)', 'art' => 'lang'],
+                'mitbewerber' => ['it' => 'Due o tre concorrenti della zona, con il sito se ce l’hanno', 'de' => 'Zwei, drei Mitbewerber aus der Gegend, mit Website falls vorhanden', 'en' => 'Two or three local competitors, with their site if they have one', 'art' => 'lang'],
+                'domain' => ['it' => 'C’è già un indirizzo (dominio)? A chi è intestato e dove è registrato?', 'de' => 'Gibt es schon eine Adresse (Domain)? Auf wen läuft sie und wo liegt sie?', 'en' => 'Is there already a domain? Who is it registered to, and where?', 'art' => 'lang'],
+                'erhalten' => ['it' => 'Della vecchia pagina: che cosa deve assolutamente restare?', 'de' => 'Von der jetzigen Seite: Was muss unbedingt erhalten bleiben?', 'en' => 'From the current site: what has to stay, no matter what?', 'art' => 'lang'],
             ],
         ],
         'design' => [
@@ -38,6 +43,8 @@ final class Texte
                 'schriften'   => ['it' => 'Caratteri, se avete preferenze', 'de' => 'Schriftarten, falls ihr Wünsche habt', 'en' => 'Fonts, if you have preferences', 'art' => 'text'],
                 'logo'        => ['it' => 'Avete già un logo?', 'de' => 'Gibt es schon ein Logo?', 'en' => 'Do you already have a logo?', 'art' => 'text'],
                 'vorbilder'   => ['it' => 'Esempi che vi ispirano', 'de' => 'Beispiele, die euch gefallen', 'en' => 'Examples that inspire you', 'art' => 'lang'],
+                'wirkung' => ['it' => 'Tre parole: come deve sentirsi chi apre il sito', 'de' => 'Drei Wörter: Wie soll die Seite wirken?', 'en' => 'Three words: how should the site feel?', 'art' => 'text'],
+                'abneigung' => ['it' => 'Che cosa non deve esserci in nessun caso? Colori, stili, cose che avete visto altrove', 'de' => 'Was soll auf keinen Fall vorkommen? Farben, Stile, Dinge, die ihr anderswo gesehen habt', 'en' => 'What should never appear? Colours, styles, things you have seen elsewhere', 'art' => 'lang'],
             ],
         ],
         'inhalte' => [
@@ -47,6 +54,7 @@ final class Texte
                 'bilder' => ['it' => 'Foto disponibili', 'de' => 'Vorhandene Bilder', 'en' => 'Available photos', 'art' => 'lang'],
                 'videos' => ['it' => 'Video disponibili', 'de' => 'Vorhandene Videos', 'en' => 'Available videos', 'art' => 'text'],
                 'social' => ['it' => 'Profili social', 'de' => 'Social-Media-Profile', 'en' => 'Social media profiles', 'art' => 'lang'],
+                'bildrechte' => ['it' => 'Le foto si possono pubblicare? Chi le ha fatte, e ci sono persone riconoscibili?', 'de' => 'Dürfen die Fotos veröffentlicht werden? Wer hat sie gemacht, und sind Personen darauf erkennbar?', 'en' => 'May the photos be published? Who took them, and are people recognisable?', 'art' => 'lang'],
                 'sonstiges' => ['it' => 'Altro che dovrei sapere', 'de' => 'Sonst noch etwas, das ich wissen sollte', 'en' => 'Anything else I should know', 'art' => 'lang'],
             ],
         ],

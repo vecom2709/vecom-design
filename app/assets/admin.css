@@ -163,3 +163,51 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
   .sprachen a{display:inline-block;padding:10px 8px}
   .datei .knopf{min-width:44px;justify-content:center}
 }
+
+/* ==========================================================================
+   "Jetzt dran" — der naechste Schritt, auf jeder Seite.
+
+   Die Leiste sitzt ueber dem Inhalt und ist die einzige Stelle in der
+   Verwaltung, die eine Handlung verlangt statt einen Bestand zu zeigen.
+   Deshalb darf sie farbig sein, waehrend alles andere ruhig bleibt: Zwei
+   Dinge, die um Aufmerksamkeit rufen, sind eines zu viel.
+   ========================================================================== */
+.jetzt{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin:0 0 18px; padding:12px 16px; border-radius:12px;
+  background:linear-gradient(135deg, rgba(6,72,232,.16), rgba(31,232,255,.07));
+  border:1px solid rgba(31,232,255,.28);
+}
+.jetzt--leer{
+  background:transparent; border-color:var(--linie);
+  padding-top:9px; padding-bottom:9px;
+}
+.jetzt__ruhe{color:var(--leise); font-size:13px}
+.jetzt__marke{
+  font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--cyan); white-space:nowrap; font-weight:600;
+}
+.jetzt__wer{display:flex; flex-direction:column; gap:2px; flex:1 1 260px; min-width:0}
+.jetzt__wer b{font-size:14.5px}
+.jetzt__warum{color:var(--leise); font-size:12.5px; line-height:1.45}
+.jetzt__tun{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+.jetzt__rest{color:var(--leise); font-size:12.5px; white-space:nowrap}
+.jetzt__rest:hover{color:var(--cyan)}
+
+/* ---- Der Knopf, der gemeint ist ----------------------------------------
+   Kommt man ueber die Leiste, traegt die Adresse ?tun= mit. Genau das
+   passende Formular leuchtet dann kurz auf. Ohne das sucht man auf einer
+   vollen Vorgangsseite den richtigen von acht Knoepfen. */
+.leuchtet{
+  position:relative; border-radius:12px;
+  animation:leuchten 2.4s ease-out 3;
+  outline:2px solid var(--cyan); outline-offset:6px;
+}
+@keyframes leuchten{
+  0%,100%{outline-color:rgba(31,232,255,0)}
+  25%   {outline-color:rgba(31,232,255,.9)}
+  60%   {outline-color:rgba(31,232,255,.25)}
+}
+@media (prefers-reduced-motion:reduce){
+  .leuchtet{animation:none; outline-color:var(--cyan)}
+}

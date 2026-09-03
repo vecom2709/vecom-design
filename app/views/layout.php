@@ -15,11 +15,16 @@ $navZahlen['stimmen'] = (int) sicher(static function (): int {
     require_once __DIR__ . '/../src/Stimme.php';
     return Stimme::offene();
 }, 0);
-$navZahlen['heute'] = (int) sicher(static function (): int {
+/* Einmal rechnen, zweimal benutzt: fuer die Zahl im Menue und fuer die
+   Leiste "Jetzt dran". Zweimal rechnen hiesse, jede Seite zweimal durch alle
+   Vorgaenge zu schicken. */
+$arbeitsliste = (array) sicher(static function (): array {
     require_once dirname(__DIR__) . '/src/Vorgang.php';
     require_once dirname(__DIR__) . '/src/Mail.php';
-    return count(Vorgang::arbeitsliste()['du']);
-}, 0);
+    return Vorgang::arbeitsliste();
+}, ['du' => [], 'kunde' => [], 'ruht' => []]);
+$wartetAufDich = $arbeitsliste['du'] ?? [];
+$navZahlen['heute'] = count($wartetAufDich);
 $aktiv = $route ?: 'dashboard';
 $menue = [
   ['heute', 'Heute', 'heute'],
@@ -131,9 +136,78 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
         </form>
       </div>
     <?php endif; ?>
+    <?php
+    /* ----------------------------------------------------------------------
+       "Jetzt dran" — auf jeder Seite, nicht nur auf Heute.
+
+       Die Verwaltung wusste den naechsten Schritt schon immer: Vorgang
+       rechnet Stufe, wer dran ist und welcher Knopf ihn erledigt. Nur stand
+       das ausschliesslich auf zwei Seiten. Wer woanders war, musste sich
+       erinnern, dass es diese Seiten gibt.
+
+       Deshalb steht der naechste Schritt jetzt ueberall, und der Verweis
+       traegt ?tun= mit: Auf der Zielseite leuchtet damit genau der Knopf,
+       der gemeint ist. Ohne das findet man auf einer vollen Vorgangsseite
+       den richtigen von acht Knoepfen nicht auf Anhieb.
+       ---------------------------------------------------------------------- */
+    $ersteAufgabe = $wartetAufDich[0] ?? null;
+    ?>
+    <section class="jetzt <?= $ersteAufgabe ? '' : 'jetzt--leer' ?>" aria-label="Was jetzt zu tun ist">
+      <?php if (!$ersteAufgabe): ?>
+        <span class="jetzt__ruhe">Nichts offen — alles liegt beim Kunden oder ist erledigt.</span>
+      <?php else: ?>
+        <?php
+          $sch  = $ersteAufgabe['schritt'];
+          $ziel = url('vorgaenge/' . $ersteAufgabe['schluessel'])
+                . ($sch && $sch['tat'] ? '?tun=' . rawurlencode((string) $sch['tat']) : '');
+          $rest = count($wartetAufDich) - 1;
+        ?>
+        <span class="jetzt__marke">Jetzt dran</span>
+        <span class="jetzt__wer">
+          <b><?= Fmt::h((string) $ersteAufgabe['kunde']) ?></b>
+          <span class="jetzt__warum"><?= Fmt::h((string) $ersteAufgabe['warum']) ?></span>
+        </span>
+        <span class="jetzt__tun">
+          <?php if ($sch !== null && $sch['direkt']): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+              <?= Csrf::feld() ?>
+              <input type="hidden" name="tat" value="<?= Fmt::h((string) $sch['tat']) ?>">
+              <input type="hidden" name="id" value="<?= (int) $sch['id'] ?>">
+              <input type="hidden" name="zurueck" value="<?= Fmt::h($route) ?>">
+              <?php foreach ($sch['felder'] as $feld => $wert): ?>
+                <input type="hidden" name="<?= Fmt::h($feld) ?>" value="<?= Fmt::h((string) $wert) ?>">
+              <?php endforeach; ?>
+              <button class="knopf haupt"><?= Fmt::h((string) $sch['knopf']) ?></button>
+            </form>
+          <?php else: ?>
+            <a class="knopf haupt" href="<?= Fmt::h($ziel) ?>"><?= Fmt::h($sch !== null ? (string) $sch['knopf'] : 'Öffnen') ?> &rsaquo;</a>
+          <?php endif; ?>
+          <?php if ($rest > 0): ?>
+            <a class="jetzt__rest" href="<?= Fmt::h(url('heute')) ?>">und <?= $rest ?> weitere</a>
+          <?php endif; ?>
+        </span>
+      <?php endif; ?>
+    </section>
     <?php require $inhaltsdatei; ?>
   </main>
 </div>
+<script>
+/* Kommt man ueber die Leiste "Jetzt dran", steht der gemeinte Knopf in der
+   Adresse. Ihn hier zu suchen ist zuverlaessiger, als ihn beim Bauen jeder
+   Seite einzeln zu markieren: Es gibt genau eine Stelle, an der ein Knopf
+   seine Handlung nennt, naemlich das versteckte Feld "tat". */
+(function () {
+  var tun = new URLSearchParams(location.search).get('tun');
+  if (!tun) { return; }
+  var feld = document.querySelector('input[name="tat"][value="' + CSS.escape(tun) + '"]');
+  var ziel = feld && feld.closest('form');
+  if (!ziel) { return; }
+  ziel.classList.add('leuchtet');
+  ziel.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  var knopf = ziel.querySelector('button, input[type=submit]');
+  if (knopf) { knopf.focus({ preventScroll: true }); }
+})();
+</script>
 <script>
 /* Laufende Aktualisierung: fragt alle 20 Sekunden nur wenige Zahlen ab und
    laedt die Seite erst neu, wenn sich wirklich etwas geaendert hat. */
