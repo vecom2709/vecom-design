@@ -146,6 +146,43 @@ if ($post) {
     $tat = (string) ($_POST['tat'] ?? '');
     try {
         switch ($tat) {
+            case 'angebot_aus_bedarf':
+                require_once __DIR__ . '/src/Angebot.php';
+                $neu = Angebot::ausBedarf((int) ($_POST['id'] ?? 0));
+                if ($neu !== null) { weiter('angebote/' . $neu); }
+                zurueck('bedarf');
+
+            case 'angebot_zeilen':
+                require_once __DIR__ . '/src/Angebot.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                // Derselbe Knopfleiste-Trick wie anderswo: Das Kreuz an einer
+                // Zeile schickt dasselbe Formular ab, nur mit "weg".
+                $weg = (int) ($_POST['weg'] ?? 0);
+                if ($weg > 0) { Angebot::zeileWeg($aid, $weg); }
+                else { Angebot::zeilenSpeichern($aid, (array) ($_POST['menge'] ?? []), (array) ($_POST['preis'] ?? [])); }
+                zurueck('angebote/' . $aid);
+
+            case 'angebot_baustein':
+                require_once __DIR__ . '/src/Angebot.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                Angebot::bausteinDazu($aid, (string) ($_POST['slug'] ?? ''), (int) ($_POST['menge'] ?? 1));
+                zurueck('angebote/' . $aid);
+
+            case 'angebot_freie_zeile':
+                require_once __DIR__ . '/src/Angebot.php';
+                require_once __DIR__ . '/src/Baukasten.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                Angebot::freieZeile($aid, (string) ($_POST['bezeichnung'] ?? ''),
+                    Baukasten::centsAus((string) ($_POST['preis'] ?? '0')), 1,
+                    !empty($_POST['monatlich']));
+                zurueck('angebote/' . $aid);
+
+            case 'angebot_senden':
+                require_once __DIR__ . '/src/Angebot.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                Angebot::senden($aid);
+                zurueck('angebote/' . $aid);
+
             case 'preise_anheben':
                 require_once __DIR__ . '/src/Baukasten.php';
                 require_once __DIR__ . '/src/Einfuehrung.php';
@@ -1252,6 +1289,28 @@ switch ($route) {
         ]);
         break;
 
+    case 'angebote':
+        require_once __DIR__ . '/src/Baukasten.php';
+        require_once __DIR__ . '/src/Angebot.php';
+        if ($id !== null) {
+            $a = sicher(static fn() => Db::one(
+                'SELECT a.*, c.name AS kunde FROM angebote a
+                   JOIN customers c ON c.id = a.customer_id WHERE a.id = ?', [$id]), null);
+            if (!$a) { http_response_code(404); exit('Angebot nicht gefunden.'); }
+            ansicht('angebot', [
+                'a'          => $a,
+                'positionen' => sicher(static fn() => Angebot::positionen($id), []),
+                'katalog'    => sicher(static fn() => Baukasten::katalog(), []),
+            ]);
+            break;
+        }
+        ansicht('angebote', ['liste' => sicher(static fn() => Db::all(
+            "SELECT a.*, c.name AS kunde FROM angebote a
+               LEFT JOIN customers c ON c.id = a.customer_id
+              ORDER BY FIELD(a.status,'entwurf','gesendet','angenommen','abgelehnt','abgelaufen'),
+                       a.created_at DESC LIMIT 200"), [])]);
+        break;
+
     case 'empfehlungen':
         require_once __DIR__ . '/src/Empfehlung.php';
         ansicht('empfehlungen', [
@@ -1283,6 +1342,8 @@ switch ($route) {
                 'antworten' => $antworten,
                 'katalog'   => $katalog,
                 'rechnung'  => Baukasten::rechnen($antworten, Baukasten::katalog()),
+                'angebotId' => (int) sicher(static fn() => Db::wert(
+                    'SELECT id FROM angebote WHERE bedarf_id = ? LIMIT 1', [$id], 0), 0),
             ]);
             break;
         }

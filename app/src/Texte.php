@@ -619,6 +619,86 @@ final class Texte
         ],
     ];
 
+    /* ----------------------------------------------------------------------
+       Das Angebot, so wie der Kunde es sieht.
+
+       Ein Angebot ist der Moment, in dem aus einem Gespraech Geld wird. Der
+       Ton bleibt trotzdem derselbe: duzen, kurze Saetze, und keine Zeile,
+       die man zweimal lesen muss.
+       ---------------------------------------------------------------------- */
+    public const ANGEBOT = [
+        'titel'   => ['it' => 'La tua offerta', 'de' => 'Dein Angebot', 'en' => 'Your quote'],
+        'lead'    => [
+            'it' => 'Ecco che cosa costa quello che ci siamo detti. Nessuna sorpresa dopo: quello che leggi qui è il prezzo.',
+            'de' => 'Das kostet, worüber wir gesprochen haben. Keine Überraschungen danach — was hier steht, ist der Preis.',
+            'en' => 'Here is what we discussed, and what it costs. No surprises later — what you read here is the price.',
+        ],
+        'nummer'  => ['it' => 'Offerta', 'de' => 'Angebot', 'en' => 'Quote'],
+        'gueltig' => ['it' => 'Valida fino al {datum}', 'de' => 'Gültig bis {datum}', 'en' => 'Valid until {datum}'],
+        'posten'  => ['it' => 'Che cosa è compreso', 'de' => 'Was drin ist', 'en' => 'What is included'],
+        'summe'   => ['it' => 'Totale una tantum', 'de' => 'Einmalig gesamt', 'en' => 'One-off total'],
+        'monat'   => ['it' => 'Assistenza mensile', 'de' => 'Betreuung monatlich', 'en' => 'Monthly care'],
+        'zahlung' => [
+            'it' => 'Si paga in due volte: {anzahlung} all\'ordine, il resto alla consegna del sito.',
+            'de' => 'Bezahlt wird in zwei Schritten: {anzahlung} bei Auftrag, der Rest bei Übergabe der Website.',
+            'en' => 'Paid in two steps: {anzahlung} on order, the rest when the site is handed over.',
+        ],
+        'annehmen'  => ['it' => 'Accetto l\'offerta', 'de' => 'Angebot annehmen', 'en' => 'Accept this quote'],
+        'ablehnen'  => ['it' => 'Non fa per me', 'de' => 'Passt so nicht', 'en' => 'Not for me'],
+        'grundFrage'=> [
+            'it' => 'Che cosa non va? Basta una riga — mi aiuta a capire.',
+            'de' => 'Was passt nicht? Eine Zeile genügt — sie hilft mir weiter.',
+            'en' => 'What is not right? One line is enough — it helps me.',
+        ],
+        'pdf' => ['it' => 'Scarica in PDF', 'de' => 'Als PDF herunterladen', 'en' => 'Download as PDF'],
+        'proMonat'  => ['it' => 'al mese', 'de' => 'im Monat', 'en' => 'per month'],
+        'pdfAn'     => ['it' => 'A', 'de' => 'An', 'en' => 'To'],
+        'pdfDatum'  => ['it' => 'Data', 'de' => 'Datum', 'en' => 'Date'],
+        'pdfGueltig'=> ['it' => 'Valida fino al', 'de' => 'Gültig bis', 'en' => 'Valid until'],
+        'pdfWas'    => ['it' => 'Prestazione', 'de' => 'Leistung', 'en' => 'Item'],
+        'pdfBetrag' => ['it' => 'Importo', 'de' => 'Betrag', 'en' => 'Amount'],
+        'pdfFest'   => [
+            'it' => 'Quello che leggi qui è il prezzo. Se durante il lavoro serve altro, te lo dico prima.',
+            'de' => 'Was hier steht, ist der Preis. Kommt während der Arbeit etwas dazu, spreche ich es vorher ab.',
+            'en' => 'What is written here is the price. If anything comes up during the work, I agree it with you first.',
+        ],
+        'dankeAn' => [
+            'it' => 'Grazie! Ti scrivo subito con il link per l\'acconto — poi si comincia.',
+            'de' => 'Danke! Ich melde mich gleich mit dem Link für die Anzahlung — dann geht es los.',
+            'en' => 'Thank you! I will send you the deposit link shortly — then we start.',
+        ],
+        'dankeAb' => [
+            'it' => 'Va bene, grazie per avermelo detto. Se cambi idea, sai dove trovarmi.',
+            'de' => 'Alles gut, danke für die Rückmeldung. Wenn du es dir anders überlegst, weißt du, wo ich bin.',
+            'en' => 'That is fine, thanks for telling me. If you change your mind, you know where I am.',
+        ],
+        'schonAn' => [
+            'it' => 'Questa offerta è già stata accettata.',
+            'de' => 'Dieses Angebot ist bereits angenommen.',
+            'en' => 'This quote has already been accepted.',
+        ],
+        'schonAb' => [
+            'it' => 'Questa offerta è stata rifiutata.',
+            'de' => 'Dieses Angebot wurde abgelehnt.',
+            'en' => 'This quote was declined.',
+        ],
+        'abgelaufen' => [
+            'it' => 'Questa offerta è scaduta. Scrivimi e te ne faccio una nuova — di solito al prezzo di prima.',
+            'de' => 'Dieses Angebot ist abgelaufen. Schreib mir, dann mache ich ein neues — meist zum alten Preis.',
+            'en' => 'This quote has expired. Write to me and I will make a new one — usually at the old price.',
+        ],
+        'weg' => [
+            'it' => 'Questo link non è più valido.',
+            'de' => 'Dieser Link gilt nicht mehr.',
+            'en' => 'This link is no longer valid.',
+        ],
+        'panne' => [
+            'it' => 'Qualcosa non ha funzionato. Riprova tra poco.',
+            'de' => 'Etwas hat nicht geklappt. Versuch es gleich noch einmal.',
+            'en' => 'Something went wrong. Please try again shortly.',
+        ],
+    ];
+
     public static function h(array $karte, string $sprache, string $ersatz = ''): string
     {
         return (string) ($karte[$sprache] ?? $karte['it'] ?? $ersatz);

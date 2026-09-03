@@ -86,6 +86,14 @@ final class Cron
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
             'erinnerungen'=> static fn() => Onboarding::erinnerungen(),
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
+            // Ein Angebot, dessen Frist verstrichen ist, soll sich nicht mehr
+            // annehmen lassen. Die Seite prueft das beim Ansehen ohnehin mit —
+            // hier wandert der Status nach, damit die Liste in der Verwaltung
+            // die Wahrheit sagt.
+            'angebote'    => static function () {
+                require_once __DIR__ . '/Angebot.php';
+                return Angebot::abgelaufeneSchliessen();
+            },
             // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
             // jedem Aufruf eine HTTP-Anfrage zu stellen.
             'cockpit'     => static fn() => self::cockpitPruefen(),

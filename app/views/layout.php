@@ -2,6 +2,7 @@
 $navZahlen = [
   'anfragen'    => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM anfragen WHERE status IN ('neu','in_arbeit')", [], 0), 0),
   'bedarf'      => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM bedarf WHERE status = 'abgesendet'", [], 0), 0),
+  'angebote'    => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM angebote WHERE status = 'entwurf'", [], 0), 0),
   'empfehlungen'=> (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM empfehlungen WHERE empfehler_id IS NULL AND status = 'offen'", [], 0), 0),
   'nachrichten' => (int) Db::wert("SELECT COUNT(*) FROM messages WHERE read_at IS NULL AND sender='kunde'"),
   'onboarding'  => (int) Db::wert("SELECT COUNT(*) FROM questionnaires WHERE status='offen'"),
@@ -27,6 +28,7 @@ $menue = [
   ['__gruppe', 'Geschäft', null],
   ['pakete', 'Pakete', 'pakete'],
   ['baukasten', 'Baukasten', 'baukasten'],
+  ['angebote', 'Angebote', 'angebote'],
   ['bestellungen', 'Bestellungen', 'bestellungen'],
   ['projekte', 'Projekte', 'projekte'],
   ['kunden', 'Kunden', 'kunden'],

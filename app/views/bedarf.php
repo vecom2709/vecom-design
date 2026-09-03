@@ -28,6 +28,16 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php if ($b['customer_id']): ?>
       <a class="knopf" href="<?= Fmt::h(url('kunden/' . $b['customer_id'])) ?>">Zum Kunden</a>
     <?php endif; ?>
+    <?php if ($angebotId): ?>
+      <a class="knopf haupt" href="<?= Fmt::h(url('angebote/' . $angebotId)) ?>">Zum Angebot</a>
+    <?php elseif ($b['customer_id'] && $b['status'] !== 'offen'): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+        <?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="angebot_aus_bedarf">
+        <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+        <button class="knopf haupt">Angebot erstellen</button>
+      </form>
+    <?php endif; ?>
   </div>
 </div>
 

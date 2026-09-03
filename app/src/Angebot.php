@@ -1,0 +1,573 @@
+<?php
+declare(strict_types=1);
+
+/* ==========================================================================
+   Angebot.php — Aus einem Bedarf wird ein verbindlicher Preis.
+
+   WARUM DIE MITTE UND NICHT DAS UNTERE ENDE
+
+   Der Kunde hat eine Spanne gesehen, etwa 900 bis 1.150 Euro. Ein Angebot
+   ueber 1.150 fuehlt sich an wie die Hoechststrafe, eines ueber 900 laesst
+   Geld liegen. Deshalb steht in jeder Zeile zunaechst die Mitte, gerundet
+   auf volle Euro — und daneben, woraus sie entstanden ist. Uwe hat nach dem
+   Gespraech mehr Wissen als jede Formel; er aendert, was er besser weiss.
+
+   DIE POSITIONEN LOESEN SICH VOM KATALOG
+
+   Bezeichnung und Preis werden in die Angebotszeile kopiert, nicht
+   verknuepft. Eine Preisrunde im Baukasten darf ein verschicktes Angebot
+   niemals nachtraeglich veraendern — das waere ein gebrochenes Versprechen,
+   und der Kunde haette recht.
+
+   ANGENOMMEN WIRD OHNE KONTO
+
+   Derselbe Gedanke wie ueberall: ein langer Schluessel in der Adresse. Beim
+   Annehmen entsteht eine ganz normale Bestellung, damit alles Nachgelagerte
+   unveraendert weiterlaeuft — Anzahlung, Projekt, Fragebogen, Belege.
+
+   Dafuer braucht es ein Paket, denn daran haengt die bestehende Logik. Es
+   gibt genau eines, es heisst "Individuelles Angebot", und es steht nie auf
+   der Website.
+   ========================================================================== */
+final class Angebot
+{
+    /** Das interne Paket, an dem Angebots-Bestellungen haengen. */
+    public const PAKET_SLUG = 'individuelles-angebot';
+
+    /* ----------------------------------------------------------------------
+       Anlegen
+       ---------------------------------------------------------------------- */
+
+    /** Die Nummer des naechsten Angebots: AN-2026-0001. */
+    public static function naechsteNummer(): string
+    {
+        $praefix = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_praefix'", [], 'AN');
+        $jahr    = date('Y');
+        $hoechste = (string) Db::wert(
+            "SELECT MAX(nummer) FROM angebote WHERE nummer LIKE ?", [$praefix . '-' . $jahr . '-%'], ''
+        );
+        // Vom Hoechstwert zaehlen, nicht von der Anzahl. Nach einer Loeschung
+        // waere sonst eine Nummer zweimal vergeben.
+        $lauf = $hoechste !== '' ? ((int) substr($hoechste, -4)) + 1 : 1;
+        return sprintf('%s-%s-%04d', $praefix, $jahr, $lauf);
+    }
+
+    /** Sorgt dafuer, dass es das interne Paket gibt, und gibt seine Kennung. */
+    public static function internesPaket(): int
+    {
+        $id = (int) Db::wert('SELECT id FROM packages WHERE slug = ?', [self::PAKET_SLUG], 0);
+        if ($id > 0) { return $id; }
+
+        return Db::insert('packages', [
+            'slug'          => self::PAKET_SLUG,
+            'name'          => 'Individuelles Angebot',
+            'description'   => 'Sammelposten fuer Bestellungen aus einem Angebot. Steht nie auf der Website.',
+            'price_cents'   => 0,
+            'monthly_cents' => 0,
+            'currency'      => 'EUR',
+            'active'        => 0,
+        ]);
+    }
+
+    /**
+     * Legt aus einem abgesendeten Bedarf ein Angebot im Entwurf an.
+     *
+     * Die Positionen kommen aus derselben Rechnung, die der Kunde gesehen
+     * hat — und mit ihnen die Begruendung, warum der Preis so ist.
+     */
+    public static function ausBedarf(int $bedarfId): ?int
+    {
+        $bedarf = Db::one('SELECT * FROM bedarf WHERE id = ?', [$bedarfId]);
+        if (!$bedarf || $bedarf['customer_id'] === null) { return null; }
+
+        // Gibt es schon eines, wird nicht ein zweites angelegt.
+        $schon = (int) Db::wert('SELECT id FROM angebote WHERE bedarf_id = ? LIMIT 1', [$bedarfId], 0);
+        if ($schon > 0) { return $schon; }
+
+        require_once __DIR__ . '/Baukasten.php';
+        require_once __DIR__ . '/Bedarf.php';
+        $antworten = Bedarf::antworten($bedarf);
+        $katalog   = Baukasten::katalog();
+        $rechnung  = Baukasten::rechnen($antworten, $katalog);
+        $sprache   = (string) $bedarf['sprache'];
+        $tage      = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
+
+        return (int) Db::transaktion(static function () use ($bedarf, $rechnung, $katalog, $sprache, $tage, $bedarfId) {
+            $angebotId = Db::insert('angebote', [
+                'nummer'      => self::naechsteNummer(),
+                'customer_id' => (int) $bedarf['customer_id'],
+                'bedarf_id'   => $bedarfId,
+                'sprache'     => $sprache,
+                'status'      => 'entwurf',
+                'titel'       => 'Website für ' . ($bedarf['firma'] !== '' ? $bedarf['firma'] : $bedarf['name']),
+                'token'       => bin2hex(random_bytes(24)),
+                'gueltig_bis' => date('Y-m-d', strtotime("+$tage days")),
+            ]);
+
+            $sortierung = 0;
+            foreach ($rechnung['positionen'] as $pos) {
+                $b = $katalog[$pos['slug']] ?? null;
+                if (!$b) { continue; }
+                $einzel = self::mitte(
+                    (int) $b['preis_cents'],
+                    (int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']
+                );
+                Db::insert('angebot_positionen', [
+                    'angebot_id'    => $angebotId,
+                    'baustein_slug' => (string) $pos['slug'],
+                    'bezeichnung'   => Baukasten::name($b, $sprache),
+                    'beschreibung'  => Baukasten::text($b, $sprache),
+                    'menge'         => (int) $pos['menge'],
+                    'einzel_cents'  => $einzel,
+                    'summe_cents'   => $einzel * (int) $pos['menge'],
+                    'monatlich'     => (int) $pos['monatlich'],
+                    'sortierung'    => $sortierung += 10,
+                ]);
+            }
+
+            self::summenNeu($angebotId);
+            Db::update('bedarf', $bedarfId, ['status' => 'angebot']);
+            return $angebotId;
+        });
+    }
+
+    /** Die Mitte zwischen zwei Preisen, auf volle Euro gerundet. */
+    private static function mitte(int $von, int $bis): int
+    {
+        if ($bis <= $von) { return $von; }
+        return (int) (round((($von + $bis) / 2) / 100) * 100);
+    }
+
+    /* ----------------------------------------------------------------------
+       Positionen
+       ---------------------------------------------------------------------- */
+
+    public static function positionen(int $angebotId): array
+    {
+        return Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id', [$angebotId]);
+    }
+
+    /** Legt einen Baustein aus dem Katalog als Position dazu. */
+    public static function bausteinDazu(int $angebotId, string $slug, int $menge = 1): bool
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || !self::aenderbar($a)) { return false; }
+
+        require_once __DIR__ . '/Baukasten.php';
+        $b = Db::one('SELECT * FROM bausteine WHERE slug = ?', [$slug]);
+        if (!$b) { return false; }
+
+        $einzel = self::mitte((int) $b['preis_cents'], (int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']);
+        $menge  = max(1, $menge);
+        $letzte = (int) Db::wert('SELECT COALESCE(MAX(sortierung),0) FROM angebot_positionen WHERE angebot_id = ?', [$angebotId], 0);
+
+        Db::insert('angebot_positionen', [
+            'angebot_id'    => $angebotId,
+            'baustein_slug' => $slug,
+            'bezeichnung'   => Baukasten::name($b, (string) $a['sprache']),
+            'beschreibung'  => Baukasten::text($b, (string) $a['sprache']),
+            'menge'         => $menge,
+            'einzel_cents'  => $einzel,
+            'summe_cents'   => $einzel * $menge,
+            'monatlich'     => (int) $b['monatlich'],
+            'sortierung'    => $letzte + 10,
+        ]);
+        self::summenNeu($angebotId);
+        return true;
+    }
+
+    /** Eine freie Zeile, die es im Katalog nicht gibt. */
+    public static function freieZeile(int $angebotId, string $bezeichnung, int $einzelCents,
+                                      int $menge = 1, bool $monatlich = false): bool
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || !self::aenderbar($a) || trim($bezeichnung) === '') { return false; }
+
+        $menge  = max(1, $menge);
+        $letzte = (int) Db::wert('SELECT COALESCE(MAX(sortierung),0) FROM angebot_positionen WHERE angebot_id = ?', [$angebotId], 0);
+        Db::insert('angebot_positionen', [
+            'angebot_id'   => $angebotId,
+            'bezeichnung'  => mb_substr(trim($bezeichnung), 0, 200),
+            'menge'        => $menge,
+            'einzel_cents' => max(0, $einzelCents),
+            'summe_cents'  => max(0, $einzelCents) * $menge,
+            'monatlich'    => $monatlich ? 1 : 0,
+            'sortierung'   => $letzte + 10,
+        ]);
+        self::summenNeu($angebotId);
+        return true;
+    }
+
+    /** Aendert Menge und Einzelpreis mehrerer Zeilen auf einmal. */
+    public static function zeilenSpeichern(int $angebotId, array $mengen, array $preise): int
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || !self::aenderbar($a)) { return 0; }
+
+        $wie = 0;
+        Db::transaktion(static function () use ($angebotId, $mengen, $preise, &$wie) {
+            foreach ($mengen as $pid => $menge) {
+                $pid = (int) $pid;
+                $z = Db::one('SELECT * FROM angebot_positionen WHERE id = ? AND angebot_id = ?', [$pid, $angebotId]);
+                if (!$z) { continue; }
+                require_once __DIR__ . '/Baukasten.php';
+                $m = max(1, (int) $menge);
+                $e = Baukasten::centsAus((string) ($preise[$pid] ?? '0'));
+                Db::update('angebot_positionen', $pid, [
+                    'menge' => $m, 'einzel_cents' => $e, 'summe_cents' => $e * $m,
+                ]);
+                $wie++;
+            }
+        });
+        self::summenNeu($angebotId);
+        return $wie;
+    }
+
+    public static function zeileWeg(int $angebotId, int $posId): bool
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || !self::aenderbar($a)) { return false; }
+        Db::run('DELETE FROM angebot_positionen WHERE id = ? AND angebot_id = ?', [$posId, $angebotId]);
+        self::summenNeu($angebotId);
+        return true;
+    }
+
+    /** Rechnet die Summen aus den Zeilen. Einmalig und monatlich getrennt. */
+    public static function summenNeu(int $angebotId): void
+    {
+        $einmal = (int) Db::wert(
+            'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0',
+            [$angebotId], 0);
+        $monat = (int) Db::wert(
+            'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 1',
+            [$angebotId], 0);
+        Db::update('angebote', $angebotId, ['summe_cents' => $einmal, 'monatlich_cents' => $monat]);
+    }
+
+    /** Nur ein Entwurf laesst sich aendern. Was raus ist, ist raus. */
+    public static function aenderbar(array $a): bool
+    {
+        return in_array((string) $a['status'], ['entwurf'], true);
+    }
+
+    /* ----------------------------------------------------------------------
+       Versand
+       ---------------------------------------------------------------------- */
+
+    /** Schickt das Angebot an den Kunden und macht es damit verbindlich. */
+    public static function senden(int $angebotId): bool
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || $a['status'] !== 'entwurf') { return false; }
+        if ((int) $a['summe_cents'] <= 0 && (int) $a['monatlich_cents'] <= 0) { return false; }
+
+        $tage = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
+        Db::update('angebote', $angebotId, [
+            'status'      => 'gesendet',
+            'gesendet_am' => date('Y-m-d H:i:s'),
+            // Die Frist laeuft ab dem Verschicken, nicht ab dem Anlegen.
+            'gueltig_bis' => date('Y-m-d', strtotime("+$tage days")),
+        ]);
+
+        try {
+            Events::protokoll('angebot_gesendet', 'Angebot ' . $a['nummer'] . ' verschickt', (int) $a['customer_id']);
+        } catch (Throwable $e) { /* Beiwerk */ }
+
+        return true;
+    }
+
+    /** Der Link, unter dem der Kunde sein Angebot sieht. */
+    public static function link(array $a): string
+    {
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        return $basis . '/angebot.php?t=' . rawurlencode((string) $a['token']);
+    }
+
+    /* ----------------------------------------------------------------------
+       Die Kundenseite
+       ---------------------------------------------------------------------- */
+
+    public static function laden(string $token): ?array
+    {
+        if (!preg_match('/^[0-9a-f]{48}$/', $token)) { return null; }
+        $a = Db::one(
+            'SELECT a.*, c.name AS kunde, c.company AS firma, c.email AS kunde_email
+               FROM angebote a JOIN customers c ON c.id = a.customer_id
+              WHERE a.token = ?', [$token]);
+        if (!$a) { return null; }
+        // Ein Entwurf ist noch nicht fuer den Kunden bestimmt.
+        if ($a['status'] === 'entwurf') { return null; }
+        return $a;
+    }
+
+    /** Ist es abgelaufen? Wird beim Ansehen mitgeprueft, nicht nur im Cronjob. */
+    public static function abgelaufen(array $a): bool
+    {
+        return $a['status'] === 'gesendet'
+            && $a['gueltig_bis'] !== null
+            && (string) $a['gueltig_bis'] < date('Y-m-d');
+    }
+
+    /**
+     * Der Kunde nimmt an. Daraus entsteht eine Bestellung mit Anzahlung.
+     *
+     * Alles Nachgelagerte bleibt unveraendert: Zahlungsraten, Projekt,
+     * Fragebogen, Belege. Deshalb der Umweg ueber Events::bestellungAnlegen
+     * statt einer zweiten, eigenen Bestelllogik.
+     */
+    public static function annehmen(string $token): ?int
+    {
+        $a = self::laden($token);
+        if (!$a || $a['status'] !== 'gesendet' || self::abgelaufen($a)) { return null; }
+
+        $paketId = self::internesPaket();
+        $notiz   = 'Aus Angebot ' . $a['nummer'] . ".\n" . self::alsText((int) $a['id']);
+
+        $bestellId = Events::bestellungAnlegen(
+            (int) $a['customer_id'],
+            $paketId,
+            $notiz,
+            (int) $a['summe_cents'],
+            (int) $a['anzahlung_prozent'],
+            (string) ($a['titel'] !== '' ? $a['titel'] : 'Individuelles Angebot')
+        );
+
+        Db::update('angebote', (int) $a['id'], [
+            'status'        => 'angenommen',
+            'angenommen_am' => date('Y-m-d H:i:s'),
+            'order_id'      => $bestellId,
+        ]);
+
+        // Eine Empfehlung, die an diesem Kunden haengt, gehoert jetzt an die
+        // Bestellung — verdient wird sie spaeter beim Bezahlen.
+        try {
+            require_once __DIR__ . '/Empfehlung.php';
+            Empfehlung::anBestellung((int) $a['customer_id'], $bestellId);
+        } catch (Throwable $e) { /* nachtragbar */ }
+
+        try {
+            Events::melden('angebot_angenommen', 'Angebot angenommen', 'gut',
+                $a['kunde'] . ' — ' . Fmt::geld((int) $a['summe_cents']), '/bestellungen/' . $bestellId);
+        } catch (Throwable $e) { /* Beiwerk */ }
+
+        return $bestellId;
+    }
+
+    public static function ablehnen(string $token, string $grund = ''): bool
+    {
+        $a = self::laden($token);
+        if (!$a || $a['status'] !== 'gesendet') { return false; }
+
+        Db::update('angebote', (int) $a['id'], [
+            'status'          => 'abgelehnt',
+            'abgelehnt_am'    => date('Y-m-d H:i:s'),
+            'abgelehnt_grund' => mb_substr(trim($grund), 0, 400),
+        ]);
+        try {
+            Events::melden('angebot_abgelehnt', 'Angebot abgelehnt', 'warnung',
+                $a['kunde'] . ($grund !== '' ? ' — ' . mb_substr($grund, 0, 120) : ''),
+                '/angebote/' . (int) $a['id']);
+        } catch (Throwable $e) { /* Beiwerk */ }
+        return true;
+    }
+
+    /** Setzt abgelaufene Angebote um. Fuer den regelmaessigen Lauf. */
+    public static function abgelaufeneSchliessen(): int
+    {
+        try {
+            $st = Db::run(
+                "UPDATE angebote SET status = 'abgelaufen'
+                  WHERE status = 'gesendet' AND gueltig_bis IS NOT NULL AND gueltig_bis < CURDATE()");
+            return $st->rowCount();
+        } catch (Throwable $e) { return 0; }
+    }
+
+    /* ----------------------------------------------------------------------
+       Darstellung
+       ---------------------------------------------------------------------- */
+
+    /**
+     * Das Angebot als PDF.
+     *
+     * Bewusst dieselbe Anmutung wie der Zahlungsbeleg: derselbe Briefkopf,
+     * dieselben Farben, derselbe Aufbau. Wer beides nacheinander bekommt,
+     * soll sehen, dass es von derselben Hand stammt.
+     *
+     * Kein Steuerausweis. Ein Angebot ist keine Rechnung, und ohne Partita
+     * IVA waere jede Steuerzeile darauf schlicht falsch.
+     */
+    public static function pdf(int $angebotId): string
+    {
+        require_once __DIR__ . '/Pdf.php';
+        require_once __DIR__ . '/Firma.php';
+        require_once __DIR__ . '/Rechnung.php';
+
+        $a = Db::one('SELECT a.*, c.name AS kunde, c.company AS firma, c.street AS strasse,
+                             c.zip AS plz, c.city AS ort
+                        FROM angebote a JOIN customers c ON c.id = a.customer_id
+                       WHERE a.id = ?', [$angebotId]);
+        if (!$a) { return ''; }
+        $zeilen = self::positionen($angebotId);
+
+        $blau  = [0.024, 0.282, 0.910];
+        $cyan  = [0.122, 0.910, 1.0];
+        $tinte = [0.051, 0.106, 0.165];
+        $grau  = [0.42, 0.46, 0.53];
+        $leise = [0.60, 0.64, 0.70];
+        $linie = [0.87, 0.89, 0.92];
+
+        // Der Kunde bekommt sein Angebot in seiner Sprache — auch als PDF.
+        // Dreisprachig ist hier Pflicht, nicht Kuer, und ein deutsches
+        // "Gueltig bis" auf einem italienischen Angebot faellt sofort auf.
+        require_once __DIR__ . '/Texte.php';
+        $spr = (string) $a['sprache'];
+        if (!in_array($spr, ['it', 'de', 'en'], true)) { $spr = 'it'; }
+        $T = static fn(string $k): string => Texte::h(Texte::ANGEBOT[$k] ?? [], $spr);
+
+        $p = new Pdf();
+        $rand   = 56.0;
+        $rechts = Pdf::A4_BREIT - $rand;
+
+        /* ---------- Briefkopf ---------- */
+        $logo = Rechnung::logo();
+        $gesetzt = $logo !== null ? $p->bild($logo, $rand, 44, 98, 67) : false;
+        if (!$gesetzt) {
+            $bv = $p->text($rand, 62, 'VECOM', 17, true, 'links', $blau);
+            $p->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+        }
+        $y = 46;
+        foreach (Firma::anschrift() as $i => $z) {
+            $p->text($rechts, $y, $z, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau);
+            $y += 11.5;
+        }
+        $p->flaeche($rand, 124, ($rechts - $rand) * 0.38, 1.6, $blau);
+        $p->flaeche($rand + ($rechts - $rand) * 0.38, 124, ($rechts - $rand) * 0.12, 1.6, $cyan);
+
+        /* ---------- Empfaenger und Eckdaten ---------- */
+        $y = 156;
+        $p->text($rand, $y, $T('pdfAn'), 8, false, 'links', $leise);
+        $y += 14;
+        foreach (array_filter([
+            trim((string) ($a['firma'] ?? '')) ?: null,
+            (string) $a['kunde'],
+            trim((string) ($a['strasse'] ?? '')) ?: null,
+            trim(((string) ($a['plz'] ?? '')) . ' ' . ((string) ($a['ort'] ?? ''))) ?: null,
+        ]) as $i => $z) {
+            $p->text($rand, $y, $z, 10, $i === 0, 'links', $tinte);
+            $y += 13.5;
+        }
+
+        $ey = 156;
+        foreach ([
+            [$T('nummer'),    (string) $a['nummer']],
+            [$T('pdfDatum'),  date('d.m.Y', (int) strtotime((string) ($a['gesendet_am'] ?: $a['created_at'])))],
+            [$T('pdfGueltig'), $a['gueltig_bis'] ? date('d.m.Y', (int) strtotime((string) $a['gueltig_bis'])) : '—'],
+        ] as [$was, $wert]) {
+            $p->text($rechts - 96, $ey, $was, 8.5, false, 'links', $leise);
+            $p->text($rechts, $ey, $wert, 9.5, true, 'rechts', $tinte);
+            $ey += 15;
+        }
+
+        /* ---------- Titel ---------- */
+        $y = max($y, $ey) + 18;
+        if (trim((string) $a['titel']) !== '') {
+            $p->text($rand, $y, (string) $a['titel'], 14, true, 'links', $tinte);
+            $y += 24;
+        }
+
+        /* ---------- Positionen ---------- */
+        $spalteGeld = $rechts;
+        $p->text($rand, $y, $T('pdfWas'), 8, false, 'links', $leise);
+        $p->text($spalteGeld, $y, $T('pdfBetrag'), 8, false, 'rechts', $leise);
+        $y += 8;
+        $p->linie($rand, $y, $rechts, $y, 0.7, $linie);
+        $y += 16;
+
+        $einmal = [];
+        $monat  = [];
+        // Kein Ternaer im Schreibkontext: PHP laesst das nicht zu, und es liest
+        // sich ohnehin schlechter als zwei klare Zeilen.
+        foreach ($zeilen as $z) {
+            if ((int) $z['monatlich']) { $monat[] = $z; } else { $einmal[] = $z; }
+        }
+
+        $zeichnen = static function (array $z) use ($p, $rand, $rechts, $spalteGeld, $tinte, $leise, $linie, &$y, $a) {
+            $bez = (string) $z['bezeichnung'] . ((int) $z['menge'] > 1 ? '  × ' . (int) $z['menge'] : '');
+            $p->text($rand, $y, $bez, 10.5, true, 'links', $tinte);
+            $p->text($spalteGeld, $y, Fmt::geld((int) $z['summe_cents'], (string) $a['currency']), 10.5, false, 'rechts', $tinte);
+            $y += 13;
+            $text = trim((string) $z['beschreibung']);
+            if ($text !== '') {
+                foreach ($p->umbrechen($text, ($rechts - $rand) - 110, 9) as $teil) {
+                    $p->text($rand, $y, $teil, 9, false, 'links', $leise);
+                    $y += 11.5;
+                }
+            }
+            $y += 6;
+            $p->linie($rand, $y - 3, $rechts, $y - 3, 0.4, $linie);
+            $y += 8;
+        };
+        foreach ($einmal as $z) { $zeichnen($z); }
+
+        /* ---------- Summe ---------- */
+        $y += 4;
+        $p->flaeche($rand, $y - 4, $rechts - $rand, 30, [0.965, 0.972, 0.980]);
+        $p->text($rand + 12, $y + 15, $T('summe'), 11, true, 'links', $tinte);
+        $p->text($rechts - 12, $y + 15, Fmt::geld((int) $a['summe_cents'], (string) $a['currency']), 13, true, 'rechts', $tinte);
+        $y += 44;
+
+        foreach ($monat as $z) {
+            $p->text($rand, $y, (string) $z['bezeichnung'], 10, false, 'links', $grau);
+            $p->text($spalteGeld, $y, Fmt::geld((int) $z['summe_cents'], (string) $a['currency']) . ' ' . $T('proMonat'), 10, false, 'rechts', $grau);
+            $y += 15;
+        }
+
+        /* ---------- Zahlung und Hinweise ---------- */
+        $y += 10;
+        $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent'] / 100);
+        $saetze = [
+            strtr($T('zahlung'), ['{anzahlung}' => Fmt::geld($anzahlung, (string) $a['currency'])]),
+            $T('pdfFest'),
+        ];
+        // Bewusst OHNE Firma::pflichthinweis(): Der Satz gehoert auf einen
+        // Zahlungsbeleg und lautet "keine Rechnung im steuerlichen Sinn". Auf
+        // einem Angebot stand er kurz drauf und war schlicht falsch — hier ist
+        // noch gar nichts bezahlt.
+
+        foreach ($saetze as $satz) {
+            foreach ($p->umbrechen($satz, $rechts - $rand, 9.5) as $teil) {
+                $p->text($rand, $y, $teil, 9.5, false, 'links', $grau);
+                $y += 12.5;
+            }
+            $y += 5;
+        }
+
+        /* ---------- Fusszeile ---------- */
+        $fy = Pdf::A4_HOCH - 82;
+        $p->linie($rand, $fy - 14, $rechts, $fy - 14, 0.5, $linie);
+        foreach (Firma::fusszeilen() as $z) {
+            $p->text($rand, $fy, $z, 7.6, false, 'links', $leise);
+            $fy += 10;
+        }
+
+        return $p->fertig();
+    }
+
+    /** Der Dateiname, unter dem der Kunde es speichert. */
+    public static function dateiname(array $a): string
+    {
+        return 'Angebot-' . preg_replace('/[^A-Za-z0-9\-]/', '', (string) $a['nummer']) . '.pdf';
+    }
+
+    /** Die Positionen als Text — fuer die Notiz an der Bestellung. */
+    public static function alsText(int $angebotId): string
+    {
+        $zeilen = [];
+        foreach (self::positionen($angebotId) as $p) {
+            $zeilen[] = ((int) $p['menge'] > 1 ? $p['menge'] . '× ' : '')
+                . $p['bezeichnung'] . ': ' . Fmt::geld((int) $p['summe_cents'])
+                . ((int) $p['monatlich'] ? ' im Monat' : '');
+        }
+        return implode("\n", $zeilen);
+    }
+}
