@@ -320,7 +320,10 @@ final class Baukasten
 
         $zweck    = (array) ($antworten['zweck'] ?? []);
         $material = (array) ($antworten['material'] ?? []);
-        $umfang   = (string) ($antworten['umfang'] ?? 'wenige');
+        // Keine Antwort heisst keine zusaetzlichen Seiten. Frueher stand hier
+        // 'wenige' als Vorgabe — wer nichts angab, bekam vier Seiten
+        // berechnet, die er nie verlangt hat.
+        $umfang   = (string) ($antworten['umfang'] ?? '');
         $sprachen = max(1, min(3, (int) ($antworten['sprachen'] ?? 1)));
         $bestand  = (string) ($antworten['bestand'] ?? 'neu');
         $zeit     = (string) ($antworten['zeit'] ?? 'offen');
@@ -329,7 +332,7 @@ final class Baukasten
         /* slug => Menge. Menge 0 heisst: kommt nicht vor. */
         $mengen = [
             'basis'   => 1,
-            'seite'   => self::SEITEN[$umfang] ?? 4,
+            'seite'   => self::SEITEN[$umfang] ?? 0,
             'sprache' => $sprachen - 1,
         ];
 
@@ -421,6 +424,18 @@ final class Baukasten
             $cents = (int) (preg_replace('/[^0-9]/', '', $w) ?? '0') * 100;
         }
         return max(0, $cents);
+    }
+
+    /**
+     * Hat der Kunde ueberhaupt etwas gesagt, woraus sich rechnen laesst?
+     *
+     * Ohne diese Frage bekommt auch jemand eine Zahl, der sich nur
+     * durchgeklickt hat — und eine Zahl fuer Leistungen, die er nie verlangt
+     * hat, ist schlimmer als gar keine.
+     */
+    public static function genugGesagt(array $antworten): bool
+    {
+        return !empty($antworten['zweck']);
     }
 
     /**

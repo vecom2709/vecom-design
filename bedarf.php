@@ -49,6 +49,7 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
+header('X-Robots-Tag: noindex, nofollow');
 
 /* ---------- Sprache ---------- */
 $sprache = strtolower((string) ($_REQUEST['lang'] ?? 'it'));
@@ -144,10 +145,12 @@ $fertig    = $b && $b['status'] !== 'offen';
 /* Die Spanne wird erst im letzten Schritt gerechnet — vorher waere sie eine
    Zahl, die sich bei jeder Antwort aendert, und das verunsichert mehr als
    es hilft. */
-$spanne = null; $monatlich = 0; $zeigen = true;
+$spanne = null; $monatlich = 0; $zeigen = true; $genug = true;
 if ($b && $schritt === $anzahl) {
     try {
-        $zeigen = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'bedarf_spanne_zeigen'", [], '1') === '1';
+        $genug  = Baukasten::genugGesagt($antworten);
+        $zeigen = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'bedarf_spanne_zeigen'", [], '1') === '1'
+                  && $genug;
         $r = Baukasten::rechnen($antworten);
         $spanne = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
         $monatlich = (int) $r['monatlich_cents'];
@@ -289,6 +292,11 @@ $geld = static function (int $cents) use ($sprache): string {
       </div>
 
     <?php else: ?>
+      <?php if (!$genug): ?>
+        <div class="block">
+          <div class="hinweis warnung"><?= $h($T('nichts')) ?></div>
+        </div>
+      <?php endif; ?>
       <?php if ($spanne && $zeigen): ?>
         <div class="block ergebnis">
           <div class="klein"><?= $h($T('ergebnisTitel')) ?></div>
