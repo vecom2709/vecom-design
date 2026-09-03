@@ -141,21 +141,35 @@
     /* Wo ein Stueck steht: seitlich in Vielfachen der eigenen Breite, nach
        hinten in Pixeln, und zur Mitte gedreht. Die Abstaende werden nach
        aussen kleiner, sonst laufen vier Geraete aus dem Bild. */
+    /* Ein Karussell ist rund: das Stueck hinter dem letzten steht wieder links.
+       Ohne das faechern bei Projekt 1 alle drei anderen nach rechts und die
+       linke Haelfte bleibt leer. */
+    function versatz(i) {
+      var d = i - aktiv;
+      if (d >  anzahl / 2) { d -= anzahl; }
+      if (d < -anzahl / 2) { d += anzahl; }
+      return d;
+    }
     function platz(d) {
       var a = Math.abs(d), s = d < 0 ? -1 : 1;
+      /* Das gegenueberliegende Stueck wartet hinter dem vorderen — sichtbar
+         sind immer drei: links, vorn, rechts. Ueber die Knoepfe ist trotzdem
+         jedes erreichbar. */
+      if (a >= 2) { return { x: 0, z: -330, ry: 0, sc: 0.62, op: 0 }; }
       return {
-        x:  a === 0 ? 0 : s * (0.58 + (a - 1) * 0.40),
-        z:  -a * 200,
-        ry: a === 0 ? 0 : -s * Math.min(a, 2) * 33,
-        sc: a === 0 ? 1 : (a === 1 ? 0.84 : 0.72)
+        x:  a === 0 ? 0 : s * 0.62,
+        z:  -a * 130,
+        ry: a === 0 ? 0 : -s * 33,
+        sc: a === 0 ? 1 : 0.84,
+        op: 1
       };
     }
     function grund(st, i) {
-      var p = platz(i - aktiv);
+      var d = versatz(i), p = platz(d);
       st.dataset.gx = p.x; st.dataset.gz = p.z; st.dataset.gry = p.ry; st.dataset.gsc = p.sc;
-      st.style.zIndex = String(20 - Math.abs(i - aktiv));
-      st.style.opacity = Math.abs(i - aktiv) > 2 ? '0' : '1';
-      st.style.pointerEvents = Math.abs(i - aktiv) > 2 ? 'none' : '';
+      st.style.zIndex = String(20 - Math.abs(d));
+      st.style.opacity = String(p.op);
+      st.style.pointerEvents = p.op ? '' : 'none';
       male(st, 0, 0);
     }
     function male(st, kx, ky) {

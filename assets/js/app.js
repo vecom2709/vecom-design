@@ -190,9 +190,28 @@
   // 3b Kopfzeile und Fortschrittsbalken
   var progress = document.querySelector('.progress');
   var ticking = false;
+  /* Die Kopfleiste geht beim Abwaertsscrollen aus dem Weg und kommt beim
+     Aufwaertsscrollen zurueck. Sie bleibt aber stehen, wenn man ganz oben
+     ist, wenn das Menue offen ist oder wenn der Tastaturfokus in ihr liegt —
+     eine Leiste, die unter dem Finger wegrutscht, waehrend man sie bedient,
+     ist kein Feature. */
+  var letztesY = window.scrollY || window.pageYOffset;
+  var burger = document.querySelector('.burger');
+  function kopfLeiste(y) {
+    if (!header) { return; }
+    var offen = burger && burger.getAttribute('aria-expanded') === 'true';
+    var drin = header.contains(document.activeElement);
+    var runter = y > letztesY + 4;
+    var hoch = y < letztesY - 4;
+    if (y <= 90 || offen || drin || hoch) { header.classList.remove('ist-weg'); }
+    else if (runter && y > 140) { header.classList.add('ist-weg'); }
+    if (Math.abs(y - letztesY) > 3) { letztesY = y; }
+  }
+
   function onScroll() {
     var y = window.scrollY || window.pageYOffset;
     if (header) header.classList.toggle('is-stuck', y > 24);
+    kopfLeiste(y);
     document.body.classList.toggle('scrolled', y > 40);
     if (progress) {
       var max = document.documentElement.scrollHeight - window.innerHeight;
