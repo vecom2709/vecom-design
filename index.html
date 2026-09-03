@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Realizzazione siti web su misura | Vecom Design</title>
-<meta name="description" content="Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi chiari da 499 €.">
+<meta name="description" content="Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Preventivo su misura in 90 secondi.">
 <meta name="theme-color" content="#05070d">
 
 <!-- Auftakt: der Film laeuft, dann oeffnet die Seite. Steht inline und ganz
@@ -101,7 +101,7 @@
 <meta property="og:site_name" content="Vecom Design">
 <meta property="og:url" content="https://vecom-design.it/">
 <meta property="og:title" content="Realizzazione siti web su misura | Vecom Design">
-<meta property="og:description" content="Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi chiari da 499 €.">
+<meta property="og:description" content="Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Preventivo su misura in 90 secondi.">
 <meta property="og:locale" content="it_IT">
 <meta property="og:image" content="https://vecom-design.it/assets/img/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -114,7 +114,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=70d15633">
+<link rel="stylesheet" href="assets/css/app.css?v=3cb7902b">
 
 <script type="importmap">
 {
@@ -194,25 +194,17 @@
     },
     {
       "@type": "Offer",
-      "name": "Business",
-      "price": "899",
+      "name": "Individuelle Website",
       "priceCurrency": "EUR",
-      "description": "Website bis 10 Seiten, Premium-Design, Logo-Optimierung, erweiterte SEO. Zzgl. 69 € monatliche Wartung.",
+      "priceSpecification": {
+        "@type": "PriceSpecification",
+        "priceCurrency": "EUR",
+        "minPrice": "275"
+      },
+      "description": "Preis nach Bedarf: Umfang, Sprachen, Funktionen und vorhandenes Material bestimmen ihn. Unverbindliche Einschaetzung online, verbindliches Angebot binnen 24 Stunden.",
       "itemOffered": {
         "@type": "Service",
-        "name": "Webdesign Business",
-        "serviceType": "Webdesign"
-      }
-    },
-    {
-      "@type": "Offer",
-      "name": "Premium",
-      "price": "1499",
-      "priceCurrency": "EUR",
-      "description": "Website bis 20 Seiten, individuelles Logo, komplette Markenoptik, Buchungssystem. Zzgl. 99 € monatliche Wartung.",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Webdesign Premium",
+        "name": "Individuelle Website",
         "serviceType": "Webdesign"
       }
     }
@@ -290,7 +282,7 @@
       "name": "Quanto costa un sito web su misura?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "I pacchetti partono da 499 € una tantum. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte — il sito puoi farlo costruire anche senza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e senza impegno; quando lo approvi e firmiamo il contratto, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo."
+        "text": "Non lavoro a pacchetti fissi: il prezzo nasce da quello che ti serve davvero — numero di pagine, lingue, funzioni e quanto materiale hai già pronto. In un minuto e mezzo, rispondendo a otto domande sul sito, sai in che ordine di prezzo ti muovi. Chi vuole partire subito trova un sito di partenza a prezzo fisso da 499 €. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approvi, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo."
       }
     },
     {
@@ -468,7 +460,7 @@
 
     <dl class="hero__meta" data-reveal>
       <div><dt data-i18n="hero.m1t">Online in</dt><dd data-i18n="hero.m1d">2–6 settimane</dd></div>
-      <div><dt data-i18n="hero.m2t">Prezzi</dt><dd data-i18n="hero.m2d">chiari, da 499 €</dd></div>
+      <div><dt data-i18n="hero.m2t">Prezzi</dt><dd data-i18n="hero.m2d">su misura, non a pacchetto</dd></div>
       <div><dt data-i18n="hero.m3t">Lingue</dt><dd data-i18n="hero.m3d">IT · DE · EN</dd></div>
     </dl>
   </div>
@@ -829,17 +821,39 @@
 <section class="section" id="plans">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="marg.m3">prezzi pubblici</span>
-      <h2 data-reveal data-i18n="plans.head">Prezzi trasparenti</h2>
-      <p data-reveal data-i18n="plans.lead">Tre pacchetti, prezzi pubblicati. Tutto è adattabile: se il tuo progetto esce da questi confini, lo definiamo insieme prima di cominciare.</p>
+      <span class="marg" data-i18n="marg.m3">prezzi</span>
+      <h2 data-reveal data-i18n="plans.head">Che cosa costa</h2>
+      <p data-reveal data-i18n="plans.lead">Un prezzo fisso per partire subito, e per tutto il resto un preventivo costruito su quello che ti serve davvero. Niente pacchetti in cui farti stare per forza.</p>
     </div>
 
+
+    <!-- Der Weg zum Preis. Frueher standen hier drei Karten; jetzt beschreibt
+         der Kunde, was er braucht. Die eine Karte darueber bleibt, weil die
+         Direktbuchung einen festen Preis braucht - ohne sie gaebe es keinen
+         Weg mehr, auf dem Geld ohne Zutun hereinkommt. -->
+    <div class="bedarfsweg framed" data-reveal>
+      <div class="bedarfsweg__text">
+        <p class="eyebrow" data-i18n="weg.kicker">Per tutto il resto</p>
+        <h3 data-i18n="weg.head">Quanto costa il tuo sito dipende da che cosa deve saper fare</h3>
+        <p data-i18n="weg.lead">Otto domande brevi, circa un minuto e mezzo. Alla fine sai in che ordine di prezzo ti muovi — senza impegno e senza dover prima parlare con qualcuno. Il preventivo vincolante ti arriva entro 24 ore, voce per voce.</p>
+        <div class="bedarfsweg__tun">
+          <a class="btn btn--primary" href="/bedarf.php"><span data-i18n="weg.cta">Scopri il prezzo</span></a>
+        </div>
+        <p class="bedarfsweg__note" data-i18n="weg.note">Gratuito e senza impegno. I tuoi dati te li chiedo solo alla fine, quando il preventivo lo vuoi davvero.</p>
+      </div>
+    </div>
+
+    <!-- Das Einstiegsangebot steht bewusst NACH dem Bedarfsweg und schmaler.
+         Es ist der Sonderfall fuer alle, die sofort loslegen wollen, nicht der
+         Regelfall - und eine einzelne Karte, die sich ueber drei Spalten
+         streckt, sieht aus wie ein Raster, aus dem zwei Karten gefallen sind. -->
+    <div class="einstieg" data-reveal>
+      <p class="einstieg__kicker" data-i18n="weg.sofort">Oppure parti subito</p>
 
     <div class="ptoggle" data-price-toggle data-i18n-attr="data-year-note:plans.yearNote" role="group" aria-label="Preisansicht" data-year-note="primo anno">
       <button type="button" data-mode="once" aria-pressed="true" data-i18n="plans.togOnce">Una tantum</button>
       <button type="button" data-mode="year" aria-pressed="false" data-i18n="plans.togYear">Totale 12 mesi</button>
     </div>
-
     <div class="plans" data-stagger>
       <article data-paket="starter" class="plan framed" data-reveal>
         <h3 data-i18n="plans.n1">Starter</h3>
@@ -858,74 +872,9 @@
         <a class="btn" href="?paket=starter#contact" data-i18n="plans.cta">Richiedi questo pacchetto</a>
       </article>
 
-      <article data-paket="business" class="plan plan--featured framed" data-reveal>
-        <span class="plan__badge" data-i18n="plans.badge">Più richiesto</span>
-        <h3 data-i18n="plans.n2">Business</h3>
-        <p class="plan__sub" data-i18n="plans.s2">Per convincere e vendere</p>
-        <p class="plan__price"><span data-i18n="plans.p2">899 €</span><small data-i18n="plans.priceNote">una tantum</small></p>
-        <p class="plan__month" data-i18n="plans.m2">+ 69 € di assistenza al mese — facoltativa</p>
-        <ul data-i18n-list="plans.f2">
-          <li class="is-lead">Tutto di Starter, più:</li>
-          <li>Fino a 10 pagine</li>
-          <li>Design costruito sul tuo marchio</li>
-          <li>Ottimizzazione logo o nuovo logo</li>
-          <li>SEO avanzata e profilo Google Business</li>
-          <li>Più moduli di richiesta e pulsante WhatsApp</li>
-          <li>Galleria lavori e referenze</li>
-          <li>Fino a 5 indirizzi e-mail</li>
-        </ul>
-        <a class="btn btn--primary" href="?paket=business#contact" data-i18n="plans.cta">Richiedi questo pacchetto</a>
-      </article>
-
-      <article data-paket="premium" class="plan framed" data-reveal>
-        <h3 data-i18n="plans.n3">Premium</h3>
-        <p class="plan__sub" data-i18n="plans.s3">Presenza digitale completa</p>
-        <p class="plan__price"><span data-i18n="plans.p3">1.499 €</span><small data-i18n="plans.priceNote">una tantum</small></p>
-        <p class="plan__month" data-i18n="plans.m3">+ 99 € di assistenza al mese — facoltativa</p>
-        <ul data-i18n-list="plans.f3">
-          <li class="is-lead">Tutto di Business, più:</li>
-          <li>Sito ampio fino a 20 pagine</li>
-          <li>Logo disegnato per te e immagine coordinata</li>
-          <li>Colori e caratteri definiti, con manuale d'uso</li>
-          <li>Blog o area news</li>
-          <li>Prenotazione appuntamenti o richieste</li>
-          <li>Newsletter e integrazione social</li>
-          <li>Fino a 10 indirizzi e-mail</li>
-        </ul>
-        <a class="btn" href="?paket=premium#contact" data-i18n="plans.cta">Richiedi questo pacchetto</a>
-      </article>
+    </div>
     </div>
 
-
-    <div class="cmp" data-reveal>
-      <p class="cmp__head" data-i18n="plans.cmp">Confronto rapido</p>
-      <div class="cmp__grid">
-        <ul class="cmp__labels" data-i18n-list="plans.cmpRow">
-          <li>Pagine</li>
-          <li>Lingue</li>
-          <li>Modifiche al mese</li>
-          <li>Assistenza</li>
-        </ul>
-        <div class="cmp__col"><span class="cmp__name" data-i18n="plans.n1">Starter</span><ul data-i18n-list="plans.cmp1">
-          <li>fino a 5</li>
-          <li>1</li>
-          <li>piccole modifiche</li>
-          <li>diretta</li>
-        </ul></div>
-        <div class="cmp__col cmp__col--best"><span class="cmp__name" data-i18n="plans.n2">Business</span><ul data-i18n-list="plans.cmp2">
-          <li>fino a 10</li>
-          <li>fino a 3</li>
-          <li>60 minuti</li>
-          <li>diretta + sicurezza</li>
-        </ul></div>
-        <div class="cmp__col"><span class="cmp__name" data-i18n="plans.n3">Premium</span><ul data-i18n-list="plans.cmp3">
-          <li>fino a 20</li>
-          <li>fino a 3</li>
-          <li>2 ore</li>
-          <li>prioritaria</li>
-        </ul></div>
-      </div>
-    </div>
     <!-- Betreuung: ein eigener Vertrag, deshalb ein eigener Block. Frueher hing
          sie als Zusatzzeile an der Paketkarte — dann liest sie sich wie ein
          Aufschlag, den man nicht abwaehlen kann. -->
@@ -1008,7 +957,7 @@
         <p class="masz__lead" data-i18n="masz.lead">Lo costruisco lo stesso — ma non in serie. Certi progetti non stanno in tre righe e un prezzo fisso: un negozio con una logica sua, un sistema di prenotazioni, un catalogo multilingue, un gestionale che ti toglie il lavoro ripetitivo.</p>
         <p class="masz__p" data-i18n="masz.p1">Quanto costa dipende da tre cose: cosa deve saper fare, quanto c'è già e con che tempi. Per questo qui non trovi una cifra. Il prezzo nasce dal colloquio, dove guardiamo insieme il lavoro che serve davvero e come te lo immagini. E quando siamo d'accordo lo metto per iscritto: fisso, prima di cominciare.</p>
         <div class="masz__tun">
-          <a class="btn btn--primary" href="?paket=individuell#contact">
+          <a class="btn btn--primary" href="/bedarf.php">
             <span data-i18n="masz.cta">Raccontami il progetto</span></a>
         </div>
         <p class="masz__note" data-i18n="masz.note">Il primo colloquio è gratuito e non ti impegna a niente. Alla fine sai quanto costa e perché — anche se poi mi dici di no.</p>
@@ -1219,7 +1168,7 @@
           <span data-i18n="faq.q1">Quanto costa un sito web su misura?</span>
           <span class="faq__sign" aria-hidden="true"></span>
         </summary>
-        <p data-i18n="faq.a1">I pacchetti partono da 499 € una tantum. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte — il sito puoi farlo costruire anche senza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e senza impegno; quando lo approvi e firmiamo il contratto, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.</p>
+        <p data-i18n="faq.a1">Non lavoro a pacchetti fissi: il prezzo nasce da quello che ti serve davvero — numero di pagine, lingue, funzioni e quanto materiale hai già pronto. In un minuto e mezzo, rispondendo a otto domande sul sito, sai in che ordine di prezzo ti muovi. Chi vuole partire subito trova un sito di partenza a prezzo fisso da 499 €. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approvi, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.</p>
       </details>
       <details class="faq__item" data-reveal>
         <summary>
@@ -1443,13 +1392,13 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-data.js?v=9075a7cf" defer></script>
-<script src="assets/js/app.js?v=fbdcc7d6" defer></script>
+<script src="assets/js/i18n-data.js?v=a3aa2483" defer></script>
+<script src="assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="assets/vendor/gsap.min.js" defer></script>
 <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="assets/vendor/lenis.min.js" defer></script>
 <script src="assets/js/screens.js?v=19e37ebd" defer></script>
-<script src="assets/js/schau.js?v=6d7e85cc" defer></script>
+<script src="assets/js/schau.js?v=50644b3d" defer></script>
 <script src="assets/js/polish.js?v=4f1bcb02" defer></script>
 <script src="assets/js/pakete-live.js?v=62312dcb" defer></script>
 <script src="assets/js/stimmen-live.js?v=5f6bee7a" defer></script>

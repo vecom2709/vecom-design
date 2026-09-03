@@ -114,7 +114,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=70d15633">
+<link rel="stylesheet" href="../assets/css/app.css?v=3cb7902b">
 
 <script type="importmap">
 {
@@ -194,25 +194,17 @@
     },
     {
       "@type": "Offer",
-      "name": "Business",
-      "price": "899",
+      "name": "Individuelle Website",
       "priceCurrency": "EUR",
-      "description": "Website bis 10 Seiten, Premium-Design, Logo-Optimierung, erweiterte SEO. Zzgl. 69 € monatliche Wartung.",
+      "priceSpecification": {
+        "@type": "PriceSpecification",
+        "priceCurrency": "EUR",
+        "minPrice": "275"
+      },
+      "description": "Preis nach Bedarf: Umfang, Sprachen, Funktionen und vorhandenes Material bestimmen ihn. Unverbindliche Einschaetzung online, verbindliches Angebot binnen 24 Stunden.",
       "itemOffered": {
         "@type": "Service",
-        "name": "Webdesign Business",
-        "serviceType": "Webdesign"
-      }
-    },
-    {
-      "@type": "Offer",
-      "name": "Premium",
-      "price": "1499",
-      "priceCurrency": "EUR",
-      "description": "Website bis 20 Seiten, individuelles Logo, komplette Markenoptik, Buchungssystem. Zzgl. 99 € monatliche Wartung.",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Webdesign Premium",
+        "name": "Individuelle Website",
         "serviceType": "Webdesign"
       }
     }
@@ -290,7 +282,7 @@
       "name": "What does a custom website cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Packages start at €499 one-off. The monthly care plan from €39 is optional and a separate contract — the site can be built without it. Beyond that the price depends on scope, functions and how much material you already have. The quote is free and without obligation; once you approve it and we sign the contract, that figure is the final price — nothing appears on the invoice that wasn't in the quote."
+        "text": "I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds. If you want to start right away, there is a fixed-price entry from €499. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote."
       }
     },
     {
@@ -468,7 +460,7 @@
 
     <dl class="hero__meta" data-reveal>
       <div><dt data-i18n="hero.m1t">Live in</dt><dd data-i18n="hero.m1d">2–6 weeks</dd></div>
-      <div><dt data-i18n="hero.m2t">Pricing</dt><dd data-i18n="hero.m2d">published, from €499</dd></div>
+      <div><dt data-i18n="hero.m2t">Pricing</dt><dd data-i18n="hero.m2d">to fit, not off the shelf</dd></div>
       <div><dt data-i18n="hero.m3t">Languages</dt><dd data-i18n="hero.m3d">IT · DE · EN</dd></div>
     </dl>
   </div>
@@ -829,17 +821,39 @@
 <section class="section" id="plans">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="marg.m3">prices published</span>
-      <h2 data-reveal data-i18n="plans.head">Pricing in the open</h2>
-      <p data-reveal data-i18n="plans.lead">Three packages with published prices. Everything is adjustable: if your project falls outside this frame, we define it together before we start.</p>
+      <span class="marg" data-i18n="marg.m3">pricing</span>
+      <h2 data-reveal data-i18n="plans.head">What it costs</h2>
+      <p data-reveal data-i18n="plans.lead">One fixed price to start right away, and for everything else a quote built on what you actually need. No packages to squeeze yourself into.</p>
     </div>
 
+
+    <!-- Der Weg zum Preis. Frueher standen hier drei Karten; jetzt beschreibt
+         der Kunde, was er braucht. Die eine Karte darueber bleibt, weil die
+         Direktbuchung einen festen Preis braucht - ohne sie gaebe es keinen
+         Weg mehr, auf dem Geld ohne Zutun hereinkommt. -->
+    <div class="bedarfsweg framed" data-reveal>
+      <div class="bedarfsweg__text">
+        <p class="eyebrow" data-i18n="weg.kicker">For everything else</p>
+        <h3 data-i18n="weg.head">What your website costs depends on what it has to do</h3>
+        <p data-i18n="weg.lead">Eight short questions, about ninety seconds. At the end you know the ballpark — no obligation, and without having to talk to anyone first. The binding quote reaches you within 24 hours, item by item.</p>
+        <div class="bedarfsweg__tun">
+          <a class="btn btn--primary" href="/bedarf.php"><span data-i18n="weg.cta">Find out the price</span></a>
+        </div>
+        <p class="bedarfsweg__note" data-i18n="weg.note">Free and without obligation. I only ask for your details at the end, once you actually want the quote.</p>
+      </div>
+    </div>
+
+    <!-- Das Einstiegsangebot steht bewusst NACH dem Bedarfsweg und schmaler.
+         Es ist der Sonderfall fuer alle, die sofort loslegen wollen, nicht der
+         Regelfall - und eine einzelne Karte, die sich ueber drei Spalten
+         streckt, sieht aus wie ein Raster, aus dem zwei Karten gefallen sind. -->
+    <div class="einstieg" data-reveal>
+      <p class="einstieg__kicker" data-i18n="weg.sofort">Or start right away</p>
 
     <div class="ptoggle" data-price-toggle data-i18n-attr="data-year-note:plans.yearNote" role="group" aria-label="Preisansicht" data-year-note="primo anno">
       <button type="button" data-mode="once" aria-pressed="true" data-i18n="plans.togOnce">One-off</button>
       <button type="button" data-mode="year" aria-pressed="false" data-i18n="plans.togYear">Total over 12 months</button>
     </div>
-
     <div class="plans" data-stagger>
       <article data-paket="starter" class="plan framed" data-reveal>
         <h3 data-i18n="plans.n1">Starter</h3>
@@ -858,74 +872,9 @@
         <a class="btn" href="?paket=starter#contact" data-i18n="plans.cta">Request this package</a>
       </article>
 
-      <article data-paket="business" class="plan plan--featured framed" data-reveal>
-        <span class="plan__badge" data-i18n="plans.badge">Most chosen</span>
-        <h3 data-i18n="plans.n2">Business</h3>
-        <p class="plan__sub" data-i18n="plans.s2">Convince and sell</p>
-        <p class="plan__price"><span data-i18n="plans.p2">€899</span><small data-i18n="plans.priceNote">one-off</small></p>
-        <p class="plan__month" data-i18n="plans.m2">+ €69 care per month — optional</p>
-        <ul data-i18n-list="plans.f2">
-          <li class="is-lead">Everything in Starter, plus:</li>
-          <li>Up to 10 pages</li>
-          <li>A design of your own, built along your brand</li>
-          <li>Logo refinement or a new logo</li>
-          <li>Advanced SEO and Google Business Profile</li>
-          <li>Multiple enquiry forms and WhatsApp button</li>
-          <li>Gallery and references</li>
-          <li>Up to 5 email addresses</li>
-        </ul>
-        <a class="btn btn--primary" href="?paket=business#contact" data-i18n="plans.cta">Request this package</a>
-      </article>
-
-      <article data-paket="premium" class="plan framed" data-reveal>
-        <h3 data-i18n="plans.n3">Premium</h3>
-        <p class="plan__sub" data-i18n="plans.s3">The complete digital presence</p>
-        <p class="plan__price"><span data-i18n="plans.p3">€1,499</span><small data-i18n="plans.priceNote">one-off</small></p>
-        <p class="plan__month" data-i18n="plans.m3">+ €99 care per month — optional</p>
-        <ul data-i18n-list="plans.f3">
-          <li class="is-lead">Everything in Business, plus:</li>
-          <li>Extensive site with up to 20 pages</li>
-          <li>Your own logo and brand identity</li>
-          <li>Colours and type settled, with a manual</li>
-          <li>Blog or news area</li>
-          <li>Appointment booking or enquiry system</li>
-          <li>Newsletter and social integration</li>
-          <li>Up to 10 email addresses</li>
-        </ul>
-        <a class="btn" href="?paket=premium#contact" data-i18n="plans.cta">Request this package</a>
-      </article>
+    </div>
     </div>
 
-
-    <div class="cmp" data-reveal>
-      <p class="cmp__head" data-i18n="plans.cmp">Quick comparison</p>
-      <div class="cmp__grid">
-        <ul class="cmp__labels" data-i18n-list="plans.cmpRow">
-          <li>Pages</li>
-          <li>Languages</li>
-          <li>Changes per month</li>
-          <li>Support</li>
-        </ul>
-        <div class="cmp__col"><span class="cmp__name" data-i18n="plans.n1">Starter</span><ul data-i18n-list="plans.cmp1">
-          <li>up to 5</li>
-          <li>1</li>
-          <li>small changes</li>
-          <li>direct</li>
-        </ul></div>
-        <div class="cmp__col cmp__col--best"><span class="cmp__name" data-i18n="plans.n2">Business</span><ul data-i18n-list="plans.cmp2">
-          <li>up to 10</li>
-          <li>up to 3</li>
-          <li>60 minutes</li>
-          <li>direct + security</li>
-        </ul></div>
-        <div class="cmp__col"><span class="cmp__name" data-i18n="plans.n3">Premium</span><ul data-i18n-list="plans.cmp3">
-          <li>up to 20</li>
-          <li>up to 3</li>
-          <li>2 hours</li>
-          <li>priority</li>
-        </ul></div>
-      </div>
-    </div>
     <!-- Betreuung: ein eigener Vertrag, deshalb ein eigener Block. Frueher hing
          sie als Zusatzzeile an der Paketkarte — dann liest sie sich wie ein
          Aufschlag, den man nicht abwaehlen kann. -->
@@ -1008,7 +957,7 @@
         <p class="masz__lead" data-i18n="masz.lead">Then I'll build it anyway — just not off the shelf. Some projects don't fit into three lines and a fixed price: a shop with its own logic, a booking system, a multilingual catalogue, an admin system that takes work off your hands.</p>
         <p class="masz__p" data-i18n="masz.p1">What it costs depends on three things: what it has to do, how much of it already exists, and how fast you need it. That's why there's no figure here. The price comes out of that conversation, where we go through what's actually needed and how you picture it. Once we've agreed, it's in writing and fixed before anything starts.</p>
         <div class="masz__tun">
-          <a class="btn btn--primary" href="?paket=individuell#contact">
+          <a class="btn btn--primary" href="/bedarf.php">
             <span data-i18n="masz.cta">Tell me about it</span></a>
         </div>
         <p class="masz__note" data-i18n="masz.note">The first conversation is free and commits you to nothing. By the end you'll know what it costs and why — even if you say no.</p>
@@ -1219,7 +1168,7 @@
           <span data-i18n="faq.q1">What does a custom website cost?</span>
           <span class="faq__sign" aria-hidden="true"></span>
         </summary>
-        <p data-i18n="faq.a1">Packages start at €499 one-off. The monthly care plan from €39 is optional and a separate contract — the site can be built without it. Beyond that the price depends on scope, functions and how much material you already have. The quote is free and without obligation; once you approve it and we sign the contract, that figure is the final price — nothing appears on the invoice that wasn't in the quote.</p>
+        <p data-i18n="faq.a1">I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds. If you want to start right away, there is a fixed-price entry from €499. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote.</p>
       </details>
       <details class="faq__item" data-reveal>
         <summary>
@@ -1443,13 +1392,13 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-data.js?v=9075a7cf" defer></script>
-<script src="../assets/js/app.js?v=fbdcc7d6" defer></script>
+<script src="../assets/js/i18n-data.js?v=a3aa2483" defer></script>
+<script src="../assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="../assets/vendor/gsap.min.js" defer></script>
 <script src="../assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="../assets/vendor/lenis.min.js" defer></script>
 <script src="../assets/js/screens.js?v=19e37ebd" defer></script>
-<script src="../assets/js/schau.js?v=6d7e85cc" defer></script>
+<script src="../assets/js/schau.js?v=50644b3d" defer></script>
 <script src="../assets/js/polish.js?v=4f1bcb02" defer></script>
 <script src="../assets/js/pakete-live.js?v=62312dcb" defer></script>
 <script src="../assets/js/stimmen-live.js?v=5f6bee7a" defer></script>

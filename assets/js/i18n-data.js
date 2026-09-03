@@ -16,7 +16,7 @@ window.VECOM_I18N = {
   it: {
     meta: {
       title: "Realizzazione siti web su misura | Vecom Design",
-      desc: "Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi chiari da 499 €.",
+      desc: "Siti su misura, e-commerce e loghi dalla Sicilia. Trilingue IT/DE/EN, veloci e costruiti per Google. Preventivo su misura in 90 secondi.",
       locale: "it_IT"
     },
     nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", cta: "Richiedi preventivo" },
@@ -31,7 +31,7 @@ window.VECOM_I18N = {
       cta2: "Guarda i lavori",
       cta3: "Entra nell'esperienza 3D",
       m1t: "Online in", m1d: "2–6 settimane",
-      m2t: "Prezzi", m2d: "chiari, da 499 €",
+      m2t: "Prezzi", m2d: "su misura, non a pacchetto",
       m3t: "Lingue", m3d: "IT · DE · EN",
       scroll: "Scorri"
     },
@@ -86,6 +86,14 @@ window.VECOM_I18N = {
       v3: "100%", l3: "Proprietà tua: codice e file consegnati, nessun vincolo",
       v4: "1", l4: "Referente unico, dal primo colloquio all'assistenza"
     },
+    weg: {
+      kicker: "Per tutto il resto",
+      head: "Quanto costa il tuo sito dipende da che cosa deve saper fare",
+      lead: "Otto domande brevi, circa un minuto e mezzo. Alla fine sai in che ordine di prezzo ti muovi — senza impegno e senza dover prima parlare con qualcuno. Il preventivo vincolante ti arriva entro 24 ore, voce per voce.",
+      sofort: "Oppure parti subito",
+      cta: "Scopri il prezzo",
+      note: "Gratuito e senza impegno. I tuoi dati te li chiedo solo alla fine, quando il preventivo lo vuoi davvero."
+    },
     plans: {
       voicesHead: "Cosa dicono i clienti",
       voicesLead: "Parole loro, non mie. Ogni frase è qui con il nome di chi l'ha detta.",
@@ -103,8 +111,8 @@ window.VECOM_I18N = {
       bn3: "Assistenza Premium", bs3: "Priorità, prestazioni e due ore al mese", bp3: "99 €",
       bf3: "Incluso:|Aggiornamenti e patch di sicurezza, ogni mese|Backup mensile dell'intero sito|Controllo della raggiungibilità e del certificato SSL — me ne accorgo prima di te|Piccole modifiche incluse: testi, foto, orari, recapiti|Assistenza diretta, senza ticket: scrivi a me e rispondo io|Sorveglianza della sicurezza|60 minuti di modifiche al mese|Controlli di sicurezza e di velocità|2 ore di modifiche al mese|Assistenza prioritaria: le tue richieste passano per prime",
       bi3: "Per chi sul sito ci lavora davvero.",
-      head: "Prezzi trasparenti",
-      lead: "Tre pacchetti, prezzi pubblicati. Tutto è adattabile: se il tuo progetto esce da questi confini, lo definiamo insieme prima di cominciare.",
+      head: "Che cosa costa",
+      lead: "Un prezzo fisso per partire subito, e per tutto il resto un preventivo costruito su quello che ti serve davvero. Niente pacchetti in cui farti stare per forza.",
 
       n1: "Starter", s1: "Per farsi trovare e contattare",
       p1: "499 €", m1: "+ 39 € di assistenza al mese — facoltativa",
@@ -136,7 +144,7 @@ window.VECOM_I18N = {
       head: "Domande frequenti",
       lead: "Le domande che mi arrivano prima di ogni incarico.",
       q1: "Quanto costa un sito web su misura?",
-      a1: "I pacchetti partono da 499 € una tantum. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte — il sito puoi farlo costruire anche senza. Il prezzo dipende dal numero di pagine, dalle funzioni e da quanto materiale hai già pronto. Il preventivo è gratuito e senza impegno; quando lo approvi e firmiamo il contratto, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.",
+      a1: "Non lavoro a pacchetti fissi: il prezzo nasce da quello che ti serve davvero — numero di pagine, lingue, funzioni e quanto materiale hai già pronto. In un minuto e mezzo, rispondendo a otto domande sul sito, sai in che ordine di prezzo ti muovi. Chi vuole partire subito trova un sito di partenza a prezzo fisso da 499 €. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approvi, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.",
       q2: "Quanto tempo serve per essere online?",
       a2: "Starter di norma una o due settimane, Business due o tre, Premium quattro o sei. A decidere il ritmo non è il mio lavoro ma testi e immagini: se il materiale c'è, si va veloci.",
       q3: "L'assistenza mensile è obbligatoria?",
@@ -239,7 +247,7 @@ window.VECOM_I18N = {
       a: "Un sito non è un biglietto da visita. È il primo colloquio di vendita — e avviene senza di te.",
       b: "Il design che nessuno nota è quello che funziona. Si vede solo quando manca.",
     },
-    marg: { m1: "sei ambiti", m2: "progetti reali", m3: "prezzi pubblici" },
+    marg: { m1: "sei ambiti", m2: "progetti reali", m3: "prezzi" },
 masz: {
       kicker: "Oltre i pacchetti",
       head: "Il tuo progetto non rientra in un pacchetto?",
@@ -322,7 +330,7 @@ masz: {
       s7a: "Il codice è tuo", s7as: "I file vengono consegnati, nessun vincolo.",
       s7b: "Nessun banner cookie", s7bs: "Nessun tracciamento, nessun font esterno.",
       s7c: "Un solo referente", s7cs: "Dal primo colloquio all'assistenza.",
-      s8k: "Prezzi chiari", s8a: "da 499 €",
+      s8k: "Prezzo su misura", s8a: "da 275 €",
       s8b: "una tantum. L'assistenza mensile parte da 39 € ed è facoltativa. Preventivo e primo colloquio sono gratuiti.",
       s9b: "kontakt@vecom-design.it · Italiano · Tedesco · Inglese"
     },
@@ -401,7 +409,7 @@ masz: {
   de: {
     meta: {
       title: "Website erstellen lassen — maßgeschneidert | Vecom Design",
-      desc: "Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Klare Preise ab 499 €.",
+      desc: "Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Angebot nach Bedarf in 90 Sekunden. Klare Preise ab 499 €.",
       locale: "de_DE"
     },
     nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", cta: "Angebot anfordern" },
@@ -416,7 +424,7 @@ masz: {
       cta2: "Arbeiten ansehen",
       cta3: "In die 3D-Welt eintreten",
       m1t: "Online in", m1d: "2–6 Wochen",
-      m2t: "Preise", m2d: "klar, ab 499 €",
+      m2t: "Preise", m2d: "nach Bedarf, nicht nach Paket",
       m3t: "Sprachen", m3d: "IT · DE · EN",
       scroll: "Scrollen"
     },
@@ -471,6 +479,14 @@ masz: {
       v3: "100%", l3: "Du bekommst Code und Dateien — Eigentum bei dir",
       v4: "1", l4: "Ansprechpartner, vom ersten Gespräch bis zur Betreuung"
     },
+    weg: {
+      kicker: "Für alles Weitere",
+      head: "Was deine Website kostet, hängt davon ab, was sie können muss",
+      lead: "Acht kurze Fragen, etwa anderthalb Minuten. Am Ende weißt du, in welcher Größenordnung du liegst — unverbindlich und ohne vorher mit jemandem sprechen zu müssen. Das verbindliche Angebot bekommst du binnen 24 Stunden, Position für Position.",
+      sofort: "Oder sofort loslegen",
+      cta: "Preis herausfinden",
+      note: "Kostenlos und unverbindlich. Deine Daten frage ich erst am Ende, wenn du das Angebot wirklich willst."
+    },
     plans: {
       voicesHead: "Was Kunden sagen",
       voicesLead: "Nicht meine Worte — ihre. Jeder Satz steht hier mit Namen.",
@@ -488,8 +504,8 @@ masz: {
       bn3: "Betreuung Premium", bs3: "Vorrang, Tempo und zwei Stunden im Monat", bp3: "99 €",
       bf3: "Enthalten:|Aktualisierungen und Sicherheitspatches, jeden Monat|Monatliche Sicherung der ganzen Seite|Überwachung von Erreichbarkeit und SSL-Zertifikat — ich merke es vor dir|Kleine Änderungen inklusive: Texte, Fotos, Öffnungszeiten, Kontaktdaten|Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte|Sicherheitsüberwachung|60 Minuten Änderungen pro Monat|Sicherheits- und Performance-Checks|2 Stunden Änderungen pro Monat|Bevorzugte Betreuung: deine Anliegen zuerst",
       bi3: "Für alle, die mit der Seite wirklich arbeiten.",
-      head: "Preise, die offen liegen",
-      lead: "Drei Pakete mit veröffentlichten Preisen. Alles ist anpassbar: Fällt dein Vorhaben aus diesem Rahmen, legen wir es vorher gemeinsam fest.",
+      head: "Was das kostet",
+      lead: "Ein fester Preis, um sofort zu starten — und für alles Weitere ein Angebot, das auf dem aufbaut, was du wirklich brauchst. Keine Pakete, in die du hineinpassen musst.",
 
       n1: "Starter", s1: "Gefunden werden und Anfragen bekommen",
       p1: "499 €", m1: "+ 39 € Betreuung im Monat, optional",
@@ -521,7 +537,7 @@ masz: {
       head: "Häufige Fragen",
       lead: "Die Fragen, die vor jedem Auftrag kommen.",
       q1: "Was kostet eine maßgeschneiderte Website?",
-      a1: "Die Pakete beginnen bei 499 € einmalig. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag — du kannst die Seite auch ohne sie bauen lassen. Der Preis hängt vom Umfang, den Funktionen und davon ab, wie viel Material du schon hast. Das Angebot ist kostenlos und unverbindlich; sobald du es freigibst und wir den Vertrag schließen, ist diese Summe der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.",
+      a1: "Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst. Wer sofort loslegen will, findet einen Einstieg zum festen Preis ab 499 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.",
       q2: "Wie lange dauert es, bis die Seite online ist?",
       a2: "Starter in der Regel ein bis zwei Wochen, Business zwei bis drei, Premium vier bis sechs. Über das Tempo entscheidet selten meine Arbeit, sondern Texte und Bilder: Liegt das Material vor, geht es schnell.",
       q3: "Ist die monatliche Betreuung Pflicht?",
@@ -624,7 +640,7 @@ masz: {
       a: "Eine Website ist keine Visitenkarte. Sie ist das erste Verkaufsgespräch — und es findet ohne dich statt.",
       b: "Gestaltung, die niemand bemerkt, ist die, die funktioniert. Auffallen tut sie erst, wenn sie fehlt.",
     },
-    marg: { m1: "sechs Bereiche", m2: "echte Projekte", m3: "Preise offen" },
+    marg: { m1: "sechs Bereiche", m2: "echte Projekte", m3: "Preise" },
 masz: {
       kicker: "Jenseits der Pakete",
       head: "Dein Vorhaben passt in kein Paket?",
@@ -707,7 +723,7 @@ masz: {
       s7a: "Der Code gehört dir", s7as: "Dateien werden übergeben, keine Bindung.",
       s7b: "Kein Cookie-Banner", s7bs: "Keine Tracker, keine fremden Schriften.",
       s7c: "Ein Ansprechpartner", s7cs: "Vom ersten Gespräch bis zur Betreuung.",
-      s8k: "Klare Preise", s8a: "ab 499 €",
+      s8k: "Preis nach Bedarf", s8a: "ab 275 €",
       s8b: "einmalig. Die monatliche Betreuung beginnt bei 39 € und ist freiwillig. Angebot und Erstgespräch sind kostenlos.",
       s9b: "kontakt@vecom-design.it · Italienisch · Deutsch · Englisch"
     },
@@ -801,7 +817,7 @@ masz: {
       cta2: "See the work",
       cta3: "Enter the 3D experience",
       m1t: "Live in", m1d: "2–6 weeks",
-      m2t: "Pricing", m2d: "published, from €499",
+      m2t: "Pricing", m2d: "to fit, not off the shelf",
       m3t: "Languages", m3d: "IT · DE · EN",
       scroll: "Scroll"
     },
@@ -856,6 +872,14 @@ masz: {
       v3: "100%", l3: "Ownership stays with you: code and files handed over",
       v4: "1", l4: "Single contact, from first call through ongoing care"
     },
+    weg: {
+      kicker: "For everything else",
+      head: "What your website costs depends on what it has to do",
+      lead: "Eight short questions, about ninety seconds. At the end you know the ballpark — no obligation, and without having to talk to anyone first. The binding quote reaches you within 24 hours, item by item.",
+      sofort: "Or start right away",
+      cta: "Find out the price",
+      note: "Free and without obligation. I only ask for your details at the end, once you actually want the quote."
+    },
     plans: {
       voicesHead: "What clients say",
       voicesLead: "Not my words — theirs. Every sentence here carries a name.",
@@ -873,8 +897,8 @@ masz: {
       bn3: "Care Premium", bs3: "Priority, performance and two hours a month", bp3: "99 €",
       bf3: "Included:|Updates and security patches, every month|Monthly backup of the whole site|Uptime and SSL certificate monitoring — I notice before you do|Small changes included: text, photos, opening hours, contact details|Direct support, no ticket system: you write to me, I answer|Security monitoring|60 minutes of changes per month|Security and performance checks|2 hours of changes per month|Priority support: your requests go first",
       bi3: "For anyone who really works with the site.",
-      head: "Pricing in the open",
-      lead: "Three packages with published prices. Everything is adjustable: if your project falls outside this frame, we define it together before we start.",
+      head: "What it costs",
+      lead: "One fixed price to start right away, and for everything else a quote built on what you actually need. No packages to squeeze yourself into.",
 
       n1: "Starter", s1: "Get found and get enquiries",
       p1: "€499", m1: "+ €39 care per month — optional",
@@ -906,7 +930,7 @@ masz: {
       head: "Frequent questions",
       lead: "The questions that come up before every project.",
       q1: "What does a custom website cost?",
-      a1: "Packages start at €499 one-off. The monthly care plan from €39 is optional and a separate contract — the site can be built without it. Beyond that the price depends on scope, functions and how much material you already have. The quote is free and without obligation; once you approve it and we sign the contract, that figure is the final price — nothing appears on the invoice that wasn't in the quote.",
+      a1: "I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds. If you want to start right away, there is a fixed-price entry from €499. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote.",
       q2: "How long until the site is live?",
       a2: "Starter usually one to two weeks, Business two to three, Premium four to six. What sets the pace is rarely my work but your copy and images: once the material is there, it moves fast.",
       q3: "Is the monthly care compulsory?",
@@ -1009,7 +1033,7 @@ masz: {
       a: "A website isn't a business card. It's the first sales conversation — and it happens without you.",
       b: "Design nobody notices is the design that works. You only see it when it's missing.",
     },
-    marg: { m1: "six areas", m2: "real projects", m3: "prices published" },
+    marg: { m1: "six areas", m2: "real projects", m3: "pricing" },
 masz: {
       kicker: "Beyond the packages",
       head: "Your project doesn't fit a package?",
@@ -1092,7 +1116,7 @@ masz: {
       s7a: "The code is yours", s7as: "Files are handed over, no lock-in.",
       s7b: "No cookie banner", s7bs: "No trackers, no third-party fonts.",
       s7c: "One contact", s7cs: "From first call through ongoing care.",
-      s8k: "Clear pricing", s8a: "from €499",
+      s8k: "Priced to fit", s8a: "from €275",
       s8b: "one-off. Monthly care starts at €39 and is optional. Quote and first conversation are free.",
       s9b: "kontakt@vecom-design.it · Italian · German · English"
     },

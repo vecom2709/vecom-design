@@ -2444,3 +2444,58 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 .stueck__live  { position: absolute; inset: 0; z-index: 2; display: none; }
 .stueck.ist-vorn .stueck__live { display: block; }
 .stueck.ist-vorn .stueck__still { opacity: 0; transition: opacity 500ms linear 200ms; }
+
+/* ==========================================================================
+   Bedarfsweg — der Einstieg in den Konfigurator
+
+   Steht unter der einen Preiskarte und muss schwerer wiegen als sie: Die
+   Karte ist der Sonderfall, dieser Block der Regelweg. Deshalb volle Breite,
+   ruhiger Grund und ein Akzentstreifen an der Kante statt einer weiteren
+   Karte, die neben der ersten um Aufmerksamkeit konkurriert.
+   ========================================================================== */
+.bedarfsweg{
+  position:relative; margin-top:clamp(28px,4vw,44px);
+  padding:clamp(26px,4vw,44px) clamp(22px,4vw,48px);
+  border-radius:var(--r-lg,18px); overflow:hidden;
+}
+.bedarfsweg::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:3px;
+  background:linear-gradient(180deg,var(--blau,#0648e8),var(--cyan,#1fe8ff));
+}
+.bedarfsweg__text{max-width:62ch}
+.bedarfsweg h3{
+  font-size:clamp(21px,3.1vw,30px); line-height:1.22; margin:.5rem 0 .7rem;
+  letter-spacing:-.01em;
+}
+.bedarfsweg p{color:var(--dim,#9aa4b2); line-height:1.7; margin:0}
+.bedarfsweg__tun{margin-top:clamp(18px,2.4vw,26px)}
+.bedarfsweg__note{
+  margin-top:14px !important; font-size:13px; color:var(--leise,#6b7280); line-height:1.6;
+}
+@media (max-width:640px){
+  .bedarfsweg::before{inset:0 0 auto 0; width:auto; height:3px;
+    background:linear-gradient(90deg,var(--blau,#0648e8),var(--cyan,#1fe8ff));}
+}
+
+/* --------------------------------------------------------------------------
+   Einstiegsangebot — eine einzelne Karte neben dem Regelweg
+
+   Das .plans-Raster ist fuer drei Karten gebaut. Steht dort nur eine, streckt
+   sie sich ueber ein Drittel und laesst zwei Drittel leer — es sieht aus wie
+   ein Raster, aus dem zwei Karten herausgefallen sind. Hier bekommt die eine
+   Karte eine eigene, ruhige Breite und einen Vorspann, der sagt, warum sie
+   allein steht.
+   -------------------------------------------------------------------------- */
+.einstieg{margin-top:clamp(30px,4.5vw,52px)}
+.einstieg__kicker{
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--leise,#6b7280); margin:0 0 14px;
+}
+.einstieg .ptoggle{margin-bottom:16px}
+.einstieg .plans{
+  display:grid; gap:20px;
+  grid-template-columns:minmax(0,clamp(300px,32vw,380px));
+}
+@media (max-width:640px){
+  .einstieg .plans{grid-template-columns:minmax(0,1fr)}
+}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Website erstellen lassen — maßgeschneidert | Vecom Design</title>
-<meta name="description" content="Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Klare Preise ab 499 €.">
+<meta name="description" content="Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Angebot nach Bedarf in 90 Sekunden. Klare Preise ab 499 €.">
 <meta name="theme-color" content="#05070d">
 
 <!-- Auftakt: der Film laeuft, dann oeffnet die Seite. Steht inline und ganz
@@ -101,7 +101,7 @@
 <meta property="og:site_name" content="Vecom Design">
 <meta property="og:url" content="https://vecom-design.it/de/">
 <meta property="og:title" content="Website erstellen lassen — maßgeschneidert | Vecom Design">
-<meta property="og:description" content="Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Klare Preise ab 499 €.">
+<meta property="og:description" content="Maßgeschneiderte Websites, Online-Shops und Logos aus Sizilien. Dreisprachig IT/DE/EN, schnell und für Google gebaut. Angebot nach Bedarf in 90 Sekunden. Klare Preise ab 499 €.">
 <meta property="og:locale" content="de_DE">
 <meta property="og:image" content="https://vecom-design.it/assets/img/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -114,7 +114,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=70d15633">
+<link rel="stylesheet" href="../assets/css/app.css?v=3cb7902b">
 
 <script type="importmap">
 {
@@ -194,25 +194,17 @@
     },
     {
       "@type": "Offer",
-      "name": "Business",
-      "price": "899",
+      "name": "Individuelle Website",
       "priceCurrency": "EUR",
-      "description": "Website bis 10 Seiten, Premium-Design, Logo-Optimierung, erweiterte SEO. Zzgl. 69 € monatliche Wartung.",
+      "priceSpecification": {
+        "@type": "PriceSpecification",
+        "priceCurrency": "EUR",
+        "minPrice": "275"
+      },
+      "description": "Preis nach Bedarf: Umfang, Sprachen, Funktionen und vorhandenes Material bestimmen ihn. Unverbindliche Einschaetzung online, verbindliches Angebot binnen 24 Stunden.",
       "itemOffered": {
         "@type": "Service",
-        "name": "Webdesign Business",
-        "serviceType": "Webdesign"
-      }
-    },
-    {
-      "@type": "Offer",
-      "name": "Premium",
-      "price": "1499",
-      "priceCurrency": "EUR",
-      "description": "Website bis 20 Seiten, individuelles Logo, komplette Markenoptik, Buchungssystem. Zzgl. 99 € monatliche Wartung.",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Webdesign Premium",
+        "name": "Individuelle Website",
         "serviceType": "Webdesign"
       }
     }
@@ -290,7 +282,7 @@
       "name": "Was kostet eine maßgeschneiderte Website?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Die Pakete beginnen bei 499 € einmalig. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag — du kannst die Seite auch ohne sie bauen lassen. Der Preis hängt vom Umfang, den Funktionen und davon ab, wie viel Material du schon hast. Das Angebot ist kostenlos und unverbindlich; sobald du es freigibst und wir den Vertrag schließen, ist diese Summe der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand."
+        "text": "Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst. Wer sofort loslegen will, findet einen Einstieg zum festen Preis ab 499 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand."
       }
     },
     {
@@ -468,7 +460,7 @@
 
     <dl class="hero__meta" data-reveal>
       <div><dt data-i18n="hero.m1t">Online in</dt><dd data-i18n="hero.m1d">2–6 Wochen</dd></div>
-      <div><dt data-i18n="hero.m2t">Preise</dt><dd data-i18n="hero.m2d">klar, ab 499 €</dd></div>
+      <div><dt data-i18n="hero.m2t">Preise</dt><dd data-i18n="hero.m2d">nach Bedarf, nicht nach Paket</dd></div>
       <div><dt data-i18n="hero.m3t">Sprachen</dt><dd data-i18n="hero.m3d">IT · DE · EN</dd></div>
     </dl>
   </div>
@@ -829,17 +821,39 @@
 <section class="section" id="plans">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="marg.m3">Preise offen</span>
-      <h2 data-reveal data-i18n="plans.head">Preise, die offen liegen</h2>
-      <p data-reveal data-i18n="plans.lead">Drei Pakete mit veröffentlichten Preisen. Alles ist anpassbar: Fällt dein Vorhaben aus diesem Rahmen, legen wir es vorher gemeinsam fest.</p>
+      <span class="marg" data-i18n="marg.m3">Preise</span>
+      <h2 data-reveal data-i18n="plans.head">Was das kostet</h2>
+      <p data-reveal data-i18n="plans.lead">Ein fester Preis, um sofort zu starten — und für alles Weitere ein Angebot, das auf dem aufbaut, was du wirklich brauchst. Keine Pakete, in die du hineinpassen musst.</p>
     </div>
 
+
+    <!-- Der Weg zum Preis. Frueher standen hier drei Karten; jetzt beschreibt
+         der Kunde, was er braucht. Die eine Karte darueber bleibt, weil die
+         Direktbuchung einen festen Preis braucht - ohne sie gaebe es keinen
+         Weg mehr, auf dem Geld ohne Zutun hereinkommt. -->
+    <div class="bedarfsweg framed" data-reveal>
+      <div class="bedarfsweg__text">
+        <p class="eyebrow" data-i18n="weg.kicker">Für alles Weitere</p>
+        <h3 data-i18n="weg.head">Was deine Website kostet, hängt davon ab, was sie können muss</h3>
+        <p data-i18n="weg.lead">Acht kurze Fragen, etwa anderthalb Minuten. Am Ende weißt du, in welcher Größenordnung du liegst — unverbindlich und ohne vorher mit jemandem sprechen zu müssen. Das verbindliche Angebot bekommst du binnen 24 Stunden, Position für Position.</p>
+        <div class="bedarfsweg__tun">
+          <a class="btn btn--primary" href="/bedarf.php"><span data-i18n="weg.cta">Preis herausfinden</span></a>
+        </div>
+        <p class="bedarfsweg__note" data-i18n="weg.note">Kostenlos und unverbindlich. Deine Daten frage ich erst am Ende, wenn du das Angebot wirklich willst.</p>
+      </div>
+    </div>
+
+    <!-- Das Einstiegsangebot steht bewusst NACH dem Bedarfsweg und schmaler.
+         Es ist der Sonderfall fuer alle, die sofort loslegen wollen, nicht der
+         Regelfall - und eine einzelne Karte, die sich ueber drei Spalten
+         streckt, sieht aus wie ein Raster, aus dem zwei Karten gefallen sind. -->
+    <div class="einstieg" data-reveal>
+      <p class="einstieg__kicker" data-i18n="weg.sofort">Oder sofort loslegen</p>
 
     <div class="ptoggle" data-price-toggle data-i18n-attr="data-year-note:plans.yearNote" role="group" aria-label="Preisansicht" data-year-note="primo anno">
       <button type="button" data-mode="once" aria-pressed="true" data-i18n="plans.togOnce">Einmalig</button>
       <button type="button" data-mode="year" aria-pressed="false" data-i18n="plans.togYear">Gesamt 12 Monate</button>
     </div>
-
     <div class="plans" data-stagger>
       <article data-paket="starter" class="plan framed" data-reveal>
         <h3 data-i18n="plans.n1">Starter</h3>
@@ -858,74 +872,9 @@
         <a class="btn" href="?paket=starter#contact" data-i18n="plans.cta">Dieses Paket anfragen</a>
       </article>
 
-      <article data-paket="business" class="plan plan--featured framed" data-reveal>
-        <span class="plan__badge" data-i18n="plans.badge">Am häufigsten gewählt</span>
-        <h3 data-i18n="plans.n2">Business</h3>
-        <p class="plan__sub" data-i18n="plans.s2">Überzeugen und verkaufen</p>
-        <p class="plan__price"><span data-i18n="plans.p2">899 €</span><small data-i18n="plans.priceNote">einmalig</small></p>
-        <p class="plan__month" data-i18n="plans.m2">+ 69 € Betreuung im Monat, optional</p>
-        <ul data-i18n-list="plans.f2">
-          <li class="is-lead">Alles aus Starter, plus:</li>
-          <li>Bis zu 10 Seiten</li>
-          <li>Eigenes Design, an deiner Marke entlang gebaut</li>
-          <li>Logo-Optimierung oder neues Logo</li>
-          <li>Erweiterte SEO und Google-Unternehmensprofil</li>
-          <li>Mehrere Anfrageformulare und WhatsApp-Button</li>
-          <li>Bildergalerie und Referenzen</li>
-          <li>Bis zu 5 E-Mail-Adressen</li>
-        </ul>
-        <a class="btn btn--primary" href="?paket=business#contact" data-i18n="plans.cta">Dieses Paket anfragen</a>
-      </article>
-
-      <article data-paket="premium" class="plan framed" data-reveal>
-        <h3 data-i18n="plans.n3">Premium</h3>
-        <p class="plan__sub" data-i18n="plans.s3">Der komplette digitale Auftritt</p>
-        <p class="plan__price"><span data-i18n="plans.p3">1.499 €</span><small data-i18n="plans.priceNote">einmalig</small></p>
-        <p class="plan__month" data-i18n="plans.m3">+ 99 € Betreuung im Monat, optional</p>
-        <ul data-i18n-list="plans.f3">
-          <li class="is-lead">Alles aus Business, plus:</li>
-          <li>Umfangreiche Website bis 20 Seiten</li>
-          <li>Individuelles Logo und Markenauftritt</li>
-          <li>Farben und Schriften festgelegt, mit Handbuch</li>
-          <li>Blog- oder Newsbereich</li>
-          <li>Terminbuchung oder Anfragesystem</li>
-          <li>Newsletter und Social-Media-Anbindung</li>
-          <li>Bis zu 10 E-Mail-Adressen</li>
-        </ul>
-        <a class="btn" href="?paket=premium#contact" data-i18n="plans.cta">Dieses Paket anfragen</a>
-      </article>
+    </div>
     </div>
 
-
-    <div class="cmp" data-reveal>
-      <p class="cmp__head" data-i18n="plans.cmp">Kurzer Vergleich</p>
-      <div class="cmp__grid">
-        <ul class="cmp__labels" data-i18n-list="plans.cmpRow">
-          <li>Seiten</li>
-          <li>Sprachen</li>
-          <li>Änderungen pro Monat</li>
-          <li>Betreuung</li>
-        </ul>
-        <div class="cmp__col"><span class="cmp__name" data-i18n="plans.n1">Starter</span><ul data-i18n-list="plans.cmp1">
-          <li>bis 5</li>
-          <li>1</li>
-          <li>kleine Änderungen</li>
-          <li>direkt</li>
-        </ul></div>
-        <div class="cmp__col cmp__col--best"><span class="cmp__name" data-i18n="plans.n2">Business</span><ul data-i18n-list="plans.cmp2">
-          <li>bis 10</li>
-          <li>bis 3</li>
-          <li>60 Minuten</li>
-          <li>direkt + Sicherheit</li>
-        </ul></div>
-        <div class="cmp__col"><span class="cmp__name" data-i18n="plans.n3">Premium</span><ul data-i18n-list="plans.cmp3">
-          <li>bis 20</li>
-          <li>bis 3</li>
-          <li>2 Stunden</li>
-          <li>bevorzugt</li>
-        </ul></div>
-      </div>
-    </div>
     <!-- Betreuung: ein eigener Vertrag, deshalb ein eigener Block. Frueher hing
          sie als Zusatzzeile an der Paketkarte — dann liest sie sich wie ein
          Aufschlag, den man nicht abwaehlen kann. -->
@@ -1008,7 +957,7 @@
         <p class="masz__lead" data-i18n="masz.lead">Dann baue ich es trotzdem — nur eben nicht von der Stange. Manche Projekte lassen sich nicht in drei Zeilen und einen Festpreis pressen: ein Shop mit eigener Logik, ein Buchungssystem, ein mehrsprachiger Katalog, eine Verwaltung, die dir Arbeit abnimmt.</p>
         <p class="masz__p" data-i18n="masz.p1">Was so etwas kostet, hängt an drei Dingen: was es können muss, wie viel davon schon da ist und wie schnell es fertig sein soll. Deshalb steht hier keine Zahl. Der Preis entsteht im Gespräch, in dem wir uns ansehen, was wirklich zu tun ist und wie du es dir vorstellst. Sind wir uns einig, steht er schriftlich fest, bevor ich anfange.</p>
         <div class="masz__tun">
-          <a class="btn btn--primary" href="?paket=individuell#contact">
+          <a class="btn btn--primary" href="/bedarf.php">
             <span data-i18n="masz.cta">Erzähl mir davon</span></a>
         </div>
         <p class="masz__note" data-i18n="masz.note">Das erste Gespräch kostet nichts und verpflichtet dich zu nichts. Am Ende weißt du, was es kostet und warum — auch wenn du dann nein sagst.</p>
@@ -1219,7 +1168,7 @@
           <span data-i18n="faq.q1">Was kostet eine maßgeschneiderte Website?</span>
           <span class="faq__sign" aria-hidden="true"></span>
         </summary>
-        <p data-i18n="faq.a1">Die Pakete beginnen bei 499 € einmalig. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag — du kannst die Seite auch ohne sie bauen lassen. Der Preis hängt vom Umfang, den Funktionen und davon ab, wie viel Material du schon hast. Das Angebot ist kostenlos und unverbindlich; sobald du es freigibst und wir den Vertrag schließen, ist diese Summe der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.</p>
+        <p data-i18n="faq.a1">Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst. Wer sofort loslegen will, findet einen Einstieg zum festen Preis ab 499 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.</p>
       </details>
       <details class="faq__item" data-reveal>
         <summary>
@@ -1443,13 +1392,13 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-data.js?v=9075a7cf" defer></script>
-<script src="../assets/js/app.js?v=fbdcc7d6" defer></script>
+<script src="../assets/js/i18n-data.js?v=a3aa2483" defer></script>
+<script src="../assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="../assets/vendor/gsap.min.js" defer></script>
 <script src="../assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="../assets/vendor/lenis.min.js" defer></script>
 <script src="../assets/js/screens.js?v=19e37ebd" defer></script>
-<script src="../assets/js/schau.js?v=6d7e85cc" defer></script>
+<script src="../assets/js/schau.js?v=50644b3d" defer></script>
 <script src="../assets/js/polish.js?v=4f1bcb02" defer></script>
 <script src="../assets/js/pakete-live.js?v=62312dcb" defer></script>
 <script src="../assets/js/stimmen-live.js?v=5f6bee7a" defer></script>

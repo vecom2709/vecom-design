@@ -65,7 +65,14 @@ final class Angebot
             'price_cents'   => 0,
             'monthly_cents' => 0,
             'currency'      => 'EUR',
+            // Beides ausdruecklich, nicht dem Vorgabewert ueberlassen: Die
+            // Spalte oeffentlich steht per Vorgabe auf 1, und dann haengt es
+            // allein an active = 0, dass dieser Sammelposten nicht als
+            // Nullpreis-Karte auf der Website landet. Ein Haken zu viel in der
+            // Verwaltung, und er stuende dort.
             'active'        => 0,
+            'oeffentlich'   => 0,
+            'art'           => 'zusatz',
         ]);
     }
 
