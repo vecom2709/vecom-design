@@ -1398,10 +1398,22 @@ switch ($route) {
             ]);
             break;
         }
-        ansicht('bedarfe', ['liste' => sicher(static fn() => Db::all(
-            "SELECT * FROM bedarf
-              ORDER BY FIELD(status,'abgesendet','angebot','offen','verworfen'), created_at DESC
-              LIMIT 200"), [])]);
+        /* Jeder Aufruf des Konfigurators legt eine Zeile an -- auch der, bei
+           dem jemand nur kurz hineinsieht und sofort wieder geht. Diese
+           Zeilen sagen nichts und waren nach einem Tag Testen schon in der
+           Ueberzahl. Sie bleiben stehen (jemand, der bis Schritt vier kommt
+           und dann aufhoert, ist ein Hinweis), aber in der Liste steht nur
+           noch ihre Anzahl. Sichtbar ist, wer etwas angekreuzt hat. */
+        $leerFilter = "(antworten IS NULL OR antworten = '' OR antworten = '[]' OR antworten = '{}')";
+        ansicht('bedarfe', [
+            'liste' => sicher(static fn() => Db::all(
+                "SELECT * FROM bedarf
+                  WHERE status <> 'offen' OR NOT $leerFilter
+                  ORDER BY FIELD(status,'abgesendet','angebot','offen','verworfen'), created_at DESC
+                  LIMIT 200"), []),
+            'leer' => (int) sicher(static fn() => Db::wert(
+                "SELECT COUNT(*) FROM bedarf WHERE status = 'offen' AND $leerFilter", [], 0), 0),
+        ]);
         break;
 
     case 'bestellungen':

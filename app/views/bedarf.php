@@ -43,7 +43,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
 
 <?php if ($b['customer_id'] && !$kundeDa): ?>
   <div class="block" style="border-color:var(--warnung,#8a6d3b)">
-    <strong>Der Kunde zu diesem Bedarf ist geloescht.</strong>
+    <strong>Der Kunde zu diesem Bedarf ist gelöscht.</strong>
     <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:6px 0 0">
       Die Antworten und die Rechnung stehen unten weiter — nur senden und ein
       Angebot erstellen geht nicht, weil beides einen Kunden braucht. Leg ihn

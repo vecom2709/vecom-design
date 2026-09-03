@@ -3,7 +3,11 @@
 
    Abgesendete zuerst — offene sind angefangene Wege, aus denen meist nichts
    wird. Sie stehen trotzdem da: Wer auf Schritt vier aufhört, ist ein Hinweis
-   darauf, dass Schritt vier zu schwer ist. */
+   darauf, dass Schritt vier zu schwer ist.
+
+   Nicht in der Tabelle stehen die Aufrufe ohne eine einzige Antwort. Eine
+   Zeile entsteht schon beim Öffnen, und die waren nach kurzer Zeit in der
+   Überzahl. Ihre Anzahl steht unter der Tabelle. */
 ?>
 <div class="kopf"><h1>Bedarf</h1></div>
 
@@ -58,4 +62,13 @@
     <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $b['created_at'])) ?></td>
   </tr>
 <?php endforeach; ?>
-</tbody></table></div></div>
+</tbody></table></div>
+<?php if (($leer ?? 0) > 0): ?>
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:12px 2px 0">
+    Dazu <?= (int) $leer ?> Mal geöffnet und sofort wieder verlassen, ohne eine
+    einzige Antwort. Solche Zeilen entstehen bei jedem Aufruf und stehen hier
+    nur als Zahl — sie sagen nichts über einen Kunden, nur etwas über den
+    ersten Bildschirm.
+  </p>
+<?php endif; ?>
+</div>
