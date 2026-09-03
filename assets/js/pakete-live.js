@@ -156,6 +156,19 @@
   function betreuungZeichnen(liste, monatsWort) {
     var kasten = document.querySelector('[data-betreuung]');
     if (!kasten || !liste || !liste.length) { return; }
+
+    /* Die Startseite zeigt eine Karte, die Betreuungsseite alle. Beide holen
+       dieselben Daten — was sie unterscheidet, ist eine Frage der Darstellung
+       und steht deshalb in der Seite, nicht in der Datenbank. */
+    if (kasten.getAttribute('data-betreuung') !== 'alle') { liste = liste.slice(0, 1); }
+
+    /* Ein Paket ohne Leistungstexte in der Verwaltung wuerde die eingebaute
+       Karte durch eine leere ersetzen — Name aus dem Bezeichner, kein
+       Untertitel, keine Liste. Das ist schlechter als gar nicht zu
+       aktualisieren, und es faellt niemandem auf, weil die Seite ja aufgeht.
+       Also: Wer nichts zu sagen hat, ersetzt nichts. */
+    liste = liste.filter(function (p) { return p && p.features && p.features.length; });
+    if (!liste.length) { return; }
     var vorher = kasten.innerHTML;
     try {
       var neu = document.createDocumentFragment();

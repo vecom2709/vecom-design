@@ -2717,3 +2717,39 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   transition: color var(--d-ui) var(--e-std);
 }
 .bedarfsweg__mehr:hover { color: var(--c-cyan); }
+
+/* ---------- Der Weg in den Konfigurator, statt eines zweiten Formulars ----
+   Er steht dort, wo bis heute das Formular stand: in der rechten Spalte des
+   Kontaktbereichs. Ohne Kasten und ohne Rahmen — es ist ein Knopf und ein
+   Versprechen, was danach passiert, und beides braucht keine Verpackung. */
+.kontaktweg {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2);
+  /* Das Formular stand hier vorher mit lauter undurchsichtigen Eingabefeldern
+     und hat den Hintergrund gedeckt. Ohne es liegt die Grafik dahinter frei
+     unter dem Text, und der Hinweis darunter war kaum noch zu lesen. Also
+     eine eigene Flaeche — dieselbe, auf der auch sonst gelesen wird. */
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--c-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--elev-1);
+}
+.kontaktweg__note {
+  color: var(--c-text-dim); font-size: var(--t-sm); line-height: 1.65;
+  max-width: 46ch; margin: 0;
+}
+.kontaktweg .ablaufkopf { margin-top: var(--s-2); }
+/* Ohne color-mix (aeltere Browser) lieber ganz deckend als unlesbar. */
+@supports not (background: color-mix(in srgb, red 50%, transparent)) {
+  .kontaktweg { background: var(--c-surface); }
+}
+
+/* Der Weg von der einen Betreuungskarte auf der Startseite zur Seite mit
+   allen drei Stufen. Bis heute stand dort keiner, weil es die Seite nicht
+   gab — und pakete-live.js entfernte den Detailverweis sogar ausdruecklich. */
+.betreuung__mehr { margin-top: var(--s-2); font-size: var(--t-sm); }
+.betreuung__mehr a {
+  color: var(--c-text-dim); text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: var(--c-line-strong); transition: color var(--d-ui) var(--e-std);
+}
+.betreuung__mehr a:hover { color: var(--c-cyan); }

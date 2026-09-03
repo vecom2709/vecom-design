@@ -61,6 +61,14 @@ const SEITEN = [
     faq: { ast: 'preise', von: 1, bis: 6 },
     heim: true,
   },
+  {
+    quelle: 'assistenza.html',
+    ziele: { it: 'assistenza.html', de: 'de/betreuung.html', en: 'en/care.html' },
+    adressen: { it: 'assistenza.html', de: 'de/betreuung.html', en: 'en/care.html' },
+    meta: { titel: 'betreuungsseite.metaTitle', text: 'betreuungsseite.metaDesc' },
+    faq: null,
+    heim: true,
+  },
 ];
 
 function hreflang(seite) {
@@ -251,8 +259,21 @@ function build(lang, seite) {
     h = h.replace(/href="\.\.\/"/g, `href="${heim}"`);
     // Der Baukasten liegt im Wurzelverzeichnis und kennt die Sprache nur
     // ueber ?lang= — ohne das oeffnet er italienisch, egal woher man kommt.
-    h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
   }
+
+  /* --------------------------------------------------------------------------
+     Der Konfigurator kennt die Sprache nur ueber ?lang=.
+
+     Ohne den Zusatz faellt bedarf.php auf Italienisch zurueck — die Knoepfe
+     auf /de/ und /en/ schickten deutsche und englische Besucher also in den
+     italienischen Konfigurator. Das galt fuer die Startseite seit dem Tag,
+     an dem der Bedarfsweg dort steht, und ist niemandem aufgefallen, weil
+     die Seite ja aufging.
+
+     Deshalb steht die Regel hier und nicht im Block fuer Unterseiten: Sie
+     gilt fuer jede Seite, die auf den Konfigurator zeigt.
+     -------------------------------------------------------------------------- */
+  h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
   /* --------------------------------------------------------------------------
      Verweise auf die Preisseite.
 
@@ -266,6 +287,11 @@ function build(lang, seite) {
   if (preisseite) {
     const datei = preisseite.ziele[lang].split('/').pop();
     h = h.replace(/href="(?:prezzi|preise|pricing)\.html"/g, `href="${datei}"`);
+  }
+  const betreuungsseite = SEITEN.find((x) => x.quelle === 'assistenza.html');
+  if (betreuungsseite) {
+    const datei = betreuungsseite.ziele[lang].split('/').pop();
+    h = h.replace(/href="(?:assistenza|betreuung|care)\.html"/g, `href="${datei}"`);
   }
 
   // Muster passt auch auf eine bereits gebaute Seite — sonst erbt der zweite
