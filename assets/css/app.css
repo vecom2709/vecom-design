@@ -2144,3 +2144,111 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .plan__sub { font-size: var(--t-sm); }
 .plan ul { gap: .32rem; }
 .plan .btn { margin-top: .6rem; }
+
+/* ---------- 34. Buehne: ein Projekt in echten Geraeten --------------------
+   Die Huellen sind Fotografien, die Bildschirminhalte echte Vollseiten-
+   Aufnahmen der laufenden Kundenseite. Die Bildschirmflaechen sind aus den
+   Fotos ausgemessen, nicht geschaetzt:
+     Notebook  left 24.6 %  top 15.7 %  breit 50.8 %  hoch 62.6 %
+     Telefon   left 19.6 %  top 19.3 %  breit 61.2 %  hoch 65.7 %
+   -------------------------------------------------------------------------- */
+.buehne { position: relative; }
+
+/* Die Aufnahme laeuft bis an die Kartenkante — kein zweiter Rahmen um ein
+   Bild, das selbst schon einen Rahmen zeigt. */
+.buehne__szene { position: relative; }
+.buehne__platte { display: block; width: 100%; height: auto; }
+
+.geraet { position: absolute; margin: 0; }
+.geraet--laptop { left: 20.936%; top: 15.700%; width: 43.234%; height: 62.600%; }
+
+/* Das Telefon ist eine eigene Ebene, weil es in der Szene VOR dem Notebook
+   steht. Beim Neigen der Karte muss es sich deshalb weiter bewegen als der
+   Hintergrund — das uebernimmt buehne.js. Sein Schatten bleibt in der Platte:
+   ein paar Pixel Versatz gegen einen 30 px weichen Schatten sieht niemand. */
+.buehne__vorn { position: absolute; left: 65.957%; top: 27.333%; width: 16.702%; }
+.buehne__telefon { display: block; width: 100%; height: auto; }
+.geraet--handy { left: 6.580%; top: 7.229%; width: 89.707%; height: 89.616%; border-radius: 3px; }
+
+.geraet__schirm {
+  position: absolute; inset: 0; overflow: hidden; background: #05070d; border-radius: inherit;
+  /* Die Kundenseite hat lange weisse Abschnitte. Ohne Behandlung wird die
+     Karte in dem Moment zu einem weissen Klotz — und ein Bildschirm in einem
+     dunklen Raum sieht so nie aus. Drei Dinge fehlen einer eingesetzten
+     Aufnahme: der Schein, den er in den Raum wirft, ein Hauch Schleier, und
+     die dunkleren Ecken. Alle drei sind hier billig zu haben. */
+  box-shadow: 0 0 52px 8px rgba(140, 180, 255, .12);
+  filter: brightness(.95) saturate(1.03);
+}
+.geraet__bahn { display: block; width: 100%; will-change: transform; }
+.geraet__bahn img { display: block; width: 100%; height: auto; }
+
+/* Glas: ohne diesen Streifen liest sich die Aufnahme als aufgeklebtes
+   Rechteck, mit ihm als Bildschirm hinter einer Scheibe. */
+.geraet__schirm::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 4;
+  background:
+    radial-gradient(122% 118% at 50% 44%, transparent 52%, rgba(2, 10, 26, .36) 100%),
+    linear-gradient(112deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .022) 24%, transparent 48%);
+}
+
+/* Zeiger: kein nachgezeichneter Cursor, sondern ein kleiner heller Punkt mit
+   Ring — auf einer Aufnahme liest sich das als Zeiger, ohne wie ein Fremd-
+   koerper aus einem anderen Betriebssystem auszusehen. */
+.geraet__zeiger {
+  position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border-radius: 50%; pointer-events: none; z-index: 2;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 0 0 1px rgba(5, 7, 13, .55), 0 0 14px 2px rgba(31, 232, 255, .45);
+  transition: transform 60ms linear, width 160ms var(--e-std), height 160ms var(--e-std);
+}
+.geraet__zeiger.ist-klick { width: 26px; height: 26px; margin: -13px 0 0 -13px; background: rgba(31, 232, 255, .35); }
+
+/* Ladebalken oben im Bildschirm, wie im echten Browser */
+.geraet--laptop::after {
+  content: ""; position: absolute; left: 0; top: 0; width: 0; height: 2px; z-index: 3;
+  background: var(--c-cyan); opacity: 0; pointer-events: none;
+}
+.geraet--laptop.laedt::after { animation: buehneLaden 600ms linear forwards; }
+@keyframes buehneLaden {
+  from { width: 0; opacity: 1; }
+  to   { width: 100%; opacity: 0; }
+}
+
+/* Die Karte traegt die Aufnahme randlos; Text bekommt seine Polsterung selbst.
+   Und sie nimmt IMMER die ganze Reihe: zwischen 780 und 1180 px stand sie
+   sonst in einer halben Spalte, und dann ist der Notebook-Bildschirm 170 px
+   breit — aus einer Aufnahme wird Grafik-Matsch. */
+.card--buehne { padding: 0; gap: 0; grid-column: 1 / -1; }
+.card--buehne .card__body {
+  display: grid; gap: .5rem;
+  padding: 0 clamp(1.4rem, 2.4vw, 2.2rem) clamp(1.4rem, 2.4vw, 2.2rem);
+}
+p.buehne__fuss {
+  display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; align-items: baseline;
+  /* .card p deckelt auf 46ch und ist spezifischer als eine Klasse allein —
+     daher p davor, sonst brach die Adresse mitten im Wort um. */
+  max-width: none;
+  font-family: var(--f-display); font-size: var(--t-xs);
+  letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-faint);
+  padding: clamp(.9rem, 1.8vw, 1.3rem) clamp(1.4rem, 2.4vw, 2.2rem) clamp(.8rem, 1.4vw, 1rem);
+}
+p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
+
+/* Schmale Schirme: das Notebook faellt weg. Bei 350 px Kartenbreite waere
+   sein Bildschirm 150 px breit — man saehe graue Flecken statt einer Website.
+   Das Telefon dagegen zeigt auf einem Telefon genau das Richtige, gross und
+   lesbar. Die Notebook-Aufnahme laedt dann gar nicht erst: ein lazy-Bild in
+   einem display:none-Zweig holt der Browser nicht. */
+@media (max-width: 779px) {
+  .buehne__szene { padding-top: 126%; }
+  .buehne__platte, .geraet--laptop { display: none; }
+  .buehne__vorn { left: 19%; top: 1%; width: 62%; }
+  .buehne__telefon { filter: drop-shadow(0 26px 34px rgba(0, 0, 0, .62)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .geraet__zeiger { display: none; }
+  .geraet__bahn { will-change: auto; }
+}
+}

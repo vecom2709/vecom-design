@@ -114,7 +114,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=3033a2e3">
+<link rel="stylesheet" href="../assets/css/app.css?v=fe09d80c">
 
 <script type="importmap">
 {
@@ -494,18 +494,32 @@
     </div>
 
     <div class="work" data-stagger>
-      <article class="card framed card--live card--voll" data-reveal style="--p1: rgba(21,54,138,.62); --p2: rgba(140,168,224,.30);">
-        <figure class="screen" data-screen>
-          <div class="screen__chrome">
-            <span class="screen__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="screen__url">cavaleri-trasporti.netlify.app</span>
-            <span class="screen__progress" aria-hidden="true"></span>
+      <article class="card framed card--buehne card--voll" data-reveal style="--p1: rgba(21,54,138,.62); --p2: rgba(140,168,224,.30);">
+        <div class="buehne" data-buehne>
+          <div class="buehne__szene">
+            <img class="buehne__platte" src="../assets/img/geraete/buehne-platte.webp?v=dcc849e0" alt="" width="1880" height="900" loading="lazy" decoding="async">
+            <figure class="geraet geraet--laptop">
+              <div class="geraet__schirm">
+                <div class="geraet__bahn" data-seiten>
+                  <img src="../assets/img/work/cavaleri-desktop.webp?v=bc526fc7" alt="Die Website von Cavaleri Srl am Rechner" width="1200" height="8367" loading="lazy" decoding="async">
+                </div>
+                <span class="geraet__zeiger" aria-hidden="true"></span>
+              </div>
+            </figure>
+            <div class="buehne__vorn" data-vorn>
+              <img class="buehne__telefon" src="../assets/img/geraete/buehne-telefon.webp?v=6e2b72a3" alt="" width="628" height="1200" loading="lazy" decoding="async">
+              <figure class="geraet geraet--handy">
+                <div class="geraet__schirm">
+                  <div class="geraet__bahn" data-seiten>
+                    <img src="../assets/img/work/cavaleri-handy-1.webp?v=1f5cbcb8" alt="Dieselbe Website auf dem Telefon" width="560" height="8770" loading="lazy" decoding="async">
+                    <img src="../assets/img/work/cavaleri-handy-2.webp?v=ef08c1e6" alt="" width="560" height="8709" loading="lazy" decoding="async">
+                  </div>
+                </div>
+              </figure>
+            </div>
           </div>
-          <div class="screen__viewport">
-            <img class="screen__page" src="../assets/img/work/cavaleri-live.webp?v=f44ecd3a" alt="Aufnahme der Website von Cavaleri Srl" width="1400" height="540" loading="lazy" decoding="async">
-            <span class="screen__cursor" aria-hidden="true"></span>
-          </div>
-        </figure>
+          <p class="buehne__fuss"><span data-i18n="buehne.echt">Aufnahmen der laufenden Seite</span> <b>cavaleri-trasporti.netlify.app</b></p>
+        </div>
         <div class="card__body">
           <span class="card__tag" data-i18n="work.w7tag">Transport &amp; Logistik</span>
         <h3 data-i18n="work.w7t">Cavaleri Srl</h3>
@@ -1340,12 +1354,13 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-data.js?v=9f8aa424" defer></script>
+<script src="../assets/js/i18n-data.js?v=9075a7cf" defer></script>
 <script src="../assets/js/app.js?v=fbdcc7d6" defer></script>
 <script src="../assets/vendor/gsap.min.js" defer></script>
 <script src="../assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="../assets/vendor/lenis.min.js" defer></script>
 <script src="../assets/js/screens.js?v=19e37ebd" defer></script>
+<script src="../assets/js/buehne.js?v=9b6bc643" defer></script>
 <script src="../assets/js/polish.js?v=4f1bcb02" defer></script>
 <script src="../assets/js/pakete-live.js?v=62312dcb" defer></script>
 <script src="../assets/js/stimmen-live.js?v=5f6bee7a" defer></script>
