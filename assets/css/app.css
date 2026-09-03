@@ -2200,7 +2200,22 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
     radial-gradient(126% 122% at 50% 44%, transparent 62%, rgba(2, 8, 20, .17) 100%),
     linear-gradient(112deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .016) 24%, transparent 48%);
 }
-.geraet__bahn { display: block; width: 100%; will-change: transform; }
+
+
+/* Jonika liegt dazwischen: Mittel 87,2, ein Viertel der Flaeche heller als
+   200, drei Fuenftel dunkler als 60 — die Seite hat eine dunkle Haelfte
+   (das Sachbuch) und eine helle (die Kinderbuecher). Weder die eine noch die
+   andere Belichtung passt, also eine dritte: kaum angehoben, halbe Vignette,
+   und der Schein im Gold der Seite. */
+[data-ton="gemischt"] .geraet__schirm {
+  box-shadow: 0 0 54px 9px rgba(214, 169, 74, .12);
+  filter: brightness(1.03) saturate(1.03);
+}
+[data-ton="gemischt"] .geraet__schirm::after {
+  background:
+    radial-gradient(124% 120% at 50% 44%, transparent 57%, rgba(2, 8, 20, .25) 100%),
+    linear-gradient(112deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 24%, transparent 48%);
+}.geraet__bahn { display: block; width: 100%; will-change: transform; }
 /* Film statt Bildbahn: gleiche Flaeche, gleicher Ausschnitt. Die Aufnahme ist
    im Seitenverhaeltnis des Bildschirms gedreht, cover schneidet also nichts
    Wesentliches weg. */
