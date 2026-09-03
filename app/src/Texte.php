@@ -19,6 +19,7 @@ final class Texte
                 'standort'   => ['it' => 'Sede e zona servita', 'de' => 'Standort und Einzugsgebiet', 'en' => 'Location and area served', 'art' => 'text'],
                 'kontakt'    => ['it' => 'Telefono, e-mail, orari', 'de' => 'Telefon, E-Mail, Öffnungszeiten', 'en' => 'Phone, email, opening hours', 'art' => 'lang'],
                 'impressum' => ['it' => 'Dati per le note legali: ragione sociale esatta, indirizzo, P. IVA o codice fiscale', 'de' => 'Angaben fürs Impressum: genaue Firmierung, Anschrift, Partita IVA oder Codice Fiscale', 'en' => 'Details for the legal notice: exact company name, address, VAT or tax number', 'art' => 'lang'],
+                'ansprechpartner' => ['it' => 'Con chi parlo durante il lavoro — e chi decide alla fine?', 'de' => 'Mit wem spreche ich während der Arbeit — und wer entscheidet am Ende?', 'en' => 'Who do I talk to while we work — and who decides in the end?', 'art' => 'lang'],
             ],
         ],
         'website' => [
@@ -33,6 +34,9 @@ final class Texte
                 'mitbewerber' => ['it' => 'Due o tre concorrenti della zona, con il sito se ce l’hanno', 'de' => 'Zwei, drei Mitbewerber aus der Gegend, mit Website falls vorhanden', 'en' => 'Two or three local competitors, with their site if they have one', 'art' => 'lang'],
                 'domain' => ['it' => 'C’è già un indirizzo (dominio)? A chi è intestato e dove è registrato?', 'de' => 'Gibt es schon eine Adresse (Domain)? Auf wen läuft sie und wo liegt sie?', 'en' => 'Is there already a domain? Who is it registered to, and where?', 'art' => 'lang'],
                 'erhalten' => ['it' => 'Della vecchia pagina: che cosa deve assolutamente restare?', 'de' => 'Von der jetzigen Seite: Was muss unbedingt erhalten bleiben?', 'en' => 'From the current site: what has to stay, no matter what?', 'art' => 'lang'],
+                'stoert' => ['it' => 'Della vecchia pagina: che cosa vi dà più fastidio?', 'de' => 'An der jetzigen Seite: Was stört euch am meisten?', 'en' => 'About the current site: what bothers you most?', 'art' => 'lang'],
+                'suchwoerter' => ['it' => 'Con quali parole la gente dovrebbe trovarvi su Google? Scrivetele come le direbbe un cliente.', 'de' => 'Mit welchen Wörtern sollen Leute euch bei Google finden? Schreibt sie so, wie ein Kunde sie eintippen würde.', 'en' => 'Which words should people find you by on Google? Write them the way a customer would type them.', 'art' => 'lang'],
+                'karte' => ['it' => 'Avete una scheda Google dell’attività? Serve una mappa con le indicazioni sul sito?', 'de' => 'Gibt es einen Google-Unternehmenseintrag? Soll eine Karte mit Anfahrt auf die Seite?', 'en' => 'Do you have a Google Business listing? Should the site show a map and directions?', 'art' => 'lang'],
             ],
         ],
         'design' => [
@@ -55,6 +59,7 @@ final class Texte
                 'videos' => ['it' => 'Video disponibili', 'de' => 'Vorhandene Videos', 'en' => 'Available videos', 'art' => 'text'],
                 'social' => ['it' => 'Profili social', 'de' => 'Social-Media-Profile', 'en' => 'Social media profiles', 'art' => 'lang'],
                 'bildrechte' => ['it' => 'Le foto si possono pubblicare? Chi le ha fatte, e ci sono persone riconoscibili?', 'de' => 'Dürfen die Fotos veröffentlicht werden? Wer hat sie gemacht, und sind Personen darauf erkennbar?', 'en' => 'May the photos be published? Who took them, and are people recognisable?', 'art' => 'lang'],
+                'tonfall' => ['it' => 'Come devono suonare i testi? Formale o alla mano, sobrio o caloroso — un esempio aiuta.', 'de' => 'Wie sollen die Texte klingen? Förmlich oder locker, sachlich oder herzlich — ein Beispielsatz hilft.', 'en' => 'How should the copy sound? Formal or relaxed, matter-of-fact or warm — one example sentence helps.', 'art' => 'lang'],
                 'sonstiges' => ['it' => 'Altro che dovrei sapere', 'de' => 'Sonst noch etwas, das ich wissen sollte', 'en' => 'Anything else I should know', 'art' => 'lang'],
             ],
         ],
