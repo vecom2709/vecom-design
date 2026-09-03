@@ -82,6 +82,28 @@ final class StripeAnbieter implements Anbieter
             'metadata[bestellung]'          => (string) $bestellung['order_no'],
             'metadata[bestellung_id]'       => (string) $bestellung['id'],
             'payment_intent_data[description]' => $marke . ' · ' . $bestellung['order_no'] . ' · ' . $titel,
+
+            /* MANAGED PAYMENTS AUS -- SONST ENTSTEHT KEINE BEZAHLSEITE
+               ------------------------------------------------------------
+               Stripe hat "Managed Payments" bei neuen Konten standardmaessig
+               an. Damit tritt Stripe selbst als Haendler auf und rechnet die
+               Umsatzsteuer ab -- und verlangt dafuer zu jedem Posten einen
+               Steuerkode (tax_code). Ohne den lehnt es die Sitzung rundheraus
+               ab: "the product tax code is missing", und der Kunde bekommt
+               ueberhaupt keinen Zahlungslink. Genau das ist beim ersten
+               Durchlauf passiert.
+
+               Einen Steuerkode zu raten waere hier der falsche Ausweg: Solange
+               keine Partita IVA da ist, wird auch keine Umsatzsteuer
+               ausgewiesen, und was spaeter der richtige Kode ist, entscheidet
+               der Commercialista und nicht diese Zeile. Bis dahin also aus --
+               dann verhaelt sich Stripe wie eine gewoehnliche Bezahlseite und
+               ueberlaesst die Steuer dem Rechnungssteller.
+
+               Kommt die Partita IVA, gehoert diese Stelle noch einmal
+               angesehen: Dann ist Managed Payments samt tax_code womoeglich
+               die bequemere Loesung. */
+            'managed_payments[enabled]'     => 'false',
         ];
 
         $antwort = $this->anfrage('POST', '/v1/checkout/sessions', $felder, 'zahlung-' . $zahlung['id']);
