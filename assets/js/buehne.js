@@ -206,14 +206,38 @@
     })(t0);
   };
 
+  /* Manche Kundenseiten lassen sich nicht als hohe Aufnahme abrollen. Mensaena
+     ist eine Scroll-Inszenierung mit angehefteten Abschnitten: flach fotografiert
+     bleiben 40 % Leerraum, wo im echten Browser die Kapitel uebereinander
+     ziehen. Dort laeuft deshalb eine Aufnahme der laufenden Seite als Film —
+     dasselbe Bild im selben Geraet, nur eben bewegt statt gerollt. */
+  function Film(el) {
+    this.el = el;
+    this.video = el.querySelector('video');
+  }
+  Film.prototype.messen = function () {};
+  Film.prototype.setzen = function () {};
+  Film.prototype.sichtbar = function () { return this.el.getClientRects().length > 0; };
+  Film.prototype.start = function () {
+    if (ruhig || !this.video || !this.sichtbar()) { return; }
+    /* preload="none": die Datei wird erst geholt, wenn die Buehne wirklich
+       erreicht ist. Wer vorbeiscrollt, laedt kein Megabyte. */
+    if (this.video.preload === 'none') { this.video.preload = 'auto'; this.video.load(); }
+    var lauf = this.video.play();
+    if (lauf && lauf.catch) { lauf.catch(function () {}); }
+  };
+  Film.prototype.halt = function () { if (this.video) { this.video.pause(); } };
+
   document.querySelectorAll('[data-buehne]').forEach(function (buehne) {
-    var buch = DREHBUECHER[buehne.getAttribute('data-buehne')];
-    if (!buch) { return; }
+    var buch = DREHBUECHER[buehne.getAttribute('data-buehne')] || {};
+    var mach = function (el, drehbuch) {
+      return el.querySelector('video') ? new Film(el) : new Geraet(el, drehbuch);
+    };
     var laptop = buehne.querySelector('.geraet--laptop');
     var handy  = buehne.querySelector('.geraet--handy');
     var teile = [];
-    if (laptop) { teile.push(new Geraet(laptop, buch.laptop)); }
-    if (handy)  { teile.push(new Geraet(handy, buch.handy)); }
+    if (laptop) { teile.push(mach(laptop, buch.laptop)); }
+    if (handy)  { teile.push(mach(handy, buch.handy)); }
 
     /* Nur laufen lassen, was zu sehen ist. */
     if ('IntersectionObserver' in window) {
