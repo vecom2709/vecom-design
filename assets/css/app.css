@@ -2180,6 +2180,20 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   box-shadow: 0 0 52px 8px rgba(140, 180, 255, .12);
   filter: brightness(.95) saturate(1.03);
 }
+/* Die beiden Kundenseiten sind 7-mal auseinander: Cavaleri liegt im Mittel
+   bei Helligkeit 156 (die Haelfte der Flaeche ist weisses Papier), Trendonix
+   bei 22 (94 % dunkler als 60). Ein Schleier, der die eine rettet, erschlaegt
+   die andere. Also zwei Belichtungen — ein Fotograf wuerde die beiden auch
+   nicht gleich ausleuchten. */
+[data-ton="dunkel"] .geraet__schirm {
+  box-shadow: 0 0 58px 10px rgba(227, 200, 139, .13);   /* Gold, wie die Seite */
+  filter: brightness(1.16) saturate(1.06);
+}
+[data-ton="dunkel"] .geraet__schirm::after {
+  background:
+    radial-gradient(126% 122% at 50% 44%, transparent 62%, rgba(2, 8, 20, .17) 100%),
+    linear-gradient(112deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .016) 24%, transparent 48%);
+}
 .geraet__bahn { display: block; width: 100%; will-change: transform; }
 .geraet__bahn img { display: block; width: 100%; height: auto; }
 

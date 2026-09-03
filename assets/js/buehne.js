@@ -19,50 +19,102 @@
   var ruhig = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var feinerZeiger = window.matchMedia('(pointer: fine)').matches;
 
-  /* Die Haltepunkte sind aus der laufenden Kundenseite ausgelesen: erst die
+  /* Die Haltepunkte sind aus der jeweiligen Kundenseite ausgelesen: erst die
      Ankerpositionen ihrer Abschnitte, dann auf das Fenster des jeweiligen
-     Bildschirms umgerechnet, dann in einem kleinen Umkreis auf die Stelle mit
-     dem meisten Inhalt geschoben — sonst haelt das Notebook auf halber
-     Ueberschrift. Wo die Seite Text auf Weiss zeigt (azienda, storia,
-     persone), wird kuerzer verweilt als bei rotta, filmato und contatti.
-        Notebook 1200x8367, Fenster 831 · Telefon 560x17479, Fenster 1072 */
-  var LAPTOP = [
-    { a: 'warten', t: 900 },
-    { a: 'zeiger', x: 0.50, y: 0.55, t: 900 },
-    { a: 'rollen', zu: 0.077, t: 1900 },   /* azienda  */
-    { a: 'zeiger', x: 0.30, y: 0.40, t: 800 },
-    { a: 'rollen', zu: 0.369, t: 2600 },   /* rotta    */
-    { a: 'warten', t: 1100 },
-    { a: 'zeiger', x: 0.62, y: 0.55, t: 800 },
-    { a: 'klick' },
-    { a: 'laden', t: 600 },
-    { a: 'rollen', zu: 0.511, t: 2200 },   /* filmato  */
-    { a: 'warten', t: 1000 },
-    { a: 'rollen', zu: 0.594, t: 2000 },   /* storia   */
-    { a: 'rollen', zu: 0.774, t: 2000 },   /* persone  */
-    { a: 'zeiger', x: 0.45, y: 0.30, t: 700 },
-    { a: 'rollen', zu: 1.000, t: 2400 },   /* contatti */
-    { a: 'warten', t: 1500 },
-    { a: 'rollen', zu: 0.000, t: 1300 },
-    { a: 'zeiger', x: 0.50, y: 0.50, t: 700 }
-  ];
-  /* Etwas kuerzer als der Notebook-Durchlauf, damit die beiden Geraete nicht
-     im Gleichschritt laufen — das saehe nach Schleife aus statt nach Betrieb. */
-  var HANDY = [
-    { a: 'warten', t: 1500 },
-    { a: 'rollen', zu: 0.052, t: 1600 },   /* azienda  */
-    { a: 'warten', t: 500 },
-    { a: 'rollen', zu: 0.124, t: 1500 },   /* servizi  */
-    { a: 'rollen', zu: 0.366, t: 3000 },   /* rotta    */
-    { a: 'warten', t: 1100 },
-    { a: 'rollen', zu: 0.454, t: 2000 },   /* filmato  */
-    { a: 'warten', t: 900 },
-    { a: 'rollen', zu: 0.577, t: 2200 },   /* storia   */
-    { a: 'rollen', zu: 0.731, t: 2000 },   /* persone  */
-    { a: 'rollen', zu: 0.998, t: 2600 },   /* contatti */
-    { a: 'warten', t: 1300 },
-    { a: 'rollen', zu: 0.000, t: 1500 }
-  ];
+     Bildschirms umgerechnet (Anker mal Seitenhoehe geteilt durch den Rollweg).
+     Geraten ist hier nichts.
+
+     Beide Bühnen stehen auf derselben Platte. Die Drehbuecher sind es nicht:
+     jede Seite ist anders gebaut, und wenn beide gleich lang liefen, saehe man
+     im Vorbeiscrollen zweimal denselben Takt. */
+  var DREHBUECHER = {
+
+    /* cavaleri-trasporti.netlify.app
+       Notebook 1200x8367, Fenster 831 · Telefon 560x17479, Fenster 1072.
+       Die Seite hat lange weisse Textabschnitte (azienda, storia, persone) —
+       dort wird kuerzer verweilt als bei rotta, filmato und contatti. */
+    cavaleri: {
+      laptop: [
+        { a: 'warten', t: 900 },
+        { a: 'zeiger', x: 0.50, y: 0.55, t: 900 },
+        { a: 'rollen', zu: 0.077, t: 1900 },
+        { a: 'zeiger', x: 0.30, y: 0.40, t: 800 },
+        { a: 'rollen', zu: 0.369, t: 2600 },
+        { a: 'warten', t: 1100 },
+        { a: 'zeiger', x: 0.62, y: 0.55, t: 800 },
+        { a: 'klick' },
+        { a: 'laden', t: 600 },
+        { a: 'rollen', zu: 0.511, t: 2200 },
+        { a: 'warten', t: 1000 },
+        { a: 'rollen', zu: 0.594, t: 2000 },
+        { a: 'rollen', zu: 0.774, t: 2000 },
+        { a: 'zeiger', x: 0.45, y: 0.30, t: 700 },
+        { a: 'rollen', zu: 1.000, t: 2400 },
+        { a: 'warten', t: 1500 },
+        { a: 'rollen', zu: 0.000, t: 1300 },
+        { a: 'zeiger', x: 0.50, y: 0.50, t: 700 }
+      ],
+      handy: [
+        { a: 'warten', t: 1500 },
+        { a: 'rollen', zu: 0.052, t: 1600 },
+        { a: 'warten', t: 500 },
+        { a: 'rollen', zu: 0.124, t: 1500 },
+        { a: 'rollen', zu: 0.366, t: 3000 },
+        { a: 'warten', t: 1100 },
+        { a: 'rollen', zu: 0.454, t: 2000 },
+        { a: 'warten', t: 900 },
+        { a: 'rollen', zu: 0.577, t: 2200 },
+        { a: 'rollen', zu: 0.731, t: 2000 },
+        { a: 'rollen', zu: 0.998, t: 2600 },
+        { a: 'warten', t: 1300 },
+        { a: 'rollen', zu: 0.000, t: 1500 }
+      ]
+    },
+
+    /* trendonix-buecher.de
+       Notebook 1200x6938, Fenster 831 · Telefon 560x15174, Fenster 1072.
+       Diese Seite hat keine leeren Strecken — sie wechselt bewusst zwischen
+       Nacht und Papier. Also werden schlicht ihre Abschnitte abgefahren:
+       welten · buecher · weitere-buecher · leserstimmen · verteiler, und zum
+       Schluss der Fuss, wo seine eigene Signatur steht. */
+    trendonix: {
+      laptop: [
+        { a: 'warten', t: 1000 },
+        { a: 'zeiger', x: 0.48, y: 0.62, t: 900 },
+        { a: 'rollen', zu: 0.229, t: 2400 },
+        { a: 'warten', t: 900 },
+        { a: 'zeiger', x: 0.27, y: 0.45, t: 800 },
+        { a: 'rollen', zu: 0.339, t: 2600 },
+        { a: 'zeiger', x: 0.58, y: 0.52, t: 900 },
+        { a: 'klick' },
+        { a: 'laden', t: 650 },
+        { a: 'rollen', zu: 0.551, t: 2400 },
+        { a: 'warten', t: 1000 },
+        { a: 'rollen', zu: 0.662, t: 2200 },
+        { a: 'zeiger', x: 0.40, y: 0.35, t: 800 },
+        { a: 'rollen', zu: 0.859, t: 2600 },
+        { a: 'warten', t: 1200 },
+        { a: 'rollen', zu: 1.000, t: 1900 },
+        { a: 'warten', t: 1400 },
+        { a: 'rollen', zu: 0.000, t: 1400 },
+        { a: 'zeiger', x: 0.50, y: 0.50, t: 700 }
+      ],
+      handy: [
+        { a: 'warten', t: 1200 },
+        { a: 'rollen', zu: 0.125, t: 2000 },
+        { a: 'warten', t: 600 },
+        { a: 'rollen', zu: 0.246, t: 2200 },
+        { a: 'rollen', zu: 0.538, t: 3000 },
+        { a: 'warten', t: 800 },
+        { a: 'rollen', zu: 0.667, t: 2000 },
+        { a: 'rollen', zu: 0.891, t: 2600 },
+        { a: 'warten', t: 900 },
+        { a: 'rollen', zu: 1.000, t: 1400 },
+        { a: 'warten', t: 1100 },
+        { a: 'rollen', zu: 0.000, t: 1600 }
+      ]
+    }
+  };
 
   var weich = function (t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
 
@@ -152,11 +204,13 @@
   };
 
   document.querySelectorAll('[data-buehne]').forEach(function (buehne) {
+    var buch = DREHBUECHER[buehne.getAttribute('data-buehne')];
+    if (!buch) { return; }
     var laptop = buehne.querySelector('.geraet--laptop');
     var handy  = buehne.querySelector('.geraet--handy');
     var teile = [];
-    if (laptop) { teile.push(new Geraet(laptop, LAPTOP)); }
-    if (handy)  { teile.push(new Geraet(handy, HANDY)); }
+    if (laptop) { teile.push(new Geraet(laptop, buch.laptop)); }
+    if (handy)  { teile.push(new Geraet(handy, buch.handy)); }
 
     /* Nur laufen lassen, was zu sehen ist. */
     if ('IntersectionObserver' in window) {
