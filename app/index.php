@@ -1362,10 +1362,18 @@ switch ($route) {
                Ansicht auf die Antworten, kein Vorgang. */
             $bauprompt = (string) sicher(
                 static fn() => Bedarf::bauprompt($b, $antworten, $vorschlag, $aktive), '');
+            /* Ein Bedarf zeigt auf einen Kunden -- der aber geloescht sein
+               kann, etwa nach einem Testlauf. Vorher stand dann trotzdem
+               "Zum Kunden" da und darunter ein Sendeformular, das ins Leere
+               gegangen waere. Einmal nachsehen ist billiger als der Fehler
+               danach. */
+            $kundeDa = $b['customer_id'] && (int) sicher(static fn() => Db::wert(
+                'SELECT COUNT(*) FROM customers WHERE id = ?', [(int) $b['customer_id']], 0), 0) > 0;
+
             $preisnachricht = ['betreff' => '', 'text' => ''];
             $vorlagen = [];
             $kennung  = '';
-            if ($b['customer_id'] && $vorschlag['summe_cents'] > 0) {
+            if ($kundeDa && $vorschlag['summe_cents'] > 0) {
                 require_once __DIR__ . '/src/Vorlage.php';
                 $preisnachricht = sicher(
                     static fn() => Bedarf::preisnachricht($b, $vorschlag, $aktive),
@@ -1384,6 +1392,7 @@ switch ($route) {
                 'nachricht' => $preisnachricht,
                 'vorlagen'  => $vorlagen,
                 'kennung'   => $kennung,
+                'kundeDa'   => $kundeDa,
                 'angebotId' => (int) sicher(static fn() => Db::wert(
                     'SELECT id FROM angebote WHERE bedarf_id = ? LIMIT 1', [$id], 0), 0),
             ]);

@@ -25,12 +25,12 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php if ($b['anfrage_id']): ?>
       <a class="knopf" href="<?= Fmt::h(url('anfragen/' . $b['anfrage_id'])) ?>">Zur Anfrage</a>
     <?php endif; ?>
-    <?php if ($b['customer_id']): ?>
+    <?php if ($kundeDa): ?>
       <a class="knopf" href="<?= Fmt::h(url('kunden/' . $b['customer_id'])) ?>">Zum Kunden</a>
     <?php endif; ?>
     <?php if ($angebotId): ?>
       <a class="knopf haupt" href="<?= Fmt::h(url('angebote/' . $angebotId)) ?>">Zum Angebot</a>
-    <?php elseif ($b['customer_id'] && $b['status'] !== 'offen'): ?>
+    <?php elseif ($kundeDa && $b['status'] !== 'offen'): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
         <?= Csrf::feld() ?>
         <input type="hidden" name="tat" value="angebot_aus_bedarf">
@@ -40,6 +40,18 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php endif; ?>
   </div>
 </div>
+
+<?php if ($b['customer_id'] && !$kundeDa): ?>
+  <div class="block" style="border-color:var(--warnung,#8a6d3b)">
+    <strong>Der Kunde zu diesem Bedarf ist geloescht.</strong>
+    <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:6px 0 0">
+      Die Antworten und die Rechnung stehen unten weiter — nur senden und ein
+      Angebot erstellen geht nicht, weil beides einen Kunden braucht. Leg ihn
+      unter <a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a> neu an, wenn daraus
+      doch noch etwas werden soll.
+    </p>
+  </div>
+<?php endif; ?>
 
 <div class="zwei">
   <div>
@@ -185,7 +197,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
         </div>
       <?php endif; ?>
 
-      <?php if (($nachricht['text'] ?? '') !== '' && $b['customer_id']): ?>
+      <?php if (($nachricht['text'] ?? '') !== '' && $kundeDa): ?>
         <div class="block">
           <h2 style="font-size:15px;margin:0 0 6px">Als Nachricht an den Kunden</h2>
           <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 4px">
