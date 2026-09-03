@@ -2290,4 +2290,136 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
   .geraet__zeiger { display: none; }
   .geraet__bahn { will-change: auto; }
 }
+
+/* ---------- 35. Schaubuehne: zwei Karussells, echte 3D-Koerper -------------
+   Vier Projekte, oben die Notebooks, unten die Telefone, beide am selben
+   Zeiger. Das vordere Geraet kommt auf einen zu, die anderen weichen zurueck
+   und drehen sich zur Mitte.
+
+   Die Geraete sind Koerper, keine Bilder: Vorderseite ist die Aufnahme,
+   Deckelkanten und Rueckseite sind eigene Flaechen in preserve-3d. Nur so
+   stimmt die Perspektive, wenn man mit der Maus darueberfaehrt — ein
+   gekipptes Foto schert, ein Koerper dreht sich.
+
+   Der Grund bleibt durchsichtig: dahinter steht die feste Leinwand mit dem V,
+   und die soll beim Scrollen durchscheinen. Nur der Tisch traegt.
+   -------------------------------------------------------------------------- */
+.card--schau { padding: 0; gap: 0; grid-column: 1 / -1; background: transparent; }
+.schau { position: relative; isolation: isolate;
+  /* Luft nach oben: das vordere Geraet neigt sich beim Ueberfahren, und die
+     Karte schneidet ab (overflow: hidden). */
+  padding-top: clamp(1rem, 2.6vw, 2.6rem); }
+
+/* Raum: Wand laeuft nach oben aus, Tisch traegt. Kein Bild noetig — die
+   Vorlage war selbst ein glatter Verlauf. */
+.schau__raum {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  /* Nach oben laeuft der Grund aus, damit das V dahinter durchkommt. Keine
+     durchgehende Tischkante: die beiden Reihen stehen nicht auf derselben
+     Ebene, eine Kante quer durch beide waere gelogen. Jede Reihe bekommt
+     stattdessen ihren eigenen Schattengrund. */
+  background: linear-gradient(180deg,
+    transparent 0%, rgba(8,12,20,.22) 30%, rgba(8,12,20,.55) 66%, rgba(9,13,21,.74) 100%);
 }
+.schau__gleis::after {
+  content: ""; position: absolute; left: 6%; right: 6%; bottom: -6px; height: 26px;
+  pointer-events: none; z-index: 0;
+  background: radial-gradient(60% 100% at 50% 0%, rgba(150,170,205,.13), transparent 72%);
+}
+
+.schau__gleis {
+  position: relative; z-index: 1;
+  perspective: 1600px; perspective-origin: 50% 45%;
+  height: var(--gleis-h); margin: 0 auto;
+}
+/* Beide Gleise gleich hoch: ein 480 px breites Notebook ist 337 px hoch, ein
+   176 px breites Telefon genauso. So stehen beide Reihen auf einer Linie. */
+.schau__gleis--laptop { --gleis-h: clamp(190px, 25vw, 360px); }
+.schau__gleis--handy  { --gleis-h: clamp(186px, 24.5vw, 352px); margin-top: clamp(.6rem, 1.4vw, 1.4rem); }
+
+.stueck {
+  position: absolute; left: 50%; bottom: 0; margin: 0;
+  width: var(--st-b); margin-left: calc(var(--st-b) / -2);
+  transform-origin: 50% 100%;      /* die Geraete stehen auf dem Tisch, sie schweben nicht */
+  transform-style: preserve-3d; cursor: pointer;
+  transition: transform 620ms var(--e-std), opacity 420ms linear, filter 420ms linear;
+  will-change: transform;
+}
+.schau__gleis--laptop .stueck { --st-b: clamp(240px, 30vw, 480px); }
+.schau__gleis--handy  .stueck { --st-b: clamp(88px, 11vw, 176px); }
+.stueck.ist-vorn { cursor: default; }
+.stueck:not(.ist-vorn) { filter: brightness(.62) saturate(.85); }
+.stueck:not(.ist-vorn):hover { filter: brightness(.82) saturate(.95); }
+.stueck:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 6px; border-radius: 8px; }
+
+.stueck__koerper { position: relative; transform-style: preserve-3d; }
+.stueck__foto { display: block; width: 100%; height: auto; position: relative; z-index: 2; }
+
+/* Der Kasten umfasst nur den Deckel, nicht das ganze Foto — sonst stuenden
+   die Kanten als helle Fluegel neben dem Geraet. */
+.stueck__kasten { position: absolute; transform-style: preserve-3d; --t: 7px; }
+.schau__gleis--laptop .stueck__kasten { left: 5.62%; right: 6.56%; top: .59%; bottom: 13.65%; }
+.schau__gleis--handy  .stueck__kasten { left: 1.2%;  right: 1.2%;  top: .8%;  bottom: .8%; --t: 9px; }
+.kante { position: absolute; background: linear-gradient(180deg, #3f454e, #20242b 40%, #171a20); }
+.k-l { left: 0; top: 0; width: var(--t); height: 100%; transform-origin: left center;   transform: rotateY(-90deg) translateZ(calc(var(--t) / -2)); }
+.k-r { right: 0; top: 0; width: var(--t); height: 100%; transform-origin: right center; transform: rotateY(90deg)  translateZ(calc(var(--t) / -2)); }
+.k-o { left: 0; top: 0; width: 100%; height: var(--t); transform-origin: center top;    transform: rotateX(90deg)  translateZ(calc(var(--t) / -2));
+       background: linear-gradient(90deg, #2a2f37, #5c636e 30%, #3a4049); }
+.k-u { left: 0; bottom: 0; width: 100%; height: var(--t); transform-origin: center bottom; transform: rotateX(-90deg) translateZ(calc(var(--t) / -2));
+       background: linear-gradient(90deg, #15181d, #23272e); }
+.stueck__hinten { position: absolute; inset: 0; transform: translateZ(calc(var(--t) / -2));
+  background: linear-gradient(160deg, #31363f, #1b1e24); border-radius: 5px; }
+
+.stueck__schirm {
+  position: absolute; overflow: hidden; background: #05070d; z-index: 3;
+  box-shadow: 0 0 46px 8px rgba(140, 180, 255, .10);
+}
+.schau__gleis--laptop .stueck__schirm { left: 7.25%; top: 3.16%; width: 84.667%; height: 83.591%; }
+.schau__gleis--handy  .stueck__schirm { left: 6.58%; top: 7.23%; width: 89.707%; height: 89.616%; border-radius: 3px; }
+.stueck__schirm::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4;
+  background:
+    radial-gradient(122% 118% at 50% 44%, transparent 55%, rgba(2,10,26,.30) 100%),
+    linear-gradient(112deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 24%, transparent 48%);
+}
+.stueck__bahn { display: block; width: 100%; }
+.stueck__bahn img, .stueck__film { display: block; width: 100%; }
+.stueck__film { height: 100%; object-fit: cover; background: #05070d; }
+[data-ton="dunkel"]   .stueck__schirm { filter: brightness(1.16) saturate(1.06); box-shadow: 0 0 52px 9px rgba(227,200,139,.12); }
+[data-ton="gemischt"] .stueck__schirm { filter: brightness(1.03) saturate(1.03); box-shadow: 0 0 50px 9px rgba(214,169,74,.12); }
+
+/* Waehler */
+.schau__waehler {
+  position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: .4rem;
+  justify-content: center; padding: clamp(.8rem, 1.6vw, 1.4rem) 1rem 0;
+}
+.schau__waehler button {
+  border: 0; background: rgba(255,255,255,.04); color: var(--c-text-faint); cursor: pointer;
+  border-radius: 999px; padding: .55rem 1rem; min-height: 44px;
+  font-family: var(--f-display); font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px var(--c-line);
+  transition: color var(--d-ui) linear, background-color var(--d-ui) linear;
+}
+.schau__waehler button:hover { color: var(--c-text); }
+.schau__waehler button[aria-current="true"] { background: var(--c-surface-2); color: var(--c-text); }
+.card--schau .card__body { display: grid; gap: .5rem; padding: 0 clamp(1.4rem,2.4vw,2.2rem) clamp(1.4rem,2.4vw,2.2rem); }
+.schau__text[hidden] { display: none; }
+
+/* Ohne 3D, mit reduzierter Bewegung oder auf schmalen Schirmen: die Karussells
+   werden zu einer schlichten Liste. Der Inhalt ist derselbe, er liegt im DOM. */
+@media (max-width: 779px), (prefers-reduced-motion: reduce) {
+  .schau__gleis { perspective: none; height: auto; }
+  .schau__gleis--handy { margin-top: 0; }
+  .stueck { position: relative; left: auto; margin-left: auto; width: 100%; transform: none !important; transition: none; }
+  .stueck:not(.ist-vorn) { display: none; }
+  .schau__gleis--laptop .stueck, .schau__gleis--handy .stueck { --st-b: 100%; }
+  .stueck__kasten { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .stueck { transition: none; } }
+
+/* Standbild liegt immer, die laufende Aufnahme nur beim vorderen Geraet —
+   so laden die schweren Dateien erst, wenn ein Projekt wirklich vorn steht. */
+.stueck__still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; z-index: 1; }
+.stueck__live  { position: absolute; inset: 0; z-index: 2; display: none; }
+.stueck.ist-vorn .stueck__live { display: block; }
+.stueck.ist-vorn .stueck__still { opacity: 0; transition: opacity 500ms linear 200ms; }
