@@ -106,7 +106,26 @@ final class StripeAnbieter implements Anbieter
             'managed_payments[enabled]'     => 'false',
         ];
 
-        $antwort = $this->anfrage('POST', '/v1/checkout/sessions', $felder, 'zahlung-' . $zahlung['id']);
+        /* DER SCHLUESSEL GEGEN DOPPELTE BEZAHLSEITEN -- UND WARUM ER DIE
+           FELDER MITZAEHLEN MUSS
+           ----------------------------------------------------------------
+           Stripe merkt sich zu jedem Idempotency-Key die Parameter, mit
+           denen er zuerst benutzt wurde, und lehnt ihn danach fuer jede
+           abweichende Anfrage ab. Der Schluessel war bisher fest
+           "zahlung-<id>". Sobald sich an der Anfrage irgendetwas aenderte --
+           ein anderer Betrag, eine andere Bezeichnung, eine neue
+           Einstellung --, war der Knopf "Neuen Link erzeugen" fuer diese
+           Zahlung dauerhaft blockiert: "Keys for idempotent requests can
+           only be used with the same parameters." Genau das ist beim
+           Durchspielen passiert.
+
+           Mit den Feldern im Schluessel bleibt der Schutz, der gemeint war
+           -- zweimal derselbe Klick erzeugt weiterhin nur eine Bezahlseite
+           --, waehrend eine wirklich andere Anfrage auch einen anderen
+           Schluessel bekommt. */
+        $einmalig = 'zahlung-' . $zahlung['id'] . '-' . substr(md5(serialize($felder)), 0, 16);
+
+        $antwort = $this->anfrage('POST', '/v1/checkout/sessions', $felder, $einmalig);
 
         if (empty($antwort['url'])) {
             $grund = $antwort['error']['message'] ?? 'unbekannter Fehler';
