@@ -57,9 +57,26 @@ try {
     } catch (Throwable $e2) { /* dann eben nicht */ }
 }
 
-/* ---------- Sprache ---------- */
+/* ---------- Sprache ----------------------------------------------------
+   Ohne Angabe gilt, was beim Kunden steht -- das ist die Sprache, in der er
+   die Website benutzt hat, als er anfragte oder buchte.
+
+   Waehlt er hier unten eine andere, ist das die staerkere Auskunft: Er sitzt
+   gerade davor und sagt es selbst. Also wird sie beim Kunden vermerkt, und
+   jede spaetere Mail -- Vorschau, Restzahlung, "deine Seite ist online" --
+   kommt von da an in derselben Sprache. Vorher aenderte der Umschalter nur
+   diese eine Seite, und die naechste Mail fiel wieder zurueck. */
 $sprache = strtolower((string) ($_REQUEST['lang'] ?? ($f['kunde_sprache'] ?? 'it')));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+if ($f !== null
+    && isset($_REQUEST['lang'])
+    && $sprache !== strtolower((string) ($f['kunde_sprache'] ?? ''))) {
+    try {
+        Onboarding::spracheMerken((int) $f['customer_id'], $sprache);
+        $f['kunde_sprache'] = $sprache;
+    } catch (Throwable $e) { /* die Seite zeigt trotzdem die gewaehlte Sprache */ }
+}
 
 $S = static fn(string $schluessel): string => Texte::h(Texte::SEITE[$schluessel] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');

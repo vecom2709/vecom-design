@@ -1472,8 +1472,13 @@ switch ($route) {
             break;
         }
         if ($id !== null) {
-            $b = Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?', [$id]);
+            $b = Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache
+                            FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?', [$id]);
             if (!$b) { http_response_code(404); exit('Bestellung nicht gefunden.'); }
+            /* Die Ansicht zeigt vor dem Senden, was rausgeht -- und baut den
+               Text mit derselben Funktion, die ihn danach verschickt. Zwei
+               Fassungen desselben Briefes waeren zwei Wahrheiten. */
+            require_once __DIR__ . '/src/Texte.php';
             ansicht('bestellung', [
                 'b' => $b,
                 'zahlungen' => Db::all('SELECT * FROM payments WHERE order_id = ? ORDER BY id', [$id]),

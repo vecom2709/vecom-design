@@ -57,8 +57,22 @@ try {
     $panne = true;
 }
 
+/* Ohne Angabe gilt, was beim Kunden steht -- die Sprache, in der er die
+   Website benutzt hat. Waehlt er hier unten eine andere, sagt er es selbst,
+   und das ist die staerkere Auskunft: Sie wird vermerkt, damit auch jede
+   spaetere Mail in dieser Sprache kommt und nicht zurueckfaellt. */
 $sprache = strtolower((string) ($_REQUEST['lang'] ?? ($f['kunde_sprache'] ?? 'it')));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+if ($f !== null
+    && isset($_REQUEST['lang'])
+    && $sprache !== strtolower((string) ($f['kunde_sprache'] ?? ''))) {
+    try {
+        Onboarding::spracheMerken((int) $f['customer_id'], $sprache);
+        $f['kunde_sprache'] = $sprache;
+    } catch (Throwable $e) { /* die Seite zeigt trotzdem die gewaehlte Sprache */ }
+}
+
 $T = static fn(string $s): string => Texte::h(Texte::PROJEKT[$s] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');

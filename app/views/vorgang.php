@@ -19,7 +19,14 @@ $tage   = Vorgang::ruhtSeitTagen($v);
 <div class="kopf">
   <div>
     <div class="weg"><a href="<?= Fmt::h(url('vorgaenge')) ?>">Vorgänge</a></div>
-    <h1><?= Fmt::h($v['kunde']) ?><?= $v['firma'] !== '' ? ' <span style="color:var(--leise);font-weight:400">· ' . Fmt::h($v['firma']) . '</span>' : '' ?></h1>
+    <h1><?= Fmt::h($v['kunde']) ?><?= $v['firma'] !== '' ? ' <span style="color:var(--leise);font-weight:400">· ' . Fmt::h($v['firma']) . '</span>' : '' ?>
+      <?php /* Die Sprache gehoert sichtbar hierher: In ihr kommen alle Mails
+               an, in ihr sieht er seine Seite, in ihr steht sein Fragebogen.
+               Sie erst zu bemerken, wenn etwas Falsches rausging, ist zu
+               spaet -- geaendert wird sie in der Kundenakte. */ ?>
+      <span class="marke2" title="In dieser Sprache bekommt der Kunde alles — änderbar in der Kundenakte"><?=
+        Fmt::h(['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'][(string) $v['sprache']] ?? (string) $v['sprache']) ?></span>
+    </h1>
   </div>
   <div class="rechts">
     <?php if ($v['kunde_id']): ?>

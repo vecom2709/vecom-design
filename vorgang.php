@@ -63,6 +63,19 @@ if ($a && $a['order_id']) {
 
 $sprache = strtolower((string) ($_REQUEST['lang'] ?? ($a['sprache'] ?? 'it')));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+/* Waehlt der Kunde hier unten eine Sprache, gilt sie ab jetzt auch fuer
+   jede Mail an ihn. Vorher aenderte der Umschalter nur diese eine Seite. */
+if ($a !== null
+    && isset($_REQUEST['lang'])
+    && ($a['customer_id'] ?? null) !== null
+    && $sprache !== strtolower((string) ($a['sprache'] ?? ''))) {
+    try {
+        require_once __DIR__ . '/app/src/Onboarding.php';
+        Onboarding::spracheMerken((int) $a['customer_id'], $sprache);
+    } catch (Throwable $e) { /* die Seite zeigt trotzdem die gewaehlte Sprache */ }
+}
+
 $T = static fn(string $s): string => Texte::h(Texte::VORGANG[$s] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 

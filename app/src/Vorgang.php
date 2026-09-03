@@ -265,19 +265,25 @@ final class Vorgang
                 return self::setzen($v, 'angebot', self::DU, 'Zahlung anlegen',
                     'Zu dieser Bestellung gibt es keine Anzahlung. Das sollte nicht vorkommen.');
             }
+            /* Beide Schritte fuehren auf die Bestellseite statt sofort zu
+               handeln: Dort steht der Betrag und der fertige Text, den der
+               Kunde bekommt. Etwas zu verschicken, ohne es gelesen zu haben,
+               ist kein Handgriff, den man einem Knopf ueberlassen sollte. */
+            $bZiel = 'bestellungen/' . (int) $v['bestell_id'];
             if (empty($anzahlung['link_url'])) {
                 return self::setzen($v, 'angebot', self::DU, 'Zahlungslink erzeugen',
-                    'Ohne Link kann der Kunde nicht zahlen.', 'zahlungslink', (int) $anzahlung['id']);
+                    'Ohne Link kann der Kunde nicht zahlen.',
+                    'zahlungslink', (int) $anzahlung['id'], [], $bZiel . '?tun=zahlungslink');
             }
             $raus = self::mailRaus('zahlungslink', 'payment_id', (int) $anzahlung['id']);
             if (!$raus) {
                 return self::setzen($v, 'angebot', self::DU, 'Zahlungslink senden',
                     'Der Link ist da, aber der Kunde hat ihn noch nicht.',
-                    'zahlungslink_senden', (int) $anzahlung['id']);
+                    'zahlungslink_senden', (int) $anzahlung['id'], [], $bZiel . '?tun=zahlungslink_senden');
             }
             return self::setzen($v, 'angebot', self::KUNDE, 'Erinnern',
                 'Der Kunde hat den Zahlungslink und hat noch nicht bezahlt.',
-                'zahlungslink_senden', (int) $anzahlung['id']);
+                'zahlungslink_senden', (int) $anzahlung['id'], [], $bZiel . '?tun=zahlungslink_senden');
         }
 
         /* --- 3. Bezahlt, aber der Fragebogen fehlt. ------------------- */
@@ -453,14 +459,15 @@ final class Vorgang
 
     private static function restSchritt(array $v, array $rest, string $stufe): array
     {
+        $ziel = 'bestellungen/' . (int) $v['bestell_id'] . '?tun=restzahlung_anfordern';
         if (!self::mailRaus('restzahlung', 'payment_id', (int) $rest['id'])) {
             return self::setzen($v, $stufe, self::DU, 'Restzahlung anfordern',
                 'Die Restzahlung ist offen und noch nicht angefordert.',
-                'restzahlung_anfordern', (int) $v['bestell_id']);
+                'restzahlung_anfordern', (int) $v['bestell_id'], [], $ziel);
         }
         return self::setzen($v, $stufe, self::KUNDE, 'Erinnern',
             'Die Restzahlung ist angefordert und noch nicht eingegangen.',
-            'restzahlung_anfordern', (int) $v['bestell_id']);
+            'restzahlung_anfordern', (int) $v['bestell_id'], [], $ziel);
     }
 
     /**
@@ -490,7 +497,14 @@ final class Vorgang
             // den Stand des Projekts verschiebt, will vorher gesehen werden:
             // Dafuer fuehrt der Knopf erst auf die Vorgangsseite, wo auch
             // die Adresse der Vorschau steht.
-            'direkt' => $tat !== null && $tat !== 'projekt_status' && $tat !== 'anfrage_bestellung',
+            /* Aus einer Liste heraus sofort abschicken darf nur, was nichts
+               beim Kunden ankommen laesst, das man vorher lesen wollte. Der
+               Zahlungslink und die Restzahlung gehen als Mail raus -- die
+               fuehren jetzt erst auf die Seite, wo ihr Text steht. */
+            'direkt' => $tat !== null && !in_array($tat, [
+                'projekt_status', 'anfrage_bestellung',
+                'zahlungslink_senden', 'restzahlung_anfordern',
+            ], true) && $ziel === null,
         ];
         return $v;
     }

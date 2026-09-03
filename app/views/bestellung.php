@@ -58,12 +58,39 @@
         </div>
       </div>
 
+      <?php if (!$z['link_url'] && $z['status'] !== 'bezahlt'): ?>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+          Noch kein Zahlungslink. Erzeuge ihn oben — danach steht hier die fertige
+          Nachricht mit Betrag und Link, so wie sie beim Kunden ankommt, und du
+          schickst sie mit einem Knopf.
+        </p>
+      <?php endif; ?>
+
       <?php if ($z['link_url'] && $z['status'] !== 'bezahlt'): ?>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input readonly value="<?= Fmt::h($z['link_url']) ?>" onclick="this.select()"
                  style="flex:1;min-width:240px;font-size:12.5px;font-family:ui-monospace,monospace">
           <a class="knopf" href="<?= Fmt::h($z['link_url']) ?>" target="_blank" rel="noopener">Öffnen</a>
-          <?php $schonRaus = Mail::schonGeschickt('zahlungslink', 'payment_id', (int) $z['id']); ?>
+          <?php
+            $schonRaus = Mail::schonGeschickt('zahlungslink', 'payment_id', (int) $z['id']);
+            /* Was gleich rausgeht, gebaut mit derselben Funktion, die es
+               danach verschickt -- deshalb kann die Vorschau nicht von der
+               Wirklichkeit abweichen. */
+            $zSpr = (string) ($b['kunde_sprache'] ?: 'it');
+            if (!in_array($zSpr, ['it', 'de', 'en'], true)) { $zSpr = 'it'; }
+            $zWas = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo', 'gesamt' => 'il pagamento'],
+                     'de' => ['anzahlung' => 'die Anzahlung', 'restzahlung' => 'die Restzahlung', 'gesamt' => 'die Zahlung'],
+                     'en' => ['anzahlung' => 'the deposit', 'restzahlung' => 'the balance', 'gesamt' => 'the payment']
+                    ][$zSpr][(string) $z['art']] ?? (string) $z['art'];
+            [$zBetreff, $zText] = Texte::mail('zahlungslink', $zSpr, [
+                'name'   => (string) $b['kunde'],
+                'paket'  => (string) $b['package_name'],
+                'was'    => $zWas,
+                'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+                'link'   => (string) $z['link_url'],
+            ]);
+            $zSprWort = ['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'][$zSpr];
+          ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
                 <?= $schonRaus ? 'onsubmit="return confirm(\'Der Link ging schon einmal raus. Noch einmal senden?\')"' : '' ?>>
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink_senden">
@@ -76,6 +103,24 @@
           <a class="knopf" href="mailto:<?= Fmt::h($b['kunde_email']) ?>?subject=<?= rawurlencode('Zahlung ' . $b['order_no'] . ' — ' . ($z['bezeichnung'] ?: '')) ?>&body=<?= rawurlencode("Hallo " . $b['kunde'] . ",\n\nhier ist der Link für die " . ($z['bezeichnung'] ?: 'Zahlung') . " über " . Fmt::geld((int) $z['amount_cents'], $z['currency']) . ":\n\n" . $z['link_url'] . "\n\nHerzliche Grüße\nUwe Vetter · Vecom Design") ?>" title="Öffnet dein Mailprogramm">im Mailprogramm</a>
           <small style="color:var(--leise)">gültig bis <?= Fmt::h(Fmt::zeit($z['link_bis'])) ?></small>
         </div>
+
+        <?php /* Vorher lesen, dann senden. Der Knopf oben verschickt genau
+                 diesen Text -- er entsteht aus derselben Funktion. */ ?>
+        <details style="margin-top:10px;border:1px solid var(--linie);border-radius:10px;padding:10px 12px" open>
+          <summary style="cursor:pointer;font-weight:650;font-size:13.5px">
+            Das geht raus — <?= Fmt::h(Fmt::geld((int) $z['amount_cents'], (string) $z['currency'])) ?>
+            auf <?= Fmt::h($zSprWort) ?>
+          </summary>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 8px">
+            An <?= Fmt::h((string) $b['kunde_email']) ?>. Die Sprache richtet sich nach dem, was
+            beim Kunden hinterlegt ist — ändern kannst du sie in der
+            <a href="<?= Fmt::h(url('kunden/' . (int) $b['customer_id'])) ?>">Kundenakte</a>.
+          </p>
+          <div style="font-size:12.5px;margin-bottom:6px"><b>Betreff:</b> <?= Fmt::h($zBetreff) ?></div>
+          <textarea readonly rows="<?= max(6, min(22, substr_count($zText, "\n") + 2)) ?>"
+            onclick="this.select()"
+            style="width:100%;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace"><?= Fmt::h($zText) ?></textarea>
+        </details>
       <?php endif; ?>
     </div>
   <?php endforeach; ?>
