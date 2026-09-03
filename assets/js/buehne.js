@@ -136,19 +136,22 @@
     var g = this.bahn.getBoundingClientRect();
     this.strecke = Math.max(0, g.height - b.height);
   };
-  Geraet.prototype.wecken = function () {
-    /* Die zweite Haelfte der Telefon-Aufnahme liegt rund 7000 px unter der
-       sichtbaren Kante. Der Browser laedt sie von sich aus erst spaet — der
-       Zeiger waere dann ueber eine leere Flaeche gelaufen. Sobald die Buehne
-       im Bild ist, holen wir sie bewusst. Vorher nicht: das ist der ganze
-       Sinn von lazy. */
-    if (this.geweckt) { return; }
-    this.geweckt = true;
+  Geraet.prototype.wecken = function (bis) {
+    /* Die Aufnahmen liegen tausende Pixel unter der sichtbaren Kante; der
+       Browser laedt sie von sich aus erst spaet oder gar nicht, und der Zeiger
+       liefe ueber eine leere Flaeche. Also wecken wir sie — aber gestaffelt:
+       die erste Haelfte, sobald die Buehne im Bild ist, die zweite erst, wenn
+       der Durchlauf sich ihr naehert. Wer nur vorbeiscrollt, laedt sie nie.
+       Bei zwei Buehnen sind das rund 11 Millionen Bildpunkte Unterschied. */
+    if (this.geweckt === undefined) { this.geweckt = -1; }
+    if (bis <= this.geweckt) { return; }
     var bilder = this.bahn.querySelectorAll('img'), i;
-    for (i = 0; i < bilder.length; i++) { bilder[i].loading = 'eager'; }
+    for (i = this.geweckt + 1; i <= bis && i < bilder.length; i++) { bilder[i].loading = 'eager'; }
+    this.geweckt = Math.min(bis, bilder.length - 1);
   };
   Geraet.prototype.setzen = function () {
     if (this.strecke === undefined) { this.messen(); }
+    if (this.pos > 0.28) { this.wecken(1); }
     this.bahn.style.transform = 'translate3d(0,' + (-this.pos * this.strecke) + 'px,0)';
     if (this.zeiger) {
       this.zeiger.style.transform = 'translate3d(' + (this.zx * 100) + '%,' + (this.zy * 100) + '%,0)';
@@ -162,7 +165,7 @@
   };
   Geraet.prototype.start = function () {
     if (ruhig || !this.sichtbar()) { return; }
-    this.wecken();
+    this.wecken(0);
     if (this.laeuft) { return; }
     this.laeuft = true;
     this.schritt();

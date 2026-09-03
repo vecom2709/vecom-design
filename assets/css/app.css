@@ -2156,7 +2156,13 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 
 /* Die Aufnahme laeuft bis an die Kartenkante — kein zweiter Rahmen um ein
    Bild, das selbst schon einen Rahmen zeigt. */
-.buehne__szene { position: relative; }
+.buehne__szene {
+  position: relative;
+  /* Solange die Platte laedt, ist hier sonst ein Loch: die Karte ist
+     durchscheinend, und man sieht die 3D-Welt hinter zwei schwarzen
+     Rechtecken. Ein dunkler Grund macht daraus eine dunkle Buehne. */
+  background: #0a0e16;
+}
 .buehne__platte { display: block; width: 100%; height: auto; }
 
 .geraet { position: absolute; margin: 0; }
