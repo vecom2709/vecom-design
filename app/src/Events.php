@@ -154,13 +154,36 @@ final class Events
         if ($vorhanden) {
             return (int) $vorhanden['id'];
         }
-        $id = Db::insert('customers', [
+        $neu = [
             'name' => $daten['name'], 'email' => $email,
             'phone' => $daten['phone'] ?? null, 'company' => $daten['company'] ?? null,
             'industry' => $daten['industry'] ?? null, 'street' => $daten['street'] ?? null,
             'zip' => $daten['zip'] ?? null, 'city' => $daten['city'] ?? null,
             'country' => $daten['country'] ?? 'Italien', 'notes' => $daten['notes'] ?? null,
-        ]);
+        ];
+
+        /* WAS HIER FRUEHER STILL VERLORENGING
+           ----------------------------------------------------------------
+           Die Liste oben war abschliessend. Legte Uwe einen Kunden von Hand
+           an und stellte im Formular Deutsch ein, wurde das Feld hier nicht
+           mitgenommen -- der Kunde stand danach auf Italienisch, und jede
+           automatische Mail, der Fragebogen und seine eigene Seite kamen
+           italienisch. Zu sehen war das erst am Ende der Kette, beim Kunden.
+           Dasselbe galt fuer Codice fiscale, Partita IVA und den
+           Empfaengerkode: eingetippt, gespeichert, weg.
+
+           Deshalb werden diese Felder jetzt uebernommen, wenn sie dastehen.
+           Fehlen sie -- etwa wenn der Kunde aus einer Anfrage entsteht --,
+           bleibt es beim Standard der Tabelle. */
+        $sprache = strtolower(trim((string) ($daten['sprache'] ?? '')));
+        if (in_array($sprache, ['it', 'de', 'en'], true)) { $neu['sprache'] = $sprache; }
+        foreach (['tax_code', 'vat_id', 'sdi'] as $feld) {
+            if (($daten[$feld] ?? null) !== null && trim((string) $daten[$feld]) !== '') {
+                $neu[$feld] = $daten[$feld];
+            }
+        }
+
+        $id = Db::insert('customers', $neu);
         self::protokoll('kunde_neu', 'Neuer Kunde: ' . $daten['name'], $id);
         // Keine Meldung: Entsteht der Kunde aus einer Anfrage, meldet die
         // Anfrage schon; legt Uwe ihn selbst an, weiss er es ohnehin.

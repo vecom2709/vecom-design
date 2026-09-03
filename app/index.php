@@ -306,7 +306,18 @@ if ($post) {
                     Db::update('customers', $kid, $daten);
                     Events::pruefspur('aendern', 'customer', $kid, $vorher ?? [], $daten);
                 } else {
+                    /* Die E-Mail ist eindeutig. Gibt es sie schon, legt
+                       kundeFinden keinen zweiten an, sondern gibt den ersten
+                       zurueck -- richtig, aber stumm: Man tippt einen Kunden
+                       ein, landet auf einer fremden Akte und rätselt. Also
+                       sagen, was passiert ist. */
+                    $schon = sicher(static fn() => Db::one(
+                        'SELECT id, name FROM customers WHERE email = ?', [$daten['email']]), null);
                     $kid = Events::kundeFinden($daten);
+                    if ($schon) {
+                        $_SESSION['fehler'] = 'Diese E-Mail gehört schon zu „' . $schon['name']
+                            . '" — angelegt wurde nichts. Du bist auf seiner Akte.';
+                    }
                 }
                 zurueck('kunden/' . $kid);
 
