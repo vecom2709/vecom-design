@@ -13,6 +13,8 @@ $zeile = static function (array $v) {
     $tage = Vorgang::ruhtSeitTagen($v);
     $s    = $v['schritt'];
     $ziel = url('vorgaenge/' . $v['schluessel']);
+    // Wohin der Knopf fuehrt: was der Schritt nennt, sonst die Vorgangsseite.
+    $tunZiel = ($s !== null && ($s['ziel'] ?? null) !== null) ? url((string) $s['ziel']) : $ziel;
     ?>
     <div class="vg">
       <div class="vg__wer">
@@ -46,7 +48,7 @@ $zeile = static function (array $v) {
                    Pfeil sagt das, damit niemand einen Klick erwartet, der
                    nicht kommt. Was den Projektstand verschiebt, will vorher
                    im Zusammenhang gesehen werden. */ ?>
-          <a class="knopf haupt" href="<?= Fmt::h($ziel) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
+          <a class="knopf haupt" href="<?= Fmt::h($tunZiel) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
         <?php endif; ?>
       </div>
     </div>

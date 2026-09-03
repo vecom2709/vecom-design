@@ -198,7 +198,11 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
       <?php endif; ?>
 
       <?php if (($nachricht['text'] ?? '') !== '' && $kundeDa): ?>
-        <div class="block">
+        <?php /* data-tun: Kommt man ueber die Leiste "Jetzt dran" hierher,
+                 leuchtet genau dieser Abschnitt auf. Ein Formular nennt seine
+                 Handlung sonst im Feld "tat" -- hier ist die Handlung aber
+                 "lies drueber und sende", und die hat kein eigenes Wort. */ ?>
+        <div class="block" data-tun="preis">
           <h2 style="font-size:15px;margin:0 0 6px">Als Nachricht an den Kunden</h2>
           <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 4px">
             Fertig formuliert auf <?= Fmt::h($spracheLang) ?> — mit derselben Zahl wie oben und den

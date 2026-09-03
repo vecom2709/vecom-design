@@ -158,8 +158,14 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
       <?php else: ?>
         <?php
           $sch  = $ersteAufgabe['schritt'];
-          $ziel = url('vorgaenge/' . $ersteAufgabe['schluessel'])
-                . ($sch && $sch['tat'] ? '?tun=' . rawurlencode((string) $sch['tat']) : '');
+          /* Ein Schritt kann sagen, wohin er gehoert -- der Preis auf die
+             Bedarfsseite, das Angebot auf seine eigene. Sagt er nichts, ist
+             es die Vorgangsseite, und der gemeinte Knopf steht in der
+             Adresse, damit ihn das Skript unten aufleuchten lassen kann. */
+          $ziel = ($sch !== null && ($sch['ziel'] ?? null) !== null)
+                ? url((string) $sch['ziel'])
+                : url('vorgaenge/' . $ersteAufgabe['schluessel'])
+                  . ($sch && $sch['tat'] ? '?tun=' . rawurlencode((string) $sch['tat']) : '');
           $rest = count($wartetAufDich) - 1;
         ?>
         <span class="jetzt__marke">Jetzt dran</span>
@@ -199,8 +205,12 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
 (function () {
   var tun = new URLSearchParams(location.search).get('tun');
   if (!tun) { return; }
+  /* Zwei Sorten Ziel. Ein Formular nennt seine Handlung im versteckten Feld
+     "tat" -- das ist die zuverlaessigste Marke, die es gibt, weil sie ohnehin
+     dastehen muss. Ein ganzer Abschnitt, der kein Formular ist (der fertige
+     Preistext auf der Bedarfsseite etwa), sagt es ueber data-tun. */
   var feld = document.querySelector('input[name="tat"][value="' + CSS.escape(tun) + '"]');
-  var ziel = feld && feld.closest('form');
+  var ziel = (feld && feld.closest('form')) || document.querySelector('[data-tun="' + CSS.escape(tun) + '"]');
   if (!ziel) { return; }
   ziel.classList.add('leuchtet');
   ziel.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });

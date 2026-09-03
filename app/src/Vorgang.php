@@ -256,9 +256,7 @@ final class Vorgang
 
         /* --- 1. Noch keine Bestellung: es wird geredet. --------------- */
         if ($v['bestell_id'] === null) {
-            return self::setzen($v, 'gespraech', self::DU,
-                'Angebot machen',
-                'Paket wählen und die Bestellung anlegen — danach entsteht die Anzahlung.');
+            return self::gespraechSchritt($v);
         }
 
         /* --- 2. Anzahlung offen. -------------------------------------- */
@@ -337,6 +335,109 @@ final class Vorgang
     }
 
     /** Die Restzahlung ist offen — anfordern oder abwarten. */
+    /**
+     * Der Weg von der Anfrage bis zur Bestellung -- Schritt fuer Schritt.
+     *
+     * WARUM DAS FRUEHER EIN EINZIGER SATZ WAR UND NICHT MEHR REICHT
+     *
+     * Solange es drei feste Pakete gab, war "Paket waehlen und Bestellung
+     * anlegen" wirklich der ganze Vorgang. Seit der Konfigurator rechnet,
+     * liegen zwischen Anfrage und Bestellung vier Handgriffe, und drei davon
+     * standen nirgends: den Preis nennen, das Angebot erstellen, das Angebot
+     * senden. Wer nur "Bestellung anlegen" liest, ueberspringt sie -- und legt
+     * eine Bestellung an, der der Kunde nie zugestimmt hat.
+     *
+     * DIE REIHENFOLGE ERGIBT SICH AUS TATSACHEN, NICHT AUS EINEM STATUSFELD
+     *
+     * Gibt es ein Angebot, bestimmt dessen Stand alles Weitere. Gibt es keins,
+     * entscheidet der Bedarf: Ist auf ihn noch nie geantwortet worden, ist der
+     * Preis dran. Ist geantwortet und der Kunde hat sich seither gemeldet, ist
+     * das Angebot dran. Hat er sich nicht gemeldet, ist er am Zug -- und die
+     * Zeile wandert von selbst aus "Du bist dran" heraus.
+     */
+    private static function gespraechSchritt(array $v): array
+    {
+        $kid = $v['kunde_id'];
+        if ($kid === null) {
+            return self::setzen($v, 'gespraech', self::DU, 'Ansehen',
+                'Eine Anfrage ohne Kundenakte — sie kam nicht ueber den Konfigurator.');
+        }
+
+        $angebot = self::eine(
+            'SELECT * FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$kid]);
+
+        if ($angebot !== null) {
+            $ziel = 'angebote/' . (int) $angebot['id'];
+            switch ((string) $angebot['status']) {
+                case 'entwurf':
+                    return self::setzen($v, 'gespraech', self::DU, 'Angebot senden',
+                        'Das Angebot steht als Entwurf. Der Kunde hat es noch nicht.',
+                        null, null, [], $ziel . '?tun=angebot_senden');
+                case 'gesendet':
+                    return self::setzen($v, 'gespraech', self::KUNDE, 'Angebot ansehen',
+                        'Das Angebot ist raus. Jetzt entscheidet der Kunde.',
+                        null, null, [], $ziel);
+                case 'angenommen':
+                    /* Beim Annehmen entsteht die Bestellung von selbst. Steht
+                       hier trotzdem keine, ist unterwegs etwas schiefgegangen
+                       -- das gehoert angesehen und nicht von Hand nachgebaut. */
+                    return self::setzen($v, 'gespraech', self::DU, 'Angebot pruefen',
+                        'Der Kunde hat angenommen, aber es gibt keine Bestellung dazu. Das sollte nicht vorkommen.',
+                        null, null, [], $ziel);
+                case 'abgelehnt':
+                    return self::setzen($v, 'gespraech', self::DU, 'Nachfassen',
+                        'Das Angebot wurde abgelehnt. Einmal fragen, woran es lag, kostet nichts.',
+                        null, null, [], $ziel);
+                case 'abgelaufen':
+                    return self::setzen($v, 'gespraech', self::DU, 'Nachfassen',
+                        'Das Angebot ist abgelaufen, ohne dass jemand geantwortet hat.',
+                        null, null, [], $ziel);
+            }
+        }
+
+        $bedarf = self::eine(
+            "SELECT * FROM bedarf
+              WHERE customer_id = ? AND status <> 'offen'
+              ORDER BY id DESC LIMIT 1", [$kid]);
+
+        if ($bedarf !== null) {
+            $ziel = 'bedarf/' . (int) $bedarf['id'];
+            $seit = (string) ($bedarf['abgesendet_am'] ?: $bedarf['created_at']);
+
+            $meine = (int) self::wert(
+                "SELECT COUNT(*) FROM messages
+                  WHERE customer_id = ? AND sender <> 'kunde' AND created_at >= ?",
+                [$kid, $seit]);
+            if ($meine === 0) {
+                return self::setzen($v, 'gespraech', self::DU, 'Preis nennen',
+                    'Der Konfigurator hat gerechnet. Die Nachricht mit dem Preis steht fertig da.',
+                    null, null, [], $ziel . '?tun=preis');
+            }
+
+            $seine = (int) self::wert(
+                "SELECT COUNT(*) FROM messages
+                  WHERE customer_id = ? AND sender = 'kunde' AND created_at >= ?",
+                [$kid, $seit]);
+            if ($seine === 0) {
+                return self::setzen($v, 'gespraech', self::KUNDE, 'Bedarf ansehen',
+                    'Der Preis ist genannt. Der Kunde hat sich seither nicht gemeldet.',
+                    null, null, [], $ziel);
+            }
+
+            return self::setzen($v, 'gespraech', self::DU, 'Angebot erstellen',
+                'Der Kunde hat auf den Preis geantwortet. Jetzt das Angebot, damit er zusagen kann.',
+                null, null, [], $ziel . '?tun=angebot_aus_bedarf');
+        }
+
+        /* Kein Bedarf, kein Angebot: die Anfrage kam ueber einen anderen Weg
+           -- das Festpreis-Paket etwa. Dafuer reicht weiterhin ein Paket und
+           eine Bestellung. Die Tat steht dran, damit die Leiste "Jetzt dran"
+           auf der Vorgangsseite genau dieses Formular aufleuchten laesst. */
+        return self::setzen($v, 'gespraech', self::DU, 'Angebot machen',
+            'Paket wählen und die Bestellung anlegen — danach entsteht die Anzahlung.',
+            'anfrage_bestellung', (int) $v['anfrage_id']);
+    }
+
     private static function restSchritt(array $v, array $rest, string $stufe): array
     {
         if (!self::mailRaus('restzahlung', 'payment_id', (int) $rest['id'])) {
@@ -354,7 +455,7 @@ final class Vorgang
      */
     private static function setzen(
         array $v, string $stufe, string $dran, ?string $knopf, string $warum,
-        ?string $tat = null, ?int $id = null, array $felder = []
+        ?string $tat = null, ?int $id = null, array $felder = [], ?string $ziel = null
     ): array {
         $v['stufe']     = $stufe;
         $v['stufe_wort']= self::STUFEN[$stufe] ?? $stufe;
@@ -366,6 +467,11 @@ final class Vorgang
             'tat'    => $tat,
             'id'     => $id,
             'felder' => $felder,
+            /* Wohin der Knopf fuehrt, wenn nicht auf die Vorgangsseite. Der
+               Preis steht auf der Bedarfsseite, das Angebot auf seiner
+               eigenen -- dorthin zu springen spart den Umweg ueber eine
+               Seite, die dasselbe nur zusammenfasst. */
+            'ziel'   => $ziel,
             // Aus einer Liste heraus darf abgeschickt werden, was nur eine
             // Nachricht ausloest — ein Zahlungslink, eine Erinnerung. Was
             // den Stand des Projekts verschiebt, will vorher gesehen werden:

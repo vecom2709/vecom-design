@@ -49,7 +49,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
   </h2>
   <p><?= Fmt::h($v['warum']) ?></p>
 
-  <?php if ($v['stufe'] === 'gespraech' && $v['anfrage_id']): ?>
+  <?php if ($s !== null && $s['tat'] === 'anfrage_bestellung' && $v['anfrage_id']): ?>
     <?php /* Aus der Anfrage wird eine Bestellung. Der einzige Schritt,
              der eine Entscheidung von dir braucht: welches Paket. */ ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" class="tun">
@@ -81,6 +81,15 @@ $tage   = Vorgang::ruhtSeitTagen($v);
           sie steht dann in der E-Mail an den Kunden.</span>
       <?php endif; ?>
     </form>
+
+  <?php elseif ($s !== null && ($s['ziel'] ?? null) !== null): ?>
+    <?php /* Der Handgriff liegt woanders — auf der Bedarfsseite steht der
+             fertige Preis, auf der Angebotsseite das Angebot. Hierher zu
+             verlinken ist ehrlicher, als einen Knopf zu zeigen, der etwas
+             anderes tut als das, was als Nächstes ansteht. */ ?>
+    <div class="tun">
+      <a class="knopf haupt" href="<?= Fmt::h(url((string) $s['ziel'])) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
+    </div>
 
   <?php elseif ($s !== null): ?>
     <div class="tun"><span style="color:var(--leise);font-size:13px"><?= Fmt::h($s['knopf']) ?>
