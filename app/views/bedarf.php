@@ -162,6 +162,29 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
         <?php endif; ?>
       </div>
 
+      <?php /* Das Briefing zum Kopieren.
+
+               Im Konfigurator steht bereits alles, was ein Briefing braucht.
+               Bisher las Uwe das ab und tippte es neu — und beim Abtippen
+               geht zuverlaessig das verloren, was der Kunde NICHT angekreuzt
+               hat. Genau dieser Abschnitt steht hier deshalb ausdruecklich
+               drin: Ein Sprachmodell, dem man ein Restaurant beschreibt, baut
+               ungefragt eine Tischreservierung dazu. */ ?>
+      <?php if (($bauprompt ?? '') !== ''): ?>
+        <div class="block">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+            <h2 style="font-size:15px;margin:0">Briefing zum Bauen</h2>
+            <button type="button" class="knopf" data-kopieren="#bauprompt">Kopieren</button>
+          </div>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 10px">
+            Alles aus dem Konfigurator, fertig als Auftrag an Claude — samt der Liste,
+            was <em>nicht</em> gebaut werden soll. Kopieren, einfügen, loslegen.
+          </p>
+          <textarea id="bauprompt" readonly rows="14" onclick="this.select()"
+            style="width:100%;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace"><?= Fmt::h($bauprompt) ?></textarea>
+        </div>
+      <?php endif; ?>
+
       <?php if (($nachricht['text'] ?? '') !== '' && $b['customer_id']): ?>
         <div class="block">
           <h2 style="font-size:15px;margin:0 0 6px">Als Nachricht an den Kunden</h2>
@@ -212,3 +235,22 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php endif; ?>
   </div>
 </div>
+
+<script>
+/* Kopieren mit Rueckmeldung. Ohne die Rueckmeldung drueckt man zweimal, weil
+   nichts passiert zu sein scheint — und beim zweiten Mal ist man sich nicht
+   mehr sicher, ob nun einmal oder zweimal kopiert wurde. */
+document.querySelectorAll('[data-kopieren]').forEach(function (knopf) {
+  knopf.addEventListener('click', function () {
+    var feld = document.querySelector(knopf.getAttribute('data-kopieren'));
+    if (!feld) { return; }
+    feld.select();
+    var gut = false;
+    try { gut = document.execCommand('copy'); } catch (e) { gut = false; }
+    if (!gut && navigator.clipboard) { navigator.clipboard.writeText(feld.value).then(function () {}); gut = true; }
+    var alt = knopf.textContent;
+    knopf.textContent = gut ? 'Kopiert' : 'Bitte von Hand kopieren';
+    setTimeout(function () { knopf.textContent = alt; }, 1800);
+  });
+});
+</script>

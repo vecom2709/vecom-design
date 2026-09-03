@@ -179,7 +179,37 @@ final class Vorlage
 
         $punkte = static fn(string $s): string => $s !== '' ? $s : '…';
 
+        /* Die oeffentlichen Wege, die es seit heute gibt: der Konfigurator,
+           die Preisseite und der eigene Empfehlungslink. Ohne sie muesste
+           Uwe jede dieser Adressen von Hand in die Nachricht tippen — und
+           die Preisseite heisst in jeder Sprache anders. */
+        $web = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $preisseite = $web . ['it' => '/prezzi.html', 'de' => '/de/preise.html', 'en' => '/en/pricing.html'][$sprache];
+
+        /* Der Empfehlungscode wird hier angelegt, falls es noch keinen gibt —
+           sonst waere die Empfehlungsvorlage beim ersten Oeffnen leer, also
+           genau dann, wenn man sie braucht. codeFuer() kehrt sofort zurueck,
+           sobald einer existiert: ein Schreibvorgang pro Kunde, nie mehr. */
+        $code = (string) self::still(function () use ($kundeId) {
+            require_once __DIR__ . '/Empfehlung.php';
+            return Empfehlung::codeFuer($kundeId);
+        }, '');
+        $rabatt = (int) self::still(function () {
+            require_once __DIR__ . '/Empfehlung.php';
+            return Empfehlung::prozent();
+        }, 15);
+        $monate = (int) self::still(function () {
+            require_once __DIR__ . '/Empfehlung.php';
+            return Empfehlung::monate();
+        }, 12);
+
         return [
+            '{konfigurator}'   => $web . '/bedarf.php?lang=' . $sprache,
+            '{preisseite}'     => $preisseite,
+            '{empfehlungslink}'=> $code !== '' ? $web . '/e/' . $code : '…',
+            '{empfehlungscode}'=> $punkte($code),
+            '{rabatt}'         => $rabatt . ' %',
+            '{rabattmonate}'   => (string) $monate,
             '{vorname}'        => $punkte(explode(' ', $name)[0] ?? ''),
             '{name}'           => $punkte($name),
             '{firma}'          => $punkte($firma !== '' ? $firma : $name),

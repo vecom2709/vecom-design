@@ -1346,6 +1346,10 @@ switch ($route) {
                speichern wuerde, haette morgen eine zweite Wahrheit neben dem
                Angebot. */
             $vorschlag = Baukasten::vorschlag($rechnung, $aktive);
+            /* Das Briefing zum Kopieren. Braucht keinen Kunden — es ist eine
+               Ansicht auf die Antworten, kein Vorgang. */
+            $bauprompt = (string) sicher(
+                static fn() => Bedarf::bauprompt($b, $antworten, $vorschlag, $aktive), '');
             $preisnachricht = ['betreff' => '', 'text' => ''];
             $vorlagen = [];
             $kennung  = '';
@@ -1364,6 +1368,7 @@ switch ($route) {
                 'katalog'   => $katalog,
                 'rechnung'  => $rechnung,
                 'vorschlag' => $vorschlag,
+                'bauprompt' => $bauprompt,
                 'nachricht' => $preisnachricht,
                 'vorlagen'  => $vorlagen,
                 'kennung'   => $kennung,

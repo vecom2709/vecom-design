@@ -320,4 +320,140 @@ final class Bedarf
             'text'    => Vorlage::rahmen($sprache, $vorname, implode("\n\n", $teile)),
         ];
     }
+
+    /** Die Sprachen, die der Auftrag umfasst — in der Reihenfolge, in der gebaut wird. */
+    private const SPRACHNAMEN = ['Italienisch', 'Deutsch', 'Englisch'];
+
+    /**
+     * Ein fertiges Briefing zum Kopieren — fuer Claude, zum Bauen der Seite.
+     *
+     * WARUM DAS HIER ENTSTEHT
+     *
+     * Im Konfigurator steht bereits alles, was ein Briefing braucht: Zweck,
+     * Umfang, Sprachen, Funktionen, vorhandenes Material, Bestand, Termin,
+     * Branche. Bisher las Uwe das ab und tippte es neu — und beim Abtippen
+     * geht zuverlaessig genau das verloren, was der Kunde NICHT angekreuzt
+     * hat.
+     *
+     * DER WICHTIGSTE ABSCHNITT IST DER MIT DEM "NICHT"
+     *
+     * Ein Sprachmodell, dem man ein Restaurant beschreibt, baut ungefragt
+     * einen Tischreservierungs-Kalender dazu. Das ist nicht bezahlt, es
+     * kostet Zeit, und wieder wegnehmen muss man es auch. Deshalb steht hier
+     * ausdruecklich, was nicht dazugehoert — abgeleitet aus dem, was der
+     * Kunde offen gelassen hat.
+     *
+     * Der Leistungsumfang kommt aus denselben Bausteinen, die den Preis
+     * ergeben haben. Was gebaut wird, ist damit genau das, was bezahlt wurde.
+     */
+    public static function bauprompt(array $bedarf, array $antworten, array $vorschlag, array $katalog): string
+    {
+        $F = Baukasten::FRAGEN;
+        $wahl = static function (string $frage) use ($antworten): array {
+            $w = $antworten[$frage] ?? null;
+            if ($w === null || $w === '' || $w === []) { return []; }
+            return array_map('strval', is_array($w) ? $w : [$w]);
+        };
+        $wort = static function (string $frage, string $schluessel) use ($F): string {
+            $o = $F[$frage]['optionen'][$schluessel] ?? null;
+            return $o ? Texte::h($o, 'de') : $schluessel;
+        };
+
+        $firma = trim((string) ($bedarf['firma'] ?? ''));
+        $name  = trim((string) ($bedarf['name'] ?? ''));
+        $wer   = $firma !== '' ? $firma : $name;
+
+        $z = [];
+        $z[] = 'Nutze den Skill web-design-studio.';
+        $z[] = '';
+        $z[] = 'AUFTRAG';
+        $z[] = 'Baue die Website für ' . ($wer !== '' ? $wer : 'einen Kunden') . '.';
+        foreach ($wahl('branche') as $b) { $z[] = 'Branche: ' . $wort('branche', $b) . '.'; }
+        $z[] = 'Auftraggeber sitzt in Sizilien, Provinz Agrigent; die Kundschaft ist örtlich.';
+        $z[] = '';
+
+        $z[] = 'WAS DIE SEITE LEISTEN MUSS';
+        $zweck = $wahl('zweck');
+        foreach ($zweck as $w) { $z[] = '- ' . $wort('zweck', $w); }
+        if (!$zweck) { $z[] = '- (nicht angegeben — vor dem Bauen nachfragen)'; }
+        $z[] = '';
+
+        $z[] = 'UMFANG';
+        foreach ($wahl('umfang') as $w) { $z[] = '- Seitenzahl: ' . $wort('umfang', $w); }
+        $anzSprachen = max(1, min(3, (int) ($antworten['sprachen'] ?? 1)));
+        $z[] = '- Sprachen: ' . implode(', ', array_slice(self::SPRACHNAMEN, 0, $anzSprachen))
+             . ($anzSprachen > 1 ? ' — je eigene Adresse, nicht nur ein Umschalter im Browser' : '');
+        $z[] = '';
+
+        /* Der Leistungsumfang, wie er bezahlt wurde. */
+        $z[] = 'LEISTUNGSUMFANG — das ist kalkuliert und bezahlt';
+        foreach ($vorschlag['positionen'] as $pos) {
+            if ((int) $pos['monatlich']) { continue; }
+            $bs = $katalog[$pos['slug']] ?? null;
+            if (!$bs) { continue; }
+            $menge = (int) $pos['menge'] > 1 ? ' ×' . (int) $pos['menge'] : '';
+            $text  = trim(Baukasten::text($bs, 'de'));
+            $z[] = '- ' . Baukasten::name($bs, 'de') . $menge . ($text !== '' ? ' — ' . $text : '');
+        }
+        $z[] = '';
+
+        /* Und ausdruecklich, was nicht. */
+        $z[] = 'WAS AUSDRÜCKLICH NICHT DAZUGEHÖRT';
+        $z[] = 'Danach wurde nicht gefragt. Bau es nicht ein, schlag es nicht vor, lass auch keinen Platz dafür:';
+        $nicht = [];
+        foreach (['speisekarte' => 'Speisekarte oder Angebotsliste',
+                  'termine'     => 'Terminvereinbarung oder Tischreservierung',
+                  'buchung'     => 'Buchungssystem für Zimmer oder Ferienwohnungen',
+                  'shop'        => 'Onlineshop, Warenkorb, Zahlungsabwicklung'] as $slug => $wieHeisst) {
+            if (!in_array($slug, $zweck, true)) { $nicht[] = $wieHeisst; }
+        }
+        if ($anzSprachen < 3) { $nicht[] = 'weitere Sprachen über die ' . $anzSprachen . ' genannten hinaus'; }
+        if (!in_array('logo', $wahl('material'), true)) {
+            $nicht[] = 'kein neues Logo entwerfen (steht separat zur Anfrage, ist nicht beauftragt)';
+        }
+        foreach ($nicht as $n) { $z[] = '- ' . $n; }
+        $z[] = '';
+
+        $z[] = 'MATERIAL';
+        $material = $wahl('material');
+        foreach (['texte' => 'Texte', 'fotos' => 'Fotos', 'logo' => 'Logo'] as $slug => $wieHeisst) {
+            $z[] = '- ' . $wieHeisst . ': ' . (in_array($slug, $material, true)
+                ? 'liegt vom Kunden vor'
+                : 'fehlt — ich liefere es, arbeite bis dahin mit klar markiertem Platzhalter in richtiger Länge und Tonlage (kein Blindtext)');
+        }
+        $z[] = '';
+
+        $z[] = 'BESTAND';
+        foreach ($wahl('bestand') as $w) {
+            $z[] = '- ' . $wort('bestand', $w);
+            if (in_array($w, ['erneuern', 'ueberarb'], true)) {
+                $z[] = '- Inhalte werden von der alten Seite übernommen. Alte Adressen müssen weiter funktionieren,'
+                     . ' sonst fällt die Seite aus dem Google-Index. Bestehende Titel und Beschreibungen vorher sichern.';
+            }
+        }
+        $z[] = '';
+
+        $z[] = 'TERMIN';
+        foreach ($wahl('zeit') as $w) { $z[] = '- ' . $wort('zeit', $w); }
+        $z[] = '';
+
+        $z[] = 'KONTAKTDATEN FÜR DIE SEITE';
+        if ($firma !== '') { $z[] = '- Betrieb: ' . $firma; }
+        if ($name !== '')  { $z[] = '- Ansprechpartner: ' . $name; }
+        if (trim((string) ($bedarf['email'] ?? '')) !== '')   { $z[] = '- E-Mail: ' . trim((string) $bedarf['email']); }
+        if (trim((string) ($bedarf['telefon'] ?? '')) !== '') { $z[] = '- Telefon: ' . trim((string) $bedarf['telefon']); }
+        $z[] = '- Anschrift und Öffnungszeiten fehlen hier noch — erfrage sie bei mir, bevor du das Impressum baust.';
+        $z[] = '';
+
+        $z[] = 'WIE ICH ARBEITEN MÖCHTE';
+        $z[] = '1. Zeig mir zuerst die Design-DNA und drei unterschiedliche Richtungen, bevor du Code schreibst.';
+        $z[] = '2. Erst wenn ich eine gewählt habe: erster Bildschirm fertig bauen, ansehen, dann der Rest.';
+        $z[] = '3. Mobil zuerst. Die Kundschaft kommt hier fast nur übers Telefon.';
+        $z[] = '4. Keine gekauften Vorlagen und keine kostenpflichtigen Erweiterungen — das wird sonst jedes Jahr'
+             . ' wieder fällig und gehört mir dann nicht mehr.';
+        $z[] = '5. Texte in Bildern vermeiden: nicht übersetzbar, nicht auffindbar, auf dem Handy nicht lesbar.';
+        $z[] = '6. Am Ende: Ladezeit, Kontrast und Tastaturbedienung prüfen und mir die Messwerte nennen.';
+
+        return implode("\n", $z);
+    }
 }
