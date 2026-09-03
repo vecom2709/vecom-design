@@ -210,12 +210,27 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
      dastehen muss. Ein ganzer Abschnitt, der kein Formular ist (der fertige
      Preistext auf der Bedarfsseite etwa), sagt es ueber data-tun. */
   var feld = document.querySelector('input[name="tat"][value="' + CSS.escape(tun) + '"]');
-  var ziel = (feld && feld.closest('form')) || document.querySelector('[data-tun="' + CSS.escape(tun) + '"]');
+  var ausFeld = !!(feld && feld.closest('form'));
+  var ziel = ausFeld ? feld.closest('form') : document.querySelector('[data-tun="' + CSS.escape(tun) + '"]');
   if (!ziel) { return; }
   ziel.classList.add('leuchtet');
-  ziel.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-  var knopf = ziel.querySelector('button, input[type=submit]');
-  if (knopf) { knopf.focus({ preventScroll: true }); }
+  /* Mittig ist richtig fuer einen Knopf und falsch fuer einen ganzen
+     Abschnitt: Ist der hoeher als das Fenster, liegen beide Kanten -- und
+     damit der leuchtende Rahmen -- ausserhalb, und man sieht nichts.
+     Deshalb oben ansetzen, sobald es eng wird. */
+  var hoch = ziel.getBoundingClientRect().height > innerHeight * 0.8;
+  ziel.scrollIntoView({
+    block: hoch ? 'start' : 'center',
+    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+  });
+  /* Den Knopf nur dann vorwaehlen, wenn er wirklich der Handgriff ist. In
+     einem Abschnitt mit fertig getipptem Text waere der erste Knopf
+     "Senden" -- und ein versehentliches Enter haette die Nachricht
+     ungelesen verschickt. */
+  if (ausFeld) {
+    var knopf = ziel.querySelector('button, input[type=submit]');
+    if (knopf) { knopf.focus({ preventScroll: true }); }
+  }
 })();
 </script>
 <script>
