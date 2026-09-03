@@ -81,7 +81,7 @@ window.VECOM_I18N = {
     },
     pillars: {
       head: "Perché sceglierci",
-      v1: "2", l1: "Settimane per essere online con il pacchetto Starter",
+      v1: "2", l1: "Settimane per essere online con un sito vetrina",
       v2: "0", l2: "Costi nascosti: il preventivo approvato è il prezzo finale",
       v3: "100%", l3: "Proprietà tua: codice e file consegnati, nessun vincolo",
       v4: "1", l4: "Referente unico, dal primo colloquio all'assistenza"
@@ -147,7 +147,7 @@ window.VECOM_I18N = {
       q1: "Quanto costa un sito web su misura?",
       a1: "Non lavoro a pacchetti fissi: il prezzo nasce da quello che ti serve davvero — numero di pagine, lingue, funzioni e quanto materiale hai già pronto. In un minuto e mezzo, rispondendo a otto domande sul sito, sai in che ordine di prezzo ti muovi. Chi vuole partire subito trova un sito di partenza a prezzo fisso da 499 €. L'assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approvi, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.",
       q2: "Quanto tempo serve per essere online?",
-      a2: "Starter di norma una o due settimane, Business due o tre, Premium quattro o sei. A decidere il ritmo non è il mio lavoro ma testi e immagini: se il materiale c'è, si va veloci.",
+      a2: "Un sito vetrina di norma una o due settimane, un sito in tre lingue o con funzioni due o tre, un negozio online quattro o sei. A decidere il ritmo non è il mio lavoro ma testi e immagini: se il materiale c'è, si va veloci.",
       q3: "L'assistenza mensile è obbligatoria?",
       a3: "No, il sito resta tuo anche senza. Copre backup, aggiornamenti di sicurezza e piccole modifiche: senza di essa questi passaggi restano a carico tuo. Se la prendi, la durata iniziale è di dodici mesi; dopo si disdice in qualsiasi momento, con effetto a fine mese.",
       q4: "A chi appartiene il sito?",
@@ -598,7 +598,7 @@ masz: {
     },
     pillars: {
       head: "Warum Vecom Design",
-      v1: "2", l1: "Wochen bis zur fertigen Seite im Paket Starter",
+      v1: "2", l1: "Wochen bis zur fertigen Seite mit fünf Seiten",
       v2: "0", l2: "Versteckte Kosten — das freigegebene Angebot ist der Endpreis",
       v3: "100%", l3: "Du bekommst Code und Dateien — Eigentum bei dir",
       v4: "1", l4: "Ansprechpartner, vom ersten Gespräch bis zur Betreuung"
@@ -664,7 +664,7 @@ masz: {
       q1: "Was kostet eine maßgeschneiderte Website?",
       a1: "Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst. Wer sofort loslegen will, findet einen Einstieg zum festen Preis ab 499 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.",
       q2: "Wie lange dauert es, bis die Seite online ist?",
-      a2: "Starter in der Regel ein bis zwei Wochen, Business zwei bis drei, Premium vier bis sechs. Über das Tempo entscheidet selten meine Arbeit, sondern Texte und Bilder: Liegt das Material vor, geht es schnell.",
+      a2: "Eine Website mit fünf Seiten in der Regel ein bis zwei Wochen, dreisprachig oder mit Funktionen zwei bis drei, ein Onlineshop vier bis sechs. Über das Tempo entscheidet selten meine Arbeit, sondern Texte und Bilder: Liegt das Material vor, geht es schnell.",
       q3: "Ist die monatliche Betreuung Pflicht?",
       a3: "Nein. Sie ist ein eigener Vertrag, und die Website gehört dir auch ohne sie. Sie deckt Backups, Sicherheitsupdates, Überwachung und kleine Änderungen ab — ohne sie bleiben diese Aufgaben bei dir. Nimmst du sie, läuft sie zwölf Monate und ist danach jederzeit zum Monatsende kündbar.",
       q4: "Wem gehört die Website?",
@@ -1115,7 +1115,7 @@ masz: {
     },
     pillars: {
       head: "Why Vecom Design",
-      v1: "2", l1: "Weeks to a finished site on the Starter package",
+      v1: "2", l1: "Weeks to a finished five-page site",
       v2: "0", l2: "Hidden costs — the approved quote is the final price",
       v3: "100%", l3: "Ownership stays with you: code and files handed over",
       v4: "1", l4: "Single contact, from first call through ongoing care"
@@ -1181,7 +1181,7 @@ masz: {
       q1: "What does a custom website cost?",
       a1: "I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds. If you want to start right away, there is a fixed-price entry from €499. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote.",
       q2: "How long until the site is live?",
-      a2: "Starter usually one to two weeks, Business two to three, Premium four to six. What sets the pace is rarely my work but your copy and images: once the material is there, it moves fast.",
+      a2: "A five-page site usually one to two weeks, trilingual or with extra functions two to three, an online shop four to six. What sets the pace is rarely my work but your copy and images: once the material is there, it moves fast.",
       q3: "Is the monthly care compulsory?",
       a3: "No, the site is yours without it. It covers backups, security updates and small changes — without it those tasks stay with you. If you take it, the initial term is twelve months; after that it can be cancelled at any time, effective at the end of the month.",
       q4: "Who owns the website?",
