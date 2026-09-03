@@ -194,6 +194,32 @@ if ($post) {
                 Angebot::senden($aid);
                 zurueck('angebote/' . $aid);
 
+            case 'bedarf_loeschen':
+                require_once __DIR__ . '/src/Bedarf.php';
+                $bid = (int) ($_POST['id'] ?? 0);
+                $weg = Bedarf::loeschen($bid);
+                $_SESSION[$weg ? 'gut' : 'fehler'] = $weg
+                    ? 'Der Bedarf ist gelöscht.'
+                    : 'An diesem Bedarf hängt ein Angebot. Lösche erst das Angebot.';
+                zurueck('bedarf');
+
+            case 'bedarf_aufraeumen':
+                require_once __DIR__ . '/src/Bedarf.php';
+                /* Zwei Knoepfe, eine Aktion: Der zweite verlangt das Wort,
+                   weil er auch abgesendete Anfragen trifft. */
+                $alles = !empty($_POST['alles']);
+                if ($alles) {
+                    $wort = mb_strtoupper(trim((string) ($_POST['bestaetigung'] ?? '')));
+                    if (!in_array($wort, ['LOESCHEN', 'LÖSCHEN'], true)) {
+                        throw new RuntimeException('Zum Leeren muss „LÖSCHEN" im Feld stehen. Es ist nichts passiert.');
+                    }
+                }
+                $weg = Bedarf::aufraeumen($alles);
+                $_SESSION['gut'] = $weg === 0
+                    ? 'Es war nichts zum Aufräumen da.'
+                    : $weg . ' Einträge sind weg.';
+                zurueck('bedarf');
+
             case 'angebot_neufassung':
                 require_once __DIR__ . '/src/Angebot.php';
                 $aid = (int) ($_POST['id'] ?? 0);

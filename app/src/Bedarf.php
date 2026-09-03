@@ -213,6 +213,84 @@ final class Bedarf
      * Bewusst als Text und nicht als Tabelle: Er landet in der Nachricht der
      * Anfrage und in einer E-Mail, und dort gibt es keine Tabelle.
      */
+    /* ==================================================================
+       Aufraeumen
+       ================================================================== */
+
+    /**
+     * Einen Bedarf loeschen.
+     *
+     * Haengt ein Angebot daran, passiert nichts: Das Angebot ist die Zusage
+     * und muss sagen koennen, woraus es entstanden ist. Wer den Bedarf
+     * trotzdem loswerden will, loescht erst das Angebot -- das ist eine
+     * Entscheidung, die niemand nebenbei treffen soll.
+     *
+     * @return bool Ob geloescht wurde.
+     */
+    public static function loeschen(int $id): bool
+    {
+        $angebote = (int) Db::wert('SELECT COUNT(*) FROM angebote WHERE bedarf_id = ?', [$id], 0);
+        if ($angebote > 0) { return false; }
+
+        return (bool) Db::transaktion(static function () use ($id): bool {
+            // Eine Empfehlung gehoert dem, der empfohlen hat -- sie bleibt
+            // stehen und verliert nur den Verweis.
+            try {
+                Db::run('UPDATE empfehlungen SET bedarf_id = NULL WHERE bedarf_id = ?', [$id]);
+            } catch (Throwable $e) { /* die Tabelle kann es noch nicht geben */ }
+            return Db::run('DELETE FROM bedarf WHERE id = ?', [$id])->rowCount() > 0;
+        });
+    }
+
+    /**
+     * Aufraeumen.
+     *
+     * WARUM DAS NOETIG IST
+     *
+     * Eine Zeile entsteht schon beim Oeffnen des Konfigurators, nicht erst
+     * beim Absenden. Anders ginge es nicht -- der Schluessel in der Adresse
+     * ist das, was den Kunden zurueckfinden laesst. Die Folge: Nach einem Tag
+     * stehen dort dreissig Zeilen "Schritt 1 von 5" ohne eine einzige
+     * Antwort, und der eine echte Bedarf geht darin unter.
+     *
+     * WAS WEGGERAEUMT WIRD
+     *
+     * Ohne $alles: was nichts traegt und niemanden aussperrt -- angefangene
+     * ohne jede Antwort, angefangene mit Antworten die seit ueber einem Tag
+     * still sind, und verwaiste, deren Kunde geloescht wurde. Ein Kunde, der
+     * gerade mittendrin ist, behaelt seinen Weg.
+     *
+     * Mit $alles: alles ausser dem, woran ein Angebot haengt.
+     *
+     * @return int Wie viele Zeilen weg sind.
+     */
+    public static function aufraeumen(bool $alles = false): int
+    {
+        $wo = $alles
+            ? '1 = 1'
+            /* Klammern ausgeschrieben: UND bindet staerker als ODER, und ein
+               Loeschbefehl ist der falsche Ort fuer stille Vorfahrtsregeln. */
+            : "(
+                 b.status = 'offen' AND (
+                       b.antworten IS NULL
+                    OR b.antworten IN ('', '[]', '{}')
+                    OR b.updated_at < (NOW() - INTERVAL 1 DAY)
+                 )
+               )
+               OR (b.customer_id IS NOT NULL AND c.id IS NULL)";
+
+        $ids = array_column((array) Db::all(
+            "SELECT b.id FROM bedarf b
+               LEFT JOIN customers c ON c.id = b.customer_id
+               LEFT JOIN angebote a ON a.bedarf_id = b.id
+              WHERE a.id IS NULL AND ($wo)
+              LIMIT 5000"), 'id');
+
+        $weg = 0;
+        foreach ($ids as $id) { if (self::loeschen((int) $id)) { $weg++; } }
+        return $weg;
+    }
+
     public static function zusammenfassung(array $antworten, string $sprache, ?array $spanne = null, int $monatlich = 0): string
     {
         $zeilen = [];

@@ -28,6 +28,15 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php if ($kundeDa): ?>
       <a class="knopf" href="<?= Fmt::h(url('kunden/' . $b['customer_id'])) ?>">Zum Kunden</a>
     <?php endif; ?>
+    <?php if (!$angebotId): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+            onsubmit="return confirm('Diesen Bedarf löschen? Die Antworten sind danach weg.')">
+        <?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="bedarf_loeschen">
+        <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+        <button class="knopf">Löschen</button>
+      </form>
+    <?php endif; ?>
     <?php if ($angebotId): ?>
       <a class="knopf haupt" href="<?= Fmt::h(url('angebote/' . $angebotId)) ?>">Zum Angebot</a>
     <?php elseif ($kundeDa && $b['status'] !== 'offen'): ?>

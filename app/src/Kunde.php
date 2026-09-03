@@ -185,6 +185,13 @@ final class Kunde
         'projects'       => 'customer_id = :k',
         'orders'         => 'customer_id = :k',
         'anfragen'       => 'customer_id = :k',
+        /* Bedarf und Angebot standen bis zur Wanderung 028 nicht hier -- und
+           hatten auch keinen Fremdschluessel. Ein geloeschter Kunde liess
+           damit einen Bedarf zurueck, der auf eine Akte zeigte, die es nicht
+           mehr gab: In der Liste stand ein Name, hinter dem niemand war. */
+        'angebot_positionen' => 'angebot_id IN (SELECT id FROM angebote WHERE customer_id = :k)',
+        'angebote'       => 'customer_id = :k',
+        'bedarf'         => 'customer_id = :k',
         'mails'          => 'customer_id = :k',
         'activities'     => 'customer_id = :k',
         'users'          => 'customer_id = :k',
@@ -335,6 +342,9 @@ final class Kunde
                 'files'          => 'customer_id = :k',
                 'anfragen'       => 'customer_id = :k',
                 'activities'     => 'customer_id = :k',
+                /* Der Bedarf bleibt als Vorgang stehen -- die Zahlen darin
+                   sind Geschaeft, kein Mensch. Was daran der Mensch ist,
+                   raeumt der Block gleich darunter weg. */
                 'users'          => 'customer_id = :k',
                 'audit_log'      => "entity = 'customer' AND entity_id = :k",
             ] as $tabelle => $wo) {
@@ -353,6 +363,16 @@ final class Kunde
             try {
                 $zeilen += Db::run('UPDATE mails SET empfaenger = ? WHERE customer_id = ?',
                     [$kundeId . self::PLATZHALTER, $kundeId])->rowCount();
+            } catch (Throwable $e) { }
+
+            /* 3b. Im Bedarf stehen Name, Mail, Telefon und Betrieb noch
+                   einmal woertlich -- sie wurden dort beim Absenden
+                   festgehalten. Die Antworten und die Spanne bleiben, der
+                   Mensch geht raus. */
+            try {
+                $zeilen += Db::run(
+                    "UPDATE bedarf SET name = '', email = '', telefon = '', firma = ''
+                      WHERE customer_id = ?", [$kundeId])->rowCount();
             } catch (Throwable $e) { }
 
             /* 4. Projektnamen tragen fast immer den Kundennamen. */

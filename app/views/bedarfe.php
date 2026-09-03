@@ -9,17 +9,31 @@
    Zeile entsteht schon beim Öffnen, und die waren nach kurzer Zeit in der
    Überzahl. Ihre Anzahl steht unter der Tabelle. */
 ?>
-<div class="kopf"><h1>Bedarf</h1></div>
+<div class="kopf">
+  <h1>Bedarf</h1>
+  <div class="rechts">
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+          onsubmit="return confirm('Angefangene ohne Antwort, seit über einem Tag stille und verwaiste Einträge löschen?')">
+      <?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="bedarf_aufraeumen">
+      <button class="knopf">Aufräumen</button>
+    </form>
+  </div>
+</div>
+
+<?php /* Der zweite Knopf trifft auch abgesendete Anfragen. Deshalb steht er
+         unten, nicht oben, und verlangt ein getipptes Wort -- ein Klick aus
+         Gewohnheit soll nicht reichen. */ ?>
 
 <div class="block"><div class="tabellenrahmen"><table>
 <thead><tr>
   <th>Kunde</th><th>Was gebraucht wird</th>
   <th class="num">Spanne</th><th class="num">Monatlich</th>
-  <th>Stand</th><th>Wann</th>
+  <th>Stand</th><th>Wann</th><th></th>
 </tr></thead>
 <tbody>
 <?php if (!$liste): ?>
-  <tr><td colspan="6"><div class="leer">Noch niemand hat den Konfigurator ausgefüllt.</div></td></tr>
+  <tr><td colspan="7"><div class="leer">Noch niemand hat den Konfigurator ausgefüllt.</div></td></tr>
 <?php endif; ?>
 <?php foreach ($liste as $b): ?>
   <?php
@@ -60,9 +74,34 @@
       <?php endif; ?>
     </td>
     <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $b['created_at'])) ?></td>
+    <td style="text-align:right">
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+            onsubmit="return confirm('Diesen Eintrag löschen?')">
+        <?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="bedarf_loeschen">
+        <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+        <button class="knopf" style="padding:4px 9px;font-size:12px">Löschen</button>
+      </form>
+    </td>
   </tr>
 <?php endforeach; ?>
 </tbody></table></div>
+<div class="block" style="margin-top:14px">
+  <h2 style="font-size:15px;margin:0 0 6px">Ganz leeren</h2>
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
+    Löscht auch abgesendete Anfragen — alles außer dem, woran ein Angebot hängt.
+    Gedacht für nach einem Probelauf. Tippe <b>LÖSCHEN</b>, damit ein Klick aus
+    Gewohnheit nicht reicht.
+  </p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <?= Csrf::feld() ?>
+    <input type="hidden" name="tat" value="bedarf_aufraeumen">
+    <input type="hidden" name="alles" value="1">
+    <input name="bestaetigung" placeholder="LÖSCHEN" style="max-width:180px" autocomplete="off">
+    <button class="knopf">Alles löschen</button>
+  </form>
+</div>
+
 <?php if (($leer ?? 0) > 0): ?>
   <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:12px 2px 0">
     Dazu <?= (int) $leer ?> Mal geöffnet und sofort wieder verlassen, ohne eine
