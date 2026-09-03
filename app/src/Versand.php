@@ -171,10 +171,29 @@ final class Versand
      */
     private static function vermerken(array $e): void
     {
+        self::standMerken((bool) $e['ok'], $e['ok'] ? null : (string) $e['text']);
+    }
+
+    /**
+     * Den Stand des Mailversands festhalten — von wo auch immer er kommt.
+     *
+     * WARUM DAS OEFFENTLICH IST
+     *
+     * Bis hierher schrieb nur die ausdrueckliche Pruefung diesen Stand. Der
+     * tatsaechliche Versand tat es nicht — und der ist das verlaesslichere
+     * Signal, weil er jeden Tag stattfindet und die Pruefung fast nie.
+     *
+     * Die Folge war eine Anzeige, die nach einer einzigen Stoerung fuer immer
+     * "Fehler" sagte, auch wenn seither hundert Mails angekommen waren. Ein
+     * Warnlicht, das nicht mehr ausgeht, sieht man nach drei Tagen nicht mehr
+     * an — und dann uebersieht man auch die echte Stoerung.
+     */
+    public static function standMerken(bool $ok, ?string $fehler = null): void
+    {
         try {
             Db::run(
                 "UPDATE integrations SET status = ?, last_error = ?, last_sync_at = NOW() WHERE ikey = 'brevo'",
-                [$e['ok'] ? 'verbunden' : 'fehler', $e['ok'] ? null : mb_substr($e['text'], 0, 500)]
+                [$ok ? 'verbunden' : 'fehler', $ok ? null : mb_substr((string) $fehler, 0, 500)]
             );
         } catch (Throwable $x) { /* die Anzeige ist Beiwerk, die Antwort zaehlt */ }
     }

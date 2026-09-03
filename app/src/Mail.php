@@ -194,6 +194,19 @@ final class Mail
     {
         try { Db::insert('mails', $daten); } catch (Throwable $e) { /* Protokoll ist Beiwerk */ }
 
+        /* Der Stand auf der Seite "Integrationen" wurde bisher nur von der
+           ausdruecklichen Pruefung geschrieben — und die laeuft fast nie.
+           Ein echter Versand ist das bessere Signal: Er findet jeden Tag
+           statt. Ohne das steht dort nach einer einzigen Stoerung fuer immer
+           "Fehler", auch wenn seither alles ankommt. */
+        try {
+            require_once __DIR__ . '/Versand.php';
+            Versand::standMerken(
+                ($daten['status'] ?? '') !== 'fehler',
+                ($daten['fehler'] ?? null) !== null ? (string) $daten['fehler'] : null
+            );
+        } catch (Throwable $e) { /* die Anzeige ist Beiwerk */ }
+
         if (($daten['status'] ?? '') !== 'fehler') { return; }
 
         try {
