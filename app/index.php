@@ -146,6 +146,25 @@ if ($post) {
     $tat = (string) ($_POST['tat'] ?? '');
     try {
         switch ($tat) {
+            case 'preise_anheben':
+                require_once __DIR__ . '/src/Baukasten.php';
+                require_once __DIR__ . '/src/Einfuehrung.php';
+                // Nur, wenn die Phase wirklich am Ende ist. Sonst waere ein
+                // versehentlich abgeschickter Knopf eine stille Preisrunde.
+                if (Einfuehrung::erreicht()) {
+                    $wie = Einfuehrung::anwenden();
+                    Events::melden('einfuehrung_ende', 'Einführungspreise beendet', 'gut',
+                        $wie . ' Bausteine um ' . Einfuehrung::erhoehung() . ' Prozent angehoben', '/baukasten');
+                }
+                zurueck('baukasten');
+
+            case 'empfehlung_zuordnen':
+                require_once __DIR__ . '/src/Empfehlung.php';
+                $kid = (int) ($_POST['kunde'] ?? 0);
+                $eid = (int) ($_POST['id'] ?? 0);
+                if ($kid > 0 && $eid > 0) { Empfehlung::zuordnen($eid, $kid); }
+                zurueck('empfehlungen');
+
             case 'bausteine_speichern':
                 require_once __DIR__ . '/src/Baukasten.php';
                 // Alles in einem Rutsch: Preise pflegt man selten, dann aber
@@ -1217,8 +1236,38 @@ switch ($route) {
     case 'baukasten':
         require_once __DIR__ . '/src/Baukasten.php';
         sicher(static fn() => Baukasten::sicherstellen());
-        ansicht('baukasten', ['liste' => sicher(static fn() => Db::all(
-            'SELECT * FROM bausteine ORDER BY sortierung, id'), [])]);
+        require_once __DIR__ . '/src/Einfuehrung.php';
+        ansicht('baukasten', [
+            'liste' => sicher(static fn() => Db::all(
+                'SELECT * FROM bausteine ORDER BY sortierung, id'), []),
+            'phase' => sicher(static fn() => [
+                'laeuft'    => Einfuehrung::laeuft(),
+                'zaehler'   => Einfuehrung::zaehler(),
+                'ziel'      => Einfuehrung::ziel(),
+                'rest'      => Einfuehrung::restplaetze(),
+                'erhoehung' => Einfuehrung::erhoehung(),
+                'erreicht'  => Einfuehrung::erreicht(),
+                'vorschau'  => Einfuehrung::erreicht() ? Einfuehrung::vorschau() : [],
+            ], ['laeuft' => false]),
+        ]);
+        break;
+
+    case 'empfehlungen':
+        require_once __DIR__ . '/src/Empfehlung.php';
+        ansicht('empfehlungen', [
+            'offen'  => sicher(static fn() => Empfehlung::offeneNennungen(), []),
+            'liste'  => sicher(static fn() => Db::all(
+                "SELECT e.*, ke.name AS empfehler, ke.rabatt_prozent, ke.rabatt_bis,
+                        kg.name AS geworbener
+                   FROM empfehlungen e
+                   LEFT JOIN customers ke ON ke.id = e.empfehler_id
+                   LEFT JOIN customers kg ON kg.id = e.geworbener_id
+                  ORDER BY e.created_at DESC LIMIT 200"), []),
+            'kunden' => sicher(static fn() => Db::all(
+                'SELECT id, name, company FROM customers ORDER BY name'), []),
+            'prozent' => Empfehlung::prozent(),
+            'monate'  => Empfehlung::monate(),
+        ]);
         break;
 
     case 'bedarf':

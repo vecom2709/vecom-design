@@ -6,6 +6,11 @@ RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
+# Empfehlungslinks kurz halten: /e/ANNA3CU fuehrt in den Konfigurator.
+# Kurz genug, um ihn am Telefon durchzugeben oder auf eine Karte zu drucken —
+# darum geht es bei einer Empfehlung.
+RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
+
 # Die Zähldatei ist nicht für Besucher bestimmt
 <Files "besuche.csv">
   Require all denied

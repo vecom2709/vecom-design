@@ -321,6 +321,18 @@ final class Events
             Rechnung::automatisch($zahlungId);
         }
 
+        // Steht hinter dieser Bestellung eine Empfehlung, ist sie jetzt etwas
+        // wert. Ebenfalls nach dem Festschreiben und in eigenem Netz: Eine
+        // nicht gebuchte Gutschrift laesst sich nachtragen, eine
+        // zurueckgerollte Zahlung nicht.
+        if (is_array($nachlauf)) {
+            try {
+                require_once __DIR__ . '/Empfehlung.php';
+                $bestellId = (int) Db::wert('SELECT order_id FROM payments WHERE id = ?', [$zahlungId], 0);
+                if ($bestellId > 0) { Empfehlung::beiZahlung($bestellId); }
+            } catch (Throwable $e) { /* nachtragbar */ }
+        }
+
         // E-Mails erst nach dem Festschreiben. Ein langsamer oder toter
         // Mailserver darf eine bestaetigte Zahlung nicht zurueckrollen — und
         // eine Zahlung ohne Bestaetigungsmail ist immer noch eine Zahlung.

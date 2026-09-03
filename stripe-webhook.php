@@ -92,6 +92,16 @@ try {
             if ($z) {
                 $voll = (int) ($o['amount_refunded'] ?? 0) >= (int) ($o['amount'] ?? 0);
                 Db::update('payments', (int) $z['id'], ['status' => $voll ? 'rueckerstattet' : 'teilweise_erstattet']);
+
+                // Eine erstattete Zahlung nimmt die Empfehlung mit, die an ihr
+                // haengt. Nur bei voller Erstattung: Wer die Haelfte zurueck
+                // bekommt, hat die Website trotzdem gekauft.
+                if ($voll) {
+                    try {
+                        require_once __DIR__ . '/app/src/Empfehlung.php';
+                        Empfehlung::beiRueckerstattung((int) $z['order_id'], 'Zahlung erstattet');
+                    } catch (Throwable $e) { /* dann eben von Hand */ }
+                }
                 Events::protokoll('zahlung_erstattet',
                     ($voll ? 'Rückerstattung' : 'Teilerstattung') . ': ' . Fmt::geld((int) ($o['amount_refunded'] ?? 0)),
                     null, (int) $z['order_id']);

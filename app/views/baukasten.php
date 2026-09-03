@@ -30,6 +30,50 @@ $eur = static fn(int $c): string => number_format($c / 100, 2, ',', '');
   </p>
 </div>
 
+<?php if ($phase['laeuft']): ?>
+  <div class="block">
+    <h2 style="font-size:15px;margin:0 0 6px">Einführungspreise</h2>
+    <?php if ($phase['erreicht']): ?>
+      <div class="hinweis warnung" style="margin-bottom:14px">
+        <strong><?= (int) $phase['zaehler'] ?> von <?= (int) $phase['ziel'] ?> Websites sind voll bezahlt.</strong>
+        Die Einführungsphase ist damit vorbei. Unten steht, was die Erhöhung um
+        <?= (int) $phase['erhoehung'] ?> % mit jedem Baustein macht — sie passiert erst,
+        wenn du sie auslöst. Verschickte Angebote behalten ihren Preis.
+      </div>
+      <div class="tabellenrahmen"><table>
+        <thead><tr><th>Baustein</th><th class="num">Von</th><th class="num">Bis</th></tr></thead>
+        <tbody>
+        <?php foreach ($phase['vorschau'] as $v): ?>
+          <tr>
+            <td><?= Fmt::h($v['name']) ?></td>
+            <td class="num"><span style="color:var(--leise)"><?= Fmt::geld($v['alt_von']) ?></span>
+              &nbsp;→&nbsp;<strong><?= Fmt::geld($v['neu_von']) ?></strong></td>
+            <td class="num"><?php if ($v['alt_bis']): ?>
+              <span style="color:var(--leise)"><?= Fmt::geld($v['alt_bis']) ?></span>
+              &nbsp;→&nbsp;<strong><?= Fmt::geld($v['neu_bis']) ?></strong>
+            <?php else: ?>—<?php endif; ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table></div>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px"
+            onsubmit="return confirm('Preise wirklich um <?= (int) $phase['erhoehung'] ?> Prozent anheben? Das lässt sich nur von Hand rückgängig machen.')">
+        <?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="preise_anheben">
+        <input type="hidden" name="zurueck" value="baukasten">
+        <button class="knopf haupt">Preise jetzt um <?= (int) $phase['erhoehung'] ?> % anheben</button>
+      </form>
+    <?php else: ?>
+      <p style="color:var(--dim);font-size:14px;line-height:1.7;margin:0">
+        <strong><?= (int) $phase['zaehler'] ?> von <?= (int) $phase['ziel'] ?></strong> Websites sind voll bezahlt —
+        noch <?= (int) $phase['rest'] ?> Plätze zum Einführungspreis. Auf der Ergebnisseite des
+        Konfigurators sieht der Kunde diese Zahl. Ist die Phase vorbei, melde ich mich hier
+        mit einer Vorher-Nachher-Liste; angehoben wird erst auf deinen Knopfdruck.
+      </p>
+    <?php endif; ?>
+  </div>
+<?php endif; ?>
+
 <form method="post" action="<?= Fmt::h(url('')) ?>">
   <?= Csrf::feld() ?>
   <input type="hidden" name="tat" value="bausteine_speichern">

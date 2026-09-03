@@ -40,6 +40,8 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Texte', 'Events'] as
 }
 require_once __DIR__ . '/app/src/Baukasten.php';
 require_once __DIR__ . '/app/src/Bedarf.php';
+require_once __DIR__ . '/app/src/Einfuehrung.php';
+require_once __DIR__ . '/app/src/Empfehlung.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecombedarf');
@@ -66,10 +68,33 @@ $zurueck = $basis . ($sprache === 'it' ? '/' : "/$sprache/");
    Schritt traegt keine Fragen mehr, sondern das Ergebnis. */
 $anzahl = Baukasten::schrittZahl();
 
+/* Absolut, nicht relativ — und das ist kein Schoenheitsfehler.
+   Der Empfehlungslink /e/ANNA3CU wird serverseitig auf diese Datei
+   umgeschrieben, die Adresse im Browser bleibt aber /e/ANNA3CU. Eine
+   relative Weiterleitung landet dann unter /e/bedarf.php, und der Kunde
+   steht vor einer toten Seite — ausgerechnet der, den jemand empfohlen hat. */
 $adresse = static function (int $schritt, string $token, string $meldung = '') use ($sprache): string {
-    $u = 'bedarf.php?t=' . rawurlencode($token) . '&lang=' . rawurlencode($sprache) . '&schritt=' . $schritt;
+    $u = '/bedarf.php?t=' . rawurlencode($token) . '&lang=' . rawurlencode($sprache) . '&schritt=' . $schritt;
     return $meldung !== '' ? $u . '&m=' . rawurlencode($meldung) : $u;
 };
+
+/* ---------- Empfehlungscode aus der Adresse ----------
+   Er kommt am Anfang herein (/e/CODE) und wird erst ganz am Ende gebraucht.
+   Deshalb in die Sitzung: Vier Schritte spaeter steht er sonst nicht mehr in
+   der Adresse, und die Empfehlung waere verloren. */
+$codeRoh = strtoupper(trim((string) ($_REQUEST['e'] ?? '')));
+if ($codeRoh !== '' && preg_match('/^[A-Z0-9]{5,16}$/', $codeRoh)) {
+    $_SESSION['empfehl_code'] = $codeRoh;
+}
+$empfehlCode = (string) ($_SESSION['empfehl_code'] ?? '');
+$empfehlName = '';
+if ($empfehlCode !== '') {
+    try {
+        $eid = Empfehlung::kundeZuCode($empfehlCode);
+        if ($eid) { $empfehlName = (string) Db::wert('SELECT name FROM customers WHERE id = ?', [$eid], ''); }
+        else { $empfehlCode = ''; unset($_SESSION['empfehl_code']); }
+    } catch (Throwable $e) { $empfehlCode = ''; }
+}
 
 /* ---------- Laden oder anfangen ---------- */
 $token = trim((string) ($_REQUEST['t'] ?? ''));
@@ -111,6 +136,8 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email'   => (string) ($_POST['email'] ?? ''),
                 'telefon' => (string) ($_POST['telefon'] ?? ''),
                 'firma'   => (string) ($_POST['firma'] ?? ''),
+                'empfehl_code' => $empfehlCode,
+                'empfehl_wer'  => (string) ($_POST['empfehl_wer'] ?? ''),
             ]);
             header('Location: ' . $adresse($anzahl, (string) $b['token'], $ok ? 'danke' : 'pflicht')); exit;
         }
@@ -155,6 +182,16 @@ if ($b && $schritt === $anzahl) {
         $spanne = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
         $monatlich = (int) $r['monatlich_cents'];
     } catch (Throwable $e) { $spanne = null; }
+}
+
+/* Wie viele Plaetze zum Einfuehrungspreis noch offen sind. Echte Zahl aus
+   voll bezahlten Bestellungen — kein erfundener Countdown. Faellt sie aus,
+   steht dort einfach nichts. */
+$rest = null; $ziel = 0;
+if ($b && $schritt === $anzahl) {
+    try {
+        if (Einfuehrung::laeuft()) { $rest = Einfuehrung::restplaetze(); $ziel = Einfuehrung::ziel(); }
+    } catch (Throwable $e) { $rest = null; }
 }
 
 $geld = static function (int $cents) use ($sprache): string {
@@ -216,6 +253,13 @@ $geld = static function (int $cents) use ($sprache): string {
   .ergebnis .monat{color:var(--dim);font-size:14px;line-height:1.6;margin:0}
   .ergebnis .erklaerung{color:var(--leise);font-size:13px;line-height:1.65;margin:14px auto 0;max-width:44ch}
 
+  .knapp{margin:16px auto 0;max-width:44ch;padding:10px 14px;border-radius:10px;
+    background:rgba(0,180,216,.09);border:1px solid rgba(0,180,216,.28);
+    font-size:13.5px;line-height:1.55;color:var(--dim)}
+  .knapp span{display:block;margin-top:4px;color:var(--leise);font-size:12.5px}
+  .erkannt{margin:4px 0 0;padding:10px 14px;border-radius:10px;
+    background:rgba(0,180,216,.09);border:1px solid rgba(0,180,216,.28);
+    font-size:13.5px;color:var(--dim)}
   .leiste2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .leiste2 .rechts{margin-left:auto}
   .leiste2 .knopf{flex:0 1 auto;padding-left:26px;padding-right:26px}
@@ -232,7 +276,7 @@ $geld = static function (int $cents) use ($sprache): string {
 <?php if ($panne || !$b): ?>
   <div class="block">
     <div class="hinweis schlecht"><?= $h($T($panne ? 'panne' : 'weg')) ?></div>
-    <a class="knopf haupt" href="bedarf.php?lang=<?= $h($sprache) ?>"><?= $h($T('neu')) ?></a>
+    <a class="knopf haupt" href="/bedarf.php?lang=<?= $h($sprache) ?>"><?= $h($T('neu')) ?></a>
   </div>
 
 <?php elseif ($m === 'danke' || ($fertig && $schritt === $anzahl)): ?>
@@ -256,7 +300,7 @@ $geld = static function (int $cents) use ($sprache): string {
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($T('panne')) ?></div><?php endif; ?>
   <?php if ($m === 'pflicht'): ?><div class="hinweis schlecht"><?= $h($T('pflicht')) ?></div><?php endif; ?>
 
-  <form method="post" action="bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $h($sprache) ?>">
+  <form method="post" action="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $h($sprache) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
     <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
     <input type="hidden" name="schritt" value="<?= (int) $schritt ?>">
@@ -305,6 +349,12 @@ $geld = static function (int $cents) use ($sprache): string {
             <p class="monat"><?= $h(strtr($T('ergebnisMonat'), ['{betrag}' => $geld($monatlich)])) ?></p>
           <?php endif; ?>
           <p class="erklaerung"><?= $h($T('ergebnisText')) ?></p>
+          <?php if ($rest !== null && $rest > 0): ?>
+            <p class="knapp">
+              <?= $h(strtr($T('knappheit'), ['{n}' => (string) $rest, '{g}' => (string) $ziel])) ?>
+              <span><?= $h(strtr($T('knappheitHilfe'), ['{g}' => (string) $ziel])) ?></span>
+            </p>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
 
@@ -330,6 +380,16 @@ $geld = static function (int $cents) use ($sprache): string {
           <input id="f_firma" name="firma" autocomplete="organization"
                  value="<?= $h((string) ($b['firma'] ?? '')) ?>">
         </div>
+        <?php if ($empfehlName !== ''): ?>
+          <p class="erkannt"><?= $h(strtr($T('empfehlungErkannt'), ['{name}' => $empfehlName])) ?></p>
+        <?php else: ?>
+          <div class="feld">
+            <label for="f_empf"><?= $h($T('fEmpfehlung')) ?></label>
+            <input id="f_empf" name="empfehl_wer"
+                   value="<?= $h((string) ($b['empfehl_wer'] ?? '')) ?>">
+            <p class="beiseite" style="margin-top:6px"><?= $h($T('empfehlungHilfe')) ?></p>
+          </div>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
 
@@ -352,7 +412,7 @@ $geld = static function (int $cents) use ($sprache): string {
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
       <a class="<?= $l === $sprache ? 'jetzt' : '' ?>"
-         href="bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $l ?>&amp;schritt=<?= (int) $schritt ?>"><?= $h($wie) ?></a>
+         href="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $l ?>&amp;schritt=<?= (int) $schritt ?>"><?= $h($wie) ?></a>
     <?php endforeach; ?>
   </div>
 <?php endif; ?>

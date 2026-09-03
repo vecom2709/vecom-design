@@ -587,6 +587,31 @@ final class Texte
             'en' => 'This link is no longer valid. You can start again.',
         ],
         'neu' => ['it' => 'Ricomincia', 'de' => 'Neu anfangen', 'en' => 'Start again'],
+        'fEmpfehlung' => [
+            'it' => 'Chi ti ha consigliato noi? (facoltativo)',
+            'de' => 'Wer hat uns empfohlen? (freiwillig)',
+            'en' => 'Who recommended us? (optional)',
+        ],
+        'empfehlungHilfe' => [
+            'it' => 'Il nome basta. Se diventa un lavoro, chi ti ha mandato riceve uno sconto sull\'assistenza.',
+            'de' => 'Der Name genügt. Wird ein Auftrag daraus, bekommt derjenige einen Nachlass auf seine Betreuung.',
+            'en' => 'A name is enough. If it turns into a job, they get a discount on their care plan.',
+        ],
+        'empfehlungErkannt' => [
+            'it' => 'Consigliato da {name} — grazie a entrambi.',
+            'de' => 'Empfohlen von {name} — danke euch beiden.',
+            'en' => 'Recommended by {name} — thank you both.',
+        ],
+        'knappheit' => [
+            'it' => 'Prezzo di lancio — restano {n} posti su {g}.',
+            'de' => 'Einführungspreis — noch {n} von {g} Plätzen.',
+            'en' => 'Launch pricing — {n} of {g} places left.',
+        ],
+        'knappheitHilfe' => [
+            'it' => 'Quando i {g} progetti sono conclusi, i prezzi salgono. Chi ha già un preventivo mantiene il suo.',
+            'de' => 'Sind die {g} Projekte abgeschlossen, steigen die Preise. Wer schon ein Angebot hat, behält seines.',
+            'en' => 'Once those {g} projects are done, prices go up. Anyone holding a quote keeps theirs.',
+        ],
         'autoOk' => [
             'it' => 'Salvo a ogni passo. Puoi chiudere e tornare con lo stesso link.',
             'de' => 'Ich speichere bei jedem Schritt. Du kannst zumachen und mit demselben Link zurückkommen.',

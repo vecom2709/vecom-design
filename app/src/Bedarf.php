@@ -155,6 +155,8 @@ final class Bedarf
             'email'           => mb_substr($email, 0, 190),
             'telefon'         => mb_substr(trim((string) ($kontakt['telefon'] ?? '')), 0, 60),
             'firma'           => mb_substr(trim((string) ($kontakt['firma'] ?? '')), 0, 160),
+            'empfehl_code'    => mb_substr(strtoupper(trim((string) ($kontakt['empfehl_code'] ?? ''))), 0, 16),
+            'empfehl_wer'     => mb_substr(trim((string) ($kontakt['empfehl_wer'] ?? '')), 0, 160),
             'von_cents'       => $spanne['von_cents'],
             'bis_cents'       => $spanne['bis_cents'],
             'monatlich_cents' => (int) $r['monatlich_cents'],
@@ -182,6 +184,24 @@ final class Bedarf
                 Events::melden('bedarf_fehler', 'Bedarf kam an, Anfrage nicht', 'schlecht',
                     $name . ' — ' . $e->getMessage(), '/bedarf/' . $id);
             } catch (Throwable $e2) { /* dann eben nicht */ }
+        }
+
+        // Zuletzt die Empfehlung. Sie ist das Entbehrlichste an diesem Vorgang
+        // — eine fehlende Gutschrift laesst sich nachtragen, ein verlorener
+        // Auftrag nicht. Deshalb steht sie am Ende und in eigenem Netz.
+        $code = trim((string) ($kontakt['empfehl_code'] ?? ''));
+        $wer  = trim((string) ($kontakt['empfehl_wer'] ?? ''));
+        if ($code !== '' || $wer !== '') {
+            try {
+                require_once __DIR__ . '/Empfehlung.php';
+                $frisch = Db::one('SELECT customer_id, anfrage_id FROM bedarf WHERE id = ?', [$id]);
+                Empfehlung::vormerken(
+                    $id,
+                    $frisch && $frisch['anfrage_id'] !== null ? (int) $frisch['anfrage_id'] : null,
+                    $frisch && $frisch['customer_id'] !== null ? (int) $frisch['customer_id'] : null,
+                    $code, $wer
+                );
+            } catch (Throwable $e) { /* nachtragbar */ }
         }
 
         return true;
