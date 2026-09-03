@@ -108,10 +108,15 @@
       }
     });
 
-    // 4. Einfuehrungspreise: eine Angabe, kein Countdown.
+    /* 4. Einfuehrungspreise: eine Angabe, kein Countdown.
+
+       Erst ab dem ersten abgeschlossenen Projekt. "0 von 10" waere zwar wahr,
+       sagt einem Leser aber etwas anderes als gemeint: nicht "die Preise
+       gelten noch", sondern "hier hat noch niemand gekauft". Der Satz
+       darueber steht ohne die Zahl genauso richtig da. */
     var kasten = document.querySelector('[data-einfuehrung]');
     var zahl   = document.querySelector('[data-einfuehrung-zahl]');
-    if (kasten && zahl && daten.einfuehrung && typeof daten.einfuehrung.ziel === 'number') {
+    if (kasten && zahl && daten.einfuehrung && daten.einfuehrung.fertig > 0) {
       zahl.textContent = daten.einfuehrung.fertig + ' / ' + daten.einfuehrung.ziel;
       kasten.hidden = false;
     }
