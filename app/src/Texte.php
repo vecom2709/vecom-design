@@ -517,6 +517,83 @@ final class Texte
         ],
     ];
 
+    /* ----------------------------------------------------------------------
+       Der Bedarfs-Konfigurator auf der Website.
+
+       Der Ton ist derselbe wie ueberall: duzen, kurze Saetze, und was der
+       Kunde tun soll, steht im ersten Satz. Was hier NICHT steht, ist ein
+       Preis — der entsteht erst am Ende aus seinen Antworten.
+       ---------------------------------------------------------------------- */
+    public const BEDARF = [
+        'titel' => ['it' => 'Che cosa ti serve?', 'de' => 'Was brauchst du?', 'en' => 'What do you need?'],
+        'lead'  => [
+            'it' => 'Otto domande brevi, circa un minuto e mezzo. Alla fine sai in che ordine di prezzo ti muovi — senza impegno.',
+            'de' => 'Acht kurze Fragen, etwa anderthalb Minuten. Am Ende weißt du, in welcher Größenordnung du liegst — unverbindlich.',
+            'en' => 'Eight short questions, about ninety seconds. At the end you know the ballpark — no obligation.',
+        ],
+        'schritt'  => ['it' => 'Passo {n} di {g}', 'de' => 'Schritt {n} von {g}', 'en' => 'Step {n} of {g}'],
+        'weiter'   => ['it' => 'Avanti', 'de' => 'Weiter', 'en' => 'Next'],
+        'zurueck'  => ['it' => 'Indietro', 'de' => 'Zurück', 'en' => 'Back'],
+        'absenden' => ['it' => 'Richiedi il preventivo', 'de' => 'Angebot anfordern', 'en' => 'Request a quote'],
+
+        'ergebnisTitel' => [
+            'it' => 'Per quello che hai descritto',
+            'de' => 'Für das, was du beschrieben hast',
+            'en' => 'For what you have described',
+        ],
+        'ergebnisText' => [
+            'it' => 'Questa è una stima, non un preventivo. Il prezzo definitivo te lo mando entro 24 ore, con le voci una per una — e vale quello.',
+            'de' => 'Das ist eine Schätzung, kein Angebot. Den verbindlichen Preis schicke ich dir binnen 24 Stunden, Position für Position — und der gilt dann.',
+            'en' => 'This is an estimate, not a quote. I will send you the binding price within 24 hours, item by item — and that one holds.',
+        ],
+        'ergebnisMonat' => [
+            'it' => 'più {betrag} al mese per l\'assistenza, se la vuoi. È un contratto a parte e puoi decidere dopo.',
+            'de' => 'dazu {betrag} im Monat für die Betreuung, wenn du magst. Das ist ein eigener Vertrag, und du kannst später entscheiden.',
+            'en' => 'plus {betrag} a month for care, if you want it. That is a separate contract and you can decide later.',
+        ],
+        'kontaktTitel' => [
+            'it' => 'Dove ti mando il preventivo?',
+            'de' => 'Wohin schicke ich das Angebot?',
+            'en' => 'Where should I send the quote?',
+        ],
+        'fName'    => ['it' => 'Come ti chiami', 'de' => 'Wie heißt du', 'en' => 'Your name'],
+        'fEmail'   => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+        'fTelefon' => ['it' => 'Telefono (facoltativo)', 'de' => 'Telefon (freiwillig)', 'en' => 'Phone (optional)'],
+        'fFirma'   => ['it' => 'Nome dell\'attività (facoltativo)', 'de' => 'Name des Betriebs (freiwillig)', 'en' => 'Business name (optional)'],
+
+        'danke' => [
+            'it' => 'Grazie! Ho ricevuto tutto. Ti scrivo entro 24 ore con il preventivo.',
+            'de' => 'Danke! Alles angekommen. Ich melde mich binnen 24 Stunden mit dem Angebot.',
+            'en' => 'Thank you! I have everything. I will come back to you within 24 hours with the quote.',
+        ],
+        'pflicht' => [
+            'it' => 'Mi servono almeno il nome e un indirizzo e-mail valido.',
+            'de' => 'Ich brauche mindestens deinen Namen und eine gültige E-Mail-Adresse.',
+            'en' => 'I need at least your name and a valid email address.',
+        ],
+        'nichts' => [
+            'it' => 'Scegli almeno una risposta, così posso calcolare qualcosa.',
+            'de' => 'Wähle mindestens eine Antwort, damit ich etwas rechnen kann.',
+            'en' => 'Pick at least one answer so I have something to work with.',
+        ],
+        'panne' => [
+            'it' => 'Qualcosa non ha funzionato. Riprova tra poco — quello che hai già scelto è salvato.',
+            'de' => 'Etwas hat nicht geklappt. Versuch es gleich noch einmal — was du gewählt hast, ist gespeichert.',
+            'en' => 'Something went wrong. Try again shortly — what you picked is saved.',
+        ],
+        'weg' => [
+            'it' => 'Questo link non è più valido. Puoi ricominciare da capo.',
+            'de' => 'Dieser Link gilt nicht mehr. Du kannst neu anfangen.',
+            'en' => 'This link is no longer valid. You can start again.',
+        ],
+        'neu' => ['it' => 'Ricomincia', 'de' => 'Neu anfangen', 'en' => 'Start again'],
+        'autoOk' => [
+            'it' => 'Salvo a ogni passo. Puoi chiudere e tornare con lo stesso link.',
+            'de' => 'Ich speichere bei jedem Schritt. Du kannst zumachen und mit demselben Link zurückkommen.',
+            'en' => 'I save at every step. You can close this and return with the same link.',
+        ],
+    ];
+
     public static function h(array $karte, string $sprache, string $ersatz = ''): string
     {
         return (string) ($karte[$sprache] ?? $karte['it'] ?? $ersatz);

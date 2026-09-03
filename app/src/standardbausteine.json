@@ -1,0 +1,229 @@
+{
+  "hinweis": "Startwerte fuer den Baukasten. Preise in ganzen Cent. preis_bis_cents 0 heisst: so sicher wie preis_cents. Bausteine in Baukasten::NUR_AUF_ANFRAGE werden nie automatisch gerechnet. Diese Datei wird nur beim ersten Mal eingelesen; danach gilt, was in der Verwaltung steht.",
+  "bausteine": [
+    {
+      "slug": "basis",
+      "gruppe": "basis",
+      "sortierung": 10,
+      "preis_cents": 29900,
+      "preis_bis_cents": 34900,
+      "name": {
+        "it": "Base del sito",
+        "de": "Grundgerüst der Website",
+        "en": "Website foundation"
+      },
+      "text": {
+        "it": "Impostazione, design su misura, ottimizzazione per cellulare, modulo di contatto, messa online.",
+        "de": "Einrichtung, eigene Gestaltung, Optimierung für das Handy, Kontaktformular, Veröffentlichung.",
+        "en": "Setup, custom design, mobile optimisation, contact form, going live."
+      }
+    },
+    {
+      "slug": "seite",
+      "gruppe": "seite",
+      "sortierung": 20,
+      "je_einheit": 1,
+      "preis_cents": 4000,
+      "preis_bis_cents": 5200,
+      "name": {
+        "it": "Pagina aggiuntiva",
+        "de": "Weitere Seite",
+        "en": "Additional page"
+      },
+      "text": {
+        "it": "Ogni pagina oltre la prima: struttura, testo impaginato, immagini.",
+        "de": "Jede Seite über die erste hinaus: Aufbau, gesetzter Text, Bilder.",
+        "en": "Each page beyond the first: structure, typeset text, images."
+      }
+    },
+    {
+      "slug": "sprache",
+      "gruppe": "sprache",
+      "sortierung": 30,
+      "je_einheit": 1,
+      "preis_cents": 12000,
+      "preis_bis_cents": 15500,
+      "name": {
+        "it": "Lingua aggiuntiva",
+        "de": "Weitere Sprache",
+        "en": "Additional language"
+      },
+      "text": {
+        "it": "Tutta la struttura nella seconda o terza lingua, con commutatore.",
+        "de": "Der ganze Auftritt in der zweiten oder dritten Sprache, mit Umschalter.",
+        "en": "The entire site in a second or third language, with a switcher."
+      }
+    },
+    {
+      "slug": "speisekarte",
+      "gruppe": "funktion",
+      "sortierung": 40,
+      "preis_cents": 9000,
+      "preis_bis_cents": 12000,
+      "name": {
+        "it": "Menu o listino",
+        "de": "Speisekarte oder Angebotsliste",
+        "en": "Menu or price list"
+      },
+      "text": {
+        "it": "Menu ordinato per categorie, aggiornabile senza toccare il codice.",
+        "de": "Nach Gruppen geordnet, später änderbar ohne Eingriff in den Code.",
+        "en": "Grouped by category, editable later without touching the code."
+      }
+    },
+    {
+      "slug": "termine",
+      "gruppe": "funktion",
+      "sortierung": 50,
+      "preis_cents": 19000,
+      "preis_bis_cents": 25000,
+      "name": {
+        "it": "Appuntamenti o prenotazione tavoli",
+        "de": "Termine oder Tischreservierung",
+        "en": "Appointments or table booking"
+      },
+      "text": {
+        "it": "Il cliente sceglie un orario libero, tu ricevi la richiesta per email.",
+        "de": "Der Kunde wählt eine freie Zeit, die Anfrage kommt per E-Mail an.",
+        "en": "The customer picks a free slot, the request reaches you by email."
+      }
+    },
+    {
+      "slug": "buchung",
+      "gruppe": "funktion",
+      "sortierung": 60,
+      "preis_cents": 39000,
+      "preis_bis_cents": 52000,
+      "name": {
+        "it": "Sistema di prenotazione",
+        "de": "Buchungssystem",
+        "en": "Booking system"
+      },
+      "text": {
+        "it": "Disponibilita, notti o periodi, prezzi per stagione, conferma automatica.",
+        "de": "Verfügbarkeit, Nächte oder Zeiträume, Preise je Saison, Bestätigung von allein.",
+        "en": "Availability, nights or periods, seasonal pricing, automatic confirmation."
+      }
+    },
+    {
+      "slug": "shop",
+      "gruppe": "funktion",
+      "sortierung": 70,
+      "preis_cents": 59000,
+      "preis_bis_cents": 79000,
+      "name": {
+        "it": "Negozio online",
+        "de": "Online-Shop",
+        "en": "Online shop"
+      },
+      "text": {
+        "it": "Prodotti, varianti, carrello, pagamento, regole di spedizione.",
+        "de": "Artikel, Varianten, Warenkorb, Bezahlung, Versandregeln.",
+        "en": "Products, variants, cart, payment, shipping rules."
+      }
+    },
+    {
+      "slug": "texte",
+      "gruppe": "inhalt",
+      "sortierung": 80,
+      "preis_cents": 12000,
+      "preis_bis_cents": 16000,
+      "name": {
+        "it": "Stesura dei testi",
+        "de": "Texte schreiben",
+        "en": "Copywriting"
+      },
+      "text": {
+        "it": "Scrivo io i testi delle pagine, tu li correggi prima della pubblicazione.",
+        "de": "Ich schreibe die Texte, du liest sie vor der Veröffentlichung gegen.",
+        "en": "I write the page copy, you review it before publication."
+      }
+    },
+    {
+      "slug": "fotos",
+      "gruppe": "inhalt",
+      "sortierung": 90,
+      "preis_cents": 9000,
+      "preis_bis_cents": 12000,
+      "name": {
+        "it": "Immagini",
+        "de": "Bilder",
+        "en": "Images"
+      },
+      "text": {
+        "it": "Selezione, ritaglio e ottimizzazione. Se mancano, cerco immagini con licenza.",
+        "de": "Auswahl, Zuschnitt und Optimierung. Fehlen welche, suche ich lizenzierte Bilder.",
+        "en": "Selection, cropping and optimisation. If none exist, I source licensed images."
+      }
+    },
+    {
+      "slug": "logo",
+      "gruppe": "inhalt",
+      "sortierung": 100,
+      "preis_cents": 19000,
+      "preis_bis_cents": 24000,
+      "name": {
+        "it": "Logo",
+        "de": "Logo",
+        "en": "Logo"
+      },
+      "text": {
+        "it": "Marchio nuovo in piu formati, per il sito e per la stampa.",
+        "de": "Neue Bildmarke in mehreren Formaten, für die Website und für den Druck.",
+        "en": "A new mark in several formats, for the website and for print."
+      }
+    },
+    {
+      "slug": "uebernahme",
+      "gruppe": "inhalt",
+      "sortierung": 110,
+      "preis_cents": 9000,
+      "preis_bis_cents": 12000,
+      "name": {
+        "it": "Recupero dal sito attuale",
+        "de": "Inhalte von der alten Seite übernehmen",
+        "en": "Migrating the existing site"
+      },
+      "text": {
+        "it": "Testi e immagini dal sito esistente, con i vecchi indirizzi che continuano a funzionare.",
+        "de": "Texte und Bilder von der bestehenden Seite, alte Adressen funktionieren weiter.",
+        "en": "Text and images from the existing site, with old addresses still working."
+      }
+    },
+    {
+      "slug": "express",
+      "gruppe": "funktion",
+      "sortierung": 120,
+      "preis_cents": 15000,
+      "preis_bis_cents": 20000,
+      "name": {
+        "it": "Consegna rapida",
+        "de": "Beschleunigte Umsetzung",
+        "en": "Rush delivery"
+      },
+      "text": {
+        "it": "Il tuo progetto passa davanti agli altri in coda.",
+        "de": "Dein Projekt geht in der Reihenfolge vor.",
+        "en": "Your project moves to the front of the queue."
+      }
+    },
+    {
+      "slug": "betreuung_basis",
+      "gruppe": "betreuung",
+      "sortierung": 200,
+      "monatlich": 1,
+      "preis_cents": 3900,
+      "preis_bis_cents": 0,
+      "name": {
+        "it": "Assistenza mensile",
+        "de": "Monatliche Betreuung",
+        "en": "Monthly care"
+      },
+      "text": {
+        "it": "Aggiornamenti, copie di sicurezza, controllo del sito, piccole modifiche.",
+        "de": "Aktualisierungen, Sicherungen, Überwachung der Seite, kleine Änderungen.",
+        "en": "Updates, backups, site monitoring, small changes."
+      }
+    }
+  ]
+}

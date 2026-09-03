@@ -1,6 +1,7 @@
 <?php /** Rahmen aller Admin-Seiten. */
 $navZahlen = [
   'anfragen'    => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM anfragen WHERE status IN ('neu','in_arbeit')", [], 0), 0),
+  'bedarf'      => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM bedarf WHERE status = 'abgesendet'", [], 0), 0),
   'nachrichten' => (int) Db::wert("SELECT COUNT(*) FROM messages WHERE read_at IS NULL AND sender='kunde'"),
   'onboarding'  => (int) Db::wert("SELECT COUNT(*) FROM questionnaires WHERE status='offen'"),
   'benachrichtigungen' => (int) Db::wert('SELECT COUNT(*) FROM notifications WHERE read_at IS NULL'),
@@ -24,10 +25,12 @@ $menue = [
   ['', 'Dashboard', 'dashboard'],
   ['__gruppe', 'Geschäft', null],
   ['pakete', 'Pakete', 'pakete'],
+  ['baukasten', 'Baukasten', 'baukasten'],
   ['bestellungen', 'Bestellungen', 'bestellungen'],
   ['projekte', 'Projekte', 'projekte'],
   ['kunden', 'Kunden', 'kunden'],
   ['__gruppe', 'Kontakt', null],
+  ['bedarf', 'Bedarf', 'bedarf'],
   ['anfragen', 'Anfragen', 'anfragen'],
   ['nachrichten', 'Nachrichten', 'nachrichten'],
   ['onboarding', 'Fragebögen', 'onboarding'],

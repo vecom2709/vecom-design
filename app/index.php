@@ -146,6 +146,36 @@ if ($post) {
     $tat = (string) ($_POST['tat'] ?? '');
     try {
         switch ($tat) {
+            case 'bausteine_speichern':
+                require_once __DIR__ . '/src/Baukasten.php';
+                // Alles in einem Rutsch: Preise pflegt man selten, dann aber
+                // mehrere auf einmal. Eine Transaktion, damit eine halbe
+                // Preisrunde nicht stehen bleibt.
+                $von   = (array) ($_POST['von'] ?? []);
+                $bis   = (array) ($_POST['bis'] ?? []);
+                $aktiv = (array) ($_POST['aktiv'] ?? []);
+                $wie   = 0;
+                Db::transaktion(static function () use ($von, $bis, $aktiv, &$wie) {
+                    foreach ($von as $bid => $wert) {
+                        $bid = (int) $bid;
+                        if ($bid < 1) { continue; }
+                        $u = Baukasten::centsAus((string) $wert);
+                        $o = Baukasten::centsAus((string) ($bis[$bid] ?? ''));
+                        // Eine Obergrenze unter der Untergrenze ist keine
+                        // Spanne, sondern ein Tippfehler. Dann lieber gar
+                        // keine Obergrenze als eine verkehrte.
+                        if ($o > 0 && $o < $u) { $o = 0; }
+                        Db::update('bausteine', $bid, [
+                            'preis_cents'     => $u,
+                            'preis_bis_cents' => $o,
+                            'aktiv'           => isset($aktiv[$bid]) ? 1 : 0,
+                        ]);
+                        $wie++;
+                    }
+                });
+                Events::protokoll('baukasten_preise', $wie . ' Bausteine gespeichert');
+                zurueck('baukasten');
+
             case 'kunde_speichern':
                 $daten = [
                     'name' => trim((string) $_POST['name']), 'email' => mb_strtolower(trim((string) $_POST['email'])),
@@ -1182,6 +1212,35 @@ switch ($route) {
         ansicht('pakete', ['liste' => Db::all(
             'SELECT p.*, (SELECT COUNT(*) FROM orders o WHERE o.package_id = p.id) AS bestellungen
              FROM packages p ORDER BY p.sort, p.price_cents')]);
+        break;
+
+    case 'baukasten':
+        require_once __DIR__ . '/src/Baukasten.php';
+        sicher(static fn() => Baukasten::sicherstellen());
+        ansicht('baukasten', ['liste' => sicher(static fn() => Db::all(
+            'SELECT * FROM bausteine ORDER BY sortierung, id'), [])]);
+        break;
+
+    case 'bedarf':
+        require_once __DIR__ . '/src/Baukasten.php';
+        require_once __DIR__ . '/src/Bedarf.php';
+        if ($id !== null) {
+            $b = Db::one('SELECT * FROM bedarf WHERE id = ?', [$id]);
+            if (!$b) { http_response_code(404); exit('Bedarf nicht gefunden.'); }
+            $antworten = Bedarf::antworten($b);
+            $katalog   = Baukasten::katalog(false);
+            ansicht('bedarf', [
+                'b'         => $b,
+                'antworten' => $antworten,
+                'katalog'   => $katalog,
+                'rechnung'  => Baukasten::rechnen($antworten, Baukasten::katalog()),
+            ]);
+            break;
+        }
+        ansicht('bedarfe', ['liste' => sicher(static fn() => Db::all(
+            "SELECT * FROM bedarf
+              ORDER BY FIELD(status,'abgesendet','angebot','offen','verworfen'), created_at DESC
+              LIMIT 200"), [])]);
         break;
 
     case 'bestellungen':
