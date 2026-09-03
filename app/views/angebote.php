@@ -6,6 +6,7 @@ $stufen = [
     'angenommen' => ['gut',     'angenommen'],
     'abgelehnt'  => ['',        'abgelehnt'],
     'abgelaufen' => ['',        'abgelaufen'],
+    'zurueckgezogen' => ['',    'zurückgezogen'],
 ];
 ?>
 <div class="kopf"><h1>Angebote</h1></div>

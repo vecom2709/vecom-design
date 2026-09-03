@@ -374,8 +374,21 @@ final class Vorgang
                         'Das Angebot steht als Entwurf. Der Kunde hat es noch nicht.',
                         null, null, [], $ziel . '?tun=angebot_senden');
                 case 'gesendet':
+                    /* "Verschickt" heisst bisher nur: festgeschrieben. Ob der
+                       Kunde den Link auch bekommen hat, sagt allein eine
+                       Nachricht an ihn -- solange keine draussen ist, wartet
+                       er nicht, sondern weiss von nichts. */
+                    $raus = (int) self::wert(
+                        "SELECT COUNT(*) FROM messages
+                          WHERE customer_id = ? AND sender <> 'kunde' AND created_at >= ?",
+                        [$kid, (string) ($angebot['gesendet_am'] ?? null ?: ($angebot['updated_at'] ?? ''))]);
+                    if ($raus === 0) {
+                        return self::setzen($v, 'gespraech', self::DU, 'Link schicken',
+                            'Das Angebot steht fest, aber der Kunde hat den Link noch nicht.',
+                            null, null, [], $ziel . '?tun=angebot_link');
+                    }
                     return self::setzen($v, 'gespraech', self::KUNDE, 'Angebot ansehen',
-                        'Das Angebot ist raus. Jetzt entscheidet der Kunde.',
+                        'Das Angebot ist beim Kunden. Jetzt entscheidet er.',
                         null, null, [], $ziel);
                 case 'angenommen':
                     /* Beim Annehmen entsteht die Bestellung von selbst. Steht

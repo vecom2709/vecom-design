@@ -87,8 +87,11 @@ final class Angebot
         $bedarf = Db::one('SELECT * FROM bedarf WHERE id = ?', [$bedarfId]);
         if (!$bedarf || $bedarf['customer_id'] === null) { return null; }
 
-        // Gibt es schon eines, wird nicht ein zweites angelegt.
-        $schon = (int) Db::wert('SELECT id FROM angebote WHERE bedarf_id = ? LIMIT 1', [$bedarfId], 0);
+        /* Gibt es schon eines, wird nicht ein zweites angelegt -- sondern
+           das juengste geoeffnet. Seit es Neufassungen gibt, koennen mehrere
+           an einem Bedarf haengen; gemeint ist immer die letzte. */
+        $schon = (int) Db::wert(
+            'SELECT id FROM angebote WHERE bedarf_id = ? ORDER BY id DESC LIMIT 1', [$bedarfId], 0);
         if ($schon > 0) { return $schon; }
 
         require_once __DIR__ . '/Baukasten.php';
@@ -135,6 +138,92 @@ final class Angebot
             self::summenNeu($angebotId);
             Db::update('bedarf', $bedarfId, ['status' => 'angebot']);
             return $angebotId;
+        });
+    }
+
+    /**
+     * Eine zweite Fassung eines schon verschickten Angebots.
+     *
+     * WARUM NICHT EINFACH DAS ALTE AUFSCHLIESSEN
+     *
+     * Weil der Kunde den Link hat. Ein Angebot, das sich unter seinem Klick
+     * veraendert, ist keines mehr -- und wer eine Zusage bekommt, muss sagen
+     * koennen, worauf sie sich bezog. Also entsteht eine Kopie als Entwurf,
+     * mit allen Posten der alten drin: Wer eine Seite dazunimmt oder die
+     * Speisekarte streicht, aendert genau das eine und nicht alles neu.
+     *
+     * Die alte Fassung wird dabei zurueckgezogen. Ihr Link zeigt weiter das
+     * alte Blatt -- es zu verstecken waere unhoeflich, der Kunde hat es ja
+     * gelesen --, nimmt aber keine Zusage mehr an. Sonst haette man zwei
+     * gueltige Angebote ueber dieselbe Sache im Umlauf, und welches gilt,
+     * entschiede der Zufall.
+     *
+     * @return int|null Die Kennung der neuen Fassung, oder null wenn diese
+     *                  Fassung keine Neufassung vertraegt.
+     */
+    public static function neuFassung(int $angebotId): ?int
+    {
+        $alt = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$alt) { return null; }
+
+        /* Ein Entwurf braucht keine: den kann man aendern. Ein angenommenes
+           Angebot darf keine: daran haengt eine Bestellung, und die Zusage
+           bezog sich auf dieses Blatt. Bleibt, was beim Kunden lag oder
+           liegt. */
+        if (!in_array((string) $alt['status'], ['gesendet', 'abgelehnt', 'abgelaufen'], true)) {
+            return null;
+        }
+        if ($alt['ersetzt_durch'] !== null) { return (int) $alt['ersetzt_durch']; }
+
+        $tage = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
+
+        return (int) Db::transaktion(static function () use ($alt, $angebotId, $tage) {
+            $neuId = Db::insert('angebote', [
+                'nummer'            => self::naechsteNummer(),
+                'customer_id'       => (int) $alt['customer_id'],
+                'bedarf_id'         => $alt['bedarf_id'] !== null ? (int) $alt['bedarf_id'] : null,
+                'vorgaenger_id'     => $angebotId,
+                'fassung'           => min(255, (int) $alt['fassung'] + 1),
+                'sprache'           => (string) $alt['sprache'],
+                'status'            => 'entwurf',
+                'titel'             => (string) $alt['titel'],
+                'einleitung'        => $alt['einleitung'],
+                'currency'          => (string) $alt['currency'],
+                'anzahlung_prozent' => (int) $alt['anzahlung_prozent'],
+                'token'             => bin2hex(random_bytes(24)),
+                'gueltig_bis'       => date('Y-m-d', strtotime("+$tage days")),
+            ]);
+
+            foreach (Db::all(
+                'SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id',
+                [$angebotId]) as $p) {
+                Db::insert('angebot_positionen', [
+                    'angebot_id'    => $neuId,
+                    'baustein_slug' => $p['baustein_slug'],
+                    'bezeichnung'   => (string) $p['bezeichnung'],
+                    'beschreibung'  => $p['beschreibung'],
+                    'menge'         => (int) $p['menge'],
+                    'einzel_cents'  => (int) $p['einzel_cents'],
+                    'summe_cents'   => (int) $p['summe_cents'],
+                    'monatlich'     => (int) $p['monatlich'],
+                    'sortierung'    => (int) $p['sortierung'],
+                ]);
+            }
+
+            self::summenNeu($neuId);
+
+            Db::update('angebote', $angebotId, [
+                'status'        => 'zurueckgezogen',
+                'ersetzt_durch' => $neuId,
+            ]);
+
+            try {
+                Events::protokoll('angebot_neufassung',
+                    'Angebot ' . $alt['nummer'] . ' zurueckgezogen, Neufassung angelegt',
+                    (int) $alt['customer_id']);
+            } catch (Throwable $e) { /* Beiwerk */ }
+
+            return $neuId;
         });
     }
 

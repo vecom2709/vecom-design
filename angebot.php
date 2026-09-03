@@ -181,7 +181,12 @@ $datum = static function (?string $d): string {
     </div>
   </div>
 
-  <?php if ($a['status'] === 'angenommen'): ?>
+  <?php if ($a['status'] === 'zurueckgezogen'): ?>
+    <?php /* Nicht verstecken: Der Kunde hat dieses Blatt gelesen und darf es
+             wiederfinden. Nur zusagen kann er darauf nicht mehr -- das haengt
+             an $offen, das nur fuer "gesendet" gilt. */ ?>
+    <div class="hinweis warnung"><?= $h($T('ersetzt')) ?></div>
+  <?php elseif ($a['status'] === 'angenommen'): ?>
     <div class="hinweis gut"><?= $h($T('schonAn')) ?></div>
   <?php elseif ($a['status'] === 'abgelehnt'): ?>
     <div class="hinweis"><?= $h($T('schonAb')) ?></div>

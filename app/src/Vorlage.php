@@ -203,7 +203,24 @@ final class Vorlage
             return Empfehlung::monate();
         }, 12);
 
+        /* Das juengste Angebot dieses Kunden -- gemeint ist immer das, an dem
+           gerade gearbeitet wird. Gibt es keines, bleiben Punkte stehen und
+           fallen beim Lesen auf, statt als Luecke durchzurutschen. */
+        $ang = (array) self::still(fn() => Db::one(
+            'SELECT * FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$kundeId]), []);
+        $anglink = '';
+        if ($ang) {
+            $anglink = (string) self::still(function () use ($ang) {
+                require_once __DIR__ . '/Angebot.php';
+                return Angebot::link($ang);
+            }, '');
+        }
+
         return [
+            '{angebotlink}'    => $anglink !== '' ? $anglink : '…',
+            '{angebotnummer}'  => $punkte((string) ($ang['nummer'] ?? '')),
+            '{angebotsumme}'   => isset($ang['summe_cents']) && (int) $ang['summe_cents'] > 0
+                                    ? Fmt::geld((int) $ang['summe_cents'], (string) ($ang['currency'] ?? 'EUR')) : '…',
             '{konfigurator}'   => $web . '/bedarf.php?lang=' . $sprache,
             '{preisseite}'     => $preisseite,
             '{empfehlungslink}'=> $code !== '' ? $web . '/e/' . $code : '…',

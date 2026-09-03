@@ -749,6 +749,11 @@ final class Texte
             'de' => 'Dieses Angebot ist abgelaufen. Schreib mir, dann mache ich ein neues — meist zum alten Preis.',
             'en' => 'This quote has expired. Write to me and I will make a new one — usually at the old price.',
         ],
+        'ersetzt' => [
+            'it' => 'Questa offerta è stata sostituita da una nuova, con le modifiche che mi hai chiesto. La trovi nell’e-mail più recente. Qui sotto resta la versione precedente, così puoi confrontarle.',
+            'de' => 'Dieses Angebot wurde durch ein neues ersetzt — mit den Änderungen, um die du gebeten hast. Es steht in der jüngeren E-Mail. Hier unten bleibt die vorige Fassung stehen, damit du vergleichen kannst.',
+            'en' => 'This quote has been replaced by a new one with the changes you asked for. It is in the more recent email. The previous version stays below so you can compare.',
+        ],
         'weg' => [
             'it' => 'Questo link non è più valido.',
             'de' => 'Dieser Link gilt nicht mehr.',

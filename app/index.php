@@ -194,6 +194,14 @@ if ($post) {
                 Angebot::senden($aid);
                 zurueck('angebote/' . $aid);
 
+            case 'angebot_neufassung':
+                require_once __DIR__ . '/src/Angebot.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                $neu = Angebot::neuFassung($aid);
+                // Geht es nicht (Entwurf oder schon angenommen), bleibt man,
+                // wo man war -- die Seite sagt dann selbst, warum.
+                zurueck('angebote/' . ($neu ?? $aid));
+
             case 'preise_anheben':
                 require_once __DIR__ . '/src/Baukasten.php';
                 require_once __DIR__ . '/src/Einfuehrung.php';
@@ -1308,17 +1316,23 @@ switch ($route) {
                 'SELECT a.*, c.name AS kunde FROM angebote a
                    JOIN customers c ON c.id = a.customer_id WHERE a.id = ?', [$id]), null);
             if (!$a) { http_response_code(404); exit('Angebot nicht gefunden.'); }
+            /* Ist es raus, gehoert das Schreibfeld gleich daneben: Der
+               Kunde bekommt den Link nicht von selbst, und ein Angebot, das
+               niemand kennt, ist keins. Die Vorlage steht vorgewaehlt da. */
+            require_once __DIR__ . '/src/Vorlage.php';
             ansicht('angebot', [
                 'a'          => $a,
                 'positionen' => sicher(static fn() => Angebot::positionen($id), []),
                 'katalog'    => sicher(static fn() => Baukasten::katalog(), []),
+                'vorlagen'   => sicher(static fn() => Vorlage::fuer((int) $a['customer_id']), []),
+                'kennung'    => (string) sicher(static fn() => Vorlage::kennung((int) $a['customer_id']), ''),
             ]);
             break;
         }
         ansicht('angebote', ['liste' => sicher(static fn() => Db::all(
             "SELECT a.*, c.name AS kunde FROM angebote a
                LEFT JOIN customers c ON c.id = a.customer_id
-              ORDER BY FIELD(a.status,'entwurf','gesendet','angenommen','abgelehnt','abgelaufen'),
+              ORDER BY FIELD(a.status,'entwurf','gesendet','angenommen','abgelehnt','abgelaufen','zurueckgezogen'),
                        a.created_at DESC LIMIT 200"), [])]);
         break;
 

@@ -7,19 +7,34 @@
    ein Feld fehlt. */
 $aenderbar = Angebot::aenderbar($a);
 $stufen = [
-    'entwurf'    => ['',        'Entwurf'],
-    'gesendet'   => ['warnung', 'beim Kunden'],
-    'angenommen' => ['gut',     'angenommen'],
-    'abgelehnt'  => ['',        'abgelehnt'],
-    'abgelaufen' => ['',        'abgelaufen'],
+    'entwurf'        => ['',        'Entwurf'],
+    'gesendet'       => ['warnung', 'beim Kunden'],
+    'angenommen'     => ['gut',     'angenommen'],
+    'abgelehnt'      => ['',        'abgelehnt'],
+    'abgelaufen'     => ['',        'abgelaufen'],
+    'zurueckgezogen' => ['',        'zurückgezogen'],
 ];
+/* Eine Neufassung lohnt sich nur, wo das Angebot beim Kunden lag oder liegt.
+   Ein Entwurf ist ohnehin aenderbar, ein angenommenes darf nicht mehr wandern. */
+$neufassbar = in_array((string) $a['status'], ['gesendet', 'abgelehnt', 'abgelaufen'], true)
+           && ($a['ersetzt_durch'] ?? null) === null;
 [$farbe, $wort] = $stufen[(string) $a['status']] ?? ['', (string) $a['status']];
 $eur = static fn(int $c): string => number_format($c / 100, 2, ',', '');
 $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent'] / 100);
 ?>
 <div class="kopf">
-  <h1><?= Fmt::h((string) $a['nummer']) ?> <span class="marke2 <?= Fmt::h($farbe) ?>"><?= Fmt::h($wort) ?></span></h1>
+  <h1><?= Fmt::h((string) $a['nummer']) ?>
+    <?php if ((int) ($a['fassung'] ?? 1) > 1): ?>
+      <span class="marke2">Fassung <?= (int) $a['fassung'] ?></span>
+    <?php endif; ?>
+    <span class="marke2 <?= Fmt::h($farbe) ?>"><?= Fmt::h($wort) ?></span></h1>
   <div class="rechts">
+    <?php if (($a['vorgaenger_id'] ?? null) !== null): ?>
+      <a class="knopf" href="<?= Fmt::h(url('angebote/' . (int) $a['vorgaenger_id'])) ?>">Vorige Fassung</a>
+    <?php endif; ?>
+    <?php if (($a['ersetzt_durch'] ?? null) !== null): ?>
+      <a class="knopf" href="<?= Fmt::h(url('angebote/' . (int) $a['ersetzt_durch'])) ?>">Neue Fassung</a>
+    <?php endif; ?>
     <a class="knopf" href="<?= Fmt::h(url('kunden/' . $a['customer_id'])) ?>">Zum Kunden</a>
     <?php if ($a['bedarf_id']): ?>
       <a class="knopf" href="<?= Fmt::h(url('bedarf/' . $a['bedarf_id'])) ?>">Zum Bedarf</a>
@@ -184,7 +199,27 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
         </form>
       </div>
     <?php else: ?>
-      <div class="block">
+      <?php if ($neufassbar): ?>
+        <div class="block" data-tun="angebot_neufassung">
+          <h2 style="font-size:15px;margin:0 0 10px">Der Kunde will etwas anders</h2>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+            Eine Seite mehr, die Speisekarte doch nicht: Dieses Blatt bleibt, wie es ist —
+            der Kunde hat es gelesen. Stattdessen entsteht eine zweite Fassung als Entwurf,
+            mit allen Posten von hier drin. Du änderst nur das eine und schickst sie.
+            Dieses Angebot wird dabei zurückgezogen: Sein Link zeigt weiter das alte Blatt,
+            nimmt aber keine Zusage mehr an — sonst wären zwei gültig und keiner wüsste welches.
+          </p>
+          <form method="post" action="<?= Fmt::h(url('')) ?>"
+                onsubmit="return confirm('Neue Fassung anlegen? Dieses Angebot wird damit zurückgezogen.')">
+            <?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="angebot_neufassung">
+            <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+            <button class="knopf haupt">Angebot ändern</button>
+          </form>
+        </div>
+      <?php endif; ?>
+
+      <div class="block" data-tun="angebot_link">
         <h2 style="font-size:15px;margin:0 0 10px">Link für den Kunden</h2>
         <input readonly value="<?= Fmt::h(Angebot::link($a)) ?>"
                style="width:100%;font-size:12.5px" onclick="this.select()">
@@ -193,6 +228,31 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
         </p>
         <a class="knopf" style="margin-top:12px"
            href="<?= Fmt::h(Angebot::link($a)) ?>&amp;pdf=1">PDF ansehen</a>
+
+        <?php if ((string) $a['status'] === 'gesendet'): ?>
+          <?php /* Verschicken heisst hier bisher nur: festschreiben. Der Kunde
+                   erfaehrt davon nichts, solange ihm niemand den Link schickt --
+                   deshalb steht das Schreibfeld gleich hier, mit der passenden
+                   Vorlage vorgewaehlt. */ ?>
+          <hr style="border:0;border-top:1px solid var(--linie);margin:16px 0">
+          <h2 style="font-size:15px;margin:0 0 4px">Dem Kunden schicken</h2>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 4px">
+            Der Link kommt nicht von allein an. Die Vorlage steht schon drin —
+            lies drüber und sende.
+          </p>
+          <?php
+            $nfTat      = 'kunde_nachricht';
+            $nfId       = (int) $a['customer_id'];
+            $nfKennung  = $kennung ?? '';
+            $nfVorlagen = $vorlagen ?? [];
+            $nfVorname  = explode(' ', trim((string) ($a['kunde'] ?? '')))[0] ?? '';
+            $nfZurueck  = 'angebote/' . (int) $a['id'];
+            $nfVorwahl  = ($a['vorgaenger_id'] ?? null) !== null ? 'angebot_neufassung' : 'angebot_link';
+            $nfBetreff  = '';
+            $nfText     = '';
+            include __DIR__ . '/nachrichtfeld.php';
+          ?>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
   </div>
