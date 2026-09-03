@@ -2499,3 +2499,44 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 @media (max-width:640px){
   .einstieg .plans{grid-template-columns:minmax(0,1fr)}
 }
+
+/* --------------------------------------------------------------------------
+   Sprachhinweis — ein Vorschlag, kein Riegel
+
+   Sitzt ueber allem, ist aber bewusst leise: Er unterbricht nicht, er bietet
+   an. Deshalb kein Modal, kein Overlay, keine Verdunklung — ein Streifen, der
+   den Inhalt nach unten schiebt und sich mit einem Klick verabschiedet.
+   -------------------------------------------------------------------------- */
+.sprachhinweis{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:10px clamp(16px,4vw,32px);
+  background:color-mix(in oklab, var(--blau,#0648e8) 12%, #0a0e14);
+  border-bottom:1px solid color-mix(in oklab, var(--cyan,#1fe8ff) 26%, transparent);
+  font-size:14px; line-height:1.45; color:var(--hell,#e8ecf1);
+  /* Ueber der Kopfzeile, die fest bei z-index 100 steht. Ohne das liegt sie
+     zwar sichtbar da, faengt aber keinen Klick mehr — die Kopfzeile schluckt
+     ihn. Genau das ist beim Testen passiert. */
+  position:sticky; top:0; z-index:110;
+}
+/* Solange die Leiste steht, rueckt die feste Kopfzeile um ihre Hoehe nach
+   unten. Sonst legt sie sich darueber und beide streiten um dieselbe Zeile. */
+html.hat-sprachhinweis .header{top:var(--sprachhinweis-h,0px)}
+.sprachhinweis__text{flex:1 1 auto; min-width:12ch}
+.sprachhinweis__ja{
+  flex:0 0 auto; padding:7px 16px; border-radius:999px; text-decoration:none;
+  background:linear-gradient(92deg,var(--blau,#0648e8),var(--cyan,#1fe8ff));
+  color:#fff; font-weight:600; font-size:13.5px; white-space:nowrap;
+}
+.sprachhinweis__ja:hover{filter:brightness(1.08)}
+.sprachhinweis__nein{
+  flex:0 0 auto; background:none; border:0; cursor:pointer;
+  color:var(--leise,#6b7280); font-size:13px; padding:7px 4px; white-space:nowrap;
+}
+.sprachhinweis__nein:hover{color:var(--dim,#9aa4b2)}
+.sprachhinweis__ja:focus-visible,.sprachhinweis__nein:focus-visible{
+  outline:2px solid var(--cyan,#1fe8ff); outline-offset:3px;
+}
+@media (max-width:520px){
+  .sprachhinweis{font-size:13.5px; gap:8px}
+  .sprachhinweis__text{flex:1 1 100%}
+}
