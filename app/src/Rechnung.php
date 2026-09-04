@@ -35,6 +35,70 @@ final class Rechnung
     }
 
     /**
+     * Die Beschriftungen des Belegs in den drei Sprachen.
+     *
+     * WARUM DAS HIER STEHT
+     *
+     * Der Beleg war bis zuletzt durchgehend deutsch, auch fuer einen
+     * sizilianischen Gastwirt: RECHNUNGSEMPFAENGER, LEISTUNG, BETRAG,
+     * "Bezahlt am". Die Mail dazu war laengst dreisprachig — der Anhang
+     * darin nicht, und der Anhang ist das Dokument.
+     *
+     * Nicht uebersetzt wird, was Uwe selbst eingetippt hat (ein eigener
+     * Titel am Beleg) und was das Gesetz vorgibt (der Forfettario-Satz in
+     * Firma::pflichthinweis). Beides waere eine Faelschung im Kleinen.
+     */
+    private const WORTE = [
+        'it' => [
+            'empf' => 'DESTINATARIO', 'nummer' => 'Numero', 'datum' => 'Data',
+            'bestellung' => 'Ordine', 'kundennr' => 'N. cliente', 'nr' => 'N. ',
+            'leistung' => 'PRESTAZIONE', 'nettoK' => 'IMPONIBILE', 'betrag' => 'IMPORTO',
+            'netto' => 'Imponibile', 'gesamt' => 'Totale',
+            'bezahlt' => 'Pagato il {datum}. Non resta nulla da pagare.',
+            'paket' => 'Pacchetto',
+        ],
+        'de' => [
+            'empf' => 'RECHNUNGSEMPFÄNGER', 'nummer' => 'Nummer', 'datum' => 'Datum',
+            'bestellung' => 'Bestellung', 'kundennr' => 'Kundennummer', 'nr' => 'Nr. ',
+            'leistung' => 'LEISTUNG', 'nettoK' => 'NETTO', 'betrag' => 'BETRAG',
+            'netto' => 'Netto', 'gesamt' => 'Gesamt',
+            'bezahlt' => 'Bezahlt am {datum}. Es ist nichts mehr offen.',
+            'paket' => 'Paket',
+        ],
+        'en' => [
+            'empf' => 'BILL TO', 'nummer' => 'Number', 'datum' => 'Date',
+            'bestellung' => 'Order', 'kundennr' => 'Customer no.', 'nr' => 'No. ',
+            'leistung' => 'SERVICE', 'nettoK' => 'NET', 'betrag' => 'AMOUNT',
+            'netto' => 'Net', 'gesamt' => 'Total',
+            'bezahlt' => 'Paid on {datum}. Nothing is outstanding.',
+            'paket' => 'Package',
+        ],
+    ];
+
+    /**
+     * In welcher Sprache dieser Beleg geschrieben wird.
+     *
+     * Zuerst das, was der Kunde beim Bestellen vor sich hatte — das aendert
+     * sich nie mehr, und ein Beleg soll in zwei Jahren noch so aussehen wie
+     * am Tag der Zahlung. Erst danach seine heutige Einstellung.
+     */
+    public static function sprache(array $r): string
+    {
+        $s = '';
+        try {
+            if (!empty($r['order_id'])) {
+                $s = strtolower(trim((string) Db::wert(
+                    'SELECT zustimmung_lang FROM orders WHERE id = ?', [(int) $r['order_id']], '')));
+            }
+            if ($s === '' && !empty($r['customer_id'])) {
+                $s = strtolower(trim((string) Db::wert(
+                    'SELECT sprache FROM customers WHERE id = ?', [(int) $r['customer_id']], '')));
+            }
+        } catch (Throwable $e) { /* dann eben die Voreinstellung */ }
+        return in_array($s, ['it', 'de', 'en'], true) ? $s : 'it';
+    }
+
+    /**
      * Dasselbe Wort in der Sprache des Kunden.
      *
      * bezeichnung() ist fuer die Verwaltung da und deshalb deutsch. Was der
@@ -160,20 +224,33 @@ final class Rechnung
         }
     }
 
-    /** Die Positionen eines Belegs — bisher immer genau eine. */
-    public static function posten(array $r): array
+    /**
+     * Die Positionen eines Belegs — bisher immer genau eine.
+     *
+     * Ohne Sprache bleibt es deutsch: So ruft die Verwaltung, und die ist
+     * deutsch. Das PDF gibt die Sprache des Kunden mit.
+     */
+    public static function posten(array $r, ?string $sprache = null): array
     {
-        $was = match ((string) $r['art']) {
-            'anzahlung'   => 'Anzahlung',
-            'restzahlung' => 'Restzahlung bei Übergabe',
-            'nachtrag'    => 'Vereinbarter Nachtrag',
-            'gesamt'      => 'Gesamtbetrag',
-            default       => 'Zahlung',
-        };
+        $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'de';
+        $was = self::wofuer((string) $r['art'], $s);
+        if ($s === 'de') {
+            // Am Zeilenanfang gross, wie es sich fuer eine Position gehoert.
+            $was = match ((string) $r['art']) {
+                'anzahlung'   => 'Anzahlung',
+                'restzahlung' => 'Restzahlung bei Übergabe',
+                'nachtrag'    => 'Vereinbarter Nachtrag',
+                'gesamt'      => 'Gesamtbetrag',
+                default       => 'Zahlung',
+            };
+        } else {
+            $was = mb_strtoupper(mb_substr($was, 0, 1)) . mb_substr($was, 1);
+        }
         $paket = (string) Db::wert('SELECT package_name FROM orders WHERE id = ?',
             [(int) ($r['order_id'] ?? 0)], '');
+        $wort = self::WORTE[$s]['paket'];
         return [[
-            'text'   => trim($was . ($paket !== '' ? ' — Paket ' . $paket : '')),
+            'text'   => trim($was . ($paket !== '' ? ' — ' . $wort . ' ' . $paket : '')),
             'netto'  => (int) $r['net_cents'],
             'steuer' => (int) $r['tax_cents'],
             'brutto' => (int) $r['total_cents'],
@@ -199,6 +276,9 @@ final class Rechnung
         $k = Kunde::belegEmpfaenger($r);
         $b = $r['order_id'] !== null ? Db::one('SELECT * FROM orders WHERE id = ?', [(int) $r['order_id']]) : null;
         $w = (string) $r['currency'];
+        // Die Sprache des Kunden, und alle Beschriftungen daraus.
+        $s  = self::sprache($r);
+        $wo = self::WORTE[$s];
         // Der Satz aus der Zeile — aber nur, wenn ueberhaupt Steuer
         // ausgewiesen werden darf. Steht in einem alten Datensatz noch ein
         // Satz aus einer Zeit, in der die Einstellung widerspruechlich war,
@@ -252,7 +332,7 @@ final class Rechnung
             (string) ($k['country'] ?? ''),
         ], static fn($z) => trim($z) !== ''));
 
-        $p->text($rand, 158, 'RECHNUNGSEMPFÄNGER', 7.5, true, 'links', $leise);
+        $p->text($rand, 158, $wo['empf'], 7.5, true, 'links', $leise);
         $yy = 174;
         foreach ($empfaenger as $i => $zeile) {
             $p->text($rand, $yy, $zeile, $i === 0 ? 11 : 10, $i === 0, 'links', $i === 0 ? $tinte : $grau);
@@ -270,37 +350,46 @@ final class Rechnung
         }
 
         $eck = array_filter([
-            ['Nummer',       (string) $r['invoice_no']],
-            ['Datum',        Fmt::datum((string) $r['issued_at'])],
-            ['Bestellung',   (string) ($b['order_no'] ?? '')],
-            ['Kundennummer', str_pad((string) $r['customer_id'], 4, '0', STR_PAD_LEFT)],
+            [$wo['nummer'],     (string) $r['invoice_no']],
+            [$wo['datum'],      Fmt::datum((string) $r['issued_at'])],
+            [$wo['bestellung'], (string) ($b['order_no'] ?? '')],
+            [$wo['kundennr'],   str_pad((string) $r['customer_id'], 4, '0', STR_PAD_LEFT)],
         ], static fn($z) => trim((string) $z[1]) !== '');
 
         $ey = 174;
         foreach ($eck as [$was, $wert]) {
-            $p->text($rechts - 132, $ey, $was, 8.5, false, 'links', $leise);
-            $p->text($rechts, $ey, $wert, 9.5, false, 'rechts', $tinte);
+            /* Erst der Wert, dann die Beschriftung an seiner gemessenen
+               Breite — eine feste Spalte reicht fuer "Datum", nicht fuer
+               "N. cliente" oder "Customer no.". */
+            $wb = $p->text($rechts, $ey, $wert, 9.5, false, 'rechts', $tinte);
+            $p->text($rechts - $wb - 10, $ey, $was, 8.5, false, 'rechts', $leise);
             $ey += 14;
         }
 
         /* ---------- Titel ---------- */
-        $titel = (string) ($r['titel'] ?: self::bezeichnung());
+        /* Der gespeicherte Titel ist der deutsche Standard, den die
+           Verwaltung beim Ausstellen gesetzt hat. Steht dort genau das,
+           gilt er als "kein eigener Titel" und wird uebersetzt. Hat Uwe
+           etwas Eigenes hingeschrieben, bleibt sein Wortlaut stehen. */
+        $eigen = trim((string) ($r['titel'] ?? ''));
+        $titel = in_array($eigen, ['', 'Rechnung', 'Zahlungsbeleg'], true)
+            ? self::wort($s) : $eigen;
         $oben  = max($yy, $ey) + 30;
         $p->text($rand, $oben, $titel, 20, true, 'links', $tinte);
-        $p->text($rand, $oben + 20, 'Nr. ' . $r['invoice_no'], 10, false, 'links', $grau);
+        $p->text($rand, $oben + 20, $wo['nr'] . $r['invoice_no'], 10, false, 'links', $grau);
 
         /* ---------- Posten ---------- */
         $tab = $oben + 58;
         $p->flaeche($rand, $tab - 13, $rechts - $rand, 22, [0.965, 0.972, 0.984]);
-        $p->text($rand + 10, $tab, 'LEISTUNG', 7.5, true, 'links', $grau);
+        $p->text($rand + 10, $tab, $wo['leistung'], 7.5, true, 'links', $grau);
         if ($satz > 0) {
-            $p->text($rechts - 158, $tab, 'NETTO', 7.5, true, 'rechts', $grau);
+            $p->text($rechts - 158, $tab, $wo['nettoK'], 7.5, true, 'rechts', $grau);
             $p->text($rechts - 84, $tab, 'IVA', 7.5, true, 'rechts', $grau);
         }
-        $p->text($rechts - 10, $tab, 'BETRAG', 7.5, true, 'rechts', $grau);
+        $p->text($rechts - 10, $tab, $wo['betrag'], 7.5, true, 'rechts', $grau);
 
         $y = $tab + 28;
-        foreach (self::posten($r) as $posten) {
+        foreach (self::posten($r, $s) as $posten) {
             $zeilen = $p->umbrechen((string) $posten['text'], $satz > 0 ? 240 : 320, 10.5);
             foreach ($zeilen as $i => $zeile) {
                 $p->text($rand + 10, $y + $i * 14, $zeile, 10.5, false, 'links', $tinte);
@@ -317,7 +406,7 @@ final class Rechnung
         $p->linie($rand, $y, $rechts, $y, 0.6, $linie);
         $y += 20;
         if ($satz > 0) {
-            $p->text($rechts - 130, $y, 'Netto', 10, false, 'rechts', $grau);
+            $p->text($rechts - 130, $y, $wo['netto'], 10, false, 'rechts', $grau);
             $p->text($rechts - 10, $y, Fmt::geld((int) $r['net_cents'], $w), 10, false, 'rechts', $tinte);
             $y += 16;
             $bez = 'IVA ' . rtrim(rtrim(number_format($satz, 2, ',', '.'), '0'), ',') . ' %';
@@ -326,18 +415,19 @@ final class Rechnung
             $y += 20;
         }
         $p->flaeche($rechts - 210, $y - 13, 210, 30, [0.965, 0.972, 0.984]);
-        $p->text($rechts - 130, $y, 'Gesamt', 11, true, 'rechts', $tinte);
+        $p->text($rechts - 130, $y, $wo['gesamt'], 11, true, 'rechts', $tinte);
         $p->text($rechts - 10, $y, Fmt::geld((int) $r['total_cents'], $w), 13.5, true, 'rechts', $tinte);
         $y += 40;
 
         /* ---------- Zahlungsstand ---------- */
         $p->flaeche($rand, $y - 12, 3, 22, [0.043, 0.494, 0.353]);
-        $p->text($rand + 12, $y, 'Bezahlt am ' . Fmt::datum((string) $r['issued_at'])
-            . '. Es ist nichts mehr offen.', 10, false, 'links', [0.043, 0.494, 0.353]);
+        $p->text($rand + 12, $y,
+            strtr($wo['bezahlt'], ['{datum}' => Fmt::datum((string) $r['issued_at'])]),
+            10, false, 'links', [0.043, 0.494, 0.353]);
         $y += 34;
 
         /* ---------- Pflichtangaben ---------- */
-        $pflicht = Firma::pflichthinweis();
+        $pflicht = Firma::pflichthinweis($s);
         if ($pflicht !== '') {
             foreach ($p->umbrechen($pflicht, $rechts - $rand, 8.5) as $zeile) {
                 $p->text($rand, $y, $zeile, 8.5, false, 'links', $grau);

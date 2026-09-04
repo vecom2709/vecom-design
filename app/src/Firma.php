@@ -117,12 +117,23 @@ final class Firma
      * sagt der Commercialista — hier wird nur ausgegeben, was zur
      * Einstellung passt.
      */
-    public static function pflichthinweis(): string
+    public static function pflichthinweis(?string $sprache = null): string
     {
+        $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'de';
         if (!self::istRechnungsberechtigt()) {
-            return 'Dies ist ein Zahlungsbeleg, keine Rechnung im steuerlichen Sinn.';
+            // Der Satz erklaert dem Kunden, was er in der Hand haelt — also
+            // in seiner Sprache. Ohne Angabe bleibt es Deutsch: Dann fragt
+            // die Verwaltung, und die ist deutsch.
+            return [
+                'it' => 'Questa è una ricevuta di pagamento, non una fattura ai fini fiscali.',
+                'de' => 'Dies ist ein Zahlungsbeleg, keine Rechnung im steuerlichen Sinn.',
+                'en' => 'This is a payment receipt, not an invoice for tax purposes.',
+            ][$s];
         }
         if (self::regime() === 'forfettario') {
+            // Bleibt italienisch, in jeder Sprache: Das ist der Wortlaut des
+            // Gesetzes, und eine Uebersetzung davon waere keine Pflichtangabe
+            // mehr, sondern eine Erlaeuterung.
             return 'Operazione senza applicazione dell\'IVA ai sensi dell\'articolo 1, '
                 . 'commi da 54 a 89, della Legge n. 190/2014 e successive modificazioni.';
         }
