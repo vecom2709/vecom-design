@@ -107,6 +107,108 @@ $tage   = Vorgang::ruhtSeitTagen($v);
 <div class="zwei">
 <div>
 
+  <?php /* ---------- Mehrbedarf ----------
+           Steht ganz oben, weil er als Einziger hier kostet, wenn man ihn
+           uebersieht. Passt der Fragebogen zum Angebot, steht hier nichts. */ ?>
+  <?php if (!empty($v['mehrbedarf'])): $mb = $v['mehrbedarf']; ?>
+    <div class="block" data-tun="mehrbedarf" style="border-color:var(--cyan)">
+      <h2>Mehrbedarf klären</h2>
+      <p style="color:var(--dim);font-size:13.5px;margin:-4px 0 12px">
+        Der Fragebogen sagt etwas anderes als Angebot
+        <a href="<?= Fmt::h(url('angebote/' . (int) $mb['angebot_id'])) ?>"><?= Fmt::h($mb['nummer']) ?></a>.</p>
+      <?php if ($mb['mehr']): ?>
+        <table style="margin-bottom:12px"><tbody>
+          <?php foreach ($mb['mehr'] as $z): ?>
+            <tr><td><?= Fmt::h((string) $z['name']) ?><?php if (isset($z['war'])): ?>
+                  <span style="color:var(--leise)">— <?= (int) $z['war'] ?> beauftragt, <?= (int) $z['wird'] ?> gewünscht</span>
+                <?php endif; ?></td>
+                <td class="num" style="width:28%"><b><?= Fmt::geld((int) $z['summe_cents']) ?><?= (int) $z['monatlich'] ? '/Mon.' : '' ?></b></td></tr>
+          <?php endforeach; ?>
+        </tbody></table>
+      <?php endif; ?>
+      <?php if ($mb['weniger']): ?>
+        <p style="font-size:13.5px;color:var(--dim);margin:0 0 12px">
+          Abgewählt, obwohl beauftragt: <b><?= Fmt::h(implode(', ', $mb['weniger'])) ?></b>.</p>
+      <?php endif; ?>
+      <?php if ($mb['auf_anfrage']): ?>
+        <p style="font-size:13.5px;color:var(--dim);margin:0 0 12px">
+          Ohne Preis, weil nur auf Anfrage: <b><?= Fmt::h(implode(', ', $mb['auf_anfrage'])) ?></b>.</p>
+      <?php endif; ?>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <?php if ((int) $mb['summe_cents'] > 0): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="mehrbedarf_nachtrag">
+            <input type="hidden" name="id" value="<?= (int) $mb['projekt_id'] ?>">
+            <input type="hidden" name="signatur" value="<?= Fmt::h((string) $mb['signatur']) ?>">
+            <button class="knopf haupt">Nachtrag über <?= Fmt::geld((int) $mb['summe_cents']) ?> anlegen</button></form>
+        <?php endif; ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="mehrbedarf_erledigt">
+          <input type="hidden" name="id" value="<?= (int) $mb['projekt_id'] ?>">
+          <input type="hidden" name="signatur" value="<?= Fmt::h((string) $mb['signatur']) ?>">
+          <button class="knopf">Ist besprochen</button></form>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <?php /* ---------- Angebot ----------
+           Fehlte hier, ausgerechnet. Wer wissen wollte, was vereinbart ist,
+           musste die Seite verlassen. Die Zeilen stehen knapp da; geaendert
+           wird weiter auf der Angebotsseite, wo auch die Knoepfe dafuer
+           sind. */ ?>
+  <?php if (!empty($v['angebot'])): $a = $v['angebot']; ?>
+    <div class="block">
+      <h2>Angebot<span class="mehr">
+        <?= Fmt::h((string) $a['nummer']) ?><?= (int) $a['fassung'] > 1 ? ' · Fassung ' . (int) $a['fassung'] : '' ?>
+        · <span class="marke2 <?= $a['status'] === 'angenommen' ? 'gut' : ($a['status'] === 'abgelehnt' ? 'schlecht' : '') ?>"><?= Fmt::h(ucfirst((string) $a['status'])) ?></span></span></h2>
+      <table style="margin-bottom:12px"><tbody>
+        <?php foreach ($v['angebot_zeilen'] as $z): ?>
+          <tr><td><?= Fmt::h((string) $z['bezeichnung']) ?><?= (int) $z['menge'] > 1 ? ' × ' . (int) $z['menge'] : '' ?></td>
+              <td class="num" style="width:28%"><?= Fmt::geld((int) $z['summe_cents']) ?><?= (int) $z['monatlich'] ? '/Mon.' : '' ?></td></tr>
+        <?php endforeach; ?>
+        <tr><td><b>Summe</b></td><td class="num"><b><?= Fmt::geld((int) $a['summe_cents'], (string) $a['currency']) ?></b>
+          <?php if ((int) $a['monatlich_cents'] > 0): ?> + <?= Fmt::geld((int) $a['monatlich_cents']) ?>/Mon.<?php endif; ?></td></tr>
+      </tbody></table>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <a class="knopf" href="<?= Fmt::h(url('angebote/' . (int) $a['id'])) ?>">Angebot öffnen</a>
+        <?php if (count($v['angebote']) > 1): ?>
+          <span style="color:var(--leise);font-size:12.5px"><?= count($v['angebote']) ?> Fassungen insgesamt</span>
+        <?php endif; ?>
+        <?php if ($a['gueltig_bis'] !== null && $a['status'] === 'gesendet'): ?>
+          <span style="color:var(--leise);font-size:12.5px">gültig bis <?= Fmt::h(Fmt::datum($a['gueltig_bis'])) ?></span>
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+
+  <?php /* ---------- Bedarf ----------
+           Was der Kunde im Rechner angekreuzt hat, auf Deutsch -- egal, in
+           welcher Sprache er geklickt hat. Zugeklappt: Man braucht es einmal
+           am Anfang und danach selten. */ ?>
+  <?php if (!empty($v['bedarf']) && $v['bedarf_antworten']): ?>
+    <div class="block">
+      <details>
+        <summary style="cursor:pointer;font-weight:650;font-size:15px">Was er im Rechner angekreuzt hat</summary>
+        <table style="margin-top:12px"><tbody>
+          <?php foreach (Baukasten::FRAGEN as $schluessel => $frage): ?>
+            <?php
+              $wert = $v['bedarf_antworten'][$schluessel] ?? null;
+              if ($wert === null || $wert === '' || $wert === []) { continue; }
+              $worte = [];
+              foreach ((array) $wert as $w) {
+                $o = $frage['optionen'][(string) $w] ?? null;
+                $worte[] = $o ? Texte::h($o, 'de') : (string) $w;
+              }
+            ?>
+            <tr><td style="width:42%"><?= Fmt::h(Texte::h($frage['frage'] ?? [], 'de')) ?></td>
+                <td><?= Fmt::h(implode(' · ', $worte)) ?></td></tr>
+          <?php endforeach; ?>
+        </tbody></table>
+        <a class="knopf" style="margin-top:12px" href="<?= Fmt::h(url('bedarf/' . (int) $v['bedarf']['id'])) ?>">Bedarf öffnen</a>
+      </details>
+    </div>
+  <?php endif; ?>
+
   <?php /* ---------- Gespräch ---------- */ ?>
   <div class="block">
     <h2>Gespräch<?php if ($v['ungelesen'] > 0): ?><span class="mehr"><?= (int) $v['ungelesen'] ?> ungelesen</span><?php endif; ?></h2>

@@ -60,6 +60,12 @@ $zeile = static function (array $v) {
   <div><h1>Heute</h1>
     <div class="weg"><?= Fmt::h(Fmt::langesDatum()) ?></div></div>
   <div class="rechts">
+    <?php /* Im Menue steht die Suche auf breiten Schirmen. Auf dem Handy ist
+             das Menue eine Zeile ohne Platz dafuer -- deshalb steht sie hier
+             noch einmal, auf der Seite, mit der man ohnehin anfaengt. */ ?>
+    <form class="leiste nurschmal" method="get" action="<?= Fmt::h(url('suche')) ?>" role="search">
+      <input type="search" name="q" placeholder="Kunde, Bestellung, Angebot …" aria-label="Suchen">
+    </form>
     <span class="marke2"><?= count($liste['du']) ?> bei dir</span>
     <span class="marke2"><?= count($liste['kunde']) ?> beim Kunden</span>
     <?php if ($offenGeld > 0): ?><span class="marke2 warnung"><?= Fmt::geld($offenGeld) ?> offen</span><?php endif; ?>
@@ -93,6 +99,38 @@ $zeile = static function (array $v) {
     <?php endforeach; ?>
     <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
       Alle Meldungen stehen unter <a href="<?= Fmt::h(url('benachrichtigungen')) ?>">Benachrichtigungen</a>.</p>
+  </div>
+<?php endif; ?>
+
+<?php /* ---------- Was demnächst fällig wird ----------
+         Die Verwaltung konnte gut sagen, was gerade dran ist, und sehr gut,
+         was gewesen ist. Was auf einen zukommt, stand nirgends -- und genau
+         da gehen Dinge verloren: Ein Angebot läuft ab, ohne dass jemand
+         nachgefragt hat. Ein Fragebogen liegt seit einer Woche. Nichts davon
+         löst eine Meldung aus, weil nichts passiert; Stille löst nun einmal
+         nichts aus.
+
+         Steht nichts an, steht hier nichts. */ ?>
+<?php if (!empty($faellig)): ?>
+  <div class="block">
+    <h2>Demnächst fällig<span class="mehr"><?= count($faellig) ?></span></h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
+      Nichts davon ist ein Fehler — es passiert nur gerade nichts, und das fällt sonst niemandem auf.</p>
+    <?php foreach ($faellig as $f): ?>
+      <div class="vg">
+        <div class="vg__wer">
+          <a class="vg__name" href="<?= Fmt::h(url((string) $f['ziel'])) ?>"><?= Fmt::h((string) $f['wer']) ?></a>
+          <div class="vg__unter"><?= Fmt::h((string) $f['was']) ?></div>
+        </div>
+        <div class="vg__warum"><?= Fmt::h((string) $f['warum']) ?></div>
+        <div class="vg__tun">
+          <?php if (!empty($f['eilig'])): ?>
+            <span class="vg__ruht lang">eilt</span>
+          <?php endif; ?>
+          <a class="knopf" href="<?= Fmt::h(url((string) $f['ziel'])) ?>">Ansehen</a>
+        </div>
+      </div>
+    <?php endforeach; ?>
   </div>
 <?php endif; ?>
 

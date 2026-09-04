@@ -672,6 +672,39 @@ final class Vorgang
             "SELECT COUNT(*) FROM messages WHERE customer_id = ? AND sender = 'kunde' AND read_at IS NULL",
             [$kid]) : 0;
 
+        /* ANGEBOT UND BEDARF GEHOEREN HIERHER
+           ------------------------------------------------------------------
+           Sie fehlten -- ausgerechnet die beiden, in denen Geld und Umfang
+           stehen. Wer wissen wollte, was vereinbart ist, musste die
+           Vorgangsseite verlassen und in zwei Listen suchen. Das war der
+           Grund, warum die Listen sich nicht zurueckziehen liessen: Sie
+           trugen etwas, das es sonst nirgends gab. */
+        $v['angebote'] = $kid !== null ? self::zeilen(
+            'SELECT * FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 10', [$kid]) : [];
+        $v['angebot'] = $v['angebote'][0] ?? null;
+        $v['angebot_zeilen'] = $v['angebot'] !== null ? self::zeilen(
+            'SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id',
+            [(int) $v['angebot']['id']]) : [];
+
+        $v['bedarf'] = $kid !== null ? self::eine(
+            "SELECT * FROM bedarf WHERE customer_id = ? AND status <> 'offen'
+              ORDER BY id DESC LIMIT 1", [$kid]) : null;
+        $v['bedarf_antworten'] = [];
+        if ($v['bedarf'] !== null) {
+            $v['bedarf_antworten'] = (array) self::still(static function () use ($v): array {
+                require_once __DIR__ . '/Bedarf.php';
+                return Bedarf::antworten((array) $v['bedarf']);
+            }, []);
+        }
+
+        /* Der Unterschied zwischen Beauftragtem und Angekreuztem -- dieselbe
+           Auskunft wie im Projekt, damit man nicht wechseln muss, um sie zu
+           sehen. Null heisst: passt zusammen. */
+        $v['mehrbedarf'] = $pid !== null ? self::still(static function () use ($pid) {
+            require_once __DIR__ . '/Umfang.php';
+            return Umfang::mehrbedarf($pid);
+        }) : null;
+
         // Die eine Adresse des Kunden. Alles, was er per E-Mail bekommt,
         // zeigt hierher; die beiden alten Links leiten dorthin weiter.
         $v['link_kunde'] = '';
@@ -709,6 +742,198 @@ final class Vorgang
             elseif ($v['dran'] === self::KUNDE)  { $aus['kunde'][] = $v; }
             else                                 { $aus['ruht'][] = $v; }
         }
+
+        /* WER AM LAENGSTEN WARTET, STEHT OBEN
+           ------------------------------------------------------------------
+           Vorher kam die Liste in der Reihenfolge, in der die Datenbank sie
+           hergab -- also ungefaehr nach Alter der Bestellung. Das ist nicht
+           dasselbe: Ein Vorgang von gestern, an dem seit gestern nichts
+           passiert ist, ist dringender als einer von vor drei Wochen, an dem
+           gestern noch geschrieben wurde.
+
+           Bei "du bist dran" heisst lange still: Da laesst du jemanden
+           warten. Bei "der Kunde ist dran" heisst es: Da wird es Zeit
+           nachzufassen. Beide Male gehoert es nach oben. */
+        $nachStille = static fn(array $a, array $b): int
+            => self::ruhtSeitTagen($b) <=> self::ruhtSeitTagen($a);
+        usort($aus['du'], $nachStille);
+        usort($aus['kunde'], $nachStille);
+
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  Was demnaechst faellig wird                                       */
+    /* ================================================================== */
+
+    /* Wie lange ein Fragebogen liegen darf, bevor er auffaellt, und ab wann
+       ein Projekt ohne Material festhaengt. Beides sind Erfahrungswerte, kein
+       Gesetz -- deshalb stehen sie hier oben und nicht in der Abfrage. */
+    private const FRAGEBOGEN_STILL = 3;
+    private const MATERIAL_STILL   = 5;
+    private const BEDARF_VERSPRECHEN = 1;
+
+    /**
+     * Was in den naechsten Tagen faellig wird -- nicht, was passiert ist.
+     *
+     * WARUM DAS DIE WICHTIGERE LISTE IST
+     *
+     * Die Verwaltung konnte bisher gut sagen, was gerade dran ist, und sehr
+     * gut, was gewesen ist. Was auf einen zukommt, stand nirgends. Genau da
+     * gehen aber Dinge verloren: Ein Angebot laeuft ab, ohne dass jemand
+     * nachgefragt hat. Ein Fragebogen liegt seit einer Woche. Ein Bedarf
+     * wartet laenger als die 24 Stunden, die auf der Website versprochen
+     * sind. Nichts davon ist ein Fehler, den eine Meldung ausloest -- es
+     * passiert einfach nichts, und Stille loest nun einmal nichts aus.
+     *
+     * Jede Zeile hier nennt eine Frist und einen Weg dorthin. Ist nichts
+     * faellig, kommt eine leere Liste zurueck, und die Seite schweigt.
+     *
+     * @return list<array{was:string,wer:string,warum:string,tage:int,eilig:bool,ziel:string}>
+     */
+    public static function faellig(int $vorlauf = 7): array
+    {
+        $aus = [];
+        $heute = time();
+
+        /* KALENDERTAGE, NICHT STUNDEN
+           ------------------------------------------------------------------
+           "Gueltig bis" meint einen Tag, keinen Zeitpunkt: In der Datenbank
+           steht ein Datum, also Mitternacht. Rechnet man die Differenz in
+           Stunden und schneidet ab, heisst ein Angebot, das uebermorgen
+           ablaeuft, am Nachmittag "noch 1 Tag" -- und man ruft einen Tag zu
+           spaet an. Gezaehlt wird deshalb ab heute null Uhr. */
+        $mitternacht = strtotime('today');
+        $tageBis = static function (?string $datum) use ($mitternacht): int {
+            if ($datum === null || $datum === '') { return 999; }
+            $z = strtotime($datum);
+            return $z === false ? 999 : (int) round(($z - $mitternacht) / 86400);
+        };
+        /* Umgekehrt ist "seit" wirklich verstrichene Zeit: Wer gestern Abend
+           geschrieben hat, wartet heute frueh noch keinen Tag. */
+        $tageSeit = static function (?string $datum) use ($heute): int {
+            if ($datum === null || $datum === '') { return 0; }
+            $z = strtotime($datum);
+            return $z === false ? 0 : (int) floor(($heute - $z) / 86400);
+        };
+        /* "1 Tage" liest sich wie ein Fehler, und ein Fehler in einer Zeile
+           laesst an der ganzen Liste zweifeln. */
+        $tag = static fn(int $n): string => abs($n) === 1 ? '1 Tag' : abs($n) . ' Tagen';
+        $tagAkk = static fn(int $n): string => abs($n) === 1 ? '1 Tag' : abs($n) . ' Tage';
+
+        /* --- Ein Angebot laeuft ab ----------------------------------------
+           Der letzte Tag ist der schlechteste Moment fuer eine Nachfrage.
+           Deshalb meldet es sich, solange noch Zeit ist, etwas zu tun. */
+        foreach (self::zeilen(
+            "SELECT a.id, a.nummer, a.gueltig_bis, a.summe_cents, c.name AS kunde
+               FROM angebote a JOIN customers c ON c.id = a.customer_id
+              WHERE a.status = 'gesendet' AND a.gueltig_bis IS NOT NULL
+                AND a.gueltig_bis <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+              ORDER BY a.gueltig_bis LIMIT 20", [$vorlauf]) as $a) {
+            $tage = $tageBis((string) $a['gueltig_bis']);
+            $aus[] = [
+                'was'   => 'Angebot ' . $a['nummer'] . ' läuft ab',
+                'wer'   => (string) $a['kunde'],
+                'warum' => $tage < 0 ? 'seit ' . $tag($tage) . ' abgelaufen'
+                         : ($tage === 0 ? 'läuft heute ab' : 'noch ' . $tagAkk($tage)),
+                'tage'  => $tage,
+                'eilig' => $tage <= 2,
+                'ziel'  => 'angebote/' . (int) $a['id'],
+            ];
+        }
+
+        /* --- Ein Bedarf wartet laenger als versprochen --------------------
+           Auf der Website steht "innerhalb eines Werktags". Ein Versprechen,
+           an das sich nur die Website erinnert, ist keins. */
+        foreach (self::zeilen(
+            "SELECT b.id, b.name, b.firma, b.created_at
+               FROM bedarf b
+               LEFT JOIN angebote a ON a.bedarf_id = b.id
+              WHERE b.status = 'abgesendet' AND a.id IS NULL
+                AND b.created_at <= DATE_SUB(NOW(), INTERVAL ? DAY)
+              ORDER BY b.created_at LIMIT 20", [self::BEDARF_VERSPRECHEN]) as $b) {
+            $tage = $tageSeit((string) $b['created_at']);
+            $aus[] = [
+                'was'   => 'Angebot versprochen',
+                'wer'   => trim((string) ($b['firma'] ?: $b['name'])),
+                'warum' => $tage <= 1 ? 'seit gestern ohne Antwort' : 'seit ' . $tag($tage) . ' ohne Antwort',
+                'tage'  => -$tage,
+                'eilig' => $tage >= 2,
+                'ziel'  => 'bedarf/' . (int) $b['id'],
+            ];
+        }
+
+        /* --- Ein Fragebogen liegt ----------------------------------------- */
+        foreach (self::zeilen(
+            "SELECT q.project_id, q.eingeladen_am, q.erinnert_am, c.name AS kunde, c.company AS firma
+               FROM questionnaires q JOIN customers c ON c.id = q.customer_id
+              WHERE q.status = 'offen' AND q.eingeladen_am IS NOT NULL
+                AND q.eingeladen_am <= DATE_SUB(NOW(), INTERVAL ? DAY)
+              ORDER BY q.eingeladen_am LIMIT 20", [self::FRAGEBOGEN_STILL]) as $q) {
+            $tage = $tageSeit((string) $q['eingeladen_am']);
+            $aus[] = [
+                'was'   => 'Fragebogen liegt',
+                'wer'   => trim((string) ($q['firma'] ?: $q['kunde'])),
+                'warum' => 'seit ' . $tag($tage) . ' verschickt'
+                         . ($q['erinnert_am'] ? ', einmal erinnert' : ', noch nicht erinnert'),
+                'tage'  => -$tage,
+                'eilig' => $tage >= 7,
+                'ziel'  => 'projekte/' . (int) $q['project_id'],
+            ];
+        }
+
+        /* --- Das Material fehlt -------------------------------------------
+           Der stillste Engpass: kein Fehler, keine Meldung, nur ein Projekt,
+           das nicht vorankommt. Gezaehlt wird nur, was der Kunde selbst
+           geschickt hat -- ein Entwurf von mir liegt in derselben Liste,
+           beantwortet aber nicht die Frage. */
+        foreach (self::zeilen(
+            "SELECT p.id, p.name, p.updated_at, c.name AS kunde, c.company AS firma
+               FROM projects p JOIN customers c ON c.id = p.customer_id
+              WHERE p.status IN ('onboarding','informationen_erhalten','design','entwicklung')
+                AND p.updated_at <= DATE_SUB(NOW(), INTERVAL ? DAY)
+                AND NOT EXISTS (SELECT 1 FROM files f
+                                 WHERE f.customer_id = p.customer_id AND f.uploaded_by = 'kunde')
+              ORDER BY p.updated_at LIMIT 20", [self::MATERIAL_STILL]) as $p) {
+            $tage = $tageSeit((string) $p['updated_at']);
+            $aus[] = [
+                'was'   => 'Kein Material da',
+                'wer'   => trim((string) ($p['firma'] ?: $p['kunde'])),
+                'warum' => 'seit ' . $tag($tage) . ' nichts hochgeladen',
+                'tage'  => -$tage,
+                'eilig' => $tage >= 10,
+                'ziel'  => 'projekte/' . (int) $p['id'],
+            ];
+        }
+
+        /* --- Die Restzahlung steht an -------------------------------------
+           Sie wird faellig bei der Uebergabe, nicht danach. Wer sie erst
+           anfordert, wenn die Seite schon online ist, wartet zweimal. */
+        foreach (self::zeilen(
+            "SELECT p.id, p.status, z.amount_cents, z.currency, z.link_url,
+                    c.name AS kunde, c.company AS firma
+               FROM projects p
+               JOIN orders o ON o.id = p.order_id
+               JOIN payments z ON z.order_id = o.id AND z.art = 'restzahlung'
+               JOIN customers c ON c.id = p.customer_id
+              WHERE p.status IN ('vorschau','kundenfeedback','aenderungen','finale_freigabe','veroeffentlichung','online')
+                AND z.status NOT IN ('bezahlt','rueckerstattet')
+              ORDER BY p.id LIMIT 20") as $r) {
+            $aus[] = [
+                'was'   => 'Restzahlung ' . Fmt::geld((int) $r['amount_cents'], (string) $r['currency']),
+                'wer'   => trim((string) ($r['firma'] ?: $r['kunde'])),
+                'warum' => empty($r['link_url']) ? 'noch kein Zahlungslink' : 'Link ist da, noch nicht bezahlt',
+                'tage'  => 0,
+                'eilig' => (string) $r['status'] === 'online',
+                'ziel'  => 'projekte/' . (int) $r['id'],
+            ];
+        }
+
+        /* Das Dringendste zuerst, und bei gleicher Dringlichkeit das, was am
+           laengsten liegt. */
+        usort($aus, static fn(array $a, array $b): int
+            => [$b['eilig'], -$a['tage']] <=> [$a['eilig'], -$b['tage']]);
+
         return $aus;
     }
 

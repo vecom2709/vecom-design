@@ -6,7 +6,12 @@ $navZahlen = [
   'empfehlungen'=> (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM empfehlungen WHERE empfehler_id IS NULL AND status = 'offen'", [], 0), 0),
   'nachrichten' => (int) Db::wert("SELECT COUNT(*) FROM messages WHERE read_at IS NULL AND sender='kunde'"),
   'onboarding'  => (int) Db::wert("SELECT COUNT(*) FROM questionnaires WHERE status='offen'"),
-  'benachrichtigungen' => (int) Db::wert('SELECT COUNT(*) FROM notifications WHERE read_at IS NULL'),
+  /* Nur, was wirklich klemmt. Vorher zaehlte hier jede Info-Meldung mit,
+     auch die, ueber die man nichts entscheiden muss -- die Zahl stand
+     monatelang auf demselben Wert und wurde damit zu Tapete. Eine Zahl im
+     Menue soll eine Handlung meinen. */
+  'benachrichtigungen' => (int) Db::wert(
+      "SELECT COUNT(*) FROM notifications WHERE read_at IS NULL AND level IN ('warnung','schlecht')"),
   'bestellungen'=> (int) Db::wert("SELECT COUNT(*) FROM orders WHERE status IN ('neu','zahlung_ausstehend')"),
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
@@ -25,38 +30,60 @@ $arbeitsliste = (array) sicher(static function (): array {
 }, ['du' => [], 'kunde' => [], 'ruht' => []]);
 $wartetAufDich = $arbeitsliste['du'] ?? [];
 $navZahlen['heute'] = count($wartetAufDich);
-$aktiv = $route ?: 'dashboard';
+$aktiv = $route ?: 'heute';
+
+/* ============================================================================
+   DAS MENUE IST NACH DER ARBEIT GEORDNET, NICHT NACH TABELLEN
+
+   Vorher standen hier fuenfundzwanzig Eintraege in fuenf Gruppen -- eine
+   Zeile je Datenbanktabelle. Sechs davon (Bedarf, Anfragen, Angebote,
+   Bestellungen, Projekte, Vorgaenge) waren sechs Blicke auf DENSELBEN Kunden
+   zu verschiedenen Momenten. Vorgang::alle() fuehrt sie laengst zu einer
+   Wahrheit zusammen; die anderen fuenf sind die rohen Tabellen darunter.
+
+   Oben steht jetzt, womit gearbeitet wird. Die Tabellen stehen weiter unten
+   unter "Listen" -- dorthin geht man, wenn man eine bestimmte Zeile sucht,
+   nicht wenn man arbeitet. Keine ist verschwunden, keine Adresse hat sich
+   geaendert.
+
+   Die Reihenfolge folgt dem Ablauf: Was kommt herein, was ist besprochen,
+   was wird gebaut, wer ist es. Nicht dem Alphabet und nicht der Groesse der
+   Tabelle.
+   ========================================================================= */
 $menue = [
   ['heute', 'Heute', 'heute'],
   ['vorgaenge', 'Vorgänge', 'vorgaenge'],
-  ['', 'Dashboard', 'dashboard'],
-  ['__gruppe', 'Geschäft', null],
-  ['pakete', 'Pakete', 'pakete'],
-  ['baukasten', 'Baukasten', 'baukasten'],
-  ['angebote', 'Angebote', 'angebote'],
-  ['bestellungen', 'Bestellungen', 'bestellungen'],
-  ['projekte', 'Projekte', 'projekte'],
-  ['kunden', 'Kunden', 'kunden'],
-  ['__gruppe', 'Kontakt', null],
-  ['bedarf', 'Bedarf', 'bedarf'],
-  ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
-  ['anfragen', 'Anfragen', 'anfragen'],
   ['nachrichten', 'Nachrichten', 'nachrichten'],
-  ['onboarding', 'Fragebögen', 'onboarding'],
-  ['dateien', 'Dateien', 'dateien'],
+  ['__gruppe', 'Was hereinkommt', null],
+  ['bedarf', 'Bedarf', 'bedarf'],
+  ['angebote', 'Angebote', 'angebote'],
+  ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
   ['__gruppe', 'Geld', null],
   ['zahlungen', 'Zahlungen', 'zahlungen'],
   ['rechnungen', 'Rechnungen', 'rechnungen'],
   ['ausgaben', 'Ausgaben', 'ausgaben'],
   ['abos', 'Betreuung', 'abos'],
-  ['stimmen', 'Kundenstimmen', 'stimmen'],
   ['steuerakte', 'Fürs Finanzamt', 'steuerakte'],
-  ['statistiken', 'Statistiken', 'statistiken'],
+  ['__gruppe', 'Was ich anbiete', null],
+  ['pakete', 'Pakete', 'pakete'],
+  ['baukasten', 'Baukasten', 'baukasten'],
+  ['stimmen', 'Kundenstimmen', 'stimmen'],
+  /* Die rohen Tabellen. Sie tragen nichts mehr allein -- alles, was auf
+     ihnen steht, steht auch auf der einen Seite des Kunden. Hier sucht man
+     eine Zeile, dort arbeitet man. */
+  ['__gruppe', 'Listen', null],
+  ['kunden', 'Kunden', 'kunden'],
+  ['bestellungen', 'Bestellungen', 'bestellungen'],
+  ['projekte', 'Projekte', 'projekte'],
+  ['anfragen', 'Anfragen', 'anfragen'],
+  ['onboarding', 'Fragebögen', 'onboarding'],
+  ['dateien', 'Dateien', 'dateien'],
   ['__gruppe', 'System', null],
+  ['dashboard', 'Zahlen', 'dashboard'],
+  ['monitoring', 'Website-Monitoring', 'monitoring'],
   ['aktivitaeten', 'Aktivitäten', 'aktivitaeten'],
   ['benachrichtigungen', 'Benachrichtigungen', 'benachrichtigungen'],
   ['integrationen', 'Integrationen', 'integrationen'],
-  ['monitoring', 'Website-Monitoring', 'monitoring'],
   ['einstellungen', 'Einstellungen', 'einstellungen'],
 ];
 $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
@@ -74,11 +101,24 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
 <div class="huelle">
   <nav class="nav">
     <div class="marke"><b>VECOM</b> Verwaltung</div>
+    <?php /* DIE SUCHE STAND NIE IM MENUE
+             ------------------------------------------------------------
+             Sie war fertig gebaut und ueber /app/suche erreichbar -- wenn
+             man die Adresse kannte. Damit war sie fuer alle praktischen
+             Zwecke nicht vorhanden, und man suchte weiter in Listen.
+
+             Hier oben ist sie der kuerzeste Weg zu einem bestimmten
+             Kunden: Name, Bestellnummer, E-Mail oder Angebotsnummer
+             eintippen. Deshalb duerfen die Listen darunter zurueckstehen. */ ?>
+    <form class="nav__suche" method="get" action="<?= Fmt::h(url('suche')) ?>" role="search">
+      <input type="search" name="q" placeholder="Suchen …" aria-label="Kunde, Bestellung, Angebot"
+             value="<?= Fmt::h($route === 'suche' ? (string) ($_GET['q'] ?? '') : '') ?>">
+    </form>
     <?php foreach ($menue as [$ziel, $titel, $schl]): ?>
       <?php if ($ziel === '__gruppe'): ?>
         <div class="gruppe"><?= Fmt::h($titel) ?></div>
       <?php else: $n = $navZahlen[$schl] ?? 0; ?>
-        <a href="<?= Fmt::h(url($ziel)) ?>" class="<?= $aktiv === ($ziel ?: 'dashboard') ? 'an' : '' ?>">
+        <a href="<?= Fmt::h(url($ziel)) ?>" class="<?= $aktiv === ($ziel ?: 'heute') ? 'an' : '' ?>">
           <span><?= Fmt::h($titel) ?></span>
           <?php if ($n > 0): ?><span class="zahl warn"><?= $n ?></span><?php endif; ?>
         </a>

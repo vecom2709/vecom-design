@@ -21,6 +21,21 @@ a{color:inherit;text-decoration:none}
 .nav a:hover{background:var(--flaeche);color:var(--text)}
 .nav a.an{background:var(--flaeche2);color:var(--text);box-shadow:inset 2px 0 0 var(--cyan)}
 .nav .gruppe{padding:14px 11px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:var(--leise)}
+/* Die Suche sitzt zwischen Marke und Menue: der kuerzeste Weg zu einem
+   bestimmten Kunden, und der Grund, warum die Listen darunter zurueckstehen
+   duerfen. */
+.nav__suche{margin:4px 0 10px;padding:0 3px}
+.nav__suche input{width:100%;box-sizing:border-box;padding:8px 11px;border-radius:10px;
+  border:1px solid var(--linie);background:var(--flaeche);color:var(--text);font-size:13.5px}
+.nav__suche input::placeholder{color:var(--leise)}
+.nav__suche input:focus{outline:none;border-color:var(--cyan)}
+/* Was nur auf schmalen Schirmen gebraucht wird -- die Suche im Seitenkopf,
+   weil das Menue dort keine hat. Auf breiten Schirmen stuende sie zweimal
+   da und draengte die Kennzahlen zusammen. */
+/* Zwei Klassen, gleiches Gewicht: .leiste steht weiter unten und setzt
+   display:flex. Deshalb beide zusammen, sonst gewinnt die spaetere Zeile. */
+.leiste.nurschmal{display:none}
+@media (max-width:900px){ .leiste.nurschmal{display:flex} .leiste.nurschmal input{width:100%} }
 .zahl{background:var(--flaeche2);border:1px solid var(--linie);border-radius:999px;padding:1px 7px;font-size:11px;color:var(--dim)}
 .zahl.warn{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.35);color:var(--gelb)}
 
@@ -141,6 +156,9 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
   .huelle{flex-direction:column}
   .nav{width:auto;flex:none;height:auto;position:static;display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--linie);padding:10px}
   .nav .gruppe,.marke{display:none}
+  /* Auf dem Handy wird das Menue eine Zeile — ein Suchfeld darin waere
+     ein Feld ohne Platz. Es steht dann auf der Seite Heute. */
+  .nav__suche{display:none}
   .nav a{white-space:nowrap;padding:7px 12px}
   .inhalt{padding:16px 14px 50px}
   .karte.gross{grid-column:span 1}

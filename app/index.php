@@ -1260,6 +1260,7 @@ switch ($route) {
        Die alten Seiten bleiben daneben bestehen; hier entsteht nichts
        Neues, es wird nur anders gebuendelt.
        ------------------------------------------------------------------ */
+    case '':
     case 'heute':
         require_once __DIR__ . '/src/Vorgang.php';
         require_once __DIR__ . '/src/Mail.php';
@@ -1272,6 +1273,11 @@ switch ($route) {
         ansicht('heute', [
             'liste'     => $arbeit,
             'offenGeld' => $offen,
+            /* Was auf einen zukommt -- nicht, was gewesen ist. Ablaufende
+               Angebote, liegengebliebene Fragebogen, fehlendes Material,
+               anstehende Restzahlungen. Ist nichts faellig, kommt eine leere
+               Liste zurueck und die Seite schweigt. */
+            'faellig'   => sicher(static fn() => Vorgang::faellig(), []),
             // Nur das, was wirklich klemmt. Info-Meldungen gehoeren nicht
             // auf eine Arbeitsliste — sonst sieht man den Fehler nicht mehr.
             'stoerungen' => sicher(static fn() => Db::all(
@@ -1283,7 +1289,9 @@ switch ($route) {
 
     case 'vorgaenge':
         require_once __DIR__ . '/src/Vorgang.php';
-        require_once __DIR__ . '/src/Umfang.php';   // die Ansicht schreibt Haken als Wörter
+        require_once __DIR__ . '/src/Umfang.php';    // die Ansicht schreibt Haken als Wörter
+        require_once __DIR__ . '/src/Baukasten.php'; // und den Bedarf auf Deutsch
+        require_once __DIR__ . '/src/Texte.php';
         require_once __DIR__ . '/src/Mail.php';
         require_once __DIR__ . '/src/Anfrage.php';
         require_once __DIR__ . '/src/Nachricht.php';
@@ -1313,7 +1321,10 @@ switch ($route) {
         ansicht('vorgaenge', ['liste' => sicher(static fn() => Vorgang::alle(), [])]);
         break;
 
-    case '':
+    /* Die Zahlen bleiben, sie sind nur nicht mehr das Erste, was man sieht.
+       "Was ist zu tun" gehoert auf die Startseite, "wie lief es" eine Ebene
+       tiefer -- die Leiste oben sagt ohnehin das eine, und die Startseite
+       sollte die Liste sein, die sie zusammenfasst. */
     case 'dashboard':
         ansicht('dashboard', [
             'z' => Kennzahlen::alle(),
@@ -1716,12 +1727,32 @@ switch ($route) {
     case 'suche':
         $q = trim((string) ($_GET['q'] ?? ''));
         $t = "%$q%";
+        /* Angebote und Bedarf fehlten -- ausgerechnet die beiden, nach denen
+           man am ehesten sucht, wenn man eine Nummer aus einer Mail hat.
+           Der Firmenname zaehlt beim Kunden mit; wer "Trattoria" tippt,
+           meint selten den Vornamen. */
         ansicht('suche', ['q' => $q, 'treffer' => $q === '' ? [] : [
-            'Kunden' => Db::all('SELECT id, name AS titel, email AS neben FROM customers WHERE name LIKE ? OR email LIKE ? OR company LIKE ? LIMIT 10', [$t,$t,$t]),
-            'Bestellungen' => Db::all('SELECT id, order_no AS titel, package_name AS neben FROM orders WHERE order_no LIKE ? OR package_name LIKE ? LIMIT 10', [$t,$t]),
-            'Projekte' => Db::all('SELECT id, name AS titel, status AS neben FROM projects WHERE name LIKE ? LIMIT 10', [$t]),
-            'Websites' => Db::all('SELECT id, domain AS titel, status AS neben FROM websites WHERE domain LIKE ? LIMIT 10', [$t]),
-            'Rechnungen' => Db::all('SELECT id, invoice_no AS titel, status AS neben FROM invoices WHERE invoice_no LIKE ? LIMIT 10', [$t]),
+            'Kunden' => sicher(fn() => Db::all(
+                'SELECT id, COALESCE(NULLIF(company,\'\'), name) AS titel, email AS neben
+                   FROM customers WHERE name LIKE ? OR email LIKE ? OR company LIKE ? LIMIT 10', [$t,$t,$t])),
+            'Angebote' => sicher(fn() => Db::all(
+                'SELECT a.id, a.nummer AS titel, CONCAT(c.name, " · ", a.status) AS neben
+                   FROM angebote a JOIN customers c ON c.id = a.customer_id
+                  WHERE a.nummer LIKE ? OR a.titel LIKE ? OR c.name LIKE ? OR c.company LIKE ?
+                  ORDER BY a.id DESC LIMIT 10', [$t,$t,$t,$t])),
+            'Bedarf' => sicher(fn() => Db::all(
+                'SELECT id, COALESCE(NULLIF(firma,\'\'), name) AS titel, email AS neben
+                   FROM bedarf WHERE name LIKE ? OR firma LIKE ? OR email LIKE ?
+                  ORDER BY id DESC LIMIT 10', [$t,$t,$t])),
+            'Bestellungen' => sicher(fn() => Db::all(
+                'SELECT id, order_no AS titel, package_name AS neben FROM orders
+                  WHERE order_no LIKE ? OR package_name LIKE ? LIMIT 10', [$t,$t])),
+            'Projekte' => sicher(fn() => Db::all(
+                'SELECT id, name AS titel, status AS neben FROM projects WHERE name LIKE ? LIMIT 10', [$t])),
+            'Websites' => sicher(fn() => Db::all(
+                'SELECT id, domain AS titel, status AS neben FROM websites WHERE domain LIKE ? LIMIT 10', [$t])),
+            'Rechnungen' => sicher(fn() => Db::all(
+                'SELECT id, invoice_no AS titel, status AS neben FROM invoices WHERE invoice_no LIKE ? LIMIT 10', [$t])),
         ]]);
         break;
 
