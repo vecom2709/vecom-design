@@ -209,7 +209,22 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
      "tat" -- das ist die zuverlaessigste Marke, die es gibt, weil sie ohnehin
      dastehen muss. Ein ganzer Abschnitt, der kein Formular ist (der fertige
      Preistext auf der Bedarfsseite etwa), sagt es ueber data-tun. */
-  var feld = document.querySelector('input[name="tat"][value="' + CSS.escape(tun) + '"]');
+  /* Die Nummer aus der Adresse trennt gleiche Knoepfe voneinander: drei
+     offene Raten tragen dreimal dieselbe Tat, und ohne sie leuchtete immer
+     die erste. Fehlt sie oder passt keine, bleibt es beim ersten Treffer --
+     so war es vorher, und fuer alles Einmalige stimmt das. */
+  var nr = new URLSearchParams(location.search).get('nr');
+  var kandidaten = [].slice.call(
+    document.querySelectorAll('input[name="tat"][value="' + CSS.escape(tun) + '"]'));
+  var feld = null;
+  if (nr) {
+    for (var i = 0; i < kandidaten.length; i++) {
+      var fm = kandidaten[i].closest('form');
+      var kennung = fm ? fm.querySelector('[name="id"]') : null;
+      if (kennung && kennung.value === nr) { feld = kandidaten[i]; break; }
+    }
+  }
+  if (!feld) { feld = kandidaten[0] || null; }
   var ausFeld = !!(feld && feld.closest('form'));
   var ziel = ausFeld ? feld.closest('form') : document.querySelector('[data-tun="' + CSS.escape(tun) + '"]');
   if (!ziel) { return; }

@@ -247,7 +247,8 @@ $gruppenWort = [
   .haken input{margin:2px 0 0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--blau)}
   .haken span{flex:1 1 auto;min-width:0;display:block;font-size:14px;line-height:1.45}
   .haken span b{display:block;font-weight:600}
-  .haken span i{display:block;font-style:normal;font-size:12.5px;color:var(--leise);margin-top:2px}
+  .haken span i{display:block;font-style:normal;font-weight:400;font-size:12.5px;
+                color:var(--leise);margin-top:2px}
   /* "Im Angebot" ist die wichtigste Auskunft auf dieser Seite: Sie sagt dem
      Kunden, was er schon hat, und uns, woran wir seine Kreuze messen. */
   .haken em.drin{flex:0 0 auto;align-self:center;font-style:normal;font-size:11px;

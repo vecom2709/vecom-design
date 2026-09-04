@@ -582,6 +582,21 @@ final class Vorgang
         array $v, string $stufe, string $dran, ?string $knopf, string $warum,
         ?string $tat = null, ?int $id = null, array $felder = [], ?string $ziel = null
     ): array {
+        /* MEHRERE KNOEPFE, DIESELBE TAT
+           ------------------------------------------------------------------
+           Seit es Nachtraege gibt, koennen auf einer Bestellung drei Raten
+           gleichzeitig offen sein -- und damit drei Knoepfe "Zahlungslink
+           erzeugen", die sich nur durch ihre Nummer unterscheiden. ?tun=
+           sagt nur, welche Art Handgriff gemeint ist; das Leuchten landete
+           deshalb auf der ersten Zeile statt auf der richtigen, und wer ihm
+           folgte, erzeugte den Link fuer die falsche Rate.
+
+           Die Nummer entscheidet. Sie haengt hier von selbst an, wo ein
+           Schritt sowohl ein Ziel als auch eine Kennung hat. */
+        if ($ziel !== null && $id !== null && str_contains($ziel, '?tun=')) {
+            $ziel .= '&nr=' . $id;
+        }
+
         $v['stufe']     = $stufe;
         $v['stufe_wort']= self::STUFEN[$stufe] ?? $stufe;
         $v['stufe_nr']  = (int) array_search($stufe, array_keys(self::STUFEN), true);
