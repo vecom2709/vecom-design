@@ -453,6 +453,32 @@ final class Texte
     ];
 
     public const MAILS = [
+        /* Zu jeder bezahlten Rate ein Beleg — und zwar in der Post, nicht
+           nur auf der Kundenseite. Bisher ging eine Nachricht ausschliesslich
+           bei der ersten Zahlung raus (in der Auftragsbestaetigung); wer die
+           Restzahlung oder einen Nachtrag beglich, hoerte nichts. Das Blatt
+           haengt als PDF dran: Ein Dokument, das nur irgendwo zum Abholen
+           liegt, erreicht niemanden.
+
+           {wort} ist Beleg oder Rechnung — je nachdem, ob eine
+           Umsatzsteuernummer hinterlegt ist. */
+        'beleg' => [
+            'it' => ['{wort} {nummer} — {betrag}',
+                "Ciao {name},\n\nho ricevuto il tuo pagamento: {was}, {betrag}. Grazie.\n\n"
+                . "In allegato trovi il documento {nummer} in PDF, da conservare.\n\n"
+                . "Tutti i documenti restano anche sulla tua pagina:\n{seite}\n\n"
+                . "Se qualcosa non torna, scrivimi e me ne occupo io."],
+            'de' => ['{wort} {nummer} — {betrag}',
+                "Hallo {name},\n\ndeine Zahlung ist angekommen: {was}, {betrag}. Danke dafür.\n\n"
+                . "Im Anhang liegt der {wort} {nummer} als PDF, zum Aufheben.\n\n"
+                . "Alle Unterlagen findest du außerdem auf deiner Seite:\n{seite}\n\n"
+                . "Wenn etwas nicht stimmt, schreib mir — ich kümmere mich darum."],
+            'en' => ['{wort} {nummer} — {betrag}',
+                "Hello {name},\n\nyour payment has arrived: {was}, {betrag}. Thank you.\n\n"
+                . "Attached is document {nummer} as a PDF, for your records.\n\n"
+                . "All documents also stay on your page:\n{seite}\n\n"
+                . "If anything looks wrong, write to me and I will sort it out."],
+        ],
         /* Sofort nach dem Absenden. Zwei Aufgaben: der Kunde weiss, dass es
            angekommen ist — und er hat schwarz auf weiss, dass ihn nichts
            bindet. Beides fehlte bisher ganz. */
@@ -790,6 +816,18 @@ final class Texte
            richtig, wenn man die Frage darueber ueberflogen hat -- "OK" nicht. */
         'jaAnnehmen' => ['it' => 'Sì, accetto', 'de' => 'Ja, annehmen', 'en' => 'Yes, accept'],
         'abbrechen'  => ['it' => 'Annulla', 'de' => 'Abbrechen', 'en' => 'Cancel'],
+        /* Ueber der Zustimmung. Kein Kleingedrucktes: Wer hier klickt,
+           schliesst einen Vertrag, und das darf man ihm auch sagen. */
+        'zustKopf' => [
+            'it' => 'Prima di accettare',
+            'de' => 'Bevor du annimmst',
+            'en' => 'Before you accept',
+        ],
+        'fehlerZust' => [
+            'it' => 'Servono entrambe le conferme per accettare l\'offerta.',
+            'de' => 'Beide Bestätigungen sind nötig, um das Angebot anzunehmen.',
+            'en' => 'Both confirmations are needed to accept the quote.',
+        ],
         'ablehnen'  => ['it' => 'Non fa per me', 'de' => 'Passt so nicht', 'en' => 'Not for me'],
         'grundFrage'=> [
             'it' => 'Che cosa non va? Basta una riga — mi aiuta a capire.',

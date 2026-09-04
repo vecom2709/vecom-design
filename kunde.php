@@ -81,6 +81,26 @@ if ($kunde && isset($_GET['beleg'])) {
     exit;
 }
 
+/* Das Vertragsblatt — die Auftragsbestaetigung zum Aufheben.
+
+   Sie kam bisher nur als E-Mail. Wer sie loescht oder das Postfach wechselt,
+   stand ohne sein Vertragsblatt da, waehrend die Zahlungsbelege hier lagen.
+   Geprueft wird ueber die Kundennummer, genau wie beim Beleg. */
+if ($kunde && isset($_GET['vertrag'])) {
+    require_once __DIR__ . '/app/src/Vertragsblatt.php';
+    $bv = sicherLesen(fn() => Db::one('SELECT * FROM orders WHERE id = ? AND customer_id = ?',
+        [(int) $_GET['vertrag'], (int) $kunde['id']]), null);
+    if (!$bv) { http_response_code(404); exit('Nicht gefunden.'); }
+    $daten = (string) sicherLesen(fn() => Vertragsblatt::pdf((int) $bv['id']), '');
+    if ($daten === '') { http_response_code(503); exit('Das Blatt lässt sich gerade nicht erzeugen.'); }
+    header('Content-Type: application/pdf');
+    header('Content-Length: ' . strlen($daten));
+    header('Content-Disposition: attachment; filename="'
+        . Vertragsblatt::dateiname($bv, Vertragsblatt::sprache($bv, $kunde)) . '"');
+    echo $daten;
+    exit;
+}
+
 /* -------------------------------------------------------------------------
    Was der Kunde tun kann. Vier Dinge, mehr braucht es nicht.
    ------------------------------------------------------------------------- */
@@ -184,6 +204,15 @@ $dateien = $kunde ? (array) sicherLesen(fn() => Db::all(
 $belege = $kunde ? (array) sicherLesen(fn() => Db::all(
     "SELECT * FROM invoices WHERE customer_id = ? AND (issued_at IS NOT NULL OR status <> 'entwurf')
       ORDER BY id DESC", [(int) $kunde['id']])) : [];
+/* Die Bestellungen dieses Kunden — fuer das Vertragsblatt unter den
+   Unterlagen. Eine Bestellung ohne bestaetigte Zahlung ist noch kein
+   Vertrag, deshalb nur die, die tatsaechlich losgegangen sind. */
+$vertraege = $kunde ? (array) sicherLesen(fn() => Db::all(
+    "SELECT o.* FROM orders o
+      WHERE o.customer_id = ?
+        AND EXISTS (SELECT 1 FROM payments z WHERE z.order_id = o.id AND z.status = 'bezahlt')
+      ORDER BY o.id DESC", [(int) $kunde['id']])) : [];
+
 $fragebogen = $pid ? sicherLesen(fn() => Db::one(
     'SELECT * FROM questionnaires WHERE project_id = ?', [(int) $pid]), null) : null;
 
@@ -552,9 +581,20 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   </details>
 
   <?php /* ---------- Unterlagen ---------- */ ?>
-  <?php if ($belege): ?>
+  <?php if ($belege || $vertraege): ?>
     <details class="klapp">
-      <summary><?= $h($T('unterlagen')) ?> (<?= count($belege) ?>)</summary>
+      <summary><?= $h($T('unterlagen')) ?> (<?= count($belege) + count($vertraege) ?>)</summary>
+      <?php foreach ($vertraege as $v): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;
+                    padding:11px 0;border-top:1px solid var(--linie)">
+          <span><?= $h(Texte::h([
+                  'it' => 'Conferma d\'ordine', 'de' => 'Auftragsbestätigung',
+                  'en' => 'Order confirmation'], $sprache)) ?><br>
+            <small style="color:var(--leise)"><?= $h((string) $v['order_no']) ?>
+              · <?= $h(Fmt::datum((string) $v['created_at'])) ?></small></span>
+          <a class="knopf" href="<?= $h($hier) ?>&amp;vertrag=<?= (int) $v['id'] ?>">PDF</a>
+        </div>
+      <?php endforeach; ?>
       <?php foreach ($belege as $r): ?>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;
                     padding:11px 0;border-top:1px solid var(--linie)">
@@ -575,5 +615,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
          Der Aenderungsstempel sorgt dafuer, dass eine neue Fassung auch
          ankommt und nicht aus dem Speicher des Browsers kommt. */ ?>
 <script src="/assets/js/frage.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/frage.js') ?>" defer></script>
+<?php /* Impressum, Datenschutz und AGB — auch unter den Seiten, die man nur
+         mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
+         Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
+<?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
 </body>
 </html>

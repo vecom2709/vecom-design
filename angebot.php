@@ -28,6 +28,10 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Texte', 'Events'] as
     require_once __DIR__ . "/app/src/$k.php";
 }
 require_once __DIR__ . '/app/src/Angebot.php';
+/* Die Zustimmungs- und Widerrufstexte kommen aus Widerruf.php, genau wie auf
+   buchen.php. Zwei Stellen waeren zwei Wortlaute, sobald einer geaendert wird —
+   und bestaetigt wird spaeter woertlich das, was hier stand. */
+require_once __DIR__ . '/app/src/Widerruf.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecomangebot');
@@ -54,6 +58,8 @@ if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 $T = static fn(string $s): string => Texte::h(Texte::ANGEBOT[$s] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 
+$W = Widerruf::texte($sprache);
+
 $adresse = static fn(string $meldung = ''): string =>
     '/angebot.php?t=' . rawurlencode($token) . ($meldung !== '' ? '&m=' . rawurlencode($meldung) : '');
 
@@ -65,7 +71,17 @@ if ($a && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $tat = (string) ($_POST['tat'] ?? '');
     try {
         if ($tat === 'annehmen') {
-            $bestellId = Angebot::annehmen($token);
+            /* Ohne beide Haken keine Zusage. Der Browser haelt das Formular
+               schon an, aber verlassen kann man sich darauf nicht: Ein POST
+               laesst sich auch ohne Browser schicken, und dann faende die
+               Zustimmung nicht statt, waehrend die Bestellung entstuende. */
+            if (empty($_POST['agb']) || empty($_POST['widerruf'])) {
+                header('Location: ' . $adresse('zustimmung')); exit;
+            }
+            $bestellId = Angebot::annehmen($token, [
+                'sprache' => $sprache,
+                'text'    => trim(strip_tags((string) $W['agb'])) . "\n" . trim((string) $W['wid']),
+            ]);
             header('Location: ' . $adresse($bestellId !== null ? 'danke' : 'panne')); exit;
         }
         if ($tat === 'ablehnen') {
@@ -178,6 +194,15 @@ $datum = static function (?string $d): string {
   .neinbox{margin-top:14px;padding-top:14px;border-top:1px solid var(--linie)}
   .neinbox summary{cursor:pointer;color:var(--leise);font-size:13px}
   .neinbox textarea{margin-top:10px}
+  .zustimmung{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;
+    margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--dim);cursor:pointer}
+  .zustimmung input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--cyan);cursor:pointer}
+  .zustimmung a{color:var(--cyan)}
+  .widerrufbox{margin:0 0 16px;font-size:12.5px;color:var(--leise)}
+  .widerrufbox summary{cursor:pointer;padding:11px 0;color:var(--dim)}
+  .widerrufbox p{margin:0;line-height:1.55}
+  .zustkopf{font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--leise);margin:0 0 10px}
 
   /* ---- Der Rechner ----------------------------------------------------
      Bewusst dieselbe Zeilenform wie die Posten darueber: Der Kunde soll
@@ -221,6 +246,7 @@ $datum = static function (?string $d): string {
   <?php if ($m === 'danke'): ?><div class="hinweis gut"><?= $h($T('dankeAn')) ?></div><?php endif; ?>
   <?php if ($m === 'abgelehnt'): ?><div class="hinweis"><?= $h($T('dankeAb')) ?></div><?php endif; ?>
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($T('panne')) ?></div><?php endif; ?>
+  <?php if ($m === 'zustimmung'): ?><div class="hinweis warnung"><?= $h($T('fehlerZust')) ?></div><?php endif; ?>
 
   <div class="akopf">
     <h1 style="font-size:21px;margin:0 0 6px"><?= $h($T('titel')) ?></h1>
@@ -297,6 +323,24 @@ $datum = static function (?string $d): string {
             data-nein="<?= $h($T('abbrechen')) ?>">
         <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
         <input type="hidden" name="t" value="<?= $h($token) ?>">
+
+        <?php /* Hier wird der Vertrag geschlossen — also stehen hier auch die
+                 Bedingungen, nicht erst in der Bestaetigung danach. Wortlaut
+                 und Zeitpunkt gehen mit in die Bestellung. */ ?>
+        <p class="zustkopf"><?= $h($T('zustKopf')) ?></p>
+        <label class="zustimmung">
+          <input type="checkbox" name="agb" value="1" required>
+          <span><?= $W['agb'] /* enthaelt bewusst zwei Links */ ?></span>
+        </label>
+        <label class="zustimmung">
+          <input type="checkbox" name="widerruf" value="1" required>
+          <span><?= $h($W['wid']) ?></span>
+        </label>
+        <details class="widerrufbox">
+          <summary><?= $h($W['widTitel']) ?></summary>
+          <p><?= $h($W['widText']) ?></p>
+        </details>
+
         <div class="tun">
           <button class="knopf haupt" name="tat" value="annehmen"><?= $h($T('annehmen')) ?></button>
         </div>
@@ -468,5 +512,9 @@ $datum = static function (?string $d): string {
          Der Aenderungsstempel sorgt dafuer, dass eine neue Fassung auch
          ankommt und nicht aus dem Speicher des Browsers kommt. */ ?>
 <script src="/assets/js/frage.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/frage.js') ?>" defer></script>
+<?php /* Impressum, Datenschutz und AGB — auch unter den Seiten, die man nur
+         mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
+         Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
+<?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
 </body>
 </html>

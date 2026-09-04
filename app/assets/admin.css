@@ -243,3 +243,18 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 @media (prefers-reduced-motion:reduce){
   .leuchtet{animation:none; outline-color:var(--cyan)}
 }
+
+/* ---------- Rechtsfuss --------------------------------------------------
+   Dieselbe Form wie auf den Kundenseiten. Gebraucht wird er hier nur auf
+   buchen.php, das diese Datei mitbenutzt — die Verwaltung selbst hat ihr
+   Impressum nicht noetig. */
+.rechtsfuss{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:8px; margin:30px auto 10px; padding:16px 20px 0;
+  max-width:760px; border-top:1px solid var(--linie);
+  font-size:12.5px; line-height:1.6; color:var(--leise);
+}
+.rechtsfuss a{color:var(--leise); text-decoration:none;
+  min-height:32px; display:inline-flex; align-items:center}
+.rechtsfuss a:hover,.rechtsfuss a:focus-visible{color:var(--cyan); text-decoration:underline}
+.rechtsfuss span{color:var(--linie2)}

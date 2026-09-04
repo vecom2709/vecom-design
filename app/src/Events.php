@@ -369,6 +369,7 @@ final class Events
         // E-Mails erst nach dem Festschreiben. Ein langsamer oder toter
         // Mailserver darf eine bestaetigte Zahlung nicht zurueckrollen — und
         // eine Zahlung ohne Bestaetigungsmail ist immer noch eine Zahlung.
+        $bestaetigungGing = false;
         if (is_array($nachlauf) && $nachlauf['projekt'] !== null
             && in_array($nachlauf['art'], ['anzahlung', 'gesamt'], true)) {
             // Zuerst die Auftragsbestaetigung. Sie ist die Pflicht — die
@@ -378,7 +379,7 @@ final class Events
             // und den Beleg im Anhang.
             try {
                 require_once __DIR__ . '/Nachricht.php';
-                Nachricht::auftragsbestaetigung((int) $nachlauf['projekt']);
+                $bestaetigungGing = Nachricht::auftragsbestaetigung((int) $nachlauf['projekt']);
             } catch (Throwable $e) {
                 self::melden('mail_fehler', 'Auftragsbestätigung ging nicht raus', 'schlecht',
                     mb_substr($e->getMessage(), 0, 200) . ' — sie enthält die Pflichtangaben zum Widerruf.',
@@ -391,6 +392,29 @@ final class Events
             } catch (Throwable $e) {
                 self::melden('mail_fehler', 'Fragebogen konnte nicht verschickt werden', 'schlecht',
                     $e->getMessage(), '/projekte/' . (int) $nachlauf['projekt']);
+            }
+        }
+
+        /* DER BELEG GEHT IMMER RAUS
+           ----------------------------------------------------------------
+           Die Auftragsbestaetigung traegt jeden vorhandenen Beleg im Anhang —
+           aber sie geht nur ein einziges Mal raus, bei der ersten Zahlung.
+           Restzahlung und Nachtrag bekamen deshalb ueberhaupt keine Post: Der
+           Kunde ueberwies die Schlussrate und hoerte nichts, waehrend sein
+           Beleg still auf der Projektseite lag.
+
+           Also: Ging die Bestaetigung gerade raus, hing der Beleg schon dran.
+           Ging sie nicht (weil sie es laengst war, oder weil es eine spaetere
+           Rate ist), geht der Beleg allein. Zweimal kann er so nicht kommen. */
+        if (is_array($nachlauf) && !$bestaetigungGing) {
+            try {
+                require_once __DIR__ . '/Rechnung.php';
+                $r = Db::one('SELECT * FROM invoices WHERE payment_id = ?', [$zahlungId]);
+                if ($r) { Rechnung::verschicken($r); }
+            } catch (Throwable $e) {
+                self::melden('mail_fehler', 'Beleg ging nicht raus', 'warnung',
+                    mb_substr($e->getMessage(), 0, 200) . ' — er liegt auf der Kundenseite.',
+                    '/rechnungen');
             }
         }
     }

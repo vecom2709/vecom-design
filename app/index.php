@@ -880,23 +880,15 @@ if ($post) {
                 zurueck($_POST['zurueck'] ?? 'rechnungen');
 
             case 'rechnung_schicken':
+                /* Frueher stand hier ein fest eingetippter deutscher Text mit
+                   einem Link auf die Verwaltung — ein italienischer Kunde bekam
+                   deutsche Post und musste sich das Blatt selbst abholen. Jetzt
+                   derselbe Weg wie beim automatischen Versand: dreisprachig,
+                   mit dem PDF im Anhang, Wortlaut an einer Stelle. */
                 require_once __DIR__ . '/src/Rechnung.php';
-                require_once __DIR__ . '/src/Mail.php';
                 $r = Db::one('SELECT * FROM invoices WHERE id = ?', [(int) $_POST['id']]);
                 if (!$r) { throw new RuntimeException('Beleg nicht gefunden.'); }
-                $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $r['customer_id']]);
-                $ziel = rtrim((string) Config::get('website', ''), '/');
-                $wort = Rechnung::bezeichnung();
-                $ok = Mail::senden('rechnung', (string) $k['email'],
-                    $wort . ' ' . $r['invoice_no'],
-                    "Hallo " . $k['name'] . ",\n\nanbei der " . $wort . ' ' . $r['invoice_no']
-                    . ' über ' . Fmt::geld((int) $r['total_cents'], (string) $r['currency']) . ".\n\n"
-                    . "Zum Herunterladen:\n" . $ziel . Config::basis() . '/rechnungen/' . (int) $r['id'] . "/pdf\n\n"
-                    . "Herzliche Grüße\nUwe Vetter · Vecom Design\n",
-                    ['customer_id' => (int) $r['customer_id'],
-                     'order_id' => $r['order_id'] !== null ? (int) $r['order_id'] : null,
-                     'antwortAn' => Mail::eigeneAdresse()]);
-                if ($ok) { Db::update('invoices', (int) $r['id'], ['sent_at' => date('Y-m-d H:i:s')]); }
+                $ok = Rechnung::verschicken($r);
                 $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
                 zurueck('rechnungen/' . (int) $r['id']);
 
@@ -1609,6 +1601,20 @@ switch ($route) {
             $b = Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache
                             FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?', [$id]);
             if (!$b) { http_response_code(404); exit('Bestellung nicht gefunden.'); }
+            /* Das Vertragsblatt, so wie der Kunde es bekommt. Damit laesst es
+               sich nachschicken oder ausdrucken, ohne die Mail zu suchen. */
+            if (($teile[2] ?? '') === 'vertrag') {
+                require_once __DIR__ . '/src/Vertragsblatt.php';
+                $daten = Vertragsblatt::pdf((int) $b['id']);
+                if ($daten === '') { http_response_code(503); exit('Das Blatt ließ sich nicht bauen.'); }
+                header('Content-Type: application/pdf');
+                header('Content-Length: ' . strlen($daten));
+                header('Content-Disposition: attachment; filename="'
+                    . Vertragsblatt::dateiname($b, Vertragsblatt::sprache($b, ['sprache' => $b['kunde_sprache']])) . '"');
+                header('X-Content-Type-Options: nosniff');
+                echo $daten;
+                exit;
+            }
             /* Die Ansicht zeigt vor dem Senden, was rausgeht -- und baut den
                Text mit derselben Funktion, die ihn danach verschickt. Zwei
                Fassungen desselben Briefes waeren zwei Wahrheiten. */

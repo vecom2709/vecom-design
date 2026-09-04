@@ -94,7 +94,7 @@ final class Nachricht
                     $rumpf = $anrede . ' ' . $k['name'] . ",\n\n" . $text . $anhang . "\n\n" . $gruss;
                 }
                 Mail::senden('nachricht_vorab', (string) $k['email'], $zeile, $rumpf,
-                    ['customer_id' => $kundeId]);
+                    ['customer_id' => $kundeId, 'anhaenge' => self::angebotsAnhang($rumpf)]);
             }
         } catch (Throwable $e) { /* geschrieben ist geschrieben */ }
 
@@ -165,6 +165,7 @@ final class Nachricht
             'project_id'  => (int) $p['id'],
             'order_id'    => $p['order_id'] !== null ? (int) $p['order_id'] : null,
             'antwortAn'   => Mail::eigeneAdresse(),
+            'anhaenge'    => self::angebotsAnhang($inhalt),
         ]);
         Events::protokoll('nachricht_raus', 'Nachricht an ' . ($p['firma'] ?: $p['kunde']),
             (int) $p['customer_id'], $p['order_id'] !== null ? (int) $p['order_id'] : null, (int) $p['id']);
@@ -418,8 +419,22 @@ final class Nachricht
             'link'      => self::link($projektId) ?? $basis,
         ]);
 
-        /* Anhaenge: das Formular immer, der Beleg wenn es ihn gibt. */
-        $anhaenge = [[
+        /* Anhaenge: das Vertragsblatt, das Formular immer, der Beleg wenn es
+           ihn gibt. Das Blatt zuerst — es ist die Bestaetigung selbst, und
+           wer den Anhang oeffnet, soll sie zuerst in der Hand haben. */
+        $anhaenge = [];
+        try {
+            require_once __DIR__ . '/Vertragsblatt.php';
+            $blatt = Vertragsblatt::pdf($bestellId);
+            if ($blatt !== '') {
+                $anhaenge[] = [
+                    'name'  => Vertragsblatt::dateiname($b, $sprache),
+                    'daten' => $blatt,
+                ];
+            }
+        } catch (Throwable $e) { /* der Wortlaut steht ohnehin in der Mail */ }
+
+        $anhaenge[] = [
             'name'  => Widerruf::dateiname($sprache),
             'daten' => Widerruf::formularPdf($sprache, [
                 'leistung'  => trim((string) ($p['paket'] ?? '') . ' — ' . $b['order_no']),
@@ -427,7 +442,7 @@ final class Nachricht
                 'name'      => (string) $p['kunde'],
                 'anschrift' => self::kundenanschrift((int) $p['customer_id']),
             ]),
-        ]];
+        ];
         foreach (Db::all('SELECT * FROM invoices WHERE order_id = ? ORDER BY id', [$bestellId]) as $r) {
             try {
                 $anhaenge[] = ['name' => Rechnung::dateiname($r), 'daten' => Rechnung::pdf($r)];
@@ -441,6 +456,39 @@ final class Nachricht
             'antwortAn'   => Mail::eigeneAdresse(),
             'anhaenge'    => $anhaenge,
         ]);
+    }
+
+    /**
+     * Steht in einer Nachricht ein Angebotslink, haengt das Angebot als PDF dran.
+     *
+     * WARUM
+     *
+     * Das Angebot ging bisher nur als Link raus. Ein Link ist kein Dokument:
+     * Er kann ablaufen, das Angebot kann zurueckgezogen werden, und in einem
+     * Postfach voller Nachrichten findet ihn spaeter niemand wieder. Der
+     * Kunde soll das Blatt haben, ueber das er entscheidet — nicht die
+     * Adresse, unter der es vielleicht noch liegt.
+     *
+     * Erkannt wird der Link am Wortlaut, nicht am juengsten Angebot des
+     * Kunden: Verschickt Uwe eine aeltere Fassung noch einmal, muss auch die
+     * aeltere Fassung im Anhang liegen.
+     *
+     * Faellt das PDF aus, geht die Nachricht trotzdem — mit dem Link, wie
+     * bisher. Ein fehlender Anhang darf kein Angebot aufhalten.
+     */
+    private static function angebotsAnhang(string $text): array
+    {
+        if (!preg_match('~/angebot\.php\?t=([0-9a-f]{48})~', $text, $treffer)) { return []; }
+        try {
+            require_once __DIR__ . '/Angebot.php';
+            $a = Angebot::laden((string) $treffer[1]);
+            if (!$a) { return []; }
+            $daten = Angebot::pdf((int) $a['id']);
+            if ($daten === '') { return []; }
+            return [['name' => Angebot::dateiname($a), 'daten' => $daten]];
+        } catch (Throwable $e) {
+            return [];
+        }
     }
 
     /** Die Anschrift des Kunden in einer Zeile, fuer das Formular. */

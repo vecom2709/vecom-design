@@ -586,11 +586,11 @@ final class Angebot
      * Fragebogen, Belege. Deshalb der Umweg ueber Events::bestellungAnlegen
      * statt einer zweiten, eigenen Bestelllogik.
      */
-    public static function annehmen(string $token): ?int
+    public static function annehmen(string $token, array $zustimmung = []): ?int
     {
         $a = self::laden($token);
         if (!$a || $a['status'] !== 'gesendet' || self::abgelaufen($a)) { return null; }
-        return self::zusagen($a);
+        return self::zusagen($a, $zustimmung);
     }
 
     /**
@@ -619,7 +619,7 @@ final class Angebot
     }
 
     /** Der gemeinsame Rumpf: Aus dem Angebot wird eine Bestellung. */
-    private static function zusagen(array $a): ?int
+    private static function zusagen(array $a, array $zustimmung = []): ?int
     {
         $paketId = self::internesPaket();
         $notiz   = 'Aus Angebot ' . $a['nummer'] . ".\n" . self::alsText((int) $a['id']);
@@ -638,6 +638,34 @@ final class Angebot
             'angenommen_am' => date('Y-m-d H:i:s'),
             'order_id'      => $bestellId,
         ]);
+
+        /* WAS DER KUNDE BEIM ANNEHMEN BESTAETIGT HAT
+           ----------------------------------------------------------------
+           Bis hierher gab es das nur bei der Direktbuchung. Wer ueber ein
+           Angebot zusagte, schloss den Vertrag, ohne die Widerrufsbelehrung
+           gesehen zu haben — und ohne das ausdrueckliche Verlangen nach
+           Art. 51 Abs. 8 Codice del Consumo. Ohne dieses Verlangen erlischt
+           das Widerrufsrecht NICHT mit der vollstaendig erbrachten Leistung:
+           Der Kunde koennte nach der fertigen Website noch widerrufen.
+
+           Festgehalten wird nicht der Haken, sondern der Wortlaut, den er vor
+           sich hatte. Was heute auf der Seite steht, kann morgen anders
+           lauten; belegbar ist nur das Gezeigte.
+
+           Leer bleibt es bei der Zusage von Hand — die kam am Telefon, dort
+           hat niemand etwas angekreuzt, und eine erfundene Zustimmung waere
+           schlimmer als gar keine. */
+        if (!empty($zustimmung['text'])) {
+            try {
+                $jetzt = date('Y-m-d H:i:s');
+                Db::update('orders', $bestellId, [
+                    'agb_ok_am'       => $jetzt,
+                    'widerruf_ok_am'  => $jetzt,
+                    'zustimmung_lang' => (string) ($zustimmung['sprache'] ?? 'it'),
+                    'zustimmung_text' => (string) $zustimmung['text'],
+                ]);
+            } catch (Throwable $e) { /* die Bestellung steht, das ist das Wichtige */ }
+        }
 
         /* DIE ANFRAGE GEHOERT JETZT ZUR BESTELLUNG
            ----------------------------------------------------------------

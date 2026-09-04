@@ -294,3 +294,18 @@ input[type=file]{
 tr.fragezeile > td{border:0}
 tr.fragezeile .frage{margin:0 0 8px}
 .frage .knopf{flex:0 0 auto}
+
+/* ---------- Rechtsfuss ------------------------------------------------
+   Impressum, Datenschutz und AGB gehoeren unter jede Seite, die ein
+   Kunde zu sehen bekommt — auch unter die, die man nur mit Schluessel
+   erreicht. Leise gesetzt: Er soll auffindbar sein, nicht laut. */
+.rechtsfuss{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
+  gap:8px; margin:34px auto 8px; padding:16px 20px 0;
+  max-width:760px; border-top:1px solid var(--linie);
+  font-size:12.5px; line-height:1.6; color:var(--leise);
+}
+.rechtsfuss a{color:var(--leise); text-decoration:none;
+  min-height:32px; display:inline-flex; align-items:center}
+.rechtsfuss a:hover,.rechtsfuss a:focus-visible{color:var(--cyan); text-decoration:underline}
+.rechtsfuss span{color:var(--linie2)}

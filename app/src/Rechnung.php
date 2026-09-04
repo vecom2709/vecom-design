@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Firma.php';
 require_once __DIR__ . '/Pdf.php';
 require_once __DIR__ . '/Kunde.php';
+require_once __DIR__ . '/Fmt.php';
 
 /**
  * Belege und Rechnungen.
@@ -31,6 +32,34 @@ final class Rechnung
     public static function bezeichnung(): string
     {
         return self::istRechnung() ? 'Rechnung' : 'Zahlungsbeleg';
+    }
+
+    /**
+     * Dasselbe Wort in der Sprache des Kunden.
+     *
+     * bezeichnung() ist fuer die Verwaltung da und deshalb deutsch. Was der
+     * Kunde liest, muss in seiner Sprache stehen — ein italienischer Gastwirt
+     * bekommt keinen "Zahlungsbeleg".
+     */
+    public static function wort(string $sprache): string
+    {
+        $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        return self::istRechnung()
+            ? ['it' => 'Fattura', 'de' => 'Rechnung', 'en' => 'Invoice'][$s]
+            : ['it' => 'Ricevuta', 'de' => 'Zahlungsbeleg', 'en' => 'Receipt'][$s];
+    }
+
+    /** Wofuer bezahlt wurde, in der Sprache des Kunden. */
+    public static function wofuer(string $art, string $sprache): string
+    {
+        $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        $karte = [
+            'anzahlung'   => ['it' => 'acconto', 'de' => 'Anzahlung', 'en' => 'deposit'],
+            'restzahlung' => ['it' => 'saldo alla consegna', 'de' => 'Restzahlung bei Übergabe', 'en' => 'balance on handover'],
+            'nachtrag'    => ['it' => 'lavoro aggiuntivo concordato', 'de' => 'vereinbarter Nachtrag', 'en' => 'agreed additional work'],
+            'gesamt'      => ['it' => 'importo totale', 'de' => 'Gesamtbetrag', 'en' => 'full amount'],
+        ];
+        return $karte[$art][$s] ?? ['it' => 'pagamento', 'de' => 'Zahlung', 'en' => 'payment'][$s];
     }
 
     /**
@@ -137,6 +166,8 @@ final class Rechnung
         $was = match ((string) $r['art']) {
             'anzahlung'   => 'Anzahlung',
             'restzahlung' => 'Restzahlung bei Übergabe',
+            'nachtrag'    => 'Vereinbarter Nachtrag',
+            'gesamt'      => 'Gesamtbetrag',
             default       => 'Zahlung',
         };
         $paket = (string) Db::wert('SELECT package_name FROM orders WHERE id = ?',
@@ -339,6 +370,70 @@ final class Rechnung
         return $p->fertig();
     }
 
+    /**
+     * Den Beleg per Post schicken — mit dem PDF im Anhang.
+     *
+     * WARUM DAS HIER STEHT UND NICHT ZWEIMAL WOANDERS
+     *
+     * Es gab zwei halbe Wege: die Auftragsbestaetigung, die nur bei der
+     * ersten Zahlung rausgeht und ihre Anhaenge selbst zusammensucht, und
+     * einen Knopf in der Verwaltung mit einem fest eingetippten deutschen
+     * Text und einem Link statt eines Anhangs. Wer die Restzahlung oder
+     * einen Nachtrag beglich, bekam gar nichts.
+     *
+     * Jetzt gibt es einen Weg, und beide rufen ihn: automatisch nach jeder
+     * bestaetigten Rate und von Hand aus der Belegliste.
+     *
+     * Faellt der Versand aus, bleibt der Beleg trotzdem gueltig und liegt
+     * auf der Kundenseite — eine Mail ist die Zustellung, nicht das Dokument.
+     */
+    public static function verschicken(array $r): bool
+    {
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Texte.php';
+        require_once __DIR__ . '/Kundenzugang.php';
+
+        $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $r['customer_id']]);
+        if (!$k || trim((string) $k['email']) === '') { return false; }
+
+        $sprache = strtolower((string) ($k['sprache'] ?: 'it'));
+        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+        $seite = '';
+        try { $seite = Kundenzugang::linkFuer((int) $k['id']); } catch (Throwable $e) { }
+        if ($seite === '') { $seite = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'); }
+
+        [$betreff, $text] = Texte::mail('beleg', $sprache, [
+            'name'   => (string) $k['name'],
+            'wort'   => self::wort($sprache),
+            'nummer' => (string) $r['invoice_no'],
+            'betrag' => Fmt::geld((int) $r['total_cents'], (string) $r['currency']),
+            'was'    => self::wofuer((string) $r['art'], $sprache),
+            'seite'  => $seite,
+        ]);
+
+        $anhaenge = [];
+        try {
+            $anhaenge[] = ['name' => self::dateiname($r), 'daten' => self::pdf($r)];
+        } catch (Throwable $e) {
+            // Ohne Anhang ist die Nachricht immer noch besser als keine —
+            // der Link auf die Kundenseite steht ohnehin darin.
+        }
+
+        $ok = Mail::senden('beleg', (string) $k['email'], $betreff, $text, [
+            'customer_id' => (int) $r['customer_id'],
+            'order_id'    => $r['order_id'] !== null ? (int) $r['order_id'] : null,
+            'antwortAn'   => Mail::eigeneAdresse(),
+            'anhaenge'    => $anhaenge,
+        ]);
+        if ($ok) {
+            try { Db::update('invoices', (int) $r['id'], ['sent_at' => date('Y-m-d H:i:s')]); }
+            catch (Throwable $e) { }
+        }
+        return $ok;
+    }
+
+    /** Dateiname des Belegs, je Sprache. */
     public static function dateiname(array $r): string
     {
         return preg_replace('~[^A-Za-z0-9._-]~', '', (string) $r['invoice_no']) . '.pdf';

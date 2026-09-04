@@ -1,5 +1,9 @@
 <div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('bestellungen')) ?>">Bestellungen</a></div>
-<h1><?= Fmt::h($b['order_no']) ?></h1></div></div>
+<h1><?= Fmt::h($b['order_no']) ?></h1></div>
+<?php /* Dasselbe Blatt, das der Kunde bekommen hat -- zum Nachschicken oder
+         Ausdrucken, ohne die Mail zu suchen. */ ?>
+<div class="rechts"><a class="knopf" href="<?= Fmt::h(url('bestellungen/' . (int) $b['id'] . '/vertrag')) ?>"
+   title="Die Auftragsbestätigung als PDF, in der Sprache des Kunden">Vertragsblatt</a></div></div>
 <div class="zwei"><div>
   <?php
   $bezahlt = 0; $offen = 0;

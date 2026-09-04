@@ -417,5 +417,9 @@ $geld = static function (int $cents) use ($sprache): string {
   </div>
 <?php endif; ?>
 </div>
+<?php /* Impressum, Datenschutz und AGB — auch unter den Seiten, die man nur
+         mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
+         Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
+<?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
 </body>
 </html>
