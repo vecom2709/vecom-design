@@ -151,15 +151,23 @@ if ($f && $f['data'] !== null && $f['data'] !== '') {
 $m      = (string) ($_GET['m'] ?? '');
 $fertig = $f && ($f['status'] === 'abgeschlossen' || $m === 'danke');
 
-/* Wo geht es weiter? Beim ersten Abschnitt, in dem noch nichts steht — wer
-   zurueckkommt, landet dort, wo er aufgehoert hat, nicht wieder ganz vorn. */
+/* WO GEHT ES WEITER?
+   ----------------------------------------------------------------------
+   Beim ersten Abschnitt, in dem noch eine Luecke ist. Wer zurueckkommt,
+   landet damit dort, wo er aufgehoert hat, statt wieder ganz vorn.
+
+   Frueher galt "der erste Abschnitt, in dem gar nichts steht". Das war
+   dasselbe, solange der Fragebogen leer begann. Seit ein paar Felder aus
+   dem Konfigurator vorbelegt sind, ist es das nicht mehr: In jedem
+   Abschnitt steht dann schon etwas, und der Kunde landete im letzten --
+   ohne je die leeren Pflichtfelder im ersten gesehen zu haben. */
 $vorschlag = 1;
 foreach ($abschnitte as $i => $name) {
-    $leer = true;
+    $luecke = false;
     foreach (array_keys(Texte::FRAGEBOGEN[$name]['felder']) as $feldName) {
-        if (trim((string) ($daten[$feldName] ?? '')) !== '') { $leer = false; break; }
+        if (trim((string) ($daten[$feldName] ?? '')) === '') { $luecke = true; break; }
     }
-    if ($leer) { $vorschlag = $i + 1; break; }
+    if ($luecke) { $vorschlag = $i + 1; break; }
     $vorschlag = min($anzahl, $i + 2);
 }
 $schritt = isset($_GET['schritt']) ? max(1, min($anzahl, (int) $_GET['schritt'])) : $vorschlag;
