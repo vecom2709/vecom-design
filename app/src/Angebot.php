@@ -471,6 +471,28 @@ final class Angebot
             'order_id'      => $bestellId,
         ]);
 
+        /* DIE ANFRAGE GEHOERT JETZT ZUR BESTELLUNG
+           ----------------------------------------------------------------
+           Aus dem Konfigurator entstehen ein Bedarf und eine Anfrage. Die
+           Anfrage ist, solange sie keine Bestellung hat, ein eigener Vorgang
+           in der Fuehrung -- "es wird geredet". Wird aus dem Angebot eine
+           Bestellung, ist das Reden vorbei, aber die Anfrage wusste nichts
+           davon und stand weiter als offener Vorgang da, neben der
+           Bestellung, die daraus geworden ist. Zwei Zeilen fuer eine Sache,
+           und die eine mit einer Meldung, die nicht stimmte.
+
+           Ein Verweis genuegt: Ab hier laeuft alles ueber die Bestellung. */
+        try {
+            $anfrageId = (int) Db::wert(
+                'SELECT a.id FROM anfragen a
+                   LEFT JOIN bedarf b ON b.anfrage_id = a.id
+                  WHERE a.order_id IS NULL
+                    AND (b.id = ? OR a.customer_id = ?)
+                  ORDER BY a.id DESC LIMIT 1',
+                [$a['bedarf_id'] !== null ? (int) $a['bedarf_id'] : 0, (int) $a['customer_id']], 0);
+            if ($anfrageId > 0) { Db::update('anfragen', $anfrageId, ['order_id' => $bestellId]); }
+        } catch (Throwable $e) { /* die Bestellung steht, das ist das Wichtige */ }
+
         // Eine Empfehlung, die an diesem Kunden haengt, gehoert jetzt an die
         // Bestellung — verdient wird sie spaeter beim Bezahlen.
         try {

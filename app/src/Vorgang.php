@@ -421,9 +421,17 @@ final class Vorgang
                         'Das Angebot ist beim Kunden. Jetzt entscheidet er.',
                         null, null, [], $ziel);
                 case 'angenommen':
-                    /* Beim Annehmen entsteht die Bestellung von selbst. Steht
-                       hier trotzdem keine, ist unterwegs etwas schiefgegangen
-                       -- das gehoert angesehen und nicht von Hand nachgebaut. */
+                    /* Hat das Angebot eine Bestellung, ist dieser Vorgang zu
+                       Ende: Weiter geht es an der Bestellung, die ihren
+                       eigenen Vorgang hat. Ihn hier trotzdem als offen zu
+                       fuehren, hiesse dieselbe Sache zweimal auf der Liste --
+                       einmal mit einer Meldung, die nicht stimmt. */
+                    if (($angebot['order_id'] ?? null) !== null) {
+                        return self::setzen($v, 'fertig', self::NIEMAND, null,
+                            'Aus dem Angebot ist eine Bestellung geworden — dort geht es weiter.');
+                    }
+                    /* Ohne Bestellung ist unterwegs etwas schiefgegangen. Das
+                       gehoert angesehen und nicht von Hand nachgebaut. */
                     return self::setzen($v, 'gespraech', self::DU, 'Angebot pruefen',
                         'Der Kunde hat angenommen, aber es gibt keine Bestellung dazu. Das sollte nicht vorkommen.',
                         null, null, [], $ziel);
