@@ -261,20 +261,18 @@ final class Bedarf
         $branche = (string) ($a['branche'] ?? '');
         if ($branche !== '' && $branche !== 'anderes') { $aus['branche'] = $wort('branche', $branche); }
 
-        /* Umfang und Sprachen stehen zusammen in einem Feld: Beides beschreibt,
-           wie gross die Seite wird, und getrennt liest es sich wie zwei Fragen
-           zu derselben Sache. */
-        $seiten = [];
-        if (($a['umfang'] ?? '') !== '') { $seiten[] = $wort('umfang', (string) $a['umfang']); }
-        if (($a['sprachen'] ?? '') !== '') { $seiten[] = $wort('sprachen', (string) $a['sprachen']); }
-        if ($seiten) { $aus['seiten'] = implode(' · ', array_filter($seiten)); }
+        /* SEITEN, SPRACHEN UND FUNKTIONEN STEHEN HIER NICHT MEHR
+           ------------------------------------------------------------------
+           Frueher wurden sie als Fliesstext vorbelegt: "Wenige Seiten (3-5) ·
+           Zwei Sprachen". Das war gut gemeint und im Ergebnis schaedlich --
+           dieselbe Auskunft stand danach an zwei Stellen, in zwei Formen, und
+           welche galt, wusste niemand.
 
-        $zwecke = [];
-        foreach ((array) ($a['zweck'] ?? []) as $z) {
-            $w = $wort('zweck', (string) $z);
-            if ($w !== '') { $zwecke[] = $w; }
-        }
-        if ($zwecke) { $aus['funktionen'] = implode(' · ', $zwecke); }
+           Im Fragebogen stehen dafuer jetzt zwei Zaehler und eine Hakenliste,
+           und die werden nicht vom Bedarf gefuellt, sondern vom angenommenen
+           Angebot (siehe Umfang.php). Das ist die staerkere Quelle: Der Bedarf
+           ist, was der Kunde einmal angeklickt hat; das Angebot ist, worauf
+           sich beide geeinigt haben. */
 
         /* Material: Was da ist, steht als solches drin. Was fehlt, steht
            ebenfalls drin -- eine leere Zeile hiesse "nicht gefragt", und

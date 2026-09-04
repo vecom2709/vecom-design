@@ -214,7 +214,9 @@ $tage   = Vorgang::ruhtSeitTagen($v);
           <table><tbody>
           <?php foreach ($hat as $name => $feld): ?>
             <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
-                <td style="white-space:pre-wrap"><?= Fmt::h((string) $fbDaten[$name]) ?></td></tr>
+                <td style="white-space:pre-wrap"><?= Fmt::h(($feld['art'] ?? '') === 'wahl'
+                      ? Umfang::worte((string) $fbDaten[$name], 'de')
+                      : (string) $fbDaten[$name]) ?></td></tr>
           <?php endforeach; ?>
           </tbody></table>
         <?php endif; ?>

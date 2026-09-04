@@ -318,9 +318,19 @@ final class Events
             } else {
                 $vorhanden = Db::one('SELECT id, status FROM projects WHERE order_id = ?', [(int) $z['order_id']]);
                 $projektId = $vorhanden ? (int) $vorhanden['id'] : null;
-                // Restzahlung bei Uebergabe: Ist die Seite schon online, ist
-                // damit alles erledigt. Sonst bleibt der Status, wie er ist.
-                if ($vorhanden && in_array($vorhanden['status'], ['online', 'abgeschlossen'], true)) {
+                /* Restzahlung bei Uebergabe: Ist die Seite schon online, ist
+                   damit alles erledigt. Sonst bleibt der Status, wie er ist.
+
+                   "Alles" heisst wirklich alles. Seit es Nachtraege gibt,
+                   koennen zwei Raten gleichzeitig offen sein -- wer den
+                   Nachtrag zuerst bezahlt, haette die Bestellung sonst
+                   abgeschlossen, waehrend die Restzahlung noch aussteht. */
+                $nochOffen = (int) Db::wert(
+                    "SELECT COUNT(*) FROM payments
+                      WHERE order_id = ? AND id <> ? AND status NOT IN ('bezahlt', 'rueckerstattet')",
+                    [(int) $z['order_id'], $zahlungId], 0);
+                if ($vorhanden && $nochOffen === 0
+                    && in_array($vorhanden['status'], ['online', 'abgeschlossen'], true)) {
                     Db::update('orders', (int) $z['order_id'], ['status' => 'abgeschlossen']);
                 }
             }

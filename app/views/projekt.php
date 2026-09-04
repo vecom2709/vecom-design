@@ -13,6 +13,85 @@
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Der Projektstatus zieht die Bestellung sinngemäß mit.
     Der technische Website-Status bleibt davon unberührt — er wird nur vom Monitoring gesetzt.</p></div>
 
+<?php /* ======================================================================
+     MEHRBEDARF
+
+     Der Preis steht seit der Zusage fest, und das ist richtig. Nur konnte
+     der Fragebogen bisher mehr Umfang beschreiben, als das Angebot deckt,
+     ohne dass es irgendwo auffiel: Gebaut wurde, was im Fragebogen stand,
+     bezahlt war, was im Angebot stand.
+
+     Dieser Block erscheint nur, wenn beides auseinanderlaeuft. Stimmt es
+     ueberein, steht hier nichts -- und genau deshalb darf man ihm glauben,
+     wenn er da ist.
+     ================================================================== */ ?>
+<?php if (!empty($mehrbedarf)): ?>
+  <div class="block" data-tun="mehrbedarf" style="border-color:var(--cyan)">
+    <h2>Mehrbedarf klären</h2>
+    <p style="color:var(--dim);font-size:13.5px;margin:-4px 0 14px">
+      Der Fragebogen sagt etwas anderes als Angebot
+      <a href="<?= Fmt::h(url('angebote/' . (int) $mehrbedarf['angebot_id'])) ?>"><?= Fmt::h($mehrbedarf['nummer']) ?></a>.
+      <?= $mehrbedarf['abgeschlossen'] ? 'Der Kunde hat abgeschickt.' : 'Der Kunde füllt noch aus.' ?></p>
+
+    <?php if ($mehrbedarf['mehr']): ?>
+      <h3 style="font-size:13px;color:var(--leise);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Zusätzlich gewünscht</h3>
+      <table style="margin-bottom:14px"><tbody>
+        <?php foreach ($mehrbedarf['mehr'] as $z): ?>
+          <tr>
+            <td><?= Fmt::h((string) $z['name']) ?>
+              <?php if (isset($z['war'])): ?>
+                <span style="color:var(--leise)">— <?= (int) $z['war'] ?> beauftragt, <?= (int) $z['wird'] ?> gewünscht</span>
+              <?php endif; ?></td>
+            <td style="width:22%" class="num"><?= (int) $z['menge'] > 1 ? (int) $z['menge'] . ' × ' : '' ?><?= Fmt::geld((int) $z['einzel_cents']) ?></td>
+            <td style="width:22%" class="num"><b><?= Fmt::geld((int) $z['summe_cents']) ?><?= (int) $z['monatlich'] ? '/Mon.' : '' ?></b></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody></table>
+    <?php endif; ?>
+
+    <?php if ($mehrbedarf['auf_anfrage']): ?>
+      <p style="font-size:13.5px;color:var(--dim);margin:0 0 14px">
+        Ohne Preis, weil nur auf Anfrage: <b><?= Fmt::h(implode(', ', $mehrbedarf['auf_anfrage'])) ?></b>.
+        Den Betrag nennst du.</p>
+    <?php endif; ?>
+
+    <?php if ($mehrbedarf['weniger']): ?>
+      <p style="font-size:13.5px;color:var(--dim);margin:0 0 14px">
+        Abgewählt, obwohl beauftragt: <b><?= Fmt::h(implode(', ', $mehrbedarf['weniger'])) ?></b>.
+        Ohne Betrag — wer etwas abwählt, bekommt kein Geld zurück, weil eine Zahl in einer Liste steht.
+        Das ist ein Gespräch.</p>
+    <?php endif; ?>
+
+    <?php if ((int) $mehrbedarf['summe_cents'] > 0 || (int) $mehrbedarf['monatlich_cents'] > 0): ?>
+      <table style="margin-bottom:14px"><tbody>
+        <tr><td style="width:38%"><b>Differenz</b></td>
+            <td><b><?= Fmt::geld((int) $mehrbedarf['summe_cents']) ?></b><?php
+              if ((int) $mehrbedarf['monatlich_cents'] > 0): ?> + <?= Fmt::geld((int) $mehrbedarf['monatlich_cents']) ?>/Mon.<?php endif; ?>
+            </td></tr>
+      </tbody></table>
+    <?php endif; ?>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <?php if ((int) $mehrbedarf['summe_cents'] > 0): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="mehrbedarf_nachtrag">
+          <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <input type="hidden" name="signatur" value="<?= Fmt::h((string) $mehrbedarf['signatur']) ?>">
+          <button class="knopf haupt">Nachtrag über <?= Fmt::geld((int) $mehrbedarf['summe_cents']) ?> anlegen</button></form>
+      <?php endif; ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="mehrbedarf_erledigt">
+        <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <input type="hidden" name="signatur" value="<?= Fmt::h((string) $mehrbedarf['signatur']) ?>">
+        <button class="knopf">Ist besprochen</button></form>
+    </div>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+      Der Nachtrag wird eine zweite Rate auf derselben Bestellung — Zahlungslink, Mail und Beleg
+      laufen danach über dieselben Knöpfe wie Anzahlung und Restzahlung.
+      „Ist besprochen“ hakt nur ab; kreuzt der Kunde später etwas Weiteres an, meldet sich die Führung von selbst wieder.</p>
+  </div>
+<?php endif; ?>
+
   <div class="block"><h2>Fragebogen</h2>
     <?php if (!$fragebogen): ?>
       <div class="leer">Zu diesem Projekt gibt es keinen Fragebogen.</div>
@@ -62,7 +141,9 @@
             <table><tbody>
             <?php foreach ($hat as $name => $feld): ?>
               <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
-                  <td style="white-space:pre-wrap"><?= Fmt::h((string) $fbDaten[$name]) ?></td></tr>
+                  <td style="white-space:pre-wrap"><?= Fmt::h(($feld['art'] ?? '') === 'wahl'
+                        ? Umfang::worte((string) $fbDaten[$name], 'de')
+                        : (string) $fbDaten[$name]) ?></td></tr>
             <?php endforeach; ?>
             </tbody></table>
           <?php endif; ?>

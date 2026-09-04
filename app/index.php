@@ -333,6 +333,51 @@ if ($post) {
                 }
                 zurueck('kunden/' . $kid);
 
+            /* ------------------------------------------------------------
+               MEHRBEDARF
+
+               Der Fragebogen sagt etwas anderes als das Angebot. Zwei Wege
+               fuehren hier raus, und beide haken denselben Unterschied ab:
+               entweder wird eine Rate daraus, oder es war ein Gespraech.
+               ------------------------------------------------------------ */
+            case 'mehrbedarf_nachtrag':
+                require_once __DIR__ . '/src/Umfang.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $jetzt = Umfang::mehrbedarf($pid);
+                if ($jetzt === null) {
+                    $_SESSION['fehler'] = 'Da ist nichts mehr offen — vielleicht war jemand schneller.';
+                    zurueck('projekte/' . $pid);
+                }
+                /* Zwischen dem Anzeigen und dem Klick kann der Kunde etwas
+                   geaendert haben. Dann waere ein Nachtrag ueber den alten
+                   Betrag eine Rechnung ueber etwas, das so nicht mehr
+                   gewuenscht ist. */
+                if ((string) ($_POST['signatur'] ?? '') !== (string) $jetzt['signatur']) {
+                    $_SESSION['fehler'] = 'Der Kunde hat inzwischen etwas geändert. Schau es dir noch einmal an.';
+                    zurueck('projekte/' . $pid);
+                }
+                $zid = Umfang::nachtrag($pid);
+                if ($zid === null) {
+                    $_SESSION['fehler'] = 'Daraus lässt sich keine Rate machen — es steht kein Betrag dahinter.';
+                    zurueck('projekte/' . $pid);
+                }
+                $bid = (int) Db::wert('SELECT order_id FROM payments WHERE id = ?', [$zid], 0);
+                $_SESSION['gut'] = 'Der Nachtrag steht als Rate auf der Bestellung. Jetzt fehlt nur noch der Zahlungslink.';
+                zurueck('bestellungen/' . $bid . '?tun=zahlungslink');
+
+            case 'mehrbedarf_erledigt':
+                require_once __DIR__ . '/src/Umfang.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $jetzt = Umfang::mehrbedarf($pid);
+                if ($jetzt === null) { zurueck('projekte/' . $pid); }
+                if ((string) ($_POST['signatur'] ?? '') !== (string) $jetzt['signatur']) {
+                    $_SESSION['fehler'] = 'Der Kunde hat inzwischen etwas geändert. Schau es dir noch einmal an.';
+                    zurueck('projekte/' . $pid);
+                }
+                Umfang::abhaken((int) $jetzt['fragebogen_id'], (string) $jetzt['signatur']);
+                $_SESSION['gut'] = 'Abgehakt. Kreuzt der Kunde später etwas Weiteres an, meldet es sich wieder.';
+                zurueck('projekte/' . $pid);
+
             case 'zahlungslink_senden':
                 require_once __DIR__ . '/src/Mail.php';
                 require_once __DIR__ . '/src/Texte.php';
@@ -343,9 +388,12 @@ if ($post) {
                                      [(int) $z['order_id']]) : null;
                 if (!$z || !$bst || !$z['link_url']) { throw new RuntimeException('Für diese Zahlung gibt es noch keinen Link.'); }
                 $spr = (string) ($bst['kunde_sprache'] ?: 'it');
-                $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo', 'gesamt' => 'il pagamento'],
-                        'de' => ['anzahlung' => 'die Anzahlung', 'restzahlung' => 'die Restzahlung', 'gesamt' => 'die Zahlung'],
-                        'en' => ['anzahlung' => 'the deposit', 'restzahlung' => 'the balance', 'gesamt' => 'the payment']
+                $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo',
+                                 'gesamt' => 'il pagamento', 'nachtrag' => 'le voci aggiunte'],
+                        'de' => ['anzahlung' => 'die Anzahlung', 'restzahlung' => 'die Restzahlung',
+                                 'gesamt' => 'die Zahlung', 'nachtrag' => 'die zusätzlich gewünschten Punkte'],
+                        'en' => ['anzahlung' => 'the deposit', 'restzahlung' => 'the balance',
+                                 'gesamt' => 'the payment', 'nachtrag' => 'the additional items']
                        ][$spr][(string) $z['art']] ?? (string) $z['art'];
                 [$betreff, $text] = Texte::mail('zahlungslink', $spr, [
                     'name' => (string) $bst['kunde'], 'paket' => (string) $bst['package_name'],
@@ -1235,6 +1283,7 @@ switch ($route) {
 
     case 'vorgaenge':
         require_once __DIR__ . '/src/Vorgang.php';
+        require_once __DIR__ . '/src/Umfang.php';   // die Ansicht schreibt Haken als Wörter
         require_once __DIR__ . '/src/Mail.php';
         require_once __DIR__ . '/src/Anfrage.php';
         require_once __DIR__ . '/src/Nachricht.php';
@@ -1538,6 +1587,7 @@ switch ($route) {
     case 'projekte':
         require_once __DIR__ . '/src/Onboarding.php';
         require_once __DIR__ . '/src/Texte.php';   // die Ansicht beschriftet den Fragebogen
+        require_once __DIR__ . '/src/Umfang.php';  // und vergleicht ihn mit dem Angebot
         if ($id !== null) {
             $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, o.order_no
                           FROM projects p JOIN customers c ON c.id = p.customer_id
@@ -1547,6 +1597,10 @@ switch ($route) {
                 'p' => $p,
                 'website' => Db::one('SELECT * FROM websites WHERE project_id = ?', [$id]),
                 'fragebogen' => Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [$id]),
+                /* Der Unterschied zwischen Beauftragtem und Angekreuztem.
+                   Null, wenn beides zusammenpasst -- dann steht im Projekt
+                   auch nichts davon. */
+                'mehrbedarf' => sicher(static fn() => Umfang::mehrbedarf($id), null),
                 'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
                 'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
                 'nachrichten' => Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [$id]),

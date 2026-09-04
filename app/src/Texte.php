@@ -30,8 +30,28 @@ final class Texte
         'website' => [
             'it' => 'Il sito', 'de' => 'Die Website', 'en' => 'The website',
             'felder' => [
-                'seiten'     => ['it' => 'Quali pagine servono', 'de' => 'Welche Seiten sollen es sein', 'en' => 'Which pages do you need', 'art' => 'lang'],
-                'funktionen' => ['it' => 'Funzioni desiderate', 'de' => 'Gewünschte Funktionen', 'en' => 'Features you want', 'art' => 'lang'],
+                /* ZWEI ZAEHLER UND EINE HAKENLISTE STATT ZWEIER FREITEXTE
+                   ----------------------------------------------------------
+                   Hier stand frueher "Welche Seiten sollen es sein" und
+                   "Gewuenschte Funktionen" -- beides offen, beides schon im
+                   Rechner beantwortet, beides Grundlage des Preises. Der
+                   Kunde, der vier Seiten bezahlt hatte, schrieb hier in aller
+                   Ruhe neun hin und meinte es nicht boese: Er beantwortete
+                   die Frage, die dastand. Gemerkt hat es niemand.
+
+                   Jetzt steht dieselbe Liste da, aus der der Preis entstanden
+                   ist, angehakt, was beauftragt ist. Ein Haken mehr ist damit
+                   ein genaues Signal statt eines Satzes, den jemand auslegen
+                   muss -- und nebenbei beantwortet die Liste eine Frage, die
+                   Kunden wirklich haben: Was habe ich eigentlich bestellt?
+
+                   Die Freitexte bleiben, aber als das, was sie koennen: Namen
+                   und Nuancen, die in keine Liste passen. */
+                'seiten_zahl'     => ['it' => 'Quante pagine in tutto', 'de' => 'Wie viele Seiten insgesamt', 'en' => 'How many pages in total', 'art' => 'zahl'],
+                'sprachen_zahl'   => ['it' => 'In quante lingue', 'de' => 'In wie vielen Sprachen', 'en' => 'In how many languages', 'art' => 'zahl'],
+                'funktionen_wahl' => ['it' => 'Che cosa deve avere il sito', 'de' => 'Was die Website können soll', 'en' => 'What the site should have', 'art' => 'wahl'],
+                'seiten'     => ['it' => 'Come si chiamano le pagine?', 'de' => 'Wie sollen die Seiten heißen?', 'en' => 'What should the pages be called?', 'art' => 'lang'],
+                'funktionen' => ['it' => 'Manca qualcosa nell’elenco qui sopra?', 'de' => 'Fehlt oben etwas in der Liste?', 'en' => 'Is anything missing from the list above?', 'art' => 'lang'],
                 'ziel'       => ['it' => 'Cosa deve ottenere il sito', 'de' => 'Was die Website erreichen soll', 'en' => 'What the site should achieve', 'art' => 'lang'],
                 'inhalte'    => ['it' => 'Quali contenuti avete già', 'de' => 'Welche Inhalte gibt es schon', 'en' => 'What content do you already have', 'art' => 'lang'],
                 'beispiele'  => ['it' => 'Siti che vi piacciono', 'de' => 'Websites, die euch gefallen', 'en' => 'Websites you like', 'art' => 'lang'],
@@ -107,6 +127,30 @@ final class Texte
                          'de' => 'Ich speichere bei jedem Schritt automatisch. Du kannst zumachen und später zurückkommen.',
                          'en' => 'I save at every step. You can close this and come back any time.'],
         'weiterMachen' => ['it' => 'Continua il questionario', 'de' => 'Fragebogen weiter ausfüllen', 'en' => 'Continue the questionnaire'],
+
+        /* DIE HAKENLISTE
+           ------------------------------------------------------------------
+           Angehakt ist, was im Angebot steht. Der Kunde darf daran ruehren --
+           er soll sogar. Nur muss dabei in derselben Sekunde klar sein, was
+           ein zusaetzlicher Haken bedeutet, sonst entsteht eine Erwartung,
+           die spaeter teuer wird.
+
+           Bewusst ohne Betrag: Was etwas kostet, sagt ein Mensch, nachdem er
+           es gelesen hat. Eine Zahl, die hier von selbst erscheint, waere
+           eine Nachforderung, der niemand zugestimmt hat. */
+        'beauftragt'  => ['it' => 'Nel preventivo', 'de' => 'Im Angebot', 'en' => 'In the quote'],
+        'wasDrin'     => ['it' => 'Le voci spuntate sono quelle del preventivo che hai accettato. Puoi togliere e aggiungere: quello che aggiungi lo guardo io e ti scrivo.',
+                          'de' => 'Angehakt ist, was in deinem angenommenen Angebot steht. Du darfst wegnehmen und dazunehmen — was dazukommt, sehe ich mir an und melde mich dazu.',
+                          'en' => 'The ticked items are the ones in the quote you accepted. Feel free to remove or add — anything you add, I’ll look at and come back to you about.'],
+        'nichtDrin'   => ['it' => 'Non è ancora nel preventivo — ti scrivo prima di iniziare.',
+                          'de' => 'Das ist im Angebot noch nicht enthalten — ich melde mich dazu, bevor ich anfange.',
+                          'en' => 'That isn’t in the quote yet — I’ll come back to you before I start.'],
+        'wenigerDrin' => ['it' => 'Questo era nel preventivo. Se non ti serve più, dimmelo pure — ne parliamo.',
+                          'de' => 'Das stand im Angebot. Wenn du es nicht mehr brauchst, sag ruhig Bescheid — wir reden darüber.',
+                          'en' => 'That was in the quote. If you no longer need it, do say — we’ll talk it through.'],
+        'seitenHilfe' => ['it' => 'Conta anche la pagina iniziale.',
+                          'de' => 'Die Startseite zählt mit.',
+                          'en' => 'The home page counts too.'],
     ];
 
     /** Die Seite, auf der der Kunde seinem Projekt zusieht. */

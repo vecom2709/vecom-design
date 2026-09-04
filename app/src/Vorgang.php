@@ -299,6 +299,61 @@ final class Vorgang
                 'fragebogen_einladen', (int) $v['projekt_id']);
         }
 
+        /* --- 3b. Der Fragebogen ist da und sagt etwas anderes als das
+                   Angebot. -------------------------------------------------
+
+           Der Preis ist eingefroren, und das ist richtig: Ein Festpreis, der
+           sich hinter dem Kunden bewegt, waere keiner. Nur lief das Risiko
+           bisher in die andere Richtung -- der Fragebogen konnte mehr Umfang
+           beschreiben, als das Angebot deckt, und niemand merkte es. Gebaut
+           wurde dann, was im Fragebogen stand, bezahlt war, was im Angebot
+           stand, und die Differenz ging still zu Uwes Lasten.
+
+           Stimmen beide ueberein, passiert hier gar nichts. Genau deshalb
+           darf die Meldung, wenn sie kommt, ernst genommen werden. */
+        $mehrbedarf = self::still(static function () use ($v) {
+            if ($v['projekt_id'] === null) { return null; }
+            require_once __DIR__ . '/Umfang.php';
+            return Umfang::mehrbedarf((int) $v['projekt_id']);
+        });
+        if ($mehrbedarf !== null) {
+            $wieviel = count($mehrbedarf['mehr']) + count($mehrbedarf['auf_anfrage']);
+            $warum = $wieviel > 0
+                ? 'Der Kunde hat im Fragebogen ' . $wieviel . ' Punkt'
+                  . ($wieviel === 1 ? '' : 'e') . ' angekreuzt, die nicht im Angebot stehen.'
+                : 'Der Kunde hat im Fragebogen etwas abgewählt, das im Angebot steht.';
+            return self::setzen($v, 'arbeit', self::DU, 'Mehrbedarf klären', $warum,
+                null, null, [], 'projekte/' . (int) $v['projekt_id'] . '?tun=mehrbedarf');
+        }
+
+        /* --- 3c. Ein Nachtrag liegt als Rate da, und der Kunde weiss
+                   nichts davon. --------------------------------------------
+
+           Gefuehrt wird nur, was Uwe tun muss: den Link erzeugen und ihn
+           verschicken. Danach hoert die Fuehrung hier auf, obwohl die Rate
+           noch offen ist -- ein unbezahlter Nachtrag darf das Bauen nicht
+           anhalten, und Warten ist kein Handgriff. Die offene Summe steht
+           weiterhin auf der Bestellung. */
+        $nachtrag = null;
+        foreach ($v['zahlungen'] as $z) {
+            if ((string) ($z['art'] ?? '') !== 'nachtrag') { continue; }
+            if (in_array((string) $z['status'], ['bezahlt', 'rueckerstattet'], true)) { continue; }
+            $nachtrag = $z; break;
+        }
+        if ($nachtrag !== null) {
+            $nZiel = 'bestellungen/' . (int) $v['bestell_id'];
+            if (empty($nachtrag['link_url'])) {
+                return self::setzen($v, 'arbeit', self::DU, 'Zahlungslink für den Nachtrag',
+                    'Der Nachtrag steht als Rate da, aber ohne Link kann der Kunde nicht zahlen.',
+                    'zahlungslink', (int) $nachtrag['id'], [], $nZiel . '?tun=zahlungslink');
+            }
+            if (!self::mailRaus('zahlungslink', 'payment_id', (int) $nachtrag['id'])) {
+                return self::setzen($v, 'arbeit', self::DU, 'Nachtrag verschicken',
+                    'Der Link für den Nachtrag ist da, aber der Kunde hat ihn noch nicht.',
+                    'zahlungslink_senden', (int) $nachtrag['id'], [], $nZiel . '?tun=zahlungslink_senden');
+            }
+        }
+
         /* --- 4. Der Rest richtet sich nach dem Projektstand. ---------- */
         if ($pstatus === 'abgeschlossen') {
             return self::setzen($v, 'fertig', self::NIEMAND, null, 'Alles erledigt.');

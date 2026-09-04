@@ -31,6 +31,8 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
 }
 require_once __DIR__ . '/app/src/Onboarding.php';
 require_once __DIR__ . '/app/src/Kundenzugang.php';
+require_once __DIR__ . '/app/src/Umfang.php';
+require_once __DIR__ . '/app/src/Baukasten.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecomfragebogen');
@@ -164,7 +166,15 @@ $fertig = $f && ($f['status'] === 'abgeschlossen' || $m === 'danke');
 $vorschlag = 1;
 foreach ($abschnitte as $i => $name) {
     $luecke = false;
-    foreach (array_keys(Texte::FRAGEBOGEN[$name]['felder']) as $feldName) {
+    foreach (Texte::FRAGEBOGEN[$name]['felder'] as $feldName => $feld) {
+        /* Eine Hakenliste, in der nichts angehakt ist, ist beantwortet --
+           der Kunde hat sie gesehen und alles weggenommen. Wuerde sie als
+           Luecke zaehlen, landete er bis in alle Ewigkeit wieder auf
+           diesem Schritt, egal wie oft er weiterklickt. */
+        if (($feld['art'] ?? '') === 'wahl') {
+            if (!array_key_exists($feldName, $daten)) { $luecke = true; break; }
+            continue;
+        }
         if (trim((string) ($daten[$feldName] ?? '')) === '') { $luecke = true; break; }
     }
     if ($luecke) { $vorschlag = $i + 1; break; }
@@ -176,6 +186,20 @@ $inhalt  = Texte::FRAGEBOGEN[$name];
 
 $gesamtFelder = count(Onboarding::felder());
 $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !== ''));
+
+/* ---------- Was beauftragt ist -----------------------------------------
+   Die Hakenliste zeigt an, was im angenommenen Angebot steht. Gibt es
+   keines -- eine Bestellung von Hand, ein Paket von der Website --, bleibt
+   die Liste eine gewoehnliche Auswahl ohne Vergleich: Dann ist nichts
+   "nicht enthalten", weil es nichts gibt, worin es enthalten sein koennte. */
+$bezahlt  = $f ? Umfang::bezahlt((int) $f['project_id']) : null;
+$wahl     = Umfang::gewaehlt($daten, $bezahlt);
+$katWahl  = Umfang::katalogWahl();
+$gruppenWort = [
+    'funktion'  => ['it' => 'Funzioni', 'de' => 'Funktionen', 'en' => 'Features'],
+    'inhalt'    => ['it' => 'Contenuti e materiale', 'de' => 'Inhalte und Material', 'en' => 'Content and material'],
+    'betreuung' => ['it' => 'Assistenza', 'de' => 'Betreuung', 'en' => 'Care plan'],
+];
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>">
 <head>
@@ -206,6 +230,33 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
      volle — dort trifft der Daumen sonst daneben. */
   .leiste2 .knopf{flex:0 1 auto;min-width:0;padding-left:26px;padding-right:26px}
   @media (max-width:520px){ .leiste2 .knopf{flex:1 1 auto} .leiste2 .rechts{display:none} }
+
+  /* Die Hakenliste. Sie ersetzt zwei Freitextfelder, in denen frueher der
+     halbe Auftragsumfang stand, ohne dass jemand ihn vergleichen konnte. */
+  .zahlfeld{max-width:110px}
+  .hakengruppe{margin:14px 0 0}
+  .hakengruppe h4{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+                  color:var(--leise);margin:0 0 8px;font-weight:600}
+  .haken{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;margin-bottom:7px;
+         border:1px solid var(--linie);border-radius:10px;cursor:pointer;
+         transition:border-color .14s ease, background .14s ease}
+  .haken:hover{border-color:var(--cyan)}
+  /* Angehakt sieht anders aus als nicht angehakt — sonst muss man das
+     Kaestchen suchen, um zu wissen, was gilt. */
+  .haken:has(input:checked){border-color:var(--blau);background:rgba(6,72,232,.045)}
+  .haken input{margin:2px 0 0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--blau)}
+  .haken span{flex:1 1 auto;min-width:0;display:block;font-size:14px;line-height:1.45}
+  .haken span b{display:block;font-weight:600}
+  .haken span i{display:block;font-style:normal;font-size:12.5px;color:var(--leise);margin-top:2px}
+  /* "Im Angebot" ist die wichtigste Auskunft auf dieser Seite: Sie sagt dem
+     Kunden, was er schon hat, und uns, woran wir seine Kreuze messen. */
+  .haken em.drin{flex:0 0 auto;align-self:center;font-style:normal;font-size:11px;
+                 letter-spacing:.05em;text-transform:uppercase;color:var(--blau);
+                 border:1px solid currentColor;border-radius:999px;padding:3px 9px;white-space:nowrap}
+  .feld p.mehr,.feld p.weniger{margin:12px 0 0;font-size:13px;line-height:1.55;
+         border-radius:9px;padding:10px 12px}
+  .feld p.mehr{color:var(--cyan);background:rgba(31,232,255,.07);border:1px solid rgba(31,232,255,.3)}
+  .feld p.weniger{color:var(--dim);background:rgba(127,127,127,.07);border:1px solid var(--linie)}
 </style>
 </head>
 <body>
@@ -240,7 +291,9 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
         <table><tbody>
         <?php foreach ($hat as $feldName => $feld): ?>
           <tr><td style="width:38%"><?= $h(Texte::h($feld, $sprache)) ?></td>
-              <td><div class="antwort"><?= $h((string) $daten[$feldName]) ?></div></td></tr>
+              <td><div class="antwort"><?= $h(($feld['art'] ?? '') === 'wahl'
+                    ? Umfang::worte((string) $daten[$feldName], $sprache)
+                    : (string) $daten[$feldName]) ?></div></td></tr>
         <?php endforeach; ?>
         </tbody></table></div>
     <?php endif; ?>
@@ -280,8 +333,66 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
       <p class="beiseite" style="margin-top:0"><?= $h($S('leerOk')) ?></p>
       <?php foreach ($inhalt['felder'] as $feldName => $feld): ?>
         <div class="feld">
-          <label for="f_<?= $h($feldName) ?>"><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
-          <?php if ($feld['art'] === 'lang'): ?>
+          <label <?= $feld['art'] === 'wahl' ? '' : 'for="f_' . $h($feldName) . '"' ?>><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
+
+          <?php if ($feld['art'] === 'zahl'): ?>
+            <?php
+              $istZahl  = $feldName === 'seiten_zahl' ? $wahl['seiten']   : $wahl['sprachen'];
+              $sollZahl = $feldName === 'seiten_zahl'
+                          ? ($bezahlt['seiten'] ?? null) : ($bezahlt['sprachen'] ?? null);
+              $obergrenze = $feldName === 'seiten_zahl' ? 60 : 6;
+            ?>
+            <input type="number" inputmode="numeric" min="1" max="<?= (int) $obergrenze ?>"
+                   id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" class="zahlfeld"
+                   value="<?= (int) $istZahl ?>"
+                   <?= $sollZahl !== null ? 'data-soll="' . (int) $sollZahl . '"' : '' ?>>
+            <p class="beiseite" style="margin-top:6px">
+              <?php if ($feldName === 'seiten_zahl'): ?><?= $h($S('seitenHilfe')) ?><?php endif; ?>
+              <?php if ($sollZahl !== null): ?>
+                <?= $h($S('beauftragt')) ?>: <?= (int) $sollZahl ?>
+              <?php endif; ?></p>
+            <?php if ($sollZahl !== null): ?>
+              <p class="mehr" hidden><?= $h($S('nichtDrin')) ?></p>
+              <p class="weniger" hidden><?= $h($S('wenigerDrin')) ?></p>
+            <?php endif; ?>
+
+          <?php elseif ($feld['art'] === 'wahl'): ?>
+            <?php if ($bezahlt !== null): ?>
+              <p class="beiseite" style="margin:0 0 10px"><?= $h($S('wasDrin')) ?></p>
+            <?php endif; ?>
+            <?php /* Ein leerer erster Eintrag, damit das Feld auch dann
+                     mitkommt, wenn kein einziger Haken gesetzt ist. Sonst
+                     liesse sich nichts abwaehlen: Ein Formular schickt
+                     leere Kaestchen nicht mit, und was nicht mitkommt,
+                     zaehlt beim Speichern als "nichts gesagt". */ ?>
+            <input type="hidden" name="<?= $h($feldName) ?>[]" value="">
+            <?php foreach ($katWahl as $gruppe => $bausteine): ?>
+              <div class="hakengruppe">
+                <h4><?= $h(Texte::h($gruppenWort[$gruppe] ?? [], $sprache, $gruppe)) ?></h4>
+                <?php foreach ($bausteine as $slug => $b): ?>
+                  <?php
+                    $drin = $bezahlt !== null && isset($bezahlt['slugs'][$slug]);
+                    $an   = isset($wahl['slugs'][$slug]);
+                  ?>
+                  <label class="haken">
+                    <input type="checkbox" name="<?= $h($feldName) ?>[]" value="<?= $h($slug) ?>"
+                           <?= $an ? 'checked' : '' ?> <?= $drin ? 'data-drin="1"' : '' ?>>
+                    <span>
+                      <b><?= $h(Baukasten::name($b, $sprache)) ?></b>
+                      <?php $wozu = Baukasten::text($b, $sprache); ?>
+                      <?php if ($wozu !== ''): ?><i><?= $h($wozu) ?></i><?php endif; ?>
+                    </span>
+                    <?php if ($drin): ?><em class="drin"><?= $h($S('beauftragt')) ?></em><?php endif; ?>
+                  </label>
+                <?php endforeach; ?>
+              </div>
+            <?php endforeach; ?>
+            <?php if ($bezahlt !== null): ?>
+              <p class="mehr" hidden><?= $h($S('nichtDrin')) ?></p>
+              <p class="weniger" hidden><?= $h($S('wenigerDrin')) ?></p>
+            <?php endif; ?>
+
+          <?php elseif ($feld['art'] === 'lang'): ?>
             <textarea id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" rows="3"><?= $h((string) ($daten[$feldName] ?? '')) ?></textarea>
           <?php else: ?>
             <input id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" value="<?= $h((string) ($daten[$feldName] ?? '')) ?>">
@@ -310,6 +421,51 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
         <?php endif; ?></p>
     </div>
   </form>
+
+  <?php if ($bezahlt !== null): ?>
+  <script>
+  /* Der Hinweis erscheint in derselben Sekunde, in der der Haken gesetzt
+     wird -- nicht erst nach dem Abschicken. Wer erst hinterher erfaehrt,
+     dass etwas nicht im Angebot war, hat es in der Zwischenzeit fuer
+     selbstverstaendlich gehalten.
+
+     Bewusst ohne Betrag: Was es kostet, sagt ein Mensch, nachdem er es
+     gelesen hat. Eine Zahl, die hier von selbst erscheint, waere eine
+     Nachforderung, der niemand zugestimmt hat. */
+  (function () {
+    document.querySelectorAll('.feld').forEach(function (feld) {
+      var mehr    = feld.querySelector('p.mehr');
+      var weniger = feld.querySelector('p.weniger');
+      if (!mehr && !weniger) { return; }
+
+      var haken = feld.querySelectorAll('input[type=checkbox]');
+      var zahl  = feld.querySelector('input[type=number][data-soll]');
+
+      function pruefen() {
+        var plus = false, minus = false;
+        haken.forEach(function (k) {
+          if (k.checked && !k.dataset.drin) { plus = true; }
+          if (!k.checked && k.dataset.drin) { minus = true; }
+        });
+        if (zahl) {
+          var soll = parseInt(zahl.dataset.soll, 10);
+          var ist  = parseInt(zahl.value, 10);
+          if (!isNaN(soll) && !isNaN(ist)) {
+            if (ist > soll) { plus = true; }
+            if (ist < soll) { minus = true; }
+          }
+        }
+        if (mehr)    { mehr.hidden = !plus; }
+        if (weniger) { weniger.hidden = !minus; }
+      }
+
+      haken.forEach(function (k) { k.addEventListener('change', pruefen); });
+      if (zahl) { zahl.addEventListener('input', pruefen); }
+      pruefen();
+    });
+  })();
+  </script>
+  <?php endif; ?>
 
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>

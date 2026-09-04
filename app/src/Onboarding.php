@@ -214,6 +214,38 @@ final class Onboarding
     {
         $aus = [];
         foreach (self::felder() as $name => $feld) {
+
+            /* EINE LEERE HAKENLISTE IST EINE ANTWORT
+               --------------------------------------------------------------
+               Bei den Textfeldern heisst leer "nichts gesagt", und der alte
+               Wert bleibt stehen -- das rettet die Arbeit einer halben
+               Stunde, wenn ein Formular nur einen Teil schickt.
+
+               Bei Kaestchen ist es umgekehrt: Wer alle Haken loest, sagt
+               damit etwas. Wuerde hier der alte Wert stehenbleiben, liesse
+               sich nichts abwaehlen. Deshalb entscheidet nicht, ob etwas
+               drinsteht, sondern ob das Feld ueberhaupt mitkam -- und dafuer
+               schickt das Formular immer einen leeren ersten Eintrag mit. */
+            if ($feld['art'] === 'wahl') {
+                if (!array_key_exists($name, $roh)) { continue; }
+                $gewaehlt = is_array($roh[$name]) ? $roh[$name] : [$roh[$name]];
+                $slugs = [];
+                foreach ($gewaehlt as $s) {
+                    $s = trim((string) $s);
+                    // Was kein Bausteinname sein kann, ist keiner.
+                    if ($s !== '' && preg_match('/^[a-z0-9_-]{1,40}$/', $s)) { $slugs[$s] = true; }
+                }
+                $aus[$name] = implode(',', array_keys($slugs));
+                continue;
+            }
+
+            if ($feld['art'] === 'zahl') {
+                $zahl = (int) trim((string) ($roh[$name] ?? ''));
+                if ($zahl < 1) { continue; }
+                $aus[$name] = (string) min(999, $zahl);
+                continue;
+            }
+
             $wert = trim((string) ($roh[$name] ?? ''));
             if ($wert === '') { continue; }
             $aus[$name] = mb_substr($wert, 0, $feld['art'] === 'lang' ? 4000 : 500);
