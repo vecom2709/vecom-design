@@ -394,6 +394,17 @@ final class Vorgang
                         'Das Angebot steht als Entwurf. Der Kunde hat es noch nicht.',
                         null, null, [], $ziel . '?tun=angebot_senden');
                 case 'gesendet':
+                    /* Ein Gegenvorschlag steht vor allem anderen: Wer sich
+                       sein Angebot umgestellt hat, hat es offensichtlich
+                       gelesen -- die Frage, ob der Link raus ist, hat sich
+                       damit erledigt. Und er will kaufen, nur anders; das
+                       ist die dringlichste Antwort, die es hier gibt. */
+                    if (trim((string) ($angebot['wunsch'] ?? '')) !== '') {
+                        return self::setzen($v, 'gespraech', self::DU, 'Gegenvorschlag ansehen',
+                            'Der Kunde hat sich sein Angebot umgestellt. Ein Klick macht daraus die neue Fassung.',
+                            null, null, [], $ziel . '?tun=angebot_wunsch');
+                    }
+
                     /* "Verschickt" heisst bisher nur: festgeschrieben. Ob der
                        Kunde den Link auch bekommen hat, sagt allein eine
                        Nachricht an ihn -- solange keine draussen ist, wartet
@@ -406,14 +417,6 @@ final class Vorgang
                         return self::setzen($v, 'gespraech', self::DU, 'Link schicken',
                             'Das Angebot steht fest, aber der Kunde hat den Link noch nicht.',
                             null, null, [], $ziel . '?tun=angebot_link');
-                    }
-                    /* Ein Gegenvorschlag ist keine Stille, sondern eine
-                       Antwort -- und die dringlichste, die es hier gibt: Der
-                       Kunde will kaufen, nur anders. */
-                    if (trim((string) ($angebot['wunsch'] ?? '')) !== '') {
-                        return self::setzen($v, 'gespraech', self::DU, 'Gegenvorschlag ansehen',
-                            'Der Kunde hat sich sein Angebot umgestellt. Ein Klick macht daraus die neue Fassung.',
-                            null, null, [], $ziel . '?tun=angebot_wunsch');
                     }
                     $tage = self::stillSeit($v);
                     if ($tage >= self::STILL_ANGEBOT) {
