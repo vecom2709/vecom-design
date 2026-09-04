@@ -291,4 +291,6 @@ input[type=file]{
   padding:12px 14px;border:1px solid var(--cyan);border-radius:12px;
   background:rgba(31,232,255,.07);font-size:14px;line-height:1.55;color:var(--text)}
 .frage > span{flex:1 1 240px;min-width:0}
+tr.fragezeile > td{border:0}
+tr.fragezeile .frage{margin:0 0 8px}
 .frage .knopf{flex:0 0 auto}

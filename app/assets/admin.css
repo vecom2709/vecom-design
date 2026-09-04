@@ -40,6 +40,10 @@ a{color:inherit;text-decoration:none}
   padding:11px 13px;border:1px solid var(--cyan);border-radius:12px;
   background:rgba(31,232,255,.07);font-size:13.5px;line-height:1.5;color:var(--text)}
 .frage > span{flex:1 1 260px;min-width:0}
+/* In einer Tabelle sitzt sie in einer eigenen Zeile ueber die volle Breite;
+   der Rahmen der Zelle wuerde daneben stoeren. */
+tr.fragezeile > td{border:0}
+tr.fragezeile .frage{margin:0 0 8px}
 .frage .knopf{flex:0 0 auto}
 .leiste.nurschmal{display:none}
 @media (max-width:900px){ .leiste.nurschmal{display:flex} .leiste.nurschmal input{width:100%} }

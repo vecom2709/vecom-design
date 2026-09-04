@@ -41,8 +41,29 @@
 
     kasten.appendChild(ja);
     kasten.appendChild(nein);
-    anker.insertAdjacentElement('afterend', kasten);
-    offen = kasten;
+
+    /* IN EINER TABELLE GEHOERT SIE IN EINE EIGENE ZEILE
+       ----------------------------------------------------------------
+       Steht der Knopf in einer Zelle, waere der Streifen dort auch --
+       und legte sich quer ueber die Spalten, mit den Antworten
+       untereinander in einer Zelle, die dafuer zu schmal ist. Eine
+       eigene Zeile ueber die volle Breite ist das, was eine Tabelle
+       dafuer vorsieht. */
+    var zeile = anker.closest ? anker.closest('tr') : null;
+    if (zeile && zeile.parentNode) {
+      var neueZeile = document.createElement('tr');
+      var zelle = document.createElement('td');
+      zelle.colSpan = zeile.children.length || 1;
+      zelle.style.padding = '0';
+      zelle.appendChild(kasten);
+      neueZeile.appendChild(zelle);
+      neueZeile.className = 'fragezeile';
+      zeile.insertAdjacentElement('afterend', neueZeile);
+      offen = neueZeile;
+    } else {
+      anker.insertAdjacentElement('afterend', kasten);
+      offen = kasten;
+    }
     ja.focus({ preventScroll: true });
     kasten.scrollIntoView({ block: 'nearest' });
   }
