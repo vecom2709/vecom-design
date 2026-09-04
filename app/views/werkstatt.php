@@ -29,6 +29,47 @@
   </div>
 </div>
 
+<?php /* ==========================================================================
+     WAS NOCH FEHLT
+
+     Eine Anleitung, die man einmal liest und dann sucht, ist keine. Hier
+     steht der Einrichtungsstand da, wo gearbeitet wird — und verschwindet,
+     sobald alles steht. Danach nimmt der Streifen keinen Platz mehr weg.
+
+     Der Cronjob steht mit dabei, weil ohne ihn nichts von selbst laeuft:
+     keine Betreuungsmonate, keine erste Zahlungserinnerung, kein
+     Monitoring, keine naechtliche Abnahme. Das ist der eine Handgriff, der
+     mehr bringt als alles, was man hier klicken kann.
+     ========================================================================== */ ?>
+<?php if ($einrichtung['offen']): ?>
+  <div class="block" style="border-color:var(--cyan)">
+    <h2>Noch einzurichten
+      <span class="mehr"><?= count($einrichtung['offen']) ?> von <?= (int) $einrichtung['gesamt'] ?> offen</span></h2>
+    <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px">
+      <?php foreach ($einrichtung['punkte'] as $pt): ?>
+        <li style="display:flex;gap:10px;align-items:flex-start">
+          <span style="flex:0 0 auto;width:18px;text-align:center;font-weight:700;color:<?=
+            $pt['fertig'] ? 'var(--gruen,#2fbf71)' : 'var(--leise)' ?>"><?=
+            $pt['fertig'] ? '✓' : '·' ?></span>
+          <div style="min-width:0">
+            <div style="font-size:13.5px;<?= $pt['fertig'] ? 'color:var(--leise)' : 'font-weight:600' ?>"><?=
+              Fmt::h((string) $pt['was']) ?></div>
+            <?php if (!$pt['fertig']): ?>
+              <div style="color:var(--dim);font-size:12.5px;line-height:1.6;margin-top:2px"><?=
+                Fmt::h((string) $pt['warum']) ?>
+                <?php if (!empty($pt['ziel'])): ?>
+                  <a href="<?= Fmt::h(url((string) $pt['ziel'])) ?>"><?= Fmt::h((string) $pt['wohin']) ?></a>
+                <?php endif; ?></div>
+            <?php else: ?>
+              <div style="color:var(--leise);font-size:12.5px;margin-top:2px"><?= Fmt::h((string) $pt['stand']) ?></div>
+            <?php endif; ?>
+          </div>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+<?php endif; ?>
+
 <?php if (!$liste): ?>
   <div class="block"><div class="leer">Noch kein Projekt. Sobald eine Bestellung bezahlt ist,
     steht die Seite hier.</div></div>
@@ -140,12 +181,20 @@
     <?php /* ---------- Die Wege von hier ---------- */ ?>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:4px">
       <a class="knopf" href="<?= Fmt::h(url('projekte/' . (int) $w['id'])) ?>">Projekt</a>
+      <?php /* Das Briefing liegt schon da — es dafuer erst ins Projekt zu
+               gehen, waeren zwei Klicks fuer einen Text, der sich nicht
+               mehr aendert. Das Feld steht versteckt daneben. */ ?>
+      <?php if (trim((string) ($w['briefing'] ?? '')) !== ''): ?>
+        <textarea id="brief<?= (int) $w['id'] ?>" readonly aria-hidden="true" tabindex="-1"
+                  style="position:absolute;left:-9999px;width:1px;height:1px"><?=
+          Fmt::h((string) $w['briefing']) ?></textarea>
+        <button class="knopf" data-kopieren="brief<?= (int) $w['id'] ?>"
+                data-oeffnen="<?= Fmt::h($claudeZiel) ?>">Briefing → Claude</button>
+      <?php endif; ?>
       <?php if (!empty($w['chat_url'])): ?>
         <a class="knopf" href="<?= Fmt::h((string) $w['chat_url']) ?>" target="_blank" rel="noopener">Gespräch</a>
-      <?php elseif (!empty($w['briefing_am'])): ?>
-        <a class="knopf stumm" href="<?= Fmt::h(url('projekte/' . (int) $w['id'] . '?tun=briefing')) ?>">Briefing</a>
-      <?php else: ?>
-        <a class="knopf stumm" href="<?= Fmt::h(url('projekte/' . (int) $w['id'] . '?tun=briefing')) ?>">Briefing fehlt</a>
+      <?php elseif (empty($w['briefing_am'])): ?>
+        <a class="knopf stumm" href="<?= Fmt::h(url('projekte/' . (int) $w['id'] . '?tun=briefing_bauen')) ?>">Briefing fehlt</a>
       <?php endif; ?>
       <a class="knopf stumm" href="<?= Fmt::h(url('kunden/' . (int) $w['kunde_id'])) ?>">Kunde</a>
     </div>

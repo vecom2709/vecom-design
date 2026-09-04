@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Db.php';
+require_once __DIR__ . '/Fmt.php';
 
 /**
  * Der Vecom-Standard: wie eine Vecom-Seite gebaut ist.
@@ -200,6 +201,76 @@ TEXT;
         Db::run("INSERT INTO settings (skey, svalue) VALUES (?, ?)
                  ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
             ['werkstatt_claude_projekt', mb_substr($url, 0, 255)]);
+    }
+
+    /**
+     * Was zur Einrichtung noch fehlt — und was schon steht.
+     *
+     * Steht auf der Werkstatt und verschwindet, sobald alles erledigt ist.
+     * Eine Anleitung, die man einmal liest und danach sucht, ist keine; ein
+     * Stand, der dort steht, wo gearbeitet wird, braucht man nicht zu
+     * suchen.
+     *
+     * @return array{punkte:list<array<string,mixed>>,offen:list<string>,gesamt:int}
+     */
+    public static function einrichtungsstand(): array
+    {
+        $punkte = [];
+
+        /* 1. Der Cronjob. Er steht bewusst zuerst: Ohne ihn laeuft nachts
+              gar nichts — keine Betreuungsmonate, keine erste
+              Zahlungserinnerung, kein Monitoring, keine Abnahme. */
+        $lauf = null;
+        try {
+            require_once __DIR__ . '/Cron.php';
+            $lauf = Cron::zuletzt();
+        } catch (Throwable $e) { }
+        $laeuft = $lauf !== null && strtotime((string) $lauf) > time() - 3600;
+        $punkte[] = [
+            'schluessel' => 'cron',
+            'was'    => 'Cronjob im KAS',
+            'fertig' => $laeuft,
+            'stand'  => $lauf !== null ? 'zuletzt gelaufen ' . Fmt::seit((string) $lauf) : '',
+            'warum'  => $lauf === null
+                ? 'Ohne ihn läuft nachts nichts von selbst: keine Betreuungsmonate, keine '
+                  . 'erste Zahlungserinnerung, kein Monitoring, keine Abnahme.'
+                : 'Der letzte Lauf ist über eine Stunde her — läuft der Cronjob noch?',
+            'ziel'   => 'monitoring',
+            'wohin'  => 'Adresse und Anleitung',
+        ];
+
+        /* 2. Das Claude-Projekt. */
+        $projekt = self::claudeProjekt();
+        $punkte[] = [
+            'schluessel' => 'projekt',
+            'was'    => 'Claude-Projekt eingetragen',
+            'fertig' => $projekt !== '',
+            'stand'  => $projekt,
+            'warum'  => 'Ohne Adresse öffnen die Briefing-Knöpfe einen freien Chat — die '
+                      . 'Kundenarbeit liegt dann zwischen allem anderen.',
+            'ziel'   => 'standard',
+            'wohin'  => 'eintragen',
+        ];
+
+        /* 3. Die Hausregeln. "Fertig" heisst hier: einmal angefasst. Ob der
+              Text gut ist, kann niemand ausser Uwe beurteilen — aber ob er
+              ihn je gelesen hat, sieht man daran, ob er ihn geaendert hat. */
+        $punkte[] = [
+            'schluessel' => 'standard',
+            'was'    => 'Hausregeln durchgesehen',
+            'fertig' => self::eigener(),
+            'stand'  => 'eigene Fassung gespeichert',
+            'warum'  => 'Noch die Vorgabe von mir. Lies sie einmal durch und ändere, was '
+                      . 'für deine Kunden nicht stimmt — sie hängt an jedem Briefing.',
+            'ziel'   => 'standard',
+            'wohin'  => 'ansehen',
+        ];
+
+        $offen = [];
+        foreach ($punkte as $p) {
+            if (!$p['fertig']) { $offen[] = (string) $p['schluessel']; }
+        }
+        return ['punkte' => $punkte, 'offen' => $offen, 'gesamt' => count($punkte)];
     }
 
     /**

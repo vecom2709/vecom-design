@@ -35,6 +35,11 @@ final class Abnahme
     private const KENNUNG   = 'Vecom-Design-Abnahme/1.0 (+https://vecom-design.it)';
 
     /** Woerter, an denen die Pflichtseiten zu erkennen sind — in drei Sprachen. */
+    private static function still(callable $fn, mixed $ersatz = null): mixed
+    {
+        try { return $fn(); } catch (Throwable $e) { return $ersatz; }
+    }
+
     private const RECHTLICH = [
         'impressum'    => ['impressum', 'note legali', 'legal notice', 'imprint'],
         'datenschutz'  => ['datenschutz', 'privacy', 'informativa', 'privacidad'],
@@ -218,6 +223,87 @@ final class Abnahme
             ]);
         } catch (Throwable $e) { /* das Ergebnis steht trotzdem auf dem Schirm */ }
         return $ergebnis;
+    }
+
+    /**
+     * Der naechtliche Lauf: alles pruefen, was eine Adresse hat.
+     *
+     * WARUM NUR EINMAL AM TAG
+     *
+     * Der Cron laeuft alle zehn Minuten. Jede Kundenseite so oft abzurufen
+     * waere unhoeflich gegenueber fremden Servern und brächte nichts: Was
+     * sich an einer Seite aendert, aendert sich nicht im Zehnminutentakt.
+     *
+     * WARUM NUR BEI VERSCHLECHTERUNG EINE MELDUNG
+     *
+     * Eine Meldung, die jede Nacht kommt, ist nach einer Woche Tapete. Hier
+     * meldet sich nur, was schlechter geworden ist als beim letzten Lauf —
+     * dann ist die Meldung selten, und selten heisst: man liest sie.
+     * Bestehende Maengel stehen weiterhin im Projekt und in der Fuehrung,
+     * sie klopfen nur nicht jede Nacht an.
+     *
+     * @return int Wie viele Seiten geprueft wurden.
+     */
+    public static function alleFaelligen(int $hoechstens = 25): int
+    {
+        $offen = (array) self::still(static fn() => Db::all(
+            "SELECT p.id, p.abnahme, p.preview_url, w.url AS live
+               FROM projects p
+               LEFT JOIN websites w ON w.project_id = p.id
+              WHERE p.status <> 'abgeschlossen'
+                AND (p.abnahme_am IS NULL OR p.abnahme_am < DATE_SUB(NOW(), INTERVAL 20 HOUR))
+                AND (COALESCE(w.url, '') <> '' OR COALESCE(p.preview_url, '') <> '')
+              ORDER BY p.abnahme_am IS NOT NULL, p.abnahme_am
+              LIMIT " . max(1, $hoechstens)), []);
+
+        $n = 0;
+        foreach ($offen as $p) {
+            /* Zwischen "war schon einmal sauber" und "wurde noch nie
+               geprueft" liegt ein Unterschied. Sagt die Meldung das Falsche,
+               glaubt man ihr beim naechsten Mal nicht mehr. */
+            $alt    = self::entpacken((string) ($p['abnahme'] ?? ''));
+            $vorher = self::schlechte($alt);
+            try {
+                $erg = self::fuerProjekt((int) $p['id']);
+            } catch (Throwable $e) {
+                continue;   // keine Adresse, kein Projekt — der naechste ist dran
+            }
+            $n++;
+
+            $jetzt = (int) ($erg['zaehler']['schlecht'] ?? 0);
+            if ($jetzt > $vorher) {
+                self::still(static function () use ($p, $jetzt, $vorher, $alt, $erg) {
+                    require_once __DIR__ . '/Events.php';
+                    $wer = (string) Db::wert(
+                        "SELECT COALESCE(NULLIF(c.company, ''), c.name)
+                           FROM projects pr JOIN customers c ON c.id = pr.customer_id
+                          WHERE pr.id = ?", [(int) $p['id']], '');
+                    Events::melden('abnahme', 'Abnahme: ' . $wer, 'warnung',
+                        ($alt === null
+                            ? 'Erstmals geprüft: ' . $jetzt . ' Punkt(e) zu beheben.'
+                            : ($vorher === 0
+                                ? $jetzt . ' Punkt(e) zu beheben, vorher war alles sauber.'
+                                : 'Jetzt ' . $jetzt . ' offen statt ' . $vorher . '.'))
+                        . ' ' . (string) ($erg['url'] ?? ''),
+                        '/projekte/' . (int) $p['id'] . '?tun=abnahme');
+                });
+            }
+        }
+        return $n;
+    }
+
+    /** Die Zahl der Maengel aus einem gespeicherten Ergebnis. */
+    private static function schlechte(?array $ergebnis): int
+    {
+        return (int) ($ergebnis['zaehler']['schlecht'] ?? 0);
+    }
+
+    private static function entpacken(string $roh): ?array
+    {
+        $roh = trim($roh);
+        if ($roh === '') { return null; }
+        $d = json_decode($roh, true);
+        return is_array($d) ? $d : null;
     }
 
     /** Das gespeicherte Ergebnis, falls eines dasteht. */

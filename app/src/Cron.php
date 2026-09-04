@@ -101,6 +101,14 @@ final class Cron
                 require_once __DIR__ . '/Abo.php';
                 return Abo::abrechnungenAnlegen();
             },
+            /* Die fertigen Seiten pruefen — hoechstens einmal am Tag je
+               Seite, und gemeldet wird nur, was schlechter geworden ist.
+               Damit faellt das Pruefen von Hand weg: Man hoert nur noch,
+               wenn etwas kaputtgegangen ist. */
+            'abnahme'     => static function () {
+                require_once __DIR__ . '/Abnahme.php';
+                return Abnahme::alleFaelligen();
+            },
             // Ein Angebot, dessen Frist verstrichen ist, soll sich nicht mehr
             // annehmen lassen. Die Seite prueft das beim Ansehen ohnehin mit —
             // hier wandert der Status nach, damit die Liste in der Verwaltung

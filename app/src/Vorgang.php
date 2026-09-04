@@ -75,6 +75,7 @@ final class Vorgang
                     p.id AS projekt_id, p.name AS projekt_name, p.status AS projekt_status,
                     p.progress AS projekt_fortschritt, p.deadline AS projekt_deadline,
                     p.updated_at AS projekt_bewegt,
+                    p.briefing_am, p.chat_url, p.preview_url, p.abnahme,
                     a.id AS anfrage_id, a.token AS anfrage_token, a.nachricht AS anfrage_text,
                     a.created_at AS anfrage_am
                FROM orders o
@@ -117,6 +118,7 @@ final class Vorgang
                         p.id AS projekt_id, p.name AS projekt_name, p.status AS projekt_status,
                         p.progress AS projekt_fortschritt, p.deadline AS projekt_deadline,
                         p.updated_at AS projekt_bewegt,
+                        p.briefing_am, p.chat_url, p.preview_url, p.abnahme,
                         a.id AS anfrage_id, a.token AS anfrage_token, a.nachricht AS anfrage_text,
                         a.created_at AS anfrage_am
                    FROM orders o
@@ -178,6 +180,14 @@ final class Vorgang
                 'status' => (string) $z['projekt_status'],
                 'progress' => (int) $z['projekt_fortschritt'],
                 'deadline' => $z['projekt_deadline'],
+                /* Die Werkstatt gehoert in dieselbe Wahrheit wie alles
+                   andere. Ohne diese vier Felder waere das Bauen der einzige
+                   Abschnitt, den die Fuehrung nicht kennt — und genau in ihm
+                   liegt die meiste Zeit eines Vorgangs. */
+                'briefing_am' => $z['briefing_am'] ?? null,
+                'chat_url'    => $z['chat_url'] ?? null,
+                'vorschau'    => $z['preview_url'] ?? null,
+                'abnahme'     => $z['abnahme'] ?? null,
             ] : null,
             'anfrage_id'  => $z['anfrage_id'] !== null ? (int) $z['anfrage_id'] : null,
             'anfrage_token' => (string) ($z['anfrage_token'] ?? ''),
@@ -387,12 +397,95 @@ final class Vorgang
                 'projekt_status', (int) $v['projekt_id'], ['status' => 'vorschau']);
         }
 
-        // informationen_erhalten, design, entwicklung, zahlung_bestaetigt,
-        // bestellung_eingegangen, onboarding — alles das ist deine Werkbank.
-        return self::setzen($v, 'arbeit', self::DU, 'Vorschau ist fertig',
+        /* --- 5. Die Werkbank, Schritt fuer Schritt. --------------------
+
+           Hier stand bis zuletzt ein einziger Satz: "Du bist am Bauen." Das
+           war der laengste Abschnitt eines Vorgangs und der einzige, den die
+           Fuehrung nicht kannte — waehrend sie jede Mail und jeden
+           Zahlungslink einzeln fuehrt. Wer hier landete, war auf sein
+           Gedaechtnis angewiesen.
+
+           Die Reihenfolge ergibt sich wie ueberall sonst aus Tatsachen, nicht
+           aus einem Statusfeld: Gibt es ein Briefing? Laeuft ein Gespraech?
+           Steht eine Vorschau? Ist die Abnahme sauber? Jede Antwort schaltet
+           den naechsten Handgriff frei, und wer alles erledigt hat, bekommt
+           wieder den alten Satz zu sehen. */
+        return self::werkbankSchritt($v);
+    }
+
+    /**
+     * Der Weg durch das Bauen — vom Briefing bis zur sauberen Abnahme.
+     *
+     * Jeder Schritt fuehrt genau dorthin, wo der Knopf steht. Das ?tun=
+     * markiert ihn auf der Zielseite, damit man ihn nicht sucht.
+     */
+    private static function werkbankSchritt(array $v): array
+    {
+        $pid  = $v['projekt_id'] !== null ? (int) $v['projekt_id'] : null;
+        $prj  = (array) ($v['projekt'] ?? []);
+        $ziel = $pid !== null ? 'projekte/' . $pid : 'projekte';
+
+        $fertig = static fn(): array => self::setzen($v, 'arbeit', self::DU, 'Vorschau ist fertig',
             'Du bist am Bauen. Wenn die Vorschau steht, bekommt der Kunde sie.',
-            'projekt_status', $v['projekt_id'] !== null ? (int) $v['projekt_id'] : null,
-            ['status' => 'vorschau']);
+            'projekt_status', $pid, ['status' => 'vorschau']);
+
+        if ($pid === null) { return $fertig(); }
+
+        $briefing = trim((string) ($prj['briefing_am'] ?? '')) !== '';
+        $chat     = trim((string) ($prj['chat_url'] ?? '')) !== '';
+        $vorschau = trim((string) ($prj['vorschau'] ?? '')) !== '';
+
+        /* Ohne Briefing faengt niemand an. Normalerweise entsteht es beim
+           Abschicken des Fragebogens von selbst — steht hier trotzdem
+           nichts, ist der Bogen noch leer oder es ging etwas schief. */
+        if (!$briefing) {
+            return self::setzen($v, 'arbeit', self::DU, 'Briefing erzeugen',
+                'Ohne Briefing fängt das Bauen bei null an — der Fragebogen ist dann umsonst ausgefüllt.',
+                null, null, [], $ziel . '?tun=briefing_bauen');
+        }
+
+        /* Das Briefing steht, aber es ist nie irgendwo angekommen. */
+        if (!$chat) {
+            return self::setzen($v, 'arbeit', self::DU, 'Bauen anfangen',
+                'Das Briefing steht. Kopier es, fang bei Claude an und merk dir das Gespräch hier.',
+                null, null, [], $ziel . '?tun=briefing_bauen');
+        }
+
+        /* Es wird gebaut, aber niemand kann hinsehen. */
+        if (!$vorschau) {
+            return self::setzen($v, 'arbeit', self::DU, 'Vorschau eintragen',
+                'Sobald etwas zum Ansehen dasteht: Adresse eintragen. Erst dann sieht die '
+                . 'Werkstatt die Seite und die Abnahme kann prüfen.',
+                null, null, [], $ziel . '?tun=projekt_felder');
+        }
+
+        /* Es gibt etwas zu pruefen — also pruefen, bevor der Kunde es sieht. */
+        $abnahme = null;
+        $roh = trim((string) ($prj['abnahme'] ?? ''));
+        if ($roh !== '') {
+            $d = json_decode($roh, true);
+            if (is_array($d)) { $abnahme = $d; }
+        }
+
+        if ($abnahme === null) {
+            return self::setzen($v, 'arbeit', self::DU, 'Abnahme laufen lassen',
+                'Die Seite steht, aber das Mechanische hat noch niemand geprüft.',
+                'abnahme_pruefen', $pid, [], $ziel . '?tun=abnahme_pruefen');
+        }
+
+        $offen = (int) ($abnahme['zaehler']['schlecht'] ?? 0);
+        if ($offen > 0) {
+            /* Ohne Tat: Dieser Schritt ist zum Ansehen da, nicht zum
+               Nochmal-Pruefen. Ein Knopf, der aus der Liste heraus eine
+               neue Pruefung anstoesst, aendert nichts an dem, was schon
+               gefunden wurde — er verdeckt es nur eine Minute lang. */
+            return self::setzen($v, 'arbeit', self::DU,
+                'Abnahme: ' . $offen . ($offen === 1 ? ' Punkt' : ' Punkte') . ' offen',
+                'Die Prüfung hat etwas gefunden, das der Kunde sonst findet.',
+                null, null, [], $ziel . '?tun=abnahme');
+        }
+
+        return $fertig();
     }
 
     /** Die Restzahlung ist offen — anfordern oder abwarten. */

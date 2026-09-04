@@ -2005,16 +2005,22 @@ switch ($route) {
         /* Alles, was gebaut wurde oder gebaut wird, auf einem Blatt. Die
            Angaben kommen aus drei Tabellen, die es laengst gibt — neu ist
            nur, dass sie nebeneinander stehen. */
-        ansicht('werkstatt', ['liste' => sicher(static fn() => Db::all(
+        require_once __DIR__ . '/src/Standard.php';
+        ansicht('werkstatt', [
+            'einrichtung' => sicher(static fn() => Standard::einrichtungsstand(),
+                ['punkte' => [], 'offen' => [], 'gesamt' => 0]),
+            'claudeZiel'  => sicher(static fn() => Standard::claudeZiel(), 'https://claude.ai/new'),
+            'liste' => sicher(static fn() => Db::all(
             "SELECT p.id, p.name, p.status, p.progress, p.deadline, p.preview_url,
-                    p.briefing_am, p.chat_url, p.abnahme, p.abnahme_am,
+                    p.briefing, p.briefing_am, p.chat_url, p.abnahme, p.abnahme_am,
                     c.id AS kunde_id, c.name AS kunde, c.company, c.kundennr,
                     w.url AS live, w.domain, w.last_status, w.ssl_expires_at
                FROM projects p
                JOIN customers c ON c.id = p.customer_id
                LEFT JOIN websites w ON w.project_id = p.id
               ORDER BY FIELD(p.status,'abgeschlossen') ASC,
-                       p.deadline IS NULL, p.deadline ASC, p.id DESC"), [])]);
+                       p.deadline IS NULL, p.deadline ASC, p.id DESC"), []),
+        ]);
         break;
 
     case 'muster':

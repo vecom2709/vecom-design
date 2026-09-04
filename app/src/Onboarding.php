@@ -331,6 +331,32 @@ final class Onboarding
 
         if ($f === null) { return; }
 
+        /* DAS BRIEFING ENTSTEHT HIER, NICHT AUF KNOPFDRUCK
+           ------------------------------------------------------------------
+           Der Fragebogen ist genau der Moment, in dem alles beisammen ist:
+           Angebot, Umfang, Sprachen, Farben, Abneigungen. Es dann noch von
+           Hand anzustossen, hiess einen Handgriff zu verlangen, dessen
+           Ergebnis in jedem Fall dasselbe ist — und ein Handgriff, der immer
+           gleich ausgeht, wird irgendwann vergessen.
+
+           Nur wenn noch keins dasteht. Haette Uwe schon eines erzeugt und an
+           Claude geschickt, wuerde es sich hier hinter seinem Ruecken
+           aendern; das waere schlimmer als gar keine Automatik. Zum
+           Auffrischen gibt es den Knopf am Projekt.
+
+           Ausserhalb der Transaktion und in eigenem Netz: Ein Briefing, das
+           nicht entsteht, darf keinen abgeschickten Fragebogen zurueckrollen.
+           Es fehlt dann, und die Fuehrung sagt "Briefing erzeugen". */
+        try {
+            $pid = (int) $f['fragebogen']['project_id'];
+            $schon = trim((string) Db::wert(
+                'SELECT briefing FROM projects WHERE id = ?', [$pid], ''));
+            if ($pid > 0 && $schon === '') {
+                require_once __DIR__ . '/Briefing.php';
+                Briefing::speichern($pid);
+            }
+        } catch (Throwable $e) { /* der Knopf am Projekt bleibt */ }
+
         // Erst nach dem Festschreiben: Ein haengender Mailserver darf einen
         // abgeschickten Fragebogen nicht zurueckrollen.
         try {
