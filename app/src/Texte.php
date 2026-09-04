@@ -227,6 +227,32 @@ final class Texte
             'de' => 'Logo, Fotos, Texte — alles, was für die Seite gebraucht wird.',
             'en' => 'Logo, photos, copy — whatever the site needs.'],
         'hochladen'  => ['it' => 'Carica', 'de' => 'Hochladen', 'en' => 'Upload'],
+
+        /* DAS MATERIAL WAR DER STILLSTE ENGPASS
+           ------------------------------------------------------------------
+           Der Kasten dafuer stand zugeklappt ganz unten, zwischen Belegen und
+           einem Schlusssatz. Wer nicht danach suchte, fand ihn nie -- und
+           schickte seine Fotos per WhatsApp, oder gar nicht. Angefangen
+           werden konnte in beiden Faellen nicht, und die Wartezeit sah aus,
+           als laege sie bei mir.
+
+           Deshalb sagt die Seite jetzt in der Phase, in der es zaehlt,
+           deutlich, dass Material gebraucht wird -- und wo es hingehoert. */
+        'materialRuf' => [
+            'it' => 'Hai già logo, foto o testi? Caricali qui — con quelli posso partire davvero.',
+            'de' => 'Hast du Logo, Fotos oder Texte schon da? Lad sie hier hoch — damit kann ich wirklich anfangen.',
+            'en' => 'Do you already have a logo, photos or copy? Upload them here — with those I can really start.'],
+        'materialWie' => [
+            'it' => 'Va bene tutto: foto dal telefono, un PDF, il vecchio volantino. Meglio troppo che troppo poco — scelgo io.',
+            'de' => 'Alles ist recht: Handyfotos, ein PDF, der alte Flyer. Lieber zu viel als zu wenig — aussuchen kann ich.',
+            'en' => 'Anything helps: phone photos, a PDF, the old flyer. Better too much than too little — I can pick.'],
+        'materialKnopf' => [
+            'it' => 'Carica il materiale', 'de' => 'Material hochladen', 'en' => 'Upload your material'],
+        'materialDa' => [
+            'it' => 'Ricevuto, grazie. Se arriva altro, caricalo pure — meglio adesso che dopo.',
+            'de' => 'Angekommen, danke. Wenn noch etwas dazukommt, lad es ruhig hoch — jetzt ist besser als später.',
+            'en' => 'Received, thank you. If more turns up, do upload it — sooner is better than later.'],
+
         'deineSeite' => ['it' => 'Il tuo sito', 'de' => 'Deine Website', 'en' => 'Your website'],
         /* Der Bereich steht auch dann da, wenn es noch nichts zu sehen gibt.
            Versteckt waere er eine Leerstelle, die Fragen erzeugt: Wo sehe ich

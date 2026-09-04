@@ -199,6 +199,15 @@ function sicherLesen(callable $fn, mixed $ersatz = []): mixed {
     try { return $fn(); } catch (Throwable $e) { return $ersatz; }
 }
 
+/* Wie viel der Kunde selbst geschickt hat. Was von mir kommt -- ein Entwurf,
+   ein Beleg -- zaehlt hier nicht: Gefragt ist, ob SEIN Material da ist. */
+$vomKunden = 0;
+foreach ($dateien as $d) { if (($d['uploaded_by'] ?? '') === 'kunde') { $vomKunden++; } }
+
+/* In diesen beiden Phasen entscheidet das Material darueber, ob es
+   weitergeht. Vorher waere die Aufforderung verfrueht, nachher ueberholt. */
+$materialDran = in_array($stufe ?? '', ['angaben', 'arbeit'], true);
+
 /** Die offene Zahlung, auf die der Kunde gerade schaut. */
 $offen = null;
 foreach ((array) ($v['zahlungen'] ?? []) as $z) {
@@ -256,6 +265,18 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   .klapp.ruht{border:1px dashed var(--linie);border-radius:14px;padding:13px 16px;margin-bottom:12px;opacity:.72}
   .klapp.ruht .summe{font-weight:650;font-size:15px;color:var(--leise)}
   .klapp.ruht .summe::before{content:"○ ";color:var(--linie2)}
+  /* DER RUF NACH MATERIAL
+     Er sieht aus wie ein Hinweis und nicht wie Zierrat, weil er einer ist:
+     Ohne Logo, Fotos und Texte steht das Projekt, und das sieht von aussen
+     so aus, als laege es an mir. */
+  .materialruf{border:1px solid var(--cyan);border-radius:12px;padding:13px 15px;margin:10px 0 14px;
+    background:rgba(31,232,255,.07)}
+  .materialruf b{display:block;font-size:14.5px;line-height:1.55;color:var(--cyan);margin-bottom:5px}
+  .materialruf span{display:block;font-size:12.5px;line-height:1.6;color:var(--dim)}
+  /* Der Kasten mit dem Material bekommt eine ruhige Betonung, solange er
+     dran ist -- offen allein reicht nicht, wenn darueber sechs andere
+     Kaesten stehen. */
+  details.klapp.dranfaellig{border-color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -339,6 +360,21 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php elseif (($stufe === 'online' || $stufe === 'fertig') && $seite['live'] !== ''): ?>
         <a class="knopf haupt" href="<?= $h($seite['live']) ?>" target="_blank" rel="noopener">
           <?= $h($T('seiteAnsehen')) ?></a>
+      <?php endif; ?>
+
+      <?php /* MATERIAL, WO ER OHNEHIN HINSIEHT
+               ----------------------------------------------------------
+               Der eine Kasten oben ist das, was gelesen wird. Also steht
+               der Weg zum Material hier -- neben dem Fragebogen, solange
+               der laeuft, und danach als das Einzige, was noch fehlt.
+               Ist alles da, verschwindet die Aufforderung; ein Ruf, der
+               auch dann noch ruft, wenn man ihm gefolgt ist, wird beim
+               naechsten Mal ueberlesen. */ ?>
+      <?php if ($materialDran): ?>
+        <a class="knopf <?= ($stufe === 'arbeit' && $vomKunden === 0) ? 'haupt' : '' ?>"
+           href="#material"><?= $h($T('materialKnopf')) ?></a>
+        <span class="mini" style="flex-basis:100%">
+          <?= $h($vomKunden === 0 ? $T('materialRuf') : $T('materialDa')) ?></span>
       <?php endif; ?>
     </div>
   </div>
@@ -454,6 +490,39 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </details>
   <?php endif; ?>
 
+  <?php /* ---------- Dateien ----------
+           Offen und hervorgehoben, solange das Material den Fortschritt
+           bestimmt. Danach klappt er zu wie jeder andere Kasten: Was
+           erledigt ist, braucht keine Aufmerksamkeit mehr. */ ?>
+  <details id="material" class="klapp <?= $materialDran ? 'dranfaellig' : '' ?>" <?= $materialDran ? 'open' : '' ?>>
+    <summary><?= $h($T('dateien')) ?><?= $dateien ? ' (' . count($dateien) . ')' : '' ?></summary>
+    <?php if ($materialDran && $vomKunden === 0): ?>
+      <div class="materialruf">
+        <b><?= $h($T('materialRuf')) ?></b>
+        <span><?= $h($T('materialWie')) ?></span>
+      </div>
+    <?php else: ?>
+      <p class="mini" style="margin-top:10px"><?= $h($T('dateienHilfe')) ?></p>
+    <?php endif; ?>
+    <?php foreach ($dateien as $d): ?>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;
+                  padding:10px 0;border-top:1px solid var(--linie)">
+        <span><?= $h((string) $d['orig_name']) ?><br>
+          <small style="color:var(--leise)"><?= $h(Fmt::bytes((int) $d['size_bytes'])) ?>
+            · <?= $h(Fmt::datum($d['created_at'])) ?></small></span>
+        <?php if ($d['uploaded_by'] !== 'kunde'): ?>
+          <a class="knopf" href="<?= $h($hier) ?>&amp;datei=<?= (int) $d['id'] ?>">↓</a>
+        <?php endif; ?>
+      </div>
+    <?php endforeach; ?>
+    <form method="post" action="<?= $h($hier) ?>" enctype="multipart/form-data"
+          style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="datei">
+      <input type="file" name="datei" required style="max-width:230px">
+      <button class="knopf"><?= $h($T('hochladen')) ?></button>
+    </form>
+  </details>
+
   <?php /* ---------- Gespräch ---------- */ ?>
   <details class="klapp" <?= $nachrichten ? '' : 'open' ?>>
     <summary><?= $h($T('gespraech')) ?><?= $nachrichten ? ' (' . count($nachrichten) . ')' : '' ?></summary>
@@ -495,29 +564,6 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php endforeach; ?>
     </details>
   <?php endif; ?>
-
-  <?php /* ---------- Dateien ---------- */ ?>
-  <details class="klapp">
-    <summary><?= $h($T('dateien')) ?><?= $dateien ? ' (' . count($dateien) . ')' : '' ?></summary>
-    <p class="mini" style="margin-top:10px"><?= $h($T('dateienHilfe')) ?></p>
-    <?php foreach ($dateien as $d): ?>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;
-                  padding:10px 0;border-top:1px solid var(--linie)">
-        <span><?= $h((string) $d['orig_name']) ?><br>
-          <small style="color:var(--leise)"><?= $h(Fmt::bytes((int) $d['size_bytes'])) ?>
-            · <?= $h(Fmt::datum($d['created_at'])) ?></small></span>
-        <?php if ($d['uploaded_by'] !== 'kunde'): ?>
-          <a class="knopf" href="<?= $h($hier) ?>&amp;datei=<?= (int) $d['id'] ?>">↓</a>
-        <?php endif; ?>
-      </div>
-    <?php endforeach; ?>
-    <form method="post" action="<?= $h($hier) ?>" enctype="multipart/form-data"
-          style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <?= Csrf::feld() ?><input type="hidden" name="tat" value="datei">
-      <input type="file" name="datei" required style="max-width:230px">
-      <button class="knopf"><?= $h($T('hochladen')) ?></button>
-    </form>
-  </details>
 
   <p class="mini" style="margin-top:26px;text-align:center"><?= $h($T('lesenswert')) ?></p>
 
