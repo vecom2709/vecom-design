@@ -330,6 +330,58 @@ final class Briefing
         }
         $zeilen[] = '';
 
+        /* ---------- Womit gebaut wird ---------------------------------
+           WARUM NICHT DIE GANZE LISTE
+
+           Es gibt eine lange Liste dessen, was das Web kann. Vollstaendig in
+           einen Auftrag gelegt macht sie das Ergebnis schlechter: Wer alles
+           nennt, hat nichts gesagt, und gebaut wird dann, was am
+           eindrucksvollsten klingt — Bewegung auf einer Seite, auf der jemand
+           die Oeffnungszeiten sucht.
+
+           Technik::fuer() gibt genau die Scheibe zurueck, die zu Stufe und
+           Branche passt. Was die Branche NICHT braucht, steht mit dabei: Bei
+           einer Werkstatt ist Scroll-Kino nicht zu wenig Aufwand, sondern der
+           falsche. */
+        $tk = self::still(static function () use ($st, $k, $antworten) {
+            require_once __DIR__ . '/Technik.php';
+            return Technik::fuer((string) $st['stufe'], (string) ($k['industry'] ?? ''), $antworten);
+        });
+        if ($tk) {
+            $ausgeben = static function (array $eintraege) use (&$zeilen): void {
+                foreach ($eintraege as $e) {
+                    foreach (explode("\n", wordwrap((string) $e, 72, "\n")) as $i => $t) {
+                        $zeilen[] = ($i === 0 ? '  - ' : '    ') . $t;
+                    }
+                }
+            };
+
+            $zeilen[] = 'TECHNIK — DAS GILT IMMER';
+            $ausgeben($tk['immer']);
+            $zeilen[] = '';
+
+            if ($tk['stufe']) {
+                $zeilen[] = 'TECHNIK — WAS STUFE ' . $st['stufe'] . ' DAZUNIMMT';
+                $ausgeben($tk['stufe']);
+                $zeilen[] = '';
+            }
+
+            if ($tk['branche'] !== null) {
+                require_once __DIR__ . '/Technik.php';
+                $zeilen[] = 'FÜR DIESE BRANCHE — ' . mb_strtoupper(Technik::brancheWort($tk['branche']['name']));
+                $ausgeben($tk['branche']['braucht']);
+                if ($tk['branche']['nicht']) {
+                    $ausgeben(['Hier hat nichts zu suchen: '
+                        . implode(', ', $tk['branche']['nicht']) . '.']);
+                }
+                $zeilen[] = '';
+            }
+
+            $zeilen[] = 'OHNE AUSDRÜCKLICHEN GRUND NICHT';
+            $ausgeben($tk['nie']);
+            $zeilen[] = '';
+        }
+
         /* ---------- Die DNA, in den Worten des Kunden ---------- */
         $dna = [];
         $dnaPaar = static function (string $wort, string $wert) use (&$dna): void {
