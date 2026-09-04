@@ -43,6 +43,7 @@
 <div class="block"><h2>Die Hausregeln
     <span class="mehr"><?= $eigener ? 'eigene Fassung' : 'noch die Vorgabe' ?><?php
       if ($gesehenAm): ?> · durchgesehen <?= Fmt::h(Fmt::seit((string) $gesehenAm)) ?><?php
+      elseif ($gesehen): ?> · durchgesehen<?php
       endif; ?></span></h2>
 
   <form method="post" action="<?= Fmt::h(url('')) ?>">
@@ -64,7 +65,7 @@
            diesen Knopf muesste er eine Kleinigkeit aendern, nur damit ein
            Haken umspringt — und ein Werkzeug, das dazu zwingt, erzieht zum
            Pfusch. */ ?>
-  <?php if (!$gesehenAm): ?>
+  <?php if (!$gesehen): ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="standard_gesehen">
       <button class="knopf">Passt so</button>

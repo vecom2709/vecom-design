@@ -2047,6 +2047,7 @@ switch ($route) {
             'text'      => Standard::text(),
             'eigener'   => Standard::eigener(),
             'gesehenAm' => Standard::gesehenAm(),
+            'gesehen'   => Standard::gesehen(),
             'anhaengen' => Standard::anhaengen(),
             'projekt'   => Standard::claudeProjekt(),
         ]);

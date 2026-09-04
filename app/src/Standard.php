@@ -183,9 +183,18 @@ TEXT;
         return $w !== '' ? $w : null;
     }
 
+    /**
+     * Durchgesehen — mit oder ohne Datum.
+     *
+     * Wer eine eigene Fassung gespeichert hat, hat sie gelesen; anders
+     * aendert man keinen Text. Fuer alle, die das vor der Einfuehrung des
+     * Vermerks getan haben, gaebe es sonst eine Nachfrage nach etwas, das
+     * laengst erledigt ist — und eine Nachfrage, die man wegklickt, ist der
+     * Anfang vom Ende jeder Liste.
+     */
     public static function gesehen(): bool
     {
-        return self::gesehenAm() !== null;
+        return self::gesehenAm() !== null || self::eigener();
     }
 
     /** "Passt so" — gelesen und für richtig befunden. */
@@ -303,10 +312,10 @@ TEXT;
         $punkte[] = [
             'schluessel' => 'standard',
             'was'    => 'Hausregeln durchgesehen',
-            'fertig' => $gesehen !== null,
+            'fertig' => self::gesehen(),
             'stand'  => self::eigener()
-                ? 'eigene Fassung, zuletzt ' . Fmt::seit((string) $gesehen)
-                : 'gelesen und für richtig befunden, ' . Fmt::seit((string) $gesehen),
+                ? 'eigene Fassung' . ($gesehen !== null ? ', zuletzt ' . Fmt::seit($gesehen) : '')
+                : 'gelesen und für richtig befunden' . ($gesehen !== null ? ', ' . Fmt::seit($gesehen) : ''),
             'warum'  => 'Noch die Vorgabe von mir, und noch nicht abgehakt. Lies sie einmal '
                       . 'durch und ändere, was für deine Kunden nicht stimmt — sie hängt an '
                       . 'jedem Briefing.',
