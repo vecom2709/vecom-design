@@ -456,6 +456,89 @@ final class Texte
     ];
 
     public const MAILS = [
+        /* DREI STUFEN, EIN TON, DER SICH AENDERT
+           ----------------------------------------------------------------
+           Bis hierher passierte bei einer unbezahlten Rate gar nichts. Der
+           Zahlungslink starb nach einem Tag, und danach lag der Vorgang still
+           da, bis Uwe von selbst hinsah.
+
+           Stufe 1 ist keine Mahnung, sondern ein neuer Link: Die haeufigste
+           Ursache ist nicht Unwille, sondern ein Link, der abgelaufen war,
+           oder eine Mail, die unterging. Deshalb geht sie von selbst raus und
+           klingt wie eine Erinnerung unter Bekannten.
+
+           Stufe 2 nennt die Frist beim Namen und setzt eine neue. Stufe 3
+           sagt, was passiert, wenn nichts kommt — und zwar genau das, was
+           dann auch passiert, nicht mehr.
+
+           Was hier NICHT steht: eine Zinsrechnung. Der Hinweis auf die
+           gesetzliche Regel genuegt; wer sie anwendet, ist Uwe, nicht die
+           Vorlage. */
+        'zahlung_erinnerung' => [
+            'it' => ['Promemoria: {was} — {betrag}',
+                "Ciao {name},\n\nti ricordo il pagamento di {was}: {betrag}, scaduto il {faellig}.\n\n"
+                . "Probabilmente è solo sfuggito, o il link precedente era scaduto. Eccone uno nuovo, valido due settimane:\n{link}\n\n"
+                . "Se hai già pagato, ignora questo messaggio — a volte ci mettiamo un giorno a incrociarci.\n\n"
+                . "Se qualcosa non torna, scrivimi e troviamo una soluzione."],
+            'de' => ['Erinnerung: {was} — {betrag}',
+                "Hallo {name},\n\nkurze Erinnerung an die {was}: {betrag}, fällig war der {faellig}.\n\n"
+                . "Wahrscheinlich ist es nur untergegangen, oder der alte Link war abgelaufen. Hier ist ein neuer, zwei Wochen gültig:\n{link}\n\n"
+                . "Wenn du schon bezahlt hast, ist diese Mail hinfällig — manchmal kreuzen wir uns um einen Tag.\n\n"
+                . "Wenn etwas nicht passt, schreib mir, dann finden wir einen Weg."],
+            'en' => ['Reminder: {was} — {betrag}',
+                "Hello {name},\n\na short reminder about the {was}: {betrag}, due on {faellig}.\n\n"
+                . "It has probably just slipped through, or the old link had expired. Here is a fresh one, valid for two weeks:\n{link}\n\n"
+                . "If you have already paid, please ignore this — sometimes we cross by a day.\n\n"
+                . "If something is not right, write to me and we will find a way."],
+        ],
+        'zahlung_mahnung' => [
+            'it' => ['Sollecito di pagamento — {was}, {betrag}',
+                "Ciao {name},\n\nil pagamento di {was} ({betrag}) era dovuto il {faellig} e a oggi non risulta ancora arrivato. "
+                . "Ti avevo già scritto una volta.\n\n"
+                . "Ti chiedo di saldare entro il {frist}:\n{link}\n\n"
+                . "Se c'è un motivo — una fattura in sospeso, un mese difficile, qualcosa che non va nel lavoro — "
+                . "dimmelo e concordiamo qualcosa. Una rateizzazione è sempre meglio di un silenzio.\n\n"
+                . "Il documento di riferimento è l'ordine {bestellnr}."],
+            'de' => ['Zahlungserinnerung — {was}, {betrag}',
+                "Hallo {name},\n\ndie {was} über {betrag} war am {faellig} fällig und ist bis heute nicht eingegangen. "
+                . "Ich hatte dir dazu schon einmal geschrieben.\n\n"
+                . "Ich bitte dich, den Betrag bis zum {frist} zu begleichen:\n{link}\n\n"
+                . "Wenn es einen Grund gibt — eine offene Rechnung bei dir, ein schwacher Monat, etwas am Ergebnis, das nicht stimmt — "
+                . "sag es mir, dann finden wir eine Lösung. Eine Ratenzahlung ist mir lieber als Schweigen.\n\n"
+                . "Vorgang: Bestellung {bestellnr}."],
+            'en' => ['Payment reminder — {was}, {betrag}',
+                "Hello {name},\n\nthe {was} of {betrag} was due on {faellig} and has not arrived. "
+                . "I wrote to you about it once already.\n\n"
+                . "Please settle it by {frist}:\n{link}\n\n"
+                . "If there is a reason — an unpaid invoice of your own, a weak month, something about the work that is not right — "
+                . "tell me and we will find a solution. Paying in instalments beats silence.\n\n"
+                . "Reference: order {bestellnr}."],
+        ],
+        'zahlung_letzte' => [
+            'it' => ['Ultimo sollecito — {was}, {betrag}',
+                "Ciao {name},\n\n{was} di {betrag}, scaduta il {faellig}, resta non pagata. Questo è il mio terzo e ultimo messaggio.\n\n"
+                . "Ti do tempo fino al {frist}:\n{link}\n\n"
+                . "Se entro quella data non arriva nulla, sospendo il lavoro sul tuo sito, che non viene pubblicato "
+                . "e i cui diritti d'uso restano miei fino al saldo completo — come previsto dalle condizioni. "
+                . "Da quel momento decorrono anche gli interessi di mora di legge.\n\n"
+                . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
+                . "Vorgang: ordine {bestellnr}, cliente {kundennr}."],
+            'de' => ['Letzte Mahnung — {was}, {betrag}',
+                "Hallo {name},\n\ndie {was} über {betrag}, fällig am {faellig}, ist weiterhin offen. Das ist meine dritte und letzte Nachricht dazu.\n\n"
+                . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
+                . "Kommt bis dahin nichts, ruht die Arbeit an deiner Website. Sie geht nicht online, und die Nutzungsrechte "
+                . "bleiben bis zur vollständigen Zahlung bei mir — so steht es in den Bedingungen. Ab dann laufen außerdem "
+                . "die gesetzlichen Verzugszinsen.\n\n"
+                . "Mir wäre ein Anruf deutlich lieber. Melde dich einfach.\n\n"
+                . "Vorgang: Bestellung {bestellnr}, Kunde {kundennr}."],
+            'en' => ['Final reminder — {was}, {betrag}',
+                "Hello {name},\n\nthe {was} of {betrag}, due on {faellig}, is still outstanding. This is my third and final message about it.\n\n"
+                . "I am setting a deadline of {frist}:\n{link}\n\n"
+                . "If nothing arrives by then, work on your website stops. It will not go live, and the rights of use stay "
+                . "with me until payment in full — as set out in the terms. Statutory late-payment interest also starts from then.\n\n"
+                . "I would much rather hear from you. A phone call is enough.\n\n"
+                . "Reference: order {bestellnr}, customer {kundennr}."],
+        ],
         /* Zu jeder bezahlten Rate ein Beleg — und zwar in der Post, nicht
            nur auf der Kundenseite. Bisher ging eine Nachricht ausschliesslich
            bei der ersten Zahlung raus (in der Auftragsbestaetigung); wer die

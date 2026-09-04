@@ -3,7 +3,20 @@
 <?php /* Dasselbe Blatt, das der Kunde bekommen hat -- zum Nachschicken oder
          Ausdrucken, ohne die Mail zu suchen. */ ?>
 <div class="rechts"><a class="knopf" href="<?= Fmt::h(url('bestellungen/' . (int) $b['id'] . '/vertrag')) ?>"
-   title="Die Auftragsbestätigung als PDF, in der Sprache des Kunden">Vertragsblatt</a></div></div>
+   title="Die Auftragsbestätigung als PDF, in der Sprache des Kunden">Vertragsblatt</a>
+<?php /* Erst wenn wirklich etwas ueberfaellig ist. Ein Knopf, der bei jeder
+         Bestellung nach Anwalt aussieht, macht den falschen Eindruck. */ ?>
+<?php
+  $ueberfaellig = false;
+  foreach ($zahlungen as $zz) {
+      if ($zz['status'] !== 'bezahlt' && $zz['faellig_am']
+          && strtotime((string) $zz['faellig_am']) < strtotime('today')) { $ueberfaellig = true; }
+  }
+?>
+<?php if ($ueberfaellig): ?>
+  <a class="knopf" href="<?= Fmt::h(url('bestellungen/' . (int) $b['id'] . '/forderung')) ?>"
+     title="Vertrag, Zustimmung, Zahlungsstand und Mahnhistorie auf einem Blatt — für den Anwalt">Forderung</a>
+<?php endif; ?></div></div>
 <div class="zwei"><div>
   <?php
   $bezahlt = 0; $offen = 0;
@@ -21,7 +34,14 @@
         <div style="min-width:180px">
           <strong><?= Fmt::h($z['bezeichnung'] ?: ucfirst((string) $z['art'])) ?></strong><br>
           <small style="color:var(--leise)"><?= Fmt::h($z['provider'] === 'offen' ? 'noch kein Anbieter' : $z['provider']) ?>
-          <?= $z['provider_ref'] ? ' · ' . Fmt::h($z['provider_ref']) : '' ?></small>
+          <?= $z['provider_ref'] ? ' · ' . Fmt::h($z['provider_ref']) : '' ?>
+          <?php /* Ohne Faelligkeit gibt es keinen Verzug — also steht sie da,
+                   wo man auf das Geld sieht, nicht nur in der Datenbank. */ ?>
+          <?php if ($z['status'] !== 'bezahlt' && $z['faellig_am']): ?>
+            <?php $ue = (int) floor((strtotime('today') - strtotime((string) $z['faellig_am'])) / 86400); ?>
+            · <span<?= $ue > 0 ? ' style="color:var(--gelb)"' : '' ?>>fällig <?= Fmt::h(Fmt::datum($z['faellig_am'])) ?><?=
+              $ue > 0 ? ' · ' . $ue . ' Tage überfällig' : '' ?></span>
+          <?php endif; ?></small>
         </div>
         <div style="font-variant-numeric:tabular-nums;font-size:17px;font-weight:600"><?= Fmt::geld((int) $z['amount_cents'], $z['currency']) ?></div>
         <span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span>
@@ -41,6 +61,32 @@
           <?php endif; ?>
         <?php endif; ?>
         <?php if ($z['status'] !== 'bezahlt'): ?>
+          <?php /* Der Mahnstand steht am Geld, nicht in einer eigenen Liste:
+                   Wer hier hinsieht, will wissen, was der Kunde schon bekommen
+                   hat, bevor er die naechste Stufe abschickt. */ ?>
+          <?php
+            $mStand = Mahnung::stand((int) $z['id']);
+            $mUeber = $z['faellig_am']
+                ? (int) floor((strtotime('today') - strtotime((string) $z['faellig_am'])) / 86400) : null;
+            $mNaechste = $mStand + 1;
+            $mDran = $mUeber !== null && $mNaechste >= 2 && $mNaechste <= 3
+                     && $mUeber >= (Mahnung::STUFEN[$mNaechste] ?? 999);
+          ?>
+          <?php if ($mStand > 0): ?>
+            <span class="marke2" title="<?= Fmt::h(Mahnung::name($mStand)) ?> ist raus">
+              <?= (int) $mStand ?>. Mahnstufe</span>
+          <?php endif; ?>
+          <?php if ($mDran): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+                  data-frage="<?= Fmt::h(Mahnung::name($mNaechste)) ?> an <?= Fmt::h($b['kunde']) ?> schicken?"
+                  data-ja="Ja, schicken" data-nein="Abbrechen">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="mahnung_schicken">
+              <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+              <input type="hidden" name="stufe" value="<?= (int) $mNaechste ?>">
+              <button class="knopf" title="Seit <?= (int) $mUeber ?> Tagen überfällig — Text und frischer Zahlungslink sind fertig"><?=
+                Fmt::h(Mahnung::name($mNaechste)) ?></button></form>
+          <?php endif; ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink">
             <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">

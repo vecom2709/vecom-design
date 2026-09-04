@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Mail.php';
 require_once __DIR__ . '/Texte.php';
 require_once __DIR__ . '/Onboarding.php';
+require_once __DIR__ . '/Events.php';   // Zahlungsziel und Linkdauer stehen dort
 
 /**
  * Nachrichten zwischen Kunde und Verwaltung — an einem Ort statt verstreut
@@ -297,6 +298,15 @@ final class Nachricht
         if (!$z) { return false; }   // nichts offen
         if (Mail::schonGeschickt('restzahlung', 'order_id', $bestellId)) { return false; }
 
+        /* Erst jetzt wird die Restzahlung faellig, nicht schon beim Auftrag:
+           Sie haengt an der Uebergabe, und die ist genau diese Nachricht.
+           Ab hier laeuft das Zahlungsziel — und damit spaeter der Verzug. */
+        try {
+            Db::update('payments', (int) $z['id'], [
+                'faellig_am' => date('Y-m-d', strtotime('+' . Events::ZAHLUNGSZIEL_TAGE . ' days')),
+            ]);
+        } catch (Throwable $e) { /* die Nachricht ist wichtiger */ }
+
         // Wenn Stripe bereit ist, kommt ein Bezahlknopf in die E-Mail. Wenn
         // nicht, bekommt der Kunde trotzdem Bescheid — dann eben mit dem
         // Hinweis auf seine Projektseite.
@@ -311,7 +321,7 @@ final class Nachricht
                 $link = $stripe->bezahlseite($z, $b, $k);
                 Db::update('payments', (int) $z['id'], [
                     'provider' => 'stripe', 'status' => 'in_bearbeitung',
-                    'link_url' => $link, 'link_bis' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+                    'link_url' => $link, 'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
                 ]);
             }
         } catch (Throwable $e) {

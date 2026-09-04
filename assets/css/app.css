@@ -1304,6 +1304,17 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 /* Zeilenumbrüche in der Anbieteranschrift bleiben erhalten */
 .legal .pre { white-space: pre-line; }
 
+/* Das Muster-Widerrufsformular ist ein Formular, kein Fliesstext: Die Linien
+   zum Ausfuellen muessen ausgerichtet stehen, sonst sieht es aus wie ein
+   Absatz mit Unterstrichen. */
+.legal .widerrufsformular {
+  font-family: var(--f-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+  font-size: .875rem; line-height: 1.7;
+  border: 1px solid var(--c-line); border-radius: 10px;
+  padding: 1.1rem 1.2rem; margin-top: 1rem;
+  overflow-x: auto;
+}
+
 /* ---------- 25. Partnermarke ---------------------------------------------- */
 /* Zurückhaltend platziert: keine zweite Marke, die um Aufmerksamkeit kämpft,
    sondern eine ruhige Nennung mit einem einzigen filmischen Moment. */

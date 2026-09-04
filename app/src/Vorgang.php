@@ -929,6 +929,28 @@ final class Vorgang
             ];
         }
 
+        /* --- Eine Rate ist ueberfaellig, die Erinnerung war schon da ------
+           Die erste Erinnerung geht von selbst raus. Die beiden schaerferen
+           nicht: Eine automatische Mahnung an jemanden, dessen Betrieb gerade
+           brennt, kostet mehr als sie einbringt. Der Text steht fertig da,
+           abgedrueckt wird hier von Hand. */
+        try {
+            require_once __DIR__ . '/Mahnung.php';
+            foreach (Mahnung::offen() as $m) {
+                $aus[] = [
+                    'was'   => Mahnung::name((int) $m['stufe']) . ' — '
+                             . Fmt::geld((int) $m['betrag'], (string) $m['currency']),
+                    'wer'   => (string) $m['kunde'],
+                    'warum' => (string) $m['bezeichnung'] . ', seit '
+                             . $tag((int) $m['ueberfaellig']) . ' überfällig',
+                    'tage'  => -(int) $m['ueberfaellig'],
+                    'eilig' => (int) $m['stufe'] >= 3,
+                    'ziel'  => 'bestellungen/' . (int) $m['order_id']
+                             . '?tun=mahnung&nr=' . (int) $m['zahlung_id'],
+                ];
+            }
+        } catch (Throwable $e) { /* die uebrige Liste steht trotzdem */ }
+
         /* Das Dringendste zuerst, und bei gleicher Dringlichkeit das, was am
            laengsten liegt. */
         usort($aus, static fn(array $a, array $b): int

@@ -86,6 +86,13 @@ final class Cron
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
             'erinnerungen'=> static fn() => Onboarding::erinnerungen(),
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
+            /* Die erste Zahlungserinnerung, drei Tage nach Faelligkeit, mit
+               frischem Link. Nur diese eine Stufe laeuft von selbst — die
+               beiden schaerferen stehen auf "Heute" und warten auf Uwe. */
+            'mahnungen'   => static function () {
+                require_once __DIR__ . '/Mahnung.php';
+                return Mahnung::automatisch();
+            },
             // Ein Angebot, dessen Frist verstrichen ist, soll sich nicht mehr
             // annehmen lassen. Die Seite prueft das beim Ansehen ohnehin mit —
             // hier wandert der Status nach, damit die Liste in der Verwaltung

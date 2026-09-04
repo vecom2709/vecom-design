@@ -171,6 +171,10 @@ final class Bedarf
                 'name'      => $name,
                 'email'     => $email,
                 'telefon'   => (string) ($kontakt['telefon'] ?? ''),
+                // Der Betriebsname stand bisher nur am Bedarf. In der
+                // Kundenakte blieb das Feld leer, und auf Vertragsblatt und
+                // Beleg stand der Personenname statt der Firma.
+                'firma'     => (string) ($kontakt['firma'] ?? ''),
                 'sprache'   => $sprache,
                 'nachricht' => self::zusammenfassung($antworten, $sprache, $spanne, (int) $r['monatlich_cents']),
             ]);

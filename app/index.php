@@ -763,7 +763,7 @@ if ($post) {
                 $url = $stripe->bezahlseite($z, $b, $k);
                 Db::update('payments', (int) $z['id'], [
                     'provider' => 'stripe', 'status' => 'in_bearbeitung',
-                    'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+                    'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
                 ]);
                 Events::protokoll('zahlungslink', 'Zahlungslink erstellt: ' . ($z['bezeichnung'] ?: 'Zahlung')
                     . ' · ' . Fmt::geld((int) $z['amount_cents']), (int) $b['customer_id'], (int) $b['id']);
@@ -1067,6 +1067,22 @@ if ($post) {
                 Events::protokoll('einstellungen', 'Firmendaten gespeichert');
                 $_SESSION['gut'] = 'Firmendaten gespeichert.';
                 weiter('einstellungen');
+
+            case 'mahnung_schicken':
+                /* Stufe 2 und 3 gehen nur von Hand raus — deshalb dieser
+                   Knopf und kein Cronjob. Die Stufe kommt aus dem Formular,
+                   aber Mahnung::schicken prueft selbst, ob sie dran ist:
+                   Zweimal dieselbe Mahnung waere schlimmer als keine. */
+                require_once __DIR__ . '/src/Mahnung.php';
+                $zid = (int) $_POST['id'];
+                $stufe = max(1, min(3, (int) ($_POST['stufe'] ?? 2)));
+                $bid = (int) Db::wert('SELECT order_id FROM payments WHERE id = ?', [$zid], 0);
+                $_SESSION['gut'] = match (Mahnung::schicken($zid, $stufe)) {
+                    'raus'           => Mahnung::name($stufe) . ' ist raus — der Kunde hat sie samt frischem Zahlungslink.',
+                    'versand_fehler' => 'Sie wäre dran gewesen, aber der Versand hat nicht geklappt — siehe Nachrichten.',
+                    default          => 'Nichts zu tun: Entweder ist die Rate bezahlt, oder diese Stufe ging schon raus.',
+                };
+                zurueck('bestellungen/' . $bid);
 
             case 'restzahlung_anfordern':
                 require_once __DIR__ . '/src/Nachricht.php';
@@ -1612,12 +1628,26 @@ switch ($route) {
             ]);
             break;
         }
+        require_once __DIR__ . '/src/Mahnung.php';   // die Ansicht zeigt den Mahnstand
         if ($id !== null) {
             $b = Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache
                             FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?', [$id]);
             if (!$b) { http_response_code(404); exit('Bestellung nicht gefunden.'); }
             /* Das Vertragsblatt, so wie der Kunde es bekommt. Damit laesst es
                sich nachschicken oder ausdrucken, ohne die Mail zu suchen. */
+            /* Die Forderungsaufstellung — alles, was ein Anwalt fuer einen
+               decreto ingiuntivo braucht, auf einem Blatt. */
+            if (($teile[2] ?? '') === 'forderung') {
+                require_once __DIR__ . '/src/Forderung.php';
+                $daten = Forderung::pdf((int) $b['id']);
+                if ($daten === '') { http_response_code(503); exit('Das Blatt ließ sich nicht bauen.'); }
+                header('Content-Type: application/pdf');
+                header('Content-Length: ' . strlen($daten));
+                header('Content-Disposition: attachment; filename="' . Forderung::dateiname($b) . '"');
+                header('X-Content-Type-Options: nosniff');
+                echo $daten;
+                exit;
+            }
             if (($teile[2] ?? '') === 'vertrag') {
                 require_once __DIR__ . '/src/Vertragsblatt.php';
                 $daten = Vertragsblatt::pdf((int) $b['id']);

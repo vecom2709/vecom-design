@@ -170,7 +170,7 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $url = $stripe->bezahlseite($zahlung, $bestell, $kunde);
             Db::update('payments', (int) $zahlung['id'], [
                 'provider' => 'stripe', 'status' => 'in_bearbeitung',
-                'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+24 hours')),
+                'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
             ]);
             Events::melden('bestellung_neu', 'Direktbuchung auf der Website', 'info',
                 $paket['name'] . ' — ' . $eingabe['name'], '/bestellungen/' . $bestellId);

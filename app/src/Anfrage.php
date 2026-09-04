@@ -31,6 +31,7 @@ final class Anfrage
             'name'  => mb_substr($name, 0, 120),
             'email' => $email,
             'phone' => mb_substr(trim((string) ($d['telefon'] ?? '')), 0, 60) ?: null,
+            'firma' => mb_substr(trim((string) ($d['firma'] ?? '')), 0, 160) ?: null,
             'notes' => 'Über das Formular auf der Website angefragt.',
         ]);
 

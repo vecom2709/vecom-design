@@ -390,7 +390,7 @@ masz: {
       claim: "Siti, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
       l1: "Servizi", l2: "Lavori", l3: "Metodo", l4: "Contatti",
-      g1: "Note legali", g2: "Privacy", g3: "Condizioni",
+      g1: "Note legali", g2: "Privacy", g3: "Condizioni", g4: "Recesso",
       l5: "Prezzi",
       rights: "Tutti i diritti riservati.",
       made: "Progettato e sviluppato ad Aragona. Da me."
@@ -948,7 +948,7 @@ masz: {
       claim: "Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
       l1: "Leistungen", l2: "Arbeiten", l3: "Ablauf", l4: "Kontakt",
-      g1: "Impressum", g2: "Datenschutz", g3: "AGB",
+      g1: "Impressum", g2: "Datenschutz", g3: "AGB", g4: "Widerruf",
       l5: "Preise",
       rights: "Alle Rechte vorbehalten.",
       made: "Gestaltet und gebaut in Aragona. Von mir."
@@ -1506,7 +1506,7 @@ masz: {
       claim: "Websites, brands and online stores. Projects in Italian, German and English — Italy and Germany.",
       h1: "Studio", h2: "Legal",
       l1: "Services", l2: "Work", l3: "Process", l4: "Contact",
-      g1: "Legal notice", g2: "Privacy", g3: "Terms",
+      g1: "Legal notice", g2: "Privacy", g3: "Terms", g4: "Withdrawal",
       l5: "Prices",
       rights: "All rights reserved.",
       made: "Designed and built in Aragona. By me."

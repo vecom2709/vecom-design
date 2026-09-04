@@ -9,6 +9,31 @@ declare(strict_types=1);
  */
 final class Events
 {
+    /**
+     * Wie lange der Kunde Zeit hat, eine Rate zu bezahlen.
+     *
+     * Bis hierher stand nirgends eine Frist — weder in den AGB noch an der
+     * Rate. Ohne Faelligkeit gibt es keinen Verzug, und ohne Verzug ist
+     * jede Mahnung nur eine Bitte. Die Spalte faellig_am gab es schon, sie
+     * wurde nur nie gefuellt.
+     *
+     * Die Anzahlung wird mit der Auftragsbestaetigung faellig, die
+     * Restzahlung erst mit der Abnahmemitteilung — deshalb wird sie hier
+     * nicht gesetzt, sondern beim Anfordern.
+     */
+    public const ZAHLUNGSZIEL_TAGE = 7;
+
+    /**
+     * Wie lange ein Zahlungslink gilt.
+     *
+     * Er galt 24 Stunden. Wer die Mail am Samstagabend bekam und am Montag
+     * zahlen wollte, fand einen toten Link und musste sich melden — das ist
+     * vermutlich der haeufigste Grund fuer "zahlt nicht" und gar kein
+     * Zahlungsproblem. Vierzehn Tage decken das Zahlungsziel ab; laeuft der
+     * Link doch ab, traegt die naechste Erinnerung einen frischen.
+     */
+    public const LINK_GILT_TAGE = 14;
+
     /* ---------- Grundbausteine ---------- */
 
     public static function protokoll(
@@ -183,6 +208,18 @@ final class Events
             }
         }
 
+        /* DER BETRIEBSNAME GING VERLOREN
+           ----------------------------------------------------------------
+           Wer im Konfigurator "Osteria Numero" eintippt, landete als blosser
+           Personenname in der Akte: Das Feld heisst dort firma, hier company,
+           und die Liste oben kannte nur company. Auf dem Vertragsblatt und
+           dem Beleg stand deshalb der Personenname statt des Betriebs — und
+           genau der gehoert auf ein Dokument, das an eine Firma geht. */
+        if (trim((string) ($neu['company'] ?? '')) === ''
+            && trim((string) ($daten['firma'] ?? '')) !== '') {
+            $neu['company'] = mb_substr(trim((string) $daten['firma']), 0, 160);
+        }
+
         $id = Db::insert('customers', $neu);
         // Die Kundennummer gleich hier, nicht erst wenn sie zum ersten Mal
         // gebraucht wird: Sonst haengt die Reihenfolge der Reihe daran, wer
@@ -261,6 +298,7 @@ final class Events
                 'bezeichnung' => "Anzahlung ($prozent %) bei Auftrag",
                 'provider' => 'offen', 'amount_cents' => $anzahlung,
                 'currency' => $paket['currency'], 'status' => 'ausstehend',
+                'faellig_am' => date('Y-m-d', strtotime('+' . self::ZAHLUNGSZIEL_TAGE . ' days')),
             ]);
             if ($rest > 0) {
                 Db::insert('payments', [

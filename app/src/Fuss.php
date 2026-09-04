@@ -27,9 +27,12 @@ final class Fuss
 {
     /** @var array<string,array<string,string>> */
     private const WORTE = [
-        'it' => ['impressum' => 'Note legali', 'privacy' => 'Privacy', 'agb' => 'Condizioni'],
-        'de' => ['impressum' => 'Impressum',   'privacy' => 'Datenschutz', 'agb' => 'AGB'],
-        'en' => ['impressum' => 'Legal notice','privacy' => 'Privacy', 'agb' => 'Terms'],
+        'it' => ['impressum' => 'Note legali', 'privacy' => 'Privacy',
+                 'agb' => 'Condizioni', 'widerruf' => 'Recesso'],
+        'de' => ['impressum' => 'Impressum',   'privacy' => 'Datenschutz',
+                 'agb' => 'AGB', 'widerruf' => 'Widerruf'],
+        'en' => ['impressum' => 'Legal notice','privacy' => 'Privacy',
+                 'agb' => 'Terms', 'widerruf' => 'Withdrawal'],
     ];
 
     /**
@@ -48,7 +51,7 @@ final class Fuss
 
         $h = static fn(string $x): string => htmlspecialchars($x, ENT_QUOTES, 'UTF-8');
         $teile = [];
-        foreach (['impressum', 'privacy', 'agb'] as $anker) {
+        foreach (['impressum', 'privacy', 'agb', 'widerruf'] as $anker) {
             $teile[] = '<a href="' . $h($basis . '#' . $anker) . '" target="_blank" rel="noopener">'
                 . $h($w[$anker]) . '</a>';
         }
