@@ -100,6 +100,7 @@ if ($empfehlCode !== '') {
 $token = trim((string) ($_REQUEST['t'] ?? ''));
 $b = null;
 $panne = false;
+$tor = false;   // Sprachtor statt Fragen zeigen
 
 try {
     Baukasten::sicherstellen();
@@ -107,11 +108,27 @@ try {
         $b = Bedarf::laden($token);
     }
     if (!$b && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-        // Kein Schluessel oder ein abgelaufener: einfach neu anfangen. Den
-        // Kunden mit "Link ungueltig" zu begruessen, waere unhoeflich, wenn
-        // er gerade erst auf den Knopf gedrueckt hat.
-        $b = Bedarf::starten($sprache);
-        header('Location: ' . $adresse(1, (string) $b['token'])); exit;
+        /* DAS SPRACHTOR — DIE ERSTE FRAGE, UND SIE IST PFLICHT
+           ------------------------------------------------------------------
+           An dieser einen Angabe haengt alles Spaetere: jede Mail, jeder
+           Beleg, seine ganze Kundenseite. Sie ergab sich bisher aus der
+           Fassung der Website, auf der jemand landete -- und wer die
+           italienische Startseite nicht umstellt, bekam von da an alles auf
+           Italienisch, ohne je gefragt worden zu sein.
+
+           Deshalb steht sie jetzt vor allem anderen und laesst sich nicht
+           uebergehen: Ohne Klick entsteht kein Bedarf, und es geht nicht
+           weiter. Ein Bildschirm, ein Klick -- und dafuer stimmt danach
+           jedes Wort, das dieser Mensch von uns liest.
+
+           Nebenbei entsteht dadurch auch kein Datensatz mehr, nur weil ein
+           Suchprogramm die Adresse aufgerufen hat. */
+        if (($_GET['start'] ?? '') !== '1') {
+            $tor = true;
+        } else {
+            $b = Bedarf::starten($sprache);
+            header('Location: ' . $adresse(1, (string) $b['token'])); exit;
+        }
     }
 } catch (Throwable $e) {
     $panne = true;
@@ -277,6 +294,22 @@ $geld = static function (int $cents) use ($sprache): string {
   .leiste2 .rechts{margin-left:auto}
   .leiste2 .knopf{flex:0 1 auto;padding-left:26px;padding-right:26px}
   @media (max-width:520px){ .leiste2 .knopf{flex:1 1 auto} .leiste2 .rechts{display:none} }
+
+  /* Das Sprachtor. Drei gleich grosse Ziele, untereinander — auf dem Telefon
+     ist das die verlaesslichste Form, und nichts davon ist vorausgewaehlt:
+     Es soll ein Klick sein, keine Bestaetigung einer Vermutung. */
+  .sprachtor{display:flex;flex-direction:column;gap:10px}
+  /* Bewusst KEIN Hauptknopf: Drei gleich laute Farbflaechen sagen "alles ist
+     wichtig", und das heisst nichts. Hier ist die Wahl die Betonung, nicht
+     die Flaeche — ruhige Kacheln, die erst unter dem Zeiger aufleuchten. */
+  .sprachtor .knopf{display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:17px 20px;text-align:center;line-height:1.35;
+    background:rgba(255,255,255,.035);border:1px solid var(--linie);
+    transition:border-color .18s ease, background .18s ease}
+  .sprachtor .knopf:hover,.sprachtor .knopf:focus-visible{
+    background:rgba(0,180,216,.10);border-color:var(--cyan)}
+  .sprachtor .knopf b{font-size:16.5px;font-weight:600;color:#fff}
+  .sprachtor .knopf span{font-size:12.5px;font-weight:400;color:var(--leise)}
 </style>
 </head>
 <body>
@@ -286,7 +319,33 @@ $geld = static function (int $cents) use ($sprache): string {
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
 
-<?php if ($panne || !$b): ?>
+<?php if ($tor && !$panne): ?>
+  <?php /* Dreisprachig, und das ist keine Spielerei: Wer nach der Sprache
+           fragt, darf die Frage nicht in einer Sprache stellen, die der
+           Leser vielleicht nicht kann. Jeder Knopf spricht fuer sich
+           selbst. */ ?>
+  <div class="bkopf" style="text-align:center">
+    <h1 style="font-size:20px;margin:0 0 8px">Lingua · Sprache · Language</h1>
+    <p class="lead" style="margin:0 auto;max-width:40ch">
+      Vale per le e-mail, i documenti e la tua pagina.<br>
+      Gilt für E-Mails, Unterlagen und deine Seite.<br>
+      Applies to emails, documents and your page.
+    </p>
+  </div>
+  <div class="block">
+    <div class="sprachtor">
+      <?php foreach ([
+        'it' => ['Italiano', 'Continua in italiano'],
+        'de' => ['Deutsch',  'Auf Deutsch weiter'],
+        'en' => ['English',  'Continue in English'],
+      ] as $sl => [$wort, $satz]): ?>
+        <a class="knopf" href="/bedarf.php?lang=<?= $sl ?>&amp;start=1<?= $empfehlCode !== '' ? '&amp;e=' . $h(rawurlencode($empfehlCode)) : '' ?>">
+          <b><?= $h($wort) ?></b><span><?= $h($satz) ?></span></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+
+<?php elseif ($panne || !$b): ?>
   <div class="block">
     <div class="hinweis schlecht"><?= $h($T($panne ? 'panne' : 'weg')) ?></div>
     <a class="knopf haupt" href="/bedarf.php?lang=<?= $h($sprache) ?>"><?= $h($T('neu')) ?></a>
