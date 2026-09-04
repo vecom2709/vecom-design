@@ -420,18 +420,35 @@ final class Mail
         $schrift = 'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\','
                  . 'Roboto,Helvetica,Arial,sans-serif;';
 
-        /* Knopf und Adresse stehen in ZWEI Tabellen, nicht in einer.
+        /* GROESSE IST HIER KEINE GESCHMACKSFRAGE
+           ------------------------------------------------------------------
+           Der Knopf war so breit wie sein Wort. Bei "Apri" sind das vier
+           Buchstaben -- auf dem Telefon ein Ziel von der Groesse eines
+           Daumennagels, und zwar ausgerechnet bei der Mail, in der jemand
+           zahlen soll. Deshalb eine feste Mindestbreite und mehr Luft: Der
+           Knopf sieht jetzt aus wie einer, egal wie kurz das Wort darin ist.
+
+           Knopf und Adresse stehen dabei in ZWEI Tabellen, nicht in einer.
            Zusammen richtet sich die Spaltenbreite nach der laengsten Zeile --
-           und das ist die Adresse. Der Knopf wurde dann ueber die halbe
-           Breite gezogen und sah aus wie ein Balken mit einem Wort darin. */
+           und das ist die Adresse, die auf dem Telefon umbricht. Der Knopf
+           waere dann ueber die halbe Breite gezogen worden.
+
+           line-height am Anker ist fuer Outlook: Ohne sie fallen dort die
+           Innenabstaende zusammen, und aus dem Knopf wird wieder ein Link. */
         return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"'
-             . ' style="margin:4px 0 0"><tr><td style="border-radius:8px;background:#14171c">'
-             . '<a href="' . $u . '" style="display:inline-block;padding:13px 26px;' . $schrift
-             . 'font-size:15px;font-weight:600;color:#ffffff;text-decoration:none">' . self::sicher($wort) . '</a>'
+             . ' style="margin:6px 0 0"><tr>'
+             . '<td align="center" style="border-radius:9px;background:#14171c;min-width:200px">'
+             . '<a href="' . $u . '" style="display:block;padding:16px 32px;' . $schrift
+             . 'font-size:16.5px;font-weight:600;line-height:1.2;color:#ffffff;'
+             . 'text-decoration:none;white-space:nowrap">' . self::sicher($wort) . '</a>'
              . '</td></tr></table>'
-             . '<p style="margin:9px 0 20px;' . $schrift
-             . 'font-size:12px;line-height:1.5;color:#6b7280;word-break:break-all">'
-             . '<a href="' . $u . '" style="color:#6b7280;text-decoration:none">' . $u . '</a></p>';
+             /* Die Adresse darunter ist kein Beiwerk: Sie ist der Weg fuer
+                jedes Programm, das den Knopf nicht darstellt, und sie zeigt
+                vor dem Klick, wohin es geht. Unterstrichen, damit man ihr
+                ansieht, dass sie auch eine ist. */
+             . '<p style="margin:10px 0 22px;' . $schrift
+             . 'font-size:12.5px;line-height:1.5;color:#6b7280;word-break:break-all">'
+             . '<a href="' . $u . '" style="color:#6b7280;text-decoration:underline">' . $u . '</a></p>';
     }
 
     /**

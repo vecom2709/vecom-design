@@ -682,11 +682,11 @@ final class Texte
         /* Der Zahlungslink, wenn der Kunde zugesagt hat. */
         'zahlungslink' => [
             'it' => ['Il link per il pagamento — {paket}',
-                "Ciao {name},\n\ncome concordato, ecco il link per {was} di {betrag}:\n\n{link}\n\nIl pagamento avviene tramite un fornitore certificato; i dati della carta non passano da me. Appena arriva ti scrivo e partiamo.\n\nSe qualcosa non torna, rispondi a questa e-mail prima di pagare.\n\nA presto\nUwe Vetter · Vecom Design"],
+                "Ciao {name},\n\ncome concordato, ecco il link per il pagamento — {was}, {betrag}:\n\n{link}\n\nIl pagamento avviene tramite un fornitore certificato; i dati della carta non passano da me. Appena arriva ti scrivo e partiamo.\n\nSe qualcosa non torna, rispondi a questa e-mail prima di pagare.\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Dein Zahlungslink — {paket}',
-                "Hallo {name},\n\nwie besprochen hier der Link für {was} über {betrag}:\n\n{link}\n\nBezahlt wird über einen geprüften Anbieter; deine Kartendaten sehe ich nicht. Sobald die Zahlung da ist, melde ich mich und wir legen los.\n\nWenn etwas nicht stimmt, antworte einfach auf diese E-Mail, bevor du zahlst.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                "Hallo {name},\n\nwie besprochen hier der Link für die Zahlung — {was}, {betrag}:\n\n{link}\n\nBezahlt wird über einen geprüften Anbieter; deine Kartendaten sehe ich nicht. Sobald die Zahlung da ist, melde ich mich und wir legen los.\n\nWenn etwas nicht stimmt, antworte einfach auf diese E-Mail, bevor du zahlst.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your payment link — {paket}',
-                "Hello {name},\n\nas agreed, here is the link for {was} of {betrag}:\n\n{link}\n\nPayment runs through a certified provider; I never see your card details. As soon as it arrives I will write and we start.\n\nIf anything looks wrong, just reply to this email before paying.\n\nBest regards\nUwe Vetter · Vecom Design"],
+                "Hello {name},\n\nas agreed, here is the payment link — {was}, {betrag}:\n\n{link}\n\nPayment runs through a certified provider; I never see your card details. As soon as it arrives I will write and we start.\n\nIf anything looks wrong, just reply to this email before paying.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'zahlung_ok' => [
             'it' => ['Pagamento ricevuto — {paket}',
@@ -747,7 +747,7 @@ final class Texte
                 . "In allegato trovi il modulo di recesso tipo. Non devi usarlo per forza: basta una comunicazione chiara.\n\n"
                 . "{zustimmung}\n\n"
                 . "Condizioni generali: {agb}\nInformativa privacy: {privacy}\n\n"
-                . "La tua pagina di progetto: {link}\n\nA presto\nUwe Vetter · Vecom Design"],
+                . "La tua pagina di progetto:\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Auftragsbestätigung {bestellnr} — {paket}',
                 "Hallo {name},\n\n"
                 . "das ist die Bestätigung deines Auftrags. Heb sie auf — sie enthält alle Angaben zum Vertrag.\n\n"
@@ -761,7 +761,7 @@ final class Texte
                 . "Im Anhang findest du das Muster-Widerrufsformular. Du musst es nicht benutzen — eine eindeutige Nachricht genügt.\n\n"
                 . "{zustimmung}\n\n"
                 . "AGB: {agb}\nDatenschutzerklärung: {privacy}\n\n"
-                . "Deine Projektseite: {link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                . "Deine Projektseite:\n\n{link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Order confirmation {bestellnr} — {paket}',
                 "Hello {name},\n\n"
                 . "this is the confirmation of your order. Please keep it — it holds all the contract details.\n\n"
@@ -775,7 +775,7 @@ final class Texte
                 . "The model withdrawal form is attached. You do not have to use it — a clear statement is enough.\n\n"
                 . "{zustimmung}\n\n"
                 . "Terms: {agb}\nPrivacy notice: {privacy}\n\n"
-                . "Your project page: {link}\n\nBest regards\nUwe Vetter · Vecom Design"],
+                . "Your project page:\n\n{link}\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
 
         /* Die Kuendigungsbestaetigung. Sie geht von allein raus, sobald der
