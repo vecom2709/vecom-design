@@ -40,12 +40,25 @@ final class Standard
 VECOM-STANDARD — so ist eine Vecom-Seite gebaut
 
 SPRACHEN
-- Italienisch, Deutsch, Englisch. Italienisch fuehrt, es ist die Sprache vor Ort.
-- Die Sprachwahl steht sichtbar oben, nicht im Fuss. Keine automatische
-  Umleitung nach Browsersprache — wer Italienisch liest, will nicht auf
-  Deutsch landen, weil sein Telefon deutsch eingestellt ist.
-- Jede Sprache hat ihre eigene Adresse (/it/, /de/, /en/) und hreflang.
-  Uebersetzung heisst uebersetzt, nicht durchgeschoben: Ein deutscher Satz,
+- WELCHE Sprachen und welche fuehrt, steht im Briefing und nirgends sonst.
+  Es haengt am Kunden und an seinen Gaesten, nicht an einer Hausregel: Ein
+  Restaurant in Agrigent fuehrt italienisch, ein deutscher Handwerker in
+  Sizilien mit deutscher Kundschaft fuehrt deutsch, ein Hotel mit
+  franzoesischen Gruppen braucht Franzoesisch statt Englisch. Steht es im
+  Briefing nicht eindeutig da, ist das eine Frage an mich, keine Annahme.
+- Die Zahl der Sprachen ist die bezahlte. Mehr ist nicht grosszuegig,
+  sondern unbezahlte Arbeit, die spaeter gepflegt werden muss.
+- Die fuehrende Sprache ist die der Gaeste, nicht die des Inhabers. Wer
+  seine Post von mir auf Deutsch bekommt, kann trotzdem eine italienische
+  Startseite brauchen.
+- Was in jeder Sprache gilt: eigene Adresse (/it/, /de/, /en/) und hreflang;
+  Sprachwahl sichtbar oben, nicht im Fuss; keine automatische Umleitung nach
+  Browsersprache — wer Italienisch liest, will nicht auf Deutsch landen, weil
+  sein Telefon deutsch eingestellt ist.
+- Halb uebersetzt ist schlechter als einsprachig. Entweder eine Sprache ist
+  vollstaendig da — Menue, Formulare, Fehlermeldungen, Rechtsseiten — oder
+  sie steht nicht zur Wahl.
+- Uebersetzung heisst uebersetzt, nicht durchgeschoben: Ein deutscher Satz,
   der woertlich ins Italienische wandert, klingt nach Behoerde.
 
 WAS DIE SEITE LEISTEN MUSS
@@ -91,8 +104,8 @@ WAS NIE VORKOMMT
   Platzhalter, ohne dass es danebensteht.
 
 RECHTLICHES UND AUFFINDBARKEIT
-- Impressum und Datenschutz auf jeder Seite im Fuss verlinkt, in allen drei
-  Sprachen erreichbar. Cookie-Hinweis nur, wenn wirklich gesetzt wird — und
+- Impressum und Datenschutz auf jeder Seite im Fuss verlinkt, in jeder
+  Sprache erreichbar, die die Seite fuehrt. Cookie-Hinweis nur, wenn wirklich gesetzt wird — und
   dann mit echter Ablehnmoeglichkeit.
 - Je Seite und Sprache ein eigener Titel und eine eigene Beschreibung.
   OG-Bild, favicon, sitemap.xml, robots.txt.

@@ -49,6 +49,17 @@ final class Texte
                    und Nuancen, die in keine Liste passen. */
                 'seiten_zahl'     => ['it' => 'Quante pagine in tutto', 'de' => 'Wie viele Seiten insgesamt', 'en' => 'How many pages in total', 'art' => 'zahl'],
                 'sprachen_zahl'   => ['it' => 'In quante lingue', 'de' => 'In wie vielen Sprachen', 'en' => 'In how many languages', 'art' => 'zahl'],
+                /* WELCHE Sprachen, nicht nur wie viele.
+                   Die Zahl daneben sagt, was bezahlt ist; sie sagt nicht,
+                   welche es sind und welche zuerst erscheint. Das haengt am
+                   Kunden und an seinen Gaesten: Ein Restaurant in Agrigent
+                   fuehrt italienisch, ein deutscher Handwerker mit deutscher
+                   Kundschaft fuehrt deutsch. Ohne diese Frage wurde geraten
+                   — und geraten wurde nach dem, was zufaellig naheliegt. */
+                'sprachen_welche' => ['it' => 'Quali lingue? E quale deve apparire per prima?',
+                                      'de' => 'Welche Sprachen? Und welche soll zuerst erscheinen?',
+                                      'en' => 'Which languages? And which one should come first?',
+                                      'art' => 'text'],
                 'funktionen_wahl' => ['it' => 'Che cosa deve avere il sito', 'de' => 'Was die Website können soll', 'en' => 'What the site should have', 'art' => 'wahl'],
                 'seiten'     => ['it' => 'Come si chiamano le pagine?', 'de' => 'Wie sollen die Seiten heißen?', 'en' => 'What should the pages be called?', 'art' => 'lang'],
                 'funktionen' => ['it' => 'Manca qualcosa nell’elenco qui sopra?', 'de' => 'Fehlt oben etwas in der Liste?', 'en' => 'Is anything missing from the list above?', 'art' => 'lang'],

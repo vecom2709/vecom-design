@@ -38,7 +38,8 @@ require_once __DIR__ . '/Standard.php';
 final class Briefing
 {
     /** Fragebogenfelder, die woanders schon stehen — die spart der Auftrag aus. */
-    private const DOPPELT = ['firmenname', 'seiten_zahl', 'sprachen_zahl', 'funktionen_wahl', 'domain'];
+    private const DOPPELT = ['firmenname', 'seiten_zahl', 'sprachen_zahl', 'sprachen_welche',
+                             'funktionen_wahl', 'domain'];
 
     /** Die Abschnitte des Fragebogens unter ihren Ueberschriften im Auftrag. */
     private const ABSCHNITTE = [
@@ -64,6 +65,7 @@ final class Briefing
         'kontakt'         => 'Kontakt und Öffnungszeiten',
         'impressum'       => 'Impressumsangaben',
         'ansprechpartner' => 'Ansprechpartner beim Kunden',
+        'sprachen_welche' => 'Welche Sprachen, welche zuerst',
         'seiten'          => 'Gewünschte Seiten',
         'funktionen'      => 'Zusätzlich gewünscht',
         'ziel'            => 'Ziel der Seite',
@@ -152,13 +154,21 @@ final class Briefing
             $wert = trim($wert);
             if ($wert === '') { return; }
             $marke = $wort . ':';
-            $luecke = max(1, 17 - mb_strlen($marke));
+            $luecke = max(1, 18 - mb_strlen($marke));
             $zeilen[] = '  ' . $marke . str_repeat(' ', $luecke) . $wert;
         };
         $paar('Firma', (string) ($k['company'] ?: $antworten['firmenname'] ?? ''));
         $paar('Ansprechpartner', (string) $k['name']);
         $paar('Kundennummer', (string) ($k['kundennr'] ?? ''));
-        $paar('Sprache', self::sprachwort((string) ($k['sprache'] ?? '')));
+        /* NICHT DIE SPRACHE DER SEITE
+           ------------------------------------------------------------
+           customers.sprache ist die Sprache, in der ICH mit dem Kunden
+           schreibe. Welche Sprache seine SEITE fuehrt, ist eine ganz
+           andere Frage: Ein deutscher Handwerker in Sizilien bekommt seine
+           Post auf Deutsch und braucht trotzdem eine italienische
+           Startseite, weil seine Kunden Italiener sind. Stand hier nur
+           "Sprache", war die Verwechslung eingebaut. */
+        $paar('Post an ihn auf', self::sprachwort((string) ($k['sprache'] ?? '')));
         $paar('Branche', (string) ($k['industry'] ?? ''));
         $ort = trim(implode(' ', array_filter([
             trim((string) ($k['zip'] ?? '')), trim((string) ($k['city'] ?? ''))])));
@@ -179,7 +189,10 @@ final class Briefing
         if ($bezahlt) {
             $paar('Angebot', (string) $bezahlt['nummer']);
             $paar('Seiten', (string) $bezahlt['seiten']);
-            $paar('Sprachen', (string) $bezahlt['sprachen']);
+            $paar('Sprachen bezahlt', (string) $bezahlt['sprachen']);
+            /* Direkt daneben, was der Kunde dazu geschrieben hat — die Zahl
+               allein sagt nicht, welche Sprachen und welche fuehrt. */
+            $paar('Welche', trim((string) ($antworten['sprachen_welche'] ?? '')));
             $mehr = self::bausteinworte($bezahlt);
             $paar('Enthalten', $mehr);
         }
@@ -202,8 +215,8 @@ final class Briefing
             if ($worte) {
                 $paar('Ungeklärt', 'Der Fragebogen nennt mehr als das Angebot: '
                     . implode(', ', $worte) . '.');
-                $zeilen[] = '                   Das ist NICHT bezahlt. Bau nach dem Angebot oben und sag mir,';
-                $zeilen[] = '                   was dadurch fehlt.';
+                $zeilen[] = '                    Das ist NICHT bezahlt. Bau nach dem Angebot oben und sag mir,';
+                $zeilen[] = '                    was dadurch fehlt.';
             }
         }
         $paar('Domain', (string) ($antworten['domain'] ?? ($w['domain'] ?? '')));
