@@ -93,16 +93,25 @@ final class Mahnung
         $nach = self::STUFEN[$stufe] ?? null;
         if ($nach === null) { return []; }
         try {
+            /* LINKS VERBUNDEN, ZWEI HERKUENFTE
+               ------------------------------------------------------------
+               Eine Rate haengt entweder an einer Bestellung oder an einem
+               Betreuungsvertrag. Mit dem alten festen JOIN auf orders fiel
+               die Betreuung hier heraus: Wer die Monatspauschale nicht
+               zahlte, bekam nie eine Erinnerung. */
             $zeilen = Db::all(
-                "SELECT z.*, o.order_no, o.customer_id, c.name AS kunde, c.email AS kunde_email,
+                "SELECT z.*,
+                        COALESCE(o.order_no, CONCAT('Betreuung ', z.abrechnungsmonat)) AS order_no,
+                        c.id AS customer_id, c.name AS kunde, c.email AS kunde_email,
                         c.sprache AS sprache
                    FROM payments z
-                   JOIN orders o    ON o.id = z.order_id
-                   JOIN customers c ON c.id = o.customer_id
+                   LEFT JOIN orders o    ON o.id = z.order_id
+                   LEFT JOIN abos   a    ON a.id = z.abo_id
+                   JOIN      customers c ON c.id = COALESCE(o.customer_id, a.customer_id)
                   WHERE z.status IN ('ausstehend', 'in_bearbeitung', 'fehlgeschlagen')
                     AND z.faellig_am IS NOT NULL
                     AND z.faellig_am <= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-                    AND o.status <> 'storniert'
+                    AND COALESCE(o.status, 'aktiv') <> 'storniert'
                     AND c.anonym_am IS NULL
                   ORDER BY z.faellig_am, z.id", [$nach]);
         } catch (Throwable $e) {
@@ -132,7 +141,10 @@ final class Mahnung
             require_once __DIR__ . '/Zahlung/Anbieter.php';
             require_once __DIR__ . '/Zahlung/Stripe.php';
             $stripe = new StripeAnbieter();
-            if ($stripe->bereit()) {
+            // Die Bezahlseite braucht eine Bestellung. Monatsraten aus der
+            // Betreuung haben keine — die fuehren auf die Kundenseite, wo
+            // der Stand steht und der Kunde antworten kann.
+            if ($stripe->bereit() && $z['order_id'] !== null) {
                 $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
                 $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $z['customer_id']]);
                 $url = $stripe->bezahlseite($z, $b, $k);
@@ -149,6 +161,27 @@ final class Mahnung
 
         try { return Kundenzugang::linkFuer((int) $z['customer_id']); }
         catch (Throwable $e) { return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'); }
+    }
+
+    /**
+     * Worauf sich die Mahnung bezieht, in der Sprache des Kunden.
+     *
+     * Bei einer Bestellung ist das ihre Nummer. Bei einer Monatsrate aus der
+     * Betreuung gibt es keine — dort ist der Monat das, woran der Kunde die
+     * Forderung wiedererkennt. Vorher stand in der Mail "Bestellung" und
+     * dahinter nichts.
+     */
+    private static function vorgang(array $z, string $sprache): string
+    {
+        $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        if (($z['abo_id'] ?? null) !== null) {
+            require_once __DIR__ . '/Abo.php';
+            $monat = trim((string) ($z['abrechnungsmonat'] ?? ''));
+            $wort = ['it' => 'assistenza mensile', 'de' => 'Betreuung', 'en' => 'monthly care'][$s];
+            return $monat !== '' ? $wort . ', ' . Abo::monatswort($monat, $s) : $wort;
+        }
+        $wort = ['it' => 'ordine', 'de' => 'Bestellung', 'en' => 'order'][$s];
+        return trim($wort . ' ' . (string) ($z['order_no'] ?? ''));
     }
 
     /** Wofuer bezahlt werden soll, in der Sprache des Kunden. */
@@ -174,11 +207,14 @@ final class Mahnung
     {
         if (!isset(self::ANLASS[$stufe])) { return 'nicht_dran'; }
         $z = Db::one(
-            "SELECT z.*, o.order_no, o.customer_id, c.name AS kunde, c.email AS kunde_email,
+            "SELECT z.*,
+                    COALESCE(o.order_no, CONCAT('Betreuung ', z.abrechnungsmonat)) AS order_no,
+                    c.id AS customer_id, c.name AS kunde, c.email AS kunde_email,
                     c.sprache AS sprache
                FROM payments z
-               JOIN orders o    ON o.id = z.order_id
-               JOIN customers c ON c.id = o.customer_id
+               LEFT JOIN orders o    ON o.id = z.order_id
+               LEFT JOIN abos   a    ON a.id = z.abo_id
+               JOIN      customers c ON c.id = COALESCE(o.customer_id, a.customer_id)
               WHERE z.id = ?", [$zahlungId]);
         if (!$z) { return 'nicht_dran'; }
         if (in_array((string) $z['status'], ['bezahlt', 'rueckerstattet', 'abgebrochen'], true)) { return 'nicht_dran'; }
@@ -187,8 +223,19 @@ final class Mahnung
         $sprache = strtolower((string) ($z['sprache'] ?: 'it'));
         if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
+        /* DIE LETZTE STUFE SPRICHT ANDERS, WENN ES UM BETREUUNG GEHT
+           ----------------------------------------------------------------
+           Der allgemeine Text droht mit der Website, die nicht online geht.
+           Bei einer Monatsrate aus der Betreuung waere das falsch — die
+           Seite steht. Der Schluessel in der Ablage bleibt trotzdem
+           "zahlung_letzte": Sonst zaehlte stand() den Mahnstand einer Rate
+           an zwei Stellen und faenge bei jeder wieder bei null an. */
+        $istBetreuung = ($z['abo_id'] ?? null) !== null;
+        $textAnlass = ($stufe === 3 && $istBetreuung)
+            ? 'zahlung_letzte_betreuung' : self::ANLASS[$stufe];
+
         $frist = date('Y-m-d', strtotime('+' . self::FRIST_TAGE . ' days'));
-        [$betreff, $text] = Texte::mail(self::ANLASS[$stufe], $sprache, [
+        [$betreff, $text] = Texte::mail($textAnlass, $sprache, [
             'name'      => (string) $z['kunde'],
             'was'       => self::was((string) $z['art'], $sprache),
             'betrag'    => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
@@ -196,6 +243,7 @@ final class Mahnung
             'frist'     => Fmt::datum($frist),
             'link'      => self::link($z),
             'bestellnr' => (string) $z['order_no'],
+            'vorgang'   => self::vorgang($z, $sprache),
             'kundennr'  => Kunde::nummer((int) $z['customer_id']),
         ]);
 
@@ -245,6 +293,7 @@ final class Mahnung
                 $aus[] = [
                     'zahlung_id' => (int) $z['id'],
                     'order_id'   => (int) $z['order_id'],
+                    'kunde_id'   => (int) $z['customer_id'],
                     'order_no'   => (string) $z['order_no'],
                     'kunde'      => (string) $z['kunde'],
                     'bezeichnung'=> (string) $z['bezeichnung'],

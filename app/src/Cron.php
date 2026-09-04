@@ -93,6 +93,14 @@ final class Cron
                 require_once __DIR__ . '/Mahnung.php';
                 return Mahnung::automatisch();
             },
+            /* Die faelligen Betreuungsmonate als offene Raten anlegen — nur
+               anlegen, nicht anfordern. Die Aufforderung geht von Hand raus,
+               damit keine Forderung ins Mahnwesen laeuft, von der der Kunde
+               nichts weiss. */
+            'betreuung'   => static function () {
+                require_once __DIR__ . '/Abo.php';
+                return Abo::abrechnungenAnlegen();
+            },
             // Ein Angebot, dessen Frist verstrichen ist, soll sich nicht mehr
             // annehmen lassen. Die Seite prueft das beim Ansehen ohnehin mit —
             // hier wandert der Status nach, damit die Liste in der Verwaltung

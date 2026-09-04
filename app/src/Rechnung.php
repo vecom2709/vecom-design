@@ -90,7 +90,7 @@ final class Rechnung
                 $s = strtolower(trim((string) Db::wert(
                     'SELECT zustimmung_lang FROM orders WHERE id = ?', [(int) $r['order_id']], '')));
             }
-            if ($s === '' && !empty($r['customer_id'])) {
+            if ($s === '' && !empty($r['customer_id'])) {   // auch der Weg fuer die Betreuung
                 $s = strtolower(trim((string) Db::wert(
                     'SELECT sprache FROM customers WHERE id = ?', [(int) $r['customer_id']], '')));
             }
@@ -122,6 +122,7 @@ final class Rechnung
             'restzahlung' => ['it' => 'saldo alla consegna', 'de' => 'Restzahlung bei Übergabe', 'en' => 'balance on handover'],
             'nachtrag'    => ['it' => 'lavoro aggiuntivo concordato', 'de' => 'vereinbarter Nachtrag', 'en' => 'agreed additional work'],
             'gesamt'      => ['it' => 'importo totale', 'de' => 'Gesamtbetrag', 'en' => 'full amount'],
+            'betreuung'   => ['it' => 'assistenza mensile', 'de' => 'monatliche Betreuung', 'en' => 'monthly care'],
         ];
         return $karte[$art][$s] ?? ['it' => 'pagamento', 'de' => 'Zahlung', 'en' => 'payment'][$s];
     }
@@ -159,13 +160,32 @@ final class Rechnung
         $da = Db::one('SELECT id FROM invoices WHERE payment_id = ?', [$zahlungId]);
         if ($da) { return null; }
 
-        $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
-        if (!$b) { return null; }
-        $p = Db::one('SELECT id FROM projects WHERE order_id = ?', [(int) $z['order_id']]);
+        /* Zwei Herkuenfte, ein Beleg.
+           ----------------------------------------------------------------
+           Eine Rate haengt entweder an einer Bestellung (Website) oder an
+           einem Betreuungsvertrag (monatlich). Bis hierher kannte diese
+           Stelle nur den ersten Fall und gab bei allem anderen null zurueck —
+           eine bezahlte Betreuung bekam also keinen Beleg und fehlte damit
+           auch im Paket fuers Finanzamt. */
+        $b = $z['order_id'] !== null
+            ? Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]) : null;
+        $abo = $z['abo_id'] !== null
+            ? Db::one('SELECT * FROM abos WHERE id = ?', [(int) $z['abo_id']]) : null;
+        if (!$b && !$abo) { return null; }
+
+        $kundeId   = (int) ($b['customer_id'] ?? $abo['customer_id']);
+        $projektId = null;
+        if ($b) {
+            $p = Db::one('SELECT id FROM projects WHERE order_id = ?', [(int) $z['order_id']]);
+            $projektId = $p ? (int) $p['id'] : null;
+        } elseif ($abo && $abo['project_id'] !== null) {
+            $projektId = (int) $abo['project_id'];
+        }
+
         // Die Anschrift wird jetzt festgehalten, nicht spaeter geholt. Ein
         // Beleg muss zeigen, an wen er ging — auch dann noch, wenn der Kunde
         // inzwischen aus der Verwaltung verschwunden ist.
-        $kunde = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $b['customer_id']]);
+        $kunde = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
 
         $brutto = (int) $z['amount_cents'];
         $satz   = Firma::mwst();
@@ -176,9 +196,10 @@ final class Rechnung
 
         $zeile = [
             'invoice_no' => self::naechsteNummer(),
-            'customer_id'=> (int) $b['customer_id'],
-            'order_id'   => (int) $b['id'],
-            'project_id' => $p ? (int) $p['id'] : null,
+            'customer_id'=> $kundeId,
+            'order_id'   => $b ? (int) $b['id'] : null,
+            'abo_id'     => $abo ? (int) $abo['id'] : null,
+            'project_id' => $projektId,
             'payment_id' => $zahlungId,
             'art'        => (string) ($z['art'] ?? 'gesamt'),
             'titel'      => self::bezeichnung(),
@@ -246,8 +267,46 @@ final class Rechnung
         } else {
             $was = mb_strtoupper(mb_substr($was, 0, 1)) . mb_substr($was, 1);
         }
-        $paket = (string) Db::wert('SELECT package_name FROM orders WHERE id = ?',
-            [(int) ($r['order_id'] ?? 0)], '');
+        /* BEI DER BETREUUNG ZAEHLT DER MONAT
+           ----------------------------------------------------------------
+           "Monatliche Betreuung — Basis, settembre 2026" sagt mehr als
+           "Paket Betreuung Basis". Gebaut wird die Zeile hier neu, nicht aus
+           der gespeicherten Bezeichnung: Die steht auf Deutsch in der
+           Datenbank, und auf dem Beleg eines italienischen Kunden hat ein
+           deutscher Monatsname nichts zu suchen. */
+        if ((string) $r['art'] === 'betreuung') {
+            $p = Db::one('SELECT abo_id, abrechnungsmonat, bezeichnung FROM payments WHERE id = ?',
+                [(int) ($r['payment_id'] ?? 0)]);
+            $monat = trim((string) ($p['abrechnungsmonat'] ?? ''));
+            if ($monat !== '') {
+                require_once __DIR__ . '/Abo.php';
+                $paketName = trim((string) Db::wert('SELECT paket_name FROM abos WHERE id = ?',
+                    [(int) ($p['abo_id'] ?? 0)], ''));
+                $text = mb_strtoupper(mb_substr(self::wofuer('betreuung', $s), 0, 1))
+                      . mb_substr(self::wofuer('betreuung', $s), 1)
+                      . ($paketName !== '' ? ' — ' . $paketName : '')
+                      . ', ' . Abo::monatswort($monat, $s);
+                return [[
+                    'text'   => $text,
+                    'netto'  => (int) $r['net_cents'],
+                    'steuer' => (int) $r['tax_cents'],
+                    'brutto' => (int) $r['total_cents'],
+                ]];
+            }
+            $bez = trim((string) ($p['bezeichnung'] ?? ''));
+            if ($bez !== '') {
+                return [[
+                    'text'   => $bez,
+                    'netto'  => (int) $r['net_cents'],
+                    'steuer' => (int) $r['tax_cents'],
+                    'brutto' => (int) $r['total_cents'],
+                ]];
+            }
+        }
+        $paket = $r['order_id'] !== null
+            ? (string) Db::wert('SELECT package_name FROM orders WHERE id = ?',
+                [(int) $r['order_id']], '')
+            : '';
         $wort = self::WORTE[$s]['paket'];
         return [[
             'text'   => trim($was . ($paket !== '' ? ' — ' . $wort . ' ' . $paket : '')),

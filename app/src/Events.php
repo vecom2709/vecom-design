@@ -350,8 +350,29 @@ final class Events
                 'provider_ref' => $referenz,
             ]);
 
-            $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
             $art = (string) ($z['art'] ?? 'gesamt');
+
+            /* EINE RATE OHNE BESTELLUNG
+               ------------------------------------------------------------
+               Die monatliche Betreuung haengt an einem Vertrag, nicht an
+               einer Bestellung. Sie startet kein Projekt, aendert keinen
+               Bestellstatus und loest keine Auftragsbestaetigung aus — sie
+               ist nur Geld, das eingegangen ist. Beleg und Beleg-Mail
+               erledigt der Nachlauf unten wie bei jeder anderen Rate. */
+            if ($z['order_id'] === null) {
+                $kundeId = (int) Db::wert('SELECT customer_id FROM abos WHERE id = ?',
+                    [(int) ($z['abo_id'] ?? 0)], 0);
+                $wasBetreuung = (string) $z['bezeichnung'] . ' — '
+                    . Fmt::geld((int) $z['amount_cents'], (string) $z['currency']);
+                self::protokoll('zahlung_ok', 'Zahlung eingegangen: ' . $wasBetreuung, $kundeId ?: null);
+                // Auch die Betreuung gehoert in die Meldungen. Sonst waere sie
+                // die einzige Einnahme, von der die Verwaltung nichts sagt.
+                self::melden('zahlung_ok', 'Betreuung bezahlt', 'gut', $wasBetreuung,
+                    $kundeId > 0 ? '/kunden/' . $kundeId : '/zahlungen');
+                return ['projekt' => null, 'art' => $art, 'bestellung' => null];
+            }
+
+            $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
 
             $projektId = null;
             if ($art === 'anzahlung' || $art === 'gesamt') {

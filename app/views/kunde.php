@@ -124,6 +124,90 @@
         <?php endif; ?>
       </tbody></table></div>
 
+      <?php /* ---------- Die abgerechneten Monate ---------- */ ?>
+      <?php $raten = sicher(static fn() => Abo::raten((int) $abo['id']), []); ?>
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px">
+          <strong style="font-size:13.5px">Abgerechnete Monate</strong>
+          <?php if (in_array((string) $abo['status'], ['aktiv','gekuendigt'], true)): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:6px;align-items:center;margin:0">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="abo_abrechnen">
+              <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $abo['id'] ?>">
+              <input type="month" name="monat" style="width:150px"
+                     value="<?= Fmt::h(date('Y-m', strtotime((string) ($abo['naechste_abrechnung'] ?: 'today')))) ?>">
+              <button class="knopf">Monat abrechnen</button></form>
+          <?php endif; ?>
+        </div>
+        <?php if (!$raten): ?>
+          <div class="leer" style="font-size:12.5px">Noch kein Monat abgerechnet. Der nächtliche Lauf legt an,
+            was fällig wird — anfordern musst du selbst, damit der Kunde davon erfährt.</div>
+        <?php else: ?>
+          <div class="tabellenrahmen"><table>
+            <thead><tr><th>Monat</th><th class="num">Betrag</th><th>Stand</th><th></th></tr></thead><tbody>
+            <?php foreach ($raten as $r): ?>
+              <tr>
+                <td><?= Fmt::h(Abo::monatswort((string) $r['abrechnungsmonat'])) ?></td>
+                <td class="num"><?= Fmt::h(Fmt::geld((int) $r['amount_cents'], (string) $r['currency'])) ?></td>
+                <td><span class="marke2 <?= Fmt::h(Status::ton((string) $r['status'])) ?>"><?=
+                    Fmt::h(Status::label(Status::ZAHLUNG, (string) $r['status'])) ?></span>
+                  <?php if ((string) $r['status'] !== 'bezahlt'): ?>
+                    <small style="color:var(--leise)"><?= $r['faellig_am']
+                      ? ' · fällig ' . Fmt::h(Fmt::datum((string) $r['faellig_am']))
+                      : ' · noch nicht angefordert' ?></small>
+                  <?php endif; ?></td>
+                <td style="text-align:right">
+                  <?php if ((string) $r['status'] !== 'bezahlt'): ?>
+                    <?php /* Derselbe Mahnstand wie bei einer Bestellung: Was
+                             der Kunde schon bekommen hat, steht am Geld —
+                             sonst schickt man ihm die zweite Mahnung, ohne
+                             zu wissen, dass die erste raus ist. */ ?>
+                    <?php
+                      $mStand = sicher(static fn() => Mahnung::stand((int) $r['id']), 0);
+                      $mUeber = $r['faellig_am']
+                          ? (int) floor((strtotime('today') - strtotime((string) $r['faellig_am'])) / 86400) : null;
+                      $mNaechste = $mStand + 1;
+                      $mDran = $mUeber !== null && $mNaechste >= 2 && $mNaechste <= 3
+                               && $mUeber >= (Mahnung::STUFEN[$mNaechste] ?? 999);
+                    ?>
+                    <?php if ($mStand > 0): ?>
+                      <span class="marke2" title="<?= Fmt::h(Mahnung::name($mStand)) ?> ist raus"><?=
+                        (int) $mStand ?>. Mahnstufe</span>
+                    <?php endif; ?>
+                    <?php if ($mDran): ?>
+                      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+                            data-frage="<?= Fmt::h(Mahnung::name($mNaechste)) ?> an <?= Fmt::h((string) $k['name']) ?> schicken?"
+                            data-ja="Ja, schicken" data-nein="Abbrechen">
+                        <?= Csrf::feld() ?><input type="hidden" name="tat" value="mahnung_schicken">
+                        <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                        <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+                        <input type="hidden" name="stufe" value="<?= (int) $mNaechste ?>">
+                        <button class="knopf" title="Seit <?= (int) $mUeber ?> Tagen überfällig"><?=
+                          Fmt::h(Mahnung::name($mNaechste)) ?></button></form>
+                    <?php endif; ?>
+                    <?php if (!$r['faellig_am']): ?>
+                      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+                            data-frage="Betreuung <?= Fmt::h(Abo::monatswort((string) $r['abrechnungsmonat'])) ?> anfordern?"
+                            data-ja="Ja, anfordern" data-nein="Abbrechen">
+                        <?= Csrf::feld() ?><input type="hidden" name="tat" value="abo_anfordern">
+                        <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                        <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+                        <button class="knopf">Anfordern</button></form>
+                    <?php endif; ?>
+                    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+                          data-frage="Als bezahlt buchen? Daraus entsteht ein Beleg."
+                          data-ja="Ja, buchen" data-nein="Abbrechen">
+                      <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlung_bestaetigen">
+                      <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                      <input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
+                      <button class="knopf">Von Hand buchen</button></form>
+                  <?php endif; ?></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody></table></div>
+        <?php endif; ?>
+      </div>
+
       <?php if (in_array((string) $abo['status'], ['aktiv', 'angelegt'], true)): ?>
         <?php $vor = sicher(static fn() => Abo::kuendigungsvorschau($abo), ['ende' => '', 'mindestlaufzeit' => false]); ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"

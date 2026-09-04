@@ -248,6 +248,7 @@ final class Steuerakte
             'restzahlung' => 'Restzahlung',
             'nachtrag'    => 'Nachtrag',
             'gesamt'      => 'Gesamtbetrag',
+            'betreuung'   => 'Betreuung',
             ''            => '',
             default       => $art,
         };
@@ -458,11 +459,13 @@ final class Steuerakte
                FROM payments p
                LEFT JOIN invoices  i ON i.payment_id = p.id
                LEFT JOIN orders    o ON o.id = p.order_id
+               LEFT JOIN abos      a ON a.id = p.abo_id
                /* Der Kunde haengt am Beleg, wenn es einen gibt, sonst an der
-                  Bestellung. Vorher ging es nur ueber die Bestellung — eine
-                  Zahlung ohne Bestellung stand ohne Kunden in der Kassenliste,
-                  und das ist die Liste, nach der besteuert wird. */
-               LEFT JOIN customers c ON c.id = COALESCE(i.customer_id, o.customer_id)
+                  Bestellung, sonst am Betreuungsvertrag. Vorher ging es nur
+                  ueber die Bestellung — eine Zahlung ohne Bestellung stand
+                  ohne Kunden in der Kassenliste, und das ist die Liste, nach
+                  der besteuert wird. */
+               LEFT JOIN customers c ON c.id = COALESCE(i.customer_id, o.customer_id, a.customer_id)
               WHERE p.status = 'bezahlt' AND p.paid_at IS NOT NULL
                 AND YEAR(p.paid_at) = ?
               ORDER BY p.paid_at, p.id", [$jahr]), []);
@@ -556,13 +559,16 @@ final class Steuerakte
     {
         $zeilen = (array) self::still(fn() => Db::all(
             "SELECT z.id, z.art, z.bezeichnung, z.amount_cents, z.currency, z.status,
-                    z.faellig_am, o.order_no, o.created_at AS bestellt_am,
+                    z.faellig_am, o.created_at AS bestellt_am,
+                    COALESCE(o.order_no, CONCAT('Betreuung ', z.abrechnungsmonat)) AS order_no,
                     c.kundennr, c.name AS kunde_name, c.company AS kunde_firma
                FROM payments z
-               JOIN orders    o ON o.id = z.order_id
-               LEFT JOIN customers c ON c.id = o.customer_id
+               LEFT JOIN orders    o ON o.id = z.order_id
+               LEFT JOIN abos      a ON a.id = z.abo_id
+               LEFT JOIN customers c ON c.id = COALESCE(o.customer_id, a.customer_id)
               WHERE z.status NOT IN ('bezahlt', 'rueckerstattet', 'abgebrochen')
-                AND o.status <> 'storniert'
+                AND (o.id IS NULL OR o.status <> 'storniert')
+                AND (o.id IS NOT NULL OR a.id IS NOT NULL)
                 AND z.faellig_am IS NOT NULL
                 AND z.faellig_am <= ?
               ORDER BY z.faellig_am, z.id", [$jahr . '-12-31']), []);

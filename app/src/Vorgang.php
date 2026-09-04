@@ -945,8 +945,13 @@ final class Vorgang
                              . $tag((int) $m['ueberfaellig']) . ' überfällig',
                     'tage'  => -(int) $m['ueberfaellig'],
                     'eilig' => (int) $m['stufe'] >= 3,
-                    'ziel'  => 'bestellungen/' . (int) $m['order_id']
-                             . '?tun=mahnung&nr=' . (int) $m['zahlung_id'],
+                    // Ohne Bestellung — eine Monatsrate aus der Betreuung —
+                    // steht die Rate auf der Kundenseite, nicht in einer
+                    // Bestellung. Sonst fuehrte der Knopf nach
+                    // "bestellungen/0", also ins Nichts.
+                    'ziel'  => (int) $m['order_id'] > 0
+                             ? 'bestellungen/' . (int) $m['order_id'] . '?tun=mahnung&nr=' . (int) $m['zahlung_id']
+                             : 'kunden/' . (int) ($m['kunde_id'] ?? 0),
                 ];
             }
         } catch (Throwable $e) { /* die uebrige Liste steht trotzdem */ }

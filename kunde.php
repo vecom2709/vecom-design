@@ -471,6 +471,34 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['mindestlaufzeit_bis']), $T('betreuungMind'))) ?>
         </p>
 
+        <?php /* ---------- Was aus dem Vertrag faellig ist ----------
+                 Der Link in der Zahlungsaufforderung fuehrt hierher, wenn
+                 Stripe gerade keine Bezahlseite erzeugen konnte. Ohne diese
+                 Liste kam der Kunde an und sah nichts, was er haette
+                 bezahlen koennen — die Aufforderung lief ins Leere. */ ?>
+        <?php $monate = (array) sicherLesen(fn() => Abo::raten((int) $abo['id']), []); ?>
+        <?php if ($monate): ?>
+          <div style="margin-top:14px">
+            <div class="mini" style="font-weight:650;margin-bottom:6px"><?= $h($T('monate')) ?></div>
+            <?php foreach (array_slice($monate, 0, 12) as $m): ?>
+              <?php $bezahlt = (string) $m['status'] === 'bezahlt'; ?>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;
+                          padding:7px 0;border-top:1px solid var(--linie)">
+                <span style="min-width:9em"><?= $h(Abo::monatswort((string) $m['abrechnungsmonat'], $sprache)) ?></span>
+                <span style="font-variant-numeric:tabular-nums"><?= Fmt::geld((int) $m['amount_cents'], (string) $m['currency']) ?></span>
+                <span class="mini" style="color:var(--dim)"><?= $h($bezahlt ? $T('monatBezahlt') : $T('monatOffen')) ?><?php
+                  if (!$bezahlt && $m['faellig_am']): ?> · <?= $h(str_replace('{datum}',
+                    Fmt::datum((string) $m['faellig_am']), $T('monatFaellig'))) ?><?php
+                  elseif (!$bezahlt): ?> · <?= $h($T('monatWartet')) ?><?php endif; ?></span>
+                <?php if (!$bezahlt && !empty($m['link_url'])): ?>
+                  <a class="knopf haupt" style="margin-left:auto"
+                     href="<?= $h((string) $m['link_url']) ?>"><?= $h($T('monatZahlen')) ?></a>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+
         <?php if ((string) $abo['status'] === 'beendet'): ?>
           <p class="mini"><?= $h(str_replace('{datum}', Fmt::datum((string) $abo['laeuft_bis']), $T('betreuungWeg'))) ?></p>
 

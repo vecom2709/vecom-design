@@ -222,15 +222,27 @@ final class Kunde
                 . 'die musst du zehn Jahre aufbewahren (Art. 2220 Codice civile).';
         }
 
+        /* LINKS VERBUNDEN, SONST FEHLT DIE BETREUUNG
+           ----------------------------------------------------------------
+           Monatsraten aus einem Betreuungsvertrag haengen an keiner
+           Bestellung. Mit dem festen JOIN auf orders zaehlte der Riegel sie
+           nicht mit: Ein Kunde, der nur Betreuung bezahlt hatte, liess sich
+           loeschen, als waere nie Geld geflossen. */
         $zahlungen = (int) self::zahl(
-            "SELECT COUNT(*) FROM payments p JOIN orders o ON o.id = p.order_id
-              WHERE o.customer_id = ? AND (p.status = 'bezahlt' OR p.paid_at IS NOT NULL)",
+            "SELECT COUNT(*) FROM payments p
+               LEFT JOIN orders o ON o.id = p.order_id
+               LEFT JOIN abos   a ON a.id = p.abo_id
+              WHERE COALESCE(o.customer_id, a.customer_id) = ?
+                AND (p.status = 'bezahlt' OR p.paid_at IS NOT NULL)",
             [$kundeId]
         );
         if ($zahlungen > 0) {
             $summe = (int) self::zahl(
-                "SELECT COALESCE(SUM(p.amount_cents),0) FROM payments p JOIN orders o ON o.id = p.order_id
-                  WHERE o.customer_id = ? AND (p.status = 'bezahlt' OR p.paid_at IS NOT NULL)",
+                "SELECT COALESCE(SUM(p.amount_cents),0) FROM payments p
+                   LEFT JOIN orders o ON o.id = p.order_id
+                   LEFT JOIN abos   a ON a.id = p.abo_id
+                  WHERE COALESCE(o.customer_id, a.customer_id) = ?
+                    AND (p.status = 'bezahlt' OR p.paid_at IS NOT NULL)",
                 [$kundeId]
             );
             $gruende[] = $zahlungen . ' eingegangene Zahlung' . ($zahlungen === 1 ? '' : 'en')
@@ -290,7 +302,10 @@ final class Kunde
         return array_filter([
             'Bestellung|Bestellungen'   => $eine('SELECT COUNT(*) FROM orders WHERE customer_id = ?'),
             'Projekt|Projekte'          => $eine('SELECT COUNT(*) FROM projects WHERE customer_id = ?'),
-            'Zahlung|Zahlungen'         => $eine('SELECT COUNT(*) FROM payments p JOIN orders o ON o.id = p.order_id WHERE o.customer_id = ?'),
+            'Zahlung|Zahlungen'         => $eine('SELECT COUNT(*) FROM payments p
+                LEFT JOIN orders o ON o.id = p.order_id LEFT JOIN abos a ON a.id = p.abo_id
+                WHERE COALESCE(o.customer_id, a.customer_id) = ?'),
+            'Betreuungsvertrag|Betreuungsverträge' => $eine('SELECT COUNT(*) FROM abos WHERE customer_id = ?'),
             'Belegentwurf|Belegentwürfe'=> $eine('SELECT COUNT(*) FROM invoices WHERE customer_id = ?'),
             'Website|Websites'          => $eine('SELECT COUNT(*) FROM websites WHERE customer_id = ?'),
             'Nachricht|Nachrichten'     => $eine('SELECT COUNT(*) FROM messages WHERE customer_id = ?'),
@@ -330,7 +345,18 @@ final class Kunde
         'website_checks' => 'website_id IN (SELECT id FROM websites WHERE customer_id = :k)',
         'websites'       => 'customer_id = :k',
         'invoices'       => 'customer_id = :k',
-        'payments'       => 'order_id IN (SELECT id FROM orders WHERE customer_id = :k)',
+        /* ZWEI HERKUENFTE, EIN LOESCHEN
+           Eine Zahlung haengt entweder an einer Bestellung oder an einem
+           Betreuungsvertrag. Stand hier nur die Bestellung, blieben die
+           Monatsraten liegen und zeigten nach dem Kaskadenloeschen der
+           abos-Zeile ins Leere. Zwei Unterabfragen statt zweimal ":k": Die
+           Verbindung laeuft ohne Emulation, dort darf derselbe Name nur
+           einmal vorkommen. */
+        'payments'       => 'COALESCE(
+                                 (SELECT o.customer_id FROM orders o WHERE o.id = payments.order_id),
+                                 (SELECT a.customer_id FROM abos   a WHERE a.id = payments.abo_id)
+                             ) = :k',
+        'abos'           => 'customer_id = :k',
         'projects'       => 'customer_id = :k',
         'orders'         => 'customer_id = :k',
         'anfragen'       => 'customer_id = :k',

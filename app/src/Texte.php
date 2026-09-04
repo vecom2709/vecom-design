@@ -295,6 +295,19 @@ final class Texte
         'betreuungWeg'  => ['it' => 'L’assistenza è terminata il {datum}. Il sito resta tuo e resta online.',
                             'de' => 'Die Betreuung ist am {datum} ausgelaufen. Die Website bleibt deine und bleibt online.',
                             'en' => 'Care ended on {datum}. The site stays yours and stays online.'],
+        /* Die abgerechneten Monate auf der Kundenseite. Ohne sie stand dort
+           der Vertrag, aber nicht, was daraus faellig ist — und genau auf
+           diese Seite fuehrt der Link in der Zahlungsaufforderung, wenn
+           Stripe keinen eigenen erzeugen konnte. Wer dann hier landete, sah
+           nichts, was er haette bezahlen koennen. */
+        'monate'        => ['it' => 'Mesi fatturati', 'de' => 'Abgerechnete Monate', 'en' => 'Billed months'],
+        'monatOffen'    => ['it' => 'Da pagare', 'de' => 'Offen', 'en' => 'Outstanding'],
+        'monatBezahlt'  => ['it' => 'Pagato', 'de' => 'Bezahlt', 'en' => 'Paid'],
+        'monatZahlen'   => ['it' => 'Paga adesso', 'de' => 'Jetzt bezahlen', 'en' => 'Pay now'],
+        'monatFaellig'  => ['it' => 'Scadenza {datum}', 'de' => 'Fällig am {datum}', 'en' => 'Due {datum}'],
+        'monatWartet'   => ['it' => 'Ti scrivo io quando è il momento di pagare.',
+                            'de' => 'Ich melde mich, wenn sie zu zahlen ist.',
+                            'en' => 'I’ll write to you when it’s time to pay.'],
         /* Nach dem Onlinegang: die Bitte um zwei Saetze. Sie steht auf seiner
            Seite, nicht in einer weiteren E-Mail — dort ist er ohnehin, wenn
            er zufrieden nachsieht, wie die Seite laeuft. */
@@ -456,6 +469,28 @@ final class Texte
     ];
 
     public const MAILS = [
+        /* Die monatliche Betreuung. Kein Verkaufstext: Wer sie hat, hat sie
+           bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
+        'betreuung_faellig' => [
+            'it' => ['Assistenza {monat} — {betrag}',
+                "Ciao {name},\n\nl'assistenza di {monat} è pronta: {betrag}.\n\n"
+                . "Puoi pagare qui, entro il {frist}:\n{link}\n\n"
+                . "Cosa è compreso: aggiornamenti, backup, controllo del sito e piccole modifiche. "
+                . "Se questo mese ti serve qualcosa in particolare, scrivimi.\n\n"
+                . "La ricevuta arriva subito dopo il pagamento."],
+            'de' => ['Betreuung {monat} — {betrag}',
+                "Hallo {name},\n\ndie Betreuung für {monat} steht an: {betrag}.\n\n"
+                . "Hier kannst du zahlen, bis zum {frist}:\n{link}\n\n"
+                . "Enthalten sind Aktualisierungen, Sicherungen, die Überwachung deiner Seite "
+                . "und kleine Änderungen. Wenn diesen Monat etwas Bestimmtes ansteht, schreib mir.\n\n"
+                . "Den Beleg bekommst du gleich nach der Zahlung."],
+            'en' => ['Care for {monat} — {betrag}',
+                "Hello {name},\n\nthe monthly care for {monat} is due: {betrag}.\n\n"
+                . "You can pay here, by {frist}:\n{link}\n\n"
+                . "It covers updates, backups, monitoring of your site and small changes. "
+                . "If something particular is coming up this month, write to me.\n\n"
+                . "The receipt follows right after payment."],
+        ],
         /* DREI STUFEN, EIN TON, DER SICH AENDERT
            ----------------------------------------------------------------
            Bis hierher passierte bei einer unbezahlten Rate gar nichts. Der
@@ -498,21 +533,21 @@ final class Texte
                 . "Ti chiedo di saldare entro il {frist}:\n{link}\n\n"
                 . "Se c'è un motivo — una fattura in sospeso, un mese difficile, qualcosa che non va nel lavoro — "
                 . "dimmelo e concordiamo qualcosa. Una rateizzazione è sempre meglio di un silenzio.\n\n"
-                . "Il documento di riferimento è l'ordine {bestellnr}."],
+                . "Riferimento: {vorgang}."],
             'de' => ['Zahlungserinnerung — {was}, {betrag}',
                 "Hallo {name},\n\ndie {was} über {betrag} war am {faellig} fällig und ist bis heute nicht eingegangen. "
                 . "Ich hatte dir dazu schon einmal geschrieben.\n\n"
                 . "Ich bitte dich, den Betrag bis zum {frist} zu begleichen:\n{link}\n\n"
                 . "Wenn es einen Grund gibt — eine offene Rechnung bei dir, ein schwacher Monat, etwas am Ergebnis, das nicht stimmt — "
                 . "sag es mir, dann finden wir eine Lösung. Eine Ratenzahlung ist mir lieber als Schweigen.\n\n"
-                . "Vorgang: Bestellung {bestellnr}."],
+                . "Vorgang: {vorgang}."],
             'en' => ['Payment reminder — {was}, {betrag}',
                 "Hello {name},\n\nthe {was} of {betrag} was due on {faellig} and has not arrived. "
                 . "I wrote to you about it once already.\n\n"
                 . "Please settle it by {frist}:\n{link}\n\n"
                 . "If there is a reason — an unpaid invoice of your own, a weak month, something about the work that is not right — "
                 . "tell me and we will find a solution. Paying in instalments beats silence.\n\n"
-                . "Reference: order {bestellnr}."],
+                . "Reference: {vorgang}."],
         ],
         'zahlung_letzte' => [
             'it' => ['Ultimo sollecito — {was}, {betrag}',
@@ -522,7 +557,7 @@ final class Texte
                 . "e i cui diritti d'uso restano miei fino al saldo completo — come previsto dalle condizioni. "
                 . "Da quel momento decorrono anche gli interessi di mora di legge.\n\n"
                 . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
-                . "Vorgang: ordine {bestellnr}, cliente {kundennr}."],
+                . "Riferimento: {vorgang}, cliente {kundennr}."],
             'de' => ['Letzte Mahnung — {was}, {betrag}',
                 "Hallo {name},\n\ndie {was} über {betrag}, fällig am {faellig}, ist weiterhin offen. Das ist meine dritte und letzte Nachricht dazu.\n\n"
                 . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
@@ -530,14 +565,54 @@ final class Texte
                 . "bleiben bis zur vollständigen Zahlung bei mir — so steht es in den Bedingungen. Ab dann laufen außerdem "
                 . "die gesetzlichen Verzugszinsen.\n\n"
                 . "Mir wäre ein Anruf deutlich lieber. Melde dich einfach.\n\n"
-                . "Vorgang: Bestellung {bestellnr}, Kunde {kundennr}."],
+                . "Vorgang: {vorgang}, Kunde {kundennr}."],
             'en' => ['Final reminder — {was}, {betrag}',
                 "Hello {name},\n\nthe {was} of {betrag}, due on {faellig}, is still outstanding. This is my third and final message about it.\n\n"
                 . "I am setting a deadline of {frist}:\n{link}\n\n"
                 . "If nothing arrives by then, work on your website stops. It will not go live, and the rights of use stay "
                 . "with me until payment in full — as set out in the terms. Statutory late-payment interest also starts from then.\n\n"
                 . "I would much rather hear from you. A phone call is enough.\n\n"
-                . "Reference: order {bestellnr}, customer {kundennr}."],
+                . "Reference: {vorgang}, customer {kundennr}."],
+        ],
+
+        /* DIE LETZTE STUFE BEI DER BETREUUNG
+           ----------------------------------------------------------------
+           Der allgemeine Text droht damit, dass die Website nicht online
+           geht und die Nutzungsrechte bei Uwe bleiben. Bei einer monatlichen
+           Betreuung stimmt beides nicht: Die Seite steht laengst, bezahlt
+           ist sie auch. Was ausbleibt, ist die Pflege — Aktualisierungen,
+           Sicherungen, Erreichbarkeit. Genau das sagt dieser Text, und sonst
+           nichts. Die Stufe heisst in der Ablage weiter "zahlung_letzte",
+           damit der Mahnstand einer Rate an einer Stelle gezaehlt wird. */
+        'zahlung_letzte_betreuung' => [
+            'it' => ['Ultimo sollecito — assistenza, {betrag}',
+                "Ciao {name},\n\n{was} di {betrag}, scaduta il {faellig}, resta non pagata. Questo è il mio terzo e ultimo messaggio.\n\n"
+                . "Ti do tempo fino al {frist}:\n{link}\n\n"
+                . "Se entro quella data non arriva nulla, sospendo l'assistenza: niente aggiornamenti, "
+                . "niente copie di sicurezza, nessun controllo. Il sito resta online e resta tuo — "
+                . "quello che si ferma è la manutenzione. Se la situazione non si sblocca, chiudo il "
+                . "contratto di assistenza per inadempimento. Da quel momento decorrono anche gli "
+                . "interessi di mora di legge.\n\n"
+                . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
+                . "Riferimento: {vorgang}, cliente {kundennr}."],
+            'de' => ['Letzte Mahnung — Betreuung, {betrag}',
+                "Hallo {name},\n\ndie {was} über {betrag}, fällig am {faellig}, ist weiterhin offen. Das ist meine dritte und letzte Nachricht dazu.\n\n"
+                . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
+                . "Kommt bis dahin nichts, setze ich die Betreuung aus: keine Aktualisierungen, "
+                . "keine Sicherungen, keine Kontrolle. Deine Seite bleibt online und bleibt deine — "
+                . "was ruht, ist die Pflege. Bleibt es dabei, kündige ich den Betreuungsvertrag aus "
+                . "wichtigem Grund. Ab dann laufen außerdem die gesetzlichen Verzugszinsen.\n\n"
+                . "Mir wäre ein Anruf deutlich lieber. Melde dich einfach.\n\n"
+                . "Vorgang: {vorgang}, Kunde {kundennr}."],
+            'en' => ['Final reminder — care, {betrag}',
+                "Hello {name},\n\nthe {was} of {betrag}, due on {faellig}, is still outstanding. This is my third and final message about it.\n\n"
+                . "I am setting a deadline of {frist}:\n{link}\n\n"
+                . "If nothing arrives by then, I will suspend the care: no updates, no backups, no checks. "
+                . "Your site stays online and stays yours — what stops is the maintenance. If it stays that "
+                . "way, I will end the care agreement for cause. Statutory late-payment interest also starts "
+                . "from then.\n\n"
+                . "I would much rather hear from you. A phone call is enough.\n\n"
+                . "Reference: {vorgang}, customer {kundennr}."],
         ],
         /* Zu jeder bezahlten Rate ein Beleg — und zwar in der Post, nicht
            nur auf der Kundenseite. Bisher ging eine Nachricht ausschliesslich

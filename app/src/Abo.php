@@ -100,6 +100,258 @@ final class Abo
     }
 
     /* ================================================================== */
+    /*  Abrechnen                                                         */
+    /* ================================================================== */
+
+    /**
+     * Die Betreuung eines Monats als offene Rate anlegen.
+     *
+     * WARUM ES DAS BRAUCHT
+     *
+     * Ein Betreuungsvertrag erzeugte bisher keine einzige Zahlung. Die Spalte
+     * naechste_abrechnung stand seit dem ersten Tag da und wurde nie
+     * ausgewertet; payments.order_id war NOT NULL, eine Betreuungszahlung
+     * konnte also gar nicht existieren. Damit fehlten die monatlichen
+     * Einnahmen ueberall: in der Zahlungsliste, in den Belegen und im Paket
+     * fuers Finanzamt. Bei fuenf Vertraegen zu 39 Euro sind das ueber zwei-
+     * tausend Euro im Jahr, die nirgends auftauchten.
+     *
+     * WARUM OHNE FAELLIGKEIT
+     *
+     * Die Rate entsteht mit faellig_am = NULL. Faellig wird sie erst, wenn
+     * der Kunde die Aufforderung bekommen hat — genau wie die Restzahlung.
+     * Sonst mahnte das System eine Forderung an, von der der Kunde nie
+     * gehoert hat, und das waere schlimmer als gar nicht zu mahnen.
+     *
+     * @param string|null $monat Format YYYY-MM, sonst der Monat der faelligen Abrechnung
+     * @return int|null Nummer der Rate, oder null wenn dieser Monat schon dasteht
+     */
+    public static function abrechnen(int $aboId, ?string $monat = null): ?int
+    {
+        $a = Db::one('SELECT * FROM abos WHERE id = ?', [$aboId]);
+        if (!$a) { throw new RuntimeException('Betreuungsvertrag nicht gefunden.'); }
+        if (!in_array((string) $a['status'], ['aktiv', 'gekuendigt'], true)) {
+            throw new RuntimeException('Dieser Vertrag ist nicht aktiv.');
+        }
+
+        $monat = $monat ?? date('Y-m', strtotime((string) ($a['naechste_abrechnung'] ?: 'today')));
+        if (!preg_match('~^\d{4}-(0[1-9]|1[0-2])$~', $monat)) {
+            throw new RuntimeException('Der Monat muss die Form 2026-09 haben.');
+        }
+
+        /* Ein gekuendigter Vertrag wird nur bis zum Ende abgerechnet. Wer
+           nach dem letzten Tag noch eine Rate erzeugt, schickt eine
+           Forderung fuer eine Leistung, die es nicht mehr gibt. */
+        if ((string) ($a['laeuft_bis'] ?? '') !== ''
+            && $monat > date('Y-m', strtotime((string) $a['laeuft_bis']))) {
+            return null;
+        }
+
+        /* "Betreuung Betreuung Basis" liest sich wie ein Tippfehler: Heisst
+           das Paket schon so, reicht sein Name. */
+        $paketName = trim((string) $a['paket_name']);
+        $bezeichnung = (mb_stripos($paketName, 'betreuung') === 0 ? '' : 'Betreuung ')
+            . $paketName . ' — ' . self::monatswort($monat);
+
+        try {
+            $id = Db::insert('payments', [
+                'order_id' => null,
+                'abo_id'   => $aboId,
+                'abrechnungsmonat' => $monat,
+                'art'      => 'betreuung',
+                'bezeichnung' => mb_substr($bezeichnung, 0, 120),
+                'provider' => 'offen',
+                'amount_cents' => (int) $a['betrag_cents'],
+                'currency' => (string) $a['currency'],
+                'status'   => 'ausstehend',
+                // Faellig wird sie erst mit der Aufforderung — siehe oben.
+                'faellig_am' => null,
+            ]);
+        } catch (Throwable $e) {
+            /* Der eindeutige Schluessel auf (abo_id, abrechnungsmonat) faengt
+               den zweiten Versuch ab. Das ist kein Fehler, sondern der Sinn.
+
+               Die Reihe rueckt trotzdem weiter. Sonst zeigte
+               naechste_abrechnung auf einen Monat, der schon dasteht, und der
+               naechtliche Lauf haengte fuer immer an dieser Stelle fest: Der
+               Oktober kaeme nie, weil der September nicht noch einmal
+               angelegt werden kann. */
+            self::reiheWeiter($a, $monat);
+            return null;
+        }
+
+        self::reiheWeiter($a, $monat);
+
+        self::still(fn() => Events::protokoll('abo_abrechnung',
+            $bezeichnung . ': ' . Fmt::geld((int) $a['betrag_cents'], (string) $a['currency']),
+            (int) $a['customer_id'], null,
+            $a['project_id'] !== null ? (int) $a['project_id'] : null));
+
+        return $id;
+    }
+
+    /** "September 2026" — fuer die Bezeichnung der Rate. */
+    public static function monatswort(string $monat, string $sprache = 'de'): string
+    {
+        /* DREI SPRACHEN, NICHT EINE
+           ----------------------------------------------------------------
+           Der Monat steht in der Mail an den Kunden und auf seinem Beleg.
+           Stand er nur auf Deutsch, las ein italienischer Kunde
+           "Assistenza September 2026" — ein deutsches Wort mitten im
+           italienischen Satz. Fuer die Verwaltung bleibt Deutsch die
+           Vorgabe. */
+        $namen = [
+            'de' => [1=>'Januar','Februar','März','April','Mai','Juni','Juli',
+                     'August','September','Oktober','November','Dezember'],
+            'it' => [1=>'gennaio','febbraio','marzo','aprile','maggio','giugno','luglio',
+                     'agosto','settembre','ottobre','novembre','dicembre'],
+            'en' => [1=>'January','February','March','April','May','June','July',
+                     'August','September','October','November','December'],
+        ];
+        $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'de';
+        $teile = array_map('intval', explode('-', $monat));
+        if (count($teile) < 2) { return $monat; }
+        [$j, $m] = $teile;
+        return ($namen[$s][$m] ?? $monat) . ' ' . $j;
+    }
+
+    /**
+     * Die Reihe einen Monat weiterruecken — aber nie rueckwaerts.
+     *
+     * Rechnet Uwe einen alten Monat nach, soll die Automatik nicht auf ihn
+     * zurueckspringen und alles danach noch einmal anlegen.
+     */
+    private static function reiheWeiter(array $a, string $monat): void
+    {
+        $naechste = date('Y-m-01', strtotime($monat . '-01 +1 month'));
+        if ((string) ($a['naechste_abrechnung'] ?? '') === ''
+            || $naechste > (string) $a['naechste_abrechnung']) {
+            self::still(fn() => Db::update('abos', (int) $a['id'], ['naechste_abrechnung' => $naechste]));
+        }
+    }
+
+    /**
+     * Der regelmaessige Lauf: legt an, was faellig geworden ist.
+     *
+     * Nur anlegen, nicht anfordern. Die Aufforderung geht von Hand raus —
+     * bis Stripe live ist, gibt es ohnehin keinen Link, und eine Rate, von
+     * der der Kunde nichts weiss, darf nicht ins Mahnwesen laufen.
+     *
+     * AUFHOLEN, NICHT EINEN MONAT PRO NACHT
+     *
+     * Lief der Cron zwei Monate nicht, stand naechste_abrechnung im Juli.
+     * Ein einzelner Durchgang haette den Juli angelegt und waere fertig
+     * gewesen — August und September haetten je eine weitere Nacht
+     * gebraucht. Deshalb wird pro Vertrag nachgeholt, bis die Reihe die
+     * Gegenwart erreicht hat. Die Grenze von zwoelf Monaten ist die Bremse:
+     * Bei einem kaputten Datum entsteht kein Jahrzehnt an Forderungen.
+     */
+    public static function abrechnungenAnlegen(): int
+    {
+        $offen = (array) self::still(fn() => Db::all(
+            "SELECT id FROM abos
+              WHERE status IN ('aktiv','gekuendigt')
+                AND naechste_abrechnung IS NOT NULL
+                AND naechste_abrechnung <= CURDATE()
+              ORDER BY id"), []);
+        $n = 0;
+        foreach ($offen as $a) {
+            for ($runde = 0; $runde < 12; $runde++) {
+                $stand = (string) self::still(fn() => Db::wert(
+                    'SELECT naechste_abrechnung FROM abos WHERE id = ?', [(int) $a['id']], ''), '');
+                if ($stand === '' || $stand > date('Y-m-d')) { break; }
+                try {
+                    if (self::abrechnen((int) $a['id']) !== null) { $n++; }
+                } catch (Throwable $e) {
+                    break;   // der naechste Vertrag soll trotzdem drankommen
+                }
+                // Ruecken die Reihe nicht weiter (gekuendigt, Ende erreicht),
+                // liefe die Schleife sonst zwoelfmal ins Leere.
+                $neu = (string) self::still(fn() => Db::wert(
+                    'SELECT naechste_abrechnung FROM abos WHERE id = ?', [(int) $a['id']], ''), '');
+                if ($neu === $stand) { break; }
+            }
+        }
+        return $n;
+    }
+
+    /**
+     * Die Rate anfordern: Zahlungslink erzeugen, Mail schicken, faellig setzen.
+     *
+     * Erst ab hier laeuft die Frist — und erst ab hier kann das Mahnwesen
+     * greifen. Vorher steht die Rate zwar da, aber der Kunde weiss nichts
+     * von ihr, und eine Mahnung auf eine unbekannte Forderung waere schlimmer
+     * als gar keine.
+     */
+    public static function anfordern(int $zahlungId): string
+    {
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Texte.php';
+        require_once __DIR__ . '/Kundenzugang.php';
+
+        $z = Db::one("SELECT z.*, a.paket_name, a.customer_id
+                        FROM payments z JOIN abos a ON a.id = z.abo_id
+                       WHERE z.id = ?", [$zahlungId]);
+        if (!$z) { return 'nicht_dran'; }
+        if ((string) $z['status'] === 'bezahlt') { return 'nicht_dran'; }
+        if (Mail::schonGeschickt('betreuung_faellig', 'payment_id', $zahlungId)) { return 'nicht_dran'; }
+
+        $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $z['customer_id']]);
+        if (!$k || trim((string) $k['email']) === '') { return 'nicht_dran'; }
+        $sprache = strtolower((string) ($k['sprache'] ?: 'it'));
+        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+        // Ein Zahlungslink, wenn Stripe bereit ist; sonst seine eigene Seite.
+        $link = '';
+        try {
+            require_once __DIR__ . '/Zahlung/Anbieter.php';
+            require_once __DIR__ . '/Zahlung/Stripe.php';
+            $stripe = new StripeAnbieter();
+            if ($stripe->bereit()) {
+                $link = (string) $stripe->bezahlseite($z, ['order_no' => $z['bezeichnung']], $k);
+                if ($link !== '') {
+                    Db::update('payments', $zahlungId, [
+                        'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                        'link_url' => $link,
+                        'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
+                    ]);
+                }
+            }
+        } catch (Throwable $e) { $link = ''; }
+        if ($link === '') {
+            $link = (string) self::still(fn() => Kundenzugang::linkFuer((int) $z['customer_id']), '');
+        }
+
+        $frist = date('Y-m-d', strtotime('+' . Events::ZAHLUNGSZIEL_TAGE . ' days'));
+        [$betreff, $text] = Texte::mail('betreuung_faellig', $sprache, [
+            'name'   => (string) $k['name'],
+            'monat'  => self::monatswort((string) $z['abrechnungsmonat'], $sprache),
+            'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+            'frist'  => Fmt::datum($frist),
+            'link'   => $link,
+        ]);
+
+        $ok = Mail::senden('betreuung_faellig', (string) $k['email'], $betreff, $text, [
+            'customer_id' => (int) $z['customer_id'],
+            'payment_id'  => $zahlungId,
+            'antwortAn'   => Mail::eigeneAdresse(),
+        ]);
+        if (!$ok) { return 'versand_fehler'; }
+
+        // Erst jetzt wird sie faellig — und damit mahnbar.
+        self::still(fn() => Db::update('payments', $zahlungId, ['faellig_am' => $frist]));
+        return 'raus';
+    }
+
+    /** Die abgerechneten Monate eines Vertrags, neueste zuerst. */
+    public static function raten(int $aboId): array
+    {
+        return (array) self::still(fn() => Db::all(
+            'SELECT * FROM payments WHERE abo_id = ? ORDER BY abrechnungsmonat DESC, id DESC',
+            [$aboId]), []);
+    }
+
+    /* ================================================================== */
     /*  Kuendigen                                                         */
     /* ================================================================== */
 

@@ -747,9 +747,14 @@ if ($post) {
                 zurueck('bestellungen/' . (int) $_POST['id']);
 
             case 'zahlung_bestaetigen':
+                /* Die Bestellnummer steht nur dort im Formular, wo es eine
+                   Bestellung gibt. Monatsraten aus der Betreuung haben keine
+                   — sie kommen von der Kundenseite und tragen ihr Ziel selbst
+                   im Feld "zurueck". Ohne den Umweg ueber ?? gaebe es hier
+                   eine Warnung und einen Sprung nach "bestellungen/0". */
                 Events::zahlungBestaetigen((int) $_POST['id'], trim((string) ($_POST['referenz'] ?? '')) ?: null,
                     (string) ($_POST['anbieter'] ?? 'manuell'));
-                zurueck('bestellungen/' . (int) $_POST['order_id']);
+                zurueck('bestellungen/' . (int) ($_POST['order_id'] ?? 0));
 
             case 'zahlungslink':
                 require_once __DIR__ . '/src/Zahlung/Anbieter.php';
@@ -1068,6 +1073,29 @@ if ($post) {
                 $_SESSION['gut'] = 'Firmendaten gespeichert.';
                 weiter('einstellungen');
 
+            case 'abo_abrechnen':
+                /* Einen Monat anlegen. Von Hand, weil Uwe manchmal einen Monat
+                   nachtragen will — die Automatik im Cron legt nur an, was
+                   nach dem Kalender faellig geworden ist. */
+                require_once __DIR__ . '/src/Abo.php';
+                $aid = (int) $_POST['id'];
+                $monat = trim((string) ($_POST['monat'] ?? ''));
+                $neu = Abo::abrechnen($aid, $monat !== '' ? $monat : null);
+                $_SESSION['gut'] = $neu !== null
+                    ? 'Der Monat steht als offene Rate. Fordere sie an, damit der Kunde davon erfährt.'
+                    : 'Dieser Monat ist schon abgerechnet — oder der Vertrag läuft nicht mehr so lange.';
+                zurueck((string) ($_POST['zurueck'] ?? 'abos'));
+
+            case 'abo_anfordern':
+                require_once __DIR__ . '/src/Abo.php';
+                $zid = (int) $_POST['id'];
+                $_SESSION['gut'] = match (Abo::anfordern($zid)) {
+                    'raus'           => 'Die Aufforderung ist raus — ab jetzt läuft die Frist von sieben Tagen.',
+                    'versand_fehler' => 'Der Versand hat nicht geklappt — siehe Nachrichten. Die Rate bleibt ohne Frist stehen.',
+                    default          => 'Nichts zu tun: Entweder ist sie bezahlt, oder die Aufforderung ging schon raus.',
+                };
+                zurueck((string) ($_POST['zurueck'] ?? 'abos'));
+
             case 'mahnung_schicken':
                 /* Stufe 2 und 3 gehen nur von Hand raus — deshalb dieser
                    Knopf und kein Cronjob. Die Stufe kommt aus dem Formular,
@@ -1082,7 +1110,11 @@ if ($post) {
                     'versand_fehler' => 'Sie wäre dran gewesen, aber der Versand hat nicht geklappt — siehe Nachrichten.',
                     default          => 'Nichts zu tun: Entweder ist die Rate bezahlt, oder diese Stufe ging schon raus.',
                 };
-                zurueck('bestellungen/' . $bid);
+                // Monatsraten aus der Betreuung haben keine Bestellung; sie
+                // tragen ihr Ziel im Feld "zurueck". Die 'bestellungen/0'
+                // hier ist nur die Vorgabe fuer den alten Weg.
+                zurueck($bid > 0 ? 'bestellungen/' . $bid : 'kunden/' . (int) Db::wert(
+                    'SELECT a.customer_id FROM payments p JOIN abos a ON a.id = p.abo_id WHERE p.id = ?', [$zid], 0));
 
             case 'restzahlung_anfordern':
                 require_once __DIR__ . '/src/Nachricht.php';
@@ -1407,7 +1439,17 @@ switch ($route) {
                 'anonym' => sicher(static fn() => Kunde::istAnonym($k), false),
                 'bestellungen' => Db::all('SELECT * FROM orders WHERE customer_id = ? ORDER BY id DESC', [$id]),
                 'projekte' => Db::all('SELECT * FROM projects WHERE customer_id = ? ORDER BY id DESC', [$id]),
-                'zahlungen' => Db::all('SELECT p.*, o.order_no FROM payments p JOIN orders o ON o.id = p.order_id WHERE o.customer_id = ? ORDER BY p.id DESC', [$id]),
+                // LINKS VERBUNDEN, NICHT FEST
+                // Monatsraten aus der Betreuung haengen an keiner Bestellung.
+                // Mit dem alten festen JOIN auf orders fielen sie hier heraus
+                // — der Kunde hatte bezahlt, in seiner Akte stand nichts.
+                'zahlungen' => Db::all(
+                    'SELECT p.*, COALESCE(o.order_no, CONCAT(\'Betreuung \', p.abrechnungsmonat)) AS order_no
+                       FROM payments p
+                       LEFT JOIN orders o ON o.id = p.order_id
+                       LEFT JOIN abos   a ON a.id = p.abo_id
+                      WHERE COALESCE(o.customer_id, a.customer_id) = ?
+                      ORDER BY p.id DESC', [$id]),
                 'aktivitaeten' => Db::all('SELECT * FROM activities WHERE customer_id = ? ORDER BY id DESC LIMIT 20', [$id]),
                 'nachrichten' => sicher(static fn() => Db::all(
                     'SELECT * FROM messages WHERE customer_id = ? ORDER BY id ASC LIMIT 100', [$id])),
@@ -1857,9 +1899,16 @@ switch ($route) {
         break;
 
     case 'zahlungen':
+        /* Die Verbindung war ein INNER JOIN ueber orders — eine Betreuungsrate
+           haengt aber an einem Vertrag, nicht an einer Bestellung, und waere
+           damit aus der Zahlungsliste ganz verschwunden. */
         ansicht('zahlungen', ['liste' => Db::all(
-            "SELECT p.*, o.order_no, c.name AS kunde, c.id AS kunde_id
-             FROM payments p JOIN orders o ON o.id = p.order_id JOIN customers c ON c.id = o.customer_id
+            "SELECT p.*, o.order_no, a.paket_name AS abo_paket,
+                    c.name AS kunde, c.id AS kunde_id
+             FROM payments p
+             LEFT JOIN orders    o ON o.id = p.order_id
+             LEFT JOIN abos      a ON a.id = p.abo_id
+             LEFT JOIN customers c ON c.id = COALESCE(o.customer_id, a.customer_id)
              ORDER BY FIELD(p.status,'ausstehend','in_bearbeitung','fehlgeschlagen') DESC, p.id DESC")]);
         break;
 
