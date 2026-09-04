@@ -350,10 +350,30 @@ final class Zustellbarkeit
         }
         require_once __DIR__ . '/Mail.php';
 
+        /* WARUM HIER EIN LINK DRINSTEHT
+           ------------------------------------------------------------------
+           Die Probe pruefte bisher nur, ob die Mail als echt durchgeht. Das
+           ist die halbe Frage. Die andere haelfte hat ein Kunde gemeldet:
+           Der Link in seiner Mail liess sich nicht anklicken, er musste ihn
+           von Hand in den Browser kopieren. Bei einem Zahlungslink bricht
+           genau dort ein Kauf ab.
+
+           Eine Probe ohne Link kann das nicht zeigen. Also traegt sie jetzt
+           einen — denselben Knopf, den jede Kundenmail traegt, und darunter
+           dieselbe Adresse zum Nachlesen. Wer die Probe bekommt, sieht in
+           einem Blick beides: ob sie ankommt und ob sie sich bedienen laesst. */
         $domain = self::domain();
+        /* Ein Umbruch mitten im Satz wird in der HTML-Fassung zu einem
+           echten Zeilenbruch — der Satz steht dann gestuft da wie eine
+           Speisekarte. Deshalb steht hier jeder Absatz in EINER Zeile. */
         $text = "Das ist eine Probenachricht aus der Vecom-Design-Verwaltung.\n\n"
-            . "Sie dient nur einem Zweck: nachzusehen, ob eine über den normalen Weg verschickte\n"
-            . "Mail von $domain als echt erkannt wird — SPF, DKIM und DMARC.\n\n"
+            . "Sie prüft zweierlei. Erstens, ob eine über den normalen Weg verschickte Mail von "
+            . "$domain als echt erkannt wird — SPF, DKIM und DMARC.\n\n"
+            . "Zweitens den Knopf. Jede Kundenmail mit einem Link trägt jetzt einen:\n\n"
+            . "https://$domain\n\n"
+            . "Lässt er sich anklicken, kommt auch der Zahlungslink beim Kunden als Knopf an. "
+            . "Steht dort nur grauer Text, zeigt das Programm des Empfängers keine HTML-Mails — "
+            . "dann ist die Adresse unter dem Knopf sein Weg, und genau dafür steht sie dort.\n\n"
             . "Verschickt am " . date('d.m.Y H:i:s') . ".\n";
 
         // Bewusst ohne customer_id: Diese Mail gehoert zu keinem Kunden, und

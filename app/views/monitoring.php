@@ -61,7 +61,11 @@
       Das oben liest nur das DNS. Ob Brevo auch wirklich mit deinem Schlüssel signiert, sagt nur eine
       zugestellte Mail. Der sichere Weg: <a href="https://www.mail-tester.com" target="_blank" rel="noopener">mail-tester.com</a>
       öffnen, die dort angezeigte Adresse hier einsetzen, senden — und auf der Seite nachladen.
-      Das Ergebnis steht dort, nicht im Postfach; eine Antwortmail käme bei Brevo an, nicht bei dir.</p>
+      Das Ergebnis steht dort, nicht im Postfach; eine Antwortmail käme bei Brevo an, nicht bei dir.
+      <br>Willst du dagegen sehen, wie eine Mail beim Kunden <em>aussieht</em> — ob der Knopf ankommt und
+      sich anklicken lässt —, setz hier eine echte Adresse ein. Am aussagekräftigsten ist ein Postfach
+      bei einem großen Anbieter, also gmail, yahoo, gmx oder outlook: Genau die entscheiden auch beim
+      Kunden, ob deine Post ankommt und wie sie dargestellt wird.</p>
     <form method="post" action="<?= Fmt::h(url('')) ?>"
           style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="zustellbarkeit_probe">

@@ -520,14 +520,31 @@ final class Texte
            Was hier NICHT steht: eine Zinsrechnung. Der Hinweis auf die
            gesetzliche Regel genuegt; wer sie anwendet, ist Uwe, nicht die
            Vorlage. */
+        /* {was} IST EIN NAME, KEIN SATZTEIL
+           ------------------------------------------------------------------
+           Der Platzhalter traegt die Bezeichnung der Rate: "Anzahlung",
+           "Gesamtbetrag", "acconto", "importo totale". Stand davor ein
+           Artikel, musste er zu jeder dieser Bezeichnungen passen -- und das
+           tat er nicht. Auf Deutsch kam "die Gesamtbetrag" und "die
+           vereinbarter Nachtrag" heraus, auf Italienisch in JEDEM Fall ein
+           fehlender Artikel ("il pagamento di acconto" statt
+           "dell'acconto"), dazu eine Endung, die sich auf nichts bezog.
+
+           Gemerkt haette man es erst an einem Kunden, der eine Mahnung
+           bekommt -- also genau dort, wo eine holprige Zeile am teuersten
+           ist: Wer um Geld bittet, dessen Brief muss sitzen.
+
+           Deshalb steht die Bezeichnung jetzt hinter einem Gedankenstrich
+           und traegt keinen Artikel mehr. Das haelt auch, wenn morgen eine
+           neue Rate dazukommt. */
         'zahlung_erinnerung' => [
             'it' => ['Promemoria: {was} — {betrag}',
-                "Ciao {name},\n\nti ricordo il pagamento di {was}: {betrag}, scaduto il {faellig}.\n\n"
+                "Ciao {name},\n\nti ricordo un pagamento ancora aperto — {was}, {betrag}. Era in scadenza il {faellig}.\n\n"
                 . "Probabilmente è solo sfuggito, o il link precedente era scaduto. Eccone uno nuovo, valido due settimane:\n{link}\n\n"
                 . "Se hai già pagato, ignora questo messaggio — a volte ci mettiamo un giorno a incrociarci.\n\n"
                 . "Se qualcosa non torna, scrivimi e troviamo una soluzione."],
             'de' => ['Erinnerung: {was} — {betrag}',
-                "Hallo {name},\n\nkurze Erinnerung an die {was}: {betrag}, fällig war der {faellig}.\n\n"
+                "Hallo {name},\n\nkurze Erinnerung an eine offene Zahlung — {was}, {betrag}. Fällig war der {faellig}.\n\n"
                 . "Wahrscheinlich ist es nur untergegangen, oder der alte Link war abgelaufen. Hier ist ein neuer, zwei Wochen gültig:\n{link}\n\n"
                 . "Wenn du schon bezahlt hast, ist diese Mail hinfällig — manchmal kreuzen wir uns um einen Tag.\n\n"
                 . "Wenn etwas nicht passt, schreib mir, dann finden wir einen Weg."],
@@ -539,14 +556,14 @@ final class Texte
         ],
         'zahlung_mahnung' => [
             'it' => ['Sollecito di pagamento — {was}, {betrag}',
-                "Ciao {name},\n\nil pagamento di {was} ({betrag}) era dovuto il {faellig} e a oggi non risulta ancora arrivato. "
+                "Ciao {name},\n\nresta aperto un pagamento — {was}, {betrag}. Era dovuto il {faellig} e a oggi non risulta arrivato. "
                 . "Ti avevo già scritto una volta.\n\n"
                 . "Ti chiedo di saldare entro il {frist}:\n{link}\n\n"
                 . "Se c'è un motivo — una fattura in sospeso, un mese difficile, qualcosa che non va nel lavoro — "
                 . "dimmelo e concordiamo qualcosa. Una rateizzazione è sempre meglio di un silenzio.\n\n"
                 . "Riferimento: {vorgang}."],
             'de' => ['Zahlungserinnerung — {was}, {betrag}',
-                "Hallo {name},\n\ndie {was} über {betrag} war am {faellig} fällig und ist bis heute nicht eingegangen. "
+                "Hallo {name},\n\noffen ist noch eine Zahlung — {was}, {betrag}. Fällig war der {faellig}, eingegangen ist bis heute nichts. "
                 . "Ich hatte dir dazu schon einmal geschrieben.\n\n"
                 . "Ich bitte dich, den Betrag bis zum {frist} zu begleichen:\n{link}\n\n"
                 . "Wenn es einen Grund gibt — eine offene Rechnung bei dir, ein schwacher Monat, etwas am Ergebnis, das nicht stimmt — "
@@ -562,7 +579,7 @@ final class Texte
         ],
         'zahlung_letzte' => [
             'it' => ['Ultimo sollecito — {was}, {betrag}',
-                "Ciao {name},\n\n{was} di {betrag}, scaduta il {faellig}, resta non pagata. Questo è il mio terzo e ultimo messaggio.\n\n"
+                "Ciao {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
                 . "Ti do tempo fino al {frist}:\n{link}\n\n"
                 . "Se entro quella data non arriva nulla, sospendo il lavoro sul tuo sito, che non viene pubblicato "
                 . "e i cui diritti d'uso restano miei fino al saldo completo — come previsto dalle condizioni. "
@@ -570,7 +587,7 @@ final class Texte
                 . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
                 . "Riferimento: {vorgang}, cliente {kundennr}."],
             'de' => ['Letzte Mahnung — {was}, {betrag}',
-                "Hallo {name},\n\ndie {was} über {betrag}, fällig am {faellig}, ist weiterhin offen. Das ist meine dritte und letzte Nachricht dazu.\n\n"
+                "Hallo {name},\n\neine Zahlung ist weiterhin offen — {was}, {betrag}, fällig am {faellig}. Das ist meine dritte und letzte Nachricht dazu.\n\n"
                 . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
                 . "Kommt bis dahin nichts, ruht die Arbeit an deiner Website. Sie geht nicht online, und die Nutzungsrechte "
                 . "bleiben bis zur vollständigen Zahlung bei mir — so steht es in den Bedingungen. Ab dann laufen außerdem "
@@ -597,7 +614,7 @@ final class Texte
            damit der Mahnstand einer Rate an einer Stelle gezaehlt wird. */
         'zahlung_letzte_betreuung' => [
             'it' => ['Ultimo sollecito — assistenza, {betrag}',
-                "Ciao {name},\n\n{was} di {betrag}, scaduta il {faellig}, resta non pagata. Questo è il mio terzo e ultimo messaggio.\n\n"
+                "Ciao {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
                 . "Ti do tempo fino al {frist}:\n{link}\n\n"
                 . "Se entro quella data non arriva nulla, sospendo l'assistenza: niente aggiornamenti, "
                 . "niente copie di sicurezza, nessun controllo. Il sito resta online e resta tuo — "
@@ -607,7 +624,7 @@ final class Texte
                 . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
                 . "Riferimento: {vorgang}, cliente {kundennr}."],
             'de' => ['Letzte Mahnung — Betreuung, {betrag}',
-                "Hallo {name},\n\ndie {was} über {betrag}, fällig am {faellig}, ist weiterhin offen. Das ist meine dritte und letzte Nachricht dazu.\n\n"
+                "Hallo {name},\n\neine Zahlung ist weiterhin offen — {was}, {betrag}, fällig am {faellig}. Das ist meine dritte und letzte Nachricht dazu.\n\n"
                 . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
                 . "Kommt bis dahin nichts, setze ich die Betreuung aus: keine Aktualisierungen, "
                 . "keine Sicherungen, keine Kontrolle. Deine Seite bleibt online und bleibt deine — "

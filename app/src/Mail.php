@@ -324,27 +324,47 @@ final class Mail
         foreach ($absaetze as $absatz) {
             $zeilen = preg_split("~\r?\n~", $absatz) ?: [];
 
-            /* Ein Absatz, der aus nichts als einer Adresse besteht, ist der
-               Knopf. Zwei Adressen untereinander waeren zwei Knoepfe --
-               deshalb wird Zeile fuer Zeile geprueft, nicht der Absatz. */
-            $nurLinks = true;
-            foreach ($zeilen as $z) {
-                if (trim($z) === '') { continue; }
-                if (!preg_match('~^https?://\S+$~', trim($z))) { $nurLinks = false; break; }
-            }
+            /* ZEILE FUER ZEILE, NICHT ABSATZ FUER ABSATZ
+               --------------------------------------------------------------
+               Eine Adresse steht mal allein zwischen zwei Leerzeilen, mal
+               direkt unter ihrem Satz ("Hier kannst du zahlen, bis zum
+               15.09.:" und in der naechsten Zeile der Link). Zaehlte nur der
+               ganze Absatz, bekaeme ausgerechnet der zweite Fall keinen
+               Knopf -- und das ist die Zahlungserinnerung, also die Mail, bei
+               der am meisten davon abhaengt, dass jemand klickt.
 
-            if ($nurLinks) {
-                foreach ($zeilen as $z) {
-                    $u = trim($z);
-                    if ($u === '') { continue; }
-                    $teile[] = self::knopf($u, $knopfwort);
-                }
-                continue;
-            }
-
+               Also: Gesammelte Textzeilen werden zu einem Absatz, sobald eine
+               Zeile kommt, die nur aus einer Adresse besteht. Danach geht es
+               mit einem neuen Absatz weiter. */
             $satz = [];
-            foreach ($zeilen as $z) { $satz[] = self::zeileHtml($z); }
-            $teile[] = '<p style="margin:0 0 16px;line-height:1.65">' . implode('<br>', $satz) . '</p>';
+            $absatzAus = static function () use (&$satz, &$teile): void {
+                if (!$satz) { return; }
+                $teile[] = '<p style="margin:0 0 16px;line-height:1.65">'
+                         . implode('<br>', $satz) . '</p>';
+                $satz = [];
+            };
+
+            foreach ($zeilen as $z) {
+                $roh = trim($z);
+
+                if (preg_match('~^https?://\S+$~', $roh)) {
+                    $absatzAus();
+                    $teile[] = self::knopf($roh, $knopfwort);
+                    continue;
+                }
+
+                /* Eine Zeile aus lauter Strichen ist im reinen Text ein
+                   Trenner. In HTML ist sie eine Reihe Bindestriche, die auf
+                   dem Telefon umbricht — gemeint war ein Strich. */
+                if (preg_match('~^[-=_]{6,}$~', $roh)) {
+                    $absatzAus();
+                    $teile[] = '<hr style="border:0;border-top:1px solid #e3e5e8;margin:2px 0 16px">';
+                    continue;
+                }
+
+                $satz[] = self::zeileHtml($z);
+            }
+            $absatzAus();
         }
 
         $rumpf = implode("\n", $teile);
