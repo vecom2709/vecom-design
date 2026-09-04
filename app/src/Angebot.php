@@ -814,8 +814,11 @@ final class Angebot
             [$T('pdfDatum'),  date('d.m.Y', (int) strtotime((string) ($a['gesendet_am'] ?: $a['created_at'])))],
             [$T('pdfGueltig'), $a['gueltig_bis'] ? date('d.m.Y', (int) strtotime((string) $a['gueltig_bis'])) : '—'],
         ] as [$was, $wert]) {
-            $p->text($rechts - 96, $ey, $was, 8.5, false, 'links', $leise);
-            $p->text($rechts, $ey, $wert, 9.5, true, 'rechts', $tinte);
+            /* Erst den Wert setzen, dann die Beschriftung links davor.
+               Eine feste Spalte bei -96 reichte fuer "Datum", nicht fuer
+               "Valida fino al" — dort klebte die Beschriftung am Datum. */
+            $wb = $p->text($rechts, $ey, $wert, 9.5, true, 'rechts', $tinte);
+            $p->text($rechts - $wb - 10, $ey, $was, 8.5, false, 'rechts', $leise);
             $ey += 15;
         }
 
