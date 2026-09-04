@@ -1498,8 +1498,12 @@ switch ($route) {
                 'v' => $v,
                 'vorlagen' => $vkid > 0 ? sicher(static fn() => Vorlage::fuer($vkid), []) : [],
                 'kennung'  => $vkid > 0 ? sicher(static fn() => Vorlage::kennung($vkid), '') : '',
+                // Dieselbe Auswahl wie auf der Anfrageseite und aus demselben
+                // Grund: Was hier steht, wird zu einer Website-Bestellung.
                 'pakete' => sicher(static fn() => Db::all(
-                    'SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents')),
+                    "SELECT * FROM packages
+                      WHERE active = 1 AND art = 'website' AND price_cents > 0
+                      ORDER BY sort, price_cents")),
             ]);
             break;
         }
@@ -1936,8 +1940,17 @@ switch ($route) {
                 'bAntworten' => $bAntworten,
                 'bKatalog'   => $bKatalog,
                 'bVorschlag' => $bVorschlag,
+                /* NUR ECHTE WEBSITE-PAKETE MIT PREIS
+                   ----------------------------------------------------------
+                   Ungefiltert stand in dieser Auswahl auch das
+                   Betreuungspaket -- ein Monatsvertrag, angeboten als
+                   Website-Bestellung -- und der Sammelposten
+                   "Individuelles Angebot" zu 0,00 €. Wer eines davon waehlte,
+                   legte eine Bestellung ueber nichts an. */
                 'pakete'     => Db::all(
-                    'SELECT id, name, price_cents, currency FROM packages WHERE active = 1 ORDER BY sort, price_cents'),
+                    "SELECT id, name, price_cents, currency FROM packages
+                      WHERE active = 1 AND art = 'website' AND price_cents > 0
+                      ORDER BY sort, price_cents"),
             ]);
             break;
         }

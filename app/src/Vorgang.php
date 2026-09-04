@@ -87,12 +87,27 @@ final class Vorgang
             $aus[] = self::ausBestellung($z);
         }
 
+        /* NUR DIE JUENGSTE ANFRAGE JE KUNDE
+           ------------------------------------------------------------------
+           Wer erst ueber das Kontaktformular schreibt und dann den
+           Konfigurator ausfuellt, erzeugt zwei Anfragen -- der Konfigurator
+           legt beim Absenden immer eine neue an. Beide fanden denselben
+           Bedarf, beide sagten "Preis nennen", und derselbe Mensch stand
+           zweimal in "Heute". Wer den einen erledigt, sieht den anderen
+           weiter stehen und traut der Liste nicht mehr.
+
+           Geloescht wird nichts: Die aeltere Anfrage bleibt, mit ihrem
+           urspruenglichen Text, und laesst sich weiter oeffnen. Sie ist nur
+           kein zweiter Vorgang mehr. */
         foreach (self::zeilen(
             "SELECT a.*, c.name AS kunde_name, c.email AS kunde_email, c.company AS kunde_firma,
                     c.sprache AS kunde_sprache, c.anonym_am AS kunde_anonym
                FROM anfragen a
                LEFT JOIN customers c ON c.id = a.customer_id
               WHERE a.order_id IS NULL
+                AND (a.customer_id IS NULL
+                     OR a.id = (SELECT MAX(a2.id) FROM anfragen a2
+                                 WHERE a2.customer_id = a.customer_id AND a2.order_id IS NULL))
               ORDER BY a.id DESC") as $z) {
             $aus[] = self::ausAnfrage($z);
         }
@@ -838,13 +853,52 @@ final class Vorgang
                 null, null, [], $ziel . '?tun=angebot_aus_bedarf');
         }
 
-        /* Kein Bedarf, kein Angebot: die Anfrage kam ueber einen anderen Weg
-           -- das Festpreis-Paket etwa. Dafuer reicht weiterhin ein Paket und
-           eine Bestellung. Die Tat steht dran, damit die Leiste "Jetzt dran"
-           auf der Vorgangsseite genau dieses Formular aufleuchten laesst. */
-        return self::setzen($v, 'gespraech', self::DU, 'Angebot machen',
-            'Paket wählen und die Bestellung anlegen — danach entsteht die Anzahlung.',
-            'anfrage_bestellung', (int) $v['anfrage_id']);
+        /* KEIN BEDARF, KEIN ANGEBOT — UND FRUEHER: "PAKET WAEHLEN"
+           ------------------------------------------------------------------
+           Hier stand "Angebot machen — Paket wählen und die Bestellung
+           anlegen". Das war der Weg von frueher, als es drei Preiskarten gab
+           und eine Anfrage sich einer davon zuordnen liess. Heute entsteht
+           der Preis im Konfigurator und das Angebot daraus; feste Pakete
+           spielen fuer die allermeisten Anfragen keine Rolle mehr.
+
+           Wer diesem Schritt folgte, landete deshalb vor einer Auswahlliste,
+           in der nichts stand, was zu seiner Anfrage passte -- eine Aufgabe
+           ohne Loesung, gestellt von der Verwaltung selbst.
+
+           Der richtige naechste Handgriff ist der, der fehlt: Der Kunde hat
+           ueber das Formular geschrieben, ohne zu sagen, was er braucht. Acht
+           Fragen im Konfigurator, und der Rest der Kette laeuft von allein --
+           Preis, Angebot, Bestellung. Die Einladung dazu steht als Vorlage
+           fertig da und wird hier gleich ausgewaehlt mitgegeben. */
+        $aZiel = $kid !== null ? 'kunden/' . $kid : 'anfragen/' . (int) $v['anfrage_id'];
+        $seit  = (string) ($v['begonnen'] ?: '');
+
+        /* Die Eingangsbestaetigung geht als reine Mail raus und zaehlt hier
+           bewusst nicht: Sie sagt "ist angekommen", sie fragt nichts. */
+        $geschrieben = (int) self::wert(
+            "SELECT COUNT(*) FROM messages
+              WHERE customer_id = ? AND sender <> 'kunde' AND created_at >= ?",
+            [$kid, $seit]);
+
+        if ($geschrieben === 0) {
+            return self::setzen($v, 'gespraech', self::DU, 'Konfigurator schicken',
+                'Die Anfrage kam über das Formular, ohne Angaben zum Umfang. '
+                . 'Acht Fragen, danach steht der Preis — und daraus wird das Angebot.',
+                null, null, [], $aZiel . '?vorlage=bedarf_einladen&tun=kunde_nachricht');
+        }
+
+        $tage = self::stillSeit($v);
+        if ($tage >= self::STILL_PREIS) {
+            return self::setzen($v, 'gespraech', self::DU, 'Nachfassen',
+                'Der Konfigurator ging vor ' . $tage . ' Tagen raus und blieb unausgefüllt. '
+                . 'Einmal fragen kostet nichts — manche kommen mit dem Formular nicht zurecht '
+                . 'und sagen es von selbst nicht.',
+                null, null, [], $aZiel);
+        }
+
+        return self::setzen($v, 'gespraech', self::KUNDE, 'Anfrage ansehen',
+            'Der Konfigurator ist beim Kunden. Füllt er ihn aus, steht der Preis von selbst da.',
+            null, null, [], $aZiel);
     }
 
     private static function restSchritt(array $v, array $rest, string $stufe): array

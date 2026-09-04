@@ -88,23 +88,59 @@
       <a href="<?= Fmt::h(url('bestellungen/' . (int) $a['order_id'])) ?>">Bestellung öffnen</a></div>
   </div>
 <?php else: ?>
+  <?php /* ====================================================================
+       WAS HIER FRUEHER STAND, UND WARUM ES WEG IST
+
+       Bis hierher war der einzige Weg von einer Anfrage weiter: "Paket
+       waehlen und Bestellung anlegen". Das stammt aus der Zeit der drei
+       Preiskarten. Heute entsteht der Preis im Konfigurator, und daraus wird
+       das Angebot — feste Pakete sind die Ausnahme, nicht die Regel.
+
+       Die Auswahlliste war damit eine Aufgabe ohne Loesung: Wer sie aufmachte,
+       fand nichts, was zu dieser Anfrage passt. Deshalb steht der Weg, der
+       wirklich weiterfuehrt, jetzt oben, und die Bestellung darunter — und
+       nur dann, wenn es ueberhaupt ein Paket mit Preis gibt.
+       ================================================================= */ ?>
   <div class="block">
-    <h2>Bestellung daraus machen</h2>
-    <p style="color:var(--leise);font-size:13px">Der Kunde ist schon angelegt. Beim Anlegen entsteht die Anzahlung
-    automatisch; den Zahlungslink erzeugst du danach in der Bestellung.</p>
-    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <?= Csrf::feld() ?><input type="hidden" name="tat" value="anfrage_bestellung">
-      <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
-      <select name="paket_id" required style="min-width:220px">
-        <option value="">Paket wählen …</option>
-        <?php foreach ($pakete as $p): ?>
-          <option value="<?= (int) $p['id'] ?>" <?= (int) $p['id'] === (int) $a['package_id'] ? 'selected' : '' ?>>
-            <?= Fmt::h($p['name']) ?> — <?= Fmt::h(Fmt::geld((int) $p['price_cents'], (string) $p['currency'])) ?></option>
-        <?php endforeach; ?>
-      </select>
-      <button class="knopf haupt">Bestellung anlegen</button>
-    </form>
+    <h2>Wie es weitergeht</h2>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:0 0 12px">
+      Der Kunde hat geschrieben, aber noch nicht gesagt, was er braucht.
+      Der Konfigurator fragt das in acht Schritten ab und rechnet die Spanne —
+      danach steht der Preis, und daraus wird das Angebot. Die Einladung dazu
+      steht fertig da, in seiner Sprache.
+    </p>
+    <?php if ($a['customer_id']): ?>
+      <a class="knopf haupt"
+         href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'] . '?vorlage=bedarf_einladen&tun=kunde_nachricht')) ?>">
+        Konfigurator schicken &rsaquo;</a>
+      <a class="knopf" href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'])) ?>">Kundenakte</a>
+    <?php else: ?>
+      <div class="hinweis">Zu dieser Anfrage gibt es keine Kundenakte — sie kam nicht über das
+        Formular. Leg den Kunden an, dann steht der Weg offen.</div>
+    <?php endif; ?>
   </div>
+
+  <?php if ($pakete): ?>
+    <div class="block">
+      <h2>Oder direkt ein Festpreis-Paket</h2>
+      <p style="color:var(--leise);font-size:13px;line-height:1.65">
+        Nur, wenn ihr euch schon auf ein Paket geeinigt habt — sonst führt der Weg oben weiter.
+        Beim Anlegen entsteht die Anzahlung automatisch; den Zahlungslink erzeugst du danach
+        in der Bestellung.</p>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="anfrage_bestellung">
+        <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+        <select name="paket_id" required style="min-width:220px">
+          <option value="">Paket wählen …</option>
+          <?php foreach ($pakete as $p): ?>
+            <option value="<?= (int) $p['id'] ?>" <?= (int) $p['id'] === (int) $a['package_id'] ? 'selected' : '' ?>>
+              <?= Fmt::h($p['name']) ?> — <?= Fmt::h(Fmt::geld((int) $p['price_cents'], (string) $p['currency'])) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <button class="knopf">Bestellung anlegen</button>
+      </form>
+    </div>
+  <?php endif; ?>
 
   <div class="block">
     <h2>Stand</h2>

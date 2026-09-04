@@ -56,9 +56,15 @@ $tage   = Vorgang::ruhtSeitTagen($v);
   </h2>
   <p><?= Fmt::h($v['warum']) ?></p>
 
-  <?php if ($s !== null && $s['tat'] === 'anfrage_bestellung' && $v['anfrage_id']): ?>
+  <?php if ($s !== null && $s['tat'] === 'anfrage_bestellung' && $v['anfrage_id'] && $pakete): ?>
     <?php /* Aus der Anfrage wird eine Bestellung. Der einzige Schritt,
-             der eine Entscheidung von dir braucht: welches Paket. */ ?>
+             der eine Entscheidung von dir braucht: welches Paket.
+
+             Das "&& $pakete" ist kein Schoenheitsfehler-Schutz: Ohne Pakete
+             stand hier eine leere Auswahlliste mit einem Pflichtfeld davor —
+             ein Knopf, den zu druecken unmoeglich war. Gibt es keins, faellt
+             der Schritt in den gewoehnlichen Zweig darunter und fuehrt
+             dorthin, wo es wirklich weitergeht. */ ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" class="tun">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="anfrage_bestellung">
       <input type="hidden" name="id" value="<?= (int) $v['anfrage_id'] ?>">
