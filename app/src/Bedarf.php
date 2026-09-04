@@ -213,6 +213,90 @@ final class Bedarf
      * Bewusst als Text und nicht als Tabelle: Er landet in der Nachricht der
      * Anfrage und in einer E-Mail, und dort gibt es keine Tabelle.
      */
+    /**
+     * Was der Kunde im Konfigurator schon gesagt hat -- als Vorbelegung fuer
+     * den Fragebogen.
+     *
+     * WARUM DAS SEIN MUSS
+     *
+     * Der Konfigurator fragt acht Dinge, bevor ein Preis entsteht. Der
+     * Fragebogen fragt danach vierunddreissig, damit die Seite gebaut werden
+     * kann. Sechs davon hat der Kunde schon beantwortet: seine Branche, wie
+     * viele Seiten, welche Funktionen, ob Texte, Fotos und Logo da sind.
+     * Ihn dasselbe ein zweites Mal zu fragen, kurz nachdem er bezahlt hat,
+     * ist der schnellste Weg, einen zufriedenen Kunden zu aergern -- und der
+     * haeufigste Grund, warum ein Fragebogen liegen bleibt.
+     *
+     * Also steht es schon drin, in seiner Sprache und in seinen Worten, und
+     * er kann es aendern. Was er nicht gesagt hat, bleibt leer.
+     *
+     * @return array<string,string> Feldname => Vorbelegung
+     */
+    public static function alsFragebogen(int $kundeId): array
+    {
+        try {
+            $b = Db::one(
+                "SELECT * FROM bedarf
+                  WHERE customer_id = ? AND status <> 'offen'
+                  ORDER BY id DESC LIMIT 1", [$kundeId]);
+        } catch (Throwable $e) {
+            // Eine Vorbelegung ist Beiwerk. Faellt sie aus, ist der Fragebogen
+            // leer -- aber er ist da.
+            return [];
+        }
+        if (!$b) { return []; }
+
+        $sprache = (string) ($b['sprache'] ?? 'it');
+        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+        $a = self::antworten($b);
+
+        /** Der lesbare Text einer Antwortmoeglichkeit, in der Sprache des Kunden. */
+        $wort = static function (string $frage, string $wert) use ($sprache): string {
+            $o = Baukasten::FRAGEN[$frage]['optionen'][$wert] ?? null;
+            return $o ? Texte::h($o, $sprache) : '';
+        };
+
+        $aus = [];
+
+        $branche = (string) ($a['branche'] ?? '');
+        if ($branche !== '' && $branche !== 'anderes') { $aus['branche'] = $wort('branche', $branche); }
+
+        /* Umfang und Sprachen stehen zusammen in einem Feld: Beides beschreibt,
+           wie gross die Seite wird, und getrennt liest es sich wie zwei Fragen
+           zu derselben Sache. */
+        $seiten = [];
+        if (($a['umfang'] ?? '') !== '') { $seiten[] = $wort('umfang', (string) $a['umfang']); }
+        if (($a['sprachen'] ?? '') !== '') { $seiten[] = $wort('sprachen', (string) $a['sprachen']); }
+        if ($seiten) { $aus['seiten'] = implode(' · ', array_filter($seiten)); }
+
+        $zwecke = [];
+        foreach ((array) ($a['zweck'] ?? []) as $z) {
+            $w = $wort('zweck', (string) $z);
+            if ($w !== '') { $zwecke[] = $w; }
+        }
+        if ($zwecke) { $aus['funktionen'] = implode(' · ', $zwecke); }
+
+        /* Material: Was da ist, steht als solches drin. Was fehlt, steht
+           ebenfalls drin -- eine leere Zeile hiesse "nicht gefragt", und
+           gefragt wurde sehr wohl. */
+        $material = (array) ($a['material'] ?? []);
+        $ja   = ['it' => 'C’è già.', 'de' => 'Ist vorhanden.', 'en' => 'Already there.'][$sprache];
+        $nein = ['it' => 'Non c’è ancora.', 'de' => 'Fehlt noch.', 'en' => 'Not yet there.'][$sprache];
+        foreach (['texte' => 'texte', 'fotos' => 'bilder', 'logo' => 'logo'] as $quelle => $ziel) {
+            $aus[$ziel] = in_array($quelle, $material, true) ? $ja : $nein;
+        }
+
+        /* Nur wenn es eine alte Seite gibt, ergibt die Frage nach ihr einen
+           Sinn -- sonst bleibt sie leer und der Kunde ueberspringt sie. */
+        $bestand = (string) ($a['bestand'] ?? '');
+        if ($bestand === 'erneuern' || $bestand === 'ueberarb') {
+            $aus['erhalten'] = '';
+            $aus['stoert']   = '';
+        }
+
+        return array_filter($aus, static fn($v) => trim((string) $v) !== '');
+    }
+
     /* ==================================================================
        Aufraeumen
        ================================================================== */

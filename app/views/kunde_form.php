@@ -21,11 +21,20 @@
   <small style="color:var(--leise);display:block;margin-top:5px">In dieser Sprache gehen alle
   automatischen E-Mails an ihn — Zahlung, Vorschau, Restzahlung, „ist online".
   Sie wird beim Anfragen gesetzt und lässt sich hier ändern.</small></div></div>
-<div class="reihe"><div class="feld"><label>Codice fiscale</label><input name="tax_code" value="<?= Fmt::h($k['tax_code'] ?? '') ?>" placeholder="MRNRSO78T41C351K"></div>
-<div class="feld"><label>Partita IVA</label><input name="vat_id" value="<?= Fmt::h($k['vat_id'] ?? '') ?>" placeholder="01234567890"></div></div>
-<div class="feld"><label>Empfängerkode oder PEC (SDI)</label><input name="sdi" value="<?= Fmt::h($k['sdi'] ?? '') ?>" placeholder="M5UXCR1">
-  <small style="color:var(--leise);display:block;margin-top:5px">Auf einem Zahlungsbeleg braucht es diese drei nicht. Sobald du eine Partita IVA hast und
-  echte Rechnungen stellst, gehören sie bei Unternehmen und Freiberuflern auf jede Rechnung — dann stehen sie schon hier.</small></div>
+<?php /* Die Beschriftung folgt der Sprache des Kunden: Ein deutscher Kunde
+         hat eine Steuernummer, keine Partita IVA, und der italienische
+         Empfaengerkode existiert bei ihm gar nicht. Umgestellt wird sie beim
+         Speichern -- wer die Sprache oben aendert, sieht die neuen Worte
+         nach dem Sichern. */
+  $sw = Kunde::steuerworte($k['sprache'] ?? 'it'); ?>
+<div class="reihe"><div class="feld"><label><?= Fmt::h($sw['tax_code']) ?></label><input name="tax_code" value="<?= Fmt::h($k['tax_code'] ?? '') ?>"></div>
+<div class="feld"><label><?= Fmt::h($sw['vat_id']) ?></label><input name="vat_id" value="<?= Fmt::h($k['vat_id'] ?? '') ?>"></div></div>
+<?php if ($sw['sdi'] !== null): ?>
+<div class="feld"><label><?= Fmt::h($sw['sdi']) ?></label><input name="sdi" value="<?= Fmt::h($k['sdi'] ?? '') ?>" placeholder="M5UXCR1"></div>
+<?php else: ?>
+<input type="hidden" name="sdi" value="<?= Fmt::h($k['sdi'] ?? '') ?>">
+<?php endif; ?>
+<p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:-4px 0 14px"><?= Fmt::h($sw['hinweis']) ?></p>
 <div class="feld"><label>Interne Notizen</label><textarea name="notes" rows="4"><?= Fmt::h($k['notes'] ?? '') ?></textarea></div>
 <button class="knopf haupt">Speichern</button> <a class="knopf stumm" href="<?= Fmt::h(url('kunden')) ?>">Abbrechen</a>
 </form></div>

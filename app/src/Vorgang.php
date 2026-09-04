@@ -361,6 +361,20 @@ final class Vorgang
      * das Angebot dran. Hat er sich nicht gemeldet, ist er am Zug -- und die
      * Zeile wandert von selbst aus "Du bist dran" heraus.
      */
+    /* Wie lange ein Kunde schweigen darf, bevor die Fuehrung wieder auf
+       "du bist dran" springt. Zwei Tage nach einer Preisauskunft ist normal,
+       fuenf sind ein vergessener Faden; ein verschicktes Angebot laeuft
+       vierzehn Tage, da ist eine Woche der richtige Moment fuer eine kurze
+       Nachfrage -- nicht der letzte Tag, an dem es ohnehin zu spaet ist. */
+    private const STILL_PREIS   = 5;
+    private const STILL_ANGEBOT = 7;
+
+    /** Wie viele Tage sich an diesem Vorgang nichts mehr getan hat. */
+    private static function stillSeit(array $v): int
+    {
+        return self::ruhtSeitTagen($v);
+    }
+
     private static function gespraechSchritt(array $v): array
     {
         $kid = $v['kunde_id'];
@@ -392,6 +406,16 @@ final class Vorgang
                         return self::setzen($v, 'gespraech', self::DU, 'Link schicken',
                             'Das Angebot steht fest, aber der Kunde hat den Link noch nicht.',
                             null, null, [], $ziel . '?tun=angebot_link');
+                    }
+                    $tage = self::stillSeit($v);
+                    if ($tage >= self::STILL_ANGEBOT) {
+                        $frist = trim((string) ($angebot['gueltig_bis'] ?? ''));
+                        $rest  = $frist !== '' ? (int) floor((strtotime($frist) - time()) / 86400) : 0;
+                        return self::setzen($v, 'gespraech', self::DU, 'Nachfassen',
+                            'Das Angebot liegt seit ' . $tage . ' Tagen beim Kunden'
+                            . ($rest > 0 ? ' und gilt noch ' . $rest . ' Tage' : '')
+                            . '. Ein Satz genügt — die meisten haben es schlicht vergessen.',
+                            null, null, [], $ziel);
                     }
                     return self::setzen($v, 'gespraech', self::KUNDE, 'Angebot ansehen',
                         'Das Angebot ist beim Kunden. Jetzt entscheidet er.',
@@ -438,6 +462,13 @@ final class Vorgang
                   WHERE customer_id = ? AND sender = 'kunde' AND created_at >= ?",
                 [$kid, $seit]);
             if ($seine === 0) {
+                $tage = self::stillSeit($v);
+                if ($tage >= self::STILL_PREIS) {
+                    return self::setzen($v, 'gespraech', self::DU, 'Nachfassen',
+                        'Der Preis ging vor ' . $tage . ' Tagen raus und blieb unbeantwortet. '
+                        . 'Frag einmal nach, ob die Zahl passt — danach weißt du es, so oder so.',
+                        null, null, [], $ziel);
+                }
                 return self::setzen($v, 'gespraech', self::KUNDE, 'Bedarf ansehen',
                     'Der Preis ist genannt. Der Kunde hat sich seither nicht gemeldet.',
                     null, null, [], $ziel);

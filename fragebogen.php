@@ -242,6 +242,13 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
   <div class="fbkopf">
     <h1 style="font-size:21px;margin:0 0 6px"><?= $h($S('titel')) ?></h1>
     <p class="lead" style="margin:0"><?= $h($S('lead')) ?></p>
+    <?php /* Ein paar Felder sind schon gefuellt, weil der Kunde sie im
+             Konfigurator beantwortet hat. Ohne diesen Satz fragt er sich, wer
+             das getippt hat -- und traut sich womoeglich nicht, es zu
+             aendern. Mit dem ersten eigenen Speichern verschwindet er. */ ?>
+    <?php if ($schritt === 1 && trim((string) ($f['data'] ?? '')) !== '' && ($f['status'] ?? '') === 'offen'): ?>
+      <p class="lead" style="margin:8px 0 0;color:var(--cyan)"><?= $h($S('schonGesagt')) ?></p>
+    <?php endif; ?>
     <ul class="punkte">
       <?php foreach ($abschnitte as $i => $_): ?>
         <li class="<?= $i + 1 < $schritt ? 'durch' : ($i + 1 === $schritt ? 'jetzt' : '') ?>"></li>

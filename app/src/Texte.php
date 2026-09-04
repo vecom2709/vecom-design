@@ -18,7 +18,12 @@ final class Texte
                 'zielgruppe' => ['it' => 'Chi sono i vostri clienti', 'de' => 'Wer sind eure Kunden', 'en' => 'Who are your customers', 'art' => 'lang'],
                 'standort'   => ['it' => 'Sede e zona servita', 'de' => 'Standort und Einzugsgebiet', 'en' => 'Location and area served', 'art' => 'text'],
                 'kontakt'    => ['it' => 'Telefono, e-mail, orari', 'de' => 'Telefon, E-Mail, Öffnungszeiten', 'en' => 'Phone, email, opening hours', 'art' => 'lang'],
-                'impressum' => ['it' => 'Dati per le note legali: ragione sociale esatta, indirizzo, P. IVA o codice fiscale', 'de' => 'Angaben fürs Impressum: genaue Firmierung, Anschrift, Partita IVA oder Codice Fiscale', 'en' => 'Details for the legal notice: exact company name, address, VAT or tax number', 'art' => 'lang'],
+                /* Die Steuernummern heissen in jedem Land anders, und die
+                   falsche Vokabel laesst den Kunden raten, was gemeint ist.
+                   Italien: Partita IVA und Codice fiscale. Deutschland:
+                   Steuernummer und Umsatzsteuer-Identifikationsnummer.
+                   Englischsprachig: company number und VAT number. */
+                'impressum' => ['it' => 'Dati per le note legali: ragione sociale esatta, indirizzo, P. IVA o codice fiscale', 'de' => 'Angaben fürs Impressum: genaue Firmierung, Anschrift, Steuernummer oder Umsatzsteuer-Identifikationsnummer (USt-IdNr.)', 'en' => 'Details for the legal notice: exact company name, registered address, company number and VAT number', 'art' => 'lang'],
                 'ansprechpartner' => ['it' => 'Con chi parlo durante il lavoro — e chi decide alla fine?', 'de' => 'Mit wem spreche ich während der Arbeit — und wer entscheidet am Ende?', 'en' => 'Who do I talk to while we work — and who decides in the end?', 'art' => 'lang'],
             ],
         ],
@@ -70,6 +75,9 @@ final class Texte
         'lead'       => ['it' => 'Quattro passi brevi, circa dieci minuti. Più cose mi racconti, meno domande dovrò farti dopo.',
                          'de' => 'Vier kurze Schritte, etwa zehn Minuten. Je mehr du mir erzählst, desto weniger muss ich später nachfragen.',
                          'en' => 'Four short steps, about ten minutes. The more you tell me, the fewer questions I’ll need later.'],
+        'schonGesagt'=> ['it' => 'Alcune risposte sono già compilate: le hai date quando hai calcolato il prezzo. Correggile pure se nel frattempo è cambiato qualcosa.',
+                         'de' => 'Ein paar Antworten stehen schon drin — die hast du gegeben, als du den Preis ausgerechnet hast. Ändere sie ruhig, wenn sich etwas geändert hat.',
+                         'en' => 'A few answers are already filled in — you gave them when you worked out the price. Change them if anything has moved on.'],
         'speichern'  => ['it' => 'Salva e continua dopo', 'de' => 'Zwischenspeichern', 'en' => 'Save for later'],
         'absenden'   => ['it' => 'Invia definitivamente', 'de' => 'Endgültig absenden', 'en' => 'Send'],
         'gespeichert'=> ['it' => 'Salvato. Puoi tornare quando vuoi con lo stesso link.',

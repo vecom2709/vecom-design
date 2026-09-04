@@ -199,6 +199,25 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
         </form>
       </div>
     <?php else: ?>
+      <?php if ((string) $a['status'] === 'gesendet'): ?>
+        <div class="block" data-tun="angebot_zusage">
+          <h2 style="font-size:15px;margin:0 0 10px">Er hat zugesagt</h2>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+            Für die Zusage am Telefon. Über seinen Link geht es von selbst — kommt sie
+            mündlich, klick hier: Daraus entsteht die Bestellung mit
+            <b><?= Fmt::h($eur($a['summe_cents']) . ' €') ?></b> und den Posten von oben,
+            dazu die Anzahlung über <?= Fmt::h($eur($anzahlung)) ?> €. Nichts davon musst du abtippen.
+          </p>
+          <form method="post" action="<?= Fmt::h(url('')) ?>"
+                onsubmit="return confirm('Zusage vermerken und Bestellung anlegen?')">
+            <?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="angebot_zusage">
+            <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+            <button class="knopf haupt">Zusage vermerken</button>
+          </form>
+        </div>
+      <?php endif; ?>
+
       <?php if ($neufassbar): ?>
         <div class="block" data-tun="angebot_neufassung">
           <h2 style="font-size:15px;margin:0 0 10px">Der Kunde will etwas anders</h2>

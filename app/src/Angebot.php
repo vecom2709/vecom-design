@@ -422,7 +422,37 @@ final class Angebot
     {
         $a = self::laden($token);
         if (!$a || $a['status'] !== 'gesendet' || self::abgelaufen($a)) { return null; }
+        return self::zusagen($a);
+    }
 
+    /**
+     * Zusage von Hand -- weil sie am Telefon kam.
+     *
+     * WARUM ES DEN WEG BRAUCHT
+     *
+     * Der Kunde nimmt normalerweise ueber seinen Link an, und daraus entsteht
+     * die Bestellung von selbst, mit dem Betrag und den Posten aus dem
+     * Angebot. Sagt er stattdessen am Telefon zu, gab es diesen Weg nicht:
+     * Uwe musste eine Bestellung von Hand erfassen, ein Paket waehlen, das
+     * nicht passt, und den verhandelten Betrag abtippen. Dabei geht genau
+     * das verloren, wofuer das Angebot da war -- die Posten, die Zusage und
+     * die Verbindung zwischen beiden.
+     *
+     * Abgelaufen ist hier kein Hindernis: Ob die Frist noch laeuft, weiss
+     * derjenige am besten, der gerade mit dem Kunden gesprochen hat.
+     */
+    public static function zusagenVonHand(int $angebotId): ?int
+    {
+        $a = Db::one('SELECT a.*, c.name AS kunde FROM angebote a
+                        JOIN customers c ON c.id = a.customer_id
+                       WHERE a.id = ?', [$angebotId]);
+        if (!$a || !in_array((string) $a['status'], ['gesendet', 'abgelaufen'], true)) { return null; }
+        return self::zusagen($a);
+    }
+
+    /** Der gemeinsame Rumpf: Aus dem Angebot wird eine Bestellung. */
+    private static function zusagen(array $a): ?int
+    {
         $paketId = self::internesPaket();
         $notiz   = 'Aus Angebot ' . $a['nummer'] . ".\n" . self::alsText((int) $a['id']);
 

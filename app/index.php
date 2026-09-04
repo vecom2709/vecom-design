@@ -220,6 +220,16 @@ if ($post) {
                     : $weg . ' Einträge sind weg.';
                 zurueck('bedarf');
 
+            case 'angebot_zusage':
+                require_once __DIR__ . '/src/Angebot.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                $bid = Angebot::zusagenVonHand($aid);
+                if ($bid === null) {
+                    throw new RuntimeException('Dieses Angebot lässt sich nicht buchen — es ist kein verschicktes.');
+                }
+                $_SESSION['gut'] = 'Zusage vermerkt. Die Bestellung steht mit dem Betrag aus dem Angebot.';
+                weiter('bestellungen/' . $bid);
+
             case 'angebot_neufassung':
                 require_once __DIR__ . '/src/Angebot.php';
                 $aid = (int) ($_POST['id'] ?? 0);
@@ -1265,6 +1275,8 @@ switch ($route) {
         break;
 
     case 'kunden':
+        // Die Steuerbegriffe richten sich nach der Sprache des Kunden.
+        require_once __DIR__ . '/src/Kunde.php';
         if ($unter === 'neu') { ansicht('kunde_form', ['k' => null]); break; }
         if ($id !== null) {
             $k = Db::one('SELECT * FROM customers WHERE id = ?', [$id]);
@@ -1472,6 +1484,14 @@ switch ($route) {
         if ($unter === 'neu') {
             ansicht('bestellung_form', [
                 'kunden' => Db::all('SELECT id, name, company, email FROM customers ORDER BY name'),
+                /* Liegt fuer einen Kunden schon ein Angebot, ist das die
+                   bessere Grundlage als ein Paket plus abgetippter Preis:
+                   Dort stehen Betrag, Posten und Anzahlung schon richtig. */
+                'angebote' => sicher(static fn() => Db::all(
+                    "SELECT a.id, a.nummer, a.summe_cents, a.status, c.name AS kunde
+                       FROM angebote a JOIN customers c ON c.id = a.customer_id
+                      WHERE a.order_id IS NULL AND a.status IN ('entwurf','gesendet')
+                      ORDER BY a.id DESC LIMIT 20"), []),
                 // Alles ausser der Betreuung. Die Betreuungspakete haben
                 // keinen Einmalpreis — sie standen hier als Nullzeilen in der
                 // Liste und haetten eine Bestellung ueber null Euro angelegt.

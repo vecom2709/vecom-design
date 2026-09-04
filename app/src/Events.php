@@ -431,9 +431,22 @@ final class Events
             'deadline'    => date('Y-m-d', strtotime('+30 days')),
         ]);
 
-        // Der Fragebogen gehoert zum Projekt und entsteht mit ihm.
+        /* Der Fragebogen gehoert zum Projekt und entsteht mit ihm -- und er
+           entsteht nicht leer: Was der Kunde im Konfigurator schon gesagt hat,
+           steht schon drin. Ihn kurz nach der Zahlung dieselben sechs Dinge
+           noch einmal zu fragen, ist der haeufigste Grund, warum ein
+           Fragebogen liegen bleibt. */
+        $vorbelegt = [];
+        try {
+            require_once __DIR__ . '/Bedarf.php';
+            require_once __DIR__ . '/Baukasten.php';
+            require_once __DIR__ . '/Texte.php';
+            $vorbelegt = Bedarf::alsFragebogen((int) $b['customer_id']);
+        } catch (Throwable $e) { /* dann eben leer */ }
+
         Db::insert('questionnaires', [
             'project_id' => $projektId, 'customer_id' => (int) $b['customer_id'], 'status' => 'offen',
+            'data' => $vorbelegt ? json_encode($vorbelegt, JSON_UNESCAPED_UNICODE) : null,
         ]);
 
         self::protokoll('projekt_neu', 'Projekt angelegt: ' . $name, (int) $b['customer_id'], $bestellId, $projektId);

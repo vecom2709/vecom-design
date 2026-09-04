@@ -51,6 +51,57 @@ final class Kunde
      *
      * @return list<string>
      */
+    /**
+     * Wie die Steuernummern beim Kunden heissen.
+     *
+     * WARUM DAS NICHT EINE BESCHRIFTUNG SEIN KANN
+     *
+     * "Codice fiscale" und "Partita IVA" sind italienische Begriffe. Ein
+     * deutscher Kunde hat eine Steuernummer und, wenn er umsatzsteuerpflichtig
+     * ist, eine Umsatzsteuer-Identifikationsnummer -- er hat keine Partita
+     * IVA, und wer ihn danach fragt, bekommt entweder eine Rueckfrage oder
+     * eine falsche Zahl. Im englischsprachigen Raum heisst das Paar company
+     * number und VAT number.
+     *
+     * Der Empfaengerkode (SDI) ist dagegen wirklich nur italienisch: Er
+     * gehoert zur elektronischen Rechnung ueber das italienische
+     * Austauschsystem. Ausserhalb Italiens gibt es dafuer kein Feld, also
+     * steht dort null und die Zeile faellt weg.
+     *
+     * @return array{tax_code:string,vat_id:string,sdi:?string,hinweis:string}
+     */
+    public static function steuerworte(?string $sprache): array
+    {
+        $s = strtolower(trim((string) $sprache));
+        if (!in_array($s, ['it', 'de', 'en'], true)) { $s = 'it'; }
+
+        return [
+            'it' => [
+                'tax_code' => 'Codice fiscale',
+                'vat_id'   => 'Partita IVA',
+                'sdi'      => 'Empfängerkode oder PEC (SDI)',
+                'hinweis'  => 'Auf einem Zahlungsbeleg braucht es diese nicht. Sobald du eine Partita IVA hast und '
+                            . 'echte Rechnungen stellst, gehören sie bei Unternehmen und Freiberuflern auf jede '
+                            . 'Rechnung — dann stehen sie schon hier.',
+            ],
+            'de' => [
+                'tax_code' => 'Steuernummer',
+                'vat_id'   => 'Umsatzsteuer-Identifikationsnummer (USt-IdNr.)',
+                'sdi'      => null,
+                'hinweis'  => 'Bei deutschen Kunden: die Steuernummer vom Finanzamt, und die USt-IdNr. nur, wenn er '
+                            . 'umsatzsteuerpflichtig ist. Für eine Rechnung ins EU-Ausland ist die USt-IdNr. die '
+                            . 'wichtigere der beiden. Einen Empfängerkode gibt es dort nicht.',
+            ],
+            'en' => [
+                'tax_code' => 'Company or tax registration number',
+                'vat_id'   => 'VAT number',
+                'sdi'      => null,
+                'hinweis'  => 'For customers outside Italy: the company or tax registration number, and the VAT '
+                            . 'number only if they are VAT registered. There is no Italian recipient code outside Italy.',
+            ],
+        ][$s];
+    }
+
     public static function riegel(int $kundeId): array
     {
         $gruende = [];

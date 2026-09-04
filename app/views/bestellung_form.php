@@ -1,4 +1,30 @@
 <div class="kopf"><h1>Bestellung erfassen</h1></div>
+
+<?php /* Wer ein Angebot geschrieben hat, soll es nicht hier von Hand
+         nachbauen. Auf der Angebotsseite steht ein Knopf, der aus der Zusage
+         die Bestellung macht -- mit Betrag, Posten und Anzahlung, so wie sie
+         der Kunde gelesen hat. Dieser Hinweis ist die Abkuerzung dorthin. */ ?>
+<?php if (!empty($angebote)): ?>
+  <div class="block" style="max-width:680px;border-left:3px solid var(--cyan)">
+    <h2 style="font-size:15px;margin:0 0 6px">Dafür gibt es schon ein Angebot</h2>
+    <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
+      Hat der Kunde zugesagt, buche es dort — dann stimmen Betrag, Posten und Anzahlung
+      mit dem überein, was er gelesen hat. Hier von Hand zu erfassen heißt, denselben
+      Preis ein zweites Mal einzutippen.
+    </p>
+    <ul style="margin:0;padding-left:1.1rem;font-size:13.5px;line-height:1.9">
+      <?php foreach ($angebote as $ang): ?>
+        <li>
+          <a href="<?= Fmt::h(url('angebote/' . (int) $ang['id'])) ?>"><?= Fmt::h((string) $ang['nummer']) ?></a>
+          · <?= Fmt::h((string) $ang['kunde']) ?>
+          · <?= Fmt::h(Fmt::geld((int) $ang['summe_cents'])) ?>
+          <span style="color:var(--leise)">(<?= Fmt::h((string) $ang['status']) ?>)</span>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+<?php endif; ?>
+
 <div class="block" style="max-width:680px">
 <?php if (!$kunden || !$pakete): ?>
   <div class="hinweis schlecht">Dafür braucht es mindestens einen Kunden und ein aktives Paket.</div>
