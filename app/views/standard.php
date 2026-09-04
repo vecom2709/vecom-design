@@ -41,7 +41,9 @@
 </div>
 
 <div class="block"><h2>Die Hausregeln
-    <span class="mehr"><?= $eigener ? 'eigene Fassung' : 'noch die Vorgabe' ?></span></h2>
+    <span class="mehr"><?= $eigener ? 'eigene Fassung' : 'noch die Vorgabe' ?><?php
+      if ($gesehenAm): ?> · durchgesehen <?= Fmt::h(Fmt::seit((string) $gesehenAm)) ?><?php
+      endif; ?></span></h2>
 
   <form method="post" action="<?= Fmt::h(url('')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="standard_speichern">
@@ -56,6 +58,20 @@
         an jedes Briefing anhängen</label>
     </div>
   </form>
+
+  <?php /* GELESEN IST AUCH ERLEDIGT
+           Wer den Text liest und richtig findet, hat ihn durchgesehen. Ohne
+           diesen Knopf muesste er eine Kleinigkeit aendern, nur damit ein
+           Haken umspringt — und ein Werkzeug, das dazu zwingt, erzieht zum
+           Pfusch. */ ?>
+  <?php if (!$gesehenAm): ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="standard_gesehen">
+      <button class="knopf">Passt so</button>
+      <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+        Gelesen und nichts zu ändern? Dann hakt das den Punkt auf der Werkstatt ab.</span>
+    </form>
+  <?php endif; ?>
 
   <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:12px 0 0">
     Ein leeres Feld heißt „zurück zur Vorgabe“, nicht „keine Hausregeln“ —

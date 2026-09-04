@@ -1149,6 +1149,12 @@ if ($post) {
                     : 'Die Hausregeln stehen. Sie gelten ab dem nächsten Briefing.';
                 zurueck('standard');
 
+            case 'standard_gesehen':
+                require_once __DIR__ . '/src/Standard.php';
+                Standard::alsGesehenMerken();
+                $_SESSION['gut'] = 'Abgehakt. Ändern kannst du sie jederzeit — sie gilt ab dem nächsten Briefing.';
+                zurueck('standard');
+
             case 'claude_projekt':
                 require_once __DIR__ . '/src/Standard.php';
                 Standard::claudeProjektSpeichern((string) ($_POST['url'] ?? ''));
@@ -2040,6 +2046,7 @@ switch ($route) {
         ansicht('standard', [
             'text'      => Standard::text(),
             'eigener'   => Standard::eigener(),
+            'gesehenAm' => Standard::gesehenAm(),
             'anhaengen' => Standard::anhaengen(),
             'projekt'   => Standard::claudeProjekt(),
         ]);

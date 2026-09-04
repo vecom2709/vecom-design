@@ -31,6 +31,7 @@ final class Standard
 {
     private const SCHLUESSEL = 'werkstatt_standard';
     private const SCHALTER   = 'werkstatt_standard_anhaengen';
+    private const GESEHEN    = 'werkstatt_standard_gesehen';
 
     /**
      * Die Vorgabe. Sie steht hier und nicht in der Datenbank, damit eine
@@ -124,6 +125,11 @@ UEBERGABE
   Betreuung abdeckt und was extra kostet. Schriftlich, in seiner Sprache.
 TEXT;
 
+    private static function still(callable $fn, mixed $ersatz = null): mixed
+    {
+        try { return $fn(); } catch (Throwable $e) { return $ersatz; }
+    }
+
     /** Der geltende Text — der eigene, sonst die Vorgabe. */
     public static function text(): string
     {
@@ -156,8 +162,46 @@ TEXT;
         return $w === '' ? true : $w === '1';
     }
 
+    /**
+     * Wann Uwe die Hausregeln zuletzt durchgesehen hat.
+     *
+     * WARUM DAS NICHT AM GESPEICHERTEN TEXT HAENGT
+     *
+     * Erst stand hier "hat er einen eigenen Text?" — und damit mass der
+     * Einrichtungsstreifen etwas anderes, als er behauptete. Wer die Regeln
+     * liest und richtig findet, hat sie durchgesehen; er muesste sonst eine
+     * Kleinigkeit aendern, nur damit ein Haken umspringt. Ein Werkzeug, das
+     * dazu zwingt, erzieht zum Pfusch.
+     */
+    public static function gesehenAm(): ?string
+    {
+        try {
+            $w = trim((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [self::GESEHEN], ''));
+        } catch (Throwable $e) {
+            return null;
+        }
+        return $w !== '' ? $w : null;
+    }
+
+    public static function gesehen(): bool
+    {
+        return self::gesehenAm() !== null;
+    }
+
+    /** "Passt so" — gelesen und für richtig befunden. */
+    public static function alsGesehenMerken(): void
+    {
+        Db::run("INSERT INTO settings (skey, svalue) VALUES (?, ?)
+                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+            [self::GESEHEN, date('Y-m-d H:i:s')]);
+    }
+
     public static function speichern(string $text, ?bool $anhaengen = null): void
     {
+        // Wer speichert, hat gelesen. Beides getrennt abzuhaken waere ein
+        // Handgriff, den niemand versteht.
+        self::still(static fn() => self::alsGesehenMerken());
+
         /* Ein leeres Feld heisst "zurueck zur Vorgabe", nicht "leerer
            Standard". Ein leerer Hausstandard waere ein Briefing ohne
            Hausregeln, und das faellt erst auf, wenn die Seite fertig ist. */
@@ -255,13 +299,17 @@ TEXT;
         /* 3. Die Hausregeln. "Fertig" heisst hier: einmal angefasst. Ob der
               Text gut ist, kann niemand ausser Uwe beurteilen — aber ob er
               ihn je gelesen hat, sieht man daran, ob er ihn geaendert hat. */
+        $gesehen = self::gesehenAm();
         $punkte[] = [
             'schluessel' => 'standard',
             'was'    => 'Hausregeln durchgesehen',
-            'fertig' => self::eigener(),
-            'stand'  => 'eigene Fassung gespeichert',
-            'warum'  => 'Noch die Vorgabe von mir. Lies sie einmal durch und ändere, was '
-                      . 'für deine Kunden nicht stimmt — sie hängt an jedem Briefing.',
+            'fertig' => $gesehen !== null,
+            'stand'  => self::eigener()
+                ? 'eigene Fassung, zuletzt ' . Fmt::seit((string) $gesehen)
+                : 'gelesen und für richtig befunden, ' . Fmt::seit((string) $gesehen),
+            'warum'  => 'Noch die Vorgabe von mir, und noch nicht abgehakt. Lies sie einmal '
+                      . 'durch und ändere, was für deine Kunden nicht stimmt — sie hängt an '
+                      . 'jedem Briefing.',
             'ziel'   => 'standard',
             'wohin'  => 'ansehen',
         ];
