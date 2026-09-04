@@ -310,7 +310,7 @@ final class Angebot
 
         $tage = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
 
-        return (int) Db::transaktion(static function () use ($alt, $angebotId, $tage) {
+        return (int) Db::transaktion(static function () use ($alt, $angebotId, $tage, $ausWunsch) {
             $neuId = Db::insert('angebote', [
                 'nummer'            => self::naechsteNummer(),
                 'customer_id'       => (int) $alt['customer_id'],
