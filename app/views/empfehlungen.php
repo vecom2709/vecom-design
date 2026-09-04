@@ -12,6 +12,29 @@ $stufen = [
 ?>
 <div class="kopf"><h1>Empfehlungen</h1></div>
 
+<?php /* Verwaiste Zeilen: kein Empfehler, kein Geworbener, kein Bedarf --
+         nichts, worauf sie sich noch bezoegen. Sie leuchten sonst als offene
+         Nennung, die sich nicht zuordnen laesst, weil es niemanden mehr gibt,
+         dem sie gehoeren koennte. */ ?>
+<?php if (!empty($verwaist)): ?>
+  <div class="block" style="border-color:rgba(255,138,138,.32)">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1 1 320px;min-width:0">
+        <h2 style="font-size:15px;margin:0 0 4px">Verwaiste Empfehlungen<span class="mehr"><?= (int) $verwaist ?></span></h2>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0">
+          Auf diese Zeilen zeigt nichts mehr — der Kunde dahinter ist gelöscht.
+          Nennungen, die nur auf eine Zuordnung warten, bleiben stehen.</p>
+      </div>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="flex:0 0 auto">
+        <?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="empfehlung_aufraeumen">
+        <input type="hidden" name="zurueck" value="empfehlungen">
+        <button class="knopf">Aufräumen</button>
+      </form>
+    </div>
+  </div>
+<?php endif; ?>
+
 <?php if ($offen): ?>
   <div class="block">
     <h2 style="font-size:15px;margin:0 0 6px">Diese Namen warten auf eine Zuordnung</h2>

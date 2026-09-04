@@ -316,6 +316,45 @@ final class Empfehlung
        Klein
        ---------------------------------------------------------------------- */
 
+    /* ----------------------------------------------------------------------
+       Aufraeumen
+       ---------------------------------------------------------------------- */
+
+    /**
+     * Empfehlungen, auf die nichts mehr zeigt.
+     *
+     * Seit dem Loeschen eines Kunden gehen seine Empfehlungen mit. Was davor
+     * entstanden ist -- oder was ein Probelauf hinterlassen hat --, liegt
+     * weiter da: eine Zeile ohne Empfehler, ohne Geworbenen und ohne Bedarf,
+     * die in der Verwaltung als offene Nennung leuchtet und sich nicht
+     * zuordnen laesst, weil es niemanden mehr gibt, dem sie gehoeren koennte.
+     *
+     * Verwaist heisst hier streng: KEINER der fuenf Wege fuehrt noch
+     * irgendwohin. Wartet die Nennung nur auf eine Zuordnung, der Geworbene
+     * ist aber noch da, bleibt sie -- das ist Arbeit, kein Muell.
+     *
+     * @param bool $wirklich false zaehlt nur, true raeumt weg
+     */
+    public static function aufraeumen(bool $wirklich = false): int
+    {
+        $wo = "(e.geworbener_id IS NULL OR kg.id IS NULL)
+           AND (e.empfehler_id  IS NULL OR ke.id IS NULL)
+           AND (e.bedarf_id     IS NULL OR b.id  IS NULL)
+           AND (e.anfrage_id    IS NULL OR a.id  IS NULL)
+           AND (e.order_id      IS NULL OR o.id  IS NULL)";
+        $von = "FROM empfehlungen e
+                LEFT JOIN customers kg ON kg.id = e.geworbener_id
+                LEFT JOIN customers ke ON ke.id = e.empfehler_id
+                LEFT JOIN bedarf    b  ON b.id  = e.bedarf_id
+                LEFT JOIN anfragen  a  ON a.id  = e.anfrage_id
+                LEFT JOIN orders    o  ON o.id  = e.order_id
+               WHERE $wo";
+        try {
+            if (!$wirklich) { return (int) Db::wert("SELECT COUNT(*) $von", [], 0); }
+            return Db::run("DELETE e $von")->rowCount();
+        } catch (Throwable $e) { return 0; }
+    }
+
     public static function prozent(): int
     {
         return max(0, min(100, (int) self::einstellung('empfehlung_prozent', '15')));

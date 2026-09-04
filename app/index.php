@@ -257,6 +257,15 @@ if ($post) {
                 }
                 zurueck('baukasten');
 
+            case 'empfehlung_aufraeumen':
+                require_once __DIR__ . '/src/Empfehlung.php';
+                $wie = Empfehlung::aufraeumen(true);
+                Events::protokoll('empfehlung_aufraeumen', $wie . ' verwaiste Empfehlungen entfernt');
+                $_SESSION['gut'] = $wie === 0
+                    ? 'Es war nichts Verwaistes da.'
+                    : $wie . ' verwaiste ' . ($wie === 1 ? 'Empfehlung' : 'Empfehlungen') . ' entfernt.';
+                zurueck('empfehlungen');
+
             case 'empfehlung_zuordnen':
                 require_once __DIR__ . '/src/Empfehlung.php';
                 $kid = (int) ($_POST['kunde'] ?? 0);
@@ -1480,6 +1489,9 @@ switch ($route) {
         require_once __DIR__ . '/src/Empfehlung.php';
         ansicht('empfehlungen', [
             'offen'  => sicher(static fn() => Empfehlung::offeneNennungen(), []),
+            /* Zeilen, auf die nichts mehr zeigt -- Reste aus der Zeit, bevor
+               Empfehlungen mit dem Kunden gingen, oder aus einem Probelauf. */
+            'verwaist' => sicher(static fn() => Empfehlung::aufraeumen(false), 0),
             'liste'  => sicher(static fn() => Db::all(
                 "SELECT e.*, ke.name AS empfehler, ke.rabatt_prozent, ke.rabatt_bis,
                         kg.name AS geworbener
