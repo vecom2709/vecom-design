@@ -1096,6 +1096,67 @@ if ($post) {
                 };
                 zurueck((string) ($_POST['zurueck'] ?? 'abos'));
 
+            /* ---------- Werkstatt ---------- */
+
+            case 'briefing_bauen':
+                /* Erzeugen UND festhalten, in einem Schritt. Ein Briefing,
+                   das nur auf dem Bildschirm entsteht, ist in Monat 14
+                   verschwunden — und dann faengt jede Aenderung an einer
+                   betreuten Seite wieder bei null an. */
+                require_once __DIR__ . '/src/Briefing.php';
+                $pid = (int) $_POST['id'];
+                Briefing::speichern($pid);
+                $_SESSION['gut'] = 'Das Briefing steht. Kopieren, Claude öffnen, einfügen.';
+                zurueck('projekte/' . $pid);
+
+            case 'chat_merken':
+                require_once __DIR__ . '/src/Briefing.php';
+                $pid = (int) $_POST['id'];
+                Briefing::chatMerken($pid, (string) ($_POST['url'] ?? ''));
+                $_SESSION['gut'] = trim((string) ($_POST['url'] ?? '')) !== ''
+                    ? 'Gemerkt — der Knopf führt jetzt direkt dorthin.'
+                    : 'Die Adresse ist wieder raus.';
+                zurueck('projekte/' . $pid);
+
+            case 'muster_speichern':
+                require_once __DIR__ . '/src/Muster.php';
+                $mid = Muster::speichern(
+                    isset($_POST['id']) ? (int) $_POST['id'] : null, $_POST);
+                $_SESSION['gut'] = 'Gespeichert. Ab jetzt schlägt das Briefing ihn vor, wo er passt.';
+                weiter('muster/' . $mid);
+
+            case 'muster_loeschen':
+                require_once __DIR__ . '/src/Muster.php';
+                Muster::loeschen((int) $_POST['id']);
+                $_SESSION['gut'] = 'Der Baustein ist weg.';
+                weiter('muster');
+
+            case 'abnahme_pruefen':
+                require_once __DIR__ . '/src/Abnahme.php';
+                $pid = (int) $_POST['id'];
+                $erg = Abnahme::fuerProjekt($pid);
+                $schlecht = (int) ($erg['zaehler']['schlecht'] ?? 0);
+                $_SESSION['gut'] = $schlecht === 0
+                    ? 'Nichts zu beanstanden — ' . (int) ($erg['zaehler']['gut'] ?? 0) . ' Punkte in Ordnung.'
+                    : $schlecht . ' Punkt(e) zu beheben. Sie stehen oben in der Liste.';
+                zurueck('projekte/' . $pid);
+
+            case 'standard_speichern':
+                require_once __DIR__ . '/src/Standard.php';
+                Standard::speichern((string) ($_POST['text'] ?? ''), !empty($_POST['anhaengen']));
+                $_SESSION['gut'] = trim((string) ($_POST['text'] ?? '')) === ''
+                    ? 'Zurück auf die Vorgabe.'
+                    : 'Die Hausregeln stehen. Sie gelten ab dem nächsten Briefing.';
+                zurueck('standard');
+
+            case 'claude_projekt':
+                require_once __DIR__ . '/src/Standard.php';
+                Standard::claudeProjektSpeichern((string) ($_POST['url'] ?? ''));
+                $_SESSION['gut'] = trim((string) ($_POST['url'] ?? '')) !== ''
+                    ? 'Eingetragen — die Briefing-Knöpfe öffnen ab jetzt dieses Projekt.'
+                    : 'Wieder raus. Die Knöpfe öffnen jetzt einen freien Chat.';
+                zurueck('standard');
+
             case 'mahnung_schicken':
                 /* Stufe 2 und 3 gehen nur von Hand raus — deshalb dieser
                    Knopf und kein Cronjob. Die Stufe kommt aus dem Formular,
@@ -1738,6 +1799,8 @@ switch ($route) {
         require_once __DIR__ . '/src/Onboarding.php';
         require_once __DIR__ . '/src/Texte.php';   // die Ansicht beschriftet den Fragebogen
         require_once __DIR__ . '/src/Umfang.php';  // und vergleicht ihn mit dem Angebot
+        require_once __DIR__ . '/src/Standard.php';// und zeigt, wohin der Briefing-Knopf fuehrt
+        require_once __DIR__ . '/src/Abnahme.php'; // und was die letzte Pruefung ergab
         if ($id !== null) {
             $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, o.order_no
                           FROM projects p JOIN customers c ON c.id = p.customer_id
@@ -1935,6 +1998,44 @@ switch ($route) {
                  JOIN projects  p ON p.id = q.project_id
                  ORDER BY FIELD(q.status,'offen') DESC, q.id DESC")),
             'mails' => sicher(static fn() => Db::all('SELECT * FROM mails ORDER BY id DESC LIMIT 30')),
+        ]);
+        break;
+
+    case 'werkstatt':
+        /* Alles, was gebaut wurde oder gebaut wird, auf einem Blatt. Die
+           Angaben kommen aus drei Tabellen, die es laengst gibt — neu ist
+           nur, dass sie nebeneinander stehen. */
+        ansicht('werkstatt', ['liste' => sicher(static fn() => Db::all(
+            "SELECT p.id, p.name, p.status, p.progress, p.deadline, p.preview_url,
+                    p.briefing_am, p.chat_url, p.abnahme, p.abnahme_am,
+                    c.id AS kunde_id, c.name AS kunde, c.company, c.kundennr,
+                    w.url AS live, w.domain, w.last_status, w.ssl_expires_at
+               FROM projects p
+               JOIN customers c ON c.id = p.customer_id
+               LEFT JOIN websites w ON w.project_id = p.id
+              ORDER BY FIELD(p.status,'abgeschlossen') ASC,
+                       p.deadline IS NULL, p.deadline ASC, p.id DESC"), [])]);
+        break;
+
+    case 'muster':
+        require_once __DIR__ . '/src/Muster.php';
+        if ($unter === 'neu') { ansicht('muster_form', ['m' => null]); break; }
+        if ($id !== null) {
+            $m = Muster::eines($id);
+            if (!$m) { http_response_code(404); exit('Baustein nicht gefunden.'); }
+            ansicht('muster_form', ['m' => $m]);
+            break;
+        }
+        ansicht('muster', ['liste' => Muster::alle()]);
+        break;
+
+    case 'standard':
+        require_once __DIR__ . '/src/Standard.php';
+        ansicht('standard', [
+            'text'      => Standard::text(),
+            'eigener'   => Standard::eigener(),
+            'anhaengen' => Standard::anhaengen(),
+            'projekt'   => Standard::claudeProjekt(),
         ]);
         break;
 

@@ -92,6 +92,162 @@
   </div>
 <?php endif; ?>
 
+<?php /* ======================================================================
+     WERKSTATT — der Auftrag an den Baumeister
+
+     Alles, was hier zusammengetragen wird, stand vorher schon da: 35
+     Fragebogenfelder, der bezahlte Umfang, Sprachen, Domain, Deadline. Nur
+     nahm es den Umweg ueber Kopf und Finger in ein Chatfenster und wurde
+     dabei jedes Mal kuerzer.
+
+     Zwei Schritte, mit Absicht. Erst erzeugen — dabei wird das Briefing am
+     Projekt festgehalten, und genau das ist der Wert: In Monat 14 steht hier
+     noch, woraus die Seite gebaut ist. Dann kopieren und Claude oeffnen, mit
+     einem Klick, weil die Zwischenablage eine Nutzerhandlung braucht.
+     ================================================================== */ ?>
+  <div class="block" data-tun="briefing"><h2>Werkstatt
+    <?php if (!empty($p['briefing_am'])): ?>
+      <span class="mehr">Briefing von <?= Fmt::h(Fmt::seit((string) $p['briefing_am'])) ?></span>
+    <?php endif; ?></h2>
+
+    <?php $ziel = sicher(static fn() => Standard::claudeZiel(), 'https://claude.ai/new'); ?>
+    <?php $hatBriefing = trim((string) ($p['briefing'] ?? '')) !== ''; ?>
+
+    <div class="leiste" style="gap:8px;flex-wrap:wrap">
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="briefing_bauen">
+        <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>?tun=briefing">
+        <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <button class="knopf<?= $hatBriefing ? '' : ' haupt' ?>"><?=
+          $hatBriefing ? 'Briefing neu erzeugen' : 'Briefing erzeugen' ?></button></form>
+
+      <?php if ($hatBriefing): ?>
+        <button class="knopf haupt" data-kopieren="briefingtext"
+                data-oeffnen="<?= Fmt::h($ziel) ?>">Kopieren und Claude öffnen</button>
+        <button class="knopf stumm" data-kopieren="briefingtext">Nur kopieren</button>
+      <?php endif; ?>
+
+      <?php if (!empty($p['chat_url'])): ?>
+        <a class="knopf" href="<?= Fmt::h((string) $p['chat_url']) ?>" target="_blank" rel="noopener">Zum Gespräch</a>
+      <?php endif; ?>
+    </div>
+
+    <?php if ($hatBriefing): ?>
+      <textarea id="briefingtext" readonly rows="12" spellcheck="false"
+        style="width:100%;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+               font-size:12px;line-height:1.55;white-space:pre;overflow-wrap:normal;overflow-x:auto"><?=
+        Fmt::h((string) $p['briefing']) ?></textarea>
+      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 0">
+        Die erste Zeile ist der Titel — danach benennt Claude das Gespräch, und
+        du findest es später wieder.
+        <?php if (trim((string) sicher(static fn() => Standard::claudeProjekt(), '')) === ''): ?>
+          <br>Noch kein Claude-Projekt hinterlegt: Der Knopf öffnet einen freien Chat.
+          Trag unter <a href="<?= Fmt::h(url('standard')) ?>">Vecom-Standard</a> die Adresse
+          deines Projekts „Vecom — Kundenseiten“ ein, dann landet die Kundenarbeit dort
+          und nicht zwischen den Büchern.
+        <?php endif; ?>
+      </p>
+
+      <form method="post" action="<?= Fmt::h(url('')) ?>" class="leiste" style="margin-top:12px;gap:8px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="chat_merken">
+        <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+        <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <input name="url" placeholder="Adresse des Gesprächs bei claude.ai" style="flex:1;min-width:240px"
+               value="<?= Fmt::h((string) ($p['chat_url'] ?? '')) ?>">
+        <button class="knopf">Gespräch merken</button>
+      </form>
+      <p style="color:var(--leise);font-size:12.5px;margin:6px 0 0">
+        Einmal eingefügt, führt der Knopf oben direkt dorthin zurück — statt
+        durch eine Liste von vierzig Gesprächen zu suchen.</p>
+    <?php else: ?>
+      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+        Baut aus Fragebogen, Angebot und Eckdaten einen fertigen Auftrag —
+        <?php if (!$fragebogen || trim((string) ($fragebogen['data'] ?? '')) === ''): ?>
+          allerdings ist der Fragebogen noch leer. Das Briefing sagt das dann
+          auch dazu, damit niemand auf Vermutungen baut.
+        <?php else: ?>
+          samt allem, was der Kunde geschrieben hat, und den Hausregeln.
+        <?php endif; ?></p>
+    <?php endif; ?>
+  </div>
+
+<?php /* ======================================================================
+     ABNAHME — das Mechanische, bevor es der Kunde findet
+
+     Was unter Termindruck durchrutscht, ist selten das Schwere: die
+     Beschreibung, die auf drei Seiten dieselbe ist, das Impressum, das nur
+     auf der Startseite steht, die englische Fassung, die nie verlinkt wurde.
+     Geprueft wird nur, was sich eindeutig beantworten laesst — alles andere
+     bleibt Arbeit fuer Augen.
+     ================================================================== */ ?>
+  <?php $ab = sicher(static fn() => Abnahme::gespeichert($p), null); ?>
+  <div class="block" data-tun="abnahme"><h2>Abnahme
+    <?php if ($ab): ?>
+      <span class="mehr"><?= Fmt::h(Fmt::seit((string) ($p['abnahme_am'] ?? ''))) ?> geprüft</span>
+    <?php endif; ?></h2>
+
+    <?php $zuPruefen = trim((string) ($website['url'] ?? '')) ?: trim((string) ($p['preview_url'] ?? '')); ?>
+    <?php if ($zuPruefen === ''): ?>
+      <div class="leer">Weder eine Live-Adresse noch eine Vorschau eingetragen —
+        es gibt nichts zu prüfen. Trag sie rechts unter „Website“ ein.</div>
+    <?php else: ?>
+      <div class="leiste" style="gap:8px;flex-wrap:wrap">
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="abnahme_pruefen">
+          <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>?tun=abnahme">
+          <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <button class="knopf<?= $ab ? '' : ' haupt' ?>"><?= $ab ? 'Neu prüfen' : 'Jetzt prüfen' ?></button></form>
+        <span style="color:var(--leise);font-size:12.5px;align-self:center">
+          <?= Fmt::h($zuPruefen) ?><?= trim((string) ($website['url'] ?? '')) === '' ? ' (Vorschau)' : '' ?></span>
+      </div>
+
+      <?php if ($ab): ?>
+        <?php $z = (array) ($ab['zaehler'] ?? []); ?>
+        <p style="margin:12px 0 8px;font-size:13.5px">
+          <b style="color:var(--gruen,#2fbf71)"><?= (int) ($z['gut'] ?? 0) ?> in Ordnung</b>
+          <?php if ((int) ($z['schlecht'] ?? 0) > 0): ?>
+            · <b style="color:var(--rot,#e5484d)"><?= (int) $z['schlecht'] ?> zu beheben</b>
+          <?php endif; ?>
+          <?php if ((int) ($z['hinweis'] ?? 0) > 0): ?>
+            · <span style="color:var(--leise)"><?= (int) $z['hinweis'] ?> Hinweise</span>
+          <?php endif; ?>
+        </p>
+        <div class="tabellenrahmen"><table><tbody>
+          <?php
+            /* Erst das Kaputte, dann die Hinweise, dann das Gute. Wer
+               hier hinsieht, will wissen, was noch zu tun ist — nicht,
+               was schon stimmt. */
+            $rang = ['schlecht' => 0, 'hinweis' => 1, 'gut' => 2];
+            $punkte = (array) ($ab['punkte'] ?? []);
+            usort($punkte, static fn(array $a, array $b): int
+                => ($rang[$a['stand']] ?? 3) <=> ($rang[$b['stand']] ?? 3));
+          ?>
+          <?php foreach ($punkte as $pt): ?>
+            <tr>
+              <td style="width:26px;text-align:center;font-weight:700;color:<?=
+                $pt['stand'] === 'gut' ? 'var(--gruen,#2fbf71)'
+                  : ($pt['stand'] === 'schlecht' ? 'var(--rot,#e5484d)' : 'var(--leise)') ?>"><?=
+                $pt['stand'] === 'gut' ? '✓' : ($pt['stand'] === 'schlecht' ? '✗' : '·') ?></td>
+              <td style="width:30%"><?= Fmt::h((string) $pt['was']) ?></td>
+              <td style="color:var(--dim);font-size:13px"><?= Fmt::h((string) $pt['befund']) ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody></table></div>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+          Geprüft wird die Seite, die unter der Adresse steht — nicht jede
+          Unterseite. Für die Pflichtangaben im Fuß reicht das, weil der Fuß
+          überall derselbe ist; was nur auf einer Unterseite schiefliegt,
+          findet weiterhin nur das Auge.</p>
+      <?php else: ?>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+          Holt die Seite ab und sieht nach: Titel, Beschreibung, Handy-Ansicht,
+          Impressum und Datenschutz im Fuß, Sprachfassungen, Bildmaße und
+          Alt-Texte, robots.txt und sitemap.xml, Verschlüsselung ohne gemischte
+          Inhalte.</p>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+
   <div class="block"><h2>Fragebogen</h2>
     <?php if (!$fragebogen): ?>
       <div class="leer">Zu diesem Projekt gibt es keinen Fragebogen.</div>

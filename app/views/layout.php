@@ -58,6 +58,13 @@ $menue = [
   ['bedarf', 'Bedarf', 'bedarf'],
   ['angebote', 'Angebote', 'angebote'],
   ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
+  /* Was gebaut wird. Die Reihenfolge oben folgt dem Ablauf, und zwischen
+     "besprochen" und "bezahlt" liegt die Arbeit — bisher fand sie in der
+     Verwaltung nicht statt, sondern nur in einem Chatfenster daneben. */
+  ['__gruppe', 'Was gebaut wird', null],
+  ['werkstatt', 'Werkstatt', 'werkstatt'],
+  ['standard', 'Vecom-Standard', 'standard'],
+  ['muster', 'Bausteine', 'muster'],
   ['__gruppe', 'Geld', null],
   ['zahlungen', 'Zahlungen', 'zahlungen'],
   ['rechnungen', 'Rechnungen', 'rechnungen'],
@@ -404,6 +411,58 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { schliessen(); }
+  });
+})();
+</script>
+
+<script>
+/* KOPIEREN, UND ERST DANN OEFFNEN
+   -------------------------------------------------------------------------
+   Ein Knopf mit data-kopieren="<id>" legt den Inhalt dieses Feldes in die
+   Zwischenablage. Steht zusaetzlich data-oeffnen="<adresse>" dabei, geht
+   danach ein neuer Tab dorthin auf.
+
+   Die Reihenfolge ist der ganze Punkt. Das Briefing ueber die Adresse
+   vorbefuellen zu wollen waere bequemer, aber es haengt daran, dass
+   claude.ai einen bestimmten Parameter versteht -- tut es das eines Tages
+   nicht mehr, steht man vor einem leeren Chat und weiss nicht, warum. So
+   liegt der Text immer in der Zwischenablage, und Einfuegen ist ein Griff.
+
+   Faellt das Kopieren aus (aeltere Browser, kein sicherer Kontext), wird der
+   Text markiert und der Knopf sagt es. Dann kopiert man von Hand -- aber man
+   steht nicht ohne Rueckmeldung da. */
+(function () {
+  function markieren(feld) {
+    try { feld.focus(); feld.select(); feld.setSelectionRange(0, feld.value.length); }
+    catch (e) { /* dann eben nicht */ }
+  }
+  document.addEventListener('click', function (e) {
+    var knopf = e.target.closest('[data-kopieren]');
+    if (!knopf) { return; }
+    e.preventDefault();
+    var feld = document.getElementById(knopf.getAttribute('data-kopieren'));
+    if (!feld) { return; }
+    var wohin = knopf.getAttribute('data-oeffnen') || '';
+    var wort  = knopf.textContent;
+
+    function fertig(geklappt) {
+      knopf.textContent = geklappt ? 'Kopiert' : 'Bitte von Hand kopieren';
+      if (!geklappt) { markieren(feld); }
+      setTimeout(function () { knopf.textContent = wort; }, 2500);
+      /* Der neue Tab geht nur auf, wenn der Text auch wirklich liegt --
+         sonst landet man bei Claude mit leeren Haenden. */
+      if (geklappt && wohin) { window.open(wohin, '_blank', 'noopener'); }
+    }
+
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(feld.value).then(function () { fertig(true); },
+                                                     function () { fertig(false); });
+      return;
+    }
+    markieren(feld);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    fertig(ok);
   });
 })();
 </script>

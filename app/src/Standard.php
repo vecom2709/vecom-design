@@ -1,0 +1,206 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/Db.php';
+
+/**
+ * Der Vecom-Standard: wie eine Vecom-Seite gebaut ist.
+ *
+ * WARUM ES DAS BRAUCHT
+ *
+ * Jede Kundenseite entstand bisher in einem frischen Gespraech, das nichts
+ * von den vorigen wusste. Was bei Boulevard gelernt wurde — dass die
+ * Telefonnummer auf dem Handy anklickbar sein muss, dass Oeffnungszeiten
+ * ueber alles gehen, dass niemand ein Kontaktformular ausfuellt, wenn
+ * daneben WhatsApp steht — musste beim naechsten Kunden neu einfallen. So
+ * wird Seite 12 nicht besser als Seite 1, sondern nur anders.
+ *
+ * Dieses Dokument ist die Gegenmassnahme, und es ist bewusst EIN Text und
+ * keine Sammlung von Einstellungen: Wer eine Regel aendern will, schreibt
+ * einen Satz um, statt ein Formular zu suchen. Es haengt an jedem Briefing
+ * und gilt damit ab dem naechsten Kunden fuer alle.
+ *
+ * WARUM ES SICH ABSCHALTEN LAESST
+ *
+ * Liegt der Standard in der Wissensablage eines Claude-Projekts, kennt ihn
+ * jedes Gespraech dort ohnehin. Ihn dann noch einmal mitzuschicken, waere
+ * dieselbe Seite zweimal. Deshalb der Schalter: anhaengen ja oder nein.
+ */
+final class Standard
+{
+    private const SCHLUESSEL = 'werkstatt_standard';
+    private const SCHALTER   = 'werkstatt_standard_anhaengen';
+
+    /**
+     * Die Vorgabe. Sie steht hier und nicht in der Datenbank, damit eine
+     * frische Installation nicht mit einem leeren Blatt anfaengt — und
+     * damit man sehen kann, was Uwe daran geaendert hat.
+     */
+    public const VORGABE = <<<'TEXT'
+VECOM-STANDARD — so ist eine Vecom-Seite gebaut
+
+SPRACHEN
+- Italienisch, Deutsch, Englisch. Italienisch fuehrt, es ist die Sprache vor Ort.
+- Die Sprachwahl steht sichtbar oben, nicht im Fuss. Keine automatische
+  Umleitung nach Browsersprache — wer Italienisch liest, will nicht auf
+  Deutsch landen, weil sein Telefon deutsch eingestellt ist.
+- Jede Sprache hat ihre eigene Adresse (/it/, /de/, /en/) und hreflang.
+  Uebersetzung heisst uebersetzt, nicht durchgeschoben: Ein deutscher Satz,
+  der woertlich ins Italienische wandert, klingt nach Behoerde.
+
+WAS DIE SEITE LEISTEN MUSS
+- Eine Aufgabe pro Seite. Wer alles auf die Startseite legt, hat nichts gesagt.
+- Die gewuenschte Handlung ist immer in Reichweite: anrufen, schreiben,
+  reservieren, den Weg finden. Auf dem Handy im Daumenbereich.
+- Telefonnummer als tel:-Link, Adresse als Karten-Link, WhatsApp wenn der
+  Kunde WhatsApp nutzt. In Sizilien ruft man an oder schreibt bei WhatsApp;
+  ein Kontaktformular allein ist eine geschlossene Tuer.
+- Oeffnungszeiten, Adresse und Telefonnummer stimmen und stehen auf jeder
+  Seite im Fuss. Das sind die drei Angaben, wegen derer die Leute kommen.
+
+AUFBAU UND TECHNIK
+- Handy zuerst gestalten, Rechner als eigene Komposition — nicht als Beiwerk.
+- Eine Datei pro Seite, kein Framework ohne Grund. Keine Bibliothek, fuer die
+  es keine vier guten Antworten gibt (welches Problem, geht es nativ, wird sie
+  gepflegt, was kostet sie an Ladezeit).
+- Bilder als WebP oder AVIF, mit width und height, srcset wo es lohnt.
+  Das grosse Bild oben mit fetchpriority="high", alle anderen loading="lazy".
+- Schriften: eine Anzeigeschrift, eine Textschrift. font-display: swap,
+  Zeichensatz beschnitten, die Anzeigeschrift vorgeladen.
+- Ladezeit ist ein Versprechen, kein Zufall: LCP unter 2,5 Sekunden auf
+  Mobilfunk, keine springenden Layouts, die ganze Seite deutlich unter 1 MB.
+
+GESTALTUNG
+- Farben als Tokens an einer Stelle, nie verstreute Hex-Werte. Ein Akzent
+  reicht; Ampelfarben fuer Zustaende sind davon getrennt.
+- Abstaende aus einer 4/8-Skala. Schriftgroessen aus einer festen Reihe,
+  fluid ueber clamp(). Fliesstext 60 bis 75 Zeichen je Zeile.
+- Kontrast mindestens 4,5:1 fuer Text und 3:1 fuer Bedienelemente. Tastatur
+  vollstaendig bedienbar, Fokus sichtbar und schoen. Touchziele ab 44 px.
+- Dunkler Modus nur, wenn er wirklich gepflegt wird. Halb gemacht ist er
+  schlechter als gar nicht.
+
+WAS NIE VORKOMMT
+- Blindtext, auch nicht kurz. Fehlt ein Text, steht ein realistischer
+  Platzhalter in der richtigen Laenge da, klar als solcher gekennzeichnet.
+- Stockbilder, die nach Stockbild aussehen. Lieber Typografie und Farbe.
+- Karussell fuer etwas Wichtiges. Was durchlaeuft, wird nicht gelesen.
+- Text auf unruhigem Bild ohne Abdunklung. Emoji als Ersatz fuer Symbole.
+- Der violett-blaue Verlauf. Drei gleiche Kaestchen nebeneinander.
+- Erfundene Bewertungen, Zahlen oder Auszeichnungen. Nie, auch nicht als
+  Platzhalter, ohne dass es danebensteht.
+
+RECHTLICHES UND AUFFINDBARKEIT
+- Impressum und Datenschutz auf jeder Seite im Fuss verlinkt, in allen drei
+  Sprachen erreichbar. Cookie-Hinweis nur, wenn wirklich gesetzt wird — und
+  dann mit echter Ablehnmoeglichkeit.
+- Je Seite und Sprache ein eigener Titel und eine eigene Beschreibung.
+  OG-Bild, favicon, sitemap.xml, robots.txt.
+- Keine Schriften und Karten von fremden Servern nachladen, ohne dass es in
+  der Datenschutzerklaerung steht. Am einfachsten: selbst ausliefern.
+
+BEVOR ES LIVE GEHT
+- Der Abnahme-Check in der Verwaltung laeuft durch. Was er anmeckert, wird
+  behoben oder bewusst abgehakt — nicht uebersehen.
+- Auf einem echten Telefon angesehen, nicht nur im schmalen Fenster.
+- Konsole ohne Fehler, keine fehlgeschlagenen Anfragen.
+
+UEBERGABE
+- Der Kunde bekommt: die Adressen, was er selbst aendern kann, was die
+  Betreuung abdeckt und was extra kostet. Schriftlich, in seiner Sprache.
+TEXT;
+
+    /** Der geltende Text — der eigene, sonst die Vorgabe. */
+    public static function text(): string
+    {
+        try {
+            $w = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [self::SCHLUESSEL], '');
+        } catch (Throwable $e) {
+            $w = '';
+        }
+        return trim($w) !== '' ? $w : self::VORGABE;
+    }
+
+    /** Steht ein eigener Text da, oder gilt noch die Vorgabe? */
+    public static function eigener(): bool
+    {
+        try {
+            return trim((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [self::SCHLUESSEL], '')) !== '';
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
+    /** Haengt der Standard an jedem Briefing? Vorgabe: ja. */
+    public static function anhaengen(): bool
+    {
+        try {
+            $w = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [self::SCHALTER], '');
+        } catch (Throwable $e) {
+            return true;
+        }
+        return $w === '' ? true : $w === '1';
+    }
+
+    public static function speichern(string $text, ?bool $anhaengen = null): void
+    {
+        /* Ein leeres Feld heisst "zurueck zur Vorgabe", nicht "leerer
+           Standard". Ein leerer Hausstandard waere ein Briefing ohne
+           Hausregeln, und das faellt erst auf, wenn die Seite fertig ist. */
+        $text = trim($text);
+        Db::run("INSERT INTO settings (skey, svalue) VALUES (?, ?)
+                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+            [self::SCHLUESSEL, mb_substr($text, 0, 40000)]);
+
+        if ($anhaengen !== null) {
+            Db::run("INSERT INTO settings (skey, svalue) VALUES (?, ?)
+                     ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                [self::SCHALTER, $anhaengen ? '1' : '0']);
+        }
+    }
+
+    /**
+     * Die Adresse des Claude-Projekts, in dem die Kundenseiten entstehen.
+     *
+     * Uwe legt es einmal an ("Vecom — Kundenseiten") und traegt die Adresse
+     * hier ein. Danach oeffnet jeder Briefing-Knopf genau dieses Projekt:
+     * Kundenarbeit liegt beisammen und nicht zwischen den Buechern.
+     */
+    public static function claudeProjekt(): string
+    {
+        try {
+            return trim((string) Db::wert(
+                'SELECT svalue FROM settings WHERE skey = ?', ['werkstatt_claude_projekt'], ''));
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    public static function claudeProjektSpeichern(string $url): void
+    {
+        $url = trim($url);
+        // Nur https und nur claude.ai. Eine Adresse, die von hier aus mit
+        // einem Klick geoeffnet wird, soll nicht irgendwo hinfuehren koennen.
+        if ($url !== '' && !preg_match('~^https://(www\.)?claude\.ai/~i', $url)) {
+            throw new RuntimeException('Das muss eine Adresse bei claude.ai sein.');
+        }
+        Db::run("INSERT INTO settings (skey, svalue) VALUES (?, ?)
+                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+            ['werkstatt_claude_projekt', mb_substr($url, 0, 255)]);
+    }
+
+    /**
+     * Wohin der Knopf fuehrt.
+     *
+     * Steht ein Projekt da, dorthin — dann liegt das Gespraech gleich am
+     * richtigen Ort. Sonst auf einen frischen Chat. Das Briefing liegt in
+     * beiden Faellen schon in der Zwischenablage, siehe werkstatt.js:
+     * Verlaesst man sich auf das Vorbefuellen ueber die Adresse, steht man
+     * ohne Text da, sobald claude.ai das nicht mehr unterstuetzt.
+     */
+    public static function claudeZiel(): string
+    {
+        $p = self::claudeProjekt();
+        return $p !== '' ? $p : 'https://claude.ai/new';
+    }
+}
