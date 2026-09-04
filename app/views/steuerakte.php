@@ -72,6 +72,16 @@
         <?php if ((int) ($z['offen'] ?? 0) > 0): ?>
           <tr><td>Nicht bezahlt</td><td><span class="marke2 warnung"><?= (int) $z['offen'] ?></span></td></tr>
         <?php endif; ?>
+        <?php $fo = $z['forderungen'] ?? ['anzahl' => 0, 'summe' => 0]; ?>
+        <?php if ((int) $fo['anzahl'] > 0): ?>
+          <tr><td>Offene Forderungen</td><td>
+            <span class="marke2 warnung"><?= (int) $fo['anzahl'] ?></span>
+            <?= Fmt::h(Fmt::geld((int) $fo['summe'])) ?>
+            <div style="color:var(--leise);font-size:12.5px;margin-top:5px">
+              Bis zum 31.12. fällig und nicht bezahlt. Zählen steuerlich nicht zu
+              <?= (int) $j ?> — besteuert wird, was eingegangen ist. Sie stehen hier,
+              damit eine Zahlung im Januar dem richtigen Jahr zugeordnet wird.</div></td></tr>
+        <?php endif; ?>
         <?php if ((int) ($z['entwuerfe'] ?? 0) > 0): ?>
           <tr><td>Entwürfe</td><td><?= (int) $z['entwuerfe'] ?>
             <small style="color:var(--leise)">— ohne Nummer, nicht im Paket: das sind keine Belege</small></td></tr>
@@ -90,6 +100,8 @@
         <a class="knopf haupt" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/paket')) ?>">Alles als ZIP</a>
         <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/einnahmen')) ?>">Zahlungseingänge</a>
         <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/abgrenzung')) ?>">Jahreswechsel</a>
+        <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/forderungen')) ?>"
+           title="Was am 31.12. noch aussteht — steuerlich nicht zu zählen, aber der Commercialista fragt danach">Offene Forderungen</a>
         <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/verzeichnis')) ?>">Belegverzeichnis</a>
         <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/ausgaben')) ?>">Ausgaben</a>
         <?php if ((int) $a['rc_netto'] > 0): ?>

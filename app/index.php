@@ -1986,6 +1986,7 @@ switch ($route) {
             'verzeichnis'    => ['verzeichnis-',            static fn() => Steuerakte::verzeichnis($jahr)],
             'einnahmen'      => ['einnahmen-nach-zahlung-', static fn() => Steuerakte::einnahmenCsv($jahr)],
             'abgrenzung'     => ['abgrenzung-',             static fn() => Steuerakte::abgrenzungCsv($jahr)],
+            'forderungen'    => ['offene-forderungen-',    static fn() => Steuerakte::forderungenCsv($jahr)],
             'ausgaben'       => ['ausgaben-',               static fn() => Steuerakte::ausgabenCsv($jahr)],
             'reversecharge'  => ['reverse-charge-',         static fn() => Steuerakte::reverseChargeCsv($jahr)],
         ];

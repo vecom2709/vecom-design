@@ -7,6 +7,7 @@ require_once __DIR__ . '/Firma.php';
 require_once __DIR__ . '/Rechnung.php';
 require_once __DIR__ . '/Ausgabe.php';
 require_once __DIR__ . '/Events.php';
+require_once __DIR__ . '/Kunde.php';   // die Kundennummer gehoert in jede Liste
 
 /**
  * Alles, was der Commercialista fuer ein Jahr braucht — in einer Datei.
@@ -38,6 +39,7 @@ require_once __DIR__ . '/Events.php';
  *   verzeichnis.csv             eine Zeile je Beleg, nach Ausstellungsdatum
  *   einnahmen-nach-zahlung.csv  eine Zeile je Zahlungseingang — die Kassenliste
  *   abgrenzung.csv              was ueber den Jahreswechsel faellt
+ *   offene-forderungen.csv      was am 31.12. noch aussteht
  *   ausgaben.csv                Eingangsbelege, nummeriert nach comma 59
  *   reverse-charge.csv          auslaendische Leistungen mit IVA-Pflicht
  *   uebersicht.txt              Summen, Grenzwerte, was zu pruefen ist
@@ -107,6 +109,15 @@ final class Steuerakte
                   WHERE status = 'entwurf' AND issued_at IS NULL
                     AND YEAR(created_at) = ?", [$jahr], 0), 0),
             'offen' => $offen,
+            /* Was am Jahresende noch aussteht — nicht steuerbar, aber die
+               Zahl, nach der der Commercialista fragt. Sie kommt aus den
+               Raten, nicht aus den Belegen: Einen Beleg gibt es hier erst
+               mit der Zahlung. */
+            'forderungen' => array_reduce(self::forderungen($jahr),
+                static fn(array $t, array $f): array => [
+                    'anzahl' => $t['anzahl'] + 1,
+                    'summe'  => $t['summe'] + (int) $f['amount_cents'],
+                ], ['anzahl' => 0, 'summe' => 0]),
         ];
     }
 
@@ -149,7 +160,7 @@ final class Steuerakte
     public static function belege(int $jahr): array
     {
         return (array) self::still(fn() => Db::all(
-            "SELECT i.*, c.name AS kunde_name, c.company AS kunde_firma,
+            "SELECT i.*, c.name AS kunde_name, c.company AS kunde_firma, c.kundennr,
                     o.order_no, a.paket_name AS abo_paket,
                     p.paid_at, p.art AS zahlungsart
                FROM invoices i
@@ -172,7 +183,10 @@ final class Steuerakte
      */
     public static function verzeichnis(int $jahr): string
     {
-        $kopf = ['Nummer', 'Datum', 'Kunde', 'Bezug', 'Titel',
+        /* Die Kundennummer steht vor dem Namen. Zwei Kunden "Rossi" sind für
+           den Commercialista sonst nicht auseinanderzuhalten — und sie ist
+           dieselbe Nummer, die auf dem Beleg steht, den er danebenliegen hat. */
+        $kopf = ['Nummer', 'Datum', 'Kundennummer', 'Kunde', 'Bezug', 'Titel',
                  'Netto', 'Steuersatz', 'Steuer', 'Brutto', 'Währung',
                  'Status', 'Bezahlt am', 'Art'];
 
@@ -184,6 +198,7 @@ final class Steuerakte
             $zeilen[] = [
                 (string) $r['invoice_no'],
                 Fmt::datum((string) ($r['issued_at'] ?: $r['created_at'])),
+                (string) ($r['kundennr'] ?? ''),
                 trim((string) ($r['kunde_firma'] ?: $r['kunde_name'] ?: '—')),
                 $bezug,
                 (string) ($r['titel'] ?? ''),
@@ -194,7 +209,7 @@ final class Steuerakte
                 (string) $r['currency'],
                 (string) $r['status'],
                 $r['paid_at'] ? Fmt::datum((string) $r['paid_at']) : '',
-                (string) ($r['art'] ?? ''),
+                self::artWort((string) ($r['art'] ?? '')),
             ];
         }
 
@@ -217,6 +232,25 @@ final class Steuerakte
         $aus = "\xEF\xBB\xBF" . $zeile($kopf);
         foreach ($zeilen as $z) { $aus .= $zeile($z); }
         return $aus;
+    }
+
+    /**
+     * Die Zahlungsart, wie ein Mensch sie liest.
+     *
+     * In den Tabellen stand bisher der Datenbankwert: "anzahlung",
+     * "restzahlung", "nachtrag". Wer die Datei aufmacht, ist der
+     * Commercialista, nicht die Datenbank.
+     */
+    private static function artWort(string $art): string
+    {
+        return match ($art) {
+            'anzahlung'   => 'Anzahlung',
+            'restzahlung' => 'Restzahlung',
+            'nachtrag'    => 'Nachtrag',
+            'gesamt'      => 'Gesamtbetrag',
+            ''            => '',
+            default       => $art,
+        };
     }
 
     /** Betrag als Zahl fuer die Tabelle: Komma als Dezimaltrenner, kein Zeichen. */
@@ -274,8 +308,33 @@ final class Steuerakte
         $t .= "\nJAHRESWECHSEL\n" . str_repeat('-', 64) . "\n";
         $t .= count($ab['spaeter']) . " Beleg(e) aus " . $jahr . " wurden erst später bezahlt — sie zählen NICHT zu " . $jahr . ".\n";
         $t .= count($ab['vorjahr']) . " Beleg(e) aus früheren Jahren wurden " . $jahr . " bezahlt — sie zählen ZU " . $jahr . ".\n";
-        $t .= count($ab['offen'])   . " Beleg(e) aus " . $jahr . " sind noch offen.\n";
         $t .= "Zeile für Zeile in abgrenzung.csv.\n";
+
+        $ford = self::forderungen($jahr);
+        $fsum = 0;
+        $alt  = 0;
+        /* "Lange offen" heisst: gemessen am Stichtag, nicht am Kalender.
+           Ruft man das Paket im September ab, ist der Stichtag heute — eine
+           Rate von August ist dann nicht drei Monate alt, auch wenn sie vor
+           dem 1. Oktober faellig war. */
+        $bezug = min(strtotime($jahr . '-12-31'), strtotime('today'));
+        foreach ($ford as $f) {
+            $fsum += (int) $f['amount_cents'];
+            if (($bezug - strtotime((string) $f['faellig_am'])) > 90 * 86400) { $alt++; }
+        }
+        $t .= "\nOFFENE FORDERUNGEN ZUM 31.12.\n" . str_repeat('-', 64) . "\n";
+        if (!$ford) {
+            $t .= "Keine. Alles, was bis zum Jahresende fällig war, ist bezahlt.\n";
+        } else {
+            $t .= sprintf("%-28s %14s\n", count($ford) . ' Rate(n) offen', Fmt::geld($fsum, $w));
+            if ($alt > 0) {
+                $t .= "  davon " . $alt . " länger als drei Monate überfällig — bitte mit dem\n";
+                $t .= "  Commercialista klären, ob eine davon abzuschreiben ist.\n";
+            }
+            $t .= "Steuerlich zählen sie NICHT zu " . $jahr . ": Besteuert wird, was eingegangen\n";
+            $t .= "ist. Sie stehen hier, damit eine Zahlung im Januar dem richtigen Jahr\n";
+            $t .= "zugeordnet wird. Zeile für Zeile in offene-forderungen.csv.\n";
+        }
 
         $t .= "\nWAS ZU PRÜFEN IST\n" . str_repeat('-', 64) . "\n";
         $t .= $z['luecken']
@@ -324,6 +383,7 @@ final class Steuerakte
         $t .= "  verzeichnis.csv             eine Zeile je Beleg, nach Belegdatum\n";
         $t .= "  einnahmen-nach-zahlung.csv  jede Zahlung, sortiert nach Eingang\n";
         $t .= "  abgrenzung.csv              was über den Jahreswechsel fällt\n";
+        $t .= "  offene-forderungen.csv      was am 31.12. noch aussteht\n";
         $t .= "  ausgaben.csv                Eingangsbelege mit fortlaufender Nummer\n";
         $t .= "  reverse-charge.csv          Auslandsleistungen mit IVA-Pflicht\n";
         $t .= "  uebersicht.txt              Summen, Grenzwerte, Fristen\n";
@@ -394,11 +454,15 @@ final class Steuerakte
                     p.art, p.bezeichnung, p.provider, p.provider_ref,
                     i.invoice_no, i.issued_at,
                     o.order_no, c.name AS kunde_name, c.company AS kunde_firma,
-                    c.tax_code, c.vat_id
+                    c.kundennr, c.tax_code, c.vat_id
                FROM payments p
                LEFT JOIN invoices  i ON i.payment_id = p.id
                LEFT JOIN orders    o ON o.id = p.order_id
-               LEFT JOIN customers c ON c.id = o.customer_id
+               /* Der Kunde haengt am Beleg, wenn es einen gibt, sonst an der
+                  Bestellung. Vorher ging es nur ueber die Bestellung — eine
+                  Zahlung ohne Bestellung stand ohne Kunden in der Kassenliste,
+                  und das ist die Liste, nach der besteuert wird. */
+               LEFT JOIN customers c ON c.id = COALESCE(i.customer_id, o.customer_id)
               WHERE p.status = 'bezahlt' AND p.paid_at IS NOT NULL
                 AND YEAR(p.paid_at) = ?
               ORDER BY p.paid_at, p.id", [$jahr]), []);
@@ -408,8 +472,8 @@ final class Steuerakte
     public static function einnahmenCsv(int $jahr): string
     {
         $kopf = ['Zahlungseingang', 'Betrag', 'Gebühr', 'Währung', 'Beleg', 'Belegdatum',
-                 'Bestellung', 'Kunde', 'Codice fiscale', 'Partita IVA', 'Art', 'Bezeichnung',
-                 'Weg', 'Referenz'];
+                 'Bestellung', 'Kundennummer', 'Kunde', 'Codice fiscale', 'Partita IVA',
+                 'Art', 'Bezeichnung', 'Weg', 'Referenz'];
         $zeilen = [];
         foreach (self::einnahmen($jahr) as $r) {
             $zeilen[] = [
@@ -420,10 +484,11 @@ final class Steuerakte
                 (string) ($r['invoice_no'] ?? '— kein Beleg —'),
                 $r['issued_at'] ? Fmt::datum((string) $r['issued_at']) : '',
                 (string) ($r['order_no'] ?? ''),
+                (string) ($r['kundennr'] ?? ''),
                 trim((string) ($r['kunde_firma'] ?: $r['kunde_name'] ?: '')),
                 (string) ($r['tax_code'] ?? ''),
                 (string) ($r['vat_id'] ?? ''),
-                (string) ($r['art'] ?? ''),
+                self::artWort((string) ($r['art'] ?? '')),
                 (string) ($r['bezeichnung'] ?? ''),
                 (string) ($r['provider'] ?? ''),
                 (string) ($r['provider_ref'] ?? ''),
@@ -441,7 +506,15 @@ final class Steuerakte
      *   - Beleg aus dem Vorjahr, in diesem Jahr bezahlt
      *     -> zaehlt hier, obwohl er in der Vorjahresliste steht
      *
-     * @return array{spaeter:list<array<string,mixed>>,vorjahr:list<array<string,mixed>>,offen:list<array<string,mixed>>}
+     * Ein dritter Fall stand hier frueher: "ausgestellt, noch nicht bezahlt".
+     * Er konnte per Konstruktion nie etwas enthalten — ein Beleg entsteht in
+     * dieser Anwendung erst NACH der Zahlung (Rechnung::ausZahlung verlangt
+     * status = 'bezahlt'). Die Zeile stand also jedes Jahr auf null und sah
+     * aus wie eine Entwarnung. Was der Commercialista an dieser Stelle
+     * wirklich sehen will, sind die offenen Forderungen — und die stehen
+     * nicht bei den Belegen, sondern bei den Raten. Siehe forderungen().
+     *
+     * @return array{spaeter:list<array<string,mixed>>,vorjahr:list<array<string,mixed>>}
      */
     public static function abgrenzung(int $jahr): array
     {
@@ -459,8 +532,77 @@ final class Steuerakte
                                [$jahr, $jahr]),
             'vorjahr' => $hole("YEAR(i.issued_at) < ? AND p.paid_at IS NOT NULL AND YEAR(p.paid_at) = ?",
                                [$jahr, $jahr]),
-            'offen'   => $hole("YEAR(i.issued_at) = ? AND (p.paid_at IS NULL)", [$jahr]),
         ];
+    }
+
+    /**
+     * Was am Jahresende noch aussteht.
+     *
+     * Steuerlich zaehlt es nicht — nach dem principio di cassa wird
+     * besteuert, was eingegangen ist, und eine offene Rate ist nichts
+     * Eingegangenes. Der Commercialista fragt trotzdem danach, und zwar aus
+     * zwei Gruenden: Er will wissen, ob eine Zahlung im Januar zum alten oder
+     * zum neuen Jahr gehoert, und er will sehen, ob eine Forderung so alt ist,
+     * dass sie abzuschreiben waere.
+     *
+     * Genommen werden die Raten, nicht die Belege: Ein Beleg entsteht hier
+     * erst mit der Zahlung, eine offene Forderung hat also keinen.
+     * Beruecksichtigt wird jede Rate, die bis zum 31.12. faellig war und
+     * bis heute nicht bezahlt ist.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function forderungen(int $jahr): array
+    {
+        $zeilen = (array) self::still(fn() => Db::all(
+            "SELECT z.id, z.art, z.bezeichnung, z.amount_cents, z.currency, z.status,
+                    z.faellig_am, o.order_no, o.created_at AS bestellt_am,
+                    c.kundennr, c.name AS kunde_name, c.company AS kunde_firma
+               FROM payments z
+               JOIN orders    o ON o.id = z.order_id
+               LEFT JOIN customers c ON c.id = o.customer_id
+              WHERE z.status NOT IN ('bezahlt', 'rueckerstattet', 'abgebrochen')
+                AND o.status <> 'storniert'
+                AND z.faellig_am IS NOT NULL
+                AND z.faellig_am <= ?
+              ORDER BY z.faellig_am, z.id", [$jahr . '-12-31']), []);
+
+        // Der Mahnstand gehoert daneben: Eine Forderung, die dreimal gemahnt
+        // wurde und immer noch offen ist, liest sich anders als eine, die
+        // seit einer Woche faellig ist.
+        require_once __DIR__ . '/Mahnung.php';
+        foreach ($zeilen as &$z) {
+            $z['mahnstufe'] = (int) self::still(fn() => Mahnung::stand((int) $z['id']), 0);
+        }
+        unset($z);
+        return $zeilen;
+    }
+
+    public static function forderungenCsv(int $jahr): string
+    {
+        $kopf = ['Fällig am', 'Tage überfällig', 'Bestellung', 'Kundennummer', 'Kunde',
+                 'Art', 'Bezeichnung', 'Betrag', 'Währung', 'Stand', 'Mahnstufe'];
+        $stichtag = strtotime($jahr . '-12-31');
+        $heute    = strtotime('today');
+        $bezug    = min($stichtag, $heute);
+        $zeilen = [];
+        foreach (self::forderungen($jahr) as $r) {
+            $tage = (int) floor(($bezug - strtotime((string) $r['faellig_am'])) / 86400);
+            $zeilen[] = [
+                Fmt::datum((string) $r['faellig_am']),
+                (string) max(0, $tage),
+                (string) ($r['order_no'] ?? ''),
+                (string) ($r['kundennr'] ?? ''),
+                trim((string) ($r['kunde_firma'] ?: $r['kunde_name'] ?: '')),
+                self::artWort((string) $r['art']),
+                (string) $r['bezeichnung'],
+                self::zahl((int) $r['amount_cents']),
+                (string) $r['currency'],
+                (string) $r['status'],
+                (int) $r['mahnstufe'] > 0 ? (string) $r['mahnstufe'] : '',
+            ];
+        }
+        return self::tabelle($kopf, $zeilen);
     }
 
     public static function abgrenzungCsv(int $jahr): string
@@ -469,7 +611,6 @@ final class Steuerakte
         $namen = [
             'spaeter' => 'ausgestellt ' . $jahr . ', bezahlt später — zählt NICHT zu ' . $jahr,
             'vorjahr' => 'aus dem Vorjahr, bezahlt ' . $jahr . ' — zählt zu ' . $jahr,
-            'offen'   => 'ausgestellt ' . $jahr . ', noch nicht bezahlt',
         ];
         $zeilen = [];
         foreach (self::abgrenzung($jahr) as $fall => $liste) {
@@ -683,6 +824,7 @@ final class Steuerakte
             'verzeichnis.csv'             => self::verzeichnis($jahr),
             'einnahmen-nach-zahlung.csv'  => self::einnahmenCsv($jahr),
             'abgrenzung.csv'              => self::abgrenzungCsv($jahr),
+            'offene-forderungen.csv'      => self::forderungenCsv($jahr),
             'ausgaben.csv'                => self::ausgabenCsv($jahr),
             'reverse-charge.csv'          => self::reverseChargeCsv($jahr),
         ];
