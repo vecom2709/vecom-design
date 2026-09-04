@@ -407,6 +407,14 @@ final class Vorgang
                             'Das Angebot steht fest, aber der Kunde hat den Link noch nicht.',
                             null, null, [], $ziel . '?tun=angebot_link');
                     }
+                    /* Ein Gegenvorschlag ist keine Stille, sondern eine
+                       Antwort -- und die dringlichste, die es hier gibt: Der
+                       Kunde will kaufen, nur anders. */
+                    if (trim((string) ($angebot['wunsch'] ?? '')) !== '') {
+                        return self::setzen($v, 'gespraech', self::DU, 'Gegenvorschlag ansehen',
+                            'Der Kunde hat sich sein Angebot umgestellt. Ein Klick macht daraus die neue Fassung.',
+                            null, null, [], $ziel . '?tun=angebot_wunsch');
+                    }
                     $tage = self::stillSeit($v);
                     if ($tage >= self::STILL_ANGEBOT) {
                         $frist = trim((string) ($angebot['gueltig_bis'] ?? ''));

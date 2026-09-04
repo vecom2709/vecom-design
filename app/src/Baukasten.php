@@ -52,6 +52,12 @@ final class Baukasten
 
        art: 'einfach' = eine Antwort, 'mehrfach' = mehrere ankreuzbar
        ---------------------------------------------------------------------- */
+    /* Ohne Grundgeruest gibt es keine Website. Es auf dem Angebot abwaehlen
+       zu koennen waere kein Gegenvorschlag, sondern ein Missverstaendnis --
+       deshalb bleibt diese Zeile dort fest stehen. (Was der Kunde gar nicht
+       erst selbst dazunehmen darf, sagt NUR_AUF_ANFRAGE weiter unten.) */
+    public const FEST = ['basis'];
+
     public const FRAGEN = [
 
         'zweck' => [

@@ -233,7 +233,9 @@ if ($post) {
             case 'angebot_neufassung':
                 require_once __DIR__ . '/src/Angebot.php';
                 $aid = (int) ($_POST['id'] ?? 0);
-                $neu = Angebot::neuFassung($aid);
+                // Mit dem Gegenvorschlag als Grundlage, wenn einer da ist und
+                // der Knopf ihn meint -- sonst mit den Zeilen von jetzt.
+                $neu = Angebot::neuFassung($aid, !empty($_POST['aus_wunsch']));
                 // Geht es nicht (Entwurf oder schon angenommen), bleibt man,
                 // wo man war -- die Seite sagt dann selbst, warum.
                 zurueck('angebote/' . ($neu ?? $aid));

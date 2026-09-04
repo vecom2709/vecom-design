@@ -72,6 +72,19 @@ if ($a && $_SERVER['REQUEST_METHOD'] === 'POST') {
             Angebot::ablehnen($token, (string) ($_POST['grund'] ?? ''));
             header('Location: ' . $adresse('abgelehnt')); exit;
         }
+        if ($tat === 'wunsch') {
+            /* Nur Kreuze und Mengen kommen mit, keine Betraege -- die Preise
+               holt Angebot::wunschSpeichern aus dem Angebot und dem Katalog.
+               Ein Preis, den der Kunde mitschicken darf, waere ein Preis, den
+               er bestimmen darf. */
+            $mengen = [];
+            foreach ((array) ($_POST['pos'] ?? []) as $slug => $menge) {
+                if (!preg_match('/^[a-z0-9_]{1,60}$/', (string) $slug)) { continue; }
+                $mengen[(string) $slug] = (int) $menge;
+            }
+            $ok = Angebot::wunschSpeichern((int) $a['id'], $mengen);
+            header('Location: ' . $adresse($ok ? 'wunsch' : 'panne')); exit;
+        }
     } catch (Throwable $e) {
         try { Events::melden('angebot_fehler', 'Antwort auf ein Angebot ging schief', 'schlecht', $e->getMessage(), '/angebote'); }
         catch (Throwable $e2) { /* dann eben nicht */ }
@@ -104,6 +117,24 @@ if ($a && isset($_GET['pdf'])) {
 
 $m         = (string) ($_GET['m'] ?? '');
 $positionen = $a ? Angebot::positionen((int) $a['id']) : [];
+
+/* Fuer den Rechner: der Katalog, und daraus die Posten, die noch nicht im
+   Angebot stehen. Betreuungspakete bleiben draussen -- die sind ein eigener
+   Vertrag und gehoeren nicht in eine Angebotssumme. */
+require_once __DIR__ . '/app/src/Baukasten.php';
+$katalogW = [];
+$dazu     = [];
+if ($a) {
+    try {
+        $katalogW = Baukasten::katalog();
+        $drin = [];
+        foreach ($positionen as $p) { $drin[(string) $p['baustein_slug']] = true; }
+        foreach ($katalogW as $slug => $bs) {
+            if (isset($drin[$slug]) || (int) $bs['monatlich']) { continue; }
+            $dazu[$slug] = $bs;
+        }
+    } catch (Throwable $e) { $katalogW = []; $dazu = []; }
+}
 $abgelaufen = $a && Angebot::abgelaufen($a);
 $offen      = $a && $a['status'] === 'gesendet' && !$abgelaufen;
 
@@ -147,6 +178,26 @@ $datum = static function (?string $d): string {
   .neinbox{margin-top:14px;padding-top:14px;border-top:1px solid var(--linie)}
   .neinbox summary{cursor:pointer;color:var(--leise);font-size:13px}
   .neinbox textarea{margin-top:10px}
+
+  /* ---- Der Rechner ----------------------------------------------------
+     Bewusst dieselbe Zeilenform wie die Posten darueber: Der Kunde soll
+     sehen, dass er an derselben Liste arbeitet, nicht an einem Formular
+     daneben. */
+  .wpos{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--linie);align-items:center}
+  .wpos:last-of-type{border-bottom:0}
+  .wpos input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;accent-color:var(--cyan)}
+  .wpos__wort{flex:1 1 auto;min-width:0;font-size:14px}
+  .wpos__wort small{display:block;color:var(--leise);font-size:12px;margin-top:2px}
+  .wpos__geld{flex:0 0 auto;text-align:right;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .wmenge{display:inline-flex;align-items:center;gap:6px;margin-left:8px}
+  .wmenge button{width:30px;height:30px;border-radius:8px;border:1px solid var(--linie);
+    background:transparent;color:inherit;font-size:16px;line-height:1;cursor:pointer}
+  .wmenge button:hover{border-color:var(--cyan)}
+  .wmenge span{min-width:1.6em;text-align:center;font-variant-numeric:tabular-nums}
+  .wsumme{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding-top:14px;margin-top:8px;border-top:2px solid var(--linie)}
+  .wsumme .zahl{font-size:clamp(20px,5vw,26px);font-weight:600}
+  .waus{opacity:.45}
 </style>
 </head>
 <body>
@@ -166,6 +217,7 @@ $datum = static function (?string $d): string {
   </div>
 
 <?php else: ?>
+  <?php if ($m === 'wunsch'): ?><div class="hinweis gut"><?= $h($T('aendernDanke')) ?></div><?php endif; ?>
   <?php if ($m === 'danke'): ?><div class="hinweis gut"><?= $h($T('dankeAn')) ?></div><?php endif; ?>
   <?php if ($m === 'abgelehnt'): ?><div class="hinweis"><?= $h($T('dankeAb')) ?></div><?php endif; ?>
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($T('panne')) ?></div><?php endif; ?>
@@ -249,6 +301,85 @@ $datum = static function (?string $d): string {
       </form>
 
       <details class="neinbox">
+        <summary><?= $h($T('aendernKopf')) ?></summary>
+        <p class="lead" style="font-size:13.5px;margin:10px 0 0"><?= $h($T('aendernLead')) ?></p>
+
+        <?php if ((int) ($a['wunsch_runden'] ?? 0) >= 2): ?>
+          <div class="hinweis warnung" style="margin-top:10px"><?= $h($T('aendernGenug')) ?></div>
+        <?php endif; ?>
+
+        <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>" id="rechner">
+          <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+          <input type="hidden" name="t" value="<?= $h($token) ?>">
+
+          <?php foreach ($positionen as $p): ?>
+            <?php
+              $slug = (string) $p['baustein_slug'];
+              $fest = in_array($slug, Baukasten::FEST, true);
+              $bs   = $katalogW[$slug] ?? null;
+              $proStueck = $bs && (int) $bs['je_einheit'];
+            ?>
+            <label class="wpos" data-einzel="<?= (int) $p['einzel_cents'] ?>"
+                   data-mtl="<?= (int) $p['monatlich'] ?>">
+              <input type="checkbox" name="pos[<?= $h($slug) ?>]" value="<?= (int) $p['menge'] ?>"
+                     checked <?= $fest ? 'onclick="return false"' : '' ?>>
+              <span class="wpos__wort">
+                <?= $h((string) $p['bezeichnung']) ?>
+                <?php if ($proStueck): ?>
+                  <span class="wmenge" data-menge>
+                    <button type="button" data-schritt="-1" aria-label="−">−</button>
+                    <span data-zahl><?= (int) $p['menge'] ?></span>
+                    <button type="button" data-schritt="1" aria-label="+">+</button>
+                  </span>
+                <?php endif; ?>
+                <?php if ($fest): ?><small><?= $h($T('aendernFest')) ?></small><?php endif; ?>
+              </span>
+              <span class="wpos__geld" data-geld><?= $h(Fmt::geld((int) $p['summe_cents'], (string) $a['currency'])) ?></span>
+            </label>
+          <?php endforeach; ?>
+
+          <?php if ($dazu): ?>
+            <p style="margin:16px 0 2px;font-size:13px;color:var(--leise)"><?= $h($T('aendernDazu')) ?></p>
+            <?php foreach ($dazu as $slug => $bs): ?>
+              <?php
+                $anfrage = in_array($slug, Baukasten::NUR_AUF_ANFRAGE, true);
+                $einzel  = Baukasten::mitte((int) $bs['preis_cents'],
+                                            (int) $bs['preis_bis_cents'] ?: (int) $bs['preis_cents']);
+              ?>
+              <label class="wpos waus" data-einzel="<?= $anfrage ? 0 : $einzel ?>"
+                     data-mtl="<?= (int) $bs['monatlich'] ?>">
+                <input type="checkbox" name="pos[<?= $h((string) $slug) ?>]" value="1">
+                <span class="wpos__wort">
+                  <?= $h(Baukasten::name($bs, $sprache)) ?>
+                  <?php if (!$anfrage && (int) $bs['je_einheit']): ?>
+                    <span class="wmenge" data-menge>
+                      <button type="button" data-schritt="-1" aria-label="−">−</button>
+                      <span data-zahl>1</span>
+                      <button type="button" data-schritt="1" aria-label="+">+</button>
+                    </span>
+                  <?php endif; ?>
+                </span>
+                <span class="wpos__geld" data-geld><?= $anfrage
+                    ? $h($T('aendernAnfrage'))
+                    : $h(Fmt::geld($einzel, (string) $a['currency'])) ?></span>
+              </label>
+            <?php endforeach; ?>
+          <?php endif; ?>
+
+          <div class="wsumme">
+            <span class="wort"><?= $h($T('aendernNeu')) ?></span>
+            <span class="zahl" id="wsumme"><?= $h(Fmt::geld((int) $a['summe_cents'], (string) $a['currency'])) ?></span>
+          </div>
+          <div class="mtl" id="wmtlzeile" hidden>
+            <span><?= $h($T('proMonat')) ?></span><span id="wmtl"></span>
+          </div>
+          <p class="zahlung" style="margin-top:8px"><?= $h($T('aendernKeinAngebot')) ?></p>
+
+          <button class="knopf" style="margin-top:12px" name="tat" value="wunsch"><?= $h($T('aendernSenden')) ?></button>
+        </form>
+      </details>
+
+      <details class="neinbox">
         <summary><?= $h($T('ablehnen')) ?></summary>
         <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>">
           <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
@@ -268,5 +399,68 @@ $datum = static function (?string $d): string {
   </div>
 <?php endif; ?>
 </div>
+<?php if ($offen): ?>
+<script>
+/* Rechnet mit, waehrend der Kunde klickt.
+   Die Zahlen hier sind Anzeige, nichts weiter: Abgeschickt werden nur die
+   Kreuze und die Mengen, den Preis setzt der Server aus Angebot und Katalog.
+   Waere es anders, koennte sich der Kunde seinen Preis selbst schreiben. */
+(function () {
+  var form = document.getElementById('rechner');
+  if (!form) { return; }
+  var waehrung = <?= json_encode((string) $a['currency']) ?>;
+  var summeAus = document.getElementById('wsumme');
+  var mtlAus   = document.getElementById('wmtl');
+  var mtlZeile = document.getElementById('wmtlzeile');
+  var aufAnfrage = <?= json_encode($T('aendernAnfrage'), JSON_UNESCAPED_UNICODE) ?>;
+
+  function geld(cents) {
+    return (cents / 100).toLocaleString(<?= json_encode($sprache === 'de' ? 'de-DE' : ($sprache === 'en' ? 'en-GB' : 'it-IT')) ?>,
+      { style: 'currency', currency: waehrung || 'EUR', minimumFractionDigits: 2 });
+  }
+
+  function menge(zeile) {
+    var z = zeile.querySelector('[data-zahl]');
+    return z ? parseInt(z.textContent, 10) || 1 : 1;
+  }
+
+  function rechnen() {
+    var einmal = 0, monat = 0;
+    form.querySelectorAll('.wpos').forEach(function (zeile) {
+      var kreuz  = zeile.querySelector('input[type=checkbox]');
+      var einzel = parseInt(zeile.dataset.einzel, 10) || 0;
+      var an     = kreuz && kreuz.checked;
+      zeile.classList.toggle('waus', !an);
+      var m = menge(zeile);
+      if (kreuz) { kreuz.value = String(m); }
+      var zeilensumme = einzel * m;
+      var geldFeld = zeile.querySelector('[data-geld]');
+      if (geldFeld && einzel > 0) { geldFeld.textContent = geld(zeilensumme); }
+      else if (geldFeld && einzel === 0) { geldFeld.textContent = aufAnfrage; }
+      if (!an) { return; }
+      if (zeile.dataset.mtl === '1') { monat += zeilensumme; } else { einmal += zeilensumme; }
+    });
+    summeAus.textContent = geld(einmal);
+    if (monat > 0) { mtlZeile.hidden = false; mtlAus.textContent = geld(monat); }
+    else { mtlZeile.hidden = true; }
+  }
+
+  form.addEventListener('change', rechnen);
+  form.addEventListener('click', function (e) {
+    var knopf = e.target.closest('[data-schritt]');
+    if (!knopf) { return; }
+    e.preventDefault();
+    var zeile = knopf.closest('.wpos');
+    var zahl  = zeile.querySelector('[data-zahl]');
+    var neu   = Math.max(1, Math.min(99, (parseInt(zahl.textContent, 10) || 1) + parseInt(knopf.dataset.schritt, 10)));
+    zahl.textContent = String(neu);
+    var kreuz = zeile.querySelector('input[type=checkbox]');
+    if (kreuz && !kreuz.checked) { kreuz.checked = true; }   // wer die Menge aendert, will es haben
+    rechnen();
+  });
+  rechnen();
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>

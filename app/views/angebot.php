@@ -199,6 +199,47 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
         </form>
       </div>
     <?php else: ?>
+      <?php $wunsch = Angebot::wunsch($a); ?>
+      <?php if ($wunsch !== null): ?>
+        <?php /* Was der Kunde sich auf seiner Seite zusammengestellt hat.
+                 Ein Vorschlag, kein Angebot -- deshalb steht er hier neben
+                 dem Angebot und nicht darin. */ ?>
+        <div class="block" data-tun="angebot_wunsch" style="border-left:3px solid var(--cyan)">
+          <h2 style="font-size:15px;margin:0 0 6px">Sein Gegenvorschlag</h2>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+            Eingegangen <?= Fmt::h(Fmt::seit((string) $a['wunsch_am'])) ?><?php
+              if ((int) $a['wunsch_runden'] > 1): ?> · <?= (int) $a['wunsch_runden'] ?>. Runde<?php endif; ?>.
+            Ein Klick macht daraus die neue Fassung — mit genau diesen Posten, du liest drüber und schickst.
+          </p>
+          <table style="width:100%;font-size:13.5px">
+            <?php foreach ($wunsch['positionen'] as $wp): ?>
+              <tr>
+                <td><?= Fmt::h((string) $wp['bezeichnung']) ?>
+                  <?php if ((int) $wp['menge'] > 1): ?><span style="color:var(--leise)">× <?= (int) $wp['menge'] ?></span><?php endif; ?>
+                  <?php if (!empty($wp['neu'])): ?><span class="marke2 gut">neu</span><?php endif; ?></td>
+                <td class="num"><?= Fmt::h(Fmt::geld((int) $wp['summe_cents'])) ?><?php
+                  if ((int) $wp['monatlich']): ?>/Mon.<?php endif; ?></td>
+              </tr>
+            <?php endforeach; ?>
+            <?php foreach ((array) ($wunsch['auf_anfrage'] ?? []) as $offenerPosten): ?>
+              <tr><td><?= Fmt::h((string) $offenerPosten) ?></td>
+                  <td class="num" style="color:var(--leise)">auf Anfrage</td></tr>
+            <?php endforeach; ?>
+            <tr><td><b>Seine Summe</b></td>
+                <td class="num"><b><?= Fmt::h(Fmt::geld((int) $wunsch['summe_cents'])) ?></b>
+                  <span style="color:var(--leise)">statt <?= Fmt::h($eur($a['summe_cents']) . ' €') ?></span></td></tr>
+          </table>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
+                onsubmit="return confirm('Neue Fassung mit seinen Posten anlegen? Dieses Angebot wird zurückgezogen.')">
+            <?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="angebot_neufassung">
+            <input type="hidden" name="aus_wunsch" value="1">
+            <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+            <button class="knopf haupt">Fassung daraus machen</button>
+          </form>
+        </div>
+      <?php endif; ?>
+
       <?php if ((string) $a['status'] === 'gesendet'): ?>
         <div class="block" data-tun="angebot_zusage">
           <h2 style="font-size:15px;margin:0 0 10px">Er hat zugesagt</h2>

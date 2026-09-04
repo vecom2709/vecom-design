@@ -141,6 +141,139 @@ final class Angebot
         });
     }
 
+    /* ----------------------------------------------------------------------
+       Der Gegenvorschlag des Kunden
+       ---------------------------------------------------------------------- */
+
+    /** Der gespeicherte Wunsch, oder null. */
+    public static function wunsch(array $a): ?array
+    {
+        $roh = trim((string) ($a['wunsch'] ?? ''));
+        if ($roh === '') { return null; }
+        $w = json_decode($roh, true);
+        return is_array($w) && !empty($w['positionen']) ? $w : null;
+    }
+
+    /**
+     * Was der Kunde auf seinem Angebot zusammengestellt hat.
+     *
+     * WAS HIER NICHT PASSIERT
+     *
+     * Das Angebot selbst bleibt unberuehrt. Seine Zeilen sind das, was der
+     * Kunde gelesen hat -- liesse man ihn daran ruehren, wuesste hinterher
+     * niemand, worauf sich eine Zusage bezog. Der Wunsch liegt daneben und
+     * ist ein Vorschlag, bis Uwe daraus eine Fassung macht.
+     *
+     * WARUM DIE PREISE HIER NEU GEHOLT WERDEN
+     *
+     * Was der Browser mitschickt, sind Kreuze und Mengen -- keine Betraege.
+     * Ein Preis, den der Kunde mitschicken darf, ist ein Preis, den er
+     * bestimmen darf. Die Zahlen kommen deshalb aus dem Angebot selbst
+     * (fuer Posten, die schon drinstehen) und sonst aus dem Katalog.
+     *
+     * @param array<string,int> $mengen slug => Menge; fehlt ein Slug, ist er abgewaehlt
+     * @return bool Ob etwas gespeichert wurde.
+     */
+    public static function wunschSpeichern(int $angebotId, array $mengen): bool
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || (string) $a['status'] !== 'gesendet') { return false; }
+
+        require_once __DIR__ . '/Baukasten.php';
+        $sprache = (string) $a['sprache'];
+        $katalog = Baukasten::katalog();
+        $imAngebot = [];
+        foreach (self::positionen($angebotId) as $p) {
+            $imAngebot[(string) $p['baustein_slug']] = $p;
+        }
+
+        // Gar nichts angekreuzt ist kein Gegenvorschlag, sondern eine Absage.
+        if (!$mengen) { return false; }
+
+        /* Das Grundgeruest bleibt drin, auch wenn es im Formular fehlt. Der
+           Haken dafuer laesst sich im Browser nicht loesen -- aber ein
+           Formular kommt nicht immer aus einem Browser, und eine Website
+           ohne Grundgeruest gibt es nicht. */
+        foreach (Baukasten::FEST as $pflicht) {
+            if (isset($imAngebot[$pflicht]) && !isset($mengen[$pflicht])) {
+                $mengen[$pflicht] = (int) $imAngebot[$pflicht]['menge'];
+            }
+        }
+
+        /* In der Reihenfolge des Angebots, damit die Liste beim Kunden und
+           die in der Verwaltung gleich aussehen; alles Dazugenommene haengt
+           hinten an. */
+        $sortiert = [];
+        foreach (array_keys($imAngebot) as $slug) {
+            if (isset($mengen[$slug])) { $sortiert[$slug] = $mengen[$slug]; }
+        }
+        foreach ($mengen as $slug => $menge) {
+            if (!isset($sortiert[$slug])) { $sortiert[$slug] = $menge; }
+        }
+        $mengen = $sortiert;
+
+        $positionen = []; $summe = 0; $monatlich = 0; $offen = [];
+
+        foreach ($mengen as $slug => $menge) {
+            $slug  = (string) $slug;
+            $menge = max(1, min(99, (int) $menge));
+            $alt   = $imAngebot[$slug] ?? null;
+            $b     = $katalog[$slug] ?? null;
+            if (!$alt && !$b) { continue; }
+
+            /* Was nur auf Anfrage geht, wandert ohne Zahl mit: Der Kunde sagt,
+               dass er es will, den Preis nennt Uwe. */
+            if (!$alt && in_array($slug, Baukasten::NUR_AUF_ANFRAGE, true)) {
+                $offen[] = Baukasten::name((array) $b, $sprache);
+                continue;
+            }
+
+            if ($alt) {
+                $einzel = (int) $alt['einzel_cents'];
+                $wort   = (string) $alt['bezeichnung'];
+                $mtl    = (int) $alt['monatlich'];
+                $neu    = 0;
+            } else {
+                $einzel = self::mitte((int) $b['preis_cents'],
+                                      (int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']);
+                $wort   = Baukasten::name($b, $sprache);
+                $mtl    = (int) $b['monatlich'];
+                $neu    = 1;
+            }
+            if (!($b['je_einheit'] ?? 0) && !$alt) { $menge = 1; }
+
+            $zeile = $einzel * $menge;
+            if ($mtl) { $monatlich += $zeile; } else { $summe += $zeile; }
+            $positionen[] = [
+                'slug' => $slug, 'bezeichnung' => $wort, 'menge' => $menge,
+                'einzel_cents' => $einzel, 'summe_cents' => $zeile,
+                'monatlich' => $mtl, 'neu' => $neu,
+            ];
+        }
+
+        // Ganz ohne Posten ist kein Gegenvorschlag, sondern eine Absage.
+        if (!$positionen && !$offen) { return false; }
+
+        Db::update('angebote', $angebotId, [
+            'wunsch' => json_encode([
+                'positionen'      => $positionen,
+                'auf_anfrage'     => $offen,
+                'summe_cents'     => $summe,
+                'monatlich_cents' => $monatlich,
+            ], JSON_UNESCAPED_UNICODE),
+            'wunsch_am'     => date('Y-m-d H:i:s'),
+            'wunsch_runden' => min(255, (int) $a['wunsch_runden'] + 1),
+        ]);
+
+        try {
+            Events::melden('angebot_wunsch', 'Gegenvorschlag zum Angebot ' . $a['nummer'], 'warnung',
+                Fmt::geld($summe) . ' statt ' . Fmt::geld((int) $a['summe_cents']),
+                '/angebote/' . $angebotId);
+        } catch (Throwable $e) { /* Beiwerk */ }
+
+        return true;
+    }
+
     /**
      * Eine zweite Fassung eines schon verschickten Angebots.
      *
@@ -161,7 +294,7 @@ final class Angebot
      * @return int|null Die Kennung der neuen Fassung, oder null wenn diese
      *                  Fassung keine Neufassung vertraegt.
      */
-    public static function neuFassung(int $angebotId): ?int
+    public static function neuFassung(int $angebotId, bool $ausWunsch = false): ?int
     {
         $alt = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
         if (!$alt) { return null; }
@@ -194,20 +327,55 @@ final class Angebot
                 'gueltig_bis'       => date('Y-m-d', strtotime("+$tage days")),
             ]);
 
-            foreach (Db::all(
-                'SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id',
-                [$angebotId]) as $p) {
-                Db::insert('angebot_positionen', [
-                    'angebot_id'    => $neuId,
-                    'baustein_slug' => $p['baustein_slug'],
-                    'bezeichnung'   => (string) $p['bezeichnung'],
-                    'beschreibung'  => $p['beschreibung'],
-                    'menge'         => (int) $p['menge'],
-                    'einzel_cents'  => (int) $p['einzel_cents'],
-                    'summe_cents'   => (int) $p['summe_cents'],
-                    'monatlich'     => (int) $p['monatlich'],
-                    'sortierung'    => (int) $p['sortierung'],
-                ]);
+            /* Zwei Quellen fuer dieselbe Liste: Ohne Wunsch werden die Zeilen
+               der alten Fassung uebernommen; mit Wunsch genau das, was der
+               Kunde zusammengestellt hat -- damit die Fassung schon stimmt und
+               nicht erst zusammengeklickt werden muss. */
+            $wunsch = $ausWunsch ? self::wunsch($alt) : null;
+            $quelle = [];
+            if ($wunsch !== null) {
+                $alteTexte = [];
+                foreach (Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ?',
+                                 [$angebotId]) as $p) {
+                    $alteTexte[(string) $p['baustein_slug']] = (string) $p['beschreibung'];
+                }
+                require_once __DIR__ . '/Baukasten.php';
+                $katalog = Baukasten::katalog();
+                $sort = 0;
+                foreach ($wunsch['positionen'] as $w) {
+                    $slug = (string) $w['slug'];
+                    $b    = $katalog[$slug] ?? null;
+                    $quelle[] = [
+                        'baustein_slug' => $slug,
+                        'bezeichnung'   => (string) $w['bezeichnung'],
+                        'beschreibung'  => $alteTexte[$slug]
+                            ?? ($b ? Baukasten::text($b, (string) $alt['sprache']) : ''),
+                        'menge'         => (int) $w['menge'],
+                        'einzel_cents'  => (int) $w['einzel_cents'],
+                        'summe_cents'   => (int) $w['summe_cents'],
+                        'monatlich'     => (int) $w['monatlich'],
+                        'sortierung'    => $sort += 10,
+                    ];
+                }
+            } else {
+                foreach (Db::all(
+                    'SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id',
+                    [$angebotId]) as $p) {
+                    $quelle[] = [
+                        'baustein_slug' => $p['baustein_slug'],
+                        'bezeichnung'   => (string) $p['bezeichnung'],
+                        'beschreibung'  => $p['beschreibung'],
+                        'menge'         => (int) $p['menge'],
+                        'einzel_cents'  => (int) $p['einzel_cents'],
+                        'summe_cents'   => (int) $p['summe_cents'],
+                        'monatlich'     => (int) $p['monatlich'],
+                        'sortierung'    => (int) $p['sortierung'],
+                    ];
+                }
+            }
+
+            foreach ($quelle as $z) {
+                Db::insert('angebot_positionen', ['angebot_id' => $neuId] + $z);
             }
 
             self::summenNeu($neuId);

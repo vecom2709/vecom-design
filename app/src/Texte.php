@@ -757,6 +757,65 @@ final class Texte
             'de' => 'Dieses Angebot ist abgelaufen. Schreib mir, dann mache ich ein neues — meist zum alten Preis.',
             'en' => 'This quote has expired. Write to me and I will make a new one — usually at the old price.',
         ],
+        /* ---- Gegenvorschlag ------------------------------------------
+           Der Kunde stellt sich zusammen, was er will. Die Zahl, die er dabei
+           sieht, ist eine Auskunft -- deshalb sagt jeder dieser Saetze, dass
+           das verbindliche Angebot danach kommt. */
+        'aendernKopf' => [
+            'it' => 'Ti serve qualcosa in più o in meno?',
+            'de' => 'Brauchst du mehr oder weniger?',
+            'en' => 'Need more, or less?',
+        ],
+        'aendernLead' => [
+            'it' => 'Togli la spunta a quello che non ti serve, cambia il numero di pagine, aggiungi quello che manca. Il totale si aggiorna subito.',
+            'de' => 'Nimm das Häkchen weg, was du nicht brauchst, ändere die Zahl der Seiten, nimm dazu, was fehlt. Die Summe rechnet sich sofort mit.',
+            'en' => 'Untick what you don’t need, change the number of pages, add what’s missing. The total updates as you go.',
+        ],
+        'aendernDazu' => [
+            'it' => 'Da aggiungere',
+            'de' => 'Dazunehmen',
+            'en' => 'Add to it',
+        ],
+        'aendernNeu' => [
+            'it' => 'Con queste modifiche',
+            'de' => 'Mit diesen Änderungen',
+            'en' => 'With these changes',
+        ],
+        'aendernKeinAngebot' => [
+            'it' => 'Indicazione, non un’offerta. Quella vincolante te la mando io, di solito lo stesso giorno.',
+            'de' => 'Auskunft, kein Angebot. Das verbindliche schicke ich dir, meist noch am selben Tag.',
+            'en' => 'A guide, not a quote. The binding one comes from me, usually the same day.',
+        ],
+        'aendernAnfrage' => [
+            'it' => 'su richiesta',
+            'de' => 'auf Anfrage',
+            'en' => 'on request',
+        ],
+        'aendernFest' => [
+            'it' => 'sempre incluso',
+            'de' => 'immer dabei',
+            'en' => 'always included',
+        ],
+        'aendernSenden' => [
+            'it' => 'Così mi va meglio',
+            'de' => 'So passt es mir besser',
+            'en' => 'This suits me better',
+        ],
+        'aendernDanke' => [
+            'it' => 'Ricevuto. Ti mando l’offerta aggiornata, di solito lo stesso giorno.',
+            'de' => 'Angekommen. Ich schicke dir das geänderte Angebot, meist noch am selben Tag.',
+            'en' => 'Got it. I’ll send you the updated quote, usually the same day.',
+        ],
+        'aendernGenug' => [
+            'it' => 'Abbiamo già fatto due giri. Se manca ancora qualcosa, chiamami: in due minuti al telefono si risolve meglio che qui.',
+            'de' => 'Wir haben schon zweimal hin und her. Wenn noch etwas fehlt, ruf mich an — zwei Minuten am Telefon klären mehr als eine dritte Runde.',
+            'en' => 'We’ve been back and forth twice. If something is still missing, call me — two minutes on the phone beats a third round.',
+        ],
+        'aendernOffen' => [
+            'it' => 'Il tuo desiderio è arrivato. Ti rispondo con l’offerta aggiornata.',
+            'de' => 'Dein Wunsch ist angekommen. Ich melde mich mit dem geänderten Angebot.',
+            'en' => 'Your request has arrived. I’ll come back with the updated quote.',
+        ],
         'ersetzt' => [
             'it' => 'Questa offerta è stata sostituita da una nuova, con le modifiche che mi hai chiesto. La trovi nell’e-mail più recente. Qui sotto resta la versione precedente, così puoi confrontarle.',
             'de' => 'Dieses Angebot wurde durch ein neues ersetzt — mit den Änderungen, um die du gebeten hast. Es steht in der jüngeren E-Mail. Hier unten bleibt die vorige Fassung stehen, damit du vergleichen kannst.',
