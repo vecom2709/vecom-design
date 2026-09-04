@@ -24,8 +24,18 @@ $tage   = Vorgang::ruhtSeitTagen($v);
                an, in ihr sieht er seine Seite, in ihr steht sein Fragebogen.
                Sie erst zu bemerken, wenn etwas Falsches rausging, ist zu
                spaet -- geaendert wird sie in der Kundenakte. */ ?>
-      <span class="marke2" title="In dieser Sprache bekommt der Kunde alles — änderbar in der Kundenakte"><?=
-        Fmt::h(['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'][(string) $v['sprache']] ?? (string) $v['sprache']) ?></span>
+      <?php /* "Vermutet" ist hier keine Kleinigkeit: Steht es da, hat der
+               Kunde die Sprache nie selbst gewaehlt — sie kam aus der
+               Seitenfassung, auf der er zufaellig stand. Wer das vor dem
+               ersten Schreiben sieht, fragt einmal nach; wer es nicht sieht,
+               schickt einem Deutschen drei italienische Mails. */ ?>
+      <?php $spOk = (bool) sicher(static fn() => $v['kunde_id'] === null || Db::wert(
+          'SELECT sprache_bestaetigt FROM customers WHERE id = ?', [(int) $v['kunde_id']], null) !== null, true); ?>
+      <span class="marke2 <?= $spOk ? '' : 'warnung' ?>"
+            title="<?= $spOk ? 'Der Kunde hat diese Sprache selbst gewählt.'
+                             : 'Geraten aus der Sprachfassung der Website — der Kunde hat sie nie bestätigt. Ändern in der Kundenakte.' ?>"><?=
+        Fmt::h(['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'][(string) $v['sprache']] ?? (string) $v['sprache'])
+        ?><?= $spOk ? '' : ' · vermutet' ?></span>
     </h1>
   </div>
   <div class="rechts">

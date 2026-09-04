@@ -869,6 +869,29 @@ final class Texte
         'fTelefon' => ['it' => 'Telefono (facoltativo)', 'de' => 'Telefon (freiwillig)', 'en' => 'Phone (optional)'],
         'fFirma'   => ['it' => 'Nome dell\'attività (facoltativo)', 'de' => 'Name des Betriebs (freiwillig)', 'en' => 'Business name (optional)'],
 
+        /* DIE SPRACHE WIRD GEFRAGT, NICHT GERATEN
+           ------------------------------------------------------------------
+           Bisher ergab sie sich daraus, welche Fassung der Website jemand
+           offen hatte -- und weil jeder Verweis auf den Konfigurator fest
+           "lang=it" trug, hiess das in der Praxis: Italienisch fuer alle.
+           Danach bekam ein deutscher Kunde jede Mail, jeden Beleg und seine
+           ganze Seite auf Italienisch, und niemand konnte sehen, dass das
+           nie jemand so gewollt hatte.
+
+           Die Frage steht bei den Kontaktdaten und nicht am Anfang: Dort
+           gehoert sie hin -- sie beantwortet nicht, was gebaut wird, sondern
+           wie wir miteinander reden. */
+        'fSprache' => [
+            'it' => 'In che lingua vuoi che ti scriva',
+            'de' => 'In welcher Sprache soll ich dir schreiben',
+            'en' => 'Which language should I write to you in',
+        ],
+        'fSpracheHilfe' => [
+            'it' => 'Vale per le e-mail, i documenti e la tua pagina. Puoi cambiarla in qualsiasi momento.',
+            'de' => 'Gilt für E-Mails, Unterlagen und deine eigene Seite. Du kannst sie jederzeit ändern.',
+            'en' => 'Applies to emails, documents and your own page. You can change it at any time.',
+        ],
+
         'danke' => [
             'it' => 'Grazie! Ho ricevuto tutto. Ti scrivo entro 24 ore con il preventivo.',
             'de' => 'Danke! Alles angekommen. Ich melde mich binnen 24 Stunden mit dem Angebot.',

@@ -44,8 +44,36 @@ $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 $h     = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 $hier  = 'kunde.php?t=' . rawurlencode($token);
 
+/* -------------------------------------------------------------------------
+   DIE SPRACHE — GEWAEHLT STATT GERATEN
+
+   Sie kam bisher daher, welche Fassung der Website der Besucher zufaellig
+   offen hatte. Wer nichts umstellte, bekam Italienisch: die ganze Seite,
+   jede Mail, jeden Beleg. Aendern konnte er es nirgends, denn einen
+   Umschalter gab es hier nicht.
+
+   Jetzt steht einer oben, und seine Wahl wird festgehalten. Ab dann schreibt
+   ihm auch die Verwaltung so — das ist der eigentliche Punkt: Die Sprache
+   auf dieser Seite und die Sprache seiner Post sind dieselbe Angabe.
+   ------------------------------------------------------------------------- */
 $sprache = strtolower((string) ($_REQUEST['lang'] ?? ($kunde['sprache'] ?? 'it')));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+$spracheGewaehlt = false;
+if ($kunde && isset($_GET['lang']) && in_array($sprache, ['it', 'de', 'en'], true)) {
+    /* Nur beim Klick auf den Umschalter, nicht bei jedem Aufruf mit lang= im
+       Link: Die internen Verweise tragen die Sprache mit, und die sollen
+       nichts festschreiben, was der Kunde nicht selbst angefasst hat. */
+    if (($_GET['sw'] ?? '') === '1') {
+        sicherLesen(static function () use ($kunde, $sprache) {
+            require_once __DIR__ . '/app/src/Onboarding.php';
+            Onboarding::spracheMerken((int) $kunde['id'], $sprache, true);
+            return true;
+        }, null);
+        $spracheGewaehlt = true;
+        $kunde['sprache'] = $sprache;
+    }
+}
 $T  = static fn(string $s): string => Texte::h(Texte::KUNDE[$s] ?? [], $sprache);
 $TS = static fn(string $stufe, string $feld = ''): string => $feld === ''
     ? Texte::h(Texte::KUNDE_STUFEN[$stufe] ?? [], $sprache)
@@ -306,6 +334,16 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
      dran ist -- offen allein reicht nicht, wenn darueber sechs andere
      Kaesten stehen. */
   details.klapp.dranfaellig{border-color:var(--cyan)}
+  /* Der Sprachumschalter. Klein, aber die erste Sache, die jemand sucht, der
+     die Seite in der falschen Sprache vor sich hat -- deshalb ganz oben
+     neben der Wortmarke und nicht unten im Fuss. */
+  .wortmarke{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .sprachwahl{margin-left:auto;display:inline-flex;gap:2px;padding:2px;
+    border:1px solid var(--linie);border-radius:9px}
+  .sprachwahl a{display:inline-block;padding:5px 10px;border-radius:7px;
+    font-size:12px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
+  .sprachwahl a:hover{color:var(--dim)}
+  .sprachwahl a.jetzt{background:rgba(255,255,255,.09);color:#fff}
 </style>
 </head>
 <body>
@@ -313,6 +351,15 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   <div class="wortmarke">
     <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
+    <?php if ($kunde && !$panne): ?>
+      <span class="sprachwahl" role="group" aria-label="Lingua / Sprache / Language">
+        <?php foreach (['it' => 'IT', 'de' => 'DE', 'en' => 'EN'] as $sl => $wort): ?>
+          <a href="<?= $h($hier . '&lang=' . $sl . '&sw=1') ?>"
+             class="<?= $sprache === $sl ? 'jetzt' : '' ?>"
+             <?= $sprache === $sl ? 'aria-current="true"' : '' ?>><?= $wort ?></a>
+        <?php endforeach; ?>
+      </span>
+    <?php endif; ?>
   </div>
 
 <?php if ($panne || !$kunde): ?>

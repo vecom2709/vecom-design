@@ -78,12 +78,50 @@ final class Onboarding
     }
 
     /** Sprache des Kunden merken, ohne einen Vorgang zu gefaehrden. */
-    public static function spracheMerken(int $kundeId, string $sprache): void
+    /**
+     * Die Sprache eines Kunden festhalten.
+     *
+     * GEFRAGT ODER GERATEN — DAS IST DER UNTERSCHIED
+     *
+     * Bisher landete hier beides in derselben Spalte: die Sprache, die der
+     * Kunde angegeben hat, und die, auf der die Website zufaellig stand.
+     * Danach war nicht mehr zu erkennen, was davon eine Auskunft war. Ein
+     * deutscher Kunde, der nie umgestellt hat, bekam auf Italienisch Post,
+     * und in der Verwaltung sah das genauso aus wie bei einem echten
+     * italienischen Kunden.
+     *
+     * $gefragt = true heisst: Er hat sie selbst gewaehlt. Nur dann wird das
+     * Datum gesetzt, und nur dann hoert die Verwaltung auf zu warnen. Eine
+     * geratene Sprache ueberschreibt eine gefragte nie.
+     */
+    public static function spracheMerken(int $kundeId, string $sprache, bool $gefragt = false): void
     {
         if (!in_array($sprache, ['it', 'de', 'en'], true)) { return; }
         try {
-            Db::run('UPDATE customers SET sprache = ? WHERE id = ?', [$sprache, $kundeId]);
-        } catch (Throwable $e) { /* Spalte fehlt noch — dann eben Italienisch */ }
+            if ($gefragt) {
+                Db::run('UPDATE customers SET sprache = ?, sprache_bestaetigt = NOW() WHERE id = ?',
+                    [$sprache, $kundeId]);
+                return;
+            }
+            /* Eine Vermutung darf eine Angabe nicht kippen: Wer einmal
+               gesagt hat "schreib mir auf Deutsch", soll nicht wieder auf
+               Italienisch landen, weil er die Startseite in der falschen
+               Fassung geoeffnet hat. */
+            Db::run('UPDATE customers SET sprache = ? WHERE id = ? AND sprache_bestaetigt IS NULL',
+                [$sprache, $kundeId]);
+        } catch (Throwable $e) {
+            // Spalte fehlt noch (zwischen Deploy und Migration) — dann wie frueher.
+            try { Db::run('UPDATE customers SET sprache = ? WHERE id = ?', [$sprache, $kundeId]); }
+            catch (Throwable $e2) { /* dann eben Italienisch */ }
+        }
+    }
+
+    /** Hat der Kunde seine Sprache selbst gewaehlt? */
+    public static function spracheGefragt(int $kundeId): bool
+    {
+        try {
+            return Db::wert('SELECT sprache_bestaetigt FROM customers WHERE id = ?', [$kundeId], null) !== null;
+        } catch (Throwable $e) { return true; }   // Spalte fehlt: nicht warnen
     }
 
     private static function sprache(array $zeile): string

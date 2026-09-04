@@ -93,14 +93,40 @@ final class Vorlage
         return $kn !== '' ? $kn : 'VD-K-' . str_pad((string) $kundeId, 4, '0', STR_PAD_LEFT);
     }
 
-    /** Kennung vor den Betreff — genau einmal, auch wenn sie schon dasteht. */
+    /**
+     * Kennung an den Betreff — genau einmal, auch wenn sie schon dasteht.
+     *
+     * WARUM SIE HINTEN STEHT UND NICHT MEHR VORN
+     *
+     * Sie stand in eckigen Klammern am Anfang: "[K-2026-0013] Il link per il
+     * pagamento". Eckige Klammern zu Beginn eines Betreffs sind das Merkmal
+     * von Verteilerlisten und Ticketsystemen -- Filter bewerten das, und bei
+     * einer Domain ohne Ruf zaehlt jedes kleine Minus. Vor allem aber liest
+     * der Kunde als Erstes ein Aktenzeichen statt der Sache.
+     *
+     * Hinten leistet sie dasselbe: Sie steht in jeder Mail desselben
+     * Vorgangs, sie ist eindeutig, und sie laesst sich suchen. Nur faellt sie
+     * jetzt niemandem mehr ins Auge, der sie nicht sucht.
+     *
+     * Die alte Form wird beim Antworten mit abgeraeumt: Sonst truege ein
+     * fortgesetzter Verlauf beides.
+     */
     public static function betreff(int $kundeId, string $betreff): string
     {
         $kennung = self::kennung($kundeId);
         $betreff = trim($betreff);
+
+        /* Eine alte Kennung vorn: weg damit, sie kommt gleich hinten wieder.
+           Ein "Re:" oder "AW:" davor bleibt stehen -- es gehoert zum Verlauf
+           und nicht zur Kennung. */
+        $betreff = (string) preg_replace(
+            '~^((?:(?:re|aw|fwd?|antw)\s*:\s*)*)\[[A-Za-z0-9\-]{3,30}\]\s*~i',
+            '$1', $betreff);
+        $betreff = trim($betreff);
+
         if ($betreff === '') { $betreff = 'Nachricht von Vecom Design'; }
-        if (str_starts_with($betreff, '[' . $kennung . ']')) { return $betreff; }
-        return '[' . $kennung . '] ' . $betreff;
+        if (str_ends_with($betreff, $kennung)) { return $betreff; }
+        return $betreff . ' · ' . $kennung;
     }
 
     /**

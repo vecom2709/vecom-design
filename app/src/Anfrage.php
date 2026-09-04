@@ -45,7 +45,11 @@ final class Anfrage
         // vier italienische Mails.
         $sprache = in_array(($d['sprache'] ?? 'it'), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : 'it';
         require_once __DIR__ . '/Onboarding.php';
-        Onboarding::spracheMerken($kundeId, $sprache);
+        /* Kam die Sprache aus einer Frage an den Kunden, ist sie eine
+           Auskunft und wird als solche festgehalten. Kam sie nur daher,
+           welche Fassung der Seite offen war, bleibt sie eine Vermutung --
+           und ueberschreibt dann auch keine fruehere Auskunft. */
+        Onboarding::spracheMerken($kundeId, $sprache, !empty($d['sprache_gefragt']));
 
         // Ein gewaehltes Paket kommt als Kennung mit; existiert es nicht mehr,
         // bleibt wenigstens der Name stehen.

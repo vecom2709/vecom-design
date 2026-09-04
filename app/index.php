@@ -1141,6 +1141,31 @@ if ($post) {
                sagt, was passiert. Ein Fehlversuch traegt nichts davon; der
                geht ohne Rueckfrage.
                ============================================================ */
+            /* ============================================================
+               DIE SPRACHE MIT EINEM KLICK
+
+               Sie steckte bisher in der Kundenakte hinter "Bearbeiten",
+               zwischen Adresse und Steuernummer. Wer am Telefon merkt, dass
+               ein Kunde Deutsch spricht, soll das dort korrigieren koennen,
+               wo es ihm auffaellt -- nicht in einem Formular mit zwoelf
+               Feldern, das er danach speichern muss.
+
+               Eine Aenderung von Hand gilt als bestaetigt: Du hast mit dem
+               Menschen geredet, das ist eine bessere Auskunft als jede
+               Vermutung aus einer Seitenversion.
+               ============================================================ */
+            case 'sprache_setzen':
+                require_once __DIR__ . '/src/Onboarding.php';
+                $skid = (int) ($_POST['id'] ?? 0);
+                $ssp  = strtolower(trim((string) ($_POST['sprache'] ?? '')));
+                if (!in_array($ssp, ['it', 'de', 'en'], true)) {
+                    throw new RuntimeException('Unbekannte Sprache.');
+                }
+                Onboarding::spracheMerken($skid, $ssp, true);
+                $_SESSION['gut'] = 'Ab jetzt bekommt der Kunde alles auf '
+                    . ['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'][$ssp] . '.';
+                zurueck('kunden/' . $skid);
+
             case 'mail_loeschen':
                 $mid = (int) ($_POST['id'] ?? 0);
                 $m = Db::one('SELECT * FROM mails WHERE id = ?', [$mid]);

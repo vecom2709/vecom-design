@@ -63,11 +63,16 @@ if ($nfVorwahl !== '') {
 
   <div class="feld">
     <label for="<?= $nfNr ?>_b">Betreff</label>
+    <?php /* Die Kennung steht jetzt HINTER dem Betreff, nicht davor — hier
+             genauso wie in der Mail. Eckige Klammern am Anfang sind das
+             Merkmal von Verteilerlisten, und der Kunde soll zuerst die Sache
+             lesen, nicht ein Aktenzeichen. */ ?>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <span style="white-space:nowrap;font-size:12.5px;letter-spacing:.03em;color:var(--leise);
-                   border:1px solid var(--linie);border-radius:8px;padding:8px 11px">[<?= Fmt::h((string) $nfKennung) ?>]</span>
       <input id="<?= $nfNr ?>_b" name="betreff" style="flex:1 1 220px;width:auto"
              maxlength="180" placeholder="Worum es geht" value="<?= Fmt::h($nfBetreff) ?>">
+      <span style="white-space:nowrap;font-size:12.5px;letter-spacing:.03em;color:var(--leise);
+                   border:1px solid var(--linie);border-radius:8px;padding:8px 11px"
+            title="Diese Kennung hängt die Verwaltung an jeden Betreff — damit zusammengehörige Mails zusammenbleiben.">· <?= Fmt::h((string) $nfKennung) ?></span>
     </div>
   </div>
 

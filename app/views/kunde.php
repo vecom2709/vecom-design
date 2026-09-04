@@ -90,8 +90,41 @@
     <tr><td>Firma</td><td><?= Fmt::h($k['company'] ?: '—') ?></td></tr>
     <tr><td>Branche</td><td><?= Fmt::h($k['industry'] ?: '—') ?></td></tr>
     <tr><td>Adresse</td><td><?= Fmt::h(trim(($k['street'] ?? '') . ' ' . ($k['zip'] ?? '') . ' ' . ($k['city'] ?? '') . ' ' . ($k['country'] ?? ''))) ?: '—' ?></td></tr>
-    <tr><td>Sprache</td><td><?= Fmt::h(['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][strtolower((string) ($k['sprache'] ?? 'it'))] ?? 'Italiano') ?>
-      <small style="color:var(--leise)">— so gehen die automatischen E-Mails raus</small></td></tr>
+    <?php /* ------------------------------------------------------------
+         SPRACHE: GEFRAGT ODER GERATEN
+
+         An dieser einen Zeile haengt alles, was der Kunde je zu lesen
+         bekommt — jede Mail, jeder Beleg, seine ganze Seite. Sie stand
+         hier bisher als Tatsache da, war aber meistens geraten: aus der
+         Sprachfassung der Website, auf der er zufaellig stand.
+
+         Jetzt steht daneben, woher sie kommt. "Vermutet" heisst: Frag
+         einmal nach oder schreib ihm zweisprachig. Und geaendert wird sie
+         hier mit einem Klick, nicht in einem Formular mit zwoelf Feldern.
+         ------------------------------------------------------------ */ ?>
+    <?php
+      $kSp = strtolower((string) ($k['sprache'] ?? 'it'));
+      $kSpOk = (bool) sicher(static fn() => Db::wert(
+          'SELECT sprache_bestaetigt FROM customers WHERE id = ?', [(int) $k['id']], null) !== null, true);
+    ?>
+    <tr><td>Sprache</td><td>
+      <div class="leiste" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <form method="post" action="<?= Fmt::h(url('')) ?>" class="leiste" style="gap:4px;margin:0">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="sprache_setzen">
+          <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+          <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $sl => $wort): ?>
+            <button class="knopf <?= $kSp === $sl ? 'haupt' : '' ?>" name="sprache" value="<?= $sl ?>"
+                    <?= $kSp === $sl ? 'disabled' : '' ?>><?= Fmt::h($wort) ?></button>
+          <?php endforeach; ?>
+        </form>
+        <span class="marke2 <?= $kSpOk ? 'gut' : 'warnung' ?>"><?= $kSpOk ? 'vom Kunden bestätigt' : 'vermutet' ?></span>
+      </div>
+      <small style="color:var(--leise);line-height:1.6;display:block;margin-top:6px">
+        So gehen alle automatischen E-Mails raus, und so sieht er seine Seite.
+        <?php if (!$kSpOk): ?><br>Er hat sie nie selbst gewählt — sie stammt aus der Sprachfassung
+        der Website, auf der er stand. Sobald er oben auf seiner Seite umschaltet, steht hier
+        „bestätigt".<?php endif; ?>
+      </small></td></tr>
     <tr><td>Kunde seit</td><td><?= Fmt::h(Fmt::datum($k['created_at'])) ?></td></tr>
   </tbody></table></div>
   <?php /* ---------- Betreuung: der zweite Vertrag ---------- */ ?>

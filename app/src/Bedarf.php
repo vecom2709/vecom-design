@@ -143,7 +143,18 @@ final class Bedarf
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { return false; }
 
         $antworten = self::antworten($z);
-        $sprache   = (string) $z['sprache'];
+
+        /* DIE GEWAEHLTE SPRACHE SCHLAEGT DIE ANGEZEIGTE
+           ------------------------------------------------------------------
+           In $z steht, in welcher Fassung er den Konfigurator gelesen hat --
+           und die kam aus dem Link, der bis heute ueberall "lang=it" trug.
+           Im Kontaktblock steht jetzt die Frage, in welcher Sprache er
+           schreiben soll. Seine Antwort gilt: fuer die Zusammenfassung, fuer
+           die Kundenakte und fuer alles, was danach an ihn rausgeht. */
+        $gewaehlt = strtolower(trim((string) ($kontakt['sprache'] ?? '')));
+        $sprache  = in_array($gewaehlt, ['it', 'de', 'en'], true)
+            ? $gewaehlt
+            : (string) $z['sprache'];
 
         // Rechnen, bevor irgendetwas geschrieben wird: Aendern sich morgen die
         // Preise im Katalog, bleibt hier stehen, womit der Kunde gerechnet hat.
@@ -160,6 +171,7 @@ final class Bedarf
             'von_cents'       => $spanne['von_cents'],
             'bis_cents'       => $spanne['bis_cents'],
             'monatlich_cents' => (int) $r['monatlich_cents'],
+            'sprache'         => $sprache,
             'status'          => 'abgesendet',
             'abgesendet_am'   => date('Y-m-d H:i:s'),
         ]);
@@ -176,6 +188,10 @@ final class Bedarf
                 // Beleg stand der Personenname statt der Firma.
                 'firma'     => (string) ($kontakt['firma'] ?? ''),
                 'sprache'   => $sprache,
+                // Er hat sie im Formular ausgewaehlt — das ist eine Angabe,
+                // keine Vermutung, und die Verwaltung soll den Unterschied
+                // kennen.
+                'sprache_gefragt' => true,
                 'nachricht' => self::zusammenfassung($antworten, $sprache, $spanne, (int) $r['monatlich_cents']),
             ]);
             if ($anfrageId) {

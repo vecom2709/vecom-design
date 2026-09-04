@@ -138,8 +138,21 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'firma'   => (string) ($_POST['firma'] ?? ''),
                 'empfehl_code' => $empfehlCode,
                 'empfehl_wer'  => (string) ($_POST['empfehl_wer'] ?? ''),
+                // Seine Antwort auf die Sprachfrage — nicht die Fassung, in
+                // der er gerade zufaellig liest.
+                'sprache'      => (string) ($_POST['sprache_wahl'] ?? ''),
             ]);
-            header('Location: ' . $adresse($anzahl, (string) $b['token'], $ok ? 'danke' : 'pflicht')); exit;
+            /* Die Dankeseite in SEINER Sprache, nicht in der, in der er
+               gelesen hat. Wer gerade "Deutsch" angegeben hat und dann eine
+               italienische Bestaetigung sieht, glaubt zu Recht, die Angabe
+               sei untergegangen — und die Mail, die gleich kommt, ist ja
+               schon deutsch. */
+            $zielSprache = strtolower(trim((string) ($_POST['sprache_wahl'] ?? '')));
+            if (!in_array($zielSprache, ['it', 'de', 'en'], true)) { $zielSprache = $sprache; }
+            header('Location: /bedarf.php?t=' . rawurlencode((string) $b['token'])
+                . '&lang=' . rawurlencode($zielSprache)
+                . '&schritt=' . $anzahl
+                . '&m=' . ($ok ? 'danke' : 'pflicht')); exit;
         }
 
         // Die Antworten dieses Schritts einsammeln. Ein nicht angekreuztes
@@ -379,6 +392,27 @@ $geld = static function (int $cents) use ($sprache): string {
           <label for="f_firma"><?= $h($T('fFirma')) ?></label>
           <input id="f_firma" name="firma" autocomplete="organization"
                  value="<?= $h((string) ($b['firma'] ?? '')) ?>">
+        </div>
+        <?php /* ----------------------------------------------------------
+             Die Sprache als Antwort, nicht als Nebenwirkung.
+
+             Unten steht ein Umschalter, aber der aendert nur die Ansicht --
+             und weil jeder Verweis auf diese Seite fest "lang=it" trug, hat
+             ihn kaum jemand je gebraucht. Was dabei herauskam, entschied
+             danach ueber jede Mail, jeden Beleg und die ganze Kundenseite.
+
+             Hier steht die Frage jetzt da, wo die Kontaktdaten stehen, mit
+             der aktuellen Fassung als Vorauswahl. Wer sie stehen laesst, hat
+             sie trotzdem gesehen -- und das ist der Unterschied zu vorher.
+             ---------------------------------------------------------- */ ?>
+        <div class="feld">
+          <label for="f_sprache"><?= $h($T('fSprache')) ?> *</label>
+          <select id="f_sprache" name="sprache_wahl" required>
+            <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $sl => $wort): ?>
+              <option value="<?= $sl ?>" <?= $sprache === $sl ? 'selected' : '' ?>><?= $h($wort) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <p class="beiseite" style="margin-top:6px"><?= $h($T('fSpracheHilfe')) ?></p>
         </div>
         <?php if ($empfehlName !== ''): ?>
           <p class="erkannt"><?= $h(strtr($T('empfehlungErkannt'), ['{name}' => $empfehlName])) ?></p>
