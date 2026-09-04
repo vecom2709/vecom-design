@@ -95,7 +95,22 @@ $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Vecom Design — Verwaltung</title>
-<link rel="stylesheet" href="<?= Fmt::h(url('assets/admin.css')) ?>">
+<?php
+/* EIN STRICH HINTER DER ADRESSE, DAMIT NEUE GESTALTUNG AUCH ANKOMMT
+   ----------------------------------------------------------------------
+   Der Server schickt die Stildatei mit langer Haltbarkeit -- richtig so,
+   sie aendert sich selten. Nur heisst das: Wenn sie sich doch aendert,
+   sieht man es nicht. Der Browser nimmt weiter die alte aus seinem Speicher,
+   und zwar auch nach einem gewoehnlichen Neuladen. Das ist genau eben
+   passiert: Die neue Regel lag auf dem Server, im Browser fehlte sie.
+
+   Die Aenderungszeit der Datei in der Adresse macht daraus eine andere
+   Adresse, sobald sich wirklich etwas geaendert hat -- und nur dann. Kein
+   Hartes-Neuladen-Erklaeren mehr, und der Speicher bleibt bis zur naechsten
+   Aenderung nuetzlich. */
+$stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
+?>
+<link rel="stylesheet" href="<?= Fmt::h(url('assets/admin.css') . '?v=' . ($stilStand ?: 1)) ?>">
 </head>
 <body>
 <div class="huelle">
