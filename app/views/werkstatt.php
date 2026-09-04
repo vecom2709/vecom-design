@@ -178,6 +178,32 @@
       <?php endif; ?>
     </div>
 
+    <?php /* ---------- Wie hoch gebaut wird ----------------------------
+         Steht auf der Kachel und nicht in einem Untermenue: Es ist die
+         Entscheidung, die das Ergebnis am staerksten praegt, und sie faellt
+         am besten dann, wenn man den Kunden gerade vor Augen hat. */ ?>
+    <?php
+      $stufe = sicher(static function () use ($w) {
+          $p = ['ambition' => $w['ambition'] ?? null];
+          $k = ['id' => (int) $w['kunde_id'], 'industry' => ''];
+          return Briefing::stufe($p, $k, [], null);
+      }, ['stufe' => 'B', 'wort' => 'Premium-UI', 'gesetzt' => false]);
+    ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>"
+          style="display:flex;align-items:center;gap:6px;margin:8px 0 0">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="ambition_setzen">
+      <input type="hidden" name="id" value="<?= (int) $w['id'] ?>">
+      <span style="font-size:12px;color:var(--leise)">Stufe</span>
+      <select name="ambition" onchange="this.form.submit()"
+              style="font-size:12.5px;padding:4px 8px;width:auto;min-width:0">
+        <option value="" <?= empty($w['ambition']) ? 'selected' : '' ?>>gerechnet (<?= Fmt::h((string) $stufe['stufe']) ?>)</option>
+        <?php foreach (['A' => 'A · klar und schnell', 'B' => 'B · Premium-UI',
+                        'C' => 'C · editorial, Bewegung', 'D' => 'D · immersiv, 3D'] as $sl => $wort): ?>
+          <option value="<?= $sl ?>" <?= (string) ($w['ambition'] ?? '') === $sl ? 'selected' : '' ?>><?= Fmt::h($wort) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </form>
+
     <?php /* ---------- Die Wege von hier ---------- */ ?>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:4px">
       <a class="knopf" href="<?= Fmt::h(url('projekte/' . (int) $w['id'])) ?>">Projekt</a>
@@ -190,6 +216,30 @@
           Fmt::h((string) $w['briefing']) ?></textarea>
         <button class="knopf" data-kopieren="brief<?= (int) $w['id'] ?>"
                 data-oeffnen="<?= Fmt::h($claudeZiel) ?>">Briefing → Claude</button>
+      <?php endif; ?>
+      <?php /* ---------------------------------------------------------
+           DER ZWEITE PROMPT
+
+           Fuer jede Folgerunde dasselbe lange Briefing zu kopieren hat
+           zwei Kosten. Die kleinere: es ist laestig. Die groessere: Das
+           Gespraech kennt den Auftrag laengst, und wer ihn zum vierten
+           Mal danebenlegt, begraebt darin das, was neu ist — die drei
+           Saetze vom Kunden, den offenen Abnahmepunkt.
+
+           Dieser Text wird bei jedem Aufruf frisch gerechnet, nicht
+           gespeichert: Er soll den Stand von jetzt tragen und nicht den
+           von gestern. Ist nichts passiert, sagt er das auch.
+           --------------------------------------------------------- */ ?>
+      <?php if (!empty($w['chat_url'])): ?>
+        <?php $weiter = sicher(static fn() => Briefing::weiter((int) $w['id']), ''); ?>
+        <?php if (trim((string) $weiter) !== ''): ?>
+          <textarea id="weiter<?= (int) $w['id'] ?>" readonly aria-hidden="true" tabindex="-1"
+                    style="position:absolute;left:-9999px;width:1px;height:1px"><?=
+            Fmt::h((string) $weiter) ?></textarea>
+          <button class="knopf" data-kopieren="weiter<?= (int) $w['id'] ?>"
+                  data-oeffnen="<?= Fmt::h((string) $w['chat_url']) ?>"
+                  title="Nur was seit dem Briefing dazugekommen ist — Kundenpost, neues Material, offene Abnahmepunkte">Weiter → Claude</button>
+        <?php endif; ?>
       <?php endif; ?>
       <?php if (!empty($w['chat_url'])): ?>
         <a class="knopf" href="<?= Fmt::h((string) $w['chat_url']) ?>" target="_blank" rel="noopener">Gespräch</a>

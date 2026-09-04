@@ -1154,6 +1154,34 @@ if ($post) {
                Menschen geredet, das ist eine bessere Auskunft als jede
                Vermutung aus einer Seitenversion.
                ============================================================ */
+            /* ============================================================
+               WIE HOCH GEBAUT WIRD
+
+               Der Bau-Prompt rechnet die Stufe aus Preis und Branche — das
+               trifft es meistens. Dieser Knopf ist fuer die anderen Faelle:
+               den Kunden, der mehr will als sein Budget vermuten laesst, und
+               den, bei dem Ruhe richtig ist, obwohl viel bezahlt wurde. Leer
+               heisst wieder "rechne es aus".
+               ============================================================ */
+            case 'ambition_setzen':
+                $apid = (int) ($_POST['id'] ?? 0);
+                $ast  = strtoupper(trim((string) ($_POST['ambition'] ?? '')));
+                if ($ast !== '' && !in_array($ast, ['A', 'B', 'C', 'D'], true)) {
+                    throw new RuntimeException('Unbekannte Ambitionsstufe.');
+                }
+                Db::update('projects', $apid, ['ambition' => $ast !== '' ? $ast : null]);
+                /* Das Briefing traegt die Stufe im Kopf — steht dort noch die
+                   alte, waere die Aenderung folgenlos, und genau das faellt
+                   erst auf, wenn die Seite falsch gebaut ist. */
+                sicher(static function () use ($apid) {
+                    require_once __DIR__ . '/src/Briefing.php';
+                    return Briefing::speichern($apid);
+                }, null);
+                $_SESSION['gut'] = $ast === ''
+                    ? 'Die Stufe wird wieder aus Preis und Branche gerechnet. Das Briefing ist neu erzeugt.'
+                    : 'Stufe ' . $ast . ' gesetzt, das Briefing ist neu erzeugt.';
+                zurueck('werkstatt');
+
             case 'sprache_setzen':
                 require_once __DIR__ . '/src/Onboarding.php';
                 $skid = (int) ($_POST['id'] ?? 0);
@@ -2090,6 +2118,8 @@ switch ($route) {
            Angaben kommen aus drei Tabellen, die es laengst gibt — neu ist
            nur, dass sie nebeneinander stehen. */
         require_once __DIR__ . '/src/Standard.php';
+        // Die Ansicht rechnet den Weiter-Prompt und die Stufe je Kachel.
+        require_once __DIR__ . '/src/Briefing.php';
         ansicht('werkstatt', [
             'einrichtung' => sicher(static fn() => Standard::einrichtungsstand(),
                 ['punkte' => [], 'offen' => [], 'gesamt' => 0]),
@@ -2097,6 +2127,7 @@ switch ($route) {
             'liste' => sicher(static fn() => Db::all(
             "SELECT p.id, p.name, p.status, p.progress, p.deadline, p.preview_url,
                     p.briefing, p.briefing_am, p.chat_url, p.abnahme, p.abnahme_am,
+                    p.ambition, p.customer_id,
                     c.id AS kunde_id, c.name AS kunde, c.company, c.kundennr,
                     w.url AS live, w.domain, w.last_status, w.ssl_expires_at
                FROM projects p
