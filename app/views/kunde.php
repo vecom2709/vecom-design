@@ -1,4 +1,7 @@
-<div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a></div>
+<?php $knr = trim((string) ($k['kundennr'] ?? '')); ?>
+<div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a><?php
+  if ($knr !== ''): ?> · <span style="font-variant-numeric:tabular-nums"><?= Fmt::h($knr) ?></span><?php
+  endif; ?></div>
 <h1><?= Fmt::h($k['name']) ?></h1></div>
 <div class="rechts"><?php if (!($anonym ?? false)): ?>
 <a class="knopf" href="<?= Fmt::h(url('kunden/' . $k['id'] . '/bearbeiten')) ?>">Bearbeiten</a>

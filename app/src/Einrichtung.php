@@ -91,6 +91,13 @@ final class Einrichtung
                 $bilanz['migrationen'] = self::migrieren();
                 if ($bilanz['migrationen']) {
                     $bilanz['texte'] = self::texteNachtragen();
+                    // Nach 031: Die Kunden, die es schon gab, bekommen ihre
+                    // Nummer in der Reihenfolge ihrer Anlage. Tut nichts,
+                    // wenn schon alle eine haben.
+                    try {
+                        require_once __DIR__ . '/Kunde.php';
+                        $bilanz['kundennummern'] = Kunde::nummernNachtragen();
+                    } catch (Throwable $e) { $bilanz['kundennummern'] = 0; }
                     // Nach 018: Betreuung als eigene Produkte anlegen und die
                     // Listen der Website-Pakete entwirren. Tut nichts, wenn es
                     // schon geschehen ist.

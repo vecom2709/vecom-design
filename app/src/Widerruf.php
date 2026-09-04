@@ -67,6 +67,7 @@ final class Widerruf
             'formUnt'  => 'Firma del/dei consumatore(i) (solo se il presente modulo è notificato in versione cartacea)',
             'formDat'  => 'Data',
             'formFuss' => '(*) Cancellare la dicitura inutile.',
+            'formKunde'=> 'N. cliente',
         ],
         'de' => [
             'agb'      => 'Ich habe die <a href="/legal.html#agb" target="_blank" rel="noopener">AGB</a> und die <a href="/legal.html#privacy" target="_blank" rel="noopener">Datenschutzerklärung</a> gelesen und akzeptiere sie.',
@@ -83,6 +84,7 @@ final class Widerruf
             'formUnt'  => 'Unterschrift des/der Verbraucher(s) (nur bei Mitteilung auf Papier)',
             'formDat'  => 'Datum',
             'formFuss' => '(*) Unzutreffendes streichen.',
+            'formKunde'=> 'Kundennummer',
         ],
         'en' => [
             'agb'      => 'I have read and accept the <a href="/legal.html#agb" target="_blank" rel="noopener">terms</a> and the <a href="/legal.html#privacy" target="_blank" rel="noopener">privacy notice</a>.',
@@ -99,6 +101,7 @@ final class Widerruf
             'formUnt'  => 'Signature of consumer(s) (only if this form is notified on paper)',
             'formDat'  => 'Date',
             'formFuss' => '(*) Delete as appropriate.',
+            'formKunde'=> 'Customer no.',
         ],
     ];
 
@@ -140,6 +143,13 @@ final class Widerruf
 
         /* Titel und Vorbemerkung */
         $p->text($rand, 168, $t['formTitel'], 20, true, 'links', $tinte);
+        /* Die Kundennummer oben rechts. Wer dieses Blatt zurueckschickt,
+           schickt es oft ohne Bestellnummer und manchmal von einer anderen
+           Adresse — an der Nummer laesst er sich trotzdem zuordnen. */
+        $knr = trim((string) ($bestellung['kunde_nr'] ?? ''));
+        if ($knr !== '') {
+            $p->text($rechts, 168, $t['formKunde'] . ' ' . $knr, 9.5, false, 'rechts', $grau);
+        }
         $y = 192;
         foreach ($p->umbrechen($t['formVor'], $rechts - $rand, 10) as $zeile) {
             $p->text($rand, $y, $zeile, 10, false, 'links', $grau);

@@ -363,6 +363,7 @@ final class Nachricht
         require_once __DIR__ . '/Firma.php';
         require_once __DIR__ . '/Widerruf.php';
         require_once __DIR__ . '/Rechnung.php';
+        require_once __DIR__ . '/Kunde.php';
 
         $sprache = self::sprache($p);
         $b = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
@@ -441,6 +442,7 @@ final class Nachricht
                 'datum'     => Fmt::datum((string) $b['created_at']),
                 'name'      => (string) $p['kunde'],
                 'anschrift' => self::kundenanschrift((int) $p['customer_id']),
+                'kunde_nr'  => Kunde::nummer((int) $p['customer_id']),
             ]),
         ];
         foreach (Db::all('SELECT * FROM invoices WHERE order_id = ? ORDER BY id', [$bestellId]) as $r) {

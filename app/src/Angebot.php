@@ -808,12 +808,19 @@ final class Angebot
             $y += 13.5;
         }
 
+        /* Die Kundennummer steht auch hier. Das Angebot ist oft das erste
+           Blatt, das der Kunde bekommt — dann hat er seine Nummer von
+           Anfang an, und nicht erst mit dem ersten Beleg. */
+        require_once __DIR__ . '/Kunde.php';
+        $knr = Kunde::nummer((int) $a['customer_id']);
+
         $ey = 156;
-        foreach ([
+        foreach (array_filter([
             [$T('nummer'),    (string) $a['nummer']],
             [$T('pdfDatum'),  date('d.m.Y', (int) strtotime((string) ($a['gesendet_am'] ?: $a['created_at'])))],
             [$T('pdfGueltig'), $a['gueltig_bis'] ? date('d.m.Y', (int) strtotime((string) $a['gueltig_bis'])) : '—'],
-        ] as [$was, $wert]) {
+            [$T('pdfKunde'),  $knr],
+        ], static fn($z) => trim((string) $z[1]) !== '') as [$was, $wert]) {
             /* Erst den Wert setzen, dann die Beschriftung links davor.
                Eine feste Spalte bei -96 reichte fuer "Datum", nicht fuer
                "Valida fino al" — dort klebte die Beschriftung am Datum. */

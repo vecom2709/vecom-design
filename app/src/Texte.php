@@ -209,6 +209,9 @@ final class Texte
      */
     public const KUNDE = [
         'hallo'      => ['it' => 'Ciao {name}', 'de' => 'Hallo {name}', 'en' => 'Hi {name}'],
+        /* Auf seiner Seite, damit er die Nummer von seinen Belegen
+           wiederfindet, ohne ein PDF aufmachen zu muessen. */
+        'kundennr'   => ['it' => 'N. cliente', 'de' => 'Kundennummer', 'en' => 'Customer no.'],
         'titel'      => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
         'duBistDran' => ['it' => 'Tocca a te', 'de' => 'Jetzt bist du dran', 'en' => 'Over to you'],
         'wirSindDran'=> ['it' => 'Ci penso io', 'de' => 'Ich bin dran', 'en' => 'I am on it'],
@@ -839,6 +842,7 @@ final class Texte
         'pdfAn'     => ['it' => 'A', 'de' => 'An', 'en' => 'To'],
         'pdfDatum'  => ['it' => 'Data', 'de' => 'Datum', 'en' => 'Date'],
         'pdfGueltig'=> ['it' => 'Valida fino al', 'de' => 'Gültig bis', 'en' => 'Valid until'],
+        'pdfKunde'  => ['it' => 'N. cliente', 'de' => 'Kundennummer', 'en' => 'Customer no.'],
         'pdfWas'    => ['it' => 'Prestazione', 'de' => 'Leistung', 'en' => 'Item'],
         'pdfBetrag' => ['it' => 'Importo', 'de' => 'Betrag', 'en' => 'Amount'],
         'pdfFest'   => [

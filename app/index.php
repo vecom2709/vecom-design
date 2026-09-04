@@ -1408,7 +1408,22 @@ switch ($route) {
             break;
         }
         $q = trim((string) ($_GET['q'] ?? ''));
-        $wo = $q !== '' ? 'WHERE c.name LIKE :q OR c.email LIKE :q OR c.company LIKE :q' : '';
+        /* EIN PLATZHALTER, NICHT VIER
+           ----------------------------------------------------------------
+           Hier stand "c.name LIKE :q OR c.email LIKE :q OR c.company LIKE :q".
+           Derselbe Name dreimal — und die Verbindung laeuft mit
+           ATTR_EMULATE_PREPARES = false, wo MariaDB genau das nicht kann.
+           Die Kundensuche warf also bei jedem eingetippten Wort einen
+           Fehler 500. Aufgefallen ist es nie, weil die Liste ohne
+           Suchbegriff tadellos laedt.
+
+           CONCAT_WS statt vieler ODER: ein Platzhalter, und die durchsuchten
+           Felder stehen als eine Liste da, die man beim Lesen sieht. Als
+           Nebenwirkung findet "Mario Trattoria" den Kunden auch dann, wenn
+           das eine im Namen und das andere in der Firma steht. */
+        $wo = $q !== ''
+            ? "WHERE CONCAT_WS(' ', c.kundennr, c.name, c.email, c.company) LIKE :q"
+            : '';
         ansicht('kunden', ['q' => $q, 'liste' => Db::all(
             "SELECT c.*,
                     (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS bestellungen,
@@ -1631,7 +1646,12 @@ switch ($route) {
         $st = (string) ($_GET['status'] ?? '');
         $sort = in_array($_GET['sort'] ?? '', ['datum', 'betrag', 'kunde'], true) ? $_GET['sort'] : 'datum';
         $bed = []; $args = [];
-        if ($q !== '')  { $bed[] = '(o.order_no LIKE :q OR c.name LIKE :q OR o.package_name LIKE :q)'; $args['q'] = "%$q%"; }
+        // Derselbe Fehler wie in der Kundensuche: dreimal :q, und die
+        // Bestellsuche antwortete mit 500, sobald man etwas eintippte.
+        if ($q !== '')  {
+            $bed[] = "CONCAT_WS(' ', o.order_no, c.name, c.kundennr, o.package_name) LIKE :q";
+            $args['q'] = "%$q%";
+        }
         if ($st !== '') { $bed[] = 'o.status = :st'; $args['st'] = $st; }
         $wo = $bed ? 'WHERE ' . implode(' AND ', $bed) : '';
         $ord = ['datum' => 'o.ordered_at DESC', 'betrag' => 'o.price_cents DESC', 'kunde' => 'c.name ASC'][$sort];
@@ -1780,8 +1800,11 @@ switch ($route) {
            meint selten den Vornamen. */
         ansicht('suche', ['q' => $q, 'treffer' => $q === '' ? [] : [
             'Kunden' => sicher(fn() => Db::all(
-                'SELECT id, COALESCE(NULLIF(company,\'\'), name) AS titel, email AS neben
-                   FROM customers WHERE name LIKE ? OR email LIKE ? OR company LIKE ? LIMIT 10', [$t,$t,$t])),
+                'SELECT id, COALESCE(NULLIF(company,\'\'), name) AS titel,
+                        TRIM(CONCAT(COALESCE(kundennr, \'\'), \' · \', email)) AS neben
+                   FROM customers
+                  WHERE name LIKE ? OR email LIKE ? OR company LIKE ? OR kundennr LIKE ?
+                  LIMIT 10', [$t,$t,$t,$t])),
             'Angebote' => sicher(fn() => Db::all(
                 'SELECT a.id, a.nummer AS titel, CONCAT(c.name, " · ", a.status) AS neben
                    FROM angebote a JOIN customers c ON c.id = a.customer_id

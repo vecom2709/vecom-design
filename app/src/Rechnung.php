@@ -353,7 +353,7 @@ final class Rechnung
             [$wo['nummer'],     (string) $r['invoice_no']],
             [$wo['datum'],      Fmt::datum((string) $r['issued_at'])],
             [$wo['bestellung'], (string) ($b['order_no'] ?? '')],
-            [$wo['kundennr'],   str_pad((string) $r['customer_id'], 4, '0', STR_PAD_LEFT)],
+            [$wo['kundennr'],   Kunde::nummer((int) $r['customer_id'])],
         ], static fn($z) => trim((string) $z[1]) !== '');
 
         $ey = 174;

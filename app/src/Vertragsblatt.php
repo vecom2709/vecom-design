@@ -42,6 +42,7 @@ final class Vertragsblatt
             'an'      => 'CLIENTE',
             'eck'     => 'ORDINE',
             'datum'   => 'Data',
+            'kundennr'=> 'N. cliente',
             'was'     => 'OGGETTO DELL\'INCARICO',
             'gesamt'  => 'Totale',
             'raten'   => 'PAGAMENTI',
@@ -57,6 +58,7 @@ final class Vertragsblatt
             'an'      => 'KUNDE',
             'eck'     => 'BESTELLUNG',
             'datum'   => 'Datum',
+            'kundennr'=> 'Kundennummer',
             'was'     => 'GEGENSTAND DES AUFTRAGS',
             'gesamt'  => 'Gesamt',
             'raten'   => 'ZAHLUNGEN',
@@ -72,6 +74,7 @@ final class Vertragsblatt
             'an'      => 'CUSTOMER',
             'eck'     => 'ORDER',
             'datum'   => 'Date',
+            'kundennr'=> 'Customer no.',
             'was'     => 'SUBJECT OF THE ORDER',
             'gesamt'  => 'Total',
             'raten'   => 'PAYMENTS',
@@ -188,6 +191,13 @@ final class Vertragsblatt
         $p->text($rechts, 152, $w['eck'], 7.5, true, 'rechts', $leise);
         $p->text($rechts, 166, (string) $b['order_no'], 11, true, 'rechts', $tinte);
         $p->text($rechts, 180, $w['datum'] . ' ' . Fmt::datum((string) $b['created_at']), 9, false, 'rechts', $grau);
+        /* Die Kundennummer gehoert daneben: Auf dem Beleg steht sie, also
+           muss sie auch auf dem Blatt stehen, das den Vertrag bestaetigt —
+           sonst sind es zwei Dokumente zu einem Vorgang mit zwei Kennungen. */
+        $knr = Kunde::nummer((int) $b['customer_id']);
+        if ($knr !== '') {
+            $p->text($rechts, 193, $w['kundennr'] . ' ' . $knr, 9, false, 'rechts', $grau);
+        }
 
         /* ---------- Kunde ---------- */
         $empf = array_values(array_filter([
@@ -198,7 +208,7 @@ final class Vertragsblatt
             (string) ($k['country'] ?? ''),
         ], static fn($z) => trim($z) !== ''));
 
-        $y = 206;
+        $y = 214;
         $p->text($rand, $y, $w['an'], 7.5, true, 'links', $leise);
         $y += 16;
         foreach ($empf as $i => $zeile) {

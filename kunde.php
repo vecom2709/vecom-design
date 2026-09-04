@@ -21,7 +21,7 @@ if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
-foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme'] as $k) {
+foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme', 'Kunde'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 
@@ -325,6 +325,13 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   <div class="kopfzeile">
     <h1 style="font-size:21px"><?= $h(str_replace('{name}',
         explode(' ', (string) $kunde['name'])[0], $T('hallo'))) ?></h1>
+    <?php /* Seine Nummer, dieselbe wie auf Angebot, Vertragsblatt und Beleg.
+             Er soll sie nennen koennen, ohne ein PDF aufzumachen. */ ?>
+    <?php $knr = trim((string) sicherLesen(fn() => Kunde::nummer((int) $kunde['id']), '')); ?>
+    <?php if ($knr !== ''): ?>
+      <span style="font-size:12.5px;color:var(--leise);white-space:nowrap;
+                   font-variant-numeric:tabular-nums"><?= $h($T('kundennr')) ?> <?= $h($knr) ?></span>
+    <?php endif; ?>
   </div>
 
   <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>

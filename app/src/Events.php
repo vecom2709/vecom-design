@@ -184,6 +184,13 @@ final class Events
         }
 
         $id = Db::insert('customers', $neu);
+        // Die Kundennummer gleich hier, nicht erst wenn sie zum ersten Mal
+        // gebraucht wird: Sonst haengt die Reihenfolge der Reihe daran, wer
+        // wann angesehen wurde, statt daran, wer wann gekommen ist.
+        try {
+            require_once __DIR__ . '/Kunde.php';
+            Kunde::nummerVergeben($id);
+        } catch (Throwable $e) { /* nummer() holt es nach */ }
         self::protokoll('kunde_neu', 'Neuer Kunde: ' . $daten['name'], $id);
         // Keine Meldung: Entsteht der Kunde aus einer Anfrage, meldet die
         // Anfrage schon; legt Uwe ihn selbst an, weiss er es ohnehin.

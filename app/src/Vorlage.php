@@ -76,15 +76,21 @@ final class Vorlage
 
     /**
      * Die Kennung fuer den Betreff. Die Bestellnummer, wenn es eine gibt —
-     * sonst eine aus der Kundennummer gebildete. Berechnet, nicht gespeichert:
-     * eine weitere Spalte waere eine weitere Stelle, die auseinanderlaufen kann.
+     * sonst die Kundennummer.
+     *
+     * Frueher stand hier ein selbstgebautes "VD-K-0008" aus der laufenden
+     * Kennung: ein drittes Format neben dem der Belege und dem der
+     * Verwaltung, das der Kunde sonst nirgends wiederfand. Jetzt dieselbe
+     * Nummer wie ueberall.
      */
     public static function kennung(int $kundeId): string
     {
         $nr = (string) self::still(fn() => Db::wert(
             'SELECT order_no FROM orders WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$kundeId], ''), '');
         if ($nr !== '') { return $nr; }
-        return 'VD-K-' . str_pad((string) $kundeId, 4, '0', STR_PAD_LEFT);
+        require_once __DIR__ . '/Kunde.php';
+        $kn = (string) self::still(fn() => Kunde::nummer($kundeId), '');
+        return $kn !== '' ? $kn : 'VD-K-' . str_pad((string) $kundeId, 4, '0', STR_PAD_LEFT);
     }
 
     /** Kennung vor den Betreff — genau einmal, auch wenn sie schon dasteht. */

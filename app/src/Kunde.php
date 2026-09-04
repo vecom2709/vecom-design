@@ -38,6 +38,104 @@ declare(strict_types=1);
  */
 final class Kunde
 {
+    /* ======================================================================
+       DIE KUNDENNUMMER
+
+       Eine eigene Reihe, jahresweise gezaehlt, wie bei den Belegen:
+       K-2026-0001. Nicht aus der laufenden Kennung gerechnet — die hat
+       Luecken, sobald ein Kunde geloescht wird, und sie verraet nebenbei,
+       der wievielte Kunde jemand ist.
+
+       Vergeben wird sie bei der Anlage. Steht trotzdem keine da — ein alter
+       Kunde von vor dieser Aenderung, oder ein Weg, den ich uebersehen habe —,
+       holt nummer() das im selben Augenblick nach. Ein Kunde ohne Nummer soll
+       es nicht geben, und schon gar nicht auf einem Blatt, das er in die Hand
+       bekommt.
+       ====================================================================== */
+
+    /** Das Jahr, in dem der Kunde angelegt wurde — daraus zaehlt seine Reihe. */
+    private static function jahrVon(?string $angelegt): string
+    {
+        $z = $angelegt !== null && $angelegt !== '' ? strtotime($angelegt) : false;
+        return date('Y', $z === false ? time() : $z);
+    }
+
+    /**
+     * Die Nummer dieses Kunden. Fehlt sie, wird sie jetzt vergeben.
+     *
+     * Leerer String nur, wenn es den Kunden nicht gibt oder die Spalte in
+     * dieser Installation noch fehlt — eine fehlende Nummer darf nie eine
+     * Seite oder ein PDF aufhalten.
+     */
+    public static function nummer(int $kundeId): string
+    {
+        if ($kundeId <= 0) { return ''; }
+        try {
+            $k = Db::one('SELECT id, kundennr, created_at FROM customers WHERE id = ?', [$kundeId]);
+            if (!$k) { return ''; }
+            $da = trim((string) ($k['kundennr'] ?? ''));
+            if ($da !== '') { return $da; }
+            return self::nummerVergeben($kundeId, self::jahrVon((string) ($k['created_at'] ?? '')));
+        } catch (Throwable $e) {
+            return '';
+        }
+    }
+
+    /**
+     * Vergibt die naechste freie Nummer des Jahres.
+     *
+     * Zwei gleichzeitige Anlagen koennen dieselbe Zahl errechnen; die zweite
+     * faellt dann in den eindeutigen Schluessel. Das ist kein Fehler, sondern
+     * der Sinn des Schluessels — deshalb wird es bis zu fuenfmal versucht,
+     * jedes Mal mit frisch gezaehlter Zahl.
+     */
+    public static function nummerVergeben(int $kundeId, ?string $jahr = null): string
+    {
+        $jahr = $jahr ?? date('Y');
+        $vorn = 'K-' . $jahr . '-';
+        for ($versuch = 0; $versuch < 5; $versuch++) {
+            try {
+                $hoechste = (int) Db::wert(
+                    'SELECT COALESCE(MAX(CAST(SUBSTRING(kundennr, ?) AS UNSIGNED)), 0)
+                       FROM customers WHERE kundennr LIKE ?',
+                    [strlen($vorn) + 1, $vorn . '%'], 0);
+                $nummer = sprintf('%s%04d', $vorn, $hoechste + 1 + $versuch);
+                Db::run('UPDATE customers SET kundennr = ? WHERE id = ? AND (kundennr IS NULL OR kundennr = \'\')',
+                    [$nummer, $kundeId]);
+                $jetzt = trim((string) Db::wert('SELECT kundennr FROM customers WHERE id = ?', [$kundeId], ''));
+                if ($jetzt !== '') { return $jetzt; }
+            } catch (Throwable $e) {
+                // Doppelte Nummer: naechster Versuch zaehlt neu.
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Traegt die Nummern fuer die Kunden nach, die es schon gab.
+     *
+     * In der Reihenfolge der Anlage, jahresweise — so bekommt der erste Kunde
+     * von 2026 die 0001 und nicht die Nummer, die gerade frei war. Laeuft
+     * einmal nach der Wanderung 031 und danach ins Leere.
+     */
+    public static function nummernNachtragen(): int
+    {
+        $gezaehlt = 0;
+        try {
+            $offen = Db::all("SELECT id, created_at FROM customers
+                               WHERE kundennr IS NULL OR kundennr = ''
+                               ORDER BY created_at, id");
+        } catch (Throwable $e) {
+            return 0;   // Spalte noch nicht da — dann eben beim naechsten Lauf
+        }
+        foreach ($offen as $k) {
+            if (self::nummerVergeben((int) $k['id'], self::jahrVon((string) $k['created_at'])) !== '') {
+                $gezaehlt++;
+            }
+        }
+        return $gezaehlt;
+    }
+
     /** Adressen unter .invalid koennen nie existieren (RFC 2606). */
     private const PLATZHALTER = '@geloescht.invalid';
 
