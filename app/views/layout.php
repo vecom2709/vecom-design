@@ -304,6 +304,90 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
 })();
 </script>
 <script>
+/* ============================================================================
+   RUECKFRAGEN, DIE DIE SEITE NICHT ANHALTEN
+
+   Vorher stand an jedem heiklen Knopf ein onsubmit="return confirm(...)".
+   Das tut, was es soll, hat aber zwei Nachteile: Es friert das ganze Fenster
+   ein, bis jemand klickt -- und es sieht aus wie eine Warnung des Browsers,
+   nicht wie eine Frage aus dieser Verwaltung. Die Frage steht jetzt dort, wo
+   der Knopf steht, in derselben Gestaltung, und daneben die Antwort.
+
+   Ein Formular sagt ueber data-frage, was gefragt werden soll, und optional
+   ueber data-ja, wie die Zusage heisst. "Ja, verschicken" ist eine bessere
+   Antwort als "OK": Man liest sie auch, wenn man die Frage ueberflogen hat.
+
+   Wer welchen Knopf gedrueckt hat, merkt sich das Skript -- auf einer Seite
+   mit mehreren Knoepfen im selben Formular waere sonst hinterher der erste
+   gemeint und nicht der gedrueckte.
+   ========================================================================= */
+(function () {
+  var offen = null;
+
+  function schliessen() {
+    if (offen) { offen.remove(); offen = null; }
+  }
+
+  /** Fragt am Element, gibt den Streifen zurueck. */
+  function fragen(anker, frage, jaText, aufJa) {
+    schliessen();
+    var kasten = document.createElement('div');
+    kasten.className = 'frage';
+    kasten.setAttribute('role', 'group');
+
+    var text = document.createElement('span');
+    text.textContent = frage;
+    kasten.appendChild(text);
+
+    var ja = document.createElement('button');
+    ja.type = 'button';
+    ja.className = 'knopf haupt';
+    ja.textContent = jaText || 'Ja, weiter';
+    ja.addEventListener('click', function () { schliessen(); aufJa(); });
+
+    var nein = document.createElement('button');
+    nein.type = 'button';
+    nein.className = 'knopf';
+    nein.textContent = 'Abbrechen';
+    nein.addEventListener('click', schliessen);
+
+    kasten.appendChild(ja);
+    kasten.appendChild(nein);
+    anker.insertAdjacentElement('afterend', kasten);
+    offen = kasten;
+    ja.focus({ preventScroll: true });
+    kasten.scrollIntoView({ block: 'nearest' });
+    return kasten;
+  }
+
+  /* Nach aussen, damit auch etwas anderes als ein Formular fragen kann. */
+  window.vecomFrage = fragen;
+
+  /* Auf dem Dokument und in der EINFANGENDEN Phase: So wird gefragt, bevor
+     irgendein anderer Zuhoerer am Formular reagiert. Haengte die Frage
+     hinten dran, haette ein Skript am Formular schon gehandelt, waehrend
+     die Frage noch offen ist. */
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (!f || !f.getAttribute) { return; }
+    var frage = f.getAttribute('data-frage');
+    if (!frage || f.dataset.beantwortet === 'ja') { return; }
+
+    e.preventDefault();
+    var knopf = e.submitter || f.querySelector('button, input[type=submit]');
+    fragen(f, frage, f.getAttribute('data-ja'), function () {
+      f.dataset.beantwortet = 'ja';
+      if (f.requestSubmit) { f.requestSubmit(knopf); } else { f.submit(); }
+    });
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { schliessen(); }
+  });
+})();
+</script>
+
+<script>
 /* Laufende Aktualisierung: fragt alle 20 Sekunden nur wenige Zahlen ab und
    laedt die Seite erst neu, wenn sich wirklich etwas geaendert hat. */
 (function () {

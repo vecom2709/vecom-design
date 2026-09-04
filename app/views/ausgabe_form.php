@@ -95,7 +95,7 @@
     <summary style="cursor:pointer;font-weight:650;font-size:13.5px;color:var(--rot)">Diesen Eintrag löschen</summary>
     <p style="color:var(--dim);font-size:13px;margin:10px 0">Nur für Tippfehler. Ein echter Beleg
       bleibt stehen, auch wenn er ärgert — sonst hat die Nummernreihe eine Lücke.</p>
-    <form method="post" action="<?= Fmt::h(url('')) ?>" onsubmit="return confirm('Wirklich löschen? Die Nummer bleibt danach frei.')">
+    <form method="post" action="<?= Fmt::h(url('')) ?>" data-frage="Wirklich löschen? Die Nummer bleibt danach frei." data-ja="Ja, löschen">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="ausgabe_loeschen">
       <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
       <button class="knopf">Löschen</button></form>

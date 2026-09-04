@@ -311,7 +311,7 @@
         <input type="hidden" name="zurueck" value="einstellungen">
         <button class="knopf">Testnachricht senden</button></form>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
-            onsubmit="return confirm('Nummer und Schlüssel löschen und den Zuruf abschalten?')">
+            data-frage="Nummer und Schlüssel löschen und den Zuruf abschalten?" data-ja="Ja, abschalten">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="zuruf_weg">
         <input type="hidden" name="zurueck" value="einstellungen">
         <button class="knopf">Entfernen</button></form>

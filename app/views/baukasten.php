@@ -65,7 +65,8 @@ $zu = Baukasten::gesperrt();
           Anheben geht erst, wenn der Baukasten entsperrt ist — der Knopf steht unten.</p>
       <?php else: ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px"
-              onsubmit="return confirm('Preise wirklich um <?= (int) $phase['erhoehung'] ?> Prozent anheben? Das lässt sich nur von Hand rückgängig machen.')">
+              data-frage="Preise wirklich um <?= (int) $phase['erhoehung'] ?> Prozent anheben? Das lässt sich nur von Hand rückgängig machen."
+              data-ja="Ja, anheben">
           <?= Csrf::feld() ?>
           <input type="hidden" name="tat" value="preise_anheben">
           <input type="hidden" name="zurueck" value="baukasten">

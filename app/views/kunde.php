@@ -124,7 +124,8 @@
       <?php if (in_array((string) $abo['status'], ['aktiv', 'angelegt'], true)): ?>
         <?php $vor = sicher(static fn() => Abo::kuendigungsvorschau($abo), ['ende' => '', 'mindestlaufzeit' => false]); ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
-              onsubmit="return confirm('Kündigen zum <?= Fmt::h(Fmt::datum((string) $vor['ende'])) ?>? Der Kunde bekommt sofort die Bestätigung.')">
+              data-frage="Kündigen zum <?= Fmt::h(Fmt::datum((string) $vor['ende'])) ?>? Der Kunde bekommt sofort die Bestätigung."
+              data-ja="Ja, kündigen">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="abo_kuendigen">
           <input type="hidden" name="id" value="<?= (int) $abo['id'] ?>">
           <button class="knopf">Für den Kunden kündigen</button>
@@ -188,7 +189,7 @@
       <a class="knopf haupt" href="<?= Fmt::h(url('kunden/' . (int) $k['id'] . '?vorlage=zugang#schreiben')) ?>">Link schicken</a>
       <a class="knopf" href="<?= Fmt::h($kundenlink) ?>" target="_blank" rel="noopener">Ansehen</a>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-            onsubmit="return confirm('Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?')">
+            data-frage="Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?" data-ja="Ja, neuen Link">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="kundenlink_neu">
         <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
         <button class="knopf">Neuen Link erzeugen</button>

@@ -126,7 +126,7 @@ $dateien = $a ? Db::all(
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
-<link rel="stylesheet" href="/assets/css/kunde.css">
+<link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
   .angefragt{white-space:pre-wrap; font-size:14.5px; line-height:1.65; color:var(--dim)}
   .lead{color:var(--dim); font-size:15px; line-height:1.65}

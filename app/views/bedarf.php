@@ -30,7 +30,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php endif; ?>
     <?php if (!$angebotId): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-            onsubmit="return confirm('Diesen Bedarf löschen? Die Antworten sind danach weg.')">
+            data-frage="Diesen Bedarf löschen? Die Antworten sind danach weg." data-ja="Ja, löschen">
         <?= Csrf::feld() ?>
         <input type="hidden" name="tat" value="bedarf_loeschen">
         <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">

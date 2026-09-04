@@ -32,7 +32,7 @@ $knopf = static function (string $tat, int $id, string $text, string $stil = '')
     <?php endif; ?>
     <?php if ($gelesen > 0): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>"
-            onsubmit="return confirm('<?= (int) $gelesen ?> gelesene Meldungen löschen? Der Verlauf bleibt davon unberührt.')">
+            data-frage="<?= (int) $gelesen ?> gelesene Meldungen löschen? Der Verlauf bleibt davon unberührt." data-ja="Ja, löschen">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="meldungen_weg">
         <input type="hidden" name="zurueck" value="benachrichtigungen">
         <button class="knopf" style="border-color:rgba(255,138,138,.4);color:var(--rot)">

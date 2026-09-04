@@ -224,7 +224,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
-<link rel="stylesheet" href="/assets/css/kunde.css">
+<link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
   /* Die Fortschrittsleiste: waagerecht, damit sie auf dem Handy nicht
      die halbe Seite frisst. Sieben Punkte, der aktuelle traegt die Farbe. */
@@ -448,7 +448,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           <p class="mini" style="margin-top:12px">
             <?= $h(str_replace('{datum}', Fmt::datum((string) $vor['ende']), $T('kuendigenWann'))) ?></p>
           <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px"
-                onsubmit="return confirm('<?= $h($T('kuendigenSicher')) ?>')">
+                data-frage="<?= $h($T('kuendigenSicher')) ?>"
+                data-ja="<?= $h($T('jaKuendigen')) ?>"
+                data-nein="<?= $h($T('abbrechen')) ?>">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="kuendigen">
             <button class="knopf"><?= $h($T('kuendigen')) ?></button>
           </form>
@@ -569,5 +571,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
 <?php endif; ?>
 </div>
+<?php /* Die Rueckfrage an den heiklen Knoepfen -- ohne die Seite anzuhalten.
+         Der Aenderungsstempel sorgt dafuer, dass eine neue Fassung auch
+         ankommt und nicht aus dem Speicher des Browsers kommt. */ ?>
+<script src="/assets/js/frage.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/frage.js') ?>" defer></script>
 </body>
 </html>

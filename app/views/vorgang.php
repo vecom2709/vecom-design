@@ -393,7 +393,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <a class="knopf" href="<?= Fmt::h((string) $v['link_kunde']) ?>" target="_blank" rel="noopener">Ansehen</a>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-            onsubmit="return confirm('Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?')">
+            data-frage="Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?" data-ja="Ja, neuen Link">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="kundenlink_neu">
         <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
         <input type="hidden" name="id" value="<?= (int) ($v['kunde_id'] ?? 0) ?>">
@@ -463,7 +463,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
         <span style="color:var(--leise);font-size:12.5px">Freigegeben am
           <?= Fmt::h(Fmt::zeit((string) $vs['frei_am'])) ?></span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
-              onsubmit="return confirm('Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?')">
+              data-frage="Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?" data-ja="Ja, sperren">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_sperren">
           <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
           <input type="hidden" name="id" value="<?= (int) $pid ?>">

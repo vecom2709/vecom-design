@@ -13,7 +13,7 @@
 <td style="text-align:right">
 <?php if ((int) $p['bestellungen'] === 0): ?>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-        onsubmit="return confirm('Paket wirklich löschen?')">
+        data-frage="Paket wirklich löschen?" data-ja="Ja, löschen">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_loeschen">
     <input type="hidden" name="zurueck" value="pakete"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
     <button class="knopf stumm">Löschen</button></form>

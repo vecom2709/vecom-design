@@ -189,7 +189,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
           nicht hinter seinem Rücken bewegen. Die Frist von 14 Tagen läuft ab jetzt.
         </p>
         <form method="post" action="<?= Fmt::h(url('')) ?>"
-              onsubmit="return confirm('Angebot verschicken? Danach ist es festgeschrieben.')">
+              data-frage="Angebot verschicken? Danach ist es festgeschrieben." data-ja="Ja, verschicken">
           <?= Csrf::feld() ?>
           <input type="hidden" name="tat" value="angebot_senden">
           <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
@@ -230,7 +230,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
                   <span style="color:var(--leise)">statt <?= Fmt::h($eur($a['summe_cents']) . ' €') ?></span></td></tr>
           </table>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
-                onsubmit="return confirm('Neue Fassung mit seinen Posten anlegen? Dieses Angebot wird zurückgezogen.')">
+                data-frage="Neue Fassung mit seinen Posten anlegen? Dieses Angebot wird zurückgezogen." data-ja="Ja, neue Fassung">
             <?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="angebot_neufassung">
             <input type="hidden" name="aus_wunsch" value="1">
@@ -250,7 +250,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
             dazu die Anzahlung über <?= Fmt::h($eur($anzahlung)) ?> €. Nichts davon musst du abtippen.
           </p>
           <form method="post" action="<?= Fmt::h(url('')) ?>"
-                onsubmit="return confirm('Zusage vermerken und Bestellung anlegen?')">
+                data-frage="Zusage vermerken und Bestellung anlegen?" data-ja="Ja, Zusage vermerken">
             <?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="angebot_zusage">
             <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
@@ -270,7 +270,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
             nimmt aber keine Zusage mehr an — sonst wären zwei gültig und keiner wüsste welches.
           </p>
           <form method="post" action="<?= Fmt::h(url('')) ?>"
-                onsubmit="return confirm('Neue Fassung anlegen? Dieses Angebot wird damit zurückgezogen.')">
+                data-frage="Neue Fassung anlegen? Dieses Angebot wird damit zurückgezogen." data-ja="Ja, neue Fassung">
             <?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="angebot_neufassung">
             <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">

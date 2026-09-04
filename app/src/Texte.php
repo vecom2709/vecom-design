@@ -276,6 +276,8 @@ final class Texte
         'betreuungMind' => ['it' => 'Durata minima fino al {datum}', 'de' => 'Mindestlaufzeit bis {datum}',
                             'en' => 'Minimum term until {datum}'],
         'kuendigen'     => ['it' => 'Disdici l’assistenza', 'de' => 'Betreuung kündigen', 'en' => 'Cancel the care plan'],
+        'jaKuendigen'   => ['it' => 'Sì, disdico', 'de' => 'Ja, kündigen', 'en' => 'Yes, cancel'],
+        'abbrechen'     => ['it' => 'Annulla', 'de' => 'Abbrechen', 'en' => 'Cancel'],
         'kuendigenWann' => ['it' => 'Se disdici adesso, l’assistenza resta attiva fino al {datum} — fino ad allora paghi, dopo no.',
                             'de' => 'Wenn du jetzt kündigst, läuft die Betreuung noch bis zum {datum} — bis dahin zahlst du, danach nicht mehr.',
                             'en' => 'If you cancel now, care runs until {datum} — you pay until then, not after.'],
@@ -784,6 +786,10 @@ final class Texte
             'en' => 'Paid in two steps: {anzahlung} on order, the rest when the site is handed over.',
         ],
         'annehmen'  => ['it' => 'Accetto l\'offerta', 'de' => 'Angebot annehmen', 'en' => 'Accept this quote'],
+        /* Die Zusage auf die Rueckfrage. "Ja, annehmen" liest man auch dann
+           richtig, wenn man die Frage darueber ueberflogen hat -- "OK" nicht. */
+        'jaAnnehmen' => ['it' => 'Sì, accetto', 'de' => 'Ja, annehmen', 'en' => 'Yes, accept'],
+        'abbrechen'  => ['it' => 'Annulla', 'de' => 'Abbrechen', 'en' => 'Cancel'],
         'ablehnen'  => ['it' => 'Non fa per me', 'de' => 'Passt so nicht', 'en' => 'Not for me'],
         'grundFrage'=> [
             'it' => 'Che cosa non va? Basta una riga — mi aiuta a capire.',

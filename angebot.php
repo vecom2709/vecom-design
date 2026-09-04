@@ -154,7 +154,7 @@ $datum = static function (?string $d): string {
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
-<link rel="stylesheet" href="/assets/css/kunde.css">
+<link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
   .lead{color:var(--dim);font-size:15px;line-height:1.65}
   .akopf{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--linie)}
@@ -292,7 +292,9 @@ $datum = static function (?string $d): string {
   <?php if ($offen): ?>
     <div class="block">
       <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>"
-            onsubmit="return confirm('<?= $h($T('annehmen')) ?>?')">
+            data-frage="<?= $h($T('annehmen')) ?>?"
+            data-ja="<?= $h($T('jaAnnehmen')) ?>"
+            data-nein="<?= $h($T('abbrechen')) ?>">
         <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
         <input type="hidden" name="t" value="<?= $h($token) ?>">
         <div class="tun">
@@ -462,5 +464,9 @@ $datum = static function (?string $d): string {
 })();
 </script>
 <?php endif; ?>
+<?php /* Die Rueckfrage an den heiklen Knoepfen -- ohne die Seite anzuhalten.
+         Der Aenderungsstempel sorgt dafuer, dass eine neue Fassung auch
+         ankommt und nicht aus dem Speicher des Browsers kommt. */ ?>
+<script src="/assets/js/frage.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/frage.js') ?>" defer></script>
 </body>
 </html>

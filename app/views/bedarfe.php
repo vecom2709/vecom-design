@@ -13,7 +13,7 @@
   <h1>Bedarf</h1>
   <div class="rechts">
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-          onsubmit="return confirm('Angefangene ohne Antwort, seit über einem Tag stille und verwaiste Einträge löschen?')">
+          data-frage="Angefangene ohne Antwort, seit über einem Tag stille und verwaiste Einträge löschen?" data-ja="Ja, aufräumen">
       <?= Csrf::feld() ?>
       <input type="hidden" name="tat" value="bedarf_aufraeumen">
       <button class="knopf">Aufräumen</button>
@@ -76,7 +76,7 @@
     <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $b['created_at'])) ?></td>
     <td style="text-align:right">
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-            onsubmit="return confirm('Diesen Eintrag löschen?')">
+            data-frage="Diesen Eintrag löschen?" data-ja="Ja, löschen">
         <?= Csrf::feld() ?>
         <input type="hidden" name="tat" value="bedarf_loeschen">
         <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">

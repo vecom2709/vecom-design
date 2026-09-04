@@ -93,20 +93,36 @@ if ($nfVorwahl !== '') {
   var wahl = f.querySelector('select'),
       betreff = f.querySelector('input[name=betreff]'),
       text = f.querySelector('textarea');
-  wahl.addEventListener('change', function () {
-    var x = v[this.value];
-    if (!x) { return; }
-    // Ueberschreiben nur nach Rueckfrage: Wer schon getippt hat, soll seine
-    // Arbeit nicht durch einen Klick daneben verlieren.
-    if (text.value.trim() !== '' && !confirm('Den geschriebenen Text durch die Vorlage ersetzen?')) {
-      this.value = ''; return;
-    }
+  function einsetzen(x) {
     betreff.value = x.betreff;
     text.value = x.text;
     wachsen();
     text.focus();
     text.setSelectionRange(0, 0);
     text.scrollTop = 0;
+  }
+
+  wahl.addEventListener('change', function () {
+    var x = v[this.value];
+    if (!x) { return; }
+    // Ueberschreiben nur nach Rueckfrage: Wer schon getippt hat, soll seine
+    // Arbeit nicht durch einen Klick daneben verlieren. Die Frage steht dabei
+    // an der Auswahl statt im Fenster des Browsers -- sie haelt so nicht die
+    // ganze Seite an, und der schon getippte Text bleibt derweil sichtbar.
+    var wieder = this;
+    if (text.value.trim() !== '') {
+      if (typeof window.vecomFrage === 'function') {
+        window.vecomFrage(wahl, 'Den geschriebenen Text durch die Vorlage ersetzen?',
+                          'Ja, ersetzen', function () { einsetzen(x); });
+      } else if (!confirm('Den geschriebenen Text durch die Vorlage ersetzen?')) {
+        wieder.value = ''; return;
+      } else {
+        einsetzen(x);
+      }
+      wieder.value = '';
+      return;
+    }
+    einsetzen(x);
   });
 
   // Die Vorlagen sind ganze Briefe. In sieben Zeilen muesste man in einem

@@ -191,7 +191,7 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
-<link rel="stylesheet" href="/assets/css/kunde.css">
+<link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
   .lead{color:var(--dim); font-size:15px; line-height:1.65}
   .vorschau{display:block; margin-top:6px}

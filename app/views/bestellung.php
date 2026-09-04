@@ -92,7 +92,7 @@
             $zSprWort = ['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'][$zSpr];
           ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-                <?= $schonRaus ? 'onsubmit="return confirm(\'Der Link ging schon einmal raus. Noch einmal senden?\')"' : '' ?>>
+                <?= $schonRaus ? 'data-frage="Der Link ging schon einmal raus. Noch einmal senden?" data-ja="Ja, noch einmal"' : '' ?>>
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink_senden">
             <input type="hidden" name="order_id" value="<?= (int) $b['id'] ?>">
             <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">

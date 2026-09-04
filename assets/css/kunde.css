@@ -283,3 +283,12 @@ input[type=file]{
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important; transition-duration:.01ms!important}
 }
+
+/* Die Rueckfrage steht dort, wo der Knopf steht -- in dieser Gestaltung,
+   nicht als graue Kiste des Browsers, und ohne die Seite anzuhalten. Wer
+   noch einmal nachlesen will, worauf er Ja sagt, kann das dahinter. */
+.frage{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 0;
+  padding:12px 14px;border:1px solid var(--cyan);border-radius:12px;
+  background:rgba(31,232,255,.07);font-size:14px;line-height:1.55;color:var(--text)}
+.frage > span{flex:1 1 240px;min-width:0}
+.frage .knopf{flex:0 0 auto}

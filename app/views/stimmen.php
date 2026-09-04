@@ -51,7 +51,7 @@
         <?php endif; ?>
         <?php if (!$s['erlaubnis']): ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
-                onsubmit="return confirm('Hat der Kunde der Veröffentlichung mit seinem Namen wirklich zugestimmt?')">
+                data-frage="Hat der Kunde der Veröffentlichung mit seinem Namen wirklich zugestimmt?" data-ja="Ja, er hat zugestimmt">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="stimme_erlaubnis">
             <input type="hidden" name="id" value="<?= (int) $s['id'] ?>">
             <button class="knopf">Er hat zugestimmt</button></form>
