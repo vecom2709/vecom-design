@@ -245,8 +245,13 @@ if ($post) {
                 require_once __DIR__ . '/src/Einfuehrung.php';
                 // Nur, wenn die Phase wirklich am Ende ist. Sonst waere ein
                 // versehentlich abgeschickter Knopf eine stille Preisrunde.
+                if (Baukasten::gesperrt()) {
+                    $_SESSION['fehler'] = 'Der Baukasten ist gesperrt — die Preise wurden nicht angehoben.';
+                    zurueck('baukasten');
+                }
                 if (Einfuehrung::erreicht()) {
                     $wie = Einfuehrung::anwenden();
+                    Baukasten::sperren(true);
                     Events::melden('einfuehrung_ende', 'Einführungspreise beendet', 'gut',
                         $wie . ' Bausteine um ' . Einfuehrung::erhoehung() . ' Prozent angehoben', '/baukasten');
                 }
@@ -259,8 +264,27 @@ if ($post) {
                 if ($kid > 0 && $eid > 0) { Empfehlung::zuordnen($eid, $kid); }
                 zurueck('empfehlungen');
 
+            /* DIE SPERRE FUER DEN BAUKASTEN
+               ----------------------------------------------------------
+               Ein abgeschaltetes Eingabefeld ist die halbe Sicherung: Es
+               haelt die Maus auf, nicht das Formular. Deshalb prueft der
+               Server noch einmal, was der Browser schon zeigt. */
+            case 'baukasten_sperre':
+                require_once __DIR__ . '/src/Baukasten.php';
+                $zu = (string) ($_POST['zu'] ?? '1') === '1';
+                Baukasten::sperren($zu);
+                Events::protokoll('baukasten_sperre', $zu ? 'Baukasten gesperrt' : 'Baukasten entsperrt');
+                $_SESSION['gut'] = $zu
+                    ? 'Der Baukasten ist wieder zu.'
+                    : 'Der Baukasten ist offen. Nach dem Speichern sperrt er sich von selbst wieder.';
+                zurueck('baukasten');
+
             case 'bausteine_speichern':
                 require_once __DIR__ . '/src/Baukasten.php';
+                if (Baukasten::gesperrt()) {
+                    $_SESSION['fehler'] = 'Der Baukasten ist gesperrt — es wurde nichts geändert.';
+                    zurueck('baukasten');
+                }
                 // Alles in einem Rutsch: Preise pflegt man selten, dann aber
                 // mehrere auf einmal. Eine Transaktion, damit eine halbe
                 // Preisrunde nicht stehen bleibt.
@@ -286,7 +310,12 @@ if ($post) {
                         $wie++;
                     }
                 });
-                Events::protokoll('baukasten_preise', $wie . ' Bausteine gespeichert');
+                /* Nach getaner Arbeit faellt das Schloss von selbst wieder
+                   zu. Eine Sperre, an die man nach dem Aendern denken muss,
+                   ist nach dem dritten Mal offen und bleibt es. */
+                Baukasten::sperren(true);
+                Events::protokoll('baukasten_preise', $wie . ' Bausteine gespeichert, Baukasten wieder gesperrt');
+                $_SESSION['gut'] = $wie . ' Bausteine gespeichert. Der Baukasten ist wieder zu.';
                 zurueck('baukasten');
 
             case 'kunde_speichern':

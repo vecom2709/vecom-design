@@ -248,6 +248,54 @@ final class Baukasten
        Katalog
        ---------------------------------------------------------------------- */
 
+    /* ----------------------------------------------------------------------
+       Die Sperre
+       ---------------------------------------------------------------------- */
+
+    /** Der Schluessel in den Einstellungen. */
+    private const SPERRE = 'baukasten_gesperrt';
+
+    /**
+     * Ist der Baukasten zugesperrt?
+     *
+     * WARUM ES DIE SPERRE GIBT
+     *
+     * Hier stehen die Zahlen, aus denen jeder Preis entsteht -- die Spanne im
+     * Konfigurator, die Mitte im Angebot, die Differenz beim Nachtrag. Eine
+     * Ziffer, die beim Durchscrollen verrutscht, aendert nicht eine Zeile,
+     * sondern jedes kuenftige Angebot. Und sie faellt nicht auf: Der neue
+     * Preis sieht genauso plausibel aus wie der alte.
+     *
+     * Deshalb ist zu die Vorgabe, auch fuer eine Installation, in der noch nie
+     * jemand etwas eingestellt hat. Wer wirklich eine Preisrunde machen will,
+     * sagt das mit einem Knopf; das ist ein Handgriff mehr und genau der eine,
+     * der fehlte.
+     */
+    public static function gesperrt(): bool
+    {
+        try {
+            $w = Db::wert('SELECT svalue FROM settings WHERE skey = ?', [self::SPERRE], null);
+        } catch (Throwable $e) {
+            // Keine Auskunft heisst zu. Im Zweifel lieber ein Knopf zu viel
+            // als eine Preisrunde, die niemand wollte.
+            return true;
+        }
+        /* Aufgesperrt ist nur, was ausdruecklich Null sagt. Alles andere --
+           nichts, Unfug, ein halb geschriebener Wert -- gilt als zu. Eine
+           Sperre, die sich bei Unklarheit oeffnet, ist keine. */
+        return $w === null || (string) $w !== '0';
+    }
+
+    /** Zu- oder aufsperren. */
+    public static function sperren(bool $zu): void
+    {
+        try {
+            Db::run("INSERT INTO settings (skey, svalue) VALUES (?, ?)
+                     ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                    [self::SPERRE, $zu ? '1' : '0']);
+        } catch (Throwable $e) { /* dann bleibt es, wie es war */ }
+    }
+
     /** Legt die Startwerte an, falls der Katalog noch leer ist. Laeuft genau einmal. */
     public static function sicherstellen(): void
     {

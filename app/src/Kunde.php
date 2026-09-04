@@ -304,8 +304,53 @@ final class Kunde
         $name  = (string) $k['name'];
         $email = (string) $k['email'];
 
+        /* EMPFEHLUNGEN GEHEN MIT
+           ------------------------------------------------------------------
+           Sie standen bisher ausdruecklich nicht in der Loeschreihe, mit der
+           Begruendung: Die Empfehlung gehoert dem, der empfohlen hat. Das
+           stimmt fuer den Rabatt -- und nicht fuer die Zeile. Wer geloescht
+           wird, hinterliess eine Empfehlung, die auf eine Akte zeigte, die es
+           nicht mehr gab: In der Liste stand eine Zahl, hinter der niemand
+           war, und in der Verwaltung leuchtete eine Nennung, die sich nicht
+           mehr zuordnen liess.
+
+           Weg muss beides: die Empfehlung, die er ausgesprochen hat, und die,
+           die auf ihn zeigt. Dazu die verwaisten, die nur ueber Bedarf,
+           Anfrage oder Bestellung an ihm hingen -- deshalb steht das hier
+           oben, bevor die Loeschreihe genau diese Zeilen wegnimmt.
+
+           WER UEBRIG BLEIBT, DARF NICHTS VERLIEREN
+
+           Ist der Geloeschte der Geworbene, hat sein Empfehler daran einen
+           Rabatt verdient -- und der steht nicht in dieser Tabelle, sondern
+           beim Kunden. Faellt die Zeile weg, ohne dass jemand nachrechnet,
+           behaelt er einen Nachlass ohne Grundlage. Deshalb werden die
+           Betroffenen vorher gemerkt und hinterher neu gerechnet. */
+        $betroffene = [];
+        try {
+            foreach (self::zeilen(
+                'SELECT DISTINCT empfehler_id FROM empfehlungen
+                  WHERE geworbener_id = ? AND empfehler_id IS NOT NULL AND empfehler_id <> ?',
+                [$kundeId, $kundeId]) as $z) {
+                $betroffene[] = (int) $z['empfehler_id'];
+            }
+        } catch (Throwable $e) { /* keine Empfehlungen, kein Nachrechnen */ }
+
         $zeilen = (int) Db::transaktion(static function () use ($kundeId): int {
             $summe = 0;
+
+            try {
+                $summe += Db::run(
+                    'DELETE FROM empfehlungen
+                      WHERE empfehler_id  = :a
+                         OR geworbener_id = :b
+                         OR bedarf_id  IN (SELECT id FROM bedarf   WHERE customer_id = :c)
+                         OR anfrage_id IN (SELECT id FROM anfragen WHERE customer_id = :d)
+                         OR order_id   IN (SELECT id FROM orders   WHERE customer_id = :e)',
+                    ['a' => $kundeId, 'b' => $kundeId, 'c' => $kundeId,
+                     'd' => $kundeId, 'e' => $kundeId])->rowCount();
+            } catch (Throwable $e) { /* Tabelle fehlt in dieser Installation */ }
+
             foreach (self::REIHE as $tabelle => $wo) {
                 try {
                     $summe += Db::run("DELETE FROM `$tabelle` WHERE $wo", ['k' => $kundeId])->rowCount();
@@ -322,6 +367,15 @@ final class Kunde
             } catch (Throwable $e) { }
             return $summe;
         });
+
+        /* Erst jetzt, nach dem Festschreiben: Wer noch da ist, bekommt seinen
+           Rabatt aus dem gerechnet, was uebrig blieb. */
+        foreach (array_unique($betroffene) as $empfehlerId) {
+            try {
+                require_once __DIR__ . '/Empfehlung.php';
+                Empfehlung::neuBerechnen((int) $empfehlerId);
+            } catch (Throwable $e) { /* der Kunde ist weg, das ist das Wichtige */ }
+        }
 
         $weg = 0;
         foreach ($bytes as $datei) {
@@ -424,6 +478,19 @@ final class Kunde
                 $zeilen += Db::run(
                     "UPDATE bedarf SET name = '', email = '', telefon = '', firma = ''
                       WHERE customer_id = ?", [$kundeId])->rowCount();
+            } catch (Throwable $e) { }
+
+            /* 3c. In einer Empfehlung steht der getippte Name dessen, der
+                   empfohlen hat -- woertlich, so wie ein anderer Kunde ihn
+                   eingegeben hat. Ist dieser Kunde der Genannte, steht sein
+                   Name danach immer noch in einer fremden Akte. Die Zeile
+                   selbst bleibt: Sie ist Geschaeft, und an ihr haengt ein
+                   Rabatt. Nur der Name geht raus. */
+            try {
+                $zeilen += Db::run(
+                    "UPDATE empfehlungen SET genannt_als = ''
+                      WHERE genannt_als <> '' AND (empfehler_id = ? OR geworbener_id = ?)",
+                    [$kundeId, $kundeId])->rowCount();
             } catch (Throwable $e) { }
 
             /* 4. Projektnamen tragen fast immer den Kundennamen. */
