@@ -36,19 +36,52 @@
   <?php endif; ?>
 </div>
 
-<div class="block"><h2>Verschickte E-Mails</h2>
+<?php /* ======================================================================
+     DIE LISTE MUSS SICH AUCH LEEREN LASSEN
+
+     Sie waechst mit jeder Mail und mit jedem Fehlversuch. Nach einer kaputten
+     Woche stehen dort dreissig Zeilen "Kein Brevo-Schluessel hinterlegt", und
+     was wirklich rausging, sucht man dazwischen.
+
+     Ein Fehlversuch ist folgenlos: Die Verwaltung zaehlt nur GESENDETE Mails,
+     wenn sie wissen will, ob der Kunde etwas schon hat. Deshalb geht der weg
+     wie ein Krümel vom Tisch. Eine gesendete Zeile dagegen traegt Wissen --
+     an ihr haengt die Mahnstufe und die Frage, ob der Zahlungslink drausen
+     ist. Loeschen darf man sie trotzdem, aber nicht versehentlich.
+     ================================================================== */ ?>
+<?php $fehlversuche = 0; foreach ($mails as $m) { if ($m['status'] !== 'gesendet') { $fehlversuche++; } } ?>
+<div class="block"><h2>Verschickte E-Mails<?php if ($fehlversuche): ?>
+    <span class="mehr"><?= $fehlversuche ?> Fehlversuch<?= $fehlversuche === 1 ? '' : 'e' ?></span><?php endif; ?>
+    <?php if ($fehlversuche): ?>
+      <span style="float:right">
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+              data-frage="Alle <?= (int) $fehlversuche ?> Fehlversuche aus der Liste nehmen? Verschickt wurde dabei nichts — es geht nur um die Einträge."
+              data-ja="Ja, aufräumen">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="mails_fehler_loeschen">
+          <input type="hidden" name="zurueck" value="onboarding">
+          <button class="knopf">Fehlversuche aufräumen</button></form></span>
+    <?php endif; ?></h2>
   <?php if (!$mails): ?>
     <div class="leer">Noch nichts verschickt.</div>
   <?php else: ?>
-    <table><thead><tr><th>Wann</th><th>Anlass</th><th>An</th><th>Betreff</th><th>Stand</th></tr></thead><tbody>
+    <div class="tabellenrahmen"><table><thead><tr><th>Wann</th><th>Anlass</th><th>An</th><th>Betreff</th><th>Stand</th><th></th></tr></thead><tbody>
     <?php foreach ($mails as $m): ?>
+      <?php $raus = (string) $m['status'] === 'gesendet'; ?>
       <tr><td><?= Fmt::h(Fmt::seit($m['created_at'])) ?></td>
           <td><?= Fmt::h($m['anlass']) ?></td>
           <td><?= Fmt::h($m['empfaenger']) ?></td>
           <td><?= Fmt::h($m['betreff']) ?></td>
-          <td><span class="marke2 <?= $m['status'] === 'gesendet' ? 'gut' : 'schlecht' ?>"><?= Fmt::h($m['status']) ?></span>
-          <?php if ($m['fehler']): ?><br><small style="color:var(--rot)"><?= Fmt::h(mb_substr((string) $m['fehler'], 0, 140)) ?></small><?php endif; ?></td></tr>
+          <td><span class="marke2 <?= $raus ? 'gut' : 'schlecht' ?>"><?= Fmt::h($m['status']) ?></span>
+          <?php if ($m['fehler']): ?><br><small style="color:var(--rot)"><?= Fmt::h(mb_substr((string) $m['fehler'], 0, 140)) ?></small><?php endif; ?></td>
+          <td style="text-align:right">
+            <form method="post" action="<?= Fmt::h(url('')) ?>"
+              <?php if ($raus): ?>data-frage="Diese Zeile löschen? Die Verwaltung weiß danach nicht mehr, dass „<?= Fmt::h(mb_substr((string) $m['betreff'], 0, 60)) ?>&#8220; draußen war — der Schritt kann wieder als offen auftauchen."
+                  data-ja="Ja, löschen"<?php endif; ?>>
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="mail_loeschen">
+              <input type="hidden" name="zurueck" value="onboarding">
+              <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
+              <button class="knopf" title="Diesen Eintrag löschen">Löschen</button></form></td></tr>
     <?php endforeach; ?>
-    </tbody></table>
+    </tbody></table></div>
   <?php endif; ?>
 </div>

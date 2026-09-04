@@ -1125,6 +1125,46 @@ if ($post) {
                 $_SESSION['gut'] = 'Gespeichert. Ab jetzt schlägt das Briefing ihn vor, wo er passt.';
                 weiter('muster/' . $mid);
 
+            /* ============================================================
+               PROTOKOLLE AUFRAEUMEN
+
+               Zwei Listen wachsen ewig und werden dadurch unbrauchbar: die
+               verschickten Mails und der Verlauf. Beide sind Protokolle, kein
+               Beleg — was fuers Finanzamt zaehlt, liegt in Rechnungen und
+               Zahlungen und wird hier nirgends angefasst.
+
+               Ein Unterschied bleibt und ist wichtig: Eine GESENDETE Mail ist
+               nicht nur ein Eintrag. Die Verwaltung liest an ihr ab, ob der
+               Kunde etwas schon bekommen hat -- der Zahlungslink, die
+               Erinnerung, die Mahnstufe. Wer sie loescht, setzt die Fuehrung
+               an dieser Stelle zurueck. Deshalb fragt die Seite dort nach und
+               sagt, was passiert. Ein Fehlversuch traegt nichts davon; der
+               geht ohne Rueckfrage.
+               ============================================================ */
+            case 'mail_loeschen':
+                $mid = (int) ($_POST['id'] ?? 0);
+                $m = Db::one('SELECT * FROM mails WHERE id = ?', [$mid]);
+                if (!$m) { throw new RuntimeException('Diesen Eintrag gibt es nicht.'); }
+                Db::run('DELETE FROM mails WHERE id = ?', [$mid]);
+                $_SESSION['gut'] = (string) $m['status'] === 'gesendet'
+                    ? 'Der Eintrag ist weg. Die Verwaltung weiß jetzt nicht mehr, dass diese '
+                      . 'Mail draußen war — der Schritt kann wieder auftauchen.'
+                    : 'Der Fehlversuch ist weg.';
+                zurueck('onboarding');
+
+            case 'mails_fehler_loeschen':
+                $weg = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE status <> 'gesendet'");
+                Db::run("DELETE FROM mails WHERE status <> 'gesendet'");
+                $_SESSION['gut'] = $weg === 0
+                    ? 'Es stand kein Fehlversuch in der Liste.'
+                    : ($weg === 1 ? 'Ein Fehlversuch ist weg.' : $weg . ' Fehlversuche sind weg.');
+                zurueck('onboarding');
+
+            case 'aktivitaet_loeschen':
+                Db::run('DELETE FROM activities WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
+                $_SESSION['gut'] = 'Der Eintrag ist weg.';
+                zurueck('aktivitaeten');
+
             case 'muster_loeschen':
                 require_once __DIR__ . '/src/Muster.php';
                 Muster::loeschen((int) $_POST['id']);

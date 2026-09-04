@@ -118,6 +118,20 @@ final class Mail
             'to'          => [['email' => $an]],
             'subject'     => $betreff,
             'textContent' => $text,
+            /* WARUM DIE MAIL JETZT ZWEI FASSUNGEN HAT
+               ------------------------------------------------------------
+               Bisher ging nur der reine Text raus. Wie eine Adresse darin
+               aussieht, entscheidet dann das Programm des Kunden -- und
+               viele machen daraus keinen Verweis, sondern grauen Text. Der
+               Kunde musste die Zeile markieren, kopieren und in den Browser
+               setzen. Bei einem Zahlungslink ist das kein Schoenheitsfehler,
+               sondern die Stelle, an der ein Kauf abbricht.
+
+               Der Text bleibt und geht mit: Er ist die Rueckfallebene fuer
+               Programme, die kein HTML anzeigen, und er hilft dem Spamfilter.
+               Neu ist nur die zweite Fassung derselben Worte, in der die
+               Adressen anklickbar sind. */
+            'htmlContent' => self::alsHtml($text, self::knopfwort($anlass, $bezug)),
         ];
         if (!empty($bezug['antwortAn']) && filter_var($bezug['antwortAn'], FILTER_VALIDATE_EMAIL)) {
             $inhalt['replyTo'] = ['email' => $bezug['antwortAn']];
@@ -238,6 +252,184 @@ final class Mail
         } catch (Throwable $e) {
             // Das Melden darf den Versandversuch nie umwerfen.
         }
+    }
+
+    /* ==================================================================== */
+    /*  Aus dem Brieftext eine anklickbare Fassung                          */
+    /* ==================================================================== */
+
+    /** Wie weit eine Adresse ausgeschrieben in der Zeile stehen darf. */
+    private const LINK_SICHTBAR = 58;
+
+    /**
+     * Was auf dem Knopf steht — in der Sprache des Kunden.
+     *
+     * "Öffnen" auf einer italienischen Rechnung waere derselbe Fehler wie
+     * ein deutscher Monatsname darin: Es faellt genau dem auf, der zahlen
+     * soll. Und ein Knopf, der sagt, wohin er fuehrt, wird oefter gedrueckt
+     * als einer, der nur "hier" sagt — bei einem Zahlungslink ist das der
+     * Unterschied zwischen bezahlt und liegengeblieben.
+     *
+     * @param array<string,mixed> $bezug
+     */
+    private static function knopfwort(string $anlass, array $bezug): string
+    {
+        /* Die Sprache steht beim Kunden. Fehlt der Bezug, geht die Mail an
+           Uwe selbst — dann ist Deutsch richtig, nicht die Seitensprache. */
+        $sprache = trim((string) ($bezug['sprache'] ?? ''));
+        if ($sprache === '' && !empty($bezug['customer_id'])) {
+            try {
+                $sprache = (string) Db::wert('SELECT sprache FROM customers WHERE id = ?',
+                    [(int) $bezug['customer_id']], '');
+            } catch (Throwable $e) { $sprache = ''; }
+        }
+        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'de'; }
+
+        $zahlen = ['zahlungslink', 'betreuung_faellig', 'zahlung_erinnerung',
+                   'zahlung_mahnung', 'zahlung_letzte', 'zahlung_letzte_betreuung'];
+        $formular = ['zahlung_ok', 'fragebogen_erinnerung'];
+
+        if (in_array($anlass, $zahlen, true)) {
+            return ['it' => 'Paga ora', 'de' => 'Jetzt bezahlen', 'en' => 'Pay now'][$sprache];
+        }
+        if (in_array($anlass, $formular, true)) {
+            return ['it' => 'Apri il questionario', 'de' => 'Fragebogen öffnen',
+                    'en' => 'Open the form'][$sprache];
+        }
+        return ['it' => 'Apri', 'de' => 'Öffnen', 'en' => 'Open'][$sprache];
+    }
+
+    /**
+     * Derselbe Brief, nur als HTML — mit echten Verweisen.
+     *
+     * WAS HIER BEWUSST NICHT PASSIERT
+     *
+     * Kein Logo, kein Kopfbild, keine Farbflaechen. Eine Mail, die wie eine
+     * Werbesendung aussieht, wird wie eine behandelt — vom Spamfilter und
+     * vom Leser. Der Brief bleibt ein Brief: eine Spalte, eine Schrift,
+     * schwarz auf weiss. Das Einzige, was dazukommt, ist das, wofuer HTML
+     * hier da ist — dass man auf eine Adresse klicken kann.
+     *
+     * Steht eine Adresse allein auf ihrer Zeile, ist sie der Handgriff der
+     * Mail: der Zahlungslink, die Kundenseite, der Fragebogen. Die bekommt
+     * einen Knopf, und darunter klein die Adresse zum Nachlesen — wer sehen
+     * will, wohin er geklickt wird, soll das koennen, ohne den Mauszeiger
+     * darueber zu halten. Adressen mitten im Satz bleiben Verweise im Satz.
+     */
+    public static function alsHtml(string $text, string $knopfwort = 'Öffnen'): string
+    {
+        $absaetze = preg_split("~\r?\n[ \t]*\r?\n~", trim($text)) ?: [];
+        $teile = [];
+
+        foreach ($absaetze as $absatz) {
+            $zeilen = preg_split("~\r?\n~", $absatz) ?: [];
+
+            /* Ein Absatz, der aus nichts als einer Adresse besteht, ist der
+               Knopf. Zwei Adressen untereinander waeren zwei Knoepfe --
+               deshalb wird Zeile fuer Zeile geprueft, nicht der Absatz. */
+            $nurLinks = true;
+            foreach ($zeilen as $z) {
+                if (trim($z) === '') { continue; }
+                if (!preg_match('~^https?://\S+$~', trim($z))) { $nurLinks = false; break; }
+            }
+
+            if ($nurLinks) {
+                foreach ($zeilen as $z) {
+                    $u = trim($z);
+                    if ($u === '') { continue; }
+                    $teile[] = self::knopf($u, $knopfwort);
+                }
+                continue;
+            }
+
+            $satz = [];
+            foreach ($zeilen as $z) { $satz[] = self::zeileHtml($z); }
+            $teile[] = '<p style="margin:0 0 16px;line-height:1.65">' . implode('<br>', $satz) . '</p>';
+        }
+
+        $rumpf = implode("\n", $teile);
+
+        return '<!doctype html><html><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
+            . '<body style="margin:0;padding:0;background:#f4f4f2">'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
+            . ' style="background:#f4f4f2"><tr><td align="center" style="padding:28px 16px">'
+            . '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"'
+            . ' style="max-width:560px;background:#ffffff;border-radius:10px">'
+            . '<tr><td style="padding:32px 28px;font-family:-apple-system,BlinkMacSystemFont,'
+            . '\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:15.5px;color:#14171c">'
+            . $rumpf
+            . '</td></tr></table></td></tr></table></body></html>';
+    }
+
+    /** Eine Zeile: gesichert, mit Adressen als Verweise. */
+    private static function zeileHtml(string $zeile): string
+    {
+        $aus = '';
+        $rest = $zeile;
+
+        while (preg_match('~https?://[^\s<>"\x27]+~', $rest, $t, PREG_OFFSET_CAPTURE)) {
+            $roh = $t[0][0];
+            $pos = (int) $t[0][1];
+
+            /* Ein Punkt am Satzende gehoert zum Satz, nicht zur Adresse --
+               und eine Klammer nur dann, wenn sie in der Adresse auch
+               geoeffnet wurde. Ohne das fuehrt jeder Link am Satzende ins
+               Leere, und zwar genau bei den hoeflich formulierten Saetzen. */
+            $url = $roh;
+            while ($url !== '' && str_contains('.,;:!?', substr($url, -1))) {
+                $url = substr($url, 0, -1);
+            }
+            if (str_ends_with($url, ')') && substr_count($url, '(') < substr_count($url, ')')) {
+                $url = substr($url, 0, -1);
+            }
+
+            $aus .= self::sicher(substr($rest, 0, $pos));
+            $aus .= '<a href="' . self::sicher($url) . '" style="color:#0b5cff;text-decoration:underline">'
+                  . self::sicher(self::kurz($url)) . '</a>';
+            $rest = substr($rest, $pos + strlen($url));
+        }
+
+        return $aus . self::sicher($rest);
+    }
+
+    /** Der Handgriff der Mail — und darunter, wohin er fuehrt. */
+    private static function knopf(string $url, string $wort = 'Öffnen'): string
+    {
+        $u = self::sicher($url);
+        $schrift = 'font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\','
+                 . 'Roboto,Helvetica,Arial,sans-serif;';
+
+        /* Knopf und Adresse stehen in ZWEI Tabellen, nicht in einer.
+           Zusammen richtet sich die Spaltenbreite nach der laengsten Zeile --
+           und das ist die Adresse. Der Knopf wurde dann ueber die halbe
+           Breite gezogen und sah aus wie ein Balken mit einem Wort darin. */
+        return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"'
+             . ' style="margin:4px 0 0"><tr><td style="border-radius:8px;background:#14171c">'
+             . '<a href="' . $u . '" style="display:inline-block;padding:13px 26px;' . $schrift
+             . 'font-size:15px;font-weight:600;color:#ffffff;text-decoration:none">' . self::sicher($wort) . '</a>'
+             . '</td></tr></table>'
+             . '<p style="margin:9px 0 20px;' . $schrift
+             . 'font-size:12px;line-height:1.5;color:#6b7280;word-break:break-all">'
+             . '<a href="' . $u . '" style="color:#6b7280;text-decoration:none">' . $u . '</a></p>';
+    }
+
+    /**
+     * Eine sehr lange Adresse mitten im Satz kuerzen.
+     *
+     * Ein Kundenlink traegt einen langen Schluessel. Ausgeschrieben sprengt
+     * er auf dem Telefon die Spalte und schiebt den ganzen Brief zur Seite.
+     * Geklickt wird ohnehin, und die volle Adresse steht unter dem Knopf.
+     */
+    private static function kurz(string $url): string
+    {
+        if (mb_strlen($url) <= self::LINK_SICHTBAR) { return $url; }
+        return mb_substr($url, 0, self::LINK_SICHTBAR - 1) . '…';
+    }
+
+    private static function sicher(string $s): string
+    {
+        return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
     /** Wurde zu diesem Anlass für diesen Bezug schon einmal geschrieben? */
