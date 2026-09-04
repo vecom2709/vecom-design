@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="it" data-title-key="danke.title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grazie — Vecom Design</title>
+<meta name="description" content="Pagamento ricevuto. La conferma è in arrivo per email.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#05070d">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="preload" href="/assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+  /* Nur das Zeichen oben. Alles andere kommt aus app.css — die Klassen
+     .e404* sind reines Layout und tragen hier genauso. */
+  .haken {
+    width: 3.5rem; height: 3.5rem; border-radius: 50%;
+    display: grid; place-items: center; margin-bottom: var(--s-1);
+    color: #34d399;
+    background: rgba(52, 211, 153, .12);
+    border: 1px solid rgba(52, 211, 153, .32);
+  }
+  .danke__hint { color: var(--c-text-dim); font-size: var(--t-sm); max-width: 46ch; }
+</style>
+</head>
+
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="header is-stuck">
+  <div class="wrap header__inner">
+    <a class="brand" href="/" aria-label="Vecom Design">
+      <img src="/assets/img/logo-mark.webp" alt="" width="420" height="330">
+      <span class="brand__name">Vecom<span>Design</span></span>
+    </a>
+    <div class="header__tools">
+      <div class="lang" role="group" aria-label="Lingua / Sprache / Language">
+        <button type="button" data-lang="it" aria-pressed="true">IT</button>
+        <button type="button" data-lang="de" aria-pressed="false">DE</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <a class="btn" href="/" data-i18n="legal.back">Torna alla home</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap e404">
+  <div class="haken" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor"
+         stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12.5 5 5L20 6.5"/></svg>
+  </div>
+  <h1 data-i18n="danke.head">Pagamento ricevuto.</h1>
+  <p class="e404__lead" data-i18n="danke.lead"></p>
+  <p class="danke__hint" data-i18n="danke.hint"></p>
+  <div class="e404__cta">
+    <a class="btn btn--primary" href="/">
+      <span data-i18n="danke.home">Torna alla home</span>
+      <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
+    </a>
+    <a class="btn" href="/#contact" data-i18n="danke.contact">Scrivimi</a>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__bottom">
+    <span>© <span data-year>2026</span> Vecom Design</span>
+  </div>
+</footer>
+
+<script src="/assets/js/i18n-data.js"></script>
+<script src="/assets/js/app.js"></script>
+</body>
+</html>

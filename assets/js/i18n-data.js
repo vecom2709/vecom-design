@@ -264,6 +264,7 @@ masz: {
       note: "Il primo colloquio è gratuito e non ti impegna a niente. Alla fine sai quanto costa e perché — anche se poi mi dici di no."
     },
     e404: { title: "Pagina non trovata — Vecom Design", head: "Questa pagina non esiste.", lead: "Forse l'indirizzo è cambiato, o c'è un refuso. Da qui torni subito al punto giusto.", home: "Torna alla home", contact: "Scrivimi" },
+    danke: { title: "Grazie — Vecom Design", head: "Pagamento ricevuto.", lead: "Grazie. Ti ho appena scritto: nella mail trovi la conferma, la ricevuta e il link alla tua pagina — lì vedi sempre a che punto siamo.", hint: "Se entro dieci minuti non arriva niente, guarda nello spam o scrivimi. Risponde una persona, non un modulo.", home: "Torna alla home", contact: "Scrivimi" },
     video: {
       head: "Cosa succede dopo che mi hai scritto",
       lead: "Tutto il percorso, dal primo messaggio al sito finito — con le schermate esatte che vedrai anche tu. Alla fine sai a cosa vai incontro.",
@@ -822,6 +823,7 @@ masz: {
       note: "Das erste Gespräch kostet nichts und verpflichtet dich zu nichts. Am Ende weißt du, was es kostet und warum — auch wenn du dann nein sagst."
     },
     e404: { title: "Seite nicht gefunden — Vecom Design", head: "Diese Seite gibt es nicht.", lead: "Vielleicht hat sich die Adresse geändert, vielleicht ist ein Tippfehler drin. Von hier kommst du direkt zurück.", home: "Zur Startseite", contact: "Schreib mir" },
+    danke: { title: "Danke — Vecom Design", head: "Zahlung angekommen.", lead: "Danke. Du bekommst gleich eine E-Mail: die Bestätigung, deinen Beleg und den Link zu deiner eigenen Seite — dort siehst du jederzeit, wie weit wir sind.", hint: "Kommt in zehn Minuten nichts an, sieh im Spam-Ordner nach oder schreib mir. Es antwortet ein Mensch, kein Formular.", home: "Zur Startseite", contact: "Schreib mir" },
     video: {
       head: "Was passiert, nachdem du geschrieben hast",
       lead: "Der ganze Weg von der ersten Nachricht bis zur fertigen Seite — mit genau den Bildschirmen, die du dabei zu sehen bekommst. Danach weißt du, worauf du dich einlässt.",
@@ -1380,6 +1382,7 @@ masz: {
       note: "The first conversation is free and commits you to nothing. By the end you'll know what it costs and why — even if you say no."
     },
     e404: { title: "Page not found — Vecom Design", head: "This page doesn't exist.", lead: "The address may have changed, or there's a typo. From here you're one click from the right place.", home: "Back to the home page", contact: "Write to me" },
+    danke: { title: "Thank you — Vecom Design", head: "Payment received.", lead: "Thank you. An email is on its way: the confirmation, your receipt and a link to your own page, where you can always see where things stand.", hint: "If nothing arrives within ten minutes, check your spam folder or write to me. A person answers, not a form.", home: "Back to the home page", contact: "Write to me" },
     video: {
       head: "What happens after you write",
       lead: "The whole path from your first message to the finished site — with the very screens you'll see along the way. Afterwards you know what you're getting into.",
