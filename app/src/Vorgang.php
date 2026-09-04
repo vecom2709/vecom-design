@@ -42,6 +42,7 @@ final class Vorgang
         'vorschau'    => 'Vorschau',
         'freigabe'    => 'Freigegeben',
         'online'      => 'Online',
+        'betreuung'   => 'Betreuung',
         'fertig'      => 'Abgeschlossen',
     ];
 
@@ -96,6 +97,31 @@ final class Vorgang
             $aus[] = self::ausAnfrage($z);
         }
 
+        /* --- Dritte Quelle: eine Betreuung mit offener Rate --------------
+
+           Die Betreuung lief bisher an der Fuehrung vorbei. Sie haengt an
+           keiner Bestellung -- die Monatsrate entsteht naechtlich aus dem
+           Vertrag --, und wer nur orders und anfragen liest, sieht sie nie.
+           Folge: Die Rate lag da, kein Kunde wusste von ihr, und auf jedem
+           Schirm stand "Nichts offen". Bei fuenf Vertraegen zu 39 Euro sind
+           das zweitausend Euro im Jahr, die nirgends nachfragten.
+
+           Aufgenommen wird nur, was wirklich offen ist. Eine bezahlte
+           Betreuung ist kein Vorgang, sondern ein Dauerauftrag -- die
+           gehoert auf die Kundenseite und nicht in die Arbeitsliste. */
+        foreach (self::zeilen(
+            "SELECT v.*, c.name AS kunde_name, c.email AS kunde_email, c.company AS kunde_firma,
+                    c.sprache AS kunde_sprache, c.anonym_am AS kunde_anonym
+               FROM abos v
+               JOIN customers c ON c.id = v.customer_id
+              WHERE v.status IN ('aktiv','gekuendigt') AND c.anonym_am IS NULL
+                AND EXISTS (SELECT 1 FROM payments z
+                             WHERE z.abo_id = v.id
+                               AND z.status NOT IN ('bezahlt','rueckerstattet'))
+              ORDER BY v.id DESC") as $z) {
+            $aus[] = self::ausBetreuung($z);
+        }
+
         if (!$auchFertige) {
             $aus = array_values(array_filter($aus, static fn(array $v): bool => $v['stufe'] !== 'fertig'));
         }
@@ -127,6 +153,15 @@ final class Vorgang
                    LEFT JOIN anfragen a ON a.order_id = o.id
                   WHERE o.id = ?", [$id]);
             return $z ? self::anreichern(self::ausBestellung($z)) : null;
+        }
+
+        if ($art === 'v') {
+            $z = Db::one(
+                "SELECT v.*, c.name AS kunde_name, c.email AS kunde_email, c.company AS kunde_firma,
+                        c.sprache AS kunde_sprache, c.anonym_am AS kunde_anonym
+                   FROM abos v JOIN customers c ON c.id = v.customer_id
+                  WHERE v.id = ?", [$id]);
+            return $z ? self::anreichern(self::ausBetreuung($z)) : null;
         }
 
         $z = Db::one(
@@ -241,6 +276,118 @@ final class Vorgang
         ];
 
         return self::stufeBestimmen($v);
+    }
+
+    /** Ein Vorgang, der nur aus einem Betreuungsvertrag besteht. */
+    private static function ausBetreuung(array $z): array
+    {
+        $aboId = (int) $z['id'];
+        $kid   = (int) $z['customer_id'];
+
+        /* Nur die offenen Raten. Die bezahlten stehen auf der Kundenseite und
+           in der Steuerakte -- hier waeren sie nur Laenge. */
+        $raten = self::zeilen(
+            "SELECT * FROM payments
+              WHERE abo_id = ? AND status NOT IN ('bezahlt','rueckerstattet')
+              ORDER BY abrechnungsmonat, id", [$aboId]);
+
+        $v = [
+            'schluessel'  => 'v' . $aboId,
+            'kunde_id'    => $kid,
+            'kunde'       => (string) $z['kunde_name'],
+            'firma'       => (string) ($z['kunde_firma'] ?? ''),
+            'email'       => (string) $z['kunde_email'],
+            'sprache'     => (string) ($z['kunde_sprache'] ?? 'it'),
+            'anonym'      => trim((string) ($z['kunde_anonym'] ?? '')) !== '',
+            'bestellung'  => null,
+            'bestell_id'  => null,
+            'bestellnr'   => '',
+            'paket'       => (string) $z['paket_name'],
+            'preis'       => (int) $z['betrag_cents'],
+            'waehrung'    => (string) ($z['currency'] ?? 'EUR'),
+            /* Absichtlich ohne Projekt, auch wenn der Vertrag eines nennt.
+               Ein Betreuungsvorgang ist die Frage "ist der Monat bezahlt",
+               nicht "wie weit ist die Seite" -- haenge ich das Projekt daran,
+               zeigt die Vorgangsseite Fragebogen und Vorschau eines Baus, der
+               laengst fertig ist. Das Projekt steht auf der Kundenseite. */
+            'projekt_id'  => null,
+            'projekt'     => null,
+            'anfrage_id'  => null,
+            'anfrage_token' => '',
+            'anfrage_text'  => '',
+            'abo'         => $z,
+            'abo_id'      => $aboId,
+            'zahlungen'   => $raten,
+            'fragebogen'  => null,
+            'begonnen'    => (string) ($z['beginn'] ?: $z['created_at'] ?? 'now'),
+            'bewegt'      => self::juengste([
+                $z['updated_at'] ?? null,
+                self::wert('SELECT MAX(created_at) FROM payments WHERE abo_id = ?', [$aboId]),
+                self::wert('SELECT MAX(created_at) FROM messages WHERE customer_id = ?', [$kid]),
+            ]),
+        ];
+
+        $v['offen_cent'] = 0;
+        foreach ($raten as $r) { $v['offen_cent'] += (int) $r['amount_cents']; }
+
+        return self::betreuungSchritt($v);
+    }
+
+    /**
+     * Der naechste Handgriff an einer Betreuung.
+     *
+     * WARUM EINE RATE VON SELBST NICHTS TUT
+     *
+     * Die naechtliche Abrechnung legt sie an, aber ohne Faelligkeit: Der
+     * Kunde soll erst dann eine Frist haben, wenn er die Aufforderung
+     * bekommen hat. Das ist richtig -- nur hiess es bisher auch, dass eine
+     * nicht angeforderte Rate nirgends auftauchte. Sie war weder ueberfaellig
+     * (dafuer fehlt das Datum) noch Teil eines Vorgangs (dafuer fehlt die
+     * Bestellung). Sie lag einfach da.
+     *
+     * Hier ist sie ein Handgriff wie jeder andere.
+     */
+    private static function betreuungSchritt(array $v): array
+    {
+        $kid  = (int) $v['kunde_id'];
+        $ziel = 'kunden/' . $kid;
+
+        /* Die aelteste noch nicht angeforderte Rate zuerst: Wer drei Monate
+           aufgelaufen hat, faengt beim ersten an, nicht beim letzten. */
+        foreach ($v['zahlungen'] as $r) {
+            if (($r['faellig_am'] ?? null) !== null) { continue; }
+            if (self::mailRaus('betreuung_faellig', 'payment_id', (int) $r['id'])) { continue; }
+            $monat = trim((string) ($r['abrechnungsmonat'] ?? ''));
+            return self::setzen($v, 'betreuung', self::DU, 'Betreuung anfordern',
+                'Die Rate für ' . ($monat !== '' ? self::monatswort($monat) : 'diesen Monat')
+                . ' steht da, aber der Kunde weiß nichts von ihr.',
+                'abo_anfordern', (int) $r['id'], [], $ziel . '?tun=abo_anfordern');
+        }
+
+        /* Angefordert und nicht bezahlt: Ab hier arbeitet das Mahnwesen. Die
+           erste Erinnerung geht von selbst raus, die schaerferen stehen unter
+           "Demnaechst faellig". Hier waere ein zweiter Knopf fuer dieselbe
+           Sache -- und zwei Knoepfe fuer eine Sache sind einer zu viel. */
+        $offen = count($v['zahlungen']);
+        if ($offen > 0) {
+            return self::setzen($v, 'betreuung', self::KUNDE, 'Ansehen',
+                $offen === 1
+                    ? 'Die Betreuung ist angefordert und noch nicht bezahlt.'
+                    : $offen . ' Monatsraten sind angefordert und noch nicht bezahlt.',
+                null, null, [], $ziel);
+        }
+
+        return self::setzen($v, 'fertig', self::NIEMAND, null, 'Die Betreuung läuft.');
+    }
+
+    /** "September 2026" — ohne Abo.php dafuer zu laden. */
+    private static function monatswort(string $monat): string
+    {
+        $t = strtotime($monat . '-01');
+        if ($t === false) { return $monat; }
+        $namen = [1=>'Januar','Februar','März','April','Mai','Juni','Juli',
+                  'August','September','Oktober','November','Dezember'];
+        return ($namen[(int) date('n', $t)] ?? $monat) . ' ' . date('Y', $t);
     }
 
     /* ================================================================== */
@@ -373,8 +520,41 @@ final class Vorgang
             if ($restOffen) {
                 return self::restSchritt($v, $restzahlung, 'online');
             }
-            return self::setzen($v, 'online', self::NIEMAND, null,
-                'Die Seite ist online und bezahlt. Du kannst den Vorgang abschließen.');
+            /* DER LETZTE SCHRITT HATTE KEINEN KNOPF
+               --------------------------------------------------------------
+               Hier stand ein Satz, der eine Handlung nannte ("Du kannst den
+               Vorgang abschliessen"), sie aber niemandem zuwies und keinen
+               Knopf dafuer anbot. Der Vorgang landete unter "ruht" und blieb
+               dort -- und mit ihm die Frage, die an dieser Stelle Geld wert
+               ist: Laeuft eine Betreuung?
+
+               Sie war der einzige Schritt der ganzen Kette, der allein vom
+               Gedaechtnis abhing. Ein Formular auf der Kundenseite, das
+               niemand vorschlaegt, ist bei einem Betrieb mit einem Menschen
+               dasselbe wie kein Formular. */
+            $laeuft = (int) self::wert(
+                "SELECT COUNT(*) FROM abos
+                  WHERE customer_id = ? AND status IN ('angelegt','aktiv','gekuendigt')",
+                [(int) $v['kunde_id']]);
+            if ($laeuft === 0) {
+                /* Ein Knopf, der auf eine leere Auswahl fuehrt, ist keine
+                   Fuehrung, sondern eine Sackgasse mit Beschriftung. Gibt es
+                   kein Betreuungspaket, ist das der eigentliche Handgriff. */
+                $pakete = (int) self::wert(
+                    "SELECT COUNT(*) FROM packages WHERE active = 1 AND art = 'betreuung'");
+                if ($pakete === 0) {
+                    return self::setzen($v, 'online', self::DU, 'Betreuungspaket anlegen',
+                        'Die Seite ist online und bezahlt. Für die Betreuung fehlt aber noch das Paket.',
+                        null, null, [], 'pakete');
+                }
+                return self::setzen($v, 'online', self::DU, 'Betreuung anlegen',
+                    'Die Seite ist online und bezahlt. Jetzt die Betreuung — danach ist der Vorgang zu.',
+                    'abo_anlegen', (int) $v['kunde_id'], [],
+                    'kunden/' . (int) $v['kunde_id'] . '?tun=abo_anlegen');
+            }
+            return self::setzen($v, 'online', self::DU, 'Vorgang abschließen',
+                'Die Seite ist online, alles bezahlt, die Betreuung läuft. Mehr ist hier nicht zu tun.',
+                'projekt_status', (int) $v['projekt_id'], ['status' => 'abgeschlossen']);
         }
 
         if ($pstatus === 'finale_freigabe' || $pstatus === 'veroeffentlichung') {
@@ -636,9 +816,21 @@ final class Vorgang
                         . 'Frag einmal nach, ob die Zahl passt — danach weißt du es, so oder so.',
                         null, null, [], $ziel);
                 }
-                return self::setzen($v, 'gespraech', self::KUNDE, 'Bedarf ansehen',
-                    'Der Preis ist genannt. Der Kunde hat sich seither nicht gemeldet.',
-                    null, null, [], $ziel);
+                /* HIER SCHWIEG DIE FUEHRUNG, UND SIE LAG FALSCH
+                   ----------------------------------------------------------
+                   "Der Kunde ist dran" hiess: kein Eintrag in "Jetzt dran",
+                   auf jedem Schirm "Nichts offen" -- waehrend in Wahrheit ein
+                   Angebot fehlte, das noch gar nicht existierte. Genau so ist
+                   ein Vorgang liegengeblieben.
+
+                   Auf den Preis muss niemand antworten. Ein Angebot kostet
+                   nichts, es steht in derselben Verwaltung schon fertig
+                   gerechnet da, und erst mit ihm hat der Kunde ueberhaupt
+                   einen Knopf zum Annehmen. Warten heisst hier: ihm das
+                   vorenthalten, was er zum Ja-Sagen braucht. */
+                return self::setzen($v, 'gespraech', self::DU, 'Angebot erstellen',
+                    'Der Preis ist genannt. Jetzt das Angebot — erst damit kann der Kunde zusagen.',
+                    null, null, [], $ziel . '?tun=angebot_aus_bedarf');
             }
 
             return self::setzen($v, 'gespraech', self::DU, 'Angebot erstellen',
@@ -1072,7 +1264,7 @@ final class Vorgang
     /** @return array{0:string,1:?int} */
     public static function schluesselTeilen(string $s): array
     {
-        if (!preg_match('/^([ab])(\d+)$/', trim($s), $t)) { return ['', null]; }
+        if (!preg_match('/^([abv])(\d+)$/', trim($s), $t)) { return ['', null]; }
         return [$t[1], (int) $t[2]];
     }
 

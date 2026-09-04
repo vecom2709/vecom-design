@@ -952,10 +952,20 @@ final class Texte
             'de' => 'Dazu kommt die monatliche Betreuung, {betrag} im Monat. Das ist ein eigener Vertrag, den du auch weglassen kannst — die Website läuft genauso.',
             'en' => 'On top of that there is the monthly care, {betrag} a month. That is a separate contract and you can do without it — the site runs just the same.',
         ],
+        /* KEIN "WENN DAS PASST" MEHR
+           ------------------------------------------------------------------
+           Der Satz machte das Angebot von einer Antwort abhaengig, die selten
+           kam: Wer nur eine Zahl liest, hat nichts, wozu er Ja sagen koennte,
+           und schweigt. Damit hing der Vorgang an einer Ruecknachricht, die
+           gar nichts entschieden haette.
+
+           Das Angebot kostet nichts und steht ohnehin fertig gerechnet da.
+           Es kommt jetzt in jedem Fall — mit einem Knopf zum Annehmen. Wer
+           etwas anders will, sagt es weiterhin. */
         'preisSchluss' => [
-            'it' => 'Se ti va bene, ti mando il preventivo dettagliato voce per voce: da lì basta un clic per accettarlo. Se invece c\'è qualcosa da aggiungere o da togliere, dimmelo e rifaccio il conto.',
-            'de' => 'Wenn das für dich passt, schicke ich dir das Angebot Posten für Posten — von dort genügt ein Klick zum Annehmen. Soll etwas dazu oder weg, sag Bescheid, dann rechne ich es neu.',
-            'en' => 'If that works for you, I will send you the detailed quote line by line — from there a single click accepts it. If something should be added or removed, tell me and I will redo the figures.',
+            'it' => 'Il preventivo dettagliato te lo mando subito dopo, voce per voce: basta un clic per accettarlo. Se c\'è qualcosa da aggiungere o da togliere, dimmelo e rifaccio il conto.',
+            'de' => 'Das Angebot dazu schicke ich dir gleich hinterher — Posten für Posten, mit einem Klick zum Annehmen. Soll etwas dazu oder weg, sag Bescheid, dann rechne ich es neu.',
+            'en' => 'The detailed quote follows right after — line by line, with a single click to accept. If something should be added or removed, tell me and I will redo the figures.',
         ],
     ];
 
