@@ -118,6 +118,7 @@ jobs:
               --exclude '^app/pruefung/kette\.php$' \
               --exclude '^README\.md$' \
               --exclude '^PROJEKT\.md$' \
+              --exclude '^CLAUDE\.md$' \
               ./ $DIR;
             bye"
 
