@@ -33,6 +33,7 @@ require_once __DIR__ . '/app/src/Onboarding.php';
 require_once __DIR__ . '/app/src/Kundenzugang.php';
 require_once __DIR__ . '/app/src/Umfang.php';
 require_once __DIR__ . '/app/src/Baukasten.php';
+require_once __DIR__ . '/app/src/Fragen.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecomfragebogen');
@@ -167,11 +168,16 @@ $vorschlag = 1;
 foreach ($abschnitte as $i => $name) {
     $luecke = false;
     foreach (Texte::FRAGEBOGEN[$name]['felder'] as $feldName => $feld) {
+        /* Was gar nicht gezeigt wird, kann auch nicht fehlen. Sonst schickte
+           der Fragebogen jemanden ohne alte Website ewig auf denselben
+           Schritt zurueck, wo zwei unsichtbare Felder auf ihn warten. */
+        if (!Fragen::zeigen($feld, $daten)) { continue; }
         /* Eine Hakenliste, in der nichts angehakt ist, ist beantwortet --
            der Kunde hat sie gesehen und alles weggenommen. Wuerde sie als
            Luecke zaehlen, landete er bis in alle Ewigkeit wieder auf
-           diesem Schritt, egal wie oft er weiterklickt. */
-        if (($feld['art'] ?? '') === 'wahl') {
+           diesem Schritt, egal wie oft er weiterklickt. Dasselbe gilt fuer
+           die Auswahllisten und die Materialliste. */
+        if (in_array(($feld['art'] ?? ''), ['wahl', 'mehr', 'stand'], true)) {
             if (!array_key_exists($feldName, $daten)) { $luecke = true; break; }
             continue;
         }
@@ -258,6 +264,53 @@ $gruppenWort = [
          border-radius:9px;padding:10px 12px}
   .feld p.mehr{color:var(--cyan);background:rgba(31,232,255,.07);border:1px solid rgba(31,232,255,.3)}
   .feld p.weniger{color:var(--dim);background:rgba(127,127,127,.07);border:1px solid var(--linie)}
+
+  /* ---- Auswahl statt Schreiben -------------------------------------------
+     Knoepfe, keine Klapplisten. Eine Klappliste ist auf dem Handy ein
+     zweiter Bildschirm, den man oeffnen, scrollen und schliessen muss;
+     sieben Knoepfe untereinander sind ein Blick und ein Tippen. Das
+     eigentliche Kaestchen bleibt sichtbar — verschwindet es, weiss bei
+     einer Mehrfachauswahl niemand mehr, ob eins oder mehrere gehen. */
+  .auswahl{display:flex;flex-direction:column;gap:7px}
+  .option{display:flex;gap:13px;align-items:center;padding:11px 14px;
+          border:1px solid var(--linie);border-radius:10px;cursor:pointer;
+          font-size:14px;line-height:1.4;
+          transition:border-color .14s ease, background .14s ease}
+  .option:hover{border-color:var(--cyan)}
+  .option:has(input:checked){border-color:var(--blau);background:rgba(6,72,232,.055);font-weight:500}
+  .option input{margin:0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--blau)}
+  .option span{flex:1 1 auto;min-width:0}
+  /* Die freie Zeile gehoert optisch unter die Auswahl, nicht daneben —
+     sonst liest sie sich wie eine eigene Frage. */
+  .freizeile{margin-top:9px}
+  .freizeile::placeholder{color:var(--leise)}
+
+  /* ---- Die Materialliste --------------------------------------------------
+     Sie ersetzt drei Textkaesten ("Texte", "Bilder", "Videos"), in denen
+     bisher Saetze standen, aus denen sich nicht ablesen liess, was ich
+     bekomme und was ich machen muss. Genau das steht jetzt je Zeile. */
+  .standliste{display:flex;flex-direction:column;gap:7px}
+  .standzeile{border:1px solid var(--linie);border-radius:10px;padding:10px 12px}
+  .standzeile>b{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
+  /* Raster statt Umbruch: Mit flex-wrap standen auf dem Handy drei Knoepfe
+     nebeneinander und der vierte allein ueber die volle Breite -- als waere
+     er etwas anderes als die drei davor. Vier gleiche Zustaende muessen auch
+     gleich aussehen, also zwei mal zwei. */
+  .standwahl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  @media (max-width:620px){ .standwahl{grid-template-columns:repeat(2,1fr)} }
+  .standwahl label{display:flex;align-items:center;justify-content:center;
+                   gap:6px;padding:8px 8px;border:1px solid var(--linie);border-radius:8px;
+                   font-size:12.5px;cursor:pointer;white-space:nowrap;
+                   transition:border-color .14s ease, background .14s ease, color .14s ease}
+  .standwahl label:hover{border-color:var(--cyan)}
+  .standwahl label.an,
+  .standwahl label:has(input:checked){border-color:var(--blau);background:rgba(6,72,232,.09);
+                      color:var(--blau);font-weight:600}
+  /* Bei vier Zustaenden nebeneinander waere jeder Knopf so schmal, dass die
+     Beschriftung umbricht. Also bekommt das Kaestchen die Arbeit und die
+     Schrift den Platz. */
+  .standwahl input{margin:0;width:14px;height:14px;flex:0 0 auto;accent-color:var(--blau)}
+
 </style>
 </head>
 <body>
@@ -294,7 +347,11 @@ $gruppenWort = [
           <tr><td style="width:38%"><?= $h(Texte::h($feld, $sprache)) ?></td>
               <td><div class="antwort"><?= $h(($feld['art'] ?? '') === 'wahl'
                     ? Umfang::worte((string) $daten[$feldName], $sprache)
-                    : (string) $daten[$feldName]) ?></div></td></tr>
+                    : Fragen::worte($feldName, (string) $daten[$feldName], $sprache)) ?><?php
+                    /* Die freie Zeile gehoert zur Auswahl, nicht daneben. */
+                    $frei = trim((string) ($daten[$feldName . '__frei'] ?? ''));
+                    if ($frei !== '') { echo ' — ' . $h($frei); }
+                  ?></div></td></tr>
         <?php endforeach; ?>
         </tbody></table></div>
     <?php endif; ?>
@@ -333,8 +390,15 @@ $gruppenWort = [
       <h2><?= $h(Texte::h($inhalt, $sprache)) ?></h2>
       <p class="beiseite" style="margin-top:0"><?= $h($S('leerOk')) ?></p>
       <?php foreach ($inhalt['felder'] as $feldName => $feld): ?>
+        <?php
+          /* Bedingte Fragen. Sie stehen im Aufbau immer, aber gezeigt werden
+             sie nur, wenn die Antwort davor sie verlangt. Wer nie eine
+             Website hatte, sieht keine Frage zur alten. */
+          if (!Fragen::zeigen($feld, $daten)) { continue; }
+          $ohneLabelFuer = in_array($feld['art'], ['wahl', 'eins', 'mehr', 'stand'], true);
+        ?>
         <div class="feld">
-          <label <?= $feld['art'] === 'wahl' ? '' : 'for="f_' . $h($feldName) . '"' ?>><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
+          <label <?= $ohneLabelFuer ? '' : 'for="f_' . $h($feldName) . '"' ?>><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
 
           <?php if ($feld['art'] === 'zahl'): ?>
             <?php
@@ -393,10 +457,75 @@ $gruppenWort = [
               <p class="weniger" hidden><?= $h($S('wenigerDrin')) ?></p>
             <?php endif; ?>
 
+          <?php elseif ($feld['art'] === 'eins'): ?>
+            <?php /* Knoepfe statt Klappliste: Auf dem Handy ist eine
+                     Klappliste ein zweiter Bildschirm, den man oeffnen,
+                     scrollen und schliessen muss. Sieben Knoepfe
+                     untereinander sind ein Blick und ein Tippen. */ ?>
+            <div class="auswahl">
+              <?php foreach ($feld['optionen'] as $schluessel => $wort): ?>
+                <label class="option<?= ($daten[$feldName] ?? '') === (string) $schluessel ? ' an' : '' ?>">
+                  <input type="radio" name="<?= $h($feldName) ?>" value="<?= $h((string) $schluessel) ?>"
+                         <?= ($daten[$feldName] ?? '') === (string) $schluessel ? 'checked' : '' ?>>
+                  <span><?= $h(Texte::h($wort, $sprache)) ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+
+          <?php elseif ($feld['art'] === 'mehr'): ?>
+            <?php /* Leerer erster Eintrag, damit sich alles abwaehlen laesst
+                     — ein Formular schickt leere Kaestchen nicht mit, und was
+                     nicht mitkommt, zaehlt beim Speichern als "nichts gesagt". */ ?>
+            <input type="hidden" name="<?= $h($feldName) ?>[]" value="">
+            <?php $an = array_filter(explode(',', (string) ($daten[$feldName] ?? ''))); ?>
+            <div class="auswahl mehrfach">
+              <?php foreach ($feld['optionen'] as $schluessel => $wort): ?>
+                <label class="option<?= in_array((string) $schluessel, $an, true) ? ' an' : '' ?>">
+                  <input type="checkbox" name="<?= $h($feldName) ?>[]" value="<?= $h((string) $schluessel) ?>"
+                         <?= in_array((string) $schluessel, $an, true) ? 'checked' : '' ?>>
+                  <span><?= $h(Texte::h($wort, $sprache)) ?></span>
+                </label>
+              <?php endforeach; ?>
+            </div>
+
+          <?php elseif ($feld['art'] === 'stand'): ?>
+            <?php $stand = Onboarding::standWerte((string) ($daten[$feldName] ?? '')); ?>
+            <div class="standliste">
+              <?php foreach ($feld['zeilen'] as $zeile => $wort): ?>
+                <div class="standzeile">
+                  <b><?= $h(Texte::h($wort, $sprache)) ?></b>
+                  <div class="standwahl">
+                    <?php foreach (Onboarding::ZUSTAENDE as $zustand): ?>
+                      <label class="<?= ($stand[$zeile] ?? '') === $zustand ? 'an' : '' ?>">
+                        <input type="radio" name="<?= $h($feldName) ?>[<?= $h((string) $zeile) ?>]"
+                               value="<?= $h($zustand) ?>" <?= ($stand[$zeile] ?? '') === $zustand ? 'checked' : '' ?>>
+                        <span><?= $h(Texte::h(Fragen::ZUSTANDWORT[$zustand], $sprache)) ?></span>
+                      </label>
+                    <?php endforeach; ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+
           <?php elseif ($feld['art'] === 'lang'): ?>
-            <textarea id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" rows="3"><?= $h((string) ($daten[$feldName] ?? '')) ?></textarea>
+            <?php
+              /* Vorbelegt aus Branche und Ort — aber nur, solange der Kunde
+                 nichts eigenes geschrieben hat. Ein Vorschlag, der eine
+                 Antwort ueberschreibt, ist ein Datenverlust. */
+              $wert = (string) ($daten[$feldName] ?? '');
+              if ($wert === '' && isset($feld['vorschlag'])) {
+                  $wert = Fragen::vorschlag((string) $feld['vorschlag'], $daten, $sprache);
+              }
+            ?>
+            <textarea id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" rows="3"><?= $h($wert) ?></textarea>
           <?php else: ?>
             <input id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" value="<?= $h((string) ($daten[$feldName] ?? '')) ?>">
+          <?php endif; ?>
+
+          <?php if (!empty($feld['frei'])): ?>
+            <input class="freizeile" id="f_<?= $h($feldName) ?>__frei" name="<?= $h($feldName) ?>__frei"
+                   placeholder="<?= $h($S('freiZeile')) ?>"
+                   value="<?= $h((string) ($daten[$feldName . '__frei'] ?? '')) ?>">
           <?php endif; ?>
         </div>
       <?php endforeach; ?>

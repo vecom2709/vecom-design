@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Fragen.php';
+
 require_once __DIR__ . '/Db.php';
 
 /**
@@ -64,9 +66,14 @@ final class Muster
 
         $heu = mb_strtolower(trim(implode(' ', array_filter([
             (string) ($antworten['funktionen_wahl'] ?? ''),
-            (string) ($antworten['funktionen'] ?? ''),
             (string) ($antworten['seiten'] ?? ''),
             (string) ($antworten['branche'] ?? ''),
+            /* Seit die Branche eine Auswahl ist, steht dort ein Schluessel.
+               Die Bausteine sind aber nach deutschen Woertern markiert --
+               also beides ins Heu. */
+            Fragen::worte('branche', (string) ($antworten['branche'] ?? ''), 'de'),
+            (string) ($antworten['branche__frei'] ?? ''),
+            (string) ($antworten['ziel1'] ?? ''),
             $branche,
         ]))));
 

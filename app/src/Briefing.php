@@ -5,6 +5,7 @@ require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Fmt.php';
 require_once __DIR__ . '/Texte.php';
 require_once __DIR__ . '/Standard.php';
+require_once __DIR__ . '/Fragen.php';
 
 /**
  * Der Auftrag an den Baumeister, aus dem gebaut, was ohnehin dasteht.
@@ -42,17 +43,19 @@ final class Briefing
        macht einen Auftrag nicht genauer, nur laenger -- und in einem langen
        Auftrag wird das Wichtige mitgelesen statt gelesen. */
     private const DOPPELT = ['firmenname', 'seiten_zahl', 'sprachen_zahl', 'sprachen_welche',
-                             'funktionen_wahl', 'domain',
+                             'sprache_erst', 'funktionen_wahl', 'domain',
                              // stehen im Block DESIGN-DNA
                              'wirkung', 'abneigung', 'stil', 'farben', 'schriften',
-                             'vorbilder', 'tonfall', 'stoert'];
+                             'vorbilder', 'logo', 'anrede', 'klang', 'stoert'];
 
     /** Die Abschnitte des Fragebogens unter ihren Ueberschriften im Auftrag. */
     private const ABSCHNITTE = [
         'unternehmen' => 'DAS UNTERNEHMEN, IN SEINEN WORTEN',
-        'website'     => 'WAS DIE SEITE LEISTEN SOLL',
+        'ziel'        => 'WAS DIE SEITE LEISTEN SOLL',
+        'website'     => 'UMFANG UND BESTAND',
         'design'      => 'GESTALTUNG',
-        'inhalte'     => 'INHALTE',
+        'material'    => 'MATERIAL UND TEXTE',
+        'formales'    => 'KONTAKT, ADRESSE, TERMIN',
     ];
 
     /* KURZE WOERTER STATT GANZER FRAGEN
@@ -73,12 +76,24 @@ final class Briefing
         'ansprechpartner' => 'Ansprechpartner beim Kunden',
         'sprachen_welche' => 'Welche Sprachen, welche zuerst',
         'seiten'          => 'Gewünschte Seiten',
-        'funktionen'      => 'Zusätzlich gewünscht',
-        'ziel'            => 'Ziel der Seite',
-        'inhalte'         => 'Vorhandene Inhalte',
-        'beispiele'       => 'Gefällt ihnen',
-        'handlung'        => 'Gewünschte Handlung',
+        'ziel1'           => 'Wichtigstes Ziel',
+        'ziel2'           => 'Danach',
+        'einesache'       => 'Die eine Sache',
+        'heute'           => 'Was heute passiert',
+        'altseite'        => 'Jetziger Auftritt',
         'mitbewerber'     => 'Mitbewerber',
+        'ort'             => 'Ort',
+        'gebiet'          => 'Einzugsgebiet',
+        'ansprech'        => 'Ansprechpartner beim Kunden',
+        'entscheider'     => 'Entscheidet',
+        'material'        => 'Material',
+        'anrede'          => 'Anrede',
+        'klang'           => 'Klang der Texte',
+        'telefon'         => 'Telefon für die Seite',
+        'email_web'       => 'E-Mail für die Seite',
+        'zeiten'          => 'Öffnungszeiten',
+        'termin'          => 'Termin',
+        'pflege'          => 'Pflege später',
         'erhalten'        => 'Muss erhalten bleiben',
         'stoert'          => 'Stört am jetzigen Auftritt',
         'suchwoerter'     => 'Suchwörter',
@@ -214,8 +229,15 @@ final class Briefing
            hat, aber trotzdem von Stimmung lebt: Fotografie, Hochzeit,
            Galerie, Mode. Sie hebt nicht die Grundstufe, sondern die Decke —
            solche Gewerbe duerfen frueher nach oben, wenn das Geld da ist. */
+        /* Seit die Branche eine Auswahl ist, steht in der Antwort ein
+           Schluessel ("gastronomie"), kein Satz. Fuer die Stimmungsliste
+           zaehlt beides: der Schluessel, das ausgeschriebene Wort und die
+           freie Zeile daneben -- dort steht bei "Etwas anderes" das, worauf
+           es ankommt. */
         $branchentext = mb_strtolower(trim((string) ($k['industry'] ?? '')) . ' '
-                      . trim((string) ($antworten['branche'] ?? '')));
+                      . trim((string) ($antworten['branche'] ?? '')) . ' '
+                      . Fragen::worte('branche', (string) ($antworten['branche'] ?? ''), 'de') . ' '
+                      . trim((string) ($antworten['branche__frei'] ?? '')));
         $stimmung = $basis >= 2;
         if (!$stimmung) {
             foreach (self::STIMMUNG as $s) {
@@ -243,12 +265,26 @@ final class Briefing
         }
 
         /* ---- 3. Was der Kunde selbst gesagt hat ------------------------ */
-        $wunsch = mb_strtolower(trim((string) ($antworten['wirkung'] ?? '')) . ' '
-                . trim((string) ($antworten['stil'] ?? '')) . ' '
-                . trim((string) ($antworten['ziel'] ?? '')) . ' '
-                . trim((string) ($antworten['funktionen'] ?? '')));
+        /* WAS DER KUNDE SCHREIBT UND WAS ER ANKREUZT
+           ------------------------------------------------------------
+           Frueher stand hier vier Mal Freitext, und die Woerter darin
+           entschieden ueber die Fallhoehe. Seit das meiste eine Auswahl ist,
+           tippt niemand mehr "immersiv" -- die Absicht steckt jetzt in den
+           Kreuzen. Also beides: der Freitext, den es noch gibt, und die
+           Auswahlen, uebersetzt in dieselben Signale. */
+        $freitext = mb_strtolower(
+                  trim((string) ($antworten['einesache'] ?? '')) . ' '
+                . trim((string) ($antworten['vorbilder'] ?? '')) . ' '
+                . trim((string) ($antworten['beschreibung'] ?? '')) . ' '
+                . trim((string) ($antworten['stil__frei'] ?? '')) . ' '
+                . trim((string) ($antworten['wirkung__frei'] ?? '')));
+        $stilWahl = (string) ($antworten['stil'] ?? '');
+        $wirkWahl = array_filter(explode(',', (string) ($antworten['wirkung'] ?? '')));
+        $wunsch = $freitext;
         $willBewegung = (bool) preg_match(
-            '~animat|bewegung|scroll|video|3d|immersiv|kino|erlebnis|emozion|movimento~u', $wunsch);
+            '~animat|bewegung|scroll|video|3d|immersiv|kino|erlebnis|emozion|movimento~u', $wunsch)
+            || in_array($stilWahl, ['kraeftig', 'verspielt'], true)
+            || in_array('lebendig', $wirkWahl, true);
         /* Der leisere Wunsch: nicht nach Bewegung, sondern nach Wirkung.
            "soll besonders sein", "unsere Geschichte erzaehlen", "wie eine
            Marke aussehen" — das ist eine Ansage zur Fallhoehe, auch wenn kein
@@ -256,9 +292,13 @@ final class Briefing
         $willErlebnis = (bool) preg_match(
             '~besonder|einzigartig|aussergewoehnlich|außergewöhnlich|heraussteche|'
             . 'unvergess|memorabil|erz[aä]hl|geschichte|storia|raccont|marke |brand|'
-            . 'unico|speciale|emozionar~u', $wunsch);
+            . 'unico|speciale|emozionar~u', $wunsch)
+            || in_array('hochwertig', $wirkWahl, true)
+            || $stilWahl === 'edel';
         $willRuhe = (bool) preg_match(
-            '~ruhig|schlicht|sachlich|minimal|nüchtern|nuechtern|sobrio|essenziale|clean~u', $wunsch);
+            '~ruhig|schlicht|sachlich|minimal|nüchtern|nuechtern|sobrio|essenziale|clean~u', $wunsch)
+            || $stilWahl === 'ruhig'
+            || (in_array('einfach', $wirkWahl, true) && !$willBewegung);
 
         $konflikt = null;
 
@@ -479,12 +519,24 @@ final class Briefing
             $luecke = max(1, 18 - mb_strlen($marke));
             $dna[] = '  ' . $marke . str_repeat(' ', $luecke) . self::umbruch($wert);
         };
-        $dnaPaar('Wirkung', (string) ($antworten['wirkung'] ?? ''));
-        $dnaPaar('Stil', (string) ($antworten['stil'] ?? ''));
-        $dnaPaar('Farben', (string) ($antworten['farben'] ?? ''));
-        $dnaPaar('Schriften', (string) ($antworten['schriften'] ?? ''));
+        /* Gespeichert wird ein Schluessel, gelesen wird ein Satz -- und die
+           freie Zeile gehoert an die Auswahl, nicht in eine eigene Zeile
+           darunter. Sonst stuende im Briefing "Stil: boden" und daneben ein
+           Halbsatz ohne Bezug. */
+        $ausFrage = static function (string $feld) use ($antworten): string {
+            $wert = Fragen::worte($feld, (string) ($antworten[$feld] ?? ''), 'de');
+            $frei = trim((string) ($antworten[$feld . '__frei'] ?? ''));
+            if ($frei === '') { return $wert; }
+            return $wert === '' ? $frei : $wert . ' — ' . $frei;
+        };
+        $dnaPaar('Wirkung', $ausFrage('wirkung'));
+        $dnaPaar('Stil', $ausFrage('stil'));
+        $dnaPaar('Farben', $ausFrage('farben'));
+        $dnaPaar('Schriften', $ausFrage('schriften'));
+        $dnaPaar('Logo', $ausFrage('logo'));
         $dnaPaar('Vorbilder', (string) ($antworten['vorbilder'] ?? ''));
-        $dnaPaar('Tonfall', (string) ($antworten['tonfall'] ?? ''));
+        $dnaPaar('Anrede', Fragen::worte('anrede', (string) ($antworten['anrede'] ?? ''), 'de'));
+        $dnaPaar('Klang', $ausFrage('klang'));
         if ($dna) {
             $zeilen[] = 'DESIGN-DNA — IN SEINEN WORTEN';
             foreach ($dna as $z) { $zeilen[] = $z; }
@@ -580,7 +632,9 @@ final class Briefing
             $paar('Sprachen bezahlt', (string) $bezahlt['sprachen']);
             /* Direkt daneben, was der Kunde dazu geschrieben hat — die Zahl
                allein sagt nicht, welche Sprachen und welche fuehrt. */
-            $paar('Welche', trim((string) ($antworten['sprachen_welche'] ?? '')));
+            $paar('Welche', trim(Fragen::worte('sprachen_welche', (string) ($antworten['sprachen_welche'] ?? ''), 'de')
+                . (($antworten['sprache_erst'] ?? '') !== ''
+                   ? ' · zuerst: ' . Fragen::worte('sprache_erst', (string) $antworten['sprache_erst'], 'de') : '')));
             $mehr = self::bausteinworte($bezahlt);
             $paar('Enthalten', $mehr);
         }
@@ -607,12 +661,42 @@ final class Briefing
                 $zeilen[] = '                    was dadurch fehlt.';
             }
         }
-        $paar('Domain', (string) ($antworten['domain'] ?? ($w['domain'] ?? '')));
+        $domainWort = Fragen::worte('domain', (string) ($antworten['domain'] ?? ''), 'de');
+        $domainFrei = trim((string) ($antworten['domain__frei'] ?? ''));
+        $paar('Domain', trim($domainWort . ($domainFrei !== '' ? ' — ' . $domainFrei : ''))
+                        ?: (string) ($w['domain'] ?? ''));
         $paar('Deadline', $p['deadline'] ? Fmt::datum((string) $p['deadline']) : '');
         $paar('Stand', self::stand($p));
         $paar('Vorschau', (string) ($p['preview_url'] ?? ''));
         $paar('Live', (string) ($w['url'] ?? ''));
         $zeilen[] = '';
+
+        /* ==============================================================
+           WAS FEHLT UND WAS SICH WIDERSPRICHT
+
+           Diese Liste ist der Grund, warum ich den Fragebogen nicht mehr
+           von oben nach unten lesen muss. Vierzig Antworten durchzugehen,
+           um zu merken, dass das Logo nur als JPG vorliegt, ist Arbeit,
+           die eine Schleife auch erledigt.
+
+           Sie steht bewusst VOR den Antworten: Wer sie liest, weiss danach,
+           worauf er beim Lesen achten muss. Steht sie hinten, liest sie
+           niemand, weil die Arbeit da schon gemacht ist.
+
+           Und sie ist bewusst kurz gehalten. Eine Liste mit zwanzig
+           Punkten wird ueberflogen wie keine.
+           ============================================================== */
+        $luecken = self::still(static function () use ($antworten, $bezahlt) {
+            return Fragen::luecken($antworten, $bezahlt ?: null);
+        }) ?: [];
+        if ($luecken) {
+            $zeilen[] = 'NACHFASSEN — ' . count($luecken)
+                      . (count($luecken) === 1 ? ' Punkt' : ' Punkte');
+            foreach ($luecken as $satz) {
+                $zeilen[] = '  · ' . self::umbruch($satz);
+            }
+            $zeilen[] = '';
+        }
 
         /* ---------- Die Antworten des Kunden ---------- */
         $felder = self::still(static fn() => Texte::FRAGEBOGEN, []);
@@ -621,7 +705,12 @@ final class Briefing
             $block = [];
             foreach ($felder[$abschnitt]['felder'] as $name => $feld) {
                 if (in_array($name, self::DOPPELT, true)) { continue; }
-                $wert = trim((string) ($antworten[$name] ?? ''));
+                /* Gespeichert ist ein Schluessel, gelesen wird ein Satz.
+                   Und die freie Zeile haengt an ihrer Auswahl statt als
+                   eigener Punkt darunter zu stehen. */
+                $wert = trim(Fragen::worte($name, trim((string) ($antworten[$name] ?? '')), 'de'));
+                $frei = trim((string) ($antworten[$name . '__frei'] ?? ''));
+                if ($frei !== '') { $wert = $wert === '' ? $frei : $wert . ' — ' . $frei; }
                 if ($wert === '') { continue; }
                 $marke = self::MARKEN[$name] ?? (string) ($feld['de'] ?? $name);
                 $block[] = '  ' . $marke . ': ' . self::umbruch($wert);
@@ -629,6 +718,40 @@ final class Briefing
             if (!$block) { continue; }
             $zeilen[] = $ueberschrift;
             foreach ($block as $z) { $zeilen[] = $z; }
+            $zeilen[] = '';
+        }
+
+        /* ==============================================================
+           ANTWORTEN AUS EINEM AELTEREN FRAGEBOGEN
+
+           Der Fragebogen wurde umgebaut: aus 38 Feldern mit 25 leeren
+           Textkaesten wurden sechs Abschnitte, die zum groessten Teil
+           angeklickt werden. Was Kunden VOR dem Umbau geschrieben haben,
+           steht weiter in der Datenbank -- aber unter Namen, die es im
+           neuen Aufbau nicht mehr gibt ("kontakt", "tonfall", "ziel").
+
+           Ohne diesen Block waere es unsichtbar. Sichtbar und unschoen ist
+           besser als unsichtbar und verloren: Eine Antwort, die jemand
+           gegeben hat, darf nicht daran scheitern, dass ich das Formular
+           geaendert habe.
+           ============================================================== */
+        $bekannt = [];
+        foreach ($felder as $teil) {
+            foreach (array_keys((array) ($teil['felder'] ?? [])) as $n) {
+                $bekannt[$n] = true;
+                $bekannt[$n . '__frei'] = true;
+            }
+        }
+        $alt = [];
+        foreach ($antworten as $n => $wert) {
+            if (isset($bekannt[$n])) { continue; }
+            $wert = trim((string) $wert);
+            if ($wert === '') { continue; }
+            $alt[] = '  ' . $n . ': ' . self::umbruch($wert);
+        }
+        if ($alt) {
+            $zeilen[] = 'AUS EINEM ÄLTEREN FRAGEBOGEN';
+            foreach ($alt as $z) { $zeilen[] = $z; }
             $zeilen[] = '';
         }
 

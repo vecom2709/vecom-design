@@ -298,8 +298,18 @@ final class Technik
      */
     public static function branche(string $branche, array $antworten = []): ?string
     {
+        /* SEIT DER FRAGEBOGEN EINE LISTE HAT, MUSS NICHT MEHR GERATEN WERDEN
+           ------------------------------------------------------------------
+           Der Kunde kreuzt seine Branche an, und die Schluessel der Liste
+           sind dieselben wie hier. Das ist die verlaessliche Auskunft --
+           Stichwortsuche in einem Satz bleibt der Notnagel fuer alles, was
+           von Hand angelegt wurde oder unter "Etwas anderes" faellt. */
+        $gewaehlt = (string) ($antworten['branche'] ?? '');
+        if ($gewaehlt !== '' && isset(self::BRANCHE[$gewaehlt])) { return $gewaehlt; }
+
         $suche = mb_strtolower($branche . ' '
-            . (string) ($antworten['branche'] ?? '') . ' '
+            . $gewaehlt . ' '
+            . (string) ($antworten['branche__frei'] ?? '') . ' '
             . (string) ($antworten['beschreibung'] ?? ''));
 
         foreach (self::BRANCHE as $name => [$worte]) {

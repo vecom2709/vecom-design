@@ -266,20 +266,30 @@ final class Bedarf
         }
         if (!$b) { return []; }
 
-        $sprache = (string) ($b['sprache'] ?? 'it');
-        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+        /* Uebersetzt wird hier nichts mehr: Gespeichert werden Schluessel,
+           und die uebersetzt der Fragebogen selbst in die Sprache, in der
+           der Kunde gerade davorsitzt. Vorher stand der Satz fest, sobald
+           er einmal geschrieben war -- und blieb italienisch, auch wenn der
+           Kunde spaeter auf Deutsch weitermachte. */
         $a = self::antworten($b);
-
-        /** Der lesbare Text einer Antwortmoeglichkeit, in der Sprache des Kunden. */
-        $wort = static function (string $frage, string $wert) use ($sprache): string {
-            $o = Baukasten::FRAGEN[$frage]['optionen'][$wert] ?? null;
-            return $o ? Texte::h($o, $sprache) : '';
-        };
 
         $aus = [];
 
+        /* DIE BRANCHE ALS SCHLUESSEL, NICHT ALS WORT
+           ------------------------------------------------------------------
+           Frueher stand hier der ausgeschriebene Satz ("Gastronomie"). Seit
+           der Fragebogen eine Liste hat, waere das ein Wert, den die Liste
+           nicht kennt -- das Feld bliebe leer, und der Kunde muesste noch
+           einmal ankreuzen, was er schon angeklickt hat. Die Namen der
+           beiden Listen sind nicht dieselben, also wird uebersetzt. */
+        $brancheZu = [
+            'gastro'    => 'gastronomie',
+            'handel'    => 'laden',
+            'handwerk'  => 'handwerk',
+            'tourismus' => 'beherbergung',
+        ];
         $branche = (string) ($a['branche'] ?? '');
-        if ($branche !== '' && $branche !== 'anderes') { $aus['branche'] = $wort('branche', $branche); }
+        if (isset($brancheZu[$branche])) { $aus['branche'] = $brancheZu[$branche]; }
 
         /* SEITEN, SPRACHEN UND FUNKTIONEN STEHEN HIER NICHT MEHR
            ------------------------------------------------------------------
@@ -297,20 +307,44 @@ final class Bedarf
         /* Material: Was da ist, steht als solches drin. Was fehlt, steht
            ebenfalls drin -- eine leere Zeile hiesse "nicht gefragt", und
            gefragt wurde sehr wohl. */
+        /* MATERIAL: NUR WAS ER GESAGT HAT, NICHT WAS ICH VERMUTE
+           ------------------------------------------------------------------
+           Im Konfigurator hat er angeklickt, was da ist. Das steht hier als
+           "haben wir". Was er NICHT angeklickt hat, bleibt offen -- ob es
+           noch kommt oder ob ich es machen soll, hat er nie gesagt, und eine
+           geratene Antwort in einem vorbelegten Feld wird bestaetigt statt
+           korrigiert. Genau daran ist die alte Vorbelegung gescheitert:
+           "Fehlt noch." stand im Feld, und niemand hat je danach gefragt,
+           wer es besorgt. */
         $material = (array) ($a['material'] ?? []);
-        $ja   = ['it' => 'C’è già.', 'de' => 'Ist vorhanden.', 'en' => 'Already there.'][$sprache];
-        $nein = ['it' => 'Non c’è ancora.', 'de' => 'Fehlt noch.', 'en' => 'Not yet there.'][$sprache];
-        foreach (['texte' => 'texte', 'fotos' => 'bilder', 'logo' => 'logo'] as $quelle => $ziel) {
-            $aus[$ziel] = in_array($quelle, $material, true) ? $ja : $nein;
+        $stand = [];
+        foreach (['logo' => 'logo', 'fotos' => 'betrieb', 'texte' => 'texte'] as $quelle => $zeile) {
+            if (in_array($quelle, $material, true)) { $stand[] = $zeile . ':haben'; }
         }
+        if ($stand) { $aus['material'] = implode(',', $stand); }
 
-        /* Nur wenn es eine alte Seite gibt, ergibt die Frage nach ihr einen
-           Sinn -- sonst bleibt sie leer und der Kunde ueberspringt sie. */
+        /* Beim Logo bleibt die eine Frage offen, die zaehlt: Vektor oder
+           Bild. Nur wenn gar keines da ist, steht die Antwort schon fest. */
+        if (!in_array('logo', $material, true)) { $aus['logo'] = 'neu'; }
+        if (in_array('texte', $material, true)) { $aus['texte'] = 'selbst'; }
+
+        /* Die Torfrage zur alten Seite. Sie entscheidet im Fragebogen
+           darueber, ob zwei weitere Fragen ueberhaupt erscheinen -- vorher
+           standen sie immer da, auch bei Kunden, die noch nie eine hatten. */
         $bestand = (string) ($a['bestand'] ?? '');
-        if ($bestand === 'erneuern' || $bestand === 'ueberarb') {
-            $aus['erhalten'] = '';
-            $aus['stoert']   = '';
-        }
+        if ($bestand === 'neu')      { $aus['altseite'] = 'nein'; }
+        if ($bestand === 'erneuern' || $bestand === 'ueberarb') { $aus['altseite'] = 'ja'; }
+
+        /* Firmenname und Ort stehen beim Kunden. Sie hier noch einmal zu
+           fragen, ist der billigste Weg, jemanden zu verlieren, der gerade
+           bezahlt hat. */
+        try {
+            $k = Db::one('SELECT company, city FROM customers WHERE id = ?', [$kundeId]);
+            if ($k) {
+                if (trim((string) ($k['company'] ?? '')) !== '') { $aus['firmenname'] = (string) $k['company']; }
+                if (trim((string) ($k['city'] ?? '')) !== '')    { $aus['ort'] = (string) $k['city']; }
+            }
+        } catch (Throwable $e) { /* dann tippt er es eben selbst */ }
 
         return array_filter($aus, static fn($v) => trim((string) $v) !== '');
     }

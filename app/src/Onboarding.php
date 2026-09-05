@@ -236,12 +236,57 @@ final class Onboarding
     /* ---------- Antworten ---------- */
 
     /** Alle Feldnamen des Fragebogens, in der Reihenfolge der Abschnitte. */
+    /** Die vier Zustaende der Materialliste. */
+    public const ZUSTAENDE = ['haben', 'kommt', 'du', 'nein'];
+
+    /** Die erlaubten Auswahlen eines Feldes, ueber alle Abschnitte gesucht. */
+    public static function optionen(string $name): array
+    {
+        foreach (Texte::FRAGEBOGEN as $inhalt) {
+            if (isset($inhalt['felder'][$name]['optionen'])) {
+                return $inhalt['felder'][$name]['optionen'];
+            }
+        }
+        return [];
+    }
+
+    /** Die Zeilen einer Zustandsliste. */
+    public static function zeilen(string $name): array
+    {
+        foreach (Texte::FRAGEBOGEN as $inhalt) {
+            if (isset($inhalt['felder'][$name]['zeilen'])) {
+                return $inhalt['felder'][$name]['zeilen'];
+            }
+        }
+        return [];
+    }
+
+    /** Eine gespeicherte Zustandsliste zurueck in [zeile => zustand]. */
+    public static function standWerte(string $roh): array
+    {
+        $aus = [];
+        foreach (explode(',', $roh) as $stueck) {
+            $stueck = trim($stueck);
+            if ($stueck === '' || !str_contains($stueck, ':')) { continue; }
+            [$zeile, $zustand] = explode(':', $stueck, 2);
+            $aus[trim($zeile)] = trim($zustand);
+        }
+        return $aus;
+    }
+
     public static function felder(): array
     {
         $aus = [];
         foreach (Texte::FRAGEBOGEN as $abschnitt => $inhalt) {
             foreach ($inhalt['felder'] as $name => $feld) {
                 $aus[$name] = ['abschnitt' => $abschnitt, 'art' => $feld['art']];
+                /* Eine Auswahl mit freier Zeile ist zwei Felder: die Auswahl
+                   und der Satz darunter. Der Satz traegt denselben Namen mit
+                   zwei Unterstrichen -- so muss ihn niemand einzeln pflegen,
+                   und er faellt automatisch weg, wenn die Auswahl weg ist. */
+                if (!empty($feld['frei'])) {
+                    $aus[$name . '__frei'] = ['abschnitt' => $abschnitt, 'art' => 'text'];
+                }
             }
         }
         return $aus;
@@ -274,6 +319,49 @@ final class Onboarding
                     if ($s !== '' && preg_match('/^[a-z0-9_-]{1,40}$/', $s)) { $slugs[$s] = true; }
                 }
                 $aus[$name] = implode(',', array_keys($slugs));
+                continue;
+            }
+
+            /* EINE AUSWAHL IST NUR GUELTIG, WENN ES SIE GIBT
+               --------------------------------------------------------------
+               Was der Browser schickt, ist eine Behauptung. Gegen die Liste
+               geprueft wird sie hier -- was nicht in den Optionen steht,
+               faellt weg. Sonst stuende spaeter im Briefing ein Schluessel,
+               den kein Text uebersetzt, und niemand wuesste, woher er kommt. */
+            if ($feld['art'] === 'eins' || $feld['art'] === 'mehr') {
+                $erlaubt = self::optionen($name);
+                if ($feld['art'] === 'eins') {
+                    $wert = trim((string) ($roh[$name] ?? ''));
+                    if ($wert === '' || !isset($erlaubt[$wert])) { continue; }
+                    $aus[$name] = $wert;
+                    continue;
+                }
+                // Wie bei der Baukastenliste: Alles abgewaehlt ist eine Antwort.
+                if (!array_key_exists($name, $roh)) { continue; }
+                $gewaehlt = is_array($roh[$name]) ? $roh[$name] : [$roh[$name]];
+                $treffer = [];
+                foreach ($gewaehlt as $w) {
+                    $w = trim((string) $w);
+                    if ($w !== '' && isset($erlaubt[$w])) { $treffer[$w] = true; }
+                }
+                $aus[$name] = implode(',', array_keys($treffer));
+                continue;
+            }
+
+            /* Die Materialliste: je Zeile ein Zustand. Gespeichert als
+               "logo:haben,team:kommt" -- lesbar, ohne zweite Tabelle. */
+            if ($feld['art'] === 'stand') {
+                if (!array_key_exists($name, $roh) || !is_array($roh[$name])) { continue; }
+                $zeilen = self::zeilen($name);
+                $teile = [];
+                foreach ($roh[$name] as $zeile => $zustand) {
+                    $zeile   = trim((string) $zeile);
+                    $zustand = trim((string) $zustand);
+                    if (!isset($zeilen[$zeile])) { continue; }
+                    if (!in_array($zustand, self::ZUSTAENDE, true)) { continue; }
+                    $teile[] = $zeile . ':' . $zustand;
+                }
+                $aus[$name] = implode(',', $teile);
                 continue;
             }
 

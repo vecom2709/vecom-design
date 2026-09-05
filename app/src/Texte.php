@@ -8,94 +8,487 @@ declare(strict_types=1);
  */
 final class Texte
 {
+    /* ======================================================================
+       DER FRAGEBOGEN
+
+       Vorher: 38 Felder, davon 25 leere Textkaesten, und ein Abschnitt mit
+       sechzehn Stueck. Wer das auf dem Handy oeffnet, sieht eine Wand.
+       Drei Fragen standen ausserdem doppelt drin (Ziel und Handlung,
+       Beispiele und Vorbilder) und eine dritte fragte, was zwei Schritte
+       spaeter noch einmal gefragt wurde.
+
+       Jetzt: sechs Abschnitte, keiner ueber neun Felder, und das meiste ist
+       Anklicken statt Schreiben. Frei bleibt, was frei bleiben muss -- was
+       eine Firma macht, was sie nicht will, wie ihre Texte klingen sollen.
+       Eine Auswahl ist keine Bequemlichkeit, sondern eine bessere Antwort:
+       "Gastronomie" ist verwertbar, "wir machen so Essen und Catering" nicht.
+
+       Jede Auswahl hat "weiss ich nicht". Ohne das raten Kunden -- und eine
+       Vermutung ist schlechter als eine Luecke, weil ich sie nicht sehe.
+
+       ARTEN
+         text   einzeilig
+         lang   mehrzeilig
+         zahl   Zahlenfeld
+         wahl   die Baukastenliste (kommt aus dem Angebot)
+         eins   genau eine Auswahl
+         mehr   mehrere Auswahlen
+         stand  Zeilen mit je vier Zustaenden (haben/kommt/du/nein)
+       Dazu:
+         frei      => true   eine freie Zeile unter der Auswahl (<name>__frei)
+         wenn      => [...]  nur zeigen, wenn ein anderes Feld passt
+         vorschlag => '...'  Vorbelegung aus Branche und Ort
+       ====================================================================== */
     public const FRAGEBOGEN = [
+
+        /* ---------- 1 ---------------------------------------------------- */
         'unternehmen' => [
             'it' => 'La tua azienda', 'de' => 'Dein Unternehmen', 'en' => 'Your business',
             'felder' => [
                 'firmenname' => ['it' => 'Nome dell’azienda', 'de' => 'Firmenname', 'en' => 'Company name', 'art' => 'text'],
-                'branche'    => ['it' => 'Settore', 'de' => 'Branche', 'en' => 'Industry', 'art' => 'text'],
+
+                /* Die Branche entscheidet ueber Ambitionsstufe, Seitenvorschlag
+                   und Suchwoerter. Aus Freitext musste sie geraten werden. */
+                'branche' => [
+                    'it' => 'Settore', 'de' => 'Branche', 'en' => 'Industry',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'gastronomie' => ['it' => 'Ristorazione — ristorante, bar, pizzeria', 'de' => 'Gastronomie — Restaurant, Bar, Pizzeria', 'en' => 'Food & drink — restaurant, bar, pizzeria'],
+                        'beherbergung'=> ['it' => 'Ospitalità — hotel, B&B, casa vacanze', 'de' => 'Beherbergung — Hotel, B&B, Ferienhaus', 'en' => 'Hospitality — hotel, B&B, holiday let'],
+                        'handwerk'    => ['it' => 'Artigianato e servizi tecnici', 'de' => 'Handwerk und technische Dienste', 'en' => 'Trades and technical services'],
+                        'schoenheit'  => ['it' => 'Bellezza e benessere — parrucchiere, estetica', 'de' => 'Schönheit und Wellness — Friseur, Kosmetik', 'en' => 'Beauty and wellbeing — hair, cosmetics'],
+                        'wein'        => ['it' => 'Vino, olio, agricoltura', 'de' => 'Wein, Öl, Landwirtschaft', 'en' => 'Wine, oil, farming'],
+                        'laden'       => ['it' => 'Negozio o commercio', 'de' => 'Laden oder Handel', 'en' => 'Shop or retail'],
+                        'praxis'      => ['it' => 'Studio — medico, avvocato, commercialista', 'de' => 'Praxis oder Kanzlei — Arzt, Anwalt, Steuerberater', 'en' => 'Practice — doctor, lawyer, accountant'],
+                        'immobilien'  => ['it' => 'Immobiliare', 'de' => 'Immobilien', 'en' => 'Property'],
+                        'dienst'      => ['it' => 'Servizi alle imprese', 'de' => 'Dienstleistung für Firmen', 'en' => 'Business services'],
+                        'transport'   => ['it' => 'Trasporti e logistica', 'de' => 'Transport und Logistik', 'en' => 'Transport and logistics'],
+                        'anders'      => ['it' => 'Altro', 'de' => 'Etwas anderes', 'en' => 'Something else'],
+                    ],
+                ],
+
                 'beschreibung' => ['it' => 'Cosa fate, in poche frasi', 'de' => 'Was ihr macht, in wenigen Sätzen', 'en' => 'What you do, in a few sentences', 'art' => 'lang'],
-                'zielgruppe' => ['it' => 'Chi sono i vostri clienti', 'de' => 'Wer sind eure Kunden', 'en' => 'Who are your customers', 'art' => 'lang'],
-                'standort'   => ['it' => 'Sede e zona servita', 'de' => 'Standort und Einzugsgebiet', 'en' => 'Location and area served', 'art' => 'text'],
-                'kontakt'    => ['it' => 'Telefono, e-mail, orari', 'de' => 'Telefon, E-Mail, Öffnungszeiten', 'en' => 'Phone, email, opening hours', 'art' => 'lang'],
-                /* Die Steuernummern heissen in jedem Land anders, und die
-                   falsche Vokabel laesst den Kunden raten, was gemeint ist.
-                   Italien: Partita IVA und Codice fiscale. Deutschland:
-                   Steuernummer und Umsatzsteuer-Identifikationsnummer.
-                   Englischsprachig: company number und VAT number. */
-                'impressum' => ['it' => 'Dati per le note legali: ragione sociale esatta, indirizzo, P. IVA o codice fiscale', 'de' => 'Angaben fürs Impressum: genaue Firmierung, Anschrift, Steuernummer oder Umsatzsteuer-Identifikationsnummer (USt-IdNr.)', 'en' => 'Details for the legal notice: exact company name, registered address, company number and VAT number', 'art' => 'lang'],
-                'ansprechpartner' => ['it' => 'Con chi parlo durante il lavoro — e chi decide alla fine?', 'de' => 'Mit wem spreche ich während der Arbeit — und wer entscheidet am Ende?', 'en' => 'Who do I talk to while we work — and who decides in the end?', 'art' => 'lang'],
+
+                'zielgruppe' => [
+                    'it' => 'Chi sono i vostri clienti?', 'de' => 'Wer sind eure Kunden?', 'en' => 'Who are your customers?',
+                    'art' => 'mehr', 'frei' => true,
+                    'optionen' => [
+                        'privat'    => ['it' => 'Privati', 'de' => 'Privatleute', 'en' => 'Private customers'],
+                        'firmen'    => ['it' => 'Aziende', 'de' => 'Firmen', 'en' => 'Businesses'],
+                        'einheim'   => ['it' => 'Gente del posto', 'de' => 'Leute aus der Gegend', 'en' => 'Locals'],
+                        'touristen' => ['it' => 'Turisti', 'de' => 'Touristen', 'en' => 'Tourists'],
+                        'stamm'     => ['it' => 'Clienti abituali', 'de' => 'Stammkunden', 'en' => 'Regulars'],
+                        'familien'  => ['it' => 'Famiglie', 'de' => 'Familien', 'en' => 'Families'],
+                        'jung'      => ['it' => 'Giovani', 'de' => 'Junge Leute', 'en' => 'Younger people'],
+                        'behoerden' => ['it' => 'Enti pubblici', 'de' => 'Behörden und öffentliche Auftraggeber', 'en' => 'Public sector'],
+                    ],
+                ],
+
+                'ort' => ['it' => 'In quale città o paese siete?', 'de' => 'In welchem Ort seid ihr?', 'en' => 'Which town are you in?', 'art' => 'text'],
+
+                'gebiet' => [
+                    'it' => 'Fin dove arrivate?', 'de' => 'Wie weit reicht euer Einzugsgebiet?', 'en' => 'How far do you reach?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'ort'      => ['it' => 'Il paese e i dintorni', 'de' => 'Der Ort und die Umgebung', 'en' => 'The town and around it'],
+                        'provinz'  => ['it' => 'Tutta la provincia', 'de' => 'Die ganze Provinz', 'en' => 'The whole province'],
+                        'region'   => ['it' => 'Tutta la regione', 'de' => 'Die ganze Region', 'en' => 'The whole region'],
+                        'land'     => ['it' => 'Tutto il paese', 'de' => 'Das ganze Land', 'en' => 'The whole country'],
+                        'welt'     => ['it' => 'Anche all’estero', 'de' => 'Auch über die Grenze hinaus', 'en' => 'Abroad as well'],
+                    ],
+                ],
+
+                'ansprech' => ['it' => 'Con chi parlo durante il lavoro? Nome e ruolo', 'de' => 'Mit wem spreche ich während der Arbeit? Name und Rolle', 'en' => 'Who do I talk to while we work? Name and role', 'art' => 'text'],
+
+                'entscheider' => [
+                    'it' => 'Chi decide alla fine?', 'de' => 'Wer entscheidet am Ende?', 'en' => 'Who decides in the end?',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'selbst'  => ['it' => 'La stessa persona', 'de' => 'Dieselbe Person', 'en' => 'The same person'],
+                        'zusammen'=> ['it' => 'Decidiamo insieme, in due o tre', 'de' => 'Wir entscheiden zu zweit oder zu dritt', 'en' => 'Two or three of us decide together'],
+                        'andere'  => ['it' => 'Qualcun altro — scrivo chi qui sotto', 'de' => 'Jemand anderes — schreibe ich unten dazu', 'en' => 'Someone else — I’ll write who below'],
+                    ],
+                ],
             ],
         ],
-        'website' => [
-            'it' => 'Il sito', 'de' => 'Die Website', 'en' => 'The website',
+
+        /* ---------- 2 ---------------------------------------------------- */
+        'ziel' => [
+            'it' => 'Obiettivo e visitatori', 'de' => 'Ziel und Besucher', 'en' => 'Goal and visitors',
             'felder' => [
-                /* ZWEI ZAEHLER UND EINE HAKENLISTE STATT ZWEIER FREITEXTE
-                   ----------------------------------------------------------
-                   Hier stand frueher "Welche Seiten sollen es sein" und
-                   "Gewuenschte Funktionen" -- beides offen, beides schon im
-                   Rechner beantwortet, beides Grundlage des Preises. Der
-                   Kunde, der vier Seiten bezahlt hatte, schrieb hier in aller
-                   Ruhe neun hin und meinte es nicht boese: Er beantwortete
-                   die Frage, die dastand. Gemerkt hat es niemand.
+                /* Vorher standen hier zwei Fragen -- "Was soll die Website
+                   erreichen" und "Was soll ein Besucher tun". Das ist
+                   dieselbe Frage von zwei Seiten. Jetzt eine Liste und eine
+                   Rangfolge: Was am meisten zaehlt, und was danach. Eine
+                   Rangfolge ist die einzige Auskunft, die im Streitfall
+                   hilft -- eine Wunschliste ist es nie. */
+                'ziel1' => [
+                    'it' => 'Che cosa conta di più?', 'de' => 'Was zählt am meisten?', 'en' => 'What matters most?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'anrufe'    => ['it' => 'Ricevere telefonate', 'de' => 'Angerufen werden', 'en' => 'Get phone calls'],
+                        'anfragen'  => ['it' => 'Ricevere richieste scritte', 'de' => 'Schriftliche Anfragen bekommen', 'en' => 'Get written enquiries'],
+                        'buchungen' => ['it' => 'Prenotazioni e appuntamenti', 'de' => 'Reservierungen und Termine', 'en' => 'Bookings and appointments'],
+                        'verkauf'   => ['it' => 'Vendere online', 'de' => 'Online verkaufen', 'en' => 'Sell online'],
+                        'gefunden'  => ['it' => 'Farsi trovare su Google', 'de' => 'Bei Google gefunden werden', 'en' => 'Be found on Google'],
+                        'serioes'    => ['it' => 'Fare bella figura — il biglietto da visita', 'de' => 'Seriös wirken — die Visitenkarte', 'en' => 'Look credible — the calling card'],
+                        'besuch'    => ['it' => 'Far venire la gente da voi', 'de' => 'Leute zu euch in den Laden holen', 'en' => 'Get people to come by'],
+                        'bewerber'  => ['it' => 'Trovare collaboratori', 'de' => 'Bewerber finden', 'en' => 'Find staff'],
+                    ],
+                ],
+                'ziel2' => [
+                    'it' => 'E subito dopo?', 'de' => 'Und gleich danach?', 'en' => 'And right after that?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'anrufe'    => ['it' => 'Ricevere telefonate', 'de' => 'Angerufen werden', 'en' => 'Get phone calls'],
+                        'anfragen'  => ['it' => 'Ricevere richieste scritte', 'de' => 'Schriftliche Anfragen bekommen', 'en' => 'Get written enquiries'],
+                        'buchungen' => ['it' => 'Prenotazioni e appuntamenti', 'de' => 'Reservierungen und Termine', 'en' => 'Bookings and appointments'],
+                        'verkauf'   => ['it' => 'Vendere online', 'de' => 'Online verkaufen', 'en' => 'Sell online'],
+                        'gefunden'  => ['it' => 'Farsi trovare su Google', 'de' => 'Bei Google gefunden werden', 'en' => 'Be found on Google'],
+                        'serioes'    => ['it' => 'Fare bella figura', 'de' => 'Seriös wirken', 'en' => 'Look credible'],
+                        'besuch'    => ['it' => 'Far venire la gente da voi', 'de' => 'Leute zu euch holen', 'en' => 'Get people to come by'],
+                        'bewerber'  => ['it' => 'Trovare collaboratori', 'de' => 'Bewerber finden', 'en' => 'Find staff'],
+                        'nichts'    => ['it' => 'Nient’altro, conta solo il primo', 'de' => 'Nichts weiter, nur das erste zählt', 'en' => 'Nothing else, only the first counts'],
+                    ],
+                ],
 
-                   Jetzt steht dieselbe Liste da, aus der der Preis entstanden
-                   ist, angehakt, was beauftragt ist. Ein Haken mehr ist damit
-                   ein genaues Signal statt eines Satzes, den jemand auslegen
-                   muss -- und nebenbei beantwortet die Liste eine Frage, die
-                   Kunden wirklich haben: Was habe ich eigentlich bestellt?
+                /* Die nuetzlichste Frage im ganzen Bogen. Eine Zeile, und sie
+                   entscheidet, was im ersten Bildschirm steht. */
+                'einesache' => ['it' => 'Se un visitatore ricorda una cosa sola di voi — quale deve essere?',
+                                'de' => 'Wenn ein Besucher nur eine Sache über euch mitnimmt — welche?',
+                                'en' => 'If a visitor remembers one thing about you — which one?',
+                                'art' => 'text'],
 
-                   Die Freitexte bleiben, aber als das, was sie koennen: Namen
-                   und Nuancen, die in keine Liste passen. */
-                'seiten_zahl'     => ['it' => 'Quante pagine in tutto', 'de' => 'Wie viele Seiten insgesamt', 'en' => 'How many pages in total', 'art' => 'zahl'],
-                'sprachen_zahl'   => ['it' => 'In quante lingue', 'de' => 'In wie vielen Sprachen', 'en' => 'In how many languages', 'art' => 'zahl'],
-                /* WELCHE Sprachen, nicht nur wie viele.
-                   Die Zahl daneben sagt, was bezahlt ist; sie sagt nicht,
-                   welche es sind und welche zuerst erscheint. Das haengt am
-                   Kunden und an seinen Gaesten: Ein Restaurant in Agrigent
-                   fuehrt italienisch, ein deutscher Handwerker mit deutscher
-                   Kundschaft fuehrt deutsch. Ohne diese Frage wurde geraten
-                   — und geraten wurde nach dem, was zufaellig naheliegt. */
-                'sprachen_welche' => ['it' => 'Quali lingue? E quale deve apparire per prima?',
-                                      'de' => 'Welche Sprachen? Und welche soll zuerst erscheinen?',
-                                      'en' => 'Which languages? And which one should come first?',
-                                      'art' => 'text'],
-                'funktionen_wahl' => ['it' => 'Che cosa deve avere il sito', 'de' => 'Was die Website können soll', 'en' => 'What the site should have', 'art' => 'wahl'],
-                'seiten'     => ['it' => 'Come si chiamano le pagine?', 'de' => 'Wie sollen die Seiten heißen?', 'en' => 'What should the pages be called?', 'art' => 'lang'],
-                'funktionen' => ['it' => 'Manca qualcosa nell’elenco qui sopra?', 'de' => 'Fehlt oben etwas in der Liste?', 'en' => 'Is anything missing from the list above?', 'art' => 'lang'],
-                'ziel'       => ['it' => 'Cosa deve ottenere il sito', 'de' => 'Was die Website erreichen soll', 'en' => 'What the site should achieve', 'art' => 'lang'],
-                'inhalte'    => ['it' => 'Quali contenuti avete già', 'de' => 'Welche Inhalte gibt es schon', 'en' => 'What content do you already have', 'art' => 'lang'],
-                'beispiele'  => ['it' => 'Siti che vi piacciono', 'de' => 'Websites, die euch gefallen', 'en' => 'Websites you like', 'art' => 'lang'],
-                'handlung' => ['it' => 'Che cosa deve fare un visitatore? (telefonare, scrivere, prenotare, venire)', 'de' => 'Was soll ein Besucher tun? (anrufen, schreiben, buchen, vorbeikommen)', 'en' => 'What should a visitor do? (call, write, book, come by)', 'art' => 'lang'],
-                'mitbewerber' => ['it' => 'Due o tre concorrenti della zona, con il sito se ce l’hanno', 'de' => 'Zwei, drei Mitbewerber aus der Gegend, mit Website falls vorhanden', 'en' => 'Two or three local competitors, with their site if they have one', 'art' => 'lang'],
-                'domain' => ['it' => 'C’è già un indirizzo (dominio)? A chi è intestato e dove è registrato?', 'de' => 'Gibt es schon eine Adresse (Domain)? Auf wen läuft sie und wo liegt sie?', 'en' => 'Is there already a domain? Who is it registered to, and where?', 'art' => 'lang'],
-                'erhalten' => ['it' => 'Della vecchia pagina: che cosa deve assolutamente restare?', 'de' => 'Von der jetzigen Seite: Was muss unbedingt erhalten bleiben?', 'en' => 'From the current site: what has to stay, no matter what?', 'art' => 'lang'],
-                'stoert' => ['it' => 'Della vecchia pagina: che cosa vi dà più fastidio?', 'de' => 'An der jetzigen Seite: Was stört euch am meisten?', 'en' => 'About the current site: what bothers you most?', 'art' => 'lang'],
-                'suchwoerter' => ['it' => 'Con quali parole la gente dovrebbe trovarvi su Google? Scrivetele come le direbbe un cliente.', 'de' => 'Mit welchen Wörtern sollen Leute euch bei Google finden? Schreibt sie so, wie ein Kunde sie eintippen würde.', 'en' => 'Which words should people find you by on Google? Write them the way a customer would type them.', 'art' => 'lang'],
-                'karte' => ['it' => 'Avete una scheda Google dell’attività? Serve una mappa con le indicazioni sul sito?', 'de' => 'Gibt es einen Google-Unternehmenseintrag? Soll eine Karte mit Anfahrt auf die Seite?', 'en' => 'Do you have a Google Business listing? Should the site show a map and directions?', 'art' => 'lang'],
+                /* Sagt mir, ob ein Formular ueberhaupt Sinn hat oder ob nur
+                   die Telefonnummer gross genug sein muss. */
+                'heute' => ['it' => 'Oggi, quando qualcuno vi telefona o scrive: cosa succede?',
+                            'de' => 'Was passiert heute, wenn jemand euch anruft oder schreibt?',
+                            'en' => 'Today, when someone calls or writes: what happens?',
+                            'art' => 'lang'],
+
+                'mitbewerber' => ['it' => 'Due o tre concorrenti della zona, con il sito se ce l’hanno',
+                                  'de' => 'Zwei, drei Mitbewerber aus der Gegend, mit Website falls vorhanden',
+                                  'en' => 'Two or three local competitors, with their site if they have one',
+                                  'art' => 'lang'],
+
+                /* Vorbelegt aus Branche und Ort. Korrigieren koennen alle,
+                   erfinden fast niemand -- vorher stand hier "gute Pizza". */
+                'suchwoerter' => ['it' => 'Con quali parole dovrebbero trovarvi su Google? Correggi la proposta.',
+                                  'de' => 'Mit welchen Wörtern sollen Leute euch bei Google finden? Ändere den Vorschlag.',
+                                  'en' => 'Which words should people find you by on Google? Edit the suggestion.',
+                                  'art' => 'lang', 'vorschlag' => 'suchwoerter'],
             ],
         ],
+
+        /* ---------- 3 ---------------------------------------------------- */
+        'website' => [
+            'it' => 'Dimensione del sito', 'de' => 'Umfang der Website', 'en' => 'Size of the site',
+            'felder' => [
+                'seiten_zahl'   => ['it' => 'Quante pagine in tutto', 'de' => 'Wie viele Seiten insgesamt', 'en' => 'How many pages in total', 'art' => 'zahl'],
+                'sprachen_zahl' => ['it' => 'In quante lingue', 'de' => 'In wie vielen Sprachen', 'en' => 'In how many languages', 'art' => 'zahl'],
+
+                'sprachen_welche' => [
+                    'it' => 'Quali lingue?', 'de' => 'Welche Sprachen?', 'en' => 'Which languages?',
+                    'art' => 'mehr', 'frei' => true,
+                    'optionen' => [
+                        'it' => ['it' => 'Italiano', 'de' => 'Italienisch', 'en' => 'Italian'],
+                        'de' => ['it' => 'Tedesco', 'de' => 'Deutsch', 'en' => 'German'],
+                        'en' => ['it' => 'Inglese', 'de' => 'Englisch', 'en' => 'English'],
+                        'fr' => ['it' => 'Francese', 'de' => 'Französisch', 'en' => 'French'],
+                        'es' => ['it' => 'Spagnolo', 'de' => 'Spanisch', 'en' => 'Spanish'],
+                    ],
+                ],
+                'sprache_erst' => [
+                    'it' => 'Quale deve apparire per prima?', 'de' => 'Welche soll zuerst erscheinen?', 'en' => 'Which should come first?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'it' => ['it' => 'Italiano', 'de' => 'Italienisch', 'en' => 'Italian'],
+                        'de' => ['it' => 'Tedesco', 'de' => 'Deutsch', 'en' => 'German'],
+                        'en' => ['it' => 'Inglese', 'de' => 'Englisch', 'en' => 'English'],
+                        'fr' => ['it' => 'Francese', 'de' => 'Französisch', 'en' => 'French'],
+                        'es' => ['it' => 'Spagnolo', 'de' => 'Spanisch', 'en' => 'Spanish'],
+                    ],
+                ],
+
+                'funktionen_wahl' => ['it' => 'Che cosa deve avere il sito', 'de' => 'Was die Website können soll', 'en' => 'What the site should have', 'art' => 'wahl'],
+
+                'seiten' => ['it' => 'Come si chiamano le pagine? Cambia pure la proposta.',
+                             'de' => 'Wie sollen die Seiten heißen? Ändere den Vorschlag ruhig.',
+                             'en' => 'What should the pages be called? Change the suggestion freely.',
+                             'art' => 'lang', 'vorschlag' => 'seiten'],
+
+                /* Die Torfrage. Vorher standen die beiden Fragen zur alten
+                   Seite immer da -- auch bei Kunden, die noch nie eine
+                   hatten. Zwei leere Kaesten, die sagen: Hier ist etwas,
+                   das du nicht beantwortest. */
+                'altseite' => [
+                    'it' => 'Avete già un sito?', 'de' => 'Gibt es schon eine Website?', 'en' => 'Is there a website already?',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'nein'   => ['it' => 'No, questo è il primo', 'de' => 'Nein, das ist die erste', 'en' => 'No, this is the first'],
+                        'ja'     => ['it' => 'Sì, è online — indirizzo qui sotto', 'de' => 'Ja, sie ist online — Adresse unten', 'en' => 'Yes, it is online — address below'],
+                        'aufbau' => ['it' => 'C’è qualcosa, ma incompleto', 'de' => 'Es gibt etwas, aber unfertig', 'en' => 'There is something, but unfinished'],
+                        'social' => ['it' => 'Solo una pagina Facebook o Instagram', 'de' => 'Nur eine Facebook- oder Instagram-Seite', 'en' => 'Only a Facebook or Instagram page'],
+                    ],
+                ],
+                'erhalten' => ['it' => 'Del sito attuale: che cosa deve assolutamente restare?',
+                               'de' => 'Von der jetzigen Seite: Was muss unbedingt erhalten bleiben?',
+                               'en' => 'From the current site: what has to stay, no matter what?',
+                               'art' => 'lang', 'wenn' => ['feld' => 'altseite', 'ist' => ['ja', 'aufbau']]],
+                'stoert'   => ['it' => 'Del sito attuale: che cosa vi dà più fastidio?',
+                               'de' => 'An der jetzigen Seite: Was stört euch am meisten?',
+                               'en' => 'About the current site: what bothers you most?',
+                               'art' => 'lang', 'wenn' => ['feld' => 'altseite', 'ist' => ['ja', 'aufbau']]],
+            ],
+        ],
+
+        /* ---------- 4 ---------------------------------------------------- */
         'design' => [
             'it' => 'Aspetto', 'de' => 'Gestaltung', 'en' => 'Design',
             'felder' => [
-                'farben'      => ['it' => 'Colori preferiti', 'de' => 'Bevorzugte Farben', 'en' => 'Preferred colours', 'art' => 'text'],
-                'stil'        => ['it' => 'Stile desiderato', 'de' => 'Gewünschter Stil', 'en' => 'Style you want', 'art' => 'text'],
-                'schriften'   => ['it' => 'Caratteri, se avete preferenze', 'de' => 'Schriftarten, falls ihr Wünsche habt', 'en' => 'Fonts, if you have preferences', 'art' => 'text'],
-                'logo'        => ['it' => 'Avete già un logo?', 'de' => 'Gibt es schon ein Logo?', 'en' => 'Do you already have a logo?', 'art' => 'text'],
-                'vorbilder'   => ['it' => 'Esempi che vi ispirano', 'de' => 'Beispiele, die euch gefallen', 'en' => 'Examples that inspire you', 'art' => 'lang'],
-                'wirkung' => ['it' => 'Tre parole: come deve sentirsi chi apre il sito', 'de' => 'Drei Wörter: Wie soll die Seite wirken?', 'en' => 'Three words: how should the site feel?', 'art' => 'text'],
-                'abneigung' => ['it' => 'Che cosa non deve esserci in nessun caso? Colori, stili, cose che avete visto altrove', 'de' => 'Was soll auf keinen Fall vorkommen? Farben, Stile, Dinge, die ihr anderswo gesehen habt', 'en' => 'What should never appear? Colours, styles, things you have seen elsewhere', 'art' => 'lang'],
+                /* Benannte Richtungen statt Adjektivsuche. Jede davon ist
+                   eine Design-DNA, mit der sich arbeiten laesst; "modern"
+                   ist keine. */
+                'stil' => [
+                    'it' => 'Che direzione?', 'de' => 'Welche Richtung?', 'en' => 'Which direction?',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'ruhig'    => ['it' => 'Sobrio e chiaro — molto bianco, poco rumore', 'de' => 'Ruhig und klar — viel Weiß, wenig Lärm', 'en' => 'Calm and clear — lots of white, little noise'],
+                        'warm'     => ['it' => 'Caldo e accogliente', 'de' => 'Warm und einladend', 'en' => 'Warm and welcoming'],
+                        'edel'     => ['it' => 'Elegante e discreto', 'de' => 'Edel und zurückhaltend', 'en' => 'Elegant and restrained'],
+                        'kraeftig' => ['it' => 'Deciso e moderno — colori forti', 'de' => 'Kräftig und modern — starke Farben', 'en' => 'Bold and modern — strong colours'],
+                        'boden'    => ['it' => 'Artigianale e concreto', 'de' => 'Handwerklich und bodenständig', 'en' => 'Crafted and down to earth'],
+                        'verspielt'=> ['it' => 'Vivace, con un po’ di gioco', 'de' => 'Verspielt, mit etwas Spaß', 'en' => 'Playful, with some fun'],
+                        'weissnicht'=> ['it' => 'Non lo so — decidi tu', 'de' => 'Weiß ich nicht — entscheide du', 'en' => 'I don’t know — you decide'],
+                    ],
+                ],
+
+                'farben' => [
+                    'it' => 'Colori: cosa vi piace?', 'de' => 'Farben: Was gefällt euch?', 'en' => 'Colours: what do you like?',
+                    'art' => 'mehr', 'frei' => true,
+                    'optionen' => [
+                        'wielogo'  => ['it' => 'Come il nostro logo', 'de' => 'Wie unser Logo', 'en' => 'Like our logo'],
+                        'blau'     => ['it' => 'Blu', 'de' => 'Blau', 'en' => 'Blue'],
+                        'gruen'    => ['it' => 'Verde', 'de' => 'Grün', 'en' => 'Green'],
+                        'rot'      => ['it' => 'Rosso', 'de' => 'Rot', 'en' => 'Red'],
+                        'orange'   => ['it' => 'Arancione', 'de' => 'Orange', 'en' => 'Orange'],
+                        'gelb'     => ['it' => 'Giallo', 'de' => 'Gelb', 'en' => 'Yellow'],
+                        'erde'     => ['it' => 'Terra, sabbia, beige', 'de' => 'Erdtöne, Sand, Beige', 'en' => 'Earth, sand, beige'],
+                        'schwarz'  => ['it' => 'Nero e bianco', 'de' => 'Schwarz und Weiß', 'en' => 'Black and white'],
+                        'weissnicht'=> ['it' => 'Non lo so — decidi tu', 'de' => 'Weiß ich nicht — entscheide du', 'en' => 'I don’t know — you decide'],
+                    ],
+                ],
+
+                'wirkung' => [
+                    'it' => 'Come deve sentirsi chi apre il sito? Scegli fino a tre.',
+                    'de' => 'Wie soll sich anfühlen, wer die Seite öffnet? Bis zu drei.',
+                    'en' => 'How should it feel to open the site? Up to three.',
+                    'art' => 'mehr', 'frei' => true,
+                    'optionen' => [
+                        'vertrauen'  => ['it' => 'Affidabile', 'de' => 'Vertrauenswürdig', 'en' => 'Trustworthy'],
+                        'hochwertig' => ['it' => 'Di qualità', 'de' => 'Hochwertig', 'en' => 'High quality'],
+                        'freundlich' => ['it' => 'Accogliente', 'de' => 'Freundlich', 'en' => 'Friendly'],
+                        'modern'     => ['it' => 'Moderno', 'de' => 'Modern', 'en' => 'Modern'],
+                        'ruhig'      => ['it' => 'Tranquillo', 'de' => 'Ruhig', 'en' => 'Calm'],
+                        'lebendig'   => ['it' => 'Vivo', 'de' => 'Lebendig', 'en' => 'Lively'],
+                        'echt'       => ['it' => 'Autentico', 'de' => 'Echt', 'en' => 'Authentic'],
+                        'einfach'    => ['it' => 'Semplice da usare', 'de' => 'Einfach zu benutzen', 'en' => 'Easy to use'],
+                        'erfahren'   => ['it' => 'Esperto, con esperienza', 'de' => 'Erfahren', 'en' => 'Experienced'],
+                    ],
+                ],
+
+                /* Die meisten Kunden haben zu Schriften keine Meinung und
+                   schrieben trotzdem etwas hin. Jetzt ist die ehrliche
+                   Antwort die erste. */
+                'schriften' => [
+                    'it' => 'Caratteri', 'de' => 'Schriften', 'en' => 'Fonts',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'egal'    => ['it' => 'Nessuna preferenza — decidi tu', 'de' => 'Keine Wünsche — entscheide du', 'en' => 'No preference — you decide'],
+                        'wielogo' => ['it' => 'Come nel logo', 'de' => 'Wie im Logo', 'en' => 'Like the logo'],
+                        'haus'    => ['it' => 'Abbiamo un carattere aziendale — lo scrivo qui sotto', 'de' => 'Wir haben eine Hausschrift — schreibe ich unten', 'en' => 'We have a house font — I’ll write it below'],
+                    ],
+                ],
+
+                /* Vektor oder Bild entscheidet, ob das Logo neu gebaut werden
+                   muss. Vorher stand hier "ja". */
+                'logo' => [
+                    'it' => 'Logo', 'de' => 'Logo', 'en' => 'Logo',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'vektor'   => ['it' => 'Sì, come file vettoriale (ai, eps, svg, pdf)', 'de' => 'Ja, als Vektordatei (ai, eps, svg, pdf)', 'en' => 'Yes, as a vector file (ai, eps, svg, pdf)'],
+                        'bild'     => ['it' => 'Sì, ma solo come immagine (jpg, png)', 'de' => 'Ja, aber nur als Bild (jpg, png)', 'en' => 'Yes, but only as an image (jpg, png)'],
+                        'neu'      => ['it' => 'No, ci serve', 'de' => 'Nein, wir brauchen eins', 'en' => 'No, we need one'],
+                        'ueber'    => ['it' => 'C’è, ma andrebbe rifatto', 'de' => 'Es gibt eins, sollte aber überarbeitet werden', 'en' => 'There is one, but it should be reworked'],
+                        'weissnicht'=> ['it' => 'Non so quale file abbiamo', 'de' => 'Ich weiß nicht, welche Datei wir haben', 'en' => 'I don’t know which file we have'],
+                    ],
+                ],
+
+                'vorbilder' => ['it' => 'Siti che vi piacciono — anche di altri settori',
+                                'de' => 'Websites, die euch gefallen — auch aus anderen Branchen',
+                                'en' => 'Websites you like — from any industry',
+                                'art' => 'lang'],
+
+                /* Muss frei bleiben. Die wichtigste Frage der Gestaltung ist
+                   die nach dem Nein. */
+                'abneigung' => ['it' => 'Che cosa non deve esserci in nessun caso?',
+                                'de' => 'Was soll auf keinen Fall vorkommen?',
+                                'en' => 'What should never appear?',
+                                'art' => 'lang'],
             ],
         ],
-        'inhalte' => [
-            'it' => 'Materiale', 'de' => 'Material', 'en' => 'Material',
+
+        /* ---------- 5 ---------------------------------------------------- */
+        'material' => [
+            'it' => 'Materiale e testi', 'de' => 'Material und Texte', 'en' => 'Material and copy',
             'felder' => [
-                'texte'  => ['it' => 'Testi: già pronti o da scrivere?', 'de' => 'Texte: schon fertig oder zu schreiben?', 'en' => 'Copy: ready or to be written?', 'art' => 'lang'],
-                'bilder' => ['it' => 'Foto disponibili', 'de' => 'Vorhandene Bilder', 'en' => 'Available photos', 'art' => 'lang'],
-                'videos' => ['it' => 'Video disponibili', 'de' => 'Vorhandene Videos', 'en' => 'Available videos', 'art' => 'text'],
-                'social' => ['it' => 'Profili social', 'de' => 'Social-Media-Profile', 'en' => 'Social media profiles', 'art' => 'lang'],
-                'bildrechte' => ['it' => 'Le foto si possono pubblicare? Chi le ha fatte, e ci sono persone riconoscibili?', 'de' => 'Dürfen die Fotos veröffentlicht werden? Wer hat sie gemacht, und sind Personen darauf erkennbar?', 'en' => 'May the photos be published? Who took them, and are people recognisable?', 'art' => 'lang'],
-                'tonfall' => ['it' => 'Come devono suonare i testi? Formale o alla mano, sobrio o caloroso — un esempio aiuta.', 'de' => 'Wie sollen die Texte klingen? Förmlich oder locker, sachlich oder herzlich — ein Beispielsatz hilft.', 'en' => 'How should the copy sound? Formal or relaxed, matter-of-fact or warm — one example sentence helps.', 'art' => 'lang'],
+                /* Eine Liste statt dreier Textkaesten -- und je Zeile die
+                   einzige Auskunft, die zaehlt: habe ich es, kommt es noch,
+                   oder muss ich es machen. Genau danach plane ich. */
+                'material' => [
+                    'it' => 'Che cosa avete già?', 'de' => 'Was habt ihr schon?', 'en' => 'What do you already have?',
+                    'art' => 'stand',
+                    'zeilen' => [
+                        'logo'      => ['it' => 'Logo', 'de' => 'Logo', 'en' => 'Logo'],
+                        'betrieb'   => ['it' => 'Foto dei locali', 'de' => 'Fotos vom Betrieb', 'en' => 'Photos of the premises'],
+                        'produkt'   => ['it' => 'Foto di prodotti o lavori', 'de' => 'Fotos von Produkten oder Arbeiten', 'en' => 'Photos of products or work'],
+                        'team'      => ['it' => 'Foto del team', 'de' => 'Team- oder Personenfotos', 'en' => 'Team or people photos'],
+                        'video'     => ['it' => 'Video', 'de' => 'Video', 'en' => 'Video'],
+                        'texte'     => ['it' => 'Testi su di voi', 'de' => 'Texte über euch', 'en' => 'Copy about you'],
+                        'preise'    => ['it' => 'Menù o listino prezzi', 'de' => 'Speisekarte oder Preisliste', 'en' => 'Menu or price list'],
+                        'zeiten'    => ['it' => 'Orari di apertura', 'de' => 'Öffnungszeiten', 'en' => 'Opening hours'],
+                        'stimmen'   => ['it' => 'Recensioni di clienti', 'de' => 'Kundenstimmen', 'en' => 'Customer reviews'],
+                    ],
+                ],
+
+                'texte' => [
+                    'it' => 'I testi del sito', 'de' => 'Die Texte der Website', 'en' => 'The copy for the site',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'selbst' => ['it' => 'Li scriviamo noi', 'de' => 'Schreiben wir selbst', 'en' => 'We write them'],
+                        'teils'  => ['it' => 'In parte noi, in parte tu', 'de' => 'Teils wir, teils du', 'en' => 'Partly us, partly you'],
+                        'du'     => ['it' => 'Scrivili tu', 'de' => 'Bitte schreibst du sie', 'en' => 'Please write them'],
+                    ],
+                ],
+
+                /* Bleibt drin, weil es eine echte Haftungsfrage ist. */
+                'bildrechte' => [
+                    'it' => 'Le foto si possono pubblicare?', 'de' => 'Dürfen die Fotos veröffentlicht werden?', 'en' => 'May the photos be published?',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'ja'      => ['it' => 'Sì, sono nostre', 'de' => 'Ja, es sind unsere', 'en' => 'Yes, they are ours'],
+                        'fotograf'=> ['it' => 'Le ha fatte un fotografo — dobbiamo chiedere', 'de' => 'Ein Fotograf hat sie gemacht — wir müssen fragen', 'en' => 'A photographer took them — we need to ask'],
+                        'personen'=> ['it' => 'Sì, ma ci sono persone riconoscibili', 'de' => 'Ja, aber es sind Personen erkennbar', 'en' => 'Yes, but people are recognisable'],
+                        'unsicher'=> ['it' => 'Non ne siamo sicuri', 'de' => 'Sind wir uns nicht sicher', 'en' => 'We are not sure'],
+                        'keine'   => ['it' => 'Non abbiamo foto', 'de' => 'Wir haben keine Fotos', 'en' => 'We have no photos'],
+                    ],
+                ],
+
+                'anrede' => [
+                    'it' => 'Come vi rivolgete ai clienti?', 'de' => 'Wie sprecht ihr eure Kunden an?', 'en' => 'How do you address customers?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'sie'  => ['it' => 'Con il Lei — formale', 'de' => 'Mit Sie — förmlich', 'en' => 'Formally'],
+                        'du'   => ['it' => 'Con il tu — alla mano', 'de' => 'Mit Du — locker', 'en' => 'Informally'],
+                        'egal' => ['it' => 'Come è normale nel settore', 'de' => 'Wie in der Branche üblich', 'en' => 'However is usual in the trade'],
+                    ],
+                ],
+                'klang' => [
+                    'it' => 'Come devono suonare i testi?', 'de' => 'Wie sollen die Texte klingen?', 'en' => 'How should the copy sound?',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'sachlich' => ['it' => 'Sobri e precisi', 'de' => 'Sachlich und genau', 'en' => 'Matter-of-fact and precise'],
+                        'herzlich' => ['it' => 'Caldi e vicini', 'de' => 'Herzlich und nah', 'en' => 'Warm and close'],
+                        'sicher'   => ['it' => 'Sicuri di sé', 'de' => 'Selbstbewusst', 'en' => 'Confident'],
+                        'humor'    => ['it' => 'Con un po’ di ironia', 'de' => 'Mit etwas Humor', 'en' => 'With some humour'],
+                        'kurz'     => ['it' => 'Il più brevi possibile', 'de' => 'So kurz wie möglich', 'en' => 'As short as possible'],
+                    ],
+                ],
+
+                'social' => ['it' => 'Profili social — Instagram, Facebook, altro',
+                             'de' => 'Social-Media-Profile — Instagram, Facebook, weitere',
+                             'en' => 'Social profiles — Instagram, Facebook, others',
+                             'art' => 'text'],
+            ],
+        ],
+
+        /* ---------- 6 ---------------------------------------------------- */
+        'formales' => [
+            'it' => 'Contatti, indirizzo e scadenza', 'de' => 'Kontakt, Adresse und Termin', 'en' => 'Contact, address and timing',
+            'felder' => [
+                'telefon' => ['it' => 'Telefono per il sito (e WhatsApp, se diverso)',
+                              'de' => 'Telefon für die Website (und WhatsApp, falls anders)',
+                              'en' => 'Phone for the site (and WhatsApp, if different)',
+                              'art' => 'text'],
+                'email_web' => ['it' => 'E-mail per il sito', 'de' => 'E-Mail für die Website', 'en' => 'Email for the site', 'art' => 'text'],
+
+                /* Oeffnungszeiten landen auf der Seite und in Google. Als
+                   Textkasten kamen sie in fuenf verschiedenen Formen. */
+                'zeiten' => [
+                    'it' => 'Orari', 'de' => 'Öffnungszeiten', 'en' => 'Opening hours',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'durch'   => ['it' => 'Orario continuato — scrivo gli orari qui sotto', 'de' => 'Durchgehend — Zeiten schreibe ich unten', 'en' => 'Straight through — I’ll write the hours below'],
+                        'pause'   => ['it' => 'Con pausa pranzo — scrivo gli orari qui sotto', 'de' => 'Mit Mittagspause — Zeiten schreibe ich unten', 'en' => 'With a midday break — hours below'],
+                        'termin'  => ['it' => 'Solo su appuntamento', 'de' => 'Nur nach Vereinbarung', 'en' => 'By appointment only'],
+                        'wechsel' => ['it' => 'Cambiano con la stagione', 'de' => 'Wechseln mit der Saison', 'en' => 'They change with the season'],
+                        'keine'   => ['it' => 'Non servono sul sito', 'de' => 'Brauchen wir auf der Seite nicht', 'en' => 'Not needed on the site'],
+                    ],
+                ],
+
+                'domain' => [
+                    'it' => 'L’indirizzo del sito (dominio)', 'de' => 'Die Adresse der Website (Domain)', 'en' => 'The website address (domain)',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'uns'      => ['it' => 'Ce l’abbiamo, è intestato a noi', 'de' => 'Haben wir, läuft auf uns', 'en' => 'We have one, registered to us'],
+                        'fremd'    => ['it' => 'Ce l’abbiamo, ma è di un’agenzia o di un conoscente', 'de' => 'Haben wir, liegt aber bei einer Agentur oder einem Bekannten', 'en' => 'We have one, but an agency or acquaintance holds it'],
+                        'neu'      => ['it' => 'Non ce l’abbiamo — scrivo qui sotto quale vorremmo', 'de' => 'Haben wir nicht — Wunschadresse schreibe ich unten', 'en' => 'We have none — I’ll write the one we’d like below'],
+                        'weissnicht'=> ['it' => 'Non lo so', 'de' => 'Weiß ich nicht', 'en' => 'I don’t know'],
+                    ],
+                ],
+
+                'karte' => [
+                    'it' => 'Scheda Google dell’attività', 'de' => 'Google-Unternehmenseintrag', 'en' => 'Google Business listing',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'ja'       => ['it' => 'C’è — metto il link qui sotto', 'de' => 'Gibt es — Link schreibe ich unten', 'en' => 'There is one — link below'],
+                        'nein'     => ['it' => 'Non c’è ancora', 'de' => 'Gibt es noch nicht', 'en' => 'Not yet'],
+                        'nichtnoetig'=> ['it' => 'Non ci serve una mappa sul sito', 'de' => 'Wir brauchen keine Karte auf der Seite', 'en' => 'We don’t need a map on the site'],
+                        'weissnicht'=> ['it' => 'Non lo so', 'de' => 'Weiß ich nicht', 'en' => 'I don’t know'],
+                    ],
+                ],
+
+                /* Aendert die ganze Planung und stand bisher nirgends. */
+                'termin' => [
+                    'it' => 'C’è una data entro cui il sito deve essere online?',
+                    'de' => 'Gibt es ein Datum, zu dem die Seite stehen muss?',
+                    'en' => 'Is there a date by which the site has to be live?',
+                    'art' => 'eins', 'frei' => true,
+                    'optionen' => [
+                        'keins'  => ['it' => 'Nessuna data fissa', 'de' => 'Kein festes Datum', 'en' => 'No fixed date'],
+                        'saison' => ['it' => 'Prima della stagione — data qui sotto', 'de' => 'Vor der Saison — Datum unten', 'en' => 'Before the season — date below'],
+                        'anlass' => ['it' => 'Per un’apertura, una fiera, un evento — data qui sotto', 'de' => 'Zu einer Eröffnung, Messe, Veranstaltung — Datum unten', 'en' => 'For an opening, a fair, an event — date below'],
+                        'baldest'=> ['it' => 'Il prima possibile', 'de' => 'So bald wie möglich', 'en' => 'As soon as possible'],
+                    ],
+                ],
+
+                /* Die Betreuungsfrage, ohne dass ich sie stellen muss. */
+                'pflege' => [
+                    'it' => 'Chi aggiorna il sito dopo?', 'de' => 'Wer pflegt die Seite später?', 'en' => 'Who keeps the site up to date later?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'ich'    => ['it' => 'Lo faccio io stesso', 'de' => 'Ich selbst', 'en' => 'I do it myself'],
+                        'intern' => ['it' => 'Qualcuno da noi', 'de' => 'Jemand bei uns im Betrieb', 'en' => 'Someone in the business'],
+                        'du'     => ['it' => 'Preferirei affidarlo a te', 'de' => 'Am liebsten du', 'en' => 'I’d rather you did'],
+                        'offen'  => ['it' => 'Ancora da decidere', 'de' => 'Noch offen', 'en' => 'Still open'],
+                    ],
+                ],
+
+                'impressum' => ['it' => 'Dati per le note legali: ragione sociale esatta, indirizzo, P. IVA o codice fiscale',
+                                'de' => 'Angaben fürs Impressum: genaue Firmierung, Anschrift, Steuernummer oder USt-IdNr.',
+                                'en' => 'Details for the legal notice: exact company name, registered address, company and VAT number',
+                                'art' => 'lang'],
+
                 'sonstiges' => ['it' => 'Altro che dovrei sapere', 'de' => 'Sonst noch etwas, das ich wissen sollte', 'en' => 'Anything else I should know', 'art' => 'lang'],
             ],
         ],
@@ -103,9 +496,12 @@ final class Texte
 
     public const SEITE = [
         'titel'      => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
-        'lead'       => ['it' => 'Quattro passi brevi, circa dieci minuti. Più cose mi racconti, meno domande dovrò farti dopo.',
-                         'de' => 'Vier kurze Schritte, etwa zehn Minuten. Je mehr du mir erzählst, desto weniger muss ich später nachfragen.',
-                         'en' => 'Four short steps, about ten minutes. The more you tell me, the fewer questions I’ll need later.'],
+        'lead'       => ['it' => 'Sei passi brevi, circa dieci minuti. Quasi tutto è da spuntare — scrivi solo dove serve davvero.',
+                         'de' => 'Sechs kurze Schritte, etwa zehn Minuten. Das meiste ist Anklicken — schreiben musst du nur, wo es wirklich zählt.',
+                         'en' => 'Six short steps, about ten minutes. Most of it is tapping — you only write where it really counts.'],
+        'freiZeile'  => ['it' => 'Vuoi aggiungere qualcosa? (facoltativo)',
+                         'de' => 'Etwas dazu sagen? (freiwillig)',
+                         'en' => 'Anything to add? (optional)'],
         'schonGesagt'=> ['it' => 'Alcune risposte sono già compilate: le hai date quando hai calcolato il prezzo. Correggile pure se nel frattempo è cambiato qualcosa.',
                          'de' => 'Ein paar Antworten stehen schon drin — die hast du gegeben, als du den Preis ausgerechnet hast. Ändere sie ruhig, wenn sich etwas geändert hat.',
                          'en' => 'A few answers are already filled in — you gave them when you worked out the price. Change them if anything has moved on.'],
