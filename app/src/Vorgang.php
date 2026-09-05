@@ -77,6 +77,7 @@ final class Vorgang
                     p.progress AS projekt_fortschritt, p.deadline AS projekt_deadline,
                     p.updated_at AS projekt_bewegt,
                     p.briefing_am, p.chat_url, p.preview_url, p.abnahme,
+                    p.vorschau_frei_am, p.abnahme_frei_am,
                     a.id AS anfrage_id, a.token AS anfrage_token, a.nachricht AS anfrage_text,
                     a.created_at AS anfrage_am
                FROM orders o
@@ -160,6 +161,7 @@ final class Vorgang
                         p.progress AS projekt_fortschritt, p.deadline AS projekt_deadline,
                         p.updated_at AS projekt_bewegt,
                         p.briefing_am, p.chat_url, p.preview_url, p.abnahme,
+                    p.vorschau_frei_am, p.abnahme_frei_am,
                         a.id AS anfrage_id, a.token AS anfrage_token, a.nachricht AS anfrage_text,
                         a.created_at AS anfrage_am
                    FROM orders o
@@ -237,6 +239,12 @@ final class Vorgang
                 'briefing_am' => $z['briefing_am'] ?? null,
                 'chat_url'    => $z['chat_url'] ?? null,
                 'vorschau'    => $z['preview_url'] ?? null,
+                /* Die zwei Schalter. Eintragen, ansehen lassen, abnehmen
+                   lassen -- drei Zustaende, und die Fuehrung muss sie
+                   auseinanderhalten koennen, sonst sagt sie "Nachfassen",
+                   waehrend der Kunde noch gar nichts sehen kann. */
+                'vorschau_frei' => $z['vorschau_frei_am'] ?? null,
+                'abnahme_frei'  => $z['abnahme_frei_am'] ?? null,
                 'abnahme'     => $z['abnahme'] ?? null,
             ] : null,
             'anfrage_id'  => $z['anfrage_id'] !== null ? (int) $z['anfrage_id'] : null,
@@ -582,8 +590,38 @@ final class Vorgang
         }
 
         if ($pstatus === 'vorschau') {
+            /* DREI ZUSTAENDE, NICHT EINER
+               ----------------------------------------------------------
+               Hier stand ein Satz: "Der Kunde hat die Vorschau und soll sie
+               freigeben." Er stimmte in genau einem von drei Faellen. Stand
+               keine Adresse da, hatte der Kunde gar nichts; war sie nicht
+               freigeschaltet, sah er sie nicht; und war die Abnahme noch zu,
+               konnte er auch nichts freigeben. In allen dreien wartete die
+               Fuehrung auf ihn -- und er wartete auf uns. */
+            $prj  = (array) ($v['projekt'] ?? []);
+            $ziel = $v['projekt_id'] !== null ? 'projekte/' . (int) $v['projekt_id'] : 'projekte';
+
+            if (trim((string) ($prj['vorschau'] ?? '')) === '') {
+                return self::setzen($v, 'vorschau', self::DU, 'Vorschau eintragen',
+                    'Der Stand sagt „Vorschau“, aber es steht keine Adresse da. Der Kunde '
+                    . 'sieht nichts zum Anklicken.',
+                    null, null, [], $ziel . '?tun=vorschau');
+            }
+            if (($prj['vorschau_frei'] ?? null) === null) {
+                return self::setzen($v, 'vorschau', self::DU, 'Vorschau freischalten',
+                    'Die Adresse steht, aber nur für dich. Freischalten — dann kann er den '
+                    . 'Entwurf ansehen und dir sagen, was ihm auffällt.',
+                    null, null, [], $ziel . '?tun=vorschau');
+            }
+            if (($prj['abnahme_frei'] ?? null) === null) {
+                return self::setzen($v, 'vorschau', self::DU, 'Abnahme freischalten, wenn fertig',
+                    'Er kann den Entwurf ansehen und Änderungen wünschen — abnehmen kann er ihn '
+                    . 'nicht. Wenn die Seite wirklich fertig ist: Abnahme freischalten. Erst dann '
+                    . 'bekommt er die Nachricht und den Knopf „Passt so“.',
+                    null, null, [], $ziel . '?tun=vorschau');
+            }
             return self::setzen($v, 'vorschau', self::KUNDE, 'Nachfassen',
-                'Der Kunde hat die Vorschau und soll sie freigeben.');
+                'Die Seite ist fertig und die Abnahme ist offen. Der Kunde ist am Zug.');
         }
 
         if ($pstatus === 'kundenfeedback' || $pstatus === 'aenderungen') {
@@ -621,7 +659,8 @@ final class Vorgang
         $ziel = $pid !== null ? 'projekte/' . $pid : 'projekte';
 
         $fertig = static fn(): array => self::setzen($v, 'arbeit', self::DU, 'Vorschau ist fertig',
-            'Du bist am Bauen. Wenn die Vorschau steht, bekommt der Kunde sie.',
+            'Du bist am Bauen. Wenn die Vorschau steht, schaltest du sie zum Ansehen frei — '
+            . 'abnehmen kann der Kunde erst, wenn du auch die Abnahme freischaltest.',
             'projekt_status', $pid, ['status' => 'vorschau']);
 
         if ($pid === null) { return $fertig(); }
@@ -650,8 +689,9 @@ final class Vorgang
         if (!$vorschau) {
             return self::setzen($v, 'arbeit', self::DU, 'Vorschau eintragen',
                 'Sobald etwas zum Ansehen dasteht: Adresse eintragen. Erst dann sieht die '
-                . 'Werkstatt die Seite und die Abnahme kann prüfen.',
-                null, null, [], $ziel . '?tun=projekt_felder');
+                . 'Werkstatt die Seite und die Abnahme kann prüfen. Der Kunde sieht sie damit '
+                . 'noch nicht — das ist ein zweiter Knopf.',
+                null, null, [], $ziel . '?tun=vorschau');
         }
 
         /* Es gibt etwas zu pruefen — also pruefen, bevor der Kunde es sieht. */
@@ -993,16 +1033,21 @@ final class Vorgang
 
         // Vorschau: Adresse und Freigabe getrennt. Die Adresse darf lange
         // dastehen, bevor der Kunde sie sieht.
-        $v['vorschau'] = ['url' => '', 'frei_am' => null, 'spalte' => true];
+        $v['vorschau'] = ['url' => '', 'frei_am' => null, 'abnahme_am' => null,
+                          'spalte' => true, 'abnahme_spalte' => false];
         if ($pid !== null) {
             $p = (array) self::eine('SELECT * FROM projects WHERE id = ?', [$pid]);
             $v['vorschau'] = [
-                'url'     => trim((string) ($p['preview_url'] ?? '')),
-                'frei_am' => $p['vorschau_frei_am'] ?? null,
+                'url'        => trim((string) ($p['preview_url'] ?? '')),
+                'frei_am'    => $p['vorschau_frei_am'] ?? null,
+                // Der zweite Schalter: ansehen darf er nach dem ersten,
+                // abnehmen erst nach diesem.
+                'abnahme_am' => $p['abnahme_frei_am'] ?? null,
                 // Solange die Spalte fehlt (zwischen Deploy und Cronlauf),
                 // zeigt die Verwaltung den Schalter nicht an, statt einen
                 // Knopf anzubieten, der auf einen Fehler laeuft.
-                'spalte'  => array_key_exists('vorschau_frei_am', $p),
+                'spalte'         => array_key_exists('vorschau_frei_am', $p),
+                'abnahme_spalte' => array_key_exists('abnahme_frei_am', $p),
             ];
         }
         $v['aufgaben'] = $pid !== null ? self::zeilen(

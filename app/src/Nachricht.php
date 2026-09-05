@@ -263,6 +263,38 @@ final class Nachricht
         return self::raus('vorschau', $p, $betreff, $text);
     }
 
+    /**
+     * Die Seite ist fertig — jetzt darf er abnehmen.
+     *
+     * WARUM DAS EINE ZWEITE MAIL IST
+     *
+     * "Deine Vorschau steht" und "die Seite ist fertig" sind zwei
+     * verschiedene Saetze zu zwei verschiedenen Zeitpunkten. Frueher war es
+     * einer: Sobald die Vorschau freigeschaltet war, stand beim Kunden auch
+     * der Knopf "Passt so — veroeffentlichen". Wer die Mail las und den Knopf
+     * druckte, hatte eine Seite abgenommen, an der noch gebaut wurde -- und
+     * mit der Abnahme wird die Restzahlung faellig.
+     *
+     * Diese Mail geht erst, wenn Uwe die Abnahme ausdruecklich freischaltet.
+     * Sie nennt auch die Kostenregel, damit er sie liest, bevor er wuenscht,
+     * und nicht erst, wenn ein Angebot kommt.
+     */
+    public static function abnahmeBereit(int $projektId): bool
+    {
+        $p = self::projektMitKunde($projektId);
+        if (!$p) { return false; }
+        if (trim((string) ($p['preview_url'] ?? '')) === '') { return false; }
+        if (array_key_exists('abnahme_frei_am', $p) && $p['abnahme_frei_am'] === null) { return false; }
+        if (Mail::schonGeschickt('abnahme', 'project_id', $projektId)) { return false; }
+
+        [$betreff, $text] = Texte::mail('abnahme', self::sprache($p), [
+            'name'  => (string) $p['kunde'],
+            'paket' => (string) ($p['paket'] ?? ''),
+            'link'  => self::link($projektId) ?? (string) $p['preview_url'],
+        ]);
+        return self::raus('abnahme', $p, $betreff, $text);
+    }
+
     /** Die Seite ist online — und wenn noch Geld offen ist, steht es dabei. */
     private static function onlineUndRest(int $projektId): void
     {

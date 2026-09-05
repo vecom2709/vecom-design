@@ -584,9 +584,47 @@ if ($post) {
 
             case 'vorschau_sperren':
                 $pid = (int) ($_POST['id'] ?? 0);
-                Db::update('projects', $pid, ['vorschau_frei_am' => null]);
+                /* Die Abnahme geht mit zu. Wer nicht hinsehen darf, darf erst
+                   recht nicht abnehmen -- und ein offener Abnahmeknopf ueber
+                   einem gesperrten Entwurf waere genau der Fall, den 036
+                   abstellen sollte. */
+                Db::update('projects', $pid, ['vorschau_frei_am' => null, 'abnahme_frei_am' => null]);
                 Events::protokoll('vorschau_gesperrt', 'Vorschau wieder gesperrt', null, null, $pid);
-                $_SESSION['gut'] = 'Vorschau ist wieder gesperrt. Der Kunde sieht sie nicht mehr.';
+                $_SESSION['gut'] = 'Vorschau ist wieder gesperrt. Der Kunde sieht sie nicht mehr '
+                                 . 'und kann auch nicht abnehmen.';
+                zurueck('vorgaenge');
+
+            /* ANSEHEN UND ABNEHMEN SIND ZWEIERLEI
+               ------------------------------------------------------------
+               Der zweite Schalter. Solange er zu ist, darf der Kunde den
+               Entwurf ansehen, schreiben und Aenderungen wuenschen -- aber
+               nicht abnehmen. An der Abnahme haengen Restzahlung und
+               Veroeffentlichung; sie darf nicht nebenbei passieren, und
+               schon gar nicht, bevor er die Seite ueberhaupt gesehen hat. */
+            case 'abnahme_frei':
+                require_once __DIR__ . '/src/Nachricht.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $vp = (array) sicher(static fn() => Db::one(
+                    'SELECT preview_url, vorschau_frei_am FROM projects WHERE id = ?', [$pid]), []);
+                if (trim((string) ($vp['preview_url'] ?? '')) === ''
+                    || ($vp['vorschau_frei_am'] ?? null) === null) {
+                    throw new RuntimeException('Erst muss er die Seite ansehen koennen. '
+                        . 'Schalte die Vorschau frei, dann die Abnahme — sonst nimmt er etwas ab, '
+                        . 'das er nie gesehen hat.');
+                }
+                Db::update('projects', $pid, ['abnahme_frei_am' => date('Y-m-d H:i:s')]);
+                Events::protokoll('abnahme_frei', 'Abnahme für den Kunden freigeschaltet', null, null, $pid);
+                $rausAb = (bool) sicher(static fn() => Nachricht::abnahmeBereit($pid), false);
+                $_SESSION['gut'] = 'Die Abnahme ist freigeschaltet. ' . ($rausAb
+                    ? 'Der Kunde hat die Nachricht bekommen, dass die Seite fertig ist.'
+                    : 'Die E-Mail ging nicht raus — auf seiner Seite steht es trotzdem.');
+                zurueck('vorgaenge');
+
+            case 'abnahme_sperren':
+                $pid = (int) ($_POST['id'] ?? 0);
+                Db::update('projects', $pid, ['abnahme_frei_am' => null]);
+                Events::protokoll('abnahme_gesperrt', 'Abnahme wieder gesperrt', null, null, $pid);
+                $_SESSION['gut'] = 'Die Abnahme ist wieder zu. Ansehen kann er die Seite weiterhin.';
                 zurueck('vorgaenge');
 
             case 'stimme_frei':
@@ -800,10 +838,14 @@ if ($post) {
 
             case 'projekt_felder':
                 $pid = (int) $_POST['id'];
+                /* Der Vorschau-Link steht NICHT mehr hier drin.
+                   Er hat einen eigenen Schalter daneben (vorschau_speichern),
+                   weil Eintragen und Freischalten zweierlei sind. Stuende er
+                   weiter in diesem Formular, wuerde jedes Speichern der
+                   Eckdaten ihn loeschen, sobald das Feld fehlt. */
                 $daten = [
                     'deadline' => ($_POST['deadline'] ?? '') !== '' ? (string) $_POST['deadline'] : null,
                     'priority' => (string) ($_POST['priority'] ?? 'normal'),
-                    'preview_url' => trim((string) ($_POST['preview_url'] ?? '')) ?: null,
                 ];
                 Db::update('projects', $pid, $daten);
                 Events::pruefspur('aendern', 'project', $pid, [], $daten);

@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="it" data-richtung="a-lang">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A — Ein Tag über die ganze Seite</title>
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="_rahmen.css">
+<style>
+  /* ==================================================================
+     DER BOGEN, NICHT DER EFFEKT
+
+     Vierzehn gleich laute Baender waren das eigentliche Problem der
+     Seite. Ein Tag loest das ohne einen einzigen zusaetzlichen Effekt:
+     Die Zeit laeuft weiter, ob man will oder nicht, und sie hat von
+     Natur aus einen Hoehepunkt. Mittag ist laut, Abend ist leise —
+     das muss man nicht gestalten, das ist so.
+
+     Deshalb steht die Uhrzeit auch nirgends als Zahl. Der Besucher
+     soll es nicht LESEN, er soll es merken.
+     ================================================================== */
+  :root{ --wand:#eee7dc; --tinte:#221d16; --leise:#6b5f4f; --kobalt:#0a3fd8; }
+  body{background:var(--wand);color:var(--tinte);transition:background .3s linear}
+  .buehne{min-height:auto}
+  canvas.szene{position:fixed;inset:0;z-index:0}
+  .kopf{position:fixed;top:0;left:0;right:0;z-index:9;mix-blend-mode:multiply}
+  .marke b{color:var(--tinte)} .marke span,.nav a{color:var(--leise)}
+
+  main{position:relative;z-index:4}
+  .kap{min-height:100svh;display:flex;align-items:center;
+       padding:0 clamp(20px,4vw,54px)}
+  .kap .spalte{max-width:min(560px,48vw)}
+  .kap--rechts{justify-content:flex-end}
+  .kap--rechts .spalte{text-align:right}
+  .kap--rechts .eyebrow{justify-content:flex-end;flex-direction:row-reverse}
+  .kap--rechts .eyebrow::before{margin-left:0}
+  .kap--rechts .tun{justify-content:flex-end}
+  .eyebrow{color:var(--leise)}
+  h1,h2{font-family:'Archivo',sans-serif;font-weight:700;font-stretch:108%;
+        letter-spacing:-.035em;line-height:1;margin:0 0 24px;text-wrap:balance}
+  h1{font-size:clamp(2.9rem,6vw,5rem)}
+  h2{font-size:clamp(2.2rem,4.4vw,3.6rem)}
+  .lead{color:var(--leise);opacity:1;font-size:clamp(1rem,1.2vw,1.15rem)}
+  .knopf--haupt{background:var(--tinte);color:#fff}
+  .knopf--still{border-color:rgba(34,29,22,.24);color:var(--tinte)}
+
+  /* Der Mittag ist der Hoehepunkt — und der einzige Ort, an dem die
+     Marke sich vor den Augen zusammensetzt. Genau dort steht auch das
+     Argument dafuer: gebaut, nicht montiert. */
+  .kap--mittag h2{font-size:clamp(2.6rem,5.4vw,4.4rem)}
+
+  .fahne{position:fixed;left:clamp(20px,4vw,54px);bottom:20px;z-index:9;
+         color:var(--leise);mix-blend-mode:multiply}
+  .stand{position:fixed;right:clamp(20px,4vw,54px);bottom:20px;z-index:9;
+    font-family:'Archivo',sans-serif;font-size:10px;font-weight:700;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--leise);mix-blend-mode:multiply}
+  @media (max-width:900px){ .kap .spalte{max-width:none} .kap--rechts .spalte{text-align:left} }
+</style>
+</head>
+<body>
+<canvas class="szene" id="szene"></canvas>
+
+<header class="kopf">
+  <div class="marke"><b>VECOM</b><span>Design</span></div>
+  <nav class="nav"><a href="#">Lavori</a><a href="#">Servizi</a><a href="#">Prezzi</a><a href="#">Metodo</a><a href="#">Contatti</a></nav>
+</header>
+
+<main>
+  <section class="kap" data-kap="arrivo">
+    <div class="spalte">
+      <p class="eyebrow">Webdesign dalla Sicilia</p>
+      <h1>Il tuo sito deve portarti clienti.</h1>
+      <p class="lead">Costruisco siti per aziende, professionisti e attività locali — ognuno da zero,
+        nessuno da un modello. Online in due settimane, a un prezzo fisso che approvi tu prima.</p>
+      <div class="tun" style="margin-top:30px">
+        <a class="knopf knopf--haupt" href="#">Parliamo del tuo progetto</a>
+        <a class="knopf knopf--still" href="#">Guarda i lavori</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="kap kap--rechts" data-kap="lavori">
+    <div class="spalte">
+      <p class="eyebrow">Lavori realizzati</p>
+      <h2>Ogni sito è di qualcuno.</h2>
+      <p class="lead">Un’officina a Caltanissetta, un salone in città, un’associazione,
+        un progetto editoriale. Nessuno somiglia all’altro, perché nessuno parte dallo stesso file.</p>
+    </div>
+  </section>
+
+  <section class="kap kap--mittag" data-kap="metodo">
+    <div class="spalte">
+      <p class="eyebrow">Come lavoriamo</p>
+      <h2>Costruito, non montato.</h2>
+      <p class="lead">Il tuo sito si compone davanti a te, pezzo per pezzo — dalle stesse parti
+        di cui è fatta questa pagina. Niente modelli, niente blocchi comprati altrove.</p>
+    </div>
+  </section>
+
+  <section class="kap kap--rechts" data-kap="contatti">
+    <div class="spalte">
+      <p class="eyebrow">Come si comincia</p>
+      <h2>Raccontami che cosa ti serve.</h2>
+      <p class="lead">Dieci minuti di domande, poi ti dico che cosa costa. Il prezzo lo approvi
+        tu prima che io cominci.</p>
+      <div class="tun" style="margin-top:30px">
+        <a class="knopf knopf--haupt" href="#">Parliamo del tuo progetto</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="fahne">Richtung A · Ein Tag über die ganze Seite</div>
+<div class="stand" id="stand">Mattino</div>
+
+<script type="importmap">
+{"imports":{"three":"../assets/vendor/three/three.module.min.js","three/addons/":"../assets/vendor/three/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { LOGO_CONTOURS } from '../assets/js/world/logo-shape.js';
+
+const canvas = document.getElementById('szene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.06;
+
+const szene = new THREE.Scene();
+const kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+
+const wand = new THREE.Mesh(new THREE.PlaneGeometry(60, 34),
+  new THREE.MeshStandardMaterial({ color:0xe9e2d6, roughness:0.96, metalness:0 }));
+wand.position.set(0, 0, -2.6); wand.receiveShadow = true; szene.add(wand);
+
+/* EIN BODEN, WEIL MITTAG SONST NICHTS BEWEIST
+   Morgens und abends faellt der Schatten lang an die Wand -- das reicht.
+   Mittags steht die Sonne senkrecht, der Schatten wird kurz und liegt
+   UNTER dem Koerper. Ohne Boden verschwindet er genau dann, wenn er am
+   meisten sagen soll: dass das Licht hart ist. */
+const boden = new THREE.Mesh(new THREE.PlaneGeometry(60, 40),
+  new THREE.MeshStandardMaterial({ color:0xe6ded1, roughness:0.98, metalness:0 }));
+boden.rotation.x = -Math.PI/2;
+boden.position.set(0, -2.75, 6);
+boden.receiveShadow = true; szene.add(boden);
+
+const shapes = LOGO_CONTOURS.map((pts) => {
+  const s = new THREE.Shape();
+  pts.forEach(([x,y], i) => (i ? s.lineTo(x,y) : s.moveTo(x,y)));
+  s.closePath(); return s;
+});
+
+/* EIN KOERPER, DER SICH TEILEN KANN
+   Der ganze Weg ueber ist die Marke ein Stueck. Nur am Mittag faellt sie
+   in ihre Scheiben auseinander und setzt sich wieder zusammen -- dort,
+   wo "gebaut, nicht montiert" der Satz daneben ist. Deshalb ist sie von
+   Anfang an aus Scheiben gebaut: Ein zweites Objekt waere ein zweiter
+   Ort, an dem dieselbe Wahrheit gepflegt werden muesste. */
+const SCHEIBEN = 14, TIEFE = 0.34;
+const marke = new THREE.Group();
+marke.scale.setScalar(1.72);
+szene.add(marke);
+const stoff = new THREE.MeshStandardMaterial({ color:0x0a3fd8, roughness:0.42, metalness:0.05 });
+const teile = [];
+for (let i = 0; i < SCHEIBEN; i++) {
+  const g = new THREE.ExtrudeGeometry(shapes, { depth: TIEFE/SCHEIBEN, bevelEnabled:false, curveSegments:7 });
+  g.center();
+  const m = new THREE.Mesh(g, stoff);
+  m.position.z = (i - (SCHEIBEN-1)/2) * (TIEFE/SCHEIBEN);
+  m.castShadow = true; m.receiveShadow = true;
+  marke.add(m);
+  teile.push({ m, zZiel: m.position.z, verzug: i * 0.055 });
+}
+
+const sonne = new THREE.DirectionalLight(0xffffff, 3.2);
+sonne.castShadow = true;
+sonne.shadow.mapSize.set(2048, 2048);
+Object.assign(sonne.shadow.camera, { left:-11, right:11, top:11, bottom:-11, far:46 });
+sonne.shadow.bias = -0.0012;
+szene.add(sonne);
+const himmel = new THREE.HemisphereLight(0xdfe8ff, 0xd8c9ae, 0.9);
+szene.add(himmel);
+
+const MORGEN = new THREE.Color('#ffb066'), MITTAG = new THREE.Color('#fff6e8'), ABEND = new THREE.Color('#ff9a4d');
+const tmp = new THREE.Color();
+
+/* Die vier Kapitel: Uhrzeit, Stand der Marke, Kamera. Eine Zeile je
+   Kapitel — wer ein Kapitel verschiebt, nimmt die Zeile mit. */
+const KAP = [
+  { id:'arrivo',   t:0.14, pos:[ 3.3,  0.15, 0.4], rot:-0.34, cam:[ 1.1, 0.35, 13.6], look:[ 1.5, 0,0], wort:'Mattino' },
+  { id:'lavori',   t:0.36, pos:[-3.0, -0.1,  0.2], rot: 0.30, cam:[-1.2, 0.25, 12.8], look:[-1.4, 0,0], wort:'Mezza mattina' },
+  { id:'metodo',   t:0.52, pos:[ 3.2,  0.95, 1.4], rot:-0.16, cam:[ 1.4, 0.95, 13.9], look:[ 1.8, 0.25,0], wort:'Mezzogiorno' },
+  /* Der Text steht abends rechts, also steht die Marke links -- sonst
+     laeuft der lange Abendschatten der Ueberschrift ins Wort. Wer eine
+     Textspalte verschiebt, muss diese Zeile mitnehmen. */
+  { id:'contatti', t:0.88, pos:[-3.4, -0.15, 0.2], rot: 0.40, cam:[-1.4, 0.30, 14.2], look:[-1.6, 0,0], wort:'Sera' },
+];
+
+function tag(t) {
+  const bogen = Math.sin(Math.PI * t);
+  const az = Math.PI * (1 - t);
+  /* Die Tiefe wandert mit: Morgens und abends steht die Sonne weit vorn,
+     der Schatten faellt lang an die Wand. Mittags steht sie fast senkrecht
+     darueber, und der Schatten wird kurz und hart -- er liegt dann am Fuss
+     des Koerpers auf dem Boden.
+
+     Die Sonne bleibt dabei VORNE. Ein Versuch, sie mittags nach hinten zu
+     schieben, damit der Schatten nach vorn faellt, hat den Koerper von
+     hinten beleuchtet: Die Front lag im Schatten, die Wand kippte ins
+     Graue, und aus dem Hoehepunkt wurde der dunkelste Moment der Seite.
+     Und mittags GIBT es fast keinen Schatten. Das ist richtig so und der
+     eigentliche Bogen: weicher langer Schatten am Morgen, gleissendes
+     Licht ohne Schatten am Mittag, langer warmer Schatten am Abend. Einen
+     Mittagsschatten zu erzwingen hiesse, gegen die eigene Idee zu bauen —
+     der Hoehepunkt ist hier die Helligkeit, nicht der Schatten. */
+  sonne.position.set(Math.cos(az) * 9.5, 0.8 + bogen * 9.5, 6.4 + bogen * 1.2);
+  if (t < 0.5) tmp.copy(MORGEN).lerp(MITTAG, t/0.5); else tmp.copy(MITTAG).lerp(ABEND, (t-0.5)/0.5);
+  sonne.color.copy(tmp);
+  sonne.intensity = 1.35 + bogen * 2.35;
+  sonne.shadow.radius = 1 + (1 - bogen) * 7;
+  himmel.intensity = 0.62 + bogen * 0.55;
+  himmel.color.setHSL(0.58, 0.14 + bogen*0.06, 0.74 + bogen*0.12);
+  himmel.groundColor.setHSL(0.075, 0.42 - bogen*0.12, 0.52 + bogen*0.12);
+  wand.material.color.setHSL(0.09, 0.16 - bogen*0.06, 0.80 + bogen*0.09);
+  boden.material.color.setHSL(0.085, 0.20 - bogen*0.07, 0.75 + bogen*0.08);
+  document.documentElement.style.setProperty('--wand',
+    `hsl(38 ${Math.round(28 - bogen*12)}% ${Math.round(88 + bogen*5)}%)`);
+}
+
+const misch = (a,b,k) => a + (b-a)*k;
+const glatt = k => k*k*(3-2*k);
+const ease = t => 1 - Math.pow(1 - t, 3);
+
+function rahmen() {
+  const h = document.documentElement;
+  const p = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight);
+  /* Wo zwischen zwei Kapiteln stehen wir? */
+  const n = KAP.length - 1;
+  const roh = p * n;
+  const i = Math.min(n - 1, Math.floor(roh));
+  const k = glatt(Math.min(1, Math.max(0, roh - i)));
+  const A = KAP[i], B = KAP[i+1];
+
+  tag(misch(A.t, B.t, k));
+  document.getElementById('stand').textContent = k < 0.5 ? A.wort : B.wort;
+
+  marke.position.set(misch(A.pos[0],B.pos[0],k), misch(A.pos[1],B.pos[1],k), misch(A.pos[2],B.pos[2],k));
+  marke.rotation.y = misch(A.rot, B.rot, k) + Math.sin(performance.now()/6200)*0.035;
+  kamera.position.set(misch(A.cam[0],B.cam[0],k), misch(A.cam[1],B.cam[1],k), misch(A.cam[2],B.cam[2],k));
+  kamera.lookAt(misch(A.look[0],B.look[0],k), 0, 0);
+
+  /* DER EINE MOMENT — nur am Mittag.
+     Die Scheiben faehrt es auseinander und wieder zusammen, waehrend das
+     Kapitel durchlaeuft. Vorher und nachher ist die Marke ein Koerper. */
+  const mittagNaehe = 1 - Math.min(1, Math.abs(roh - 2) / 0.9);
+  const auf = Math.sin(Math.PI * Math.max(0, mittagNaehe));
+  for (const q of teile) {
+    const e = ease(Math.min(1, Math.max(0, auf * 1.15 - q.verzug * 0.5)));
+    q.m.position.y = -3.4 * e;
+    q.m.rotation.x = -0.34 * e;
+  }
+  renderer.render(szene, kamera);
+}
+
+function groesse() {
+  renderer.setSize(innerWidth, innerHeight, false);
+  kamera.aspect = innerWidth/innerHeight; kamera.updateProjectionMatrix();
+}
+addEventListener('resize', groesse); groesse();
+renderer.setAnimationLoop(rahmen);
+</script>
+</body>
+</html>

@@ -170,16 +170,29 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                 }
 
             } elseif ($tat === 'freigabe' && $pid) {
+                /* DER KNOPF ALLEIN REICHT NICHT
+                   --------------------------------------------------------
+                   Der Knopf steht nur da, wenn Uwe die Abnahme freigeschaltet
+                   hat -- aber ein Knopf, den man nicht sieht, ist keine
+                   Sperre: Ein alter Tab, der Zurueck-Knopf oder ein zweites
+                   Abschicken kaeme sonst durch. An der Abnahme haengt die
+                   Restzahlung, also wird sie hier geprueft und nicht in der
+                   Ansicht. */
                 $st = (string) ($seite['vorgang']['projekt']['status'] ?? '');
-                if (in_array($st, ['vorschau', 'kundenfeedback', 'aenderungen'], true)) {
+                if (($seite['abnahme_frei'] ?? null) === null) {
+                    $fehler[] = Texte::h(Texte::SEITE['nurSchauen'] ?? [], $sprache,
+                        'Die Seite ist noch nicht zur Abnahme freigegeben.');
+                } elseif (in_array($st, ['vorschau', 'kundenfeedback', 'aenderungen'], true)) {
                     Events::protokoll('freigabe', 'Der Kunde hat die Vorschau freigegeben',
                         (int) $kunde['id'], null, (int) $pid);
                     Events::melden('freigabe', 'Vorschau freigegeben', 'gut',
                         (string) ($kunde['company'] ?: $kunde['name']), '/vorgaenge/b'
                             . (int) ($seite['vorgang']['bestell_id'] ?? 0));
                     Events::projektStatus((int) $pid, 'finale_freigabe');
+                    $meldung = Texte::h(Texte::PROJEKT['freigegeben'] ?? [], $sprache, 'Danke für die Freigabe.');
+                } else {
+                    $meldung = Texte::h(Texte::PROJEKT['freigegeben'] ?? [], $sprache, 'Danke für die Freigabe.');
                 }
-                $meldung = Texte::h(Texte::PROJEKT['freigegeben'] ?? [], $sprache, 'Danke für die Freigabe.');
 
             } elseif ($tat === 'stimme') {
                 $wort = trim((string) ($_POST['text'] ?? ''));
@@ -425,15 +438,39 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
             <?= $h(Texte::h(['it' => 'campi compilati', 'de' => 'Felder ausgefüllt', 'en' => 'fields filled in'], $sprache)) ?></span>
         <?php endif; ?>
 
+      <?php /* ---------- Entwurf: erst schauen, dann abnehmen ----------
+           Hier stand frueher beides nebeneinander: der Link zum Entwurf --
+           aber nur, wenn es einen gab -- und daneben immer "Passt so".
+           Fehlte die Adresse, blieb genau ein Knopf uebrig, und der nahm die
+           Seite ab. Jemand konnte also freigeben, was er nie gesehen hatte,
+           und mit der Freigabe wurde die Restzahlung faellig.
+
+           Jetzt sind es zwei Zustaende. Solange nur die Vorschau frei ist,
+           gibt es einen einzigen Knopf: ansehen. "Passt so" erscheint erst,
+           wenn Uwe die Abnahme ausdruecklich freischaltet. */ ?>
       <?php elseif ($stufe === 'entwurf'): ?>
+        <?php $abnahmeFrei = ($seite['abnahme_frei'] ?? null) !== null; ?>
         <?php if ($seite['vorschau'] !== ''): ?>
           <a class="knopf haupt" href="<?= $h($seite['vorschau']) ?>" target="_blank" rel="noopener">
             <?= $h($T('entwurfAnsehen')) ?></a>
         <?php endif; ?>
-        <form method="post" action="<?= $h($hier) ?>" style="display:inline">
-          <?= Csrf::feld() ?><input type="hidden" name="tat" value="freigabe">
-          <button class="knopf"><?= $h(Texte::h(Texte::PROJEKT['freigeben'] ?? [], $sprache, 'Passt so')) ?></button>
-        </form>
+
+        <?php if ($seite['vorschau'] === ''): ?>
+          <?php /* Adresse noch nicht freigeschaltet: Dann steht hier kein
+                   Knopf, sondern der Satz, wo die Seite erscheinen wird.
+                   Eine Aufforderung ohne Ziel erzeugt nur eine Rueckfrage. */ ?>
+          <span class="mini" style="flex-basis:100%"><?= $h($T('nochNichts')) ?></span>
+        <?php elseif (!$abnahmeFrei): ?>
+          <span class="mini" style="flex-basis:100%"><?= $h($T('nurSchauen')) ?></span>
+          <a class="knopf" href="#nachricht"><?= $h($T('aenderung')) ?></a>
+        <?php else: ?>
+          <form method="post" action="<?= $h($hier) ?>" style="display:inline">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="freigabe">
+            <button class="knopf"><?= $h(Texte::h(Texte::PROJEKT['freigeben'] ?? [], $sprache, 'Passt so')) ?></button>
+          </form>
+          <a class="knopf" href="#nachricht"><?= $h($T('aenderung')) ?></a>
+          <span class="mini" style="flex-basis:100%"><?= $h($T('fertigText')) ?></span>
+        <?php endif; ?>
 
       <?php elseif ($stufe === 'freigabe' && $offen): ?>
         <a class="knopf haupt" href="<?= $h((string) $offen['link_url']) ?>">
@@ -636,10 +673,19 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </form>
   </details>
 
-  <?php /* ---------- Gespräch ---------- */ ?>
-  <details class="klapp" <?= $nachrichten ? '' : 'open' ?>>
+  <?php /* ---------- Gespräch ----------
+       In der Entwurfsphase ist dieser Kasten der Aenderungsweg: Der Knopf
+       oben springt hierher, der Kasten steht offen, und was hier abgeschickt
+       wird, setzt den Stand auf "Aenderungen" statt nur eine Nachricht zu
+       hinterlassen. Ein eigenes zweites Formular waere dieselbe Sache an
+       zwei Stellen -- und zwei Postfaecher fuer denselben Satz. */ ?>
+  <?php $imEntwurf = ($stufe === 'entwurf'); ?>
+  <details id="nachricht" class="klapp" <?= (!$nachrichten || $imEntwurf) ? 'open' : '' ?>>
     <summary><?= $h($T('gespraech')) ?><?= $nachrichten ? ' (' . count($nachrichten) . ')' : '' ?></summary>
     <p class="mini" style="margin-top:10px"><?= $h($T('gespraechHilfe')) ?></p>
+    <?php if ($imEntwurf): ?>
+      <p class="mini" style="margin-top:6px"><?= $h($T('aenderungKosten')) ?></p>
+    <?php endif; ?>
     <?php foreach ($nachrichten as $m): ?>
       <div style="padding:11px 13px;border:1px solid var(--linie);border-radius:12px;margin:9px 0;
                   <?= $m['sender'] === 'kunde' ? '' : 'background:var(--flaeche2)' ?>">
@@ -653,7 +699,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       </div>
     <?php endforeach; ?>
     <form method="post" action="<?= $h($hier) ?>" style="margin-top:12px">
-      <?= Csrf::feld() ?><input type="hidden" name="tat" value="nachricht">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $imEntwurf ? 'aenderung' : 'nachricht' ?>">
       <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
              style="position:absolute;left:-9999px" aria-hidden="true">
       <div class="feld"><textarea name="text" rows="4" required

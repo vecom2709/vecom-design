@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A — Chrom im Tageslicht</title>
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="_rahmen.css">
+<style>
+  :root{ --wand:#efe6d9; --tinte:#221d16; --leise:#6b5f4f; }
+  body{background:var(--wand);color:var(--tinte);transition:background .25s linear}
+  .buehne{background:none}
+  .marke b{color:var(--tinte)} .marke span,.nav a,.eyebrow{color:var(--leise)}
+  .lead{color:var(--leise);opacity:1}
+  .knopf--haupt{background:var(--tinte);color:#fff}
+  .fahne{color:var(--leise)}
+  .uhr{position:absolute;right:clamp(20px,4vw,54px);bottom:20px;z-index:6;
+       display:flex;align-items:center;gap:13px;font-family:'Archivo',sans-serif;
+       font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--leise)}
+  .uhr input{width:min(30vw,220px);accent-color:#0a3fd8}
+  .uhr b{font-variant-numeric:tabular-nums;font-size:13px;color:var(--tinte);min-width:52px}
+</style>
+</head>
+<body>
+<div class="buehne">
+  <canvas class="szene" id="szene"></canvas>
+  <header class="kopf">
+    <div class="marke"><b>VECOM</b><span>Design</span></div>
+    <nav class="nav"><a href="#">Lavori</a><a href="#">Servizi</a><a href="#">Prezzi</a><a href="#">Metodo</a><a href="#">Contatti</a></nav>
+  </header>
+  <div class="inhalt"><div class="spalte">
+    <p class="eyebrow">Webdesign dalla Sicilia</p>
+    <h1>Il tuo sito deve portarti clienti.</h1>
+    <p class="lead">Costruisco siti per aziende, professionisti e attività locali — ognuno da zero,
+      nessuno da un modello.</p>
+    <div class="tun" style="margin-top:28px">
+      <a class="knopf knopf--haupt" href="#">Parliamo del tuo progetto</a>
+    </div>
+  </div></div>
+  <div class="fahne">Richtung A · Chrom, hyperrealistisch</div>
+  <label class="uhr">Ora <input id="zeit" type="range" min="0" max="1" step="0.001" value="0.22"><b id="uhrzeit">08:00</b></label>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"../assets/vendor/three/three.module.min.js","three/addons/":"./../assets/vendor/three/jsm/"}}
+</script>
+<script type="module">
+
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { LOGO_CONTOURS } from '../assets/js/world/logo-shape.js';
+
+/* ====================================================================
+   WARUM CHROM BEIM ERSTEN VERSUCH FLACH AUSSAH
+
+   Nicht wegen des Materials. Ein Spiegel hat keine eigene Farbe -- er
+   zeigt, was um ihn herum ist. Die erste Umgebung war ein weicher
+   Farbverlauf mit einem Lichtfleck. Ein Spiegel, der einen weichen
+   Verlauf spiegelt, sieht aus wie eine Flaeche, die angemalt wurde.
+
+   Hyperrealistisch wird Chrom durch drei Dinge in der UMGEBUNG:
+
+     1. EIN HORIZONT. Die harte Kante zwischen Himmel und Boden laeuft
+        als Linie ueber den Koerper. An dieser einen Linie erkennt das
+        Auge "Spiegel" -- nicht am Glanz.
+     2. EINE SONNENSCHEIBE, die mit der Tageszeit wandert. Daraus wird
+        das Glanzlicht, und es wandert sichtbar mit.
+     3. TIEFE UNTEN. Der Boden ist dunkler und waermer als der Himmel.
+        Dadurch bleibt die untere Haelfte des Koerpers tief statt
+        auszuwaschen -- genau das Problem des ersten Versuchs.
+
+   Dazu PMREM: Ohne Vorfilterung rechnet Three.js Rauheit auf einer
+   gewoehnlichen Textur nicht sauber, und aus der Spiegelung wird Matsch.
+   ==================================================================== */
+const canvas = document.getElementById('szene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+
+const szene = new THREE.Scene();
+const kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+kamera.position.set(1.1, 0.35, 13.6); kamera.lookAt(1.5, 0, 0);
+
+const pmrem = new THREE.PMREMGenerator(renderer);
+pmrem.compileEquirectangularShader();
+
+const envCanvas = document.createElement('canvas');
+envCanvas.width = 1024; envCanvas.height = 512;
+const eg = envCanvas.getContext('2d');
+const envTex = new THREE.CanvasTexture(envCanvas);
+envTex.mapping = THREE.EquirectangularReflectionMapping;
+envTex.colorSpace = THREE.SRGBColorSpace;
+let envZiel = null;
+
+const hsl = (h, s, l) => 'hsl(' + h.toFixed(1) + ' ' + s.toFixed(1) + '% ' + l.toFixed(1) + '%)';
+
+/* Die Umgebung wird je Tageszeit neu gezeichnet. Sie IST die Spiegelung. */
+function umgebungZeichnen(t) {
+  const W = 1024, H = 512, HOR = 262;
+  const bogen = Math.sin(Math.PI * t);
+
+  /* Himmel: morgens und abends tief orange am Horizont und stumpfes
+     Blau oben; mittags klares Blau mit hellem Dunst. */
+  const himmel = eg.createLinearGradient(0, 0, 0, HOR);
+  himmel.addColorStop(0.00, hsl(210 - bogen * 6, 38 + bogen * 26, 40 + bogen * 18));
+  himmel.addColorStop(0.55, hsl(206 - bogen * 10, 30 + bogen * 20, 62 + bogen * 14));
+  himmel.addColorStop(0.92, hsl(38 - bogen * 4, 62 - bogen * 26, 72 + bogen * 12));
+  himmel.addColorStop(1.00, hsl(30 - bogen * 2, 66 - bogen * 30, 78 + bogen * 8));
+  eg.fillStyle = himmel; eg.fillRect(0, 0, W, HOR);
+
+  /* Boden: warm und deutlich dunkler als der Himmel. Das haelt die
+     untere Haelfte des Koerpers tief. */
+  const boden = eg.createLinearGradient(0, HOR, 0, H);
+  boden.addColorStop(0.00, hsl(34, 30 - bogen * 6, 58 + bogen * 8));
+  boden.addColorStop(0.35, hsl(30, 28 - bogen * 6, 42 + bogen * 6));
+  boden.addColorStop(1.00, hsl(26, 26 - bogen * 6, 26 + bogen * 4));
+  eg.fillStyle = boden; eg.fillRect(0, HOR, W, H - HOR);
+
+  /* Die Sonnenscheibe. u folgt dem Azimut, v der Hoehe -- dieselbe
+     Bahn wie das gerichtete Licht, sonst laufen Glanzlicht und
+     Schatten auseinander. */
+  const az = Math.PI * (1 - t);
+  const u = ((Math.atan2(6.4 + bogen * 1.2, Math.cos(az) * 9.5) / (2 * Math.PI)) + 0.75) % 1;
+  const hoehe = 0.8 + bogen * 9.5;
+  const v = 0.5 - Math.atan2(hoehe, Math.hypot(Math.cos(az) * 9.5, 6.4)) / Math.PI;
+  const sx = u * W, sy = Math.max(12, v * H);
+  const r = 26;
+  const glut = eg.createRadialGradient(sx, sy, 1, sx, sy, r * 5.5);
+  glut.addColorStop(0.00, 'rgba(255,252,244,1)');
+  glut.addColorStop(0.10, 'rgba(255,240,214,0.85)');
+  glut.addColorStop(0.40, 'rgba(255,224,178,0.28)');
+  glut.addColorStop(1.00, 'rgba(255,214,160,0)');
+  eg.fillStyle = glut; eg.beginPath(); eg.arc(sx, sy, r * 5.5, 0, 7); eg.fill();
+  eg.fillStyle = '#ffffff'; eg.beginPath(); eg.arc(sx, sy, r * 0.62, 0, 7); eg.fill();
+
+  /* Ein paar liegende Baender ueber dem Horizont: Dunstschichten. Sie
+     kosten nichts und geben der Spiegelung Struktur statt Verlauf. */
+  eg.globalAlpha = 0.16 + bogen * 0.10;
+  for (let i = 0; i < 5; i++) {
+    const y = HOR - 18 - i * 17;
+    eg.fillStyle = i % 2 ? '#ffffff' : '#ffe9c8';
+    eg.fillRect(0, y, W, 3 + (i % 2) * 2);
+  }
+  eg.globalAlpha = 1;
+
+  envTex.needsUpdate = true;
+  if (envZiel) envZiel.dispose();
+  envZiel = pmrem.fromEquirectangular(envTex);
+  szene.environment = envZiel.texture;
+}
+
+/* Wand und Boden der Szene selbst -- fuer den geworfenen Schatten. */
+const wand = new THREE.Mesh(new THREE.PlaneGeometry(60, 34),
+  new THREE.MeshStandardMaterial({ color:0xe9e2d6, roughness:0.95, metalness:0, envMapIntensity:0.10 }));
+wand.position.set(0, 0, -2.6); wand.receiveShadow = true; szene.add(wand);
+const bodenM = new THREE.Mesh(new THREE.PlaneGeometry(60, 40),
+  new THREE.MeshStandardMaterial({ color:0xe6ded1, roughness:0.97, metalness:0, envMapIntensity:0.08 }));
+bodenM.rotation.x = -Math.PI/2; bodenM.position.set(0, -2.75, 6);
+bodenM.receiveShadow = true; szene.add(bodenM);
+
+const shapes = LOGO_CONTOURS.map((pts) => {
+  const s = new THREE.Shape();
+  pts.forEach(([x,y], i) => (i ? s.lineTo(x,y) : s.moveTo(x,y)));
+  s.closePath(); return s;
+});
+const geo = new THREE.ExtrudeGeometry(shapes, {
+  depth:0.34, bevelEnabled:true, bevelThickness:0.052, bevelSize:0.040,
+  bevelSegments:6, curveSegments:12
+});
+geo.center();
+
+/* LACKIERTES METALL, NICHT NACKTES CHROM
+   metalness 1 mit einer Klarlackschicht darueber: Der Koerper spiegelt
+   die Umgebung in Kobalt, und obendrauf sitzt eine zweite, weisse
+   Spiegelung -- das ist der Unterschied zwischen Blech und Karosserie.
+   Die Farbe taucht die Spiegelung ins Blau; ohne sie waere es Silber. */
+const stoff = new THREE.MeshPhysicalMaterial({
+  color: 0x1a4fe8, metalness: 1.0, roughness: 0.085,
+  clearcoat: 1.0, clearcoatRoughness: 0.022,
+  envMapIntensity: 1.25,
+});
+const marke = new THREE.Mesh(geo, stoff);
+marke.scale.setScalar(1.72); marke.position.set(3.35, 0.15, 0.4);
+marke.rotation.set(0.03, -0.34, 0);
+marke.castShadow = true; marke.receiveShadow = true;
+szene.add(marke);
+
+const sonne = new THREE.DirectionalLight(0xffffff, 2.6);
+sonne.castShadow = true; sonne.shadow.mapSize.set(2048, 2048);
+Object.assign(sonne.shadow.camera, { left:-11, right:11, top:11, bottom:-11, far:46 });
+sonne.shadow.bias = -0.0012; szene.add(sonne);
+
+/* Bloom -- sparsam. Es soll die Glanzlichter tragen, nicht die Seite
+   in Watte packen: hohe Schwelle, kleine Staerke. */
+const komposition = new EffectComposer(renderer);
+komposition.addPass(new RenderPass(szene, kamera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.52, 0.55, 0.90);
+komposition.addPass(bloom);
+komposition.addPass(new OutputPass());
+
+function tag(t) {
+  const bogen = Math.sin(Math.PI * t);
+  const az = Math.PI * (1 - t);
+  sonne.position.set(Math.cos(az) * 9.5, 0.8 + bogen * 9.5, 6.4 + bogen * 1.2);
+  sonne.intensity = 1.1 + bogen * 1.9;
+  sonne.color.setHSL(0.09 - bogen * 0.02, 0.55 - bogen * 0.42, 0.62 + bogen * 0.32);
+  sonne.shadow.radius = 1 + (1 - bogen) * 7;
+
+  wand.material.color.setHSL(0.09, 0.16 - bogen * 0.06, 0.80 + bogen * 0.09);
+  bodenM.material.color.setHSL(0.085, 0.20 - bogen * 0.07, 0.75 + bogen * 0.08);
+  document.documentElement.style.setProperty('--wand',
+    'hsl(38 ' + Math.round(28 - bogen * 12) + '% ' + Math.round(88 + bogen * 5) + '%)');
+
+  umgebungZeichnen(t);
+
+  const min = Math.round(6 * 60 + t * 14 * 60);
+  document.getElementById('uhrzeit').textContent =
+    String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
+}
+
+const regler = document.getElementById('zeit');
+let letzte = -1;
+regler.addEventListener('input', () => {
+  /* PMREM je Bild waere Verschwendung. Nur neu rechnen, wenn sich die
+     Tageszeit merklich geaendert hat -- das Auge sieht den Unterschied
+     unter einem halben Prozent ohnehin nicht. */
+  const v = +regler.value;
+  if (Math.abs(v - letzte) < 0.004) return;
+  letzte = v; tag(v);
+});
+
+function groesse() {
+  const b = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(b, h, false);
+  komposition.setSize(b, h);
+  kamera.aspect = b / h; kamera.updateProjectionMatrix();
+}
+addEventListener('resize', groesse); groesse();
+tag(+regler.value); letzte = +regler.value;
+
+renderer.setAnimationLoop(() => {
+  marke.rotation.y = -0.34 + Math.sin(performance.now() / 5600) * 0.05;
+  komposition.render();
+});
+</script>
+</body>
+</html>

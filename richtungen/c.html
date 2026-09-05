@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="it" data-richtung="c">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C — Das Ergebnis, nicht das Werkzeug</title>
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="_rahmen.css">
+<style>
+  /* ------------------------------------------------------------------
+     RICHTUNG C — DAS ERGEBNIS, NICHT DAS WERKZEUG
+
+     Der Studio-Look faellt weg. Die Seite hoert auf, von Vecom zu
+     handeln, und faengt an, vom Besucher zu handeln: Er waehlt sein
+     Gewerbe, und Ueberschrift, Farbe, Licht, Beispiel und die drei
+     Punkte darunter werden seine.
+
+     Das V tritt zurueck auf eine Marke in der Ecke. Das ist der Preis
+     dieser Richtung und zugleich ihre Aussage: Nicht das Werkzeug ist
+     die Hauptsache, sondern was dabei herauskommt.
+
+     Alle Bilder sind echte Arbeiten. Erfundene Betriebe waeren hier
+     nicht nur schwach, sie waeren unredlich — die Seite verkauft
+     Referenzen.
+     ------------------------------------------------------------------ */
+  :root{
+    --grund:#ffffff; --tinte:#12151a; --leise:#697180; --linie:#e6e8ec;
+    --akzent:#0a3fd8; --ton:#f4f6fa;
+  }
+  body{background:var(--grund);color:var(--tinte)}
+  .buehne{background:
+    linear-gradient(180deg, var(--ton) 0%, var(--grund) 62%);
+    transition:background .7s cubic-bezier(.16,1,.3,1)}
+  .marke b{color:var(--tinte)} .marke span,.nav a{color:var(--leise)}
+  .knopf--haupt{background:var(--akzent);color:#fff;transition:background .5s}
+  .knopf--still{border-color:var(--linie);color:var(--tinte)}
+  .fahne{color:var(--leise)}
+
+  .inhalt{align-items:center;gap:clamp(28px,4vw,64px)}
+  .zwei{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);
+        gap:clamp(28px,4vw,66px);align-items:center;width:100%}
+  .spalte{max-width:none}
+  .eyebrow{color:var(--akzent);transition:color .5s}
+  h1{font-size:clamp(2.4rem,4.4vw,3.7rem)}
+  .lead{color:var(--leise);opacity:1;margin-bottom:26px}
+
+  /* Die Wahl. Sie steht ueber der Ueberschrift, weil sie sie bestimmt. */
+  .wahl{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 26px}
+  .wahl button{font-family:'Archivo',sans-serif;font-size:12px;font-weight:600;
+    letter-spacing:.09em;text-transform:uppercase;padding:10px 16px;border-radius:999px;
+    border:1px solid var(--linie);background:#fff;color:var(--leise);cursor:pointer;
+    transition:border-color .3s, color .3s, background .3s}
+  .wahl button:hover{color:var(--tinte)}
+  .wahl button[aria-pressed="true"]{background:var(--akzent);border-color:var(--akzent);color:#fff}
+
+  /* Die drei Punkte kommen aus dem Baukasten — das ist, was diese Branche
+     wirklich braucht, nicht was gerade schoen aussieht. */
+  .punkte{list-style:none;margin:0 0 30px;padding:0;display:grid;gap:9px}
+  .punkte li{display:flex;gap:11px;font-size:14.5px;line-height:1.5;color:var(--leise)}
+  .punkte li::before{content:"";flex:0 0 auto;width:7px;height:7px;margin-top:7px;
+    border-radius:2px;background:var(--akzent);transition:background .5s}
+
+  .schau{position:relative;border-radius:16px;overflow:hidden;
+         border:1px solid var(--linie);background:#fff;
+         box-shadow:0 1px 2px rgba(16,22,38,.05), 0 24px 60px -28px rgba(16,22,38,.34)}
+    /* Die Vorlagen sind Ganzseiten-Aufnahmen und damit sehr hoch. Ungekuerzt
+     ziehen sie die ganze Spalte auseinander und schieben die Ueberschrift
+     aus dem Bild. Also oben anschneiden: Der erste Bildschirm ist ohnehin
+     das, was zaehlt. */
+  .schau img{display:block;width:100%;height:min(62svh,560px);
+             object-fit:cover;object-position:top center}
+  .schau figcaption{position:absolute;left:0;right:0;bottom:0;padding:13px 16px;
+    font-size:12.5px;color:#fff;letter-spacing:.02em;
+    background:linear-gradient(180deg, transparent, rgba(8,11,18,.78))}
+  @media (max-width:900px){ .zwei{grid-template-columns:1fr} .schau{display:none} }
+</style>
+</head>
+<body>
+<div class="buehne">
+  <header class="kopf">
+    <div class="marke"><b>VECOM</b><span>Design</span></div>
+    <nav class="nav"><a href="#">Lavori</a><a href="#">Servizi</a><a href="#">Prezzi</a><a href="#">Metodo</a><a href="#">Contatti</a></nav>
+  </header>
+
+  <div class="inhalt">
+    <div class="zwei">
+      <div class="spalte">
+        <div class="wahl" id="wahl" role="group" aria-label="Il tuo settore"></div>
+        <p class="eyebrow" id="eyebrow">Officina e trasporti</p>
+        <h1 id="titel">Chi ha un guasto deve trovare il tuo numero.</h1>
+        <p class="lead" id="lead"></p>
+        <ul class="punkte" id="punkte"></ul>
+        <div class="tun">
+          <a class="knopf knopf--haupt" href="#">Parliamo del tuo progetto</a>
+          <a class="knopf knopf--still" href="#">Guarda i lavori</a>
+        </div>
+      </div>
+      <figure class="schau" style="margin:0">
+        <img id="bild" src="../assets/img/work/cavaleri-live.webp" alt="" width="1200" height="780">
+        <figcaption id="bildtext">Cavaleri Trasporti — online</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <div class="fahne">Richtung C · Das Ergebnis, nicht das Werkzeug</div>
+</div>
+
+<script type="module">
+/* ====================================================================
+   VIER GEWERBE, VIER ECHTE ARBEITEN
+
+   Die drei Punkte je Gewerbe sind nicht erfunden: Sie stehen so im
+   Baukasten der Verwaltung (Technik::BRANCHE) und sind dieselben, nach
+   denen die Seite dieses Kunden spaeter gebaut wird. Was der Besucher
+   hier liest, ist also kein Versprechen, sondern der Auftrag.
+   ==================================================================== */
+const FAELLE = [
+  { id:'officina', tab:'Officina', akzent:'#c2410c', ton:'#fdf3ec',
+    titel:'Chi ha un guasto deve trovare il tuo numero.',
+    lead:'Chi arriva qui ha un problema e cerca una soluzione — non una galleria. Il sito lo porta al telefono in due tocchi.',
+    punkte:['Il numero grande, come link diretto, con gli orari accanto',
+            'Prima e dopo con il cursore — la prova più convincente del mestiere',
+            'La zona che coprite, scritta: «venite anche da me?» decide la chiamata'],
+    ueber:'Officina e trasporti', bild:'cavaleri-live.webp', bildtext:'Cavaleri Trasporti — online' },
+
+  { id:'salone', tab:'Salone', akzent:'#a21769', ton:'#fbeff6',
+    titel:'La tua galleria è il tuo listino.',
+    lead:'Chi cerca un salone guarda le foto e poi il prezzo. Se manca uno dei due, cerca altrove.',
+    punkte:['Galleria a mosaico, veloce, e sotto ogni foto che cosa è stato fatto',
+            'Appuntamento a portata di pollice — WhatsApp accanto al telefono',
+            'Listino visibile: chi lo nasconde perde chi confronta'],
+    ueber:'Salone e benessere', bild:'charme-live.webp', bildtext:'Charme Color — online' },
+
+  { id:'comunita', tab:'Associazioni', akzent:'#0f7a5a', ton:'#ecf7f2',
+    titel:'Chi vi cerca deve capire in dieci secondi che cosa fate.',
+    lead:'Le associazioni perdono persone nella prima schermata: troppe parole, nessuna porta d’ingresso.',
+    punkte:['Chi fa che cosa, senza cercare — e come si entra',
+            'Appuntamenti e contatti in chiaro, aggiornabili da voi',
+            'Leggibile davvero: caratteri grandi, contrasto alto, tastiera'],
+    ueber:'Associazioni e comunità', bild:'mensaena-live.webp', bildtext:'Mensaena — online' },
+
+  { id:'marca', tab:'Marchi', akzent:'#0a3fd8', ton:'#eef2fd',
+    titel:'Il tuo progetto merita più di una pagina di presentazione.',
+    lead:'Quando il prodotto è una storia, il sito deve raccontarla — con un ritmo, non con un elenco.',
+    punkte:['Un capitolo che si legge scorrendo, e regge anche da fermo',
+            'Tipografia come materiale, non come riempimento',
+            'Un solo momento che si ricorda il giorno dopo'],
+    ueber:'Marchi e progetti editoriali', bild:'jonika-live.webp', bildtext:'Jonika Venturis — online' },
+];
+
+const wahl = document.getElementById('wahl');
+const el = {
+  eyebrow: document.getElementById('eyebrow'), titel: document.getElementById('titel'),
+  lead: document.getElementById('lead'), punkte: document.getElementById('punkte'),
+  bild: document.getElementById('bild'), bildtext: document.getElementById('bildtext'),
+};
+
+FAELLE.forEach((f, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = f.tab;
+  b.setAttribute('aria-pressed', String(i === 0));
+  b.addEventListener('click', () => setzen(f.id));
+  b.dataset.fall = f.id;
+  wahl.appendChild(b);
+});
+
+function setzen(id) {
+  const f = FAELLE.find(x => x.id === id) || FAELLE[0];
+  document.documentElement.style.setProperty('--akzent', f.akzent);
+  document.documentElement.style.setProperty('--ton', f.ton);
+  el.eyebrow.textContent = f.ueber || f.tab;
+  el.titel.textContent = f.titel;
+  el.lead.textContent = f.lead;
+  el.punkte.innerHTML = '';
+  for (const p of f.punkte) {
+    const li = document.createElement('li'); li.textContent = p; el.punkte.appendChild(li);
+  }
+  el.bild.src = '../assets/img/work/' + f.bild;
+  el.bild.alt = f.bildtext;
+  el.bildtext.textContent = f.bildtext;
+  for (const b of wahl.children) b.setAttribute('aria-pressed', String(b.dataset.fall === id));
+}
+setzen('officina');
+</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+/* ==========================================================================
+   theme.css — Tag und Nacht.
+
+   WARUM EINE EIGENE DATEI
+
+   app.css definiert die Nachtfassung im :root und ist an ihr gewachsen: Sie
+   ist der Normalfall dieser Marke, und das soll sie bleiben. Der Tagmodus
+   ueberschreibt deshalb nur TOKEN — keine Komponente, keine Regel. Wer hier
+   eine Komponente stylen muesste, hat in app.css einen Farbwert stehen, wo
+   ein Token hingehoert; dann wird dort der Token nachgetragen und nicht hier
+   eine Ausnahme gebaut.
+
+   DREI ZUSTAENDE, NICHT ZWEI
+
+   System, Tag, Nacht. Wer nichts waehlt, bekommt, was sein Geraet sagt --
+   und das ist die Mehrheit. Deshalb steht die Systemfassung in einer
+   Media-Query, die eine ausdrueckliche Wahl NICHT ueberschreibt:
+   :root[data-theme="dark"] gewinnt gegen prefers-color-scheme: light und
+   umgekehrt. Ohne diese Verschraenkung waehlt jemand "Nacht", stellt sein
+   Telefon auf hell und bekommt trotzdem hell -- der klassische Fehler.
+
+   WARUM DER TAGMODUS NICHT WEISS IST
+
+   Reines Weiss unter einer Szene aus tiefem Blau und Cyan macht die Szene zu
+   einem Loch. Der Tagmodus ist deshalb ein kuehles Papier: ein Grund mit
+   leichtem Blaustich zur Marke hin, Flaechen darauf weiss. So bleibt die
+   Bildmarke der hellste Punkt, und die Seite hat oben Luft statt Grelle.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Die Tagfassung als eine Liste. Beide Aufhaenger (System und ausdrueckliche
+   Wahl) ziehen dieselben Werte, damit sie nicht auseinanderlaufen koennen.
+   -------------------------------------------------------------------------- */
+/* DER SCHLEIER LIEGT JETZT NUR NOCH ÜBER DEM TEXT
+   --------------------------------------------------------------------------
+   Er war ein mittiger Kreisverlauf mit bis zu 93 % Deckung — also praktisch
+   eine helle Platte über der ganzen Szene. Das war der wahre Grund, warum die
+   Tagfassung immer wieder ausgewaschen aussah: Jede Verbesserung am Licht, am
+   Material und am Himmel lag darunter begraben.
+
+   Gebraucht wird er nur dort, wo gelesen wird — links. Rechts, wo die Marke
+   steht, muss die Szene durchkommen. Also ein waagerechter Verlauf statt eines
+   Kreises: dicht über der Textspalte, offen über der Bühne. Auf schmalen
+   Schirmen liegt der Text über der Szene, dort deckt er wieder durchgehend. */
+:root { --tag-schleier: linear-gradient(100deg,
+          rgba(238, 241, 247, .93) 0%,
+          rgba(238, 241, 247, .88) 26%,
+          rgba(238, 241, 247, .52) 46%,
+          rgba(238, 241, 247, .12) 62%,
+          rgba(238, 241, 247, 0)   78%); }
+
+@media (max-width: 900px) {
+  :root { --tag-schleier: radial-gradient(130% 95% at 50% 45%,
+            rgba(238, 241, 247, .74), rgba(238, 241, 247, .93) 100%); }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --c-base:        #eef1f7;
+    --c-base-2:      #e6eaf3;
+    --c-surface:     #ffffff;
+    --c-surface-2:   #f6f8fc;
+    --c-line:        rgba(18, 38, 74, .14);
+    --c-line-strong: rgba(18, 38, 74, .26);
+
+    --c-text:        #0c1421;
+    --c-text-dim:    #46536b;
+    --c-text-faint:  #6a7691;
+
+    /* Das Cyan der Nacht (#1fe8ff) ist auf Weiss unlesbar -- 1,4:1. Der
+       Tagmodus nimmt denselben Farbton, aber die dunklere Stufe davon, damit
+       die Marke dieselbe bleibt und der Kontrast trotzdem sitzt. */
+    --c-blue-deep:   #0540c4;
+    --c-blue:        #0a63d8;
+    --c-cyan:        #0b8fb4;
+    --grad-brand:    linear-gradient(135deg, #0540c4 0%, #0a63d8 45%, #0b8fb4 100%);
+    --grad-text:     linear-gradient(100deg, #12306e 0%, #0b1a33 35%, #0a63d8 70%, #0b8fb4 100%);
+
+    /* HOEHE OHNE LICHTKANTE
+       Auf dunklem Grund hebt die Kombination aus Schatten unten und heller
+       Innenkante oben. Auf hellem Grund gibt es kein Licht von oben, das eine
+       Kante erzeugen koennte -- eine weisse Innenkante auf Weiss ist
+       unsichtbar, und der Schatten allein traegt. Deshalb hier andere
+       Rezepte statt derselben mit anderen Zahlen. */
+    --elev-1:
+      0 1px 2px rgba(12, 20, 33, .06),
+      0 8px 20px -12px rgba(12, 20, 33, .22);
+    --elev-2:
+      0 2px 4px rgba(12, 20, 33, .07),
+      0 20px 44px -22px rgba(12, 20, 33, .28);
+    --elev-hover:
+      0 3px 6px rgba(12, 20, 33, .09),
+      0 30px 60px -26px rgba(12, 20, 33, .34);
+
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="light"] {
+  --c-base:        #eef1f7;
+  --c-base-2:      #e6eaf3;
+  --c-surface:     #ffffff;
+  --c-surface-2:   #f6f8fc;
+  --c-line:        rgba(18, 38, 74, .14);
+  --c-line-strong: rgba(18, 38, 74, .26);
+
+  --c-text:        #0c1421;
+  --c-text-dim:    #46536b;
+  --c-text-faint:  #6a7691;
+
+  --c-blue-deep:   #0540c4;
+  --c-blue:        #0a63d8;
+  --c-cyan:        #0b8fb4;
+  --grad-brand:    linear-gradient(135deg, #0540c4 0%, #0a63d8 45%, #0b8fb4 100%);
+  --grad-text:     linear-gradient(100deg, #12306e 0%, #0b1a33 35%, #0a63d8 70%, #0b8fb4 100%);
+
+  --elev-1:
+    0 1px 2px rgba(12, 20, 33, .06),
+    0 8px 20px -12px rgba(12, 20, 33, .22);
+  --elev-2:
+    0 2px 4px rgba(12, 20, 33, .07),
+    0 20px 44px -22px rgba(12, 20, 33, .28);
+  --elev-hover:
+    0 3px 6px rgba(12, 20, 33, .09),
+    0 30px 60px -26px rgba(12, 20, 33, .34);
+
+  color-scheme: light;
+}
+
+/* Die ausdrueckliche Nachtwahl muss auch gegen ein helles System gewinnen.
+   app.css definiert die Nachtwerte im :root und damit ohnehin -- diese Zeile
+   haelt nur fest, dass hier nichts nachgetragen werden muss, und setzt das
+   Farbschema fuer Formularelemente und Scrollbalken. */
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* --------------------------------------------------------------------------
+   Was am Tag anders liegen muss als nur in der Farbe
+
+   Die Szene liegt als Canvas HINTER dem Inhalt. Nachts liegt darueber ein
+   dunkler Schleier, der sie beruhigt. Am Tag wuerde derselbe Schleier die
+   Seite verdunkeln -- gebraucht wird das Gegenteil: ein heller Schleier, der
+   die Szene zuruecknimmt, damit Text darauf lesbar bleibt.
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .world-scrim {
+    background: var(--tag-schleier);
+  }
+  :root:not([data-theme="dark"]) .grain    { opacity: .28; }
+  :root:not([data-theme="dark"]) .vignette { opacity: .3; mix-blend-mode: multiply; }
+}
+:root[data-theme="light"] .world-scrim {
+  background: var(--tag-schleier);
+}
+:root[data-theme="light"] .grain    { opacity: .28; }
+:root[data-theme="light"] .vignette { opacity: .3; mix-blend-mode: multiply; }
+
+/* --------------------------------------------------------------------------
+   Die Altlasten aus der Nachtfassung
+
+   Drei Sorten Werte in app.css sind fuer dunklen Grund geschrieben und lassen
+   sich nicht durch ein Token heilen, weil sie keins benutzen. Sie stehen hier
+   und nicht dort, damit die Nachtfassung unangetastet bleibt — sie ist der
+   Normalfall dieser Marke.
+   -------------------------------------------------------------------------- */
+
+/* 1. Schrift-Schlagschatten. Auf schwarzem Grund geben sie der Schrift Halt,
+      auf Papier liest man sie als Schmutz um die Buchstaben. Ersetzt durch
+      einen ganz leichten, damit die Ueberschrift ueber der Szene nicht die
+      Kante verliert. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --ink-drop:   0 1px 2px rgba(12, 20, 33, .10);
+    --ink-drop-s: 0 1px 2px rgba(12, 20, 33, .08);
+    --ink-filter: drop-shadow(0 1px 2px rgba(12, 20, 33, .12));
+  }
+  :root:not([data-theme="dark"]) .sechead p,
+  :root:not([data-theme="dark"]) .contact__lead { text-shadow: 0 1px 3px rgba(238, 241, 247, .9); }
+  :root:not([data-theme="dark"]) .hero__lead {
+    text-shadow: 0 1px 3px rgba(238, 241, 247, .95), 0 0 2px rgba(238, 241, 247, .8);
+  }
+  :root:not([data-theme="dark"]) .eyebrow,
+  :root:not([data-theme="dark"]) .brand__name { text-shadow: none; }
+  :root:not([data-theme="dark"]) .step__no,
+  :root:not([data-theme="dark"]) .pillar strong {
+    filter: drop-shadow(0 2px 6px rgba(12, 20, 33, .18));
+  }
+}
+:root[data-theme="light"] {
+  --ink-drop:   0 1px 2px rgba(12, 20, 33, .10);
+  --ink-drop-s: 0 1px 2px rgba(12, 20, 33, .08);
+  --ink-filter: drop-shadow(0 1px 2px rgba(12, 20, 33, .12));
+}
+:root[data-theme="light"] .sechead p,
+:root[data-theme="light"] .contact__lead { text-shadow: 0 1px 3px rgba(238, 241, 247, .9); }
+:root[data-theme="light"] .hero__lead {
+  text-shadow: 0 1px 3px rgba(238, 241, 247, .95), 0 0 2px rgba(238, 241, 247, .8);
+}
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="light"] .brand__name { text-shadow: none; }
+:root[data-theme="light"] .step__no,
+:root[data-theme="light"] .pillar strong {
+  filter: drop-shadow(0 2px 6px rgba(12, 20, 33, .18));
+}
+
+/* 1b. Die Zwischenrufe (.interlude) stehen frei ueber der Szene und tragen
+       einen doppelten Schlagschatten fuer schwarzen Grund. Am Tag braucht die
+       Schrift dort das Gegenteil: einen hellen Halo, der sie von der Szene
+       abhebt, statt einer dunklen Wolke. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .interlude p {
+    text-shadow: 0 1px 2px rgba(238, 241, 247, .95), 0 0 12px rgba(238, 241, 247, .8);
+  }
+}
+:root[data-theme="light"] .interlude p {
+  text-shadow: 0 1px 2px rgba(238, 241, 247, .95), 0 0 12px rgba(238, 241, 247, .8);
+}
+
+/* 1c. DER TEUERSTE FEHLER: WEISS AUF WEISS
+
+       .btn--primary ist eine weisse Pille mit dunkler Schrift — nachts der
+       hellste Punkt der Seite und genau richtig. Am Tag wird aus
+       "color: var(--c-base)" ein helles Grau auf einem weissen Verlauf: Der
+       Hauptknopf verschwindet. Auf einer Seite, die Auftraege holen soll, ist
+       das die schlimmste Stelle, an der so etwas passieren kann — deshalb
+       steht es hier oben und nicht bei den Kleinigkeiten.
+
+       Am Tag dreht sich die Pille um: dunkles Markenblau, weisse Schrift.
+       Das ist derselbe Gedanke wie nachts, nur andersherum — der Knopf ist
+       der staerkste Kontrast auf der Seite. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .btn--primary,
+  :root:not([data-theme="dark"]) .vid__play {
+    color: #ffffff;
+    background: linear-gradient(180deg, #0a63d8 0%, #0540c4 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .22),
+      0 2px 5px -2px rgba(12, 20, 33, .28),
+      0 18px 34px -20px rgba(10, 99, 216, .6);
+  }
+  :root:not([data-theme="dark"]) .btn--primary:hover {
+    color: #ffffff;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, .28),
+      0 4px 10px -3px rgba(12, 20, 33, .3),
+      0 24px 46px -18px rgba(10, 99, 216, .75);
+  }
+}
+:root[data-theme="light"] .btn--primary,
+:root[data-theme="light"] .vid__play {
+  color: #ffffff;
+  background: linear-gradient(180deg, #0a63d8 0%, #0540c4 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .22),
+    0 2px 5px -2px rgba(12, 20, 33, .28),
+    0 18px 34px -20px rgba(10, 99, 216, .6);
+}
+:root[data-theme="light"] .btn--primary:hover {
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .28),
+    0 4px 10px -3px rgba(12, 20, 33, .3),
+    0 24px 46px -18px rgba(10, 99, 216, .75);
+}
+
+/* 2. Der Sprachhinweis mischt seine Farbe gegen ein festes Dunkelblau. Am Tag
+      ist er dadurch ein schwarzer Balken ueber einer hellen Seite — das
+      Erste, was man sieht, und das Falscheste. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .sprachhinweis {
+    background: color-mix(in oklab, #0a63d8 8%, #ffffff);
+    border-bottom-color: color-mix(in oklab, #0a63d8 22%, transparent);
+    color: #0c1421;
+  }
+}
+:root[data-theme="light"] .sprachhinweis {
+  background: color-mix(in oklab, #0a63d8 8%, #ffffff);
+  border-bottom-color: color-mix(in oklab, #0a63d8 22%, transparent);
+  color: #0c1421;
+}
+
+/* --------------------------------------------------------------------------
+   Der Umschalter
+
+   Er sitzt neben der Sprachwahl und traegt deren Form -- eine zweite Kapsel
+   im Kopf, nicht ein fremdes Element. Drei Knoepfe statt eines Schalters:
+   "System" ist ein eigener Zustand und kein Zwischending, und ein Zustand,
+   den man nur durch zweimaliges Klicken erreicht, findet niemand.
+   -------------------------------------------------------------------------- */
+.thema {
+  display: flex; gap: 2px; padding: 3px;
+  border: 1px solid var(--c-line); border-radius: 999px;
+  align-items: center;
+}
+.thema button {
+  position: relative;
+  background: none; border: 0; cursor: pointer; border-radius: 999px;
+  padding: .34rem .6rem; line-height: 0;
+  color: var(--c-text-faint);
+  transition: color var(--d-ui, .18s) linear, background-color var(--d-ui, .18s) linear;
+}
+/* Daumenflaeche wie bei der Sprachwahl: 44px hoch, seitlich schmal, damit
+   kein Nachbar getroffen wird. */
+.thema button::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%;
+  height: 44px; transform: translateY(-50%);
+}
+.thema button:hover { color: var(--c-text); }
+.thema button[aria-pressed="true"] {
+  background: var(--c-surface-2); color: var(--c-text);
+}
+:root:not([data-theme="light"]) .thema button[aria-pressed="true"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 6px 14px -8px rgba(0, 0, 0, .9);
+}
+:root[data-theme="light"] .thema button[aria-pressed="true"] {
+  box-shadow: 0 1px 2px rgba(12, 20, 33, .1);
+}
+.thema svg { width: 15px; height: 15px; display: block; }
+
+@media (max-width: 900px) { .thema { display: none; } }
+
+/* --------------------------------------------------------------------------
+   Der Wechsel
+
+   Ein Farbumschlag ueber die ganze Seite ist ein Schnitt. Die View Transition
+   macht daraus eine Blende -- kurz, weil sie nichts erzaehlt, sondern nur den
+   Sprung nimmt. Wer reduzierte Bewegung eingestellt hat, bekommt den Schnitt:
+   Das ist hier die ruhigere Variante, nicht die aermere.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: .34s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}

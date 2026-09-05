@@ -16,6 +16,12 @@ declare(strict_types=1);
  */
 final class Mail
 {
+    /** Etwas holen, ohne dass eine Mail daran scheitert. */
+    private static function still(callable $fn, mixed $ersatz = null): mixed
+    {
+        try { return $fn(); } catch (Throwable $e) { return $ersatz; }
+    }
+
     /** Zusammen duerfen die Anhaenge einer Mail so gross sein. */
     private const ANHANG_GRENZE = 6 * 1024 * 1024;
 
@@ -113,6 +119,8 @@ final class Mail
             return false;
         }
 
+        $sprache = self::spracheVon($bezug);
+
         $inhalt = [
             'sender'      => ['email' => $z['from'], 'name' => $z['name']],
             'to'          => [['email' => $an]],
@@ -131,7 +139,7 @@ final class Mail
                Programme, die kein HTML anzeigen, und er hilft dem Spamfilter.
                Neu ist nur die zweite Fassung derselben Worte, in der die
                Adressen anklickbar sind. */
-            'htmlContent' => self::alsHtml($text, self::knopfwort($anlass, $bezug)),
+            'htmlContent' => self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache),
         ];
         if (!empty($bezug['antwortAn']) && filter_var($bezug['antwortAn'], FILTER_VALIDATE_EMAIL)) {
             $inhalt['replyTo'] = ['email' => $bezug['antwortAn']];
@@ -272,10 +280,14 @@ final class Mail
      *
      * @param array<string,mixed> $bezug
      */
-    private static function knopfwort(string $anlass, array $bezug): string
+    /**
+     * Die Sprache dieser einen Nachricht.
+     *
+     * Sie steht beim Kunden. Fehlt der Bezug, geht die Mail an Uwe selbst —
+     * dann ist Deutsch richtig, nicht die Seitensprache.
+     */
+    private static function spracheVon(array $bezug): string
     {
-        /* Die Sprache steht beim Kunden. Fehlt der Bezug, geht die Mail an
-           Uwe selbst — dann ist Deutsch richtig, nicht die Seitensprache. */
         $sprache = trim((string) ($bezug['sprache'] ?? ''));
         if ($sprache === '' && !empty($bezug['customer_id'])) {
             try {
@@ -283,11 +295,15 @@ final class Mail
                     [(int) $bezug['customer_id']], '');
             } catch (Throwable $e) { $sprache = ''; }
         }
-        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'de'; }
+        return in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'de';
+    }
 
+    private static function knopfwort(string $anlass, string $sprache): string
+    {
         $zahlen = ['zahlungslink', 'betreuung_faellig', 'zahlung_erinnerung',
                    'zahlung_mahnung', 'zahlung_letzte', 'zahlung_letzte_betreuung'];
         $formular = ['zahlung_ok', 'fragebogen_erinnerung'];
+        $ansehen  = ['vorschau', 'abnahme', 'online'];
 
         if (in_array($anlass, $zahlen, true)) {
             return ['it' => 'Paga ora', 'de' => 'Jetzt bezahlen', 'en' => 'Pay now'][$sprache];
@@ -296,28 +312,70 @@ final class Mail
             return ['it' => 'Apri il questionario', 'de' => 'Fragebogen öffnen',
                     'en' => 'Open the form'][$sprache];
         }
+        if (in_array($anlass, $ansehen, true)) {
+            return ['it' => 'Guarda il sito', 'de' => 'Seite ansehen',
+                    'en' => 'View the site'][$sprache];
+        }
         return ['it' => 'Apri', 'de' => 'Öffnen', 'en' => 'Open'][$sprache];
     }
 
+    /* ==================================================================== */
+    /*  Der Briefbogen                                                      */
+    /* ==================================================================== */
+
     /**
-     * Derselbe Brief, nur als HTML — mit echten Verweisen.
+     * Die Farben. Dieselben wie auf der Website, aber fuer hellen Grund
+     * gerechnet.
      *
-     * WAS HIER BEWUSST NICHT PASSIERT
-     *
-     * Kein Logo, kein Kopfbild, keine Farbflaechen. Eine Mail, die wie eine
-     * Werbesendung aussieht, wird wie eine behandelt — vom Spamfilter und
-     * vom Leser. Der Brief bleibt ein Brief: eine Spalte, eine Schrift,
-     * schwarz auf weiss. Das Einzige, was dazukommt, ist das, wofuer HTML
-     * hier da ist — dass man auf eine Adresse klicken kann.
-     *
-     * Steht eine Adresse allein auf ihrer Zeile, ist sie der Handgriff der
-     * Mail: der Zahlungslink, die Kundenseite, der Fragebogen. Die bekommt
-     * einen Knopf, und darunter klein die Adresse zum Nachlesen — wer sehen
-     * will, wohin er geklickt wird, soll das koennen, ohne den Mauszeiger
-     * darueber zu halten. Adressen mitten im Satz bleiben Verweise im Satz.
+     * Das Cyan #1fe8ff der Nachtfassung hat auf Weiss 1,4:1 — als Schrift
+     * unlesbar, als Knopffarbe schlimmer. Auf dem Briefbogen traegt deshalb
+     * das tiefe Blau, und das Cyan kommt nur im Farbstreifen vor, wo es
+     * nichts lesbar halten muss.
      */
-    public static function alsHtml(string $text, string $knopfwort = 'Öffnen'): string
+    private const BLAU_TIEF = '#0648e8';
+    private const BLAU      = '#0a78f5';
+    private const CYAN      = '#1fe8ff';
+    private const GRUND     = '#eef1f7';
+    private const FLAECHE   = '#ffffff';
+    private const TEXT      = '#101620';
+    private const LEISE     = '#6b7688';
+    private const LINIE     = '#e2e6ee';
+
+    /**
+     * Derselbe Brief, nur als HTML — auf dem Briefbogen von Vecom Design.
+     *
+     * WAS HIER STEHT UND WAS BEWUSST NICHT
+     *
+     * Kopf mit der Wortmarke, ein Farbstreifen in den Markenfarben, Fuss mit
+     * Anschrift und Kontakt. Das ist der Briefbogen: Wer eine Mail von einem
+     * Webdesigner bekommt, die aussieht wie aus einem Textfeld, zieht daraus
+     * einen Schluss ueber die Arbeit.
+     *
+     * Nicht dabei: ein Kopfbild, ein Logo als Grafik, Farbflaechen ueber
+     * ganze Bereiche, Spalten, Symbole. Zwei Gruende, und beide sind
+     * praktisch. Erstens laden viele Programme entfernte Bilder gar nicht —
+     * eine Marke, die als Bild kommt, ist bei jedem zweiten Empfaenger ein
+     * leerer Rahmen. Deshalb ist die Wortmarke hier Schrift, und der
+     * Farbstreifen ist eine eingefaerbte Tabellenzelle: beides ist immer da.
+     * Zweitens werden Mails, die wie eine Werbesendung aussehen, wie eine
+     * behandelt — und die Zustellung ist hier ein offener Punkt, kein
+     * geloester.
+     *
+     * DUNKELMODUS
+     *
+     * Apple Mail und Outlook.com faerben helle Mails selbsttaetig um, und
+     * zwar schlecht: aus dunkelblauem Knopftext auf Weiss wird gern
+     * dunkelblau auf Dunkelgrau. Mit color-scheme und einem eigenen
+     * Farbsatz entscheidet der Briefbogen selbst, wie er im Dunkeln
+     * aussieht.
+     *
+     * @param string $sprache Fuer die Zeile im Fuss. Alles andere ist Daten.
+     */
+    public static function alsHtml(string $text, string $knopfwort = 'Öffnen',
+                                   string $sprache = 'de'): string
     {
+        require_once __DIR__ . '/Firma.php';
+
         $absaetze = preg_split("~\r?\n[ \t]*\r?\n~", trim($text)) ?: [];
         $teile = [];
 
@@ -339,7 +397,7 @@ final class Mail
             $satz = [];
             $absatzAus = static function () use (&$satz, &$teile): void {
                 if (!$satz) { return; }
-                $teile[] = '<p style="margin:0 0 16px;line-height:1.65">'
+                $teile[] = '<p style="margin:0 0 17px;line-height:1.68;color:' . self::TEXT . '">'
                          . implode('<br>', $satz) . '</p>';
                 $satz = [];
             };
@@ -358,7 +416,24 @@ final class Mail
                    dem Telefon umbricht — gemeint war ein Strich. */
                 if (preg_match('~^[-=_]{6,}$~', $roh)) {
                     $absatzAus();
-                    $teile[] = '<hr style="border:0;border-top:1px solid #e3e5e8;margin:2px 0 16px">';
+                    $teile[] = '<hr style="border:0;border-top:1px solid ' . self::LINIE
+                             . ';margin:4px 0 18px">';
+                    continue;
+                }
+
+                /* EINE UEBERSCHRIFT BLEIBT EINE UEBERSCHRIFT
+                   Die Auftragsbestaetigung setzt Abschnitte als Zeile in
+                   Grossbuchstaben zwischen zwei Strichen ("DEINE
+                   BESTELLUNG"). Im reinen Text traegt das; als gewoehnlicher
+                   Absatz sieht es aus wie Geschrei. */
+                if (mb_strlen($roh) >= 6 && mb_strlen($roh) <= 46
+                    && $roh === mb_strtoupper($roh)
+                    && preg_match('~^[\p{Lu}\p{Zs}\p{Pd}·.,&\d]+$~u', $roh)
+                    && preg_match('~\p{Lu}{2,}~u', $roh)) {
+                    $absatzAus();
+                    $teile[] = '<p style="margin:0 0 10px;font-size:12px;font-weight:700;'
+                             . 'letter-spacing:.14em;color:' . self::LEISE . '">'
+                             . self::sicher($roh) . '</p>';
                     continue;
                 }
 
@@ -368,18 +443,195 @@ final class Mail
         }
 
         $rumpf = implode("\n", $teile);
+        $schrift = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-        return '<!doctype html><html><head><meta charset="utf-8">'
-            . '<meta name="viewport" content="width=device-width,initial-scale=1"></head>'
-            . '<body style="margin:0;padding:0;background:#f4f4f2">'
+        return '<!doctype html><html lang="' . self::sicher($sprache) . '">'
+            . '<head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<meta name="color-scheme" content="light dark">'
+            . '<meta name="supported-color-schemes" content="light dark">'
+            . '<style>'
+            . ':root{color-scheme:light dark;supported-color-schemes:light dark}'
+            /* Was der Dunkelmodus umdreht — und nur das. Wer keine
+               Medienabfragen kann (Gmail), sieht die helle Fassung, und die
+               ist die richtige. */
+            . '@media (prefers-color-scheme:dark){'
+            . '.vd-grund{background:#0b0e14!important}'
+            . '.vd-blatt{background:#141a24!important}'
+            . '.vd-text,.vd-text p{color:#e7ecf5!important}'
+            . '.vd-leise{color:#93a0b5!important}'
+            . '.vd-marke{color:#f2f5fa!important}'
+            . '.vd-linie{border-color:#2a3342!important}'
+            . '.vd-adr{color:#8fb4ff!important}'
+            . '}'
+            . '@media (max-width:520px){'
+            /* Nur die seitliche Luft schrumpft. Nimmt man hier die ganze
+               Angabe, bekommt jede Zelle dieselbe Hoehe oben -- und der
+               Briefkopf steht dann mit einem Loch ueber der Anrede. */
+            . '.vd-innen{padding-left:20px!important;padding-right:20px!important}'
+            . '.vd-knopf a{display:block!important}'
+            . '}'
+            . '</style></head>'
+            . '<body class="vd-grund" style="margin:0;padding:0;background:' . self::GRUND . ';">'
+            . self::vorschauzeile($text)
             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"'
-            . ' style="background:#f4f4f2"><tr><td align="center" style="padding:28px 16px">'
+            . ' class="vd-grund" style="background:' . self::GRUND . '">'
+            . '<tr><td align="center" style="padding:28px 14px 34px">'
             . '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"'
-            . ' style="max-width:560px;background:#ffffff;border-radius:10px">'
-            . '<tr><td style="padding:32px 28px;font-family:-apple-system,BlinkMacSystemFont,'
-            . '\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:15.5px;color:#14171c">'
+            . ' class="vd-blatt" style="max-width:580px;background:' . self::FLAECHE
+            . ';border-radius:14px;overflow:hidden">'
+            . self::streifen()
+            . self::kopf()
+            . '<tr><td class="vd-innen vd-text" style="padding:6px 34px 30px;font-family:' . $schrift
+            . ';font-size:15.5px;color:' . self::TEXT . '">'
             . $rumpf
-            . '</td></tr></table></td></tr></table></body></html>';
+            . '</td></tr>'
+            . self::fuss($sprache, $schrift)
+            . '</table></td></tr></table></body></html>';
+    }
+
+    /**
+     * Der Farbstreifen: die Markenfarben, vier Pixel hoch.
+     *
+     * Drei Zellen statt eines Verlaufs. Outlook rechnet keine Verlaeufe, und
+     * ein Streifen, der bei jedem dritten Empfaenger fehlt, ist kein
+     * Markenzeichen. Drei Flaechen nebeneinander koennen alle.
+     */
+    private static function streifen(): string
+    {
+        return '<tr><td style="padding:0;font-size:0;line-height:0">'
+             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
+             . '<tr>'
+             . '<td width="45%" height="4" style="background:' . self::BLAU_TIEF
+             . ';font-size:0;line-height:0">&nbsp;</td>'
+             . '<td width="35%" height="4" style="background:' . self::BLAU
+             . ';font-size:0;line-height:0">&nbsp;</td>'
+             . '<td width="20%" height="4" style="background:' . self::CYAN
+             . ';font-size:0;line-height:0">&nbsp;</td>'
+             . '</tr></table></td></tr>';
+    }
+
+    /**
+     * Der Kopf: die Wortmarke als Schrift.
+     *
+     * Auf der Website steht "Vecom" und darunter "Design" weit gesperrt.
+     * Genauso hier — nur eben in einer Schrift, die jedes Mailprogramm hat.
+     * Als Grafik waere sie schoener und bei jedem zweiten Empfaenger ein
+     * leerer Rahmen.
+     */
+    private static function kopf(): string
+    {
+        $schrift = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+        $name = self::still(static fn() => Firma::get('name'), 'Vecom Design');
+        /* "Vecom Design" wird zu "Vecom" plus gesperrtem "Design". Heisst die
+           Firma einmal anders, steht sie eben ungeteilt da. */
+        $teil = explode(' ', trim((string) $name), 2);
+        $eins = $teil[0] ?? 'Vecom';
+        $zwei = $teil[1] ?? '';
+
+        return '<tr><td class="vd-innen" style="padding:30px 34px 4px;font-family:' . $schrift . '">'
+             . '<div class="vd-marke" style="font-size:19px;font-weight:700;letter-spacing:-.01em;'
+             . 'color:' . self::TEXT . ';line-height:1.1">' . self::sicher($eins) . '</div>'
+             . ($zwei !== ''
+                ? '<div class="vd-leise" style="font-size:10.5px;font-weight:600;letter-spacing:.42em;'
+                  . 'text-transform:uppercase;color:' . self::LEISE . ';margin-top:5px">'
+                  . self::sicher($zwei) . '</div>'
+                : '')
+             . '<div class="vd-linie" style="border-top:1px solid ' . self::LINIE
+             . ';margin:22px 0 0;font-size:0;line-height:0">&nbsp;</div>'
+             . '</td></tr>';
+    }
+
+    /**
+     * Der Fuss: wer schreibt, von wo, und wie man antwortet.
+     *
+     * Eine geschaeftliche Mail ohne Absenderangaben ist unvollstaendig —
+     * und sobald die Partita IVA da ist, gehoert sie hierhin. Beides kommt
+     * aus Firma, damit es an einer Stelle gepflegt wird und nicht in
+     * siebzehn Mailtexten steht.
+     */
+    private static function fuss(string $sprache, string $schrift): string
+    {
+        $zeilen = (array) self::still(static fn() => Firma::anschrift(), []);
+
+        /* NICHT AUS Firma::fusszeilen()
+           --------------------------------------------------------------
+           Die sind fuer den Beleg gebaut und enthalten Bank und IBAN. Auf
+           einem Beleg gehoeren die hin; unter eine Mail, in der jemand
+           gleich auf einen Zahlungsknopf drueckt, gehoeren sie nicht --
+           Kontodaten neben einem Zahlungslink sind genau das Bild, das
+           Betrugsmails erzeugen. Also nur Kontakt und Steuernummern. */
+        $unten = [];
+        $kontakt = array_filter([
+            (string) self::still(static fn() => Firma::get('email'), ''),
+            (string) self::still(static fn() => Firma::get('telefon'), ''),
+            (string) self::still(static fn() => Firma::get('web'), ''),
+        ], static fn($w) => trim((string) $w) !== '');
+        if ($kontakt) { $unten[] = implode('  ·  ', $kontakt); }
+
+        $steuer = [];
+        $piva = (string) self::still(static fn() => Firma::get('piva'), '');
+        $cf   = (string) self::still(static fn() => Firma::get('steuernr'), '');
+        if (trim($piva) !== '') { $steuer[] = 'P. IVA ' . $piva; }
+        if (trim($cf) !== '')   { $steuer[] = 'C.F. ' . $cf; }
+        if ($steuer) { $unten[] = implode('  ·  ', $steuer); }
+
+        $satz = ['it' => 'Ricevi questa e-mail perché stiamo lavorando insieme al tuo progetto.',
+                 'de' => 'Du bekommst diese E-Mail, weil wir an deinem Projekt zusammenarbeiten.',
+                 'en' => 'You’re receiving this email because we’re working on your project together.',
+                ][$sprache] ?? '';
+
+        $inhalt = '';
+        if ($zeilen) {
+            $inhalt .= '<div style="margin:0 0 6px;color:' . self::TEXT . '" class="vd-text">'
+                     . '<strong>' . self::sicher(array_shift($zeilen)) . '</strong>'
+                     . ($zeilen ? ' · ' . self::sicher(implode(' · ', $zeilen)) : '')
+                     . '</div>';
+        }
+        foreach ($unten as $u) {
+            $inhalt .= '<div style="margin:0 0 4px">' . self::zeileHtml((string) $u) . '</div>';
+        }
+        if ($satz !== '') {
+            $inhalt .= '<div style="margin:12px 0 0">' . self::sicher($satz) . '</div>';
+        }
+
+        if ($inhalt === '') { return ''; }
+
+        return '<tr><td class="vd-innen vd-leise vd-linie" style="padding:20px 34px 26px;'
+             . 'border-top:1px solid ' . self::LINIE . ';font-family:' . $schrift
+             . ';font-size:12px;line-height:1.6;color:' . self::LEISE . '">'
+             . $inhalt . '</td></tr>';
+    }
+
+    /**
+     * Die Zeile, die im Posteingang neben dem Betreff steht.
+     *
+     * Ohne sie zeigt das Programm den Anfang des HTML — bei uns also die
+     * Wortmarke, bei jeder Mail dieselbe. Der erste Satz des Briefes ist
+     * dort besser aufgehoben. Sichtbar ist die Zeile nur in der Vorschau,
+     * nicht in der geoeffneten Mail.
+     */
+    private static function vorschauzeile(string $text): string
+    {
+        $zeilen = preg_split("~\r?\n~", trim($text)) ?: [];
+        $satz = '';
+        foreach ($zeilen as $z) {
+            $z = trim($z);
+            /* Die Anrede ueberspringen: "Hallo Salvatore," sagt in der
+               Vorschau nichts, was der Absendername nicht schon sagt. */
+            if ($z === '' || preg_match('~^(hallo|ciao|hello|hi)\b~i', $z)) { continue; }
+            if (preg_match('~^https?://~', $z)) { continue; }
+            $satz = $z;
+            break;
+        }
+        if ($satz === '') { return ''; }
+        $satz = mb_substr($satz, 0, 140);
+
+        return '<div style="display:none;max-height:0;overflow:hidden;opacity:0;'
+             . 'mso-hide:all">' . self::sicher($satz)
+             /* Fuellzeichen, damit das Programm nicht doch noch den Anfang
+                des Briefbogens dahinterhaengt. */
+             . str_repeat('&#847;&zwnj;&nbsp;', 60) . '</div>';
     }
 
     /** Eine Zeile: gesichert, mit Adressen als Verweise. */
@@ -405,7 +657,8 @@ final class Mail
             }
 
             $aus .= self::sicher(substr($rest, 0, $pos));
-            $aus .= '<a href="' . self::sicher($url) . '" style="color:#0b5cff;text-decoration:underline">'
+            $aus .= '<a href="' . self::sicher($url) . '" class="vd-adr" style="color:'
+                  . self::BLAU_TIEF . ';text-decoration:underline">'
                   . self::sicher(self::kurz($url)) . '</a>';
             $rest = substr($rest, $pos + strlen($url));
         }
@@ -437,7 +690,9 @@ final class Mail
            Innenabstaende zusammen, und aus dem Knopf wird wieder ein Link. */
         return '<table role="presentation" cellpadding="0" cellspacing="0" border="0"'
              . ' style="margin:6px 0 0"><tr>'
-             . '<td align="center" style="border-radius:9px;background:#14171c;min-width:200px">'
+             . '<td align="center" class="vd-knopf" style="border-radius:10px;background:'
+             . self::BLAU_TIEF . ';background-image:linear-gradient(135deg,' . self::BLAU_TIEF
+             . ' 0%,' . self::BLAU . ' 100%);min-width:200px">'
              . '<a href="' . $u . '" style="display:block;padding:16px 32px;' . $schrift
              . 'font-size:16.5px;font-weight:600;line-height:1.2;color:#ffffff;'
              . 'text-decoration:none;white-space:nowrap">' . self::sicher($wort) . '</a>'
@@ -446,9 +701,11 @@ final class Mail
                 jedes Programm, das den Knopf nicht darstellt, und sie zeigt
                 vor dem Klick, wohin es geht. Unterstrichen, damit man ihr
                 ansieht, dass sie auch eine ist. */
-             . '<p style="margin:10px 0 22px;' . $schrift
-             . 'font-size:12.5px;line-height:1.5;color:#6b7280;word-break:break-all">'
-             . '<a href="' . $u . '" style="color:#6b7280;text-decoration:underline">' . $u . '</a></p>';
+             . '<p class="vd-leise" style="margin:10px 0 22px;' . $schrift
+             . 'font-size:12.5px;line-height:1.5;color:' . self::LEISE
+             . ';word-break:normal;overflow-wrap:anywhere">'
+             . '<a href="' . $u . '" class="vd-leise" style="color:' . self::LEISE
+             . ';text-decoration:underline">' . $u . '</a></p>';
     }
 
     /**

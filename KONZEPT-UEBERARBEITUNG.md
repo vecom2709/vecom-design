@@ -1,0 +1,70 @@
+# Überarbeitung vecom-design.it — Konzept und Budget
+
+Festgeschrieben vor dem ersten Commit, wie der Skill `realtime-web-masterstack`
+es verlangt: *„Ein Budget, das erst am Ende geprüft wird, ist kein Budget."*
+
+## Ausgangsmessung (05.09.2026, lokal, ungedrosselt)
+
+| Größe | Wert | Bemerkung |
+|---|---|---|
+| LCP | 1.976 ms | auf localhost ohne Drosselung — auf Mobilfunk deutlich darüber |
+| CLS | 0,042 | in Ordnung |
+| Übertragen | ~3,1 MB | ohne die nachgeladene Welt; mit ihr ~3,5 MB |
+| davon Bilder | 1.332 KB | WebP |
+| davon Video | 1.158 KB | `auftakt.mp4` 716 KB + `auftakt.webm` 442 KB |
+| davon JS | 341 KB | plus `three.module.min.js` 365 KB, verzögert |
+| davon CSS | 138 KB | `app.css` |
+| davon Schriften | 131 KB | woff2 |
+| Skripte im DOM | 22 | 16 davon als eigene `<script>`-Tags |
+| Seitenhöhe | 16.961 px | 11 Abschnitte |
+
+**Was schon da ist und bleibt** (nach 9 s gemessen, `data-world="on"`, keine
+Konsolenfehler): Three.js-Szene als Bühne hinter dem Inhalt, Beat-System
+(`site-beats.js`), adaptive Qualität mit Geräteerkennung (`quality.js`),
+Bruch-Effekt (`bruch.js`), Bloom (`finish-pass.js`), vier Rückfallwege
+(kein WebGL, reduzierte Bewegung, Datensparmodus, schwaches Gerät).
+
+## Budget
+
+| Größe | Grenze | Herkunft |
+|---|---|---|
+| Erstes Bild, übertragen | < 900 KB | eigener Vecom-Standard: „deutlich unter 1 MB" |
+| JS fürs Erstbild | ≤ 300 KB gzip | Referenz 11 des Skills |
+| LCP | < 2,5 s auf gedrosseltem Mobil | Referenz 11, Vecom-Standard |
+| CLS | < 0,05 | bleibt wie gemessen |
+| Bildrate | stabil auf Mittelklasse-Mobilgerät | Framezeit gemessen, nicht geschätzt |
+| Texturen | ≤ 2k | außer der Zoom fordert mehr |
+
+Geprüft wird auf 360 / 768 / 1280 / 1920 px, im Reduced-Motion-Pfad und ohne
+WebGL.
+
+## Rendering-Weg
+
+WebGL2 über Three.js — der vorhandene Pfad. **Kein WebGPU-Build**: Die Szene
+läuft fehlerfrei, der WebGPU-Build wäre deutlich schwerer, und der Gewinn wäre
+an einer Logo-Szene fachlich, nicht sichtbar. Entschieden am 05.09.2026;
+nachzumessen, sobald die Szene inhaltlich wächst.
+
+## Stufen — jede für sich lauffähig
+
+1. **Tag und Nacht.** Tokens für einen hellen Modus, drei Zustände
+   (System / Tag / Nacht), gespeicherte Wahl, Umschaltung als View Transition.
+   Die Szene schaltet mit: Umgebung, Nebel, Lichtfarben, Materialien. Ohne das
+   säße ein Nachtkopf über einer Tagseite.
+2. **Der Auftakt kommt aus der Szene.** `auftakt.mp4`/`.webm` entfallen; das
+   Logo, das zwei Sekunden später ohnehin in Echtzeit dasteht, macht den
+   Auftakt selbst. Spart 1,15 MB und ersetzt einen Schnitt durch einen
+   Übergang. Rückfall bleibt das vorhandene Posterbild.
+3. **Gewicht.** Sprachdaten aufteilen (137 KB → nur die aktive Sprache),
+   Bilder gegen echte Anzeigegrößen prüfen, Skript-Tags zusammenlegen.
+4. **Drehbuch durchsehen.** `site-beats.js` ist bereits eine Beat-Timeline.
+   Geprüft wird gegen die Regel: jeder Beat muss als Standbild funktionieren.
+   Ersetzt wird sie nicht.
+5. **Stufen-Demonstrator.** Ein Abschnitt, der die Ambitionsstufen A bis D am
+   selben Beispiel umschaltbar zeigt — dieselben Stufen, die der Bau-Prompt
+   der Verwaltung vergibt.
+
+## Regel für alle Stufen
+
+Jede eingebaute Technik braucht eine Begründung, die hier steht. Was nur
+beeindruckt, ohne die Aussage zu tragen, wird gestrichen.

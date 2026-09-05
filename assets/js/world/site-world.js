@@ -103,6 +103,22 @@ async function start() {
   await (document.fonts ? document.fonts.ready : Promise.resolve());
   bindSiteBeats({ world, gsap, ScrollTrigger });
 
+  /* ------------------------------------------------------------------------
+     Tag und Nacht
+
+     thema.js schaltet die Seite und meldet, was jetzt gilt. Die Buehne hoert
+     hier zu — ohne das saesse ein Nachtkopf ueber einer Tagseite, und genau
+     das ist der Punkt, an dem ein Umschalter aufhoert, ein Umschalter zu
+     sein.
+
+     Beim Start einmal nachziehen: Die Welt wird erst nach dem Auftakt
+     gebaut, und bis dahin kann laengst umgeschaltet worden sein.
+     ---------------------------------------------------------------------- */
+  window.addEventListener('vecom:thema', (e) => {
+    if (world && e.detail && e.detail.thema) { world.setThema(e.detail.thema); }
+  });
+  if (window.vecomThema) { world.setThema(window.vecomThema.jetzt()); }
+
   window.addEventListener('pointermove', (e) => {
     if (e.pointerType !== 'mouse') return;
     world.setParallax(

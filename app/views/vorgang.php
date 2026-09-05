@@ -433,8 +433,10 @@ $tage   = Vorgang::ruhtSeitTagen($v);
   <?php $vs = $v['vorschau']; ?>
   <div class="block"><h2>Vorschau
     <span class="mehr">
-      <?php if ($vs['frei_am']): ?>
-        <span class="marke2 gut">freigeschaltet</span>
+      <?php if (!empty($vs['abnahme_am'])): ?>
+        <span class="marke2 gut">Abnahme offen</span>
+      <?php elseif ($vs['frei_am']): ?>
+        <span class="marke2 gut">er darf ansehen</span>
       <?php elseif ($vs['url'] !== ''): ?>
         <span class="marke2 warnung">nur für dich</span>
       <?php else: ?>
@@ -442,8 +444,10 @@ $tage   = Vorgang::ruhtSeitTagen($v);
       <?php endif; ?>
     </span></h2>
     <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
-      Eintragen und Freischalten sind zweierlei. Der Kunde sieht den Entwurf erst nach dem
-      Freischalten — vorher steht bei ihm ein grauer Kasten mit dem Hinweis, dass er hier erscheint.</p>
+      Drei Schritte, und jeder ist eine eigene Entscheidung: <b>Adresse eintragen</b> (sieht nur du),
+      <b>zum Ansehen freischalten</b> (er schaut und darf Änderungen wünschen, abnehmen kann er nicht),
+      <b>Abnahme freischalten</b> (erst dann steht bei ihm „Passt so“ — und erst dann bekommt er die
+      Nachricht, dass die Seite fertig ist).</p>
 
     <form method="post" action="<?= Fmt::h(url('')) ?>">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_speichern">
@@ -476,7 +480,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
             und schickt ihm die E-Mail.</span>
         <?php endif; ?>
       <?php else: ?>
-        <span style="color:var(--leise);font-size:12.5px">Freigegeben am
+        <span style="color:var(--leise);font-size:12.5px">Zum Ansehen frei seit
           <?= Fmt::h(Fmt::zeit((string) $vs['frei_am'])) ?></span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
               data-frage="Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?" data-ja="Ja, sperren">
@@ -486,6 +490,44 @@ $tage   = Vorgang::ruhtSeitTagen($v);
           <button class="knopf">Wieder sperren</button></form>
       <?php endif; ?>
     </div>
+
+    <?php /* ---------- Der zweite Schalter: die Abnahme ----------------
+         Hier lag der teuerste Fehler der Kette: Neben dem freigeschalteten
+         Entwurf stand immer schon "Passt so — veroeffentlichen", und weil der
+         Knopf auch ohne Adresse dastand, konnte ein Kunde eine Seite abnehmen,
+         die er nie gesehen hatte. An der Abnahme haengen Restzahlung und
+         Veroeffentlichung. Sie ist jetzt ein eigener Schalter. */ ?>
+    <?php if (!empty($vs['abnahme_spalte'])): ?>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;
+                border-top:1px solid var(--linie);padding-top:12px">
+      <?php if (empty($vs['abnahme_am'])): ?>
+        <?php if (!$vs['frei_am']): ?>
+          <button class="knopf" disabled title="Erst zum Ansehen freischalten">Abnahme freischalten</button>
+          <span style="color:var(--leise);font-size:12.5px">Erst ansehen lassen, dann abnehmen lassen.
+            Solange steht bei ihm kein „Passt so“.</span>
+        <?php else: ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+                data-frage="Danach kann der Kunde die Seite abnehmen — daran hängt die Restzahlung. Fertig?"
+                data-ja="Ja, Abnahme freischalten">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="abnahme_frei">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+            <input type="hidden" name="id" value="<?= (int) $pid ?>">
+            <button class="knopf haupt">Abnahme freischalten</button></form>
+          <span style="color:var(--leise);font-size:12.5px">Schickt ihm „die Seite ist fertig“ und
+            zeigt ihm „Passt so“. Bis dahin darf er nur schauen und Änderungen wünschen.</span>
+        <?php endif; ?>
+      <?php else: ?>
+        <span style="color:var(--leise);font-size:12.5px">Abnahme frei seit
+          <?= Fmt::h(Fmt::zeit((string) $vs['abnahme_am'])) ?></span>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+              data-frage="Der Kunde kann danach nicht mehr abnehmen. Fortfahren?" data-ja="Ja, zumachen">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="abnahme_sperren">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+          <input type="hidden" name="id" value="<?= (int) $pid ?>">
+          <button class="knopf">Abnahme wieder zu</button></form>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 

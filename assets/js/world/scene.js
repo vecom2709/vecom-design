@@ -16,6 +16,152 @@ const BLUE = 0x0648e8;
 const CYAN = 0x1fe8ff;
 const DEEP = 0x030509;
 
+/* ==========================================================================
+   ZWEI LICHTSITUATIONEN, EIN AUFBAU
+
+   Die Buehne war fuer die Nacht gebaut: dunkler Raum, zwei Markenflaechen,
+   eine weisse Softbox. Auf hellem Grund kippt genau das — der Lichtkegel
+   frisst die Ueberschrift, und die Neonkanten, die nachts die Silhouette
+   zeichnen, waschen tagsueber nur aus.
+
+   Deshalb steht hier nicht eine zweite Szene, sondern ein zweiter Satz Werte
+   fuer dieselbe. Was sich aendert, ist Licht, Nebel, Grund und Material —
+   nicht die Geometrie, nicht die Kamera, nicht die Dramaturgie. Ein
+   Szenenwechsel waere ein zweiter Ort, an dem dieselbe Wahrheit gepflegt
+   werden muesste.
+
+   Die Regel dahinter kommt aus dem Handwerk: Licht vor Material vor Kamera.
+   Wer am Tag nur die Materialfarbe aufhellt, bekommt ein blasses Objekt in
+   einem Nachtraum. Also wird zuerst der Raum umgebaut.
+   ========================================================================== */
+const THEMEN = {
+  dark: {
+    grund: ['#070f22', '#040814', '#02040a'],
+    nebelFarbe: 0x02040a, nebelDichte: 0.032,
+    envGrund: 0x02030a,
+    /* [Breite, Hoehe, Farbe, Staerke, Position, Drehung] */
+    panels: [
+      [13, 8,  0xffffff, 6.5, [-1, 9, 2],    [Math.PI / 2, 0, 0]],
+      [11, 13, 0x1c6cff, 6.0, [-9, 1.5, 1],  [0, Math.PI / 2, 0]],
+      [4,  13, 0x1fe8ff, 5.5, [9, 0.5, -1],  [0, -Math.PI / 2, 0]],
+      [20, 13, 0x0a1633, 1.6, [0, 0, -11],   null],
+      [20, 20, 0x03050c, 1.0, [0, -6, 0],    [-Math.PI / 2, 0, 0]],
+    ],
+    ambient: [0x0a1526, 0.35],
+    key: [0xffffff, 340],
+    rimA: [BLUE, 90], rimB: [CYAN, 55],
+    fill: [0x5a7cba, 18], spec: [0xffffff, 34], pointer: [0x9fd0ff, 26],
+    logo: { color: 0x164bc4, roughness: 0.3, envMapIntensity: 1.9, iridescence: 0.08 },
+    boden: { color: 0x070c16, roughness: 0.3, envMapIntensity: 0.7 },
+    /* Nachts braucht es keinen Fond: Der Grund IST dunkel. */
+    fond: { farbe: 0x02040a, staerke: 0.0 },
+    belichtung: 1.05,
+    bloom: 0.46,
+    vignette: 0.55,
+  },
+  light: {
+    /* Derselbe Papierton wie --c-base in theme.css. Die Szene muss in den
+       Seitengrund uebergehen, sonst steht sie als Kasten darin. */
+    grund: ['#f7f9fd', '#eef1f7', '#e2e7f1'],
+    /* Heller Nebel: Das Logo loest sich nach hinten ins Papier auf statt ins
+       Schwarze. Etwas dichter als nachts, weil helle Tiefe schneller flach
+       wirkt. */
+    /* Nebel fast aus. Bei 0.038 loeste sich der Koerper in den Grund auf --
+       das war die halbe Milchglas-Wirkung. Tiefe macht am Tag das Licht,
+       nicht der Dunst. */
+    nebelFarbe: 0xe8ecf4, nebelDichte: 0.008,
+
+    /* DIE UMGEBUNG BLEIBT DAS NACHTSTUDIO -- UND DAS IST DER GANZE PUNKT
+       ------------------------------------------------------------------
+       Zwei Anlaeufe habe ich gebraucht. Erst wurde der Raum am Tag hell
+       gemacht, damit er zur Seite passt: Das V spiegelte dann von allen
+       Seiten Helles, verlor seine Kante und sah aus wie Milchglas. Dann
+       kamen schwarze Karten dazu -- besser, aber immer noch fahl.
+
+       Der Denkfehler war, dass die Umgebung zur SEITE passen muesse. Sie
+       muss zum KOERPER passen. Ein Spiegel hat keine eigene Farbe; er
+       zeigt, was um ihn steht. Steht er im Hellen, ist er hell -- fertig.
+
+       Genau deshalb fotografiert man polierte Produkte im dunklen Zelt
+       und stellt sie danach auf weissen Grund: Der Koerper bleibt tief
+       und glaenzend, die Seite bleibt hell. Das Studio ist also
+       dasselbe wie nachts, nur eine Spur weniger heiss. Was dem Tag
+       gehoert, ist der Grund dahinter, der Nebel, die Vignette und die
+       Belichtung -- nicht die Spiegelung. */
+    envGrund: 0x02030a,
+    panels: [
+      /* Schmaler und weiter zur Seite: Vorher stand eine 13 Einheiten
+         breite Flaeche mittig ueber der Marke und hellte die ganze
+         Frontseite gleichmaessig auf -- das ist der Grund, warum sie
+         lavendel blieb. Eine schmale Quelle, die von schraeg vorn
+         STREIFT, gibt ein Band statt einer Flut, und der Koerper bleibt
+         darunter tief. */
+      [5.5, 11, 0xffffff, 6.4, [-5.2, 8.0, 4.5], [Math.PI / 2, 0, 0.34]],
+      [11, 13, 0x1c6cff, 5.0, [-9, 1.5, 1],  [0, Math.PI / 2, 0]],
+      [4,  13, 0x1fe8ff, 4.4, [9, 0.5, -1],  [0, -Math.PI / 2, 0]],
+      [20, 13, 0x0a1633, 1.4, [0, 0, -11],   null],
+      [20, 20, 0x03050c, 0.9, [0, -6, 0],    [-Math.PI / 2, 0, 0]],
+    ],
+    ambient: [0xa8bcd8, 0.18],
+    /* Weniger Kegel: Am Tag kam das Licht von ueberall, und ein harter
+       Spot auf hellem Grund liest sich als Fleck, nicht als Licht. */
+    key: [0xffffff, 260],
+    /* Die Neonkanten fast aus. Auf Schwarz zeichnen sie die Silhouette, auf
+       Papier sind sie nur ein Schleier ueber dem Text dahinter. */
+    rimA: [0x1f4fd0, 62], rimB: [0x1090b4, 34],
+    fill: [0x8fb0e0, 12], spec: [0xffffff, 26], pointer: [0x6fa8dc, 16],
+    /* Dunkleres Metall, weniger Umgebungsspiegelung, mehr Rauheit: Sonst
+       spiegelt der helle Raum sich zu einem weissen Klumpen. */
+    /* Erster Versuch war 0x0e3aa8 bei envMapIntensity 0.85 — das las sich wie
+       Milchglas, nicht wie Metall: Der helle Raum spiegelte sich in die
+       Flaeche, bis die Form ihre Kante verlor. Dunkler und weniger Umgebung
+       gibt ihr die Kante zurueck. */
+    /* Mit der schwarzen Karte darf das Metall wieder Metall sein: tieferes
+       Blau, glatter, und die Umgebung wieder voll. Vorher musste die
+       Rauheit den fehlenden Kontrast ausgleichen -- das ergibt aber kein
+       Metall, sondern Milchglas. Kontrast kommt aus der Umgebung, nicht
+       aus der Oberflaeche. */
+        /* Der Fresnel-Streifglanz an den Kanten ist laut Handwerk der eine
+       Effekt, der Material sofort teuer aussehen laesst -- er entsteht
+       hier aus niedriger Rauheit plus voller Umgebung. Anisotropie legt
+       das Glanzlicht laenglich in die Buerstrichtung: gebuerstetes
+       Metall statt lackiertem Kunststoff. */
+    logo: { color: 0x1140b8, roughness: 0.16, envMapIntensity: 1.85, iridescence: 0.07,
+            anisotropy: 0.55 },
+    boden: { color: 0xcfd8e8, roughness: 0.38, envMapIntensity: 0.45 },
+    /* DER FOND — hell, nicht dunkel.
+       ------------------------------------------------------------------
+       Mein erster Ansatz war ein dunkler Karton hinter der Marke, wie ihn
+       ein Fotograf neben poliertes Blech stellt. Auf einer hellen Seite
+       waere das aber ein Fleck gewesen: dunkle Flaeche auf Papier liest
+       sich als Schmutz, nicht als Licht.
+
+       Der bessere Weg ist der umgekehrte, und er ist genauso aus der
+       Produktfotografie: eine LEUCHTFLAECHE dahinter. Dann ist nicht mehr
+       der Koerper heller als sein Grund, sondern dunkler — und genau
+       daraus entsteht die Kante. Die Silhouette wird scharf, die
+       Glanzlichter bleiben die hellsten Punkte im Bild, und der Fond
+       selbst passt zur Tagfassung, statt gegen sie zu arbeiten.
+
+       Kurz: Kontrast entsteht, indem der Grund heller wird, nicht indem
+       der Koerper es wird. */
+    fond: { farbe: 0xffffff, staerke: 0.92 },
+    belichtung: 0.98,
+    /* Bloom auf hellem Grund ist schnell Nebel -- aber ganz ohne bleibt das
+       Glanzlicht stumpf. So viel, dass die Kante glueht, nicht die Flaeche. */
+    bloom: 0.30,
+    /* Eine dunkle Vignette auf Papier liest sich als Schmutz. */
+    vignette: 0.18,
+  },
+};
+
+/** Welche Fassung gerade gilt — dieselbe Quelle wie im CSS. */
+function themaJetzt() {
+  const gesetzt = document.documentElement.getAttribute('data-theme');
+  if (gesetzt === 'light' || gesetzt === 'dark') { return gesetzt; }
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
 export class World {
   constructor(canvas, quality) {
     this.canvas = canvas;
@@ -38,18 +184,19 @@ export class World {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     /* ---------- Szene & Atmosphäre ---------- */
+    this.thema = themaJetzt();
+    const T = THEMEN[this.thema];
+    this.renderer.toneMappingExposure = T.belichtung;
+
     this.scene = new THREE.Scene();
-    this.scene.background = this._backdropTexture();
-    this.scene.fog = new THREE.FogExp2(0x02040a, 0.032);
+    this.scene.background = this._backdropTexture(T.grund);
+    this.scene.fog = new THREE.FogExp2(T.nebelFarbe, T.nebelDichte);
 
     // Eigenes Studio als Umgebung: dunkler Raum, zwei Lichtflächen in den
     // Markenfarben, eine weiße Softbox oben. Das ist der Grund, warum das Metall
     // blau spiegelt und nicht bunt — eine fertige Zimmerumgebung brächte fremde
     // Farben in jede Reflexion. Kosten: 0 KB, alles prozedural.
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.envRT = pmrem.fromScene(this._studioEnvironment(), 0.03);
-    this.scene.environment = this.envRT.texture;
-    pmrem.dispose();
+    this._bakeEnvironment(T);
 
     /* ---------- Kamera ---------- */
     this.camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 120);
@@ -69,19 +216,25 @@ export class World {
     this._buildDust();
     this._buildComposer();
 
+    /* Startzeit: Vormittag. Tief genug fuer einen langen Schatten, hoch
+       genug fuer eine saubere Kante. Die Beats duerfen sie spaeter ueber
+       den Tag ziehen. */
+    this.tageszeit = 0.26;
+    if (this.thema === 'light') { this.setTageszeit(this.tageszeit); }
+
     this.q.onChange = (s) => this._applyQuality(s);
     window.addEventListener('resize', () => this.resize(), { passive: true });
   }
 
   /* Hintergrundverlauf statt Schwarz: gibt der Silhouette eine Kante. */
-  _backdropTexture() {
+  _backdropTexture(stufen) {
     const c = document.createElement('canvas');
     c.width = 4; c.height = 256;
     const ctx = c.getContext('2d');
     const g = ctx.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0.0, '#070f22');
-    g.addColorStop(0.45, '#040814');
-    g.addColorStop(1.0, '#02040a');
+    g.addColorStop(0.0, stufen[0]);
+    g.addColorStop(0.45, stufen[1]);
+    g.addColorStop(1.0, stufen[2]);
     ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 256);
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
@@ -89,11 +242,214 @@ export class World {
     return t;
   }
 
+  /* ====================================================================
+     DER HIMMEL HINTER DER MARKE
+
+     Der Tagmodus stand vor einer Rechnung, die nicht aufgeht: Auf
+     papierweissem Grund gibt es keinen Spielraum nach oben. Ein Glanz,
+     der heller sein soll als der hellste Punkt der Seite, kann es nicht.
+     Ein additiver Versuch hat die Marke prompt als Geist verschluckt.
+
+     Die Loesung ist nicht mehr Licht, sondern ein dunklerer Grund --
+     aber kein Grau. Grau hinter einem Koerper ist Studio; hier soll es
+     draussen sein. Also ein Himmel: mittags tiefes Blau, morgens und
+     abends warm am Horizont und nach oben ins Blaue laufend. Dieselbe
+     Scheibe ist beides -- der Grund, VOR dem die Silhouette steht, und
+     das, was das Metall SPIEGELT. Nur deshalb sieht die Sonne auf dem
+     Koerper echt aus: Sie steht wirklich im Raum, statt als Glanzfleck
+     aufgemalt zu sein.
+
+     Der Rand laeuft weich in den Seitengrund aus, damit die Seite hell
+     und der Text lesbar bleibt. Dunkel wird es nur dort, wo die Marke
+     steht.
+     ==================================================================== */
+  _himmelTextur(t, weich) {
+    const W = 1024, H = 512, HOR = Math.round(H * 0.62);
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    const bogen = Math.sin(Math.PI * Math.max(0, Math.min(1, t)));   // 0 früh/spät, 1 mittags
+
+    const hsl = (h, sa, l) => 'hsl(' + h.toFixed(1) + ' ' + sa.toFixed(1) + '% ' + l.toFixed(1) + '%)';
+
+    /* ZWEI HIMMEL UEBEREINANDER, NICHT EIN FARBTON DAZWISCHEN
+       Erster Versuch war, den Farbton vom Orange des Horizonts zum Blau
+       des Zenits zu rechnen. Der kurze Weg zwischen 28 und 210 Grad
+       fuehrt aber durch Gruen -- und genau das kam heraus: ein sanft
+       gruener Himmel.
+
+       Richtig ist, was in der Luft auch passiert: Der Himmel ist immer
+       blau, und davor liegt am Horizont eine warme Schicht, die umso
+       staerker und hoeher ist, je tiefer die Sonne steht. Also ein
+       blauer Verlauf, darueber ein warmer mit veraenderlicher Deckung. */
+    const g = ctx.createLinearGradient(0, 0, 0, HOR);
+    g.addColorStop(0.00, hsl(222, 58 + bogen * 10, 12 + bogen * 13));
+    g.addColorStop(0.45, hsl(214, 54 + bogen * 8,  24 + bogen * 18));
+    g.addColorStop(0.80, hsl(206, 46 + bogen * 6,  38 + bogen * 20));
+    g.addColorStop(1.00, hsl(202, 40 + bogen * 6,  48 + bogen * 22));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, HOR);
+
+    /* Die warme Schicht. Mittags fast weg, morgens und abends bis weit
+       nach oben. */
+    const warm = ctx.createLinearGradient(0, HOR * 0.30, 0, HOR);
+    const staerke = 1 - bogen;
+    warm.addColorStop(0.00, 'rgba(255,150,60,0)');
+    warm.addColorStop(0.55, 'rgba(255,140,52,' + (0.30 * staerke).toFixed(3) + ')');
+    warm.addColorStop(0.85, 'rgba(255,132,44,' + (0.68 * staerke + 0.06).toFixed(3) + ')');
+    warm.addColorStop(1.00, 'rgba(255,164,76,' + (0.82 * staerke + 0.10).toFixed(3) + ')');
+    ctx.fillStyle = warm; ctx.fillRect(0, 0, W, HOR);
+
+    /* Boden: warm und dunkler als der Himmel -- er haelt die untere
+       Haelfte des Koerpers tief. */
+    const b = ctx.createLinearGradient(0, HOR, 0, H);
+    b.addColorStop(0.00, hsl(26, 44 - bogen * 10, 34 + bogen * 8));
+    b.addColorStop(0.50, hsl(24, 38 - bogen * 8, 20 + bogen * 6));
+    b.addColorStop(1.00, hsl(22, 32 - bogen * 8, 11 + bogen * 4));
+    ctx.fillStyle = b; ctx.fillRect(0, HOR, W, H - HOR);
+
+    /* Die Sonnenscheibe an ihrer wirklichen Stelle. Sie ist der Grund,
+       warum das Glanzlicht wandert, wenn die Zeit laeuft. */
+    const az = Math.PI * (1 - t);
+    const hoehe = 0.8 + bogen * 9.5;
+    const weite = Math.hypot(Math.cos(az) * 9.5, 6.4);
+    const u = ((Math.atan2(6.4, Math.cos(az) * 9.5) / (2 * Math.PI)) + 0.75) % 1;
+    const v = 0.5 - Math.atan2(hoehe, weite) / Math.PI;
+    const sx = u * W, sy = Math.max(10, v * H);
+    const glut = ctx.createRadialGradient(sx, sy, 1, sx, sy, 150);
+    glut.addColorStop(0.00, 'rgba(255,253,246,1)');
+    glut.addColorStop(0.08, 'rgba(255,238,206,0.92)');
+    glut.addColorStop(0.34, 'rgba(255,206,150,0.30)');
+    glut.addColorStop(1.00, 'rgba(255,190,130,0)');
+    ctx.fillStyle = glut; ctx.beginPath(); ctx.arc(sx, sy, 150, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fffdf6'; ctx.beginPath(); ctx.arc(sx, sy, 15, 0, 7); ctx.fill();
+
+    /* Duenne Dunstbaender ueber dem Horizont: Struktur statt Verlauf --
+       daran erkennt das Auge im Spiegelbild eine Welt und keine Farbe. */
+    ctx.globalAlpha = 0.14 + bogen * 0.08;
+    for (let i = 0; i < 6; i++) {
+      ctx.fillStyle = i % 2 ? '#ffffff' : '#ffdca8';
+      ctx.fillRect(0, HOR - 14 - i * 15, W, 2 + (i % 2) * 2);
+    }
+    ctx.globalAlpha = 1;
+
+    /* Fuer die Scheibe hinter der Marke: weicher runder Rand, damit sie
+       im Seitengrund verlaeuft statt als Kreis darin zu stehen. */
+    if (weich) {
+      ctx.globalCompositeOperation = 'destination-in';
+      const m = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2);
+      m.addColorStop(0.00, 'rgba(0,0,0,1)');
+      m.addColorStop(0.44, 'rgba(0,0,0,1)');
+      m.addColorStop(0.64, 'rgba(0,0,0,0.86)');
+      m.addColorStop(0.82, 'rgba(0,0,0,0.34)');
+      m.addColorStop(1.00, 'rgba(0,0,0,0)');
+      ctx.fillStyle = m; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    if (!weich) tex.mapping = THREE.EquirectangularReflectionMapping;
+    return tex;
+  }
+
+  /* Der Himmel als FLAeCHE hinter der Marke.
+     Bewusst nicht dieselbe Karte wie fuer die Spiegelung: Eine
+     Equirect-Karte flach auf eine Scheibe gelegt zeigt Horizontband,
+     Dunstschichten und Sonnenscheibe woertlich -- auf der Seite waren
+     das quer laufende Streifen. Eine Spiegelung braucht Struktur, ein
+     Hintergrund braucht Ruhe. Also zwei Bilder aus denselben Farben. */
+  _fondHimmel(t) {
+    const W = 512, H = 512;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const ctx = c.getContext('2d');
+    const bogen = Math.sin(Math.PI * Math.max(0, Math.min(1, t)));
+    const hsl = (h, sa, l) => 'hsl(' + h.toFixed(1) + ' ' + sa.toFixed(1) + '% ' + l.toFixed(1) + '%)';
+
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0.00, hsl(223, 62 + bogen * 10, 16 + bogen * 10));
+    g.addColorStop(0.40, hsl(215, 56 + bogen * 8,  26 + bogen * 14));
+    g.addColorStop(0.78, hsl(207, 46 + bogen * 6,  40 + bogen * 18));
+    g.addColorStop(1.00, hsl(202, 40 + bogen * 6,  50 + bogen * 20));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    const staerke = 1 - bogen;
+    const warm = ctx.createLinearGradient(0, H * 0.22, 0, H);
+    warm.addColorStop(0.00, 'rgba(255,150,60,0)');
+    warm.addColorStop(0.60, 'rgba(255,138,50,' + (0.34 * staerke).toFixed(3) + ')');
+    warm.addColorStop(1.00, 'rgba(255,162,74,' + (0.78 * staerke + 0.06).toFixed(3) + ')');
+    ctx.fillStyle = warm; ctx.fillRect(0, 0, W, H);
+
+    ctx.globalCompositeOperation = 'destination-in';
+    const m = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2);
+    m.addColorStop(0.00, 'rgba(0,0,0,1)');
+    m.addColorStop(0.46, 'rgba(0,0,0,1)');
+    m.addColorStop(0.66, 'rgba(0,0,0,0.88)');
+    m.addColorStop(0.84, 'rgba(0,0,0,0.34)');
+    m.addColorStop(1.00, 'rgba(0,0,0,0)');
+    ctx.fillStyle = m; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /* Die Tageszeit setzen: Himmel hinter der Marke, Spiegelung, Sonnenstand.
+     0 = Sonnenaufgang, 1 = Sonnenuntergang. Gilt nur am Tag -- nachts
+     bleibt das Studio, wie es ist. */
+  setTageszeit(t) {
+    t = Math.max(0.06, Math.min(0.94, t));
+    this.tageszeit = t;
+    if (this.thema !== 'light') { return; }
+    const bogen = Math.sin(Math.PI * t);
+
+    if (this.fond) {
+      if (this.fond.material.map) this.fond.material.map.dispose();
+      this.fond.material.map = this._fondHimmel(t);
+      this.fond.material.color.setHex(0xffffff);
+      this.fond.material.opacity = 1;
+      this.fond.material.needsUpdate = true;
+    }
+
+    /* Dieselbe Welt als Spiegelung -- aber ZUSAETZLICH zum Studio, nicht
+       an seiner Stelle. Der Anteil ist bewusst niedrig: Der Himmel soll
+       die Sonne beisteuern, die Tiefe kommt weiter aus dem dunklen Raum. */
+    const himmel = this._himmelTextur(t, false);
+    this._bakeEnvironment(THEMEN.light, himmel, 0.34);
+    himmel.dispose();
+
+    /* Der Sonnenstand des Kegellichts folgt derselben Bahn wie die
+       Scheibe -- sonst laufen Glanzlicht und Schatten auseinander. */
+    const az = Math.PI * (1 - t);
+    if (this.key) {
+      this.key.position.set(Math.cos(az) * 9.5, 0.8 + bogen * 9.5, 6.4 + bogen * 1.2);
+      this.key.color.setHSL(0.085 - bogen * 0.015, 0.62 - bogen * 0.48, 0.60 + bogen * 0.34);
+      this.key.intensity = 150 + bogen * 260;
+    }
+  }
+
   /* Softboxen als Umgebung — nur emissive Flächen, keine Lichtberechnung. */
-  _studioEnvironment() {
+  _studioEnvironment(T, himmelTex, anteil) {
     const env = new THREE.Scene();
-    env.background = new THREE.Color(0x02030a);
-    const panel = (w, h, color, intensity, pos, rot) => {
+    env.background = new THREE.Color(T.envGrund);
+
+    /* Der Himmel als Kuppel um das Studio herum. Von innen sichtbar,
+       abgedunkelt ueber die Materialfarbe: Er soll den Raum ergaenzen,
+       nicht ihn ausleuchten. Steht keine Textur an, bleibt es beim
+       Studio -- also nachts. */
+    if (himmelTex) {
+      const k = new THREE.Mesh(
+        new THREE.SphereGeometry(46, 32, 24),
+        new THREE.MeshBasicMaterial({
+          map: himmelTex,
+          side: THREE.BackSide,
+          color: new THREE.Color().setScalar(Math.max(0, Math.min(1, anteil == null ? 0.3 : anteil))),
+        })
+      );
+      env.add(k);
+    }
+    T.panels.forEach(([w, h, color, intensity, pos, rot]) => {
       const m = new THREE.Mesh(
         new THREE.PlaneGeometry(w, h),
         new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(intensity), side: THREE.DoubleSide })
@@ -101,21 +457,44 @@ export class World {
       m.position.set(...pos);
       if (rot) m.rotation.set(...rot);
       env.add(m);
-      return m;
-    };
-    panel(13, 8, 0xffffff, 6.5, [-1, 9, 2], [Math.PI / 2, 0, 0]);     // große Softbox oben
-    panel(11, 13, 0x1c6cff, 6.0, [-9, 1.5, 1], [0, Math.PI / 2, 0]);  // blaue Wand links
-    panel(4, 13, 0x1fe8ff, 5.5, [9, 0.5, -1], [0, -Math.PI / 2, 0]);  // cyan Kante rechts
-    panel(20, 13, 0x0a1633, 1.6, [0, 0, -11]);                        // Rückwand, leicht angehoben
-    panel(20, 20, 0x03050c, 1.0, [0, -6, 0], [-Math.PI / 2, 0, 0]);   // dunkler Boden
+    });
     return env;
+  }
+
+  /* Umgebung backen. Beim Wechsel wird die alte Textur freigegeben — sonst
+     bleibt bei jedem Umschalten ein Render Target im Speicher liegen, und
+     genau daran erkennt man eine Szene, die nie umgeschaltet wurde. */
+  /* STUDIO UND HIMMEL ZUSAMMEN, NICHT STATT
+     --------------------------------------------------------------------
+     Ein Fehler, den ich zweimal gemacht habe: erst das Studio durch einen
+     hellen Tagesraum ersetzt (der Koerper wurde Milchglas), dann durch
+     den Himmel (derselbe Effekt, nur blauer). Beide Male war es ein
+     Tausch, wo es eine Ergaenzung sein muss.
+
+     Das dunkle Studio macht die Tiefe und die Kante -- es ist der Grund,
+     warum die Flaechen satt bleiben. Der Himmel macht die Sonne: eine
+     Scheibe, die wandert, und ein Glanzlicht, das mitwandert. Beides in
+     EINER gebackenen Umgebung, der Himmel deutlich schwaecher gewichtet,
+     damit er die Tiefe nicht wieder aufhellt.
+
+     @param {number} anteil 0 = nur Studio, 1 = Himmel in voller Staerke.
+  */
+  _bakeEnvironment(T, himmelTex, anteil) {
+    const alt = this.envRT;
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.envRT = pmrem.fromScene(this._studioEnvironment(T, himmelTex, anteil), 0.03);
+    this.scene.environment = this.envRT.texture;
+    pmrem.dispose();
+    if (alt) { alt.dispose(); }
   }
 
   /* ---------- Licht: eine Hauptquelle, zwei Kanten, ein Fülllicht ---------- */
   _buildLights() {
-    this.scene.add(new THREE.AmbientLight(0x0a1526, 0.35));
+    const T = THEMEN[this.thema];
+    this.ambient = new THREE.AmbientLight(T.ambient[0], T.ambient[1]);
+    this.scene.add(this.ambient);
 
-    this.key = new THREE.SpotLight(0xffffff, 340, 40, Math.PI / 6, 0.55, 1.6);
+    this.key = new THREE.SpotLight(T.key[0], T.key[1], 40, Math.PI / 6, 0.55, 1.6);
     this.key.position.set(-4.5, 7.5, 6);
     this.key.castShadow = this.q.settings.shadow > 0;
     if (this.key.castShadow) {
@@ -125,15 +504,15 @@ export class World {
     }
     this.scene.add(this.key, this.key.target);
 
-    this.rimA = new THREE.PointLight(BLUE, 90, 22, 2);
+    this.rimA = new THREE.PointLight(T.rimA[0], T.rimA[1], 22, 2);
     this.rimA.position.set(5.5, 1.2, -3.5);
-    this.rimB = new THREE.PointLight(CYAN, 55, 16, 2);
+    this.rimB = new THREE.PointLight(T.rimB[0], T.rimB[1], 16, 2);
     this.rimB.position.set(-4.2, 1.8, -3.2);
-    this.fill = new THREE.PointLight(0x5a7cba, 18, 26, 2);
+    this.fill = new THREE.PointLight(T.fill[0], T.fill[1], 26, 2);
     this.fill.position.set(0, 3.2, 7.5);
-    this.spec = new THREE.PointLight(0xffffff, 34, 20, 2);   // Glanzpunkt
+    this.spec = new THREE.PointLight(T.spec[0], T.spec[1], 20, 2);   // Glanzpunkt
     this.spec.position.set(2.4, 3.0, 5.2);
-    this.pointerLight = new THREE.PointLight(0x9fd0ff, 26, 16, 2);
+    this.pointerLight = new THREE.PointLight(T.pointer[0], T.pointer[1], 16, 2);
     this.pointerLight.position.set(0, 0, 5.2);
     this.scene.add(this.rimA, this.rimB, this.fill, this.spec, this.pointerLight);
   }
@@ -169,15 +548,16 @@ export class World {
     // Gebürstetes, blau eingefärbtes Metall mit Klarlack — der Klarlack erzeugt
     // die zweite, schärfere Reflexionsschicht, die Metall teuer aussehen lässt.
     const brushed = this._brushedTexture();
+    const TM = THEMEN[this.thema];
     this.mat = new THREE.MeshPhysicalMaterial({
-      color: 0x164bc4,
+      color: TM.logo.color,
       metalness: 0.86,      // nicht 1.0: ein Rest Diffusanteil hält die Fläche
-      roughness: 0.3,       // auf dunklem Grund lesbar
+      roughness: TM.logo.roughness,   // je nach Grund: dunkel spiegelt mehr
 
       roughnessMap: brushed,      // gebürstete Struktur: bricht die tote Fläche
       clearcoat: 1.0,
       clearcoatRoughness: 0.07,
-      envMapIntensity: 1.9,
+      envMapIntensity: TM.logo.envMapIntensity,
       anisotropy: 0.6,           // längliche Reflexe wie bei geschliffenem Metall
       anisotropyRotation: Math.PI / 3,
       transmission: 0.0,          // wird für den Glaszustand hochgefahren
@@ -185,7 +565,7 @@ export class World {
       ior: 1.5,
       emissive: new THREE.Color(0x1a6cff),
       emissiveIntensity: 0.0,
-      iridescence: 0.08,          // nur ein Hauch — mehr kippt ins Violette
+      iridescence: TM.logo.iridescence,   // nur ein Hauch — mehr kippt ins Violette
       iridescenceIOR: 1.35,
       iridescenceThicknessRange: [180, 420],
     });
@@ -222,6 +602,43 @@ export class World {
     this.logoRig = new THREE.Group();      // Rig trägt die Story-Bewegung (Position + Drehung)
     this.logoRig.add(this.logo);
     this.scene.add(this.logoRig);
+
+    /* ---------- Der Fond hinter der Marke ----------------------------
+       Eine weiche dunkle Scheibe, die mit der Marke wandert. Sie liegt in
+       der Szene und nicht als Schicht ueber dem Bild: Der Koerper muss sie
+       SPIEGELN koennen, und spiegeln kann er nur, was im Raum steht.
+
+       Weit genug hinten, damit sie nicht als Scheibe erkennbar wird, und
+       mit weichem Rand, damit sie im Seitengrund verlaeuft statt als
+       Fleck darin zu stehen. Nachts steht sie auf null -- da ist der
+       Grund selbst der Fond. */
+    const fondT = THEMEN[this.thema].fond || { farbe: 0x000000, staerke: 0 };
+    this.fond = new THREE.Mesh(
+      new THREE.PlaneGeometry(22, 22),
+      new THREE.MeshBasicMaterial({
+        map: this._fondTexture(),
+        color: fondT.farbe,
+        transparent: true,
+        /* Deckend, nicht additiv. Additiv war der naheliegende Versuch --
+           der Seitengrund ist am Tag fast weiss, also schien "heller als
+           weiss" der einzige Weg. Gemessen frisst das die Marke auf: Die
+           Flaeche geht ueber das Seitenweiss hinaus, der Bloom zieht mit,
+           und das V verschwindet als Geist darin. Auf einem hellen Grund
+           gibt es keinen Spielraum nach oben. Der Fond bleibt deshalb eine
+           deckende Flaeche -- er traegt nur so viel, wie der Grund
+           hergibt. Mehr Kontrast muesste vom Grund kommen, nicht von ihm. */
+        depthWrite: false,
+        opacity: fondT.staerke,
+      })
+    );
+    /* Der Fond haengt an der SZENE, nicht am Rig. Am Rig hing er an
+       dessen Drehung: Die Beats drehen das Rig um bis zu 30 Grad, und
+       eine mitgedrehte Flaeche steht dann schraeg im Raum statt hinter
+       der Marke. Stattdessen folgt er ihr in update() nur in x und y. */
+    this.fond.position.set(0, 0.1, -3.4);
+    this.fond.scale.setScalar(1.4);
+    this.fond.renderOrder = -1;
+    this.scene.add(this.fond);
 
     // Lichtsaum hinter der Marke: eine additive Fläche, kein echtes Volumen —
     // billiger und auf dunklem Grund nicht zu unterscheiden.
@@ -269,6 +686,34 @@ export class World {
     return t;
   }
 
+  /* Die Verlaufsscheibe fuer den Fond.
+     Nicht dieselbe wie fuer den Lichtsaum: Der Saum soll schnell abfallen,
+     damit er ein Schimmer bleibt. Ein Fond braucht das Gegenteil -- eine
+     breite volle Mitte und einen langen weichen Rand, sonst steht ein
+     dunkler Fleck hinter der Marke statt einer Flaeche, die im Grund
+     verlaeuft. */
+  _fondTexture() {
+    const s = 512;
+    const c = document.createElement('canvas');
+    c.width = c.height = s;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    /* Volle Mitte bis weit nach aussen, dann ein kurzer weicher Rand.
+       Der lange Verlauf von vorher war ein Schimmer -- die Silhouette
+       stand nur zur Haelfte davor und die untere Spitze lief ins Grau
+       der Seite. Ein Leuchtkasten hat eine Flaeche, keinen Hauch. */
+    g.addColorStop(0.00, 'rgba(255,255,255,1)');
+    g.addColorStop(0.58, 'rgba(255,255,255,1)');
+    g.addColorStop(0.74, 'rgba(255,255,255,0.92)');
+    g.addColorStop(0.88, 'rgba(255,255,255,0.45)');
+    g.addColorStop(1.00, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, s, s);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
   _radialTexture() {
     const s = 256;
     const c = document.createElement('canvas');
@@ -288,11 +733,12 @@ export class World {
   /* ---------- Boden: spiegelnd genug für Tiefe, ruhig genug für Text ---------- */
   _buildFloor() {
     const g = new THREE.PlaneGeometry(120, 120);
+    const TB = THEMEN[this.thema];
     const m = new THREE.MeshStandardMaterial({
-      color: 0x070c16,
+      color: TB.boden.color,
       metalness: 0.8,
-      roughness: 0.3,
-      envMapIntensity: 0.7,
+      roughness: TB.boden.roughness,
+      envMapIntensity: TB.boden.envMapIntensity,
     });
     this.floor = new THREE.Mesh(g, m);
     this.floor.rotation.x = -Math.PI / 2;
@@ -373,18 +819,95 @@ export class World {
     this.composer.setSize(window.innerWidth, window.innerHeight);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloom = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight), 0.46, 0.75, 0.95
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      THEMEN[this.thema].bloom, 0.75, 0.95
     );
     this.composer.addPass(this.bloom);
 
     // Abschluss-Pass: Lichtstreuung, Tiefenunschärfe, Farbsaum, Vignette.
     this.finish = new ShaderPass(FinishShader);
     this.finish.uniforms.uLightPos.value = new THREE.Vector2(0.5, 0.35);
+    this.finish.uniforms.uVignette.value = THEMEN[this.thema].vignette;
     this.finish.uniforms.uAspect.value = window.innerWidth / window.innerHeight;
     this.composer.addPass(this.finish);
 
     this.composer.addPass(new OutputPass());
     this.bloom.enabled = this.q.settings.bloom;
+  }
+
+  /* ==================================================================== */
+  /*  Umschalten zwischen Tag und Nacht                                    */
+  /* ==================================================================== */
+
+  /**
+   * Dieselbe Buehne, andere Lichtsituation.
+   *
+   * WARUM NICHT EINE ZWEITE SZENE
+   *
+   * Weil dann zwei Orte dieselbe Dramaturgie tragen muessten. Jeder spaetere
+   * Beat, jede Kamerafahrt, jede Aenderung am Logo waere zweimal zu pflegen,
+   * und beim zweiten Mal vergisst man es. Geaendert wird also nur, was
+   * wirklich verschieden ist: Raum, Licht, Nebel, Material, Abschluss.
+   *
+   * Die Umgebung wird neu gebacken. Das kostet einen Moment und passiert
+   * genau dann, wenn jemand klickt — nicht in jedem Bild. Die alte Textur
+   * wird dabei freigegeben.
+   */
+  setThema(name) {
+    if (name !== 'light' && name !== 'dark') { return; }
+    if (name === this.thema) { return; }
+    this.thema = name;
+    const T = THEMEN[name];
+
+    this.renderer.toneMappingExposure = T.belichtung;
+
+    if (this.scene.background && this.scene.background.dispose) {
+      this.scene.background.dispose();
+    }
+    this.scene.background = this._backdropTexture(T.grund);
+    this.scene.fog.color.setHex(T.nebelFarbe);
+    this.scene.fog.density = T.nebelDichte;
+
+    this._bakeEnvironment(T);
+
+    if (this.fond && T.fond) {
+      this.fond.material.color.setHex(T.fond.farbe);
+      this.fond.material.opacity = T.fond.staerke;
+    }
+    if (name === 'light') { this.setTageszeit(this.tageszeit || 0.26); }
+
+    this.ambient.color.setHex(T.ambient[0]);  this.ambient.intensity = T.ambient[1];
+    this.key.color.setHex(T.key[0]);          this.key.intensity = T.key[1];
+    this.rimA.color.setHex(T.rimA[0]);        this.rimA.intensity = T.rimA[1];
+    this.rimB.color.setHex(T.rimB[0]);        this.rimB.intensity = T.rimB[1];
+    this.fill.color.setHex(T.fill[0]);        this.fill.intensity = T.fill[1];
+    this.spec.color.setHex(T.spec[0]);        this.spec.intensity = T.spec[1];
+    this.pointerLight.color.setHex(T.pointer[0]);
+    this.pointerLight.intensity = T.pointer[1];
+
+    if (this.mat) {
+      this.mat.color.setHex(T.logo.color);
+      this.mat.roughness = T.logo.roughness;
+      this.mat.envMapIntensity = T.logo.envMapIntensity;
+      this.mat.iridescence = T.logo.iridescence;
+      /* Anisotropie nur, wo sie gesetzt ist: Am Tag legt sie das
+         Glanzlicht laenglich in die Buerstrichtung -- gebuerstetes
+         Metall statt lackiertem Kunststoff. Nachts traegt die
+         Silhouette ohnehin, dort bleibt sie schwach. */
+      if (typeof T.logo.anisotropy === 'number') {
+        this.mat.anisotropy = T.logo.anisotropy;
+      }
+      this.mat.needsUpdate = true;
+    }
+    if (this.floor && this.floor.material) {
+      this.floor.material.color.setHex(T.boden.color);
+      this.floor.material.roughness = T.boden.roughness;
+      this.floor.material.envMapIntensity = T.boden.envMapIntensity;
+      this.floor.material.needsUpdate = true;
+    }
+
+    if (this.bloom) { this.bloom.strength = T.bloom; }
+    if (this.finish) { this.finish.uniforms.uVignette.value = T.vignette; }
   }
 
   _applyQuality(s) {
@@ -467,6 +990,13 @@ export class World {
     // Scrollgeschwindigkeit gibt einen kurzen Schub — das macht die Bewegung
     // greifbar, statt sie nur ablaufen zu lassen.
     this.camera.position.z += (this.drift.vel * 0.9 - 0) * dt * 2.0;
+
+    /* Der Fond folgt der Marke in der Bildebene, bleibt aber fest in der
+       Tiefe und ungedreht -- er ist eine Wand, kein Anhaengsel. */
+    if (this.fond && this.fond.material.opacity > 0) {
+      this.fond.position.x += (this.logoRig.position.x - this.fond.position.x) * dl;
+      this.fond.position.y += ((this.logoRig.position.y + 0.1) - this.fond.position.y) * dl;
+    }
 
     if (this.dust) this.dust.material.uniforms.uTime.value = time;
     this.key.target.position.set(0, 0, 0);

@@ -100,6 +100,28 @@ if ($f && isset($_GET['beleg'])) {
     exit;
 }
 
+/* ---------- Was er darf: ansehen, abnehmen ------------------------------
+   Zwei Schalter am Projekt, und beide werden hier einmal gelesen. Bewusst
+   ueber SELECT * mit array_key_exists statt ueber benannte Spalten in der
+   grossen Abfrage: Zwischen Deploy und dem naechsten Cronlauf kann die
+   Spalte noch fehlen, und dann waere nicht ein Knopf weg, sondern die ganze
+   Seite kaputt -- fuer einen Kunden, der nur nachsehen wollte.
+
+   Fehlt die Spalte, gilt "nicht frei". Lieber fehlt der Abnahmeknopf zehn
+   Minuten, als dass er zu frueh dasteht. */
+$vorschauFrei = false;
+$abnahmeFrei  = false;
+if ($f && !empty($f['projekt_id'])) {
+    try {
+        $pz = (array) (Db::one('SELECT * FROM projects WHERE id = ?', [(int) $f['projekt_id']]) ?: []);
+        $vorschauFrei = array_key_exists('vorschau_frei_am', $pz)
+            ? ($pz['vorschau_frei_am'] ?? null) !== null
+            : trim((string) ($f['projekt_vorschau'] ?? '')) !== '';
+        $abnahmeFrei = array_key_exists('abnahme_frei_am', $pz)
+            && ($pz['abnahme_frei_am'] ?? null) !== null;
+    } catch (Throwable $e) { /* dann eben beide zu */ }
+}
+
 /* ---------- Schreiben und Hochladen ---------- */
 $meldung = null;
 $fehler  = [];
@@ -129,7 +151,14 @@ if ($f && Ablage::zuGrossFuerDenServer()) {
             } elseif ($tat === 'freigabe') {
                 // Der Kunde gibt frei. Damit rueckt das Projekt auf die finale
                 // Freigabe — und genau daran haengt die Restzahlungs-Anfrage.
-                if (in_array((string) $f['projekt_status'], ['vorschau', 'kundenfeedback', 'aenderungen'], true)) {
+                //
+                // Deshalb wird hier geprueft und nicht nur der Knopf versteckt:
+                // Ein alter Tab, der Zurueck-Knopf oder ein zweites Abschicken
+                // kaeme sonst durch, und dann waere eine Seite abgenommen, die
+                // noch gar nicht fertig ist.
+                if (!$abnahmeFrei) {
+                    $fehler[] = $T('schauenText');
+                } elseif (in_array((string) $f['projekt_status'], ['vorschau', 'kundenfeedback', 'aenderungen'], true)) {
                     Events::protokoll('freigabe', 'Der Kunde hat die Vorschau freigegeben',
                         (int) $f['customer_id'], null, (int) $f['projekt_id']);
                     Events::melden('freigabe', 'Vorschau freigegeben', 'gut',
@@ -227,7 +256,10 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
       <?php endforeach; ?>
     </ul>
 
-    <?php if (!empty($f['projekt_vorschau'])): ?>
+    <?php /* Die Adresse steht oft lange am Projekt, bevor sie gezeigt werden
+             soll. Ohne diese Pruefung war jeder Zwischenstand offen, sobald
+             Uwe ihn eingetragen hatte. */ ?>
+    <?php if (!empty($f['projekt_vorschau']) && $vorschauFrei): ?>
       <a class="knopf haupt" style="margin-top:14px" href="<?= $h((string) $f['projekt_vorschau']) ?>"
          target="_blank" rel="noopener"><?= $h($T('vorschau')) ?></a>
     <?php endif; ?>
@@ -240,25 +272,38 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
     <?php endif; ?>
   </div>
 
-  <?php if (in_array((string) $f['projekt_status'], ['vorschau', 'kundenfeedback', 'aenderungen'], true)): ?>
+  <?php /* ---------- Schauen, und spaeter abnehmen --------------------
+       Frueher stand hier ein Kasten mit einem grossen Knopf "Passt so —
+       veroeffentlichen", sobald der Projektstand auf Vorschau sprang. Ob der
+       Kunde die Seite ueberhaupt sehen konnte, spielte keine Rolle. Jetzt
+       haengt der Kasten an den zwei Schaltern: Solange nur die Vorschau frei
+       ist, gibt es genau ein Feld -- den Aenderungswunsch. Der Abnahmeknopf
+       kommt erst, wenn Uwe die Abnahme freischaltet. */ ?>
+  <?php if ($vorschauFrei && in_array((string) $f['projekt_status'], ['vorschau', 'kundenfeedback', 'aenderungen'], true)): ?>
     <div class="block">
-      <h2><?= $h($T('freigabe')) ?></h2>
-      <p style="color:var(--dim);font-size:14px;line-height:1.6;margin-bottom:14px"><?= $h($T('freigabeText')) ?></p>
+      <h2><?= $h($abnahmeFrei ? $T('freigabe') : $T('schauen')) ?></h2>
+      <p style="color:var(--dim);font-size:14px;line-height:1.6;margin-bottom:14px"><?=
+        $h($abnahmeFrei ? $T('freigabeText') : $T('schauenText')) ?></p>
+
+      <?php if ($abnahmeFrei): ?>
+        <form method="post" action="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
+          <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+          <input type="hidden" name="t" value="<?= $h($token) ?>">
+          <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
+          <input type="hidden" name="tat" value="freigabe">
+          <button class="knopf haupt" style="width:100%;justify-content:center"><?= $h($T('freigeben')) ?></button>
+        </form>
+      <?php endif; ?>
+
+      <p style="color:var(--dim);font-size:13px;line-height:1.6;margin:14px 0 8px"><?= $h($T('kosten')) ?></p>
       <form method="post" action="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
-        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
-        <input type="hidden" name="t" value="<?= $h($token) ?>">
-        <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
-        <input type="hidden" name="tat" value="freigabe">
-        <button class="knopf haupt" style="width:100%;justify-content:center"><?= $h($T('freigeben')) ?></button>
-      </form>
-      <form method="post" action="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>" style="margin-top:12px">
         <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
         <input type="hidden" name="t" value="<?= $h($token) ?>">
         <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
         <input type="hidden" name="tat" value="aenderung">
         <div class="feld"><textarea name="text" rows="3" maxlength="5000"
           placeholder="<?= $h($T('aendern')) ?>"></textarea></div>
-        <button class="knopf" style="width:100%;justify-content:center"><?= $h($T('aendern')) ?></button>
+        <button class="knopf <?= $abnahmeFrei ? '' : 'haupt' ?>" style="width:100%;justify-content:center"><?= $h($T('aendern')) ?></button>
       </form>
     </div>
   <?php endif; ?>

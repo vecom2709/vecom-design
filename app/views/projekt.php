@@ -447,8 +447,112 @@
       <div class="feld"><label>Deadline</label><input type="date" name="deadline" value="<?= Fmt::h($p['deadline'] ?? '') ?>"></div>
       <div class="feld"><label>Priorität</label><select name="priority">
         <?php foreach (['niedrig','normal','hoch'] as $pr): ?><option <?= $p['priority'] === $pr ? 'selected' : '' ?>><?= $pr ?></option><?php endforeach; ?></select></div>
-      <div class="feld"><label>Vorschau-Link</label><input name="preview_url" value="<?= Fmt::h($p['preview_url'] ?? '') ?>"></div>
       <button class="knopf">Speichern</button></form></div>
+
+  <?php /* ---------- Vorschau und Abnahme ------------------------------
+       WARUM DAS EIN EIGENER KASTEN IST UND KEIN FELD IN DEN ECKDATEN
+
+       Es war eins: ein Textfeld "Vorschau-Link" zwischen Deadline und
+       Prioritaet. Speichern hiess dort gar nichts -- der Kunde sah den
+       Entwurf davon nicht, und freischalten liess er sich hier ueberhaupt
+       nicht. Wer nur diese Seite offen hatte, trug die Adresse ein und
+       wartete auf etwas, das nie passierte.
+
+       Es sind drei Entscheidungen, und jede gehoert sichtbar hierher:
+       eintragen, ansehen lassen, abnehmen lassen. */ ?>
+  <?php
+    $vsUrl   = trim((string) ($p['preview_url'] ?? ''));
+    $vsFrei  = $p['vorschau_frei_am'] ?? null;
+    $abFrei  = array_key_exists('abnahme_frei_am', $p) ? ($p['abnahme_frei_am'] ?? null) : null;
+    $abSpalte = array_key_exists('abnahme_frei_am', $p);
+    $zurueckHier = 'projekte/' . (int) $p['id'];
+  ?>
+  <div class="block" data-tun="vorschau"><h2>Vorschau und Abnahme
+    <span class="mehr">
+      <?php if ($abFrei): ?><span class="marke2 gut">Abnahme offen</span>
+      <?php elseif ($vsFrei): ?><span class="marke2 gut">er darf ansehen</span>
+      <?php elseif ($vsUrl !== ''): ?><span class="marke2 warnung">nur für dich</span>
+      <?php else: ?><span class="marke2">keine Adresse</span><?php endif; ?>
+    </span></h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+      Drei Schritte, jeder eine eigene Entscheidung: <b>Adresse eintragen</b> (sieht nur du),
+      <b>zum Ansehen freischalten</b> (er schaut und darf Änderungen wünschen, abnehmen kann er nicht),
+      <b>Abnahme freischalten</b> (erst dann steht bei ihm „Passt so“ — und erst dann bekommt er die
+      Nachricht, dass die Seite fertig ist).</p>
+
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_speichern">
+      <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
+      <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <div class="feld"><label>Adresse des Entwurfs</label>
+        <input name="preview_url" placeholder="https://vorschau.vecom-design.it/…"
+               value="<?= Fmt::h($vsUrl) ?>"></div>
+      <button class="knopf">Adresse speichern</button>
+      <?php if ($vsUrl !== ''): ?>
+        <a class="knopf" href="<?= Fmt::h($vsUrl) ?>" target="_blank" rel="noopener"
+           style="margin-left:8px">Selbst ansehen</a>
+      <?php endif; ?>
+    </form>
+
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;
+                border-top:1px solid var(--linie);padding-top:12px">
+      <?php if (!$vsFrei): ?>
+        <?php if ($vsUrl === ''): ?>
+          <button class="knopf" disabled title="Erst eine Adresse eintragen">Zum Ansehen freischalten</button>
+          <span style="color:var(--leise);font-size:12.5px">Erst die Adresse — sonst bekäme er eine
+            E-Mail und fände nichts.</span>
+        <?php else: ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_frei">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
+            <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+            <button class="knopf haupt">Zum Ansehen freischalten</button></form>
+          <span style="color:var(--leise);font-size:12.5px">Setzt den Stand auf „Vorschau“ und
+            schickt ihm die E-Mail. Abnehmen kann er damit noch nicht.</span>
+        <?php endif; ?>
+      <?php else: ?>
+        <span style="color:var(--leise);font-size:12.5px">Zum Ansehen frei seit
+          <?= Fmt::h(Fmt::zeit((string) $vsFrei)) ?></span>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+              data-frage="Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?" data-ja="Ja, sperren">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_sperren">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
+          <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <button class="knopf">Wieder sperren</button></form>
+      <?php endif; ?>
+    </div>
+
+    <?php if ($abSpalte): ?>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;
+                border-top:1px solid var(--linie);padding-top:12px">
+      <?php if (!$abFrei): ?>
+        <?php if (!$vsFrei): ?>
+          <button class="knopf" disabled title="Erst zum Ansehen freischalten">Abnahme freischalten</button>
+          <span style="color:var(--leise);font-size:12.5px">Erst ansehen lassen, dann abnehmen lassen.</span>
+        <?php else: ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+                data-frage="Danach kann der Kunde die Seite abnehmen — daran hängt die Restzahlung. Fertig?"
+                data-ja="Ja, Abnahme freischalten">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="abnahme_frei">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
+            <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+            <button class="knopf haupt">Abnahme freischalten</button></form>
+          <span style="color:var(--leise);font-size:12.5px">Schickt ihm „die Seite ist fertig“ und
+            zeigt ihm „Passt so“.</span>
+        <?php endif; ?>
+      <?php else: ?>
+        <span style="color:var(--leise);font-size:12.5px">Abnahme frei seit
+          <?= Fmt::h(Fmt::zeit((string) $abFrei)) ?></span>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+              data-frage="Der Kunde kann danach nicht mehr abnehmen. Fortfahren?" data-ja="Ja, zumachen">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="abnahme_sperren">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
+          <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <button class="knopf">Abnahme wieder zu</button></form>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+  </div>
 
   <div class="block"><h2>Website</h2>
     <form method="post" action="<?= Fmt::h(url('')) ?>">

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A — Material</title>
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="_rahmen.css">
+<style>
+  :root{ --wand:#efe6d9; --tinte:#221d16; --leise:#6b5f4f; }
+  body{background:var(--wand);color:var(--tinte)}
+  .buehne{background:none}
+  .marke b{color:var(--tinte)} .marke span,.nav a,.eyebrow{color:var(--leise)}
+  .lead{color:var(--leise);opacity:1}
+  .knopf--haupt{background:var(--tinte);color:#fff}
+  .knopf--still{border-color:rgba(34,29,22,.24);color:var(--tinte)}
+  .fahne{color:var(--leise)}
+  .titel{position:absolute;right:clamp(20px,4vw,54px);bottom:20px;z-index:6;
+    font-family:'Archivo',sans-serif;font-size:11px;font-weight:700;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--leise)}
+</style>
+</head>
+<body>
+<div class="buehne">
+  <canvas class="szene" id="szene"></canvas>
+  <header class="kopf">
+    <div class="marke"><b>VECOM</b><span>Design</span></div>
+    <nav class="nav"><a href="#">Lavori</a><a href="#">Servizi</a><a href="#">Prezzi</a><a href="#">Metodo</a><a href="#">Contatti</a></nav>
+  </header>
+  <div class="inhalt"><div class="spalte">
+    <p class="eyebrow">Webdesign dalla Sicilia</p>
+    <h1>Il tuo sito deve portarti clienti.</h1>
+    <p class="lead">Costruisco siti per aziende, professionisti e attività locali — ognuno da zero,
+      nessuno da un modello.</p>
+    <div class="tun" style="margin-top:28px">
+      <a class="knopf knopf--haupt" href="#">Parliamo del tuo progetto</a>
+    </div>
+  </div></div>
+  <div class="fahne">Richtung A · Material</div>
+  <div class="titel" id="titel">matt</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"../assets/vendor/three/three.module.min.js","three/addons/":"../assets/vendor/three/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { LOGO_CONTOURS } from '../assets/js/world/logo-shape.js';
+
+/* ====================================================================
+   DREI MATERIALIEN, EIN LICHT
+
+   Die Frage ist nicht "Glanz ja oder nein", sondern WELCHER Glanz bei
+   Tageslicht ueberhaupt etwas zeigt.
+
+   matt   — Pigment. Das Licht formt den Koerper, der Schatten traegt.
+   lack   — Pigment mit einer duennen Klarlackschicht darueber. Der
+            Koerper bleibt lesbar, obendrauf laeuft ein echtes Glanzlicht
+            mit, das mit der Sonne wandert. Wie ein lackiertes Blech.
+   chrom  — die Nachtfassung bei Tag: fast reines Metall, hohe
+            Spiegelung. Bei Tag spiegelt es die helle Umgebung und wird
+            zu einer weissen Flaeche.
+   ==================================================================== */
+const art = new URLSearchParams(location.search).get('m') || 'matt';
+document.getElementById('titel').textContent = art;
+
+const canvas = document.getElementById('szene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const szene = new THREE.Scene();
+const kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+kamera.position.set(1.1, 0.35, 13.6); kamera.lookAt(1.5, 0, 0);
+
+/* Die Umgebung fuer die Spiegelung: KEIN Studio, sondern der Himmel und
+   der Boden dieser Szene. Eine Studio-Umgebung bei Sonnenlicht ist der
+   Grund, warum "hyperrealistisch" oft nach Bildschirm aussieht — das
+   Objekt spiegelt einen Raum, den es gar nicht gibt. */
+function himmelUmgebung() {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const v = g.createLinearGradient(0, 0, 0, 256);
+  v.addColorStop(0.00, '#cfe0ff');   // Zenit
+  v.addColorStop(0.42, '#f3ead9');   // Horizontdunst
+  v.addColorStop(0.50, '#e8dcc7');   // Horizont
+  v.addColorStop(1.00, '#d9cbb3');   // Boden
+  g.fillStyle = v; g.fillRect(0, 0, 512, 256);
+  /* Die Sonne als heller Fleck — davon kommt das Glanzlicht. */
+  /* Klein und hart. Ein grosser weicher Fleck ergibt keinen Glanz,
+     sondern einen Schleier ueber der ganzen Flaeche — genau der Grund,
+     warum "Hochglanz" bei Tag oft aussieht wie ausgewaschen. */
+  const s = g.createRadialGradient(150, 66, 1, 150, 66, 17);
+  s.addColorStop(0, '#ffffff'); s.addColorStop(0.35, '#fff8ec');
+  s.addColorStop(1, 'rgba(255,248,236,0)');
+  g.fillStyle = s; g.fillRect(120, 36, 60, 60);
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const umgebung = himmelUmgebung();
+szene.environment = umgebung;
+
+const wand = new THREE.Mesh(new THREE.PlaneGeometry(60, 34),
+  new THREE.MeshStandardMaterial({ color:0xe9e2d6, roughness:0.96, metalness:0, envMapIntensity:0.25 }));
+wand.position.set(0, 0, -2.6); wand.receiveShadow = true; szene.add(wand);
+const boden = new THREE.Mesh(new THREE.PlaneGeometry(60, 40),
+  new THREE.MeshStandardMaterial({ color:0xe6ded1, roughness:0.98, metalness:0, envMapIntensity:0.2 }));
+boden.rotation.x = -Math.PI/2; boden.position.set(0, -2.75, 6);
+boden.receiveShadow = true; szene.add(boden);
+
+const shapes = LOGO_CONTOURS.map((pts) => {
+  const s = new THREE.Shape();
+  pts.forEach(([x,y], i) => (i ? s.lineTo(x,y) : s.moveTo(x,y)));
+  s.closePath(); return s;
+});
+const geo = new THREE.ExtrudeGeometry(shapes, {
+  depth:0.34, bevelEnabled:true, bevelThickness:0.05, bevelSize:0.038,
+  bevelSegments:5, curveSegments:9
+});
+geo.center();
+
+const MATERIAL = {
+  matt: () => new THREE.MeshStandardMaterial({
+    color:0x0a3fd8, roughness:0.42, metalness:0.05, envMapIntensity:0.5 }),
+
+  /* Klarlack: Der Koerper bleibt Pigment, darueber liegt eine duenne,
+     sehr glatte Schicht. Genau so ist eine lackierte Motorhaube gebaut,
+     und genau deshalb sieht sie in der Sonne teuer aus statt weiss. */
+  lack: () => new THREE.MeshPhysicalMaterial({
+    /* Tiefes Pigment, darueber eine sehr glatte duenne Schicht. Die
+       envMapIntensity bleibt niedrig: Sie faerbt den Koerper, sie soll
+       ihn nicht aufhellen. Der Glanz kommt aus clearcoat plus dem
+       kleinen harten Sonnenfleck in der Umgebung, nicht aus Helligkeit.
+       sheen ist raus — das ist fuer Stoff und hat den Ton vergraut. */
+    color:0x0733c4, roughness:0.52, metalness:0.0,
+    clearcoat:1.0, clearcoatRoughness:0.028,
+    envMapIntensity:0.42 }),
+
+  chrom: () => new THREE.MeshPhysicalMaterial({
+    color:0x2b62ff, roughness:0.08, metalness:0.95, envMapIntensity:1.9 }),
+};
+const marke = new THREE.Mesh(geo, (MATERIAL[art] || MATERIAL.matt)());
+marke.scale.setScalar(1.72); marke.position.set(3.35, 0.15, 0.4);
+marke.rotation.set(0.03, -0.34, 0);
+marke.castShadow = true; marke.receiveShadow = true;
+szene.add(marke);
+
+const sonne = new THREE.DirectionalLight(0xffffff, 3.2);
+sonne.castShadow = true; sonne.shadow.mapSize.set(2048,2048);
+Object.assign(sonne.shadow.camera, { left:-11, right:11, top:11, bottom:-11, far:46 });
+sonne.shadow.bias = -0.0012; szene.add(sonne);
+const himmel = new THREE.HemisphereLight(0xdfe8ff, 0xd8c9ae, 0.9); szene.add(himmel);
+
+/* Vormittag, halb zehn: tief genug fuer einen langen Schatten, hoch
+   genug fuer ein sauberes Glanzlicht auf der Kante. */
+/* STREIFLICHT STATT FRONTALLICHT
+   Der entscheidende Fund dieser Runde: Solange die Sonne von vorn auf die
+   grosse flache Seite scheint, waescht JEDES glaenzende Material aus --
+   die Flaeche steht fast senkrecht zum Licht, das Diffuse allein geht
+   gegen Weiss, und der Glanz hat nichts mehr, wovon er sich abhebt.
+   Autofotografie macht es deshalb umgekehrt: Das Licht STREIFT ueber das
+   Blech. Dann bleibt die Flaeche tief, und die Kante glueht. */
+/* Dieselbe Morgensonne wie in a-lang.html — sonst vergleicht man drei
+   Materialien in drei Lichtern und lernt nichts.
+
+   BEFUND AUS DIESER RUNDE: Streiflicht von der Seite haelt die Flaeche
+   zwar tief, nimmt aber den Schatten aus dem Bild — und der ist in
+   dieser Richtung die Hauptsache. Also bleibt das Morgenlicht. */
+const t = 0.26, bogen = Math.sin(Math.PI*t), az = Math.PI*(1-t);
+sonne.position.set(Math.cos(az)*9.5, 0.8 + bogen*9.5, 6.4 + bogen*1.2);
+sonne.color.set('#ffd9ac'); sonne.intensity = 1.35 + bogen*2.35;
+sonne.shadow.radius = 1 + (1-bogen)*7;
+himmel.intensity = 0.62 + bogen*0.55;
+
+function groesse(){ const b=canvas.clientWidth,h=canvas.clientHeight;
+  renderer.setSize(b,h,false); kamera.aspect=b/h; kamera.updateProjectionMatrix(); }
+addEventListener('resize', groesse); groesse();
+renderer.setAnimationLoop(() => {
+  marke.rotation.y = -0.34 + Math.sin(performance.now()/5600)*0.05;
+  renderer.render(szene, kamera);
+});
+</script>
+</body>
+</html>

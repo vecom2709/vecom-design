@@ -193,7 +193,14 @@ final class Texte
         'vonDir'      => ['it' => 'da te', 'de' => 'von dir', 'en' => 'from you'],
         'leer'        => ['it' => 'Scrivi qualcosa prima di inviare.', 'de' => 'Bitte schreib etwas, bevor du absendest.', 'en' => 'Please write something first.'],
         'belege'      => ['it' => 'Ricevute', 'de' => 'Belege', 'en' => 'Receipts'],
-        'freigabe'    => ['it' => 'Come ti sembra?', 'de' => 'Wie findest du es?', 'en' => 'What do you think?'],
+        'schauen'     => ['it' => 'Dai un’occhiata', 'de' => 'Schau es dir an', 'en' => 'Take a look'],
+        'schauenText' => ['it' => 'La bozza è visibile. Guardala con calma e scrivimi cosa ne pensi — non devi approvare niente adesso. Quando il sito è finito ti avviso, e solo allora potrai dare il via libera.',
+                          'de' => 'Der Entwurf ist für dich freigeschaltet. Schau ihn dir in Ruhe an und schreib mir, was dir auffällt — freigeben musst du noch nichts. Wenn die Seite fertig ist, melde ich mich; erst dann kannst du sie abnehmen.',
+                          'en' => 'The draft is open for you. Take your time and tell me what you notice — you don’t have to approve anything yet. When the site is finished I’ll let you know; only then can you sign it off.'],
+        'kosten'      => ['it' => 'Le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, te lo dico prima e ricevi il preventivo con il prezzo — senza il tuo ok non parte niente.',
+                          'de' => 'Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich es dir vorher und schicke dir ein Angebot mit dem Preis — ohne dein Ja passiert nichts.',
+                          'en' => 'Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price — nothing happens without your go-ahead.'],
+        'freigabe'    => ['it' => 'Il sito è pronto — decidi tu', 'de' => 'Die Seite ist fertig — jetzt entscheidest du', 'en' => 'The site is ready — it’s your call'],
         'freigabeText'=> ['it' => 'Se il sito va bene così, dallo pure per buono — poi lo pubblico. Se qualcosa non va, scrivimelo: lo sistemo.',
                           'de' => 'Wenn die Seite so passt, gib sie frei — dann veröffentliche ich. Wenn etwas nicht stimmt, schreib es mir: ich ändere es.',
                           'en' => 'If the site is right, approve it — then I publish. If something is off, tell me: I’ll change it.'],
@@ -276,6 +283,33 @@ final class Texte
                           'en' => 'As soon as your draft is ready you can view it here — I’ll let you know.'],
         'entwurfAnsehen' => ['it' => 'Guarda l’anteprima', 'de' => 'Entwurf ansehen', 'en' => 'View the draft'],
         'seiteAnsehen'   => ['it' => 'Apri il sito', 'de' => 'Website öffnen', 'en' => 'Open the site'],
+
+        /* ANSEHEN UND ABNEHMEN SIND ZWEIERLEI
+           ------------------------------------------------------------------
+           Frueher stand neben dem Entwurf sofort "Passt so — veroeffentlichen".
+           Damit konnte jemand abnehmen, bevor er ueberhaupt geklickt hatte --
+           und die Abnahme haengt an der Restzahlung. Jetzt sagt die Seite in
+           der Schau-Phase ausdruecklich, dass noch nichts zu entscheiden ist. */
+        'nurSchauen' => [
+            'it' => 'Guardalo con calma. Non devi approvare niente adesso — il sito non è ancora finito. Scrivimi cosa ne pensi; ti avviso quando è pronto.',
+            'de' => 'Schau ihn dir in Ruhe an. Freigeben musst du noch nichts — die Seite ist noch nicht fertig. Schreib mir, was dir auffällt; ich sage dir Bescheid, wenn sie fertig ist.',
+            'en' => 'Take your time. You don’t have to approve anything yet — the site isn’t finished. Tell me what you notice; I’ll let you know when it’s ready.'],
+        'fertigTitel' => [
+            'it' => 'Il sito è pronto — decidi tu',
+            'de' => 'Die Seite ist fertig — jetzt entscheidest du',
+            'en' => 'The site is ready — it’s your call'],
+        'fertigText' => [
+            'it' => 'Se va bene così, dai il via libera: da lì pubblico. Se manca ancora qualcosa, scrivimelo.',
+            'de' => 'Wenn sie so passt, gib sie frei — dann veröffentliche ich. Wenn noch etwas fehlt, schreib es mir.',
+            'en' => 'If it’s right, sign it off — then I publish. If something is still missing, tell me.'],
+
+        /* Der Kostensatz. Er steht bewusst DA, wo entschieden wird, und nicht
+           in einer AGB-Zeile: Wer erst mit der Rechnung erfaehrt, dass ein
+           Wunsch extra kostete, hat zu Recht schlechte Laune. */
+        'aenderungKosten' => [
+            'it' => 'Le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, te lo dico prima e ricevi il preventivo con il prezzo — senza il tuo ok non parte niente.',
+            'de' => 'Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich es dir vorher und schicke dir ein Angebot mit dem Preis — ohne dein Ja passiert nichts.',
+            'en' => 'Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price — nothing happens without your go-ahead.'],
         'aenderung'  => ['it' => 'Vorrei una modifica', 'de' => 'Ich möchte etwas ändern', 'en' => 'I’d like a change'],
         'aenderungHilfe' => [
             'it' => 'Scrivi cosa cambiare. Ti dico se rientra nella manutenzione o cosa costa.',
@@ -705,12 +739,32 @@ final class Texte
                 "Hello {name},\n\nthe questionnaire for your project is still open. Without it we can’t really start.\n\nHere it is — ten minutes is enough:\n\n{link}\n\nIf anything is unclear, just reply to this email.\n\nUwe Vetter · Vecom Design"],
         ],
         'vorschau' => [
-            'it' => ['La tua anteprima è pronta — {paket}',
-                "Ciao {name},\n\nl’anteprima del tuo sito è pronta. Guardala con calma:\n\n{link}\n\nDimmi cosa ne pensi — quello che non va lo sistemo. Puoi rispondere a questa e-mail o scrivere direttamente dalla pagina.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Deine Vorschau steht bereit — {paket}',
-                "Hallo {name},\n\ndie Vorschau deiner Website steht. Schau sie dir in Ruhe an:\n\n{link}\n\nSag mir, was du denkst — was nicht passt, ändere ich. Du kannst auf diese E-Mail antworten oder direkt auf der Seite schreiben.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
-            'en' => ['Your preview is ready — {paket}',
-                "Hello {name},\n\nthe preview of your site is ready. Take your time with it:\n\n{link}\n\nTell me what you think — whatever doesn’t fit, I’ll change. Reply to this email or write from the page itself.\n\nBest regards\nUwe Vetter · Vecom Design"],
+            'it' => ['Puoi dare un’occhiata all’anteprima — {paket}',
+                "Ciao {name},\n\nl’anteprima del tuo sito è visibile. Guardala con calma:\n\n{link}\n\nNon devi approvare niente adesso: il sito non è ancora finito. Dimmi solo cosa ne pensi — quello che non va lo sistemo. Quando è pronto davvero ti avviso, e solo allora potrai dare il via libera.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Du kannst dir den Entwurf ansehen — {paket}',
+                "Hallo {name},\n\nder Entwurf deiner Website ist für dich freigeschaltet. Schau ihn dir in Ruhe an:\n\n{link}\n\nFreigeben musst du noch nichts — die Seite ist noch nicht fertig. Sag mir einfach, was dir auffällt; was nicht passt, ändere ich. Wenn sie wirklich fertig ist, melde ich mich, und erst dann kannst du sie abnehmen.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['You can take a look at the draft — {paket}',
+                "Hello {name},\n\nthe draft of your site is open for you. Take your time with it:\n\n{link}\n\nYou don’t have to approve anything yet — the site isn’t finished. Just tell me what you notice; whatever doesn’t fit, I’ll change. When it really is done I’ll let you know, and only then can you sign it off.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+
+        /* DIE ZWEITE NACHRICHT: JETZT IST SIE FERTIG
+           ------------------------------------------------------------------
+           Die Vorschau-Mail sagt "schau mal". Diese sagt "sie ist fertig, jetzt
+           entscheidest du". Zwei verschiedene Saetze, zwei verschiedene
+           Zeitpunkte -- vorher war es einer, und deshalb hat der Kunde
+           abgenommen, waehrend noch gebaut wurde.
+
+           Der Absatz zu den Kosten steht ausdruecklich drin: Aenderungen im
+           vereinbarten Umfang sind enthalten, alles darueber bekommt er
+           vorher als Angebot mit Preis. Wer das erst erfaehrt, wenn die
+           Rechnung kommt, hat zu Recht schlechte Laune. */
+        'abnahme' => [
+            'it' => ['Il tuo sito è pronto — dagli un’occhiata finale — {paket}',
+                "Ciao {name},\n\nil sito è finito. Guardalo con calma:\n\n{link}\n\nSe va bene così, dai il via libera dalla tua pagina: da lì pubblico.\n\nSe invece c’è ancora qualcosa da cambiare, scrivimelo — le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, te lo dico prima e ti mando il preventivo con il prezzo: senza il tuo ok non parte niente e non ti arriva nessun costo a sorpresa.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Deine Seite ist fertig — schau sie dir an — {paket}',
+                "Hallo {name},\n\ndie Seite ist fertig. Schau sie dir in Ruhe an:\n\n{link}\n\nWenn sie so passt, gib sie auf deiner Seite frei — dann veröffentliche ich.\n\nWenn noch etwas anders soll, schreib es mir. Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich dir das vorher und schicke dir ein Angebot mit dem Preis: Ohne dein Ja passiert nichts, und es kommt nichts nachträglich dazu.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your site is ready — take a look — {paket}',
+                "Hello {name},\n\nthe site is finished. Take your time with it:\n\n{link}\n\nIf it’s right, sign it off from your page — then I’ll publish it.\n\nIf something should still change, tell me. Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price: nothing happens without your go-ahead, and nothing is added afterwards.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'online' => [
             'it' => ['Il tuo sito è online — {paket}',

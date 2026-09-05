@@ -178,6 +178,7 @@ final class Kundenzugang
         // eintragen, bevor er sie zeigen will.
         $vorschau     = '';
         $vorschauFrei = null;
+        $abnahmeFrei  = null;
         $live         = '';
         if ($v && $v['projekt_id']) {
             $p = (array) self::still(fn() => Db::one(
@@ -192,6 +193,14 @@ final class Kundenzugang
             if ($vorschauFrei !== null && $vorschauFrei !== '') {
                 $vorschau = trim((string) ($p['preview_url'] ?? ''));
             }
+
+            /* Der zweite Schalter. Ansehen darf er nach dem ersten, abnehmen
+               erst nach diesem -- und abnehmen heisst: Restzahlung faellig,
+               Seite geht online, "damit ist es besprochen". Fehlt die Spalte
+               noch (zwischen Deploy und Cronlauf), gilt "nicht frei": Lieber
+               fehlt der Knopf zehn Minuten, als dass er zu frueh dasteht. */
+            $abnahmeFrei = array_key_exists('abnahme_frei_am', $p)
+                ? ($p['abnahme_frei_am'] ?? null) : null;
         }
         if ($v && !empty($v['website']['url']) && in_array((string) $v['website']['status'], ['online', 'wird_geprueft'], true)) {
             $live = (string) $v['website']['url'];
@@ -220,6 +229,7 @@ final class Kundenzugang
             'dran'     => $wer,
             'vorschau'      => $vorschau,
             'vorschau_frei' => $vorschauFrei,
+            'abnahme_frei'  => $abnahmeFrei,
             'live'          => $live,
             // Der Fallback steht zweimal da, weil der zweite Zugriff sonst
             // eine Meldung ausloest, wenn die Spalte gar nicht mitgelesen wurde.

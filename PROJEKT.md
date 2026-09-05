@@ -82,6 +82,22 @@ Jede Änderung wird an diesen fünf Punkten gemessen:
 - Verwaltung, PHP, Datenbank, Abläufe → hier, kein Fach-Skill nötig
 
 ## Entscheidungen
+- **05.09.2026 — Jede Kundenmail läuft auf dem Briefbogen von Vecom Design.** Farbstreifen in den
+  Markenfarben, Wortmarke als **Schrift** (nicht als Grafik — entfernte Bilder lädt jedes zweite
+  Programm nicht, und eine Marke, die als leerer Rahmen ankommt, ist keine), Knopf im Markenblau,
+  Fuß mit Anschrift, Kontakt und Steuernummern aus `Firma`, eigener Dunkelmodus, Vorschauzeile für
+  den Posteingang. Bewusst **nicht**: Kopfbild, Logografik, Farbflächen, Spalten, Symbole — solche
+  Mails werden als Werbung eingestuft, und die Zustellung ist hier ein offener Punkt. Bank und IBAN
+  stehen nur auf dem Beleg, nie unter einer Mail mit Zahlungsknopf. Der reine Text geht unverändert
+  mit.
+- **05.09.2026 — Ansehen und Abnehmen sind zwei Schalter, nicht einer.** `vorschau_frei_am`
+  erlaubt dem Kunden, den Entwurf anzusehen und Änderungen zu wünschen; `abnahme_frei_am` erlaubt
+  ihm, „Passt so" zu sagen. Grund: Bisher stand der Abnahmeknopf neben jedem freigeschalteten
+  Entwurf — und weil er auch ohne eingetragene Adresse dastand, konnte jemand eine Seite abnehmen,
+  die er nie gesehen hatte. An der Abnahme hängen Restzahlung und Veröffentlichung. Geprüft wird
+  serverseitig, nicht durch das Verstecken des Knopfes. Die zweite Freigabe schickt die Nachricht
+  „die Seite ist fertig" und nennt die Kostenregel: Änderungen im vereinbarten Umfang sind
+  enthalten, alles darüber bekommt der Kunde vorher als Angebot mit Preis.
 - **05.09.2026 — Die Ambitionsstufe kommt aus Branche, Preis und Kundenwunsch, in dieser
   Reihenfolge.** Die Branche (`Technik::GRUNDSTUFE`) sagt, wo ein Gewerbe von Haus aus liegt;
   der Preis setzt eine Decke und darf höchstens eine Stufe anheben; was der Kunde ausdrücklich

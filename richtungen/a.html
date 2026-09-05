@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="it" data-richtung="a">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A — Licht von Sizilien</title>
+<link rel="stylesheet" href="../assets/css/fonts.css">
+<link rel="stylesheet" href="_rahmen.css">
+<style>
+  /* ------------------------------------------------------------------
+     RICHTUNG A — LICHT VON SIZILIEN
+
+     Die Materialsprache ist Stein und Licht, nicht Neon. Der Grund ist
+     eine helle Wand, wie sie in Agrigent an jedem zweiten Haus steht;
+     die Farbe kommt aus der Tageszeit, nicht aus einem Verlauf.
+
+     Kobalt bleibt die Marke — aber als KOERPER im Licht, nicht als
+     leuchtendes Objekt im Dunkeln. Der Unterschied ist der ganze Punkt:
+     ein Ding, auf das Licht faellt, wirkt physisch; ein Ding, das selbst
+     leuchtet, wirkt nach Bildschirm.
+     ------------------------------------------------------------------ */
+  :root{
+    --wand:#efe9df; --wand-tief:#e2d9cb;
+    --tinte:#221d16; --tinte-leise:#6b5f4f;
+    --kobalt:#0a3fd8;
+  }
+  body{background:var(--wand);color:var(--tinte)}
+  .buehne{background:
+     radial-gradient(120% 90% at 74% 34%, #fbf7f0 0%, var(--wand) 42%, var(--wand-tief) 100%)}
+  .marke b,h1{color:var(--tinte)}
+  .nav a,.marke span{color:var(--tinte-leise)}
+  .lead{color:var(--tinte-leise);opacity:1}
+  .eyebrow{color:var(--tinte-leise)}
+  .knopf--haupt{background:var(--tinte);color:var(--wand)}
+  .knopf--still{border-color:rgba(34,29,22,.22);color:var(--tinte)}
+  .fahne{color:var(--tinte-leise)}
+
+  /* Die Uhr ist kein Bedienelement, sondern der Beweis: Das Licht wandert
+     wirklich, und man kann es anhalten. Auf der fertigen Seite treibt der
+     Scroll dieselbe Zahl. */
+  .uhr{position:absolute;right:clamp(20px,4vw,54px);bottom:22px;z-index:6;
+       display:flex;align-items:center;gap:14px;font-family:'Archivo',sans-serif;
+       font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--tinte-leise)}
+  .uhr input{width:min(30vw,220px);accent-color:var(--kobalt)}
+  .uhr b{font-variant-numeric:tabular-nums;font-size:13px;color:var(--tinte);min-width:52px}
+</style>
+</head>
+<body>
+<div class="buehne">
+  <canvas class="szene" id="szene"></canvas>
+
+  <header class="kopf">
+    <div class="marke"><b>VECOM</b><span>Design</span></div>
+    <nav class="nav"><a href="#">Lavori</a><a href="#">Servizi</a><a href="#">Prezzi</a><a href="#">Metodo</a><a href="#">Contatti</a></nav>
+  </header>
+
+  <div class="inhalt">
+    <div class="spalte">
+      <p class="eyebrow">Webdesign dalla Sicilia</p>
+      <h1>Il tuo sito deve portarti clienti.</h1>
+      <p class="lead">Costruisco siti per aziende, professionisti e attività locali — ognuno da zero,
+        nessuno da un modello. Online in due settimane, a un prezzo fisso che approvi tu prima.</p>
+      <div class="tun">
+        <a class="knopf knopf--haupt" href="#">Parliamo del tuo progetto</a>
+        <a class="knopf knopf--still" href="#">Guarda i lavori</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="fahne">Richtung A · Licht von Sizilien</div>
+  <label class="uhr">Ora <input id="zeit" type="range" min="0" max="1" step="0.001" value="0.28"><b id="uhrzeit">08:40</b></label>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"../assets/vendor/three/three.module.min.js","three/addons/":"../assets/vendor/three/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { LOGO_CONTOURS } from '../assets/js/world/logo-shape.js';
+
+/* ====================================================================
+   EIN TAG IN AGRIGENT
+
+   Die ganze Richtung haengt an einer einzigen Zahl: t von 0 bis 1,
+   Sonnenaufgang bis Sonnenuntergang. Aus ihr kommen Sonnenstand,
+   Lichtfarbe, Haerte des Schattens, Helligkeit der Wand und die Waerme
+   des Himmels. Nichts davon ist getrennt einstellbar — genau deshalb
+   sieht es aus wie Licht und nicht wie sechs Regler.
+   ==================================================================== */
+const canvas = document.getElementById('szene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.06;
+
+const szene = new THREE.Scene();
+const kamera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
+kamera.position.set(1.1, 0.35, 13.6);
+kamera.lookAt(1.5, 0.0, 0);
+
+/* Die Wand. Sie ist der Grund, auf den der Schatten faellt — ohne sie
+   gibt es keinen Beweis, dass Licht da ist. */
+const wand = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 24),
+  new THREE.MeshStandardMaterial({ color:0xe9e2d6, roughness:0.96, metalness:0 })
+);
+wand.position.set(0, 0, -2.6);
+wand.receiveShadow = true;
+szene.add(wand);
+
+/* Das V — dieselbe Kontur wie auf der echten Seite, aus der Logodatei. */
+const shapes = LOGO_CONTOURS.map((pts) => {
+  const s = new THREE.Shape();
+  pts.forEach(([x,y], i) => (i ? s.lineTo(x,y) : s.moveTo(x,y)));
+  s.closePath(); return s;
+});
+const geo = new THREE.ExtrudeGeometry(shapes, {
+  depth:0.34, bevelEnabled:true, bevelThickness:0.05, bevelSize:0.038,
+  bevelSegments:4, curveSegments:8
+});
+geo.center();
+/* Matt, nicht spiegelnd: Ein Koerper aus Farbe, den das Licht formt.
+   Chrom haette hier nichts zu tun — es waere wieder Bildschirm. */
+const stoff = new THREE.MeshStandardMaterial({
+  color:0x0a3fd8, roughness:0.42, metalness:0.05
+});
+const marke = new THREE.Mesh(geo, stoff);
+marke.scale.setScalar(1.72);
+marke.position.set(3.35, 0.15, 0.4);
+marke.rotation.set(0.03, -0.34, 0);
+marke.castShadow = true; marke.receiveShadow = true;
+szene.add(marke);
+
+const sonne = new THREE.DirectionalLight(0xffffff, 3.2);
+sonne.castShadow = true;
+sonne.shadow.mapSize.set(2048, 2048);
+sonne.shadow.camera.left = -9; sonne.shadow.camera.right = 9;
+sonne.shadow.camera.top = 9;  sonne.shadow.camera.bottom = -9;
+sonne.shadow.camera.far = 40; sonne.shadow.bias = -0.0012;
+szene.add(sonne);
+
+const himmel = new THREE.HemisphereLight(0xdfe8ff, 0xd8c9ae, 0.9);
+szene.add(himmel);
+
+/* Farbe des Sonnenlichts ueber den Tag: tiefes Orange am Morgen,
+   fast weiss am Mittag, warmes Bernstein am Abend. */
+const MORGEN = new THREE.Color('#ffb066');
+const MITTAG = new THREE.Color('#fff6e8');
+const ABEND  = new THREE.Color('#ff9a4d');
+const tmp = new THREE.Color();
+
+function tag(t) {
+  const bogen = Math.sin(Math.PI * t);          // 0 → 1 → 0
+  /* Sonnenstand: von links unten ueber oben nach rechts unten. */
+  const az = Math.PI * (1 - t);
+  sonne.position.set(Math.cos(az) * 9.5, 0.8 + bogen * 8.5, 6.2 + bogen * 1.4);
+
+  if (t < 0.5) tmp.copy(MORGEN).lerp(MITTAG, t / 0.5);
+  else         tmp.copy(MITTAG).lerp(ABEND, (t - 0.5) / 0.5);
+  sonne.color.copy(tmp);
+  sonne.intensity = 1.35 + bogen * 2.35;
+  /* Mittags ist der Schatten hart und kurz, morgens und abends weich
+     und lang. Der Radius macht genau das. */
+  sonne.shadow.radius = 1 + (1 - bogen) * 7;
+
+  /* Der Schatten ist die eigentliche Arbeit dieser Richtung: Er darf nicht
+     grau sein. Grau kommt vom blauen Himmelslicht, das im Schatten allein
+     uebrig bleibt — in Sizilien wirft die Wand daneben so viel warmes
+     Licht zurueck, dass der Schatten warm bleibt. Also wenig Blau von
+     oben, viel Warmes von unten. */
+  himmel.intensity = 0.62 + bogen * 0.55;
+  himmel.color.setHSL(0.58, 0.14 + bogen * 0.06, 0.74 + bogen * 0.12);
+  himmel.groundColor.setHSL(0.075, 0.42 - bogen * 0.12, 0.52 + bogen * 0.12);
+
+  /* Die Wand hellt mittags auf und faellt abends ins Warme. */
+  wand.material.color.setHSL(0.09, 0.16 - bogen * 0.06, 0.80 + bogen * 0.09);
+  document.documentElement.style.setProperty('--wand',
+    `hsl(38 ${Math.round(28 - bogen * 12)}% ${Math.round(88 + bogen * 5)}%)`);
+
+  const min = Math.round(6 * 60 + t * 14 * 60);
+  document.getElementById('uhrzeit').textContent =
+    String(Math.floor(min / 60)).padStart(2,'0') + ':' + String(min % 60).padStart(2,'0');
+}
+
+const regler = document.getElementById('zeit');
+regler.addEventListener('input', () => tag(+regler.value));
+
+function groesse() {
+  const b = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(b, h, false);
+  kamera.aspect = b / h; kamera.updateProjectionMatrix();
+}
+addEventListener('resize', groesse); groesse();
+tag(+regler.value);
+renderer.setAnimationLoop(() => {
+  marke.rotation.y = -0.34 + Math.sin(performance.now() / 5200) * 0.05;
+  renderer.render(szene, kamera);
+});
+</script>
+</body>
+</html>
