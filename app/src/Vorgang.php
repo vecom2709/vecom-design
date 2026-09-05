@@ -49,6 +49,31 @@ final class Vorgang
     /** Wer wartet: du, der Kunde, oder niemand mehr. */
     public const DU = 'du';
     public const KUNDE = 'kunde';
+
+    /* ======================================================================
+       GEDULD HAT EINE GRENZE
+
+       "Der Kunde ist dran" ist eine wahre Aussage und eine schlechte
+       Erinnerung. Ein Fragebogen, der verschickt wurde und nicht zurueckkam,
+       steht in diesem Fach — und bleibt dort, bis jemand zufaellig hinsieht.
+       Stille loest nichts aus; das ist ihr Wesen.
+
+       Nach sieben Tagen ohne jede Bewegung wandert der Vorgang deshalb
+       zurueck zu "du bist dran". Der Knopf bleibt derselbe -- er war schon
+       der richtige ("Erinnern", "Nachfassen") --, er steht nur endlich dort,
+       wo man ihn sieht.
+
+       Sieben Tage, weil eine Woche der Takt ist, in dem ein Kleinbetrieb
+       antwortet: Wer Montag gefragt wird, antwortet spaetestens am naechsten
+       Montag oder gar nicht.
+
+       AUSGENOMMEN: die Betreuung. Eine angeforderte und nicht bezahlte Rate
+       hat ihr eigenes Mahnwesen, das von selbst laeuft. Ein zweiter Anstoss
+       daneben waere genau der zweite Knopf fuer dieselbe Sache, den es hier
+       nicht geben soll.
+       ====================================================================== */
+    private const GEDULD_TAGE = 7;
+    private const GEDULD_AUSGENOMMEN = ['betreuung'];
     public const NIEMAND = 'niemand';
 
     /* ================================================================== */
@@ -976,11 +1001,24 @@ final class Vorgang
             $ziel .= '&nr=' . $id;
         }
 
+        /* Siehe GEDULD_TAGE oben: Wartet der Kunde zu lange, ist wieder Uwe
+           dran -- mit demselben Knopf, nur an der Stelle, wo er ihn sieht. */
+        $still = self::ruhtSeitTagen($v);
+        if ($dran === self::KUNDE
+            && $still >= self::GEDULD_TAGE
+            && !in_array($stufe, self::GEDULD_AUSGENOMMEN, true)) {
+            $dran  = self::DU;
+            $warum = rtrim($warum, ' .') . '. Seit ' . $still . ' Tagen keine Reaktion — Zeit nachzufassen.';
+        }
+
         $v['stufe']     = $stufe;
         $v['stufe_wort']= self::STUFEN[$stufe] ?? $stufe;
         $v['stufe_nr']  = (int) array_search($stufe, array_keys(self::STUFEN), true);
         $v['dran']      = $dran;
         $v['warum']     = $warum;
+        /* Wie lange nichts passiert ist -- die Liste sortiert danach, und die
+           Zeile kann es zeigen, ohne es zweimal zu rechnen. */
+        $v['still_tage'] = $still;
         $v['schritt']   = $knopf === null ? null : [
             'knopf'  => $knopf,
             'tat'    => $tat,

@@ -464,6 +464,66 @@ pruefe('acht verschiedene Lagen ergeben acht verschiedene Schritte',
     $doppelt === [], 'mehrfach: ' . implode(' / ', $doppelt));
 
 /* ============================================================================
+   10. Geduld hat eine Grenze
+
+   "Der Kunde ist dran" ist wahr und als Erinnerung wertlos: Der Vorgang
+   liegt dort, bis jemand zufällig hinsieht. Nach sieben Tagen ohne jede
+   Bewegung muss er zurück zu "du bist dran" — mit demselben Knopf, nur an
+   der Stelle, wo man ihn sieht.
+   ============================================================================ */
+abschnitt('10. Geduld hat eine Grenze');
+
+/* Lage: Vorschau ist freigegeben, Abnahme ist frei, der Kunde schweigt. */
+$warten = ['status' => 'vorschau', 'briefing_am' => $jetzt, 'chat_url' => 'https://claude.ai/x',
+           'preview_url' => 'https://vorschau.example/x/', 'vorschau_frei_am' => $jetzt,
+           'abnahme_frei_am' => $jetzt, 'abnahme' => null];
+
+/** Setzt zurück, wie lange am Vorgang nichts mehr passiert ist. */
+$stillSeit = static function (int $tage) use ($projektId, $bestellId, $fbId): array {
+    $wann = date('Y-m-d H:i:s', strtotime("-$tage days"));
+    Db::run('UPDATE projects SET updated_at = ? WHERE id = ?', [$wann, $projektId]);
+    Db::run('UPDATE orders SET updated_at = ? WHERE id = ?', [$wann, $bestellId]);
+    Db::run('UPDATE questionnaires SET updated_at = ? WHERE id = ?', [$wann, $fbId]);
+    Db::run('UPDATE payments SET created_at = ? WHERE order_id = ?', [$wann, $bestellId]);
+    Db::run('UPDATE messages SET created_at = ? WHERE customer_id = ?',
+            [$wann, (int) Db::wert('SELECT customer_id FROM orders WHERE id = ?', [$bestellId], 0)]);
+    foreach (Vorgang::alle(true) as $eins) {
+        if (($eins['projekt_id'] ?? 0) === $projektId) { return $eins; }
+    }
+    return [];
+};
+
+Db::update('projects', $projektId, $warten);
+foreach ([2 => 'kunde', 6 => 'kunde', 7 => 'du', 21 => 'du'] as $tage => $soll) {
+    $v = $stillSeit($tage);
+    $ist = (string) ($v['dran'] ?? '?');
+    printf("  nach %2d Tagen Stille → %-6s %s\n", $tage, $ist,
+        "\033[2m" . mb_substr(trim((string) ($v['warum'] ?? '')), 0, 72) . "\033[0m");
+    pruefe('nach ' . $tage . ' Tagen ist „' . $soll . '“ dran', $ist === $soll, $ist);
+}
+
+$v = $stillSeit(9);
+pruefe('der Knopf bleibt derselbe',
+    trim((string) ($v['schritt']['knopf'] ?? '')) === 'Nachfassen',
+    (string) ($v['schritt']['knopf'] ?? '—'));
+pruefe('die Begründung nennt die Tage',
+    str_contains((string) ($v['warum'] ?? ''), 'Tagen keine Reaktion'));
+pruefe('die Stille steht im Datensatz', (int) ($v['still_tage'] ?? -1) === 9,
+    (string) ($v['still_tage'] ?? '—'));
+
+/* Und er landet auch wirklich im richtigen Fach der Arbeitsliste. */
+$liste = Vorgang::arbeitsliste();
+$imDu = false;
+foreach ($liste['du'] as $eins) { if (($eins['projekt_id'] ?? 0) === $projektId) { $imDu = true; } }
+pruefe('er steht in „Du bist dran“', $imDu);
+
+/* Die Betreuung ist ausgenommen: Ihr Mahnwesen laeuft von selbst, ein
+   zweiter Anstoss daneben waere ein zweiter Knopf fuer dieselbe Sache. */
+pruefe('die Betreuung bleibt ausgenommen',
+    in_array('betreuung', (new ReflectionClass('Vorgang'))
+        ->getConstant('GEDULD_AUSGENOMMEN') ?: [], true));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
