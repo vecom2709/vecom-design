@@ -82,6 +82,13 @@ Jede Änderung wird an diesen fünf Punkten gemessen:
 - Verwaltung, PHP, Datenbank, Abläufe → hier, kein Fach-Skill nötig
 
 ## Entscheidungen
+- **05.09.2026 — Kein Tagmodus. Stattdessen wandert die Sonne durch die Nacht.** Der helle Modus
+  ist wieder entfernt (`theme.css`, `thema.js`, Umschalter, `THEMEN.light`). Grund: Glanz ist
+  Kontrast, und über Weiß gibt es keinen — jeder Versuch, dasselbe hyperreale Metall auf hellem
+  Grund zu halten, endete bei Milchglas. Geblieben ist `World.setTageszeit()`: Es liest die Uhr
+  des Besuchers und setzt Sonnenstand, Lichtfarbe und Kantenton im dunklen Studio. Morgens tief
+  und warm von links, mittags hoch und neutral, abends warm von rechts, nachts kühl und flach.
+  Der Körper bleibt tief, es wandert nur das Licht.
 - **05.09.2026 — Jede Kundenmail läuft auf dem Briefbogen von Vecom Design.** Farbstreifen in den
   Markenfarben, Wortmarke als **Schrift** (nicht als Grafik — entfernte Bilder lädt jedes zweite
   Programm nicht, und eine Marke, die als leerer Rahmen ankommt, ist keine), Knopf im Markenblau,

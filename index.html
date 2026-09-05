@@ -115,16 +115,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=4678b0cb">
-<link rel="stylesheet" href="assets/css/theme.css?v=1">
 
-<!-- Der Zustand muss VOR dem ersten Bild stehen. Laeuft das erst mit dem
-     uebrigen JavaScript, blitzt die Nachtfassung auf, bevor der Tagmodus
-     greift — und ein Blitz beim Laden ist auf einer Webdesigner-Seite der
-     erste Eindruck. Deshalb diese Zeilen inline und blockierend. -->
-<script>
-(function(){try{var w=localStorage.getItem('vecom-thema');
-if(w==='light'||w==='dark'){document.documentElement.setAttribute('data-theme',w);}}catch(e){}})();
-</script>
 
 <script type="importmap">
 {
@@ -422,32 +413,7 @@ if(w==='light'||w==='dark'){document.documentElement.setAttribute('data-theme',w
       <div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
         <span class="lang__current" aria-current="true">IT</span><a href="./de/" hreflang="de" lang="de">DE</a><a href="./en/" hreflang="en" lang="en">EN</a>
       </div>
-      <!-- Tag / Nacht / System. Drei Knoepfe statt eines Schalters: "System"
-           ist ein eigener Zustand, und einen Zustand, den man nur durch
-           zweimaliges Klicken erreicht, findet niemand. Die Beschriftung
-           steht als aria-label am Knopf — die Seite hat keine Klasse fuer
-           nur-Vorleser-Text, und eine dafuer zu erfinden waere zu viel. -->
-      <div class="thema" role="group" aria-label="Tema / Thema / Theme">
-        <button type="button" data-thema="light" aria-pressed="false"
-                aria-label="Chiaro / Hell / Light" title="Chiaro / Hell / Light">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
-               stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/>
-            <path d="M12 2.4v2.2M12 19.4v2.2M4.2 12H2M22 12h-2.2M6.3 6.3 4.8 4.8M19.2 19.2l-1.5-1.5M17.7 6.3l1.5-1.5M4.8 19.2l1.5-1.5"/></svg>
-        </button>
-        <button type="button" data-thema="system" aria-pressed="true"
-                aria-label="Sistema / System" title="Sistema / System">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="2.6" y="4.2" width="18.8" height="12.6" rx="2"/><path d="M8.5 20.4h7"/></svg>
-        </button>
-        <button type="button" data-thema="dark" aria-pressed="false"
-                aria-label="Scuro / Dunkel / Dark" title="Scuro / Dunkel / Dark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
-               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1Z"/></svg>
-        </button>
-      </div>
-      <label class="chip chip--quality">
+            <label class="chip chip--quality">
         <span data-i18n="world.quality">Qualità</span>
         <select data-quality aria-label="Qualität / Qualità / Quality">
           <option value="auto" data-i18n="world.qAuto">Automatica</option>
@@ -1317,7 +1283,6 @@ if(w==='light'||w==='dark'){document.documentElement.setAttribute('data-theme',w
 <script src="assets/js/i18n-data.js?v=46c1e785" defer></script>
 <script src="assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
-<script src="assets/js/thema.js?v=1" defer></script>
 <script src="assets/vendor/gsap.min.js" defer></script>
 <script src="assets/vendor/ScrollTrigger.min.js" defer></script>
 <script src="assets/vendor/lenis.min.js" defer></script>

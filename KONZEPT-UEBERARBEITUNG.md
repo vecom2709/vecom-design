@@ -47,10 +47,21 @@ nachzumessen, sobald die Szene inhaltlich wächst.
 
 ## Stufen — jede für sich lauffähig
 
-1. **Tag und Nacht.** Tokens für einen hellen Modus, drei Zustände
-   (System / Tag / Nacht), gespeicherte Wahl, Umschaltung als View Transition.
-   Die Szene schaltet mit: Umgebung, Nebel, Lichtfarben, Materialien. Ohne das
-   säße ein Nachtkopf über einer Tagseite.
+1. **~~Tag und Nacht~~ → Die Sonne wandert durch die Nacht.**
+   *Verworfen und ersetzt am 05.09.2026.* Ein heller Modus war gebaut, mit drei
+   Zuständen, gespeicherter Wahl und mitschaltender Szene. Er ist wieder raus,
+   und der Grund ist eine Rechnung, keine Geschmacksfrage: **Glanz ist Kontrast.**
+   Ein helles Glanzlicht auf einem hellen Körper vor hellem Grund liest sich als
+   nichts. Drei Anläufe — helles Studio, schwarze Karten, heller Leuchtkasten —
+   endeten alle beim selben Milchglas, und der additive Versuch verschluckte die
+   Marke ganz. Über Weiß gibt es keinen Spielraum nach oben.
+
+   Geblieben ist die bessere Hälfte der Idee: **Die Tageszeit steuert das Licht
+   im dunklen Studio.** `World.setTageszeit()` liest die Uhr des Besuchers und
+   setzt Sonnenstand, Lichtfarbe und Kantenton — morgens tief und warm von links,
+   mittags hoch und fast neutral, abends warm von rechts, nachts kühl und flach.
+   Der Körper bleibt immer tief, es wandert nur, woher das Licht kommt.
+   Nachgezogen alle fünf Minuten und beim Zurückkehren auf den Tab.
 2. **Der Auftakt kommt aus der Szene.** `auftakt.mp4`/`.webm` entfallen; das
    Logo, das zwei Sekunden später ohnehin in Echtzeit dasteht, macht den
    Auftakt selbst. Spart 1,15 MB und ersetzt einen Schnitt durch einen

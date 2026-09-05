@@ -103,21 +103,32 @@ async function start() {
   await (document.fonts ? document.fonts.ready : Promise.resolve());
   bindSiteBeats({ world, gsap, ScrollTrigger });
 
-  /* ------------------------------------------------------------------------
-     Tag und Nacht
+    /* ----------------------------------------------------------------------
+     DIE SONNE FOLGT DER UHR DES BESUCHERS
 
-     thema.js schaltet die Seite und meldet, was jetzt gilt. Die Buehne hoert
-     hier zu — ohne das saesse ein Nachtkopf ueber einer Tagseite, und genau
-     das ist der Punkt, an dem ein Umschalter aufhoert, ein Umschalter zu
-     sein.
+     Der Umschalter zwischen Tag und Nacht ist wieder raus -- die Seite ist
+     eine Nachtseite, und der Versuch, dasselbe Metall auf hellem Grund
+     glaenzen zu lassen, hat gegen eine einfache Rechnung verloren: Glanz
+     ist Kontrast, und ueber Weiss gibt es keinen mehr.
 
-     Beim Start einmal nachziehen: Die Welt wird erst nach dem Auftakt
-     gebaut, und bis dahin kann laengst umgeschaltet worden sein.
+     Geblieben ist der Gedanke, der daran gut war. Die Tageszeit steuert
+     jetzt das Licht IM dunklen Studio: Wer morgens kommt, sieht ein
+     tiefstehendes warmes Licht von links; mittags steht es hoch und
+     neutral; abends faellt es warm von rechts; nachts bleibt es kuehl und
+     flach. Der Koerper bleibt dabei immer tief -- es wandert nur, woher
+     die Sonne kommt.
+
+     Nachgezogen wird alle fuenf Minuten. Oefter waere Rechenzeit fuer eine
+     Aenderung, die niemand sieht; seltener verpasst den Uebergang, wenn
+     jemand die Seite lange offen laesst.
      ---------------------------------------------------------------------- */
-  window.addEventListener('vecom:thema', (e) => {
-    if (world && e.detail && e.detail.thema) { world.setThema(e.detail.thema); }
-  });
-  if (window.vecomThema) { world.setThema(window.vecomThema.jetzt()); }
+  if (world.setTageszeit) {
+    world.setTageszeit();
+    setInterval(() => { if (!document.hidden) { world.setTageszeit(); } }, 300000);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) { world.setTageszeit(); }
+    });
+  }
 
   window.addEventListener('pointermove', (e) => {
     if (e.pointerType !== 'mouse') return;
