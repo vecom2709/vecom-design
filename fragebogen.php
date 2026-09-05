@@ -298,6 +298,13 @@ $gruppenWort = [
      gleich aussehen, also zwei mal zwei. */
   .standwahl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   @media (max-width:620px){ .standwahl{grid-template-columns:repeat(2,1fr)} }
+
+  /* ---- Die Antwort neben der Wunschadresse ------------------------------ */
+  .pruefung{margin:7px 0 0;font-size:13px;line-height:1.5;padding:8px 11px;border-radius:9px}
+  .pruefung.frei{color:#7ee3a8;background:rgba(126,227,168,.09);border:1px solid rgba(126,227,168,.32)}
+  .pruefung.vergeben{color:#ff9d8a;background:rgba(255,157,138,.09);border:1px solid rgba(255,157,138,.32)}
+  .pruefung.unklar,.pruefung.ungueltig,.pruefung.laeuft{color:var(--leise);
+        background:rgba(127,127,127,.07);border:1px solid var(--linie)}
   .standwahl label{display:flex;align-items:center;justify-content:center;
                    gap:6px;padding:8px 8px;border:1px solid var(--linie);border-radius:8px;
                    font-size:12.5px;cursor:pointer;white-space:nowrap;
@@ -391,14 +398,27 @@ $gruppenWort = [
       <p class="beiseite" style="margin-top:0"><?= $h($S('leerOk')) ?></p>
       <?php foreach ($inhalt['felder'] as $feldName => $feld): ?>
         <?php
-          /* Bedingte Fragen. Sie stehen im Aufbau immer, aber gezeigt werden
-             sie nur, wenn die Antwort davor sie verlangt. Wer nie eine
-             Website hatte, sieht keine Frage zur alten. */
-          if (!Fragen::zeigen($feld, $daten)) { continue; }
+          /* BEDINGTE FRAGEN STEHEN IMMER IM HTML, NUR NICHT IMMER IM BILD
+             ----------------------------------------------------------------
+             Zuerst wurden sie serverseitig weggelassen. Das war richtig
+             gedacht und im Bedienen falsch: Der Kunde klickt "Haben wir
+             nicht", und dort, wo jetzt die Wunschadressen hingehoeren,
+             passiert nichts -- bis er speichert und den Schritt neu laedt.
+             Bis dahin hat er weitergeklickt.
+
+             Also stehen sie da und sind verborgen, und ein paar Zeilen
+             weiter unten blendet sie ein Skript in dem Moment ein, in dem
+             die Antwort davor faellt. Ohne Skript bleibt es beim alten
+             Verhalten: Sie erscheinen nach dem Speichern. Beides
+             funktioniert, eines fuehlt sich richtig an. */
+          $sichtbar = Fragen::zeigen($feld, $daten);
           $ohneLabelFuer = in_array($feld['art'], ['wahl', 'eins', 'mehr', 'stand'], true);
         ?>
-        <div class="feld">
+        <div class="feld"<?php if (!$sichtbar): ?> hidden<?php endif; ?><?php if (isset($feld['wenn'])): ?> data-wenn="<?= $h($feld['wenn']['feld']) ?>" data-ist="<?= $h(implode(',', (array) $feld['wenn']['ist'])) ?>"<?php endif; ?>>
           <label <?= $ohneLabelFuer ? '' : 'for="f_' . $h($feldName) . '"' ?>><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
+          <?php if (!empty($feld['hilfe'])): ?>
+            <p class="beiseite" style="margin:0 0 9px"><?= $h($S((string) $feld['hilfe'])) ?></p>
+          <?php endif; ?>
 
           <?php if ($feld['art'] === 'zahl'): ?>
             <?php
@@ -519,7 +539,12 @@ $gruppenWort = [
             ?>
             <textarea id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" rows="3"><?= $h($wert) ?></textarea>
           <?php else: ?>
-            <input id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>" value="<?= $h((string) ($daten[$feldName] ?? '')) ?>">
+            <input id="f_<?= $h($feldName) ?>" name="<?= $h($feldName) ?>"
+                   <?php if (!empty($feld['pruefen'])): ?>class="pruefbar" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url"<?php endif; ?>
+                   value="<?= $h((string) ($daten[$feldName] ?? '')) ?>">
+            <?php if (!empty($feld['pruefen'])): ?>
+              <p class="pruefung" data-fuer="<?= $h($feldName) ?>" hidden></p>
+            <?php endif; ?>
           <?php endif; ?>
 
           <?php if (!empty($feld['frei'])): ?>
@@ -551,6 +576,86 @@ $gruppenWort = [
         <?php endif; ?></p>
     </div>
   </form>
+
+  <script>
+  /* ====================================================================
+     ZWEI KLEINE DINGE, DIE OHNE SKRIPT AUCH GEHEN -- NUR LANGSAMER
+
+     1. Bedingte Fragen sofort zeigen. Ohne das erscheinen die drei
+        Wunschadressen erst nach dem Speichern, und bis dahin hat der
+        Kunde weitergeklickt.
+     2. Die Wunschadresse pruefen, waehrend er tippt.
+
+     Beides ist Zugabe. Faellt das Skript aus, bleibt der Fragebogen
+     vollstaendig bedienbar: Die Felder erscheinen beim naechsten Schritt,
+     und die Pruefung mache ich von Hand. Nichts hier darf verhindern,
+     dass jemand seine Antworten abschicken kann.
+     ==================================================================== */
+  (function () {
+    'use strict';
+
+    /* ---- 1. Bedingte Felder ---------------------------------------- */
+    var bedingt = [].slice.call(document.querySelectorAll('.feld[data-wenn]'));
+    function nachziehen() {
+      bedingt.forEach(function (feld) {
+        var name = feld.getAttribute('data-wenn');
+        var erlaubt = (feld.getAttribute('data-ist') || '').split(',');
+        var an = document.querySelector('input[name="' + name + '"]:checked');
+        feld.hidden = !(an && erlaubt.indexOf(an.value) !== -1);
+      });
+    }
+    if (bedingt.length) {
+      document.addEventListener('change', function (e) {
+        if (e.target && e.target.name) { nachziehen(); }
+      });
+      nachziehen();
+    }
+
+    /* ---- 2. Die Pruefung -------------------------------------------- */
+    var felder = [].slice.call(document.querySelectorAll('input.pruefbar'));
+    if (!felder.length || !window.fetch) { return; }
+    var adresse = <?= json_encode('domain-pruefung.php?lang=' . $sprache . '&t=' . rawurlencode($token), JSON_UNESCAPED_SLASHES) ?>;
+    var laeuft  = <?= json_encode($S('pruefeLaeuft'), JSON_UNESCAPED_UNICODE) ?>;
+
+    felder.forEach(function (feld) {
+      var zeile = document.querySelector('.pruefung[data-fuer="' + feld.name + '"]');
+      if (!zeile) { return; }
+      var uhr = null, zuletzt = '', laufend = null;
+
+      function zeigen(art, text) {
+        zeile.className = 'pruefung ' + art;
+        zeile.textContent = text;
+        zeile.hidden = false;
+      }
+
+      function pruefen() {
+        var wert = feld.value.trim();
+        if (wert === zuletzt) { return; }
+        zuletzt = wert;
+        if (wert === '') { zeile.hidden = true; return; }
+        /* Ohne Punkt ist es noch keine Adresse, sondern jemand beim Tippen.
+           Ihn dabei zu korrigieren waere nur laestig. */
+        if (wert.indexOf('.') === -1) { zeile.hidden = true; return; }
+
+        zeigen('laeuft', laeuft);
+        if (laufend) { laufend.abort(); }
+        laufend = ('AbortController' in window) ? new AbortController() : null;
+        fetch(adresse + '&name=' + encodeURIComponent(wert),
+              laufend ? { signal: laufend.signal } : {})
+          .then(function (a) { return a.json(); })
+          .then(function (d) { zeigen(d.stand || 'unklar', d.wort || ''); })
+          .catch(function () { zeile.hidden = true; });   // still scheitern
+      }
+
+      feld.addEventListener('input', function () {
+        clearTimeout(uhr);
+        uhr = setTimeout(pruefen, 700);
+      });
+      feld.addEventListener('blur', function () { clearTimeout(uhr); pruefen(); });
+      if (feld.value.trim() !== '') { pruefen(); }
+    });
+  })();
+  </script>
 
   <?php if ($bezahlt !== null): ?>
   <script>

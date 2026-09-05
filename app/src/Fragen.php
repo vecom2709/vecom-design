@@ -219,8 +219,20 @@ final class Fragen
         if ($ist('domain', 'weissnicht')) {
             $aus[] = 'Domain unklar — selbst nachsehen (whois), der Kunde weiß es nicht';
         }
-        if ($ist('domain', 'neu') && !$hat('domain__frei')) {
-            $aus[] = 'Neue Domain gewünscht, aber keine Wunschadresse genannt';
+        if ($ist('domain', 'neu')) {
+            $wuensche = array_filter([
+                trim((string) ($daten['wunsch1'] ?? '')),
+                trim((string) ($daten['wunsch2'] ?? '')),
+                trim((string) ($daten['wunsch3'] ?? '')),
+            ]);
+            if (!$wuensche) {
+                $aus[] = 'Neue Domain gewünscht, aber keine Wunschadresse genannt';
+            } elseif (count($wuensche) === 1) {
+                /* Eine einzige Adresse ist meist die eine, die schon weg ist.
+                   Lieber jetzt nachfragen als nach der Absage. */
+                $aus[] = 'Nur eine Wunschdomain genannt (' . $wuensche[0]
+                       . ') — nach Ausweichnamen fragen, bevor registriert wird';
+            }
         }
 
         /* Widersprüche zwischen Wunsch und Auftrag. */

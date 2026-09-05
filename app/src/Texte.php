@@ -447,6 +447,28 @@ final class Texte
                     ],
                 ],
 
+                /* DREI WUENSCHE, NICHT EINER
+                   ----------------------------------------------------------
+                   Mit einem Feld lief es so: Der Kunde schreibt seinen
+                   Wunsch, die Adresse ist vergeben -- was sie bei kurzen,
+                   naheliegenden Namen fast immer ist --, ich schreibe ihm,
+                   er antwortet in zwei Tagen mit dem naechsten, der auch weg
+                   ist. Eine Woche fuer eine Auskunft, die eine Sekunde
+                   dauert.
+
+                   Drei Zeilen in Rangfolge, und daneben steht sofort, was
+                   frei ist. Damit ist die Frage erledigt, bevor ich davon
+                   erfahre. */
+                'wunsch1' => ['it' => 'Primo desiderio', 'de' => 'Erster Wunsch', 'en' => 'First choice',
+                              'art' => 'text', 'pruefen' => true, 'hilfe' => 'wunschHilfe',
+                              'wenn' => ['feld' => 'domain', 'ist' => ['neu']]],
+                'wunsch2' => ['it' => 'Secondo desiderio', 'de' => 'Zweiter Wunsch', 'en' => 'Second choice',
+                              'art' => 'text', 'pruefen' => true,
+                              'wenn' => ['feld' => 'domain', 'ist' => ['neu']]],
+                'wunsch3' => ['it' => 'Terzo desiderio', 'de' => 'Dritter Wunsch', 'en' => 'Third choice',
+                              'art' => 'text', 'pruefen' => true,
+                              'wenn' => ['feld' => 'domain', 'ist' => ['neu']]],
+
                 'karte' => [
                     'it' => 'Scheda Google dell’attività', 'de' => 'Google-Unternehmenseintrag', 'en' => 'Google Business listing',
                     'art' => 'eins', 'frei' => true,
@@ -502,6 +524,10 @@ final class Texte
         'freiZeile'  => ['it' => 'Vuoi aggiungere qualcosa? (facoltativo)',
                          'de' => 'Etwas dazu sagen? (freiwillig)',
                          'en' => 'Anything to add? (optional)'],
+        'wunschHilfe'=> ['it' => 'Scrivi tre indirizzi, il preferito per primo. Ti dico subito quali sono liberi. Esempio: latuaazienda.it',
+                         'de' => 'Schreib drei Adressen, die liebste zuerst. Ich sage dir sofort, welche frei sind. Beispiel: deinefirma.it',
+                         'en' => 'Write three addresses, your favourite first. I’ll tell you right away which are free. Example: yourcompany.com'],
+        'pruefeLaeuft'=> ['it' => 'Controllo…', 'de' => 'Sehe nach…', 'en' => 'Checking…'],
         'schonGesagt'=> ['it' => 'Alcune risposte sono già compilate: le hai date quando hai calcolato il prezzo. Correggile pure se nel frattempo è cambiato qualcosa.',
                          'de' => 'Ein paar Antworten stehen schon drin — die hast du gegeben, als du den Preis ausgerechnet hast. Ändere sie ruhig, wenn sich etwas geändert hat.',
                          'en' => 'A few answers are already filled in — you gave them when you worked out the price. Change them if anything has moved on.'],
