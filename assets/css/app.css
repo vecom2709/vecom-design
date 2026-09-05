@@ -36,6 +36,28 @@
   --t-xl:   clamp(2rem, 1.5rem + 2.2vw, 3.4rem);
   --t-2xl:  clamp(2.6rem, 1.6rem + 4.4vw, 5.6rem);
   --t-3xl:  clamp(2.6rem, 1.6rem + 4.0vw, 5.2rem);
+  /* DER BOGEN — vier Lautstärken statt einer
+     ---------------------------------------------------------------------
+     Neun Abschnittsüberschriften standen auf exakt derselben Größe (54px bei
+     1440). Wo alles gleich laut ist, ist nichts wichtig: Der Leser hat kein
+     Mittel zu erkennen, worauf es ankommt, und liest deshalb alles gleich
+     flüchtig. Dazu kam eine Skala, die sich oben selbst widersprach —
+     --t-2xl (89px) war größer als --t-3xl (83px), und weil der Kontaktblock
+     auf 2xl saß, war die lauteste Type der ganzen Seite ihr letzter
+     Abschnitt. Die Seite gipfelte im Formular.
+
+     Die Leiter heißt jetzt, von oben nach unten:
+       Hero            --t-3xl   das Versprechen
+       Höhepunkt       --t-hoehe der Preis
+       Hauptabschnitt  --t-xl    Arbeiten, Leistungen, Ablauf, Über mich
+       Nebenabschnitt  --t-lg    Säulen, Partner, Fragen, Stimmen
+
+     Warum eine eigene Stufe statt --t-2xl: Auf dem Handy stehen 3xl und 2xl
+     beide auf ihrem Minimum von 2,6rem und wären wieder gleich groß. Der
+     Hero darf dort nicht wachsen (die Zeile bricht sonst schlecht), also
+     tritt der Höhepunkt zurück — die Leiter hält auf 390px genauso wie auf
+     1440px. */
+  --t-hoehe: clamp(2.2rem, 1.4rem + 3.4vw, 4.4rem);
 
   /* Raster & Abstände — 8px-Skala */
   --s-1: .5rem;  --s-2: 1rem;   --s-3: 1.5rem; --s-4: 2rem;
@@ -575,6 +597,21 @@ body.scrolled .scrollcue { opacity: 0; }
 /* ---------- 8. Sektionskopf --------------------------------------------- */
 .sechead { display: grid; gap: var(--s-2); max-width: 66ch; margin-bottom: clamp(2.5rem, 5vw, 4.5rem); }
 .sechead h2 { font-size: var(--t-xl); }
+/* Der Höhepunkt. Steht auf dem Preis, weil der offene Preis das Mutigste an
+   diesem Auftritt ist: In dieser Branche nennt ihn sonst niemand vor dem
+   Telefonat. Genau ein Abschnitt trägt diese Größe — zwei Höhepunkte sind
+   keiner. */
+.sechead--hoehepunkt h2 { font-size: var(--t-hoehe); letter-spacing: -.045em; }
+/* Stille vor dem Höhepunkt. Vorher stieß der Preis unmittelbar an die
+   Leistungen — zwei dichte Blöcke ohne Atemzug dazwischen, und der Leser kam
+   im selben Tempo an, in dem er den vorigen Abschnitt überflogen hat. Ein
+   Höhepunkt entsteht nicht durch Lautstärke allein, sondern durch die Pause
+   davor. Das ist derselbe Grund, aus dem die beiden Zwischenrufe der Seite
+   existieren; hier genügt Raum, weil danach ohnehin ein starker Satz steht. */
+#plans { padding-top: calc(var(--section-y) * 1.65); }
+/* Zuträger, keine Kapitel: Säulen, Partner, Fragen, Stimmen. Sie beantworten
+   Fragen, die erst nach der Entscheidung kommen. */
+.sechead--neben h2 { font-size: var(--t-lg); }
 .sechead p { color: var(--c-text-dim); font-size: var(--t-md); }
 .sechead--split { max-width: none; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) {
@@ -859,7 +896,11 @@ body.scrolled .scrollcue { opacity: 0; }
 }
 .contact__grid { position: relative; z-index: 1; display: grid; gap: clamp(2rem, 5vw, 4rem); }
 @media (min-width: 940px) { .contact__grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); } }
-.contact h2 { font-size: var(--t-2xl); letter-spacing: -.045em; }
+/* War --t-2xl und damit die größte Type der Seite — größer als der Hero.
+   Ein Schluss ist eine Auflösung, kein zweiter Höhepunkt: Wer hier ankommt,
+   hat sich längst entschieden und braucht keinen Ruf mehr, sondern einen
+   klaren Weg. */
+.contact h2 { font-size: var(--t-xl); letter-spacing: -.045em; }
 .contact__lead { margin-top: var(--s-2); color: var(--c-text-dim); font-size: var(--t-md); max-width: 42ch; }
 .contact__data { margin-top: var(--s-4); display: grid; gap: var(--s-2); }
 .contact__data div { display: grid; gap: .2rem; }
@@ -2022,8 +2063,14 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   padding: clamp(26px, 4vw, 56px);
   border-radius: var(--radius-lg);
   border: 1px solid var(--c-line);
+  /* Der Schein war .17 und machte diese Fläche zur hellsten der ganzen
+     Preisbewegung — heller als der Höhepunkt, den sie beantworten soll. Zwei
+     Kästen sagen hier nacheinander dasselbe („dein Projekt ist besonders,
+     rechne es dir aus"); der zweite darf den ersten nicht überstrahlen,
+     sonst steigt die Bewegung nach ihrem Gipfel noch einmal an und der
+     Leser weiß nicht mehr, worauf sie hinauswollte. */
   background:
-    radial-gradient(130% 150% at 6% 0%, rgba(10, 120, 245, .17), transparent 60%),
+    radial-gradient(130% 150% at 6% 0%, rgba(10, 120, 245, .07), transparent 60%),
     linear-gradient(180deg, var(--c-surface-2), var(--c-surface));
   box-shadow: var(--elev-1);
 }
