@@ -61,6 +61,54 @@ const THEMEN = {
   },
 };
 
+/* ==========================================================================
+   DIE FARBE DER SONNE UEBER DEN TAG
+
+   Vorher war das eine Rechnung aus zwei Zahlen -- Saettigung runter,
+   Helligkeit rauf, je hoeher die Sonne steht. Gemessen kam bei acht Uhr
+   #edddce heraus: fast Weiss mit einem Hauch warm. Von "tiefes Rotorange"
+   war nichts zu sehen.
+
+   Der Grund ist, dass Sonnenlicht seine Farbe nicht gleichmaessig aendert.
+   Am Horizont laeuft es durch ein Vielfaches an Luft, das Blau streut fast
+   vollstaendig weg, und was uebrig bleibt, ist Rot. Ein paar Grad hoeher
+   ist davon schon die Haelfte weg. Der Verlauf ist also steil am Anfang
+   und flach in der Mitte -- genau das kann eine Interpolation zwischen zwei
+   Zahlen nicht.
+
+   Deshalb eine Leiter mit Stuetzstellen. u = 0 ist der Horizont
+   (Auf- oder Untergang), u = 1 der Zenit; dazwischen wird gemischt. Auf-
+   und Untergang teilen sich die Leiter, weil sie physikalisch dasselbe
+   sind -- was sie unterscheidet, ist die Richtung, aus der es kommt.
+   ========================================================================== */
+const SONNENLEITER = [
+  [0.00, 0xa8280a],   // Aufgang: tiefes Rotorange
+  [0.05, 0xc93c10],
+  [0.11, 0xe2591b],   // Rotorange
+  [0.18, 0xf2802a],   // Orange
+  [0.27, 0xfaa544],   // Orangegelb
+  [0.38, 0xfec983],
+  [0.52, 0xffe3bb],
+  [0.70, 0xfff2e0],
+  [1.00, 0xfffaf3],   // Zenit: fast neutral
+];
+
+/** Sonnenfarbe fuer eine Hoehe u (0 = Horizont, 1 = Zenit). */
+function sonnenfarbe(u, ziel) {
+  const k = Math.max(0, Math.min(1, u));
+  for (let i = 1; i < SONNENLEITER.length; i++) {
+    if (k <= SONNENLEITER[i][0]) {
+      const [a, fa] = SONNENLEITER[i - 1];
+      const [b, fb] = SONNENLEITER[i];
+      const m = (k - a) / (b - a);
+      /* Im Farbraum mischen, nicht in Hexzahlen -- sonst laeuft der
+         Uebergang von Rot nach Gelb durch ein stumpfes Braun. */
+      return ziel.setHex(fa).lerp(new THREE.Color(fb), m);
+    }
+  }
+  return ziel.setHex(SONNENLEITER[SONNENLEITER.length - 1][1]);
+}
+
 /* Es gibt nur noch eine Fassung.
    Der Umschalter zwischen Tag und Nacht ist wieder raus: Auf hellem Grund
    liess sich derselbe Hochglanz nicht halten -- Glanz ist Kontrast, und
@@ -219,13 +267,26 @@ export class World {
     const u = ((Math.atan2(6.4, Math.cos(az) * 9.5) / (2 * Math.PI)) + 0.75) % 1;
     const v = 0.5 - Math.atan2(hoehe, weite) / Math.PI;
     const sx = u * W, sy = Math.max(10, v * H);
+    /* Die Scheibe traegt dieselbe Farbe wie das Licht. Waere sie immer
+       weiss, spiegelte das Metall morgens einen weissen Punkt in einem
+       roten Licht -- und genau daran erkennt das Auge, dass etwas nicht
+       stimmt, ohne sagen zu koennen, was. */
+    const f = sonnenfarbe(Math.pow(bogen, 1.8), new THREE.Color());
+    const rgb = (a) => 'rgba(' + Math.round(f.r * 255) + ',' + Math.round(f.g * 255)
+              + ',' + Math.round(f.b * 255) + ',' + a + ')';
     const glut = ctx.createRadialGradient(sx, sy, 1, sx, sy, 150);
-    glut.addColorStop(0.00, 'rgba(255,253,246,1)');
-    glut.addColorStop(0.08, 'rgba(255,238,206,0.92)');
-    glut.addColorStop(0.34, 'rgba(255,206,150,0.30)');
-    glut.addColorStop(1.00, 'rgba(255,190,130,0)');
+    glut.addColorStop(0.00, rgb(1));
+    glut.addColorStop(0.08, rgb(0.92));
+    glut.addColorStop(0.34, rgb(0.30));
+    glut.addColorStop(1.00, rgb(0));
     ctx.fillStyle = glut; ctx.beginPath(); ctx.arc(sx, sy, 150, 0, 7); ctx.fill();
-    ctx.fillStyle = '#fffdf6'; ctx.beginPath(); ctx.arc(sx, sy, 15, 0, 7); ctx.fill();
+    /* Der Kern bleibt hell -- auch eine rote Sonne ist in der Mitte
+       ausgebrannt, sonst waere sie ein Ballon. */
+    ctx.fillStyle = rgb(1); ctx.beginPath(); ctx.arc(sx, sy, 15, 0, 7); ctx.fill();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(255,250,240,0.75)';
+    ctx.beginPath(); ctx.arc(sx, sy, 7, 0, 7); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
 
     /* Duenne Dunstbaender ueber dem Horizont: Struktur statt Verlauf --
        daran erkennt das Auge im Spiegelbild eine Welt und keine Farbe. */
@@ -309,6 +370,17 @@ export class World {
       this.key.intensity = T.key[1];
       this.rimA.color.setHex(T.rimA[0]);
       this.rimB.color.setHex(T.rimB[0]);
+      /* Auch das Zurueckstellen gehoert dazu: Wer um kurz vor acht auf der
+         Seite ist und stehen bleibt, bekommt um acht die Nacht -- mit einem
+         Glanzpunkt, der sonst rot geblieben waere. */
+      this.spec.color.setHex(T.spec[0]);
+      this.spec.intensity = T.spec[1];
+      this.spec.position.set(2.4, 3.0, 5.2);
+      this.fill.color.setHex(T.fill[0]);
+      if (this.halo) { this.halo.material.color.setRGB(1, 1, 1); }
+      this.pointerLight.color.setHex(T.pointer[0]);
+      this.pointerLight.intensity = T.pointer[1];
+      this.sonne = null;
       this._bakeEnvironment(T);
       return;
     }
@@ -318,9 +390,84 @@ export class World {
     const az = Math.PI * (1 - t);                 // links -> oben -> rechts
 
     this.key.position.set(Math.cos(az) * 8.5, 1.4 + bogen * 8.0, 5.5 + bogen * 1.6);
-    /* Farbe: tiefes Bernstein am Rand des Tages, fast weiss im Zenit. */
-    this.key.color.setHSL(0.075 + bogen * 0.010, 0.68 - bogen * 0.60, 0.56 + bogen * 0.40);
-    this.key.intensity = T.key[1] * (0.72 + bogen * 0.55);
+    /* Die Farbe kommt aus der Leiter, nicht aus einer Formel. bogen ist
+       zugleich die Hoehe ueber dem Horizont -- 0 am Rand des Tages, 1 im
+       Zenit -- und damit genau die Zahl, die die Leiter erwartet. */
+    /* DIE FARBE HAENGT AN DER HOEHE, NICHT AN DER UHRZEIT
+       bogen steigt gleich nach Sonnenaufgang steil an -- nach vierzig
+       Minuten steht die Sonne rechnerisch schon bei 0,37, und die Leiter
+       waere dort fast durch. Gemessen: um 07:41 war es bereits #fec67e,
+       also blasses Orangegelb. Von "morgens tief rotorange" blieb eine
+       gute halbe Stunde.
+
+       Der Exponent zieht den unteren Teil auseinander: Das tiefe Rot haelt
+       bis gegen sieben, Orange bis halb neun, Orangegelb bis gegen zehn,
+       danach wird es neutral. Das entspricht dem, was man draussen sieht --
+       ein Vormittag ist lange warm, ein Mittag ist kurz weiss. */
+    const hoch = Math.pow(bogen, 1.8);
+    sonnenfarbe(hoch, this.key.color);
+    /* Und sie ist am Horizont wirklich schwaecher. Vorher stand sie bei
+       Sonnenaufgang auf 72 % -- das ist die Helligkeit des Vormittags, und
+       ein tiefes Rot bei voller Staerke sieht aus wie eine Lampe, nicht
+       wie eine tiefstehende Sonne. */
+    /* DIE ZAHLEN LIEGEN OFFEN, WEIL SIE NICHT NUR HIER GEBRAUCHT WERDEN
+       Die Abschnitte der Seite setzen Lichtstaerke und -stand selbst. Wuerde
+       die Sonne sie nur hier schreiben, waere sie beim ersten Scrollen wieder
+       weg. Also legt sie ihre Faktoren ab, und die Abschnitte rechnen durch
+       sie hindurch (site-beats.js). */
+    this.sonne = {
+      sx: Math.cos(az),                    // -1 Osten, 0 Zenit, +1 Westen
+      hoehe: bogen,                        // 0 Horizont, 1 Mittag
+      key: 0.50 + bogen * 0.55,
+      spec: 0.52 + bogen * 0.48,
+    };
+    this.key.intensity = T.key[1] * this.sonne.key;
+
+    /* Waerme: 1 am Horizont, 0 im Zenit. Sie steuert alles, was nicht die
+       Sonne selbst ist, aber von ihr eingefaerbt wird. */
+    const waerme = 1 - hoch;
+
+    /* DER GLANZ IST NICHT DAS LICHT, SONDERN DAS SPIEGELBILD
+       ------------------------------------------------------------------
+       Die Sonnenfarbe stand bisher nur im Hauptlicht. Auf einem blauen
+       Metallkoerper sieht man davon fast nichts: Ein blauer Koerper wirft
+       oranges Licht nicht orange zurueck, er wird dunkel. Was das Auge
+       "Glanz" nennt, ist die Spiegelung -- und die kam aus zwei Quellen,
+       die den ganzen Tag ueber weiss blieben: dem Glanzpunkt und der
+       grossen weissen Softbox ueber der Marke.
+
+       Deshalb wandern jetzt beide mit. Der Glanzpunkt nimmt die Farbe der
+       Sonne fast ganz an und verliert am Horizont an Kraft -- ein Punkt
+       auf voller Staerke brennt im Bloom zu Weiss aus, und dann ist die
+       Farbe wieder weg, egal wie rot sie gesetzt war. Die Softbox nimmt
+       sie zur Haelfte an: Sie steht im Bild fuer den Himmel ueber der
+       Marke, und der ist morgens nicht weiss. */
+    this.spec.color.setRGB(1, 1, 1).lerp(this.key.color, 0.88 * waerme);
+    this.spec.intensity = T.spec[1] * this.sonne.spec;
+    this.spec.position.set(1.2 + Math.cos(az) * 2.2, 2.2 + bogen * 1.6, 5.2);
+    this.fill.color.setHex(T.fill[0]).lerp(this.key.color, 0.45 * waerme);
+    /* Der Lichtsaum hinter der Marke war der hellste Fleck im Bild und der
+       einzige, der den ganzen Tag weiss blieb -- genau das, was das Auge
+       zuerst "Glanz" nennt. Er nimmt die Sonnenfarbe jetzt mit, sonst
+       steht bei Sonnenaufgang eine weisse Lampe hinter einer roten Sonne. */
+    if (this.halo) {
+      this.halo.material.color.setRGB(1, 1, 1).lerp(this.key.color, 0.78 * waerme);
+    }
+
+    /* GEMESSEN: DAS HELLSTE IM BILD WAR KEINE DER SONNENQUELLEN
+       ------------------------------------------------------------------
+       Ich habe die Lichter einzeln abgeschaltet und den hellsten Fleck
+       gemessen. Ohne Zeigerlicht fiel er von (254,255,254) auf (3,137,158)
+       -- alles andere zusammen machte weniger aus als dieses eine Licht.
+       Es sitzt dicht vor der Kerbe, folgt dem Mauszeiger und war mit
+       0x9fd0ff kuehl eingestellt. Genau dieser Fleck ist das, was jemand
+       "den Glanz" nennt, und er blieb den ganzen Tag derselbe.
+
+       Er nimmt die Sonne jetzt zu drei Vierteln auf und wird am Horizont
+       schwaecher -- ein Licht auf voller Staerke brennt zu Weiss aus, und
+       dann ist die Farbe wieder weg, egal wie rot sie gesetzt war. */
+    this.pointerLight.color.setHex(T.pointer[0]).lerp(this.key.color, 0.75 * waerme);
+    this.pointerLight.intensity = T.pointer[1] * (0.50 + bogen * 0.50);
 
     /* Die Kantenlichter nehmen die Stimmung auf, ohne die Marke zu
        verlassen: Das Blau bleibt Blau, es wird nur waermer oder kuehler. */
@@ -328,14 +475,18 @@ export class World {
     this.rimB.color.setHSL(0.52 + bogen * 0.02, 0.90, 0.44 + bogen * 0.08);
 
     const himmel = this._himmelTextur(t, false);
-    this._bakeEnvironment(T, himmel, 0.16);
+    /* Und der Himmel selbst darf am Rand des Tages mehr zeigen: Dann liegt
+       die warme Schicht tief und breit, genau auf der Hoehe, in der sich
+       der Koerper spiegelt. Mittags waere derselbe Anteil nur Aufhellung. */
+    this._bakeEnvironment(T, himmel, 0.16 + waerme * 0.20,
+                          { farbe: this.key.color, staerke: 0.70 * waerme });
     himmel.dispose();
   }
 
 
 
   /* Softboxen als Umgebung — nur emissive Flächen, keine Lichtberechnung. */
-  _studioEnvironment(T, himmelTex, anteil) {
+  _studioEnvironment(T, himmelTex, anteil, tinte) {
     const env = new THREE.Scene();
     env.background = new THREE.Color(T.envGrund);
 
@@ -355,9 +506,14 @@ export class World {
       env.add(k);
     }
     T.panels.forEach(([w, h, color, intensity, pos, rot]) => {
+      const c = new THREE.Color(color);
+      /* Nur die weissen Flaechen nehmen die Tagesfarbe an. Die blaue und
+         die cyanfarbene sind die Marke -- die haelt auch bei Sonnenaufgang
+         ihre Farbe, sonst wandert das Logo mit dem Licht davon. */
+      if (tinte && color === 0xffffff) { c.lerp(tinte.farbe, tinte.staerke); }
       const m = new THREE.Mesh(
         new THREE.PlaneGeometry(w, h),
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(intensity), side: THREE.DoubleSide })
+        new THREE.MeshBasicMaterial({ color: c.multiplyScalar(intensity), side: THREE.DoubleSide })
       );
       m.position.set(...pos);
       if (rot) m.rotation.set(...rot);
@@ -384,10 +540,10 @@ export class World {
 
      @param {number} anteil 0 = nur Studio, 1 = Himmel in voller Staerke.
   */
-  _bakeEnvironment(T, himmelTex, anteil) {
+  _bakeEnvironment(T, himmelTex, anteil, tinte) {
     const alt = this.envRT;
     const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.envRT = pmrem.fromScene(this._studioEnvironment(T, himmelTex, anteil), 0.03);
+    this.envRT = pmrem.fromScene(this._studioEnvironment(T, himmelTex, anteil, tinte), 0.03);
     this.scene.environment = this.envRT.texture;
     pmrem.dispose();
     if (alt) { alt.dispose(); }

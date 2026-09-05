@@ -67,7 +67,41 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   const BEATS = SITE_BEATS.map((b, i) => (!heroGeteilt && i === 0 ? { ...b, ...HERO_GEDRAENGT } : b));
   const root = document.documentElement;
 
+  /* ====================================================================
+     DIE SONNE GEHOERT NICHT DEN ABSCHNITTEN
+
+     Jeder Beat brachte seine eigene Lichtposition und -staerke mit --
+     gebaut fuer eine Buehne ohne Tageszeit. Seit die Szene einen wirklichen
+     Sonnenstand kennt, kollidiert das: Der Beat setzt das Hauptlicht beim
+     ersten Scrollen wieder nach links oben, und der Sonnengang ist weg,
+     bevor ihn jemand gesehen hat. Gemessen war er es sogar schon vorher --
+     der Eroeffnungsflug schreibt dieselben Werte am Ende noch einmal.
+
+     Also rechnen die Beats ihre Werte jetzt DURCH die Sonne, statt sie zu
+     ersetzen. Die Richtung und die Hoehe kommen vom Tag, der Abstand und
+     der Charakter vom Abschnitt: Ein Abschnitt, der sein Licht weit weg
+     und flach wollte, bekommt es weiterhin weit weg und flach -- nur eben
+     von der Seite, auf der die Sonne heute wirklich steht.
+
+     Nachts (keine Sonne) bleibt jeder Wert exakt der alte.
+     ==================================================================== */
+  const sonnePos = (b) => {
+    const s = w.sonne;
+    if (!s) { return b.keyPos; }
+    return [
+      /* Betrag vom Beat, Vorzeichen und Groesse von der Sonne: morgens von
+         links, mittags von oben (x nahe null), abends von rechts. */
+      Math.abs(b.keyPos[0]) * s.sx,
+      1.4 + (b.keyPos[1] - 1.4) * (0.25 + s.hoehe * 0.90),
+      b.keyPos[2],
+    ];
+  };
+  const sonneKey  = (v) => v * (w.sonne ? w.sonne.key : 1);
+  const sonneSpec = (v) => v * (w.sonne ? w.sonne.spec : 1);
+  let letzterBeat = null;
+
   const applyTween = (b, instant) => {
+    letzterBeat = b;
     const d = instant ? 0 : 1.9;
     const e = 'power2.inOut';
     gsap.to(w.camGoal,  { x: b.cam[0] * k, y: b.cam[1], z: b.cam[2] * zk, duration: d, ease: e, overwrite: true });
@@ -75,9 +109,10 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     gsap.to(w.logoRig.position, { x: b.pos[0] * k, y: b.pos[1], z: b.pos[2], duration: d, ease: e, overwrite: true });
     gsap.to(w.logoRig.rotation, { x: b.rotX, y: b.rotY, duration: d * 1.15, ease: e, overwrite: true });
     gsap.to(w.scene.fog, { density: b.fog, duration: d, ease: e, overwrite: true });
-    gsap.to(w.key, { intensity: b.key, duration: d, ease: e, overwrite: true });
-    gsap.to(w.key.position, { x: b.keyPos[0], y: b.keyPos[1], z: b.keyPos[2], duration: d, ease: e, overwrite: true });
-    gsap.to(w.spec, { intensity: b.spec, duration: d, ease: e, overwrite: true });
+    const kp = sonnePos(b);
+    gsap.to(w.key, { intensity: sonneKey(b.key), duration: d, ease: e, overwrite: true });
+    gsap.to(w.key.position, { x: kp[0], y: kp[1], z: kp[2], duration: d, ease: e, overwrite: true });
+    gsap.to(w.spec, { intensity: sonneSpec(b.spec), duration: d, ease: e, overwrite: true });
     gsap.to(w.bloom, { strength: b.bloom, duration: d, ease: e, overwrite: true });
     gsap.to(w.mat, { roughness: b.rough, duration: d, ease: e, overwrite: true });
 
@@ -210,15 +245,17 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   }
   function applyOpening() {
     const b = BEATS[0];
+    letzterBeat = b;
     const d = 3.4;
     const e = 'power3.out';
     gsap.to(w.camGoal,  { x: b.cam[0] * k, y: b.cam[1], z: b.cam[2] * zk, duration: d, ease: e, overwrite: true });
     gsap.to(w.lookGoal, { x: b.look[0] * k, y: b.look[1], z: b.look[2], duration: d, ease: e, overwrite: true });
     gsap.to(w.logoRig.rotation, { x: b.rotX, y: b.rotY, duration: d * 1.1, ease: e, overwrite: true });
     gsap.to(w.scene.fog, { density: b.fog, duration: d, ease: e, overwrite: true });
-    gsap.to(w.key, { intensity: b.key, duration: d * 0.8, ease: e, overwrite: true });
-    gsap.to(w.key.position, { x: b.keyPos[0], y: b.keyPos[1], z: b.keyPos[2], duration: d, ease: e, overwrite: true });
-    gsap.to(w.spec, { intensity: b.spec, duration: d, ease: e, overwrite: true });
+    const kp = sonnePos(b);
+    gsap.to(w.key, { intensity: sonneKey(b.key), duration: d * 0.8, ease: e, overwrite: true });
+    gsap.to(w.key.position, { x: kp[0], y: kp[1], z: kp[2], duration: d, ease: e, overwrite: true });
+    gsap.to(w.spec, { intensity: sonneSpec(b.spec), duration: d, ease: e, overwrite: true });
     gsap.to(w.bloom, { strength: b.bloom, duration: d, ease: e, overwrite: true });
     gsap.to(w.halo.material, { opacity: b.halo, duration: d, ease: e, overwrite: true });
     if (w.finish) {
@@ -235,6 +272,13 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   window.addEventListener('wheel', () => {
     if (opening.progress() < 1) { opening.kill(); bruchZurueck(); applyOpening(); }
   }, { once: true, passive: true });
+
+  /* Die Uhr springt alle fuenf Minuten weiter. Ohne das hier zoege die
+     Sonne erst beim naechsten Scrollen nach -- wer die Seite offen stehen
+     laesst, saehe den Uebergang nie. */
+  window.addEventListener('vecom:sonne', () => {
+    if (letzterBeat) { applyTween(letzterBeat); }
+  });
 
   BEATS.forEach((b, i) => {
     const el = i === 0 ? document.querySelector('.hero') : document.getElementById(b.id);
@@ -297,7 +341,7 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
         w.drift.extraRot = t * Math.PI * 1.4;
         w.mat.emissiveIntensity = t * 1.3;
         w.bloom.strength = 0.40 + t * 0.55;
-        w.spec.intensity = 20 + t * 45;
+        w.spec.intensity = sonneSpec(20 + t * 45);
         w.halo.material.opacity = 0.26 + t * 0.34;
         w.halo.visible = true;
       },

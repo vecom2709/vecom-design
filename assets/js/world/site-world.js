@@ -110,10 +110,17 @@ async function start() {
      jemand die Seite lange offen laesst.
      ---------------------------------------------------------------------- */
   if (world.setTageszeit) {
-    world.setTageszeit();
-    setInterval(() => { if (!document.hidden) { world.setTageszeit(); } }, 300000);
+    /* Das Ereignis sagt den Abschnitten, dass sie ihr Licht neu durch die
+       Sonne rechnen muessen -- sonst bliebe der Stand auf dem, was beim
+       letzten Scrollen galt. */
+    const nachziehen = () => {
+      world.setTageszeit();
+      window.dispatchEvent(new Event('vecom:sonne'));
+    };
+    nachziehen();
+    setInterval(() => { if (!document.hidden) { nachziehen(); } }, 300000);
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) { world.setTageszeit(); }
+      if (!document.hidden) { nachziehen(); }
     });
   }
 
