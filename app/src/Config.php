@@ -26,6 +26,29 @@ final class Config
         return self::all()[$key] ?? $default;
     }
 
+    /**
+     * Die Konfiguration von aussen setzen — ausschliesslich fuer den
+     * Kettentest (app/pruefung/kette.php).
+     *
+     * WARUM DAS HIER STEHT UND NICHT IM TEST
+     *
+     * Der Test darf die Arbeitsdatenbank nicht erreichen koennen. Wuerde er
+     * config.local.php laden und danach ueberschreiben, haette er sie einen
+     * Augenblick lang in der Hand — und ein Abbruch an der falschen Stelle
+     * liesse ihn auf echten Daten weiterlaufen. So wird sie nie geladen.
+     *
+     * Zweimal aufgerufen wirft es. Eine Konfiguration, die sich mitten im
+     * Lauf aendert, ist die Art Fehler, die man drei Tage sucht.
+     */
+    public static function setzenFuerTest(array $daten): void
+    {
+        if (self::$data !== null) {
+            throw new RuntimeException('Konfiguration steht bereits.');
+        }
+        self::$data = $daten + ['basis' => '/app', 'firma' => 'Vecom Design',
+                                'mwst' => 0.0, 'zeitzone' => 'Europe/Rome'];
+    }
+
     /** Basis-URL des Admin-Bereichs, ohne Schraegstrich am Ende. */
     public static function basis(): string
     {

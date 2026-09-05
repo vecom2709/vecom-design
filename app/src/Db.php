@@ -10,7 +10,14 @@ final class Db
     {
         if (self::$pdo === null) {
             $c = Config::get('db');
-            $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', $c['host'], $c['name']);
+            /* Ueber einen Socket, wenn einer angegeben ist. Auf dem Webspace
+               steht dort nichts und es bleibt beim Wirtsnamen; in der
+               Werkstatt und im Kettentest laeuft MariaDB ueber einen Socket,
+               und ohne diese Zeile waere der Test nicht auf demselben Weg zu
+               fuehren wie die Anwendung. */
+            $dsn = !empty($c['socket'])
+                ? sprintf('mysql:unix_socket=%s;dbname=%s;charset=utf8mb4', $c['socket'], $c['name'])
+                : sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', $c['host'], $c['name']);
             self::$pdo = new PDO($dsn, $c['user'], $c['pass'], [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,

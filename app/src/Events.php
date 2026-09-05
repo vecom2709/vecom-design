@@ -517,6 +517,32 @@ final class Events
 
         $b = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
         if (!$b) { throw new RuntimeException('Bestellung nicht gefunden.'); }
+
+        /* KEIN PROJEKT OHNE EINE ENTSCHEIDUNG DARUEBER
+           ------------------------------------------------------------------
+           Diese Stelle hatte keine Bedingung. Sie brauchte auch keine, denn
+           sie wurde nur an einer Stelle aufgerufen — von zahlungBestaetigen(),
+           unmittelbar nachdem die Bestellung auf "bezahlt" gesetzt wurde. Die
+           Regel stand also nicht im Code, sondern in der Gewohnheit, sie nur
+           von dort aufzurufen.
+
+           Der Kettentest hat gezeigt, was das heisst: Ein direkter Aufruf legt
+           ein Projekt an, ohne dass jemals Geld geflossen ist. Heute tut das
+           niemand; der naechste Aufrufer weiss es womoeglich nicht.
+
+           Bezahlt ODER die Bestellung ausdruecklich auf bezahlt gesetzt: Beides
+           ist eine Entscheidung eines Menschen. Wer ohne Geld anfangen will --
+           weil er dem Kunden vertraut --, setzt die Bestellung von Hand, und
+           dann geht es. Was nicht mehr geht, ist versehentlich. */
+        $bezahlt = (string) $b['status'] === 'bezahlt'
+            || (int) Db::wert("SELECT COUNT(*) FROM payments
+                                WHERE order_id = ? AND status = 'bezahlt'", [$bestellId], 0) > 0;
+        if (!$bezahlt) {
+            throw new RuntimeException(
+                'Zu dieser Bestellung ist noch keine Zahlung bestätigt. '
+                . 'Bestätige die Zahlung, oder setze die Bestellung von Hand auf bezahlt.');
+        }
+
         $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $b['customer_id']]);
 
         $name = trim(($k['company'] ?: $k['name']) . ' — ' . $b['package_name']);

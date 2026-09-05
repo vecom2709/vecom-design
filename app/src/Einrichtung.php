@@ -4,14 +4,36 @@ declare(strict_types=1);
 /** Die Einrichtungsschritte. Wird vom Einrichter und von der Kommandozeile benutzt. */
 final class Einrichtung
 {
-    /** Welche Migrationen sind noch nicht eingespielt? Faellt nie um. */
+    /**
+     * Welche Migrationen sind noch nicht eingespielt? Faellt nie um.
+     *
+     * EINE LEERE DATENBANK IST NICHT DASSELBE WIE EINE FERTIGE
+     * ----------------------------------------------------------------------
+     * Hier stand ein einziges catch, das jeden Fehler zu "nichts offen"
+     * machte. Auf einer voellig leeren Datenbank gibt es die Tabelle
+     * migrations noch nicht — die Abfrage warf, das catch griff, und
+     * selbsttaetig() kam zu dem Schluss, es sei nichts zu tun. Ergebnis:
+     * Eine frische Einrichtung baute sich nie auf. Aufgefallen ist es nur,
+     * weil der Kettentest (app/pruefung/kette.php) mit einer wirklich leeren
+     * Datenbank anfaengt; auf jeder bestehenden lief es, weil die Tabelle
+     * dort laengst stand.
+     *
+     * Also wird jetzt unterschieden: Fehlt die Tabelle, ist ALLES offen.
+     * Geht sonst etwas schief — kein Netz, keine Rechte —, bleibt es beim
+     * alten Verhalten: lieber nichts behaupten als etwas Falsches.
+     */
     public static function offene(): array
     {
+        $dateien = array_map('basename', glob(dirname(__DIR__) . '/migrations/*.sql') ?: []);
         try {
-            $dateien = array_map('basename', glob(dirname(__DIR__) . '/migrations/*.sql') ?: []);
             $erledigt = array_column(Db::all('SELECT datei FROM migrations'), 'datei');
             return array_values(array_diff($dateien, $erledigt));
         } catch (Throwable $e) {
+            try {
+                $da = (int) Db::wert("SELECT COUNT(*) FROM information_schema.tables
+                                       WHERE table_schema = DATABASE() AND table_name = 'migrations'", [], 0);
+                if ($da === 0) { return $dateien; }      // leere Datenbank: alles offen
+            } catch (Throwable $e2) { /* dann eben nicht */ }
             return [];
         }
     }

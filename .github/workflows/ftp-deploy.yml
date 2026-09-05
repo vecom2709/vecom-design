@@ -23,13 +23,36 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      ohne_pruefung:
+        description: "Ohne Kettenprüfung ausliefern (nur im Notfall)"
+        type: boolean
+        default: false
 
 concurrency:
   group: ftp-deploy
   cancel-in-progress: true
 
 jobs:
+  # ==========================================================================
+  # ERST PRUEFEN, DANN AUSLIEFERN
+  #
+  # Die Kette wird einmal ganz durchgespielt, bevor irgendetwas auf den Server
+  # geht: Bestellung, Zahlung, Projekt, Fragebogen, beide Freigabeschalter,
+  # Restzahlung, online, abgeschlossen. Reisst eine der Pruefungen, findet der
+  # Upload nicht statt.
+  #
+  # Der Notausgang oben ist Absicht und bewusst unbequem: Er geht nur von
+  # Hand, heisst so, wie er ist, und steht danach im Protokoll. Ein Deploy an
+  # der Pruefung vorbei soll eine Entscheidung sein, kein Versehen.
+  # ==========================================================================
+  kette:
+    if: github.event_name != 'workflow_dispatch' || !inputs.ohne_pruefung
+    uses: ./.github/workflows/kette.yml
+
   deploy:
+    needs: [kette]
+    if: always() && (needs.kette.result == 'success' || needs.kette.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

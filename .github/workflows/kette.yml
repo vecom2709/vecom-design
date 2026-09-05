@@ -1,0 +1,76 @@
+# ============================================================================
+# Die Kette bei jedem Push einmal ganz durchspielen.
+#
+# WARUM DAS HIER UND NICHT AUF DEM SERVER LAEUFT
+#
+# Der Test legt Daten an: Kunde, Bestellung, Zahlung, Projekt, Fragebogen.
+# Auf dem Webspace gibt es nur die eine Datenbank, mit der gearbeitet wird —
+# dort darf er niemals laufen. Hier bekommt er bei jedem Lauf eine frische,
+# leere MariaDB, baut sie aus den Migrationen selbst auf und ist danach weg.
+#
+# Nebeneffekt, der genauso viel wert ist: Damit wird bei jedem Push geprueft,
+# dass sich die Datenbank AUS DEM NICHTS aufbauen laesst. Genau das ging
+# monatelang nicht (siehe Einrichtung::offene) und ist niemandem aufgefallen,
+# weil auf jeder bestehenden Datenbank alles stand.
+#
+# Schlaegt er fehl, wird nicht ausgeliefert: ftp-deploy.yml wartet auf ihn.
+# ============================================================================
+name: Die Kette prüfen
+
+# Bei einem Push laeuft er nicht von selbst, sondern wird vom Deploy
+# aufgerufen (workflow_call) — sonst liefe er zweimal fuer dasselbe.
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  kette:
+    runs-on: ubuntu-latest
+
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: pruefung
+          MARIADB_DATABASE: vdkette
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP bereitstellen
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, intl, curl, gd
+          coverage: none
+
+      - name: Auf die Datenbank warten
+        run: |
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -ppruefung --silent 2>/dev/null; then
+              echo "Datenbank steht."; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Die Datenbank kam nicht hoch."; exit 1
+
+      - name: Die Kette durchspielen
+        env:
+          VD_TEST_DB_HOST: 127.0.0.1
+          VD_TEST_DB_NAME: vdkette
+          VD_TEST_DB_USER: root
+          VD_TEST_DB_PASS: pruefung
+        run: php app/pruefung/kette.php
+
+      - name: Alle PHP-Dateien auf Syntax prüfen
+        run: |
+          fehler=0
+          while IFS= read -r f; do
+            php -l "$f" > /dev/null 2>&1 || { echo "::error file=$f::Syntaxfehler"; fehler=1; }
+          done < <(find . -name '*.php' -not -path './node_modules/*' -not -path './.git/*')
+          exit $fehler
