@@ -918,8 +918,28 @@ body.scrolled .scrollcue { opacity: 0; }
 .footer__bottom {
   margin-top: var(--s-4); padding-top: var(--s-3); border-top: 1px solid var(--c-line);
   display: flex; flex-wrap: wrap; gap: .3rem clamp(1rem, 3vw, 2.5rem); justify-content: center;
+  align-items: center;
   text-align: center; font-size: var(--t-xs); color: var(--c-text-faint);
 }
+
+/* Partnerbanner in der Fußzeile.
+   Ein fremdes Logo in einem eigenen Auftritt ist immer ein kleiner Stilbruch;
+   deshalb steht es gedämpft da und wird erst beim Darüberfahren ganz sichtbar.
+   Die Fläche selbst bleibt unverändert groß — gedämpft heißt hier leiser,
+   nicht schwerer zu treffen. */
+.fusspartner {
+  display: inline-flex; line-height: 0; border-radius: 3px;
+  /* Das Banner hat einen hellen eigenen Grund und ist damit auf dieser
+     dunklen Fußzeile von Natur aus das Lauteste. Weit heruntergedimmt steht
+     es da wie ein Hinweis und nicht wie eine Anzeige — beim Darüberfahren
+     kommt es ganz. */
+  opacity: .3; filter: grayscale(1);
+  transition: opacity var(--d-ui, .18s) var(--e-std, ease),
+              filter var(--d-ui, .18s) var(--e-std, ease);
+}
+.fusspartner:hover, .fusspartner:focus-visible { opacity: 1; filter: none; }
+.fusspartner img { display: block; width: 88px; height: 31px; }
+@media (prefers-reduced-motion: reduce) { .fusspartner { transition: none; } }
 
 /* ---------- 16. Reveal-Choreografie ------------------------------------- */
 /* Endzustand ist Standard. Bewegung wird nur ergänzt, wenn JS + Motion erlaubt. */
