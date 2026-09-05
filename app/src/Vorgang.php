@@ -879,9 +879,11 @@ final class Vorgang
                   WHERE customer_id = ? AND sender <> 'kunde' AND created_at >= ?",
                 [$kid, $seit]);
             if ($meine === 0) {
+                /* Erstantwort: Er hat den Konfigurator ausgefuellt und wartet
+                   auf ein Wort von uns. Bisher nichts. */
                 return self::setzen($v, 'gespraech', self::DU, 'Preis nennen',
                     'Der Konfigurator hat gerechnet. Die Nachricht mit dem Preis steht fertig da.',
-                    null, null, [], $ziel . '?tun=preis');
+                    null, null, [], $ziel . '?tun=preis', true);
             }
 
             $seine = (int) self::wert(
@@ -946,10 +948,12 @@ final class Vorgang
             [$kid, $seit]);
 
         if ($geschrieben === 0) {
+            /* Erstantwort: Er hat ueber das Formular geschrieben, und ausser
+               der Eingangsbestaetigung hat er nichts gehoert. */
             return self::setzen($v, 'gespraech', self::DU, 'Konfigurator schicken',
                 'Die Anfrage kam über das Formular, ohne Angaben zum Umfang. '
                 . 'Acht Fragen, danach steht der Preis — und daraus wird das Angebot.',
-                null, null, [], $aZiel . '?vorlage=bedarf_einladen&tun=kunde_nachricht');
+                null, null, [], $aZiel . '?vorlage=bedarf_einladen&tun=kunde_nachricht', true);
         }
 
         $tage = self::stillSeit($v);
@@ -984,7 +988,8 @@ final class Vorgang
      */
     private static function setzen(
         array $v, string $stufe, string $dran, ?string $knopf, string $warum,
-        ?string $tat = null, ?int $id = null, array $felder = [], ?string $ziel = null
+        ?string $tat = null, ?int $id = null, array $felder = [], ?string $ziel = null,
+        bool $erstantwort = false
     ): array {
         /* MEHRERE KNOEPFE, DIESELBE TAT
            ------------------------------------------------------------------
@@ -1019,6 +1024,17 @@ final class Vorgang
         /* Wie lange nichts passiert ist -- die Liste sortiert danach, und die
            Zeile kann es zeigen, ohne es zweimal zu rechnen. */
         $v['still_tage'] = $still;
+        /* WARTET HIER JEMAND AUF DIE ALLERERSTE ANTWORT?
+           ------------------------------------------------------------------
+           Das ist die einzige Lage, in der nicht die Stille zaehlt, sondern
+           ein Versprechen: Auf der Website steht "Antwort innerhalb von 24
+           Stunden". Ein Mensch, der gestern geschrieben hat und noch nichts
+           gehoert hat, ist dringender als ein Projekt, das seit drei Wochen
+           liegt -- er weiss noch nicht einmal, ob ueberhaupt jemand da ist.
+
+           Siehe arbeitsliste(): Diese Vorgaenge stehen oben, unabhaengig
+           davon, wie kurz sie erst warten. */
+        $v['erstantwort'] = $erstantwort;
         $v['schritt']   = $knopf === null ? null : [
             'knopf'  => $knopf,
             'tat'    => $tat,
@@ -1176,10 +1192,31 @@ final class Vorgang
            Bei "du bist dran" heisst lange still: Da laesst du jemanden
            warten. Bei "der Kunde ist dran" heisst es: Da wird es Zeit
            nachzufassen. Beide Male gehoert es nach oben. */
-        $nachStille = static fn(array $a, array $b): int
-            => self::ruhtSeitTagen($b) <=> self::ruhtSeitTagen($a);
-        usort($aus['du'], $nachStille);
-        usort($aus['kunde'], $nachStille);
+        /* WER NOCH GAR NICHTS GEHOERT HAT, STEHT GANZ OBEN
+           ------------------------------------------------------------------
+           Nach Stille allein zu sortieren hatte einen Haken, den man erst
+           bemerkt, wenn an einem Tag mehrere Anfragen zugleich kommen: Eine
+           Anfrage von heute hat null Tage Stille und landete damit ganz
+           unten -- hinter jedem alten Vorgang, der ohnehin schon liegt. Bei
+           fuenf Anfragen an einem Tag und fuenfzehn offenen Vorgaengen stand
+           kein einziger neuer Kunde auf den ersten Plaetzen, und die Leiste
+           "Jetzt dran" nannte den aeltesten Ladenhueter.
+
+           Fuer diese eine Lage zaehlt nicht die Stille, sondern ein
+           Versprechen: 24 Stunden, so steht es auf der Website. Wer noch
+           keine Silbe gehoert hat, weiss nicht einmal, ob jemand da ist --
+           und geht als Kunde am schnellsten wieder verloren.
+
+           Alles danach bleibt wie bisher: Wer am laengsten wartet, steht
+           oben. */
+        $nachDringlichkeit = static function (array $a, array $b): int {
+            $ea = !empty($a['erstantwort']) ? 0 : 1;
+            $eb = !empty($b['erstantwort']) ? 0 : 1;
+            if ($ea !== $eb) { return $ea <=> $eb; }
+            return self::ruhtSeitTagen($b) <=> self::ruhtSeitTagen($a);
+        };
+        usort($aus['du'], $nachDringlichkeit);
+        usort($aus['kunde'], $nachDringlichkeit);
 
         return $aus;
     }

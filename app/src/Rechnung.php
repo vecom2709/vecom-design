@@ -195,7 +195,9 @@ final class Rechnung
         $steuer = $brutto - $netto;
 
         $zeile = [
-            'invoice_no' => self::naechsteNummer(),
+            /* Die Nummer wird gleich noch einmal geholt, siehe unten -- hier
+               steht sie nur, damit die Zeile vollstaendig ist. */
+            'invoice_no' => '',
             'customer_id'=> $kundeId,
             'order_id'   => $b ? (int) $b['id'] : null,
             'abo_id'     => $abo ? (int) $abo['id'] : null,
@@ -217,12 +219,40 @@ final class Rechnung
             $zeile['empfaenger'] = json_encode(Kunde::empfaenger($kunde), JSON_UNESCAPED_UNICODE);
         }
 
+        /* ZWEI EINDEUTIGE SCHLUESSEL, ZWEI VERSCHIEDENE LAGEN
+           ------------------------------------------------------------------
+           Hier stand ein einziges catch, das jeden Fehler zu "gibt es schon"
+           erklaerte und still null zurueckgab. Fuer den einen Schluessel war
+           das richtig: uq_invoices_payment sorgt dafuer, dass es zu einer
+           Rate hoechstens einen Beleg gibt -- faellt der zweite Aufruf da
+           hinein, ist alles in Ordnung.
+
+           Fuer den anderen war es falsch, und teuer. uq_invoices_no faengt
+           zwei gleichzeitig vergebene Belegnummern ab. Das ist kein "gibt es
+           schon", sondern ein Zusammenstoss, der wiederholt gehoert. Still
+           null zurueckzugeben hiess: Die Rate ist bezahlt, ein Beleg
+           existiert nicht, und niemand erfaehrt davon.
+
+           Gemessen an acht gleichzeitig bezahlten Raten: zwei blieben ohne
+           Beleg, ohne eine einzige Meldung. Fuer Zahlungen ueber Stripe ist
+           das kein gedachter Fall -- mehrere Meldungen treffen dort
+           regelmaessig im selben Augenblick ein.
+
+           Die Nummer wird deshalb IM Versuch geholt: Beim zweiten Anlauf ist
+           sie neu gerechnet, und die vorige ist inzwischen vergeben. Ausserhalb
+           einer Transaktion sieht jeder Anlauf den wirklich aktuellen Stand. */
         try {
-            return Db::insert('invoices', $zeile);
+            return Db::nochmal(static function () use ($zeile): int {
+                $zeile['invoice_no'] = self::naechsteNummer();
+                return Db::insert('invoices', $zeile);
+            }, 'uq_invoices_no');
         } catch (Throwable $e) {
-            // Zwei gleichzeitige Aufrufe: Der zweite faellt in den
-            // eindeutigen Schluessel. Das ist kein Fehler, sondern der Sinn.
-            return null;
+            /* Zu dieser Rate gibt es den Beleg schon -- der Sinn des
+               Schluessels, keine Stoerung. */
+            if (Db::doppelt($e, 'uq_invoices_payment')) { return null; }
+            /* Alles andere ist ein wirklicher Fehler und muss gemeldet
+               werden, statt als "gibt es schon" zu verschwinden. */
+            throw $e;
         }
     }
 

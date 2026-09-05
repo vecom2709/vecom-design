@@ -81,6 +81,24 @@ $zeile = static function (array $v) {
   </div>
 </div>
 
+<?php /* MEHRERE, DIE AUF DIE ERSTE ANTWORT WARTEN
+         ------------------------------------------------------------------
+         Kommen an einem Tag fuenf Anfragen, sagt die Liste das nicht von
+         selbst: Sie zeigt fuenfzehn Zeilen, und wer nicht zaehlt, sieht
+         nicht, dass fuenf davon Menschen sind, die noch kein Wort gehoert
+         haben. Auf der Website stehen 24 Stunden.
+
+         Die Zeile steht nur da, wenn es mehr als einer ist -- bei einem
+         genuegt die Liste selbst. */ ?>
+<?php
+$erst = 0;
+foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; } }
+?>
+<?php if ($erst > 1): ?>
+  <p class="erstantwort"><b><?= (int) $erst ?> Anfragen</b> warten auf die erste
+    Antwort — sie stehen oben. Auf der Website stehen 24 Stunden.</p>
+<?php endif; ?>
+
 <?php /* Was von selbst nachgerueckt ist. Steht nur da, wenn wirklich etwas
          passiert ist -- eine Meldung, die immer da ist, liest niemand.
          Sie meldet keine Handlung, sondern eine Buchhaltung: Der Kunde sieht

@@ -740,6 +740,115 @@ foreach ($standEcht['punkte'] as $punkt) {
 pruefe('jeder Punkt nennt Sache und Zuständigen', $formOk);
 
 /* ============================================================================
+   14. Andrang: mehrere Kunden im selben Augenblick
+   ============================================================================ */
+abschnitt('14. Andrang');
+
+/* WARUM DAS HIER STEHT UND NICHT NUR IN EINEM MESSPROTOKOLL
+
+   Drei Stellen der Kette entstanden in zwei Schritten -- nachsehen, dann
+   schreiben -- und zwischen die beiden Schritte passte ein zweiter Besucher.
+   Gemessen an zwoelf gleichzeitigen Zugriffen: zwei verlorene Anfragen, vier
+   verlorene Bestellungen, zwei bezahlte Raten ohne Beleg und ohne Meldung.
+
+   Solche Fehler kommen zurueck, sobald jemand eine dieser Stellen anfasst,
+   denn im Alltag zu zweit am Schreibtisch fallen sie nie auf. Deshalb stehen
+   sie hier: nicht als Andrangsmessung -- die braucht echte Prozesse --,
+   sondern als Festhalten dessen, was die Reparatur ausmacht. */
+
+/* Der Erkenner muss die drei Andrangs-Meldungen kennen und sonst nichts. */
+$bau = static function (int $nr): PDOException {
+    $e = new PDOException('SQLSTATE[23000]: Duplicate entry for key uq_probe');
+    $e->errorInfo = ['23000', $nr, 'Duplicate entry'];
+    return $e;
+};
+foreach ([1062 => 'doppelter Schlüssel', 1213 => 'Verklemmung', 1205 => 'Sperre abgelaufen'] as $nr => $wort) {
+    pruefe('„' . $wort . '“ gilt als Andrang', Db::andrang($bau($nr)));
+}
+pruefe('ein gewöhnlicher Fehler gilt NICHT als Andrang', !Db::andrang($bau(1146)));
+pruefe('etwas anderes als PDO gilt nicht als Andrang',
+    !Db::andrang(new RuntimeException('kaputt')));
+
+/* Der Schluesselname entscheidet, ob wiederholt oder aufgegeben wird.
+   „Diesen Beleg gibt es schon“ und „diese Nummer ist vergeben“ sehen gleich
+   aus und bedeuten das Gegenteil voneinander. */
+pruefe('der Schlüsselname wird unterschieden', Db::doppelt($bau(1062), 'uq_probe'));
+pruefe('ein fremder Schlüsselname passt nicht', !Db::doppelt($bau(1062), 'uq_anderer'));
+
+/* Wiederholt wird begrenzt oft -- und nur bei Andrang. */
+$versuche = 0;
+try {
+    Db::nochmal(static function () use (&$versuche, $bau): int { $versuche++; throw $bau(1062); }, '', 4);
+} catch (Throwable $e) { }
+pruefe('vier Versuche, dann Schluss', $versuche === 4, (string) $versuche);
+
+$versuche = 0;
+try {
+    Db::nochmal(static function () use (&$versuche): int {
+        $versuche++; throw new RuntimeException('echter Fehler');
+    }, '', 4);
+} catch (Throwable $e) { }
+pruefe('ein echter Fehler wird nicht wiederholt', $versuche === 1, (string) $versuche);
+
+$lauf = 0;
+$ergebnis = Db::nochmal(static function () use (&$lauf, $bau): string {
+    $lauf++;
+    if ($lauf < 3) { throw $bau(1213); }
+    return 'geschafft';
+}, '', 5);
+pruefe('nach zwei Zusammenstößen klappt es', $ergebnis === 'geschafft' && $lauf === 3,
+    $ergebnis . ' nach ' . $lauf);
+
+/* Dieselbe E-Mail zweimal darf nie zwei Kunden ergeben -- und die zweite
+   Anfrage darf nicht verlorengehen. */
+$a = Events::kundeFinden(['name' => 'Andrang Eins', 'email' => 'andrang@pruefung.test']);
+$b = Events::kundeFinden(['name' => 'Andrang Zwei', 'email' => 'andrang@pruefung.test']);
+pruefe('dieselbe Adresse ergibt denselben Kunden', $a === $b, "$a / $b");
+pruefe('und nur einen einzigen Datensatz',
+    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?',
+                   ['andrang@pruefung.test'], 0) === 1);
+
+/* Die Bestellnummer wird sperrend gelesen. Ohne das kann sich ein zweiter
+   Versuch nicht aus dem Schnappschuss der Transaktion herausarbeiten -- er
+   saehe wieder dieselbe hoechste Nummer. */
+$quelle = file_get_contents(dirname(__DIR__) . '/src/Events.php') ?: '';
+pruefe('die Bestellnummer wird sperrend gelesen',
+    str_contains($quelle, 'FOR UPDATE'));
+pruefe('die Bestellung darf sich wiederholen', str_contains($quelle, '}, 5);'));
+
+/* Ein Beleg darf nie still verschwinden. */
+$rq = file_get_contents(dirname(__DIR__) . '/src/Rechnung.php') ?: '';
+pruefe('ein Belegfehler wird nicht mehr verschluckt',
+    str_contains($rq, "Db::doppelt(\$e, 'uq_invoices_payment')") && str_contains($rq, 'throw $e;'));
+pruefe('die Belegnummer wird im Versuch neu geholt',
+    str_contains($rq, "\$zeile['invoice_no'] = self::naechsteNummer();"));
+
+/* Und die praktische Seite: Wer noch kein Wort gehoert hat, steht oben --
+   auch wenn er erst seit einer Stunde wartet. */
+$neu = ['erstantwort' => true,  'bewegt' => date('Y-m-d H:i:s'), 'begonnen' => date('Y-m-d H:i:s')];
+$alt = ['erstantwort' => false, 'bewegt' => date('Y-m-d H:i:s', strtotime('-30 days')),
+        'begonnen' => date('Y-m-d H:i:s', strtotime('-30 days'))];
+pruefe('30 Tage Stille sind wirklich mehr als 0',
+    Vorgang::ruhtSeitTagen($alt) > Vorgang::ruhtSeitTagen($neu));
+$sortiert = [$alt, $neu];
+usort($sortiert, static function (array $x, array $y): int {
+    $ex = !empty($x['erstantwort']) ? 0 : 1;
+    $ey = !empty($y['erstantwort']) ? 0 : 1;
+    if ($ex !== $ey) { return $ex <=> $ey; }
+    return Vorgang::ruhtSeitTagen($y) <=> Vorgang::ruhtSeitTagen($x);
+});
+pruefe('die frische Anfrage steht trotzdem oben', !empty($sortiert[0]['erstantwort']));
+
+/* Die Marke muss auch wirklich gesetzt werden -- eine Sortierung nach einem
+   Feld, das niemand fuellt, sortiert nach nichts. */
+$vquelle = file_get_contents(dirname(__DIR__) . '/src/Vorgang.php') ?: '';
+pruefe('die Führung setzt die Marke an zwei Stellen',
+    substr_count($vquelle, "?tun=preis', true)")
+    + substr_count($vquelle, "tun=kunde_nachricht', true)") === 2);
+pruefe('jeder Vorgang trägt die Marke',
+    array_key_exists('erstantwort', (array) Vorgang::laden('b' . $bestellId)));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

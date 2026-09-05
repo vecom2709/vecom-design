@@ -161,9 +161,24 @@ final class Events
         // Von der hoechsten vergebenen Nummer aus weiterzaehlen, nicht von der
         // Anzahl: Wird eine Bestellung geloescht, wuerde sonst eine Nummer ein
         // zweites Mal vergeben — und der eindeutige Schluessel schlaegt zu.
+        //
+        /* WARUM "FOR UPDATE" UND NICHT NUR EIN ZWEITER VERSUCH
+           ----------------------------------------------------------------
+           Diese Abfrage laeuft innerhalb der Transaktion von
+           bestellungAnlegen(). Ein gewoehnliches SELECT liest dort den Stand,
+           wie er beim ersten Lesen war -- das ist der Sinn einer Transaktion
+           und hier genau das Problem: Ein zweiter Versuch saehe wieder
+           dieselbe hoechste Nummer und scheiterte wieder. Man kann sich nicht
+           aus einem Schnappschuss herauswiederholen.
+
+           Ein sperrendes Lesen liest dagegen den wirklich aktuellen Stand und
+           haelt den Bereich, bis die Transaktion zu Ende ist. Zwei
+           gleichzeitige Kaeufer werden damit hintereinander bedient statt
+           nebeneinander -- ein paar Millisekunden Wartezeit gegen eine
+           verlorene Bestellung. */
         $hoechste = (int) Db::wert(
             "SELECT COALESCE(MAX(CAST(SUBSTRING(order_no, ?) AS UNSIGNED)), 0)
-             FROM orders WHERE order_no LIKE ?",
+             FROM orders WHERE order_no LIKE ? FOR UPDATE",
             [strlen("VD-$jahr-") + 1, "VD-$jahr-%"]
         );
         return sprintf('VD-%s-%04d', $jahr, $hoechste + 1);
@@ -220,7 +235,30 @@ final class Events
             $neu['company'] = mb_substr(trim((string) $daten['firma']), 0, 160);
         }
 
-        $id = Db::insert('customers', $neu);
+        /* ZWEI ANFRAGEN VON DERSELBEN ADRESSE, IM SELBEN AUGENBLICK
+           ----------------------------------------------------------------
+           Nachsehen und Anlegen sind zwei Schritte, und dazwischen passt ein
+           zweiter Besucher: Ein Doppelklick auf "Senden", zwei offene Tabs,
+           ein Formular, das zweimal abgeschickt wird. Beide sahen "gibt es
+           noch nicht", beide legten an -- und der eindeutige Schluessel auf
+           der E-Mail liess den zweiten nicht durch.
+
+           Der Schluessel hatte recht: Es soll ihn nur einmal geben. Falsch
+           war, was danach geschah -- der zweite bekam eine Ausnahme, und
+           seine Anfrage entstand nie. Gemessen: von zwoelf gleichzeitigen
+           Anfragen derselben Adresse gingen zwei verloren.
+
+           Dass jemand anders ihn gerade angelegt hat, ist keine Stoerung,
+           sondern genau die Antwort auf die Frage, die oben gestellt wurde.
+           Also noch einmal nachsehen -- jetzt ist er da. */
+        try {
+            $id = Db::insert('customers', $neu);
+        } catch (Throwable $e) {
+            if (!Db::doppelt($e, 'uq_customers_email')) { throw $e; }
+            $inzwischen = Db::one('SELECT id FROM customers WHERE email = ?', [$email]);
+            if ($inzwischen === null) { throw $e; }
+            return (int) $inzwischen['id'];
+        }
         // Die Kundennummer gleich hier, nicht erst wenn sie zum ersten Mal
         // gebraucht wird: Sonst haengt die Reihenfolge der Reihe daran, wer
         // wann angesehen wurde, statt daran, wer wann gekommen ist.
@@ -272,7 +310,16 @@ final class Events
             $bezeichnung = $name !== null && trim($name) !== ''
                 ? mb_substr(trim($name), 0, 190) : (string) $paket['name'];
 
-            $bestellId = Db::insert('orders', [
+            /* Die Bestellnummer entsteht aus "hoechste vergebene + 1" --
+               lesen und schreiben in zwei Schritten, und dazwischen passt
+               ein zweiter Kaeufer. Gemessen: von zwoelf gleichzeitigen
+               Bestellungen scheiterten vier. Auf buchen.php ist das kein
+               gedachter Fall, sondern zwei Besucher, die im selben Moment
+               auf "Jetzt buchen" druecken.
+
+               Die Nummer wird deshalb IM Versuch geholt, nicht davor: Beim
+               zweiten Anlauf ist sie neu gerechnet und die vorige vergeben. */
+            $bestellId = Db::nochmal(static fn(): int => Db::insert('orders', [
                 'order_no'      => self::naechsteBestellnummer(),
                 'customer_id'   => $kundeId,
                 'package_id'    => $paketId,
@@ -283,7 +330,7 @@ final class Events
                 'anzahlung_prozent' => $anteil,
                 'status'        => 'zahlung_ausstehend',
                 'notes'         => $notiz,
-            ]);
+            ]), 'uq_orders_no');
 
             // Bei Webdesign wird in zwei Schritten gezahlt: die Haelfte bei
             // Auftrag, der Rest bei Uebergabe. Die zweite Rate entsteht gleich
@@ -318,7 +365,7 @@ final class Events
             self::pruefspur('anlegen', 'order', $bestellId, [], ['paket' => $paket['name']]);
 
             return $bestellId;
-        });
+        }, 5);
 
         // Der erste echte Vorgang raeumt die Beispieldaten weg. Bewusst erst
         // nach dem Festschreiben — und in einem eigenen Anlauf, damit ein
