@@ -62,10 +62,16 @@ nachzumessen, sobald die Szene inhaltlich wächst.
    mittags hoch und fast neutral, abends warm von rechts, nachts kühl und flach.
    Der Körper bleibt immer tief, es wandert nur, woher das Licht kommt.
    Nachgezogen alle fünf Minuten und beim Zurückkehren auf den Tab.
-2. **Der Auftakt kommt aus der Szene.** `auftakt.mp4`/`.webm` entfallen; das
-   Logo, das zwei Sekunden später ohnehin in Echtzeit dasteht, macht den
-   Auftakt selbst. Spart 1,15 MB und ersetzt einen Schnitt durch einen
-   Übergang. Rückfall bleibt das vorhandene Posterbild.
+2. **Der Auftakt kommt aus der Szene.** ✔ *Erledigt am 05.09.2026.*
+   `auftakt.mp4`/`.webm` und das Posterbild sind gelöscht, der inline-Block,
+   der Vorhang, die Ton- und Überspringen-Knöpfe und der CSS-Abschnitt dazu
+   ebenfalls. Die Szene hatte ihren Auftakt längst — Kameraflug von außerhalb
+   des Nebels, Bruch, Zusammensetzen — er war als Rückfall gebaut und ist
+   jetzt die Hauptsache.
+
+   **Gemessen: 4.036 KB → 2.852 KB.** Ein blockierender Inline-Block, ein
+   Videoelement und eine ganze Zustandsmaschine weniger. Null Konsolenfehler,
+   kein fehlgeschlagener Request.
 3. **Gewicht.** Sprachdaten aufteilen (137 KB → nur die aktive Sprache),
    Bilder gegen echte Anzeigegrößen prüfen, Skript-Tags zusammenlegen.
 4. **Drehbuch durchsehen.** `site-beats.js` ist bereits eine Beat-Timeline.

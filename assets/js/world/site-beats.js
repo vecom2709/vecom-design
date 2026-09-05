@@ -185,9 +185,28 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
       /* Ein Atemzug auf der wieder ganzen Marke — ein Schluss braucht ein Bild,
          auf dem er stehen bleibt, sonst wirkt er abgeschnitten. */
       .to({}, { duration: 0.40 }, 4.15)
-      /* Meldung bleibt als Rueckfall, falls der Film gar nicht erst existiert.
-         Im Regelfall gibt der Film die Seite frei, nicht dieser Auftakt. */
-      .call(function () { window.dispatchEvent(new Event('vecom:auftakt-bruch')); }, null, 4.55);
+      /* DIE KAMERA WIRD AM ENDE FESTGESETZT
+         ------------------------------------------------------------------
+         Der Bruch schiebt die Kamera mit relativen Tweens zurueck und wieder
+         vor ('+=2.2' / '-=2.2'), waehrend der Eroeffnungsflug gleichzeitig
+         einen absoluten Zielwert anfaehrt. Zwei Tweens auf derselben Zahl,
+         einer relativ, einer absolut -- das geht nie genau auf, und der Rest
+         bleibt als Versatz stehen.
+
+         Gemessen: Die Kamera stand nach dem Auftakt bei z = 10,0 statt 12,4
+         und kroch dann ueber gut dreissig Sekunden zurueck. Sichtbar war das
+         als eine Marke, die zu gross im Bild steht und langsam kleiner wird.
+         Solange der Film davorlief, sah das niemand -- die Welt war beim
+         Aufblenden erst vier Sekunden alt und mitten im Anflug.
+
+         Also am Schluss einmal absolut setzen. Danach stimmt der Hero-Zustand
+         auf den Zentimeter, egal was vorher relativ verschoben wurde. */
+      .call(function () {
+        const b = BEATS[0];
+        w.camGoal.set(b.cam[0] * k, b.cam[1], b.cam[2] * zk);
+        w.lookGoal.set(b.look[0] * k, b.look[1], b.look[2]);
+        window.dispatchEvent(new Event('vecom:auftakt-bruch'));
+      }, null, 4.55);
   }
   function applyOpening() {
     const b = BEATS[0];

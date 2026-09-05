@@ -799,6 +799,22 @@ export class World {
     this.logo.position.y += ((Math.sin(time * 0.35) * 0.12 + this.drift.bob) - this.logo.position.y) * dl;
     // Scrollgeschwindigkeit gibt einen kurzen Schub — das macht die Bewegung
     // greifbar, statt sie nur ablaufen zu lassen.
+    /* DIE SCHWUNG-ZAHL MUSS ZURUECKFALLEN
+       ------------------------------------------------------------------
+       drift.vel kommt aus der Scrollgeschwindigkeit und wird NUR gesetzt,
+       solange gescrollt wird -- danach behaelt sie ihren letzten Wert fuer
+       immer. Die Kamera stand damit dauerhaft um den Betrag der letzten
+       Bewegung verschoben: gemessen z = 10,0 statt 12,4, also eine Marke,
+       die zu gross im Bild steht und dort bleibt.
+
+       Sichtbar wurde das erst, als der Auftaktfilm wegfiel. Vorher war die
+       Welt beim Aufblenden vier Sekunden alt und noch im Anflug -- der
+       Versatz ging im Anflug unter. Ohne Film sieht man ihn sofort.
+
+       Also klingt die Zahl von selbst ab: Ein Schwung gibt weiter seinen
+       Stoss, aber wer aufhoert zu scrollen, bekommt seine Bildeinstellung
+       zurueck. */
+    this.drift.vel += (0 - this.drift.vel) * (1 - Math.pow(0.02, dt));
     this.camera.position.z += (this.drift.vel * 0.9 - 0) * dt * 2.0;
 
     /* Der Fond folgt der Marke in der Bildebene, bleibt aber fest in der
