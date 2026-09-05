@@ -354,15 +354,23 @@ pruefe('kein laufender Vorgang ist ohne nächsten Schritt', $ohneSchritt === [],
     implode(', ', $ohneSchritt));
 
 /* ============================================================================
-   8. Jeder einzelne Zustand muss einen naechsten Schritt kennen
+   8. Kein Zustand darf schweigen
 
-   Der Test oben laeuft die Kette einmal durch und prueft dabei die Zustaende,
-   die er unterwegs beruehrt. Hier wird jeder EINZELN eingestellt und gefragt:
-   Was ist jetzt zu tun? Ein Zustand ohne Antwort ist ein Vorgang, der in der
-   Verwaltung liegt und schweigt — und genau das passiert in der Bauphase,
-   wo ein Vorgang am laengsten steht.
+   Hier wird jeder Zustand einzeln eingestellt und gefragt: Was ist jetzt zu
+   tun? Ein Vorgang ohne Antwort liegt in der Verwaltung und schweigt.
+
+   ACHTUNG BEIM LESEN DER AUSGABE: Hier steht mehrfach derselbe Satz, und das
+   ist RICHTIG. Der Motor entscheidet nicht nach Status, sondern nach
+   Tatsachen — steht ein Briefing da, gibt es ein Gespraech, ist eine
+   Vorschau eingetragen. Dieser Abschnitt aendert nur den Status und laesst
+   die Tatsachen gleich; dass die Antwort dann gleich bleibt, ist die
+   richtige Antwort und kein Mangel.
+
+   Ich habe genau das einmal falsch gelesen und daraus einen Fehler gemacht,
+   den es nicht gab. Was die Fuehrung wirklich kann, steht in Abschnitt 9 —
+   dort werden die Tatsachen veraendert, nicht die Etiketten.
    ============================================================================ */
-abschnitt('8. Jeder Zustand einzeln');
+abschnitt('8. Kein Zustand schweigt');
 
 $ohne = [];
 foreach (array_keys(Status::PROJEKT) as $stufe) {
@@ -384,6 +392,76 @@ foreach (array_keys(Status::PROJEKT) as $stufe) {
         $schritt === null ? "\033[31mkein nächster Schritt\033[0m" : $wort);
 }
 pruefe('jeder laufende Zustand kennt einen nächsten Schritt', $ohne === [], implode(', ', $ohne));
+
+/* ============================================================================
+   9. Die Führung in wirklichen Lagen
+
+   Abschnitt 8 stellt nur den Status um und fragt. Das ist zu wenig: Der
+   Motor entscheidet gar nicht nach Status, sondern nach Tatsachen — steht
+   ein Briefing da, gibt es ein Gespräch, ist eine Vorschau eingetragen, ist
+   sie freigegeben. Deshalb hier acht Lagen, wie sie wirklich vorkommen,
+   und die Frage: Sagt er in jeder etwas anderes?
+
+   Sagt er zweimal dasselbe, obwohl zwei verschiedene Dinge zu tun sind,
+   dann führt er nicht, sondern beruhigt nur.
+   ============================================================================ */
+abschnitt('9. Acht wirkliche Lagen');
+
+$lage = static function (string $name, array $projekt, ?string $fbStatus = null) use ($projektId, $fbId): array {
+    if ($fbStatus !== null) { Db::update('questionnaires', $fbId, ['status' => $fbStatus]); }
+    Db::update('projects', $projektId, $projekt);
+    foreach (Vorgang::alle(true) as $eins) {
+        if (($eins['projekt_id'] ?? 0) === $projektId) { return $eins; }
+    }
+    return [];
+};
+
+$leer = ['briefing_am' => null, 'chat_url' => null, 'preview_url' => null,
+         'vorschau_frei_am' => null, 'abnahme_frei_am' => null, 'abnahme' => null];
+$jetzt = date('Y-m-d H:i:s');
+
+$lagen = [
+    ['Fragebogen noch offen',        ['status' => 'onboarding'] + $leer, 'offen'],
+    ['Fragebogen da, kein Briefing', ['status' => 'informationen_erhalten'] + $leer, 'abgeschlossen'],
+    ['Briefing da, kein Gespräch',   ['status' => 'design', 'briefing_am' => $jetzt] + $leer, null],
+    ['Gespräch läuft, keine Vorschau', ['status' => 'entwicklung', 'briefing_am' => $jetzt,
+                                        'chat_url' => 'https://claude.ai/x'] + $leer, null],
+    ['Vorschau da, nicht freigegeben', ['status' => 'vorschau', 'briefing_am' => $jetzt,
+                                        'chat_url' => 'https://claude.ai/x',
+                                        'preview_url' => 'https://vorschau.example/x/'] + $leer, null],
+    ['Vorschau frei, Abnahme gesperrt', ['status' => 'vorschau', 'briefing_am' => $jetzt,
+                                        'chat_url' => 'https://claude.ai/x',
+                                        'preview_url' => 'https://vorschau.example/x/',
+                                        'vorschau_frei_am' => $jetzt] + $leer, null],
+    ['Abnahme frei, Kunde schweigt', ['status' => 'vorschau', 'briefing_am' => $jetzt,
+                                        'chat_url' => 'https://claude.ai/x',
+                                        'preview_url' => 'https://vorschau.example/x/',
+                                        'vorschau_frei_am' => $jetzt,
+                                        'abnahme_frei_am' => $jetzt] + $leer, null],
+    ['Kunde hat abgenommen',        ['status' => 'finale_freigabe', 'briefing_am' => $jetzt,
+                                        'chat_url' => 'https://claude.ai/x',
+                                        'preview_url' => 'https://vorschau.example/x/',
+                                        'vorschau_frei_am' => $jetzt,
+                                        'abnahme_frei_am' => $jetzt] + $leer, null],
+];
+
+$gesehen = [];
+foreach ($lagen as [$name, $felder, $fb]) {
+    $v = $lage($name, $felder, $fb);
+    $schritt = $v['schritt'] ?? null;
+    $knopf = is_array($schritt) ? trim((string) ($schritt['knopf'] ?? '')) : '—';
+    $dran  = (string) ($v['dran'] ?? '?');
+    printf("  %-34s %-24s \033[2m%s · %s\033[0m\n", $name, $knopf, $dran,
+        mb_substr(trim((string) ($v['warum'] ?? '')), 0, 58));
+    pruefe('„' . $name . '“ hat einen nächsten Schritt', $schritt !== null);
+    $gesehen[] = $knopf;
+}
+
+/* Zwei verschiedene Lagen duerfen nicht denselben Satz bekommen. Genau daran
+   erkennt man eine Fuehrung, die nur nach Phase antwortet. */
+$doppelt = array_keys(array_filter(array_count_values($gesehen), static fn($n) => $n > 1));
+pruefe('acht verschiedene Lagen ergeben acht verschiedene Schritte',
+    $doppelt === [], 'mehrfach: ' . implode(' / ', $doppelt));
 
 /* ============================================================================
    Aufräumen und Bilanz
