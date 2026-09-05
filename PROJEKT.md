@@ -1985,3 +1985,38 @@ Zwei Dinge dabei, die leicht schiefgegangen wären:
   sie **nichts mehr gefunden und stillschweigend „alles gut" gemeldet** — die
   gefährlichste Art, wie eine Prüfung kaputtgeht. Sie verträgt den Stempel
   jetzt; gegengeprüft mit einem absichtlich falschen Pfad: bricht ab.
+
+## Wunschdomains und Domainprüfung (05.09.2026)
+
+Der Fragebogen fragt bei „Domain haben wir nicht" nach **drei** Wunschadressen
+in Rangfolge und prüft sie sofort, während der Kunde tippt. Mit einer einzigen
+Zeile ging pro Kunde eine Woche mit Hin und Her drauf: Der naheliegende Name ist
+fast immer vergeben.
+
+**Geprüft wird über eine Leiter, weil keine Stufe allein reicht:**
+
+1. RDAP direkt bei der Registrierungsstelle. Zuordnung aus der IANA-Liste
+   (`data.iana.org/rdap/dns.json`), einmal geholt, eine Woche in
+   `app/zwischenspeicher/` aufgehoben. Deckt `.com`, `.net`, `.org` und die
+   allgemeinen Endungen ab — gemessen 120 ms.
+2. Zusatzliste für Stellen, die es gibt, aber nicht in der IANA-Liste stehen:
+   `de → rdap.denic.de` (gemessen, antwortet).
+3. Whois auf Port 43 für `.it` — dort gibt es kein RDAP, `rdap.nic.it` löst
+   nicht einmal auf. **Auf All-Inkl ist Port 43 offen, am 05.09.2026 auf der
+   laufenden Seite geprüft.** Schlägt die Verbindung fehl, wird das gemerkt,
+   damit nicht jede der drei Adressen in dieselbe Zeitgrenze läuft.
+4. DNS zuletzt: Namensserver heißt vergeben. Der Umkehrschluss gilt nicht,
+   also sagt diese Stufe nie „frei".
+
+**Nicht über rdap.org.** Der Vermittler war zweimal untauglich: zehn Anfragen in
+zehn Sekunden je IP (auf einem geteilten Server nicht unsere allein — nach acht
+Abfragen kam nur noch „unklar"), und er antwortet selbst mit 404, wenn er für
+eine Endung keinen Server kennt, was jede exotische Endung als frei melden würde.
+
+**Die Regel dahinter:** Wo keine belastbare Auskunft zu holen ist, steht „kann
+ich nicht sicher sagen" — nicht „frei". Ein falsches „frei" ist teurer als ein
+ehrliches Achselzucken: Der Kunde freut sich, und man muss es ihm hinterher
+wegnehmen.
+
+Die Prüfung hängt am Fragebogen-Schlüssel (`domain-pruefung.php?t=…`), sonst
+wäre sie eine offene Whois-Abfrage für jeden auf unsere Rechnung und unsere IP.

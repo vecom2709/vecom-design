@@ -262,8 +262,15 @@ final class Domainpruefung
        — der Umkehrschluss "kein Wort gefunden, also vergeben" waere falsch,
        weil auch eine Fehlermeldung kein Wort enthaelt.
 
-       Ob Port 43 vom Server aus ueberhaupt offen ist, haengt am Hoster. Ist
-       er es nicht, faellt die Stufe still durch auf DNS. */
+       Ob Port 43 vom Server aus offen ist, haengt am Hoster. Auf All-Inkl
+       ist er es — am 05.09.2026 auf der laufenden Seite geprueft: eine
+       erfundene .it-Adresse kam als frei zurueck. Aus meiner eigenen
+       Umgebung war das nicht zu messen, dort ist der Port zu; deshalb
+       steht die Zahl hier und nicht in einer Erinnerung.
+
+       Faellt er doch einmal aus, faellt die Stufe still durch auf DNS:
+       Dann sagt .it weiterhin verlaesslich "vergeben", wenn die Adresse
+       benutzt wird, aber nie "frei". */
     private const WHOIS = [
         'it' => ['whois.nic.it',   'available'],
         'eu' => ['whois.eu',       'available'],
