@@ -1,0 +1,8 @@
+# Der Kettentest gehoert in die Werkstatt und in GitHub Actions, nicht auf den
+# Webserver. Er ist von der Uebertragung ausgenommen (ftp-deploy.yml) — aber
+# der FTP-Deploy loescht nichts, und einmal Hochgeladenes bleibt oben liegen.
+# Deshalb hier die Sperre: Sie kommt mit, sie deckt den ganzen Ordner, und sie
+# gilt auch fuer alles, was hier spaeter noch dazukommt.
+Require all denied
+Options -Indexes -ExecCGI
+php_flag engine off

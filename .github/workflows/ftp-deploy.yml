@@ -115,6 +115,7 @@ jobs:
               --exclude '^tools/' \
               --exclude '^cockpit/\.htaccess$' \
               --exclude '^build\.mjs$' \
+              --exclude '^app/pruefung/kette\.php$' \
               --exclude '^README\.md$' \
               --exclude '^PROJEKT\.md$' \
               ./ $DIR;
