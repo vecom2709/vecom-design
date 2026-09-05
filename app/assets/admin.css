@@ -29,6 +29,22 @@ a{color:inherit;text-decoration:none}
   border:1px solid var(--linie);background:var(--flaeche);color:var(--text);font-size:13.5px}
 .nav__suche input::placeholder{color:var(--leise)}
 .nav__suche input:focus{outline:none;border-color:var(--cyan)}
+
+/* "Alles andere": sieht aus wie ein Menuepunkt, verhaelt sich wie eine
+   Schublade. Der Pfeil ist der einzige Unterschied — die Zahl daneben sagt,
+   ob etwas darin liegt, damit nichts still verschwindet. */
+.nav details.mehr{margin-top:14px;border-top:1px solid var(--linie);padding-top:8px}
+.nav details.mehr>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 11px;border-radius:10px;color:var(--dim);font-size:14px;cursor:pointer;
+  list-style:none;transition:.18s var(--e)}
+.nav details.mehr>summary::-webkit-details-marker{display:none}
+.nav details.mehr>summary:hover{background:var(--flaeche);color:var(--text)}
+.nav details.mehr>summary::after{content:"";width:7px;height:7px;flex:0 0 auto;margin-left:auto;
+  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s var(--e)}
+.nav details.mehr[open]>summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.nav details.mehr>summary .zahl{margin-left:0}
+.nav details.mehr[open]>summary{color:var(--text)}
 /* Was nur auf schmalen Schirmen gebraucht wird -- die Suche im Seitenkopf,
    weil das Menue dort keine hat. Auf breiten Schirmen stuende sie zweimal
    da und draengte die Kennzahlen zusammen. */

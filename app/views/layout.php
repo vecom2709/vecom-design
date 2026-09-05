@@ -33,6 +33,18 @@ $navZahlen['heute'] = count($wartetAufDich);
 $aktiv = $route ?: 'heute';
 
 /* ============================================================================
+   SIEBEN EINTRAEGE, DER REST EINEN KLICK ENTFERNT
+
+   Hier standen achtundzwanzig Eintraege in sechs Gruppen. Das war schon der
+   zweite Anlauf -- davor waren es fuenfundzwanzig flache, eine Zeile je
+   Datenbanktabelle. Besser geordnet, aber immer noch eine Wand, in der die
+   vier Seiten, auf denen wirklich gearbeitet wird, untergehen.
+
+   Oben stehen jetzt sieben. Alles andere steht darunter unter "Alles
+   andere", aufklappbar, in denselben Gruppen und derselben Reihenfolge wie
+   vorher. Keine Seite ist verschwunden, keine Adresse hat sich geaendert --
+   wer /app/steuerakte im Lesezeichen hat, kommt weiter dorthin.
+
    DAS MENUE IST NACH DER ARBEIT GEORDNET, NICHT NACH TABELLEN
 
    Vorher standen hier fuenfundzwanzig Eintraege in fuenf Gruppen -- eine
@@ -50,24 +62,30 @@ $aktiv = $route ?: 'heute';
    was wird gebaut, wer ist es. Nicht dem Alphabet und nicht der Groesse der
    Tabelle.
    ========================================================================= */
+/* Was jeden Tag gebraucht wird. Alles Weitere steht unten aufgeklappt --
+   erreichbar in einem Klick, aber nicht im Weg. */
 $menue = [
   ['heute', 'Heute', 'heute'],
   ['vorgaenge', 'Vorgänge', 'vorgaenge'],
   ['nachrichten', 'Nachrichten', 'nachrichten'],
-  ['__gruppe', 'Was hereinkommt', null],
+  ['werkstatt', 'Werkstatt', 'werkstatt'],
   ['bedarf', 'Bedarf', 'bedarf'],
   ['angebote', 'Angebote', 'angebote'],
+  ['rechnungen', 'Rechnungen', 'rechnungen'],
+];
+
+/* Der Rest. Die Gruppen sind dieselben wie vorher, in derselben Reihenfolge
+   -- wer sie kennt, findet sie wieder. */
+$menueMehr = [
+  ['__gruppe', 'Was hereinkommt', null],
   ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
-  /* Was gebaut wird. Die Reihenfolge oben folgt dem Ablauf, und zwischen
-     "besprochen" und "bezahlt" liegt die Arbeit — bisher fand sie in der
-     Verwaltung nicht statt, sondern nur in einem Chatfenster daneben. */
+  ['anfragen', 'Anfragen', 'anfragen'],
   ['__gruppe', 'Was gebaut wird', null],
-  ['werkstatt', 'Werkstatt', 'werkstatt'],
   ['standard', 'Vecom-Standard', 'standard'],
   ['muster', 'Bausteine', 'muster'],
+  ['onboarding', 'Fragebögen', 'onboarding'],
   ['__gruppe', 'Geld', null],
   ['zahlungen', 'Zahlungen', 'zahlungen'],
-  ['rechnungen', 'Rechnungen', 'rechnungen'],
   ['ausgaben', 'Ausgaben', 'ausgaben'],
   ['abos', 'Betreuung', 'abos'],
   ['steuerakte', 'Fürs Finanzamt', 'steuerakte'],
@@ -75,15 +93,10 @@ $menue = [
   ['pakete', 'Pakete', 'pakete'],
   ['baukasten', 'Baukasten', 'baukasten'],
   ['stimmen', 'Kundenstimmen', 'stimmen'],
-  /* Die rohen Tabellen. Sie tragen nichts mehr allein -- alles, was auf
-     ihnen steht, steht auch auf der einen Seite des Kunden. Hier sucht man
-     eine Zeile, dort arbeitet man. */
   ['__gruppe', 'Listen', null],
   ['kunden', 'Kunden', 'kunden'],
   ['bestellungen', 'Bestellungen', 'bestellungen'],
   ['projekte', 'Projekte', 'projekte'],
-  ['anfragen', 'Anfragen', 'anfragen'],
-  ['onboarding', 'Fragebögen', 'onboarding'],
   ['dateien', 'Dateien', 'dateien'],
   ['__gruppe', 'System', null],
   ['dashboard', 'Zahlen', 'dashboard'],
@@ -93,6 +106,20 @@ $menue = [
   ['integrationen', 'Integrationen', 'integrationen'],
   ['einstellungen', 'Einstellungen', 'einstellungen'],
 ];
+
+/* NICHTS DARF STILL VERSCHWINDEN
+   --------------------------------------------------------------------------
+   Ein eingeklappter Eintrag mit offenen Posten waere schlimmer als ein langes
+   Menue: Man sieht die Zahl nicht mehr und haelt die Null fuer die Wahrheit.
+   Deshalb traegt "Alles andere" die Summe dessen, was darunter offen ist --
+   und klappt von selbst auf, wenn man gerade darin arbeitet. */
+$mehrZahl = 0;
+$mehrAktiv = false;
+foreach ($menueMehr as [$ziel, $titel, $schl]) {
+    if ($ziel === '__gruppe') { continue; }
+    $mehrZahl += (int) ($navZahlen[$schl] ?? 0);
+    if ($aktiv === $ziel) { $mehrAktiv = true; }
+}
 $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
 $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
 ?><!doctype html>
@@ -136,16 +163,32 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       <input type="search" name="q" placeholder="Suchen …" aria-label="Kunde, Bestellung, Angebot"
              value="<?= Fmt::h($route === 'suche' ? (string) ($_GET['q'] ?? '') : '') ?>">
     </form>
-    <?php foreach ($menue as [$ziel, $titel, $schl]): ?>
-      <?php if ($ziel === '__gruppe'): ?>
-        <div class="gruppe"><?= Fmt::h($titel) ?></div>
-      <?php else: $n = $navZahlen[$schl] ?? 0; ?>
-        <a href="<?= Fmt::h(url($ziel)) ?>" class="<?= $aktiv === ($ziel ?: 'heute') ? 'an' : '' ?>">
-          <span><?= Fmt::h($titel) ?></span>
-          <?php if ($n > 0): ?><span class="zahl warn"><?= $n ?></span><?php endif; ?>
-        </a>
-      <?php endif; ?>
-    <?php endforeach; ?>
+    <?php
+    $punkt = static function (array $eintrag) use ($navZahlen, $aktiv) {
+        [$ziel, $titel, $schl] = $eintrag;
+        if ($ziel === '__gruppe') {
+            echo '<div class="gruppe">' . Fmt::h($titel) . '</div>';
+            return;
+        }
+        $n = (int) ($navZahlen[$schl] ?? 0);
+        printf('<a href="%s" class="%s"><span>%s</span>%s</a>',
+            Fmt::h(url($ziel)),
+            $aktiv === ($ziel ?: 'heute') ? 'an' : '',
+            Fmt::h($titel),
+            $n > 0 ? '<span class="zahl warn">' . $n . '</span>' : '');
+    };
+    foreach ($menue as $eintrag) { $punkt($eintrag); }
+    ?>
+
+    <?php /* Aufgeklappt, sobald man darin arbeitet — sonst muesste man sich
+             beim Zurueckkommen jedes Mal neu hineinklicken. */ ?>
+    <details class="mehr"<?= $mehrAktiv ? ' open' : '' ?>>
+      <summary>
+        <span>Alles andere</span>
+        <?php if ($mehrZahl > 0): ?><span class="zahl warn"><?= $mehrZahl ?></span><?php endif; ?>
+      </summary>
+      <?php foreach ($menueMehr as $eintrag) { $punkt($eintrag); } ?>
+    </details>
     <div class="gruppe"><?= Fmt::h(Auth::name()) ?></div>
     <a href="/cockpit/">Zum Cockpit</a>
     <a href="<?= Fmt::h(url('abmelden')) ?>">Abmelden</a>
