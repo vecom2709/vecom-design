@@ -436,13 +436,27 @@ final class Texte
                     ],
                 ],
 
+                /* DIE HILFE STEHT UEBER DER AUSWAHL, NICHT DARUNTER
+                   ----------------------------------------------------------
+                   Die drei Wunschzeilen erscheinen erst, wenn "Haben wir
+                   nicht" angeklickt ist. Das ist richtig -- wer schon eine
+                   Adresse hat, braucht keine drei leeren Felder. Aber es
+                   heisst auch: Wer nicht klickt, sieht nie, dass es die
+                   Pruefung gibt. Uwe hat sie selbst nicht gefunden; ein
+                   Kunde findet sie dann erst recht nicht.
+
+                   Also sagt eine Zeile ueber der Auswahl, was hinter dem
+                   dritten Punkt liegt. Eine Funktion, die man erst durch
+                   Ausprobieren entdeckt, gibt es fuer die meisten nicht. */
                 'domain' => [
                     'it' => 'L’indirizzo del sito (dominio)', 'de' => 'Die Adresse der Website (Domain)', 'en' => 'The website address (domain)',
-                    'art' => 'eins', 'frei' => true,
+                    'art' => 'eins', 'frei' => true, 'hilfe' => 'domainHilfe',
                     'optionen' => [
                         'uns'      => ['it' => 'Ce l’abbiamo, è intestato a noi', 'de' => 'Haben wir, läuft auf uns', 'en' => 'We have one, registered to us'],
                         'fremd'    => ['it' => 'Ce l’abbiamo, ma è di un’agenzia o di un conoscente', 'de' => 'Haben wir, liegt aber bei einer Agentur oder einem Bekannten', 'en' => 'We have one, but an agency or acquaintance holds it'],
-                        'neu'      => ['it' => 'Non ce l’abbiamo — scrivo qui sotto quale vorremmo', 'de' => 'Haben wir nicht — Wunschadresse schreibe ich unten', 'en' => 'We have none — I’ll write the one we’d like below'],
+                        'neu'      => ['it' => 'Non ce l’abbiamo — proponi tre indirizzi qui sotto',
+                                       'de' => 'Haben wir nicht — ich schlage unten drei vor',
+                                       'en' => 'We have none — I’ll suggest three below'],
                         'weissnicht'=> ['it' => 'Non lo so', 'de' => 'Weiß ich nicht', 'en' => 'I don’t know'],
                     ],
                 ],
@@ -524,6 +538,9 @@ final class Texte
         'freiZeile'  => ['it' => 'Vuoi aggiungere qualcosa? (facoltativo)',
                          'de' => 'Etwas dazu sagen? (freiwillig)',
                          'en' => 'Anything to add? (optional)'],
+        'domainHilfe'=> ['it' => 'Non avete ancora un indirizzo? Scegliete il terzo punto: proponete tre nomi e vi dico subito quali sono liberi.',
+                         'de' => 'Noch keine Adresse? Wähl den dritten Punkt — dann schlägst du drei Namen vor und ich sage dir sofort, welche frei sind.',
+                         'en' => 'No address yet? Pick the third option — suggest three names and I’ll tell you right away which are free.'],
         'wunschHilfe'=> ['it' => 'Scrivi tre indirizzi, il preferito per primo. Ti dico subito quali sono liberi. Esempio: latuaazienda.it',
                          'de' => 'Schreib drei Adressen, die liebste zuerst. Ich sage dir sofort, welche frei sind. Beispiel: deinefirma.it',
                          'en' => 'Write three addresses, your favourite first. I’ll tell you right away which are free. Example: yourcompany.com'],
