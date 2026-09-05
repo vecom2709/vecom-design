@@ -36,8 +36,67 @@
     return DEFAULT;
   }
 
+  /* ======================================================================
+     DIE SPRACHE, DIE GEBRAUCHT WIRD — UND NUR DIE
+
+     Vorher standen alle drei Sprachen in einer Datei von 137 KB, und jede
+     Seite lud sie ganz. Benutzt wurde ein Drittel: Die Umschaltung oben
+     rechts ist auf den meisten Seiten ein Verweis auf /de/ oder /en/, kein
+     Tausch im laufenden Dokument.
+
+     Vier Seiten schalten doch im Dokument um (legal, pakete, danke, 404).
+     Dort steht beim Laden Italienisch bereit, und die zweite Sprache kommt
+     in dem Moment, in dem jemand den Knopf drueckt.
+
+     Woher die Adresse kommt: aus dem Skript-Tag, das schon dasteht. Die
+     Seiten liegen in verschiedenen Tiefen (/, /de/, /cockpit/), und ein
+     fest verdrahteter Pfad waere auf zwei Dritteln davon falsch. Der
+     Sprachcode wird darin getauscht, sonst bleibt alles stehen — auch die
+     Versionsnummer, sonst umginge das Nachladen den Zwischenspeicher. */
+  var QUELLEN = (function () {
+    var aus = [];
+    [].slice.call(document.scripts).forEach(function (el) {
+      var m = /^(.*\/)?(i18n|legal)-(it|de|en)\.js(\?.*)?$/.exec(el.getAttribute('src') || '');
+      if (m) { aus.push({ pfad: m[1] || '', name: m[2], v: m[4] || '' }); }
+    });
+    return aus;
+  })();
+
+  var laedt = {};
+  function nachladen(lang, fertig) {
+    if (DICT[lang] || !QUELLEN.length) { fertig(); return; }
+    if (laedt[lang]) { laedt[lang].push(fertig); return; }
+    laedt[lang] = [fertig];
+    var offen = QUELLEN.length;
+    function eins() {
+      if (--offen > 0) { return; }
+      DICT = window.VECOM_I18N || DICT;
+      var rufe = laedt[lang];
+      /* Der Eintrag bleibt stehen, wenn nichts ankam — sonst wuerde bei
+         jedem weiteren Klick derselbe fehlgeschlagene Ladeversuch neu
+         beginnen. */
+      if (DICT[lang]) { delete laedt[lang]; }
+      rufe.forEach(function (f) { f(); });
+    }
+    QUELLEN.forEach(function (q) {
+      var el = document.createElement('script');
+      el.src = q.pfad + q.name + '-' + lang + '.js' + q.v;
+      el.onload = el.onerror = eins;
+      document.head.appendChild(el);
+    });
+  }
+
   function apply(lang) {
-    if (!DICT[lang]) lang = DEFAULT;
+    /* Faellt die gewuenschte Sprache aus, wird nicht auf Italienisch
+       zurueckgefallen, wenn Italienisch gar nicht geladen ist: Auf /de/
+       liegt nur Deutsch, und ein Rueckfall auf ein leeres Woerterbuch
+       loescht keine Texte — er laesst nur alles stehen. Genommen wird,
+       was da ist. */
+    if (!DICT[lang]) {
+      var da = LANGS.filter(function (l) { return DICT[l]; });
+      if (!da.length) { return; }
+      lang = da.indexOf(DEFAULT) > -1 ? DEFAULT : da[0];
+    }
 
     // Textknoten
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -105,12 +164,26 @@
     }
   }
 
-  apply(pickLang());
+  /* Beim Laden: Steht die gewuenschte Sprache noch nicht bereit, wird sie
+     geholt. Das betrifft nur die vier Seiten mit Knopf-Umschalter und nur
+     Besucher, die vorher einmal umgeschaltet haben — fuer sie steht kurz
+     Italienisch da, dann ihre Sprache. Auf allen anderen Seiten liegt die
+     richtige Sprache von Anfang an vor, weil die Seite selbst fest auf sie
+     eingestellt ist. */
+  var gewuenscht = pickLang();
+  apply(gewuenscht);
+  if (!DICT[gewuenscht]) { nachladen(gewuenscht, function () { apply(gewuenscht); }); }
 
   document.querySelectorAll('[data-lang]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      apply(btn.getAttribute('data-lang'));
+      var ziel = btn.getAttribute('data-lang');
       document.body.classList.remove('nav-open');
+      if (DICT[ziel]) { apply(ziel); return; }
+      btn.setAttribute('aria-busy', 'true');
+      nachladen(ziel, function () {
+        btn.removeAttribute('aria-busy');
+        apply(ziel);
+      });
     });
   });
 
@@ -323,11 +396,6 @@
 })();
 
 
-/* Auftakt: der Ueberspringen-Knopf existiert nur, solange der Auftakt laeuft. */
-(function () {
-  var k = document.querySelector('[data-auftakt-weg]');
-  if (!k) { return; }
-  if (document.documentElement.getAttribute('data-auftakt') !== 'laeuft') { return; }
-  k.hidden = false;
-  k.addEventListener('click', function () { if (window.__auftaktFrei) { window.__auftaktFrei(); } });
-})();
+/* Hier stand der Ueberspringen-Knopf des Auftaktfilms. Der Film ist weg —
+   die Szene macht ihre Eroeffnung selbst, und 1,16 MB sind es nicht wert,
+   dass jemand sie ueberspringen darf. */

@@ -12,7 +12,7 @@
   Erfundene Oberflächen wären eine Behauptung, keine Erklärung — und der
   Unterschied fällt spätestens auf, wenn der Kunde die echte Seite öffnet.
 
-  Texte ändern = in assets/js/i18n-data.js unter „abl" ändern, nicht hier.
+  Texte ändern = in assets/js/i18n-it.js (und i18n-de.js, i18n-en.js) unter „abl" ändern, nicht hier.
 -->
 <html lang="de">
 <head>
@@ -297,24 +297,42 @@
 
   <div class="grain"></div>
 </div>
-<script src="assets/js/i18n-data.js"></script>
 <script>
-  /* Sprache über ?lang= — aus einer Bühne entsteht jede Sprachfassung. */
+  /* DIE SPRACHE ENTSCHEIDET, WELCHE DATEI GELADEN WIRD
+     ----------------------------------------------------------------------
+     Diese Buehne wird einmal je Sprache aufgenommen (?lang=it, ?lang=de,
+     ?lang=en). Seit die Sprachdaten in drei Dateien liegen, kann hier kein
+     festes Skript-Tag mehr stehen -- es waere in zwei von drei Aufnahmen
+     die falsche Sprache, und der Text bliebe leer.
+
+     Also wird erst gelesen, was gebraucht wird, und dann geladen. Der
+     Rest laeuft im onload, damit nichts gesetzt wird, bevor die Woerter
+     da sind. */
   (function () {
+    var SPRACHEN = { it: '4f9c204a', de: '21dd3cbb', en: '3bbc9e81' };
     var lang = new URLSearchParams(location.search).get('lang') || 'de';
-    var d = (window.VECOM_I18N || {})[lang] || {};
-    var get = function (p) { return p.split('.').reduce(function (o, k) { return (o || {})[k]; }, d); };
-    document.documentElement.lang = lang;
-    document.querySelectorAll('[data-i18n]').forEach(function (el) {
-      var v = get(el.getAttribute('data-i18n'));
-      if (typeof v === 'string') { el.textContent = v; }
-    });
-    /* Die Bildschirme in derselben Sprache wie der Text. Eine italienische
-       Fassung mit deutschen Bildschirmen wäre genau die Art Nachlässigkeit,
-       die ein Kunde bemerkt und ein Video unglaubwürdig macht. */
-    document.querySelectorAll('img[data-quelle]').forEach(function (el) {
-      el.setAttribute('src', 'video/quellen/' + lang + '/' + el.getAttribute('data-quelle') + '.webp');
-    });
+    if (!SPRACHEN[lang]) { lang = 'de'; }
+    var s = document.createElement('script');
+    s.src = 'assets/js/i18n-' + lang + '.js?v=' + SPRACHEN[lang];
+    s.onload = function () { einsetzen(lang); };
+    s.onerror = function () { einsetzen(lang); };   /* lieber Rohtext als nichts */
+    document.head.appendChild(s);
+
+    function einsetzen(lang) {
+      var d = (window.VECOM_I18N || {})[lang] || {};
+      var get = function (p) { return p.split('.').reduce(function (o, k) { return (o || {})[k]; }, d); };
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(function (el) {
+        var v = get(el.getAttribute('data-i18n'));
+        if (typeof v === 'string') { el.textContent = v; }
+      });
+      /* Die Bildschirme in derselben Sprache wie der Text. Eine italienische
+         Fassung mit deutschen Bildschirmen wäre genau die Art Nachlässigkeit,
+         die ein Kunde bemerkt und ein Video unglaubwürdig macht. */
+      document.querySelectorAll('img[data-quelle]').forEach(function (el) {
+        el.setAttribute('src', 'video/quellen/' + lang + '/' + el.getAttribute('data-quelle') + '.webp');
+      });
+    }
   })();
 </script>
 </body>

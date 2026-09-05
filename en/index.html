@@ -7,88 +7,6 @@
 <meta name="description" content="Custom websites and online stores from Aragona, Sicily. Trilingual IT/DE/EN, built to rank on Google. Prices in the open, quote in 90 seconds.">
 <meta name="theme-color" content="#05070d">
 
-<!-- Auftakt: der Film laeuft, dann oeffnet die Seite. Steht inline und ganz
-     vorn, damit kein Text aufblitzt, bevor der Vorhang liegt. Faellt in jeder
-     Zweifelslage sofort auf die normale Seite zurueck. -->
-<script>
-(function () {
-  try {
-    var r = document.documentElement;
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (navigator.connection && navigator.connection.saveData) return;
-    try { if (sessionStorage.getItem('vd-auftakt') === '1') return; } catch (e) { return; }
-    r.setAttribute('data-auftakt', 'laeuft');
-
-    var zuende = false;
-    function frei(sofort) {
-      if (zuende) { return; }
-      zuende = true;
-      try { sessionStorage.setItem('vd-auftakt', '1'); } catch (e) {}
-      /* "oeffnet" fuehrt den Zoom in die Mitte und die Blende von dort aus.
-         "fertig" ueberspringt beides — wer abbricht, will nichts mehr sehen. */
-      r.setAttribute('data-auftakt', sofort ? 'fertig' : 'oeffnet');
-      if (!sofort) { setTimeout(function () { r.setAttribute('data-auftakt', 'fertig'); }, 1250); }
-    }
-    window.__auftaktFrei = frei;
-
-    document.addEventListener('DOMContentLoaded', function () {
-      var v = document.querySelector('[data-auftakt-video]');
-      var tonKnopf = document.querySelector('[data-auftakt-ton]');
-      var wegKnopf = document.querySelector('[data-auftakt-weg]');
-
-      if (!v) { addEventListener('vecom:auftakt-bruch', function () { frei(false); }); return; }
-
-      /* Ton kann nicht von selbst starten — das blockiert jeder Browser ohne
-         Geste. Also stumm losspielen und beim ersten Tippen aufdrehen. */
-      v.muted = true;
-      /* Nicht sofort abspielen: erst wenn genug im Puffer liegt. Ein Film, der
-         anfaengt und dann stockt, ist schlechter als einer, der 300 ms spaeter
-         sauber durchlaeuft. */
-      var gestartet = false;
-      function anfangen() {
-        if (gestartet) { return; }
-        gestartet = true;
-        var los = v.play();
-        if (los && los.catch) { los.catch(function () { frei(true); }); }
-      }
-      if (v.readyState >= 4) { anfangen(); }
-      else {
-        v.addEventListener('canplaythrough', anfangen, { once: true });
-        setTimeout(anfangen, 1800);
-      }
-
-      function tonAn() {
-        v.muted = false;
-        v.volume = 1;
-        if (tonKnopf) { tonKnopf.setAttribute('data-an', '1'); }
-      }
-      if (tonKnopf) {
-        tonKnopf.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (v.muted) { tonAn(); } else { v.muted = true; tonKnopf.removeAttribute('data-an'); }
-        });
-      }
-      /* Tippen auf die Flaeche schaltet den Ton an und bricht NICHT ab —
-         sonst waere jeder Versuch, den Ton zu holen, gleichzeitig ein Abbruch. */
-      var flaeche = document.querySelector('.auftakt-vorhang');
-      if (flaeche) { flaeche.addEventListener('click', function () { if (v.muted) { tonAn(); } }); }
-
-      if (wegKnopf) {
-        wegKnopf.addEventListener('click', function (e) { e.stopPropagation(); frei(true); });
-      }
-      addEventListener('keydown', function (e) { if (e.key === 'Escape') { frei(true); } });
-      addEventListener('wheel', function () { frei(true); }, { once: true, passive: true });
-
-      v.addEventListener('ended', function () { frei(false); });
-      v.addEventListener('error', function () { frei(true); });
-      /* Laeuft er nach 2,5 s immer noch nicht, kommt er auch nicht mehr. */
-      var start = setTimeout(function () { if (!v.currentTime) { frei(true); } }, 5000);
-      v.addEventListener('playing', function () { clearTimeout(start); });
-      setTimeout(function () { frei(true); }, 14000);   /* harte Obergrenze */
-    });
-  } catch (e) { document.documentElement.removeAttribute('data-auftakt'); }
-})();
-</script>
 <link rel="canonical" href="https://vecom-design.it/en/">
 
 <!-- Sprachvarianten: die Seite merkt sich die Wahl, ?lang= macht sie teilbar -->
@@ -356,21 +274,6 @@
     <path d="M4.49 3.50 L43.81 93.15 L46.41 97.34 L52.50 95.10 L55.76 90.36 L61.84 75.56 L32.73 10.20 L29.69 6.01 L24.91 3.50 Z"/>
     <path d="M94.86 3.78 L68.79 4.06 L64.44 7.13 L59.23 17.74 L54.24 30.87 L71.40 31.15 L67.70 38.97 L51.63 38.97 L53.80 45.95 L64.88 69.41 L73.79 51.81 Z"/>
   </svg>
-</div>
-<div class="auftakt-vorhang" aria-hidden="true">
-  <video class="auftakt-video" data-auftakt-video muted playsinline autoplay preload="auto"
-         poster="../assets/img/auftakt-poster.webp" disablepictureinpicture>
-    <source src="../video/auftakt.mp4?v=c572d331" type="video/mp4">
-    <source src="../video/auftakt.webm?v=7622cd34" type="video/webm">
-  </video>
-</div>
-<div class="auftakt-leiste">
-  <button type="button" class="auftakt-ton" data-auftakt-ton>
-    <span data-i18n="auftakt.sound">Sound</span>
-  </button>
-  <button type="button" class="auftakt-weg" data-auftakt-weg>
-    <span data-i18n="auftakt.skip">Skip</span>
-  </button>
 </div>
 <canvas class="stage" data-canvas aria-hidden="true"></canvas>
 <div class="world-scrim" aria-hidden="true"></div>
@@ -1279,7 +1182,7 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-data.js?v=46c1e785" defer></script>
+<script src="../assets/js/i18n-en.js?v=3bbc9e81" defer></script>
 <script src="../assets/js/app.js?v=b6e0ec6e" defer></script>
 <script src="../assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="../assets/vendor/gsap.min.js" defer></script>
