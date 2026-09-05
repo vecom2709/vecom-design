@@ -81,6 +81,18 @@ $zeile = static function (array $v) {
   </div>
 </div>
 
+<?php /* Was von selbst nachgerueckt ist. Steht nur da, wenn wirklich etwas
+         passiert ist -- eine Meldung, die immer da ist, liest niemand.
+         Sie meldet keine Handlung, sondern eine Buchhaltung: Der Kunde sieht
+         seinen Fortschritt jetzt richtig, ohne dass jemand geklickt hat. */ ?>
+<?php $nachgezogen = $nachgezogen ?? 0; ?>
+<?php if ($nachgezogen > 0): ?>
+  <p class="nachgezogen" style="margin:0 0 14px"><b><?= (int) $nachgezogen ?></b>
+    <?= $nachgezogen === 1 ? 'Vorgang ist' : 'Vorgänge sind' ?> im Stand nachgerückt —
+    die Tatsachen dazu standen schon da. Nichts ist rausgegangen; im Verlauf des
+    Kunden steht, was sich geändert hat.</p>
+<?php endif; ?>
+
 <?php if ($stoerungen): ?>
   <div class="block" style="border-color:rgba(255,138,138,.32)">
     <h2 style="color:var(--rot)">Das läuft nicht<span class="mehr"><?= count($stoerungen) ?></span></h2>

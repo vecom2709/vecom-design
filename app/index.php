@@ -1545,7 +1545,24 @@ switch ($route) {
         require_once __DIR__ . '/src/Vorgang.php';
         require_once __DIR__ . '/src/Mail.php';
         require_once __DIR__ . '/src/Anfrage.php';
+        require_once __DIR__ . '/src/Ablauf.php';
         $arbeit = sicher(static fn() => Vorgang::arbeitsliste(), ['du' => [], 'kunde' => [], 'ruht' => []]);
+        /* WAS VON SELBST NACHRUECKT
+           ------------------------------------------------------------------
+           Der Projektstand ist ein gespeichertes Wort, die Fuehrung rechnet
+           aus Tatsachen. Wo das Wort hinterherhinkt, zieht Ablauf es nach --
+           aber nur vorwaerts, nur bei den vier Staenden, die nichts aus dem
+           Haus lassen, und nur, wenn die Tatsache schon in der Datenbank
+           steht. Hier, weil die Liste ohnehin jeden Vorgang geladen hat:
+           Es kostet keine einzige zusaetzliche Abfrage, solange sich nichts
+           aendert. */
+        $nachgezogen = sicher(static function () use ($arbeit) {
+            $zahl = 0;
+            foreach (array_merge($arbeit['du'], $arbeit['kunde'], $arbeit['ruht']) as $v) {
+                if (Ablauf::nachziehen($v) !== null) { $zahl++; }
+            }
+            return $zahl;
+        }, 0);
         $offen  = 0;
         foreach (array_merge($arbeit['du'], $arbeit['kunde'], $arbeit['ruht']) as $v) {
             $offen += (int) $v['offen_cent'];
@@ -1553,6 +1570,7 @@ switch ($route) {
         ansicht('heute', [
             'liste'     => $arbeit,
             'offenGeld' => $offen,
+            'nachgezogen' => $nachgezogen,
             /* Was auf einen zukommt -- nicht, was gewesen ist. Ablaufende
                Angebote, liegengebliebene Fragebogen, fehlendes Material,
                anstehende Restzahlungen. Ist nichts faellig, kommt eine leere
@@ -1576,8 +1594,16 @@ switch ($route) {
         require_once __DIR__ . '/src/Anfrage.php';
         require_once __DIR__ . '/src/Nachricht.php';
         if ($unter !== null && $unter !== '') {
+            require_once __DIR__ . '/src/Ablauf.php';
             $v = sicher(static fn() => Vorgang::laden((string) $unter), null);
             if (!$v) { http_response_code(404); exit('Diesen Vorgang gibt es nicht.'); }
+            /* Auch hier, damit der Stand stimmt, wenn jemand direkt auf einen
+               Vorgang springt statt ueber die Liste. Aendert sich etwas, wird
+               es sofort angezeigt statt erst beim naechsten Aufruf. */
+            $zug = sicher(static fn() => Ablauf::nachziehen($v), null);
+            if ($zug !== null && isset($v['projekt']['status'])) {
+                $v['projekt']['status'] = $zug['nach'];
+            }
             // Wer die Seite oeffnet, hat das Gespraech gelesen.
             if ($v['kunde_id']) {
                 sicher(static fn() => Db::run(
@@ -1591,6 +1617,7 @@ switch ($route) {
             $vkid = (int) ($v['kunde_id'] ?? 0);
             ansicht('vorgang', [
                 'v' => $v,
+                'zug' => $zug,
                 'vorlagen' => $vkid > 0 ? sicher(static fn() => Vorlage::fuer($vkid), []) : [],
                 'kennung'  => $vkid > 0 ? sicher(static fn() => Vorlage::kennung($vkid), '') : '',
                 // Dieselbe Auswahl wie auf der Anfrageseite und aus demselben

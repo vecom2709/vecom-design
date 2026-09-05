@@ -71,7 +71,7 @@ Config::setzenFuerTest([
 ]);
 
 foreach (['Db', 'Status', 'Fmt', 'Csrf', 'Auth', 'Events', 'Einrichtung',
-          'Vorgang', 'Onboarding', 'Umfang', 'Fragen', 'Beispieldaten'] as $k) {
+          'Vorgang', 'Onboarding', 'Umfang', 'Fragen', 'Beispieldaten', 'Ablauf'] as $k) {
     require_once $wurzel . "/src/$k.php";
 }
 
@@ -544,6 +544,200 @@ pruefe('er steht in „Du bist dran“', $imDu);
 pruefe('die Betreuung bleibt ausgenommen',
     in_array('betreuung', (new ReflectionClass('Vorgang'))
         ->getConstant('GEDULD_AUSGENOMMEN') ?: [], true));
+
+/* ============================================================================
+   11. Die Handbremse sitzt an der Tat
+   ============================================================================ */
+abschnitt('11. Die Handbremse');
+
+/* Der eigentliche Fehler war nicht, dass irgendwo eine Rueckfrage fehlte.
+   Er war, dass es keine Regel gab, WANN eine noetig ist -- und deshalb hing
+   sie dort, wo jemand daran gedacht hatte. Diese Pruefung haelt die Regel
+   fest: Was eine E-Mail ausloest oder in den Buechern landet, fragt nach. */
+$mussFragen = [
+    'fragebogen_einladen', 'zahlungslink_senden', 'restzahlung_anfordern',
+    'vorschau_frei', 'abnahme_frei', 'rechnung_erzeugen', 'rechnung_schicken',
+    'abo_anlegen', 'kunde_loeschen', 'kunde_anonymisieren',
+];
+foreach ($mussFragen as $tat) {
+    pruefe('„' . $tat . '“ fragt nach', Ablauf::rueckfrage($tat) !== null);
+}
+
+/* Und was nichts anrichtet, fragt eben nicht. Eine Verwaltung, die bei jedem
+   Feld nachhakt, erzieht dazu, jede Frage wegzuklicken -- und dann wird auch
+   die eine weggeklickt, auf die es ankam. */
+foreach (['vorschau_speichern', 'kunde_speichern', 'projekt_felder', 'chat_merken'] as $tat) {
+    pruefe('„' . $tat . '“ fragt nicht', Ablauf::rueckfrage($tat) === null);
+}
+
+/* Dieselbe Tat, verschiedene Gesichter. */
+pruefe('„online setzen“ wiegt schwer',
+    Ablauf::wiegt('projekt_status', 'online') === Ablauf::SCHWER);
+pruefe('„Vorschau setzen“ geht raus',
+    Ablauf::wiegt('projekt_status', 'vorschau') === Ablauf::RAUS);
+pruefe('ein Statuswert ohne Eintrag ist still',
+    Ablauf::wiegt('projekt_status', 'design') === Ablauf::STILL);
+
+/* Die Frage muss sagen, was passiert -- nicht "Sind Sie sicher?". Der Test
+   dafuer ist grob und trotzdem wirksam: Wer beschreibt, braucht Worte. */
+foreach ($mussFragen as $tat) {
+    $r = Ablauf::rueckfrage($tat);
+    pruefe('„' . $tat . '“ sagt, was passiert',
+        $r !== null && mb_strlen($r['frage']) > 40 && !str_contains($r['frage'], 'sicher'),
+        $r === null ? '—' : mb_substr($r['frage'], 0, 40));
+}
+
+/* ============================================================================
+   12. Was von selbst nachrückt — und was nicht
+   ============================================================================ */
+abschnitt('12. Der Stand rückt nach');
+
+/* Die vier automatischen Schritte muessen genau die vier sein, die nichts aus
+   dem Haus lassen. Waere "online" oder "abgeschlossen" dabei, veroeffentlichte
+   die Verwaltung eine Seite, ohne dass jemand es beschlossen hat. */
+$belegt = (new ReflectionClass('Ablauf'))->getConstant('BELEGT') ?: [];
+$auto   = (new ReflectionClass('Ablauf'))->getConstant('AUTOMATISCH') ?: [];
+$ziele  = array_column($belegt, 'stand');
+foreach (['vorschau', 'finale_freigabe', 'veroeffentlichung', 'online', 'abgeschlossen'] as $tabu) {
+    pruefe('„' . $tabu . '“ wird NIE von selbst gesetzt', !in_array($tabu, $ziele, true));
+    pruefe('„' . $tabu . '“ wird NIE von selbst verlassen', !in_array($tabu, $auto, true));
+}
+pruefe('vier Tatsachen belegen einen Stand', count($belegt) === 4, (string) count($belegt));
+
+/* Die Liste muss von der staerksten zur schwaechsten Tatsache geordnet sein.
+   Steht eine schwaechere oben, gewaenne sie -- und der Stand blieb hinter dem
+   zurueck, was schon belegt ist. Genau dieser Fehler war der Grund, die
+   Kette von Uebergaengen durch eine Liste von Belegen zu ersetzen. */
+$reihe = array_keys(Status::PROJEKT);
+$vorher = count($reihe);
+$geordnet = true;
+foreach ($belegt as $eintrag) {
+    $i = array_search($eintrag['stand'], $reihe, true);
+    if ($i === false || $i >= $vorher) { $geordnet = false; }
+    $vorher = (int) $i;
+}
+pruefe('die Belege stehen vom stärksten zum schwächsten', $geordnet);
+
+/* Jeder automatisch verlassbare Stand liegt vor „vorschau“. */
+$grenze = array_search('vorschau', $reihe, true);
+$zuWeit = [];
+foreach ($auto as $stand) {
+    $i = array_search($stand, $reihe, true);
+    if ($i === false || $i >= $grenze) { $zuWeit[] = $stand; }
+}
+pruefe('alles Automatische liegt vor „Vorschau“', $zuWeit === [], implode(', ', $zuWeit));
+
+/* DER FEHLER, DEN DIESE PRUEFUNG GEFUNDEN HAT
+   ------------------------------------------------------------------------
+   Ein Fragebogen kam ausgefuellt zurueck, ohne dass je eine Einladung
+   vermerkt war -- und der Stand blieb auf „Zahlung bestaetigt“ stehen, weil
+   die Kette an der fehlenden Zwischenstufe haengenblieb. Die staerkere
+   Tatsache muss die schwaechere ueberholen duerfen. */
+Db::update('projects', $projektId, ['status' => 'zahlung_bestaetigt']);
+Db::run('UPDATE questionnaires SET eingeladen_am = NULL WHERE project_id = ?', [$projektId]);
+$vl = null;
+foreach (Vorgang::alle(true) as $eins) {
+    if (($eins['projekt_id'] ?? 0) === $projektId) { $vl = $eins; }
+}
+Ablauf::nachziehen((array) $vl);
+$standLuecke = (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$projektId], '');
+pruefe('eine übersprungene Zwischenstufe blockiert nicht',
+    $standLuecke !== 'zahlung_bestaetigt', $standLuecke);
+
+/* Und jetzt wirklich: Der Stand steht falsch, die Tatsache steht da. */
+Db::update('projects', $projektId, ['status' => 'bestellung_eingegangen']);
+$vv = null;
+foreach (Vorgang::alle(true) as $eins) {
+    if (($eins['projekt_id'] ?? 0) === $projektId) { $vv = $eins; }
+}
+$zug = Ablauf::nachziehen((array) $vv);
+pruefe('der Stand rückt nach, weil die Tatsachen dastehen', $zug !== null,
+    $zug === null ? 'nichts passiert' : $zug['nach']);
+/* Aus dem Vollen: An dieser Stelle sind Anzahlung, Fragebogen und Vorschau
+   alle laengst da -- der Stand muss die ganze Strecke aufholen, nicht einen
+   Schritt je Seitenaufruf. Sonst saehe der Kunde dreimal hintereinander
+   einen Stand, der immer noch falsch ist. */
+$standJetzt = (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$projektId], '');
+pruefe('er springt gleich auf den weitesten belegten Stand',
+    $standJetzt === 'entwicklung', $standJetzt);
+pruefe('der gemeldete Weg nennt Anfang und Ende',
+    $zug !== null && $zug['von'] === 'bestellung_eingegangen' && $zug['nach'] === $standJetzt,
+    $zug === null ? '—' : $zug['von'] . ' → ' . $zug['nach']);
+
+/* Zweimal aufgerufen darf beim zweiten Mal nichts passieren -- sonst liefe
+   die Verwaltung bei jedem Seitenaufruf eine Stufe weiter. */
+foreach (Vorgang::alle(true) as $eins) {
+    if (($eins['projekt_id'] ?? 0) === $projektId) { $vv = $eins; }
+}
+pruefe('ein zweiter Lauf ändert nichts mehr', Ablauf::nachziehen((array) $vv) === null);
+
+/* Der Vermerk muss den ganzen Weg nennen, nicht nur das Ziel. */
+$vermerk = (string) Db::wert(
+    "SELECT meta FROM activities WHERE type = 'stand_nachgezogen' ORDER BY id DESC LIMIT 1", [], '');
+pruefe('der Vermerk nennt Herkunft, Ziel und Grund',
+    str_contains($vermerk, '"von"') && str_contains($vermerk, '"nach"')
+    && str_contains($vermerk, '"weil"'),
+    mb_substr($vermerk, 0, 60));
+
+/* Ein von Hand gesetzter Stand darf nie ueberschrieben werden. */
+Db::update('projects', $projektId, ['status' => 'online']);
+foreach (Vorgang::alle(true) as $eins) {
+    if (($eins['projekt_id'] ?? 0) === $projektId) { $vv = $eins; }
+}
+Ablauf::nachziehen((array) $vv);
+pruefe('ein von Hand gesetzter Stand bleibt stehen',
+    (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$projektId], '') === 'online');
+
+/* Jeder automatische Schritt muss im Verlauf stehen. Ein Schritt, den niemand
+   sieht, ist ein Schritt, dem niemand trauen kann. */
+pruefe('der Schritt steht im Verlauf des Kunden',
+    (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'stand_nachgezogen'", [], 0) > 0);
+
+/* ============================================================================
+   13. Die Checkliste je Stufe
+   ============================================================================ */
+abschnitt('13. Die Checkliste');
+
+/* Jede Stufe muss eine Liste haben. Eine leere waere schlimmer als keine:
+   Sie behauptet, es gaebe nichts zu tun. */
+$stufen = array_keys(Vorgang::STUFEN);
+$ohne = [];
+foreach ($stufen as $stufe) {
+    $probe = ['stufe' => $stufe, 'projekt' => [], 'fragebogen' => null,
+              'anzahlung' => null, 'restzahlung' => null, 'kunde_id' => null,
+              'anfrage_id' => null, 'bestell_id' => null, 'offen_cent' => 0];
+    if (count(Ablauf::checkliste($probe)) === 0) { $ohne[] = $stufe; }
+}
+pruefe('jede Stufe hat eine Checkliste', $ohne === [], implode(', ', $ohne));
+
+/* Die Haken duerfen nicht raten. Bei einem Vorgang ohne jede Tatsache muss
+   praktisch alles offen sein -- steht dort ein Haken, kommt er aus der Luft. */
+$leer = ['stufe' => 'arbeit', 'projekt' => [], 'fragebogen' => null,
+         'anzahlung' => null, 'restzahlung' => null, 'kunde_id' => null,
+         'anfrage_id' => null, 'bestell_id' => null, 'offen_cent' => 0];
+$standLeer = Ablauf::stand($leer);
+pruefe('ohne Tatsachen fast nichts abgehakt', $standLeer['da'] <= 2,
+    $standLeer['da'] . ' von ' . $standLeer['von']);
+
+/* Und beim wirklichen Vorgang muss die Liste mitwachsen. */
+Db::update('projects', $projektId, $warten);
+foreach (Vorgang::alle(true) as $eins) {
+    if (($eins['projekt_id'] ?? 0) === $projektId) { $vv = $eins; }
+}
+$standEcht = Ablauf::stand((array) $vv);
+pruefe('beim laufenden Vorgang steht mehr als nichts', $standEcht['da'] > 0,
+    $standEcht['da'] . ' von ' . $standEcht['von']);
+pruefe('und nicht schon alles', $standEcht['da'] < $standEcht['von'],
+    $standEcht['da'] . ' von ' . $standEcht['von']);
+
+/* Jeder Punkt braucht beides: einen Text und jemanden, der ihn setzt. */
+$formOk = true;
+foreach ($standEcht['punkte'] as $punkt) {
+    if (trim((string) $punkt['was']) === '' || !in_array($punkt['wer'], ['du', 'kunde'], true)) {
+        $formOk = false;
+    }
+}
+pruefe('jeder Punkt nennt Sache und Zuständigen', $formOk);
 
 /* ============================================================================
    Aufräumen und Bilanz

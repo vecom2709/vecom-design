@@ -9,7 +9,10 @@
       <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
       <select name="status"><?php foreach (Status::PROJEKT as $w => $t): ?>
         <option value="<?= $w ?>" <?= $p['status'] === $w ? 'selected' : '' ?>><?= Fmt::h($t) ?></option><?php endforeach; ?></select>
-      <button class="knopf haupt">Status setzen</button></form>
+      <?php /* Nicht blau: Das ist die Handschaltung, nicht der gefuehrte Weg.
+               Wer hier den Stand von Hand setzt, weiss, was er tut -- der
+               blaue Knopf gehoert dem Schritt, den die Fuehrung meint. */ ?>
+      <button class="knopf">Status setzen</button></form>
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Der Projektstatus zieht die Bestellung sinngemäß mit.
     Der technische Website-Status bleibt davon unberührt — er wird nur vom Monitoring gesetzt.</p></div>
 
@@ -390,7 +393,7 @@
       <div class="feld"><label>Antworten</label>
         <textarea name="text" rows="4" maxlength="5000" style="min-height:90px"
                   placeholder="Der Kunde bekommt den Text auch per E-Mail."></textarea></div>
-      <button class="knopf haupt">Absenden</button></form>
+      <button class="knopf">Absenden</button></form>
     <?php if ($kundenlink): ?>
       <div class="feld" style="margin-top:14px"><label>Seine Projektseite</label>
         <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>"></div>

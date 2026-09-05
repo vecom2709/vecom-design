@@ -256,6 +256,39 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
        den richtigen von acht Knoepfen nicht auf Anhieb.
        ---------------------------------------------------------------------- */
     $ersteAufgabe = $wartetAufDich[0] ?? null;
+
+    /* DERSELBE KNOPF, ZWEIMAL, BEIDE BLAU
+       ------------------------------------------------------------------
+       Steht man auf genau dem Vorgang, den die Leiste meint, sagte die
+       Seite dieselbe Sache zweimal -- einmal hier oben, einmal im Block
+       "Du bist dran", beide Male blau, beide Male derselbe Handgriff.
+       Zwei gleich laute Knoepfe fuer eine Sache sind schlimmer als
+       keiner: Man vergleicht sie, statt zu handeln.
+
+       Die Leiste tritt dann zurueck. Sie sagt weiterhin, dass es der
+       hier ist -- den Knopf ueberlaesst sie der Seite, auf der er
+       ohnehin steht, mit allem Zusammenhang drumherum. */
+    /* $route ist nur das erste Stueck des Weges ("vorgaenge"). Welcher
+       Vorgang offen ist, weiss die Ansicht selbst -- sie bekommt ihn als
+       $v. Beides zusammen ist die Frage: Steht der Handgriff, den die
+       Leiste nennt, auf genau dieser Seite? */
+    $selbeSeite = $ersteAufgabe !== null
+        && $route === 'vorgaenge'
+        && isset($v['schluessel'])
+        && (string) $v['schluessel'] === (string) $ersteAufgabe['schluessel'];
+
+    /* BLAU GEHOERT DER SEITE, AUF DER MAN STEHT
+       ------------------------------------------------------------------
+       Steht man auf einem Vorgang und die Leiste meint einen anderen, sind
+       es zwei blaue Knoepfe fuer zwei verschiedene Kunden -- und der
+       auffaellige fuehrt weg von dem, was man gerade tut. Die Leiste
+       bleibt stehen und bleibt anklickbar; blau ist sie nicht mehr. */
+    $leisteLeise = ($route === 'vorgaenge' && isset($v['schluessel']))
+        /* Auf "Heute" und in der Vorgangsliste ist die Leiste eine Kopie der
+           ersten Zeile. Zwei blaue Knoepfe uebereinander, die dasselbe tun,
+           sind kein Angebot, sondern eine Doppelung. */
+        || in_array($route, ['heute', 'vorgaenge', ''], true);
+    $leisteKnopf = 'knopf' . ($leisteLeise ? '' : ' haupt');
     ?>
     <section class="jetzt <?= $ersteAufgabe ? '' : 'jetzt--leer' ?>" aria-label="Was jetzt zu tun ist">
       <?php if (!$ersteAufgabe): ?>
@@ -279,7 +312,9 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
           <span class="jetzt__warum"><?= Fmt::h((string) $ersteAufgabe['warum']) ?></span>
         </span>
         <span class="jetzt__tun">
-          <?php if ($sch !== null && $sch['direkt']): ?>
+          <?php if ($selbeSeite): ?>
+            <span class="jetzt__hier">Du bist hier — der Knopf steht unten.</span>
+          <?php elseif ($sch !== null && $sch['direkt']): ?>
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
               <?= Csrf::feld() ?>
               <input type="hidden" name="tat" value="<?= Fmt::h((string) $sch['tat']) ?>">
@@ -288,10 +323,10 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
               <?php foreach ($sch['felder'] as $feld => $wert): ?>
                 <input type="hidden" name="<?= Fmt::h($feld) ?>" value="<?= Fmt::h((string) $wert) ?>">
               <?php endforeach; ?>
-              <button class="knopf haupt"><?= Fmt::h((string) $sch['knopf']) ?></button>
+              <button class="<?= $leisteKnopf ?>"><?= Fmt::h((string) $sch['knopf']) ?></button>
             </form>
           <?php else: ?>
-            <a class="knopf haupt" href="<?= Fmt::h($ziel) ?>"><?= Fmt::h($sch !== null ? (string) $sch['knopf'] : 'Öffnen') ?> &rsaquo;</a>
+            <a class="<?= $leisteKnopf ?>" href="<?= Fmt::h($ziel) ?>"><?= Fmt::h($sch !== null ? (string) $sch['knopf'] : 'Öffnen') ?> &rsaquo;</a>
           <?php endif; ?>
           <?php if ($rest > 0): ?>
             <a class="jetzt__rest" href="<?= Fmt::h(url('heute')) ?>">und <?= $rest ?> weitere</a>
@@ -302,6 +337,22 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     <?php require $inhaltsdatei; ?>
   </main>
 </div>
+<?php
+/* Was eine Tat wiegt, entscheidet Ablauf::TRAGWEITE -- eine Liste in PHP,
+   damit sie neben den Taten steht und nicht in einer Datei, die niemand
+   aufmacht. Hierher kommt sie als Tabelle, damit jedes Formular sie findet,
+   ohne dass eine Ansicht daran denken muss. */
+$bremsTabelle = [];
+if (class_exists('Ablauf')) {
+    foreach (Ablauf::TRAGWEITE as $tat => $e) {
+        $bremsTabelle[$tat] = ['frage' => $e[1], 'ja' => $e[2]];
+    }
+    foreach (Ablauf::TRAGWEITE_STATUS as $wert => $e) {
+        $bremsTabelle['projekt_status:' . $wert] = ['frage' => $e[1], 'ja' => $e[2]];
+    }
+}
+?>
+<script>window.vecomBremse = <?= json_encode($bremsTabelle, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
 <script>
 /* Kommt man ueber die Leiste "Jetzt dran", steht der gemeinte Knopf in der
    Adresse. Ihn hier zu suchen ist zuverlaessiger, als ihn beim Bauen jeder
@@ -438,15 +489,44 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
      irgendein anderer Zuhoerer am Formular reagiert. Haengte die Frage
      hinten dran, haette ein Skript am Formular schon gehandelt, waehrend
      die Frage noch offen ist. */
+  /* DIE HANDBREMSE HAENGT AN DER TAT, NICHT AM KNOPF
+     ----------------------------------------------------------------------
+     data-frage einzeln zu setzen hat funktioniert, solange jemand daran
+     dachte. Er dachte nicht immer daran: An "Abnahme freischalten" stand
+     eine Rueckfrage, an "Fuer den Kunden freischalten" nicht -- obwohl
+     beide eine E-Mail ausloesen, die man nicht zurueckholt.
+
+     Was eine Tat wiegt, steht jetzt an genau einer Stelle (Ablauf::
+     TRAGWEITE) und kommt von dort hierher. Jedes Formular, das diese Tat
+     abschickt, fragt damit dieselbe Frage -- auch eins, das es heute noch
+     nicht gibt. Ein eigenes data-frage schlaegt die Liste weiterhin: Wo
+     jemand eine bessere Frage geschrieben hat, bleibt sie stehen. */
+  var bremse = window.vecomBremse || {};
+
+  function frageFuer(f) {
+    var eigen = f.getAttribute('data-frage');
+    if (eigen) { return { frage: eigen, ja: f.getAttribute('data-ja') }; }
+    var tat = f.querySelector('input[name="tat"]');
+    if (!tat) { return null; }
+    var schluessel = tat.value;
+    /* "projekt_status" ist eine Tat mit mehreren Gesichtern: Das eine
+       verschiebt ein Wort, das andere stellt eine Seite ins Netz. */
+    var st = f.querySelector('[name="status"]');
+    if (st && st.value) { schluessel += ':' + st.value; }
+    return bremse[schluessel] || null;
+  }
+
   document.addEventListener('submit', function (e) {
     var f = e.target;
     if (!f || !f.getAttribute) { return; }
-    var frage = f.getAttribute('data-frage');
-    if (!frage || f.dataset.beantwortet === 'ja') { return; }
+    if (f.dataset.beantwortet === 'ja') { return; }
+    var eintrag = frageFuer(f);
+    if (!eintrag) { return; }
+    var frage = eintrag.frage;
 
     e.preventDefault();
     var knopf = e.submitter || f.querySelector('button, input[type=submit]');
-    fragen(f, frage, f.getAttribute('data-ja'), function () {
+    fragen(f, frage, eintrag.ja, function () {
       f.dataset.beantwortet = 'ja';
       if (f.requestSubmit) { f.requestSubmit(knopf); } else { f.submit(); }
     });

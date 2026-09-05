@@ -278,3 +278,45 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
   min-height:32px; display:inline-flex; align-items:center}
 .rechtsfuss a:hover,.rechtsfuss a:focus-visible{color:var(--cyan); text-decoration:underline}
 .rechtsfuss span{color:var(--linie2)}
+
+/* ===========================================================================
+   DIE CHECKLISTE EINER STUFE
+
+   Sie steht direkt unter "Du bist dran" und beantwortet die andere Frage:
+   nicht "was jetzt", sondern "wo stehe ich". Zugeklappt, sobald alles steht --
+   eine vollstaendige Liste ist eine Nachricht, keine Arbeit.
+
+   Bewusst leise gehalten: Sie soll den Schritt darueber nicht ueberstimmen.
+   Deshalb kein Rahmen, keine Farbe, keine Groesse -- nur Ordnung.
+   ======================================================================== */
+.dran details.liste{margin:14px 0 0;border-top:1px solid var(--linie);padding-top:10px}
+.dran details.liste summary{cursor:pointer;font-size:13px;color:var(--leise);
+  list-style:none;display:flex;align-items:center;gap:6px;user-select:none}
+.dran details.liste summary::-webkit-details-marker{display:none}
+.dran details.liste summary::before{content:'▸';font-size:10px;opacity:.6;
+  transition:transform .15s ease}
+.dran details.liste[open] summary::before{transform:rotate(90deg)}
+.dran details.liste summary b{color:var(--text);font-weight:550}
+.dran details.liste ul{list-style:none;margin:10px 0 2px;padding:0;
+  display:flex;flex-direction:column;gap:5px}
+.dran details.liste li{display:flex;align-items:baseline;gap:8px;font-size:13px}
+/* Feste Breite, damit die Punkte untereinander fluchten -- ein Haken, der die
+   Zeile verschiebt, macht aus einer Liste eine Treppe. */
+.dran details.liste .haken{flex:0 0 14px;text-align:center;font-size:12px;
+  color:var(--gruen);font-weight:700}
+.dran details.liste li.offen{color:var(--leise)}
+.dran details.liste li.offen .haken::before{content:'·';opacity:.5;font-weight:400}
+.dran details.liste li i{font-style:normal;opacity:.7;font-size:12px}
+@media (prefers-reduced-motion:reduce){
+  .dran details.liste summary::before{transition:none}
+}
+
+/* Ein Stand, der sich von selbst bewegt hat. Steht einmal da und erklaert
+   sich; niemand soll raten muessen, warum sich etwas geaendert hat. */
+.nachgezogen{margin:12px 0 0;font-size:12.5px;color:var(--leise);
+  border-left:2px solid var(--linie);padding-left:10px}
+.nachgezogen b{color:var(--text);font-weight:550}
+
+/* Die Leiste tritt zurueck, wenn man ohnehin auf dem gemeinten Vorgang steht.
+   Sie sagt weiterhin, dass er es ist -- den Knopf laesst sie der Seite. */
+.jetzt__hier{color:var(--leise);font-size:12.5px;white-space:nowrap}

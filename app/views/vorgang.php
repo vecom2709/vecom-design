@@ -14,6 +14,45 @@ $pid    = $v['projekt_id'];
 $fb     = $v['fragebogen'];
 $s      = $v['schritt'];
 $tage   = Vorgang::ruhtSeitTagen($v);
+$zug    = $zug ?? null;
+
+/* ======================================================================
+   EIN HAUPTKNOPF JE SEITE
+
+   Bis hierher trugen bis zu vier Knoepfe dieselbe blaue Farbe: der Schritt
+   oben, "Nachtrag anlegen", "Fuer den Kunden freischalten", "Abnahme
+   freischalten". Alle vier sahen aus wie das Naechste, und drei waren es
+   nicht. Wer blau als "hier entlang" liest -- und so liest es jeder --,
+   wurde von der Seite dreimal gleichzeitig gerufen.
+
+   Blau heisst ab jetzt genau eine Sache: Das ist der Schritt, den die
+   Fuehrung meint. Alle anderen Knoepfe bleiben da, bleiben anklickbar und
+   sehen aus wie das, was sie sind: moeglich, aber nicht dran.
+
+   Woran die Seite den Schritt erkennt: an der Tat ("vorschau_frei"), oder
+   an dem Abschnitt, auf den das Ziel zeigt (".../projekte/7?tun=vorschau").
+   Beides steht ohnehin im Schritt -- es muss nichts doppelt gepflegt
+   werden, und ein neuer Schritt faellt nicht durchs Raster. */
+$schrittTun = null;
+if (($s['ziel'] ?? null) !== null
+    && preg_match('~[?&]tun=([a-z_]+)~', (string) $s['ziel'], $tm)) {
+    $schrittTun = $tm[1];
+}
+/** Gibt " haupt" zurueck, wenn eine dieser Marken der aktuelle Schritt ist. */
+$dran = static function (string ...$marken) use ($s, $schrittTun): string {
+    $tat = (string) ($s['tat'] ?? '');
+    if ($tat !== '' && in_array($tat, $marken, true)) { return ' haupt'; }
+    if ($schrittTun !== null && in_array($schrittTun, $marken, true)) { return ' haupt'; }
+    return '';
+};
+
+/* Abschnitte, die es auf DIESER Seite gibt. Zeigt der Schritt auf einen von
+   ihnen, waere ein grosser Knopf nach woanders eine Luege: Der Handgriff
+   liegt zwei Bildschirme weiter unten, nicht auf einer anderen Seite. */
+$hierAbschnitte = ['mehrbedarf', 'vorschau'];
+$schrittHier = $schrittTun !== null && in_array($schrittTun, $hierAbschnitte, true);
+
+$stand = Ablauf::stand($v);
 ?>
 
 <div class="kopf">
@@ -111,12 +150,55 @@ $tage   = Vorgang::ruhtSeitTagen($v);
              verlinken ist ehrlicher, als einen Knopf zu zeigen, der etwas
              anderes tut als das, was als Nächstes ansteht. */ ?>
     <div class="tun">
-      <a class="knopf haupt" href="<?= Fmt::h(url((string) $s['ziel'])) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
+      <?php if ($schrittHier): ?>
+        <?php /* Der Handgriff steht weiter unten auf dieser Seite. Ein Knopf,
+                 der auf eine andere Seite fuehrt, waere hier der zweite Weg
+                 zur selben Sache -- und der laengere. */ ?>
+        <a class="knopf haupt" href="#abschnitt-<?= Fmt::h((string) $schrittTun) ?>"><?= Fmt::h($s['knopf']) ?> &darr;</a>
+      <?php else: ?>
+        <a class="knopf haupt" href="<?= Fmt::h(url((string) $s['ziel'])) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
+      <?php endif; ?>
     </div>
 
   <?php elseif ($s !== null): ?>
     <div class="tun"><span style="color:var(--leise);font-size:13px"><?= Fmt::h($s['knopf']) ?>
       — dafür ist unten das Feld „Gespräch“.</span></div>
+  <?php endif; ?>
+
+  <?php /* ---------- Die Checkliste dieser Stufe ----------------------------
+           Die Fuehrung nennt immer nur das Naechste. Das ist richtig, wenn
+           man arbeitet, und zu wenig, wenn man nach zwei Wochen wieder
+           aufmacht: Dann will man nicht wissen, was jetzt kommt, sondern wo
+           man steht.
+
+           Jeder Haken ist eine Datenbankzeile, kein Gedaechtnis. Deshalb
+           kann er nicht falsch sein -- und deshalb steht neben jedem Punkt,
+           wer ihn setzt: Manche wartet man ab, andere macht man. */ ?>
+  <?php if ($stand['von'] > 0): ?>
+    <details class="liste" <?= $stand['da'] < $stand['von'] ? 'open' : '' ?>>
+      <summary><?= Fmt::h((string) $v['stufe_wort']) ?>:
+        <b><?= (int) $stand['da'] ?> von <?= (int) $stand['von'] ?></b> erledigt</summary>
+      <ul>
+        <?php foreach ($stand['punkte'] as $p): ?>
+          <li class="<?= $p['da'] ? 'da' : 'offen' ?>">
+            <span class="haken" aria-hidden="true"><?= $p['da'] ? '✓' : '' ?></span>
+            <?= Fmt::h($p['was']) ?>
+            <?php if (!$p['da'] && $p['wer'] === 'kunde'): ?>
+              <i>wartet auf den Kunden</i>
+            <?php endif; ?>
+          </li>
+        <?php endforeach; ?>
+      </ul>
+    </details>
+  <?php endif; ?>
+
+  <?php /* Ein Stand, der sich von selbst bewegt hat, muss man sehen koennen.
+           Sonst ist "automatisch" nur ein anderes Wort fuer "unerklaerlich". */ ?>
+  <?php if ($zug !== null): ?>
+    <p class="nachgezogen">Der Stand steht jetzt auf
+      <b><?= Fmt::h(Status::PROJEKT[$zug['nach']] ?? $zug['nach']) ?></b> —
+      von selbst, weil <?= Fmt::h(Ablauf::weilWort($zug['weil'])) ?>.
+      Der Kunde sieht diesen Fortschritt in seinem Bereich.</p>
   <?php endif; ?>
 </div>
 
@@ -127,7 +209,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
            Steht ganz oben, weil er als Einziger hier kostet, wenn man ihn
            uebersieht. Passt der Fragebogen zum Angebot, steht hier nichts. */ ?>
   <?php if (!empty($v['mehrbedarf'])): $mb = $v['mehrbedarf']; ?>
-    <div class="block" data-tun="mehrbedarf" style="border-color:var(--cyan)">
+    <div class="block" id="abschnitt-mehrbedarf" data-tun="mehrbedarf" style="border-color:var(--cyan)">
       <h2>Mehrbedarf klären</h2>
       <p style="color:var(--dim);font-size:13.5px;margin:-4px 0 12px">
         Der Fragebogen sagt etwas anderes als Angebot
@@ -156,7 +238,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="mehrbedarf_nachtrag">
             <input type="hidden" name="id" value="<?= (int) $mb['projekt_id'] ?>">
             <input type="hidden" name="signatur" value="<?= Fmt::h((string) $mb['signatur']) ?>">
-            <button class="knopf haupt">Nachtrag über <?= Fmt::geld((int) $mb['summe_cents']) ?> anlegen</button></form>
+            <button class="knopf<?= $dran('mehrbedarf_nachtrag', 'mehrbedarf') ?>">Nachtrag über <?= Fmt::geld((int) $mb['summe_cents']) ?> anlegen</button></form>
         <?php endif; ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="mehrbedarf_erledigt">
@@ -431,7 +513,7 @@ $tage   = Vorgang::ruhtSeitTagen($v);
   <?php /* ---------- Vorschau ---------- */ ?>
   <?php if ($pid && !empty($v['vorschau']['spalte'])): ?>
   <?php $vs = $v['vorschau']; ?>
-  <div class="block"><h2>Vorschau
+  <div class="block" id="abschnitt-vorschau" data-tun="vorschau"><h2>Vorschau
     <span class="mehr">
       <?php if (!empty($vs['abnahme_am'])): ?>
         <span class="marke2 gut">Abnahme offen</span>
@@ -475,7 +557,10 @@ $tage   = Vorgang::ruhtSeitTagen($v);
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="vorschau_frei">
             <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
             <input type="hidden" name="id" value="<?= (int) $pid ?>">
-            <button class="knopf haupt">Für den Kunden freischalten</button></form>
+            <?php /* Blau nur, wenn die Fuehrung diesen Knopf meint — und das
+                     tut sie erst, wenn die Adresse steht und noch nichts
+                     freigeschaltet ist. */ ?>
+            <button class="knopf<?= $schrittTun === 'vorschau' ? ' haupt' : '' ?>">Für den Kunden freischalten</button></form>
           <span style="color:var(--leise);font-size:12.5px">Setzt den Stand auf „Vorschau“
             und schickt ihm die E-Mail.</span>
         <?php endif; ?>
@@ -506,13 +591,11 @@ $tage   = Vorgang::ruhtSeitTagen($v);
           <span style="color:var(--leise);font-size:12.5px">Erst ansehen lassen, dann abnehmen lassen.
             Solange steht bei ihm kein „Passt so“.</span>
         <?php else: ?>
-          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
-                data-frage="Danach kann der Kunde die Seite abnehmen — daran hängt die Restzahlung. Fertig?"
-                data-ja="Ja, Abnahme freischalten">
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="abnahme_frei">
             <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
             <input type="hidden" name="id" value="<?= (int) $pid ?>">
-            <button class="knopf haupt">Abnahme freischalten</button></form>
+            <button class="knopf<?= $schrittTun === 'vorschau' ? ' haupt' : '' ?>">Abnahme freischalten</button></form>
           <span style="color:var(--leise);font-size:12.5px">Schickt ihm „die Seite ist fertig“ und
             zeigt ihm „Passt so“. Bis dahin darf er nur schauen und Änderungen wünschen.</span>
         <?php endif; ?>

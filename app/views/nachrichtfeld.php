@@ -80,7 +80,10 @@ if ($nfVorwahl !== '') {
     rows="<?= $nfText !== '' ? max(8, min(30, substr_count($nfText, "\n") + 3)) : 8 ?>" required
     placeholder="Hallo <?= Fmt::h((string) $nfVorname) ?>, …"><?= Fmt::h($nfText) ?></textarea></div>
 
-  <button class="knopf haupt">Senden</button>
+  <?php /* Nicht blau: Das Nachrichtenfeld steht auf jeder Vorgangsseite und
+           ist nie "der naechste Schritt". Blau bleibt dem vorbehalten, was
+           die Fuehrung gerade meint -- sonst heisst blau bald nichts mehr. */ ?>
+  <button class="knopf">Senden</button>
   <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Geht als E-Mail raus und steht auf seiner Seite.</span>
 </form>
 <?php if ($nfVorlagen): ?>
