@@ -146,6 +146,28 @@ foreach ([
     }
 }
 
+/* ----------------------------------------------------------------------------
+   Und noch einmal — eine Migration, die schon gelaufen ist, darf nicht
+   umfallen.
+
+   Alle sechsunddreissig sind rein ergaenzend und keine benutzt "IF NOT
+   EXISTS". Faellt eine mittendrin aus, steht die Haelfte in der Datenbank
+   und nichts in der Liste der erledigten; beim naechsten Versuch bricht sie
+   an der ersten vorhandenen Spalte ab — und damit laufen auch alle
+   spaeteren nie mehr. Genau so stand es hier, an 036.
+   ---------------------------------------------------------------------------- */
+Db::run('DELETE FROM migrations WHERE datei LIKE ?', ['036%']);
+$zweiter = Einrichtung::selbsttaetig(false);
+pruefe('eine schon gelaufene Migration läuft ohne Fehler noch einmal',
+    empty($zweiter['fehler']), (string) ($zweiter['fehler'] ?? ''));
+pruefe('und sie wird als erledigt vermerkt',
+    (int) Db::wert("SELECT COUNT(*) FROM migrations WHERE datei LIKE '036%'", [], 0) === 1);
+pruefe('was übersprungen wurde, steht in der Bilanz',
+    !empty($zweiter['uebersprungen']),
+    implode(' | ', (array) ($zweiter['uebersprungen'] ?? [])));
+pruefe('danach ist wieder nichts offen', Einrichtung::offene() === [],
+    implode(', ', Einrichtung::offene()));
+
 /* ============================================================================
    2. Kunde und Bestellung
    ============================================================================ */

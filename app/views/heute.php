@@ -20,7 +20,15 @@ $zeile = static function (array $v) {
       <div class="vg__wer">
         <a class="vg__name" href="<?= Fmt::h($ziel) ?>"><?= Fmt::h($v['kunde']) ?></a>
         <div class="vg__unter">
-          <span class="marke2"><?= Fmt::h($v['stufe_wort']) ?></span>
+          <?php /* Wo im Ablauf. In der Liste hilft die Zahl mehr als eine
+                   Leiste aus neun Punkten je Zeile: Man sieht auf einen
+                   Blick, wer kurz vor dem Abschluss steht und wer gerade
+                   erst anfängt, ohne dass die Zeile zur Grafik wird.
+                   Die Leiste selbst steht auf der Vorgangsseite. */ ?>
+          <span class="marke2" title="Stufe <?= (int) $v['stufe_nr'] + 1 ?> von <?= count(Vorgang::STUFEN) ?>">
+            <?= Fmt::h($v['stufe_wort']) ?>
+            <i class="vg__stufe"><?= (int) $v['stufe_nr'] + 1 ?>/<?= count(Vorgang::STUFEN) ?></i>
+          </span>
           <?php if ($v['paket'] !== ''): ?> <?= Fmt::h($v['paket']) ?><?php endif; ?>
           <?php if ($v['preis'] > 0): ?> · <?= Fmt::geld($v['preis'], $v['waehrung']) ?><?php endif; ?>
         </div>

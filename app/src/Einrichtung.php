@@ -38,6 +38,40 @@ final class Einrichtung
         }
     }
 
+    /* ======================================================================
+       WAS SCHON DA IST, IST KEIN FEHLER
+
+       Alle sechsunddreissig Migrationen sind rein ergaenzend -- neue
+       Tabellen, neue Spalten, neue Schluessel. Keine benutzt "IF NOT
+       EXISTS". Solange jede genau einmal laeuft, faellt das nicht auf.
+
+       Faellt eine mittendrin aus (Zeitgrenze auf dem Webspace, eine Spalte
+       von Hand angelegt, ein abgebrochener Upload), steht die Haelfte in der
+       Datenbank und nichts in der Liste der erledigten. Beim naechsten
+       Versuch bricht sie an der ersten schon vorhandenen Spalte ab -- und
+       weil der Fehler nach oben durchschlaegt, laufen auch ALLE SPAETEREN
+       Migrationen nie. Die Datenbank bleibt fuer immer stehen, und sichtbar
+       ist nur ein Streifen "1 Aktualisierung ist nicht durchgelaufen".
+
+       Genau das war der Zustand, in dem ich sie vorgefunden habe: 036 hing
+       an "Duplicate column name 'abnahme_frei_am'".
+
+       Also werden genau die Fehler uebersprungen, die "gibt es schon"
+       bedeuten -- und nur die. Alles andere schlaegt weiter durch, denn ein
+       echter Fehler in einer Migration muss laut sein. Was uebersprungen
+       wurde, steht in der Bilanz; still passieren soll auch das nicht.
+       ====================================================================== */
+    private const SCHON_DA = [
+        1050,   // Tabelle gibt es schon
+        1060,   // Spalte gibt es schon
+        1061,   // Schluessel gibt es schon
+        1091,   // kann nicht weg, gibt es nicht
+        1826,   // Fremdschluessel gibt es schon
+    ];
+
+    /** Was beim letzten Lauf uebersprungen wurde, weil es schon da war. */
+    public static array $uebersprungen = [];
+
     /** Spielt alle noch nicht angewandten Migrationen ein. Gibt die Namen zurueck. */
     public static function migrieren(): array
     {
@@ -56,7 +90,14 @@ final class Einrichtung
             $sql = (string) file_get_contents($pfad);
             $sql = preg_replace('~^\s*--.*$~m', '', $sql) ?? $sql;
             foreach (array_filter(array_map('trim', explode(';', $sql))) as $anweisung) {
-                Db::pdo()->exec($anweisung);
+                try {
+                    Db::pdo()->exec($anweisung);
+                } catch (PDOException $e) {
+                    $nr = (int) ($e->errorInfo[1] ?? 0);
+                    if (!in_array($nr, self::SCHON_DA, true)) { throw $e; }
+                    self::$uebersprungen[] = $name . ' (' . $nr . '): '
+                        . mb_substr(preg_replace('~\s+~', ' ', $anweisung) ?? '', 0, 90);
+                }
             }
             Db::insert('migrations', ['datei' => $name]);
             $neu[] = $name;
@@ -88,7 +129,9 @@ final class Einrichtung
      */
     public static function selbsttaetig(bool $auchBeispiele = true): array
     {
-        $bilanz = ['migrationen' => [], 'texte' => 0, 'beispiele' => 0, 'fehler' => null];
+        $bilanz = ['migrationen' => [], 'texte' => 0, 'beispiele' => 0,
+                   'uebersprungen' => [], 'fehler' => null];
+        self::$uebersprungen = [];
 
         // Erst billig nachsehen, ob ueberhaupt etwas zu tun ist. Das laeuft
         // bei jedem Seitenaufruf, also darf es im Normalfall nichts kosten.
@@ -137,6 +180,7 @@ final class Einrichtung
             try { Db::run('SELECT RELEASE_LOCK(?)', ['vecom_einrichtung']); } catch (Throwable $e) { }
         }
 
+        $bilanz['uebersprungen'] = self::$uebersprungen;
         return $bilanz;
     }
 

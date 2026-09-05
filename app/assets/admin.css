@@ -45,6 +45,10 @@ a{color:inherit;text-decoration:none}
 .nav details.mehr[open]>summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
 .nav details.mehr>summary .zahl{margin-left:0}
 .nav details.mehr[open]>summary{color:var(--text)}
+
+/* Die Stufe als Bruch neben dem Wort: "Vorschau 5/9". Klein und leise —
+   sie beantwortet eine Frage beim Ueberfliegen, nicht beim Lesen. */
+.vg__stufe{font-style:normal;opacity:.55;margin-left:5px;font-variant-numeric:tabular-nums;font-size:.92em}
 /* Was nur auf schmalen Schirmen gebraucht wird -- die Suche im Seitenkopf,
    weil das Menue dort keine hat. Auf breiten Schirmen stuende sie zweimal
    da und draengte die Kennzahlen zusammen. */
