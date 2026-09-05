@@ -14,6 +14,61 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 const BASE = 'https://vecom-design.it';
+
+/* ==========================================================================
+   DAS BUENDEL FUER DIE STARTSEITE
+
+   Die Startseite lud einundzwanzig Skript-Tags, davon zehn Dateien, die nur
+   sie braucht — zwischen 578 Bytes und 11 KB, jede mit eigenem Kopf, eigenem
+   Kompressionsstrom, eigener Anfrage. Gemessen: einzeln komprimiert 14.127
+   Bytes, als eine Datei 11.492. Ein Fuenftel weniger, nur weil der Kompressor
+   ueber alles zusammen laufen darf, plus neun Anfragen weniger.
+
+   Die Quelldateien bleiben, wie sie sind — geaendert wird weiter an
+   schau.js, nicht an einem Buendel. Diese Datei entsteht bei jedem Bau neu
+   und liegt trotzdem im Repository, damit die Seite auch lokal laeuft, ohne
+   dass jemand vorher baut.
+
+   REIHENFOLGE IST INHALT: Die Dateien stehen hier genau so, wie sie vorher
+   im HTML standen. Jede ist eine eigene Funktion, die sich sofort ausfuehrt
+   — sie stoeren einander nicht, aber sie laufen in einer Ordnung, und die
+   bleibt.
+
+   Andere Seiten bekommen kein Buendel: Sie laden ein bis drei Skripte, da
+   waere es Aufwand ohne Gewinn.
+   ========================================================================== */
+const BUENDEL_TEILE = [
+  'screens', 'schau', 'polish', 'pakete-live', 'stimmen-live',
+  'rail', 'vids', 'depth', 'sig', 'social',
+];
+const BUENDEL_ZIEL = 'assets/js/start.js';
+
+function buendeln() {
+  const kopf = `/* ==========================================================================
+   ERZEUGT — NICHT VON HAND AENDERN.
+
+   Zusammengesetzt aus (in dieser Reihenfolge):
+${BUENDEL_TEILE.map((t) => `     assets/js/${t}.js`).join('\n')}
+
+   Geaendert wird an diesen Dateien. Diese hier entsteht bei jedem Deploy
+   neu (build.mjs) und wird ueberschrieben.
+   ========================================================================== */
+`;
+  const stuecke = BUENDEL_TEILE.map((t) => {
+    const pfad = `assets/js/${t}.js`;
+    if (!existsSync(pfad)) { throw new Error(`Buendel: ${pfad} fehlt.`); }
+    return `\n/* ----- ${t}.js ----- */\n` + readFileSync(pfad, 'utf8');
+  });
+  const neu = kopf + stuecke.join('\n');
+  const alt = existsSync(BUENDEL_ZIEL) ? readFileSync(BUENDEL_ZIEL, 'utf8') : '';
+  if (neu !== alt) {
+    writeFileSync(BUENDEL_ZIEL, neu);
+    console.log(`geschrieben: ${BUENDEL_ZIEL} (${BUENDEL_TEILE.length} Dateien, ${(neu.length / 1024).toFixed(0)} KB)`);
+  } else {
+    console.log(`unveraendert: ${BUENDEL_ZIEL}`);
+  }
+}
+buendeln();
 const LANGS = { it: '', de: 'de/', en: 'en/' };
 const LOCALES = { it: 'it_IT', de: 'de_DE', en: 'en_GB' };
 
@@ -138,7 +193,7 @@ function fingerabdruecke(h) {
   // Fassung und im Browser weiter die alte, stumme. Der Fingerabdruck steht
   // deshalb an allem, was sich aendern kann, nicht nur an CSS und Skripten.
   return h.replace(
-    /((?:href|src|data-src)=")((?:\.\.\/)?(?:assets\/(?:css|js|img)|video)\/[A-Za-z0-9._\/-]+\.(?:css|js|mp4|webm|webp|png|jpg|svg))(\?v=[A-Za-z0-9]*)?(")/g,
+    /((?:href|src|data-src)=")((?:\.\.\/)?(?:assets\/(?:css|js|img|vendor)|video)\/[A-Za-z0-9._\/-]+\.(?:css|js|mp4|webm|webp|png|jpg|svg))(\?v=[A-Za-z0-9]*)?(")/g,
     (m, vorn, pfad, alt, hinten) => {
       const stempelwert = stempel(pfad.replace(/^\.\.\//, ''));
       // Fehlt die Datei, lieber ohne Stempel ausliefern als mit einem falschen.

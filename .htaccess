@@ -49,8 +49,48 @@ RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
   </FilesMatch>
   <FilesMatch "\.(css|js)$">
     Header set Cache-Control "public, max-age=3600, must-revalidate"
+    Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
   </FilesMatch>
   <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm)$">
     Header set Cache-Control "public, max-age=2592000"
+    Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
   </FilesMatch>
 </IfModule>
+
+# --------------------------------------------------------------------------
+# Ein Fingerabdruck in der Adresse heisst: diese Datei aendert sich nie mehr.
+#
+# Die Regel darueber gibt CSS und JS eine Stunde. Das war richtig, solange
+# eine Adresse zweierlei Inhalt haben konnte — bei einer kaputten qform.js
+# haette ein Besucher sonst stundenlang die kaputte Fassung behalten.
+#
+# Seit build.mjs an jede eigene CSS-, JS-, Bild- und Videoadresse einen
+# Fingerabdruck aus dem Inhalt haengt, gilt das nicht mehr: Aendert sich der
+# Inhalt, aendert sich die Adresse. Die alte Datei wird dann nie wieder
+# angefragt, und die neue kommt sofort an. Sie ein Jahr behalten zu duerfen
+# ist damit nicht mutig, sondern richtig.
+#
+# Gemessen am 05.09.2026: Die Startseite laedt neunzehn CSS- und
+# JS-Adressen. Mit einer Stunde fragt ein Rueckkehrer sie alle neu an.
+#
+# WARUM ES AN DER ADRESSE HAENGT UND NICHT AN DER ENDUNG
+# Nicht alles traegt einen Fingerabdruck. Die Module unter assets/js/world/
+# laden einander ueber ihre eigenen import-Zeilen, da steht kein ?v= dahinter
+# — und genau an diesen Dateien wird am meisten geaendert. Sie behalten die
+# eine Stunde. Ein Jahr auf einer Adresse ohne Fingerabdruck waere ein Jahr
+# ohne Rueckweg.
+#
+# Beides in IfModule: Fehlt ein Modul auf dem Tarif, wird der Block
+# uebersprungen, statt die Seite mit einem 500 lahmzulegen.
+# --------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+  RewriteCond %{QUERY_STRING} (^|&)v=[A-Za-z0-9]+($|&)
+  RewriteRule \.(css|js|webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm)$ - [E=FESTGENAGELT:1]
+</IfModule>
+# WARUM DIE ZEILE IM SELBEN FILESMATCH STEHT UND NICHT DANEBEN
+# Erster Versuch war ein eigener Header-Block hinter den anderen. Gemessen:
+# Er blieb wirkungslos. Apache wendet alles in einem <FilesMatch> NACH dem
+# an, was ausserhalb steht — egal, was weiter unten in der Datei steht. Die
+# Stundenregel hat die Jahresregel also jedes Mal ueberschrieben. Deshalb
+# stehen jetzt beide im selben Block: erst die kurze, dann die lange, und
+# die lange gilt nur, wenn die Weiche oben sie eingeschaltet hat.
