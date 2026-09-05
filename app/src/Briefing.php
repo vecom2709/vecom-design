@@ -145,15 +145,27 @@ final class Briefing
      * Angabe entsteht immer dieselbe mittlere Seite -- die dem Kunden fuer
      * 3.000 Euro zu wenig ist und dem fuer 499 zu viel Zeit kostet.
      *
-     * Der Preis ist das ehrlichste Mass, das es hier gibt: Er sagt, wie viel
-     * Arbeit bezahlt ist. Die Branche verschiebt ihn, weil Stimmung bei
-     * manchen Gewerben die Sache selbst ist. Und was der Kunde ausdruecklich
-     * will, schlaegt beides.
+     * DREI STIMMEN, IN DIESER REIHENFOLGE
+     *
+     * 1. Die BRANCHE sagt, wo dieses Gewerbe von Haus aus hingehoert
+     *    (Technik::GRUNDSTUFE). Ein Schlosser gehoert nach A, ein Agriturismo
+     *    nach C — und zwar bevor jemand ueber Geld spricht. Der Preis sagt,
+     *    wie VIEL Arbeit bezahlt ist; er sagt nicht, WELCHE.
+     * 2. Der PREIS setzt eine Decke. Er darf die Branche um hoechstens eine
+     *    Stufe anheben, aber er kann sie deckeln: Fuer 499 Euro gibt es kein
+     *    Scroll-Kino, auch nicht im Weingut.
+     * 3. Was der KUNDE ausdruecklich will, schlaegt beides — nach oben wie
+     *    nach unten. Wer "ruhig, sachlich, schnell" schreibt, will kein Kino,
+     *    auch wenn er es bezahlen koennte.
+     *
+     * Widersprechen sich Wunsch und Branche (der Schlosser will Bewegung),
+     * wird das nicht stillschweigend aufgeloest, sondern im Auftrag benannt.
+     * Genau daran haengt eine Entscheidung, die ein Mensch treffen muss.
      *
      * D wird nie gerechnet. Wer 3D will, sagt es -- und dann setzt Uwe die
      * Stufe von Hand. Eine wacklige Stufe D ist schlechter als eine saubere C.
      *
-     * @return array{stufe:string,wort:string,was:string,warum:string,gesetzt:bool}
+     * @return array{stufe:string,wort:string,was:string,warum:string,gesetzt:bool,konflikt:?string}
      */
     public static function stufe(array $p, array $k, array $antworten = [], ?array $b = null): array
     {
@@ -166,6 +178,7 @@ final class Briefing
                 'was'   => self::STUFEN[$hand][1],
                 'warum' => 'Von Hand gesetzt.',
                 'gesetzt' => true,
+                'konflikt' => null,
             ];
         }
 
@@ -177,51 +190,109 @@ final class Briefing
                   ORDER BY id DESC LIMIT 1", [(int) $k['id']], 0), 0);
         }
 
-        $branche = mb_strtolower(trim((string) ($k['industry'] ?? '')) . ' '
-                 . trim((string) ($antworten['branche'] ?? '')));
-        $stimmung = false;
-        foreach (self::STIMMUNG as $wort) {
-            if ($wort !== '' && str_contains($branche, $wort)) { $stimmung = true; break; }
+        /* ---- 1. Die Branche ------------------------------------------- */
+        require_once __DIR__ . '/Technik.php';
+        $zahl = ['A' => 0, 'B' => 1, 'C' => 2];
+        $wort = ['A', 'B', 'C'];
+
+        $branchenname = self::still(static function () use ($k, $antworten) {
+            require_once __DIR__ . '/Technik.php';
+            return Technik::branche((string) ($k['industry'] ?? ''), $antworten);
+        });
+        $basis = 1;
+        $basiswort = 'diese Branche';
+        if ($branchenname !== null) {
+            $g = (string) (Technik::GRUNDSTUFE[$branchenname] ?? 'B');
+            $basis = $zahl[$g] ?? 1;
+            $basiswort = Technik::brancheWort($branchenname);
+        }
+        $basissatz = $branchenname !== null
+            ? 'die Branche ' . $basiswort . ' liegt von Haus aus bei ' . $wort[$basis]
+            : 'die Branche ist nicht eingeordnet, deshalb Grundstufe ' . $wort[$basis];
+
+        /* Die Stimmungsliste faengt auf, was keinen eigenen Branchen-Eintrag
+           hat, aber trotzdem von Stimmung lebt: Fotografie, Hochzeit,
+           Galerie, Mode. Sie hebt nicht die Grundstufe, sondern die Decke —
+           solche Gewerbe duerfen frueher nach oben, wenn das Geld da ist. */
+        $branchentext = mb_strtolower(trim((string) ($k['industry'] ?? '')) . ' '
+                      . trim((string) ($antworten['branche'] ?? '')));
+        $stimmung = $basis >= 2;
+        if (!$stimmung) {
+            foreach (self::STIMMUNG as $s) {
+                if ($s !== '' && str_contains($branchentext, $s)) { $stimmung = true; break; }
+            }
         }
 
-        /* Was der Kunde selbst gesagt hat. Drei Woerter zur Wirkung und die
-           Vorbilder verraten mehr ueber die gewuenschte Fallhoehe als jede
-           Preisgrenze -- wer "ruhig, sachlich, schnell" schreibt, will kein
-           Scroll-Kino, auch wenn er es bezahlen koennte. */
+        /* ---- 2. Der Preis als Decke ----------------------------------- */
+        $warum = [];
+        if ($preis <= 0) {
+            /* Ohne Zahl wird nicht nach oben geraten: hoechstens B, und wenn
+               die Branche darunter liegt, bleibt sie darunter. */
+            $n = min(1, $basis);
+            $warum[] = 'noch kein Preis hinterlegt, es entscheidet allein die Branche — '
+                     . $basissatz;
+        } else {
+            if     ($preis <  70000) { $decke = $stimmung ? 1 : 0; }
+            elseif ($preis < 120000) { $decke = 1; }
+            elseif ($preis < 200000) { $decke = $stimmung ? 2 : 1; }
+            else                     { $decke = 2; }
+
+            $n = min($decke, $basis + 1);
+            $warum[] = $basissatz . ', das Angebot (' . Fmt::geld($preis, 'EUR')
+                     . ') traegt bis ' . $wort[$decke];
+        }
+
+        /* ---- 3. Was der Kunde selbst gesagt hat ------------------------ */
         $wunsch = mb_strtolower(trim((string) ($antworten['wirkung'] ?? '')) . ' '
                 . trim((string) ($antworten['stil'] ?? '')) . ' '
+                . trim((string) ($antworten['ziel'] ?? '')) . ' '
                 . trim((string) ($antworten['funktionen'] ?? '')));
         $willBewegung = (bool) preg_match(
             '~animat|bewegung|scroll|video|3d|immersiv|kino|erlebnis|emozion|movimento~u', $wunsch);
+        /* Der leisere Wunsch: nicht nach Bewegung, sondern nach Wirkung.
+           "soll besonders sein", "unsere Geschichte erzaehlen", "wie eine
+           Marke aussehen" — das ist eine Ansage zur Fallhoehe, auch wenn kein
+           einziges Technikwort darin vorkommt. */
+        $willErlebnis = (bool) preg_match(
+            '~besonder|einzigartig|aussergewoehnlich|außergewöhnlich|heraussteche|'
+            . 'unvergess|memorabil|erz[aä]hl|geschichte|storia|raccont|marke |brand|'
+            . 'unico|speciale|emozionar~u', $wunsch);
         $willRuhe = (bool) preg_match(
             '~ruhig|schlicht|sachlich|minimal|nüchtern|nuechtern|sobrio|essenziale|clean~u', $wunsch);
 
-        $stufe = 'B';
-        $warum = [];
+        $konflikt = null;
 
-        if ($preis > 0 && $preis < 70000 && !$stimmung) {
-            $stufe = 'A';
-            $warum[] = 'kleiner Auftrag (' . Fmt::geld($preis, 'EUR') . ')';
+        if ($willBewegung && $n < 2) {
+            $n = min(2, $n + 1);
+            $warum[] = 'der Kunde hat ausdrücklich nach Bewegung gefragt, das hebt es an';
         }
-        if ($preis >= 200000 || ($stimmung && $preis >= 120000)) {
-            $stufe = 'C';
-            $warum[] = $stimmung
-                ? 'Branche lebt von Stimmung, und der Auftrag trägt es (' . Fmt::geld($preis, 'EUR') . ')'
-                : 'großer Auftrag (' . Fmt::geld($preis, 'EUR') . ')';
+        if ($willErlebnis && !$willBewegung) {
+            if ($preis >= 120000 || $preis <= 0) {
+                if ($n < 2) {
+                    $n = min(2, $n + 1);
+                    $warum[] = 'der Kunde will ausdrücklich mehr als eine Visitenkarte';
+                }
+            } else {
+                $konflikt = 'Der Kunde beschreibt eine Wirkung, die über das bezahlte '
+                          . 'Paket hinausgeht. Bau die Stufe, die bezahlt ist, und schreib '
+                          . 'mir dazu, was ihm dadurch fehlt — das ist ein Gespräch, keine '
+                          . 'stille Mehrarbeit.';
+            }
         }
-        if ($willBewegung && $stufe !== 'C') {
-            $stufe = 'C';
-            $warum[] = 'der Kunde hat ausdrücklich nach Bewegung gefragt';
+        if ($willRuhe && $n > 0) {
+            $n = $n - 1;
+            $warum[] = 'der Kunde will es ausdrücklich ruhig — das schlägt Preis und Branche';
         }
-        if ($willRuhe && $stufe === 'C') {
-            $stufe = 'B';
-            $warum[] = 'der Kunde will es ausdrücklich ruhig — das schlägt den Preis';
+
+        if ($willBewegung && $basis === 0 && $konflikt === null) {
+            $konflikt = 'Kundenwunsch und Branche widersprechen sich: ' . ucfirst($basiswort)
+                      . ' lebt davon, dass nichts zwischen den Besucher und die '
+                      . 'Handlung kommt — der Kunde hat aber nach Bewegung gefragt. '
+                      . 'Löse das sichtbar auf (Bewegung dort, wo sie etwas zeigt, '
+                      . 'nicht über allem) und sag mir in einem Satz, wie.';
         }
-        if (!$warum) {
-            $warum[] = $preis > 0
-                ? 'normaler Auftrag (' . Fmt::geld($preis, 'EUR') . ')'
-                : 'noch kein Preis hinterlegt';
-        }
+
+        $stufe = $wort[max(0, min(2, $n))];
 
         return [
             'stufe' => $stufe,
@@ -229,6 +300,7 @@ final class Briefing
             'was'   => self::STUFEN[$stufe][1],
             'warum' => ucfirst(implode('; ', $warum)) . '.',
             'gesetzt' => false,
+            'konflikt' => $konflikt,
         ];
     }
 
@@ -305,9 +377,17 @@ final class Briefing
 
         $zeilen[] = 'AMBITIONSSTUFE ' . $st['stufe'] . ' — ' . $st['wort'];
         foreach (explode("\n", wordwrap($st['was'], 72, "\n")) as $z) { $zeilen[] = '  ' . $z; }
-        $zeilen[] = '  Warum: ' . $st['warum'];
+        foreach (explode("\n", wordwrap('Warum: ' . $st['warum'], 72, "\n")) as $i => $t) {
+            $zeilen[] = ($i === 0 ? '  ' : '         ') . $t;
+        }
         $zeilen[] = '  Hoeher als noetig ist ein Fehler, kein Ehrgeiz: Eine saubere Stufe';
         $zeilen[] = '  ' . $st['stufe'] . ' schlaegt eine wacklige daruber immer.';
+        if (!empty($st['konflikt'])) {
+            $zeilen[] = '';
+            foreach (explode("\n", wordwrap('  ZU KLAEREN: ' . $st['konflikt'], 74, "\n")) as $t) {
+                $zeilen[] = '  ' . ltrim($t);
+            }
+        }
         $zeilen[] = '';
 
         $zeilen[] = 'WERKZEUG — IN DIESER REIHENFOLGE';
@@ -343,19 +423,27 @@ final class Briefing
            Branche passt. Was die Branche NICHT braucht, steht mit dabei: Bei
            einer Werkstatt ist Scroll-Kino nicht zu wenig Aufwand, sondern der
            falsche. */
+        /* Punkte mit Einzug — von hier ab fuer jeden Block derselbe Satz,
+           damit der Auftrag nicht in drei Schriftbildern dasteht. */
+        $ausgeben = static function (array $eintraege) use (&$zeilen): void {
+            foreach ($eintraege as $e) {
+                foreach (explode("\n", wordwrap((string) $e, 72, "\n")) as $i => $t) {
+                    $zeilen[] = ($i === 0 ? '  - ' : '    ') . $t;
+                }
+            }
+        };
+        $zeigeBlock = static function (string $titel, array $eintraege) use (&$zeilen, $ausgeben): void {
+            if (!$eintraege) { return; }
+            $zeilen[] = $titel;
+            $ausgeben($eintraege);
+            $zeilen[] = '';
+        };
+
         $tk = self::still(static function () use ($st, $k, $antworten) {
             require_once __DIR__ . '/Technik.php';
             return Technik::fuer((string) $st['stufe'], (string) ($k['industry'] ?? ''), $antworten);
         });
         if ($tk) {
-            $ausgeben = static function (array $eintraege) use (&$zeilen): void {
-                foreach ($eintraege as $e) {
-                    foreach (explode("\n", wordwrap((string) $e, 72, "\n")) as $i => $t) {
-                        $zeilen[] = ($i === 0 ? '  - ' : '    ') . $t;
-                    }
-                }
-            };
-
             $zeilen[] = 'TECHNIK — DAS GILT IMMER';
             $ausgeben($tk['immer']);
             $zeilen[] = '';
@@ -403,6 +491,25 @@ final class Briefing
             $zeilen[] = '';
         }
 
+        /* ---------- Die Haltung ---------------------------------------
+           WARUM DAS HIER STEHT UND NICHT WEITER OBEN
+
+           Erst muss dastehen, was der Kunde selbst gesagt hat -- seine
+           Wirkung, seine Farben, seine Vorbilder. Die These wird daraus
+           gemacht, nicht davor erfunden. Ein Auftrag, der zuerst nach einer
+           Kernidee fragt und die Worte des Kunden danach nachreicht, bekommt
+           eine Kernidee, die zu keinem Kunden gehoert.
+
+           Die Bloecke kommen je nach Stufe: auf A die These und der eine
+           Moment, ab B der Bogen, ab C Szenen und die Abstufung nach Geraet.
+           Nichts davon steht da, weil es gut klingt -- was auf einer Stufe
+           nichts traegt, fehlt dort. */
+        $hl = self::still(static function () use ($st) {
+            require_once __DIR__ . '/Haltung.php';
+            return Haltung::these((string) $st['stufe']);
+        }, []);
+        foreach ((array) $hl as $b2) { $zeigeBlock((string) $b2[0], (array) $b2[1]); }
+
         /* ---------- Was diese Seite NICHT ist ----------------------------
            Der Skill nennt diese Zeile die wichtigste der ganzen DNA, und er
            hat recht: Ohne sie entsteht der Look, den man an jeder zweiten
@@ -411,9 +518,9 @@ final class Briefing
            anderen Zeilen. */
         $nicht = [];
         $ab = trim((string) ($antworten['abneigung'] ?? ''));
-        if ($ab !== '') { $nicht[] = 'Der Kunde ausdruecklich: ' . self::umbruch($ab); }
+        if ($ab !== '') { $nicht[] = 'Der Kunde ausdruecklich: ' . self::einzeilig($ab); }
         $st2 = trim((string) ($antworten['stoert'] ?? ''));
-        if ($st2 !== '') { $nicht[] = 'Stoert ihn am jetzigen Auftritt: ' . self::umbruch($st2); }
+        if ($st2 !== '') { $nicht[] = 'Stoert ihn am jetzigen Auftritt: ' . self::einzeilig($st2); }
         $nicht[] = 'Kein Baukasten-Look: keine mittige Hero mit zwei Knoepfen, '
                  . 'keine drei gleichen Karten nebeneinander, kein Verlauf lila-blau '
                  . 'ohne Grund, kein Glas ueberall, keine Emoji als Symbole, kein '
@@ -559,6 +666,12 @@ final class Briefing
            Nacht, an der fertigen Adresse. Sie erst danach zu nennen, heisst
            Punkte nachreichen zu lassen, die von Anfang an haetten dastehen
            koennen. Also stehen sie im Auftrag. */
+        $zeigeBlock('WAS PASSIERT, WENN ETWAS FEHLT',
+            (array) self::still(static function () use ($st) {
+                require_once __DIR__ . '/Haltung.php';
+                return Haltung::schiefgeht((string) $st['stufe']);
+            }, []));
+
         $zeilen[] = 'ABNAHME — DAGEGEN WIRD GEPRUEFT, BEVOR DER KUNDE SIE SIEHT';
         $zeilen[] = '  Erreichbar über HTTPS, keine gemischten Inhalte.';
         $zeilen[] = '  Titel und Beschreibung je Seite, eigen und nicht abgeschnitten.';
@@ -572,15 +685,29 @@ final class Briefing
         $zeilen[] = '  robots.txt und sitemap.xml liegen da.';
         $zeilen[] = '';
 
+        $zeigeBlock('ZEUGNIS — BEVOR DU MIR ETWAS ZEIGST',
+            (array) self::still(static function () use ($st) {
+                require_once __DIR__ . '/Haltung.php';
+                return Haltung::zeugnis((string) $st['stufe']);
+            }, []));
+
         /* ---------- Was ich will ---------- */
         $zeilen[] = 'AUFTRAG AN DICH';
-        $zeilen[] = '  Erst die Design-DNA, dann das Inhalts-Skelett in semantischem HTML,';
-        $zeilen[] = '  dann die Startseite fertig — Hero zuerst und ganz fertig, denn der';
-        $zeilen[] = '  erste Bildschirm entscheidet, wie die ganze Seite wirkt. Zeig sie';
-        $zeilen[] = '  mir, dann weiter.';
+        $zeilen[] = '  In dieser Reihenfolge: die kreative These (die fuenf Saetze oben),';
+        $zeilen[] = '  dann die Design-DNA, dann das Inhalts-Skelett in semantischem HTML,';
+        $zeilen[] = '  dann die Startseite — Hero zuerst und ganz fertig, denn der erste';
+        $zeilen[] = '  Bildschirm entscheidet, wie die ganze Seite wirkt. These und DNA';
+        $zeilen[] = '  zeigst du mir, bevor du Code schreibst.';
         $zeilen[] = '  Baue gegen echte Inhalte, nie gegen Blindtext: Wenn Texte fehlen,';
         $zeilen[] = '  schreib realistische in der richtigen Länge und markier sie als';
         $zeilen[] = '  Platzhalter. Wo im Fragebogen etwas fehlt, frag — rate nicht.';
+        $ballast = (string) self::still(static function () {
+            require_once __DIR__ . '/Haltung.php';
+            return Haltung::ballast();
+        }, '');
+        if ($ballast !== '') {
+            foreach (explode("\n", wordwrap($ballast, 72, "\n")) as $t) { $zeilen[] = '  ' . $t; }
+        }
         $zeilen[] = '';
 
         $text = implode("\n", $zeilen);
@@ -714,10 +841,12 @@ final class Briefing
             $zeilen[] = '';
         } else {
             $zeilen[] = 'AUFTRAG';
-            $zeilen[] = '  Arbeite das oben ein. Halt dich an die Design-DNA, auf die wir';
-            $zeilen[] = '  uns geeinigt haben — was hier steht, ändert Inhalte und Mängel,';
-            $zeilen[] = '  nicht die Gestaltung. Zeig mir danach, was sich geändert hat,';
-            $zeilen[] = '  nicht die ganze Seite noch einmal.';
+            $zeilen[] = '  Arbeite das oben ein. Die kreative These und der eine Moment,';
+            $zeilen[] = '  auf die wir uns geeinigt haben, gelten weiter — was hier steht,';
+            $zeilen[] = '  ändert Inhalte und Mängel, nicht die Haltung der Seite. Merkst';
+            $zeilen[] = '  du, dass etwas davon nicht mehr trägt, sag es, statt es still';
+            $zeilen[] = '  umzubauen. Zeig mir danach, was sich geändert hat, nicht die';
+            $zeilen[] = '  ganze Seite noch einmal.';
             $zeilen[] = '';
         }
 
@@ -777,6 +906,19 @@ final class Briefing
         $frei = array_filter(array_map('trim', (array) ($bezahlt['frei'] ?? [])));
         if ($frei) { $worte = trim($worte . ($worte !== '' ? ', ' : '') . implode(', ', $frei)); }
         return $worte;
+    }
+
+    /**
+     * Fuer Zeilen, die spaeter noch einmal umgebrochen werden.
+     *
+     * Zweimal umbrechen ergibt eine Treppe: Der erste Umbruch setzt eigene
+     * Einzuege, der zweite bricht die schon eingerueckten Zeilen erneut. Wo
+     * der aufrufende Block ohnehin umbricht, kommt der Text deshalb als eine
+     * Zeile an.
+     */
+    private static function einzeilig(string $wert): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', $wert));
     }
 
     /**

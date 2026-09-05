@@ -200,6 +200,40 @@ final class Technik
     ];
 
     /* ==================================================================== */
+    /*  Was die Branche von Haus aus verlangt                               */
+    /* ==================================================================== */
+
+    /**
+     * Die Fallhoehe, die zu diesem Gewerbe gehoert — unabhaengig vom Preis.
+     *
+     * WARUM DIE BRANCHE MITENTSCHEIDET UND NICHT NUR DAS GELD
+     *
+     * Der Preis sagt, wie viel Arbeit bezahlt ist. Er sagt nicht, welche
+     * Arbeit. Ein Schlosser mit 3.000 Euro Budget bekommt keine
+     * Scroll-Inszenierung, sondern eine Seite, auf der die Nummer im
+     * Daumenbereich liegt und die Referenzen in Sekunden dastehen — bei ihm
+     * ist Kino nicht zu wenig Aufwand, sondern der falsche. Ein Agriturismo
+     * dagegen verkauft eine Stimmung, und die entsteht nicht aus einer
+     * Aufzaehlung.
+     *
+     * Deshalb steht hier je Branche, wo sie von Haus aus hingehoert. Der
+     * Preis darf das um eine Stufe verschieben, mehr nicht; was der Kunde
+     * ausdruecklich will, schlaegt beides.
+     *
+     * @var array<string,string>
+     */
+    public const GRUNDSTUFE = [
+        'gastronomie'  => 'B',
+        'beherbergung' => 'C',
+        'handwerk'     => 'A',
+        'schoenheit'   => 'B',
+        'wein'         => 'C',
+        'laden'        => 'B',
+        'praxis'       => 'A',
+        'immobilien'   => 'B',
+    ];
+
+    /* ==================================================================== */
     /*  Was ohne ausdruecklichen Grund nicht vorkommt                       */
     /* ==================================================================== */
 
@@ -238,19 +272,12 @@ final class Technik
             if ($s === $stufe) { break; }
         }
 
-        $suche = mb_strtolower($branche . ' '
-            . (string) ($antworten['branche'] ?? '') . ' '
-            . (string) ($antworten['beschreibung'] ?? ''));
-
-        $treffer = null;
-        foreach (self::BRANCHE as $name => [$worte, $braucht, $nicht]) {
-            foreach ($worte as $wort) {
-                if ($wort !== '' && str_contains($suche, $wort)) {
-                    $treffer = ['name' => $name, 'braucht' => $braucht, 'nicht' => $nicht];
-                    break 2;
-                }
-            }
-        }
+        $name = self::branche($branche, $antworten);
+        $treffer = $name === null ? null : [
+            'name'    => $name,
+            'braucht' => self::BRANCHE[$name][1],
+            'nicht'   => self::BRANCHE[$name][2],
+        ];
 
         return [
             'immer'   => self::IMMER,
@@ -258,6 +285,29 @@ final class Technik
             'branche' => $treffer,
             'nie'     => self::NIE_OHNE_GRUND,
         ];
+    }
+
+    /**
+     * Welche der acht Branchen das ist — oder keine.
+     *
+     * Gesucht wird in drei Feldern statt in einem: Im Stammsatz steht oft nur
+     * "Gastronomia", im Fragebogen dagegen "Pizzeria mit Holzofen" — und
+     * manchmal steht das Entscheidende erst im Beschreibungstext.
+     *
+     * @param array<string,mixed> $antworten
+     */
+    public static function branche(string $branche, array $antworten = []): ?string
+    {
+        $suche = mb_strtolower($branche . ' '
+            . (string) ($antworten['branche'] ?? '') . ' '
+            . (string) ($antworten['beschreibung'] ?? ''));
+
+        foreach (self::BRANCHE as $name => [$worte]) {
+            foreach ($worte as $wort) {
+                if ($wort !== '' && str_contains($suche, $wort)) { return $name; }
+            }
+        }
+        return null;
     }
 
     /** Die Ueberschrift fuer den Branchenblock, in Uwes Worten. */

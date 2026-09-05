@@ -2129,9 +2129,12 @@ switch ($route) {
                     p.briefing, p.briefing_am, p.chat_url, p.abnahme, p.abnahme_am,
                     p.ambition, p.customer_id,
                     c.id AS kunde_id, c.name AS kunde, c.company, c.kundennr,
+                    c.industry,
+                    o.price_cents,
                     w.url AS live, w.domain, w.last_status, w.ssl_expires_at
                FROM projects p
                JOIN customers c ON c.id = p.customer_id
+               LEFT JOIN orders o ON o.id = p.order_id
                LEFT JOIN websites w ON w.project_id = p.id
               ORDER BY FIELD(p.status,'abgeschlossen') ASC,
                        p.deadline IS NULL, p.deadline ASC, p.id DESC"), []),

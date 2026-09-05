@@ -183,18 +183,26 @@
          Entscheidung, die das Ergebnis am staerksten praegt, und sie faellt
          am besten dann, wenn man den Kunden gerade vor Augen hat. */ ?>
     <?php
+      /* Dieselben drei Stimmen wie im Briefing — Branche, Preis, Wunsch.
+         Stuende hier eine andere Rechnung als im Auftrag, waere die Anzeige
+         schlimmer als keine: Man traut ihr, und sie stimmt nicht. Der
+         Fragebogen bleibt draussen, weil die Kachel sonst je Projekt eine
+         weitere Abfrage kostet; der Auftrag selbst liest ihn mit. */
       $stufe = sicher(static function () use ($w) {
           $p = ['ambition' => $w['ambition'] ?? null];
-          $k = ['id' => (int) $w['kunde_id'], 'industry' => ''];
-          return Briefing::stufe($p, $k, [], null);
-      }, ['stufe' => 'B', 'wort' => 'Premium-UI', 'gesetzt' => false]);
+          $k = ['id' => (int) $w['kunde_id'], 'industry' => (string) ($w['industry'] ?? '')];
+          $b = $w['price_cents'] !== null ? ['price_cents' => (int) $w['price_cents']] : null;
+          return Briefing::stufe($p, $k, [], $b);
+      }, ['stufe' => 'B', 'wort' => 'Premium-UI', 'gesetzt' => false, 'warum' => '', 'konflikt' => null]);
     ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>"
           style="display:flex;align-items:center;gap:6px;margin:8px 0 0">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="ambition_setzen">
       <input type="hidden" name="id" value="<?= (int) $w['id'] ?>">
-      <span style="font-size:12px;color:var(--leise)">Stufe</span>
+      <span style="font-size:12px;color:var(--leise)"
+            title="<?= Fmt::h((string) ($stufe['warum'] ?? '')) ?>">Stufe</span>
       <select name="ambition" onchange="this.form.submit()"
+              title="<?= Fmt::h((string) ($stufe['warum'] ?? '')) ?>"
               style="font-size:12.5px;padding:4px 8px;width:auto;min-width:0">
         <option value="" <?= empty($w['ambition']) ? 'selected' : '' ?>>gerechnet (<?= Fmt::h((string) $stufe['stufe']) ?>)</option>
         <?php foreach (['A' => 'A · klar und schnell', 'B' => 'B · Premium-UI',
@@ -202,6 +210,12 @@
           <option value="<?= $sl ?>" <?= (string) ($w['ambition'] ?? '') === $sl ? 'selected' : '' ?>><?= Fmt::h($wort) ?></option>
         <?php endforeach; ?>
       </select>
+      <?php /* Widersprechen sich Kundenwunsch und Branche, ist das keine
+               Randnotiz fuers Briefing, sondern eine Entscheidung, die ein
+               Mensch treffen muss — also steht sie da, wo er hinsieht. */ ?>
+      <?php if (!empty($stufe['konflikt'])): ?>
+        <span class="marke2 warnung" title="<?= Fmt::h((string) $stufe['konflikt']) ?>">zu klären</span>
+      <?php endif; ?>
     </form>
 
     <?php /* ---------- Die Wege von hier ---------- */ ?>

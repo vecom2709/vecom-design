@@ -82,6 +82,20 @@ Jede Änderung wird an diesen fünf Punkten gemessen:
 - Verwaltung, PHP, Datenbank, Abläufe → hier, kein Fach-Skill nötig
 
 ## Entscheidungen
+- **05.09.2026 — Die Ambitionsstufe kommt aus Branche, Preis und Kundenwunsch, in dieser
+  Reihenfolge.** Die Branche (`Technik::GRUNDSTUFE`) sagt, wo ein Gewerbe von Haus aus liegt;
+  der Preis setzt eine Decke und darf höchstens eine Stufe anheben; was der Kunde ausdrücklich
+  will, schlägt beides. Grund: Der Preis sagt, wie *viel* Arbeit bezahlt ist, nicht *welche* —
+  ein Schlosser mit 3.000 € Budget bekommt trotzdem kein Scroll-Kino, weil bei ihm nichts
+  zwischen Besucher und Telefonnummer gehört. Widersprechen sich Wunsch und Branche, wird das
+  im Auftrag und auf der Werkstatt-Kachel benannt statt still aufgelöst.
+- **05.09.2026 — Die Kreativdoktrin steht in `Haltung.php`, nicht im Prompt.** Aus dem langen
+  Grundsatztext („Creative Tech OS", 77 Abschnitte) wurde übernommen: kreative These in fünf
+  Sätzen, der eine Moment, der emotionale Bogen, Szenen statt Abschnitte, die Abstufung nach
+  Gerät, gestaltete Fehlerfälle und ein Selbstzeugnis vor dem Zeigen. Jeder Block erscheint erst
+  auf der Stufe, auf der er trägt. Grund: derselbe wie bei `Technik.php` — wer alles fordert,
+  fordert nichts, und „baue ein Erlebnis" ohne Gegengewicht erzeugt genau die Seite, auf der die
+  Öffnungszeiten hinter einer Animation liegen.
 - **31.08.2026 — Kunden bekommen keinen Login, sondern einen Link.** Ein 48-stelliger
   Zufallsschlüssel öffnet Fragebogen und Projektseite. Grund: Die Zielgruppe verwaltet kein
   weiteres Passwort. Weicht bewusst von der ursprünglichen Vorgabe „Kundenbereich mit Login" ab.
@@ -1948,122 +1962,3 @@ Zwei Dinge dabei, die leicht schiefgegangen wären:
   sie **nichts mehr gefunden und stillschweigend „alles gut" gemeldet** — die
   gefährlichste Art, wie eine Prüfung kaputtgeht. Sie verträgt den Stempel
   jetzt; gegengeprüft mit einem absichtlich falschen Pfad: bricht ab.
-
-## Der Preis kommt jetzt vom Bedarf, nicht aus einer Schublade (03.09.2026)
-
-Der Tag, an dem die Preispakete verschwunden sind. Vier Schritte, jeder für
-sich veröffentlicht und live geprüft.
-
-**Der Baukasten** (`022_baukasten.sql`, `app/src/Baukasten.php`,
-`app/src/Bedarf.php`, `bedarf.php`). Acht Fragen an den Kunden, dreizehn
-Bausteine mit Preisspannen dahinter, am Ende eine Richtwert-Spanne — kein
-Konto, ein 48-stelliger Schlüssel in der Adresse wie beim Fragebogen. Die
-Bausteinpreise sind bewusst an den alten Paketpreisen ausgerichtet: Das
-Preisniveau bleibt, nur die Zuordnung wird bedarfsgerecht. Gerundet wird nach
-Größenordnung gestaffelt — eine feste 50er-Rundung hatte aus echten 299 bis
-349 ein „250 bis 350" gemacht, plus vierzig statt plus siebzehn Prozent.
-
-**Einführungspreise und Empfehlungsrabatt** (`023`, `Einfuehrung.php`,
-`Empfehlung.php`). Die Preise gelten, bis zehn Projekte **voll bezahlt** sind;
-danach hebt ein Klick alle Bausteine außer der Betreuung um zwanzig Prozent an.
-Wer jemanden empfiehlt und daraus wird ein Website-Kauf, bekommt fünfzehn
-Prozent auf ein Betreuungsmodell, zwölf Monate lang — nachverfolgbar über einen
-Empfehlungscode und den Kurzlink `/e/CODE`. Mehrere Empfehlungen verlängern die
-Dauer, statt den Satz zu stapeln.
-
-**Das Angebot** (`Angebot.php`, `angebot.php`). Aus einem Bedarf entsteht auf
-Knopfdruck ein Angebot; die Positionen nehmen die Mitte der Spanne. Sie lösen
-sich dabei vom Katalog — kopiert, nicht verknüpft, damit eine Preisrunde ein
-verschicktes Angebot nie nachträglich verändert. Entwurf ist änderbar, ab dem
-Verschicken zu.
-
-**Die Startseite** (`024`, `025`). Von drei Preiskarten bleibt eine, und die
-heißt nicht mehr „Starter", sondern „Website zum Festpreis" — eine Stufe
-behauptet, dass es darüber noch etwas gibt, und der Leser sucht dann nach dem,
-was ihm vorenthalten wird. Business und Premium bleiben in der Datenbank
-(laufende Bestellungen, interne Rechenvorlage), stehen aber nicht mehr da.
-Dasselbe bei der Betreuung: eine Karte statt drei.
-
-### Der Sprachhinweis: vorschlagen statt umleiten
-
-`assets/js/sprachhinweis.js` schlägt oben in einem schmalen Streifen die
-passende Sprache vor. **Keine automatische Weiterleitung nach Herkunftsland** —
-Suchmaschinen crawlen überwiegend aus den USA, und wer nach IP umleitet, zeigt
-dem Crawler immer nur eine Fassung; die beiden anderen fallen aus dem Index.
-Entschieden wird nach `navigator.languages`, nicht nach dem Land: Das Land sagt,
-wo jemand steht, die Browsersprache sagt, was er liest. Wer wegklickt oder
-umschaltet, wird nicht wieder gefragt.
-
-## „Quanto costa un sito web?" — die Seite, die die Frage beantwortet (03.09.2026)
-
-Bis heute hatte die Website drei Adressen: die Startseite in drei Sprachen. Wer
-nach dem Preis suchte, fand hier nichts — `bedarf.php` trägt `noindex`, und die
-Startseite antwortet erst nach dem Scrollen.
-
-Die Recherche vorher: national ist der Begriff hart umkämpft (ein Dutzend
-ausführlicher Preisratgeber, Vergleichswerte für eine Vitrinenseite 800–2.500 €
-beim Freelancer, 2.000–5.000 € in der Agentur). Örtlich ist er fast leer. In der
-Provinz Agrigent nennt genau ein Mitbewerber Preise (MBclick: Landing ab 490 €,
-Vetrina ab 690 €, Shop ab 1.590 €) — und **kein einziger rechnet vor**. Jeder
-Mitbewerber schreibt den Ortsnamen in den Seitentitel; unsere Startseite tat
-das bis heute nicht.
-
-Also drei neue Adressen, je Sprache eine: `/prezzi.html`, `/de/preise.html`,
-`/en/pricing.html`. Ganz oben steht die Zahl, danach erst die Begründung — wer
-eine Zahl sucht und einen Vorspann bekommt, geht zurück.
-
-**Das Listenblatt** ist der Teil, den niemand abschreiben kann, ohne dieselbe
-Entscheidung zu treffen: alle dreizehn Bausteine mit ihren Preisen, offen
-hingelegt. Die Zahlen kommen aus `preise-daten.php` und damit aus derselben
-Tabelle wie das Angebot. Fest eingetragene Zahlen wären spätestens beim ersten
-Preisschritt eine Lüge gewesen — und zwar eine, die monatelang niemandem
-auffällt, weil niemand eine Textseite nachrechnet. Die vier Beispielfälle
-rechnet dieselbe Datei aus denselben Bausteinen, gerundet über
-`Baukasten::spanne`: Wer nachrechnet, kommt auf dasselbe Ergebnis, und im
-Angebot steht später dieselbe Zahl.
-
-Namen und Beschreibungen stehen dagegen im HTML. Ausgetauscht werden Zahlen,
-keine Inhalte — ohne Javascript ist die Seite vollständig.
-
-### build.mjs baut jetzt mehrere Seiten
-
-Bis hierher gab es genau eine dreisprachige Seite. Aus der festen Quelle wird
-eine Liste `SEITEN` mit Zielen, Meta-Schlüsseln und FAQ-Bereich je Seite. Die
-Adressen sind bewusst in der jeweiligen Sprache — eine Suchmaschine liest die
-Adresse mit, ein deutscher Leser auch.
-
-Zwei Fallen dabei:
-
-- Die Startseite musste **Byte für Byte gleich** herauskommen. Geprüft wurde
-  gegen die veröffentlichte Fassung; der erste Versuch änderte `./de/` in
-  `de/` — funktional dasselbe, aber eine grundlose Änderung an einer live
-  laufenden Datei.
-- Die Umschreibregeln müssen eine **bereits gebaute Seite** mitfassen.
-  `prezzi.html` ist Quelle und italienisches Ziel zugleich; eine Regel, die nur
-  `index.html#` kennt, baut beim zweiten Durchgang eine deutsche Seite, deren
-  Verweise auf die italienische Startseite zeigen. Genau so ist es aufgefallen.
-
-### Und ein Fehler an der Kopfzeile, der einen halben Tag live war
-
-Die Kopfzeile fährt beim Abwärtsscrollen mit `translateY(-104%)` aus dem Bild,
-gemessen an ihrer eigenen Höhe. Das genügt nur bei `top:0`. Seit der
-Sprachhinweis darüber sitzt, beginnt sie 82 Pixel tiefer und blieb nach
-demselben Weg zur Hälfte stehen: als Streifen, der quer über der Sprachleiste
-parkt. Der Weg ist jetzt um genau diese Höhe länger, und Sprungziele rechnen
-die Leiste ebenfalls mit ein.
-
-Gefunden wurde er nicht im Code, sondern auf einem Bildschirmfoto vom Handy.
-
-### Geprüft
-
-57 Zusicherungen im Browser über alle drei Sprachen: Preise aus der Datenbank,
-dreizehn Zeilen, Logo ohne Zahl, FAQ-Schema gefüllt, Sprachwahl bleibt auf der
-Preisseite, kein waagerechter Überlauf bei 360, 768 und 1280 Pixeln, keine
-Konsolenfehler. Dazu die Kopfzeile auf beiden Seiten und beiden Breiten.
-
-### Offen
-
-Der Ortsname fehlt weiterhin in Titel und Beschreibung der Startseite — das ist
-der nächste Handgriff und vermutlich der billigste Rang, den es hier zu holen
-gibt. Und Migration 025 läuft erst, wenn die Verwaltung einmal geöffnet wird;
-bis dahin liefert `pakete-daten.php` noch drei Betreuungskarten.
