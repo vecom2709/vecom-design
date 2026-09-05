@@ -17,8 +17,17 @@ const BASE = 'https://vecom-design.it';
 const LANGS = { it: '', de: 'de/', en: 'en/' };
 const LOCALES = { it: 'it_IT', de: 'de_DE', en: 'en_GB' };
 
+/* DREI DATEIEN STATT EINER — AUCH HIER
+   --------------------------------------------------------------------------
+   Die Sprachdaten liegen seit dem 05.09.2026 je Sprache getrennt, damit eine
+   Seite nicht zwei Sprachen laedt, die sie nie zeigt. Dieser Bau braucht
+   dagegen alle drei: Er erzeugt aus einer Quelle drei Fassungen. Also werden
+   hier alle geladen und zusammengefuegt — und in die gebaute Seite kommt
+   nachher nur die eine, die sie braucht (siehe sprachdatei()). */
 globalThis.window = {};
-await import('./assets/js/i18n-data.js');
+for (const sp of ['it', 'de', 'en']) {
+  await import(`./assets/js/i18n-${sp}.js`);
+}
 const DICT = globalThis.window.VECOM_I18N;
 
 const get = (lang, path) => path.split('.').reduce((o, k) => (o || {})[k], DICT[lang]);
@@ -138,8 +147,19 @@ function fingerabdruecke(h) {
   );
 }
 
+/* Die Quelle laedt i18n-it.js. Die deutsche Fassung muss i18n-de.js laden —
+   sonst stuende in /de/ deutscher Text neben italienischen Woerterbuchdaten,
+   und alles, was erst im Browser gesetzt wird (Titel, Formularfehler, das
+   Laufband), waere wieder italienisch. Der Pfad bleibt, wie er ist: Um das
+   "../" kuemmert sich weiter unten der Schritt fuer die Unterordner. */
+function sprachdatei(h, lang) {
+  return h.replace(/((?:\.\.\/)?assets\/js\/)(i18n|legal)-(?:it|de|en)\.js/g,
+                   (m, pfad, name) => `${pfad}${name}-${lang}.js`);
+}
+
 function build(lang, seite) {
   let h = readFileSync(seite.quelle, 'utf8');
+  h = sprachdatei(h, lang);
 
   // 1. Texte in der Zielsprache fest einsetzen
   h = h.replace(/(<(\w+)[^>]*\bdata-i18n="([a-zA-Z0-9_.]+)"[^>]*>)([\s\S]*?)<\/\2>/g, (m, open, tag, key) => {
