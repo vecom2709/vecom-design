@@ -149,7 +149,9 @@ $konfigs['kunde_nachschlagen'] = [
            . '„zusammenfassung“ benutzt. Die zurückgegebene kunde_id gibst du danach bei jedem '
            . 'weiteren Werkzeug im selben Gespräch mit — ohne sie bekommt niemand einen Stand '
            . 'und keinen Link. Kommt kein Treffer, fragst du nach Rufnummer und Erreichbarkeit '
-           . 'und rufst „melde“ auf.',
+           . 'und rufst „melde“ auf. '
+           . 'Kommt „schon_einmal“ zurück, sag den Satz aus „satz“ früh im Gespräch — '
+           . 'einmal, nicht mehrmals. Widerspricht er, glaub ihm und frag neu.',
   'eig' => [
     'telefon'      => ['type' => 'string', 'description' => 'Rufnummer des Anrufers, wie sie hereinkommt'],
     'kundennummer' => ['type' => 'string', 'description' => 'Kunden-, Bestell- oder Angebotsnummer, falls genannt'],
@@ -214,7 +216,10 @@ $konfigs['preis_auskunft'] = [
 
 $konfigs['lage'] = [
   'zweck' => 'Wie spät ist es, welcher Tag, und ist ein Rückruf heute realistisch? '
-           . 'Immer aufrufen, bevor du einen Zeitpunkt zusagst — die Uhrzeit nie selbst schätzen.',
+           . 'Immer aufrufen, bevor du einen Zeitpunkt zusagst — die Uhrzeit nie selbst schätzen. '
+           . '„ton“ sagt dir, wie du zu dieser Tageszeit klingen solltest: morgens frisch und knapp, '
+           . 'abends ruhiger und ohne lange Fragebögen, nachts nur noch aufnehmen. '
+           . 'Am Wochenende tust du nicht so, als säße jemand im Büro.',
   'eig' => [], 'pflicht' => [], 'rumpf' => '{"aktion":"lage"}',
 ];
 
@@ -327,7 +332,10 @@ $konfigs['beratung'] = [
            . 'Kommt „ausserhalb“ zurück, nennst du KEINE Zahl: Das Vorhaben passt nicht in '
            . 'den Baukasten, du liest den Satz vor und bietest einen Termin an. '
            . 'Höchstens ein Werkzeug pro Gesprächszug — zwei hintereinander machen eine Pause, '
-           . 'die der Anrufer als Stille hört.',
+           . 'die der Anrufer als Stille hört. '
+           . 'Kommt „abbrechen“ zurück, hörst du auf zu fragen: Er antwortet nicht mehr richtig. '
+           . 'Dann sagst du, dass der Rest schriftlich schneller geht, fragst nach der '
+           . 'E-Mail-Adresse und rufst „uebergabe“ auf — kein „nur noch eine Frage“.',
   'eig' => [
     'gespraech'   => ['type' => 'string', 'maxLength' => 48,
                       'description' => 'Der Wert aus der letzten Antwort. Beim ersten Aufruf leer lassen'],

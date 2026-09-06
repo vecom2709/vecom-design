@@ -213,9 +213,22 @@ final class Telefon
                          'nummer_genannt'=> $nummer !== '',
                          'treffer'       => count($treffer)]);
 
+        $sprache = self::sprachwahl($d);
+
         if (!$treffer) {
-            return ['gefunden' => false,
+            /* Auch ohne Eintrag kann sie sich erinnern -- aber nur daran,
+               DASS von dieser Nummer schon einmal angerufen wurde. Warum
+               nicht mehr, steht bei self::frueher(). */
+            $aus = ['gefunden' => false,
                     'hinweis'  => 'Kein Eintrag. Anliegen aufnehmen und melden.'];
+            $f = self::frueher($telefon, 0);
+            if ($f !== null) {
+                $aus['schon_einmal'] = true;
+                $aus['satz'] = self::erinnerungssatz($f, $sprache);
+                $aus['hinweis'] = 'Kein Eintrag, aber diese Nummer war schon einmal dran. '
+                                . 'Sag den Satz aus „satz“ und hör zu — er sagt dir selbst, worum es geht.';
+            }
+            return $aus;
         }
 
         /* Mehrere Treffer sind keine Antwort, sondern eine Rueckfrage. Welche
@@ -234,7 +247,7 @@ final class Telefon
         $k = $treffer[0];
         $kid = (int) $k['id'];
 
-        return [
+        $aus = [
             'gefunden'      => true,
             'name'          => (string) $k['name'],
             'firma'         => (string) ($k['company'] ?? ''),
@@ -247,6 +260,18 @@ final class Telefon
             'email_hinterlegt' => trim((string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kid], '')) !== '',
             'kunde_id'      => $kid,
         ];
+
+        /* „Sie hatten letzte Woche angerufen, es ging um …“ — der Satz, der
+           aus einer Telefonzentrale einen Menschen macht. */
+        $f = self::frueher($telefon, $kid);
+        if ($f !== null) {
+            $aus['schon_einmal'] = true;
+            $aus['satz'] = self::erinnerungssatz($f, (string) ($aus['sprache'] ?: $sprache));
+            $aus['hinweis'] = 'Sag den Satz aus „satz“ früh im Gespräch — einmal, nicht mehrmals. '
+                            . 'Widerspricht er, glaub ihm und frag neu.';
+        }
+
+        return $aus;
     }
 
     /** Kunden-, Bestell- oder Angebotsnummer -- alle drei nennt ein Anrufer. */
@@ -447,14 +472,44 @@ final class Telefon
             $satz = 'Wochenende. Rückruf für den nächsten Werktag zusagen.';
         }
 
+        /* WARUM DIE TAGESZEIT MITKOMMT
+           ------------------------------------------------------------------
+           Ein Mensch klingt um acht Uhr morgens anders als um neun Uhr
+           abends, und er weiss, dass „ich melde mich gleich" am Sonntag
+           nicht stimmt. Beides kann ein Modell nicht wissen -- es hat keine
+           Uhr. Also bekommt es beides gesagt, als Tonvorschlag, nicht als
+           Befehl: Was daraus wird, entscheidet das Gespraech. */
+        $tageszeit = match (true) {
+            $stunde < 11 => 'morgens',
+            $stunde < 14 => 'mittags',
+            $stunde < 18 => 'nachmittags',
+            $stunde < 22 => 'abends',
+            default      => 'nachts',
+        };
+        $ton = match ($tageszeit) {
+            'morgens'     => 'Frisch und knapp. Guten Morgen ist am Platz.',
+            'mittags'     => 'Normal. Viele rufen in der Pause an — komm schneller zur Sache.',
+            'nachmittags' => 'Normal.',
+            'abends'      => 'Ruhiger. Wer abends anruft, hat den Tag hinter sich — '
+                           . 'keine langen Fragebögen mehr, lieber einen Rückruf anbieten.',
+            'nachts'      => 'Sehr kurz halten. Um diese Zeit ruft niemand zum Plaudern an: '
+                           . 'Anliegen aufnehmen, Rückruf für morgen zusagen.',
+        };
+        if (!$werktag) {
+            $ton .= ' Es ist Wochenende — tu nicht so, als säße jemand im Büro.';
+        }
+
         return [
             'datum'         => $jetzt->format('Y-m-d'),
             'uhrzeit'       => $jetzt->format('H:i'),
             'wochentag'     => ['Montag','Dienstag','Mittwoch','Donnerstag',
                                 'Freitag','Samstag','Sonntag'][$wochentag - 1],
+            'tageszeit'     => $tageszeit,
+            'werktag'       => $werktag,
             'zeitzone'      => $jetzt->format('e'),
             'modus'         => $wortModus,
             'rueckruf_heute'=> $heuteNoch,
+            'ton'           => $ton,
             'hinweis'       => $satz,
         ];
     }
@@ -1687,10 +1742,26 @@ final class Telefon
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
         $aus['link'] = $basis . '/bedarf.php?t=' . $token . '&lang=' . $sprache;
 
-        $aus['hinweis'] = $aus['fertig']
-            ? 'Alles gefragt. Spanne nennen, dann „uebergabe" aufrufen und die Adresse erfragen.'
-            : 'Stelle genau die Frage aus „satz". Nimm als Antwort nur einen Schluessel aus „optionen". '
-            . 'Verstehst du ihn nicht, frag einmal nach, dann geh weiter.';
+        /* WANN SIE VON SELBST AUFHOEREN SOLL
+           ------------------------------------------------------------------
+           Ein Mensch merkt, wann genug ist. Ein Modell fragt die Liste zu
+           Ende, auch wenn der Anrufer dreimal „ist mir egal" gesagt hat --
+           und genau daran verliert man Leute, die eigentlich kaufen wollten.
+           Gemessen statt geraten: Kommen zwei Aufrufe hintereinander, ohne
+           dass eine Antwort mehr im Fragebogen landet, ist die Beratung
+           vorbei. Der halb gefuellte Bogen ist mehr wert als der ganze,
+           den niemand mehr beantwortet. */
+        if (!$aus['fertig'] && self::stockt($id, count($aus['beantwortet']))) {
+            $aus['abbrechen'] = true;
+            $aus['hinweis'] = 'Hör auf zu fragen. Sag, dass der Rest schriftlich schneller geht, '
+                            . 'frag nach der E-Mail-Adresse und ruf „uebergabe“ auf. '
+                            . 'Kein „nur noch eine Frage“.';
+        } else {
+            $aus['hinweis'] = $aus['fertig']
+                ? 'Alles gefragt. Spanne nennen, dann „uebergabe" aufrufen und die Adresse erfragen.'
+                : 'Stelle genau die Frage aus „satz". Nimm als Antwort nur einen Schluessel aus „optionen". '
+                . 'Verstehst du ihn nicht, frag einmal nach, dann geh weiter.';
+        }
 
         self::protokoll('beratung', 'Beratung am Telefon — '
             . ($aus['fertig'] ? 'durchgefragt' : 'bei ' . (string) $offen),
@@ -1700,6 +1771,31 @@ final class Telefon
              'von_euro' => $aus['von_euro'] ?? null, 'bis_euro' => $aus['bis_euro'] ?? null]);
 
         return $aus;
+    }
+
+    /**
+     * Kommt das Gespraech noch voran?
+     *
+     * Verglichen wird der Stand mit dem der beiden letzten Aufrufe desselben
+     * Bedarfs. Bleibt er zweimal gleich, hat der Anrufer nichts Brauchbares
+     * mehr gesagt -- ob aus Ungeduld, Unsicherheit oder weil er das Thema
+     * gewechselt hat, ist dabei egal. Das Ergebnis ist dasselbe.
+     */
+    private static function stockt(int $bedarfId, int $jetzt): bool
+    {
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type = 'telefon_beratung' AND demo = 0
+                AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND
+              ORDER BY id DESC LIMIT 2"), []);
+        if (count($zeilen) < 2) { return false; }
+
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (!is_array($m) || (int) ($m['bedarf_id'] ?? 0) !== $bedarfId) { return false; }
+            if (count((array) ($m['beantwortet'] ?? [])) !== $jetzt) { return false; }
+        }
+        return true;
     }
 
     /* ================================================================== */
@@ -2477,6 +2573,119 @@ final class Telefon
 
         usort($raus, static fn(array $a, array $b): int => strcmp($b['wann'], $a['wann']));
         return $raus;
+    }
+
+
+    /* ================================================================== */
+    /*  18. Sich erinnern, wer schon einmal angerufen hat                  */
+    /* ================================================================== */
+
+    /** Weiter zurueck als das erinnert sich auch ein Mensch nicht mehr von allein. */
+    public const ERINNERUNG_TAGE = 90;
+
+    /**
+     * Hat diese Rufnummer schon einmal hier angerufen?
+     *
+     * WARUM DAS DER STAERKSTE MENSCHLICHKEITS-EFFEKT UEBERHAUPT IST
+     *
+     * Nichts wirkt persoenlicher als jemand, der sich erinnert. „Sie hatten
+     * letzte Woche wegen der Seite fuer das Lokal angerufen — geht es darum?"
+     * ist der Unterschied zwischen einer Telefonzentrale und einem Menschen,
+     * der einen kennt. Die Daten liegen ohnehin in der Verwaltung; sie sind
+     * bisher nur nie zurueckgegeben worden.
+     *
+     * DIE GRENZE, DIE HIER NICHT VERHANDELBAR IST
+     *
+     * Eine Rufnummer ist kein Ausweis. Bei einem BEKANNTEN Kunden darf das
+     * Stichwort mit — er hoert seine eigene Sache. Bei einer unbekannten
+     * Nummer kommt nur, DASS schon einmal angerufen wurde, nie WORUM es
+     * ging: Hinter einer Firmennummer sitzen mehrere Menschen, und der
+     * Kollege, der heute anruft, hat das Anliegen von gestern nichts
+     * angehen. Er sagt selbst, worum es geht — die Rueckfrage genuegt.
+     *
+     * @return array<string,mixed>|null
+     */
+    private static function frueher(string $nummer, int $kundeId): ?array
+    {
+        $nummer = self::nurZiffern($nummer);
+        if ($kundeId <= 0 && strlen($nummer) < 6) { return null; }
+
+        $tage = self::ERINNERUNG_TAGE;
+        $ende = substr($nummer, -9);
+
+        /* Der letzte Anruf VOR diesem. Der aktuelle steht schon in der Spur --
+           er wird ueber das Zeitfenster ausgeschlossen, sonst erinnerte sie
+           sich an sich selbst. */
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT type, created_at, customer_id, meta
+               FROM activities
+              WHERE type IN ('telefon_melde','telefon_beratung','telefon_seitenblick',
+                             'telefon_termin','telefon_uebergabe','telefon_hilfe')
+                AND demo = 0
+                AND created_at >= NOW() - INTERVAL $tage DAY
+                AND created_at <  NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND
+              ORDER BY created_at DESC
+              LIMIT 200"), []);
+
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (!is_array($m)) { $m = []; }
+
+            $passt = false;
+            if ($kundeId > 0 && (int) ($z['customer_id'] ?? 0) === $kundeId) { $passt = true; }
+            if (!$passt && $ende !== '' && strlen($ende) >= 6) {
+                $andere = self::nurZiffern((string) ($m['nummer'] ?? ''));
+                if ($andere !== '' && substr($andere, -9) === $ende) { $passt = true; }
+            }
+            if (!$passt) { continue; }
+
+            $wann  = (string) $z['created_at'];
+            $tageHer = max(0, (int) floor((time() - strtotime($wann)) / 86400));
+
+            $aus = ['wann' => $wann, 'tage_her' => $tageHer, 'bekannt' => $kundeId > 0];
+
+            /* Nur beim erkannten Kunden das Stichwort. Sonst bleibt es beim
+               DASS -- siehe oben. */
+            if ($kundeId > 0) {
+                $worum = trim((string) ($m['anliegen'] ?? $m['problem'] ?? ''));
+                if ($worum === '' && !empty($m['beantwortet'])) { $worum = 'eine neue Website'; }
+                if ($worum !== '') { $aus['worum'] = mb_substr($worum, 0, 160); }
+            }
+            return $aus;
+        }
+        return null;
+    }
+
+    /**
+     * Woraus sie den Satz baut. Absichtlich vage in der Zeit: „letzte Woche"
+     * traegt weiter als „vor sechs Tagen" -- und wenn sie sich um einen Tag
+     * irrt, faellt es niemandem auf. Eine falsche Zahl dagegen schon.
+     */
+    public static function erinnerungssatz(array $f, string $sprache): string
+    {
+        $t = (int) ($f['tage_her'] ?? 0);
+        $stufe = match (true) {
+            $t <= 0  => ['it' => 'oggi',                 'de' => 'heute schon einmal',   'en' => 'earlier today'],
+            $t === 1 => ['it' => 'ieri',                 'de' => 'gestern',              'en' => 'yesterday'],
+            $t <= 7  => ['it' => 'nei giorni scorsi',    'de' => 'in den letzten Tagen', 'en' => 'in the last few days'],
+            $t <= 21 => ['it' => 'qualche settimana fa', 'de' => 'vor ein paar Wochen',  'en' => 'a few weeks ago'],
+            default  => ['it' => 'tempo fa',             'de' => 'vor einer Weile',      'en' => 'a while back'],
+        };
+        $wann = $stufe[$sprache] ?? $stufe['it'];
+
+        $worum = trim((string) ($f['worum'] ?? ''));
+        if ($worum !== '' && !empty($f['bekannt'])) {
+            return match ($sprache) {
+                'de' => 'Sie hatten ' . $wann . ' angerufen, es ging um: ' . $worum . '. Geht es darum?',
+                'en' => 'You called ' . $wann . ' about: ' . $worum . '. Is it about that?',
+                default => 'Ci aveva già chiamato ' . $wann . ', si trattava di: ' . $worum . '. Si tratta di quello?',
+            };
+        }
+        return match ($sprache) {
+            'de' => 'Von Ihrer Nummer hat ' . $wann . ' schon jemand angerufen. Worum geht es heute?',
+            'en' => 'Someone called from your number ' . $wann . '. What is it about today?',
+            default => 'Dal suo numero ci hanno già chiamato ' . $wann . '. Di che cosa si tratta oggi?',
+        };
     }
 
     public static function protokoll(string $aktion, string $titel, ?int $kundeId, array $meta = []): void

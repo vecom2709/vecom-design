@@ -2085,6 +2085,97 @@ Telefon::protokoll('nachschlagen', 'Nachgeschlagen', null, ['treffer' => false])
 pruefe('bloßes Nachschlagen zählt nicht als offenes Gespräch',
     Telefon::offeneGespraeche(7) === [], json_encode(Telefon::offeneGespraeche(7)));
 
+
+/* ============================================================================
+   31. Sich erinnern — und die Grenze dabei
+
+   Nichts wirkt persönlicher als jemand, der sich erinnert. Und nichts wirkt
+   peinlicher, als wenn er dabei das Anliegen eines Kollegen ausplaudert.
+   ============================================================================ */
+abschnitt('31. Sich erinnern');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+
+$neu = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('beim ersten Mal erinnert sie sich an nichts',
+    empty($neu['schon_einmal']), json_encode($neu));
+
+/* Ein früherer Anruf desselben Kunden — zurückdatiert, damit er nicht als
+   derselbe Anruf gilt. */
+Telefon::melden(['art' => 'rueckruf', 'kunde_id' => $kundeId, 'telefon' => '+39 380 111 2233',
+                 'text' => 'Möchte über die Startseite sprechen.', 'anliegen' => 'Startseite']);
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 5 DAY
+          WHERE type = 'telefon_melde' ORDER BY id DESC LIMIT 1");
+
+$w = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('jetzt erinnert sie sich', !empty($w['schon_einmal']), json_encode($w));
+pruefe('und sagt es in einem fertigen Satz',
+    str_contains((string) ($w['satz'] ?? ''), 'angerufen')
+    || str_contains((string) ($w['satz'] ?? ''), 'chiamato'), (string) ($w['satz'] ?? ''));
+pruefe('mit der Zeit in Worten statt in Tagen',
+    !preg_match('/\b5 Tagen?\b/', (string) ($w['satz'] ?? '')), (string) ($w['satz'] ?? ''));
+
+/* DIE GRENZE: Hinter einer Firmennummer sitzen mehrere Menschen. Wer nicht
+   als Kunde erkannt wird, erfährt nie, worum es beim letzten Mal ging. */
+Db::run('UPDATE customers SET phone = NULL WHERE id = ?', [$kundeId]);
+$fremd = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('ein unbekannter Anrufer hört nur, DASS schon einmal angerufen wurde',
+    !empty($fremd['schon_einmal']), json_encode($fremd));
+pruefe('aber nie, worum es ging',
+    !str_contains((string) ($fremd['satz'] ?? ''), 'Startseite'), (string) ($fremd['satz'] ?? ''));
+pruefe('und er wird gefragt statt beantwortet',
+    str_contains((string) ($fremd['satz'] ?? ''), 'Worum geht es')
+    || str_contains((string) ($fremd['satz'] ?? ''), 'Di che cosa'), (string) ($fremd['satz'] ?? ''));
+
+/* Was zu lange her ist, ist vergessen — wie bei einem Menschen. */
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 200 DAY WHERE type = 'telefon_melde'");
+$alt = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('nach Monaten erinnert sie sich nicht mehr', empty($alt['schon_einmal']), json_encode($alt));
+
+/* Eine fremde Nummer weckt keine Erinnerung. */
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 5 DAY WHERE type = 'telefon_melde'");
+$andere = Telefon::nachschlagen(['telefon' => '+39 320 999 8877']);
+pruefe('eine andere Nummer bleibt fremd', empty($andere['schon_einmal']), json_encode($andere));
+
+/* ============================================================================
+   32. Tageszeit im Ton — und aufhören, wenn nichts mehr kommt
+   ============================================================================ */
+abschnitt('32. Tageszeit und Abbruch');
+
+$l = Telefon::lage();
+pruefe('die Lage nennt die Tageszeit',
+    in_array($l['tageszeit'] ?? '', ['morgens','mittags','nachmittags','abends','nachts'], true),
+    json_encode($l['tageszeit'] ?? null));
+pruefe('und schlägt einen Ton vor', trim((string) ($l['ton'] ?? '')) !== '', (string) ($l['ton'] ?? ''));
+pruefe('am Wochenende sagt sie das dazu',
+    ($l['werktag'] ?? true) === true || str_contains((string) $l['ton'], 'Wochenende'),
+    json_encode(['werktag' => $l['werktag'] ?? null]));
+
+/* Zwei Aufrufe ohne Fortschritt: Dann ist die Beratung vorbei. Nicht, weil
+   das Modell es merkt, sondern weil der Server es misst. */
+Db::run("DELETE FROM activities WHERE type = 'telefon_beratung'");
+$b = Telefon::beratung(['sprache' => 'de']);
+$faden2 = (string) $b['gespraech'];
+pruefe('sie fängt normal an', empty($b['abbrechen']), json_encode($b));
+
+$b = Telefon::beratung(['sprache' => 'de', 'gespraech' => $faden2,
+                        'antwort_auf' => 'zweck', 'antwort' => 'weiß nicht']);
+pruefe('nach einer leeren Antwort läuft es noch', empty($b['abbrechen']), json_encode($b));
+$b = Telefon::beratung(['sprache' => 'de', 'gespraech' => $faden2,
+                        'antwort_auf' => 'zweck', 'antwort' => 'ist mir egal']);
+pruefe('nach der zweiten hört sie auf zu fragen', !empty($b['abbrechen']), json_encode($b));
+pruefe('und wird auf „uebergabe" verwiesen',
+    str_contains((string) $b['hinweis'], 'uebergabe'), (string) $b['hinweis']);
+
+/* Wer antwortet, wird nicht abgewürgt. */
+Db::run("DELETE FROM activities WHERE type = 'telefon_beratung'");
+$c = Telefon::beratung(['sprache' => 'de']);
+$f3 = (string) $c['gespraech'];
+$c = Telefon::beratung(['sprache' => 'de', 'gespraech' => $f3, 'antwort_auf' => 'zweck', 'antwort' => 'zeigen']);
+$c = Telefon::beratung(['sprache' => 'de', 'gespraech' => $f3, 'antwort_auf' => 'umfang', 'antwort' => 'wenige']);
+pruefe('wer antwortet, wird weitergefragt', empty($c['abbrechen']), json_encode($c));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
