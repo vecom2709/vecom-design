@@ -261,6 +261,16 @@ final class Telefon
             'kunde_id'      => $kid,
         ];
 
+        /* Seine Website steht in der Akte. Dass sie da steht, muss Manuela
+           wissen, BEVOR sie ihn danach fragt -- sonst fragt sie ihn nach
+           etwas, das vor ihr liegt. */
+        $seite = self::kundenseite($kid);
+        if ($seite !== null) {
+            $aus['website'] = $seite['adresse'];
+            $aus['website_zustand'] = $seite['zustand'];
+            if ($seite['satz'] !== '') { $aus['website_achtung'] = $seite['satz']; }
+        }
+
         /* „Sie hatten letzte Woche angerufen, es ging um …“ — der Satz, der
            aus einer Telefonzentrale einen Menschen macht. */
         $f = self::frueher($telefon, $kid);
@@ -1540,25 +1550,66 @@ final class Telefon
 
         $sprache = self::sprachwahl($d);
         $adresse = trim((string) ($d['adresse'] ?? $d['domain'] ?? $d['website'] ?? ''));
+        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $nummer  = self::nurZiffern((string) ($d['telefon'] ?? ''));
+
+        /* ZWEI WEGE, UND DER ERSTE FUEHRT DURCH DIE VERWALTUNG
+           ------------------------------------------------------------------
+           Einen Bestandskunden nach seiner eigenen Internetadresse zu fragen
+           ist die peinlichste Frage, die eine Assistentin stellen kann: Die
+           Adresse steht in seiner Akte, samt Zustand und letzter Pruefung.
+           Wer sie trotzdem erfragt, sagt damit, dass er den Anrufer nicht
+           kennt -- und ueber eine Adresse, die er buchstabieren muss, kann
+           man sich auch noch verhoeren.
+
+           Also: Ist der Anrufer bekannt, kommt die Adresse aus der
+           Verwaltung. Ist er es nicht, wird die genannte Adresse im Internet
+           gesucht -- mit und ohne www, ueber https und http, mit anderen
+           Endungen und anderen Schreibweisen -- und erst wenn keine einzige
+           davon im DNS steht, heisst es „gibt es nicht". */
+        $akte   = $kundeId > 0 ? self::kundenseite($kundeId) : null;
+        $quelle = 'genannt';
+
+        if ($akte !== null && ($adresse === '' || self::gleicheSeite($adresse, $akte['adresse']))) {
+            $adresse = $akte['adresse'];
+            $quelle  = 'verwaltung';
+        }
+
         if ($adresse === '') {
-            return ['gefunden' => false, 'grund' => 'keine_adresse',
-                    'hinweis' => 'Nach der Internetadresse fragen, buchstabieren lassen.'];
+            $hinweis = $kundeId > 0
+                ? 'Er ist bekannt, aber in seiner Akte steht keine Website. Frag ihn danach '
+                . '— und lass sie buchstabieren, wenn du sie nicht sicher verstehst.'
+                : 'Nach der Internetadresse fragen, buchstabieren lassen.';
+            return ['gefunden' => false, 'grund' => 'keine_adresse', 'hinweis' => $hinweis];
         }
 
         /* DIE RATEBREMSE
            ------------------------------------------------------------------
            Am 6. September zwischen 22:24 und 22:26 hat sie die Adresse einer
-           Anruferin viermal geraten -- „cvv.heute-geritten-morgen-...",
-           „jonikaventures.de", „jonikaventures.com", „jonika-venturis.com".
-           Jeder Versuch kostet bis zu acht Sekunden Stille, und die Anruferin
-           hoert vier Pausen statt einer Frage.
+           Anruferin viermal geraten. Jeder Versuch kostet bis zu acht
+           Sekunden Stille, und die Anruferin hoert vier Pausen statt einer
+           Frage. Ein Modell hoert nicht besser, wenn man es noch einmal
+           versuchen laesst; ein Mensch buchstabiert.
 
-           Ein Modell hoert nicht besser, wenn man es noch einmal versuchen
-           laesst. Ein Mensch buchstabiert. Also: Nach dem ersten Fehlschlag
-           kommt die Anweisung zu buchstabieren, und ab dem dritten Versuch
-           wird gar nicht mehr abgerufen. */
-        $fehl = self::fehlversuche();
-        if ($fehl >= self::BLICK_VERSUCHE) {
+           Die Bremse hat danach aber zu fest gezogen: Sie zaehlte JEDEN
+           Fehlversuch der letzten zehn Minuten, egal von wem. Zwei
+           Probeabrufe aus der Verwaltung genuegten, und der naechste echte
+           Anrufer bekam „finde ich nicht" zu hoeren, ohne dass seine Adresse
+           ueberhaupt abgerufen wurde. Eine Bremse, die auf fremde Fehler
+           reagiert, ist ein Fehler.
+
+           Jetzt zaehlt sie nur, was zu DIESEM Anrufer gehoert, und nur seit
+           dem letzten Treffer -- wer eine Seite gefunden hat, faengt bei der
+           naechsten wieder bei null an.
+
+           Und sie lehnt nicht mehr blind ab. Eine gebremste Adresse wird
+           zuerst dem DNS vorgelegt: Das kostet Millisekunden statt Sekunden,
+           und was es wirklich gibt, ist kein Rateversuch mehr, sondern eine
+           Adresse -- die wird angesehen. Gebremst wird damit genau das, was
+           gebremst gehoert: das naechste Ins-Blaue. */
+        $fehl = self::fehlversuche($nummer, $kundeId);
+        if ($quelle !== 'verwaltung' && $fehl >= self::BLICK_VERSUCHE
+            && !Seitenblick::existiert($adresse)) {
             return ['gefunden' => false, 'grund' => 'zu_viele_versuche',
                     'weiter'  => 'buchstabieren',
                     'hinweis' => 'Genug geraten. Sag: „Ich finde die Seite nicht — '
@@ -1568,8 +1619,20 @@ final class Telefon
         }
 
         $blick = Seitenblick::ansehen($adresse, $sprache, (string) ($d['branche'] ?? ''));
+        $blick['quelle'] = $quelle;
 
-        if (!($blick['gefunden'] ?? false)) {
+        if ($quelle === 'verwaltung') {
+            /* Was die Verwaltung ueber diese Seite weiss, ist aelter und
+               genauer als ein einzelner Abruf: Sie kennt den Zustand, die
+               Ueberwachung und den letzten Ausfall. */
+            $blick['aus_verwaltung'] = $akte;
+            $blick['hinweis'] = 'Die Adresse steht in seiner Akte — frag nicht danach, sondern '
+                              . 'sag sie ihm zur Bestätigung: „Ihre Seite ' . $akte['adresse'] . ', richtig?" '
+                              . ($akte['satz'] !== '' ? $akte['satz'] . ' ' : '')
+                              . (string) ($blick['hinweis'] ?? '');
+        }
+
+        if (!($blick['gefunden'] ?? false) && $quelle !== 'verwaltung') {
             $blick['weiter']  = 'buchstabieren';
             $blick['hinweis'] = 'Rate nicht weiter. Lass die Adresse Buchstabe für Buchstabe '
                               . 'nennen und versuche es genau noch einmal.';
@@ -1578,39 +1641,119 @@ final class Telefon
         /* Protokolliert wird, was gemessen wurde -- damit Uwe vor dem
            Rueckruf dasselbe sieht wie der Anrufer gehoert hat. Ohne diese
            Zeile waere die Beratung nach dem Auflegen verloren. */
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
         self::protokoll('seitenblick',
             'Website angesehen — ' . ($blick['adresse'] ?? $adresse),
             $kundeId > 0 ? $kundeId : null,
             ['adresse' => $blick['adresse'] ?? $adresse,
              'gefunden' => (bool) $blick['gefunden'],
+             'quelle' => $quelle,
+             'nummer' => $nummer,
+             'kunde_id' => $kundeId,
              'arten' => array_map(static fn($b) => $b['art'], $blick['befunde'] ?? []),
              'messwerte' => $blick['messwerte'] ?? []]);
 
         return $blick;
     }
 
+    /**
+     * Die Website eines Bestandskunden, so wie sie in der Verwaltung steht.
+     *
+     * Bevorzugt die veroeffentlichte: Wer drei Eintraege hat, meint am
+     * Telefon die Seite, die online ist, und nicht die Vorschau von 2024.
+     *
+     * @return array{adresse:string,zustand:string,ueberwacht:bool,satz:string}|null
+     */
+    public static function kundenseite(int $kundeId): ?array
+    {
+        if ($kundeId <= 0) { return null; }
+
+        $w = self::still(static fn() => Db::one(
+            "SELECT domain, status, monitoring, last_ok_at, last_fail_at, last_status
+               FROM websites
+              WHERE customer_id = ? AND domain <> ''
+              ORDER BY (status = 'online') DESC, id DESC
+              LIMIT 1", [$kundeId]), null);
+
+        if (!is_array($w)) { return null; }
+        $adresse = trim((string) ($w['domain'] ?? ''));
+        if ($adresse === '') { return null; }
+
+        /* Ein Satz, den nur jemand sagen kann, der die Akte offen hat --
+           und nur, wenn er stimmt. Steht nichts Auffaelliges drin, bleibt er
+           leer, statt eine Belanglosigkeit zu erzeugen. */
+        $satz = '';
+        $ok   = (string) ($w['last_ok_at'] ?? '');
+        $fail = (string) ($w['last_fail_at'] ?? '');
+        if ($fail !== '' && ($ok === '' || strtotime($fail) > strtotime($ok))) {
+            $satz = 'Achtung: Die Überwachung meldet diese Seite gerade als nicht erreichbar — '
+                  . 'sag ihm das früh, das ist der eigentliche Grund seines Anrufs.';
+        } elseif (in_array((string) $w['status'], ['ssl_problem', 'domain_problem', 'fehler'], true)) {
+            $satz = 'In der Akte steht ein offenes Problem mit dieser Seite ('
+                  . (Status::WEBSITE[(string) $w['status']] ?? (string) $w['status']) . ').';
+        }
+
+        return ['adresse'    => $adresse,
+                'zustand'    => Status::WEBSITE[(string) $w['status']] ?? (string) $w['status'],
+                'ueberwacht' => (bool) (int) ($w['monitoring'] ?? 0),
+                'satz'       => $satz];
+    }
+
+    /** Zwei Schreibweisen derselben Seite -- www und Endung sind kein Unterschied. */
+    private static function gleicheSeite(string $a, string $b): bool
+    {
+        require_once __DIR__ . '/Domainpruefung.php';
+        $x = Domainpruefung::normalisieren($a);
+        $y = Domainpruefung::normalisieren($b);
+        return $x !== null && $y !== null && $x === $y;
+    }
+
     /** So oft darf eine Adresse in einem Gespraech danebengehen. */
     public const BLICK_VERSUCHE = 2;
 
     /**
-     * Wie oft in diesem Gespraech schon vergeblich nachgesehen wurde.
+     * Wie oft in DIESEM Gespraech seit dem letzten Treffer vergeblich
+     * nachgesehen wurde.
      *
      * Ueber die Zeit gezaehlt, weil die Telefonplattform uns keine
-     * Gespraechsnummer gibt -- dieselbe Naeherung wie ueberall hier.
+     * Gespraechsnummer gibt -- dieselbe Naeherung wie ueberall hier. Neu ist
+     * der zweite Filter: Ein Eintrag zaehlt nur, wenn er zum selben Anrufer
+     * gehoert. Ohne ihn bremst der eine Anrufer den naechsten aus, und ein
+     * Probeabruf aus der Verwaltung bremst beide.
      */
-    private static function fehlversuche(): int
+    private static function fehlversuche(string $nummer = '', int $kundeId = 0): int
     {
         $zeilen = (array) self::still(static fn() => Db::all(
             "SELECT meta FROM activities
               WHERE type = 'telefon_seitenblick' AND demo = 0
-                AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND"), []);
+                AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND
+              ORDER BY id ASC"), []);
+
+        $meins = self::gespraechsmarke($nummer, $kundeId);
         $n = 0;
         foreach ($zeilen as $z) {
             $m = json_decode((string) ($z['meta'] ?? ''), true);
-            if (is_array($m) && ($m['gefunden'] ?? true) === false) { $n++; }
+            if (!is_array($m)) { continue; }
+            if (self::gespraechsmarke((string) ($m['nummer'] ?? ''),
+                                      (int) ($m['kunde_id'] ?? 0)) !== $meins) { continue; }
+            /* Ein Treffer loescht die Bilanz: Wer eine Seite gefunden hat,
+               hat nicht geraten, sondern gearbeitet. */
+            $n = (($m['gefunden'] ?? true) === false) ? $n + 1 : 0;
         }
         return $n;
+    }
+
+    /**
+     * Woran ein Eintrag als „derselbe Anrufer" erkannt wird.
+     *
+     * Die Rufnummer, sonst die Kundennummer, sonst gar nichts -- und „gar
+     * nichts" ist eine eigene Schublade, kein Sammelbecken fuer alle.
+     */
+    private static function gespraechsmarke(string $nummer, int $kundeId): string
+    {
+        $n = self::nurZiffern($nummer);
+        if (strlen($n) >= 6) { return 't' . substr($n, -9); }
+        if ($kundeId > 0)    { return 'k' . $kundeId; }
+        return '-';
     }
 
     /* ================================================================== */

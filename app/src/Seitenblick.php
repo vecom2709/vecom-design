@@ -88,6 +88,22 @@ final class Seitenblick
         if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
         $name = Domainpruefung::normalisieren($roh);
+
+        /* GESPROCHEN IST NICHT GESCHRIEBEN
+           ------------------------------------------------------------------
+           Am Telefon kommt nie an, was jemand meint, sondern was die
+           Spracherkennung daraus gemacht hat. „Trendonix Bücher Punkt de"
+           wird zu „Trendonix Bücher.de", zu „trendonixbuecher.de" oder ganz
+           ohne Endung zu „Trendonix Bücher". Alles drei ist dieselbe Firma,
+           und alles drei faellt durch eine Adresspruefung.
+
+           Also wird nicht abgelehnt, sondern gesucht: Leerzeichen koennen ein
+           Bindestrich gewesen sein, „ue" ein „ü", und eine fehlende Endung
+           ist keine Aussage darueber, ob es die Seite gibt. Erst wenn keine
+           einzige dieser Schreibweisen im DNS steht, ist es „gibt es nicht". */
+        if ($name === null) {
+            $name = self::geraten($roh);
+        }
         if ($name === null) {
             return ['gefunden' => false, 'adresse' => null, 'befunde' => [], 'messwerte' => [],
                     'hinweis' => self::HINWEISE['adresse_unklar']];
@@ -108,6 +124,32 @@ final class Seitenblick
         if ($urteil === null) {
             $urteil = self::beurteilen(self::aufloesen($name), $branche);
             self::inSpeicher($name . '|' . $branche, $urteil);
+        }
+
+        /* ZWEITE CHANCE: DAS VERSCHLUCKTE LEERZEICHEN
+           ------------------------------------------------------------------
+           „Trendonix Buecher Punkt de" wird zu „trendonixbuecher.de" — eine
+           gueltige Adresse, die es nicht gibt, waehrend „trendonix-buecher.de"
+           gleich daneben liegt. Weil die erste Schreibweise die Adresspruefung
+           besteht, kaeme „geraten" gar nicht erst zum Zug. Also hier, und nur
+           nach einem sauberen Fehlschlag: aus dem urspruenglich Gesagten noch
+           einmal einen Namen bilden und ihn dem DNS vorlegen. Was dort nicht
+           steht, wird auch jetzt nicht ausgesprochen. */
+        if (empty($urteil['erreichbar'])
+            && empty($urteil['messwerte']['im_dns'])
+            && preg_match('~[\s_]~u', trim($roh))) {
+            $zweit = self::geraten($roh);
+            if ($zweit !== null && $zweit !== $name) {
+                $u2 = self::ausSpeicher($zweit . '|' . $branche);
+                if ($u2 === null) {
+                    $u2 = self::beurteilen(self::aufloesen($zweit), $branche);
+                    self::inSpeicher($zweit . '|' . $branche, $u2);
+                }
+                if (!empty($u2['erreichbar'])) {
+                    $u2['messwerte']['statt'] = $name;   // damit sie es ansagen kann
+                    return self::inWorte($zweit, $u2, $sprache);
+                }
+            }
         }
 
         return self::inWorte($name, $urteil, $sprache);
@@ -168,8 +210,160 @@ final class Seitenblick
             }
         }
 
+        /* Und zuletzt die Schreibweise: „buecher" und „bücher" sind fuer einen
+           Anrufer dasselbe Wort und fuer das DNS zwei verschiedene Namen. */
+        if (!$imDns) {
+            foreach (self::schreibweisen($ohneWww) as $andere) {
+                if ($andere === $ohneWww || !self::imDns($andere)) { continue; }
+                $a = self::einAbruf('https://' . $andere . '/', self::ZEITLIMIT_VERSUCH);
+                if (!$a['erreichbar']) { $a = self::einAbruf('https://www.' . $andere . '/', self::ZEITLIMIT_VERSUCH); }
+                if ($a['erreichbar']) {
+                    $a['statt'] = $ohneWww;
+                    return $a;
+                }
+            }
+        }
+
         return ['erreichbar' => false, 'im_dns' => $imDns,
                 'fehler' => $imDns ? 'antwortet_nicht' : 'gibt_es_nicht'];
+    }
+
+    /**
+     * Dieselbe Adresse, anders geschrieben.
+     *
+     * Nur Umschriften, die ein Mensch beim Diktieren tatsaechlich
+     * verwechselt -- keine Buchstabendreher, kein Raten. Was hier
+     * herauskommt, wird ausschliesslich im DNS geprueft; was dort nicht
+     * steht, wird nie ausgesprochen.
+     *
+     * @return list<string>
+     */
+    private static function schreibweisen(string $name): array
+    {
+        $paare = ['ue' => 'ü', 'oe' => 'ö', 'ae' => 'ä', 'ss' => 'ß'];
+        $aus = [];
+
+        /* ue -> ü, und zwar jede Stelle einzeln: „buecher" hat eine,
+           „gruenduebersicht" haette mehrere, und welche gemeint ist, weiss
+           nur das DNS. */
+        foreach ($paare as $lang => $kurz) {
+            if (str_contains($name, $lang)) {
+                $aus[] = str_replace($lang, $kurz, $name);
+            }
+            if (str_contains($name, $kurz)) {
+                $aus[] = str_replace($kurz, $lang, $name);
+            }
+        }
+
+        /* Punycode, denn im DNS steht kein „ü". */
+        $fertig = [];
+        foreach ($aus as $a) {
+            if (preg_match('~[^\x20-\x7E]~', $a) && function_exists('idn_to_ascii')) {
+                $p = idn_to_ascii($a, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+                if (!is_string($p) || $p === '') { continue; }
+                $a = $p;
+            }
+            $fertig[$a] = true;
+        }
+        return array_slice(array_keys($fertig), 0, 6);
+    }
+
+    /**
+     * Eine Adresse, die keine sein wollte, doch noch finden.
+     *
+     * Kommt nur zum Zug, wenn die Adresspruefung nichts erkannt hat -- also
+     * wenn die Endung fehlt oder ein Leerzeichen mitten drin steht. Aus dem
+     * Gesagten werden Staemme gebildet (mit und ohne Bindestrich, mit und
+     * ohne Umlaut), jeder bekommt die fuenf Endungen, die hier vorkommen,
+     * und zurueckgegeben wird der erste Name, den es im DNS wirklich gibt.
+     *
+     * Geraten wird dabei nichts: Was nicht im DNS steht, kommt nicht zurueck.
+     */
+    private static function geraten(string $roh): ?string
+    {
+        $t = mb_strtolower(trim($roh));
+        $t = preg_replace('~^[a-z]+://~', '', $t) ?? $t;
+        $t = explode('/', $t)[0];
+        $t = preg_replace('~\b(punkt|dot|punto)\b~u', '.', $t) ?? $t;
+        $t = trim($t, " \t\n\r\0\x0B.");
+        if ($t === '' || mb_strlen($t) > 80) { return null; }
+
+        /* Hat es schon eine Endung, hat die Adresspruefung sie verworfen --
+           dann ist hier nichts mehr zu holen. */
+        $hatEndung = (bool) preg_match('~\.[a-z]{2,24}$~', $t);
+
+        $mitStrich = preg_replace('~[\s_]+~u', '-', $t) ?? $t;
+        $ohne      = preg_replace('~[\s_]+~u', '', $t) ?? $t;
+
+        $staemme = [];
+        foreach ([$mitStrich, $ohne] as $v) {
+            $staemme[$v] = true;
+            foreach (self::schreibweisen($v) as $w) { $staemme[$w] = true; }
+        }
+
+        $versuche = 0;
+        foreach (array_keys($staemme) as $stamm) {
+            $stamm = trim($stamm, '-.');
+            if (!preg_match('~^[a-z0-9][a-z0-9.-]{0,61}[a-z0-9]$~', $stamm)) { continue; }
+            $kandidaten = $hatEndung ? [$stamm]
+                                     : array_map(static fn($e) => $stamm . '.' . $e,
+                                                 ['it', 'de', 'com', 'eu', 'net']);
+            foreach ($kandidaten as $k) {
+                if (++$versuche > 24) { return null; }   // eine Zeitgrenze, keine Erschoepfung
+                if (!self::unbedenklich($k)) { continue; }
+                if (self::imDns($k)) { return $k; }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * DER TUERSTEHER HINTER DEM TUERSTEHER
+     *
+     * Wer eine fehlgeschlagene Adresspruefung mit „dann probier halt eine
+     * Endung" auffaengt, hat sie damit auch abgeschaltet: Aus „localhost"
+     * wird „localhost.it", und das gibt es wirklich. Aus „127.0.0.1" wird
+     * „127.0.0.1.de". Was hier hindurch soll, muss die Adresspruefung
+     * unveraendert bestehen und darf kein Name aus dem eigenen Netz sein.
+     */
+    private static function unbedenklich(string $kandidat): bool
+    {
+        require_once __DIR__ . '/Domainpruefung.php';
+        if (Domainpruefung::normalisieren($kandidat) !== $kandidat) { return false; }
+
+        $teile = explode('.', $kandidat);
+        $endung = array_pop($teile);
+
+        /* Reine Zahlen sind eine IP-Adresse mit angehaengter Endung. */
+        foreach ($teile as $t) {
+            if ($t === '' || ctype_digit($t)) { return false; }
+        }
+
+        $eigenesNetz = ['localhost', 'local', 'internal', 'intern', 'lan', 'home', 'arpa',
+                        'test', 'invalid', 'example', 'router', 'gateway', 'localdomain'];
+        return !in_array($teile[0] ?? '', $eigenesNetz, true)
+            && !in_array($endung, $eigenesNetz, true);
+    }
+
+    /**
+     * Gibt es diese Adresse ueberhaupt? Eine Frage an das DNS, mehr nicht.
+     *
+     * Kostet Millisekunden statt Sekunden und ruft nichts ab -- gebraucht
+     * wird sie dort, wo entschieden werden muss, ob ein Abruf sich lohnt.
+     */
+    public static function existiert(string $roh): bool
+    {
+        require_once __DIR__ . '/Domainpruefung.php';
+        $name = Domainpruefung::normalisieren($roh);
+        if ($name === null) { return self::geraten($roh) !== null; }
+        if (self::istFremdesProfil($name)) { return true; }
+
+        $ohneWww = preg_replace('~^www\.~', '', $name) ?? $name;
+        if (self::imDns($ohneWww) || self::imDns('www.' . $ohneWww)) { return true; }
+        foreach (self::schreibweisen($ohneWww) as $andere) {
+            if (self::imDns($andere)) { return true; }
+        }
+        return false;
     }
 
     private static function imDns(string $name): bool

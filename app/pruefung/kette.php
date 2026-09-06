@@ -2087,6 +2087,160 @@ $ok = Telefon::seiteAnsehen(['adresse' => 'facebook.com/irgendwas', 'sprache' =>
 pruefe('nach dem Gespräch ist die Bremse wieder offen',
     ($ok['gefunden'] ?? false) === true, json_encode($ok));
 
+/* WORAN DIE BREMSE AM 7. SEPTEMBER UM 00:12 GESCHEITERT IST
+   ------------------------------------------------------------------------
+   Sie zählte jeden Fehlversuch der letzten zehn Minuten, gleich von wem.
+   Zwei Probeabrufe aus der Verwaltung um 00:09 genügten, und der echte
+   Anrufer um 00:12 hörte „finde ich nicht", ohne dass seine Adresse
+   überhaupt abgerufen worden wäre. Eine Bremse, die auf fremde Fehler
+   reagiert, ist keine Vorsicht, sondern ein Fehler. */
+Db::run("DELETE FROM activities WHERE type = 'telefon_seitenblick'");
+
+$ihre = '+49 155 619 31072';
+foreach (['gibtesganzsicherniemals-a.it', 'gibtesganzsicherniemals-b.it'] as $adr) {
+    Telefon::seiteAnsehen(['adresse' => $adr, 'sprache' => 'de']);   // ohne Nummer: anderes Gespräch
+}
+$gebremst = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-c.it', 'sprache' => 'de']);
+pruefe('im selben Gespräch bremst sie weiterhin nach zwei Fehlschlägen',
+    ($gebremst['grund'] ?? '') === 'zu_viele_versuche', json_encode($gebremst));
+
+$anderer = Telefon::seiteAnsehen(['adresse' => 'facebook.com/pizzeria', 'sprache' => 'de',
+                                  'telefon' => $ihre]);
+pruefe('ein anderer Anrufer wird davon nicht ausgebremst',
+    ($anderer['gefunden'] ?? false) === true
+    && ($anderer['grund'] ?? '') !== 'zu_viele_versuche', json_encode($anderer));
+
+/* Und auch er wird gebremst — aber erst durch seine eigenen Fehlversuche. */
+Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-d.it', 'sprache' => 'de', 'telefon' => $ihre]);
+Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-e.it', 'sprache' => 'de', 'telefon' => $ihre]);
+$seine = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-f.it', 'sprache' => 'de',
+                                'telefon' => $ihre]);
+pruefe('nach zwei eigenen Fehlschlägen bremst sie ihn sehr wohl',
+    ($seine['grund'] ?? '') === 'zu_viele_versuche', json_encode($seine));
+
+/* EIN TREFFER LÖSCHT DIE BILANZ. Wer eine Seite gefunden hat, hat nicht
+   geraten, sondern gearbeitet — und darf danach wieder suchen. */
+Telefon::seiteAnsehen(['adresse' => 'facebook.com/trattoria', 'sprache' => 'de', 'telefon' => $ihre]);
+$danach = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-g.it', 'sprache' => 'de',
+                                 'telefon' => $ihre]);
+pruefe('ein Treffer setzt die Bremse zurück',
+    ($danach['grund'] ?? '') !== 'zu_viele_versuche', json_encode($danach));
+
+/* UND DAS IST DER FEHLER, ÜBER DEN ER GESTOLPERT IST
+   ------------------------------------------------------------------------
+   „Findet wieder keine Seite, wenn ich drum bete, sich die anzuschauen."
+   Die Bremse lehnte auch eine richtige Adresse ab — ungeprüft. Sie fragt
+   jetzt zuerst das DNS: Millisekunden statt Sekunden, und was es wirklich
+   gibt, wird angesehen. Gebremst wird nur noch das nächste Ins-Blaue. */
+Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-h.it', 'sprache' => 'de', 'telefon' => $ihre]);
+Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-i.it', 'sprache' => 'de', 'telefon' => $ihre]);
+$blind = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-j.it', 'sprache' => 'de',
+                                'telefon' => $ihre]);
+pruefe('geraten wird nicht mehr weitergeraten',
+    ($blind['grund'] ?? '') === 'zu_viele_versuche', json_encode($blind));
+$echt = Telefon::seiteAnsehen(['adresse' => 'vecom-design.it', 'sprache' => 'de', 'telefon' => $ihre]);
+pruefe('eine Adresse, die es wirklich gibt, wird trotz Bremse angesehen',
+    ($echt['grund'] ?? '') !== 'zu_viele_versuche', json_encode($echt));
+$offen = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-k.it', 'sprache' => 'de',
+                                'telefon' => $ihre]);
+pruefe('und die Bremse ist danach wieder offen',
+    ($offen['grund'] ?? '') !== 'zu_viele_versuche', json_encode($offen));
+
+/* GESPROCHEN IST NICHT GESCHRIEBEN
+   ------------------------------------------------------------------------
+   „Trendonix Bücher" ohne Endung, mit Leerzeichen und mit Umlaut ist genau
+   das, was am Telefon ankommt — und genau das, woran die Adressprüfung
+   bisher gescheitert ist. Gesucht wird jetzt, statt abgelehnt. */
+$stumm = new ReflectionMethod('Seitenblick', 'geraten');
+$stumm->setAccessible(true);
+pruefe('eine Adresse ohne Endung wird gesucht statt abgelehnt',
+    $stumm->invoke(null, 'vecom design') === 'vecom-design.it',
+    var_export($stumm->invoke(null, 'vecom design'), true));
+pruefe('Leerzeichen dürfen ein Bindestrich gewesen sein',
+    $stumm->invoke(null, 'Vecom Design') === 'vecom-design.it');
+pruefe('was es nirgends gibt, wird auch nicht erfunden',
+    $stumm->invoke(null, 'gibtesganzsichernie xyzq') === null,
+    var_export($stumm->invoke(null, 'gibtesganzsichernie xyzq'), true));
+
+$schreib = new ReflectionMethod('Seitenblick', 'schreibweisen');
+$schreib->setAccessible(true);
+/* DAS VERSCHLUCKTE LEERZEICHEN. „Trendonix Buecher Punkt de" wird zu
+   „trendonixbuecher.de" — eine gültige Adresse, die es nicht gibt, während
+   „trendonix-buecher.de" gleich daneben liegt. Weil die erste Schreibweise
+   die Adressprüfung besteht, käme das Suchen sonst gar nicht zum Zug. */
+$verschluckt = Seitenblick::ansehen('vecom design.it', 'de');
+pruefe('ein verschlucktes Leerzeichen wird nachgeholt',
+    ($verschluckt['gefunden'] ?? false) === true
+    && ($verschluckt['adresse'] ?? '') === 'vecom-design.it', json_encode($verschluckt['adresse'] ?? null));
+pruefe('und sie sagt zuerst, unter welcher Adresse sie sie gefunden hat',
+    !empty($verschluckt['andere_adresse'])
+    && ($verschluckt['messwerte']['statt'] ?? '') === 'vecomdesign.it',
+    json_encode($verschluckt['messwerte']['statt'] ?? null));
+
+pruefe('„ue" und „ü" gelten als dieselbe Adresse',
+    in_array('xn--trendonixbcher-psb.de', $schreib->invoke(null, 'trendonixbuecher.de'), true),
+    json_encode($schreib->invoke(null, 'trendonixbuecher.de')));
+
+/* ============================================================================
+   29b. Zwei Wege: Bestandskunde und Fremder
+   ============================================================================
+   „Bei Bestandskunden in der Verwaltung schauen, bei Nicht-Kunden im
+   Internet recherchieren." Einen Kunden nach seiner eigenen Adresse zu
+   fragen, ist die peinlichste Frage, die eine Assistentin stellen kann —
+   sie liegt vor ihr.
+   ============================================================================ */
+abschnitt('29b. Verwaltung zuerst, Internet danach');
+
+Db::run("DELETE FROM activities WHERE type = 'telefon_seitenblick'");
+Db::run('DELETE FROM websites WHERE customer_id = ?', [$kundeId]);
+Db::run("INSERT INTO websites (customer_id, domain, url, status, monitoring)
+         VALUES (?, 'facebook.com/derkunde', 'https://facebook.com/derkunde', 'online', 1)",
+        [$kundeId]);
+
+$akte = Telefon::kundenseite($kundeId);
+pruefe('die Website eines Kunden steht in der Verwaltung',
+    ($akte['adresse'] ?? '') === 'facebook.com/derkunde', json_encode($akte));
+
+$ausAkte = Telefon::seiteAnsehen(['sprache' => 'de', 'kunde_id' => $kundeId]);
+pruefe('ein Bestandskunde wird nicht nach seiner Adresse gefragt',
+    ($ausAkte['quelle'] ?? '') === 'verwaltung' && ($ausAkte['grund'] ?? '') !== 'keine_adresse',
+    json_encode($ausAkte));
+pruefe('und die Adresse kommt aus seiner Akte',
+    ($ausAkte['aus_verwaltung']['adresse'] ?? '') === 'facebook.com/derkunde', json_encode($ausAkte));
+pruefe('Manuela wird angewiesen, sie ihm zu bestätigen statt sie zu erfragen',
+    str_contains((string) ($ausAkte['hinweis'] ?? ''), 'richtig?'), (string) ($ausAkte['hinweis'] ?? ''));
+
+/* Der Ausfall aus der Überwachung ist das, was er hören will — und das,
+   was nur jemand sagen kann, der die Akte offen hat. */
+Db::run("UPDATE websites SET last_ok_at = NOW() - INTERVAL 3 DAY, last_fail_at = NOW()
+          WHERE customer_id = ?", [$kundeId]);
+$ausfall = Telefon::kundenseite($kundeId);
+pruefe('ein laufender Ausfall wird ausdrücklich gemeldet',
+    str_contains((string) ($ausfall['satz'] ?? ''), 'nicht erreichbar'), json_encode($ausfall));
+
+/* Beim Nachschlagen muss sie es schon wissen — sonst fragt sie ihn nach
+   etwas, das vor ihr liegt. */
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+$mitSeite = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('schon beim Nachschlagen kennt sie seine Website',
+    ($mitSeite['website'] ?? '') === 'facebook.com/derkunde', json_encode($mitSeite));
+pruefe('und den Ausfall gleich mit',
+    str_contains((string) ($mitSeite['website_achtung'] ?? ''), 'nicht erreichbar'),
+    json_encode($mitSeite['website_achtung'] ?? null));
+
+/* Steht nichts in der Akte, wird gefragt — aber mit dem richtigen Satz. */
+Db::run('DELETE FROM websites WHERE customer_id = ?', [$kundeId]);
+$leer = Telefon::seiteAnsehen(['sprache' => 'de', 'kunde_id' => $kundeId]);
+pruefe('ohne Eintrag in der Akte wird er gefragt',
+    ($leer['grund'] ?? '') === 'keine_adresse'
+    && str_contains((string) $leer['hinweis'], 'Akte'), json_encode($leer));
+
+/* Ein Fremder ohne Akte: Da gilt der Weg über das Internet — und die
+   genannte Adresse wird wirklich gesucht. */
+$fremdeSeite = Telefon::seiteAnsehen(['adresse' => 'facebook.com/unbekannt', 'sprache' => 'de']);
+pruefe('bei einem Fremden bleibt es beim Weg über das Internet',
+    ($fremdeSeite['quelle'] ?? '') === 'genannt', json_encode($fremdeSeite));
+
 /* 22:23 — alles richtig gemacht, den Link zugesagt, nie verschickt. */
 abschnitt('30. Angefangen und nichts daraus geworden');
 

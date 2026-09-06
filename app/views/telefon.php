@@ -151,13 +151,16 @@ $konfigs['kunde_nachschlagen'] = [
            . 'und keinen Link. Kommt kein Treffer, fragst du nach Rufnummer und Erreichbarkeit '
            . 'und rufst „melde“ auf. '
            . 'Kommt „schon_einmal“ zurück, sag den Satz aus „satz“ früh im Gespräch — '
-           . 'einmal, nicht mehrmals. Widerspricht er, glaub ihm und frag neu.',
+           . 'einmal, nicht mehrmals. Widerspricht er, glaub ihm und frag neu. '
+           . 'Kommt „website“ zurück, ist seine Internetadresse hinterlegt: Frag ihn dann NIE '
+           . 'danach, sondern ruf „seite_ansehen“ mit der kunde_id auf. '
+           . 'Kommt „website_achtung“, sag das früh — es ist meist der Grund seines Anrufs.',
   'eig' => [
     'telefon'      => ['type' => 'string', 'description' => 'Rufnummer des Anrufers, wie sie hereinkommt'],
     'kundennummer' => ['type' => 'string', 'description' => 'Kunden-, Bestell- oder Angebotsnummer, falls genannt'],
     'name'         => ['type' => 'string', 'description' => 'Vor- und Nachname oder Betrieb, falls genannt'],
   ],
-  'pflicht' => [],
+  'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"kunde_nachschlagen","telefon":"{{ telefon }}","kundennummer":"{{ kundennummer }}","name":"{{ name }}"}',
 ];
 
@@ -207,7 +210,7 @@ $konfigs['preis_auskunft'] = [
                          . 'ob es überhaupt in den Baukasten passt'];
       return $e;
   })(),
-  'pflicht' => [],
+  'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"preis_auskunft","vorhaben":"{{ vorhaben }}"' . (static function () use ($fragen) {
       $r = ''; foreach (array_keys($fragen) as $f) { $r .= ',"' . $f . '":"{{ ' . $f . ' }}"'; }
       return $r;
@@ -305,10 +308,18 @@ $konfigs['zusammenfassung'] = [
 /* ---------- Die sechs neuen: Beratung statt Auskunft ---------- */
 
 $konfigs['seite_ansehen'] = [
-  'zweck' => 'Sieh dir die Website des Anrufers wirklich an, während er redet. Die Adresse wird '
-           . 'mit und ohne www, über https und http und notfalls mit anderen Endungen gesucht, '
-           . 'und die wichtigsten Unterseiten werden mitgelesen — „finde ich nicht“ kommt nur, '
-           . 'wenn es die Adresse wirklich nicht gibt. '
+  'zweck' => 'Sieh dir die Website wirklich an, während er redet — es gibt zwei Wege, und du '
+           . 'wählst nicht, sondern gibst mit, was du hast. '
+           . 'IST ER BESTANDSKUNDE (du hast eine „kunde_id“ aus „kunde_nachschlagen“): gib sie mit '
+           . 'und frag NICHT nach der Adresse — sie steht in seiner Akte und wird von dort '
+           . 'genommen. Kommt „quelle“: „verwaltung“ zurück, sag ihm die Adresse zur Bestätigung '
+           . '(„Ihre Seite … , richtig?“), statt sie dir buchstabieren zu lassen. Steht in '
+           . '„aus_verwaltung“ ein Satz, ist das das Wichtigste im ganzen Gespräch — sag ihn früh. '
+           . 'IST ER KEIN KUNDE: gib die Adresse mit, so wie er sie genannt hat, auch ohne '
+           . '„www“ und auch ohne Endung. Sie wird wirklich recherchiert — mit und ohne www, über '
+           . 'https und http, mit anderen Endungen und anderen Schreibweisen —, und die wichtigsten '
+           . 'Unterseiten werden mitgelesen. „Finde ich nicht“ kommt nur, wenn es die Adresse '
+           . 'wirklich nirgends gibt. '
            . 'Sprich dann GENAU in dieser Reihenfolge, was in „gespraech“ steht: auftakt, befund, '
            . 'folge, frage — und sei danach still. Einen zweiten Befund nur, wenn er nachfragt. '
            . 'Lies nie die ganze Liste vor: Eine Mängelliste am Telefon macht keinen Kunden, '
@@ -320,18 +331,24 @@ $konfigs['seite_ansehen'] = [
            . 'RATE NIE. Wird sie nicht gefunden, lass buchstabieren und versuche es genau noch '
            . 'einmal — danach nicht mehr, sondern „melde“.',
   'eig' => [
-    'adresse'  => ['type' => 'string', 'minLength' => 4, 'maxLength' => 200,
-                   'description' => 'Die Internetadresse, wie er sie nennt — buchstabieren lassen'],
+    'adresse'  => ['type' => 'string', 'minLength' => 3, 'maxLength' => 200,
+                   'description' => 'Die Internetadresse, wie er sie nennt — auch ohne Endung. '
+                                  . 'Bei einem Bestandskunden mit „kunde_id“ leer lassen'],
     'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
     'branche'  => ['type' => 'string',
                    'enum' => array_map('strval', array_keys(Baukasten::FRAGEN['branche']['optionen'] ?? [])),
                    'description' => 'Betriebsart, falls genannt — dann wird auch geprüft, was gerade '
                                   . 'diese Branche braucht (Speisekarte, Buchung, Arbeitsproben)'],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+    'kunde_id' => ['type' => 'integer', 'description' => 'Aus „kunde_nachschlagen“. Immer mitgeben, '
+                                  . 'wenn vorhanden — dann kommt die Adresse aus der Verwaltung'],
+    'telefon'  => ['type' => 'string', 'maxLength' => 40,
+                   'description' => 'Die Rufnummer des Anrufers, dieselbe wie bei '
+                                  . '„kunde_nachschlagen“ — daran wird erkannt, dass mehrere '
+                                  . 'Versuche zum selben Gespräch gehören'],
   ],
-  'pflicht' => ['adresse'],
+  'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"seite_ansehen","adresse":"{{ adresse }}","sprache":"{{ sprache }}",'
-           . '"branche":"{{ branche }}","kunde_id":"{{ kunde_id }}"}',
+           . '"branche":"{{ branche }}","kunde_id":"{{ kunde_id }}","telefon":"{{ telefon }}"}',
 ];
 
 $konfigs['beratung'] = [
@@ -379,7 +396,7 @@ $konfigs['beleg'] = [
                   'description' => 'Betriebsart des Anrufers, falls genannt'],
     'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
   ],
-  'pflicht' => [],
+  'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"beleg","branche":"{{ branche }}","sprache":"{{ sprache }}"}',
 ];
 
@@ -415,7 +432,7 @@ $konfigs['wissen'] = [
            . 'Diese Zahlen sind Einzelpreise — der Preis eines Projekts ist eine Spanne '
            . 'und kommt aus „beratung“.',
   'eig' => ['sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']]],
-  'pflicht' => [],
+  'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"wissen","sprache":"{{ sprache }}"}',
 ];
 
@@ -434,7 +451,7 @@ $konfigs['termin'] = [
                    'description' => 'Worum es gehen soll, in seinen Worten'],
     'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
   ],
-  'pflicht' => [],
+  'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"termin","wann":"{{ wann }}","kunde_id":"{{ kunde_id }}",'
            . '"name":"{{ name }}","telefon":"{{ telefon }}","anliegen":"{{ anliegen }}",'
            . '"sprache":"{{ sprache }}"}',
