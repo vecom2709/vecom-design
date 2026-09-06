@@ -80,6 +80,66 @@ foreach (Telefon::VORWEG as $f) {
     <button class="knopf">Neuen Schlüssel erzeugen</button></form>
 </div>
 
+<?php /* ---------- Die Merkliste ---------- */ ?>
+<div class="block">
+  <h2>Merkliste
+    <?php if ($merkliste): ?><span class="marke2"><?= count($merkliste) ?></span><?php endif; ?>
+  </h2>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:8px 0 14px">
+    Für Anrufer, die regelmäßig anrufen und nie kaufen. Steht eine Nummer hier, gibt Manuela
+    <b>keine Beratung, keinen Seitenblick, keine Preise, keinen Link, kein Angebot und keinen
+    Termin</b>. Sie bleibt höflich, sagt in zwei Sätzen, dass Anfragen schriftlich laufen,
+    und lässt das Gespräch enden.
+  </p>
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:0 0 16px">
+    Der Anruf steht trotzdem in der Verwaltung — niemand wird heimlich weggeblendet, und du
+    siehst, wer angerufen hat. Unhöflich wird sie nicht: Sie urteilt nicht über den Anrufer,
+    behauptet nichts über ihn und legt nicht auf. Das wäre in Italien
+    <i>diffamazione</i>, es steht aufgezeichnet bei der Telefonplattform, und in einer Provinz,
+    in der man sich kennt, kostet es mehr als jeder verlorene Auftrag.
+  </p>
+
+  <?php if ($merkliste): ?>
+    <table style="margin-bottom:16px"><thead><tr>
+      <th>Nummer</th><th>Notiz</th><th>Angerufen</th><th></th>
+    </tr></thead><tbody>
+    <?php foreach ($merkliste as $m): ?>
+      <tr>
+        <td><b><?= Fmt::h((string) $m['nummer']) ?></b></td>
+        <td style="color:var(--dim)"><?= Fmt::h((string) $m['notiz']) ?: '—' ?></td>
+        <td style="color:var(--leise);font-size:12.5px">
+          <?php if ((int) $m['getroffen'] > 0): ?>
+            <?= (int) $m['getroffen'] ?>× seither<?php if ($m['zuletzt_am']): ?>,
+              zuletzt <?= Fmt::h(Fmt::seit((string) $m['zuletzt_am'])) ?><?php endif; ?>
+          <?php else: ?>noch nicht<?php endif; ?>
+        </td>
+        <td style="text-align:right">
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="merkliste_weg">
+            <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+            <input type="hidden" name="ende" value="<?= Fmt::h((string) $m['nummer_ende']) ?>">
+            <button class="knopf">Wieder normal</button></form>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody></table>
+  <?php endif; ?>
+
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="merkliste_setzen">
+    <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+    <div class="feld" style="margin:0;min-width:200px"><label>Rufnummer</label>
+      <input name="nummer" placeholder="+39 380 111 2233" required></div>
+    <div class="feld" style="margin:0;flex:1;min-width:220px"><label>Notiz (nur für dich)</label>
+      <input name="notiz" placeholder="ruft alle zwei Wochen an, nie ein Auftrag"></div>
+    <button class="knopf haupt">Auf die Merkliste</button>
+  </form>
+  <p style="color:var(--leise);font-size:12px;margin-top:10px">
+    Verglichen werden die letzten neun Ziffern — dieselbe Nummer kommt mal mit +39,
+    mal mit 0039, mal ohne Vorwahl an.
+  </p>
+</div>
+
 <?php /* ---------- Der Rückweg: die Gespräche von STRATO ---------- */ ?>
 <div class="block">
   <h2>Gespräche von STRATO holen
@@ -196,13 +256,20 @@ $konfigs['kunde_nachschlagen'] = [
            . 'IMMER zuerst aufrufen, bevor du „hilfe“, „angebot_link“, „uebergabe“, „melde“ oder '
            . '„zusammenfassung“ benutzt. Die zurückgegebene kunde_id gibst du danach bei jedem '
            . 'weiteren Werkzeug im selben Gespräch mit — ohne sie bekommt niemand einen Stand '
-           . 'und keinen Link. Kommt kein Treffer, fragst du nach Rufnummer und Erreichbarkeit '
+           . 'und keinen Link. Das ist keine Formsache: Zweimal hast du jemanden erkannt und '
+           . 'ihn danach als Unbekannten behandelt, weil die kunde_id im nächsten Aufruf fehlte. '
+           . 'Kommt kein Treffer, fragst du nach Rufnummer und Erreichbarkeit '
            . 'und rufst „melde“ auf. '
            . 'Kommt „schon_einmal“ zurück, sag den Satz aus „satz“ früh im Gespräch — '
            . 'einmal, nicht mehrmals. Widerspricht er, glaub ihm und frag neu. '
            . 'Kommt „website“ zurück, ist seine Internetadresse hinterlegt: Frag ihn dann NIE '
            . 'danach, sondern ruf „seite_ansehen“ mit der kunde_id auf. '
-           . 'Kommt „website_achtung“, sag das früh — es ist meist der Grund seines Anrufs.',
+           . 'Kommt „website_achtung“, sag das früh — es ist meist der Grund seines Anrufs. '
+           . 'Kommt „kurz_halten“, sagst du GENAU den Satz aus „satz“ und sonst nichts: keine '
+           . 'Beratung, keine Preise, kein Link, kein Termin, keine Website-Prüfung. Fragt er '
+           . 'weiter, sag denselben Satz noch einmal und verabschiede dich. Bleib dabei '
+           . 'höflich — auch wenn er drängt. Werde nie unfreundlich, urteile nicht über ihn '
+           . 'und behaupte nichts über seine Lage.',
   'eig' => [
     'telefon'      => ['type' => 'string', 'description' => 'Rufnummer des Anrufers, wie sie hereinkommt'],
     'kundennummer' => ['type' => 'string', 'description' => 'Kunden-, Bestell- oder Angebotsnummer, falls genannt'],
@@ -320,18 +387,30 @@ $konfigs['hilfe'] = [
            . 'Das steht auf seiner Seite, und der Link dorthin geht nur an die hinterlegte Adresse. '
            . 'Klappt es beim zweiten Mal nicht, „versuch“ auf 2 setzen — dann übernimmt ein Mensch. '
            . 'Kommt „bekannt“: false zurück, gibst du keinen Stand und keinen Link heraus, sondern '
-           . 'fragst nach Rufnummer und Erreichbarkeit und rufst „melde“ auf.',
+           . 'fragst nach Rufnummer und Erreichbarkeit und rufst „melde“ auf. '
+           . 'WÄHLE EINES DIESER FÜNF: „fragebogen“, wenn er beim Ausfüllen hängt; „bezahlung“ '
+           . 'bei allem um Rechnung, Überweisung, Karte; „link_weg“, wenn eine Mail oder ein '
+           . 'Link nicht ankam; „vorschau“, wenn er den Entwurf nicht sieht; „zugang“ bei '
+           . 'Anmelden, Passwort, Einloggen. „sonstiges“ NUR, wenn wirklich keines passt — '
+           . 'vier von fünf Meldungen unter „sonstiges“ machen die Liste „Woran es hakt“ '
+           . 'wertlos, und dann kann niemand mehr beheben, woran es wirklich hakt. '
+           . 'Schreib IMMER in „text“, was er in seinen eigenen Worten gesagt hat: Daran wird '
+           . 'nachgeprüft, ob die Kategorie stimmt.',
   'eig' => [
     'problem' => ['type' => 'string',
                   'enum' => ['fragebogen', 'bezahlung', 'link_weg', 'vorschau', 'zugang', 'sonstiges'],
-                  'description' => 'Woran es hakt. Im Zweifel „sonstiges“ — eine falsche Kategorie '
-                                 . 'führt zu einer Anleitung für ein Problem, das er nicht hat'],
+                  'description' => 'Woran es hakt. Nimm eines der fünf, wenn es passt — '
+                                 . '„sonstiges“ nur, wenn wirklich keines passt. Eine falsche '
+                                 . 'Kategorie führt zu einer Anleitung für ein Problem, das er '
+                                 . 'nicht hat; „sonstiges“ für alles führt zu einer Liste, aus '
+                                 . 'der niemand mehr etwas lernt'],
     'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
     'telefon'  => ['type' => 'string', 'description' => 'Rufnummer, falls noch nicht nachgeschlagen'],
     'versuch'  => ['type' => 'integer',
                    'description' => '0 beim ersten Anlauf, 1 beim zweiten, 2 wenn es wieder nicht ging'],
     'text'     => ['type' => 'string', 'maxLength' => 500,
-                   'description' => 'Was genau nicht geht, in seinen Worten — nur beim Aufgeben nötig'],
+                   'description' => 'Was genau nicht geht, IN SEINEN WORTEN — immer mitgeben. '
+                                  . 'Daran wird geprüft, ob die Kategorie stimmt'],
   ],
   'pflicht' => ['problem'],
   'rumpf' => '{"aktion":"hilfe","problem":"{{ problem }}","kunde_id":"{{ kunde_id }}",'

@@ -87,6 +87,21 @@ if (!in_array($aktion, Telefon::AKTIONEN, true)) {
    gerade nicht geht.
    -------------------------------------------------------------------------- */
 try {
+    /* DIE MERKLISTE — AN GENAU EINER STELLE
+       ----------------------------------------------------------------------
+       Sie steht hier und nicht in den vierzehn Aktionen einzeln: Eine Sperre,
+       die an jeder Aktion hängt, vergisst man bei der fünfzehnten. Und sie
+       steht im Code und nicht im Prompt, weil ein Sprachmodell eine
+       Textanweisung „meistens" befolgt -- beim dritten Nachfragen redet es
+       sich in eine Beratung hinein, und die Liste waere eine
+       Absichtserklaerung.
+
+       Gedeckelt wird nur das Beratende. Nachschlagen, Melden, Lage und
+       Wissensluecke laufen weiter: Der Anruf soll in der Verwaltung stehen.
+       Niemand wird heimlich weggeblendet. */
+    $kurz = Telefon::kurzhalten($aktion, $d);
+    if ($kurz !== null) { antwort($kurz); }
+
     $ergebnis = match ($aktion) {
         'kunde_nachschlagen' => Telefon::nachschlagen($d),
         'preis_auskunft'     => Telefon::preisAuskunft($d),

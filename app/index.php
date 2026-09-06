@@ -906,6 +906,23 @@ if ($post) {
                 weiter($_POST['zurueck'] ?? 'telefon');
                 break;
 
+            /* ---------- Die Merkliste ---------- */
+            case 'merkliste_setzen':
+                require_once __DIR__ . '/src/Telefon.php';
+                $erg = Telefon::merklisteSetzen((string) ($_POST['nummer'] ?? ''),
+                                                (string) ($_POST['notiz'] ?? ''));
+                $_SESSION[$erg['ok'] ? 'gut' : 'fehler'] = $erg['text'];
+                zurueck('einstellungen?b=telefon');
+                break;
+
+            case 'merkliste_weg':
+                require_once __DIR__ . '/src/Telefon.php';
+                $_SESSION['gut'] = Telefon::merklisteWeg((string) ($_POST['ende'] ?? ''))
+                    ? 'Wieder normal. Beim naechsten Anruf beraet sie ganz gewoehnlich.'
+                    : 'Diese Nummer stand nicht auf der Liste.';
+                zurueck('einstellungen?b=telefon');
+                break;
+
             /* ---------- Der Rueckweg von STRATO ---------- */
             case 'strato_zugang':
                 /* Beide Angaben kommen aus seinem Browser ueber diese
@@ -2443,6 +2460,7 @@ switch ($route) {
             $daten['schluessel'] = sicher(static fn() => Telefon::schluessel(), '');
             $daten['adresse']    = sicher(static fn() => Telefon::adresse(), '');
             $daten['modus']      = sicher(static fn() => Telefon::modus(), 'normal');
+            $daten['merkliste']  = sicher(static fn() => Telefon::merkliste(), []);
             $daten['strato']     = sicher(static fn() => [
                 'eingerichtet' => Strato::eingerichtet(),
                 'fehler'       => Strato::fehler(),

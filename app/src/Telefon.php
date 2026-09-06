@@ -70,6 +70,66 @@ final class Telefon
     public const HILFE_VERSUCHE = 2;
 
     /**
+     * WORAN ES HAKT — UND WARUM DIE TABELLE ES ZULETZT NICHT MEHR SAGTE
+     * =====================================================================
+     *
+     * „4 von 5 Hilferufen landeten unter ‚Sonstiges'." Damit ist die Liste
+     * „Woran es hakt" wertlos: Zwanzig Anrufe zum Fragebogen wären ein
+     * Produktfehler, den man beheben kann. Zwanzig Anrufe zu „Sonstiges"
+     * sind eine Zahl, aus der niemand etwas lernt.
+     *
+     * Das Modell hat die Wahl aus fünf Wörtern und greift im Zweifel zum
+     * sechsten -- so verhalten sich Sprachmodelle bei jeder Restkategorie,
+     * und eine schärfere Anweisung verschiebt das nur.
+     *
+     * Also wird nachgesehen, statt sich darauf zu verlassen: Steht in dem,
+     * was der Anrufer gesagt hat, ein eindeutiges Wort, gilt das. Nur wenn
+     * gar nichts passt, bleibt es „sonstiges" -- und dann stimmt es auch.
+     *
+     * Was hier NICHT passiert: raten. Jedes Wort in dieser Liste kommt genau
+     * einmal vor und gehört zu genau einem Fall. Trifft ein Text zwei
+     * verschiedene Fälle, bleibt es bei dem, was das Modell gesagt hat --
+     * bei Uneindeutigkeit hat der zugehört, der dabei war.
+     */
+    public const PROBLEM_WORTE = [
+        'fragebogen' => ['fragebogen', 'formular', 'questionario', 'modulo', 'fragen ausfüllen',
+                         'ausfüllen', 'compilare', 'questionnaire'],
+        'bezahlung'  => ['bezahl', 'zahlung', 'rechnung', 'überweis', 'kreditkarte', 'stripe',
+                         'pagamento', 'pagare', 'fattura', 'bonifico', 'payment', 'invoice'],
+        'link_weg'   => ['link', 'e-mail nicht', 'mail nicht angekommen', 'keine mail',
+                         'nicht bekommen', 'collegamento', 'non ho ricevuto'],
+        'vorschau'   => ['vorschau', 'entwurf', 'ansehen', 'anteprima', 'bozza', 'preview'],
+        'zugang'     => ['zugang', 'passwort', 'anmelden', 'einloggen', 'login', 'accesso',
+                         'password', 'accedere'],
+    ];
+
+    /**
+     * Das Wort aus dem, was er gesagt hat -- oder das, was das Modell wählte.
+     */
+    public static function problemErkennen(string $gewaehlt, array $d): string
+    {
+        $gewaehlt = trim($gewaehlt);
+        if ($gewaehlt !== '' && $gewaehlt !== 'sonstiges'
+            && in_array($gewaehlt, self::PROBLEME, true)) {
+            return $gewaehlt;   // es hat sich festgelegt, dabei bleibt es
+        }
+
+        $text = mb_strtolower(trim((string) ($d['text'] ?? '') . ' '
+                                 . (string) ($d['anliegen'] ?? '') . ' '
+                                 . (string) ($d['frage'] ?? '')));
+        if ($text === '') { return 'sonstiges'; }
+
+        $treffer = [];
+        foreach (self::PROBLEM_WORTE as $fall => $worte) {
+            foreach ($worte as $w) {
+                if (str_contains($text, $w)) { $treffer[$fall] = true; break; }
+            }
+        }
+        /* Genau einer -- bei zweien hat der zugehört, der dabei war. */
+        return count($treffer) === 1 ? (string) array_key_first($treffer) : 'sonstiges';
+    }
+
+    /**
      * Welche Konfigurator-Fragen am Telefon vorweggenommen werden duerfen.
      *
      * Bewusst nicht alle acht: Was ein Mensch am Hoerer nebenbei sagt, sind
@@ -221,6 +281,11 @@ final class Telefon
                nicht mehr, steht bei self::frueher(). */
             $aus = ['gefunden' => false,
                     'hinweis'  => 'Kein Eintrag. Anliegen aufnehmen und melden.'];
+            /* Steht die Nummer auf der Merkliste, weiss sie es ab dem ersten
+               Satz -- statt erst dann, wenn ein Werkzeug sie ausbremst. */
+            if (self::aufMerkliste($telefon)) {
+                $aus = self::merklisteHinweis($aus, $sprache);
+            }
             $f = self::frueher($telefon, 0);
             if ($f !== null) {
                 $aus['schon_einmal'] = true;
@@ -269,6 +334,11 @@ final class Telefon
             $aus['website'] = $seite['adresse'];
             $aus['website_zustand'] = $seite['zustand'];
             if ($seite['satz'] !== '') { $aus['website_achtung'] = $seite['satz']; }
+        }
+
+        if (self::aufMerkliste($telefon)) {
+            $aus = self::merklisteHinweis($aus, (string) ($aus['sprache'] ?: $sprache));
+            return $aus;   // kein Erinnerungssatz, kein Projektstand -- kurz halten heisst kurz
         }
 
         /* „Sie hatten letzte Woche angerufen, es ging um …“ — der Satz, der
@@ -548,7 +618,7 @@ final class Telefon
         if (mb_strlen($frage) < 5) {
             return ['ok' => false, 'hinweis' => 'Die Frage fehlt.'];
         }
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
 
         self::still(static fn() => Db::run(
             "INSERT INTO settings (skey, svalue) VALUES (?, ?)
@@ -609,7 +679,7 @@ final class Telefon
         require_once __DIR__ . '/Mail.php';
 
         $sprache = in_array(($d['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : 'it';
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
 
         $an = '';
         if ($kundeId > 0) {
@@ -757,7 +827,7 @@ final class Telefon
         $dringend = ($d['prioritaet'] ?? '') === 'dringend' || $art === 'beschwerde';
         if ($dringend) { $stufe = 'schlecht'; }
 
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
         $name    = mb_substr(trim((string) ($d['name'] ?? '')), 0, 120);
         $telefon = mb_substr(trim((string) ($d['telefon'] ?? '')), 0, 60);
         $text    = mb_substr(trim((string) ($d['text'] ?? '')), 0, 4000);
@@ -852,7 +922,7 @@ final class Telefon
             return ['ok' => false, 'hinweis' => 'Die Zusammenfassung ist zu kurz.'];
         }
 
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
         $an = $kundeId > 0
             ? trim((string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kundeId], ''))
             : mb_strtolower(trim((string) ($d['email'] ?? '')));
@@ -927,14 +997,13 @@ final class Telefon
         require_once __DIR__ . '/Kundenzugang.php';
         require_once __DIR__ . '/Texte.php';
 
-        $problem = (string) ($d['problem'] ?? 'sonstiges');
-        if (!in_array($problem, self::PROBLEME, true)) { $problem = 'sonstiges'; }
+        $problem = self::problemErkennen((string) ($d['problem'] ?? ''), $d);
         $versuch = max(0, (int) ($d['versuch'] ?? 0));
 
         /* Wen haben wir vor uns? Die Nummer ist kein Ausweis -- sie reicht,
            um eine Mail an eine hinterlegte Adresse auszuloesen, und fuer
            nichts anderes. */
-        $kundeId = (int) ($d['kunde_id'] ?? 0);
+        $kundeId = self::kundeImGespraech($d);
         if ($kundeId <= 0 && trim((string) ($d['telefon'] ?? '')) !== '') {
             $n = self::nachschlagen(['telefon' => (string) $d['telefon']]);
             if (($n['gefunden'] ?? false) === true) { $kundeId = (int) $n['kunde_id']; }
@@ -1550,7 +1619,7 @@ final class Telefon
 
         $sprache = self::sprachwahl($d);
         $adresse = trim((string) ($d['adresse'] ?? $d['domain'] ?? $d['website'] ?? ''));
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
         $nummer  = self::nurZiffern((string) ($d['telefon'] ?? ''));
 
         /* ZWEI WEGE, UND DER ERSTE FUEHRT DURCH DIE VERWALTUNG
@@ -1798,7 +1867,7 @@ final class Telefon
         $ausser = self::ausserhalb((string) ($d['vorhaben'] ?? ''));
         if ($ausser !== null) {
             self::protokoll('ausserhalb', 'Vorhaben außerhalb des Baukastens — ' . $ausser,
-                isset($d['kunde_id']) && (int) $d['kunde_id'] > 0 ? (int) $d['kunde_id'] : null,
+                self::kundeImGespraech($d) > 0 ? self::kundeImGespraech($d) : null,
                 ['wort' => $ausser, 'vorhaben' => mb_substr((string) ($d['vorhaben'] ?? ''), 0, 300)]);
             return ['ausserhalb' => true, 'stichwort' => $ausser,
                     'satz'   => self::AUSSERHALB_SATZ[$sprache] ?? self::AUSSERHALB_SATZ['it'],
@@ -1908,7 +1977,7 @@ final class Telefon
 
         self::protokoll('beratung', 'Beratung am Telefon — '
             . ($aus['fertig'] ? 'durchgefragt' : 'bei ' . (string) $offen),
-            isset($d['kunde_id']) && (int) $d['kunde_id'] > 0 ? (int) $d['kunde_id'] : null,
+            self::kundeImGespraech($d) > 0 ? self::kundeImGespraech($d) : null,
             ['bedarf_id' => $id, 'beantwortet' => $aus['beantwortet'],
              'fertig' => $aus['fertig'],
              'von_euro' => $aus['von_euro'] ?? null, 'bis_euro' => $aus['bis_euro'] ?? null]);
@@ -2021,7 +2090,7 @@ final class Telefon
         require_once __DIR__ . '/Texte.php';
 
         $sprache = self::sprachwahl($d);
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
 
         /* Dieselbe Regel wie beim Angebotslink: an die hinterlegte Adresse,
            wenn wir den Anrufer kennen -- sonst an die, die er nennt. Eine am
@@ -2193,7 +2262,7 @@ final class Telefon
                     'hinweis' => 'Der Platz ist weg. Nenne zwei andere.'];
         }
 
-        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $kundeId = self::kundeImGespraech($d);
         $nummer  = self::nurZiffern((string) ($d['telefon'] ?? ''));
         $name    = trim((string) ($d['name'] ?? ''));
         $worum   = mb_substr(trim((string) ($d['anliegen'] ?? '')), 0, 500);
@@ -2829,6 +2898,256 @@ final class Telefon
             'en' => 'Someone called from your number ' . $wann . '. What is it about today?',
             default => 'Dal suo numero ci hanno già chiamato ' . $wann . '. Di che cosa si tratta oggi?',
         };
+    }
+
+    /* ================================================================== */
+    /*  Die Merkliste — kurz halten, nicht abweisen                       */
+    /* ================================================================== */
+
+    /**
+     * WOFÜR DIESE LISTE DA IST UND WOFÜR AUSDRÜCKLICH NICHT
+     * =====================================================================
+     *
+     * Es gibt Anrufer, die regelmäßig anrufen und nie kaufen. Jedes Gespräch
+     * kostet eine Beratung, einen Seitenblick, eine Preisspanne und am Ende
+     * einen Link, den niemand öffnet. Das ist kein Grund, unhöflich zu
+     * werden -- es ist ein Grund, kurz zu bleiben.
+     *
+     * Steht eine Nummer hier, gibt Manuela: keine Beratung, keinen
+     * Seitenblick, keine Preise, keinen Link, kein Angebot, keinen Termin.
+     * Sie bleibt höflich, sagt in zwei Sätzen, dass Anfragen schriftlich
+     * laufen, und lässt das Gespräch enden. Der Anruf steht trotzdem in der
+     * Verwaltung: Niemand wird heimlich weggeblendet, und Uwe sieht, wer
+     * angerufen hat.
+     *
+     * Was hier NICHT passiert: beleidigen, verhöhnen, etwas über den Anrufer
+     * behaupten, auflegen. Das wäre in Italien diffamazione, es steht
+     * aufgezeichnet bei der Telefonplattform, und in einer Provinz, in der
+     * man sich kennt, kostet es mehr als jeder verlorene Auftrag. Dieser
+     * Absatz steht hier, damit die Grenze nicht in einem halben Jahr aus
+     * Versehen verschoben wird.
+     *
+     * WARUM DIE SPERRE IM CODE SITZT UND NICHT IM PROMPT
+     *
+     * Eine Anweisung im Text befolgt ein Sprachmodell meistens. „Meistens"
+     * ist hier zu wenig: Beim dritten Mal nachfragen redet es sich in eine
+     * Beratung hinein, und die Liste wäre eine Absichtserklärung. Deshalb
+     * antwortet das Werkzeug selbst -- es kann gar nicht anders.
+     */
+
+    /** Diese Aktionen werden gedeckelt. Alles andere läuft normal weiter. */
+    public const MERKLISTE_STUMM = ['beratung', 'preis_auskunft', 'angebot_link', 'seite_ansehen',
+                                    'beleg', 'uebergabe', 'termin', 'zusammenfassung', 'wissen'];
+
+    /** Der Satz, den sie sagt. Höflich, knapp, in seiner Sprache. */
+    public const MERKLISTE_SATZ = [
+        'it' => 'Le richieste le trattiamo per iscritto. Mi scriva a %s, '
+              . 'e le rispondiamo. Grazie della chiamata e buona giornata.',
+        'de' => 'Anfragen bearbeiten wir schriftlich. Schreiben Sie uns bitte an %s, '
+              . 'dann melden wir uns. Danke für den Anruf und einen schönen Tag.',
+        'en' => 'We handle enquiries in writing. Please write to us at %s '
+              . 'and we will get back to you. Thank you for calling, and have a good day.',
+    ];
+
+    /** Den Hinweis an eine Nachschlage-Antwort haengen. */
+    private static function merklisteHinweis(array $aus, string $sprache): array
+    {
+        $adresse = trim((string) self::still(static fn() => Config::get('email', ''), ''));
+        $aus['kurz_halten'] = true;
+        $aus['satz'] = sprintf(self::MERKLISTE_SATZ[$sprache] ?? self::MERKLISTE_SATZ['it'],
+                               $adresse !== '' ? $adresse : 'die Adresse auf unserer Website');
+        $aus['hinweis'] = 'Halte dieses Gespräch kurz. Sag den Satz aus „satz“ und sonst nichts: '
+                        . 'keine Beratung, keine Preise, kein Link, kein Termin, keine '
+                        . 'Website-Prüfung. Fragt er weiter, sag denselben Satz noch einmal und '
+                        . 'verabschiede dich. Bleib dabei höflich — auch wenn er drängt. Werde '
+                        . 'nie unfreundlich, urteile nicht über ihn und behaupte nichts über '
+                        . 'seine Lage.';
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  Was im Gespräch schon bekannt war                                 */
+    /* ================================================================== */
+
+    /**
+     * DER BEFUND AUS DEM RÜCKBLICK, IM WERKZEUG BEHOBEN
+     * =====================================================================
+     *
+     * „In 2 Gesprächen hat sie jemanden erkannt und ihn danach trotzdem als
+     * unbekannt behandelt." Beide Male stand die kunde_id in der Antwort von
+     * „kunde_nachschlagen" und fehlte beim nächsten Werkzeug -- also bekam
+     * ein Bestandskunde keinen Projektstand, keinen Link und keine Auskunft,
+     * obwohl seine Akte offen vor ihr lag.
+     *
+     * In der Werkzeugbeschreibung stand das längst: „Die zurückgegebene
+     * kunde_id gibst du danach bei jedem weiteren Werkzeug mit." Es reichte
+     * nicht. Eine Anweisung, die ein Sprachmodell in neun von zehn Fällen
+     * befolgt, ist bei zehn Gesprächen am Tag ein Fehler pro Tag.
+     *
+     * Also wird sie nachgeschlagen statt erwartet: Steht im laufenden
+     * Gespräch ein Nachschlagen mit genau EINEM Treffer, gilt der. Genau
+     * einem -- bei mehreren hat der Anrufer selbst noch nicht entschieden,
+     * wer er ist, und dann darf es auch das Werkzeug nicht.
+     *
+     * DIE GRENZE BLEIBT, WO SIE WAR: Das erkennt niemanden neu. Es benutzt
+     * nur, was im selben Gespräch schon einmal ordentlich nachgeschlagen
+     * wurde. Ein Anrufer, der nie gefunden wurde, wird auch hier nicht
+     * gefunden -- eine Stimme ist kein Ausweis.
+     */
+    public static function kundeImGespraech(array $d): int
+    {
+        $mit = (int) ($d['kunde_id'] ?? 0);
+        if ($mit > 0) { return $mit; }
+
+        /* NUR DAS LETZTE NACHSCHLAGEN ZÄHLT — UND ZWAR STRENG
+           ------------------------------------------------------------------
+           Der erste Entwurf ging die letzten drei Zeilen durch und nahm den
+           ersten Treffer. Der Kettentest hat das sofort zerrissen, und zu
+           Recht: Ruft nach einem Bestandskunden innerhalb von zehn Minuten
+           ein Fremder an, hätte der die Identität des Vorgängers geerbt --
+           samt Projektstand und Konfigurator-Link an eine Adresse, die ihm
+           nicht gehört. Das wäre der schlimmste Fehler, den dieses Werkzeug
+           machen kann, und er wäre lautlos passiert.
+
+           Also gilt ausschliesslich das JÜNGSTE Nachschlagen: Es sagt, wer
+           gerade am Hörer ist. Fand es niemanden oder mehrere, ist die Frage
+           offen -- und offen heisst unbekannt, nicht „der von vorhin". */
+        $z = self::still(static fn() => Db::one(
+            "SELECT customer_id, meta FROM activities
+              WHERE type = 'telefon_nachschlagen' AND demo = 0
+                AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND
+              ORDER BY id DESC LIMIT 1"), null);
+        if (!is_array($z) || $z['customer_id'] === null) { return 0; }
+
+        $m = json_decode((string) ($z['meta'] ?? ''), true);
+        if (!is_array($m) || (int) ($m['treffer'] ?? 0) !== 1) { return 0; }
+
+        /* Und wenn der Aufruf eine Rufnummer mitbringt, muss sie dieselbe
+           sein. Sonst spricht sie mit jemand anderem als dem, den sie
+           nachgeschlagen hat. */
+        $jetzt = self::nurZiffern((string) ($d['telefon'] ?? ''));
+        $damals = self::nurZiffern((string) ($m['nummer'] ?? ''));
+        if (strlen($jetzt) >= 6 && strlen($damals) >= 6
+            && substr($jetzt, -9) !== substr($damals, -9)) {
+            return 0;
+        }
+
+        return (int) $z['customer_id'];
+    }
+
+    /**
+     * Steht diese Nummer auf der Liste?
+     *
+     * Verglichen werden die letzten neun Ziffern -- dieselbe Näherung wie
+     * beim Nachschlagen, aus demselben Grund: Dieselbe Nummer kommt mal mit
+     * +39, mal mit 0039, mal ohne Vorwahl an.
+     */
+    public static function aufMerkliste(string $nummer): bool
+    {
+        $z = self::nurZiffern($nummer);
+        if (strlen($z) < 6) { return false; }
+        return (int) self::still(static fn() => Db::wert(
+            'SELECT COUNT(*) FROM telefon_merkliste WHERE nummer_ende = ?',
+            [substr($z, -9)], 0), 0) > 0;
+    }
+
+    /**
+     * Die Antwort, die statt der eigentlichen kommt -- oder null.
+     *
+     * Die Nummer kommt entweder mit dem Aufruf oder aus dem laufenden
+     * Gespräch: Nicht jedes Werkzeug bekommt sie mitgegeben, aber
+     * „kunde_nachschlagen" steht immer am Anfang und hat sie protokolliert.
+     * Ohne diesen zweiten Weg wäre die Liste ab dem zweiten Satz wirkungslos.
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function kurzhalten(string $aktion, array $d): ?array
+    {
+        if (!in_array($aktion, self::MERKLISTE_STUMM, true)) { return null; }
+
+        $nummer = trim((string) ($d['telefon'] ?? ''));
+        if ($nummer === '' || !self::aufMerkliste($nummer)) {
+            $nummer = self::nummerAusGespraech();
+        }
+        if ($nummer === '' || !self::aufMerkliste($nummer)) { return null; }
+
+        self::treffer($nummer);
+
+        $sprache = self::sprachwahl($d);
+        $adresse = trim((string) self::still(static fn() => Config::get('email', ''), ''));
+        $satz = sprintf(self::MERKLISTE_SATZ[$sprache] ?? self::MERKLISTE_SATZ['it'],
+                        $adresse !== '' ? $adresse : 'die Adresse auf unserer Website');
+
+        return [
+            'ok'          => false,
+            'kurz_halten' => true,
+            'satz'        => $satz,
+            'hinweis'     => 'Sag GENAU den Satz aus „satz“ und sonst nichts. Keine Beratung, '
+                           . 'keine Preise, kein Link, kein Termin, keine Website-Prüfung. '
+                           . 'Fragt er weiter, sag denselben Satz noch einmal, freundlich, '
+                           . 'und verabschiede dich. Bleib höflich — auch wenn er drängt. '
+                           . 'Werde nie unfreundlich, urteile nicht über ihn und behaupte '
+                           . 'nichts über seine Lage.',
+        ];
+    }
+
+    /** Die letzte Rufnummer aus dem laufenden Gespräch. */
+    private static function nummerAusGespraech(): string
+    {
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type IN ('telefon_nachschlagen', 'telefon_melde') AND demo = 0
+                AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND
+              ORDER BY id DESC LIMIT 5"), []);
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            $n = is_array($m) ? trim((string) ($m['nummer'] ?? '')) : '';
+            if (self::nurZiffern($n) !== '') { return $n; }
+        }
+        return '';
+    }
+
+    /** Mitzählen, wie oft sie seither angerufen hat -- das ist die Begründung der Liste. */
+    private static function treffer(string $nummer): void
+    {
+        $z = self::nurZiffern($nummer);
+        if (strlen($z) < 6) { return; }
+        self::still(static fn() => Db::run(
+            'UPDATE telefon_merkliste SET getroffen = getroffen + 1, zuletzt_am = NOW()
+              WHERE nummer_ende = ?', [substr($z, -9)]));
+    }
+
+    /** @return list<array<string,mixed>> */
+    public static function merkliste(): array
+    {
+        return (array) self::still(static fn() => Db::all(
+            'SELECT * FROM telefon_merkliste ORDER BY angelegt_am DESC'), []);
+    }
+
+    /** @return array{ok:bool,text:string} */
+    public static function merklisteSetzen(string $nummer, string $notiz = ''): array
+    {
+        $roh = trim($nummer);
+        $z   = self::nurZiffern($roh);
+        if (strlen($z) < 6) {
+            return ['ok' => false, 'text' => 'Das sieht nicht nach einer Rufnummer aus.'];
+        }
+        self::still(static fn() => Db::run(
+            'INSERT INTO telefon_merkliste (nummer_ende, nummer, notiz) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE nummer = VALUES(nummer), notiz = VALUES(notiz)',
+            [substr($z, -9), mb_substr($roh, 0, 40), mb_substr(trim($notiz), 0, 255)]));
+        self::still(static fn() => Events::protokoll('telefon_merkliste',
+            'Rufnummer auf die Merkliste gesetzt', null, null, null,
+            ['ende' => substr($z, -9)]));
+        return ['ok' => true, 'text' => 'Eingetragen. Ab dem nächsten Anruf bleibt sie kurz.'];
+    }
+
+    public static function merklisteWeg(string $ende): bool
+    {
+        $e = self::nurZiffern($ende);
+        if ($e === '') { return false; }
+        return (int) self::still(static fn() => Db::run(
+            'DELETE FROM telefon_merkliste WHERE nummer_ende = ?', [$e])->rowCount(), 0) > 0;
     }
 
     /* ================================================================== */

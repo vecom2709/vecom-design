@@ -2677,6 +2677,225 @@ pruefe('der Abgleich schreibt einen anonymisierten Anruf NICHT wieder voll',
     json_encode(['name' => $an['name'], 'roh' => $an['roh'] === null]));
 
 /* ============================================================================
+   35. Die Merkliste — kurz halten, nicht abweisen
+   ============================================================================
+   Es gibt Anrufer, die regelmäßig anrufen und nie kaufen. Jedes Gespräch
+   kostet eine Beratung, einen Seitenblick, eine Preisspanne und am Ende
+   einen Link, den niemand öffnet. Das ist kein Grund, unhöflich zu werden —
+   es ist ein Grund, kurz zu bleiben.
+
+   Die Hälfte dieser Prüfungen sind Sperren in die andere Richtung: Der Ton
+   bleibt höflich, der Anruf bleibt sichtbar, und über den Anrufer wird
+   nichts behauptet. Sie stehen hier, damit die Grenze nicht in einem halben
+   Jahr aus Versehen verschoben wird.
+   ============================================================================ */
+abschnitt('35. Die Merkliste');
+
+Db::run('DELETE FROM telefon_merkliste');
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+
+pruefe('eine unbekannte Nummer steht nicht darauf', Telefon::aufMerkliste('+39 380 111 2233') === false);
+$fehl = Telefon::merklisteSetzen('abc');
+pruefe('was keine Rufnummer ist, wird abgelehnt', ($fehl['ok'] ?? true) === false, json_encode($fehl));
+
+$ok = Telefon::merklisteSetzen('+39 320 999 8877', 'ruft alle zwei Wochen an');
+pruefe('eine Rufnummer lässt sich eintragen', ($ok['ok'] ?? false) === true, json_encode($ok));
+pruefe('und steht dann darauf', Telefon::aufMerkliste('+39 320 999 8877'));
+
+/* Dieselbe Nummer kommt mal mit +39, mal mit 0039, mal ohne Vorwahl an --
+   verglichen werden die letzten neun Ziffern, genau wie beim Nachschlagen. */
+pruefe('auch in anderer Schreibweise', Telefon::aufMerkliste('0039 320 999 8877'));
+pruefe('und ohne Vorwahl', Telefon::aufMerkliste('3209998877'));
+pruefe('eine fremde Nummer bleibt unberührt', Telefon::aufMerkliste('+39 380 111 2233') === false);
+
+/* DIE SPERRE SITZT IM CODE, NICHT IM PROMPT.
+   Eine Textanweisung befolgt ein Sprachmodell „meistens" -- beim dritten
+   Nachfragen redet es sich in eine Beratung hinein. Hier antwortet das
+   Werkzeug selbst; es kann gar nicht anders. */
+foreach (Telefon::MERKLISTE_STUMM as $aktion) {
+    $k = Telefon::kurzhalten($aktion, ['telefon' => '+39 320 999 8877', 'sprache' => 'de']);
+    pruefe("„$aktion" . '" wird gedeckelt', is_array($k) && ($k['kurz_halten'] ?? false) === true,
+        json_encode($k));
+}
+
+/* Was NICHT gedeckelt wird: Der Anruf soll in der Verwaltung stehen.
+   Niemand wird heimlich weggeblendet. */
+foreach (['kunde_nachschlagen', 'melde', 'lage', 'wissensluecke'] as $aktion) {
+    pruefe("„$aktion" . '" läuft weiter',
+        Telefon::kurzhalten($aktion, ['telefon' => '+39 320 999 8877', 'sprache' => 'de']) === null);
+}
+
+$k = Telefon::kurzhalten('beratung', ['telefon' => '+39 320 999 8877', 'sprache' => 'de']);
+pruefe('sie bekommt einen fertigen Satz', trim((string) ($k['satz'] ?? '')) !== '', json_encode($k));
+
+/* DER TON IST DER GANZE PUNKT. Kurz halten heisst höflich bleiben. */
+$sätze = [];
+foreach (['it', 'de', 'en'] as $sp) {
+    $a = Telefon::kurzhalten('beratung', ['telefon' => '+39 320 999 8877', 'sprache' => $sp]);
+    $sätze[$sp] = (string) ($a['satz'] ?? '');
+}
+pruefe('der Satz steht in allen drei Sprachen',
+    count(array_filter($sätze, static fn($x) => trim($x) !== '')) === 3, json_encode($sätze));
+$grob = ['dumm', 'arm', 'kein Geld', 'lächerlich', 'unverschämt', 'Zeitverschwendung',
+         'Euro hast du nicht', 'leisten kannst'];
+$treffer = [];
+foreach ($sätze as $sp => $satz) {
+    foreach ($grob as $w) {
+        if (mb_stripos($satz, $w) !== false) { $treffer[] = "$sp: $w"; }
+    }
+}
+pruefe('und in keinem steht etwas Herabsetzendes', $treffer === [], implode(', ', $treffer));
+pruefe('der Hinweis verbietet ausdrücklich, unfreundlich zu werden',
+    str_contains((string) $k['hinweis'], 'höflich')
+    && str_contains((string) $k['hinweis'], 'nie unfreundlich'), (string) $k['hinweis']);
+pruefe('und verbietet, etwas über ihn zu behaupten',
+    str_contains((string) $k['hinweis'], 'behaupte nichts'), (string) $k['hinweis']);
+
+/* Beim Nachschlagen weiss sie es ab dem ersten Satz -- statt erst dann,
+   wenn ein Werkzeug sie ausbremst. */
+$n = Telefon::nachschlagen(['telefon' => '+39 320 999 8877']);
+pruefe('das Nachschlagen sagt es sofort', ($n['kurz_halten'] ?? false) === true, json_encode($n));
+pruefe('der Anruf steht trotzdem in der Spur',
+    (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'telefon_nachschlagen'", [], 0) > 0);
+
+/* Ein bekannter Kunde auf der Liste bekommt ebenfalls keinen Projektstand --
+   kurz halten heisst kurz. */
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 320 999 8877', $kundeId]);
+$nk = Telefon::nachschlagen(['telefon' => '+39 320 999 8877']);
+pruefe('auch ein bekannter Kunde wird kurz gehalten', ($nk['kurz_halten'] ?? false) === true);
+pruefe('und bekommt keinen Erinnerungssatz dazu', !isset($nk['schon_einmal']), json_encode($nk));
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+
+/* Auch ohne mitgegebene Nummer greift sie: „kunde_nachschlagen" steht immer
+   am Anfang und hat sie protokolliert. Ohne diesen zweiten Weg wäre die
+   Liste ab dem zweiten Satz wirkungslos. */
+$ohneNummer = Telefon::kurzhalten('beratung', ['sprache' => 'de']);
+pruefe('sie greift auch ohne mitgegebene Nummer',
+    is_array($ohneNummer) && ($ohneNummer['kurz_halten'] ?? false) === true, json_encode($ohneNummer));
+
+/* Wie oft sie seither angerufen hat -- das ist die Begründung der Liste. */
+$e = Db::one('SELECT * FROM telefon_merkliste LIMIT 1');
+pruefe('die Anrufe werden mitgezählt', (int) $e['getroffen'] > 0, json_encode($e['getroffen']));
+
+/* Und wieder herunter davon. */
+pruefe('sie lässt sich wieder aufheben', Telefon::merklisteWeg((string) $e['nummer_ende']));
+pruefe('danach ist die Nummer wieder gewöhnlich',
+    Telefon::aufMerkliste('+39 320 999 8877') === false
+    && Telefon::kurzhalten('beratung', ['telefon' => '+39 320 999 8877', 'sprache' => 'de']) === null);
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+
+/* ============================================================================
+   36. Die zwei Befunde aus dem Rückblick
+   ============================================================================
+   Der wöchentliche Rückblick hat zwei Dinge gemeldet, und beide sind hier
+   behoben — im Werkzeug, nicht nur im Leitfaden. Beide standen nämlich schon
+   im Leitfaden. Eine Anweisung, die ein Sprachmodell in neun von zehn Fällen
+   befolgt, ist bei zehn Gesprächen am Tag ein Fehler pro Tag.
+   ============================================================================ */
+abschnitt('36. Was der Rückblick gemeldet hat');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_merkliste');
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+
+/* „In 2 Gesprächen hat sie jemanden erkannt und ihn danach trotzdem als
+   unbekannt behandelt." */
+pruefe('ohne Nachschlagen ist niemand bekannt', Telefon::kundeImGespraech([]) === 0);
+pruefe('eine mitgegebene kunde_id gilt unverändert',
+    Telefon::kundeImGespraech(['kunde_id' => $kundeId]) === $kundeId);
+
+$n = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('das Nachschlagen findet ihn', (int) ($n['kunde_id'] ?? 0) === $kundeId, json_encode($n['gefunden'] ?? null));
+pruefe('und danach gilt er auch ohne mitgegebene kunde_id als erkannt',
+    Telefon::kundeImGespraech([]) === $kundeId, json_encode(Telefon::kundeImGespraech([])));
+
+/* DIE GRENZE BLEIBT: Wer nie gefunden wurde, wird auch hier nicht gefunden.
+   Eine Stimme ist kein Ausweis. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::nachschlagen(['telefon' => '+49 155 000 0000']);
+pruefe('ein nicht gefundener Anrufer bleibt unbekannt',
+    Telefon::kundeImGespraech([]) === 0, json_encode(Telefon::kundeImGespraech([])));
+
+/* DER GEFÄHRLICHSTE FALL ÜBERHAUPT
+   ------------------------------------------------------------------------
+   Ruft nach einem Bestandskunden innerhalb von zehn Minuten ein Fremder an,
+   darf der NICHT dessen Identität erben — sonst bekäme er Projektstand und
+   Konfigurator-Link an eine Adresse, die ihm nicht gehört, und es passierte
+   lautlos. Der erste Entwurf dieser Methode ging die letzten drei Zeilen
+   durch und nahm den ersten Treffer; der Kettentest hat ihn dafür zerrissen.
+   Es gilt nur das JÜNGSTE Nachschlagen. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);   // der Kunde
+pruefe('nach dem Kunden gilt der Kunde', Telefon::kundeImGespraech([]) === $kundeId);
+Telefon::nachschlagen(['telefon' => '+49 155 000 0000']);   // gleich danach ein Fremder
+pruefe('ein Fremder danach erbt seine Akte NICHT',
+    Telefon::kundeImGespraech([]) === 0, json_encode(Telefon::kundeImGespraech([])));
+
+/* Und wenn ein Werkzeug eine andere Nummer mitbringt als die zuletzt
+   nachgeschlagene, spricht sie mit jemand anderem. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('dieselbe Nummer passt',
+    Telefon::kundeImGespraech(['telefon' => '0039 380 111 2233']) === $kundeId);
+pruefe('eine andere Nummer nicht',
+    Telefon::kundeImGespraech(['telefon' => '+49 155 000 0000']) === 0);
+
+/* Und bei mehreren Treffern hat der Anrufer selbst noch nicht entschieden,
+   wer er ist — dann darf es das Werkzeug auch nicht. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::protokoll('nachschlagen', 'Nachgeschlagen', null, ['treffer' => 3]);
+pruefe('bei mehreren Treffern bleibt es offen', Telefon::kundeImGespraech([]) === 0);
+
+/* Das Werkzeug muss es auch wirklich benutzen — sonst wäre die Methode ein
+   ungenutztes Versprechen. Der Nachweis: „hilfe" gibt einem erkannten
+   Anrufer einen Stand, ohne dass die kunde_id mitkommt. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+$h = Telefon::hilfe(['problem' => 'fragebogen', 'sprache' => 'de']);
+pruefe('„hilfe" erkennt ihn ohne mitgegebene kunde_id',
+    ($h['bekannt'] ?? false) === true, json_encode($h['bekannt'] ?? null));
+
+/* „4 von 5 Hilferufen landeten unter Sonstiges." */
+pruefe('was er sagt, entscheidet, wenn das Modell sich drückt',
+    Telefon::problemErkennen('sonstiges', ['text' => 'Die Überweisung ist nicht angekommen'])
+        === 'bezahlung');
+pruefe('auch bei leerer Angabe',
+    Telefon::problemErkennen('', ['text' => 'Ich komme beim Fragebogen nicht weiter'])
+        === 'fragebogen');
+pruefe('und auf Italienisch',
+    Telefon::problemErkennen('sonstiges', ['text' => 'Non riesco a fare il pagamento'])
+        === 'bezahlung');
+
+/* WAS HIER NICHT PASSIERT: raten. */
+pruefe('ein festgelegtes Wort wird nicht überstimmt',
+    Telefon::problemErkennen('zugang', ['text' => 'Es geht um die Rechnung']) === 'zugang');
+pruefe('bei zwei möglichen Fällen bleibt es „sonstiges“',
+    Telefon::problemErkennen('sonstiges', ['text' => 'Der Link zum Fragebogen fehlt']) === 'sonstiges');
+pruefe('und wo nichts passt, stimmt „sonstiges“ auch',
+    Telefon::problemErkennen('sonstiges', ['text' => 'Ich wollte nur mal hallo sagen']) === 'sonstiges');
+pruefe('ohne Text bleibt es dabei', Telefon::problemErkennen('sonstiges', []) === 'sonstiges');
+
+/* Jedes der fünf Wörter hat Stichwörter — sonst wäre die Erkennung für
+   dieses eine Wort tot, und niemand merkte es. */
+$ohne = array_values(array_diff(
+    array_filter(Telefon::PROBLEME, static fn($p) => $p !== 'sonstiges'),
+    array_keys(Telefon::PROBLEM_WORTE)));
+pruefe('jeder der fünf Fälle ist erkennbar', $ohne === [], implode(', ', $ohne));
+
+/* Und am Ende steht es auch wirklich so in der Spur — dort liest es die
+   Liste „Woran es hakt“. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::hilfe(['problem' => 'sonstiges', 'sprache' => 'de',
+                'text' => 'Ich kann mich nicht einloggen']);
+$sp = Db::one("SELECT meta FROM activities WHERE type = 'telefon_hilfe' ORDER BY id DESC LIMIT 1");
+$mm = json_decode((string) ($sp['meta'] ?? ''), true);
+pruefe('die Spur trägt das erkannte Wort, nicht „sonstiges“',
+    ($mm['problem'] ?? '') === 'zugang', json_encode($mm));
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
