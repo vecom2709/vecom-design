@@ -1184,6 +1184,26 @@ final class Texte
             'en' => ['Your page — Vecom Design',
                 "Hello {name},\n\nas discussed on the phone, here is your page:\n\n{link}\n\nIt always shows where we stand and what you can do right now. The link is personal — no password needed.\n\nIf anything looks wrong, just reply to this email.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
+        /* NACH DEM ANRUF
+           ------------------------------------------------------------------
+           Die Mail, die aus einem Gespraech einen Auftrag macht -- oder eben
+           nicht. Deshalb steht hier kein Rabatt, keine Frist und kein
+           „melden Sie sich bald": Wer nach einem Telefonat gedraengt wird,
+           antwortet nicht mehr. Es steht nur, worueber gesprochen wurde,
+           damit er es morgen noch weiss, und der Fragebogen, in dem seine
+           Antworten schon drinstehen.
+
+           Die Platzhalter duerfen leer bleiben. Ist keine Spanne genannt
+           worden, faellt die Zeile weg -- Telefon::uebergabe raeumt die
+           entstehenden Leerzeilen weg. */
+        'uebergabe' => [
+            'it' => ['Come promesso al telefono',
+                "Buongiorno{name},\n\ncome promesso, ecco tutto per iscritto — così lo ha anche domani.\n\n{block}\n\nQui trova il questionario con dentro già le sue risposte — bastano pochi minuti per completarlo, e da lì esce il preventivo:\n\n{link}\n\nNessuna fretta e nessun impegno. Se preferisce parlarne, risponda a questa e-mail.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Wie am Telefon besprochen',
+                "Guten Tag{name},\n\nwie versprochen alles noch einmal schriftlich — damit Sie es morgen auch noch haben.\n\n{block}\n\nHier ist der Fragebogen, in dem Ihre Antworten schon stehen — die letzten Angaben dauern ein paar Minuten, und daraus entsteht das Angebot:\n\n{link}\n\nKeine Eile und keine Verpflichtung. Wenn Sie lieber sprechen möchten, antworten Sie einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
+            'en' => ['As promised on the phone',
+                "Hello{name},\n\nas promised, here it all is in writing — so you still have it tomorrow.\n\n{block}\n\nHere is the questionnaire with your answers already filled in — the rest takes a few minutes, and the quote comes out of it:\n\n{link}\n\nNo hurry and no obligation. If you would rather talk it through, just reply to this email.\n\nUwe Vetter · Vecom Design"],
+        ],
         'fragebogen_erinnerung' => [
             'it' => ['Un promemoria per il tuo progetto',
                 "Ciao {name},\n\nmanca ancora il questionario per il tuo progetto. Senza quelle informazioni non possiamo iniziare davvero.\n\nEccolo — dieci minuti bastano:\n\n{link}\n\nSe qualcosa non è chiaro, rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
@@ -1811,6 +1831,25 @@ final class Texte
     {
         return (string) ($karte[$sprache] ?? $karte['it'] ?? $ersatz);
     }
+
+    /**
+     * Die Ueberschriften im Mittelteil der Uebergabe-Mail.
+     *
+     * Sie stehen hier und nicht in der Vorlage, weil ein Baustein fehlen
+     * darf: Wurde keine Spanne genannt, faellt „Groessenordnung" mit weg.
+     * Eine Ueberschrift ohne Inhalt sieht aus wie ein Fehler -- und ist einer.
+     */
+    public const UEBERGABE_TEILE = [
+        'besprochen' => ['it' => 'Di che cosa abbiamo parlato',
+                         'de' => 'Worüber wir gesprochen haben',
+                         'en' => 'What we talked about'],
+        'spanne'     => ['it' => 'Ordine di grandezza',
+                         'de' => 'Größenordnung',
+                         'en' => 'Rough range'],
+        'befund'     => ['it' => 'Quello che ho visto sul suo sito',
+                         'de' => 'Was mir an Ihrer Seite aufgefallen ist',
+                         'en' => 'What I noticed on your site'],
+    ];
 
     public static function mail(string $anlass, string $sprache, array $werte): array
     {

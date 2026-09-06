@@ -51,7 +51,8 @@ final class Telefon
     /** Die Aktionen, die es gibt. Was nicht hier steht, gibt es nicht. */
     public const AKTIONEN = ['kunde_nachschlagen', 'preis_auskunft', 'lage',
                              'angebot_link', 'melde', 'zusammenfassung', 'wissensluecke',
-                             'hilfe'];
+                             'hilfe', 'seite_ansehen', 'beratung', 'beleg',
+                             'uebergabe', 'wissen', 'termin'];
 
     /**
      * Woran jemand haengen bleibt.
@@ -1138,6 +1139,25 @@ final class Telefon
                        AND e.meta LIKE CONCAT('%\"quelle\":\"', a.id, '\"%'))
               ORDER BY a.created_at DESC"), []);
 
+        /* WAS IM SELBEN GESPRAECH SONST NOCH PASSIERT IST
+           ------------------------------------------------------------------
+           Ein Rueckrufzettel allein sagt nicht, wie dringlich er ist. Wer
+           vorher sechs Fragen beantwortet, seine Website hat pruefen lassen
+           und einen Termin genommen hat, ist etwas anderes als jemand, der
+           „rufen Sie mal an" gesagt hat.
+
+           Zugeordnet wird ueber die Zeit: alles aus demselben Gespraech
+           liegt innerhalb weniger Minuten. Das ist eine Naeherung, und sie
+           kann bei zwei Anrufen kurz hintereinander danebengreifen --
+           deshalb steht der Grund immer daneben, und deshalb entscheidet
+           die Zahl nichts, sondern sortiert nur. */
+        $umfeld = (array) self::still(static fn() => Db::all(
+            "SELECT type, created_at, customer_id, meta
+               FROM activities
+              WHERE type IN ('telefon_beratung','telefon_seitenblick','telefon_termin','telefon_uebergabe')
+                AND demo = 0
+                AND created_at >= NOW() - INTERVAL $tage DAY"), []);
+
         $raus = [];
         foreach ($zeilen as $z) {
             $m = json_decode((string) ($z['meta'] ?? ''), true);
@@ -1166,6 +1186,8 @@ final class Telefon
 
             $alter = max(0, (int) round((time() - strtotime((string) $z['created_at'])) / 3600));
 
+            $wert = self::bewerten(self::gespraechsumfeld($z, $umfeld, $m));
+
             $raus[] = [
                 'id'          => (int) $z['id'],
                 'wann'        => (string) $z['created_at'],
@@ -1178,13 +1200,18 @@ final class Telefon
                 'kunde_id'    => $kundeId,
                 'stunden'     => $alter,
                 'ueberfaellig'=> $alter >= self::RUECKRUF_UEBERFAELLIG_STUNDEN,
+                'punkte'      => $wert['punkte'],
+                'gruende'     => $wert['gruende'],
             ];
         }
 
-        /* Dringend zuerst, dann das Aelteste. Wer am laengsten wartet, hat
-           am ehesten schon aufgegeben. */
+        /* Dringend zuerst -- das hat der Anrufer selbst gesagt, und es
+           schlaegt jede Rechnung. Dann die Bewertung, und bei gleicher
+           Bewertung das Aelteste: Wer am laengsten wartet, hat am ehesten
+           schon aufgegeben. */
         usort($raus, static function (array $a, array $b): int {
             if ($a['dringend'] !== $b['dringend']) { return $a['dringend'] ? -1 : 1; }
+            if ($a['punkte'] !== $b['punkte'])     { return $b['punkte'] <=> $a['punkte']; }
             return $b['stunden'] <=> $a['stunden'];
         });
         return $raus;
@@ -1424,6 +1451,798 @@ final class Telefon
         return ['anrufe' => $anrufe, 'links' => $links, 'bedarf' => $bedarf,
                 'anfragen' => $anfragen, 'bestellungen' => $bestellungen];
     }
+
+    /* ================================================================== */
+    /*  9. Der Seitenblick                                                */
+    /* ================================================================== */
+
+    /**
+     * Sie sieht sich die Website des Anrufers an, waehrend er redet.
+     *
+     * Der ganze Unterschied zwischen Verkaufsgespraech und Beratung steckt
+     * in dieser Aktion: Wer drei Saetze sagen kann, die nachweislich fuer
+     * genau diese Seite gelten, muss nicht mehr ueberzeugen.
+     *
+     * Was hier NICHT passiert: kein Urteil ueber Gestaltung, kein "Ihre
+     * Seite ist veraltet", keine Zahl, die nicht gemessen wurde. Die Klasse
+     * Seitenblick liefert nur Nachpruefbares, und was sie nicht gemessen
+     * hat, sagt Manuela auch nicht.
+     */
+    public static function seiteAnsehen(array $d): array
+    {
+        require_once __DIR__ . '/Seitenblick.php';
+
+        $sprache = self::sprachwahl($d);
+        $adresse = trim((string) ($d['adresse'] ?? $d['domain'] ?? $d['website'] ?? ''));
+        if ($adresse === '') {
+            return ['gefunden' => false, 'grund' => 'keine_adresse',
+                    'hinweis' => 'Nach der Internetadresse fragen, buchstabieren lassen.'];
+        }
+
+        $blick = Seitenblick::ansehen($adresse, $sprache);
+
+        /* Protokolliert wird, was gemessen wurde -- damit Uwe vor dem
+           Rueckruf dasselbe sieht wie der Anrufer gehoert hat. Ohne diese
+           Zeile waere die Beratung nach dem Auflegen verloren. */
+        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        self::protokoll('seitenblick',
+            'Website angesehen — ' . ($blick['adresse'] ?? $adresse),
+            $kundeId > 0 ? $kundeId : null,
+            ['adresse' => $blick['adresse'] ?? $adresse,
+             'gefunden' => (bool) $blick['gefunden'],
+             'arten' => array_map(static fn($b) => $b['art'], $blick['befunde'] ?? []),
+             'messwerte' => $blick['messwerte'] ?? []]);
+
+        return $blick;
+    }
+
+    /* ================================================================== */
+    /*  10. Der gesprochene Konfigurator                                  */
+    /* ================================================================== */
+
+    /**
+     * In welcher Reihenfolge am Telefon gefragt wird.
+     *
+     * Nicht alle acht Fragen des Konfigurators: Nach Material und Zeitrahmen
+     * fragt man niemanden im Vorbeigehen -- die beantwortet er besser in
+     * Ruhe im Formular. Diese sechs sind die, die ein Mensch am Hoerer
+     * ohnehin von sich aus erzaehlt, und sie tragen den Preis.
+     */
+    public const BERATUNG_REIHE = ['zweck', 'umfang', 'sprachen', 'bestand', 'branche', 'betreuung'];
+
+    /**
+     * Beratung statt Preisauskunft: Sie fuehrt das Gespraech, das sonst das
+     * Formular fuehrt.
+     *
+     * WARUM DER BEDARF SELBST DAS GEDAECHTNIS IST
+     *
+     * Die Telefonplattform hat keines. Wer den Gespraechsstand im Modell
+     * halten will, bekommt bei jedem dritten Satz eine erfundene Antwort
+     * zurueck. Hier ist der Bedarfsdatensatz der Gespraechsfaden: Beim
+     * ersten Aufruf entsteht er, sein Token traegt Manuela durch das
+     * Gespraech, und am Ende ist er genau der halb ausgefuellte Fragebogen,
+     * den der Anrufer als Link bekommt. Nichts wird zweimal angelegt,
+     * nichts geht beim Auflegen verloren.
+     */
+    public static function beratung(array $d): array
+    {
+        require_once __DIR__ . '/Baukasten.php';
+        require_once __DIR__ . '/Bedarf.php';
+
+        $sprache = self::sprachwahl($d);
+
+        /* Den Faden aufnehmen oder einen neuen anfangen. */
+        $faden = trim((string) ($d['gespraech'] ?? ''));
+        $z = $faden !== '' ? self::still(static fn() => Bedarf::laden($faden), null) : null;
+        if (!is_array($z)) {
+            $z = self::still(static fn() => Bedarf::starten($sprache), null);
+            if (!is_array($z)) {
+                return ['ok' => false, 'grund' => 'kein_faden',
+                        'hinweis' => 'Beratung nicht moeglich. Anliegen mit „melde" aufnehmen.'];
+            }
+        }
+        $id    = (int) $z['id'];
+        $token = (string) $z['token'];
+
+        /* Was er gerade gesagt hat, dazuschreiben. Ungueltiges verwirft der
+           Konfigurator still -- gewollt: Ein falsch verstandenes Wort laesst
+           die Frage offen, statt sie falsch zu beantworten. */
+        $feld  = (string) ($d['antwort_auf'] ?? '');
+        $wert  = $d['antwort'] ?? null;
+        if (in_array($feld, self::BERATUNG_REIHE, true) && $wert !== null && $wert !== '') {
+            if (is_string($wert) && str_contains($wert, ',')) {
+                $wert = array_slice(array_map('trim', explode(',', $wert)), 0, 8);
+            }
+            self::still(static fn() => Bedarf::speichern($id, [$feld => $wert], 1), null);
+        }
+
+        $z = (array) (self::still(static fn() => Bedarf::laden($token), []) ?: []);
+        $antworten = Bedarf::antworten($z);
+
+        /* Die naechste Frage ist die erste, auf die noch nichts steht. */
+        $offen = null;
+        foreach (self::BERATUNG_REIHE as $f) {
+            $a = $antworten[$f] ?? null;
+            if ($a === null || $a === '' || $a === []) { $offen = $f; break; }
+        }
+
+        $aus = [
+            'gespraech'  => $token,
+            'beantwortet' => array_values(array_intersect(self::BERATUNG_REIHE, array_keys(array_filter(
+                $antworten, static fn($v) => $v !== null && $v !== '' && $v !== [])))),
+            'fertig'     => $offen === null,
+        ];
+
+        if ($offen !== null) {
+            $frage = Baukasten::FRAGEN[$offen] ?? null;
+            if (is_array($frage)) {
+                $aus['frage_zu']  = $offen;
+                $aus['art']       = (string) ($frage['art'] ?? 'einfach');
+                $aus['frage']     = (string) ($frage['frage'][$sprache] ?? $frage['frage']['it'] ?? '');
+                $aus['optionen']  = [];
+                foreach (($frage['optionen'] ?? []) as $k => $t) {
+                    $aus['optionen'][(string) $k] = (string) ($t[$sprache] ?? $t['it'] ?? $k);
+                }
+                /* Der fertige Satz: Ein Modell, das ihn nur vorliest, macht
+                   weniger falsch als eines, das aus Feldern einen baut. */
+                $aus['satz'] = trim($aus['frage'] . ' ' . implode(', ', $aus['optionen']) . '?');
+            }
+        }
+
+        /* Sobald genug gesagt ist, laeuft der Preis mit. Nicht erst am Ende:
+           Wer nach der zweiten Frage hoert, in welcher Gegend er landet,
+           bleibt im Gespraech -- oder legt auf, und das ist auch eine
+           ehrliche Antwort. */
+        if (Baukasten::genugGesagt($antworten)) {
+            $r = self::still(static fn() => Baukasten::rechnen($antworten), null);
+            if (is_array($r)) {
+                $sp = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
+                $aus['von_euro'] = (int) round($sp['von_cents'] / 100);
+                $aus['bis_euro'] = (int) round($sp['bis_cents'] / 100);
+                if ((int) ($r['monatlich_cents'] ?? 0) > 0) {
+                    $aus['monatlich_euro'] = (int) round(((int) $r['monatlich_cents']) / 100);
+                }
+            }
+        }
+
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $aus['link'] = $basis . '/bedarf.php?t=' . $token . '&lang=' . $sprache;
+
+        $aus['hinweis'] = $aus['fertig']
+            ? 'Alles gefragt. Spanne nennen, dann „uebergabe" aufrufen und die Adresse erfragen.'
+            : 'Stelle genau die Frage aus „satz". Nimm als Antwort nur einen Schluessel aus „optionen". '
+            . 'Verstehst du ihn nicht, frag einmal nach, dann geh weiter.';
+
+        self::protokoll('beratung', 'Beratung am Telefon — '
+            . ($aus['fertig'] ? 'durchgefragt' : 'bei ' . (string) $offen),
+            isset($d['kunde_id']) && (int) $d['kunde_id'] > 0 ? (int) $d['kunde_id'] : null,
+            ['bedarf_id' => $id, 'beantwortet' => $aus['beantwortet'],
+             'fertig' => $aus['fertig'],
+             'von_euro' => $aus['von_euro'] ?? null, 'bis_euro' => $aus['bis_euro'] ?? null]);
+
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  11. Der Beweis, der zum Anrufer passt                             */
+    /* ================================================================== */
+
+    /**
+     * Eine echte Kundenstimme statt eines Werbesatzes.
+     *
+     * „Ich baue gute Websites" glaubt niemand, und zu Recht. Ein Satz, den
+     * ein Friseursalon in derselben Provinz geschrieben hat, ist etwas
+     * anderes -- er ist nachpruefbar, und er stammt nicht von uns.
+     *
+     * Erfunden wird hier nichts: Gibt es keine veroeffentlichte Stimme,
+     * kommt keine zurueck. Ein Assistent, der sich eine Referenz ausdenkt,
+     * kostet mehr als alle, die er je gewinnt.
+     */
+    public static function beleg(array $d): array
+    {
+        require_once __DIR__ . '/Stimme.php';
+
+        $sprache = self::sprachwahl($d);
+        $branche = mb_strtolower(trim((string) ($d['branche'] ?? '')));
+
+        $alle = (array) self::still(static fn() => Stimme::oeffentliche($sprache, 12), []);
+        $aus  = ['stimmen' => [], 'zahlen' => []];
+
+        /* Passend heisst: derselbe Betriebstyp. Ist keine da, kommt die
+           naechstbeste -- aber sie wird nicht als passend ausgegeben. */
+        $passend = [];
+        $rest    = [];
+        foreach ($alle as $s) {
+            $text = mb_strtolower((string) ($s['text'] ?? '') . ' ' . (string) ($s['firma'] ?? ''));
+            if ($branche !== '' && str_contains($text, $branche)) { $passend[] = $s; }
+            else { $rest[] = $s; }
+        }
+        foreach (array_slice(array_merge($passend, $rest), 0, 2) as $s) {
+            $aus['stimmen'][] = [
+                'text'    => mb_substr(trim((string) ($s['text'] ?? '')), 0, 400),
+                'von'     => trim((string) ($s['name'] ?? '')),
+                'betrieb' => trim((string) ($s['firma'] ?? '')),
+                'sterne'  => $s['sterne'] !== null ? (int) $s['sterne'] : null,
+                'passend' => $branche !== '' && in_array($s, $passend, true),
+            ];
+        }
+
+        /* Zahlen, die stimmen, weil sie gezaehlt werden. Keine Marketing-
+           Zahl, keine Schaetzung, kein "ueber 100 zufriedene Kunden". */
+        $fertig = (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(*) FROM projects WHERE status IN ('online','abgeschlossen')", [], 0), 0);
+        if ($fertig > 0) { $aus['zahlen']['fertige_projekte'] = $fertig; }
+
+        $aus['hinweis'] = $aus['stimmen']
+            ? 'Nenne hoechstens eine Stimme, sinngemaess, mit Betrieb. Nie mehrere hintereinander.'
+            : 'Es liegt keine veroeffentlichte Stimme vor. Dann keine nennen und keine erfinden — '
+            . 'sag stattdessen, dass Uwe Beispiele schickt.';
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  12. Die Uebergabe nach dem Gespraech                              */
+    /* ================================================================== */
+
+    /**
+     * Was nach dem Auflegen bei ihm ankommt.
+     *
+     * Auftraege entstehen nicht im Gespraech, sondern danach -- wenn er
+     * etwas in der Hand hat statt einer Erinnerung. Deshalb geht hier eine
+     * Nachricht raus mit genau dem, worueber gesprochen wurde: die Spanne,
+     * der halb ausgefuellte Fragebogen, und der eine Befund von seiner
+     * eigenen Seite.
+     *
+     * Und deshalb ist das hier keine Verkaufsmail: kein Rabatt, keine Frist,
+     * kein "melden Sie sich bald". Wer gedraengt wird, antwortet nicht.
+     */
+    public static function uebergabe(array $d): array
+    {
+        require_once __DIR__ . '/Bedarf.php';
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Texte.php';
+
+        $sprache = self::sprachwahl($d);
+        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+
+        /* Dieselbe Regel wie beim Angebotslink: an die hinterlegte Adresse,
+           wenn wir den Anrufer kennen -- sonst an die, die er nennt. Eine am
+           Telefon genannte Adresse darf nie einen Bestandskunden umleiten. */
+        if ($kundeId > 0) {
+            $an = trim((string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kundeId], ''));
+            if ($an === '') {
+                return ['ok' => false, 'grund' => 'keine_adresse',
+                        'hinweis' => 'Keine Adresse hinterlegt. Rueckruf mit „melde" aufnehmen.'];
+            }
+        } else {
+            $an = mb_strtolower(trim((string) ($d['email'] ?? '')));
+            if (!filter_var($an, FILTER_VALIDATE_EMAIL)) {
+                return ['ok' => false, 'grund' => 'adresse_unklar',
+                        'hinweis' => 'Adresse buchstabieren lassen, hoechstens einmal. '
+                                   . 'Klappt es nicht, „melde" mit Rufnummer.'];
+            }
+        }
+
+        $faden = trim((string) ($d['gespraech'] ?? ''));
+        $z = $faden !== '' ? self::still(static fn() => Bedarf::laden($faden), null) : null;
+
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $link  = is_array($z)
+            ? $basis . '/bedarf.php?t=' . $z['token'] . '&lang=' . $sprache
+            : $basis . '/bedarf.php?lang=' . $sprache;
+
+        $stuecke = [];
+        if (is_array($z)) {
+            $zus = self::still(static fn() => Bedarf::zusammenfassung(
+                Bedarf::antworten($z), $sprache), '');
+            if (is_string($zus) && trim($zus) !== '') { $stuecke['besprochen'] = trim($zus); }
+        }
+        $von = isset($d['von_euro']) ? (int) $d['von_euro'] : 0;
+        $bis = isset($d['bis_euro']) ? (int) $d['bis_euro'] : 0;
+        if ($von > 0 && $bis >= $von) { $stuecke['spanne'] = $von . '–' . $bis . ' €'; }
+        $befund = trim((string) ($d['befund'] ?? ''));
+        if ($befund !== '') { $stuecke['befund'] = mb_substr($befund, 0, 400); }
+
+        /* Leere Bausteine fallen als leere Zeile heraus statt als Ueberschrift
+           ohne Inhalt. Eine Mail mit „Besprochen:" und nichts darunter sieht
+           aus wie ein Fehler, und sie ist einer. */
+        $name = $kundeId > 0
+            ? (string) self::still(static fn() => Db::wert(
+                'SELECT name FROM customers WHERE id = ?', [$kundeId], ''), '')
+            : mb_substr(trim((string) ($d['name'] ?? '')), 0, 120);
+
+        /* Der Mittelteil wird gebaut, nicht ausgefuellt: Was nicht gesagt
+           wurde, bekommt auch keine Ueberschrift. */
+        $block = [];
+        foreach (['besprochen', 'spanne', 'befund'] as $teil) {
+            $inhalt = trim((string) ($stuecke[$teil] ?? ''));
+            if ($inhalt === '') { continue; }
+            $kopf = Texte::UEBERGABE_TEILE[$teil][$sprache] ?? Texte::UEBERGABE_TEILE[$teil]['it'];
+            $block[] = $kopf . ': ' . $inhalt;
+        }
+
+        [$betreff, $text] = Texte::mail('uebergabe', $sprache, [
+            /* Mit Leerzeichen davor oder gar nicht: „Guten Tag,“ ohne Namen
+               liest sich richtig, „Guten Tag ,“ nicht. */
+            'name'  => $name !== '' ? ' ' . $name : '',
+            'block' => implode("\n\n", $block),
+            'link'  => $link,
+        ]);
+        $text = preg_replace("/\n{3,}/", "\n\n", $text) ?? $text;
+
+        $ok = (bool) self::still(static fn() => Mail::senden(
+            'uebergabe', $an, $betreff, $text,
+            $kundeId > 0 ? ['customer_id' => $kundeId] : []), false);
+
+        self::protokoll('uebergabe',
+            $ok ? 'Gesprächsnotiz und Fragebogen verschickt' : 'Übergabe fehlgeschlagen',
+            $kundeId > 0 ? $kundeId : null,
+            ['an' => self::verdeckt($an), 'ok' => $ok,
+             'bedarf_id' => is_array($z) ? (int) $z['id'] : null,
+             'spanne' => $stuecke['spanne'] ?? null]);
+
+        if (!$ok) {
+            self::melden(['art' => 'nachricht', 'kunde_id' => $kundeId, 'prioritaet' => 'dringend',
+                          'text' => 'Übergabe nach dem Anruf ging nicht raus. Adresse: '
+                                  . self::verdeckt($an) . ' — Link: ' . $link]);
+            return ['ok' => false, 'grund' => 'versand', 'weiter' => 'gemeldet',
+                    'hinweis' => 'Ehrlich sagen, dass die Mail nicht rausging, und einen Rueckruf zusagen.'];
+        }
+
+        return ['ok' => true, 'an' => self::verdeckt($an), 'link' => $link,
+                'hinweis' => 'Sag, was in der Mail steht, und nenne keine Frist. Kein „melden Sie sich bald".'];
+    }
+
+    /* ================================================================== */
+    /*  13. Wissen, das nicht veraltet                                    */
+    /* ================================================================== */
+
+    /**
+     * Pakete, Bausteine und Preise -- live aus der Verwaltung.
+     *
+     * Die Wissensablage der Telefonplattform ist eine Momentaufnahme der
+     * Website von irgendwann. Genau daran ist gestern ein Gespraech
+     * gescheitert: Sie nannte einen Festpreis, den es so nicht mehr gab.
+     * Was hier zurueckkommt, steht in derselben Sekunde in der Datenbank,
+     * aus der auch die Website liest. Es kann deshalb nicht auseinanderlaufen.
+     */
+    public static function wissen(array $d): array
+    {
+        require_once __DIR__ . '/Baukasten.php';
+
+        $sprache = self::sprachwahl($d);
+        $aus = ['waehrung' => 'EUR', 'pakete' => [], 'bausteine' => []];
+
+        foreach ((array) self::still(static fn() => Db::all(
+            "SELECT name, art, price_cents, monthly_cents FROM packages
+              WHERE active = 1 ORDER BY art, price_cents, monthly_cents"), []) as $p) {
+            $eintrag = ['name' => (string) $p['name'], 'art' => (string) $p['art']];
+            if ((int) $p['price_cents'] > 0)   { $eintrag['preis_euro'] = (int) round(((int) $p['price_cents']) / 100); }
+            if ((int) $p['monthly_cents'] > 0) { $eintrag['monatlich_euro'] = (int) round(((int) $p['monthly_cents']) / 100); }
+            $aus['pakete'][] = $eintrag;
+        }
+
+        /* Nur die Bausteine, die ohnehin oeffentlich im Konfigurator stehen.
+           Was nur auf Anfrage angeboten wird, bleibt draussen -- das schlaegt
+           sonst am Telefon in einem Preis auf, den Uwe nie genannt haette. */
+        foreach ((array) self::still(static fn() => Baukasten::katalog(true), []) as $slug => $b) {
+            if (in_array($slug, Baukasten::NUR_AUF_ANFRAGE, true)) { continue; }
+            $aus['bausteine'][] = [
+                'name'     => (string) self::still(static fn() => Baukasten::name($b, $sprache), $slug),
+                'von_euro' => (int) round(((int) ($b['preis_cents'] ?? 0)) / 100),
+                'bis_euro' => (int) round(((int) ($b['preis_bis_cents'] ?: $b['preis_cents'] ?? 0)) / 100),
+            ];
+        }
+
+        $aus['modus']   = self::modus();
+        $aus['hinweis'] = 'Diese Zahlen sind die aktuellen. Nenne sie nie als Endpreis eines Projekts — '
+                        . 'ein Projekt ist eine Spanne, und die kommt aus „beratung".';
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  14. Termin statt Rueckruf                                         */
+    /* ================================================================== */
+
+    /** Wann Uwe telefoniert. Ausserhalb wird nichts angeboten. */
+    public const TERMIN_TAGE     = [1, 2, 3, 4, 5];       // Montag bis Freitag
+    public const TERMIN_STUNDEN  = [10, 11, 15, 16, 17];
+    public const TERMIN_VORLAUF  = 2;                      // Stunden
+    public const TERMIN_VORAUS   = 10;                     // Tage
+
+    /**
+     * Ein fester Termin kommt oefter zustande als ein „er meldet sich".
+     *
+     * Der Unterschied ist nicht Technik, sondern Verbindlichkeit: Wer einen
+     * Zeitpunkt genannt bekommt, sagt zu oder ab -- beides ist mehr wert als
+     * ein Rueckruf, auf den keiner wartet.
+     *
+     * Ohne „wann" liefert die Aktion freie Plaetze; mit „wann" bucht sie.
+     */
+    public static function termin(array $d): array
+    {
+        $sprache = self::sprachwahl($d);
+        $wann    = trim((string) ($d['wann'] ?? ''));
+
+        if ($wann === '') {
+            return ['frei' => self::freiePlaetze(), 'zeitzone' => (string) Config::get('zeitzone', 'Europe/Rome'),
+                    'hinweis' => 'Nenne hoechstens drei Plaetze, nicht die ganze Liste. '
+                               . 'Nimm die Zusage als „wann" genau so, wie sie in „frei" steht.'];
+        }
+
+        if (!in_array($wann, self::freiePlaetze(), true)) {
+            return ['ok' => false, 'grund' => 'nicht_frei', 'frei' => self::freiePlaetze(),
+                    'hinweis' => 'Der Platz ist weg. Nenne zwei andere.'];
+        }
+
+        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+        $nummer  = self::nurZiffern((string) ($d['telefon'] ?? ''));
+        $name    = trim((string) ($d['name'] ?? ''));
+        $worum   = mb_substr(trim((string) ($d['anliegen'] ?? '')), 0, 500);
+
+        self::protokoll('termin', 'Termin vereinbart — ' . $wann,
+            $kundeId > 0 ? $kundeId : null,
+            ['wann' => $wann, 'nummer' => $nummer, 'name' => $name,
+             'anliegen' => $worum, 'sprache' => $sprache]);
+
+        /* Der Termin steht auch in der Rueckrufliste -- als Verabredung mit
+           Uhrzeit, nicht als offener Zettel. Sonst muesste er zwei Listen
+           lesen, und die zweite liest niemand. */
+        self::melden(['art' => 'rueckruf', 'kunde_id' => $kundeId, 'prioritaet' => 'normal',
+                      'telefon' => $nummer, 'name' => $name,
+                      'erreichbar' => $wann,
+                      'text' => 'Verabredeter Termin: ' . $wann . ($worum !== '' ? ' — ' . $worum : '')]);
+
+        return ['ok' => true, 'wann' => $wann,
+                'hinweis' => 'Wiederhole den Termin einmal und sag, dass Uwe zu dieser Zeit anruft.'];
+    }
+
+    /** @return list<string> Freie Plaetze als „2026-09-08 15:00". */
+    private static function freiePlaetze(): array
+    {
+        $zone = new DateTimeZone((string) Config::get('zeitzone', 'Europe/Rome'));
+        $jetzt = new DateTimeImmutable('now', $zone);
+        $ab    = $jetzt->modify('+' . self::TERMIN_VORLAUF . ' hours');
+
+        $vergeben = [];
+        foreach ((array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities WHERE type = 'telefon_termin'
+               AND created_at >= (NOW() - INTERVAL 30 DAY)"), []) as $a) {
+            $m = json_decode((string) ($a['meta'] ?? ''), true);
+            if (is_array($m) && !empty($m['wann'])) { $vergeben[(string) $m['wann']] = true; }
+        }
+
+        $frei = [];
+        for ($tag = 0; $tag <= self::TERMIN_VORAUS; $tag++) {
+            $t = $jetzt->modify('+' . $tag . ' days');
+            if (!in_array((int) $t->format('N'), self::TERMIN_TAGE, true)) { continue; }
+            foreach (self::TERMIN_STUNDEN as $h) {
+                $p = $t->setTime($h, 0);
+                if ($p < $ab) { continue; }
+                $s = $p->format('Y-m-d H:i');
+                if (isset($vergeben[$s])) { continue; }
+                $frei[] = $s;
+                if (count($frei) >= 8) { return $frei; }
+            }
+        }
+        return $frei;
+    }
+
+    /* ================================================================== */
+    /*  15. Wie heiss ist dieser Anrufer wirklich?                        */
+    /* ================================================================== */
+
+    /**
+     * Was eine Bewertung hier ist -- und was sie nicht ist.
+     *
+     * Sie ist eine Reihenfolge fuer eine Liste, die Uwe morgens von oben
+     * nach unten abtelefoniert. Mehr nicht. Sie entscheidet nichts, sie
+     * schliesst niemanden aus, und sie steht immer mit dem Grund daneben:
+     * eine Zahl ohne Begruendung ist eine Behauptung, und Behauptungen ueber
+     * Menschen sollte eine Software nicht aufstellen.
+     *
+     * Gewertet wird nur Gesagtes und Gemessenes: was er wollte, wie dringend
+     * er es nannte, ob seine Seite Befunde hatte, ob er ueberhaupt eine hat.
+     * Nicht gewertet werden Herkunft, Name, Sprache oder Rufnummernvorwahl.
+     *
+     * @param array<string,mixed> $meta
+     * @return array{punkte:int,gruende:list<string>}
+     */
+    /**
+     * Alles, was im selben Gespraech sonst noch protokolliert wurde.
+     *
+     * Naeherung ueber die Zeit, wie beim Trichter: Ein Anruf dauert Minuten,
+     * nicht Stunden. Gehoert eine Zeile zu einem anderen Kunden, wird sie
+     * nicht mitgezaehlt -- das ist die einzige harte Grenze, die es hier
+     * gibt, und sie verhindert den peinlichsten Fehler: fremde Angaben am
+     * falschen Namen.
+     *
+     * @param  array<string,mixed>       $zeile
+     * @param  list<array<string,mixed>> $umfeld
+     * @param  array<string,mixed>       $meta
+     * @return array<string,mixed>
+     */
+    private static function gespraechsumfeld(array $zeile, array $umfeld, array $meta): array
+    {
+        $zeit    = strtotime((string) $zeile['created_at']);
+        $kundeId = (int) ($zeile['customer_id'] ?? 0);
+
+        $aus = ['dringend' => (bool) ($meta['dringend'] ?? false)];
+
+        foreach ($umfeld as $u) {
+            if (abs(strtotime((string) $u['created_at']) - $zeit) > self::GESPRAECH_FENSTER) { continue; }
+            $andere = (int) ($u['customer_id'] ?? 0);
+            if ($kundeId > 0 && $andere > 0 && $andere !== $kundeId) { continue; }
+
+            $m = json_decode((string) ($u['meta'] ?? ''), true);
+            if (!is_array($m)) { $m = []; }
+
+            switch ((string) $u['type']) {
+                case 'telefon_beratung':
+                    $aus['beantwortet'] = (array) ($m['beantwortet'] ?? []);
+                    if ((int) ($m['bis_euro'] ?? 0) > 0) { $aus['bis_euro'] = (int) $m['bis_euro']; }
+                    if ((int) ($m['von_euro'] ?? 0) > 0) { $aus['von_euro'] = (int) $m['von_euro']; }
+                    break;
+                case 'telefon_seitenblick':
+                    $aus['seitenbefunde'] = (array) ($m['arten'] ?? []);
+                    break;
+                case 'telefon_termin':
+                    $aus['termin'] = true;
+                    break;
+                case 'telefon_uebergabe':
+                    if (!empty($m['ok'])) { $aus['uebergeben'] = true; }
+                    break;
+            }
+        }
+        return $aus;
+    }
+
+    /** So weit reicht ein Gespraech. Zehn Minuten sind grosszuegig gerechnet. */
+    public const GESPRAECH_FENSTER = 600;
+
+    public static function bewerten(array $meta): array
+    {
+        $punkte  = 0;
+        $gruende = [];
+
+        $beantwortet = (array) ($meta['beantwortet'] ?? []);
+        if (count($beantwortet) >= 3) { $punkte += 3; $gruende[] = 'Bedarf im Gespräch geklärt'; }
+        elseif ($beantwortet)         { $punkte += 1; $gruende[] = 'Bedarf angefangen'; }
+
+        if ((int) ($meta['bis_euro'] ?? 0) >= 1000) { $punkte += 2; $gruende[] = 'größeres Vorhaben'; }
+        elseif ((int) ($meta['von_euro'] ?? 0) > 0) { $punkte += 1; $gruende[] = 'Spanne genannt'; }
+
+        if (!empty($meta['dringend']))   { $punkte += 2; $gruende[] = 'als dringend genannt'; }
+        if (!empty($meta['termin']))     { $punkte += 3; $gruende[] = 'Termin vereinbart'; }
+        if (!empty($meta['uebergeben'])) { $punkte += 1; $gruende[] = 'Unterlagen verschickt'; }
+
+        $arten = (array) ($meta['seitenbefunde'] ?? []);
+        if (in_array('nicht_erreichbar', $arten, true) || in_array('nur_profil', $arten, true)) {
+            $punkte += 3; $gruende[] = 'hat keine eigene Website';
+        } elseif (count($arten) >= 2) {
+            $punkte += 2; $gruende[] = 'Website mit Befunden';
+        }
+
+        return ['punkte' => $punkte, 'gruende' => $gruende];
+    }
+
+    /** Die Sprache des Anrufers, einmal an einer Stelle. */
+    private static function sprachwahl(array $d): string
+    {
+        $s = (string) ($d['sprache'] ?? '');
+        return in_array($s, ['it', 'de', 'en'], true) ? $s : 'it';
+    }
+
+
+    /* ================================================================== */
+    /*  16. Was sie besser machen koennte                                 */
+    /* ================================================================== */
+
+    /**
+     * Der Rueckblick auf die eigenen Gespraeche.
+     *
+     * WARUM ES DAS BRAUCHT
+     *
+     * Ein Telefonassistent driftet. Nicht laut, sondern still: Er hoert auf,
+     * ein Werkzeug zu benutzen, ordnet Probleme nicht mehr ein, vergisst
+     * nachzufassen -- und niemand merkt es, weil jedes einzelne Gespraech
+     * fuer sich in Ordnung aussieht. Sichtbar wird es erst im Muster ueber
+     * eine Woche.
+     *
+     * WAS HIER NICHT PASSIERT
+     *
+     * Nichts wird von allein geaendert. Der Rueckblick schlaegt Saetze fuer
+     * den Leitfaden vor; eingetragen werden sie von Uwe. Ein Assistent, der
+     * sich selbst umschreibt, ist in drei Monaten jemand anderes, und
+     * niemand kann sagen, wann er es wurde.
+     *
+     * @return array{gespraeche:int,befunde:list<array{art:string,anzahl:int,satz:string,vorschlag:string}>}
+     */
+    public static function rueckblick(int $tage = 7): array
+    {
+        $tage = max(1, min(90, $tage));
+
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT type, created_at, customer_id, meta
+               FROM activities
+              WHERE type LIKE 'telefon_%' AND demo = 0
+                AND created_at >= NOW() - INTERVAL $tage DAY
+              ORDER BY created_at"), []);
+
+        /* Gespraeche statt Zeilen: Was innerhalb von zehn Minuten aufeinander
+           folgt, gehoert zusammen. Dieselbe Naeherung wie bei der Bewertung,
+           und aus demselben Grund -- die Telefonplattform gibt uns keine
+           Gespraechsnummer mit. */
+        $gespraeche = [];
+        $aktuell    = null;
+        $letzte     = 0;
+        foreach ($zeilen as $z) {
+            $t = strtotime((string) $z['created_at']);
+            if ($aktuell === null || ($t - $letzte) > self::GESPRAECH_FENSTER) {
+                if ($aktuell !== null) { $gespraeche[] = $aktuell; }
+                $aktuell = [];
+            }
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            $aktuell[] = ['art' => substr((string) $z['type'], 8),
+                          'kunde' => (int) ($z['customer_id'] ?? 0),
+                          'meta' => is_array($m) ? $m : []];
+            $letzte = $t;
+        }
+        if ($aktuell !== null && $aktuell !== []) { $gespraeche[] = $aktuell; }
+
+        $z = [
+            'ohne_werkzeug'      => 0,
+            'hilfe_ohne_blick'   => 0,
+            'kennung_verloren'   => 0,
+            'unbekannt_ohne_ruf' => 0,
+            'nur_sonstiges'      => 0,
+            'beratung_abgerissen'=> 0,
+            'ohne_uebergabe'     => 0,
+        ];
+        $hilfen = 0;
+
+        foreach ($gespraeche as $g) {
+            $arten = array_column($g, 'art');
+            $hatNachschlagen = in_array('nachschlagen', $arten, true);
+            $hatHilfe        = in_array('hilfe', $arten, true);
+            $hatMelde        = in_array('melde', $arten, true);
+            $hatBeratung     = in_array('beratung', $arten, true);
+            $hatUebergabe    = in_array('uebergabe', $arten, true);
+
+            /* Ein Gespraech, in dem nur gemeldet wurde, ist eines, in dem sie
+               nichts nachgesehen hat. Manchmal richtig -- als Muster nicht. */
+            if (count(array_diff($arten, ['melde', 'zusammenfassung'])) === 0) { $z['ohne_werkzeug']++; }
+
+            if ($hatHilfe && !$hatNachschlagen) { $z['hilfe_ohne_blick']++; }
+
+            /* Der Fehler vom 6. September: Sie schlaegt nach, findet jemanden
+               -- und ruft danach hilfe trotzdem als „unbekannt" auf. */
+            $gefunden = false;
+            $unbekannt = false;
+            foreach ($g as $s) {
+                if ($s['art'] === 'nachschlagen' && !empty($s['meta']['treffer'])) { $gefunden = true; }
+                if ($s['art'] === 'hilfe' && ($s['meta']['bekannt'] ?? null) === false) { $unbekannt = true; }
+            }
+            if ($gefunden && $unbekannt) { $z['kennung_verloren']++; }
+            if ($unbekannt && !$hatMelde) { $z['unbekannt_ohne_ruf']++; }
+
+            foreach ($g as $s) {
+                if ($s['art'] !== 'hilfe') { continue; }
+                $hilfen++;
+                if (($s['meta']['problem'] ?? '') === 'sonstiges') { $z['nur_sonstiges']++; }
+            }
+
+            if ($hatBeratung) {
+                $fertig = false;
+                foreach ($g as $s) {
+                    if ($s['art'] === 'beratung' && !empty($s['meta']['fertig'])) { $fertig = true; }
+                }
+                if (!$fertig)                { $z['beratung_abgerissen']++; }
+                elseif (!$hatUebergabe)      { $z['ohne_uebergabe']++; }
+            }
+        }
+
+        $befunde = [];
+        foreach (self::RUBRIK as $art => [$grenze, $satz, $vorschlag]) {
+            $n = $z[$art] ?? 0;
+            if ($n >= $grenze) {
+                $befunde[] = ['art' => $art, 'anzahl' => $n,
+                              'satz' => str_replace('{n}', (string) $n, $satz),
+                              'vorschlag' => $vorschlag];
+            }
+        }
+
+        /* „Sonstiges" wird nicht gezaehlt, sondern gemessen: Zwei von zwei
+           sind kein Muster, zwanzig von zweiundzwanzig sind eines. */
+        if ($hilfen >= 4 && $z['nur_sonstiges'] / $hilfen > 0.6) {
+            $befunde[] = ['art' => 'nur_sonstiges', 'anzahl' => $z['nur_sonstiges'],
+                          'satz' => $z['nur_sonstiges'] . ' von ' . $hilfen . ' Hilferufen landeten unter „Sonstiges“ — '
+                                  . 'damit sagt die Tabelle „Woran es hakt“ nichts mehr.',
+                          'vorschlag' => 'Im Leitfaden die fünf Wörter noch einmal nennen und dazuschreiben: '
+                                       . '„Sonstiges nur, wenn wirklich keines passt.“'];
+        }
+
+        return ['gespraeche' => count($gespraeche), 'tage' => $tage, 'befunde' => $befunde];
+    }
+
+    /**
+     * Einmal die Woche: nachsehen und melden, wenn etwas driftet.
+     *
+     * Die Woche steckt hier und nicht im Cron, damit die Regel neben dem
+     * steht, was sie regelt. Der Cron ruft jede Stunde -- gelaufen wird
+     * trotzdem nur einmal je Kalenderwoche.
+     *
+     * @return array<string,mixed>
+     */
+    public static function rueckblickMelden(): array
+    {
+        $woche = date('oW');
+        $letzte = (string) self::still(static fn() => Db::wert(
+            "SELECT svalue FROM settings WHERE skey = 'telefon_rueckblick_woche'", [], ''), '');
+        if ($letzte === $woche) { return ['uebersprungen' => true]; }
+
+        $r = self::rueckblick(7);
+
+        self::still(static fn() => Db::run(
+            "INSERT INTO settings (skey, svalue) VALUES ('telefon_rueckblick_woche', ?)
+             ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$woche]), null);
+        self::still(static fn() => Db::run(
+            "INSERT INTO settings (skey, svalue) VALUES ('telefon_rueckblick', ?)
+             ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+            [json_encode($r + ['stand' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE)]), null);
+
+        /* Gemeldet wird nur, wenn es etwas zu melden gibt. Eine Meldung
+           „diese Woche war alles in Ordnung" liest man zweimal und danach
+           nie wieder -- und dann auch die nicht mehr, die etwas sagt. */
+        if ($r['befunde']) {
+            $erste = $r['befunde'][0]['satz'] ?? '';
+            self::still(static fn() => Events::melden(
+                'telefon_rueckblick',
+                'Der Telefonassistent hat sich etwas angewöhnt',
+                'warnung',
+                count($r['befunde']) . ' Punkt(e) aus ' . $r['gespraeche'] . ' Gesprächen. ' . $erste,
+                '/telefon'), null);
+        }
+
+        return $r;
+    }
+
+    /** Der zuletzt gespeicherte Rueckblick, fuer die Verwaltung. */
+    public static function letzterRueckblick(): ?array
+    {
+        $roh = (string) self::still(static fn() => Db::wert(
+            "SELECT svalue FROM settings WHERE skey = 'telefon_rueckblick'", [], ''), '');
+        if ($roh === '') { return null; }
+        $d = json_decode($roh, true);
+        return is_array($d) ? $d : null;
+    }
+
+    /**
+     * Die Rubrik: ab wann etwas ein Muster ist, und was man dagegen sagt.
+     *
+     * Die Grenzen sind bewusst niedrig, aber nicht bei eins. Ein einzelnes
+     * schiefes Gespraech ist ein Gespraech; zwei sind eine Gewohnheit.
+     */
+    private const RUBRIK = [
+        'kennung_verloren' => [2,
+            'In {n} Gesprächen hat sie jemanden erkannt und ihn danach trotzdem als unbekannt behandelt.',
+            'Im Leitfaden schärfen: die gefundene kunde_id bei JEDEM weiteren Werkzeug im selben Gespräch mitgeben.'],
+        'hilfe_ohne_blick' => [2,
+            'In {n} Gesprächen hat sie geholfen, ohne vorher nachzuschlagen.',
+            'Regel wiederholen: erst kunde_nachschlagen, dann hilfe. Ohne Treffer gibt es keinen Stand.'],
+        'unbekannt_ohne_ruf' => [2,
+            '{n} unbekannte Anrufer bekamen keinen Rückruf-Eintrag — die sind verloren.',
+            'Ergänzen: Kommt „bekannt: false“, immer nach Rufnummer und Erreichbarkeit fragen und melde aufrufen.'],
+        'ohne_werkzeug' => [3,
+            'In {n} Gesprächen hat sie kein einziges Werkzeug benutzt, sondern nur gemeldet.',
+            'Die Werkzeugliste an den Anfang des Leitfadens stellen: erst nachsehen, dann antworten.'],
+        'beratung_abgerissen' => [2,
+            '{n} Beratungen brachen ab, bevor alle Fragen durch waren.',
+            'Ergänzen: Bricht das Gespräch ab, trotzdem uebergabe aufrufen — der halb gefüllte Fragebogen ist mehr wert als nichts.'],
+        'ohne_uebergabe' => [2,
+            '{n}-mal war die Beratung fertig, aber es ging nichts raus.',
+            'Ergänzen: Nach der letzten Frage immer nach der E-Mail-Adresse fragen und uebergabe aufrufen.'],
+    ];
 
     public static function protokoll(string $aktion, string $titel, ?int $kundeId, array $meta = []): void
     {

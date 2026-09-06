@@ -56,8 +56,11 @@ foreach (Telefon::VORWEG as $f) {
   <h2>Heute anrufen <span class="marke2"><?= count($rueckrufe) ?></span></h2>
   <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
     Das Einzige auf dieser Seite, was du persönlich tun musst. Oben steht, was
-    dringend ist, darunter das, was am längsten wartet — wer lange wartet, hat am
-    ehesten schon aufgegeben.
+    dringend ist — das hat der Anrufer selbst gesagt und schlägt jede Rechnung.
+    Darunter sortiert, wie weit das Gespräch schon war: wer sechs Fragen beantwortet
+    und einen Termin genommen hat, steht über dem, der „rufen Sie mal an“ gesagt hat.
+    Bei gleichem Stand zuerst das Älteste — wer lange wartet, hat am ehesten schon
+    aufgegeben. Der Grund steht immer daneben; die Zahl entscheidet nichts, sie sortiert.
     <?php if ($alt): ?><br><b>Rot heißt: liegt seit mehr als einem Tag.</b><?php endif; ?>
   </p>
   <table class="tab"><tbody>
@@ -77,6 +80,14 @@ foreach (Telefon::VORWEG as $f) {
           <?php else: ?><?= Fmt::h($r['wer']) ?><?php endif; ?></b>
           <?php if ($r['anliegen'] !== ''): ?>
             <div style="color:var(--leise);font-size:12.5px;margin-top:3px"><?= Fmt::h($r['anliegen']) ?></div>
+          <?php endif; ?>
+          <?php /* Der Grund steht neben der Zahl. Eine Bewertung ohne
+                    Begruendung ist eine Behauptung ueber einen Menschen,
+                    und die stellt hier keine Software auf. */ ?>
+          <?php if (!empty($r['gruende'])): ?>
+            <div style="color:var(--leise);font-size:12px;margin-top:4px">
+              <?= Fmt::h(implode(' · ', $r['gruende'])) ?>
+            </div>
           <?php endif; ?>
         </td>
         <td style="vertical-align:top;white-space:nowrap">
@@ -268,6 +279,116 @@ $konfigs['zusammenfassung'] = [
   'rumpf' => '{"aktion":"zusammenfassung","zustimmung":"{{ zustimmung }}","sprache":"{{ sprache }}",'
            . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","text":"{{ text }}"}',
 ];
+
+/* ---------- Die sechs neuen: Beratung statt Auskunft ---------- */
+
+$konfigs['seite_ansehen'] = [
+  'zweck' => 'Sieh dir die Website des Anrufers an, während er redet. Gibt zwei bis drei '
+           . 'nachprüfbare Befunde als fertige Sätze zurück — nenne höchstens zwei davon. '
+           . 'Sage nie etwas über Aussehen oder Gestaltung: geprüft wird nur Technik. '
+           . 'Kommt „nichts_gefunden“, sag das ehrlich und verkaufe nichts.',
+  'eig' => [
+    'adresse'  => ['type' => 'string', 'minLength' => 4, 'maxLength' => 200,
+                   'description' => 'Die Internetadresse, wie er sie nennt — buchstabieren lassen'],
+    'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
+    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+  ],
+  'pflicht' => ['adresse'],
+  'rumpf' => '{"aktion":"seite_ansehen","adresse":"{{ adresse }}","sprache":"{{ sprache }}",'
+           . '"kunde_id":"{{ kunde_id }}"}',
+];
+
+$konfigs['beratung'] = [
+  'zweck' => 'Der Konfigurator als Gespräch. Ruf ihn auf, sobald jemand eine neue Website will. '
+           . 'Er gibt dir in „satz“ die nächste Frage — stelle genau diese. Die Antwort trägst du '
+           . 'beim nächsten Aufruf als „antwort“ ein, zusammen mit „antwort_auf“ und dem '
+           . '„gespraech“ aus der letzten Antwort. Nimm als Antwort nur einen Schlüssel aus '
+           . '„optionen“; bei Mehrfachfragen mehrere mit Komma. Sobald „von_euro“ kommt, darfst du '
+           . 'die Spanne nennen — immer als Spanne, nie als Festpreis.',
+  'eig' => [
+    'gespraech'   => ['type' => 'string', 'maxLength' => 48,
+                      'description' => 'Der Wert aus der letzten Antwort. Beim ersten Aufruf leer lassen'],
+    'sprache'     => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
+    'antwort_auf' => ['type' => 'string', 'enum' => Telefon::BERATUNG_REIHE,
+                      'description' => 'Auf welche Frage sich die Antwort bezieht — das Feld aus „frage_zu“'],
+    'antwort'     => ['type' => 'string', 'maxLength' => 200,
+                      'description' => 'Ein Schlüssel aus „optionen“. Mehrere mit Komma, wenn die Frage '
+                                     . 'mehrfach ist. Nichts anderes — Freitext wird verworfen'],
+    'kunde_id'    => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+  ],
+  'pflicht' => ['sprache'],
+  'rumpf' => '{"aktion":"beratung","gespraech":"{{ gespraech }}","sprache":"{{ sprache }}",'
+           . '"antwort_auf":"{{ antwort_auf }}","antwort":"{{ antwort }}","kunde_id":"{{ kunde_id }}"}',
+];
+
+$konfigs['beleg'] = [
+  'zweck' => 'Eine echte Kundenstimme statt eines Werbesatzes. Nenne höchstens eine, sinngemäß, '
+           . 'mit dem Betrieb dazu. Kommt keine zurück, erfinde keine — sag stattdessen, '
+           . 'dass Uwe Beispiele schickt.',
+  'eig' => [
+    'branche' => ['type' => 'string',
+                  'enum' => array_map('strval', array_keys(Baukasten::FRAGEN['branche']['optionen'] ?? [])),
+                  'description' => 'Betriebsart des Anrufers, falls genannt'],
+    'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
+  ],
+  'pflicht' => [],
+  'rumpf' => '{"aktion":"beleg","branche":"{{ branche }}","sprache":"{{ sprache }}"}',
+];
+
+$konfigs['uebergabe'] = [
+  'zweck' => 'Nach dem Gespräch: schickt schriftlich, worüber gesprochen wurde, die Spanne, '
+           . 'einen Befund von seiner Seite und den halb ausgefüllten Fragebogen. Ruf sie auf, '
+           . 'wenn die Beratung durch ist oder das Gespräch endet. Nenne danach keine Frist '
+           . 'und sag nicht „melden Sie sich bald“.',
+  'eig' => [
+    'gespraech' => ['type' => 'string', 'maxLength' => 48,
+                    'description' => 'Der Wert aus „beratung“, damit der Fragebogen vorausgefüllt ist'],
+    'sprache'   => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
+    'kunde_id'  => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+    'email'     => ['type' => 'string', 'format' => 'email',
+                    'description' => 'Nur bei Neukunden, buchstabieren lassen'],
+    'name'      => ['type' => 'string', 'description' => 'Name für die Anrede'],
+    'von_euro'  => ['type' => 'integer', 'description' => 'Untere Grenze aus „beratung“, falls genannt'],
+    'bis_euro'  => ['type' => 'integer', 'description' => 'Obere Grenze aus „beratung“, falls genannt'],
+    'befund'    => ['type' => 'string', 'maxLength' => 400,
+                    'description' => 'Ein Satz aus „seite_ansehen“, wörtlich — sonst leer lassen'],
+  ],
+  'pflicht' => ['sprache'],
+  'rumpf' => '{"aktion":"uebergabe","gespraech":"{{ gespraech }}","sprache":"{{ sprache }}",'
+           . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","name":"{{ name }}",'
+           . '"von_euro":"{{ von_euro }}","bis_euro":"{{ bis_euro }}","befund":"{{ befund }}"}',
+];
+
+$konfigs['wissen'] = [
+  'zweck' => 'Pakete, Bausteine und Preise, wie sie in dieser Sekunde in der Verwaltung stehen. '
+           . 'Immer hier nachsehen, statt eine Zahl aus dem Gedächtnis zu nennen. '
+           . 'Diese Zahlen sind Einzelpreise — der Preis eines Projekts ist eine Spanne '
+           . 'und kommt aus „beratung“.',
+  'eig' => ['sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']]],
+  'pflicht' => [],
+  'rumpf' => '{"aktion":"wissen","sprache":"{{ sprache }}"}',
+];
+
+$konfigs['termin'] = [
+  'zweck' => 'Ein fester Termin statt „er meldet sich“. Ohne „wann“ bekommst du freie Plätze — '
+           . 'nenne höchstens drei davon, nicht die ganze Liste. Sagt er einen zu, ruf noch '
+           . 'einmal auf und gib ihn in „wann“ genau so mit, wie er in der Liste stand.',
+  'eig' => [
+    'wann'     => ['type' => 'string', 'maxLength' => 16,
+                   'description' => 'Ein Platz aus „frei“, wörtlich, z. B. 2026-09-08 15:00. '
+                                  . 'Leer lassen, um die freien Plätze zu erfragen'],
+    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+    'name'     => ['type' => 'string', 'description' => 'Name des Anrufers'],
+    'telefon'  => ['type' => 'string', 'description' => 'Rufnummer für den Anruf'],
+    'anliegen' => ['type' => 'string', 'maxLength' => 500,
+                   'description' => 'Worum es gehen soll, in seinen Worten'],
+    'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
+  ],
+  'pflicht' => [],
+  'rumpf' => '{"aktion":"termin","wann":"{{ wann }}","kunde_id":"{{ kunde_id }}",'
+           . '"name":"{{ name }}","telefon":"{{ telefon }}","anliegen":"{{ anliegen }}",'
+           . '"sprache":"{{ sprache }}"}',
+];
 ?>
 
 <div class="block">
@@ -369,6 +490,47 @@ $konfigs['zusammenfassung'] = [
       Anrufer kann seine Nummer auch selbst unterdrückt haben — nach ein paar Anrufen steht
       es fest.</p>
   <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php /* ---------- Was sie sich angewöhnt hat ----------
+   Warum das hier steht und nicht nur in einer Meldung: Eine Meldung klickt
+   man weg. Ein Assistent driftet aber nicht an einem Tag, sondern über
+   Wochen — und was man dagegen tun kann, muss dort stehen, wo man ohnehin
+   nachsieht. Geändert wird nichts von allein: unten stehen Sätze zum
+   Eintragen, eintragen muss sie ein Mensch. */ ?>
+<?php $rb = $rueckblick ?? null; ?>
+<?php if (is_array($rb) && !empty($rb['befunde'])): ?>
+<div class="block" style="border-color:var(--gelb,#e0b400)">
+  <h2>Was sie sich angewöhnt hat
+    <span class="mehr" style="font-weight:400;color:var(--leise)">
+      <?= (int) ($rb['gespraeche'] ?? 0) ?> Gespräche der letzten <?= (int) ($rb['tage'] ?? 7) ?> Tage</span></h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    Jedes einzelne Gespräch sieht in Ordnung aus — sichtbar wird es erst im Muster.
+    Rechts steht der Satz, der es abstellt: bei STRATO unter
+    <b>Sprache, Stimme &amp; Verhalten → Verhalten im Telefonat</b> ergänzen.</p>
+  <table class="tab">
+    <thead><tr><th>WAS AUFFÄLLT</th><th>WAS DAGEGEN HILFT</th></tr></thead>
+    <tbody>
+      <?php foreach ($rb['befunde'] as $b): ?>
+        <tr>
+          <td style="vertical-align:top"><?= Fmt::h((string) ($b['satz'] ?? '')) ?></td>
+          <td style="vertical-align:top;color:var(--leise)"><?= Fmt::h((string) ($b['vorschlag'] ?? '')) ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php if (!empty($rb['stand'])): ?>
+    <p style="color:var(--leise);font-size:12px;margin:10px 0 0">
+      Stand: <?= Fmt::h(Fmt::zeit((string) $rb['stand'])) ?></p>
+  <?php endif; ?>
+</div>
+<?php elseif (is_array($rb)): ?>
+<div class="block">
+  <h2>Was sie sich angewöhnt hat</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 0">
+    Nichts aufgefallen in <?= (int) ($rb['gespraeche'] ?? 0) ?> Gesprächen der letzten
+    <?= (int) ($rb['tage'] ?? 7) ?> Tage. Der Rückblick läuft einmal die Woche von selbst.</p>
 </div>
 <?php endif; ?>
 

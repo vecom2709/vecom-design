@@ -124,6 +124,16 @@ final class Cron
                 require_once __DIR__ . '/Telefon.php';
                 return Telefon::rueckrufeMahnen();
             },
+            /* Einmal die Woche nachsehen, ob der Telefonassistent noch das
+               tut, was er soll. Er driftet still -- jedes einzelne Gespraech
+               sieht in Ordnung aus, und erst das Muster ueber eine Woche
+               zeigt, dass er ein Werkzeug nicht mehr benutzt. Geaendert wird
+               nichts von allein: Es kommt eine Meldung mit Vorschlaegen, und
+               eintragen tut sie ein Mensch. */
+            'telefon_rueckblick' => static function () {
+                require_once __DIR__ . '/Telefon.php';
+                return Telefon::rueckblickMelden();
+            },
             // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
             // jedem Aufruf eine HTTP-Anfrage zu stellen.
             'cockpit'     => static fn() => self::cockpitPruefen(),

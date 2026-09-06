@@ -2451,6 +2451,10 @@ switch ($route) {
             /* Gemessen, nicht geraten: ob die Rufnummer des Anrufers die
                Strecke über zwei fremde Systeme überlebt. */
             'cli'        => sicher(static fn() => Telefon::anrufernummer(90), []),
+            /* Was sie sich angewöhnt hat. Der Cron schreibt ihn einmal die
+               Woche; hier steht der letzte Stand, damit die Vorschläge nicht
+               nur in einer Meldung stehen, die man wegklickt. */
+            'rueckblick' => sicher(static fn() => Telefon::letzterRueckblick(), null),
         ]);
         break;
 

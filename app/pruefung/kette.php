@@ -1713,6 +1713,286 @@ $letzte = (string) Db::wert(
     "SELECT meta FROM activities WHERE type = 'telefon_nachschlagen' ORDER BY id DESC LIMIT 1", [], '');
 pruefe('die angekommene Nummer steht in der Spur', str_contains($letzte, '380'), $letzte);
 
+
+/* ============================================================================
+   22. Beratung: der Konfigurator als Gespräch
+
+   Der Bedarfsdatensatz ist der Gesprächsfaden. Was hier geprüft wird, ist
+   genau das, was am Telefon schiefgehen könnte: dass der Faden reißt, dass
+   eine erfundene Antwort in die Rechnung wandert, dass zwei Fragebögen
+   entstehen statt einem.
+   ============================================================================ */
+abschnitt('22. Beratung am Telefon');
+
+$vorherBedarf = (int) Db::wert('SELECT COUNT(*) FROM bedarf', [], 0);
+
+$b1 = Telefon::beratung(['sprache' => 'de']);
+pruefe('das erste Mal öffnet einen Faden', !empty($b1['gespraech']), json_encode($b1));
+pruefe('und fragt als Erstes nach dem Zweck', ($b1['frage_zu'] ?? '') === 'zweck', json_encode($b1));
+pruefe('mit einem fertigen Satz zum Vorlesen', trim((string) ($b1['satz'] ?? '')) !== '', json_encode($b1));
+pruefe('die Antwortmöglichkeiten stehen dabei', !empty($b1['optionen']), json_encode($b1));
+pruefe('noch ist nichts fertig', ($b1['fertig'] ?? true) === false, json_encode($b1));
+
+$faden = (string) $b1['gespraech'];
+
+$b2 = Telefon::beratung(['sprache' => 'de', 'gespraech' => $faden,
+                         'antwort_auf' => 'zweck', 'antwort' => 'zeigen,kontakt']);
+pruefe('derselbe Faden bleibt', ($b2['gespraech'] ?? '') === $faden, json_encode($b2));
+pruefe('die Antwort ist angekommen', in_array('zweck', (array) ($b2['beantwortet'] ?? []), true),
+    json_encode($b2['beantwortet'] ?? []));
+pruefe('jetzt kommt die nächste Frage', ($b2['frage_zu'] ?? '') === 'umfang', json_encode($b2));
+
+/* SOBALD GENUG GESAGT IST, LÄUFT DER PREIS MIT.
+   Nicht erst am Ende: Wer nach der zweiten Frage hört, in welcher Gegend er
+   landet, bleibt im Gespräch — oder legt auf, und das ist auch eine Antwort. */
+pruefe('und die Spanne läuft mit', (int) ($b2['von_euro'] ?? 0) > 0
+    && (int) ($b2['bis_euro'] ?? 0) >= (int) ($b2['von_euro'] ?? 0), json_encode($b2));
+
+/* ERFUNDENES DARF NICHT IN DIE RECHNUNG.
+   Der Konfigurator nimmt nur seine eigenen Schlüsselwörter. Was Manuela
+   falsch versteht, lässt die Frage offen — es beantwortet sie nicht falsch. */
+$b3 = Telefon::beratung(['sprache' => 'de', 'gespraech' => $faden,
+                         'antwort_auf' => 'umfang', 'antwort' => 'ungefähr mittelgroß halt']);
+pruefe('Freitext wird verworfen', ($b3['frage_zu'] ?? '') === 'umfang', json_encode($b3));
+pruefe('und die Frage bleibt offen statt falsch beantwortet',
+    !in_array('umfang', (array) ($b3['beantwortet'] ?? []), true), json_encode($b3['beantwortet'] ?? []));
+
+/* Ein Feld, das am Telefon nichts zu suchen hat, geht auch nicht durch. */
+$b3b = Telefon::beratung(['sprache' => 'de', 'gespraech' => $faden,
+                          'antwort_auf' => 'material', 'antwort' => 'texte']);
+pruefe('nach Material wird am Telefon nicht gefragt',
+    !in_array('material', (array) ($b3b['beantwortet'] ?? []), true), json_encode($b3b['beantwortet'] ?? []));
+
+foreach ([['umfang', 'wenige'], ['sprachen', '2'], ['bestand', 'neu'],
+          ['branche', 'gastro'], ['betreuung', 'ja']] as [$f, $w]) {
+    $letzt = Telefon::beratung(['sprache' => 'de', 'gespraech' => $faden,
+                                'antwort_auf' => $f, 'antwort' => $w]);
+}
+pruefe('nach sechs Antworten ist durchgefragt', ($letzt['fertig'] ?? false) === true, json_encode($letzt));
+pruefe('und es gibt einen Link auf den halb gefüllten Bogen',
+    str_contains((string) ($letzt['link'] ?? ''), 'bedarf.php?t='), (string) ($letzt['link'] ?? ''));
+
+/* EIN GESPRÄCH, EIN FRAGEBOGEN.
+   Der häufigste Fehler dieser Bauart wäre, bei jedem Aufruf einen neuen
+   anzulegen — dann fände Uwe morgens sieben halbe Fragebögen desselben
+   Anrufers. */
+pruefe('das ganze Gespräch hat genau einen Fragebogen angelegt',
+    (int) Db::wert('SELECT COUNT(*) FROM bedarf', [], 0) === $vorherBedarf + 1,
+    (string) Db::wert('SELECT COUNT(*) FROM bedarf', [], 0));
+
+$gespeichert = json_decode((string) Db::wert(
+    'SELECT antworten FROM bedarf WHERE token = ?', [$faden], ''), true) ?: [];
+pruefe('und in ihm steht, was gesagt wurde',
+    ($gespeichert['branche'] ?? '') === 'gastro'
+    && in_array('kontakt', (array) ($gespeichert['zweck'] ?? []), true), json_encode($gespeichert));
+
+/* Ein Faden, den es nicht gibt, führt nicht ins Leere, sondern zu einem neuen. */
+$b4 = Telefon::beratung(['sprache' => 'de', 'gespraech' => str_repeat('a', 48)]);
+pruefe('ein unbekannter Faden beginnt neu statt zu scheitern',
+    !empty($b4['gespraech']) && $b4['gespraech'] !== $faden, json_encode($b4));
+
+/* ============================================================================
+   23. Der Beweis, das Wissen und der Termin
+   ============================================================================ */
+abschnitt('23. Beleg, Wissen, Termin');
+
+$leer = Telefon::beleg(['sprache' => 'de']);
+pruefe('ohne veröffentlichte Stimme kommt keine',  $leer['stimmen'] === [], json_encode($leer));
+pruefe('und der Hinweis sagt ausdrücklich: nichts erfinden',
+    str_contains((string) $leer['hinweis'], 'erfinden'), (string) $leer['hinweis']);
+
+Db::insert('stimmen', ['customer_id' => $kundeId, 'name' => 'Nadia Bosco',
+    'firma' => 'Charme Color', 'text' => 'Seit der neuen Seite rufen mehr Leute an.',
+    'sterne' => 5, 'sprache' => 'de', 'erlaubnis' => 1, 'status' => 'veroeffentlicht']);
+$mit = Telefon::beleg(['sprache' => 'de']);
+pruefe('eine veröffentlichte Stimme kommt zurück', count($mit['stimmen']) === 1, json_encode($mit));
+pruefe('mit Betrieb dazu', ($mit['stimmen'][0]['betrieb'] ?? '') === 'Charme Color', json_encode($mit));
+
+/* Eine nicht freigegebene Stimme darf nie am Telefon landen. */
+Db::insert('stimmen', ['customer_id' => $kundeId, 'name' => 'Geheim',
+    'firma' => 'Nicht freigegeben', 'text' => 'Steht noch nicht öffentlich.',
+    'sprache' => 'de', 'erlaubnis' => 0, 'status' => 'neu']);
+$mit2 = Telefon::beleg(['sprache' => 'de']);
+pruefe('was nicht freigegeben ist, bleibt draußen',
+    !str_contains(json_encode($mit2), 'Nicht freigegeben'), json_encode($mit2));
+
+$w = Telefon::wissen(['sprache' => 'de']);
+pruefe('das Wissen kennt die Pakete aus der Verwaltung', !empty($w['pakete']), json_encode($w['pakete'] ?? []));
+pruefe('und sagt, dass Einzelpreise keine Projektpreise sind',
+    str_contains((string) $w['hinweis'], 'Spanne'), (string) $w['hinweis']);
+
+/* Was nur auf Anfrage angeboten wird, darf nicht am Telefon in einen Preis
+   wandern — sonst kostet das Projekt plötzlich mehr, als Uwe genannt hätte. */
+$namen = array_column($w['bausteine'] ?? [], 'name');
+$logo  = Baukasten::katalog(true)['logo'] ?? null;
+pruefe('Bausteine nur auf Anfrage bleiben draußen',
+    $logo === null || !in_array(Baukasten::name($logo, 'de'), $namen, true), json_encode($namen));
+
+$t1 = Telefon::termin(['sprache' => 'de']);
+pruefe('ohne Wunschzeit kommen freie Plätze', !empty($t1['frei']), json_encode($t1));
+$platz = (string) $t1['frei'][0];
+pruefe('ein Platz liegt in der Zukunft', strtotime($platz) > time(), $platz);
+
+$t2 = Telefon::termin(['sprache' => 'de', 'wann' => $platz, 'kunde_id' => $kundeId,
+                       'telefon' => '+39 380 111 2233', 'name' => 'Manuel',
+                       'anliegen' => 'Neue Seite für das Lokal']);
+pruefe('der Platz lässt sich nehmen', ($t2['ok'] ?? false) === true, json_encode($t2));
+$t3 = Telefon::termin(['sprache' => 'de']);
+pruefe('und ist danach weg', !in_array($platz, (array) $t3['frei'], true), json_encode($t3['frei']));
+
+$t4 = Telefon::termin(['sprache' => 'de', 'wann' => '2019-01-01 09:00']);
+pruefe('eine erfundene Zeit wird abgelehnt', ($t4['ok'] ?? true) === false, json_encode($t4));
+
+pruefe('der Termin steht auch auf der Rückrufliste',
+    (bool) array_filter(Telefon::rueckrufe(30),
+        static fn(array $r): bool => str_contains($r['anliegen'], 'Verabredeter Termin')),
+    json_encode(array_column(Telefon::rueckrufe(30), 'anliegen')));
+
+/* ============================================================================
+   24. Die Bewertung — eine Reihenfolge, keine Behauptung
+   ============================================================================ */
+abschnitt('24. Wie heiß ist der Anrufer?');
+
+$kalt = Telefon::bewerten([]);
+pruefe('wer nichts gesagt hat, bekommt nichts', $kalt['punkte'] === 0, json_encode($kalt));
+pruefe('und auch keinen Grund', $kalt['gruende'] === [], json_encode($kalt));
+
+$heiss = Telefon::bewerten(['beantwortet' => ['zweck', 'umfang', 'sprachen'],
+                            'bis_euro' => 1400, 'termin' => true,
+                            'seitenbefunde' => ['nur_profil']]);
+pruefe('wer alles getan hat, steht oben', $heiss['punkte'] > $kalt['punkte'], json_encode($heiss));
+pruefe('und jeder Punkt hat einen Grund', count($heiss['gruende']) >= 4, json_encode($heiss));
+pruefe('„hat keine eigene Website" steht als Grund da',
+    in_array('hat keine eigene Website', $heiss['gruende'], true), json_encode($heiss));
+
+/* KEINE BEWERTUNG NACH HERKUNFT.
+   Die Prüfung steht hier, damit sie reißt, wenn jemand später auf die Idee
+   kommt, Vorwahl, Sprache oder Namen einzurechnen. */
+$a = Telefon::bewerten(['beantwortet' => ['zweck'], 'sprache' => 'de', 'name' => 'Müller',
+                        'nummer' => '+49301234']);
+$b = Telefon::bewerten(['beantwortet' => ['zweck'], 'sprache' => 'it', 'name' => 'Esposito',
+                        'nummer' => '+39091999']);
+pruefe('Sprache, Name und Vorwahl ändern nichts an der Bewertung',
+    $a['punkte'] === $b['punkte'], $a['punkte'] . ' vs ' . $b['punkte']);
+
+/* Die Liste sortiert danach — aber dringend schlägt alles. */
+$liste = Telefon::rueckrufe(30);
+pruefe('jede Zeile trägt ihre Bewertung', $liste === [] || isset($liste[0]['punkte']),
+    json_encode(array_slice(array_column($liste, 'punkte'), 0, 5)));
+
+/* ============================================================================
+   25. Der Seitenblick — Worte nur über Gemessenes
+   ============================================================================ */
+abschnitt('25. Der Seitenblick');
+
+require_once $wurzel . '/src/Seitenblick.php';
+
+$ohne = Telefon::seiteAnsehen(['sprache' => 'de']);
+pruefe('ohne Adresse wird nichts abgerufen', ($ohne['gefunden'] ?? true) === false, json_encode($ohne));
+
+/* Nichts, was wie eine Adresse im eigenen Netz aussieht, geht raus. Das ist
+   die Stelle, an der man sich sonst einen Türsteher einbaut, der auf Zuruf
+   ins eigene Netz greift. */
+foreach (['localhost', '127.0.0.1', '10.0.0.5', '192.168.1.1', 'file:///etc/passwd',
+          '169.254.169.254'] as $boese) {
+    $r = Telefon::seiteAnsehen(['adresse' => $boese, 'sprache' => 'de']);
+    pruefe("„$boese" . '" wird gar nicht erst abgerufen',
+        ($r['gefunden'] ?? true) === false && ($r['adresse'] ?? null) === null, json_encode($r));
+}
+
+$profil = Telefon::seiteAnsehen(['adresse' => 'facebook.com/pizzeria', 'sprache' => 'de']);
+pruefe('eine Facebook-Seite ist kein Fehler, sondern ein Befund',
+    ($profil['befunde'][0]['art'] ?? '') === 'nur_profil', json_encode($profil));
+pruefe('und der Satz steht auf Deutsch da',
+    str_contains((string) ($profil['befunde'][0]['satz'] ?? ''), 'Plattform'),
+    (string) ($profil['befunde'][0]['satz'] ?? ''));
+
+/* Jeder Befund hat einen Satz in allen drei Sprachen. Ein fehlender Satz
+   fiele erst am Telefon auf — als Stille. */
+$fehlend = [];
+foreach (Seitenblick::SAETZE as $art => $saetze) {
+    foreach (['it', 'de', 'en'] as $sp) {
+        if (trim((string) ($saetze[$sp] ?? '')) === '') { $fehlend[] = "$art/$sp"; }
+    }
+}
+pruefe('jeder Befund hat einen Satz in allen drei Sprachen', $fehlend === [], implode(', ', $fehlend));
+
+pruefe('der Blick steht in der Spur',
+    (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'telefon_seitenblick'", [], 0) > 0);
+
+/* ============================================================================
+   26. Die Übergabe und der Rückblick
+   ============================================================================ */
+abschnitt('26. Übergabe und Rückblick');
+
+$u1 = Telefon::uebergabe(['sprache' => 'de', 'email' => 'keine-adresse']);
+pruefe('eine unklare Adresse wird abgelehnt', ($u1['ok'] ?? true) === false, json_encode($u1));
+
+$u2 = Telefon::uebergabe(['sprache' => 'de', 'email' => 'interessent@example.org',
+                          'gespraech' => $faden, 'von_euro' => 650, 'bis_euro' => 850,
+                          'befund' => 'Auf dem Handy schiebt sich die Seite weg.']);
+$versuch = (string) Db::wert("SELECT betreff FROM mails ORDER BY id DESC LIMIT 1", [], '');
+pruefe('die Übergabe wird versucht', $versuch !== '', $versuch);
+/* Ohne Brevo-Schlüssel scheitert der Versand in der Prüfung — dann muss sie
+   es zugeben und einen Rückruf anlegen, statt es zu verschweigen. */
+pruefe('scheitert sie, wird es gemeldet statt verschwiegen',
+    ($u2['ok'] ?? false) === true || ($u2['weiter'] ?? '') === 'gemeldet', json_encode($u2));
+
+$teile = ['besprochen' => 'Eine Seite', 'spanne' => '', 'befund' => ''];
+$block = [];
+foreach ($teile as $k => $v) { if ($v !== '') { $block[] = Texte::UEBERGABE_TEILE[$k]['de'] . ': ' . $v; } }
+[$betreff, $text] = Texte::mail('uebergabe', 'de', ['name' => ' Marco', 'block' => implode("\n\n", $block),
+                                                    'link' => 'https://x']);
+pruefe('eine Überschrift ohne Inhalt steht nicht in der Mail',
+    !str_contains($text, 'Größenordnung'), $text);
+pruefe('und es steht keine Frist drin',
+    !preg_match('/(nur noch|melden Sie sich bald|innerhalb von \d+ Tagen)/i', $text), $text);
+
+/* DER RÜCKBLICK ERKENNT GENAU DEN FEHLER VOM 6. SEPTEMBER:
+   erkannt — und danach trotzdem als unbekannt behandelt. */
+/* Zwei GESPRÄCHE, nicht zwei Zeilen: Der Rückblick fasst zusammen, was
+   innerhalb von zehn Minuten passiert. Ohne das Zurückdatieren wäre alles
+   hier ein einziger langer Anruf — und ein einzelner Fehler ist kein
+   Muster, genau wie es sein soll. */
+for ($i = 1; $i <= 2; $i++) {
+    Telefon::protokoll('nachschlagen', 'Nachgeschlagen', $kundeId, ['treffer' => true]);
+    Telefon::protokoll('hilfe', 'Hilfe — unbekannt', null, ['problem' => 'sonstiges', 'bekannt' => false]);
+    Db::run("UPDATE activities SET created_at = NOW() - INTERVAL ? HOUR
+              ORDER BY id DESC LIMIT 2", [$i * 3]);
+}
+$rb = Telefon::rueckblick(7);
+$arten = array_column($rb['befunde'], 'art');
+pruefe('der Rückblick sieht die verlorene Kennung',
+    in_array('kennung_verloren', $arten, true), json_encode($arten));
+pruefe('und schlägt einen Satz für den Leitfaden vor',
+    trim((string) ($rb['befunde'][0]['vorschlag'] ?? '')) !== '', json_encode($rb['befunde'][0] ?? []));
+pruefe('er zählt Gespräche, nicht Zeilen', (int) $rb['gespraeche'] > 0, json_encode($rb['gespraeche']));
+
+/* Einmal die Woche, nicht bei jedem Cron-Lauf. */
+$erste = Telefon::rueckblickMelden();
+pruefe('der Wochenrückblick läuft', empty($erste['uebersprungen']), json_encode($erste));
+$zweite = Telefon::rueckblickMelden();
+pruefe('und in derselben Woche kein zweites Mal', !empty($zweite['uebersprungen']), json_encode($zweite));
+pruefe('der Stand steht für die Verwaltung bereit',
+    is_array(Telefon::letzterRueckblick()), json_encode(Telefon::letzterRueckblick()));
+
+/* ============================================================================
+   27. Die Konfigurationen für STRATO — vollständig und gültig
+   ============================================================================ */
+abschnitt('27. Alle Konfigurationen');
+
+$adr = 'https://pruefung.example/telefon.php';
+foreach (Telefon::AKTIONEN as $name) {
+    $j = json_decode(Telefon::konfigJson($name,
+        ['zweck' => 'Prüfung', 'eig' => [], 'pflicht' => [],
+         'rumpf' => '{"aktion":"' . $name . '"}'], $adr, 'schluesselschluessel'), true);
+    pruefe("„$name" . '" ergibt gültiges JSON', is_array($j), $name);
+    pruefe("„$name" . '" hat leere Parameter als Objekt, nicht als Liste',
+        str_contains(Telefon::konfigJson($name,
+            ['zweck' => 'x', 'eig' => [], 'pflicht' => [], 'rumpf' => '{}'], $adr, 'k'),
+            '"properties": {}'), $name);
+}
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

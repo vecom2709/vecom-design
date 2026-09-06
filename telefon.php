@@ -96,6 +96,12 @@ try {
         'zusammenfassung'    => Telefon::zusammenfassung($d),
         'wissensluecke'      => Telefon::wissensluecke($d),
         'hilfe'              => Telefon::hilfe($d),
+        'seite_ansehen'      => Telefon::seiteAnsehen($d),
+        'beratung'           => Telefon::beratung($d),
+        'beleg'              => Telefon::beleg($d),
+        'uebergabe'          => Telefon::uebergabe($d),
+        'wissen'             => Telefon::wissen($d),
+        'termin'             => Telefon::termin($d),
     };
     antwort($ergebnis);
 } catch (Throwable $e) {
