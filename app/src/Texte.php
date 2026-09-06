@@ -957,7 +957,7 @@ final class Texte
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
         'betreuung_faellig' => [
             'it' => ['Assistenza {monat} — {betrag}',
-                "Ciao {name},\n\nl'assistenza di {monat} è pronta: {betrag}.\n\n"
+                "Ciao {name},\n\nl’assistenza di {monat} è pronta: {betrag}.\n\n"
                 . "Puoi pagare qui, entro il {frist}:\n{link}\n\n"
                 . "Cosa è compreso: aggiornamenti, backup, controllo del sito e piccole modifiche. "
                 . "Se questo mese ti serve qualcosa in particolare, scrivimi.\n\n"
@@ -1001,7 +1001,7 @@ final class Texte
            tat er nicht. Auf Deutsch kam "die Gesamtbetrag" und "die
            vereinbarter Nachtrag" heraus, auf Italienisch in JEDEM Fall ein
            fehlender Artikel ("il pagamento di acconto" statt
-           "dell'acconto"), dazu eine Endung, die sich auf nichts bezog.
+           "dell’acconto"), dazu eine Endung, die sich auf nichts bezog.
 
            Gemerkt haette man es erst an einem Kunden, der eine Mahnung
            bekommt -- also genau dort, wo eine holprige Zeile am teuersten
@@ -1032,7 +1032,7 @@ final class Texte
                 "Ciao {name},\n\nresta aperto un pagamento — {was}, {betrag}. Era dovuto il {faellig} e a oggi non risulta arrivato. "
                 . "Ti avevo già scritto una volta.\n\n"
                 . "Ti chiedo di saldare entro il {frist}:\n{link}\n\n"
-                . "Se c'è un motivo — una fattura in sospeso, un mese difficile, qualcosa che non va nel lavoro — "
+                . "Se c’è un motivo — una fattura in sospeso, un mese difficile, qualcosa che non va nel lavoro — "
                 . "dimmelo e concordiamo qualcosa. Una rateizzazione è sempre meglio di un silenzio.\n\n"
                 . "Riferimento: {vorgang}."],
             'de' => ['Zahlungserinnerung — {was}, {betrag}',
@@ -1055,7 +1055,7 @@ final class Texte
                 "Ciao {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
                 . "Ti do tempo fino al {frist}:\n{link}\n\n"
                 . "Se entro quella data non arriva nulla, sospendo il lavoro sul tuo sito, che non viene pubblicato "
-                . "e i cui diritti d'uso restano miei fino al saldo completo — come previsto dalle condizioni. "
+                . "e i cui diritti d’uso restano miei fino al saldo completo — come previsto dalle condizioni. "
                 . "Da quel momento decorrono anche gli interessi di mora di legge.\n\n"
                 . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
                 . "Riferimento: {vorgang}, cliente {kundennr}."],
@@ -1089,7 +1089,7 @@ final class Texte
             'it' => ['Ultimo sollecito — assistenza, {betrag}',
                 "Ciao {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
                 . "Ti do tempo fino al {frist}:\n{link}\n\n"
-                . "Se entro quella data non arriva nulla, sospendo l'assistenza: niente aggiornamenti, "
+                . "Se entro quella data non arriva nulla, sospendo l’assistenza: niente aggiornamenti, "
                 . "niente copie di sicurezza, nessun controllo. Il sito resta online e resta tuo — "
                 . "quello che si ferma è la manutenzione. Se la situazione non si sblocca, chiudo il "
                 . "contratto di assistenza per inadempimento. Da quel momento decorrono anche gli "
@@ -1294,7 +1294,7 @@ final class Texte
             'it' => ['Disdetta confermata — {paket}',
                 "Ciao {name},\n\nho ricevuto la tua disdetta e te la confermo per iscritto.\n\n"
                 . "{paket} resta attiva fino al {ende}.\n"
-                . "Fino a quella data ti viene addebitato {betrag} al mese, dopo non più — l'ultimo addebito è quello del mese in cui rientra il {ende}.\n\n"
+                . "Fino a quella data ti viene addebitato {betrag} al mese, dopo non più — l’ultimo addebito è quello del mese in cui rientra il {ende}.\n\n"
                 . "Cosa succede dopo:\n\n"
                 . "· Il sito resta online e resta tuo. Non si spegne nulla.\n"
                 . "· Aggiornamenti, backup e controlli si fermano. Da quel giorno il sito è nelle tue mani o in quelle di chi vorrai.\n"
@@ -1320,7 +1320,7 @@ final class Texte
                 . "· Updates, backups and monitoring stop. From that day the site is in your hands, or in those of whoever you appoint.\n"
                 . "· On request you get all the logins and a full backup, so you can take it anywhere.\n\n"
                 . "Your page stays reachable afterwards too: {seite}\n\n"
-                . "If you cancelled because something wasn't right, tell me — I genuinely want to know, even if you don't change your mind."],
+                . "If you cancelled because something wasn’t right, tell me — I genuinely want to know, even if you don’t change your mind."],
         ],
 
         'restzahlung' => [
@@ -1363,7 +1363,7 @@ final class Texte
             'en' => 'This is an estimate, not a quote. I will send you the binding price within 24 hours, item by item — and that one holds.',
         ],
         'ergebnisMonat' => [
-            'it' => 'più {betrag} al mese per l\'assistenza, se la vuoi. È un contratto a parte e puoi decidere dopo.',
+            'it' => 'più {betrag} al mese per l’assistenza, se la vuoi. È un contratto a parte e puoi decidere dopo.',
             'de' => 'dazu {betrag} im Monat für die Betreuung, wenn du magst. Das ist ein eigener Vertrag, und du kannst später entscheiden.',
             'en' => 'plus {betrag} a month for care, if you want it. That is a separate contract and you can decide later.',
         ],
@@ -1375,7 +1375,7 @@ final class Texte
         'fName'    => ['it' => 'Come ti chiami', 'de' => 'Wie heißt du', 'en' => 'Your name'],
         'fEmail'   => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
         'fTelefon' => ['it' => 'Telefono (facoltativo)', 'de' => 'Telefon (freiwillig)', 'en' => 'Phone (optional)'],
-        'fFirma'   => ['it' => 'Nome dell\'attività (facoltativo)', 'de' => 'Name des Betriebs (freiwillig)', 'en' => 'Business name (optional)'],
+        'fFirma'   => ['it' => 'Nome dell’attività (facoltativo)', 'de' => 'Name des Betriebs (freiwillig)', 'en' => 'Business name (optional)'],
 
         /* DIE SPRACHE WIRD GEFRAGT, NICHT GERATEN
            ------------------------------------------------------------------
@@ -1432,7 +1432,7 @@ final class Texte
             'en' => 'Who recommended us? (optional)',
         ],
         'empfehlungHilfe' => [
-            'it' => 'Il nome basta. Se diventa un lavoro, chi ti ha mandato riceve uno sconto sull\'assistenza.',
+            'it' => 'Il nome basta. Se diventa un lavoro, chi ti ha mandato riceve uno sconto sull’assistenza.',
             'de' => 'Der Name genügt. Wird ein Auftrag daraus, bekommt derjenige einen Nachlass auf seine Betreuung.',
             'en' => 'A name is enough. If it turns into a job, they get a discount on their care plan.',
         ],
@@ -1496,7 +1496,7 @@ final class Texte
             'en' => 'What that includes:',
         ],
         'preisBetreuung' => [
-            'it' => 'In più c\'è l\'assistenza mensile, {betrag} al mese. È un contratto a parte e puoi anche farne a meno: il sito funziona lo stesso.',
+            'it' => 'In più c’è l’assistenza mensile, {betrag} al mese. È un contratto a parte e puoi anche farne a meno: il sito funziona lo stesso.',
             'de' => 'Dazu kommt die monatliche Betreuung, {betrag} im Monat. Das ist ein eigener Vertrag, den du auch weglassen kannst — die Website läuft genauso.',
             'en' => 'On top of that there is the monthly care, {betrag} a month. That is a separate contract and you can do without it — the site runs just the same.',
         ],
@@ -1511,7 +1511,7 @@ final class Texte
            Es kommt jetzt in jedem Fall — mit einem Knopf zum Annehmen. Wer
            etwas anders will, sagt es weiterhin. */
         'preisSchluss' => [
-            'it' => 'Il preventivo dettagliato te lo mando subito dopo, voce per voce: basta un clic per accettarlo. Se c\'è qualcosa da aggiungere o da togliere, dimmelo e rifaccio il conto.',
+            'it' => 'Il preventivo dettagliato te lo mando subito dopo, voce per voce: basta un clic per accettarlo. Se c’è qualcosa da aggiungere o da togliere, dimmelo e rifaccio il conto.',
             'de' => 'Das Angebot dazu schicke ich dir gleich hinterher — Posten für Posten, mit einem Klick zum Annehmen. Soll etwas dazu oder weg, sag Bescheid, dann rechne ich es neu.',
             'en' => 'The detailed quote follows right after — line by line, with a single click to accept. If something should be added or removed, tell me and I will redo the figures.',
         ],
@@ -1537,11 +1537,11 @@ final class Texte
         'summe'   => ['it' => 'Totale una tantum', 'de' => 'Einmalig gesamt', 'en' => 'One-off total'],
         'monat'   => ['it' => 'Assistenza mensile', 'de' => 'Betreuung monatlich', 'en' => 'Monthly care'],
         'zahlung' => [
-            'it' => 'Si paga in due volte: {anzahlung} all\'ordine, il resto alla consegna del sito.',
+            'it' => 'Si paga in due volte: {anzahlung} all’ordine, il resto alla consegna del sito.',
             'de' => 'Bezahlt wird in zwei Schritten: {anzahlung} bei Auftrag, der Rest bei Übergabe der Website.',
             'en' => 'Paid in two steps: {anzahlung} on order, the rest when the site is handed over.',
         ],
-        'annehmen'  => ['it' => 'Accetto l\'offerta', 'de' => 'Angebot annehmen', 'en' => 'Accept this quote'],
+        'annehmen'  => ['it' => 'Accetto l’offerta', 'de' => 'Angebot annehmen', 'en' => 'Accept this quote'],
         /* Die Zusage auf die Rueckfrage. "Ja, annehmen" liest man auch dann
            richtig, wenn man die Frage darueber ueberflogen hat -- "OK" nicht. */
         'jaAnnehmen' => ['it' => 'Sì, accetto', 'de' => 'Ja, annehmen', 'en' => 'Yes, accept'],
@@ -1554,7 +1554,7 @@ final class Texte
             'en' => 'Before you accept',
         ],
         'fehlerZust' => [
-            'it' => 'Servono entrambe le conferme per accettare l\'offerta.',
+            'it' => 'Servono entrambe le conferme per accettare l’offerta.',
             'de' => 'Beide Bestätigungen sind nötig, um das Angebot anzunehmen.',
             'en' => 'Both confirmations are needed to accept the quote.',
         ],
@@ -1578,7 +1578,7 @@ final class Texte
             'en' => 'What is written here is the price. If anything comes up during the work, I agree it with you first.',
         ],
         'dankeAn' => [
-            'it' => 'Grazie! Ti scrivo subito con il link per l\'acconto — poi si comincia.',
+            'it' => 'Grazie! Ti scrivo subito con il link per l’acconto — poi si comincia.',
             'de' => 'Danke! Ich melde mich gleich mit dem Link für die Anzahlung — dann geht es los.',
             'en' => 'Thank you! I will send you the deposit link shortly — then we start.',
         ],

@@ -1391,6 +1391,166 @@ pruefe('eine erfundene Problemart fällt auf „sonstiges"',
     Telefon::hilfe(['problem' => 'quatsch', 'kunde_id' => $kundeId]) !== []);
 
 /* ============================================================================
+   19. Wie es beim Kunden ankommt -- Zeichen, nicht Geschmack
+   ----------------------------------------------------------------------------
+   Diese Prüfung liest nicht den Quelltext, sondern die KONSTANTEN selbst und
+   geht jede Zeichenkette darin durch. Damit ist egal, wie eine Datei
+   formatiert ist; geprüft wird, was der Kunde am Ende sieht.
+
+   Sie kann keinen Stil beurteilen. Sie kann aber die Fehler festhalten, die
+   sich beim Tippen einschleichen und die man später übersieht, weil man den
+   eigenen Text nicht mehr liest: ein deutsches Anführungszeichen, das mit
+   einem geraden schließt; ein Apostroph, der in „dell'azienda" gerade steht,
+   während er zwei Zeilen weiter richtig ist; ein italienisches Wort ohne
+   Akzent. Drei Sprachen heißt dreimal so viele Stellen, an denen das passiert.
+   ============================================================================ */
+abschnitt('19. Wie es beim Kunden ankommt');
+
+require_once $wurzel . '/src/Texte.php';
+require_once $wurzel . '/src/Baukasten.php';
+
+/** Alle Zeichenketten aus den Konstanten einer Klasse, mit ihrem Pfad. */
+$alleTexte = static function (string $klasse): array {
+    $raus = [];
+    $lauf = static function ($wert, string $pfad) use (&$lauf, &$raus): void {
+        if (is_string($wert)) { $raus[$pfad] = $wert; return; }
+        if (is_array($wert)) {
+            foreach ($wert as $k => $v) { $lauf($v, $pfad . '.' . $k); }
+        }
+    };
+    foreach ((new ReflectionClass($klasse))->getConstants() as $name => $wert) {
+        $lauf($wert, $klasse . '::' . $name);
+    }
+    return $raus;
+};
+
+$texte = $alleTexte('Texte') + $alleTexte('Telefon') + $alleTexte('Baukasten');
+pruefe('es gibt Texte zum Prüfen', count($texte) > 500, (string) count($texte));
+
+/* 1. Ein deutsches Anführungszeichen schließt mit “, nicht mit " */
+$falscheKlammer = [];
+foreach ($texte as $pfad => $t) {
+    if (preg_match('/„[^„“]{0,160}"/u', $t)) { $falscheKlammer[] = $pfad; }
+}
+pruefe('jedes „ schließt mit “', $falscheKlammer === [],
+    implode(' , ', array_slice($falscheKlammer, 0, 4)));
+
+/* 2. Kein gerader Apostroph zwischen Buchstaben — weder im italienischen
+      „dell’azienda" noch im englischen „I’ll". Gemischt sieht es billig aus,
+      und genau so liest es sich auch. */
+$geradeApostrophe = [];
+foreach ($texte as $pfad => $t) {
+    if (preg_match("/(?<=[A-Za-zÀ-ÿ])'(?=[A-Za-zÀ-ÿ])/u", $t)) { $geradeApostrophe[] = $pfad; }
+}
+pruefe('kein gerader Apostroph mitten im Wort', $geradeApostrophe === [],
+    implode(' , ', array_slice($geradeApostrophe, 0, 4)));
+
+/* 3. Italienische Wörter ohne Akzent. Die Liste ist kurz und enthält nur
+      Wörter, die es ohne Akzent gar nicht gibt — „e" und „si" stehen
+      deshalb NICHT drin, die sind ohne Akzent auch richtig. */
+$ohneAkzent = ['perche' => 'perché', 'piu' => 'più', 'gia' => 'già', 'puo' => 'può',
+               'cosi' => 'così', 'citta' => 'città', 'qualita' => 'qualità',
+               'attivita' => 'attività', 'pero' => 'però', 'verra' => 'verrà',
+               'sara' => 'sarà', 'lunedi' => 'lunedì', 'martedi' => 'martedì',
+               'mercoledi' => 'mercoledì', 'giovedi' => 'giovedì', 'venerdi' => 'venerdì',
+               'meta' => 'metà', 'liberta' => 'libertà', 'novita' => 'novità',
+               'possibilita' => 'possibilità', 'perche\'' => 'perché'];
+$fehlt = [];
+foreach ($texte as $pfad => $t) {
+    /* Nur in italienischen Zweigen suchen: „pero" ist im Deutschen kein Wort,
+       aber „meta" sehr wohl, und „Sara" ist ein Name. */
+    if (!str_contains($pfad, '.it')) { continue; }
+    foreach ($ohneAkzent as $falsch => $richtig) {
+        if (preg_match('/(?<![\p{L}])' . preg_quote($falsch, '/') . '(?![\p{L}])/u', $t)) {
+            $fehlt[] = $pfad . ': ' . $falsch . ' → ' . $richtig;
+        }
+    }
+}
+pruefe('italienische Wörter tragen ihren Akzent', $fehlt === [],
+    implode(' , ', array_slice($fehlt, 0, 4)));
+
+/* 4. Drei Punkte sind kein Auslassungszeichen. */
+$punkte = [];
+foreach ($texte as $pfad => $t) {
+    if (str_contains($t, '...')) { $punkte[] = $pfad; }
+}
+pruefe('kein „..." statt „…"', $punkte === [], implode(' , ', array_slice($punkte, 0, 4)));
+
+/* 5. Umlaut-Ersatzschreibung. Im Quelltext ist „fuer" in Ordnung; in einem
+      Satz, den jemand liest, ist es ein Fehler. */
+$ersatz = ['fuer', 'ueber', 'koennen', 'moeglich', 'muessen', 'waehrend', 'zurueck',
+           'Gruesse', 'schoen', 'natuerlich', 'spaeter', 'aendern', 'loeschen',
+           'Verguetung', 'gehoert', 'waere', 'haetten', 'wuerde'];
+$roh = [];
+foreach ($texte as $pfad => $t) {
+    if (!str_contains($pfad, '.de') && !preg_match('/[A-ZÄÖÜ][a-zäöüß]+ [a-zäöüß]/u', $t)) { continue; }
+    foreach ($ersatz as $w) {
+        if (preg_match('/(?<![\p{L}])' . $w . '(?![\p{L}])/u', $t)) { $roh[] = $pfad . ': ' . $w; }
+    }
+}
+pruefe('deutsche Texte tragen ihre Umlaute', $roh === [], implode(' , ', array_slice($roh, 0, 4)));
+
+/* 6. Jede Sprachkarte ist vollständig: Was es auf Italienisch gibt, gibt es
+      auch auf Deutsch und Englisch. Ein fehlender Zweig fällt sonst erst auf,
+      wenn ein Engländer eine italienische Zeile liest. */
+$luecken = [];
+$suchen = static function ($wert, string $pfad) use (&$suchen, &$luecken): void {
+    if (!is_array($wert)) { return; }
+    $hat = static fn(string $s): bool => array_key_exists($s, $wert) && is_string($wert[$s]);
+    if ($hat('it') || $hat('de') || $hat('en')) {
+        foreach (['it', 'de', 'en'] as $s) {
+            if (!$hat($s) || trim((string) $wert[$s]) === '') { $luecken[] = $pfad . ' → ' . $s; }
+        }
+        return;
+    }
+    foreach ($wert as $k => $v) { $suchen($v, $pfad . '.' . $k); }
+};
+foreach (['Texte', 'Baukasten'] as $kl) {
+    foreach ((new ReflectionClass($kl))->getConstants() as $name => $wert) {
+        $suchen($wert, $kl . '::' . $name);
+    }
+}
+pruefe('jede Sprachkarte hat alle drei Sprachen', $luecken === [],
+    count($luecken) . ': ' . implode(' , ', array_slice($luecken, 0, 5)));
+
+/* --- Und dasselbe für die Website ---------------------------------------
+   Die Verwaltung ist nicht der Ort, an dem die meisten Texte stehen. Das ist
+   die Website: drei Sprachdateien und die Seiten selbst. Geprüft wird dort
+   dasselbe — aber nur im Text, nicht im Quelltext: strukturierte Daten,
+   Kommentarköpfe und HTML-Kennungen bleiben außen vor, sonst meldet die
+   Prüfung „meta" als fehlenden Akzent auf „metà" und wird nie wieder
+   gelesen. */
+$netzDateien = ['/index.html', '/assets/js/i18n-it.js', '/assets/js/i18n-de.js',
+                '/assets/js/i18n-en.js', '/assets/js/legal-it.js',
+                '/assets/js/legal-de.js', '/assets/js/legal-en.js'];
+$nurText = static function (string $roh): string {
+    $t = preg_replace('#<script type="application/ld\+json">.*?</script>#s', '', $roh) ?? $roh;
+    $t = preg_replace('#/\*.*?\*/#s', '', $t) ?? $t;      // Kommentarköpfe
+    $t = preg_replace('#<[^>]+>#', ' ', $t) ?? $t;          // HTML-Auszeichnung
+    return $t;
+};
+
+$netzFehler = [];
+foreach ($netzDateien as $rel) {
+    $datei = $oben . $rel;
+    if (!is_file($datei)) { $netzFehler[] = $rel . ': fehlt'; continue; }
+    $t = $nurText((string) file_get_contents($datei));
+    if (preg_match('/„[^„“]{0,120}"/u', $t))                    { $netzFehler[] = $rel . ': „…"'; }
+    if (preg_match("/(?<=[A-Za-zÀ-ÿ])'(?=[A-Za-zÀ-ÿ])/u", $t))  { $netzFehler[] = $rel . ': gerader Apostroph'; }
+    if (str_contains($rel, '-it')) {
+        foreach (['perche' => 'perché', 'piu' => 'più', 'gia' => 'già', 'puo' => 'può',
+                  'cosi' => 'così', 'citta' => 'città', 'qualita' => 'qualità',
+                  'attivita' => 'attività', 'pero' => 'però', 'novita' => 'novità'] as $f => $r) {
+            if (preg_match('/(?<![\p{L}])' . $f . '(?![\p{L}])/u', $t)) {
+                $netzFehler[] = $rel . ': ' . $f . ' → ' . $r;
+            }
+        }
+    }
+}
+pruefe('auch auf der Website stimmen die Zeichen', $netzFehler === [],
+    implode(' , ', array_slice($netzFehler, 0, 5)));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

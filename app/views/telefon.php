@@ -136,7 +136,7 @@ $konfigs['lage'] = [
 
 $konfigs['melde'] = [
   'zweck' => 'Trägt ein Anliegen in die Verwaltung ein: Rückruf, Nachricht, Beschwerde '
-           . 'oder „Link noch einmal schicken". Beschwerden gelten immer als dringend.',
+           . 'oder „Link noch einmal schicken“. Beschwerden gelten immer als dringend.',
   'eig' => [
     'art' => ['type' => 'string', 'enum' => array_keys(Telefon::ARTEN),
               'description' => 'Um welche Art Anliegen es geht'],
@@ -147,7 +147,7 @@ $konfigs['melde'] = [
     'telefon' => ['type' => 'string', 'description' => 'Rückrufnummer'],
     'erreichbar' => ['type' => 'string', 'maxLength' => 160,
                      'description' => 'Wann er am besten erreichbar ist, in seinen Worten '
-                                    . '(„ab 14 Uhr", „nur vormittags", „nicht Dienstag")'],
+                                    . '(„ab 14 Uhr“, „nur vormittags“, „nicht Dienstag“)'],
     'text' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 4000,
                'description' => 'Das Anliegen in eigenen Worten des Anrufers'],
   ],
@@ -159,7 +159,7 @@ $konfigs['melde'] = [
 
 $konfigs['wissensluecke'] = [
   'zweck' => 'Wenn du eine Frage nicht sicher beantworten kannst: hier melden, statt zu raten. '
-           . 'Danach sagen „das schaue ich nach und melde mich" — und nichts erfinden.',
+           . 'Danach sagen „das schaue ich nach und melde mich“ — und nichts erfinden.',
   'eig' => [
     'frage' => ['type' => 'string', 'minLength' => 5, 'maxLength' => 500,
                 'description' => 'Die Frage des Anrufers, möglichst wörtlich'],
@@ -172,14 +172,14 @@ $konfigs['wissensluecke'] = [
 $konfigs['hilfe'] = [
   'zweck' => 'Wenn jemand nicht weiterkommt: Fragebogen, Bezahlung, Link weg, Entwurf, Zugang. '
            . 'Sieht nach, wo DIESER Kunde steht, und gibt die Schritte in seiner Sprache zurück. '
-           . 'Die Sätze aus „schritte" vorlesen, einen nach dem anderen — nicht zusammenfassen, '
+           . 'Die Sätze aus „schritte“ vorlesen, einen nach dem anderen — nicht zusammenfassen, '
            . 'nichts dazuerfinden. Keine Beträge und nicht sagen, ob etwas offen ist: '
            . 'Das steht auf seiner Seite, und der Link dorthin geht nur an die hinterlegte Adresse. '
-           . 'Klappt es beim zweiten Mal nicht, „versuch" auf 2 setzen — dann übernimmt ein Mensch.',
+           . 'Klappt es beim zweiten Mal nicht, „versuch“ auf 2 setzen — dann übernimmt ein Mensch.',
   'eig' => [
     'problem' => ['type' => 'string',
                   'enum' => ['fragebogen', 'bezahlung', 'link_weg', 'vorschau', 'zugang', 'sonstiges'],
-                  'description' => 'Woran es hakt. Im Zweifel „sonstiges" — eine falsche Kategorie '
+                  'description' => 'Woran es hakt. Im Zweifel „sonstiges“ — eine falsche Kategorie '
                                  . 'führt zu einer Anleitung für ein Problem, das er nicht hat'],
     'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
     'telefon'  => ['type' => 'string', 'description' => 'Rufnummer, falls noch nicht nachgeschlagen'],
@@ -220,7 +220,7 @@ $konfigs['zusammenfassung'] = [
 
   <?php foreach ($konfigs as $name => $k):
     /* Gebaut wird in Telefon::konfigJson() -- dort steht auch, warum
-       „properties" ausdruecklich ein Objekt sein muss. */
+       „properties“ ausdruecklich ein Objekt sein muss. */
     $text = Telefon::konfigJson($name, $k, $basis . '/telefon.php', (string) $schluessel);
   ?>
     <div style="margin-bottom:18px">

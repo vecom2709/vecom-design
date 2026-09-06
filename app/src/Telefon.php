@@ -438,7 +438,7 @@ final class Telefon
      * danach im Raum, und niemand weiss, dass sie erfunden war.
      *
      * Diese Aktion macht das Zugeben billiger als das Erfinden: Sie kostet
-     * einen Satz („das schaue ich nach und melde mich"), und die Frage
+     * einen Satz („das schaue ich nach und melde mich“), und die Frage
      * landet auf einer Liste, aus der die Wissensbasis waechst.
      *
      * @return array<string,mixed>
@@ -463,7 +463,7 @@ final class Telefon
                         ['frage' => $frage]);
 
         return ['ok' => true,
-                'hinweis' => 'Notiert. Ansagen: „Das schaue ich nach und melde mich" — '
+                'hinweis' => 'Notiert. Ansagen: „Das schaue ich nach und melde mich“ — '
                            . 'und nichts dazu erfinden.'];
     }
 
@@ -624,7 +624,7 @@ final class Telefon
             'betreff' => 'Your quote — Vecom Design',
             'anrede_ohne' => '',
             'text' => "Hello {name},\n\nas promised on the phone: here you can answer the few remaining "
-                . "questions. After that you'll know the price range you're in — no obligation.\n\n{link}\n\n"
+                . "questions. After that you’ll know the price range you’re in — no obligation.\n\n{link}\n\n"
                 . "If anything is unclear, just reply to this mail.\n\nTalk soon\nVecom Design",
         ],
     ];
@@ -643,7 +643,7 @@ final class Telefon
 
     /**
      * Traegt ein Anliegen in die Verwaltung ein. Landet dort, wo Uwe ohnehin
-     * hinsieht: als Nachricht am Kunden und als Meldung auf „Heute".
+     * hinsieht: als Nachricht am Kunden und als Meldung auf „Heute“.
      *
      * @return array<string,mixed>
      */
@@ -664,8 +664,8 @@ final class Telefon
         $text    = mb_substr(trim((string) ($d['text'] ?? '')), 0, 4000);
         /* WANN ist er erreichbar, nicht nur DASS er einen Rueckruf will.
            Ohne diese Zeile ruft Uwe dreimal ins Leere und der Kunde denkt,
-           es meldet sich niemand. Freitext mit Absicht: „ab 14 Uhr", „nur
-           vormittags", „nicht Dienstag" -- das ist, wie Menschen antworten,
+           es meldet sich niemand. Freitext mit Absicht: „ab 14 Uhr“, „nur
+           vormittags", „nicht Dienstag“ -- das ist, wie Menschen antworten,
            und ein Uhrzeitfeld haette die Haelfte davon verworfen. */
         $erreichbar = mb_substr(trim((string) ($d['erreichbar'] ?? '')), 0, 160);
 
@@ -673,7 +673,7 @@ final class Telefon
             return ['ok' => false, 'hinweis' => 'Ohne Anliegen kann ich nichts melden.'];
         }
 
-        /* Wer im Titel steht, entscheidet, ob die Meldung auf „Heute" etwas
+        /* Wer im Titel steht, entscheidet, ob die Meldung auf „Heute“ etwas
            sagt. Kennen wir den Kunden, gehoert sein Name dorthin -- eine
            Rufnummer als Ueberschrift ist eine Zeile, die man erst aufmachen
            muss, um zu wissen, ob sie einen angeht. */
@@ -788,7 +788,7 @@ final class Telefon
      * Der Unterschied zu einer FAQ ist der ganze Punkt: Manuela erklaert
      * nicht, wie ein Fragebogen im Allgemeinen funktioniert. Sie sieht nach,
      * wo DIESER Kunde steht, und liest ab da vor. „Dein Fragebogen ist schon
-     * da, du wartest auf uns" und „ich schick ihn dir nochmal" sind zwei
+     * da, du wartest auf uns" und „ich schick ihn dir nochmal“ sind zwei
      * verschiedene Gespraeche -- und das falsche davon aergert jemanden, der
      * seine Arbeit schon gemacht hat.
      *
@@ -802,7 +802,7 @@ final class Telefon
      * DREI GRENZEN, DIE HIER NICHT VERHANDELBAR SIND
      *
      * 1. Kein Betrag, und kein Satz darueber, OB etwas offen ist. Auch
-     *    „du hast noch etwas offen" ist eine Auskunft ueber Geld, und am
+     *    „du hast noch etwas offen“ ist eine Auskunft ueber Geld, und am
      *    anderen Ende sitzt kein Ausweis, sondern eine Stimme. Wer Geld
      *    meint, bekommt den Link zu seiner Seite -- dort ist der Link der
      *    Ausweis.
@@ -856,7 +856,7 @@ final class Telefon
                     'getan'    => [],
                     'weiter'   => 'rueckruf',
                     'hinweis'  => 'Nicht gefunden. Kein Stand, kein Link, keine Auskunft — '
-                                . 'Anliegen mit „melde" aufnehmen und nach der Erreichbarkeit fragen.'];
+                                . 'Anliegen mit „melde“ aufnehmen und nach der Erreichbarkeit fragen.'];
         }
 
         /* ZWEI ANLAEUFE, DANN EIN MENSCH
@@ -944,7 +944,7 @@ final class Telefon
            ------------------------------------------------------------------
            Ein Versand kann scheitern -- kein Mailschluessel, Brevo down, eine
            Adresse, die es nicht mehr gibt. Der Anrufer darf das nicht als
-           „kommt gleich" hoeren und dann drei Tage warten. Also: ein Mensch
+           „kommt gleich“ hoeren und dann drei Tage warten. Also: ein Mensch
            uebernimmt, sofort, und Manuela sagt genau das. */
         if ($baustein === 'fehlgeschlagen') {
             self::melden(['art' => 'nachricht', 'kunde_id' => $kundeId, 'prioritaet' => 'dringend',
@@ -1023,12 +1023,12 @@ final class Telefon
      * DER FEHLER, DEN DIESE METHODE VERHINDERT
      * PHP kennt keinen Unterschied zwischen einer leeren Liste und einem
      * leeren Objekt: beides ist []. json_encode macht daraus [], und die
-     * Aktion „lage", die gar keine Parameter braucht, kam bei STRATO als
+     * Aktion „lage“, die gar keine Parameter braucht, kam bei STRATO als
      *     "properties": []
      * an. Die Antwort dort lautet woertlich „expected record, received
      * array", und das Speichern des GANZEN Assistenten war blockiert --
      * wegen zweier Zeichen. Deshalb wird properties hier ausdruecklich zum
-     * Objekt gemacht. Bei „required" bleibt die Liste eine Liste; dort ist
+     * Objekt gemacht. Bei „required“ bleibt die Liste eine Liste; dort ist
      * sie richtig.
      *
      * @param array{zweck:string,eig:array<string,mixed>,pflicht:list<string>,rumpf:string} $k
@@ -1115,7 +1115,7 @@ final class Telefon
      * Der zweite ist feiner: Stufen mit verschiedenen Einheiten. Oben
      * Gespraeche, darunter verschickte Links -- und weil Manuela in einem
      * Gespraech zweimal einen Link schicken kann, stehen da 1 Anruf und
-     * 2 Links, „200 %". Deshalb zaehlt hier JEDE Stufe Gespraeche: von so
+     * 2 Links, „200 %“. Deshalb zaehlt hier JEDE Stufe Gespraeche: von so
      * vielen Gespraechen ging ein Link raus, aus so vielen wurde ein
      * ausgefuellter Bedarf, daraus eine Anfrage, daraus eine Bestellung.
      * Jede Stufe ist eine Teilmenge der vorherigen -- der Trichter kann
