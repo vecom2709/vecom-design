@@ -906,6 +906,55 @@ if ($post) {
                 weiter($_POST['zurueck'] ?? 'telefon');
                 break;
 
+            /* ---------- Der Rueckweg von STRATO ---------- */
+            case 'strato_zugang':
+                /* Beide Angaben kommen aus seinem Browser ueber diese
+                   Felder -- nie ueber einen Chat, nie ueber eine E-Mail.
+                   Leer lassen heisst "unveraendert": So kann er den Token
+                   auswechseln, ohne den oeffentlichen Schluessel noch einmal
+                   heraussuchen zu muessen. */
+                require_once __DIR__ . '/src/Strato.php';
+                $anonNeu = trim((string) ($_POST['anon'] ?? ''));
+                $refNeu  = trim((string) ($_POST['refresh'] ?? ''));
+                if ($anonNeu === '') { $anonNeu = Strato::wert('strato_anon'); }
+                if ($refNeu === '')  { $refNeu  = Strato::wert('strato_refresh'); }
+                $erg = Strato::zugangSetzen($anonNeu, $refNeu);
+                if ($erg['ok']) {
+                    $ab = Strato::abgleichen();
+                    $_SESSION['gut'] = 'Der Zugang steht. '
+                        . (($ab['ok'] ?? false)
+                            ? (int) ($ab['gesehen'] ?? 0) . ' Gespräche geholt, davon '
+                              . (int) ($ab['neu'] ?? 0) . ' neu.'
+                            : 'Die Gespräche kommen mit dem nächsten Lauf.');
+                } else {
+                    $_SESSION['fehler'] = $erg['text'];
+                }
+                zurueck('einstellungen?b=telefon');
+                break;
+
+            case 'strato_holen':
+                require_once __DIR__ . '/src/Strato.php';
+                $ab = Strato::abgleichen();
+                if ($ab['ok'] ?? false) {
+                    $_SESSION['gut'] = (int) ($ab['gesehen'] ?? 0) . ' Gespräche gesehen, '
+                        . (int) ($ab['neu'] ?? 0) . ' neu, '
+                        . (int) ($ab['geaendert'] ?? 0) . ' aktualisiert.';
+                } else {
+                    $_SESSION['fehler'] = 'Es kam nichts an: ' . (Strato::fehler() ?: 'kein Zugang hinterlegt.');
+                }
+                zurueck('einstellungen?b=telefon');
+                break;
+
+            case 'strato_loeschen':
+                /* Die geholten Gespraeche bleiben. Sie gehoeren ihm, nicht
+                   dem Zugang -- und ein geloeschter Zugang ist kein Grund,
+                   ein halbes Jahr Gespraechsverlauf wegzuwerfen. */
+                require_once __DIR__ . '/src/Strato.php';
+                Strato::zugangLoeschen();
+                $_SESSION['gut'] = 'Der Zugang ist gelöscht. Die schon geholten Gespräche bleiben.';
+                zurueck('einstellungen?b=telefon');
+                break;
+
             case 'telefon_luecke_weg':
                 require_once __DIR__ . '/src/Telefon.php';
                 Telefon::lueckeWeg((string) ($_POST['schluessel'] ?? ''));
@@ -2189,18 +2238,6 @@ switch ($route) {
              ORDER BY FIELD(p.status,'ausstehend','in_bearbeitung','fehlgeschlagen') DESC, p.id DESC")]);
         break;
 
-    case 'integrationen':
-        require_once __DIR__ . '/src/Zahlung/Anbieter.php';
-        require_once __DIR__ . '/src/Zahlung/Stripe.php';
-        $stripe = new StripeAnbieter();
-        ansicht('integrationen', [
-            'stripe'   => $stripe,
-            'liste'    => Db::all('SELECT * FROM integrations ORDER BY category, name'),
-            'ereignisse' => Db::all('SELECT * FROM webhook_events ORDER BY id DESC LIMIT 25'),
-            'offen'    => (int) Db::wert("SELECT COUNT(*) FROM webhook_events WHERE status = 'fehler'"),
-        ]);
-        break;
-
     case 'onboarding':
         require_once __DIR__ . '/src/Onboarding.php';
         ansicht('onboarding', [
@@ -2268,165 +2305,130 @@ switch ($route) {
         break;
 
     case 'einstellungen':
-        require_once __DIR__ . '/src/Beispieldaten.php';
-        require_once __DIR__ . '/src/Firma.php';
-        ansicht('einstellungen', [
-            'beispiele'  => sicher(static fn() => Beispieldaten::anzahl(), 0),
-            'echteDaten' => sicher(static fn() => Beispieldaten::echteDatenDa(), true),
-            'firma'      => sicher(static fn() => Firma::alle(), []),
-            'cockpit'    => sicher(static function () {
+        /* EINE SEITE, SIEBEN BEREICHE
+           ------------------------------------------------------------------
+           Geladen wird nur, was der gewaehlte Bereich braucht. Alles auf
+           einmal hiesse: bei jedem Aufruf der Firmendaten die Stripe-Klasse
+           bauen, die Webhook-Ereignisse holen und vierzehn
+           Konfigurationsbloecke erzeugen -- fuer eine Seite, auf der zwei
+           Felder geaendert werden. */
+        $b = (string) ($_GET['b'] ?? 'firma');
+        $daten = [];
+
+        if ($b === 'firma') {
+            require_once __DIR__ . '/src/Firma.php';
+            $daten['firma'] = sicher(static fn() => Firma::alle(), []);
+        }
+
+        if ($b === 'zugaenge') {
+            $daten['zugaenge'] = sicher(static fn() => Db::all(
+                'SELECT id, name, email, role, active, last_login_at, created_at
+                 FROM users ORDER BY active DESC, id'));
+            $daten['cockpit'] = sicher(static function () {
                 require_once __DIR__ . '/src/Cockpit.php';
                 return ['geschuetzt' => Cockpit::geschuetzt(), 'eingerichtet' => Cockpit::eingerichtet(),
                         'beschreibbar' => Cockpit::beschreibbar(), 'benutzer' => Cockpit::benutzer(),
                         'adresse' => Cockpit::adresse()];
-            }, ['geschuetzt' => null, 'eingerichtet' => false, 'beschreibbar' => false, 'benutzer' => null, 'adresse' => '']),
-            'zugaenge'   => sicher(static fn() => Db::all(
-                'SELECT id, name, email, role, active, last_login_at, created_at
-                 FROM users ORDER BY active DESC, id')),
-            'zuruf'      => sicher(static function () {
-                require_once __DIR__ . '/src/Zuruf.php';
-                return ['an' => Zuruf::an(), 'nummer' => Zuruf::nummer(),
-                        'schluessel' => Zuruf::hatSchluessel(), 'zuletzt' => Zuruf::zuletzt()];
-            }, ['an' => false, 'nummer' => '', 'schluessel' => false, 'zuletzt' => '']),
-            'versand'    => sicher(static function () {
+            }, ['geschuetzt' => null, 'eingerichtet' => false, 'beschreibbar' => false,
+                'benutzer' => null, 'adresse' => '']);
+        }
+
+        if ($b === 'email') {
+            $daten['versand'] = sicher(static function () {
                 require_once __DIR__ . '/src/Versand.php';
                 return ['herkunft' => Versand::herkunft(), 'ende' => Versand::schluesselEnde(),
                         'from' => Versand::absender(), 'name' => Versand::name(),
                         'to' => Versand::meldungenAn()];
-            }, ['herkunft' => 'keine', 'ende' => '', 'from' => '', 'name' => '', 'to' => '']),
-            'versandTest' => $_SESSION['versand_test'] ?? null,
-        ]);
-        unset($_SESSION['versand_test']);
+            }, ['herkunft' => 'keine', 'ende' => '', 'from' => '', 'name' => '', 'to' => '']);
+            $daten['versandTest'] = $_SESSION['versand_test'] ?? null;
+            unset($_SESSION['versand_test']);
+            $daten['zuruf'] = sicher(static function () {
+                require_once __DIR__ . '/src/Zuruf.php';
+                return ['an' => Zuruf::an(), 'nummer' => Zuruf::nummer(),
+                        'schluessel' => Zuruf::hatSchluessel(), 'zuletzt' => Zuruf::zuletzt()];
+            }, ['an' => false, 'nummer' => '', 'schluessel' => false, 'zuletzt' => '']);
+        }
+
+        if ($b === 'bezahlung') {
+            require_once __DIR__ . '/src/Zahlung/Anbieter.php';
+            require_once __DIR__ . '/src/Zahlung/Stripe.php';
+            $daten['stripe']     = new StripeAnbieter();
+            $daten['liste']      = sicher(static fn() => Db::all('SELECT * FROM integrations ORDER BY category, name'));
+            $daten['ereignisse'] = sicher(static fn() => Db::all('SELECT * FROM webhook_events ORDER BY id DESC LIMIT 25'));
+            $daten['offen']      = (int) sicher(static fn() => Db::wert(
+                "SELECT COUNT(*) FROM webhook_events WHERE status = 'fehler'", [], 0), 0);
+        }
+
+        if ($b === 'telefon') {
+            require_once __DIR__ . '/src/Telefon.php';
+            require_once __DIR__ . '/src/Baukasten.php';
+            require_once __DIR__ . '/src/Strato.php';
+            $daten['schluessel'] = sicher(static fn() => Telefon::schluessel(), '');
+            $daten['adresse']    = sicher(static fn() => Telefon::adresse(), '');
+            $daten['modus']      = sicher(static fn() => Telefon::modus(), 'normal');
+            $daten['strato']     = sicher(static fn() => [
+                'eingerichtet' => Strato::eingerichtet(),
+                'fehler'       => Strato::fehler(),
+                'zuletzt'      => Strato::zuletzt(),
+                'anzahl'       => (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche', [], 0),
+            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '', 'anzahl' => 0]);
+        }
+
+        if ($b === 'ueberwachung') {
+            require_once __DIR__ . '/src/Cron.php';
+            $daten['adresse'] = sicher(static fn() => Cron::adresse(), '');
+            $daten['lauf']    = sicher(static fn() => Cron::zuletzt(), null);
+            $daten['bilanz']  = sicher(static fn() => Cron::letzteBilanz(), null);
+        }
+
+        if ($b === 'daten') {
+            require_once __DIR__ . '/src/Beispieldaten.php';
+            $daten['beispiele']  = sicher(static fn() => Beispieldaten::anzahl(), 0);
+            $daten['echteDaten'] = sicher(static fn() => Beispieldaten::echteDatenDa(), true);
+        }
+
+        ansicht('einstellungen', $daten);
         break;
 
-    case 'stimmen':
-        require_once __DIR__ . '/src/Stimme.php';
-        ansicht('stimmen', ['liste' => sicher(static fn() => Stimme::alle(), [])]);
-        break;
-
-    case 'abos':
-        require_once __DIR__ . '/src/Abo.php';
-        ansicht('abos', [
-            'liste' => sicher(static fn() => Abo::alle(), []),
-            'monatlich' => (int) sicher(static fn() => Abo::monatlich(), 0),
-        ]);
-        break;
-
-    case 'ausgaben':
-        require_once __DIR__ . '/src/Ausgabe.php';
-
-        if ($id !== null) {
-            $a = sicher(static fn() => Ausgabe::eine($id), null);
-            if (!$a) { http_response_code(404); exit('Diese Ausgabe gibt es nicht.'); }
-
-            // Die hinterlegte Datei. Sie liegt ausserhalb des Webs — der
-            // einzige Weg dorthin fuehrt durch die Anmeldung.
-            if (($teile[2] ?? '') === 'datei') {
-                $pfad = Ausgabe::dateipfad($a);
-                if ($pfad === null) { http_response_code(404); exit('Zu diesem Beleg liegt keine Datei.'); }
-                header('Content-Type: ' . ((string) ($a['mime'] ?? 'application/octet-stream')));
-                header('Content-Length: ' . (string) filesize($pfad));
-                header('Content-Disposition: inline; filename="'
-                    . str_replace('"', '', (string) ($a['orig_name'] ?: $a['beleg_nr'])) . '"');
-                header('X-Content-Type-Options: nosniff');
-                readfile($pfad);
-                exit;
-            }
-            ansicht('ausgabe_form', ['a' => $a, 'naechste' => (string) $a['beleg_nr']]);
-            break;
-        }
-
-        if (($unter ?? '') === 'neu') {
-            ansicht('ausgabe_form', ['a' => null, 'naechste' => sicher(static fn() => Ausgabe::naechsteNummer(), 'EA-…')]);
-            break;
-        }
-
-        $jahre = sicher(static fn() => Ausgabe::jahre(), []);
-        $jahr  = isset($_GET['jahr']) ? (int) $_GET['jahr'] : (int) ($jahre[0] ?? date('Y'));
-        ansicht('ausgaben', [
-            'jahre' => $jahre,
-            'jahr'  => $jahr,
-            'liste' => sicher(static fn() => Ausgabe::alle($jahr), []),
-            'summe' => sicher(static fn() => Ausgabe::summe($jahr),
-                              ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]),
-        ]);
-        break;
-
-    case 'steuerakte':
-        require_once __DIR__ . '/src/Steuerakte.php';
-        $jahr = $id !== null ? (int) $id : 0;
-        $was  = (string) ($teile[2] ?? '');
-
-        // Die einzelnen Tabellen. Jede fuer sich abrufbar, weil der
-        // Commercialista meistens genau eine davon will und nicht das
-        // ganze Paket.
-        $tabellen = [
-            'verzeichnis'    => ['verzeichnis-',            static fn() => Steuerakte::verzeichnis($jahr)],
-            'einnahmen'      => ['einnahmen-nach-zahlung-', static fn() => Steuerakte::einnahmenCsv($jahr)],
-            'abgrenzung'     => ['abgrenzung-',             static fn() => Steuerakte::abgrenzungCsv($jahr)],
-            'forderungen'    => ['offene-forderungen-',    static fn() => Steuerakte::forderungenCsv($jahr)],
-            'ausgaben'       => ['ausgaben-',               static fn() => Steuerakte::ausgabenCsv($jahr)],
-            'reversecharge'  => ['reverse-charge-',         static fn() => Steuerakte::reverseChargeCsv($jahr)],
-        ];
-        if ($jahr > 0 && isset($tabellen[$was])) {
-            [$vorne, $bauen] = $tabellen[$was];
-            header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="' . $vorne . $jahr . '.csv"');
-            echo $bauen();
-            exit;
-        }
-        if ($jahr > 0 && $was === 'paket') {
-            // Liegt das Paket vom naechtlichen Lauf schon fertig da und ist
-            // es von heute, geht es sofort raus. Sonst wird es gebaut — das
-            // kann bei vielen Belegen dauern, weil jedes PDF einzeln
-            // entsteht, und der Server darf dabei nicht nach dreissig
-            // Sekunden aussteigen und eine halbe Datei ausliefern.
-            @set_time_limit(300);
-            $fertig = sicher(static fn() => Steuerakte::archiv($jahr), ['stand' => null, 'datei' => '']);
-            $frisch = $fertig['stand'] !== null && strtotime((string) $fertig['stand']) > strtotime('-12 hours');
-            $datei  = $frisch ? (string) $fertig['datei'] : Steuerakte::paket($jahr);
-            header('Content-Type: application/zip');
-            header('Content-Length: ' . (string) filesize($datei));
-            header('Content-Disposition: attachment; filename="' . Steuerakte::paketname($jahr) . '"');
-            readfile($datei);
-            if (!$frisch) { @unlink($datei); }
-            exit;
-        }
-
-        $jahre = Steuerakte::jahre();
-        // Auch ein Jahr, in dem es nur Ausgaben gibt, ist ein Jahr.
-        require_once __DIR__ . '/src/Ausgabe.php';
-        foreach (sicher(static fn() => Ausgabe::jahre(), []) as $j) {
-            if (!in_array($j, $jahre, true)) { $jahre[] = $j; }
-        }
-        rsort($jahre);
-        $uebersicht = $ausgaben = $grenzen = $archiv = [];
-        foreach ($jahre as $j) {
-            $uebersicht[$j] = sicher(static fn() => Steuerakte::zusammenfassung($j), null);
-            $ausgaben[$j]   = sicher(static fn() => Ausgabe::summe($j),
-                                     ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]);
-            $grenzen[$j]    = sicher(static fn() => Steuerakte::grenzen($j),
-                                     ['summe' => 0, 'waehrung' => 'EUR', 'anteil' => 0.0, 'warnung' => null]);
-            $archiv[$j]     = sicher(static fn() => Steuerakte::archiv($j), ['stand' => null, 'bytes' => 0]);
-        }
-        ansicht('steuerakte', [
-            'jahre'      => $jahre,
-            'uebersicht' => array_filter($uebersicht),
-            'ausgaben'   => $ausgaben,
-            'grenzen'    => $grenzen,
-            'archiv'     => $archiv,
-            'fristen'    => sicher(static fn() => Steuerakte::fristen(), []),
-        ]);
+    /* Die Integrationen sind ein Bereich der Einstellungen geworden. Die
+       alte Adresse bleibt gueltig -- Lesezeichen und alte Meldungen zeigen
+       darauf, und eine tote Adresse ist eine schlechtere Auskunft als eine
+       Weiterleitung. */
+    case 'integrationen':
+        weiter('einstellungen?b=bezahlung');
         break;
 
     case 'telefon':
         /* Der Telefonassistent. Alles, was zum Einrichten bei STRATO noetig
            ist, plus die Spur dessen, was er getan hat. */
         require_once __DIR__ . '/src/Telefon.php';
-        require_once __DIR__ . '/src/Baukasten.php';
+        require_once __DIR__ . '/src/Strato.php';
+
+        /* Die Gespraeche von STRATO. Zeitraum und Filter stehen in der
+           Adresse, damit ein gefundener Blick sich verschicken und
+           wiederfinden laesst -- „mit Befund, letzte 90 Tage" ist eine
+           Frage, die man mehr als einmal stellt. */
+        $tageG  = max(1, min(365, (int) ($_GET['t'] ?? 30)));
+        $filterG = (string) ($_GET['f'] ?? '');
+        $gespraecheG = sicher(static fn() => Strato::gespraeche($tageG, $filterG, 120), []);
+
+        /* Und zu jedem die eigene Spur. In einer Schleife, weil ein JOIN
+           ueber ein Zeitfenster in SQL zwar ginge, aber niemand ihn danach
+           noch lesen koennte -- und es sind hoechstens hundertzwanzig. */
+        $spurenG = [];
+        foreach ($gespraecheG as $gg) {
+            $spurenG[(string) $gg['id']] = sicher(static fn() => Strato::spur($gg), []);
+        }
+
         ansicht('telefon', [
-            'schluessel' => sicher(static fn() => Telefon::schluessel(), ''),
-            'adresse'    => sicher(static fn() => Telefon::adresse(), ''),
+            'gespraeche' => $gespraecheG,
+            'spuren'     => $spurenG,
+            'zahlen'     => sicher(static fn() => Strato::zahlen($tageG), ['anrufe' => 0]),
+            'strato'     => sicher(static fn() => [
+                'eingerichtet' => Strato::eingerichtet(),
+                'fehler'       => Strato::fehler(),
+                'zuletzt'      => Strato::zuletzt(),
+            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '']),
             'verlauf'    => sicher(static fn() => Db::all(
                 "SELECT * FROM activities WHERE type LIKE 'telefon\\_%'
                   ORDER BY id DESC LIMIT 40"), []),

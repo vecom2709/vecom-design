@@ -104,7 +104,9 @@ $menueMehr = [
   ['telefon', 'Telefonassistent', 'telefon'],
   ['aktivitaeten', 'Aktivitäten', 'aktivitaeten'],
   ['benachrichtigungen', 'Benachrichtigungen', 'benachrichtigungen'],
-  ['integrationen', 'Integrationen', 'integrationen'],
+  /* „Integrationen" stand hier als eigener Punkt, obwohl darauf nichts
+     anderes war als eine Einstellung: der Stripe-Schlüssel. Jetzt ist es
+     ein Bereich der Einstellungen; die alte Adresse leitet dorthin. */
   ['einstellungen', 'Einstellungen', 'einstellungen'],
 ];
 

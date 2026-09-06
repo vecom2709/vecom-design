@@ -2360,6 +2360,139 @@ $c = Telefon::beratung(['sprache' => 'de', 'gespraech' => $f3, 'antwort_auf' => 
 pruefe('wer antwortet, wird weitergefragt', empty($c['abbrechen']), json_encode($c));
 
 /* ============================================================================
+   33. Die Gespräche von STRATO
+   ============================================================================
+   Bei STRATO liegt zu jedem Anruf mehr, als die Oberfläche dort zeigt: eine
+   maschinelle Auswertung mit Ausgang, Beteiligung, Problem-Schlagworten und
+   der Frage, ob der Assistent gegen seine eigenen Anweisungen gehandelt hat.
+   Genau das, was man braucht, um ihn besser zu machen — und genau das, was
+   in einer Liste über fünf Seiten niemand von Hand zusammenzählt.
+
+   Geprüft wird hier das Ablegen, nicht das Abrufen: Ein Test, der ein fremdes
+   Netz braucht, ist kein Test, sondern eine Wettervorhersage.
+   ============================================================================ */
+abschnitt('33. Gespräche von STRATO');
+
+require_once $wurzel . '/src/Strato.php';
+
+pruefe('ohne hinterlegten Zugang ist nichts eingerichtet', Strato::eingerichtet() === false);
+$ohne = Strato::abgleichen();
+pruefe('und der Abgleich sagt das, statt zu scheitern',
+    ($ohne['ok'] ?? true) === false && ($ohne['grund'] ?? '') === 'kein_zugang', json_encode($ohne));
+
+/* Ein Satz, wie er wirklich kommt — abgeschrieben vom Anruf am 7.9. um 00:11. */
+$satz = [
+  'id' => '813c4162-e917-4d0d-a8db-66114f4ebe61',
+  'call_sid' => 'CA-pruefung',
+  'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 3600),
+  'call_seconds_billed' => 177,
+  'fwd_seconds_billed' => 0,
+  'agent_number' => '+49304397926082',
+  'customer_number' => '+39 380 111 2233',
+  'summaries' => [[
+    'content' => ['name' => 'Manuel Brandner', 'subject' => 'Anfrage zur Optimierung einer Webseite',
+                  'summary' => 'Die Adresse wurde nicht gefunden.'],
+    'metadata' => ['total_messages' => 36, 'function_calls' => 3, 'analysis' => [
+        'issue_tags' => ['incorrect_function_parameters', 'caller_frustration'],
+        'call_outcome' => 'AGENT_ERROR',
+        'analysis_notes' => 'Die Adresse wurde falsch übertragen.',
+        'call_outcome_notes' => 'Ohne Ergebnis beendet.',
+        'engagement_level' => 'ENGAGED_WITH_INTENT',
+        'function_calling' => ['prompt_violation' => true,
+                               'prompt_violation_notes' => 'Anweisung missachtet.',
+                               'other_hallucination' => false,
+                               'booking_hallucination' => false,
+                               'forwarding_hallucination' => false],
+    ]]]],
+];
+
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+$ablegen = new ReflectionMethod('Strato', 'ablegen');
+$ablegen->setAccessible(true);
+
+pruefe('ein neues Gespräch wird angelegt', $ablegen->invoke(null, $satz) === 'neu');
+pruefe('dasselbe noch einmal ändert nichts', $ablegen->invoke(null, $satz) === 'gleich');
+
+$g = Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', [$satz['id']]);
+pruefe('Betreff und Zusammenfassung stehen da',
+    ($g['betreff'] ?? '') === 'Anfrage zur Optimierung einer Webseite'
+    && str_contains((string) $g['zusammenfassung'], 'nicht gefunden'), json_encode($g['betreff'] ?? null));
+
+/* DAS EIGENTLICHE: die Auswertung. Ohne sie wäre es eine Anrufliste. */
+pruefe('der Ausgang wird übernommen', ($g['ausgang'] ?? '') === 'AGENT_ERROR');
+pruefe('die Beteiligung des Anrufers auch', ($g['engagement'] ?? '') === 'ENGAGED_WITH_INTENT');
+pruefe('die Problem-Schlagworte auch',
+    str_contains((string) $g['tags'], 'caller_frustration'), (string) $g['tags']);
+pruefe('ein Verstoß gegen die eigenen Anweisungen wird festgehalten',
+    (int) $g['verstoss'] === 1 && str_contains((string) $g['verstoss_text'], 'Anweisung'), json_encode($g['verstoss_text']));
+pruefe('eine Halluzination lag nicht vor und wird auch nicht behauptet', (int) $g['erfunden'] === 0);
+pruefe('beide Notizen kommen mit',
+    str_contains((string) $g['notizen'], 'falsch übertragen')
+    && str_contains((string) $g['notizen'], 'Ohne Ergebnis'), (string) $g['notizen']);
+
+/* DIE ZUORDNUNG. Dieselbe Näherung wie beim Nachschlagen: die letzten neun
+   Ziffern. Ohne sie stünde bei jedem zweiten Anruf „Unbekannt", obwohl der
+   Kunde in der Verwaltung steht. */
+pruefe('die Rufnummer findet den Kunden', (int) ($g['kunde_id'] ?? 0) === $kundeId, json_encode($g['kunde_id']));
+
+/* Der Rohsatz bleibt liegen — ein Feld, das man beim Entwurf nicht vorgesehen
+   hat, ist sonst rückwirkend verloren. */
+pruefe('der Rohsatz wird aufgehoben',
+    is_array(json_decode((string) $g['roh'], true)), mb_substr((string) $g['roh'], 0, 60));
+
+/* Ändert sich die Auswertung nachträglich — sie entsteht erst Minuten nach
+   dem Auflegen —, muss der Abgleich das mitbekommen. */
+$satz['summaries'][0]['metadata']['analysis']['call_outcome'] = 'RESOLVED';
+pruefe('eine nachgereichte Auswertung wird erkannt', $ablegen->invoke(null, $satz) === 'geaendert');
+
+/* Ein Anruf ohne Auswertung darf nicht scheitern. Kurze Anrufe haben keine. */
+$leer = ['id' => '00000000-0000-0000-0000-000000000001',
+         'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 1800),
+         'call_seconds_billed' => 9, 'customer_number' => 'widget-call', 'summaries' => []];
+pruefe('ein Anruf ohne Zusammenfassung legt sich trotzdem ab',
+    $ablegen->invoke(null, $leer) === 'neu');
+
+$z = Strato::zahlen(7);
+pruefe('gezählt werden beide', (int) $z['anrufe'] === 2, json_encode($z['anrufe']));
+/* Unter einer halben Minute wurde nicht gesprochen, sondern aufgelegt.
+   Solche Anrufe verzerren jeden Durchschnitt — deshalb zählen sie getrennt. */
+pruefe('als echtes Gespräch zählt nur das lange', (int) $z['echte'] === 1, json_encode($z['echte']));
+pruefe('der Verstoß steht in den Zahlen', (int) $z['verstoesse'] === 1);
+pruefe('ein Anruf über die Website wird als solcher erkannt', (int) $z['widget'] === 1);
+pruefe('die Schlagworte sind gezählt', (int) ($z['tags']['caller_frustration'] ?? 0) === 1, json_encode($z['tags']));
+
+pruefe('nach Verstößen lässt sich filtern', count(Strato::gespraeche(7, 'verstoss')) === 1);
+pruefe('nach echten Gesprächen auch', count(Strato::gespraeche(7, 'gespraech')) === 1);
+pruefe('nach Bestandskunden auch', count(Strato::gespraeche(7, 'kunden')) === 1);
+pruefe('ohne Filter kommen alle', count(Strato::gespraeche(7)) === 2);
+
+/* DIE ÜBERSETZUNG. Ein Schlagwort, das wir nicht kennen, darf nicht
+   verschwinden — es wird roh gezeigt, damit man es sieht und nachträgt. */
+pruefe('bekannte Schlagworte stehen auf Deutsch da',
+    Strato::tagWort('caller_frustration') === 'Anrufer war genervt');
+pruefe('ein unbekanntes verschwindet nicht',
+    Strato::tagWort('ganz_neues_ding') === 'ganz neues ding', Strato::tagWort('ganz_neues_ding'));
+pruefe('ein unbekannter Ausgang auch nicht',
+    Strato::ausgangWort('IRGENDWAS_NEUES')['wort'] !== '', json_encode(Strato::ausgangWort('IRGENDWAS_NEUES')));
+
+/* UNSERE EIGENE SPUR NEBEN IHREM GESPRÄCH.
+   Zusammengeführt über die Zeit, weil die Telefonplattform uns keine
+   gemeinsame Gesprächsnummer gibt. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::protokoll('seitenblick', 'Website angesehen', null, ['adresse' => 'beispiel.it']);
+Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_seitenblick'",
+        [date('Y-m-d H:i:s', strtotime((string) $g['begonnen']) + 30)]);
+$g = Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', [$satz['id']]);
+pruefe('was während des Gesprächs geschah, steht daneben',
+    count(Strato::spur($g)) === 1, json_encode(Strato::spur($g)));
+
+/* Und was danach passierte, gehört nicht dazu — sonst stünde bei jedem
+   Gespräch der ganze Tag. */
+Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_seitenblick'",
+        [date('Y-m-d H:i:s', strtotime((string) $g['begonnen']) + 4000)]);
+pruefe('was lange danach geschah, nicht', Strato::spur($g) === []);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

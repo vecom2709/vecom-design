@@ -1,25 +1,29 @@
 <?php
 /**
- * Der Telefonassistent — alles zum Einrichten an einer Stelle.
+ * DER TELEFONASSISTENT — ALLES, WAS SICHTBAR SEIN MUSS
+ * ===========================================================================
  *
- * STRATO konfiguriert die API-Integration ueber HAR-artiges JSON. Diese Seite
- * erzeugt es fertig: Wer hier kopiert und drueben einfuegt, muss nichts
- * verstehen. Das ist der Sinn — die Anleitung des Anbieters richtet sich an
- * einen Entwickler, und einer sitzt hier nicht.
+ * Diese Seite ist Auswertung, sonst nichts. Was eingestellt wird — Schlüssel,
+ * Modus, der Zugang zu STRATO, die vierzehn Konfigurationen — steht unter
+ * Einstellungen → Telefonassistentin. Der Grund ist banal und teuer: Wer eine
+ * Zahl nachsehen wollte, kam vorher an einem Knopf vorbei, der den Schlüssel
+ * neu erzeugt und STRATO ins Leere rufen lässt.
+ *
+ * WAS HIER ZUSAMMENKOMMT, KOMMT AUS ZWEI RICHTUNGEN
+ *
+ * Von STRATO: was gesprochen wurde — Anrufer, Dauer, Betreff, Zusammenfassung
+ * und die maschinelle Auswertung je Anruf (Ausgang, Beteiligung,
+ * Problem-Schlagworte, Verstöße gegen die eigenen Anweisungen).
+ *
+ * Von uns: was getan wurde — jeder Werkzeugaufruf mit Ergebnis, aus unserer
+ * eigenen Spur. Sie gehört uns, überlebt jede Aufbewahrungsfrist bei STRATO
+ * und ist das Einzige, was auch dann noch da ist, wenn der Anbieter wechselt.
+ *
+ * Nebeneinander beantworten sie die Frage, die eine Liste von Anrufen nie
+ * beantwortet: Warum ist dieses Gespräch so ausgegangen?
  */
-$basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
-
-/* Die Konfigurator-Antworten als Aufzaehlung. Sie muessen in Stratos Schema
-   als enum stehen, damit das Modell aus einer Liste waehlt statt zu
-   formulieren -- Freitext verwirft der Konfigurator ohnehin. */
-$fragen = [];
-foreach (Telefon::VORWEG as $f) {
-    $frage = Baukasten::FRAGEN[$f] ?? null;
-    if ($frage === null) { continue; }
-    $fragen[$f] = ['art' => $frage['art'] ?? 'einfach',
-                   'werte' => array_map('strval', array_keys($frage['optionen'] ?? []))];
-}
-
+$tage   = max(1, min(365, (int) ($_GET['t'] ?? 30)));
+$filter = (string) ($_GET['f'] ?? '');
 ?>
 
 <div class="kopf"><div><h1>Telefonassistent</h1>
@@ -27,25 +31,20 @@ foreach (Telefon::VORWEG as $f) {
     <?php if ($anzahl > 0): ?>
       <?= (int) $anzahl ?> <?= $anzahl === 1 ? 'Aufruf' : 'Aufrufe' ?> in den letzten 30 Tagen.
     <?php else: ?>
-      Noch kein Aufruf. Trag die Konfigurationen unten bei STRATO ein.
+      Noch kein Aufruf. Die Konfigurationen stehen unter Einstellungen.
+    <?php endif; ?>
+    <?php if ($modus !== 'normal'): ?>
+      <span class="marke2 warnung" style="margin-left:8px">Modus: <?= Fmt::h(Telefon::MODI[$modus] ?? $modus) ?></span>
     <?php endif; ?>
   </p></div>
-  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-right:8px">
-    <?= Csrf::feld() ?><input type="hidden" name="tat" value="telefon_modus">
-    <input type="hidden" name="zurueck" value="telefon">
-    <select name="modus" onchange="this.form.submit()" style="min-width:150px">
-      <?php foreach (Telefon::MODI as $wert => $wort): ?>
-        <option value="<?= Fmt::h($wert) ?>" <?= $modus === $wert ? 'selected' : '' ?>><?= Fmt::h($wort) ?></option>
-      <?php endforeach; ?>
-    </select>
-  </form>
-  <form method="post" action="<?= Fmt::h(url('')) ?>"
-        data-frage="Der alte Schlüssel wird damit ungültig — STRATO ruft danach ins Leere, bis du den neuen dort einträgst. Fortfahren?"
-        data-ja="Ja, neuen Schlüssel erzeugen">
-    <?= Csrf::feld() ?><input type="hidden" name="tat" value="telefon_schluessel_neu">
-    <input type="hidden" name="zurueck" value="telefon">
-    <button class="knopf">Neuen Schlüssel erzeugen</button></form>
+  <a class="knopf" href="<?= Fmt::h(url('einstellungen?b=telefon')) ?>" style="text-decoration:none">Einstellungen</a>
 </div>
+
+<?php if ($strato['fehler'] !== ''): ?>
+  <div class="hinweis schlecht">Die Gespräche von STRATO kommen nicht mehr an:
+    <?= Fmt::h($strato['fehler']) ?>
+    <a href="<?= Fmt::h(url('einstellungen?b=telefon')) ?>">Zugang neu hinterlegen</a></div>
+<?php endif; ?>
 
 <?php /* ---------- Heute anrufen ---------- */ ?>
 <?php if (!empty($rueckrufe)):
@@ -119,371 +118,173 @@ foreach (Telefon::VORWEG as $f) {
 </div>
 <?php endif; ?>
 
+<?php /* ---------- DIE GESPRÄCHE ----------
+         Der eigentliche Grund dieser Seite. Bei STRATO stehen sie über fünf
+         Seiten verteilt, ohne Suche, ohne Filter und mit einer
+         Aufbewahrungsfrist, die uns nicht gehört. Hier stehen sie
+         durchsuchbar, mit der Auswertung und mit unserer eigenen Spur
+         daneben. */ ?>
+<?php if ($strato['eingerichtet'] || $gespraeche): ?>
+<?php $zz = $zahlen; ?>
 <div class="block">
-  <h2>Der Schlüssel</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
-    Er öffnet nur, was am Telefon gebraucht wird: nachschlagen, Preis schätzen, Tag und
-    Uhrzeit erfahren, Konfigurator-Link schicken, Anliegen melden, Zusammenfassung senden,
-    eine offene Frage notieren, jemandem Schritt für Schritt weiterhelfen.
-    Nicht deinen Zugang, nicht Stripe, nicht die Zahlungen.
-    Wird er bekannt, kann jemand Anfragen anlegen und Links an <b>hinterlegte</b> Adressen
-    schicken — lästig, nicht gefährlich. Und oben ist er in zehn Sekunden neu.</p>
-  <div class="feld"><label>Adresse (bei STRATO als URL)</label>
-    <input readonly value="<?= Fmt::h((string) $adresse) ?>" onclick="this.select()"></div>
-  <div class="feld"><label>Schlüssel (Kopfzeile <code>X-Vecom-Telefon</code>)</label>
-    <input readonly value="<?= Fmt::h((string) $schluessel) ?>" onclick="this.select()"></div>
-  <p style="color:var(--leise);font-size:12.5px">
-    Er gehört nicht in eine E-Mail und nicht in einen Chat. Kopieren, drüben einfügen, fertig.</p>
-</div>
+  <h2>Gespräche
+    <span class="mehr" style="font-weight:400;color:var(--leise)">letzte <?= (int) $tage ?> Tage</span>
+    <span class="marke2"><?= (int) $zz['anrufe'] ?></span></h2>
 
-<?php
-/* ---------- Die fertigen Konfigurationen ----------
-   Der Rumpf wird als Zeichenkette gebaut und nicht durch json_encode
-   gejagt: Stratos Platzhalter {{ name }} muessen woertlich stehen bleiben. */
-$konfigs = [];
+  <?php if ($zz['anrufe'] > 0): ?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0 18px">
+    <div><div style="font-size:22px;font-weight:600"><?= (int) $zz['echte'] ?></div>
+      <div style="color:var(--leise);font-size:12px">echte Gespräche<br>(ab 30 Sekunden)</div></div>
+    <div><div style="font-size:22px;font-weight:600"><?= (int) $zz['minuten'] ?> min</div>
+      <div style="color:var(--leise);font-size:12px">Gesprächszeit<br>im Schnitt <?= Fmt::h((string) $zz['schnitt']) ?></div></div>
+    <div><div style="font-size:22px;font-weight:600"><?= (int) $zz['bekannt'] ?></div>
+      <div style="color:var(--leise);font-size:12px">von einem<br>bekannten Kunden</div></div>
+    <div><div style="font-size:22px;font-weight:600;color:<?= $zz['verstoesse'] > 0 ? 'var(--rot)' : 'inherit' ?>"><?= (int) $zz['verstoesse'] ?></div>
+      <div style="color:var(--leise);font-size:12px">hat gegen ihre<br>Anweisungen gehandelt</div></div>
+    <div><div style="font-size:22px;font-weight:600;color:<?= $zz['erfunden'] > 0 ? 'var(--rot)' : 'inherit' ?>"><?= (int) $zz['erfunden'] ?></div>
+      <div style="color:var(--leise);font-size:12px">hat etwas<br>erfunden</div></div>
+  </div>
 
-$konfigs['kunde_nachschlagen'] = [
-  'zweck' => 'Wer ruft an? Schlägt über Rufnummer, Kundennummer oder Namen nach. '
-           . 'Gibt Name, Betrieb, Sprache und Projektstand zurück — nie Beträge. '
-           . 'IMMER zuerst aufrufen, bevor du „hilfe“, „angebot_link“, „uebergabe“, „melde“ oder '
-           . '„zusammenfassung“ benutzt. Die zurückgegebene kunde_id gibst du danach bei jedem '
-           . 'weiteren Werkzeug im selben Gespräch mit — ohne sie bekommt niemand einen Stand '
-           . 'und keinen Link. Kommt kein Treffer, fragst du nach Rufnummer und Erreichbarkeit '
-           . 'und rufst „melde“ auf. '
-           . 'Kommt „schon_einmal“ zurück, sag den Satz aus „satz“ früh im Gespräch — '
-           . 'einmal, nicht mehrmals. Widerspricht er, glaub ihm und frag neu. '
-           . 'Kommt „website“ zurück, ist seine Internetadresse hinterlegt: Frag ihn dann NIE '
-           . 'danach, sondern ruf „seite_ansehen“ mit der kunde_id auf. '
-           . 'Kommt „website_achtung“, sag das früh — es ist meist der Grund seines Anrufs.',
-  'eig' => [
-    'telefon'      => ['type' => 'string', 'description' => 'Rufnummer des Anrufers, wie sie hereinkommt'],
-    'kundennummer' => ['type' => 'string', 'description' => 'Kunden-, Bestell- oder Angebotsnummer, falls genannt'],
-    'name'         => ['type' => 'string', 'description' => 'Vor- und Nachname oder Betrieb, falls genannt'],
-  ],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"kunde_nachschlagen","telefon":"{{ telefon }}","kundennummer":"{{ kundennummer }}","name":"{{ name }}"}',
-];
-
-$eigA = [
-  'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
-  'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher nachgeschlagen und gefunden'],
-  'email' => ['type' => 'string', 'format' => 'email', 'description' => 'Nur bei Neukunden, buchstabieren lassen'],
-  'name' => ['type' => 'string', 'description' => 'Name für die Anrede'],
-];
-foreach ($fragen as $f => $inf) {
-    $eigA[$f] = $inf['art'] === 'mehrfach'
-        ? ['type' => 'array', 'items' => ['type' => 'string', 'enum' => $inf['werte']],
-           'description' => 'Mehrfach möglich. Nur eintragen, was der Anrufer wirklich gesagt hat.']
-        : ['type' => 'string', 'enum' => $inf['werte'],
-           'description' => 'Nur eintragen, was der Anrufer wirklich gesagt hat.'];
-}
-$rumpfA = '{"aktion":"angebot_link","sprache":"{{ sprache }}","kunde_id":"{{ kunde_id }}",'
-        . '"email":"{{ email }}","name":"{{ name }}"';
-foreach (array_keys($fragen) as $f) { $rumpfA .= ',"' . $f . '":"{{ ' . $f . ' }}"'; }
-$rumpfA .= '}';
-
-$konfigs['angebot_link'] = [
-  'zweck' => 'Schickt den Konfigurator-Link. Was am Telefon schon gesagt wurde, steht beim '
-           . 'Öffnen drin. Bei Bestandskunden geht der Link nur an die hinterlegte Adresse. '
-           . 'Sag erst „ist raus“, NACHDEM dieses Werkzeug „ok“ zurückgegeben hat — eine Zusage, '
-           . 'die du nicht eingelöst hast, ist schlimmer als gar keine.',
-  'eig' => $eigA, 'pflicht' => ['sprache'], 'rumpf' => $rumpfA,
-];
-
-$konfigs['preis_auskunft'] = [
-  'zweck' => 'Was kostet das? Rechnet mit derselben Maschine wie der Konfigurator und das '
-           . 'Angebot — die Zahlen sind immer die aktuellen. Antwort ist eine Spanne, nie ein '
-           . 'Festpreis. Wenn der Anrufer schon etwas gesagt hat, seine Spanne; sonst die übliche. '
-           . 'Kommt „ausserhalb“ zurück, nennst du KEINE Zahl: Das Vorhaben passt nicht in den '
-           . 'Baukasten. Dann liest du den mitgegebenen Satz vor und bietest einen Termin an.',
-  'eig' => (static function () use ($fragen) {
-      $e = [];
-      foreach ($fragen as $f => $inf) {
-          $e[$f] = $inf['art'] === 'mehrfach'
-              ? ['type' => 'array', 'items' => ['type' => 'string', 'enum' => $inf['werte']],
-                 'description' => 'Nur eintragen, was der Anrufer wirklich gesagt hat.']
-              : ['type' => 'string', 'enum' => $inf['werte'],
-                 'description' => 'Nur eintragen, was der Anrufer wirklich gesagt hat.'];
-      }
-      $e['vorhaben'] = ['type' => 'string', 'maxLength' => 300,
-          'description' => 'Was er sich wünscht, in seinen eigenen Worten — daran wird erkannt, '
-                         . 'ob es überhaupt in den Baukasten passt'];
-      return $e;
-  })(),
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"preis_auskunft","vorhaben":"{{ vorhaben }}"' . (static function () use ($fragen) {
-      $r = ''; foreach (array_keys($fragen) as $f) { $r .= ',"' . $f . '":"{{ ' . $f . ' }}"'; }
-      return $r;
-  })() . '}',
-];
-
-$konfigs['lage'] = [
-  'zweck' => 'Wie spät ist es, welcher Tag, und ist ein Rückruf heute realistisch? '
-           . 'Immer aufrufen, bevor du einen Zeitpunkt zusagst — die Uhrzeit nie selbst schätzen. '
-           . '„ton“ sagt dir, wie du zu dieser Tageszeit klingen solltest: morgens frisch und knapp, '
-           . 'abends ruhiger und ohne lange Fragebögen, nachts nur noch aufnehmen. '
-           . 'Am Wochenende tust du nicht so, als säße jemand im Büro.',
-  'eig' => [], 'pflicht' => [], 'rumpf' => '{"aktion":"lage"}',
-];
-
-$konfigs['melde'] = [
-  'zweck' => 'Trägt ein Anliegen in die Verwaltung ein: Rückruf, Nachricht, Beschwerde '
-           . 'oder „Link noch einmal schicken“. Beschwerden gelten immer als dringend. '
-           . 'Das ist der Rettungsanker: Endet ein Gespräch, ohne dass etwas rausgegangen ist, '
-           . 'rufst du wenigstens das hier auf — mit Rufnummer und Erreichbarkeit. '
-           . 'Ein Anrufer, von dem nichts in der Verwaltung steht, ist verloren.',
-  'eig' => [
-    'art' => ['type' => 'string', 'enum' => array_keys(Telefon::ARTEN),
-              'description' => 'Um welche Art Anliegen es geht'],
-    'prioritaet' => ['type' => 'string', 'enum' => ['normal', 'dringend'],
-                     'default' => 'normal', 'description' => 'Dringend nur, wenn es wirklich eilt'],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-    'name' => ['type' => 'string', 'description' => 'Name des Anrufers'],
-    'telefon' => ['type' => 'string', 'description' => 'Rückrufnummer'],
-    'erreichbar' => ['type' => 'string', 'maxLength' => 160,
-                     'description' => 'Wann er am besten erreichbar ist, in seinen Worten '
-                                    . '(„ab 14 Uhr“, „nur vormittags“, „nicht Dienstag“)'],
-    'text' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 4000,
-               'description' => 'Das Anliegen in eigenen Worten des Anrufers'],
-  ],
-  'pflicht' => ['art', 'text'],
-  'rumpf' => '{"aktion":"melde","art":"{{ art }}","prioritaet":"{{ prioritaet }}",'
-           . '"kunde_id":"{{ kunde_id }}","name":"{{ name }}","telefon":"{{ telefon }}",'
-           . '"erreichbar":"{{ erreichbar }}","text":"{{ text }}"}',
-];
-
-$konfigs['wissensluecke'] = [
-  'zweck' => 'Wenn du eine Frage nicht sicher beantworten kannst: hier melden, statt zu raten. '
-           . 'Danach sagen „das schaue ich nach und melde mich“ — und nichts erfinden.',
-  'eig' => [
-    'frage' => ['type' => 'string', 'minLength' => 5, 'maxLength' => 500,
-                'description' => 'Die Frage des Anrufers, möglichst wörtlich'],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-  ],
-  'pflicht' => ['frage'],
-  'rumpf' => '{"aktion":"wissensluecke","frage":"{{ frage }}","kunde_id":"{{ kunde_id }}"}',
-];
-
-$konfigs['hilfe'] = [
-  'zweck' => 'Wenn jemand nicht weiterkommt: Fragebogen, Bezahlung, Link weg, Entwurf, Zugang. '
-           . 'Sieht nach, wo DIESER Kunde steht, und gibt die Schritte in seiner Sprache zurück. '
-           . 'Die Sätze aus „schritte“ vorlesen, einen nach dem anderen — nicht zusammenfassen, '
-           . 'nichts dazuerfinden. Keine Beträge und nicht sagen, ob etwas offen ist: '
-           . 'Das steht auf seiner Seite, und der Link dorthin geht nur an die hinterlegte Adresse. '
-           . 'Klappt es beim zweiten Mal nicht, „versuch“ auf 2 setzen — dann übernimmt ein Mensch. '
-           . 'Kommt „bekannt“: false zurück, gibst du keinen Stand und keinen Link heraus, sondern '
-           . 'fragst nach Rufnummer und Erreichbarkeit und rufst „melde“ auf.',
-  'eig' => [
-    'problem' => ['type' => 'string',
-                  'enum' => ['fragebogen', 'bezahlung', 'link_weg', 'vorschau', 'zugang', 'sonstiges'],
-                  'description' => 'Woran es hakt. Im Zweifel „sonstiges“ — eine falsche Kategorie '
-                                 . 'führt zu einer Anleitung für ein Problem, das er nicht hat'],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-    'telefon'  => ['type' => 'string', 'description' => 'Rufnummer, falls noch nicht nachgeschlagen'],
-    'versuch'  => ['type' => 'integer',
-                   'description' => '0 beim ersten Anlauf, 1 beim zweiten, 2 wenn es wieder nicht ging'],
-    'text'     => ['type' => 'string', 'maxLength' => 500,
-                   'description' => 'Was genau nicht geht, in seinen Worten — nur beim Aufgeben nötig'],
-  ],
-  'pflicht' => ['problem'],
-  'rumpf' => '{"aktion":"hilfe","problem":"{{ problem }}","kunde_id":"{{ kunde_id }}",'
-           . '"telefon":"{{ telefon }}","versuch":"{{ versuch }}","text":"{{ text }}"}',
-];
-
-$konfigs['zusammenfassung'] = [
-  'zweck' => 'Schickt dem Anrufer, was besprochen wurde. Nur nach ausdrücklicher Zustimmung.',
-  'eig' => [
-    'zustimmung' => ['type' => 'boolean', 'description' => 'Hat der Anrufer ausdrücklich zugestimmt?'],
-    'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-    'email' => ['type' => 'string', 'format' => 'email', 'description' => 'Nur bei Neukunden'],
-    'text' => ['type' => 'string', 'minLength' => 20, 'maxLength' => 6000,
-               'description' => 'Die Zusammenfassung in der Sprache des Gesprächs'],
-  ],
-  'pflicht' => ['zustimmung', 'text'],
-  'rumpf' => '{"aktion":"zusammenfassung","zustimmung":"{{ zustimmung }}","sprache":"{{ sprache }}",'
-           . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","text":"{{ text }}"}',
-];
-
-/* ---------- Die sechs neuen: Beratung statt Auskunft ---------- */
-
-$konfigs['seite_ansehen'] = [
-  'zweck' => 'Sieh dir die Website wirklich an, während er redet — es gibt zwei Wege, und du '
-           . 'wählst nicht, sondern gibst mit, was du hast. '
-           . 'IST ER BESTANDSKUNDE (du hast eine „kunde_id“ aus „kunde_nachschlagen“): gib sie mit '
-           . 'und frag NICHT nach der Adresse — sie steht in seiner Akte und wird von dort '
-           . 'genommen. Kommt „quelle“: „verwaltung“ zurück, sag ihm die Adresse zur Bestätigung '
-           . '(„Ihre Seite … , richtig?“), statt sie dir buchstabieren zu lassen. Steht in '
-           . '„aus_verwaltung“ ein Satz, ist das das Wichtigste im ganzen Gespräch — sag ihn früh. '
-           . 'IST ER KEIN KUNDE: gib die Adresse mit, so wie er sie genannt hat, auch ohne '
-           . '„www“ und auch ohne Endung. Sie wird wirklich recherchiert — mit und ohne www, über '
-           . 'https und http, mit anderen Endungen und anderen Schreibweisen —, und die wichtigsten '
-           . 'Unterseiten werden mitgelesen. „Finde ich nicht“ kommt nur, wenn es die Adresse '
-           . 'wirklich nirgends gibt. '
-           . 'Sprich dann GENAU in dieser Reihenfolge, was in „gespraech“ steht: auftakt, befund, '
-           . 'folge, frage — und sei danach still. Einen zweiten Befund nur, wenn er nachfragt. '
-           . 'Lies nie die ganze Liste vor: Eine Mängelliste am Telefon macht keinen Kunden, '
-           . 'sie macht jemanden, der sich schlecht fühlt. '
-           . 'Sage nie etwas über Aussehen oder Gestaltung — geprüft wird nur, was messbar ist —, '
-           . 'und erfinde keine Zahlen, keine Mitbewerber und keine Eile. '
-           . 'Kommt „nichts_gefunden“, sag das ehrlich und verkaufe nichts. '
-           . 'Kommt „andere_adresse“, sag zuerst, unter welcher Adresse du sie gefunden hast. '
-           . 'RATE NIE. Wird sie nicht gefunden, lass buchstabieren und versuche es genau noch '
-           . 'einmal — danach nicht mehr, sondern „melde“.',
-  'eig' => [
-    'adresse'  => ['type' => 'string', 'minLength' => 3, 'maxLength' => 200,
-                   'description' => 'Die Internetadresse, wie er sie nennt — auch ohne Endung. '
-                                  . 'Bei einem Bestandskunden mit „kunde_id“ leer lassen'],
-    'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
-    'branche'  => ['type' => 'string',
-                   'enum' => array_map('strval', array_keys(Baukasten::FRAGEN['branche']['optionen'] ?? [])),
-                   'description' => 'Betriebsart, falls genannt — dann wird auch geprüft, was gerade '
-                                  . 'diese Branche braucht (Speisekarte, Buchung, Arbeitsproben)'],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Aus „kunde_nachschlagen“. Immer mitgeben, '
-                                  . 'wenn vorhanden — dann kommt die Adresse aus der Verwaltung'],
-    'telefon'  => ['type' => 'string', 'maxLength' => 40,
-                   'description' => 'Die Rufnummer des Anrufers, dieselbe wie bei '
-                                  . '„kunde_nachschlagen“ — daran wird erkannt, dass mehrere '
-                                  . 'Versuche zum selben Gespräch gehören'],
-  ],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"seite_ansehen","adresse":"{{ adresse }}","sprache":"{{ sprache }}",'
-           . '"branche":"{{ branche }}","kunde_id":"{{ kunde_id }}","telefon":"{{ telefon }}"}',
-];
-
-$konfigs['beratung'] = [
-  'zweck' => 'Der Konfigurator als Gespräch. Ruf ihn auf, sobald jemand eine neue Website will. '
-           . 'Er gibt dir in „satz“ die nächste Frage — stelle genau diese. Die Antwort trägst du '
-           . 'beim nächsten Aufruf als „antwort“ ein, zusammen mit „antwort_auf“ und dem '
-           . '„gespraech“ aus der letzten Antwort. Nimm als Antwort nur einen Schlüssel aus '
-           . '„optionen“; bei Mehrfachfragen mehrere mit Komma. Sobald „von_euro“ kommt, darfst du '
-           . 'die Spanne nennen — immer als Spanne, nie als Festpreis. '
-           . 'Kommt „ausserhalb“ zurück, nennst du KEINE Zahl: Das Vorhaben passt nicht in '
-           . 'den Baukasten, du liest den Satz vor und bietest einen Termin an. '
-           . 'Höchstens ein Werkzeug pro Gesprächszug — zwei hintereinander machen eine Pause, '
-           . 'die der Anrufer als Stille hört. '
-           . 'Kommt „abbrechen“ zurück, hörst du auf zu fragen: Er antwortet nicht mehr richtig. '
-           . 'Dann sagst du, dass der Rest schriftlich schneller geht, fragst nach der '
-           . 'E-Mail-Adresse und rufst „uebergabe“ auf — kein „nur noch eine Frage“.',
-  'eig' => [
-    'gespraech'   => ['type' => 'string', 'maxLength' => 48,
-                      'description' => 'Der Wert aus der letzten Antwort. Beim ersten Aufruf leer lassen'],
-    'sprache'     => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
-    'antwort_auf' => ['type' => 'string', 'enum' => Telefon::BERATUNG_REIHE,
-                      'description' => 'Auf welche Frage sich die Antwort bezieht — das Feld aus „frage_zu“'],
-    'antwort'     => ['type' => 'string', 'maxLength' => 200,
-                      'description' => 'Ein Schlüssel aus „optionen“. Mehrere mit Komma, wenn die Frage '
-                                     . 'mehrfach ist. Nichts anderes — Freitext wird verworfen'],
-    'vorhaben'    => ['type' => 'string', 'maxLength' => 300,
-                      'description' => 'Was er sich wünscht, in seinen eigenen Worten — beim ERSTEN '
-                                     . 'Aufruf mitgeben. Daran wird erkannt, ob es überhaupt in den '
-                                     . 'Baukasten passt'],
-    'kunde_id'    => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-  ],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"beratung","gespraech":"{{ gespraech }}","sprache":"{{ sprache }}",'
-           . '"antwort_auf":"{{ antwort_auf }}","antwort":"{{ antwort }}",'
-           . '"vorhaben":"{{ vorhaben }}","kunde_id":"{{ kunde_id }}"}',
-];
-
-$konfigs['beleg'] = [
-  'zweck' => 'Eine echte Kundenstimme statt eines Werbesatzes. Nenne höchstens eine, sinngemäß, '
-           . 'mit dem Betrieb dazu. Kommt keine zurück, erfinde keine — sag stattdessen, '
-           . 'dass Uwe Beispiele schickt.',
-  'eig' => [
-    'branche' => ['type' => 'string',
-                  'enum' => array_map('strval', array_keys(Baukasten::FRAGEN['branche']['optionen'] ?? [])),
-                  'description' => 'Betriebsart des Anrufers, falls genannt'],
-    'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
-  ],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"beleg","branche":"{{ branche }}","sprache":"{{ sprache }}"}',
-];
-
-$konfigs['uebergabe'] = [
-  'zweck' => 'Nach dem Gespräch: schickt schriftlich, worüber gesprochen wurde, die Spanne, '
-           . 'einen Befund von seiner Seite und den halb ausgefüllten Fragebogen. Ruf sie auf, '
-           . 'wenn die Beratung durch ist oder das Gespräch endet. Nenne danach keine Frist '
-           . 'und sag nicht „melden Sie sich bald“. '
-           . 'WICHTIG: Sag erst „ist raus“, NACHDEM dieses Werkzeug „ok“ zurückgegeben hat. '
-           . 'Eine Zusage, die du nicht eingelöst hast, ist schlimmer als gar keine.',
-  'eig' => [
-    'gespraech' => ['type' => 'string', 'maxLength' => 48,
-                    'description' => 'Der Wert aus „beratung“, damit der Fragebogen vorausgefüllt ist'],
-    'sprache'   => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
-    'kunde_id'  => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-    'email'     => ['type' => 'string', 'format' => 'email',
-                    'description' => 'Nur bei Neukunden, buchstabieren lassen'],
-    'name'      => ['type' => 'string', 'description' => 'Name für die Anrede'],
-    'von_euro'  => ['type' => 'integer', 'description' => 'Untere Grenze aus „beratung“, falls genannt'],
-    'bis_euro'  => ['type' => 'integer', 'description' => 'Obere Grenze aus „beratung“, falls genannt'],
-    'befund'    => ['type' => 'string', 'maxLength' => 400,
-                    'description' => 'Ein Satz aus „seite_ansehen“, wörtlich — sonst leer lassen'],
-  ],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"uebergabe","gespraech":"{{ gespraech }}","sprache":"{{ sprache }}",'
-           . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","name":"{{ name }}",'
-           . '"von_euro":"{{ von_euro }}","bis_euro":"{{ bis_euro }}","befund":"{{ befund }}"}',
-];
-
-$konfigs['wissen'] = [
-  'zweck' => 'Pakete, Bausteine und Preise, wie sie in dieser Sekunde in der Verwaltung stehen. '
-           . 'Immer hier nachsehen, statt eine Zahl aus dem Gedächtnis zu nennen. '
-           . 'Diese Zahlen sind Einzelpreise — der Preis eines Projekts ist eine Spanne '
-           . 'und kommt aus „beratung“.',
-  'eig' => ['sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']]],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"wissen","sprache":"{{ sprache }}"}',
-];
-
-$konfigs['termin'] = [
-  'zweck' => 'Ein fester Termin statt „er meldet sich“. Ohne „wann“ bekommst du freie Plätze — '
-           . 'nenne höchstens drei davon, nicht die ganze Liste. Sagt er einen zu, ruf noch '
-           . 'einmal auf und gib ihn in „wann“ genau so mit, wie er in der Liste stand.',
-  'eig' => [
-    'wann'     => ['type' => 'string', 'maxLength' => 16,
-                   'description' => 'Ein Platz aus „frei“, wörtlich, z. B. 2026-09-08 15:00. '
-                                  . 'Leer lassen, um die freien Plätze zu erfragen'],
-    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-    'name'     => ['type' => 'string', 'description' => 'Name des Anrufers'],
-    'telefon'  => ['type' => 'string', 'description' => 'Rufnummer für den Anruf'],
-    'anliegen' => ['type' => 'string', 'maxLength' => 500,
-                   'description' => 'Worum es gehen soll, in seinen Worten'],
-    'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
-  ],
-  'pflicht' => ['sprache'],
-  'rumpf' => '{"aktion":"termin","wann":"{{ wann }}","kunde_id":"{{ kunde_id }}",'
-           . '"name":"{{ name }}","telefon":"{{ telefon }}","anliegen":"{{ anliegen }}",'
-           . '"sprache":"{{ sprache }}"}',
-];
-?>
-
-<div class="block">
-  <h2>Die <?= count($konfigs) ?> Konfigurationen für STRATO</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 14px">
-    Bei STRATO unter <b>API-Integration → neu anlegen</b>. Für jede einzelne: den Block
-    kopieren und einfügen. Der Schlüssel steht schon drin.
-    <br>Die Antwortmöglichkeiten (<code>enum</code>) sind kein Beiwerk: Der Konfigurator nimmt
-    nur seine eigenen Schlüsselwörter an. Was Manuela frei formuliert, wird verworfen — die
-    Frage bleibt dann offen, statt falsch beantwortet zu werden.</p>
-
-  <?php foreach ($konfigs as $name => $k):
-    /* Gebaut wird in Telefon::konfigJson() -- dort steht auch, warum
-       „properties“ ausdruecklich ein Objekt sein muss. */
-    $text = Telefon::konfigJson($name, $k, $basis . '/telefon.php', (string) $schluessel);
-  ?>
-    <div style="margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-        <b style="font-size:14px"><?= Fmt::h($name) ?></b>
-        <span class="marke2"><?= count($k['pflicht']) ?> Pflichtfeld<?= count($k['pflicht']) === 1 ? '' : 'er' ?></span>
-        <button class="knopf" type="button" data-kopieren="k_<?= Fmt::h($name) ?>">Kopieren</button>
-      </div>
-      <textarea id="k_<?= Fmt::h($name) ?>" readonly rows="8"
-        style="width:100%;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45"
-      ><?= Fmt::h($text) ?></textarea>
+  <?php if ($zz['tags']): ?>
+    <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">
+      Woran es lag — von STRATO je Anruf vermerkt, nicht von uns geraten:</p>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px">
+      <?php foreach (array_slice($zz['tags'], 0, 10, true) as $t => $n): ?>
+        <span class="marke2"><?= Fmt::h(Strato::tagWort($t)) ?> · <?= (int) $n ?></span>
+      <?php endforeach; ?>
     </div>
+  <?php endif; ?>
+
+  <?php if ($zz['ausgang']): ?>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px">
+      <?php foreach ($zz['ausgang'] as $a => $n): $w = Strato::ausgangWort($a); ?>
+        <span class="marke2 <?= Fmt::h($w['ton']) ?>"><?= Fmt::h($w['wort']) ?> · <?= (int) $n ?></span>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+  <?php endif; ?>
+
+  <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+    <?php foreach (['' => 'alle', 'gespraech' => 'echte Gespräche', 'probleme' => 'mit Befund',
+                    'verstoss' => 'Verstöße', 'kunden' => 'Bestandskunden'] as $f => $wort): ?>
+      <a class="knopf<?= $filter === $f ? ' haupt' : '' ?>" style="text-decoration:none"
+         href="<?= Fmt::h(url('telefon?t=' . $tage . ($f !== '' ? '&f=' . $f : ''))) ?>"><?= Fmt::h($wort) ?></a>
+    <?php endforeach; ?>
+    <span style="flex:1"></span>
+    <?php foreach ([7, 30, 90, 365] as $d): ?>
+      <a class="knopf<?= $tage === $d ? ' haupt' : '' ?>" style="text-decoration:none"
+         href="<?= Fmt::h(url('telefon?t=' . $d . ($filter !== '' ? '&f=' . $filter : ''))) ?>"><?= $d ?> T</a>
+    <?php endforeach; ?>
+  </div>
+
+  <?php if (!$gespraeche): ?>
+    <p style="color:var(--leise);font-size:13px">
+      <?= $strato['eingerichtet']
+            ? 'In diesem Zeitraum steht nichts. Der Abgleich läuft stündlich mit dem Cronlauf.'
+            : 'Noch kein Zugang zu STRATO hinterlegt — dann bleibt hier nur unsere eigene Spur weiter unten.' ?></p>
+  <?php endif; ?>
+
+  <?php foreach ($gespraeche as $g):
+    $w   = Strato::ausgangWort((string) $g['ausgang']);
+    $tg  = array_filter(explode(',', (string) $g['tags']));
+    $min = intdiv((int) $g['sekunden'], 60) . ':' . str_pad((string) ((int) $g['sekunden'] % 60), 2, '0', STR_PAD_LEFT);
+    $wer = trim((string) ($g['kunde_name'] ?: $g['name'])) ?: 'Unbekannt';
+    $ueberWidget = (string) $g['kunde_nummer'] === 'widget-call';
+  ?>
+    <details style="border-top:1px solid var(--linie);padding:12px 0">
+      <summary style="cursor:pointer;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">
+        <span style="color:var(--leise);font-size:12.5px;min-width:112px"><?= Fmt::h(Fmt::zeit((string) $g['begonnen'])) ?></span>
+        <b style="font-size:13.5px"><?= Fmt::h($wer) ?></b>
+        <?php if ($g['kunde_id'] !== null): ?>
+          <span class="marke2 gut">Kunde</span>
+        <?php elseif ($ueberWidget): ?>
+          <span class="marke2">über die Website</span>
+        <?php endif; ?>
+        <span style="flex:1;color:var(--dim);font-size:13px"><?= Fmt::h((string) $g['betreff'] ?: '—') ?></span>
+        <?php if ((int) $g['verstoss'] || (int) $g['erfunden']): ?>
+          <span class="marke2 schlecht">Verstoß</span>
+        <?php endif; ?>
+        <?php if ($g['ausgang']): ?>
+          <span class="marke2 <?= Fmt::h($w['ton']) ?>"><?= Fmt::h($w['wort']) ?></span>
+        <?php endif; ?>
+        <span style="color:var(--leise);font-size:12.5px;min-width:44px;text-align:right"><?= Fmt::h($min) ?></span>
+      </summary>
+
+      <div style="padding:14px 0 4px 112px">
+        <?php if ((string) $g['zusammenfassung'] !== ''): ?>
+          <p style="font-size:13.5px;line-height:1.7;margin:0 0 14px"><?= Fmt::h((string) $g['zusammenfassung']) ?></p>
+        <?php endif; ?>
+
+        <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
+          <?php if (!$ueberWidget && (string) $g['kunde_nummer'] !== ''): ?>
+            <span class="marke2"><?= Fmt::h((string) $g['kunde_nummer']) ?></span>
+          <?php endif; ?>
+          <?php if ($g['engagement']): ?>
+            <span class="marke2">Anrufer: <?= Fmt::h(Strato::ENGAGEMENT[(string) $g['engagement']] ?? (string) $g['engagement']) ?></span>
+          <?php endif; ?>
+          <?php foreach ($tg as $t): ?>
+            <span class="marke2 warnung"><?= Fmt::h(Strato::tagWort($t)) ?></span>
+          <?php endforeach; ?>
+          <?php if ((int) $g['werkzeuge'] > 0): ?>
+            <span class="marke2"><?= (int) $g['werkzeuge'] ?> Werkzeugaufrufe</span>
+          <?php endif; ?>
+        </div>
+
+        <?php if ((string) $g['notizen'] !== ''): ?>
+          <p style="color:var(--dim);font-size:12.5px;line-height:1.65;margin:0 0 12px;
+                    border-left:2px solid var(--linie);padding-left:12px">
+            <b style="color:var(--leise)">Auswertung von STRATO:</b><br>
+            <?= nl2br(Fmt::h((string) $g['notizen'])) ?></p>
+        <?php endif; ?>
+
+        <?php if ((int) $g['verstoss'] && (string) $g['verstoss_text'] !== ''): ?>
+          <p style="color:var(--rot);font-size:12.5px;line-height:1.65;margin:0 0 12px;
+                    border-left:2px solid var(--rot);padding-left:12px">
+            <b>Gegen ihre Anweisungen:</b><br><?= Fmt::h((string) $g['verstoss_text']) ?></p>
+        <?php endif; ?>
+
+        <?php /* UNSERE EIGENE SPUR. Zusammengeführt über die Zeit, weil uns
+                 die Telefonplattform keine gemeinsame Gesprächsnummer gibt —
+                 dieselbe Näherung wie überall hier, und deshalb steht sie
+                 ausdrücklich dabei. */ ?>
+        <?php $sp = $spuren[(string) $g['id']] ?? []; ?>
+        <?php if ($sp): ?>
+          <div style="margin-top:6px">
+            <div style="color:var(--leise);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+              Was sie dabei getan hat</div>
+            <table style="font-size:12.5px"><tbody>
+            <?php foreach ($sp as $a):
+              $m = json_decode((string) $a['meta'], true) ?: []; ?>
+              <tr>
+                <td style="color:var(--leise);white-space:nowrap;width:60px"><?= Fmt::h(substr((string) $a['created_at'], 11, 5)) ?></td>
+                <td><?= Fmt::h((string) $a['title']) ?>
+                  <?php if (is_array($m) && $m): ?>
+                    <div style="color:var(--leise);font-size:11.5px;word-break:break-word">
+                      <?= Fmt::h(mb_substr((string) json_encode($m, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 0, 400)) ?></div>
+                  <?php endif; ?></td>
+              </tr>
+            <?php endforeach; ?>
+            </tbody></table>
+          </div>
+        <?php elseif ((int) $g['werkzeuge'] > 0): ?>
+          <?php /* STRATO zählt Werkzeugaufrufe, wir finden keine — dann
+                   stimmt die Zuordnung über die Zeit nicht. Das gehört
+                   hingeschrieben und nicht verschwiegen: Eine leere Spur, die
+                   „nichts getan" bedeutet, und eine leere Spur, die „nicht
+                   gefunden" bedeutet, sind zwei verschiedene Dinge. */ ?>
+          <p style="color:var(--leise);font-size:12.5px;margin:0">
+            STRATO zählt <?= (int) $g['werkzeuge'] ?> Werkzeugaufrufe, in unserer Spur steht
+            zu dieser Zeit keiner. Die beiden werden über die Uhrzeit zusammengeführt —
+            gehen die Uhren auseinander, passiert genau das.</p>
+        <?php else: ?>
+          <p style="color:var(--leise);font-size:12.5px;margin:0">
+            Kein Werkzeugaufruf — sie hat frei gesprochen.</p>
+        <?php endif; ?>
+      </div>
+    </details>
   <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <?php /* ---------- Der Trichter ----------
          Ohne Zahlen weisst du in drei Monaten nicht, ob der Tarif sich traegt.

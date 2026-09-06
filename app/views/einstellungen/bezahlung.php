@@ -2,7 +2,6 @@
 $töne = ['verbunden' => 'gut', 'fehler' => 'schlecht', 'deaktiviert' => 'neutral', 'nicht_verbunden' => 'neutral'];
 $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
 ?>
-<div class="kopf"><h1>Integrationen</h1></div>
 
 <div class="block">
   <h2>Stripe <span class="marke2 <?= $stripe->bereit() ? 'gut' : '' ?>"><?= $stripe->bereit() ? 'Schlüssel hinterlegt' : 'kein Schlüssel' ?></span>
@@ -17,7 +16,7 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
 
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--linie)">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="stripe_speichern">
-    <input type="hidden" name="zurueck" value="integrationen">
+    <input type="hidden" name="zurueck" value="einstellungen?b=bezahlung">
     <div class="feld"><label>Modus</label>
       <select name="modus">
         <option value="test" <?= $stripe->modus() === 'test' ? 'selected' : '' ?>>Testmodus — kein echtes Geld</option>
@@ -41,7 +40,7 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
   <?php $testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey='direktkauf_test'", [], '0') === '1'; ?>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linie);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="direktkauf_test">
-    <input type="hidden" name="zurueck" value="integrationen">
+    <input type="hidden" name="zurueck" value="einstellungen?b=bezahlung">
     <label style="color:var(--text);margin:0;font-size:13.5px">
       <input type="checkbox" name="an" style="width:auto" <?= $testSichtbar ? 'checked' : '' ?>>
       Kaufknopf auf der Website auch im Testmodus zeigen</label>

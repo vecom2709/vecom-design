@@ -134,6 +134,18 @@ final class Cron
                 require_once __DIR__ . '/Telefon.php';
                 return Telefon::rueckblickMelden();
             },
+            /* Die Gespraeche von STRATO herueberholen. Sie liegen dort hinter
+               einer Anmeldung, in einer Liste ueber fuenf Seiten, und mit
+               einer Aufbewahrungsfrist, die nicht uns gehoert. Hier stehen
+               sie durchsuchbar, mit der maschinellen Auswertung je Anruf und
+               neben unserer eigenen Spur.
+
+               Ist kein Zugang hinterlegt, kostet das nichts: Die Aufgabe
+               sieht einmal nach und ist fertig. */
+            'gespraeche'  => static function () {
+                require_once __DIR__ . '/Strato.php';
+                return Strato::abgleichen();
+            },
             // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
             // jedem Aufruf eine HTTP-Anfrage zu stellen.
             'cockpit'     => static fn() => self::cockpitPruefen(),

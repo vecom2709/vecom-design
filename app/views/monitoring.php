@@ -135,27 +135,12 @@
       </tbody></table>
     <?php endif; ?></div>
 
-  <div class="block"><h2>Cronjob im KAS</h2>
+  <div class="block"><h2>Was von allein läuft</h2>
     <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
-      Der Webspace hat keinen eigenen Dienst, der von allein läuft. Der Anstoß kommt vom
-      KAS: Er ruft alle zehn Minuten diese Adresse auf. Ohne den Schlüssel darin passiert nichts.
+      Der Webspace hat keinen Dienst, der von allein läuft — der Anstoß kommt vom Cronjob im
+      KAS. Wie er eingerichtet wird, steht bei den
+      <a href="<?= Fmt::h(url('einstellungen?b=ueberwachung')) ?>">Einstellungen</a>.
+      <?= $lauf ? 'Zuletzt gelaufen ' . Fmt::h(Fmt::seit((string) $lauf)) . '.' : 'Er ist noch nie gelaufen.' ?>
     </p>
-    <div class="feld"><label>Diese Adresse im KAS eintragen</label>
-      <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adresse) ?>"></div>
-    <ol style="color:var(--dim);font-size:13.5px;line-height:1.9;padding-left:20px;margin:0">
-      <li>Im KAS links auf <b>Tools</b> → <b>Cronjobs</b></li>
-      <li><b>Neuen Cronjob anlegen</b></li>
-      <li>Bei <b>URL</b> die Adresse oben einfügen</li>
-      <li>Intervall: <b>alle 10 Minuten</b></li>
-      <li>Speichern — fertig</li>
-    </ol>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
-      Der Schlüssel gehört nicht in eine E-Mail und nicht in einen Chat. Wer ihn hat, kann den
-      Lauf anstoßen — mehr nicht, aber das reicht als Grund, ihn für sich zu behalten.
-    </p>
-    <?php if ($bilanz): ?>
-      <p style="color:var(--leise);font-size:12px;margin-top:14px;word-break:break-all">
-        Letzte Bilanz: <?= Fmt::h(json_encode($bilanz, JSON_UNESCAPED_UNICODE)) ?></p>
-    <?php endif; ?>
   </div>
 </div>
