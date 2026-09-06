@@ -238,6 +238,7 @@ window.VECOM_I18N.it = {
       dt2: "Sede", dd2: "Aragona (AG), Sicilia",
       dt3: "Indirizzo", dd3: "Via d’Ascoli 25, 92021 Aragona (AG)",
       dt4: "Codice fiscale", dd4: "VTTWUE66P27Z112D",
+      dt5: "Telefono", dt6: "WhatsApp", dd6: "Solo messaggi, non chiamate",
       fname: "Nome", fmail: "E-mail", ftype: "Cosa ti serve", fmsg: "Il progetto in breve",
       phName: "Come ti chiami", phMail: "dove possiamo risponderti", phMsg: "Che attività hai, cosa vuoi ottenere e per quando.",
       o1: "Sito web su misura", o2: "Logo e identità", o3: "E-commerce", o4: "Restyling di un sito esistente", o5: "Altro",

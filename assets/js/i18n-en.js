@@ -238,6 +238,7 @@ window.VECOM_I18N.en = {
       dt2: "Based in", dd2: "Aragona (AG), Sicily",
       dt3: "Address", dd3: "Via d’Ascoli 25, 92021 Aragona (AG)",
       dt4: "Italian tax code", dd4: "VTTWUE66P27Z112D",
+      dt5: "Phone", dt6: "WhatsApp", dd6: "Messages only, no calls",
       fname: "Name", fmail: "Email", ftype: "What do you need", fmsg: "The project in short",
       phName: "Your name", phMail: "where we may reply", phMsg: "What you offer, what you want to achieve and by when.",
       o1: "Custom website", o2: "Logo & brand identity", o3: "Online store", o4: "Redesign of an existing site", o5: "Something else",

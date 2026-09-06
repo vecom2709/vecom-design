@@ -350,6 +350,45 @@ function build(lang, seite) {
      -------------------------------------------------------------------------- */
   h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
   /* --------------------------------------------------------------------------
+     DIE RUFNUMMER JE SPRACHE
+
+     Wer aus Italien anruft, soll eine italienische Nummer waehlen, und wer aus
+     Deutschland anruft, eine deutsche. Eine Auslandsnummer auf der Seite ist
+     eine Huerde, die man nicht sieht: Angerufen wird dann einfach nicht.
+
+     Steht hier null, erscheint keine Zeile. Das ist Absicht und der wichtigere
+     Teil der Regel: Eine Nummer, die ins Leere klingelt, ist schlechter als
+     gar keine — der Anrufer haelt uns dann nicht fuer unerreichbar, sondern
+     fuer unzuverlaessig.
+
+     ERST WEG, DANN SETZEN — und die Zeile steht NICHT in index.html.
+     index.html ist Vorlage und italienisches Ergebnis zugleich. Beim ersten
+     Versuch stand die Zeile in der Vorlage, und der italienische Durchlauf
+     (ohne Nummer) hat sie geloescht — aus der Datei, aus der Deutsch und
+     Englisch danach lesen. Ergebnis: die Nummer war ueberall weg, auch auf
+     der deutschen Seite, und beim naechsten Lauf war sie nicht wieder
+     herstellbar. Deshalb wird die Zeile hier eingesetzt statt gefuellt, und
+     vorher immer entfernt: Dann ist es egal, was in der Datei steht.
+
+     Die italienische Nummer +39 0922 1795963 liegt bei Sonetel noch in der
+     Pruefung. Sobald sie geschaltet ist und auf die deutsche weiterleitet,
+     hier eintragen — mehr ist nicht noetig.
+     -------------------------------------------------------------------------- */
+  const TELEFON = {
+    it: null,                    // +39 0922 1795963 — sobald bei Sonetel freigeschaltet
+    de: '+49 30 4397926082',
+    en: null,                    // dann dieselbe wie it: die Nummer des Betriebs
+  };
+  h = h.replace(/\s*<div class="kontakt-telzeile">[\s\S]*?<\/div>\s*<\/div>/g, '');
+  h = h.replace(/\s*<div class="kontakt-telzeile">[\s\S]*?<\/div>/g, '');
+  const telNr = TELEFON[lang] ?? null;
+  if (telNr) {
+    const wort = get(lang, 'contact.dt5') || 'Telefon';
+    h = h.replace(/(<div><dt data-i18n="contact\.dt4">[\s\S]*?<\/div>)/,
+      `$1\n        <div class="kontakt-telzeile"><dt data-i18n="contact.dt5">${esc(wort)}</dt>`
+      + `<dd class="kontakt-tel"><a href="tel:${telNr.replace(/[^0-9+]/g, '')}">${esc(telNr)}</a></dd></div>`);
+  }
+  /* --------------------------------------------------------------------------
      Verweise auf die Preisseite.
 
      Sie heisst in jeder Sprache anders — prezzi.html, preise.html,

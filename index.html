@@ -1116,6 +1116,15 @@
         <div><dt data-i18n="contact.dt2">Sede</dt><dd data-i18n="contact.dd2">Aragona (AG), Sicilia</dd></div>
         <div><dt data-i18n="contact.dt3">Indirizzo</dt><dd data-i18n="contact.dd3">Via d’Ascoli 25, 92021 Aragona (AG)</dd></div>
         <div><dt data-i18n="contact.dt4">Codice fiscale</dt><dd data-i18n="contact.dd4">VTTWUE66P27Z112D</dd></div>
+        <!-- Die Telefonzeile steht mit Absicht NICHT hier: build.mjs setzt sie
+             je Sprache ein (Italien die italienische Nummer, Deutschland die
+             deutsche) und laesst sie weg, wo keine hinterlegt ist. Stuende sie
+             hier, wuerde der italienische Durchlauf sie aus dieser Datei
+             loeschen — index.html ist Vorlage und Ergebnis zugleich. Die Regel
+             und der Grund stehen in build.mjs. -->
+        <div><dt data-i18n="contact.dt6">WhatsApp</dt>
+          <dd><a href="https://wa.me/message/ZA5MG7SV4WEQM1" rel="noopener"
+                 data-i18n="contact.dd6">Solo messaggi, non chiamate</a></dd></div>
       </dl>
     </div>
 
@@ -1200,7 +1209,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=62a93e3b" defer></script>
+<script src="assets/js/i18n-it.js?v=6e683821" defer></script>
 <script src="assets/js/app.js?v=d3fd6f43" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
