@@ -2493,6 +2493,190 @@ Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_seitenblick'
 pruefe('was lange danach geschah, nicht', Strato::spur($g) === []);
 
 /* ============================================================================
+   34. Löschen — und die Rückfrage, wenn noch etwas dranhängt
+   ============================================================================
+   In dieser Spur stehen Rufnummern, Namen, Internetadressen und was jemand
+   am Telefon wollte — von Menschen, die nie Kunde wurden und nie gefragt
+   wurden, ob das aufgehoben werden darf. Etwas aufzuheben, weil das Löschen
+   nicht vorgesehen war, ist kein Grundsatz, sondern ein Versäumnis.
+
+   Gelöscht wird trotzdem nicht leichtfertig: In einem Gespräch entsteht
+   Arbeit, und wer sie wegräumt, räumt auch die Erinnerung daran weg.
+   ============================================================================ */
+abschnitt('34. Löschen');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_gespraeche');
+Db::run('DELETE FROM telefon_gespraech_weg');
+Db::run("DELETE FROM settings WHERE skey LIKE 'telefon\\_luecke\\_%'");
+
+$ablegen = new ReflectionMethod('Strato', 'ablegen');
+$ablegen->setAccessible(true);
+$bauen = static function (string $id, int $vorSekunden, int $dauer = 120) use ($ablegen): void {
+    $ablegen->invoke(null, [
+        'id' => $id, 'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - $vorSekunden),
+        'call_seconds_billed' => $dauer, 'customer_number' => 'widget-call',
+        'summaries' => [['content' => ['subject' => 'Prüfgespräch ' . $id, 'summary' => 'nichts'],
+                         'metadata' => ['analysis' => ['call_outcome' => 'RESOLVED']]]],
+    ]);
+};
+
+/* Ein abgeschlossenes Gespräch: angesehen, übergeben, fertig. Daran hängt
+   nichts mehr, es darf ohne Rückfrage weg.
+
+   WARUM ES HIER EINE ÜBERGABE BRAUCHT: Ein Gespräch, in dem sie eine Seite
+   angesehen hat und aus dem nichts herauskam, IST offene Arbeit — es steht
+   auf der Liste „Angefangen und nichts daraus geworden". Genau das soll die
+   Bremse greifen lassen. Der erste Entwurf dieses Tests hat das übersehen
+   und wurde dafür zu Recht rot. */
+$bauen('aaaaaaaa-0000-0000-0000-000000000001', 3600);
+$g1 = Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', ['aaaaaaaa-0000-0000-0000-000000000001']);
+Telefon::protokoll('seitenblick', 'Website angesehen', null, ['adresse' => 'beispiel.it']);
+Telefon::protokoll('uebergabe', 'Verschickt', null, ['ok' => true]);
+Db::run("UPDATE activities SET created_at = ? WHERE type LIKE 'telefon\\_%'",
+        [date('Y-m-d H:i:s', strtotime((string) $g1['begonnen']) + 30)]);
+pruefe('an einem abgeschlossenen Gespräch hängt nichts', Strato::offenesZu($g1) === [],
+    json_encode(Strato::offenesZu($g1)));
+
+/* Und seine Spur geht mit — ein Gespräch ohne seine Spur wäre ein halbes
+   Löschen: der Anruf verschwände, die Rufnummer bliebe in den Aktivitäten. */
+$r = Strato::loeschen([$g1['id']]);
+pruefe('es wird gelöscht', (int) $r['weg'] === 1 && $r['offen'] === [], json_encode($r));
+pruefe('und die Spur geht mit', (int) $r['spur'] === 2, json_encode($r['spur']));
+
+/* Umgekehrt: angefangen und nichts daraus geworden — das IST offene Arbeit
+   und muss ausdrücklich gefragt werden. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+$bauen('aaaaaaaa-0000-0000-0000-00000000000a', 3500);
+$ga = Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', ['aaaaaaaa-0000-0000-0000-00000000000a']);
+Telefon::protokoll('seitenblick', 'Website angesehen', null, ['adresse' => 'beispiel.it']);
+Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_seitenblick'",
+        [date('Y-m-d H:i:s', strtotime((string) $ga['begonnen']) + 30)]);
+$ra = Strato::loeschen([$ga['id']]);
+pruefe('angefangen und nichts daraus geworden hält das Löschen auf',
+    (int) $ra['weg'] === 0 && str_contains($ra['offen'][0]['gruende'][0], 'nichts geworden'),
+    json_encode($ra));
+Strato::loeschen([$ga['id']], true);
+Db::run('DELETE FROM telefon_gespraech_weg WHERE id = ?', [$ga['id']]);
+pruefe('das Gespräch ist wirklich weg',
+    (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche WHERE id = ?', [$g1['id']], 0) === 0);
+
+/* WAS GELÖSCHT WURDE, DARF NICHT WIEDERKOMMEN.
+   Die Gespräche werden stündlich geholt. Ohne Sperrliste stünde es nach
+   einer Stunde wieder da — „gelöscht" wäre eine Lüge, die sich selbst
+   widerlegt, während man zusieht. */
+pruefe('es steht auf der Sperrliste', Strato::gesperrt() === 1);
+$bauen($g1['id'], 3600);
+pruefe('und kommt beim nächsten Abgleich nicht wieder',
+    (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche WHERE id = ?', [$g1['id']], 0) === 0);
+pruefe('die Sperre lässt sich aufheben', Strato::sperreLoesen() === 1 && Strato::gesperrt() === 0);
+
+/* EIN GESPRÄCH, AN DEM NOCH ARBEIT HÄNGT: ein Rückruf, den niemand abgehakt
+   hat. Es bleibt stehen und wird ausdrücklich gefragt. */
+$bauen('bbbbbbbb-0000-0000-0000-000000000002', 1800);
+$g2 = Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', ['bbbbbbbb-0000-0000-0000-000000000002']);
+Telefon::melden(['art' => 'rueckruf', 'telefon' => '+39 380 111 2233',
+                 'name' => 'Anna Prüfung', 'text' => 'Bitte zurückrufen.', 'anliegen' => 'Website']);
+Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_melde'",
+        [date('Y-m-d H:i:s', strtotime((string) $g2['begonnen']) + 20)]);
+
+$gruende = Strato::offenesZu($g2);
+pruefe('ein offener Rückruf wird erkannt',
+    count($gruende) === 1 && str_contains($gruende[0], 'Rückruf'), json_encode($gruende));
+pruefe('und mit dem Namen dessen, der wartet',
+    str_contains($gruende[0], 'Anna Prüfung'), $gruende[0]);
+
+$r2 = Strato::loeschen([$g2['id']]);
+pruefe('ohne Bestätigung bleibt es stehen',
+    (int) $r2['weg'] === 0 && count($r2['offen']) === 1, json_encode($r2));
+pruefe('und der Grund kommt im Klartext zurück',
+    str_contains($r2['offen'][0]['gruende'][0], 'Rückruf'), json_encode($r2['offen'][0]));
+pruefe('es liegt auch wirklich noch da',
+    (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche WHERE id = ?', [$g2['id']], 0) === 1);
+
+/* Erst der ausdrückliche zweite Klick nimmt es mit. */
+$r3 = Strato::loeschen([$g2['id']], true);
+pruefe('mit Bestätigung geht es weg', (int) $r3['weg'] === 1 && $r3['offen'] === [], json_encode($r3));
+
+/* Ein abgehakter Rückruf hält nichts mehr auf. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_gespraech_weg');
+$bauen('cccccccc-0000-0000-0000-000000000003', 900);
+$g3 = Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', ['cccccccc-0000-0000-0000-000000000003']);
+Telefon::melden(['art' => 'rueckruf', 'telefon' => '+39 380 111 2233', 'text' => 'x', 'anliegen' => 'y']);
+$melde = (int) Db::wert("SELECT MAX(id) FROM activities WHERE type = 'telefon_melde'", [], 0);
+Db::run('UPDATE activities SET created_at = ? WHERE id = ?',
+        [date('Y-m-d H:i:s', strtotime((string) $g3['begonnen']) + 20), $melde]);
+pruefe('vor dem Abhaken hängt etwas dran', Strato::offenesZu($g3) !== []);
+Telefon::rueckrufErledigt($melde);
+pruefe('nach dem Abhaken nicht mehr', Strato::offenesZu($g3) === [], json_encode(Strato::offenesZu($g3)));
+
+/* ---- Der Verlauf für sich ---- */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::protokoll('seitenblick', 'Website angesehen', null, ['adresse' => 'a.it']);
+Telefon::protokoll('lage', 'Lage abgefragt', null, []);
+$eintraege = array_column(Db::all("SELECT id FROM activities WHERE type LIKE 'telefon\\_%'"), 'id');
+$v = Telefon::verlaufLoeschen($eintraege);
+pruefe('gewöhnliche Verlaufseinträge lassen sich löschen', (int) $v['weg'] === 2, json_encode($v));
+
+/* Eine offene Frage hält auch hier auf — sie steht noch auf der Liste
+   „Was Manuela nicht wusste". */
+Telefon::wissensluecke(['frage' => 'Machen Sie auch Visitenkarten?']);
+$luecke = (int) Db::wert("SELECT MAX(id) FROM activities WHERE type = 'telefon_wissensluecke'", [], 0);
+$v2 = Telefon::verlaufLoeschen([$luecke]);
+pruefe('eine offene Frage bleibt stehen',
+    (int) $v2['weg'] === 0 && count($v2['offen']) === 1, json_encode($v2));
+pruefe('mit dem Grund im Klartext',
+    str_contains($v2['offen'][0]['gruende'][0], 'Was Manuela nicht wusste'), json_encode($v2['offen'][0]));
+$v3 = Telefon::verlaufLoeschen([$luecke], true);
+pruefe('bestätigt geht auch sie weg', (int) $v3['weg'] === 1);
+
+/* ---- Und wer gelöscht wird, hinterlässt kein Gespräch ---- */
+Db::run('DELETE FROM telefon_gespraeche');
+Db::run('DELETE FROM telefon_gespraech_weg');
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+$ablegen->invoke(null, [
+    'id' => 'dddddddd-0000-0000-0000-000000000004',
+    'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 600),
+    'call_seconds_billed' => 200, 'customer_number' => '+39 380 111 2233',
+    'summaries' => [['content' => ['name' => 'Prüf Kunde', 'subject' => 'Anruf', 'summary' => 'x'],
+                     'metadata' => []]],
+]);
+pruefe('das Gespräch hängt am Kunden',
+    (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche WHERE kunde_id = ?', [$kundeId], 0) === 1);
+
+/* Der Weg, den Kunde::loeschen() vorher geht. Danach darf nichts mehr da
+   sein — und es darf auch nicht wiederkommen. */
+$wegK = Strato::zuKundeLoeschen($kundeId);
+pruefe('mit dem Kunden geht sein Gespräch', $wegK === 1
+    && (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche WHERE kunde_id = ?', [$kundeId], 0) === 0);
+pruefe('und es ist gesperrt, damit es nicht zurückkommt', Strato::gesperrt() === 1);
+
+/* ---- Anonymisiert bleibt anonymisiert ---- */
+Db::run('DELETE FROM telefon_gespraech_weg');
+$ablegen->invoke(null, [
+    'id' => 'eeeeeeee-0000-0000-0000-000000000005',
+    'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 600),
+    'call_seconds_billed' => 200, 'customer_number' => '+39 380 111 2233',
+    'summaries' => [['content' => ['name' => 'Klarname', 'subject' => 'Anruf', 'summary' => 'Wortlaut'],
+                     'metadata' => []]],
+]);
+Db::run("UPDATE telefon_gespraeche SET name = '', zusammenfassung = '', roh = NULL, anonym = 1
+          WHERE id = 'eeeeeeee-0000-0000-0000-000000000005'");
+$ablegen->invoke(null, [
+    'id' => 'eeeeeeee-0000-0000-0000-000000000005',
+    'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 600),
+    'call_seconds_billed' => 200, 'customer_number' => '+39 380 111 2233',
+    'summaries' => [['content' => ['name' => 'Klarname', 'subject' => 'Anruf', 'summary' => 'Wortlaut'],
+                     'metadata' => []]],
+]);
+$an = Db::one("SELECT * FROM telefon_gespraeche WHERE id = 'eeeeeeee-0000-0000-0000-000000000005'");
+pruefe('der Abgleich schreibt einen anonymisierten Anruf NICHT wieder voll',
+    (string) $an['name'] === '' && (string) $an['zusammenfassung'] === '' && $an['roh'] === null,
+    json_encode(['name' => $an['name'], 'roh' => $an['roh'] === null]));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

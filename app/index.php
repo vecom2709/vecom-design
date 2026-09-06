@@ -955,6 +955,83 @@ if ($post) {
                 zurueck('einstellungen?b=telefon');
                 break;
 
+            /* ---------- Löschen: Gespräche und Verlauf ---------- */
+            case 'gespraech_loeschen':
+            case 'verlauf_loeschen':
+                /* DAS BESTÄTIGEN IST DER GANZE PUNKT
+                   ---------------------------------------------------------
+                   Im ersten Anlauf wird übersprungen, woran noch etwas
+                   hängt: ein Rückruf, auf den jemand wartet, eine Frage, die
+                   noch offen steht, ein Gespräch, aus dem etwas werden
+                   sollte. Was übersprungen wurde, kommt als Frage zurück --
+                   mit dem Grund, nicht bloß als Zahl. Erst der zweite Klick
+                   nimmt es mit. */
+                require_once __DIR__ . '/src/Strato.php';
+                require_once __DIR__ . '/src/Telefon.php';
+
+                $auchOffene = (string) ($_POST['auch_offene'] ?? '') === '1';
+                $ids = $_POST['ids'] ?? [];
+                if (!is_array($ids)) { $ids = [$ids]; }
+                $alter = trim((string) ($_POST['aelter_als'] ?? ''));
+
+                if ($tat === 'gespraech_loeschen') {
+                    $erg = $alter !== ''
+                        ? Strato::loeschenAelterAls((int) $alter, $auchOffene)
+                        : Strato::loeschen($ids, $auchOffene);
+                    $wort = 'Gespräch';
+                } else {
+                    $erg = $alter !== ''
+                        ? Telefon::verlaufAelterAls((int) $alter, $auchOffene)
+                        : Telefon::verlaufLoeschen($ids, $auchOffene);
+                    $wort = 'Eintrag';
+                }
+
+                $teile = [];
+                if ($erg['weg'] > 0) {
+                    $teile[] = $erg['weg'] . ' ' . $wort . ($erg['weg'] === 1 ? '' : 'e') . ' gelöscht.';
+                    if (($erg['spur'] ?? 0) > 0) {
+                        $teile[] = 'Dazu ' . (int) $erg['spur'] . ' Einträge aus dem Verlauf.';
+                    }
+                }
+                if ($erg['offen']) {
+                    /* Die Frage wird für die nächste Seite hinterlegt, samt
+                       den Kennungen -- sonst müsste man sie noch einmal
+                       zusammensuchen und der zweite Klick träfe womöglich
+                       etwas anderes als der erste. */
+                    $_SESSION['loeschfrage'] = [
+                        'tat'   => $tat,
+                        'ids'   => array_column($erg['offen'], 'id'),
+                        'liste' => $erg['offen'],
+                    ];
+                    $n = count($erg['offen']);
+                    $teile[] = $n === 1
+                        ? 'Ein ' . $wort . ' blieb stehen — da hängt noch etwas dran.'
+                        : $n . ' ' . $wort . 'e blieben stehen — daran hängt noch etwas.';
+                } else {
+                    unset($_SESSION['loeschfrage']);
+                }
+                if (!$teile) { $teile[] = 'Nichts gelöscht.'; }
+                $_SESSION[$erg['offen'] ? 'fehler' : 'gut'] = implode(' ', $teile);
+                zurueck('telefon');
+                break;
+
+            case 'loeschfrage_abbrechen':
+                unset($_SESSION['loeschfrage']);
+                zurueck('telefon');
+                break;
+
+            case 'gespraeche_sperre_loesen':
+                /* Der Rückweg. Was hier gelöscht wurde, liegt bei STRATO
+                   noch -- wer die Sperre aufhebt, holt es beim nächsten
+                   Abgleich zurück. Das gehört sichtbar, sonst wäre die
+                   Sperrliste eine Falle statt einer Einstellung. */
+                require_once __DIR__ . '/src/Strato.php';
+                $n = Strato::sperreLoesen();
+                $_SESSION['gut'] = $n . ' Sperre' . ($n === 1 ? '' : 'n') . ' aufgehoben. '
+                    . 'Beim nächsten Abgleich kommen die Gespräche zurück, sofern STRATO sie noch hat.';
+                zurueck('einstellungen?b=telefon');
+                break;
+
             case 'telefon_luecke_weg':
                 require_once __DIR__ . '/src/Telefon.php';
                 Telefon::lueckeWeg((string) ($_POST['schluessel'] ?? ''));
@@ -2371,7 +2448,8 @@ switch ($route) {
                 'fehler'       => Strato::fehler(),
                 'zuletzt'      => Strato::zuletzt(),
                 'anzahl'       => (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche', [], 0),
-            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '', 'anzahl' => 0]);
+                'gesperrt'     => Strato::gesperrt(),
+            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '', 'anzahl' => 0, 'gesperrt' => 0]);
         }
 
         if ($b === 'ueberwachung') {
@@ -2428,7 +2506,16 @@ switch ($route) {
                 'eingerichtet' => Strato::eingerichtet(),
                 'fehler'       => Strato::fehler(),
                 'zuletzt'      => Strato::zuletzt(),
-            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '']),
+                'gesperrt'     => Strato::gesperrt(),
+            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '', 'gesperrt' => 0]),
+            /* Die Rückfrage aus dem letzten Löschversuch. Sie steht in der
+               Sitzung und nicht in der Adresse: Sie soll genau einmal
+               beantwortet werden und danach weg sein. */
+            'loeschfrage'=> (static function () {
+                $f = $_SESSION['loeschfrage'] ?? null;
+                unset($_SESSION['loeschfrage']);
+                return $f;
+            })(),
             'verlauf'    => sicher(static fn() => Db::all(
                 "SELECT * FROM activities WHERE type LIKE 'telefon\\_%'
                   ORDER BY id DESC LIMIT 40"), []),

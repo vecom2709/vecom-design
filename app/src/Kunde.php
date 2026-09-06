@@ -368,6 +368,18 @@ final class Kunde
         'angebote'       => 'customer_id = :k',
         'bedarf'         => 'customer_id = :k',
         'mails'          => 'customer_id = :k',
+        /* SEINE ANRUFE GEHEN MIT
+           Ohne diese Zeile blieb ein geloeschter Kunde als Anruf stehen --
+           mit Rufnummer, Namen und Zusammenfassung, nur ohne Verweis auf die
+           Akte, die es nicht mehr gab. Der Name verschwand aus der
+           Kundenliste und blieb im Telefonprotokoll stehen; das ist das
+           Gegenteil von dem, was Loeschen heissen soll.
+
+           Der Fremdschluessel kaskadiert seit Wanderung 038 ebenfalls -- er
+           ist das Netz, diese Zeile ist der Weg. Und die Sperrliste, die das
+           Wiederkommen beim naechsten Abgleich verhindert, fuellt
+           Strato::zuKundeLoeschen(); die laeuft VOR dieser Reihe. */
+        'telefon_gespraeche' => 'kunde_id = :k',
         'activities'     => 'customer_id = :k',
         'users'          => 'customer_id = :k',
         'audit_log'      => "entity = 'customer' AND entity_id = :k",
@@ -459,6 +471,17 @@ final class Kunde
                 $betroffene[] = (int) $z['empfehler_id'];
             }
         } catch (Throwable $e) { /* keine Empfehlungen, kein Nachrechnen */ }
+
+        /* DIE SPERRLISTE VOR DEM LOESCHEN FUELLEN
+           Die Gespraeche werden stuendlich von STRATO geholt. Wuerden sie
+           nur hier geloescht, staenden sie nach spaetestens einer Stunde
+           wieder da -- mit dem Namen des Menschen, den man gerade geloescht
+           hat. Deshalb merkt sich Strato::zuKundeLoeschen() vorher ihre
+           Kennungen, damit der Abgleich sie ueberspringt. */
+        try {
+            require_once __DIR__ . '/Strato.php';
+            Strato::zuKundeLoeschen($kundeId);
+        } catch (Throwable $e) { /* ohne Telefonanbindung gibt es nichts zu sperren */ }
 
         $zeilen = (int) Db::transaktion(static function () use ($kundeId): int {
             $summe = 0;
@@ -615,6 +638,25 @@ final class Kunde
                     "UPDATE empfehlungen SET genannt_als = ''
                       WHERE genannt_als <> '' AND (empfehler_id = ? OR geworbener_id = ?)",
                     [$kundeId, $kundeId])->rowCount();
+            } catch (Throwable $e) { }
+
+            /* 3d. IM TELEFONPROTOKOLL STEHT ER NOCH EINMAL VOLLSTAENDIG
+                   Name, Rufnummer und die Zusammenfassung dessen, was er
+                   wollte -- das ist der Mensch, nicht das Geschaeft. Wer
+                   anonymisiert wird und danach mit vollem Namen im
+                   Telefonprotokoll steht, ist nicht anonymisiert.
+
+                   Das Gespraech selbst bleibt: Dass angerufen wurde, wie
+                   lange und wie es ausging, ist Betriebsgeschichte und
+                   traegt die Zahlen auf der Telefonseite. Der Rohsatz muss
+                   weg -- in ihm steht alles noch einmal woertlich. */
+            try {
+                $zeilen += Db::run(
+                    "UPDATE telefon_gespraeche
+                        SET name = '', kunde_nummer = '', zusammenfassung = '',
+                            betreff = '', notizen = '', verstoss_text = '', roh = NULL,
+                            anonym = 1
+                      WHERE kunde_id = ?", [$kundeId])->rowCount();
             } catch (Throwable $e) { }
 
             /* 4. Projektnamen tragen fast immer den Kundennamen. */

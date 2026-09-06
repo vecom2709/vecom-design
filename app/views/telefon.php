@@ -40,6 +40,53 @@ $filter = (string) ($_GET['f'] ?? '');
   <a class="knopf" href="<?= Fmt::h(url('einstellungen?b=telefon')) ?>" style="text-decoration:none">Einstellungen</a>
 </div>
 
+<?php /* ---------- DIE RÜCKFRAGE ----------
+         Sie steht ganz oben, weil sie das Einzige ist, worauf jemand
+         antworten muss. Und sie nennt die Gründe im Klartext: „3 blieben
+         stehen" wäre eine Zahl, die man wegklickt. */ ?>
+<?php if (!empty($loeschfrage)): ?>
+<div class="block" style="border-color:var(--gelb)">
+  <h2>Wirklich löschen? Da hängt noch etwas dran</h2>
+  <?php $anzahlO = count($loeschfrage['liste']); ?>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:8px 0 14px">
+    <?= $anzahlO === 1
+          ? 'Eines ist stehen geblieben. Darin steckt Arbeit, die noch nicht erledigt ist —'
+          : 'Diese ' . $anzahlO . ' sind stehen geblieben. In jedem steckt Arbeit, die noch nicht erledigt ist —' ?>
+    löschst du <?= $anzahlO === 1 ? 'es' : 'sie' ?>, verschwindet nicht nur die Zeile,
+    sondern auch die Erinnerung daran.
+  </p>
+  <table style="margin-bottom:16px"><tbody>
+  <?php foreach ($loeschfrage['liste'] as $o): ?>
+    <tr>
+      <td style="color:var(--leise);white-space:nowrap;vertical-align:top;width:120px">
+        <?= Fmt::h(Fmt::zeit((string) ($o['wann'] ?? ''))) ?></td>
+      <td><b><?= Fmt::h((string) ($o['betreff'] ?? $o['titel'] ?? '—')) ?></b>
+        <?php foreach ($o['gruende'] as $gr): ?>
+          <div style="color:var(--gelb);font-size:12.5px;margin-top:3px"><?= Fmt::h($gr) ?></div>
+        <?php endforeach; ?>
+      </td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody></table>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+      <?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="<?= Fmt::h((string) $loeschfrage['tat']) ?>">
+      <input type="hidden" name="zurueck" value="telefon">
+      <input type="hidden" name="auch_offene" value="1">
+      <?php foreach ($loeschfrage['ids'] as $i): ?>
+        <input type="hidden" name="ids[]" value="<?= Fmt::h((string) $i) ?>">
+      <?php endforeach; ?>
+      <button class="knopf" style="border-color:var(--rot);color:var(--rot)">
+        Ja, trotzdem löschen</button></form>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="loeschfrage_abbrechen">
+      <input type="hidden" name="zurueck" value="telefon">
+      <button class="knopf haupt">Stehen lassen</button></form>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php if ($strato['fehler'] !== ''): ?>
   <div class="hinweis schlecht">Die Gespräche von STRATO kommen nicht mehr an:
     <?= Fmt::h($strato['fehler']) ?>
@@ -184,6 +231,10 @@ $filter = (string) ($_GET['f'] ?? '');
             : 'Noch kein Zugang zu STRATO hinterlegt — dann bleibt hier nur unsere eigene Spur weiter unten.' ?></p>
   <?php endif; ?>
 
+  <form method="post" action="<?= Fmt::h(url('')) ?>" id="gespraech_form">
+  <?= Csrf::feld() ?><input type="hidden" name="tat" value="gespraech_loeschen">
+  <input type="hidden" name="zurueck" value="telefon">
+
   <?php foreach ($gespraeche as $g):
     $w   = Strato::ausgangWort((string) $g['ausgang']);
     $tg  = array_filter(explode(',', (string) $g['tags']));
@@ -193,6 +244,11 @@ $filter = (string) ($_GET['f'] ?? '');
   ?>
     <details style="border-top:1px solid var(--linie);padding:12px 0">
       <summary style="cursor:pointer;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap">
+        <?php /* Das Kästchen liegt IN der Kopfzeile, aber der Klick darauf
+                 darf das Gespräch nicht auf- und zuklappen -- sonst wählt man
+                 nie etwas aus, ohne dass die Seite springt. */ ?>
+        <input type="checkbox" name="ids[]" value="<?= Fmt::h((string) $g['id']) ?>"
+               onclick="event.stopPropagation()" style="margin:0;flex:0 0 auto">
         <span style="color:var(--leise);font-size:12.5px;min-width:112px"><?= Fmt::h(Fmt::zeit((string) $g['begonnen'])) ?></span>
         <b style="font-size:13.5px"><?= Fmt::h($wer) ?></b>
         <?php if ($g['kunde_id'] !== null): ?>
@@ -283,7 +339,57 @@ $filter = (string) ($_GET['f'] ?? '');
       </div>
     </details>
   <?php endforeach; ?>
+
+  <?php /* ---------- WEGRÄUMEN ----------
+           Warum das überhaupt hier steht: In dieser Liste stehen Rufnummern,
+           Namen und was jemand am Telefon wollte — von Menschen, die nie
+           Kunde wurden. Etwas aufzuheben, weil das Löschen nicht vorgesehen
+           war, ist kein Grundsatz, sondern ein Versäumnis. */ ?>
+  <?php if ($gespraeche): ?>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+                border-top:1px solid var(--linie);padding-top:14px;margin-top:6px">
+      <button class="knopf" type="submit"
+              onclick="return this.form.querySelectorAll('input[name=&quot;ids[]&quot;]:checked').length
+                       ? true
+                       : (alert('Nichts ausgewählt — erst ein Kästchen anhaken.'), false)">
+        Ausgewählte löschen</button>
+      <span style="color:var(--leise);font-size:12.5px">
+        Mit der Spur: Was Manuela dabei getan hat, geht mit.</span>
+    </div>
+  <?php endif; ?>
+  </form>
 </div>
+
+<?php if ($gespraeche): ?>
+  <div class="block">
+    <h2>Aufräumen</h2>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:8px 0 14px">
+      Alles, was älter ist als der gewählte Zeitraum — Gespräche samt Spur, oder nur den
+      Verlauf. Woran noch etwas hängt, bleibt zunächst stehen und wird einzeln gefragt.
+      <br><span style="color:var(--leise);font-size:12.5px">Bei STRATO bleiben die Anrufe
+      liegen; daran kommen wir nicht heran. Hier kommen sie nicht wieder.</span>
+    </p>
+    <div style="display:flex;gap:22px;flex-wrap:wrap">
+      <?php foreach ([['gespraech_loeschen', 'Gespräche'], ['verlauf_loeschen', 'Verlauf']] as [$tt, $wort]): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= Fmt::h($tt) ?>">
+          <input type="hidden" name="zurueck" value="telefon">
+          <div class="feld" style="margin:0;min-width:190px"><label><?= Fmt::h($wort) ?> löschen, älter als</label>
+            <select name="aelter_als">
+              <option value="365">ein Jahr</option>
+              <option value="180">ein halbes Jahr</option>
+              <option value="90">90 Tage</option>
+              <option value="30">30 Tage</option>
+              <option value="0">alles</option>
+            </select></div>
+          <button class="knopf"
+                  data-frage="Das lässt sich nicht rückgängig machen. Woran noch etwas hängt, wird vorher einzeln gefragt. Fortfahren?"
+                  data-ja="Ja, löschen">Löschen</button>
+        </form>
+      <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
 <?php endif; ?>
 
 <?php /* ---------- Der Trichter ----------

@@ -187,16 +187,28 @@ final class Strato
             return ['ok' => false, 'grund' => 'abruf', 'status' => $a['status']];
         }
 
-        $neu = $geaendert = 0;
+        /* WAS GELÖSCHT WURDE, KOMMT NICHT WIEDER
+           ------------------------------------------------------------------
+           Bei STRATO bleibt der Anruf liegen -- daran kommen wir nicht heran.
+           Käme er beim nächsten Abgleich zurück, wäre „gelöscht" eine Lüge,
+           die sich selbst widerlegt, während man zusieht. Die Sperrliste
+           merkt sich dafür nur die Kennung: kein Name, keine Nummer, kein
+           Betreff. */
+        $weg = array_flip(array_column(
+            (array) self::still(static fn() => Db::all('SELECT id FROM telefon_gespraech_weg'), []), 'id'));
+
+        $neu = $geaendert = $uebersprungen = 0;
         foreach ($a['daten'] as $g) {
             if (!is_array($g)) { continue; }
+            if (isset($weg[(string) ($g['id'] ?? '')])) { $uebersprungen++; continue; }
             $r = self::ablegen($g);
             if ($r === 'neu') { $neu++; } elseif ($r === 'geaendert') { $geaendert++; }
         }
 
         self::merken('strato_zuletzt', date('Y-m-d H:i:s'));
         self::merken('strato_fehler', '');
-        return ['ok' => true, 'gesehen' => count($a['daten']), 'neu' => $neu, 'geaendert' => $geaendert];
+        return ['ok' => true, 'gesehen' => count($a['daten']), 'neu' => $neu,
+                'geaendert' => $geaendert, 'uebersprungen' => $uebersprungen];
     }
 
     /** Einen Satz ablegen. @return 'neu'|'geaendert'|'gleich' */
@@ -204,6 +216,17 @@ final class Strato
     {
         $id = (string) ($g['id'] ?? '');
         if ($id === '') { return 'gleich'; }
+
+        /* DIE SPERRE GEHÖRT AN DIE SCHREIBENDE STELLE
+           Der Abgleich filtert schon vorab -- eine Liste ist billiger als
+           eine Abfrage je Satz. Aber wer sich darauf verlässt, hat die
+           Sperre an der Stelle, an der GEHOLT wird, statt an der, an der
+           GESCHRIEBEN wird. Ein zweiter Aufrufer käme daran vorbei, und
+           „gelöscht" wäre wieder eine Lüge. Also hier noch einmal. */
+        if ((int) self::still(static fn() => Db::wert(
+                'SELECT COUNT(*) FROM telefon_gespraech_weg WHERE id = ?', [$id], 0), 0) > 0) {
+            return 'gleich';
+        }
 
         /* Die Zusammenfassung kommt als Liste, weil ein Gespräch mehrere
            haben KÖNNTE. Bisher hat es genau eine oder keine. */
@@ -247,7 +270,14 @@ final class Strato
             'geholt_am'       => date('Y-m-d H:i:s'),
         ];
 
-        $vorher = Db::one('SELECT ausgang, betreff, tags FROM telefon_gespraeche WHERE id = ?', [$id]);
+        $vorher = Db::one('SELECT ausgang, betreff, tags, anonym FROM telefon_gespraeche WHERE id = ?', [$id]);
+
+        /* ANONYMISIERT WIRD NICHT ÜBERSCHRIEBEN
+           Der Abgleich schreibt jede Zeile neu, und STRATO weiß nichts von
+           einer Anonymisierung. Ohne diese drei Zeilen stünde der Name eine
+           Stunde später wieder da -- die Löschung wäre rückgängig gemacht,
+           ohne dass jemand etwas getan hätte. */
+        if (is_array($vorher) && (int) ($vorher['anonym'] ?? 0) === 1) { return 'gleich'; }
 
         $felder = array_keys($daten);
         $sql = 'INSERT INTO telefon_gespraeche (id, ' . implode(', ', $felder) . ') VALUES (?'
@@ -465,11 +495,229 @@ final class Strato
     }
 
     /* ==================================================================== */
+    /*  Löschen                                                             */
+    /* ==================================================================== */
+
+    /**
+     * WAS AN DIESEM GESPRÄCH NOCH OFFEN IST
+     * ---------------------------------------------------------------------
+     * Der Grund, warum Löschen hier eine Rückfrage bekommt und nicht bloß
+     * einen Knopf: In einem Gespräch entsteht Arbeit. Jemand hat um einen
+     * Rückruf gebeten und wartet darauf. Manuela konnte etwas nicht
+     * beantworten, und die Frage steht noch offen. Ein Link wurde zugesagt
+     * und nie verschickt.
+     *
+     * Wird so ein Gespräch weggeräumt, verschwindet nicht nur eine Zeile,
+     * sondern die Verabredung dahinter -- und niemand merkt es, weil genau
+     * die Zeile fehlt, die daran erinnert hätte. Deshalb sagt diese Methode
+     * in Worten, was noch aussteht, und deshalb geht das Löschen erst weiter,
+     * wenn jemand das ausdrücklich bestätigt.
+     *
+     * @return list<string>
+     */
+    public static function offenesZu(array $g): array
+    {
+        require_once __DIR__ . '/Telefon.php';
+
+        $von   = (string) ($g['begonnen'] ?? '');
+        if ($von === '') { return []; }
+        $dauer = max(60, (int) ($g['sekunden'] ?? 0) + 120);
+        $bis   = date('Y-m-d H:i:s', strtotime($von) + $dauer);
+
+        $offen = [];
+
+        /* Ein Rückruf, den niemand abgehakt hat. Erkannt genau wie in
+           Telefon::rueckrufe() -- eine zweite Wahrheit über „erledigt" wäre
+           die schlimmste Art von Fehler hier. */
+        $rueck = (array) self::still(static fn() => Db::all(
+            "SELECT a.id, a.meta FROM activities a
+              WHERE a.type IN ('telefon_melde', 'telefon_hilfe') AND a.demo = 0
+                AND a.created_at >= ? AND a.created_at <= ?
+                AND NOT EXISTS (
+                    SELECT 1 FROM activities e
+                     WHERE e.type = 'telefon_rueckruf_erledigt'
+                       AND e.meta LIKE CONCAT('%\"quelle\":\"', a.id, '\"%'))",
+            [$von, $bis]), []);
+        foreach ($rueck as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            $art = is_array($m) ? (string) ($m['art'] ?? '') : '';
+            if (in_array($art, ['rueckruf', 'beschwerde', 'nachricht'], true)) {
+                $wer = trim((string) ($m['name'] ?? $m['nummer'] ?? ''));
+                $offen[] = 'Ein Rückruf ist noch nicht abgehakt'
+                         . ($wer !== '' ? ' (' . $wer . ')' : '') . '.';
+            }
+        }
+
+        /* Eine Frage, die Manuela nicht beantworten konnte und die noch
+           niemand weggeräumt hat. Verglichen wird der Wortlaut: Die Spur
+           trägt keinen Schlüssel, und „irgendwo gibt es offene Fragen" wäre
+           bei jedem Gespräch wahr und damit keine Warnung. */
+        $luecken = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type = 'telefon_wissensluecke' AND demo = 0
+                AND created_at >= ? AND created_at <= ?", [$von, $bis]), []);
+        $n = 0;
+        foreach ($luecken as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (is_array($m) && Telefon::lueckeOffen((string) ($m['frage'] ?? ''))) { $n++; }
+        }
+        if ($n > 0) {
+            $offen[] = $n === 1
+                ? 'Eine Frage aus diesem Gespräch steht noch auf der Liste „Was Manuela nicht wusste".'
+                : $n . ' Fragen aus diesem Gespräch stehen noch auf der Liste „Was Manuela nicht wusste".';
+        }
+
+        /* „Angefangen und nichts daraus geworden" -- dieselbe Liste, die auf
+           der Telefonseite steht. Wer sie wegräumt, räumt die Erinnerung weg,
+           dass da noch etwas hinterherzuschicken wäre. */
+        foreach ((array) self::still(static fn() => Telefon::offeneGespraeche(30), []) as $o) {
+            $w = (string) ($o['wann'] ?? '');
+            if ($w !== '' && $w >= $von && $w <= $bis) {
+                $offen[] = 'Hier fing etwas an, aus dem nichts geworden ist — '
+                         . 'das Gespräch steht noch auf der Liste „Angefangen und nichts daraus geworden".';
+                break;
+            }
+        }
+
+        return array_values(array_unique($offen));
+    }
+
+    /**
+     * Gespräche löschen -- samt der eigenen Spur, die dazugehört.
+     *
+     * Ein Gespräch ohne seine Spur wäre ein halbes Löschen: Der Anruf
+     * verschwände aus der Liste, und die Werkzeugaufrufe mit Rufnummer und
+     * Adresse blieben in den Aktivitäten stehen.
+     *
+     * Ohne $auchOffene wird übersprungen, woran noch etwas hängt, und
+     * zurückgemeldet, was und warum. Der Aufrufer entscheidet dann -- nicht
+     * diese Methode.
+     *
+     * @param list<string> $ids
+     * @return array{weg:int,spur:int,offen:list<array{id:string,betreff:string,gruende:list<string>}>}
+     */
+    public static function loeschen(array $ids, bool $auchOffene = false): array
+    {
+        $weg = $spur = 0;
+        $offen = [];
+
+        foreach (array_unique(array_map('strval', $ids)) as $id) {
+            if (!preg_match('~^[0-9a-fA-F-]{8,40}$~', $id)) { continue; }
+            $g = self::still(static fn() => Db::one('SELECT * FROM telefon_gespraeche WHERE id = ?', [$id]), null);
+            if (!is_array($g)) { continue; }
+
+            if (!$auchOffene) {
+                $gruende = self::offenesZu($g);
+                if ($gruende) {
+                    $offen[] = ['id' => $id, 'betreff' => (string) ($g['betreff'] ?: 'ohne Betreff'),
+                                'wann' => (string) $g['begonnen'], 'gruende' => $gruende];
+                    continue;
+                }
+            }
+
+            $spur += self::spurLoeschen($g);
+            self::still(static fn() => Db::run('DELETE FROM telefon_gespraeche WHERE id = ?', [$id]));
+            self::sperren($id, 'von Hand');
+            $weg++;
+        }
+
+        if ($weg > 0) {
+            require_once __DIR__ . '/Events.php';
+            /* Festgehalten wird, DASS gelöscht wurde -- ohne das, was
+               gelöscht wurde. Sonst stünde der Inhalt gleich wieder da, nur
+               in einer anderen Tabelle. */
+            self::still(static fn() => Events::protokoll('telefon_geloescht',
+                $weg . ' Gespräch' . ($weg === 1 ? '' : 'e') . ' gelöscht'
+                . ($spur > 0 ? ' (mit ' . $spur . ' Einträgen aus dem Verlauf)' : ''),
+                null, null, null, ['anzahl' => $weg, 'spur' => $spur]));
+        }
+
+        return ['weg' => $weg, 'spur' => $spur, 'offen' => $offen];
+    }
+
+    /**
+     * Alle Gespräche, die älter sind als so viele Tage.
+     *
+     * Der Weg für „einmal aufräumen". Offene Sachen bleiben auch hier stehen,
+     * solange sie nicht ausdrücklich mitgenommen werden.
+     */
+    public static function loeschenAelterAls(int $tage, bool $auchOffene = false): array
+    {
+        $tage = max(0, min(3650, $tage));
+        $ids = array_column((array) self::still(static fn() => Db::all(
+            'SELECT id FROM telefon_gespraeche WHERE begonnen < NOW() - INTERVAL ' . $tage . ' DAY'), []), 'id');
+        return self::loeschen($ids, $auchOffene);
+    }
+
+    /**
+     * Alles, was zu einem Kunden gehört -- weil er gelöscht wird.
+     *
+     * Hier wird nicht gefragt. Wer eine Akte löscht, hat die Frage schon
+     * beantwortet, und ein Anruf, der ohne seine Akte stehen bliebe, wäre
+     * genau das, was Löschen verhindern soll: der Name verschwindet aus der
+     * Kundenliste und bleibt im Telefonprotokoll stehen.
+     */
+    public static function zuKundeLoeschen(int $kundeId): int
+    {
+        if ($kundeId <= 0) { return 0; }
+        $reihen = (array) self::still(static fn() => Db::all(
+            'SELECT * FROM telefon_gespraeche WHERE kunde_id = ?', [$kundeId]), []);
+        $n = 0;
+        foreach ($reihen as $g) {
+            self::spurLoeschen($g);
+            self::still(static fn() => Db::run('DELETE FROM telefon_gespraeche WHERE id = ?', [$g['id']]));
+            self::sperren((string) $g['id'], 'Kunde gelöscht');
+            $n++;
+        }
+        return $n;
+    }
+
+    /** Die Aktivitäten aus dem Zeitfenster dieses Gesprächs. */
+    private static function spurLoeschen(array $g): int
+    {
+        $von = (string) ($g['begonnen'] ?? '');
+        if ($von === '') { return 0; }
+        $dauer = max(60, (int) ($g['sekunden'] ?? 0) + 120);
+        return (int) self::still(static fn() => Db::run(
+            "DELETE FROM activities
+              WHERE type LIKE 'telefon\\_%'
+                AND created_at >= ?
+                AND created_at <= DATE_ADD(?, INTERVAL ? SECOND)",
+            [$von, $von, $dauer])->rowCount(), 0);
+    }
+
+    private static function sperren(string $id, string $grund): void
+    {
+        self::still(static fn() => Db::run(
+            'INSERT INTO telefon_gespraech_weg (id, grund) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE grund = VALUES(grund)', [$id, $grund]));
+    }
+
+    /** Wie viele Gespräche gesperrt sind -- steht auf der Seite, damit es niemanden überrascht. */
+    public static function gesperrt(): int
+    {
+        return (int) self::still(static fn() => Db::wert(
+            'SELECT COUNT(*) FROM telefon_gespraech_weg', [], 0), 0);
+    }
+
+    /** Die Sperre aufheben: Beim nächsten Abgleich kommen sie wieder. */
+    public static function sperreLoesen(): int
+    {
+        return (int) self::still(static fn() => Db::run('DELETE FROM telefon_gespraech_weg')->rowCount(), 0);
+    }
+
+    /* ==================================================================== */
     /*  Kleinkram                                                           */
     /* ==================================================================== */
 
     public static function zuletzt(): string { return self::wert('strato_zuletzt'); }
     public static function fehler(): string  { return self::wert('strato_fehler'); }
+
+    /** @return mixed */
+    private static function still(callable $fn, mixed $ersatz = null): mixed
+    {
+        try { return $fn(); } catch (Throwable $e) { return $ersatz; }
+    }
 
     public static function wert(string $k): string
     {

@@ -148,6 +148,32 @@ foreach (Telefon::VORWEG as $f) {
       <button class="knopf">Jetzt holen</button></form>
   <?php endif; ?>
 
+  <?php /* DIE SPERRLISTE GEHÖRT SICHTBAR
+           Was hier gelöscht wurde, liegt bei STRATO noch. Ohne diese Zeile
+           wäre die Sperrliste eine Falle: Man löscht ein Gespräch, es kommt
+           nicht wieder — und niemand weiß, warum ein Anruf, den man drüben
+           sieht, hier fehlt. */ ?>
+  <?php if (($strato['gesperrt'] ?? 0) > 0): ?>
+    <div style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
+      <p style="color:var(--dim);font-size:13px;line-height:1.65;margin:0 0 10px">
+        <b><?= (int) $strato['gesperrt'] ?></b>
+        <?= (int) $strato['gesperrt'] === 1 ? 'Gespräch wurde' : 'Gespräche wurden' ?>
+        hier gelöscht und
+        <?= (int) $strato['gesperrt'] === 1 ? 'wird' : 'werden' ?> beim Abgleich übersprungen.
+        Bei STRATO
+        <?= (int) $strato['gesperrt'] === 1 ? 'liegt es' : 'liegen sie' ?> noch — daran kommen
+        wir nicht heran. Hebst du die Sperre auf,
+        <?= (int) $strato['gesperrt'] === 1 ? 'kommt es' : 'kommen sie' ?> beim nächsten Lauf zurück.
+      </p>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+            data-frage="Die gelöschten Gespräche kommen beim nächsten Abgleich zurück, sofern STRATO sie noch hat. Fortfahren?"
+            data-ja="Ja, Sperre aufheben">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="gespraeche_sperre_loesen">
+        <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+        <button class="knopf">Sperre aufheben</button></form>
+    </div>
+  <?php endif; ?>
+
   <?php if ($strato['eingerichtet']): ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
           data-frage="Der Zugang wird gelöscht. Die schon geholten Gespräche bleiben — es kommen nur keine neuen mehr dazu. Fortfahren?"

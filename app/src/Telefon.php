@@ -2831,6 +2831,125 @@ final class Telefon
         };
     }
 
+    /* ================================================================== */
+    /*  Den Verlauf aufräumen                                             */
+    /* ================================================================== */
+
+    /**
+     * WARUM EIN PROTOKOLL ÜBERHAUPT LÖSCHBAR SEIN MUSS
+     *
+     * Bisher galt hier: Aktivitäten schreibt man, man ändert sie nicht. Das
+     * ist für die Lesbarkeit richtig und für personenbezogene Daten falsch.
+     * In dieser Spur stehen Rufnummern, Namen, Internetadressen und was
+     * jemand am Telefon wollte -- von Menschen, die nie Kunde wurden und nie
+     * gefragt wurden, ob das aufgehoben werden darf. Etwas aufzuheben, weil
+     * das Löschen nicht vorgesehen war, ist kein Grundsatz, sondern ein
+     * Versäumnis.
+     *
+     * Gelöscht wird trotzdem nicht leichtfertig: Woran noch etwas hängt,
+     * bleibt stehen, bis jemand ausdrücklich sagt, dass es mitgehen soll.
+     *
+     * @param list<int> $ids
+     * @return array{weg:int,offen:list<array{id:int,titel:string,wann:string,gruende:list<string>}>}
+     */
+    public static function verlaufLoeschen(array $ids, bool $auchOffene = false): array
+    {
+        $weg = 0;
+        $offen = [];
+
+        foreach (array_unique(array_map('intval', $ids)) as $id) {
+            if ($id <= 0) { continue; }
+            $z = self::still(static fn() => Db::one(
+                "SELECT id, type, title, meta, created_at FROM activities
+                  WHERE id = ? AND type LIKE 'telefon\\_%'", [$id]), null);
+            if (!is_array($z)) { continue; }
+
+            if (!$auchOffene) {
+                $gruende = self::offenesAn($z);
+                if ($gruende) {
+                    $offen[] = ['id' => $id, 'titel' => (string) $z['title'],
+                                'wann' => (string) $z['created_at'], 'gruende' => $gruende];
+                    continue;
+                }
+            }
+            self::still(static fn() => Db::run('DELETE FROM activities WHERE id = ?', [$id]));
+            $weg++;
+        }
+
+        if ($weg > 0) {
+            self::still(static fn() => Events::protokoll('telefon_verlauf_geloescht',
+                $weg . ' Eintrag' . ($weg === 1 ? '' : 'e') . ' aus dem Telefonverlauf gelöscht',
+                null, null, null, ['anzahl' => $weg]));
+        }
+        return ['weg' => $weg, 'offen' => $offen];
+    }
+
+    /** Alles im Verlauf, was älter ist als so viele Tage. */
+    public static function verlaufAelterAls(int $tage, bool $auchOffene = false): array
+    {
+        $tage = max(0, min(3650, $tage));
+        $ids = array_column((array) self::still(static fn() => Db::all(
+            "SELECT id FROM activities
+              WHERE type LIKE 'telefon\\_%' AND created_at < NOW() - INTERVAL " . $tage . ' DAY'), []), 'id');
+        return self::verlaufLoeschen($ids, $auchOffene);
+    }
+
+    /**
+     * Was an diesem einen Eintrag noch hängt.
+     *
+     * Genau zwei Dinge erzeugen Arbeit, die man nicht wegwerfen darf, ohne
+     * es zu wissen: ein Rückruf, den niemand abgehakt hat, und eine Frage,
+     * die Manuela nicht beantworten konnte und die noch auf der Liste steht.
+     * Alles andere ist Protokoll -- und Protokoll darf weg.
+     *
+     * @return list<string>
+     */
+    private static function offenesAn(array $z): array
+    {
+        $offen = [];
+        $typ = (string) $z['type'];
+        $m   = json_decode((string) ($z['meta'] ?? ''), true);
+        $m   = is_array($m) ? $m : [];
+
+        if (in_array($typ, ['telefon_melde', 'telefon_hilfe'], true)
+            && in_array((string) ($m['art'] ?? ''), ['rueckruf', 'beschwerde', 'nachricht'], true)) {
+            $erledigt = (int) self::still(static fn() => Db::wert(
+                "SELECT COUNT(*) FROM activities
+                  WHERE type = 'telefon_rueckruf_erledigt'
+                    AND meta LIKE CONCAT('%\"quelle\":\"', ?, '\"%')", [(int) $z['id']], 0), 0);
+            if ($erledigt === 0) {
+                $wer = trim((string) ($m['name'] ?? $m['nummer'] ?? ''));
+                $offen[] = 'Darauf wartet noch jemand auf einen Rückruf'
+                         . ($wer !== '' ? ' (' . $wer . ')' : '') . '.';
+            }
+        }
+
+        /* Die Spur und die Liste kennen einander nur über die Frage selbst
+           -- der Eintrag in den Aktivitäten trägt keinen Schlüssel. Deshalb
+           wird der Wortlaut verglichen, und deshalb steht das hier statt
+           einer bequemeren Näherung: „Es gibt irgendwo offene Fragen" wäre
+           bei jedem Eintrag wahr und damit nutzlos als Warnung. */
+        if ($typ === 'telefon_wissensluecke') {
+            $frage = trim((string) ($m['frage'] ?? ''));
+            if ($frage !== '' && self::lueckeOffen($frage)) {
+                $offen[] = 'Diese Frage steht noch auf der Liste „Was Manuela nicht wusste".';
+            }
+        }
+
+        return $offen;
+    }
+
+    /** Steht diese Frage noch auf der Liste? */
+    public static function lueckeOffen(string $frage): bool
+    {
+        $frage = trim($frage);
+        if ($frage === '') { return false; }
+        foreach ((array) self::still(static fn() => self::luecken(200), []) as $l) {
+            if (trim((string) ($l['frage'] ?? '')) === $frage) { return true; }
+        }
+        return false;
+    }
+
     public static function protokoll(string $aktion, string $titel, ?int $kundeId, array $meta = []): void
     {
         self::still(static fn() => Events::protokoll(
