@@ -144,7 +144,12 @@ $konfigs = [];
 
 $konfigs['kunde_nachschlagen'] = [
   'zweck' => 'Wer ruft an? Schlägt über Rufnummer, Kundennummer oder Namen nach. '
-           . 'Gibt Name, Betrieb, Sprache und Projektstand zurück — nie Beträge.',
+           . 'Gibt Name, Betrieb, Sprache und Projektstand zurück — nie Beträge. '
+           . 'IMMER zuerst aufrufen, bevor du „hilfe“, „angebot_link“, „uebergabe“, „melde“ oder '
+           . '„zusammenfassung“ benutzt. Die zurückgegebene kunde_id gibst du danach bei jedem '
+           . 'weiteren Werkzeug im selben Gespräch mit — ohne sie bekommt niemand einen Stand '
+           . 'und keinen Link. Kommt kein Treffer, fragst du nach Rufnummer und Erreichbarkeit '
+           . 'und rufst „melde“ auf.',
   'eig' => [
     'telefon'      => ['type' => 'string', 'description' => 'Rufnummer des Anrufers, wie sie hereinkommt'],
     'kundennummer' => ['type' => 'string', 'description' => 'Kunden-, Bestell- oder Angebotsnummer, falls genannt'],
@@ -174,14 +179,18 @@ $rumpfA .= '}';
 
 $konfigs['angebot_link'] = [
   'zweck' => 'Schickt den Konfigurator-Link. Was am Telefon schon gesagt wurde, steht beim '
-           . 'Öffnen drin. Bei Bestandskunden geht der Link nur an die hinterlegte Adresse.',
+           . 'Öffnen drin. Bei Bestandskunden geht der Link nur an die hinterlegte Adresse. '
+           . 'Sag erst „ist raus“, NACHDEM dieses Werkzeug „ok“ zurückgegeben hat — eine Zusage, '
+           . 'die du nicht eingelöst hast, ist schlimmer als gar keine.',
   'eig' => $eigA, 'pflicht' => ['sprache'], 'rumpf' => $rumpfA,
 ];
 
 $konfigs['preis_auskunft'] = [
   'zweck' => 'Was kostet das? Rechnet mit derselben Maschine wie der Konfigurator und das '
            . 'Angebot — die Zahlen sind immer die aktuellen. Antwort ist eine Spanne, nie ein '
-           . 'Festpreis. Wenn der Anrufer schon etwas gesagt hat, seine Spanne; sonst die übliche.',
+           . 'Festpreis. Wenn der Anrufer schon etwas gesagt hat, seine Spanne; sonst die übliche. '
+           . 'Kommt „ausserhalb“ zurück, nennst du KEINE Zahl: Das Vorhaben passt nicht in den '
+           . 'Baukasten. Dann liest du den mitgegebenen Satz vor und bietest einen Termin an.',
   'eig' => (static function () use ($fragen) {
       $e = [];
       foreach ($fragen as $f => $inf) {
@@ -211,7 +220,10 @@ $konfigs['lage'] = [
 
 $konfigs['melde'] = [
   'zweck' => 'Trägt ein Anliegen in die Verwaltung ein: Rückruf, Nachricht, Beschwerde '
-           . 'oder „Link noch einmal schicken“. Beschwerden gelten immer als dringend.',
+           . 'oder „Link noch einmal schicken“. Beschwerden gelten immer als dringend. '
+           . 'Das ist der Rettungsanker: Endet ein Gespräch, ohne dass etwas rausgegangen ist, '
+           . 'rufst du wenigstens das hier auf — mit Rufnummer und Erreichbarkeit. '
+           . 'Ein Anrufer, von dem nichts in der Verwaltung steht, ist verloren.',
   'eig' => [
     'art' => ['type' => 'string', 'enum' => array_keys(Telefon::ARTEN),
               'description' => 'Um welche Art Anliegen es geht'],
@@ -250,7 +262,9 @@ $konfigs['hilfe'] = [
            . 'Die Sätze aus „schritte“ vorlesen, einen nach dem anderen — nicht zusammenfassen, '
            . 'nichts dazuerfinden. Keine Beträge und nicht sagen, ob etwas offen ist: '
            . 'Das steht auf seiner Seite, und der Link dorthin geht nur an die hinterlegte Adresse. '
-           . 'Klappt es beim zweiten Mal nicht, „versuch“ auf 2 setzen — dann übernimmt ein Mensch.',
+           . 'Klappt es beim zweiten Mal nicht, „versuch“ auf 2 setzen — dann übernimmt ein Mensch. '
+           . 'Kommt „bekannt“: false zurück, gibst du keinen Stand und keinen Link heraus, sondern '
+           . 'fragst nach Rufnummer und Erreichbarkeit und rufst „melde“ auf.',
   'eig' => [
     'problem' => ['type' => 'string',
                   'enum' => ['fragebogen', 'bezahlung', 'link_weg', 'vorschau', 'zugang', 'sonstiges'],
@@ -311,7 +325,9 @@ $konfigs['beratung'] = [
            . '„optionen“; bei Mehrfachfragen mehrere mit Komma. Sobald „von_euro“ kommt, darfst du '
            . 'die Spanne nennen — immer als Spanne, nie als Festpreis. '
            . 'Kommt „ausserhalb“ zurück, nennst du KEINE Zahl: Das Vorhaben passt nicht in '
-           . 'den Baukasten, du liest den Satz vor und bietest einen Termin an.',
+           . 'den Baukasten, du liest den Satz vor und bietest einen Termin an. '
+           . 'Höchstens ein Werkzeug pro Gesprächszug — zwei hintereinander machen eine Pause, '
+           . 'die der Anrufer als Stille hört.',
   'eig' => [
     'gespraech'   => ['type' => 'string', 'maxLength' => 48,
                       'description' => 'Der Wert aus der letzten Antwort. Beim ersten Aufruf leer lassen'],
