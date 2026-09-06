@@ -294,33 +294,64 @@ final class Strato
     /* ==================================================================== */
 
     /** Was die Schlagworte auf Deutsch heißen. Was hier fehlt, wird roh gezeigt. */
+    /**
+     * Was die Schlagworte auf Deutsch heißen.
+     *
+     * Die Liste ist gewachsen, nicht erfunden: Der erste Abgleich brachte
+     * 43 Gespräche, und was darin wirklich vorkam, steht jetzt hier. Was
+     * fehlt, wird roh gezeigt statt verschluckt -- so sieht man beim
+     * nächsten neuen Schlagwort, dass es eines gibt.
+     */
     public const TAG = [
-        'incorrect_function_parameters' => 'falsche Angaben an ein Werkzeug',
+        'incorrect_function_parameters'  => 'falsche Angaben an ein Werkzeug',
         'failed_to_follow_tool_guidance' => 'Anweisung des Werkzeugs missachtet',
-        'caller_frustration'            => 'Anrufer war genervt',
-        'transcription_error'           => 'falsch verstanden',
-        'unclear_audio'                 => 'schlechte Verbindung',
-        'long_silence'                  => 'lange Stille',
-        'repetition'                    => 'hat sich wiederholt',
-        'interrupted'                   => 'ins Wort gefallen',
-        'wrong_language'                => 'falsche Sprache',
-        'hallucination'                 => 'etwas erfunden',
-        'missing_information'           => 'Angabe fehlte',
-        'tool_error'                    => 'Werkzeug antwortete nicht',
+        'failed_to_call_function'        => 'Werkzeug gar nicht erst benutzt',
+        'tool_error'                     => 'Werkzeug antwortete nicht',
+        'caller_frustration'             => 'Anrufer war genervt',
+        'caller_confusion'               => 'Anrufer war verwirrt',
+        'transcription_error'            => 'falsch verstanden',
+        'unclear_audio'                  => 'schlechte Verbindung',
+        'long_silence'                   => 'lange Stille',
+        'repetition'                     => 'hat sich wiederholt',
+        'agent_repeated_itself'          => 'hat sich wiederholt',
+        'interrupted'                    => 'ins Wort gefallen',
+        'interruption_handling_friction' => 'kam nach einer Unterbrechung nicht klar',
+        'call_ended_before_resolution'   => 'Gespräch endete ohne Ergebnis',
+        'wrong_language'                 => 'falsche Sprache',
+        'hallucination'                  => 'etwas erfunden',
+        'other_hallucination'            => 'etwas erfunden',
+        'hallucinated_action'            => 'hat etwas behauptet, das sie nicht getan hat',
+        'booking_hallucination'          => 'einen Termin erfunden',
+        'forwarding_hallucination'       => 'eine Weiterleitung erfunden',
+        'failed_to_confirm_email'        => 'E-Mail-Adresse nicht bestätigen lassen',
+        'missing_information'            => 'Angabe fehlte',
+        'incomplete_data_collection'     => 'nicht zu Ende gefragt',
     ];
 
+    /**
+     * Wie ein Anruf ausging -- und ob das gut oder schlecht ist.
+     *
+     * DIE FARBE IST EIN URTEIL UND WIRD SPARSAM VERGEBEN. „Weitergeleitet"
+     * und „aufgelegt" bleiben farblos: Beides kann richtig gewesen sein,
+     * und eine rote Zeile, die nichts bedeutet, macht die roten Zeilen
+     * wertlos, die etwas bedeuten.
+     */
     public const AUSGANG = [
-        'AGENT_ERROR'        => ['Fehler des Assistenten', 'schlecht'],
-        'RESOLVED'           => ['erledigt', 'gut'],
-        'COMPLETED'          => ['abgeschlossen', 'gut'],
-        'INFORMATION_GIVEN'  => ['Auskunft gegeben', 'gut'],
-        'CALLBACK_REQUESTED' => ['Rückruf gewünscht', 'gut'],
-        'APPOINTMENT_BOOKED' => ['Termin vereinbart', 'gut'],
-        'TRANSFERRED'        => ['weitergeleitet', ''],
-        'CALLER_HUNG_UP'     => ['aufgelegt', ''],
-        'NO_CONVERSATION'    => ['kein Gespräch', ''],
-        'UNRESOLVED'         => ['ohne Ergebnis', 'schlecht'],
-        'ABANDONED'          => ['abgebrochen', 'schlecht'],
+        'GOAL_ACHIEVED'          => ['Ziel erreicht', 'gut'],
+        'RESOLVED'               => ['erledigt', 'gut'],
+        'COMPLETED'              => ['abgeschlossen', 'gut'],
+        'INFORMATION_GIVEN'      => ['Auskunft gegeben', 'gut'],
+        'CALLBACK_REQUESTED'     => ['Rückruf gewünscht', 'gut'],
+        'APPOINTMENT_BOOKED'     => ['Termin vereinbart', 'gut'],
+        'MESSAGE_TAKEN'          => ['Anliegen aufgenommen', 'gut'],
+        'TRANSFERRED'            => ['weitergeleitet', ''],
+        'CALLER_HUNG_UP'         => ['aufgelegt', ''],
+        'NO_CONVERSATION'        => ['kein Gespräch', ''],
+        'CALLER_QUIT_PREMATURELY'=> ['Anrufer stieg vorzeitig aus', 'schlecht'],
+        'AGENT_ERROR'            => ['Fehler des Assistenten', 'schlecht'],
+        'UNRESOLVED'             => ['ohne Ergebnis', 'schlecht'],
+        'ABANDONED'              => ['abgebrochen', 'schlecht'],
+        'GOAL_NOT_ACHIEVED'      => ['Ziel verfehlt', 'schlecht'],
     ];
 
     public const ENGAGEMENT = [
