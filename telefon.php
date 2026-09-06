@@ -95,6 +95,7 @@ try {
         'melde'              => Telefon::melden($d),
         'zusammenfassung'    => Telefon::zusammenfassung($d),
         'wissensluecke'      => Telefon::wissensluecke($d),
+        'hilfe'              => Telefon::hilfe($d),
     };
     antwort($ergebnis);
 } catch (Throwable $e) {

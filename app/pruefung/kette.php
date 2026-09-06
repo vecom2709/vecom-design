@@ -1023,8 +1023,12 @@ pruefe('ein Fehler würgt kein Gespräch ab',
 abschnitt('16. Was der Assistent nachfragen kann');
 
 require_once $wurzel . '/src/Baukasten.php';
-pruefe('es gibt jetzt sieben Aktionen', count(Telefon::AKTIONEN) === 7,
-    (string) count(Telefon::AKTIONEN));
+/* Keine feste Zahl: Sie wächst mit den Fähigkeiten, und ein Test, der bei
+   jeder neuen nachgezogen werden muss, wird irgendwann nachgezogen statt
+   gelesen. Geprüft wird, dass die neuen wirklich dabei sind. */
+foreach (['preis_auskunft', 'lage', 'wissensluecke', 'hilfe'] as $neu) {
+    pruefe('„' . $neu . '" steht auf der Liste', in_array($neu, Telefon::AKTIONEN, true));
+}
 
 /* --- Preisauskunft ------------------------------------------------------ */
 
@@ -1248,6 +1252,143 @@ foreach ([$tr, $tr2, $tr3, $tr4] as $i => $stand) {
     pruefe('der Trichter wird nach unten nie breiter (Stand ' . ($i + 1) . ')',
         $waechst === [], implode(', ', $folge));
 }
+
+/* ============================================================================
+   18. Was der Assistent an STRATO gibt -- und wie er hilft
+   ----------------------------------------------------------------------------
+   Der erste Teil dieses Abschnitts stammt aus einem echten Ausfall: Die
+   Aktion „lage" braucht keine Parameter. PHP kennt keinen Unterschied
+   zwischen leerer Liste und leerem Objekt, json_encode machte daraus
+   "properties": [] -- und STRATO hat daraufhin das Speichern des GANZEN
+   Assistenten blockiert, mit „expected record, received array". Zwei
+   Zeichen, eine Stunde Sucherei, und nichts davon war in der Verwaltung zu
+   sehen. Deshalb steht die Rechnung jetzt in einer Methode und hier eine
+   Pruefung darauf.
+   ============================================================================ */
+abschnitt('18. Konfiguration und Hilfe am Telefon');
+
+/* --- Der Block, der zu STRATO wandert ----------------------------------- */
+$ohneFelder = Telefon::konfigJson('lage',
+    ['zweck' => 'Wie spät ist es?', 'eig' => [], 'pflicht' => [], 'rumpf' => '{"aktion":"lage"}'],
+    'https://example.test/telefon.php', 'SCHLUESSEL');
+pruefe('ein Parametersatz ohne Felder wird zu {}, nicht zu []',
+    str_contains($ohneFelder, '"properties": {}'), mb_substr($ohneFelder, 0, 160));
+pruefe('und „required" bleibt eine Liste', str_contains($ohneFelder, '"required": []'));
+$zurueck = json_decode($ohneFelder, true);
+pruefe('der Block ist gültiges JSON', is_array($zurueck));
+pruefe('mit genau den drei erlaubten Schlüsseln in „parameters"',
+    array_keys($zurueck['parameters'] ?? []) === ['type', 'properties', 'required'],
+    implode(', ', array_keys($zurueck['parameters'] ?? [])));
+pruefe('der Rumpf steht als Text, nicht als Objekt',
+    is_string($zurueck['request']['postData']['text'] ?? null));
+
+$mitFeldern = Telefon::konfigJson('melde',
+    ['zweck' => 'Anliegen melden',
+     'eig' => ['text' => ['type' => 'string', 'description' => 'Das Anliegen']],
+     'pflicht' => ['text'],
+     'rumpf' => '{"aktion":"melde","text":"{{ text }}"}'],
+    'https://example.test/telefon.php', 'SCHLUESSEL');
+pruefe('Platzhalter bleiben wörtlich stehen', str_contains($mitFeldern, '{{ text }}'));
+pruefe('der Schlüssel steht genau einmal drin, in der Kopfzeile',
+    substr_count($mitFeldern, 'SCHLUESSEL') === 1);
+$m = json_decode($mitFeldern, true);
+pruefe('jedes Pflichtfeld gibt es auch wirklich',
+    array_diff($m['required'] ?? $m['parameters']['required'], array_keys($m['parameters']['properties'])) === []);
+
+/* --- Hilfe: wer nicht gefunden wird, bekommt keinen Stand --------------- */
+$fremd = Telefon::hilfe(['problem' => 'bezahlung', 'telefon' => '004900000000000', 'sprache' => 'de']);
+pruefe('ein unbekannter Anrufer bekommt keinen Stand', ($fremd['bekannt'] ?? true) === false);
+pruefe('und keinen Link', ($fremd['getan'] ?? ['x']) === []);
+pruefe('sondern einen Rückruf', ($fremd['weiter'] ?? '') === 'rueckruf');
+pruefe('mit Sätzen zum Vorlesen', count($fremd['schritte'] ?? []) >= 2);
+
+/* --- Hilfe zur Bezahlung: kein Betrag, kein Kontostand ------------------ */
+Db::run('UPDATE customers SET sprache = ? WHERE id = ?', ['de', $kundeId]);
+$geld = Telefon::hilfe(['problem' => 'bezahlung', 'kunde_id' => $kundeId]);
+/* In der Pruefung gibt es keinen Mailschluessel — verschickt wird also
+   nichts. Geprueft wird deshalb der VERSUCH: Steht im Postausgang eine Zeile
+   mit dem richtigen Anlass an die HINTERLEGTE Adresse, war der Weg richtig.
+   Ob Brevo sie annimmt, ist eine andere Frage und nicht diese. */
+$adrK = (string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kundeId], '');
+pruefe('bei Geld wird die Kundenseite an die hinterlegte Adresse geschickt',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'kundenseite' AND empfaenger = ?",
+                   [$adrK], 0) === 1, $adrK);
+pruefe('und an keine andere',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'kundenseite' AND empfaenger <> ?",
+                   [$adrK], 0) === 0);
+
+/* WENN NICHTS RAUSGEHT, WIRD NICHTS VERSPROCHEN.
+   Hier scheitert der Versand mangels Schlüssel — genau der Fall, in dem ein
+   Assistent sonst „kommt gleich" sagt und der Anrufer drei Tage wartet. */
+pruefe('ein gescheiterter Versand wird gemeldet statt zugesagt',
+    ($geld['weiter'] ?? '') === 'gemeldet', (string) ($geld['weiter'] ?? '—'));
+pruefe('und Manuela sagt das auch so',
+    str_contains((string) ($geld['hinweis'] ?? ''), 'nicht geklappt'));
+
+/* DIE WICHTIGSTE PRÜFUNG DIESES ABSCHNITTS
+   Am Telefon fällt kein Betrag — und auch kein Satz darüber, OB etwas offen
+   ist. Beides wäre eine Auskunft über Geld an eine Stimme ohne Ausweis. */
+$flachH = json_encode($geld, JSON_UNESCAPED_UNICODE);
+$verbotenH = [];
+foreach (['euro', '€', 'cent', 'betrag', 'offen', 'schuld', 'rechnung', 'summe'] as $wort) {
+    if (stripos($flachH, $wort) !== false) { $verbotenH[] = $wort; }
+}
+pruefe('die Antwort nennt weder Betrag noch offenen Posten', $verbotenH === [],
+    implode(', ', $verbotenH));
+
+/* --- Hilfe zum Fragebogen: der Stand entscheidet ------------------------ */
+Db::run("UPDATE questionnaires SET status = 'abgeschlossen' WHERE id = ?", [$fbId]);
+$fertig = Telefon::hilfe(['problem' => 'fragebogen', 'kunde_id' => $kundeId]);
+pruefe('ein zurückgekommener Fragebogen wird nicht noch einmal geschickt',
+    ($fertig['getan'] ?? ['x']) === [], implode(',', $fertig['getan'] ?? []));
+pruefe('und der Anrufer hört, dass er nichts mehr tun muss',
+    count($fertig['schritte'] ?? []) >= 2);
+
+/* Noch nicht eingeladen: Den ERSTEN Versand macht Uwe, nicht der Assistent.
+   Er hängt in der Verwaltung an einer Rückfrage, weil danach eine Uhr läuft. */
+Db::run("UPDATE questionnaires SET status = 'offen', eingeladen_am = NULL WHERE id = ?", [$fbId]);
+$nochNicht = Telefon::hilfe(['problem' => 'fragebogen', 'kunde_id' => $kundeId]);
+pruefe('die erste Einladung löst der Assistent nicht aus',
+    ($nochNicht['getan'] ?? ['x']) === [], implode(',', $nochNicht['getan'] ?? []));
+
+/* Schon eingeladen, noch offen: DAS darf er wiederholen. */
+Db::run("UPDATE questionnaires SET status = 'offen', eingeladen_am = NOW() WHERE id = ?", [$fbId]);
+$vorher = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE customer_id = ?", [$kundeId], 0);
+$nochmal = Telefon::hilfe(['problem' => 'fragebogen', 'kunde_id' => $kundeId]);
+pruefe('einen schon verschickten Fragebogen nimmt er noch einmal in die Hand',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE customer_id = ?", [$kundeId], 0) > $vorher);
+pruefe('und meldet es, weil der Versand hier nicht klappt',
+    ($nochmal['weiter'] ?? '') === 'gemeldet', (string) ($nochmal['weiter'] ?? '—'));
+
+/* --- Nach zwei Anläufen übernimmt ein Mensch ---------------------------- */
+$auf = Telefon::hilfe(['problem' => 'fragebogen', 'kunde_id' => $kundeId,
+                       'versuch' => Telefon::HILFE_VERSUCHE, 'text' => 'Knopf reagiert nicht']);
+pruefe('nach zwei Anläufen wird gemeldet', ($auf['weiter'] ?? '') === 'gemeldet');
+pruefe('und nichts mehr verschickt', ($auf['getan'] ?? []) === ['gemeldet']);
+pruefe('die Meldung steht in den Aktivitäten',
+    (int) Db::wert("SELECT COUNT(*) FROM activities
+                     WHERE type LIKE 'telefon\\_%' AND title LIKE '%Nachricht%'", [], 0) > 0);
+
+/* --- Die Sätze kommen in seiner Sprache --------------------------------- */
+Db::run('UPDATE customers SET sprache = ? WHERE id = ?', ['it', $kundeId]);
+$it = Telefon::hilfe(['problem' => 'zugang', 'kunde_id' => $kundeId]);
+pruefe('ein italienischer Kunde hört Italienisch', ($it['sprache'] ?? '') === 'it');
+pruefe('und die Sätze sind andere als die deutschen',
+    ($it['schritte'] ?? []) !== ($geld['schritte'] ?? []));
+Db::run('UPDATE customers SET sprache = ? WHERE id = ?', ['de', $kundeId]);
+
+/* --- Woran es hakt, wird gezählt ---------------------------------------- */
+$hk = Telefon::haken(90);
+$arten = array_column($hk, 'problem');
+pruefe('die Hilfe-Anrufe landen auf einer Liste', $hk !== []);
+pruefe('nach Problem getrennt', in_array('fragebogen', $arten, true) && in_array('bezahlung', $arten, true),
+    implode(', ', $arten));
+$summe = array_sum(array_column($hk, 'anzahl'));
+pruefe('und jede Zeile zählt höchstens so viele Lösungen wie Anrufe',
+    array_sum(array_column($hk, 'geloest')) <= $summe);
+$unbekannt = array_filter($hk, static fn(array $z): bool => $z['problem'] === 'sonstiges');
+pruefe('eine erfundene Problemart fällt auf „sonstiges"',
+    Telefon::hilfe(['problem' => 'quatsch', 'kunde_id' => $kundeId]) !== []);
 
 /* ============================================================================
    Aufräumen und Bilanz

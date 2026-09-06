@@ -5,11 +5,12 @@ declare(strict_types=1);
  * DER TELEFONASSISTENT FRAGT DIE VERWALTUNG
  * =============================================================================
  *
- * Manuela ruft waehrend des Gespraechs hier an. Sieben Dinge darf sie:
+ * Manuela ruft waehrend des Gespraechs hier an. Acht Dinge darf sie:
  * nachschlagen, wer dran ist; den Preis schaetzen; erfahren, welcher Tag und
  * welche Uhrzeit gerade ist; den Konfigurator-Link schicken; ein Anliegen
  * melden; eine Zusammenfassung senden; eine Frage notieren, die sie nicht
- * beantworten konnte. Mehr nicht -- und die Liste steht in AKTIONEN, nicht
+ * beantworten konnte; jemandem Schritt fuer Schritt weiterhelfen, der nicht
+ * weiterkommt. Mehr nicht -- und die Liste steht in AKTIONEN, nicht
  * hier: dieser Text erklaert, der Verteiler entscheidet.
  *
  * WARUM EIN EIGENER SCHLUESSEL UND NICHT DER VORHANDENE
@@ -49,7 +50,23 @@ final class Telefon
 
     /** Die Aktionen, die es gibt. Was nicht hier steht, gibt es nicht. */
     public const AKTIONEN = ['kunde_nachschlagen', 'preis_auskunft', 'lage',
-                             'angebot_link', 'melde', 'zusammenfassung', 'wissensluecke'];
+                             'angebot_link', 'melde', 'zusammenfassung', 'wissensluecke',
+                             'hilfe'];
+
+    /**
+     * Woran jemand haengen bleibt.
+     *
+     * Bewusst eine kurze, geschlossene Liste: Ein Anrufer sagt „ich komm
+     * nicht weiter", und das Modell muss daraus eines von sechs Woertern
+     * machen. Zwanzig Kategorien traefe es haeufiger falsch als sechs, und
+     * eine falsche Kategorie fuehrt zu einer Anleitung fuer ein Problem,
+     * das er gar nicht hat.
+     */
+    public const PROBLEME = ['fragebogen', 'bezahlung', 'link_weg',
+                             'vorschau', 'zugang', 'sonstiges'];
+
+    /** Nach so vielen vergeblichen Anlaeufen uebernimmt ein Mensch. */
+    public const HILFE_VERSUCHE = 2;
 
     /**
      * Welche Konfigurator-Fragen am Telefon vorweggenommen werden duerfen.
@@ -765,6 +782,323 @@ final class Telefon
      * Verwaltung schreibt, ist genau so viel wert wie das Vertrauen, das man
      * ihm entgegenbringt -- und das haelt nur, solange man nachsehen kann.
      */
+    /**
+     * SCHRITT FÜR SCHRITT, WENN JEMAND NICHT WEITERKOMMT
+     * =====================================================================
+     * Der Unterschied zu einer FAQ ist der ganze Punkt: Manuela erklaert
+     * nicht, wie ein Fragebogen im Allgemeinen funktioniert. Sie sieht nach,
+     * wo DIESER Kunde steht, und liest ab da vor. „Dein Fragebogen ist schon
+     * da, du wartest auf uns" und „ich schick ihn dir nochmal" sind zwei
+     * verschiedene Gespraeche -- und das falsche davon aergert jemanden, der
+     * seine Arbeit schon gemacht hat.
+     *
+     * WOHER DER STAND KOMMT
+     * Aus Kundenzugang::seite() -- derselben Rechnung, aus der auch seine
+     * eigene Seite gebaut wird. Damit kann das Telefon gar nicht etwas
+     * anderes sagen als der Bildschirm. Zwei Quellen fuer denselben Stand
+     * laufen mit Sicherheit irgendwann auseinander, und dann steht Aussage
+     * gegen Aussage.
+     *
+     * DREI GRENZEN, DIE HIER NICHT VERHANDELBAR SIND
+     *
+     * 1. Kein Betrag, und kein Satz darueber, OB etwas offen ist. Auch
+     *    „du hast noch etwas offen" ist eine Auskunft ueber Geld, und am
+     *    anderen Ende sitzt kein Ausweis, sondern eine Stimme. Wer Geld
+     *    meint, bekommt den Link zu seiner Seite -- dort ist der Link der
+     *    Ausweis.
+     * 2. Alles, was rausgeht, geht an die HINTERLEGTE Adresse. Nie an eine,
+     *    die am Telefon genannt wurde. Sonst waere „schick mir den Link an
+     *    meine neue Adresse" die Uebernahme eines Kundenkontos.
+     * 3. Die erste Fragebogen-Einladung verschickt Uwe, nicht Manuela. Sie
+     *    haengt in der Verwaltung an einer Rueckfrage (Ablauf::TRAGWEITE),
+     *    weil danach eine Uhr laeuft. Erneut schicken darf sie -- das
+     *    wiederholt nur, was schon entschieden war.
+     *
+     * @param array{problem?:string,kunde_id?:int|string,telefon?:string,
+     *              sprache?:string,versuch?:int|string,text?:string} $d
+     */
+    public static function hilfe(array $d): array
+    {
+        require_once __DIR__ . '/Kundenzugang.php';
+        require_once __DIR__ . '/Texte.php';
+
+        $problem = (string) ($d['problem'] ?? 'sonstiges');
+        if (!in_array($problem, self::PROBLEME, true)) { $problem = 'sonstiges'; }
+        $versuch = max(0, (int) ($d['versuch'] ?? 0));
+
+        /* Wen haben wir vor uns? Die Nummer ist kein Ausweis -- sie reicht,
+           um eine Mail an eine hinterlegte Adresse auszuloesen, und fuer
+           nichts anderes. */
+        $kundeId = (int) ($d['kunde_id'] ?? 0);
+        if ($kundeId <= 0 && trim((string) ($d['telefon'] ?? '')) !== '') {
+            $n = self::nachschlagen(['telefon' => (string) $d['telefon']]);
+            if (($n['gefunden'] ?? false) === true) { $kundeId = (int) $n['kunde_id']; }
+        }
+        $kunde = $kundeId > 0
+            ? (array) self::still(static fn() => Db::one(
+                'SELECT * FROM customers WHERE id = ?', [$kundeId]), [])
+            : [];
+
+        $sprache = (string) ($kunde['sprache'] ?? ($d['sprache'] ?? 'it'));
+        if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+
+        /* WER NICHT GEFUNDEN WIRD, BEKOMMT KEINEN STAND
+           Nicht aus Strenge: Ein Name und eine Adresse am Telefon sind kein
+           Nachweis, und wer sie nennt, kann sie auch erfunden haben. Er
+           bekommt einen Rueckruf -- das kostet ihn eine Stunde und uns
+           nichts. */
+        if ($kundeId <= 0) {
+            self::protokoll('hilfe', 'Hilfe am Telefon — unbekannter Anrufer', null,
+                            ['problem' => $problem, 'bekannt' => false]);
+            return ['bekannt'  => false,
+                    'sprache'  => $sprache,
+                    'schritte' => self::hilfeSchritte('unbekannt', $sprache),
+                    'getan'    => [],
+                    'weiter'   => 'rueckruf',
+                    'hinweis'  => 'Nicht gefunden. Kein Stand, kein Link, keine Auskunft — '
+                                . 'Anliegen mit „melde" aufnehmen und nach der Erreichbarkeit fragen.'];
+        }
+
+        /* ZWEI ANLAEUFE, DANN EIN MENSCH
+           Eine Schleife, die dreimal dieselbe Anleitung vorliest, ist keine
+           Hilfe, sondern eine Warteschleife mit Text. */
+        if ($versuch >= self::HILFE_VERSUCHE) {
+            $text = trim((string) ($d['text'] ?? ''));
+            self::melden(['art' => 'nachricht', 'kunde_id' => $kundeId, 'prioritaet' => 'dringend',
+                          'text' => 'Kommt am Telefon nicht weiter (' . $problem . '). '
+                                  . ($text !== '' ? $text : 'Zwei Anläufe ohne Erfolg.')]);
+            return ['bekannt'  => true,
+                    'sprache'  => $sprache,
+                    'schritte' => self::hilfeSchritte('gemeldet', $sprache),
+                    'getan'    => ['gemeldet'],
+                    'weiter'   => 'gemeldet',
+                    'hinweis'  => 'Zweimal versucht, zweimal nicht geklappt — jetzt übernimmt ein '
+                                . 'Mensch. Ist gemeldet. Noch fragen, wann er erreichbar ist.'];
+        }
+
+        $seite = (array) self::still(static fn() => Kundenzugang::seite($kunde), []);
+        $v     = $seite['vorgang'] ?? null;
+        $fb    = is_array($v) ? ($v['fragebogen'] ?? null) : null;
+
+        $getan   = [];
+        $baustein = 'kundenseite';
+        $hinweis  = '';
+
+        if ($problem === 'fragebogen') {
+            $status  = (string) ($fb['status'] ?? '');
+            $raus    = ($fb['eingeladen_am'] ?? null) !== null;
+            if (!is_array($fb)) {
+                $baustein = 'fragebogen_noch_nicht';
+                $hinweis  = 'Es gibt noch keinen Fragebogen — der kommt erst mit dem Projekt. '
+                          . 'Nichts versprechen, was du nicht siehst.';
+            } elseif ($status !== 'offen') {
+                $baustein = 'fragebogen_zurueck';
+                $hinweis  = 'Der Fragebogen ist zurück. Er hat seine Arbeit gemacht — das auch so sagen.';
+            } elseif (!$raus) {
+                $baustein = 'fragebogen_noch_nicht';
+                $hinweis  = 'Der Fragebogen ist noch nicht verschickt. Den ersten Versand macht Uwe, '
+                          . 'nicht der Assistent — hier nichts auslösen.';
+            } else {
+                require_once __DIR__ . '/Onboarding.php';
+                $pid = (int) ($fb['project_id'] ?? 0);
+                $ok  = $pid > 0 && (bool) self::still(
+                    static fn() => Onboarding::einladen($pid, true), false);
+                if ($ok) {
+                    $baustein = 'fragebogen_neu';
+                    $getan[]  = 'fragebogen_neu';
+                    $hinweis  = 'Ist raus, an die hinterlegte Adresse. Ansagen: er kommt gleich.';
+                } else {
+                    /* Nicht auf die Kundenseite ausweichen: Wenn der Versand
+                       hakt, hakt er dort genauso, und der Anrufer haette
+                       zweimal etwas zugesagt bekommen, das nicht kommt. */
+                    $baustein = 'fehlgeschlagen';
+                }
+            }
+        } elseif ($problem === 'vorschau') {
+            $frei = ($seite['vorschau_frei'] ?? null);
+            if ($frei === null || $frei === '') {
+                $baustein = 'vorschau_noch_nicht';
+                $hinweis  = 'Der Entwurf ist nicht freigegeben. Keinen Termin nennen — den kennst du nicht.';
+            }
+        }
+
+        /* Alles, was nicht schon beantwortet ist, endet auf seiner eigenen
+           Seite. Das ist die einzige Antwort auf eine Geldfrage, die am
+           Telefon zulaessig ist -- und zugleich die vollstaendigste, weil
+           dort ohnehin mehr steht, als Manuela sagen duerfte. */
+        if ($baustein === 'kundenseite') {
+            if (self::kundenseiteSchicken($kundeId, $sprache)) {
+                $getan[] = 'kundenseite';
+                if ($hinweis === '') {
+                    $hinweis = $problem === 'bezahlung'
+                        ? 'Link ist unterwegs. KEINE Beträge nennen und auch nicht sagen, ob etwas '
+                        . 'offen ist — das steht auf seiner Seite, und dort ist der Link der Ausweis.'
+                        : 'Link ist unterwegs an die hinterlegte Adresse.';
+                }
+            } else {
+                $baustein = 'fehlgeschlagen';
+            }
+        }
+
+        /* WENN NICHTS RAUSGEHT, WIRD NICHTS VERSPROCHEN
+           ------------------------------------------------------------------
+           Ein Versand kann scheitern -- kein Mailschluessel, Brevo down, eine
+           Adresse, die es nicht mehr gibt. Der Anrufer darf das nicht als
+           „kommt gleich" hoeren und dann drei Tage warten. Also: ein Mensch
+           uebernimmt, sofort, und Manuela sagt genau das. */
+        if ($baustein === 'fehlgeschlagen') {
+            self::melden(['art' => 'nachricht', 'kunde_id' => $kundeId, 'prioritaet' => 'dringend',
+                          'text' => 'Kommt am Telefon nicht weiter (' . $problem . '). '
+                                  . 'Der Versand an ihn hat nicht geklappt — bitte selbst melden.']);
+            $getan[]  = 'gemeldet';
+            $baustein = 'gemeldet';
+            $hinweis  = 'Der Versand hat nicht geklappt. Ist als dringend gemeldet — ansagen, dass '
+                      . 'sich jemand meldet, und nach der Erreichbarkeit fragen.';
+        }
+
+        self::protokoll('hilfe', 'Hilfe am Telefon — ' . $problem, $kundeId,
+                        ['problem' => $problem, 'bekannt' => true,
+                         'baustein' => $baustein, 'getan' => $getan, 'versuch' => $versuch]);
+
+        return [
+            'bekannt'  => true,
+            'sprache'  => $sprache,
+            'stand'    => (string) ($seite['stufe'] ?? ''),
+            'dran'     => (string) ($seite['dran'] ?? ''),
+            'schritte' => self::hilfeSchritte($baustein, $sprache),
+            'getan'    => $getan,
+            'gesendet_an' => $getan !== [] && trim((string) ($kunde['email'] ?? '')) !== ''
+                             ? self::verdeckt((string) $kunde['email']) : '',
+            'weiter'   => $baustein === 'gemeldet' ? 'gemeldet' : 'schritte',
+            'noch_ein_versuch' => ($versuch + 1) < self::HILFE_VERSUCHE,
+            'hinweis'  => $hinweis,
+        ];
+    }
+
+    /** @return list<string> Die Saetze zum Vorlesen, in seiner Sprache. */
+    private static function hilfeSchritte(string $baustein, string $sprache): array
+    {
+        $karte = Texte::TELEFON_HILFE[$baustein] ?? Texte::TELEFON_HILFE['kundenseite'];
+        $satz  = $karte[$sprache] ?? $karte['it'] ?? [];
+        return array_values(array_map('strval', (array) $satz));
+    }
+
+    /**
+     * Der Link zur eigenen Seite -- an die hinterlegte Adresse, sonst gar nicht.
+     *
+     * Der Link IST der Ausweis: Wer ihn hat, sieht Stand, Entwurf und, wenn
+     * eine Zahlung ansteht, den Knopf dafuer. Genau deshalb darf er nur an
+     * die Adresse gehen, die schon in der Akte steht.
+     */
+    private static function kundenseiteSchicken(int $kundeId, string $sprache): bool
+    {
+        require_once __DIR__ . '/Kundenzugang.php';
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Texte.php';
+
+        $an = trim((string) self::still(static fn() => Db::wert(
+            'SELECT email FROM customers WHERE id = ?', [$kundeId], ''), ''));
+        if ($an === '' || !filter_var($an, FILTER_VALIDATE_EMAIL)) { return false; }
+
+        $link = (string) self::still(static fn() => Kundenzugang::linkFuer($kundeId), '');
+        if ($link === '') { return false; }
+
+        $name = (string) self::still(static fn() => Db::wert(
+            'SELECT name FROM customers WHERE id = ?', [$kundeId], ''), '');
+
+        [$betreff, $text] = Texte::mail('kundenseite', $sprache,
+                                        ['name' => $name, 'link' => $link]);
+        return (bool) self::still(static fn() => Mail::senden(
+            'kundenseite', $an, $betreff, $text, ['customer_id' => $kundeId]), false);
+    }
+
+    /**
+     * EINE FERTIGE STRATO-KONFIGURATION ALS TEXT
+     * ---------------------------------------------------------------------
+     * Steht hier und nicht in der Ansicht, weil ein Fehler darin nicht in
+     * der Verwaltung auffaellt, sondern erst drueben bei STRATO -- als
+     * roter Kasten ohne Erklaerung, Stunden spaeter, bei jemandem, der den
+     * Code nicht sieht.
+     *
+     * DER FEHLER, DEN DIESE METHODE VERHINDERT
+     * PHP kennt keinen Unterschied zwischen einer leeren Liste und einem
+     * leeren Objekt: beides ist []. json_encode macht daraus [], und die
+     * Aktion „lage", die gar keine Parameter braucht, kam bei STRATO als
+     *     "properties": []
+     * an. Die Antwort dort lautet woertlich „expected record, received
+     * array", und das Speichern des GANZEN Assistenten war blockiert --
+     * wegen zweier Zeichen. Deshalb wird properties hier ausdruecklich zum
+     * Objekt gemacht. Bei „required" bleibt die Liste eine Liste; dort ist
+     * sie richtig.
+     *
+     * @param array{zweck:string,eig:array<string,mixed>,pflicht:list<string>,rumpf:string} $k
+     */
+    public static function konfigJson(string $name, array $k, string $adresse, string $schluessel): string
+    {
+        $j = [
+            'name'        => $name,
+            'description' => (string) $k['zweck'],
+            'parameters'  => [
+                'type'       => 'object',
+                'properties' => (object) ($k['eig'] ?? []),
+                'required'   => array_values((array) ($k['pflicht'] ?? [])),
+            ],
+            'request' => [
+                'method'  => 'POST',
+                'url'     => $adresse,
+                'headers' => [
+                    ['name' => 'Content-Type', 'value' => 'application/json'],
+                    ['name' => 'X-Vecom-Telefon', 'value' => $schluessel],
+                ],
+                'postData' => ['mimeType' => 'application/json', 'text' => '@@RUMPF@@'],
+            ],
+        ];
+        $text = (string) json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        /* Der Rumpf wird nachtraeglich eingesetzt, damit {{ }} und die
+           Anfuehrungszeichen darin so stehen, wie STRATO sie erwartet. */
+        return str_replace('"@@RUMPF@@"',
+            (string) json_encode((string) $k['rumpf'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            $text);
+    }
+
+    /**
+     * WORAN ES HAKT -- GEZAEHLT, NICHT GEAHNT
+     * ---------------------------------------------------------------------
+     * Wenn zwanzigmal jemand wegen des Fragebogens anruft, ist das kein
+     * Support-Fall, sondern ein Produktfehler. Diese Liste ist der einzige
+     * Ort, an dem das auffaellt, bevor es jemand aufgibt.
+     *
+     * @return list<array{problem:string,anzahl:int,geloest:int}>
+     */
+    public static function haken(int $tage = 90): array
+    {
+        $tage = max(1, min(3650, $tage));
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type = 'telefon_hilfe' AND demo = 0
+                AND created_at >= NOW() - INTERVAL $tage DAY"), []);
+
+        $zaehler = [];
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (!is_array($m)) { continue; }
+            $p = (string) ($m['problem'] ?? 'sonstiges');
+            if (!in_array($p, self::PROBLEME, true)) { $p = 'sonstiges'; }
+            $zaehler[$p] ??= ['problem' => $p, 'anzahl' => 0, 'geloest' => 0];
+            $zaehler[$p]['anzahl']++;
+            /* Geloest heisst hier: Der Assistent hat wirklich etwas getan --
+               eine Mail ist rausgegangen. Nicht: Der Anrufer war zufrieden.
+               Das wissen wir nicht, und so steht es auch auf der Seite. */
+            if (!empty($m['getan']) && !in_array('gemeldet', (array) $m['getan'], true)) {
+                $zaehler[$p]['geloest']++;
+            }
+        }
+
+        usort($zaehler, static fn(array $a, array $b): int => $b['anzahl'] <=> $a['anzahl']);
+        return array_values($zaehler);
+    }
+
     /**
      * DER TRICHTER -- WAS DAS TELEFON WIRKLICH AUSGELOEST HAT
      * ---------------------------------------------------------------------

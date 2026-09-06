@@ -1169,6 +1169,21 @@ final class Texte
             'en' => ['Payment received — {paket}',
                 "Hello {name},\n\nyour deposit of {betrag} has arrived. Thank you!\n\nNext step: tell me about your project.\nOpen this link and take your time — you can save and come back:\n\n{link}\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
+        /* NACH EINEM ANRUF: DER WEG ZURUECK ZUR EIGENEN SEITE
+           ------------------------------------------------------------------
+           Am Telefon faellt kein Betrag und kein Stand. Wer nicht
+           weiterkommt, bekommt stattdessen diese Mail -- an die HINTERLEGTE
+           Adresse, nie an eine, die am Telefon genannt wurde. Auf der Seite
+           steht dann alles, was er wissen darf, weil dort der Link der
+           Ausweis ist und nicht die Stimme. */
+        'kundenseite' => [
+            'it' => ['La tua pagina — Vecom Design',
+                "Ciao {name},\n\ncome detto al telefono, ecco la tua pagina:\n\n{link}\n\nLì trovi sempre a che punto siamo e cosa puoi fare adesso. Il link è personale — non serve password.\n\nSe qualcosa non torna, rispondi a questa e-mail.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Deine Seite — Vecom Design',
+                "Hallo {name},\n\nwie am Telefon besprochen, hier deine Seite:\n\n{link}\n\nDort steht immer, wo wir stehen und was du gerade tun kannst. Der Link gehört dir persönlich — ein Passwort brauchst du nicht.\n\nWenn etwas nicht stimmt, antworte einfach auf diese E-Mail.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your page — Vecom Design',
+                "Hello {name},\n\nas discussed on the phone, here is your page:\n\n{link}\n\nIt always shows where we stand and what you can do right now. The link is personal — no password needed.\n\nIf anything looks wrong, just reply to this email.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
         'fragebogen_erinnerung' => [
             'it' => ['Un promemoria per il tuo progetto',
                 "Ciao {name},\n\nmanca ancora il questionario per il tuo progetto. Senza quelle informazioni non possiamo iniziare davvero.\n\nEccolo — dieci minuti bastano:\n\n{link}\n\nSe qualcosa non è chiaro, rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
@@ -1660,6 +1675,135 @@ final class Texte
             'it' => 'Qualcosa non ha funzionato. Riprova tra poco.',
             'de' => 'Etwas hat nicht geklappt. Versuch es gleich noch einmal.',
             'en' => 'Something went wrong. Please try again shortly.',
+        ],
+    ];
+
+    /* ========================================================================
+       WAS DER TELEFONASSISTENT VORLIEST, WENN JEMAND NICHT WEITERKOMMT
+       ------------------------------------------------------------------------
+       Diese Saetze werden GESPROCHEN, nicht gelesen. Deshalb sind sie kuerzer
+       als alles andere hier: kein Nebensatz, keine Klammer, keine Aufzaehlung
+       in einem Satz. Wer am Telefon einen Schachtelsatz hoert, steigt aus.
+
+       Und sie stehen hier und nicht im Prompt bei STRATO, weil sie sonst an
+       zwei Stellen leben und beim naechsten Mal auseinanderlaufen.
+
+       Eine Regel gilt fuer alle: KEIN BETRAG, und kein Satz, der verraet, ob
+       jemand noch etwas offen hat. Am Telefon sitzt kein Ausweis, sondern
+       eine Stimme. Was ansteht, steht auf der Kundenseite -- und die geht an
+       die hinterlegte Adresse, nicht an eine, die am Telefon genannt wurde.
+       ======================================================================== */
+    public const TELEFON_HILFE = [
+
+        'kundenseite' => [
+            'it' => [
+                'Ti mando subito il link alla tua pagina, all’indirizzo che abbiamo.',
+                'Lì vedi a che punto siamo e cosa puoi fare adesso.',
+                'Se non arriva, guarda nello spam.',
+            ],
+            'de' => [
+                'Ich schicke dir gleich den Link zu deiner Seite — an die Adresse, die wir haben.',
+                'Dort siehst du, wo wir stehen und was du jetzt tun kannst.',
+                'Wenn nichts ankommt, sieh bitte im Spam nach.',
+            ],
+            'en' => [
+                'I am sending you the link to your page right now, to the address we have.',
+                'There you can see where we stand and what you can do next.',
+                'If nothing arrives, please check your spam folder.',
+            ],
+        ],
+
+        'fragebogen_neu' => [
+            'it' => [
+                'Ti rimando subito il questionario, all’indirizzo che abbiamo.',
+                'Aprilo con calma: puoi salvare e continuare più tardi.',
+                'Se una domanda non ti è chiara, lasciala vuota e mandalo lo stesso.',
+            ],
+            'de' => [
+                'Ich schicke dir den Fragebogen gleich noch einmal — an die Adresse, die wir haben.',
+                'Öffne ihn in Ruhe. Du kannst zwischendurch speichern und später weitermachen.',
+                'Wenn eine Frage unklar ist, lass sie leer und schick ihn trotzdem ab.',
+            ],
+            'en' => [
+                'I am sending you the questionnaire again, to the address we have.',
+                'Open it when you have time. You can save and come back later.',
+                'If a question is unclear, leave it empty and send it anyway.',
+            ],
+        ],
+
+        'fragebogen_zurueck' => [
+            'it' => [
+                'Il tuo questionario è già arrivato.',
+                'Non devi fare altro: adesso tocca a noi.',
+            ],
+            'de' => [
+                'Dein Fragebogen ist schon bei uns.',
+                'Du musst nichts mehr tun — jetzt sind wir dran.',
+            ],
+            'en' => [
+                'Your questionnaire has already reached us.',
+                'Nothing more to do on your side — we are on it now.',
+            ],
+        ],
+
+        'fragebogen_noch_nicht' => [
+            'it' => [
+                'Il questionario non è ancora partito.',
+                'Te lo manda Uwe: arriva per e-mail.',
+            ],
+            'de' => [
+                'Der Fragebogen ist noch nicht bei dir raus.',
+                'Uwe schickt ihn dir — er kommt per E-Mail.',
+            ],
+            'en' => [
+                'The questionnaire has not gone out yet.',
+                'Uwe will send it to you — it comes by email.',
+            ],
+        ],
+
+        'vorschau_noch_nicht' => [
+            'it' => [
+                'L’anteprima non è ancora aperta.',
+                'Appena è pronta ricevi un’e-mail con il link.',
+            ],
+            'de' => [
+                'Der Entwurf ist noch nicht freigegeben.',
+                'Sobald er steht, bekommst du eine E-Mail mit dem Link.',
+            ],
+            'en' => [
+                'The draft is not open yet.',
+                'As soon as it is ready you get an email with the link.',
+            ],
+        ],
+
+        'unbekannt' => [
+            'it' => [
+                'Con questo numero non ti trovo.',
+                'Dimmi il tuo problema: lo passo avanti e qualcuno ti richiama.',
+            ],
+            'de' => [
+                'Unter dieser Nummer finde ich dich nicht.',
+                'Sag mir, worum es geht — ich gebe es weiter, und jemand ruft dich zurück.',
+            ],
+            'en' => [
+                'I cannot find you under this number.',
+                'Tell me what it is about — I will pass it on and someone will call you back.',
+            ],
+        ],
+
+        'gemeldet' => [
+            'it' => [
+                'Ho preso nota e l’ho passata avanti.',
+                'Qualcuno ti richiama.',
+            ],
+            'de' => [
+                'Ich habe das aufgenommen und weitergegeben.',
+                'Jemand meldet sich bei dir.',
+            ],
+            'en' => [
+                'I have noted this and passed it on.',
+                'Someone will get back to you.',
+            ],
         ],
     ];
 

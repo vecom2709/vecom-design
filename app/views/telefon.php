@@ -52,7 +52,8 @@ foreach (Telefon::VORWEG as $f) {
   <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
     Er öffnet nur, was am Telefon gebraucht wird: nachschlagen, Preis schätzen, Tag und
     Uhrzeit erfahren, Konfigurator-Link schicken, Anliegen melden, Zusammenfassung senden,
-    eine offene Frage notieren. Nicht deinen Zugang, nicht Stripe, nicht die Zahlungen.
+    eine offene Frage notieren, jemandem Schritt für Schritt weiterhelfen.
+    Nicht deinen Zugang, nicht Stripe, nicht die Zahlungen.
     Wird er bekannt, kann jemand Anfragen anlegen und Links an <b>hinterlegte</b> Adressen
     schicken — lästig, nicht gefährlich. Und oben ist er in zehn Sekunden neu.</p>
   <div class="feld"><label>Adresse (bei STRATO als URL)</label>
@@ -168,6 +169,30 @@ $konfigs['wissensluecke'] = [
   'rumpf' => '{"aktion":"wissensluecke","frage":"{{ frage }}","kunde_id":"{{ kunde_id }}"}',
 ];
 
+$konfigs['hilfe'] = [
+  'zweck' => 'Wenn jemand nicht weiterkommt: Fragebogen, Bezahlung, Link weg, Entwurf, Zugang. '
+           . 'Sieht nach, wo DIESER Kunde steht, und gibt die Schritte in seiner Sprache zurück. '
+           . 'Die Sätze aus „schritte" vorlesen, einen nach dem anderen — nicht zusammenfassen, '
+           . 'nichts dazuerfinden. Keine Beträge und nicht sagen, ob etwas offen ist: '
+           . 'Das steht auf seiner Seite, und der Link dorthin geht nur an die hinterlegte Adresse. '
+           . 'Klappt es beim zweiten Mal nicht, „versuch" auf 2 setzen — dann übernimmt ein Mensch.',
+  'eig' => [
+    'problem' => ['type' => 'string',
+                  'enum' => ['fragebogen', 'bezahlung', 'link_weg', 'vorschau', 'zugang', 'sonstiges'],
+                  'description' => 'Woran es hakt. Im Zweifel „sonstiges" — eine falsche Kategorie '
+                                 . 'führt zu einer Anleitung für ein Problem, das er nicht hat'],
+    'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+    'telefon'  => ['type' => 'string', 'description' => 'Rufnummer, falls noch nicht nachgeschlagen'],
+    'versuch'  => ['type' => 'integer',
+                   'description' => '0 beim ersten Anlauf, 1 beim zweiten, 2 wenn es wieder nicht ging'],
+    'text'     => ['type' => 'string', 'maxLength' => 500,
+                   'description' => 'Was genau nicht geht, in seinen Worten — nur beim Aufgeben nötig'],
+  ],
+  'pflicht' => ['problem'],
+  'rumpf' => '{"aktion":"hilfe","problem":"{{ problem }}","kunde_id":"{{ kunde_id }}",'
+           . '"telefon":"{{ telefon }}","versuch":"{{ versuch }}","text":"{{ text }}"}',
+];
+
 $konfigs['zusammenfassung'] = [
   'zweck' => 'Schickt dem Anrufer, was besprochen wurde. Nur nach ausdrücklicher Zustimmung.',
   'eig' => [
@@ -194,25 +219,9 @@ $konfigs['zusammenfassung'] = [
     Frage bleibt dann offen, statt falsch beantwortet zu werden.</p>
 
   <?php foreach ($konfigs as $name => $k):
-    $j = [
-      'name' => $name,
-      'description' => $k['zweck'],
-      'parameters' => ['type' => 'object', 'properties' => $k['eig'],
-                       'required' => $k['pflicht']],
-      'request' => [
-        'method' => 'POST',
-        'url' => $basis . '/telefon.php',
-        'headers' => [
-          ['name' => 'Content-Type', 'value' => 'application/json'],
-          ['name' => 'X-Vecom-Telefon', 'value' => (string) $schluessel],
-        ],
-        'postData' => ['mimeType' => 'application/json', 'text' => '@@RUMPF@@'],
-      ],
-    ];
-    $text = json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    /* Der Rumpf wird nachtraeglich eingesetzt, damit {{ }} und die
-       Anfuehrungszeichen darin so stehen, wie STRATO sie erwartet. */
-    $text = str_replace('"@@RUMPF@@"', json_encode($k['rumpf'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), $text);
+    /* Gebaut wird in Telefon::konfigJson() -- dort steht auch, warum
+       „properties" ausdruecklich ein Objekt sein muss. */
+    $text = Telefon::konfigJson($name, $k, $basis . '/telefon.php', (string) $schluessel);
   ?>
     <div style="margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -271,6 +280,37 @@ $konfigs['zusammenfassung'] = [
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
       Noch kein Anruf. Die Zahlen füllen sich, sobald STRATO die Aktionen ruft.</p>
   <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php /* ---------- Woran es hakt ---------- */ ?>
+<?php if (!empty($haken)): ?>
+<div class="block">
+  <h2>Woran es hakt <span class="mehr" style="font-weight:400;color:var(--leise)">letzte 90 Tage</span></h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    Jede Zeile ist jemand, der angerufen hat, weil er nicht weiterkam. Zwanzig Anrufe
+    zum Fragebogen sind kein Support-Fall, sondern ein Produktfehler — dann ist nicht
+    der Assistent zu verbessern, sondern der Fragebogen.
+    <br><b>Geholfen</b> heißt: Der Assistent hat wirklich etwas verschickt. Ob es dem
+    Anrufer danach reichte, wissen wir nicht — das steht hier bewusst nicht.</p>
+  <table class="tab">
+    <thead><tr><th>Woran</th><th style="text-align:right">Anrufe</th>
+               <th style="text-align:right">davon geholfen</th></tr></thead>
+    <tbody>
+    <?php
+      $worte = ['fragebogen' => 'Fragebogen', 'bezahlung' => 'Bezahlung',
+                'link_weg' => 'Link weg', 'vorschau' => 'Entwurf',
+                'zugang' => 'Zugang zur eigenen Seite', 'sonstiges' => 'Sonstiges'];
+    ?>
+    <?php foreach ($haken as $h): ?>
+      <tr>
+        <td><?= Fmt::h($worte[$h['problem']] ?? $h['problem']) ?></td>
+        <td style="text-align:right"><?= (int) $h['anzahl'] ?></td>
+        <td style="text-align:right;color:var(--leise)"><?= (int) $h['geloest'] ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
 </div>
 <?php endif; ?>
 

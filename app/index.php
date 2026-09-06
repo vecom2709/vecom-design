@@ -2432,6 +2432,9 @@ switch ($route) {
                Telefon::trichter() -- dort, wo die Pruefkette es nachrechnen
                kann. */
             'trichter'   => sicher(static fn() => Telefon::trichter(90), []),
+            /* Woran Anrufer haengen bleiben. Zwanzig Anrufe zum Fragebogen
+               sind kein Support-Fall, sondern ein Produktfehler. */
+            'haken'      => sicher(static fn() => Telefon::haken(90), []),
         ]);
         break;
 
