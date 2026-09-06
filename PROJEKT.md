@@ -155,15 +155,23 @@ Jede Änderung wird an diesen fünf Punkten gemessen:
   hatte: das Menü markierte immer „Dashboard", „Beliebteste Pakete" zeigte das Doppelte,
   Bestellnummern hätten sich nach einer Löschung wiederholt, die Wortmarke fehlte auf dem Handy.
 
-## Offen
+## Offen (Stand 06.09.2026)
 - **Statistiken** ist die letzte Platzhalterseite.
 - **Monatliche Betreuung als Stripe-Abo** — braucht ein freigeschaltetes Stripe-Konto.
 - **Stripe ist nicht live**: offen ist das Ausweisdokument (`company.verification.document`).
-- **Der Cronjob im KAS ist noch nicht angelegt.** Ohne ihn läuft weder Monitoring noch die
-  Fragebogen-Erinnerung. Adresse steht in der Verwaltung unter Website-Monitoring.
+  Ebenso der `whsec_`-Schlüssel in den Integrationen.
 - **Partita IVA und der steuerliche Hinweistext** fehlen — solange bleiben es Belege.
+  Gehört zum commercialista, nicht hierher.
 - **Firmendaten** (Straße, IBAN) sind in den Einstellungen noch nicht gefüllt; sie stehen auf
   jedem Beleg.
+- **1,73 MB tote Dateien im KAS** liegen noch da.
+- **Der Telefonassistent hat noch nie geklingelt.** Die Endpunkte sind live und geprüft, aber
+  von STRATO wurde noch keiner gerufen. Drei Testanrufe (it/de/en) stehen aus — und erst ein
+  echter Anruf zeigt, welches Format der Post-Call-Webhook schickt.
+
+**Erledigt und hier korrigiert:** Der Cronjob im KAS stand bis 05.09. als offen. Er ist
+angelegt und läuft — nachgesehen, nicht angenommen: zwei Läufe um 22:10 und 22:20, ohne dass
+jemand ihn angestoßen hat. Ein einzelner Job genügt, `cron.php` verteilt intern.
 
 ## Politurdurchgang 01.09.2026
 
@@ -2020,3 +2028,81 @@ wegnehmen.
 
 Die Prüfung hängt am Fragebogen-Schlüssel (`domain-pruefung.php?t=…`), sonst
 wäre sie eine offene Whois-Abfrage für jeden auf unsere Rechnung und unsere IP.
+
+## Der Telefonassistent bekommt Augen und Ohren (06.09.2026)
+
+Manuela (STRATO AI Voice Receptionist) konnte vier Dinge: nachschlagen, wer anruft; den
+Konfigurator-Link schicken; ein Anliegen melden; eine Zusammenfassung senden. Sie kann jetzt
+sieben. Die drei neuen haben denselben Grund: **ein Sprachmodell weiß Dinge nicht und sagt sie
+trotzdem — überzeugend.**
+
+**Preis.** Vorher hätte der Preis im Prompt gestanden, und beim nächsten Preisschritt hätte
+Manuela drei Monate lang den alten genannt. Jetzt rechnet `preis_auskunft` mit demselben
+`Baukasten::rechnen()`, das auch der Konfigurator benutzt, und holt Paket- und Betreuungspreis
+aus der Datenbank. Immer eine Spanne, nie ein Festpreis. Sagt der Anrufer nichts, kommt die
+Orientierung für den häufigsten Fall — mit der Angabe, worauf sie beruht.
+
+Die Regel „keine Beträge am Telefon" musste dafür geschärft werden. Sie hieß: *keine Beträge,
+nirgends*. Sie heißt jetzt: **keine Beträge zu einem Kunden** — kein offener Posten, keine
+Rechnung, keine Restzahlung. Was öffentlich auf der Website steht, darf sie nennen, weil jeder
+es ohne Anruf lesen kann. Die Trennlinie läuft nicht zwischen Zahl und keiner Zahl, sondern
+zwischen öffentlich und persönlich. Eine Prüfung hält fest, dass eine mitgeschickte
+Kundennummer an der Preisauskunft nichts ändert.
+
+**Lage.** `lage` gibt Datum, Uhrzeit, Wochentag und Zeitzone vom Server, dazu den Modus, den
+Uwe in der Verwaltung stellt: normal, Urlaub, ausgelastet. „Herr Vetter ruft Sie heute noch
+zurück" während des Urlaubs ist ein Versprechen, das jemand anders bricht, und der Anrufer
+merkt es erst, wenn niemand anruft. Im Urlaub und bei „ausgelastet" gibt es deshalb keine
+Tageszusage. Ein Modus, den es nicht gibt — auch als Altbestand in der Datenbank — fällt auf
+„normal" zurück.
+
+**Zeitfenster.** `melde` nimmt jetzt auf, *wann* jemand erreichbar ist, nicht nur *dass* er
+einen Rückruf will. Freitext mit Absicht: „ab 14 Uhr", „nur vormittags", „nicht Dienstag" —
+so antworten Menschen, und ein Uhrzeitfeld hätte die Hälfte davon verworfen. Fehlt das
+Fenster, kommt `nachfragen: true` zurück und Manuela fragt genau einmal nach. Bei einer
+Beschwerde nicht: da zählt, dass es rausgeht.
+
+**Wissenslücken.** Was sie nicht beantworten konnte, landet über `wissensluecke` auf einer
+Liste in der Verwaltung, statt im Nichts. Das ist die wertvollste Liste der Seite — jede Zeile
+ist eine Frage, die ein echter Anrufer gestellt hat.
+
+### Der Trichter, der nach unten breiter wurde
+
+Der interessanteste Fehler des Tages stand in der ersten eigenen Messung. Die Seite zeigte:
+2 Anrufe, 0 Links, 3 Bedarfe, 5 Anfragen, 18 Bestellungen — „167 %", „360 %". Darüber stand
+der Satz „Von links nach rechts wird es weniger". Der Trichter hat das Gegenteil dessen
+behauptet, was daneben stand.
+
+Zwei Fehler steckten drin, und beide sind lehrreich:
+
+1. **Hinten wurde alles gezählt, was auf der Website passiert ist.** Keine dieser
+   Bestellungen gehörte dem Telefon. Die Zahl war groß, richtig — und wertlos, weil sie
+   niemandem gehörte. Behoben durch eine Kette: Der Anruf legt einen Bedarf an und schreibt
+   dessen Nummer in die Spur; der abgesendete Bedarf trägt die Anfrage, die Anfrage die
+   Bestellung. Gezählt wird nur, was daran hängt.
+2. **Die Stufen hatten verschiedene Einheiten.** Oben Gespräche, darunter verschickte Links —
+   und weil Manuela in einem Gespräch zweimal einen Link schicken kann, standen da 1 Anruf und
+   2 Links. Jetzt zählt **jede Stufe Gespräche**: von so vielen Anrufen ging ein Link raus,
+   aus so vielen wurde ein ausgefüllter Bedarf, daraus eine Anfrage, daraus eine Bestellung.
+   Jede Stufe ist eine Teilmenge der vorherigen — der Trichter kann gar nicht mehr wachsen.
+
+Damit das so bleibt, steht die Rechnung als `Telefon::trichter()` in der Klasse und nicht im
+Verteiler: **eine Zahl ohne Prüfung ist eine Behauptung.** Abschnitt 17 der Prüfkette hält
+fest, dass fremde Bedarfe nicht mitzählen, dass ein abgesendeter Telefon-Bedarf nachrückt und
+dass der Trichter nach unten nie breiter wird — auch dann noch, wenn jemand später eine Stufe
+dazwischenschiebt und die Herkunft dabei vergisst.
+
+Ein Gespräch ist dabei eine Minute: Nachfragen innerhalb derselben Minute gehören zum selben
+Anruf. Eine Näherung — und sie steht als Näherung auf der Seite, nicht als Tatsache.
+
+**Nachgemessen:** Prüfkette von 233 auf 259 Prüfungen, alle grün. Die drei neuen Aktionen
+zusätzlich über HTTP gegen den laufenden Server gerufen, nicht nur als Methoden. Zwei
+Nebenbefunde dabei: eine Prüfung schrieb die Zahl der Aktionen fest („genau vier") und wäre
+bei jeder neuen Fähigkeit nachgezogen statt gelesen worden — sie prüft jetzt, was gelten muss
+(jeder Name eindeutig und ein schlichtes Wort). Und die Verwaltungsseite sprach an drei
+Stellen von „den vier Konfigurationen"; die Zahl kommt jetzt aus der Liste selbst.
+
+**Offen und Uwes Aufgabe:** drei Testanrufe auf Italienisch, Deutsch und Englisch. Bis dahin
+ist alles hier geprüft, aber nichts davon je von STRATO gerufen worden. Der Post-Call-Webhook
+wartet auf denselben ersten Anruf — ohne ihn ist das Format nicht bekannt, und geraten wird
+hier nichts.
