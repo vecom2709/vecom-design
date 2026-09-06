@@ -191,10 +191,13 @@ $konfigs['preis_auskunft'] = [
               : ['type' => 'string', 'enum' => $inf['werte'],
                  'description' => 'Nur eintragen, was der Anrufer wirklich gesagt hat.'];
       }
+      $e['vorhaben'] = ['type' => 'string', 'maxLength' => 300,
+          'description' => 'Was er sich wünscht, in seinen eigenen Worten — daran wird erkannt, '
+                         . 'ob es überhaupt in den Baukasten passt'];
       return $e;
   })(),
   'pflicht' => [],
-  'rumpf' => '{"aktion":"preis_auskunft"' . (static function () use ($fragen) {
+  'rumpf' => '{"aktion":"preis_auskunft","vorhaben":"{{ vorhaben }}"' . (static function () use ($fragen) {
       $r = ''; foreach (array_keys($fragen) as $f) { $r .= ',"' . $f . '":"{{ ' . $f . ' }}"'; }
       return $r;
   })() . '}',
@@ -286,7 +289,9 @@ $konfigs['seite_ansehen'] = [
   'zweck' => 'Sieh dir die Website des Anrufers an, während er redet. Gibt zwei bis drei '
            . 'nachprüfbare Befunde als fertige Sätze zurück — nenne höchstens zwei davon. '
            . 'Sage nie etwas über Aussehen oder Gestaltung: geprüft wird nur Technik. '
-           . 'Kommt „nichts_gefunden“, sag das ehrlich und verkaufe nichts.',
+           . 'Kommt „nichts_gefunden“, sag das ehrlich und verkaufe nichts. '
+           . 'RATE NIE eine Adresse. Wird sie nicht gefunden, lass sie Buchstabe für Buchstabe '
+           . 'nennen und versuche es genau noch einmal — danach nicht mehr, sondern „melde“.',
   'eig' => [
     'adresse'  => ['type' => 'string', 'minLength' => 4, 'maxLength' => 200,
                    'description' => 'Die Internetadresse, wie er sie nennt — buchstabieren lassen'],
@@ -304,7 +309,9 @@ $konfigs['beratung'] = [
            . 'beim nächsten Aufruf als „antwort“ ein, zusammen mit „antwort_auf“ und dem '
            . '„gespraech“ aus der letzten Antwort. Nimm als Antwort nur einen Schlüssel aus '
            . '„optionen“; bei Mehrfachfragen mehrere mit Komma. Sobald „von_euro“ kommt, darfst du '
-           . 'die Spanne nennen — immer als Spanne, nie als Festpreis.',
+           . 'die Spanne nennen — immer als Spanne, nie als Festpreis. '
+           . 'Kommt „ausserhalb“ zurück, nennst du KEINE Zahl: Das Vorhaben passt nicht in '
+           . 'den Baukasten, du liest den Satz vor und bietest einen Termin an.',
   'eig' => [
     'gespraech'   => ['type' => 'string', 'maxLength' => 48,
                       'description' => 'Der Wert aus der letzten Antwort. Beim ersten Aufruf leer lassen'],
@@ -314,11 +321,16 @@ $konfigs['beratung'] = [
     'antwort'     => ['type' => 'string', 'maxLength' => 200,
                       'description' => 'Ein Schlüssel aus „optionen“. Mehrere mit Komma, wenn die Frage '
                                      . 'mehrfach ist. Nichts anderes — Freitext wird verworfen'],
+    'vorhaben'    => ['type' => 'string', 'maxLength' => 300,
+                      'description' => 'Was er sich wünscht, in seinen eigenen Worten — beim ERSTEN '
+                                     . 'Aufruf mitgeben. Daran wird erkannt, ob es überhaupt in den '
+                                     . 'Baukasten passt'],
     'kunde_id'    => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
   ],
   'pflicht' => ['sprache'],
   'rumpf' => '{"aktion":"beratung","gespraech":"{{ gespraech }}","sprache":"{{ sprache }}",'
-           . '"antwort_auf":"{{ antwort_auf }}","antwort":"{{ antwort }}","kunde_id":"{{ kunde_id }}"}',
+           . '"antwort_auf":"{{ antwort_auf }}","antwort":"{{ antwort }}",'
+           . '"vorhaben":"{{ vorhaben }}","kunde_id":"{{ kunde_id }}"}',
 ];
 
 $konfigs['beleg'] = [
@@ -339,7 +351,9 @@ $konfigs['uebergabe'] = [
   'zweck' => 'Nach dem Gespräch: schickt schriftlich, worüber gesprochen wurde, die Spanne, '
            . 'einen Befund von seiner Seite und den halb ausgefüllten Fragebogen. Ruf sie auf, '
            . 'wenn die Beratung durch ist oder das Gespräch endet. Nenne danach keine Frist '
-           . 'und sag nicht „melden Sie sich bald“.',
+           . 'und sag nicht „melden Sie sich bald“. '
+           . 'WICHTIG: Sag erst „ist raus“, NACHDEM dieses Werkzeug „ok“ zurückgegeben hat. '
+           . 'Eine Zusage, die du nicht eingelöst hast, ist schlimmer als gar keine.',
   'eig' => [
     'gespraech' => ['type' => 'string', 'maxLength' => 48,
                     'description' => 'Der Wert aus „beratung“, damit der Fragebogen vorausgefüllt ist'],
@@ -490,6 +504,54 @@ $konfigs['termin'] = [
       Anrufer kann seine Nummer auch selbst unterdrückt haben — nach ein paar Anrufen steht
       es fest.</p>
   <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php /* ---------- Gespräche ohne Ergebnis ----------
+   Steht direkt unter „Heute anrufen", weil es dieselbe Art Arbeit ist: Hier
+   hat jemand angerufen, sie hat gearbeitet — nachgesehen, beraten, geholfen —
+   und am Ende ist nichts herausgegangen. Kein Link, kein Rückruf, nichts.
+   Von außen sieht das nicht nach Technik aus, sondern nach jemandem, der
+   seine Zusagen nicht hält. Deshalb wird es nicht gemeldet, sondern
+   hingestellt. */ ?>
+<?php $off = (array) ($offen ?? []); ?>
+<?php if ($off): ?>
+<div class="block" style="border-color:var(--rot)">
+  <h2>Angefangen und nichts daraus geworden <span class="marke2"><?= count($off) ?></span></h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    In diesen Gesprächen hat Manuela gearbeitet, aber nichts verschickt und keinen
+    Rückruf angelegt. Entweder hat der Anrufer aufgelegt — oder sie hat etwas zugesagt
+    und nicht eingelöst. Beides ist einen Anruf wert, solange es frisch ist.</p>
+  <table class="tab">
+    <thead><tr><th>WANN</th><th>WER</th><th>WAS SCHON DA WAR</th></tr></thead>
+    <tbody>
+      <?php foreach ($off as $o): ?>
+        <tr>
+          <td style="white-space:nowrap;vertical-align:top">
+            <?= Fmt::h(Fmt::zeit((string) $o['wann'])) ?>
+            <div style="color:var(--leise);font-size:12px">
+              <?= (int) $o['stunden'] < 24
+                    ? 'vor ' . (int) $o['stunden'] . ' h'
+                    : 'vor ' . (int) round(((int) $o['stunden']) / 24) . ' Tagen' ?></div>
+          </td>
+          <td style="vertical-align:top">
+            <?php if ((int) $o['kunde_id'] > 0): ?>
+              <a href="<?= Fmt::h(url('kunden/' . (int) $o['kunde_id'])) ?>"><?= Fmt::h((string) $o['wer']) ?></a>
+            <?php else: ?><?= Fmt::h((string) $o['wer']) ?><?php endif; ?>
+          </td>
+          <td style="vertical-align:top;color:var(--leise);font-size:12.5px">
+            <?php if ((string) $o['seite'] !== ''): ?>
+              Seite angesehen: <b><?= Fmt::h((string) $o['seite']) ?></b><br>
+            <?php endif; ?>
+            <?php if (!empty($o['gefragt'])): ?>
+              Beratung bis: <?= Fmt::h(implode(', ', array_map('strval', (array) $o['gefragt']))) ?><br>
+            <?php endif; ?>
+            <?= (int) $o['schritte'] ?> Schritt<?= (int) $o['schritte'] === 1 ? '' : 'e' ?> im Gespräch
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
 </div>
 <?php endif; ?>
 

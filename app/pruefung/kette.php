@@ -1900,6 +1900,13 @@ foreach (['localhost', '127.0.0.1', '10.0.0.5', '192.168.1.1', 'file:///etc/pass
         ($r['gefunden'] ?? true) === false && ($r['adresse'] ?? null) === null, json_encode($r));
 }
 
+/* Die sechs abgewiesenen Adressen zählen als Fehlversuche — und nach zweien
+   ruft sie zu Recht gar nichts mehr ab. Für die nächste Prüfung ist das ein
+   anderes Gespräch, also wird zurückdatiert. Die Bremse selbst hat ihren
+   eigenen Abschnitt weiter unten. */
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 2 HOUR
+          WHERE type = 'telefon_seitenblick'");
+
 $profil = Telefon::seiteAnsehen(['adresse' => 'facebook.com/pizzeria', 'sprache' => 'de']);
 pruefe('eine Facebook-Seite ist kein Fehler, sondern ein Befund',
     ($profil['befunde'][0]['art'] ?? '') === 'nur_profil', json_encode($profil));
@@ -1992,6 +1999,91 @@ foreach (Telefon::AKTIONEN as $name) {
             ['zweck' => 'x', 'eig' => [], 'pflicht' => [], 'rumpf' => '{}'], $adr, 'k'),
             '"properties": {}'), $name);
 }
+
+
+/* ============================================================================
+   28. Was am 6. September schiefging — und nicht wieder darf
+
+   Drei echte Fehler aus echten Gesprächen. Jeder hat hier seine Prüfung,
+   damit er nicht zurückkommt.
+   ============================================================================ */
+abschnitt('28. Die drei Fehler vom 6. September');
+
+/* 21:26 — jemand wollte eine immersive 3D-Seite und bekam 500 bis 650 Euro
+   genannt. In der Zusammenfassung steht: „Misstrauen gegenüber dem Anbieter".
+   Eine zu niedrige Zahl für etwas, das der Katalog nicht kennt, klingt nicht
+   günstig, sondern ahnungslos. */
+foreach (['eine immersive 3D-Webseite', 'ich brauche eine App dazu',
+          'un portale per i clienti', 'a booking system for rooms'] as $wunsch) {
+    $r = Telefon::beratung(['sprache' => 'de', 'vorhaben' => $wunsch]);
+    pruefe('„' . mb_substr($wunsch, 0, 28) . '" bekommt keine Zahl',
+        ($r['ausserhalb'] ?? false) === true && !isset($r['von_euro']), json_encode($r));
+}
+$r = Telefon::beratung(['sprache' => 'de', 'vorhaben' => 'eine immersive 3D-Webseite']);
+pruefe('stattdessen ein ehrlicher Satz', trim((string) ($r['satz'] ?? '')) !== '', json_encode($r));
+pruefe('und der Weg führt zu Uwe', ($r['weiter'] ?? '') === 'uwe_persoenlich', json_encode($r));
+pruefe('der Fall steht in der Spur',
+    (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'telefon_ausserhalb'", [], 0) > 0);
+
+/* Was normal ist, geht weiter wie bisher — sonst hätten wir das Werkzeug
+   kaputtgemacht, statt es zu schärfen. */
+$n = Telefon::beratung(['sprache' => 'de', 'vorhaben' => 'eine Seite für mein Restaurant']);
+pruefe('ein gewöhnliches Vorhaben läuft normal weiter',
+    empty($n['ausserhalb']) && ($n['frage_zu'] ?? '') === 'zweck', json_encode($n));
+
+$p = Telefon::preisAuskunft(['vorhaben' => 'Marktplatz mit eigenem Konto für Händler']);
+pruefe('auch die Preisauskunft nennt dann nichts',
+    ($p['ausserhalb'] ?? false) === true && !isset($p['von_euro']), json_encode($p));
+
+/* 22:24 bis 22:26 — vier geratene Adressen hintereinander, jede bis zu acht
+   Sekunden Stille. */
+abschnitt('29. Die Ratebremse');
+
+$e1 = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-eins.it', 'sprache' => 'de']);
+pruefe('der erste Fehlschlag schickt zum Buchstabieren',
+    ($e1['weiter'] ?? '') === 'buchstabieren', json_encode($e1));
+$e2 = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-zwei.it', 'sprache' => 'de']);
+pruefe('der zweite auch', ($e2['weiter'] ?? '') === 'buchstabieren', json_encode($e2));
+$e3 = Telefon::seiteAnsehen(['adresse' => 'gibtesganzsicherniemals-drei.it', 'sprache' => 'de']);
+pruefe('der dritte wird gar nicht mehr abgerufen',
+    ($e3['grund'] ?? '') === 'zu_viele_versuche', json_encode($e3));
+pruefe('und sie wird auf „melde" verwiesen',
+    str_contains((string) ($e3['hinweis'] ?? ''), 'melde'), (string) ($e3['hinweis'] ?? ''));
+
+/* Ein Treffer soll trotzdem durchgehen — die Bremse darf nicht das Werkzeug
+   erschlagen. Deshalb zurücksetzen und einen echten Fall prüfen. */
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 2 HOUR
+          WHERE type = 'telefon_seitenblick'");
+$ok = Telefon::seiteAnsehen(['adresse' => 'facebook.com/irgendwas', 'sprache' => 'de']);
+pruefe('nach dem Gespräch ist die Bremse wieder offen',
+    ($ok['gefunden'] ?? false) === true, json_encode($ok));
+
+/* 22:23 — alles richtig gemacht, den Link zugesagt, nie verschickt. */
+abschnitt('30. Angefangen und nichts daraus geworden');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+pruefe('ohne Gespräche ist die Liste leer', Telefon::offeneGespraeche(7) === []);
+
+/* Ein Gespräch wie das echte: nachgeschlagen, Seite angesehen — und nichts. */
+Telefon::protokoll('nachschlagen', 'Nachgeschlagen', null, ['treffer' => false]);
+Telefon::protokoll('seitenblick', 'Website angesehen', null,
+                   ['adresse' => 'jonika-venturis.com', 'gefunden' => true, 'arten' => ['telefon_nicht_klickbar']]);
+$o = Telefon::offeneGespraeche(7);
+pruefe('ein Gespräch ohne Ergebnis steht auf der Liste', count($o) === 1, json_encode($o));
+pruefe('und zwar mit der Seite, die sie angesehen hat',
+    ($o[0]['seite'] ?? '') === 'jonika-venturis.com', json_encode($o[0] ?? []));
+
+/* Kam etwas heraus, gehört es nicht mehr darauf. */
+Telefon::protokoll('uebergabe', 'Verschickt', null, ['ok' => true]);
+pruefe('sobald etwas rausging, verschwindet es',
+    Telefon::offeneGespraeche(7) === [], json_encode(Telefon::offeneGespraeche(7)));
+
+/* Ein Anruf, bei dem nur nachgeschlagen wurde, ist kein offenes Gespräch --
+   da hat jemand angerufen und aufgelegt. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Telefon::protokoll('nachschlagen', 'Nachgeschlagen', null, ['treffer' => false]);
+pruefe('bloßes Nachschlagen zählt nicht als offenes Gespräch',
+    Telefon::offeneGespraeche(7) === [], json_encode(Telefon::offeneGespraeche(7)));
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -314,6 +314,17 @@ final class Telefon
     {
         require_once __DIR__ . '/Baukasten.php';
 
+        /* Dieselbe Grenze wie in der Beratung: Wo der Katalog nichts weiss,
+           nennt sie nichts. Eine Spanne, die nicht passt, kostet mehr als
+           gar keine Auskunft. */
+        $ausser = self::ausserhalb((string) ($d['vorhaben'] ?? ''));
+        if ($ausser !== null) {
+            return ['ausserhalb' => true, 'stichwort' => $ausser,
+                    'satz'   => self::AUSSERHALB_SATZ[self::sprachwahl($d)] ?? self::AUSSERHALB_SATZ['it'],
+                    'weiter' => 'uwe_persoenlich',
+                    'hinweis' => 'Keine Zahl nennen. Satz vorlesen, dann Termin oder Rückruf anbieten.'];
+        }
+
         $antworten = [];
         foreach (self::VORWEG as $f) {
             $w = $d[$f] ?? null;
@@ -1479,7 +1490,35 @@ final class Telefon
                     'hinweis' => 'Nach der Internetadresse fragen, buchstabieren lassen.'];
         }
 
+        /* DIE RATEBREMSE
+           ------------------------------------------------------------------
+           Am 6. September zwischen 22:24 und 22:26 hat sie die Adresse einer
+           Anruferin viermal geraten -- „cvv.heute-geritten-morgen-...",
+           „jonikaventures.de", „jonikaventures.com", „jonika-venturis.com".
+           Jeder Versuch kostet bis zu acht Sekunden Stille, und die Anruferin
+           hoert vier Pausen statt einer Frage.
+
+           Ein Modell hoert nicht besser, wenn man es noch einmal versuchen
+           laesst. Ein Mensch buchstabiert. Also: Nach dem ersten Fehlschlag
+           kommt die Anweisung zu buchstabieren, und ab dem dritten Versuch
+           wird gar nicht mehr abgerufen. */
+        $fehl = self::fehlversuche();
+        if ($fehl >= self::BLICK_VERSUCHE) {
+            return ['gefunden' => false, 'grund' => 'zu_viele_versuche',
+                    'weiter'  => 'buchstabieren',
+                    'hinweis' => 'Genug geraten. Sag: „Ich finde die Seite nicht — '
+                               . 'nennen Sie sie mir am besten Buchstabe für Buchstabe." '
+                               . 'Klappt auch das nicht, nimm das Anliegen mit „melde" auf '
+                               . 'und schreib die Adresse so hinein, wie er sie gesagt hat.'];
+        }
+
         $blick = Seitenblick::ansehen($adresse, $sprache);
+
+        if (!($blick['gefunden'] ?? false)) {
+            $blick['weiter']  = 'buchstabieren';
+            $blick['hinweis'] = 'Rate nicht weiter. Lass die Adresse Buchstabe für Buchstabe '
+                              . 'nennen und versuche es genau noch einmal.';
+        }
 
         /* Protokolliert wird, was gemessen wurde -- damit Uwe vor dem
            Rueckruf dasselbe sieht wie der Anrufer gehoert hat. Ohne diese
@@ -1494,6 +1533,29 @@ final class Telefon
              'messwerte' => $blick['messwerte'] ?? []]);
 
         return $blick;
+    }
+
+    /** So oft darf eine Adresse in einem Gespraech danebengehen. */
+    public const BLICK_VERSUCHE = 2;
+
+    /**
+     * Wie oft in diesem Gespraech schon vergeblich nachgesehen wurde.
+     *
+     * Ueber die Zeit gezaehlt, weil die Telefonplattform uns keine
+     * Gespraechsnummer gibt -- dieselbe Naeherung wie ueberall hier.
+     */
+    private static function fehlversuche(): int
+    {
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type = 'telefon_seitenblick' AND demo = 0
+                AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND"), []);
+        $n = 0;
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (is_array($m) && ($m['gefunden'] ?? true) === false) { $n++; }
+        }
+        return $n;
     }
 
     /* ================================================================== */
@@ -1530,6 +1592,23 @@ final class Telefon
         require_once __DIR__ . '/Bedarf.php';
 
         $sprache = self::sprachwahl($d);
+
+        /* ZUERST: PASST DAS UEBERHAUPT IN DEN KATALOG?
+           Steht in „vorhaben" etwas, das der Baukasten nicht kennt, wird hier
+           keine Frage gestellt und keine Zahl genannt. Der Grund steht bei
+           Telefon::AUSSERHALB -- er hat einen Namen und ein Datum. */
+        $ausser = self::ausserhalb((string) ($d['vorhaben'] ?? ''));
+        if ($ausser !== null) {
+            self::protokoll('ausserhalb', 'Vorhaben außerhalb des Baukastens — ' . $ausser,
+                isset($d['kunde_id']) && (int) $d['kunde_id'] > 0 ? (int) $d['kunde_id'] : null,
+                ['wort' => $ausser, 'vorhaben' => mb_substr((string) ($d['vorhaben'] ?? ''), 0, 300)]);
+            return ['ausserhalb' => true, 'stichwort' => $ausser,
+                    'satz'   => self::AUSSERHALB_SATZ[$sprache] ?? self::AUSSERHALB_SATZ['it'],
+                    'weiter' => 'uwe_persoenlich',
+                    'hinweis' => 'Nenne KEINE Zahl und keine Spanne. Lies den Satz aus „satz" vor, '
+                               . 'biete dann mit „termin" einen Platz an — und wenn er keinen will, '
+                               . 'nimm mit „melde" Rufnummer und Erreichbarkeit auf.'];
+        }
 
         /* Den Faden aufnehmen oder einen neuen anfangen. */
         $faden = trim((string) ($d['gespraech'] ?? ''));
@@ -2243,6 +2322,162 @@ final class Telefon
             '{n}-mal war die Beratung fertig, aber es ging nichts raus.',
             'Ergänzen: Nach der letzten Frage immer nach der E-Mail-Adresse fragen und uebergabe aufrufen.'],
     ];
+
+
+    /* ================================================================== */
+    /*  17. Was Manuela nicht selbst merkt                                */
+    /* ================================================================== */
+
+    /**
+     * Vorhaben, fuer die der Baukasten keine ehrliche Zahl hergibt.
+     *
+     * DER ANRUF VOM 6. SEPTEMBER, 21:26
+     *
+     * Jemand wollte eine hochwertige, immersive 3D-Seite. Manuela nannte 500
+     * bis 650 Euro. In der Zusammenfassung steht woertlich, der Anrufer habe
+     * „skeptisch auf die Preisspanne" reagiert und „Misstrauen gegenueber dem
+     * Anbieter" geaeussert -- und er hatte recht. Eine zu niedrige Zahl fuer
+     * etwas, das der Katalog gar nicht kennt, klingt nicht guenstig, sondern
+     * nach jemandem, der nicht weiss, wovon er redet.
+     *
+     * Deshalb gibt es fuer diese Faelle keine Zahl, sondern einen Menschen.
+     * Die Liste ist bewusst kurz und grob: Sie soll die klaren Faelle fangen,
+     * nicht jeden Grenzfall entscheiden.
+     */
+    public const AUSSERHALB = [
+        '3d', 'dreidimensional', 'immersiv', 'virtual', 'vr', 'ar', 'metaverse',
+        'spiel', 'game', 'gaming', 'app', 'anwendung', 'software', 'portal',
+        'marktplatz', 'plattform', 'buchungssystem', 'warenwirtschaft', 'erp',
+        'crm', 'ki-', 'chatbot', 'schnittstelle', 'api',
+        'applicazione', 'piattaforma', 'gioco', 'immersivo', 'mercato',
+        'application', 'marketplace', 'platform', 'booking system', 'inventory',
+    ];
+
+    /**
+     * Steckt in dem, was er sagt, etwas, das der Baukasten nicht kennt?
+     *
+     * Bewusst eine Wortsuche und keine Klugheit: Was hier durchrutscht,
+     * bekommt eine Spanne, die immer noch stimmt. Was faelschlich anschlaegt,
+     * bekommt einen Rueckruf von Uwe -- der schlechteste Fall ist ein Anruf
+     * zu viel, und das ist ein guter schlechtester Fall.
+     */
+    public static function ausserhalb(string $text): ?string
+    {
+        $t = ' ' . mb_strtolower(trim($text)) . ' ';
+        if (trim($t) === '') { return null; }
+        foreach (self::AUSSERHALB as $wort) {
+            if (str_contains($t, $wort)) { return $wort; }
+        }
+        return null;
+    }
+
+    /** Was sie dann sagt, statt eine Zahl zu nennen. */
+    public const AUSSERHALB_SATZ = [
+        'it' => 'Questo va oltre il configuratore: non le do un numero a caso. Se lo guarda Uwe di persona e le dice che cosa è realistico.',
+        'de' => 'Das geht über den Konfigurator hinaus — da nenne ich Ihnen keine Hausnummer. Das sieht sich Uwe persönlich an und sagt Ihnen, was realistisch ist.',
+        'en' => 'That goes beyond the configurator — I am not going to give you a made-up figure. Uwe will look at it himself and tell you what is realistic.',
+    ];
+
+    /**
+     * Gespraeche, in denen etwas angefangen und nichts zu Ende gebracht wurde.
+     *
+     * DER TEUERSTE FEHLER, DEN SIE MACHEN KANN
+     *
+     * Am 6. September um 22:23 hat sie alles richtig gemacht: nachgesehen,
+     * den Befund genannt, Name, Betrieb und Adresse aufgenommen, den Link
+     * zugesagt. Verschickt hat sie ihn nie. Die Anruferin wartet seither auf
+     * eine Mail, und von aussen sieht das nicht nach einem technischen
+     * Fehler aus, sondern nach einem, der seine Zusagen nicht haelt.
+     *
+     * Eine Regel im Leitfaden allein reicht dagegen nicht -- eine Regel, die
+     * nicht befolgt wird, merkt niemand. Deshalb wird hier abgeleitet, statt
+     * sich auf sie zu verlassen: Wo etwas anfing und nichts herauskam, steht
+     * es am Abend auf der Liste. Dann ruft ein Mensch an, und der Anruf ist
+     * nicht verloren.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function offeneGespraeche(int $tage = 7): array
+    {
+        $tage = max(1, min(90, $tage));
+
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT id, type, created_at, customer_id, meta
+               FROM activities
+              WHERE type LIKE 'telefon\\_%' AND demo = 0
+                AND created_at >= NOW() - INTERVAL $tage DAY
+              ORDER BY created_at"), []);
+
+        /* Gespraeche statt Zeilen -- dieselbe Naeherung wie im Rueckblick. */
+        $gespraeche = [];
+        $aktuell = null;
+        $letzte  = 0;
+        foreach ($zeilen as $z) {
+            $t = strtotime((string) $z['created_at']);
+            if ($aktuell === null || ($t - $letzte) > self::GESPRAECH_FENSTER) {
+                if ($aktuell) { $gespraeche[] = $aktuell; }
+                $aktuell = [];
+            }
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            $aktuell[] = ['art' => substr((string) $z['type'], 8),
+                          'wann' => (string) $z['created_at'],
+                          'kunde' => (int) ($z['customer_id'] ?? 0),
+                          'meta' => is_array($m) ? $m : []];
+            $letzte = $t;
+        }
+        if ($aktuell) { $gespraeche[] = $aktuell; }
+
+        /* Was als Ergebnis zaehlt. Ein Rueckruf ist eines: Dann weiss Uwe
+           davon. Ein verschickter Link auch. Ein abgesagter Termin nicht --
+           aber den gibt es hier ohnehin nicht. */
+        $ergebnis = ['uebergabe', 'angebot_link', 'melde', 'termin', 'zusammenfassung',
+                     'kundenseite', 'rueckruf_erledigt'];
+        $angefangen = ['beratung', 'seitenblick', 'nachschlagen', 'hilfe', 'preis'];
+
+        $raus = [];
+        foreach ($gespraeche as $g) {
+            $arten = array_column($g, 'art');
+            if (array_intersect($arten, $ergebnis))    { continue; }
+            if (!array_intersect($arten, $angefangen)) { continue; }
+
+            /* Ein Gespraech, das nur aus einem Nachschlagen bestand, ist
+               keines: Da hat jemand angerufen und aufgelegt. Erst wenn sie
+               wirklich gearbeitet hat, fehlt auch wirklich etwas. */
+            if (!array_intersect($arten, ['beratung', 'seitenblick', 'hilfe'])) { continue; }
+
+            $wann    = (string) $g[0]['wann'];
+            $kundeId = 0;
+            $seite   = '';
+            $stand   = [];
+            foreach ($g as $s) {
+                if ($s['kunde'] > 0) { $kundeId = $s['kunde']; }
+                if ($s['art'] === 'seitenblick' && !empty($s['meta']['adresse'])) {
+                    $seite = (string) $s['meta']['adresse'];
+                }
+                if ($s['art'] === 'beratung') {
+                    $stand = (array) ($s['meta']['beantwortet'] ?? $stand);
+                }
+            }
+
+            $wer = $kundeId > 0
+                ? trim((string) self::still(static fn() => Db::wert(
+                    'SELECT name FROM customers WHERE id = ?', [$kundeId], ''), ''))
+                : '';
+
+            $raus[] = [
+                'wann'     => $wann,
+                'stunden'  => max(0, (int) round((time() - strtotime($wann)) / 3600)),
+                'wer'      => $wer !== '' ? $wer : 'unbekannt',
+                'kunde_id' => $kundeId,
+                'seite'    => $seite,
+                'gefragt'  => $stand,
+                'schritte' => count($g),
+            ];
+        }
+
+        usort($raus, static fn(array $a, array $b): int => strcmp($b['wann'], $a['wann']));
+        return $raus;
+    }
 
     public static function protokoll(string $aktion, string $titel, ?int $kundeId, array $meta = []): void
     {

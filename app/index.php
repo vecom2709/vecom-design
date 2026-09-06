@@ -2455,6 +2455,10 @@ switch ($route) {
                Woche; hier steht der letzte Stand, damit die Vorschläge nicht
                nur in einer Meldung stehen, die man wegklickt. */
             'rueckblick' => sicher(static fn() => Telefon::letzterRueckblick(), null),
+            /* Gespräche, in denen etwas anfing und nichts herauskam. Das ist
+               der Fall vom 6.9., 22:23: alles richtig gemacht, den Link
+               zugesagt — und nie verschickt. */
+            'offen'      => sicher(static fn() => Telefon::offeneGespraeche(7), []),
         ]);
         break;
 
