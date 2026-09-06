@@ -101,6 +101,7 @@ $menueMehr = [
   ['__gruppe', 'System', null],
   ['dashboard', 'Zahlen', 'dashboard'],
   ['monitoring', 'Website-Monitoring', 'monitoring'],
+  ['telefon', 'Telefonassistent', 'telefon'],
   ['aktivitaeten', 'Aktivitäten', 'aktivitaeten'],
   ['benachrichtigungen', 'Benachrichtigungen', 'benachrichtigungen'],
   ['integrationen', 'Integrationen', 'integrationen'],

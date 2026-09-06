@@ -71,7 +71,8 @@ Config::setzenFuerTest([
 ]);
 
 foreach (['Db', 'Status', 'Fmt', 'Csrf', 'Auth', 'Events', 'Einrichtung',
-          'Vorgang', 'Onboarding', 'Umfang', 'Fragen', 'Beispieldaten', 'Ablauf'] as $k) {
+          'Vorgang', 'Onboarding', 'Umfang', 'Fragen', 'Beispieldaten', 'Ablauf',
+          'Kunde', 'Nachricht', 'Mail', 'Bedarf', 'Telefon'] as $k) {
     require_once $wurzel . "/src/$k.php";
 }
 
@@ -847,6 +848,165 @@ pruefe('die Führung setzt die Marke an zwei Stellen',
     + substr_count($vquelle, "tun=kunde_nachricht', true)") === 2);
 pruefe('jeder Vorgang trägt die Marke',
     array_key_exists('erstantwort', (array) Vorgang::laden('b' . $bestellId)));
+
+/* ============================================================================
+   15. Der Telefonassistent
+   ============================================================================ */
+abschnitt('15. Der Telefonassistent');
+
+/* Der Endpunkt steht offen im Netz und schreibt in die Verwaltung. Was er
+   darf, muss deshalb hier stehen und nicht nur im Kommentar. */
+
+/* Ohne hinterlegten Schlüssel ist er zu. Sonst stünde er offen, solange ihn
+   niemand einmal aufgerufen hat — genau die Lücke zwischen Deploy und
+   erstem Blick in die Verwaltung. */
+Db::run("DELETE FROM settings WHERE skey = 'telefon_schluessel'");
+pruefe('ohne hinterlegten Schlüssel ist zu', !Telefon::schluesselStimmt('irgendwas'));
+pruefe('ein leerer Schlüssel öffnet nie', !Telefon::schluesselStimmt(''));
+
+$ts = Telefon::schluessel();
+pruefe('der Schlüssel ist lang genug', strlen($ts) === 48, (string) strlen($ts));
+pruefe('der richtige Schlüssel öffnet', Telefon::schluesselStimmt($ts));
+pruefe('ein falscher nicht', !Telefon::schluesselStimmt(str_repeat('a', 48)));
+pruefe('ein abgeschnittener nicht', !Telefon::schluesselStimmt(substr($ts, 0, 40)));
+
+/* Neu erzeugen macht den alten wertlos — das ist der ganze Grund, warum ein
+   eigener Schlüssel vertretbar ist, obwohl er im Klartext bei STRATO liegt. */
+$alt = $ts;
+$neuS = Telefon::neuerSchluessel();
+pruefe('ein neuer Schlüssel entwertet den alten',
+    !Telefon::schluesselStimmt($alt) && Telefon::schluesselStimmt($neuS));
+
+/* Er darf NICHT derselbe sein wie der Cron-Schlüssel. Ein Schlüssel für
+   zwei Türen ist einer zu wenig. */
+require_once $wurzel . '/src/Cron.php';
+pruefe('Telefon- und Cron-Schlüssel sind verschieden',
+    Telefon::schluessel() !== Cron::schluessel());
+
+/* Nur diese vier Aktionen. Was nicht auf der Liste steht, gibt es nicht —
+   der Verteiler in telefon.php prüft gegen genau diese Konstante. */
+pruefe('es gibt genau vier Aktionen', count(Telefon::AKTIONEN) === 4,
+    implode(', ', Telefon::AKTIONEN));
+
+/* --- Nachschlagen ------------------------------------------------------- */
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+$n = Telefon::nachschlagen(['telefon' => '00393801112233']);
+pruefe('die Rufnummer findet den Kunden trotz anderer Schreibweise',
+    ($n['gefunden'] ?? false) === true && (int) ($n['kunde_id'] ?? 0) === $kundeId,
+    json_encode($n['gefunden'] ?? null));
+
+/* DIE WICHTIGSTE PRÜFUNG DIESES ABSCHNITTS
+   ------------------------------------------------------------------------
+   Nie Beträge am Telefon. Eine Stimme ist kein Ausweis, und eine Rufnummer
+   erst recht nicht — sie wird weitergegeben, geerbt und gefälscht. Wenn
+   diese Prüfung je reißt, hat jemand ein Feld hinzugefügt, ohne daran zu
+   denken, wo die Antwort landet. */
+$flach = json_encode($n, JSON_UNESCAPED_UNICODE);
+$verboten = [];
+foreach (['cents', 'betrag', 'preis', 'summe', 'iban', 'street', 'strasse', 'tax_code', 'vat'] as $wort) {
+    if (stripos($flach, $wort) !== false) { $verboten[] = $wort; }
+}
+pruefe('die Auskunft nennt keine Beträge und keine Anschrift', $verboten === [],
+    implode(', ', $verboten));
+pruefe('sie nennt auch keine E-Mail im Klartext', !str_contains($flach, '@'));
+
+$leer = Telefon::nachschlagen(['telefon' => '004900000000000']);
+pruefe('eine unbekannte Nummer findet nichts', ($leer['gefunden'] ?? true) === false);
+pruefe('und sagt, was stattdessen zu tun ist', trim((string) ($leer['hinweis'] ?? '')) !== '');
+
+/* Zu kurze Eingaben dürfen nicht die halbe Kundenliste zurückgeben. */
+$kurz = Telefon::nachschlagen(['telefon' => '123', 'name' => 'a']);
+pruefe('drei Ziffern schlagen nichts nach', ($kurz['gefunden'] ?? true) === false);
+
+/* --- Melden ------------------------------------------------------------- */
+$vorher = (int) Db::wert("SELECT COUNT(*) FROM notifications", [], 0);
+$m = Telefon::melden(['art' => 'beschwerde', 'kunde_id' => $kundeId,
+                      'text' => 'Die Seite war zwei Stunden nicht erreichbar.',
+                      'telefon' => '+39 380 111 2233']);
+pruefe('eine Beschwerde wird angenommen', ($m['ok'] ?? false) === true);
+pruefe('sie landet als Meldung', (int) Db::wert("SELECT COUNT(*) FROM notifications", [], 0) > $vorher);
+pruefe('und zwar als schlechte',
+    (string) Db::wert("SELECT level FROM notifications ORDER BY id DESC LIMIT 1", [], '') === 'schlecht');
+/* Auf „Heute" muss der Name stehen, nicht die Nummer — sonst muss Uwe jede
+   Zeile aufmachen, um zu wissen, ob sie ihn angeht. */
+pruefe('der Titel nennt den Kunden, nicht die Rufnummer',
+    str_contains((string) Db::wert("SELECT title FROM notifications ORDER BY id DESC LIMIT 1", [], ''),
+                 (string) Db::wert('SELECT name FROM customers WHERE id = ?', [$kundeId], 'x')),
+    (string) Db::wert("SELECT title FROM notifications ORDER BY id DESC LIMIT 1", [], ''));
+pruefe('sie steht auch als Nachricht am Kunden',
+    (int) Db::wert("SELECT COUNT(*) FROM messages WHERE customer_id = ? AND sender = 'kunde'",
+                   [$kundeId], 0) > 0);
+
+$leerM = Telefon::melden(['art' => 'rueckruf', 'text' => '']);
+pruefe('ohne Anliegen wird nichts gemeldet', ($leerM['ok'] ?? true) === false);
+
+$fremd = Telefon::melden(['art' => 'gibt_es_nicht', 'text' => 'Probe']);
+pruefe('eine unbekannte Art fällt auf „Rückruf" zurück', ($fremd['ok'] ?? false) === true);
+
+/* --- Angebots-Link ------------------------------------------------------ */
+$ohne = Telefon::angebotLink(['sprache' => 'de', 'email' => 'keine-adresse']);
+pruefe('eine unbrauchbare Adresse wird abgelehnt', ($ohne['ok'] ?? true) === false);
+
+$bedarfVorher = (int) Db::wert('SELECT COUNT(*) FROM bedarf', [], 0);
+$al = Telefon::angebotLink(['sprache' => 'de', 'kunde_id' => $kundeId,
+                            'zweck' => 'kontakt,speisekarte', 'umfang' => 'wenige',
+                            'branche' => 'gastro']);
+pruefe('der Konfigurator wird angelegt',
+    (int) Db::wert('SELECT COUNT(*) FROM bedarf', [], 0) > $bedarfVorher);
+pruefe('das am Telefon Gesagte steht schon drin',
+    count($al['vorbefuellt'] ?? []) === 3, implode(', ', $al['vorbefuellt'] ?? []));
+pruefe('eine Mehrfachantwort kommt als Liste an',
+    str_contains((string) Db::wert('SELECT antworten FROM bedarf ORDER BY id DESC LIMIT 1', [], ''),
+                 'speisekarte'));
+pruefe('der Rest bleibt offen und wird gezählt', (int) ($al['offen'] ?? 0) === 5,
+    (string) ($al['offen'] ?? '—'));
+
+/* FALSCH VERSTANDENES DARF NICHTS SETZEN
+   ------------------------------------------------------------------------
+   Am Telefon wird sich verhört. Ein Wort, das der Konfigurator nicht kennt,
+   muss die Frage OFFEN lassen — eine falsch gesetzte Antwort wandert sonst
+   stillschweigend in einen Preis. */
+$mist = Telefon::angebotLink(['sprache' => 'de', 'kunde_id' => $kundeId,
+                              'umfang' => 'ungefähr sieben Seiten', 'branche' => 'raumfahrt']);
+pruefe('unverstandene Antworten werden verworfen, nicht geraten',
+    ($mist['vorbefuellt'] ?? ['x']) === [], implode(', ', $mist['vorbefuellt'] ?? []));
+/* Die Adresse darf in der Antwort nur verdeckt stehen: Sie geht zurück an
+   eine fremde Plattform, die sie protokolliert. */
+pruefe('die Zieladresse steht nur verdeckt in der Antwort',
+    str_contains((string) ($al['gesendet_an'] ?? ''), '*'),
+    (string) ($al['gesendet_an'] ?? '—'));
+
+/* --- Zusammenfassung ---------------------------------------------------- */
+$ohneJa = Telefon::zusammenfassung(['kunde_id' => $kundeId, 'text' => str_repeat('Inhalt ', 10)]);
+pruefe('ohne Zustimmung geht keine Zusammenfassung raus', ($ohneJa['ok'] ?? true) === false);
+pruefe('und der Grund wird genannt', ($ohneJa['grund'] ?? '') === 'keine_zustimmung');
+
+/* --- Verdecken ---------------------------------------------------------- */
+pruefe('eine Adresse wird verdeckt', Telefon::verdeckt('uwe@example.test') === 'u**@example.test',
+    Telefon::verdeckt('uwe@example.test'));
+pruefe('auch etwas, das keine Adresse ist', Telefon::verdeckt('kaputt') === '***');
+
+/* --- Jeder Aufruf steht im Verlauf -------------------------------------- */
+pruefe('jede Aktion hinterlässt eine Spur',
+    (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type LIKE 'telefon\\_%'", [], 0) >= 2,
+    (string) Db::wert("SELECT COUNT(*) FROM activities WHERE type LIKE 'telefon\\_%'", [], 0));
+
+/* --- Die Drosselung ----------------------------------------------------- */
+$durch = 0;
+for ($i = 0; $i < Telefon::DROSSEL_PRO_MINUTE + 5; $i++) {
+    if (Telefon::darfNoch()) { $durch++; }
+}
+pruefe('die Drosselung greift', $durch <= Telefon::DROSSEL_PRO_MINUTE, (string) $durch);
+
+/* --- Der Endpunkt selbst ------------------------------------------------ */
+$quelle = file_get_contents(dirname(dirname(__DIR__)) . '/telefon.php') ?: '';
+pruefe('der Endpunkt prüft den Schlüssel zeitkonstant',
+    str_contains($quelle, 'Telefon::schluesselStimmt'));
+pruefe('er lässt nur die vier Aktionen durch',
+    str_contains($quelle, 'in_array($aktion, Telefon::AKTIONEN, true)'));
+pruefe('er drosselt', str_contains($quelle, 'Telefon::darfNoch'));
+pruefe('ein Fehler würgt kein Gespräch ab',
+    str_contains($quelle, 'Anliegen aufnehmen und melden'));
 
 /* ============================================================================
    Aufräumen und Bilanz

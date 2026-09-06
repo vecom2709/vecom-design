@@ -898,6 +898,16 @@ if ($post) {
                     : 'Kaufknopf im Testmodus wieder ausgeblendet');
                 weiter('integrationen');
 
+            case 'telefon_schluessel_neu':
+                /* Der alte wird damit wertlos. Genau dafuer ist er da: Ein
+                   Schluessel, der im Klartext bei einem fremden Anbieter
+                   liegt, muss in zehn Sekunden zu tauschen sein. */
+                require_once __DIR__ . '/src/Telefon.php';
+                Telefon::neuerSchluessel();
+                Events::protokoll('telefon_schluessel', 'Telefon-Schlüssel neu erzeugt');
+                weiter($_POST["zurueck"] ?? "telefon");
+                break;
+
             case 'migrieren':
                 require_once __DIR__ . '/src/Einrichtung.php';
                 $neu = Einrichtung::migrieren();
@@ -2383,6 +2393,23 @@ switch ($route) {
             'grenzen'    => $grenzen,
             'archiv'     => $archiv,
             'fristen'    => sicher(static fn() => Steuerakte::fristen(), []),
+        ]);
+        break;
+
+    case 'telefon':
+        /* Der Telefonassistent. Alles, was zum Einrichten bei STRATO noetig
+           ist, plus die Spur dessen, was er getan hat. */
+        require_once __DIR__ . '/src/Telefon.php';
+        require_once __DIR__ . '/src/Baukasten.php';
+        ansicht('telefon', [
+            'schluessel' => sicher(static fn() => Telefon::schluessel(), ''),
+            'adresse'    => sicher(static fn() => Telefon::adresse(), ''),
+            'verlauf'    => sicher(static fn() => Db::all(
+                "SELECT * FROM activities WHERE type LIKE 'telefon\\_%'
+                  ORDER BY id DESC LIMIT 40"), []),
+            'anzahl'     => sicher(static fn() => (int) Db::wert(
+                "SELECT COUNT(*) FROM activities WHERE type LIKE 'telefon\\_%'
+                   AND created_at >= NOW() - INTERVAL 30 DAY", [], 0), 0),
         ]);
         break;
 
