@@ -2736,3 +2736,9 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   text-decoration-color: var(--c-line-strong); transition: color var(--d-ui) var(--e-std);
 }
 .betreuung__mehr a:hover { color: var(--c-cyan); }
+
+/* Der Knopf, der den Telefonassistenten holt. Bewusst kein Primaerknopf:
+   Der Weg zum Angebot bleibt der lauteste auf dieser Seite. */
+.kontakt-manuela { margin: 22px 0 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.kontakt-manuela__note { color: var(--leise, #8b95a5); font-size: 12.5px; line-height: 1.5; max-width: 42ch; }
+.kontakt-manuela .btn[disabled] { opacity: .6; cursor: progress; }

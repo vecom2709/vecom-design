@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=73e76d45">
+<link rel="stylesheet" href="assets/css/app.css?v=6fce7edb">
 
 
 <script type="importmap">
@@ -1126,6 +1126,18 @@
           <dd><a href="https://wa.me/message/ZA5MG7SV4WEQM1" rel="noopener"
                  data-i18n="contact.dd6">Solo messaggi, non chiamate</a></dd></div>
       </dl>
+
+      <!-- MIT MANUELA SPRECHEN — ABER ERST AUF KLICK
+           Das Widget von STRATO sind 230 KB fremdes JavaScript, das
+           localStorage und Cookies benutzt. Wuerde es auf jeder Seite von
+           selbst laden, waere die Antwort in unserer eigenen FAQ falsch:
+           "kein Tracking-Cookie, keine Schriften von fremden Servern, also
+           kein Banner noetig". Auf Klick geladen bleibt sie richtig — und
+           wer nicht klickt, laedt nichts. -->
+      <p class="kontakt-manuela" data-reveal>
+        <button type="button" class="btn" id="manuela-start" data-i18n="contact.manuela">Parla con Manuela</button>
+        <span class="kontakt-manuela__note" data-i18n="contact.manuelaNote">L’assistente si carica solo quando premi qui — prima non parte nessuno script esterno.</span>
+      </p>
     </div>
 
     <!-- Hier stand bis heute ein zweites Formular mit sechs Fragen. Es
@@ -1209,7 +1221,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=6e683821" defer></script>
+<script src="assets/js/i18n-it.js?v=468d5c28" defer></script>
 <script src="assets/js/app.js?v=d3fd6f43" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1234,6 +1246,55 @@
       el.innerHTML = '<b>' + f(d.gesamt) + '</b> Besuche &middot; ' + f(d.heute) + ' heute';
     })
     .catch(function(){});
+})();
+</script>
+<script>
+/* Der Telefonassistent laedt auf Klick, nicht beim Seitenaufruf.
+
+   Grund steht oben am Knopf: 230 KB fremdes JavaScript mit localStorage und
+   Cookies wuerden die Aussage in unserer eigenen FAQ zu Fall bringen. So
+   laedt es nur, wer es benutzen will — und der weiss dann auch, dass er es
+   tut. */
+(function () {
+  var knopf = document.getElementById('manuela-start');
+  if (!knopf) { return; }
+  var laeuft = false;
+  knopf.addEventListener('click', function () {
+    if (laeuft) { return; }
+    laeuft = true;
+    var wort = knopf.textContent;
+    var karte = (window.VECOM_I18N || {})[document.documentElement.lang] || {};
+    knopf.textContent = (karte.contact && karte.contact.manuelaLade) || (wort + ' …');
+    knopf.disabled = true;
+    var s = document.createElement('script');
+    s.src = 'https://strato.ai-voicereceptionist.com/widget/v1/embed.js';
+    s.setAttribute('data-agent-id', 'a6ea7fe1-fd3e-4850-8e7b-7f9f558b3b4d');
+    s.defer = true;
+    var zurueck = function () {
+      clearTimeout(uhr);
+      laeuft = false;
+      knopf.disabled = false;
+      knopf.textContent = wort;
+    };
+    /* Ist es da, verschwindet der Knopf und die Zeile sagt, wo Manuela jetzt
+       sitzt. Sonst bliebe ein grauer Knopf stehen, der nichts mehr tut, und
+       der Besucher sucht das Fenster.
+       display statt hidden: Der Knopf ist per CSS inline-flex, und das
+       schlaegt das hidden-Attribut. */
+    s.onload = function () {
+      clearTimeout(uhr);
+      var zeile = document.querySelector('.kontakt-manuela__note');
+      if (zeile && karte.contact && karte.contact.manuelaDa) { zeile.textContent = karte.contact.manuelaDa; }
+      knopf.style.display = 'none';
+    };
+    /* Klappt es nicht, bleibt der Knopf benutzbar statt fuer immer grau. */
+    s.onerror = zurueck;
+    /* Und wenn gar nichts passiert — schlechtes Netz, blockiert, Zeitablauf —
+       auch. Ein Knopf, der ewig „Einen Moment" sagt, ist schlimmer als einer,
+       der wieder da ist. */
+    var uhr = setTimeout(zurueck, 8000);
+    document.head.appendChild(s);
+  });
 })();
 </script>
 <img src="/z.php" width="1" height="1" alt="" aria-hidden="true"
