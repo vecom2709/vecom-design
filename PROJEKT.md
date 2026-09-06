@@ -2106,3 +2106,87 @@ Stellen von „den vier Konfigurationen"; die Zahl kommt jetzt aus der Liste sel
 ist alles hier geprüft, aber nichts davon je von STRATO gerufen worden. Der Post-Call-Webhook
 wartet auf denselben ersten Anruf — ohne ihn ist das Format nicht bekannt, und geraten wird
 hier nichts.
+
+## Manuela hilft weiter — und ein Fehler, den zwei Zeichen ausgelöst haben (06.09.2026)
+
+### Der Fehler zuerst, weil er das meiste gelehrt hat
+
+STRATO meldete beim Speichern: *„Bitte beheben Sie die Validierungsfehler in den markierten
+Feldern."* Kein Feld war rot. Alle sechs Abschnitte trugen einen grünen Haken. Der Knopf zum
+Speichern war gesperrt — der ganze Assistent ließ sich nicht mehr ändern.
+
+Die Ursache stand nirgends auf der Seite. Sie kam erst heraus, als das Formular selbst gefragt
+wurde (react-hook-form hält seine Fehler im Zustand):
+
+```
+tools.5.parameters.properties: Invalid input: expected record, received array
+```
+
+Werkzeug Nummer 5 ist `lage` — die einzige Aktion ohne Parameter. **PHP kennt keinen
+Unterschied zwischen einer leeren Liste und einem leeren Objekt.** Beides ist `[]`, und
+`json_encode` macht daraus `[]`. STRATO erwartet dort ein Objekt. Zwei Zeichen.
+
+Drei Dinge daran sind es wert, aufgeschrieben zu werden:
+
+1. **Der Fehler war unsichtbar, wo er entstand.** In der Verwaltung sah die Konfiguration
+   richtig aus; erst die fremde Seite hat ihn bemerkt, Stunden später, bei jemandem ohne
+   Zugriff auf den Code. Deshalb wird der Block jetzt in `Telefon::konfigJson()` gebaut und
+   nicht mehr in der Ansicht — dort kann die Prüfkette ihn nachrechnen. Prüfung 18 hält fest,
+   dass ein Parametersatz ohne Felder als `{}` herauskommt.
+2. **Die Fehlermeldung log nicht, sie war nur an der falschen Stelle.** „Markierte Felder" gibt
+   es nicht, wenn der Fehler in einem eingeklappten Bereich sitzt. Wer so etwas sucht, sollte
+   früher aufhören, im Bild zu suchen, und den Zustand fragen.
+3. **Nicht der offensichtliche Verdächtige war schuld.** Der Verdacht lag zuerst auf den langen
+   Beschreibungstexten und den deutschen Anführungszeichen. Beide waren unschuldig.
+
+### Der Schlüssel wurde dabei getauscht
+
+Beim Nachsehen stand der Telefonschlüssel auf einem Bildschirmfoto — und auf der
+Verwaltungsseite steht ausdrücklich, dass er weder in eine E-Mail noch in einen Chat gehört.
+Also: neuer Schlüssel erzeugt, alle acht Konfigurationen bei STRATO damit neu gesetzt, ohne
+dass der neue Schlüssel je gelesen wurde (kopiert wird über die Zwischenablage, und dort, wo
+das nicht ging, wurde er innerhalb der STRATO-Seite von einer Integration zur anderen
+übernommen). Der alte ist damit tot.
+
+### Neu: die achte Aktion
+
+`hilfe` — wenn jemand nicht weiterkommt: Fragebogen, Bezahlung, Link weg, Entwurf, Zugang.
+
+Der Unterschied zu einer FAQ ist der ganze Punkt: Manuela erklärt nicht allgemein, wie ein
+Fragebogen funktioniert. Sie sieht nach, wo **dieser** Kunde steht, und liest ab da vor. „Dein
+Fragebogen ist schon da, du wartest auf uns" und „ich schick ihn dir nochmal" sind zwei
+verschiedene Gespräche — und das falsche davon ärgert jemanden, der seine Arbeit schon gemacht
+hat.
+
+Der Stand kommt aus `Kundenzugang::seite()`, derselben Rechnung, aus der auch seine eigene
+Seite gebaut wird. Damit kann das Telefon gar nicht etwas anderes sagen als der Bildschirm.
+Zwei Quellen für denselben Stand laufen irgendwann auseinander, und dann steht Aussage gegen
+Aussage.
+
+**Drei Grenzen, geprüft, nicht nur aufgeschrieben:**
+
+- **Kein Betrag — und kein Satz darüber, ob etwas offen ist.** Auch „du hast noch etwas offen"
+  ist eine Auskunft über Geld, und am anderen Ende sitzt kein Ausweis, sondern eine Stimme. Wer
+  Geld meint, bekommt den Link zu seiner Kundenseite; dort ist der Link der Ausweis, und dort
+  steht ohnehin mehr, als Manuela sagen dürfte.
+- **Alles geht an die hinterlegte Adresse.** Nie an eine, die am Telefon genannt wurde — sonst
+  wäre „schick mir den Link an meine neue Adresse" die Übernahme eines Kundenkontos.
+- **Die erste Fragebogen-Einladung macht Uwe.** Sie hängt in der Verwaltung an einer Rückfrage,
+  weil danach eine Uhr läuft. Erneut schicken darf der Assistent — das wiederholt nur, was
+  schon entschieden war.
+
+Dazu zwei Dinge, die aus dem Bauen selbst kamen: Klappt ein Versand nicht (kein Mailschlüssel,
+Brevo down, Adresse tot), wird **nichts zugesagt** — es geht sofort eine dringende Meldung
+raus, und Manuela sagt genau das. Vorher hätte der Anrufer „kommt gleich" gehört und drei Tage
+gewartet. Und nach zwei vergeblichen Anläufen übernimmt ohnehin ein Mensch; eine Schleife, die
+dreimal dieselbe Anleitung vorliest, ist keine Hilfe, sondern eine Warteschleife mit Text.
+
+**„Woran es hakt"** zählt die Hilfe-Anrufe nach Problem. Zwanzig Anrufe zum Fragebogen sind
+kein Support-Fall, sondern ein Produktfehler — dann ist nicht der Assistent zu verbessern,
+sondern der Fragebogen.
+
+**Nachgemessen:** Prüfkette 259 → 294, alle grün. Bei STRATO stehen jetzt alle acht
+Konfigurationen, gespeichert und nach dem Neuladen nachgesehen.
+
+**Weiter offen:** der erste echte Anruf. Bis dahin ist alles hier geprüft, aber nichts davon je
+von STRATO gerufen worden.
