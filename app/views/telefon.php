@@ -305,21 +305,33 @@ $konfigs['zusammenfassung'] = [
 /* ---------- Die sechs neuen: Beratung statt Auskunft ---------- */
 
 $konfigs['seite_ansehen'] = [
-  'zweck' => 'Sieh dir die Website des Anrufers an, während er redet. Gibt zwei bis drei '
-           . 'nachprüfbare Befunde als fertige Sätze zurück — nenne höchstens zwei davon. '
-           . 'Sage nie etwas über Aussehen oder Gestaltung: geprüft wird nur Technik. '
+  'zweck' => 'Sieh dir die Website des Anrufers wirklich an, während er redet. Die Adresse wird '
+           . 'mit und ohne www, über https und http und notfalls mit anderen Endungen gesucht, '
+           . 'und die wichtigsten Unterseiten werden mitgelesen — „finde ich nicht“ kommt nur, '
+           . 'wenn es die Adresse wirklich nicht gibt. '
+           . 'Sprich dann GENAU in dieser Reihenfolge, was in „gespraech“ steht: auftakt, befund, '
+           . 'folge, frage — und sei danach still. Einen zweiten Befund nur, wenn er nachfragt. '
+           . 'Lies nie die ganze Liste vor: Eine Mängelliste am Telefon macht keinen Kunden, '
+           . 'sie macht jemanden, der sich schlecht fühlt. '
+           . 'Sage nie etwas über Aussehen oder Gestaltung — geprüft wird nur, was messbar ist —, '
+           . 'und erfinde keine Zahlen, keine Mitbewerber und keine Eile. '
            . 'Kommt „nichts_gefunden“, sag das ehrlich und verkaufe nichts. '
-           . 'RATE NIE eine Adresse. Wird sie nicht gefunden, lass sie Buchstabe für Buchstabe '
-           . 'nennen und versuche es genau noch einmal — danach nicht mehr, sondern „melde“.',
+           . 'Kommt „andere_adresse“, sag zuerst, unter welcher Adresse du sie gefunden hast. '
+           . 'RATE NIE. Wird sie nicht gefunden, lass buchstabieren und versuche es genau noch '
+           . 'einmal — danach nicht mehr, sondern „melde“.',
   'eig' => [
     'adresse'  => ['type' => 'string', 'minLength' => 4, 'maxLength' => 200,
                    'description' => 'Die Internetadresse, wie er sie nennt — buchstabieren lassen'],
     'sprache'  => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
+    'branche'  => ['type' => 'string',
+                   'enum' => array_map('strval', array_keys(Baukasten::FRAGEN['branche']['optionen'] ?? [])),
+                   'description' => 'Betriebsart, falls genannt — dann wird auch geprüft, was gerade '
+                                  . 'diese Branche braucht (Speisekarte, Buchung, Arbeitsproben)'],
     'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
   ],
   'pflicht' => ['adresse'],
   'rumpf' => '{"aktion":"seite_ansehen","adresse":"{{ adresse }}","sprache":"{{ sprache }}",'
-           . '"kunde_id":"{{ kunde_id }}"}',
+           . '"branche":"{{ branche }}","kunde_id":"{{ kunde_id }}"}',
 ];
 
 $konfigs['beratung'] = [

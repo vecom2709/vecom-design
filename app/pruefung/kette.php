@@ -1890,6 +1890,18 @@ require_once $wurzel . '/src/Seitenblick.php';
 $ohne = Telefon::seiteAnsehen(['sprache' => 'de']);
 pruefe('ohne Adresse wird nichts abgerufen', ($ohne['gefunden'] ?? true) === false, json_encode($ohne));
 
+/* „Finde ich nicht" darf erst kommen, wenn es die Adresse wirklich nicht gibt.
+   Deshalb unterscheidet der Seitenblick jetzt zwei Fälle — und sagt sie
+   verschieden an. */
+$fehlt = ['gibt_es_nicht', 'antwortet_nicht'];
+foreach ($fehlt as $art) {
+    $paar = Seitenblick::SAETZE[$art]['de'] ?? null;
+    pruefe("„$art" . '" hat einen eigenen Satz', is_array($paar) && trim((string) $paar[0]) !== '',
+        json_encode($paar));
+}
+pruefe('die beiden Sätze sind nicht derselbe',
+    Seitenblick::SAETZE['gibt_es_nicht']['de'][0] !== Seitenblick::SAETZE['antwortet_nicht']['de'][0]);
+
 /* Nichts, was wie eine Adresse im eigenen Netz aussieht, geht raus. Das ist
    die Stelle, an der man sich sonst einen Türsteher einbaut, der auf Zuruf
    ins eigene Netz greift. */
@@ -1919,10 +1931,27 @@ pruefe('und der Satz steht auf Deutsch da',
 $fehlend = [];
 foreach (Seitenblick::SAETZE as $art => $saetze) {
     foreach (['it', 'de', 'en'] as $sp) {
-        if (trim((string) ($saetze[$sp] ?? '')) === '') { $fehlend[] = "$art/$sp"; }
+        $paar = $saetze[$sp] ?? null;
+        if (!is_array($paar) || trim((string) ($paar[0] ?? '')) === ''
+            || trim((string) ($paar[1] ?? '')) === '') { $fehlend[] = "$art/$sp"; }
     }
 }
-pruefe('jeder Befund hat einen Satz in allen drei Sprachen', $fehlend === [], implode(', ', $fehlend));
+pruefe('jeder Befund hat Beobachtung UND Folge in allen drei Sprachen',
+    $fehlend === [], implode(', ', $fehlend));
+
+/* WAS EINE BERATUNG VON EINER MÄNGELLISTE UNTERSCHEIDET
+   Zu jedem Befund gehört, was er ihn kostet. Ohne die Folge ist es eine
+   Beschwerde über sein Geschäft, und die kauft niemand. */
+$mitFolge = Telefon::seiteAnsehen(['adresse' => 'facebook.com/pizzeria', 'sprache' => 'de']);
+pruefe('ein Befund bringt seine Folge mit',
+    trim((string) ($mitFolge['befunde'][0]['folge'] ?? '')) !== '',
+    json_encode($mitFolge['befunde'][0] ?? []));
+pruefe('und daraus wird ein Gesprächsfaden',
+    !empty($mitFolge['gespraech']['auftakt']) && !empty($mitFolge['gespraech']['frage']),
+    json_encode($mitFolge['gespraech'] ?? []));
+pruefe('der Hinweis verbietet die Mängelliste ausdrücklich',
+    str_contains((string) $mitFolge['hinweis'], 'Plattform')
+    || str_contains((string) $mitFolge['hinweis'], 'Mängelliste'), (string) $mitFolge['hinweis']);
 
 pruefe('der Blick steht in der Spur',
     (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'telefon_seitenblick'", [], 0) > 0);

@@ -1567,7 +1567,7 @@ final class Telefon
                                . 'und schreib die Adresse so hinein, wie er sie gesagt hat.'];
         }
 
-        $blick = Seitenblick::ansehen($adresse, $sprache);
+        $blick = Seitenblick::ansehen($adresse, $sprache, (string) ($d['branche'] ?? ''));
 
         if (!($blick['gefunden'] ?? false)) {
             $blick['weiter']  = 'buchstabieren';
