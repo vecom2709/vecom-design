@@ -2190,3 +2190,63 @@ Konfigurationen, gespeichert und nach dem Neuladen nachgesehen.
 
 **Weiter offen:** der erste echte Anruf. Bis dahin ist alles hier geprüft, aber nichts davon je
 von STRATO gerufen worden.
+
+## „Heute anrufen" — und warum kein Roboter zurückruft (06.09.2026)
+
+### Die Frage, die zuerst beantwortet werden musste
+
+Uwe hat eine Nummer bei Sonetel und wollte wissen, ob Manuela damit ausgehend
+telefonieren kann. Nachgesehen statt geraten:
+
+- **Manuela kann es nicht.** STRATOs Assistent ist ausdrücklich nur für eingehende Anrufe
+  gebaut („übernimmt eingehende Anrufe auf Ihrer Geschäftsnummer"). Die Plattform ist zu; es
+  gibt keine Schnittstelle, über die man sie wählen ließe.
+- **Die Nummer könnte es** — über einen SIP-Trunk an eine andere Agenten-Plattform
+  (ElevenLabs Agents und Retell unterstützen ausgehende Anrufe ausdrücklich). Das wäre aber
+  ein **zweiter, neu aufgebauter Assistent**. Die acht Aktionen liefen weiter, die sind
+  schlichte HTTP-Aufrufe; Stimme, Prompt und Wissen wären neu.
+- **Kosten**, falls es je dazu kommt: zwei Zähler gleichzeitig. Telefonie bei Sonetel —
+  Italien Festnetz 0,009 €/Min, Italien Mobil **von einer lokalen Sonetel-Nummer**
+  0,031 €/Min, **ohne** lokale Nummer bis 0,716 €/Min (der Unterschied ist der ganze Punkt).
+  Dazu der Agent: Retell 0,07–0,31 $/Min, keine Grundgebühr, SIP-Trunking kostenlos. Ein
+  Rückruf von drei Minuten liegt bei etwa 50 Cent. Synthflow — einmal der Plan — gibt es
+  inzwischen nur noch als Enterprise ab 30.000 $/Jahr und ist damit raus.
+- **Offen und bei Sonetel zu erfragen:** ob deren SIP-Trunk ausgehende Anrufe von einer
+  fremden Plattform überhaupt zulässt. Steht auf keiner ihrer öffentlichen Seiten.
+
+### Was stattdessen gebaut wurde
+
+Vor der Anschaffung steht eine Zahl, die niemand kennt: **wie viele Rückrufe es überhaupt
+gibt.** Bei fünf im Monat lohnt keine zweite Plattform, bei fünfzig schon. Also erst die
+Zahl, dann die Entscheidung.
+
+„Heute anrufen" steht jetzt ganz oben auf der Telefonseite: wer wartet, seit wann, unter
+welcher Nummer (als `tel:`-Link, ein Griff), in welchem Zeitfenster, worum es geht.
+Beschwerden oben, danach das Älteste — wer lange wartet, hat am ehesten schon aufgegeben.
+Rot ab einem Tag. Der Block erscheint nur, wenn wirklich jemand wartet.
+
+**Zwei Entscheidungen, die erklärt gehören:**
+
+1. **Erledigt löscht nichts.** Aktivitäten sind ein Protokoll: Man schreibt hinein, man
+   ändert sie nicht. Ein erledigter Rückruf bekommt eine Zeile, die auf ihn zeigt. Damit
+   bleibt lesbar, wann der Wunsch kam und wann er erledigt wurde — und es braucht keine
+   Wanderung an der Datenbank.
+2. **Die Nummer steht als Zeichenkette in der Spur.** Mit einer blanken Zahl hätte die Suche
+   nach `12` auch auf `123` gepasst, und ein erledigter Rückruf hätte fremde mit weggeräumt.
+   Der Fehler wäre nie aufgefallen — er hätte nur gelegentlich jemanden verschwinden lassen.
+   Prüfung 20 hält genau das fest.
+
+Dazu meldet der Cronjob einmal am Tag, was länger als einen Tag liegt — als **eine** Meldung,
+nicht als eine je Rückruf. Eine Liste, die man vergisst zu öffnen, ist keine Liste.
+
+Nebenbei korrigiert: `melde()` schrieb bisher ein Ja/Nein („Nummer war dabei") in die Spur
+statt der Nummer. Die Liste hätte Leute angezeigt, die man nicht anrufen kann.
+
+### Was von Vorschlag 5 schon lief
+
+Vor dem Bauen nachgesehen — und das meiste war da: Fragebogen-Erinnerung, erste
+Zahlungserinnerung mit frischem Link, Betreuungsmonate, abgelaufene Angebote, Abnahme-Prüfung.
+Neu ist nur die Rückruf-Mahnung. Ein zweiter Erinnerungsmechanismus daneben wäre eine
+Doppelung gewesen, die irgendwann zwei verschiedene Dinge behauptet.
+
+**Nachgemessen:** Prüfkette 302 → 325, alle grün.
