@@ -344,6 +344,34 @@ $konfigs['zusammenfassung'] = [
 </div>
 <?php endif; ?>
 
+<?php /* ---------- Kommt die Anrufernummer an? ---------- */ ?>
+<?php if (!empty($cli)): ?>
+<div class="block">
+  <h2>Kommt die Anrufernummer an?</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    Davon hängt ab, ob Manuela Bestandskunden am Telefon erkennt oder ob jeder erst
+    Namen und Kundennummer buchstabieren muss. Zwischen dem Anrufer und der Verwaltung
+    liegen zwei fremde Systeme — die Weiterleitung beim Telefonanbieter und STRATO.
+    Ob die Nummer die Strecke überlebt, steht nirgends vollständig geschrieben.
+    Also wird es hier abgelesen statt behauptet.</p>
+  <?php if ($cli['kommt_an'] === true): ?>
+    <p class="hinweis gut">Ja — bei <?= (int) $cli['mit'] ?> von
+      <?= (int) ($cli['mit'] + $cli['ohne']) ?> Nachschlage-Aufrufen kam eine Rufnummer mit.
+      Die Kundenerkennung funktioniert.</p>
+  <?php elseif ($cli['kommt_an'] === false): ?>
+    <p class="hinweis schlecht">Nein — bei <?= (int) $cli['ohne'] ?> Aufrufen kam keine
+      Rufnummer mit. Prüfe beim Telefonanbieter die Einstellung <b>„Show"</b>: Sie muss auf
+      <b>Caller’s number</b> stehen, nicht auf <em>Called number</em>. Bis dahin fragt
+      Manuela nach Namen oder Kundennummer — das ist gebaut und funktioniert.</p>
+  <?php else: ?>
+    <p class="hinweis" style="border-color:var(--linie);color:var(--dim)">Noch nicht entschieden:
+      <?= (int) $cli['mit'] ?> mit Nummer, <?= (int) $cli['ohne'] ?> ohne. Ein einzelner
+      Anrufer kann seine Nummer auch selbst unterdrückt haben — nach ein paar Anrufen steht
+      es fest.</p>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <?php /* ---------- Woran es hakt ---------- */ ?>
 <?php if (!empty($haken)): ?>
 <div class="block">

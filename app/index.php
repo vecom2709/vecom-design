@@ -2448,6 +2448,9 @@ switch ($route) {
                der Seite: Es ist das Einzige hier, was jemand persönlich
                tun muss. */
             'rueckrufe'  => sicher(static fn() => Telefon::rueckrufe(30), []),
+            /* Gemessen, nicht geraten: ob die Rufnummer des Anrufers die
+               Strecke über zwei fremde Systeme überlebt. */
+            'cli'        => sicher(static fn() => Telefon::anrufernummer(90), []),
         ]);
         break;
 

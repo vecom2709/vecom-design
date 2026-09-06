@@ -1660,6 +1660,60 @@ $cronQuelle = file_get_contents($wurzel . '/src/Cron.php') ?: '';
 pruefe('der Cronjob ruft sie auf', str_contains($cronQuelle, 'Telefon::rueckrufeMahnen'));
 
 /* ============================================================================
+   21. Kommt die Rufnummer des Anrufers an?
+   ----------------------------------------------------------------------------
+   Zwischen dem Anrufer und der Verwaltung liegen zwei fremde Systeme: die
+   Weiterleitung beim Telefonanbieter und der Assistent bei STRATO. Ob die
+   Rufnummer diese Strecke überlebt, steht nirgends vollständig geschrieben —
+   bei Sonetel ist es eine Einstellung („Show": Caller's number oder Called
+   number), bei STRATO ist es gar nicht dokumentiert.
+
+   Also wird es gemessen. Diese Prüfungen halten fest, dass wirklich gemessen
+   wird — und dass die Auskunft vorsichtig ist, wo sie es sein muss: Ein
+   einzelner Anrufer kann seine Nummer selbst unterdrückt haben.
+   ============================================================================ */
+abschnitt('21. Kommt die Rufnummer des Anrufers an?');
+
+Db::run("DELETE FROM activities WHERE type = 'telefon_nachschlagen'");
+$c = Telefon::anrufernummer(90);
+/* ?? greift bei einem vorhandenen null-Wert auch — deshalb hier direkt
+   vergleichen. Der Fehler hat diese Prüfung beim ersten Lauf gerissen. */
+pruefe('ohne Anruf gibt es keine Aussage',
+    array_key_exists('kommt_an', $c) && $c['kommt_an'] === null);
+pruefe('und das wird auch so gesagt', ($c['gemessen'] ?? true) === false);
+
+/* Ein Nachschlagen ohne Nummer — jemand nennt nur seinen Namen. */
+Telefon::nachschlagen(['name' => 'Gibt es nicht']);
+$c = Telefon::anrufernummer(90);
+pruefe('jetzt ist gemessen', ($c['gemessen'] ?? false) === true);
+pruefe('einmal ohne Nummer beweist noch nichts', $c['kommt_an'] === null,
+    json_encode($c));
+
+/* Drei ohne Nummer sind ein Muster. */
+Telefon::nachschlagen(['name' => 'Auch nicht']);
+Telefon::nachschlagen(['name' => 'Ebenfalls nicht']);
+$c = Telefon::anrufernummer(90);
+pruefe('drei ohne Nummer sind ein Befund', ($c['kommt_an'] ?? null) === false,
+    json_encode($c));
+
+/* EIN EINZIGER ANRUF MIT NUMMER BEWEIST, DASS DIE STRECKE TRÄGT.
+   Andersherum als oben — und das ist Absicht: Dass etwas ankommt, kann man
+   an einem Fall sehen. Dass es nie ankommt, nicht. */
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+$c = Telefon::anrufernummer(90);
+pruefe('ein einziger Anruf mit Nummer genügt als Beweis',
+    ($c['kommt_an'] ?? null) === true, json_encode($c));
+pruefe('und beide Seiten werden gezählt',
+    (int) $c['mit'] === 1 && (int) $c['ohne'] === 3, json_encode($c));
+
+/* Die Rufnummer landet in der Spur — sonst ließe sich später nicht
+   nachsehen, was wirklich ankam. */
+$letzte = (string) Db::wert(
+    "SELECT meta FROM activities WHERE type = 'telefon_nachschlagen' ORDER BY id DESC LIMIT 1", [], '');
+pruefe('die angekommene Nummer steht in der Spur', str_contains($letzte, '380'), $letzte);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

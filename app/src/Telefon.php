@@ -190,6 +190,28 @@ final class Telefon
                 ['%' . $name . '%', '%' . $name . '%']);
         }
 
+        /* WAS HIER ANKOMMT, BEANTWORTET EINE FRAGE, DIE SONST NIEMAND
+           BEANTWORTEN KANN
+           ---------------------------------------------------------------
+           Zwischen dem Anrufer und dieser Zeile liegen zwei fremde Systeme:
+           die Weiterleitung beim Telefonanbieter und der Assistent bei
+           STRATO. Ob die Rufnummer des Anrufers diese Strecke ueberlebt,
+           steht in keiner Dokumentation -- weder bei Sonetel (dort ist es
+           eine Einstellung) noch bei STRATO (dort ist es gar nicht
+           dokumentiert).
+
+           Also wird es gemessen statt geraten: Jeder Aufruf vermerkt, ob
+           eine Nummer mitkam. Nach dem ersten echten Anruf steht es fest.
+           Ohne diese drei Zeilen bliebe die Frage offen, bis irgendwann
+           auffaellt, dass Bestandskunden nicht mehr erkannt werden. */
+        self::protokoll('nachschlagen', 'Nachgeschlagen am Telefon',
+                        $treffer && count($treffer) === 1 ? (int) $treffer[0]['id'] : null,
+                        ['nummer_kam_an' => $telefon !== '',
+                         'nummer'        => $telefon,
+                         'name_genannt'  => $name !== '',
+                         'nummer_genannt'=> $nummer !== '',
+                         'treffer'       => count($treffer)]);
+
         if (!$treffer) {
             return ['gefunden' => false,
                     'hinweis'  => 'Kein Eintrag. Anliegen aufnehmen und melden.'];
@@ -1228,6 +1250,43 @@ final class Telefon
 
         return ['offen' => count($offen), 'ueberfaellig' => count($alt),
                 'aeltester_stunden' => $aeltester];
+    }
+
+    /**
+     * KOMMT DIE RUFNUMMER DES ANRUFERS BEI UNS AN?
+     * ---------------------------------------------------------------------
+     * Die Antwort entscheidet, ob Bestandskunden am Telefon erkannt werden
+     * oder ob jeder von ihnen erst Namen und Kundennummer buchstabieren
+     * muss. Sie haengt an zwei Einstellungen in zwei fremden Systemen und
+     * steht in keiner Dokumentation vollstaendig.
+     *
+     * Deshalb wird sie nicht behauptet, sondern abgelesen: aus dem, was bei
+     * den letzten Nachschlage-Aufrufen wirklich angekommen ist.
+     *
+     * @return array{gemessen:bool,mit:int,ohne:int,kommt_an:?bool}
+     */
+    public static function anrufernummer(int $tage = 90): array
+    {
+        $tage = max(1, min(3650, $tage));
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type = 'telefon_nachschlagen' AND demo = 0
+                AND created_at >= NOW() - INTERVAL $tage DAY
+              ORDER BY id DESC LIMIT 50"), []);
+
+        $mit = $ohne = 0;
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (!is_array($m) || !array_key_exists('nummer_kam_an', $m)) { continue; }
+            if ($m['nummer_kam_an']) { $mit++; } else { $ohne++; }
+        }
+
+        $gesamt = $mit + $ohne;
+        return ['gemessen' => $gesamt > 0, 'mit' => $mit, 'ohne' => $ohne,
+                /* Einmal reicht als Beweis, dass die Strecke traegt. Dass sie
+                   es NICHT tut, braucht mehr als einen Fall -- ein Anrufer
+                   kann seine Nummer auch selbst unterdrueckt haben. */
+                'kommt_an' => $gesamt === 0 ? null : ($mit > 0 ? true : ($ohne >= 3 ? false : null))];
     }
 
     /**
