@@ -912,6 +912,15 @@ if ($post) {
                 weiter($_POST['zurueck'] ?? 'telefon');
                 break;
 
+            case 'telefon_rueckruf_weg':
+                /* Abgehakt heisst hier: eine Zeile mehr im Protokoll, keine
+                   geaenderte. Wer spaeter wissen will, wie lange jemand
+                   gewartet hat, kann es nachlesen. */
+                require_once __DIR__ . '/src/Telefon.php';
+                Telefon::rueckrufErledigt((int) ($_POST['eintrag'] ?? 0));
+                weiter($_POST['zurueck'] ?? 'telefon');
+                break;
+
             case 'telefon_schluessel_neu':
                 /* Der alte wird damit wertlos. Genau dafuer ist er da: Ein
                    Schluessel, der im Klartext bei einem fremden Anbieter
@@ -2435,6 +2444,10 @@ switch ($route) {
             /* Woran Anrufer haengen bleiben. Zwanzig Anrufe zum Fragebogen
                sind kein Support-Fall, sondern ein Produktfehler. */
             'haken'      => sicher(static fn() => Telefon::haken(90), []),
+            /* Wer heute einen Anruf erwartet. Steht bewusst ganz oben auf
+               der Seite: Es ist das Einzige hier, was jemand persönlich
+               tun muss. */
+            'rueckrufe'  => sicher(static fn() => Telefon::rueckrufe(30), []),
         ]);
         break;
 

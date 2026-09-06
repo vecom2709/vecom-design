@@ -1551,6 +1551,115 @@ pruefe('auch auf der Website stimmen die Zeichen', $netzFehler === [],
     implode(' , ', array_slice($netzFehler, 0, 5)));
 
 /* ============================================================================
+   20. Wer heute einen Anruf erwartet
+   ----------------------------------------------------------------------------
+   Diese Liste ersetzt den Roboter, der zurückruft: Sie kostet nichts, ist
+   rechtlich unbedenklich und beantwortet die Frage, die vor jeder Anschaffung
+   steht — wie viele Rückrufe es überhaupt gibt.
+
+   Damit sie das kann, muss sie zwei Dinge sicher tun: nichts vergessen und
+   nichts doppelt zeigen. Beides steht hier.
+   ============================================================================ */
+abschnitt('20. Wer heute einen Anruf erwartet');
+
+/* Alles Vorherige abräumen, damit die Zählungen dieses Abschnitts eindeutig
+   sind — die Kette hat oben schon Meldungen erzeugt. */
+Db::run("INSERT INTO activities (type, title, meta, created_at)
+         SELECT 'telefon_rueckruf_erledigt', 'Aufräumen für Abschnitt 20',
+                CONCAT('{\"quelle\":\"', id, '\"}'), NOW()
+           FROM activities WHERE type IN ('telefon_melde','telefon_hilfe')");
+pruefe('vor dem Abschnitt ist die Liste leer', Telefon::rueckrufe(30) === [],
+    (string) count(Telefon::rueckrufe(30)));
+
+/* --- Ein Rückrufwunsch mit Zeitfenster ---------------------------------- */
+Telefon::melden(['art' => 'rueckruf', 'kunde_id' => $kundeId,
+                 'name' => 'Carla Greco', 'telefon' => '+39 340 55 66 77',
+                 'erreichbar' => 'morgen vormittag',
+                 'text' => 'Möchte über eine zweite Sprache sprechen']);
+$liste = Telefon::rueckrufe(30);
+pruefe('der Wunsch steht auf der Liste', count($liste) === 1, (string) count($liste));
+$e = $liste[0] ?? [];
+pruefe('mit der Rufnummer, die man wählen kann',
+    str_contains((string) ($e['nummer'] ?? ''), '340'), (string) ($e['nummer'] ?? '—'));
+pruefe('mit dem Zeitfenster', ($e['erreichbar'] ?? '') === 'morgen vormittag');
+pruefe('mit dem Anliegen im Klartext',
+    str_contains((string) ($e['anliegen'] ?? ''), 'zweite Sprache'));
+pruefe('und noch nicht überfällig', ($e['ueberfaellig'] ?? true) === false);
+
+/* --- Was NICHT auf die Liste gehört -------------------------------------- */
+Telefon::wissensluecke(['frage' => 'Macht ihr auch Beschriftungen?']);
+pruefe('eine Wissenslücke wartet auf keinen Anruf',
+    count(Telefon::rueckrufe(30)) === 1, (string) count(Telefon::rueckrufe(30)));
+
+/* Eine Hilfe, deren Versand scheitert, gehört dagegen SEHR WOHL auf die
+   Liste: Dann wartet jemand auf etwas, das nie angekommen ist. Hier in der
+   Prüfung scheitert jeder Versand mangels Mailschlüssel — also erscheint
+   sie, und genau das soll sie. */
+Telefon::hilfe(['problem' => 'zugang', 'kunde_id' => $kundeId]);
+pruefe('eine Hilfe, die nicht rausging, wartet auf einen Anruf',
+    count(Telefon::rueckrufe(30)) === 2, (string) count(Telefon::rueckrufe(30)));
+
+/* --- Eine Beschwerde steht oben ----------------------------------------- */
+Telefon::melden(['art' => 'beschwerde', 'kunde_id' => $kundeId,
+                 'name' => 'Bruno Sala', 'telefon' => '+39 333 11 22 33',
+                 'text' => 'Seite war zwei Stunden offline']);
+$liste = Telefon::rueckrufe(30);
+pruefe('die Beschwerde steht ganz oben', ($liste[0]['dringend'] ?? false) === true,
+    (string) ($liste[0]['wer'] ?? '—'));
+pruefe('und die Liste hat jetzt drei Einträge', count($liste) === 3,
+    (string) count($liste));
+
+/* --- Erledigt heißt weg, aber nicht gelöscht ---------------------------- */
+$erst = (int) $liste[0]['id'];
+pruefe('erledigt melden klappt', Telefon::rueckrufErledigt($erst) === true);
+pruefe('und der Eintrag verschwindet aus der Liste',
+    count(Telefon::rueckrufe(30)) === 2, (string) count(Telefon::rueckrufe(30)));
+pruefe('die Spur bleibt aber stehen',
+    (int) Db::wert('SELECT COUNT(*) FROM activities WHERE id = ?', [$erst], 0) === 1);
+pruefe('zweimal erledigen macht keinen Schaden', Telefon::rueckrufErledigt($erst) === true);
+pruefe('und legt keine zweite Zeile an',
+    (int) Db::wert("SELECT COUNT(*) FROM activities
+                     WHERE type = 'telefon_rueckruf_erledigt'
+                       AND meta LIKE CONCAT('%\"quelle\":\"', ?, '\"%')", [$erst], 0) === 1);
+
+/* EINE ZAHL, DIE IN EINER ANDEREN STECKT
+   ------------------------------------------------------------------------
+   „quelle":1 hätte auch auf 12, 13 und 100 gepasst — ein erledigter Rückruf
+   hätte fremde mit weggeräumt. Deshalb steht die Nummer in Anführungszeichen.
+   Diese Prüfung ist der Grund dafür. */
+$offenVorher = count(Telefon::rueckrufe(30));
+Telefon::rueckrufErledigt((int) ($erst . '9'));       // z. B. 12 statt 1
+pruefe('eine Nummer, die mit derselben Ziffer anfängt, räumt nichts weg',
+    count(Telefon::rueckrufe(30)) === $offenVorher, (string) $offenVorher);
+
+pruefe('eine erfundene Nummer wird abgelehnt', Telefon::rueckrufErledigt(999999) === false);
+pruefe('und die Null auch', Telefon::rueckrufErledigt(0) === false);
+
+/* --- Was zu lange liegt, meldet sich ------------------------------------ */
+$frisch = Telefon::rueckrufeMahnen();
+pruefe('frische Rückrufe werden nicht gemahnt',
+    (int) ($frisch['ueberfaellig'] ?? -1) === 0, json_encode($frisch));
+
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 3 DAY
+          WHERE type = 'telefon_melde'");
+$offen = Telefon::rueckrufe(30);
+pruefe('nach drei Tagen ist er überfällig', ($offen[0]['ueberfaellig'] ?? false) === true);
+
+/* Meldungen stehen in „notifications", nicht in den Aktivitäten — das ist
+   die Liste, die in der Verwaltung oben klingelt. */
+$meldungenVorher = (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'telefon_rueckruf_offen'", [], 0);
+$alt = Telefon::rueckrufeMahnen();
+pruefe('und wird gemeldet', (int) ($alt['ueberfaellig'] ?? 0) >= 1, json_encode($alt));
+pruefe('als EINE Meldung, nicht als eine je Rückruf',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'telefon_rueckruf_offen'", [], 0)
+    === $meldungenVorher + 1);
+
+/* --- Der Cronjob kennt die Aufgabe -------------------------------------- */
+$cronQuelle = file_get_contents($wurzel . '/src/Cron.php') ?: '';
+pruefe('der Cronjob ruft sie auf', str_contains($cronQuelle, 'Telefon::rueckrufeMahnen'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

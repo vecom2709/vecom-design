@@ -117,6 +117,13 @@ final class Cron
                 require_once __DIR__ . '/Angebot.php';
                 return Angebot::abgelaufeneSchliessen();
             },
+            /* Rueckrufe, die zu lange liegen. Eine Liste, die man vergisst
+               zu oeffnen, ist keine Liste -- also meldet sie sich selbst,
+               einmal am Tag und als EINE Meldung, nicht als zehn. */
+            'rueckrufe'   => static function () {
+                require_once __DIR__ . '/Telefon.php';
+                return Telefon::rueckrufeMahnen();
+            },
             // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
             // jedem Aufruf eine HTTP-Anfrage zu stellen.
             'cockpit'     => static fn() => self::cockpitPruefen(),

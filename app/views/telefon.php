@@ -47,6 +47,67 @@ foreach (Telefon::VORWEG as $f) {
     <button class="knopf">Neuen Schlüssel erzeugen</button></form>
 </div>
 
+<?php /* ---------- Heute anrufen ---------- */ ?>
+<?php if (!empty($rueckrufe)):
+  $dringend = array_filter($rueckrufe, static fn(array $r): bool => $r['dringend']);
+  $alt      = array_filter($rueckrufe, static fn(array $r): bool => $r['ueberfaellig']);
+?>
+<div class="block" style="border-color:<?= $alt ? 'var(--rot)' : 'var(--cyan)' ?>">
+  <h2>Heute anrufen <span class="marke2"><?= count($rueckrufe) ?></span></h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    Das Einzige auf dieser Seite, was du persönlich tun musst. Oben steht, was
+    dringend ist, darunter das, was am längsten wartet — wer lange wartet, hat am
+    ehesten schon aufgegeben.
+    <?php if ($alt): ?><br><b>Rot heißt: liegt seit mehr als einem Tag.</b><?php endif; ?>
+  </p>
+  <table class="tab"><tbody>
+    <?php foreach ($rueckrufe as $r): ?>
+      <tr<?= $r['ueberfaellig'] ? ' style="background:rgba(255,90,90,.06)"' : '' ?>>
+        <td style="white-space:nowrap;vertical-align:top;width:1%">
+          <?php if ($r['dringend']): ?><span class="marke2 schlecht">dringend</span><br><?php endif; ?>
+          <span style="color:var(--leise);font-size:12px">
+            <?= $r['stunden'] < 24
+                  ? 'vor ' . (int) $r['stunden'] . ' h'
+                  : 'seit ' . (int) round($r['stunden'] / 24) . ' Tag' . (round($r['stunden'] / 24) == 1 ? '' : 'en') ?>
+          </span>
+        </td>
+        <td style="vertical-align:top">
+          <b><?php if ($r['kunde_id'] > 0): ?>
+            <a href="<?= Fmt::h(url('kunden/' . (int) $r['kunde_id'])) ?>"><?= Fmt::h($r['wer']) ?></a>
+          <?php else: ?><?= Fmt::h($r['wer']) ?><?php endif; ?></b>
+          <?php if ($r['anliegen'] !== ''): ?>
+            <div style="color:var(--leise);font-size:12.5px;margin-top:3px"><?= Fmt::h($r['anliegen']) ?></div>
+          <?php endif; ?>
+        </td>
+        <td style="vertical-align:top;white-space:nowrap">
+          <?php if ($r['nummer'] !== ''): ?>
+            <a href="tel:<?= Fmt::h(preg_replace('/[^0-9+]/', '', $r['nummer']) ?? '') ?>"
+               style="font-weight:600"><?= Fmt::h($r['nummer']) ?></a>
+          <?php else: ?>
+            <span style="color:var(--leise)">keine Nummer</span>
+          <?php endif; ?>
+          <?php if ($r['erreichbar'] !== ''): ?>
+            <div style="color:var(--leise);font-size:12.5px;margin-top:3px">
+              erreichbar: <?= Fmt::h($r['erreichbar']) ?></div>
+          <?php else: ?>
+            <div style="color:var(--leise);font-size:12.5px;margin-top:3px">kein Zeitfenster genannt</div>
+          <?php endif; ?>
+        </td>
+        <td style="text-align:right;vertical-align:top;white-space:nowrap">
+          <form method="post" action="<?= Fmt::h(url('')) ?>">
+            <?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="telefon_rueckruf_weg">
+            <input type="hidden" name="eintrag" value="<?= (int) $r['id'] ?>">
+            <input type="hidden" name="zurueck" value="telefon">
+            <button class="knopf">Erledigt</button>
+          </form>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+  </tbody></table>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <h2>Der Schlüssel</h2>
   <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">

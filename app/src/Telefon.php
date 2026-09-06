@@ -706,9 +706,15 @@ final class Telefon
             . ($erreichbar !== '' ? ' · erreichbar ' . $erreichbar : ''),
             $link), null);
 
+        /* Die Rufnummer gehoert in die Spur, nicht nur die Auskunft, DASS
+           eine da war. Vorher stand hier ein Ja/Nein -- und die Rueckrufliste
+           haette dann jemanden angezeigt, den man nicht anrufen kann. Bei
+           einem bekannten Kunden steht sie ohnehin in der Akte; bei einem
+           Fremden ist das hier die einzige Stelle. */
         self::protokoll('melde', $kopf, $kundeId > 0 ? $kundeId : null,
-                        ['art' => $art, 'dringend' => $dringend, 'telefon' => $telefon !== '',
-                         'erreichbar' => $erreichbar]);
+                        ['art' => $art, 'dringend' => $dringend, 'nummer' => $telefon,
+                         'name' => $name, 'erreichbar' => $erreichbar,
+                         'anliegen' => mb_substr($text, 0, 300)]);
 
         /* Ohne Zeitfenster einmal nachfragen -- aber nur einmal, und nur wenn
            es um einen Rueckruf geht. Bei einer Beschwerde ist die Frage nach
@@ -1060,6 +1066,168 @@ final class Telefon
         return str_replace('"@@RUMPF@@"',
             (string) json_encode((string) $k['rumpf'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             $text);
+    }
+
+    /** Nach so vielen Stunden ohne Rueckruf ist es eine Meldung wert. */
+    public const RUECKRUF_UEBERFAELLIG_STUNDEN = 24;
+
+    /**
+     * WER HEUTE EINEN ANRUF ERWARTET
+     * =====================================================================
+     * Der Assistent nimmt Rueckrufwuensche auf. Bisher standen sie in den
+     * Aktivitaeten -- zwischen allem anderen, in der Reihenfolge, in der sie
+     * hereinkamen, ohne Nummer und ohne Zeitfenster. Wer sie abarbeiten
+     * wollte, musste sie sich zusammensuchen, und genau das passiert dann
+     * nicht.
+     *
+     * Diese Liste ist der Ersatz fuer einen Roboter, der zurueckruft: Sie
+     * kostet nichts, ist rechtlich unbedenklich, und sie beantwortet die
+     * Frage, die vor jeder Anschaffung steht -- wie viele Rueckrufe es
+     * ueberhaupt gibt. Bei fuenf im Monat lohnt keine zweite Plattform.
+     *
+     * ERLEDIGT OHNE NEUE TABELLE
+     * Aktivitaeten sind ein Protokoll: Man schreibt hinein, man aendert sie
+     * nicht. Ein erledigter Rueckruf wird deshalb nicht durchgestrichen,
+     * sondern es kommt eine Zeile dazu, die auf ihn zeigt. Damit bleibt die
+     * Geschichte lesbar -- wann kam der Wunsch, wann wurde er erledigt --
+     * und es braucht keine Wanderung an der Datenbank.
+     *
+     * @return list<array{id:int,wann:string,art:string,dringend:bool,wer:string,
+     *                    nummer:string,erreichbar:string,anliegen:string,
+     *                    kunde_id:int,stunden:int,ueberfaellig:bool}>
+     */
+    public static function rueckrufe(int $tage = 30): array
+    {
+        $tage = max(1, min(365, $tage));
+
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT a.id, a.created_at, a.title, a.customer_id, a.meta
+               FROM activities a
+              WHERE a.type IN ('telefon_melde', 'telefon_hilfe')
+                AND a.demo = 0
+                AND a.created_at >= NOW() - INTERVAL $tage DAY
+                /* Die Nummer steht als ZEICHENKETTE in der Spur, damit hier
+                   exakt verglichen werden kann. Mit einer blanken Zahl haette
+                   die Suche nach 12 auch auf 123 gepasst -- und ein erledigter
+                   Rueckruf haette einen fremden mit weggeraeumt. */
+                AND NOT EXISTS (
+                    SELECT 1 FROM activities e
+                     WHERE e.type = 'telefon_rueckruf_erledigt'
+                       AND e.meta LIKE CONCAT('%\"quelle\":\"', a.id, '\"%'))
+              ORDER BY a.created_at DESC"), []);
+
+        $raus = [];
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            if (!is_array($m)) { continue; }
+
+            /* Nur, wo wirklich jemand auf einen Anruf wartet. Eine
+               Wissensluecke oder ein verschickter Link gehoeren nicht auf
+               diese Liste -- sie waere sonst in einer Woche so lang, dass
+               niemand sie mehr ansieht. */
+            $art = (string) ($m['art'] ?? '');
+            if (!in_array($art, ['rueckruf', 'beschwerde', 'nachricht'], true)) { continue; }
+
+            $kundeId = (int) ($z['customer_id'] ?? 0);
+            $nummer  = trim((string) ($m['nummer'] ?? ''));
+            if ($nummer === '' && $kundeId > 0) {
+                $nummer = trim((string) self::still(static fn() => Db::wert(
+                    'SELECT phone FROM customers WHERE id = ?', [$kundeId], ''), ''));
+            }
+
+            $wer = trim((string) ($m['name'] ?? ''));
+            if ($wer === '' && $kundeId > 0) {
+                $wer = trim((string) self::still(static fn() => Db::wert(
+                    'SELECT name FROM customers WHERE id = ?', [$kundeId], ''), ''));
+            }
+            if ($wer === '') { $wer = $nummer !== '' ? $nummer : 'unbekannt'; }
+
+            $alter = max(0, (int) round((time() - strtotime((string) $z['created_at'])) / 3600));
+
+            $raus[] = [
+                'id'          => (int) $z['id'],
+                'wann'        => (string) $z['created_at'],
+                'art'         => $art,
+                'dringend'    => (bool) ($m['dringend'] ?? false),
+                'wer'         => $wer,
+                'nummer'      => $nummer,
+                'erreichbar'  => trim((string) ($m['erreichbar'] ?? '')),
+                'anliegen'    => trim((string) ($m['anliegen'] ?? '')),
+                'kunde_id'    => $kundeId,
+                'stunden'     => $alter,
+                'ueberfaellig'=> $alter >= self::RUECKRUF_UEBERFAELLIG_STUNDEN,
+            ];
+        }
+
+        /* Dringend zuerst, dann das Aelteste. Wer am laengsten wartet, hat
+           am ehesten schon aufgegeben. */
+        usort($raus, static function (array $a, array $b): int {
+            if ($a['dringend'] !== $b['dringend']) { return $a['dringend'] ? -1 : 1; }
+            return $b['stunden'] <=> $a['stunden'];
+        });
+        return $raus;
+    }
+
+    /**
+     * Einen Rueckruf abhaken.
+     *
+     * Es wird nichts geloescht und nichts ueberschrieben -- es kommt eine
+     * Zeile dazu, die sagt: der da ist erledigt. Wer spaeter wissen will,
+     * wie lange jemand gewartet hat, kann es immer noch nachlesen.
+     */
+    public static function rueckrufErledigt(int $aktivitaetId): bool
+    {
+        $aktivitaetId = (int) $aktivitaetId;
+        if ($aktivitaetId <= 0) { return false; }
+
+        /* Nur, was es gibt, und nur ein Telefon-Eintrag. Sonst liesse sich
+           ueber dieses Feld jede beliebige Zeile als erledigt markieren. */
+        $da = (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(*) FROM activities
+              WHERE id = ? AND type IN ('telefon_melde', 'telefon_hilfe')",
+            [$aktivitaetId], 0), 0);
+        if ($da !== 1) { return false; }
+
+        $schon = (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(*) FROM activities
+              WHERE type = 'telefon_rueckruf_erledigt'
+                AND meta LIKE CONCAT('%\"quelle\":\"', ?, '\"%')", [$aktivitaetId], 0), 0);
+        if ($schon > 0) { return true; }
+
+        $kundeId = (int) self::still(static fn() => Db::wert(
+            'SELECT customer_id FROM activities WHERE id = ?', [$aktivitaetId], 0), 0);
+
+        self::protokoll('rueckruf_erledigt', 'Rückruf erledigt',
+                        $kundeId > 0 ? $kundeId : null, ['quelle' => (string) $aktivitaetId]);
+        return true;
+    }
+
+    /**
+     * Was zu lange liegt, meldet sich von selbst.
+     *
+     * Eine Liste, die man vergisst zu oeffnen, ist keine Liste. Deshalb
+     * schaut der Cronjob einmal am Tag nach und meldet, was seit mehr als
+     * einem Tag wartet -- als EINE Meldung, nicht als zehn.
+     */
+    public static function rueckrufeMahnen(): array
+    {
+        $offen = self::rueckrufe(30);
+        $alt   = array_values(array_filter($offen,
+            static fn(array $r): bool => $r['ueberfaellig']));
+        if ($alt === []) { return ['offen' => count($offen), 'ueberfaellig' => 0]; }
+
+        $aeltester = (int) max(array_column($alt, 'stunden'));
+        $namen = implode(', ', array_slice(array_column($alt, 'wer'), 0, 5));
+
+        self::still(static fn() => Events::melden(
+            'telefon_rueckruf_offen',
+            count($alt) === 1 ? 'Ein Rückruf wartet seit gestern' : count($alt) . ' Rückrufe warten',
+            $aeltester >= 72 ? 'schlecht' : 'warnung',
+            $namen . ' — der älteste seit ' . (int) round($aeltester / 24) . ' Tag(en).',
+            '/telefon'), null);
+
+        return ['offen' => count($offen), 'ueberfaellig' => count($alt),
+                'aeltester_stunden' => $aeltester];
     }
 
     /**
