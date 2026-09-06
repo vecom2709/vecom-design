@@ -898,6 +898,20 @@ if ($post) {
                     : 'Kaufknopf im Testmodus wieder ausgeblendet');
                 weiter('integrationen');
 
+            case 'telefon_modus':
+                /* Der Urlaubsschalter. Ohne ihn raet das Sprachmodell die
+                   Lage -- und zwar ueberzeugend falsch. */
+                require_once __DIR__ . '/src/Telefon.php';
+                Telefon::modusSetzen((string) ($_POST['modus'] ?? 'normal'));
+                weiter($_POST['zurueck'] ?? 'telefon');
+                break;
+
+            case 'telefon_luecke_weg':
+                require_once __DIR__ . '/src/Telefon.php';
+                Telefon::lueckeWeg((string) ($_POST['schluessel'] ?? ''));
+                weiter($_POST['zurueck'] ?? 'telefon');
+                break;
+
             case 'telefon_schluessel_neu':
                 /* Der alte wird damit wertlos. Genau dafuer ist er da: Ein
                    Schluessel, der im Klartext bei einem fremden Anbieter
@@ -2410,6 +2424,14 @@ switch ($route) {
             'anzahl'     => sicher(static fn() => (int) Db::wert(
                 "SELECT COUNT(*) FROM activities WHERE type LIKE 'telefon\\_%'
                    AND created_at >= NOW() - INTERVAL 30 DAY", [], 0), 0),
+            'modus'      => sicher(static fn() => Telefon::modus(), 'normal'),
+            'luecken'    => sicher(static fn() => Telefon::luecken(), []),
+            /* DER TRICHTER
+               Ohne ihn weisst du in drei Monaten nicht, ob der Tarif sich
+               traegt. Was gezaehlt wird und warum nur das, steht bei
+               Telefon::trichter() -- dort, wo die Pruefkette es nachrechnen
+               kann. */
+            'trichter'   => sicher(static fn() => Telefon::trichter(90), []),
         ]);
         break;
 

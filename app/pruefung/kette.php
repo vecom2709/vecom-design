@@ -883,10 +883,19 @@ require_once $wurzel . '/src/Cron.php';
 pruefe('Telefon- und Cron-Schlüssel sind verschieden',
     Telefon::schluessel() !== Cron::schluessel());
 
-/* Nur diese vier Aktionen. Was nicht auf der Liste steht, gibt es nicht —
-   der Verteiler in telefon.php prüft gegen genau diese Konstante. */
-pruefe('es gibt genau vier Aktionen', count(Telefon::AKTIONEN) === 4,
+/* Nur diese Aktionen. Was nicht auf der Liste steht, gibt es nicht —
+   der Verteiler in telefon.php prueft gegen genau diese Konstante.
+   Die Zahl steht bewusst nicht hier: sie waechst mit den Faehigkeiten,
+   und ein Test, der bei jeder neuen Faehigkeit nachgezogen werden muss,
+   wird irgendwann nachgezogen statt gelesen. Geprueft wird, was gelten
+   muss: jeder Name ist eindeutig und ein schlichtes Wort. */
+pruefe('jede Aktion steht nur einmal auf der Liste',
+    count(Telefon::AKTIONEN) === count(array_unique(Telefon::AKTIONEN)),
     implode(', ', Telefon::AKTIONEN));
+$krumm = array_values(array_filter(Telefon::AKTIONEN,
+    static fn(string $a): bool => preg_match('/^[a-z][a-z_]{2,30}$/', $a) !== 1));
+pruefe('und ist ein schlichtes Wort ohne Sonderzeichen', $krumm === [],
+    implode(', ', $krumm));
 
 /* --- Nachschlagen ------------------------------------------------------- */
 Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
@@ -1002,11 +1011,243 @@ pruefe('die Drosselung greift', $durch <= Telefon::DROSSEL_PRO_MINUTE, (string) 
 $quelle = file_get_contents(dirname(dirname(__DIR__)) . '/telefon.php') ?: '';
 pruefe('der Endpunkt prüft den Schlüssel zeitkonstant',
     str_contains($quelle, 'Telefon::schluesselStimmt'));
-pruefe('er lässt nur die vier Aktionen durch',
+pruefe('er lässt nur die Aktionen von der Liste durch',
     str_contains($quelle, 'in_array($aktion, Telefon::AKTIONEN, true)'));
 pruefe('er drosselt', str_contains($quelle, 'Telefon::darfNoch'));
 pruefe('ein Fehler würgt kein Gespräch ab',
     str_contains($quelle, 'Anliegen aufnehmen und melden'));
+
+/* ============================================================================
+   16. Preis, Lage, Wissenslücke
+   ============================================================================ */
+abschnitt('16. Was der Assistent nachfragen kann');
+
+require_once $wurzel . '/src/Baukasten.php';
+pruefe('es gibt jetzt sieben Aktionen', count(Telefon::AKTIONEN) === 7,
+    (string) count(Telefon::AKTIONEN));
+
+/* --- Preisauskunft ------------------------------------------------------ */
+
+/* DIE WICHTIGSTE PRÜFUNG DIESES ABSCHNITTS
+   ------------------------------------------------------------------------
+   Der Preis am Telefon muss aus derselben Maschine kommen wie der Preis im
+   Angebot. Zwei Stellen, die dieselbe Frage beantworten, laufen auseinander
+   — und dann steht in der Gesprächszusammenfassung eine andere Zahl als im
+   Angebot, und der Kunde hat den Widerspruch schriftlich. */
+$antw = ['zweck' => ['zeigen','kontakt'], 'umfang' => 'wenige', 'sprachen' => 1];
+$direkt = Baukasten::rechnen($antw);
+$dsp = Baukasten::spanne((int) $direkt['von_cents'], (int) $direkt['bis_cents']);
+$pa = Telefon::preisAuskunft($antw);
+pruefe('die Telefonauskunft rechnet wie das Angebot',
+    (int) ($pa['von_euro'] ?? -1) === (int) round($dsp['von_cents'] / 100)
+    && (int) ($pa['bis_euro'] ?? -1) === (int) round($dsp['bis_cents'] / 100),
+    ($pa['von_euro'] ?? '?') . '–' . ($pa['bis_euro'] ?? '?') . ' gegen '
+    . round($dsp['von_cents'] / 100) . '–' . round($dsp['bis_cents'] / 100));
+
+pruefe('es kommt immer eine Spanne, nie eine Zahl',
+    isset($pa['von_euro'], $pa['bis_euro']) && $pa['bis_euro'] > $pa['von_euro'],
+    json_encode([$pa['von_euro'] ?? null, $pa['bis_euro'] ?? null]));
+
+$ohneAngabe = Telefon::preisAuskunft([]);
+pruefe('auch ohne jede Angabe kommt eine Orientierung',
+    isset($ohneAngabe['von_euro']) && $ohneAngabe['von_euro'] > 0);
+pruefe('und sie sagt, worauf sie beruht',
+    trim((string) ($ohneAngabe['grundlage'] ?? '')) !== '');
+pruefe('der Hinweis verbietet den Festpreis',
+    str_contains((string) ($pa['hinweis'] ?? ''), 'Spanne'));
+
+/* Der Einstiegspreis muss aus der Paket-Tabelle kommen, nicht aus dem Code. */
+$festDb = (int) Db::wert("SELECT price_cents FROM packages
+                           WHERE active = 1 AND art = 'website' AND price_cents > 0
+                           ORDER BY price_cents LIMIT 1", [], 0);
+if ($festDb > 0) {
+    /* Die Preisauskunft nennt jetzt Zahlen -- und genau deshalb muss belegt
+   sein, dass es die oeffentlichen sind. Wer eine Kundennummer mitschickt,
+   bekommt dieselbe Auskunft wie jeder andere: kein Name, keine Adresse,
+   kein offener Posten. Oeffentlich ja, persoenlich nie. */
+$mitKunde = Telefon::preisAuskunft(['zweck' => 'shop', 'kunde_id' => $kundeId,
+                                    'telefon' => '+39 380 111 2233']);
+$ohneKunde = Telefon::preisAuskunft(['zweck' => 'shop']);
+pruefe('eine Kundennummer ändert an der Preisauskunft nichts',
+    $mitKunde === $ohneKunde,
+    json_encode(array_diff_assoc($mitKunde, $ohneKunde), JSON_UNESCAPED_UNICODE));
+/* „festpreis_name" ist der Paketname („Starter"), nicht der eines Kunden --
+   deshalb wird hier auf das geprueft, was einen Menschen bezeichnet. */
+$flachP = json_encode($mitKunde, JSON_UNESCAPED_UNICODE);
+$leckP = [];
+foreach (['kunde', 'email', '@', 'iban', 'offen', 'rechnung', 'Salvatore'] as $wort) {
+    if (stripos($flachP, $wort) !== false) { $leckP[] = $wort; }
+}
+pruefe('und sie nennt niemanden', $leckP === [], implode(', ', $leckP));
+
+pruefe('der Festpreis kommt aus der Datenbank',
+        (int) ($pa['festpreis_euro'] ?? -1) === (int) round($festDb / 100),
+        ($pa['festpreis_euro'] ?? '—') . ' gegen ' . round($festDb / 100));
+}
+
+/* --- Lage --------------------------------------------------------------- */
+$l = Telefon::lage();
+foreach (['datum','uhrzeit','wochentag','modus','rueckruf_heute','hinweis'] as $feld) {
+    pruefe('die Lage nennt „' . $feld . '"', array_key_exists($feld, $l));
+}
+pruefe('die Uhrzeit kommt vom Server, nicht vom Modell',
+    (string) $l['datum'] === date('Y-m-d'), (string) $l['datum']);
+
+/* Im Urlaub darf nie ein Rückruf für heute zugesagt werden — egal welche
+   Uhrzeit gerade ist. Das ist der ganze Zweck des Schalters. */
+Telefon::modusSetzen('urlaub');
+$lu = Telefon::lage();
+pruefe('im Urlaub ist kein Rückruf heute', ($lu['rueckruf_heute'] ?? true) === false);
+pruefe('und der Hinweis verspricht keinen Tag',
+    !str_contains(mb_strtolower((string) $lu['hinweis']), 'heute'),
+    (string) $lu['hinweis']);
+Telefon::modusSetzen('ausgelastet');
+pruefe('ausgelastet sagt auch keinen Tag zu', (Telefon::lage()['rueckruf_heute'] ?? true) === false);
+Telefon::modusSetzen('normal');
+/* Ein Modus, den es nicht gibt, darf nicht durchrutschen — weder ueber die
+   Verwaltung noch als Altbestand in der Datenbank. Beides faellt auf
+   „normal" zurueck, weil „normal" nichts verspricht, was nicht stimmt. */
+Telefon::modusSetzen('quatsch');
+pruefe('ein unbekannter Modus wird nicht gespeichert', Telefon::modus() === 'normal',
+    Telefon::modus());
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('telefon_modus', 'kaese')
+         ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+pruefe('und Unsinn in der Datenbank fällt auf „normal" zurück',
+    Telefon::modus() === 'normal', Telefon::modus());
+pruefe('die Lage kommt trotzdem heil zurück',
+    isset(Telefon::lage()['hinweis'], Telefon::lage()['modus']));
+Telefon::modusSetzen('normal');
+
+/* --- Rückruf mit Zeitfenster -------------------------------------------- */
+$r1 = Telefon::melden(['art' => 'rueckruf', 'kunde_id' => $kundeId,
+                       'text' => 'Bitte zurückrufen wegen der Startseite.']);
+pruefe('ohne Zeitfenster wird einmal nachgefragt', ($r1['nachfragen'] ?? false) === true);
+$r2 = Telefon::melden(['art' => 'rueckruf', 'kunde_id' => $kundeId,
+                       'text' => 'Bitte zurückrufen.', 'erreichbar' => 'ab 14 Uhr, nicht Dienstag']);
+pruefe('mit Zeitfenster nicht mehr', ($r2['nachfragen'] ?? true) === false);
+pruefe('das Zeitfenster steht in der Meldung',
+    str_contains((string) Db::wert("SELECT body FROM notifications ORDER BY id DESC LIMIT 1", [], ''),
+                 'ab 14 Uhr'),
+    (string) Db::wert("SELECT body FROM notifications ORDER BY id DESC LIMIT 1", [], ''));
+$r3 = Telefon::melden(['art' => 'beschwerde', 'kunde_id' => $kundeId, 'text' => 'Ärger.']);
+pruefe('bei einer Beschwerde wird NICHT nach der Uhrzeit gefragt',
+    ($r3['nachfragen'] ?? true) === false);
+
+/* --- Wissenslücke ------------------------------------------------------- */
+$wl = Telefon::wissensluecke(['frage' => 'Wie lange dauert die Kündigungsfrist bei Betreuung Plus?',
+                              'kunde_id' => $kundeId]);
+pruefe('eine Wissenslücke wird angenommen', ($wl['ok'] ?? false) === true);
+pruefe('der Hinweis verbietet das Erfinden',
+    str_contains((string) ($wl['hinweis'] ?? ''), 'erfinden'));
+$kurz = Telefon::wissensluecke(['frage' => 'hä']);
+pruefe('eine leere Frage wird abgelehnt', ($kurz['ok'] ?? true) === false);
+
+$liste = Telefon::luecken();
+pruefe('sie steht auf der Liste', count($liste) >= 1, (string) count($liste));
+pruefe('mit Frage und Zeitpunkt',
+    trim((string) ($liste[0]['frage'] ?? '')) !== '' && trim((string) ($liste[0]['wann'] ?? '')) !== '');
+
+Telefon::lueckeWeg((string) ($liste[0]['schluessel'] ?? ''));
+pruefe('erledigt heißt weg', count(Telefon::luecken()) === count($liste) - 1);
+Telefon::lueckeWeg('settings; DROP TABLE settings');
+pruefe('ein erfundener Schlüssel löscht nichts',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.tables
+                     WHERE table_schema = DATABASE() AND table_name = 'settings'", [], 0) === 1);
+
+/* --- Der Verteiler kennt die neuen Aktionen ----------------------------- */
+$quelle = file_get_contents(dirname(dirname(__DIR__)) . '/telefon.php') ?: '';
+foreach (Telefon::AKTIONEN as $a) {
+    pruefe('der Verteiler kennt „' . $a . '"', str_contains($quelle, "'" . $a . "'"));
+}
+
+/* ============================================================================
+   17. Der Trichter zaehlt nur, was das Telefon ausgeloest hat
+   ----------------------------------------------------------------------------
+   Ein Trichter, der nach hinten breiter wird, ist kein Trichter, sondern eine
+   Falschaussage mit Balken. Die erste Fassung hat hinten alle Bedarfe,
+   Anfragen und Bestellungen der Website gezaehlt und kam auf 2 Anrufe und
+   18 Bestellungen. Diese Pruefungen halten fest, dass das nicht
+   wiederkommen kann.
+   ============================================================================ */
+abschnitt('17. Der Trichter zählt nur das Telefon');
+
+$tr = Telefon::trichter(90);
+foreach (['anrufe', 'links', 'bedarf', 'anfragen', 'bestellungen'] as $stufe) {
+    pruefe('der Trichter nennt „' . $stufe . '"', isset($tr[$stufe]) && is_int($tr[$stufe]));
+}
+
+/* JEDE STUFE ZÄHLT GESPRÄCHE, NICHT DINGE
+   ------------------------------------------------------------------------
+   Vorhin sind zwei Links rausgegangen ($al und $mist) — in derselben
+   Minute, also im selben Gespräch. Stünde hier eine 2, wäre die Zeile
+   darüber („1 Anruf") widerlegt und der Trichter wüchse nach unten. */
+pruefe('zwei Links in einem Gespräch sind ein Gespräch',
+    $tr['links'] <= $tr['anrufe'], $tr['links'] . ' von ' . $tr['anrufe']);
+pruefe('und mindestens eines ist es', $tr['links'] >= 1, (string) $tr['links']);
+
+/* DIE EIGENTLICHE PRÜFUNG
+   Es gibt in dieser Datenbank Bedarfe, Anfragen und Bestellungen aus dem
+   normalen Weg — die ganze Kette weiter oben hat sie erzeugt. Keine davon
+   darf hier auftauchen: Der Bedarf vom Telefon ist noch offen. */
+pruefe('ein Bedarf, der nicht vom Telefon kam, zählt nicht mit',
+    $tr['bedarf'] === 0, (string) $tr['bedarf']);
+pruefe('auch keine fremden Anfragen', $tr['anfragen'] === 0, (string) $tr['anfragen']);
+pruefe('auch keine fremden Bestellungen', $tr['bestellungen'] === 0, (string) $tr['bestellungen']);
+
+/* Und ein frisch angelegter Bedarf ohne Telefonspur bleibt draußen, auch
+   wenn er abgesendet ist. */
+Db::run("INSERT INTO bedarf (token, sprache, name, email, telefon, firma, status,
+                             abgesendet_am, created_at)
+         VALUES (?, 'de', 'Ohne Telefon', 'ohne@test.local', '', '', 'abgesendet', NOW(), NOW())",
+        [str_repeat('f', 48)]);
+pruefe('auch abgesendet nicht', Telefon::trichter(90)['bedarf'] === 0,
+    (string) Telefon::trichter(90)['bedarf']);
+
+/* Und jetzt umgekehrt: Wird der Bedarf vom Telefon abgesendet und haengt eine
+   Anfrage daran, rueckt er nach — sonst wuerde der Trichter zwar nichts
+   Falsches behaupten, aber auch nichts Richtiges. */
+$telBedarf = (int) Db::wert(
+    "SELECT b.id FROM bedarf b
+      WHERE b.id IN (SELECT CAST(JSON_VALUE(a.meta, '$.bedarf') AS UNSIGNED)
+                       FROM activities a WHERE a.type = 'telefon_angebot_link')
+      ORDER BY b.id DESC LIMIT 1", [], 0);
+pruefe('die Spur führt zurück auf den angelegten Bedarf', $telBedarf > 0, (string) $telBedarf);
+
+Db::run("UPDATE bedarf SET status = 'abgesendet', abgesendet_am = NOW() WHERE id = ?", [$telBedarf]);
+$tr2 = Telefon::trichter(90);
+pruefe('ein abgesendeter Bedarf rückt nach', $tr2['bedarf'] === 1, (string) $tr2['bedarf']);
+
+/* Die Kette weiter oben legt Anfragen als Demo an. Für diese Prüfung
+   braucht es eine echte — sonst bliebe die letzte Stufe unbewiesen. */
+Db::run("INSERT INTO anfragen (name, email, sprache, status, demo)
+         VALUES ('Vom Telefon', 'telefon@test.local', 'de', 'neu', 0)");
+$echteAnfrage = (int) Db::wert('SELECT LAST_INSERT_ID()', [], 0);
+pruefe('es gibt eine echte Anfrage zum Anhängen', $echteAnfrage > 0, (string) $echteAnfrage);
+Db::run('UPDATE bedarf SET anfrage_id = ? WHERE id = ?', [$echteAnfrage, $telBedarf]);
+$tr3 = Telefon::trichter(90);
+pruefe('und die Anfrage daran ebenso', $tr3['anfragen'] === 1, (string) $tr3['anfragen']);
+
+/* Und ganz hinten die Bestellung. Erst wenn auch diese Stufe nachweislich
+   nachrückt, misst der Trichter das, was auf der Seite darübersteht. */
+$echteBestellung = (int) Db::wert('SELECT id FROM orders WHERE demo = 0 ORDER BY id LIMIT 1', [], 0);
+pruefe('es gibt eine echte Bestellung', $echteBestellung > 0, (string) $echteBestellung);
+Db::run('UPDATE anfragen SET order_id = ? WHERE id = ?', [$echteBestellung, $echteAnfrage]);
+$tr4 = Telefon::trichter(90);
+pruefe('und die Bestellung rückt nach', $tr4['bestellungen'] === 1, (string) $tr4['bestellungen']);
+
+/* KEIN TRICHTER DARF NACH HINTEN BREITER WERDEN.
+   Das ist die eine Prüfung, die auch dann noch reißt, wenn jemand später
+   eine Stufe dazwischenschiebt und die Herkunft dabei vergisst. */
+foreach ([$tr, $tr2, $tr3, $tr4] as $i => $stand) {
+    $folge = [$stand['anrufe'], $stand['links'], $stand['bedarf'],
+              $stand['anfragen'], $stand['bestellungen']];
+    $waechst = [];
+    for ($k = 1; $k < count($folge); $k++) {
+        if ($folge[$k] > $folge[$k - 1]) { $waechst[] = $k; }
+    }
+    pruefe('der Trichter wird nach unten nie breiter (Stand ' . ($i + 1) . ')',
+        $waechst === [], implode(', ', $folge));
+}
 
 /* ============================================================================
    Aufräumen und Bilanz

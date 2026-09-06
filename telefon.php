@@ -89,9 +89,12 @@ if (!in_array($aktion, Telefon::AKTIONEN, true)) {
 try {
     $ergebnis = match ($aktion) {
         'kunde_nachschlagen' => Telefon::nachschlagen($d),
+        'preis_auskunft'     => Telefon::preisAuskunft($d),
+        'lage'               => Telefon::lage(),
         'angebot_link'       => Telefon::angebotLink($d),
         'melde'              => Telefon::melden($d),
         'zusammenfassung'    => Telefon::zusammenfassung($d),
+        'wissensluecke'      => Telefon::wissensluecke($d),
     };
     antwort($ergebnis);
 } catch (Throwable $e) {

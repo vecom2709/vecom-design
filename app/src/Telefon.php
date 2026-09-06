@@ -5,9 +5,12 @@ declare(strict_types=1);
  * DER TELEFONASSISTENT FRAGT DIE VERWALTUNG
  * =============================================================================
  *
- * Manuela ruft waehrend des Gespraechs hier an. Vier Dinge darf sie:
- * nachschlagen, wer dran ist; den Konfigurator-Link schicken; ein Anliegen
- * melden; eine Zusammenfassung senden. Mehr nicht.
+ * Manuela ruft waehrend des Gespraechs hier an. Sieben Dinge darf sie:
+ * nachschlagen, wer dran ist; den Preis schaetzen; erfahren, welcher Tag und
+ * welche Uhrzeit gerade ist; den Konfigurator-Link schicken; ein Anliegen
+ * melden; eine Zusammenfassung senden; eine Frage notieren, die sie nicht
+ * beantworten konnte. Mehr nicht -- und die Liste steht in AKTIONEN, nicht
+ * hier: dieser Text erklaert, der Verteiler entscheidet.
  *
  * WARUM EIN EIGENER SCHLUESSEL UND NICHT DER VORHANDENE
  *
@@ -17,7 +20,7 @@ declare(strict_types=1);
  * solange er wenig kann und schnell zu tauschen ist -- und nicht hinnehmbar
  * fuer irgendetwas, das mehr kann.
  *
- * Deshalb: ein eigener Schluessel, der genau diese vier Aktionen oeffnet.
+ * Deshalb: ein eigener Schluessel, der genau diese Aktionen oeffnet.
  * Nicht der Cron-Schluessel, nicht der Admin-Zugang, nicht Stripe, nicht
  * Brevo. Wird er bekannt, kann jemand Anfragen anlegen und Links an
  * HINTERLEGTE Adressen schicken -- laestig, nicht gefaehrlich. Und er ist in
@@ -25,8 +28,13 @@ declare(strict_types=1);
  *
  * DREI REGELN, DIE HIER NICHT VERHANDELBAR SIND
  *
- * 1. Keine Betraege. Nirgends, in keiner Antwort. Ein Telefon ist kein
+ * 1. Keine Betraege ZU EINEM KUNDEN. Kein offener Posten, keine Rechnung,
+ *    keine Restzahlung -- nirgends, in keiner Antwort. Ein Telefon ist kein
  *    sicherer Kanal, und eine Stimme am anderen Ende ist kein Ausweis.
+ *    Was oeffentlich auf der Website steht, ist etwas anderes: Paketpreis
+ *    und Schaetzspanne darf sie nennen, weil sie jeder ohne Anruf lesen
+ *    kann. Die Trennlinie laeuft nicht zwischen Zahl und keiner Zahl,
+ *    sondern zwischen oeffentlich und persoenlich.
  * 2. Die Rufnummer ist kein Ausweis. Sie ist ein Hinweis, mehr nicht:
  *    Rufnummern werden weitergegeben, geerbt und gefaelscht. Sie darf einen
  *    Namen zutage foerdern, nie ein Geheimnis.
@@ -40,7 +48,8 @@ final class Telefon
     public const DROSSEL_PRO_MINUTE = 20;
 
     /** Die Aktionen, die es gibt. Was nicht hier steht, gibt es nicht. */
-    public const AKTIONEN = ['kunde_nachschlagen', 'angebot_link', 'melde', 'zusammenfassung'];
+    public const AKTIONEN = ['kunde_nachschlagen', 'preis_auskunft', 'lage',
+                             'angebot_link', 'melde', 'zusammenfassung', 'wissensluecke'];
 
     /**
      * Welche Konfigurator-Fragen am Telefon vorweggenommen werden duerfen.
@@ -238,6 +247,232 @@ final class Telefon
     }
 
     /* ================================================================== */
+    /*  1b. Was kostet das?                                               */
+    /* ================================================================== */
+
+    /**
+     * DIE PREISE KOMMEN AUS DER DATENBANK, NICHT AUS DEM PROMPT
+     * ---------------------------------------------------------------------
+     * In Manuelas Anweisungen standen Zahlen als Text: 499, 450-600,
+     * 800-1400, 39 im Monat. Das stimmte am Tag, an dem sie hineingeschrieben
+     * wurden. Steigen die Preise, steigen Website und Angebot mit -- der
+     * Prompt nicht. Dann nennt das Telefon einen Preis, den es nicht mehr
+     * gibt, und der Kunde hat ihn schriftlich in der Zusammenfassung.
+     *
+     * Hier rechnet dieselbe Maschine wie der Konfigurator und wie das
+     * Angebot. Nennt der Anrufer schon etwas (fuenf Seiten, zwei Sprachen,
+     * Terminbuchung), kommt seine Spanne zurueck; sagt er nichts, kommt die
+     * allgemeine Orientierung.
+     *
+     * Immer eine SPANNE, nie eine Zahl. Ein fester Preis am Telefon ist ein
+     * Versprechen ohne Bedarf -- und der Bedarf ist genau das, was noch
+     * fehlt.
+     *
+     * @return array<string,mixed>
+     */
+    public static function preisAuskunft(array $d): array
+    {
+        require_once __DIR__ . '/Baukasten.php';
+
+        $antworten = [];
+        foreach (self::VORWEG as $f) {
+            $w = $d[$f] ?? null;
+            if (is_string($w) && str_contains($w, ',')) { $w = array_map('trim', explode(',', $w)); }
+            if ($w !== null && $w !== '' && $w !== []) { $antworten[$f] = $w; }
+        }
+
+        $aus = ['waehrung' => 'EUR'];
+
+        /* Der Einstieg und die Betreuung stehen als Pakete in der Datenbank --
+           dieselben, die auf der Website stehen. */
+        $fest = self::still(static fn() => Db::one(
+            "SELECT name, price_cents FROM packages
+              WHERE active = 1 AND art = 'website' AND price_cents > 0
+              ORDER BY price_cents LIMIT 1"), null);
+        if ($fest) {
+            $aus['festpreis_euro'] = (int) round(((int) $fest['price_cents']) / 100);
+            $aus['festpreis_name'] = (string) $fest['name'];
+        }
+        $betreu = self::still(static fn() => Db::one(
+            "SELECT MIN(monthly_cents) AS ab FROM packages
+              WHERE active = 1 AND art = 'betreuung' AND monthly_cents > 0"), null);
+        if ($betreu && (int) ($betreu['ab'] ?? 0) > 0) {
+            $aus['betreuung_ab_euro'] = (int) round(((int) $betreu['ab']) / 100);
+        }
+
+        /* Genug gesagt? Dann seine Spanne. Sonst die allgemeine. */
+        $genug = self::still(static fn() => Baukasten::genugGesagt($antworten), false);
+        if ($genug) {
+            $r = self::still(static fn() => Baukasten::rechnen($antworten), null);
+            if (is_array($r)) {
+                $sp = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
+                $aus['von_euro'] = (int) round($sp['von_cents'] / 100);
+                $aus['bis_euro'] = (int) round($sp['bis_cents'] / 100);
+                $aus['grundlage'] = 'aus dem, was der Anrufer gesagt hat';
+                if ((int) ($r['monatlich_cents'] ?? 0) > 0) {
+                    $aus['monatlich_euro'] = (int) round(((int) $r['monatlich_cents']) / 100);
+                }
+            }
+        }
+        if (!isset($aus['von_euro'])) {
+            /* Die allgemeine Orientierung: ein oertlicher Betrieb, der
+               gefunden werden und angerufen werden will, wenige Seiten,
+               eine Sprache. Das ist der haeufigste Fall und deshalb die
+               ehrlichste Auskunft, solange nichts Naeheres bekannt ist. */
+            $r = self::still(static fn() => Baukasten::rechnen(
+                ['zweck' => ['zeigen', 'kontakt'], 'umfang' => 'wenige', 'sprachen' => 1]), null);
+            if (is_array($r)) {
+                $sp = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
+                $aus['von_euro'] = (int) round($sp['von_cents'] / 100);
+                $aus['bis_euro'] = (int) round($sp['bis_cents'] / 100);
+                $aus['grundlage'] = 'üblicher Fall: gefunden werden und angerufen werden, wenige Seiten';
+            }
+        }
+
+        $aus['hinweis'] = 'Immer als Spanne nennen, nie als Festpreis. '
+                        . 'Dazu sagen: genau wird es mit dem Konfigurator, unverbindlich.';
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  1c. Wie ist die Lage?                                             */
+    /* ================================================================== */
+
+    /** Betriebsmodus, den Uwe in der Verwaltung setzt. */
+    public const MODI = ['normal' => 'normal', 'urlaub' => 'Urlaub', 'ausgelastet' => 'ausgelastet'];
+
+    public static function modus(): string
+    {
+        $m = (string) self::still(static fn() => Db::wert(
+            "SELECT svalue FROM settings WHERE skey = 'telefon_modus'", [], 'normal'), 'normal');
+        return isset(self::MODI[$m]) ? $m : 'normal';
+    }
+
+    public static function modusSetzen(string $m): void
+    {
+        if (!isset(self::MODI[$m])) { return; }
+        Db::run("INSERT INTO settings (skey, svalue) VALUES ('telefon_modus', ?)
+                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$m]);
+    }
+
+    /**
+     * EIN SPRACHMODELL WEISS NICHT, WELCHER TAG IST
+     * ---------------------------------------------------------------------
+     * Es raet -- und zwar ueberzeugend. „Herr Vetter ruft Sie heute noch
+     * zurueck" waehrend des Urlaubs ist ein Versprechen, das jemand anders
+     * bricht, und der Anrufer merkt es erst, wenn niemand anruft.
+     *
+     * Deshalb kommt die Zeit von hier, aus der Uhr des Servers in der
+     * richtigen Zeitzone, zusammen mit dem, was Uwe in der Verwaltung
+     * eingestellt hat. Manuela sagt nur noch weiter, was hier steht.
+     *
+     * @return array<string,mixed>
+     */
+    public static function lage(): array
+    {
+        $jetzt   = new DateTimeImmutable('now');
+        $modus   = self::modus();
+        $stunde  = (int) $jetzt->format('G');
+        $wochentag = (int) $jetzt->format('N');          // 1 = Montag
+        $werktag = $wochentag <= 5;
+        /* Buerozeiten sind hier keine Oeffnungszeiten, sondern eine Aussage
+           darueber, wann ein Rueckruf noch am selben Tag realistisch ist. */
+        $imFenster = $werktag && $stunde >= 9 && $stunde < 18;
+
+        $heuteNoch = $modus === 'normal' && $imFenster;
+        $wortModus = self::MODI[$modus];
+
+        if ($modus === 'urlaub') {
+            $satz = 'Uwe ist gerade nicht im Haus. Anliegen aufnehmen und sagen, '
+                  . 'dass er sich meldet, sobald er zurück ist — keinen Tag versprechen.';
+        } elseif ($modus === 'ausgelastet') {
+            $satz = 'Es ist gerade viel los. Anliegen aufnehmen, Rückruf zusagen, '
+                  . 'aber keinen Tag versprechen.';
+        } elseif ($heuteNoch) {
+            $satz = 'Ein Rückruf heute ist realistisch.';
+        } elseif ($werktag) {
+            $satz = 'Außerhalb der üblichen Zeit. Rückruf für den nächsten Werktag zusagen.';
+        } else {
+            $satz = 'Wochenende. Rückruf für den nächsten Werktag zusagen.';
+        }
+
+        return [
+            'datum'         => $jetzt->format('Y-m-d'),
+            'uhrzeit'       => $jetzt->format('H:i'),
+            'wochentag'     => ['Montag','Dienstag','Mittwoch','Donnerstag',
+                                'Freitag','Samstag','Sonntag'][$wochentag - 1],
+            'zeitzone'      => $jetzt->format('e'),
+            'modus'         => $wortModus,
+            'rueckruf_heute'=> $heuteNoch,
+            'hinweis'       => $satz,
+        ];
+    }
+
+    /* ================================================================== */
+    /*  5. Was Manuela nicht wusste                                       */
+    /* ================================================================== */
+
+    /**
+     * WAS SIE NICHT BEANTWORTEN KONNTE, IST DIE BESTE NACHRICHT DES TAGES
+     * ---------------------------------------------------------------------
+     * Ein Sprachmodell, das eine Wissensluecke bemerkt, hat zwei
+     * Moeglichkeiten: improvisieren oder es sagen. Improvisieren klingt
+     * besser und ist schlimmer -- eine erfundene Kuendigungsfrist steht
+     * danach im Raum, und niemand weiss, dass sie erfunden war.
+     *
+     * Diese Aktion macht das Zugeben billiger als das Erfinden: Sie kostet
+     * einen Satz („das schaue ich nach und melde mich"), und die Frage
+     * landet auf einer Liste, aus der die Wissensbasis waechst.
+     *
+     * @return array<string,mixed>
+     */
+    public static function wissensluecke(array $d): array
+    {
+        $frage = mb_substr(trim((string) ($d['frage'] ?? '')), 0, 500);
+        if (mb_strlen($frage) < 5) {
+            return ['ok' => false, 'hinweis' => 'Die Frage fehlt.'];
+        }
+        $kundeId = isset($d['kunde_id']) ? (int) $d['kunde_id'] : 0;
+
+        self::still(static fn() => Db::run(
+            "INSERT INTO settings (skey, svalue) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+            ['telefon_luecke_' . date('YmdHis') . '_' . bin2hex(random_bytes(3)),
+             json_encode(['frage' => $frage, 'kunde_id' => $kundeId ?: null,
+                          'wann' => date('c')], JSON_UNESCAPED_UNICODE)]), null);
+
+        self::protokoll('wissensluecke', 'Frage am Telefon nicht beantwortbar: '
+                        . mb_substr($frage, 0, 140), $kundeId > 0 ? $kundeId : null,
+                        ['frage' => $frage]);
+
+        return ['ok' => true,
+                'hinweis' => 'Notiert. Ansagen: „Das schaue ich nach und melde mich" — '
+                           . 'und nichts dazu erfinden.'];
+    }
+
+    /** Die gesammelten Wissensluecken, neueste zuerst. */
+    public static function luecken(int $grenze = 50): array
+    {
+        $rohe = self::still(static fn() => Db::all(
+            "SELECT skey, svalue, updated_at FROM settings
+              WHERE skey LIKE 'telefon\\_luecke\\_%'
+              ORDER BY skey DESC LIMIT " . max(1, min(200, $grenze))), []);
+        $aus = [];
+        foreach ((array) $rohe as $z) {
+            $d = json_decode((string) $z['svalue'], true);
+            if (is_array($d)) { $d['schluessel'] = (string) $z['skey']; $aus[] = $d; }
+        }
+        return $aus;
+    }
+
+    /** Streicht eine erledigte Luecke. */
+    public static function lueckeWeg(string $schluessel): void
+    {
+        if (!preg_match('/^telefon_luecke_[0-9a-f_]+$/', $schluessel)) { return; }
+        Db::run('DELETE FROM settings WHERE skey = ?', [$schluessel]);
+    }
+
+    /* ================================================================== */
     /*  2. Den Konfigurator schicken                                      */
     /* ================================================================== */
 
@@ -334,9 +569,14 @@ final class Telefon
         $raus = Mail::senden('telefon_angebot', $an, $t['betreff'], $text,
                              $kundeId > 0 ? ['customer_id' => $kundeId] : []);
 
+        /* Die Nummer des Bedarfs gehoert in die Spur, nicht nur der Umstand,
+           dass ein Link rausging. Ohne sie laesst sich spaeter nur zaehlen,
+           wie viele Links verschickt wurden -- nicht, was aus ihnen wurde.
+           Genau daran haengt der Trichter in der Verwaltung. */
         self::protokoll('angebot_link', 'Konfigurator-Link nach Anruf verschickt',
                         $kundeId > 0 ? $kundeId : null,
-                        ['sprache' => $sprache, 'vorweg' => $gesetzt, 'zugestellt' => $raus]);
+                        ['sprache' => $sprache, 'vorweg' => $gesetzt, 'zugestellt' => $raus,
+                         'bedarf' => (int) $bedarf['id']]);
 
         return ['ok' => $raus, 'gesendet_an' => self::verdeckt($an),
                 'vorbefuellt' => $gesetzt,
@@ -405,6 +645,12 @@ final class Telefon
         $name    = mb_substr(trim((string) ($d['name'] ?? '')), 0, 120);
         $telefon = mb_substr(trim((string) ($d['telefon'] ?? '')), 0, 60);
         $text    = mb_substr(trim((string) ($d['text'] ?? '')), 0, 4000);
+        /* WANN ist er erreichbar, nicht nur DASS er einen Rueckruf will.
+           Ohne diese Zeile ruft Uwe dreimal ins Leere und der Kunde denkt,
+           es meldet sich niemand. Freitext mit Absicht: „ab 14 Uhr", „nur
+           vormittags", „nicht Dienstag" -- das ist, wie Menschen antworten,
+           und ein Uhrzeitfeld haette die Haelfte davon verworfen. */
+        $erreichbar = mb_substr(trim((string) ($d['erreichbar'] ?? '')), 0, 160);
 
         if ($text === '') {
             return ['ok' => false, 'hinweis' => 'Ohne Anliegen kann ich nichts melden.'];
@@ -431,23 +677,34 @@ final class Telefon
             self::still(static fn() => Nachricht::vorab(
                 $kundeId,
                 "Am Telefon (" . $titel . "):\n\n" . $text
-                . ($telefon !== '' ? "\n\nRückruf an: " . $telefon : ''),
+                . ($telefon !== '' ? "\n\nRückruf an: " . $telefon : '')
+                . ($erreichbar !== '' ? "\nErreichbar: " . $erreichbar : ''),
                 'kunde', null, $kopf), null);
         }
 
         $link = $kundeId > 0 ? '/kunden/' . $kundeId : '/heute';
         self::still(static fn() => Events::melden(
             'telefon_' . $art, $kopf, $stufe,
-            mb_substr($text, 0, 480) . ($telefon !== '' ? ' · Rückruf: ' . $telefon : ''),
+            mb_substr($text, 0, 420) . ($telefon !== '' ? ' · Rückruf: ' . $telefon : '')
+            . ($erreichbar !== '' ? ' · erreichbar ' . $erreichbar : ''),
             $link), null);
 
         self::protokoll('melde', $kopf, $kundeId > 0 ? $kundeId : null,
-                        ['art' => $art, 'dringend' => $dringend, 'telefon' => $telefon !== '']);
+                        ['art' => $art, 'dringend' => $dringend, 'telefon' => $telefon !== '',
+                         'erreichbar' => $erreichbar]);
+
+        /* Ohne Zeitfenster einmal nachfragen -- aber nur einmal, und nur wenn
+           es um einen Rueckruf geht. Bei einer Beschwerde ist die Frage nach
+           der Erreichbarkeit unpassend; da zaehlt, dass es rausgeht. */
+        $nachfragen = $erreichbar === '' && in_array($art, ['rueckruf', 'link_neu'], true);
 
         return ['ok' => true,
+                'nachfragen' => $nachfragen,
                 'hinweis' => $dringend
                     ? 'Ist als dringend gemeldet. Ansagen: es kümmert sich jemand umgehend.'
-                    : 'Ist notiert. Ansagen: es meldet sich jemand.'];
+                    : ($nachfragen
+                        ? 'Ist notiert. Jetzt noch fragen, wann er am besten erreichbar ist.'
+                        : 'Ist notiert. Ansagen: es meldet sich jemand.')];
     }
 
     /* ================================================================== */
@@ -508,6 +765,105 @@ final class Telefon
      * Verwaltung schreibt, ist genau so viel wert wie das Vertrauen, das man
      * ihm entgegenbringt -- und das haelt nur, solange man nachsehen kann.
      */
+    /**
+     * DER TRICHTER -- WAS DAS TELEFON WIRKLICH AUSGELOEST HAT
+     * ---------------------------------------------------------------------
+     * Zwei Fehler stecken in der naheliegenden Fassung, und beide erzeugen
+     * einen Trichter, der nach hinten BREITER wird -- also das Gegenteil
+     * dessen behauptet, was daneben steht.
+     *
+     * Der erste: hinten alles zaehlen, was auf der Website passiert ist.
+     * Dann stehen dort 2 Anrufe und 18 Bestellungen, und keine einzige
+     * davon gehoert dem Telefon. Dagegen hilft die Kette: Der Anruf legt
+     * einen Bedarf an und schreibt dessen Nummer in die Spur; der
+     * abgesendete Bedarf traegt die Anfrage, die Anfrage die Bestellung.
+     *
+     * Der zweite ist feiner: Stufen mit verschiedenen Einheiten. Oben
+     * Gespraeche, darunter verschickte Links -- und weil Manuela in einem
+     * Gespraech zweimal einen Link schicken kann, stehen da 1 Anruf und
+     * 2 Links, „200 %". Deshalb zaehlt hier JEDE Stufe Gespraeche: von so
+     * vielen Gespraechen ging ein Link raus, aus so vielen wurde ein
+     * ausgefuellter Bedarf, daraus eine Anfrage, daraus eine Bestellung.
+     * Jede Stufe ist eine Teilmenge der vorherigen -- der Trichter kann
+     * damit gar nicht mehr wachsen, egal was jemand spaeter dazwischen
+     * schiebt.
+     *
+     * Ein Gespraech ist dabei eine Minute: Nachfragen innerhalb derselben
+     * Minute gehoeren zum selben Anruf. Eine Naeherung -- und auf der
+     * Seite steht auch, dass es eine ist.
+     *
+     * Die Methode steht hier und nicht im Verteiler, damit die Pruefkette
+     * sie nachrechnen kann. Eine Zahl ohne Pruefung ist eine Behauptung.
+     *
+     * @return array{anrufe:int,links:int,bedarf:int,anfragen:int,bestellungen:int}
+     */
+    public static function trichter(int $tage = 90): array
+    {
+        $tage = max(1, min(3650, $tage));
+        $seit = "created_at >= NOW() - INTERVAL $tage DAY";
+
+        $anrufe = (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(DISTINCT DATE_FORMAT(created_at, '%Y%m%d%H%i'))
+               FROM activities WHERE type LIKE 'telefon\\_%' AND demo = 0 AND $seit", [], 0), 0);
+
+        /* Gespraech -> die Bedarfe, die darin angelegt wurden. Wenige
+           Zeilen, deshalb hier und nicht als JSON-Klimmzug in SQL. */
+        $spuren = (array) self::still(static fn() => Db::all(
+            "SELECT DATE_FORMAT(created_at, '%Y%m%d%H%i') AS minute, meta
+               FROM activities
+              WHERE type = 'telefon_angebot_link' AND demo = 0 AND $seit"), []);
+
+        $jeGespraech = [];
+        $alle = [];
+        foreach ($spuren as $z) {
+            $min = (string) ($z['minute'] ?? '');
+            if ($min === '') { continue; }
+            $jeGespraech[$min] ??= [];
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            $b = is_array($m) ? (int) ($m['bedarf'] ?? 0) : 0;
+            if ($b > 0) { $jeGespraech[$min][] = $b; $alle[$b] = true; }
+        }
+        $links = count($jeGespraech);
+
+        /* Was aus diesen Bedarfen geworden ist -- eine Abfrage, kein
+           Nachfassen je Zeile. */
+        $stand = [];
+        if ($alle !== []) {
+            $ids   = array_keys($alle);
+            $platz = implode(',', array_fill(0, count($ids), '?'));
+            $zeilen = (array) self::still(static fn() => Db::all(
+                "SELECT b.id,
+                        (b.status <> 'offen') AS gefuellt,
+                        a.id AS anfrage,
+                        o.id AS bestellung
+                   FROM bedarf b
+                   LEFT JOIN anfragen a ON a.id = b.anfrage_id AND a.demo = 0
+                   LEFT JOIN orders   o ON o.id = a.order_id   AND o.demo = 0
+                  WHERE b.id IN ($platz) AND b.demo = 0", $ids), []);
+            foreach ($zeilen as $z) { $stand[(int) $z['id']] = $z; }
+        }
+
+        /* Ausgefuellt heisst: abgesendet, nicht nur angelegt. Ein angelegter
+           Bedarf ohne Antworten ist ein Link, den niemand geoeffnet hat. */
+        $bedarf = $anfragen = $bestellungen = 0;
+        foreach ($jeGespraech as $bedarfe) {
+            $g = $a = $o = false;
+            foreach ($bedarfe as $id) {
+                $z = $stand[$id] ?? null;
+                if (!$z || !(int) $z['gefuellt']) { continue; }
+                $g = true;
+                if ((int) ($z['anfrage'] ?? 0) > 0)    { $a = true; }
+                if ((int) ($z['bestellung'] ?? 0) > 0) { $o = true; }
+            }
+            if ($g) { $bedarf++; }
+            if ($a) { $anfragen++; }
+            if ($o) { $bestellungen++; }
+        }
+
+        return ['anrufe' => $anrufe, 'links' => $links, 'bedarf' => $bedarf,
+                'anfragen' => $anfragen, 'bestellungen' => $bestellungen];
+    }
+
     public static function protokoll(string $aktion, string $titel, ?int $kundeId, array $meta = []): void
     {
         self::still(static fn() => Events::protokoll(
