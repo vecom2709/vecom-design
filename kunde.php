@@ -741,7 +741,12 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
               require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
               require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
               $stCheck = new StripeAnbieter();
-              $stripeKassiert = $stCheck->bereit() && $stCheck->webhookBereit() && $stCheck->modus() === 'live';
+              // Live zählt immer, der Testmodus nur mit Test-Schalter — sonst
+              // bliebe im Testmodus jeder Zahlungsknopf unsichtbar.
+              $testAn = (string) sicherLesen(fn() => Db::wert(
+                  "SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0'), '0') === '1';
+              $stripeKassiert = $stCheck->bereit() && $stCheck->webhookBereit()
+                  && ($stCheck->modus() === 'live' || $testAn);
           } catch (Throwable $e) { $stripeKassiert = false; }
         ?>
         <?php if ($monate): ?>

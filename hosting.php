@@ -150,11 +150,58 @@ $preisCents = (int) (Db::wert("SELECT monthly_cents FROM packages WHERE slug = '
 $preisText  = Fmt::geld($preisCents);
 $basis      = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 
+/* KANN DER KUNDE ÜBERHAUPT BEZAHLEN?
+   ----------------------------------------------------------------------
+   Ein Direktkauf ohne Zahlungsweg ist ein Schein-Kauf: Der Kunde schließt
+   einen Vertrag ab, kann aber nicht zahlen, und bekommt trotzdem Zugang.
+   Genau das soll NICHT passieren, solange nichts eingerichtet ist. Also:
+   Der verbindliche Kauf ist nur möglich, wenn wenigstens ein Zahlungsweg
+   steht — Stripe live ODER eine IBAN für die Überweisung. Fehlt beides,
+   nimmt die Seite die Wunschdomain nur als VORMERKUNG entgegen, ohne
+   Vertrag und ohne Kundenseite. Sobald ein Weg da ist, wird von selbst
+   wieder verkauft. */
+$zahlungMoeglich = false;
+try {
+    require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+    require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+    require_once __DIR__ . '/app/src/Firma.php';
+    $stAnb = new StripeAnbieter();
+    // Live zählt immer; der Testmodus nur, wenn der Test-Schalter an ist —
+    // dieselbe Regel wie bei der Website-Direktbuchung (buchen.php).
+    $testSichtbar = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
+    $stripeKassiert = $stAnb->bereit() && $stAnb->webhookBereit()
+        && ($stAnb->modus() === 'live' || $testSichtbar);
+    $ueberweisung = Firma::get('iban') !== '';
+    $zahlungMoeglich = $stripeKassiert || $ueberweisung;
+} catch (Throwable $e) { $zahlungMoeglich = false; }
+
+/* Die Vormerk-Texte — nur gebraucht, solange noch nicht bezahlt werden kann. */
+$W += [
+  'it' => [
+    'vormerkHinweis' => 'Il pagamento online lo stiamo attivando in questi giorni. Intanto puoi prenotare il tuo dominio: te lo teniamo da parte e ti scriviamo appena si può pagare.',
+    'vormerkKnopf'   => 'Prenota questo dominio',
+    'vormerkDankeT'  => '{domain} è prenotato per te!',
+    'vormerkDanke'   => 'Grazie! Ti abbiamo scritto a {email}. Ti teniamo da parte {domain} e ti contattiamo appena il pagamento è attivo — senza alcun impegno per te.',
+  ],
+  'de' => [
+    'vormerkHinweis' => 'Das Bezahlen online richten wir gerade ein. Du kannst dir deine Domain schon vormerken lassen: Wir halten sie für dich frei und melden uns, sobald du bezahlen kannst.',
+    'vormerkKnopf'   => 'Diese Domain vormerken',
+    'vormerkDankeT'  => '{domain} ist für dich vorgemerkt!',
+    'vormerkDanke'   => 'Danke! Wir haben dir an {email} geschrieben. Wir halten {domain} für dich frei und melden uns, sobald das Bezahlen bereitsteht — ganz unverbindlich für dich.',
+  ],
+  'en' => [
+    'vormerkHinweis' => 'We’re just setting up online payment. In the meantime you can reserve your domain: we’ll hold it for you and write as soon as you can pay.',
+    'vormerkKnopf'   => 'Reserve this domain',
+    'vormerkDankeT'  => '{domain} is reserved for you!',
+    'vormerkDanke'   => 'Thank you! We’ve written to {email}. We’ll hold {domain} for you and get in touch as soon as payment is ready — with no obligation on your side.',
+  ],
+][$sprache];
+
 /* ---------- Zustand: Formular · Bestätigung · Danke ---------- */
 $ansicht = 'formular';                 // formular | bestaetigen | danke
 $fehler  = [];
 $name = ''; $email = ''; $wunsch = '';
-$dankeDomain = ''; $dankeSeite = ''; $dankeSchon = false;
+$dankeDomain = ''; $dankeSeite = ''; $dankeSchon = false; $dankeVormerk = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sauber = static function ($v, int $max): string {
@@ -183,7 +230,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         @touch($sperre);
         require_once __DIR__ . '/app/src/Hosting.php';
 
-        if ($tat === 'kaufen') {
+        if ($tat === 'vormerken' || ($tat === 'kaufen' && !$zahlungMoeglich)) {
+            /* VORMERKUNG — solange noch nicht bezahlt werden kann.
+               Kein Vertrag, keine Kundenseite: nur eine Anfrage, die Uwe
+               weiterführt, sobald ein Zahlungsweg steht. Die Domain wird
+               nochmal geprüft, damit keine vergebene vorgemerkt wird. */
+            $domain = Domainpruefung::normalisieren($wunsch);
+            $stand  = $domain !== null ? (string) (Domainpruefung::pruefen($domain)['stand'] ?? '') : 'ungueltig';
+            if ($domain === null) {
+                $fehler[] = $W['ungueltig'];
+            } elseif ($stand !== 'frei') {
+                $fehler[] = strtr($W[$stand === 'vergeben' ? 'vergeben' : 'unklar'], ['{domain}' => $domain]);
+            } else {
+                try {
+                    require_once __DIR__ . '/app/src/Anfrage.php';
+                    Anfrage::annehmen([
+                        'name' => $name, 'email' => $email, 'paket' => 'hosting',
+                        'sprache' => $sprache, 'sprache_gefragt' => true,
+                        'nachricht' => "Domain & Hosting vorgemerkt (Zahlung noch nicht möglich).\nWunschdomain: " . $domain,
+                    ]);
+                } catch (Throwable $e) { /* der Kontakt zählt, der Rest steht in der Verwaltung */ }
+                $ansicht      = 'danke';
+                $dankeVormerk = true;
+                $dankeDomain  = $domain;
+            }
+
+        } elseif ($tat === 'kaufen') {
             /* Der verbindliche Abschluss. Beide Bestaetigungen sind Pflicht,
                und die Domain wird im Kauf ein zweites Mal geprueft. */
             $agbOk = !empty($_POST['agb']);
@@ -270,17 +342,25 @@ $preisZeile = strtr($W['preis'], ['{preis}' => $preisText]);
 <div class="karte">
   <div class="wortmarke"><b>VECOM</b>&nbsp;DESIGN</div>
 
-  <?php /* ---------- DANKE: der Kauf ist abgeschlossen ---------- */ ?>
+  <?php /* ---------- DANKE: Kauf abgeschlossen ODER vorgemerkt ---------- */ ?>
   <?php if ($ansicht === 'danke'): ?>
-    <div class="freimeld"><b>✓ <?= $h(strtr($W['dankeT'], ['{domain}' => $dankeDomain])) ?></b></div>
-    <p style="color:var(--dim);line-height:1.6"><?= $h(strtr($dankeSchon ? $W['schon'] : $W['danke'],
-        ['{email}' => $email, '{preis}' => $preisText])) ?></p>
-    <p style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
-      <?php if ($dankeSeite !== ''): ?>
-        <a class="knopf haupt" href="<?= $h($dankeSeite) ?>"><?= $h($W['zurSeite']) ?></a>
-      <?php endif; ?>
-      <a class="knopf" href="/<?= $sprache === 'it' ? '' : $sprache . '/' ?>"><?= $h($W['zurueck']) ?></a>
-    </p>
+    <?php if ($dankeVormerk): ?>
+      <div class="freimeld"><b>✓ <?= $h(strtr($W['vormerkDankeT'], ['{domain}' => $dankeDomain])) ?></b></div>
+      <p style="color:var(--dim);line-height:1.6"><?= $h(strtr($W['vormerkDanke'],
+          ['{domain}' => $dankeDomain, '{email}' => $email])) ?></p>
+      <p style="margin-top:18px">
+        <a class="knopf" href="/<?= $sprache === 'it' ? '' : $sprache . '/' ?>"><?= $h($W['zurueck']) ?></a></p>
+    <?php else: ?>
+      <div class="freimeld"><b>✓ <?= $h(strtr($W['dankeT'], ['{domain}' => $dankeDomain])) ?></b></div>
+      <p style="color:var(--dim);line-height:1.6"><?= $h(strtr($dankeSchon ? $W['schon'] : $W['danke'],
+          ['{email}' => $email, '{preis}' => $preisText])) ?></p>
+      <p style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <?php if ($dankeSeite !== ''): ?>
+          <a class="knopf haupt" href="<?= $h($dankeSeite) ?>"><?= $h($W['zurSeite']) ?></a>
+        <?php endif; ?>
+        <a class="knopf" href="/<?= $sprache === 'it' ? '' : $sprache . '/' ?>"><?= $h($W['zurueck']) ?></a>
+      </p>
+    <?php endif; ?>
 
   <?php /* ---------- BESTÄTIGEN: Domain frei, jetzt verbindlich aktivieren ---------- */ ?>
   <?php elseif ($ansicht === 'bestaetigen'): ?>
@@ -293,6 +373,8 @@ $preisZeile = strtr($W['preis'], ['{preis}' => $preisText]);
 
     <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
 
+    <?php if ($zahlungMoeglich): ?>
+    <?php /* Bezahlweg steht — verbindlicher Kauf mit Widerruf und AGB. */ ?>
     <form method="post" action="/hosting.php?lang=<?= $h($sprache) ?>">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="kaufen">
       <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
@@ -317,6 +399,20 @@ $preisZeile = strtr($W['preis'], ['{preis}' => $preisText]);
 
       <button class="knopf haupt" style="width:100%;margin-top:6px"><?= $h(strtr($W['kaufKnopf'], ['{preis}' => $preisText])) ?></button>
     </form>
+    <?php else: ?>
+    <?php /* Noch kein Bezahlweg (weder Stripe noch IBAN): kein verbindlicher
+             Kauf, nur eine Vormerkung — kein Vertrag, keine Kundenseite. */ ?>
+      <p class="hin" style="margin:0 0 14px"><?= $h($W['vormerkHinweis']) ?></p>
+      <form method="post" action="/hosting.php?lang=<?= $h($sprache) ?>">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="vormerken">
+        <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
+               style="position:absolute;left:-9999px" aria-hidden="true">
+        <input type="hidden" name="name" value="<?= $h($name) ?>">
+        <input type="hidden" name="email" value="<?= $h($email) ?>">
+        <input type="hidden" name="wunschdomain" value="<?= $h($wunsch) ?>">
+        <button class="knopf haupt" style="width:100%"><?= $h($W['vormerkKnopf']) ?></button>
+      </form>
+    <?php endif; ?>
     <p style="margin-top:12px;text-align:center">
       <a href="/hosting.php?lang=<?= $h($sprache) ?>" style="color:var(--leise);font-size:12.5px"><?= $h($W['nochmal']) ?></a></p>
 

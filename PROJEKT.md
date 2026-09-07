@@ -2648,3 +2648,28 @@ Zwei Punkte nach dem ersten echten Hosting-Testkauf (Kunde 43):
    einer Datei am Kunden ohne Projekt (project_id NULL) landete er auf
    projekte/0 (404). Handler nimmt jetzt ein zurueck-Ziel und fällt sonst
    auf Kundenakte/Projekt zurück.
+
+### Testmodus-Kauf reparieren + Vormerk-Sicherheitsnetz (08.09.2026)
+
+Nach dem echten Testkauf (Kunde 43): keine Zahlungsseite, keine Mail.
+Befund in der Verwaltung: Stripe ist im TESTMODUS eingerichtet (sk_test,
+Webhook, kürzlich grüne checkout.session.completed), der Test/Live-
+Umschalter existiert schon (Einstellungen → Bezahlung), und der Schalter
+„Kaufknopf auch im Testmodus zeigen" (direktkauf_test) ist AN. Brevo ist
+verbunden (Verbindungstest grün).
+
+Der eigentliche Fehler war mein eigener Code von zuvor: kunde.php und
+hosting.php prüften `modus === 'live'` und blendeten dadurch im Testmodus
+jeden Zahlungsknopf aus. Jetzt zählt der Testmodus mit, wenn direktkauf_test
+an ist (dieselbe Regel wie buchen.php): live ODER (testmodus + Schalter).
+
+Zusätzlich als Sicherheitsnetz: hosting.php verkauft nur verbindlich, wenn
+ein Bezahlweg steht (Stripe kassiert ODER IBAN hinterlegt). Fehlt beides,
+nimmt die Seite die Wunschdomain nur als VORMERKUNG an (Anfrage, kein
+Vertrag, keine Kundenseite) — „wir melden uns, sobald du bezahlen kannst".
+Sobald ein Weg da ist, wird von selbst wieder verkauft. Löst Uwes „das
+sollte noch nicht möglich sein" strukturell. Kette 830.
+
+Merkposten E-Mail: Der Testkauf ging an info@vecom-design.it (eigene
+Domain) — für echte Tests eine EXTERNE Adresse nehmen. Firmendaten (inkl.
+IBAN) sind noch komplett leer — eintragen für Belege + Überweisungs-Fallback.
