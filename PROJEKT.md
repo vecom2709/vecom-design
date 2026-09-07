@@ -2517,3 +2517,20 @@ Dazu Button-Lösung nachgeschärft: Der Ja-Knopf heißt jetzt
 Angebotstexte nennen die 12 Monate Mindestlaufzeit VOR dem Knopf.
 Kette 825 → 828 grün. Merkposten: AGB/Widerruf in legal.html sollte der
 Anwalt einmal mit Blick auf die Monatsverträge gegenlesen.
+
+### Nachtrag: Kunden-Mail beim Anlegen + Wunschdomains im Admin (08.09.2026)
+
+Drei Punkte auf Uwes Zuruf. (1) Der Kunde erfährt jetzt per Mail
+(`hosting_fertig`, dreisprachig), dass Domain und Account geschaltet sind —
+die Zugangsdaten stehen NICHT in der Mail (unverschlüsselt, liegt ewig im
+Postfach), sondern die Mail führt zur einmaligen Anzeige auf seiner Seite
+und sagt ihm ausdrücklich, die Passwörter danach im KAS-Kundenmenü zu
+ändern und dass die Anzeige nach 14 Tagen verfällt. (2) Derselbe
+Passwort-Ändern-Hinweis steht jetzt auch direkt unter der einmaligen
+Anzeige (hostingZugangAendern). (3) Im Verwaltungs-Kundenblatt zeigt der
+Block „Domain & Hosting" die Wunschdomains aus dem Fragebogen: ohne
+Auftrag als Ein-Klick-Knöpfe (prüft und bietet an — der Handler lässt
+weiter nur als FREI bestätigte Domains durch), mit Auftrag als Infozeile
+der übrigen Wünsche. Zur Klarstellung dokumentiert: Jeder Kunde hat mit
+seinem Unter-Account ein EIGENES KAS-Kundenmenü (kas.all-inkl.com).
+Kette weiter 828 grün.

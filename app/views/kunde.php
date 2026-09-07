@@ -298,6 +298,22 @@
   <?php
     require_once __DIR__ . '/../src/Hosting.php';
     $hostingA = sicher(static fn() => Hosting::fuerKunde((int) $k['id']), null);
+    /* Die Wunschdomains aus dem Fragebogen — falls es einen gibt. Sie stehen
+       hier, damit Uwe nicht in den Fragebogen springen muss: Ein Klick
+       prueft den Wunsch und bietet ihn an (nur wenn er wirklich frei ist —
+       das prueft der Handler, nicht diese Ansicht). */
+    $hostingWuensche = sicher(static function () use ($k): array {
+        $q = Db::one("SELECT data FROM questionnaires WHERE customer_id = ?
+                       ORDER BY id DESC LIMIT 1", [(int) $k['id']]);
+        if (!$q || empty($q['data'])) { return []; }
+        $d = json_decode((string) $q['data'], true) ?: [];
+        $aus = [];
+        foreach (['wunsch1', 'wunsch2', 'wunsch3'] as $f) {
+            $w = trim((string) ($d[$f] ?? ''));
+            if ($w !== '' && !in_array($w, $aus, true)) { $aus[] = $w; }
+        }
+        return $aus;
+    }, []);
   ?>
   <div class="block"><h2>Domain &amp; Hosting
     <?php if ($hostingA): ?>
@@ -329,6 +345,12 @@
           <?= $hostingA['zugang_blob'] !== null ? 'Die Zugangsdaten warten auf den einmaligen Abruf durch den Kunden.'
               : 'Die Zugangsdaten sind abgerufen oder abgelaufen.' ?>
         <?php endif; ?></p>
+      <?php $uebrig = array_values(array_filter($hostingWuensche,
+          static fn(string $w): bool => strtolower($w) !== strtolower((string) $hostingA['domain']))); ?>
+      <?php if ($uebrig): ?>
+        <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">
+          Weitere Wünsche aus dem Fragebogen: <?= Fmt::h(implode(' · ', $uebrig)) ?></p>
+      <?php endif; ?>
       <?php if ((string) $hostingA['status'] === 'zugestimmt'): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px"
               data-frage="Jetzt anlegen? KAS-Account, Domain und Postfach entstehen sofort — die Domain kostet dich Registrierungsgebühr."
@@ -346,6 +368,23 @@
       <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
         Wunschdomain prüfen und dem Kunden anbieten. Er bekommt sofort die Angebots-Mail
         mit dem Link auf seine Seite — zustimmen muss er dort selbst, erst dann entsteht etwas.</p>
+      <?php if ($hostingWuensche): ?>
+        <div style="margin:0 0 12px">
+          <div style="font-size:12.5px;color:var(--leise);margin-bottom:6px">
+            Seine Wünsche aus dem Fragebogen — ein Klick prüft und bietet an:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <?php foreach ($hostingWuensche as $wunsch): ?>
+              <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+                <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_vorschlag">
+                <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+                <input type="hidden" name="domain" value="<?= Fmt::h($wunsch) ?>">
+                <button class="knopf"><?= Fmt::h($wunsch) ?></button>
+              </form>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_vorschlag">
         <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">

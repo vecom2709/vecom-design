@@ -666,6 +666,11 @@ final class Texte
             'de' => 'Jetzt anzeigen? Das geht nur ein einziges Mal — halte bereit, wo du sie speicherst.',
             'en' => 'Show them now? This works only once — have somewhere ready to save them.',
         ],
+        'hostingZugangAendern' => [
+            'it' => 'Consiglio: dopo aver salvato i dati, cambia le password nel pannello KAS (kas.all-inkl.com) — così le conosci solo tu.',
+            'de' => 'Tipp: Ändere die Passwörter nach dem Speichern im KAS-Kundenmenü (kas.all-inkl.com) — dann kennst nur noch du sie.',
+            'en' => 'Tip: after saving, change the passwords in the KAS panel (kas.all-inkl.com) — then only you know them.',
+        ],
         'hostingZugangJetzt' => [
             'it' => 'Salva questi dati ADESSO — è l’unica volta che vengono mostrati.',
             'de' => 'Speichere diese Daten JETZT — sie werden nur dieses eine Mal angezeigt.',
@@ -1129,6 +1134,39 @@ final class Texte
                 . "withdrawal — keep it somewhere safe. It’s also available on your page any time:\n{link}\n\n"
                 . "After the minimum term you can cancel at any month’s end — from your page or "
                 . "simply by replying to this email."],
+        ],
+        /* Alles geschaltet: Der Kunde erfaehrt es per Mail — aber die
+           Zugangsdaten stehen NICHT darin. Mails laufen unverschluesselt
+           und liegen ewig im Postfach; die Daten liegen stattdessen
+           verschluesselt bereit und werden genau einmal auf seiner Seite
+           gezeigt. Die Mail sagt, wo, wie lange — und dass er die
+           Passwoerter danach im KAS selbst aendern soll. */
+        'hosting_fertig' => [
+            'it' => ['Il tuo dominio {domain} è attivo — i dati di accesso ti aspettano',
+                "Ciao {name},\n\nfatto: {domain} è attivo, con spazio web, casella e-mail e il tuo "
+                . "account personale.\n\nI tuoi dati di accesso sono pronti sulla tua pagina — per "
+                . "sicurezza vengono mostrati UNA SOLA volta, quindi tieni pronto dove salvarli:\n{link}\n\n"
+                . "Importante: dopo averli salvati, cambia le password nel pannello KAS "
+                . "(kas.all-inkl.com) — così le conosci solo tu. Se non ritiri i dati entro "
+                . "{tage} giorni, li cancelliamo e su richiesta ne impostiamo di nuovi.\n\n"
+                . "Per qualsiasi cosa, rispondi pure a questa e-mail."],
+            'de' => ['Deine Domain {domain} ist geschaltet — die Zugangsdaten warten auf dich',
+                "Hallo {name},\n\ngeschafft: {domain} ist geschaltet, mit Speicherplatz, "
+                . "E-Mail-Postfach und deinem eigenen Account.\n\nDeine Zugangsdaten liegen auf "
+                . "deiner Seite bereit — aus Sicherheitsgründen werden sie nur EIN einziges Mal "
+                . "angezeigt, halte also bereit, wo du sie speicherst:\n{link}\n\n"
+                . "Wichtig: Ändere die Passwörter nach dem Speichern im KAS-Kundenmenü "
+                . "(kas.all-inkl.com) — dann kennst nur noch du sie. Rufst du die Daten nicht "
+                . "innerhalb von {tage} Tagen ab, löschen wir sie und setzen dir auf Zuruf neue.\n\n"
+                . "Bei allem anderen: einfach auf diese E-Mail antworten."],
+            'en' => ['Your domain {domain} is live — your access details are waiting',
+                "Hello {name},\n\ndone: {domain} is live, with web space, an email mailbox and "
+                . "your own account.\n\nYour access details are ready on your page — for security "
+                . "they are shown only ONCE, so have somewhere ready to save them:\n{link}\n\n"
+                . "Important: after saving them, change the passwords in the KAS panel "
+                . "(kas.all-inkl.com) — then only you know them. If you don’t collect the details "
+                . "within {tage} days, we delete them and set new ones on request.\n\n"
+                . "For anything else, just reply to this email."],
         ],
         /* Das Angebot: Uwe hat die Wunschdomain geprueft und vorgeschlagen.
            Die Mail bringt den Kunden auf seine Seite, wo Preis und Ja-Knopf

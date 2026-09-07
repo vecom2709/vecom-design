@@ -622,6 +622,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
                    dazu, dass genau dieser Anblick der letzte ist. */ ?>
           <div class="hinweis gut" style="margin-top:12px"><?= $h($HT('hostingZugangJetzt',
               'Speichere diese Daten jetzt — sie werden nur dieses eine Mal angezeigt.')) ?></div>
+          <p class="mini" style="margin:8px 0 0"><?= $h($HT('hostingZugangAendern')) ?></p>
           <?php $hFelder = [
               'kas_login'         => ['it' => 'Login KAS',        'de' => 'KAS-Login',        'en' => 'KAS login'],
               'kas_passwort'      => ['it' => 'Password KAS',     'de' => 'KAS-Passwort',     'en' => 'KAS password'],

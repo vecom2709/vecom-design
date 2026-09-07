@@ -312,7 +312,29 @@ final class Hosting
             'notiz' => $offen ? ('Offen: ' . implode(' · ', $offen)) : null,
         ]);
 
-        /* 5. Die Aufgabe fuer Uwe: bestellen — und was liegen blieb. */
+        /* 5. Der Kunde erfaehrt es — OHNE Passwoerter in der Mail. Die Mail
+           zeigt nur den Weg zur einmaligen Anzeige und sagt ihm, die
+           Passwoerter danach im KAS zu aendern. In eigenem Netz: Ein
+           stummer Mailserver macht das Angelegte nicht ungeschehen. */
+        try {
+            if ($k && trim((string) $k['email']) !== '') {
+                require_once __DIR__ . '/Mail.php';
+                require_once __DIR__ . '/Texte.php';
+                require_once __DIR__ . '/Kundenzugang.php';
+                $sprache = strtolower((string) ($k['sprache'] ?: 'it'));
+                if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+                [$betreff, $text] = Texte::mail('hosting_fertig', $sprache, [
+                    'name'   => (string) $k['name'],
+                    'domain' => $domain,
+                    'link'   => Kundenzugang::linkFuer($kundeId),
+                    'tage'   => (string) self::ZUGANG_TAGE,
+                ]);
+                Mail::senden('hosting_fertig', (string) $k['email'], $betreff, $text,
+                    ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
+            }
+        } catch (Throwable $e) { /* die Anzeige auf der Kundenseite steht trotzdem bereit */ }
+
+        /* 6. Die Aufgabe fuer Uwe: bestellen — und was liegen blieb. */
         Events::melden('hosting_bestellen', 'Domain bestellen: ' . $domain, 'hinweis',
             'Erledigt: ' . implode(' · ', $schritte) . '. '
             . 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
