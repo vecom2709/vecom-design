@@ -369,9 +369,16 @@ final class Strato
             . ($id !== '' ? '?id=eq.' . rawurlencode($id) : '?select=id,config&limit=2');
 
         /* Erst lesen: Ohne die aktuelle Konfiguration wüssten wir nicht, was
-           daneben steht -- und würden es beim Schreiben verlieren. */
+           daneben steht -- und würden es beim Schreiben verlieren.
+
+           ALS OBJEKTE, NICHT ALS ARRAY. Seine ganze Konfiguration geht hier
+           durch und wird unverändert zurückgeschrieben. Mit assoc=true würde
+           jedes leere Objekt darin -- irgendwo in personality_config, im
+           Widget, in den Kontakten -- zu [] und käme so bei STRATO an.
+           Genau das ist am 7. September mit „lage" passiert und hat den
+           Assistenten stillgelegt. */
         $a = self::abruf('GET', $id !== '' ? $u . '&select=id,config' : $u,
-                         self::wert('strato_anon'), $token);
+                         self::wert('strato_anon'), $token, null, true);
         if (!$a['ok'] || !is_array($a['daten']) || !$a['daten']) {
             return ['ok' => false, 'text' => 'Die Konfiguration war nicht zu lesen ('
                                            . $a['status'] . ').'];
@@ -380,18 +387,20 @@ final class Strato
             return ['ok' => false, 'text' => 'Es gibt mehrere Assistenten. Sag mir, welcher gemeint ist.'];
         }
 
-        $satz = (array) $a['daten'][0];
-        $cfg  = (array) ($satz['config'] ?? []);
-        if (!$cfg) { return ['ok' => false, 'text' => 'Die Konfiguration kam leer zurück.']; }
+        $satz = $a['daten'][0];
+        $cfg  = $satz->config ?? null;
+        if (!$cfg instanceof stdClass) {
+            return ['ok' => false, 'text' => 'Die Konfiguration kam leer zurück.'];
+        }
 
-        $agent = (string) ($satz['id'] ?? $id);
+        $agent = (string) ($satz->id ?? $id);
         if ($agent === '') { return ['ok' => false, 'text' => 'Kein Assistent gefunden.']; }
         self::merken('strato_agent', $agent);
 
-        $cfg['tools'] = $werkzeuge;   // NUR das. Alles andere bleibt, wie es kam.
+        $cfg->tools = $werkzeuge;   // NUR das. Alles andere bleibt, wie es kam.
 
         $p = self::abruf('PATCH', self::PROJEKT . '/rest/v1/agent_configs?id=eq.' . rawurlencode($agent),
-                         self::wert('strato_anon'), $token, ['config' => $cfg]);
+                         self::wert('strato_anon'), $token, (object) ['config' => $cfg]);
         if (!$p['ok']) {
             return ['ok' => false, 'text' => 'Das Schreiben wurde abgelehnt (' . $p['status'] . ').'];
         }
@@ -400,12 +409,26 @@ final class Strato
            ist genau die Art Fehler, die man erst am Telefon merkt. */
         $n = self::abruf('GET', self::PROJEKT . '/rest/v1/agent_configs?id=eq.'
                                 . rawurlencode($agent) . '&select=config',
-                         self::wert('strato_anon'), $token);
-        $drueben = is_array($n['daten'][0]['config']['tools'] ?? null)
-            ? count($n['daten'][0]['config']['tools']) : 0;
+                         self::wert('strato_anon'), $token, null, true);
+        $tools = $n['daten'][0]->config->tools ?? null;
+        $drueben = is_array($tools) ? count($tools) : 0;
         if ($drueben !== count($werkzeuge)) {
             return ['ok' => false, 'text' => 'Drüben stehen jetzt ' . $drueben . ' statt '
                                            . count($werkzeuge) . ' Werkzeuge. Bitte nachsehen.'];
+        }
+
+        /* UND DAS EIGENTLICHE: Steht „properties" noch als Objekt da? Die
+           Zahl allein sagt nichts -- vierzehn Werkzeuge, von denen eines ein
+           kaputtes Schema hat, legen alle vierzehn still. Diese Prüfung
+           kostet nichts und hätte den Ausfall verhindert. */
+        $krumm = [];
+        foreach ($tools as $x) {
+            if (is_array($x->parameters->properties ?? null)) { $krumm[] = (string) ($x->name ?? '?'); }
+        }
+        if ($krumm) {
+            return ['ok' => false, 'text' => 'Bei ' . implode(', ', $krumm) . ' ist „properties" '
+                                           . 'als Liste statt als Objekt angekommen. Das legt den '
+                                           . 'ganzen Assistenten still — bitte sag mir Bescheid.'];
         }
 
         self::merken('strato_werkzeuge_am', date('Y-m-d H:i:s'));
@@ -845,8 +868,16 @@ final class Strato
         return date('Y-m-d H:i:s', $t !== false ? $t : time());
     }
 
-    /** @return array{ok:bool,status:int,daten:mixed} */
-    private static function abruf(string $art, string $url, string $anon, ?string $token, ?array $koerper = null): array
+    /**
+     * @param bool $alsObjekte Fremdes JSON, das UNVERÄNDERT zurückgeschrieben
+     *   wird, muss als Objekt dekodiert werden. Mit assoc=true wird aus
+     *   jedem leeren JSON-Objekt {} ein leeres PHP-Array [], und beim
+     *   Zurückschreiben steht dort []. Bei Stratos Schemaprüfung ist das
+     *   der Unterschied zwischen „läuft" und „Assistent nicht erreichbar".
+     * @return array{ok:bool,status:int,daten:mixed}
+     */
+    private static function abruf(string $art, string $url, string $anon, ?string $token,
+                                  mixed $koerper = null, bool $alsObjekte = false): array
     {
         $kopf = ['apikey: ' . $anon, 'Accept: application/json'];
         if ($token !== null) { $kopf[] = 'Authorization: Bearer ' . $token; }
@@ -862,7 +893,10 @@ final class Strato
             CURLOPT_USERAGENT      => 'vecom-design.it Verwaltung',
         ]);
         if ($koerper !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, (string) json_encode($koerper));
+            /* Ohne JSON_UNESCAPED_UNICODE käme jeder Umlaut als \u00fc an --
+               lesbar für Maschinen, unlesbar für den, der drüben nachsieht. */
+            curl_setopt($ch, CURLOPT_POSTFIELDS,
+                (string) json_encode($koerper, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         }
         $antwort = curl_exec($ch);
         $status  = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -873,6 +907,6 @@ final class Strato
             return ['ok' => false, 'status' => 0, 'daten' => ['error' => $fehler]];
         }
         return ['ok' => $status >= 200 && $status < 300, 'status' => $status,
-                'daten' => json_decode((string) $antwort, true)];
+                'daten' => json_decode((string) $antwort, !$alsObjekte)];
     }
 }

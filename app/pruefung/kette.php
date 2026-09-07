@@ -2918,14 +2918,15 @@ pruefe('in der Reihenfolge des Gesprächs, nicht alphabetisch',
 
 $o = Telefonwerkzeuge::objekte();
 pruefe('jedes wird zu gültigem JSON', count($o) === 14, (string) count($o));
-pruefe('und behält seinen Namen', array_column($o, 'name') === array_keys($w));
+pruefe('und behält seinen Namen',
+    array_map(static fn($x) => (string) $x->name, $o) === array_keys($w));
 
 /* DER SCHLÜSSEL MUSS ÜBERALL DERSELBE SEIN. Steht in einem Werkzeug ein
    alter, ruft genau dieses eine ins Leere -- und zwar erst beim Anruf. */
 $schluessel = [];
 foreach ($o as $x) {
-    foreach ((array) ($x['request']['headers'] ?? []) as $h) {
-        if (($h['name'] ?? '') === 'X-Vecom-Telefon') { $schluessel[(string) $h['value']] = true; }
+    foreach ((array) ($x->request->headers ?? []) as $h) {
+        if (($h->name ?? '') === 'X-Vecom-Telefon') { $schluessel[(string) $h->value] = true; }
     }
 }
 pruefe('alle vierzehn tragen denselben Schlüssel', count($schluessel) === 1, (string) count($schluessel));
@@ -2935,13 +2936,13 @@ pruefe('und er ist der aktuelle', isset($schluessel[Telefon::schluessel()]));
    gejagt wären sie escaped, und der Rumpf käme leer an. */
 $ohnePlatzhalter = [];
 foreach ($o as $x) {
-    $rumpf = (string) ($x['request']['postData']['text'] ?? '');
-    if (!str_contains($rumpf, '"aktion"')) { $ohnePlatzhalter[] = (string) $x['name']; continue; }
+    $rumpf = (string) ($x->request->postData->text ?? '');
+    if (!str_contains($rumpf, '"aktion"')) { $ohnePlatzhalter[] = (string) $x->name; continue; }
     /* „lage" hat keine Eigenschaften und deshalb zu Recht keinen Platzhalter
        -- es fragt nur nach Tag und Uhrzeit. Wer hier stur prüft, baut sich
        einen Test, der einen richtigen Zustand rot färbt. */
-    $hatFelder = (array) ($x['parameters']['properties'] ?? []) !== [];
-    if ($hatFelder && !str_contains($rumpf, '{{ ')) { $ohnePlatzhalter[] = (string) $x['name']; }
+    $hatFelder = (array) ($x->parameters->properties ?? []) !== [];
+    if ($hatFelder && !str_contains($rumpf, '{{ ')) { $ohnePlatzhalter[] = (string) $x->name; }
 }
 pruefe('jeder Rumpf trägt seine Aktion und, wo es Felder gibt, die Platzhalter wörtlich',
     $ohnePlatzhalter === [], implode(', ', $ohnePlatzhalter));
@@ -2950,8 +2951,8 @@ pruefe('jeder Rumpf trägt seine Aktion und, wo es Felder gibt, die Platzhalter 
    ruft beim Anruf lautlos das falsche Werkzeug auf. */
 $vertauscht = [];
 foreach ($o as $x) {
-    $name = (string) $x['name'];
-    if (!str_contains((string) ($x['request']['postData']['text'] ?? ''), '"aktion":"' . $name . '"')) {
+    $name = (string) $x->name;
+    if (!str_contains((string) ($x->request->postData->text ?? ''), '"aktion":"' . $name . '"')) {
         $vertauscht[] = $name;
     }
 }
@@ -2961,10 +2962,44 @@ pruefe('und zwar die eigene', $vertauscht === [], implode(', ', $vertauscht));
    Array schickt PHP „[]", und Stratos Schemaprüfung lehnt es ab. */
 $falsch = [];
 foreach ($o as $x) {
-    $t = Telefon::konfigJson((string) $x['name'], $w[(string) $x['name']], 'https://x/telefon.php', 'k');
-    if (!str_contains($t, '"properties": {')) { $falsch[] = (string) $x['name']; }
+    $t = Telefon::konfigJson((string) $x->name, $w[(string) $x->name], 'https://x/telefon.php', 'k');
+    if (!str_contains($t, '"properties": {')) { $falsch[] = (string) $x->name; }
 }
 pruefe('„properties" bleibt ein Objekt', $falsch === [], implode(', ', $falsch));
+
+/* DIE PRÜFUNG, DIE GEFEHLT HAT
+   ------------------------------------------------------------------------
+   Am 7. September war der Assistent eine halbe Stunde nicht erreichbar. Der
+   Grund: json_decode($text, true) macht aus einem leeren JSON-Objekt {} ein
+   leeres PHP-Array [], und beim Zurückschreiben stand bei „lage" —
+   dem einzigen Werkzeug ohne Eigenschaften — "properties": [] statt {}.
+   Stratos Schemaprüfung lehnte es ab. EIN kaputtes Werkzeug legt alle
+   vierzehn still.
+
+   Vor genau dem warnt der Kommentar in Telefon::konfigJson() seit dem ersten
+   Tag. Die Prüfung dazu gab es nur für konfigJson selbst — nicht für den Weg
+   danach, durch Dekodieren und wieder Kodieren. Also hier. */
+$alsListe = [];
+foreach (Telefonwerkzeuge::objekte() as $x) {
+    if (is_array($x->parameters->properties ?? null)) { $alsListe[] = (string) $x->name; }
+}
+pruefe('„properties" überlebt das Dekodieren als Objekt', $alsListe === [], implode(', ', $alsListe));
+
+/* Und den ganzen Weg: kodieren, dekodieren, wieder kodieren — so läuft es
+   bei der Übertragung. Ein einziger Durchgang genügt nicht als Nachweis. */
+$hin  = json_encode(['config' => ['tools' => Telefonwerkzeuge::objekte()]],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+$her  = json_decode($hin);
+$hin2 = json_encode($her, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+pruefe('und übersteht Hin und Zurück unverändert', $hin === $hin2);
+pruefe('bei „lage" steht danach ein Objekt, keine Liste',
+    str_contains($hin, '"aktion\\":\\"lage') || str_contains($hin, '"lage"'));
+$lageJ = null;
+foreach ($her->config->tools as $x) { if ($x->name === 'lage') { $lageJ = $x; } }
+pruefe('„lage" hat kein Feld — und trotzdem ein Objekt',
+    $lageJ !== null && $lageJ->parameters->properties instanceof stdClass
+    && (array) $lageJ->parameters->properties === [],
+    json_encode($lageJ->parameters ?? null));
 
 /* Ohne Zugang wird nichts geschickt -- und es scheitert nicht, es sagt es. */
 Db::run("DELETE FROM settings WHERE skey IN ('strato_anon','strato_refresh')");

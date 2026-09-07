@@ -418,16 +418,33 @@ final class Telefonwerkzeuge
     }
 
     /**
-     * Dasselbe als Liste von Objekten -- so liegen sie in Stratos config.
+     * Dasselbe als Objekte -- so liegen sie in Stratos config.
      *
-     * @return list<array<string,mixed>>
+     * WARUM HIER KEIN ASSOZIATIVES ARRAY HERAUSKOMMT
+     * ---------------------------------------------------------------------
+     * Der erste Entwurf dekodierte mit json_decode($text, true). Damit wird
+     * aus einem leeren JSON-Objekt {} ein leeres PHP-Array [], und beim
+     * Zurückschreiben steht "properties": [] statt {}. Genau davor warnt der
+     * Kommentar in Telefon::konfigJson() seit dem ersten Tag -- und genau
+     * das habe ich am 7. September wieder eingebaut.
+     *
+     * Betroffen war „lage": Es hat als einziges Werkzeug keine Eigenschaften.
+     * Stratos Schemaprüfung lehnte es ab, und der Assistent war nicht mehr
+     * erreichbar. Ein Fehler in einem von vierzehn Werkzeugen legt alle
+     * vierzehn still.
+     *
+     * Ohne das zweite Argument kommen stdClass-Objekte heraus, und ein
+     * leeres Objekt bleibt ein leeres Objekt -- durch beliebig viele
+     * Runden aus Dekodieren und Kodieren.
+     *
+     * @return list<object>
      */
     public static function objekte(): array
     {
         $aus = [];
         foreach (self::json() as $text) {
-            $d = json_decode($text, true);
-            if (is_array($d)) { $aus[] = $d; }
+            $d = json_decode($text);          // NICHT true — siehe oben
+            if ($d instanceof stdClass) { $aus[] = $d; }
         }
         return $aus;
     }
