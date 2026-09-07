@@ -20,12 +20,20 @@ require_once __DIR__ . '/Db.php';
  *
  * WAS DIESE STUFE KANN — UND WAS ABSICHTLICH NOCH NICHT
  *
- * Sie liest: Verbindung pruefen, Accounts auflisten. Sie legt NICHTS an.
- * Ein Skript, das ungetestet Accounts, Domains oder Datenbanken bei einem
- * Hoster erzeugt, ist keine Automatisierung, sondern ein Risiko mit
- * Vertragsbindung. Das Anlegen kommt als eigene Stufe, sobald der Zugang
- * steht und ein erster Account von Hand danebengelegt wurde, an dem sich
- * die Parameter pruefen lassen.
+ * Sie liest (Verbindung pruefen, Accounts auflisten) und legt seit Stufe 2
+ * Kunden-Accounts an — auf Knopfdruck in den Einstellungen, nie von
+ * allein. LOESCHEN kann sie ausdruecklich nicht: Ein Account, an dem eine
+ * Kundenwebsite haengt, verschwindet nur von Hand im KAS, mit allen
+ * Warnungen, die All-Inkl dort zeigt. Ein Kettentest wacht darueber, dass
+ * diese Klasse keine loeschenden Methoden bekommt.
+ *
+ * DIE PASSWOERTER DES NEUEN ACCOUNTS
+ *
+ * add_account verlangt ein KAS- und ein FTP-Passwort. Beide erzeugt der
+ * Server selbst (Zufall, 16 Zeichen), zeigt sie GENAU EINMAL in der
+ * Verwaltung an und speichert sie nirgends — gemerkt wird nur der neue
+ * Login. Wer sie verliert, setzt sie im KAS neu. So laufen sie weder
+ * durch einen Chat noch durch eine E-Mail noch in eine Datenbank.
  *
  * DER ZUGANG
  *
@@ -233,6 +241,94 @@ final class Kas
                       'roh'     => $a];
         }
         return ['ok' => true, 'text' => '', 'accounts' => $aus];
+    }
+
+    /* ==================================================================== */
+    /*  Anlegen (Stufe 2)                                                   */
+    /* ==================================================================== */
+
+    /**
+     * Ein Zufallspasswort, das jede uebliche Regel besteht.
+     *
+     * Garantiert Gross, Klein, Ziffer und ein Sonderzeichen aus einem
+     * kleinen, unverdaechtigen Satz — FTP-Clients und Formulare stolpern
+     * sonst gern ueber exotische Zeichen.
+     */
+    public static function passwortNeu(): string
+    {
+        $gross = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $klein = 'abcdefghjkmnpqrstuvwxyz';
+        $zahl  = '23456789';
+        $sonder = '!-_';
+        $alle = $gross . $klein . $zahl . $sonder;
+        $aus = $gross[random_int(0, strlen($gross) - 1)]
+             . $klein[random_int(0, strlen($klein) - 1)]
+             . $zahl[random_int(0, strlen($zahl) - 1)]
+             . $sonder[random_int(0, strlen($sonder) - 1)];
+        for ($i = 0; $i < 12; $i++) { $aus .= $alle[random_int(0, strlen($alle) - 1)]; }
+        return str_shuffle($aus);
+    }
+
+    /**
+     * Einen Kunden-Account unter dem Reseller anlegen.
+     *
+     * Den Login (w0…) vergibt All-Inkl; wir geben nur die Passwoerter und
+     * den Kommentar mit — der Kommentar ist spaeter das Einzige, woran man
+     * in der Accountliste erkennt, welcher Kunde das ist. Kontingente
+     * werden bewusst NICHT gesetzt: Die Vorgaben von All-Inkl sind fuer
+     * eine Kundenwebsite richtig, und eine geratene Zahl mit falscher
+     * Einheit waere schlimmer als keine.
+     *
+     * @return array{ok:bool,login:string,kas_passwort:string,ftp_passwort:string,text:string}
+     */
+    public static function accountAnlegen(string $kommentar): array
+    {
+        $kommentar = mb_substr(trim($kommentar), 0, 80);
+        if ($kommentar === '') {
+            return ['ok' => false, 'login' => '', 'kas_passwort' => '', 'ftp_passwort' => '',
+                    'text' => 'Ohne Kommentar kein Account — er ist das Einzige, woran man '
+                            . 'später erkennt, welcher Kunde das ist.'];
+        }
+
+        $kasPw = self::passwortNeu();
+        $ftpPw = self::passwortNeu();
+        $erg = self::rufen('add_account', [
+            'account_kas_password' => $kasPw,
+            'account_ftp_password' => $ftpPw,
+            'account_comment'      => $kommentar,
+        ]);
+        if (!$erg['ok']) {
+            return ['ok' => false, 'login' => '', 'kas_passwort' => '', 'ftp_passwort' => '',
+                    'text' => $erg['text']];
+        }
+
+        /* Der neue Login steht in der Antwort — wo genau, sagt die Doku
+           nicht verbindlich. Also suchen wir ihn, und finden wir ihn
+           nicht, ist der Account trotzdem da: Die Accountliste zeigt ihn. */
+        $login = self::loginAus($erg['daten']);
+        return ['ok' => true, 'login' => $login,
+                'kas_passwort' => $kasPw, 'ftp_passwort' => $ftpPw,
+                'text' => $login !== ''
+                    ? 'Account ' . $login . ' ist angelegt.'
+                    : 'Der Account ist angelegt — der Login steht in der Accountliste (Verbindung prüfen).'];
+    }
+
+    /** Sucht in der API-Antwort nach dem vergebenen Account-Login. */
+    private static function loginAus(mixed $daten): string
+    {
+        if (is_string($daten) && preg_match('/^w[0-9a-f]{7}$/i', trim($daten))) {
+            return trim($daten);
+        }
+        if (is_array($daten)) {
+            foreach (['account_login', 'login'] as $k) {
+                if (isset($daten[$k]) && is_string($daten[$k])) { return trim($daten[$k]); }
+            }
+            foreach ($daten as $wert) {
+                $g = self::loginAus($wert);
+                if ($g !== '') { return $g; }
+            }
+        }
+        return '';
     }
 
     /* ==================================================================== */

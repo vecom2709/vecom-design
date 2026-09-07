@@ -3789,14 +3789,33 @@ $kasKonten = Kas::accounts();
 pruefe('die Accountliste bleibt dann leer und erklaert sich',
     $kasKonten['ok'] === false && $kasKonten['accounts'] === []);
 
-/* DIESE STUFE LEGT NICHTS AN. Wer der Klasse eine anlegende Methode gibt,
-   soll diesen Test bewusst umbauen muessen — samt dem Gedanken, wie sie
-   gegen einen Handbestand geprueft wird. */
-$kasMethoden = array_filter(get_class_methods('Kas'),
-    static fn(string $m): bool => str_starts_with($m, 'add') || str_contains(strtolower($m), 'anlegen')
-        || str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete'));
-pruefe('die Leseklasse hat keine anlegenden oder loeschenden Methoden',
-    $kasMethoden === [], implode(', ', $kasMethoden));
+/* SEIT STUFE 2 LEGT SIE AN — LOESCHEN KANN SIE WEITERHIN NICHT.
+   Dieser Test wurde bewusst umgebaut, als accountAnlegen() dazukam. Die
+   Grenze, die bleibt: Ein Account, an dem eine Kundenwebsite haengt,
+   verschwindet nur von Hand im KAS. */
+$kasLoeschend = array_filter(get_class_methods('Kas'),
+    static fn(string $m): bool => str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete'));
+pruefe('die Klasse hat weiterhin keine loeschenden Methoden',
+    $kasLoeschend === [], implode(', ', $kasLoeschend));
+
+/* Das Anlegen selbst laesst sich ohne Zugang nur an seinen Riegeln
+   pruefen — und die sind das Wichtigste daran. */
+$ohneKommentar = Kas::accountAnlegen('   ');
+pruefe('ohne Kommentar wird kein Account angelegt — nicht einmal versucht',
+    $ohneKommentar['ok'] === false && str_contains($ohneKommentar['text'], 'Kommentar'),
+    json_encode($ohneKommentar['text']));
+$ohneZugangA = Kas::accountAnlegen('Testkunde');
+pruefe('ohne Zugang scheitert das Anlegen mit einem Satz',
+    $ohneZugangA['ok'] === false && $ohneZugangA['login'] === '');
+
+/* Die Passwoerter des neuen Accounts: stark, regelfest, jedes Mal anders. */
+$pw1 = Kas::passwortNeu();
+$pw2 = Kas::passwortNeu();
+pruefe('erzeugte Passwoerter sind 16 Zeichen lang', strlen($pw1) === 16, $pw1 !== '' ? (string) strlen($pw1) : 'leer');
+pruefe('mit Gross, Klein, Ziffer und Sonderzeichen',
+    preg_match('/[A-Z]/', $pw1) && preg_match('/[a-z]/', $pw1)
+    && preg_match('/[0-9]/', $pw1) && preg_match('/[!\-_]/', $pw1));
+pruefe('und zwei Aufrufe liefern nie dasselbe', $pw1 !== $pw2);
 
 /* ============================================================================
    Aufräumen und Bilanz

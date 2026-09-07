@@ -960,6 +960,27 @@ if ($post) {
                 zurueck('einstellungen?b=zugaenge');
                 break;
 
+            case 'kas_account_anlegen':
+                /* Legt einen Unter-Account beim Reseller an. Die beiden
+                   Passwoerter erzeugt der Server, zeigt sie genau einmal
+                   (Session, die Ansicht loescht sie nach dem Anzeigen) und
+                   speichert sie nirgends. */
+                require_once __DIR__ . '/src/Kas.php';
+                $erg = Kas::accountAnlegen((string) ($_POST['kommentar'] ?? ''));
+                if ($erg['ok']) {
+                    Events::protokoll('kas_account',
+                        'KAS-Account angelegt' . ($erg['login'] !== '' ? ': ' . $erg['login'] : '')
+                        . ' — ' . mb_substr(trim((string) ($_POST['kommentar'] ?? '')), 0, 80));
+                    $_SESSION['kas_neu'] = ['login' => $erg['login'],
+                                            'kas' => $erg['kas_passwort'],
+                                            'ftp' => $erg['ftp_passwort']];
+                    $_SESSION['gut'] = $erg['text'] . ' Die Zugangsdaten stehen unten — sie werden genau einmal angezeigt.';
+                } else {
+                    $_SESSION['fehler'] = $erg['text'];
+                }
+                zurueck('einstellungen?b=zugaenge');
+                break;
+
             case 'kas_pruefen':
                 require_once __DIR__ . '/src/Kas.php';
                 $probe = Kas::pruefen();

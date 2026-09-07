@@ -2405,3 +2405,20 @@ Reseller-Vertrag." Zwei Stolperer aus der Einrichtung, beide abgestellt:
 2. `kas_password_incorrect` heißt oft nur „noch nicht": Ein frisch im KAS
    gesetztes Passwort braucht ein paar Minuten, bis es bei All-Inkl greift.
    Die Fehlermeldung sagt das jetzt dazu.
+
+## KAS Stufe 2: Accounts anlegen (07.09.2026, abends)
+
+`Kas::accountAnlegen()` legt Kunden-Accounts unter dem Reseller an — auf Knopfdruck
+unter Einstellungen → Zugänge & Schutz („Kunden-Account anlegen"), nie von allein.
+Die beiden Pflicht-Passwörter (KAS + FTP) erzeugt der Server (16 Zeichen, regelfest),
+zeigt sie GENAU EINMAL in verdeckten Feldern an und speichert sie nirgends; gemerkt
+wird nur der von All-Inkl vergebene Login. Kontingente werden bewusst nicht gesetzt
+(All-Inkl-Vorgaben statt geratener Zahlen mit falscher Einheit). Der Kommentar ist
+Pflicht — er ist das Einzige, woran man in der Accountliste den Kunden erkennt.
+
+Die Grenze, die bleibt: LÖSCHEN kann die Klasse nicht, und ein Kettentest wacht
+darüber (bewusst umgebaut aus dem alten „legt nichts an"-Wächter). Ein Account, an
+dem eine Kundenwebsite hängt, verschwindet nur von Hand im KAS.
+
+Als Nächstes (Stufe 3, wenn gewünscht): Anlegen aus dem Projekt heraus + Login am
+Projekt vermerken. Prüfkette 774 → 779.

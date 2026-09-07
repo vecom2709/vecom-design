@@ -155,3 +155,48 @@ $kasFehlt  = Kas::voraussetzung();
     <?php endif; ?>
   </div>
 </div>
+
+<?php /* Der neue Kunden-Account: anlegen und die Zugangsdaten GENAU EINMAL
+         zeigen. Die Passwörter stehen in der Session, werden hier in
+         verdeckten Feldern angezeigt und danach sofort vergessen —
+         gespeichert wird nur, dass es den Account gibt. */
+$kasNeu = $_SESSION['kas_neu'] ?? null;
+unset($_SESSION['kas_neu']);
+?>
+<?php if (Kas::bereit()): ?>
+<div class="block">
+  <h2>Kunden-Account anlegen</h2>
+  <p style="color:var(--leise);max-width:70ch">Legt einen neuen Account unter dem Reseller-Vertrag
+    an — eigener Webspace für ein Kundenprojekt. Den Login (w…) vergibt All-Inkl; die beiden
+    Passwörter werden erzeugt, <b>genau einmal</b> unten angezeigt und nirgends gespeichert.
+    Verlierst du sie, setzt du sie im KAS neu. Löschen kann die Verwaltung Accounts bewusst
+    nicht — das bleibt ein Handgriff im KAS.</p>
+
+  <?php if (is_array($kasNeu)): ?>
+    <div class="hinweis" style="margin-bottom:14px">
+      <b>Jetzt kopieren — diese Anzeige kommt nicht wieder.</b>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+        <div class="feld" style="margin:0"><label>Account-Login</label>
+          <input readonly value="<?= Fmt::h((string) $kasNeu['login']) ?>" style="width:140px"
+                 onclick="this.select()"></div>
+        <div class="feld" style="margin:0"><label>KAS-Passwort</label>
+          <input type="password" readonly value="<?= Fmt::h((string) $kasNeu['kas']) ?>" style="width:180px"
+                 onclick="this.type='text';this.select()"></div>
+        <div class="feld" style="margin:0"><label>FTP-Passwort</label>
+          <input type="password" readonly value="<?= Fmt::h((string) $kasNeu['ftp']) ?>" style="width:180px"
+                 onclick="this.type='text';this.select()"></div>
+      </div>
+      <small style="color:var(--leise)">Klick in ein Feld zeigt und markiert den Wert. Ablegen am
+        besten im Passwortmanager.</small>
+    </div>
+  <?php endif; ?>
+
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="kas_account_anlegen">
+    <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
+    <div class="feld" style="margin:0;flex:1;min-width:260px"><label>Kommentar — welcher Kunde?</label>
+      <input name="kommentar" maxlength="80" required placeholder="z. B. Trattoria Prova — Website 2026"></div>
+    <button class="knopf haupt">Account anlegen</button>
+  </form>
+</div>
+<?php endif; ?>
