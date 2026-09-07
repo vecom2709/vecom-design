@@ -70,7 +70,6 @@ $W = [
     'zuSchnell'=> 'Un attimo — riprova tra qualche secondo.',
     'ungueltig'=> 'Questo non sembra un nome di dominio valido. Esempio: trattoria-rossi.it',
     'kaufTitel'=> 'Attiva {domain}',
-    'agb'     => '', 'wid' => '',  // kommen aus Widerruf::texte
     'kaufKnopf'=> 'Ordino con obbligo di pagare — {preis} al mese',
     'nochmal' => 'Prova un altro nome',
     'fehlerFelder' => 'Controlla nome e indirizzo e-mail.',
@@ -102,7 +101,6 @@ $W = [
     'zuSchnell'=> 'Einen Moment — bitte in ein paar Sekunden noch einmal versuchen.',
     'ungueltig'=> 'Das sieht nicht nach einer gültigen Domain aus. Beispiel: trattoria-rossi.it',
     'kaufTitel'=> '{domain} aktivieren',
-    'agb'     => '', 'wid' => '',
     'kaufKnopf'=> 'Zahlungspflichtig bestellen — {preis} im Monat',
     'nochmal' => 'Anderen Namen versuchen',
     'fehlerFelder' => 'Bitte Name und E-Mail-Adresse prüfen.',
@@ -134,7 +132,6 @@ $W = [
     'zuSchnell'=> 'One moment — please try again in a few seconds.',
     'ungueltig'=> 'That doesn’t look like a valid domain. Example: trattoria-rossi.com',
     'kaufTitel'=> 'Activate {domain}',
-    'agb'     => '', 'wid' => '',
     'kaufKnopf'=> 'Order with obligation to pay — {preis} per month',
     'nochmal' => 'Try another name',
     'fehlerFelder' => 'Please check your name and email address.',
@@ -147,7 +144,7 @@ $W = [
   ],
 ][$sprache];
 
-$W += Widerruf::texte($sprache);   // 'agb' und 'wid' — derselbe Wortlaut wie im Vertragsblatt
+$W = Widerruf::texte($sprache) + $W;   // 'agb'/'wid'/'widText' — echte Werte gewinnen; derselbe Wortlaut wie im Vertragsblatt
 
 $preisCents = (int) (Db::wert("SELECT monthly_cents FROM packages WHERE slug = 'hosting'", [], 990) ?: 990);
 $preisText  = Fmt::geld($preisCents);
