@@ -299,6 +299,27 @@ final class Telefon
                nicht mehr, steht bei self::frueher(). */
             $aus = ['gefunden' => false,
                     'hinweis'  => 'Kein Eintrag. Anliegen aufnehmen und melden.'];
+
+            /* WER ÜBER DIE WEBSITE ANRUFT, WEISS NICHT, WAS ER FRAGEN DARF
+               ---------------------------------------------------------------
+               Vier der fünf Anrufe am 7.9. waren unter einer Minute: 0:07,
+               0:22, 0:53 — einer endete mit „Sure" und Stille. Am Telefon
+               weiss man, warum man anruft. Wer auf einer Website ein
+               Sprachfenster anklickt, hat oft nur darauf gedrückt, weil es
+               da war.
+
+               Drei Beispiele kosten drei Sekunden. Sie stehen hier und nicht
+               im Verhaltenstext, aus demselben Grund wie alles andere heute:
+               Was verlässlich sein muss, gehört ins Werkzeug. */
+            if ($telefon === '' && $nummer === '' && $name === '') {
+                $aus['ueber_website'] = true;
+                $aus['satz'] = self::WEBSITE_SATZ[$sprache] ?? self::WEBSITE_SATZ['it'];
+                $aus['hinweis'] = 'Er ruft über die Website an und hat wahrscheinlich nur auf das '
+                                . 'Fenster gedrückt. Sag GLEICH den Satz aus „satz“ — er sagt ihm, '
+                                . 'was er fragen kann. Danach still sein und ihn reden lassen. '
+                                . 'Frag ihn NICHT sofort nach seiner Rufnummer; das kommt später, '
+                                . 'wenn ihr etwas verabredet.';
+            }
             /* Steht die Nummer auf der Merkliste, weiss sie es ab dem ersten
                Satz -- statt erst dann, wenn ein Werkzeug sie ausbremst. */
             if (self::aufMerkliste($telefon)) {
@@ -3200,6 +3221,21 @@ final class Telefon
     /** Diese Aktionen werden gedeckelt. Alles andere läuft normal weiter. */
     public const MERKLISTE_STUMM = ['beratung', 'preis_auskunft', 'angebot_link', 'seite_ansehen',
                                     'beleg', 'uebergabe', 'termin', 'zusammenfassung', 'wissen'];
+
+    /**
+     * Was man sie fragen kann -- für die, die nur auf das Fenster gedrückt haben.
+     *
+     * Drei Beispiele, keine Liste: Am Telefon zählt niemand auf. Und keine
+     * Frage am Ende -- er soll antworten dürfen, nicht müssen.
+     */
+    public const WEBSITE_SATZ = [
+        'it' => 'Può chiedermi un preventivo, farmi controllare il suo sito oppure lasciare '
+              . 'un messaggio per Uwe.',
+        'de' => 'Sie können mich nach Preisen fragen, Ihre Website prüfen lassen oder eine '
+              . 'Nachricht für Uwe hinterlassen.',
+        'en' => 'You can ask me about prices, have me check your website, or leave a message '
+              . 'for Uwe.',
+    ];
 
     /** Der Satz, den sie sagt. Höflich, knapp, in seiner Sprache. */
     public const MERKLISTE_SATZ = [

@@ -3315,6 +3315,26 @@ Db::run("DELETE FROM activities WHERE type = 'telefon_widget_da'");
 $n2 = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
 pruefe('ohne Vermerk kein Hinweis auf die Kundenseite', empty($n2['von_kundenseite']));
 
+/* ---- 3. IM FENSTER WEISS NIEMAND, WAS ER FRAGEN DARF ----
+   Vier der fünf Anrufe am 7.9. waren unter einer Minute; einer endete mit
+   „Sure" und Stille. Am Telefon weiss man, warum man anruft — wer auf einer
+   Website ein Sprachfenster anklickt, hat oft nur darauf gedrückt. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+$fenster = Telefon::nachschlagen(['sprache' => 'de']);
+pruefe('ein Anruf ohne jede Angabe gilt als Anruf über die Website',
+    ($fenster['ueber_website'] ?? false) === true, json_encode($fenster));
+pruefe('und sie bekommt einen fertigen Satz',
+    str_contains((string) ($fenster['satz'] ?? ''), 'Website prüfen'), (string) ($fenster['satz'] ?? ''));
+pruefe('der Satz steht in allen drei Sprachen',
+    count(array_filter(Telefon::WEBSITE_SATZ, static fn($x) => trim($x) !== '')) === 3);
+pruefe('sie soll nicht sofort nach der Rufnummer fragen',
+    str_contains((string) $fenster['hinweis'], 'NICHT sofort'), (string) $fenster['hinweis']);
+
+/* Wer eine Nummer nennt, bekommt den Satz nicht — er weiss ja, warum er
+   anruft, und drei Beispiele wären dann eine Belehrung. */
+$mitNummer = Telefon::nachschlagen(['telefon' => '+49 155 000 0000', 'sprache' => 'de']);
+pruefe('mit genannter Nummer kommt der Satz nicht', empty($mitNummer['ueber_website']));
+
 /* ---- 4. DIE ADRESSE ZURÜCKLESEN ---- */
 $ohne = Telefon::angebotLink(['sprache' => 'de', 'email' => 'neu@example.com']);
 pruefe('an eine unbestätigte Adresse geht nichts raus',
