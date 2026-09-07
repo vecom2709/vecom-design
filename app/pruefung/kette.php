@@ -3444,6 +3444,19 @@ pruefe('bei einer Mehrfachauswahl zählt alles, was genannt wurde',
 $w = Telefonfragebogen::speicherwert('branche', $branche, ['gastronomie'], 'eine Pizzeria');
 pruefe('eine Auswahl wird als Schlüssel gespeichert', ($w['branche'] ?? '') === 'gastronomie');
 pruefe('und ohne Ausweg keine freie Zeile', !isset($w['branche__frei']));
+
+/* DIE RUNDREISE DURCH DIE PRÜFUNG DES FORMULARS
+   Onboarding::saeubern() erwartet Mehrfachauswahl als Liste und die
+   Materialliste als Zuordnung — so schickt es der Browser. Der erste
+   Entwurf übergab Zeichenketten; saeubern verwarf sie lautlos, das Feld
+   blieb leer, die Frage kam wieder. Der Kunde hat es am Telefon erlebt,
+   bevor dieser Test es festhielt. Deshalb geht hier jede Art einmal ganz
+   durch — speicherwert -> saeubern -> gespeicherter Wert. */
+$rund = Onboarding::saeubern(Telefonfragebogen::speicherwert('zielgruppe', $ziel, ['privat', 'touristen'], 'x'));
+pruefe('Mehrfachauswahl überlebt die Formularprüfung',
+    ($rund['zielgruppe'] ?? '') === 'privat,touristen', json_encode($rund));
+$rundW = Onboarding::saeubern(Telefonfragebogen::speicherwert('branche', $branche, ['gastronomie'], 'x'));
+pruefe('Einzelauswahl auch', ($rundW['branche'] ?? '') === 'gastronomie', json_encode($rundW));
 $wA = Telefonfragebogen::speicherwert('branche', $branche, ['anders'], 'Sattlerei');
 pruefe('beim Ausweg wird der Wortlaut mitgeschrieben',
     ($wA['branche__frei'] ?? '') === 'Sattlerei', json_encode($wA));
@@ -3459,12 +3472,15 @@ pruefe('und wenn keine Zahl fällt, wird keine erfunden', Telefonfragebogen::zah
 
 /* DIE MATERIALLISTE: WAS NIEMAND GENANNT HAT, MUSS JEMAND MACHEN */
 $mat = Fragen::feld('material') ?? [];
-$st = Onboarding::standWerte(Telefonfragebogen::standwert($mat, ['logo' => 'haben']));
+$st = Telefonfragebogen::standwert($mat, ['logo' => 'haben']);
 pruefe('genannte Zeilen stehen so drin', ($st['logo'] ?? '') === 'haben');
 pruefe('nicht genannte werden zur Arbeit, nicht zum Nichts',
     count($st) === count($mat['zeilen'] ?? []) && ($st['texte'] ?? '') === 'du', json_encode($st));
 pruefe('ein erfundener Zustand wird nicht übernommen',
-    (Onboarding::standWerte(Telefonfragebogen::standwert($mat, ['logo' => 'vielleicht']))['logo'] ?? '') === 'du');
+    (Telefonfragebogen::standwert($mat, ['logo' => 'vielleicht'])['logo'] ?? '') === 'du');
+$rundS = Onboarding::saeubern(['material' => Telefonfragebogen::standwert($mat, ['logo' => 'haben'])]);
+pruefe('und die Materialliste überlebt die Formularprüfung',
+    str_contains((string) ($rundS['material'] ?? ''), 'logo:haben'), json_encode($rundS));
 
 /* ---- 5. DER ABLAUF AM TELEFON ---- */
 $ohne = Telefon::fragebogen(['schritt' => 'start', 'sprache' => 'de']);
@@ -3604,6 +3620,84 @@ $nochmal = Telefon::fragebogen(['schritt' => 'start', 'kunde_id' => $kundeId, 's
 pruefe('sie sagt das freundlich statt zu scheitern',
     ($nochmal['grund'] ?? '') === 'kein_fragebogen', json_encode($nochmal));
 
+/* ---- 9b. DER ANRUF VOM 7. SEPTEMBER, NACHGESPIELT ----
+   Manuel, Buchshop, Frage „wer sind eure Kunden?", Antwort „Leser". Passt
+   in keine der acht Optionen. Ergebnis am Telefon: dieselbe Frage dreimal
+   um 04:56, zweimal um 05:02 — er hat es der Verwaltung selbst ins
+   Protokoll gesagt. Zwei Fehler, beide hier abgestellt:
+   1. Eine Antwort, die in keine Auswahl passt, gehoert in die freie Zeile
+      des Feldes — sie IST eine Antwort, keine Luecke.
+   2. Was ausdruecklich offen blieb, darf „start" nicht wieder vorlegen. */
+Db::run("UPDATE questionnaires SET status = 'offen', data = '{}', submitted_at = NULL WHERE id = ?", [$fbId]);
+Db::run("DELETE FROM activities WHERE type IN ('telefon_fragebogen_unklar', 'telefon_fragebogen_offen')");
+
+/* Erst der gute Fall: Eine zuordenbare Antwort muss auch in der
+   DATENBANK ankommen, nicht nur in der Antwort des Werkzeugs. */
+$lt = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'zielgruppe',
+                           'antwort' => 'Privatkunden und Touristen', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+$ltDaten = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+$ltWert = (string) ($ltDaten['zielgruppe'] ?? '');
+pruefe('eine Mehrfachantwort steht danach wirklich in der Datenbank',
+    str_contains($ltWert, 'privat') && str_contains($ltWert, 'touristen'), json_encode($ltDaten));
+
+Db::run("UPDATE questionnaires SET data = '{}' WHERE id = ?", [$fbId]);
+$l1 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'zielgruppe',
+                           'antwort' => 'Leser', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('„Leser" bekommt erst eine Nachfrage', ($l1['unklar'] ?? false) === true, json_encode($l1));
+$l2 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'zielgruppe',
+                           'antwort' => 'na eben Leser, Bücherfreunde', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('beim zweiten Mal wird der Wortlaut vermerkt — nicht übersprungen',
+    ($l2['vermerkt'] ?? '') === 'wortlaut' && ($l2['gespeichert'] ?? '') === 'zielgruppe', json_encode($l2));
+$lDaten = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('und steht in der freien Zeile des Feldes',
+    str_contains((string) ($lDaten['zielgruppe__frei'] ?? ''), 'Leser'), json_encode($lDaten));
+pruefe('das Feld gilt damit als beantwortet',
+    Telefonfragebogen::beantwortet($lDaten, 'zielgruppe'));
+$lStart = Telefon::fragebogen(['schritt' => 'start', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('und „start" legt die Frage nie wieder vor',
+    ($lStart['frage']['frage_zu'] ?? '') !== 'zielgruppe', (string) ($lStart['frage']['frage_zu'] ?? ''));
+
+/* OHNE FREIE ZEILE: offen lassen — aber dann wirklich. */
+Db::run("DELETE FROM activities WHERE type IN ('telefon_fragebogen_unklar', 'telefon_fragebogen_offen')");
+foreach ([1, 2] as $mal) {
+    $lz = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'ziel1',
+                               'antwort' => 'schwer zu sagen', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+}
+pruefe('ohne freie Zeile bleibt die Frage offen', ($lz['uebersprungen'] ?? '') === 'ziel1', json_encode($lz));
+$lStart2 = Telefon::fragebogen(['schritt' => 'start', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('und auch sie kommt bei „start" nicht wieder — DIE Schleife vom 7.9.',
+    ($lStart2['frage']['frage_zu'] ?? '') !== 'ziel1', (string) ($lStart2['frage']['frage_zu'] ?? ''));
+pruefe('in der Durchsicht steht sie aber weiterhin',
+    in_array('ziel1', Telefon::fragebogen(['schritt' => 'pruefen', 'kunde_id' => $kundeId,
+                                           'sprache' => 'de'])['offen'] ?? [], true));
+
+/* DIE MATERIALLISTE, EINMAL GANZ DURCH DIE AKTION */
+$lm = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'material',
+                           'zeilen' => 'logo:haben, produkt:kommt', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+$lmDaten = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('die Materialliste steht danach wirklich in der Datenbank',
+    str_contains((string) ($lmDaten['material'] ?? ''), 'logo:haben')
+    && str_contains((string) ($lmDaten['material'] ?? ''), 'produkt:kommt'), json_encode($lmDaten['material'] ?? null));
+
+/* „WEISS NICHT" IST KEINE NULL: Eine Website mit null Seiten haette
+   niemand bestellt — aufgefallen waere es erst im Angebot. */
+Db::run("DELETE FROM activities WHERE type IN ('telefon_fragebogen_unklar', 'telefon_fragebogen_offen')");
+$z1 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'seiten_zahl',
+                           'antwort' => 'puh, weiß ich nicht', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('„weiß nicht" auf eine Zahlenfrage wird nachgefragt, nicht als 0 gespeichert',
+    ($z1['unklar'] ?? false) === true, json_encode($z1));
+$zDaten = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('im Fragebogen steht keine Null', !isset($zDaten['seiten_zahl']));
+$z2 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'seiten_zahl',
+                           'antwort' => 'sagen wir fünf', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('„sagen wir fünf" wird zur Fünf', 
+    ((json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [])['seiten_zahl'] ?? '') === '5',
+    json_encode($z2['gespeichert'] ?? null));
+Db::run("DELETE FROM activities WHERE type IN ('telefon_fragebogen_unklar', 'telefon_fragebogen_offen')");
+Db::run("UPDATE questionnaires SET data = ? WHERE id = ?",
+    [json_encode($vollstaendig, JSON_UNESCAPED_UNICODE), $fbId]);
+Db::run("UPDATE questionnaires SET status = 'abgeschlossen' WHERE id = ?", [$fbId]);
+
 /* ---- 10. SIE BIETET IHN VON SELBST AN ----
    „Fragebogen" ist der häufigste Grund, warum ein Projekt stehenbleibt. Ein
    Satz im Leitfaden wird beim dritten Gespräch überlesen; ein Feld in der
@@ -3673,6 +3767,36 @@ pruefe('und jeder Schritt steht als geschlossene Auswahl drin',
 
 Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
 Db::run("UPDATE questionnaires SET status = 'abgeschlossen' WHERE id = ?", [$fbId]);
+
+/* ============================================================================
+   42. Der KAS-Reseller
+   ============================================================================
+   Nur die Leseseite — die API selbst laesst sich ohne Zugang nicht pruefen.
+   Was sich pruefen laesst: Ohne Zugang gibt es klare Saetze statt Fehler,
+   und nichts an dieser Stufe legt irgendetwas an.
+   ============================================================================ */
+abschnitt('42. Der KAS-Reseller');
+
+require_once $wurzel . '/src/Kas.php';
+
+pruefe('ohne hinterlegten Zugang ist der Draht nicht bereit', Kas::bereit() === false);
+$kasErg = Kas::rufen('get_accounts');
+pruefe('ein Aufruf ohne Zugang scheitert mit einem Satz, nicht mit einer Ausnahme',
+    $kasErg['ok'] === false
+    && (str_contains($kasErg['text'], 'Zugang') || str_contains($kasErg['text'], 'soap')),
+    json_encode($kasErg));
+$kasKonten = Kas::accounts();
+pruefe('die Accountliste bleibt dann leer und erklaert sich',
+    $kasKonten['ok'] === false && $kasKonten['accounts'] === []);
+
+/* DIESE STUFE LEGT NICHTS AN. Wer der Klasse eine anlegende Methode gibt,
+   soll diesen Test bewusst umbauen muessen — samt dem Gedanken, wie sie
+   gegen einen Handbestand geprueft wird. */
+$kasMethoden = array_filter(get_class_methods('Kas'),
+    static fn(string $m): bool => str_starts_with($m, 'add') || str_contains(strtolower($m), 'anlegen')
+        || str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete'));
+pruefe('die Leseklasse hat keine anlegenden oder loeschenden Methoden',
+    $kasMethoden === [], implode(', ', $kasMethoden));
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -108,3 +108,50 @@
     </div>
   <?php endif; ?>
 </div>
+
+<?php /* ==========================================================================
+   DER KAS-RESELLER (seit 07.09.2026)
+
+   Jeder Kunde bekommt einen eigenen Account unter Uwes Reseller-Vertrag:
+   eigener Webspace, eigene Domain, eigene Postfächer — getrennt von
+   vecom-design.it. Diese Stufe hier liest nur (Verbindung prüfen, Accounts
+   zeigen). Angelegt wird noch von Hand im KAS; die Automatik dafür kommt,
+   sobald der Zugang steht und ein erster Account zum Gegenprüfen da ist.
+   ========================================================================== */
+require_once dirname(__DIR__, 2) . '/src/Kas.php';
+$kasZugang = Kas::zugang();
+$kasFehlt  = Kas::voraussetzung();
+?>
+<div class="block">
+  <h2>KAS-Reseller (All-Inkl)</h2>
+  <p style="color:var(--leise);max-width:70ch">Der Zugang zur KAS-API des Reseller-Vertrags.
+    Damit kann die Verwaltung die Kunden-Accounts sehen — und später beim Projektstart
+    Webspace, Domain und Postfächer selbst anlegen. Login und Passwort landen nur in der
+    Konfigurationsdatei auf diesem Server, nie im Repository.</p>
+
+  <?php if ($kasFehlt !== null): ?>
+    <div class="hinweis schlecht"><?= Fmt::h($kasFehlt) ?></div>
+  <?php endif; ?>
+
+  <p style="color:var(--leise);max-width:70ch;font-size:13px">Wichtig: Gemeint ist das
+    <b>KAS-Passwort</b> (im KAS unter „Einstellungen“ gesetzt), nicht das Passwort der
+    MembersArea. Ohne gesetztes KAS-Passwort nimmt die API nichts an.</p>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="kas_zugang">
+      <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
+      <div class="feld" style="margin:0"><label>KAS-Login</label>
+        <input name="login" value="<?= Fmt::h($kasZugang['login']) ?>" placeholder="w… / Reseller-Login" style="width:180px"></div>
+      <div class="feld" style="margin:0"><label>KAS-Passwort <span style="color:var(--leise);font-weight:400">— leer: unverändert</span></label>
+        <input name="passwort" type="password" autocomplete="new-password" style="width:200px"></div>
+      <button class="knopf haupt">Speichern und prüfen</button>
+    </form>
+    <?php if (Kas::bereit()): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kas_pruefen">
+        <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
+        <button class="knopf">Verbindung prüfen</button></form>
+    <?php endif; ?>
+  </div>
+</div>

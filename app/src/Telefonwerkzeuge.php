@@ -454,10 +454,12 @@ final class Telefonwerkzeuge
                    . 'Ruft er am Telefon an, erledige erst sein eigentliches Anliegen und '
                    . 'frag erst danach. Sagt er nein, akzeptiere das sofort und frag nicht '
                    . 'noch einmal. '
-                   . 'ABLAUF: schritt „start“ gibt Stand und erste Frage. Danach immer '
+                   . 'ABLAUF: schritt „start“ EIN einziges Mal am Anfang — es gibt Stand und '
+                   . 'erste Frage. Ab dann NIE wieder start: für jede weitere Frage rufst du '
                    . 'schritt „antwort“ mit „feld“ (genau der Wert aus frage_zu) und '
-                   . '„antwort“ (was er gesagt hat, in seinen Worten) — du bekommst die '
-                   . 'nächste Frage zurück. Kommt „pause“, ist ein Abschnitt fertig: sag den '
+                   . '„antwort“ (was er gesagt hat, in seinen Worten) — die nächste Frage '
+                   . 'steht in meiner Antwort unter „frage“, und GENAU die stellst du, keine '
+                   . 'andere und keine alte. Kommt „pause“, ist ein Abschnitt fertig: sag den '
                    . 'Stand und frag, ob ihr weitermacht; ja → schritt „weiter“, nein → '
                    . 'schritt „spaeter“. '
                    . 'STELL IMMER NUR EINE FRAGE. Lies NIE Auswahlmöglichkeiten vor — frag '
@@ -488,8 +490,9 @@ final class Telefonwerkzeuge
                                             . 'Auswahl übersetzen — das mache ich'],
             'zeilen'     => ['type' => 'string', 'maxLength' => 300,
                              'description' => 'Nur bei der Materialfrage (art „stand“): '
-                                            . '„zeile:zustand“, mit Komma getrennt, z. B. '
-                                            . '„logo:haben,fotos:du,texte:kommt“. Zustände: haben, '
+                                            . '„zeile:zustand“, mit Komma getrennt. Die Zeilennamen '
+                                            . 'stehen in der Frage unter „zeilen“ — nimm GENAU die, '
+                                            . 'z. B. „logo:haben,produkt:du,texte:kommt“. Zustände: haben, '
                                             . 'kommt, du, nein. Was er nicht genannt hat, weglassen'],
             'bestaetigt' => ['type' => 'boolean',
                              'description' => 'Nur bei „absenden“, und nur true, NACHDEM du ihm '

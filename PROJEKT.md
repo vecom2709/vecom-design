@@ -2332,3 +2332,63 @@ genau an der Stelle, an der jemand vor 48 Feldern steht und sie auf morgen versc
 will.
 
 Sichtprüfung lokal per Screenshot (it/de), Prüfkette weiter 754 grün.
+
+## Die Schleife vom 7. September: dieselbe Frage, fünfmal (07.09.2026)
+
+Manuel wollte den Fragebogen am Telefon ausfüllen und bekam die Zielgruppen-Frage
+immer wieder — dreimal um 04:56, zweimal um 05:02. Er hat es der Verwaltung selbst
+ins Protokoll gesagt: „das System wiederholt ständig die Frage zur Zielgruppe,
+obwohl die Antwort 'Leser' gegeben wurde."
+
+Drei Fehler, alle im Werkzeug behoben, keiner im Leitfaden:
+
+1. **Eine Antwort, die in keine Auswahl passt, ist trotzdem eine Antwort.**
+   „Leser" auf „wer sind eure Kunden?" traf keine der acht Optionen und die Frage
+   blieb offen. Jetzt landet der Wortlaut in der freien Zeile des Feldes
+   (`zielgruppe__frei`), das Feld gilt als beantwortet, und Uwe liest „Leser" —
+   was mehr sagt als jeder Auswahlschlüssel. `beantwortet()` zählt die freie
+   Zeile mit.
+
+2. **Was offen blieb, darf „start" nicht wieder vorlegen.** „start" nahm immer
+   die erste offene Frage von vorn — also genau die übersprungene.
+   `fragebogenUebersprungen()` liest die offen gelassenen Felder aus der
+   Aktivitätsspur (24 h) und lässt sie in der Reihe aus; sie stehen weiter in
+   der Durchsicht vor dem Abschicken.
+
+3. **Das Speicherformat passte nicht zur Formularprüfung.** `Onboarding::saeubern()`
+   erwartet Mehrfachauswahl als Liste und die Materialliste als Zuordnung — so
+   schickt es der Browser. Das Telefon übergab Zeichenketten („einheim,jung");
+   saeubern verwarf sie lautlos, das Feld blieb leer, die Frage kam wieder.
+   `speicherwert()` und `standwert()` liefern jetzt die Formularform, und die
+   Kette prüft für jede Feldart die volle Rundreise speicherwert → saeubern → DB.
+
+Dazu: „weiß nicht" auf eine Zahlenfrage wird nachgefragt statt als 0 gespeichert
+(eine Website mit null Seiten wäre erst im Angebot aufgefallen), und die
+Werkzeugbeschreibung sagt jetzt ausdrücklich: start nur EINMAL am Anfang, danach
+immer „antwort" mit genau der Frage aus der Antwort.
+
+Prüfkette 754 → 770. Der nachgespielte Anruf ist Abschnitt 41/9b.
+
+## Der KAS-Reseller (07.09.2026)
+
+Uwe ist jetzt Reseller bei All-Inkl. Damit bekommt künftig jeder Kunde einen eigenen
+KAS-Account unter seinem Vertrag — eigener Webspace, eigene Domain, eigene Postfächer,
+sauber getrennt von vecom-design.it. Domains für Kunden laufen über das
+Domainbestellsystem; primärer Nameserver für im KAS angelegte Domains ist
+ns5.kasserver.com. (Kundennummer und Zugänge stehen bewusst nicht hier — das
+Repository ist öffentlich.)
+
+Erste Stufe gebaut: `app/src/Kas.php` spricht die KAS-API (SOAP, ohne fremde
+Bibliothek), Zugang unter Einstellungen → Zugänge & Schutz (landet nur in
+app/config.local.php), Verbindungsprüfung mit Accountliste, Flutbremse
+(KasFloodDelay) eingebaut. **Diese Stufe liest nur** — Accounts anlegen kommt als
+eigene Stufe, sobald der Zugang steht und ein von Hand angelegter Account zum
+Gegenprüfen da ist; ein Kettentest wacht darüber, dass die Leseklasse keine
+anlegenden Methoden bekommt, ohne dass es auffällt.
+
+Entschieden (07.09.): KAS-API an die Verwaltung anbinden; Preise/Angebot ums Hosting
+ergänzen (Hosting auf eigenem Kunden-Account als Teil der Betreuung ausweisen —
+Preis dafür ist noch Uwes Entscheidung). Wichtig fürs Einrichten: Die API nimmt das
+KAS-Passwort (im KAS unter Einstellungen gesetzt), nicht das MembersArea-Passwort.
+
+Prüfkette 770 → 774.

@@ -2484,7 +2484,7 @@ final class Telefon
 
         return match ($schritt) {
             'antwort'  => self::fragebogenAntwort($d, $id, $kundeId, $antworten, $sprache),
-            'weiter'   => self::fragebogenWeiter($antworten, (string) ($d['feld'] ?? ''), $sprache),
+            'weiter'   => self::fragebogenWeiter($antworten, (string) ($d['feld'] ?? ''), $sprache, $kundeId),
             'spaeter'  => self::fragebogenSpaeter($kundeId, $antworten, $sprache),
             'pruefen'  => self::fragebogenPruefen($antworten, $sprache),
             'absenden' => self::fragebogenAbsenden($d, $id, $kundeId, $antworten, $sprache),
@@ -2504,7 +2504,7 @@ final class Telefon
         [$antworten, $bestaetigen] = self::fragebogenAusAkte($id, $kundeId, $antworten, $sprache);
 
         $stand = Telefonfragebogen::stand($antworten);
-        $naechstes = Telefonfragebogen::naechstes($antworten);
+        $naechstes = Telefonfragebogen::naechstes($antworten, '', self::fragebogenUebersprungen($kundeId));
 
         self::protokoll('fragebogen', 'Fragebogen am Telefon begonnen', $kundeId,
             ['fertig' => $stand['fertig'], 'gesamt' => $stand['gesamt']]);
@@ -2607,6 +2607,32 @@ final class Telefon
                                . 'er gesagt hat -- in seinen Worten reicht.'];
         }
 
+        /* EINE NULL, DIE NIEMAND GESAGT HAT, IST KEINE ANTWORT
+           ------------------------------------------------------------------
+           „Weiss ich nicht" auf „wie viele Seiten?" ergab frueher eine 0 im
+           Fragebogen -- eine Website mit null Seiten, aufgefallen waere es
+           erst im Angebot. Kommt keine Zahl im Satz vor, wird nachgefragt
+           statt gespeichert. */
+        if ($art === 'zahl' && Telefonfragebogen::zahl($antwort) === 0
+            && !preg_match('~\b(0|null|zero|kein|keine|nessun|nessuna|none|no)\b~iu', $antwort)) {
+            $schonmal = self::fragebogenUnklar($kundeId, $name);
+            self::protokoll($schonmal < 1 ? 'fragebogen_unklar' : 'fragebogen_offen',
+                'Fragebogen: keine Zahl erkannt — ' . $name, $kundeId,
+                ['feld' => $name, 'antwort' => mb_substr($antwort, 0, 200)]);
+            if ($schonmal < 1) {
+                return ['ok' => true, 'unklar' => true, 'frage_zu' => $name,
+                        'hinweis' => 'Ich habe keine Zahl herausgehoert. Nenne ihm die '
+                                   . 'uebliche Spanne und lass ihn eine Zahl waehlen. Weiss er '
+                                   . 'es nicht, sag es mir noch einmal -- dann lassen wir es '
+                                   . 'offen und gehen weiter.'];
+            }
+            $aus = self::fragebogenNaechste($antworten, $name, $sprache, $kundeId);
+            $aus['uebersprungen'] = $name;
+            $aus['hinweis'] = 'Lassen wir offen -- Uwe klaert das im Gespraech. Stell dann '
+                            . 'GENAU die Frage aus „frage". ' . (string) ($aus['hinweis'] ?? '');
+            return $aus;
+        }
+
         /* Freie Felder gehen direkt durch. Auswahlen werden zugeordnet:
            Was in einer Auswahl steht, muss aus der Auswahl kommen -- sonst
            steht spaeter ein erfundener Schluessel im Fragebogen, den weder
@@ -2643,16 +2669,39 @@ final class Telefon
         }
 
         $weg = Telefonfragebogen::ausweg($def);
+
+        /* DIE FREIE ZEILE FAENGT AUF, WAS IN KEINE AUSWAHL PASST
+           ------------------------------------------------------------------
+           Der Fall vom 7.9.: Buchshop, Frage „wer sind eure Kunden?",
+           Antwort „Leser". Passt in keine der acht Optionen -- aber es IST
+           die Antwort, und sie ist gut. Der erste Entwurf liess die Frage
+           offen, und offen hiess: Sie kam beim naechsten Anruf wieder, und
+           beim uebernaechsten. Jetzt landet der Wortlaut in der freien
+           Zeile, das Feld gilt als beantwortet, und Uwe liest „Leser" --
+           was mehr sagt als jeder Auswahlschluessel. */
+        if ($weg === '' && !empty($def['frei'])) {
+            $wert = [$name . '__frei' => mb_substr($antwort, 0, 500)];
+            $aus = self::fragebogenSpeichern($id, $kundeId, $antworten, $name, $wert, $sprache);
+            $aus['vermerkt'] = 'wortlaut';
+            $aus['hinweis'] = 'Ich habe seine Antwort woertlich vermerkt -- das reicht. '
+                            . (string) ($aus['hinweis'] ?? '');
+            return $aus;
+        }
+
         if ($weg === '') {
-            /* Keine Auffangoption: Dann bleibt die Frage offen. Sie steht
-               in der Durchsicht am Ende -- besser eine Luecke, die man
-               sieht, als eine Antwort, die niemand gesagt hat. */
+            /* Keine Auffangoption und keine freie Zeile: Dann bleibt die
+               Frage offen. Sie steht in der Durchsicht am Ende -- besser
+               eine Luecke, die man sieht, als eine Antwort, die niemand
+               gesagt hat. Und sie kommt in diesem und den naechsten
+               Gespraechen nicht wieder (fragebogenUebersprungen). */
             self::protokoll('fragebogen_offen', 'Fragebogen: Frage bleibt offen — ' . $name,
                 $kundeId, ['feld' => $name, 'antwort' => mb_substr($antwort, 0, 200)]);
-            $aus = self::fragebogenNaechste($antworten, $name, $sprache);
+            $aus = self::fragebogenNaechste($antworten, $name, $sprache, $kundeId);
             $aus['uebersprungen'] = $name;
-            $aus['hinweis'] = 'Lassen wir das offen -- sag ihm, dass wir da spaeter drauf '
-                            . 'zurueckkommen, und mach weiter. ' . (string) ($aus['hinweis'] ?? '');
+            $aus['hinweis'] = 'Lassen wir das offen. Sag ihm kurz, dass wir spaeter darauf '
+                            . 'zurueckkommen, und stell dann GENAU die Frage aus „frage" -- '
+                            . 'nicht dieselbe noch einmal. '
+                            . (string) ($aus['hinweis'] ?? '');
             return $aus;
         }
 
@@ -2724,9 +2773,44 @@ final class Telefon
                                . 'gleich noch einmal versuchen, und melde es mir mit „melde".'];
         }
         $antworten = array_merge($antworten, $wert);
-        $aus = self::fragebogenNaechste($antworten, $name, $sprache);
+        $aus = self::fragebogenNaechste($antworten, $name, $sprache, $kundeId);
         $aus['gespeichert'] = $name;
         return $aus;
+    }
+
+    /**
+     * Felder, die in den letzten Stunden offen geblieben sind.
+     *
+     * DER FEHLER, DEN DIESE LISTE ABSTELLT
+     *
+     * Am 7.9. um 04:56 stellte sie einem Kunden dreimal hintereinander
+     * dieselbe Frage, und um 05:02 noch zweimal. Der Ablauf: Eine Frage
+     * blieb offen, „start" legte beim naechsten Aufruf wieder DIE ERSTE
+     * OFFENE Frage vor -- also genau die, auf die er schon zweimal
+     * geantwortet hatte. Er sagte es der Verwaltung selbst ins Protokoll:
+     * „das System wiederholt staendig die Frage zur Zielgruppe".
+     *
+     * Was einmal ausdruecklich offen gelassen wurde, kommt deshalb einen
+     * Tag lang nicht wieder in die Reihe. Es steht in der Durchsicht vor
+     * dem Abschicken -- dort beantwortet es ein Mensch oder laesst es
+     * bewusst frei.
+     *
+     * @return list<string>
+     */
+    private static function fragebogenUebersprungen(int $kundeId): array
+    {
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT meta FROM activities
+              WHERE type = 'telefon_fragebogen_offen' AND demo = 0
+                AND customer_id = ?
+                AND created_at >= NOW() - INTERVAL 24 HOUR", [$kundeId]), []);
+        $aus = [];
+        foreach ($zeilen as $z) {
+            $m = json_decode((string) ($z['meta'] ?? ''), true);
+            $f = is_array($m) ? trim((string) ($m['feld'] ?? '')) : '';
+            if ($f !== '') { $aus[$f] = true; }
+        }
+        return array_keys($aus);
     }
 
     /**
@@ -2734,10 +2818,12 @@ final class Telefon
      *
      * @return array<string,mixed>
      */
-    private static function fragebogenNaechste(array $antworten, string $nach, string $sprache): array
+    private static function fragebogenNaechste(array $antworten, string $nach, string $sprache,
+                                               int $kundeId = 0): array
     {
         $stand = Telefonfragebogen::stand($antworten);
-        $naechstes = Telefonfragebogen::naechstes($antworten, $nach);
+        $naechstes = Telefonfragebogen::naechstes($antworten, $nach,
+            $kundeId > 0 ? self::fragebogenUebersprungen($kundeId) : []);
 
         if ($naechstes === null) {
             $aus = self::fragebogenPruefen($antworten, $sprache);
@@ -2787,9 +2873,11 @@ final class Telefon
     }
 
     /** @return array<string,mixed> */
-    private static function fragebogenWeiter(array $antworten, string $nach, string $sprache): array
+    private static function fragebogenWeiter(array $antworten, string $nach, string $sprache,
+                                             int $kundeId = 0): array
     {
-        $naechstes = Telefonfragebogen::naechstes($antworten, $nach);
+        $naechstes = Telefonfragebogen::naechstes($antworten, $nach,
+            $kundeId > 0 ? self::fragebogenUebersprungen($kundeId) : []);
         if ($naechstes === null) { return self::fragebogenPruefen($antworten, $sprache); }
         return ['ok' => true, 'stand' => Telefonfragebogen::stand($antworten),
                 'abschnitt_titel' => Telefonfragebogen::abschnittName($naechstes['abschnitt'], $sprache),

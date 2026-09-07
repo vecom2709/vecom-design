@@ -924,6 +924,50 @@ if ($post) {
                 break;
 
             /* ---------- Der Rueckweg von STRATO ---------- */
+            case 'kas_zugang':
+                /* Wie bei Stripe und STRATO: Die Angaben kommen aus dem
+                   Browser, landen nur in app/config.local.php (Rechte 600)
+                   und nie im Repository — das ist oeffentlich. Leer lassen
+                   heisst "unveraendert". */
+                require_once __DIR__ . '/src/Kas.php';
+                require_once __DIR__ . '/src/Einrichtung.php';
+                $alt = is_file(dirname(__DIR__) . '/app/config.local.php')
+                     ? (array) (include dirname(__DIR__) . '/app/config.local.php') : [];
+                $bisher = (array) ($alt['kas'] ?? []);
+                $login  = trim((string) ($_POST['login'] ?? ''));
+                $pass   = (string) ($_POST['passwort'] ?? '');
+                if ($login === '') { $login = (string) ($bisher['login'] ?? ''); }
+                if ($pass === '')  { $pass  = (string) ($bisher['passwort'] ?? ''); }
+                if ($login !== '' && !preg_match('/^[a-z][a-z0-9_]{2,30}$/i', $login)) {
+                    $_SESSION['fehler'] = 'Das sieht nicht wie ein KAS-Login aus (w… oder Reseller-Login).';
+                    zurueck('einstellungen?b=zugaenge');
+                }
+                $alt['kas'] = ['login' => $login, 'passwort' => $pass];
+                if (!Einrichtung::konfigSchreiben(dirname(__DIR__) . '/app/config.local.php', $alt)) {
+                    $_SESSION['fehler'] = 'app/config.local.php konnte nicht geschrieben werden.';
+                    zurueck('einstellungen?b=zugaenge');
+                }
+                /* Der Test gehoert zum Speichern: Ein Zugang, der still
+                   falsch daliegt, faellt erst auf, wenn man ihn braucht. */
+                Events::protokoll('integration', 'KAS-Zugangsdaten gespeichert');
+                $probe = Kas::pruefen();
+                $_SESSION[$probe['ok'] ? 'gut' : 'fehler'] = $probe['ok']
+                    ? $probe['text']
+                    : 'Gespeichert, aber die Prüfung schlug fehl: ' . $probe['text'];
+                zurueck('einstellungen?b=zugaenge');
+                break;
+
+            case 'kas_pruefen':
+                require_once __DIR__ . '/src/Kas.php';
+                $probe = Kas::pruefen();
+                if ($probe['ok'] && $probe['accounts']) {
+                    $logins = array_slice(array_column($probe['accounts'], 'login'), 0, 12);
+                    $probe['text'] .= ' (' . implode(', ', $logins) . ')';
+                }
+                $_SESSION[$probe['ok'] ? 'gut' : 'fehler'] = $probe['text'];
+                zurueck('einstellungen?b=zugaenge');
+                break;
+
             case 'strato_zugang':
                 /* Beide Angaben kommen aus seinem Browser ueber diese
                    Felder -- nie ueber einen Chat, nie ueber eine E-Mail.

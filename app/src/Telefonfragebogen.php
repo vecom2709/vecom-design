@@ -135,12 +135,21 @@ final class Telefonfragebogen
         return $aus;
     }
 
-    /** Ist dieses Feld beantwortet? */
+    /**
+     * Ist dieses Feld beantwortet?
+     *
+     * Die freie Zeile zaehlt mit: Wer auf „wer sind eure Kunden?" mit
+     * „Leser" antwortet, HAT geantwortet — auch wenn keine der acht
+     * Auswahloptionen dazu passt. Genau daran hing die erste Schleife am
+     * 7.9.: Die Antwort stand in keiner Auswahl, das Feld galt als offen,
+     * und die Frage kam bei jedem Anruf wieder.
+     */
     public static function beantwortet(array $antworten, string $name): bool
     {
         $w = $antworten[$name] ?? null;
         if (is_array($w)) { return $w !== []; }
-        return trim((string) $w) !== '';
+        if (trim((string) $w) !== '') { return true; }
+        return trim((string) ($antworten[$name . '__frei'] ?? '')) !== '';
     }
 
     /**
@@ -159,7 +168,7 @@ final class Telefonfragebogen
      *
      * @return array{name:string,abschnitt:string,feld:array}|null
      */
-    public static function naechstes(array $antworten, string $nach = ''): ?array
+    public static function naechstes(array $antworten, string $nach = '', array $auslassen = []): ?array
     {
         $reihe = self::reihe($antworten);
         $ab = $nach === '';
@@ -168,11 +177,14 @@ final class Telefonfragebogen
                 if ($eintrag['name'] === $nach) { $ab = true; }
                 continue;
             }
+            /* Uebersprungene Felder kommen hier nicht wieder. Sie stehen in
+               der Durchsicht am Ende — dort, wo eine Luecke hingehoert. */
+            if (in_array($eintrag['name'], $auslassen, true)) { continue; }
             if (!self::beantwortet($antworten, $eintrag['name'])) { return $eintrag; }
         }
         /* Der Feldname war unbekannt (umbenannt, ausgeblendet): dann von
            vorn, sonst bliebe das Gespraech stehen. */
-        if (!$ab) { return self::naechstes($antworten); }
+        if (!$ab) { return self::naechstes($antworten, '', $auslassen); }
         return null;
     }
 
@@ -490,7 +502,15 @@ final class Telefonfragebogen
         if ($art === 'eins') {
             $aus = [$name => $treffer[0] ?? ''];
         } elseif ($art === 'mehr' || $art === 'wahl') {
-            $aus = [$name => implode(',', $treffer)];
+            /* ALS LISTE, NICHT ALS ZEICHENKETTE
+               --------------------------------------------------------------
+               Onboarding::saeubern() prueft jeden Eintrag einzeln gegen die
+               Auswahl -- so, wie der Browser Kaestchen schickt. Der erste
+               Entwurf uebergab „einheim,jung" als EINEN Wert; der stand in
+               keiner Auswahl, wurde lautlos verworfen, das Feld blieb leer
+               -- und die Frage kam wieder. Der Kettentest hat es gefunden,
+               nachdem der Kunde es am Telefon erlebt hatte. */
+            $aus = [$name => $treffer];
         } elseif ($art === 'zahl') {
             $aus = [$name => (string) self::zahl($antwort)];
         } else {
@@ -518,17 +538,22 @@ final class Telefonfragebogen
      * Fotos voraussetzt, die es nicht gibt. Uwe sieht jede solche Zeile in
      * der Lueckenliste wieder („ist das im Angebot?").
      *
+     * Zurueck kommt die Zuordnung [zeile => zustand] -- die Form, die
+     * Onboarding::saeubern() vom Formular kennt. Es macht daraus selbst
+     * „logo:haben,team:kommt".
+     *
      * @param array<string,string> $zeilen
+     * @return array<string,string>
      */
-    public static function standwert(array $feld, array $zeilen): string
+    public static function standwert(array $feld, array $zeilen): array
     {
         $erlaubt = array_keys(Fragen::ZUSTANDWORT);
         $aus = [];
         foreach ((array) ($feld['zeilen'] ?? []) as $schl => $_) {
             $z = trim((string) ($zeilen[(string) $schl] ?? ''));
-            $aus[] = $schl . ':' . (in_array($z, $erlaubt, true) ? $z : 'du');
+            $aus[(string) $schl] = in_array($z, $erlaubt, true) ? $z : 'du';
         }
-        return implode(',', $aus);
+        return $aus;
     }
 
     /**

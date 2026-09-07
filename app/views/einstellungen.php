@@ -22,7 +22,7 @@
  */
 $bereiche = [
     'firma'        => ['Firma & Steuern',        'Was oben auf jedem Beleg steht'],
-    'zugaenge'     => ['Zugänge & Schutz',       'Wer in die Verwaltung darf'],
+    'zugaenge'     => ['Zugänge & Schutz', 'Wer in die Verwaltung darf, KAS-Reseller'],
     'email'        => ['E-Mail & Zuruf',         'Wie etwas hinausgeht'],
     'bezahlung'    => ['Bezahlung',              'Stripe und die Dienste von außen'],
     'telefon'      => ['Telefonassistentin',     'Schlüssel, Zugang, die 15 Konfigurationen'],
