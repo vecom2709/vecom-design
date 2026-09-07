@@ -380,7 +380,8 @@ final class Strato
                                   || !empty($fn['forwarding_hallucination'])) ? 1 : 0,
             'nachrichten'     => (int) ($meta['total_messages'] ?? 0),
             'werkzeuge'       => (int) ($meta['function_calls'] ?? 0),
-            'kunde_id'        => self::kundeZu($nummer),
+            'kunde_id'        => self::kundeZu($nummer, self::zeit((string) ($g['created_at'] ?? '')),
+                                                max(0, (int) ($g['call_seconds_billed'] ?? 0))),
             'roh'             => (string) json_encode($g, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'geholt_am'       => date('Y-m-d H:i:s'),
         ];
@@ -405,16 +406,48 @@ final class Strato
                 || $vorher['tags'] !== $daten['tags']) ? 'geaendert' : 'gleich';
     }
 
-    /** Die Rufnummer einem Kunden zuordnen -- dieselben letzten neun Ziffern wie beim Nachschlagen. */
-    private static function kundeZu(string $nummer): ?int
+    /**
+     * Das Gespräch einem Kunden zuordnen.
+     *
+     * ÜBER DIE RUFNUMMER — und wenn es keine gibt, über unsere eigene Spur.
+     *
+     * Beim ersten Anruf über die Kundenseite fiel es auf: Manuela hatte den
+     * Anrufer erkannt („nummer_kam_an": false, „treffer": 1) und ihm seinen
+     * Stand gegeben — in der Gesprächsliste stand trotzdem „Unbekannt". Der
+     * Grund: Das Gespräch wird über die Rufnummer zugeordnet, und über die
+     * Website kommt keine. Die Erkennung wirkte am Telefon und fehlte in der
+     * Auswertung, also zählte die Seite weiter „0 von einem bekannten
+     * Kunden" — für Anrufe, die sehr wohl erkannt waren.
+     *
+     * Also wird bei einem Anruf über die Website nachgesehen, wen unser
+     * eigenes Nachschlagen in diesem Zeitfenster gefunden hat. Und zwar nur
+     * bei GENAU einem Treffer, aus demselben Grund wie überall hier: Bei
+     * mehreren wäre die Zuordnung geraten, und ein falsch zugeordnetes
+     * Gespräch legt einen fremden Anruf in eine Kundenakte.
+     */
+    private static function kundeZu(string $nummer, string $begonnen = '', int $sekunden = 0): ?int
     {
         $z = preg_replace('/[^0-9]/', '', $nummer) ?? '';
-        if (strlen($z) < 6) { return null; }
-        $id = Db::wert("SELECT id FROM customers
-                         WHERE phone IS NOT NULL AND phone <> ''
-                           AND RIGHT(REGEXP_REPLACE(phone, '[^0-9]', ''), 9) = ?
-                         LIMIT 1", [substr($z, -9)], 0);
-        return (int) $id > 0 ? (int) $id : null;
+        if (strlen($z) >= 6) {
+            $id = self::still(static fn() => Db::wert(
+                "SELECT id FROM customers
+                  WHERE phone IS NOT NULL AND phone <> ''
+                    AND RIGHT(REGEXP_REPLACE(phone, '[^0-9]', ''), 9) = ?
+                  LIMIT 1", [substr($z, -9)], 0), 0);
+            return (int) $id > 0 ? (int) $id : null;
+        }
+
+        /* Keine Nummer: ein Anruf über die Website. Wen hat unser eigenes
+           Nachschlagen in diesem Gespräch gefunden? */
+        if ($begonnen === '') { return null; }
+        $bis = date('Y-m-d H:i:s', strtotime($begonnen) + max(60, $sekunden + 120));
+        $treffer = (array) self::still(static fn() => Db::all(
+            "SELECT DISTINCT customer_id FROM activities
+              WHERE type = 'telefon_nachschlagen' AND demo = 0
+                AND customer_id IS NOT NULL
+                AND created_at >= ? AND created_at <= ?
+              LIMIT 3", [$begonnen, $bis]), []);
+        return count($treffer) === 1 ? (int) $treffer[0]['customer_id'] : null;
     }
 
     /**

@@ -3147,6 +3147,92 @@ Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
 Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
 
 /* ============================================================================
+   39. Was der erste echte Anruf über die Kundenseite gezeigt hat
+   ============================================================================
+   7.9., 03:21. Manuela hat den Anrufer erkannt — die Spur sagt
+   „nummer_kam_an": false, „treffer": 1, und die Hilfe lief mit
+   „bekannt": true. In der Gesprächsliste stand trotzdem „Unbekannt".
+
+   Der Grund: Das Gespräch wird über die Rufnummer zugeordnet, und über die
+   Website kommt keine. Die Erkennung wirkte am Telefon und fehlte in der
+   Auswertung — die Seite zählte weiter „0 von einem bekannten Kunden" für
+   Anrufe, die sehr wohl erkannt waren.
+   ============================================================================ */
+abschnitt('39. Der erste Anruf über die Kundenseite');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_gespraeche');
+Db::run('DELETE FROM telefon_gespraech_weg');
+Db::run('UPDATE customers SET phone = NULL WHERE id = ?', [$kundeId]);
+
+$ablegen = new ReflectionMethod('Strato', 'ablegen');
+$ablegen->setAccessible(true);
+$wann = time() - 600;
+
+/* Erst der Anruf, dann unsere Spur — so wie es wirklich passiert: Das
+   Gespräch wird Minuten später abgeglichen. */
+Telefon::amWidget($kundeId);
+$n = Telefon::nachschlagen(['sprache' => 'de']);
+pruefe('über die Kundenseite wird er erkannt', (int) ($n['kunde_id'] ?? 0) === $kundeId);
+Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_nachschlagen'",
+        [date('Y-m-d H:i:s', $wann + 20)]);
+
+$ablegen->invoke(null, [
+    'id' => 'ffffffff-0000-0000-0000-000000000009',
+    'created_at' => gmdate('Y-m-d\TH:i:s\Z', $wann),
+    'call_seconds_billed' => 202, 'customer_number' => 'widget-call',
+    'summaries' => [['content' => ['subject' => 'Unsicherheit beim Material-Upload'],
+                     'metadata' => []]],
+]);
+$g = Db::one("SELECT * FROM telefon_gespraeche WHERE id = 'ffffffff-0000-0000-0000-000000000009'");
+pruefe('und das Gespräch landet in seiner Akte, obwohl keine Nummer kam',
+    (int) ($g['kunde_id'] ?? 0) === $kundeId, json_encode($g['kunde_id']));
+
+$z = Strato::zahlen(1);
+pruefe('die Zahlen sagen dann nicht mehr „0 von einem bekannten Kunden"',
+    (int) $z['bekannt'] === 1, json_encode($z['bekannt']));
+
+/* DIE GRENZE, WIE ÜBERALL: Bei zwei erkannten Anrufern im Fenster ist die
+   Zuordnung geraten. Ein falsch zugeordnetes Gespräch legt einen fremden
+   Anruf in eine Kundenakte. */
+$zweiter = (int) Db::wert('SELECT id FROM customers WHERE id <> ? LIMIT 1', [$kundeId], 0);
+if ($zweiter > 0) {
+    Telefon::protokoll('nachschlagen', 'Nachgeschlagen', $zweiter, ['treffer' => 1]);
+    Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_nachschlagen'
+              ORDER BY id DESC LIMIT 1", [date('Y-m-d H:i:s', $wann + 40)]);
+    $ablegen->invoke(null, [
+        'id' => 'ffffffff-0000-0000-0000-00000000000b',
+        'created_at' => gmdate('Y-m-d\TH:i:s\Z', $wann),
+        'call_seconds_billed' => 202, 'customer_number' => 'widget-call',
+        'summaries' => [['content' => ['subject' => 'zweideutig'], 'metadata' => []]],
+    ]);
+    $g2 = Db::one("SELECT kunde_id FROM telefon_gespraeche WHERE id = 'ffffffff-0000-0000-0000-00000000000b'");
+    pruefe('bei zwei erkannten Anrufern bleibt es offen', $g2['kunde_id'] === null, json_encode($g2));
+}
+
+/* Eine echte Rufnummer geht weiterhin ihren eigenen Weg — sie ist genauer
+   als jede Näherung über die Zeit. */
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+$ablegen->invoke(null, [
+    'id' => 'ffffffff-0000-0000-0000-00000000000c',
+    'created_at' => gmdate('Y-m-d\TH:i:s\Z', time() - 60),
+    'call_seconds_billed' => 90, 'customer_number' => '+39 380 111 2233',
+    'summaries' => [['content' => ['subject' => 'mit Nummer'], 'metadata' => []]],
+]);
+$g3 = Db::one("SELECT kunde_id FROM telefon_gespraeche WHERE id = 'ffffffff-0000-0000-0000-00000000000c'");
+pruefe('mit Rufnummer bleibt es bei der Rufnummer', (int) $g3['kunde_id'] === $kundeId);
+
+/* „text" ist Pflicht geworden: Ohne ihn landete der Anruf vom 7.9. unter
+   „sonstiges", obwohl es erkennbar um den Fragebogen ging. Eine Bitte im
+   Beschreibungstext genügte nicht. */
+$hilfe = Telefonwerkzeuge::alle()['hilfe'];
+pruefe('bei „hilfe" ist der Wortlaut Pflicht',
+    in_array('text', $hilfe['pflicht'], true), json_encode($hilfe['pflicht']));
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_gespraeche');
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

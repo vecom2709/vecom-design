@@ -222,10 +222,17 @@ final class Telefonwerkzeuge
             'versuch'  => ['type' => 'integer',
                            'description' => '0 beim ersten Anlauf, 1 beim zweiten, 2 wenn es wieder nicht ging'],
             'text'     => ['type' => 'string', 'maxLength' => 500,
-                           'description' => 'Was genau nicht geht, IN SEINEN WORTEN — immer mitgeben. '
-                                          . 'Daran wird geprüft, ob die Kategorie stimmt'],
+                           'description' => 'Was genau nicht geht, IN SEINEN WORTEN — wörtlich, '
+                                          . 'nicht zusammengefasst. Daran wird geprüft, ob die '
+                                          . 'Kategorie stimmt'],
           ],
-          'pflicht' => ['problem'],
+          /* „text" IST PFLICHT, seit dem Anruf am 7.9. um 03:21.
+             Dort ging es erkennbar um den Fragebogen und den Upload von
+             Material — abgelegt wurde es als „sonstiges", weil das Modell
+             keinen Text mitgab und die Nachpruefung damit nichts hatte,
+             woran sie pruefen konnte. Eine Bitte im Beschreibungstext
+             genuegte nicht; ein Pflichtfeld schon. */
+          'pflicht' => ['problem', 'text'],
           'rumpf' => '{"aktion":"hilfe","problem":"{{ problem }}","kunde_id":"{{ kunde_id }}",'
                    . '"telefon":"{{ telefon }}","versuch":"{{ versuch }}","text":"{{ text }}"}',
         ];
