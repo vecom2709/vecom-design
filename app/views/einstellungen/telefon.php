@@ -152,8 +152,16 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
 
   <?php if ($strato['fehler'] !== ''): ?>
     <div class="hinweis schlecht"><?= Fmt::h($strato['fehler']) ?><br>
-      <span style="font-size:12.5px">Ein Abmelden bei STRATO genügt, damit der Token abläuft.
-      Dann hier neu hinterlegen — es ist dieselbe Handvoll Klicks wie beim ersten Mal.</span></div>
+      <span style="font-size:12.5px">
+      <?php if (str_contains($strato['fehler'], 'Already Used')): ?>
+        Der Token wurde zweimal gleichzeitig benutzt — dann widerruft Supabase die ganze
+        Sitzung. Seit dem 7.9. verhindert eine Sperre das; ein einmal widerrufener Zugang
+        lässt sich aber nicht wiederbeleben. Bitte hier neu hinterlegen.
+      <?php else: ?>
+        Ein Abmelden bei STRATO genügt, damit der Token abläuft.
+        Dann hier neu hinterlegen — es ist dieselbe Handvoll Klicks wie beim ersten Mal.
+      <?php endif; ?>
+      </span></div>
   <?php elseif ($strato['eingerichtet']): ?>
     <div class="hinweis gut">
       <?= (int) $strato['anzahl'] ?> Gespräche liegen hier.

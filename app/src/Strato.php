@@ -50,6 +50,9 @@ final class Strato
     /** So lange gilt ein Zugangs-Token, bevor wir einen neuen holen. */
     public const TOKEN_SEKUNDEN = 2400;
 
+    /** So viele Sekunden auf den zu warten, der gerade erneuert. */
+    public const SPERRE_WARTEN = 8;
+
     public const ZEITGRENZE = 20;
 
     /* ==================================================================== */
@@ -110,43 +113,91 @@ final class Strato
      */
     public static function zugangsToken(): ?string
     {
-        $roh = self::wert('strato_zugang');
-        if ($roh !== '') {
-            $d = json_decode($roh, true);
-            if (is_array($d) && (int) ($d['bis'] ?? 0) > time() && ($d['token'] ?? '') !== '') {
-                return (string) $d['token'];
-            }
-        }
+        $da = self::zwischengespeicherter();
+        if ($da !== null) { return $da; }
 
-        $anon    = self::wert('strato_anon');
-        $refresh = self::wert('strato_refresh');
-        if ($anon === '' || $refresh === '') {
+        $anon = self::wert('strato_anon');
+        if ($anon === '' || self::wert('strato_refresh') === '') {
             self::merken('strato_fehler', 'Kein Zugang hinterlegt.');
             return null;
         }
 
-        $a = self::abruf('POST', self::PROJEKT . '/auth/v1/token?grant_type=refresh_token',
-                         $anon, null, ['refresh_token' => $refresh]);
+        /* NUR EINER DARF ERNEUERN
+           ------------------------------------------------------------------
+           Supabase tauscht den Auffrischungs-Token bei jeder Benutzung aus
+           und widerruft die ganze Sitzung, wenn ein bereits benutzter noch
+           einmal kommt: „Invalid Refresh Token: Already Used". Genau das ist
+           am 7. September passiert -- der stündliche Abgleich und ein Klick
+           in der Verwaltung fielen zusammen, und danach war der Zugang tot.
+           Der Fehler ist selten, aber wenn er kommt, kostet er den Zugang
+           und niemand weiss, warum.
 
-        if (!$a['ok'] || !is_array($a['daten']) || ($a['daten']['access_token'] ?? '') === '') {
-            $grund = is_array($a['daten'])
-                ? (string) ($a['daten']['error_description'] ?? $a['daten']['msg'] ?? $a['daten']['error'] ?? '')
-                : '';
-            self::merken('strato_fehler', $grund !== ''
-                ? $grund
-                : 'Der Zugang wurde abgelehnt (' . $a['status'] . '). Vermutlich abgemeldet oder abgelaufen.');
-            return null;
-        }
+           Also eine Sperre. Wer sie nicht bekommt, hat es nicht eilig: Der
+           andere schreibt gerade einen frischen Token, und danach steht er
+           da. Deshalb wird nach dem Warten NOCH EINMAL nachgesehen, bevor
+           irgendetwas abgerufen wird. */
+        $sperre = self::still(static fn() => (int) Db::wert(
+            "SELECT GET_LOCK('vd_strato_token', ?)", [self::SPERRE_WARTEN], 0), 0);
 
-        /* Zuerst den neuen Auffrischungs-Token sichern, dann alles andere. */
-        if (($a['daten']['refresh_token'] ?? '') !== '') {
-            self::merken('strato_refresh', (string) $a['daten']['refresh_token']);
+        try {
+            /* Zweiter Blick: In der Wartezeit kann ein anderer fertig
+               geworden sein. Ohne diese Zeile wäre die Sperre wirkungslos --
+               sie würde nur die gleichzeitigen Abrufe nacheinander machen,
+               statt einen davon einzusparen. */
+            $da = self::zwischengespeicherter();
+            if ($da !== null) { return $da; }
+
+            $refresh = self::wert('strato_refresh');
+            if ($refresh === '') {
+                self::merken('strato_fehler', 'Kein Zugang hinterlegt.');
+                return null;
+            }
+
+            $a = self::abruf('POST', self::PROJEKT . '/auth/v1/token?grant_type=refresh_token',
+                             $anon, null, ['refresh_token' => $refresh]);
+
+            if (!$a['ok'] || !is_array($a['daten']) || ($a['daten']['access_token'] ?? '') === '') {
+                /* Letzter Blick, bevor gemeldet wird: Bekam die Sperre jemand
+                   anders und war gerade fertig, ist alles in Ordnung -- und
+                   eine Fehlermeldung wäre schlicht falsch. */
+                $da = self::zwischengespeicherter();
+                if ($da !== null) { return $da; }
+
+                $grund = is_array($a['daten'])
+                    ? (string) ($a['daten']['error_description'] ?? $a['daten']['msg']
+                             ?? $a['daten']['error'] ?? '')
+                    : '';
+                self::merken('strato_fehler', $grund !== ''
+                    ? $grund
+                    : 'Der Zugang wurde abgelehnt (' . $a['status'] . '). Vermutlich abgemeldet oder abgelaufen.');
+                return null;
+            }
+
+            /* Zuerst den neuen Auffrischungs-Token sichern, dann alles andere. */
+            if (($a['daten']['refresh_token'] ?? '') !== '') {
+                self::merken('strato_refresh', (string) $a['daten']['refresh_token']);
+            }
+            $token = (string) $a['daten']['access_token'];
+            $gilt  = min((int) ($a['daten']['expires_in'] ?? 3600), self::TOKEN_SEKUNDEN);
+            self::merken('strato_zugang',
+                (string) json_encode(['token' => $token, 'bis' => time() + $gilt - 60]));
+            self::merken('strato_fehler', '');
+            return $token;
+        } finally {
+            if ($sperre === 1) {
+                self::still(static fn() => Db::wert("SELECT RELEASE_LOCK('vd_strato_token')", [], 0));
+            }
         }
-        $token = (string) $a['daten']['access_token'];
-        $gilt  = min((int) ($a['daten']['expires_in'] ?? 3600), self::TOKEN_SEKUNDEN);
-        self::merken('strato_zugang', (string) json_encode(['token' => $token, 'bis' => time() + $gilt - 60]));
-        self::merken('strato_fehler', '');
-        return $token;
+    }
+
+    /** Der noch gültige Token aus dem Zwischenspeicher -- oder null. */
+    private static function zwischengespeicherter(): ?string
+    {
+        $roh = self::wert('strato_zugang');
+        if ($roh === '') { return null; }
+        $d = json_decode($roh, true);
+        if (!is_array($d) || (string) ($d['token'] ?? '') === '') { return null; }
+        return (int) ($d['bis'] ?? 0) > time() ? (string) $d['token'] : null;
     }
 
     /* ==================================================================== */

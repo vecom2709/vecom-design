@@ -3007,6 +3007,44 @@ $u = Strato::werkzeugeUebertragen();
 pruefe('ohne Zugang wird nichts übertragen',
     ($u['ok'] ?? true) === false && str_contains((string) $u['text'], 'Kein Zugang'), json_encode($u));
 
+/* DER ZUGANGS-TOKEN
+   ------------------------------------------------------------------------
+   Supabase tauscht den Auffrischungs-Token bei jeder Benutzung aus und
+   widerruft die ganze Sitzung, wenn ein bereits benutzter noch einmal
+   kommt. Am 7. September fielen der stündliche Abgleich und ein Klick in
+   der Verwaltung zusammen — danach war der Zugang tot, mit der Meldung
+   „Invalid Refresh Token: Already Used". Der Fehler ist selten, kostet aber
+   jedes Mal den ganzen Zugang.
+
+   Geprüft wird hier, was ohne Netz prüfbar ist: dass ein gültiger Token
+   NICHT erneuert wird (sonst wäre jede Anfrage eine Erneuerung und der
+   Zusammenstoß die Regel statt die Ausnahme), und dass ein abgelaufener
+   nicht mehr gilt. */
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\_%'");
+$zw = new ReflectionMethod('Strato', 'zwischengespeicherter');
+$zw->setAccessible(true);
+pruefe('ohne Zwischenspeicher gibt es keinen Token', $zw->invoke(null) === null);
+
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('strato_zugang', ?)",
+        [json_encode(['token' => 'tok-gueltig', 'bis' => time() + 600])]);
+pruefe('ein gültiger Token kommt aus dem Zwischenspeicher', $zw->invoke(null) === 'tok-gueltig');
+pruefe('und wird ohne Netz zurückgegeben — es wird NICHT erneuert',
+    Strato::zugangsToken() === 'tok-gueltig');
+
+Db::run("UPDATE settings SET svalue = ? WHERE skey = 'strato_zugang'",
+        [json_encode(['token' => 'tok-alt', 'bis' => time() - 10])]);
+pruefe('ein abgelaufener gilt nicht mehr', $zw->invoke(null) === null);
+pruefe('und ohne hinterlegten Zugang wird auch keiner geholt',
+    Strato::zugangsToken() === null && str_contains(Strato::fehler(), 'Kein Zugang'), Strato::fehler());
+
+/* Die Sperre selbst: Sie muss sich nehmen und wieder freigeben lassen —
+   bleibt sie hängen, steht beim nächsten Lauf alles acht Sekunden still. */
+$g1 = (int) Db::wert("SELECT GET_LOCK('vd_strato_token', 1)", [], 0);
+pruefe('die Sperre lässt sich nehmen', $g1 === 1);
+pruefe('und wieder freigeben',
+    (int) Db::wert("SELECT RELEASE_LOCK('vd_strato_token')", [], 0) === 1);
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\_%'");
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
