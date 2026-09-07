@@ -483,6 +483,18 @@ final class Onboarding
             }
         } catch (Throwable $e) { /* der Knopf am Projekt bleibt */ }
 
+        /* Wunschdomain: Wer keine Website und keine Domain hat, bekommt auf
+           seiner Kundenseite ein Hosting-Angebot mit der ersten freien
+           Wunschdomain. Still und ausserhalb der Transaktion — ein Ausfall
+           der Domainpruefung darf den Fragebogen nicht zurueckrollen. */
+        try {
+            require_once __DIR__ . '/Hosting.php';
+            Hosting::nachFragebogen(
+                (int) $f['fragebogen']['project_id'],
+                (int) $f['fragebogen']['customer_id'],
+                $daten);
+        } catch (Throwable $e) { /* das Angebot laesst sich von Hand nachholen */ }
+
         // Erst nach dem Festschreiben: Ein haengender Mailserver darf einen
         // abgeschickten Fragebogen nicht zurueckrollen.
         try {

@@ -693,6 +693,15 @@ final class Events
             // E-Mail nichts zu suchen.
             require_once __DIR__ . '/Nachricht.php';
             Nachricht::beiStatuswechsel($projektId, $neu);
+
+            // Wunschdomain: Bei der finalen Freigabe wird ein zugestimmter
+            // Hosting-Auftrag angelegt (KAS-Account, Domain, Postfach).
+            // Still — ein Hoster-Ausfall darf den Statuswechsel nicht
+            // aufhalten; die Meldung "Jetzt dran" entsteht in Hosting selbst.
+            try {
+                require_once __DIR__ . '/Hosting.php';
+                Hosting::beiStatuswechsel($projektId, $neu);
+            } catch (Throwable $e) { /* von Hand nachholbar, Auftrag bleibt zugestimmt */ }
         }
     }
 

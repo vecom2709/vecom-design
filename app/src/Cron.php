@@ -181,6 +181,12 @@ final class Cron
             // waechst die Liste ewig — und wo hundert alte Zeilen stehen,
             // sieht niemand mehr die eine neue. Ungelesenes bleibt stehen.
             $aufgaben['meldungen'] = static fn() => Events::meldungenAufraeumen();
+            // Abgelaufene Hosting-Zugangsdaten loeschen: Der verschluesselte
+            // Blob existiert nur bis zum einmaligen Abruf oder bis zur Frist.
+            $aufgaben['hosting'] = static function () {
+                require_once __DIR__ . '/Hosting.php';
+                return ['geloescht' => Hosting::aufraeumen()];
+            };
         }
         // Einmal taeglich nachfragen, ob der E-Mail-Versand ueberhaupt noch
         // geht. Der Grund steht in der Projektgeschichte: Der Brevo-Schluessel

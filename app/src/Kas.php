@@ -119,7 +119,7 @@ final class Kas
      * @param array<string,mixed> $params
      * @return array{ok:bool,daten:mixed,text:string}
      */
-    public static function rufen(string $aktion, array $params = []): array
+    public static function rufen(string $aktion, array $params = [], ?array $als = null): array
     {
         $fehlt = self::voraussetzung();
         if ($fehlt !== null) { return ['ok' => false, 'daten' => null, 'text' => $fehlt]; }
@@ -143,7 +143,11 @@ final class Kas
         }
         if ($warten > 0) { usleep((int) ceil($warten * 1000000)); }
 
-        $z = self::zugang();
+        /* „$als" ist der Unter-Account: Direkt nach dem Anlegen tragen
+           Domain und Postfach seinen eigenen Login und sein frisches
+           KAS-Passwort — nur in diesem Moment kennen wir es, gespeichert
+           wird es nie. */
+        $z = $als ?? self::zugang();
         try {
             $client = new SoapClient(self::WSDL, [
                 'connection_timeout' => 15,
@@ -311,6 +315,49 @@ final class Kas
                 'text' => $login !== ''
                     ? 'Account ' . $login . ' ist angelegt.'
                     : 'Der Account ist angelegt — der Login steht in der Accountliste (Verbindung prüfen).'];
+    }
+
+    /**
+     * Eine Domain im (Unter-)Account anlegen.
+     *
+     * Das ist der KAS-Teil — die REGISTRIERUNG der Domain laeuft danach im
+     * Domainbestellsystem, von Hand: All-Inkl will es genau in dieser
+     * Reihenfolge („Neue Domains sind vor der Bestellung im KAS anzulegen"),
+     * und fuer das Bestellsystem gibt es keine Schnittstelle.
+     *
+     * @param array{login:string,passwort:string}|null $als
+     * @return array{ok:bool,text:string}
+     */
+    public static function domainAnlegen(string $domain, ?array $als = null): array
+    {
+        $domain = strtolower(trim($domain, " \t\n\r\0\x0B./"));
+        $punkt = strpos($domain, '.');
+        if ($punkt === false || $punkt < 1) {
+            return ['ok' => false, 'text' => 'Das ist keine vollständige Domain: ' . $domain];
+        }
+        $erg = self::rufen('add_domain', [
+            'domain_name' => substr($domain, 0, $punkt),
+            'domain_tld'  => substr($domain, $punkt + 1),
+            'domain_path' => '/web/',
+        ], $als);
+        return ['ok' => $erg['ok'], 'text' => $erg['ok'] ? 'Domain ' . $domain . ' ist im KAS angelegt.' : $erg['text']];
+    }
+
+    /**
+     * Ein Postfach im (Unter-)Account anlegen.
+     *
+     * @param array{login:string,passwort:string}|null $als
+     * @return array{ok:bool,text:string}
+     */
+    public static function postfachAnlegen(string $lokal, string $domain, string $passwort, ?array $als = null): array
+    {
+        $erg = self::rufen('add_mailaccount', [
+            'local_part'    => strtolower(trim($lokal)),
+            'domain_part'   => strtolower(trim($domain)),
+            'mail_password' => $passwort,
+        ], $als);
+        return ['ok' => $erg['ok'],
+                'text' => $erg['ok'] ? 'Postfach ' . $lokal . '@' . $domain . ' ist angelegt.' : $erg['text']];
     }
 
     /** Sucht in der API-Antwort nach dem vergebenen Account-Login. */

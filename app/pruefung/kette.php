@@ -68,6 +68,10 @@ Config::setzenFuerTest([
     'zeitzone' => 'Europe/Rome',
     'firma'    => 'Vecom Design Pruefung',
     'email'    => 'pruefung@example',
+    /* Fuer Abschnitt 43: Ohne Schluessel koennte die Verschluesselung der
+       Hosting-Zugangsdaten nur "geht nicht" sagen — mit ihm laeuft die
+       Rundreise wirklich. */
+    'hosting_geheim' => bin2hex(random_bytes(32)),
 ]);
 
 foreach (['Db', 'Status', 'Fmt', 'Csrf', 'Auth', 'Events', 'Einrichtung',
@@ -3816,6 +3820,161 @@ pruefe('mit Gross, Klein, Ziffer und Sonderzeichen',
     preg_match('/[A-Z]/', $pw1) && preg_match('/[a-z]/', $pw1)
     && preg_match('/[0-9]/', $pw1) && preg_match('/[!\-_]/', $pw1));
 pruefe('und zwei Aufrufe liefern nie dasselbe', $pw1 !== $pw2);
+
+/* ============================================================================
+   43. Wunschdomain und Hosting
+   ============================================================================
+   Der Ablauf: Fragebogen sagt "keine Website, Domain neu" -> Vorschlag ->
+   der Kunde stimmt den Monatskosten ausdruecklich zu -> bei der finalen
+   Freigabe wird angelegt. Die Netzseite (Domainpruefung, KAS) laesst sich
+   hier nicht wirklich rufen — geprueft werden die Riegel drumherum: wann
+   ueberhaupt vorgeschlagen wird, dass ohne Zustimmung nichts passiert,
+   dass der Preis eingefroren ist und dass Zugangsdaten genau einmal
+   herauskommen.
+   ============================================================================ */
+abschnitt('43. Wunschdomain und Hosting');
+
+require_once $wurzel . '/src/Hosting.php';
+require_once $wurzel . '/src/Abo.php';
+
+/* Wer braucht eine Domain? Nur wer weder Website noch Domain hat UND
+   Wuensche genannt hat. Alles andere ist kein Fall fuer den Kasten. */
+pruefe('keine Website + Domain neu + Wunsch => braucht eine',
+    Hosting::brauchtDomain(['altseite' => 'nein', 'domain' => 'neu', 'wunsch1' => 'trattoria-kette.it']));
+pruefe('nur Social zaehlt wie keine Website',
+    Hosting::brauchtDomain(['altseite' => 'social', 'domain' => 'neu', 'wunsch2' => 'kette.example']));
+pruefe('wer schon eine Website hat, braucht keine',
+    Hosting::brauchtDomain(['altseite' => 'ja', 'domain' => 'neu', 'wunsch1' => 'x.it']) === false);
+pruefe('wer seine Domain mitbringt, auch nicht',
+    Hosting::brauchtDomain(['altseite' => 'nein', 'domain' => 'fremd', 'wunsch1' => 'x.it']) === false);
+pruefe('ohne einen einzigen Wunsch gibt es nichts vorzuschlagen',
+    Hosting::brauchtDomain(['altseite' => 'nein', 'domain' => 'neu']) === false);
+
+/* Ein eigener Kunde mit eigenem Projekt — die Kette weiter oben hat ihre
+   eigenen Vertraege, die hier nicht dazwischenfunken sollen. */
+$hoKundeId = Events::kundeFinden(['name' => 'Hosting Kunde',
+    'email' => 'hosting@pruefung.example', 'company' => 'Domarella', 'sprache' => 'de']);
+$hoProjektId = Db::insert('projects', ['customer_id' => $hoKundeId,
+    'name' => 'Hosting-Kette', 'status' => 'vorschau']);
+pruefe('Kunde und Projekt fuer den Hosting-Ablauf stehen', $hoKundeId > 0 && $hoProjektId > 0);
+
+/* nachFragebogen ist still und legt bei "braucht keine" nichts an. */
+Hosting::nachFragebogen($hoProjektId, $hoKundeId, ['altseite' => 'ja', 'domain' => 'fremd']);
+pruefe('wer keine Domain braucht, bekommt keinen Auftrag',
+    (int) Db::wert('SELECT COUNT(*) FROM hosting_auftraege WHERE customer_id = ?', [$hoKundeId], 0) === 0);
+
+/* Der Vorschlag selbst — die Domainpruefung fragt fremde Dienste, das tut
+   ein Test nicht. Der Auftrag entsteht hier so, wie nachFragebogen ihn
+   anlegen wuerde, mit dem Preis aus dem Paket. */
+$hoPreis = Hosting::preisCents();
+pruefe('der Monatspreis kommt aus dem Hosting-Paket', $hoPreis === 990, (string) $hoPreis);
+$hoId = Db::insert('hosting_auftraege', ['customer_id' => $hoKundeId,
+    'project_id' => $hoProjektId, 'domain' => 'domarella-kette.it',
+    'status' => 'vorgeschlagen', 'preis_cents' => $hoPreis]);
+pruefe('der Vorschlag steht', $hoId > 0);
+pruefe('und fuerKunde findet ihn', (int) (Hosting::fuerKunde($hoKundeId)['id'] ?? 0) === $hoId);
+
+/* Kein zweiter Vorschlag neben dem ersten — auch wenn der Fragebogen
+   noch einmal abgeschickt wuerde. brauchtDomain waere wahr, aber die
+   Doppel-Sperre greift VOR der Domainpruefung, deshalb laeuft das ohne Netz. */
+Hosting::nachFragebogen($hoProjektId, $hoKundeId,
+    ['altseite' => 'nein', 'domain' => 'neu', 'wunsch1' => 'zweiter-wunsch.it']);
+pruefe('ein zweiter Vorschlag entsteht nicht neben dem ersten',
+    (int) Db::wert('SELECT COUNT(*) FROM hosting_auftraege WHERE customer_id = ?', [$hoKundeId], 0) === 1);
+
+/* Anlegen ohne Zustimmung: der wichtigste Riegel des ganzen Ablaufs. */
+$ohneZustimmung = Hosting::anlegen($hoId);
+pruefe('ohne Zustimmung wird nichts angelegt',
+    $ohneZustimmung['ok'] === false && str_contains($ohneZustimmung['text'], 'zugestimmt'),
+    $ohneZustimmung['text']);
+
+/* Die Antwort des Kunden: falsche Kundennummer zieht nicht, Ablehnen und
+   Zustimmen gehen nur aus "vorgeschlagen". */
+pruefe('ein fremder Kunde kann nicht zustimmen', Hosting::antwort($hoId, $hoKundeId + 999, true) === false);
+pruefe('der Kunde stimmt zu', Hosting::antwort($hoId, $hoKundeId, true) === true);
+$hoA = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$hoId]);
+pruefe('der Auftrag steht auf zugestimmt, mit Zeitstempel',
+    (string) $hoA['status'] === 'zugestimmt' && $hoA['zugestimmt_am'] !== null);
+pruefe('eine zweite Antwort auf denselben Auftrag zieht nicht',
+    Hosting::antwort($hoId, $hoKundeId, false) === false);
+pruefe('der Auftrag bleibt zugestimmt', (string) Db::wert(
+    'SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
+
+/* Der Preis ist eingefroren: Eine spaetere Paketaenderung aendert keinen
+   Vertrag, dem schon zugestimmt wurde. */
+Db::run("UPDATE packages SET monthly_cents = 1490 WHERE slug = 'hosting'");
+pruefe('eine Preisaenderung am Paket laesst den zugestimmten Preis stehen',
+    (int) Db::wert('SELECT preis_cents FROM hosting_auftraege WHERE id = ?', [$hoId], 0) === 990);
+Db::run("UPDATE packages SET monthly_cents = 990 WHERE slug = 'hosting'");
+
+/* beiStatuswechsel: nur die finale Freigabe legt an — und weil der
+   KAS-Zugang im Test fehlt, bleibt der Auftrag ehrlich auf zugestimmt
+   und Uwe bekommt eine Meldung statt eines halben Accounts. */
+Hosting::beiStatuswechsel($hoProjektId, 'vorschau');
+pruefe('ein anderer Statuswechsel ruehrt den Auftrag nicht an', (string) Db::wert(
+    'SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
+Db::run("DELETE FROM notifications WHERE type = 'hosting_fehler'");
+Hosting::beiStatuswechsel($hoProjektId, 'finale_freigabe');
+pruefe('bei finaler Freigabe ohne KAS-Zugang bleibt der Auftrag zugestimmt',
+    (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
+pruefe('und es liegt eine Meldung fuer Uwe da', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) === 1);
+
+/* Die Abo-Regel: Betreuung und Hosting laufen nebeneinander, aber keine
+   zwei Vertraege derselben Art. */
+$hoAbo1 = Abo::anlegen($hoKundeId, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']);
+pruefe('ein Hosting-Vertrag entsteht', $hoAbo1 > 0);
+gesperrt('ein zweiter Hosting-Vertrag ist gesperrt',
+    static fn() => Abo::anlegen($hoKundeId, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']));
+$hoBetreuung = (string) Db::wert(
+    "SELECT slug FROM packages WHERE art = 'betreuung' AND active = 1 ORDER BY id LIMIT 1", [], '');
+if ($hoBetreuung !== '') {
+    $hoAbo2 = Abo::anlegen($hoKundeId, ['paket_slug' => $hoBetreuung, 'zahlart' => 'manuell']);
+    pruefe('eine Betreuung passt daneben — andere Art, kein Konflikt', $hoAbo2 > 0);
+    gesperrt('aber keine zweite Betreuung',
+        static fn() => Abo::anlegen($hoKundeId, ['paket_slug' => $hoBetreuung, 'zahlart' => 'manuell']));
+} else {
+    pruefe('eine Betreuung passt daneben — andere Art, kein Konflikt', false, 'kein Betreuungspaket gefunden');
+}
+
+/* Die Zugangsdaten: verschluesselt hinein, EINMAL heraus, dann weg. */
+$hoKrypto = new ReflectionClass('Hosting');
+$hoVer = $hoKrypto->getMethod('verschluesseln'); $hoVer->setAccessible(true);
+$hoEnt = $hoKrypto->getMethod('entschluesseln'); $hoEnt->setAccessible(true);
+$hoDaten = ['kas_login' => 'w0000000', 'kas_passwort' => 'Geheim-123!', 'ftp_passwort' => 'Anders-456_',
+            'postfach' => 'info@domarella-kette.it', 'postfach_passwort' => 'Dritte-789!',
+            'server' => 'w0000000.kasserver.com'];
+$hoBlob = $hoVer->invoke(null, $hoDaten);
+pruefe('die Zugangsdaten lassen sich verschluesseln', is_string($hoBlob) && $hoBlob !== '');
+pruefe('im Blob steht kein Passwort im Klartext', !str_contains((string) $hoBlob, 'Geheim-123!'));
+pruefe('und die Rundreise gibt sie unversehrt zurueck',
+    $hoEnt->invoke(null, (string) $hoBlob) === $hoDaten);
+
+Db::update('hosting_auftraege', $hoId, ['status' => 'angelegt', 'zugang_blob' => (string) $hoBlob,
+    'zugang_bis' => date('Y-m-d H:i:s', time() + 86400)]);
+pruefe('ein fremder Kunde bekommt die Zugangsdaten nicht',
+    Hosting::zugangAbrufen($hoId, $hoKundeId + 999) === null);
+pruefe('und der Blob liegt dann noch da', Db::wert(
+    'SELECT zugang_blob FROM hosting_auftraege WHERE id = ?', [$hoId], null) !== null);
+$hoAbruf = Hosting::zugangAbrufen($hoId, $hoKundeId);
+pruefe('der Kunde bekommt sie genau einmal', $hoAbruf === $hoDaten);
+pruefe('danach ist der Blob geloescht', Db::wert(
+    'SELECT zugang_blob FROM hosting_auftraege WHERE id = ?', [$hoId], null) === null);
+pruefe('ein zweiter Abruf geht leer aus', Hosting::zugangAbrufen($hoId, $hoKundeId) === null);
+
+/* Abgelaufen ist abgelaufen — der Abruf loescht, statt zu zeigen. */
+Db::update('hosting_auftraege', $hoId, ['zugang_blob' => (string) $hoBlob,
+    'zugang_bis' => date('Y-m-d H:i:s', time() - 60)]);
+pruefe('nach der Frist gibt es nichts mehr', Hosting::zugangAbrufen($hoId, $hoKundeId) === null);
+Db::update('hosting_auftraege', $hoId, ['zugang_blob' => (string) $hoBlob,
+    'zugang_bis' => date('Y-m-d H:i:s', time() - 60)]);
+pruefe('und der Cron raeumt Abgelaufenes weg', Hosting::aufraeumen() >= 1);
+
+/* Aufraeumen: Der Hosting-Kunde verschwindet wieder, damit er anderen
+   Abschnitten nicht in die Quere kommt. */
+Db::run('DELETE FROM hosting_auftraege WHERE customer_id = ?', [$hoKundeId]);
+Db::run('DELETE FROM abos WHERE customer_id = ?', [$hoKundeId]);
+Db::run("DELETE FROM notifications WHERE type LIKE 'hosting\\_%'");
 
 /* ============================================================================
    Aufräumen und Bilanz

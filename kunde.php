@@ -80,6 +80,7 @@ $TS = static fn(string $stufe, string $feld = ''): string => $feld === ''
     : Texte::h(Texte::KUNDE_STUFEN[$stufe][$feld] ?? [], $sprache);
 
 $fehler = []; $meldung = null;
+$hostingZugang = null;   // die einmal angezeigten Zugangsdaten — nur direkt nach dem Abruf
 
 /* -------------------------------------------------------------------------
    Herunterladen: eine Datei oder einen eigenen Beleg.
@@ -224,6 +225,29 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     $e = Abo::kuendigen((int) $abo['id'], 'kunde');
                     $meldung = str_replace('{datum}', Fmt::datum($e['ende']),
                         Texte::h(Texte::KUNDE['gekuendigt'] ?? [], $sprache, 'Kündigung ist angekommen.'));
+                }
+
+            } elseif ($tat === 'hosting_antwort') {
+                /* Die ausdrueckliche Zustimmung zu den Monatskosten. Ohne
+                   diesen Klick wird nichts angelegt und nichts berechnet —
+                   der Knopf IST der Vertragsschluss, deshalb liegt die
+                   Zustandspruefung im Werkzeug (nur aus "vorgeschlagen"). */
+                require_once __DIR__ . '/app/src/Hosting.php';
+                $ja = (string) ($_POST['wahl'] ?? '') === 'ja';
+                if (Hosting::antwort((int) ($_POST['auftrag'] ?? 0), (int) $kunde['id'], $ja)) {
+                    $meldung = $ja
+                        ? Texte::h(Texte::SEITE['hostingDanke'] ?? [], $sprache, 'Abgemacht.')
+                        : Texte::h(Texte::SEITE['hostingAbgelehnt'] ?? [], $sprache, 'In Ordnung.');
+                }
+
+            } elseif ($tat === 'hosting_zugang') {
+                /* Der einmalige Abruf. Danach ist der Blob geloescht — die
+                   Daten stehen genau jetzt auf dieser Seite und nie wieder. */
+                require_once __DIR__ . '/app/src/Hosting.php';
+                $hostingZugang = Hosting::zugangAbrufen((int) ($_POST['auftrag'] ?? 0), (int) $kunde['id']);
+                if ($hostingZugang === null) {
+                    $fehler[] = Texte::h(Texte::SEITE['hostingZugangWeg'] ?? [], $sprache,
+                        'Die Zugangsdaten sind nicht mehr hinterlegt.');
                 }
 
             } elseif ($tat === 'datei') {
@@ -514,6 +538,100 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php endif; ?>
     </div>
   </div>
+
+  <?php /* ---------- Wunschdomain: Angebot, Zusage, Zugangsdaten ----------
+           Der Kasten existiert nur, wenn der Fragebogen ergeben hat, dass
+           es weder Website noch Domain gibt. Er stellt die Frage nach den
+           Monatskosten AUSDRUECKLICH — der Ja-Knopf ist die Zustimmung,
+           nichts passiert nebenbei. Nach dem Anlegen zeigt derselbe Kasten
+           die Zugangsdaten: genau einmal, danach sind sie geloescht. */ ?>
+  <?php
+    require_once __DIR__ . '/app/src/Hosting.php';
+    $hosting = $kunde ? sicherLesen(fn() => Hosting::fuerKunde((int) $kunde['id']), null) : null;
+    $HT = static fn(string $s, string $sonst = ''): string =>
+        Texte::h(Texte::SEITE[$s] ?? [], $sprache, $sonst);
+  ?>
+  <?php if ($hosting): ?>
+    <?php $hs = (string) $hosting['status']; ?>
+
+    <?php if ($hs === 'vorgeschlagen'): ?>
+      <div class="klapp" style="border-color:var(--akzent,#2563eb)">
+        <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
+        <p style="margin:10px 0 4px;font-size:17px;font-weight:650"><?= $h((string) $hosting['domain']) ?></p>
+        <p class="mini" style="margin:6px 0 0"><?= $h(strtr($HT('hostingAngebot'), [
+            '{domain}' => (string) $hosting['domain'],
+            '{preis}'  => Fmt::geld((int) $hosting['preis_cents'], 'EUR'),
+        ])) ?></p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <form method="post" action="<?= $h($hier) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_antwort">
+            <input type="hidden" name="auftrag" value="<?= (int) $hosting['id'] ?>">
+            <input type="hidden" name="wahl" value="ja">
+            <button class="knopf haupt"><?= $h(strtr($HT('hostingJa', 'Ja, bitte schalten'), [
+                '{preis}' => Fmt::geld((int) $hosting['preis_cents'], 'EUR')])) ?></button>
+          </form>
+          <form method="post" action="<?= $h($hier) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_antwort">
+            <input type="hidden" name="auftrag" value="<?= (int) $hosting['id'] ?>">
+            <input type="hidden" name="wahl" value="nein">
+            <button class="knopf"><?= $h($HT('hostingNein', 'Nein, danke')) ?></button>
+          </form>
+        </div>
+      </div>
+
+    <?php elseif ($hs === 'zugestimmt'): ?>
+      <div class="klapp ruht">
+        <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
+        <p class="mini" style="margin:8px 0 0"><?= $h(strtr($HT('hostingWartet'), [
+            '{domain}' => (string) $hosting['domain']])) ?></p>
+      </div>
+
+    <?php elseif (in_array($hs, ['angelegt', 'aktiv'], true)): ?>
+      <details class="klapp" <?= $hostingZugang !== null || $hosting['zugang_blob'] !== null ? 'open' : '' ?>>
+        <summary><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?> · <?= $h((string) $hosting['domain']) ?></summary>
+
+        <?php if ($hostingZugang !== null): ?>
+          <?php /* Der eine Moment. Feld fuer Feld, kopierbar — und der Satz
+                   dazu, dass genau dieser Anblick der letzte ist. */ ?>
+          <div class="hinweis gut" style="margin-top:12px"><?= $h($HT('hostingZugangJetzt',
+              'Speichere diese Daten jetzt — sie werden nur dieses eine Mal angezeigt.')) ?></div>
+          <?php $hFelder = [
+              'kas_login'         => ['it' => 'Login KAS',        'de' => 'KAS-Login',        'en' => 'KAS login'],
+              'kas_passwort'      => ['it' => 'Password KAS',     'de' => 'KAS-Passwort',     'en' => 'KAS password'],
+              'ftp_passwort'      => ['it' => 'Password FTP',     'de' => 'FTP-Passwort',     'en' => 'FTP password'],
+              'postfach'          => ['it' => 'Casella e-mail',   'de' => 'E-Mail-Postfach',  'en' => 'Email mailbox'],
+              'postfach_passwort' => ['it' => 'Password casella', 'de' => 'Postfach-Passwort','en' => 'Mailbox password'],
+              'server'            => ['it' => 'Server',           'de' => 'Server',           'en' => 'Server'],
+          ]; ?>
+          <div style="margin-top:10px">
+            <?php foreach ($hFelder as $fk => $namen): if (($hostingZugang[$fk] ?? '') === '') { continue; } ?>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;
+                          padding:7px 0;border-top:1px solid var(--linie)">
+                <span class="mini" style="min-width:11em"><?= $h(Texte::h($namen, $sprache)) ?></span>
+                <code style="font-size:14.5px;user-select:all"><?= $h((string) $hostingZugang[$fk]) ?></code>
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+        <?php elseif ($hosting['zugang_blob'] !== null): ?>
+          <p class="mini" style="margin-top:10px"><?= $h($HT('hostingZugangHilfe',
+              'Deine Zugangsdaten liegen bereit. Sie werden genau einmal angezeigt.')) ?></p>
+          <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px"
+                data-frage="<?= $h($HT('hostingZugangSicher', 'Jetzt anzeigen? Es geht nur einmal.')) ?>"
+                data-ja="<?= $h($HT('hostingZugangKnopf', 'Zugangsdaten einmalig anzeigen')) ?>"
+                data-nein="<?= $h($T('abbrechen')) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_zugang">
+            <input type="hidden" name="auftrag" value="<?= (int) $hosting['id'] ?>">
+            <button class="knopf haupt"><?= $h($HT('hostingZugangKnopf', 'Zugangsdaten einmalig anzeigen')) ?></button>
+          </form>
+
+        <?php else: ?>
+          <p class="mini" style="margin-top:10px"><?= $h(strtr($HT('hostingFertig'), [
+              '{domain}' => (string) $hosting['domain']])) ?></p>
+        <?php endif; ?>
+      </details>
+    <?php endif; ?>
+  <?php endif; ?>
 
   <?php /* ---------- Wie war es? Erst wenn die Seite steht. ---------- */ ?>
   <?php $stimme = $kunde ? sicherLesen(fn() => Stimme::vonKunde((int) $kunde['id']), null) : null; ?>

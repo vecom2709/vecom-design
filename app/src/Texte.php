@@ -587,6 +587,71 @@ final class Texte
             'en' => 'Or skip the typing: click the voice window in the bottom right — Manuela, our assistant, fills in the questionnaire together with you. She asks, you talk; every answer is saved right away.',
         ],
 
+        /* DIE WUNSCHDOMAIN
+           ------------------------------------------------------------------
+           Wer im Fragebogen sagt "keine Website, keine Domain", bekommt hier
+           die erste freie Wunschdomain angeboten. Der Preis steht im Satz,
+           BEVOR der Knopf kommt — die Zustimmung gilt den Kosten, nicht nur
+           der Domain. Angelegt wird erst nach der finalen Freigabe; auch das
+           steht ausdruecklich da, damit niemand am naechsten Tag nach seinen
+           Zugangsdaten fragt. */
+        'hostingTitel' => ['it' => 'Il tuo dominio', 'de' => 'Deine Wunschdomain', 'en' => 'Your domain'],
+        'hostingAngebot' => [
+            'it' => 'Nel questionario hai indicato che non hai ancora un sito né un dominio. Registriamo e gestiamo noi {domain} per te: dominio, spazio web, certificato SSL e una casella e-mail. Costa {preis} al mese in più. Attiviamo tutto quando il tuo sito è pronto — e riceverai i tuoi dati di accesso qui su questa pagina.',
+            'de' => 'Im Fragebogen hast du angegeben, dass du noch keine Website und keine Domain hast. Wir schalten und betreuen {domain} für dich: Domain, Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach. Das kostet zusätzlich {preis} im Monat. Angelegt wird alles, sobald deine Website fertig ist — deine Zugangsdaten bekommst du dann hier auf dieser Seite.',
+            'en' => 'In the questionnaire you said you don’t have a website or a domain yet. We’ll register and run {domain} for you: domain, web space, SSL certificate and an email mailbox. It costs an extra {preis} per month. Everything is set up once your website is finished — you’ll receive your access details right here on this page.',
+        ],
+        'hostingJa'   => ['it' => 'Sì, attivatelo — {preis} al mese',
+                          'de' => 'Ja, schaltet sie — {preis} im Monat',
+                          'en' => 'Yes, set it up — {preis} per month'],
+        'hostingNein' => ['it' => 'No, grazie', 'de' => 'Nein, danke', 'en' => 'No, thanks'],
+        'hostingDanke' => [
+            'it' => 'Perfetto — appena il tuo sito è pronto, attiviamo il dominio e ti mettiamo qui i dati di accesso.',
+            'de' => 'Abgemacht — sobald deine Website fertig ist, schalten wir die Domain und legen dir hier die Zugangsdaten bereit.',
+            'en' => 'Great — as soon as your website is finished, we’ll set up the domain and put your access details here.',
+        ],
+        'hostingAbgelehnt' => [
+            'it' => 'Va bene, senza. Se cambi idea, scrivicelo qui nella pagina.',
+            'de' => 'In Ordnung, dann ohne. Falls du es dir anders überlegst, schreib uns einfach hier auf der Seite.',
+            'en' => 'All right, we’ll skip it. If you change your mind, just write to us here on this page.',
+        ],
+        'hostingWartet' => [
+            'it' => '{domain} è riservato per te — lo attiviamo appena il tuo sito è pronto.',
+            'de' => '{domain} ist für dich vorgemerkt — wir schalten sie, sobald deine Website fertig ist.',
+            'en' => '{domain} is reserved for you — we’ll set it up as soon as your website is finished.',
+        ],
+        'hostingFertig' => [
+            'it' => '{domain} è attivo. Se ti servono di nuovo i dati di accesso, scrivicelo — ne impostiamo di nuovi.',
+            'de' => '{domain} ist geschaltet. Brauchst du die Zugangsdaten noch einmal, sag Bescheid — wir setzen neue.',
+            'en' => '{domain} is up and running. If you need your access details again, let us know — we’ll set new ones.',
+        ],
+        /* Der einmalige Abruf: Die Daten liegen verschluesselt und werden mit
+           dem Anzeigen geloescht. Deshalb die Rueckfrage vor dem Klick und
+           der deutliche Satz danach. */
+        'hostingZugangHilfe' => [
+            'it' => 'I tuoi dati di accesso sono pronti. Vengono mostrati una sola volta — poi li cancelliamo da qui.',
+            'de' => 'Deine Zugangsdaten liegen bereit. Sie werden genau einmal angezeigt — danach löschen wir sie hier.',
+            'en' => 'Your access details are ready. They are shown exactly once — after that we delete them from here.',
+        ],
+        'hostingZugangKnopf' => ['it' => 'Mostra i dati di accesso (una volta sola)',
+                                 'de' => 'Zugangsdaten einmalig anzeigen',
+                                 'en' => 'Show access details (one time only)'],
+        'hostingZugangSicher' => [
+            'it' => 'Mostrare adesso? Funziona una sola volta — tieni pronto dove salvarli.',
+            'de' => 'Jetzt anzeigen? Das geht nur ein einziges Mal — halte bereit, wo du sie speicherst.',
+            'en' => 'Show them now? This works only once — have somewhere ready to save them.',
+        ],
+        'hostingZugangJetzt' => [
+            'it' => 'Salva questi dati ADESSO — è l’unica volta che vengono mostrati.',
+            'de' => 'Speichere diese Daten JETZT — sie werden nur dieses eine Mal angezeigt.',
+            'en' => 'Save these details NOW — this is the only time they are shown.',
+        ],
+        'hostingZugangWeg' => [
+            'it' => 'I dati di accesso non sono più disponibili qui. Scrivicelo e ne impostiamo di nuovi.',
+            'de' => 'Die Zugangsdaten sind hier nicht mehr hinterlegt. Sag Bescheid, dann setzen wir neue.',
+            'en' => 'The access details are no longer stored here. Let us know and we’ll set new ones.',
+        ],
+
         /* DIE HAKENLISTE
            ------------------------------------------------------------------
            Angehakt ist, was im Angebot steht. Der Kunde darf daran ruehren --

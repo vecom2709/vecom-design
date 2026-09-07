@@ -69,12 +69,18 @@ final class Abo
         $beginn = (string) ($wahl['beginn'] ?? date('Y-m-d'));
         $t = strtotime($beginn) ?: time();
 
-        // Ein laufender Vertrag reicht. Zwei waeren ein Fehler, kein Wunsch.
+        // Ein laufender Vertrag JE ART reicht. Zwei Betreuungen waeren ein
+        // Fehler, kein Wunsch — aber Betreuung und Hosting sind verschiedene
+        // Dinge und duerfen nebeneinander laufen. Deshalb vergleicht die
+        // Pruefung die Paket-Art, nicht bloss "gibt es irgendein Abo".
         $offen = Db::one(
-            "SELECT id FROM abos WHERE customer_id = ? AND status IN ('angelegt','aktiv','gekuendigt')",
-            [$kundeId]);
+            "SELECT a.id FROM abos a
+             JOIN packages pk ON pk.id = a.package_id
+             WHERE a.customer_id = ? AND a.status IN ('angelegt','aktiv','gekuendigt')
+               AND pk.art = ?",
+            [$kundeId, (string) ($p['art'] ?? '')]);
         if ($offen) {
-            throw new RuntimeException('Dieser Kunde hat schon einen Betreuungsvertrag (#' . (int) $offen['id'] . ').');
+            throw new RuntimeException('Dieser Kunde hat schon einen laufenden Vertrag dieser Art (#' . (int) $offen['id'] . ').');
         }
 
         $id = Db::insert('abos', [

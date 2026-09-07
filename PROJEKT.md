@@ -2422,3 +2422,38 @@ dem eine Kundenwebsite hängt, verschwindet nur von Hand im KAS.
 
 Als Nächstes (Stufe 3, wenn gewünscht): Anlegen aus dem Projekt heraus + Login am
 Projekt vermerken. Prüfkette 774 → 779.
+
+## Wunschdomain-Automatik: vom Fragebogen bis zum Hosting-Vertrag (07.09.2026, nachts)
+
+Wer im Fragebogen „keine Website, Domain neu" sagt und Wünsche nennt, bekommt ab
+jetzt automatisch ein Angebot — und am Ende einen fertig eingerichteten Account.
+Der Ablauf (`app/src/Hosting.php`, Tabelle `hosting_auftraege`, Migration 040):
+
+1. **Fragebogen abgeschickt** → `Hosting::nachFragebogen()` (Haken in
+   `Onboarding::absenden()`, still): erste freie Wunschdomain suchen, Vorschlag
+   mit eingefrorenem Preis anlegen. Keine frei → Meldung an Uwe statt stillem
+   Verzicht. Nie ein zweiter Vorschlag neben einem bestehenden.
+2. **Kundenseite**: Kasten mit Domain, Preis (9,90 €/Monat aus Paket `hosting`,
+   art `hosting`, active 0 — taucht in keiner Bestellliste auf) und ZWEI Knöpfen.
+   Der Ja-Knopf IST die Zustimmung zu den Monatskosten; ohne ihn passiert nichts.
+3. **Finale Freigabe** → `Hosting::beiStatuswechsel()` (Haken in
+   `Events::projektStatus()`, still): KAS-Account + Domain + Postfach info@
+   anlegen, jeder Schritt einzeln fehlertolerant; Monatsvertrag über
+   `Abo::anlegen()` — außer der Kunde hat Betreuung Plus/Premium (dann
+   inklusive). Meldung „Domain bestellen" an Uwe: Die Registrierung selbst geht
+   nur übers Domainbestellsystem (kein API-Weg), Nameserver ns5.kasserver.com.
+4. **Zugangsdaten**: AES-256-GCM-verschlüsselt in der DB (Schlüssel
+   `hosting_geheim` in config.local.php, entsteht beim ersten Gebrauch),
+   EINMALIGER Abruf durch den Kunden auf seiner Seite, danach gelöscht;
+   spätestens nach 14 Tagen räumt der Cron ab.
+
+Nebenbei repariert: `Abo::anlegen()` sperrte bisher JEDES zweite Abo — jetzt
+vergleicht die Eindeutigkeitsprüfung die Paket-Art (Betreuung und Hosting laufen
+nebeneinander, zwei gleicher Art bleiben gesperrt). Zeitvergleiche gegen die
+PHP-Uhr statt DB-NOW() (Zeitzonenfalle). Texte dreisprachig in `Texte::SEITE`
+(hosting*). Kettentest-Abschnitt 43 (Riegel, Preis eingefroren, Einmal-Abruf,
+Krypto-Rundreise, Abo-Arten). Prüfkette 779 → 814.
+
+Bewusste Grenze: Domainpruefung fragt echte Dienste — der Kettentest prüft die
+Riegel drumherum, nicht das Netz. Und die Domainbestellung bleibt ein Handgriff
+mit Ansage, weil All-Inkl dafür keine API anbietet.
