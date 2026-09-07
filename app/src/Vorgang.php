@@ -865,6 +865,44 @@ final class Vorgang
             }
         }
 
+        /* DOMAIN & HOSTING IST DIREKTVERKAUF — NICHT DER KONFIGURATOR-WEG
+           ------------------------------------------------------------------
+           Das feste 9,90-Paket entsteht nicht aus einem Angebot: Der Kunde
+           hat seine Wunschdomain genannt, mehr braucht es nicht. Sein
+           "Jetzt dran" richtet sich deshalb nach dem Stand seines
+           Domain-&-Hosting-Auftrags, nicht nach Bedarf und Konfigurator.
+           Nur der Solo-Fall (project_id NULL) — beim Website-Kunden laeuft
+           das Hosting im Projekt mit und hat hier nichts zu suchen. */
+        $hAuftrag = self::eine(
+            "SELECT * FROM hosting_auftraege WHERE customer_id = ? AND project_id IS NULL
+               AND status <> 'abgelehnt' ORDER BY id DESC LIMIT 1", [$kid]);
+        $istHosting = $hAuftrag !== null || (string) self::wert(
+            "SELECT paket_slug FROM anfragen WHERE id = ?",
+            [(int) ($v['anfrage_id'] ?? 0)]) === 'hosting';
+        if ($istHosting) {
+            $hZiel = $kid !== null ? 'kunden/' . $kid : 'anfragen/' . (int) ($v['anfrage_id'] ?? 0);
+            if ($hAuftrag === null) {
+                return self::setzen($v, 'gespraech', self::DU, 'Domain & Hosting anbieten',
+                    'Feste Bestellung Domain & Hosting (9,90 € im Monat) — kein Konfigurator. '
+                    . 'Wunschdomain prüfen und dem Kunden anbieten.',
+                    null, null, [], $hZiel, true);
+            }
+            switch ((string) $hAuftrag['status']) {
+                case 'vorgeschlagen':
+                    return self::setzen($v, 'gespraech', self::KUNDE, 'Wartet auf Zustimmung',
+                        'Die Domain ist angeboten. Der Kunde stimmt auf seiner Seite zu.',
+                        null, null, [], $hZiel);
+                case 'zugestimmt':
+                    return self::setzen($v, 'gespraech', self::KUNDE, 'Wartet auf die erste Zahlung',
+                        'Zugestimmt. Sobald die erste Monatsrate bezahlt ist, wird angelegt.',
+                        null, null, [], $hZiel);
+                default:   // angelegt / aktiv
+                    return self::setzen($v, 'gespraech', self::KUNDE, 'Domain & Hosting läuft',
+                        'Account und Domain sind angelegt.',
+                        null, null, [], $hZiel);
+            }
+        }
+
         $bedarf = self::eine(
             "SELECT * FROM bedarf
               WHERE customer_id = ? AND status <> 'offen'

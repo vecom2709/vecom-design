@@ -2586,4 +2586,16 @@ paket_slug='hosting' erscheint stattdessen der Block "Domain & Hosting —
 Direktverkauf" mit der aus dem Formular genannten Wunschdomain und einem
 Knopf "Prüfen und dem Kunden anbieten" (Handler hosting_vorschlag, führt
 zurück ins Kundenblatt). Kein Konfigurator, keine Festpreis-Paketauswahl,
-keine rohe Nachricht. Der Kettentest bleibt unberührt (nur eine View).
+keine rohe Nachricht.
+
+Zweite Stelle (nachgereicht): Der globale "Jetzt dran"-Aufmacher
+(Vorgang.php, Stufe 'gespraech') zeigte fuer JEDE offene Anfrage
+"Konfigurator schicken" — auch fuer den Hosting-Kunden, prominent oben
+auf jeder Verwaltungsseite. Jetzt eine Weiche vor dem Bedarf/Konfigurator-
+Block: Bei einem Solo-Hosting-Vorgang (hosting_auftrag mit project_id NULL
+ODER Anfrage paket_slug='hosting') richtet sich "Jetzt dran" nach dem
+Auftragsstand — kein Auftrag: "Domain & Hosting anbieten" (Du); angeboten:
+"Wartet auf Zustimmung" (Kunde); zugestimmt: "Wartet auf die erste
+Zahlung"; angelegt: "laeuft". Kette 828 gruen. Live geprueft: Detailansicht
+zeigt den Direktverkauf-Block (Wunschdomain www.trendonix.de aus der
+echten Anfrage #23).
