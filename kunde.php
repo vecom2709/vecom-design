@@ -205,6 +205,16 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke dir!');
                 }
 
+            } elseif ($tat === 'am_telefon') {
+                /* Kein Formular, kein Umleiten: Die Seite meldet im
+                   Hintergrund, dass dieser Kunde gerade das Sprachfenster
+                   benutzt. Manuela findet ihn darüber, weil das Widget keine
+                   Rufnummer mitgibt. */
+                require_once __DIR__ . '/app/src/Telefon.php';
+                Telefon::amWidget((int) $kunde['id']);
+                header('Content-Type: application/json');
+                echo '{"ok":true}';
+                exit;
             } elseif ($tat === 'kuendigen') {
                 // Der Kunde kuendigt selbst. Das Enddatum rechnet Abo aus, der
                 // Kunde hat es vor dem Klick gesehen, und die Bestaetigung geht
@@ -747,5 +757,56 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
          mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
          Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
 <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
+
+<?php /* MANUELA — UND HIER WEISS SIE AUSNAHMSWEISE, WER ANRUFT
+         =====================================================================
+         Von 46 Anrufen kamen 43 über das Sprachfenster auf der Website. Dort
+         steht als Anrufer „widget-call": keine Nummer, kein Name. Damit lief
+         der ganze Bestandskunden-Weg ins Leere — die Telefonseite meldete
+         „0 von einem bekannten Kunden", und das stimmte.
+
+         Das Widget kann nichts mitgeben; es liest genau drei Einstellungen.
+         Auf DIESER Seite wissen wir es aber: Der Kunde ist über seinen
+         persönlichen Link gekommen. Öffnet er das Sprachfenster, hinterlässt
+         die Seite einen kurzlebigen Vermerk, und Manuela findet ihn darüber.
+
+         Der Vermerk geht erst raus, wenn er das Fenster wirklich anfasst —
+         nicht beim Laden der Seite. Wer nur seinen Projektstand ansieht, ruft
+         nicht an, und ein Vermerk auf Vorrat würde den nächsten echten
+         Anrufer falsch zuordnen. */ ?>
+<?php if ($kunde): ?>
+<script src="https://strato.ai-voicereceptionist.com/widget/v1/embed.js"
+        data-agent-id="a6ea7fe1-fd3e-4850-8e7b-7f9f558b3b4d" defer></script>
+<script>
+(function () {
+  var gemeldet = 0;
+  function melden() {
+    /* Höchstens alle zwei Minuten — das Fenster gilt fünf. */
+    if (Date.now() - gemeldet < 120000) { return; }
+    gemeldet = Date.now();
+    var d = new FormData();
+    d.append('_csrf', <?= json_encode((string) ($_SESSION['csrf'] ?? ''), JSON_UNESCAPED_SLASHES) ?>);
+    d.append('tat', 'am_telefon');
+    fetch(<?= json_encode($hier, JSON_UNESCAPED_SLASHES) ?>, {method: 'POST', body: d, keepalive: true})
+      .catch(function () { /* daran soll kein Anruf scheitern */ });
+  }
+  /* Das Widget baut sich selbst irgendwo in die Seite. Statt seine innere
+     Struktur zu erraten -- die sich mit der nächsten Fassung ändert --
+     hören wir auf jeden Klick und fragen, ob er im Widget-Bereich lag. */
+  document.addEventListener('click', function (e) {
+    var n = e.target;
+    for (var i = 0; n && i < 12; i++, n = n.parentElement) {
+      var id = (n.id || '') + ' ' + (typeof n.className === 'string' ? n.className : '');
+      if (/voice|widget|frontdesk|assistant|manuela/i.test(id)) { melden(); return; }
+    }
+  }, true);
+  /* Und wenn das Mikrofon angeht, ist es ohnehin ein Anruf. */
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    var echt = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = function (c) { melden(); return echt(c); };
+  }
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>

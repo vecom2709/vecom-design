@@ -251,6 +251,24 @@ final class Telefon
                 ['%' . $name . '%', '%' . $name . '%']);
         }
 
+        /* ÜBER DIE WEBSITE ANGERUFEN
+           ------------------------------------------------------------------
+           Das Sprachfenster gibt keine Rufnummer her -- bei STRATO steht dort
+           „widget-call". Wer aber über seinen persönlichen Link auf der
+           Kundenseite ist und dort das Fenster öffnet, hat sich vermerkt.
+           Das gilt nur, wenn sonst nichts gefunden wurde und keine Nummer
+           mitkam: Eine genannte Nummer, die niemanden trifft, ist eine
+           Aussage -- der Anrufer ist dann eben nicht in der Verwaltung, und
+           dabei bleibt es. */
+        if (!$treffer && $telefon === '') {
+            $ueberWidget = self::kundeAmWidget();
+            if ($ueberWidget > 0) {
+                $treffer = (array) self::still(static fn() => Db::all(
+                    'SELECT id, name, company, city FROM customers WHERE id = ?',
+                    [$ueberWidget]), []);
+            }
+        }
+
         /* WAS HIER ANKOMMT, BEANTWORTET EINE FRAGE, DIE SONST NIEMAND
            BEANTWORTEN KANN
            ---------------------------------------------------------------
@@ -2901,6 +2919,65 @@ final class Telefon
     }
 
     /* ================================================================== */
+    /*  Wer über die Website anruft                                       */
+    /* ================================================================== */
+
+    /**
+     * DAS WIDGET GIBT KEINE RUFNUMMER HER — ALSO GEBEN WIR SIE IHM
+     * =====================================================================
+     *
+     * Von 46 Anrufen kamen 43 über das Sprachfenster auf der Website. Dort
+     * steht bei STRATO als Anrufer „widget-call": keine Nummer, kein Name,
+     * nichts. Damit lief der ganze Bestandskunden-Weg ins Leere — kein
+     * Nachschlagen, kein Projektstand, keine Adresse aus der Akte. Die
+     * Telefonseite meldete „0 von einem bekannten Kunden", und das stimmte
+     * auch.
+     *
+     * Das Widget selbst kann nichts mitgeben: Es liest genau drei
+     * Einstellungen (agent-id, api-base, chat-base), und für eigene Angaben
+     * ist nichts vorgesehen. Nachgesehen, nicht vermutet.
+     *
+     * ALSO ANDERSHERUM. Auf der Kundenseite wissen WIR, wer da ist -- er ist
+     * über seinen persönlichen Link gekommen. Öffnet er dort das
+     * Sprachfenster, hinterlässt die Seite einen kurzlebigen Vermerk: „Dieser
+     * Kunde ist gerade am Telefon." Ruft Manuela dann ohne Nummer an, findet
+     * sie ihn darüber.
+     *
+     * WARUM NUR BEI GENAU EINEM
+     *
+     * Liegen zwei Vermerke im Fenster, waren zwei Kunden gleichzeitig da --
+     * und dann wäre jede Zuordnung geraten. Geraten wird hier nicht: Bei
+     * zweien bleibt der Anrufer unbekannt, so wie er es ohne diesen Weg auch
+     * gewesen wäre. Ein falsch zugeordneter Anrufer bekäme den Projektstand
+     * eines Fremden; das ist teurer als ein unerkannter.
+     */
+    public const WIDGET_FENSTER = 300;   // Sekunden
+
+    /** Die Seite meldet: Dieser Kunde öffnet gerade das Sprachfenster. */
+    public static function amWidget(int $kundeId): void
+    {
+        if ($kundeId <= 0) { return; }
+        self::protokoll('widget_da', 'Sprachfenster geöffnet', $kundeId, ['kunde_id' => $kundeId]);
+    }
+
+    /**
+     * Wer gerade über die Website anruft -- oder 0.
+     *
+     * @return int
+     */
+    public static function kundeAmWidget(): int
+    {
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT DISTINCT customer_id FROM activities
+              WHERE type = 'telefon_widget_da' AND demo = 0
+                AND customer_id IS NOT NULL
+                AND created_at >= NOW() - INTERVAL " . self::WIDGET_FENSTER . " SECOND
+              LIMIT 3"), []);
+        /* Genau einer, sonst niemand. Siehe oben. */
+        return count($zeilen) === 1 ? (int) $zeilen[0]['customer_id'] : 0;
+    }
+
+    /* ================================================================== */
     /*  Die Merkliste — kurz halten, nicht abweisen                       */
     /* ================================================================== */
 
@@ -3017,7 +3094,10 @@ final class Telefon
               WHERE type = 'telefon_nachschlagen' AND demo = 0
                 AND created_at >= NOW() - INTERVAL " . self::GESPRAECH_FENSTER . " SECOND
               ORDER BY id DESC LIMIT 1"), null);
-        if (!is_array($z) || $z['customer_id'] === null) { return 0; }
+
+        /* Über die Website angerufen: Da gibt es keine Nummer, aber die
+           Kundenseite hat vermerkt, wer gerade da ist. */
+        if (!is_array($z) || $z['customer_id'] === null) { return self::kundeAmWidget(); }
 
         $m = json_decode((string) ($z['meta'] ?? ''), true);
         if (!is_array($m) || (int) ($m['treffer'] ?? 0) !== 1) { return 0; }

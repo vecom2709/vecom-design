@@ -3090,6 +3090,63 @@ pruefe('und wieder freigeben',
 Db::run("DELETE FROM settings WHERE skey LIKE 'strato\_%'");
 
 /* ============================================================================
+   38. Wer über die Website anruft
+   ============================================================================
+   Von 46 Anrufen kamen 43 über das Sprachfenster. Dort steht bei STRATO als
+   Anrufer „widget-call": keine Nummer, kein Name. Der ganze
+   Bestandskunden-Weg lief ins Leere — die Telefonseite meldete „0 von einem
+   bekannten Kunden", und das stimmte.
+
+   Das Widget selbst kann nichts mitgeben; es liest genau drei Einstellungen.
+   Also andersherum: Auf der Kundenseite wissen WIR, wer da ist, und
+   hinterlassen einen kurzlebigen Vermerk.
+   ============================================================================ */
+abschnitt('38. Anrufe über die Website');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('UPDATE customers SET phone = NULL WHERE id = ?', [$kundeId]);
+
+pruefe('ohne Vermerk ist niemand am Sprachfenster', Telefon::kundeAmWidget() === 0);
+
+Telefon::amWidget($kundeId);
+pruefe('mit Vermerk wird er erkannt', Telefon::kundeAmWidget() === $kundeId);
+
+/* Ein Anruf ohne Nummer — genau das, was das Widget schickt. */
+$n = Telefon::nachschlagen(['sprache' => 'de']);
+pruefe('und ein Anruf ohne Rufnummer findet ihn',
+    ($n['gefunden'] ?? false) === true && (int) ($n['kunde_id'] ?? 0) === $kundeId, json_encode($n));
+pruefe('auch die weiteren Werkzeuge kennen ihn dann',
+    Telefon::kundeImGespraech([]) === $kundeId);
+
+/* DIE GRENZE: Bei zwei gleichzeitig ist jede Zuordnung geraten. Ein falsch
+   zugeordneter Anrufer bekäme den Projektstand eines Fremden — teurer als
+   ein unerkannter. */
+$zweiter = (int) Db::wert('SELECT id FROM customers WHERE id <> ? LIMIT 1', [$kundeId], 0);
+if ($zweiter > 0) {
+    Telefon::amWidget($zweiter);
+    pruefe('bei zweien bleibt es offen', Telefon::kundeAmWidget() === 0);
+    Db::run("DELETE FROM activities WHERE type = 'telefon_widget_da' AND customer_id = ?", [$zweiter]);
+    pruefe('und mit nur einem wieder eindeutig', Telefon::kundeAmWidget() === $kundeId);
+}
+
+/* Eine genannte Nummer, die niemanden trifft, ist eine Aussage: Der Anrufer
+   ist dann eben nicht in der Verwaltung. Der Vermerk darf das nicht
+   überstimmen — sonst bekäme ein Fremder, der zufällig währenddessen
+   anruft, die Akte des Kunden. */
+$fremd = Telefon::nachschlagen(['telefon' => '+49 155 000 0000', 'sprache' => 'de']);
+pruefe('eine genannte fremde Nummer überstimmt den Vermerk nicht',
+    ($fremd['gefunden'] ?? true) === false, json_encode($fremd));
+
+/* Und was zu lange her ist, gilt nicht mehr — sonst zeigte der Vermerk noch
+   auf jemanden, der längst weg ist. */
+Db::run("UPDATE activities SET created_at = NOW() - INTERVAL 20 MINUTE
+          WHERE type = 'telefon_widget_da'");
+pruefe('ein alter Vermerk zählt nicht mehr', Telefon::kundeAmWidget() === 0);
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
