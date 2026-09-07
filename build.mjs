@@ -349,6 +349,10 @@ function build(lang, seite) {
      gilt fuer jede Seite, die auf den Konfigurator zeigt.
      -------------------------------------------------------------------------- */
   h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
+  // Dieselbe Regel fuer die Solo-Hosting-Seite: Auch sie kennt die Sprache
+  // nur ueber ?lang= — ohne die Drehung zeigte der deutsche Hosting-Knopf
+  // auf die italienische Fassung (so gefunden am 08.09., live).
+  h = h.replace(/href="(?:\/|\.\.\/)?hosting\.php(?:\?lang=[a-z]{2})?"/g, `href="/hosting.php?lang=${lang}"`);
   /* --------------------------------------------------------------------------
      DIE RUFNUMMER JE SPRACHE
 

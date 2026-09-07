@@ -2565,3 +2565,12 @@ zeigen auf die gewählte Fassung, lang=-Parameter in PHP-Zielen werden
 mitgedreht. (4) Die fünf PHP-Seiten (bedarf, buchen, hosting, fragebogen,
 kunde) nehmen ohne ?lang das Cookie als Rückfall — beim Fragebogen und
 der Kundenseite bleibt die im Datensatz hinterlegte Kundensprache davor.
+
+### Nachtrag: build.mjs kennt hosting.php (08.09.2026)
+
+Live gefunden: Der deutsche Hosting-Knopf zeigte auf ?lang=it. Ursache:
+build.mjs baut /de/ und /en/ aus der italienischen Vorlage und dreht die
+lang=-Parameter nur dort, wo eine Regel steht — bedarf.php hatte eine,
+hosting.php nicht. Regel ergänzt, Fassungen neu gebaut. (Die von Hand
+geschriebenen de/en-Hosting-Blöcke waren ohnehin Makulatur — der Build
+überschreibt sie; die Übersetzung tragen die i18n-Schlüssel.)
