@@ -286,6 +286,80 @@
   </div>
   <?php endif; ?>
 
+  <?php /* ---------- Domain & Hosting: der dritte Vertrag ----------
+           Entsteht sonst von allein aus dem Fragebogen. Hier ist der
+           Handgriff fuer alle anderen Faelle: Eine Anfrage nur nach Domain
+           und Hosting (Solo), oder ein Kunde, der es sich spaeter ueberlegt.
+           Uwe prueft die Wunschdomain, schlaegt sie vor — und der Kunde
+           bekommt die Angebots-Mail mit dem Link auf seine Seite, wo Preis
+           und Ja-Knopf stehen. Die ZUSTIMMUNG bleibt beim Kunden. */ ?>
+  <?php $hostingA = null; ?>
+  <?php if (empty($k['anonym_am'])): ?>
+  <?php
+    require_once __DIR__ . '/../src/Hosting.php';
+    $hostingA = sicher(static fn() => Hosting::fuerKunde((int) $k['id']), null);
+  ?>
+  <div class="block"><h2>Domain &amp; Hosting
+    <?php if ($hostingA): ?>
+      <span class="mehr"><span class="marke2 <?= ['zugestimmt'=>'gut','angelegt'=>'gut','aktiv'=>'gut'][$hostingA['status']] ?? '' ?>">
+        <?= Fmt::h(['vorgeschlagen'=>'vorgeschlagen','zugestimmt'=>'zugestimmt','angelegt'=>'angelegt','aktiv'=>'läuft'][$hostingA['status']] ?? (string) $hostingA['status']) ?></span></span>
+    <?php endif; ?></h2>
+
+    <?php if ($hostingA): ?>
+      <div class="tabellenrahmen"><table><tbody>
+        <tr><td style="width:38%">Domain</td><td><b><?= Fmt::h((string) $hostingA['domain']) ?></b></td></tr>
+        <tr><td>Monatlich</td><td><?= Fmt::h(Fmt::geld((int) $hostingA['preis_cents'])) ?><?=
+          $hostingA['inklusive'] ? ' <small style="color:var(--leise)">— in der Betreuung enthalten</small>' : '' ?></td></tr>
+        <?php if ($hostingA['kas_login']): ?>
+          <tr><td>KAS-Account</td><td><?= Fmt::h((string) $hostingA['kas_login']) ?></td></tr>
+        <?php endif; ?>
+        <?php if ($hostingA['notiz']): ?>
+          <tr><td>Notiz</td><td style="color:var(--dim)"><?= Fmt::h((string) $hostingA['notiz']) ?></td></tr>
+        <?php endif; ?>
+      </tbody></table></div>
+      <p style="color:var(--leise);font-size:12.5px;margin:10px 0 0">
+        <?php if ((string) $hostingA['status'] === 'vorgeschlagen'): ?>
+          Der Kunde hat die Angebots-Mail und entscheidet auf seiner Seite.
+        <?php elseif ((string) $hostingA['status'] === 'zugestimmt'): ?>
+          <?= $hostingA['project_id'] === null
+              ? 'Zugestimmt. Angelegt wird von selbst, sobald die erste Monatsrate bezahlt ist.'
+              : 'Zugestimmt. Angelegt wird von selbst bei der finalen Freigabe des Projekts.' ?>
+        <?php else: ?>
+          Angelegt<?= $hostingA['angelegt_am'] ? ' am ' . Fmt::h(Fmt::datum((string) $hostingA['angelegt_am'])) : '' ?>.
+          <?= $hostingA['zugang_blob'] !== null ? 'Die Zugangsdaten warten auf den einmaligen Abruf durch den Kunden.'
+              : 'Die Zugangsdaten sind abgerufen oder abgelaufen.' ?>
+        <?php endif; ?></p>
+      <?php if ((string) $hostingA['status'] === 'zugestimmt'): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px"
+              data-frage="Jetzt anlegen? KAS-Account, Domain und Postfach entstehen sofort — die Domain kostet dich Registrierungsgebühr."
+              data-ja="Ja, anlegen">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_anlegen">
+          <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+          <input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
+          <button class="knopf">Jetzt von Hand anlegen</button>
+          <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+            Nur wenn du nicht auf die Automatik warten willst.</span>
+        </form>
+      <?php endif; ?>
+
+    <?php else: ?>
+      <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+        Wunschdomain prüfen und dem Kunden anbieten. Er bekommt sofort die Angebots-Mail
+        mit dem Link auf seine Seite — zustimmen muss er dort selbst, erst dann entsteht etwas.</p>
+      <form method="post" action="<?= Fmt::h(url('')) ?>">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_vorschlag">
+        <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+        <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+        <div class="feld"><label>Wunschdomain</label>
+          <input name="domain" placeholder="z. B. trattoria-rossi.it" required></div>
+        <button class="knopf">Prüfen und dem Kunden anbieten</button>
+        <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+          Nur eine freie Domain wird angeboten — ist sie vergeben, sagt es dir die Meldung.</span>
+      </form>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <?php /* Die eine Adresse des Kunden — dieselbe, die in allen E-Mails steht. */ ?>
   <?php
     require_once __DIR__ . '/../src/Kundenzugang.php';

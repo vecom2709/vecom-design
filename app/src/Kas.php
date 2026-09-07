@@ -285,7 +285,12 @@ final class Kas
      *
      * @return array{ok:bool,login:string,kas_passwort:string,ftp_passwort:string,text:string}
      */
-    public static function accountAnlegen(string $kommentar): array
+    /**
+     * @param array<string,int|string> $grenzen Zusaetzliche Begrenzungen fuer
+     *        add_account (z. B. ['max_webspace' => 10240] — Megabyte). Ohne
+     *        Angabe gelten die All-Inkl-Vorgaben, wie beim Knopf im Admin.
+     */
+    public static function accountAnlegen(string $kommentar, array $grenzen = []): array
     {
         $kommentar = mb_substr(trim($kommentar), 0, 80);
         if ($kommentar === '') {
@@ -294,9 +299,15 @@ final class Kas
                             . 'später erkennt, welcher Kunde das ist.'];
         }
 
+        // Nur echte Begrenzungs-Parameter durchlassen — nichts anderes darf
+        // hier den Aufruf umbiegen (kein kas_login, kein Passwort von aussen).
+        $grenzen = array_filter($grenzen,
+            static fn($w, string $k): bool => str_starts_with($k, 'max_') && (int) $w > 0,
+            ARRAY_FILTER_USE_BOTH);
+
         $kasPw = self::passwortNeu();
         $ftpPw = self::passwortNeu();
-        $erg = self::rufen('add_account', [
+        $erg = self::rufen('add_account', $grenzen + [
             'account_kas_password' => $kasPw,
             'account_ftp_password' => $ftpPw,
             'account_comment'      => $kommentar,

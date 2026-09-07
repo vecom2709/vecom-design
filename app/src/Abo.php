@@ -154,9 +154,12 @@ final class Abo
         }
 
         /* "Betreuung Betreuung Basis" liest sich wie ein Tippfehler: Heisst
-           das Paket schon so, reicht sein Name. */
+           das Paket schon so, reicht sein Name. Und ein Hosting-Vertrag ist
+           gar keine Betreuung — da waere das Wort schlicht falsch. */
         $paketName = trim((string) $a['paket_name']);
-        $bezeichnung = (mb_stripos($paketName, 'betreuung') === 0 ? '' : 'Betreuung ')
+        $ohneVorwort = mb_stripos($paketName, 'betreuung') === 0
+            || (string) ($a['paket_slug'] ?? '') === 'hosting';
+        $bezeichnung = ($ohneVorwort ? '' : 'Betreuung ')
             . $paketName . ' — ' . self::monatswort($monat);
 
         try {
@@ -295,12 +298,15 @@ final class Abo
         require_once __DIR__ . '/Texte.php';
         require_once __DIR__ . '/Kundenzugang.php';
 
-        $z = Db::one("SELECT z.*, a.paket_name, a.customer_id
+        $z = Db::one("SELECT z.*, a.paket_name, a.paket_slug, a.customer_id
                         FROM payments z JOIN abos a ON a.id = z.abo_id
                        WHERE z.id = ?", [$zahlungId]);
         if (!$z) { return 'nicht_dran'; }
         if ((string) $z['status'] === 'bezahlt') { return 'nicht_dran'; }
-        if (Mail::schonGeschickt('betreuung_faellig', 'payment_id', $zahlungId)) { return 'nicht_dran'; }
+        // Ein Hosting-Vertrag bekommt seine eigene Mail: Die Betreuungs-Mail
+        // verspricht Aktualisierungen und Sicherungen — die gibt es hier nicht.
+        $anlass = (string) ($z['paket_slug'] ?? '') === 'hosting' ? 'hosting_faellig' : 'betreuung_faellig';
+        if (Mail::schonGeschickt($anlass, 'payment_id', $zahlungId)) { return 'nicht_dran'; }
 
         $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $z['customer_id']]);
         if (!$k || trim((string) $k['email']) === '') { return 'nicht_dran'; }
@@ -329,7 +335,7 @@ final class Abo
         }
 
         $frist = date('Y-m-d', strtotime('+' . Events::ZAHLUNGSZIEL_TAGE . ' days'));
-        [$betreff, $text] = Texte::mail('betreuung_faellig', $sprache, [
+        [$betreff, $text] = Texte::mail($anlass, $sprache, [
             'name'   => (string) $k['name'],
             'monat'  => self::monatswort((string) $z['abrechnungsmonat'], $sprache),
             'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
@@ -337,7 +343,7 @@ final class Abo
             'link'   => $link,
         ]);
 
-        $ok = Mail::senden('betreuung_faellig', (string) $k['email'], $betreff, $text, [
+        $ok = Mail::senden($anlass, (string) $k['email'], $betreff, $text, [
             'customer_id' => (int) $z['customer_id'],
             'payment_id'  => $zahlungId,
             'antwortAn'   => Mail::eigeneAdresse(),

@@ -204,6 +204,20 @@
         var monatsWort = (document.querySelector('[data-betreuung] .plan__price > small') || {}).textContent || '';
         zeichnen(letzte);
         betreuungZeichnen(d.betreuung, monatsWort);
+
+        /* Domain & Hosting: nur der Preis kommt live aus der Verwaltung.
+           Die Karte selbst bleibt die eingebaute — sie traegt die Uebersetzung
+           der Seite, und ein Preisschritt ist das Einzige, was hier je von
+           allein passieren soll. */
+        try {
+          if (d.hosting && d.hosting.length && d.hosting[0].monat > 0) {
+            var hPreis = document.querySelector('[data-hosting] [data-paket="hosting"] .plan__price > span');
+            if (hPreis) {
+              hPreis.removeAttribute('data-i18n');
+              hPreis.textContent = geld(d.hosting[0].monat, d.hosting[0].waehrung);
+            }
+          }
+        } catch (e) { /* die eingebaute Zahl bleibt */ }
       })
       .catch(function () { /* Website behält ihre eingebauten Karten */ });
   }

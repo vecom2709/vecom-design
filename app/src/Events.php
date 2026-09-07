@@ -416,7 +416,8 @@ final class Events
                 // die einzige Einnahme, von der die Verwaltung nichts sagt.
                 self::melden('zahlung_ok', 'Betreuung bezahlt', 'gut', $wasBetreuung,
                     $kundeId > 0 ? '/kunden/' . $kundeId : '/zahlungen');
-                return ['projekt' => null, 'art' => $art, 'bestellung' => null];
+                return ['projekt' => null, 'art' => $art, 'bestellung' => null,
+                        'abo_id' => (int) ($z['abo_id'] ?? 0)];
             }
 
             $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
@@ -465,6 +466,19 @@ final class Events
         if (is_array($nachlauf)) {
             require_once __DIR__ . '/Rechnung.php';
             Rechnung::automatisch($zahlungId);
+
+            /* Solo-Hosting: Die erste bezahlte Rate ist das Startsignal.
+               Erst jetzt — mit dem Geld auf dem Tisch — legt die Verwaltung
+               KAS-Account, Domain und Postfach an. Ausserhalb der
+               Transaktion (SOAP!) und still: Ein Hoster-Schluckauf darf die
+               verbuchte Zahlung nicht anfassen; der Auftrag bleibt dann
+               zugestimmt und die naechste Zahlung stoesst es wieder an. */
+            if ((int) ($nachlauf['abo_id'] ?? 0) > 0) {
+                try {
+                    require_once __DIR__ . '/Hosting.php';
+                    Hosting::nachZahlung((int) $nachlauf['abo_id']);
+                } catch (Throwable $e) { /* von Hand nachholbar */ }
+            }
         }
 
         // Steht hinter dieser Bestellung eine Empfehlung, ist sie jetzt etwas

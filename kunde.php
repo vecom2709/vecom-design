@@ -235,9 +235,15 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                 require_once __DIR__ . '/app/src/Hosting.php';
                 $ja = (string) ($_POST['wahl'] ?? '') === 'ja';
                 if (Hosting::antwort((int) ($_POST['auftrag'] ?? 0), (int) $kunde['id'], $ja)) {
-                    $meldung = $ja
-                        ? Texte::h(Texte::SEITE['hostingDanke'] ?? [], $sprache, 'Abgemacht.')
-                        : Texte::h(Texte::SEITE['hostingAbgelehnt'] ?? [], $sprache, 'In Ordnung.');
+                    // Solo (ohne Website-Projekt) wartet nicht auf eine
+                    // fertige Seite, sondern auf die erste Zahlung — der
+                    // Dank sagt das richtige Danach an.
+                    $soloA = $ja ? Hosting::fuerKunde((int) $kunde['id']) : null;
+                    $meldung = !$ja
+                        ? Texte::h(Texte::SEITE['hostingAbgelehnt'] ?? [], $sprache, 'In Ordnung.')
+                        : (($soloA !== null && $soloA['project_id'] === null)
+                            ? Texte::h(Texte::SEITE['hostingDankeSolo'] ?? [], $sprache, 'Abgemacht.')
+                            : Texte::h(Texte::SEITE['hostingDanke'] ?? [], $sprache, 'Abgemacht.'));
                 }
 
             } elseif ($tat === 'hosting_zugang') {
@@ -558,7 +564,8 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <div class="klapp" style="border-color:var(--akzent,#2563eb)">
         <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
         <p style="margin:10px 0 4px;font-size:17px;font-weight:650"><?= $h((string) $hosting['domain']) ?></p>
-        <p class="mini" style="margin:6px 0 0"><?= $h(strtr($HT('hostingAngebot'), [
+        <p class="mini" style="margin:6px 0 0"><?= $h(strtr(
+            $HT($hosting['project_id'] === null ? 'hostingAngebotSolo' : 'hostingAngebot'), [
             '{domain}' => (string) $hosting['domain'],
             '{preis}'  => Fmt::geld((int) $hosting['preis_cents'], 'EUR'),
         ])) ?></p>
@@ -582,7 +589,8 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <?php elseif ($hs === 'zugestimmt'): ?>
       <div class="klapp ruht">
         <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
-        <p class="mini" style="margin:8px 0 0"><?= $h(strtr($HT('hostingWartet'), [
+        <p class="mini" style="margin:8px 0 0"><?= $h(strtr(
+            $HT($hosting['project_id'] === null ? 'hostingWartetZahlung' : 'hostingWartet'), [
             '{domain}' => (string) $hosting['domain']])) ?></p>
       </div>
 
@@ -676,7 +684,10 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   <?php if ($abo && (string) $abo['status'] !== 'angelegt'): ?>
     <?php $vor = sicherLesen(fn() => Abo::kuendigungsvorschau($abo), ['moeglich' => false, 'ende' => '']); ?>
     <details class="klapp">
-      <summary><?= $h($T('betreuung')) ?><?php if ($abo['laeuft_bis']): ?>
+      <?php /* Der Kasten heisst nach dem Paket, nicht pauschal "Betreuung":
+               Seit es Hosting-Vertraege gibt, stuende sonst "Betreuung" ueber
+               einem Vertrag, der keine ist. */ ?>
+      <summary><?= $h((string) ($abo['paket_name'] ?: $T('betreuung'))) ?><?php if ($abo['laeuft_bis']): ?>
         <span class="mini"> · <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['laeuft_bis']), $T('laeuftBis'))) ?></span>
       <?php endif; ?></summary>
 

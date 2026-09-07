@@ -178,7 +178,12 @@ pruefe('danach ist wieder nichts offen', Einrichtung::offene() === [],
    ============================================================================ */
 abschnitt('2. Kunde und Bestellung');
 
-$paketId = (int) Db::wert("SELECT id FROM packages WHERE active = 1 ORDER BY id LIMIT 1", [], 0);
+/* Nur ein WEBSITE-Paket taugt als Bestellung: Seit Migration 041 ist auch
+   das Hosting-Paket aktiv (0 € einmalig) — eine Bestellung darueber waere
+   genau der Unsinn, den die Verwaltung selbst ueberall ausfiltert. */
+$paketId = (int) Db::wert(
+    "SELECT id FROM packages WHERE active = 1 AND art = 'website' AND price_cents > 0
+      ORDER BY id LIMIT 1", [], 0);
 pruefe('es gibt ein Paket zum Bestellen', $paketId > 0);
 
 $kundeId = Events::kundeFinden([
@@ -3969,6 +3974,58 @@ pruefe('nach der Frist gibt es nichts mehr', Hosting::zugangAbrufen($hoId, $hoKu
 Db::update('hosting_auftraege', $hoId, ['zugang_blob' => (string) $hoBlob,
     'zugang_bis' => date('Y-m-d H:i:s', time() - 60)]);
 pruefe('und der Cron raeumt Abgelaufenes weg', Hosting::aufraeumen() >= 1);
+
+/* ---------- Solo: Domain & Hosting ohne Website-Projekt ----------
+   Der Weg vom oeffentlichen Paket: Uwe schlaegt die geprue fte Domain vor
+   (project_id NULL), der Kunde stimmt zu -> Vertrag und erste Rate
+   entstehen SOFORT -> angelegt wird erst, wenn die Rate bezahlt ist. */
+
+pruefe('das Hosting-Paket ist seit 041 oeffentlich und aktiv',
+    (int) Db::wert("SELECT COUNT(*) FROM packages
+                     WHERE slug = 'hosting' AND active = 1 AND oeffentlich = 1", [], 0) === 1);
+$hoTexte = json_decode((string) Db::wert("SELECT texte FROM packages WHERE slug = 'hosting'", [], ''), true);
+pruefe('und traegt seine Karten-Texte in drei Sprachen',
+    is_array($hoTexte) && isset($hoTexte['it']['features'], $hoTexte['de']['features'], $hoTexte['en']['features']));
+
+$soloId = Events::kundeFinden(['name' => 'Solo Kunde',
+    'email' => 'solo@pruefung.example', 'company' => 'Nur Domain GmbH', 'sprache' => 'de']);
+$soloAuftrag = Db::insert('hosting_auftraege', ['customer_id' => $soloId,
+    'project_id' => null, 'domain' => 'nurdomain-kette.de',
+    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents()]);
+
+pruefe('der Solo-Kunde stimmt zu', Hosting::antwort($soloAuftrag, $soloId, true) === true);
+$soloAbo = Db::one("SELECT * FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'", [$soloId]);
+pruefe('mit der Zustimmung entsteht der Monatsvertrag von selbst', $soloAbo !== null);
+$soloRate = Db::one("SELECT * FROM payments WHERE abo_id = ? ORDER BY id LIMIT 1",
+    [(int) ($soloAbo['id'] ?? 0)]);
+pruefe('und die erste Monatsrate liegt da', $soloRate !== null);
+pruefe('die Rate heisst nach dem Paket, nicht "Betreuung …"',
+    $soloRate !== null && !str_starts_with((string) $soloRate['bezeichnung'], 'Betreuung'),
+    (string) ($soloRate['bezeichnung'] ?? ''));
+pruefe('angelegt ist noch NICHTS — erst muss die Zahlung kommen', (string) Db::wert(
+    'SELECT status FROM hosting_auftraege WHERE id = ?', [$soloAuftrag], '') === 'zugestimmt');
+
+/* Eine zweite Zustimmung legt keinen zweiten Vertrag an. */
+Db::run("UPDATE hosting_auftraege SET status = 'vorgeschlagen' WHERE id = ?", [$soloAuftrag]);
+Hosting::antwort($soloAuftrag, $soloId, true);
+pruefe('eine wiederholte Zustimmung erzeugt keinen zweiten Vertrag',
+    (int) Db::wert("SELECT COUNT(*) FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'",
+        [$soloId], 0) === 1);
+
+/* Die bezahlte Rate stoesst das Anlegen an — ohne KAS-Zugang bleibt der
+   Auftrag ehrlich auf zugestimmt, und Uwe bekommt die Fehler-Meldung. */
+Db::run("DELETE FROM notifications WHERE type = 'hosting_fehler'");
+Events::zahlungBestaetigen((int) $soloRate['id'], 'kettentest-solo', 'manuell');
+pruefe('die Rate steht auf bezahlt', (string) Db::wert(
+    'SELECT status FROM payments WHERE id = ?', [(int) $soloRate['id']], '') === 'bezahlt');
+pruefe('ohne KAS-Zugang bleibt der Solo-Auftrag zugestimmt', (string) Db::wert(
+    'SELECT status FROM hosting_auftraege WHERE id = ?', [$soloAuftrag], '') === 'zugestimmt');
+pruefe('und die Meldung fuer Uwe liegt da', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) >= 1);
+
+Db::run('DELETE FROM hosting_auftraege WHERE customer_id = ?', [$soloId]);
+Db::run('DELETE FROM payments WHERE abo_id IN (SELECT id FROM abos WHERE customer_id = ?)', [$soloId]);
+Db::run('DELETE FROM abos WHERE customer_id = ?', [$soloId]);
 
 /* Aufraeumen: Der Hosting-Kunde verschwindet wieder, damit er anderen
    Abschnitten nicht in die Quere kommt. */

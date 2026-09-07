@@ -610,6 +610,11 @@ final class Texte
             'de' => 'Abgemacht — sobald deine Website fertig ist, schalten wir die Domain und legen dir hier die Zugangsdaten bereit.',
             'en' => 'Great — as soon as your website is finished, we’ll set up the domain and put your access details here.',
         ],
+        'hostingDankeSolo' => [
+            'it' => 'Perfetto — ti abbiamo mandato la prima rata mensile per e-mail. Appena il pagamento arriva, attiviamo tutto e i tuoi dati di accesso compaiono qui.',
+            'de' => 'Abgemacht — die erste Monatsrate kommt per E-Mail zu dir. Sobald die Zahlung da ist, schalten wir alles, und deine Zugangsdaten erscheinen hier.',
+            'en' => 'Great — the first monthly instalment is on its way to you by email. As soon as the payment arrives, we set everything up and your access details appear here.',
+        ],
         'hostingAbgelehnt' => [
             'it' => 'Va bene, senza. Se cambi idea, scrivicelo qui nella pagina.',
             'de' => 'In Ordnung, dann ohne. Falls du es dir anders überlegst, schreib uns einfach hier auf der Seite.',
@@ -619,6 +624,20 @@ final class Texte
             'it' => '{domain} è riservato per te — lo attiviamo appena il tuo sito è pronto.',
             'de' => '{domain} ist für dich vorgemerkt — wir schalten sie, sobald deine Website fertig ist.',
             'en' => '{domain} is reserved for you — we’ll set it up as soon as your website is finished.',
+        ],
+        /* Die Solo-Fassungen: kein Fragebogen, keine Website — hier kommt
+           jemand NUR fuer Domain und Hosting. Der Satz zum Angebot nennt
+           deshalb nicht den Fragebogen, und nach der Zustimmung wartet
+           nichts auf eine fertige Seite, sondern auf die erste Zahlung. */
+        'hostingAngebotSolo' => [
+            'it' => 'Il dominio {domain} è libero — te lo registriamo e gestiamo noi: dominio, 10 GB di spazio web, certificato SSL e una casella e-mail, con i tuoi dati di accesso. Costa {preis} al mese. Appena arriva il primo pagamento mensile, attiviamo tutto — e i tuoi dati di accesso compaiono qui su questa pagina.',
+            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für dich: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit deinen eigenen Zugangsdaten. Das kostet {preis} im Monat. Sobald deine erste Monatszahlung da ist, schalten wir alles — deine Zugangsdaten erscheinen dann hier auf dieser Seite.',
+            'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, 10 GB of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month. As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
+        ],
+        'hostingWartetZahlung' => [
+            'it' => '{domain} è riservato per te. Ti abbiamo mandato la prima rata mensile — appena il pagamento arriva, attiviamo tutto e i dati di accesso compaiono qui.',
+            'de' => '{domain} ist für dich vorgemerkt. Die erste Monatsrate ist unterwegs zu dir — sobald die Zahlung da ist, schalten wir alles, und die Zugangsdaten erscheinen hier.',
+            'en' => '{domain} is reserved for you. The first monthly instalment is on its way to you — as soon as the payment arrives, we set everything up and your access details appear here.',
         ],
         'hostingFertig' => [
             'it' => '{domain} è attivo. Se ti servono di nuovo i dati di accesso, scrivicelo — ne impostiamo di nuovi.',
@@ -1048,6 +1067,57 @@ final class Texte
                 . "It covers updates, backups, monitoring of your site and small changes. "
                 . "If something particular is coming up this month, write to me.\n\n"
                 . "The receipt follows right after payment."],
+        ],
+        /* Die Hosting-Rate: derselbe Rhythmus, aber ohne die Betreuungs-
+           Versprechen (Aktualisierungen, Sicherungen) — die gibt es in
+           diesem Vertrag nicht, und eine Mail verspricht nichts, was der
+           Vertrag nicht haelt. Bei der ERSTEN Rate haengt zudem noch mehr
+           dran: Erst mit ihr wird angelegt. Das sagt der zweite Absatz. */
+        'hosting_faellig' => [
+            'it' => ['Dominio & hosting {monat} — {betrag}',
+                "Ciao {name},\n\nla rata di dominio & hosting per {monat} è pronta: {betrag}.\n\n"
+                . "Puoi pagare qui, entro il {frist}:\n{link}\n\n"
+                . "Se è la tua prima rata: appena arriva il pagamento attiviamo dominio, "
+                . "spazio web, SSL e casella e-mail — e i tuoi dati di accesso compaiono "
+                . "sulla tua pagina personale.\n\n"
+                . "La ricevuta arriva subito dopo il pagamento."],
+            'de' => ['Domain & Hosting {monat} — {betrag}',
+                "Hallo {name},\n\ndie Rate für Domain & Hosting im {monat} steht an: {betrag}.\n\n"
+                . "Hier kannst du zahlen, bis zum {frist}:\n{link}\n\n"
+                . "Falls das deine erste Rate ist: Sobald die Zahlung da ist, schalten wir "
+                . "Domain, Speicherplatz, SSL und E-Mail-Postfach — und deine Zugangsdaten "
+                . "erscheinen auf deiner persönlichen Seite.\n\n"
+                . "Den Beleg bekommst du gleich nach der Zahlung."],
+            'en' => ['Domain & hosting {monat} — {betrag}',
+                "Hello {name},\n\nthe domain & hosting instalment for {monat} is due: {betrag}.\n\n"
+                . "You can pay here, by {frist}:\n{link}\n\n"
+                . "If this is your first instalment: as soon as the payment arrives we set up "
+                . "your domain, web space, SSL and email mailbox — and your access details "
+                . "appear on your personal page.\n\n"
+                . "The receipt follows right after payment."],
+        ],
+        /* Das Angebot: Uwe hat die Wunschdomain geprueft und vorgeschlagen.
+           Die Mail bringt den Kunden auf seine Seite, wo Preis und Ja-Knopf
+           stehen — die ZUSTIMMUNG passiert dort, nie in der Mail. */
+        'hosting_angebot' => [
+            'it' => ['Il tuo dominio {domain} è libero',
+                "Ciao {name},\n\nbuone notizie: il dominio {domain} è libero.\n\n"
+                . "Sulla tua pagina personale trovi l’offerta con il prezzo mensile e "
+                . "tutto quello che è compreso — dominio, spazio web, certificato SSL e "
+                . "casella e-mail, con i tuoi dati di accesso:\n{link}\n\n"
+                . "Decidi lì con un clic. Se hai domande, rispondi pure a questa e-mail."],
+            'de' => ['Deine Wunschdomain {domain} ist frei',
+                "Hallo {name},\n\ngute Nachricht: Die Domain {domain} ist frei.\n\n"
+                . "Auf deiner persönlichen Seite steht das Angebot mit dem Monatspreis und "
+                . "allem, was drinsteckt — Domain, Speicherplatz, SSL-Zertifikat und "
+                . "E-Mail-Postfach, mit deinen eigenen Zugangsdaten:\n{link}\n\n"
+                . "Dort entscheidest du mit einem Klick. Bei Fragen antworte einfach auf diese E-Mail."],
+            'en' => ['Your domain {domain} is available',
+                "Hello {name},\n\ngood news: the domain {domain} is available.\n\n"
+                . "Your personal page has the offer with the monthly price and everything "
+                . "included — domain, web space, SSL certificate and email mailbox, with "
+                . "your own access details:\n{link}\n\n"
+                . "You decide there with one click. Any questions — just reply to this email."],
         ],
         /* DREI STUFEN, EIN TON, DER SICH AENDERT
            ----------------------------------------------------------------

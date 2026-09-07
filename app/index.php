@@ -645,6 +645,66 @@ if ($post) {
                 $_SESSION['gut'] = 'Vermerkt. Jetzt lässt sie sich veröffentlichen.';
                 zurueck('stimmen');
 
+            case 'hosting_vorschlag':
+                /* Uwe prueft die Wunschdomain und bietet sie dem Kunden an.
+                   Nur eine FREIE Domain wird angeboten — ein Angebot, das
+                   sich hinterher als vergeben herausstellt, ist ein
+                   gebrochenes Versprechen mit Vertrag dran. Die Mail an den
+                   Kunden geht sofort raus; zustimmen muss er selbst. */
+                require_once __DIR__ . '/src/Hosting.php';
+                require_once __DIR__ . '/src/Domainpruefung.php';
+                $kid = (int) ($_POST['id'] ?? 0);
+                if ($kid <= 0) { throw new RuntimeException('Kein Kunde angegeben.'); }
+                if (Hosting::fuerKunde($kid)) {
+                    throw new RuntimeException('Dieser Kunde hat schon einen Hosting-Vorgang.');
+                }
+                $hd = Domainpruefung::normalisieren((string) ($_POST['domain'] ?? ''));
+                if ($hd === null) { throw new RuntimeException('Das ist keine gültige Domain.'); }
+                $hp = Domainpruefung::pruefen($hd);
+                if ((string) $hp['stand'] !== 'frei') {
+                    throw new RuntimeException('Die Domain ' . $hd . ' ist nicht als frei bestätigt (Stand: '
+                        . Domainpruefung::wort((string) $hp['stand'], 'de') . '). Angeboten wird nur, was frei ist.');
+                }
+                $hid = Db::insert('hosting_auftraege', [
+                    'customer_id' => $kid, 'project_id' => null, 'domain' => $hd,
+                    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(),
+                ]);
+                Events::protokoll('hosting_vorschlag', 'Wunschdomain vorgeschlagen: ' . $hd, $kid);
+                $hMail = false;
+                try {
+                    require_once __DIR__ . '/src/Mail.php';
+                    require_once __DIR__ . '/src/Texte.php';
+                    require_once __DIR__ . '/src/Kundenzugang.php';
+                    $hk = Db::one('SELECT * FROM customers WHERE id = ?', [$kid]);
+                    $hs = in_array((string) ($hk['sprache'] ?? ''), ['it', 'de', 'en'], true)
+                        ? (string) $hk['sprache'] : 'it';
+                    if ($hk && trim((string) $hk['email']) !== '') {
+                        [$hb, $ht] = Texte::mail('hosting_angebot', $hs, [
+                            'name'   => (string) $hk['name'],
+                            'domain' => $hd,
+                            'link'   => Kundenzugang::linkFuer($kid),
+                        ]);
+                        $hMail = Mail::senden('hosting_angebot', (string) $hk['email'], $hb, $ht,
+                            ['customer_id' => $kid, 'antwortAn' => Mail::eigeneAdresse()]);
+                    }
+                } catch (Throwable $e) { $hMail = false; }
+                $_SESSION['gut'] = 'Die Domain ' . $hd . ' ist frei und dem Kunden angeboten ('
+                    . Fmt::geld(Hosting::preisCents()) . ' im Monat). '
+                    . ($hMail ? 'Die Angebots-Mail ist raus — entscheiden tut er auf seiner Seite.'
+                              : 'Die Mail ging nicht raus — schick ihm seinen Zugangslink von Hand.');
+                zurueck('kunden/' . $kid);
+
+            case 'hosting_anlegen':
+                /* Der Handgriff neben der Automatik: anlegen, ohne auf
+                   Zahlung oder finale Freigabe zu warten. Der Riegel "nur
+                   aus zugestimmt" sitzt im Werkzeug und bleibt. */
+                require_once __DIR__ . '/src/Hosting.php';
+                $hid = (int) ($_POST['id'] ?? 0);
+                $he = Hosting::anlegen($hid);
+                if ($he['ok']) { $_SESSION['gut'] = 'Angelegt: ' . $he['text']; }
+                else { $_SESSION['fehler'] = 'Nicht angelegt: ' . $he['text']; }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'abo_anlegen':
                 require_once __DIR__ . '/src/Abo.php';
                 $kid = (int) ($_POST['id'] ?? 0);
@@ -2156,7 +2216,7 @@ switch ($route) {
                 // Liste und haetten eine Bestellung ueber null Euro angelegt.
                 // Sie werden in der Kundenakte als Vertrag gebucht, nicht hier.
                 'pakete' => Db::all("SELECT * FROM packages WHERE active = 1
-                                       AND (art IS NULL OR art <> 'betreuung')
+                                       AND (art IS NULL OR art NOT IN ('betreuung', 'hosting'))
                                      ORDER BY sort, price_cents"),
             ]);
             break;

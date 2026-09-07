@@ -2457,3 +2457,36 @@ Krypto-Rundreise, Abo-Arten). Prüfkette 779 → 814.
 Bewusste Grenze: Domainpruefung fragt echte Dienste — der Kettentest prüft die
 Riegel drumherum, nicht das Netz. Und die Domainbestellung bleibt ein Handgriff
 mit Ansage, weil All-Inkl dafür keine API anbietet.
+
+## Solo-Paket: Domain & Hosting ohne Website (07.09.2026, nachts)
+
+Das Hosting gibt es jetzt auch allein — für Kunden, die (noch) keine Website
+wollen. Entscheidungen: 9,90 €/Monat wie im Projekt-Ablauf; angelegt wird
+erst nach Eingang der ERSTEN Monatszahlung (eine Domain kostet uns echtes
+Geld — nichts auf Verdacht); Bestellweg über Formular mit Wunschdomain;
+10 GB Speicher je Kunden-Account (max_webspace 10240 MB — der WEB-L-Vertrag
+hat 200 GB auf 25 Accounts, ohne Grenze könnte einer alles belegen).
+
+Der Weg: Karte auf der Website (Sektion #hosting, dreisprachig, Preis live
+aus der Verwaltung über pakete-daten.php-Schlüssel `hosting`) → hosting.php
+(Name, E-Mail, Wunschdomain; wird eine ANFRAGE über Anfrage::annehmen —
+bewusst KEINE Live-Domainprüfung ohne Token) → Uwe prüft im Kundenblatt
+(„Domain & Hosting", tat=hosting_vorschlag: nur eine als FREI bestätigte
+Domain wird angeboten) → Angebots-Mail `hosting_angebot` mit Kundenseiten-
+Link → Ja-Knopf startet Vertrag + erste Rate + Mail `hosting_faellig`
+(eigener Text — die Betreuungs-Mail verspricht Aktualisierungen, die es hier
+nicht gibt) → Zahlungseingang bestätigt → Events::zahlungBestaetigen ruft
+Hosting::nachZahlung() → KAS-Account (mit 10-GB-Grenze), Domain, Postfach,
+Zugangsdaten-Blob. Website-Ablauf unverändert (finale Freigabe).
+
+Dazu: Migration 041 (Paket aktiv+öffentlich mit Karten-Texten it/de/en),
+Admin-Handknopf „Jetzt von Hand anlegen" (Riegel „nur aus zugestimmt"
+bleibt im Werkzeug), Vertragskasten auf der Kundenseite heißt nach dem
+Paket, Rate heißt „Domain & Hosting — Monat" statt „Betreuung …",
+Bestellformular-Filter schließt art hosting aus. Kette: Abschnitt 2 wählt
+nur Website-Pakete, Abschnitt 43 prüft den Solo-Ablauf. 814 → 825 grün.
+
+Merkposten: SSL (Let's Encrypt, kostenlos) wird je Domain im KAS aktiviert —
+steht jetzt als Handgriff mit in der „Domain bestellen"-Meldung; die
+Domainbestellung selbst bleibt Handgriff (kein API-Weg). AGB/Widerruf fürs
+Solo-Paket ggf. vom Anwalt gegenlesen lassen.

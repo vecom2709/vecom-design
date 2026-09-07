@@ -65,6 +65,7 @@ try {
 $pakete = [];
 $betreuung = [];
 $zusatz = [];
+$hosting = [];
 foreach ($reihen as $r) {
     $t = $r['texte'] ? (json_decode((string) $r['texte'], true) ?: []) : [];
     $s = $t[$sprache] ?? [];
@@ -90,11 +91,16 @@ foreach ($reihen as $r) {
     switch ($eintrag['art']) {
         case 'betreuung': $betreuung[] = $eintrag; break;
         case 'zusatz':    $zusatz[]    = $eintrag; break;
+        // Domain & Hosting hat seinen eigenen Schluessel: Es darf nie
+        // zwischen die Website-Preiskarten rutschen — dort wuerde ein
+        // 0-€-Einmalpreis neben 499 € stehen und beides unglaubwuerdig machen.
+        case 'hosting':   $hosting[]   = $eintrag; break;
         default:          $pakete[]    = $eintrag;
     }
 }
 
 echo json_encode([
     'pakete' => $pakete, 'betreuung' => $betreuung, 'zusatz' => $zusatz,
+    'hosting' => $hosting,
     'sprache' => $sprache, 'kauf_text' => $kaufText,
 ], JSON_UNESCAPED_UNICODE);

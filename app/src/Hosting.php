@@ -48,6 +48,10 @@ final class Hosting
     /** Betreuungspakete, in denen das Hosting schon drinsteckt. */
     public const INKLUSIVE_BEI = ['betreuung-plus', 'betreuung-premium'];
 
+    /** Speicher je Kunden-Account, in Megabyte (Reseller-Pool: 200 GB auf
+     *  25 Accounts — ohne Grenze koennte EIN Kunde alles belegen). */
+    public const SPEICHER_MB = 10240;
+
     /* ==================================================================== */
     /*  1. Erkennen — nach dem Absenden des Fragebogens                     */
     /* ==================================================================== */
@@ -156,7 +160,53 @@ final class Hosting
         Events::protokoll($ja ? 'hosting_zugestimmt' : 'hosting_abgelehnt',
             ($ja ? 'Domain & Hosting zugestimmt: ' : 'Domain & Hosting abgelehnt: ') . $a['domain'],
             $kundeId, null, $a['project_id'] !== null ? (int) $a['project_id'] : null);
+
+        /* SOLO — OHNE WEBSITE-PROJEKT — STARTET DIE ZUSTIMMUNG DEN VERTRAG
+           ----------------------------------------------------------------
+           Beim Website-Kunden wartet alles auf die finale Freigabe: Er hat
+           laengst angezahlt, und die Domain soll erst mit der fertigen
+           Seite kommen. Der Solo-Kunde hat weder das eine noch das andere.
+           Also entsteht mit seinem Ja der Monatsvertrag samt erster Rate
+           und Zahlungsaufforderung — ANGELEGT (Domain, Account, Postfach)
+           wird aber erst, wenn diese erste Rate bezahlt ist: Eine Domain
+           zu registrieren kostet Geld, und das gibt es nicht auf Verdacht.
+           Den Anschluss macht Events::zahlungBestaetigen -> nachZahlung(). */
+        if ($ja && $a['project_id'] === null) {
+            self::still(static function () use ($a, $kundeId) {
+                require_once __DIR__ . '/Abo.php';
+                $schonVertrag = Db::one(
+                    "SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
+                       AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
+                if (!$schonVertrag) {
+                    $aboId = Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
+                        'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
+                    $rate = Abo::abrechnen($aboId);
+                    if ($rate !== null) { Abo::anfordern($rate); }
+                }
+            });
+            Events::melden('hosting_zugestimmt', 'Solo-Hosting zugestimmt: ' . $a['domain'], 'gut',
+                'Vertrag und erste Rate stehen. Angelegt wird, sobald die Zahlung da ist.',
+                '/kunden/' . $kundeId);
+        }
         return true;
+    }
+
+    /**
+     * Wird von Events::zahlungBestaetigen gerufen, wenn eine Abo-Rate bezahlt
+     * wurde. Gehoert sie zu einem Hosting-Vertrag und wartet ein zugestimmter
+     * Solo-Auftrag, wird jetzt angelegt. Still — eine Zahlung darf an einem
+     * Hoster-Schluckauf nie scheitern.
+     */
+    public static function nachZahlung(int $aboId): void
+    {
+        self::still(static function () use ($aboId) {
+            $abo = Db::one("SELECT * FROM abos WHERE id = ? AND paket_slug = 'hosting'", [$aboId]);
+            if (!$abo) { return; }
+            $a = Db::one("SELECT * FROM hosting_auftraege
+                           WHERE customer_id = ? AND status = 'zugestimmt' AND project_id IS NULL",
+                [(int) $abo['customer_id']]);
+            if ($a) { self::anlegen((int) $a['id']); }
+        });
     }
 
     /* ==================================================================== */
@@ -199,7 +249,7 @@ final class Hosting
         $schritte = [];
 
         /* 1. Der Account. Ohne ihn geht nichts weiter. */
-        $acc = Kas::accountAnlegen($wer . ' — ' . $domain);
+        $acc = Kas::accountAnlegen($wer . ' — ' . $domain, ['max_webspace' => self::SPEICHER_MB]);
         if (!$acc['ok']) {
             Events::melden('hosting_fehler', 'KAS-Account konnte nicht angelegt werden', 'schlecht',
                 $wer . ' / ' . $domain . ' — ' . $acc['text'] . ' Im KAS von Hand anlegen.',
@@ -241,6 +291,13 @@ final class Hosting
         if (!$inklusive) {
             self::still(static function () use ($kundeId, $a) {
                 require_once __DIR__ . '/Abo.php';
+                // Beim Solo-Kunden entstand der Vertrag schon mit der
+                // Zustimmung — dann steht er hier bereits und bleibt, wie
+                // er ist. Nur wenn keiner da ist, kommt jetzt einer.
+                $schon = Db::one(
+                    "SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
+                       AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
+                if ($schon) { return; }
                 Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
                     'projekt_id' => $a['project_id'] !== null ? (int) $a['project_id'] : null,
                     'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
@@ -260,6 +317,7 @@ final class Hosting
             'Erledigt: ' . implode(' · ', $schritte) . '. '
             . 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
             . ' bestellen — Nameserver ns5.kasserver.com. '
+            . 'Danach im KAS den SSL-Schutz (Let\'s Encrypt, kostenlos) für die Domain aktivieren. '
             . ($offen ? 'Außerdem von Hand: ' . implode(' · ', $offen) . '. ' : '')
             . ($inklusive ? 'Abrechnung: in der Betreuung enthalten.'
                 : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' € ist angelegt.'),
