@@ -11,7 +11,7 @@
  * Drei Dinge in dieser Reihenfolge, weil sie aufeinander aufbauen:
  * der Betriebsmodus (was sie heute sagen darf), der Schlüssel (womit sie
  * überhaupt hereinkommt), der Zugang zu STRATO (womit wir die Gespräche
- * zurückholen) und zuletzt die vierzehn Konfigurationen (was sie kann).
+ * zurückholen) und zuletzt die fünfzehn Konfigurationen (was sie kann).
  */
 require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
 ?>
@@ -288,7 +288,7 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
 /* ---------- Die fertigen Konfigurationen ----------
    Sie standen bis September mitten in dieser Ansicht. Jetzt stehen sie in
    Telefonwerkzeuge -- damit der Server sie selbst zu STRATO schicken kann,
-   ohne dass jemand vierzehn Blöcke von Hand kopiert. Wer das dreimal gemacht
+   ohne dass jemand fünfzehn Blöcke von Hand kopiert. Wer das dreimal gemacht
    hat, macht es beim vierten Mal nicht mehr, und dann steht drüben eine
    Fassung, die niemand mehr kennt. */
 $konfigs = Telefonwerkzeuge::json();
@@ -297,7 +297,7 @@ $konfigs = Telefonwerkzeuge::json();
   <h2>Die <?= count($konfigs) ?> Konfigurationen für STRATO</h2>
 
   <?php /* DER KNOPF, DER DAS KOPIEREN ERSETZT
-           Vierzehn Blöcke von Hand hinüberzutragen macht niemand viermal —
+           Fünfzehn Blöcke von Hand hinüberzutragen macht niemand viermal —
            und dann steht drüben eine Fassung, die niemand mehr kennt, während
            hier eine andere gepflegt wird. Genau das ist im September dreimal
            passiert. */ ?>

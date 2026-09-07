@@ -4,7 +4,7 @@
  * ===========================================================================
  *
  * Diese Seite ist Auswertung, sonst nichts. Was eingestellt wird — Schlüssel,
- * Modus, der Zugang zu STRATO, die vierzehn Konfigurationen — steht unter
+ * Modus, der Zugang zu STRATO, die fünfzehn Konfigurationen — steht unter
  * Einstellungen → Telefonassistentin. Der Grund ist banal und teuer: Wer eine
  * Zahl nachsehen wollte, kam vorher an einem Knopf vorbei, der den Schlüssel
  * neu erzeugt und STRATO ins Leere rufen lässt.

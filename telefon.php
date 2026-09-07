@@ -3,7 +3,7 @@ declare(strict_types=1);
 /* ==========================================================================
    Der Telefonassistent fragt die Verwaltung.
 
-   Aufgerufen von STRATO AI Frontdesk waehrend eines Gespraechs. Vier
+   Aufgerufen von STRATO AI Frontdesk waehrend eines Gespraechs. Fuenfzehn
    Aktionen, ein Schluessel, JSON rein und JSON raus. Was der Endpunkt darf
    und warum er so eng gefasst ist, steht in app/src/Telefon.php.
 
@@ -28,7 +28,8 @@ function antwort(array $d, int $code = 200): never
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { antwort(['ok' => false, 'hinweis' => 'Noch nicht eingerichtet.'], 503); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Kunde', 'Telefon'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Kunde', 'Telefon',
+          'Texte', 'Onboarding', 'Fragen', 'Baukasten', 'Telefonfragebogen'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -89,8 +90,8 @@ if (!in_array($aktion, Telefon::AKTIONEN, true)) {
 try {
     /* DIE MERKLISTE — AN GENAU EINER STELLE
        ----------------------------------------------------------------------
-       Sie steht hier und nicht in den vierzehn Aktionen einzeln: Eine Sperre,
-       die an jeder Aktion hängt, vergisst man bei der fünfzehnten. Und sie
+       Sie steht hier und nicht in den fünfzehn Aktionen einzeln: Eine Sperre,
+       die an jeder Aktion hängt, vergisst man bei der sechzehnten. Und sie
        steht im Code und nicht im Prompt, weil ein Sprachmodell eine
        Textanweisung „meistens" befolgt -- beim dritten Nachfragen redet es
        sich in eine Beratung hinein, und die Liste waere eine
@@ -117,6 +118,7 @@ try {
         'uebergabe'          => Telefon::uebergabe($d),
         'wissen'             => Telefon::wissen($d),
         'termin'             => Telefon::termin($d),
+        'fragebogen'         => Telefon::fragebogen($d),
     };
     antwort($ergebnis);
 } catch (Throwable $e) {

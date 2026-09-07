@@ -8,7 +8,7 @@ require_once __DIR__ . '/Baukasten.php';
  * WAS MANUELA KANN — AN EINER STELLE, DIE AUCH DER SERVER LESEN KANN
  * ===========================================================================
  *
- * Diese vierzehn Beschreibungen standen bisher mitten in einer Ansicht. Das
+ * Diese fünfzehn Beschreibungen standen bisher mitten in einer Ansicht. Das
  * ging, solange sie nur angezeigt wurden: kopieren, bei STRATO einfügen,
  * fertig. Es geht nicht mehr, seit die Verwaltung sie selbst hinüberschicken
  * soll — eine Ansicht lässt sich nicht aufrufen, ohne eine Seite zu bauen.
@@ -16,7 +16,7 @@ require_once __DIR__ . '/Baukasten.php';
  * WARUM DAS MEHR IST ALS EIN UMZUG
  *
  * Jede Änderung an einer Beschreibung musste bisher von Hand nach drüben:
- * vierzehn Blöcke kopieren, vierzehnmal einfügen. Wer das dreimal gemacht
+ * fünfzehn Blöcke kopieren, fünfzehnmal einfügen. Wer das dreimal gemacht
  * hat, macht es beim vierten Mal nicht mehr — und dann steht bei STRATO eine
  * Fassung, die niemand mehr kennt, während hier eine andere gepflegt wird.
  * Genau das ist im September dreimal passiert.
@@ -34,8 +34,8 @@ final class Telefonwerkzeuge
      * Preis — und ganz hinten das, was nur im Notfall gebraucht wird.
      */
     public const REIHE = ['kunde_nachschlagen', 'wissen', 'beratung', 'seite_ansehen', 'beleg',
-                          'preis_auskunft', 'lage', 'angebot_link', 'termin', 'uebergabe',
-                          'melde', 'zusammenfassung', 'wissensluecke', 'hilfe'];
+                          'preis_auskunft', 'lage', 'angebot_link', 'fragebogen', 'termin',
+                          'uebergabe', 'melde', 'zusammenfassung', 'wissensluecke', 'hilfe'];
 
     /**
      * Alle Beschreibungen, wie sie diese Sekunde gelten.
@@ -435,6 +435,78 @@ final class Telefonwerkzeuge
                    . '"name":"{{ name }}","telefon":"{{ telefon }}","anliegen":"{{ anliegen }}",'
                    . '"sprache":"{{ sprache }}"}',
         ];
+        /* DER FRAGEBOGEN
+           ------------------------------------------------------------------
+           Das längste Werkzeug, und das einzige, das ein Gespräch über eine
+           Viertelstunde trägt. Die Beschreibung ist entsprechend lang --
+           nicht aus Gründlichkeit, sondern weil hier die drei Fehler stehen,
+           die ein Modell in genau dieser Lage macht: Auswahlmöglichkeiten
+           vorlesen, zwei Fragen auf einmal stellen und am Ende abschicken,
+           ohne gefragt zu haben. */
+        $konfigs['fragebogen'] = [
+          'zweck' => 'Füllt den Fragebogen gemeinsam am Telefon aus — Frage für Frage. '
+                   . 'Nur für Bestandskunden mit offenem Fragebogen; ruf vorher '
+                   . '„kunde_nachschlagen“ auf und gib die kunde_id mit. '
+                   . 'ANBIETEN: Kommt bei „kunde_nachschlagen“ ein Block „fragebogen“ zurück, '
+                   . 'ist einer offen. Sag dann den Satz aus „fragebogen.satz“ und frag '
+                   . 'ausdrücklich, ob ihr ihn gemeinsam ausfüllt. Ruft er über seine '
+                   . 'Kundenseite an (von_kundenseite), frag das GLEICH nach der Begrüßung. '
+                   . 'Ruft er am Telefon an, erledige erst sein eigentliches Anliegen und '
+                   . 'frag erst danach. Sagt er nein, akzeptiere das sofort und frag nicht '
+                   . 'noch einmal. '
+                   . 'ABLAUF: schritt „start“ gibt Stand und erste Frage. Danach immer '
+                   . 'schritt „antwort“ mit „feld“ (genau der Wert aus frage_zu) und '
+                   . '„antwort“ (was er gesagt hat, in seinen Worten) — du bekommst die '
+                   . 'nächste Frage zurück. Kommt „pause“, ist ein Abschnitt fertig: sag den '
+                   . 'Stand und frag, ob ihr weitermacht; ja → schritt „weiter“, nein → '
+                   . 'schritt „spaeter“. '
+                   . 'STELL IMMER NUR EINE FRAGE. Lies NIE Auswahlmöglichkeiten vor — frag '
+                   . 'offen, ich ordne die Antwort selbst zu. Kommt „unklar“ zurück, nenne '
+                   . 'höchstens die zwei Vorschläge; passt keiner, schick mir seine Antwort '
+                   . 'einfach noch einmal, dann vermerke ich sie als „anders“ und wir gehen '
+                   . 'weiter. Bohr nicht nach: „weiß ich nicht“ ist eine gültige Antwort. '
+                   . 'ABSCHLUSS: Nach der letzten Frage kommt „durchgang“ mit allen Antworten '
+                   . 'nach Abschnitten. Lies sie abschnittsweise vor und frag nach jedem '
+                   . 'Abschnitt ausdrücklich, ob etwas korrigiert oder ergänzt werden soll. '
+                   . 'Korrekturen mit schritt „antwort“ und dem Feldnamen. ERST wenn er sagt, '
+                   . 'dass alles stimmt, ruf schritt „absenden“ mit bestaetigt: true auf. '
+                   . 'Schick nie ungefragt ab — damit rückt sein Projekt weiter und es gehen '
+                   . 'Mails raus.',
+          'eig' => [
+            'schritt'    => ['type' => 'string',
+                             'enum' => ['start', 'antwort', 'weiter', 'spaeter', 'pruefen', 'absenden'],
+                             'description' => 'start = anfangen oder fortsetzen · antwort = eine '
+                                            . 'Antwort verbuchen · weiter = nach der Pause '
+                                            . 'weitermachen · spaeter = abbrechen, alles bleibt '
+                                            . 'gespeichert · pruefen = Zusammenfassung zum '
+                                            . 'Vorlesen · absenden = endgültig abschicken'],
+            'feld'       => ['type' => 'string', 'maxLength' => 40,
+                             'description' => 'Bei „antwort“ Pflicht: der Wert aus „frage_zu“ der '
+                                            . 'Frage, die du gerade gestellt hast. Nie erfinden'],
+            'antwort'    => ['type' => 'string', 'maxLength' => 4000,
+                             'description' => 'Was er gesagt hat, in seinen Worten. Nicht in eine '
+                                            . 'Auswahl übersetzen — das mache ich'],
+            'zeilen'     => ['type' => 'string', 'maxLength' => 300,
+                             'description' => 'Nur bei der Materialfrage (art „stand“): '
+                                            . '„zeile:zustand“, mit Komma getrennt, z. B. '
+                                            . '„logo:haben,fotos:du,texte:kommt“. Zustände: haben, '
+                                            . 'kommt, du, nein. Was er nicht genannt hat, weglassen'],
+            'bestaetigt' => ['type' => 'boolean',
+                             'description' => 'Nur bei „absenden“, und nur true, NACHDEM du ihm '
+                                            . 'die Zusammenfassung vorgelesen und er ausdrücklich '
+                                            . 'bestätigt hat, dass nichts fehlt'],
+            'kunde_id'   => ['type' => 'integer', 'description' => 'Aus „kunde_nachschlagen“. Ohne '
+                                            . 'sie geht nichts'],
+            'telefon'    => ['type' => 'string', 'description' => 'Rufnummer des Anrufers'],
+            'sprache'    => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
+          ],
+          'pflicht' => ['schritt', 'sprache'],
+          'rumpf' => '{"aktion":"fragebogen","schritt":"{{ schritt }}","feld":"{{ feld }}",'
+                   . '"antwort":"{{ antwort }}","zeilen":"{{ zeilen }}",'
+                   . '"bestaetigt":"{{ bestaetigt }}","kunde_id":"{{ kunde_id }}",'
+                   . '"telefon":"{{ telefon }}","sprache":"{{ sprache }}"}',
+        ];
+
         /* In der Reihenfolge des Gesprächs, und nur was es wirklich gibt. */
         $sortiert = [];
         foreach (self::REIHE as $name) {
@@ -475,8 +547,8 @@ final class Telefonwerkzeuge
      *
      * Betroffen war „lage": Es hat als einziges Werkzeug keine Eigenschaften.
      * Stratos Schemaprüfung lehnte es ab, und der Assistent war nicht mehr
-     * erreichbar. Ein Fehler in einem von vierzehn Werkzeugen legt alle
-     * vierzehn still.
+     * erreichbar. Ein Fehler in einem von fünfzehn Werkzeugen legt alle
+     * fünfzehn still.
      *
      * Ohne das zweite Argument kommen stdClass-Objekte heraus, und ein
      * leeres Objekt bleibt ein leeres Objekt -- durch beliebig viele

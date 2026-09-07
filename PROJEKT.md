@@ -2250,3 +2250,65 @@ Neu ist nur die Rückruf-Mahnung. Ein zweiter Erinnerungsmechanismus daneben wä
 Doppelung gewesen, die irgendwann zwei verschiedene Dinge behauptet.
 
 **Nachgemessen:** Prüfkette 302 → 325, alle grün.
+
+## Der Fragebogen am Telefon (07.09.2026)
+
+Achtundvierzig Felder in sechs Abschnitten sind im Browser achtundvierzig Kästen — und
+deshalb bleiben sie liegen. „Fragebogen" ist der häufigste Grund, warum ein Projekt
+stehenbleibt, und der häufigste Punkt auf der Liste, woran es hakt. Am Telefon ist es eine
+Viertelstunde Reden.
+
+Manuela kann ihn jetzt gemeinsam mit dem Kunden ausfüllen. Neue Aktion `fragebogen`
+(`app/src/Telefonfragebogen.php`, Abschnitt 15 in `Telefon.php`), sechs Schritte: `start`,
+`antwort`, `weiter`, `spaeter`, `pruefen`, `absenden`.
+
+### Was dabei anders ist als im Formular
+
+**Niemand liest elf Optionen vor.** Bei „Branche" stehen elf zur Auswahl. Sie fragt offen —
+„was für ein Betrieb ist das?" — und `Telefonfragebogen::zuordnen()` ordnet die Antwort den
+Optionstexten aller drei Sprachen zu. Wer auf Deutsch „Ristorante" sagt, meint dasselbe.
+Passt nichts, kommen zwei Vorschläge; passt immer noch nichts, wird „anders" vermerkt —
+mit seinem Wortlaut in der freien Zeile.
+
+**Was in der Akte steht, wird bestätigt statt gefragt.** Firmenname, Ort, Rufnummer,
+E-Mail, Ansprechpartner werden vorbelegt und in einem Satz zurückgelesen. Vier Fragen
+weniger, und er merkt, dass er bekannt ist.
+
+**Gespeichert wird nach jeder einzelnen Antwort.** Nicht am Ende. Wer nach zwanzig Fragen
+auflegt, hat zwanzig Antworten im Fragebogen.
+
+**Nach jedem Abschnitt ein Ausgang.** Stand ansagen, fragen, ob weitergemacht wird. Sechs
+Abschnitte am Stück machen einsilbig, und einsilbige Antworten sind der Grund, warum ein
+Briefing später nichts hergibt.
+
+**Abgeschickt wird nur ausdrücklich.** `absenden` verlangt alle fünf Pflichtangaben *und*
+`bestaetigt: true` — und davor den Durchgang: jeden Abschnitt vorlesen, fragen, ob etwas
+korrigiert oder ergänzt werden soll. Das Abschicken rückt das Projekt weiter und verschickt
+Post; das darf keinem Missverständnis passieren.
+
+### Drei Riegel, die im Code stehen und nicht im Leitfaden
+
+Dasselbe Muster wie bei `kunde_id`, „sonstiges" und der Merkliste: *Was verlässlich sein
+muss, gehört ins Werkzeug.*
+
+1. **Es geht immer vorwärts.** `naechstes()` sucht ab dem zuletzt behandelten Feld, nicht
+   von vorn. Der erste Entwurf hätte eine offen gebliebene Frage sofort wiederholt — beim
+   dritten Mal legt jeder auf.
+2. **Zweimal unklar ist genug.** Gezählt wird über die Aktivitätsspur. Danach „anders" mit
+   Wortlaut, oder — wo es keine Auffangoption gibt — die Frage bleibt offen und steht in der
+   Durchsicht. Besser eine Lücke, die man sieht, als eine Antwort, die niemand gesagt hat.
+3. **Was gespeichert wird, muss es geben.** Zugeordnet wird gegen die Auswahl, und
+   `Onboarding::saeubern()` prüft es danach noch einmal. Zwei Netze, weil am anderen Ende
+   ein Sprachmodell sitzt.
+
+### Sie bietet ihn von selbst an
+
+`kunde_nachschlagen` gibt bei offenem Fragebogen einen Block `fragebogen` zurück — Stand,
+Restzeit und den Satz zum Vorlesen. Wer über seine Kundenseite anruft, wird gleich nach der
+Begrüßung gefragt (er sitzt ohnehin vor dem Portal); wer anruft, bekommt zuerst sein
+Anliegen erledigt. Sagt er nein, wird nicht noch einmal gefragt.
+
+Am Telefon sagt niemand „8" — er sagt acht, otto, eight. `Telefonfragebogen::zahl()`
+versteht beides; der erste Entwurf hätte eine Website mit null Seiten eingetragen.
+
+Geprüft: 754 Kettenprüfungen, Abschnitt 41 mit 60 davon. Fünfzehn Werkzeuge bei STRATO.

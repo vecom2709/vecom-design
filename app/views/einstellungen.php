@@ -5,7 +5,7 @@
  *
  * Vorher lagen die Einstellungen an sechs Stellen: Firmendaten und Zugänge
  * hier, Stripe unter „Integrationen", der Cronjob unten beim Monitoring, der
- * Telefonschlüssel und vierzehn Konfigurationsblöcke mitten in der
+ * Telefonschlüssel und fünfzehn Konfigurationsblöcke mitten in der
  * Auswertung des Telefonassistenten. Jede für sich war begründbar, und
  * zusammen ergaben sie die Frage, die man sich nie stellen will: Wo war das
  * noch mal?
@@ -15,7 +15,7 @@
  * die Telefonassistentin, was von allein läuft, und die Daten selbst.
  *
  * WARUM EIN BEREICH NACH DEM ANDEREN UND NICHT ALLES UNTEREINANDER
- * Alles auf einer Seite wären gut zweitausend Zeilen, darunter vierzehn
+ * Alles auf einer Seite wären gut zweitausend Zeilen, darunter fünfzehn
  * Textfelder mit je acht Zeilen JSON. Das lädt lange, scrollt schlecht, und
  * die Suche des Browsers findet in jedem zweiten Feld etwas. Ein Bereich ist
  * kurz genug, um ihn ganz zu sehen.
@@ -25,7 +25,7 @@ $bereiche = [
     'zugaenge'     => ['Zugänge & Schutz',       'Wer in die Verwaltung darf'],
     'email'        => ['E-Mail & Zuruf',         'Wie etwas hinausgeht'],
     'bezahlung'    => ['Bezahlung',              'Stripe und die Dienste von außen'],
-    'telefon'      => ['Telefonassistentin',     'Schlüssel, Zugang, die 14 Konfigurationen'],
+    'telefon'      => ['Telefonassistentin',     'Schlüssel, Zugang, die 15 Konfigurationen'],
     'ueberwachung' => ['Was von allein läuft',   'Der Cronjob, der alles andere anstößt'],
     'daten'        => ['Daten',                  'Beispieldaten und was noch kommt'],
 ];

@@ -2916,7 +2916,7 @@ abschnitt('37. Die Werkzeuge');
 require_once $wurzel . '/src/Telefonwerkzeuge.php';
 
 $w = Telefonwerkzeuge::alle();
-pruefe('es sind vierzehn', count($w) === 14, (string) count($w));
+pruefe('es sind fünfzehn', count($w) === 15, (string) count($w));
 pruefe('und genau die aus Telefon::AKTIONEN',
     array_diff(Telefon::AKTIONEN, array_keys($w)) === []
     && array_diff(array_keys($w), Telefon::AKTIONEN) === [],
@@ -2925,7 +2925,7 @@ pruefe('in der Reihenfolge des Gesprächs, nicht alphabetisch',
     array_keys($w) === Telefonwerkzeuge::REIHE, implode(', ', array_keys($w)));
 
 $o = Telefonwerkzeuge::objekte();
-pruefe('jedes wird zu gültigem JSON', count($o) === 14, (string) count($o));
+pruefe('jedes wird zu gültigem JSON', count($o) === 15, (string) count($o));
 pruefe('und behält seinen Namen',
     array_map(static fn($x) => (string) $x->name, $o) === array_keys($w));
 
@@ -2937,7 +2937,7 @@ foreach ($o as $x) {
         if (($h->name ?? '') === 'X-Vecom-Telefon') { $schluessel[(string) $h->value] = true; }
     }
 }
-pruefe('alle vierzehn tragen denselben Schlüssel', count($schluessel) === 1, (string) count($schluessel));
+pruefe('alle fünfzehn tragen denselben Schlüssel', count($schluessel) === 1, (string) count($schluessel));
 pruefe('und er ist der aktuelle', isset($schluessel[Telefon::schluessel()]));
 
 /* Stratos Platzhalter müssen WÖRTLICH stehen bleiben -- durch json_encode
@@ -3360,6 +3360,319 @@ pruefe('„wissen" auch',
 
 Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
 Db::run('DELETE FROM telefon_gespraeche');
+
+/* ============================================================================
+   41. Der Fragebogen am Telefon
+   ============================================================================
+   Achtundvierzig Felder, vorgelesen. Das ist der längste Ablauf, den dieser
+   Assistent hat, und der einzige, der etwas auslöst — am Ende rückt ein
+   Projekt weiter und es gehen Mails raus.
+
+   Geprüft wird deshalb vor allem, was NICHT passieren darf: dass dieselbe
+   Frage zweimal kommt, dass ein Gespräch an einer Auswahl hängenbleibt, dass
+   ein Schlüssel im Fragebogen landet, den es nicht gibt, und dass irgendetwas
+   abgeschickt wird, ohne dass jemand ja gesagt hat.
+   ============================================================================ */
+abschnitt('41. Der Fragebogen am Telefon');
+
+require_once $wurzel . '/src/Telefonfragebogen.php';
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run("UPDATE questionnaires SET status = 'offen', data = '{}', submitted_at = NULL WHERE id = ?", [$fbId]);
+
+/* ---- 1. WAS ÜBERHAUPT GEFRAGT WIRD ---- */
+$alle = Telefonfragebogen::reihe();
+pruefe('der Fragebogen hat Felder', count($alle) > 30, (string) count($alle));
+
+$namen = array_column($alle, 'name');
+pruefe('die Reihenfolge fängt beim Unternehmen an', $namen[0] === 'firmenname', $namen[0]);
+
+/* DIE FRAGEN, DIE NICHT GESTELLT WERDEN
+   Wer nie eine Website hatte, wird nicht gefragt, was ihn an ihr stört. Im
+   Browser blendet das Formular sie aus; am Telefon wäre es schlimmer, sie
+   trotzdem zu stellen — ein Mensch antwortet höflich und wundert sich still. */
+$ohneAlt = array_column(Telefonfragebogen::reihe(['altseite' => 'nein']), 'name');
+pruefe('ohne alte Seite wird nicht nach ihr gefragt',
+    !in_array('erhalten', $ohneAlt, true) && !in_array('stoert', $ohneAlt, true));
+$mitAlt = array_column(Telefonfragebogen::reihe(['altseite' => 'ja']), 'name');
+pruefe('mit alter Seite schon', in_array('stoert', $mitAlt, true));
+pruefe('Wunschadressen nur, wenn eine neue Domain gebraucht wird',
+    !in_array('wunsch1', $ohneAlt, true)
+    && in_array('wunsch1', array_column(Telefonfragebogen::reihe(['domain' => 'neu']), 'name')));
+
+/* ---- 2. ES GEHT IMMER VORWÄRTS ----
+   Der erste Entwurf nahm stets das erste unbeantwortete Feld. Damit kam eine
+   Frage, die offen blieb, sofort wieder — und beim dritten Mal legt jeder
+   auf. Also läuft der Fragebogen vorwärts; was offen bleibt, steht am Ende
+   in der Durchsicht. */
+$n1 = Telefonfragebogen::naechstes([]);
+pruefe('ohne Antworten kommt die erste Frage', ($n1['name'] ?? '') === 'firmenname');
+$n2 = Telefonfragebogen::naechstes([], 'firmenname');
+pruefe('nach einer offen gelassenen Frage kommt die nächste, nicht dieselbe',
+    ($n2['name'] ?? '') !== 'firmenname' && ($n2['name'] ?? '') !== '', (string) ($n2['name'] ?? ''));
+pruefe('ein unbekannter Feldname hält das Gespräch nicht an',
+    (Telefonfragebogen::naechstes([], 'gibtesnicht')['name'] ?? '') === 'firmenname');
+
+/* ---- 3. NIEMAND LIEST ELF OPTIONEN VOR ---- */
+$branche = Fragen::feld('branche') ?? [];
+$fr = Telefonfragebogen::frage(['name' => 'branche', 'abschnitt' => 'unternehmen', 'feld' => $branche], 'de');
+pruefe('die Frage nennt das Feld, das beantwortet wird', ($fr['frage_zu'] ?? '') === 'branche');
+pruefe('und sagt ausdrücklich, dass nichts vorgelesen wird',
+    str_contains((string) ($fr['hinweis'] ?? ''), 'NICHT vor')
+    || str_contains((string) ($fr['hinweis'] ?? ''), 'nicht vor'), (string) ($fr['hinweis'] ?? ''));
+pruefe('sie kennt den Ausweg, falls nichts passt', ($fr['ausweg'] ?? '') === 'anders');
+
+$zu = Telefonfragebogen::zuordnen($branche, 'wir haben eine Pizzeria im Zentrum', 'de');
+pruefe('„Pizzeria" wird der Gastronomie zugeordnet',
+    ($zu['treffer'][0] ?? '') === 'gastronomie', json_encode($zu));
+$zuIt = Telefonfragebogen::zuordnen($branche, 'siamo un ristorante', 'it');
+pruefe('auf Italienisch auch', ($zuIt['treffer'][0] ?? '') === 'gastronomie', json_encode($zuIt));
+$zuNix = Telefonfragebogen::zuordnen($branche, 'wir sind eine Sattlerei', 'de');
+pruefe('was nirgends passt, ist unklar — und wird nicht geraten', $zuNix['unklar'] === true);
+pruefe('und sie bekommt Vorschläge, die sie nennen kann', count($zuNix['vorschlaege']) > 0);
+
+/* MEHRERES IST MEHRERES */
+$ziel = Fragen::feld('zielgruppe') ?? [];
+$zuM = Telefonfragebogen::zuordnen($ziel, 'Privatkunden und Touristen', 'de');
+pruefe('bei einer Mehrfachauswahl zählt alles, was genannt wurde',
+    count($zuM['treffer']) >= 2, json_encode($zuM['treffer']));
+
+/* ---- 4. WAS GESPEICHERT WIRD, MUSS ES GEBEN ----
+   Man könnte das Sprachmodell die Option wählen lassen. Dann stünde im
+   Fragebogen ein Schlüssel, den es sich ausgedacht hat — und weder
+   Konfigurator noch Briefing kennen ihn. */
+$w = Telefonfragebogen::speicherwert('branche', $branche, ['gastronomie'], 'eine Pizzeria');
+pruefe('eine Auswahl wird als Schlüssel gespeichert', ($w['branche'] ?? '') === 'gastronomie');
+pruefe('und ohne Ausweg keine freie Zeile', !isset($w['branche__frei']));
+$wA = Telefonfragebogen::speicherwert('branche', $branche, ['anders'], 'Sattlerei');
+pruefe('beim Ausweg wird der Wortlaut mitgeschrieben',
+    ($wA['branche__frei'] ?? '') === 'Sattlerei', json_encode($wA));
+/* AM TELEFON SAGT NIEMAND „8" — er sagt acht, otto, eight. Der erste
+   Entwurf suchte nur Ziffern und trug eine Null ein: eine Website mit null
+   Seiten, und aufgefallen wäre es erst im Angebot. */
+$wZ = Telefonfragebogen::speicherwert('seiten_zahl', Fragen::feld('seiten_zahl') ?? [], [], 'so acht bis zehn');
+pruefe('aus „so acht bis zehn" wird eine Acht', ($wZ['seiten_zahl'] ?? '') === '8', json_encode($wZ));
+pruefe('Ziffern gehen weiterhin', Telefonfragebogen::zahl('etwa 12 Seiten') === 12);
+pruefe('auf Italienisch auch', Telefonfragebogen::zahl('tre lingue') === 3);
+pruefe('auf Englisch auch', Telefonfragebogen::zahl('about five pages') === 5);
+pruefe('und wenn keine Zahl fällt, wird keine erfunden', Telefonfragebogen::zahl('weiß nicht') === 0);
+
+/* DIE MATERIALLISTE: WAS NIEMAND GENANNT HAT, MUSS JEMAND MACHEN */
+$mat = Fragen::feld('material') ?? [];
+$st = Onboarding::standWerte(Telefonfragebogen::standwert($mat, ['logo' => 'haben']));
+pruefe('genannte Zeilen stehen so drin', ($st['logo'] ?? '') === 'haben');
+pruefe('nicht genannte werden zur Arbeit, nicht zum Nichts',
+    count($st) === count($mat['zeilen'] ?? []) && ($st['texte'] ?? '') === 'du', json_encode($st));
+pruefe('ein erfundener Zustand wird nicht übernommen',
+    (Onboarding::standWerte(Telefonfragebogen::standwert($mat, ['logo' => 'vielleicht']))['logo'] ?? '') === 'du');
+
+/* ---- 5. DER ABLAUF AM TELEFON ---- */
+$ohne = Telefon::fragebogen(['schritt' => 'start', 'sprache' => 'de']);
+pruefe('ohne bekannten Anrufer geht gar nichts', ($ohne['grund'] ?? '') === 'unbekannt', json_encode($ohne));
+
+$start = Telefon::fragebogen(['schritt' => 'start', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('mit Kunde und offenem Fragebogen geht es los', ($start['ok'] ?? false) === true, json_encode($start));
+pruefe('sie bekommt eine Frage', isset($start['frage']['frage_zu']));
+pruefe('und weiß, wie lange es dauert', ($start['stand']['minuten'] ?? 0) > 0);
+
+/* WAS IN DER AKTE STEHT, WIRD BESTÄTIGT, NICHT GEFRAGT */
+pruefe('Bekanntes wird zum Bestätigen vorgelegt',
+    !empty($start['bestaetigen']), json_encode($start['bestaetigen'] ?? []));
+$vorbelegt = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('und steht sofort im Fragebogen — nicht erst am Ende',
+    trim((string) ($vorbelegt['firmenname'] ?? '')) !== '', json_encode(array_keys($vorbelegt)));
+pruefe('die erste Frage ist nicht die, die schon beantwortet ist',
+    ($start['frage']['frage_zu'] ?? '') !== 'firmenname', (string) ($start['frage']['frage_zu'] ?? ''));
+
+/* EINE ANTWORT WIRD SOFORT GESPEICHERT — nicht am Ende. Wer nach zwanzig
+   Fragen auflegt, hat zwanzig Antworten im Fragebogen. */
+$a1 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'branche',
+                           'antwort' => 'wir haben eine Pizzeria', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('die Antwort wird verbucht', ($a1['gespeichert'] ?? '') === 'branche', json_encode($a1));
+$daten1 = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('und steht in der Datenbank, nicht nur in der Antwort',
+    ($daten1['branche'] ?? '') === 'gastronomie', json_encode($daten1['branche'] ?? null));
+pruefe('danach kommt die nächste Frage, nicht dieselbe',
+    ($a1['frage']['frage_zu'] ?? '') !== 'branche', (string) ($a1['frage']['frage_zu'] ?? ''));
+
+$falsch = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'gibtesnicht',
+                               'antwort' => 'x', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('ein erfundener Feldname wird abgewiesen',
+    ($falsch['grund'] ?? '') === 'unbekanntes_feld', json_encode($falsch));
+
+/* ---- 6. ZWEIMAL UNKLAR IST GENUG ----
+   Ohne diesen Riegel hängt das Gespräch an einer Auswahlfrage fest, und
+   niemand außer dem Anrufer würde es je bemerken. */
+Db::run("UPDATE questionnaires SET data = '{}' WHERE id = ?", [$fbId]);
+$u1 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'branche',
+                           'antwort' => 'Sattlerei', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('beim ersten Mal fragt sie nach', ($u1['unklar'] ?? false) === true, json_encode($u1));
+pruefe('mit höchstens zwei bis drei Vorschlägen',
+    count($u1['vorschlaege'] ?? []) <= 3 && count($u1['vorschlaege'] ?? []) > 0);
+$u2 = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'branche',
+                           'antwort' => 'Sattlerei', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('beim zweiten Mal wird es vermerkt und es geht weiter',
+    ($u2['vermerkt'] ?? '') === 'anders' && ($u2['unklar'] ?? false) !== true, json_encode($u2));
+$daten2 = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('und sein Wortlaut geht dabei nicht verloren',
+    str_contains((string) ($daten2['branche__frei'] ?? ''), 'Sattlerei'), json_encode($daten2['branche__frei'] ?? null));
+
+/* EINE FRAGE OHNE AUFFANGOPTION BLEIBT OFFEN — besser eine Lücke, die man
+   sieht, als eine Antwort, die niemand gesagt hat. */
+Db::run("DELETE FROM activities WHERE type = 'telefon_fragebogen_unklar'");
+foreach ([1, 2] as $mal) {
+    $z = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'ziel1',
+                              'antwort' => 'weiß ich wirklich nicht', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+}
+pruefe('ohne Auffangoption wird die Frage übersprungen, nicht erfunden',
+    ($z['uebersprungen'] ?? '') === 'ziel1', json_encode($z));
+$daten3 = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], '{}'), true) ?: [];
+pruefe('und nichts Erfundenes steht im Fragebogen', !isset($daten3['ziel1']));
+pruefe('das Gespräch läuft trotzdem weiter', isset($z['frage']['frage_zu']));
+
+/* ---- 7. DIE PAUSE NACH JEDEM ABSCHNITT ----
+   Wer eine Viertelstunde am Stück befragt wird, wird einsilbig — und
+   einsilbige Antworten sind der Grund, warum ein Briefing später nichts
+   hergibt. */
+$vollUnternehmen = ['firmenname' => 'Da Mario', 'branche' => 'gastronomie',
+                    'beschreibung' => 'Pizzeria im Zentrum', 'zielgruppe' => 'privat,touristen',
+                    'ort' => 'Agrigento', 'gebiet' => 'provinz', 'ansprech' => 'Mario Rossi'];
+Db::run('UPDATE questionnaires SET data = ? WHERE id = ?',
+    [json_encode($vollUnternehmen, JSON_UNESCAPED_UNICODE), $fbId]);
+$pause = Telefon::fragebogen(['schritt' => 'antwort', 'feld' => 'entscheider',
+                              'antwort' => 'das entscheide ich selbst', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('am Abschnittsende kommt eine Pause', ($pause['pause'] ?? false) === true, json_encode($pause));
+pruefe('sie nennt den Abschnitt, der durch ist', ($pause['abschnitt_fertig'] ?? '') !== '');
+pruefe('und fragt, ob weitergemacht wird',
+    str_contains((string) $pause['hinweis'], 'weiter'), (string) $pause['hinweis']);
+
+$weiter = Telefon::fragebogen(['schritt' => 'weiter', 'feld' => 'entscheider',
+                              'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('„weiter" gibt dieselbe nächste Frage',
+    ($weiter['frage']['frage_zu'] ?? '') === ($pause['frage']['frage_zu'] ?? 'x'));
+$spaeter = Telefon::fragebogen(['schritt' => 'spaeter', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('„später" verliert nichts',
+    ($spaeter['ok'] ?? false) === true
+    && str_contains((string) $spaeter['hinweis'], 'gespeichert'), json_encode($spaeter));
+pruefe('und schickt nichts ab',
+    (string) Db::wert('SELECT status FROM questionnaires WHERE id = ?', [$fbId], '') === 'offen');
+
+/* ---- 8. DER DURCHGANG VOR DEM ABSCHICKEN ---- */
+$pr = Telefon::fragebogen(['schritt' => 'pruefen', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('die Durchsicht kommt nach Abschnitten', !empty($pr['abschnitte']), json_encode(array_keys($pr)));
+$erste = $pr['abschnitte'][0] ?? [];
+pruefe('mit Überschrift und Zeilen', ($erste['titel'] ?? '') !== '' && !empty($erste['zeilen']));
+$brancheZeile = '';
+foreach ($erste['zeilen'] as $zl) { if ($zl['feld'] === 'branche') { $brancheZeile = $zl['antwort']; } }
+pruefe('vorgelesen wird der Satz, nicht der Schlüssel',
+    $brancheZeile !== '' && !str_contains($brancheZeile, 'gastronomie'), $brancheZeile);
+pruefe('und sie weiß, was noch fehlt', is_array($pr['pflicht_fehlt'] ?? null));
+
+/* ---- 9. ABGESCHICKT WIRD NUR AUSDRÜCKLICH ----
+   Danach rückt das Projekt weiter, es entsteht ein Briefing, es gehen Mails
+   raus. Das darf keinem Missverständnis passieren. */
+$unvoll = Telefon::fragebogen(['schritt' => 'absenden', 'bestaetigt' => true,
+                               'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('ohne Pflichtangaben wird nicht abgeschickt',
+    ($unvoll['grund'] ?? '') === 'unvollstaendig', json_encode($unvoll));
+pruefe('und sie erfährt, was fehlt', count($unvoll['pflicht_fehlt'] ?? []) > 0);
+pruefe('der Fragebogen ist danach immer noch offen',
+    (string) Db::wert('SELECT status FROM questionnaires WHERE id = ?', [$fbId], '') === 'offen');
+
+$vollstaendig = $vollUnternehmen + ['ziel1' => 'anrufe', 'telefon' => '+39 0922 000000',
+                                    'impressum' => 'Pizzeria Da Mario di Mario Rossi, Via Roma 1, Agrigento'];
+Db::run('UPDATE questionnaires SET data = ? WHERE id = ?',
+    [json_encode($vollstaendig, JSON_UNESCAPED_UNICODE), $fbId]);
+
+$ohneJa = Telefon::fragebogen(['schritt' => 'absenden', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('ohne sein ausdrückliches Ja wird nicht abgeschickt',
+    ($ohneJa['grund'] ?? '') === 'nicht_bestaetigt', json_encode(array_keys($ohneJa)));
+pruefe('stattdessen bekommt sie die Durchsicht zum Vorlesen',
+    !empty($ohneJa['durchgang']['abschnitte']));
+pruefe('und der Fragebogen ist unverändert offen',
+    (string) Db::wert('SELECT status FROM questionnaires WHERE id = ?', [$fbId], '') === 'offen');
+
+$raus = Telefon::fragebogen(['schritt' => 'absenden', 'bestaetigt' => true,
+                             'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('mit Ja und allen Pflichtangaben geht er raus',
+    ($raus['abgeschickt'] ?? false) === true, json_encode($raus));
+pruefe('und steht als abgeschlossen in der Datenbank',
+    (string) Db::wert('SELECT status FROM questionnaires WHERE id = ?', [$fbId], '') === 'abgeschlossen');
+pruefe('ein abgeschlossener Fragebogen wird am Telefon nicht wieder aufgemacht',
+    Telefonfragebogen::offener($kundeId) === null);
+$nochmal = Telefon::fragebogen(['schritt' => 'start', 'kunde_id' => $kundeId, 'sprache' => 'de']);
+pruefe('sie sagt das freundlich statt zu scheitern',
+    ($nochmal['grund'] ?? '') === 'kein_fragebogen', json_encode($nochmal));
+
+/* ---- 10. SIE BIETET IHN VON SELBST AN ----
+   „Fragebogen" ist der häufigste Grund, warum ein Projekt stehenbleibt. Ein
+   Satz im Leitfaden wird beim dritten Gespräch überlesen; ein Feld in der
+   Antwort des Werkzeugs liegt bei jedem Anruf wieder vor ihr. */
+$nummer = (string) Db::wert('SELECT phone FROM customers WHERE id = ?', [$kundeId], '');
+$zu1 = Telefon::nachschlagen(['telefon' => $nummer, 'sprache' => 'de']);
+pruefe('ist keiner offen, wird auch keiner angeboten', !isset($zu1['fragebogen']), json_encode($zu1['fragebogen'] ?? null));
+
+Db::run("UPDATE questionnaires SET status = 'offen', data = '{}', submitted_at = NULL WHERE id = ?", [$fbId]);
+$zu2 = Telefon::nachschlagen(['telefon' => $nummer, 'sprache' => 'de']);
+pruefe('ein offener Fragebogen steht in der Antwort',
+    ($zu2['fragebogen']['offen'] ?? false) === true, json_encode($zu2['fragebogen'] ?? null));
+pruefe('mit dem Satz, den sie sagen kann',
+    str_contains((string) ($zu2['fragebogen']['satz'] ?? ''), 'gemeinsam'), (string) ($zu2['fragebogen']['satz'] ?? ''));
+pruefe('am Telefon kommt zuerst sein Anliegen',
+    str_contains((string) $zu2['hinweis'], 'zuerst sein Anliegen'), (string) $zu2['hinweis']);
+pruefe('und es bleibt eine Frage, keine Ankündigung',
+    str_contains((string) $zu2['hinweis'], 'nicht noch einmal'), (string) $zu2['hinweis']);
+
+/* VON DER KUNDENSEITE AUS WIRD GLEICH GEFRAGT: Er sitzt ohnehin vor dem
+   Portal, und dort ist der Fragebogen der Grund, warum er stehen bleibt. */
+Telefon::amWidget($kundeId);
+$zu3 = Telefon::nachschlagen(['telefon' => $nummer, 'sprache' => 'de']);
+pruefe('von seiner Kundenseite aus fragt sie gleich',
+    str_contains((string) $zu3['hinweis'], 'GLEICH'), (string) $zu3['hinweis']);
+Db::run("DELETE FROM activities WHERE type = 'telefon_am_widget'");
+
+/* ---- 11. DIE MERKLISTE GILT AUCH HIER ----
+   Wer kurz gehalten wird, bekommt keine Viertelstunde Fragebogen. */
+pruefe('„fragebogen" steht auf der Liste der gedeckelten Aktionen',
+    in_array('fragebogen', Telefon::MERKLISTE_STUMM, true));
+pruefe('und ist eine gültige Aktion', in_array('fragebogen', Telefon::AKTIONEN, true));
+
+/* ---- 12. DAS WERKZEUG, DAS BEI STRATO STEHT ---- */
+$wz = Telefonwerkzeuge::alle();
+pruefe('es gibt ein Werkzeug „fragebogen"', isset($wz['fragebogen']));
+pruefe('es verbietet das Vorlesen der Auswahl',
+    str_contains($wz['fragebogen']['zweck'], 'NIE Auswahlmöglichkeiten vor'),
+    mb_substr($wz['fragebogen']['zweck'], 0, 80));
+pruefe('es verlangt eine Frage nach der anderen',
+    str_contains($wz['fragebogen']['zweck'], 'IMMER NUR EINE FRAGE'));
+pruefe('es verbietet ungefragtes Abschicken',
+    str_contains($wz['fragebogen']['zweck'], 'nie ungefragt ab'));
+pruefe('die Schritte sind eine geschlossene Liste',
+    ($wz['fragebogen']['eig']['schritt']['enum'] ?? []) === ['start', 'antwort', 'weiter', 'spaeter', 'pruefen', 'absenden'],
+    json_encode($wz['fragebogen']['eig']['schritt']['enum'] ?? null));
+
+/* Der Rumpf ist eine Vorlage mit Stratos Platzhaltern — er darf kein JSON
+   sein, aber er muss eines werden, sobald sie ausgefüllt sind. */
+$rumpf = $wz['fragebogen']['rumpf'];
+pruefe('der Rumpf trägt Stratos Platzhalter', str_contains($rumpf, '{{ schritt }}'));
+$gefuellt = preg_replace('/\{\{\s*[a-z_]+\s*\}\}/', 'x', $rumpf);
+pruefe('und wird ausgefüllt zu gültigem JSON', json_decode((string) $gefuellt, true) !== null, (string) $gefuellt);
+
+/* DER FEHLER VOM SEPTEMBER: leere Eigenschaften wurden zu [] statt {} und
+   STRATO wies alle vierzehn Werkzeuge ab. Deshalb geht die ganze Kette hier
+   noch einmal durch — kodieren, dekodieren, kodieren. */
+$json = Telefonwerkzeuge::json();
+pruefe('das Werkzeug steht im JSON für STRATO', isset($json['fragebogen']));
+$zurueck = json_decode((string) $json['fragebogen']);
+pruefe('und es ist gültiges JSON', $zurueck !== null);
+pruefe('die Eigenschaften bleiben ein Objekt, keine leere Liste',
+    is_object($zurueck->parameters->properties ?? null),
+    gettype($zurueck->parameters->properties ?? null));
+pruefe('und jeder Schritt steht als geschlossene Auswahl drin',
+    count((array) ($zurueck->parameters->properties->schritt->enum ?? [])) === 6);
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run("UPDATE questionnaires SET status = 'abgeschlossen' WHERE id = ?", [$fbId]);
 
 /* ============================================================================
    Aufräumen und Bilanz

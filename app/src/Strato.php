@@ -491,7 +491,7 @@ final class Strato
      * =====================================================================
      *
      * Jede Änderung an einer Werkzeugbeschreibung musste bisher von Hand
-     * nach drüben: vierzehn Blöcke kopieren, vierzehnmal einfügen. Wer das
+     * nach drüben: fünfzehn Blöcke kopieren, fünfzehnmal einfügen. Wer das
      * dreimal gemacht hat, macht es beim vierten Mal nicht mehr -- und dann
      * steht bei STRATO eine Fassung, die niemand mehr kennt, während hier
      * eine andere gepflegt wird. Im September ist die Konfiguration drüben
@@ -581,8 +581,8 @@ final class Strato
         }
 
         /* UND DAS EIGENTLICHE: Steht „properties" noch als Objekt da? Die
-           Zahl allein sagt nichts -- vierzehn Werkzeuge, von denen eines ein
-           kaputtes Schema hat, legen alle vierzehn still. Diese Prüfung
+           Zahl allein sagt nichts -- fünfzehn Werkzeuge, von denen eines ein
+           kaputtes Schema hat, legen alle fünfzehn still. Diese Prüfung
            kostet nichts und hätte den Ausfall verhindert. */
         $krumm = [];
         foreach ($tools as $x) {

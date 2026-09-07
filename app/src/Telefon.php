@@ -52,7 +52,7 @@ final class Telefon
     public const AKTIONEN = ['kunde_nachschlagen', 'preis_auskunft', 'lage',
                              'angebot_link', 'melde', 'zusammenfassung', 'wissensluecke',
                              'hilfe', 'seite_ansehen', 'beratung', 'beleg',
-                             'uebergabe', 'wissen', 'termin'];
+                             'uebergabe', 'wissen', 'termin', 'fragebogen'];
 
     /**
      * Woran jemand haengen bleibt.
@@ -392,6 +392,46 @@ final class Telefon
             $aus['hinweis'] = 'Er ruft von SEINER Kundenseite aus an — er ist also schon dort, '
                             . 'wo er hinwollte. Sag das früh: „Sie sind auf Ihrer Kundenseite, '
                             . 'ich sehe Ihren Stand." Schick ihn nie ins Portal, er ist drin. '
+                            . (string) ($aus['hinweis'] ?? '');
+        }
+
+        /* DER OFFENE FRAGEBOGEN — WARUM ER HIER STEHT UND NICHT IM LEITFADEN
+           ------------------------------------------------------------------
+           „Fragebogen" ist der häufigste Grund, warum ein Projekt
+           stehenbleibt: 48 Felder im Browser, und man verschiebt sie auf
+           morgen. Am Telefon ist es eine Viertelstunde Reden.
+
+           Also fragt sie danach — aber nicht, weil es im Verhaltenstext
+           steht. Ein Satz im Leitfaden wird beim dritten Gespräch überlesen;
+           ein Feld in der Antwort des Werkzeugs liegt bei jedem Anruf wieder
+           vor ihr. Dreimal ist genau dieser Unterschied heute aufgefallen
+           (kunde_id, „sonstiges", die Merkliste), und dreimal war die Lösung
+           dieselbe.
+
+           Wer über seine Kundenseite anruft, wird gleich gefragt: Er sitzt
+           ohnehin gerade vor dem Portal. Wer anruft, hat ein Anliegen — das
+           kommt zuerst, der Fragebogen danach. */
+        require_once __DIR__ . '/Telefonfragebogen.php';
+        $offen = self::still(static fn() => Telefonfragebogen::offener($kid), null);
+        if (is_array($offen)) {
+            $sp = (string) ($aus['sprache'] ?: $sprache);
+            $stand = Telefonfragebogen::stand(Telefonfragebogen::antworten($offen));
+            $aus['fragebogen'] = [
+                'offen'   => true,
+                'fertig'  => $stand['fertig'],
+                'gesamt'  => $stand['gesamt'],
+                'minuten' => $stand['minuten'],
+                'satz'    => self::FRAGEBOGEN_SATZ[$sp] ?? self::FRAGEBOGEN_SATZ['it'],
+            ];
+            $aus['hinweis'] = 'Sein Fragebogen ist noch offen (' . $stand['fertig'] . ' von '
+                            . $stand['gesamt'] . ', etwa ' . $stand['minuten'] . ' Minuten). '
+                            . (($aus['von_kundenseite'] ?? false)
+                               ? 'Frag ihn GLEICH nach der Begrüßung mit dem Satz aus '
+                                 . '„fragebogen.satz“, ob ihr ihn gemeinsam ausfüllt.'
+                               : 'Erledige zuerst sein Anliegen und frag ihn DANACH mit dem Satz '
+                                 . 'aus „fragebogen.satz“, ob ihr ihn gemeinsam ausfüllt.')
+                            . ' Sagt er ja, ruf „fragebogen“ mit schritt „start“ auf. Sagt er '
+                            . 'nein, lass es auf sich beruhen und frag nicht noch einmal. '
                             . (string) ($aus['hinweis'] ?? '');
         }
 
@@ -2381,7 +2421,500 @@ final class Telefon
     }
 
     /* ================================================================== */
-    /*  15. Wie heiss ist dieser Anrufer wirklich?                        */
+    /*  15. Den Fragebogen am Telefon ausfuellen                          */
+    /* ================================================================== */
+
+    /**
+     * DER FRAGEBOGEN ALS GESPRAECH
+     * =====================================================================
+     *
+     * Achtundvierzig Felder. Im Browser sind das achtundvierzig Kaesten,
+     * und deshalb bleiben sie liegen: „Fragebogen" ist der haeufigste
+     * Grund, warum ein Projekt stehenbleibt, und der haeufigste Punkt auf
+     * der Liste, woran es hakt. Am Telefon ist es eine Viertelstunde
+     * Reden, und danach ist es weg.
+     *
+     * VIER REGELN, DIE HIER IM CODE STEHEN UND NICHT IM LEITFADEN
+     *
+     * 1. GESPEICHERT WIRD NACH JEDER ANTWORT. Nicht am Ende. Wer nach
+     *    zwanzig Fragen auflegt, hat zwanzig Antworten im Fragebogen --
+     *    und beim naechsten Anruf geht es dort weiter.
+     *
+     * 2. ES GEHT IMMER VORWAERTS. Eine Frage, die offen bleibt, kommt
+     *    nicht sofort wieder. Sie steht am Ende in der Durchsicht. Wer
+     *    dreimal dieselbe Frage hoert, legt auf.
+     *
+     * 3. ZWEIMAL UNKLAR IST GENUG. Danach wird „passt nichts davon"
+     *    vermerkt -- mit dem Wortlaut, den er gesagt hat -- und es geht
+     *    weiter. Ohne diesen Riegel haengt das Gespraech an einer
+     *    Auswahlfrage fest, und niemand koennte es von aussen aufloesen.
+     *
+     * 4. ABGESCHICKT WIRD NUR AUSDRUECKLICH. „absenden" verlangt eine
+     *    Bestaetigung und alle Pflichtangaben. Das Abschicken rueckt das
+     *    Projekt weiter und verschickt Post -- das ist nichts, was einem
+     *    Missverstaendnis passieren darf.
+     *
+     * @param array<string,mixed> $d
+     * @return array<string,mixed>
+     */
+    public static function fragebogen(array $d): array
+    {
+        require_once __DIR__ . '/Telefonfragebogen.php';
+
+        $sprache = self::sprachwahl($d);
+        $schritt = (string) ($d['schritt'] ?? 'start');
+        $kundeId = self::kundeImGespraech($d);
+
+        if ($kundeId <= 0) {
+            return ['ok' => false, 'grund' => 'unbekannt',
+                    'hinweis' => 'Ich weiss nicht, wer am Hoerer ist. Schlag ihn erst nach '
+                               . '(kunde_nachschlagen), dann koennen wir den Fragebogen machen.'];
+        }
+
+        $f = Telefonfragebogen::offener($kundeId);
+        if ($f === null) {
+            return ['ok' => false, 'grund' => 'kein_fragebogen',
+                    'hinweis' => 'Fuer ihn ist gerade kein Fragebogen offen -- entweder ist er '
+                               . 'schon abgeschickt oder es gibt noch kein Projekt. Sag das '
+                               . 'freundlich und frag, womit du sonst helfen kannst.'];
+        }
+
+        $id = (int) $f['id'];
+        $antworten = Telefonfragebogen::antworten($f);
+
+        return match ($schritt) {
+            'antwort'  => self::fragebogenAntwort($d, $id, $kundeId, $antworten, $sprache),
+            'weiter'   => self::fragebogenWeiter($antworten, (string) ($d['feld'] ?? ''), $sprache),
+            'spaeter'  => self::fragebogenSpaeter($kundeId, $antworten, $sprache),
+            'pruefen'  => self::fragebogenPruefen($antworten, $sprache),
+            'absenden' => self::fragebogenAbsenden($d, $id, $kundeId, $antworten, $sprache),
+            default    => self::fragebogenStart($id, $kundeId, $antworten, $sprache, $f),
+        };
+    }
+
+    /**
+     * Der Anfang: Stand ansagen, Bekanntes bestaetigen, erste Frage.
+     *
+     * @param array<string,mixed> $f
+     * @return array<string,mixed>
+     */
+    private static function fragebogenStart(int $id, int $kundeId, array $antworten,
+                                            string $sprache, array $f): array
+    {
+        [$antworten, $bestaetigen] = self::fragebogenAusAkte($id, $kundeId, $antworten, $sprache);
+
+        $stand = Telefonfragebogen::stand($antworten);
+        $naechstes = Telefonfragebogen::naechstes($antworten);
+
+        self::protokoll('fragebogen', 'Fragebogen am Telefon begonnen', $kundeId,
+            ['fertig' => $stand['fertig'], 'gesamt' => $stand['gesamt']]);
+
+        if ($naechstes === null) {
+            return ['ok' => true, 'fertig' => true, 'stand' => $stand,
+                    'hinweis' => 'Es ist schon alles beantwortet. Geh mit „pruefen" die '
+                               . 'Zusammenfassung durch und frag, ob etwas fehlt oder falsch '
+                               . 'ist -- abgeschickt ist er noch nicht.'];
+        }
+
+        $aus = ['ok' => true, 'projekt' => (string) ($f['projekt'] ?? ''), 'stand' => $stand,
+                'abschnitt_titel' => Telefonfragebogen::abschnittName($naechstes['abschnitt'], $sprache),
+                'frage' => Telefonfragebogen::frage($naechstes, $sprache)];
+
+        if ($bestaetigen) {
+            $aus['bestaetigen'] = $bestaetigen;
+            $aus['bestaetigen_hinweis'] = 'Das steht schon in seiner Akte. Lies es in EINEM Satz '
+                                        . 'zusammen vor und frag nur, ob es stimmt. Frag es nicht '
+                                        . 'einzeln ab -- wer seit Monaten Kunde ist, will seinen '
+                                        . 'eigenen Firmennamen nicht buchstabieren. Stimmt etwas '
+                                        . 'nicht, schick es mir mit „antwort" und dem Feldnamen.';
+        }
+
+        $aus['hinweis'] = 'Sag ihm zuerst, wie lange es ungefaehr dauert (' . $stand['minuten']
+                        . ' Minuten) und dass er jederzeit aufhoeren kann -- alles Gesagte ist '
+                        . 'sofort gespeichert. Dann stell die Frage. Eine Frage nach der anderen, '
+                        . 'nie zwei auf einmal.';
+        return $aus;
+    }
+
+    /**
+     * Was in der Akte steht, wird nicht gefragt.
+     *
+     * Firmenname, Ort, Rufnummer, Adresse, Ansprechpartner: alles vier
+     * Fragen, die sich jemand schon einmal abgerungen hat. Sie werden
+     * vorbelegt und in einem Satz bestaetigt.
+     *
+     * @return array{0:array<string,mixed>,1:list<array{feld:string,frage:string,wert:string}>}
+     */
+    private static function fragebogenAusAkte(int $id, int $kundeId, array $antworten, string $sprache): array
+    {
+        $k = self::still(static fn() => Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]), null);
+        if (!is_array($k)) { return [$antworten, []]; }
+
+        $neu = [];
+        $liste = [];
+        foreach (Telefonfragebogen::AUS_AKTE as $feld => $spalte) {
+            if (Telefonfragebogen::beantwortet($antworten, $feld)) { continue; }
+            $wert = trim((string) ($k[$spalte] ?? ''));
+            if ($wert === '') { continue; }
+            $neu[$feld] = $wert;
+            $def = Fragen::feld($feld) ?? [];
+            $liste[] = ['feld' => $feld,
+                        'frage' => (string) ($def[$sprache] ?? $def['it'] ?? $feld),
+                        'wert' => $wert];
+        }
+        if (!$neu) { return [$antworten, []]; }
+
+        self::still(static fn() => Onboarding::speichern($id, $neu), null);
+        return [array_merge($antworten, $neu), $liste];
+    }
+
+    /**
+     * Eine Antwort verbuchen und weitergehen.
+     *
+     * @param array<string,mixed> $d
+     * @return array<string,mixed>
+     */
+    private static function fragebogenAntwort(array $d, int $id, int $kundeId,
+                                              array $antworten, string $sprache): array
+    {
+        $name = trim((string) ($d['feld'] ?? ''));
+        $def  = $name !== '' ? Fragen::feld($name) : null;
+        if ($def === null) {
+            return ['ok' => false, 'grund' => 'unbekanntes_feld',
+                    'hinweis' => 'Diese Frage gibt es nicht. Nimm „feld" genau so, wie ich es '
+                               . 'dir in „frage_zu" gegeben habe.'];
+        }
+        $art = (string) ($def['art'] ?? 'text');
+        $antwort = trim((string) ($d['antwort'] ?? ''));
+
+        /* Die Materialliste ist eine Frage mit neun Zeilen. Sie kommt nicht
+           als Satz, sondern als Liste -- alles andere waere Raten. */
+        if ($art === 'stand') {
+            $zeilen = self::fragebogenZeilen($d['zeilen'] ?? '');
+            if (!$zeilen) {
+                return ['ok' => false, 'grund' => 'zeilen_fehlen',
+                        'hinweis' => 'Schick mir „zeilen" als Liste: je Zeile einer der Zustaende '
+                                   . 'haben, kommt, du, nein. Was er nicht genannt hat, lasse ich '
+                                   . 'weg -- ich trage es dann als „machst du" ein.'];
+            }
+            $wert = [$name => Telefonfragebogen::standwert($def, $zeilen)];
+            return self::fragebogenSpeichern($id, $kundeId, $antworten, $name, $wert, $sprache);
+        }
+
+        if ($antwort === '' && $art !== 'mehr' && $art !== 'wahl') {
+            return ['ok' => false, 'grund' => 'leer',
+                    'hinweis' => 'Ich habe keine Antwort bekommen. Gib mir in „antwort" mit, was '
+                               . 'er gesagt hat -- in seinen Worten reicht.'];
+        }
+
+        /* Freie Felder gehen direkt durch. Auswahlen werden zugeordnet:
+           Was in einer Auswahl steht, muss aus der Auswahl kommen -- sonst
+           steht spaeter ein erfundener Schluessel im Fragebogen, den weder
+           der Konfigurator noch das Briefing kennt. */
+        $optionen = Telefonfragebogen::optionenVon($def);
+        if (!$optionen) {
+            $wert = Telefonfragebogen::speicherwert($name, $def, [], $antwort);
+            return self::fragebogenSpeichern($id, $kundeId, $antworten, $name, $wert, $sprache);
+        }
+
+        $treffer = Telefonfragebogen::zuordnen($def, $antwort, $sprache);
+        if (!$treffer['unklar']) {
+            $wert = Telefonfragebogen::speicherwert($name, $def, $treffer['treffer'], $antwort);
+            return self::fragebogenSpeichern($id, $kundeId, $antworten, $name, $wert, $sprache);
+        }
+
+        /* ZWEIMAL UNKLAR IST GENUG
+           ------------------------------------------------------------------
+           Beim ersten Mal zwei Vorschlaege. Beim zweiten Mal wird „passt
+           nichts davon" vermerkt und es geht weiter. Der Riegel steht hier
+           und nicht im Leitfaden, weil ein Sprachmodell an einer
+           Auswahlfrage haengenbleiben kann, ohne es zu merken -- und
+           niemand ausser dem Anrufer wuerde es je bemerken. */
+        $schonmal = self::fragebogenUnklar($kundeId, $name);
+        if ($schonmal < 1) {
+            self::protokoll('fragebogen_unklar', 'Fragebogen: Antwort nicht zuzuordnen — ' . $name,
+                $kundeId, ['feld' => $name, 'antwort' => mb_substr($antwort, 0, 200)]);
+            return ['ok' => true, 'unklar' => true, 'frage_zu' => $name,
+                    'vorschlaege' => $treffer['vorschlaege'],
+                    'hinweis' => 'Das konnte ich nicht zuordnen. Nenne ihm die Vorschlaege oben '
+                               . '-- hoechstens zwei, als Frage. Passt keiner, sag es mir einfach '
+                               . 'noch einmal; ich vermerke es dann als „anders" mit seinen '
+                               . 'eigenen Worten und wir gehen weiter.'];
+        }
+
+        $weg = Telefonfragebogen::ausweg($def);
+        if ($weg === '') {
+            /* Keine Auffangoption: Dann bleibt die Frage offen. Sie steht
+               in der Durchsicht am Ende -- besser eine Luecke, die man
+               sieht, als eine Antwort, die niemand gesagt hat. */
+            self::protokoll('fragebogen_offen', 'Fragebogen: Frage bleibt offen — ' . $name,
+                $kundeId, ['feld' => $name, 'antwort' => mb_substr($antwort, 0, 200)]);
+            $aus = self::fragebogenNaechste($antworten, $name, $sprache);
+            $aus['uebersprungen'] = $name;
+            $aus['hinweis'] = 'Lassen wir das offen -- sag ihm, dass wir da spaeter drauf '
+                            . 'zurueckkommen, und mach weiter. ' . (string) ($aus['hinweis'] ?? '');
+            return $aus;
+        }
+
+        $wert = Telefonfragebogen::speicherwert($name, $def, [$weg], $antwort);
+        $aus = self::fragebogenSpeichern($id, $kundeId, $antworten, $name, $wert, $sprache);
+        $aus['vermerkt'] = $weg;
+        return $aus;
+    }
+
+    /**
+     * „logo:haben, fotos:du" wird zu [logo => haben, fotos => du].
+     *
+     * Am Telefon kommt die Materialliste als ein Satz, nicht als Formular.
+     * Deshalb nimmt das Werkzeug eine schlichte Zeichenkette entgegen --
+     * eine verschachtelte Liste haette das Modell in jedem zweiten Anruf
+     * anders gebaut.
+     *
+     * @return array<string,string>
+     */
+    private static function fragebogenZeilen(mixed $roh): array
+    {
+        if (is_array($roh)) {
+            $aus = [];
+            foreach ($roh as $k => $v) {
+                /* Auch die Listenform [{zeile, zustand}] wird verstanden. */
+                if (is_array($v)) {
+                    $z = trim((string) ($v['zeile'] ?? ''));
+                    if ($z !== '') { $aus[$z] = trim((string) ($v['zustand'] ?? '')); }
+                    continue;
+                }
+                $aus[trim((string) $k)] = trim((string) $v);
+            }
+            return $aus;
+        }
+        $aus = [];
+        foreach (explode(',', (string) $roh) as $stueck) {
+            if (!str_contains($stueck, ':')) { continue; }
+            [$z, $w] = explode(':', $stueck, 2);
+            $z = trim($z);
+            if ($z !== '') { $aus[$z] = trim($w); }
+        }
+        return $aus;
+    }
+
+    /** Wie oft war diese Frage in diesem Gespraech schon unklar? */
+    private static function fragebogenUnklar(int $kundeId, string $feld): int
+    {
+        return (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(*) FROM activities
+              WHERE type = 'telefon_fragebogen_unklar' AND demo = 0
+                AND customer_id = ?
+                AND created_at >= NOW() - INTERVAL 1800 SECOND
+                AND meta LIKE ?", [$kundeId, '%"feld":"' . $feld . '"%'], 0), 0);
+    }
+
+    /**
+     * Speichern und die naechste Frage holen.
+     *
+     * @param array<string,mixed> $wert
+     * @return array<string,mixed>
+     */
+    private static function fragebogenSpeichern(int $id, int $kundeId, array $antworten,
+                                                string $name, array $wert, string $sprache): array
+    {
+        $ok = self::still(static function () use ($id, $wert) { Onboarding::speichern($id, $wert); return true; }, false);
+        if ($ok !== true) {
+            return ['ok' => false, 'grund' => 'nicht_gespeichert',
+                    'hinweis' => 'Das konnte ich gerade nicht speichern. Sag ihm, dass wir es '
+                               . 'gleich noch einmal versuchen, und melde es mir mit „melde".'];
+        }
+        $antworten = array_merge($antworten, $wert);
+        $aus = self::fragebogenNaechste($antworten, $name, $sprache);
+        $aus['gespeichert'] = $name;
+        return $aus;
+    }
+
+    /**
+     * Die naechste Frage -- oder die Abschnittspause, oder die Durchsicht.
+     *
+     * @return array<string,mixed>
+     */
+    private static function fragebogenNaechste(array $antworten, string $nach, string $sprache): array
+    {
+        $stand = Telefonfragebogen::stand($antworten);
+        $naechstes = Telefonfragebogen::naechstes($antworten, $nach);
+
+        if ($naechstes === null) {
+            $aus = self::fragebogenPruefen($antworten, $sprache);
+            $aus['hinweis'] = 'Das war die letzte Frage. Jetzt der Durchgang: Geh die Abschnitte '
+                            . 'einzeln durch, lies je Abschnitt kurz vor, was dasteht, und frag '
+                            . 'nach jedem, ob etwas fehlt oder falsch ist. Korrekturen schickst '
+                            . 'du mir mit „antwort" und dem Feldnamen. Erst wenn er sagt, dass '
+                            . 'alles stimmt, nimmst du „absenden".';
+            return $aus;
+        }
+
+        $vorher = $nach !== '' ? (Fragen::feld($nach) !== null ? self::fragebogenAbschnitt($nach) : '') : '';
+        $aus = ['ok' => true, 'stand' => $stand,
+                'abschnitt_titel' => Telefonfragebogen::abschnittName($naechstes['abschnitt'], $sprache),
+                'frage' => Telefonfragebogen::frage($naechstes, $sprache)];
+
+        /* DIE PAUSE NACH JEDEM ABSCHNITT
+           ------------------------------------------------------------------
+           Sechs Abschnitte, jeder ein paar Minuten. Wer eine Viertelstunde
+           am Stueck befragt wird, wird einsilbig -- und einsilbige Antworten
+           sind der Grund, warum ein Briefing spaeter nichts hergibt. Also
+           ein Ausgang nach jedem Abschnitt: Stand ansagen, fragen, ob
+           weitergemacht wird. Legt er auf, ist nichts verloren. */
+        if ($vorher !== '' && $vorher !== $naechstes['abschnitt']) {
+            $aus['pause'] = true;
+            $aus['abschnitt_fertig'] = Telefonfragebogen::abschnittName($vorher, $sprache);
+            $aus['hinweis'] = 'Abschnitt „' . $aus['abschnitt_fertig'] . '" ist durch. Sag den '
+                            . 'Stand (' . $stand['fertig'] . ' von ' . $stand['gesamt'] . ', noch '
+                            . 'etwa ' . $stand['minuten'] . ' Minuten) und frag, ob ihr '
+                            . 'weitermacht oder ein andermal. Sagt er ja, ruf mich mit '
+                            . '„schritt: weiter" -- dann bekommst du die Frage oben. Sagt er '
+                            . 'nein, nimm „schritt: spaeter". Alles Gesagte ist gespeichert.';
+            return $aus;
+        }
+
+        $aus['hinweis'] = 'Eine Frage, kurz gestellt. Kein Vorlesen von Auswahlmoeglichkeiten.';
+        return $aus;
+    }
+
+    /** In welchem Abschnitt steht dieses Feld? */
+    private static function fragebogenAbschnitt(string $name): string
+    {
+        foreach (Texte::FRAGEBOGEN as $abschnitt => $inhalt) {
+            if (isset($inhalt['felder'][$name])) { return (string) $abschnitt; }
+        }
+        return '';
+    }
+
+    /** @return array<string,mixed> */
+    private static function fragebogenWeiter(array $antworten, string $nach, string $sprache): array
+    {
+        $naechstes = Telefonfragebogen::naechstes($antworten, $nach);
+        if ($naechstes === null) { return self::fragebogenPruefen($antworten, $sprache); }
+        return ['ok' => true, 'stand' => Telefonfragebogen::stand($antworten),
+                'abschnitt_titel' => Telefonfragebogen::abschnittName($naechstes['abschnitt'], $sprache),
+                'frage' => Telefonfragebogen::frage($naechstes, $sprache),
+                'hinweis' => 'Weiter geht es. Eine Frage, kurz gestellt.'];
+    }
+
+    /** @return array<string,mixed> */
+    private static function fragebogenSpaeter(int $kundeId, array $antworten, string $sprache): array
+    {
+        $stand = Telefonfragebogen::stand($antworten);
+        self::protokoll('fragebogen_pause', 'Fragebogen am Telefon vertagt — '
+            . $stand['fertig'] . '/' . $stand['gesamt'], $kundeId, $stand);
+
+        return ['ok' => true, 'stand' => $stand,
+                'hinweis' => 'Alles Gesagte ist gespeichert. Sag ihm den Stand ('
+                           . $stand['fertig'] . ' von ' . $stand['gesamt'] . '), dass er '
+                           . 'jederzeit wieder anrufen oder im Portal weitermachen kann und dass '
+                           . 'es dort weitergeht, wo ihr aufgehoert habt. Nichts geht verloren, '
+                           . 'nichts wird abgeschickt.'];
+    }
+
+    /**
+     * Die Durchsicht vor dem Abschicken.
+     *
+     * @return array<string,mixed>
+     */
+    private static function fragebogenPruefen(array $antworten, string $sprache): array
+    {
+        $stand  = Telefonfragebogen::stand($antworten);
+        $fehlt  = self::fragebogenPflichtluecken($antworten, $sprache);
+        $offen  = Telefonfragebogen::offeneFelder($antworten);
+
+        return ['ok' => true, 'durchgang' => true, 'stand' => $stand,
+                'abschnitte' => Telefonfragebogen::zusammenfassung($antworten, $sprache),
+                'pflicht_fehlt' => $fehlt,
+                'offen' => $offen,
+                'bereit' => $fehlt === [],
+                'hinweis' => 'Lies es abschnittsweise vor -- nicht alles am Stueck, das haelt '
+                           . 'niemand aus. Nach jedem Abschnitt: „stimmt das so, fehlt etwas?" '
+                           . 'Korrekturen mit „antwort" und dem Feldnamen. '
+                           . ($fehlt === []
+                              ? 'Erst wenn er ausdruecklich sagt, dass alles passt, nimm '
+                                . '„absenden" mit bestaetigt: true.'
+                              : 'Was unter „pflicht_fehlt" steht, muss noch beantwortet werden -- '
+                                . 'ohne das kann ich ihn nicht abschicken.')];
+    }
+
+    /**
+     * Die fuenf Angaben, ohne die niemand anfangen kann.
+     *
+     * Dieselben, die auch die Lueckenliste im Browser einfordert. Sie
+     * stehen hier noch einmal, weil ein Telefongespraech keinen roten
+     * Rahmen um ein leeres Feld zeigen kann.
+     *
+     * @return list<array{feld:string,frage:string}>
+     */
+    private static function fragebogenPflichtluecken(array $antworten, string $sprache): array
+    {
+        $aus = [];
+        foreach (['branche', 'ort', 'ziel1', 'telefon', 'impressum'] as $feld) {
+            if (Telefonfragebogen::beantwortet($antworten, $feld)) { continue; }
+            $def = Fragen::feld($feld) ?? [];
+            $aus[] = ['feld' => $feld, 'frage' => (string) ($def[$sprache] ?? $def['it'] ?? $feld)];
+        }
+        return $aus;
+    }
+
+    /**
+     * Abschicken -- der einzige Schritt, der etwas ausloest.
+     *
+     * Danach rueckt das Projekt weiter, es entsteht ein Briefing, es gehen
+     * Mails raus. Deshalb zwei Riegel: die Pflichtangaben muessen da sein,
+     * und der Anrufer muss ausdruecklich zugestimmt haben. „bestaetigt"
+     * setzt sie nicht, weil es im Ablauf steht, sondern weil er es gesagt
+     * hat -- und wenn das Modell hier einmal vorgreift, faellt es auf,
+     * weil der Fragebogen abgeschickt in der Verwaltung steht.
+     *
+     * @param array<string,mixed> $d
+     * @return array<string,mixed>
+     */
+    private static function fragebogenAbsenden(array $d, int $id, int $kundeId,
+                                               array $antworten, string $sprache): array
+    {
+        $fehlt = self::fragebogenPflichtluecken($antworten, $sprache);
+        if ($fehlt !== []) {
+            return ['ok' => false, 'grund' => 'unvollstaendig', 'pflicht_fehlt' => $fehlt,
+                    'hinweis' => 'So kann ich ihn nicht abschicken -- die Angaben oben fehlen. '
+                               . 'Frag sie nach (mit „antwort" und dem Feldnamen) und dann '
+                               . 'noch einmal.'];
+        }
+
+        $ja = $d['bestaetigt'] ?? false;
+        if ($ja !== true && $ja !== 1 && $ja !== '1' && $ja !== 'ja' && $ja !== 'true') {
+            return ['ok' => false, 'grund' => 'nicht_bestaetigt',
+                    'durchgang' => self::fragebogenPruefen($antworten, $sprache),
+                    'hinweis' => 'Vor dem Abschicken muss er es gehoert und bestaetigt haben. '
+                               . 'Geh die Abschnitte durch, frag ausdruecklich, ob etwas '
+                               . 'korrigiert oder ergaenzt werden soll, und ruf mich erst dann '
+                               . 'wieder mit bestaetigt: true.'];
+        }
+
+        $ok = self::still(static function () use ($id, $antworten) {
+            Onboarding::absenden($id, $antworten); return true;
+        }, false);
+
+        if ($ok !== true) {
+            return ['ok' => false, 'grund' => 'fehler',
+                    'hinweis' => 'Das Abschicken hat nicht geklappt. Alles Gesagte ist '
+                               . 'gespeichert -- sag ihm, dass Uwe sich meldet, und melde es '
+                               . 'mir mit „melde".'];
+        }
+
+        $stand = Telefonfragebogen::stand($antworten);
+        self::protokoll('fragebogen_abgeschickt', 'Fragebogen am Telefon abgeschickt', $kundeId,
+            ['fertig' => $stand['fertig'], 'gesamt' => $stand['gesamt']]);
+
+        return ['ok' => true, 'abgeschickt' => true, 'stand' => $stand,
+                'hinweis' => 'Abgeschickt. Sag ihm, dass alles da ist, dass Uwe es sich ansieht '
+                           . 'und sich meldet, und bedanke dich fuer die Zeit -- eine '
+                           . 'Viertelstunde ist viel.'];
+    }
+
+    /* ================================================================== */
+    /*  16. Wie heiss ist dieser Anrufer wirklich?                        */
     /* ================================================================== */
 
     /**
@@ -2487,7 +3020,7 @@ final class Telefon
 
 
     /* ================================================================== */
-    /*  16. Was sie besser machen koennte                                 */
+    /*  17. Was sie besser machen koennte                                 */
     /* ================================================================== */
 
     /**
@@ -2698,7 +3231,7 @@ final class Telefon
 
 
     /* ================================================================== */
-    /*  17. Was Manuela nicht selbst merkt                                */
+    /*  18. Was Manuela nicht selbst merkt                                */
     /* ================================================================== */
 
     /**
@@ -2854,7 +3387,7 @@ final class Telefon
 
 
     /* ================================================================== */
-    /*  18. Sich erinnern, wer schon einmal angerufen hat                  */
+    /*  19. Sich erinnern, wer schon einmal angerufen hat                 */
     /* ================================================================== */
 
     /** Weiter zurueck als das erinnert sich auch ein Mensch nicht mehr von allein. */
@@ -3220,7 +3753,8 @@ final class Telefon
 
     /** Diese Aktionen werden gedeckelt. Alles andere läuft normal weiter. */
     public const MERKLISTE_STUMM = ['beratung', 'preis_auskunft', 'angebot_link', 'seite_ansehen',
-                                    'beleg', 'uebergabe', 'termin', 'zusammenfassung', 'wissen'];
+                                    'beleg', 'uebergabe', 'termin', 'zusammenfassung', 'wissen',
+                                    'fragebogen'];
 
     /**
      * Was man sie fragen kann -- für die, die nur auf das Fenster gedrückt haben.
@@ -3235,6 +3769,25 @@ final class Telefon
               . 'Nachricht für Uwe hinterlassen.',
         'en' => 'You can ask me about prices, have me check your website, or leave a message '
               . 'for Uwe.',
+    ];
+
+    /**
+     * Das Angebot, den Fragebogen gemeinsam zu machen.
+     *
+     * Eine Frage, keine Ankündigung: Er darf nein sagen, und dann ist es
+     * vorbei. „Ich gehe das jetzt mit Ihnen durch" wäre eine Zumutung --
+     * eine Viertelstunde ist viel, und niemand hat sie eingeplant.
+     */
+    public const FRAGEBOGEN_SATZ = [
+        'it' => 'Vedo che il questionario per il suo progetto è ancora aperto. Se ha una '
+              . 'quindicina di minuti, lo compiliamo insieme adesso: le faccio io le domande. '
+              . 'Le va?',
+        'de' => 'Ich sehe, Ihr Fragebogen zum Projekt ist noch offen. Wenn Sie eine '
+              . 'Viertelstunde haben, füllen wir ihn jetzt gemeinsam aus — ich stelle Ihnen '
+              . 'die Fragen. Wollen wir?',
+        'en' => 'I can see the questionnaire for your project is still open. If you have '
+              . 'about fifteen minutes, we can fill it in together right now — I ask, you '
+              . 'answer. Shall we?',
     ];
 
     /** Der Satz, den sie sagt. Höflich, knapp, in seiner Sprache. */
