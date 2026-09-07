@@ -142,10 +142,7 @@ final class Cron
 
                Ist kein Zugang hinterlegt, kostet das nichts: Die Aufgabe
                sieht einmal nach und ist fertig. */
-            'gespraeche'  => static function () {
-                require_once __DIR__ . '/Strato.php';
-                return Strato::abgleichen();
-            },
+
             // Damit die Verwaltung auf jeder Seite warnen kann, ohne bei
             // jedem Aufruf eine HTTP-Anfrage zu stellen.
             'cockpit'     => static fn() => self::cockpitPruefen(),
@@ -158,6 +155,25 @@ final class Cron
                 return Zuruf::abarbeiten();
             },
         ];
+        /* Die Gespraeche von STRATO -- einmal in der Stunde, nicht bei jedem
+           Lauf. Sie liegen dort hinter einer Anmeldung, in einer Liste ueber
+           fuenf Seiten, und mit einer Aufbewahrungsfrist, die nicht uns
+           gehoert. Hier stehen sie durchsuchbar, mit der maschinellen
+           Auswertung je Anruf und neben unserer eigenen Spur.
+
+           WARUM STUENDLICH UND NICHT ALLE ZEHN MINUTEN: Jeder Abgleich
+           braucht einen Zugangs-Token, und je oefter der erneuert wird,
+           desto eher faellt eine Erneuerung mit einer anderen zusammen --
+           dann widerruft Supabase die ganze Sitzung. Neue Anrufe eine halbe
+           Stunde spaeter zu sehen kostet nichts; den Zugang zu verlieren
+           kostet einen Handgriff und jedes Mal Ratlosigkeit. */
+        if (self::stundeNochNicht('cron_gespraeche')) {
+            $aufgaben['gespraeche'] = static function () {
+                require_once __DIR__ . '/Strato.php';
+                return Strato::abgleichen();
+            };
+        }
+
         // Einmal am Tag genuegt: alte Pruefungen wegraeumen.
         if (self::heuteNochNicht('cron_aufraeumen')) {
             $aufgaben['aufgeraeumt'] = static fn() => Monitoring::aufraeumen();
@@ -249,6 +265,23 @@ final class Cron
                 '/einstellungen');
         }
         return $wert;
+    }
+
+    /**
+     * Einmal in der Stunde, nicht bei jedem Lauf.
+     *
+     * Der Cron laeuft alle zehn Minuten. Fuer manches ist das richtig, fuer
+     * anderes ist es sechsmal zu oft -- und beim Abgleich mit STRATO war es
+     * teuer: Jeder Lauf brauchte einen Zugangs-Token, und je oefter der
+     * erneuert wird, desto eher faellt eine Erneuerung mit einer anderen
+     * zusammen. Genau daran ist der Zugang am 7. September gestorben.
+     */
+    private static function stundeNochNicht(string $schluessel): bool
+    {
+        $w = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '');
+        if ($w === date('Y-m-d H')) { return false; }
+        self::merken($schluessel, date('Y-m-d H'));
+        return true;
     }
 
     private static function heuteNochNicht(string $schluessel): bool

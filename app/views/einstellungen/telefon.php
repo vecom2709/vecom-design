@@ -169,10 +169,30 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
     </div>
   <?php endif; ?>
 
+  <?php /* DIE WICHTIGSTE ZEILE AUF DIESER SEITE
+           Am 7. September starb der Zugang nach zwei Stunden: „Invalid
+           Refresh Token: Already Used". Der Grund war nicht ein Fehler im
+           Code, sondern eine geteilte Sitzung. Wer den Token aus dem
+           normalen Browserfenster nimmt, gibt dem Server dieselbe Sitzung,
+           die der Browser benutzt — und beide tauschen ihn aus. Wer zweiter
+           ist, ist draußen. */ ?>
+  <div style="background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);
+              border-radius:8px;padding:12px 14px;margin:0 0 14px">
+    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0">
+      <b>Hol den Token aus einem privaten Fenster.</b> Nimmst du ihn aus deinem normalen
+      Chrome, teilen sich Browser und Server <b>dieselbe</b> Sitzung — und weil beide den
+      Token bei jeder Benutzung austauschen, sperrt der eine irgendwann den anderen aus.
+      Genau daran ist der Zugang schon einmal gestorben.
+      <br>Im privaten Fenster anmelden, Token holen, Fenster einfach
+      <b>schließen</b> — <u>nicht abmelden</u>: Abmelden würde die Sitzung beenden, die der
+      Server danach braucht.
+    </p>
+  </div>
+
   <details style="margin-bottom:14px">
     <summary style="cursor:pointer;font-size:13px;color:var(--cyan)">Wo die beiden Angaben stehen</summary>
     <ol style="color:var(--dim);font-size:13px;line-height:1.9;padding-left:20px;margin:10px 0 0">
-      <li>Bei STRATO anmelden, sodass die Gesprächsliste zu sehen ist.</li>
+      <li><b>Privates Fenster</b> öffnen (⇧⌘N) und dort bei STRATO anmelden.</li>
       <li>Mit <b>F12</b> die Entwicklerwerkzeuge öffnen, Reiter <b>Application</b> (Firefox: <b>Speicher</b>).</li>
       <li>Links unter <b>Cookies</b> die Adresse von STRATO wählen.</li>
       <li>Der Eintrag <code>sb-…-auth-token</code> enthält beides. Beginnt der Wert mit
@@ -180,11 +200,13 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
           <code>JSON.parse(atob(…))</code>, oder frag mich, ich lese ihn aus.</li>
       <li>Aus dem entschlüsselten Inhalt: <b>refresh_token</b> in das zweite Feld.
           Der öffentliche Schlüssel (beginnt mit <code>eyJ</code>) steht im Seitenquelltext.</li>
+      <li>Hier eintragen, dann das private Fenster <b>schließen</b> — nicht abmelden.</li>
     </ol>
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
       Kein Passwort, nirgends. Der Auffrischungs-Token gilt nur für dieses eine Konto bei
-      diesem einen Dienst, wird bei jeder Benutzung ausgetauscht und wird wertlos, sobald du
-      dich bei STRATO abmeldest. Er gehört trotzdem nicht in eine E-Mail und nicht in einen Chat.
+      diesem einen Dienst, wird bei jeder Benutzung ausgetauscht und wird wertlos, sobald sich
+      jemand aus dieser Sitzung abmeldet. Er gehört trotzdem nicht in eine E-Mail und nicht in
+      einen Chat.
     </p>
   </details>
 
