@@ -3996,6 +3996,19 @@ $soloAuftrag = Db::insert('hosting_auftraege', ['customer_id' => $soloId,
 pruefe('der Solo-Kunde stimmt zu', Hosting::antwort($soloAuftrag, $soloId, true) === true);
 $soloAbo = Db::one("SELECT * FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'", [$soloId]);
 pruefe('mit der Zustimmung entsteht der Monatsvertrag von selbst', $soloAbo !== null);
+/* Das Vertragsblatt: Jeder Monatsvertrag hat eines — beim Solo-Hosting ist
+   es die Fernabsatz-Bestaetigung. Das PDF muss entstehen und die Kernsaetze
+   tragen; die Mail dazu darf im Test scheitern (kein Mailserver), aber sie
+   darf nichts umwerfen. */
+require_once $wurzel . '/src/Abovertrag.php';
+$soloBlatt = Abovertrag::pdf((int) $soloAbo['id']);
+pruefe('das Vertragsblatt zum Monatsvertrag entsteht als PDF',
+    str_starts_with($soloBlatt, '%PDF'), mb_substr($soloBlatt, 0, 8));
+pruefe('und es ist keine leere Huelle', strlen($soloBlatt) > 2000, (string) strlen($soloBlatt));
+try { Abovertrag::bestaetigen((int) $soloAbo['id']); $soloBest = true; }
+catch (Throwable $e) { $soloBest = false; }
+pruefe('die Bestaetigung wirft nichts um, auch ohne Mailserver', $soloBest);
+
 $soloRate = Db::one("SELECT * FROM payments WHERE abo_id = ? ORDER BY id LIMIT 1",
     [(int) ($soloAbo['id'] ?? 0)]);
 pruefe('und die erste Monatsrate liegt da', $soloRate !== null);

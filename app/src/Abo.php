@@ -102,6 +102,17 @@ final class Abo
 
         Events::protokoll('abo_start', 'Betreuung begonnen: ' . $p['name'], $kundeId, null,
             ($wahl['projekt_id'] ?? null) ?: null);
+
+        /* Die Vertragsbestaetigung mit dem Blatt im Anhang — bei JEDEM
+           Monatsvertrag, sofort beim Abschluss. Beim Solo-Hosting ist sie
+           Pflicht (Fernabsatz: Bestaetigung auf dauerhaftem Datentraeger),
+           bei allen anderen gehoert sie sich. In eigenem Netz: Ein stummer
+           Mailserver darf keinen geschlossenen Vertrag zurueckrollen. */
+        try {
+            require_once __DIR__ . '/Abovertrag.php';
+            Abovertrag::bestaetigen($id);
+        } catch (Throwable $e) { /* das Blatt liegt trotzdem auf der Kundenseite */ }
+
         return $id;
     }
 

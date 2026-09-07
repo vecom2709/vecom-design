@@ -2490,3 +2490,30 @@ Merkposten: SSL (Let's Encrypt, kostenlos) wird je Domain im KAS aktiviert —
 steht jetzt als Handgriff mit in der „Domain bestellen"-Meldung; die
 Domainbestellung selbst bleibt Handgriff (kein API-Weg). AGB/Widerruf fürs
 Solo-Paket ggf. vom Anwalt gegenlesen lassen.
+
+## Rechtlich sauber: Vertragsblatt für Monatsverträge (08.09.2026, nachts)
+
+Uwe fragte, ob Monatsvertrags-Kunden Rechnung, Vertrag und Zugangsdaten
+„wie es sich gehört" bekommen. Bestandsaufnahme: Belege je Rate liefen
+schon (Rechnung::ausZahlung kennt abo_id seit 032, Beleg-Mail mit PDF über
+Events::zahlungBestaetigen, Liste auf der Kundenseite; Rechnung vs.
+Zahlungsbeleg schaltet mit der Partita IVA). Zugangsdaten: einmalige
+verschlüsselte Anzeige — sauber. Was FEHLTE: ein Vertragsdokument für
+Abos — beim Solo-Hosting kommt der Vertrag online zustande (Fernabsatz!),
+und da gehört eine Bestätigung auf dauerhaftem Datenträger hin.
+
+Gebaut: `app/src/Abovertrag.php` — einseitiges PDF je Monatsvertrag
+(A-{id}): Anbieter-Briefkopf, Kunde, Paketname und Leistungen in
+Kundensprache (aus packages.texte), Monatsbetrag, Beginn, Mindestlaufzeit,
+Kündigungssatz, beim Solo-Hosting „zustande gekommen am {datum} per Klick",
+Widerrufsbelehrung (Widerruf::t), AGB-Link. `Abovertrag::bestaetigen()`
+hängt an `Abo::anlegen()` (jeder Abschluss, still): Mail `vertrag_monat`
+mit dem Blatt im Anhang, Wiederholungsschutz übers Protokoll
+(abo_vertragsblatt). Kundenseite: Knopf „Vertragsblatt (PDF)" im
+Vertragskasten (?abovertrag=, Kundennummern-geprüft wie beim Beleg).
+
+Dazu Button-Lösung nachgeschärft: Der Ja-Knopf heißt jetzt
+„zahlungspflichtig bestellen / ordino con obbligo di pagare", und die
+Angebotstexte nennen die 12 Monate Mindestlaufzeit VOR dem Knopf.
+Kette 825 → 828 grün. Merkposten: AGB/Widerruf in legal.html sollte der
+Anwalt einmal mit Blick auf die Monatsverträge gegenlesen.

@@ -597,13 +597,19 @@ final class Texte
            Zugangsdaten fragt. */
         'hostingTitel' => ['it' => 'Il tuo dominio', 'de' => 'Deine Wunschdomain', 'en' => 'Your domain'],
         'hostingAngebot' => [
-            'it' => 'Nel questionario hai indicato che non hai ancora un sito né un dominio. Registriamo e gestiamo noi {domain} per te: dominio, spazio web, certificato SSL e una casella e-mail. Costa {preis} al mese in più. Attiviamo tutto quando il tuo sito è pronto — e riceverai i tuoi dati di accesso qui su questa pagina.',
-            'de' => 'Im Fragebogen hast du angegeben, dass du noch keine Website und keine Domain hast. Wir schalten und betreuen {domain} für dich: Domain, Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach. Das kostet zusätzlich {preis} im Monat. Angelegt wird alles, sobald deine Website fertig ist — deine Zugangsdaten bekommst du dann hier auf dieser Seite.',
-            'en' => 'In the questionnaire you said you don’t have a website or a domain yet. We’ll register and run {domain} for you: domain, web space, SSL certificate and an email mailbox. It costs an extra {preis} per month. Everything is set up once your website is finished — you’ll receive your access details right here on this page.',
+            'it' => 'Nel questionario hai indicato che non hai ancora un sito né un dominio. Registriamo e gestiamo noi {domain} per te: dominio, spazio web, certificato SSL e una casella e-mail. Costa {preis} al mese in più (12 mesi di durata minima, poi disdici a fine mese). Attiviamo tutto quando il tuo sito è pronto — e riceverai i tuoi dati di accesso qui su questa pagina.',
+            'de' => 'Im Fragebogen hast du angegeben, dass du noch keine Website und keine Domain hast. Wir schalten und betreuen {domain} für dich: Domain, Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach. Das kostet zusätzlich {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Angelegt wird alles, sobald deine Website fertig ist — deine Zugangsdaten bekommst du dann hier auf dieser Seite.',
+            'en' => 'In the questionnaire you said you don’t have a website or a domain yet. We’ll register and run {domain} for you: domain, web space, SSL certificate and an email mailbox. It costs an extra {preis} per month (12-month minimum term, then cancel at month’s end). Everything is set up once your website is finished — you’ll receive your access details right here on this page.',
         ],
-        'hostingJa'   => ['it' => 'Sì, attivatelo — {preis} al mese',
-                          'de' => 'Ja, schaltet sie — {preis} im Monat',
-                          'en' => 'Yes, set it up — {preis} per month'],
+        /* Der Ja-Knopf ist der Vertragsschluss — also sagt er es auch:
+           "mit Zahlungspflicht", wie es das Fernabsatzrecht verlangt
+           (Button-Loesung; it: obbligo di pagare). */
+        'hostingJa'   => ['it' => 'Sì, ordino con obbligo di pagare — {preis} al mese',
+                          'de' => 'Ja, zahlungspflichtig bestellen — {preis} im Monat',
+                          'en' => 'Yes, order with obligation to pay — {preis} per month'],
+        'vertragsblatt' => ['it' => 'Foglio del contratto (PDF)',
+                            'de' => 'Vertragsblatt (PDF)',
+                            'en' => 'Contract sheet (PDF)'],
         'hostingNein' => ['it' => 'No, grazie', 'de' => 'Nein, danke', 'en' => 'No, thanks'],
         'hostingDanke' => [
             'it' => 'Perfetto — appena il tuo sito è pronto, attiviamo il dominio e ti mettiamo qui i dati di accesso.',
@@ -630,9 +636,9 @@ final class Texte
            deshalb nicht den Fragebogen, und nach der Zustimmung wartet
            nichts auf eine fertige Seite, sondern auf die erste Zahlung. */
         'hostingAngebotSolo' => [
-            'it' => 'Il dominio {domain} è libero — te lo registriamo e gestiamo noi: dominio, 10 GB di spazio web, certificato SSL e una casella e-mail, con i tuoi dati di accesso. Costa {preis} al mese. Appena arriva il primo pagamento mensile, attiviamo tutto — e i tuoi dati di accesso compaiono qui su questa pagina.',
-            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für dich: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit deinen eigenen Zugangsdaten. Das kostet {preis} im Monat. Sobald deine erste Monatszahlung da ist, schalten wir alles — deine Zugangsdaten erscheinen dann hier auf dieser Seite.',
-            'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, 10 GB of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month. As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
+            'it' => 'Il dominio {domain} è libero — te lo registriamo e gestiamo noi: dominio, 10 GB di spazio web, certificato SSL e una casella e-mail, con i tuoi dati di accesso. Costa {preis} al mese (12 mesi di durata minima, poi disdici a fine mese). Appena arriva il primo pagamento mensile, attiviamo tutto — e i tuoi dati di accesso compaiono qui su questa pagina.',
+            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für dich: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit deinen eigenen Zugangsdaten. Das kostet {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Sobald deine erste Monatszahlung da ist, schalten wir alles — deine Zugangsdaten erscheinen dann hier auf dieser Seite.',
+            'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, 10 GB of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month (12-month minimum term, then cancel at month’s end). As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
         ],
         'hostingWartetZahlung' => [
             'it' => '{domain} è riservato per te. Ti abbiamo mandato la prima rata mensile — appena il pagamento arriva, attiviamo tutto e i dati di accesso compaiono qui.',
@@ -1095,6 +1101,34 @@ final class Texte
                 . "your domain, web space, SSL and email mailbox — and your access details "
                 . "appear on your personal page.\n\n"
                 . "The receipt follows right after payment."],
+        ],
+        /* Die Bestaetigung zum Monatsvertrag — mit dem Vertragsblatt im
+           Anhang. Sie geht bei JEDEM Abschluss raus (Betreuung wie Hosting):
+           Beim Solo-Hosting kommt der Vertrag online zustande, und ein
+           Fernabsatzvertrag verlangt die Bestaetigung auf dauerhaftem
+           Datentraeger. Bei den anderen ist sie schlicht guter Stil. */
+        'vertrag_monat' => [
+            'it' => ['Il tuo contratto: {paket} — {betrag} al mese',
+                "Ciao {name},\n\necco la conferma del tuo contratto mensile, nero su bianco:\n\n"
+                . "{paket} — {betrag} al mese\nInizio: {beginn}\nDurata minima fino al: {mindest}\n\n"
+                . "In allegato trovi il foglio del contratto con tutte le condizioni, il diritto "
+                . "di recesso compreso — conservalo pure. Lo trovi anche sulla tua pagina:\n{link}\n\n"
+                . "Dopo la durata minima disdici quando vuoi a fine mese, dalla tua pagina o "
+                . "rispondendo a questa e-mail."],
+            'de' => ['Dein Vertrag: {paket} — {betrag} im Monat',
+                "Hallo {name},\n\nhier die Bestätigung deines Monatsvertrags, schwarz auf weiß:\n\n"
+                . "{paket} — {betrag} im Monat\nBeginn: {beginn}\nMindestlaufzeit bis: {mindest}\n\n"
+                . "Im Anhang liegt dein Vertragsblatt mit allen Bedingungen samt Widerrufsrecht — "
+                . "zum Aufheben. Du findest es auch jederzeit auf deiner Seite:\n{link}\n\n"
+                . "Nach der Mindestlaufzeit kündigst du jederzeit zum Monatsende — auf deiner "
+                . "Seite oder einfach als Antwort auf diese E-Mail."],
+            'en' => ['Your contract: {paket} — {betrag} per month',
+                "Hello {name},\n\nhere is the confirmation of your monthly contract, in black and white:\n\n"
+                . "{paket} — {betrag} per month\nStart: {beginn}\nMinimum term until: {mindest}\n\n"
+                . "Attached you’ll find your contract sheet with all terms including the right of "
+                . "withdrawal — keep it somewhere safe. It’s also available on your page any time:\n{link}\n\n"
+                . "After the minimum term you can cancel at any month’s end — from your page or "
+                . "simply by replying to this email."],
         ],
         /* Das Angebot: Uwe hat die Wunschdomain geprueft und vorgeschlagen.
            Die Mail bringt den Kunden auf seine Seite, wo Preis und Ja-Knopf

@@ -130,6 +130,25 @@ if ($kunde && isset($_GET['vertrag'])) {
     exit;
 }
 
+/* Das Vertragsblatt zum MONATSVERTRAG — Betreuung oder Domain & Hosting.
+   Dieselbe Regel wie beim Beleg: geprueft wird ueber die Kundennummer,
+   und ein Blatt, das sich nicht erzeugen laesst, gibt eine Meldung,
+   keinen Fehler. */
+if ($kunde && isset($_GET['abovertrag'])) {
+    require_once __DIR__ . '/app/src/Abovertrag.php';
+    $ba = sicherLesen(fn() => Db::one('SELECT * FROM abos WHERE id = ? AND customer_id = ?',
+        [(int) $_GET['abovertrag'], (int) $kunde['id']]), null);
+    if (!$ba) { http_response_code(404); exit('Nicht gefunden.'); }
+    $daten = (string) sicherLesen(fn() => Abovertrag::pdf((int) $ba['id']), '');
+    if ($daten === '') { http_response_code(503); exit('Das Blatt lässt sich gerade nicht erzeugen.'); }
+    header('Content-Type: application/pdf');
+    header('Content-Length: ' . strlen($daten));
+    header('Content-Disposition: attachment; filename="'
+        . Abovertrag::dateiname($ba, Abovertrag::sprache($kunde)) . '"');
+    echo $daten;
+    exit;
+}
+
 /* -------------------------------------------------------------------------
    Was der Kunde tun kann. Vier Dinge, mehr braucht es nicht.
    ------------------------------------------------------------------------- */
@@ -699,6 +718,12 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['beginn']), $T('betreuungSeit'))) ?><br>
           <?= $h(str_replace('{datum}', Fmt::datum((string) $abo['mindestlaufzeit_bis']), $T('betreuungMind'))) ?>
         </p>
+        <?php /* Das Blatt zum Aufheben — dieselbe Idee wie bei der
+                 Auftragsbestaetigung: Bedingungen, Laufzeit, Kuendigung
+                 und Widerruf, jederzeit abrufbar, nicht nur in der Mail. */ ?>
+        <p style="margin-top:10px">
+          <a class="knopf" href="<?= $h($hier) ?>&amp;abovertrag=<?= (int) $abo['id'] ?>">
+            <?= $h(Texte::h(Texte::SEITE['vertragsblatt'] ?? [], $sprache, 'Vertragsblatt (PDF)')) ?></a></p>
 
         <?php /* ---------- Was aus dem Vertrag faellig ist ----------
                  Der Link in der Zahlungsaufforderung fuehrt hierher, wenn
