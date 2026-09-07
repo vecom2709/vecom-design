@@ -189,17 +189,35 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
     </p>
   </div>
 
+  <?php /* KEIN CODE IN DER KONSOLE
+           Chrome warnt bei jedem Einfügen in die Entwicklerkonsole — zu
+           Recht. Wer seinen Nutzern beibringt, diese Warnung wegzuklicken,
+           bringt ihnen bei, sie immer wegzuklicken. Deshalb nimmt das Feld
+           unten auch den rohen Cookie-Wert: mit der Maus kopieren, hier
+           einfügen, der Server packt ihn aus. */ ?>
+  <div style="background:rgba(93,188,252,.07);border:1px solid var(--linie);
+              border-radius:8px;padding:12px 14px;margin:0 0 14px">
+    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0">
+      <b>Du brauchst dafür keinen Code in der Konsole.</b> Kopiere unten einfach den
+      <b>ganzen Wert</b> des Cookies <code>sb-…-auth-token</code> — so wie er dasteht, auch
+      wenn er mit <code>base64-</code> beginnt und wie Kauderwelsch aussieht. Auspacken macht
+      der Server. Chrome warnt zu Recht vor fremdem Code in der Konsole; diese Warnung sollst
+      du nie wegklicken.
+    </p>
+  </div>
+
   <details style="margin-bottom:14px">
     <summary style="cursor:pointer;font-size:13px;color:var(--cyan)">Wo die beiden Angaben stehen</summary>
     <ol style="color:var(--dim);font-size:13px;line-height:1.9;padding-left:20px;margin:10px 0 0">
       <li><b>Privates Fenster</b> öffnen (⇧⌘N) und dort bei STRATO anmelden.</li>
       <li>Mit <b>F12</b> die Entwicklerwerkzeuge öffnen, Reiter <b>Application</b> (Firefox: <b>Speicher</b>).</li>
       <li>Links unter <b>Cookies</b> die Adresse von STRATO wählen.</li>
-      <li>Der Eintrag <code>sb-…-auth-token</code> enthält beides. Beginnt der Wert mit
-          <code>base64-</code>, ist er kodiert — dann in der Konsole
-          <code>JSON.parse(atob(…))</code>, oder frag mich, ich lese ihn aus.</li>
-      <li>Aus dem entschlüsselten Inhalt: <b>refresh_token</b> in das zweite Feld.
-          Der öffentliche Schlüssel (beginnt mit <code>eyJ</code>) steht im Seitenquelltext.</li>
+      <li>Auf den Eintrag <code>sb-…-auth-token</code> klicken. Unten erscheint der Wert —
+          mit der Maus markieren und kopieren, <b>ganz</b>, auch das <code>base64-</code>
+          am Anfang. Kein Code, keine Konsole.</li>
+      <li>Hier unten in das Feld <b>Auffrischungs-Token</b> einfügen. Der Server holt sich
+          daraus, was er braucht, und wirft den Rest weg. Das obere Feld bleibt leer —
+          der öffentliche Schlüssel steht schon gespeichert.</li>
       <li>Hier eintragen, dann das private Fenster <b>schließen</b> — nicht abmelden.</li>
     </ol>
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
@@ -216,7 +234,10 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
     <div class="feld"><label>Öffentlicher Schlüssel<?= $strato['eingerichtet'] ? ' (leer lassen = unverändert)' : '' ?></label>
       <input type="password" name="anon" autocomplete="off" placeholder="eyJhbGciOi…"></div>
     <div class="feld"><label>Auffrischungs-Token<?= $strato['eingerichtet'] ? ' (leer lassen = unverändert)' : '' ?></label>
-      <input type="password" name="refresh" autocomplete="off" placeholder="aus dem Cookie sb-…-auth-token"></div>
+      <input type="password" name="refresh" autocomplete="off"
+             placeholder="den ganzen Cookie-Wert einfügen — base64-… ist richtig so">
+      <small style="color:var(--leise);font-size:12px">Der ganze Cookie-Wert genügt; der
+        Server packt ihn aus und behält nur den Auffrischungs-Token.</small></div>
     <button class="knopf haupt">Zugang hinterlegen und prüfen</button>
   </form>
 

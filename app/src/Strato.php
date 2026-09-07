@@ -74,12 +74,76 @@ final class Strato
      *
      * @return array{ok:bool,text:string}
      */
+    /**
+     * DEN TOKEN AUS DEM ROHEN COOKIE HOLEN
+     * =====================================================================
+     *
+     * Bisher stand hier: „F12, Konsole, diesen Einzeiler einfügen." Chrome
+     * warnt bei genau dieser Handlung — zu Recht: „Füge keinen Code in die
+     * Konsole ein, den du nicht verstehst." Wer seinen Nutzern beibringt,
+     * diese Warnung wegzuklicken, bringt ihnen bei, sie immer wegzuklicken.
+     *
+     * Also nimmt dieses Feld auch den ROHEN Cookie-Wert. Der lässt sich in
+     * den Entwicklerwerkzeugen mit der Maus kopieren — kein Code, keine
+     * Warnung, kein Verstehen nötig. Das Auspacken macht der Server:
+     *
+     *   base64-eyJhY2Nlc3Nfd...   →   {"access_token":…,"refresh_token":…}
+     *
+     * Aus dem Ergebnis wird nur der refresh_token behalten. Der
+     * access_token, der im selben Cookie steht, wird verworfen: Er ist in
+     * einer Stunde wertlos, und was man nicht braucht, speichert man nicht.
+     */
+    public static function ausCookie(string $roh): string
+    {
+        $r = trim($roh);
+        if ($r === '') { return ''; }
+
+        /* Schon der nackte Token? Sie sind kurz, ohne Leerzeichen und ohne
+           geschweifte Klammern -- dann ist nichts auszupacken. Das
+           Leerzeichen ist der Unterschied zwischen einem Token und einem
+           Satz, den jemand versehentlich hineinkopiert hat. */
+        if (preg_match('~^[A-Za-z0-9._-]{8,120}$~', $r) && !str_starts_with($r, 'base64-')) {
+            return $r;
+        }
+
+        /* Manche kopieren den ganzen Cookie samt Namen. */
+        if (preg_match('~^sb-[a-z0-9]+-auth-token=(.*)$~s', $r, $m)) { $r = $m[1]; }
+
+        $r = rawurldecode($r);
+        if (str_starts_with($r, 'base64-')) {
+            $d = base64_decode(substr($r, 7), true);
+            if ($d !== false) { $r = $d; }
+        }
+
+        $j = json_decode($r, true);
+        /* Manche Fassungen legen die Sitzung als Liste ab. */
+        if (is_array($j) && isset($j[0]) && is_array($j[0])) { $j = $j[0]; }
+        if (is_array($j) && (string) ($j['refresh_token'] ?? '') !== '') {
+            return (string) $j['refresh_token'];
+        }
+
+        /* Letzter Versuch: irgendwo im Text steht das Feld. */
+        if (preg_match('~"refresh_token"\s*:\s*"([^"]+)"~', $r, $m)) { return $m[1]; }
+
+        /* Nichts erkannt. Lieber leer zurückgeben als etwas, das nur
+           aussieht wie ein Token -- eine klare Fehlermeldung ist besser als
+           eine Ablehnung von Supabase, die niemand einordnen kann. */
+        return '';
+    }
+
     public static function zugangSetzen(string $anon, string $refresh): array
     {
         $anon    = trim($anon);
-        $refresh = trim($refresh);
-        if ($anon === '' || $refresh === '') {
-            return ['ok' => false, 'text' => 'Es fehlt eine der beiden Angaben.'];
+        /* Der ganze Cookie ist auch recht -- siehe ausCookie(). */
+        $refresh = self::ausCookie($refresh);
+        if ($refresh === '') {
+            return ['ok' => false,
+                    'text' => 'Darin war kein Auffrischungs-Token zu finden. Kopiere den '
+                            . 'ganzen Wert des Cookies „sb-…-auth-token" — auch das '
+                            . '„base64-" am Anfang gehört dazu.'];
+        }
+        if ($anon === '') {
+            return ['ok' => false, 'text' => 'Der öffentliche Schlüssel fehlt.'];
         }
         if (!str_starts_with($anon, 'eyJ')) {
             return ['ok' => false, 'text' => 'Der öffentliche Schlüssel sieht nicht aus wie einer — er beginnt mit „eyJ“.'];

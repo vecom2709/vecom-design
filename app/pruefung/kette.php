@@ -3037,6 +3037,50 @@ pruefe('ein abgelaufener gilt nicht mehr', $zw->invoke(null) === null);
 pruefe('und ohne hinterlegten Zugang wird auch keiner geholt',
     Strato::zugangsToken() === null && str_contains(Strato::fehler(), 'Kein Zugang'), Strato::fehler());
 
+/* DER TOKEN AUS DEM ROHEN COOKIE
+   ------------------------------------------------------------------------
+   Bisher hiess die Anleitung: „F12, Konsole, diesen Einzeiler einfügen."
+   Chrome warnt bei genau dieser Handlung — zu Recht. Wer seinen Nutzern
+   beibringt, diese Warnung wegzuklicken, bringt ihnen bei, sie immer
+   wegzuklicken. Also nimmt das Feld auch den rohen Cookie-Wert: mit der
+   Maus kopieren, einfügen, der Server packt aus.
+
+   Er kommt in fünf Schreibweisen an, je nachdem, was jemand markiert hat. */
+$sitzung = json_encode(['access_token' => 'eyJ-access', 'refresh_token' => 'v66geheim']);
+$formen = [
+    'der nackte Token'      => 'v66geheim',
+    'base64 aus dem Cookie' => 'base64-' . base64_encode($sitzung),
+    'rohes JSON'            => $sitzung,
+    'mit Cookie-Namen davor'=> 'sb-oeblavonrjzfihahjvmm-auth-token=base64-' . base64_encode($sitzung),
+    'URL-kodiert'           => rawurlencode('base64-' . base64_encode($sitzung)),
+    'als Liste abgelegt'    => json_encode([json_decode($sitzung, true)]),
+];
+$daneben = [];
+foreach ($formen as $wie => $wert) {
+    if (Strato::ausCookie($wert) !== 'v66geheim') { $daneben[] = $wie; }
+}
+pruefe('der Token wird aus jeder Schreibweise ausgepackt', $daneben === [], implode(', ', $daneben));
+
+/* WAS NICHT DURCHGEHT: etwas, das nur aussieht wie ein Token. Eine klare
+   Fehlermeldung ist besser als eine Ablehnung von Supabase, die niemand
+   einordnen kann. */
+pruefe('ein Satz ist kein Token', Strato::ausCookie('hallo welt') === '');
+pruefe('nichts ist auch kein Token', Strato::ausCookie('') === '');
+pruefe('und zu kurz ebenfalls nicht', Strato::ausCookie('kurz') === '');
+
+/* Und der access_token, der im selben Cookie steht, wird verworfen --
+   er ist in einer Stunde wertlos, und was man nicht braucht, speichert
+   man nicht. */
+pruefe('der Zugangs-Token aus dem Cookie wird nicht mitgenommen',
+    Strato::ausCookie('base64-' . base64_encode($sitzung)) !== 'eyJ-access');
+
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+$leer = Strato::zugangSetzen('eyJtest', 'hallo welt');
+pruefe('und wer Unsinn einfügt, bekommt gesagt, was zu tun ist',
+    ($leer['ok'] ?? true) === false && str_contains((string) $leer['text'], 'sb-…-auth-token'),
+    json_encode($leer));
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+
 /* Die Sperre selbst: Sie muss sich nehmen und wieder freigeben lassen —
    bleibt sie hängen, steht beim nächsten Lauf alles acht Sekunden still. */
 $g1 = (int) Db::wert("SELECT GET_LOCK('vd_strato_token', 1)", [], 0);
