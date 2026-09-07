@@ -357,6 +357,11 @@ final class Kunde
                                  (SELECT a.customer_id FROM abos   a WHERE a.id = payments.abo_id)
                              ) = :k',
         'abos'           => 'customer_id = :k',
+        /* Seit 040: Der Hosting-Auftrag traegt Domain, KAS-Login und den
+           verschluesselten Zugangs-Blob — ohne diese Zeile bliebe nach dem
+           Loeschen ein Waisenauftrag mit genau den Daten stehen, um deren
+           Verschwinden es geht. */
+        'hosting_auftraege' => 'customer_id = :k',
         'projects'       => 'customer_id = :k',
         'orders'         => 'customer_id = :k',
         'anfragen'       => 'customer_id = :k',
@@ -607,6 +612,15 @@ final class Kunde
             try {
                 $zeilen += Db::run('DELETE FROM notifications WHERE link = ?',
                     ['/kunden/' . $kundeId])->rowCount();
+            } catch (Throwable $e) { }
+
+            /* Der Hosting-Auftrag ist Vertrag und bleibt — aber der
+               verschluesselte Zugangs-Blob und die Notiz sind persoenlich
+               und verschwinden mit dem Menschen. */
+            try {
+                $zeilen += Db::run('UPDATE hosting_auftraege
+                                       SET zugang_blob = NULL, notiz = NULL
+                                     WHERE customer_id = ?', [$kundeId])->rowCount();
             } catch (Throwable $e) { }
 
             /* 3. Der Versandnachweis bleibt stehen, die Adresse darin nicht.

@@ -2534,3 +2534,12 @@ weiter nur als FREI bestätigte Domains durch), mit Auftrag als Infozeile
 der übrigen Wünsche. Zur Klarstellung dokumentiert: Jeder Kunde hat mit
 seinem Unter-Account ein EIGENES KAS-Kundenmenü (kas.all-inkl.com).
 Kette weiter 828 grün.
+
+### Nachtrag: Löschweg kennt die Hosting-Aufträge (08.09.2026)
+
+Vor Uwes Test-Buchung entdeckt: Kunde::loeschen (die REIHE) und
+Kunde::anonymisieren stammten von vor Migration 040 — ein gelöschter
+Testkunde hätte einen Waisen-Hosting-Auftrag mit Domain, KAS-Login und
+verschlüsseltem Zugangs-Blob hinterlassen. Jetzt: Löschen nimmt
+hosting_auftraege mit; Anonymisieren lässt die Vertragszeile stehen,
+leert aber zugang_blob und notiz. Kette 828 grün.
