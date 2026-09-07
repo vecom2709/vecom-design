@@ -1961,10 +1961,18 @@ pruefe('der Blick steht in der Spur',
    ============================================================================ */
 abschnitt('26. Übergabe und Rückblick');
 
-$u1 = Telefon::uebergabe(['sprache' => 'de', 'email' => 'keine-adresse']);
+/* Seit dem 7.9. geht an eine frei genannte Adresse nichts raus, bevor sie
+   zurückgelesen und bestätigt wurde — der eigene Abschnitt dazu steht weiter
+   unten. Hier interessiert, was DANACH passiert, also ist sie bestätigt. */
+$u0 = Telefon::uebergabe(['sprache' => 'de', 'email' => 'interessent@example.org']);
+pruefe('ohne Bestätigung der Adresse geht nichts raus',
+    ($u0['grund'] ?? '') === 'adresse_unbestaetigt', json_encode($u0));
+
+$u1 = Telefon::uebergabe(['sprache' => 'de', 'email' => 'keine-adresse', 'email_bestaetigt' => true]);
 pruefe('eine unklare Adresse wird abgelehnt', ($u1['ok'] ?? true) === false, json_encode($u1));
 
 $u2 = Telefon::uebergabe(['sprache' => 'de', 'email' => 'interessent@example.org',
+                          'email_bestaetigt' => true,
                           'gespraech' => $faden, 'von_euro' => 650, 'bis_euro' => 850,
                           'befund' => 'Auf dem Handy schiebt sich die Seite weg.']);
 $versuch = (string) Db::wert("SELECT betreff FROM mails ORDER BY id DESC LIMIT 1", [], '');
@@ -3228,6 +3236,107 @@ pruefe('mit Rufnummer bleibt es bei der Rufnummer', (int) $g3['kunde_id'] === $k
 $hilfe = Telefonwerkzeuge::alle()['hilfe'];
 pruefe('bei „hilfe" ist der Wortlaut Pflicht',
     in_array('text', $hilfe['pflicht'], true), json_encode($hilfe['pflicht']));
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_gespraeche');
+
+/* ============================================================================
+   40. Fünf Dinge für den Anrufer
+   ============================================================================
+   Aus den echten Gesprächen abgeleitet, nicht aus dem Lehrbuch.
+   ============================================================================ */
+abschnitt('40. Für den Anrufer');
+
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('DELETE FROM telefon_gespraeche');
+Db::run('DELETE FROM telefon_gespraech_weg');
+
+/* ---- 1. DAS NETZ UNTER DEN ZUSAGEN ----
+   „Es wurde vereinbart, dass Uwe dem Kunden eine Rückmeldung gibt" — und
+   „melde" wurde nicht aufgerufen. Der Anrufer legt auf und glaubt, es
+   läuft. Es existiert nichts. Zweimal derselbe Fehler in zwei Tagen. */
+pruefe('eine Zusage wird im Text erkannt',
+    Telefon::zusageErkannt('Es wurde vereinbart, dass Uwe sich meldet.'));
+pruefe('auf Italienisch auch',
+    Telefon::zusageErkannt('È stato concordato che invierà i dettagli.'));
+pruefe('auf Englisch auch',
+    Telefon::zusageErkannt('The agent agreed to send the link.'));
+pruefe('ein gewöhnlicher Satz ist keine Zusage',
+    Telefon::zusageErkannt('Der Anrufer wollte die Preise wissen.') === false);
+pruefe('und ein leerer Text erst recht nicht', Telefon::zusageErkannt('') === false);
+
+$g = ['id' => 'aaaa1111-0000-0000-0000-000000000001',
+      'begonnen' => date('Y-m-d H:i:s', time() - 900), 'sekunden' => 200,
+      'betreff' => 'Unsicherheit beim Material-Upload',
+      'zusammenfassung' => 'Es wurde vereinbart, dass Uwe dem Kunden eine Rückmeldung gibt.',
+      'kunde_nummer' => 'widget-call', 'name' => '', 'kunde_id' => null];
+
+pruefe('eine Zusage ohne Spur wird nachgetragen', Telefon::zusageNachtragen($g) === true);
+$r = Telefon::rueckrufe(30);
+pruefe('und steht danach auf „Heute anrufen"', count($r) === 1, json_encode(count($r)));
+pruefe('mit dem Anliegen aus dem Gespräch',
+    str_contains((string) ($r[0]['anliegen'] ?? ''), 'Material-Upload'), json_encode($r[0]['anliegen'] ?? null));
+
+/* KEINE ZWEITE LISTE: Es ist ein gewöhnlicher Rückruf, mit demselben Knopf
+   abhakbar wie jeder andere. Wer eine zweite Liste baut, hat zwei Listen,
+   die einander widersprechen. */
+Telefon::rueckrufErledigt((int) $r[0]['id']);
+pruefe('und lässt sich ganz normal abhaken', Telefon::rueckrufe(30) === []);
+
+/* Und nicht zweimal dasselbe. */
+pruefe('zweimal nachtragen passiert nicht', Telefon::zusageNachtragen($g) === false);
+
+/* Hat sie es festgehalten, wird nichts nachgetragen — sonst stünde jeder
+   erledigte Punkt doppelt da. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+$g2 = $g; $g2['id'] = 'aaaa1111-0000-0000-0000-000000000002';
+Telefon::melden(['art' => 'rueckruf', 'telefon' => '+39 380 111 2233',
+                 'text' => 'Bitte zurückrufen', 'anliegen' => 'Material']);
+Db::run("UPDATE activities SET created_at = ? WHERE type = 'telefon_melde'",
+        [date('Y-m-d H:i:s', strtotime($g2['begonnen']) + 30)]);
+pruefe('wo sie es festgehalten hat, wird nichts nachgetragen',
+    Telefon::zusageNachtragen($g2) === false);
+
+/* ---- 2. ER IST SCHON IM PORTAL ----
+   Am 7.9. um 03:19: Der Anrufer dachte, er sei im Kundenportal. Sie sagte
+   „hier ist die Telefonzentrale", er legte genervt auf. Er WAR im Portal. */
+Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
+Db::run('UPDATE customers SET phone = ? WHERE id = ?', ['+39 380 111 2233', $kundeId]);
+Telefon::amWidget($kundeId);
+$n = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('sie erfährt, dass er von seiner Kundenseite aus anruft',
+    ($n['von_kundenseite'] ?? false) === true, json_encode($n['von_kundenseite'] ?? null));
+pruefe('und wird angewiesen, ihn nicht wegzuschicken',
+    str_contains((string) $n['hinweis'], 'er ist drin'), (string) $n['hinweis']);
+
+/* Wer NICHT von dort anruft, bekommt den Hinweis nicht — sonst behauptet
+   sie etwas über den Anrufer, das nicht stimmt. */
+Db::run("DELETE FROM activities WHERE type = 'telefon_widget_da'");
+$n2 = Telefon::nachschlagen(['telefon' => '+39 380 111 2233']);
+pruefe('ohne Vermerk kein Hinweis auf die Kundenseite', empty($n2['von_kundenseite']));
+
+/* ---- 4. DIE ADRESSE ZURÜCKLESEN ---- */
+$ohne = Telefon::angebotLink(['sprache' => 'de', 'email' => 'neu@example.com']);
+pruefe('an eine unbestätigte Adresse geht nichts raus',
+    ($ohne['grund'] ?? '') === 'adresse_unbestaetigt', json_encode($ohne));
+pruefe('und sie erfährt, was zu tun ist',
+    str_contains((string) $ohne['hinweis'], 'Buchstabe für Buchstabe'), (string) $ohne['hinweis']);
+pruefe('mit Bestätigung greift der Riegel nicht',
+    Telefon::adresseBestaetigt(['email' => 'neu@example.com', 'email_bestaetigt' => true]) === null);
+pruefe('auch als Zeichenkette „true“ — Stratos Platzhalter liefern Text',
+    Telefon::adresseBestaetigt(['email' => 'neu@example.com', 'email_bestaetigt' => 'true']) === null);
+
+/* AN EINE HINTERLEGTE ADRESSE SCHON: Die hat er selbst eingetragen. Sie
+   noch einmal buchstabieren zu lassen wäre eine Zumutung. */
+pruefe('ohne genannte Adresse greift der Riegel gar nicht',
+    Telefon::adresseBestaetigt(['sprache' => 'de']) === null);
+
+/* ---- 5. NICHTS ERFINDEN ---- */
+$w = Telefonwerkzeuge::alle();
+pruefe('„beleg" verbietet das Erfinden ausdrücklich',
+    str_contains($w['beleg']['zweck'], 'erfunden'), mb_substr($w['beleg']['zweck'], -120));
+pruefe('„wissen" auch',
+    str_contains($w['wissen']['zweck'], 'Erfinde keine'), mb_substr($w['wissen']['zweck'], 0, 120));
 
 Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
 Db::run('DELETE FROM telefon_gespraeche');

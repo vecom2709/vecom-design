@@ -966,7 +966,10 @@ if ($post) {
                 if ($ab['ok'] ?? false) {
                     $_SESSION['gut'] = (int) ($ab['gesehen'] ?? 0) . ' Gespräche gesehen, '
                         . (int) ($ab['neu'] ?? 0) . ' neu, '
-                        . (int) ($ab['geaendert'] ?? 0) . ' aktualisiert.';
+                        . (int) ($ab['geaendert'] ?? 0) . ' aktualisiert.'
+                        . (($ab['nachgetragen'] ?? 0) > 0
+                            ? ' ' . (int) $ab['nachgetragen'] . ' zugesagte, aber nicht '
+                              . 'festgehaltene Punkte stehen jetzt auf „Heute anrufen".' : '');
                 } else {
                     $_SESSION['fehler'] = 'Es kam nichts an: ' . (Strato::fehler() ?: 'kein Zugang hinterlegt.');
                 }

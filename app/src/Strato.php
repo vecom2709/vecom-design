@@ -312,18 +312,33 @@ final class Strato
         $weg = array_flip(array_column(
             (array) self::still(static fn() => Db::all('SELECT id FROM telefon_gespraech_weg'), []), 'id'));
 
-        $neu = $geaendert = $uebersprungen = 0;
+        require_once __DIR__ . '/Telefon.php';
+
+        $neu = $geaendert = $uebersprungen = $nachgetragen = 0;
         foreach ($a['daten'] as $g) {
             if (!is_array($g)) { continue; }
             if (isset($weg[(string) ($g['id'] ?? '')])) { $uebersprungen++; continue; }
             $r = self::ablegen($g);
             if ($r === 'neu') { $neu++; } elseif ($r === 'geaendert') { $geaendert++; }
+
+            /* DAS NETZ UNTER DEN ZUSAGEN
+               Steht in der Zusammenfassung eine Verabredung und fehlt jede
+               Spur davon, wird sie hier nachgetragen -- als gewöhnlicher
+               Rückruf, in derselben Liste wie alles andere. Warum das nicht
+               noch einmal in den Leitfaden gehört, steht bei
+               Telefon::zusageNachtragen(). */
+            if ($r !== 'gleich') {
+                $abgelegt = self::still(static fn() => Db::one(
+                    'SELECT * FROM telefon_gespraeche WHERE id = ?', [(string) $g['id']]), null);
+                if (is_array($abgelegt) && Telefon::zusageNachtragen($abgelegt)) { $nachgetragen++; }
+            }
         }
 
         self::merken('strato_zuletzt', date('Y-m-d H:i:s'));
         self::merken('strato_fehler', '');
         return ['ok' => true, 'gesehen' => count($a['daten']), 'neu' => $neu,
-                'geaendert' => $geaendert, 'uebersprungen' => $uebersprungen];
+                'geaendert' => $geaendert, 'uebersprungen' => $uebersprungen,
+                'nachgetragen' => $nachgetragen];
     }
 
     /** Einen Satz ablegen. @return 'neu'|'geaendert'|'gleich' */

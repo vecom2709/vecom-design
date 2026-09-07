@@ -359,6 +359,21 @@ final class Telefon
             return $aus;   // kein Erinnerungssatz, kein Projektstand -- kurz halten heisst kurz
         }
 
+        /* WO ER GERADE STEHT
+           ------------------------------------------------------------------
+           Am 7.9. um 03:19 rief jemand an und dachte, er sei im Kundenportal.
+           Sie antwortete „hier ist die Telefonzentrale", er legte genervt
+           auf. Er WAR im Portal -- das Sprachfenster sitzt seit dem Vortag
+           genau dort. Wer jemanden wegschickt, der schon angekommen ist, hat
+           ihn zweimal verloren. */
+        if ($kid === self::kundeAmWidget() && $kid > 0) {
+            $aus['von_kundenseite'] = true;
+            $aus['hinweis'] = 'Er ruft von SEINER Kundenseite aus an — er ist also schon dort, '
+                            . 'wo er hinwollte. Sag das früh: „Sie sind auf Ihrer Kundenseite, '
+                            . 'ich sehe Ihren Stand." Schick ihn nie ins Portal, er ist drin. '
+                            . (string) ($aus['hinweis'] ?? '');
+        }
+
         /* „Sie hatten letzte Woche angerufen, es ging um …“ — der Satz, der
            aus einer Telefonzentrale einen Menschen macht. */
         $f = self::frueher($telefon, $kid);
@@ -696,6 +711,11 @@ final class Telefon
         require_once __DIR__ . '/Bedarf.php';
         require_once __DIR__ . '/Mail.php';
 
+        /* Eine frei genannte Adresse geht erst raus, wenn er sie bestätigt
+           hat -- siehe adresseBestaetigt(). */
+        $riegel = self::adresseBestaetigt($d);
+        if ($riegel !== null) { return $riegel; }
+
         $sprache = in_array(($d['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : 'it';
         $kundeId = self::kundeImGespraech($d);
 
@@ -935,6 +955,9 @@ final class Telefon
             return ['ok' => false, 'grund' => 'keine_zustimmung',
                     'hinweis' => 'Erst fragen, ob ich es schicken darf.'];
         }
+        $riegel = self::adresseBestaetigt($d);
+        if ($riegel !== null) { return $riegel; }
+
         $text = trim((string) ($d['text'] ?? ''));
         if (mb_strlen($text) < 20) {
             return ['ok' => false, 'hinweis' => 'Die Zusammenfassung ist zu kurz.'];
@@ -2107,6 +2130,9 @@ final class Telefon
         require_once __DIR__ . '/Mail.php';
         require_once __DIR__ . '/Texte.php';
 
+        $riegel = self::adresseBestaetigt($d);
+        if ($riegel !== null) { return $riegel; }
+
         $sprache = self::sprachwahl($d);
         $kundeId = self::kundeImGespraech($d);
 
@@ -2919,6 +2945,164 @@ final class Telefon
     }
 
     /* ================================================================== */
+    /*  Die Adresse, die er wirklich gesagt hat                           */
+    /* ================================================================== */
+
+    /**
+     * EINE FALSCH VERSTANDENE ADRESSE IST EIN LINK, DER NIE ANKOMMT
+     * =====================================================================
+     *
+     * In der Auswertung steht es einmal ausdrücklich: „E-Mail-Adresse nicht
+     * bestätigen lassen". Der Anrufer wartet dann auf etwas, das nie kam,
+     * und für ihn ist das dasselbe wie eine gebrochene Zusage -- er weiss ja
+     * nicht, dass ein Buchstabe daneben lag.
+     *
+     * Am Telefon geht das schnell schief: „hoffmann" und „hofmann",
+     * „gmx.de" und „gmx.net", ein „ie" statt „ei". Die Spracherkennung
+     * hört, was häufiger ist, nicht was gesagt wurde.
+     *
+     * Die Bitte, zurückzulesen, stand längst in der Beschreibung. Sie hat
+     * nicht gereicht -- wie bei „text" und wie bei der kunde_id. Also ein
+     * Riegel: Ohne Bestätigung geht nichts an eine frei genannte Adresse.
+     *
+     * AN EINE HINTERLEGTE ADRESSE SCHON. Die hat er selbst eingetragen, die
+     * ist geprüft, und sie noch einmal buchstabieren zu lassen wäre eine
+     * Zumutung für jemanden, der längst Kunde ist.
+     */
+    public static function adresseBestaetigt(array $d): ?array
+    {
+        $email = trim((string) ($d['email'] ?? ''));
+        if ($email === '') { return null; }          // hinterlegte Adresse -- nichts zu prüfen
+
+        $ja = $d['email_bestaetigt'] ?? false;
+        if ($ja === true || $ja === 1 || $ja === '1' || $ja === 'true') { return null; }
+
+        return ['ok' => false, 'grund' => 'adresse_unbestaetigt',
+                'hinweis' => 'Lies ihm die Adresse Buchstabe für Buchstabe zurück — auch das, was '
+                           . 'nach dem @ steht — und lass sie ausdrücklich bestätigen. Dann ruf '
+                           . 'mich noch einmal auf und setz „email_bestaetigt" auf true. '
+                           . 'Ein Buchstabe daneben heisst: Er wartet auf etwas, das nie kommt, '
+                           . 'und hält uns für unzuverlässig.'];
+    }
+
+    /* ================================================================== */
+    /*  Das Netz unter den Zusagen                                        */
+    /* ================================================================== */
+
+    /**
+     * WENN SIE ETWAS ZUSAGT UND ES NICHT FESTHÄLT
+     * =====================================================================
+     *
+     * Am 6.9. um 22:23: Link zugesagt, nie verschickt. Am 7.9. um 03:21:
+     * „Es wurde vereinbart, dass Uwe dem Kunden eine Rückmeldung gibt,
+     * welche Unterlagen benötigt werden" -- und „melde" wurde nicht
+     * aufgerufen. Zweimal derselbe Fehler, und aus Sicht des Anrufers ist es
+     * der teuerste: nicht „sie konnte nicht helfen", sondern „die haben mich
+     * vergessen". Er legt auf und glaubt, es läuft. Es existiert nichts.
+     *
+     * WARUM DAS NICHT NOCH EINMAL IN DEN LEITFADEN GEHÖRT
+     *
+     * Da stand es schon: „melde ist der Rettungsanker." Es hat zweimal nicht
+     * gereicht. Eine dritte, schärfere Formulierung wäre die dritte Hoffnung
+     * -- und Hoffnung ist kein Mechanismus.
+     *
+     * Also ein Netz darunter, das nicht von ihr abhängt: Beim Abgleich liest
+     * die Verwaltung STRATOS Zusammenfassung. Steht dort eine Zusage und
+     * fehlt im selben Zeitfenster jede Spur davon, legt sie den Punkt selbst
+     * an -- und er steht am nächsten Morgen auf „Heute anrufen".
+     *
+     * ES ENTSTEHT KEIN ZWEITER MECHANISMUS. Der Punkt wird als ganz
+     * gewöhnlicher Rückruf abgelegt, mit derselben Art, die auch „melde"
+     * schreibt. Damit taucht er in derselben Liste auf, wird mit demselben
+     * Knopf abgehakt und zählt in denselben Zahlen. Wer eine zweite Liste
+     * baut, hat zwei Listen, die einander widersprechen.
+     */
+
+    /** Woran eine Zusage in der Zusammenfassung zu erkennen ist. */
+    public const ZUSAGE_WORTE = [
+        'de' => ['wurde vereinbart', 'vereinbart, dass', 'wird sich melden', 'meldet sich',
+                 'rückmeldung', 'rückruf', 'zurückrufen', 'zugesagt', 'wird zugeschickt',
+                 'wird geschickt', 'schickt zu', 'kümmert sich', 'wird prüfen', 'wird sich kümmern'],
+        'it' => ['è stato concordato', 'si farà sentire', 'richiamerà', 'invierà',
+                 'manderà', 'verrà ricontattato', 'si occuperà'],
+        'en' => ['it was agreed', 'will get back', 'will send', 'will call back',
+                 'agreed to', 'will follow up', 'will look into'],
+    ];
+
+    /** Diese Spuren beweisen, dass die Zusage festgehalten wurde. */
+    public const ZUSAGE_ERLEDIGT = ['telefon_melde', 'telefon_termin', 'telefon_uebergabe',
+                                    'telefon_angebot_link', 'telefon_zusammenfassung'];
+
+    public static function zusageErkannt(string $text): bool
+    {
+        $t = mb_strtolower(trim($text));
+        if ($t === '') { return false; }
+        foreach (self::ZUSAGE_WORTE as $worte) {
+            foreach ($worte as $w) {
+                if (str_contains($t, $w)) { return true; }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Eine Zusage ohne Spur -- als gewöhnlicher Rückruf nachtragen.
+     *
+     * @return bool ob etwas angelegt wurde
+     */
+    public static function zusageNachtragen(array $g): bool
+    {
+        $text = trim((string) ($g['zusammenfassung'] ?? '') . ' ' . (string) ($g['betreff'] ?? ''));
+        if (!self::zusageErkannt($text)) { return false; }
+
+        $von = (string) ($g['begonnen'] ?? '');
+        if ($von === '') { return false; }
+        $bis = date('Y-m-d H:i:s', strtotime($von) + max(120, (int) ($g['sekunden'] ?? 0) + 180));
+
+        /* Gibt es schon eine Spur? Dann hat sie es festgehalten, und hier
+           ist nichts zu tun. */
+        $liste = "'" . implode("','", self::ZUSAGE_ERLEDIGT) . "'";
+        $da = (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(*) FROM activities
+              WHERE type IN ($liste) AND demo = 0
+                AND created_at >= ? AND created_at <= ?", [$von, $bis], 0), 0);
+        if ($da > 0) { return false; }
+
+        /* Und nicht zweimal dasselbe nachtragen. */
+        $schon = (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(*) FROM activities
+              WHERE type = 'telefon_melde' AND demo = 0
+                AND meta LIKE ?", ['%"aus_gespraech":"' . (string) $g['id'] . '"%'], 0), 0);
+        if ($schon > 0) { return false; }
+
+        $nummer = (string) ($g['kunde_nummer'] ?? '');
+        if ($nummer === 'widget-call') { $nummer = ''; }
+        $wer = trim((string) ($g['name'] ?? ''));
+
+        /* Ein gewöhnlicher Rückruf, damit er in derselben Liste landet wie
+           alles andere -- siehe oben. */
+        self::still(static fn() => Events::protokoll('telefon_melde',
+            'Zugesagt, aber nicht festgehalten — ' . mb_substr((string) ($g['betreff'] ?: 'Anruf'), 0, 120),
+            $g['kunde_id'] !== null ? (int) $g['kunde_id'] : null, null, null,
+            ['art' => 'rueckruf',
+             'name' => $wer,
+             'nummer' => $nummer,
+             'anliegen' => mb_substr((string) ($g['betreff'] ?: ''), 0, 200),
+             'text' => mb_substr((string) ($g['zusammenfassung'] ?? ''), 0, 800),
+             'nachgetragen' => true,
+             'aus_gespraech' => (string) $g['id']]));
+
+        /* Und die Zeile bekommt die Zeit des Gesprächs, nicht die des
+           Abgleichs -- sonst stünde sie als „gerade eben" da, obwohl der
+           Anruf zwei Stunden her ist. */
+        self::still(static fn() => Db::run(
+            "UPDATE activities SET created_at = ?
+              WHERE type = 'telefon_melde' ORDER BY id DESC LIMIT 1", [$von]));
+
+        return true;
+    }
+
+    /* ================================================================== */
     /*  Wer über die Website anruft                                       */
     /* ================================================================== */
 
@@ -2954,10 +3138,11 @@ final class Telefon
     public const WIDGET_FENSTER = 300;   // Sekunden
 
     /** Die Seite meldet: Dieser Kunde öffnet gerade das Sprachfenster. */
-    public static function amWidget(int $kundeId): void
+    public static function amWidget(int $kundeId, string $seite = 'kundenseite'): void
     {
         if ($kundeId <= 0) { return; }
-        self::protokoll('widget_da', 'Sprachfenster geöffnet', $kundeId, ['kunde_id' => $kundeId]);
+        self::protokoll('widget_da', 'Sprachfenster geöffnet', $kundeId,
+                        ['kunde_id' => $kundeId, 'seite' => $seite]);
     }
 
     /**

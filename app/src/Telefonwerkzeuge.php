@@ -95,7 +95,12 @@ final class Telefonwerkzeuge
         $eigA = [
           'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en'], 'description' => 'Sprache des Gesprächs'],
           'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher nachgeschlagen und gefunden'],
-          'email' => ['type' => 'string', 'format' => 'email', 'description' => 'Nur bei Neukunden, buchstabieren lassen'],
+          'email' => ['type' => 'string', 'format' => 'email',
+                      'description' => 'Nur bei Neukunden. Erst zurücklesen lassen, dann eintragen'],
+          'email_bestaetigt' => ['type' => 'boolean',
+                      'description' => 'true erst, NACHDEM du ihm die Adresse Buchstabe für '
+                                     . 'Buchstabe zurückgelesen und er sie bestätigt hat. '
+                                     . 'Ohne das geht nichts raus'],
           'name' => ['type' => 'string', 'description' => 'Name für die Anrede'],
         ];
         foreach ($fragen as $f => $inf) {
@@ -106,7 +111,8 @@ final class Telefonwerkzeuge
                    'description' => 'Nur eintragen, was der Anrufer wirklich gesagt hat.'];
         }
         $rumpfA = '{"aktion":"angebot_link","sprache":"{{ sprache }}","kunde_id":"{{ kunde_id }}",'
-                . '"email":"{{ email }}","name":"{{ name }}"';
+                . '"email":"{{ email }}","email_bestaetigt":"{{ email_bestaetigt }}",'
+                . '"name":"{{ name }}"';
         foreach (array_keys($fragen) as $f) { $rumpfA .= ',"' . $f . '":"{{ ' . $f . ' }}"'; }
         $rumpfA .= '}';
 
@@ -175,6 +181,12 @@ final class Telefonwerkzeuge
                        'description' => 'Das Anliegen in eigenen Worten des Anrufers'],
           ],
           'pflicht' => ['art', 'text'],
+          /* HIER STEHT DER RETTUNGSANKER — und seit dem 7.9. ein Netz darunter:
+             Sagst du etwas zu und rufst dieses Werkzeug nicht auf, trägt die
+             Verwaltung den Punkt beim nächsten Abgleich selbst nach. Das ist
+             KEINE Erlaubnis, es sein zu lassen: Nachgetragen heisst, Uwe
+             erfährt es Stunden später statt sofort, und der Anrufer bekommt
+             seinen Rückruf entsprechend später. */
           'rumpf' => '{"aktion":"melde","art":"{{ art }}","prioritaet":"{{ prioritaet }}",'
                    . '"kunde_id":"{{ kunde_id }}","name":"{{ name }}","telefon":"{{ telefon }}",'
                    . '"erreichbar":"{{ erreichbar }}","text":"{{ text }}"}',
@@ -243,13 +255,17 @@ final class Telefonwerkzeuge
             'zustimmung' => ['type' => 'boolean', 'description' => 'Hat der Anrufer ausdrücklich zugestimmt?'],
             'sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']],
             'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
-            'email' => ['type' => 'string', 'format' => 'email', 'description' => 'Nur bei Neukunden'],
+            'email' => ['type' => 'string', 'format' => 'email',
+                        'description' => 'Nur bei Neukunden. Erst zurücklesen lassen'],
+            'email_bestaetigt' => ['type' => 'boolean',
+                        'description' => 'true erst, NACHDEM du die Adresse zurückgelesen und er '
+                                       . 'sie bestätigt hat. Ohne das geht nichts raus'],
             'text' => ['type' => 'string', 'minLength' => 20, 'maxLength' => 6000,
                        'description' => 'Die Zusammenfassung in der Sprache des Gesprächs'],
           ],
           'pflicht' => ['zustimmung', 'text'],
           'rumpf' => '{"aktion":"zusammenfassung","zustimmung":"{{ zustimmung }}","sprache":"{{ sprache }}",'
-                   . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","text":"{{ text }}"}',
+                   . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","email_bestaetigt":"{{ email_bestaetigt }}","text":"{{ text }}"}',
         ];
 
         /* ---------- Die sechs neuen: Beratung statt Auskunft ---------- */
@@ -336,7 +352,11 @@ final class Telefonwerkzeuge
         $konfigs['beleg'] = [
           'zweck' => 'Eine echte Kundenstimme statt eines Werbesatzes. Nenne höchstens eine, sinngemäß, '
                    . 'mit dem Betrieb dazu. Kommt keine zurück, erfinde keine — sag stattdessen, '
-                   . 'dass Uwe Beispiele schickt.',
+                   . 'dass Uwe Beispiele schickt. '
+                   . 'DAS IST KEINE FORMSACHE: In der Auswertung stehen vier Anrufe, in denen du '
+                   . 'etwas erfunden oder behauptet hast, das du nicht getan hast. Ein Anrufer, '
+                   . 'der das merkt, ruft nie wieder an — und er erzählt es weiter. Wenn du etwas '
+                   . 'nicht weißt, sag „das schaue ich nach" und nimm es mit „melde" auf.',
           'eig' => [
             'branche' => ['type' => 'string',
                           'enum' => array_map('strval', array_keys(Baukasten::FRAGEN['branche']['optionen'] ?? [])),
@@ -366,16 +386,24 @@ final class Telefonwerkzeuge
             'bis_euro'  => ['type' => 'integer', 'description' => 'Obere Grenze aus „beratung“, falls genannt'],
             'befund'    => ['type' => 'string', 'maxLength' => 400,
                             'description' => 'Ein Satz aus „seite_ansehen“, wörtlich — sonst leer lassen'],
+            'email_bestaetigt' => ['type' => 'boolean',
+                            'description' => 'true erst, NACHDEM du die Adresse Buchstabe für '
+                                           . 'Buchstabe zurückgelesen und er sie bestätigt hat. '
+                                           . 'Ohne das geht nichts raus'],
           ],
           'pflicht' => ['sprache'],
           'rumpf' => '{"aktion":"uebergabe","gespraech":"{{ gespraech }}","sprache":"{{ sprache }}",'
-                   . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}","name":"{{ name }}",'
+                   . '"kunde_id":"{{ kunde_id }}","email":"{{ email }}",'
+                   . '"email_bestaetigt":"{{ email_bestaetigt }}","name":"{{ name }}",'
                    . '"von_euro":"{{ von_euro }}","bis_euro":"{{ bis_euro }}","befund":"{{ befund }}"}',
         ];
 
         $konfigs['wissen'] = [
           'zweck' => 'Pakete, Bausteine und Preise, wie sie in dieser Sekunde in der Verwaltung stehen. '
                    . 'Immer hier nachsehen, statt eine Zahl aus dem Gedächtnis zu nennen. '
+                   . 'Was hier nicht steht, gibt es nicht: Erfinde keine Leistung, keinen Baustein '
+                   . 'und keine Frist. Steht etwas nicht drin, sag „das schaue ich nach" und nimm '
+                   . 'es mit „melde" auf. '
                    . 'Diese Zahlen sind Einzelpreise — der Preis eines Projekts ist eine Spanne '
                    . 'und kommt aus „beratung“.',
           'eig' => ['sprache' => ['type' => 'string', 'enum' => ['it', 'de', 'en']]],
