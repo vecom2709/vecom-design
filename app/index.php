@@ -1675,7 +1675,14 @@ if ($post) {
                     $d['customer_id'] !== null ? (int) $d['customer_id'] : null, null,
                     $d['project_id'] !== null ? (int) $d['project_id'] : null);
                 $_SESSION['gut'] = 'Datei gelöscht.';
-                zurueck('projekte/' . (int) $d['project_id']);
+                /* Zurueck, woher der Klick kam: aus der Kundenakte in die
+                   Kundenakte, aus dem Projekt ins Projekt. Eine Datei am
+                   Kunden ohne Projekt sprang vorher nach projekte/0 — 404. */
+                $zielWeg = trim((string) ($_POST['zurueck'] ?? ''));
+                if ($zielWeg !== '') { zurueck($zielWeg); }
+                if ($d['project_id'] !== null) { zurueck('projekte/' . (int) $d['project_id']); }
+                if ($d['customer_id'] !== null) { zurueck('kunden/' . (int) $d['customer_id']); }
+                zurueck('');
 
             case 'website_speichern':
                 require_once __DIR__ . '/src/Monitoring.php';

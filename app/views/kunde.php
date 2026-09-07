@@ -72,7 +72,20 @@
           <span><?= Fmt::h($d['orig_name']) ?><br><small style="color:var(--leise)">
             <?= Fmt::h(Fmt::bytes((int) $d['size_bytes'])) ?> · <?= $d['uploaded_by'] === 'kunde' ? 'vom Kunden' : 'von dir' ?>
             · <?= Fmt::h(Fmt::datum($d['created_at'])) ?></small></span>
-          <a class="knopf" href="<?= Fmt::h(url('dateien/' . (int) $d['id'])) ?>">Herunterladen</a>
+          <span style="display:flex;gap:6px;flex-shrink:0">
+            <a class="knopf" href="<?= Fmt::h(url('dateien/' . (int) $d['id'])) ?>">Herunterladen</a>
+            <?php /* Loeschen — mit Rueckfrage, weil es nicht rueckgaengig zu
+                     machen ist. Der Weg zurueck fuehrt in die Kundenakte, nicht
+                     ins Projekt: Diese Datei haengt hier am Kunden. */ ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
+                  data-frage="„<?= Fmt::h($d['orig_name']) ?>" wirklich löschen? Das lässt sich nicht rückgängig machen."
+                  data-ja="Ja, löschen">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="datei_weg">
+              <input type="hidden" name="id" value="<?= (int) $d['id'] ?>">
+              <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+              <button class="knopf" style="color:var(--rot)" title="Löschen">Löschen</button>
+            </form>
+          </span>
         </div>
       <?php endforeach; ?>
     <?php endif; ?>

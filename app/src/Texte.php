@@ -896,6 +896,17 @@ final class Texte
         'monatWartet'   => ['it' => 'Ti scrivo io quando è il momento di pagare.',
                             'de' => 'Ich melde mich, wenn sie zu zahlen ist.',
                             'en' => 'I’ll write to you when it’s time to pay.'],
+        /* Der Weg per Ueberweisung — solange es keinen Zahlungslink gibt
+           (Karte kommt, sobald der Zahlungsanbieter freigeschaltet ist). */
+        'ueberweisung'     => ['it' => 'Pagamento con bonifico',
+                               'de' => 'Zahlung per Überweisung',
+                               'en' => 'Payment by bank transfer'],
+        'ueberweisungHilfe'=> ['it' => 'Puoi pagare comodamente con bonifico bancario. Indica la causale qui sotto così riconosco subito il pagamento.',
+                               'de' => 'Du kannst bequem per Überweisung zahlen. Gib den Verwendungszweck unten an, dann erkenne ich die Zahlung sofort.',
+                               'en' => 'You can pay conveniently by bank transfer. Please add the reference below so I recognise the payment right away.'],
+        'ueEmpf'  => ['it' => 'Beneficiario', 'de' => 'Empfänger', 'en' => 'Recipient'],
+        'ueBank'  => ['it' => 'Banca',       'de' => 'Bank',      'en' => 'Bank'],
+        'ueZweck' => ['it' => 'Causale',     'de' => 'Verwendungszweck', 'en' => 'Reference'],
         /* Nach dem Onlinegang: die Bitte um zwei Saetze. Sie steht auf seiner
            Seite, nicht in einer weiteren E-Mail — dort ist er ohnehin, wenn
            er zufrieden nachsieht, wie die Seite laeuft. */

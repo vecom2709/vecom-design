@@ -732,6 +732,18 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
                  Liste kam der Kunde an und sah nichts, was er haette
                  bezahlen koennen — die Aufforderung lief ins Leere. */ ?>
         <?php $monate = (array) sicherLesen(fn() => Abo::raten((int) $abo['id']), []); ?>
+        <?php
+          /* Kann Stripe wirklich kassieren? Wenn nicht (Konto noch nicht
+             freigeschaltet), führt ein Zahlungslink ins Leere — dann kein
+             Kartenknopf, sondern der Überweisungsweg weiter unten. */
+          $stripeKassiert = false;
+          try {
+              require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+              require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+              $stCheck = new StripeAnbieter();
+              $stripeKassiert = $stCheck->bereit() && $stCheck->webhookBereit() && $stCheck->modus() === 'live';
+          } catch (Throwable $e) { $stripeKassiert = false; }
+        ?>
         <?php if ($monate): ?>
           <div style="margin-top:14px">
             <div class="mini" style="font-weight:650;margin-bottom:6px"><?= $h($T('monate')) ?></div>
@@ -745,13 +757,42 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
                   if (!$bezahlt && $m['faellig_am']): ?> · <?= $h(str_replace('{datum}',
                     Fmt::datum((string) $m['faellig_am']), $T('monatFaellig'))) ?><?php
                   elseif (!$bezahlt): ?> · <?= $h($T('monatWartet')) ?><?php endif; ?></span>
-                <?php if (!$bezahlt && !empty($m['link_url'])): ?>
+                <?php if (!$bezahlt && !empty($m['link_url']) && $stripeKassiert): ?>
                   <a class="knopf haupt" style="margin-left:auto"
                      href="<?= $h((string) $m['link_url']) ?>"><?= $h($T('monatZahlen')) ?></a>
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
           </div>
+
+          <?php /* ---------- Der Weg per Überweisung ----------
+                   Solange es für eine offene Rate keinen Zahlungslink gibt
+                   (die Kartenzahlung kommt, sobald der Zahlungsanbieter
+                   freigeschaltet ist), braucht der Kunde einen anderen Weg.
+                   Nur zeigen, wenn eine IBAN hinterlegt ist — eine
+                   Aufforderung ohne Kontonummer wäre eine Sackgasse. */ ?>
+          <?php
+            $offeneRate = false;
+            foreach ($monate as $m) {
+                if ((string) $m['status'] !== 'bezahlt') { $offeneRate = true; break; }
+            }
+            require_once __DIR__ . '/app/src/Firma.php';
+            $ueIban = Firma::get('iban');
+          ?>
+          <?php if ($offeneRate && !$stripeKassiert && $ueIban !== ''): ?>
+            <div style="margin-top:14px;padding:13px 15px;border:1px solid var(--linie);border-radius:12px">
+              <div class="mini" style="font-weight:650;margin-bottom:5px"><?= $h($T('ueberweisung')) ?></div>
+              <p class="mini" style="margin:0 0 10px;color:var(--dim)"><?= $h($T('ueberweisungHilfe')) ?></p>
+              <div class="mini" style="line-height:1.75">
+                <?php $ueFirma = Firma::get('firma'); if ($ueFirma !== ''): ?>
+                  <?= $h($T('ueEmpf')) ?>: <b><?= $h($ueFirma) ?></b><br><?php endif; ?>
+                <?php $ueBank = Firma::get('bank'); if ($ueBank !== ''): ?>
+                  <?= $h($T('ueBank')) ?>: <?= $h($ueBank) ?><br><?php endif; ?>
+                IBAN: <b style="font-variant-numeric:tabular-nums;user-select:all"><?= $h($ueIban) ?></b><br>
+                <?= $h($T('ueZweck')) ?>: <b><?= $h(trim(((($knr ?? '') !== '') ? $knr . ' · ' : '') . (string) $abo['paket_name'])) ?></b>
+              </div>
+            </div>
+          <?php endif; ?>
         <?php endif; ?>
 
         <?php if ((string) $abo['status'] === 'beendet'): ?>

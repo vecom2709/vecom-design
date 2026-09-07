@@ -2624,3 +2624,27 @@ hosting.php nutzt jetzt Session + CSRF (vecomhosting). Der Admin-Weg
 Kunden und Altfälle. Kettentest 828 → 830 (Direktkauf-Riegel). Merkposten
 verstärkt: Der Widerrufsverzicht-Text (aus Widerruf.php, wie bei buchen.php)
 ist für ein Dauerschuldverhältnis (Hosting-Abo) rechtlich zu prüfen — Anwalt.
+
+### Überweisungs-Zahlweg + Kunden-Dateien löschen (08.09.2026)
+
+Zwei Punkte nach dem ersten echten Hosting-Testkauf (Kunde 43):
+
+1. Zahlweg ohne Stripe: Solange Stripe nicht freigeschaltet ist, führt ein
+   erzeugter Zahlungslink ins Leere. Auf der Kundenseite (kunde.php) prüft
+   der Raten-Block jetzt, ob Stripe wirklich kassieren kann (bereit +
+   webhookBereit + Live — dieselbe lokale Prüfung wie der Direktkauf). Wenn
+   nicht: Der ins Leere führende Karten-Knopf wird ausgeblendet und
+   stattdessen ein Überweisungs-Kasten gezeigt (Empfänger, Bank, IBAN,
+   Verwendungszweck = Kundennummer · Paketname). Nur wenn eine IBAN in
+   Firma & Steuern hinterlegt ist — sonst wäre es eine Sackgasse. Texte
+   dreisprachig (Texte::KUNDE ueberweisung*). Sobald Stripe live ist,
+   verschwindet der Kasten von selbst und der Karten-Knopf kommt zurück.
+   MERKPOSTEN: Uwe muss seine IBAN (Revolut) in Firma & Steuern eintragen,
+   sonst erscheint der Überweisungsweg nicht.
+
+2. Kunden-Dateien löschen: In der Kundenakte (app/views/kunde.php) hat jetzt
+   jede Datei neben „Herunterladen" einen „Löschen"-Knopf (mit Rückfrage).
+   Der bestehende datei_weg-Handler sprang hart nach projekte/{id} — bei
+   einer Datei am Kunden ohne Projekt (project_id NULL) landete er auf
+   projekte/0 (404). Handler nimmt jetzt ein zurueck-Ziel und fällt sonst
+   auf Kundenakte/Projekt zurück.
