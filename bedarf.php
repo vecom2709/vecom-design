@@ -54,7 +54,7 @@ header('X-Content-Type-Options: nosniff');
 header('X-Robots-Tag: noindex, nofollow');
 
 /* ---------- Sprache ---------- */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? 'it'));
+$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($_COOKIE['vecomlang'] ?? 'it')));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
 $T = static fn(string $s): string => Texte::h(Texte::BEDARF[$s] ?? [], $sprache);

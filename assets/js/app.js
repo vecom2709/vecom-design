@@ -14,6 +14,59 @@
 
   document.body.classList.add('js');
 
+  /* ======================================================================
+     DIE SPRACHE REIST MIT — UEBER ALLE SEITEN
+
+     Bisher wurde die Wahl nur auf den vier Umschalt-Seiten gespeichert.
+     Wer oben rechts auf DE klickte, folgte einem LINK nach /de/ — und
+     nichts merkte sich das. Beim naechsten Direkteinstieg auf / oder auf
+     einer Unterseite stand wieder Italienisch da.
+
+     Jetzt gilt: Wer auf einer festen Sprachfassung steht, hat sie gewaehlt
+     — sie wird gemerkt (localStorage fuer die statischen Seiten, Cookie
+     fuer die PHP-Seiten wie bedarf.php und hosting.php). Und wer die Seite
+     VON AUSSEN betritt (Lesezeichen, Google, getippte Adresse), wird auf
+     die gemerkte Fassung geleitet. Klicks INNERHALB der Website leiten nie
+     um — sonst kaeme, wer bewusst auf IT zurueckschaltet, nie dort an. */
+  var SEITEN = {
+    it: { home: '/',    preise: '/prezzi.html',    betreuung: '/assistenza.html' },
+    de: { home: '/de/', preise: '/de/preise.html', betreuung: '/de/betreuung.html' },
+    en: { home: '/en/', preise: '/en/pricing.html', betreuung: '/en/care.html' }
+  };
+
+  function merken(lang) {
+    try { localStorage.setItem(STORE, lang); } catch (e) {}
+    try {
+      document.cookie = 'vecomlang=' + lang + ';path=/;max-age=31536000;SameSite=Lax';
+    } catch (e) {}
+  }
+
+  /* Welche Rolle spielt dieser Pfad — und in welcher Sprache liegt er? */
+  function seiteVon(pfad) {
+    if (pfad.slice(-11) === '/index.html') { pfad = pfad.slice(0, -10); }
+    for (var l in SEITEN) {
+      for (var rolle in SEITEN[l]) {
+        if (SEITEN[l][rolle] === pfad) { return { lang: l, rolle: rolle }; }
+      }
+    }
+    return null;
+  }
+
+  (function sprachweiche() {
+    var fest = document.documentElement.getAttribute('data-lang-fixed');
+    if (!fest || LANGS.indexOf(fest) < 0) { return; }
+    var hier = seiteVon(location.pathname);
+    var wunsch = null;
+    try { wunsch = localStorage.getItem(STORE); } catch (e) {}
+    var vonInnen = document.referrer.indexOf(location.origin + '/') === 0
+        || document.referrer === location.origin;
+    if (hier && !vonInnen && wunsch && LANGS.indexOf(wunsch) > -1 && wunsch !== fest) {
+      var ziel = SEITEN[wunsch][hier.rolle];
+      if (ziel) { location.replace(ziel + location.hash); return; }
+    }
+    merken(fest);
+  })();
+
   /* ---------- 1. Sprache -------------------------------------------------- */
   function get(lang, path) {
     return path.split('.').reduce(function (o, k) { return (o || {})[k]; }, DICT[lang]);
@@ -160,7 +213,27 @@
       b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang));
     });
     if (!document.documentElement.getAttribute('data-lang-fixed')) {
-      try { localStorage.setItem(STORE, lang); } catch (e) {}
+      merken(lang);
+
+      /* Die Links dieser Seite folgen der Wahl: Der Weg zurueck zur
+         Startseite fuehrt in die gewaehlte Fassung (nicht stur nach /),
+         und PHP-Ziele bekommen die Sprache als lang= mit. Ohne das stand
+         auf einer deutsch geschalteten Rechtsseite ein Heim-Link, der
+         nach Italienisch fuehrte — und die Wahl war wieder weg. */
+      document.querySelectorAll('a[href]').forEach(function (a) {
+        var roh = a.getAttribute('href') || '';
+        if (!roh || roh.charAt(0) === '#') { return; }
+        var u;
+        try { u = new URL(roh, location.href); } catch (e) { return; }
+        if (u.origin !== location.origin) { return; }
+        var da = seiteVon(u.pathname);
+        if (da && da.lang !== lang && SEITEN[lang][da.rolle]) {
+          a.setAttribute('href', SEITEN[lang][da.rolle] + u.hash);
+        } else if (u.searchParams.has('lang') && u.searchParams.get('lang') !== lang) {
+          u.searchParams.set('lang', lang);
+          a.setAttribute('href', u.pathname + u.search + u.hash);
+        }
+      });
     }
   }
 

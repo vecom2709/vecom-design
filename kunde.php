@@ -56,7 +56,7 @@ $hier  = 'kunde.php?t=' . rawurlencode($token);
    ihm auch die Verwaltung so — das ist der eigentliche Punkt: Die Sprache
    auf dieser Seite und die Sprache seiner Post sind dieselbe Angabe.
    ------------------------------------------------------------------------- */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($kunde['sprache'] ?? 'it')));
+$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($kunde['sprache'] ?? ($_COOKIE['vecomlang'] ?? 'it'))));
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
 $spracheGewaehlt = false;

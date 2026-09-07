@@ -2543,3 +2543,25 @@ Testkunde hätte einen Waisen-Hosting-Auftrag mit Domain, KAS-Login und
 verschlüsseltem Zugangs-Blob hinterlassen. Jetzt: Löschen nimmt
 hosting_auftraege mit; Anonymisieren lässt die Vertragszeile stehen,
 leert aber zugang_blob und notiz. Kette 828 grün.
+
+## Die Sprache reist mit — über alle Seiten (08.09.2026)
+
+Der Riss: Die Umschaltung oben rechts ist auf den festen Sprachfassungen
+ein LINK (/de/, /en/) — und nichts merkte sich den Klick. Gespeichert
+wurde die Wahl nur auf den vier Umschalt-Seiten (legal, pakete, danke,
+404). Wer DE wählte und später die Domain neu eintippte oder eine
+PHP-Seite ohne ?lang öffnete, stand wieder auf Italienisch.
+
+Jetzt (alles zentral in assets/js/app.js): (1) Wer auf einer festen
+Fassung steht, hat sie gewählt — localStorage vecom-lang UND Cookie
+vecomlang (1 Jahr) werden gesetzt. (2) Sprachweiche: Wer eine der
+gemappten Seiten (Start, Preise, Betreuung — je it/de/en) VON AUSSEN
+betritt (Lesezeichen, Google, getippt) und eine andere Fassung gemerkt
+hat, wird per location.replace dorthin geleitet; Klicks INNERHALB der
+Website (Referrer = eigene Domain) leiten nie um — sonst käme niemand
+bewusst zurück auf IT. (3) Auf den Umschalt-Seiten werden nach jedem
+Sprachwechsel die Links umgeschrieben: Heim-/Preis-/Betreuungs-Links
+zeigen auf die gewählte Fassung, lang=-Parameter in PHP-Zielen werden
+mitgedreht. (4) Die fünf PHP-Seiten (bedarf, buchen, hosting, fragebogen,
+kunde) nehmen ohne ?lang das Cookie als Rückfall — beim Fragebogen und
+der Kundenseite bleibt die im Datensatz hinterlegte Kundensprache davor.
