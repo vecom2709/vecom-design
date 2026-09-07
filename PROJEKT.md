@@ -2599,3 +2599,28 @@ Auftragsstand — kein Auftrag: "Domain & Hosting anbieten" (Du); angeboten:
 Zahlung"; angelegt: "laeuft". Kette 828 gruen. Live geprueft: Detailansicht
 zeigt den Direktverkauf-Block (Wunschdomain www.trendonix.de aus der
 echten Anfrage #23).
+
+### Direktkauf: Domain prüfen und sofort abschließen (08.09.2026)
+
+Uwe: Wo eine Domain eingegeben wird, soll sofort geprüft werden; ist sie
+frei, kauft der Kunde direkt und schließt ab — kein Anbieten durch Uwe,
+die Domain steht direkt in der Verwaltung. Umgesetzt: hosting.php ist jetzt
+ein zweistufiger Direktkauf statt einer Anfrage.
+
+1. Kunde gibt Name, E-Mail, Wunschdomain ein → "Verfügbarkeit prüfen".
+2. Domainpruefung::pruefen läuft (einmal je Absenden, nicht bei jedem
+   Tastendruck — 15-Sek-IP-Bremse + Sitzungsgrenze schützen die fremden
+   RDAP/Whois-Dienste). Vergeben/unklar → Meldung, anderer Name. Frei →
+   Bestätigungsansicht: "✓ domain.it ist frei!", Preis, Widerruf- und
+   AGB-Checkbox, Button "Zahlungspflichtig bestellen".
+3. Klick = Hosting::direktKauf(): Domain wird ein zweites Mal geprüft
+   (Manipulationsschutz), Kunde + Auftrag (project_id NULL) angelegt und
+   über Hosting::antwort(true) verbindlich abgeschlossen — Vertrag, erste
+   Rate, Zahlungsaufforderung, Vertragsblatt. Kein Anfrage-Umweg, kein
+   Konfigurator, kein Anbieten. Angelegt (KAS) wird nach Zahlungseingang.
+
+hosting.php nutzt jetzt Session + CSRF (vecomhosting). Der Admin-Weg
+"anbieten" (hosting_vorschlag) bleibt für von Hand angelegte/telefonische
+Kunden und Altfälle. Kettentest 828 → 830 (Direktkauf-Riegel). Merkposten
+verstärkt: Der Widerrufsverzicht-Text (aus Widerruf.php, wie bei buchen.php)
+ist für ein Dauerschuldverhältnis (Hosting-Abo) rechtlich zu prüfen — Anwalt.

@@ -209,6 +209,65 @@ final class Hosting
         });
     }
 
+    /**
+     * Der DIREKTKAUF von der oeffentlichen Seite (hosting.php).
+     *
+     * Kein Angebot, kein Handgriff von Uwe: Der Kunde hat die Domain als
+     * frei bestaetigt gesehen und verbindlich gekauft. Diese Methode prueft
+     * die Domain ein letztes Mal (gegen manipulierte Formulare), legt Kunde
+     * und Auftrag an und schliesst mit derselben Zustimmung ab wie der
+     * Ja-Knopf auf der Kundenseite — Vertrag, erste Rate, Zahlungsaufforderung.
+     *
+     * NICHT still: Der oeffentliche Aufrufer WILL wissen, ob es geklappt hat,
+     * und zeigt dem Kunden je nach Grund etwas anderes.
+     *
+     * @return array{ok:bool, grund?:string, domain?:string, kunde_id?:int, auftrag_id?:int}
+     */
+    public static function direktKauf(string $name, string $email, string $domainRoh, string $sprache): array
+    {
+        $domain = Domainpruefung::normalisieren($domainRoh);
+        if ($domain === null) { return ['ok' => false, 'grund' => 'ungueltig']; }
+
+        $erg   = self::still(static fn() => Domainpruefung::pruefen($domain), null);
+        $stand = is_array($erg) ? (string) ($erg['stand'] ?? '') : '';
+        if ($stand !== 'frei') {
+            return ['ok' => false, 'domain' => $domain,
+                    'grund' => $stand === 'vergeben' ? 'vergeben' : 'unklar'];
+        }
+
+        $name  = trim($name);
+        $email = mb_strtolower(trim($email));
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'grund' => 'daten', 'domain' => $domain];
+        }
+
+        $kundeId = Events::kundeFinden([
+            'name'  => mb_substr($name, 0, 120),
+            'email' => $email,
+            'notes' => 'Domain & Hosting direkt auf der Website gekauft.',
+        ]);
+        require_once __DIR__ . '/Onboarding.php';
+        self::still(static fn() => Onboarding::spracheMerken($kundeId, $sprache, true));
+
+        // Kein zweiter Auftrag neben einem bestehenden.
+        $schon = self::fuerKunde($kundeId);
+        if ($schon !== null) {
+            return ['ok' => true, 'domain' => $domain, 'kunde_id' => $kundeId,
+                    'auftrag_id' => (int) $schon['id'], 'grund' => 'schon'];
+        }
+
+        $auftragId = (int) Db::insert('hosting_auftraege', [
+            'customer_id' => $kundeId, 'project_id' => null, 'domain' => $domain,
+            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
+        ]);
+        // Derselbe verbindliche Abschluss wie der Ja-Knopf: zugestimmt,
+        // Vertrag, erste Rate, Zahlungsaufforderung, Vertragsblatt.
+        self::antwort($auftragId, $kundeId, true);
+        Events::protokoll('hosting_kauf', 'Domain & Hosting direkt gekauft: ' . $domain,
+            $kundeId, null, null);
+        return ['ok' => true, 'domain' => $domain, 'kunde_id' => $kundeId, 'auftrag_id' => $auftragId];
+    }
+
     /* ==================================================================== */
     /*  3. Anlegen — bei der finalen Freigabe                               */
     /* ==================================================================== */

@@ -4036,6 +4036,17 @@ pruefe('ohne KAS-Zugang bleibt der Solo-Auftrag zugestimmt', (string) Db::wert(
 pruefe('und die Meldung fuer Uwe liegt da', (int) Db::wert(
     "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) >= 1);
 
+/* Der DIREKTKAUF von der oeffentlichen Seite: Die Netzpruefung der Domain
+   laesst ein Test nicht wirklich laufen — pruefbar ist der Riegel davor,
+   und der ist der wichtigste: Eine unsinnige Eingabe legt nichts an. */
+$dkVorher = (int) Db::wert('SELECT COUNT(*) FROM hosting_auftraege', [], 0);
+$dkUngueltig = Hosting::direktKauf('Test Kauf', 'kauf@pruefung.example', 'das ist keine domain', 'de');
+pruefe('ein Direktkauf mit unsinniger Domain wird abgewiesen',
+    $dkUngueltig['ok'] === false && ($dkUngueltig['grund'] ?? '') === 'ungueltig',
+    json_encode($dkUngueltig));
+pruefe('und legt dabei keinen Auftrag an',
+    (int) Db::wert('SELECT COUNT(*) FROM hosting_auftraege', [], 0) === $dkVorher);
+
 Db::run('DELETE FROM hosting_auftraege WHERE customer_id = ?', [$soloId]);
 Db::run('DELETE FROM payments WHERE abo_id IN (SELECT id FROM abos WHERE customer_id = ?)', [$soloId]);
 Db::run('DELETE FROM abos WHERE customer_id = ?', [$soloId]);

@@ -1,23 +1,25 @@
 <?php
 declare(strict_types=1);
 /* ==========================================================================
-   hosting.php — Domain & Hosting solo bestellen, ohne Website-Auftrag.
+   hosting.php — Domain & Hosting als DIREKTKAUF, ohne Website-Auftrag.
 
-   DER WEG IN DREI SAETZEN
+   DER WEG IN DREI SCHRITTEN
 
-   Der Besucher nennt Name, E-Mail und seine Wunschdomain. Daraus entsteht
-   eine ANFRAGE (kein Vertrag): Uwe prueft, ob die Domain wirklich frei ist,
-   und bietet sie dann ueber die Kundenseite an — dort stehen Preis und
-   Ja-Knopf. Erst dieser Klick ist die Zustimmung, und angelegt wird erst,
-   wenn die erste Monatsrate bezahlt ist.
+   1. Der Besucher nennt Name, E-Mail und seine Wunschdomain.
+   2. Die Domain wird sofort geprueft. Ist sie frei, sieht er sie mit Preis
+      und den Bedingungen — und schliesst mit einem Klick verbindlich ab
+      ("zahlungspflichtig bestellen", Widerruf und AGB bestaetigt).
+   3. Vertrag und erste Rate entstehen sofort; die Domain steht ab da direkt
+      in der Verwaltung. Uwe muss nichts anbieten. Angelegt (KAS-Account,
+      Domain, Postfach) wird, sobald die erste Monatsrate bezahlt ist.
 
-   WARUM KEINE LIVE-DOMAINPRUEFUNG IM FORMULAR
+   WARUM DIE PRUEFUNG ERST BEIM ABSENDEN
 
-   Die Pruefung fragt fremde Dienste (RDAP, Whois) auf unsere Rechnung und
-   IP. Auf einer offenen Seite ohne Schluessel waere das ein kostenloser
-   Whois-Dienst fuer jedermann — beim Fragebogen haengt sie deshalb am
-   Token. Hier prueft Uwe im Admin, bevor ein Angebot rausgeht: Der Kunde
-   bekommt nie ein Versprechen, das sich als vergeben herausstellt.
+   Die Domainpruefung fragt fremde Dienste (RDAP, Whois) auf unsere Rechnung
+   und IP. Sie laeuft deshalb NICHT bei jedem Tastendruck, sondern einmal je
+   Absenden — gebremst durch eine IP-Sperre und die Sitzungsgrenze der
+   Domainpruefung. Beim verbindlichen Kauf wird ein zweites Mal geprueft,
+   damit kein manipuliertes Formular eine vergebene Domain durchdrueckt.
 
    Das ist eine oeffentliche Adresse. Sie zeigt im Zweifel eine Meldung,
    niemals eine leere Seite und niemals einen Fehler aus der Datenbank.
@@ -25,6 +27,17 @@ declare(strict_types=1);
 
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.'); }
+
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
+    require_once __DIR__ . "/app/src/$k.php";
+}
+require_once __DIR__ . '/app/src/Domainpruefung.php';
+require_once __DIR__ . '/app/src/Widerruf.php';
+
+date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
+session_name('vecomhosting');
+session_start();
+if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); }
 
 header('Referrer-Policy: no-referrer');
 header('X-Content-Type-Options: nosniff');
@@ -46,13 +59,25 @@ $W = [
                   'Certificato SSL incluso — si rinnova da solo',
                   'Casella e-mail info@tuodominio — altre le crei tu',
                   'Account proprio con i TUOI dati di accesso'],
-    'name'    => 'Nome e cognome', 'email' => 'E-mail', 'tel' => 'Telefono (facoltativo)',
+    'name'    => 'Nome e cognome', 'email' => 'E-mail',
     'domain'  => 'Il dominio che vorresti', 'domainBsp' => 'es. trattoria-rossi.it',
-    'senden'  => 'Richiedi il dominio',
-    'ablauf'  => 'Come funziona: controlliamo se il dominio è libero e ti mandiamo l’offerta via e-mail — decidi tu con un clic sulla tua pagina personale. Attiviamo tutto dopo il primo pagamento mensile. Nessun vincolo prima della tua conferma.',
-    'dankeT'  => 'Richiesta arrivata!',
-    'danke'   => 'Controlliamo subito se {domain} è libero e ti scriviamo a {email} — di solito entro un giorno lavorativo. Nella tua casella trovi già una conferma.',
-    'fehler'  => 'Controlla nome, e-mail e dominio e riprova.',
+    'pruefen' => 'Verifica disponibilità',
+    'ablauf'  => 'Controlliamo subito se il dominio è libero. Se lo è, lo attivi con un clic — nessun vincolo prima della tua conferma.',
+    'frei'    => '{domain} è libero!',
+    'freiSub' => 'Ottimo — puoi attivarlo adesso.',
+    'vergeben'=> '{domain} è già occupato. Prova con un altro nome qui sotto.',
+    'unklar'  => 'Non sono riuscito a verificare {domain} con certezza. Riprova tra poco o scegli un altro nome.',
+    'ungueltig'=> 'Questo non sembra un nome di dominio valido. Esempio: trattoria-rossi.it',
+    'kaufTitel'=> 'Attiva {domain}',
+    'agb'     => '', 'wid' => '',  // kommen aus Widerruf::texte
+    'kaufKnopf'=> 'Ordino con obbligo di pagare — {preis} al mese',
+    'nochmal' => 'Prova un altro nome',
+    'fehlerFelder' => 'Controlla nome e indirizzo e-mail.',
+    'fehlerZust'   => 'Per attivare servono entrambe le conferme.',
+    'dankeT'  => 'Fatto! {domain} è tuo.',
+    'danke'   => 'Grazie! Ti abbiamo mandato a {email} la conferma del contratto e la prima fattura ({preis}). Appena arriva il pagamento attiviamo tutto e i tuoi dati di accesso compaiono sulla tua pagina personale.',
+    'zurSeite'=> 'Vai alla tua pagina',
+    'schon'   => 'Hai già un dominio in corso con noi. Ti abbiamo scritto a {email}; tutto il resto è sulla tua pagina personale.',
     'zurueck' => 'Torna al sito',
   ],
   'de' => [
@@ -65,13 +90,25 @@ $W = [
                   'SSL-Zertifikat inklusive — verlängert sich von selbst',
                   'E-Mail-Postfach info@deine-domain — weitere legst du selbst an',
                   'Eigener Account mit DEINEN Zugangsdaten'],
-    'name'    => 'Vor- und Nachname', 'email' => 'E-Mail', 'tel' => 'Telefon (freiwillig)',
+    'name'    => 'Vor- und Nachname', 'email' => 'E-Mail',
     'domain'  => 'Deine Wunschdomain', 'domainBsp' => 'z. B. trattoria-rossi.it',
-    'senden'  => 'Domain anfragen',
-    'ablauf'  => 'So läuft es: Wir prüfen, ob die Domain frei ist, und schicken dir das Angebot per E-Mail — entscheiden tust du mit einem Klick auf deiner persönlichen Seite. Geschaltet wird alles nach der ersten Monatszahlung. Vor deiner Zusage bindet dich nichts.',
-    'dankeT'  => 'Anfrage ist da!',
-    'danke'   => 'Wir prüfen gleich, ob {domain} frei ist, und schreiben dir an {email} — meist innerhalb eines Werktags. Eine Eingangsbestätigung liegt schon in deinem Postfach.',
-    'fehler'  => 'Bitte Name, E-Mail und Domain prüfen und noch einmal senden.',
+    'pruefen' => 'Verfügbarkeit prüfen',
+    'ablauf'  => 'Wir prüfen sofort, ob die Domain frei ist. Ist sie frei, schaltest du sie mit einem Klick — vor deiner Bestätigung bindet dich nichts.',
+    'frei'    => '{domain} ist frei!',
+    'freiSub' => 'Sehr gut — du kannst sie jetzt aktivieren.',
+    'vergeben'=> '{domain} ist schon vergeben. Versuch unten einen anderen Namen.',
+    'unklar'  => 'Ich konnte {domain} nicht sicher prüfen. Versuch es gleich noch einmal oder wähle einen anderen Namen.',
+    'ungueltig'=> 'Das sieht nicht nach einer gültigen Domain aus. Beispiel: trattoria-rossi.it',
+    'kaufTitel'=> '{domain} aktivieren',
+    'agb'     => '', 'wid' => '',
+    'kaufKnopf'=> 'Zahlungspflichtig bestellen — {preis} im Monat',
+    'nochmal' => 'Anderen Namen versuchen',
+    'fehlerFelder' => 'Bitte Name und E-Mail-Adresse prüfen.',
+    'fehlerZust'   => 'Zum Aktivieren werden beide Bestätigungen gebraucht.',
+    'dankeT'  => 'Geschafft! {domain} gehört dir.',
+    'danke'   => 'Danke! Wir haben dir an {email} die Vertragsbestätigung und die erste Rechnung ({preis}) geschickt. Sobald die Zahlung da ist, schalten wir alles, und deine Zugangsdaten erscheinen auf deiner persönlichen Seite.',
+    'zurSeite'=> 'Zu deiner Seite',
+    'schon'   => 'Du hast schon eine Domain bei uns in Arbeit. Wir haben dir an {email} geschrieben; alles Weitere steht auf deiner persönlichen Seite.',
     'zurueck' => 'Zurück zur Website',
   ],
   'en' => [
@@ -84,68 +121,118 @@ $W = [
                   'SSL certificate included — renews itself',
                   'Email mailbox info@yourdomain — create more yourself',
                   'Your own account with YOUR access details'],
-    'name'    => 'Full name', 'email' => 'Email', 'tel' => 'Phone (optional)',
+    'name'    => 'Full name', 'email' => 'Email',
     'domain'  => 'The domain you’d like', 'domainBsp' => 'e.g. trattoria-rossi.com',
-    'senden'  => 'Request this domain',
-    'ablauf'  => 'How it works: we check whether the domain is available and email you the offer — you decide with one click on your personal page. Everything is set up after your first monthly payment. Nothing binds you before you say yes.',
-    'dankeT'  => 'Request received!',
-    'danke'   => 'We’ll check right away whether {domain} is available and write to you at {email} — usually within one working day. A confirmation is already in your inbox.',
-    'fehler'  => 'Please check name, email and domain and send again.',
+    'pruefen' => 'Check availability',
+    'ablauf'  => 'We check right away whether the domain is free. If it is, you activate it with one click — nothing binds you before you confirm.',
+    'frei'    => '{domain} is available!',
+    'freiSub' => 'Great — you can activate it now.',
+    'vergeben'=> '{domain} is already taken. Try another name below.',
+    'unklar'  => 'I couldn’t verify {domain} for certain. Try again shortly or pick another name.',
+    'ungueltig'=> 'That doesn’t look like a valid domain. Example: trattoria-rossi.com',
+    'kaufTitel'=> 'Activate {domain}',
+    'agb'     => '', 'wid' => '',
+    'kaufKnopf'=> 'Order with obligation to pay — {preis} per month',
+    'nochmal' => 'Try another name',
+    'fehlerFelder' => 'Please check your name and email address.',
+    'fehlerZust'   => 'Both confirmations are needed to activate.',
+    'dankeT'  => 'Done! {domain} is yours.',
+    'danke'   => 'Thank you! We’ve sent your contract confirmation and first invoice ({preis}) to {email}. As soon as the payment arrives we set everything up, and your access details appear on your personal page.',
+    'zurSeite'=> 'Go to your page',
+    'schon'   => 'You already have a domain in progress with us. We’ve written to {email}; everything else is on your personal page.',
     'zurueck' => 'Back to the website',
   ],
 ][$sprache];
 
-$preisCents = 990;
-try {
-    foreach (['Config', 'Db'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
-    require_once __DIR__ . '/app/src/Status.php';
-    $preisCents = (int) (Db::wert("SELECT monthly_cents FROM packages WHERE slug = 'hosting'", [], 990) ?: 990);
-} catch (Throwable $e) { /* die Seite zeigt dann den festen Preis */ }
-$preisText = number_format($preisCents / 100, 2, ',', '.') . ' €';
+$W += Widerruf::texte($sprache);   // 'agb' und 'wid' — derselbe Wortlaut wie im Vertragsblatt
 
-$fertig = false; $panne = false;
-$name = ''; $email = ''; $telefon = ''; $wunsch = '';
+$preisCents = (int) (Db::wert("SELECT monthly_cents FROM packages WHERE slug = 'hosting'", [], 990) ?: 990);
+$preisText  = Fmt::geld($preisCents);
+$basis      = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+
+/* ---------- Zustand: Formular · Bestätigung · Danke ---------- */
+$ansicht = 'formular';                 // formular | bestaetigen | danke
+$fehler  = [];
+$name = ''; $email = ''; $wunsch = '';
+$dankeDomain = ''; $dankeSeite = ''; $dankeSchon = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sauber = static function ($v, int $max): string {
         $v = is_string($v) ? trim($v) : '';
         return mb_substr(str_replace(["\r", "\0"], '', $v), 0, $max);
     };
-    $name    = $sauber($_POST['name'] ?? '', 120);
-    $email   = mb_strtolower($sauber($_POST['email'] ?? '', 160));
-    $telefon = $sauber($_POST['telefon'] ?? '', 60);
-    $wunsch  = mb_strtolower($sauber($_POST['wunschdomain'] ?? '', 190));
+    $name   = $sauber($_POST['name'] ?? '', 120);
+    $email  = mb_strtolower($sauber($_POST['email'] ?? '', 160));
+    $wunsch = mb_strtolower($sauber($_POST['wunschdomain'] ?? '', 190));
+    $tat    = (string) ($_POST['tat'] ?? 'pruefen');
 
-    if (!empty($_POST['website'])) {                       // Honigtopf
-        header('Location: /'); exit;
-    }
-    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $wunsch === '') {
-        $panne = true;
+    if (!empty($_POST['website'])) { header('Location: /'); exit; }   // Honigtopf
+
+    $csrfOk = !empty($_SESSION['csrf']) && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''));
+    // Eine Anfrage je IP alle 15 Sekunden — die Domainpruefung fragt fremde Dienste.
+    $sperre = sys_get_temp_dir() . '/vecomhost_' . md5((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+    $zuSchnell = is_file($sperre) && (time() - (int) filemtime($sperre)) < 15;
+
+    if (!$csrfOk) {
+        $fehler[] = $W['fehlerFelder'];
+    } elseif ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $fehler[] = $W['fehlerFelder'];
+    } elseif ($zuSchnell) {
+        $fehler[] = $W['unklar'];   // "gleich noch einmal" — die IP-Bremse
     } else {
-        /* Einfache Bremse gegen Skripte: eine Anfrage je Adresse alle 20 s. */
-        $sperre = sys_get_temp_dir() . '/vecomhost_' . md5((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-        if (is_file($sperre) && (time() - (int) filemtime($sperre)) < 20) {
-            $panne = true;
-        } else {
-            @touch($sperre);
-            try {
-                foreach (['Csrf', 'Auth', 'Fmt', 'Events', 'Mail', 'Anfrage'] as $k) {
-                    require_once __DIR__ . "/app/src/$k.php";
+        @touch($sperre);
+        require_once __DIR__ . '/app/src/Hosting.php';
+
+        if ($tat === 'kaufen') {
+            /* Der verbindliche Abschluss. Beide Bestaetigungen sind Pflicht,
+               und die Domain wird im Kauf ein zweites Mal geprueft. */
+            $agbOk = !empty($_POST['agb']);
+            $widOk = !empty($_POST['widerruf']);
+            if (!$agbOk || !$widOk) {
+                $fehler[] = $W['fehlerZust'];
+                $ansicht  = 'bestaetigen';
+                $wunsch   = (string) Domainpruefung::normalisieren($wunsch);
+            } else {
+                $erg = Hosting::direktKauf($name, $email, $wunsch, $sprache);
+                if (!empty($erg['ok'])) {
+                    $ansicht     = 'danke';
+                    $dankeDomain = (string) ($erg['domain'] ?? $wunsch);
+                    $dankeSchon  = ($erg['grund'] ?? '') === 'schon';
+                    try {
+                        require_once __DIR__ . '/app/src/Kundenzugang.php';
+                        $dankeSeite = Kundenzugang::linkFuer((int) ($erg['kunde_id'] ?? 0));
+                    } catch (Throwable $e) { $dankeSeite = ''; }
+                } else {
+                    // Zwischen Prüfen und Kaufen vergriffen, oder Manipulation.
+                    $grund = (string) ($erg['grund'] ?? 'unklar');
+                    $key = in_array($grund, ['vergeben', 'unklar', 'ungueltig', 'daten'], true)
+                        ? ($grund === 'daten' ? 'fehlerFelder' : $grund) : 'unklar';
+                    $fehler[] = strtr($W[$key], ['{domain}' => (string) ($erg['domain'] ?? $wunsch)]);
+                    $ansicht  = 'formular';
                 }
-                date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
-                Anfrage::annehmen([
-                    'name' => $name, 'email' => $email, 'telefon' => $telefon,
-                    'paket' => 'hosting', 'sprache' => $sprache, 'sprache_gefragt' => true,
-                    'nachricht' => "Solo Domain & Hosting.\nWunschdomain: " . $wunsch,
-                ]);
-                $fertig = true;
-            } catch (Throwable $e) {
-                error_log('hosting.php — ' . $e->getMessage());
-                $panne = true;
+            }
+        } else {
+            /* Nur pruefen — noch kein Kauf. */
+            $domain = Domainpruefung::normalisieren($wunsch);
+            if ($domain === null) {
+                $fehler[] = $W['ungueltig'];
+            } else {
+                $erg   = Domainpruefung::pruefen($domain);
+                $stand = (string) ($erg['stand'] ?? '');
+                if ($stand === 'frei') {
+                    $ansicht = 'bestaetigen';
+                    $wunsch  = $domain;
+                } elseif ($stand === 'vergeben') {
+                    $fehler[] = strtr($W['vergeben'], ['{domain}' => $domain]);
+                } else {
+                    $fehler[] = strtr($W['unklar'], ['{domain}' => $domain]);
+                }
             }
         }
     }
 }
+
+$preisZeile = strtr($W['preis'], ['{preis}' => $preisText]);
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>">
 <head>
@@ -167,43 +254,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     color:var(--dim);line-height:1.5}
   .drin li::before{content:'✓';color:var(--cyan);font-weight:700}
   .hin{font-size:12.5px;color:var(--leise);line-height:1.55;margin:14px 0 0}
+  .freimeld{border:1px solid var(--cyan);border-radius:12px;padding:14px 16px;margin:0 0 16px;
+    background:rgba(31,232,255,.06)}
+  .freimeld b{font-size:17px}
+  .zust{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;
+    margin:12px 0;font-size:12.5px;line-height:1.5;color:var(--dim);cursor:pointer}
+  .zust input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--blau);cursor:pointer}
+  .zust a{color:var(--cyan)}
+  .widerruf{margin:0 0 16px;font-size:12.5px;color:var(--leise)}
+  .widerruf summary{cursor:pointer;min-height:40px;display:flex;align-items:center;color:var(--dim)}
+  .widerruf p{margin:6px 0 0;line-height:1.55}
 </style>
 </head>
 <body>
 <div class="karte">
   <div class="wortmarke"><b>VECOM</b>&nbsp;DESIGN</div>
 
-  <?php if ($fertig): ?>
-    <h1 style="font-size:22px;margin:0 0 8px"><?= $h($W['dankeT']) ?></h1>
-    <p style="color:var(--dim);line-height:1.6"><?= $h(strtr($W['danke'],
-        ['{domain}' => $wunsch, '{email}' => $email])) ?></p>
-    <p style="margin-top:18px"><a class="knopf" href="/<?= $sprache === 'it' ? '' : $sprache . '/' ?>"><?= $h($W['zurueck']) ?></a></p>
+  <?php /* ---------- DANKE: der Kauf ist abgeschlossen ---------- */ ?>
+  <?php if ($ansicht === 'danke'): ?>
+    <div class="freimeld"><b>✓ <?= $h(strtr($W['dankeT'], ['{domain}' => $dankeDomain])) ?></b></div>
+    <p style="color:var(--dim);line-height:1.6"><?= $h(strtr($dankeSchon ? $W['schon'] : $W['danke'],
+        ['{email}' => $email, '{preis}' => $preisText])) ?></p>
+    <p style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+      <?php if ($dankeSeite !== ''): ?>
+        <a class="knopf haupt" href="<?= $h($dankeSeite) ?>"><?= $h($W['zurSeite']) ?></a>
+      <?php endif; ?>
+      <a class="knopf" href="/<?= $sprache === 'it' ? '' : $sprache . '/' ?>"><?= $h($W['zurueck']) ?></a>
+    </p>
 
+  <?php /* ---------- BESTÄTIGEN: Domain frei, jetzt verbindlich aktivieren ---------- */ ?>
+  <?php elseif ($ansicht === 'bestaetigen'): ?>
+    <div class="freimeld">
+      <b>✓ <?= $h(strtr($W['frei'], ['{domain}' => $wunsch])) ?></b><br>
+      <span style="color:var(--dim);font-size:13.5px"><?= $h($W['freiSub']) ?></span>
+    </div>
+    <h1 style="font-size:20px;margin:0 0 6px"><?= $h(strtr($W['kaufTitel'], ['{domain}' => $wunsch])) ?></h1>
+    <p class="preiszeile"><b><?= $h($preisZeile) ?></b></p>
+
+    <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
+
+    <form method="post" action="/hosting.php?lang=<?= $h($sprache) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="kaufen">
+      <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
+             style="position:absolute;left:-9999px" aria-hidden="true">
+      <input type="hidden" name="name" value="<?= $h($name) ?>">
+      <input type="hidden" name="email" value="<?= $h($email) ?>">
+      <input type="hidden" name="wunschdomain" value="<?= $h($wunsch) ?>">
+
+      <label class="zust">
+        <input type="checkbox" name="widerruf" value="1" required <?= !empty($_POST['widerruf']) ? 'checked' : '' ?>>
+        <span><?= $h($W['wid']) ?></span>
+      </label>
+      <label class="zust">
+        <input type="checkbox" name="agb" value="1" required <?= !empty($_POST['agb']) ? 'checked' : '' ?>>
+        <span><?= $W['agb'] /* enthaelt bewusst zwei Links */ ?></span>
+      </label>
+
+      <details class="widerruf">
+        <summary><?= $h($W['widTitel'] ?? 'Widerrufsrecht') ?></summary>
+        <p><?= $h($W['widText'] ?? '') ?></p>
+      </details>
+
+      <button class="knopf haupt" style="width:100%;margin-top:6px"><?= $h(strtr($W['kaufKnopf'], ['{preis}' => $preisText])) ?></button>
+    </form>
+    <p style="margin-top:12px;text-align:center">
+      <a href="/hosting.php?lang=<?= $h($sprache) ?>" style="color:var(--leise);font-size:12.5px"><?= $h($W['nochmal']) ?></a></p>
+
+  <?php /* ---------- FORMULAR: Domain eingeben und prüfen ---------- */ ?>
   <?php else: ?>
     <h1 style="font-size:22px;margin:0 0 6px"><?= $h($W['titel']) ?></h1>
     <p style="color:var(--dim);line-height:1.6;margin:0 0 10px"><?= $h($W['lead']) ?></p>
-    <p class="preiszeile"><b><?= $h(strtr($W['preis'], ['{preis}' => $preisText])) ?></b></p>
+    <p class="preiszeile"><b><?= $h($preisZeile) ?></b></p>
 
     <div style="font-size:13px;font-weight:650;margin-bottom:8px"><?= $h($W['drin']) ?></div>
     <ul class="drin">
       <?php foreach ($W['punkte'] as $p): ?><li><?= $h($p) ?></li><?php endforeach; ?>
     </ul>
 
-    <?php if ($panne): ?><div class="hinweis schlecht"><?= $h($W['fehler']) ?></div><?php endif; ?>
+    <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
 
     <form method="post" action="/hosting.php?lang=<?= $h($sprache) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="pruefen">
       <input type="text" name="website" value="" tabindex="-1" autocomplete="off"
              style="position:absolute;left:-9999px" aria-hidden="true">
       <div class="feld"><label for="hname"><?= $h($W['name']) ?></label>
         <input id="hname" name="name" required value="<?= $h($name) ?>"></div>
       <div class="feld"><label for="hemail"><?= $h($W['email']) ?></label>
         <input id="hemail" type="email" name="email" required value="<?= $h($email) ?>"></div>
-      <div class="feld"><label for="htel"><?= $h($W['tel']) ?></label>
-        <input id="htel" name="telefon" value="<?= $h($telefon) ?>"></div>
       <div class="feld"><label for="hdomain"><?= $h($W['domain']) ?></label>
         <input id="hdomain" name="wunschdomain" required
                placeholder="<?= $h($W['domainBsp']) ?>" value="<?= $h($wunsch) ?>"></div>
-      <button class="knopf haupt" style="width:100%;margin-top:6px"><?= $h($W['senden']) ?></button>
+      <button class="knopf haupt" style="width:100%;margin-top:6px"><?= $h($W['pruefen']) ?></button>
     </form>
     <p class="hin"><?= $h($W['ablauf']) ?></p>
   <?php endif; ?>
