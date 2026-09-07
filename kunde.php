@@ -447,6 +447,12 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           <span class="mini" style="flex-basis:100%"><?= (int) $fbVoll ?> / <?= (int) $fbAlle ?>
             <?= $h(Texte::h(['it' => 'campi compilati', 'de' => 'Felder ausgefüllt', 'en' => 'fields filled in'], $sprache)) ?></span>
         <?php endif; ?>
+        <?php /* Der Fragebogen geht auch am Telefon: Das Sprachfenster haengt
+                 unten rechts an genau dieser Seite, und Manuela erkennt, wer
+                 von seiner Kundenseite aus anruft. Der Hinweis steht hier und
+                 nirgendwo sonst — unter dem Knopf, den er gerade nicht
+                 druecken mag. */ ?>
+        <span class="mini" style="flex-basis:100%"><?= $h(Texte::h(Texte::SEITE['fragebogenTelefon'] ?? [], $sprache)) ?></span>
 
       <?php /* ---------- Entwurf: erst schauen, dann abnehmen ----------
            Hier stand frueher beides nebeneinander: der Link zum Entwurf --

@@ -2312,3 +2312,23 @@ Am Telefon sagt niemand „8" — er sagt acht, otto, eight. `Telefonfragebogen:
 versteht beides; der erste Entwurf hätte eine Website mit null Seiten eingetragen.
 
 Geprüft: 754 Kettenprüfungen, Abschnitt 41 mit 60 davon. Fünfzehn Werkzeuge bei STRATO.
+
+## Die Assistentin steht jetzt auch auf der Website (07.09.2026)
+
+Zwei Stellen, zwei Absichten:
+
+**Startseite (it/de/en):** Neue Sektion `#assistente` zwischen Ablauf und „Über mich" —
+sechs Karten, was Manuela wirklich kann: Preise sofort, Blick auf die bestehende Website,
+Angebots-Link, echter Termin, Projektstand für Kunden, Fragebogen gemeinsam ausfüllen.
+Jeder Punkt entspricht einem Werkzeug, das existiert (der Kommentar im HTML sagt das
+ausdrücklich — Werbung, die mehr verspricht als das Telefon hält, kostet genau das
+Vertrauen, das sie aufbauen soll). Dazu FAQ-Eintrag „Wer geht ran, wenn ich anrufe?"
+samt Ergänzung im FAQPage-JSON-LD (SEO), i18n-Schlüssel `ast.*` und `faq.q10/a10` in
+allen drei Sprachdateien, CSS-Block `.ast` im Stil der Prinzipien-Zellen.
+
+**Kundendashboard:** Unter dem Fragebogen-Knopf steht jetzt der Satz, dass Manuela ihn
+gemeinsam am Telefon ausfüllt (`Texte::SEITE['fragebogenTelefon']`, dreisprachig) —
+genau an der Stelle, an der jemand vor 48 Feldern steht und sie auf morgen verschieben
+will.
+
+Sichtprüfung lokal per Screenshot (it/de), Prüfkette weiter 754 grün.

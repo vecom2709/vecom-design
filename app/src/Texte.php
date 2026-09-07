@@ -577,6 +577,15 @@ final class Texte
                          'de' => 'Ich speichere bei jedem Schritt automatisch. Du kannst zumachen und später zurückkommen.',
                          'en' => 'I save at every step. You can close this and come back any time.'],
         'weiterMachen' => ['it' => 'Continua il questionario', 'de' => 'Fragebogen weiter ausfüllen', 'en' => 'Continue the questionnaire'],
+        /* Der Weg ohne Tastatur. Er steht direkt unter dem Fragebogen-Knopf:
+           Genau in dem Moment, in dem jemand vor 48 Feldern steht und sie auf
+           morgen verschieben will, ist der Satz „das geht auch am Telefon"
+           die einzige Werbung, die etwas nuetzt. */
+        'fragebogenTelefon' => [
+            'it' => 'Oppure senza tastiera: clicca la finestra vocale qui in basso a destra — Manuela, la nostra assistente, compila il questionario insieme a te. Lei chiede, tu racconti; ogni risposta viene salvata subito.',
+            'de' => 'Oder ganz ohne Tippen: Klick auf das Sprachfenster unten rechts — Manuela, unsere Assistentin, füllt den Fragebogen gemeinsam mit dir aus. Sie fragt, du erzählst; jede Antwort wird sofort gespeichert.',
+            'en' => 'Or skip the typing: click the voice window in the bottom right — Manuela, our assistant, fills in the questionnaire together with you. She asks, you talk; every answer is saved right away.',
+        ],
 
         /* DIE HAKENLISTE
            ------------------------------------------------------------------
