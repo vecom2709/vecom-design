@@ -2574,3 +2574,16 @@ lang=-Parameter nur dort, wo eine Regel steht — bedarf.php hatte eine,
 hosting.php nicht. Regel ergänzt, Fassungen neu gebaut. (Die von Hand
 geschriebenen de/en-Hosting-Blöcke waren ohnehin Makulatur — der Build
 überschreibt sie; die Übersetzung tragen die i18n-Schlüssel.)
+
+### Nachtrag: Hosting ist Direktverkauf, kein Konfigurator-Vorgang (08.09.2026)
+
+Uwe: Beim 9,90-Solo-Hosting zeigte die Verwaltung den Konfigurator-Weg —
+falsch, das ist ein fester Direktverkauf ins Abo. Ursache: Eine
+Hosting-Anfrage (paket_slug='hosting') landete in der normalen
+Anfrage-Ansicht (app/views/anfrage.php), deren Hauptaktion für Anfragen
+ohne Bestellung "Konfigurator schicken ›" ist. Jetzt eine Weiche: Bei
+paket_slug='hosting' erscheint stattdessen der Block "Domain & Hosting —
+Direktverkauf" mit der aus dem Formular genannten Wunschdomain und einem
+Knopf "Prüfen und dem Kunden anbieten" (Handler hosting_vorschlag, führt
+zurück ins Kundenblatt). Kein Konfigurator, keine Festpreis-Paketauswahl,
+keine rohe Nachricht. Der Kettentest bleibt unberührt (nur eine View).

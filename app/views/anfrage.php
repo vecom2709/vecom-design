@@ -75,7 +75,7 @@
       </p>
     </div>
   <?php endif; ?>
-<?php elseif (trim((string) $a['nachricht']) !== ''): ?>
+<?php elseif (trim((string) $a['nachricht']) !== '' && (string) ($a['paket_slug'] ?? '') !== 'hosting'): ?>
   <div class="block">
     <h2>Was geschrieben wurde</h2>
     <pre style="white-space:pre-wrap;font:inherit;color:var(--dim);line-height:1.6;margin:0"><?= Fmt::h((string) $a['nachricht']) ?></pre>
@@ -87,6 +87,56 @@
     <div class="hinweis gut">Aus dieser Anfrage ist eine Bestellung geworden.
       <a href="<?= Fmt::h(url('bestellungen/' . (int) $a['order_id'])) ?>">Bestellung öffnen</a></div>
   </div>
+
+<?php elseif ((string) ($a['paket_slug'] ?? '') === 'hosting'): ?>
+  <?php /* ====================================================================
+       DOMAIN & HOSTING IST DIREKTVERKAUF, KEIN KONFIGURATOR-VORGANG
+
+       Das feste 9,90-Paket entsteht nicht aus einem Angebot: Der Kunde hat
+       im Formular seine Wunschdomain genannt, mehr braucht es nicht. Also
+       steht hier NICHT "Konfigurator schicken", sondern der direkte Weg —
+       Domain pruefen, anbieten, fertig. Zustimmen tut der Kunde auf seiner
+       Seite, dann laeuft das Abo.
+       ================================================================= */ ?>
+  <?php
+    $hWunsch = '';
+    if (preg_match('~Wunschdomain:\s*(\S+)~i', (string) $a['nachricht'], $mHost)) {
+        $hWunsch = trim($mHost[1]);
+    }
+    $hVorhanden = null;
+    if ($a['customer_id']) {
+        require_once __DIR__ . '/../src/Hosting.php';
+        $hVorhanden = sicher(static fn() => Hosting::fuerKunde((int) $a['customer_id']), null);
+    }
+  ?>
+  <div class="block">
+    <h2>Domain &amp; Hosting — Direktverkauf</h2>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:0 0 12px">
+      Kein Konfigurator, kein Angebot: Das ist das feste Paket Domain &amp; Hosting
+      (<?= Fmt::h(Fmt::geld((int) Db::wert("SELECT monthly_cents FROM packages WHERE slug = 'hosting'", [], 990))) ?> im Monat).
+      Wunschdomain prüfen und dem Kunden anbieten — er stimmt auf seiner Seite zu, dann läuft das Abo.
+    </p>
+    <?php if ($hWunsch !== ''): ?>
+      <div class="zeile"><span>Gewünschte Domain</span><b><?= Fmt::h($hWunsch) ?></b></div>
+    <?php endif; ?>
+    <?php if (!$a['customer_id']): ?>
+      <div class="hinweis" style="margin-top:10px">Zu dieser Anfrage gibt es keine Kundenakte — sie kam nicht über das Formular.</div>
+    <?php elseif ($hVorhanden): ?>
+      <div class="hinweis gut" style="margin-top:10px">Für diesen Kunden läuft bereits ein Domain-&amp;-Hosting-Vorgang
+        (<?= Fmt::h((string) $hVorhanden['domain']) ?>).
+        <a href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'])) ?>">In der Kundenakte ansehen</a></div>
+    <?php else: ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_vorschlag">
+        <input type="hidden" name="zurueck" value="kunden/<?= (int) $a['customer_id'] ?>">
+        <input type="hidden" name="id" value="<?= (int) $a['customer_id'] ?>">
+        <input name="domain" value="<?= Fmt::h($hWunsch) ?>" placeholder="wunschdomain.it" required style="min-width:220px">
+        <button class="knopf haupt">Prüfen und dem Kunden anbieten &rsaquo;</button>
+      </form>
+      <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Nur eine als frei bestätigte Domain wird angeboten.</p>
+    <?php endif; ?>
+  </div>
+
 <?php else: ?>
   <?php /* ====================================================================
        WAS HIER FRUEHER STAND, UND WARUM ES WEG IST
