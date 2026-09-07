@@ -2896,6 +2896,83 @@ pruefe('die Spur trägt das erkannte Wort, nicht „sonstiges“',
 Db::run("DELETE FROM activities WHERE type LIKE 'telefon\\_%'");
 
 /* ============================================================================
+   37. Die Werkzeuge — an einer Stelle, die auch der Server lesen kann
+   ============================================================================
+   Sie standen bis September mitten in einer Ansicht. Das ging, solange sie
+   nur angezeigt wurden. Es geht nicht mehr, seit die Verwaltung sie selbst
+   hinüberschicken soll: Eine Ansicht lässt sich nicht aufrufen, ohne eine
+   Seite zu bauen.
+   ============================================================================ */
+abschnitt('37. Die Werkzeuge');
+
+require_once $wurzel . '/src/Telefonwerkzeuge.php';
+
+$w = Telefonwerkzeuge::alle();
+pruefe('es sind vierzehn', count($w) === 14, (string) count($w));
+pruefe('und genau die aus Telefon::AKTIONEN',
+    array_diff(Telefon::AKTIONEN, array_keys($w)) === []
+    && array_diff(array_keys($w), Telefon::AKTIONEN) === [],
+    implode(', ', array_keys($w)));
+pruefe('in der Reihenfolge des Gesprächs, nicht alphabetisch',
+    array_keys($w) === Telefonwerkzeuge::REIHE, implode(', ', array_keys($w)));
+
+$o = Telefonwerkzeuge::objekte();
+pruefe('jedes wird zu gültigem JSON', count($o) === 14, (string) count($o));
+pruefe('und behält seinen Namen', array_column($o, 'name') === array_keys($w));
+
+/* DER SCHLÜSSEL MUSS ÜBERALL DERSELBE SEIN. Steht in einem Werkzeug ein
+   alter, ruft genau dieses eine ins Leere -- und zwar erst beim Anruf. */
+$schluessel = [];
+foreach ($o as $x) {
+    foreach ((array) ($x['request']['headers'] ?? []) as $h) {
+        if (($h['name'] ?? '') === 'X-Vecom-Telefon') { $schluessel[(string) $h['value']] = true; }
+    }
+}
+pruefe('alle vierzehn tragen denselben Schlüssel', count($schluessel) === 1, (string) count($schluessel));
+pruefe('und er ist der aktuelle', isset($schluessel[Telefon::schluessel()]));
+
+/* Stratos Platzhalter müssen WÖRTLICH stehen bleiben -- durch json_encode
+   gejagt wären sie escaped, und der Rumpf käme leer an. */
+$ohnePlatzhalter = [];
+foreach ($o as $x) {
+    $rumpf = (string) ($x['request']['postData']['text'] ?? '');
+    if (!str_contains($rumpf, '"aktion"')) { $ohnePlatzhalter[] = (string) $x['name']; continue; }
+    /* „lage" hat keine Eigenschaften und deshalb zu Recht keinen Platzhalter
+       -- es fragt nur nach Tag und Uhrzeit. Wer hier stur prüft, baut sich
+       einen Test, der einen richtigen Zustand rot färbt. */
+    $hatFelder = (array) ($x['parameters']['properties'] ?? []) !== [];
+    if ($hatFelder && !str_contains($rumpf, '{{ ')) { $ohnePlatzhalter[] = (string) $x['name']; }
+}
+pruefe('jeder Rumpf trägt seine Aktion und, wo es Felder gibt, die Platzhalter wörtlich',
+    $ohnePlatzhalter === [], implode(', ', $ohnePlatzhalter));
+
+/* Und die Aktion im Rumpf muss die eigene sein — ein vertauschter Rumpf
+   ruft beim Anruf lautlos das falsche Werkzeug auf. */
+$vertauscht = [];
+foreach ($o as $x) {
+    $name = (string) $x['name'];
+    if (!str_contains((string) ($x['request']['postData']['text'] ?? ''), '"aktion":"' . $name . '"')) {
+        $vertauscht[] = $name;
+    }
+}
+pruefe('und zwar die eigene', $vertauscht === [], implode(', ', $vertauscht));
+
+/* „properties" muss ein Objekt sein, auch wenn es leer ist -- als leeres
+   Array schickt PHP „[]", und Stratos Schemaprüfung lehnt es ab. */
+$falsch = [];
+foreach ($o as $x) {
+    $t = Telefon::konfigJson((string) $x['name'], $w[(string) $x['name']], 'https://x/telefon.php', 'k');
+    if (!str_contains($t, '"properties": {')) { $falsch[] = (string) $x['name']; }
+}
+pruefe('„properties" bleibt ein Objekt', $falsch === [], implode(', ', $falsch));
+
+/* Ohne Zugang wird nichts geschickt -- und es scheitert nicht, es sagt es. */
+Db::run("DELETE FROM settings WHERE skey IN ('strato_anon','strato_refresh')");
+$u = Strato::werkzeugeUebertragen();
+pruefe('ohne Zugang wird nichts übertragen',
+    ($u['ok'] ?? true) === false && str_contains((string) $u['text'], 'Kein Zugang'), json_encode($u));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

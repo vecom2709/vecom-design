@@ -320,6 +320,107 @@ final class Strato
     }
 
     /* ==================================================================== */
+    /*  Die Werkzeuge hinüberschicken                                       */
+    /* ==================================================================== */
+
+    /**
+     * WARUM DIE VERWALTUNG DAS SELBST TUN MUSS
+     * =====================================================================
+     *
+     * Jede Änderung an einer Werkzeugbeschreibung musste bisher von Hand
+     * nach drüben: vierzehn Blöcke kopieren, vierzehnmal einfügen. Wer das
+     * dreimal gemacht hat, macht es beim vierten Mal nicht mehr -- und dann
+     * steht bei STRATO eine Fassung, die niemand mehr kennt, während hier
+     * eine andere gepflegt wird. Im September ist die Konfiguration drüben
+     * dreimal auf einen alten Stand zurückgefallen, ohne dass es jemand
+     * bemerkt hätte, bis ein Anruf danebenging.
+     *
+     * WAS DABEI ANGEFASST WIRD UND WAS AUSDRÜCKLICH NICHT
+     *
+     * Geschrieben wird ausschliesslich `config.tools`. Stimme, Tempo,
+     * Begrüssung, Aussprache, Sprachen, der Verhaltenstext -- alles, was er
+     * drüben in der Oberfläche eingestellt hat -- bleibt Zeichen für
+     * Zeichen, wie es ist. Es wird vorher frisch gelesen und mit genau
+     * diesem Satz zurückgeschrieben; wer eine ganze Konfiguration aus dem
+     * Gedächtnis schreibt, überschreibt Einstellungen, von denen er nichts
+     * weiss.
+     *
+     * @return array{ok:bool,text:string,werkzeuge?:int}
+     */
+    public static function werkzeugeUebertragen(): array
+    {
+        require_once __DIR__ . '/Telefonwerkzeuge.php';
+
+        if (!self::eingerichtet()) {
+            return ['ok' => false, 'text' => 'Kein Zugang zu STRATO hinterlegt.'];
+        }
+        $token = self::zugangsToken();
+        if ($token === null) {
+            return ['ok' => false, 'text' => 'Der Zugang wird nicht angenommen: ' . self::fehler()];
+        }
+
+        $werkzeuge = Telefonwerkzeuge::objekte();
+        if (count($werkzeuge) !== count(Telefonwerkzeuge::REIHE)) {
+            return ['ok' => false, 'text' => 'Es fehlen Werkzeuge — nichts geschickt.'];
+        }
+
+        $id = self::wert('strato_agent');
+        $u  = self::PROJEKT . '/rest/v1/agent_configs'
+            . ($id !== '' ? '?id=eq.' . rawurlencode($id) : '?select=id,config&limit=2');
+
+        /* Erst lesen: Ohne die aktuelle Konfiguration wüssten wir nicht, was
+           daneben steht -- und würden es beim Schreiben verlieren. */
+        $a = self::abruf('GET', $id !== '' ? $u . '&select=id,config' : $u,
+                         self::wert('strato_anon'), $token);
+        if (!$a['ok'] || !is_array($a['daten']) || !$a['daten']) {
+            return ['ok' => false, 'text' => 'Die Konfiguration war nicht zu lesen ('
+                                           . $a['status'] . ').'];
+        }
+        if ($id === '' && count($a['daten']) > 1) {
+            return ['ok' => false, 'text' => 'Es gibt mehrere Assistenten. Sag mir, welcher gemeint ist.'];
+        }
+
+        $satz = (array) $a['daten'][0];
+        $cfg  = (array) ($satz['config'] ?? []);
+        if (!$cfg) { return ['ok' => false, 'text' => 'Die Konfiguration kam leer zurück.']; }
+
+        $agent = (string) ($satz['id'] ?? $id);
+        if ($agent === '') { return ['ok' => false, 'text' => 'Kein Assistent gefunden.']; }
+        self::merken('strato_agent', $agent);
+
+        $cfg['tools'] = $werkzeuge;   // NUR das. Alles andere bleibt, wie es kam.
+
+        $p = self::abruf('PATCH', self::PROJEKT . '/rest/v1/agent_configs?id=eq.' . rawurlencode($agent),
+                         self::wert('strato_anon'), $token, ['config' => $cfg]);
+        if (!$p['ok']) {
+            return ['ok' => false, 'text' => 'Das Schreiben wurde abgelehnt (' . $p['status'] . ').'];
+        }
+
+        /* Nachlesen statt glauben. Ein PATCH, der 204 sagt und nichts tut,
+           ist genau die Art Fehler, die man erst am Telefon merkt. */
+        $n = self::abruf('GET', self::PROJEKT . '/rest/v1/agent_configs?id=eq.'
+                                . rawurlencode($agent) . '&select=config',
+                         self::wert('strato_anon'), $token);
+        $drueben = is_array($n['daten'][0]['config']['tools'] ?? null)
+            ? count($n['daten'][0]['config']['tools']) : 0;
+        if ($drueben !== count($werkzeuge)) {
+            return ['ok' => false, 'text' => 'Drüben stehen jetzt ' . $drueben . ' statt '
+                                           . count($werkzeuge) . ' Werkzeuge. Bitte nachsehen.'];
+        }
+
+        self::merken('strato_werkzeuge_am', date('Y-m-d H:i:s'));
+        require_once __DIR__ . '/Events.php';
+        self::still(static fn() => Events::protokoll('telefon_werkzeuge',
+            $drueben . ' Werkzeugbeschreibungen zu STRATO übertragen'));
+
+        return ['ok' => true, 'werkzeuge' => $drueben,
+                'text' => $drueben . ' Werkzeuge übertragen. Stimme, Tempo, Begrüßung und '
+                        . 'der Verhaltenstext drüben sind unverändert geblieben.'];
+    }
+
+    public static function werkzeugeAm(): string { return self::wert('strato_werkzeuge_am'); }
+
+    /* ==================================================================== */
     /*  Auswertung                                                          */
     /* ==================================================================== */
 

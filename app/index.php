@@ -949,6 +949,17 @@ if ($post) {
                 zurueck('einstellungen?b=telefon');
                 break;
 
+            case 'strato_werkzeuge':
+                /* Vierzehn Blöcke von Hand kopieren macht niemand viermal.
+                   Geschrieben wird ausschliesslich config.tools -- Stimme,
+                   Tempo, Begruessung und der Verhaltenstext drueben bleiben
+                   Zeichen fuer Zeichen, wie sie sind. */
+                require_once __DIR__ . '/src/Strato.php';
+                $erg = Strato::werkzeugeUebertragen();
+                $_SESSION[$erg['ok'] ? 'gut' : 'fehler'] = $erg['text'];
+                zurueck('einstellungen?b=telefon');
+                break;
+
             case 'strato_holen':
                 require_once __DIR__ . '/src/Strato.php';
                 $ab = Strato::abgleichen();
@@ -2467,7 +2478,9 @@ switch ($route) {
                 'zuletzt'      => Strato::zuletzt(),
                 'anzahl'       => (int) Db::wert('SELECT COUNT(*) FROM telefon_gespraeche', [], 0),
                 'gesperrt'     => Strato::gesperrt(),
-            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '', 'anzahl' => 0, 'gesperrt' => 0]);
+                'werkzeuge_am' => Strato::werkzeugeAm(),
+            ], ['eingerichtet' => false, 'fehler' => '', 'zuletzt' => '', 'anzahl' => 0,
+                'gesperrt' => 0, 'werkzeuge_am' => '']);
         }
 
         if ($b === 'ueberwachung') {
