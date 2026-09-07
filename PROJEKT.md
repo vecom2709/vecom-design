@@ -2392,3 +2392,16 @@ Preis dafür ist noch Uwes Entscheidung). Wichtig fürs Einrichten: Die API nimm
 KAS-Passwort (im KAS unter Einstellungen gesetzt), nicht das MembersArea-Passwort.
 
 Prüfkette 770 → 774.
+
+### Nachtrag KAS-API (07.09.2026, abends)
+
+Die API ist verbunden und geprüft: „Der Zugang steht. 0 Unter-Accounts im
+Reseller-Vertrag." Zwei Stolperer aus der Einrichtung, beide abgestellt:
+
+1. Die Sofort-Prüfung nach dem Speichern sah den alten Konfigurationsstand
+   (die Datei wird je Aufruf einmal gelesen) und meldete irreführend „Kein
+   KAS-Zugang hinterlegt". Jetzt prüft `Kas::zugangFrisch()` mit den gerade
+   gespeicherten Werten.
+2. `kas_password_incorrect` heißt oft nur „noch nicht": Ein frisch im KAS
+   gesetztes Passwort braucht ein paar Minuten, bis es bei All-Inkl greift.
+   Die Fehlermeldung sagt das jetzt dazu.

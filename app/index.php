@@ -948,8 +948,11 @@ if ($post) {
                     zurueck('einstellungen?b=zugaenge');
                 }
                 /* Der Test gehoert zum Speichern: Ein Zugang, der still
-                   falsch daliegt, faellt erst auf, wenn man ihn braucht. */
+                   falsch daliegt, faellt erst auf, wenn man ihn braucht.
+                   Mit den frischen Werten — die Konfiguration dieses
+                   Aufrufs ist noch die alte. */
                 Events::protokoll('integration', 'KAS-Zugangsdaten gespeichert');
+                Kas::zugangFrisch($login, $pass);
                 $probe = Kas::pruefen();
                 $_SESSION[$probe['ok'] ? 'gut' : 'fehler'] = $probe['ok']
                     ? $probe['text']

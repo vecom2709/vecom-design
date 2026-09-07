@@ -56,9 +56,26 @@ final class Kas
     /*  Zugang                                                              */
     /* ==================================================================== */
 
+    /** Frisch gespeicherte Zugangsdaten, bevor die Konfiguration neu geladen ist. */
+    private static ?array $frisch = null;
+
+    /**
+     * Fuer den Aufruf direkt nach dem Speichern.
+     *
+     * Die Konfigurationsdatei wird je Seitenaufruf einmal gelesen. Wer den
+     * Zugang speichert und im selben Aufruf prueft, saehe sonst den alten
+     * Stand — genau so kam am 7.9. die irrefuehrende Meldung „Kein
+     * KAS-Zugang hinterlegt" direkt nach dem Eintragen zustande.
+     */
+    public static function zugangFrisch(string $login, string $passwort): void
+    {
+        self::$frisch = ['login' => trim($login), 'passwort' => $passwort];
+    }
+
     /** @return array{login:string,passwort:string} */
     public static function zugang(): array
     {
+        if (self::$frisch !== null) { return self::$frisch; }
         $k = (array) Config::get('kas', []);
         return ['login' => trim((string) ($k['login'] ?? '')),
                 'passwort' => (string) ($k['passwort'] ?? '')];
@@ -159,6 +176,10 @@ final class Kas
             'kas_login_incorrect'  => 'Login oder Passwort stimmen nicht. Wichtig: Es zählt das '
                                     . 'KAS-Passwort (im KAS unter Einstellungen gesetzt), nicht das '
                                     . 'der MembersArea.',
+            'kas_password_incorrect' => 'Das Passwort stimmt nicht — oder noch nicht: Ein frisch im '
+                                    . 'KAS gesetztes Passwort braucht ein paar Minuten, bis es auf '
+                                    . 'den Servern von All-Inkl greift. Kurz warten und noch einmal '
+                                    . 'prüfen.',
             'flood_protection'     => 'Zu viele Anfragen kurz hintereinander — die KAS-API bremst. '
                                     . 'Einen Moment warten und noch einmal.',
             'account_incorrect'    => 'Diesen Account kennt der Reseller-Vertrag nicht.',
