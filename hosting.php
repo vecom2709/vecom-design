@@ -67,6 +67,7 @@ $W = [
     'freiSub' => 'Ottimo — puoi attivarlo adesso.',
     'vergeben'=> '{domain} è già occupato. Prova con un altro nome qui sotto.',
     'unklar'  => 'Non sono riuscito a verificare {domain} con certezza. Riprova tra poco o scegli un altro nome.',
+    'zuSchnell'=> 'Un attimo — riprova tra qualche secondo.',
     'ungueltig'=> 'Questo non sembra un nome di dominio valido. Esempio: trattoria-rossi.it',
     'kaufTitel'=> 'Attiva {domain}',
     'agb'     => '', 'wid' => '',  // kommen aus Widerruf::texte
@@ -98,6 +99,7 @@ $W = [
     'freiSub' => 'Sehr gut — du kannst sie jetzt aktivieren.',
     'vergeben'=> '{domain} ist schon vergeben. Versuch unten einen anderen Namen.',
     'unklar'  => 'Ich konnte {domain} nicht sicher prüfen. Versuch es gleich noch einmal oder wähle einen anderen Namen.',
+    'zuSchnell'=> 'Einen Moment — bitte in ein paar Sekunden noch einmal versuchen.',
     'ungueltig'=> 'Das sieht nicht nach einer gültigen Domain aus. Beispiel: trattoria-rossi.it',
     'kaufTitel'=> '{domain} aktivieren',
     'agb'     => '', 'wid' => '',
@@ -129,6 +131,7 @@ $W = [
     'freiSub' => 'Great — you can activate it now.',
     'vergeben'=> '{domain} is already taken. Try another name below.',
     'unklar'  => 'I couldn’t verify {domain} for certain. Try again shortly or pick another name.',
+    'zuSchnell'=> 'One moment — please try again in a few seconds.',
     'ungueltig'=> 'That doesn’t look like a valid domain. Example: trattoria-rossi.com',
     'kaufTitel'=> 'Activate {domain}',
     'agb'     => '', 'wid' => '',
@@ -178,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $fehler[] = $W['fehlerFelder'];
     } elseif ($zuSchnell) {
-        $fehler[] = $W['unklar'];   // "gleich noch einmal" — die IP-Bremse
+        $fehler[] = $W['zuSchnell'];   // die IP-Bremse — noch keine Domain geprueft
     } else {
         @touch($sperre);
         require_once __DIR__ . '/app/src/Hosting.php';
