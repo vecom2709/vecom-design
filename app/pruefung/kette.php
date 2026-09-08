@@ -4192,6 +4192,119 @@ Db::run("DELETE FROM notifications WHERE type IN ('chef_notiz','chef_kunde')");
 Db::run("DELETE FROM settings WHERE skey = 'chef_codewort'");
 
 /* ============================================================================
+   47. Die Werkstatt von aussen (Claude Code holt und meldet)
+   ----------------------------------------------------------------------------
+   Zwei Türen und eine Bremse. Die erste Tür ist der Schlüssel: ohne ihn
+   antwortet niemand, ein falscher öffnet nie. Die zweite ist die Freigabe —
+   der einzige Schritt hier draußen, der beim Kunden ankommt, und deshalb der
+   einzige, der ein ausdrückliches „ja" verlangt.
+
+   Die Bremse ist, was NICHT passiert: Eine Vorschau-Adresse einzutragen
+   schaltet sie nicht frei. Genau das war beim Knopf in der Verwaltung einmal
+   dasselbe und hat Kunden auf halbfertige Entwürfe geschickt.
+   ============================================================================ */
+abschnitt('47. Werkstatt von außen');
+require_once $wurzel . '/src/Werkstatt.php';
+
+// Ohne Schlüssel ist die Tür zu — auch für den richtigen Aufrufer.
+Db::run("DELETE FROM settings WHERE skey = 'werkstatt_schluessel'");
+pruefe('ohne Schlüssel ist die Werkstatt zu', Werkstatt::eingerichtet() === false);
+pruefe('und nichts öffnet sie', Werkstatt::schluesselStimmt('irgendwas') === false);
+
+$wsSchluessel = Werkstatt::neuerSchluessel();
+pruefe('ein erzeugter Schlüssel öffnet', Werkstatt::schluesselStimmt($wsSchluessel) === true);
+pruefe('ein falscher öffnet nicht', Werkstatt::schluesselStimmt('falsch') === false);
+pruefe('ein leerer öffnet nicht', Werkstatt::schluesselStimmt('') === false);
+$wsZweiter = Werkstatt::neuerSchluessel();
+pruefe('ein neuer macht den alten wertlos',
+    Werkstatt::schluesselStimmt($wsSchluessel) === false && Werkstatt::schluesselStimmt($wsZweiter) === true);
+
+// Ein eigenes Projekt, damit dieser Abschnitt niemandem sonst ins Handwerk pfuscht.
+$wsKunde = Events::kundeFinden(['name' => 'Werkstatt Kunde', 'email' => 'werkstatt@pruefung.example']);
+Db::run('UPDATE customers SET kundennr = ? WHERE id = ?', ['K-9999-0042', $wsKunde]);
+$wsBestellung = Events::bestellungAnlegen($wsKunde, $paketId, 'Werkstatt-Prüfung');
+Events::bestellungStatus($wsBestellung, 'bezahlt');
+$wsProjekt = Events::projektAusBestellung($wsBestellung);
+pruefe('Prüfprojekt steht', $wsProjekt > 0);
+
+// Finden: Projekt-ID, Kundennummer, Bestellnummer — und ein klares Nein sonst.
+pruefe('findet über die Projekt-Nummer',
+    (int) Werkstatt::projektFinden(['projekt' => (string) $wsProjekt])['id'] === $wsProjekt);
+pruefe('findet über die Kundennummer',
+    (int) Werkstatt::projektFinden(['kunde' => 'K-9999-0042'])['id'] === $wsProjekt);
+gesperrt('ohne Angabe wird nicht geraten', static fn() => Werkstatt::projektFinden([]));
+gesperrt('eine unbekannte Nummer wirft', static fn() => Werkstatt::projektFinden(['kunde' => 'K-0000-0000']));
+
+// Auftrag holen: Briefing entsteht dabei und bleibt am Projekt.
+$wsAuftrag = Werkstatt::auftrag(['kunde' => 'K-9999-0042']);
+pruefe('der Auftrag kommt mit Briefing', trim((string) ($wsAuftrag['briefing'] ?? '')) !== '');
+pruefe('und mit den Hausregeln', trim((string) ($wsAuftrag['hausregeln'] ?? '')) !== '');
+pruefe('das Briefing bleibt am Projekt stehen',
+    trim((string) Db::wert('SELECT briefing FROM projects WHERE id = ?', [$wsProjekt], '')) !== '');
+pruefe('der Auftrag nennt die möglichen Stände', in_array('vorschau', (array) ($wsAuftrag['staende'] ?? []), true));
+
+// Vorschau eintragen — und eben NICHT freischalten.
+$wsV = Werkstatt::vorschau(['projekt' => (string) $wsProjekt,
+    'vorschau' => 'cavaleri-pruefung.netlify.app', 'repo' => 'https://github.com/beispiel/pruefung']);
+pruefe('die Vorschau-Adresse steht', (string) Db::wert(
+    'SELECT preview_url FROM projects WHERE id = ?', [$wsProjekt], '') === 'https://cavaleri-pruefung.netlify.app');
+pruefe('fehlendes https wird ergänzt statt abgelehnt', ($wsV['ok'] ?? false) === true);
+pruefe('die Quelltext-Adresse steht daneben', (string) Db::wert(
+    'SELECT repo_url FROM projects WHERE id = ?', [$wsProjekt], '') === 'https://github.com/beispiel/pruefung');
+pruefe('EINTRAGEN SCHALTET NICHT FREI', Db::wert(
+    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
+gesperrt('eine unsinnige Adresse wird abgelehnt',
+    static fn() => Werkstatt::vorschau(['projekt' => (string) $wsProjekt, 'vorschau' => 'htt p:// nein']));
+gesperrt('ohne Adresse und ohne Repo gibt es nichts zu ändern',
+    static fn() => Werkstatt::vorschau(['projekt' => (string) $wsProjekt]));
+
+// Stand setzen: nur bekannte Stände, und ohne E-Mail.
+$wsMailsVor = (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0);
+$wsS = Werkstatt::stand(['projekt' => (string) $wsProjekt, 'stand' => 'entwicklung']);
+pruefe('der Stand lässt sich setzen', ($wsS['ok'] ?? false) === true
+    && (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$wsProjekt], '') === 'entwicklung');
+pruefe('ein erfundener Stand wird abgelehnt',
+    (Werkstatt::stand(['projekt' => (string) $wsProjekt, 'stand' => 'kaffeepause'])['ok'] ?? true) === false);
+pruefe('und der Kunde bekommt deswegen keine E-Mail',
+    (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0) === $wsMailsVor);
+
+// Notiz: eine Zeile in die Akte.
+$wsNotizVor = (int) Db::wert("SELECT COUNT(*) FROM activities WHERE project_id = ? AND type = 'werkstatt_notiz'", [$wsProjekt], 0);
+Werkstatt::notiz(['projekt' => (string) $wsProjekt, 'text' => 'Erste Fassung steht, Bilder fehlen noch']);
+pruefe('die Notiz steht in der Akte', (int) Db::wert(
+    "SELECT COUNT(*) FROM activities WHERE project_id = ? AND type = 'werkstatt_notiz'", [$wsProjekt], 0) === $wsNotizVor + 1);
+gesperrt('eine leere Notiz wird nicht abgelegt',
+    static fn() => Werkstatt::notiz(['projekt' => (string) $wsProjekt, 'text' => '   ']));
+
+// Freigeben: der einzige Schritt, der beim Kunden ankommt.
+$wsF = Werkstatt::freigeben(['projekt' => (string) $wsProjekt]);
+pruefe('ohne ja wird nur nachgefragt', !empty($wsF['bestaetigung_noetig']));
+pruefe('und nichts ist freigeschaltet', Db::wert(
+    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
+$wsF2 = Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']);
+pruefe('nach ja ist freigeschaltet', ($wsF2['ok'] ?? false) === true && Db::wert(
+    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) !== null);
+
+// Und ohne Adresse gibt es nichts freizuschalten — sonst klickt der Kunde ins Leere.
+Db::run('UPDATE projects SET preview_url = NULL, vorschau_frei_am = NULL WHERE id = ?', [$wsProjekt]);
+gesperrt('ohne Vorschau-Adresse wird nicht freigeschaltet',
+    static fn() => Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']));
+
+// Die Liste zeigt, woran gebaut wird.
+$wsListe = Werkstatt::liste([]);
+pruefe('die Liste nennt das Projekt', ($wsListe['ok'] ?? false) === true
+    && in_array($wsProjekt, array_column((array) ($wsListe['projekte'] ?? []), 'projekt'), true));
+
+// Zu — und damit ist auch der Schlüssel wieder wertlos.
+Werkstatt::schluesselEntfernen();
+pruefe('die Tür lässt sich wieder schließen',
+    Werkstatt::eingerichtet() === false && Werkstatt::schluesselStimmt($wsZweiter) === false);
+
+// Aufräumen
+Db::run('DELETE FROM mails WHERE customer_id = ?', [$wsKunde]);
+Db::run("DELETE FROM notifications WHERE type LIKE 'werkstatt%'");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

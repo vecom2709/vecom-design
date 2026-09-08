@@ -135,6 +135,35 @@
       <?php endif; ?>
     </div>
 
+    <?php /* ==================================================================
+         DERSELBE AUFTRAG, ANDERER WEG
+
+         Der Knopf darueber kopiert das ganze Briefing in die Zwischenablage,
+         weil ein Chatfenster nichts anderes annimmt. Claude Code braucht das
+         nicht: Es holt sich den Auftrag selbst, sobald es weiss, um welches
+         Projekt es geht. Kopiert wird deshalb nur ein Satz -- und der ist
+         kurz genug, um ihn auch abzutippen.
+
+         Steht kein Schluessel, steht hier nichts: ein Knopf, der ins Leere
+         fuehrt, ist schlimmer als kein Knopf.
+         ============================================================== */ ?>
+    <?php $wOffen = (bool) sicher(static fn() => Werkstatt::eingerichtet(), false); ?>
+    <?php if ($wOffen): ?>
+      <?php $ruf = 'Bau die Vecom-Kundenseite '
+            . (trim((string) ($p['kundennr'] ?? '')) !== '' ? (string) $p['kundennr'] : (string) $p['id']); ?>
+      <div class="leiste" style="gap:8px;flex-wrap:wrap;margin-top:10px;
+                                 padding-top:10px;border-top:1px solid var(--linie)">
+        <input readonly id="cccode" value="<?= Fmt::h($ruf) ?>"
+               style="flex:1;min-width:240px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px">
+        <button class="knopf" data-kopieren="cccode">Befehl für Claude Code</button>
+      </div>
+      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 0">
+        In Claude Code einfügen. Es holt sich Briefing, Fragebogen und Hausregeln
+        selbst und trägt Vorschau-Adresse und Stand hinterher von allein hier ein.
+        Freigeschaltet wird nichts ohne dein ausdrückliches Ja.
+      </p>
+    <?php endif; ?>
+
     <?php if ($hatBriefing): ?>
       <textarea id="briefingtext" readonly rows="12" spellcheck="false"
         style="width:100%;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -490,6 +519,16 @@
       <div class="feld"><label>Adresse des Entwurfs</label>
         <input name="preview_url" placeholder="https://vorschau.vecom-design.it/…"
                value="<?= Fmt::h($vsUrl) ?>"></div>
+      <?php /* Wo der Quelltext liegt, ist in Monat 14 die eigentliche Frage:
+               Die Vorschau sagt, wo die Seite zu sehen ist -- nicht, woraus
+               sie gebaut ist. Claude Code traegt das von allein ein. */ ?>
+      <?php if (array_key_exists('repo_url', $p)): ?>
+        <div class="feld"><label>Wo der Quelltext liegt</label>
+          <input name="repo_url" placeholder="https://github.com/…"
+                 value="<?= Fmt::h(trim((string) ($p['repo_url'] ?? ''))) ?>">
+          <small style="color:var(--leise);display:block;margin-top:5px">Nur für dich —
+            der Kunde sieht diese Zeile nie.</small></div>
+      <?php endif; ?>
       <button class="knopf">Adresse speichern</button>
       <?php if ($vsUrl !== ''): ?>
         <a class="knopf" href="<?= Fmt::h($vsUrl) ?>" target="_blank" rel="noopener"

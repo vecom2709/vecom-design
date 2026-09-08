@@ -1,0 +1,1032 @@
+diff --git a/PROJEKT.md b/PROJEKT.md
+index 174f41a..c839fad 100644
+--- a/PROJEKT.md
++++ b/PROJEKT.md
+@@ -2756,3 +2756,32 @@ Offen: STRATO-Konfiguration (Verhalten: Chef-Modus-Zweig auf Codewort; 4 neue
+ API-Integrationen chef_lage/chef_kunde/chef_kunde_anlegen/chef_notiz auf
+ chef.php) — additiv, ohne die Kundenstrecke anzutasten. Uwe setzt danach das
+ Codewort in der Verwaltung.
++
++### Kundenseiten mit Claude Code bauen — die Werkstatt bekommt eine Tür (08.09.2026)
++
++Bisher lief der Weg zum Baumeister über die Zwischenablage: Briefing erzeugen,
++kopieren, Claude öffnen, einfügen, bauen — und am Ende Vorschau-Adresse und
++Stand von Hand zurück in die Verwaltung tippen. Das trägt, solange ein Mensch
++dazwischensitzt. Claude Code sitzt nicht in einem Chatfenster, sondern auf
++einem Rechner mit einem Ordner: Es braucht eine Tür zum Holen und eine zum
++Melden. Uwe: beide Richtungen, gebaut wird auf dem Mac und in der Cloud,
++veröffentlicht wird auf Netlify (wie Cavaleri).
++
++- app/src/Werkstatt.php: eigener Schlüssel (Setting werkstatt_schluessel,
++  getrennt vom Telefonschlüssel — der liegt bei STRATO im Klartext und darf
++  nicht schreiben). Aktionen: liste, auftrag (Briefing entsteht dabei und
++  bleibt am Projekt), weiter, vorschau (Vorschau- und Quelltext-Adresse),
++  stand, notiz, freigeben.
++- werkstatt.php: Endpunkt, Schlüssel nur im Kopf (X-Vecom-Werkstatt oder
++  Bearer), nie in der Adresszeile. Drosselung 120/Minute. Erwartbare Fehler
++  kommen als lesbarer Satz zurück, nicht als leere Seite.
++- 042_werkstatt_api.sql: projects.repo_url — die Vorschau sagt, WO die Seite
++  ist, nicht WORAUS sie gebaut ist. In Monat 14 ist das die eigentliche Frage.
++- Verwaltung → Vecom-Standard: Block „Mit Claude Code bauen" (Schlüssel
++  erzeugen/neu/entfernen, Adresse, Beispielaufruf). Am Projekt ein Feld für
++  die Quelltext-Adresse und ein Knopf, der den Satz für Claude Code kopiert.
++- Kette 885 (32 neue Prüfungen).
++
++DIE EINE REGEL: Eintragen schaltet nicht frei. „freigeben" ist der einzige
++Schritt hier draußen, der beim Kunden ankommt (E-Mail + offener Entwurf) — und
++verlangt deshalb ein ausdrückliches bestaetigt=ja.
+diff --git a/STRATO-Chef-Modus.md b/STRATO-Chef-Modus.md
+new file mode 100644
+index 0000000..722ebb4
+--- /dev/null
++++ b/STRATO-Chef-Modus.md
+@@ -0,0 +1,96 @@
++# Chef-Modus für Manuela — was in STRATO eingetragen wird
++
++Das ändert **nichts** an dem, was Kunden hören. Es kommt nur ein Zweig dazu, der
++sich erst öffnet, wenn du das Codewort sagst. Zwei Bausteine: ein Absatz im Feld
++**„Verhalten im Telefonat"** und **vier neue API-Integrationen**.
++
++Die Endpunkt-Seite läuft schon live: `https://vecom-design.it/chef.php`
++(antwortet ohne Schlüssel mit „Nicht gefunden" — genau richtig).
++
++---
++
++## 1) So läuft der Chef-Modus (die Idee)
++
++- Du sagst im Gespräch **„Chef-Modus"**. Das ist nur der Auslöser — kein Geheimnis.
++- Manuela bittet **einmal** um dein **Codewort**. Das Codewort kennt sie **nicht** —
++  sie reicht nur weiter, was du sagst. Ob es stimmt, entscheidet der Server.
++- Stimmt es, ist sie auf deiner Seite: sagt, was heute dran ist, erklärt einen
++  Kunden, legt auf dein „ja" einen Kunden an, nimmt eine Notiz auf.
++- Stimmt es nicht, bleibt alles Normalbetrieb — sie erwähnt den Modus gar nicht.
++
++Das Codewort setzt du selbst in der Verwaltung: **Einstellungen →
++Telefonassistentin → Chef-Modus**. Es steht nirgends im Code und in keinem Chat.
++
++---
++
++## 2) Zusatz für „Verhalten im Telefonat" (ANHÄNGEN, nichts löschen)
++
++> **Chef-Modus (nur für Uwe).** Sagt der Anrufer „Chef-Modus" (oder „ich bin Uwe,
++> Chef-Modus"), bittest du **einmal** höflich um das Codewort. Was er daraufhin
++> sagt, gibst du bei den chef-Werkzeugen im Feld `codewort` unverändert mit — du
++> prüfst es nicht selbst, das macht das System, und du wiederholst es nie laut.
++> Antwortet ein chef-Werkzeug mit `gesperrt` oder `aus`, sag freundlich, das habe
++> nicht gepasst, und bleib im normalen Betrieb. Antwortet es normal, bist du bis
++> zum Gesprächsende **Chef-Modus für Uwe** — du verkaufst dann nicht, du hilfst:
++> - Fragt er, was ansteht / was heute dran ist: `chef_lage`, dann den Satz vorlesen.
++> - Fragt er nach einem Kunden: `chef_kunde` mit Name oder E-Mail.
++> - Will er einen Kunden anlegen: `chef_kunde_anlegen` mit Name und E-Mail. Kommt
++>   `bestaetigung_noetig` zurück, lies den Vorschlag vor und frag nach. Erst wenn er
++>   „ja" sagt, rufe es **erneut** auf, diesmal mit `bestaetigt` = `ja`.
++> - Will er sich etwas notieren/merken: `chef_notiz` mit dem Text — genauso erst
++>   nach „ja" mit `bestaetigt` = `ja`.
++> - Gib das `codewort` bei **jedem** dieser Aufrufe mit. Erfinde nie Kundendaten;
++>   was ein Werkzeug nicht liefert, sagst du ehrlich.
++
++---
++
++## 3) Vier neue API-Integrationen
++
++Alle: **Methode POST**, **URL** `https://vecom-design.it/chef.php`,
++**Header** genau wie bei deinen bestehenden Werkzeugen:
++`X-Vecom-Telefon: <dein STRATO-Schlüssel>` (derselbe Schlüssel, der schon bei den
++15 Kunden-Werkzeugen steht). **Body: JSON.**
++
++### 3.1 `chef_lage` — Was ist heute dran?
++- Beschreibung: „Tagesüberblick für den Chef: neue Anfragen, offene Fragebögen,
++  fällige Raten, E-Mail-Probleme."
++- Body:
++  ```json
++  { "aktion": "chef_lage", "codewort": "{{codewort}}" }
++  ```
++
++### 3.2 `chef_kunde` — Stand eines Kunden
++- Beschreibung: „Zeigt dem Chef den Stand eines Kunden: Projekt, Vertrag, offene Zahlungen."
++- Body (Name ODER E-Mail):
++  ```json
++  { "aktion": "chef_kunde", "codewort": "{{codewort}}", "name": "{{name}}" }
++  ```
++
++### 3.3 `chef_kunde_anlegen` — Kunde anlegen (nach „ja")
++- Beschreibung: „Legt einen neuen Kunden an. Erst Vorschlag, dann auf Bestätigung."
++- Body:
++  ```json
++  { "aktion": "chef_kunde_anlegen", "codewort": "{{codewort}}",
++    "name": "{{name}}", "email": "{{email}}", "firma": "{{firma}}",
++    "bestaetigt": "{{bestaetigt}}" }
++  ```
++  (`firma` und `bestaetigt` optional; `bestaetigt` erst „ja", wenn Uwe zustimmt.)
++
++### 3.4 `chef_notiz` — Notiz für Uwe (nach „ja")
++- Beschreibung: „Legt eine Notiz/Aufgabe in Uwes Meldungen ab. Erst Vorschlag, dann Bestätigung."
++- Body:
++  ```json
++  { "aktion": "chef_notiz", "codewort": "{{codewort}}",
++    "text": "{{text}}", "bestaetigt": "{{bestaetigt}}" }
++  ```
++
++---
++
++## 4) Danach
++
++1. In der Verwaltung das **Codewort** setzen (Einstellungen → Telefonassistentin).
++2. Manuela anrufen, „Chef-Modus" sagen, Codewort nennen, „was ist heute dran?"
++   fragen — sie sollte `chef_lage` aufrufen und dir den Satz vorlesen.
++3. Ein falsches Wort testen — sie darf dann nichts vom Chef-Modus verraten.
++
++Alles, was schreibt (Kunde anlegen, Notiz), fragt vorher und wartet auf dein „ja".
+diff --git a/app/index.php b/app/index.php
+index 1f1988f..2b7ff3e 100644
+--- a/app/index.php
++++ b/app/index.php
+@@ -539,8 +539,23 @@ if ($post) {
+                 if ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
+                     throw new RuntimeException('Das sieht nicht nach einer Adresse aus. Es wurde nichts geändert.');
+                 }
+-                Db::update('projects', $pid, ['preview_url' => $url !== '' ? $url : null]);
+-                Events::pruefspur('aendern', 'project', $pid, [], ['preview_url' => $url]);
++                /* Die Quelltext-Adresse steht im selben Formular, weil sie
++                   dieselbe Frage beantwortet wie die Vorschau: Wo ist die
++                   Seite? Nur eben fuer den, der sie aendern soll. Fehlt das
++                   Feld -- etwa bei einem aelteren Formular --, bleibt der
++                   bisherige Wert stehen statt geloescht zu werden. */
++                $aendern = ['preview_url' => $url !== '' ? $url : null];
++                if (array_key_exists('repo_url', $_POST)) {
++                    $repo = trim((string) $_POST['repo_url']);
++                    if ($repo !== '' && !preg_match('~^https?://~i', $repo)) { $repo = 'https://' . $repo; }
++                    if ($repo !== '' && !filter_var($repo, FILTER_VALIDATE_URL)) {
++                        throw new RuntimeException('Die Quelltext-Adresse sieht nicht nach einer Adresse aus. '
++                            . 'Es wurde nichts geändert.');
++                    }
++                    $aendern['repo_url'] = $repo !== '' ? $repo : null;
++                }
++                Db::update('projects', $pid, $aendern);
++                Events::pruefspur('aendern', 'project', $pid, [], $aendern);
+                 // Eine bestehende Freigabe bleibt: Der Kunde klickt weiter
+                 // denselben Knopf und sieht ab sofort die neue Adresse. Eine
+                 // zweite E-Mail bekommt er nicht — er hat nichts Neues zu tun.
+@@ -1630,6 +1645,26 @@ if ($post) {
+                 $_SESSION['gut'] = 'Abgehakt. Ändern kannst du sie jederzeit — sie gilt ab dem nächsten Briefing.';
+                 zurueck('standard');
+ 
++            /* ---------- Werkstatt nach aussen ---------- */
++
++            case 'werkstatt_schluessel_neu':
++                /* Derselbe Gedanke wie beim Telefonschluessel: Ein Schluessel,
++                   der auf einem Rechner in einer Datei liegt, muss in zehn
++                   Sekunden zu tauschen sein. Der alte wird damit wertlos. */
++                require_once __DIR__ . '/src/Werkstatt.php';
++                Werkstatt::neuerSchluessel();
++                Events::protokoll('werkstatt_schluessel', 'Werkstatt-Schlüssel neu erzeugt');
++                $_SESSION['gut'] = 'Neuer Schlüssel. Der alte gilt ab sofort nicht mehr — '
++                                 . 'trag den neuen dort ein, wo du baust.';
++                zurueck('standard');
++
++            case 'werkstatt_schluessel_weg':
++                require_once __DIR__ . '/src/Werkstatt.php';
++                Werkstatt::schluesselEntfernen();
++                Events::protokoll('werkstatt_schluessel', 'Werkstatt-Schlüssel entfernt');
++                $_SESSION['gut'] = 'Die Tür ist zu. Ohne Schlüssel antwortet werkstatt.php niemandem.';
++                zurueck('standard');
++
+             case 'claude_projekt':
+                 require_once __DIR__ . '/src/Standard.php';
+                 Standard::claudeProjektSpeichern((string) ($_POST['url'] ?? ''));
+@@ -2320,8 +2355,9 @@ switch ($route) {
+         require_once __DIR__ . '/src/Umfang.php';  // und vergleicht ihn mit dem Angebot
+         require_once __DIR__ . '/src/Standard.php';// und zeigt, wohin der Briefing-Knopf fuehrt
+         require_once __DIR__ . '/src/Abnahme.php'; // und was die letzte Pruefung ergab
++        require_once __DIR__ . '/src/Werkstatt.php';// und ob Claude Code hereindarf
+         if ($id !== null) {
+-            $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, o.order_no
++            $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, c.kundennr, o.order_no
+                           FROM projects p JOIN customers c ON c.id = p.customer_id
+                           LEFT JOIN orders o ON o.id = p.order_id WHERE p.id = ?', [$id]);
+             if (!$p) { http_response_code(404); exit('Projekt nicht gefunden.'); }
+@@ -2559,6 +2595,7 @@ switch ($route) {
+ 
+     case 'standard':
+         require_once __DIR__ . '/src/Standard.php';
++        require_once __DIR__ . '/src/Werkstatt.php';
+         ansicht('standard', [
+             'text'      => Standard::text(),
+             'eigener'   => Standard::eigener(),
+@@ -2566,6 +2603,8 @@ switch ($route) {
+             'gesehen'   => Standard::gesehen(),
+             'anhaengen' => Standard::anhaengen(),
+             'projekt'   => Standard::claudeProjekt(),
++            'wSchluessel' => sicher(static fn() => Werkstatt::schluessel(), ''),
++            'wAdresse'    => sicher(static fn() => Werkstatt::adresse(), ''),
+         ]);
+         break;
+ 
+diff --git a/app/migrations/042_werkstatt_api.sql b/app/migrations/042_werkstatt_api.sql
+new file mode 100644
+index 0000000..7cee0d3
+--- /dev/null
++++ b/app/migrations/042_werkstatt_api.sql
+@@ -0,0 +1,24 @@
++-- ===========================================================================
++-- 042_werkstatt_api.sql — Die Werkstatt bekommt eine Tuer nach aussen.
++--
++-- Bisher lief der Weg zum Baumeister ueber die Zwischenablage: Briefing
++-- erzeugen, kopieren, Claude oeffnen, einfuegen -- und am Ende die
++-- Vorschau-Adresse von Hand zurueck in die Verwaltung tippen. Das
++-- funktioniert, solange ein Mensch dazwischensitzt.
++--
++-- Claude Code sitzt nicht in einem Chatfenster, sondern auf einem Rechner mit
++-- einem Ordner. Damit es sich den Auftrag selbst holen und das Ergebnis selbst
++-- zurueckmelden kann, braucht es einen Endpunkt -- und eine Spalte, in der
++-- steht, wo der Quelltext der Kundenseite liegt.
++--
++-- WARUM DAS REPO ANS PROJEKT GEHOERT
++--
++-- Die Vorschau-Adresse sagt, wo die Seite zu sehen ist. Sie sagt nicht, woraus
++-- sie gebaut ist. In Monat 14, wenn ein Betreuungskunde eine Aenderung will,
++-- ist genau das die Frage -- und die Antwort lag bisher nur im Kopf oder in
++-- einer Notiz. Neben dem Briefing (033) ist das der zweite Teil derselben
++-- Sache: Was gebaut wurde, steht in der Akte.
++-- ===========================================================================
++
++ALTER TABLE projects
++  ADD COLUMN repo_url VARCHAR(255) NULL AFTER preview_url;
+diff --git a/app/pruefung/kette.php b/app/pruefung/kette.php
+index ea3cbab..f963d87 100644
+--- a/app/pruefung/kette.php
++++ b/app/pruefung/kette.php
+@@ -4191,6 +4191,119 @@ Db::run("DELETE FROM customers WHERE email = 'chef-neu@pruefung.example'");
+ Db::run("DELETE FROM notifications WHERE type IN ('chef_notiz','chef_kunde')");
+ Db::run("DELETE FROM settings WHERE skey = 'chef_codewort'");
+ 
++/* ============================================================================
++   47. Die Werkstatt von aussen (Claude Code holt und meldet)
++   ----------------------------------------------------------------------------
++   Zwei Türen und eine Bremse. Die erste Tür ist der Schlüssel: ohne ihn
++   antwortet niemand, ein falscher öffnet nie. Die zweite ist die Freigabe —
++   der einzige Schritt hier draußen, der beim Kunden ankommt, und deshalb der
++   einzige, der ein ausdrückliches „ja" verlangt.
++
++   Die Bremse ist, was NICHT passiert: Eine Vorschau-Adresse einzutragen
++   schaltet sie nicht frei. Genau das war beim Knopf in der Verwaltung einmal
++   dasselbe und hat Kunden auf halbfertige Entwürfe geschickt.
++   ============================================================================ */
++abschnitt('47. Werkstatt von außen');
++require_once $wurzel . '/src/Werkstatt.php';
++
++// Ohne Schlüssel ist die Tür zu — auch für den richtigen Aufrufer.
++Db::run("DELETE FROM settings WHERE skey = 'werkstatt_schluessel'");
++pruefe('ohne Schlüssel ist die Werkstatt zu', Werkstatt::eingerichtet() === false);
++pruefe('und nichts öffnet sie', Werkstatt::schluesselStimmt('irgendwas') === false);
++
++$wsSchluessel = Werkstatt::neuerSchluessel();
++pruefe('ein erzeugter Schlüssel öffnet', Werkstatt::schluesselStimmt($wsSchluessel) === true);
++pruefe('ein falscher öffnet nicht', Werkstatt::schluesselStimmt('falsch') === false);
++pruefe('ein leerer öffnet nicht', Werkstatt::schluesselStimmt('') === false);
++$wsZweiter = Werkstatt::neuerSchluessel();
++pruefe('ein neuer macht den alten wertlos',
++    Werkstatt::schluesselStimmt($wsSchluessel) === false && Werkstatt::schluesselStimmt($wsZweiter) === true);
++
++// Ein eigenes Projekt, damit dieser Abschnitt niemandem sonst ins Handwerk pfuscht.
++$wsKunde = Events::kundeFinden(['name' => 'Werkstatt Kunde', 'email' => 'werkstatt@pruefung.example']);
++Db::run('UPDATE customers SET kundennr = ? WHERE id = ?', ['K-9999-0042', $wsKunde]);
++$wsBestellung = Events::bestellungAnlegen($wsKunde, $paketId, 'Werkstatt-Prüfung');
++Events::bestellungStatus($wsBestellung, 'bezahlt');
++$wsProjekt = Events::projektAusBestellung($wsBestellung);
++pruefe('Prüfprojekt steht', $wsProjekt > 0);
++
++// Finden: Projekt-ID, Kundennummer, Bestellnummer — und ein klares Nein sonst.
++pruefe('findet über die Projekt-Nummer',
++    (int) Werkstatt::projektFinden(['projekt' => (string) $wsProjekt])['id'] === $wsProjekt);
++pruefe('findet über die Kundennummer',
++    (int) Werkstatt::projektFinden(['kunde' => 'K-9999-0042'])['id'] === $wsProjekt);
++gesperrt('ohne Angabe wird nicht geraten', static fn() => Werkstatt::projektFinden([]));
++gesperrt('eine unbekannte Nummer wirft', static fn() => Werkstatt::projektFinden(['kunde' => 'K-0000-0000']));
++
++// Auftrag holen: Briefing entsteht dabei und bleibt am Projekt.
++$wsAuftrag = Werkstatt::auftrag(['kunde' => 'K-9999-0042']);
++pruefe('der Auftrag kommt mit Briefing', trim((string) ($wsAuftrag['briefing'] ?? '')) !== '');
++pruefe('und mit den Hausregeln', trim((string) ($wsAuftrag['hausregeln'] ?? '')) !== '');
++pruefe('das Briefing bleibt am Projekt stehen',
++    trim((string) Db::wert('SELECT briefing FROM projects WHERE id = ?', [$wsProjekt], '')) !== '');
++pruefe('der Auftrag nennt die möglichen Stände', in_array('vorschau', (array) ($wsAuftrag['staende'] ?? []), true));
++
++// Vorschau eintragen — und eben NICHT freischalten.
++$wsV = Werkstatt::vorschau(['projekt' => (string) $wsProjekt,
++    'vorschau' => 'cavaleri-pruefung.netlify.app', 'repo' => 'https://github.com/beispiel/pruefung']);
++pruefe('die Vorschau-Adresse steht', (string) Db::wert(
++    'SELECT preview_url FROM projects WHERE id = ?', [$wsProjekt], '') === 'https://cavaleri-pruefung.netlify.app');
++pruefe('fehlendes https wird ergänzt statt abgelehnt', ($wsV['ok'] ?? false) === true);
++pruefe('die Quelltext-Adresse steht daneben', (string) Db::wert(
++    'SELECT repo_url FROM projects WHERE id = ?', [$wsProjekt], '') === 'https://github.com/beispiel/pruefung');
++pruefe('EINTRAGEN SCHALTET NICHT FREI', Db::wert(
++    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
++gesperrt('eine unsinnige Adresse wird abgelehnt',
++    static fn() => Werkstatt::vorschau(['projekt' => (string) $wsProjekt, 'vorschau' => 'htt p:// nein']));
++gesperrt('ohne Adresse und ohne Repo gibt es nichts zu ändern',
++    static fn() => Werkstatt::vorschau(['projekt' => (string) $wsProjekt]));
++
++// Stand setzen: nur bekannte Stände, und ohne E-Mail.
++$wsMailsVor = (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0);
++$wsS = Werkstatt::stand(['projekt' => (string) $wsProjekt, 'stand' => 'entwicklung']);
++pruefe('der Stand lässt sich setzen', ($wsS['ok'] ?? false) === true
++    && (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$wsProjekt], '') === 'entwicklung');
++pruefe('ein erfundener Stand wird abgelehnt',
++    (Werkstatt::stand(['projekt' => (string) $wsProjekt, 'stand' => 'kaffeepause'])['ok'] ?? true) === false);
++pruefe('und der Kunde bekommt deswegen keine E-Mail',
++    (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0) === $wsMailsVor);
++
++// Notiz: eine Zeile in die Akte.
++$wsNotizVor = (int) Db::wert("SELECT COUNT(*) FROM activities WHERE project_id = ? AND type = 'werkstatt_notiz'", [$wsProjekt], 0);
++Werkstatt::notiz(['projekt' => (string) $wsProjekt, 'text' => 'Erste Fassung steht, Bilder fehlen noch']);
++pruefe('die Notiz steht in der Akte', (int) Db::wert(
++    "SELECT COUNT(*) FROM activities WHERE project_id = ? AND type = 'werkstatt_notiz'", [$wsProjekt], 0) === $wsNotizVor + 1);
++gesperrt('eine leere Notiz wird nicht abgelegt',
++    static fn() => Werkstatt::notiz(['projekt' => (string) $wsProjekt, 'text' => '   ']));
++
++// Freigeben: der einzige Schritt, der beim Kunden ankommt.
++$wsF = Werkstatt::freigeben(['projekt' => (string) $wsProjekt]);
++pruefe('ohne ja wird nur nachgefragt', !empty($wsF['bestaetigung_noetig']));
++pruefe('und nichts ist freigeschaltet', Db::wert(
++    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
++$wsF2 = Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']);
++pruefe('nach ja ist freigeschaltet', ($wsF2['ok'] ?? false) === true && Db::wert(
++    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) !== null);
++
++// Und ohne Adresse gibt es nichts freizuschalten — sonst klickt der Kunde ins Leere.
++Db::run('UPDATE projects SET preview_url = NULL, vorschau_frei_am = NULL WHERE id = ?', [$wsProjekt]);
++gesperrt('ohne Vorschau-Adresse wird nicht freigeschaltet',
++    static fn() => Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']));
++
++// Die Liste zeigt, woran gebaut wird.
++$wsListe = Werkstatt::liste([]);
++pruefe('die Liste nennt das Projekt', ($wsListe['ok'] ?? false) === true
++    && in_array($wsProjekt, array_column((array) ($wsListe['projekte'] ?? []), 'projekt'), true));
++
++// Zu — und damit ist auch der Schlüssel wieder wertlos.
++Werkstatt::schluesselEntfernen();
++pruefe('die Tür lässt sich wieder schließen',
++    Werkstatt::eingerichtet() === false && Werkstatt::schluesselStimmt($wsZweiter) === false);
++
++// Aufräumen
++Db::run('DELETE FROM mails WHERE customer_id = ?', [$wsKunde]);
++Db::run("DELETE FROM notifications WHERE type LIKE 'werkstatt%'");
++
+ /* ============================================================================
+    Aufräumen und Bilanz
+    ============================================================================ */
+diff --git a/app/src/Werkstatt.php b/app/src/Werkstatt.php
+new file mode 100644
+index 0000000..61099fb
+--- /dev/null
++++ b/app/src/Werkstatt.php
+@@ -0,0 +1,414 @@
++<?php
++declare(strict_types=1);
++
++require_once __DIR__ . '/Db.php';
++require_once __DIR__ . '/Config.php';
++require_once __DIR__ . '/Fmt.php';
++require_once __DIR__ . '/Status.php';
++require_once __DIR__ . '/Events.php';
++
++/**
++ * Die Werkstatt von aussen — damit Claude Code holen und melden kann.
++ *
++ * WARUM ES DAS BRAUCHT
++ *
++ * Der Weg zum Baumeister lief bisher ueber die Zwischenablage: Briefing
++ * erzeugen, kopieren, Claude oeffnen, einfuegen, bauen -- und am Ende die
++ * Vorschau-Adresse von Hand zurueck in die Verwaltung tippen. Das ist kein
++ * schlechter Weg, solange ein Mensch dazwischensitzt und ohnehin liest, was
++ * er kopiert.
++ *
++ * Claude Code sitzt nicht in einem Chatfenster. Es hat einen Ordner, eine
++ * Kommandozeile und keinen Menschen, der ihm etwas einfuegt. Damit derselbe
++ * Ablauf dort funktioniert, braucht es zwei Tueren: eine zum Holen (was ist
++ * der Auftrag) und eine zum Melden (hier ist das Ergebnis).
++ *
++ * WAS HIER ABSICHTLICH NICHT PASSIERT
++ *
++ * Freischalten. Das ist der Moment, in dem der Kunde eine E-Mail bekommt und
++ * auf seiner Seite etwas Neues sieht -- die einzige Aktion hier draussen mit
++ * Wirkung nach aussen. Sie hat deshalb eine eigene Aktion und einen eigenen
++ * Satz in der Antwort, statt als Nebenwirkung von "Vorschau eintragen" zu
++ * passieren. Wer eine Adresse eintraegt, will eine Adresse eintragen.
++ *
++ * WARUM EIN EIGENER SCHLUESSEL
++ *
++ * Der Telefonschluessel liegt bei STRATO im Klartext. Ein Schluessel, der
++ * schreiben darf, hat dort nichts zu suchen -- und umgekehrt soll ein
++ * verlorener Werkstattschluessel nicht die Telefonassistentin mitreissen.
++ * Zwei Schluessel, zwei Tueren, getrennt zu tauschen.
++ */
++final class Werkstatt
++{
++    /** Was von aussen aufgerufen werden darf. */
++    public const AKTIONEN = ['liste', 'auftrag', 'weiter', 'vorschau', 'stand', 'notiz', 'freigeben'];
++
++    private const SCHLUESSEL = 'werkstatt_schluessel';
++
++    /** Grosszuegig: Ein Bauvorgang fragt in Schueben, nicht im Dauerlauf. */
++    private const DROSSEL_PRO_MINUTE = 120;
++
++    /* ================================================================== */
++    /*  Schluessel                                                        */
++    /* ================================================================== */
++
++    public static function schluessel(): string
++    {
++        return (string) self::still(static fn() => Db::wert(
++            'SELECT svalue FROM settings WHERE skey = ?', [self::SCHLUESSEL], ''), '');
++    }
++
++    public static function eingerichtet(): bool
++    {
++        return self::schluessel() !== '';
++    }
++
++    /** Erzeugt einen neuen und macht damit den alten wertlos. */
++    public static function neuerSchluessel(): string
++    {
++        $neu = bin2hex(random_bytes(24));
++        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)
++                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [self::SCHLUESSEL, $neu]);
++        return $neu;
++    }
++
++    /** Zu, bis ein neuer erzeugt wird. */
++    public static function schluesselEntfernen(): void
++    {
++        Db::run('DELETE FROM settings WHERE skey = ?', [self::SCHLUESSEL]);
++    }
++
++    public static function schluesselStimmt(string $eingabe): bool
++    {
++        $soll = self::schluessel();
++        /* Ohne hinterlegten Schluessel ist der Endpunkt zu. Sonst stuende er
++           offen, solange ihn niemand einmal erzeugt hat. */
++        if ($soll === '' || $eingabe === '') { return false; }
++        return hash_equals($soll, $eingabe);
++    }
++
++    public static function adresse(): string
++    {
++        $basis = rtrim((string) self::still(static fn() => Config::get('website', 'https://vecom-design.it'),
++                                            'https://vecom-design.it'), '/');
++        return $basis . '/werkstatt.php';
++    }
++
++    /** Nicht gegen Angreifer gedacht, sondern gegen eine Schleife. */
++    public static function darfNoch(): bool
++    {
++        $takt = 'werkstatt_takt_' . date('YmdHi');
++        try {
++            Db::run("INSERT INTO settings (skey, svalue) VALUES (?, '1')
++                     ON DUPLICATE KEY UPDATE svalue = CAST(svalue AS UNSIGNED) + 1", [$takt]);
++            $stand = (int) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$takt], 0);
++            if ($stand === 1) {
++                Db::run("DELETE FROM settings WHERE skey LIKE 'werkstatt_takt_%' AND skey < ?",
++                        ['werkstatt_takt_' . date('YmdHi', time() - 3600)]);
++            }
++            return $stand <= self::DROSSEL_PRO_MINUTE;
++        } catch (Throwable $e) {
++            return true;
++        }
++    }
++
++    /* ================================================================== */
++    /*  Das Projekt finden                                                */
++    /* ================================================================== */
++
++    /**
++     * Findet das Projekt aus dem, was der Aufrufer nennt.
++     *
++     * Am Telefon nennt niemand eine Datenbank-ID, und auf der Kommandozeile
++     * auch nicht: Dort steht die Kundennummer, die auf jedem Beleg steht.
++     * Deshalb nimmt diese Stelle alles drei -- Projekt-ID, Kundennummer,
++     * Bestellnummer -- und sagt klar, wenn nichts davon passt.
++     */
++    public static function projektFinden(array $d): array
++    {
++        $wert = trim((string) ($d['projekt'] ?? $d['kunde'] ?? $d['nummer'] ?? ''));
++        if ($wert === '') {
++            throw new RuntimeException('Sag, welches Projekt: Projekt-Nummer, Kundennummer oder Bestellnummer.');
++        }
++
++        // Reine Zahl: die Projekt-ID.
++        if (ctype_digit($wert)) {
++            $p = Db::one('SELECT * FROM projects WHERE id = ?', [(int) $wert]);
++            if ($p) { return $p; }
++        }
++
++        // Kundennummer (K-2026-0001) — das jüngste Projekt dieses Kunden.
++        $p = Db::one('SELECT p.* FROM projects p JOIN customers c ON c.id = p.customer_id
++                       WHERE c.kundennr = ? ORDER BY p.id DESC LIMIT 1', [$wert]);
++        if ($p) { return $p; }
++
++        // Bestellnummer.
++        $p = Db::one('SELECT p.* FROM projects p JOIN orders o ON o.id = p.order_id
++                       WHERE o.order_no = ? ORDER BY p.id DESC LIMIT 1', [$wert]);
++        if ($p) { return $p; }
++
++        /* Ein Kunde ohne Projekt ist der haeufigste Fall dieser Meldung --
++           und der einzige, bei dem der Aufrufer sofort weiss, was zu tun
++           ist. Deshalb steht er hier und nicht in einem allgemeinen Satz. */
++        $kunde = Db::one('SELECT id, name FROM customers WHERE kundennr = ?', [$wert]);
++        if ($kunde) {
++            throw new RuntimeException('Zu ' . $wert . ' (' . $kunde['name'] . ') gibt es noch kein Projekt. '
++                . 'Ein Projekt entsteht aus einer Bestellung, sobald sie bezahlt ist.');
++        }
++        throw new RuntimeException('Nichts gefunden zu „' . $wert . '“.');
++    }
++
++    /* ================================================================== */
++    /*  Holen                                                             */
++    /* ================================================================== */
++
++    /** Woran gerade gebaut wird — kurz, zum Auswählen. */
++    public static function liste(array $d = []): array
++    {
++        $alle = !empty($d['alle']);
++        $zeilen = (array) self::still(static fn() => Db::all(
++            "SELECT p.id, p.name, p.status, p.progress, p.deadline,
++                    p.preview_url, p.repo_url, p.vorschau_frei_am, p.briefing_am,
++                    c.kundennr, c.name AS kunde, c.company AS firma, c.sprache
++               FROM projects p JOIN customers c ON c.id = p.customer_id
++              WHERE p.demo = 0" . ($alle ? '' : " AND p.status NOT IN ('abgeschlossen')") . "
++              ORDER BY p.id DESC LIMIT 100"), []);
++
++        $liste = [];
++        foreach ($zeilen as $z) {
++            $liste[] = [
++                'projekt'    => (int) $z['id'],
++                'kundennr'   => (string) ($z['kundennr'] ?? ''),
++                'kunde'      => trim((string) ($z['firma'] ?: $z['kunde'])),
++                'name'       => (string) $z['name'],
++                'stand'      => (string) $z['status'],
++                'stand_klar' => (string) (Status::PROJEKT[$z['status']] ?? $z['status']),
++                'fortschritt' => (int) $z['progress'],
++                'sprache'    => (string) ($z['sprache'] ?? 'de'),
++                'deadline'   => $z['deadline'] ?: null,
++                'vorschau'   => $z['preview_url'] ?: null,
++                'freigegeben' => $z['vorschau_frei_am'] !== null,
++                'repo'       => $z['repo_url'] ?: null,
++                'briefing'   => $z['briefing_am'] !== null,
++            ];
++        }
++        return ['ok' => true, 'anzahl' => count($liste), 'projekte' => $liste];
++    }
++
++    /**
++     * Der volle Auftrag: Briefing, Hausregeln, Eckdaten, passende Bausteine.
++     *
++     * Das Briefing wird erzeugt, wenn es fehlt -- und dabei am Projekt
++     * festgehalten, genau wie beim Knopf in der Verwaltung. Sonst haette
++     * derselbe Auftrag zwei Fassungen: eine im Chat und eine hier.
++     */
++    public static function auftrag(array $d): array
++    {
++        $p = self::projektFinden($d);
++        $pid = (int) $p['id'];
++        $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $p['customer_id']]);
++        if (!$k) { throw new RuntimeException('Zu diesem Projekt gibt es keinen Kunden.'); }
++
++        $briefing = trim((string) ($p['briefing'] ?? ''));
++        $neu = false;
++        if ($briefing === '' || !empty($d['neu'])) {
++            require_once __DIR__ . '/Briefing.php';
++            $briefing = (string) self::still(static fn() => Briefing::speichern($pid), '');
++            $neu = $briefing !== '';
++            $p = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]) ?: $p;
++        }
++
++        require_once __DIR__ . '/Standard.php';
++        $hausregeln = (string) self::still(static fn() => Standard::text(), '');
++
++        $b = $p['order_id'] !== null
++            ? self::still(static fn() => Db::one('SELECT * FROM orders WHERE id = ?', [(int) $p['order_id']]), null)
++            : null;
++
++        return [
++            'ok'        => true,
++            'projekt'   => $pid,
++            'kundennr'  => (string) ($k['kundennr'] ?? ''),
++            'titel'     => (string) $p['name'],
++            'kunde'     => [
++                'name'    => (string) $k['name'],
++                'firma'   => (string) ($k['company'] ?? ''),
++                'email'   => (string) ($k['email'] ?? ''),
++                'ort'     => trim((string) ($k['city'] ?? '') . ' ' . (string) ($k['country'] ?? '')),
++                'branche' => (string) ($k['industry'] ?? ''),
++                'sprache' => (string) ($k['sprache'] ?? 'de'),
++            ],
++            'paket'     => $b ? (string) $b['package_name'] : null,
++            'stand'     => (string) $p['status'],
++            'stand_klar' => (string) (Status::PROJEKT[$p['status']] ?? $p['status']),
++            'deadline'  => $p['deadline'] ?: null,
++            'vorschau'  => $p['preview_url'] ?: null,
++            'freigegeben' => ($p['vorschau_frei_am'] ?? null) !== null,
++            'repo'      => $p['repo_url'] ?: null,
++            'briefing'  => $briefing,
++            'briefing_neu' => $neu,
++            'hausregeln' => $hausregeln,
++            'staende'   => array_keys(Status::PROJEKT),
++        ];
++    }
++
++    /** Nur, was seit dem Briefing dazugekommen ist. */
++    public static function weiter(array $d): array
++    {
++        $p = self::projektFinden($d);
++        require_once __DIR__ . '/Briefing.php';
++        return [
++            'ok'      => true,
++            'projekt' => (int) $p['id'],
++            'text'    => (string) self::still(static fn() => Briefing::weiter((int) $p['id']), ''),
++        ];
++    }
++
++    /* ================================================================== */
++    /*  Melden                                                            */
++    /* ================================================================== */
++
++    /**
++     * Vorschau-Adresse eintragen — und, wenn dabei, wo der Quelltext liegt.
++     *
++     * Freigeschaltet wird hier nichts. Der Kunde sieht danach denselben
++     * grauen Kasten wie vorher; erst "freigeben" oeffnet ihn.
++     */
++    public static function vorschau(array $d): array
++    {
++        $p = self::projektFinden($d);
++        $pid = (int) $p['id'];
++
++        $url  = self::adressePruefen((string) ($d['vorschau'] ?? $d['url'] ?? ''), 'Vorschau-Adresse');
++        $repo = self::adressePruefen((string) ($d['repo'] ?? ''), 'Repo-Adresse');
++
++        $aendern = [];
++        if ($url !== null)  { $aendern['preview_url'] = $url !== '' ? $url : null; }
++        if ($repo !== null) { $aendern['repo_url']    = $repo !== '' ? $repo : null; }
++        if (!$aendern) {
++            throw new RuntimeException('Nichts zu ändern: weder „vorschau“ noch „repo“ dabei.');
++        }
++        Db::update('projects', $pid, $aendern);
++
++        $teile = [];
++        if ($url !== null)  { $teile[] = $url !== '' ? 'Vorschau: ' . $url : 'Vorschau entfernt'; }
++        if ($repo !== null) { $teile[] = $repo !== '' ? 'Quelltext: ' . $repo : 'Quelltext entfernt'; }
++        self::still(static fn() => Events::protokoll('werkstatt_vorschau',
++            'Aus der Werkstatt gemeldet — ' . implode(' · ', $teile),
++            (int) $p['customer_id'], null, $pid));
++        self::still(static fn() => Events::pruefspur('aendern', 'project', $pid, [], $aendern));
++
++        $frei = ($p['vorschau_frei_am'] ?? null) !== null;
++        return [
++            'ok'      => true,
++            'projekt' => $pid,
++            'vorschau' => $aendern['preview_url'] ?? ($p['preview_url'] ?: null),
++            'repo'    => $aendern['repo_url'] ?? ($p['repo_url'] ?: null),
++            'freigegeben' => $frei,
++            'hinweis' => $frei
++                ? 'Eingetragen. Der Kunde ist schon freigeschaltet und sieht ab sofort diese Adresse.'
++                : 'Eingetragen. Der Kunde sieht sie noch nicht — dazu „freigeben“.',
++        ];
++    }
++
++    /** Den Stand setzen. Ohne E-Mail — die haengt an der Freigabe. */
++    public static function stand(array $d): array
++    {
++        $p = self::projektFinden($d);
++        $neu = trim((string) ($d['stand'] ?? $d['status'] ?? ''));
++        if (!isset(Status::PROJEKT[$neu])) {
++            return ['ok' => false, 'hinweis' => 'Diesen Stand gibt es nicht.',
++                    'moeglich' => array_keys(Status::PROJEKT)];
++        }
++        Events::projektStatus((int) $p['id'], $neu, false);
++        return ['ok' => true, 'projekt' => (int) $p['id'], 'stand' => $neu,
++                'stand_klar' => (string) Status::PROJEKT[$neu],
++                'hinweis' => 'Stand gesetzt. Der Kunde bekommt deswegen keine E-Mail.'];
++    }
++
++    /** Eine Zeile in die Akte — für alles, was später jemand wissen will. */
++    public static function notiz(array $d): array
++    {
++        $p = self::projektFinden($d);
++        $text = trim((string) ($d['text'] ?? $d['notiz'] ?? ''));
++        if ($text === '') { throw new RuntimeException('Ohne Text keine Notiz.'); }
++        $text = mb_substr($text, 0, 500);
++        Events::protokoll('werkstatt_notiz', 'Aus der Werkstatt: ' . $text,
++                          (int) $p['customer_id'], null, (int) $p['id']);
++        return ['ok' => true, 'projekt' => (int) $p['id'], 'notiert' => $text];
++    }
++
++    /**
++     * Freischalten — der eine Schritt hier, der beim Kunden ankommt.
++     *
++     * Deshalb verlangt er ein ausdrueckliches "ja". Ein Tippfehler im
++     * Rumpf soll keine E-Mail ausloesen, die sich nicht zurueckholen laesst.
++     */
++    public static function freigeben(array $d): array
++    {
++        $p = self::projektFinden($d);
++        $pid = (int) $p['id'];
++
++        if (!self::jaGesagt((string) ($d['bestaetigt'] ?? ''))) {
++            return ['ok' => false, 'bestaetigung_noetig' => true,
++                    'projekt' => $pid,
++                    'hinweis' => 'Freischalten schickt dem Kunden eine E-Mail und öffnet ihm den Entwurf. '
++                               . 'Wenn das so gewollt ist, noch einmal mit bestaetigt = ja.'];
++        }
++        $url = trim((string) self::still(static fn() => Db::wert(
++            'SELECT preview_url FROM projects WHERE id = ?', [$pid], ''), ''));
++        if ($url === '') {
++            throw new RuntimeException('Ohne Vorschau-Adresse gibt es nichts freizuschalten — '
++                . 'sonst bekommt der Kunde eine E-Mail und findet nichts.');
++        }
++
++        Db::update('projects', $pid, ['vorschau_frei_am' => date('Y-m-d H:i:s')]);
++        self::still(static fn() => Events::projektStatus($pid, 'vorschau', false));
++        self::still(static fn() => Events::protokoll('vorschau_frei',
++            'Vorschau aus der Werkstatt freigeschaltet', (int) $p['customer_id'], null, $pid));
++
++        require_once __DIR__ . '/Mail.php';
++        require_once __DIR__ . '/Nachricht.php';
++        $schonMal = (bool) self::still(static fn() => Mail::schonGeschickt('vorschau', 'project_id', $pid), false);
++        $raus = (bool) self::still(static fn() => Nachricht::vorschauBereit($pid), false);
++
++        return ['ok' => true, 'projekt' => $pid, 'vorschau' => $url,
++                'mail' => $raus, 'hinweis' => match (true) {
++                    $raus     => 'Freigeschaltet. Der Kunde hat die E-Mail bekommen.',
++                    $schonMal => 'Freigeschaltet. Eine zweite E-Mail bekommt er nicht — '
++                               . 'die erste war schon draußen. Auf seiner Seite sieht er den Entwurf sofort.',
++                    default   => 'Freigeschaltet. Die E-Mail ging nicht raus — '
++                               . 'auf seiner Seite sieht er die Vorschau trotzdem.',
++                }];
++    }
++
++    /* ================================================================== */
++    /*  Kleinkram                                                         */
++    /* ================================================================== */
++
++    /**
++     * Adressen pruefen: null heisst "war nicht dabei", '' heisst "raus damit".
++     */
++    private static function adressePruefen(string $roh, string $was): ?string
++    {
++        $roh = trim($roh);
++        if ($roh === '') { return null; }
++        if (strcasecmp($roh, 'weg') === 0 || strcasecmp($roh, '-') === 0) { return ''; }
++        if (!preg_match('~^https?://~i', $roh)) { $roh = 'https://' . $roh; }
++        if (!filter_var($roh, FILTER_VALIDATE_URL)) {
++            throw new RuntimeException('Das sieht nicht nach einer Adresse aus: ' . $was . '.');
++        }
++        return mb_substr($roh, 0, 255);
++    }
++
++    private static function jaGesagt(string $wort): bool
++    {
++        $w = mb_strtolower(trim($wort));
++        return in_array($w, ['ja', 'jawohl', 'ok', 'okay', 'yes', 'si', 'sì', 'true', '1', 'mach', 'passt'], true);
++    }
++
++    private static function still(callable $fn, mixed $ersatz = null): mixed
++    {
++        try { return $fn(); } catch (Throwable $e) { return $ersatz; }
++    }
++}
+diff --git a/app/views/projekt.php b/app/views/projekt.php
+index fecb14c..ffe5536 100644
+--- a/app/views/projekt.php
++++ b/app/views/projekt.php
+@@ -135,6 +135,35 @@
+       <?php endif; ?>
+     </div>
+ 
++    <?php /* ==================================================================
++         DERSELBE AUFTRAG, ANDERER WEG
++
++         Der Knopf darueber kopiert das ganze Briefing in die Zwischenablage,
++         weil ein Chatfenster nichts anderes annimmt. Claude Code braucht das
++         nicht: Es holt sich den Auftrag selbst, sobald es weiss, um welches
++         Projekt es geht. Kopiert wird deshalb nur ein Satz -- und der ist
++         kurz genug, um ihn auch abzutippen.
++
++         Steht kein Schluessel, steht hier nichts: ein Knopf, der ins Leere
++         fuehrt, ist schlimmer als kein Knopf.
++         ============================================================== */ ?>
++    <?php $wOffen = (bool) sicher(static fn() => Werkstatt::eingerichtet(), false); ?>
++    <?php if ($wOffen): ?>
++      <?php $ruf = 'Bau die Vecom-Kundenseite '
++            . (trim((string) ($p['kundennr'] ?? '')) !== '' ? (string) $p['kundennr'] : (string) $p['id']); ?>
++      <div class="leiste" style="gap:8px;flex-wrap:wrap;margin-top:10px;
++                                 padding-top:10px;border-top:1px solid var(--linie)">
++        <input readonly id="cccode" value="<?= Fmt::h($ruf) ?>"
++               style="flex:1;min-width:240px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px">
++        <button class="knopf" data-kopieren="cccode">Befehl für Claude Code</button>
++      </div>
++      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 0">
++        In Claude Code einfügen. Es holt sich Briefing, Fragebogen und Hausregeln
++        selbst und trägt Vorschau-Adresse und Stand hinterher von allein hier ein.
++        Freigeschaltet wird nichts ohne dein ausdrückliches Ja.
++      </p>
++    <?php endif; ?>
++
+     <?php if ($hatBriefing): ?>
+       <textarea id="briefingtext" readonly rows="12" spellcheck="false"
+         style="width:100%;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+@@ -490,6 +519,16 @@
+       <div class="feld"><label>Adresse des Entwurfs</label>
+         <input name="preview_url" placeholder="https://vorschau.vecom-design.it/…"
+                value="<?= Fmt::h($vsUrl) ?>"></div>
++      <?php /* Wo der Quelltext liegt, ist in Monat 14 die eigentliche Frage:
++               Die Vorschau sagt, wo die Seite zu sehen ist -- nicht, woraus
++               sie gebaut ist. Claude Code traegt das von allein ein. */ ?>
++      <?php if (array_key_exists('repo_url', $p)): ?>
++        <div class="feld"><label>Wo der Quelltext liegt</label>
++          <input name="repo_url" placeholder="https://github.com/…"
++                 value="<?= Fmt::h(trim((string) ($p['repo_url'] ?? ''))) ?>">
++          <small style="color:var(--leise);display:block;margin-top:5px">Nur für dich —
++            der Kunde sieht diese Zeile nie.</small></div>
++      <?php endif; ?>
+       <button class="knopf">Adresse speichern</button>
+       <?php if ($vsUrl !== ''): ?>
+         <a class="knopf" href="<?= Fmt::h($vsUrl) ?>" target="_blank" rel="noopener"
+diff --git a/app/views/standard.php b/app/views/standard.php
+index d193368..8cb6793 100644
+--- a/app/views/standard.php
++++ b/app/views/standard.php
+@@ -40,6 +40,78 @@
+   </p>
+ </div>
+ 
++<?php /* ======================================================================
++     MIT CLAUDE CODE BAUEN
++
++     Der Knopf darueber oeffnet ein Chatfenster: kopieren, einfuegen, bauen,
++     und am Ende die Vorschau-Adresse von Hand zurueck hierher tippen. Das
++     traegt, solange ein Mensch dazwischensitzt.
++
++     Claude Code sitzt nicht in einem Chatfenster. Es hat einen Ordner und
++     eine Kommandozeile. Mit einem Schluessel holt es sich den Auftrag selbst
++     und meldet Vorschau-Adresse und Stand selbst zurueck -- dieselbe Arbeit,
++     nur ohne die zwei Handgriffe, bei denen sonst etwas liegen bleibt.
++
++     Der Schluessel steht hier im Klartext, weil er genau einmal irgendwohin
++     kopiert wird. Wer ihn verliert, erzeugt einen neuen; der alte ist damit
++     im selben Moment wertlos.
++     ================================================================== */ ?>
++<div class="block"><h2>Mit Claude Code bauen
++    <span class="mehr"><?= trim((string) $wSchluessel) !== '' ? 'offen' : 'zu' ?></span></h2>
++
++  <?php if (trim((string) $wSchluessel) === ''): ?>
++    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:0 0 12px">
++      Ohne Schlüssel antwortet <code><?= Fmt::h((string) $wAdresse) ?></code> niemandem —
++      auch nicht dir. Erzeug einen, wenn du Kundenseiten mit Claude Code bauen willst:
++      Es holt sich Briefing, Fragebogen und Hausregeln dann selbst und trägt
++      Vorschau-Adresse und Stand von allein hier ein.
++    </p>
++    <form method="post" action="<?= Fmt::h(url('')) ?>">
++      <?= Csrf::feld() ?><input type="hidden" name="tat" value="werkstatt_schluessel_neu">
++      <button class="knopf haupt">Schlüssel erzeugen</button>
++    </form>
++  <?php else: ?>
++    <div class="feld"><label>Adresse</label>
++      <input readonly id="wadresse" value="<?= Fmt::h((string) $wAdresse) ?>"></div>
++    <div class="feld"><label>Schlüssel</label>
++      <input readonly id="wschluessel" value="<?= Fmt::h((string) $wSchluessel) ?>"
++             style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px"></div>
++
++    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:6px 0 10px">
++      Einmal auf dem Rechner hinterlegen, auf dem du baust — als
++      <code>VECOM_WERKSTATT</code> in der Umgebung oder in der Datei, die dein
++      Skill dafür liest. Danach reicht am Projekt der Knopf „Befehl für Claude Code".
++    </p>
++
++    <?php /* Ein Beispiel schlaegt jede Beschreibung: Wer das sieht, weiss
++             in fuenf Sekunden, was am anderen Ende passiert. */ ?>
++    <textarea id="wprobe" readonly rows="4" spellcheck="false"
++      style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
++             font-size:12px;line-height:1.55;white-space:pre;overflow-x:auto">curl -s <?= Fmt::h((string) $wAdresse) ?> \
++  -H "X-Vecom-Werkstatt: $VECOM_WERKSTATT" \
++  -H "Content-Type: application/json" \
++  -d '{"aktion":"auftrag","kunde":"K-2026-0001"}'</textarea>
++
++    <div class="leiste" style="margin-top:12px;gap:8px;flex-wrap:wrap">
++      <button class="knopf" data-kopieren="wschluessel">Schlüssel kopieren</button>
++      <button class="knopf stumm" data-kopieren="wprobe">Beispiel kopieren</button>
++      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
++        <?= Csrf::feld() ?><input type="hidden" name="tat" value="werkstatt_schluessel_neu">
++        <button class="knopf stumm">Neu erzeugen</button></form>
++      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
++        <?= Csrf::feld() ?><input type="hidden" name="tat" value="werkstatt_schluessel_weg">
++        <button class="knopf stumm">Tür schließen</button></form>
++    </div>
++
++    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:12px 0 0">
++      Was von dort geht: Auftrag holen, Stand setzen, Vorschau- und
++      Quelltext-Adresse eintragen, eine Notiz in die Akte legen.
++      <strong>Freischalten</strong> geht auch — das ist der einzige Schritt, der beim
++      Kunden ankommt, und er verlangt deshalb ein ausdrückliches „ja".
++    </p>
++  <?php endif; ?>
++</div>
++
+ <div class="block"><h2>Die Hausregeln
+     <span class="mehr"><?= $eigener ? 'eigene Fassung' : 'noch die Vorgabe' ?><?php
+       if ($gesehenAm): ?> · durchgesehen <?= Fmt::h(Fmt::seit((string) $gesehenAm)) ?><?php
+diff --git a/werkstatt.php b/werkstatt.php
+new file mode 100644
+index 0000000..8b05348
+--- /dev/null
++++ b/werkstatt.php
+@@ -0,0 +1,88 @@
++<?php
++declare(strict_types=1);
++/* ==========================================================================
++   werkstatt.php — die Tuer zwischen Verwaltung und Baumeister.
++
++   Aufgerufen von Claude Code auf Uwes Rechner, nicht von einem Browser.
++   Ein Schluessel im Kopf, JSON im Rumpf, JSON zurueck — mehr braucht es
++   nicht, und mehr soll hier auch nicht stehen.
++
++   Absichtlich getrennt von telefon.php und chef.php: Der Telefonschluessel
++   liegt bei einem fremden Anbieter im Klartext und darf nur lesen, was ein
++   Kunde am Telefon hoeren darf. Dieser hier darf am Projekt schreiben. Zwei
++   Tueren, zwei Schluessel, getrennt zu tauschen.
++
++   Ein Fehler gibt hier immer einen Satz zurueck, nie eine leere Seite: Am
++   anderen Ende sitzt ein Werkzeug, das mit einem Satz weiterarbeiten kann
++   und mit einer leeren Antwort nicht.
++   ========================================================================== */
++
++header('Content-Type: application/json; charset=utf-8');
++header('Cache-Control: no-store');
++header('X-Robots-Tag: noindex, nofollow');
++header('X-Content-Type-Options: nosniff');
++
++function antwort(array $d, int $code = 200): never
++{
++    http_response_code($code);
++    echo json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
++    exit;
++}
++
++$konfig = __DIR__ . '/app/config.local.php';
++if (!is_file($konfig)) { antwort(['ok' => false, 'hinweis' => 'Noch nicht eingerichtet.'], 503); }
++
++foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Werkstatt'] as $k) {
++    require_once __DIR__ . "/app/src/$k.php";
++}
++date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
++
++/* Der Schluessel: im Kopf, als Bearer, sonst gar nicht. Nicht in der
++   Adresszeile -- die steht in jedem Serverprotokoll. */
++$kopf = (string) ($_SERVER['HTTP_X_VECOM_WERKSTATT'] ?? '');
++if ($kopf === '' && preg_match('/Bearer\s+(\S+)/i', (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''), $m)) {
++    $kopf = $m[1];
++}
++try {
++    if (!Werkstatt::schluesselStimmt($kopf)) { antwort(['ok' => false, 'hinweis' => 'Nicht gefunden.'], 404); }
++} catch (Throwable $e) {
++    antwort(['ok' => false, 'hinweis' => 'Noch nicht bereit.'], 503);
++}
++if (!Werkstatt::darfNoch()) {
++    antwort(['ok' => false, 'hinweis' => 'Zu viele Anfragen. Gleich noch einmal.'], 429);
++}
++
++/* Daten lesen: JSON im Rumpf, sonst Formular, sonst Adresszeile. */
++$roh = file_get_contents('php://input') ?: '';
++$d = [];
++if ($roh !== '') { $j = json_decode($roh, true); if (is_array($j)) { $d = $j; } }
++if (!$d && $_POST) { $d = $_POST; }
++if (!$d && $_GET)  { $d = $_GET; }
++
++$aktion = (string) ($d['aktion'] ?? '');
++if (!in_array($aktion, Werkstatt::AKTIONEN, true)) {
++    antwort(['ok' => false, 'hinweis' => 'Unbekannte Aktion.', 'moeglich' => Werkstatt::AKTIONEN], 400);
++}
++
++try {
++    antwort(match ($aktion) {
++        'liste'     => Werkstatt::liste($d),
++        'auftrag'   => Werkstatt::auftrag($d),
++        'weiter'    => Werkstatt::weiter($d),
++        'vorschau'  => Werkstatt::vorschau($d),
++        'stand'     => Werkstatt::stand($d),
++        'notiz'     => Werkstatt::notiz($d),
++        'freigeben' => Werkstatt::freigeben($d),
++    });
++} catch (RuntimeException $e) {
++    /* Erwartbares: falsche Nummer, fehlende Adresse. Das ist kein Fehler des
++       Servers, sondern eine Auskunft — und gehoert deshalb lesbar zurueck
++       und nicht in die Meldungen. */
++    antwort(['ok' => false, 'hinweis' => $e->getMessage()], 400);
++} catch (Throwable $e) {
++    try {
++        Events::melden('werkstatt_fehler', 'Werkstatt: Aufruf fehlgeschlagen', 'warnung',
++                       $aktion . ' — ' . $e->getMessage(), '/werkstatt');
++    } catch (Throwable $e2) { }
++    antwort(['ok' => false, 'hinweis' => 'Das klappt gerade nicht — gleich noch einmal.'], 500);
++}

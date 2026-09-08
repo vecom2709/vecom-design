@@ -539,8 +539,23 @@ if ($post) {
                 if ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
                     throw new RuntimeException('Das sieht nicht nach einer Adresse aus. Es wurde nichts geändert.');
                 }
-                Db::update('projects', $pid, ['preview_url' => $url !== '' ? $url : null]);
-                Events::pruefspur('aendern', 'project', $pid, [], ['preview_url' => $url]);
+                /* Die Quelltext-Adresse steht im selben Formular, weil sie
+                   dieselbe Frage beantwortet wie die Vorschau: Wo ist die
+                   Seite? Nur eben fuer den, der sie aendern soll. Fehlt das
+                   Feld -- etwa bei einem aelteren Formular --, bleibt der
+                   bisherige Wert stehen statt geloescht zu werden. */
+                $aendern = ['preview_url' => $url !== '' ? $url : null];
+                if (array_key_exists('repo_url', $_POST)) {
+                    $repo = trim((string) $_POST['repo_url']);
+                    if ($repo !== '' && !preg_match('~^https?://~i', $repo)) { $repo = 'https://' . $repo; }
+                    if ($repo !== '' && !filter_var($repo, FILTER_VALIDATE_URL)) {
+                        throw new RuntimeException('Die Quelltext-Adresse sieht nicht nach einer Adresse aus. '
+                            . 'Es wurde nichts geändert.');
+                    }
+                    $aendern['repo_url'] = $repo !== '' ? $repo : null;
+                }
+                Db::update('projects', $pid, $aendern);
+                Events::pruefspur('aendern', 'project', $pid, [], $aendern);
                 // Eine bestehende Freigabe bleibt: Der Kunde klickt weiter
                 // denselben Knopf und sieht ab sofort die neue Adresse. Eine
                 // zweite E-Mail bekommt er nicht — er hat nichts Neues zu tun.
@@ -1630,6 +1645,26 @@ if ($post) {
                 $_SESSION['gut'] = 'Abgehakt. Ändern kannst du sie jederzeit — sie gilt ab dem nächsten Briefing.';
                 zurueck('standard');
 
+            /* ---------- Werkstatt nach aussen ---------- */
+
+            case 'werkstatt_schluessel_neu':
+                /* Derselbe Gedanke wie beim Telefonschluessel: Ein Schluessel,
+                   der auf einem Rechner in einer Datei liegt, muss in zehn
+                   Sekunden zu tauschen sein. Der alte wird damit wertlos. */
+                require_once __DIR__ . '/src/Werkstatt.php';
+                Werkstatt::neuerSchluessel();
+                Events::protokoll('werkstatt_schluessel', 'Werkstatt-Schlüssel neu erzeugt');
+                $_SESSION['gut'] = 'Neuer Schlüssel. Der alte gilt ab sofort nicht mehr — '
+                                 . 'trag den neuen dort ein, wo du baust.';
+                zurueck('standard');
+
+            case 'werkstatt_schluessel_weg':
+                require_once __DIR__ . '/src/Werkstatt.php';
+                Werkstatt::schluesselEntfernen();
+                Events::protokoll('werkstatt_schluessel', 'Werkstatt-Schlüssel entfernt');
+                $_SESSION['gut'] = 'Die Tür ist zu. Ohne Schlüssel antwortet werkstatt.php niemandem.';
+                zurueck('standard');
+
             case 'claude_projekt':
                 require_once __DIR__ . '/src/Standard.php';
                 Standard::claudeProjektSpeichern((string) ($_POST['url'] ?? ''));
@@ -2320,8 +2355,9 @@ switch ($route) {
         require_once __DIR__ . '/src/Umfang.php';  // und vergleicht ihn mit dem Angebot
         require_once __DIR__ . '/src/Standard.php';// und zeigt, wohin der Briefing-Knopf fuehrt
         require_once __DIR__ . '/src/Abnahme.php'; // und was die letzte Pruefung ergab
+        require_once __DIR__ . '/src/Werkstatt.php';// und ob Claude Code hereindarf
         if ($id !== null) {
-            $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, o.order_no
+            $p = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, c.kundennr, o.order_no
                           FROM projects p JOIN customers c ON c.id = p.customer_id
                           LEFT JOIN orders o ON o.id = p.order_id WHERE p.id = ?', [$id]);
             if (!$p) { http_response_code(404); exit('Projekt nicht gefunden.'); }
@@ -2559,6 +2595,7 @@ switch ($route) {
 
     case 'standard':
         require_once __DIR__ . '/src/Standard.php';
+        require_once __DIR__ . '/src/Werkstatt.php';
         ansicht('standard', [
             'text'      => Standard::text(),
             'eigener'   => Standard::eigener(),
@@ -2566,6 +2603,8 @@ switch ($route) {
             'gesehen'   => Standard::gesehen(),
             'anhaengen' => Standard::anhaengen(),
             'projekt'   => Standard::claudeProjekt(),
+            'wSchluessel' => sicher(static fn() => Werkstatt::schluessel(), ''),
+            'wAdresse'    => sicher(static fn() => Werkstatt::adresse(), ''),
         ]);
         break;
 

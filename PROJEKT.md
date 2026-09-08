@@ -2756,3 +2756,32 @@ Offen: STRATO-Konfiguration (Verhalten: Chef-Modus-Zweig auf Codewort; 4 neue
 API-Integrationen chef_lage/chef_kunde/chef_kunde_anlegen/chef_notiz auf
 chef.php) — additiv, ohne die Kundenstrecke anzutasten. Uwe setzt danach das
 Codewort in der Verwaltung.
+
+### Kundenseiten mit Claude Code bauen — die Werkstatt bekommt eine Tür (08.09.2026)
+
+Bisher lief der Weg zum Baumeister über die Zwischenablage: Briefing erzeugen,
+kopieren, Claude öffnen, einfügen, bauen — und am Ende Vorschau-Adresse und
+Stand von Hand zurück in die Verwaltung tippen. Das trägt, solange ein Mensch
+dazwischensitzt. Claude Code sitzt nicht in einem Chatfenster, sondern auf
+einem Rechner mit einem Ordner: Es braucht eine Tür zum Holen und eine zum
+Melden. Uwe: beide Richtungen, gebaut wird auf dem Mac und in der Cloud,
+veröffentlicht wird auf Netlify (wie Cavaleri).
+
+- app/src/Werkstatt.php: eigener Schlüssel (Setting werkstatt_schluessel,
+  getrennt vom Telefonschlüssel — der liegt bei STRATO im Klartext und darf
+  nicht schreiben). Aktionen: liste, auftrag (Briefing entsteht dabei und
+  bleibt am Projekt), weiter, vorschau (Vorschau- und Quelltext-Adresse),
+  stand, notiz, freigeben.
+- werkstatt.php: Endpunkt, Schlüssel nur im Kopf (X-Vecom-Werkstatt oder
+  Bearer), nie in der Adresszeile. Drosselung 120/Minute. Erwartbare Fehler
+  kommen als lesbarer Satz zurück, nicht als leere Seite.
+- 042_werkstatt_api.sql: projects.repo_url — die Vorschau sagt, WO die Seite
+  ist, nicht WORAUS sie gebaut ist. In Monat 14 ist das die eigentliche Frage.
+- Verwaltung → Vecom-Standard: Block „Mit Claude Code bauen" (Schlüssel
+  erzeugen/neu/entfernen, Adresse, Beispielaufruf). Am Projekt ein Feld für
+  die Quelltext-Adresse und ein Knopf, der den Satz für Claude Code kopiert.
+- Kette 885 (32 neue Prüfungen).
+
+DIE EINE REGEL: Eintragen schaltet nicht frei. „freigeben" ist der einzige
+Schritt hier draußen, der beim Kunden ankommt (E-Mail + offener Entwurf) — und
+verlangt deshalb ein ausdrückliches bestaetigt=ja.

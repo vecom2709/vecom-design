@@ -40,6 +40,78 @@
   </p>
 </div>
 
+<?php /* ======================================================================
+     MIT CLAUDE CODE BAUEN
+
+     Der Knopf darueber oeffnet ein Chatfenster: kopieren, einfuegen, bauen,
+     und am Ende die Vorschau-Adresse von Hand zurueck hierher tippen. Das
+     traegt, solange ein Mensch dazwischensitzt.
+
+     Claude Code sitzt nicht in einem Chatfenster. Es hat einen Ordner und
+     eine Kommandozeile. Mit einem Schluessel holt es sich den Auftrag selbst
+     und meldet Vorschau-Adresse und Stand selbst zurueck -- dieselbe Arbeit,
+     nur ohne die zwei Handgriffe, bei denen sonst etwas liegen bleibt.
+
+     Der Schluessel steht hier im Klartext, weil er genau einmal irgendwohin
+     kopiert wird. Wer ihn verliert, erzeugt einen neuen; der alte ist damit
+     im selben Moment wertlos.
+     ================================================================== */ ?>
+<div class="block"><h2>Mit Claude Code bauen
+    <span class="mehr"><?= trim((string) $wSchluessel) !== '' ? 'offen' : 'zu' ?></span></h2>
+
+  <?php if (trim((string) $wSchluessel) === ''): ?>
+    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:0 0 12px">
+      Ohne Schlüssel antwortet <code><?= Fmt::h((string) $wAdresse) ?></code> niemandem —
+      auch nicht dir. Erzeug einen, wenn du Kundenseiten mit Claude Code bauen willst:
+      Es holt sich Briefing, Fragebogen und Hausregeln dann selbst und trägt
+      Vorschau-Adresse und Stand von allein hier ein.
+    </p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="werkstatt_schluessel_neu">
+      <button class="knopf haupt">Schlüssel erzeugen</button>
+    </form>
+  <?php else: ?>
+    <div class="feld"><label>Adresse</label>
+      <input readonly id="wadresse" value="<?= Fmt::h((string) $wAdresse) ?>"></div>
+    <div class="feld"><label>Schlüssel</label>
+      <input readonly id="wschluessel" value="<?= Fmt::h((string) $wSchluessel) ?>"
+             style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px"></div>
+
+    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:6px 0 10px">
+      Einmal auf dem Rechner hinterlegen, auf dem du baust — als
+      <code>VECOM_WERKSTATT</code> in der Umgebung oder in der Datei, die dein
+      Skill dafür liest. Danach reicht am Projekt der Knopf „Befehl für Claude Code".
+    </p>
+
+    <?php /* Ein Beispiel schlaegt jede Beschreibung: Wer das sieht, weiss
+             in fuenf Sekunden, was am anderen Ende passiert. */ ?>
+    <textarea id="wprobe" readonly rows="4" spellcheck="false"
+      style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+             font-size:12px;line-height:1.55;white-space:pre;overflow-x:auto">curl -s <?= Fmt::h((string) $wAdresse) ?> \
+  -H "X-Vecom-Werkstatt: $VECOM_WERKSTATT" \
+  -H "Content-Type: application/json" \
+  -d '{"aktion":"auftrag","kunde":"K-2026-0001"}'</textarea>
+
+    <div class="leiste" style="margin-top:12px;gap:8px;flex-wrap:wrap">
+      <button class="knopf" data-kopieren="wschluessel">Schlüssel kopieren</button>
+      <button class="knopf stumm" data-kopieren="wprobe">Beispiel kopieren</button>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="werkstatt_schluessel_neu">
+        <button class="knopf stumm">Neu erzeugen</button></form>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="werkstatt_schluessel_weg">
+        <button class="knopf stumm">Tür schließen</button></form>
+    </div>
+
+    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:12px 0 0">
+      Was von dort geht: Auftrag holen, Stand setzen, Vorschau- und
+      Quelltext-Adresse eintragen, eine Notiz in die Akte legen.
+      <strong>Freischalten</strong> geht auch — das ist der einzige Schritt, der beim
+      Kunden ankommt, und er verlangt deshalb ein ausdrückliches „ja".
+    </p>
+  <?php endif; ?>
+</div>
+
 <div class="block"><h2>Die Hausregeln
     <span class="mehr"><?= $eigener ? 'eigene Fassung' : 'noch die Vorgabe' ?><?php
       if ($gesehenAm): ?> · durchgesehen <?= Fmt::h(Fmt::seit((string) $gesehenAm)) ?><?php
