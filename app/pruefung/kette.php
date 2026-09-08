@@ -4036,6 +4036,19 @@ pruefe('ohne KAS-Zugang bleibt der Solo-Auftrag zugestimmt', (string) Db::wert(
 pruefe('und die Meldung fuer Uwe liegt da', (int) Db::wert(
     "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) >= 1);
 
+/* "ERST DIE BEZAHLSEITE, DANN DAS DASHBOARD": Abo::anfordern nimmt jetzt ein
+   Erfolgsziel entgegen — die persoenliche Kundenseite, auf der der Kunde nach
+   dem Bezahlen landet. Ohne eingerichtetes Stripe entsteht kein Zahlungslink;
+   dann faellt hosting.php auf die Danke-/Ueberweisungsansicht zurueck, statt
+   ins Leere zu leiten. Beides wird hier festgehalten. */
+require_once $wurzel . '/src/Kundenzugang.php';
+$anfErg = Abo::anfordern((int) $soloRate['id'], Kundenzugang::linkFuer($soloId));
+pruefe('anfordern nimmt ein Erfolgsziel entgegen und wirft nichts',
+    is_string($anfErg), (string) $anfErg);
+pruefe('ohne Stripe traegt die erste Rate keinen Zahlungslink',
+    (string) Db::wert("SELECT COALESCE(link_url, '') FROM payments WHERE id = ?",
+        [(int) $soloRate['id']], '') === '');
+
 /* Der DIREKTKAUF von der oeffentlichen Seite: Die Netzpruefung der Domain
    laesst ein Test nicht wirklich laufen — pruefbar ist der Riegel davor,
    und der ist der wichtigste: Eine unsinnige Eingabe legt nichts an. */

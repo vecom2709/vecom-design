@@ -56,7 +56,7 @@ final class StripeAnbieter implements Anbieter
 
     /* ------------------------------------------------------------------ */
 
-    public function bezahlseite(array $zahlung, array $bestellung, array $kunde): string
+    public function bezahlseite(array $zahlung, array $bestellung, array $kunde, ?string $erfolgUrl = null): string
     {
         if (!$this->bereit()) {
             throw new RuntimeException('Für Stripe fehlt der geheime Schlüssel in app/config.local.php.');
@@ -66,11 +66,18 @@ final class StripeAnbieter implements Anbieter
         $marke = (string) Config::get('firma', 'Vecom Design');
         $titel = trim(($zahlung['bezeichnung'] ?: 'Zahlung') . ' · ' . $bestellung['package_name']);
 
+        /* Wohin es nach der Zahlung geht. Standard ist die Danke-Seite; der
+           Direktkauf von Domain & Hosting uebergibt hier die persoenliche
+           Kundenseite, damit der Kunde nach dem Bezahlen direkt auf seinem
+           Dashboard landet — und nicht davor. */
+        $erfolg = ($erfolgUrl !== null && trim($erfolgUrl) !== '')
+            ? trim($erfolgUrl) : ($basis . '/danke.html?zahlung=ok');
+
         $felder = [
             'mode'                          => 'payment',
             'client_reference_id'           => (string) $zahlung['id'],
             'customer_email'                => (string) $kunde['email'],
-            'success_url'                   => $basis . '/danke.html?zahlung=ok',
+            'success_url'                   => $erfolg,
             'cancel_url'                    => $basis . '/#plans',
             'locale'                        => 'auto',
             'line_items[0][quantity]'       => '1',

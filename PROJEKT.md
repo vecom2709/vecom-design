@@ -2673,3 +2673,31 @@ sollte noch nicht möglich sein" strukturell. Kette 830.
 Merkposten E-Mail: Der Testkauf ging an info@vecom-design.it (eigene
 Domain) — für echte Tests eine EXTERNE Adresse nehmen. Firmendaten (inkl.
 IBAN) sind noch komplett leer — eintragen für Belege + Überweisungs-Fallback.
+
+### IP-Bremse entschärft + „erst Bezahlseite, dann Dashboard" (08.09.2026)
+
+Zwei Befunde aus Uwes Test (Handy-Screenshot, Kunde „Manuel Brandner",
+Domain trendonvix.com):
+
+1. „Einen Moment — bitte in ein paar Sekunden noch einmal versuchen"
+   mitten im Ablauf. Ursache: Die IP-Sperre (15 s) galt für JEDEN POST,
+   also auch für den Kaufklick, der Sekunden nach dem Prüfen kommt.
+   Jetzt bremst sie nur noch die reine Verfügbarkeitsprüfung (tat=pruefen),
+   und das Fenster ist auf 6 s verkürzt. Kauf und Vormerkung laufen nie
+   mehr an der Bremse auf.
+
+2. Nach Kauf ging es direkt aufs Dashboard, ohne zu bezahlen. Jetzt:
+   Nach „Zahlungspflichtig bestellen" leitet hosting.php direkt auf die
+   Stripe-Bezahlseite der ersten Rate. Als success_url ist die persönliche
+   Kundenseite gesetzt (Abo::anfordern nimmt jetzt ein Erfolgsziel,
+   Stripe::bezahlseite eine optionale Erfolgs-URL) — der Kunde landet also
+   ERST auf der Bezahlseite und DANACH auf seinem Dashboard; der Webhook
+   legt in der Zwischenzeit Domain, Account und Postfach an. Steht kein
+   Stripe-Link (nur Überweisung), bleibt die Danke-/Überweisungsansicht.
+
+Kette 832 (zwei neue Prüfungen: anfordern nimmt ein Erfolgsziel; ohne
+Stripe trägt die Rate keinen Link → Fallback greift).
+
+Offen bei Uwe: Firmendaten inkl. IBAN eintragen (IBAN trägt er selbst ein —
+Kontonummern gebe ich nicht in Felder ein). Echte Tests mit EXTERNER
+E-Mail (nicht @vecom-design.it).

@@ -174,6 +174,7 @@ final class Hosting
         if ($ja && $a['project_id'] === null) {
             self::still(static function () use ($a, $kundeId) {
                 require_once __DIR__ . '/Abo.php';
+                require_once __DIR__ . '/Kundenzugang.php';
                 $schonVertrag = Db::one(
                     "SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
                        AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
@@ -181,7 +182,14 @@ final class Hosting
                     $aboId = Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
                         'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
                     $rate = Abo::abrechnen($aboId);
-                    if ($rate !== null) { Abo::anfordern($rate); }
+                    /* Der Zahlungslink dieser ersten Rate fuehrt nach dem
+                       Bezahlen auf die persoenliche Kundenseite — so landet der
+                       Kunde erst auf der Bezahlseite und danach auf seinem
+                       Dashboard, nie davor. */
+                    if ($rate !== null) {
+                        $ziel = self::still(static fn() => Kundenzugang::linkFuer($kundeId), '');
+                        Abo::anfordern($rate, $ziel !== '' ? $ziel : null);
+                    }
                 }
             });
             Events::melden('hosting_zugestimmt', 'Solo-Hosting zugestimmt: ' . $a['domain'], 'gut',
@@ -253,7 +261,8 @@ final class Hosting
         $schon = self::fuerKunde($kundeId);
         if ($schon !== null) {
             return ['ok' => true, 'domain' => $domain, 'kunde_id' => $kundeId,
-                    'auftrag_id' => (int) $schon['id'], 'grund' => 'schon'];
+                    'auftrag_id' => (int) $schon['id'], 'grund' => 'schon',
+                    'zahl_url' => self::offeneRateLink($kundeId)];
         }
 
         $auftragId = (int) Db::insert('hosting_auftraege', [
@@ -265,7 +274,26 @@ final class Hosting
         self::antwort($auftragId, $kundeId, true);
         Events::protokoll('hosting_kauf', 'Domain & Hosting direkt gekauft: ' . $domain,
             $kundeId, null, null);
-        return ['ok' => true, 'domain' => $domain, 'kunde_id' => $kundeId, 'auftrag_id' => $auftragId];
+        // Die Bezahlseite der ersten Rate — dorthin schickt hosting.php den
+        // Kunden gleich weiter. Steht kein Stripe-Link (nur Ueberweisung),
+        // bleibt sie leer und die Seite zeigt die Danke-/Ueberweisungsansicht.
+        return ['ok' => true, 'domain' => $domain, 'kunde_id' => $kundeId,
+                'auftrag_id' => $auftragId, 'zahl_url' => self::offeneRateLink($kundeId)];
+    }
+
+    /**
+     * Der Stripe-Zahlungslink der ersten offenen Hosting-Rate eines Kunden,
+     * frisch aus der Datenbank (dort hat Abo::anfordern ihn eben abgelegt).
+     * Leer, wenn keiner existiert — etwa weil nur die Ueberweisung offensteht.
+     */
+    private static function offeneRateLink(int $kundeId): string
+    {
+        return (string) self::still(static fn() => Db::wert(
+            "SELECT z.link_url FROM payments z
+               JOIN abos a ON a.id = z.abo_id
+              WHERE a.customer_id = ? AND a.paket_slug = 'hosting'
+                AND z.status <> 'bezahlt' AND z.link_url IS NOT NULL AND z.link_url <> ''
+              ORDER BY z.id ASC LIMIT 1", [$kundeId], ''), '');
     }
 
     /* ==================================================================== */

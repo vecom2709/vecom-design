@@ -303,7 +303,7 @@ final class Abo
      * von ihr, und eine Mahnung auf eine unbekannte Forderung waere schlimmer
      * als gar keine.
      */
-    public static function anfordern(int $zahlungId): string
+    public static function anfordern(int $zahlungId, ?string $erfolgUrl = null): string
     {
         require_once __DIR__ . '/Mail.php';
         require_once __DIR__ . '/Texte.php';
@@ -331,7 +331,7 @@ final class Abo
             require_once __DIR__ . '/Zahlung/Stripe.php';
             $stripe = new StripeAnbieter();
             if ($stripe->bereit()) {
-                $link = (string) $stripe->bezahlseite($z, ['order_no' => $z['bezeichnung']], $k);
+                $link = (string) $stripe->bezahlseite($z, ['order_no' => $z['bezeichnung']], $k, $erfolgUrl);
                 if ($link !== '') {
                     Db::update('payments', $zahlungId, [
                         'provider' => 'stripe', 'status' => 'in_bearbeitung',

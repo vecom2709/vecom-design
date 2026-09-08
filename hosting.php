@@ -216,18 +216,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($_POST['website'])) { header('Location: /'); exit; }   // Honigtopf
 
     $csrfOk = !empty($_SESSION['csrf']) && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''));
-    // Eine Anfrage je IP alle 15 Sekunden — die Domainpruefung fragt fremde Dienste.
+    /* IP-BREMSE — NUR FUER DIE REINE VERFUEGBARKEITSPRUEFUNG
+       ----------------------------------------------------------------
+       Die Pruefung fragt fremde Dienste (RDAP, Whois) auf unsere Rechnung,
+       also wird SIE gebremst — eine je IP alle paar Sekunden. Kauf und
+       Vormerkung folgen einer Pruefung, die der Kunde eben gemacht hat, und
+       duerfen NIE an der Bremse haengen: sonst wird genau der Kaufklick
+       abgewiesen, der Sekunden nach dem Pruefen kommt. Das war der Grund,
+       warum "in ein paar Sekunden noch einmal versuchen" mitten im Ablauf
+       erschien. */
     $sperre = sys_get_temp_dir() . '/vecomhost_' . md5((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-    $zuSchnell = is_file($sperre) && (time() - (int) filemtime($sperre)) < 15;
+    $zuSchnell = $tat === 'pruefen'
+        && is_file($sperre) && (time() - (int) filemtime($sperre)) < 6;
 
     if (!$csrfOk) {
         $fehler[] = $W['fehlerFelder'];
     } elseif ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $fehler[] = $W['fehlerFelder'];
     } elseif ($zuSchnell) {
-        $fehler[] = $W['zuSchnell'];   // die IP-Bremse — noch keine Domain geprueft
+        $fehler[] = $W['zuSchnell'];   // die IP-Bremse — nur beim Pruefen
     } else {
-        @touch($sperre);
+        if ($tat === 'pruefen') { @touch($sperre); }
         require_once __DIR__ . '/app/src/Hosting.php';
 
         if ($tat === 'vormerken' || ($tat === 'kaufen' && !$zahlungMoeglich)) {
@@ -267,6 +276,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $erg = Hosting::direktKauf($name, $email, $wunsch, $sprache);
                 if (!empty($erg['ok'])) {
+                    /* ERST DIE BEZAHLSEITE, DANN DAS DASHBOARD
+                       --------------------------------------------------------
+                       Steht ein Stripe-Link (Kartenzahlung moeglich), geht der
+                       Kunde jetzt direkt dorthin — nicht auf sein Dashboard.
+                       Nach erfolgreicher Zahlung schickt Stripe ihn auf seine
+                       persoenliche Seite (als success_url gesetzt), und der
+                       Webhook legt Domain, Account und Postfach an. Gibt es
+                       keinen Link (nur Ueberweisung), bleibt die Danke-Ansicht:
+                       Rechnung und Ueberweisungsdaten stehen dann dort. */
+                    $zahlUrl = (string) ($erg['zahl_url'] ?? '');
+                    if ($zahlUrl !== '' && ($erg['grund'] ?? '') !== 'schon'
+                        && preg_match('~^https://~i', $zahlUrl)) {
+                        header('Location: ' . $zahlUrl);
+                        exit;
+                    }
                     $ansicht     = 'danke';
                     $dankeDomain = (string) ($erg['domain'] ?? $wunsch);
                     $dankeSchon  = ($erg['grund'] ?? '') === 'schon';

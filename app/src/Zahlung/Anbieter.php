@@ -23,8 +23,10 @@ interface Anbieter
      * @param array $zahlung Zeile aus payments
      * @param array $bestellung Zeile aus orders
      * @param array $kunde Zeile aus customers
+     * @param ?string $erfolgUrl Wohin Stripe nach erfolgreicher Zahlung
+     *        zurueckschickt. Leer/null: die uebliche Danke-Seite.
      */
-    public function bezahlseite(array $zahlung, array $bestellung, array $kunde): string;
+    public function bezahlseite(array $zahlung, array $bestellung, array $kunde, ?string $erfolgUrl = null): string;
 
     /**
      * Prueft die Echtheit eines eingehenden Webhooks und gibt das Ereignis
