@@ -253,9 +253,12 @@ final class Abo
     /**
      * Der regelmaessige Lauf: legt an, was faellig geworden ist.
      *
-     * Nur anlegen, nicht anfordern. Die Aufforderung geht von Hand raus —
-     * bis Stripe live ist, gibt es ohnehin keinen Link, und eine Rate, von
-     * der der Kunde nichts weiss, darf nicht ins Mahnwesen laufen.
+     * Anlegen UND anfordern: Jede faellige Monatsrate wird angelegt und dem
+     * Kunden gleich per Mail mit Zahlungslink zugestellt — so bekommt er seine
+     * Rechnung fuer JEDEN Monat von selbst, nicht nur die erste. Das Anfordern
+     * ist gegen Doppelversand gesichert (schonGeschickt je payment_id): Laeuft
+     * der Cron mehrmals, geht die Aufforderung trotzdem nur einmal raus. Kommt
+     * gerade keine Mail durch, steht das sichtbar im Postausgang.
      *
      * AUFHOLEN, NICHT EINEN MONAT PRO NACHT
      *
@@ -281,7 +284,23 @@ final class Abo
                     'SELECT naechste_abrechnung FROM abos WHERE id = ?', [(int) $a['id']], ''), '');
                 if ($stand === '' || $stand > date('Y-m-d')) { break; }
                 try {
-                    if (self::abrechnen((int) $a['id']) !== null) { $n++; }
+                    $rate = self::abrechnen((int) $a['id']);
+                    if ($rate !== null) {
+                        $n++;
+                        /* Und gleich anfordern — der Kunde bekommt die Rechnung
+                           fuer diesen Monat automatisch. Nach dem Bezahlen
+                           landet er auf seiner persoenlichen Seite. Still: ein
+                           Mail-Schluckauf darf die Aufholschleife nicht
+                           abbrechen; der Fehlversuch steht dann im Postausgang. */
+                        self::still(function () use ($rate, $a) {
+                            require_once __DIR__ . '/Kundenzugang.php';
+                            $kid  = (int) self::still(fn() => Db::wert(
+                                'SELECT customer_id FROM abos WHERE id = ?', [(int) $a['id']], 0), 0);
+                            $ziel = $kid > 0
+                                ? (string) self::still(fn() => Kundenzugang::linkFuer($kid), '') : '';
+                            self::anfordern($rate, $ziel !== '' ? $ziel : null);
+                        });
+                    }
                 } catch (Throwable $e) {
                     break;   // der naechste Vertrag soll trotzdem drankommen
                 }

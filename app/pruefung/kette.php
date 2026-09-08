@@ -4111,6 +4111,32 @@ Db::run('DELETE FROM angebote WHERE customer_id = ?', [$angKunde]);
 Db::run("DELETE FROM notifications WHERE type = 'mail_fehler'");
 
 /* ============================================================================
+   45. Die monatliche Folgerate geht automatisch raus
+   ----------------------------------------------------------------------------
+   Frueher legte der Cron die faellige Rate nur an; die Zahlungsaufforderung
+   ging erst von Hand raus. Jetzt fordert abrechnungenAnlegen sie gleich an —
+   der Kunde bekommt seine Rechnung fuer JEDEN Monat von selbst. Hier wird
+   festgehalten, dass mit dem Anlegen auch eine Aufforderung im Postausgang
+   landet (ihr Status haengt am Mailserver — DASS sie versucht wird, zaehlt).
+   ============================================================================ */
+abschnitt('45. Monatsrechnung automatisch');
+$aboKunde = Events::kundeFinden(['name' => 'Abo Kunde', 'email' => 'abo@pruefung.example']);
+$aboX = Abo::anlegen($aboKunde, ['paket_slug' => 'hosting', 'zahlart' => 'manuell', 'betrag_cents' => 990]);
+// Die naechste Abrechnung in die Vergangenheit ziehen, damit der Cron sie findet.
+Db::run('UPDATE abos SET naechste_abrechnung = ? WHERE id = ?', [date('Y-m-d', strtotime('-1 day')), $aboX]);
+$ratenVor = (int) Db::wert('SELECT COUNT(*) FROM payments WHERE abo_id = ?', [$aboX], 0);
+$mailsVor = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'hosting_faellig' AND customer_id = ?", [$aboKunde], 0);
+Abo::abrechnungenAnlegen();
+pruefe('der Cron legt die faellige Monatsrate an',
+    (int) Db::wert('SELECT COUNT(*) FROM payments WHERE abo_id = ?', [$aboX], 0) > $ratenVor);
+pruefe('und fordert sie automatisch an (Mail im Postausgang)',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'hosting_faellig' AND customer_id = ?", [$aboKunde], 0) > $mailsVor);
+Db::run('DELETE FROM mails WHERE customer_id = ?', [$aboKunde]);
+Db::run('DELETE FROM payments WHERE abo_id = ?', [$aboX]);
+Db::run('DELETE FROM abos WHERE id = ?', [$aboX]);
+Db::run("DELETE FROM notifications WHERE type IN ('mail_fehler','abo_start')");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

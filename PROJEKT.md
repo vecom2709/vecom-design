@@ -2701,3 +2701,34 @@ Stripe trägt die Rate keinen Link → Fallback greift).
 Offen bei Uwe: Firmendaten inkl. IBAN eintragen (IBAN trägt er selbst ein —
 Kontonummern gebe ich nicht in Felder ein). Echte Tests mit EXTERNER
 E-Mail (nicht @vecom-design.it).
+
+### E-Mail-Gesamtaudit + zwei Lücken geschlossen (08.09.2026)
+
+Uwe: „einiges kommt nicht an" — quer über alle Flows, Test wie Live.
+
+Gemessen (Postausgang live angesehen): Die mails-Tabelle war KOMPLETT LEER —
+nichts gesendet, nichts versucht. Also NICHT Brevo, das ablehnt (das gäbe rote
+fehler-Zeilen), sondern: Die Sende-Schritte wurden nie erreicht. Brevo ist
+eingerichtet (Schlüssel endet Cqpb), Firmendaten sind gefüllt (Vecom Design,
+Uwe Vetter, Via d Ascoli 25, Aragona, Bank Revolut), Partita IVA leer (Absicht).
+
+E-Mail hängt NICHT am Stripe-Test/Live-Modus (Brevo, unabhängig). Kein Flow
+lässt eine Kundenmail nur im Livemodus raus — Audit bestätigt.
+
+Zwei Lücken geschlossen:
+1. Angebot::senden hat nie eine Mail geschickt (nur Status gesendet). Jetzt
+   geht die Angebots-Mail mit Link raus. (Vorlage Texte::MAILS['angebot'],
+   dreisprachig.) — commit 11a3634.
+2. Monatliche Folgeraten (ab Monat 2): Der Cron legte sie nur an, forderte sie
+   aber nicht an — der Kunde bekam keine Rechnung, wenn Uwe das To-do übersah.
+   Jetzt fordert Abo::abrechnungenAnlegen jede fällige Rate gleich an (Mail +
+   Link, success_url = Kundenseite), gegen Doppelversand gesichert.
+
+Offen/Hinweis an Uwe: In Brevo prüfen, dass kontakt@vecom-design.it als
+Absender verifiziert ist (sonst scheitert die erste echte Mail — steht dann
+sichtbar im Postausgang). Sauberer End-to-End-Test mit externer Adresse.
+Struktureller Merkposten: Gebuchte Website-Pakete hängen an der Zahlung — die
+Bestätigungsmails entstehen aus dem Stripe-Webhook; stimmt das Live-Webhook-
+Geheimnis nicht, kommt nach der Zahlung nichts (auch kein Postausgang-Eintrag).
+
+Kette 838.
