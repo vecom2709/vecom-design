@@ -1578,6 +1578,24 @@ final class Texte
             'en' => ['Balance for {paket}',
                 "Hello {name},\n\nthe site is ready for handover. The remaining balance is {betrag}:\n\n{link}\n\nThank you!\nUwe Vetter · Vecom Design"],
         ],
+        /* Das individuelle Angebot: Wird es in der Verwaltung verschickt, geht
+           diese Mail an den Kunden — mit dem Link, unter dem er das Angebot
+           ansieht und annimmt. Vorher blieb der Link in der Verwaltung liegen
+           und der Kunde bekam nichts. */
+        'angebot' => [
+            'it' => ['Il tuo preventivo di Vecom Design — {betrag}',
+                "Ciao {name},\n\necco il tuo preventivo personale: {betrag}.\n\n"
+                . "Puoi vederlo e accettarlo qui, valido fino al {gueltig}:\n\n{link}\n\n"
+                . "Domande? Rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Dein Angebot von Vecom Design — {betrag}',
+                "Hallo {name},\n\nhier ist dein persönliches Angebot: {betrag}.\n\n"
+                . "Ansehen und annehmen kannst du es hier, gültig bis {gueltig}:\n\n{link}\n\n"
+                . "Fragen? Antworte einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
+            'en' => ['Your quote from Vecom Design — {betrag}',
+                "Hello {name},\n\nhere is your personal quote: {betrag}.\n\n"
+                . "You can view and accept it here, valid until {gueltig}:\n\n{link}\n\n"
+                . "Questions? Just reply to this email.\n\nUwe Vetter · Vecom Design"],
+        ],
     ];
 
     /* ----------------------------------------------------------------------

@@ -544,6 +544,48 @@ final class Angebot
             Events::protokoll('angebot_gesendet', 'Angebot ' . $a['nummer'] . ' verschickt', (int) $a['customer_id']);
         } catch (Throwable $e) { /* Beiwerk */ }
 
+        /* DER KUNDE BEKOMMT DAS ANGEBOT PER MAIL — MIT DEM LINK
+           ----------------------------------------------------------------
+           Bisher wurde das Angebot nur auf 'gesendet' gesetzt; die Mail mit
+           dem Link (ansehen, annehmen, zahlen) fehlte, und der Kunde bekam
+           nichts. Jetzt geht sie raus. Best effort: Ein stummer Mailserver
+           macht das Verschicken nicht ungeschehen — das Angebot ist raus und
+           ueber den Link erreichbar —, aber ein Fehler steht dann sichtbar
+           im Postausgang (mails-Tabelle) und als Meldung fuer Uwe. */
+        try {
+            require_once __DIR__ . '/Mail.php';
+            require_once __DIR__ . '/Texte.php';
+            require_once __DIR__ . '/Fmt.php';
+            $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $a['customer_id']]);
+            if ($k && trim((string) $k['email']) !== '') {
+                // Das Angebot trägt seine eigene Sprache (in ihr wurde es gemacht);
+                // fehlt sie, die des Kunden.
+                $sprache = strtolower((string) ($a['sprache'] ?: ($k['sprache'] ?: 'it')));
+                if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+                $waehrung = (string) ($a['currency'] ?? 'EUR');
+                $einmal   = (int) $a['summe_cents'];
+                $monat    = (int) $a['monatlich_cents'];
+                $betrag   = $einmal > 0 ? Fmt::geld($einmal, $waehrung) : '';
+                if ($monat > 0) {
+                    $proMonat = Fmt::geld($monat, $waehrung)
+                        . ($sprache === 'it' ? '/mese' : ($sprache === 'en' ? '/month' : '/Monat'));
+                    $betrag = $betrag !== '' ? $betrag . ' + ' . $proMonat : $proMonat;
+                }
+                if ($betrag === '') { $betrag = Fmt::geld(0, $waehrung); }
+                $gueltig = $a['gueltig_bis'] !== null ? Fmt::datum((string) $a['gueltig_bis']) : '';
+                [$betreff, $text] = Texte::mail('angebot', $sprache, [
+                    'name'    => (string) $k['name'],
+                    'betrag'  => $betrag,
+                    'gueltig' => $gueltig,
+                    'link'    => self::link($a),
+                ]);
+                Mail::senden('angebot', (string) $k['email'], $betreff, $text, [
+                    'customer_id' => (int) $a['customer_id'],
+                    'antwortAn'   => Mail::eigeneAdresse(),
+                ]);
+            }
+        } catch (Throwable $e) { /* der Link steht in der Verwaltung, das Angebot ist raus */ }
+
         return true;
     }
 

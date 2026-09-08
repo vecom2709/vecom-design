@@ -4071,6 +4071,46 @@ Db::run('DELETE FROM abos WHERE customer_id = ?', [$hoKundeId]);
 Db::run("DELETE FROM notifications WHERE type LIKE 'hosting\\_%'");
 
 /* ============================================================================
+   44. Das individuelle Angebot geht per Mail raus
+   ----------------------------------------------------------------------------
+   Frueher setzte Angebot::senden das Angebot nur auf 'gesendet' — die Mail mit
+   dem Link fehlte, der Kunde bekam nichts. Hier wird festgehalten, dass mit dem
+   Verschicken auch eine Mail an den Kunden im Postausgang landet (ihr Status
+   haengt am Mailserver — DASS sie versucht wird, ist der Punkt).
+   ============================================================================ */
+abschnitt('44. Individuelles Angebot per Mail');
+require_once $wurzel . '/src/Angebot.php';
+$angKunde = Events::kundeFinden(['name' => 'Angebot Kunde', 'email' => 'angebot@pruefung.example']);
+$angId = (int) Db::insert('angebote', [
+    'customer_id' => $angKunde, 'nummer' => 'PR-' . substr((string) hrtime(true), -9),
+    'sprache' => 'de', 'status' => 'entwurf', 'titel' => 'Testangebot',
+    'summe_cents' => 90000, 'monatlich_cents' => 2900, 'currency' => 'EUR',
+    'gueltig_bis' => date('Y-m-d', strtotime('+14 days')),
+    'token' => bin2hex(random_bytes(24)),
+]);
+$vorMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'angebot' AND customer_id = ?", [$angKunde], 0);
+pruefe('das Angebot laesst sich verschicken', Angebot::senden($angId) === true);
+pruefe('es steht danach auf gesendet',
+    (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [$angId], '') === 'gesendet');
+pruefe('und der Kunde bekommt dabei eine Angebots-Mail (Postausgang)',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'angebot' AND customer_id = ?", [$angKunde], 0)
+        === $vorMails + 1);
+pruefe('ein Entwurf ohne Betrag geht nicht raus', (static function () use ($angKunde) {
+    $leer = (int) Db::insert('angebote', [
+        'customer_id' => $angKunde, 'nummer' => 'PR0-' . substr((string) hrtime(true), -9),
+        'sprache' => 'de', 'status' => 'entwurf', 'titel' => 'Leer',
+        'summe_cents' => 0, 'monatlich_cents' => 0, 'currency' => 'EUR',
+        'token' => bin2hex(random_bytes(24)),
+    ]);
+    $r = Angebot::senden($leer);
+    Db::run('DELETE FROM angebote WHERE id = ?', [$leer]);
+    return $r === false;
+})());
+Db::run('DELETE FROM mails WHERE customer_id = ?', [$angKunde]);
+Db::run('DELETE FROM angebote WHERE customer_id = ?', [$angKunde]);
+Db::run("DELETE FROM notifications WHERE type = 'mail_fehler'");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
