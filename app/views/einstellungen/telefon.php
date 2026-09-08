@@ -69,6 +69,44 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
     <button class="knopf">Neuen Schlüssel erzeugen</button></form>
 </div>
 
+<?php
+/* ---------- Der Chef-Modus ---------- */
+require_once dirname(__DIR__, 2) . '/src/Chef.php';
+$chefAn = Chef::eingerichtet();
+?>
+<div class="block">
+  <h2>Chef-Modus
+    <?php if ($chefAn): ?><span class="marke2 gut" style="margin-left:8px">eingerichtet</span>
+    <?php else: ?><span class="marke2" style="margin-left:8px">aus</span><?php endif; ?>
+  </h2>
+  <p style="color:var(--leise);font-size:13px;line-height:1.6;margin-bottom:10px">
+    Ein geheimes Wort, mit dem du am Telefon Manuelas Chef-Modus öffnest — nur für dich.
+    Sagst du es im Gespräch, hilft sie dir statt zu verkaufen: sagt, was heute dran ist,
+    erklärt den Stand eines Kunden, legt auf dein „ja" einen Kunden an, nimmt eine Notiz auf.
+    Für alle anderen Anrufer bleibt sie unverändert. Ohne Wort ist der Chef-Modus aus.
+    Wähl ein Wort, das leicht zu sprechen und schwer zu erraten ist — es steht nirgends im
+    Chat und in keiner E-Mail.</p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="chef_codewort">
+    <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+    <div class="feld" style="flex:1;min-width:220px">
+      <label>Codewort<?= $chefAn ? ' (leer lassen = unverändert)' : '' ?></label>
+      <input type="password" name="codewort" autocomplete="off"
+             placeholder="<?= $chefAn ? 'ist gesetzt' : 'z. B. ein Wort, das nur du kennst' ?>">
+    </div>
+    <button class="knopf haupt">Speichern</button>
+  </form>
+  <?php if ($chefAn): ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px"
+          data-frage="Das Codewort wird entfernt — der Chef-Modus ist danach aus, bis du ein neues setzt. Fortfahren?"
+          data-ja="Ja, Codewort entfernen">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="chef_codewort_weg">
+      <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+      <button class="knopf">Codewort entfernen</button>
+    </form>
+  <?php endif; ?>
+</div>
+
 <?php /* ---------- Die Merkliste ---------- */ ?>
 <div class="block">
   <h2>Merkliste

@@ -4137,6 +4137,61 @@ Db::run('DELETE FROM abos WHERE id = ?', [$aboX]);
 Db::run("DELETE FROM notifications WHERE type IN ('mail_fehler','abo_start')");
 
 /* ============================================================================
+   46. Der Chef-Modus (Manuela hilft Uwe, hinter dem Codewort)
+   ----------------------------------------------------------------------------
+   Die Schutztür ist das gesprochene Codewort: Ohne gesetztes Wort ist der
+   Modus aus, ein falsches Wort öffnet nie, das richtige (tippfehler-tolerant)
+   schon. Handlungen (Kunde anlegen, Notiz) passieren erst nach „ja".
+   ============================================================================ */
+abschnitt('46. Chef-Modus');
+require_once $wurzel . '/src/Chef.php';
+
+// Ohne gesetztes Codewort ist der Modus aus.
+Db::run("DELETE FROM settings WHERE skey = 'chef_codewort'");
+pruefe('ohne Codewort ist der Chef-Modus aus', Chef::eingerichtet() === false);
+pruefe('und nichts öffnet ihn', Chef::frei('irgendwas') === false);
+
+// Codewort setzen — dann greift die Schutztür.
+Chef::codewortSetzen('Sonnenblume');
+pruefe('mit Codewort ist der Modus eingerichtet', Chef::eingerichtet() === true);
+pruefe('ein falsches Wort öffnet nicht', Chef::frei('Tulpe') === false);
+pruefe('ein leeres Wort öffnet nicht', Chef::frei('') === false);
+pruefe('das richtige Wort öffnet', Chef::frei('Sonnenblume') === true);
+pruefe('tippfehler-tolerant: Groß/klein, Satzzeichen, Leerzeichen',
+    Chef::frei('  sonnen-blume. ') === true);
+
+// Lage: reine Auskunft, immer ein Satz.
+$lage = Chef::lage();
+pruefe('die Lage kommt mit einem Satz zurück',
+    ($lage['ok'] ?? false) === true && trim((string) ($lage['hinweis'] ?? '')) !== '');
+
+// Kunde anlegen: erst Vorschlag, dann auf „ja" wirklich angelegt.
+Db::run("DELETE FROM customers WHERE email = 'chef-neu@pruefung.example'");
+$vorschlag = Chef::kundeAnlegen(['name' => 'Neuer Kunde', 'email' => 'chef-neu@pruefung.example']);
+pruefe('ohne ja wird nur vorgeschlagen', !empty($vorschlag['bestaetigung_noetig']));
+pruefe('und noch nichts angelegt', (int) Db::wert(
+    "SELECT COUNT(*) FROM customers WHERE email = 'chef-neu@pruefung.example'", [], 0) === 0);
+$angelegt = Chef::kundeAnlegen(['name' => 'Neuer Kunde', 'email' => 'chef-neu@pruefung.example', 'bestaetigt' => 'ja']);
+pruefe('nach ja ist der Kunde angelegt', !empty($angelegt['angelegt']) && (int) ($angelegt['kunde_id'] ?? 0) > 0);
+$zweimal = Chef::kundeAnlegen(['name' => 'Neuer Kunde', 'email' => 'chef-neu@pruefung.example', 'bestaetigt' => 'ja']);
+pruefe('ein zweites Mal legt nicht doppelt an', !empty($zweimal['schon']));
+
+// Notiz: erst Vorschlag, dann nach „ja" in den Meldungen.
+Db::run("DELETE FROM notifications WHERE type = 'chef_notiz'");
+$nv = Chef::notiz(['text' => 'Rückruf bei Rossi einplanen']);
+pruefe('die Notiz wird erst bestätigt', !empty($nv['bestaetigung_noetig']));
+pruefe('und liegt noch nicht in den Meldungen', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'chef_notiz'", [], 0) === 0);
+Chef::notiz(['text' => 'Rückruf bei Rossi einplanen', 'bestaetigt' => 'ja']);
+pruefe('nach ja steht die Notiz in den Meldungen', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'chef_notiz'", [], 0) === 1);
+
+// Aufräumen
+Db::run("DELETE FROM customers WHERE email = 'chef-neu@pruefung.example'");
+Db::run("DELETE FROM notifications WHERE type IN ('chef_notiz','chef_kunde')");
+Db::run("DELETE FROM settings WHERE skey = 'chef_codewort'");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

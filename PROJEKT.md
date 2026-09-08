@@ -2732,3 +2732,27 @@ Bestätigungsmails entstehen aus dem Stripe-Webhook; stimmt das Live-Webhook-
 Geheimnis nicht, kommt nach der Zahlung nichts (auch kein Postausgang-Eintrag).
 
 Kette 838.
+
+### Chef-Modus für Manuela — Assistent nur für Uwe (08.09.2026)
+
+Uwe will einen Assistenten NUR für die Verwaltung, der ihn unterstützt (Fragen,
+nächste Schritte, Kunden anlegen, Nachrichten/Notizen, Vorschläge mit ja/nein),
+während die kundenseitige Manuela unverändert weiterläuft. Entscheidung: den
+VORHANDENEN STRATO-Assistenten nutzen (kein neues KI-Gehirn), Schutztür = nur
+ein gesprochenes Codewort. Uwe ist bei STRATO eingeloggt und will die Konfig
+von mir gemacht haben.
+
+Server-Seite gebaut (Grundlage, damit die STRATO-Werkzeuge ein Ziel haben):
+- app/src/Chef.php: codewort/eingerichtet/frei (zeitkonstant, tippfehler-tolerant),
+  lage (Tagesüberblick), kunde (Stand), kundeAnlegen (mit ja-Bestätigung, kein
+  Doppel), notiz (mit ja-Bestätigung, landet in Meldungen).
+- chef.php: eigener Endpunkt, zwei Türen — STRATO-Schlüssel (wie telefon.php) UND
+  Codewort. Ohne gesetztes Codewort ist der Modus aus.
+- Verwaltung → Einstellungen → Telefonassistentin: Feld „Chef-Modus / Codewort"
+  (Uwe setzt es selbst, steht nirgends im Repo/Chat). Handler chef_codewort(_weg).
+- Kette 853 (15 neue Prüfungen: Schutztür, Lage, Anlegen mit/ohne ja, Notiz).
+
+Offen: STRATO-Konfiguration (Verhalten: Chef-Modus-Zweig auf Codewort; 4 neue
+API-Integrationen chef_lage/chef_kunde/chef_kunde_anlegen/chef_notiz auf
+chef.php) — additiv, ohne die Kundenstrecke anzutasten. Uwe setzt danach das
+Codewort in der Verwaltung.

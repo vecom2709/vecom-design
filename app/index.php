@@ -966,6 +966,28 @@ if ($post) {
                 weiter($_POST['zurueck'] ?? 'telefon');
                 break;
 
+            /* ---------- Chef-Modus: das Codewort ---------- */
+            case 'chef_codewort':
+                require_once __DIR__ . '/src/Chef.php';
+                $wort = trim((string) ($_POST['codewort'] ?? ''));
+                // Leer lassen = unverändert, damit ein versehentliches Speichern
+                // das gesetzte Wort nicht löscht. Entfernen geht über den eigenen Knopf.
+                if ($wort !== '') {
+                    Chef::codewortSetzen($wort);
+                    $_SESSION['gut'] = 'Chef-Modus-Codewort gespeichert. Sag es Manuela im Gespräch, um den Modus zu öffnen.';
+                } else {
+                    $_SESSION['gut'] = 'Nichts geändert — das Feld war leer.';
+                }
+                zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
+                break;
+
+            case 'chef_codewort_weg':
+                require_once __DIR__ . '/src/Chef.php';
+                Chef::codewortSetzen('');
+                $_SESSION['gut'] = 'Codewort entfernt — der Chef-Modus ist aus.';
+                zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
+                break;
+
             /* ---------- Die Merkliste ---------- */
             case 'merkliste_setzen':
                 require_once __DIR__ . '/src/Telefon.php';
