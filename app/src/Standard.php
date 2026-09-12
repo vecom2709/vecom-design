@@ -41,6 +41,67 @@ final class Standard
     public const VORGABE = <<<'TEXT'
 VECOM-STANDARD — so ist eine Vecom-Seite gebaut
 
+DIE REIHENFOLGE
+- Kundenbedarf → Geschaeftsziel → Nutzer → Inhalt → Geschichte → Emotion →
+  Erlebnis → TECHNIK. Technik steht am Ende, und zwar immer. Ueber Framework,
+  Animation, 3D, Video und Effekt wird entschieden, NACHDEM feststeht, wem die
+  Seite wobei hilft und was darauf steht.
+- Probe vor der ersten Zeile Code: Nennt die Antwort auf „Warum so?" eine
+  Technik, ist die Reihenfolge verletzt. Eine gueltige Antwort nennt den
+  Kunden, sein Geschaeft oder seinen Besucher.
+
+ERFINDE NIEMALS UNTERNEHMENSINFORMATIONEN
+- Gearbeitet wird ausschliesslich aus: Fragebogen, Gespraech, hochgeladenen
+  Dateien, bestehender Website, Marke und Assets, vereinbartem Umfang,
+  Projektklasse und Modulen, freigegebenen Aenderungen. Was dort nicht steht,
+  steht nicht auf der Seite.
+- Jede Information traegt eine Stufe:
+  BESTAETIGT  — der Kunde hat es gesagt oder geliefert; kommt so auf die Seite.
+  GESCHLOSSEN — aus Vorhandenem abgeleitet; als Annahme markieren und
+                bestaetigen lassen.
+  FEHLT       — wird gefragt; bis zur Antwort ein sichtbarer Platzhalter,
+                nie eine stille Erfindung.
+  GESPERRT    — darf unter keinen Umstaenden entstehen.
+- GESPERRT sind: Telefonnummern, Adressen, Preise, Bewertungen,
+  Zertifizierungen, Auszeichnungen, Referenzen, Mitarbeiter, Kundenlogos,
+  Firmengeschichte, Rechtsangaben, Produktversprechen, Garantien und
+  technische Leistungswerte.
+- Fehlt etwas Gesperrtes, gibt es genau zwei erlaubte Wege: fragen oder die
+  Sektion weglassen. Ein dritter wird nicht gesucht — auch dann nicht, wenn
+  die Seite dadurch unfertig aussieht. Ein erfundenes Kundenlogo ist eine
+  Urheberrechtsverletzung, eine erfundene Zertifizierung eine Falschangabe im
+  Geschaeftsverkehr, ein erfundener Leistungswert eine Zusage, fuer die der
+  Kunde haftet — nicht ich.
+
+DAS MANIFEST IST DIE EINZIGE WAHRHEIT
+- Jedes Projekt fuehrt ein Manifest: Klasse, Module, Umfang, alle Inhalte mit
+  ihrer Stufe, Marke, Entscheidungen, offene Fragen, Freigaben. Es liegt im
+  Kundenordner neben dem Briefing.
+- Briefing ist, was ankam. Manifest ist, was daraus gilt. Widersprechen sich
+  Seite und Manifest, ist die Seite falsch — nicht das Manifest.
+
+DER UMFANG IST GESPERRT
+- Eine Leistung, die nicht im vereinbarten Umfang steht, wird nie still
+  dazugebaut. Sie ist eine Aenderungsanfrage: benennen, Preis nennen,
+  Freigabe abwarten.
+- Der typische Fall ist harmlos und deshalb gefaehrlich: ein
+  Reservierungsformular, „weil das bei einem Restaurant dazugehoert". Dahinter
+  haengen Zustellung, Datenschutz, Pflege und eine Erwartung beim Gast, die
+  jemand erfuellen muss.
+- Was geschenkt werden soll, wird ausdruecklich geschenkt und im Manifest
+  vermerkt — nicht verschwiegen.
+
+KLASSE UND MODULE STEHEN VOR DEM BAUEN FEST
+- Klassen: A ESSENTIAL (da sein, gefunden werden, erreichbar sein) ·
+  B BUSINESS (Anfragen, Termine, Verkauf) · C PREMIUM (eigene Handschrift) ·
+  D CGI · E CGI REALITY · F EXPERIENCE (Bewegung und Ablauf tragen mit) ·
+  G SIGNATURE (Einzelstueck) · X CUSTOM.
+- Module: WEB · BRAND · MARKETING · MOTION · CGI · CONTENT · VISUAL ·
+  PACKAGING · BUSINESS · TECH · CARE.
+- Die Klasse entscheidet ueber Aufwand, Preis und Qualitaetsanspruch. Eine
+  Klasse hoeher als noetig ist ein Fehler, nicht Ehrgeiz: Ein sauberes B
+  schlaegt ein wackliges F — beim Kunden, bei der Ladezeit und bei der Pflege.
+
 SPRACHEN
 - WELCHE Sprachen und welche fuehrt, steht im Briefing und nirgends sonst.
   Es haengt am Kunden und an seinen Gaesten, nicht an einer Hausregel: Ein
@@ -73,6 +134,31 @@ WAS DIE SEITE LEISTEN MUSS
 - Oeffnungszeiten, Adresse und Telefonnummer stimmen und stehen auf jeder
   Seite im Fuss. Das sind die drei Angaben, wegen derer die Leute kommen.
 
+STUFE 0 — WAS IMMER TRAEGT
+- Die Seite misst das Geraet und nimmt sich zurueck, wenn es schwach ist. Die
+  Inszenierung faellt zuerst, der Inhalt nie.
+- Stufe 0 ist der Vertrag: ohne WebGL, ohne Effekte, auf dem langsamsten
+  Geraet traegt die Seite weiterhin den Inhalt, die Navigation, die Marke, die
+  wichtigste Handlung und den Kontakt. Fehlt davon eines, ist die Seite
+  kaputt — nicht „reduziert".
+- Gefragt wird nicht „laeuft es?", sondern „was passiert, wenn es nicht
+  laeuft?": Video laedt nicht, Schrift kommt nicht an, Formular antwortet
+  nicht, Verbindung bricht ab. Fuer jeden dieser Faelle gibt es einen
+  Zustand, der geplant ist. Ein Ladefehler, der als leerer Kasten endet, ist
+  kein Randfall, sondern der Normalfall auf jedem zehnten Besuch.
+
+BEWEGUNG UND TON
+- Jede Animation braucht einen Grund: Orientierung, Rueckmeldung,
+  Zusammenhang oder Dramaturgie. Sonst weglassen.
+- prefers-reduced-motion zeigt den Endzustand sofort und laesst nichts
+  verschwinden.
+- Ton startet immer stumm und laeuft erst nach einer ausdruecklichen Handlung
+  des Besuchers an — nie beim Laden, nie beim Scrollen. Ton traegt nie eine
+  Information, die es ohne ihn nicht gibt, und ist jederzeit abschaltbar.
+- Kamera, Mikrofon, Bewegung und Standort werden erst nach Zustimmung
+  angefragt, mit einer Begruendung, die der Besucher versteht. Ohne
+  Zustimmung funktioniert die Seite weiter.
+
 AUFBAU UND TECHNIK
 - Handy zuerst gestalten, Rechner als eigene Komposition — nicht als Beiwerk.
 - Eine Datei pro Seite, kein Framework ohne Grund. Keine Bibliothek, fuer die
@@ -101,9 +187,14 @@ WAS NIE VORKOMMT
 - Stockbilder, die nach Stockbild aussehen. Lieber Typografie und Farbe.
 - Karussell fuer etwas Wichtiges. Was durchlaeuft, wird nicht gelesen.
 - Text auf unruhigem Bild ohne Abdunklung. Emoji als Ersatz fuer Symbole.
-- Der violett-blaue Verlauf. Drei gleiche Kaestchen nebeneinander.
+- Das KI-Aussehen: violett-blaue Verlaeufe, organische Blobs, Glaskarten
+  ueberall, Neon ohne Anlass, schwebende 3D-Kugeln, die nichts erzaehlen,
+  drei gleiche Kaestchen nebeneinander, zentrierte Hero mit zwei Knoepfen.
+  Die Gestaltung kommt aus der Welt des Kunden — seinem Material, seinem
+  Werkzeug, seiner Sprache. Eine Schreinerei sieht nicht aus wie ein
+  Start-up, ein Transportunternehmen nicht wie eine Modemarke.
 - Erfundene Bewertungen, Zahlen oder Auszeichnungen. Nie, auch nicht als
-  Platzhalter, ohne dass es danebensteht.
+  Platzhalter, ohne dass es danebensteht. Siehe die Sperrliste oben.
 
 RECHTLICHES UND AUFFINDBARKEIT
 - Impressum und Datenschutz auf jeder Seite im Fuss verlinkt, in jeder
@@ -114,11 +205,30 @@ RECHTLICHES UND AUFFINDBARKEIT
 - Keine Schriften und Karten von fremden Servern nachladen, ohne dass es in
   der Datenschutzerklaerung steht. Am einfachsten: selbst ausliefern.
 
+DER ERSTE BILDSCHIRM WIRD ZUERST ENTSCHIEDEN
+- Ueber den ersten Bildschirm wird entschieden, bevor der Rest gebaut wird.
+  Er bestimmt, was der Besucher ueber die ganze Seite denkt, und er ist der
+  teuerste Teil, um ihn spaet zu aendern.
+- Zwischenstaende sehe ich oertlich, bevor irgendetwas veroeffentlicht wird.
+
 BEVOR ES LIVE GEHT
 - Der Abnahme-Check in der Verwaltung laeuft durch. Was er anmeckert, wird
   behoben oder bewusst abgehakt — nicht uebersehen.
 - Auf einem echten Telefon angesehen, nicht nur im schmalen Fenster.
 - Konsole ohne Fehler, keine fehlgeschlagenen Anfragen.
+
+FERTIG IST NICHT „ES LAEUFT"
+- Funktionierend ist der Anfang der Arbeit, nicht ihr Ende. Danach kommen
+  Genauigkeit, Rhythmus, Typografie, Zustaende, Politur — die Dinge, an denen
+  ein Besucher „teuer" erkennt, ohne sagen zu koennen, woran.
+- Fertig heisst: Reihenfolge eingehalten · nichts erfunden, jede Information
+  mit ihrer Stufe · Manifest und Seite stimmen ueberein · Umfang eingehalten,
+  Aenderungen freigegeben · Stufe 0 traegt Inhalt, Navigation, Marke,
+  Handlung, Kontakt · Kontrast und Tastatur geprueft, nicht vermutet ·
+  Messwerte vorher und nachher, nicht „muesste reichen" · Konsole leer ·
+  Rechtliches vollstaendig mit den Angaben des Kunden · die Seite wurde
+  angesehen, auf Telefon und Rechner.
+- „Es laeuft" steht nicht auf dieser Liste.
 
 UEBERGABE
 - Der Kunde bekommt: die Adressen, was er selbst aendern kann, was die

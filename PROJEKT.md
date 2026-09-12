@@ -2973,3 +2973,33 @@ NEBENBEI GEFUNDEN: Der Abschnitt „Bestand" in dieser Datei nannte noch die
 drei Pakete (499 / 899 / 1.499 €) als Bestand — Wochen nachdem sie
 abgeschafft wurden, und in genau dem Abschnitt, der sagt, was nicht
 gebrochen werden darf. Korrigiert.
+
+### Die Hausregeln tragen jetzt den Standard (12.09.2026)
+
+Uwe: „Passe entsprechend auch die Hausregel an."
+
+`Standard::VORGABE` ist der Text, der an jedem Briefing hängt — das, was
+Claude beim Bauen einer Kundenseite als Erstes liest. Er hatte gute,
+teuer bezahlte Regeln (Sprachen, WhatsApp statt Formular, Öffnungszeiten
+im Fuß, Ladezeit als Versprechen), aber nichts von dem, was der
+Master-Standard vom 12.09.2026 verlangt. Sechs Abschnitte sind vorn
+dazugekommen, zwei in der Mitte, zwei am Schluss:
+
+- **Die Reihenfolge** — Bedarf bis Technik, Technik zuletzt, mit der Probe
+  „Nennt die Antwort auf *Warum so?* eine Technik, ist sie verletzt."
+- **Erfinde niemals Unternehmensinformationen** — vier Stufen (bestätigt,
+  geschlossen, fehlt, gesperrt) und die Sperrliste mit genau zwei erlaubten
+  Antworten: fragen oder die Sektion weglassen.
+- **Manifest**, **Umfangssperre**, **Klasse und Module**.
+- **Stufe 0 als Vertrag** und die Frage „was passiert, wenn es nicht läuft?"
+- **Bewegung und Ton** — Ton startet stumm, Sensoren erst nach Zustimmung.
+- **Kein KI-Aussehen** (in „Was nie vorkommt" eingearbeitet), **erster
+  Bildschirm zuerst**, **fertig ist nicht „es läuft"** mit der Fertig-Liste.
+
+Aus 5.400 werden 11.000 Zeichen; die Obergrenze liegt bei 40.000.
+
+WICHTIG UND LEICHT ZU ÜBERSEHEN: `Standard::text()` liefert die Vorgabe nur,
+solange in `settings.werkstatt_standard` nichts steht. Wer einmal eine eigene
+Fassung gespeichert hat, bekommt weiter seine — eine geänderte Vorgabe
+erreicht ihn nie. Deshalb ist der Text zusätzlich zum Einfügen in die
+Verwaltung herausgegeben worden (Vecom-Standard → Hausregeln).
