@@ -50,10 +50,11 @@ steht im ersten oder zweiten Satz.
 Was existiert und nicht gebrochen werden darf:
 
 - Die öffentliche Website (dreisprachig, `/` italienisch, `/de/`, `/en/`), erzeugt beim Deploy
-  aus `index.html` + `i18n-data.js` durch `build.mjs`.
-- Drei Pakete: Starter 499 € + 39 €/Monat · Business 899 € + 69 €/Monat · Premium 1.499 € +
-  99 €/Monat. Sie kommen aus der Datenbank auf die Website; die fest eingebauten Karten im HTML
-  bleiben als Rückfall stehen.
+  aus `index.html` + `i18n-it.js` / `i18n-de.js` / `i18n-en.js` durch `build.mjs`.
+- Kein Festpreis-Paket mehr (seit 12.09.2026). Der Preis entsteht im Konfigurator aus dem
+  Umfang; auf der Startseite stehen vier Beispielspannen, die live aus der Datenbank kommen
+  (`preise-daten.php`), und im HTML dieselben Zahlen als Rückfall. Verkauft werden zusätzlich
+  zwei Monatsverträge: Betreuung 39 €/Monat und Domain & Hosting 9,90 €/Monat.
 - `formular.php` (Kontaktformular über Brevo) und der Brevo-Schlüssel in der `config.local.php`
   im Stammverzeichnis — die Verwaltung nutzt denselben.
 - Laufende Kundenprojekte: Cavaleri Trasporti, Charme Color, Ristorante Boulevard.
@@ -2933,3 +2934,42 @@ einzeln (`ftp-deploy.yml`). `VECOM-STANDARD.md` wäre sonst auf dem Webspace
 gelandet — gesperrt durch die `.htaccess`, aber oben. Was gesperrt ist, muss gar
 nicht erst hochgeladen werden, und eine Liste aus Namen wird bei der nächsten
 Notizdatei wieder vergessen.
+
+### Aufgeräumt: ein Klon, eine Abrissliste, eine Textquelle (12.09.2026)
+
+Uwe: „räume auf das anständig das neuste deployed wird" und „lösche alte
+Klons soll nur ein sein wo immer aktualisiert."
+
+**Ein Klon.** Auf dem Mac lagen zwei Arbeitskopien — eine vom 08.09. auf
+735e075, eine frische. Die alte ist gelöscht, die frische heißt jetzt
+`website/` und steht auf dem neuesten Commit. Mitgegangen sind 153 MB
+Transportreste aus früheren Sitzungen (`_to_delete/`, `_transfer/`, `_alt/`
+und acht `.tgz`). Der Hilfsklon in der Arbeitsumgebung, über den bisher
+veröffentlicht wurde, ist nicht mehr nötig: Mit Löschrechten im verbundenen
+Ordner räumt git seine eigenen Sperrdateien wieder weg, und `pull`, `commit`
+und `push` laufen dort ohne Umweg.
+
+**Die Abrissliste (`ftp-deploy.yml`).** `mirror --reverse` lädt hoch und
+löscht nie — wer eine Datei aus dem Repository nimmt, nimmt sie nicht vom
+Webspace. Zwölf solcher Leichen lagen dort, gut 2 MB: `auftakt.mp4` und
+`.webm` (1,16 MB für einen Film, den `site-world.js` seit dem Umbau gar
+nicht mehr abspielt — der Kameraflug hat ihn ersetzt), `theme.css`,
+`thema.js`, `legal-i18n.js`, `world-i18n.js`, fünf Bilder und `pakete.html`.
+Unter dem `mirror` steht jetzt eine Liste, die bei jedem Deploy entfernt,
+was dort eingetragen ist. Wer künftig eine Datei aus dem Repository nimmt,
+trägt sie dort ein — das ist der einzige Weg, auf dem sie wirklich
+verschwindet.
+
+**Eine Textquelle.** `tools/sprechertext.mjs` las bis heute
+`assets/js/i18n-data.js` — eine Sammelfassung aller drei Sprachen, die die
+Seite längst nicht mehr benutzt (sie lädt `i18n-it/de/en.js`) und die nicht
+einmal im Repository lag: Aus einem frischen Klon lief das Werkzeug nicht.
+Es war genau das, wovor sein eigener Kommentar warnt — ein zweiter Ort, an
+dem derselbe Satz veralten kann. Jetzt liest es dieselbe Datei wie die
+Seite. Die Sammelfassung ist weg, die vier veralteten README-Stellen sind
+nachgezogen.
+
+NEBENBEI GEFUNDEN: Der Abschnitt „Bestand" in dieser Datei nannte noch die
+drei Pakete (499 / 899 / 1.499 €) als Bestand — Wochen nachdem sie
+abgeschafft wurden, und in genau dem Abschnitt, der sagt, was nicht
+gebrochen werden darf. Korrigiert.

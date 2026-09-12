@@ -92,6 +92,21 @@ jobs:
           DIR: ${{ vars.FTP_SERVER_DIR }}
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          # DIE ABRISSLISTE
+          #
+          # mirror --reverse laedt hoch und loescht nie. Wer eine Datei aus dem
+          # Repository nimmt, nimmt sie damit nicht vom Webspace — sie bleibt
+          # liegen, wird weiter ausgeliefert und faellt niemandem auf.
+          # Gemessen am 12.09.2026: zwoelf solcher Leichen, zusammen gut 2 MB,
+          # darunter ein Film von 1,16 MB, den die Seite seit Wochen nicht mehr
+          # abspielt, und pakete.html mit drei Preisen, die es nicht mehr gibt.
+          #
+          # Deshalb die Liste unter dem mirror: Was dort steht, wird bei jedem
+          # Deploy entfernt. Der Befehl schweigt, wenn die Datei schon weg ist —
+          # die Liste darf also stehen bleiben und kostet nichts. Wer kuenftig
+          # eine Datei aus dem Repository nimmt, traegt sie dort ein; das ist
+          # der einzige Weg, auf dem sie wirklich verschwindet.
+          #
           # Keine .md-Datei geht auf den Webspace. Frueher standen hier drei
           # Namen einzeln; VECOM-STANDARD.md waere darum hochgeladen worden.
           # Die .htaccess sperrt .md ohnehin fuer Besucher — was gesperrt ist,
@@ -123,6 +138,19 @@ jobs:
               --exclude '^app/pruefung/kette\.php$' \
               --exclude '\.md$' \
               ./ $DIR;
+            rm -f $DIR/video/auftakt.mp4;
+            rm -f $DIR/video/auftakt.webm;
+            rm -f $DIR/assets/css/theme.css;
+            rm -f $DIR/assets/img/auftakt-poster.webp;
+            rm -f $DIR/assets/img/jonika.png;
+            rm -f $DIR/assets/img/logo-full-dark.png;
+            rm -f $DIR/assets/img/logo-mark.png;
+            rm -f $DIR/assets/img/trendonix.png;
+            rm -f $DIR/assets/js/legal-i18n.js;
+            rm -f $DIR/assets/js/world-i18n.js;
+            rm -f $DIR/assets/js/thema.js;
+            rm -f $DIR/assets/js/i18n-data.js;
+            rm -f $DIR/pakete.html;
             bye"
 
       - name: Cockpit-Schutz nachsehen

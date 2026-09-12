@@ -15,7 +15,9 @@ vecom-design/
 └── assets/
     ├── css/fonts.css       Selbst gehostete Schriften
     ├── css/app.css         Design-Tokens + alle Bausteine
-    ├── js/i18n-data.js     Alle Texte in IT / DE / EN
+    ├── js/i18n-it.js       Alle Texte, italienisch (Quelle)
+    ├── js/i18n-de.js       dieselben Schlüssel, deutsch
+    ├── js/i18n-en.js       dieselben Schlüssel, englisch
     ├── js/app.js           Sprachwahl, Bewegung, Formular
     ├── fonts/*.woff2       Sora + Inter, lokal
     └── img/*               Logo (freigestellt), Favicons, OG-Bild
@@ -51,8 +53,12 @@ Staffelung 60ms · Reveal-Weg max. 24px
 
 ## 3. Texte ändern
 
-Alle Texte stehen in `assets/js/i18n-data.js` — dreimal derselbe Schlüsselbaum
-(`it`, `de`, `en`). Ein Text wird an genau einer Stelle geändert.
+Alle Texte stehen in `assets/js/i18n-it.js`, `i18n-de.js` und `i18n-en.js` —
+dreimal derselbe Schlüsselbaum. Ein Text wird an genau einer Stelle geändert.
+
+(Bis September 2026 lag alles zusammen in einer `i18n-data.js`. Sie ist weg: Drei
+Dateien laden schneller, weil jede Sprache nur ihre eigene holt, und ein
+Änderungswunsch trifft nur die Datei, um die es geht.)
 
 Im HTML zeigen die Attribute auf diese Schlüssel:
 
@@ -153,7 +159,7 @@ Diese Zahlen sind der Vergleichsmaßstab. Wenn später etwas hinzukommt
 
 ## 8. Hilfsskript: italienische Standardtexte neu ins HTML schreiben
 
-Nach Änderungen an den italienischen Texten in `i18n-data.js`:
+Nach Änderungen an den italienischen Texten in `i18n-it.js`:
 Das Skript trägt sie erneut fest ins HTML ein (verhindert Layout-Sprünge und
 leere Seiten für Suchmaschinen). Es wurde beim Bau verwendet und kann bei
 Bedarf erneut bereitgestellt werden — alternativ die italienische Fassung von
@@ -331,7 +337,7 @@ eine Adresse, kein Zustand. Deshalb gibt es jetzt drei Adressen:
 | `/de/` | Deutsch | eigene Seite, eigener Titel |
 | `/en/` | Englisch | eigene Seite, eigener Titel |
 
-Erzeugt werden `/de/` und `/en/` aus `index.html` und `i18n-data.js`:
+Erzeugt werden `/de/` und `/en/` aus `index.html` und den drei `i18n-*.js`:
 
 ```
 node build.mjs

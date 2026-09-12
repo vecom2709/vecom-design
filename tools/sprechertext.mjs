@@ -6,7 +6,7 @@
 
    WARUM DER TEXT NICHT EIGENS GESCHRIEBEN IST
    Er entsteht aus genau den Saetzen, die im Video zu sehen sind
-   (assets/js/i18n-data.js, Abschnitt "abl"). Das hat zwei Gruende: Die Saetze
+   (assets/js/i18n-<sprache>.js, Abschnitt "abl"). Das hat zwei Gruende: Die Saetze
    sind von Muttersprachlern gelesen und geprueft — ein zweiter, eigener
    Sprechertext waere ein zweiter Ort, an dem dieselbe Aussage veralten kann.
    Und was man hoert, deckt sich mit dem, was man liest; die Stichpunkte
@@ -15,8 +15,16 @@
 import { readFileSync } from 'node:fs';
 
 const SPRACHE = (process.argv[2] || 'de').replace(/^--/, '');
+/* WARUM HIER DIE EINZELNE SPRACHDATEI STEHT
+   Bis zum 12.09.2026 wurde `i18n-data.js` geladen — eine Sammelfassung aller
+   drei Sprachen, die die Seite selbst laengst nicht mehr benutzt: Sie laedt
+   `i18n-it.js`, `i18n-de.js` und `i18n-en.js`. Die Sammelfassung lag auch nicht
+   im Repository, dieses Werkzeug lief aus einem frischen Klon also gar nicht.
+   Und sie war genau das, wovor der Absatz darueber warnt: ein zweiter Ort, an
+   dem derselbe Satz veralten kann. Jetzt liest das Werkzeug dieselbe Datei wie
+   die Seite. */
 global.window = {};
-await import('../assets/js/i18n-data.js');
+await import(`../assets/js/i18n-${SPRACHE}.js`);
 const d = (global.window.VECOM_I18N || {})[SPRACHE];
 if (!d || !d.abl) {
   console.error(`Keine Sprachdaten fuer "${SPRACHE}".`);
