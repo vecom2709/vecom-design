@@ -2927,3 +2927,9 @@ erfundene Zwischenfassungen wären genau der Fehler, den Abschnitt 2 des
 Standards verbietet. Sie stehen am Ende der Datei unter „Was noch fehlt" und
 werden eingesetzt, sobald der Originaltext wieder vorliegt. Die Abschnitte
 1–10 und 14 gelten vollständig und tragen den Standard allein schon.
+
+MITGEGANGEN: Der Deploy schließt jetzt `.md` als Endung aus statt drei Dateinamen
+einzeln (`ftp-deploy.yml`). `VECOM-STANDARD.md` wäre sonst auf dem Webspace
+gelandet — gesperrt durch die `.htaccess`, aber oben. Was gesperrt ist, muss gar
+nicht erst hochgeladen werden, und eine Liste aus Namen wird bei der nächsten
+Notizdatei wieder vergessen.
