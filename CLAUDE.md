@@ -9,6 +9,12 @@ Am Ende jeder Arbeit: zwei Zeilen ins Entscheidungsprotokoll von `PROJEKT.md`,
 wenn etwas entschieden wurde. Keine Protokolle — nur, was beim nächsten Mal
 wieder gebraucht wird.
 
+Für **Kundenseiten** — also alles, was Vecom für einen Kunden baut und was nicht auf
+vecom-design.it liegt — gilt zusätzlich `VECOM-STANDARD.md`: Reihenfolge vom Bedarf
+zur Technik, Vertrauensstufen für jede Information, Umfangssperre, Projektklassen,
+Stufe 0 als Vertrag. Er steht hier und nicht im Kundenordner, weil er allen
+Kundenordnern gemeinsam ist.
+
 ---
 
 ## Drei Regeln, die aus Fehlern entstanden sind

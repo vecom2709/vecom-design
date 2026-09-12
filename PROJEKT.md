@@ -2884,3 +2884,46 @@ Meta-Beschreibung der Preisseite („fünf Seiten 525–650 €"), die FAQ-Antwo
 und das FAQ-Schema („ab 325 €") sowie `minPrice` in den strukturierten Daten.
 Die Live-Zahlen kommen aus der Datenbank; diese hier sind der Rückfall, wenn
 `preise-daten.php` nicht antwortet — sie müssen bei jeder Preisrunde mit.
+
+### Der Vecom-Standard für Kundenseiten (12.09.2026)
+
+Uwe hat den Master-Standard geschickt: die zentrale Produktions-, Einstufungs-
+und Qualitätslogik für **alle** Kundenwebseiten. Kein Auftrag, sondern eine
+Grundlage — also gehört sie dorthin, wo beim Bauen hineingesehen wird, und
+nicht in einen Chatverlauf.
+
+**`VECOM-STANDARD.md`** im Repository, mit einem Zeiger aus `CLAUDE.md`. Er
+liegt hier und nicht im Kundenordner, weil er allen Kundenordnern gemeinsam
+ist; ein Standard, der in jedem Projekt neu abgeschrieben wird, ist nach dem
+dritten Projekt drei Standards. Was darin trägt:
+
+- **Die Reihenfolge** Bedarf → Geschäftsziel → Nutzer → Inhalt → Geschichte →
+  Emotion → Erlebnis → **Technik**. Technik zuletzt, immer. Probe vor der
+  ersten Zeile Code: Nennt die Antwort auf „Warum so?" eine Technik, ist die
+  Reihenfolge verletzt.
+- **Erfinde niemals Unternehmensinformationen.** Jede Information trägt eine
+  Stufe: `CONFIRMED`, `INFERRED`, `MISSING` oder `FORBIDDEN_TO_INVENT`. Die
+  Sperrliste (Telefonnummern, Adressen, Preise, Bewertungen, Zertifikate,
+  Auszeichnungen, Referenzen, Mitarbeiter, Kundenlogos, Firmengeschichte,
+  Rechtsangaben, Produktversprechen, Garantien, Leistungswerte) kennt genau
+  zwei erlaubte Antworten: fragen oder die Sektion weglassen.
+- **Das Manifest** (`VECOM_PROJECT_MANIFEST`) ist die einzige Wahrheit.
+  Widersprechen sich Seite und Manifest, ist die Seite falsch.
+- **Umfangssperre.** Nicht Vereinbartes wird nie still dazugebaut — es ist
+  eine Änderungsanfrage mit Preis und Freigabe.
+- **Klassen A–G und X**, **Module WEB bis CARE**: vor dem Bauen festgelegt.
+  Eine Klasse höher als nötig ist ein Fehler, nicht Ehrgeiz.
+- **Stufe 0 ist der Vertrag.** Ohne WebGL, ohne Effekte, auf dem langsamsten
+  Gerät trägt die Seite Inhalt, Navigation, Marke, die wichtigste Handlung und
+  den Kontakt. Verliert Stufe 0 eines davon, ist die Seite kaputt, nicht
+  reduziert.
+- **„Es läuft" ist die erste Fassung, nicht die letzte** — und steht nicht auf
+  der Fertig-Liste.
+
+EHRLICH DAZU: Vier Abschnitte des Originals stehen dort nur als Überschrift —
+die Schichten 01–20, die Fassungen 01–08, die Freigabetore 01–09 und der
+45-Schritt-Startbefehl. Ihr Wortlaut lag beim Festhalten nicht mehr vor, und
+erfundene Zwischenfassungen wären genau der Fehler, den Abschnitt 2 des
+Standards verbietet. Sie stehen am Ende der Datei unter „Was noch fehlt" und
+werden eingesetzt, sobald der Originaltext wieder vorliegt. Die Abschnitte
+1–10 und 14 gelten vollständig und tragen den Standard allein schon.
