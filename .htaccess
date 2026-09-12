@@ -11,6 +11,24 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 # darum geht es bei einer Empfehlung.
 RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
 
+# /pakete.html gibt es nicht mehr.
+#
+# Dort standen Starter 499, Business 899 und Premium 1.499 — drei Pakete, die
+# es seit dem 12.09.2026 nicht mehr gibt. Die Datei ist aus dem Repository
+# genommen, aber der Deploy spiegelt nur und loescht nichts: Die alte Kopie
+# liegt weiter auf dem Webspace. Diese Regel ist das, was sie unerreichbar
+# macht — dieselbe Ueberlegung wie bei den .md-Dateien weiter unten.
+#
+# 301 und nicht 404, weil die Adresse in alten Angeboten und E-Mails steht.
+# Wer sie oeffnet, soll dort landen, wo die Preise heute stehen, und nicht auf
+# einer Fehlerseite. Das abschliessende "?" wirft die alte Abfrage weg, damit
+# nicht ?lang=de an der italienischen Seite haengen bleibt.
+RewriteCond %{QUERY_STRING} (^|&)lang=de(&|$)
+RewriteRule ^pakete\.html$ /de/preise.html? [R=301,L]
+RewriteCond %{QUERY_STRING} (^|&)lang=en(&|$)
+RewriteRule ^pakete\.html$ /en/pricing.html? [R=301,L]
+RewriteRule ^pakete\.html$ /prezzi.html? [R=301,L]
+
 # Die Zähldatei ist nicht für Besucher bestimmt
 <Files "besuche.csv">
   Require all denied

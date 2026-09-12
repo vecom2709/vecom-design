@@ -32,7 +32,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=51bc088d">
+<link rel="stylesheet" href="../assets/css/app.css?v=32b60037">
 
 
 <script type="importmap">
@@ -101,30 +101,30 @@
   "makesOffer": [
     {
       "@type": "Offer",
-      "name": "Website zum Festpreis",
-      "price": "499",
-      "priceCurrency": "EUR",
-      "description": "Website bis 5 Seiten, responsives Design, Kontaktformular, SSL, Basis-SEO. Zzgl. 39 € monatliche Betreuung, freiwillig.",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Website zum Festpreis",
-        "serviceType": "Webdesign"
-      }
-    },
-    {
-      "@type": "Offer",
       "name": "Individuelle Website",
       "priceCurrency": "EUR",
       "priceSpecification": {
         "@type": "PriceSpecification",
         "priceCurrency": "EUR",
-        "minPrice": "275"
+        "minPrice": "325"
       },
       "description": "Preis nach Bedarf: Umfang, Sprachen, Funktionen und vorhandenes Material bestimmen ihn. Unverbindliche Einschaetzung online, verbindliches Angebot binnen 24 Stunden.",
       "itemOffered": {
         "@type": "Service",
         "name": "Individuelle Website",
         "serviceType": "Webdesign"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Monatliche Betreuung",
+      "price": "39",
+      "priceCurrency": "EUR",
+      "description": "Aktualisierungen, Sicherungen, Ueberwachung und kleine Aenderungen. Freiwillig und ein eigener Vertrag, auch fuer eine bestehende Website.",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Monatliche Betreuung",
+        "serviceType": "Website-Wartung"
       }
     }
   ],
@@ -201,7 +201,7 @@
       "name": "Was kostet eine maßgeschneiderte Website?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst. Wer sofort loslegen will, findet einen Einstieg zum festen Preis ab 499 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand."
+        "text": "Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst; los geht es ab 325 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand."
       }
     },
     {
@@ -727,21 +727,31 @@
     <div class="sechead sechead--split sechead--hoehepunkt" data-stagger>
       <span class="marg" data-i18n="marg.m3">Preise</span>
       <h2 data-reveal data-i18n="plans.head">Was das kostet</h2>
-      <p data-reveal data-i18n="plans.lead">Ein fester Preis, um sofort zu starten — und für alles Weitere ein Angebot, das auf dem aufbaut, was du wirklich brauchst. Keine Pakete, in die du hineinpassen musst.</p>
+      <p data-reveal data-i18n="plans.lead">Der Preis entsteht aus dem, was du brauchst, und nicht aus einer Liste. Darunter steht, wie er sich rechnet, vier echte Beispiele — und die zwei Monatsverträge, die du getrennt dazunehmen kannst.</p>
     </div>
 
 
-    <!-- Der Weg zum Preis. Frueher standen hier drei Karten; jetzt beschreibt
-         der Kunde, was er braucht. Die eine Karte darueber bleibt, weil die
-         Direktbuchung einen festen Preis braucht - ohne sie gaebe es keinen
-         Weg mehr, auf dem Geld ohne Zutun hereinkommt. -->
+    <!-- ====================================================================
+         Der Weg zum Preis — der Hauptakt dieses Abschnitts.
+
+         Hier standen einmal drei Preiskarten, dann nur noch eine zum
+         Festpreis. Beide sind weg: Wenn der Preis ohnehin aus dem Umfang
+         entsteht, ist eine feste Zahl daneben keine Alternative, sondern ein
+         Widerspruch — der Leser vergleicht sie mit der Spanne und haelt das
+         Teurere fuer den Normalfall.
+
+         Der Block ist deshalb zweispaltig: links der Grund und der Knopf,
+         rechts die drei Schritte. Die Nummern sind kein Schmuck, es IST eine
+         Abfolge — und sie beantworten die Frage, die jeder vor so einem Knopf
+         still stellt: worauf lasse ich mich da ein.
+         ==================================================================== -->
     <div class="bedarfsweg framed" data-reveal>
       <div class="bedarfsweg__text">
-        <p class="eyebrow" data-i18n="weg.kicker">Für alles Weitere</p>
+        <p class="eyebrow" data-i18n="weg.kicker">Dein Preis</p>
         <h3 data-i18n="weg.head">Was deine Website kostet, hängt davon ab, was sie können muss</h3>
-        <p data-i18n="weg.lead">Acht kurze Fragen, etwa anderthalb Minuten. Am Ende weißt du, in welcher Größenordnung du liegst — unverbindlich und ohne vorher mit jemandem sprechen zu müssen. Das verbindliche Angebot bekommst du binnen 24 Stunden, Position für Position.</p>
+        <p data-i18n="weg.lead">Keine Pakete, in die du hineinpassen musst: Du zahlst die Posten, die dich betreffen, und keine anderen. Wie viele Seiten, wie viele Sprachen, was die Seite können muss — daraus entsteht die Zahl.</p>
         <div class="bedarfsweg__tun">
-          <a class="btn btn--primary" href="/bedarf.php?lang=de"><span data-i18n="weg.cta">Preis herausfinden</span></a>
+          <a class="btn btn--primary btn--gross" href="/bedarf.php?lang=de"><span data-i18n="weg.cta">Preis herausfinden</span></a>
           <!-- Wer erst lesen will, was es kostet, bevor er acht Fragen
                beantwortet, geht hier lang. Ohne diesen Verweis waere die
                Preisseite von der Startseite aus nicht erreichbar - und eine
@@ -750,43 +760,65 @@
         </div>
         <p class="bedarfsweg__note" data-i18n="weg.note">Kostenlos und unverbindlich. Deine Daten frage ich erst am Ende, wenn du das Angebot wirklich willst.</p>
       </div>
+
+      <ol class="schritte">
+        <li><b>1</b><span data-i18n="weg.schritt1">Acht Fragen beantworten. Anderthalb Minuten, ohne Konto.</span></li>
+        <li><b>2</b><span data-i18n="weg.schritt2">Deine Preisspanne sofort sehen, mit den Posten, aus denen sie entsteht.</span></li>
+        <li><b>3</b><span data-i18n="weg.schritt3">Das verbindliche Angebot kommt binnen 24 Stunden. Du nimmst es an oder nicht.</span></li>
+      </ol>
     </div>
 
-    <!-- Das Einstiegsangebot steht bewusst NACH dem Bedarfsweg und schmaler.
-         Es ist der Sonderfall fuer alle, die sofort loslegen wollen, nicht der
-         Regelfall - und eine einzelne Karte, die sich ueber drei Spalten
-         streckt, sieht aus wie ein Raster, aus dem zwei Karten gefallen sind. -->
-    <div class="einstieg" data-reveal>
-      <p class="einstieg__kicker" data-i18n="weg.sofort">Oder sofort loslegen</p>
+    <!-- ====================================================================
+         Vier Zahlen statt einer Preiskarte.
 
-    <div class="ptoggle" data-price-toggle data-i18n-attr="data-year-note:plans.yearNote" role="group" aria-label="Preisansicht" data-year-note="primo anno">
-      <button type="button" data-mode="once" aria-pressed="true" data-i18n="plans.togOnce">Einmalig</button>
-      <button type="button" data-mode="year" aria-pressed="false" data-i18n="plans.togYear">Gesamt 12 Monate</button>
-    </div>
-    <div class="plans" data-stagger>
-      <article data-paket="starter" class="plan framed" data-reveal>
-        <h3 data-i18n="plans.n1">Website zum Festpreis</h3>
-        <p class="plan__sub" data-i18n="plans.s1">Gefunden werden und Anfragen bekommen</p>
-        <p class="plan__price"><span data-i18n="plans.p1">499 €</span><small data-i18n="plans.priceNote">einmalig</small></p>
-        <p class="plan__month" data-i18n="plans.m1">+ 39 € Betreuung im Monat, optional</p>
-        <ul data-i18n-list="plans.f1">
-          <li class="is-lead">Enthalten:</li>
-          <li>Individuelle Website bis 5 Seiten</li>
-          <li>Perfekt auf Smartphone, Tablet und PC</li>
-          <li>Kontaktformular und Google Maps</li>
-          <li>SSL-Zertifikat und Einrichtung</li>
-          <li>SEO-Grundlage, um gefunden zu werden</li>
-          <li>1 eigene E-Mail-Adresse</li>
-        </ul>
-        <a class="btn" href="?paket=starter#contact" data-i18n="plans.cta">Dieses Paket anfragen</a>
-      </article>
+         Eine Seite ganz ohne Zahl laesst den Leser das Schlimmste annehmen —
+         das war das eine, was die Festpreis-Karte konnte. Vier Beispiele
+         koennen es besser: Sie geben einen Anker, ohne jemanden in ein Paket
+         zu stecken.
 
-    </div>
+         Die Zahlen kommen aus derselben Tabelle wie das Angebot, nachgeladen
+         von preise-live.js ueber data-fall. Was hier im HTML steht, ist der
+         Rueckfall, falls die Verwaltung nicht antwortet — richtig, solange
+         niemand die Preise dreht, und besser als eine leere Stelle.
+         ==================================================================== -->
+    <div class="orient" data-reveal>
+      <h3 class="orient__head" data-i18n="weg.faelleHead">Damit du eine Zahl im Kopf hast</h3>
+      <p class="orient__lead" data-i18n="weg.faelleLead">Vier Fälle, die oft bei mir ankommen, mit dem, was sie wirklich kosten. Keine Pakete — Beispiele. Deiner liegt irgendwo dazwischen.</p>
+      <ul class="orient__liste" data-stagger>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f1n">Eine einzige Seite</span>
+          <span class="ofall__preis" data-fall="f1" data-i18n="preise.f1p">325 – 400 €</span>
+        </li>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f2n">Website mit bis zu fünf Seiten</span>
+          <span class="ofall__preis" data-fall="f2" data-i18n="preise.f2p">525 – 650 €</span>
+        </li>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f3n">Fünf Seiten in drei Sprachen</span>
+          <span class="ofall__preis" data-fall="f3" data-i18n="preise.f3p">800 – 1.000 €</span>
+        </li>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f4n">Onlineshop</span>
+          <span class="ofall__preis" data-fall="f4" data-i18n="preise.f4p">1.200 – 1.550 €</span>
+        </li>
+      </ul>
+      <p class="orient__note" data-i18n="weg.faelleNote">Es sind dieselben Posten, mit denen ich auch dein Angebot rechne. Darunter liegt nichts.</p>
     </div>
 
-    <!-- Betreuung: ein eigener Vertrag, deshalb ein eigener Block. Frueher hing
-         sie als Zusatzzeile an der Paketkarte — dann liest sie sich wie ein
-         Aufschlag, den man nicht abwaehlen kann. -->
+    <!-- ====================================================================
+         Die zwei Monatsvertraege nebeneinander.
+
+         Betreuung und Hosting sind eigene Vertraege — deshalb je ein eigener
+         Block mit eigener Ueberschrift. Untereinander sahen sie allerdings
+         beide aus wie ein Dreispaltenraster, aus dem zwei Karten gefallen
+         sind: Das .plans-Raster ist fuer drei gebaut, und seit die
+         Festpreis-Karte weg ist, steht in jedem nur noch eine.
+
+         Nebeneinander stimmt es wieder — und es stimmt auch inhaltlich: Es
+         sind die beiden Dinge, die man hier monatlich und unabhaengig von
+         einer Website abschliessen kann.
+         ==================================================================== -->
+    <div class="monatlich">
     <div class="care" id="betreuung">
       <h3 class="care__head" data-i18n="plans.careHead">Monatliche Betreuung</h3>
       <p class="care__lead" data-i18n="plans.careLead">Ein eigener Vertrag, nicht an den Bau der Seite gebunden: Du kannst sie dazunehmen oder allein buchen, für eine Seite, die du schon hast. Zwölf Monate Mindestlaufzeit, danach jederzeit zum Monatsende kündbar. Brauchst du mehr Änderungszeit im Monat, sprich mich an — es gibt zwei größere Stufen.</p>
@@ -832,6 +864,7 @@
         </article>
       </div>
     </div>
+    </div>
 
 
     <p class="plans__note" data-i18n="plans.note">Die genannten Preise sind die, die du zahlst.</p>
@@ -839,9 +872,10 @@
 </section>
 
 <!-- ===================== Individuelle Projekte =====================
-     Bewusst KEINE vierte Preiskarte. Was keinen Preis hat, darf nicht neben
-     Preisen stehen: der Leser vergleicht sonst eine Leerstelle mit 499 Euro
-     und liest sie als "teuer". Eigener Abschnitt, eigene Form, eigener Ton.
+     Bewusst KEINE fuenfte Zahl neben den vier Beispielen. Was keinen Preis
+     hat, darf nicht neben Preisen stehen: der Leser vergleicht sonst eine
+     Leerstelle mit 1.350 Euro und liest sie als "unbezahlbar". Eigener
+     Abschnitt, eigene Form, eigener Ton.
      ============================================================== -->
 <section class="section masz" id="individuell">
   <div class="wrap">
@@ -1108,7 +1142,7 @@
           <span data-i18n="faq.q1">Was kostet eine maßgeschneiderte Website?</span>
           <span class="faq__sign" aria-hidden="true"></span>
         </summary>
-        <p data-i18n="faq.a1">Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst. Wer sofort loslegen will, findet einen Einstieg zum festen Preis ab 499 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.</p>
+        <p data-i18n="faq.a1">Ich arbeite nicht mit festen Paketen: Der Preis entsteht aus dem, was du wirklich brauchst — Seitenzahl, Sprachen, Funktionen und wie viel Material schon fertig ist. In anderthalb Minuten weißt du über acht Fragen auf der Seite, in welcher Größenordnung du liegst; los geht es ab 325 €. Die monatliche Betreuung ab 39 € ist freiwillig und ein eigener Vertrag. Das Angebot ist kostenlos und unverbindlich; sobald du es annimmst, ist diese Zahl der Endpreis — auf der Rechnung steht nichts, was nicht im Angebot stand.</p>
       </details>
       <details class="faq__item" data-reveal>
         <summary>
@@ -1285,7 +1319,7 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-de.js?v=4f75bb70" defer></script>
+<script src="../assets/js/i18n-de.js?v=c6f0010b" defer></script>
 <script src="../assets/js/app.js?v=f8ecc8c9" defer></script>
 <script src="../assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="../assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1294,7 +1328,7 @@
 <!-- Zehn Dateien, die nur die Startseite braucht, in einer: assets/js/start.js.
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      rail, vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
-<script src="../assets/js/start.js?v=3ddfead0" defer></script>
+<script src="../assets/js/start.js?v=c3d6b576" defer></script>
 <script type="module" src="../assets/js/world/site-world.js?v=596706cc"></script>
 
 <!-- Besucherzählung: läuft ausschließlich auf dem eigenen Webspace.

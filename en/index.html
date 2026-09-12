@@ -32,7 +32,7 @@
 <link rel="preload" href="../assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="../assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="../assets/css/app.css?v=51bc088d">
+<link rel="stylesheet" href="../assets/css/app.css?v=32b60037">
 
 
 <script type="importmap">
@@ -101,30 +101,30 @@
   "makesOffer": [
     {
       "@type": "Offer",
-      "name": "Website zum Festpreis",
-      "price": "499",
-      "priceCurrency": "EUR",
-      "description": "Website bis 5 Seiten, responsives Design, Kontaktformular, SSL, Basis-SEO. Zzgl. 39 € monatliche Betreuung, freiwillig.",
-      "itemOffered": {
-        "@type": "Service",
-        "name": "Website zum Festpreis",
-        "serviceType": "Webdesign"
-      }
-    },
-    {
-      "@type": "Offer",
       "name": "Individuelle Website",
       "priceCurrency": "EUR",
       "priceSpecification": {
         "@type": "PriceSpecification",
         "priceCurrency": "EUR",
-        "minPrice": "275"
+        "minPrice": "325"
       },
       "description": "Preis nach Bedarf: Umfang, Sprachen, Funktionen und vorhandenes Material bestimmen ihn. Unverbindliche Einschaetzung online, verbindliches Angebot binnen 24 Stunden.",
       "itemOffered": {
         "@type": "Service",
         "name": "Individuelle Website",
         "serviceType": "Webdesign"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Monatliche Betreuung",
+      "price": "39",
+      "priceCurrency": "EUR",
+      "description": "Aktualisierungen, Sicherungen, Ueberwachung und kleine Aenderungen. Freiwillig und ein eigener Vertrag, auch fuer eine bestehende Website.",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Monatliche Betreuung",
+        "serviceType": "Website-Wartung"
       }
     }
   ],
@@ -201,7 +201,7 @@
       "name": "What does a custom website cost?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds. If you want to start right away, there is a fixed-price entry from €499. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote."
+        "text": "I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds; it starts at €325. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote."
       }
     },
     {
@@ -727,21 +727,31 @@
     <div class="sechead sechead--split sechead--hoehepunkt" data-stagger>
       <span class="marg" data-i18n="marg.m3">pricing</span>
       <h2 data-reveal data-i18n="plans.head">What it costs</h2>
-      <p data-reveal data-i18n="plans.lead">One fixed price to start right away, and for everything else a quote built on what you actually need. No packages to squeeze yourself into.</p>
+      <p data-reveal data-i18n="plans.lead">The price comes from what you need, not from a price list. Below: how it is worked out, four real examples, and the two monthly contracts you can take separately.</p>
     </div>
 
 
-    <!-- Der Weg zum Preis. Frueher standen hier drei Karten; jetzt beschreibt
-         der Kunde, was er braucht. Die eine Karte darueber bleibt, weil die
-         Direktbuchung einen festen Preis braucht - ohne sie gaebe es keinen
-         Weg mehr, auf dem Geld ohne Zutun hereinkommt. -->
+    <!-- ====================================================================
+         Der Weg zum Preis — der Hauptakt dieses Abschnitts.
+
+         Hier standen einmal drei Preiskarten, dann nur noch eine zum
+         Festpreis. Beide sind weg: Wenn der Preis ohnehin aus dem Umfang
+         entsteht, ist eine feste Zahl daneben keine Alternative, sondern ein
+         Widerspruch — der Leser vergleicht sie mit der Spanne und haelt das
+         Teurere fuer den Normalfall.
+
+         Der Block ist deshalb zweispaltig: links der Grund und der Knopf,
+         rechts die drei Schritte. Die Nummern sind kein Schmuck, es IST eine
+         Abfolge — und sie beantworten die Frage, die jeder vor so einem Knopf
+         still stellt: worauf lasse ich mich da ein.
+         ==================================================================== -->
     <div class="bedarfsweg framed" data-reveal>
       <div class="bedarfsweg__text">
-        <p class="eyebrow" data-i18n="weg.kicker">For everything else</p>
+        <p class="eyebrow" data-i18n="weg.kicker">Your price</p>
         <h3 data-i18n="weg.head">What your website costs depends on what it has to do</h3>
-        <p data-i18n="weg.lead">Eight short questions, about ninety seconds. At the end you know the ballpark — no obligation, and without having to talk to anyone first. The binding quote reaches you within 24 hours, item by item.</p>
+        <p data-i18n="weg.lead">No packages to squeeze into: you pay for the items that concern you and no others. How many pages, how many languages, what the site has to do — that is where the figure comes from.</p>
         <div class="bedarfsweg__tun">
-          <a class="btn btn--primary" href="/bedarf.php?lang=en"><span data-i18n="weg.cta">Find out the price</span></a>
+          <a class="btn btn--primary btn--gross" href="/bedarf.php?lang=en"><span data-i18n="weg.cta">Find out the price</span></a>
           <!-- Wer erst lesen will, was es kostet, bevor er acht Fragen
                beantwortet, geht hier lang. Ohne diesen Verweis waere die
                Preisseite von der Startseite aus nicht erreichbar - und eine
@@ -750,43 +760,65 @@
         </div>
         <p class="bedarfsweg__note" data-i18n="weg.note">Free and without obligation. I only ask for your details at the end, once you actually want the quote.</p>
       </div>
+
+      <ol class="schritte">
+        <li><b>1</b><span data-i18n="weg.schritt1">Answer eight questions. Ninety seconds, no account.</span></li>
+        <li><b>2</b><span data-i18n="weg.schritt2">See your price range straight away, with the items it is built from.</span></li>
+        <li><b>3</b><span data-i18n="weg.schritt3">The binding quote reaches you within 24 hours. You take it or you don’t.</span></li>
+      </ol>
     </div>
 
-    <!-- Das Einstiegsangebot steht bewusst NACH dem Bedarfsweg und schmaler.
-         Es ist der Sonderfall fuer alle, die sofort loslegen wollen, nicht der
-         Regelfall - und eine einzelne Karte, die sich ueber drei Spalten
-         streckt, sieht aus wie ein Raster, aus dem zwei Karten gefallen sind. -->
-    <div class="einstieg" data-reveal>
-      <p class="einstieg__kicker" data-i18n="weg.sofort">Or start right away</p>
+    <!-- ====================================================================
+         Vier Zahlen statt einer Preiskarte.
 
-    <div class="ptoggle" data-price-toggle data-i18n-attr="data-year-note:plans.yearNote" role="group" aria-label="Preisansicht" data-year-note="primo anno">
-      <button type="button" data-mode="once" aria-pressed="true" data-i18n="plans.togOnce">One-off</button>
-      <button type="button" data-mode="year" aria-pressed="false" data-i18n="plans.togYear">Total over 12 months</button>
-    </div>
-    <div class="plans" data-stagger>
-      <article data-paket="starter" class="plan framed" data-reveal>
-        <h3 data-i18n="plans.n1">Website at a fixed price</h3>
-        <p class="plan__sub" data-i18n="plans.s1">Get found and get enquiries</p>
-        <p class="plan__price"><span data-i18n="plans.p1">€499</span><small data-i18n="plans.priceNote">one-off</small></p>
-        <p class="plan__month" data-i18n="plans.m1">+ €39 care per month — optional</p>
-        <ul data-i18n-list="plans.f1">
-          <li class="is-lead">Included:</li>
-          <li>A site of your own, up to 5 pages</li>
-          <li>Perfect on phone, tablet and desktop</li>
-          <li>Contact form and Google Maps</li>
-          <li>SSL certificate and setup</li>
-          <li>SEO groundwork so you get found</li>
-          <li>1 email address at your own domain</li>
-        </ul>
-        <a class="btn" href="?paket=starter#contact" data-i18n="plans.cta">Request this package</a>
-      </article>
+         Eine Seite ganz ohne Zahl laesst den Leser das Schlimmste annehmen —
+         das war das eine, was die Festpreis-Karte konnte. Vier Beispiele
+         koennen es besser: Sie geben einen Anker, ohne jemanden in ein Paket
+         zu stecken.
 
-    </div>
+         Die Zahlen kommen aus derselben Tabelle wie das Angebot, nachgeladen
+         von preise-live.js ueber data-fall. Was hier im HTML steht, ist der
+         Rueckfall, falls die Verwaltung nicht antwortet — richtig, solange
+         niemand die Preise dreht, und besser als eine leere Stelle.
+         ==================================================================== -->
+    <div class="orient" data-reveal>
+      <h3 class="orient__head" data-i18n="weg.faelleHead">So you have a figure in mind</h3>
+      <p class="orient__lead" data-i18n="weg.faelleLead">Four cases that reach me often, with what they actually cost. Not packages — examples. Yours will land somewhere among them.</p>
+      <ul class="orient__liste" data-stagger>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f1n">A single page</span>
+          <span class="ofall__preis" data-fall="f1" data-i18n="preise.f1p">€325 – 400</span>
+        </li>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f2n">Up to five pages</span>
+          <span class="ofall__preis" data-fall="f2" data-i18n="preise.f2p">€525 – 650</span>
+        </li>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f3n">Five pages in three languages</span>
+          <span class="ofall__preis" data-fall="f3" data-i18n="preise.f3p">€800 – 1,000</span>
+        </li>
+        <li class="ofall" data-reveal>
+          <span class="ofall__was" data-i18n="preise.f4n">Online shop</span>
+          <span class="ofall__preis" data-fall="f4" data-i18n="preise.f4p">€1,200 – 1,550</span>
+        </li>
+      </ul>
+      <p class="orient__note" data-i18n="weg.faelleNote">These are the same items I use to work out your quote. There is nothing underneath them.</p>
     </div>
 
-    <!-- Betreuung: ein eigener Vertrag, deshalb ein eigener Block. Frueher hing
-         sie als Zusatzzeile an der Paketkarte — dann liest sie sich wie ein
-         Aufschlag, den man nicht abwaehlen kann. -->
+    <!-- ====================================================================
+         Die zwei Monatsvertraege nebeneinander.
+
+         Betreuung und Hosting sind eigene Vertraege — deshalb je ein eigener
+         Block mit eigener Ueberschrift. Untereinander sahen sie allerdings
+         beide aus wie ein Dreispaltenraster, aus dem zwei Karten gefallen
+         sind: Das .plans-Raster ist fuer drei gebaut, und seit die
+         Festpreis-Karte weg ist, steht in jedem nur noch eine.
+
+         Nebeneinander stimmt es wieder — und es stimmt auch inhaltlich: Es
+         sind die beiden Dinge, die man hier monatlich und unabhaengig von
+         einer Website abschliessen kann.
+         ==================================================================== -->
+    <div class="monatlich">
     <div class="care" id="betreuung">
       <h3 class="care__head" data-i18n="plans.careHead">Monthly care</h3>
       <p class="care__lead" data-i18n="plans.careLead">A separate contract, not tied to building the site: take it alongside, or on its own for a site you already have. Twelve-month minimum term, then cancellable at any month’s end. If you need more change time per month, just ask — there are two larger tiers.</p>
@@ -832,6 +864,7 @@
         </article>
       </div>
     </div>
+    </div>
 
 
     <p class="plans__note" data-i18n="plans.note">The prices shown are what you pay.</p>
@@ -839,9 +872,10 @@
 </section>
 
 <!-- ===================== Individuelle Projekte =====================
-     Bewusst KEINE vierte Preiskarte. Was keinen Preis hat, darf nicht neben
-     Preisen stehen: der Leser vergleicht sonst eine Leerstelle mit 499 Euro
-     und liest sie als "teuer". Eigener Abschnitt, eigene Form, eigener Ton.
+     Bewusst KEINE fuenfte Zahl neben den vier Beispielen. Was keinen Preis
+     hat, darf nicht neben Preisen stehen: der Leser vergleicht sonst eine
+     Leerstelle mit 1.350 Euro und liest sie als "unbezahlbar". Eigener
+     Abschnitt, eigene Form, eigener Ton.
      ============================================================== -->
 <section class="section masz" id="individuell">
   <div class="wrap">
@@ -1108,7 +1142,7 @@
           <span data-i18n="faq.q1">What does a custom website cost?</span>
           <span class="faq__sign" aria-hidden="true"></span>
         </summary>
-        <p data-i18n="faq.a1">I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds. If you want to start right away, there is a fixed-price entry from €499. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote.</p>
+        <p data-i18n="faq.a1">I do not work with fixed packages: the price comes from what you actually need — number of pages, languages, features, and how much material is already there. Eight questions on the site tell you the ballpark in about ninety seconds; it starts at €325. The monthly care plan from €39 is optional and a separate contract. The quote is free and without obligation; once you accept it, that figure is the final price — nothing appears on the invoice that was not in the quote.</p>
       </details>
       <details class="faq__item" data-reveal>
         <summary>
@@ -1284,7 +1318,7 @@
   </div>
 </footer>
 
-<script src="../assets/js/i18n-en.js?v=6ede659f" defer></script>
+<script src="../assets/js/i18n-en.js?v=80cda2f9" defer></script>
 <script src="../assets/js/app.js?v=f8ecc8c9" defer></script>
 <script src="../assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="../assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1293,7 +1327,7 @@
 <!-- Zehn Dateien, die nur die Startseite braucht, in einer: assets/js/start.js.
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      rail, vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
-<script src="../assets/js/start.js?v=3ddfead0" defer></script>
+<script src="../assets/js/start.js?v=c3d6b576" defer></script>
 <script type="module" src="../assets/js/world/site-world.js?v=596706cc"></script>
 
 <!-- Besucherzählung: läuft ausschließlich auf dem eigenen Webspace.

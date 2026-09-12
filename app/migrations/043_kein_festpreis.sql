@@ -1,0 +1,38 @@
+-- ===========================================================================
+-- 043_kein_festpreis.sql — Der Preis entsteht aus dem Umfang. Immer.
+--
+-- WARUM DAS FESTPREIS-PAKET VON DER SEITE GEHT
+--
+-- Es war das letzte Paket auf der Startseite: eine Karte mit 499 Euro neben
+-- einem Weg, der den Preis aus dem tatsaechlichen Umfang rechnet. Zwei
+-- Antworten auf dieselbe Frage, und die feste Zahl gewinnt jedes Mal — sie
+-- ist konkret, die Spanne ist es nicht. Wer 275 Euro gebraucht haette, hat
+-- 499 gelesen und ist gegangen; wer 900 gebraucht haette, hat 499 gelesen und
+-- sich hinterher betrogen gefuehlt.
+--
+-- Seit Migration 022 gibt es den Baukasten, seit 024/025 den Bedarfsweg und
+-- seit 3c3c0f0 das Angebot. Der Umweg ueber ein Paket wird nicht mehr
+-- gebraucht.
+--
+-- WARUM oeffentlich = 0 UND NICHT GELOESCHT
+--
+-- Dieselbe Regel wie bei business, premium und den beiden groesseren
+-- Betreuungsstufen: An dem Paket haengen Bestellungen, Projekte und Belege.
+-- Eine geloeschte Zeile macht aus einem bezahlten Auftrag rueckwirkend einen
+-- Auftrag ueber nichts.
+--
+-- oeffentlich = 0 genuegt auch technisch: buchen.php verlangt
+-- "active = 1 AND oeffentlich = 1 AND direktkauf = 1", pakete-daten.php
+-- liefert nur oeffentliche Zeilen aus. Damit ist der Direktkauf zu und die
+-- Karte kaeme selbst dann nicht zurueck, wenn jemand das HTML wiederherstellt.
+--
+-- WAS DAMIT KEIN WEG MEHR IST
+--
+-- Eine Website laesst sich ab jetzt nicht mehr in einem Zug selbst kaufen.
+-- Der Weg fuehrt ueber Konfigurator und Angebot — bewusst, denn genau dort
+-- entsteht der Preis. Direkt kaufbar bleiben die monatlichen Vertraege:
+-- Betreuung und Domain & Hosting.
+-- ===========================================================================
+
+UPDATE packages SET oeffentlich = 0
+ WHERE slug = 'starter' AND art = 'website';

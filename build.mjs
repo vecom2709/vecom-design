@@ -37,8 +37,13 @@ const BASE = 'https://vecom-design.it';
    Andere Seiten bekommen kein Buendel: Sie laden ein bis drei Skripte, da
    waere es Aufwand ohne Gewinn.
    ========================================================================== */
+/* preise-live steht neben pakete-live, weil es dieselbe Sache tut: Zahlen aus
+   der Verwaltung holen. Seit dem 12.09.2026 stehen auf der Startseite vier
+   Beispielpreise — wuerden sie fest im HTML stehen, waeren sie beim ersten
+   Preisschritt falsch, und zwar an einer Stelle, die niemand nachrechnet. Die
+   Datei holt nur die vier Werte, wenn kein Listenblatt da ist. */
 const BUENDEL_TEILE = [
-  'screens', 'schau', 'polish', 'pakete-live', 'stimmen-live',
+  'screens', 'schau', 'polish', 'pakete-live', 'preise-live', 'stimmen-live',
   'rail', 'vids', 'depth', 'sig', 'social',
 ];
 const BUENDEL_ZIEL = 'assets/js/start.js';

@@ -2785,3 +2785,102 @@ veröffentlicht wird auf Netlify (wie Cavaleri).
 DIE EINE REGEL: Eintragen schaltet nicht frei. „freigeben" ist der einzige
 Schritt hier draußen, der beim Kunden ankommt (E-Mail + offener Entwurf) — und
 verlangt deshalb ein ausdrückliches bestaetigt=ja.
+
+### Kein Festpreis-Paket mehr — der Preisbereich neu geordnet (12.09.2026)
+
+Uwe: „mache es so das 499 paket nicht mehr da ist, denn grundsätzlich wird der
+Preis anhand des Umfangs schon berechnet. Mache die Anordnung insgesamt
+hübscher, so dass der Kunde eher kauft."
+
+Die 499-Euro-Karte war das letzte Paket auf der Startseite und stand direkt
+neben dem Weg, der den Preis aus dem tatsächlichen Umfang rechnet. Zwei
+Antworten auf dieselbe Frage — und die feste Zahl gewinnt jedes Mal, weil sie
+konkret ist und eine Spanne es nicht ist. Wer 275 gebraucht hätte, las 499 und
+ging; wer 900 gebraucht hätte, las 499 und fühlte sich hinterher getäuscht.
+
+- index.html: `.einstieg` samt Karte und Einmalig/12-Monate-Umschalter raus.
+  Aus den strukturierten Daten das Offer mit `price: 499`; dafür steht die
+  Betreuung jetzt dort (39 €, monatlich). FAQ-Antwort und FAQ-Schema nennen
+  statt des Einstiegspakets den Anfangspunkt ab 275 € — dieselbe Zahl wie
+  `minPrice` im verbliebenen Offer, damit es nur eine Stelle zum Nachziehen
+  gibt.
+- Der Bedarfsweg ist jetzt der Hauptakt: zweispaltig ab 920px, links Grund und
+  Knopf, rechts drei nummerierte Schritte („was passiert nach dem Klick").
+  Getrennt durch eine Linie statt durch eine zweite Karte — zwei Karten
+  konkurrieren, eine Karte mit zwei Hälften führt.
+- Neu darunter: vier Beispielpreise (`.orient`). Das eine, was die Preiskarte
+  konnte, war eine Zahl nennen; ohne jede Zahl nimmt der Leser das Schlimmste
+  an. Vier Beispiele können das besser, ohne jemanden in ein Paket zu stecken.
+  Die Zahlen kommen über `data-fall` aus `preise-daten.php` — dieselbe Quelle
+  wie das Angebot. Dafür steht `preise-live.js` jetzt im Startseiten-Bündel.
+- `.monatlich`: Betreuung und Hosting stehen nebeneinander. Solange die
+  Festpreis-Karte da war, fiel nicht auf, dass beide je allein in einem
+  Dreispaltenraster standen — nach ihrem Wegfall waren es zweimal zwei Drittel
+  Leere untereinander.
+- 043_kein_festpreis.sql: `starter` auf `oeffentlich = 0`. Damit ist der
+  Direktkauf zu (`buchen.php` verlangt `oeffentlich = 1`) und die Karte käme
+  selbst dann nicht zurück, wenn jemand das HTML wiederherstellt. Nicht
+  gelöscht: an dem Paket hängen Bestellungen und Belege.
+- Beim Umbau gefunden: `.bedarfsweg` und `.care` benutzten `--blau`, `--cyan`,
+  `--dim`, `--leise`, `--linie` und `--r-lg` — Token, die es im System gar
+  nicht gibt. Beide Blöcke liefen seit jeher auf ihren Rückfallwerten und waren
+  dadurch runder, anders blau und anders grau als alles daneben. Jetzt stehen
+  die echten Namen da.
+
+WAS ES NICHT MEHR GIBT: Eine Website lässt sich nicht mehr in einem Zug selbst
+kaufen. Der Weg führt über Konfigurator und Angebot — bewusst, denn genau dort
+entsteht der Preis. Direkt kaufbar bleiben die Monatsverträge: Betreuung und
+Domain & Hosting.
+
+Offen: `pakete.html` zeigt weiter Starter/Business/Premium mit 499/899/1.499 €.
+Die Seite ist noindex, steht nicht in der Sitemap und nichts verlinkt sie mehr
+— aber wer die Adresse kennt, liest dort drei Pakete, die es nicht gibt.
+Ebenso der Schritt „Pro Kunde entscheiden: Starter (499 €) …" im Cockpit.
+
+### Alte Paketseite weggeräumt, Preise +15 % (12.09.2026)
+
+Uwe: „ja räume weg und bei den Preise von bis setze etwas höher."
+
+**Weggeräumt.** `pakete.html` ist aus dem Repository. Weil der Deploy nur
+spiegelt (`lftp mirror --reverse`, ohne `--delete`), liegt die alte Datei
+weiter auf dem Webspace — deshalb steht die eigentliche Arbeit in der
+`.htaccess`: `/pakete.html` geht per 301 auf die Preisseite, sprachrichtig
+(`?lang=de` → `/de/preise.html`, `?lang=en` → `/en/pricing.html`, sonst
+`/prezzi.html`). 301 und nicht 404, weil die Adresse in alten Angeboten und
+E-Mails steht. Dieselbe Überlegung wie bei den `.md`-Dateien: Der Deploy lädt
+sie nicht mehr hoch, die Sperre gilt der Kopie, die schon dort liegt.
+
+Mitgegangen sind die toten Schlüssel, die nur diese Seite brauchte: `plans.n1`
+bis `i3`, `badge`, `priceNote`, `more`, `cmp*` und die ganze Gruppe `det` — in
+allen drei Sprachdateien, die jede Seite lädt. Im Cockpit stand als Schritt
+noch „Pro Kunde entscheiden: Starter (499 €), Business (899 €) oder Premium
+(1.499 €)"; das war Anweisung an sich selbst, drei Produkte zu verkaufen, die
+es nicht mehr gibt.
+
+**+15 % (044_preise_plus15.sql).** Jede Grenze auf volle fünf Euro gerundet,
+die Monatsverträge unangetastet — an einem Monatsbetrag bleibt der Blick
+hängen, und an Hosting hängen echte Fremdkosten. Die vier Beispiele:
+
+| Fall | vorher | jetzt |
+|---|---|---|
+| eine Seite | 275 – 350 € | 325 – 400 € |
+| fünf Seiten | 450 – 575 € | 525 – 650 € |
+| drei Sprachen | 675 – 875 € | 800 – 1.000 € |
+| Onlineshop | 1.000 – 1.350 € | 1.200 – 1.550 € |
+
+MBclick, der einzige Mitbewerber in der Provinz mit offenen Preisen, beginnt
+bei 690 (Vitrinenseite) und 1.590 (Shop). Vecom liegt danach weiter knapp
+darunter — das Argument „offene Preise, und günstiger als der Einzige, der
+seine zeigt" bleibt stehen.
+
+Die Einführungsphase (`Einfuehrung::anwenden`, +20 % nach den ersten zehn
+abgeschlossenen Kunden) ist unberührt: Ihre Sperre wird nicht gesetzt. Diese
+Erhöhung verschiebt den Ausgangspunkt, sie nimmt den späteren Schritt nicht
+vorweg.
+
+NACHGEZOGEN, WEIL SONST ZWEI ZAHLEN IM UMLAUF WÄREN: die Rückfallwerte im
+Listenblatt der Preisseite, `preise.f1p` bis `f4p`, die Kurzantwort und die
+Meta-Beschreibung der Preisseite („fünf Seiten 525–650 €"), die FAQ-Antwort
+und das FAQ-Schema („ab 325 €") sowie `minPrice` in den strukturierten Daten.
+Die Live-Zahlen kommen aus der Datenbank; diese hier sind der Rückfall, wenn
+`preise-daten.php` nicht antwortet — sie müssen bei jeder Preisrunde mit.
