@@ -136,8 +136,10 @@ jobs:
               --exclude '^cockpit/\.htaccess$' \
               --exclude '^build\.mjs$' \
               --exclude '^app/pruefung/kette\.php$' \
+              --exclude '^_to_delete/' \
               --exclude '\.md$' \
               ./ $DIR;
+            rm -rf $DIR/_to_delete;
             rm -f $DIR/video/auftakt.mp4;
             rm -f $DIR/video/auftakt.webm;
             rm -f $DIR/assets/css/theme.css;

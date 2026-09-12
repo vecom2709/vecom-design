@@ -3003,3 +3003,47 @@ solange in `settings.werkstatt_standard` nichts steht. Wer einmal eine eigene
 Fassung gespeichert hat, bekommt weiter seine — eine geänderte Vorgabe
 erreicht ihn nie. Deshalb ist der Text zusätzlich zum Einfügen in die
 Verwaltung herausgegeben worden (Vecom-Standard → Hausregeln).
+
+### Die Abrisskiste lag offen im Netz (12.09.2026)
+
+Uwe: „gh repo clone vecom2709/vecom-design" — und beim Klonen fiel auf, dass
+`_to_delete/` im Repository liegt, obwohl `cc760e5` es genau dort
+herausgenommen haben wollte.
+
+**Warum die Ignorierregel nichts genützt hat.** `.gitignore` wirkt nur auf
+Dateien, die git noch nicht kennt. `_to_delete/integrationen.php.alt` und
+`_to_delete/werkstatt.patch` waren zum Zeitpunkt von `cc760e5` bereits
+getrackt — die Zeile wurde eingetragen, die beiden Dateien blieben
+versioniert, und niemandem fiel etwas auf, weil `git status` schwieg.
+
+**Sie waren live lesbar.** Nachgemessen, nicht vermutet:
+`https://vecom-design.it/_to_delete/werkstatt.patch` lieferte den kompletten
+Werkstatt-Umbau als Diff aus, `integrationen.php.alt` den Quelltext der
+Verwaltungsseite — beide als Klartext, weil `.patch` und `.alt` kein PHP sind
+und Apache sie nicht ausführt. Keine Zugangsdaten darin, nur Platzhalter
+(`sk_test_…`, `whsec_…`); wohl aber die Bauart der Verwaltung: Tat-Namen wie
+`stripe_speichern`, das CSRF-Feld, die Formularstruktur. Das ist der Stoff,
+mit dem ein Angriff anfängt, nicht der, mit dem er endet.
+
+**Drei Stellen, weil eine nicht reicht.** `git rm --cached` nimmt die Dateien
+aus der Versionsverwaltung (auf der Platte bleiben sie). Die Abrissliste in
+`ftp-deploy.yml` bekommt `rm -rf $DIR/_to_delete` — der Deploy löscht nie von
+selbst, und die alten Kopien liegen bereits oben. Die `.htaccess` sperrt
+zusätzlich, weil zwischen Commit und nächstem Deploy Zeit liegt: einmal der
+Ordner (`RewriteRule ^_to_delete/ - [R=404,L]`), einmal die Endungen
+`.alt .bak .orig .patch .diff .save .swp .sql .log` — die fangen auch die
+nächste Datei dieser Art, die irgendwo anders liegt.
+
+Mit einem echten Apache 2.4.58 geprüft, nicht mit `php -S`: die beiden
+Dateien 403, `/_to_delete/` 404, eine `.bak`-Gegenprobe außerhalb des Ordners
+403, `/index.html` und `/e/ANNA3CU` weiter 200.
+
+WICHTIG UND LEICHT ZU ÜBERSEHEN: Dass die beiden Dateien 403 melden und nicht
+404, ist die bekannte `<FilesMatch>`-Falle aus den Hausregeln — Apache wendet
+den Block nach der RewriteRule an und gewinnt. Hier stört das nicht, beides
+ist zu. Wer aber je einen 404 erzwingen will, kommt mit einer RewriteRule
+gegen einen `<FilesMatch>`-Block nicht an.
+
+NEBENBEI: `git rm --cached` allein hätte nichts gebracht. Ohne den Eintrag in
+der Abrissliste wären die Dateien für immer auf dem Webspace geblieben — das
+ist genau die Falle, für die die Liste am selben Tag gebaut wurde.

@@ -44,6 +44,37 @@ RewriteRule ^pakete\.html$ /prezzi.html? [R=301,L]
   Require all denied
 </FilesMatch>
 
+# Die Abrisskiste und alles, was nach Werkstattrest aussieht.
+#
+# _to_delete/ steht seit cc760e5 in der .gitignore — aber die beiden Dateien
+# darin waren zu dem Zeitpunkt schon getrackt, und eine Ignorierregel greift
+# fuer bereits getrackte Dateien nicht. Sie wurden deshalb weiter versioniert
+# und bei jedem Deploy mitgeliefert. Am 12.09.2026 nachgemessen: beide waren
+# unter /_to_delete/ oeffentlich lesbar und wurden als Klartext ausgeliefert,
+# weil .patch und .alt kein PHP sind und Apache sie nicht ausfuehrt.
+# werkstatt.patch war der komplette Werkstatt-Umbau als Diff,
+# integrationen.php.alt der Quelltext der Verwaltungsseite. Keine Zugangsdaten
+# darin (nur Platzhalter wie sk_test_…), aber die Bauart der Verwaltung samt
+# Tat-Namen und Formularfeldern — genau das, womit ein Angriff anfaengt.
+#
+# Zwei Regeln, weil eine allein zu wenig faengt: Die Endungen halten jede
+# weitere Datei dieser Art auf, auch eine, die morgen irgendwo anders liegt;
+# der Ordner haelt alles auf, was kuenftig darin landet. Aus dem Repository
+# sind die Dateien seit dem 12.09.2026 raus, vom Webspace muessen sie von
+# Hand weg — der Deploy loescht nie.
+#
+# Mit einem echten Apache 2.4.58 gemessen, nicht mit "php -S":
+# /_to_delete/werkstatt.patch 403, /_to_delete/integrationen.php.alt 403,
+# /_to_delete/ 404, /tmpprobe/x.bak 403 (Gegenprobe ausserhalb des Ordners),
+# /index.html 200 und /e/ANNA3CU 200 — die bestehenden Regeln bleiben heil.
+# Dass die beiden Dateien 403 und nicht 404 melden, ist die bekannte Falle:
+# <FilesMatch> wird nach allem davor angewandt und gewinnt gegen die
+# RewriteRule. Gewollt ist beides — zu sein hat die Datei nichts.
+<FilesMatch "\.(alt|bak|orig|patch|diff|save|swp|sql|log)$">
+  Require all denied
+</FilesMatch>
+RewriteRule ^_to_delete/ - [R=404,L]
+
 # --------------------------------------------------------------------------
 # Zwischenspeicher im Browser.
 #
