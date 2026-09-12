@@ -42,3 +42,9 @@ video/ton/
 
 # Zwischenspeicher (RDAP-Serverliste). Entsteht zur Laufzeit, gehoert nicht ins Repository.
 app/zwischenspeicher/
+
+# Die Ablage fuer Dateien, die weg sollen. In den verbundenen Ordnern darf
+# Claude nichts loeschen -- was wegsoll, wandert deshalb hierher und wird von
+# Uwe geloescht. Ein "git add -A" hat diesen Ordner schon einmal mitgenommen;
+# seitdem steht er hier.
+_to_delete/
