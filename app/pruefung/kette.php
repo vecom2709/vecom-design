@@ -5602,6 +5602,185 @@ Modus::setzen(true);
 Modus::vergessen();
 
 /* ============================================================================
+   54. Die Sprache kostet je Seite
+
+   WARUM DIESER ABSCHNITT EXISTIERT
+
+   Uwe, 13.09.2026: „Wenn eine Seite 325-400 kostet, können 5 Seiten mit 3
+   Sprachen keine 800-1000 kosten." Dahinter steckte ein Rechenfehler, der
+   nirgends auffiel, weil jede einzelne Zahl für sich plausibel aussah:
+   `sprache` war eine Pauschale, unabhängig von der Seitenzahl. Auf die
+   übersetzte Seite gerechnet kostete dieselbe Arbeit 140 Euro beim Einseiter
+   und 7 Euro bei fünfzehn Seiten.
+
+   Solche Fehler kommen wieder — nicht als derselbe Fehler, sondern als der
+   nächste Baustein, der pauschal gerechnet wird, obwohl seine Arbeit mit der
+   Seitenzahl wächst. Deshalb prüft dieser Abschnitt nicht die Zahlen, sondern
+   die Regel: Mehr Seiten müssen mehr Übersetzung kosten, und was auf der
+   Website steht, muss aus derselben Rechnung kommen wie das Angebot.
+   ============================================================================ */
+abschnitt('54. Die Sprache kostet je Seite');
+
+require_once dirname(__DIR__) . '/src/Baukasten.php';
+$spKatalog = Baukasten::katalog();
+
+/* ---------- Die Regel selbst --------------------------------------------- */
+$spRechne = static function (string $umfang, int $sprachen) use ($spKatalog): array {
+    $r = Baukasten::rechnen(['zweck' => ['zeigen'], 'umfang' => $umfang,
+        'sprachen' => $sprachen, 'material' => ['texte', 'fotos', 'logo'],
+        'bestand' => 'neu', 'zeit' => 'offen', 'betreuung' => 'nein'], $spKatalog);
+    $menge = 0;
+    foreach ($r['positionen'] as $p) {
+        if ($p['slug'] === 'sprache') { $menge = (int) $p['menge']; }
+    }
+    return [$menge, (int) $r['von_cents'], (int) $r['bis_cents']];
+};
+
+/* Eine Seite, eine Sprache: gar keine Übersetzung. */
+[$spM1, , ] = $spRechne('eine', 1);
+pruefe('ohne zweite Sprache wird nichts übersetzt', $spM1 === 0, (string) $spM1);
+
+/* Die Menge ist Seitenzahl mal zusätzliche Sprachen — das ist die ganze Regel. */
+foreach ([['eine', 1, 2, 1], ['eine', 1, 3, 2], ['wenige', 5, 2, 5],
+          ['wenige', 5, 3, 10], ['mehrere', 9, 3, 18], ['viele', 15, 3, 30]] as
+         [$spU, $spSeiten, $spSpr, $spSoll]) {
+    [$spIst, , ] = $spRechne($spU, $spSpr);
+    pruefe("$spSeiten Seiten in $spSpr Sprachen sind $spSoll übersetzte Seiten",
+        $spIst === $spSoll, (string) $spIst);
+}
+
+/* Und die Folge davon, in Geld: Wer mehr Seiten übersetzen lässt, zahlt mehr.
+   Vor Migration 047 war dieser Aufschlag bei einer Seite und bei fünfzehn
+   auf den Cent gleich. */
+$spAufschlag = static function (string $umfang) use ($spRechne): int {
+    [, $spOhne, ] = $spRechne($umfang, 1);
+    [, $spMit,  ] = $spRechne($umfang, 3);
+    return $spMit - $spOhne;
+};
+$spA1 = $spAufschlag('eine');
+$spA5 = $spAufschlag('wenige');
+$spA15 = $spAufschlag('viele');
+pruefe('fünf Seiten zu übersetzen kostet mehr als eine', $spA5 > $spA1,
+    ($spA1 / 100) . ' € gegen ' . ($spA5 / 100) . ' €');
+pruefe('fünfzehn mehr als fünf', $spA15 > $spA5, ($spA15 / 100) . ' €');
+pruefe('und zwar im Verhältnis der Seitenzahl', $spA15 === $spA1 * 15,
+    ($spA1 / 100) . ' × 15 = ' . ($spA1 * 15 / 100) . ' €, gerechnet ' . ($spA15 / 100) . ' €');
+
+/* Der Fall, der Uwe aufgefallen ist: Er muss jetzt über dem Fünfseiter in
+   einer Sprache liegen, und zwar deutlich. */
+[, $spF2von, ] = $spRechne('wenige', 1);
+[, $spF3von, ] = $spRechne('wenige', 3);
+pruefe('fünf Seiten in drei Sprachen kosten mehr als fünf Seiten in einer',
+    $spF3von > $spF2von, ($spF2von / 100) . ' € gegen ' . ($spF3von / 100) . ' €');
+
+/* Die Untergrenze, an der der Fehler entstand: Keine Seitenfassung darf für
+   weniger als den halben Seitenpreis über den Tisch gehen. Bei fünfzehn
+   Seiten in drei Sprachen waren es zuletzt sieben Euro. */
+$spJeFassung = (int) round($spA15 / 30);
+pruefe('auch im größten Fall bleibt je übersetzter Seite ein Preis übrig',
+    $spJeFassung >= (int) ($spKatalog['seite']['preis_cents'] / 2),
+    ($spJeFassung / 100) . ' € je Fassung');
+
+/* ---------- Preisseite und Angebot rechnen dasselbe ----------------------- */
+/* preise-daten.php führt die vier Beispiele in einer eigenen Liste. Läuft sie
+   der Regel in rechnen() hinterher, steht auf der Website eine Zahl, die das
+   Angebot danach nie bestätigt — und zwar genau bei dem Kunden, der beides
+   gelesen hat. */
+$spDaten = (string) @file_get_contents(dirname(dirname(__DIR__)) . '/preise-daten.php');
+pruefe('preise-daten.php rechnet f3 mit zehn übersetzten Seiten',
+    str_contains($spDaten, "['sprache', 10]"));
+pruefe('und gibt die Einheit mit heraus', str_contains($spDaten, "'einheit'"));
+
+/* ---------- Was im HTML steht, wenn die Verwaltung schweigt --------------- */
+/* Der Rückfall ist kein Schmuck: Antwortet preise-daten.php nicht, ist er die
+   einzige Zahl auf der Seite. Stimmt er nicht mit der Rechnung überein, zeigt
+   die Website bei jeder Störung einen falschen Preis — und Störungen fallen
+   nicht auf, weil die Seite dann trotzdem vollständig aussieht. */
+$spStueck = static function (array $teile) use ($spKatalog): array {
+    $von = 0; $bis = 0;
+    foreach ($teile as [$spSlug, $spMenge]) {
+        $b = $spKatalog[$spSlug] ?? null;
+        if (!$b) { return [0, 0]; }
+        $von += (int) $b['preis_cents'] * $spMenge;
+        $bis += ((int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']) * $spMenge;
+    }
+    $g = Baukasten::spanne($von, $bis);
+    return [(int) $g['von_cents'] / 100, (int) $g['bis_cents'] / 100];
+};
+$spRezepte = [
+    'f1' => [['basis', 1]],
+    'f2' => [['basis', 1], ['seite', 4]],
+    'f3' => [['basis', 1], ['seite', 4], ['sprache', 10]],
+    'f4' => [['basis', 1], ['seite', 4], ['shop', 1]],
+];
+$spWurzel = dirname(dirname(__DIR__));
+/* Zwei Schreibweisen, weil die englische Seite das Zeichen vorn und den
+   Tausendertrenner als Komma setzt. Beide entstehen in preise-daten.php aus
+   derselben Zahl — hier steht der Erwartungswert, nicht die Formatierung. */
+$spSchreib = static function (int $von, int $bis, bool $englisch): string {
+    return $englisch
+        ? '€' . number_format($von, 0, '.', ',') . ' – ' . number_format($bis, 0, '.', ',')
+        : number_format($von, 0, ',', '.') . ' – ' . number_format($bis, 0, ',', '.') . ' €';
+};
+foreach (['index.html' => false, 'prezzi.html' => false,
+          'de/index.html' => false, 'de/preise.html' => false,
+          'en/index.html' => true, 'en/pricing.html' => true] as $spDatei => $spEng) {
+    $spHtml = (string) @file_get_contents($spWurzel . '/' . $spDatei);
+    $spGut = $spHtml !== '';
+    $spFehlt = '';
+    foreach ($spRezepte as $spName => $spTeile) {
+        [$spVon, $spBis] = $spStueck($spTeile);
+        $spText = $spSchreib((int) $spVon, (int) $spBis, $spEng);
+        if (!str_contains($spHtml, '"preise.' . $spName . 'p">' . $spText . '<')) {
+            $spGut = false; $spFehlt .= ' ' . $spName . '=' . $spText;
+        }
+    }
+    pruefe("der Rückfall in $spDatei trägt die gerechneten Spannen", $spGut, trim($spFehlt));
+}
+
+/* ---------- Und die Beschriftung, wegen der es auffiel ------------------- */
+/* „Eine einzige Seite — 325 bis 400 Euro" las sich wie ein Seitenpreis. Es ist
+   der Preis einer fertigen Website, die aus einer Seite besteht; die nächste
+   Seite kostet ein Fünftel davon. Wer das nicht dazuschreibt, lädt den Leser
+   ein, 5 × 400 zu rechnen und die Liste für falsch zu halten. */
+foreach (['index.html' => 'Sito completo, una pagina',
+          'de/index.html' => 'Komplette Website, eine Seite',
+          'en/index.html' => 'A complete one-page site',
+          'prezzi.html' => 'Sito completo, una pagina',
+          'de/preise.html' => 'Komplette Website, eine Seite',
+          'en/pricing.html' => 'A complete one-page site'] as $spDatei => $spWort) {
+    $spHtml = (string) @file_get_contents($spWurzel . '/' . $spDatei);
+    pruefe("in $spDatei heisst der erste Fall nicht mehr nur „eine Seite\"",
+        str_contains($spHtml, $spWort));
+}
+foreach (['de', 'it', 'en'] as $spL) {
+    $spJs = (string) @file_get_contents($spWurzel . '/assets/js/i18n-' . $spL . '.js');
+    pruefe("i18n-$spL kennt das Wort für „je Seite\"", str_contains($spJs, 'bauJeSeite:'));
+}
+$spLive = (string) @file_get_contents($spWurzel . '/assets/js/preise-live.js');
+pruefe('die Preisseite wählt das Einheitswort am Baustein, nicht am Slug',
+    str_contains($spLive, "b.einheit === 'seite'") && str_contains($spLive, 'bauJeSeite'));
+
+/* Auch drinnen, in der Verwaltung: Die Liste der Preisbausteine schrieb hinter
+   jeden Baustein mit je_einheit „je Stück". Uwe liest diese Liste, wenn er eine
+   Preisrunde macht — eine Marke, die dort das Falsche behauptet, wird geglaubt
+   und in das nächste Angebot übernommen. */
+$spBaukastenAnsicht = (string) @file_get_contents(dirname(__DIR__) . '/views/baukasten.php');
+pruefe('die Verwaltung schreibt „je Seite", wo je Seite gerechnet wird',
+    str_contains($spBaukastenAnsicht, "=== 'seite' ? 'Seite' : 'Stück'")
+    && !str_contains($spBaukastenAnsicht, '<span class="marke2">je Stück</span>'));
+
+/* Die Erklärzeile unter den vier Fällen: Ohne sie bleibt die Frage offen,
+   warum fünf Seiten nicht das Fünffache kosten. */
+foreach (['index.html', 'de/index.html', 'en/index.html'] as $spDatei) {
+    $spHtml = (string) @file_get_contents($spWurzel . '/' . $spDatei);
+    preg_match('~data-i18n="weg\.faelleNote">(.*?)<~s', $spHtml, $spT);
+    pruefe("$spDatei erklärt, was im ersten Preis steckt",
+        isset($spT[1]) && mb_strlen(trim($spT[1])) > 120,
+        isset($spT[1]) ? (string) mb_strlen(trim($spT[1])) . ' Zeichen' : 'fehlt');
+}
+
+/* ============================================================================
    Startdaten tragen den heutigen Stand
 
    WARUM DIESER ABSCHNITT EXISTIERT
@@ -5632,21 +5811,35 @@ pruefe('der Baukasten ist gesät', count($sdKatalog) >= 12, (string) count($sdKa
    Eine Prüfung, die ihren Sollwert aus derselben Quelle liest wie der Code,
    prüft nur, dass Lesen funktioniert. */
 $sdSoll = [
-    'basis' => [34500, 40000], 'seite' => [4500, 6000], 'sprache' => [14000, 18000],
+    'basis' => [34500, 40000], 'seite' => [6500, 8500], 'sprache' => [4000, 5500],
     'shop'  => [68000, 91000],
 ];
 foreach ($sdSoll as $sdSlug => [$sdVon, $sdBis]) {
     $sdIst = $sdKatalog[$sdSlug] ?? null;
-    pruefe("Startpreis $sdSlug ist auf dem Stand von Migration 044",
+    pruefe("Startpreis $sdSlug ist auf dem Stand der letzten Preisrunde",
         $sdIst && (int) $sdIst['preis_cents'] === $sdVon && (int) $sdIst['preis_bis_cents'] === $sdBis,
         $sdIst ? ((int) $sdIst['preis_cents'] . '-' . (int) $sdIst['preis_bis_cents']) : 'fehlt');
+}
+
+/* Die Einheit gehört zum Preis: 40 Euro heisst etwas anderes je Stück als je
+   Seite. Seit Migration 047 steht sie am Baustein, damit die Preisseite nicht
+   raten muss — und damit eine neue Einrichtung sie mitbekommt. */
+foreach (['seite' => 'stueck', 'sprache' => 'seite'] as $sdSlug => $sdEinheit) {
+    pruefe("die Einheit von $sdSlug wird mitgesät",
+        (string) ($sdKatalog[$sdSlug]['einheit'] ?? '') === $sdEinheit,
+        (string) ($sdKatalog[$sdSlug]['einheit'] ?? 'fehlt'));
 }
 
 /* Und die vier Beispiele der Preisseite müssen aus diesen Zahlen herauskommen —
    sonst steht auf der Seite eine andere Zahl als im Angebot. */
 $sdFaelle = [
     'f1' => [['basis', 1], 32500, 40000],
-    'f2' => [['basis', 1, 'seite', 4], 52500, 65000],
+    'f2' => [['basis', 1, 'seite', 4], 60000, 75000],
+    /* Fünf Seiten in drei Sprachen: zwei zusätzliche Sprachen mal fünf Seiten.
+       Stünde hier 2 statt 10, liefe die Preisseite wieder gegen das Angebot —
+       genau der Fehler, den Migration 047 behebt. */
+    'f3' => [['basis', 1, 'seite', 4, 'sprache', 10], 100000, 130000],
+    'f4' => [['basis', 1, 'seite', 4, 'shop', 1], 125000, 165000],
 ];
 $sdSpanne = static function (array $teile) use ($sdKatalog): array {
     $von = 0; $bis = 0;

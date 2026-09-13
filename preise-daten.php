@@ -96,6 +96,11 @@ foreach ($katalog as $slug => $b) {
         'preis'     => $nurAnfrage ? '' : $spanneText($von, $bis),
         'monatlich' => (int) $b['monatlich'] === 1,
         'je'        => (int) $b['je_einheit'] === 1,
+        /* Woran sich die Menge bemisst: 'stueck' oder 'seite'. Ohne das
+           stuende hinter der Sprache „je Stueck" — richtig fuer eine weitere
+           Seite, falsch fuer eine Sprache, die je Seite gerechnet wird, und
+           falsch genau dort, wo der Kunde nachrechnet. */
+        'einheit'   => (string) ($b['einheit'] ?? 'stueck'),
         'anfrage'   => $nurAnfrage,
     ];
 }
@@ -124,7 +129,12 @@ $faelle = [];
 $rezepte = [
     'f1' => [['basis', 1]],
     'f2' => [['basis', 1], ['seite', 4]],
-    'f3' => [['basis', 1], ['seite', 4], ['sprache', 2]],
+    /* Fuenf Seiten in drei Sprachen heisst: zwei zusaetzliche Sprachen mal
+       fuenf Seiten — zehn uebersetzte Seiten. Seit `sprache` je Seite
+       gerechnet wird (Migration 047), steht die Menge hier genauso wie in
+       Baukasten::rechnen(). Stuende hier weiter 2, zeigte die Preisseite
+       einen Preis, den das Angebot danach nie bestaetigt. */
+    'f3' => [['basis', 1], ['seite', 4], ['sprache', 10]],
     'f4' => [['basis', 1], ['seite', 4], ['shop', 1]],
 ];
 foreach ($rezepte as $schluessel => $teile) {

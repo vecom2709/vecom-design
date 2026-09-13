@@ -138,7 +138,13 @@ $zu = Baukasten::gesperrt();
           <tr>
             <td>
               <strong><?= Fmt::h(Baukasten::name($b, 'de')) ?></strong>
-              <?php if ($b['je_einheit']): ?> <span class="marke2">je Stück</span><?php endif; ?>
+              <?php /* Woran sich die Menge bemisst, steht am Baustein. Bis zum
+                       13.09.2026 stand hier für jeden Baustein mit je_einheit
+                       „je Stück" — auch für die Sprache, die seither je Seite
+                       gerechnet wird. Eine Marke, die das Falsche behauptet, ist
+                       schlimmer als keine: Sie wird geglaubt. */ ?>
+              <?php if ($b['je_einheit']): ?> <span class="marke2">je <?=
+                  (string) ($b['einheit'] ?? 'stueck') === 'seite' ? 'Seite' : 'Stück' ?></span><?php endif; ?>
               <?php if ($b['monatlich']): ?> <span class="marke2 warnung">monatlich</span><?php endif; ?>
               <?php if ($aufAnfrage): ?> <span class="marke2 warnung">nur auf Anfrage</span><?php endif; ?>
               <div style="color:var(--leise);font-size:12.5px;line-height:1.5;margin-top:3px">

@@ -344,6 +344,7 @@ final class Baukasten
                     'preis_bis_cents' => (int) ($b['preis_bis_cents'] ?? 0),
                     'monatlich'       => (int) ($b['monatlich'] ?? 0),
                     'je_einheit'      => (int) ($b['je_einheit'] ?? 0),
+                    'einheit'         => (string) ($b['einheit'] ?? 'stueck'),
                     'sortierung'      => (int) ($b['sortierung'] ?? 0),
                 ]);
             } catch (Throwable $e) { /* ein Baustein weniger ist kein Grund aufzuhoeren */ }
@@ -402,11 +403,24 @@ final class Baukasten
         $zeit     = (string) ($antworten['zeit'] ?? 'offen');
         $betreu   = (string) ($antworten['betreuung'] ?? 'nein');
 
+        /* Wie viele Seiten die Website am Ende hat. Das Grundgeruest bringt
+           die erste mit, `seite` zaehlt jede weitere — die Summe ist das, was
+           uebersetzt werden muss. */
+        $weitereSeiten = self::SEITEN[$umfang] ?? 0;
+        $seitenGesamt  = 1 + $weitereSeiten;
+
         /* slug => Menge. Menge 0 heisst: kommt nicht vor. */
         $mengen = [
             'basis'   => 1,
-            'seite'   => self::SEITEN[$umfang] ?? 0,
-            'sprache' => $sprachen - 1,
+            'seite'   => $weitereSeiten,
+            /* WARUM MAL DER SEITENZAHL
+               Bis zum 13.09.2026 stand hier schlicht $sprachen - 1: eine
+               Pauschale je zusaetzlicher Sprache, gleich hoch fuer eine Seite
+               wie fuer fuenfzehn. Auf die uebersetzte Seite gerechnet hiess
+               das 140 Euro beim Einseiter und 7 Euro bei fuenfzehn Seiten —
+               dieselbe Arbeit zu zwanzigfach verschiedenen Preisen. Uebersetzt
+               wird je Seite, also wird auch je Seite gerechnet. */
+            'sprache' => ($sprachen - 1) * $seitenGesamt,
         ];
 
         foreach (['speisekarte', 'termine', 'buchung', 'shop'] as $f) {

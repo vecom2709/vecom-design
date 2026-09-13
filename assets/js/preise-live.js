@@ -88,9 +88,14 @@
       zelle.textContent = b.preis;
       if (b.monatlich || b.je) {
         var zusatz = document.createElement('small');
-        var schluessel = b.monatlich ? 'preise.bauMonat' : 'preise.bauJe';
+        // Woran sich die Menge bemisst, steht am Baustein: 'stueck' oder
+        // 'seite'. Eine Sprache wird je Seite gerechnet — "je Stueck" waere
+        // dort die eine falsche Zahl auf einer Seite, die Nachrechnen einlaedt.
+        var name = b.monatlich ? 'bauMonat'
+                 : (b.einheit === 'seite' ? 'bauJeSeite' : 'bauJe');
+        var schluessel = 'preise.' + name;
         var woerter = (window.VECOM_I18N || {})[sprache()];
-        var wort = woerter && woerter.preise ? woerter.preise[b.monatlich ? 'bauMonat' : 'bauJe'] : '';
+        var wort = woerter && woerter.preise ? woerter.preise[name] : '';
         if (wort) {
           zusatz.textContent = wort;
           zusatz.setAttribute('data-i18n', schluessel);

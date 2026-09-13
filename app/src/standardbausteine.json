@@ -23,8 +23,8 @@
       "gruppe": "seite",
       "sortierung": 20,
       "je_einheit": 1,
-      "preis_cents": 4500,
-      "preis_bis_cents": 6000,
+      "preis_cents": 6500,
+      "preis_bis_cents": 8500,
       "name": {
         "it": "Pagina aggiuntiva",
         "de": "Weitere Seite",
@@ -34,25 +34,27 @@
         "it": "Ogni pagina oltre la prima: struttura, testo impaginato, immagini.",
         "de": "Jede Seite über die erste hinaus: Aufbau, gesetzter Text, Bilder.",
         "en": "Each page beyond the first: structure, typeset text, images."
-      }
+      },
+      "einheit": "stueck"
     },
     {
       "slug": "sprache",
       "gruppe": "sprache",
       "sortierung": 30,
       "je_einheit": 1,
-      "preis_cents": 14000,
-      "preis_bis_cents": 18000,
+      "preis_cents": 4000,
+      "preis_bis_cents": 5500,
       "name": {
-        "it": "Lingua aggiuntiva",
-        "de": "Weitere Sprache",
-        "en": "Additional language"
+        "it": "Altra lingua, per pagina",
+        "de": "Weitere Sprache, je Seite",
+        "en": "Additional language, per page"
       },
       "text": {
-        "it": "Tutta la struttura nella seconda o terza lingua, con commutatore.",
-        "de": "Der ganze Auftritt in der zweiten oder dritten Sprache, mit Umschalter.",
-        "en": "The entire site in a second or third language, with a switcher."
-      }
+        "it": "Ogni pagina nella seconda o terza lingua, con il selettore.",
+        "de": "Jede Seite in der zweiten oder dritten Sprache, mit Umschalter.",
+        "en": "Every page in a second or third language, with the switcher."
+      },
+      "einheit": "seite"
     },
     {
       "slug": "speisekarte",

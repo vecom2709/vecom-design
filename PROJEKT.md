@@ -3973,3 +3973,89 @@ schwarz geblieben; `vecom-showroom_Fotoreal4.blend` ist mit 0,83 MB gepackt.
 i7-4600U. Ein Vorschaubild in 960 × 540 mit 128 Samples dauert dort neun bis
 sechzehn Minuten; ein volles Bild in 1920 × 1080 mit 1024 Samples wären
 Stunden. Die Farm ist hier keine Bequemlichkeit, sondern der einzige Weg.
+
+### 13.09.2026 — Eine Sprache kostet je Seite
+
+Uwe: „Die Preisspanne auf der Hauptseite ist sehr unrealistisch. Schau in den
+Baukasten. Wenn eine Seite 325–400 kostet, können 5 Seiten mit 3 Sprachen keine
+800–1.000 kosten."
+
+Er hatte recht, und darunter lag mehr als eine schiefe Zeile.
+
+#### Was auffiel: die Beschriftung
+
+„Eine einzige Seite — 325–400 €" liest jeder als Preis **pro Seite**. Er war es
+nie: `Grundgerüst` ist die ganze Website — Gestaltung, Handy, Kontaktformular,
+Veröffentlichung — und die erste Seite steckt darin. Wer die Liste las,
+rechnete 5 × 400 = 2.000 und sah daneben 650 stehen. Dann glaubt man entweder
+die eine Zahl nicht oder die andere. Der erste Fall heißt jetzt **„Komplette
+Website, eine Seite"**, und unter den vier Fällen steht, was im ersten Preis
+steckt und was jede weitere Seite kostet.
+
+#### Was darunter lag: die Sprache skalierte nicht
+
+`Weitere Sprache` war eine **Pauschale**, unabhängig von der Seitenzahl. Auf
+die übersetzte Seite gerechnet:
+
+| Seiten | Aufschlag für 2 weitere Sprachen | je übersetzter Seite |
+|---|---|---|
+| 1 | 280–360 € | 140–180 € |
+| 5 | 280–360 € | 28–36 € |
+| 15 | 280–360 € | 7–9 € |
+
+Dieselbe Arbeit zu zwanzigfach verschiedenen Preisen. Am Ende stand der
+Konfigurator dafür gerade, dass **15 Seiten in drei Sprachen — 45
+Seitenfassungen — 1.255 bis 1.600 Euro** kosten. Das ist Wochenarbeit für 28
+Euro die Fassung, und es war kein Grenzfall: „viele Seiten" und „drei Sprachen"
+stehen beide zur Auswahl.
+
+Seit Migration 047 ist `sprache` ein Preis **je Seite**; die Menge ist
+Seitenzahl mal zusätzliche Sprachen. Die weitere Seite steigt mit, von 45–60
+auf 65–85 — bei 45 Euro bewegte die Seitenzahl den Preis kaum, das Grundgerüst
+trug fast alles, obwohl es nur einmal anfällt.
+
+|  | 1 Sprache | 2 Sprachen | 3 Sprachen |
+|---|---|---|---|
+| 1 Seite | 325–400 | 375–475 | 425–525 |
+| 5 Seiten | 600–750 | 800–1.025 | 1.000–1.300 |
+| 9 Seiten | 850–1.100 | 1.200–1.600 | 1.550–2.100 |
+| 15 Seiten | 1.250–1.600 | 1.850–2.450 | 2.450–3.250 |
+
+Nicht gestiegen sind Grundgerüst, Shop, die Zusatzfunktionen und beide
+Monatsverträge. Diese Runde repariert eine Rechenregel, sie ist keine
+Preiserhöhung über die Breite. Gegen den einzigen Mitbewerber in der Provinz,
+der Preise nennt (690 Vitrine, 1.590 Shop), liegt Vecom weiter darunter.
+
+#### Eine Spalte für die Einheit
+
+Die Preisseite schrieb hinter jeden Baustein mit `je_einheit` das Wort „je
+Stück". Bei einer weiteren Seite stimmt das; bei einer Sprache, die je Seite
+gerechnet wird, wäre es falsch — und zwar genau an der Stelle, an der der Kunde
+nachrechnet. Deshalb `bausteine.einheit` statt eines fest verdrahteten
+Sonderfalls für diesen einen Slug, der beim nächsten Baustein wieder vergessen
+worden wäre. Die Verwaltung liest dieselbe Spalte: In der Bausteinliste, die
+Uwe bei einer Preisrunde vor sich hat, steht jetzt „je Seite" statt „je Stück".
+
+#### Geprüft
+
+Abschnitt 54, 38 Prüfungen — **1275 insgesamt, alle grün**. Der Abschnitt prüft
+nicht die Zahlen, sondern die Regel: Mehr Seiten müssen mehr Übersetzung
+kosten, und der Aufschlag bei fünfzehn Seiten muss das Fünfzehnfache des
+Aufschlags bei einer sein. Dazu eine Untergrenze — keine Seitenfassung unter
+dem halben Seitenpreis —, denn genau dort war der Fehler sichtbar geworden.
+
+**Zwei Sabotageproben**, weil eine grüne Prüfung, die nichts prüft, schlimmer
+ist als keine: Mit der alten Regel (`$sprachen - 1`) fallen acht Prüfungen um,
+die letzte mit dem Satz „2,67 € je Fassung". Mit einer verstellten Zahl im
+HTML-Rückfall fällt genau die Datei auf, in der sie steht.
+
+Der Rückfall im HTML wird seither **gegen die Rechnung geprüft**, nicht gegen
+eine zweite Konstante im Test: Antwortet `preise-daten.php` nicht, ist er die
+einzige Zahl auf der Seite — und eine stille Störung sieht man nicht, weil die
+Seite dann trotzdem vollständig aussieht.
+
+Dazu alle drei Sprachfassungen von Start- und Preisseite bei 1440 und 390
+Punkten gerendert, mit laufender Verwaltung (also mit den echten Zahlen, nicht
+dem Rückfall): vier Fälle, Bausteintabelle, kein Querscrollen, kein Klemmen in
+den Karten trotz der längeren Überschrift. Und ein Angebot durchgerechnet —
+dort steht „Weitere Sprache, je Seite · 10 × · 400 – 550 €".
