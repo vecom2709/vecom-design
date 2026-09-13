@@ -5033,6 +5033,209 @@ pruefe('und der Wert steht in den Einstellungen',
 
 Modus::setzen(true);
 Modus::vergessen();
+
+/* ============================================================================
+   52. Die Zeile, die Rückfragen und die fünf Türen
+
+   Vorschläge 6, 5 und 3 aus derselben Liste wie Abschnitt 51. Alle drei
+   sollen dasselbe leisten: Man soll sehen, wo man steht, was passiert, wenn
+   man drückt, und wo man etwas findet — ohne dass eine Kette dabei reißt.
+   ============================================================================ */
+abschnitt('52. Kettenzeile, Rückfragen, fünf Türen');
+
+require_once $oben . '/app/src/Ablauf.php';
+require_once $oben . '/app/src/Vorgang.php';
+
+/* ---------- Die Zeile, die nie abreißt ---------------------------------- */
+$kzV = Vorgang::laden('b' . $bestellId);
+pruefe('der Vorgang lässt sich laden', $kzV !== null);
+
+$kzOffen = [];
+foreach (Ablauf::checkliste($kzV) as $kzP) { if (!$kzP['da']) { $kzOffen[] = $kzP; } }
+$kzDanach = Ablauf::danach($kzV);
+
+pruefe('es gibt ein „Danach“, solange etwas offen ist',
+    $kzOffen === [] || $kzDanach !== null);
+pruefe('das „Danach“ ist nicht dasselbe wie das „Jetzt“',
+    $kzOffen === [] || $kzDanach === null
+    || (string) $kzDanach['was'] !== (string) $kzOffen[0]['was'],
+    (string) ($kzDanach['was'] ?? '—'));
+pruefe('es nennt seine Stufe mit', $kzDanach === null || isset($kzDanach['stufe']));
+pruefe('und sagt, wer es tut',
+    $kzDanach === null || in_array((string) $kzDanach['wer'], ['du', 'kunde'], true));
+
+/* Das „Danach“ kommt aus der Checkliste, nicht aus einer erfundenen Liste
+   „nach A kommt B“. Genau deshalb haelt es auch dann, wenn ein Schritt
+   uebersprungen wurde — und uebersprungen wird staendig. */
+pruefe('das „Danach“ steht wirklich in einer Checkliste',
+    $kzDanach === null
+    || in_array((string) $kzDanach['was'],
+        array_column(Ablauf::checkliste($kzV + ['stufe' => $kzDanach['stufe']]), 'was'), true));
+
+/* Am Ende der letzten Stufe darf es kein „Danach“ mehr geben — sonst
+   verspraeche die Zeile ewig etwas, das nie kommt. */
+$kzFertig = $kzV;
+$kzFertig['stufe'] = 'fertig';
+$kzFertig['offen_cent'] = 0;
+$kzFertig['belege'] = [1];
+pruefe('am Ende kommt nichts mehr', Ablauf::danach($kzFertig) === null);
+
+/* Eine unbekannte Stufe darf nicht in eine Schleife laufen. */
+$kzWirr = $kzV;
+$kzWirr['stufe'] = 'gibtesnicht';
+pruefe('eine unbekannte Stufe bricht sauber ab', Ablauf::danach($kzWirr) === null);
+
+$kzSeite = (string) file_get_contents($oben . '/app/views/vorgang.php');
+pruefe('die Zeile steht auf der Vorgangsseite', str_contains($kzSeite, 'class="kette"'));
+pruefe('sie nennt den Schritt und wie viele es sind',
+    str_contains($kzSeite, 'Schritt <?= (int) $kettenNr ?> von <?= (int) $kettenVon ?>'));
+pruefe('sie sagt „Fehlt noch“ statt „Jetzt“ — die Punkte sind Zustände, keine Befehle',
+    str_contains($kzSeite, 'Fehlt noch:') && !str_contains($kzSeite, '<b>Jetzt:</b>'));
+pruefe('und sagt es auch, wenn nichts mehr kommt',
+    str_contains($kzSeite, 'Danach kommt nichts mehr'));
+
+/* ---------- Die Rückfragen ---------------------------------------------- */
+$rfAlle = Ablauf::TRAGWEITE;
+$rfQuelle = (string) file_get_contents($oben . '/app/index.php');
+preg_match_all("~^            case '([a-z_]+)':~m", $rfQuelle, $rfM);
+$rfHandgriffe = array_values(array_unique($rfM[1] ?? []));
+
+pruefe('es gibt deutlich mehr Rückfragen als die zwölf von früher',
+    count($rfAlle) >= 45, count($rfAlle) . ' von ' . count($rfHandgriffe));
+pruefe('aber nicht für alles — sonst wird sie zur Gewohnheit',
+    count($rfAlle) < count($rfHandgriffe) * 0.6,
+    round(100 * count($rfAlle) / max(1, count($rfHandgriffe))) . ' %');
+
+$rfTot = array_values(array_diff(array_keys($rfAlle), $rfHandgriffe));
+pruefe('jede Rückfrage trifft einen Handgriff, den es gibt',
+    $rfTot === [], implode(', ', $rfTot));
+
+$rfOhneText = [];
+foreach ($rfAlle as $rfT => $rfE) {
+    if (mb_strlen(trim($rfE[1])) < 25 || trim($rfE[2]) === '') { $rfOhneText[] = $rfT; }
+}
+pruefe('jede sagt in einem ganzen Satz, was passiert', $rfOhneText === [],
+    implode(', ', $rfOhneText));
+
+/* DIE FRAGE, DIE NIEMANDEN AUFHAELT: „Sind Sie sicher?“ Wer das liest,
+   antwortet Ja, ohne gelesen zu haben. Gesagt werden muss, WAS passiert. */
+$rfFaul = [];
+foreach ($rfAlle as $rfT => $rfE) {
+    if (preg_match('~sicher\?|wirklich\?~ui', $rfE[1])) { $rfFaul[] = $rfT; }
+}
+pruefe('keine fragt „Sind Sie sicher?“', $rfFaul === [], implode(', ', $rfFaul));
+
+$rfJaOhneJa = [];
+foreach ($rfAlle as $rfT => $rfE) {
+    if (!str_starts_with(trim($rfE[2]), 'Ja,')) { $rfJaOhneJa[] = $rfT; }
+}
+pruefe('und jeder Ja-Knopf sagt, wozu man Ja sagt', $rfJaOhneJa === [],
+    implode(', ', $rfJaOhneJa));
+
+/* Die Handgriffe, bei denen etwas beim KUNDEN ankommt — sie sind der Grund,
+   warum es die Liste ueberhaupt gibt. */
+foreach (['nachricht_senden', 'kunde_nachricht', 'angebot_senden', 'mahnung_schicken',
+          'paket_mail', 'abo_anfordern', 'abo_kuendigen', 'hosting_vorschlag',
+          'fragebogen_erinnern', 'cron_jetzt'] as $rfN) {
+    pruefe("„{$rfN}“ fragt, bevor der Kunde Post bekommt", isset($rfAlle[$rfN]));
+}
+/* Und die, nach denen etwas in den Buechern steht oder endgueltig weg ist. */
+foreach (['zahlung_bestaetigen', 'angebot_zusage', 'anfrage_bestellung', 'bestellung_anlegen',
+          'mehrbedarf_nachtrag', 'ausgabe_loeschen', 'kas_account_anlegen', 'cockpit_frei',
+          'kundenlink_neu', 'versand_schluessel_weg', 'werkstatt_schluessel_weg',
+          'mail_loeschen', 'gespraech_loeschen', 'stimme_frei'] as $rfN) {
+    pruefe("„{$rfN}“ fragt, bevor es nicht mehr rückgängig geht", isset($rfAlle[$rfN]));
+    pruefe("und zwar als schwerer Schritt oder als Post nach draußen",
+        in_array(Ablauf::wiegt($rfN), [Ablauf::SCHWER, Ablauf::RAUS], true));
+}
+
+/* Was weiterhin schweigt — und schweigen soll. */
+foreach (['kunde_speichern', 'aufgabe_umschalten', 'nachrichten_gelesen', 'merkliste_setzen',
+          'meldung_gelesen', 'bedienung', 'sprache_setzen'] as $rfS) {
+    pruefe("„{$rfS}“ fragt weiterhin nicht", Ablauf::wiegt($rfS) === Ablauf::STILL);
+}
+
+/* Die Tabelle muss auch wirklich im Browser ankommen — ohne das ist die
+   ganze Liste ein Stück Papier. */
+$rfLayout = (string) file_get_contents($oben . '/app/views/layout.php');
+pruefe('die Rückfragen gehen an den Browser',
+    str_contains($rfLayout, 'window.vecomBremse'));
+pruefe('und werden über das Feld „tat“ zugeordnet',
+    str_contains($rfLayout, "f.querySelector('input[name=\"tat\"]')"));
+
+/* ---------- Die fünf Türen ---------------------------------------------- */
+preg_match('~\$menue = \[(.*?)\n\];~s', $rfLayout, $mM);
+$mText = $mM[1] ?? '';
+preg_match_all("~^  \['([a-z]+)', '([^']+)'~m", $mText, $mT);
+$mTueren = $mT[2] ?? [];
+pruefe('es sind fünf Türen', count($mTueren) === 5, implode(' · ', $mTueren));
+pruefe('und sie heißen nach dem, was man tut',
+    $mTueren === ['Heute', 'Kunden', 'Geld', 'Bauen', 'Einstellungen'],
+    implode(' · ', $mTueren));
+
+/* Jede Seite, die es vorher im Menue gab, muss hinter genau einer Tuer
+   liegen -- sonst ist sie still verschwunden. */
+preg_match_all("~'([a-z]+)', '[^']+', '[a-z]+'~", $mText, $mZ);
+$mZiele = array_values(array_unique($mZ[1] ?? []));
+$mFrueher = ['heute', 'vorgaenge', 'nachrichten', 'werkstatt', 'bedarf', 'angebote',
+             'rechnungen', 'empfehlungen', 'anfragen', 'standard', 'muster', 'onboarding',
+             'zahlungen', 'ausgaben', 'abos', 'finanzamt', 'pakete', 'baukasten',
+             'stimmen', 'dateien', 'dashboard', 'monitoring', 'telefon', 'aktivitaeten',
+             'benachrichtigungen', 'einstellungen'];
+
+/* ---------- Jeder Menüpunkt muss auch ankommen --------------------------
+   Am 13.09.2026 beim Durchrendern gefunden: „Ausgaben", „Betreuung",
+   „Kundenstimmen" und „Fürs Finanzamt" standen seit jeher im Menü und
+   antworteten mit 404 — die Ansichten lagen fertig da, der Weg dorthin
+   fehlte. Aufgefallen war es nie, weil sie in der zweiten Hälfte einer
+   Liste von vierundzwanzig standen.
+
+   Deshalb steht das jetzt in der Kette: Jedes Ziel im Menü braucht seinen
+   Fall im Verteiler. */
+$mOhneRoute = [];
+foreach ($mZiele as $mZ2) {
+    if (!in_array($mZ2, $rfRouten ?? [], true)) { $mOhneRoute[] = $mZ2; }
+}
+preg_match_all("~^    case '([a-z_]+)':~m", $rfQuelle, $mR);
+$mRouten = $mR[1] ?? [];
+$mOhneRoute = array_values(array_diff($mZiele, $mRouten));
+pruefe('jeder Menüpunkt hat einen Fall im Verteiler', $mOhneRoute === [],
+    implode(', ', $mOhneRoute));
+
+/* Und keiner darf so heissen wie ein echter Ordner unter app/: Die
+   Umleitung laesst Verzeichnisse ausdruecklich in Ruhe (RewriteCond !-d),
+   der Aufruf landete also im Ordner statt auf der Seite. Bei „steuerakte"
+   waere das erst aufgefallen, sobald das erste Jahrespaket geschrieben ist —
+   Monate spaeter, und niemand haette den Zusammenhang gesehen. */
+$mOrdner = array_map('basename', array_filter(glob($oben . '/app/*') ?: [], 'is_dir'));
+$mKollision = array_values(array_intersect($mZiele, $mOrdner));
+pruefe('kein Menüpunkt heißt wie ein Ordner unter app/', $mKollision === [],
+    implode(', ', $mKollision));
+$mWeg = array_values(array_diff($mFrueher, $mZiele));
+pruefe('keine Seite ist beim Umbau verschwunden', $mWeg === [], implode(', ', $mWeg));
+pruefe('und keine steht hinter zwei Türen',
+    count($mZiele) === count(array_unique($mZiele)));
+
+/* Die Zahl an einer zugeklappten Tuer ist die Summe dahinter. Ohne das
+   sieht man die Null und haelt sie fuer die Wahrheit. */
+pruefe('eine zugeklappte Tür trägt die Summe dessen, was dahinter offen ist',
+    str_contains($rfLayout, '$summe += (int) ($navZahlen[$uSchl] ?? 0);'));
+pruefe('und klappt auf, wenn man darin arbeitet',
+    str_contains($rfLayout, "if (\$aktiv === \$uZiel) { \$offen = true; }"));
+/* Stoerungen gehoeren nicht unter "Einstellungen": Achtzehn offene Warnungen
+   neben dem Wort heissen fuer jeden Leser, dass mit den Einstellungen etwas
+   nicht stimmt. */
+pruefe('„Was nicht läuft“ hängt unter „Heute“, nicht unter „Einstellungen“',
+    preg_match("~'heute', 'Heute', 'heute', \[\s*\['benachrichtigungen'~", $rfLayout) === 1);
+/* Geprueft wird die Mechanik, nicht das Wort: Dass im Kommentar steht,
+   was „Alles andere" einmal war, gehoert dazu — verschwinden muss die
+   zweite Liste samt ihrer Schublade. */
+pruefe('die alte zweite Menüliste gibt es nicht mehr',
+    !str_contains($rfLayout, '$menueMehr')
+    && !str_contains($rfLayout, '$mehrZahl')
+    && !str_contains($rfLayout, '<details class="mehr"'));
+pruefe('und ihre Stilregeln auch nicht',
+    !str_contains((string) file_get_contents($oben . '/app/assets/admin.css'), '.nav details.mehr'));
 pruefe('und wieder einschalten', Modus::einfach() === true);
 
 /* Ein unbekannter Wert darf nicht die volle Ansicht bedeuten: Wer die

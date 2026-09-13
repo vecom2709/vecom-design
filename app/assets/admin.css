@@ -30,21 +30,8 @@ a{color:inherit;text-decoration:none}
 .nav__suche input::placeholder{color:var(--leise)}
 .nav__suche input:focus{outline:none;border-color:var(--cyan)}
 
-/* "Alles andere": sieht aus wie ein Menuepunkt, verhaelt sich wie eine
-   Schublade. Der Pfeil ist der einzige Unterschied — die Zahl daneben sagt,
-   ob etwas darin liegt, damit nichts still verschwindet. */
-.nav details.mehr{margin-top:14px;border-top:1px solid var(--linie);padding-top:8px}
-.nav details.mehr>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:8px 11px;border-radius:10px;color:var(--dim);font-size:14px;cursor:pointer;
-  list-style:none;transition:.18s var(--e)}
-.nav details.mehr>summary::-webkit-details-marker{display:none}
-.nav details.mehr>summary:hover{background:var(--flaeche);color:var(--text)}
-.nav details.mehr>summary::after{content:"";width:7px;height:7px;flex:0 0 auto;margin-left:auto;
-  border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
-  transform:rotate(45deg) translate(-2px,-2px);transition:transform .18s var(--e)}
-.nav details.mehr[open]>summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
-.nav details.mehr>summary .zahl{margin-left:0}
-.nav details.mehr[open]>summary{color:var(--text)}
+/* Die alte Schublade „Alles andere" ist weg — siehe „FUENF TUEREN" unten.
+   Ihre Regeln standen hier; sie hatten nach dem Umbau kein Ziel mehr. */
 
 /* Die Stufe als Bruch neben dem Wort: "Vorschau 5/9". Klein und leise —
    sie beantwortet eine Frage beim Ueberfliegen, nicht beim Lesen. */
@@ -563,3 +550,51 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .mehrblock__inhalt>.block:last-child{margin-bottom:14px}
 
 @media (prefers-reduced-motion:reduce){ .mehrblock>summary,.mehrblock>summary::before{transition:none} }
+
+/* ==========================================================================
+   DIE ZEILE, DIE NIE ABREISST
+
+   „Schritt 4 von 9 · Jetzt: … · Danach: …" — direkt unter der Stufenleiste,
+   über allem anderen. Sie ist bewusst eine Zeile und kein Kasten: Sie soll
+   beim Überfliegen mitgelesen werden, nicht um Aufmerksamkeit bitten.
+   ========================================================================== */
+.kette{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;
+  margin:0 0 16px;padding:9px 14px;border-radius:10px;
+  border:1px solid var(--linie);background:var(--flaeche);
+  font-size:13px;color:var(--dim);line-height:1.5}
+.kette b{color:var(--text);font-weight:600}
+.kette__wo{flex:0 0 auto;font-size:12px;color:var(--leise);
+  text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.kette__jetzt{flex:1 1 auto;min-width:0}
+/* Das Danach tritt zurück — es ist Ausblick, nicht Auftrag. */
+.kette__danach{flex:1 1 auto;min-width:0;color:var(--leise)}
+.kette__danach i{font-style:normal;color:var(--leise);opacity:.75}
+
+@media(max-width:700px){
+  .kette{gap:4px;flex-direction:column;align-items:flex-start}
+}
+
+/* ==========================================================================
+   FÜNF TÜREN
+
+   31 Menüpunkte waren es — sieben oben, 24 hinter „Alles andere". Wer die
+   Verwaltung kannte, fand alles; wer sie nicht kannte, wusste nicht, wonach
+   er suchen soll.
+
+   Jetzt fünf Wörter. Die Tür, in der man steht, klappt auf und zeigt ihre
+   Nachbarn — sonst nichts. Die Zahl an der zugeklappten Tür ist die Summe
+   dahinter: Zugeklappt heißt nicht, dass dort nichts wartet.
+   ========================================================================== */
+.nav__tuer{font-size:14.5px}
+.nav__tuer.auf{color:var(--text);background:transparent;box-shadow:none;font-weight:600}
+.nav__tuer.auf:hover{background:var(--flaeche)}
+/* Die geöffnete Tür, auf deren Seite man auch steht, behält ihren Balken. */
+.nav__tuer.an{background:var(--flaeche2);color:var(--text);box-shadow:inset 2px 0 0 var(--cyan)}
+
+/* Die Unterpunkte. Eingerückt und leiser: Sie sind der Inhalt der Tür, nicht
+   fünf weitere Türen. Die Linie links führt das Auge zurück nach oben. */
+.nav__unter{display:flex;flex-direction:column;margin:2px 0 8px 11px;padding-left:11px;
+  border-left:1px solid var(--linie)}
+.nav__unter a{padding:6px 10px;font-size:13.5px;color:var(--leise);border-radius:8px}
+.nav__unter a:hover{background:var(--flaeche);color:var(--dim)}
+.nav__unter a.an{background:var(--flaeche2);color:var(--text);box-shadow:none}

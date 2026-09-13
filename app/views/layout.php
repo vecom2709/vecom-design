@@ -33,106 +33,120 @@ $navZahlen['heute'] = count($wartetAufDich);
 $aktiv = $route ?: 'heute';
 
 /* ============================================================================
-   SIEBEN EINTRAEGE, DER REST EINEN KLICK ENTFERNT
+   WIE DIESES MENUE DREIMAL KUERZER WURDE
 
-   Hier standen achtundzwanzig Eintraege in sechs Gruppen. Das war schon der
-   zweite Anlauf -- davor waren es fuenfundzwanzig flache, eine Zeile je
-   Datenbanktabelle. Besser geordnet, aber immer noch eine Wand, in der die
-   vier Seiten, auf denen wirklich gearbeitet wird, untergehen.
+   Fuenfundzwanzig flache Eintraege, eine Zeile je Datenbanktabelle. Dann
+   achtundzwanzig in sechs Gruppen. Dann sieben oben und vierundzwanzig unter
+   „Alles andere". Jeder Schritt war eine Verbesserung und keiner loeste das
+   Problem: Wer die Verwaltung nicht gebaut hat, weiss nicht, wonach er
+   suchen soll.
 
-   Oben stehen jetzt sieben. Alles andere steht darunter unter "Alles
-   andere", aufklappbar, in denselben Gruppen und derselben Reihenfolge wie
-   vorher. Keine Seite ist verschwunden, keine Adresse hat sich geaendert --
-   wer /app/steuerakte im Lesezeichen hat, kommt weiter dorthin.
+   Die Ursache war nie die Zahl, sondern die Ordnung. Sortiert wurde nach
+   Tabellen — und sechs dieser Tabellen (Bedarf, Anfragen, Angebote,
+   Bestellungen, Projekte, Vorgaenge) sind sechs Blicke auf DENSELBEN Kunden
+   zu verschiedenen Momenten.
 
-   DAS MENUE IST NACH DER ARBEIT GEORDNET, NICHT NACH TABELLEN
+   Jetzt fuenf Woerter, sortiert danach, was man TUT. Siehe unten.
+   ============================================================================ */
 
-   Vorher standen hier fuenfundzwanzig Eintraege in fuenf Gruppen -- eine
-   Zeile je Datenbanktabelle. Sechs davon (Bedarf, Anfragen, Angebote,
-   Bestellungen, Projekte, Vorgaenge) waren sechs Blicke auf DENSELBEN Kunden
-   zu verschiedenen Momenten. Vorgang::alle() fuehrt sie laengst zu einer
-   Wahrheit zusammen; die anderen fuenf sind die rohen Tabellen darunter.
+/* =========================================================================
+   FUENF TUEREN
 
-   Oben steht jetzt, womit gearbeitet wird. Die Tabellen stehen weiter unten
-   unter "Listen" -- dorthin geht man, wenn man eine bestimmte Zeile sucht,
-   nicht wenn man arbeitet. Keine ist verschwunden, keine Adresse hat sich
-   geaendert.
+   Gezaehlt am 13.09.2026: 31 Menuepunkte — sieben oben, 24 hinter „Alles
+   andere". Wer die Verwaltung kannte, fand alles. Wer sie nicht kannte,
+   fand nichts, weil er nicht wusste, wonach er suchen soll: Steht ein
+   Fragebogen unter „Was gebaut wird" oder unter „Listen"? Beides waere
+   begruendbar, und genau das ist das Problem.
 
-   Die Reihenfolge folgt dem Ablauf: Was kommt herein, was ist besprochen,
-   was wird gebaut, wer ist es. Nicht dem Alphabet und nicht der Groesse der
-   Tabelle.
+   Jetzt fuenf Woerter, die jeder versteht — und die zusammen die ganze
+   Arbeit abdecken:
+
+     Heute          was gerade wartet
+     Kunden         alles, was mit Menschen zu tun hat
+     Geld           alles, was mit Rechnen zu tun hat
+     Bauen          alles, was mit Machen zu tun hat
+     Einstellungen  alles, was man einmal einrichtet
+
+   WARUM SICH DIE GRUPPE AUFKLAPPT, IN DER MAN ARBEITET
+
+   Fuenf Zeilen sind uebersichtlich und sagen zu wenig: Man sieht nicht, dass
+   es unter „Geld" auch die Ausgaben gibt. Alle fuenf aufzuklappen waere
+   wieder das alte Menue. Also klappt die auf, in der man steht — dann sieht
+   man die Nachbarn dessen, was man gerade tut, und sonst nichts.
+
+   NICHTS IST VERSCHWUNDEN. Jede Seite hat ihre Adresse behalten, jede steht
+   unter genau einer Tuer, und die Suche oben findet sie ohnehin alle.
    ========================================================================= */
-/* Was jeden Tag gebraucht wird. Alles Weitere steht unten aufgeklappt --
-   erreichbar in einem Klick, aber nicht im Weg. */
+
+/* Aufbau: [Ziel, Wort, Schluessel fuer die Zahl, [Unterpunkte]].
+   Das Ziel einer Tuer ist die Seite, auf der man am haeufigsten landet —
+   nicht eine Uebersichtsseite, die es nicht gibt. */
 $menue = [
-  ['heute', 'Heute', 'heute'],
-  ['vorgaenge', 'Vorgänge', 'vorgaenge'],
-  ['nachrichten', 'Nachrichten', 'nachrichten'],
-  ['werkstatt', 'Werkstatt', 'werkstatt'],
-  ['bedarf', 'Bedarf', 'bedarf'],
-  ['angebote', 'Angebote', 'angebote'],
-  ['rechnungen', 'Rechnungen', 'rechnungen'],
-];
+  /* Meldungen und Verlauf gehoeren hierher, nicht unter „Einstellungen":
+     Es sind Stoerungen und Geschehenes, keine Einstellung. Standen sie dort,
+     trug die Tuer „Einstellungen" deren Zahl — und achtzehn offene Warnungen
+     neben dem Wort „Einstellungen" heissen fuer jeden Leser, dass mit den
+     Einstellungen etwas nicht stimmt. */
+  ['heute', 'Heute', 'heute', [
+    ['benachrichtigungen', 'Was nicht läuft', 'benachrichtigungen'],
+    ['aktivitaeten', 'Was passiert ist', 'aktivitaeten'],
+  ]],
 
-/* Der Rest. Die Gruppen sind dieselben wie vorher, in derselben Reihenfolge
-   -- wer sie kennt, findet sie wieder. */
-$menueMehr = [
-  ['__gruppe', 'Was hereinkommt', null],
-  ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
-  ['anfragen', 'Anfragen', 'anfragen'],
-  ['__gruppe', 'Was gebaut wird', null],
-  ['standard', 'Vecom-Standard', 'standard'],
-  ['muster', 'Bausteine', 'muster'],
-  ['onboarding', 'Fragebögen', 'onboarding'],
-  ['__gruppe', 'Geld', null],
-  ['zahlungen', 'Zahlungen', 'zahlungen'],
-  ['ausgaben', 'Ausgaben', 'ausgaben'],
-  ['abos', 'Betreuung', 'abos'],
-  ['steuerakte', 'Fürs Finanzamt', 'steuerakte'],
-  ['__gruppe', 'Was ich anbiete', null],
-  ['pakete', 'Pakete', 'pakete'],
-  ['baukasten', 'Baukasten', 'baukasten'],
-  ['stimmen', 'Kundenstimmen', 'stimmen'],
-  /* KUNDEN, BESTELLUNGEN, PROJEKTE STEHEN NICHT MEHR IM MENUE
-     ------------------------------------------------------------------
-     Zu einem Kunden gab es vier Seiten: Vorgang, Kundenakte, Bestellung,
-     Projekt. Jede fuer sich richtig, zusammen die Frage, auf welcher von
-     vieren man haette sein muessen. Seit dem Umbau liegen Kundenakte und
-     Projekt als Schubladen auf der Vorgangsseite — dieselben Bloecke,
-     nicht nachgebaute.
+  ['vorgaenge', 'Kunden', 'vorgaenge', [
+    ['nachrichten', 'Nachrichten', 'nachrichten'],
+    ['anfragen', 'Anfragen', 'anfragen'],
+    ['bedarf', 'Bedarf aus dem Rechner', 'bedarf'],
+    ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
+    ['stimmen', 'Kundenstimmen', 'stimmen'],
+  ]],
 
-     Die Seiten selbst bleiben: unter ihrer Adresse erreichbar, von der
-     Vorgangsseite verlinkt, und die Suche findet sie. Nur als eigener
-     Menuepunkt gaeben sie einen zweiten Weg zur selben Sache vor — und
-     genau das war das Problem. Wer alle Kunden sehen will, nimmt die
-     Suche oder "Vorgaenge". */
-  ['__gruppe', 'Listen', null],
-  ['dateien', 'Dateien', 'dateien'],
-  ['__gruppe', 'System', null],
-  ['dashboard', 'Zahlen', 'dashboard'],
-  ['monitoring', 'Website-Monitoring', 'monitoring'],
-  ['telefon', 'Telefonassistent', 'telefon'],
-  ['aktivitaeten', 'Aktivitäten', 'aktivitaeten'],
-  ['benachrichtigungen', 'Benachrichtigungen', 'benachrichtigungen'],
-  /* „Integrationen" stand hier als eigener Punkt, obwohl darauf nichts
-     anderes war als eine Einstellung: der Stripe-Schlüssel. Jetzt ist es
-     ein Bereich der Einstellungen; die alte Adresse leitet dorthin. */
-  ['einstellungen', 'Einstellungen', 'einstellungen'],
+  ['rechnungen', 'Geld', 'rechnungen', [
+    ['angebote', 'Angebote', 'angebote'],
+    ['zahlungen', 'Zahlungen', 'zahlungen'],
+    ['ausgaben', 'Ausgaben', 'ausgaben'],
+    ['abos', 'Betreuung', 'abos'],
+    ['finanzamt', 'Fürs Finanzamt', 'steuerakte'],
+    ['dashboard', 'Zahlen', 'dashboard'],
+  ]],
+
+  ['werkstatt', 'Bauen', 'werkstatt', [
+    ['onboarding', 'Fragebögen', 'onboarding'],
+    ['standard', 'Vecom-Standard', 'standard'],
+    ['muster', 'Bausteine', 'muster'],
+    ['dateien', 'Dateien', 'dateien'],
+    ['monitoring', 'Laufen die Seiten?', 'monitoring'],
+  ]],
+
+  ['einstellungen', 'Einstellungen', 'einstellungen', [
+    ['pakete', 'Pakete', 'pakete'],
+    ['baukasten', 'Preisbausteine', 'baukasten'],
+    ['telefon', 'Telefonassistentin', 'telefon'],
+  ]],
 ];
 
 /* NICHTS DARF STILL VERSCHWINDEN
    --------------------------------------------------------------------------
-   Ein eingeklappter Eintrag mit offenen Posten waere schlimmer als ein langes
-   Menue: Man sieht die Zahl nicht mehr und haelt die Null fuer die Wahrheit.
-   Deshalb traegt "Alles andere" die Summe dessen, was darunter offen ist --
-   und klappt von selbst auf, wenn man gerade darin arbeitet. */
-$mehrZahl = 0;
-$mehrAktiv = false;
-foreach ($menueMehr as [$ziel, $titel, $schl]) {
-    if ($ziel === '__gruppe') { continue; }
-    $mehrZahl += (int) ($navZahlen[$schl] ?? 0);
-    if ($aktiv === $ziel) { $mehrAktiv = true; }
+   Eine zugeklappte Tuer mit offenen Posten dahinter waere schlimmer als ein
+   langes Menue: Man sieht die Zahl nicht mehr und haelt die Null fuer die
+   Wahrheit. Deshalb traegt jede Tuer die Summe dessen, was hinter ihr offen
+   ist — die eigene Seite und alle Unterpunkte zusammen.
+
+   Aufgeklappt wird die Tuer, in der man gerade steht: dann zeigen die
+   Unterpunkte ihre eigenen Zahlen, und die Summe oben waere eine Doppelung.
+   Sie bleibt trotzdem stehen, damit die Zahl beim Auf- und Zuklappen nicht
+   springt. */
+foreach ($menue as $i => $tuer) {
+    [$ziel, , $schl, $unter] = $tuer;
+    $summe = (int) ($navZahlen[$schl] ?? 0);
+    $offen = $aktiv === $ziel;
+    foreach ($unter as [$uZiel, , $uSchl]) {
+        $summe += (int) ($navZahlen[$uSchl] ?? 0);
+        if ($aktiv === $uZiel) { $offen = true; }
+    }
+    $menue[$i][4] = $summe;
+    $menue[$i][5] = $offen;
 }
+
 $fehler = $_SESSION['fehler'] ?? null; unset($_SESSION['fehler']);
 $gut    = $_SESSION['gut']    ?? null; unset($_SESSION['gut']);
 ?><!doctype html>
@@ -177,31 +191,30 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
              value="<?= Fmt::h($route === 'suche' ? (string) ($_GET['q'] ?? '') : '') ?>">
     </form>
     <?php
-    $punkt = static function (array $eintrag) use ($navZahlen, $aktiv) {
-        [$ziel, $titel, $schl] = $eintrag;
-        if ($ziel === '__gruppe') {
-            echo '<div class="gruppe">' . Fmt::h($titel) . '</div>';
-            return;
-        }
-        $n = (int) ($navZahlen[$schl] ?? 0);
-        printf('<a href="%s" class="%s"><span>%s</span>%s</a>',
+    /* Eine Tuer. Zugeklappt eine Zeile mit Wort und Zahl; aufgeklappt
+       stehen ihre Unterpunkte darunter, eingerueckt und leiser. */
+    foreach ($menue as [$ziel, $wort, $schl, $unter, $summe, $offen]) {
+        printf('<a href="%s" class="nav__tuer%s%s"><span>%s</span>%s</a>',
             Fmt::h(url($ziel)),
-            $aktiv === ($ziel ?: 'heute') ? 'an' : '',
-            Fmt::h($titel),
-            $n > 0 ? '<span class="zahl warn">' . $n . '</span>' : '');
-    };
-    foreach ($menue as $eintrag) { $punkt($eintrag); }
+            $aktiv === ($ziel ?: 'heute') ? ' an' : '',
+            $offen && $unter ? ' auf' : '',
+            Fmt::h($wort),
+            $summe > 0 ? '<span class="zahl warn">' . $summe . '</span>' : '');
+
+        if (!$offen || !$unter) { continue; }
+        echo '<div class="nav__unter">';
+        foreach ($unter as [$uZiel, $uWort, $uSchl]) {
+            $n = (int) ($navZahlen[$uSchl] ?? 0);
+            printf('<a href="%s" class="%s"><span>%s</span>%s</a>',
+                Fmt::h(url($uZiel)),
+                $aktiv === $uZiel ? 'an' : '',
+                Fmt::h($uWort),
+                $n > 0 ? '<span class="zahl warn">' . $n . '</span>' : '');
+        }
+        echo '</div>';
+    }
     ?>
 
-    <?php /* Aufgeklappt, sobald man darin arbeitet — sonst muesste man sich
-             beim Zurueckkommen jedes Mal neu hineinklicken. */ ?>
-    <details class="mehr"<?= $mehrAktiv ? ' open' : '' ?>>
-      <summary>
-        <span>Alles andere</span>
-        <?php if ($mehrZahl > 0): ?><span class="zahl warn"><?= $mehrZahl ?></span><?php endif; ?>
-      </summary>
-      <?php foreach ($menueMehr as $eintrag) { $punkt($eintrag); } ?>
-    </details>
     <div class="gruppe"><?= Fmt::h(Auth::name()) ?></div>
     <a href="/cockpit/">Zum Cockpit</a>
     <a href="<?= Fmt::h(url('abmelden')) ?>">Abmelden</a>

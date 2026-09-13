@@ -922,7 +922,7 @@ if ($post) {
                 $sj = (int) ($_POST['jahr'] ?? date('Y'));
                 Steuerakte::archivieren($sj);
                 $_SESSION['gut'] = 'Das Paket für ' . $sj . ' ist neu gebaut und liegt bereit.';
-                zurueck('steuerakte');
+                zurueck('finanzamt');
 
             case 'kundenlink_neu':
                 // Zieht den alten Zugang zurueck. Gedacht fuer den Fall, dass
@@ -2609,6 +2609,141 @@ switch ($route) {
              LEFT JOIN websites w ON w.project_id = p.id $wo
              ORDER BY FIELD(p.status,'abgeschlossen') ASC, p.deadline IS NULL, p.deadline ASC",
             $st !== '' ? ['st' => $st] : [])]);
+        break;
+
+    /* ======================================================================
+       VIER SEITEN, DIE ES GAB UND DIE NIEMAND ERREICHTE
+
+       Am 13.09.2026 beim Durchrendern aller Menuepunkte gefunden: „Ausgaben",
+       „Betreuung", „Kundenstimmen" und „Fuers Finanzamt" standen seit jeher
+       im Menue und antworteten mit 404. Die Ansichten lagen fertig unter
+       app/views/, die Klassen dahinter auch — nur der Weg dorthin fehlte.
+
+       Aufgefallen ist es nie, weil niemand sie anklickte; und niemand
+       klickte sie an, weil sie unter „Alles andere" in der zweiten Haelfte
+       einer Liste von vierundzwanzig standen. Genau das meint „nichts darf
+       unuebersichtlich sein": Ein Menuepunkt, der ins Leere zeigt, faellt in
+       einem kurzen Menue am ersten Tag auf.
+       ====================================================================== */
+
+    case 'ausgaben':
+        require_once __DIR__ . '/src/Ausgabe.php';
+        if ($unter === 'neu' || $id !== null) {
+            $a = $id !== null ? sicher(static fn() => Ausgabe::eine($id), null) : null;
+            if ($id !== null && !$a) { http_response_code(404); exit('Ausgabe nicht gefunden.'); }
+            /* Die Datei eines Belegs — nur ueber PHP, wie alles Hochgeladene. */
+            if ($a && ($teile[2] ?? '') === 'datei') {
+                $pfad = (string) sicher(static fn() => Ausgabe::dateipfad($a), '');
+                if ($pfad === '' || !is_file($pfad)) { http_response_code(404); exit('Keine Datei.'); }
+                header('Content-Type: application/octet-stream');
+                header('Content-Length: ' . (string) filesize($pfad));
+                header('Content-Disposition: attachment; filename="beleg-' . (int) $a['id'] . '"');
+                header('X-Content-Type-Options: nosniff');
+                readfile($pfad);
+                exit;
+            }
+            ansicht('ausgabe_form', [
+                'a' => $a,
+                'naechste' => sicher(static fn() => Ausgabe::naechsteNummer(), ''),
+            ]);
+            break;
+        }
+        $jahre = (array) sicher(static fn() => Ausgabe::jahre(), []);
+        $jahr  = (int) ($_GET['jahr'] ?? ($jahre[0] ?? date('Y')));
+        ansicht('ausgaben', [
+            'jahre' => $jahre,
+            'jahr'  => $jahr,
+            'liste' => sicher(static fn() => Ausgabe::alle($jahr), []),
+            'summe' => sicher(static fn() => Ausgabe::summe($jahr),
+                ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]),
+        ]);
+        break;
+
+    case 'abos':
+        require_once __DIR__ . '/src/Abo.php';
+        ansicht('abos', [
+            'liste'     => sicher(static fn() => Abo::alle(), []),
+            'monatlich' => (int) sicher(static fn() => Abo::monatlich(), 0),
+        ]);
+        break;
+
+    case 'stimmen':
+        require_once __DIR__ . '/src/Stimme.php';
+        ansicht('stimmen', ['liste' => sicher(static fn() => Stimme::alle(), [])]);
+        break;
+
+    /* WARUM DIESE SEITE „finanzamt" HEISST UND NICHT „steuerakte"
+       ----------------------------------------------------------------------
+       Weil es unter app/ einen Ordner „steuerakte" gibt: dort liegen die
+       fertigen Jahrespakete. Die Umleitung in app/.htaccess laesst echte
+       Verzeichnisse ausdruecklich in Ruhe (RewriteCond !-d), und der Ordner
+       sperrt sich selbst mit „Require all denied". Ein Aufruf von
+       /app/steuerakte waere also nicht diese Seite, sondern ein 403 — und
+       zwar erst, sobald das erste Paket geschrieben ist. Vorher haette es
+       jahrelang funktioniert.
+
+       Der Menuepunkt heisst ohnehin „Fürs Finanzamt". Jetzt heisst die
+       Adresse genauso. */
+    case 'finanzamt':
+        require_once __DIR__ . '/src/Steuerakte.php';
+        /* Die Seite bietet je Jahr sieben Sachen zum Herunterladen an. Sie
+           gehen alle durch dieselbe Tuer: /steuerakte/<jahr>/<was>. */
+        if ($id !== null && ($teile[2] ?? '') !== '') {
+            $jahr = (int) $id;
+            $was  = (string) $teile[2];
+            $csv = static function (string $inhalt, string $name): never {
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename="' . $name . '"');
+                header('X-Content-Type-Options: nosniff');
+                echo "\xEF\xBB\xBF" . $inhalt;   // BOM, damit Excel die Umlaute nimmt
+                exit;
+            };
+            try {
+                switch ($was) {
+                    case 'paket':
+                        $zip = Steuerakte::paket($jahr);
+                        if (!is_file($zip)) { throw new RuntimeException('Das Paket gibt es noch nicht.'); }
+                        header('Content-Type: application/zip');
+                        header('Content-Length: ' . (string) filesize($zip));
+                        header('Content-Disposition: attachment; filename="' . Steuerakte::paketname($jahr) . '"');
+                        header('X-Content-Type-Options: nosniff');
+                        readfile($zip);
+                        exit;
+                    case 'einnahmen':    $csv(Steuerakte::einnahmenCsv($jahr),      "einnahmen-$jahr.csv");
+                    case 'forderungen':  $csv(Steuerakte::forderungenCsv($jahr),    "forderungen-$jahr.csv");
+                    case 'abgrenzung':   $csv(Steuerakte::abgrenzungCsv($jahr),     "jahreswechsel-$jahr.csv");
+                    case 'ausgaben':     $csv(Steuerakte::ausgabenCsv($jahr),       "ausgaben-$jahr.csv");
+                    case 'reversecharge':$csv(Steuerakte::reverseChargeCsv($jahr),  "reverse-charge-$jahr.csv");
+                    case 'verzeichnis':  $csv(Steuerakte::verzeichnis($jahr),       "belegverzeichnis-$jahr.csv");
+                }
+            } catch (Throwable $e) {
+                $_SESSION['schlecht'] = 'Das ließ sich nicht erzeugen: ' . $e->getMessage();
+                weiter('finanzamt');
+            }
+            http_response_code(404);
+            exit('Das gibt es hier nicht.');
+        }
+
+        $jahre = (array) sicher(static fn() => Steuerakte::jahre(), []);
+        $uebersicht = $ausgabenJ = $grenzen = $archiv = [];
+        foreach ($jahre as $j) {
+            $j = (int) $j;
+            $uebersicht[$j] = sicher(static fn() => Steuerakte::zusammenfassung($j), []);
+            $ausgabenJ[$j]  = sicher(static fn() => Steuerakte::ausgaben($j),
+                ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]);
+            $grenzen[$j]    = sicher(static fn() => Steuerakte::grenzen($j),
+                ['summe' => 0, 'waehrung' => 'EUR', 'anteil' => 0.0, 'warnung' => null]);
+            $archiv[$j]     = sicher(static fn() => Steuerakte::archiv($j),
+                ['stand' => null, 'bytes' => 0]);
+        }
+        ansicht('steuerakte', [
+            'jahre'      => $jahre,
+            'uebersicht' => $uebersicht,
+            'ausgaben'   => $ausgabenJ,
+            'grenzen'    => $grenzen,
+            'archiv'     => $archiv,
+            'fristen'    => sicher(static fn() => Steuerakte::fristen(), []),
+        ]);
         break;
 
     case 'dateien':

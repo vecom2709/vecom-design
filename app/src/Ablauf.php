@@ -106,6 +106,156 @@ final class Ablauf
         'kunde_anonymisieren' => [self::SCHWER,
             'Name, E-Mail und Anschrift werden unkenntlich gemacht. Das lässt sich nicht rückgängig machen.',
             'Ja, anonymisieren'],
+
+        /* ------------------------------------------------------------------
+           Am 13.09.2026 nachgezählt: Von 130 Handgriffen fragten zwölf nach.
+           Rausgegangen sind aber weit mehr — jede Nachricht an den Kunden,
+           jede Mahnung, jede gebuchte Zahlung, jeder Schlüssel, der einen
+           alten entwertet. Zwölf von 130 hiess nicht "wir fragen sparsam",
+           sondern "wir haben nie zu Ende gezählt".
+
+           Dazugekommen ist nur, was eine der vier Wirkungen hat: Es geht
+           eine E-Mail an den KUNDEN, es entsteht oder verschwindet etwas in
+           den Büchern, es wird für Fremde sichtbar, oder es ist danach
+           endgültig weg. Alles andere bleibt still — sonst wird die
+           Rückfrage zur Gewohnheit, und eine Gewohnheit hält niemanden auf.
+           ------------------------------------------------------------------ */
+
+        /* --- Es geht eine E-Mail an den Kunden --------------------------- */
+        'angebot_senden' => [self::RAUS,
+            'Das Angebot geht jetzt als E-Mail an den Kunden — mit PDF und dem Knopf zum Zusagen.',
+            'Ja, Angebot schicken'],
+        'kunde_nachricht' => [self::RAUS,
+            'Der Kunde bekommt diesen Text jetzt als E-Mail.',
+            'Ja, abschicken'],
+        'nachricht_senden' => [self::RAUS,
+            'Der Kunde bekommt diesen Text als E-Mail und sieht ihn auf seiner Seite.',
+            'Ja, abschicken'],
+        'paket_mail' => [self::RAUS,
+            'Der Kunde bekommt jetzt die E-Mail mit dem Link auf sein Website-Paket.',
+            'Ja, schicken'],
+        'mahnung_schicken' => [self::RAUS,
+            'Der Kunde bekommt jetzt eine Mahnung — mit Frist und frischem Zahlungslink.',
+            'Ja, mahnen'],
+        'abo_anfordern' => [self::RAUS,
+            'Der Kunde bekommt die Zahlungsaufforderung für die Betreuung. Danach läuft eine Frist von sieben Tagen.',
+            'Ja, anfordern'],
+        'abo_kuendigen' => [self::RAUS,
+            'Der Kunde bekommt die Kündigungsbestätigung, und die Betreuung endet zum genannten Tag.',
+            'Ja, kündigen'],
+        'hosting_vorschlag' => [self::RAUS,
+            'Der Kunde bekommt jetzt das Hosting-Angebot mit Preis per E-Mail.',
+            'Ja, vorschlagen'],
+        /* Diese beiden treffen nicht einen Kunden, sondern alle faelligen
+           auf einmal. Genau deshalb stehen sie hier. */
+        'fragebogen_erinnern' => [self::RAUS,
+            'Jeder Kunde, dessen Fragebogen überfällig ist, bekommt jetzt eine Erinnerung — das können mehrere auf einmal sein.',
+            'Ja, alle erinnern'],
+        'cron_jetzt' => [self::RAUS,
+            'Der ganze nächtliche Lauf startet sofort. Dabei gehen Erinnerungen und erste Mahnungen an Kunden raus.',
+            'Ja, jetzt laufen lassen'],
+
+        /* --- Es steht danach in den Büchern ------------------------------ */
+        'zahlung_bestaetigen' => [self::SCHWER,
+            'Die Zahlung wird gebucht. Dabei entsteht ein Beleg mit eigener Nummer, der Kunde bekommt '
+            . 'Bestätigung und Beleg, und das Projekt beginnt.',
+            'Ja, Zahlung buchen'],
+        'angebot_zusage' => [self::SCHWER,
+            'Aus dem Angebot wird eine Bestellung mit Anzahlung und Restrate.',
+            'Ja, Zusage eintragen'],
+        'anfrage_bestellung' => [self::SCHWER,
+            'Aus der Anfrage wird eine Bestellung mit Anzahlung und Restrate.',
+            'Ja, Bestellung anlegen'],
+        'bestellung_anlegen' => [self::SCHWER,
+            'Es entsteht eine Bestellung mit Anzahlung und Restrate.',
+            'Ja, Bestellung anlegen'],
+        'mehrbedarf_nachtrag' => [self::SCHWER,
+            'Der Nachtrag erhöht den Preis der Bestellung und legt eine zusätzliche Rate an.',
+            'Ja, Nachtrag anlegen'],
+        'ausgabe_loeschen' => [self::SCHWER,
+            'Der Ausgabenbeleg verschwindet aus den Büchern. Seine Nummer bleibt vergeben.',
+            'Ja, Beleg löschen'],
+
+        /* --- Es wird für Fremde sichtbar --------------------------------- */
+        'stimme_frei' => [self::RAUS,
+            'Die Stimme steht danach öffentlich auf der Website.',
+            'Ja, veröffentlichen'],
+        'direktkauf_test' => [self::RAUS,
+            'Der Kaufknopf erscheint damit auf den öffentlichen Seiten — jeder Besucher kann bestellen.',
+            'Ja, Kauf freischalten'],
+        'hosting_anlegen' => [self::SCHWER,
+            'Es entsteht ein echter Account beim Anbieter und ein Monatsvertrag, und der Kunde bekommt '
+            . 'seine Zugangsdaten.',
+            'Ja, Hosting anlegen'],
+        'kas_account_anlegen' => [self::SCHWER,
+            'Beim Anbieter entsteht ein echter Unter-Account. Das kostet ab sofort.',
+            'Ja, Account anlegen'],
+        'cockpit_frei' => [self::SCHWER,
+            'Der Passwortschutz fällt. Danach sieht jeder deine Zahlen, der die Adresse kennt.',
+            'Ja, Schutz aufheben'],
+
+        /* --- Danach ist es weg ------------------------------------------- */
+        'kundenlink_neu' => [self::SCHWER,
+            'Der bisherige Link des Kunden gilt danach nicht mehr — auch der in E-Mails, die schon '
+            . 'rausgegangen sind.',
+            'Ja, neuen Link erzeugen'],
+        'gespraech_loeschen' => [self::SCHWER,
+            'Die Gespräche verschwinden endgültig, samt ihrer Spur im Verlauf.',
+            'Ja, löschen'],
+        'verlauf_loeschen' => [self::SCHWER,
+            'Die Verlaufseinträge verschwinden endgültig.',
+            'Ja, Verlauf löschen'],
+        /* Warum eine geloeschte Mailzeile schwer wiegt: Die Tabelle mails ist
+           das Gedaechtnis dafuer, was schon rausging. Ohne den Eintrag kann
+           dieselbe Mail ein zweites Mal beim Kunden landen. */
+        'mail_loeschen' => [self::SCHWER,
+            'Der Eintrag verschwindet — und damit das Gedächtnis, dass diese E-Mail schon rausging. '
+            . 'Sie kann danach ein zweites Mal verschickt werden.',
+            'Ja, Eintrag löschen'],
+        'mails_fehler_loeschen' => [self::SCHWER,
+            'Alle nicht gesendeten Einträge verschwinden — damit auch die Spur, was nicht angekommen ist.',
+            'Ja, alle löschen'],
+        'bedarf_loeschen' => [self::SCHWER,
+            'Der Bedarf verschwindet endgültig.',
+            'Ja, löschen'],
+        'bedarf_aufraeumen' => [self::SCHWER,
+            'Mehrere Bedarfe verschwinden auf einmal, endgültig.',
+            'Ja, aufräumen'],
+        'empfehlung_aufraeumen' => [self::SCHWER,
+            'Verwaiste Empfehlungen verschwinden endgültig.',
+            'Ja, aufräumen'],
+        'paket_loeschen' => [self::SCHWER,
+            'Das Paket verschwindet endgültig aus dem Angebot.',
+            'Ja, Paket löschen'],
+        'muster_loeschen' => [self::SCHWER,
+            'Der Baustein verschwindet endgültig.',
+            'Ja, löschen'],
+        'telefon_schluessel_neu' => [self::SCHWER,
+            'Der bisherige Telefon-Schlüssel gilt danach nicht mehr. Bis der neue bei STRATO eingetragen '
+            . 'ist, nimmt die Assistentin keine Anrufe an.',
+            'Ja, neuen Schlüssel'],
+        'werkstatt_schluessel_neu' => [self::SCHWER,
+            'Der bisherige Schlüssel gilt danach nicht mehr — Claude Code kommt erst wieder herein, '
+            . 'wenn der neue auf dem Rechner liegt.',
+            'Ja, neuen Schlüssel'],
+        'werkstatt_schluessel_weg' => [self::SCHWER,
+            'Danach antwortet die Werkstatt niemandem mehr. Claude Code kann keine Kundenseite mehr bauen.',
+            'Ja, Schlüssel entfernen'],
+        'versand_schluessel_weg' => [self::SCHWER,
+            'Ohne diesen Schlüssel geht keine einzige E-Mail mehr raus — an niemanden.',
+            'Ja, Schlüssel entfernen'],
+        'zuruf_weg' => [self::SCHWER,
+            'Der Zuruf aufs Handy hört danach auf zu funktionieren.',
+            'Ja, entfernen'],
+        'strato_loeschen' => [self::SCHWER,
+            'Der hinterlegte STRATO-Zugang verschwindet.',
+            'Ja, entfernen'],
+        'chef_codewort' => [self::SCHWER,
+            'Das bisherige Codewort gilt danach nicht mehr.',
+            'Ja, neues Codewort'],
+        'chef_codewort_weg' => [self::SCHWER,
+            'Der Chef-Modus am Telefon ist danach zu.',
+            'Ja, Codewort entfernen'],
     ];
 
     /**
@@ -283,6 +433,77 @@ final class Ablauf
         $da = 0;
         foreach ($liste as $p) { if ($p['da']) { $da++; } }
         return ['da' => $da, 'von' => count($liste), 'punkte' => $liste];
+    }
+
+    /* =====================================================================
+       WAS DANACH KOMMT
+
+       Uwe, 13.09.2026: „alles im besten Fall mit klarer Führung, wo manuell
+       eingegriffen werden soll."
+
+       Die Verwaltung konnte immer sagen, was JETZT dran ist. Was danach
+       kommt, stand nirgends — und genau daran merkt man, ob eine Kette
+       haelt: Wer den naechsten Schritt tut, ohne den uebernaechsten zu
+       kennen, weiss hinterher nicht, ob er fertig ist oder etwas vergessen
+       hat.
+
+       WARUM DAS NICHT ERFUNDEN WIRD
+
+       Es waere leicht gewesen, eine Liste „nach A kommt B" hinzuschreiben.
+       Die haette in dem Augenblick gelogen, in dem ein Schritt uebersprungen
+       wird — und uebersprungen wird staendig, weil Tatsachen keine
+       Reihenfolge kennen (siehe BELEGT weiter unten).
+
+       Deshalb kommt das „Danach" aus derselben Quelle wie das „Jetzt": aus
+       der Checkliste der Stufe. Der naechste offene Punkt ist das Jetzt, der
+       uebernaechste das Danach. Ist die Stufe durch, wird in der naechsten
+       weitergesucht — bis etwas offen ist oder es wirklich nichts mehr gibt.
+       ===================================================================== */
+
+    /**
+     * Der Punkt nach dem, der gerade dran ist.
+     *
+     * @return array{was:string,wer:string,stufe:string}|null
+     *         null heisst: Danach kommt nichts mehr.
+     */
+    public static function danach(array $v): ?array
+    {
+        $offen = [];
+        foreach (self::checkliste($v) as $punkt) {
+            if (!$punkt['da']) { $offen[] = $punkt + ['stufe' => (string) ($v['stufe'] ?? '')]; }
+        }
+        /* Zwei offene Punkte in dieser Stufe: der zweite ist das Danach. */
+        if (count($offen) >= 2) { return $offen[1]; }
+
+        /* Nur noch einer (oder keiner) — dann steht das Danach in der
+           naechsten Stufe. Gesucht wird mit einer Kopie des Vorgangs, deren
+           Stufe weitergestellt ist: Die Checkliste liest ohnehin nur Daten,
+           sie entscheidet nichts. Gespeichert wird nichts. */
+        $stufen = array_keys(self::stufenliste());
+        $hier = array_search((string) ($v['stufe'] ?? ''), $stufen, true);
+        if ($hier === false) { return null; }
+
+        for ($i = $hier + 1; $i < count($stufen); $i++) {
+            $probe = $v;
+            $probe['stufe'] = $stufen[$i];
+            foreach (self::checkliste($probe) as $punkt) {
+                if (!$punkt['da']) {
+                    return $punkt + ['stufe' => $stufen[$i]];
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Die Stufen in ihrer Reihenfolge. Steht in Vorgang, wird aber hier
+     * gebraucht — und Ablauf soll Vorgang nicht laden muessen, nur um eine
+     * Liste zu lesen.
+     */
+    private static function stufenliste(): array
+    {
+        require_once __DIR__ . '/Vorgang.php';
+        return Vorgang::STUFEN;
     }
 
     /* =====================================================================

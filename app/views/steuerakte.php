@@ -97,15 +97,15 @@
       </tbody></table></div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
-        <a class="knopf haupt" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/paket')) ?>">Alles als ZIP</a>
-        <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/einnahmen')) ?>">Zahlungseingänge</a>
-        <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/abgrenzung')) ?>">Jahreswechsel</a>
-        <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/forderungen')) ?>"
+        <a class="knopf haupt" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/paket')) ?>">Alles als ZIP</a>
+        <a class="knopf" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/einnahmen')) ?>">Zahlungseingänge</a>
+        <a class="knopf" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/abgrenzung')) ?>">Jahreswechsel</a>
+        <a class="knopf" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/forderungen')) ?>"
            title="Was am 31.12. noch aussteht — steuerlich nicht zu zählen, aber der Commercialista fragt danach">Offene Forderungen</a>
-        <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/verzeichnis')) ?>">Belegverzeichnis</a>
-        <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/ausgaben')) ?>">Ausgaben</a>
+        <a class="knopf" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/verzeichnis')) ?>">Belegverzeichnis</a>
+        <a class="knopf" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/ausgaben')) ?>">Ausgaben</a>
         <?php if ((int) $a['rc_netto'] > 0): ?>
-          <a class="knopf" href="<?= Fmt::h(url('steuerakte/' . (int) $j . '/reversecharge')) ?>">Reverse Charge</a>
+          <a class="knopf" href="<?= Fmt::h(url('finanzamt/' . (int) $j . '/reversecharge')) ?>">Reverse Charge</a>
         <?php endif; ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline;margin:0">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="steuerakte_bauen">

@@ -172,6 +172,51 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
   <?php endforeach; ?>
 </div>
 
+<?php /* ---------- DIE ZEILE, DIE NIE ABREISST ----------
+         Die Verwaltung konnte immer sagen, was JETZT dran ist. Was danach
+         kommt, stand nirgends — und genau daran merkt man, ob eine Kette
+         hält: Wer den nächsten Schritt tut, ohne den übernächsten zu kennen,
+         weiß hinterher nicht, ob er fertig ist oder etwas vergessen hat.
+
+         Beides kommt aus derselben Quelle, der Checkliste der Stufe. Eine
+         Liste „nach A kommt B" hätte in dem Augenblick gelogen, in dem ein
+         Schritt übersprungen wird — und übersprungen wird ständig.
+
+         Steht die Zeile leer, ist wirklich nichts mehr offen. Dann steht
+         auch das da, statt eines Strichs. */ ?>
+<?php
+$kettenJetzt = null;
+foreach ($stand['punkte'] as $punkt) {
+    if (!$punkt['da']) { $kettenJetzt = $punkt; break; }
+}
+$kettenDanach = sicher(static fn() => Ablauf::danach($v), null);
+$kettenNr     = $v['stufe_nr'] + 1;
+$kettenVon    = count(Vorgang::STUFEN);
+/* Die Punkte der Checkliste sind Zustaende, keine Befehle: „Kunde hat den
+   Link", nicht „Link schicken". Als „Jetzt: Kunde hat den Link" gelesen
+   klingt das wie eine Tatsache — also „Fehlt noch:". Damit stimmt der Satz
+   und man weiss sofort, ob man gemeint ist. Der Befehl steht ohnehin
+   darunter auf dem blauen Knopf. */
+$kettenWer = static fn(array $p): string => ($p['wer'] ?? 'du') === 'kunde' ? ' — beim Kunden' : '';
+?>
+<p class="kette">
+  <span class="kette__wo">Schritt <?= (int) $kettenNr ?> von <?= (int) $kettenVon ?></span>
+  <?php if ($kettenJetzt !== null): ?>
+    <span class="kette__jetzt"><b>Fehlt noch:</b> <?= Fmt::h((string) $kettenJetzt['was']) ?><?=
+      Fmt::h($kettenWer($kettenJetzt)) ?></span>
+  <?php else: ?>
+    <span class="kette__jetzt"><b>Diese Stufe ist durch.</b></span>
+  <?php endif; ?>
+  <?php if ($kettenDanach !== null): ?>
+    <span class="kette__danach"><b>Danach:</b> <?= Fmt::h((string) $kettenDanach['was']) ?><?=
+      Fmt::h($kettenWer($kettenDanach)) ?><?php
+      if ((string) ($kettenDanach['stufe'] ?? '') !== (string) $v['stufe']): ?>
+        <i>(<?= Fmt::h(Vorgang::STUFEN[$kettenDanach['stufe']] ?? '') ?>)</i><?php endif; ?></span>
+  <?php else: ?>
+    <span class="kette__danach">Danach kommt nichts mehr — der Vorgang ist durch.</span>
+  <?php endif; ?>
+</p>
+
 <?php /* ---------- Der nächste Handgriff ---------- */ ?>
 <div class="dran <?= $v['dran'] === Vorgang::DU ? '' : 'wartet' ?>">
   <h2>

@@ -3690,3 +3690,100 @@ Geprüft: alle drei Sprachen laden die Bühne (5.232 Dreiecke), keine
 Fehlermeldung in der Konsole, kein 4xx, kein Querlauf; neun Abschnitte einzeln
 angefahren und angesehen. Bei „Haltung" stand die Überschrift auf der hellen
 Marke — Schleier dort von 0,48 auf 0,68.
+
+### Die Zeile, die Rückfragen und fünf Türen (13.09.2026, abends)
+
+Vorschläge 6, 5 und 3 aus derselben Liste wie der Eintrag davor. Uwe: „Ok mach."
+
+#### Eine Zeile, die nie abreißt (6)
+
+Über allem auf der Vorgangsseite: **„Schritt 5 von 9 · Fehlt noch: Abnahme ist
+gelaufen · Danach: Kunde hat abgenommen — beim Kunden."**
+
+Die Verwaltung konnte immer sagen, was *jetzt* dran ist. Was danach kommt,
+stand nirgends — und genau daran merkt man, ob eine Kette hält: Wer den
+nächsten Schritt tut, ohne den übernächsten zu kennen, weiß hinterher nicht,
+ob er fertig ist oder etwas vergessen hat.
+
+**Das „Danach" wird nicht erfunden.** Eine Liste „nach A kommt B" hätte in dem
+Augenblick gelogen, in dem ein Schritt übersprungen wird — und übersprungen
+wird ständig, weil Tatsachen keine Reihenfolge kennen. `Ablauf::danach()`
+nimmt deshalb denselben Weg wie das „Jetzt": den nächsten offenen Punkt der
+Checkliste. Ist die Stufe durch, wird in der nächsten weitergesucht, bis etwas
+offen ist oder wirklich nichts mehr kommt — dann steht das auch da.
+
+Die Wörter mussten zweimal gesetzt werden: „Jetzt: Kunde hat den Link" liest
+sich wie eine Tatsache, nicht wie etwas Offenes. Die Punkte der Checkliste
+*sind* Zustände, keine Befehle. Also „Fehlt noch:". Der Befehl steht ohnehin
+darunter auf dem blauen Knopf.
+
+#### Jeder Knopf, der das Haus verlässt, fragt vorher (5)
+
+Vorher: **12 von 130**. Jetzt: **51 von 131** (39 %). Dazugekommen ist nur, was
+eine von vier Wirkungen hat — eine E-Mail an den *Kunden*, etwas in den
+Büchern, etwas für Fremde Sichtbares, oder etwas endgültig Weges. Alles andere
+schweigt weiter; sonst wird die Rückfrage zur Gewohnheit, und eine Gewohnheit
+hält niemanden auf.
+
+Dass es nur zwölf waren, hieß nie „wir fragen sparsam", sondern „wir haben nie
+zu Ende gezählt". Ein Unteragent hat alle 131 Handgriffe einzeln gelesen und
+nach Wirkung sortiert; daraus wurde die Liste. Neu mit Rückfrage sind unter
+anderem `nachricht_senden`, `mahnung_schicken`, `angebot_senden`,
+`zahlung_bestaetigen`, `cron_jetzt` (stößt Erinnerungen und Mahnungen an alle
+Fälligen an), `cockpit_frei`, `kundenlink_neu` und `versand_schluessel_weg`
+(„Ohne diesen Schlüssel geht keine einzige E-Mail mehr raus — an niemanden").
+
+Die Kette prüft jetzt vier Dinge daran: dass jeder Eintrag einen Handgriff
+trifft, den es gibt; dass jede Frage ein ganzer Satz ist; dass keine „Sind Sie
+sicher?" fragt (wer das liest, antwortet Ja, ohne gelesen zu haben); und dass
+jeder Ja-Knopf sagt, wozu man Ja sagt.
+
+#### Fünf Türen (3)
+
+`Heute · Kunden · Geld · Bauen · Einstellungen`. Die Tür, in der man steht,
+klappt auf und zeigt ihre Nachbarn — sonst nichts. Die Zahl an einer
+zugeklappten Tür ist die **Summe dahinter**: Zugeklappt heißt nicht, dass dort
+nichts wartet.
+
+Fünfundzwanzig flache Einträge, dann achtundzwanzig in sechs Gruppen, dann
+sieben plus vierundzwanzig unter „Alles andere" — jeder Schritt war eine
+Verbesserung, keiner löste das Problem. Die Ursache war nie die Zahl, sondern
+die Ordnung: sortiert wurde nach Tabellen, und sechs dieser Tabellen sind sechs
+Blicke auf denselben Kunden zu verschiedenen Momenten.
+
+„Was nicht läuft" und „Was passiert ist" hängen unter **Heute**, nicht unter
+Einstellungen: Achtzehn offene Warnungen neben dem Wort „Einstellungen" heißen
+für jeden Leser, dass mit den Einstellungen etwas nicht stimmt.
+
+#### Vier Seiten, die es gab und die niemand erreichte
+
+Beim Durchrendern aller Menüpunkte gefunden: **„Ausgaben", „Betreuung",
+„Kundenstimmen" und „Fürs Finanzamt" standen seit jeher im Menü und
+antworteten mit 404.** Die Ansichten lagen fertig unter `app/views/`, die
+Klassen dahinter auch — nur der Weg dorthin fehlte. Aufgefallen ist es nie,
+weil niemand sie anklickte; und niemand klickte sie an, weil sie in der
+zweiten Hälfte einer Liste von vierundzwanzig standen. Genau das meint
+„nichts darf unübersichtlich sein": In einem Menü aus fünf Wörtern fällt ein
+toter Punkt am ersten Tag auf.
+
+Alle vier haben jetzt ihre Route, die Steuerseite samt ihrer sieben Downloads.
+
+**Und ein Fehler, den ich fast ausgeliefert hätte:** Die Steuerseite hieß
+`steuerakte` — genau wie der Ordner `app/steuerakte/`, in dem die fertigen
+Jahrespakete liegen. Die Umleitung in `app/.htaccess` lässt echte Verzeichnisse
+ausdrücklich in Ruhe (`RewriteCond !-d`), und der Ordner sperrt sich selbst mit
+`Require all denied`. Der Aufruf wäre also nicht die Seite gewesen, sondern ein
+403 — und zwar erst, **sobald das erste Jahrespaket geschrieben ist**. Vorher
+hätte es monatelang funktioniert. Die Seite heißt jetzt `finanzamt`, wie ihr
+Menüpunkt. Die Kette prüft seither zwei Dinge: dass jeder Menüpunkt einen Fall
+im Verteiler hat, und dass keiner heißt wie ein Ordner unter `app/`.
+
+#### Geprüft
+
+Abschnitt 52, 76 Prüfungen — **1179 insgesamt, alle grün**. Dazu **33 Seiten in
+beiden Modi wirklich gerendert**: keine PHP-Meldung, kein Konsolenfehler, kein
+Querscrollen bei 390 Punkten. Eine Rückfrage im Browser ausgelöst und geprüft,
+dass sie aufhält und nach „Abbrechen" nichts abgeschickt wurde.
+
+**Noch offen (Vorschläge 7, 8, 9):** eine ehrliche Liste „Was hängt gerade?" ·
+deutsche Wörter statt Fachbegriffe · eine Seite „Damit alles läuft".
