@@ -89,7 +89,7 @@ final class Einrichtung
             if (in_array($name, $erledigt, true)) { continue; }
             $sql = (string) file_get_contents($pfad);
             $sql = preg_replace('~^\s*--.*$~m', '', $sql) ?? $sql;
-            foreach (array_filter(array_map('trim', explode(';', $sql))) as $anweisung) {
+            foreach (self::anweisungen($sql) as $anweisung) {
                 try {
                     Db::pdo()->exec($anweisung);
                 } catch (PDOException $e) {
@@ -103,6 +103,90 @@ final class Einrichtung
             $neu[] = $name;
         }
         return $neu;
+    }
+
+    /**
+     * Zerlegt eine Migrationsdatei in einzelne Anweisungen.
+     *
+     * WARUM DAS NICHT explode(';', ...) SEIN DARF
+     *
+     * Genau das stand hier bis zum 13.09.2026, und es ging lange gut, weil in
+     * keiner Migration ein Semikolon innerhalb einer Zeichenkette vorkam. In
+     * Migration 048 kam eines vor — in einem englischen Satz:
+     *
+     *   text_en = 'I write the text for every page; you read it before ...'
+     *
+     * Der Teiler schnitt mitten hinein, und die Datenbank bekam zwei Haelften
+     * zu sehen, von denen keine eine Anweisung ist. Die Migration lief nicht,
+     * die Kette stand rot, und der Grund stand in keiner Zeile, die nach dem
+     * Fehler aussah.
+     *
+     * Der naheliegende Ausweg waere gewesen, das Semikolon aus dem Satz zu
+     * nehmen. Dann steht die Falle weiter da und schnappt beim naechsten Text
+     * zu, den jemand ohne Hintergedanken schreibt — und Migrationen schreiben
+     * heisst oft, Saetze fuer Kunden einzutragen.
+     *
+     * Also zaehlt dieser Zerleger mit, ob er gerade in einer Zeichenkette
+     * steht. Beachtet werden die drei Begrenzer, die MariaDB kennt (', " und
+     * der Backtick fuer Namen), die Verdopplung als Fluchtweg ('' innerhalb
+     * von '...') und der Backslash, den MariaDB in Zeichenketten ebenfalls
+     * als Fluchtweg zulaesst.
+     *
+     * @return list<string> Anweisungen ohne Semikolon, Leeres entfernt
+     */
+    private static function anweisungen(string $sql): array
+    {
+        $aus = [];
+        $jetzt = '';
+        $inZeichen = null;          // ', " oder ` — oder null ausserhalb
+        $laenge = strlen($sql);
+
+        for ($i = 0; $i < $laenge; $i++) {
+            $z = $sql[$i];
+
+            if ($inZeichen !== null) {
+                $jetzt .= $z;
+                /* Ein Backslash nimmt das naechste Zeichen mit, was immer es
+                   ist — auch einen Begrenzer. */
+                if ($z === '\\' && $i + 1 < $laenge) { $jetzt .= $sql[++$i]; continue; }
+                if ($z === $inZeichen) {
+                    /* Zwei gleiche hintereinander sind kein Ende, sondern ein
+                       geschriebenes Anfuehrungszeichen: 'L''Aquila'. */
+                    if ($i + 1 < $laenge && $sql[$i + 1] === $inZeichen) {
+                        $jetzt .= $sql[++$i];
+                        continue;
+                    }
+                    $inZeichen = null;
+                }
+                continue;
+            }
+
+            if ($z === "'" || $z === '"' || $z === '`') {
+                $inZeichen = $z;
+                $jetzt .= $z;
+                continue;
+            }
+            if ($z === ';') { $aus[] = $jetzt; $jetzt = ''; continue; }
+            $jetzt .= $z;
+        }
+        $aus[] = $jetzt;
+
+        return array_values(array_filter(array_map('trim', $aus),
+            static fn (string $a): bool => $a !== ''));
+    }
+
+    /**
+     * Nur fuer die Kettenpruefung: den Zerleger von aussen ansehen.
+     *
+     * Ohne diese Tuer liesse sich die Regel nur ueber eine echte Migration
+     * pruefen — also erst, nachdem jemand eine geschrieben hat, die sie
+     * verletzt.
+     *
+     * @return list<string>
+     */
+    public static function anweisungenFuerPruefung(string $sql): array
+    {
+        return self::anweisungen($sql);
     }
 
     /**

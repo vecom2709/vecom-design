@@ -5619,7 +5619,7 @@ Modus::vergessen();
    die Regel: Mehr Seiten müssen mehr Übersetzung kosten, und was auf der
    Website steht, muss aus derselben Rechnung kommen wie das Angebot.
    ============================================================================ */
-abschnitt('54. Die Sprache kostet je Seite');
+abschnitt('54. Was mit dem Auftrag wächst, wächst im Preis mit');
 
 require_once dirname(__DIR__) . '/src/Baukasten.php';
 $spKatalog = Baukasten::katalog();
@@ -5780,6 +5780,167 @@ $spNeu['sprache']['einheit'] = 'seite';
 [$spNeuVon, ] = $spStueck($spRezepte['f3'], $spNeu);
 pruefe('die Spalte allein schaltet die Rechnung um', (int) $spNeuVon === 1900,
     $spNeuVon . ' €');
+
+/* ---------- Der Teiler, der Migration 048 fast gekostet hätte ------------- */
+/* Der Migrationslauf zerlegte die Datei mit explode(';', …). Das ging lange
+   gut, weil nie ein Semikolon in einer Zeichenkette stand. In 048 stand eines
+   — in einem englischen Satz —, der Teiler schnitt mitten hinein, und die
+   Datenbank bekam zwei Hälften zu sehen, von denen keine eine Anweisung ist.
+
+   Das Semikolon aus dem Satz zu nehmen hätte die Falle stehen lassen. Also
+   zählt der Teiler jetzt mit, ob er in einer Zeichenkette steht — und diese
+   Prüfungen halten das fest, ohne dass jemand erst eine Migration schreiben
+   muss, die daran scheitert. */
+require_once dirname(__DIR__) . '/src/Einrichtung.php';
+foreach ([
+    ['zwei Anweisungen bleiben zwei',
+     "UPDATE t SET a = 1; UPDATE t SET b = 2;", 2],
+    ['ein Semikolon im Text teilt nicht',
+     "UPDATE t SET s = 'eins; zwei';", 1],
+    ['ein verdoppeltes Hochkomma beendet die Zeichenkette nicht',
+     "UPDATE t SET s = 'L''Aquila; ja'; SELECT 1;", 2],
+    ['ein Backslash nimmt das nächste Zeichen mit',
+     "UPDATE t SET s = 'a\\'; b'; SELECT 1;", 2],
+    ['ein Semikolon im Tabellennamen teilt nicht',
+     'ALTER TABLE `tab;le` ADD x INT; SELECT 1;', 2],
+    ['leer bleibt leer', "   ;  ;  ", 0],
+] as [$spWas, $spSql, $spSoll]) {
+    $spIst = Einrichtung::anweisungenFuerPruefung($spSql);
+    pruefe($spWas, count($spIst) === $spSoll, count($spIst) . ' statt ' . $spSoll);
+}
+/* Und der Satz, an dem es aufgefallen ist — wörtlich aus Migration 048. */
+pruefe('der Satz aus Migration 048 bleibt eine Anweisung',
+    count(Einrichtung::anweisungenFuerPruefung(
+        "UPDATE bausteine SET text_en = 'I write the text for every page; "
+        . "you read it before it goes live.' WHERE slug = 'texte';")) === 1);
+
+/* ---------- Dieselbe Frage für jeden anderen Baustein --------------------- */
+/* WARUM DIESE PRUEFUNG DIE WICHTIGSTE DES ABSCHNITTS IST
+
+   Der Fehler bei der Sprache war kein Einzelfall, sondern ein Muster: eine
+   Pauschale für Arbeit, die mit jeder Seite mitwächst. Vier Bausteine hatten
+   ihn noch — Texte, Bilder, Inhaltsübernahme und der Eilzuschlag —, und bei
+   den Texten war er schlimmer als bei der Sprache, weil Texte und Bilder
+   AUTOMATISCH anfallen: Sie werden berechnet, sobald der Kunde sie unter
+   „Was hast du schon fertig?" nicht ankreuzt, und das ist der Normalfall.
+
+   Geprüft wird deshalb beides, und die zweite Hälfte ist die, die beim
+   nächsten Mal hilft: Was pauschal bleiben MUSS, darf nicht je Seite
+   gerechnet werden. Eine Buchung für eine Ferienwohnung wird nicht billiger,
+   weil die Seite klein ist. Wer den Fehler repariert und dabei über das Ziel
+   hinausschießt, macht ihn nur in die andere Richtung. */
+$spJeSeite  = ['sprache', 'texte', 'fotos', 'uebernahme', 'express'];
+$spPauschal = ['basis', 'seite', 'speisekarte', 'termine', 'buchung', 'shop', 'logo'];
+foreach ($spJeSeite as $spSlug) {
+    pruefe("$spSlug wächst mit der Seitenzahl",
+        (string) ($spKatalog[$spSlug]['einheit'] ?? '') === 'seite'
+        && (int) ($spKatalog[$spSlug]['je_einheit'] ?? 0) === 1,
+        (string) ($spKatalog[$spSlug]['einheit'] ?? 'fehlt'));
+}
+foreach ($spPauschal as $spSlug) {
+    pruefe("$spSlug wird einmal gebaut und bleibt pauschal",
+        (string) ($spKatalog[$spSlug]['einheit'] ?? 'stueck') !== 'seite',
+        (string) ($spKatalog[$spSlug]['einheit'] ?? 'stueck'));
+}
+
+/* Und die Folge in Geld: Wer fünfzehn Seiten schreiben lässt, zahlt mehr als
+   wer eine schreiben lässt. Vor Migration 048 war das auf den Cent gleich. */
+$spOhneMaterial = static function (string $umfang) use ($spKatalog): array {
+    $r = Baukasten::rechnen(['zweck' => ['zeigen'], 'umfang' => $umfang, 'sprachen' => 1,
+        'material' => [], 'bestand' => 'erneuern', 'zeit' => 'schnell',
+        'betreuung' => 'nein'], $spKatalog);
+    $aus = [];
+    foreach ($r['positionen'] as $p) { $aus[(string) $p['slug']] = (int) $p['von_cents']; }
+    return $aus;
+};
+$spEins = $spOhneMaterial('eine');
+$spViele = $spOhneMaterial('viele');
+foreach (['texte' => 'Texte', 'fotos' => 'Bilder', 'uebernahme' => 'Übernahme',
+          'express' => 'Eilzuschlag'] as $spSlug => $spWort) {
+    pruefe("$spWort für fünfzehn Seiten kostet das Fünfzehnfache von einer",
+        ($spViele[$spSlug] ?? 0) === ($spEins[$spSlug] ?? 0) * 15,
+        (($spEins[$spSlug] ?? 0) / 100) . ' € → ' . (($spViele[$spSlug] ?? 0) / 100) . ' €');
+}
+/* Die Untergrenze, an der der Fehler sichtbar wurde: Texte für fünfzehn
+   Seiten standen mit 9,30 € je Seite in der Rechnung. */
+pruefe('keine geschriebene Seite unter zwanzig Euro',
+    (int) ($spViele['texte'] ?? 0) / 15 >= 2000,
+    (($spViele['texte'] ?? 0) / 15 / 100) . ' € je Seite');
+
+/* Texte und Bilder fallen von allein an — deshalb wiegt der Fehler dort
+   schwerer als anderswo. Diese Prüfung hält fest, dass es so gemeint ist. */
+$spNichtsFertig = $spOhneMaterial('wenige');
+pruefe('wer nichts angekreuzt hat, bekommt Texte und Bilder berechnet',
+    isset($spNichtsFertig['texte'], $spNichtsFertig['fotos']));
+$spAllesFertig = Baukasten::rechnen(['zweck' => ['zeigen'], 'umfang' => 'wenige',
+    'sprachen' => 1, 'material' => ['texte', 'fotos', 'logo'], 'bestand' => 'neu',
+    'zeit' => 'offen', 'betreuung' => 'nein'], $spKatalog);
+$spHatInhalt = false;
+foreach ($spAllesFertig['positionen'] as $spP) {
+    if (in_array((string) $spP['slug'], ['texte', 'fotos'], true)) { $spHatInhalt = true; }
+}
+pruefe('und wer sie hat, bekommt sie nicht', !$spHatInhalt);
+
+/* Der häufigste Fall zahlt nach dieser Runde dasselbe wie davor — daran hängt
+   die Behauptung, es sei eine Reparatur und keine Preiserhöhung. */
+pruefe('fünf Seiten Texte kosten weiter 140 € wie die alte Pauschale',
+    (int) ($spNichtsFertig['texte'] ?? 0) === 14000,
+    (($spNichtsFertig['texte'] ?? 0) / 100) . ' €');
+pruefe('fünf Seiten Bilder weiter 105 €',
+    (int) ($spNichtsFertig['fotos'] ?? 0) === 10500,
+    (($spNichtsFertig['fotos'] ?? 0) / 100) . ' €');
+
+/* Die Buchung stand unter dem Shop, obwohl Verfügbarkeit, Zeiträume,
+   Saisonpreise und eine Bestätigung, die von allein rausgeht, ihm an Arbeit
+   nicht nachstehen. */
+pruefe('die Buchung steht nicht mehr weit unter dem Shop',
+    (int) $spKatalog['buchung']['preis_cents'] >= (int) ($spKatalog['shop']['preis_cents'] * 0.8),
+    ((int) $spKatalog['buchung']['preis_cents'] / 100) . ' € gegen '
+    . ((int) $spKatalog['shop']['preis_cents'] / 100) . ' €');
+pruefe('und die Speisekarte nicht mehr bei der Hälfte der Termine',
+    (int) $spKatalog['speisekarte']['preis_cents'] > (int) ($spKatalog['termine']['preis_cents'] * 0.6),
+    ((int) $spKatalog['speisekarte']['preis_cents'] / 100) . ' € gegen '
+    . ((int) $spKatalog['termine']['preis_cents'] / 100) . ' €');
+
+/* Der Shop versprach auf der Preisseite, der Preis hänge „vor allem an der
+   Zahl der Artikel" — eine Frage, die es im Konfigurator nicht gibt und die
+   er deshalb nicht halten kann. Acht Fragen sind die Grenze; also geht das
+   Versprechen, nicht die Frage dazu. */
+foreach (['de/preise.html' => 'Der Preis deckt den Aufbau',
+          'prezzi.html'    => 'Il prezzo copre la costruzione',
+          'en/pricing.html'=> 'The price covers the build'] as $spDatei => $spWort) {
+    $spHtml = (string) @file_get_contents($spWurzel . '/' . $spDatei);
+    pruefe("$spDatei verspricht beim Shop nichts, was der Konfigurator nicht kann",
+        str_contains($spHtml, $spWort)
+        && !str_contains($spHtml, 'Zahl der Artikel')
+        && !str_contains($spHtml, 'quanti prodotti ci sono')
+        && !str_contains($spHtml, 'how many products there are'));
+}
+
+/* ---------- Und was in der Preistabelle steht ---------------------------- */
+/* Der Rückfall der Bausteintabelle ist dieselbe Falle wie der der vier Fälle:
+   Antwortet die Verwaltung nicht, ist er die einzige Zahl auf der Seite. */
+$spGeld = static function (int $cents, bool $englisch): string {
+    $v = (int) round($cents / 100);
+    return $englisch ? '€' . number_format($v, 0, '.', ',') : number_format($v, 0, ',', '.');
+};
+foreach (['prezzi.html' => false, 'de/preise.html' => false, 'en/pricing.html' => true]
+         as $spDatei => $spEng) {
+    $spHtml = (string) @file_get_contents($spWurzel . '/' . $spDatei);
+    $spGut = $spHtml !== ''; $spFehlt = '';
+    foreach ($spKatalog as $spSlug => $spB) {
+        if (in_array((string) $spSlug, Baukasten::NUR_AUF_ANFRAGE, true)) { continue; }
+        $spV = (int) $spB['preis_cents'];
+        $spO = (int) $spB['preis_bis_cents'];
+        $spText = $spEng
+            ? $spGeld($spV, true) . ($spO > $spV ? ' – ' . number_format((int) round($spO / 100), 0, '.', ',') : '')
+            : $spGeld($spV, false) . ($spO > $spV ? ' – ' . $spGeld($spO, false) : '') . ' €';
+        if (!str_contains($spHtml, 'data-preis="' . $spSlug . '">' . $spText . '<')) {
+            $spGut = false; $spFehlt .= ' ' . $spSlug . '=' . $spText;
+        }
+    }
+    pruefe("die Preistabelle in $spDatei trägt die Preise des Baukastens", $spGut, trim($spFehlt));
+}
 
 /* ---------- Und die Beschriftung, wegen der es auffiel ------------------- */
 /* „Eine einzige Seite — 325 bis 400 Euro" las sich wie ein Seitenpreis. Es ist

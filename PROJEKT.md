@@ -4108,3 +4108,116 @@ Setzen der Spalte allein muss die Rechnung umschalten. **1282 Prüfungen, alle
 grün.** Auch die Prüfung der HTML-Rückfälle geht jetzt über `rechnen()` statt
 über eine abgeschriebene Postenliste — sonst hätte sie ihre eigene Abschrift
 geprüft.
+
+### 13.09.2026 — Was mit dem Auftrag wächst, wächst im Preis mit
+
+Uwe nach der Sprachrunde: „Schau nochmal, ob die anderen Bausteine auch
+realistisch sind."
+
+Der Fehler bei der Sprache war kein Einzelfall, sondern ein **Muster**: eine
+Pauschale für Arbeit, die mit jeder Seite mitwächst. Vier Bausteine hatten ihn
+noch.
+
+|  | pauschal | 1 Seite | 5 Seiten | 15 Seiten |
+|---|---|---|---|---|
+| Texte schreiben | 140–185 € | 140 €/Seite | 28 €/Seite | **9,30 €/Seite** |
+| Bilder | 105–140 € | 105 €/Seite | 21 €/Seite | **7,00 €/Seite** |
+| Inhalte übernehmen | 105–140 € | 105 €/Seite | 21 €/Seite | **7,00 €/Seite** |
+
+Bei den Texten wog er schwerer als bei der Sprache, weil **Texte und Bilder von
+allein anfallen**: Sie werden berechnet, sobald der Kunde sie unter „Was hast du
+schon fertig?" nicht ankreuzt — und das ist der Normalfall. Ein Hotel mit
+fünfzehn Seiten in drei Sprachen bekam eine Zeile über 140 Euro, hinter der
+45 Seitenfassungen Text stehen.
+
+`express` hatte denselben Fehler andersherum: 170–230 Euro fest sind beim
+Einseiter dreißig Prozent Aufschlag und beim Hotel fünf — dabei ist Vorrang bei
+einem großen Auftrag viel mehr Verschiebung.
+
+#### Der Satz ist der heutige Preis geteilt durch fünf
+
+„Wenige Seiten (3–5)" ist der häufigste Fall. Wer ihn bestellt, zahlt nach
+dieser Runde **auf den Cent dasselbe** wie vorher. Das ist Absicht: Es wird eine
+Rechenregel repariert, nicht der Preis erhöht. Bewegen tun sich nur die Enden.
+
+| | vorher | nachher |
+|---|---|---|
+| Handwerker, 1 Seite, 1 Sprache | 575–725 | 375–475 |
+| Trattoria, 5 Seiten, 3 Sprachen | 1.350–1.800 | 1.400–1.850 |
+| Laden, 9 Seiten, Shop | 2.250–2.950 | 2.500–3.350 |
+| Hotel, 15 Seiten, eilig | 3.400–4.600 | 4.600–6.200 |
+
+Die vier Beispiele auf der Startseite ändern sich **nicht**: Sie rechnen mit
+vollständigem Material und ohne Express, also kommt keiner der geänderten
+Bausteine darin vor.
+
+#### Was pauschal bleiben muss
+
+Speisekarte, Termine, Buchung, Shop, Logo. Die baut man einmal, unabhängig von
+der Seitenzahl — eine Buchung für eine Ferienwohnung wird nicht billiger, weil
+die Seite klein ist. Die Kette prüft das ausdrücklich **in beide Richtungen**:
+Was je Seite gerechnet werden muss, wird es; und was pauschal bleiben muss,
+darf es nicht werden. Wer einen Fehler repariert und dabei über das Ziel
+hinausschießt, macht ihn nur andersherum.
+
+Zwei Funktionen standen im Vergleich zu niedrig und stehen jetzt richtig:
+**Buchung 450–600 → 600–800** (Verfügbarkeit, Zeiträume, Saisonpreise und eine
+Bestätigung, die von allein rausgeht, stehen dem Shop an Arbeit nicht nach) und
+**Speisekarte 105–140 → 150–200** (nach Gruppen geordnet und ohne Code änderbar
+heißt: es gibt eine Bearbeitungsfläche).
+
+#### Ein Versprechen, das der Konfigurator nicht halten konnte
+
+Auf der Preisseite stand beim Shop: „Was es am Ende kostet, hängt vor allem an
+der Zahl der Artikel." Eine Frage nach der Artikelzahl gibt es nicht — acht
+Fragen sind die Grenze, und eine neunte wäre der falsche Preis für diesen Satz.
+Also geht der Satz: „Der Preis deckt den Aufbau — wie viele Artikel eingepflegt
+werden, steht im Angebot."
+
+#### Der Fund, der teurer geworden wäre als alles andere
+
+Migration 048 lief nicht. Der Grund stand in keiner Zeile, die nach einem
+Fehler aussah:
+
+```
+text_en = 'I write the text for every page; you read it before it goes live.'
+```
+
+Der Migrationslauf zerlegte die Datei mit `explode(';', $sql)`. Das ging Jahre
+gut, weil nie ein Semikolon **innerhalb einer Zeichenkette** stand. Hier stand
+eines — in einem englischen Satz —, der Teiler schnitt mitten hinein, und die
+Datenbank bekam zwei Hälften zu sehen, von denen keine eine Anweisung ist.
+
+Das Semikolon aus dem Satz zu nehmen wäre der schnelle Weg gewesen und hätte
+die Falle stehen lassen — für den nächsten, der einen Satz für Kunden einträgt,
+und Migrationen bestehen oft genau daraus. Der Teiler zählt jetzt mit, ob er in
+einer Zeichenkette steht: die drei Begrenzer von MariaDB (`'`, `"`, Backtick),
+die Verdopplung (`'L''Aquila'`) und der Backslash.
+
+Nebenbei aufgefallen: Die **englische Preistabelle** schrieb „345 – 400 €"
+statt „€345 – 400" — anders als die vier Fälle auf derselben Seite und anders
+als das, was `preise-daten.php` liefert. Die Seite hätte beim Laden ihr
+Aussehen gewechselt. Jetzt prüft die Kette auch die Preistabelle Zeile für
+Zeile gegen den Baukasten, nicht nur die vier Fälle.
+
+#### Geprüft
+
+**1.318 Prüfungen, alle grün.** Drei Sabotageproben:
+
+* Texte wieder pauschal → vier Prüfungen fallen, darunter „keine geschriebene
+  Seite unter zwanzig Euro" mit dem Wert **1,87 € je Seite**.
+* Der Shop je Seite gerechnet → der Fehler in die Gegenrichtung fällt in allen
+  sechs HTML-Dateien auf.
+* Der alte Teiler zurück → Migration 048 läuft nicht mehr, mit genau der
+  Fehlermeldung, die den Fund ausgelöst hat.
+
+Dazu alle drei Sprachfassungen der Preisseite bei 1440 und 390 Punkten mit
+laufender Verwaltung gerendert, und ein Angebot durchgerechnet: Dort steht
+jetzt „Texte schreiben, je Seite · 15 × · 420 – 555 €" statt einer Zeile über
+140 Euro.
+
+**Beobachtung, nicht geändert:** Die monatliche Betreuung ist 39 € — für einen
+Einseiter wie für fünfzehn Seiten in drei Sprachen mit Buchungssystem. Das ist
+derselbe Fehler wie oben, nur im Abo. Uwe hat in Migration 044 ausdrücklich
+entschieden, dass der Monatsbetrag nicht steigt; hier steht es nur, damit es
+beim nächsten Mal nicht wieder gefunden werden muss.
