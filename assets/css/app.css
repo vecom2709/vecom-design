@@ -1188,6 +1188,56 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   transition: opacity 400ms linear;
 }
 
+/* ---------------------------------------------------------------------------
+   DER TEXTSCHLEIER DES HERO
+
+   Der runde Schleier oben dunkelt die Ränder ab und lässt die Mitte hell —
+   richtig für jeden Abschnitt, in dem der Text mittig steht. Für den Hero ist
+   er das Falsche: Dort steht der Text links und die Bühne zeigt rechts die
+   Marke, und genau in der Mitte liegt die Spiegelung des Podests auf dem
+   Chromboden. Sie ist die hellste Fläche der ganzen Seite.
+
+   Gemessen am 13.09.2026 auf 1440x900, nachdem der Blender-Raum die Bühne
+   wurde: 35,6 % der Fläche des Fließtextes lagen unter 4.5:1, an der
+   schlechtesten Stelle bei 1.00 — dort war die Zeile schlicht nicht mehr da.
+   Drei Versuche, das über die Kamera zu lösen (weiter nach links, Blick nach
+   rechts), machten es schlechter statt besser: 58 %, 92 %, 100 %. Die
+   Spiegelung wandert mit der Marke; wer die Marke ins Bild holt, holt sie
+   mit.
+
+   Also der Schleier dorthin, wo der Text steht, statt die Kamera zu
+   verbiegen: ein Verlauf von der Textseite weg, der vor der Marke ausläuft.
+   Die Welt bleibt sichtbar — sie tritt nur auf der Textseite zurück. Auf
+   schmalen Schirmen gibt es kein Links und Rechts; dort läuft derselbe
+   Verlauf von unten nach oben, weil der Text dann unter der Bühne steht.
+   --------------------------------------------------------------------------- */
+[data-world="on"] .hero::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(100deg,
+    rgba(3, 5, 9, .96) 0%, rgba(3, 5, 9, .94) 44%,
+    rgba(3, 5, 9, .62) 54%, rgba(3, 5, 9, .26) 64%,
+    rgba(3, 5, 9, .06) 78%, rgba(3, 5, 9, 0) 90%);
+}
+/* Auf dem Telefon gibt es keine freie Bahn.
+   Am 13.09.2026 auf 390x844 ausgemessen, Zeile für Zeile: Der Text belegt
+   dort alles zwischen 110 px und 830 px — Kicker, Überschrift, Fließtext,
+   zwei Knöpfe, die Kennzahlen. Ein Verlauf, der von unten dunkel und nach
+   oben offen läuft, hat deshalb nichts zu öffnen: Wo er hell wird, steht
+   ebenfalls Text, und gemessen fielen 6,4 % des Fließtextes unter 4.5:1.
+
+   Also andersherum als im Showroom, wo unter den Knöpfen wirklich Platz
+   war: ein fast gleichmäßiger Schleier, der nur ganz oben aufmacht — dort
+   steht nur die Kopfzeile, und dort darf der Raum zu sehen sein. Die Marke
+   bleibt als dunkle Form dahinter erkennbar, statt gegen jede Zeile zu
+   kämpfen. */
+@media (max-width: 899px) {
+  [data-world="on"] .hero::after {
+    background: linear-gradient(180deg,
+      rgba(3, 5, 9, .26) 0%, rgba(3, 5, 9, .70) 13%,
+      rgba(3, 5, 9, .82) 34%, rgba(3, 5, 9, .86) 100%);
+  }
+}
+
 /* Alles Inhaltliche liegt über der Bühne. */
 main, .footer { position: relative; z-index: 2; }
 .progress, .grain, .vignette, .cursor, .cursor-dot { position: fixed; }

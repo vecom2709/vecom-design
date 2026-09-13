@@ -58,14 +58,34 @@ if (!canvas) {
 
 async function start() {
   const quality = new Quality(detectLevel());
-  let world, bindSiteBeats;
+  /* DIE BUEHNE IST SEIT DEM 13.09.2026 DER BLENDER-RAUM
+     ------------------------------------------------------------------
+     Vorher stand hier scene.js: eine im Code gebaute Welt mit einem aus
+     Konturpunkten extrudierten V, einem Boden, Staub und einem Halo. Sie
+     war gut gemacht -- aber sie war gerechnet, und man sah es.
+
+     Jetzt laedt raum.js den Raum, der in Blender gebaut wurde: Podest,
+     Portale, Deckenfelder, Displays mit echten Arbeiten, und die Marke als
+     Koerper mit eigenen Kanten. Ueber die Leitung kostet das 26 KB (die GLB
+     gezippt) plus drei Texturkarten -- weniger als das Bild, das frueher im
+     Hero stand.
+
+     scene.js, site-beats.js, bruch.js und logo-shape.js bleiben liegen: Der
+     Wechsel haengt an diesen beiden Zeilen, und wer zurueck will, tauscht
+     sie zurueck. */
+  let world, bindRaumBeats;
   try {
-    const [{ World }, beats] = await Promise.all([
-      import('./scene.js'),
-      import('./site-beats.js'),
+    const [{ Raum }, beats] = await Promise.all([
+      import('./raum.js'),
+      import('./raum-beats.js'),
     ]);
-    bindSiteBeats = beats.bindSiteBeats;
-    world = new World(canvas, quality);
+    bindRaumBeats = beats.bindRaumBeats;
+    world = new Raum(canvas, quality);
+    /* Ohne Modell keine Buehne. Waere hier kein Warten, saehe der Besucher
+       fuer einen Moment einen leeren, blauschwarzen Raum -- und bei einem
+       Ladefehler dauerhaft. Der Inhalt der Seite steht derweil laengst; das
+       Warten haelt nichts auf ausser dem Einblenden der Buehne selbst. */
+    await world.bereit;
   } catch (e) {
     console.warn('3D-Bühne nicht gestartet:', e);
     off('init-error');
@@ -88,7 +108,7 @@ async function start() {
   }
 
   await (document.fonts ? document.fonts.ready : Promise.resolve());
-  bindSiteBeats({ world, gsap, ScrollTrigger });
+  bindRaumBeats({ raum: world, gsap, ScrollTrigger });
 
     /* ----------------------------------------------------------------------
      DIE SONNE FOLGT DER UHR DES BESUCHERS

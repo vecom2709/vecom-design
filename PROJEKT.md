@@ -3624,3 +3624,69 @@ bei 390 Punkten. Screenshots über 1440 und 390.
 vorher, was passiert (12 von 130 tun es heute) · eine Zeile, die nie abreißt
 („Schritt 4 von 9 · jetzt X · danach Y") · eine ehrliche Liste „Was hängt
 gerade?" · deutsche Wörter statt Fachbegriffe · eine Seite „Damit alles läuft".
+### Der Showroom ist jetzt die Bühne der Startseite (13.09.2026)
+
+Uwe: „der neue showroom sollte auf die seite www.vecom-design.it deployed
+werden". Auf die Rückfrage, wie — eigene Seite, Ersatz für die Startseite oder
+neue Bühne dahinter — die Antwort: **neue Welt als Bühne der Startseite.**
+
+Damit bleibt alles, was verkauft: Hero, Arbeiten, Leistungen, Preise, Ablauf,
+Über mich, Haltung, Partner, Fragen, Kontakt — in Italienisch, Deutsch und
+Englisch, mit derselben Sitemap und denselben Adressen. Ausgetauscht ist nur,
+was dahinter steht.
+
+WAS VORHER DA WAR UND WARUM ES GEHT: `scene.js` baute die Welt im Code — ein
+aus Konturpunkten extrudiertes V, ein Boden, Staub, ein Halo, dazu ein
+Bruch-Shader für den Auftakt. Gut gemacht, aber gerechnet, und man sah es. Der
+Blender-Raum hat Podest, Portale, Deckenfelder, fünf Displays mit echten
+Arbeiten und eine Marke mit eigenen Kanten. Über die Leitung kostet er 26 KB
+(die GLB gezippt) plus drei Texturkarten.
+
+**Der Umbau hängt an zwei Zeilen.** `site-world.js` lädt jetzt `raum.js` statt
+`scene.js` und `raum-beats.js` statt `site-beats.js`. Die alten Dateien bleiben
+unangetastet liegen — wer zurück will, tauscht die beiden Importe zurück.
+Alles andere ist unverändert: dieselbe Rückfallebene (kein WebGL, reduzierte
+Bewegung, Sparmodus, schwaches Gerät → exakt die Seite von vorher), dieselbe
+Qualitätsstufung, derselbe Tagesgang des Lichts, derselbe Schleier.
+
+DIE KAMERAZAHLEN SIND GEMESSEN. Vor dem ersten Beat wurde das Modell
+ausgelesen: Boden x −11,5 … +11,5, z −21 … +9 (Gang bis −34), Decke bei 7,4,
+Marke 5,1 × 4,1 m mittig auf dem Podest bei z −4, Portale bei −9/−17/−25,
+Displays bei −20 … −22, Lamellenwand bei −33,2. Wer eine Kamera setzt, bleibt
+darin — ein Meter zu weit, und man steht in der Wand.
+
+**EIN FEHLER, DER ALLES ANDERE UNSICHTBAR MACHTE:** Ein ScrollTrigger mit
+`scrub` ruft `onUpdate` schon beim Aufbau der Seite auf, mit `progress` 0. Der
+Abspann am Seitenfuß schrieb damit beim Laden seine eigene Kamera in `camGoal`
+und `lookGoal` — und zwar nach dem Eröffnungsflug. Die Startseite zeigte
+deshalb dauerhaft die Ruhelage des Abspanns, der Hero-Zustand kam nie an, und
+drei nacheinander gemessene Kameravarianten ergaben exakt dasselbe Bild. Das
+sah aus wie ein Fehler in den Beats und war einer im Trigger. `if
+(!self.isActive) return;` — eine Zeile.
+
+**DER CHROMBODEN GEGEN DEN FLIESSTEXT.** Gemessen auf 1440x900, Pixel für
+Pixel unter jeder Textfläche: 35,6 % des Fließtextes im Hero lagen unter 4.5:1,
+an der schlechtesten Stelle bei 1.00 — dort war die Zeile schlicht weg. Schuld
+ist die Spiegelung des Podests: die hellste Fläche der ganzen Seite, und sie
+liegt genau auf halber Höhe, wo der Lauftext steht.
+
+Drei Versuche, das über die Kamera zu lösen, machten es schlechter: 58 %, 92 %,
+100 %. Die Spiegelung wandert mit der Marke — wer die Marke ins Bild holt, holt
+sie mit. Gelöst mit einem Verlauf auf der Textseite (`.hero::after`), der vor
+der Marke ausläuft, plus einer Kamera, die die Marke ins rechte Drittel setzt.
+Ergebnis: **0,0 % unter 4.5:1, schlechtester Wert 5,19.**
+
+Auf dem Telefon geht derselbe Trick nicht, und auch das ist gemessen: Dort
+belegt der Text alles zwischen 110 px und 830 px — Kicker, Überschrift,
+Fließtext, zwei Knöpfe, Kennzahlen. Ein Verlauf, der irgendwo aufmacht, macht
+über Text auf. Also ein fast gleichmäßiger Schleier, der nur ganz oben öffnet,
+wo nur die Kopfzeile steht. 0,0 % unter 4.5:1, schlechtester Wert 4,90. Die
+frühere starke Rücknahme der Bühne auf schmalen Schirmen (Nebel hoch, Licht
+runter, Schleier 0,60) konnte dafür weg — zusammen war es ein schwarzes Bild
+mit einer Ahnung von Blau, und ein Hintergrund, den niemand erkennt, ist
+verschenkte Ladezeit.
+
+Geprüft: alle drei Sprachen laden die Bühne (5.232 Dreiecke), keine
+Fehlermeldung in der Konsole, kein 4xx, kein Querlauf; neun Abschnitte einzeln
+angefahren und angesehen. Bei „Haltung" stand die Überschrift auf der hellen
+Marke — Schleier dort von 0,48 auf 0,68.
