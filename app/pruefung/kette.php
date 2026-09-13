@@ -325,6 +325,88 @@ pruefe('Vorschau sperren nimmt die Abnahme mit',
 Db::update('projects', $projektId, [
     'vorschau_frei_am' => date('Y-m-d H:i:s'), 'abnahme_frei_am' => date('Y-m-d H:i:s')]);
 
+/* ----------------------------------------------------------------------------
+   Und eine Zwischenmeldung darf den Kunden nicht zurueckstufen.
+
+   Am 13.09.2026 im Durchlauf gemessen und behoben: Hatte der Kunde im
+   Fragebogen einen Posten abgewaehlt, der im Angebot steht, meldete
+   Vorgang "Mehrbedarf klaeren" -- richtig -- und setzte dabei die Stufe fest
+   auf 'arbeit'. Die Kundenseite liest dieselbe Stufe: Dort stand weiter
+   "Ich baue deine Seite", der Knopf "Passt so" fehlte, und damit war die
+   Abnahme nicht erreichbar. Ein weggeklickter Haken haette den Vorgang
+   angehalten, ohne dass irgendwo ein Fehler zu sehen gewesen waere.
+   ---------------------------------------------------------------------------- */
+require_once $wurzel . '/src/Kundenzugang.php';
+require_once $wurzel . '/src/Umfang.php';
+require_once $wurzel . '/src/Baukasten.php';
+$nzMethode = new ReflectionMethod(Vorgang::class, 'nichtZurueck');
+$nzMethode->setAccessible(true);
+$nz = static fn(string $wunsch, string $pstatus): string => (string) $nzMethode->invoke(null, $wunsch, $pstatus);
+
+pruefe('eine Zwischenmeldung bleibt bei Vorschau auf Vorschau', $nz('arbeit', 'vorschau') === 'vorschau', $nz('arbeit', 'vorschau'));
+pruefe('bei Freigabe auf Freigabe',                             $nz('arbeit', 'freigabe') === 'freigabe');
+pruefe('bei Online auf Online',                                 $nz('arbeit', 'online') === 'online');
+pruefe('vor der Vorschau bleibt es bei der Meldung',             $nz('arbeit', 'arbeit') === 'arbeit');
+pruefe('und im Onboarding ebenso',                               $nz('arbeit', 'onboarding') === 'arbeit');
+
+/* Und die Probe am ganzen Vorgang. Damit ueberhaupt ein Mehrbedarf entstehen
+   kann, braucht das Projekt ein angenommenes Angebot -- Umfang::bezahlt liest
+   den bezahlten Umfang aus dessen Positionen. Ohne das hier meldet mehrbedarf()
+   immer null, und die Pruefung darunter waere ein Trugbild: Sie hielte auch
+   dann, wenn der Fehler wieder eingebaut wuerde (am 13.09.2026 genau so
+   nachgemessen, deshalb steht dieser Absatz hier). */
+/* Der Baukasten muss stehen: Umfang::waehlbar() liest ihn, und ohne Bausteine
+   kann nichts "abgewaehlt" sein -- die Probe waere wieder ein Trugbild. */
+Baukasten::sicherstellen();
+
+$mbFragebogen = Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [$projektId]);
+if ($mbFragebogen) {
+    $mbAlt = (string) ($mbFragebogen['data'] ?? '');
+    $mbOrder = (int) Db::wert('SELECT order_id FROM projects WHERE id = ?', [$projektId], 0);
+    $mbAngebot = Db::insert('angebote', [
+        'customer_id' => (int) $kundeId, 'order_id' => $mbOrder,
+        'nummer' => 'AN-PRUEF-1', 'status' => 'angenommen', 'sprache' => 'de',
+        'token' => bin2hex(random_bytes(24)),
+        'summe_cents' => 100000, 'monatlich_cents' => 0,
+    ]);
+    foreach ([['basis', 1], ['fotos', 1]] as $i => [$mbSlug, $mbMenge]) {
+        Db::insert('angebot_positionen', [
+            'angebot_id' => $mbAngebot, 'baustein_slug' => $mbSlug,
+            'bezeichnung' => $mbSlug, 'menge' => $mbMenge,
+            'einzel_cents' => 50000, 'summe_cents' => 50000, 'sortierung' => $i + 1,
+        ]);
+    }
+    /* Der Kunde hat die Auswahl gesehen und die Bilder weggeklickt — genau der
+       Fall, der den Vorgang zurueckgestuft hat. */
+    Db::update('questionnaires', (int) $mbFragebogen['id'], [
+        'status' => 'abgeschlossen',
+        'data'   => json_encode(['firmenname' => 'Pruefbetrieb', 'funktionen_wahl' => ''], JSON_UNESCAPED_UNICODE),
+    ]);
+    $mbBefund = Umfang::mehrbedarf($projektId);
+    $mbBezahlt = Umfang::bezahlt($projektId);
+    pruefe('der Prüffall erzeugt wirklich einen Mehrbedarf', $mbBefund !== null,
+        $mbBefund === null
+            ? 'nichts erkannt (order=' . $mbOrder . ', angebot=' . $mbAngebot
+              . ', bezahlt=' . ($mbBezahlt === null ? 'null' : json_encode($mbBezahlt['slugs'])) . ')'
+            : 'erkannt');
+    Events::projektStatus($projektId, 'vorschau');
+    Db::update('projects', $projektId, [
+        'vorschau_frei_am' => date('Y-m-d H:i:s'), 'abnahme_frei_am' => date('Y-m-d H:i:s')]);
+    $mbBestellung = (int) Db::wert('SELECT order_id FROM projects WHERE id = ?', [$projektId], 0);
+    $mbV = Vorgang::laden('b' . $mbBestellung);
+    pruefe('der Vorgang steht trotz Mehrbedarf auf der Vorschaustufe',
+        is_array($mbV) && ($mbV['stufe'] ?? '') === 'vorschau',
+        is_array($mbV) ? (string) ($mbV['stufe'] ?? '—') : 'nicht geladen');
+    $mbKunde = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $kundeId]);
+    $mbSeite = Kundenzugang::seite($mbKunde);
+    pruefe('und die Kundenseite zeigt den Entwurf statt "wird gebaut"',
+        ($mbSeite['stufe'] ?? '') === 'entwurf', (string) ($mbSeite['stufe'] ?? '—'));
+    pruefe('die Abnahme ist dort erreichbar', ($mbSeite['abnahme_frei'] ?? null) !== null);
+    Db::update('questionnaires', (int) $mbFragebogen['id'], ['data' => $mbAlt !== '' ? $mbAlt : null]);
+    Db::run('DELETE FROM angebot_positionen WHERE angebot_id = ?', [$mbAngebot]);
+    Db::run('DELETE FROM angebote WHERE id = ?', [$mbAngebot]);
+}
+
 /* ============================================================================
    6. Bis online und abgeschlossen
    ============================================================================ */

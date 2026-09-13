@@ -3171,3 +3171,56 @@ Durchlauf) ist die Summe der Positionsmitten und stimmt mit dem Angebot; das
 Briefing benennt bei vollständigen Antworten sogar, was NICHT gebaut werden darf.
 
 Die Kette läuft mit 904 Prüfungen durch (19 neue).
+
+### Der ganze Kundenweg, einmal wirklich gefahren (13.09.2026)
+
+Uwe: „prüfe das alles sauber funktioniert gesamter kunden prozess die logik
+dahinter und alles". Also nicht gelesen, sondern gefahren — über HTTP, über die
+echten Seiten und Formulare, von der leeren Datenbank bis zum Onlinegang:
+
+Konfigurator (Sprachtor, vier Schritte, Spanne) → Absenden → Anfrage und
+Kundenakte → Preisvorschlag in der Verwaltung → Angebot aus dem Bedarf →
+verschickt → Kundenseite mit PDF → Annahme **nur mit beiden Haken** → Bestellung
+mit zwei Raten → Anzahlung gebucht → Projekt entsteht → Fragebogen-Einladung →
+sechs Schritte ausgefüllt → Briefing über `werkstatt.php` (22.947 Zeichen) →
+Vorschau eingetragen → freigegeben → Abnahme freigeschaltet → Kunde drückt
+„Passt so" → Restzahlung angefordert → bezahlt → zwei Belege → online.
+
+Damit der Versand mitprüfbar ist, lief ein **Brevo-Doppelgänger** auf
+127.0.0.1: `Mail::zugang()` erlaubt dafür `brevo.api` in der Konfiguration
+(„nur zum Durchtesten umstellbar" — genau dafür war es gedacht). Zehn Mails
+gingen in der richtigen Reihenfolge hinaus, mit den richtigen Anhängen
+(Auftragsbestätigung, Widerrufsformular, beide Zahlungsbelege), keine doppelt,
+26 Einträge in der Prüfspur, kein einziger Fehlschlag.
+
+**Ein echter Fehler, und ein teurer: Eine Zwischenmeldung stufte den Kunden
+zurück.** Hatte der Kunde im Fragebogen einen Posten *abgewählt*, der im Angebot
+steht, meldete `Vorgang` „Mehrbedarf klären" — richtig — und setzte dabei die
+Stufe fest auf `arbeit`. Die Kundenseite liest dieselbe Stufe. Auf ihr stand
+dann weiter *„Ich baue deine Seite"*, Schritt 4 von 7, obwohl Vorschau UND
+Abnahme ausdrücklich freigeschaltet waren und die E-Mail „Deine Seite ist fertig
+— schau sie dir an" schon beim Kunden lag. Der Knopf „Passt so" erschien nie.
+
+Damit war die Abnahme nicht erreichbar — und an ihr hängt alles Weitere: keine
+Abnahme, keine Restzahlungs-Anfrage, kein Onlinegang. Ein Haken, den ein Kunde
+wegklickt, hätte den Vorgang stillgelegt, ohne dass irgendwo ein Fehler zu sehen
+gewesen wäre. Die Meldung für Uwe war ja da; nur zeigte sie in die falsche
+Richtung.
+
+Behoben mit `Vorgang::nichtZurueck()`: Die Meldung bleibt, die Stufe nicht — ist
+das Projekt bei Vorschau, Freigabe oder Online, gilt der Projektstand. Dasselbe
+gilt für den unbezahlten Nachtrag, der die Stufe genauso festgesetzt hat.
+
+WICHTIG UND LEICHT ZU ÜBERSEHEN, für jede künftige Meldung in `stufeBestimmen`:
+Der zweite Parameter von `setzen()` ist nicht nur Kosmetik für Uwes Liste — er
+ist auch die Stufe, die der Kunde sieht. Eine Meldung, die eine frühere Stufe
+setzt, nimmt dem Kunden den Knopf weg, der an dieser Stufe hängt.
+
+DAZU EINE LEHRE ÜBER PRÜFUNGEN: Die erste Fassung der neuen Kettenprüfung hielt
+auch dann, wenn der Fehler wieder eingebaut wurde — `Umfang::mehrbedarf()`
+braucht ein angenommenes Angebot am Projekt und einen gefüllten Baukasten, und
+beides fehlte an dieser Stelle der Kette. Eine Prüfung, die nicht rot wird, wenn
+der Fehler zurückkommt, ist keine. Deshalb steht jetzt eine eigene Prüfung davor
+(„der Prüffall erzeugt wirklich einen Mehrbedarf"), und die Gegenprobe ist
+dokumentiert: mit eingebautem Fehler reißen genau zwei Prüfungen, ohne ihn
+halten alle 913.

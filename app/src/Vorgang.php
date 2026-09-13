@@ -442,6 +442,30 @@ final class Vorgang
     /*  Die Stufe — aus Tatsachen, nicht aus einem Statusfeld             */
     /* ================================================================== */
 
+    /**
+     * Eine Zwischenmeldung darf den Vorgang nicht zurueckstufen.
+     *
+     * WARUM ES DIESE METHODE GIBT
+     *
+     * Am 13.09.2026 im Durchlauf gemessen: Ein Kunde hatte im Fragebogen drei
+     * Posten abgewaehlt, die im Angebot stehen. Richtig daran ist die Meldung
+     * "Mehrbedarf klaeren" fuer Uwe. Falsch war die Nebenwirkung: Der Schritt
+     * setzte die Stufe fest auf 'arbeit' -- und weil die Kundenseite dieselbe
+     * Stufe liest, stand dort weiter "Ich baue deine Seite", obwohl Vorschau
+     * UND Abnahme ausdruecklich freigeschaltet waren. Der Knopf "Passt so"
+     * erschien nie, und damit war die Abnahme nicht erreichbar: kein
+     * Abnahmedatum, keine Restzahlungs-Anfrage, kein Onlinegang. Ein Haken,
+     * den der Kunde wegklickt, haette den ganzen Vorgang angehalten.
+     *
+     * Die Meldung bleibt also, die Stufe nicht: Ist das Projekt schon bei
+     * Vorschau oder weiter, gilt der Projektstand.
+     */
+    private static function nichtZurueck(string $wunsch, string $pstatus): string
+    {
+        $weiterAls = ['vorschau', 'freigabe', 'online'];
+        return in_array($pstatus, $weiterAls, true) ? $pstatus : $wunsch;
+    }
+
     private static function stufeBestimmen(array $v): array
     {
         $anzahlung  = self::zahlungNach($v['zahlungen'], ['anzahlung', 'gesamt']);
@@ -527,7 +551,7 @@ final class Vorgang
                 ? 'Der Kunde hat im Fragebogen ' . $wieviel . ' Punkt'
                   . ($wieviel === 1 ? '' : 'e') . ' angekreuzt, die nicht im Angebot stehen.'
                 : 'Der Kunde hat im Fragebogen etwas abgewählt, das im Angebot steht.';
-            return self::setzen($v, 'arbeit', self::DU, 'Mehrbedarf klären', $warum,
+            return self::setzen($v, self::nichtZurueck('arbeit', $pstatus), self::DU, 'Mehrbedarf klären', $warum,
                 null, null, [], 'projekte/' . (int) $v['projekt_id'] . '?tun=mehrbedarf');
         }
 
@@ -548,12 +572,12 @@ final class Vorgang
         if ($nachtrag !== null) {
             $nZiel = 'bestellungen/' . (int) $v['bestell_id'];
             if (empty($nachtrag['link_url'])) {
-                return self::setzen($v, 'arbeit', self::DU, 'Zahlungslink für den Nachtrag',
+                return self::setzen($v, self::nichtZurueck('arbeit', $pstatus), self::DU, 'Zahlungslink für den Nachtrag',
                     'Der Nachtrag steht als Rate da, aber ohne Link kann der Kunde nicht zahlen.',
                     'zahlungslink', (int) $nachtrag['id'], [], $nZiel . '?tun=zahlungslink');
             }
             if (!self::mailRaus('zahlungslink', 'payment_id', (int) $nachtrag['id'])) {
-                return self::setzen($v, 'arbeit', self::DU, 'Nachtrag verschicken',
+                return self::setzen($v, self::nichtZurueck('arbeit', $pstatus), self::DU, 'Nachtrag verschicken',
                     'Der Link für den Nachtrag ist da, aber der Kunde hat ihn noch nicht.',
                     'zahlungslink_senden', (int) $nachtrag['id'], [], $nZiel . '?tun=zahlungslink_senden');
             }
