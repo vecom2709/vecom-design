@@ -413,14 +413,7 @@ final class Baukasten
         $mengen = [
             'basis'   => 1,
             'seite'   => $weitereSeiten,
-            /* WARUM MAL DER SEITENZAHL
-               Bis zum 13.09.2026 stand hier schlicht $sprachen - 1: eine
-               Pauschale je zusaetzlicher Sprache, gleich hoch fuer eine Seite
-               wie fuer fuenfzehn. Auf die uebersetzte Seite gerechnet hiess
-               das 140 Euro beim Einseiter und 7 Euro bei fuenfzehn Seiten —
-               dieselbe Arbeit zu zwanzigfach verschiedenen Preisen. Uebersetzt
-               wird je Seite, also wird auch je Seite gerechnet. */
-            'sprache' => ($sprachen - 1) * $seitenGesamt,
+            'sprache' => $sprachen - 1,
         ];
 
         foreach (['speisekarte', 'termine', 'buchung', 'shop'] as $f) {
@@ -438,6 +431,40 @@ final class Baukasten
         $mengen['uebernahme'] = in_array($bestand, ['erneuern', 'ueberarb'], true) ? 1 : 0;
         $mengen['express']    = $zeit === 'schnell' ? 1 : 0;
         $mengen['betreuung_basis'] = $betreu === 'ja' ? 1 : 0;
+
+        /* ------------------------------------------------------------------
+           Bausteine, die je Seite gerechnet werden, gelten fuer jede Seite.
+
+           WARUM DIESE REGEL AUS DEN DATEN KOMMT UND NICHT AUS DEM CODE
+
+           `sprache` war bis zum 13.09.2026 eine Pauschale, unabhaengig von der
+           Seitenzahl: auf die uebersetzte Seite gerechnet 140 Euro beim
+           Einseiter und 7 Euro bei fuenfzehn Seiten — dieselbe Arbeit zu
+           zwanzigfach verschiedenen Preisen. Uebersetzt wird je Seite, also
+           wird je Seite gerechnet.
+
+           Der naheliegende Weg waere gewesen, das fuer diesen einen Slug in
+           den Code zu schreiben. Genau daran ist es am selben Tag live
+           schiefgegangen: Der Deploy bringt den Code sofort, die Migration
+           laeuft erst beim naechsten Cronlauf. Drei Minuten lang traf die neue
+           Menge auf die alten Preise, und die Startseite zeigte 1.900 statt
+           800 Euro.
+
+           Deshalb entscheidet die Spalte `einheit` am Baustein, nicht eine
+           Zeile hier. Vor der Migration steht dort nichts, der Rueckfall ist
+           'stueck', und gerechnet wird wie vorher — alte Menge, alte Preise,
+           die alte richtige Zahl. Nach der Migration steht 'seite' da, und
+           beides wechselt in derselben Sekunde. Ein Fenster gibt es nicht
+           mehr, und der naechste Baustein, der je Seite anfaellt, braucht
+           keine zweite Zeile Code, sondern einen Eintrag. */
+        foreach ($mengen as $slug => $menge) {
+            if ($menge < 1) { continue; }
+            $b = $katalog[$slug] ?? null;
+            if ($b === null || !(int) $b['je_einheit']) { continue; }
+            if ((string) ($b['einheit'] ?? 'stueck') === 'seite') {
+                $mengen[$slug] = $menge * $seitenGesamt;
+            }
+        }
 
         $positionen = [];
         $von = 0; $bis = 0; $monatlich = 0;

@@ -108,45 +108,63 @@ foreach ($katalog as $slug => $b) {
 /* --------------------------------------------------------------------------
    Die vier typischen Faelle.
 
-   Sie sind bewusst nicht aus Baukasten::rechnen() gezogen: rechnen() bringt
-   Vorschlaege und Zuschlaege mit, die hier niemand sieht und die die Zahl
-   unerklaerlich machen wuerden. Hier wird zusammengezaehlt, was in der
-   Zeile daneben steht — wer nachrechnet, kommt auf dasselbe Ergebnis.
+   WARUM SIE DURCH DEN KONFIGURATOR LAUFEN
+
+   Hier standen bis zum 13.09.2026 vier Rezepte: Bausteinnamen mit Mengen, von
+   Hand zusammengestellt. Der Gedanke war, dass rechnen() Vorschlaege
+   mitbringt, die hier niemand sieht — das stimmt, sie stehen aber gesondert
+   und nie in der Summe.
+
+   Was der Gedanke kostete, zeigte sich am Tag von Migration 047. Der Deploy
+   bringt den neuen Code sofort, die Migration laeuft erst beim naechsten
+   Cronlauf — dazwischen lagen drei Minuten, in denen hier die NEUE Menge
+   (zehn uebersetzte Seiten) auf die ALTEN Preise traf. Die Startseite zeigte
+   1.900 bis 2.450 Euro, wo 800 bis 1.000 richtig gewesen waeren; im
+   Konfigurator daneben stand die ganze Zeit die richtige Zahl. Zwei
+   Rechenwege fuer dieselbe Frage laufen genau dann auseinander, wenn einer
+   von beiden gerade geaendert wird.
+
+   Deshalb beschreiben die vier Faelle jetzt keine Posten mehr, sondern
+   ANTWORTEN — dieselben, die ein Kunde im Konfigurator gaebe. Gerechnet wird
+   damit durch Baukasten::rechnen(), also durch denselben Weg, den auch das
+   Angebot geht. Die Preisseite kann seither nicht mehr etwas anderes
+   behaupten als der Konfigurator: Sie fragt ihn.
+
+   Die Antworten sind so gewaehlt, dass nur die Posten anfallen, die in der
+   Beschriftung stehen: Material vollstaendig (also keine Texte, keine Bilder
+   zu machen), Seite neu (keine Uebernahme), Zeit offen (kein Express),
+   Betreuung nein (sie steht als eigene Zahl daneben).
 
    Gerundet wird ueber Baukasten::spanne(), also mit derselben Staffel wie im
    Angebot. Sonst stuende auf der Preisseite eine andere Zahl als im Angebot,
    und das faellt genau dem Kunden auf, der beides gelesen hat.
    -------------------------------------------------------------------------- */
-$stueck = static function (string $slug, int $menge = 1) use ($katalog): array {
-    $b = $katalog[$slug] ?? null;
-    if (!$b) { return [0, 0]; }
-    $von = (int) $b['preis_cents'] * $menge;
-    $bis = ((int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']) * $menge;
-    return [$von, $bis];
-};
-
-$faelle = [];
-$rezepte = [
-    'f1' => [['basis', 1]],
-    'f2' => [['basis', 1], ['seite', 4]],
-    /* Fuenf Seiten in drei Sprachen heisst: zwei zusaetzliche Sprachen mal
-       fuenf Seiten — zehn uebersetzte Seiten. Seit `sprache` je Seite
-       gerechnet wird (Migration 047), steht die Menge hier genauso wie in
-       Baukasten::rechnen(). Stuende hier weiter 2, zeigte die Preisseite
-       einen Preis, den das Angebot danach nie bestaetigt. */
-    'f3' => [['basis', 1], ['seite', 4], ['sprache', 10]],
-    'f4' => [['basis', 1], ['seite', 4], ['shop', 1]],
+$grundantwort = [
+    'material'  => ['texte', 'fotos', 'logo'],
+    'bestand'   => 'neu',
+    'zeit'      => 'offen',
+    'betreuung' => 'nein',
 ];
-foreach ($rezepte as $schluessel => $teile) {
-    $von = 0; $bis = 0;
-    $vollstaendig = true;
-    foreach ($teile as [$slug, $menge]) {
-        if (!isset($katalog[$slug])) { $vollstaendig = false; break; }
-        [$v, $b] = $stueck($slug, $menge);
-        $von += $v; $bis += $b;
+$faelle = [];
+$faelleAntworten = [
+    /* Eine Seite, eine Sprache: nur das Grundgeruest. */
+    'f1' => ['zweck' => ['zeigen'], 'umfang' => 'eine',   'sprachen' => 1],
+    /* Fuenf Seiten — das Grundgeruest bringt die erste mit, vier kommen dazu. */
+    'f2' => ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 1],
+    /* Dieselben fuenf Seiten in drei Sprachen. Wie viele uebersetzte Seiten
+       das sind, entscheidet rechnen() — nicht diese Datei. */
+    'f3' => ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 3],
+    'f4' => ['zweck' => ['zeigen', 'shop'], 'umfang' => 'wenige', 'sprachen' => 1],
+];
+foreach ($faelleAntworten as $schluessel => $antworten) {
+    try {
+        $r = Baukasten::rechnen($antworten + $grundantwort, $katalog);
+    } catch (Throwable $e) {
+        continue;   // ein Beispiel weniger, aber keine falsche Zahl
     }
-    if (!$vollstaendig || $von <= 0) { continue; }
-    $g = Baukasten::spanne($von, $bis);
+    $von = (int) $r['von_cents'];
+    if ($von <= 0) { continue; }
+    $g = Baukasten::spanne($von, (int) $r['bis_cents']);
     $faelle[$schluessel] = $spanneText((int) $g['von_cents'], (int) $g['bis_cents']);
 }
 

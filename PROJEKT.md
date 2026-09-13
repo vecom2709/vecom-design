@@ -4059,3 +4059,52 @@ Punkten gerendert, mit laufender Verwaltung (also mit den echten Zahlen, nicht
 dem Rückfall): vier Fälle, Bausteintabelle, kein Querscrollen, kein Klemmen in
 den Karten trotz der längeren Überschrift. Und ein Angebot durchgerechnet —
 dort steht „Weitere Sprache, je Seite · 10 × · 400 – 550 €".
+
+#### Nachtrag, eine Stunde später: das Fenster zwischen Deploy und Migration
+
+Der Deploy war durch und die Startseite zeigte **1.900 – 2.450 €** für fünf
+Seiten in drei Sprachen. Richtig wären in diesem Moment 800 – 1.000 gewesen.
+
+Die Ursache ist keine Zahl, sondern eine Reihenfolge: Der Deploy bringt den
+neuen Code sofort, die Migration läuft erst beim nächsten Cronlauf. Drei
+Minuten lang traf die **neue Menge** — zehn übersetzte Seiten, im Code — auf
+die **alten Preise** in der Datenbank. Der Konfigurator daneben rechnete
+dieselbe Mischung; die Zahl war also nicht einmal widersprüchlich, sondern
+überall gleich falsch.
+
+Der erste Reflex war, die Preisseite den Konfigurator fragen zu lassen statt
+selbst zu rechnen. Das war richtig und nötig — hier standen vier von Hand
+gepflegte Rezepte neben der eigentlichen Rechnung, also zwei Wege für dieselbe
+Frage — aber es hätte das Fenster nicht geschlossen: Die Menge kam weiterhin
+aus dem Code, der Preis aus der Datenbank.
+
+**Also entscheidet jetzt die Spalte.** `bausteine.einheit` sagt, ob ein
+Baustein je Stück oder je Seite gerechnet wird, und `rechnen()` liest sie:
+
+```php
+if ((string) ($b['einheit'] ?? 'stueck') === 'seite') {
+    $mengen[$slug] = $menge * $seitenGesamt;
+}
+```
+
+Vor der Migration gibt es die Spalte nicht, der Rückfall ist `'stueck'`, und
+gerechnet wird wie vorher — alte Menge, alte Preise, die alte richtige Zahl.
+Nach der Migration steht `'seite'` da, und **Menge und Preis wechseln in
+derselben Sekunde**, weil sie in derselben Zeile stehen. Nachgemessen: derselbe
+Code gibt gegen den Katalog von vor der Migration 800 – 1.000 € aus und gegen
+den danach 1.000 – 1.300 €.
+
+Nebenbei braucht der nächste Baustein, der je Seite anfällt, keine Zeile Code
+mehr, sondern einen Eintrag.
+
+Die Preisseite fragt trotzdem ab sofort den Konfigurator: Die vier Fälle sind
+keine Postenlisten mehr, sondern **Antworten**, wie ein Kunde sie gäbe. Damit
+kann die Website nicht mehr etwas anderes behaupten als das Angebot — sie
+rechnet es nicht nach, sie fragt.
+
+**Geprüft**, und zwar an genau diesem Fall: Ein Katalog mit den alten Preisen
+und ohne die Spalte muss die alte Zahl ergeben, nicht die Mischung; und das
+Setzen der Spalte allein muss die Rechnung umschalten. **1282 Prüfungen, alle
+grün.** Auch die Prüfung der HTML-Rückfälle geht jetzt über `rechnen()` statt
+über eine abgeschriebene Postenliste — sonst hätte sie ihre eigene Abschrift
+geprüft.

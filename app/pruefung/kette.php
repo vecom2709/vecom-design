@@ -5687,32 +5687,40 @@ pruefe('auch im größten Fall bleibt je übersetzter Seite ein Preis übrig',
    Angebot danach nie bestätigt — und zwar genau bei dem Kunden, der beides
    gelesen hat. */
 $spDaten = (string) @file_get_contents(dirname(dirname(__DIR__)) . '/preise-daten.php');
-pruefe('preise-daten.php rechnet f3 mit zehn übersetzten Seiten',
-    str_contains($spDaten, "['sprache', 10]"));
+pruefe('preise-daten.php fragt den Konfigurator statt selbst zu rechnen',
+    str_contains($spDaten, 'Baukasten::rechnen($antworten + $grundantwort, $katalog)')
+    && !str_contains($spDaten, "['sprache', 10]"));
 pruefe('und gibt die Einheit mit heraus', str_contains($spDaten, "'einheit'"));
+/* Die Antworten müssen so gewählt sein, dass nur die beschrifteten Posten
+   anfallen. Wäre zum Beispiel 'texte' nicht im Material, stünde in der Summe
+   ein Textposten, den die Zeile daneben nicht nennt. */
+foreach (["'material'  => ['texte', 'fotos', 'logo']", "'bestand'   => 'neu'",
+          "'zeit'      => 'offen'", "'betreuung' => 'nein'"] as $spZeile) {
+    pruefe('die Beispielantworten enthalten ' . trim(explode('=>', $spZeile)[1]),
+        str_contains($spDaten, $spZeile));
+}
 
 /* ---------- Was im HTML steht, wenn die Verwaltung schweigt --------------- */
 /* Der Rückfall ist kein Schmuck: Antwortet preise-daten.php nicht, ist er die
    einzige Zahl auf der Seite. Stimmt er nicht mit der Rechnung überein, zeigt
    die Website bei jeder Störung einen falschen Preis — und Störungen fallen
    nicht auf, weil die Seite dann trotzdem vollständig aussieht. */
-$spStueck = static function (array $teile) use ($spKatalog): array {
-    $von = 0; $bis = 0;
-    foreach ($teile as [$spSlug, $spMenge]) {
-        $b = $spKatalog[$spSlug] ?? null;
-        if (!$b) { return [0, 0]; }
-        $von += (int) $b['preis_cents'] * $spMenge;
-        $bis += ((int) $b['preis_bis_cents'] ?: (int) $b['preis_cents']) * $spMenge;
-    }
-    $g = Baukasten::spanne($von, $bis);
+/* Gerechnet wird wie in preise-daten.php: mit Antworten durch den
+   Konfigurator, nicht mit einer eigenen Postenliste. Eine Prüfung, die ihre
+   Mengen selbst aufschreibt, prüft sonst ihre eigene Abschrift. */
+$spGrund = ['material' => ['texte', 'fotos', 'logo'], 'bestand' => 'neu',
+            'zeit' => 'offen', 'betreuung' => 'nein'];
+$spRezepte = [
+    'f1' => ['zweck' => ['zeigen'], 'umfang' => 'eine',   'sprachen' => 1],
+    'f2' => ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 1],
+    'f3' => ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 3],
+    'f4' => ['zweck' => ['zeigen', 'shop'], 'umfang' => 'wenige', 'sprachen' => 1],
+];
+$spStueck = static function (array $antworten, ?array $katalog = null) use ($spKatalog, $spGrund): array {
+    $r = Baukasten::rechnen($antworten + $spGrund, $katalog ?? $spKatalog);
+    $g = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
     return [(int) $g['von_cents'] / 100, (int) $g['bis_cents'] / 100];
 };
-$spRezepte = [
-    'f1' => [['basis', 1]],
-    'f2' => [['basis', 1], ['seite', 4]],
-    'f3' => [['basis', 1], ['seite', 4], ['sprache', 10]],
-    'f4' => [['basis', 1], ['seite', 4], ['shop', 1]],
-];
 $spWurzel = dirname(dirname(__DIR__));
 /* Zwei Schreibweisen, weil die englische Seite das Zeichen vorn und den
    Tausendertrenner als Komma setzt. Beide entstehen in preise-daten.php aus
@@ -5728,8 +5736,8 @@ foreach (['index.html' => false, 'prezzi.html' => false,
     $spHtml = (string) @file_get_contents($spWurzel . '/' . $spDatei);
     $spGut = $spHtml !== '';
     $spFehlt = '';
-    foreach ($spRezepte as $spName => $spTeile) {
-        [$spVon, $spBis] = $spStueck($spTeile);
+    foreach ($spRezepte as $spName => $spAntworten) {
+        [$spVon, $spBis] = $spStueck($spAntworten);
         $spText = $spSchreib((int) $spVon, (int) $spBis, $spEng);
         if (!str_contains($spHtml, '"preise.' . $spName . 'p">' . $spText . '<')) {
             $spGut = false; $spFehlt .= ' ' . $spName . '=' . $spText;
@@ -5737,6 +5745,41 @@ foreach (['index.html' => false, 'prezzi.html' => false,
     }
     pruefe("der Rückfall in $spDatei trägt die gerechneten Spannen", $spGut, trim($spFehlt));
 }
+
+/* ---------- Das Fenster zwischen Deploy und Migration --------------------- */
+/* WAS AM 13.09.2026 LIVE PASSIERT IST
+
+   Der Deploy bringt den neuen Code sofort, die Migration läuft erst beim
+   nächsten Cronlauf. In den drei Minuten dazwischen traf in preise-daten.php
+   die NEUE Menge (zehn übersetzte Seiten) auf die ALTEN Preise: Die Startseite
+   zeigte 1.900 – 2.450 €, wo 800 – 1.000 € richtig gewesen wären. Der
+   Konfigurator daneben rechnete die ganze Zeit richtig — weil er nur einen
+   Rechenweg hat.
+
+   Seither hat auch die Preisseite nur diesen einen. Die Probe dafür: Ein
+   Katalog auf dem Stand VOR Migration 047 muss die Zahlen von vorher ergeben,
+   nicht eine Mischung aus beidem. */
+/* Der Katalog, wie er in diesen drei Minuten dastand: alte Preise, und keine
+   Spalte `einheit` — vor der Migration gab es sie nicht. */
+$spAlt = $spKatalog;
+$spAlt['seite']['preis_cents']    =  4500; $spAlt['seite']['preis_bis_cents']   =  6000;
+$spAlt['sprache']['preis_cents']  = 14000; $spAlt['sprache']['preis_bis_cents'] = 18000;
+unset($spAlt['seite']['einheit'], $spAlt['sprache']['einheit']);
+
+[$spAltVon, $spAltBis] = $spStueck($spRezepte['f3'], $spAlt);
+pruefe('mit dem Katalog von vor der Migration kommt die alte Zahl heraus',
+    (int) $spAltVon === 800 && (int) $spAltBis === 1000, $spAltVon . ' – ' . $spAltBis . ' €');
+/* Die entscheidende Zeile dieses Abschnitts: Diese Mischung stand live auf der
+   Startseite. Sie kann nicht mehr entstehen, weil die Menge aus derselben
+   Zeile kommt wie der Preis. */
+pruefe('und nicht die Mischung aus neuer Menge und altem Preis',
+    (int) $spAltVon !== 1900, $spAltVon . ' – ' . $spAltBis . ' €');
+/* Und umgekehrt: Sobald die Spalte da ist, wechseln Menge und Preis gemeinsam. */
+$spNeu = $spAlt;
+$spNeu['sprache']['einheit'] = 'seite';
+[$spNeuVon, ] = $spStueck($spRezepte['f3'], $spNeu);
+pruefe('die Spalte allein schaltet die Rechnung um', (int) $spNeuVon === 1900,
+    $spNeuVon . ' €');
 
 /* ---------- Und die Beschriftung, wegen der es auffiel ------------------- */
 /* „Eine einzige Seite — 325 bis 400 Euro" las sich wie ein Seitenpreis. Es ist
