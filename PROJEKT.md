@@ -2886,6 +2886,17 @@ und das FAQ-Schema („ab 325 €") sowie `minPrice` in den strukturierten Daten
 Die Live-Zahlen kommen aus der Datenbank; diese hier sind der Rückfall, wenn
 `preise-daten.php` nicht antwortet — sie müssen bei jeder Preisrunde mit.
 
+NACHTRAG 13.09.2026, weil diese Liste selbst unvollständig war: Es gibt zwei
+öffentliche Seiten, die Preise nennen und **nicht** an `preise-daten.php`
+hängen — `explainer.html` (Zeile über `expl.s8a`, in allen drei Wörterbüchern)
+und `tiktok.html` (Clip 2, hart im HTML). Beide standen einen Tag lang auf
+275 €, während überall sonst 325 € stand. Die vollständige Liste für jede
+Preisrunde ist deshalb: Listenblatt, `f1p`–`f4p`, `preise.kurz`,
+`preise.metaDesc`, FAQ-Antwort und FAQ-Schema, `minPrice`, **`expl.s8a` in
+i18n-de/it/en, `tiktok.html`**. Die Probe danach ist ein Griff:
+`grep -rn "275\|499\|899" --include="*.html" --include="*.js" .` — findet jede
+Zahl, die zurückgeblieben ist.
+
 ### Der Vecom-Standard für Kundenseiten (12.09.2026)
 
 Uwe hat den Master-Standard geschickt: die zentrale Produktions-, Einstufungs-
@@ -3047,3 +3058,56 @@ gegen einen `<FilesMatch>`-Block nicht an.
 NEBENBEI: `git rm --cached` allein hätte nichts gebracht. Ohne den Eintrag in
 der Abrissliste wären die Dateien für immer auf dem Webspace geblieben — das
 ist genau die Falle, für die die Liste am selben Tag gebaut wurde.
+
+### Zwei Preise von gestern und eine zweite Abrisskiste (13.09.2026)
+
+Uwe: „starte wo du gestern aufgehört hattest." Erster Griff war deshalb die
+Nachlese der Preisrunde vom Vortag (+15 %, Migration 044) — und dabei fiel
+gleich der nächste offene Ordner auf.
+
+**Die Preisrunde war fast vollständig.** Nachgerechnet statt nachgelesen: Die
+vier Beispielspannen im HTML (`preise.f1p`–`f4p`, 325–400 / 525–650 /
+800–1.000 / 1.200–1.550 €) kommen genau heraus, wenn man die Bausteinpreise aus
+Migration 044 durch `Baukasten::spanne()` schickt. Ebenso stimmen Listenblatt,
+`preise.kurz`, `preise.metaDesc`, die FAQ-Antwort und `minPrice` in den
+strukturierten Daten. Die Rückfallwerte und die Datenbank sagen also dasselbe.
+
+**Zwei Stellen nannten weiter 275 €** — die alte Untergrenze, also 50 € zu
+wenig, öffentlich und auf keiner der geprüften Seiten:
+
+- `expl.s8a` in allen drei Wörterbüchern — die Preiszeile von `explainer.html`.
+- `tiktok.html`, Clip 2, hart im HTML statt über das Wörterbuch.
+
+Beide Seiten stehen nicht in der Sitemap, tragen aber auch kein `noindex`: Sie
+sind erreichbar, verlinkbar und indexierbar. Der Merkposten „bei jeder
+Preisrunde ziehen die Rückfallwerte mit" nennt sie bisher nicht; er zählt nur
+Start- und Preisseite auf. Das ist die eigentliche Lücke, nicht die Zahl.
+
+**Und _baukasten.html lag offen im Netz.** Dieselbe Sorte Fund wie am Vortag,
+eine Woche älter: `_baukasten.html` und `_baukasten_ende.html`, gespeicherte
+Ansichten von `/app/baukasten`, mit Commit `8f989a1` (08.09.2026) versehentlich
+mitgenommen. Nachgemessen, nicht vermutet: `https://vecom-design.it/_baukasten.html`
+liefert die Verwaltungsseite aus — Menü mit allen Arbeitszahlen, die Tat-Namen
+`bausteine_speichern` und `preise_anheben`, das CSRF-Feld und die interne
+Preistabelle samt geplanter Erhöhung. Kein Passwort darin, und `noindex` im
+Kopf hält Google fern; wer die Adresse hat, liest trotzdem mit.
+
+Warum die Sperren vom Vortag nicht gegriffen haben: Die Endungsliste
+(`.alt .bak .patch …`) kann `.html` nicht fassen, das ist die Endung der Seite
+selbst. Gefasst wird deshalb der Unterstrich am Anfang — so heißt eine
+beiseitegelegte Ansicht, und so wird die nächste auch heißen. Wieder an drei
+Stellen: aus der Versionsverwaltung heraus, `--exclude '^_[^/]*$'` plus zwei
+`rm -f` in der Abrissliste, und `RewriteRule ^_[^/]*$ - [R=404,L]` in der
+`.htaccess`. Dazu `/_*.html` in der `.gitignore`.
+
+WICHTIG UND LEICHT ZU ÜBERSEHEN: Die Regel gilt nur für die Wurzel
+(`^_[^/]*$`, kein Schrägstrich im Rest). `richtungen/_rahmen.css` ist ein
+echtes Stilblatt — eine Sperre auf „Dateiname beginnt mit Unterstrich" hätte
+die Richtungsseiten still ohne Gestaltung gelassen.
+
+Mit echtem Apache 2.4.58 gemessen (nicht mit `php -S`, und über https, weil die
+erste Regel der Datei sonst mit 301 antwortet): `/_baukasten.html`,
+`/_baukasten_ende.html` und eine neue `/_probe.html` je 404;
+`/richtungen/_rahmen.css` und eine Gegenprobe `/richtungen/_probe.css` 200;
+`/_to_delete/x.patch` 403 und `/README.md` 403 wie bisher; `/index.html`,
+`/e/ANNA3CU`, `/prezzi.html`, `/de/preise.html`, `/404.html` 200.

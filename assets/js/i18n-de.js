@@ -349,7 +349,7 @@ masz: {
       s7a: "Der Code gehört dir", s7as: "Dateien werden übergeben, keine Bindung.",
       s7b: "Kein Cookie-Banner", s7bs: "Keine Tracker, keine fremden Schriften.",
       s7c: "Ein Ansprechpartner", s7cs: "Vom ersten Gespräch bis zur Betreuung.",
-      s8k: "Preis nach Bedarf", s8a: "ab 275 €",
+      s8k: "Preis nach Bedarf", s8a: "ab 325 €",
       s8b: "einmalig. Die monatliche Betreuung beginnt bei 39 € und ist freiwillig. Angebot und Erstgespräch sind kostenlos.",
       s9b: "kontakt@vecom-design.it · Italienisch · Deutsch · Englisch"
     },

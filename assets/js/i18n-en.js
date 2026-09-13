@@ -349,7 +349,7 @@ masz: {
       s7a: "The code is yours", s7as: "Files are handed over, no lock-in.",
       s7b: "No cookie banner", s7bs: "No trackers, no third-party fonts.",
       s7c: "One contact", s7cs: "From first call through ongoing care.",
-      s8k: "Priced to fit", s8a: "from €275",
+      s8k: "Priced to fit", s8a: "from €325",
       s8b: "one-off. Monthly care starts at €39 and is optional. Quote and first conversation are free.",
       s9b: "kontakt@vecom-design.it · Italian · German · English"
     },

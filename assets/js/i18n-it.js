@@ -349,7 +349,7 @@ masz: {
       s7a: "Il codice è tuo", s7as: "I file vengono consegnati, nessun vincolo.",
       s7b: "Nessun banner cookie", s7bs: "Nessun tracciamento, nessun font esterno.",
       s7c: "Un solo referente", s7cs: "Dal primo colloquio all’assistenza.",
-      s8k: "Prezzo su misura", s8a: "da 275 €",
+      s8k: "Prezzo su misura", s8a: "da 325 €",
       s8b: "una tantum. L’assistenza mensile parte da 39 € ed è facoltativa. Preventivo e primo colloquio sono gratuiti.",
       s9b: "kontakt@vecom-design.it · Italiano · Tedesco · Inglese"
     },

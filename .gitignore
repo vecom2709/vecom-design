@@ -48,3 +48,13 @@ app/zwischenspeicher/
 # Uwe geloescht. Ein "git add -A" hat diesen Ordner schon einmal mitgenommen;
 # seitdem steht er hier.
 _to_delete/
+
+# Gespeicherte Seitenansichten der Verwaltung. Wer eine Ansicht zum Ansehen
+# beiseitelegt, nennt sie "_name.html" -- und genau so lagen _baukasten.html
+# und _baukasten_ende.html seit dem 08.09.2026 im Repository und damit
+# oeffentlich auf dem Webspace: gerendertes /app/baukasten mit Menue,
+# Arbeitszahlen, Tat-Namen und der internen Preistabelle. Der Unterstrich
+# gilt deshalb ab jetzt als Merkmal: Wurzeldateien mit ihm bleiben draussen.
+# Nur in der Wurzel -- richtungen/_rahmen.css ist ein echtes Stilblatt und
+# wird gebraucht.
+/_*.html

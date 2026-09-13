@@ -75,6 +75,22 @@ RewriteRule ^pakete\.html$ /prezzi.html? [R=301,L]
 </FilesMatch>
 RewriteRule ^_to_delete/ - [R=404,L]
 
+# Dieselbe Sorte Fund, eine Woche spaeter: _baukasten.html und
+# _baukasten_ende.html lagen seit dem 08.09.2026 in der Wurzel — gespeicherte
+# Ansichten von /app/baukasten, mit Commit 8f989a1 versehentlich mitgenommen.
+# Am 13.09.2026 nachgemessen: https://vecom-design.it/_baukasten.html lieferte
+# die Verwaltungsseite aus. Kein Passwort darin und "noindex" im Kopf, also
+# nichts fuer Google; wohl aber das ganze Menue, die Arbeitszahlen, die
+# Tat-Namen (bausteine_speichern, preise_anheben) und die interne
+# Preistabelle mit der geplanten Erhoehung.
+#
+# Die Endungssperre oben konnte sie nicht fassen — .html ist die Endung der
+# Seite selbst. Gefasst wird stattdessen der Unterstrich am Anfang: So heisst
+# eine beiseitegelegte Ansicht, und so wird sie auch beim naechsten Mal
+# heissen. Nur in der Wurzel, ohne Schraegstrich im Rest — richtungen/
+# _rahmen.css ist ein echtes Stilblatt und muss weiter ausgeliefert werden.
+RewriteRule ^_[^/]*$ - [R=404,L]
+
 # --------------------------------------------------------------------------
 # Zwischenspeicher im Browser.
 #
