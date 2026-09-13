@@ -80,13 +80,48 @@ Ausschlussliste im Deploy *und* über eine `.htaccess`, weil der Deploy nie lös
 Push auf `main` genügt: GitHub Actions baut mit `build.mjs` und überträgt per lftp.
 Live nach etwa vier Minuten.
 
-**Gepusht wird nur aus dem Mac-Klon** unter Uwes Konto (siehe `PROJEKT.md`).
-Arbeitet Claude aus der Cloud, ist der Weg: Dateien packen → auf den Mac schreiben →
-dort auspacken → in den Arbeitsordner *und* in den Git-Klon kopieren → im Klon
-committen und pushen. Auf dem rsync-Einhängepunkt kann `tar` nicht überschreiben;
-deshalb `cat "$Q/$f" > "$Z/$f"` statt `tar -x` darüber. Nach dem Push die
-`.git`-Objekte und `HEAD`/`refs/heads/main`/`index` zurückspiegeln, sonst weiß der
-Arbeitsordner nichts vom Commit.
+Gepusht wird von dem Rechner, an dem gearbeitet wird — Mac oder Windows. Aus der
+Cloud-Umgebung einer Claude-Sitzung geht es **nicht**: Der Git-Proxy lässt dieses
+Repository nicht durch (403, „not in this session's authorized repository set"),
+unabhängig von Zugangsdaten. Der Weg nach draußen ist dann `git format-patch`,
+die Datei auf den Rechner, dort `git am` und pushen.
+
+Auf dem Mac braucht es dabei einen Umweg, weil `tar` auf dem rsync-Einhängepunkt
+nicht überschreiben kann: `cat "$Q/$f" > "$Z/$f"` statt `tar -x` darüber, und nach
+dem Push die `.git`-Objekte und `HEAD`/`refs/heads/main`/`index` zurückspiegeln,
+sonst weiß der Arbeitsordner nichts vom Commit.
+
+---
+
+## Zwei Rechner, ein Repository
+
+Am Projekt wird von zwei Seiten gearbeitet: Mac und Windows-Rechner, jeweils in
+einer eigenen Claude-Sitzung. **Ein** Repository, **zwei Arbeitskopien** — nicht
+zwei Repositories. Der Grund steht nicht im Zugang, sondern im Deploy: An
+`vecom2709/vecom-design` hängen die FTP-Secrets für All-Inkl. Ein zweites
+Repository mit denselben Secrets lädt auf denselben Webspace, und die Abrissliste
+im Deploy löscht dort, was das andere gerade hochgeladen hat. Wer getrennte
+Konten braucht, nimmt einen Fork und Pull Requests — nie zwei gleichberechtigte
+Repositories.
+
+Schreibrecht bekommt das zweite Konto über **Settings → Collaborators**. Die
+Commit-Identität bleibt auf beiden Rechnern `Vecom Design
+<kontakt@vecom-design.it>`, damit die Historie einheitlich bleibt; wer gepusht
+hat, steht ohnehin nur in der Signatur.
+
+Vier Regeln, die aus Schaden entstanden sind:
+
+1. **`git pull --rebase` vor der Arbeit, nicht erst vor dem Push.** Am 30.08.2026
+   hat ein paralleler Commit die Ausschlusszeile für `cockpit/.htaccess` entfernt —
+   der nächste Deploy hat daraufhin den Passwortschutz still überschrieben.
+2. **Klein committen, sofort pushen.** Zwei Stunden ungepusht sind zwei Stunden
+   Konfliktmaterial.
+3. **`PROJEKT.md` wird von beiden Seiten unten ergänzt** und ist deshalb die
+   Datei, an der es am häufigsten knallt. Direkt vor dem Commit pullen — oder auf
+   einem eigenen Zweig arbeiten und zusammenführen.
+4. **Nach jedem Push nachsehen, ob der Deploy durchlief.** Zwei Pushes kurz
+   hintereinander lösen zwei Deploys aus; der letzte gewinnt. Das ist in Ordnung,
+   solange beide denselben Stand haben — nach einem Rebase also erst pullen.
 
 ---
 
