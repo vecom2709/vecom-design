@@ -63,7 +63,8 @@
       }
     },
     "detail_url": "pakete.html#starter",
-    "art": "website"
+    "art": "website",
+    "oeffentlich": 0
   },
   {
     "slug": "business",
@@ -133,7 +134,8 @@
       }
     },
     "detail_url": "pakete.html#business",
-    "art": "website"
+    "art": "website",
+    "oeffentlich": 0
   },
   {
     "slug": "premium",
@@ -203,7 +205,8 @@
       }
     },
     "detail_url": "pakete.html#premium",
-    "art": "website"
+    "art": "website",
+    "oeffentlich": 0
   },
   {
     "slug": "betreuung-basis",
@@ -265,7 +268,8 @@
         ]
       }
     },
-    "detail_url": "pakete.html#betreuung-basis"
+    "detail_url": "pakete.html#betreuung-basis",
+    "oeffentlich": 1
   },
   {
     "slug": "betreuung-plus",
@@ -335,7 +339,8 @@
         ]
       }
     },
-    "detail_url": "pakete.html#betreuung-plus"
+    "detail_url": "pakete.html#betreuung-plus",
+    "oeffentlich": 1
   },
   {
     "slug": "betreuung-premium",
@@ -417,7 +422,8 @@
         ]
       }
     },
-    "detail_url": "pakete.html#betreuung-premium"
+    "detail_url": "pakete.html#betreuung-premium",
+    "oeffentlich": 1
   },
   {
     "slug": "bestandsaufnahme",
@@ -483,6 +489,7 @@
         ]
       }
     },
-    "detail_url": "pakete.html#bestandsaufnahme"
+    "detail_url": "pakete.html#bestandsaufnahme",
+    "oeffentlich": 1
   }
 ]

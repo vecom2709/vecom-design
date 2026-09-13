@@ -3111,3 +3111,63 @@ erste Regel der Datei sonst mit 301 antwortet): `/_baukasten.html`,
 `/richtungen/_rahmen.css` und eine Gegenprobe `/richtungen/_probe.css` 200;
 `/_to_delete/x.patch` 403 und `/README.md` 403 wie bisher; `/index.html`,
 `/e/ANNA3CU`, `/prezzi.html`, `/de/preise.html`, `/404.html` 200.
+
+### Der Prüfstand fand, was die Migrationen nicht erreichen (13.09.2026)
+
+Uwe wollte die beiden Ansichten `/app/anfragen` und `/app/bedarf` an echten Daten
+gegengeprüft haben — sie standen seit dem 03.09. leer. Also erst ein Prüfstand:
+PHP 8.4, MariaDB, leere Datenbank, `migrate.php`, Startdaten, Admin, und dann ein
+kompletter Durchlauf durch `bedarf.php` als Kunde (Trattoria da Nino, vier Zwecke,
+zwei Sprachen; danach Pasticceria Ingrao mit allen acht Fragen).
+
+**Der schwerste Fund hat nichts mit den Ansichten zu tun: Startdaten werden NACH
+den Migrationen gesät.** `Baukasten::sicherstellen()` hängt daran, dass die Tabelle
+leer ist — leer ist sie erst, wenn die Migrationen sie angelegt haben. Migration 044
+(+15 %) traf deshalb auf null Zeilen, und danach säte `standardbausteine.json` die
+alten Preise ein. Gemessen: eine frisch eingerichtete Seite rechnete 299 statt
+345 € Grundgerüst und hätte auf der Preisseite 275 – 350 statt 325 – 400 € gezeigt.
+
+Dasselbe bei den Paketen, und dort sichtbarer: `Einrichtung::pakete()` schrieb für
+jede Zeile `oeffentlich => 1`, die Migrationen 025 und 043 hatten die drei
+Website-Pakete kurz zuvor unsichtbar gesetzt — auf einer leeren Tabelle. Gemessen:
+`pakete-daten.php` lieferte nach der Einrichtung **Starter 499, Business 899 und
+Premium 1.499** aus. Die drei am 12.09. abgeschafften Preiskarten wären auf einer
+neu eingerichteten Seite von selbst zurückgekehrt.
+
+Die bestehende Einrichtung war nie betroffen — dort liefen die Migrationen auf
+gefüllte Tabellen. Aufgefallen wäre es also erst dem nächsten, der eine eigene
+Einrichtung bekommt, und das ist ausgerechnet der Plan mit dem
+Verwaltungssystem-Master-Prompt. Behoben, indem die Startdaten den heutigen Stand
+tragen: Preise in `standardbausteine.json`, Sichtbarkeit als neues Feld
+`oeffentlich` in `standardpakete.json`, gelesen mit `?? 1`.
+
+REGEL DARAUS, für jede künftige Preis- oder Sichtbarkeitsrunde: Die Migration ist
+für die bestehende Einrichtung, die Startdatei für die nächste neue. Wer nur eines
+von beiden ändert, hat zwei Wahrheiten. Die Kette prüft das jetzt (Abschnitt
+„Startdaten nach den Migrationen").
+
+**In den Ansichten selbst drei Fehler, alle erst am Bildschirm sichtbar:**
+
+1. `/app/anfragen/<id>` riet bei einer Anfrage AUS DEM KONFIGURATOR: „Der Kunde hat
+   noch nicht gesagt, was er braucht — Konfigurator schicken." Direkt über den
+   Antworten, die er dort gegeben hatte. Der Block erscheint jetzt nur ohne Bedarf.
+2. Darunter stand „Oder direkt ein Festpreis-Paket" mit Starter 499 / Business 899 /
+   Premium 1.499 zur Auswahl. Ein Klick hätte eine Bestellung über einen Preis
+   angelegt, den es nicht mehr gibt — und der Kunde hätte ihn schriftlich. Die
+   Auswahl verlangt jetzt `oeffentlich = 1`; damit ist der Block heute leer und
+   verschwindet, kommt aber von selbst zurück, wenn wieder ein Festpreis-Paket auf
+   der Seite steht.
+3. Im Briefing zum Bauen standen „BESTAND" und „TERMIN" als nackte Überschriften,
+   sobald die Fragen offen geblieben waren — und bei einem Bedarf ohne eine einzige
+   Antwort stand das ganze Briefing da und zählte unter „das ist kalkuliert und
+   bezahlt" Grundgerüst, Texte und Bilder auf. Jetzt dieselbe Schwelle wie beim
+   Preis (`Baukasten::genugGesagt`), und offene Fragen werden ausdrücklich benannt
+   („nicht annehmen, dass neu gebaut wird", „keine Eile erfinden").
+
+Was gut war und hier stehen soll, damit es nicht aus Versehen geändert wird: Die
+Zusammenfassung in der Verwaltung ist wirklich auf Deutsch, während dieselbe Angabe
+auf der Kundenseite in seiner Sprache steht; der Vorschlagspreis (911 € im
+Durchlauf) ist die Summe der Positionsmitten und stimmt mit dem Angebot; das
+Briefing benennt bei vollständigen Antworten sogar, was NICHT gebaut werden darf.
+
+Die Kette läuft mit 904 Prüfungen durch (19 neue).

@@ -637,18 +637,32 @@ final class Bedarf
         }
         $z[] = '';
 
+        /* Eine Überschrift ohne Zeile darunter ist schlechter als keine
+           Überschrift: Am 13.09.2026 an einem echten Durchlauf gesehen, der
+           nur die erste Frage beantwortet hatte — im Briefing standen
+           "BESTAND" und "TERMIN" nackt da. Wer das liest, hält es für einen
+           Fehler des Briefings und rät den Rest zusammen. Deshalb dieselbe
+           Auffangzeile wie oben bei "WAS DIE SEITE LEISTEN MUSS": Es steht
+           ausdrücklich da, dass nichts gesagt wurde. */
         $z[] = 'BESTAND';
-        foreach ($wahl('bestand') as $w) {
+        $bestand = $wahl('bestand');
+        foreach ($bestand as $w) {
             $z[] = '- ' . $wort('bestand', $w);
             if (in_array($w, ['erneuern', 'ueberarb'], true)) {
                 $z[] = '- Inhalte werden von der alten Seite übernommen. Alte Adressen müssen weiter funktionieren,'
                      . ' sonst fällt die Seite aus dem Google-Index. Bestehende Titel und Beschreibungen vorher sichern.';
             }
         }
+        if (!$bestand) {
+            $z[] = '- (nicht angegeben — vor dem Bauen nachfragen, ob es eine alte Seite gibt.'
+                 . ' Nicht annehmen, dass neu gebaut wird: eine übersehene alte Seite kostet den Google-Index.)';
+        }
         $z[] = '';
 
         $z[] = 'TERMIN';
-        foreach ($wahl('zeit') as $w) { $z[] = '- ' . $wort('zeit', $w); }
+        $zeit = $wahl('zeit');
+        foreach ($zeit as $w) { $z[] = '- ' . $wort('zeit', $w); }
+        if (!$zeit) { $z[] = '- (nicht angegeben — es ist kein Termin zugesagt. Keine Eile erfinden.)'; }
         $z[] = '';
 
         $z[] = 'KONTAKTDATEN FÜR DIE SEITE';

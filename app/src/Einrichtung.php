@@ -215,7 +215,25 @@ final class Einrichtung
         return 'Zugang angelegt';
     }
 
-    /** Uebernimmt die drei Pakete der Website. Mehrfach aufrufbar. */
+    /**
+     * Uebernimmt die Pakete der Website. Mehrfach aufrufbar.
+     *
+     * WARUM 'oeffentlich' AUS DER VORLAGE KOMMT UND NICHT FEST AUF 1 STEHT
+     *
+     * Hier stand 'oeffentlich' => 1 fuer jede Zeile. Am 13.09.2026 an einer
+     * frischen Einrichtung gemessen: migrate.php laeuft zuerst, also auch die
+     * Migrationen 025 und 043, die starter, business und premium auf
+     * oeffentlich = 0 setzen -- nur trafen sie auf eine leere Tabelle. Danach
+     * saete diese Methode die drei Pakete mit oeffentlich = 1 wieder ein, und
+     * pakete-daten.php lieferte Starter 499, Business 899 und Premium 1.499
+     * aus. Die drei Preiskarten, die am 12.09.2026 abgeschafft wurden, waeren
+     * auf einer neu eingerichteten Seite von selbst zurueckgekehrt.
+     *
+     * Dieselbe Falle wie bei Baukasten::sicherstellen(): Startdaten werden
+     * NACH den Migrationen gesaet und muessen deshalb den heutigen Stand
+     * tragen, nicht den von damals. Die Sichtbarkeit steht jetzt in
+     * standardpakete.json.
+     */
     public static function pakete(): array
     {
         $ergebnis = [];
@@ -227,7 +245,7 @@ final class Einrichtung
                 'features' => json_encode($p['features'], JSON_UNESCAPED_UNICODE),
                 'texte' => isset($p['texte']) ? json_encode($p['texte'], JSON_UNESCAPED_UNICODE) : null,
                 'detail_url' => $p['detail_url'] ?? null,
-                'active' => 1, 'oeffentlich' => 1, 'popular' => $p['popular'], 'sort' => $p['sort'],
+                'active' => 1, 'oeffentlich' => (int) ($p['oeffentlich'] ?? 1), 'popular' => $p['popular'], 'sort' => $p['sort'],
             ];
             if (self::spalteDa('packages', 'art')) { $daten['art'] = $p['art'] ?? 'website'; }
             $da = Db::one('SELECT id FROM packages WHERE slug = ?', [$p['slug']]);
@@ -284,7 +302,7 @@ final class Einrichtung
                     'features' => json_encode($p['features'], JSON_UNESCAPED_UNICODE),
                     'texte' => isset($p['texte']) ? json_encode($p['texte'], JSON_UNESCAPED_UNICODE) : null,
                     'detail_url' => $p['detail_url'] ?? null,
-                    'active' => 1, 'oeffentlich' => 1, 'popular' => $p['popular'], 'sort' => $p['sort'],
+                    'active' => 1, 'oeffentlich' => (int) ($p['oeffentlich'] ?? 1), 'popular' => $p['popular'], 'sort' => $p['sort'],
                 ]);
                 $bilanz['angelegt'][] = (string) $p['name'];
                 continue;

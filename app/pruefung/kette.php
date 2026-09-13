@@ -4305,6 +4305,109 @@ Db::run('DELETE FROM mails WHERE customer_id = ?', [$wsKunde]);
 Db::run("DELETE FROM notifications WHERE type LIKE 'werkstatt%'");
 
 /* ============================================================================
+   Startdaten tragen den heutigen Stand
+
+   WARUM DIESER ABSCHNITT EXISTIERT
+
+   Am 13.09.2026 an einer frisch eingerichteten Datenbank gemessen: Die
+   Migrationen laufen zuerst, die Startdaten werden danach gesät. Migration 044
+   (+15 % auf die Bausteine) und die Migrationen 025/043 (die drei
+   Website-Pakete unsichtbar) trafen deshalb auf leere Tabellen und änderten
+   nichts — und anschließend säten standardbausteine.json die alten Preise und
+   Einrichtung::pakete() die drei Pakete mit oeffentlich = 1 wieder ein.
+
+   Was das bedeutet: Eine neu eingerichtete Vecom-Seite hätte 299 statt 345 Euro
+   Grundgerüst gerechnet und auf der Startseite wieder Starter 499, Business 899
+   und Premium 1.499 angeboten. Auf der bestehenden Einrichtung war alles
+   richtig — der Fehler wäre also erst dem nächsten Kunden aufgefallen, der eine
+   eigene Einrichtung bekommt.
+
+   Diese Prüfungen halten das fest, weil die Ursache bei jeder künftigen
+   Preisrunde wiederkommt.
+   ============================================================================ */
+abschnitt('Startdaten nach den Migrationen');
+
+Baukasten::sicherstellen();
+$sdKatalog = Baukasten::katalog();
+pruefe('der Baukasten ist gesät', count($sdKatalog) >= 12, (string) count($sdKatalog));
+
+/* Die Zahlen stehen hier absichtlich noch einmal und nicht aus der Datei:
+   Eine Prüfung, die ihren Sollwert aus derselben Quelle liest wie der Code,
+   prüft nur, dass Lesen funktioniert. */
+$sdSoll = [
+    'basis' => [34500, 40000], 'seite' => [4500, 6000], 'sprache' => [14000, 18000],
+    'shop'  => [68000, 91000],
+];
+foreach ($sdSoll as $sdSlug => [$sdVon, $sdBis]) {
+    $sdIst = $sdKatalog[$sdSlug] ?? null;
+    pruefe("Startpreis $sdSlug ist auf dem Stand von Migration 044",
+        $sdIst && (int) $sdIst['preis_cents'] === $sdVon && (int) $sdIst['preis_bis_cents'] === $sdBis,
+        $sdIst ? ((int) $sdIst['preis_cents'] . '-' . (int) $sdIst['preis_bis_cents']) : 'fehlt');
+}
+
+/* Und die vier Beispiele der Preisseite müssen aus diesen Zahlen herauskommen —
+   sonst steht auf der Seite eine andere Zahl als im Angebot. */
+$sdFaelle = [
+    'f1' => [['basis', 1], 32500, 40000],
+    'f2' => [['basis', 1, 'seite', 4], 52500, 65000],
+];
+$sdSpanne = static function (array $teile) use ($sdKatalog): array {
+    $von = 0; $bis = 0;
+    for ($i = 0; $i < count($teile); $i += 2) {
+        $b = $sdKatalog[$teile[$i]] ?? null;
+        if (!$b) { return [0, 0]; }
+        $von += (int) $b['preis_cents'] * (int) $teile[$i + 1];
+        $bis += (int) $b['preis_bis_cents'] * (int) $teile[$i + 1];
+    }
+    $g = Baukasten::spanne($von, $bis);
+    return [(int) $g['von_cents'], (int) $g['bis_cents']];
+};
+foreach ($sdFaelle as $sdName => [$sdTeile, $sdEvon, $sdEbis]) {
+    [$sdIvon, $sdIbis] = $sdSpanne($sdTeile);
+    pruefe("Beispielspanne $sdName stimmt mit dem Rückfall im HTML überein",
+        $sdIvon === $sdEvon && $sdIbis === $sdEbis, ($sdIvon / 100) . ' – ' . ($sdIbis / 100) . ' €');
+}
+
+/* Die drei abgeschafften Pakete dürfen nach dem Säen nicht öffentlich sein. */
+foreach (Einrichtung::pakete() as $sdZeile) { /* säen wie bei einer Einrichtung */ }
+foreach (['starter', 'business', 'premium'] as $sdSlug) {
+    pruefe("$sdSlug bleibt nach dem Säen unsichtbar",
+        (int) Db::wert('SELECT oeffentlich FROM packages WHERE slug = ?', [$sdSlug], 1) === 0);
+}
+pruefe('Betreuung Basis bleibt sichtbar',
+    (int) Db::wert("SELECT oeffentlich FROM packages WHERE slug = 'betreuung-basis'", [], 0) === 1);
+
+/* ============================================================================
+   Das Briefing aus dem Bedarf
+   ============================================================================ */
+abschnitt('Briefing zum Bauen');
+
+require_once dirname(__DIR__) . '/src/Bedarf.php';
+
+$bpLeer = ['id' => 0, 'firma' => '', 'name' => '', 'email' => '', 'telefon' => ''];
+$bpKnapp = Bedarf::bauprompt(
+    ['id' => 0, 'firma' => 'Trattoria da Nino', 'name' => 'Nino', 'email' => 'n@example.com', 'telefon' => ''],
+    ['zweck' => ['zeigen']], Baukasten::vorschlag(Baukasten::rechnen(['zweck' => ['zeigen']])), $sdKatalog);
+
+/* Eine Überschrift ohne Zeile darunter liest sich wie ein Fehler des Briefings,
+   und wer sie so liest, rät den Rest zusammen. */
+foreach (['BESTAND', 'TERMIN', 'WAS DIE SEITE LEISTEN MUSS', 'MATERIAL'] as $bpKopf) {
+    pruefe("$bpKopf steht im Briefing nie nackt da",
+        (bool) preg_match('/' . preg_quote($bpKopf, '/') . '\n- /', $bpKnapp));
+}
+pruefe('ein unbeantworteter Bestand wird ausdrücklich benannt',
+    str_contains($bpKnapp, 'ob es eine alte Seite gibt'));
+pruefe('ein unbeantworteter Termin erfindet keine Eile',
+    str_contains($bpKnapp, 'Keine Eile erfinden'));
+
+/* Und ohne eine einzige Antwort gibt es nichts zu bauen: Baukasten::genugGesagt
+   ist die Schwelle, an der auch die Spanne schweigt. */
+pruefe('ohne Antworten ist die Schwelle nicht erreicht',
+    Baukasten::genugGesagt([]) === false);
+pruefe('mit der ersten Antwort schon',
+    Baukasten::genugGesagt(['zweck' => ['zeigen']]) === true);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

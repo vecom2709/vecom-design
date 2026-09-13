@@ -1,12 +1,12 @@
 {
-  "hinweis": "Startwerte fuer den Baukasten. Preise in ganzen Cent. preis_bis_cents 0 heisst: so sicher wie preis_cents. Bausteine in Baukasten::NUR_AUF_ANFRAGE werden nie automatisch gerechnet. Diese Datei wird nur beim ersten Mal eingelesen; danach gilt, was in der Verwaltung steht.",
+  "hinweis": "Startwerte fuer den Baukasten. Preise in ganzen Cent. preis_bis_cents 0 heisst: so sicher wie preis_cents. Bausteine in Baukasten::NUR_AUF_ANFRAGE werden nie automatisch gerechnet. Diese Datei wird nur beim ersten Mal eingelesen; danach gilt, was in der Verwaltung steht. WICHTIG: Sie muss den AKTUELLEN Preisstand tragen. Baukasten::sicherstellen() laeuft erst, wenn die Tabelle leer ist - also NACH allen Migrationen. Eine Preismigration wie 044 trifft bei einer frischen Einrichtung auf eine leere Tabelle und aendert nichts; was hier steht, bleibt stehen. Jede Preisrunde aendert deshalb beides: die Migration fuer bestehende Einrichtungen und diese Datei fuer neue.",
   "bausteine": [
     {
       "slug": "basis",
       "gruppe": "basis",
       "sortierung": 10,
-      "preis_cents": 29900,
-      "preis_bis_cents": 34900,
+      "preis_cents": 34500,
+      "preis_bis_cents": 40000,
       "name": {
         "it": "Base del sito",
         "de": "Grundgerüst der Website",
@@ -23,8 +23,8 @@
       "gruppe": "seite",
       "sortierung": 20,
       "je_einheit": 1,
-      "preis_cents": 4000,
-      "preis_bis_cents": 5200,
+      "preis_cents": 4500,
+      "preis_bis_cents": 6000,
       "name": {
         "it": "Pagina aggiuntiva",
         "de": "Weitere Seite",
@@ -41,8 +41,8 @@
       "gruppe": "sprache",
       "sortierung": 30,
       "je_einheit": 1,
-      "preis_cents": 12000,
-      "preis_bis_cents": 15500,
+      "preis_cents": 14000,
+      "preis_bis_cents": 18000,
       "name": {
         "it": "Lingua aggiuntiva",
         "de": "Weitere Sprache",
@@ -58,8 +58,8 @@
       "slug": "speisekarte",
       "gruppe": "funktion",
       "sortierung": 40,
-      "preis_cents": 9000,
-      "preis_bis_cents": 12000,
+      "preis_cents": 10500,
+      "preis_bis_cents": 14000,
       "name": {
         "it": "Menu o listino",
         "de": "Speisekarte oder Angebotsliste",
@@ -75,8 +75,8 @@
       "slug": "termine",
       "gruppe": "funktion",
       "sortierung": 50,
-      "preis_cents": 19000,
-      "preis_bis_cents": 25000,
+      "preis_cents": 22000,
+      "preis_bis_cents": 29000,
       "name": {
         "it": "Appuntamenti o prenotazione tavoli",
         "de": "Termine oder Tischreservierung",
@@ -92,8 +92,8 @@
       "slug": "buchung",
       "gruppe": "funktion",
       "sortierung": 60,
-      "preis_cents": 39000,
-      "preis_bis_cents": 52000,
+      "preis_cents": 45000,
+      "preis_bis_cents": 60000,
       "name": {
         "it": "Sistema di prenotazione",
         "de": "Buchungssystem",
@@ -109,8 +109,8 @@
       "slug": "shop",
       "gruppe": "funktion",
       "sortierung": 70,
-      "preis_cents": 59000,
-      "preis_bis_cents": 79000,
+      "preis_cents": 68000,
+      "preis_bis_cents": 91000,
       "name": {
         "it": "Negozio online",
         "de": "Online-Shop",
@@ -126,8 +126,8 @@
       "slug": "texte",
       "gruppe": "inhalt",
       "sortierung": 80,
-      "preis_cents": 12000,
-      "preis_bis_cents": 16000,
+      "preis_cents": 14000,
+      "preis_bis_cents": 18500,
       "name": {
         "it": "Stesura dei testi",
         "de": "Texte schreiben",
@@ -143,8 +143,8 @@
       "slug": "fotos",
       "gruppe": "inhalt",
       "sortierung": 90,
-      "preis_cents": 9000,
-      "preis_bis_cents": 12000,
+      "preis_cents": 10500,
+      "preis_bis_cents": 14000,
       "name": {
         "it": "Immagini",
         "de": "Bilder",
@@ -160,8 +160,8 @@
       "slug": "logo",
       "gruppe": "inhalt",
       "sortierung": 100,
-      "preis_cents": 19000,
-      "preis_bis_cents": 24000,
+      "preis_cents": 22000,
+      "preis_bis_cents": 27500,
       "name": {
         "it": "Logo",
         "de": "Logo",
@@ -177,8 +177,8 @@
       "slug": "uebernahme",
       "gruppe": "inhalt",
       "sortierung": 110,
-      "preis_cents": 9000,
-      "preis_bis_cents": 12000,
+      "preis_cents": 10500,
+      "preis_bis_cents": 14000,
       "name": {
         "it": "Recupero dal sito attuale",
         "de": "Inhalte von der alten Seite übernehmen",
@@ -194,8 +194,8 @@
       "slug": "express",
       "gruppe": "funktion",
       "sortierung": 120,
-      "preis_cents": 15000,
-      "preis_bis_cents": 20000,
+      "preis_cents": 17000,
+      "preis_bis_cents": 23000,
       "name": {
         "it": "Consegna rapida",
         "de": "Beschleunigte Umsetzung",
@@ -225,5 +225,6 @@
         "en": "Updates, backups, site monitoring, small changes."
       }
     }
-  ]
+  ],
+  "stand": "2026-09-13 (Preisstand nach Migration 044, +15 Prozent)"
 }

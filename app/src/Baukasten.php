@@ -296,7 +296,26 @@ final class Baukasten
         } catch (Throwable $e) { /* dann bleibt es, wie es war */ }
     }
 
-    /** Legt die Startwerte an, falls der Katalog noch leer ist. Laeuft genau einmal. */
+    /**
+     * Legt die Startwerte an, falls der Katalog noch leer ist. Laeuft genau einmal.
+     *
+     * ACHTUNG, am 13.09.2026 an einer frischen Einrichtung gemessen: Diese
+     * Methode laeuft NACH allen Migrationen -- sie haengt daran, dass die
+     * Tabelle leer ist, und das ist sie erst, wenn die Migrationen die Tabelle
+     * angelegt haben. Eine Preismigration wie 044 trifft bei einer neuen
+     * Einrichtung also auf null Zeilen und aendert nichts; stehen bleibt, was
+     * in standardbausteine.json steht. Die Datei lag deshalb einen Tag lang
+     * 15 Prozent unter dem Preisstand: Eine frische Einrichtung haette
+     * 299 statt 345 Euro Grundgeruest gerechnet und auf der Preisseite
+     * 275 - 350 statt 325 - 400 Euro gezeigt, waehrend die bestehende
+     * Einrichtung richtig rechnete.
+     *
+     * Jede Preisrunde aendert deshalb beides: die Migration fuer bestehende
+     * Einrichtungen und standardbausteine.json fuer neue. Die Probe dafuer ist
+     * eine leere Datenbank, migrate.php, sicherstellen() und ein Blick in
+     * preise-daten.php -- dort muessen dieselben vier Spannen stehen wie im
+     * HTML-Rueckfall.
+     */
     public static function sicherstellen(): void
     {
         try {

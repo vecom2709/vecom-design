@@ -151,6 +151,19 @@
        wirklich weiterfuehrt, jetzt oben, und die Bestellung darunter — und
        nur dann, wenn es ueberhaupt ein Paket mit Preis gibt.
        ================================================================= */ ?>
+  <?php /* ------------------------------------------------------------------
+       NUR WENN ER WIRKLICH NOCH NICHTS GESAGT HAT
+
+       Am 13.09.2026 an einer echten Anfrage aus dem Konfigurator gesehen:
+       Oben stand, was angekreuzt wurde, samt Preis, den man nennen kann —
+       und darunter "Der Kunde hat noch nicht gesagt, was er braucht.
+       Konfigurator schicken". Wer dem Knopf folgt, laedt einen Kunden in
+       einen Fragebogen ein, den er gerade ausgefuellt hat.
+
+       Haengt ein Bedarf an der Anfrage, fuehrt der Weg nicht mehr hierher:
+       Er steht oben, im Block mit der fertigen Preisnachricht.
+       --------------------------------------------------------------- */ ?>
+  <?php if (!$bedarf): ?>
   <div class="block">
     <h2>Wie es weitergeht</h2>
     <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:0 0 12px">
@@ -169,6 +182,7 @@
         Formular. Leg den Kunden an, dann steht der Weg offen.</div>
     <?php endif; ?>
   </div>
+  <?php endif; ?>
 
   <?php if ($pakete): ?>
     <div class="block">

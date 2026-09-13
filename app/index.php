@@ -2205,9 +2205,20 @@ switch ($route) {
                Angebot. */
             $vorschlag = Baukasten::vorschlag($rechnung, $aktive);
             /* Das Briefing zum Kopieren. Braucht keinen Kunden — es ist eine
-               Ansicht auf die Antworten, kein Vorgang. */
-            $bauprompt = (string) sicher(
-                static fn() => Bedarf::bauprompt($b, $antworten, $vorschlag, $aktive), '');
+               Ansicht auf die Antworten, kein Vorgang.
+
+               Aber es braucht Antworten. Am 13.09.2026 an einem leeren Bedarf
+               gesehen (jemand hat den Konfigurator geoeffnet und sofort
+               geschlossen): Das Briefing stand vollstaendig da und zaehlte
+               unter "das ist kalkuliert und bezahlt" Grundgeruest, Texte und
+               Bilder auf — bei null Antworten. Dieselbe Falle wie bei der
+               Spanne, die vor der Korrektur b7d4af0 stillschweigend vier
+               Seiten annahm. Deshalb hier dieselbe Schwelle: Ohne
+               genugGesagt() kein Briefing. Die Ansicht laesst den Block dann
+               ganz weg. */
+            $bauprompt = Baukasten::genugGesagt($antworten)
+                ? (string) sicher(static fn() => Bedarf::bauprompt($b, $antworten, $vorschlag, $aktive), '')
+                : '';
             /* Ein Bedarf zeigt auf einen Kunden -- der aber geloescht sein
                kann, etwa nach einem Testlauf. Vorher stand dann trotzdem
                "Zum Kunden" da und darunter ein Sendeformular, das ins Leere
@@ -2452,9 +2463,24 @@ switch ($route) {
                    Website-Bestellung -- und der Sammelposten
                    "Individuelles Angebot" zu 0,00 €. Wer eines davon waehlte,
                    legte eine Bestellung ueber nichts an. */
+                /* UND oeffentlich = 1, seit dem 13.09.2026.
+                   ----------------------------------------------------------
+                   Ohne diese Bedingung standen hier weiter Starter 499,
+                   Business 899 und Premium 1.499 zur Auswahl -- die drei
+                   Pakete, die am 12.09.2026 abgeschafft wurden. Sie sind
+                   absichtlich nur unsichtbar und nicht geloescht, weil
+                   Bestellungen und Belege an ihnen haengen (Migration 025 und
+                   043). Wer sie hier gewaehlt haette, haette eine neue
+                   Bestellung ueber einen Preis angelegt, den es nicht mehr
+                   gibt -- und der Kunde haette ihn schriftlich.
+                   Bleibt die Liste leer, verschwindet der ganze Block: Der Weg
+                   fuehrt ueber Konfigurator und Angebot. Stellt Uwe eines Tages
+                   wieder ein Festpreis-Paket auf die Seite, ist es hier von
+                   selbst zurueck. */
                 'pakete'     => Db::all(
                     "SELECT id, name, price_cents, currency FROM packages
-                      WHERE active = 1 AND art = 'website' AND price_cents > 0
+                      WHERE active = 1 AND oeffentlich = 1
+                        AND art = 'website' AND price_cents > 0
                       ORDER BY sort, price_cents"),
             ]);
             break;
