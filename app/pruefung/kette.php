@@ -4562,6 +4562,196 @@ foreach (['buchen.php', 'app/index.php', 'app/src/Nachricht.php',
 }
 
 /* ============================================================================
+   49. Material vom Kunden und die Website zum Mitnehmen
+
+   Zwei Richtungen, die vorher beide nicht funktionierten: Was der Kunde
+   hochlaedt, stand im Auftrag bestenfalls als Dateiname — der Baumeister
+   wusste, dass es ein Logo gibt, und kam nicht daran. Und die fertige Seite
+   lag auf Netlify und im Mac-Ordner, nirgends aber dort, wo man sie dem
+   Kunden geben kann.
+   ============================================================================ */
+abschnitt('49. Material und Website-Paket');
+
+/* Dateien werden hier direkt eingetragen statt hochgeladen: is_uploaded_file()
+   ist im CLI immer falsch, ein echter Upload also nicht nachstellbar. Geprueft
+   wird deshalb alles AUSSER dem Bewegen der Bytes — und genau da liegt auch
+   das Neue. */
+$mpProjekt = $projektId;
+$mpKunde   = (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$mpProjekt], 0);
+
+$mpDatei = static function (string $name, string $rolle, string $wer, int $bytes = 4096) use ($mpProjekt, $mpKunde): int {
+    return Db::insert('files', [
+        'customer_id' => $mpKunde, 'project_id' => $mpProjekt,
+        'stored_name' => bin2hex(random_bytes(8)) . '.bin', 'orig_name' => $name,
+        'mime' => 'application/octet-stream', 'size_bytes' => $bytes,
+        'uploaded_by' => $wer, 'rolle' => $rolle,
+    ]);
+};
+
+/* ---------- Die Spalten, an denen alles haengt ---------------------------- */
+pruefe('files trägt eine Rolle',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.columns
+                     WHERE table_schema = DATABASE() AND table_name = 'files'
+                       AND column_name = 'rolle'", [], 0) === 1);
+pruefe('projects trägt die Freigabe des Pakets',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.columns
+                     WHERE table_schema = DATABASE() AND table_name = 'projects'
+                       AND column_name = 'paket_frei_am'", [], 0) === 1);
+/* MariaDB liefert Zeichenketten-Vorgaben mit Anfuehrungszeichen ('material'),
+   MySQL ohne. Beides ist richtig — die Anfuehrungszeichen gehoeren weg, bevor
+   verglichen wird, sonst haengt die Pruefung an der Datenbankmarke. */
+pruefe('bestehende Dateien sind Material, nicht Paket',
+    trim((string) Db::wert("SELECT COLUMN_DEFAULT FROM information_schema.columns
+                        WHERE table_schema = DATABASE() AND table_name = 'files'
+                          AND column_name = 'rolle'", [], ''), "'\"") === 'material');
+
+/* ---------- Was der Kunde geschickt hat, steht im Auftrag ----------------- */
+$mpLogo = $mpDatei('logo-trattoria.svg', 'material', 'kunde', 51200);
+$mpFont = $mpDatei('hausschrift.zip', 'material', 'kunde', 380000);
+
+$mpListe = Werkstatt::dateien(['projekt' => (string) $mpProjekt]);
+pruefe('die Werkstatt nennt das Material', ($mpListe['ok'] ?? false) === true
+    && (int) ($mpListe['anzahl'] ?? 0) === 2, (string) ($mpListe['anzahl'] ?? 0));
+$mpNamen = array_column((array) $mpListe['dateien'], 'name');
+pruefe('mit Namen', in_array('logo-trattoria.svg', $mpNamen, true));
+pruefe('und mit dem Weg, sie zu holen',
+    str_contains((string) ($mpListe['dateien'][0]['holen'] ?? ''), 'aktion=datei&id='));
+pruefe('die Größe steht dabei', (int) ($mpListe['dateien'][0]['bytes'] ?? 0) > 0);
+
+require_once $oben . '/app/src/Briefing.php';
+$mpBrief = Briefing::bauen($mpProjekt);
+pruefe('das Briefing nennt das Material', str_contains($mpBrief, 'MATERIAL VOM KUNDEN'));
+pruefe('mit Dateinamen', str_contains($mpBrief, 'logo-trattoria.svg')
+    && str_contains($mpBrief, 'hausschrift.zip'));
+pruefe('mit der Nummer zum Abholen', str_contains($mpBrief, '#' . $mpLogo));
+pruefe('und mit dem fertigen Befehl', str_contains($mpBrief, 'aktion=datei&id=$1'));
+pruefe('es sagt auch, dass Logo und Schriften benutzt und nicht nachgebaut werden',
+    str_contains($mpBrief, 'nicht nachgebaut'));
+
+/* ---------- Und wenn nichts da ist, steht auch das da --------------------- */
+$mpLeerProjekt = (int) Db::wert('SELECT id FROM projects WHERE id <> ? ORDER BY id DESC LIMIT 1',
+    [$mpProjekt], 0);
+if ($mpLeerProjekt > 0) {
+    Db::run("DELETE FROM files WHERE project_id = ?", [$mpLeerProjekt]);
+    $mpLeer = Briefing::bauen($mpLeerProjekt);
+    pruefe('ohne Material sagt das Briefing genau das',
+        str_contains($mpLeer, 'MATERIAL VOM KUNDEN')
+        && str_contains($mpLeer, 'Es liegt nichts hochgeladen vor'));
+    pruefe('und verlangt, danach zu fragen statt Platzhalter zu bauen',
+        str_contains($mpLeer, 'Frag danach'));
+}
+
+/* ---------- Das Paket: erst prüfen, dann annehmen ------------------------- */
+gesperrt('ohne Datei wird kein Paket angenommen',
+    static fn() => Werkstatt::paket(['projekt' => (string) $mpProjekt], []));
+gesperrt('was keine .zip ist, wird abgelehnt',
+    static fn() => Werkstatt::paket(['projekt' => (string) $mpProjekt],
+        ['name' => 'website.tar.gz', 'error' => UPLOAD_ERR_OK, 'size' => 1024]));
+gesperrt('eine abgebrochene Übertragung wird abgelehnt',
+    static fn() => Werkstatt::paket(['projekt' => (string) $mpProjekt],
+        ['name' => 'website.zip', 'error' => UPLOAD_ERR_PARTIAL, 'size' => 1024]));
+gesperrt('ein zu großes Paket wird abgelehnt',
+    static fn() => Werkstatt::paket(['projekt' => (string) $mpProjekt],
+        ['name' => 'website.zip', 'error' => UPLOAD_ERR_OK,
+         'size' => Werkstatt::PAKET_MAX_BYTES + 1]));
+
+/* ---------- Das Paket liegt da, der Kunde sieht es noch nicht ------------- */
+$mpPaket = $mpDatei('trattoria-website.zip', 'paket', 'werkstatt', 8_400_000);
+
+pruefe('das Paket steht nicht im Material des Kunden',
+    !in_array('trattoria-website.zip',
+        array_column((array) Werkstatt::dateien(['projekt' => (string) $mpProjekt])['dateien'], 'name'), true));
+pruefe('es ist aber über die Rolle zu finden',
+    (int) (Werkstatt::dateien(['projekt' => (string) $mpProjekt, 'rolle' => 'paket'])['anzahl'] ?? 0) === 1);
+pruefe('und es steht auch nicht im Briefing-Material',
+    !str_contains(Briefing::bauen($mpProjekt), 'trattoria-website.zip'));
+
+$mpFreiVorher = Db::wert('SELECT paket_frei_am FROM projects WHERE id = ?', [$mpProjekt], null);
+pruefe('das Paket ist zunächst nicht freigegeben', $mpFreiVorher === null);
+
+require_once $oben . '/app/src/Nachricht.php';
+
+/* In der Pruefung liegt kein Brevo-Schluessel, also meldet JEDER Versand
+   false — ob er versucht wurde, steht nur in der Tabelle mails. Gezaehlt wird
+   deshalb der Versuch, nicht der Rueckgabewert. Der Unterschied, auf den es
+   ankommt, ist genau der: vor der Freigabe wird gar nicht erst angesetzt. */
+$mpVersuche = static fn(): int => (int) Db::wert(
+    "SELECT COUNT(*) FROM mails WHERE project_id = ? AND anlass = 'paket'", [$mpProjekt], 0);
+
+$mpVorher = $mpVersuche();
+pruefe('ohne Freigabe geht auch keine E-Mail raus',
+    Nachricht::paketFertig($mpProjekt) === false && $mpVersuche() === $mpVorher);
+
+/* Das ist die Sperre, auf die es ankommt: Die Kundenseite zeigt das Paket nur
+   nach der Freigabe — und liefert es auch nur dann aus. */
+$mpSichtbar = static fn(int $pid): bool =>
+    Db::wert('SELECT paket_frei_am FROM projects WHERE id = ?', [$pid], null) !== null;
+pruefe('die Kundenseite zeigt es deshalb nicht', $mpSichtbar($mpProjekt) === false);
+
+/* ---------- Freigeben ---------------------------------------------------- */
+Db::update('projects', $mpProjekt, ['paket_frei_am' => date('Y-m-d H:i:s')]);
+pruefe('nach der Freigabe ist es für den Kunden da', $mpSichtbar($mpProjekt) === true);
+Nachricht::paketFertig($mpProjekt);
+pruefe('und jetzt geht die E-Mail raus', $mpVersuche() > $mpVorher);
+pruefe('sie steht als solche im Protokoll',
+    (string) Db::wert("SELECT anlass FROM mails WHERE project_id = ?
+                        ORDER BY id DESC LIMIT 1", [$mpProjekt], '') === 'paket');
+
+/* Der Rumpf der Mail wird nirgends gespeichert — die Tabelle mails haelt nur
+   fest, DASS etwas rausging. Was drinsteht, wird deshalb dort geprueft, wo es
+   entsteht: am Text selbst, in allen drei Sprachen. */
+foreach (['it', 'de', 'en'] as $mpSprache) {
+    [$mpBetreff, $mpText] = Texte::mail('paket', $mpSprache, [
+        'name' => 'Trattoria', 'paket' => 'Sichtbar',
+        'datei' => 'trattoria-website.zip',
+        'link' => 'https://vecom-design.it/projekt.php?k=abc123',
+    ]);
+    pruefe("sie trägt den Dateinamen ($mpSprache)",
+        str_contains($mpText, 'trattoria-website.zip'));
+    pruefe("und einen Link auf seine Projektseite, nicht das ZIP im Anhang ($mpSprache)",
+        str_contains($mpText, 'projekt.php?k=abc123'));
+    pruefe("der Betreff nennt das Paket ($mpSprache)",
+        $mpBetreff !== '' && str_contains($mpBetreff, 'Sichtbar'));
+    pruefe("keine Platzhalter bleiben stehen ($mpSprache)",
+        !str_contains($mpText . $mpBetreff, '{'));
+}
+
+/* Eine neue Fassung darf nachgeliefert werden, ohne dass die Freigabe faellt —
+   sonst steht beim Kunden irgendwann ein Paket von vorletzter Woche. */
+$mpPaket2 = $mpDatei('trattoria-website-v2.zip', 'paket', 'werkstatt', 8_500_000);
+pruefe('eine neue Fassung hebt die Freigabe nicht auf', $mpSichtbar($mpProjekt) === true);
+pruefe('und der Kunde bekommt die neueste',
+    (string) Db::wert("SELECT orig_name FROM files WHERE project_id = ? AND rolle = 'paket'
+                        ORDER BY id DESC LIMIT 1", [$mpProjekt], '') === 'trattoria-website-v2.zip');
+
+/* Zurücknehmen muss auch gehen. */
+Db::update('projects', $mpProjekt, ['paket_frei_am' => null]);
+pruefe('die Freigabe lässt sich zurücknehmen', $mpSichtbar($mpProjekt) === false);
+
+/* ---------- Der Weg nach draußen ----------------------------------------- */
+$mpWerkstattPhp = file_get_contents($oben . '/werkstatt.php');
+pruefe('die Werkstatt kennt die drei neuen Aktionen',
+    in_array('dateien', Werkstatt::AKTIONEN, true)
+    && in_array('datei', Werkstatt::AKTIONEN, true)
+    && in_array('paket', Werkstatt::AKTIONEN, true));
+pruefe('„datei" antwortet an der JSON-Kopfzeile vorbei',
+    str_contains($mpWerkstattPhp, "header_remove('Content-Type')"));
+pruefe('und steht vor dem JSON-Verteiler',
+    strpos($mpWerkstattPhp, "if (\$aktion === 'datei')")
+        < strpos($mpWerkstattPhp, "antwort(match (\$aktion)"));
+pruefe('das Paket kommt aus $_FILES, nicht aus dem JSON-Rumpf',
+    str_contains($mpWerkstattPhp, "Werkstatt::paket(\$d, \$_FILES['datei'] ?? [])"));
+
+$mpProjektSeite = file_get_contents($oben . '/projekt.php');
+pruefe('die Kundenseite liefert ein gesperrtes Paket nicht aus',
+    str_contains($mpProjektSeite, "=== 'paket'")
+    && str_contains($mpProjektSeite, 'paket_frei_am'));
+
+// Aufräumen, damit die folgenden Abschnitte auf sauberen Zahlen stehen.
+Db::run('DELETE FROM files WHERE project_id = ?', [$mpProjekt]);
+Db::run("DELETE FROM mails WHERE project_id = ? AND anlass = 'paket'", [$mpProjekt]);
+
+/* ============================================================================
    Startdaten tragen den heutigen Stand
 
    WARUM DIESER ABSCHNITT EXISTIERT

@@ -784,6 +784,20 @@ final class Texte
             'en' => 'I answer here — usually within one working day.'],
         /* "Unterlagen" und "Dateien" standen frueher untereinander und klangen
            gleich. Das eine sind Belege von uns, das andere sein Material. */
+        /* DIE SEITE ZUM MITNEHMEN
+           ------------------------------------------------------------------
+           Kein Fachwort, keine Drohung. Der Kasten sagt, wofuer das Paket gut
+           ist — umziehen, sichern, weitergeben —, und dass niemand etwas
+           kuendigen muss, um es zu bekommen. Wer ein ZIP ohne diesen Satz
+           bekommt, legt es weg und fragt sich, ob das ein Abschied war. */
+        'paket'      => ['it' => 'Il tuo sito da portare con te',
+                         'de' => 'Deine Website zum Mitnehmen',
+                         'en' => 'Your website to take with you'],
+        'paketHilfe' => [
+            'it' => 'Tutti i file del tuo sito in un unico pacchetto. È tuo: ti serve per cambiare hosting, per una copia di sicurezza, o se un giorno ci lavora qualcun altro. Il sito resta online come prima.',
+            'de' => 'Alle Dateien deiner Website in einem Paket. Es gehört dir: für einen Anbieterwechsel, als Sicherung, oder falls einmal jemand anderes daran arbeitet. Die Seite bleibt online wie bisher.',
+            'en' => 'Every file of your site in one package. It’s yours: for moving to another host, as a backup, or if someone else works on it one day. The site stays online as before.'],
+        'paketHolen' => ['it' => 'Scarica il pacchetto', 'de' => 'Paket herunterladen', 'en' => 'Download the package'],
         'unterlagen' => ['it' => 'Ricevute e fatture', 'de' => 'Belege und Rechnungen', 'en' => 'Receipts and invoices'],
         'dateien'    => ['it' => 'Il tuo materiale', 'de' => 'Dein Material', 'en' => 'Your material'],
         'dateienHilfe' => [
@@ -1466,6 +1480,25 @@ final class Texte
                 "Hallo {name},\n\ndie Seite ist fertig. Schau sie dir in Ruhe an:\n\n{link}\n\nWenn sie so passt, gib sie auf deiner Seite frei — dann veröffentliche ich.\n\nWenn noch etwas anders soll, schreib es mir. Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich dir das vorher und schicke dir ein Angebot mit dem Preis: Ohne dein Ja passiert nichts, und es kommt nichts nachträglich dazu.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your site is ready — take a look — {paket}',
                 "Hello {name},\n\nthe site is finished. Take your time with it:\n\n{link}\n\nIf it’s right, sign it off from your page — then I’ll publish it.\n\nIf something should still change, tell me. Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price: nothing happens without your go-ahead, and nothing is added afterwards.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* DIE WEBSITE ZUM MITNEHMEN
+           ------------------------------------------------------------------
+           Nicht "hier ist deine Rechnung", sondern "das gehoert dir". Der
+           Satz dazu ist wichtiger als die Datei: Wer ein ZIP bekommt und
+           nicht weiss, was er damit soll, legt es weg. Also steht drin,
+           WOFUER es gut ist — umziehen, sichern, jemand anderem geben —
+           und ausdruecklich, dass er dafuer nicht kuendigen muss.
+
+           Der Anhang ist bewusst keiner: Dreissig Megabyte ZIP kommen bei
+           den meisten Postfaechern gar nicht an und landen sonst im Spam.
+           Der Link fuehrt auf seine Projektseite, die er kennt. */
+        'paket' => [
+            'it' => ['Il tuo sito da portare con te — {paket}',
+                "Ciao {name},\n\nil tuo sito è pronto anche da scaricare: tutti i file, in un unico pacchetto ({datei}).\n\nLo trovi qui:\n{link}\n\nÈ tuo. Ti serve se un giorno vuoi cambiare hosting, se vuoi una copia di sicurezza, o se qualcun altro ci deve lavorare. Non devi disdire niente per averlo — il sito resta online come prima.\n\nSe hai bisogno di una mano per usarlo, scrivimi.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Deine Website zum Mitnehmen — {paket}',
+                "Hallo {name},\n\ndeine Website liegt jetzt auch zum Herunterladen bereit: alle Dateien in einem Paket ({datei}).\n\nDu findest es hier:\n{link}\n\nEs gehört dir. Du brauchst es, wenn du irgendwann den Anbieter wechseln willst, wenn du eine Sicherung haben möchtest, oder wenn jemand anderes daran arbeiten soll. Kündigen musst du dafür nichts — die Seite bleibt online wie bisher.\n\nWenn du Hilfe brauchst, melde dich einfach.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your website to take with you — {paket}',
+                "Hello {name},\n\nyour website is now also ready to download: every file, in one package ({datei}).\n\nYou’ll find it here:\n{link}\n\nIt’s yours. You’ll want it if you ever move to another host, if you’d like a backup, or if someone else is to work on it. You don’t have to cancel anything for this — the site stays online as before.\n\nIf you need a hand with it, just get in touch.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'online' => [
             'it' => ['Il tuo sito è online — {paket}',

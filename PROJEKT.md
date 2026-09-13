@@ -3387,3 +3387,64 @@ OFFEN: Die Seite ist weiterhin einsprachig deutsch, von nirgends verlinkt und
 nicht in der Sitemap — das bleibt liegen, bis Uwe sie auf einem Bildschirm mit
 echter Grafikkarte gesehen und entschieden hat, ob sie den 3D-Auftakt der
 Startseite ersetzt oder als eigene Seite danebensteht.
+
+### Das Material des Kunden und die Website zum Mitnehmen (13.09.2026)
+
+Uwe: „wenn Kunden Dateien hochgeladen haben soll dies auch in das Briefing
+mit rein, dass Claude auch eigenständig dann die Logos, Schriften, Bilder
+usw. sich holt … aber baue auch in die Verwaltung einen Bereich ein, wo man
+vom Kunden die gesamten Daten der Webseite als ZIP herunterladen kann, den
+man dem Kunden bereitstellen kann, entweder als E-Mail oder in seinem
+persönlichen Dashboard."
+
+Zwei Richtungen, die beide nicht funktionierten. Der Kunde lud sein Logo
+hoch, und im Briefing stand bestenfalls der Dateiname — der Baumeister
+wusste, dass es ein Logo gibt, und kam nicht daran. Also baute er eines
+nach. Und die fertige Seite lag auf Netlify und im Mac-Ordner, nirgends
+aber dort, wo man sie dem Kunden in die Hand geben kann.
+
+**Eine Tabelle, zwei Sorten Datei.** `046_website_paket.sql` gibt `files`
+eine Spalte `rolle`: `material` ist alles Bisherige (daher der Vorgabewert —
+bestehende Zeilen bleiben unangetastet), `paket` ist die fertige Seite. Ohne
+diese Trennung stünde das ZIP sofort in der Dateiliste der Kundenseite,
+zwischen seinen eigenen Uploads.
+
+**Der Weg zum Material.** Die Werkstatt kann jetzt `dateien` (was liegt da?)
+und `datei` (gib sie her). `datei` antwortet an der JSON-Kopfzeile vorbei —
+es kommen Bytes, kein JSON. Das Briefing führt beides zusammen: Es zählt
+auf, was hochgeladen wurde, mit Nummer und Größe, und legt den fertigen
+`curl`-Aufruf daneben. Dazu die Regel, auf die es ankommt: Logo, Schriften
+und Bilder werden **benutzt, nicht nachgebaut**. Liegt nichts vor, sagt das
+Briefing genau das und verlangt, danach zu fragen, statt Platzhalter zu
+erfinden.
+
+**Der Weg nach draußen.** `paket` nimmt die fertige Seite entgegen — nur
+`.zip`, höchstens 200 MB, und an der Mengengrenze für Kundenmaterial vorbei.
+In der Verwaltung steht sie unter „Website-Paket": herunterladen, dem Kunden
+freigeben, per E-Mail schicken, Freigabe zurücknehmen.
+
+**Warum die Freigabe am Projekt hängt und nicht an der Datei.** Freigegeben
+wird kein Dateiname, sondern ein Zustand: „Der Kunde darf seine Seite
+mitnehmen." Kommt eine neue Fassung dazu, bleibt die Freigabe stehen und er
+bekommt die neue — genau das ist gemeint. Hinge sie an der Datei, müsste sie
+bei jedem Nachliefern neu gesetzt werden, und irgendwann steht beim Kunden
+ein Paket von vorletzter Woche.
+
+**Die Mail trägt einen Link, kein ZIP im Anhang.** Acht Megabyte im Anhang
+landen im Spam oder werden vom Empfänger abgewiesen. Der Link führt auf
+seine Projektseite, wo das Paket ohnehin liegt — dreisprachig, mit einem
+Satz dazu, dass es ihm gehört und er dafür nichts kündigen muss.
+
+**Geprüft.** Abschnitt 49 der Kette, 45 Prüfungen: die Spalten, die Liste,
+das Briefing mit und ohne Material, die vier Ablehnungen beim Hochladen
+(keine Datei, keine `.zip`, abgebrochen, zu groß), die Sperre vor der
+Freigabe, der Mailtext in allen drei Sprachen, das Nachliefern, das
+Zurücknehmen. Dateien werden dabei direkt eingetragen statt hochgeladen —
+`is_uploaded_file()` ist im CLI immer falsch, ein echter Upload also nicht
+nachstellbar. **992 Prüfungen, alle grün.**
+
+Zwei Fallen unterwegs: `mails` hat weder `typ` noch `body` — die Tabelle
+hält nur fest, *dass* etwas rausging, der Anlass heißt `anlass`. Der
+Mailtext wird deshalb dort geprüft, wo er entsteht. Und ohne Brevo-Schlüssel
+meldet im Prüfstand *jeder* Versand `false`; gezählt wird deshalb der
+Versuch, nicht der Rückgabewert.

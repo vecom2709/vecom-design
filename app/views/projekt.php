@@ -429,6 +429,64 @@
     <?php endif; ?>
   </div>
 
+  <?php /* ---------- Die fertige Website zum Mitnehmen ------------------
+           Die Vorschau ist zum Ansehen, das Paket ist zum Mitnehmen. Zwei
+           verschiedene Dinge, deshalb zwei Kaesten.
+
+           Der Kunde sieht das Paket erst nach der Freigabe. Nicht aus
+           Geheimniskraemerei, sondern weil "die fertige Seite" und "eine
+           Zwischenfassung, die gerade hochgeladen wurde" sonst gleich
+           aussehen — und der Kunde faengt an, mit einem Entwurf zu
+           arbeiten. */ ?>
+  <div class="block"><h2>Website-Paket</h2>
+    <?php $paketFrei = ($p['paket_frei_am'] ?? null) !== null; ?>
+    <?php if (!($paket ?? null)): ?>
+      <div class="leer">Noch kein Paket. Der Baumeister legt es über die Werkstatt ab
+        (<code>aktion=paket</code>) — oder du lädst es hier von Hand hoch.</div>
+    <?php else: ?>
+      <table><tbody><tr>
+        <td><a href="<?= Fmt::h(url('dateien/' . (int) $paket['id'])) ?>"><?= Fmt::h($paket['orig_name']) ?></a>
+          <br><small style="color:var(--leise)"><?= Fmt::h(Fmt::bytes((int) $paket['size_bytes'])) ?> ·
+            <?= $paket['uploaded_by'] === 'werkstatt' ? 'aus der Werkstatt' : 'von dir' ?> ·
+            <?= Fmt::h(Fmt::seit($paket['created_at'])) ?></small></td>
+        <td style="text-align:right;width:120px">
+          <a class="knopf haupt" href="<?= Fmt::h(url('dateien/' . (int) $paket['id'])) ?>">Herunterladen</a></td>
+      </tr></tbody></table>
+
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <?php if (!$paketFrei): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_frei">
+            <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+            <button class="knopf">Dem Kunden freigeben</button></form>
+          <span style="color:var(--leise);font-size:12.5px">Er sieht es noch nicht.</span>
+        <?php else: ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_mail">
+            <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+            <button class="knopf haupt">Per E-Mail schicken</button></form>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_zu">
+            <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+            <button class="knopf">Freigabe zurücknehmen</button></form>
+          <span style="color:var(--leise);font-size:12.5px">
+            Freigegeben <?= Fmt::h(Fmt::seit((string) $p['paket_frei_am'])) ?> — er findet es auf seiner Projektseite.</span>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
+    <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data" style="margin-top:14px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_hoch">
+      <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
+      <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <div class="feld"><label><?= ($paket ?? null) ? 'Neue Fassung hochladen' : 'Paket hochladen' ?> (.zip)</label>
+        <input type="file" name="datei" accept=".zip,application/zip" required></div>
+      <button class="knopf">Hochladen</button></form>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+      Die E-Mail trägt einen Link auf seine Projektseite, nicht das ZIP im Anhang:
+      Dreißig Megabyte kommen bei den meisten Postfächern gar nicht an.</p>
+  </div>
+
   <div class="block"><h2>Dateien</h2>
     <?php if (!$dateien): ?><div class="leer">Noch keine Dateien.</div><?php else: ?>
       <table><tbody>

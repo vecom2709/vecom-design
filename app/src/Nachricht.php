@@ -264,6 +264,46 @@ final class Nachricht
     }
 
     /**
+     * Sein Paket liegt bereit — die Website zum Mitnehmen.
+     *
+     * WARUM DIESE MAIL EINEN LINK TRAEGT UND NICHT DAS ZIP
+     *
+     * Ein Website-Paket hat schnell dreissig Megabyte. Als Anhang kommt es
+     * bei den meisten Postfaechern gar nicht erst an — Gmail nimmt 25 MB,
+     * viele Firmenserver zehn —, und was ankommt, landet wegen des ZIP im
+     * Spam. Der Link fuehrt auf seine Projektseite, die er ohnehin kennt.
+     *
+     * WARUM SIE SICH WIEDERHOLEN DARF
+     *
+     * Anders als die uebrigen Mails haengt hier kein Zustandswechsel dran,
+     * sondern ein Knopf, den Uwe drueckt. Liefert er eine neue Fassung nach
+     * und will es dem Kunden sagen, waere "schon geschickt" die falsche
+     * Antwort. Doppelt schickt sie trotzdem niemand versehentlich — es
+     * braucht jedes Mal einen Klick.
+     */
+    public static function paketFertig(int $projektId): bool
+    {
+        $p = self::projektMitKunde($projektId);
+        if (!$p) { return false; }
+
+        /* Ohne Freigabe fuehrt der Link ins Leere: Auf seiner Seite stuende
+           nichts zum Herunterladen. Also erst freigeben, dann schreiben. */
+        if (array_key_exists('paket_frei_am', $p) && $p['paket_frei_am'] === null) { return false; }
+
+        $paket = Db::one("SELECT * FROM files WHERE project_id = ? AND rolle = 'paket'
+                           ORDER BY id DESC LIMIT 1", [$projektId]);
+        if (!$paket) { return false; }
+
+        [$betreff, $text] = Texte::mail('paket', self::sprache($p), [
+            'name'  => (string) $p['kunde'],
+            'paket' => (string) ($p['paket'] ?? ''),
+            'datei' => (string) $paket['orig_name'],
+            'link'  => self::link($projektId) ?? '',
+        ]);
+        return self::raus('paket', $p, $betreff, $text);
+    }
+
+    /**
      * Die Seite ist fertig — jetzt darf er abnehmen.
      *
      * WARUM DAS EINE ZWEITE MAIL IST

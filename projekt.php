@@ -82,6 +82,14 @@ if ($f && isset($_GET['datei'])) {
     $d = Db::one('SELECT * FROM files WHERE id = ? AND project_id = ?',
         [(int) $_GET['datei'], (int) $f['projekt_id']]);
     if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
+    /* Das Website-Paket gibt es erst nach der Freigabe. Sonst koennte ein
+       Kunde, der die Nummern durchprobiert, eine Zwischenfassung ziehen,
+       die noch niemand fuer fertig erklaert hat. */
+    if ((string) ($d['rolle'] ?? 'material') === 'paket') {
+        $freiAm = Db::wert('SELECT paket_frei_am FROM projects WHERE id = ?',
+            [(int) $f['projekt_id']], null);
+        if ($freiAm === null) { http_response_code(404); exit('Nicht gefunden.'); }
+    }
     Ablage::ausliefern($d);
 }
 
@@ -111,6 +119,7 @@ if ($f && isset($_GET['beleg'])) {
    Minuten, als dass er zu frueh dasteht. */
 $vorschauFrei = false;
 $abnahmeFrei  = false;
+$paketFrei    = false;
 if ($f && !empty($f['projekt_id'])) {
     try {
         $pz = (array) (Db::one('SELECT * FROM projects WHERE id = ?', [(int) $f['projekt_id']]) ?: []);
@@ -119,6 +128,8 @@ if ($f && !empty($f['projekt_id'])) {
             : trim((string) ($f['projekt_vorschau'] ?? '')) !== '';
         $abnahmeFrei = array_key_exists('abnahme_frei_am', $pz)
             && ($pz['abnahme_frei_am'] ?? null) !== null;
+        $paketFrei = array_key_exists('paket_frei_am', $pz)
+            && ($pz['paket_frei_am'] ?? null) !== null;
     } catch (Throwable $e) { /* dann eben beide zu */ }
 }
 
@@ -200,11 +211,20 @@ if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); }
 
 $nachrichten = [];
 $dateien = [];
+$paket = null;
 $belege = [];
 if ($f) {
     try {
         $nachrichten = Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [(int) $f['projekt_id']]);
-        $dateien = Db::all('SELECT * FROM files WHERE project_id = ? ORDER BY id DESC', [(int) $f['projekt_id']]);
+        $dateien = Db::all("SELECT * FROM files WHERE project_id = ? AND rolle <> 'paket' ORDER BY id DESC",
+            [(int) $f['projekt_id']]);
+        /* Nur, wenn es freigegeben ist — sonst gibt es fuer den Kunden gar
+           kein Paket, auch nicht als grauen Kasten. Ein Kasten, der sagt
+           "da waere etwas, aber nicht fuer dich", erzeugt nur eine Nachfrage. */
+        if ($paketFrei) {
+            $paket = Db::one("SELECT * FROM files WHERE project_id = ? AND rolle = 'paket'
+                               ORDER BY id DESC LIMIT 1", [(int) $f['projekt_id']]);
+        }
         $belege = Db::all('SELECT * FROM invoices WHERE project_id = ? ORDER BY id DESC', [(int) $f['projekt_id']]);
     } catch (Throwable $e) { /* Anzeige reicht auch ohne */ }
 }
@@ -338,6 +358,24 @@ $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : fals
       <button class="knopf haupt"><?= $h($T('senden')) ?></button>
     </form>
   </div>
+
+  <?php /* ---------- Die Seite zum Mitnehmen ----------------------------
+           Steht bewusst VOR dem Materialkasten: Das ist das Ergebnis, nicht
+           die Ablage. Und nur, wenn es freigegeben ist — ein grauer Kasten
+           "da waere etwas, aber nicht fuer dich" erzeugt nur eine Nachfrage. */ ?>
+  <?php if ($paket): ?>
+    <div class="block">
+      <h2><?= $h($T('paket')) ?></h2>
+      <p style="color:var(--leise);margin-top:-4px"><?= $h($T('paketHilfe')) ?></p>
+      <div class="datei" style="margin-top:12px">
+        <span><b><?= $h($paket['orig_name']) ?></b>
+          <br><small style="color:var(--leise)"><?= $h(Fmt::bytes((int) $paket['size_bytes'])) ?> ·
+            <?= $h(Fmt::datum($paket['created_at'])) ?></small></span>
+      </div>
+      <p style="margin-top:12px">
+        <a class="knopf haupt" href="projekt.php?t=<?= $h(rawurlencode($token)) ?>&amp;datei=<?= (int) $paket['id'] ?>"><?= $h($T('paketHolen')) ?></a></p>
+    </div>
+  <?php endif; ?>
 
   <div class="block">
     <h2><?= $h($T('dateien')) ?></h2>

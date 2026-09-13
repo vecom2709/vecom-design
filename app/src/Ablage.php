@@ -29,6 +29,21 @@ final class Ablage
      * Code laeuft — dann sind $_POST und $_FILES leer. Also nennen wir dem
      * Menschen lieber die Zahl, die wirklich gilt.
      */
+    /**
+     * Die Grenze fuer ein Website-Paket. Sie ist nicht dieselbe wie fuer
+     * Material: Ein Logo hat 2 MB, eine fertige Seite mit Bildern und einem
+     * Film hat schnell 80. Begrenzt wird sie trotzdem vom Server — was
+     * post_max_size nicht durchlaesst, hilft keine Konstante.
+     */
+    public static function grenzePaket(): int
+    {
+        $server = [self::inBytes((string) ini_get('upload_max_filesize')),
+                   self::inBytes((string) ini_get('post_max_size'))];
+        $server = array_filter($server, static fn($b) => $b > 0);
+        $moeglich = $server ? min($server) : 0;
+        return $moeglich > 0 ? min($moeglich, 200 * 1024 * 1024) : 200 * 1024 * 1024;
+    }
+
     public static function grenze(): int
     {
         $werte = [self::MAX_BYTES];
@@ -118,7 +133,14 @@ final class Ablage
     /* Das Projekt darf fehlen: Vor dem Auftrag gibt es noch keins, aber der
        Kunde soll sein Logo trotzdem schicken koennen. Dann zaehlt die Grenze
        je Kunde statt je Projekt. */
-    public static function annehmen(array $datei, ?int $projektId, int $kundeId, string $wer = 'kunde'): int
+    /**
+     * @param string $rolle 'material' (was der Kunde schickt) oder 'paket'
+     *        (die fertige Website in der Gegenrichtung). Ein Paket ist
+     *        gross und zaehlt nicht gegen die Stueckzahl je Projekt — es ist
+     *        keine Ablage, sondern ein Ergebnis.
+     */
+    public static function annehmen(array $datei, ?int $projektId, int $kundeId, string $wer = 'kunde',
+                                    string $rolle = 'material'): int
     {
         $fehlercode = (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($fehlercode !== UPLOAD_ERR_OK) {
@@ -129,16 +151,23 @@ final class Ablage
             throw new RuntimeException('Die Datei ist nicht richtig angekommen.');
         }
 
+        $istPaket = $rolle === 'paket';
+
         $groesse = (int) filesize($tmp);
-        $grenze  = self::grenze();
+        $grenze  = $istPaket ? self::grenzePaket() : self::grenze();
         if ($groesse <= 0)        { throw new RuntimeException('Die Datei ist leer.'); }
         if ($groesse > $grenze)   { throw new RuntimeException('Die Datei ist größer als ' . Fmt::bytes($grenze) . '.'); }
 
-        $wieViele = $projektId !== null
-            ? (int) Db::wert('SELECT COUNT(*) FROM files WHERE project_id = ?', [$projektId])
-            : (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ? AND project_id IS NULL', [$kundeId]);
-        if ($wieViele >= self::MAX_JE_PROJEKT) {
-            throw new RuntimeException('Hier liegen schon ' . self::MAX_JE_PROJEKT . ' Dateien.');
+        /* Die Stueckzahl begrenzt die Ablage des Kunden, nicht das Ergebnis.
+           Ein Projekt, an dem vierzig Mal Material hochgeladen wurde, soll
+           trotzdem noch seine fertige Seite bekommen. */
+        if (!$istPaket) {
+            $wieViele = $projektId !== null
+                ? (int) Db::wert("SELECT COUNT(*) FROM files WHERE project_id = ? AND rolle <> 'paket'", [$projektId])
+                : (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ? AND project_id IS NULL', [$kundeId]);
+            if ($wieViele >= self::MAX_JE_PROJEKT) {
+                throw new RuntimeException('Hier liegen schon ' . self::MAX_JE_PROJEKT . ' Dateien.');
+            }
         }
 
         // Der Typ kommt aus dem Inhalt, nicht aus dem, was der Browser sagt.
@@ -160,8 +189,9 @@ final class Ablage
             'customer_id' => $kundeId, 'project_id' => $projektId,
             'stored_name' => $abgelegt, 'orig_name' => $name,
             'mime' => $typ, 'size_bytes' => $groesse,
-            'uploaded_by' => $wer === 'admin' ? 'admin' : 'kunde',
+            'uploaded_by' => in_array($wer, ['admin', 'werkstatt'], true) ? $wer : 'kunde',
             'user_id' => $wer === 'admin' ? Auth::id() : null,
+            'rolle' => $istPaket ? 'paket' : 'material',
         ]);
     }
 

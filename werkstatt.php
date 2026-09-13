@@ -64,6 +64,25 @@ if (!in_array($aktion, Werkstatt::AKTIONEN, true)) {
     antwort(['ok' => false, 'hinweis' => 'Unbekannte Aktion.', 'moeglich' => Werkstatt::AKTIONEN], 400);
 }
 
+/* DIE EINE ANTWORT, DIE KEIN JSON IST
+   ----------------------------------------------------------------------
+   'datei' liefert Bytes aus, keine Auskunft. Sie muss deshalb vor dem
+   JSON-Verteiler stehen und die eigenen Kopfzeilen setzen duerfen — die
+   drei oben (Content-Type: application/json und Konsorten) wuerden sonst
+   mitgehen und der Empfaenger bekaeme ein Logo, das sich JSON nennt. */
+if ($aktion === 'datei') {
+    header_remove('Content-Type');
+    try {
+        Werkstatt::datei($d);
+    } catch (RuntimeException $e) {
+        header('Content-Type: application/json; charset=utf-8');
+        antwort(['ok' => false, 'hinweis' => $e->getMessage()], 404);
+    } catch (Throwable $e) {
+        header('Content-Type: application/json; charset=utf-8');
+        antwort(['ok' => false, 'hinweis' => 'Die Datei ließ sich nicht ausliefern.'], 500);
+    }
+}
+
 try {
     antwort(match ($aktion) {
         'liste'     => Werkstatt::liste($d),
@@ -73,6 +92,10 @@ try {
         'stand'     => Werkstatt::stand($d),
         'notiz'     => Werkstatt::notiz($d),
         'freigeben' => Werkstatt::freigeben($d),
+        'dateien'   => Werkstatt::dateien($d),
+        /* Das Paket kommt als multipart/form-data — die Bytes stehen in
+           $_FILES, nicht im JSON-Rumpf. */
+        'paket'     => Werkstatt::paket($d, $_FILES['datei'] ?? []),
     });
 } catch (RuntimeException $e) {
     /* Erwartbares: falsche Nummer, fehlende Adresse. Das ist kein Fehler des

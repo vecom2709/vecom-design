@@ -1725,6 +1725,64 @@ if ($post) {
                 $_SESSION['gut'] = 'Datei liegt beim Projekt — der Kunde sieht sie auf seiner Seite.';
                 zurueck('projekte/' . $pid);
 
+            /* ---------- Das Website-Paket -------------------------------
+               Die fertige Seite als ZIP: hinterlegen (von Hand oder ueber
+               die Werkstatt), freigeben, dem Kunden schicken.
+
+               WARUM DIE E-MAIL EINEN LINK TRAEGT UND NICHT DAS ZIP
+               Ein Website-Paket hat schnell dreissig Megabyte. Als Anhang
+               kommt es bei den meisten Postfaechern gar nicht erst an —
+               Gmail nimmt 25 MB, viele Firmenserver 10 —, und was ankommt,
+               landet wegen des ZIP im Spam. Der Link fuehrt auf seine
+               Projektseite, die er ohnehin kennt, und bleibt gueltig. */
+            case 'paket_hoch':
+                require_once __DIR__ . '/src/Ablage.php';
+                $pid = (int) $_POST['id'];
+                $pr = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]);
+                if (!$pr) { throw new RuntimeException('Projekt nicht gefunden.'); }
+                $pName = (string) ($_FILES['datei']['name'] ?? '');
+                if (!preg_match('~\.zip$~i', $pName)) {
+                    throw new RuntimeException('Das Paket muss eine .zip sein — so kann es jeder öffnen.');
+                }
+                Ablage::annehmen($_FILES['datei'] ?? [], $pid, (int) $pr['customer_id'], 'admin', 'paket');
+                Events::protokoll('paket_neu', 'Website-Paket hinterlegt: ' . $pName,
+                    (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
+                $_SESSION['gut'] = ($pr['paket_frei_am'] ?? null) !== null
+                    ? 'Paket liegt bereit — der Kunde sieht ab sofort diese Fassung.'
+                    : 'Paket liegt bereit. Der Kunde sieht es noch nicht.';
+                zurueck('projekte/' . $pid);
+
+            case 'paket_frei':
+                $pid = (int) $_POST['id'];
+                $pr = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]);
+                if (!$pr) { throw new RuntimeException('Projekt nicht gefunden.'); }
+                $hatPaket = (int) Db::wert(
+                    "SELECT COUNT(*) FROM files WHERE project_id = ? AND rolle = 'paket'", [$pid], 0);
+                if ($hatPaket === 0) {
+                    throw new RuntimeException('Es liegt noch kein Paket da, das freigegeben werden könnte.');
+                }
+                Db::update('projects', $pid, ['paket_frei_am' => date('Y-m-d H:i:s')]);
+                Events::protokoll('paket_frei', 'Website-Paket für den Kunden freigegeben',
+                    (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
+                $_SESSION['gut'] = 'Freigegeben. Der Kunde findet es auf seiner Projektseite.';
+                zurueck('projekte/' . $pid);
+
+            case 'paket_zu':
+                $pid = (int) $_POST['id'];
+                Db::update('projects', $pid, ['paket_frei_am' => null]);
+                Events::protokoll('paket_zu', 'Freigabe des Website-Pakets zurückgenommen', null, null, $pid);
+                $_SESSION['gut'] = 'Zurückgenommen. Der Kunde sieht es nicht mehr.';
+                zurueck('projekte/' . $pid);
+
+            case 'paket_mail':
+                require_once __DIR__ . '/src/Nachricht.php';
+                $pid = (int) $_POST['id'];
+                $raus = Nachricht::paketFertig($pid);
+                $_SESSION[$raus ? 'gut' : 'schlecht'] = $raus
+                    ? 'Die E-Mail ist raus — mit dem Link auf seine Projektseite.'
+                    : 'Die E-Mail ging nicht raus. Das Paket liegt trotzdem auf seiner Seite.';
+                zurueck('projekte/' . $pid);
+
             case 'datei_weg':
                 require_once __DIR__ . '/src/Ablage.php';
                 $did = (int) $_POST['id'];
@@ -2390,8 +2448,12 @@ switch ($route) {
                     require_once __DIR__ . '/src/Nachricht.php';
                     return Nachricht::link($id);
                 }, null),
+                /* Material und Paket getrennt: Das Paket ist kein Anhang
+                   zwischen den Uploads des Kunden, sondern das Ergebnis. */
                 'dateien' => sicher(static fn() => Db::all(
-                    'SELECT * FROM files WHERE project_id = ? ORDER BY id DESC', [$id])),
+                    "SELECT * FROM files WHERE project_id = ? AND rolle <> 'paket' ORDER BY id DESC", [$id])),
+                'paket' => sicher(static fn() => Db::one(
+                    "SELECT * FROM files WHERE project_id = ? AND rolle = 'paket' ORDER BY id DESC LIMIT 1", [$id])),
                 'pruefungen' => sicher(static fn() => Db::all(
                     'SELECT c.* FROM website_checks c JOIN websites w ON w.id = c.website_id
                      WHERE w.project_id = ? ORDER BY c.id DESC LIMIT 8', [$id])),

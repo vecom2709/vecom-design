@@ -41,7 +41,8 @@ require_once __DIR__ . '/Events.php';
 final class Werkstatt
 {
     /** Was von aussen aufgerufen werden darf. */
-    public const AKTIONEN = ['liste', 'auftrag', 'weiter', 'vorschau', 'stand', 'notiz', 'freigeben'];
+    public const AKTIONEN = ['liste', 'auftrag', 'weiter', 'vorschau', 'stand', 'notiz', 'freigeben',
+                             'dateien', 'datei', 'paket'];
 
     private const SCHLUESSEL = 'werkstatt_schluessel';
 
@@ -380,6 +381,140 @@ final class Werkstatt
                     default   => 'Freigeschaltet. Die E-Mail ging nicht raus — '
                                . 'auf seiner Seite sieht er die Vorschau trotzdem.',
                 }];
+    }
+
+    /* ================================================================== */
+    /*  Material und das fertige Paket                                    */
+    /* ================================================================== */
+
+    /** Was der Kunde hochgeladen hat — Logo, Schriften, Bilder, Texte. */
+    public const ROLLE_MATERIAL = 'material';
+
+    /** Die fertige Website als ZIP, in der Gegenrichtung. */
+    public const ROLLE_PAKET = 'paket';
+
+    /** Ein Paket ist gross. 200 MB sind eine Website mit Bildern und Video. */
+    public const PAKET_MAX_BYTES = 200 * 1024 * 1024;
+
+    /**
+     * Die Dateien eines Projekts, mit dem Weg, sie zu holen.
+     *
+     * WARUM DAS NICHT NUR EINE LISTE VON NAMEN IST
+     *
+     * Bis zum 13.09.2026 stand im Briefing "Logo.ai, Schriften.zip" — und
+     * damit war der Baumeister genauso schlau wie vorher: Er wusste, dass es
+     * ein Logo gibt, und kam nicht daran. Die Dateien liegen hinter PHP
+     * (app/uploads ist gesperrt), also gibt es genau einen Weg, und der
+     * steht jetzt bei jeder Datei dabei.
+     */
+    public static function dateien(array $d): array
+    {
+        $p = self::projektFinden($d);
+        $pid = (int) $p['id'];
+
+        $rollen = ((string) ($d['rolle'] ?? '')) === self::ROLLE_PAKET
+            ? [self::ROLLE_PAKET] : [self::ROLLE_MATERIAL];
+
+        $zeilen = (array) self::still(static fn() => Db::all(
+            "SELECT id, orig_name, mime, size_bytes, uploaded_by, rolle, created_at
+               FROM files WHERE project_id = ? AND rolle = ? ORDER BY id DESC",
+            [$pid, $rollen[0]]), []);
+
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $liste = [];
+        foreach ($zeilen as $z) {
+            $liste[] = [
+                'id'    => (int) $z['id'],
+                'name'  => (string) $z['orig_name'],
+                'art'   => (string) ($z['mime'] ?? ''),
+                'bytes' => (int) $z['size_bytes'],
+                'von'   => (string) $z['uploaded_by'],
+                'wann'  => (string) $z['created_at'],
+                'holen' => $basis . '/werkstatt.php?aktion=datei&id=' . (int) $z['id'],
+            ];
+        }
+
+        return ['ok' => true, 'projekt' => $pid, 'anzahl' => count($liste), 'dateien' => $liste];
+    }
+
+    /**
+     * Eine einzelne Datei ausliefern — die Bytes, nicht JSON.
+     *
+     * Der Aufrufer hat den Schluessel; werkstatt.php hat ihn bereits
+     * geprueft, bevor diese Methode ueberhaupt drankommt. Geprueft wird hier
+     * nur noch, dass die Nummer zu einer Datei gehoert, die es gibt.
+     */
+    public static function datei(array $d): never
+    {
+        $id = (int) ($d['id'] ?? 0);
+        if ($id <= 0) { throw new RuntimeException('Sag, welche Datei: id.'); }
+
+        $f = Db::one('SELECT * FROM files WHERE id = ?', [$id]);
+        if (!$f) { throw new RuntimeException('Diese Datei gibt es nicht (mehr).'); }
+
+        require_once __DIR__ . '/Ablage.php';
+        Ablage::ausliefern($f);   // beendet die Anfrage
+    }
+
+    /**
+     * Die fertige Website als Paket hinterlegen.
+     *
+     * WARUM DAS PAKET UEBERHAUPT IN DIE VERWALTUNG WANDERT
+     *
+     * Gebaut wird auf Uwes Rechner, veroeffentlicht wird auf Netlify — beides
+     * gut, beides ausserhalb der Verwaltung. Damit hatte die Verwaltung von
+     * der fertigen Seite nur die Adresse. Wer dem Kunden seine Seite geben
+     * will ("das gehoert dir"), hatte nichts in der Hand.
+     *
+     * Jetzt liegt sie hier: einmal hochgeladen, danach herunterladbar, per
+     * E-Mail weiterzugeben oder im Kundendashboard freizuschalten.
+     *
+     * Das Paket ersetzt NICHT die Vorschau. Die Vorschau ist zum Ansehen,
+     * das Paket ist zum Mitnehmen.
+     */
+    public static function paket(array $d, array $datei = []): array
+    {
+        $p = self::projektFinden($d);
+        $pid = (int) $p['id'];
+
+        if (!$datei || (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            throw new RuntimeException('Es kam keine Datei an. Das Paket gehört als Datei '
+                . 'in das Feld "datei" einer multipart/form-data-Anfrage.');
+        }
+        if ((int) $datei['error'] !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Die Datei kam nicht vollständig an (Fehler '
+                . (int) $datei['error'] . ').');
+        }
+        if ((int) ($datei['size'] ?? 0) > self::PAKET_MAX_BYTES) {
+            throw new RuntimeException('Das Paket ist größer als '
+                . (int) (self::PAKET_MAX_BYTES / 1024 / 1024) . ' MB.');
+        }
+
+        /* Nur ZIP. Ein Ordner voller Einzeldateien waere eine zweite
+           Ablagelogik, und ein tar.gz kann unter Windows niemand oeffnen. */
+        $name = (string) ($datei['name'] ?? 'website.zip');
+        if (!preg_match('~\.zip$~i', $name)) {
+            throw new RuntimeException('Das Paket muss eine .zip sein — so kann es jeder öffnen.');
+        }
+
+        require_once __DIR__ . '/Ablage.php';
+        $dateiId = Ablage::annehmen($datei, $pid, (int) $p['customer_id'], 'werkstatt', self::ROLLE_PAKET);
+
+        Events::protokoll('paket_neu', 'Website-Paket hinterlegt: ' . $name,
+            (int) $p['customer_id'], $p['order_id'] !== null ? (int) $p['order_id'] : null, $pid);
+        Events::melden('paket_neu', 'Die fertige Website liegt als Paket bereit', 'gut',
+            (string) $p['name'] . ' — ' . $name
+                . '. Herunterladen, per E-Mail schicken oder dem Kunden freigeben.',
+            '/projekte/' . $pid);
+
+        $frei = ($p['paket_frei_am'] ?? null) !== null;
+
+        return ['ok' => true, 'projekt' => $pid, 'datei' => $dateiId, 'name' => $name,
+                'bytes' => (int) $datei['size'], 'freigegeben' => $frei,
+                'hinweis' => $frei
+                    ? 'Hinterlegt. Der Kunde sieht ab sofort diese Fassung auf seiner Seite.'
+                    : 'Hinterlegt. Der Kunde sieht es noch nicht — dafür in der Verwaltung '
+                      . 'auf „Dem Kunden freigeben" klicken.'];
     }
 
     /* ================================================================== */

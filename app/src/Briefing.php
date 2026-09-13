@@ -772,6 +772,57 @@ final class Briefing
             $zeilen[] = '';
         }
 
+        /* ---------- Was der Kunde hochgeladen hat ----------------------
+           WARUM HIER NICHT NUR NAMEN STEHEN
+
+           Bis zum 13.09.2026 stand im Auftrag bestenfalls "Logo.ai" — und
+           der Baumeister war damit genauso schlau wie vorher: Er wusste,
+           dass es ein Logo gibt, und kam nicht daran. Die Dateien liegen
+           hinter PHP (app/uploads ist per .htaccess gesperrt, die Namen sind
+           Zufall), es gibt also genau einen Weg zu ihnen. Der steht jetzt
+           hier, mit Nummer und Befehl — holen kann sie sich der Baumeister
+           damit selbst, ohne dass Uwe Dateien hin- und herschiebt. */
+        $material = (array) self::still(static fn() => Db::all(
+            "SELECT id, orig_name, mime, size_bytes, uploaded_by, created_at
+               FROM files
+              WHERE project_id = ? AND rolle <> 'paket'
+              ORDER BY id", [(int) $p['id']]), []);
+
+        if ($material) {
+            $zeilen[] = 'MATERIAL VOM KUNDEN — ' . count($material)
+                . (count($material) === 1 ? ' Datei' : ' Dateien');
+            foreach ($material as $m) {
+                $wer = (string) $m['uploaded_by'] === 'kunde' ? 'vom Kunden' : 'von uns';
+                $zeilen[] = '  #' . (int) $m['id'] . '  ' . (string) $m['orig_name']
+                    . '  (' . self::still(static fn() => Fmt::bytes((int) $m['size_bytes']), '?')
+                    . ', ' . $wer . ')';
+            }
+            $zeilen[] = '';
+            $zeilen[] = '  Hol sie dir selbst — eine Datei je Aufruf, die Nummer von oben:';
+            $zeilen[] = '    ruf_datei () { curl -s -o "$2" \\';
+            $zeilen[] = '      -H "X-Vecom-Werkstatt: $VW" \\';
+            $zeilen[] = '      "https://vecom-design.it/werkstatt.php?aktion=datei&id=$1"; }';
+            $zeilen[] = '    ruf_datei ' . (int) $material[0]['id'] . ' "material/'
+                . (string) $material[0]['orig_name'] . '"';
+            $zeilen[] = '';
+            $zeilen[] = '  Die vollständige Liste mit allen Nummern:';
+            $zeilen[] = '    ruf \'{"aktion":"dateien","projekt":"' . (int) $p['id'] . '"}\'';
+            $zeilen[] = '';
+            $zeilen[] = '  Was da liegt, ist gesetzt: Logo, Schriften und Bilder des Kunden';
+            $zeilen[] = '  werden benutzt, nicht nachgebaut und nicht ersetzt. Ist ein Logo';
+            $zeilen[] = '  nur als Rasterbild da, sag es mir — nachzeichnen ist eine';
+            $zeilen[] = '  Änderungsanfrage, keine Nebenleistung.';
+            $zeilen[] = '';
+        } else {
+            /* Auch das Fehlen ist eine Angabe. Ohne diesen Satz baut der
+               Baumeister mit Platzhaltern und niemand fragt nach. */
+            $zeilen[] = 'MATERIAL VOM KUNDEN';
+            $zeilen[] = '  Es liegt nichts hochgeladen vor — kein Logo, keine Schriften,';
+            $zeilen[] = '  keine Bilder. Frag danach, bevor du mit Platzhaltern anfängst,';
+            $zeilen[] = '  und kennzeichne jeden Platzhalter als solchen.';
+            $zeilen[] = '';
+        }
+
         /* ---------- Bausteine, die passen koennten ---------- */
         $vorschlaege = self::still(static function () use ($antworten, $k) {
             require_once __DIR__ . '/Muster.php';
