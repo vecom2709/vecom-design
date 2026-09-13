@@ -116,7 +116,7 @@ RewriteRule ^_[^/]*$ - [R=404,L]
     Header set Cache-Control "public, max-age=3600, must-revalidate"
     Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
   </FilesMatch>
-  <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm)$">
+  <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb)$">
     Header set Cache-Control "public, max-age=2592000"
     Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
   </FilesMatch>
@@ -159,3 +159,26 @@ RewriteRule ^_[^/]*$ - [R=404,L]
 # Stundenregel hat die Jahresregel also jedes Mal ueberschrieben. Deshalb
 # stehen jetzt beide im selben Block: erst die kurze, dann die lange, und
 # die lange gilt nur, wenn die Weiche oben sie eingeschaltet hat.
+
+# --------------------------------------------------------------------------
+# Das 3D-Modell komprimiert ausliefern.
+#
+# assets/3d/showroom.glb ist 390 KB gross. Am 13.09.2026 nachgemessen:
+# gezippt sind davon 24 KB uebrig — eine Kompression um das Sechzehnfache,
+# weil ein GLB im Kern Zahlenfelder sind und keine fertigen Pixel.
+#
+# Die Draco-Fassung des Modells waere roh kleiner (125 KB), gezippt aber nur
+# 4 KB besser — und sie braucht einen Decoder von rund 200 KB im Browser.
+# Deshalb liegt hier die unkomprimierte Fassung und der Server macht die
+# Arbeit: weniger Teile, dasselbe Ergebnis.
+#
+# AddType, weil der Webspace .glb sonst als application/octet-stream
+# ausliefert. Der Browser nimmt es zwar trotzdem, aber die Kompression
+# greift nur bei einem bekannten Typ.
+# --------------------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType model/gltf-binary .glb
+</IfModule>
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE model/gltf-binary application/json text/html text/css application/javascript text/javascript image/svg+xml
+</IfModule>

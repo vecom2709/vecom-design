@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3D Experience — Vecom Design</title>
+<meta name="description" content="Ein begehbarer Ausstellungsraum im Browser: Webdesign, Onlineshops, Branding und 3D-Erlebnisse von Vecom Design — gebaut, nicht zusammengesteckt.">
+<link rel="canonical" href="https://vecom-design.it/showroom.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="3D Experience — Vecom Design">
+<meta property="og:description" content="Ein begehbarer Ausstellungsraum im Browser. Webdesign, Onlineshops, Branding und 3D-Erlebnisse aus Sizilien.">
+<meta property="og:url" content="https://vecom-design.it/showroom.html">
+<meta property="og:image" content="https://vecom-design.it/assets/img/work/vecomshop.webp">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<style>
+:root{
+  --c-base:#05070d; --c-surface:#0c1119;
+  --c-text:#e9eef8; --c-dim:#97a5bf; --c-faint:#808ea9;
+  --c-blue:#0a78f5; --c-cyan:#1fe8ff;
+  --f-display:'Archivo',system-ui,sans-serif;
+  --f-text:'Inter',system-ui,sans-serif;
+  --page-x:clamp(1.25rem,5vw,5.5rem);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:auto}
+body{
+  margin:0; background:var(--c-base); color:var(--c-text);
+  font-family:var(--f-text); -webkit-font-smoothing:antialiased;
+}
+/* Die Bühne liegt fest hinter dem Inhalt, der Inhalt scrollt darüber */
+#buehne{position:fixed; inset:0; z-index:0; display:block}
+#inhalt{position:relative; z-index:1}
+
+.szene{
+  min-height:100svh; display:flex; align-items:center;
+  padding:0 var(--page-x); pointer-events:none; position:relative;
+}
+/* Schleier unter dem Text: Ohne ihn kämpft jede Zeile gegen das, was dahinter
+   zufällig hell ist. Er läuft von der Textseite aus weg und endet weich. */
+.szene::before{
+  content:""; position:absolute; inset:-14vh 0; z-index:-1; pointer-events:none;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  mask-image:linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+  background:linear-gradient(90deg, rgba(5,7,13,.90) 0%, rgba(5,7,13,.62) 34%, rgba(5,7,13,0) 68%);
+}
+.szene:has(.rechts)::before{
+  background:linear-gradient(270deg, rgba(5,7,13,.90) 0%, rgba(5,7,13,.62) 34%, rgba(5,7,13,0) 68%);
+}
+.szene:has(.mitte)::before{
+  background:radial-gradient(60% 55% at 50% 50%, rgba(5,7,13,.88) 0%, rgba(5,7,13,.55) 45%, rgba(5,7,13,0) 100%);
+}
+.szene > *{pointer-events:auto}
+.block{max-width:44rem}
+.block.rechts{margin-left:auto; text-align:right}
+.block.mitte{margin:0 auto; text-align:center}
+
+.kicker{
+  font-family:var(--f-display); font-size:.72rem; font-weight:600;
+  letter-spacing:.28em; text-transform:uppercase; color:var(--c-cyan);
+  display:flex; align-items:center; gap:.9rem; margin:0 0 1.4rem;
+}
+.block.rechts .kicker{justify-content:flex-end}
+.block.mitte .kicker{justify-content:center}
+.kicker::before{content:""; width:2.5rem; height:1px; background:var(--c-cyan); opacity:.6}
+.block.rechts .kicker::before{order:2}
+
+h1,h2{
+  font-family:var(--f-display); font-weight:700; line-height:.95;
+  letter-spacing:-.025em; margin:0 0 1.2rem; font-stretch:108%;
+}
+h1{font-size:clamp(2.8rem,7.5vw,6.4rem)}
+h2{font-size:clamp(2rem,4.6vw,3.6rem)}
+.glanz{
+  background:linear-gradient(100deg,#cfe0ff 0%,#fff 35%,#79c8ff 70%,#1fe8ff 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+p.lead{
+  font-size:clamp(1.02rem,1.3vw,1.22rem); line-height:1.6;
+  color:var(--c-dim); max-width:36rem; margin:0 0 2rem;
+}
+.block.rechts p.lead{margin-left:auto}
+.block.mitte p.lead{margin-inline:auto}
+
+.knoepfe{display:flex; gap:.9rem; flex-wrap:wrap}
+.block.rechts .knoepfe{justify-content:flex-end}
+.block.mitte .knoepfe{justify-content:center}
+.knopf{
+  font-family:var(--f-display); font-size:.88rem; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase; text-decoration:none;
+  padding:.95rem 1.7rem; border-radius:14px; border:1px solid transparent;
+  transition:transform .18s cubic-bezier(.16,1,.3,1), box-shadow .18s;
+  display:inline-block;
+}
+.knopf--voll{
+  background:linear-gradient(135deg,#0648e8,#0a78f5 45%,#1fe8ff);
+  color:#03060c; box-shadow:0 10px 30px rgba(10,120,245,.28);
+}
+.knopf--leer{color:var(--c-text); border-color:rgba(150,180,230,.26)}
+.knopf:hover{transform:translateY(-2px)}
+
+/* Leistungsliste in Szene 2 */
+.felder{display:grid; gap:.1rem; margin-top:2.2rem; max-width:30rem}
+.feld{
+  display:flex; justify-content:space-between; align-items:baseline; gap:1.5rem;
+  padding:.85rem 0; border-top:1px solid rgba(150,180,230,.13);
+  font-family:var(--f-display); font-weight:600; letter-spacing:.04em;
+}
+.feld span:last-child{font-family:var(--f-text); font-weight:400; font-size:.82rem; color:var(--c-faint); letter-spacing:0}
+
+/* Messstreifen unten links — nur in der Vorschau */
+#mess{
+  position:fixed; left:14px; bottom:14px; z-index:5;
+  font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:#7d93b8; background:rgba(5,7,13,.72); border:1px solid rgba(150,180,230,.16);
+  border-radius:10px; padding:8px 11px; letter-spacing:.02em;
+  backdrop-filter:blur(8px); pointer-events:none; white-space:pre;
+}
+#mess b{color:var(--c-cyan); font-weight:600}
+
+#zurueck{
+  position:fixed; top:18px; left:var(--page-x); z-index:6;
+  font-family:var(--f-display); font-size:.82rem; font-weight:600;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--c-dim);
+  text-decoration:none; padding:.5rem .9rem; border-radius:999px;
+  border:1px solid rgba(150,180,230,.18); background:rgba(5,7,13,.55);
+  backdrop-filter:blur(8px); transition:color .25s, border-color .25s;
+}
+#zurueck:hover,#zurueck:focus-visible{color:var(--c-text); border-color:rgba(150,180,230,.45)}
+#zurueck span{margin-right:.45rem}
+
+/* Fusszeile: Pflichtangaben gehoeren auch auf eine Schauseite */
+#fuss{
+  position:relative; z-index:1; padding:2.5rem var(--page-x) 3rem;
+  display:flex; flex-wrap:wrap; gap:.6rem 1.6rem; align-items:center;
+  font-family:var(--f-text); font-size:.82rem; color:var(--c-faint);
+  background:linear-gradient(to bottom, rgba(5,7,13,0), rgba(5,7,13,.92) 40%);
+}
+#fuss a{color:var(--c-dim); text-decoration:none}
+#fuss a:hover,#fuss a:focus-visible{color:var(--c-text); text-decoration:underline}
+
+/* Rückfallfassung: kein WebGL, reduzierte Bewegung oder schwaches Gerät */
+html[data-welt="aus"] #buehne{display:none}
+html[data-welt="aus"] body{
+  background:
+    radial-gradient(90rem 50rem at 50% -10%, #0d1a2e 0%, transparent 60%),
+    var(--c-base);
+}
+html[data-welt="aus"] #mess b{color:#97a5bf}
+
+@media (max-width:760px){
+  .block.rechts{text-align:left; margin-left:0}
+  .block.rechts .kicker{justify-content:flex-start}
+  .block.rechts .knoepfe{justify-content:flex-start}
+  .block.rechts p.lead{margin-left:0}
+
+  /* DER SCHLEIER DREHT SICH — am 13.09.2026 auf 390x844 nachgesehen
+     ------------------------------------------------------------------
+     Auf dem Schreibtisch laeuft der Schleier von der Textseite nach
+     rechts weg: Text links, Raum rechts, beide haben ihren Platz. Auf
+     dem Telefon gibt es kein Links und Rechts — dort steht die Marke
+     genau hinter der Zeile, und "Bildmarke" lief quer ueber das
+     leuchtende V. Lesbar war es nicht mehr.
+
+     Deshalb hier von oben nach unten statt von der Seite: dunkel, wo
+     die Schrift steht, offen darunter, wo der Raum zu sehen sein soll.
+     Gilt fuer alle drei Anordnungen gleich — auf dieser Breite sind sie
+     ohnehin alle linksbuendig. */
+  /* Text nach oben, Raum darunter: Im Hochformat teilen sich beide den
+     Bildschirm nacheinander statt uebereinander. Der Schleier deckt
+     genau den oberen Teil, in dem Schrift steht. */
+  .szene{align-items:flex-start; padding-top:17vh}
+  .szene::before,
+  .szene:has(.rechts)::before,
+  .szene:has(.mitte)::before{
+    background:linear-gradient(180deg,
+      rgba(5,7,13,.96) 0%, rgba(5,7,13,.94) 46%,
+      rgba(5,7,13,.72) 72%, rgba(5,7,13,0) 100%);
+    -webkit-mask-image:none; mask-image:none;
+    inset:-6vh 0 auto 0; height:72vh;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Ein Ausstellungsraum ohne Ausgang ist eine Falle: oben links steht
+     deshalb immer der Weg zurueck auf die Website. -->
+<a id="zurueck" href="/de/">
+  <span aria-hidden="true">←</span> Vecom Design
+</a>
+
+<canvas id="buehne" data-canvas></canvas>
+
+<main id="inhalt">
+
+  <section class="szene" data-beat="0">
+    <div class="block">
+      <p class="kicker">Vecom Design — Sizilien</p>
+      <h1>Digitale Ideen.<br><span class="glanz">Ohne Grenzen.</span></h1>
+      <p class="lead">Websites, Onlineshops, Marken und dreidimensionale Erlebnisse — entwickelt, nicht zusammengesteckt.</p>
+      <div class="knoepfe">
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">Projekt starten</a>
+        <a class="knopf knopf--leer" href="/de/#work">Projekte entdecken</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="szene" data-beat="1">
+    <div class="block rechts">
+      <p class="kicker">Digital Studio</p>
+      <h2>Ein Raum,<br>fünf Wege hinein.</h2>
+      <p class="lead">Jeder Bereich hat seinen Platz im Studio. Du gehst hindurch, statt eine Liste zu lesen.</p>
+      <div class="felder">
+        <div class="feld"><span>Webdesign</span><span>individuell, keine Vorlage</span></div>
+        <div class="feld"><span>Onlineshops</span><span>vom Produkt bis zur Zahlung</span></div>
+        <div class="feld"><span>Branding</span><span>Logo, Farben, Regeln</span></div>
+        <div class="feld"><span>3D Experiences</span><span>neu im Programm</span></div>
+        <div class="feld"><span>Wartung &amp; Support</span><span>ein Ansprechpartner</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="szene" data-beat="2">
+    <div class="block">
+      <p class="kicker">Die Marke</p>
+      <h2>Aus den echten<br>Konturen gebaut.</h2>
+      <p class="lead">Kein nachgezeichnetes V: Das Objekt entsteht aus denselben Umrissen wie die Bildmarke — deshalb sitzt jede Kante dort, wo sie im Logo sitzt.</p>
+    </div>
+  </section>
+
+  <section class="szene" data-beat="3">
+    <div class="block rechts">
+      <p class="kicker">3D Experience Website</p>
+      <h2>Webseiten, die man<br>nicht nur besucht.</h2>
+      <p class="lead">Modernes Webdesign, verbunden mit interaktiven 3D-Welten, hochwertigen Animationen und immersiven Erlebnissen — für Unternehmen, die sich sichtbar abheben wollen.</p>
+      <div class="knoepfe">
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">3D-Projekt anfragen</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="szene" data-beat="4">
+    <div class="block mitte">
+      <p class="kicker">Der Weg nach vorn</p>
+      <h2>Bereit, etwas<br><span class="glanz">Außergewöhnliches</span><br>zu erschaffen?</h2>
+      <div class="knoepfe">
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">Jetzt Projekt starten</a>
+        <a class="knopf knopf--leer" href="https://wa.me/393801907017" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer id="fuss">
+  <span>© Vecom Design · Aragona (AG), Sizilien</span>
+  <a href="/legal.html#impressum">Impressum</a>
+  <a href="/legal.html#privacy">Datenschutz</a>
+  <a href="/legal.html#agb">AGB</a>
+  <a href="/legal.html#widerruf">Widerruf</a>
+  <a href="/de/preise.html">Preise</a>
+  <a href="mailto:kontakt@vecom-design.it">kontakt@vecom-design.it</a>
+</footer>
+
+<!-- Der Messstreifen ist nur da, wenn er gebraucht wird: ?mess=1 an die
+     Adresse haengen. Im Alltag hat eine Zahlenleiste auf einer Kundenseite
+     nichts zu suchen; beim Nachmessen ist sie unverzichtbar. -->
+<div id="mess" hidden>wird gemessen …</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "/assets/vendor/three/three.module.min.js",
+    "three/addons/": "/assets/vendor/three/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+
+const wurzel = document.documentElement;
+const leinwand = document.getElementById('buehne');
+const mess = document.getElementById('mess');
+/* Sichtbar nur mit ?mess=1 — geschrieben wird trotzdem immer, damit die
+   Rueckfallmeldungen unten nicht ins Leere laufen. */
+if (new URLSearchParams(location.search).has('mess')) { mess.hidden = false; }
+
+/* ---------------------------------------------------------------- Qualität
+   Gleiche Reihenfolge wie in der Hauptseite: Postprocessing → DPR → Schatten.
+   Die Inszenierung selbst bleibt auf jeder Stufe erhalten. */
+const STUFEN = {
+  /* ueber = Ueberabtastung: oberhalb des Geraetewerts rendern und herunter-
+     skalieren. Auf einem 1,25er Bildschirm ist das der groesste sichtbare
+     Gewinn, weil jede Kante vier statt einem Farbwert bekommt. */
+  ultra:  { dpr: 1.35, bloom: true,  bloomStaerke: 0.44, schatten: 1024, ueber: true,  tiefe: true },
+  high:   { dpr: 1.25, bloom: true,  bloomStaerke: 0.38, schatten: 1024, ueber: false, tiefe: false },
+  medium: { dpr: 1.35, bloom: true,  bloomStaerke: 0.30, schatten: 0,    ueber: false, tiefe: false },
+  low:    { dpr: 1.00, bloom: false, bloomStaerke: 0.00, schatten: 0,    ueber: false, tiefe: false },
+};
+function stufeErmitteln() {
+  /* ?q=ultra|high|medium|low erzwingt eine Stufe — zum Vergleichen */
+  const gewuenscht = new URLSearchParams(location.search).get('q');
+  if (gewuenscht && STUFEN[gewuenscht]) return gewuenscht;
+
+  const speicher = navigator.deviceMemory || 4;
+  const kerne = navigator.hardwareConcurrency || 4;
+  const grob = matchMedia('(pointer: coarse)').matches;
+  /* Nur die BREITE zaehlt. Die Hoehe als Massstab war ein Fehler: ein flaches
+     Browserfenster am Schreibtisch ist kein Telefon — genau daran ist die
+     Erkennung hier auf medium gefallen. */
+  const schmal = innerWidth < 760;
+  if (grob || schmal) return (speicher >= 6 && kerne >= 6) ? 'medium' : 'low';
+  /* Eingebaute Grafik: hoechste Stufe, die fluessig bleibt. */
+  if (EINGEBAUT) return 'high';
+  /* Eigene Grafikkarte: alles an. Wird es doch zu langsam, faellt die Stufe
+     automatisch zurueck (siehe Waechter in der Bildschleife). */
+  return 'ultra';
+}
+
+/* Welche Grafikkarte der Browser benutzt, ist die einzige Angabe, die wirklich
+   etwas aussagt. Kernzahl und Speicher sagen nichts ueber die Fuellrate — und
+   genau die entscheidet hier. */
+function grafikkarte() {
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (!gl) return '';
+    const d = gl.getExtension('WEBGL_debug_renderer_info');
+    return d ? String(gl.getParameter(d.UNMASKED_RENDERER_WEBGL)) : '';
+  } catch (e) { return ''; }
+}
+const GPU = grafikkarte();
+/* Eingebaute Grafik teilt sich den Speicher mit dem Rechner und hat ein
+   Bruchteil der Fuellrate einer eigenen Karte. Sie bekommt deshalb die volle
+   Optik, aber weder Ueberabtastung noch Tiefenschaerfe. */
+const EINGEBAUT = /Intel|UHD|Iris|HD Graphics|Mesa|llvmpipe|SwiftShader|Adreno|Mali|PowerVR/i.test(GPU);
+
+function webglDa() {
+  try {
+    const c = document.createElement('canvas');
+    return !!(c.getContext('webgl2') || c.getContext('webgl'));
+  } catch (e) { return false; }
+}
+
+const wenigerBewegung = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+if (!webglDa()) {
+  wurzel.setAttribute('data-welt', 'aus');
+  mess.innerHTML = 'Rückfallfassung aktiv\nGrund: <b>kein WebGL</b>\nInhalt vollständig lesbar';
+} else {
+  starten();
+}
+
+function starten() {
+  const erzwungen = !!new URLSearchParams(location.search).get('q');
+  let stufe = stufeErmitteln();
+  const S = STUFEN[stufe];
+
+  /* --------------------------------------------------------------- Grundgerüst */
+  const renderer = new THREE.WebGLRenderer({ canvas: leinwand, antialias: stufe !== 'low', powerPreference: 'high-performance' });
+  const pixelwert = S.ueber ? S.dpr : Math.min(devicePixelRatio || 1, S.dpr);
+  renderer.setPixelRatio(pixelwert);
+  renderer.setSize(innerWidth, innerHeight);
+  if (S.schatten) {
+    renderer.shadowMap.enabled = true;
+    /* PCF statt PCFSoft: der weiche Filter kostet ein Vielfaches und ist bei
+       einem einzigen Schattenwerfer nicht zu sehen. */
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.autoUpdate = false;   /* Szene steht still — einmal reicht */
+  }
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
+  if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  /* Kleines Fenster nach draussen, damit sich der Zustand von aussen
+     ablesen laesst — auch wenn das Fenster nicht im Vordergrund ist. */
+  window.__vecom = { stufe, pixelwert, bloom: S.bloom, schatten: S.schatten, tiefe: !!S.tiefe, gpu: GPU, eingebaut: EINGEBAUT, fps: 0 };
+
+  const szene = new THREE.Scene();
+  szene.background = new THREE.Color(0x03050a);
+  szene.fog = new THREE.FogExp2(0x04070e, 0.0098);
+
+  const kamera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 200);
+
+  /* Umgebung: gibt dem Chrom etwas zu spiegeln — ohne sie bleibt Metall schwarz */
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  /* Rueckfall sofort setzen, damit nie ein Bild ohne Spiegelung erscheint */
+  szene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  if ('environmentIntensity' in szene) szene.environmentIntensity = 0.55;
+  /* Dasselbe Studio-Bild, das die Hauptseite benutzt — Metall braucht eine
+     echte Umgebung, sonst bleibt es Farbe statt Material. */
+  new THREE.TextureLoader().load('/assets/img/env/studio.webp', (t) => {
+    t.mapping = THREE.EquirectangularReflectionMapping;
+    if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+    szene.environment = pmrem.fromEquirectangular(t).texture;
+    /* Das Bild ist eine dunkle Buehne — ohne kraeftige Anhebung spiegelt
+       das Metall nichts. Die Strahlen darin sind das, was Chrom echt macht. */
+    if ('environmentIntensity' in szene) szene.environmentIntensity = 2.1;
+    t.dispose();
+  });
+
+  /* Licht: sparsam, die Leuchtflächen im Modell tragen die Hauptlast */
+  const key = new THREE.DirectionalLight(0xdce8ff, 2.2);
+  key.position.set(-6, 9, 8);
+  if (S.schatten) {
+    key.castShadow = true;
+    key.shadow.mapSize.set(S.schatten, S.schatten);
+    const k = key.shadow.camera;
+    /* eng um Podest und Marke gelegt: jeder Meter mehr kostet Aufloesung */
+    k.left = -11; k.right = 11; k.top = 11; k.bottom = -11; k.near = 2; k.far = 34;
+    key.shadow.bias = -0.0009;
+    key.shadow.normalBias = 0.02;
+  }
+  szene.add(key);
+  const gegen = new THREE.DirectionalLight(0x1fe8ff, 0.8);
+  gegen.position.set(3, 5, -14);
+  szene.add(gegen);
+  szene.add(new THREE.HemisphereLight(0x2a4a80, 0x02040a, 0.55));
+  /* Spitzlicht auf die Marke: ein harter Reflex ist der Unterschied
+     zwischen blauer Farbe und blauem Metall. Es wandert mit ihr mit. */
+  const spitze = new THREE.SpotLight(0xffffff, 260, 26, 0.55, 0.35, 1.8);
+  spitze.position.set(-5.5, 7.5, 7.5);
+  szene.add(spitze);
+  szene.add(spitze.target);
+  spitze.target.position.set(0, 3.4, -4);
+  /* Wandwaesche hinten, damit der Raum nicht im Nichts endet */
+  const wand = new THREE.PointLight(0x2f6ad0, 120, 30, 2.0);
+  wand.position.set(0, 4.5, -28);
+  szene.add(wand);
+
+  /* --------------------------------------------------------------- Beats
+     Angegeben in Blender-Koordinaten (Z nach oben), damit die Zahlen
+     eins zu eins zur .blend-Datei passen. b2t() rechnet auf glTF um. */
+  const b2t = (x, y, z) => new THREE.Vector3(x, z, -y);
+  const BEATS = [
+    { id: 'ankunft',  cam: b2t(-5.2, -15.8, 2.35), ziel: b2t(0, 5.0, 3.30), fov: 46, mx:  2.6 },
+    { id: 'studio',   cam: b2t( 6.4,  -7.0, 3.10), ziel: b2t(-3.5, 12.0, 3.10), fov: 52, mx: -3.0 },
+    { id: 'marke',    cam: b2t(-1.6,  -3.4, 3.55), ziel: b2t(0, 4.0, 3.45), fov: 40, mx:  2.2 },
+    { id: 'tiefe',    cam: b2t( 0.0,   1.5, 2.70), ziel: b2t(0, 30.0, 3.60), fov: 48, mx: -2.4 },
+    { id: 'ruhe',     cam: b2t(-3.0, -11.0, 2.50), ziel: b2t(0, 4.6, 3.40), fov: 44, mx:  1.4 },
+  ];
+
+  const camPos  = BEATS[0].cam.clone();
+  const camZiel = BEATS[0].ziel.clone();
+  /* HOCHFORMAT — gemessen, nicht geschaetzt
+     ------------------------------------------------------------------
+     Die fuenf Beats sind fuer ein breites Bild gebaut. Am 13.09.2026 auf
+     390x844 nachgesehen: Mit demselben Blickwinkel faellt der halbe Raum
+     aus dem Rahmen, die Marke ist gar nicht im Bild, und die Seite sieht
+     aus wie ein dunkler Textblock — ausgerechnet auf dem Geraet, ueber
+     das die Kundschaft hier fast nur kommt.
+
+     Zwei Korrekturen aus dem Seitenverhaeltnis, beide gedeckelt: Der
+     Blickwinkel waechst (aber nie ueber 74 Grad, sonst zieht die
+     Perspektive die Kanten auseinander), und die Kamera geht zusaetzlich
+     ein Stueck zurueck. Zusammen bleibt der Bildausschnitt ungefaehr der
+     gemeinte, ohne dass eine zweite Beat-Liste gepflegt werden muss. */
+  const BILD_REF = 16 / 9;
+  const weitung = () => Math.min(Math.max(BILD_REF / Math.max(innerWidth / innerHeight, 0.3), 1), 2.3);
+
+  let fov = BEATS[0].fov;
+  kamera.position.copy(camPos);
+  kamera.lookAt(camZiel);
+
+  /* --------------------------------------------------------------- Modell */
+  let modellDa = false, dreiecke = 0;
+  let marke = null, markeBasis = 0, markeX = 0;
+
+  /* Die Displays zeigen echte Arbeiten statt blauer Flaechen. Die Bilder liegen
+     schon im Projekt — sie kommen deshalb nicht ins GLB, das bleibt schlank. */
+  const TAFELN = {
+    Display_0_WEBDESIGN:  'work/cavaleri-desktop.webp',
+    Display_1_ONLINESHOPS:'work/vecomshop.webp',
+    Display_2_BRANDING:   'work/trendonix-desktop.webp',
+    Display_3_3D:         'work/jonika-laptop-standbild.webp',
+    Display_4_WARTUNG:    'work/mensaena-laptop-standbild.webp',
+  };
+  const texLader = new THREE.TextureLoader();
+
+  /* Unregelmaessigkeit ist der Unterschied zwischen Rechnung und Aufnahme.
+     Eine gleichmaessig glatte Flaeche kommt in der Wirklichkeit nicht vor —
+     Schleifspuren, Putzschlieren und Staub brechen jede Spiegelung auf. */
+  function karte(datei, wiederholung) {
+    const t = texLader.load('/assets/img/3d/' + datei);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(wiederholung, wiederholung);
+    return t;
+  }
+  const K_BODEN  = karte('boden-rauheit.webp', 9);
+  const K_METALL = karte('metall-rauheit.webp', 4);
+  const K_NORMAL = karte('fein-normal.webp', 12);
+  new GLTFLoader().load('/assets/3d/showroom.glb', (gltf) => {
+    const m = gltf.scene;
+    m.traverse((o) => {
+      if (!o.isMesh) return;
+      dreiecke += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+      const mat = o.material;
+      if (!mat) return;
+      /* EEVEE und three rechnen Emission unterschiedlich. Statt pauschal
+         hochzudrehen, bekommt jedes Material seinen Wert — sonst ertrinkt
+         das Bild in Türkis, weil die Bodenfugen am längsten im Bild sind. */
+      const STAERKE = {
+        M_LichtCyan: 0.50, M_LichtBlau: 1.10, M_Deckenfeld: 1.05,
+        M_Kantenlicht: 1.70, M_Sockelkante: 1.00, M_Fuge: 1.00, M_Display: 0.85,
+      };
+      if (mat.emissiveIntensity !== undefined) {
+        mat.emissiveIntensity = STAERKE[mat.name] !== undefined ? STAERKE[mat.name] : 1.0;
+      }
+      mat.envMapIntensity = 1.0;
+      if (S.schatten) {
+        /* Schatten nur dort, wo er zu sehen ist: die Marke wirft, Boden und
+           Podest nehmen auf. 75 Werfer kosten das Zwanzigfache und liefern
+           in diesem Raum kein einziges zusaetzliches sichtbares Bild. */
+        o.castShadow = (o.name === 'Marke_V');
+        o.receiveShadow = (mat.name === 'M_Boden' || mat.name === 'M_Chrom');
+      }
+      if (mat.map) mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      /* Marke und Boden tragen die Wirkung — sie bekommen mehr Umgebung */
+      if (mat.name === 'M_Marke') {
+        /* Auch eloxiertes Metall ist nicht makellos: die feine Struktur nimmt
+           der Flaeche das Gegossene, ohne dass man sie bewusst sieht. */
+        mat.metalness = 1.0; mat.roughness = 0.155; mat.envMapIntensity = 2.0;
+        mat.roughnessMap = K_METALL;
+        mat.normalMap = K_NORMAL;
+        mat.normalScale = new THREE.Vector2(0.10, 0.10);
+      }
+      if (mat.name === 'M_Boden') {
+        /* Der Boden traegt die Spiegelung — hier faellt jede Perfektion auf.
+           Rauheit als Karte, damit die Spiegelung stellenweise aufbricht. */
+        mat.metalness = 0.88; mat.roughness = 0.30; mat.envMapIntensity = 0.75;
+        mat.roughnessMap = K_BODEN;
+        mat.normalMap = K_NORMAL;
+        mat.normalScale = new THREE.Vector2(0.22, 0.22);
+      }
+      if (mat.name === 'M_MetallGeb' || mat.name === 'M_Chrom') {
+        mat.roughness = mat.name === 'M_Chrom' ? 0.22 : 0.52;
+        mat.roughnessMap = K_METALL;
+        mat.normalMap = K_NORMAL;
+        mat.normalScale = new THREE.Vector2(0.16, 0.16);
+      }
+      if (mat.name === 'M_Wand') {
+        mat.roughness = 0.95;
+        mat.roughnessMap = K_BODEN;
+        mat.normalMap = K_NORMAL;
+        mat.normalScale = new THREE.Vector2(0.30, 0.30);
+      }
+      const bild = TAFELN[o.name];
+      if (bild) {
+        /* eigenes Material je Tafel, sonst faerbt das letzte Bild alle fuenf */
+        o.material = mat.clone();
+        const t = texLader.load('/assets/img/' + bild);
+        t.flipY = false;                       /* glTF-UVs laufen andersherum */
+        if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        o.material.map = t;
+        o.material.emissiveMap = t;
+        o.material.emissive = new THREE.Color(0xffffff);
+        o.material.emissiveIntensity = 0.55;
+        o.material.roughness = 0.075;
+        o.material.metalness = 0.15;
+        o.material.needsUpdate = true;
+      }
+    });
+    marke = m.getObjectByName('Marke_V');
+    if (marke) markeBasis = marke.position.x;
+    szene.add(m);
+    modellDa = true;
+    if (S.schatten) renderer.shadowMap.needsUpdate = true;
+  }, undefined, (e) => {
+    mess.innerHTML = 'Modell konnte nicht geladen werden\n<b>' + e.message + '</b>';
+  });
+
+  /* --------------------------------------------------------------- Bloom */
+  let composer = null, bloomPass = null, dofPass = null, gradePass = null;
+
+  /* Ein Bild aus einer echten Kamera hat Randabfall, ein wenig Korn, an den
+     Raendern leichte Farbverschiebung und niemals reines Schwarz. Fehlt das,
+     liest das Auge das Bild als gerechnet — egal wie gut die Materialien sind. */
+  const KameraShader = {
+    uniforms: {
+      tDiffuse:   { value: null },
+      zeit:       { value: 0 },
+      koern:      { value: 0.017 },
+      vignette:   { value: 0.40 },
+      aberration: { value: 0.0026 },
+      anhebung:   { value: 0.55 },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+    `,
+    fragmentShader: `
+      uniform sampler2D tDiffuse;
+      uniform float zeit, koern, vignette, aberration, anhebung;
+      varying vec2 vUv;
+      void main() {
+        vec2 mitte = vUv - 0.5;
+        float r2 = dot(mitte, mitte);
+
+        /* Farbverschiebung nimmt zum Rand hin zu, wie bei jedem Objektiv */
+        float ab = aberration * r2 * 4.0;
+        vec3 farbe;
+        farbe.r = texture2D(tDiffuse, vUv - mitte * ab).r;
+        farbe.g = texture2D(tDiffuse, vUv).g;
+        farbe.b = texture2D(tDiffuse, vUv + mitte * ab).b;
+
+        /* Randabfall */
+        farbe *= clamp(1.0 - vignette * r2 * 1.9, 0.0, 1.0);
+
+        /* Schatten anheben: Film hat kein reines Schwarz, und der Restton
+           ist kuehl, nicht neutral */
+        float helligkeit = dot(farbe, vec3(0.2126, 0.7152, 0.0722));
+        float dunkel = 1.0 - smoothstep(0.0, 0.30, helligkeit);
+        farbe += anhebung * dunkel * vec3(0.012, 0.020, 0.038);
+
+        /* Korn, animiert — ein stehendes Korn sieht wie Schmutz aus */
+        float n = fract(sin(dot(vUv * vec2(2560.0, 1440.0) + zeit, vec2(12.9898, 78.233))) * 43758.5453);
+        farbe += (n - 0.5) * koern * (0.35 + dunkel);
+
+        gl_FragColor = vec4(farbe, 1.0);
+      }
+    `,
+  };
+  {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(szene, kamera));
+    if (S.tiefe) {
+      /* Tiefenschaerfe ist der staerkste Hinweis auf eine echte Aufnahme:
+         Alles gleich scharf gibt es nur in der Rechnung. Der Punkt liegt auf
+         der Marke und wandert mit ihr.
+         WICHTIG: Der Pass rechnet nur die Tiefe und mischt die Farbe aus dem
+         Durchgang davor — er ersetzt den Render-Pass nicht, er folgt ihm. */
+      dofPass = new BokehPass(szene, kamera, { focus: 14.0, aperture: 0.00055, maxblur: 0.0042 });
+      composer.addPass(dofPass);
+    }
+    /* Schwelle hoch: nur was wirklich leuchtet, soll strahlen — sonst
+       glüht der halbe Boden mit. */
+    /* Der Bloom rechnet auf halber Kantenlaenge — ein Viertel der Pixel.
+       Er ist ohnehin ein Weichzeichner; die Haelfte sieht man ihm nicht an,
+       die Bildrate schon. */
+    if (S.bloom) bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth * 0.5, innerHeight * 0.5), S.bloomStaerke, 0.58, 0.92);
+    if (S.bloom) composer.addPass(bloomPass);
+    gradePass = new ShaderPass(KameraShader);
+    composer.addPass(gradePass);
+    composer.addPass(new OutputPass());
+    composer.setPixelRatio(pixelwert);
+    composer.setSize(innerWidth, innerHeight);
+  }
+
+  /* --------------------------------------------------------------- Scroll
+     Scroll ist der Abspielkopf einer durchgehenden Fahrt, nicht ein Sprung
+     von Sektion zu Sektion. Gedämpft, damit nichts hektisch wirkt. */
+  let fortschritt = 0, zielFortschritt = 0;
+  function scrollLesen() {
+    const max = document.body.scrollHeight - innerHeight;
+    zielFortschritt = max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0;
+  }
+  addEventListener('scroll', scrollLesen, { passive: true });
+  scrollLesen();
+  if (wenigerBewegung) { fortschritt = zielFortschritt = 0; }
+
+  const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+  function beatsMischen(p) {
+    const n = BEATS.length - 1;
+    const f = Math.min(p, 0.9999) * n;
+    const i = Math.floor(f);
+    let t = f - i;
+    t = t * t * (3 - 2 * t);                       // weiche Ein- und Ausblende
+    const a = BEATS[i], b = BEATS[Math.min(i + 1, n)];
+    tmpA.copy(a.cam).lerp(b.cam, t);
+    tmpB.copy(a.ziel).lerp(b.ziel, t);
+    const mx = a.mx + (b.mx - a.mx) * t;
+    /* Der Blick folgt der Marke zur Haelfte — sonst wandert sie aus dem Bild */
+    tmpB.x += mx * 0.5;
+    return { cam: tmpA, ziel: tmpB, fov: a.fov + (b.fov - a.fov) * t, mx };
+  }
+
+  /* --------------------------------------------------------------- Schleife */
+  let letzte = performance.now(), fps = 0, zaehler = 0, fpsSumme = 0, schwach = 0;
+  const start = performance.now();   /* Schonfrist: die ersten Sekunden zaehlen nicht */
+  function bild(jetzt) {
+    requestAnimationFrame(bild);
+    const dt = Math.min((jetzt - letzte) / 1000, 0.1);
+    letzte = jetzt;
+
+    if (!wenigerBewegung) {
+      fortschritt += (zielFortschritt - fortschritt) * Math.min(1, dt * 3.2);
+    }
+    const b = beatsMischen(fortschritt);
+    if (marke) {
+      markeX += (b.mx - markeX) * Math.min(1, dt * 3.0);
+      marke.position.x = markeBasis + markeX;
+      spitze.target.position.set(marke.position.x, 3.4, marke.position.z);
+      /* winziges Wiegen — steht nie ganz still, dreht sich aber nie auffaellig */
+      marke.rotation.y = Math.sin(jetzt * 0.00022) * 0.045;
+    }
+    camPos.lerp(b.cam, Math.min(1, dt * 4.5));
+    camZiel.lerp(b.ziel, Math.min(1, dt * 4.5));
+    fov += (b.fov - fov) * Math.min(1, dt * 4.0);
+
+    /* leichtes Atmen, damit das Bild nie ganz still steht */
+    const atem = wenigerBewegung ? 0 : Math.sin(jetzt * 0.00035) * 0.07;
+    kamera.position.set(camPos.x + atem, camPos.y + atem * 0.4, camPos.z);
+
+    const w = weitung();
+    if (w > 1.001) {
+      /* erst der Blickwinkel … */
+      const halb = Math.atan(Math.tan(fov * Math.PI / 360) * Math.min(w, 1.5));
+      kamera.fov = Math.min(74, halb * 360 / Math.PI);
+      /* … dann der Abstand, gemessen vom Blickziel aus */
+      kamera.position.sub(camZiel).multiplyScalar(1 + (w - 1) * 0.25).add(camZiel);
+    } else {
+      kamera.fov = fov;
+    }
+    kamera.updateProjectionMatrix();
+    kamera.lookAt(camZiel);
+
+    if (dofPass && marke) {
+      /* Der Punkt liegt genau auf der Marke — deshalb wird sie scharf und
+         alles davor und dahinter weich, wie bei einer offenen Blende. */
+      const d = kamera.position.distanceTo(marke.position);
+      dofPass.uniforms['focus'].value += (d - dofPass.uniforms['focus'].value) * Math.min(1, dt * 3.0);
+    }
+    if (gradePass) gradePass.uniforms.zeit.value = jetzt * 0.001;
+    if (composer) composer.render(); else renderer.render(szene, kamera);
+
+    fpsSumme += 1 / Math.max(dt, 0.0001); zaehler++;
+    if (zaehler >= 30) {
+      fps = Math.round(fpsSumme / zaehler); fpsSumme = 0; zaehler = 0;
+      window.__vecom.fps = fps;
+      window.__vecom.stufe = stufe;
+      window.__vecom.pixelwert = renderer.getPixelRatio();
+      /* Waechter: drei Messungen unter 30 Bildern/s bei aktivem Fenster ->
+         eine Stufe zurueck. Lieber fluessig als scharf. */
+      /* Erst nach vier Sekunden urteilen: direkt nach dem Laden uebersetzt der
+         Treiber Shader und dekodiert Texturen — das sieht immer nach Ruckeln
+         aus und ist keines. */
+      const reif = (jetzt - start) > 4000;
+      if (!erzwungen && reif && document.hasFocus() && fps < 24) {
+        schwach++;
+        if (schwach >= 3 && stufe !== 'low') {
+          const reihe = ['ultra', 'high', 'medium', 'low'];
+          stufe = reihe[Math.min(reihe.indexOf(stufe) + 1, 3)];
+          const N = STUFEN[stufe];
+          renderer.setPixelRatio(N.ueber ? N.dpr : Math.min(devicePixelRatio || 1, N.dpr));
+          if (composer) composer.setPixelRatio(renderer.getPixelRatio());
+          if (dofPass) dofPass.enabled = !!N.tiefe;
+          if (!N.schatten) renderer.shadowMap.enabled = false;
+          else { key.shadow.mapSize.set(N.schatten, N.schatten);
+                 if (key.shadow.map) { key.shadow.map.dispose(); key.shadow.map = null; }
+                 renderer.shadowMap.needsUpdate = true; }
+          schwach = 0;
+        }
+      } else if (fps >= 24) { schwach = 0; }
+      const i = renderer.info;
+      mess.innerHTML =
+        'Stufe <b>' + stufe + (erzwungen ? ' (erzwungen)' : '') + '</b>   DPR <b>' + renderer.getPixelRatio().toFixed(2) + '</b>\n' +
+        'Bilder/s <b>' + fps + '</b>   Zeichenaufrufe <b>' + i.render.calls + '</b>\n' +
+        'Dreiecke <b>' + Math.round(dreiecke).toLocaleString('de-DE') + '</b>' +
+        '\n' + (GPU ? GPU.replace(/^ANGLE \(|\)$/g, '').slice(0, 52) : 'Grafikkarte unbekannt') +
+        (modellDa ? '' : '   (lädt …)') +
+        (wenigerBewegung ? '\nreduzierte Bewegung: Kamera steht' : '') +
+        (document.hidden || !document.hasFocus() ? '\nFenster nicht im Vordergrund - Bildrate gedrosselt' : '');
+    }
+  }
+  requestAnimationFrame(bild);
+
+  addEventListener('resize', () => {
+    kamera.aspect = innerWidth / innerHeight;
+    kamera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    if (composer) composer.setSize(innerWidth, innerHeight);
+    if (bloomPass) bloomPass.setSize(innerWidth * 0.5, innerHeight * 0.5);
+    scrollLesen();
+  });
+}
+</script>
+</body>
+</html>

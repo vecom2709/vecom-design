@@ -58,3 +58,11 @@ _to_delete/
 # Nur in der Wurzel -- richtungen/_rahmen.css ist ein echtes Stilblatt und
 # wird gebraucht.
 /_*.html
+
+# Die 3D-Werkstatt. Blender-Dateien, Renderings und Texturen — zusammen
+# ueber 50 MB, und nichts davon gehoert auf den Webspace. Was die Website
+# wirklich braucht, liegt fertig unter assets/3d/ und assets/img/3d/.
+#
+# Steht hier, seit der Ordner am 13.09.2026 neben dem Klon im selben
+# Verzeichnis liegt: Ein "git add -A" haette ihn sonst mitgenommen.
+3d-produktion/

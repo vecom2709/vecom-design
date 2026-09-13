@@ -3288,3 +3288,51 @@ stimmen.
 OFFEN BLEIBT: Der Live-Webhook bei Stripe. Der Abgleich fängt den Kunden
 auf, aber er ist der langsame Weg — die Bestätigung kommt Minuten später
 statt sofort.
+### Der Showroom geht ans Netz (13.09.2026)
+
+Uwe: „Jetzt schau das der showroom der wir erstellt hatten live geht". Der
+begehbare Raum lag bis heute nur in Blender und in einer lokalen Vorschau unter
+`3d-produktion/vorschau/`. Jetzt liegt er als `showroom.html` in der Wurzel und
+lädt `assets/3d/showroom.glb` (390 KB) plus drei Texturkarten aus
+`assets/img/3d/`.
+
+WARUM DIE UNKOMPRIMIERTE GLB UND NICHT DRACO: Die Draco-Fassung ist roh kleiner
+(125 KB statt 390 KB), aber über die Leitung nur 4 KB besser — denn gezippt sind
+von der einfachen Fassung 24 KB übrig, ein Faktor sechzehn, weil ein GLB im Kern
+Zahlenfelder sind. Dafür bräuchte Draco einen Decoder von rund 200 KB im
+Browser. Also macht der Server die Arbeit: `AddType model/gltf-binary` (sonst
+liefert der Webspace `application/octet-stream` aus und die Kompression greift
+nicht) und ein `mod_deflate`-Block in der `.htaccess`. `glb` steht jetzt auch in
+der Regel für den langen Zwischenspeicher.
+
+Gemessen mit einem echten Apache 2.4.58, nicht mit `php -S`: `/showroom.html`
+200, `/assets/3d/showroom.glb` 200 mit `Content-Encoding: gzip`,
+`Content-Type: model/gltf-binary`, `Content-Length: 26122` und
+`Cache-Control: public, max-age=2592000`. Die bestehenden Regeln bleiben heil:
+`/index.html` 200, `/e/ANNA3CU` 200, `/_baukasten.html` 404, `/README.md` 403,
+`/de/preise.html` 200.
+
+VIER FEHLER, DIE ERST DAS MESSEN ZEIGTE:
+
+1. Die Importkarte wurde „von einem null blockiert" — ein bloßes
+   `assets/vendor/three/...` ist in einer Importkarte ungültig. Nur absolute
+   Pfade (`/assets/...`) zählen.
+2. Im Hochformat stand das Modell halb außerhalb des Bildes. Behoben mit einer
+   Rechnung, die aus dem Seitenverhältnis eine Weitung ableitet und sie auf
+   Blickwinkel *und* Kameraabstand verteilt — nur Blickwinkel verzerrt, nur
+   Abstand macht das Modell winzig.
+3. Der Schleier unter dem Text lief im Hochformat noch waagerecht, also quer zur
+   Textrichtung, und der Text kämpfte gegen das helle V dahinter. Unter 760 px
+   läuft er jetzt senkrecht.
+4. Die Überschrift saß hinter dem Zurück-Link. Darum `padding-top:17vh` und
+   `align-items:flex-start` im Hochformat.
+
+`3d-produktion/` steht jetzt in der `.gitignore`: über 50 MB Blender-Dateien,
+Renderings und Rohtexturen, von denen nichts auf den Webspace gehört.
+
+OFFEN UND ABSICHTLICH OFFEN: Die Seite ist einsprachig deutsch und von nirgends
+verlinkt — sie steht nicht in `build.mjs`' Seitenliste und nicht in der Sitemap.
+Erst soll Uwe sie auf einem echten Bildschirm mit echter Grafikkarte sehen;
+hier ist sie nur unter SwiftShader gemessen, also ohne GPU. Danach zu
+entscheiden: eigene Seite oder Ersatz für den 3D-Auftakt der Startseite, und ob
+es sie auf Italienisch und Englisch gibt.
