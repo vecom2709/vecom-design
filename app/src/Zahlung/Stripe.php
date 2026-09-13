@@ -6,8 +6,15 @@ declare(strict_types=1);
  *
  * Warum ohne Composer: Der Rest der Anwendung kommt ohne aus, und der
  * FTP-Deploy laedt einfach Dateien hoch. Eine Abhaengigkeit mit eigenem
- * Aktualisierungszyklus waere hier ein Fremdkoerper. Gebraucht werden genau
- * zwei Dinge: eine Bezahlseite anlegen und eine Unterschrift pruefen.
+ * Aktualisierungszyklus waere hier ein Fremdkoerper. Gebraucht werden drei
+ * Dinge: eine Bezahlseite anlegen, eine Unterschrift pruefen — und seit dem
+ * 13.09.2026 selbst nachfragen, ob eine Bezahlseite bezahlt wurde.
+ *
+ * Das Nachfragen kam dazu, weil ein Webhook ein Anruf ist, den der ANDERE
+ * macht. Faellt er aus, ist er falsch unterschrieben oder gar nicht
+ * eingetragen, sieht es hier aus wie "nicht bezahlt" — und niemand merkt
+ * etwas. Genau das ist am 13.09.2026 einem Kunden passiert. Siehe
+ * sitzungLesen() und Cron::zahlungenAbgleichen().
  *
  * Kartendaten beruehren diesen Server nie — bezahlt wird auf einer Seite,
  * die Stripe selbst ausliefert.
@@ -24,10 +31,20 @@ final class StripeAnbieter implements Anbieter
 {
     private array $cfg;
 
+    /* Die Nummer der zuletzt erzeugten Bezahlseite (cs_…). Sie ist der
+       einzige Faden, an dem der Abgleich spaeter zieht: Ohne sie wissen wir
+       nicht, WELCHE Seite zu welcher Rate gehoerte, und koennen nicht
+       nachfragen. Die Aufrufer schreiben sie neben den Link in die
+       Datenbank (payments.provider_sitzung). */
+    private string $letzteSitzung = '';
+
     public function __construct(?array $cfg = null)
     {
         $this->cfg = $cfg ?? (array) Config::get('stripe', []);
     }
+
+    /** Die Nummer der Bezahlseite aus dem letzten bezahlseite()-Aufruf. */
+    public function letzteSitzung(): string { return $this->letzteSitzung; }
 
     public function schluessel(): string { return 'stripe'; }
 
@@ -138,7 +155,54 @@ final class StripeAnbieter implements Anbieter
             $grund = $antwort['error']['message'] ?? 'unbekannter Fehler';
             throw new RuntimeException('Stripe hat keine Bezahlseite geliefert: ' . $grund);
         }
+        $this->letzteSitzung = (string) ($antwort['id'] ?? '');
         return (string) $antwort['url'];
+    }
+
+    /**
+     * Fragt eine Bezahlseite bei Stripe ab — der Rueckweg zum Webhook.
+     *
+     * Zurueck kommt, was fuer die Buchung zaehlt:
+     *   bezahlt   — Stripe sagt payment_status = paid
+     *   referenz  — die Nummer des Zahlungsvorgangs (pi_…), fuer den Beleg
+     *   offen     — die Sitzung laeuft noch, es ist nur noch nichts passiert
+     *   abgelaufen— die Sitzung ist verfallen, hier kommt nichts mehr
+     *
+     * Faellt Stripe aus oder antwortet mit einem Fehler, wird geworfen. Der
+     * Aufrufer soll das sehen und es beim naechsten Lauf noch einmal
+     * versuchen — eine stille Null waere hier dasselbe Uebel wie der
+     * ausgefallene Webhook.
+     */
+    public function sitzungLesen(string $sitzungId): array
+    {
+        if (trim($sitzungId) === '') {
+            throw new RuntimeException('Ohne Nummer der Bezahlseite kann nicht nachgefragt werden.');
+        }
+        if (!$this->bereit()) {
+            throw new RuntimeException('Für Stripe fehlt der geheime Schlüssel in app/config.local.php.');
+        }
+
+        $a = $this->anfrage('GET', '/v1/checkout/sessions/' . rawurlencode($sitzungId), []);
+
+        if (isset($a['error'])) {
+            throw new RuntimeException('Stripe: ' . (string) ($a['error']['message'] ?? 'unbekannter Fehler'));
+        }
+
+        /* payment_intent kommt je nach Kontostand als Zeichenkette oder als
+           ausgeklapptes Objekt zurueck. Beides muss hier durchgehen, sonst
+           steht im Beleg spaeter "Array". */
+        $pi = $a['payment_intent'] ?? null;
+        $referenz = is_array($pi) ? (string) ($pi['id'] ?? '') : (string) ($pi ?? '');
+        if ($referenz === '') { $referenz = (string) ($a['id'] ?? ''); }
+
+        return [
+            'bezahlt'    => ($a['payment_status'] ?? '') === 'paid',
+            'referenz'   => $referenz,
+            'status'     => (string) ($a['status'] ?? ''),          // open | complete | expired
+            'abgelaufen' => ($a['status'] ?? '') === 'expired',
+            'betrag'     => (int) ($a['amount_total'] ?? 0),
+            'waehrung'   => strtoupper((string) ($a['currency'] ?? '')),
+        ];
     }
 
     /**
@@ -196,14 +260,25 @@ final class StripeAnbieter implements Anbieter
         // der Aufruf wiederholt wird.
         if ($einmalig !== '') { $kopf[] = 'Idempotency-Key: ' . $einmalig; }
 
-        $ch = curl_init($basis . $weg);
+        /* GET traegt seine Felder in der Adresse, nicht im Rumpf. Ein GET mit
+           Rumpf beantwortet Stripe je nach Tageslaune mit einem Fehler —
+           deshalb die Weiche statt eines gemeinsamen Aufrufs. */
+        $ziel = $basis . $weg;
+        $rumpf = null;
+        if (strtoupper($methode) === 'GET') {
+            if ($felder !== []) { $ziel .= '?' . http_build_query($felder); }
+        } else {
+            $rumpf = http_build_query($felder);
+        }
+
+        $ch = curl_init($ziel);
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST  => $methode,
-            CURLOPT_POSTFIELDS     => http_build_query($felder),
             CURLOPT_HTTPHEADER     => $kopf,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT        => 20,
         ]);
+        if ($rumpf !== null) { curl_setopt($ch, CURLOPT_POSTFIELDS, $rumpf); }
         $roh  = curl_exec($ch);
         $netz = curl_error($ch);
         curl_close($ch);

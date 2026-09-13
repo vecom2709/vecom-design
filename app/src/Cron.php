@@ -85,6 +85,11 @@ final class Cron
             'websites'    => static fn() => Monitoring::alle(),
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
             'erinnerungen'=> static fn() => Onboarding::erinnerungen(),
+            /* ZUERST NACHFRAGEN, DANN ABLAUFEN LASSEN
+               Der Abgleich steht bewusst vor dem Ablaufenlassen: Wer in der letzten
+               Minute vor Ablauf bezahlt hat, soll gebucht werden und nicht
+               erst auf "ausstehend" zurueckfallen. */
+            'zahlabgleich'=> static fn() => self::zahlungenAbgleichen(),
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
             /* Die erste Zahlungserinnerung, drei Tage nach Faelligkeit, mit
                frischem Link. Nur diese eine Stufe laeuft von selbst — die
@@ -309,5 +314,135 @@ final class Cron
             "UPDATE payments SET status = 'ausstehend', link_url = NULL, link_bis = NULL
              WHERE status = 'in_bearbeitung' AND link_bis IS NOT NULL AND link_bis < NOW()"
         )->rowCount();
+    }
+
+    /* ------------------------------------------------------------------ */
+
+    /** Erst nachfragen, wenn der Webhook seine Gelegenheit hatte. */
+    public const ABGLEICH_SCHONFRIST_MINUTEN = 3;
+
+    /** Danach ist die Bezahlseite bei Stripe ohnehin verschwunden. */
+    public const ABGLEICH_LAENGSTENS_TAGE = 35;
+
+    /** Mehr als das je Lauf waere Dauerfeuer auf eine fremde Schnittstelle. */
+    public const ABGLEICH_HOECHSTENS = 25;
+
+    /**
+     * Fragt bei Stripe nach, ob offene Raten inzwischen bezahlt sind — und
+     * bucht sie, wenn ja.
+     *
+     * WARUM ES DAS GIBT
+     *
+     * Am 13.09.2026 hat ein Kunde mit Karte bezahlt und nie eine
+     * Bestaetigung bekommen. Das Geld lag bei Stripe, die Rate stand hier
+     * auf offen, und dazwischen lag genau ein Aufruf, der nie ankam: der
+     * Webhook. Im Livemodus war kein Endpunkt eingetragen.
+     *
+     * Ein Webhook ist ein Anruf, den der ANDERE macht. Er kann ausfallen,
+     * falsch unterschrieben sein oder ins Leere gehen — und in allen drei
+     * Faellen sieht es hier gleich aus: Stille. Eine Stille, die wie "nicht
+     * bezahlt" aussieht, ist der teuerste Zustand, den diese Anwendung
+     * kennt: kein Beleg, keine Auftragsbestaetigung, kein Fragebogen, kein
+     * Projekt — und ein Kunde, der wartet.
+     *
+     * Also der Rueckweg: Wir fragen selbst. Der Webhook bleibt der schnelle
+     * Weg, dieser hier ist der sichere.
+     *
+     * WARUM DAS NICHTS DOPPELT BUCHT
+     *
+     * Gebucht wird durch dieselbe Tuer wie beim Webhook,
+     * Events::zahlungBestaetigen(). Die steigt bei status = 'bezahlt' sofort
+     * wieder aus. Kommen Webhook und Abgleich gleichzeitig, gewinnt einer,
+     * und der andere tut nichts — ohne dass hier etwas zu wissen waere.
+     *
+     * WARUM ES SICH MELDET
+     *
+     * Wenn dieser Weg etwas bucht, hat der schnelle Weg versagt. Das ist
+     * nicht die Nebensache, sondern der eigentliche Befund: Der Webhook
+     * gehoert repariert. Sonst faengt der Abgleich jeden Kunden auf, und
+     * niemand erfaehrt, warum jede Bestaetigung Minuten zu spaet kommt.
+     *
+     * Der Anbieter laesst sich uebergeben. Das ist keine Bequemlichkeit,
+     * sondern die einzige Moeglichkeit, diesen Weg in der Kettenpruefung
+     * wirklich durchzuspielen: Ein Abgleich, der nur im Echtbetrieb gegen
+     * Stripe laufen kann, wird nie geprueft — und genau ungeprueft war der
+     * Webhook, als er ausfiel.
+     *
+     * @return int wie viele Raten dabei gebucht wurden
+     */
+    public static function zahlungenAbgleichen(?object $anbieter = null): int
+    {
+        require_once __DIR__ . '/Zahlung/Anbieter.php';
+        require_once __DIR__ . '/Zahlung/Stripe.php';
+        require_once __DIR__ . '/Events.php';
+        require_once __DIR__ . '/Fmt.php';
+
+        $stripe = $anbieter ?? new StripeAnbieter();
+        if (!$stripe->bereit()) { return 0; }
+
+        /* Auch 'ausstehend' und 'fehlgeschlagen' kommen mit. Ein abgelaufener
+           Link setzt die Rate auf 'ausstehend' zurueck (siehe oben) — wer in
+           genau dieser Minute bezahlt hat, faende sonst nie statt. Und
+           'fehlgeschlagen' heisst nur, dass der letzte Versuch danebenging,
+           nicht dass der naechste es auch tat. */
+        $offen = Db::all(
+            "SELECT id, provider_sitzung, amount_cents, currency, bezeichnung
+               FROM payments
+              WHERE status IN ('in_bearbeitung', 'ausstehend', 'fehlgeschlagen')
+                AND provider_sitzung IS NOT NULL AND provider_sitzung <> ''
+                AND updated_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)
+                AND updated_at > DATE_SUB(NOW(), INTERVAL ? DAY)
+              ORDER BY updated_at DESC
+              LIMIT " . self::ABGLEICH_HOECHSTENS,
+            [self::ABGLEICH_SCHONFRIST_MINUTEN, self::ABGLEICH_LAENGSTENS_TAGE]
+        );
+        if (!$offen) { return 0; }
+
+        $gebucht = 0;
+        $fehler  = '';
+
+        foreach ($offen as $z) {
+            try {
+                $s = $stripe->sitzungLesen((string) $z['provider_sitzung']);
+
+                if ($s['bezahlt']) {
+                    Events::zahlungBestaetigen((int) $z['id'], (string) $s['referenz'], 'stripe');
+                    $gebucht++;
+                    Events::protokoll('zahlung_abgleich',
+                        'Beim Abgleich mit Stripe als bezahlt vorgefunden: '
+                        . ($z['bezeichnung'] ?: 'Rate') . ' · '
+                        . Fmt::geld((int) $z['amount_cents'], (string) $z['currency']));
+                    continue;
+                }
+
+                /* Verfallene Bezahlseite: Da kommt nichts mehr. Die Nummer
+                   loeschen, sonst fragt der Abgleich sie fuenf Wochen lang
+                   vergeblich ab. */
+                if ($s['abgelaufen']) {
+                    Db::update('payments', (int) $z['id'], ['provider_sitzung' => null]);
+                }
+            } catch (Throwable $e) {
+                // Eine Rate, die klemmt, darf die anderen nicht aufhalten.
+                $fehler = mb_substr($e->getMessage(), 0, 200);
+            }
+        }
+
+        if ($gebucht > 0) {
+            Events::melden('zahlung_abgleich',
+                $gebucht === 1 ? 'Eine Zahlung kam erst über den Abgleich an'
+                               : $gebucht . ' Zahlungen kamen erst über den Abgleich an',
+                'warnung',
+                'Stripe hatte das Geld, hier stand die Rate noch offen — der Webhook hat also '
+                . 'nicht gemeldet. Gebucht ist alles; nachsehen, ob der Webhook im richtigen '
+                . 'Modus eingetragen ist und das Signaturgeheimnis stimmt.',
+                '/integrationen');
+        }
+
+        if ($fehler !== '') {
+            Db::run("UPDATE integrations SET last_error = ? WHERE ikey = 'stripe'",
+                ['Abgleich: ' . $fehler]);
+        }
+
+        return $gebucht;
     }
 }

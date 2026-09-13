@@ -354,6 +354,9 @@ final class Abo
                 if ($link !== '') {
                     Db::update('payments', $zahlungId, [
                         'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                        // Die Nummer der Bezahlseite bleibt stehen: Ohne sie kann der
+                        // Abgleich spaeter nicht nachfragen, ob bezahlt wurde.
+                        'provider_sitzung' => $stripe->letzteSitzung(),
                         'link_url' => $link,
                         'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
                     ]);

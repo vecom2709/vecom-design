@@ -170,6 +170,9 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $url = $stripe->bezahlseite($zahlung, $bestell, $kunde);
             Db::update('payments', (int) $zahlung['id'], [
                 'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                // Die Nummer der Bezahlseite bleibt stehen: Ohne sie kann der
+                // Abgleich spaeter nicht nachfragen, ob bezahlt wurde.
+                'provider_sitzung' => $stripe->letzteSitzung(),
                 'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
             ]);
             Events::melden('bestellung_neu', 'Direktbuchung auf der Website', 'info',

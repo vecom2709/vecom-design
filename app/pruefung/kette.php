@@ -4387,6 +4387,181 @@ Db::run('DELETE FROM mails WHERE customer_id = ?', [$wsKunde]);
 Db::run("DELETE FROM notifications WHERE type LIKE 'werkstatt%'");
 
 /* ============================================================================
+   48. Der Zahlungsabgleich mit Stripe
+
+   WARUM DIESER ABSCHNITT DER WICHTIGSTE DER LETZTEN WOCHE IST
+
+   Am 13.09.2026 hat ein Kunde mit Karte bezahlt und nie eine Bestaetigung
+   bekommen. Bei Stripe lag das Geld, hier stand die Rate offen. Dazwischen
+   liegt genau ein Aufruf — der Webhook —, und der kam nie an. Nichts in
+   dieser Anwendung hat es gemerkt; gemerkt hat es der Kunde.
+
+   Der Abgleich ist der Rueckweg: Wir fragen selbst bei Stripe nach. Damit
+   dieser Rueckweg nicht dasselbe Schicksal erleidet wie der Webhook — jahre-
+   lang da und nie geprueft —, steht er hier, mit einem Anbieter, der sich
+   wie Stripe verhaelt, ohne einer zu sein.
+   ============================================================================ */
+abschnitt('48. Der Zahlungsabgleich mit Stripe');
+
+/**
+ * Ein Stripe, das nicht Stripe ist: Es antwortet aus einer Liste statt aus
+ * dem Netz. Nur so laesst sich pruefen, was passiert, wenn die Antwort
+ * "bezahlt" lautet, "abgelaufen", oder wenn gar keine kommt.
+ */
+final class AbgleichProbe
+{
+    public array $gefragt = [];
+    public function __construct(private array $antworten, private bool $bereit = true) {}
+    public function bereit(): bool { return $this->bereit; }
+    public function sitzungLesen(string $id): array
+    {
+        $this->gefragt[] = $id;
+        if (!isset($this->antworten[$id])) {
+            throw new RuntimeException('Stripe: No such checkout session: ' . $id);
+        }
+        return $this->antworten[$id];
+    }
+}
+
+/** Legt Kunde, Bestellung und eine offene Rate mit Bezahlseite an. */
+$agRate = static function (string $email, string $sitzung, int $minutenAlt = 30) use ($paketId): array {
+    $k = Events::kundeFinden(['name' => 'Abgleich ' . $email, 'email' => $email, 'sprache' => 'de']);
+    $b = Events::bestellungAnlegen($k, $paketId, 'Abgleichprobe');
+    $z = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$b], 0);
+    Db::update('payments', $z, [
+        'provider' => 'stripe', 'status' => 'in_bearbeitung',
+        'provider_sitzung' => $sitzung,
+        'link_url' => 'https://checkout.stripe.test/' . $sitzung,
+    ]);
+    /* updated_at steht auf ON UPDATE CURRENT_TIMESTAMP und damit auf jetzt.
+       Die Schonfrist wuerde die Rate also ueberspringen — hier wird sie
+       zurueckdatiert, damit die Probe den Normalfall trifft. */
+    Db::run('UPDATE payments SET updated_at = DATE_SUB(NOW(), INTERVAL ? MINUTE) WHERE id = ?',
+        [$minutenAlt, $z]);
+    return ['kunde' => $k, 'bestellung' => $b, 'zahlung' => $z];
+};
+
+$agBezahlt = static fn(string $pi) => ['bezahlt' => true, 'referenz' => $pi,
+    'status' => 'complete', 'abgelaufen' => false, 'betrag' => 0, 'waehrung' => 'EUR'];
+$agOffen = ['bezahlt' => false, 'referenz' => '', 'status' => 'open',
+    'abgelaufen' => false, 'betrag' => 0, 'waehrung' => 'EUR'];
+$agWeg = ['bezahlt' => false, 'referenz' => '', 'status' => 'expired',
+    'abgelaufen' => true, 'betrag' => 0, 'waehrung' => 'EUR'];
+
+/* ---------- Der Fall, der wirklich passiert ist ------------------------- */
+$agA = $agRate('abgleich-a@pruefung.example', 'cs_test_bezahlt');
+$vorherMeldungen = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_abgleich'", [], 0);
+
+$gebucht = Cron::zahlungenAbgleichen(new AbgleichProbe(['cs_test_bezahlt' => $agBezahlt('pi_test_1')]));
+pruefe('der Abgleich bucht die bezahlte Rate', $gebucht === 1, (string) $gebucht);
+
+$zA = Db::one('SELECT * FROM payments WHERE id = ?', [$agA['zahlung']]);
+pruefe('die Rate steht danach auf bezahlt', (string) $zA['status'] === 'bezahlt', (string) $zA['status']);
+pruefe('mit der Nummer des Zahlungsvorgangs von Stripe',
+    (string) $zA['provider_ref'] === 'pi_test_1', (string) $zA['provider_ref']);
+pruefe('und mit Stripe als Anbieter, nicht "manuell"',
+    (string) $zA['provider'] === 'stripe', (string) $zA['provider']);
+pruefe('ein Zahlzeitpunkt steht drin', trim((string) $zA['paid_at']) !== '');
+
+/* Und alles, was an der Buchung haengt, haengt auch hier dran — sonst waere
+   der Rueckweg nur die halbe Miete. */
+pruefe('das Projekt ist dabei entstanden',
+    (int) Db::wert('SELECT COUNT(*) FROM projects WHERE order_id = ?', [$agA['bestellung']], 0) === 1);
+pruefe('ein Beleg ist dabei entstanden',
+    (int) Db::wert('SELECT COUNT(*) FROM invoices WHERE payment_id = ?', [$agA['zahlung']], 0) === 1);
+pruefe('die Bestellung steht auf bezahlt',
+    (string) Db::wert('SELECT status FROM orders WHERE id = ?', [$agA['bestellung']], '') === 'bezahlt');
+
+/* Der Befund, nicht nur die Reparatur: Wenn der Abgleich buchen musste, hat
+   der Webhook versagt. Das muss in der Verwaltung stehen. */
+pruefe('der Abgleich meldet, dass der Webhook nicht gemeldet hat',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_abgleich'", [], 0)
+        > $vorherMeldungen);
+
+/* ---------- Zweimal fragen bucht nicht zweimal -------------------------- */
+$nochmal = Cron::zahlungenAbgleichen(new AbgleichProbe(['cs_test_bezahlt' => $agBezahlt('pi_test_1')]));
+pruefe('ein zweiter Lauf bucht dieselbe Rate nicht noch einmal', $nochmal === 0, (string) $nochmal);
+pruefe('und es gibt weiterhin genau einen Beleg dazu',
+    (int) Db::wert('SELECT COUNT(*) FROM invoices WHERE payment_id = ?', [$agA['zahlung']], 0) === 1);
+
+/* ---------- Was offen ist, bleibt offen --------------------------------- */
+$agB = $agRate('abgleich-b@pruefung.example', 'cs_test_offen');
+$probeB = new AbgleichProbe(['cs_test_offen' => $agOffen]);
+pruefe('eine offene Bezahlseite wird nicht gebucht', Cron::zahlungenAbgleichen($probeB) === 0);
+pruefe('die Rate steht weiter auf in_bearbeitung',
+    (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$agB['zahlung']], '') === 'in_bearbeitung');
+pruefe('ihre Nummer bleibt stehen, es wird weiter nachgefragt',
+    trim((string) Db::wert('SELECT provider_sitzung FROM payments WHERE id = ?', [$agB['zahlung']], '')) !== '');
+
+/* ---------- Eine verfallene Seite wird nicht ewig gefragt ---------------- */
+$agC = $agRate('abgleich-c@pruefung.example', 'cs_test_weg');
+Cron::zahlungenAbgleichen(new AbgleichProbe(['cs_test_weg' => $agWeg, 'cs_test_offen' => $agOffen]));
+/* Db::wert() gibt bei NULL den Vorgabewert zurueck und kann deshalb ein
+   leeres Feld nicht von einem fehlenden unterscheiden. Hier zaehlt genau
+   dieser Unterschied — also die Zeile selbst lesen. */
+$agCZeile = Db::one('SELECT provider_sitzung FROM payments WHERE id = ?', [$agC['zahlung']]);
+pruefe('eine abgelaufene Bezahlseite verliert ihre Nummer',
+    $agCZeile !== null && $agCZeile['provider_sitzung'] === null,
+    var_export($agCZeile['provider_sitzung'] ?? 'keine Zeile', true));
+$probeC = new AbgleichProbe(['cs_test_offen' => $agOffen]);
+Cron::zahlungenAbgleichen($probeC);
+pruefe('und wird danach nicht mehr abgefragt',
+    !in_array('cs_test_weg', $probeC->gefragt, true));
+
+/* ---------- Eine Rate, die klemmt, haelt die anderen nicht auf ----------- */
+$agD = $agRate('abgleich-d@pruefung.example', 'cs_test_kaputt');
+$agE = $agRate('abgleich-e@pruefung.example', 'cs_test_gut');
+$probeDE = new AbgleichProbe(['cs_test_gut' => $agBezahlt('pi_test_2'), 'cs_test_offen' => $agOffen]);
+$trotzdem = Cron::zahlungenAbgleichen($probeDE);   // cs_test_kaputt wirft
+pruefe('ein Fehler bei einer Rate hält die anderen nicht auf', $trotzdem === 1, (string) $trotzdem);
+pruefe('die heile Rate ist gebucht',
+    (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$agE['zahlung']], '') === 'bezahlt');
+pruefe('die kaputte bleibt unangetastet',
+    (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$agD['zahlung']], '') === 'in_bearbeitung');
+pruefe('und der Fehler steht bei der Integration',
+    str_contains((string) Db::wert("SELECT last_error FROM integrations WHERE ikey = 'stripe'", [], ''), 'Abgleich'));
+
+/* ---------- Die Schonfrist: erst der Webhook, dann wir ------------------- */
+$agF = $agRate('abgleich-f@pruefung.example', 'cs_test_frisch', 0);   // gerade eben
+$probeF = new AbgleichProbe(['cs_test_frisch' => $agBezahlt('pi_test_3'), 'cs_test_offen' => $agOffen]);
+Cron::zahlungenAbgleichen($probeF);
+pruefe('eine frische Rate wird noch nicht gefragt — der Webhook hat Vorrang',
+    !in_array('cs_test_frisch', $probeF->gefragt, true));
+pruefe('und bleibt deshalb offen',
+    (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$agF['zahlung']], '') === 'in_bearbeitung');
+
+/* ---------- Ohne Nummer wird gar nicht erst gefragt ---------------------- */
+$agG = $agRate('abgleich-g@pruefung.example', 'cs_test_ohne');
+Db::update('payments', $agG['zahlung'], ['provider_sitzung' => null]);
+Db::run('UPDATE payments SET updated_at = DATE_SUB(NOW(), INTERVAL 30 MINUTE) WHERE id = ?', [$agG['zahlung']]);
+$probeG = new AbgleichProbe(['cs_test_offen' => $agOffen]);
+Cron::zahlungenAbgleichen($probeG);
+pruefe('eine Rate ohne Bezahlseite wird nicht abgefragt',
+    !in_array('cs_test_ohne', $probeG->gefragt, true));
+
+/* ---------- Ohne Schlüssel tut der Abgleich nichts ----------------------- */
+pruefe('ohne Stripe-Schlüssel fragt der Abgleich gar nicht erst',
+    Cron::zahlungenAbgleichen(new AbgleichProbe([], false)) === 0);
+
+/* ---------- Der Abgleich steht im Lauf, nicht daneben -------------------- */
+pruefe('der Abgleich ist Teil des regelmäßigen Laufs',
+    str_contains(file_get_contents($oben . '/app/src/Cron.php'), "'zahlabgleich'"));
+pruefe('und läuft VOR dem Ablaufenlassen der Zahlungslinks',
+    strpos(file_get_contents($oben . '/app/src/Cron.php'), "'zahlabgleich'")
+        < strpos(file_get_contents($oben . '/app/src/Cron.php'), "'zahllinks'"));
+
+/* ---------- Die Spalte, an der alles hängt ------------------------------- */
+pruefe('payments trägt die Nummer der Bezahlseite',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.columns
+                     WHERE table_schema = DATABASE() AND table_name = 'payments'
+                       AND column_name = 'provider_sitzung'", [], 0) === 1);
+foreach (['buchen.php', 'app/index.php', 'app/src/Nachricht.php',
+          'app/src/Abo.php', 'app/src/Mahnung.php'] as $agDatei) {
+    pruefe("$agDatei merkt sich die Bezahlseite",
+        str_contains(file_get_contents($oben . '/' . $agDatei), "'provider_sitzung' => \$stripe->letzteSitzung()"));
+}
+
+/* ============================================================================
    Startdaten tragen den heutigen Stand
 
    WARUM DIESER ABSCHNITT EXISTIERT

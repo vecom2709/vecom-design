@@ -3224,3 +3224,67 @@ der Fehler zurückkommt, ist keine. Deshalb steht jetzt eine eigene Prüfung dav
 („der Prüffall erzeugt wirklich einen Mehrbedarf"), und die Gegenprobe ist
 dokumentiert: mit eingebautem Fehler reißen genau zwei Prüfungen, ohne ihn
 halten alle 913.
+
+### Bezahlt heißt jetzt auch in der Verwaltung bezahlt (13.09.2026)
+
+Uwe: „sobald ein Kunde bezahlt hat soll auch automatisch in der Verwaltung
+bezahlt stehen — teste den ganzen Ablauf komplett realistisch durch."
+
+**Was passiert war.** Ein Kunde zahlte mit Karte, bekam nie eine
+Bestätigung. Bei Stripe lag das Geld, hier stand die Rate offen. Dazwischen
+liegt genau ein Aufruf — der Webhook —, und der kam nie an: Im Livemodus
+war kein Endpunkt eingetragen. Ohne die Buchung passiert gar nichts: kein
+Beleg, keine Auftragsbestätigung, kein Fragebogen, kein Projekt. Gemerkt
+hat es niemand. Gemerkt hat es der Kunde.
+
+**Der Rückweg.** Ein Webhook ist ein Anruf, den der *andere* macht. Er kann
+ausfallen, falsch unterschrieben sein oder ins Leere gehen, und in allen
+drei Fällen sieht es hier gleich aus: Stille. Also fragen wir selbst nach.
+
+- `045_zahlungsabgleich.sql`: `payments.provider_sitzung` — die Nummer der
+  Bezahlseite (`cs_…`). Ohne sie ist nicht zu sagen, welche Seite zu welcher
+  Rate gehörte. Alle fünf Stellen, die eine Bezahlseite erzeugen, schreiben
+  sie jetzt mit (`buchen.php`, `app/index.php`, `Nachricht`, `Abo`,
+  `Mahnung`).
+- `StripeAnbieter::sitzungLesen()` fragt eine Bezahlseite ab. `anfrage()`
+  kann dafür jetzt auch GET — mit Feldern in der Adresse statt im Rumpf,
+  weil Stripe ein GET mit Rumpf je nach Tageslaune ablehnt.
+- `Cron::zahlungenAbgleichen()` geht die offenen Raten durch und bucht, was
+  bei Stripe bezahlt ist. Drei Minuten Schonfrist, damit der Webhook seinen
+  Vorrang behält; höchstens 25 Raten je Lauf; nach 35 Tagen ist die
+  Bezahlseite bei Stripe ohnehin weg. Im Cron steht der Abgleich **vor**
+  `zahllinks` — wer in der letzten Minute vor Ablauf zahlt, soll gebucht
+  werden und nicht auf „ausstehend" zurückfallen.
+- Gebucht wird durch dieselbe Tür wie beim Webhook,
+  `Events::zahlungBestaetigen()`. Die steigt bei `status = 'bezahlt'` sofort
+  wieder aus — doppelt buchen ist damit unmöglich, auch wenn Webhook und
+  Abgleich sich überholen.
+- **Und es meldet sich.** Wenn der Abgleich bucht, hat der Webhook versagt.
+  Das ist der eigentliche Befund, nicht die Nebensache: Sonst fängt der
+  Abgleich jeden Kunden auf, und niemand erfährt, warum jede Bestätigung
+  Minuten zu spät kommt.
+
+**Durchgespielt.** `kette.php` hat einen neuen Abschnitt 48 mit 32
+Prüfungen, und der Abgleich nimmt dafür einen Anbieter entgegen — ein
+Rückweg, der sich nur im Echtbetrieb prüfen lässt, wird nie geprüft, und
+genau ungeprüft war der Webhook, als er ausfiel. Geprüft werden: der Fall,
+der wirklich passiert ist (Rate wird gebucht, Projekt und Beleg entstehen,
+Bestellung steht auf bezahlt); zweiter Lauf bucht nicht doppelt; offene
+Seite bleibt offen; abgelaufene verliert ihre Nummer und wird nicht mehr
+gefragt; ein Fehler bei einer Rate hält die anderen nicht auf; die
+Schonfrist; keine Nummer heißt keine Abfrage; ohne Schlüssel passiert
+nichts; und die Reihenfolge im Cron.
+
+**945 von 945 Prüfungen halten** — die ganze Kette von der Bestellung bis
+zum Abschluss, mit echter Datenbank und allen Migrationen von vorn.
+
+DAZU EHRLICH: Eine echte Kartenzahlung wurde dabei nicht ausgelöst — eine
+gebuchte Zahlung erzeugt einen Beleg mit Nummer, der zehn Jahre bleibt
+(Art. 2220 Codice civile). Die Feldnamen, auf die der Abgleich zugreift
+(`payment_status`, `status`, `payment_intent`, `amount_total`), wurden
+stattdessen gegen echte Checkout-Sitzungen im Stripe-Testkonto geprüft und
+stimmen.
+
+OFFEN BLEIBT: Der Live-Webhook bei Stripe. Der Abgleich fängt den Kunden
+auf, aber er ist der langsame Weg — die Bestätigung kommt Minuten später
+statt sofort.
