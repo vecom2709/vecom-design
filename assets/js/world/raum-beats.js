@@ -46,7 +46,7 @@ export const RAUM_BEATS = [
   { id: 'about',    cam: b2t( 7.5,  -4.0, 3.00), ziel: b2t(-1.5,  8.0, 3.20), fov: 54, fog: 0.0135, key: 1.8, spitze: 150, wand: 150, bloom: 0.48, scrim: 0.84 },
   { id: 'video',    cam: b2t(-1.2,  -4.5, 1.50), ziel: b2t( 0.0,  4.2, 3.90), fov: 48, fog: 0.0115, key: 2.2, spitze: 280, wand: 120, bloom: 0.52, scrim: 0.84 },
   { id: 'pillars',  cam: b2t( 2.0,  -6.0, 6.20), ziel: b2t( 0.0,  6.0, 2.40), fov: 50, fog: 0.0100, key: 2.6, spitze: 240, wand: 140, bloom: 0.48, scrim: 0.68 },
-  { id: 'partner',  cam: b2t(-1.0,  18.0, 3.00), ziel: b2t( 1.5, 30.0, 3.20), fov: 52, fog: 0.0165, key: 1.5, spitze:  90, wand: 260, bloom: 0.50, scrim: 0.80 },
+  { id: 'partner',  cam: b2t(-1.0,  18.0, 3.00), ziel: b2t( 1.5, 30.0, 3.20), fov: 52, fog: 0.0165, key: 1.5, spitze:  90, wand: 150, bloom: 0.42, scrim: 0.88 },
   { id: 'faq',      cam: b2t( 5.0,  -2.5, 3.30), ziel: b2t(-0.5,  5.0, 3.30), fov: 44, fog: 0.0120, key: 2.1, spitze: 220, wand: 120, bloom: 0.46, scrim: 0.80 },
   { id: 'contact',  cam: b2t(-3.0, -11.0, 2.50), ziel: b2t( 0.0,  4.6, 3.40), fov: 44, fog: 0.0105, key: 2.3, spitze: 250, wand: 130, bloom: 0.50, scrim: 0.78 },
 ];

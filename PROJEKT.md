@@ -3902,3 +3902,74 @@ die kein Linter sieht: Die Untermenüs brachen auf dem Handy die Zeile
 (518 Punkte Breite statt 390), und in der Zeile eines Vorgangs stand eine
 120 Zeichen lange Adresse ohne Trennstelle — **das gab es schon vorher**,
 es fiel nur nie auf, weil der Kasten daneben breiter war.
+### Die fünf Displays zeigten nie, was auf ihnen liegt (13.09.2026)
+
+Beim Fotoreal-Durchgang in Blender aufgefallen und dann auch auf der Website
+gefunden: **Die Tafeln im Showroom sind Quader mit Würfel-UVs.** Acht Ecken,
+sechs Flächen, eine UV-Insel von 0,12 bis 0,88 — das Standard-Auswickeln eines
+Quaders, bei dem sich alle sechs Seiten dieselbe Fläche teilen. Ein Bild darauf
+zeigt auf der Vorderseite einen Streifen und auf den Kanten den Rest.
+
+Das erklärt einen ganzen Abend Fehlersuche in die falsche Richtung: In Blender
+sahen die Bildschirme erst milchig-grau aus (Emission 3,2), dann fast schwarz
+(1,9), dann wieder weiß (4,0 mit angehobenem Schwarzpunkt). Keine dieser
+Schrauben war die richtige — es war immer dieselbe Randfarbe, über die ganze
+Tafel gezogen.
+
+Gelöst ohne das Modell anzufassen, in beiden Fassungen auf demselben Weg: Die
+Koordinaten kommen aus dem eigenen Hüllquader statt aus der UV-Karte. In
+Blender über `Generated` (x = Breite, z = Höhe), in three.js über neu
+gerechnete UVs beim Laden (x und y aus der Bounding Box). Für eine flache
+Tafel ist das genau ein Bildschirm.
+
+DAZU ZWEI SACHEN, DIE ERST DAS MESSEN ZEIGTE:
+
+**Die Arbeiten sind unterschiedlich hell.** Mittlere Helligkeit des gezeigten
+Ausschnitts, linear gemessen: Cavaleri 0,30 — Vecom-Shop 0,14 — Mensaena 0,19
+— Trendonix 0,075 — Jonika 0,055. Ein Faktor fünf zwischen hellster und
+dunkelster. Mit einer gemeinsamen Leuchtstärke blendet die eine Hälfte aus und
+die andere verschwindet. Jede Tafel wird deshalb auf dieselbe Ziel-Leuchtdichte
+gerechnet — so wie fünf Monitore im selben Raum auch gleich hell eingestellt
+wären.
+
+**Die Aufnahmen sind Vollseiten.** `cavaleri-desktop.webp` ist 600 × 4184
+Pixel. Ungeschnitten auf einer Tafel im Format 1,5:1 wird daraus ein Strich.
+Gezeigt wird jetzt der obere Teil — der, den ein Besucher auch zuerst sieht.
+
+### Der Raum wird fotografiert, nicht gerechnet (13.09.2026)
+
+Uwe: „jetzt macht das showroom das maximum was geht fotorealistisch". Sechs
+Änderungen an `vecom-showroom_Fotoreal3.blend`, daraus wurde `_Fotoreal4`:
+
+1. **512 → 1024 Samples**, adaptiv 0,006 → 0,004. Die fleckigen, wie mit dem
+   Daumen verwischten Wände im letzten Render waren keine Textur, sondern der
+   Entrauscher, der aus zu wenig Information zu viel machen sollte.
+2. **Klemme auf dem indirekten Licht von 12 auf 20.** Sie kappte genau die
+   hellen Spitzen, die eine Spiegelung zur Spiegelung machen.
+3. **Die Marke war nicht gebürstet, nur metallisch** — Anisotropie 0,0 bei
+   Metallic 1,0. Das ist der Unterschied zwischen gebürstetem Aluminium und
+   lackiertem Kunststoff. Jetzt 0,38 plus Schleifspuren aus einem in einer
+   Achse 60:1 gestreckten Rauschen.
+4. **Softboxen.** Der wichtigste Punkt und der, den man am wenigsten erwartet:
+   Eine polierte Fläche zeigt nicht sich selbst, sondern ihre Umgebung — und
+   in diesem Raum gab es nichts zu spiegeln außer dünnen Leisten weit oben.
+   Drei Flächen (zwei hohe seitlich, eine liegende darüber), kameraunsichtbar
+   und ohne Schattenwurf, ändern die Beleuchtung kaum und das Aussehen des
+   Metalls vollständig. Genau so arbeitet jedes Produktfoto seit hundert
+   Jahren.
+5. **Polierbahnen im Boden** statt nur feinem Rauschen. Feines Rauschen ist
+   Staub; was einen polierten Boden ausmacht, sind die großen Spuren.
+6. **Der Dunst streut jetzt nach vorn** (Anisotropie 0,62). Ohne Vorzugsrichtung
+   ergibt Streuung Milchglas; mit ihr entstehen Lichtbahnen dort, wo man gegen
+   eine Lampe schaut.
+
+ZWEI FUNDE AM RANDE, BEIDE TEUER GEWESEN, WENN SIE UNBEMERKT GEBLIEBEN WÄREN:
+Drei Texturpfade zeigten noch auf `C:\Users\manue\Desktop\Vecom design\...` —
+den Ordner **vor** dem OneDrive-Umzug. Die Dateien waren tot. Und für SheepIt
+muss alles in die Datei gepackt sein, sonst wären die Displays auf der Farm
+schwarz geblieben; `vecom-showroom_Fotoreal4.blend` ist mit 0,83 MB gepackt.
+
+**Auf diesem Rechner gibt es kein GPU-Rendering** — Cycles findet nur den
+i7-4600U. Ein Vorschaubild in 960 × 540 mit 128 Samples dauert dort neun bis
+sechzehn Minuten; ein volles Bild in 1920 × 1080 mit 1024 Samples wären
+Stunden. Die Farm ist hier keine Bequemlichkeit, sondern der einzige Weg.

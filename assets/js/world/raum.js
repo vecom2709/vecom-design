@@ -337,10 +337,53 @@ export class Raum {
 
           const bild = TAFELN[o.name];
           if (bild) {
+            /* DIE TAFELN HABEN WUERFEL-UVs, KEINE BILDSCHIRM-UVs
+               ------------------------------------------------------------
+               Am 13.09.2026 in Blender nachgesehen: Jede Tafel ist ein
+               Quader mit acht Ecken, und ihre UV-Insel laeuft von 0,12 bis
+               0,88 — das ist das Standard-Auswickeln eines Wuerfels, bei
+               dem sich alle sechs Seiten dieselbe Flaeche teilen. Ein Bild
+               darauf zeigt vorn einen Streifen und auf den Kanten den Rest.
+               Genau so sahen die fuenf Displays hier aus, seit es sie gibt.
+
+               Statt das Modell neu auszuwickeln — es haengt auch an der
+               Blender-Datei — rechnen wir die UVs beim Laden aus dem
+               eigenen Huellquader: x wird die Breite, y die Hoehe. Fuer
+               eine flache Tafel ist das genau ein Bildschirm. */
+            const g = o.geometry;
+            g.computeBoundingBox();
+            const bb = g.boundingBox;
+            const bx = (bb.max.x - bb.min.x) || 1;
+            const by = (bb.max.y - bb.min.y) || 1;
+            const pos = g.attributes.position;
+            const uv = new Float32Array(pos.count * 2);
+            for (let i = 0; i < pos.count; i++) {
+              uv[i * 2] = (pos.getX(i) - bb.min.x) / bx;
+              uv[i * 2 + 1] = (pos.getY(i) - bb.min.y) / by;
+            }
+            g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+
             /* eigenes Material je Tafel, sonst färbt das letzte Bild alle fünf */
             o.material = mat.clone();
-            const t = lader.load('/assets/img/' + bild);
+            const seiten = bx / by;              /* Seitenverhältnis der Tafel */
+            const t = lader.load('/assets/img/' + bild, (tex) => {
+              /* Die Arbeiten sind Vollseiten-Aufnahmen — cavaleri-desktop ist
+                 600 x 4184. Ungeschnitten wird daraus auf einer Tafel im
+                 Format 1,5:1 ein Strich. Also den oberen Teil zeigen, den ein
+                 Besucher auch zuerst sieht. Erst hier, weil vorher niemand
+                 weiss, wie hoch das Bild ist. */
+              const b = tex.image;
+              if (!b || !b.width || !b.height) return;
+              const noetig = b.width / seiten;   /* so hoch darf der Ausschnitt sein */
+              if (noetig >= b.height * 0.94) return;
+              const k = noetig / b.height;
+              tex.repeat.set(1, k);
+              /* flipY ist aus: v = 0 ist der Kopf der Seite. */
+              tex.offset.set(0, 0);
+              tex.needsUpdate = true;
+            });
             t.flipY = false;                     /* glTF-UVs laufen andersherum */
+            t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
             if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
             t.anisotropy = aniso;
             o.material.map = t;
