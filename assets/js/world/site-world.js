@@ -32,7 +32,25 @@ if (!canvas) {
 } else if (!supportsWebGL()) {
   off('no-webgl');
 } else if (reduced) {
-  off('reduced-motion');
+  /* WENIGER BEWEGUNG HEISST WENIGER BEWEGUNG, NICHT WENIGER INHALT
+     ------------------------------------------------------------------
+     Bis zum 13.09.2026 wurde die Buehne hier ganz abgeschaltet. Das war
+     zu viel: Die Einstellung gibt es fuer Menschen, denen von bewegten
+     Flaechen schwindelig wird -- nicht fuer Menschen, die nichts sehen
+     wollen. Ein stehendes Bild tut ihnen nichts.
+
+     Aufgefallen ist es, weil Uwe auf seinem eigenen Rechner nichts von
+     der neuen Buehne sah: In Windows sind bei ihm die Animationseffekte
+     aus, Chrome meldet das als prefers-reduced-motion, und die Seite
+     nahm ihn beim Wort. Er ist damit nicht allein -- die Einstellung
+     wird auch gesetzt, um Akku zu sparen oder weil ein Administrator
+     sie gesetzt hat.
+
+     Jetzt wird der Raum gebaut und GENAU EINMAL gezeichnet: kein
+     Eroeffnungsflug, keine Kamerafahrt zwischen den Abschnitten, kein
+     Driften, kein Atmen, keine Bildschleife. Damit steht auch der
+     Stromverbrauch bei null, sobald das Bild da ist. */
+  standbild();
 } else if (saveData) {
   off('save-data');
 } else if (weak) {
@@ -181,4 +199,62 @@ async function start() {
   }
 
   window.__vecomWorld = { world, quality, lenis };
+}
+
+
+/* --------------------------------------------------------------------------
+   Der Raum als Standbild.
+
+   Absichtlich ein eigener, kurzer Weg statt eines Schalters in start():
+   Hier gibt es kein gsap, kein ScrollTrigger, kein Lenis und keine
+   Bildschleife. Was fehlt, kann auch nicht versehentlich wieder anspringen.
+   -------------------------------------------------------------------------- */
+async function standbild() {
+  const quality = new Quality(detectLevel());
+  let raum, hero;
+  try {
+    const [{ Raum }, beats] = await Promise.all([
+      import('./raum.js'),
+      import('./raum-beats.js'),
+    ]);
+    raum = new Raum(canvas, quality);
+    await raum.bereit;
+    hero = beats.RAUM_BEATS[0];
+  } catch (e) {
+    console.warn('3D-Standbild nicht gestartet:', e);
+    off('init-error');
+    return;
+  }
+
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); off('context-lost'); });
+
+  /* Auf schmalen Schirmen liegt der Text ueber der Buehne — dieselbe
+     Ruecknahme wie im bewegten Fall, sonst waere der Hero dort unlesbar.
+     Die Werte stehen in raum-beats.js; hier nur die zwei, die ohne die
+     Beat-Maschine gebraucht werden. */
+  const schmal = !window.matchMedia('(min-width: 900px)').matches;
+  raum.camGoal.copy(hero.cam);
+  raum.lookGoal.copy(hero.ziel);
+  raum.fovZiel = hero.fov;
+  raum.scene.fog.density = schmal ? 0.0125 : hero.fog;
+  raum.key.intensity = schmal ? 2.0 : hero.key;
+  raum.spitze.intensity = schmal ? 195 : hero.spitze;
+  raum.wand.intensity = hero.wand;
+  raum.bloom.strength = schmal ? 0.42 : hero.bloom;
+  root.style.setProperty('--world-scrim', String(schmal ? 0.06 : hero.scrim));
+
+  raum.standbild();
+  root.setAttribute('data-world', 'on');
+  root.setAttribute('data-opening', 'done');
+  if (window.__auftaktFrei) { window.__auftaktFrei(); }
+
+  /* Ein neues Fenstermass braucht ein neues Bild — sonst steht ein
+     verzerrter Ausschnitt da. Das ist keine Bewegung, sondern eine Antwort. */
+  let warte = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(warte);
+    warte = setTimeout(() => raum.standbild(), 200);
+  }, { passive: true });
+
+  window.__vecomWorld = { world: raum, quality, lenis: null, ruhig: true };
 }

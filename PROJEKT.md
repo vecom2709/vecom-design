@@ -3787,3 +3787,33 @@ dass sie aufhält und nach „Abbrechen" nichts abgeschickt wurde.
 
 **Noch offen (Vorschläge 7, 8, 9):** eine ehrliche Liste „Was hängt gerade?" ·
 deutsche Wörter statt Fachbegriffe · eine Seite „Damit alles läuft".
+### „Weniger Bewegung" heißt weniger Bewegung, nicht weniger Inhalt (13.09.2026)
+
+Aufgefallen beim Nachsehen in Uwes eigenem Chrome: Auf vecom-design.it stand
+`data-world="reduced-motion"`, die Bühne war aus. Nicht wegen eines Fehlers —
+in seinem Windows sind die Animationseffekte abgeschaltet, Chrome meldet das
+als `prefers-reduced-motion`, und die Seite nahm ihn beim Wort. WebGL, gsap,
+ScrollTrigger: alles vorhanden und in Ordnung.
+
+**Er hat seine eigene neue Startseite also nie gesehen.** Und er ist damit
+nicht allein: Die Einstellung wird auch gesetzt, um Akku zu sparen, von
+Administratoren verteilt, oder sie bleibt nach einem einmaligen Anlass stehen.
+
+Die alte Antwort — Bühne komplett aus — war zu grob. Die Einstellung gibt es
+für Menschen, denen von bewegten Flächen schwindelig wird; ein **stehendes
+Bild** tut ihnen nichts. Deshalb jetzt: Der Raum wird gebaut und genau einmal
+gezeichnet. Kein Eröffnungsflug, keine Kamerafahrt zwischen den Abschnitten,
+kein Driften, kein Atmen, kein Wiegen der Marke, keine Bildschleife — nach dem
+einen Bild steht der Stromverbrauch bei null. Ein neues Fenstermaß löst ein
+neues Bild aus; das ist eine Antwort, keine Bewegung.
+
+Umgesetzt als eigener kurzer Weg (`standbild()` in site-world.js) statt als
+Schalter in `start()`: Dort gibt es kein gsap, kein ScrollTrigger, kein Lenis
+und keine Schleife — was fehlt, kann auch nicht versehentlich anspringen. In
+`raum.js` springt die Kamera dabei hart auf den Sollwert statt gedämpft, denn
+Dämpfung ist Bewegung. In `app.css` stand `display: none` für Bühne und
+Schleier; geblieben ist davon nur `transition: none` — das Einblenden war der
+Teil, der wirklich Bewegung war.
+
+Gemessen mit `reducedMotion: 'reduce'`: `data-world="on"`, 5.232 Dreiecke,
+keine Fehlermeldung, Schleier wie im bewegten Fall.

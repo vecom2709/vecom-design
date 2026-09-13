@@ -503,6 +503,20 @@ export class Raum {
     return window.innerWidth <= 1100 && window.innerHeight > window.innerWidth * 1.05;
   }
 
+  /* --------------------------------------------------------------- Standbild
+     Für Besucher, die „weniger Bewegung" eingestellt haben: Der Raum wird
+     einmal aufgebaut und einmal gezeichnet, danach passiert nichts mehr.
+     Kein Anflug, kein Driften, kein Atmen, keine Bildschleife — und damit
+     auch kein Stromverbrauch. Die Kamera springt hart auf den Sollwert,
+     statt ihn gedämpft anzufahren: Dämpfung ist Bewegung. */
+  standbild() {
+    this._camPos.copy(this.camGoal);
+    this._camZiel.copy(this.lookGoal);
+    this._fov = this.fovZiel;
+    this.ruhig = true;
+    this.render();
+  }
+
   /* ------------------------------------------------------------------ Bild */
   render() {
     const dt = Math.min(this.uhr.getDelta(), 0.1);
@@ -517,8 +531,9 @@ export class Raum {
     if (this.markeRig) {
       /* Die Dauerbewegung liegt über dem, was die Abschnitte setzen: Drehung
          aus dem Scrollstand, ein Heben und Senken, und ein winziges Wiegen,
-         damit die Marke nie ganz still steht. */
-      this.markeRig.rotation.y = this.drift.rotY + Math.sin(jetzt * 0.00022) * 0.045;
+         damit die Marke nie ganz still steht. Im Standbild entfällt das
+         Wiegen — es ist klein, aber es ist Bewegung. */
+      this.markeRig.rotation.y = this.drift.rotY + (this.ruhig ? 0 : Math.sin(jetzt * 0.00022) * 0.045);
       this.markeRig.rotation.x = this.drift.rotX;
       this.markeRig.position.y = this.markeHeim.y + this.drift.bob;
       if (this.spitze && this.marke) {
@@ -531,10 +546,11 @@ export class Raum {
     /* Ein leichtes Atmen plus die Maus. Beides klein: Eine Bühne, die auf
        jede Mausbewegung deutlich reagiert, zieht die Aufmerksamkeit vom
        Text weg — und der Text ist hier die Hauptsache. */
-    const atem = Math.sin(jetzt * 0.00035) * 0.07;
+    const atem = this.ruhig ? 0 : Math.sin(jetzt * 0.00035) * 0.07;
+    const px = this.ruhig ? 0 : this.parallax.x, py = this.ruhig ? 0 : this.parallax.y;
     this.camera.position.set(
-      this._camPos.x + atem + this.parallax.x * 0.30,
-      this._camPos.y + atem * 0.4 - this.parallax.y * 0.18,
+      this._camPos.x + atem + px * 0.30,
+      this._camPos.y + atem * 0.4 - py * 0.18,
       this._camPos.z,
     );
 

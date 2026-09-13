@@ -1263,7 +1263,16 @@ main, .footer { position: relative; z-index: 2; }
 [data-world="no-gsap"] .stage,
 [data-world="device"] .stage { display: none; }
 
-@media (prefers-reduced-motion: reduce) { .stage, .world-scrim { display: none; } }
+/* WENIGER BEWEGUNG: DAS BILD BLEIBT, DIE BEWEGUNG GEHT
+   Hier stand bis zum 13.09.2026 `display: none` für beide. Das hat die Bühne
+   auch dann abgeschaltet, wenn sie gar nicht mehr bewegt wird — seit
+   site-world.js in diesem Fall ein Standbild zeichnet, wäre es nur noch eine
+   leere Fläche. Der Übergang beim Einblenden fällt weg, das ist der Teil,
+   der wirklich Bewegung war. */
+@media (prefers-reduced-motion: reduce) {
+  .stage { transition: none; }
+  .world-scrim { transition: none; }
+}
 
 /* Ab hier wird es in der Kopfzeile eng — die deutschen Menüpunkte sind länger
    als die italienischen. Dann trägt die Marke nur noch das Zeichen. */
