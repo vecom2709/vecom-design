@@ -22,7 +22,7 @@ $eur = static fn(int $c): string => number_format($c / 100, 2, ',', '');
    davon abhaengt -- und der kommt weiter unten vor dem Preisformular. */
 $zu = Baukasten::gesperrt();
 ?>
-<div class="kopf"><h1>Baukasten</h1></div>
+<div class="kopf"><h1>Preisbausteine</h1></div>
 
 <div class="block">
   <p style="color:var(--dim);font-size:14px;line-height:1.7;margin:0">

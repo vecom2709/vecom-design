@@ -2148,6 +2148,7 @@ switch ($route) {
     case '':
     case 'heute':
         require_once __DIR__ . '/src/Vorgang.php';
+        require_once __DIR__ . '/src/Haengt.php';
         require_once __DIR__ . '/src/Mail.php';
         require_once __DIR__ . '/src/Anfrage.php';
         require_once __DIR__ . '/src/Ablauf.php';
@@ -2180,13 +2181,20 @@ switch ($route) {
                Angebote, liegengebliebene Fragebogen, fehlendes Material,
                anstehende Restzahlungen. Ist nichts faellig, kommt eine leere
                Liste zurueck und die Seite schweigt. */
-            'faellig'   => sicher(static fn() => Vorgang::faellig(), []),
-            // Nur das, was wirklich klemmt. Info-Meldungen gehoeren nicht
-            // auf eine Arbeitsliste — sonst sieht man den Fehler nicht mehr.
-            'stoerungen' => sicher(static fn() => Db::all(
-                "SELECT * FROM notifications
-                  WHERE read_at IS NULL AND level IN ('warnung','schlecht')
-                  ORDER BY id DESC LIMIT 8")),
+            /* EINE LISTE STATT DREIER
+               ---------------------------------------------------------
+               „Das laeuft nicht", „Demnaechst faellig" und die Faelle, in
+               denen einfach nichts passiert, meinten alle dasselbe und
+               nannten es verschieden. Der dritte hatte gar keinen Kasten
+               und ist der gefaehrlichste: Stille loest nichts aus.
+
+               Die Arbeitsliste wird weitergereicht, weil sie hier schon
+               geladen ist — sonst liefe der ganze Durchlauf durch alle
+               Vorgaenge ein zweites Mal. Siehe app/src/Haengt.php. */
+            'haengt' => sicher(static fn() => Haengt::alles($arbeit), []),
+            /* Wie viel insgesamt haengt — auch das, was nicht mehr in die
+               Liste passt. Ohne diese Zahl waere die Deckelung eine Luege. */
+            'hGesamt' => (int) sicher(static fn() => Haengt::anzahl($arbeit), 0),
         ]);
         break;
 
@@ -2744,6 +2752,14 @@ switch ($route) {
             'archiv'     => $archiv,
             'fristen'    => sicher(static fn() => Steuerakte::fristen(), []),
         ]);
+        break;
+
+    /* Damit alles laeuft — die Einrichtung an einer Stelle statt verstreut
+       auf sieben Seiten. Siehe app/src/Bereit.php, wo auch steht, welcher
+       Vorfall sie ausgeloest hat. */
+    case 'bereit':
+        require_once __DIR__ . '/src/Bereit.php';
+        ansicht('bereit', ['punkte' => sicher(static fn() => Bereit::punkte(), [])]);
         break;
 
     case 'dateien':

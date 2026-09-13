@@ -16,6 +16,13 @@ $navZahlen = [
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
 // Menue, die eine Handlung meint und nicht nur einen Bestand.
+/* Die Zahl an „Einstellungen": nur echte Fehler aus „Damit alles laeuft".
+   Warnungen bleiben draussen — eine Zahl im Menue soll eine Handlung meinen,
+   und „Testmodus" ist keine, solange man noch nicht verkauft. */
+$navZahlen['bereit'] = (int) sicher(static function (): int {
+    require_once dirname(__DIR__) . '/src/Bereit.php';
+    return (int) (Bereit::bilanz()[Bereit::FEHLER] ?? 0);
+}, 0);
 $navZahlen['stimmen'] = (int) sicher(static function (): int {
     require_once __DIR__ . '/../src/Stimme.php';
     return Stimme::offene();
@@ -118,6 +125,7 @@ $menue = [
   ]],
 
   ['einstellungen', 'Einstellungen', 'einstellungen', [
+    ['bereit', 'Damit alles läuft', 'bereit'],
     ['pakete', 'Pakete', 'pakete'],
     ['baukasten', 'Preisbausteine', 'baukasten'],
     ['telefon', 'Telefonassistentin', 'telefon'],

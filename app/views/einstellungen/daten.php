@@ -1,7 +1,7 @@
 <div class="block">
   <h2>Beispieldaten</h2>
   <p style="color:var(--dim);font-size:13.5px;margin:8px 0 16px;line-height:1.6">
-    Drei vollständige Vorgänge in drei Sprachen — eine Bäckerei aus Aragona auf Italienisch,
+    Drei vollständige Kunden in drei Sprachen — eine Bäckerei aus Aragona auf Italienisch,
     eine Ferienvermietung auf Deutsch, ein Keramikstudio auf Englisch. Damit füllt sich jede
     Ansicht und du siehst, wie die Verwaltung aussieht, wenn Kunden da sind.
   </p>
@@ -23,7 +23,7 @@
 
   <?php else: ?>
     <?php if ($echteDaten): ?>
-      <div class="hinweis gut">Keine Beispieldaten geladen — die Verwaltung zeigt ausschließlich echte Vorgänge.</div>
+      <div class="hinweis gut">Keine Beispieldaten geladen — die Verwaltung zeigt ausschließlich echte Kunden.</div>
       <p style="color:var(--dim);font-size:13.5px;margin-bottom:14px">
         Du hast schon echte Daten. Wenn du trotzdem Beispiele dazulegst, rechnen Umsatz und
         Anzahl im Dashboard beides zusammen — oben steht dann auf jeder Seite ein Hinweis,
@@ -42,7 +42,7 @@
 <div class="block">
   <h2>Was noch kommt</h2>
   <p style="color:var(--dim);font-size:13.5px;line-height:1.7">
-    Statistiken über längere Zeiträume und die monatliche Betreuung als Stripe-Abo —
+    Statistiken über längere Zeiträume und die monatliche Betreuung als Dauerauftrag bei Stripe —
     die braucht ein freigeschaltetes Stripe-Konto.
   </p>
 </div>

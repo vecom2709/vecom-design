@@ -11,7 +11,7 @@ foreach ($liste as $v) { $gruppen[$v['stufe']][] = $v; }
 ?>
 
 <div class="kopf">
-  <div><h1>Vorgänge</h1>
+  <div><h1>Kunden</h1>
     <div class="weg"><?= count($liste) ?> insgesamt — von der Anfrage bis zur fertigen Seite</div></div>
   <div class="rechts">
     <a class="knopf" href="<?= Fmt::h(url('heute')) ?>">Heute</a>

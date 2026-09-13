@@ -4967,21 +4967,22 @@ pruefe('„Der Kunde ist dran" ist eine Schublade',
     str_contains($vsHeute, 'Der Kunde ist dran') && str_contains($vsHeute, 'details class="block klapp"'));
 pruefe('sie geht auf, wenn bei dir nichts liegt',
     str_contains($vsHeute, "<?= !\$liste['du'] ? 'open' : '' ?>"));
-pruefe('„Demnächst fällig" geht auf, sobald etwas eilt',
-    str_contains($vsHeute, '$faelligEilt'));
+/* Auch diese Prüfung galt einem Kasten, den es nicht mehr gibt: „Demnächst
+   fällig" ist in der Liste „Was gerade hängt" aufgegangen, wo eine Frist
+   eine Art unter dreien ist. Dass sie dort ihren Platz behält, prüft
+   Abschnitt 53 — und zwar an der Sache, nicht am Aufklappen. */
+pruefe('„Demnächst fällig" ist in der Hängt-Liste aufgegangen',
+    !str_contains($vsHeute, '$faelligEilt') && str_contains($vsHeute, "'frist'"));
 pruefe('die Zahl bleibt auch zugeklappt sichtbar',
     substr_count($vsHeute, 'class="mehr"') >= 4);
 
-/* Die Störungen bleiben offen — eine Störung soll rufen. Aber gedeckelt:
-   Am 13.09.2026 standen acht Meldungen da, drei davon doppelt, und
-   „Du bist dran" begann erst darunter. */
-pruefe('„Das läuft nicht" bleibt offen', str_contains($vsHeute, 'Das läuft nicht')
-    && !str_contains($vsHeute, 'klapp">' . "\n" . '    <summary><h2 style="color:var(--rot)"'));
-pruefe('es stehen aber höchstens drei davon da', str_contains($vsHeute, '$stMax = 3'));
-pruefe('der Rest klappt auf, statt zu verschwinden',
-    str_contains($vsHeute, 'und <?= count($stoerungen) - $stMax ?> weitere'));
-pruefe('auch die weiteren lassen sich sofort erledigen',
-    substr_count($vsHeute, "value=\"meldung_gelesen\"") === 2);
+/* Hier standen vier Prüfungen auf den Kasten „Das läuft nicht" und seinen
+   Deckel. Den Kasten gibt es nicht mehr: Er ist mit „Demnächst fällig" und
+   den stillen Vorgängen zu einer Liste zusammengegangen (Vorschlag 7). Was
+   an seine Stelle trat, prüft Abschnitt 53. Die alten Prüfungen hier stehen
+   zu lassen hätte geheißen, eine Gestalt zu sichern, die es nicht gibt. */
+pruefe('der gedeckelte Störungskasten ist einer Liste gewichen',
+    !str_contains($vsHeute, '$stMax') && str_contains($vsHeute, 'Was gerade hängt'));
 
 /* Die Leiste am Handy: fester Kasten statt einer Liste, die den Kunden nach
    unten schiebt, plus der Ruck, der den aktuellen Eintrag ins Bild holt. */
@@ -5236,6 +5237,225 @@ pruefe('die alte zweite Menüliste gibt es nicht mehr',
     && !str_contains($rfLayout, '<details class="mehr"'));
 pruefe('und ihre Stilregeln auch nicht',
     !str_contains((string) file_get_contents($oben . '/app/assets/admin.css'), '.nav details.mehr'));
+
+/* ============================================================================
+   53. Was hängt, deutsche Wörter, und damit alles läuft
+
+   Vorschläge 7, 8 und 9 — die letzten drei aus der Liste vom 13.09.2026.
+   Alle drei beantworten dieselbe Frage von verschiedenen Seiten: Sieht
+   jemand, der die Verwaltung nicht gebaut hat, was los ist?
+   ============================================================================ */
+abschnitt('53. Was hängt, deutsche Wörter, Einrichtung');
+
+require_once $oben . '/app/src/Haengt.php';
+require_once $oben . '/app/src/Bereit.php';
+require_once $oben . '/app/src/Status.php';
+
+/* ---------- Was hängt ---------------------------------------------------- */
+$hL = Haengt::alles();
+pruefe('die Liste lässt sich bauen', is_array($hL));
+pruefe('sie ist gedeckelt', count($hL) <= Haengt::HOECHSTENS, (string) count($hL));
+pruefe('und sagt, wie viel insgesamt hängt', Haengt::anzahl() >= count($hL));
+
+foreach ($hL as $hZ) {
+    pruefe('jede Zeile sagt, was hängt', trim((string) $hZ['titel']) !== '');
+    pruefe('jede nennt ihre Art', in_array((string) $hZ['art'], ['stoerung', 'frist', 'stille'], true));
+    pruefe('und führt irgendwohin', trim((string) $hZ['ziel']) !== '');
+    break;   // eine reicht als Stichprobe; die Form ist für alle dieselbe
+}
+
+/* DIE REGEL, AUF DIE ES ANKOMMT: Keine Art darf die anderen verdraengen.
+   Beim ersten Lauf nahmen achtzehn Stoerungen alle zwoelf Plaetze — die
+   ablaufenden Angebote und die stillen Vorgaenge kamen gar nicht mehr vor. */
+$hArten = array_count_values(array_column($hL, 'art'));
+$hZuViel = [];
+foreach (['stoerung', 'frist', 'stille'] as $hA) {
+    /* Mehr als JE_ART ist erlaubt — aber nur, wenn die anderen Arten ihre
+       Plaetze gar nicht gebraucht haben. */
+    if (($hArten[$hA] ?? 0) > Haengt::JE_ART) {
+        $andere = count($hL) - ($hArten[$hA] ?? 0);
+        $moeglich = 0;
+        foreach (['stoerung', 'frist', 'stille'] as $hB) {
+            if ($hB !== $hA) { $moeglich += min(Haengt::JE_ART, $hArten[$hB] ?? 0); }
+        }
+        if ($andere < $moeglich) { $hZuViel[] = $hA; }
+    }
+}
+pruefe('keine Art verdrängt die anderen', $hZuViel === [], implode(', ', $hZuViel));
+
+/* STILLE IST DER FALL, DER VORHER KEINEN KASTEN HATTE
+
+   Geprueft wird mit einer gebauten Arbeitsliste statt mit gealterten
+   Datenbankzeilen. Der Grund ist lehrreich: „bewegt" ist die juengste von
+   fuenf Zeitangaben — Bestellung, Projekt, Fragebogen, letzte Zahlung,
+   letzte Nachricht. Der erste Versuch alterte nur zwei davon, und der
+   Vorgang galt weiter als frisch. Genau dafuer nimmt alles() die
+   Arbeitsliste entgegen: damit man sie auch bauen kann. */
+$hBau = static fn(string $schl, int $tage, string $wer): array => [
+    'schluessel' => $schl,
+    'kunde' => 'Stiller Kunde', 'firma' => '',
+    'stufe_wort' => 'Angebot',
+    'warum' => 'Der Link ist da, aber der Kunde hat ihn noch nicht.',
+    'bewegt' => date('Y-m-d H:i:s', time() - $tage * 86400),
+    'begonnen' => date('Y-m-d H:i:s', time() - $tage * 86400),
+    'schritt' => ['knopf' => 'Zahlungslink senden', 'tat' => 'zahlungslink_senden',
+                  'id' => 1, 'felder' => [], 'direkt' => true, 'ziel' => null],
+];
+
+$hStilleListe = Haengt::alles([
+    'du'    => [$hBau('b900', 40, 'du')],
+    'kunde' => [$hBau('b901', 30, 'kunde')],
+    'ruht'  => [],
+]);
+$hStille = array_values(array_filter($hStilleListe, static fn($z) => $z['art'] === 'stille'));
+pruefe('ein Vorgang, an dem seit vierzig Tagen nichts passiert, taucht auf',
+    $hStille !== [], (string) count($hStille));
+if ($hStille !== []) {
+    pruefe('und die Zeile sagt, seit wann',
+        str_contains((string) $hStille[0]['warum'], 'Tagen'));
+    pruefe('sie gilt als eilig', (bool) $hStille[0]['eilig'] === true);
+    pruefe('und der Knopf nennt den nächsten Handgriff',
+        (string) $hStille[0]['wohin'] === 'Zahlungslink senden');
+}
+pruefe('beide Seiten kommen vor — meine und die des Kunden',
+    count($hStille) === 2, (string) count($hStille));
+
+/* Und was normal laeuft, gehoert NICHT hierher. Ein Kunde, der seit zwei
+   Tagen nicht geantwortet hat, haengt nicht — er antwortet nur noch nicht. */
+$hFrisch = Haengt::alles([
+    'du'    => [$hBau('b902', 2, 'du')],
+    'kunde' => [$hBau('b903', 5, 'kunde')],
+    'ruht'  => [],
+]);
+$hNochDa = false;
+foreach ($hFrisch as $z) {
+    if ($z['art'] === 'stille' && str_contains((string) $z['ziel'], 'b90')) { $hNochDa = true; }
+}
+pruefe('ein Vorgang von vorgestern hängt nicht', $hNochDa === false);
+
+/* Die Grenze liegt wirklich dort, wo sie steht — einen Tag davor noch nicht. */
+$hKnapp = Haengt::alles(['du' => [$hBau('b904', Haengt::STILL_BEI_MIR - 1, 'du')],
+                         'kunde' => [], 'ruht' => []]);
+pruefe('einen Tag vor der Grenze ist noch nichts',
+    array_filter($hKnapp, static fn($z) => $z['art'] === 'stille') === []);
+$hGenau = Haengt::alles(['du' => [$hBau('b905', Haengt::STILL_BEI_MIR, 'du')],
+                         'kunde' => [], 'ruht' => []]);
+pruefe('am Tag der Grenze schon',
+    array_filter($hGenau, static fn($z) => $z['art'] === 'stille') !== []);
+
+pruefe('die Grenzen sind verschieden: bei mir früher als beim Kunden',
+    Haengt::STILL_BEI_MIR < Haengt::STILL_BEIM_KUNDEN);
+
+$hHeute = (string) file_get_contents($oben . '/app/views/heute.php');
+pruefe('„Heute" zeigt die eine Liste', str_contains($hHeute, 'Was gerade hängt'));
+/* Geprueft wird die Gestalt, nicht das Wort: Dass im Kommentar steht, was
+   die beiden Kaesten einmal waren, gehoert dazu. Verschwinden muessen die
+   Ueberschriften und die Variablen, an denen sie hingen. */
+pruefe('und nicht mehr die beiden alten Kästen',
+    !str_contains($hHeute, '<h2 style="color:var(--rot)">Das läuft nicht')
+    && !str_contains($hHeute, '<h2>Demnächst fällig')
+    && !str_contains($hHeute, '$stoerungen')
+    && !str_contains($hHeute, '$faellig'));
+pruefe('was nicht mehr in die Liste passt, verschwindet nicht still',
+    str_contains($hHeute, '$hGesamt'));
+pruefe('eine gemeldete Störung lässt sich von dort erledigen',
+    str_contains($hHeute, "\$h['tat']"));
+
+/* ---------- Deutsche Wörter ---------------------------------------------- */
+pruefe('die Stufe heißt „Fragebogen", nicht „Onboarding"',
+    (Status::PROJEKT['onboarding'] ?? '') === 'Fragebogen');
+pruefe('auch bei der Bestellung',
+    (Status::BESTELLUNG['onboarding'] ?? '') === 'Fragebogen');
+pruefe('aus „Kundenfeedback" wird „Rückmeldung vom Kunden"',
+    (Status::PROJEKT['kundenfeedback'] ?? '') === 'Rückmeldung vom Kunden');
+pruefe('aus „Finale Freigabe" wird „Abgenommen"',
+    (Status::PROJEKT['finale_freigabe'] ?? '') === 'Abgenommen');
+
+/* DIE SCHLUESSEL DUERFEN SICH NICHT AENDERN. Sie stehen in jeder
+   gespeicherten Zeile; wer sie umbenennt, macht jeden Bestand ungueltig. */
+foreach (['bestellung_eingegangen', 'zahlung_bestaetigt', 'onboarding',
+          'informationen_erhalten', 'design', 'entwicklung', 'vorschau',
+          'kundenfeedback', 'aenderungen', 'finale_freigabe'] as $sK) {
+    pruefe("der gespeicherte Wert „{$sK}“ ist unberührt",
+        array_key_exists($sK, Status::PROJEKT));
+}
+
+$sWorte = [
+    'app/views/vorgaenge.php'  => ['<h1>Vorgänge</h1>', '<h1>Kunden</h1>'],
+    'app/views/baukasten.php'  => ['<h1>Baukasten</h1>', '<h1>Preisbausteine</h1>'],
+    'app/views/dashboard.php'  => ['<h3>Onboarding</h3>', '<h3>Fragebögen offen</h3>'],
+];
+foreach ($sWorte as $sDatei => [$sAlt, $sNeu]) {
+    $sT = (string) file_get_contents($oben . '/' . $sDatei);
+    pruefe("in $sDatei steht das deutsche Wort",
+        !str_contains($sT, $sAlt) && str_contains($sT, $sNeu));
+}
+pruefe('„Mehrbedarf klären" heißt jetzt „Mehr als bestellt"',
+    str_contains((string) file_get_contents($oben . '/app/views/vorgang.php'), 'Mehr als bestellt'));
+
+/* Die Wörter aendern sich in der Oberflaeche, nicht in den Daten: Die Tat
+   heisst weiter mehrbedarf_nachtrag, sonst greift kein Formular mehr. */
+pruefe('die Handgriffe behalten ihre Namen',
+    str_contains((string) file_get_contents($oben . '/app/index.php'), "case 'mehrbedarf_nachtrag':"));
+
+/* ---------- Damit alles läuft -------------------------------------------- */
+$bP = Bereit::punkte();
+pruefe('die Einrichtungsseite prüft zehn Dinge', count($bP) === 10, (string) count($bP));
+$bSchl = array_column($bP, 'schluessel');
+foreach (['cron', 'mail', 'stripe', 'webhook', 'cockpit', 'firma', 'ablage',
+          'datenbank', 'beispiel', 'werkstatt'] as $bS) {
+    pruefe("sie prüft „{$bS}“", in_array($bS, $bSchl, true));
+}
+pruefe('jeder Schlüssel kommt nur einmal vor', count($bSchl) === count(array_unique($bSchl)));
+
+$bOhne = [];
+foreach ($bP as $bZ) {
+    if (!in_array((string) $bZ['stand'], [Bereit::GUT, Bereit::WARNUNG, Bereit::FEHLER], true)
+        || trim((string) $bZ['was']) === '' || trim((string) $bZ['text']) === '') {
+        $bOhne[] = (string) $bZ['schluessel'];
+    }
+}
+pruefe('jede Zeile hat Stand, Titel und einen Satz dazu', $bOhne === [], implode(', ', $bOhne));
+
+/* Bei rot muss ein Weg dastehen. Eine Seite, die sagt „etwas fehlt" und
+   nicht wohin, ist schlimmer als keine — sie erzeugt Ratlosigkeit statt
+   Arbeit. */
+$bOhneWeg = [];
+foreach ($bP as $bZ) {
+    if ($bZ['stand'] !== Bereit::GUT && trim((string) ($bZ['ziel'] ?? '')) === '') {
+        $bOhneWeg[] = (string) $bZ['schluessel'];
+    }
+}
+pruefe('wo etwas fehlt, steht auch der Weg dorthin', $bOhneWeg === [], implode(', ', $bOhneWeg));
+
+$bB = Bereit::bilanz($bP);
+pruefe('die Bilanz zählt alle Zeilen',
+    (int) $bB['gesamt'] === count($bP)
+    && (int) $bB[Bereit::GUT] + (int) $bB[Bereit::WARNUNG] + (int) $bB[Bereit::FEHLER] === count($bP));
+
+/* Der Webhook ist die Zeile, wegen der es diese Seite gibt: Am 13.09.2026 war
+   ein Geheimnis hinterlegt UND es kam trotzdem nie einer an. Beides muss
+   getrennt geprueft werden, sonst haette die Seite gruen gezeigt. */
+$bWebhook = null;
+foreach ($bP as $bZ) { if ($bZ['schluessel'] === 'webhook') { $bWebhook = $bZ; } }
+pruefe('der Webhook wird eigens geprüft', $bWebhook !== null);
+pruefe('und zwar daran, ob je einer ankam — nicht nur, ob etwas eingetragen ist',
+    str_contains((string) file_get_contents($oben . '/app/src/Bereit.php'),
+        "FROM webhook_events"));
+pruefe('die Zeile erklärt, was am 13.09.2026 passiert ist',
+    $bWebhook !== null && (str_contains((string) $bWebhook['warum'], '13.09.2026')
+        || $bWebhook['stand'] !== Bereit::FEHLER));
+
+$bSeite = (string) file_get_contents($oben . '/app/views/bereit.php');
+pruefe('die Seite sagt oben in einem Satz, woran man ist',
+    str_contains($bSeite, 'bereit__satz'));
+pruefe('und sagt es auch, wenn alles steht', str_contains($bSeite, 'Alles steht'));
+$bLayout = (string) file_get_contents($oben . '/app/views/layout.php');
+pruefe('sie steht im Menü unter Einstellungen',
+    str_contains($bLayout, "['bereit', 'Damit alles läuft', 'bereit']"));
+pruefe('und die Zahl daran zählt nur echte Fehler, keine Warnungen',
+    str_contains($bLayout, "Bereit::bilanz()[Bereit::FEHLER]"));
+
 pruefe('und wieder einschalten', Modus::einfach() === true);
 
 /* Ein unbekannter Wert darf nicht die volle Ansicht bedeuten: Wer die

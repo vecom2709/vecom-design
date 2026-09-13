@@ -140,7 +140,13 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .vg__wer{flex:0 1 250px;min-width:180px}
 .vg__name{font-weight:600;font-size:15px}
 .vg__unter{color:var(--leise);font-size:12.5px;margin-top:2px}
-.vg__warum{flex:2 1 260px;color:var(--dim);font-size:13.5px;line-height:1.5}
+/* min-width:0 und overflow-wrap: In einer Störungsmeldung steht manchmal
+   eine ganze Adresse — ein Wort von 120 Zeichen, das nicht umbricht. Ohne
+   diese beiden Angaben schiebt es am Handy die ganze Seite nach rechts, und
+   die Verwaltung sieht kaputt aus. Gemessen am 13.09.2026: 518 statt 390
+   Punkte auf „Heute". */
+.vg__warum{flex:2 1 260px;min-width:0;overflow-wrap:anywhere;
+  color:var(--dim);font-size:13.5px;line-height:1.5}
 .vg__tun{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .vg__ruht{color:var(--leise);font-size:12px;white-space:nowrap}
 .vg__ruht.lang{color:var(--gelb)}
@@ -462,6 +468,21 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
    den Kunden, den man gerade geöffnet hat, sonst neun Einträge nach unten
    geschoben. Sie scrollt in sich, und das Skript unten rückt den aktuellen
    Eintrag ins Bild. */
+/* DAS MENUE AM HANDY
+
+   Am Schirm eine Spalte, am Handy eine Zeile. Die Unterpunkte der offenen
+   Tuer passen dort nicht daneben — als Spalte in einer Zeile machten sie das
+   Menue 518 Punkte breit, und die ganze Seite liess sich seitwaerts
+   schieben. Jetzt bekommen sie eine eigene Zeile darunter, die fuer sich
+   scrollt; die Tueren umbrechen, statt aus dem Bild zu laufen. */
+@media(max-width:900px){
+  .nav{flex-wrap:wrap;overflow-x:visible;row-gap:6px}
+  .nav__tuer{flex:0 0 auto}
+  .nav__unter{flex:1 0 100%;flex-direction:row;gap:4px;overflow-x:auto;
+    margin:0;padding:6px 0 0;border-left:0;border-top:1px solid var(--linie)}
+  .nav__unter a{white-space:nowrap;flex:0 0 auto}
+}
+
 @media(max-width:900px){
   .vseite{display:block}
   .vl{position:static;max-height:216px;margin-bottom:16px;padding:8px 10px}
@@ -598,3 +619,40 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .nav__unter a{padding:6px 10px;font-size:13.5px;color:var(--leise);border-radius:8px}
 .nav__unter a:hover{background:var(--flaeche);color:var(--dim)}
 .nav__unter a.an{background:var(--flaeche2);color:var(--text);box-shadow:none}
+
+/* ==========================================================================
+   DAMIT ALLES LÄUFT
+
+   Zehn Zeilen, je eine Sache. Wer hierherkommt, will eine Antwort und keine
+   Tabelle — deshalb steht der Satz oben, und erst darunter die Einzelheiten.
+   ========================================================================== */
+.bereit__satz{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;
+  margin:0 0 16px;padding:14px 18px;border-radius:var(--r);
+  border:1px solid var(--linie);background:var(--flaeche);font-size:14px}
+.bereit__satz b{font-weight:600}
+.bereit__satz span{color:var(--leise);font-size:13px}
+.bereit__satz.gut b{color:var(--gruen)}
+.bereit__satz.gut{border-color:rgba(74,222,128,.3)}
+.bereit__satz.lau b{color:var(--gelb)}
+.bereit__satz.lau{border-color:rgba(251,191,36,.3)}
+.bereit__satz.schlimm b{color:var(--rot)}
+.bereit__satz.schlimm{border-color:rgba(255,138,138,.34)}
+
+.bereit__zeile{display:flex;align-items:flex-start;gap:14px;padding:14px 18px;
+  border-bottom:1px solid var(--linie)}
+.bereit__zeile:last-child{border-bottom:0}
+/* Das Zeichen trägt die Farbe, nicht die ganze Zeile: Zehn farbige Zeilen
+   untereinander sind ein Alarm, und neun davon meinen „in Ordnung". */
+.bereit__marke{flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;border:1px solid;font-size:13px;line-height:1;
+  margin-top:1px}
+.bereit__mitte{flex:1;min-width:0}
+.bereit__was{font-size:14px;font-weight:600}
+.bereit__text{font-size:13px;margin-top:2px}
+.bereit__warum{font-size:12.5px;color:var(--leise);line-height:1.55;margin-top:5px;max-width:72ch}
+.bereit__tun{flex:0 0 auto}
+
+@media(max-width:700px){
+  .bereit__zeile{flex-wrap:wrap;gap:10px;padding:14px}
+  .bereit__tun{width:100%;padding-left:38px}
+}

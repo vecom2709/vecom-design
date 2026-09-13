@@ -8,13 +8,23 @@ declare(strict_types=1);
  */
 final class Status
 {
+    /* DIE SCHLUESSEL BLEIBEN, DIE WOERTER AENDERN SICH
+       ------------------------------------------------------------------
+       Links steht, was in der Datenbank liegt — daran wird nichts geruehrt,
+       sonst stimmt kein gespeicherter Stand mehr. Rechts steht, was ein
+       Mensch liest.
+
+       „Onboarding" war ein solches Wort: richtig unter Leuten, die
+       Software bauen, und sinnlos fuer jeden anderen. Die Stufe heisst
+       „Fragebogen", denn genau das passiert darin. Gleiches gilt fuer
+       „Feedback" — der Kunde sieht sich etwas an und sagt etwas dazu. */
     public const BESTELLUNG = [
         'neu'                => 'Neu',
         'zahlung_ausstehend' => 'Zahlung ausstehend',
         'bezahlt'            => 'Bezahlt',
-        'onboarding'         => 'Onboarding',
+        'onboarding'         => 'Fragebogen',
         'in_bearbeitung'     => 'In Bearbeitung',
-        'feedback'           => 'Feedback',
+        'feedback'           => 'Rückmeldung',
         'aenderungen'        => 'Änderungen',
         'fertig'             => 'Fertig',
         'abgeschlossen'      => 'Abgeschlossen',
@@ -35,14 +45,14 @@ final class Status
     public const PROJEKT = [
         'bestellung_eingegangen' => 'Bestellung eingegangen',
         'zahlung_bestaetigt'     => 'Zahlung bestätigt',
-        'onboarding'             => 'Onboarding',
+        'onboarding'             => 'Fragebogen',
         'informationen_erhalten' => 'Informationen erhalten',
         'design'                 => 'Design',
         'entwicklung'            => 'Entwicklung',
         'vorschau'               => 'Vorschau',
-        'kundenfeedback'         => 'Kundenfeedback',
+        'kundenfeedback'         => 'Rückmeldung vom Kunden',
         'aenderungen'            => 'Änderungen',
-        'finale_freigabe'        => 'Finale Freigabe',
+        'finale_freigabe'        => 'Abgenommen',
         'veroeffentlichung'      => 'Veröffentlichung',
         'online'                 => 'Online',
         'abgeschlossen'          => 'Abgeschlossen',

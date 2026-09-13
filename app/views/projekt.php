@@ -57,7 +57,7 @@
 <?php if (!empty($mehrbedarf)): ?>
   <!--teil:mehrbedarf-->
   <div class="block" data-tun="mehrbedarf" style="border-color:var(--cyan)">
-    <h2>Mehrbedarf klären</h2>
+    <h2>Mehr als bestellt</h2>
     <p style="color:var(--dim);font-size:13.5px;margin:-4px 0 14px">
       Der Fragebogen sagt etwas anderes als Angebot
       <a href="<?= Fmt::h(url('angebote/' . (int) $mehrbedarf['angebot_id'])) ?>"><?= Fmt::h($mehrbedarf['nummer']) ?></a>.

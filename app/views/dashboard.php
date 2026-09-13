@@ -21,7 +21,7 @@
     <div class="neben"><?= $z['projekte']['feedback'] ?> im Feedback · <?= $z['projekte']['deadline'] ?> mit naher Deadline</div></div>
   <div class="karte"><h3>Kunden</h3><div class="wert"><?= $z['kunden']['gesamt'] ?></div>
     <div class="neben"><?= $z['kunden']['neu'] ?> neu diesen Monat · <?= $z['kunden']['aktiv'] ?> aktiv</div></div>
-  <div class="karte"><h3>Onboarding</h3><div class="wert"><?= $z['onboarding']['offen'] ?></div>
+  <div class="karte"><h3>Fragebögen offen</h3><div class="wert"><?= $z['onboarding']['offen'] ?></div>
     <div class="neben"><?= $z['onboarding']['abgeschlossen'] ?> abgeschlossen · <?= $z['kommunikation']['ungelesen'] ?> ungelesene Nachrichten</div></div>
   <div class="karte"><h3>Websites</h3><div class="wert"><?= $z['websites']['online'] ?>/<?= $z['websites']['gesamt'] ?></div>
     <div class="neben"><?= $z['websites']['offline'] ?> offline · <?= $z['websites']['ssl'] ?> SSL · <?= $z['websites']['domain'] ?> Domain</div></div>

@@ -132,7 +132,7 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
 
 <div class="kopf">
   <div>
-    <div class="weg"><a href="<?= Fmt::h(url('vorgaenge')) ?>">Vorgänge</a></div>
+    <div class="weg"><a href="<?= Fmt::h(url('vorgaenge')) ?>">Kunden</a></div>
     <h1><?= Fmt::h($v['kunde']) ?><?= $v['firma'] !== '' ? ' <span style="color:var(--leise);font-weight:400">· ' . Fmt::h($v['firma']) . '</span>' : '' ?>
       <?php /* Die Sprache gehoert sichtbar hierher: In ihr kommen alle Mails
                an, in ihr sieht er seine Seite, in ihr steht sein Fragebogen.
@@ -389,7 +389,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
            uebersieht. Passt der Fragebogen zum Angebot, steht hier nichts. */ ?>
   <?php if (!empty($v['mehrbedarf'])): $mb = $v['mehrbedarf']; ?>
     <div class="block" id="abschnitt-mehrbedarf" data-tun="mehrbedarf" style="border-color:var(--cyan)">
-      <h2>Mehrbedarf klären</h2>
+      <h2>Mehr als bestellt</h2>
       <p style="color:var(--dim);font-size:13.5px;margin:-4px 0 12px">
         Der Fragebogen sagt etwas anderes als Angebot
         <a href="<?= Fmt::h(url('angebote/' . (int) $mb['angebot_id'])) ?>"><?= Fmt::h($mb['nummer']) ?></a>.</p>

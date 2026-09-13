@@ -3787,6 +3787,8 @@ dass sie aufhält und nach „Abbrechen" nichts abgeschickt wurde.
 
 **Noch offen (Vorschläge 7, 8, 9):** eine ehrliche Liste „Was hängt gerade?" ·
 deutsche Wörter statt Fachbegriffe · eine Seite „Damit alles läuft".
+*Nachtrag vom selben Tag: alle drei stehen, siehe unten. Damit sind die neun
+Vorschläge vollständig umgesetzt.*
 ### „Weniger Bewegung" heißt weniger Bewegung, nicht weniger Inhalt (13.09.2026)
 
 Aufgefallen beim Nachsehen in Uwes eigenem Chrome: Auf vecom-design.it stand
@@ -3817,3 +3819,86 @@ Teil, der wirklich Bewegung war.
 
 Gemessen mit `reducedMotion: 'reduce'`: `data-world="on"`, 5.232 Dreiecke,
 keine Fehlermeldung, Schleier wie im bewegten Fall.
+
+### 13.09.2026 — Was hängt, deutsche Wörter, und eine Seite „Damit alles läuft"
+
+Die letzten drei der neun Vorschläge. Sie hängen zusammen: Alle drei nehmen
+etwas weg, das nur im Kopf dessen existierte, der es gebaut hat.
+
+#### 7 — Eine Liste statt dreier Kästen
+
+Auf „Heute" standen zwei Kästen nebeneinander, die dasselbe meinten und es
+verschieden nannten: **„Das läuft nicht"** zeigte, was gemeldet wurde;
+**„Demnächst fällig"** zeigte, was eine Frist hat. Wer sie las, musste selbst
+entscheiden, welcher der dringendere ist — und beide Male dieselbe Frage
+beantworten: *Muss ich da ran?*
+
+Dazwischen fehlte der gefährlichste Fall. **Stille löst nichts aus.** Ein
+Vorgang, bei dem seit drei Wochen niemand etwas getan hat, erzeugt keine
+Meldung und hat keine Frist. Er steht in der Arbeitsliste zwischen den
+anderen, als wäre er von gestern. Genau deshalb fällt er niemandem auf.
+
+Jetzt gibt es eine Liste: **„Was gerade hängt"**. Drei Quellen, ein Kasten,
+jede Zeile mit *was*, *seit wann* und einem Knopf. Stille ist dort ein
+Eintrag wie jeder andere — ab sieben Tagen, wenn es bei mir liegt, ab
+vierzehn, wenn der Kunde schweigt. Der Unterschied ist Absicht: Was ich
+liegen lasse, lässt jemanden warten; wer noch überlegt, soll nicht nach
+einer Woche angemahnt werden.
+
+**Zwei Dinge haben beim ersten Blick nicht funktioniert.** Achtzehn
+Störungen nahmen alle zwölf Plätze — die ablaufenden Angebote und die stillen
+Vorgänge kamen gar nicht mehr vor. Eine Liste, die nur noch eine Art zeigt,
+ist wieder der Kasten, den sie ersetzen sollte. Seither bekommt jede Art
+zuerst drei feste Plätze, dann füllen die Übriggebliebenen auf. Und zwölf
+Zeilen schoben „Du bist dran" aus dem Bild — also sechs, und darunter die
+ehrliche Zahl: *6 von 20*. Ein Deckel ohne diese Zahl wäre eine Lüge.
+
+#### 8 — Deutsche Wörter
+
+„Onboarding", „Kundenfeedback", „Finale Freigabe", „Mehrbedarf klären",
+„Vorgänge". Alles Wörter, die jemand versteht, der das System kennt.
+
+Geändert wurden die **Beschriftungen**, nicht die Schlüssel: In der Datenbank
+steht weiter `onboarding`, `kundenfeedback`, `finale_freigabe`. Die Kette
+prüft beides getrennt — dass draußen das deutsche Wort steht und dass drinnen
+der gespeicherte Wert unberührt blieb. Wer Beschriftung und Schlüssel
+zusammen ändert, schreibt eine Migration für ein Wort und riskiert, dass
+alte Zeilen in kein Fach mehr passen.
+
+#### 9 — „Damit alles läuft"
+
+Zehn Dinge, die eingerichtet sein müssen, damit die Verwaltung von allein
+arbeitet: Cronjob, Mailversand, Bezahlung, Webhook, Cockpit, Firmendaten,
+Ablage, Datenbank, Beispieldaten, Werkstatt-Schlüssel.
+
+**Jede Zeile misst etwas, das wirklich in den Daten steht** — kein Haken
+bedeutet hier nur „ist eingetragen". Der Webhook ist der Grund für diese
+Regel: Er stellt zwei Fragen. *Ist ein `whsec_` hinterlegt?* und *kam je
+einer an?* Ein eingetragener Schlüssel, bei dem noch nie ein Ereignis
+eintraf, sieht in jeder Konfigurationsansicht richtig aus und ist trotzdem
+tot. Genau dieser Fall steht seit Wochen offen und wäre auf einer Seite mit
+Häkchen für Eingetragenes grün gewesen.
+
+Oben steht **ein Satz**, nicht eine Tabelle. Wer diese Seite aufmacht, will
+eine Antwort: *Steht alles?* Steht alles, kann man die Seite nach zwanzig
+Sekunden wieder zumachen. Am Menüpunkt hängt eine Zahl — und die zählt nur
+echte Fehler, keine Warnungen. Eine Zahl, die auch bei Kleinigkeiten
+aufleuchtet, wird nach einer Woche ignoriert.
+
+Die Seite ändert nichts von selbst. Sie sieht nur nach, jedes Mal neu.
+
+#### Geprüft
+
+Abschnitt 53, 58 Prüfungen — **1237 insgesamt, alle grün**. Die
+Stille-Prüfung brauchte einen zweiten Anlauf: Ich hatte nur
+`orders.updated_at` und `projects.updated_at` gealtert, aber „zuletzt bewegt"
+ist der jüngste von **fünf** Zeitpunkten — Fragebogen, Zahlungen und
+Nachrichten zählen mit. Die Prüfung fand deshalb nichts und war grün, ohne
+etwas zu prüfen. Jetzt bekommt `Haengt::alles()` eine gebaute Arbeitsliste
+übergeben; genau dafür hat die Funktion diesen Parameter.
+
+Dazu beide Modi im Browser, 1440 und 390 Punkte. Dabei zwei Dinge gefunden,
+die kein Linter sieht: Die Untermenüs brachen auf dem Handy die Zeile
+(518 Punkte Breite statt 390), und in der Zeile eines Vorgangs stand eine
+120 Zeichen lange Adresse ohne Trennstelle — **das gab es schon vorher**,
+es fiel nur nie auf, weil der Kasten daneben breiter war.

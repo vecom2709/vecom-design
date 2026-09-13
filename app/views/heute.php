@@ -77,7 +77,7 @@ $zeile = static function (array $v) {
     <span class="marke2"><?= count($liste['du']) ?> bei dir</span>
     <span class="marke2"><?= count($liste['kunde']) ?> beim Kunden</span>
     <?php if ($offenGeld > 0): ?><span class="marke2 warnung"><?= Fmt::geld($offenGeld) ?> offen</span><?php endif; ?>
-    <a class="knopf" href="<?= Fmt::h(url('vorgaenge')) ?>">Alle Vorgänge</a>
+    <a class="knopf" href="<?= Fmt::h(url('vorgaenge')) ?>">Alle Kunden</a>
   </div>
 </div>
 
@@ -111,104 +111,68 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
     Kunden steht, was sich geändert hat.</p>
 <?php endif; ?>
 
-<?php /* ---------- Was nicht läuft ----------
-         Der Kasten bleibt offen: Eine Störung soll rufen, nicht warten, bis
-         jemand sie aufklappt. Aber er bleibt auch kurz. Am 13.09.2026
-         standen hier acht Meldungen, darunter dieselbe dreimal — sie füllten
-         den ganzen ersten Bildschirm, und „Du bist dran" begann erst
-         darunter. Eine Störungsliste, die die Arbeit verdeckt, richtet
-         denselben Schaden an wie eine, die man übersieht.
+<?php /* ---------- WAS GERADE HÄNGT ----------
+         Hier standen zwei Kästen: „Das läuft nicht" (was gemeldet wurde) und
+         „Demnächst fällig" (was eine Frist hat). Dazwischen gab es einen
+         dritten Fall ohne Kasten — die Vorgänge, bei denen einfach nichts
+         passiert. Der ist der gefährlichste: Stille löst nichts aus.
 
-         Drei stehen da, der Rest klappt auf. Die Zahl oben nennt weiterhin
-         alle — verschwunden ist nichts. */ ?>
-<?php $stMax = 3; ?>
-<?php if ($stoerungen): ?>
+         Jetzt eine Liste. Jede Zeile sagt, was hängt, seit wann, und hat
+         einen Knopf. Hängt nichts, steht hier nichts — und das ist dann
+         eine Auskunft und kein leerer Kasten. */ ?>
+<?php $haengt = $haengt ?? []; ?>
+<?php if ($haengt): ?>
+  <?php
+    $hEilt = 0;
+    foreach ($haengt as $h) { if (!empty($h['eilig'])) { $hEilt++; } }
+    $hWort = ['stoerung' => 'Gemeldet', 'frist' => 'Frist', 'stille' => 'Still'];
+  ?>
   <div class="block" style="border-color:rgba(255,138,138,.32)">
-    <h2 style="color:var(--rot)">Das läuft nicht<span class="mehr"><?= count($stoerungen) ?></span></h2>
-    <?php foreach (array_slice($stoerungen, 0, $stMax) as $m): ?>
-      <div class="vg">
-        <div class="vg__wer"><span class="vg__name"><?= Fmt::h($m['title']) ?></span>
-          <div class="vg__unter"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></div></div>
-        <div class="vg__warum"><?= Fmt::h(mb_substr((string) ($m['body'] ?? ''), 0, 220)) ?></div>
-        <div class="vg__tun">
-          <?php if ($m['link']): ?>
-            <a class="knopf" href="<?= Fmt::h(url(ltrim((string) $m['link'], '/'))) ?>">Ansehen</a>
-          <?php endif; ?>
-          <?php /* Erledigt heisst gelesen, nicht geloescht: Die Meldung
-                   verschwindet von dieser Liste, bleibt aber unter
-                   Benachrichtigungen stehen, bis sie dort wegfliegt. */ ?>
-          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
-            <?= Csrf::feld() ?><input type="hidden" name="tat" value="meldung_gelesen">
-            <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
-            <input type="hidden" name="zurueck" value="heute">
-            <button class="knopf">Erledigt</button>
-          </form>
-        </div>
-      </div>
-    <?php endforeach; ?>
-    <?php if (count($stoerungen) > $stMax): ?>
-      <details class="stmehr">
-        <summary>und <?= count($stoerungen) - $stMax ?> weitere</summary>
-        <?php foreach (array_slice($stoerungen, $stMax) as $m): ?>
-          <div class="vg">
-            <div class="vg__wer"><span class="vg__name"><?= Fmt::h($m['title']) ?></span>
-              <div class="vg__unter"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></div></div>
-            <div class="vg__warum"><?= Fmt::h(mb_substr((string) ($m['body'] ?? ''), 0, 220)) ?></div>
-            <div class="vg__tun">
-              <?php if ($m['link']): ?>
-                <a class="knopf" href="<?= Fmt::h(url(ltrim((string) $m['link'], '/'))) ?>">Ansehen</a>
-              <?php endif; ?>
-              <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
-                <?= Csrf::feld() ?><input type="hidden" name="tat" value="meldung_gelesen">
-                <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
-                <input type="hidden" name="zurueck" value="heute">
-                <button class="knopf">Erledigt</button>
-              </form>
-            </div>
-          </div>
-        <?php endforeach; ?>
-      </details>
-    <?php endif; ?>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
-      Alle Meldungen stehen unter <a href="<?= Fmt::h(url('benachrichtigungen')) ?>">Benachrichtigungen</a>.</p>
-  </div>
-<?php endif; ?>
+    <h2 style="color:var(--rot)">Was gerade hängt<span class="mehr"><?= count($haengt) ?><?php
+      if (($hGesamt ?? 0) > count($haengt)): ?> von <?= (int) $hGesamt ?><?php endif; ?></span></h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+      Nicht alles davon ist ein Fehler. Manches hat nur eine Frist, und manches
+      liegt einfach seit Wochen still — das meldet sonst niemand.</p>
 
-<?php /* ---------- Was demnächst fällig wird ----------
-         Die Verwaltung konnte gut sagen, was gerade dran ist, und sehr gut,
-         was gewesen ist. Was auf einen zukommt, stand nirgends -- und genau
-         da gehen Dinge verloren: Ein Angebot läuft ab, ohne dass jemand
-         nachgefragt hat. Ein Fragebogen liegt seit einer Woche. Nichts davon
-         löst eine Meldung aus, weil nichts passiert; Stille löst nun einmal
-         nichts aus.
-
-         Steht nichts an, steht hier nichts. */ ?>
-<?php if (!empty($faellig)): ?>
-  <?php /* Zu: Es ist noch nichts faellig, sondern wird es. Wer morgens auf
-           die Seite kommt, soll zuerst sehen, was heute dran ist -- das
-           Kommende steht darunter und laesst sich aufziehen. Eilt etwas,
-           steht die Schublade offen; dann ist es kein Ausblick mehr. */ ?>
-  <?php $faelligEilt = false; foreach ($faellig as $f) { if (!empty($f['eilig'])) { $faelligEilt = true; break; } } ?>
-  <details class="block klapp" <?= $faelligEilt ? 'open' : '' ?>>
-    <summary><h2>Demnächst fällig<span class="mehr"><?= count($faellig) ?></span></h2></summary>
-    <p style="color:var(--leise);font-size:12.5px;margin:2px 0 10px">
-      Nichts davon ist ein Fehler — es passiert nur gerade nichts, und das fällt sonst niemandem auf.</p>
-    <?php foreach ($faellig as $f): ?>
+    <?php foreach ($haengt as $h): ?>
       <div class="vg">
         <div class="vg__wer">
-          <a class="vg__name" href="<?= Fmt::h(url((string) $f['ziel'])) ?>"><?= Fmt::h((string) $f['wer']) ?></a>
-          <div class="vg__unter"><?= Fmt::h((string) $f['was']) ?></div>
+          <span class="vg__name"><?= Fmt::h((string) $h['titel']) ?></span>
+          <div class="vg__unter">
+            <span class="marke2 <?= $h['art'] === 'stoerung' ? 'schlecht'
+                  : ($h['art'] === 'stille' ? 'warnung' : '') ?>"><?=
+              Fmt::h($hWort[$h['art']] ?? '') ?></span>
+            <?php if (trim((string) $h['wer']) !== ''): ?> <?= Fmt::h((string) $h['wer']) ?><?php endif; ?>
+          </div>
         </div>
-        <div class="vg__warum"><?= Fmt::h((string) $f['warum']) ?></div>
+        <div class="vg__warum"><?= Fmt::h((string) $h['warum']) ?></div>
         <div class="vg__tun">
-          <?php if (!empty($f['eilig'])): ?>
-            <span class="vg__ruht lang">eilt</span>
+          <?php if (!empty($h['eilig'])): ?><span class="vg__ruht lang">eilt</span><?php endif; ?>
+          <a class="knopf" href="<?= Fmt::h(url((string) $h['ziel'])) ?>"><?=
+            Fmt::h((string) ($h['wohin'] ?: 'Ansehen')) ?></a>
+          <?php if (!empty($h['tat'])): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+              <?= Csrf::feld() ?>
+              <input type="hidden" name="tat" value="<?= Fmt::h((string) $h['tat']) ?>">
+              <input type="hidden" name="id" value="<?= (int) $h['tatId'] ?>">
+              <input type="hidden" name="zurueck" value="heute">
+              <button class="knopf"><?= Fmt::h((string) ($h['tatWort'] ?: 'Erledigt')) ?></button>
+            </form>
           <?php endif; ?>
-          <a class="knopf" href="<?= Fmt::h(url((string) $f['ziel'])) ?>">Ansehen</a>
         </div>
       </div>
     <?php endforeach; ?>
-  </details>
+
+    <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
+      <?php if (($hGesamt ?? 0) > count($haengt)): ?>
+        <?= (int) $hGesamt - count($haengt) ?> weitere stehen unter
+        <a href="<?= Fmt::h(url('benachrichtigungen')) ?>">Meldungen</a>.
+      <?php else: ?>
+        Alle Meldungen stehen unter
+        <a href="<?= Fmt::h(url('benachrichtigungen')) ?>">Meldungen</a>.
+      <?php endif; ?>
+    </p>
+  </div>
 <?php endif; ?>
 
 <div class="block">
