@@ -2061,6 +2061,14 @@ switch ($route) {
             ansicht('vorgang', [
                 'v' => $v,
                 'zug' => $zug,
+                /* DIE LEISTE DER OFFENEN VORGAENGE
+                   -------------------------------------------------------
+                   Dieselbe Quelle wie "Heute", und mit Absicht: Stuenden
+                   hier andere Vorgaenge oder eine andere Reihenfolge als
+                   dort, waeren es zwei Meinungen darueber, was dringend ist
+                   — und man wuesste nie, welcher man folgen soll. */
+                'leiste' => sicher(static fn() => Vorgang::arbeitsliste(),
+                    ['du' => [], 'kunde' => [], 'ruht' => []]),
                 'vorlagen' => $vkid > 0 ? sicher(static fn() => Vorlage::fuer($vkid), []) : [],
                 'kennung'  => $vkid > 0 ? sicher(static fn() => Vorlage::kennung($vkid), '') : '',
                 // Dieselbe Auswahl wie auf der Anfrageseite und aus demselben
@@ -2476,14 +2484,54 @@ switch ($route) {
         if ($id !== null) {
             $d = Db::one('SELECT * FROM files WHERE id = ?', [$id]);
             if (!$d) { http_response_code(404); exit('Datei nicht gefunden.'); }
+            /* Drei Wege zu derselben Datei: das Bild fuer die Liste, das
+               Bild fuer die Grossansicht, und die Datei selbst. Die beiden
+               Bilder rechnet Ablage neu — inline geht nur, was wir selbst
+               erzeugt haben (siehe dort). Ohne "art" bleibt es beim
+               Herunterladen, damit alte Verweise weiter stimmen. */
+            $art = (string) ($_GET['art'] ?? '');
+            if ($art === 'vorschau' || $art === 'gross') {
+                Ablage::vorschauAusliefern($d,
+                    $art === 'gross' ? Ablage::VORSCHAU_GROSS : Ablage::VORSCHAU_KLEIN);
+            }
             Ablage::ausliefern($d);
         }
-        ansicht('dateien', ['liste' => sicher(static fn() => Db::all(
-            "SELECT f.*, c.name AS kunde, c.company AS firma, p.name AS projekt
-             FROM files f
-             LEFT JOIN customers c ON c.id = f.customer_id
-             LEFT JOIN projects  p ON p.id = f.project_id
-             ORDER BY f.id DESC LIMIT 200")),
+
+        /* DIE LISTE WAECHST MIT JEDEM KUNDEN
+           ---------------------------------------------------------------
+           Zweihundert Zeilen ohne Filter sind nach einem halben Jahr keine
+           Liste mehr, sondern ein Haufen. Gefiltert wird nach dem, wonach
+           man wirklich sucht: nach wem, und zu welchem Projekt. */
+        $fKunde   = (int) ($_GET['kunde'] ?? 0);
+        $fProjekt = (int) ($_GET['projekt'] ?? 0);
+
+        $wo = [];
+        $arg = [];
+        if ($fKunde > 0)   { $wo[] = 'f.customer_id = :k'; $arg['k'] = $fKunde; }
+        if ($fProjekt > 0) { $wo[] = 'f.project_id = :p';  $arg['p'] = $fProjekt; }
+        $woSql = $wo ? ' WHERE ' . implode(' AND ', $wo) : '';
+
+        ansicht('dateien', [
+            'liste' => sicher(static fn() => Db::all(
+                "SELECT f.*, c.name AS kunde, c.company AS firma, p.name AS projekt
+                 FROM files f
+                 LEFT JOIN customers c ON c.id = f.customer_id
+                 LEFT JOIN projects  p ON p.id = f.project_id
+                 $woSql
+                 ORDER BY f.id DESC LIMIT 200", $arg)),
+            /* Nur, wer wirklich Dateien hat. Eine Auswahlliste mit allen
+               Kunden, von denen die meisten nie etwas geschickt haben, ist
+               kein Filter, sondern ein zweites Suchproblem. */
+            'kunden' => sicher(static fn() => Db::all(
+                "SELECT c.id, COALESCE(NULLIF(c.company,''), c.name) AS wer, COUNT(*) AS n
+                   FROM files f JOIN customers c ON c.id = f.customer_id
+                  GROUP BY c.id, wer ORDER BY wer")),
+            'projekte' => sicher(static fn() => Db::all(
+                "SELECT p.id, p.name, COUNT(*) AS n
+                   FROM files f JOIN projects p ON p.id = f.project_id
+                  GROUP BY p.id, p.name ORDER BY p.id DESC")),
+            'fKunde' => $fKunde, 'fProjekt' => $fProjekt,
+            'bilder' => Ablage::bilderMoeglich(),
             'bereit' => Ablage::bereit()]);
         break;
 

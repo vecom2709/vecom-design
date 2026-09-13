@@ -338,3 +338,194 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
   background:linear-gradient(90deg,var(--blau),var(--cyan))}
 .trichter__wort{font-size:12.5px;color:var(--dim);white-space:nowrap}
 .trichter__wort i{font-style:normal;color:var(--leise)}
+
+/* ==========================================================================
+   DATEIEN — Miniatur, Filter, Großansicht
+
+   Die Liste stand vorher aus Dateinamen. Ein Name sagt nicht, ob das Logo
+   auf Weiß oder auf Schwarz steht und ob das Foto etwas taugt; das sagt nur
+   das Bild. Deshalb trägt jede Zeile ein Quadrat: entweder die gerechnete
+   Miniatur oder, wo es keine geben kann, das Kürzel der Dateiart.
+   ========================================================================== */
+
+/* Ein kleinerer Knopf für das, was am Zeilenende steht und nicht rufen soll. */
+.knopf.klein{padding:5px 10px;font-size:12.5px;border-radius:8px}
+
+.dfilter{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+/* width:auto gegen die allgemeine Regel input,select{width:100%} weiter oben —
+   sonst nimmt jeder Filter eine ganze Zeile ein und der Kasten sieht aus wie
+   ein Formular, das ausgefuellt werden will. */
+.dfilter select{width:auto;min-width:170px;max-width:min(100%,340px);
+  padding:8px 11px;border-radius:10px;border:1px solid var(--linie);
+  background:var(--flaeche);color:var(--text);font-size:13.5px}
+.dfilter select:focus{outline:none;border-color:var(--cyan)}
+
+.dtab td{vertical-align:middle}
+
+/* Das Quadrat. Feste Kante, damit die Zeilen gleich hoch bleiben, auch wenn
+   ein Bild hochkant und das nächste quer ist. */
+.dmini{width:64px;height:64px;padding:0;border:1px solid var(--linie);border-radius:9px;
+  background:var(--flaeche2);cursor:zoom-in;overflow:hidden;display:block;
+  transition:.18s var(--e)}
+.dmini:hover{border-color:var(--linie2);transform:scale(1.04)}
+.dmini:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.dmini img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Kein Bild, keine gefälschte Miniatur: das Kürzel der Art, ruhig gesetzt. */
+.dart{display:flex;align-items:center;justify-content:center;width:64px;height:64px;
+  border:1px solid var(--linie);border-radius:9px;background:var(--flaeche2);
+  font-size:11.5px;font-weight:600;letter-spacing:.04em}
+
+/* Die Großansicht liegt über der Seite. Der Grund ist dunkel genug, dass das
+   Bild für sich steht, und hell genug, dass man sieht, wo man ist. */
+.dgross{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  background:rgba(3,5,10,.92);padding:64px 18px 24px}
+/* display:flex schlaegt das hidden-Attribut des Browsers. Ohne diese Zeile
+   liegt die zugeklappte Großansicht unsichtbar ueber der ganzen Seite und
+   faengt jeden Klick ab — die Dateiliste waere unbedienbar gewesen. */
+.dgross[hidden]{display:none}
+.dgross img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;
+  background:var(--flaeche2)}
+.dgross__kopf{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+  padding:14px 18px;background:linear-gradient(180deg,rgba(3,5,10,.85),transparent)}
+.dgross__name{font-size:14px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dgross__zahl{font-size:12.5px;color:var(--leise);white-space:nowrap;margin-left:auto}
+.dgross__pfeil{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;
+  border-radius:50%;border:1px solid var(--linie2);background:rgba(12,17,25,.8);color:var(--text);
+  font-size:26px;line-height:1;cursor:pointer;transition:.18s var(--e)}
+.dgross__pfeil:hover{background:var(--flaeche2);border-color:var(--cyan)}
+.dgross__pfeil:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.dgross__pfeil.links{left:14px}
+.dgross__pfeil.rechts{right:14px}
+
+/* Am Handy hat die Tabelle keine acht Spalten Platz. Kunde, Projekt und
+   Dateiart treten zurück — das Bild, der Name und der Löschknopf bleiben,
+   weil man nur dafür hierherkommt. */
+@media(max-width:700px){
+  .dtab thead{display:none}
+  .dtab tr{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--linie)}
+  .dtab td{display:block;border:0;padding:0}
+  .dtab td:nth-child(3),.dtab td:nth-child(4),
+  .dtab td:nth-child(5),.dtab td:nth-child(6),.dtab td:nth-child(7){display:none}
+  .dgross{padding:58px 8px 16px}
+  .dgross__pfeil{width:40px;height:40px}
+}
+
+/* ==========================================================================
+   DIE LEISTE DER OFFENEN VORGÄNGE
+
+   Wer an einem Kunden arbeitet, sah bisher nur diesen einen. Kommt währenddessen
+   eine Anfrage herein, merkt man es erst beim nächsten Gang auf „Heute" — und
+   mitten in einem Angebot geht niemand von selbst zurück.
+
+   Die Leiste ist bewusst schmal und ruhig: Sie ist kein zweites „Heute",
+   sondern eine Möglichkeit zu wechseln. Deshalb nur Name, Stufe und, wenn es
+   zu lange still ist, die Zahl der Tage.
+   ========================================================================== */
+.vseite{display:grid;grid-template-columns:216px minmax(0,1fr);gap:22px;align-items:start}
+.vhaupt{min-width:0}
+
+.vl{position:sticky;top:18px;max-height:calc(100vh - 36px);overflow:auto;
+  border:1px solid var(--linie);border-radius:var(--r);background:var(--flaeche);padding:10px}
+.vl__kopf{display:flex;align-items:center;gap:8px;padding:4px 8px 10px;
+  border-bottom:1px solid var(--linie);margin-bottom:6px;font-size:12px;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--leise)}
+.vl__kopf a{color:var(--dim)}
+.vl__kopf a:hover{color:var(--text)}
+.vl__kopf span{margin-left:auto;font-size:12px;letter-spacing:0;color:var(--leise)}
+.vl__leer{padding:14px 8px;color:var(--leise);font-size:12.5px}
+
+.vl__gruppe>summary{display:flex;align-items:center;gap:8px;padding:7px 8px;cursor:pointer;
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--leise);
+  list-style:none}
+.vl__gruppe>summary::-webkit-details-marker{display:none}
+.vl__gruppe>summary::before{content:"›";font-size:14px;transition:.18s var(--e)}
+.vl__gruppe[open]>summary::before{transform:rotate(90deg)}
+.vl__gruppe>summary span{margin-left:auto;letter-spacing:0}
+.vl__gruppe>summary:hover{color:var(--dim)}
+
+.vl__eintrag{display:block;padding:7px 9px;border-radius:9px;transition:.16s var(--e)}
+.vl__eintrag:hover{background:var(--flaeche2)}
+.vl__eintrag:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+/* Der Vorgang, auf dem man steht. Ein Balken links, kein zweiter Farbton:
+   Die Leiste soll sagen wo man ist, nicht um Aufmerksamkeit bitten. */
+.vl__eintrag.hier{background:var(--flaeche2);box-shadow:inset 2px 0 0 var(--cyan)}
+/* text-overflow greift nicht auf einem Flex-Kasten, sondern nur auf dem
+   Text selbst. Deshalb traegt der innere Span die Auslassungspunkte — ohne
+   ihn brach ein langer Firmenname hart ab, und man sah nicht, dass da noch
+   etwas kommt. */
+.vl__name{display:flex;align-items:center;gap:6px;min-width:0;
+  font-size:13.5px;color:var(--dim)}
+.vl__wort{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vl__eintrag.hier .vl__name,.vl__eintrag:hover .vl__name{color:var(--text)}
+.vl__unter{display:block;font-size:11.5px;color:var(--leise);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Der Punkt heißt genau eine Sache: Dieser Mensch hat noch kein Wort gehört.
+   Nicht „neu heute" — das wäre nach einer Antwort immer noch wahr und damit
+   nach zwei Tagen wertlos. */
+.vl__neu{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--cyan);
+  box-shadow:0 0 0 3px rgba(31,232,255,.15)}
+
+/* Am Handy ist kein Platz für eine zweite Spalte. Die Leiste wird zum
+   Streifen über der Seite und scrollt waagerecht — der aktuelle Vorgang
+   steht darin, damit man sieht, wo man ist. */
+/* Am Handy ist kein Platz für eine zweite Spalte. Die Leiste wird zum Kasten
+   über der Seite — aber mit fester Höhe: Bei neun offenen Vorgängen hätte sie
+   den Kunden, den man gerade geöffnet hat, sonst neun Einträge nach unten
+   geschoben. Sie scrollt in sich, und das Skript unten rückt den aktuellen
+   Eintrag ins Bild. */
+@media(max-width:900px){
+  .vseite{display:block}
+  .vl{position:static;max-height:216px;margin-bottom:16px;padding:8px 10px}
+  .vl__kopf{position:sticky;top:0;background:var(--flaeche);z-index:1;padding-bottom:8px;margin-bottom:4px}
+  .vl__gruppe>summary{padding:6px 4px}
+}
+
+/* ==========================================================================
+   SCHUBLADEN AUF „HEUTE"
+
+   Die Seite hatte fünf Kästen untereinander, alle offen: Störungen,
+   Demnächst fällig, Du bist dran, Der Kunde ist dran, Läuft. Bei zwölf
+   Vorgängen scrollte man an zwanzig Zeilen vorbei, in denen nichts zu tun
+   war, um an die zu kommen, in denen etwas zu tun war.
+
+   Was Arbeit ist, steht offen. Was keine ist, klappt zu — die Zahl neben der
+   Überschrift bleibt sichtbar, damit nichts still verschwindet.
+   ========================================================================== */
+.block.klapp{padding:0}
+.block.klapp>summary{display:block;padding:16px 18px;cursor:pointer;list-style:none;
+  border-radius:var(--r);transition:.16s var(--e)}
+.block.klapp>summary::-webkit-details-marker{display:none}
+.block.klapp>summary:hover{background:var(--flaeche2)}
+.block.klapp>summary:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+.block.klapp>summary h2{margin:0}
+/* Der Pfeil steht vor der Überschrift und dreht sich beim Aufziehen. */
+.block.klapp>summary h2::before{content:"›";display:inline-block;margin-right:8px;
+  color:var(--leise);font-weight:400;transition:.18s var(--e)}
+.block.klapp[open]>summary h2::before{transform:rotate(90deg)}
+.block.klapp[open]>summary{border-bottom:1px solid var(--linie);border-radius:var(--r) var(--r) 0 0}
+/* Alles nach dem summary bekommt den Innenabstand, den der Kasten verloren hat. */
+.block.klapp>*:not(summary){margin-left:18px;margin-right:18px}
+.block.klapp>*:not(summary):last-child{margin-bottom:16px}
+.block.klapp>p:first-of-type{margin-top:12px}
+
+@media(max-width:700px){
+  .block.klapp>summary{padding:14px}
+  .block.klapp>*:not(summary){margin-left:14px;margin-right:14px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .block.klapp>summary h2::before,.vl__gruppe>summary::before,.dmini{transition:none}
+  .dmini:hover{transform:none}
+}
+
+/* Der Rest der Störungen. Sichtbar bleibt, dass es sie gibt — Platz nehmen
+   sie sich erst, wenn jemand hinsehen will. */
+.stmehr>summary{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:6px 2px;
+  cursor:pointer;list-style:none;font-size:12.5px;color:var(--leise)}
+.stmehr>summary::-webkit-details-marker{display:none}
+.stmehr>summary::before{content:"›";transition:.18s var(--e)}
+.stmehr[open]>summary::before{transform:rotate(90deg)}
+.stmehr>summary:hover{color:var(--dim)}
+@media (prefers-reduced-motion:reduce){ .stmehr>summary::before{transition:none} }

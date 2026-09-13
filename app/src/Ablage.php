@@ -240,6 +240,169 @@ final class Ablage
         exit;
     }
 
+    /* ======================================================================
+       DIE VORSCHAU
+
+       WARUM SIE NICHT EINFACH DAS ORIGINAL ZEIGT
+
+       ausliefern() darueber schickt jede Datei als Anhang, mit nosniff und
+       einer CSP, die alles verbietet. Das ist Absicht: Was ein Kunde
+       hochgeladen hat, soll der Browser herunterladen und sonst nichts damit
+       tun. Eine Vorschau braucht aber genau das Gegenteil — sie muss im
+       Fenster erscheinen, also "inline".
+
+       Deshalb wird nie das Original inline gezeigt, sondern immer ein Bild,
+       das wir selbst erzeugt haben. GD liest die Bildpunkte und schreibt
+       eine neue Datei; was sonst noch in der Datei steckte — ein Kommentar
+       im EXIF-Block, eine zweite Datei hinter dem Bildende, eine Datei, die
+       gleichzeitig Bild und etwas anderes ist — ueberlebt das nicht. Was
+       inline geht, ist damit nachweislich ein Bild und nur ein Bild.
+
+       WARUM NUR ZWEI GROESSEN
+
+       Die gerechnete Vorschau wird abgelegt, damit sie nur einmal entsteht.
+       Waere die Kantenlaenge frei waehlbar, koennte ein einziger Aufruf in
+       der Schleife den Webspace vollschreiben. Zwei feste Groessen: eine
+       fuer die Liste, eine fuer die Grossansicht.
+
+       OHNE GD GIBT ES KEINE VORSCHAU
+
+       Dann steht in der Liste das Sinnbild der Dateiart. Ein graues Feld,
+       das ehrlich sagt "kein Bild", ist besser als eines, das so tut.
+       ====================================================================== */
+
+    /** Bildarten, aus denen sich eine Vorschau rechnen laesst. */
+    private const VORSCHAUBAR = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+    /** Die beiden erlaubten Kantenlaengen: Liste und Grossansicht. */
+    public const VORSCHAU_KLEIN = 320;
+    public const VORSCHAU_GROSS = 1600;
+
+    /** Kann GD ueberhaupt? Einmal geprueft, nicht bei jeder Zeile der Liste. */
+    public static function bilderMoeglich(): bool
+    {
+        static $ja = null;
+        if ($ja === null) {
+            $ja = extension_loaded('gd') && function_exists('imagecreatetruecolor')
+                && function_exists('imagejpeg');
+        }
+        return $ja;
+    }
+
+    /** Laesst sich zu dieser Datei ein Bild zeigen? */
+    public static function vorschaubar(array $datei): bool
+    {
+        return self::bilderMoeglich()
+            && in_array((string) ($datei['mime'] ?? ''), self::VORSCHAUBAR, true);
+    }
+
+    /**
+     * Liefert die Vorschau aus — inline, weil sie dafuer da ist.
+     *
+     * Wie bei ausliefern() prueft der Aufrufer vorher, ob der Anfragende die
+     * Datei sehen darf. Diese Methode prueft das nicht.
+     */
+    public static function vorschauAusliefern(array $datei, int $kante): never
+    {
+        if (!self::vorschaubar($datei)) {
+            http_response_code(404);
+            exit('Zu dieser Datei gibt es kein Bild.');
+        }
+        $kante = $kante >= self::VORSCHAU_GROSS ? self::VORSCHAU_GROSS : self::VORSCHAU_KLEIN;
+
+        $fertig = self::vorschauBauen($datei, $kante);
+        if ($fertig === null) {
+            http_response_code(404);
+            exit('Das Bild ließ sich nicht erzeugen.');
+        }
+
+        header('Content-Type: image/jpeg');
+        header('Content-Length: ' . (string) filesize($fertig));
+        /* Inline — aber die Sperren bleiben: kein Typraten, keine Skripte,
+           kein Einbetten durch fremde Seiten. */
+        header('Content-Disposition: inline');
+        header('X-Content-Type-Options: nosniff');
+        header("Content-Security-Policy: default-src 'none'; sandbox");
+        /* Privat und kurz: Die Vorschau gehoert zu einem Kunden, sie hat in
+           keinem gemeinsamen Zwischenspeicher etwas zu suchen. */
+        header('Cache-Control: private, max-age=600');
+        readfile($fertig);
+        exit;
+    }
+
+    /**
+     * Rechnet die Vorschau, wenn sie noch nicht liegt, und gibt ihren Pfad.
+     * Gibt null zurueck, wenn das Bild nicht zu lesen war — eine kaputte
+     * Datei ist kein Grund, die ganze Seite abzubrechen.
+     */
+    private static function vorschauBauen(array $datei, int $kante): ?string
+    {
+        $quelle = self::ordner() . '/' . basename((string) $datei['stored_name']);
+        if (!is_file($quelle)) { return null; }
+
+        $ordner = self::ordner() . '/vorschau';
+        if (!is_dir($ordner) && !@mkdir($ordner, 0755, true) && !is_dir($ordner)) { return null; }
+        /* Die Sperre des Elternordners gilt hier mit — trotzdem eine eigene.
+           Die gerechneten Bilder heissen .jpg statt .bin, tragen also die
+           zweite Sicherung nicht, die alles Hochgeladene hat. Faellt die
+           .htaccess oben einmal weg, liegen sonst Kundenfotos im Netz. */
+        $sperre = $ordner . '/.htaccess';
+        if (!is_file($sperre)) {
+            @file_put_contents($sperre, "Require all denied\nOptions -Indexes -ExecCGI\nphp_flag engine off\n");
+        }
+
+        $ziel = $ordner . '/' . basename((string) $datei['stored_name'], '.bin') . '-' . $kante . '.jpg';
+        /* Liegt sie schon und ist nicht aelter als das Original, ist sie gut.
+           Der Zeitvergleich kostet nichts und faengt den Fall ab, dass unter
+           derselben Nummer etwas anderes liegt. */
+        if (is_file($ziel) && filemtime($ziel) >= filemtime($quelle)) { return $ziel; }
+
+        /* getimagesize sagt, was wirklich drinsteht — und wie gross es ist.
+           Ein Bild von 20000 x 20000 Punkten wuerde beim Oeffnen den
+           Arbeitsspeicher sprengen, lange bevor irgendetwas skaliert ist. */
+        $masse = @getimagesize($quelle);
+        if (!$masse || $masse[0] < 1 || $masse[1] < 1) { return null; }
+        if ($masse[0] * $masse[1] > 50_000_000) { return null; }
+
+        $bild = match ((string) $datei['mime']) {
+            'image/jpeg' => @imagecreatefromjpeg($quelle),
+            'image/png'  => @imagecreatefrompng($quelle),
+            'image/gif'  => @imagecreatefromgif($quelle),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($quelle) : false,
+            default      => false,
+        };
+        if (!$bild) { return null; }
+
+        [$b, $h] = [imagesx($bild), imagesy($bild)];
+        $faktor  = min(1.0, $kante / max($b, $h));   // nie vergroessern
+        $nb = max(1, (int) round($b * $faktor));
+        $nh = max(1, (int) round($h * $faktor));
+
+        $klein = imagecreatetruecolor($nb, $nh);
+        /* JPEG kennt keine Durchsichtigkeit. Ohne diesen weissen Grund wird
+           aus einem durchsichtigen Logo ein schwarzer Klotz. */
+        $weiss = imagecolorallocate($klein, 255, 255, 255);
+        imagefilledrectangle($klein, 0, 0, $nb, $nh, $weiss);
+        imagecopyresampled($klein, $bild, 0, 0, 0, 0, $nb, $nh, $b, $h);
+
+        $ok = @imagejpeg($klein, $ziel, 82);
+        imagedestroy($klein);
+        imagedestroy($bild);
+        if (!$ok) { return null; }
+        @chmod($ziel, 0644);
+        return $ziel;
+    }
+
+    /** Raeumt die gerechneten Vorschauen einer Datei weg. */
+    private static function vorschauWeg(string $abgelegt): void
+    {
+        $ordner = dirname(__DIR__) . '/uploads/vorschau';
+        foreach ([self::VORSCHAU_KLEIN, self::VORSCHAU_GROSS] as $k) {
+            $p = $ordner . '/' . basename($abgelegt, '.bin') . '-' . $k . '.jpg';
+            if (is_file($p)) { @unlink($p); }
+        }
+    }
+
     /** Ein Dateiname, der sich gefahrlos in einen Kopfzeilen-Wert schreiben laesst. */
     private static function kopfName(string $name): string
     {
@@ -254,6 +417,11 @@ final class Ablage
         if (!$d) { return false; }
         $pfad = self::ordner() . '/' . basename((string) $d['stored_name']);
         if (is_file($pfad)) { @unlink($pfad); }
+        /* Die gerechneten Vorschauen gehoeren dazu. Bleiben sie liegen,
+           waechst der Ordner mit jedem geloeschten Bild weiter — und im
+           schlimmsten Fall taucht das Bild eines geloeschten Kunden spaeter
+           unter einer neu vergebenen Nummer wieder auf. */
+        self::vorschauWeg((string) $d['stored_name']);
         Db::run('DELETE FROM files WHERE id = ?', [$dateiId]);
         return true;
     }

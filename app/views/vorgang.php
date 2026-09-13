@@ -53,7 +53,82 @@ $hierAbschnitte = ['mehrbedarf', 'vorschau'];
 $schrittHier = $schrittTun !== null && in_array($schrittTun, $hierAbschnitte, true);
 
 $stand = Ablauf::stand($v);
+
+/* ======================================================================
+   DIE LEISTE DER OFFENEN VORGAENGE
+
+   WARUM SIE HIER STEHT
+
+   Wer an einem Kunden arbeitet, sah bisher nur diesen einen. Kommt waehrend-
+   dessen eine Anfrage herein, merkt man es erst, wenn man von selbst zurueck
+   auf "Heute" geht — und wer mitten in einem Angebot steckt, geht nicht von
+   selbst zurueck. Der neue Kunde wartet dann so lange, wie die Arbeit am
+   alten dauert.
+
+   Die Leiste zeigt alles Offene nebeneinander: wer wartet, wie weit er ist,
+   und wer noch gar nichts gehoert hat. Ein Klick wechselt. Der Vorgang, auf
+   dem man steht, bleibt markiert, damit der Wechsel nie im Ungewissen endet.
+
+   Die Reihenfolge kommt aus derselben Quelle wie "Heute" (arbeitsliste()) —
+   zwei Meinungen darueber, was dringend ist, waeren schlimmer als keine.
+   ====================================================================== */
+$leiste = $leiste ?? ['du' => [], 'kunde' => [], 'ruht' => []];
+
+/** Eine Zeile der Leiste. */
+$lzeile = static function (array $l) use ($v) {
+    $hier = $l['schluessel'] === $v['schluessel'];
+    $neu  = !empty($l['erstantwort']);
+    $tage = Vorgang::ruhtSeitTagen($l);
+    ?>
+    <a class="vl__eintrag<?= $hier ? ' hier' : '' ?>"
+       href="<?= Fmt::h(url('vorgaenge/' . $l['schluessel'])) ?>"
+       <?= $hier ? 'aria-current="page"' : '' ?>>
+      <span class="vl__name"><span class="vl__wort"><?=
+        Fmt::h($l['firma'] !== '' ? $l['firma'] : $l['kunde']) ?></span><?php
+        if ($neu): ?><i class="vl__neu" title="Hat noch keine Antwort bekommen"></i><?php endif; ?></span>
+      <span class="vl__unter"><?= Fmt::h($l['stufe_wort']) ?><?php
+        if ($tage >= 3): ?> · <?= $tage ?> T<?php endif; ?></span>
+    </a>
+    <?php
+};
+
+/** Eine Gruppe der Leiste — steht nur da, wenn etwas drin ist. */
+$lgruppe = static function (string $titel, array $rows, bool $offen) use ($lzeile) {
+    if (!$rows) { return; }
+    ?>
+    <details class="vl__gruppe" <?= $offen ? 'open' : '' ?>>
+      <summary><?= Fmt::h($titel) ?><span><?= count($rows) ?></span></summary>
+      <?php foreach ($rows as $l) { $lzeile($l); } ?>
+    </details>
+    <?php
+};
+
+$lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht']);
 ?>
+
+<div class="vseite">
+
+<?php /* ---------- Die Leiste ----------
+         Am Handy ein Streifen ueber der Seite, der sich zuklappen laesst;
+         auf dem Schirm eine Spalte, die mitlaeuft. Beide Male dieselbe
+         Liste — nur anders gefaltet. */ ?>
+<aside class="vl">
+  <div class="vl__kopf">
+    <a href="<?= Fmt::h(url('heute')) ?>">Offen</a>
+    <span><?= (int) $lAnzahl ?></span>
+  </div>
+  <?php if ($lAnzahl === 0): ?>
+    <p class="vl__leer">Nichts weiter offen.</p>
+  <?php else: ?>
+    <?php
+      $lgruppe('Du bist dran', $leiste['du'], true);
+      $lgruppe('Der Kunde ist dran', $leiste['kunde'], count($leiste['du']) === 0);
+      $lgruppe('Läuft', $leiste['ruht'], false);
+    ?>
+  <?php endif; ?>
+</aside>
+
+<div class="vhaupt">
 
 <div class="kopf">
   <div>
@@ -654,3 +729,19 @@ $stand = Ablauf::stand($v);
   </div>
 
 </div></div>
+
+</div><!-- .vhaupt -->
+</div><!-- .vseite -->
+
+<script>
+/* Den Vorgang, auf dem man steht, in der Leiste sichtbar machen. Die Leiste
+   scrollt in sich — am Handy mit fester Höhe, am Schirm wenn die Liste
+   länger ist als das Fenster. Ohne das steht der aktuelle Kunde manchmal
+   außerhalb, und die Markierung nützt niemandem.
+   scrollIntoView mit "nearest" rückt nur, wenn es nötig ist, und lässt die
+   Seite selbst in Ruhe. */
+(function () {
+  var hier = document.querySelector('.vl__eintrag.hier');
+  if (hier && hier.scrollIntoView) { hier.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+})();
+</script>

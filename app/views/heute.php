@@ -111,10 +111,21 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
     Kunden steht, was sich geändert hat.</p>
 <?php endif; ?>
 
+<?php /* ---------- Was nicht läuft ----------
+         Der Kasten bleibt offen: Eine Störung soll rufen, nicht warten, bis
+         jemand sie aufklappt. Aber er bleibt auch kurz. Am 13.09.2026
+         standen hier acht Meldungen, darunter dieselbe dreimal — sie füllten
+         den ganzen ersten Bildschirm, und „Du bist dran" begann erst
+         darunter. Eine Störungsliste, die die Arbeit verdeckt, richtet
+         denselben Schaden an wie eine, die man übersieht.
+
+         Drei stehen da, der Rest klappt auf. Die Zahl oben nennt weiterhin
+         alle — verschwunden ist nichts. */ ?>
+<?php $stMax = 3; ?>
 <?php if ($stoerungen): ?>
   <div class="block" style="border-color:rgba(255,138,138,.32)">
     <h2 style="color:var(--rot)">Das läuft nicht<span class="mehr"><?= count($stoerungen) ?></span></h2>
-    <?php foreach ($stoerungen as $m): ?>
+    <?php foreach (array_slice($stoerungen, 0, $stMax) as $m): ?>
       <div class="vg">
         <div class="vg__wer"><span class="vg__name"><?= Fmt::h($m['title']) ?></span>
           <div class="vg__unter"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></div></div>
@@ -135,6 +146,29 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
         </div>
       </div>
     <?php endforeach; ?>
+    <?php if (count($stoerungen) > $stMax): ?>
+      <details class="stmehr">
+        <summary>und <?= count($stoerungen) - $stMax ?> weitere</summary>
+        <?php foreach (array_slice($stoerungen, $stMax) as $m): ?>
+          <div class="vg">
+            <div class="vg__wer"><span class="vg__name"><?= Fmt::h($m['title']) ?></span>
+              <div class="vg__unter"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></div></div>
+            <div class="vg__warum"><?= Fmt::h(mb_substr((string) ($m['body'] ?? ''), 0, 220)) ?></div>
+            <div class="vg__tun">
+              <?php if ($m['link']): ?>
+                <a class="knopf" href="<?= Fmt::h(url(ltrim((string) $m['link'], '/'))) ?>">Ansehen</a>
+              <?php endif; ?>
+              <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+                <?= Csrf::feld() ?><input type="hidden" name="tat" value="meldung_gelesen">
+                <input type="hidden" name="id" value="<?= (int) $m['id'] ?>">
+                <input type="hidden" name="zurueck" value="heute">
+                <button class="knopf">Erledigt</button>
+              </form>
+            </div>
+          </div>
+        <?php endforeach; ?>
+      </details>
+    <?php endif; ?>
     <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
       Alle Meldungen stehen unter <a href="<?= Fmt::h(url('benachrichtigungen')) ?>">Benachrichtigungen</a>.</p>
   </div>
@@ -150,9 +184,14 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
 
          Steht nichts an, steht hier nichts. */ ?>
 <?php if (!empty($faellig)): ?>
-  <div class="block">
-    <h2>Demnächst fällig<span class="mehr"><?= count($faellig) ?></span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
+  <?php /* Zu: Es ist noch nichts faellig, sondern wird es. Wer morgens auf
+           die Seite kommt, soll zuerst sehen, was heute dran ist -- das
+           Kommende steht darunter und laesst sich aufziehen. Eilt etwas,
+           steht die Schublade offen; dann ist es kein Ausblick mehr. */ ?>
+  <?php $faelligEilt = false; foreach ($faellig as $f) { if (!empty($f['eilig'])) { $faelligEilt = true; break; } } ?>
+  <details class="block klapp" <?= $faelligEilt ? 'open' : '' ?>>
+    <summary><h2>Demnächst fällig<span class="mehr"><?= count($faellig) ?></span></h2></summary>
+    <p style="color:var(--leise);font-size:12.5px;margin:2px 0 10px">
       Nichts davon ist ein Fehler — es passiert nur gerade nichts, und das fällt sonst niemandem auf.</p>
     <?php foreach ($faellig as $f): ?>
       <div class="vg">
@@ -169,7 +208,7 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
         </div>
       </div>
     <?php endforeach; ?>
-  </div>
+  </details>
 <?php endif; ?>
 
 <div class="block">
@@ -179,18 +218,27 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
   <?php else: foreach ($liste['du'] as $v) { $zeile($v); } endif; ?>
 </div>
 
-<div class="block">
-  <h2>Der Kunde ist dran<span class="mehr"><?= count($liste['kunde']) ?></span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
+<?php /* ---------- Was nicht bei dir liegt ----------
+         Beides stand vorher offen und in voller Laenge da. Bei zwoelf
+         Vorgaengen hiess das: Man scrollte an zwanzig Zeilen vorbei, in
+         denen nichts zu tun war, um an die zu kommen, in denen etwas zu tun
+         war. Die Zahl neben der Ueberschrift sagt weiter, wie viele es sind
+         -- zugeklappt ist nicht verschwunden.
+
+         "Der Kunde ist dran" oeffnet sich trotzdem, wenn oben nichts steht:
+         Wer nichts zu tun hat, sucht als Naechstes, wo es hakt. */ ?>
+<details class="block klapp" <?= !$liste['du'] ? 'open' : '' ?>>
+  <summary><h2>Der Kunde ist dran<span class="mehr"><?= count($liste['kunde']) ?></span></h2></summary>
+  <p style="color:var(--leise);font-size:12.5px;margin:2px 0 10px">
     Hier musst du nichts tun — außer nachfassen, wenn es zu lange still ist.</p>
   <?php if (!$liste['kunde']): ?>
     <div class="leer">Niemand lässt dich warten.</div>
   <?php else: foreach ($liste['kunde'] as $v) { $zeile($v); } endif; ?>
-</div>
+</details>
 
 <?php if ($liste['ruht']): ?>
-  <div class="block">
-    <h2>Läuft<span class="mehr"><?= count($liste['ruht']) ?></span></h2>
+  <details class="block klapp">
+    <summary><h2>Läuft<span class="mehr"><?= count($liste['ruht']) ?></span></h2></summary>
     <?php foreach ($liste['ruht'] as $v) { $zeile($v); } ?>
-  </div>
+  </details>
 <?php endif; ?>

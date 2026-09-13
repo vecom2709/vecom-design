@@ -4752,6 +4752,259 @@ Db::run('DELETE FROM files WHERE project_id = ?', [$mpProjekt]);
 Db::run("DELETE FROM mails WHERE project_id = ? AND anlass = 'paket'", [$mpProjekt]);
 
 /* ============================================================================
+   50. Vorschau, Löschen, Filter — und die Leiste der offenen Vorgänge
+
+   Vier Dinge, die am selben Satz hängen: "teilweise ist alles sehr
+   unübersichtlich". Eine Dateiliste aus Dateinamen sagt nicht, welches das
+   Logo ist. Löschen ging nur im Projekt. Und wer an einem Kunden arbeitete,
+   sah nur diesen einen — kam währenddessen eine Anfrage, merkte er es erst,
+   wenn er von selbst zurückging.
+   ============================================================================ */
+abschnitt('50. Übersicht: Vorschau, Löschen, Leiste');
+
+require_once $oben . '/app/src/Ablage.php';
+
+/* ---------- Was sich als Bild zeigen lässt und was nicht --------------- */
+pruefe('die Bildbibliothek steht bereit', Ablage::bilderMoeglich());
+pruefe('ein JPEG ist vorschaubar', Ablage::vorschaubar(['mime' => 'image/jpeg']));
+pruefe('ein PNG auch', Ablage::vorschaubar(['mime' => 'image/png']));
+pruefe('ein PDF nicht — dafür gäbe es kein ehrliches Bild',
+    !Ablage::vorschaubar(['mime' => 'application/pdf']));
+pruefe('ein ZIP nicht', !Ablage::vorschaubar(['mime' => 'application/zip']));
+pruefe('ein Film nicht', !Ablage::vorschaubar(['mime' => 'video/mp4']));
+/* HEIC nimmt die Ablage an, GD kann es nicht lesen. Lieber kein Bild als
+   eines, das beim Erzeugen abbricht. */
+pruefe('HEIC verspricht keine Vorschau', !Ablage::vorschaubar(['mime' => 'image/heic']));
+
+/* ---------- Die gerechnete Vorschau ------------------------------------ */
+$vsOrdner = Ablage::ordner();
+$vsBauen  = (new ReflectionClass('Ablage'))->getMethod('vorschauBauen');
+$vsBauen->setAccessible(true);
+
+/** Legt ein echtes Bild in der Ablage ab und gibt den Datensatz dazu. */
+$vsBild = static function (string $name, int $b, int $h, string $art = 'jpeg',
+                           bool $durchsichtig = false) use ($vsOrdner): array {
+    $q = imagecreatetruecolor($b, $h);
+    if ($durchsichtig) {
+        imagesavealpha($q, true);
+        imagefill($q, 0, 0, imagecolorallocatealpha($q, 0, 0, 0, 127));
+        imagefilledellipse($q, (int) ($b / 2), (int) ($h / 2), (int) ($b / 2), (int) ($h / 2),
+            imagecolorallocate($q, 220, 40, 40));
+    } else {
+        imagefilledrectangle($q, 0, 0, $b, $h, imagecolorallocate($q, 20, 120, 210));
+    }
+    $abgelegt = 'kette_' . $name . '.bin';
+    $pfad = $vsOrdner . '/' . $abgelegt;
+    if ($art === 'png') { imagepng($q, $pfad); } else { imagejpeg($q, $pfad, 90); }
+    imagedestroy($q);
+    return ['stored_name' => $abgelegt, 'mime' => 'image/' . $art, 'orig_name' => $name . '.' . $art];
+};
+
+$vsQuer = $vsBild('quer', 1200, 800);
+$vsKlein = $vsBauen->invoke(null, $vsQuer, Ablage::VORSCHAU_KLEIN);
+pruefe('aus einem Bild entsteht eine Vorschau', $vsKlein !== null && is_file((string) $vsKlein));
+$vsMasse = $vsKlein !== null ? getimagesize((string) $vsKlein) : [0, 0];
+pruefe('sie ist auf die lange Kante skaliert', (int) $vsMasse[0] === Ablage::VORSCHAU_KLEIN,
+    (int) $vsMasse[0] . 'px');
+pruefe('das Seitenverhältnis bleibt', (int) $vsMasse[1] === 213, (int) $vsMasse[1] . 'px');
+pruefe('und sie ist ein JPEG, egal was hereinkam',
+    (string) ($vsMasse['mime'] ?? '') === 'image/jpeg');
+
+/* Hochformat: skaliert wird die LANGE Kante, sonst wird ein hohes Bild in der
+   Liste doppelt so hoch wie ein breites. */
+$vsHoch = $vsBild('hoch', 600, 1400);
+$vsHochP = $vsBauen->invoke(null, $vsHoch, Ablage::VORSCHAU_KLEIN);
+$vsHochM = $vsHochP !== null ? getimagesize((string) $vsHochP) : [0, 0];
+pruefe('im Hochformat begrenzt die Höhe', (int) $vsHochM[1] === Ablage::VORSCHAU_KLEIN,
+    (int) $vsHochM[1] . 'px');
+
+/* Ein durchsichtiges Logo: JPEG kennt keine Durchsichtigkeit. Ohne weissen
+   Grund wird daraus ein schwarzer Klotz — und genau Logos sind durchsichtig. */
+$vsLogo = $vsBild('logo', 400, 400, 'png', true);
+$vsLogoP = $vsBauen->invoke(null, $vsLogo, Ablage::VORSCHAU_KLEIN);
+$vsEcke = [0, 0, 0];
+if ($vsLogoP !== null) {
+    $vsB = imagecreatefromjpeg((string) $vsLogoP);
+    $vsF = imagecolorsforindex($vsB, imagecolorat($vsB, 2, 2));
+    $vsEcke = [$vsF['red'], $vsF['green'], $vsF['blue']];
+    imagedestroy($vsB);
+}
+pruefe('ein durchsichtiges Logo bekommt weißen Grund statt schwarzem',
+    $vsEcke[0] > 240 && $vsEcke[1] > 240 && $vsEcke[2] > 240,
+    'rgb(' . implode(',', $vsEcke) . ')');
+
+/* Nie vergroessern: Aus 80 Punkten werden keine 320, das sieht nur matschig aus. */
+$vsWinzig = $vsBild('winzig', 80, 60);
+$vsWinzigM = getimagesize((string) $vsBauen->invoke(null, $vsWinzig, Ablage::VORSCHAU_GROSS));
+pruefe('ein kleines Bild wird nicht aufgeblasen', (int) $vsWinzigM[0] === 80,
+    (int) $vsWinzigM[0] . 'px');
+
+/* Der Zwischenspeicher: einmal rechnen, nicht bei jedem Aufruf der Liste.
+   Original und Vorschau entstehen in derselben Sekunde — erst wenn das
+   Original nachweislich aelter ist, sagt der Vergleich etwas aus. */
+touch($vsOrdner . '/' . $vsQuer['stored_name'], time() - 60);
+clearstatcache();
+$vsStand = filemtime((string) $vsBauen->invoke(null, $vsQuer, Ablage::VORSCHAU_KLEIN));
+clearstatcache();
+$vsWieder = $vsBauen->invoke(null, $vsQuer, Ablage::VORSCHAU_KLEIN);
+pruefe('die zweite Anfrage rechnet nicht neu', filemtime((string) $vsWieder) === $vsStand);
+
+/* Wird das Original neuer als die Vorschau, muss sie fallen — sonst zeigt die
+   Liste ein Bild, das es so nicht mehr gibt. */
+touch((string) $vsKlein, $vsStand - 30);
+touch($vsOrdner . '/' . $vsQuer['stored_name'], $vsStand - 10);
+clearstatcache();
+$vsFrisch = $vsBauen->invoke(null, $vsQuer, Ablage::VORSCHAU_KLEIN);
+pruefe('ein neueres Original erzwingt eine neue Vorschau',
+    filemtime((string) $vsFrisch) > $vsStand - 30);
+
+/* DAS IST DER GRUND FÜR DAS GANZE VERFAHREN
+   ----------------------------------------------------------------------
+   Ausgeliefert wird sonst nur als Anhang mit harter CSP. Inline darf nur,
+   was wir selbst erzeugt haben — GD liest Bildpunkte und schreibt eine neue
+   Datei, alles andere überlebt das nicht. */
+$vsGift = $vsBild('polyglott', 900, 600);
+$vsGiftPfad = $vsOrdner . '/' . $vsGift['stored_name'];
+file_put_contents($vsGiftPfad, file_get_contents($vsGiftPfad) . "\n<?php echo 'NUTZLAST'; ?>\n");
+pruefe('die Falle greift: das Original ist Bild UND trägt eine Nutzlast',
+    (bool) @getimagesize($vsGiftPfad)
+    && str_contains((string) file_get_contents($vsGiftPfad), 'NUTZLAST'));
+$vsRein = $vsBauen->invoke(null, $vsGift, Ablage::VORSCHAU_KLEIN);
+pruefe('die Vorschau trägt sie nicht mehr',
+    $vsRein !== null && !str_contains((string) file_get_contents((string) $vsRein), 'NUTZLAST'));
+
+/* Kaputtes und Riesiges dürfen nicht die Seite mitreißen. */
+file_put_contents($vsOrdner . '/kette_kaputt.bin', 'das ist kein bild');
+pruefe('eine kaputte Datei wird still abgelehnt',
+    $vsBauen->invoke(null, ['stored_name' => 'kette_kaputt.bin', 'mime' => 'image/png',
+                            'orig_name' => 'k.png'], Ablage::VORSCHAU_KLEIN) === null);
+pruefe('eine fehlende Datei ebenso',
+    $vsBauen->invoke(null, ['stored_name' => 'gibtesnicht.bin', 'mime' => 'image/jpeg',
+                            'orig_name' => 'x.jpg'], Ablage::VORSCHAU_KLEIN) === null);
+
+/* Der Vorschauordner ist gesperrt — die .jpg tragen die zweite Sicherung
+   der .bin-Endung nicht. */
+pruefe('der Vorschauordner hat seine eigene Sperre',
+    is_file($vsOrdner . '/vorschau/.htaccess')
+    && str_contains((string) file_get_contents($vsOrdner . '/vorschau/.htaccess'), 'denied'));
+
+/* ---------- Löschen nimmt die gerechneten Bilder mit -------------------- */
+$vsKunde = (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$projektId], 0);
+$vsId = Db::insert('files', [
+    'customer_id' => $vsKunde, 'project_id' => $projektId,
+    'stored_name' => $vsQuer['stored_name'], 'orig_name' => 'zumloeschen.jpg',
+    'mime' => 'image/jpeg', 'size_bytes' => 4096, 'uploaded_by' => 'kunde', 'rolle' => 'material',
+]);
+$vsVorschauPfad = (string) $vsBauen->invoke(null, $vsQuer, Ablage::VORSCHAU_KLEIN);
+pruefe('vor dem Löschen liegt die Vorschau da', is_file($vsVorschauPfad));
+Ablage::loeschen($vsId);
+clearstatcache();
+pruefe('Löschen nimmt die Bytes mit', !is_file($vsOrdner . '/' . $vsQuer['stored_name']));
+pruefe('und die gerechnete Vorschau gleich mit', !is_file($vsVorschauPfad));
+pruefe('der Eintrag ist auch weg',
+    (int) Db::wert('SELECT COUNT(*) FROM files WHERE id = ?', [$vsId], 0) === 0);
+
+/* Löschen ist endgültig — dafür gibt es jetzt eine Rückfrage, und zwar die
+   schwere. Vorher stand der Knopf ohne jede Nachfrage im Projekt. */
+require_once $oben . '/app/src/Ablauf.php';
+$vsFrage = Ablauf::rueckfrage('datei_weg');
+pruefe('Löschen fragt zurück', $vsFrage !== null);
+pruefe('und zwar als schwerer Schritt',
+    ($vsFrage['gewicht'] ?? '') === Ablauf::SCHWER, (string) ($vsFrage['gewicht'] ?? '—'));
+pruefe('die Frage sagt, dass es endgültig ist',
+    str_contains((string) ($vsFrage['frage'] ?? ''), 'endgültig'));
+
+/* ---------- Die Seite „Dateien": Vorschau, Löschen, Filter -------------- */
+$vsSeite = (string) file_get_contents($oben . '/app/views/dateien.php');
+pruefe('die Dateiliste zeigt Miniaturen', str_contains($vsSeite, "?art=vorschau"));
+pruefe('und öffnet die Großansicht', str_contains($vsSeite, "?art=gross"));
+pruefe('was kein Bild ist, bekommt sein Kürzel statt einer falschen Miniatur',
+    str_contains($vsSeite, 'class="dart"'));
+pruefe('gelöscht wird von hier aus auch', str_contains($vsSeite, "value=\"datei_weg\""));
+pruefe('und man landet danach wieder in derselben gefilterten Liste',
+    str_contains($vsSeite, '$zurueckZiel'));
+pruefe('es gibt einen Filter nach Kunde und Projekt',
+    str_contains($vsSeite, 'name="kunde"') && str_contains($vsSeite, 'name="projekt"'));
+pruefe('die Großansicht lässt sich mit Escape schließen',
+    str_contains($vsSeite, "'Escape'"));
+pruefe('und mit den Pfeiltasten blättern',
+    str_contains($vsSeite, "'ArrowLeft'") && str_contains($vsSeite, "'ArrowRight'"));
+pruefe('fehlt GD, sagt die Seite das, statt leere Kästen zu zeigen',
+    str_contains($vsSeite, 'Bildbibliothek'));
+
+/* ---------- Die Leiste der offenen Vorgänge ---------------------------- */
+$vsVorgang = (string) file_get_contents($oben . '/app/views/vorgang.php');
+pruefe('die Vorgangsseite trägt die Leiste', str_contains($vsVorgang, 'class="vl"'));
+pruefe('sie verweist auf die anderen Vorgänge',
+    str_contains($vsVorgang, "url('vorgaenge/' . \$l['schluessel'])"));
+pruefe('der Vorgang, auf dem man steht, ist markiert',
+    str_contains($vsVorgang, "\$l['schluessel'] === \$v['schluessel']"));
+pruefe('und als solcher auch für Vorleseprogramme',
+    str_contains($vsVorgang, 'aria-current="page"'));
+pruefe('wer noch keine Antwort bekam, trägt einen Punkt',
+    str_contains($vsVorgang, 'vl__neu'));
+pruefe('die Leiste kommt aus derselben Quelle wie „Heute"',
+    str_contains(file_get_contents($oben . '/app/index.php'), "'leiste' => sicher"));
+pruefe('und fällt weich aus, wenn sie sich nicht bauen lässt',
+    str_contains($vsVorgang, "\$leiste = \$leiste ?? "));
+
+/* Die Leiste muss wirklich alle offenen Vorgänge kennen, nicht nur die
+   eigenen — sonst kann man nicht zu dem wechseln, der gerade hereinkam. */
+$vsListe = Vorgang::arbeitsliste();
+pruefe('die Arbeitsliste liefert die drei Gruppen',
+    isset($vsListe['du'], $vsListe['kunde'], $vsListe['ruht']));
+$vsAlle = array_merge($vsListe['du'], $vsListe['kunde'], $vsListe['ruht']);
+pruefe('jeder Eintrag trägt, was die Leiste zeigt',
+    $vsAlle === [] || (isset($vsAlle[0]['schluessel'], $vsAlle[0]['kunde'],
+        $vsAlle[0]['firma'], $vsAlle[0]['stufe_wort'])
+        && array_key_exists('erstantwort', $vsAlle[0])));
+
+/* ---------- „Heute": was keine Arbeit ist, klappt zu -------------------- */
+$vsHeute = (string) file_get_contents($oben . '/app/views/heute.php');
+pruefe('„Du bist dran" steht offen da',
+    str_contains($vsHeute, '<div class="block">' . "\n" . '  <h2>Du bist dran'));
+pruefe('„Der Kunde ist dran" ist eine Schublade',
+    str_contains($vsHeute, 'Der Kunde ist dran') && str_contains($vsHeute, 'details class="block klapp"'));
+pruefe('sie geht auf, wenn bei dir nichts liegt',
+    str_contains($vsHeute, "<?= !\$liste['du'] ? 'open' : '' ?>"));
+pruefe('„Demnächst fällig" geht auf, sobald etwas eilt',
+    str_contains($vsHeute, '$faelligEilt'));
+pruefe('die Zahl bleibt auch zugeklappt sichtbar',
+    substr_count($vsHeute, 'class="mehr"') >= 4);
+
+/* Die Störungen bleiben offen — eine Störung soll rufen. Aber gedeckelt:
+   Am 13.09.2026 standen acht Meldungen da, drei davon doppelt, und
+   „Du bist dran" begann erst darunter. */
+pruefe('„Das läuft nicht" bleibt offen', str_contains($vsHeute, 'Das läuft nicht')
+    && !str_contains($vsHeute, 'klapp">' . "\n" . '    <summary><h2 style="color:var(--rot)"'));
+pruefe('es stehen aber höchstens drei davon da', str_contains($vsHeute, '$stMax = 3'));
+pruefe('der Rest klappt auf, statt zu verschwinden',
+    str_contains($vsHeute, 'und <?= count($stoerungen) - $stMax ?> weitere'));
+pruefe('auch die weiteren lassen sich sofort erledigen',
+    substr_count($vsHeute, "value=\"meldung_gelesen\"") === 2);
+
+/* Die Leiste am Handy: fester Kasten statt einer Liste, die den Kunden nach
+   unten schiebt, plus der Ruck, der den aktuellen Eintrag ins Bild holt. */
+$vsStil = (string) file_get_contents($oben . '/app/assets/admin.css');
+pruefe('die Leiste hat am Handy eine feste Höhe',
+    preg_match('~\.vl\{position:static;max-height:216px~', $vsStil) === 1);
+pruefe('der aktuelle Eintrag wird ins Bild gerückt',
+    str_contains($vsVorgang, 'scrollIntoView'));
+/* Der Fehler, den nur das Rendern gefunden hat: display:flex schlaegt das
+   hidden-Attribut, und die zugeklappte Grossansicht lag unsichtbar ueber der
+   ganzen Seite und fing jeden Klick ab. */
+pruefe('die zugeklappte Großansicht fängt keine Klicks ab',
+    str_contains($vsStil, '.dgross[hidden]{display:none}'));
+pruefe('die Filter stehen nebeneinander, nicht je auf einer Zeile',
+    str_contains($vsStil, '.dfilter select{width:auto'));
+pruefe('lange Namen in der Leiste enden mit Auslassungspunkten',
+    str_contains($vsStil, '.vl__wort{min-width:0;overflow:hidden;text-overflow:ellipsis'));
+
+// Aufräumen: die Bilder der Prüfung gehören nicht in den Ablageordner.
+foreach (glob($vsOrdner . '/kette_*.bin') ?: [] as $vsWeg) { @unlink($vsWeg); }
+foreach (glob($vsOrdner . '/vorschau/kette_*.jpg') ?: [] as $vsWeg) { @unlink($vsWeg); }
+
+/* ============================================================================
    Startdaten tragen den heutigen Stand
 
    WARUM DIESER ABSCHNITT EXISTIERT

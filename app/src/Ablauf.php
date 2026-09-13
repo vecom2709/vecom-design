@@ -93,6 +93,13 @@ final class Ablauf
         'abo_abrechnen' => [self::SCHWER,
             'Für die Betreuung wird jetzt abgerechnet.',
             'Ja, abrechnen'],
+        /* Die Bytes sind danach weg, nicht nur der Eintrag. Bisher stand
+           dieser Knopf ohne Rueckfrage im Projekt; jetzt steht er auch in
+           der Dateiliste, wo man schneller danebengreift. */
+        'datei_weg' => [self::SCHWER,
+            'Die Datei wird endgültig gelöscht — auch vom Webspace. '
+            . 'Hat der Kunde sie geschickt, hat er sie danach nur noch selbst.',
+            'Ja, Datei löschen'],
         'kunde_loeschen' => [self::SCHWER,
             'Der Kunde und alles, was an ihm hängt, wird gelöscht. Das lässt sich nicht rückgängig machen.',
             'Ja, endgültig löschen'],

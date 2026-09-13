@@ -3448,3 +3448,74 @@ hält nur fest, *dass* etwas rausging, der Anlass heißt `anlass`. Der
 Mailtext wird deshalb dort geprüft, wo er entsteht. Und ohne Brevo-Schlüssel
 meldet im Prüfstand *jeder* Versand `false`; gezählt wird deshalb der
 Versuch, nicht der Rückgabewert.
+
+### Dateien mit Bild, und ein Weg zwischen den Kunden (13.09.2026)
+
+Uwe: „in der Verwaltung Dateien sollen auch mit Vorschau sein und auch
+löschen können … teilweise ist alles sehr unübersichtlich … wenn ein Kunde
+gerade bearbeitet wird und ein neuer Kunde reinkommt soll die Führung so sein,
+dass man zwischen den Kunden wechseln kann und nicht mittendrin nur den einen
+zeigt."
+
+**Die Dateiliste bestand aus Dateinamen.** Ein Kunde schickt `IMG_4711.jpg`,
+`logo_final_v3.png` und `scan.pdf`. Daraus geht nicht hervor, welches das Logo
+ist, ob das Foto etwas taugt und ob der Scan schief liegt — man musste jede
+Datei einzeln herunterladen, um das zu sehen. Jetzt trägt jede Zeile ein
+Quadrat: die gerechnete Miniatur, oder bei allem anderen das Kürzel der Art.
+Klick öffnet die Großansicht, Pfeiltasten blättern, Escape schließt.
+
+**Warum die Vorschau nie das Original zeigt.** Hochgeladenes wird bewusst nur
+als Anhang ausgeliefert, mit `nosniff` und einer CSP, die alles verbietet — der
+Browser soll nichts davon ausführen. Eine Vorschau braucht das Gegenteil: sie
+muss *inline* erscheinen. Also geht inline nur, was wir selbst erzeugt haben.
+GD liest die Bildpunkte und schreibt eine neue Datei; was sonst noch drinsteckte
+— ein Kommentar im EXIF-Block, eine zweite Datei hinter dem Bildende — überlebt
+das nicht. Die Kette prüft genau das: Ein JPEG mit angehängter Nutzlast bleibt
+ein gültiges Bild, die Vorschau daraus trägt die Nutzlast nicht mehr.
+
+Zwei feste Kantenlängen (320 und 1600), abgelegt in `app/uploads/vorschau/` mit
+eigener `.htaccess`. Frei wählbare Größen könnten in der Schleife den Webspace
+vollschreiben. Durchsichtige Logos bekommen weißen Grund statt schwarzem, kleine
+Bilder werden nicht aufgeblasen, kaputte still abgelehnt. Ohne GD steht in der
+Liste ehrlich, dass es keine Vorschaubilder gibt — kein leerer Kasten, der so tut.
+
+**Löschen geht jetzt auch zentral**, mit Rückfrage: `datei_weg` stand bisher
+ohne jede Nachfrage im Projekt. Es ist endgültig, also wiegt es schwer. Gelöscht
+wird beides, die Bytes und die gerechneten Vorschauen — sonst wächst der Ordner
+mit jedem gelöschten Bild weiter. Dazu ein Filter nach Kunde und Projekt, und
+nach dem Löschen landet man wieder in derselben gefilterten Liste.
+
+**Die Leiste der offenen Vorgänge.** Wer an einem Kunden arbeitete, sah nur
+diesen einen. Kam währenddessen eine Anfrage herein, merkte er es erst beim
+nächsten Gang auf „Heute" — und mitten in einem Angebot geht niemand von selbst
+zurück. Jetzt steht neben dem Vorgang eine schmale Spalte mit allem Offenen:
+Name, Stufe, und ein Punkt bei jedem, der noch kein Wort gehört hat. Ein Klick
+wechselt, der aktuelle bleibt markiert. Die Reihenfolge kommt aus derselben
+Quelle wie „Heute" (`arbeitsliste()`) — zwei Meinungen darüber, was dringend
+ist, wären schlimmer als keine. Am Handy ein Kasten fester Höhe, der in sich
+scrollt; ohne die feste Höhe hätte er bei neun Vorgängen den geöffneten Kunden
+neun Einträge nach unten geschoben.
+
+**„Heute" hatte fünf Kästen, alle offen.** Bei zwölf Vorgängen scrollte man an
+zwanzig Zeilen vorbei, in denen nichts zu tun war, um an die zu kommen, in denen
+etwas zu tun war. „Du bist dran" steht offen; „Der Kunde ist dran" und „Läuft"
+klappen zu, „Demnächst fällig" auch — es sei denn, es eilt etwas. Die Zahl neben
+der Überschrift bleibt sichtbar: zugeklappt ist nicht verschwunden. Die
+Störungen bleiben offen, weil eine Störung rufen soll, zeigen aber höchstens
+drei; der Rest klappt auf.
+
+**Drei Fehler, die nur das Rendern gefunden hat** — nicht das Linten, nicht die
+Kette:
+
+- `.dgross{display:flex}` überstimmt das `hidden`-Attribut. Die zugeklappte
+  Großansicht lag unsichtbar über der ganzen Seite und fing jeden Klick ab; die
+  Dateiliste wäre unbedienbar gewesen.
+- Die allgemeine Regel `input,select{width:100%}` machte aus jedem Filter eine
+  eigene Zeile — der Kasten sah aus wie ein Formular, das ausgefüllt werden will.
+- `text-overflow: ellipsis` greift nicht auf einem Flex-Kasten. Lange Firmennamen
+  in der Leiste brachen hart ab, ohne Auslassungspunkte.
+
+**Geprüft.** Abschnitt 50, 60 Prüfungen — **1052 insgesamt, alle grün** —, dazu
+die Seiten wirklich gerendert: angemeldet, Screenshots über 1440 und 390 Punkte,
+Großansicht geöffnet und durchgeblättert, kein Querscrollen, keine
+Konsolenfehler, keine PHP-Meldungen.
