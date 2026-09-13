@@ -1,3 +1,25 @@
+<?php
+/* ======================================================================
+   DIESE AKTE IST AUCH EINE SCHUBLADE
+
+   Seit dem Umbau gibt es einen Bildschirm je Kunde: die Vorgangsseite. Die
+   Kundenakte ist dort eine Schublade — und bleibt gleichzeitig ihre eigene
+   Seite, damit jeder alte Verweis weiter trifft.
+
+   Eingebettet faellt weg, was auf der Vorgangsseite ohnehin schon steht:
+   Bestellungen, Projekte, Zahlungen, die Nachricht, die Dateien, seine
+   Seite und der Verlauf. Sonst stuende dasselbe zweimal auf einem Schirm,
+   und man wuesste bei zwei Listen nie, welche die richtige ist.
+
+   Uebrig bleibt, was es NUR hier gibt: Kontakt, Betreuung, Domain und
+   Hosting, interne Notizen und das Entfernen.
+
+   Als eigene Seite aufgerufen, aendert sich nichts — $eingebettet ist dann
+   nicht gesetzt, und alle Bloecke stehen wie vorher.
+   ====================================================================== */
+$eing = !empty($eingebettet);
+?>
+<?php if (!$eing): ?>
 <?php $knr = trim((string) ($k['kundennr'] ?? '')); ?>
 <div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a><?php
   if ($knr !== ''): ?> · <span style="font-variant-numeric:tabular-nums"><?= Fmt::h($knr) ?></span><?php
@@ -97,6 +119,8 @@
     </form>
   </div>
 </div><div>
+<?php endif; ?>
+
   <div class="block"><h2>Kontakt</h2><table><tbody>
     <tr><td>E-Mail</td><td><?= Fmt::h($k['email']) ?></td></tr>
     <tr><td>Telefon</td><td><?= Fmt::h($k['phone'] ?: '—') ?></td></tr>
@@ -412,6 +436,7 @@
   </div>
   <?php endif; ?>
 
+<?php if (!$eing): ?>
   <?php /* Die eine Adresse des Kunden — dieselbe, die in allen E-Mails steht. */ ?>
   <?php
     require_once __DIR__ . '/../src/Kundenzugang.php';
@@ -443,12 +468,15 @@
     </div>
   </div>
   <?php endif; ?>
+<?php endif; ?>
 
   <?php if ($k['notes']): ?><div class="block"><h2>Interne Notizen</h2><p style="color:var(--dim);white-space:pre-wrap"><?= Fmt::h($k['notes']) ?></p></div><?php endif; ?>
+<?php if (!$eing): ?>
   <div class="block"><h2>Verlauf</h2>
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">
     <?php foreach ($aktivitaeten as $a): ?><li><span class="punkt"></span><span><?= Fmt::h($a['title']) ?></span>
       <span class="wann"><?= Fmt::h(Fmt::seit($a['created_at'])) ?></span></li><?php endforeach; ?></ul><?php endif; ?></div>
+<?php endif; ?>
 
   <?php /* -------------------------------------------------------------------
        Kunde entfernen. Zwei Wege, weil es zwei verschiedene Faelle sind:
@@ -595,4 +623,6 @@
       </details>
     <?php endif; ?>
   </div>
+<?php if (!$eing): ?>
 </div></div>
+<?php endif; ?>

@@ -66,6 +66,152 @@ function sicher(callable $fn, mixed $ersatz = []): mixed {
     try { return $fn(); } catch (Throwable $e) { return $ersatz; }
 }
 
+/* ==========================================================================
+   „MEHR" — WIE FORTGESCHRITTENES AUS DEM WEG GEHT, OHNE ZU FEHLEN
+
+   Beide Funktionen umschliessen einen Teil einer Seite. Im einfachen Modus
+   wird daraus eine Schublade: zugeklappt, beschriftet, einen Klick entfernt.
+   Im vollen Modus geben sie nichts aus — der Inhalt steht dann offen da, und
+   die Seite sieht aus wie vorher.
+
+   Deshalb darf zwischen mehr_auf() und mehr_zu() alles stehen, was auch
+   ohne sie dort stuende. Kein Inhalt zieht um, keiner verschwindet, und ein
+   Formular darin funktioniert unveraendert -- eine zugeklappte <details>
+   schickt ihre Felder mit.
+
+       <?php mehr_auf('Mehr Möglichkeiten'); ?>
+         ... Bloecke ...
+       <?php mehr_zu(); ?>
+
+   Der Titel sagt, was drinliegt, nicht dass es etwas gibt: „Was der Kunde
+   sieht" ist brauchbar, „Erweitert" nicht.
+   ========================================================================== */
+
+/**
+ * Öffnet die Schublade — oder gibt nichts aus, wenn alles offen stehen soll.
+ *
+ * $offen ist der Grund, warum daraus keine Falle wird: Liegt der Handgriff,
+ * der gerade dran ist, in dieser Schublade, steht sie offen. Sonst waere der
+ * eine Knopf, auf den die Fuehrung zeigt, hinter einem Klick versteckt --
+ * und eine Fuehrung, die auf etwas Unsichtbares zeigt, ist keine.
+ */
+function mehr_auf(string $titel, int|string|null $hinweis = null, bool $offen = false): void {
+    require_once __DIR__ . '/src/Modus.php';
+    if (!Modus::einfach()) { return; }
+    /* Der Hinweis darf eine Zahl sein oder ein Satzstueck ("3.742,50 € offen").
+       Eine nackte 1 an einer Schublade ist keine Auskunft -- sie sagt, dass
+       gezaehlt wurde, aber nicht was. Null und leer heissen: nichts zu sagen. */
+    $text = is_int($hinweis) ? ($hinweis > 0 ? (string) $hinweis : '') : trim((string) $hinweis);
+    printf('<details class="mehrblock"%s><summary><span>%s</span>%s</summary><div class="mehrblock__inhalt">',
+        $offen ? ' open' : '',
+        Fmt::h($titel),
+        $text !== '' ? '<b>' . Fmt::h($text) . '</b>' : '');
+}
+
+/** Schliesst sie wieder. */
+function mehr_zu(): void {
+    require_once __DIR__ . '/src/Modus.php';
+    if (!Modus::einfach()) { return; }
+    echo '</div></details>';
+}
+
+/* ==========================================================================
+   DIE DATEN EINES KUNDEN — AN EINER STELLE
+
+   Die Kundenakte ist seit dem Umbau nicht mehr nur eine eigene Seite,
+   sondern auch eine Schublade der Vorgangsseite. Zwei Aufrufer, eine
+   Aufbereitung: Stuenden die Abfragen zweimal da, liefe die Schublade
+   irgendwann einer Aenderung hinterher, und niemand wuesste, welche der
+   beiden Ansichten stimmt.
+   ========================================================================== */
+function datenKunde(int $id, array $k): array {
+    require_once __DIR__ . '/src/Kunde.php';
+    require_once __DIR__ . '/src/Vorlage.php';
+    return [
+
+                'k' => $k,
+                // Was einer Loeschung im Weg steht und was mitginge — beides
+                // gehoert vor den Knopf, nicht in eine Fehlermeldung danach.
+                'riegel' => sicher(static fn() => Kunde::riegel($id), []),
+                'umfang' => sicher(static fn() => Kunde::umfang($id), []),
+                'belege' => sicher(static fn() => Kunde::belege($id), []),
+                'anonym' => sicher(static fn() => Kunde::istAnonym($k), false),
+                'bestellungen' => Db::all('SELECT * FROM orders WHERE customer_id = ? ORDER BY id DESC', [$id]),
+                'projekte' => Db::all('SELECT * FROM projects WHERE customer_id = ? ORDER BY id DESC', [$id]),
+                // LINKS VERBUNDEN, NICHT FEST
+                // Monatsraten aus der Betreuung haengen an keiner Bestellung.
+                // Mit dem alten festen JOIN auf orders fielen sie hier heraus
+                // — der Kunde hatte bezahlt, in seiner Akte stand nichts.
+                'zahlungen' => Db::all(
+                    'SELECT p.*, COALESCE(o.order_no, CONCAT(\'Betreuung \', p.abrechnungsmonat)) AS order_no
+                       FROM payments p
+                       LEFT JOIN orders o ON o.id = p.order_id
+                       LEFT JOIN abos   a ON a.id = p.abo_id
+                      WHERE COALESCE(o.customer_id, a.customer_id) = ?
+                      ORDER BY p.id DESC', [$id]),
+                'aktivitaeten' => Db::all('SELECT * FROM activities WHERE customer_id = ? ORDER BY id DESC LIMIT 20', [$id]),
+                'nachrichten' => sicher(static fn() => Db::all(
+                    'SELECT * FROM messages WHERE customer_id = ? ORDER BY id ASC LIMIT 100', [$id])),
+                'dateien' => sicher(static fn() => Db::all(
+                    'SELECT * FROM files WHERE customer_id = ? ORDER BY id DESC LIMIT 60', [$id])),
+                // Vorlagen samt Betreff, in der Sprache des Kunden und mit
+                // eingesetzten Angaben. Siehe app/src/Vorlage.php.
+                'vorlagen' => sicher(static fn() => Vorlage::fuer($id), []),
+                'kennung'  => sicher(static fn() => Vorlage::kennung($id), ''),
+                // Kommt jemand vom Knopf "Link schicken", ist die Vorlage
+                // schon gewaehlt, wenn er unten ankommt.
+                'vorwahl'  => preg_replace('~[^a-z_]~', '', strtolower((string) ($_GET['vorlage'] ?? ''))),
+    ];
+}
+
+/* Dasselbe fuer ein Projekt: eigene Seite und Schublade der Vorgangsseite
+   lesen aus derselben Aufbereitung. */
+function datenProjekt(int $id, array $p): array {
+    require_once __DIR__ . '/src/Onboarding.php';
+    require_once __DIR__ . '/src/Texte.php';
+    require_once __DIR__ . '/src/Umfang.php';
+    require_once __DIR__ . '/src/Standard.php';
+    require_once __DIR__ . '/src/Abnahme.php';
+    require_once __DIR__ . '/src/Werkstatt.php';
+    return [
+
+                'p' => $p,
+                'website' => Db::one('SELECT * FROM websites WHERE project_id = ?', [$id]),
+                'fragebogen' => Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [$id]),
+                /* Der Unterschied zwischen Beauftragtem und Angekreuztem.
+                   Null, wenn beides zusammenpasst -- dann steht im Projekt
+                   auch nichts davon. */
+                'mehrbedarf' => sicher(static fn() => Umfang::mehrbedarf($id), null),
+                'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
+                'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
+                'nachrichten' => Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [$id]),
+                'kundenlink' => sicher(static function () use ($id) {
+                    require_once __DIR__ . '/src/Nachricht.php';
+                    return Nachricht::link($id);
+                }, null),
+                /* Material und Paket getrennt: Das Paket ist kein Anhang
+                   zwischen den Uploads des Kunden, sondern das Ergebnis. */
+                'dateien' => sicher(static fn() => Db::all(
+                    "SELECT * FROM files WHERE project_id = ? AND rolle <> 'paket' ORDER BY id DESC", [$id])),
+                'paket' => sicher(static fn() => Db::one(
+                    "SELECT * FROM files WHERE project_id = ? AND rolle = 'paket' ORDER BY id DESC LIMIT 1", [$id])),
+                'pruefungen' => sicher(static fn() => Db::all(
+                    'SELECT c.* FROM website_checks c JOIN websites w ON w.id = c.website_id
+                     WHERE w.project_id = ? ORDER BY c.id DESC LIMIT 8', [$id])),
+                'aktivitaeten' => Db::all('SELECT * FROM activities WHERE project_id = ? ORDER BY id DESC', [$id]),
+    ];
+}
+
+/**
+ * Eine Ansicht rendern und an ihren Marken zerlegen — siehe app/src/Teile.php,
+ * wo auch steht, warum das besser ist, als die Bloecke ein zweites Mal zu
+ * schreiben. Hier nur die kurze Hand fuer die Ansichten.
+ */
+function teile(string $datei, array $daten): array {
+    require_once __DIR__ . '/src/Teile.php';
+    return Teile::ausAnsicht(__DIR__ . "/views/$datei.php", $daten);
+}
+
 /** Ein Textfeld mit einer Angabe je Zeile in eine Liste verwandeln. */
 function zeilen(string $text): array {
     return array_values(array_filter(array_map('trim', preg_split('~\R~', $text) ?: [])));
@@ -1256,6 +1402,22 @@ if ($post) {
                 weiter($_POST["zurueck"] ?? "telefon");
                 break;
 
+            /* Der Schalter fuer die ganze Verwaltung. Steht bewusst nicht
+               in einem Unterbereich der Einstellungen: Er betrifft jede
+               Seite, also gehoert er dorthin, wo man ihn beim ersten Blick
+               auf die Einstellungen sieht. */
+            case 'bedienung':
+                require_once __DIR__ . '/src/Modus.php';
+                $einfachAn = (string) ($_POST['einfach'] ?? '') === 'ja';
+                Modus::setzen($einfachAn);
+                Events::protokoll('bedienung', $einfachAn
+                    ? 'Bedienung auf einfach gestellt'
+                    : 'Bedienung auf alles anzeigen gestellt');
+                $_SESSION['gut'] = $einfachAn
+                    ? 'Einfache Ansicht. Fortgeschrittenes liegt hinter „Mehr" — nichts ist weg.'
+                    : 'Volle Ansicht. Alles steht wieder offen da.';
+                zurueck('einstellungen');
+
             case 'migrieren':
                 require_once __DIR__ . '/src/Einrichtung.php';
                 $neu = Einrichtung::migrieren();
@@ -2069,6 +2231,34 @@ switch ($route) {
                    — und man wuesste nie, welcher man folgen soll. */
                 'leiste' => sicher(static fn() => Vorgang::arbeitsliste(),
                     ['du' => [], 'kunde' => [], 'ruht' => []]),
+
+                /* EIN BILDSCHIRM JE KUNDE
+                   -------------------------------------------------------
+                   Bis hierher gab es vier Seiten zu einem Kunden: Vorgang,
+                   Kundenakte, Bestellung, Projekt. Jede fuer sich richtig,
+                   zusammen die Frage, auf welcher von vieren man haette
+                   sein muessen.
+
+                   Jetzt liegen Kundenakte und Projekt als Schubladen auf
+                   dieser Seite — dieselben Bloecke, nicht nachgebaute.
+                   Die alten Seiten bleiben unter ihrer Adresse erreichbar,
+                   damit kein Verweis ins Leere zeigt.
+
+                   Gebaut wird nur, was es wirklich gibt: ohne Projekt keine
+                   Projektschublade. */
+                'akte' => $vkid > 0 ? sicher(static function () use ($vkid) {
+                    $k = Db::one('SELECT * FROM customers WHERE id = ?', [$vkid]);
+                    return $k ? datenKunde($vkid, $k) + ['eingebettet' => true] : null;
+                }, null) : null,
+                'projektteile' => ($v['projekt_id'] ?? null) !== null
+                    ? sicher(static function () use ($v) {
+                        $pid = (int) $v['projekt_id'];
+                        $pr = Db::one('SELECT p.*, c.name AS kunde, c.email AS kunde_email, c.kundennr, o.order_no
+                                         FROM projects p JOIN customers c ON c.id = p.customer_id
+                                         LEFT JOIN orders o ON o.id = p.order_id WHERE p.id = ?', [$pid]);
+                        return $pr ? teile('projekt', datenProjekt($pid, $pr)) : [];
+                    }, [])
+                    : [],
                 'vorlagen' => $vkid > 0 ? sicher(static fn() => Vorlage::fuer($vkid), []) : [],
                 'kennung'  => $vkid > 0 ? sicher(static fn() => Vorlage::kennung($vkid), '') : '',
                 // Dieselbe Auswahl wie auf der Anfrageseite und aus demselben
@@ -2113,40 +2303,7 @@ switch ($route) {
             require_once __DIR__ . '/src/Kunde.php';
             require_once __DIR__ . '/src/Vorlage.php';
             sicher(static fn() => Nachricht::gelesenKunde($id), 0);
-            ansicht('kunde', [
-                'k' => $k,
-                // Was einer Loeschung im Weg steht und was mitginge — beides
-                // gehoert vor den Knopf, nicht in eine Fehlermeldung danach.
-                'riegel' => sicher(static fn() => Kunde::riegel($id), []),
-                'umfang' => sicher(static fn() => Kunde::umfang($id), []),
-                'belege' => sicher(static fn() => Kunde::belege($id), []),
-                'anonym' => sicher(static fn() => Kunde::istAnonym($k), false),
-                'bestellungen' => Db::all('SELECT * FROM orders WHERE customer_id = ? ORDER BY id DESC', [$id]),
-                'projekte' => Db::all('SELECT * FROM projects WHERE customer_id = ? ORDER BY id DESC', [$id]),
-                // LINKS VERBUNDEN, NICHT FEST
-                // Monatsraten aus der Betreuung haengen an keiner Bestellung.
-                // Mit dem alten festen JOIN auf orders fielen sie hier heraus
-                // — der Kunde hatte bezahlt, in seiner Akte stand nichts.
-                'zahlungen' => Db::all(
-                    'SELECT p.*, COALESCE(o.order_no, CONCAT(\'Betreuung \', p.abrechnungsmonat)) AS order_no
-                       FROM payments p
-                       LEFT JOIN orders o ON o.id = p.order_id
-                       LEFT JOIN abos   a ON a.id = p.abo_id
-                      WHERE COALESCE(o.customer_id, a.customer_id) = ?
-                      ORDER BY p.id DESC', [$id]),
-                'aktivitaeten' => Db::all('SELECT * FROM activities WHERE customer_id = ? ORDER BY id DESC LIMIT 20', [$id]),
-                'nachrichten' => sicher(static fn() => Db::all(
-                    'SELECT * FROM messages WHERE customer_id = ? ORDER BY id ASC LIMIT 100', [$id])),
-                'dateien' => sicher(static fn() => Db::all(
-                    'SELECT * FROM files WHERE customer_id = ? ORDER BY id DESC LIMIT 60', [$id])),
-                // Vorlagen samt Betreff, in der Sprache des Kunden und mit
-                // eingesetzten Angaben. Siehe app/src/Vorlage.php.
-                'vorlagen' => sicher(static fn() => Vorlage::fuer($id), []),
-                'kennung'  => sicher(static fn() => Vorlage::kennung($id), ''),
-                // Kommt jemand vom Knopf "Link schicken", ist die Vorlage
-                // schon gewaehlt, wenn er unten ankommt.
-                'vorwahl'  => preg_replace('~[^a-z_]~', '', strtolower((string) ($_GET['vorlage'] ?? ''))),
-            ]);
+            ansicht('kunde', datenKunde($id, $k));
             break;
         }
         $q = trim((string) ($_GET['q'] ?? ''));
@@ -2441,32 +2598,7 @@ switch ($route) {
                           FROM projects p JOIN customers c ON c.id = p.customer_id
                           LEFT JOIN orders o ON o.id = p.order_id WHERE p.id = ?', [$id]);
             if (!$p) { http_response_code(404); exit('Projekt nicht gefunden.'); }
-            ansicht('projekt', [
-                'p' => $p,
-                'website' => Db::one('SELECT * FROM websites WHERE project_id = ?', [$id]),
-                'fragebogen' => Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [$id]),
-                /* Der Unterschied zwischen Beauftragtem und Angekreuztem.
-                   Null, wenn beides zusammenpasst -- dann steht im Projekt
-                   auch nichts davon. */
-                'mehrbedarf' => sicher(static fn() => Umfang::mehrbedarf($id), null),
-                'mails' => sicher(static fn() => Db::all('SELECT * FROM mails WHERE project_id = ? ORDER BY id DESC LIMIT 12', [$id])),
-                'aufgaben' => Db::all('SELECT * FROM tasks WHERE project_id = ? ORDER BY sort, id', [$id]),
-                'nachrichten' => Db::all('SELECT * FROM messages WHERE project_id = ? ORDER BY created_at, id', [$id]),
-                'kundenlink' => sicher(static function () use ($id) {
-                    require_once __DIR__ . '/src/Nachricht.php';
-                    return Nachricht::link($id);
-                }, null),
-                /* Material und Paket getrennt: Das Paket ist kein Anhang
-                   zwischen den Uploads des Kunden, sondern das Ergebnis. */
-                'dateien' => sicher(static fn() => Db::all(
-                    "SELECT * FROM files WHERE project_id = ? AND rolle <> 'paket' ORDER BY id DESC", [$id])),
-                'paket' => sicher(static fn() => Db::one(
-                    "SELECT * FROM files WHERE project_id = ? AND rolle = 'paket' ORDER BY id DESC LIMIT 1", [$id])),
-                'pruefungen' => sicher(static fn() => Db::all(
-                    'SELECT c.* FROM website_checks c JOIN websites w ON w.id = c.website_id
-                     WHERE w.project_id = ? ORDER BY c.id DESC LIMIT 8', [$id])),
-                'aktivitaeten' => Db::all('SELECT * FROM activities WHERE project_id = ? ORDER BY id DESC', [$id]),
-            ]);
+            ansicht('projekt', datenProjekt($id, $p));
             break;
         }
         $st = (string) ($_GET['status'] ?? '');

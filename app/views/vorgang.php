@@ -152,14 +152,16 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
         ?><?= $spOk ? '' : ' · vermutet' ?></span>
     </h1>
   </div>
-  <div class="rechts">
-    <?php if ($v['kunde_id']): ?>
-      <a class="knopf" href="<?= Fmt::h(url('kunden/' . (int) $v['kunde_id'])) ?>">Kundenakte</a><?php endif; ?>
-    <?php if ($v['bestell_id']): ?>
-      <a class="knopf" href="<?= Fmt::h(url('bestellungen/' . (int) $v['bestell_id'])) ?>">Bestellung</a><?php endif; ?>
-    <?php if ($pid): ?>
-      <a class="knopf" href="<?= Fmt::h(url('projekte/' . (int) $pid)) ?>">Projekt</a><?php endif; ?>
-  </div>
+  <?php /* DIE DREI KNOEPFE STANDEN HIER OBEN
+           ------------------------------------------------------------
+           "Kundenakte", "Bestellung", "Projekt" -- drei gleich aussehende
+           Wege weg von der Seite, auf der man ist. Seit Kundenakte und
+           Projekt hier als Schubladen liegen, fuehren sie dorthin, wo man
+           schon steht.
+
+           Wer die ganze alte Seite braucht, findet den Verweis unten in
+           der jeweiligen Schublade, im Zusammenhang. Die Bestellung steht
+           in "Auf einen Blick" mit ihrer Nummer. */ ?>
 </div>
 
 <?php /* ---------- Wo steht der Vorgang ---------- */ ?>
@@ -277,6 +279,63 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
   <?php endif; ?>
 </div>
 
+<?php
+/* ======================================================================
+   WAS OFFEN STEHT UND WAS EINGERAEUMT IST
+
+   Gezaehlt am 13.09.2026: 13 Bloecke und 29 Knoepfe auf dieser einen
+   Seite. Jeder hatte seinen Grund; zusammen waren sie die Seite, von der
+   niemand wusste, wo er anfangen soll.
+
+   Offen bleibt, was jetzt zaehlt: der naechste Handgriff ganz oben, der
+   Mehrbedarf (er kostet Geld, wenn man ihn uebersieht) und "Auf einen
+   Blick". Alles andere liegt in vier Schubladen, benannt nach dem, was
+   drinliegt -- nicht nach "Erweitert".
+
+   ZWEI REGELN, DAMIT KEINE KETTE ABREISST
+
+   1. Die Schublade, in der der naechste Handgriff liegt, steht offen.
+      Eine Fuehrung, die auf etwas Unsichtbares zeigt, ist keine.
+   2. Die Zahl an der Schublade sagt, was drinliegt -- ungelesene
+      Nachrichten, offene Betraege, Dateien. Zugeklappt ist nicht weg,
+      und man sieht von aussen, ob sich das Aufziehen lohnt.
+
+   Im vollen Modus geben mehr_auf/mehr_zu nichts aus: Dann stehen alle
+   dreizehn Bloecke offen da wie bisher, nur in dieser Reihenfolge.
+   ====================================================================== */
+
+/* Welcher Handgriff gehoert in welche Schublade. Steht als Liste da und
+   nicht als if-Kette, damit ein neuer Handgriff an einer Stelle eingetragen
+   wird und nicht an vieren. */
+$schubladen = [
+    'gespraech' => ['fragebogen_einladen', 'fragebogen_erinnern', 'fragebogen_link',
+                    'nachricht_senden', 'kunde_nachricht', 'nachrichten_gelesen',
+                    'mehrbedarf_nachtrag', 'mehrbedarf_erledigt'],
+    'geld'      => ['anfrage_bestellung', 'angebot_senden', 'angebot_zusage',
+                    'zahlungslink', 'zahlungslink_senden', 'zahlung_bestaetigen',
+                    'restzahlung_anfordern', 'mahnung_schicken',
+                    'rechnung_erzeugen', 'rechnung_schicken',
+                    'abo_anlegen', 'abo_abrechnen', 'abo_anfordern'],
+    'seite'     => ['vorschau_speichern', 'vorschau_frei', 'vorschau_sperren',
+                    'abnahme_frei', 'abnahme_sperren', 'projekt_status',
+                    'website_speichern', 'briefing_bauen', 'chat_merken'],
+    'unterlagen'=> ['datei_hoch', 'datei_weg', 'kunde_datei',
+                    'paket_hoch', 'paket_frei', 'paket_zu', 'paket_mail'],
+];
+
+/** Liegt der naechste Handgriff in dieser Schublade? */
+$dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): bool {
+    $tat = (string) ($s['tat'] ?? '');
+    if ($tat !== '' && in_array($tat, $schubladen[$welche], true)) { return true; }
+    /* Zeigt der Schritt auf einen Abschnitt DIESER Seite (".../projekte/7?tun=vorschau"),
+       muss die Schublade auf, in der der Abschnitt liegt -- sonst springt der
+       Verweis an eine zugeklappte Stelle. */
+    if ($schrittTun !== null && in_array($schrittTun, $schubladen[$welche], true)) { return true; }
+    if ($schrittTun === 'vorschau' && $welche === 'seite') { return true; }
+    return false;
+};
+?>
+
 <div class="zwei">
 <div>
 
@@ -324,63 +383,10 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
     </div>
   <?php endif; ?>
 
-  <?php /* ---------- Angebot ----------
-           Fehlte hier, ausgerechnet. Wer wissen wollte, was vereinbart ist,
-           musste die Seite verlassen. Die Zeilen stehen knapp da; geaendert
-           wird weiter auf der Angebotsseite, wo auch die Knoepfe dafuer
-           sind. */ ?>
-  <?php if (!empty($v['angebot'])): $a = $v['angebot']; ?>
-    <div class="block">
-      <h2>Angebot<span class="mehr">
-        <?= Fmt::h((string) $a['nummer']) ?><?= (int) $a['fassung'] > 1 ? ' · Fassung ' . (int) $a['fassung'] : '' ?>
-        · <span class="marke2 <?= $a['status'] === 'angenommen' ? 'gut' : ($a['status'] === 'abgelehnt' ? 'schlecht' : '') ?>"><?= Fmt::h(ucfirst((string) $a['status'])) ?></span></span></h2>
-      <table style="margin-bottom:12px"><tbody>
-        <?php foreach ($v['angebot_zeilen'] as $z): ?>
-          <tr><td><?= Fmt::h((string) $z['bezeichnung']) ?><?= (int) $z['menge'] > 1 ? ' × ' . (int) $z['menge'] : '' ?></td>
-              <td class="num" style="width:28%"><?= Fmt::geld((int) $z['summe_cents']) ?><?= (int) $z['monatlich'] ? '/Mon.' : '' ?></td></tr>
-        <?php endforeach; ?>
-        <tr><td><b>Summe</b></td><td class="num"><b><?= Fmt::geld((int) $a['summe_cents'], (string) $a['currency']) ?></b>
-          <?php if ((int) $a['monatlich_cents'] > 0): ?> + <?= Fmt::geld((int) $a['monatlich_cents']) ?>/Mon.<?php endif; ?></td></tr>
-      </tbody></table>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <a class="knopf" href="<?= Fmt::h(url('angebote/' . (int) $a['id'])) ?>">Angebot öffnen</a>
-        <?php if (count($v['angebote']) > 1): ?>
-          <span style="color:var(--leise);font-size:12.5px"><?= count($v['angebote']) ?> Fassungen insgesamt</span>
-        <?php endif; ?>
-        <?php if ($a['gueltig_bis'] !== null && $a['status'] === 'gesendet'): ?>
-          <span style="color:var(--leise);font-size:12.5px">gültig bis <?= Fmt::h(Fmt::datum($a['gueltig_bis'])) ?></span>
-        <?php endif; ?>
-      </div>
-    </div>
-  <?php endif; ?>
 
-  <?php /* ---------- Bedarf ----------
-           Was der Kunde im Rechner angekreuzt hat, auf Deutsch -- egal, in
-           welcher Sprache er geklickt hat. Zugeklappt: Man braucht es einmal
-           am Anfang und danach selten. */ ?>
-  <?php if (!empty($v['bedarf']) && $v['bedarf_antworten']): ?>
-    <div class="block">
-      <details>
-        <summary style="cursor:pointer;font-weight:650;font-size:15px">Was er im Rechner angekreuzt hat</summary>
-        <table style="margin-top:12px"><tbody>
-          <?php foreach (Baukasten::FRAGEN as $schluessel => $frage): ?>
-            <?php
-              $wert = $v['bedarf_antworten'][$schluessel] ?? null;
-              if ($wert === null || $wert === '' || $wert === []) { continue; }
-              $worte = [];
-              foreach ((array) $wert as $w) {
-                $o = $frage['optionen'][(string) $w] ?? null;
-                $worte[] = $o ? Texte::h($o, 'de') : (string) $w;
-              }
-            ?>
-            <tr><td style="width:42%"><?= Fmt::h(Texte::h($frage['frage'] ?? [], 'de')) ?></td>
-                <td><?= Fmt::h(implode(' · ', $worte)) ?></td></tr>
-          <?php endforeach; ?>
-        </tbody></table>
-        <a class="knopf" style="margin-top:12px" href="<?= Fmt::h(url('bedarf/' . (int) $v['bedarf']['id'])) ?>">Bedarf öffnen</a>
-      </details>
-    </div>
-  <?php endif; ?>
+<?php mehr_auf('Gespräch und Fragebogen',
+    $v['ungelesen'] > 0 ? (int) $v['ungelesen'] . ' ungelesen' : null,
+    $dranIn('gespraech')); ?>
 
   <?php /* ---------- Gespräch ---------- */ ?>
   <div class="block">
@@ -418,6 +424,121 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
       ?>
     <?php endif; ?>
   </div>
+
+  <?php /* ---------- Fragebogen ---------- */ ?>
+  <?php if ($fb): ?>
+  <?php
+    $fbDaten  = $fb['data'] ? (json_decode((string) $fb['data'], true) ?: []) : [];
+    $fbFertig = $fb['status'] === 'abgeschlossen';
+  ?>
+  <div class="block">
+    <h2>Fragebogen<span class="mehr"><span class="marke2 <?= $fbFertig ? 'gut' : '' ?>">
+      <?= $fbFertig ? 'Abgeschlossen' : 'Offen' ?></span></span></h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
+      Eingeladen: <?= Fmt::h($fb['eingeladen_am'] ? Fmt::datum($fb['eingeladen_am']) : 'noch nicht') ?>
+      <?php if ($fb['erinnert_am']): ?> · erinnert: <?= Fmt::h(Fmt::datum($fb['erinnert_am'])) ?><?php endif; ?>
+      <?php if ($fbFertig): ?> · zurück: <?= Fmt::h(Fmt::datum($fb['submitted_at'])) ?><?php endif; ?></p>
+
+    <?php if ($fbDaten): ?>
+      <?php foreach (Texte::FRAGEBOGEN as $inhalt): ?>
+        <?php $hat = array_filter($inhalt['felder'],
+              static fn($_, $n) => trim((string) ($fbDaten[$n] ?? '')) !== '', ARRAY_FILTER_USE_BOTH); ?>
+        <?php if ($hat): ?>
+          <h3 style="font-size:12px;color:var(--leise);margin:16px 0 4px;text-transform:uppercase;letter-spacing:.06em"><?= Fmt::h(Texte::h($inhalt, 'de')) ?></h3>
+          <table><tbody>
+          <?php foreach ($hat as $name => $feld): ?>
+            <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
+                <td style="white-space:pre-wrap"><?= Fmt::h(($feld['art'] ?? '') === 'wahl'
+                      ? Umfang::worte((string) $fbDaten[$name], 'de')
+                      : (string) $fbDaten[$name]) ?></td></tr>
+          <?php endforeach; ?>
+          </tbody></table>
+        <?php endif; ?>
+      <?php endforeach; ?>
+    <?php elseif (!$fbFertig): ?>
+      <div class="leer">Der Kunde hat noch nichts eingetragen.</div>
+    <?php endif; ?>
+
+    <?php if (!$fbFertig && $pid): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_einladen">
+        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+        <input type="hidden" name="id" value="<?= (int) $pid ?>">
+        <button class="knopf"><?= $fb['eingeladen_am'] ? 'Noch einmal verschicken' : 'Fragebogen verschicken' ?></button></form>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php /* ---------- Bedarf ----------
+           Was der Kunde im Rechner angekreuzt hat, auf Deutsch -- egal, in
+           welcher Sprache er geklickt hat. Zugeklappt: Man braucht es einmal
+           am Anfang und danach selten. */ ?>
+  <?php if (!empty($v['bedarf']) && $v['bedarf_antworten']): ?>
+    <div class="block">
+      <details>
+        <summary style="cursor:pointer;font-weight:650;font-size:15px">Was er im Rechner angekreuzt hat</summary>
+        <table style="margin-top:12px"><tbody>
+          <?php foreach (Baukasten::FRAGEN as $schluessel => $frage): ?>
+            <?php
+              $wert = $v['bedarf_antworten'][$schluessel] ?? null;
+              if ($wert === null || $wert === '' || $wert === []) { continue; }
+              $worte = [];
+              foreach ((array) $wert as $w) {
+                $o = $frage['optionen'][(string) $w] ?? null;
+                $worte[] = $o ? Texte::h($o, 'de') : (string) $w;
+              }
+            ?>
+            <tr><td style="width:42%"><?= Fmt::h(Texte::h($frage['frage'] ?? [], 'de')) ?></td>
+                <td><?= Fmt::h(implode(' · ', $worte)) ?></td></tr>
+          <?php endforeach; ?>
+        </tbody></table>
+        <a class="knopf" style="margin-top:12px" href="<?= Fmt::h(url('bedarf/' . (int) $v['bedarf']['id'])) ?>">Bedarf öffnen</a>
+      </details>
+    </div>
+  <?php endif; ?>
+
+
+<?php mehr_zu(); ?>
+
+<?php mehr_auf('Geld — Angebot, Zahlungen, Belege',
+    $v['offen_cent'] > 0 ? Fmt::geld($v['offen_cent'], $v['waehrung']) . ' offen' : 'bezahlt',
+    $dranIn('geld')); ?>
+
+<?php if ($v['bestell_id']): ?>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">
+    <a href="<?= Fmt::h(url('bestellungen/' . (int) $v['bestell_id'])) ?>">Die Bestellung öffnen</a>
+    — dort lässt sich ihr Status von Hand setzen.</p>
+<?php endif; ?>
+
+  <?php /* ---------- Angebot ----------
+           Fehlte hier, ausgerechnet. Wer wissen wollte, was vereinbart ist,
+           musste die Seite verlassen. Die Zeilen stehen knapp da; geaendert
+           wird weiter auf der Angebotsseite, wo auch die Knoepfe dafuer
+           sind. */ ?>
+  <?php if (!empty($v['angebot'])): $a = $v['angebot']; ?>
+    <div class="block">
+      <h2>Angebot<span class="mehr">
+        <?= Fmt::h((string) $a['nummer']) ?><?= (int) $a['fassung'] > 1 ? ' · Fassung ' . (int) $a['fassung'] : '' ?>
+        · <span class="marke2 <?= $a['status'] === 'angenommen' ? 'gut' : ($a['status'] === 'abgelehnt' ? 'schlecht' : '') ?>"><?= Fmt::h(ucfirst((string) $a['status'])) ?></span></span></h2>
+      <table style="margin-bottom:12px"><tbody>
+        <?php foreach ($v['angebot_zeilen'] as $z): ?>
+          <tr><td><?= Fmt::h((string) $z['bezeichnung']) ?><?= (int) $z['menge'] > 1 ? ' × ' . (int) $z['menge'] : '' ?></td>
+              <td class="num" style="width:28%"><?= Fmt::geld((int) $z['summe_cents']) ?><?= (int) $z['monatlich'] ? '/Mon.' : '' ?></td></tr>
+        <?php endforeach; ?>
+        <tr><td><b>Summe</b></td><td class="num"><b><?= Fmt::geld((int) $a['summe_cents'], (string) $a['currency']) ?></b>
+          <?php if ((int) $a['monatlich_cents'] > 0): ?> + <?= Fmt::geld((int) $a['monatlich_cents']) ?>/Mon.<?php endif; ?></td></tr>
+      </tbody></table>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <a class="knopf" href="<?= Fmt::h(url('angebote/' . (int) $a['id'])) ?>">Angebot öffnen</a>
+        <?php if (count($v['angebote']) > 1): ?>
+          <span style="color:var(--leise);font-size:12.5px"><?= count($v['angebote']) ?> Fassungen insgesamt</span>
+        <?php endif; ?>
+        <?php if ($a['gueltig_bis'] !== null && $a['status'] === 'gesendet'): ?>
+          <span style="color:var(--leise);font-size:12.5px">gültig bis <?= Fmt::h(Fmt::datum($a['gueltig_bis'])) ?></span>
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
 
   <?php /* ---------- Zahlungen ---------- */ ?>
   <?php if ($v['zahlungen']): ?>
@@ -466,75 +587,41 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
   </div>
   <?php endif; ?>
 
-  <?php /* ---------- Fragebogen ---------- */ ?>
-  <?php if ($fb): ?>
-  <?php
-    $fbDaten  = $fb['data'] ? (json_decode((string) $fb['data'], true) ?: []) : [];
-    $fbFertig = $fb['status'] === 'abgeschlossen';
-  ?>
-  <div class="block">
-    <h2>Fragebogen<span class="mehr"><span class="marke2 <?= $fbFertig ? 'gut' : '' ?>">
-      <?= $fbFertig ? 'Abgeschlossen' : 'Offen' ?></span></span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
-      Eingeladen: <?= Fmt::h($fb['eingeladen_am'] ? Fmt::datum($fb['eingeladen_am']) : 'noch nicht') ?>
-      <?php if ($fb['erinnert_am']): ?> · erinnert: <?= Fmt::h(Fmt::datum($fb['erinnert_am'])) ?><?php endif; ?>
-      <?php if ($fbFertig): ?> · zurück: <?= Fmt::h(Fmt::datum($fb['submitted_at'])) ?><?php endif; ?></p>
-
-    <?php if ($fbDaten): ?>
-      <?php foreach (Texte::FRAGEBOGEN as $inhalt): ?>
-        <?php $hat = array_filter($inhalt['felder'],
-              static fn($_, $n) => trim((string) ($fbDaten[$n] ?? '')) !== '', ARRAY_FILTER_USE_BOTH); ?>
-        <?php if ($hat): ?>
-          <h3 style="font-size:12px;color:var(--leise);margin:16px 0 4px;text-transform:uppercase;letter-spacing:.06em"><?= Fmt::h(Texte::h($inhalt, 'de')) ?></h3>
-          <table><tbody>
-          <?php foreach ($hat as $name => $feld): ?>
-            <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
-                <td style="white-space:pre-wrap"><?= Fmt::h(($feld['art'] ?? '') === 'wahl'
-                      ? Umfang::worte((string) $fbDaten[$name], 'de')
-                      : (string) $fbDaten[$name]) ?></td></tr>
-          <?php endforeach; ?>
-          </tbody></table>
-        <?php endif; ?>
-      <?php endforeach; ?>
-    <?php elseif (!$fbFertig): ?>
-      <div class="leer">Der Kunde hat noch nichts eingetragen.</div>
-    <?php endif; ?>
-
-    <?php if (!$fbFertig && $pid): ?>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
-        <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_einladen">
-        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
-        <input type="hidden" name="id" value="<?= (int) $pid ?>">
-        <button class="knopf"><?= $fb['eingeladen_am'] ? 'Noch einmal verschicken' : 'Fragebogen verschicken' ?></button></form>
-    <?php endif; ?>
+  <?php /* ---------- Belege ---------- */ ?>
+  <?php if ($v['belege']): ?>
+  <div class="block"><h2>Belege</h2>
+    <?php foreach ($v['belege'] as $r): ?>
+      <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--linie)">
+        <a href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'])) ?>"><?= Fmt::h((string) $r['invoice_no']) ?></a>
+        <span style="color:var(--leise);font-size:13px"><?= Fmt::geld((int) $r['total_cents'], (string) $r['currency']) ?></span>
+      </div>
+    <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
-  <?php /* ---------- Dateien ---------- */ ?>
-  <div class="block">
-    <h2>Dateien<span class="mehr"><?= count($v['dateien']) ?></span></h2>
-    <?php if (!$v['dateien']): ?><div class="leer">Noch nichts.</div><?php else: ?>
-      <?php foreach ($v['dateien'] as $d): ?>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">
-          <span><?= Fmt::h((string) $d['orig_name']) ?><br><small style="color:var(--leise)">
-            <?= Fmt::h(Fmt::bytes((int) $d['size_bytes'])) ?> ·
-            <?= $d['uploaded_by'] === 'kunde' ? 'vom Kunden' : 'von dir' ?> ·
-            <?= Fmt::h(Fmt::datum($d['created_at'])) ?></small></span>
-          <a class="knopf" href="<?= Fmt::h(url('dateien/' . (int) $d['id'])) ?>">Herunterladen</a>
-        </div>
-      <?php endforeach; ?>
-    <?php endif; ?>
-    <?php if ($v['kunde_id']): ?>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data"
-            style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_datei">
-        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
-        <input type="hidden" name="id" value="<?= (int) $v['kunde_id'] ?>">
-        <input type="file" name="datei" required style="max-width:240px">
-        <button class="knopf">Hochladen</button>
-      </form>
-    <?php endif; ?>
-  </div>
+
+<?php mehr_zu(); ?>
+
+<?php /* ---------- Die Kundenakte ----------
+         Kontakt, Betreuung, Domain und Hosting, interne Notizen und das
+         Entfernen. Die Akte rendert sich selbst und laesst dabei weg, was
+         hier oben schon steht (siehe $eingebettet in kunde.php). */ ?>
+<?php if (!empty($akte)): ?>
+  <?php mehr_auf('Kunde — Kontakt, Betreuung, Hosting'); ?>
+  <?php
+    /* In eigener Umgebung ausfuehren: Die Akte setzt Variablen wie $k und
+       $abo, und die haben auf dieser Seite nichts verloren. */
+    (static function (string $datei, array $daten): void {
+        extract($daten, EXTR_SKIP);
+        require $datei;
+    })(__DIR__ . '/kunde.php', $akte);
+  ?>
+  <?php if ($v['kunde_id']): ?>
+    <p style="color:var(--leise);font-size:12.5px;margin:0 0 14px">
+      <a href="<?= Fmt::h(url('kunden/' . (int) $v['kunde_id'])) ?>">Die ganze Kundenakte öffnen</a></p>
+  <?php endif; ?>
+  <?php mehr_zu(); ?>
+<?php endif; ?>
 
 </div><div>
 
@@ -555,35 +642,20 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
     <tr><td>Begonnen</td><td><?= Fmt::h(Fmt::datum($v['begonnen'])) ?></td></tr>
   </tbody></table></div>
 
-  <?php /* ---------- Seine Seite ---------- */ ?>
-  <?php if ($v['link_kunde']): ?>
-  <div class="block"><h2>Seine Seite</h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
-      bis lange nach dem Onlinegang. Kein Konto, kein Passwort — wer den Link hat, kommt hinein.
-      Also nur an ihn.</p>
-    <div class="feld">
-      <input readonly onclick="this.select()" value="<?= Fmt::h((string) $v['link_kunde']) ?>" style="font-size:12px"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <a class="knopf" href="<?= Fmt::h((string) $v['link_kunde']) ?>" target="_blank" rel="noopener">Ansehen</a>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
-            data-frage="Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?" data-ja="Ja, neuen Link">
-        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kundenlink_neu">
-        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
-        <input type="hidden" name="id" value="<?= (int) ($v['kunde_id'] ?? 0) ?>">
-        <button class="knopf">Neuen Link erzeugen</button>
-      </form>
-    </div>
-    <?php if ($v['link_anfrage'] || $v['link_projekt']): ?>
-      <details style="margin-top:12px">
-        <summary style="cursor:pointer;color:var(--leise);font-size:12.5px">Ältere Links (leiten weiter)</summary>
-        <?php foreach (array_filter(['Anfrage' => $v['link_anfrage'], 'Projekt' => $v['link_projekt']]) as $was => $adr): ?>
-          <div class="feld" style="margin-top:8px"><label><?= Fmt::h($was) ?></label>
-            <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adr) ?>" style="font-size:12px"></div>
-        <?php endforeach; ?>
-      </details>
-    <?php endif; ?>
-  </div>
-  <?php endif; ?>
+
+<?php /* ---------- Die Seite ----------
+         Alles zum Bauen an einer Stelle: die Vorschau und die beiden
+         Freigabeschalter (von dieser Seite), dazu der Auftrag an den
+         Baumeister, die naechtliche Abnahme, die Aufgaben, das
+         Website-Paket und die verschickten E-Mails — dieselben Bloecke wie
+         auf der Projektseite, nicht nachgebaute. Sie kommen als Stuecke aus
+         projekt.php (siehe teile() in app/index.php); ohne Projekt fehlen
+         sie einfach. */ ?>
+<?php
+$pteile  = $projektteile ?? [];
+$pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', 'mails'];
+?>
+<?php mehr_auf('Die Seite — bauen, Vorschau, Abnahme', null, $dranIn('seite')); ?>
 
   <?php /* ---------- Vorschau ---------- */ ?>
   <?php if ($pid && !empty($v['vorschau']['spalte'])): ?>
@@ -689,6 +761,36 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
   </div>
   <?php endif; ?>
 
+  <?php /* ---------- Seine Seite ---------- */ ?>
+  <?php if ($v['link_kunde']): ?>
+  <div class="block"><h2>Seine Seite</h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
+      bis lange nach dem Onlinegang. Kein Konto, kein Passwort — wer den Link hat, kommt hinein.
+      Also nur an ihn.</p>
+    <div class="feld">
+      <input readonly onclick="this.select()" value="<?= Fmt::h((string) $v['link_kunde']) ?>" style="font-size:12px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <a class="knopf" href="<?= Fmt::h((string) $v['link_kunde']) ?>" target="_blank" rel="noopener">Ansehen</a>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
+            data-frage="Der alte Link gilt danach nicht mehr. Der Kunde braucht dann den neuen. Fortfahren?" data-ja="Ja, neuen Link">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kundenlink_neu">
+        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+        <input type="hidden" name="id" value="<?= (int) ($v['kunde_id'] ?? 0) ?>">
+        <button class="knopf">Neuen Link erzeugen</button>
+      </form>
+    </div>
+    <?php if ($v['link_anfrage'] || $v['link_projekt']): ?>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;color:var(--leise);font-size:12.5px">Ältere Links (leiten weiter)</summary>
+        <?php foreach (array_filter(['Anfrage' => $v['link_anfrage'], 'Projekt' => $v['link_projekt']]) as $was => $adr): ?>
+          <div class="feld" style="margin-top:8px"><label><?= Fmt::h($was) ?></label>
+            <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adr) ?>" style="font-size:12px"></div>
+        <?php endforeach; ?>
+      </details>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <?php /* ---------- Website ---------- */ ?>
   <?php if ($pid): ?>
   <div class="block"><h2>Website</h2>
@@ -707,17 +809,44 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
   </div>
   <?php endif; ?>
 
-  <?php /* ---------- Belege ---------- */ ?>
-  <?php if ($v['belege']): ?>
-  <div class="block"><h2>Belege</h2>
-    <?php foreach ($v['belege'] as $r): ?>
-      <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--linie)">
-        <a href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'])) ?>"><?= Fmt::h((string) $r['invoice_no']) ?></a>
-        <span style="color:var(--leise);font-size:13px"><?= Fmt::geld((int) $r['total_cents'], (string) $r['currency']) ?></span>
-      </div>
-    <?php endforeach; ?>
+
+<?php foreach ($pWunsch as $t) { echo $pteile[$t] ?? ''; } ?>
+<?php if ($pid): ?>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 14px">
+    <a href="<?= Fmt::h(url('projekte/' . (int) $pid)) ?>">Die ganze Projektseite öffnen</a></p>
+<?php endif; ?>
+
+<?php mehr_zu(); ?>
+
+<?php mehr_auf('Unterlagen — Dateien und Verlauf',
+    count($v['dateien']) > 0 ? count($v['dateien']) . ' Dateien' : null,
+    $dranIn('unterlagen')); ?>
+
+  <?php /* ---------- Dateien ---------- */ ?>
+  <div class="block">
+    <h2>Dateien<span class="mehr"><?= count($v['dateien']) ?></span></h2>
+    <?php if (!$v['dateien']): ?><div class="leer">Noch nichts.</div><?php else: ?>
+      <?php foreach ($v['dateien'] as $d): ?>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">
+          <span><?= Fmt::h((string) $d['orig_name']) ?><br><small style="color:var(--leise)">
+            <?= Fmt::h(Fmt::bytes((int) $d['size_bytes'])) ?> ·
+            <?= $d['uploaded_by'] === 'kunde' ? 'vom Kunden' : 'von dir' ?> ·
+            <?= Fmt::h(Fmt::datum($d['created_at'])) ?></small></span>
+          <a class="knopf" href="<?= Fmt::h(url('dateien/' . (int) $d['id'])) ?>">Herunterladen</a>
+        </div>
+      <?php endforeach; ?>
+    <?php endif; ?>
+    <?php if ($v['kunde_id']): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data"
+            style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_datei">
+        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+        <input type="hidden" name="id" value="<?= (int) $v['kunde_id'] ?>">
+        <input type="file" name="datei" required style="max-width:240px">
+        <button class="knopf">Hochladen</button>
+      </form>
+    <?php endif; ?>
   </div>
-  <?php endif; ?>
 
   <?php /* ---------- Verlauf ---------- */ ?>
   <div class="block"><h2>Verlauf</h2>
@@ -728,7 +857,11 @@ $lAnzahl = count($leiste['du']) + count($leiste['kunde']) + count($leiste['ruht'
       <?php endforeach; ?></ul><?php endif; ?>
   </div>
 
+
+<?php mehr_zu(); ?>
+
 </div></div>
+
 
 </div><!-- .vhaupt -->
 </div><!-- .vseite -->

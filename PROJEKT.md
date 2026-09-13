@@ -3519,3 +3519,108 @@ Kette:
 die Seiten wirklich gerendert: angemeldet, Screenshots über 1440 und 390 Punkte,
 Großansicht geöffnet und durchgeblättert, kein Querscrollen, keine
 Konsolenfehler, keine PHP-Meldungen.
+
+### Einfache Ansicht, Schubladen, ein Bildschirm je Kunde (13.09.2026)
+
+Uwe: „Gesamte Verwaltung soll viel einfacher werden, dass selbst ein völliger
+Anfänger damit umgehen kann — aber keine Kette darf abreißen, nichts darf
+unübersichtlich sein, alles im besten Fall mit klarer Führung, wo manuell
+eingegriffen werden soll."
+
+**Erst gezählt, dann geurteilt.** 31 Menüpunkte · 54 Seiten · 130 Handgriffe ·
+die Vorgangsseite allein mit 13 Blöcken und 29 Knöpfen · für *einen* Kunden
+vier Seiten (Vorgang, Kundenakte, Bestellung, Projekt), die sich überschneiden ·
+nur 12 von 130 Handgriffen fragen vorher nach, was sie anrichten. Das ist die
+Ursache: nicht zu wenig Funktion, sondern zu viele gleichwertige Wege zur
+selben Sache.
+
+Neun Vorschläge, alle angenommen. Umgesetzt sind die ersten drei.
+
+#### Der Schalter (Vorschlag 4)
+
+`app/src/Modus.php` und ein Schalter ganz oben in den Einstellungen. **Einfach
+ist die Vorgabe** — wer die volle Ansicht braucht, findet den Schalter; wer sie
+nicht braucht, würde davon überfahren, bevor er ihn sucht. Auch bei einem
+unsinnigen Wert in der Datenbank bleibt es einfach: Eine Oberfläche, die bei
+einer Störung in den vollen Modus fällt, tut genau das Falsche.
+
+Die Mechanik sind zwei Funktionen, `mehr_auf()` und `mehr_zu()`. Im einfachen
+Modus wird daraus eine Schublade, im vollen geben sie **nichts** aus — dann
+steht der Inhalt offen da wie vorher. Dazwischen darf alles stehen, was auch
+ohne sie dort stünde; eine zugeklappte `<details>` schickt ihre Formularfelder
+mit. Der Titel sagt, was drinliegt („Geld — Angebot, Zahlungen, Belege"), nicht
+dass es etwas gibt („Erweitert"). Angewandt zuerst auf die Telefonseite, wo
+Zahlen und Feinschliff nie der Grund sind, warum man sie aufschlägt.
+
+#### Die Vorgangsseite (Vorschlag 2)
+
+Aus 13 Blöcken wurden: der Handgriff oben, der Mehrbedarf (er kostet Geld, wenn
+man ihn übersieht), „Auf einen Blick" — und fünf Schubladen. Zwei Regeln halten
+die Kette:
+
+1. **Die Schublade mit dem nächsten Handgriff steht offen.** Eine Führung, die
+   auf etwas Unsichtbares zeigt, ist keine. Welcher Handgriff in welche
+   Schublade gehört, steht als eine Liste da (`$schubladen`) — ein neuer wird
+   an einer Stelle eingetragen, nicht an vieren. Die Kette prüft, dass kein
+   Handgriff der Seite ohne Schublade dasteht.
+2. **Die Zahl daneben sagt, was drinliegt** — „499,00 € offen", „3 ungelesen",
+   „5 Dateien". Zugeklappt ist nicht weg, und man sieht von außen, ob sich das
+   Aufziehen lohnt. (Erste Fassung zeigte an „Geld" eine nackte `1` — das sagt,
+   dass gezählt wurde, aber nicht was.)
+
+**Die Leiste oben schweigt auf dieser Seite.** Sie zeigte „Jetzt dran: Kunde E,
+Fragebogen verschicken", die Seite zeigte Kunde D mit „Zahlungslink senden", und
+daneben stand die Leiste mit neun weiteren. Drei Antworten auf „was mache ich
+jetzt" sind schlechter als eine. Überall sonst bleibt sie.
+
+#### Ein Bildschirm je Kunde (Vorschlag 1)
+
+Kundenakte und Projekt liegen jetzt als Schubladen auf der Vorgangsseite —
+**dieselben Blöcke, nicht nachgebaute.** Zwei verschiedene Wege dorthin, beide
+aus demselben Grund gewählt:
+
+- **Die Kundenakte** weiß, ob sie eingebettet ist (`$eingebettet`), und lässt
+  dann weg, was oben schon steht: Bestellungen, Projekte, Zahlungen, die
+  Nachricht, die Dateien, seine Seite, den Verlauf. Übrig bleibt, was es nur
+  dort gibt: Kontakt, Betreuung, Domain und Hosting, interne Notizen, das
+  Entfernen. Genau vier Weichen, von der Kette gezählt.
+- **Die Projektseite** ließ sich so nicht aufteilen: Ihre Blöcke hängen an PHP,
+  das davor läuft — Abfragen, Variablen, Bedingungen. Sie trägt deshalb Marken
+  (`<!--teil:werkstatt-->`), läuft ganz durch wie auf ihrer eigenen Seite, und
+  `Teile::ausHtml()` schneidet sie danach auseinander. Die Vorgangsseite nimmt
+  sich die sieben Stücke, die ihr fehlen. Eine Fassung, ein Ort zum Ändern.
+
+Die **Endmarke** ist die, auf die es ankommt: ohne sie landen die schließenden
+Kästen der zweispaltigen Seite im letzten Abschnitt — zwei überzählige `</div>`
+mitten in der Vorgangsseite. Die Kette prüft, dass es so viele Marken gibt wie
+Blöcke plus eine.
+
+Die Datenaufbereitung läuft für beide Wege durch **eine** Funktion
+(`datenKunde()`, `datenProjekt()`), von zwei Aufrufern benutzt. Stünden die
+Abfragen zweimal da, liefe die Schublade irgendwann der Seite hinterher, und
+niemand wüsste, welche der beiden stimmt.
+
+**Kunden, Bestellungen und Projekte stehen nicht mehr im Menü** — ihre Seiten
+gibt es weiter, unter ihrer Adresse, von der Vorgangsseite verlinkt, und die
+Suche findet sie. Nur als eigener Menüpunkt gäben sie einen zweiten Weg zur
+selben Sache vor, und genau das war das Problem. „Alles andere" ist von 28 auf
+23 Punkte gefallen.
+
+Die drei Knöpfe „Kundenakte · Bestellung · Projekt" oben rechts sind weg: Sie
+führten dorthin, wo man seit dem Umbau schon steht. 29 Knöpfe wurden 26.
+
+#### Geprüft
+
+Abschnitt 51 der Kette, 51 Prüfungen — **1103 insgesamt, alle grün**. Sie prüft
+nicht die Gestaltung, sondern dass nichts abgerissen ist: alle 13 Blöcke, alle
+26 Knöpfe, jeder Handgriff mit seiner Schublade, jede Marke genau einmal, die
+alten Seiten weiter erreichbar, eine Aufbereitung mit zwei Aufrufern.
+
+Dazu **jede Hauptseite in beiden Modi wirklich gerendert** — fünfzehn Seiten,
+zweimal, angemeldet: keine PHP-Meldung, kein Konsolenfehler, kein Querscrollen
+bei 390 Punkten. Screenshots über 1440 und 390.
+
+**Noch offen (Vorschläge 3, 5–9):** Menü auf fünf Punkte · jeder Knopf sagt
+vorher, was passiert (12 von 130 tun es heute) · eine Zeile, die nie abreißt
+(„Schritt 4 von 9 · jetzt X · danach Y") · eine ehrliche Liste „Was hängt
+gerade?" · deutsche Wörter statt Fachbegriffe · eine Seite „Damit alles läuft".

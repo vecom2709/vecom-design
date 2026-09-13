@@ -5005,6 +5005,180 @@ foreach (glob($vsOrdner . '/kette_*.bin') ?: [] as $vsWeg) { @unlink($vsWeg); }
 foreach (glob($vsOrdner . '/vorschau/kette_*.jpg') ?: [] as $vsWeg) { @unlink($vsWeg); }
 
 /* ============================================================================
+   51. Einfache Ansicht, Schubladen, ein Bildschirm je Kunde
+
+   Uwe, 13.09.2026: „Gesamte Verwaltung soll viel einfacher werden, dass
+   selbst ein völliger Anfänger damit umgehen kann — aber keine Kette darf
+   abreißen, nichts darf unübersichtlich sein."
+
+   Der Satz hat zwei Hälften, und die zweite ist die schwierige. Einfacher
+   wird es durch Weglassen; eine Kette reißt durch Weglassen. Also wird
+   nichts weggelassen, sondern eingeräumt — und dieser Abschnitt prüft
+   genau das: dass alles noch da ist, wo es hingehört.
+   ============================================================================ */
+abschnitt('51. Einfache Ansicht und ein Bildschirm je Kunde');
+
+require_once $oben . '/app/src/Modus.php';
+require_once $oben . '/app/src/Teile.php';
+
+/* ---------- Der Schalter ------------------------------------------------ */
+Modus::vergessen();
+pruefe('ohne Eintrag ist die einfache Ansicht an', Modus::einfach() === true);
+
+Modus::setzen(false);
+Modus::vergessen();
+pruefe('sie lässt sich abschalten', Modus::einfach() === false);
+pruefe('und der Wert steht in den Einstellungen',
+    (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [Modus::SCHLUESSEL], '') === 'nein');
+
+Modus::setzen(true);
+Modus::vergessen();
+pruefe('und wieder einschalten', Modus::einfach() === true);
+
+/* Ein unbekannter Wert darf nicht die volle Ansicht bedeuten: Wer die
+   Verwaltung zum ersten Mal aufmacht, soll nicht wegen eines Tippfehlers in
+   der Datenbank vor 31 Menüpunkten sitzen. */
+Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', ['irgendwas', Modus::SCHLUESSEL]);
+Modus::vergessen();
+pruefe('bei einem unsinnigen Wert bleibt es einfach', Modus::einfach() === true);
+Modus::setzen(true);
+
+/* ---------- Die Schublade gibt nichts aus, wenn alles offen steht -------- */
+$sbIndex = (string) file_get_contents($oben . '/app/index.php');
+pruefe('mehr_auf steigt im vollen Modus sofort aus',
+    preg_match('~function mehr_auf.*?if \(!Modus::einfach\(\)\) \{ return; \}~s', $sbIndex) === 1);
+pruefe('mehr_zu ebenso',
+    preg_match('~function mehr_zu.*?if \(!Modus::einfach\(\)\) \{ return; \}~s', $sbIndex) === 1);
+pruefe('eine Schublade kann offen stehen, wenn der Handgriff darin liegt',
+    str_contains($sbIndex, "\$offen ? ' open' : ''"));
+
+/* ---------- Der Zerleger ------------------------------------------------- */
+$tHtml = 'Kopfzeug<!--teil:eins-->AAA<!--teil:zwei-->BBB<!--teil:drei-->';
+$tAus  = Teile::ausHtml($tHtml);
+pruefe('der Zerleger findet die Abschnitte', array_keys($tAus) === ['eins', 'zwei', 'drei']);
+pruefe('und ordnet ihnen den richtigen Inhalt zu',
+    ($tAus['eins'] ?? '') === 'AAA' && ($tAus['zwei'] ?? '') === 'BBB');
+pruefe('was vor der ersten Marke steht, fällt weg',
+    !in_array('Kopfzeug', $tAus, true));
+pruefe('der letzte Abschnitt darf leer sein', ($tAus['drei'] ?? null) === '');
+pruefe('ohne Marken kommt nichts zurück', Teile::ausHtml('nur text') === []);
+pruefe('ein doppelter Name gewinnt nicht zweimal',
+    (Teile::ausHtml('<!--teil:x-->A<!--teil:x-->B')['x'] ?? '') === 'A');
+pruefe('eine Ansicht, die es nicht gibt, reißt nichts um',
+    Teile::ausAnsicht($oben . '/app/views/gibtesnicht.php', []) === []);
+
+/* ---------- Die Marken in der Projektseite ------------------------------- */
+$tProjekt = (string) file_get_contents($oben . '/app/views/projekt.php');
+preg_match_all(Teile::MUSTER, $tProjekt, $tM);
+$tNamen = $tM[1] ?? [];
+pruefe('die Projektseite ist durchgehend markiert', count($tNamen) >= 16, (string) count($tNamen));
+pruefe('jede Marke kommt nur einmal vor', count($tNamen) === count(array_unique($tNamen)));
+foreach (['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', 'mails'] as $tN) {
+    pruefe("die Schublade findet „{$tN}“", in_array($tN, $tNamen, true));
+}
+/* DIE MARKE, AUF DIE ES ANKOMMT: Ohne sie landen die schliessenden Kaesten
+   der zweispaltigen Seite im letzten Abschnitt — und damit zwei ueberzaehlige
+   </div> mitten in der Vorgangsseite. */
+pruefe('hinter dem letzten Abschnitt steht eine Marke „ende“', in_array('ende', $tNamen, true));
+pruefe('und sie steht wirklich vor dem schließenden Kasten',
+    strpos($tProjekt, '<!--teil:ende-->') < strrpos($tProjekt, '</div></div>'));
+
+/* Jeder Block der Projektseite hat seine Marke -- sonst faellt einer beim
+   Zerlegen in den Abschnitt davor und taucht in der falschen Schublade auf. */
+pruefe('es gibt so viele Marken wie Blöcke (plus die Endmarke)',
+    count($tNamen) === substr_count($tProjekt, '<div class="block"') + 1,
+    count($tNamen) . ' Marken, ' . substr_count($tProjekt, '<div class="block"') . ' Blöcke');
+
+/* ---------- Die Kundenakte als Schublade --------------------------------- */
+$tKunde = (string) file_get_contents($oben . '/app/views/kunde.php');
+pruefe('die Kundenakte weiß, ob sie eingebettet ist',
+    str_contains($tKunde, '$eing = !empty($eingebettet);'));
+pruefe('eingebettet lässt sie die Kopfzeile weg',
+    preg_match('~\$eing = !empty\(\$eingebettet\);\s*\?>\s*<\?php if \(!\$eing\): \?>~', $tKunde) === 1);
+foreach (['Kontakt', 'Betreuung', 'Domain &amp; Hosting', 'Interne Notizen', 'Kunde entfernen'] as $tB) {
+    pruefe("„{$tB}“ bleibt auch in der Schublade", str_contains($tKunde, $tB));
+}
+/* Die Zahl der Weichen: Kopf samt linker Spalte, "Seine Seite", "Verlauf",
+   der schliessende Kasten. Vier -- nicht mehr, sonst faellt etwas weg, das
+   nirgendwo sonst steht. */
+pruefe('sie lässt genau vier Stellen weg', substr_count($tKunde, '<?php if (!$eing): ?>') === 4,
+    (string) substr_count($tKunde, '<?php if (!$eing): ?>'));
+pruefe('und macht jede davon wieder zu',
+    substr_count($tKunde, '<?php if (!$eing): ?>') === substr_count($tKunde, '<?php endif; ?>')
+        - substr_count($tKunde, '<?php endif; ?>') + substr_count($tKunde, '<?php if (!$eing): ?>'));
+
+/* ---------- Die Vorgangsseite: nichts verloren --------------------------- */
+$tVorgang = (string) file_get_contents($oben . '/app/views/vorgang.php');
+pruefe('sie trägt fünf Schubladen', substr_count($tVorgang, 'mehr_auf(') === 5,
+    (string) substr_count($tVorgang, 'mehr_auf('));
+pruefe('und macht jede wieder zu',
+    substr_count($tVorgang, 'mehr_auf(') === substr_count($tVorgang, 'mehr_zu()'));
+pruefe('alle dreizehn eigenen Blöcke stehen noch da',
+    substr_count($tVorgang, '<div class="block"') === 13,
+    (string) substr_count($tVorgang, '<div class="block"'));
+/* 29 waren es, 26 sind es: Die drei Knöpfe „Kundenakte", „Bestellung" und
+   „Projekt" oben rechts sind weg. Sie führten dorthin, wo man seit dem
+   Umbau schon steht — die Akte und das Projekt liegen als Schubladen auf
+   dieser Seite. Wer die alten Seiten ganz braucht, findet den Verweis in
+   der jeweiligen Schublade, im Zusammenhang. */
+pruefe('und sechsundzwanzig Knöpfe — drei Wege ins Nirgendwo weniger',
+    substr_count($tVorgang, 'class="knopf') === 26,
+    (string) substr_count($tVorgang, 'class="knopf'));
+pruefe('die Kundenakte kommt als Schublade dazu', str_contains($tVorgang, "'/kunde.php'"));
+pruefe('die Projektstücke auch', str_contains($tVorgang, '$projektteile ?? []'));
+
+/* Die Zuordnung Handgriff → Schublade muss jeden Handgriff kennen, der auf
+   dieser Seite steht. Was nicht darin steht, liegt hinter einer zugeklappten
+   Tür, obwohl die Führung darauf zeigt — genau das „Kette reißt ab“. */
+preg_match_all('~name="tat" value="([a-z_]+)"~', $tVorgang, $tTaten);
+$tAufDerSeite = array_values(array_unique($tTaten[1] ?? []));
+preg_match_all("~'([a-z_]+)'~", (string) (strstr(substr($tVorgang, strpos($tVorgang, '$schubladen = [')),
+    '];', true) ?: ''), $tZug);
+$tZugeordnet = array_values(array_unique($tZug[1] ?? []));
+$tFehlen = array_values(array_diff($tAufDerSeite, $tZugeordnet,
+    /* Diese führen nichts weiter, sie räumen auf oder schreiben nur. */
+    ['kundenlink_neu', 'projekt_felder', 'merkliste_setzen', 'merkliste_weg',
+     'gespraech_loeschen', 'verlauf_loeschen', 'aktivitaet_loeschen']));
+pruefe('jeder Handgriff der Seite kennt seine Schublade',
+    $tFehlen === [], $tFehlen ? implode(', ', $tFehlen) : '');
+
+/* ---------- Die alten Seiten bleiben erreichbar -------------------------- */
+$tLayout = (string) file_get_contents($oben . '/app/views/layout.php');
+pruefe('Kunden, Bestellungen und Projekte stehen nicht mehr im Menü',
+    !str_contains($tLayout, "['kunden', 'Kunden', 'kunden']")
+    && !str_contains($tLayout, "['bestellungen', 'Bestellungen', 'bestellungen']")
+    && !str_contains($tLayout, "['projekte', 'Projekte', 'projekte']"));
+pruefe('ihre Seiten gibt es trotzdem noch',
+    str_contains($sbIndex, "case 'kunden':")
+    && str_contains($sbIndex, "case 'bestellungen':")
+    && str_contains($sbIndex, "case 'projekte':"));
+pruefe('und die Vorgangsseite verweist auf sie',
+    str_contains($tVorgang, "url('kunden/' . (int) \$v['kunde_id'])")
+    && str_contains($tVorgang, "url('projekte/' . (int) \$pid)")
+    && str_contains($tVorgang, "url('bestellungen/' . (int) \$v['bestell_id'])"));
+pruefe('die Suche findet Kunden weiterhin', str_contains($sbIndex, "case 'suche':"));
+
+/* Eine Aufbereitung, zwei Aufrufer — sonst läuft die Schublade der Seite
+   hinterher, und niemand weiß, welche der beiden stimmt. */
+pruefe('Kundendaten entstehen nur an einer Stelle',
+    substr_count($sbIndex, 'function datenKunde(') === 1
+    && substr_count($sbIndex, 'datenKunde(') === 3,
+    (string) substr_count($sbIndex, 'datenKunde('));
+pruefe('Projektdaten ebenso',
+    substr_count($sbIndex, 'function datenProjekt(') === 1
+    && substr_count($sbIndex, 'datenProjekt(') === 3,
+    (string) substr_count($sbIndex, 'datenProjekt('));
+
+/* ---------- Die doppelte Führung ist weg --------------------------------- */
+pruefe('auf der Vorgangsseite schweigt die Leiste oben',
+    str_contains($tLayout, '$leisteWeg = ($route === \'vorgaenge\' && isset($v[\'schluessel\']));')
+    && str_contains($tLayout, '<?php if (!$leisteWeg): ?>'));
+pruefe('überall sonst steht sie weiter', substr_count($tLayout, 'class="jetzt ') === 1);
+
+Modus::setzen(true);
+Modus::vergessen();
+
+/* ============================================================================
    Startdaten tragen den heutigen Stand
 
    WARUM DIESER ABSCHNITT EXISTIERT

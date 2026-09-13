@@ -1,6 +1,32 @@
+<?php
+/* ======================================================================
+   DIESE SEITE IST AUCH EINE SCHUBLADE
+
+   Seit dem Umbau gibt es einen Bildschirm je Kunde: die Vorgangsseite.
+   Was es NUR hier gibt — Ablauf, Werkstatt, Abnahme, Aufgaben, das
+   Website-Paket, Eckdaten und die verschickten E-Mails — steht dort in
+   einer Schublade. Alles Uebrige (Mehrbedarf, Fragebogen, Nachrichten,
+   Dateien, Verlauf, Vorschau, Website) steht auf der Vorgangsseite schon.
+
+   WARUM MARKEN UND KEIN ZWEITER SATZ BLOECKE
+
+   Die Bloecke haengen an PHP, das davor laeuft: Abfragen, Variablen,
+   Bedingungen. Haette die Schublade eigene Bloecke, gaebe es zwei
+   Fassungen desselben Knopfes, und die zweite liefe der ersten nach.
+
+   Stattdessen laeuft diese Datei ganz durch — wie auf ihrer eigenen Seite,
+   mit allem PHP in der richtigen Reihenfolge —, und die Vorgangsseite nimmt
+   sich davon die Stuecke zwischen den Marken, die sie braucht. Eine
+   Fassung, ein Ort zum Aendern.
+
+   Die Marken stehen als HTML-Kommentar da: Sie kosten nichts, stoeren
+   niemanden, und man sieht im Quelltext, wo ein Abschnitt anfaengt.
+   ====================================================================== */
+?>
 <div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('projekte')) ?>">Projekte</a></div>
 <h1><?= Fmt::h($p['name']) ?></h1></div></div>
 <div class="zwei"><div>
+  <!--teil:ablauf-->
   <div class="block"><h2>Ablauf</h2>
     <div class="balken" style="height:8px;margin-bottom:14px"><i style="width:<?= (int) $p['progress'] ?>%"></i></div>
     <form method="post" action="<?= Fmt::h(url('')) ?>" class="leiste">
@@ -29,6 +55,7 @@
      wenn er da ist.
      ================================================================== */ ?>
 <?php if (!empty($mehrbedarf)): ?>
+  <!--teil:mehrbedarf-->
   <div class="block" data-tun="mehrbedarf" style="border-color:var(--cyan)">
     <h2>Mehrbedarf klären</h2>
     <p style="color:var(--dim);font-size:13.5px;margin:-4px 0 14px">
@@ -108,6 +135,7 @@
      noch, woraus die Seite gebaut ist. Dann kopieren und Claude oeffnen, mit
      einem Klick, weil die Zwischenablage eine Nutzerhandlung braucht.
      ================================================================== */ ?>
+  <!--teil:werkstatt-->
   <div class="block" data-tun="briefing"><h2>Werkstatt
     <?php if (!empty($p['briefing_am'])): ?>
       <span class="mehr">Briefing von <?= Fmt::h(Fmt::seit((string) $p['briefing_am'])) ?></span>
@@ -213,6 +241,7 @@
      bleibt Arbeit fuer Augen.
      ================================================================== */ ?>
   <?php $ab = sicher(static fn() => Abnahme::gespeichert($p), null); ?>
+  <!--teil:abnahme-->
   <div class="block" data-tun="abnahme"><h2>Abnahme
     <?php if ($ab): ?>
       <span class="mehr"><?= Fmt::h(Fmt::seit((string) ($p['abnahme_am'] ?? ''))) ?> geprüft</span>
@@ -280,6 +309,7 @@
     <?php endif; ?>
   </div>
 
+  <!--teil:fragebogen-->
   <div class="block"><h2>Fragebogen</h2>
     <?php if (!$fragebogen): ?>
       <div class="leer">Zu diesem Projekt gibt es keinen Fragebogen.</div>
@@ -342,6 +372,7 @@
     <?php endif; ?>
   </div>
 
+  <!--teil:aufgaben-->
   <div class="block"><h2>Aufgaben</h2>
     <?php if (!$aufgaben): ?>
       <div class="leer">Noch keine Aufgaben.</div>
@@ -390,6 +421,7 @@
     </form>
   </div>
 
+  <!--teil:nachrichten-->
   <div class="block"><h2>Nachrichten</h2>
     <?php if (!$nachrichten): ?><div class="leer">Noch keine Nachrichten.</div><?php else: ?>
       <?php $ungelesen = 0; foreach ($nachrichten as $n) { if ($n['sender'] === 'kunde' && $n['read_at'] === null) { $ungelesen++; } } ?>
@@ -438,6 +470,7 @@
            Zwischenfassung, die gerade hochgeladen wurde" sonst gleich
            aussehen — und der Kunde faengt an, mit einem Entwurf zu
            arbeiten. */ ?>
+  <!--teil:paket-->
   <div class="block"><h2>Website-Paket</h2>
     <?php $paketFrei = ($p['paket_frei_am'] ?? null) !== null; ?>
     <?php if (!($paket ?? null)): ?>
@@ -487,6 +520,7 @@
       Dreißig Megabyte kommen bei den meisten Postfächern gar nicht an.</p>
   </div>
 
+  <!--teil:dateien-->
   <div class="block"><h2>Dateien</h2>
     <?php if (!$dateien): ?><div class="leer">Noch keine Dateien.</div><?php else: ?>
       <table><tbody>
@@ -516,11 +550,13 @@
       Der Kunde sieht diese Dateien auf seiner Projektseite und kann selbst welche schicken.</p>
   </div>
 
+  <!--teil:verlauf-->
   <div class="block"><h2>Verlauf</h2>
     <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">
     <?php foreach ($aktivitaeten as $a): ?><li><span class="punkt"></span><span><?= Fmt::h($a['title']) ?><br><small><?= Fmt::h($a['actor']) ?></small></span>
       <span class="wann"><?= Fmt::h(Fmt::seit($a['created_at'])) ?></span></li><?php endforeach; ?></ul><?php endif; ?></div>
 </div><div>
+  <!--teil:uebersicht-->
   <div class="block"><h2>Übersicht</h2><table><tbody>
     <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . $p['customer_id'])) ?>"><?= Fmt::h($p['kunde']) ?></a></td></tr>
     <tr><td>Bestellung</td><td><?= $p['order_id'] ? '<a href="' . Fmt::h(url('bestellungen/' . $p['order_id'])) . '">' . Fmt::h((string) $p['order_no']) . '</a>' : '—' ?></td></tr>
@@ -529,6 +565,7 @@
     <tr><td>Fragebogen</td><td><?= Fmt::h($fragebogen ? ucfirst((string) $fragebogen['status']) : '—') ?></td></tr>
     <tr><td>Start</td><td><?= Fmt::h(Fmt::datum($p['start_date'])) ?></td></tr>
   </tbody></table></div>
+  <!--teil:eckdaten-->
   <div class="block"><h2>Eckdaten</h2>
     <form method="post" action="<?= Fmt::h(url('')) ?>">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="projekt_felder">
@@ -557,6 +594,7 @@
     $abSpalte = array_key_exists('abnahme_frei_am', $p);
     $zurueckHier = 'projekte/' . (int) $p['id'];
   ?>
+  <!--teil:vorschau-->
   <div class="block" data-tun="vorschau"><h2>Vorschau und Abnahme
     <span class="mehr">
       <?php if ($abFrei): ?><span class="marke2 gut">Abnahme offen</span>
@@ -654,6 +692,7 @@
     <?php endif; ?>
   </div>
 
+  <!--teil:website-->
   <div class="block"><h2>Website</h2>
     <form method="post" action="<?= Fmt::h(url('')) ?>">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="website_speichern">
@@ -702,6 +741,7 @@
     <?php endif; ?>
   </div>
 
+  <!--teil:mails-->
   <div class="block"><h2>E-Mails</h2>
     <?php if (!$mails): ?><div class="leer">Noch keine verschickt.</div><?php else: ?>
       <table><tbody>
@@ -712,4 +752,6 @@
       <?php endforeach; ?>
       </tbody></table>
     <?php endif; ?></div>
+<!--teil:ende-->
 </div></div>
+

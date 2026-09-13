@@ -93,10 +93,20 @@ $menueMehr = [
   ['pakete', 'Pakete', 'pakete'],
   ['baukasten', 'Baukasten', 'baukasten'],
   ['stimmen', 'Kundenstimmen', 'stimmen'],
+  /* KUNDEN, BESTELLUNGEN, PROJEKTE STEHEN NICHT MEHR IM MENUE
+     ------------------------------------------------------------------
+     Zu einem Kunden gab es vier Seiten: Vorgang, Kundenakte, Bestellung,
+     Projekt. Jede fuer sich richtig, zusammen die Frage, auf welcher von
+     vieren man haette sein muessen. Seit dem Umbau liegen Kundenakte und
+     Projekt als Schubladen auf der Vorgangsseite — dieselben Bloecke,
+     nicht nachgebaute.
+
+     Die Seiten selbst bleiben: unter ihrer Adresse erreichbar, von der
+     Vorgangsseite verlinkt, und die Suche findet sie. Nur als eigener
+     Menuepunkt gaeben sie einen zweiten Weg zur selben Sache vor — und
+     genau das war das Problem. Wer alle Kunden sehen will, nimmt die
+     Suche oder "Vorgaenge". */
   ['__gruppe', 'Listen', null],
-  ['kunden', 'Kunden', 'kunden'],
-  ['bestellungen', 'Bestellungen', 'bestellungen'],
-  ['projekte', 'Projekte', 'projekte'],
   ['dateien', 'Dateien', 'dateien'],
   ['__gruppe', 'System', null],
   ['dashboard', 'Zahlen', 'dashboard'],
@@ -292,7 +302,21 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
            sind kein Angebot, sondern eine Doppelung. */
         || in_array($route, ['heute', 'vorgaenge', ''], true);
     $leisteKnopf = 'knopf' . ($leisteLeise ? '' : ' haupt');
+
+    /* AUF DER VORGANGSSEITE SCHWEIGT DIE LEISTE GANZ
+       ------------------------------------------------------------------
+       Sie war ein guter Gedanke, solange man von jeder Seite aus den
+       naechsten Schritt sehen wollte. Seit neben dem Vorgang die Leiste
+       aller offenen Kunden steht, sagt sie dort nichts Neues mehr -- und
+       richtet Schaden an: Am 13.09.2026 stand oben "Jetzt dran: Kunde E,
+       Fragebogen verschicken", die Seite zeigte Kunde D mit "Zahlungslink
+       senden", und daneben die Leiste mit neun weiteren. Drei Antworten auf
+       die Frage "was mache ich jetzt" sind schlechter als eine.
+
+       Ueberall sonst bleibt sie, wie sie war. */
+    $leisteWeg = ($route === 'vorgaenge' && isset($v['schluessel']));
     ?>
+    <?php if (!$leisteWeg): ?>
     <section class="jetzt <?= $ersteAufgabe ? '' : 'jetzt--leer' ?>" aria-label="Was jetzt zu tun ist">
       <?php if (!$ersteAufgabe): ?>
         <span class="jetzt__ruhe">Nichts offen — alles liegt beim Kunden oder ist erledigt.</span>
@@ -337,6 +361,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
         </span>
       <?php endif; ?>
     </section>
+    <?php endif; ?>
     <?php require $inhaltsdatei; ?>
   </main>
 </div>

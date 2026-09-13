@@ -38,6 +38,29 @@ if (!isset($bereiche[$b])) { $b = 'firma'; }
   <p style="color:var(--leise);font-size:13px;margin-top:6px"><?= Fmt::h($bereiche[$b][1]) ?></p>
 </div></div>
 
+<?php
+/* ---------- WIE AUSFÜHRLICH SICH DIE VERWALTUNG ZEIGT ----------
+   Steht über den Bereichen und nicht in einem davon: Dieser Schalter
+   betrifft jede Seite, nicht die Firma oder das Geld. Wer zum ersten Mal in
+   die Einstellungen kommt, soll ihn sehen, ohne ihn zu suchen. */
+require_once dirname(__DIR__) . '/src/Modus.php';
+$einfach = Modus::einfach();
+?>
+<div class="bedienung">
+  <div class="bedienung__text">
+    <b><?= $einfach ? 'Einfache Ansicht' : 'Volle Ansicht' ?></b>
+    <span><?= $einfach
+      ? 'Jede Seite zeigt, was für den nächsten Schritt gebraucht wird. Alles Weitere liegt hinter „Mehr" — einen Klick entfernt, nichts ist entfernt.'
+      : 'Alles steht offen da: jeder Block, jeder Knopf, auf jeder Seite.' ?></span>
+  </div>
+  <form method="post" action="<?= Fmt::h(url('')) ?>">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="bedienung">
+    <input type="hidden" name="einfach" value="<?= $einfach ? 'nein' : 'ja' ?>">
+    <input type="hidden" name="zurueck" value="einstellungen?b=<?= Fmt::h($b) ?>">
+    <button class="knopf"><?= $einfach ? 'Alles anzeigen' : 'Einfach anzeigen' ?></button>
+  </form>
+</div>
+
 <nav style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px">
   <?php foreach ($bereiche as $schl => [$titel, $unter]): ?>
     <a href="<?= Fmt::h(url('einstellungen?b=' . $schl)) ?>"

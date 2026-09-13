@@ -392,6 +392,11 @@ $filter = (string) ($_GET['f'] ?? '');
 <?php endif; ?>
 <?php endif; ?>
 
+<?php /* Die Zahlen. Sie beantworten eine Frage, die sich nicht taeglich
+         stellt: Traegt sich der Tarif? Deshalb im einfachen Modus eingeraeumt
+         — wer sie sucht, findet sie an derselben Stelle wie vorher. */ ?>
+<?php mehr_auf('Zahlen zum Telefon — trägt es sich, kommt die Nummer an?'); ?>
+
 <?php /* ---------- Der Trichter ----------
          Ohne Zahlen weisst du in drei Monaten nicht, ob der Tarif sich traegt.
          Bewusst ueber 90 Tage: Bei ein paar Anrufen im Monat sagt eine
@@ -467,6 +472,8 @@ $filter = (string) ($_GET['f'] ?? '');
 </div>
 <?php endif; ?>
 
+<?php mehr_zu(); ?>
+
 <?php /* ---------- Gespräche ohne Ergebnis ----------
    Steht direkt unter „Heute anrufen", weil es dieselbe Art Arbeit ist: Hier
    hat jemand angerufen, sie hat gearbeitet — nachgesehen, beraten, geholfen —
@@ -514,6 +521,12 @@ $filter = (string) ($_GET['f'] ?? '');
   </table>
 </div>
 <?php endif; ?>
+
+<?php /* Alles ab hier ist Feinschliff am Assistenten: was er sich
+         angewoehnt hat, woran es hakt, was er nicht wusste, und sein
+         Protokoll. Wichtig, aber nie das, weswegen man diese Seite
+         aufschlaegt. */ ?>
+<?php mehr_auf('Feinschliff — was sie gelernt hat und woran es hakt'); ?>
 
 <?php /* ---------- Was sie sich angewöhnt hat ----------
    Warum das hier steht und nicht nur in einer Meldung: Eine Meldung klickt
@@ -638,3 +651,5 @@ $filter = (string) ($_GET['f'] ?? '');
     </tbody></table>
   <?php endif; ?>
 </div>
+
+<?php mehr_zu(); ?>
