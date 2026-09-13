@@ -3336,3 +3336,54 @@ Erst soll Uwe sie auf einem echten Bildschirm mit echter Grafikkarte sehen;
 hier ist sie nur unter SwiftShader gemessen, also ohne GPU. Danach zu
 entscheiden: eigene Seite oder Ersatz für den 3D-Auftakt der Startseite, und ob
 es sie auf Italienisch und Englisch gibt.
+
+### Der Showroom ist live — und das Hochformat einmal richtig (13.09.2026)
+
+Gepusht, ausgeliefert, nachgemessen. `https://vecom-design.it/showroom.html`
+antwortet mit 200 und ist Byte für Byte die Datei aus dem Repository; die GLB
+kommt als `model/gltf-binary` gezippt an, 26.122 Byte auf der Leitung statt
+389.640 roh, und die heruntergeladene Datei hat dieselbe Prüfsumme wie die
+lokale. Alle acht Three.js-Zusatzmodule und alle drei Texturkarten: 200, jede
+mit der erwarteten Größe. Die alten Sperren halten unverändert
+(`_baukasten.html` 404, `README.md` und `PROJEKT.md` 403, `/pakete.html` 301,
+`/cockpit/` 401).
+
+**Das Hochformat war noch nicht gut, und der erste Ansatz war der falsche.**
+Text oben, Raum darunter — das klang richtig und ging nicht auf: Die Marke saß
+genau hinter den Knöpfen, und unter dem Boden blieb ein schwarzes Drittel, weil
+der Raum dort schlicht zu Ende ist. Drei Versuche mit Blickwinkel, Kameraabstand
+und angehobenem Blickziel haben das Loch nur verschoben, nie geschlossen.
+
+Umgedreht geht es auf: **Raum oben, Text unten.** Der Raum bekommt die Hälfte,
+in der er etwas zu zeigen hat; der Text die, in der ohnehin nur dunkler Boden
+liegt. Der Schleier läuft von unten nach oben, das schwarze Drittel ist kein
+Loch mehr, sondern der Grund, auf dem die Zeilen stehen. Dazu sinkt im
+Hochformat das Blickziel (`BLICK_SENKUNG`), damit die Marke in die obere Hälfte
+steigt, und die Kamera geht weniger weit zurück (0,10 statt 0,25) — sie muss ja
+nur noch die obere Hälfte füllen. Auf allen fünf Bildern der Seite geprüft.
+
+DAZU EINE SCHWELLE, DIE ERST DAS MESSEN ZEIGTE: Die Umstellung hing an
+`max-width:760px`. Ein Tablet im Hochformat ist 768 px breit und fiel damit um
+acht Pixel daneben — auf 768x1024 stand die Schrift quer über der Marke, oben
+und unten je ein leeres Viertel. Es geht hier nicht um Breite, sondern um
+Hochkant. Die Regel greift jetzt bei `max-width:760px` **oder**
+`(max-width:1100px) and (orientation:portrait)`, im Skript entsprechend über
+`innerHeight > innerWidth * 1.05`.
+
+Gemessen wurde auf 390x844, 768x1024, 1440x900, 1200x800 und 844x390 (Telefon
+quer), jeweils mit echtem WebGL unter SwiftShader, plus vier Scrollstände auf
+dem Telefon: keine einzige Fehlermeldung in der Konsole, kein Querlauf.
+
+WAS DABEI NOCH AUFFIEL, UND ZWAR AUF DEM ÜBERTRAGUNGSWEG: Beim Kopieren der
+Texturen auf den Windows-Rechner hängte die Werkzeugkette jeder `.webp` einen
+`C2PA`-Block von exakt 5.768 Byte an — gültige Dateien mit korrigierter
+RIFF-Länge, aber eben andere. `.glb` und `.html` kamen unverändert an. Ohne
+Prüfsummenvergleich hätten die beiden Arbeitskopien ab diesem Punkt verschiedene
+Bäume gehabt, und niemand hätte gewusst, warum. Die Regel steht jetzt in den
+Hausregeln: nach jeder Übertragung beide Seiten `git write-tree` und die
+Baum-Hashes vergleichen.
+
+OFFEN: Die Seite ist weiterhin einsprachig deutsch, von nirgends verlinkt und
+nicht in der Sitemap — das bleibt liegen, bis Uwe sie auf einem Bildschirm mit
+echter Grafikkarte gesehen und entschieden hat, ob sie den 3D-Auftakt der
+Startseite ersetzt oder als eigene Seite danebensteht.

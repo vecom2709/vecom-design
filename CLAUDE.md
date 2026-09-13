@@ -123,6 +123,23 @@ Vier Regeln, die aus Schaden entstanden sind:
    hintereinander lösen zwei Deploys aus; der letzte gewinnt. Das ist in Ordnung,
    solange beide denselben Stand haben — nach einem Rebase also erst pullen.
 
+### Dateien auf den Windows-Rechner bringen
+
+`git` liegt dort nicht im Suchpfad, sondern in Visual Studio:
+`C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe`.
+`where git` findet nichts — das heißt nicht, dass keins da ist.
+
+**Nach jeder Dateiübertragung die Prüfsumme vergleichen.** Am 13.09.2026
+gemessen: Beim Übertragen von Bildern hängt die Werkzeugkette jeder `.webp` einen
+`C2PA`-Block an — bei allen drei Texturen exakt 5.768 Byte, mit korrigierter
+RIFF-Länge, also eine gültige, aber andere Datei. Für den Browser harmlos, fürs
+Repository nicht: Die beiden Arbeitskopien hätten ab da verschiedene Bäume
+gehabt. `.glb` und `.html` kamen unverändert an — es trifft nur Bilder.
+
+Der Gegentest, der das sicher zeigt, kostet einen Befehl: auf beiden Seiten
+`git add -A && git write-tree` und die beiden Baum-Hashes vergleichen. Sind sie
+gleich, ist jede Datei bis aufs Byte gleich.
+
 ---
 
 ## Örtlich prüfen

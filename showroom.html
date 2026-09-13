@@ -148,7 +148,14 @@ html[data-welt="aus"] body{
 }
 html[data-welt="aus"] #mess b{color:#97a5bf}
 
-@media (max-width:760px){
+/* Die Schwelle ist zweigeteilt, und das aus Messung:
+   Ein Telefon ist schmal — 760 px fangen es. Ein Tablet im Hochformat ist
+   768 px breit und faellt damit knapp daneben, bekommt also die breite
+   Anordnung: Am 13.09.2026 auf 768x1024 nachgesehen stand die Schrift
+   quer ueber der Marke, und ueber und unter dem Raum blieb je ein
+   Viertel leer. Es geht hier nicht um Breite, sondern um Hochkant.
+   Deshalb die zweite Bedingung. */
+@media (max-width:760px), (max-width:1100px) and (orientation:portrait){
   .block.rechts{text-align:left; margin-left:0}
   .block.rechts .kicker{justify-content:flex-start}
   .block.rechts .knoepfe{justify-content:flex-start}
@@ -166,18 +173,30 @@ html[data-welt="aus"] #mess b{color:#97a5bf}
      die Schrift steht, offen darunter, wo der Raum zu sehen sein soll.
      Gilt fuer alle drei Anordnungen gleich — auf dieser Breite sind sie
      ohnehin alle linksbuendig. */
-  /* Text nach oben, Raum darunter: Im Hochformat teilen sich beide den
-     Bildschirm nacheinander statt uebereinander. Der Schleier deckt
-     genau den oberen Teil, in dem Schrift steht. */
-  .szene{align-items:flex-start; padding-top:17vh}
+  /* RAUM OBEN, TEXT UNTEN — die zweite Fassung, und die richtige
+     ------------------------------------------------------------------
+     Zuerst stand der Text oben und der Raum sollte darunter kommen. Am
+     13.09.2026 auf 390x844 nachgemessen: Das ging nicht auf. Die Marke
+     landete genau hinter den Knoepfen, und unter dem Boden blieb ein
+     schwarzes Drittel uebrig, weil der Raum dort schlicht zu Ende ist.
+     Drei Versuche mit Blickwinkel, Abstand und angehobenem Blickziel
+     haben das Loch nur verschoben.
+
+     Umgedreht geht es auf: Der Raum bekommt die obere Haelfte, in der
+     er etwas zu zeigen hat, der Text die untere, in der ohnehin nur
+     dunkler Boden liegt. Der Schleier laeuft dann von unten nach oben
+     — dunkel unter der Schrift, offen darueber. Nichts ueberlappt, und
+     das schwarze Drittel ist kein Loch mehr, sondern der Grund, auf dem
+     die Zeilen stehen. */
+  .szene{align-items:flex-end; padding-bottom:9vh}
   .szene::before,
   .szene:has(.rechts)::before,
   .szene:has(.mitte)::before{
-    background:linear-gradient(180deg,
-      rgba(5,7,13,.96) 0%, rgba(5,7,13,.94) 46%,
-      rgba(5,7,13,.72) 72%, rgba(5,7,13,0) 100%);
+    background:linear-gradient(0deg,
+      rgba(5,7,13,.97) 0%, rgba(5,7,13,.95) 48%,
+      rgba(5,7,13,.74) 74%, rgba(5,7,13,0) 100%);
     -webkit-mask-image:none; mask-image:none;
-    inset:-6vh 0 auto 0; height:72vh;
+    inset:auto 0 -6vh 0; height:74vh;
   }
 }
 </style>
@@ -469,6 +488,35 @@ function starten() {
   const BILD_REF = 16 / 9;
   const weitung = () => Math.min(Math.max(BILD_REF / Math.max(innerWidth / innerHeight, 0.3), 1), 2.3);
 
+  /* Und eine dritte Korrektur, nachgereicht am selben Abend: Im Hochformat
+     sitzt der ganze Text oben (17vh Abstand von der Kante), die Knoepfe
+     enden bei etwa 60 % der Hoehe — und darunter stand nichts als dunkler
+     Boden, waehrend die Marke halb hinter den Knoepfen klemmte. Der Blick
+     geht deshalb im Hochformat ein Stueck hoeher: Das Bild rutscht nach
+     unten, die Marke kommt unter den Knoepfen frei ins Leere zu stehen.
+     Gemessen auf 390x844; im Querformat ist der Zuschlag null. */
+  /* Und eine dritte Korrektur, gemessen am selben Abend auf 390x844:
+     Blickwinkel und Abstand allein reichen im Hochformat nicht. Der Raum
+     sass in der Bildmitte — also genau dort, wo auf dem Telefon der Text
+     steht — und unter ihm blieb ein schwarzes Drittel, weil der Raum
+     dort schlicht zu Ende ist.
+
+     Deshalb sinkt im Hochformat das Blickziel: Die Kamera schaut tiefer,
+     das Bild steigt, die Marke kommt in die obere Haelfte, und die
+     untere wird zu dem dunklen Grund, auf dem die Zeilen stehen. Dazu
+     geht die Kamera weniger weit zurueck als sonst (0,10 statt 0,25) —
+     sie muss ja nicht mehr den ganzen Raum unterbringen, nur die obere
+     Haelfte.
+
+     Beides haengt an derselben Schwelle wie die Anordnung im Stilblatt
+     (schmal oder hochkant) und nicht am Seitenverhaeltnis allein: Ein schmales
+     Schreibtischfenster (1200x800) hat zwar auch eine Weitung, behaelt
+     aber Text links und Raum rechts — dort waere ein gesenkter Blick
+     falsch. */
+  const hochformat = () => innerWidth <= 1100 && innerHeight > innerWidth * 1.05;
+  const BLICK_SENKUNG = 2.1;
+  const blickZiel = camZiel.clone();
+
   let fov = BEATS[0].fov;
   kamera.position.copy(camPos);
   kamera.lookAt(camZiel);
@@ -714,17 +762,24 @@ function starten() {
     kamera.position.set(camPos.x + atem, camPos.y + atem * 0.4, camPos.z);
 
     const w = weitung();
+    const hoch = hochformat();
     if (w > 1.001) {
       /* erst der Blickwinkel … */
       const halb = Math.atan(Math.tan(fov * Math.PI / 360) * Math.min(w, 1.5));
       kamera.fov = Math.min(74, halb * 360 / Math.PI);
       /* … dann der Abstand, gemessen vom Blickziel aus */
-      kamera.position.sub(camZiel).multiplyScalar(1 + (w - 1) * 0.25).add(camZiel);
+      kamera.position.sub(camZiel).multiplyScalar(1 + (w - 1) * (hoch ? 0.10 : 0.25)).add(camZiel);
     } else {
       kamera.fov = fov;
     }
     kamera.updateProjectionMatrix();
-    kamera.lookAt(camZiel);
+    if (hoch && w > 1.001) {
+      blickZiel.copy(camZiel);
+      blickZiel.y -= (w - 1) * BLICK_SENKUNG;
+      kamera.lookAt(blickZiel);
+    } else {
+      kamera.lookAt(camZiel);
+    }
 
     if (dofPass && marke) {
       /* Der Punkt liegt genau auf der Marke — deshalb wird sie scharf und
