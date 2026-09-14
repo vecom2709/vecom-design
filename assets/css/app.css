@@ -1312,8 +1312,47 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   .buehne-standbild { transition: none; }
 }
 
-/* Der Schleier dunkelt die Bühne genau dort ab, wo gelesen wird. Er ersetzt
+/* LÄUFT DIE BÜHNE NICHT, GEHÖREN BEIDE WEG — UND ZWAR AUS DEM LAYOUT.
+
+   `.world-scrim` und `.world-cut` sind dann unsichtbar: Der Schleier steht
+   auf `--world-scrim`, und diese Variable setzen ausschließlich die
+   Weltmodule; der Schnitt hängt an `[data-cut]`, das ebenfalls nur von dort
+   kommt. Beide auf `opacity: 0` stehen zu lassen kostet trotzdem — und zwar
+   weit mehr, als man ihnen ansieht.
+
+   Am 14.09.2026 mit der Ebenenliste des Browsers gemessen, Zustand
+   „device", 1440 × 900, Seite 16.246 px hoch:
+
+     mit beiden      153 Ebenen,  97,7 Mpx,  darunter main#main mit
+                     1440 × 15.706 px = 22,6 Mpx in EINER Textur
+     ohne beide      151 Ebenen,  73,8 Mpx,  die Textur für main gibt es
+                     nicht mehr
+
+   Der Grund ist die Reihenfolge: Zwei bildschirmfüllende, fest stehende
+   Ebenen liegen HINTER `main`, und `main` steht mit `z-index: 2` darüber.
+   Damit die Reihenfolge stimmt, muss der Browser `main` in eine eigene
+   Ebene heben — und die ist so hoch wie die ganze Seite. Bei vier Byte je
+   Pixel sind das rund 90 MB Grafikspeicher für etwas, das man nicht sieht.
+   Auf einer Intel HD 4400, wie sie hier im Haus steht, ist das der
+   Unterschied zwischen Rollen und Ruckeln.
+
+   Nachgewiesen, dass sich nichts ändert: dieselbe Seite, ein Ladevorgang,
+   Stil ein- und ausgeschaltet, an vier Rollständen verglichen — größter
+   Pixelunterschied 2 von 255, sonst 0. (Zwei getrennte Ladevorgänge zu
+   vergleichen taugt dafür nicht: allein durch die Animationen liegen die
+   um mehr auseinander als jede dieser Änderungen.)
+
+   Der Schleier dunkelt die Bühne genau dort ab, wo gelesen wird. Er ersetzt
    keinen Hintergrund — die Welt bleibt sichtbar, sie tritt nur zurück. */
+[data-world="no-webgl"] .world-scrim,   [data-world="no-webgl"] .world-cut,
+[data-world="save-data"] .world-scrim,  [data-world="save-data"] .world-cut,
+[data-world="device"] .world-scrim,     [data-world="device"] .world-cut,
+[data-world="no-gsap"] .world-scrim,    [data-world="no-gsap"] .world-cut,
+[data-world="init-error"] .world-scrim, [data-world="init-error"] .world-cut,
+[data-world="context-lost"] .world-scrim, [data-world="context-lost"] .world-cut {
+  display: none;
+}
+
 .world-scrim {
   position: fixed; inset: 0; z-index: 1; pointer-events: none;
   background: radial-gradient(120% 90% at 50% 45%, rgba(3, 5, 9, .55), rgba(3, 5, 9, .92) 100%);
