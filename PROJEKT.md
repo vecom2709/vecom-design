@@ -4416,3 +4416,47 @@ falsche Ursache vermutet und geändert, ohne dass sich etwas bewegte. Erst ein
 Raycast durch die Bildschirmkoordinate der Marke hat es entschieden: Marke_V,
 19,3 m, unverdeckt, sichtbar — sie war da, nur übertönt. Wer Licht vermutet,
 soll messen, was der Strahl trifft.
+
+---
+
+## 14.09.2026 — Der Ersatz bekam das Bild, aber nicht den Schutz
+
+**Wer einen Ersatz baut, muss ihm alles mitgeben, was das Original hatte —
+auch das Unsichtbare.** Das Standbild der Bühne stand als `position: fixed`
+hinter der ganzen Startseite. Der laufende Saal legt aber je Abschnitt einen
+Schleier darüber (`--world-scrim`, 0,48 bis 0,86), und diese Variable setzen
+nur die Weltmodule. Läuft die Welt nicht, bleibt sie auf 0 — und genau dann
+ist das Standbild sichtbar. Gemessen im Zustand „device": 11,98 % der
+Textfläche unter 4.5:1 auf 1440 × 900, 10,77 % auf 390 × 844. Das Standbild
+steht jetzt nur noch im Hero und rollt mit ihm weg; danach 0,17 bzw. 0,16 %.
+Ein pauschaler Schleier wäre das Pflaster gewesen: 3,30 % bei 0,85, und die
+Bühne dabei fast schwarz.
+
+**Eine falsche Messung ist schlimmer als keine, weil sie beruhigt.** Dieselbe
+Seite meldete über ein `fullPage`-Bild 0,40 %. Playwright malt ein Element mit
+`position: fixed` darin nur einmal, ganz oben; alles darunter wird gegen
+Schwarz gemessen. Kontrast über eine lange Seite wird ab jetzt bildschirmweise
+gerollt gemessen — `kontrast-rollen.mjs`-Muster —, nie über ein fullPage-Bild.
+Zweiter Fehler im selben Werkzeug: Ein pauschales `background-image: none`
+gegen Verlaufsschrift nimmt `.btn--primary` sein weißes Kissen (das kommt aus
+einem Verlauf, nicht aus `background-color`) und meldete 96,6 % unlesbar für
+einen Knopf mit über 16:1. Nur wer `background-clip: text` hat, verliert sein
+Bild.
+
+**`defer` macht ein fremdes Skript nicht unschädlich.** Das Widget des
+Telefonassistenten hielt `DOMContentLoaded` 12.713 ms auf, solange STRATO
+schwieg — und „schweigt" ist der Normalfall für jeden mit Werbeblocker, denn
+die Listen kennen `voicereceptionist`. Jetzt hängt es sich nach dem
+`load`-Ereignis ein: 271 ms. Fremde Skripte gehören grundsätzlich hinter
+`load`, nicht hinter `defer`.
+
+**Ein Zustand, den niemand absichtlich herbeiführt, ist der, den niemand
+nachmisst.** `init-error` und `context-lost` fehlten in der Schleierliste für
+schmale Schirme und bekamen dort den Verlauf für breite: 3,5 % der Überschrift
+unter 4.5:1, schlechteste Stelle 1,59:1. Wer eine Zustandsliste anlegt, prüft
+sie gegen die Liste der Zustände, die es wirklich gibt.
+
+**Der Film aus der Farm läuft einmal, nicht im Kreis.** Gemessen: Bild 239→240
+unterscheidet sich um 0,91, Bild 1→2 um 0,44, Bild 240→1 um 48,38. Die Fahrt
+blendet an beiden Enden weich ein und aus und endet woanders, als sie beginnt.
+`autoplay muted playsinline`, kein `loop`.
