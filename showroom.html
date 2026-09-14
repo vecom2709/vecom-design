@@ -321,9 +321,9 @@ const STUFEN = {
   /* ueber = Ueberabtastung: oberhalb des Geraetewerts rendern und herunter-
      skalieren. Auf einem 1,25er Bildschirm ist das der groesste sichtbare
      Gewinn, weil jede Kante vier statt einem Farbwert bekommt. */
-  ultra:  { dpr: 1.35, bloom: true,  bloomStaerke: 0.44, schatten: 1024, ueber: true,  tiefe: true },
-  high:   { dpr: 1.25, bloom: true,  bloomStaerke: 0.38, schatten: 1024, ueber: false, tiefe: false },
-  medium: { dpr: 1.35, bloom: true,  bloomStaerke: 0.30, schatten: 0,    ueber: false, tiefe: false },
+  ultra:  { dpr: 1.35, bloom: true,  bloomStaerke: 0.20, schatten: 1024, ueber: true,  tiefe: true },
+  high:   { dpr: 1.25, bloom: true,  bloomStaerke: 0.17, schatten: 1024, ueber: false, tiefe: false },
+  medium: { dpr: 1.35, bloom: true,  bloomStaerke: 0.14, schatten: 0,    ueber: false, tiefe: false },
   low:    { dpr: 1.00, bloom: false, bloomStaerke: 0.00, schatten: 0,    ueber: false, tiefe: false },
 };
 function stufeErmitteln() {
@@ -448,14 +448,17 @@ function starten() {
   szene.add(new THREE.HemisphereLight(0x2a4a80, 0x02040a, 0.55));
   /* Spitzlicht auf die Marke: ein harter Reflex ist der Unterschied
      zwischen blauer Farbe und blauem Metall. Es wandert mit ihr mit. */
-  const spitze = new THREE.SpotLight(0xffffff, 260, 26, 0.55, 0.35, 1.8);
-  spitze.position.set(-5.5, 7.5, 7.5);
+  /* Sass auf y 7,5 -- mitten in der Deckenplatte, deren Unterkante bei 7,38
+     liegt -- und hat sie von innen angestrahlt. Vor der Bauabnahme gab es
+     dort keine Decke, deshalb ist es nie aufgefallen. */
+  const spitze = new THREE.SpotLight(0xffffff, 180, 26, 0.55, 0.35, 1.8);
+  spitze.position.set(-5.5, 6.40, 7.5);
   szene.add(spitze);
   szene.add(spitze.target);
   spitze.target.position.set(0, 3.4, -4);
   /* Wandwaesche hinten, damit der Raum nicht im Nichts endet */
-  const wand = new THREE.PointLight(0x2f6ad0, 120, 30, 2.0);
-  wand.position.set(0, 4.5, -28);
+  const wand = new THREE.PointLight(0x2f6ad0, 70, 26, 2.0);
+  wand.position.set(0, 3.60, -28);
   szene.add(wand);
 
   /* --------------------------------------------------------------- Beats
@@ -559,8 +562,12 @@ function starten() {
          hochzudrehen, bekommt jedes Material seinen Wert — sonst ertrinkt
          das Bild in Türkis, weil die Bodenfugen am längsten im Bild sind. */
       const STAERKE = {
-        M_LichtCyan: 0.50, M_LichtBlau: 1.10, M_Deckenfeld: 1.05,
-        M_Kantenlicht: 1.70, M_Sockelkante: 1.00, M_Fuge: 1.00, M_Display: 0.85,
+        /* Nach der Bauabnahme zurueckgenommen: die Leuchtflaechen sind
+           gewachsen, weil sie jetzt dorthin reichen, wo sie hingehoeren.
+           Deckenfugen 6,4 -> 74,5 m², Portallichter ±4,30 -> ±8,60 m.
+           Dieselben Werte wie in raum.js -- es ist derselbe Saal. */
+        M_LichtCyan: 0.22, M_LichtBlau: 0.40, M_Deckenfeld: 0.14,
+        M_Kantenlicht: 0.70, M_Sockelkante: 1.00, M_Fuge: 0.35, M_Display: 0.85,
       };
       if (mat.emissiveIntensity !== undefined) {
         mat.emissiveIntensity = STAERKE[mat.name] !== undefined ? STAERKE[mat.name] : 1.0;
@@ -596,6 +603,18 @@ function starten() {
                       : mat.name === 'M_MetallPfosten' ? 0.38 : 0.52;
         mat.metalness = 1.0;
         mat.roughnessMap = K_METALL;
+        mat.normalMap = K_NORMAL;
+        mat.normalScale = new THREE.Vector2(0.16, 0.16);
+      }
+      if (mat.name === 'M_Decke' || mat.name === 'M_Wand') {
+        /* In Cycles steckt der Gewinn von 0,042 fast ganz im indirekten
+           Licht. three.js hat keins und multipliziert nur die direkt
+           beleuchtete Wand -- Faktor sieben. Zwei Renderer, zwei Zahlen. */
+        mat.color.setScalar(mat.name === 'M_Wand' ? 0.016 : 0.022);
+      }
+      if (mat.name === 'M_Decke') {
+        mat.roughness = 0.88;
+        mat.roughnessMap = K_BODEN;
         mat.normalMap = K_NORMAL;
         mat.normalScale = new THREE.Vector2(0.16, 0.16);
       }
