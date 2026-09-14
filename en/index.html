@@ -1331,6 +1331,34 @@
 <script src="../assets/js/start.js?v=c50f985e" defer></script>
 <script type="module" src="../assets/js/world/site-world.js?v=95ba9375"></script>
 
+<!-- DAS NETZ UNTER DER BÜHNE
+     ------------------------------------------------------------------------
+     Am 14.09.2026 hat sich gezeigt, dass die Bühne auf eine Art ausfallen
+     kann, die keiner ihrer eigenen Rückfälle auffängt: Bricht schon das
+     Laden der Module, läuft off() nie — der Fehler passiert, bevor es die
+     Funktion gibt. Der Besucher sah dann weder Welt noch Standbild, sondern
+     nichts. Genau das ist auf Uwes Rechner passiert, weil sein Browser eine
+     ältere quality.js im Speicher hatte und die neue site-world.js daraus
+     einen Namen wollte, den es dort noch nicht gab.
+
+     Deshalb hier, außerhalb des Modulgraphen und ohne jede Abhängigkeit:
+     Steht nach zwölf Sekunden immer noch kein Zustand an <html>, ist etwas
+     schiefgegangen, das sich selbst nicht mehr melden kann. Dann das
+     gerechnete Standbild — es hängt nur an CSS und braucht kein Skript. -->
+<script>
+(function () {
+  var w = document.documentElement;
+  setTimeout(function () {
+    if (!w.getAttribute('data-world')) {
+      w.setAttribute('data-world', 'init-error');
+      var c = document.querySelector('canvas.stage');
+      if (c) { c.hidden = true; }
+      if (window.__auftaktFrei) { window.__auftaktFrei(); }
+    }
+  }, 12000);
+})();
+</script>
+
 <!-- Besucherzählung: läuft ausschließlich auf dem eigenen Webspace.
      Kein fremder Dienst, kein Cookie, keine IP-Speicherung. -->
 <script>

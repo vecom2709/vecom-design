@@ -116,6 +116,27 @@ RewriteRule ^_[^/]*$ - [R=404,L]
     Header set Cache-Control "public, max-age=3600, must-revalidate"
     Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
   </FilesMatch>
+  # DIE WELTMODULE DUERFEN NICHT ALTERN
+  #
+  # site-world.js traegt einen Fingerabdruck in der Adresse; quality.js,
+  # raum.js und raum-beats.js nicht, denn die importiert sie selbst, per
+  # relativem Pfad, und da schreibt build.mjs nicht hinein. Mit max-age 3600
+  # heisst das: Wer in der letzten Stunde da war, bekommt eine neue
+  # site-world.js und eine alte quality.js dazu.
+  #
+  # Am 14.09.2026 hat das die Seite gekostet. site-world.js wollte
+  # grafikZuSchwach aus einer quality.js, die den Namen noch nicht kannte --
+  # SyntaxError beim Verknuepfen der Module, und zwar bevor es off() gibt.
+  # Kein Rueckfall greift, wenn der Rueckfall selbst nicht geladen ist: Der
+  # Besucher sah weder Welt noch Standbild.
+  #
+  # Also nachfragen, jedes Mal. Die Dateien sind klein, die Antwort ist fast
+  # immer ein 304, und ein Modulgraph aus zwei Zeitaltern kann nicht mehr
+  # entstehen.
+  <FilesMatch "^(quality|raum|raum-beats|site-world)\.js$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
   <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb)$">
     Header set Cache-Control "public, max-age=2592000"
     Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
