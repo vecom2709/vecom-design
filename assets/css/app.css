@@ -1179,6 +1179,42 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 [data-world="on"] .stage { opacity: 1; }
 .stage[hidden] { display: none; }
 
+/* ---------- Die Bühne für Rechner, die keine bauen können ----------------
+   Bis zum 14.09.2026 bekamen sie gar nichts: off() hat die Leinwand versteckt
+   und damit stand die Seite auf ihrem eigenen Dunkelblau. Wer kein WebGL hat,
+   im Datensparmodus surft oder mit einem schwachen Telefon kommt, hat den
+   Showroom nie gesehen — und das sind nicht wenige.
+
+   Jetzt sehen sie denselben Saal, nur gerechnet statt in Echtzeit: ein Bild
+   aus dem Cycles-Durchgang. Es kostet keine Rechenzeit, keinen Akku und
+   keine Bibliothek, und es sieht besser aus als die Echtzeitfassung, weil
+   ein gerechnetes Bild indirektes Licht kennt.
+
+   Geladen wird es nur, wenn es gebraucht wird: Ein Hintergrundbild auf einem
+   Element mit display:none holt kein Browser. Wer die Echtzeitwelt bekommt,
+   überträgt diese Datei nie. */
+.buehne-standbild {
+  position: fixed; inset: 0; z-index: 0;
+  display: none;
+  background-image: image-set(
+    url("../img/3d/buehne-standbild.avif") type("image/avif"),
+    url("../img/3d/buehne-standbild.webp") type("image/webp"));
+  background-size: cover;
+  background-position: 50% 42%;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 900ms var(--e-std);
+}
+[data-world="no-webgl"] .buehne-standbild,
+[data-world="save-data"] .buehne-standbild,
+[data-world="device"] .buehne-standbild,
+[data-world="no-gsap"] .buehne-standbild { display: block; opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .buehne-standbild { transition: none; }
+}
+
 /* Der Schleier dunkelt die Bühne genau dort ab, wo gelesen wird. Er ersetzt
    keinen Hintergrund — die Welt bleibt sichtbar, sie tritt nur zurück. */
 .world-scrim {
@@ -1211,7 +1247,11 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
    schmalen Schirmen gibt es kein Links und Rechts; dort läuft derselbe
    Verlauf von unten nach oben, weil der Text dann unter der Bühne steht.
    --------------------------------------------------------------------------- */
-[data-world="on"] .hero::after {
+[data-world="on"] .hero::after,
+[data-world="no-webgl"] .hero::after,
+[data-world="save-data"] .hero::after,
+[data-world="device"] .hero::after,
+[data-world="no-gsap"] .hero::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(100deg,
     rgba(3, 5, 9, .96) 0%, rgba(3, 5, 9, .94) 44%,
@@ -1231,7 +1271,11 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
    bleibt als dunkle Form dahinter erkennbar, statt gegen jede Zeile zu
    kämpfen. */
 @media (max-width: 899px) {
-  [data-world="on"] .hero::after {
+  [data-world="on"] .hero::after,
+  [data-world="no-webgl"] .hero::after,
+  [data-world="save-data"] .hero::after,
+  [data-world="device"] .hero::after,
+  [data-world="no-gsap"] .hero::after {
     background: linear-gradient(180deg,
       rgba(3, 5, 9, .26) 0%, rgba(3, 5, 9, .70) 13%,
       rgba(3, 5, 9, .82) 34%, rgba(3, 5, 9, .86) 100%);
