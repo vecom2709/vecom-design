@@ -331,6 +331,31 @@ html { scroll-padding-top: clamp(4.5rem, 8vw, 6rem); }
 }
 .nav a:hover, .nav a[aria-current="true"] { color: var(--c-text); }
 .nav a:hover::after, .nav a[aria-current="true"]::after { transform: scaleX(1); transform-origin: 0 50%; }
+
+/* SOBALD EIN SAAL DAHINTER STEHT, REICHT GEDAEMPFT NICHT MEHR.
+   Am 14.09.2026 auf 1440x900 gemessen, jeder Navigationspunkt einzeln
+   gegen den echten Grund darunter (Schrift unsichtbar, Grund fotografiert):
+
+     Lavori  7,37:1   Servizi 7,35:1   Prezzi 7,30:1   Metodo 7,30:1
+     Chi sono 7,20:1  FAQ     5,48:1   Contatti 3,37:1
+
+   Die Reihe faellt von links nach rechts, und das ist kein Zufall: Der
+   Schleier des Hero laeuft vor der Marke aus, damit sie zu sehen bleibt --
+   die letzten beiden Punkte stehen dann schon im hellen Teil des Saals.
+   Gemessene Leuchtdichte des Grundes unter "Contatti": 0,076 gegen 0,007
+   unter "Lavori", also das Zehnfache.
+
+   Also werden genau diese Punkte heller, und nur dann, wenn wirklich ein
+   Saal dahinter steht. Auf flachem Grund bleibt die Navigation gedaempft,
+   wie sie gedacht ist. #b2c2df traegt 4,62:1 ueber 0,076 -- nachgerechnet,
+   nicht ausprobiert. */
+html[data-world="on"] .nav a,
+html[data-world="no-webgl"] .nav a,
+html[data-world="save-data"] .nav a,
+html[data-world="device"] .nav a,
+html[data-world="no-gsap"] .nav a,
+html[data-world="init-error"] .nav a,
+html[data-world="context-lost"] .nav a { color: #b2c2df; }
 .header__tools { display: flex; align-items: center; gap: var(--s-2); }
 
 /* Sprachwahl */
@@ -566,6 +591,17 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 }
 .hero__meta div { min-width: 120px; }
 .hero__meta dt { font-size: var(--t-xs); letter-spacing: .22em; text-transform: uppercase; color: var(--c-text-faint); }
+/* Dieselbe Sache eine Etage tiefer: Von den drei Kennzahlen steht die
+   dritte -- "Lingue" -- am weitesten rechts und damit im hellsten Teil.
+   Gemessen: 5,96:1, 5,64:1, 3,62:1. #96a4c0 traegt 4,78:1 ueber dem dort
+   gemessenen Grund von 0,038. */
+html[data-world="on"] .hero__meta dt,
+html[data-world="no-webgl"] .hero__meta dt,
+html[data-world="save-data"] .hero__meta dt,
+html[data-world="device"] .hero__meta dt,
+html[data-world="no-gsap"] .hero__meta dt,
+html[data-world="init-error"] .hero__meta dt,
+html[data-world="context-lost"] .hero__meta dt { color: #96a4c0; }
 .hero__meta dd { margin: .45rem 0 0; font-family: var(--f-display); font-size: var(--t-md); }
 
 .scrollcue {
@@ -1212,6 +1248,45 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 [data-world="no-gsap"] .buehne-standbild,
 [data-world="init-error"] .buehne-standbild,
 [data-world="context-lost"] .buehne-standbild { display: block; opacity: 1; }
+
+/* DAS STANDBILD GEHOERT IN DEN HERO, NICHT HINTER DIE GANZE SEITE.
+
+   Es stand als position:fixed hinter allen 17.733 px der Startseite -- ein
+   und dasselbe Bild eines hellen Saals, ueber dem jede Zeile der Seite
+   stand. Der laufende Saal macht das nicht: Er faehrt die Kamera weiter und
+   legt je Abschnitt einen Schleier darueber (--world-scrim, in site-beats
+   zwischen 0,48 und 0,86). Dieser Schleier wird aber NUR von den
+   Weltmodulen gesetzt. Laeuft die Welt nicht, bleibt er auf 0 -- und genau
+   dann ist das Standbild da. Der Ersatz bekam also das Bild und nicht den
+   Schutz.
+
+   Am 14.09.2026 gemessen, Bildschirm fuer Bildschirm gerollt (ein
+   fullPage-Bild taugt dafuer nicht: position:fixed malt Playwright darin
+   nur einmal, ganz oben, und meldet darunter Ruhe):
+
+     Zustand "device", 1440x900, Flaeche des Textes unter 4.5:1
+       Standbild hinter der ganzen Seite   11,98 %   72 auffaellige Stellen
+       mit pauschalem Schleier 0,85         3,30 %   41
+       Standbild nur im Hero                siehe Commit
+
+   Ein pauschaler Schleier waere das Pflaster gewesen. Richtig ist das, was
+   im Glasblock weiter unten schon als Grundsatz steht: Laeuft die Buehne
+   nicht, ist die Seite wieder die, die sie vorher war. Unterhalb des Hero
+   hat ein eingefrorenes Bild ohnehin nichts zu geben -- es bewegt sich
+   nicht, es erzaehlt nichts, es steht nur im Weg.
+
+   Die Maske unten loest die Kante auf, wo das Bild endet; der Hero ist
+   min-height:100svh und kann hoeher werden als 100svh. */
+[data-world="no-webgl"] .buehne-standbild,
+[data-world="save-data"] .buehne-standbild,
+[data-world="device"] .buehne-standbild,
+[data-world="no-gsap"] .buehne-standbild,
+[data-world="init-error"] .buehne-standbild,
+[data-world="context-lost"] .buehne-standbild {
+  position: absolute; inset: auto 0 auto 0; top: 0; height: 100svh;
+  -webkit-mask-image: linear-gradient(180deg, #000 68%, rgba(0,0,0,.55) 88%, transparent 100%);
+          mask-image: linear-gradient(180deg, #000 68%, rgba(0,0,0,.55) 88%, transparent 100%);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .buehne-standbild { transition: none; }
