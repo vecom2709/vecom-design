@@ -1382,8 +1382,37 @@
      Datenschutzerklaerung unter "Telefonassistent" — legal.html,
      Abschnitt p8. Wer das hier wieder herausnimmt, nimmt ihn auch dort
      heraus. -->
-<script src="https://strato.ai-voicereceptionist.com/widget/v1/embed.js"
-        data-agent-id="a6ea7fe1-fd3e-4850-8e7b-7f9f558b3b4d" defer></script>
+<script>
+(function () {
+  /* NACHGELADEN, NICHT MITGELADEN. Am 14.09.2026 gemessen: Mit defer haengt
+     das DOMContentLoaded der ganzen Seite an STRATOs Erreichbarkeit --
+     12.713 ms statt 350 ms, wenn das Skript nicht kommt. defer macht ein
+     Skript nicht unschaedlich; es verschiebt es nur bis kurz vor das
+     Ereignis und haelt das Ereignis dann auf. Und "kommt nicht" ist kein
+     Ausnahmefall: Jede Werbeblockerliste kennt voicereceptionist.
+     Jetzt haengt er sich nach dem load-Ereignis ein. Der Assistent kommt
+     weiterhin von allein -- niemand muss etwas anklicken, und in der
+     Datenschutzerklaerung bleibt alles, wie es steht -- aber die Seite
+     wartet nicht mehr auf ihn. */
+  var quelle = 'https://strato.ai-voicereceptionist.com/widget/v1/embed.js';
+  function holen() {
+    var s = document.createElement('script');
+    s.src = quelle;
+    s.async = true;
+    s.setAttribute('data-agent-id', 'a6ea7fe1-fd3e-4850-8e7b-7f9f558b3b4d');
+    document.body.appendChild(s);
+  }
+  function gleich() {
+    /* Erst wenn der Browser nichts Besseres zu tun hat -- mit Zeitlimit,
+       weil requestIdleCallback auf einer beschaeftigten Seite sonst spaet
+       kommt oder gar nicht. */
+    if (window.requestIdleCallback) { requestIdleCallback(holen, { timeout: 2500 }); }
+    else { setTimeout(holen, 800); }
+  }
+  if (document.readyState === 'complete') { gleich(); }
+  else { window.addEventListener('load', gleich, { once: true }); }
+})();
+</script>
 <img src="/z.php" width="1" height="1" alt="" aria-hidden="true"
      style="position:absolute;left:-9999px;top:0">
 </body>
