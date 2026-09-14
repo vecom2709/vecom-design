@@ -182,6 +182,13 @@ async function start() {
     requestAnimationFrame(loop);
   }
 
+  /* Die Stufe nach aussen geben: Das Stilblatt haengt die Staerke der
+     Glas-Unschaerfe daran. backdrop-filter ist die teuerste Zeile CSS auf
+     dieser Seite, und ein schwaches Geraet soll dieselbe Optik bekommen,
+     ohne dieselbe Rechenarbeit. */
+  root.setAttribute('data-stufe', quality.level);
+  quality.onChange = (einst, stufe) => root.setAttribute('data-stufe', stufe);
+
   world.render();
   requestAnimationFrame(() => {
     root.setAttribute('data-world', 'on');
@@ -244,6 +251,7 @@ async function standbild() {
   root.style.setProperty('--world-scrim', String(schmal ? 0.06 : hero.scrim));
 
   raum.standbild();
+  root.setAttribute('data-stufe', quality.level);
   root.setAttribute('data-world', 'on');
   root.setAttribute('data-opening', 'done');
   if (window.__auftaktFrei) { window.__auftaktFrei(); }

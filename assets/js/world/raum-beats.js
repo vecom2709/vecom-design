@@ -47,7 +47,11 @@ export const RAUM_BEATS = [
   { id: 'video',    cam: b2t(-1.2,  -4.5, 1.50), ziel: b2t( 0.0,  4.2, 3.90), fov: 48, fog: 0.0115, key: 2.2, spitze: 280, wand: 120, bloom: 0.52, scrim: 0.84 },
   { id: 'pillars',  cam: b2t( 2.0,  -6.0, 6.20), ziel: b2t( 0.0,  6.0, 2.40), fov: 50, fog: 0.0100, key: 2.6, spitze: 240, wand: 140, bloom: 0.48, scrim: 0.68 },
   { id: 'partner',  cam: b2t(-1.0,  18.0, 3.00), ziel: b2t( 1.5, 30.0, 3.20), fov: 52, fog: 0.0165, key: 1.5, spitze:  90, wand: 150, bloom: 0.42, scrim: 0.88 },
-  { id: 'faq',      cam: b2t( 5.0,  -2.5, 3.30), ziel: b2t(-0.5,  5.0, 3.30), fov: 44, fog: 0.0120, key: 2.1, spitze: 220, wand: 120, bloom: 0.46, scrim: 0.80 },
+  /* FAQ stand mit der Kamera dicht an der Marke -- das ganze Bild war
+     mittelblau, und die Glasscheiben darauf verloren jeden Kontrast.
+     Jetzt von weiter hinten und an der Marke vorbei in den Gang: dunkler
+     Grund, ruhige Flaeche, die Marke nur noch am Rand. */
+  { id: 'faq',      cam: b2t( 7.5,   2.0, 3.10), ziel: b2t( 2.0, 16.0, 3.10), fov: 50, fog: 0.0170, key: 1.4, spitze:  80, wand: 130, bloom: 0.34, scrim: 0.86 },
   { id: 'contact',  cam: b2t(-3.0, -11.0, 2.50), ziel: b2t( 0.0,  4.6, 3.40), fov: 44, fog: 0.0105, key: 2.3, spitze: 250, wand: 130, bloom: 0.50, scrim: 0.78 },
 ];
 
