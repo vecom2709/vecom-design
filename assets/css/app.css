@@ -1209,7 +1209,9 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 [data-world="no-webgl"] .buehne-standbild,
 [data-world="save-data"] .buehne-standbild,
 [data-world="device"] .buehne-standbild,
-[data-world="no-gsap"] .buehne-standbild { display: block; opacity: 1; }
+[data-world="no-gsap"] .buehne-standbild,
+[data-world="init-error"] .buehne-standbild,
+[data-world="context-lost"] .buehne-standbild { display: block; opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
   .buehne-standbild { transition: none; }
@@ -1251,7 +1253,9 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 [data-world="no-webgl"] .hero::after,
 [data-world="save-data"] .hero::after,
 [data-world="device"] .hero::after,
-[data-world="no-gsap"] .hero::after {
+[data-world="no-gsap"] .hero::after,
+[data-world="init-error"] .hero::after,
+[data-world="context-lost"] .hero::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(100deg,
     rgba(3, 5, 9, .96) 0%, rgba(3, 5, 9, .94) 44%,

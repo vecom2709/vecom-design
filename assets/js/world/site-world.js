@@ -8,7 +8,7 @@
    - fehlt WebGL, ist reduzierte Bewegung gewünscht oder ist das Gerät schwach,
      bleibt exakt die Seite übrig, die vorher da war
    ========================================================================== */
-import { Quality, detectLevel, supportsWebGL } from './quality.js';
+import { Quality, detectLevel, supportsWebGL, grafikZuSchwach, grafikKennung } from './quality.js';
 /* three.js und die Bühne werden erst geladen, wenn feststeht, dass sie laufen
    sollen — auf schwachen Telefonen spart das rund 750 KB, die sonst nur
    heruntergeladen und weggeworfen würden. */
@@ -53,6 +53,21 @@ if (!canvas) {
   standbild();
 } else if (saveData) {
   off('save-data');
+} else if (grafikZuSchwach()) {
+  /* DIE GRAFIK ENTSCHEIDET, NICHT DIE KERNE
+     ------------------------------------------------------------------
+     weak() unten fragt nach Speicher und Kernen und nur auf Touch-Geraeten.
+     Uwes eigener Rechner faellt durch jedes dieser Netze: ein i7-4600U mit
+     vier Threads, Maus statt Finger, 8 GB -- und einer Intel HD 4400 von
+     2013. Am 14.09.2026 blieb vecom-design.it auf genau diesem Geraet so
+     lange haengen, dass Chrome ueber eine halbe Minute lang kein Skript
+     mehr ausfuehren konnte. Die Seite war nicht langsam, sie war weg.
+
+     Wer hier landet, bekommt das gerechnete Standbild. Das ist kein
+     Rueckschritt: Es ist dasselbe Bild aus demselben Raum, nur in Cycles
+     gerechnet statt in Echtzeit -- mit indirektem Licht, das three.js gar
+     nicht kann. */
+  off('device');
 } else if (weak) {
   off('device');
 } else if (!window.gsap || !window.ScrollTrigger) {
@@ -103,10 +118,22 @@ async function start() {
        fuer einen Moment einen leeren, blauschwarzen Raum -- und bei einem
        Ladefehler dauerhaft. Der Inhalt der Seite steht derweil laengst; das
        Warten haelt nichts auf ausser dem Einblenden der Buehne selbst. */
-    await world.bereit;
+    /* MIT UHR, NICHT AUF GUT GLUECK
+       ----------------------------------------------------------------
+       world.bereit wartet auf das Modell und auf die erste Uebersetzung
+       der Shader. Auf einer alten Grafik dauert genau das Letzte lange --
+       und solange es dauert, steht der Hauptthread. Ohne Uhr wartet die
+       Buehne unbegrenzt; mit ihr faellt sie nach zwoelf Sekunden auf das
+       Standbild zurueck, das dann sofort steht.
+
+       Zwoelf Sekunden sind grosszuegig: Eine schlechte Leitung soll nicht
+       zum Abbruch fuehren, ein ueberfordertes Geraet schon. */
+    const zuLang = new Promise((_, weg) => setTimeout(() => weg(new Error('Aufbau dauerte laenger als 12 s')), 12000));
+    await Promise.race([world.bereit, zuLang]);
   } catch (e) {
     console.warn('3D-Bühne nicht gestartet:', e);
-    off('init-error');
+    try { if (world) world.dispose(); } catch (e2) { /* nichts */ }
+    off('device');
     return;
   }
 
@@ -176,11 +203,26 @@ async function start() {
     if (running) requestAnimationFrame(loop);
   });
 
-  function loop() {
+  /* Die Abstufung bekommt endlich Messwerte. Bis heute rief niemand
+     quality.sample() auf -- die Klasse hat gemessen, was man ihr gab, und
+     man gab ihr nichts. */
+  let letzter = 0;
+  function loop(jetzt) {
     if (!running) return;
+    if (letzter) quality.sample(jetzt - letzter);
+    letzter = jetzt;
     world.render();
     requestAnimationFrame(loop);
   }
+
+  /* Wenn auch die unterste Stufe nicht traegt: Buehne abbauen, Standbild
+     zeigen. Kein Zurueck -- ein Hin und Her waere sichtbarer als beides. */
+  quality.onAufgeben = (avg) => {
+    console.info('Bühne abgebaut: ' + avg.toFixed(0) + ' ms je Bild auf der untersten Stufe.');
+    running = false;
+    try { world.dispose(); } catch (e) { /* egal, sie wird ohnehin versteckt */ }
+    off('device');
+  };
 
   /* Die Stufe nach aussen geben: Das Stilblatt haengt die Staerke der
      Glas-Unschaerfe daran. backdrop-filter ist die teuerste Zeile CSS auf
@@ -217,6 +259,14 @@ async function start() {
    Bildschleife. Was fehlt, kann auch nicht versehentlich wieder anspringen.
    -------------------------------------------------------------------------- */
 async function standbild() {
+  /* Auch hier zuerst die Grafik fragen. Ein stehendes Bild aus der
+     Echtzeitwelt kostet trotzdem den ganzen Aufbau: Modell laden, Shader
+     uebersetzen, einmal zeichnen. Auf einer Intel HD 4400 ist genau das
+     der teure Teil -- das Stehenbleiben danach ist gratis. Wer die Buehne
+     nicht bauen kann, bekommt das gerechnete Bild, und das passt hier
+     ohnehin am besten: Es bewegt sich per Definition nicht. */
+  if (grafikZuSchwach()) { off('device'); return; }
+
   const quality = new Quality(detectLevel());
   let raum, hero;
   try {
@@ -225,11 +275,13 @@ async function standbild() {
       import('./raum-beats.js'),
     ]);
     raum = new Raum(canvas, quality);
-    await raum.bereit;
+    const zuLang = new Promise((_, weg) => setTimeout(() => weg(new Error('Aufbau dauerte laenger als 12 s')), 12000));
+    await Promise.race([raum.bereit, zuLang]);
     hero = beats.RAUM_BEATS[0];
   } catch (e) {
     console.warn('3D-Standbild nicht gestartet:', e);
-    off('init-error');
+    try { if (raum) raum.dispose(); } catch (e2) { /* nichts */ }
+    off('device');
     return;
   }
 
