@@ -4460,3 +4460,40 @@ sie gegen die Liste der Zustände, die es wirklich gibt.
 unterscheidet sich um 0,91, Bild 1→2 um 0,44, Bild 240→1 um 48,38. Die Fahrt
 blendet an beiden Enden weich ein und aus und endet woanders, als sie beginnt.
 `autoplay muted playsinline`, kein `loop`.
+
+---
+
+## 14.09.2026, abends — Jede Bühne braucht denselben Notausgang
+
+**Ein Rückfall, den niemand absichtlich auslöst, ist der, den niemand nachmisst
+— also muss man ihn herbeiführen.** Vier Ausfälle, echt erzwungen statt
+simuliert: `getContext` liefert `null`, das Kontextverlust-Ereignis wird
+ausgelöst, der Import von three.js hängt, die Grafik ist zu schwach. Die
+Startseite hielt alle vier. Die Showroom-Seite keinen: Bei Kontextverlust und
+hängendem Aufbau blieb der Zustand überhaupt leer, und „aus" hieß nur, die
+Leinwand zu verstecken — gemessene mittlere Helligkeit 17,8 von 255, fünf
+Prozent der Fläche sichtbar. Jetzt 42,5, mit Standbild und lesbarem Text.
+
+**Vier Stücke gehören zu jeder 3D-Seite**, und zwar zusammen: ein Standbild
+(nur im ersten Bildschirm, es rollt mit ihm weg); ein Netz **außerhalb** des
+Modulgraphen (ein gewöhnliches Skript ohne Abhängigkeit — ein Netz im Modul
+greift bei hängendem Import nie, es wird selbst nie geladen); **dieselbe**
+Weiche wie die Hauptseite, importiert statt kopiert (zwei Kopien sind zwei
+Wahrheiten — hier urteilten sie verschieden: dieselbe Haswell-Karte bekam auf
+der Startseite das Standbild und versuchte hier den vollen Saal mit Bloom);
+und ein **Ende der Leiter** — wer auch auf der untersten Stufe unter 24
+Bildern/s bleibt, bekommt das Bild, statt dort ewig weiterzuruckeln.
+
+**Unsichtbares kostet trotzdem.** `backdrop-filter` auf Kopfleiste, Fuß und
+Kontaktkasten fällt in den sechs Rückfallzuständen weg: Ohne Bühne liegt dort
+einfarbiger Grund, der Weichzeichner verwischt eine Fläche, die überall gleich
+aussieht. Einzeln gemessen, größter Pixelunterschied **1 von 255** bei jedem
+der drei. Dieselbe Regel wie beim Schleier am Morgen: Eine Ebene mit
+Deckkraft 0 ist immer noch eine Ebene, und ein Weichzeichner ohne Motiv ist
+immer noch ein Weichzeichner.
+
+**Ein Farbverlauf muss an seinem dunkelsten Punkt tragen, nicht im Mittel.**
+Der Hauptknopf der Showroom-Seite: Schrift `#03060c` gegen `#0648e8` nur
+2,99:1, gegen `#1fe8ff` 13,57:1 — gemessen 36,8 % der Knopffläche unter 4.5:1,
+schlechteste Stelle 1,01:1. Der Verlauf beginnt jetzt bei `#0d85f7` (5,52:1).
+Seite insgesamt 2,10 % → 0,15 %.
