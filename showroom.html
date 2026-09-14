@@ -139,6 +139,8 @@ p.lead{
   backdrop-filter:blur(8px); transition:color .25s, border-color .25s;
 }
 #zurueck:hover,#zurueck:focus-visible{color:var(--c-text); border-color:rgba(150,180,230,.45)}
+/* Steht ein Standbild dahinter, reicht rgba(5,7,13,.55) nicht mehr. */
+html[data-welt="aus"] #zurueck{background:rgba(5,7,13,.88); color:var(--c-text)}
 #zurueck span{margin-right:.45rem}
 
 /* Fusszeile: Pflichtangaben gehoeren auch auf eine Schauseite */
@@ -177,12 +179,37 @@ html[data-welt="aus"] .standbild{
 html[data-welt="aus"] .standbild img{
   display:block; width:100%; height:100%; object-fit:cover; object-position:50% 42%;
 }
-/* Der Text muss darueber stehen und lesbar bleiben. */
+/* Der Text muss darueber stehen und lesbar bleiben.
+   ERST WAR HIER EIN KASTEN HINTER DEM TEXT -- und der war falsch: .block ist
+   44rem breit, also endete die dunkle Flaeche mitten im Bild an einer harten
+   senkrechten Kante. Auf 1366 px sah man sie sofort.
+   Richtig ist derselbe Griff wie im Hero der Startseite: ein Verlauf ueber
+   das GANZE Bild, dunkel auf der Textseite, offen dort, wo die Marke steht.
+   Er hat keine Kante, weil er nirgends aufhoert. */
 html[data-welt="aus"] #inhalt{position:relative; z-index:1}
-html[data-welt="aus"] .szene[data-beat="0"] .block{
-  background:linear-gradient(180deg,rgba(3,5,9,.40),rgba(3,5,9,.86) 46%,rgba(3,5,9,.94));
-  padding:clamp(1rem,2.4vw,2rem); border-radius:14px;
+html[data-welt="aus"] .standbild::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(100deg,
+    rgba(3,5,9,.95) 0%, rgba(3,5,9,.92) 36%, rgba(3,5,9,.62) 50%,
+    rgba(3,5,9,.22) 68%, rgba(3,5,9,.04) 84%, rgba(3,5,9,0) 94%);
 }
+/* Auf schmalen Schirmen gibt es kein Links und Rechts -- dort steht der Text
+   ueber der ganzen Breite, also laeuft der Verlauf von unten nach oben. */
+@media (max-width: 899px){
+  html[data-welt="aus"] .standbild::after{
+    /* Oben NICHT aufmachen: Dort steht der feste Zurueck-Knopf. Mit .25 am
+       oberen Rand lagen auf 390x844 gemessen 45,7 % seiner Flaeche unter
+       4.5:1, schlechteste Stelle 1,02:1 -- die Beschriftung war weg.
+       Der Verlauf beginnt deshalb erst unterhalb des Knopfes hell zu werden. */
+    background:linear-gradient(180deg,
+      rgba(3,5,9,.86) 0%, rgba(3,5,9,.80) 9%, rgba(3,5,9,.58) 18%,
+      rgba(3,5,9,.80) 34%, rgba(3,5,9,.93) 100%);
+  }
+}
+/* Der Weg zurueck steht fest oben links. Auf niedrigen Fenstern lief die
+   Augenbraue der ersten Szene genau dahinter -- auf 1366x599 gemessen stand
+   "...IGN - SIZILIEN" halb unter dem Knopf. Also Platz schaffen. */
+.szene[data-beat="0"]{padding-top:max(4.5rem, 11vh)}
 
 /* Die Schwelle ist zweigeteilt, und das aus Messung:
    Ein Telefon ist schmal — 760 px fangen es. Ein Tablet im Hochformat ist
@@ -426,6 +453,11 @@ function stufeErmitteln() {
   const gewuenscht = new URLSearchParams(location.search).get('q');
   if (gewuenscht && STUFEN[gewuenscht]) return gewuenscht;
 
+  /* Karten, die die Startseite schon als zu schwach kennt, fangen unten an --
+     nicht bei "high", nur weil sie eingebaut sind. Sie duerfen, aber sie
+     muessen sich nicht erst durch drei Stufen nach unten arbeiten. */
+  if (zuSchwach(GPU)) return 'low';
+
   const speicher = navigator.deviceMemory || 4;
   const kerne = navigator.hardwareConcurrency || 4;
   const grob = matchMedia('(pointer: coarse)').matches;
@@ -468,14 +500,18 @@ function webglDa() {
 
 const wenigerBewegung = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* Dieselbe Weiche wie auf der Startseite, aus derselben Datei -- damit nicht
-   zwei Stellen verschieden urteilen. Haswell-Grafik (Intel HD bis 6000) baut
-   diesen Saal nicht in ertraeglicher Zeit; sie bekommt das Standbild, statt es
-   zu versuchen und daran zu ersticken. */
+/* ERST GESPERRT, DANN GEMESSEN -- das war die falsche Reihenfolge, und Uwe hat
+   es sofort gesehen: "Showroom keine Bewegung". Ich hatte die Weiche der
+   Startseite uebernommen und schwache Grafik hier gar nicht erst starten
+   lassen. Nur ist das ein anderer Saal als dort, und fuer DIESEN hatte ich
+   keine einzige Messung.
+   Jetzt darf das Geraet sich beweisen: schwache Grafik faengt auf der
+   untersten Stufe an, und wenn auch die nicht traegt, nimmt der Waechter in
+   der Bildschleife sie nach drei Messungen unter 24 Bildern/s heraus. Ein
+   Urteil, das das Geraet selbst faellt, ist besser als eine Liste von
+   Kartennamen. */
 if (!webglDa()) {
   window.__buehneAus('kein WebGL');
-} else if (zuSchwach(GPU)) {
-  window.__buehneAus('Grafik zu schwach für die Echtzeitbühne');
 } else {
   starten();
 }
@@ -859,6 +895,15 @@ function starten() {
   let letzte = performance.now(), fps = 0, zaehler = 0, fpsSumme = 0, schwach = 0;
   const start = performance.now();   /* Schonfrist: die ersten Sekunden zaehlen nicht */
   let laeuft = true, aufgegeben = 0;
+  /* Zweite Uhr, und sie zaehlt SEKUNDEN statt Bilder.
+     Der Waechter unten misst je 30 Bilder. Das ist richtig, solange es
+     ueberhaupt laeuft -- aber auf einem Geraet mit zwei Bildern je Sekunde
+     dauert eine einzige Messung fuenfzehn Sekunden und drei davon fast eine
+     Minute. So lange darf niemand auf eine eingefrorene Seite sehen.
+     Also ein zweites, hartes Mass: Bleibt der Schnitt ueber zwei Sekunden
+     unter zehn Bildern je Sekunde, ist das kein "etwas zaeh", sondern
+     unbenutzbar. Dann sofort raus. */
+  let notStart = 0, notBilder = 0;
   function bild(jetzt) {
     if (!laeuft) { return; }
     requestAnimationFrame(bild);
@@ -915,6 +960,29 @@ function starten() {
     }
     if (gradePass) gradePass.uniforms.zeit.value = jetzt * 0.001;
     if (composer) composer.render(); else renderer.render(szene, kamera);
+
+    if ((jetzt - start) > 4000 && document.hasFocus() && !document.hidden) {
+      /* ECHTE UHR, NICHT dt. Darauf bin ich am 14.09.2026 hereingefallen:
+         dt ist oben auf 0,1 s gedeckelt (damit ein Sprung die Animation nicht
+         reisst). Wer damit Sekunden summiert, zaehlt bei zwei Bildern je
+         Sekunde nur ein Fuenftel der echten Zeit -- und das Verhaeltnis
+         Bilder/Zeit ergibt dann konstant genau 10. Die Schwelle konnte also
+         nie ausloesen. Aufgefallen ist es erst, weil ich sie zum Testen
+         hochgesetzt habe und trotzdem nichts geschah. */
+      if (!notStart) { notStart = jetzt; }
+      notBilder++;
+      const verstrichen = jetzt - notStart;
+      if (verstrichen >= 2000) {
+        const bilderJeSekunde = notBilder / (verstrichen / 1000);
+        if (bilderJeSekunde < (window.__probeSchwelle || 10)) {
+          laeuft = false;
+          try { renderer.setAnimationLoop(null); renderer.dispose(); } catch (e) {}
+          window.__buehneAus('unter 10 Bildern/s — diese Grafik trägt den Saal nicht');
+          return;
+        }
+        notStart = jetzt; notBilder = 0;
+      }
+    }
 
     fpsSumme += 1 / Math.max(dt, 0.0001); zaehler++;
     if (zaehler >= 30) {
