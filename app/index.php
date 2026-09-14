@@ -2278,7 +2278,35 @@ switch ($route) {
             ]);
             break;
         }
-        ansicht('vorgaenge', ['liste' => sicher(static fn() => Vorgang::alle(), [])]);
+        /* WARUM HIER AUCH DIE KUNDEN OHNE VORGANG GEZAEHLT WERDEN
+           ------------------------------------------------------------------
+           Uwe, 14.09.2026: „In der Verwaltung werden die schon hinterlegten
+           Kunden nicht mehr angezeigt wie Cavaleri."
+
+           Seit dem Umbau heisst die Tuer im Menue „Kunden" und fuehrt hierher
+           — auf die Vorgangsliste. Ein Vorgang entsteht aber aus einer
+           Bestellung oder einer Anfrage (Vorgang::alle()). Ein Kunde, der von
+           Hand angelegt wurde und weder das eine noch das andere hat, kommt
+           darin nicht vor: Er stand hinter einer Tuer mit seinem Namen und
+           war trotzdem nicht da. Auffindbar blieb er nur ueber die Suche —
+           also nur, wenn man seinen Namen schon kennt.
+
+           Gezaehlt wird deshalb nicht mit einer eigenen Abfrage, sondern
+           gegen genau die Liste, die gleich angezeigt wird: alle Kunden minus
+           die, die hier vorkommen. Eine zweite Abfrage koennte anders zaehlen
+           als die Liste zeigt, und dann stuende auf der Seite eine Zahl, die
+           sich nicht nachzaehlen laesst. */
+        $vgListe = sicher(static fn() => Vorgang::alle(), []);
+        $vgDrin = [];
+        foreach ($vgListe as $vgV) {
+            $vgK = (int) ($vgV['kunde_id'] ?? 0);
+            if ($vgK > 0) { $vgDrin[$vgK] = true; }
+        }
+        ansicht('vorgaenge', [
+            'liste'   => $vgListe,
+            'kunden'  => (int) sicher(static fn() => Db::wert('SELECT COUNT(*) FROM customers'), 0),
+            'gezeigt' => count($vgDrin),
+        ]);
         break;
 
     /* Die Zahlen bleiben, sie sind nur nicht mehr das Erste, was man sieht.

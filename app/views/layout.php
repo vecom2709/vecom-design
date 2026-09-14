@@ -100,6 +100,13 @@ $menue = [
   ]],
 
   ['vorgaenge', 'Kunden', 'vorgaenge', [
+    /* WARUM „ALLE KUNDEN" HIER GANZ OBEN STEHT
+       Beim Umbau am 13.09.2026 fiel der Menuepunkt „Kunden" weg, weil die
+       Vorgangsliste ihn ersetzen sollte. Sie ersetzt ihn aber nur fuer
+       Kunden MIT Vorgang. Uwe am naechsten Tag: „In der Verwaltung werden
+       die schon hinterlegten Kunden nicht mehr angezeigt wie Cavaleri."
+       Die Liste gab es weiter, nur fuehrte kein Klick mehr hin. */
+    ['kunden', 'Alle Kunden', 'kunden'],
     ['nachrichten', 'Nachrichten', 'nachrichten'],
     ['anfragen', 'Anfragen', 'anfragen'],
     ['bedarf', 'Bedarf aus dem Rechner', 'bedarf'],

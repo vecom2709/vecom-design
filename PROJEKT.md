@@ -4497,3 +4497,75 @@ Der Hauptknopf der Showroom-Seite: Schrift `#03060c` gegen `#0648e8` nur
 2,99:1, gegen `#1fe8ff` 13,57:1 — gemessen 36,8 % der Knopffläche unter 4.5:1,
 schlechteste Stelle 1,01:1. Der Verlauf beginnt jetzt bei `#0d85f7` (5,52:1).
 Seite insgesamt 2,10 % → 0,15 %.
+
+### 14.09.2026 — Die Tür hieß „Kunden" und dahinter standen keine
+
+Uwe: „In der Verwaltung werden die schon hinterlegten Kunden nicht mehr
+angezeigt wie Cavaleri."
+
+Er hatte recht, und es war mein Fehler von gestern.
+
+#### Was passiert war
+
+Beim Umbau auf fünf Menüpunkte fiel „Kunden" als eigener Punkt weg — die
+Vorgangsliste sollte ihn ersetzen und heißt seither so. Sie ersetzt ihn aber
+nur für Kunden **mit** Vorgang: `Vorgang::alle()` baut die Liste aus
+`orders` und `anfragen`. Ein Kunde, der von Hand angelegt wurde und weder
+Bestellung noch Anfrage hat — Cavaleri —, kommt darin nicht vor.
+
+Er stand also hinter einer Tür mit seinem Namen und war trotzdem nicht da. Die
+Kundenliste gab es weiter, nur führte **kein einziger Klick** mehr hin: Alle
+Verweise auf `kunden` standen in Seiten, die man erst über einen Kunden
+erreicht. Auffindbar war er nur über die Suche — also nur, wenn man seinen
+Namen schon kennt.
+
+Nachgestellt mit zwei Kunden ohne Vorgang: Die Seite zeigte „Noch kein
+Vorgang", während zwei Kunden in der Tabelle standen.
+
+#### Warum die Kette es nicht gemerkt hat
+
+An der Stelle stand:
+
+```php
+pruefe('die Suche findet Kunden weiterhin', str_contains($sbIndex, "case 'suche':"));
+```
+
+Das prüft, dass irgendwo im Verteiler das Wort „suche" vorkommt. Sonst nichts.
+Sie war grün, während der Weg zur Kundenliste weg war — **eine Prüfung, die
+nichts prüft, ist schlimmer als keine**, weil sie die Stelle als geprüft
+markiert.
+
+Das ist derselbe Fehler wie bei der Stille-Prüfung gestern, nur eine Stufe
+gefährlicher: Dort war die Prüfung grün, ohne zu messen; hier war sie grün,
+während der Fehler schon live stand.
+
+#### Was jetzt gilt
+
+`Alle Kunden` steht als erster Unterpunkt unter der Tür „Kunden". Die
+Vorgangsliste trägt einen Knopf dorthin, nennt im Kopf die Gesamtzahl und sagt
+in einem eigenen Kasten, **wie viele Kunden gerade keinen laufenden Vorgang
+haben** — mit einem Knopf daneben. Ist die Liste leer, steht dort nicht mehr
+„Noch kein Vorgang", sondern: „Gerade läuft kein Vorgang. Deine 2 Kunden stehen
+weiter in der Kundenliste."
+
+Gezählt wird nicht mit einer eigenen Abfrage, sondern gegen genau die Liste,
+die gleich angezeigt wird: alle Kunden minus die, die darin vorkommen. Eine
+zweite Abfrage könnte anders zählen als die Liste zeigt, und dann stünde auf
+der Seite eine Zahl, die sich nicht nachzählen lässt.
+
+Die Kundenliste heißt jetzt „Alle Kunden" statt „Kunden" — zwei Seiten mit
+derselben Überschrift, und man weiß beim Blick nach oben nicht, auf welcher man
+steht.
+
+#### Geprüft
+
+Die hohle Prüfung ist weg. An ihrer Stelle steht der **Weg**: Die Tür heißt
+„Kunden", also muss dahinter etwas liegen, das alle Kunden zeigt. Dazu legt die
+Kette einen Kunden ohne Bestellung und ohne Anfrage an und prüft dreierlei —
+dass er keinen Vorgang hat (richtig), dass die Vorgangsliste ihn trotzdem
+zählt, und dass die Kundenliste ihn zeigt.
+
+**1.325 Prüfungen, alle grün.** Sabotageprobe: Nimmt man `Alle Kunden` wieder
+aus dem Menü — also den Zustand von gestern —, fällt „unter der Tür „Kunden"
+liegt auch die vollständige Kundenliste". Der Fehler, der gestern durchkam,
+käme heute nicht mehr durch.

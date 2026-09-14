@@ -5567,9 +5567,8 @@ pruefe('jeder Handgriff der Seite kennt seine Schublade',
 
 /* ---------- Die alten Seiten bleiben erreichbar -------------------------- */
 $tLayout = (string) file_get_contents($oben . '/app/views/layout.php');
-pruefe('Kunden, Bestellungen und Projekte stehen nicht mehr im Menü',
-    !str_contains($tLayout, "['kunden', 'Kunden', 'kunden']")
-    && !str_contains($tLayout, "['bestellungen', 'Bestellungen', 'bestellungen']")
+pruefe('Bestellungen und Projekte stehen nicht mehr als eigene Listen im Menü',
+    !str_contains($tLayout, "['bestellungen', 'Bestellungen', 'bestellungen']")
     && !str_contains($tLayout, "['projekte', 'Projekte', 'projekte']"));
 pruefe('ihre Seiten gibt es trotzdem noch',
     str_contains($sbIndex, "case 'kunden':")
@@ -5579,7 +5578,63 @@ pruefe('und die Vorgangsseite verweist auf sie',
     str_contains($tVorgang, "url('kunden/' . (int) \$v['kunde_id'])")
     && str_contains($tVorgang, "url('projekte/' . (int) \$pid)")
     && str_contains($tVorgang, "url('bestellungen/' . (int) \$v['bestell_id'])"));
-pruefe('die Suche findet Kunden weiterhin', str_contains($sbIndex, "case 'suche':"));
+
+/* ---------- Die Kundenliste ist wieder ein Klick ------------------------- */
+/* WAS HIER AM 13.09.2026 DURCHGERUTSCHT IST
+
+   An dieser Stelle stand: pruefe('die Suche findet Kunden weiterhin',
+   str_contains($sbIndex, "case 'suche':")). Das prüft, dass irgendwo im
+   Verteiler das Wort „suche" vorkommt — und sonst gar nichts. Sie war grün,
+   während die Kundenliste aus dem Menü verschwunden war und kein einziger
+   Klick mehr hinführte.
+
+   Uwe am nächsten Tag: „In der Verwaltung werden die schon hinterlegten
+   Kunden nicht mehr angezeigt wie Cavaleri." Er hatte recht, und die Kette
+   hatte es nicht gemerkt, weil sie nach einer Zeichenkette suchte statt nach
+   einem Weg.
+
+   Geprüft wird deshalb jetzt der Weg: Die Tür heißt „Kunden", also muss
+   dahinter etwas liegen, das ALLE Kunden zeigt — nicht nur die mit Vorgang.
+   Eine Suche ist kein Ersatz: Sie findet nur, wessen Namen man schon kennt. */
+pruefe('unter der Tür „Kunden" liegt auch die vollständige Kundenliste',
+    str_contains($tLayout, "['kunden', 'Alle Kunden', 'kunden']"));
+$tVgListe = (string) file_get_contents($oben . '/app/views/vorgaenge.php');
+pruefe('und die Vorgangsliste führt selbst dorthin',
+    substr_count($tVgListe, "url('kunden')") >= 2, (string) substr_count($tVgListe, "url('kunden')"));
+pruefe('sie sagt auch, wie viele dort stehen und hier nicht',
+    str_contains($tVgListe, '$ohneVorgang') && str_contains($tVgListe, '$kundenGesamt'));
+pruefe('und der Verteiler liefert die Zahlen dafür',
+    str_contains($sbIndex, "'kunden'  => (int) sicher")
+    && str_contains($sbIndex, "'gezeigt' => count(\$vgDrin)"));
+
+/* Und die Probe, die den Fehler wirklich gefunden hätte: ein Kunde, der weder
+   Bestellung noch Anfrage hat, darf nicht aus der Verwaltung verschwinden.
+   Er kommt in Vorgang::alle() nicht vor — das ist richtig, er hat ja keinen
+   Vorgang —, aber die Zahl auf der Seite muss ihn nennen. */
+require_once dirname(__DIR__) . '/src/Vorgang.php';
+$kvId = (int) Db::insert('customers', ['name' => 'Kette Ohnevorgang',
+    'email' => 'ohne-vorgang@pruefung.test', 'company' => 'Ohne Vorgang Srl']);
+$kvListe = Vorgang::alle();
+$kvDrin = [];
+foreach ($kvListe as $kvV) {
+    $kvK = (int) ($kvV['kunde_id'] ?? 0);
+    if ($kvK > 0) { $kvDrin[$kvK] = true; }
+}
+pruefe('ein Kunde ohne Bestellung und ohne Anfrage hat keinen Vorgang',
+    !isset($kvDrin[$kvId]));
+$kvGesamt = (int) Db::wert('SELECT COUNT(*) FROM customers');
+pruefe('und wird auf der Vorgangsliste trotzdem gezählt',
+    $kvGesamt - count($kvDrin) >= 1,
+    $kvGesamt . ' Kunden, ' . count($kvDrin) . ' mit Vorgang');
+/* Zwei Seiten mit der Überschrift „Kunden" — die Vorgangsliste und die
+   Kundenliste — und man weiß beim Blick nach oben nicht, auf welcher man
+   steht. Die Überschrift heißt deshalb wie der Menüpunkt. */
+pruefe('die Kundenliste heißt so, wie sie im Menü steht',
+    str_contains((string) file_get_contents($oben . '/app/views/kunden.php'),
+        '<h1>Alle Kunden</h1>'));
+pruefe('die Kundenliste selbst zeigt ihn',
+    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE id = ?', [$kvId], 0) === 1);
+Db::run('DELETE FROM customers WHERE id = ?', [$kvId]);
 
 /* Eine Aufbereitung, zwei Aufrufer — sonst läuft die Schublade der Seite
    hinterher, und niemand weiß, welche der beiden stimmt. */

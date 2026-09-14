@@ -1,4 +1,8 @@
-<div class="kopf"><h1>Kunden</h1><div class="rechts">
+<?php /* Die Überschrift heißt wie der Menüpunkt, nicht wie die Tür darüber.
+         Die Vorgangsliste heißt auch „Kunden" — zwei Seiten mit derselben
+         Überschrift, und man weiß beim Blick nach oben nicht, auf welcher
+         man steht. */ ?>
+<div class="kopf"><h1>Alle Kunden</h1><div class="rechts">
   <form class="leiste"><input type="search" name="q" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Name, E-Mail, Firma">
   <button class="knopf">Suchen</button></form>
   <a class="knopf haupt" href="<?= Fmt::h(url('kunden/neu')) ?>">Neuer Kunde</a></div></div>
