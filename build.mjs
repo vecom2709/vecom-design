@@ -197,8 +197,18 @@ function fingerabdruecke(h) {
   // Als das Erklaervideo eine Tonspur bekam, lag auf dem Server die neue
   // Fassung und im Browser weiter die alte, stumme. Der Fingerabdruck steht
   // deshalb an allem, was sich aendern kann, nicht nur an CSS und Skripten.
+  //
+  // srcset und avif kamen am 14.09.2026 dazu. Das Standbild der Buehne lag
+  // bis dahin als Hintergrundbild im CSS -- und in ein url() im Stilblatt
+  // schreibt diese Funktion nicht hinein. Ergebnis: Der Server gab dem Bild
+  // dreissig Tage, die Adresse blieb gleich, und ein Rueckkehrer haette das
+  // alte Bild noch einen Monat behalten, obwohl das neue laengst oben lag.
+  // Seitdem steht es als <picture> in der Seite, und damit auch in dieser
+  // Zeile. srcset trifft hier genau eine Adresse ohne Deskriptor; eine
+  // Breitenliste ("bild.webp 480w, ...") wuerde diese Regel nicht treffen
+  // und braeuchte eine eigene.
   return h.replace(
-    /((?:href|src|data-src)=")((?:\.\.\/)?(?:assets\/(?:css|js|img|vendor)|video)\/[A-Za-z0-9._\/-]+\.(?:css|js|mp4|webm|webp|png|jpg|svg))(\?v=[A-Za-z0-9]*)?(")/g,
+    /((?:href|src|data-src|srcset)=")((?:\.\.\/)?(?:assets\/(?:css|js|img|vendor)|video)\/[A-Za-z0-9._\/-]+\.(?:css|js|mp4|webm|webp|avif|png|jpg|svg))(\?v=[A-Za-z0-9]*)?(")/g,
     (m, vorn, pfad, alt, hinten) => {
       const stempelwert = stempel(pfad.replace(/^\.\.\//, ''));
       // Fehlt die Datei, lieber ohne Stempel ausliefern als mit einem falschen.
@@ -296,7 +306,12 @@ function build(lang, seite) {
   // 3. Pfade und Sprachwahl
   const up = lang === 'it' ? '' : '../';
   if (up) {
-    h = h.replace(/(href|src|content|poster)="assets\//g, `$1="${up}assets/`);
+    // srcset steht hier seit dem 14.09.2026 mit drin. Ohne sie bekam das
+    // <picture> des Standbildes in /de/ und /en/ ein src mit "../" und ein
+    // srcset ohne -- der Browser nimmt dann die AVIF-Quelle, findet sie
+    // nicht, und zeigt gar nichts. Der <img> dahinter rettet das nicht: Wer
+    // einmal eine passende <source> gewaehlt hat, geht nicht zurueck.
+    h = h.replace(/(href|src|srcset|content|poster)="assets\//g, `$1="${up}assets/`);
     // Die Importmap steht als JSON im HTML — sie wird von der Regel oben nicht
     // erfasst und muss eigens umgeschrieben werden, sonst fehlt three.js in /de/.
     h = h.replace(/"\.\/assets\//g, `"${up}assets/`);
@@ -470,7 +485,7 @@ function pruefen(h, lang, ziel) {
   // Zusaetzlich: jede relative Referenz auf video/ oder assets/ muss auf der
   // richtigen Ebene liegen. Die Regel oben prueft nur Dateien mit Sprachkuerzel
   // im Namen — auftakt.mp4 hat keins und rutschte deshalb ungeprueft nach /de/.
-  for (const m of h.matchAll(/(?:data-src|src|href|poster|content)="((?:\.\.\/)?(?:video|assets)\/[^"?]+?)(?:\?v=[A-Za-z0-9]*)?"/g)) {
+  for (const m of h.matchAll(/(?:data-src|src|href|srcset|poster|content)="((?:\.\.\/)?(?:video|assets)\/[^"?]+?)(?:\?v=[A-Za-z0-9]*)?"/g)) {
     const pfad = m[1];
     if (!pfad.startsWith(tief)) { fehler.push(`${pfad} zeigt nicht ${tief ? 'eine Ebene hoeher' : 'ins Wurzelverzeichnis'}`); }
     if (!existsSync(pfad.replace(/^\.\.\//, ''))) { fehler.push(`${pfad} gibt es auf der Platte nicht`); }

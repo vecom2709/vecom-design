@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=5aead447">
+<link rel="stylesheet" href="assets/css/app.css?v=f4a33f41">
 
 
 <script type="importmap">
@@ -277,7 +277,18 @@
   </svg>
 </div>
 <canvas class="stage" data-canvas aria-hidden="true"></canvas>
-<div class="buehne-standbild" aria-hidden="true"></div>
+<!-- DAS STANDBILD DER BUEHNE. Es steht hier und nicht mehr im Stilblatt,
+     und dafuer gibt es zwei Gruende. Erstens der Fingerabdruck: In ein
+     url() im CSS schreibt build.mjs nicht hinein, der Server gibt Bildern
+     dreissig Tage, und ein Rueckkehrer haette das alte Bild noch einen
+     Monat behalten. Zweitens die Reichweite: image-set() mit type()
+     versteht nicht jeder Browser, und wer es nicht versteht, bekam gar
+     kein Bild -- ausgerechnet in dem Zustand, der fuer die schwachen
+     Geraete gedacht ist. Ein <picture> kann jeder. -->
+<picture class="buehne-standbild" aria-hidden="true">
+  <source srcset="assets/img/3d/buehne-standbild.avif?v=fd5bfde3" type="image/avif">
+  <img src="assets/img/3d/buehne-standbild.webp?v=5d6083d7" alt="" width="1920" height="1080" decoding="async">
+</picture>
 <div class="world-scrim" aria-hidden="true"></div>
 <div class="world-cut" aria-hidden="true"></div>
 <nav class="rail" aria-label="Abschnitte">

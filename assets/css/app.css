@@ -1232,15 +1232,20 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 .buehne-standbild {
   position: fixed; inset: 0; z-index: 0;
   display: none;
-  background-image: image-set(
-    url("../img/3d/buehne-standbild.avif") type("image/avif"),
-    url("../img/3d/buehne-standbild.webp") type("image/webp"));
-  background-size: cover;
-  background-position: 50% 42%;
-  background-repeat: no-repeat;
   pointer-events: none;
   opacity: 0;
   transition: opacity 900ms var(--e-std);
+}
+/* Das Bild liegt seit dem 14.09.2026 als <picture> in der Seite und nicht
+   mehr als image-set() hier. Zwei Gruende, beide gemessen bzw. nachgesehen:
+   In ein url() im Stilblatt schreibt build.mjs keinen Fingerabdruck, und der
+   Server gibt Bildern dreissig Tage -- das neue Standbild waere bei einem
+   Rueckkehrer einen Monat lang nicht angekommen. Und image-set() mit type()
+   versteht nicht jeder Browser; wer es nicht versteht, bekam gar kein Bild,
+   ausgerechnet in dem Zustand, der fuer die schwachen Geraete da ist. */
+.buehne-standbild img {
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 42%;
 }
 [data-world="no-webgl"] .buehne-standbild,
 [data-world="save-data"] .buehne-standbild,
