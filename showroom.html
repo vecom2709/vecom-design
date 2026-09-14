@@ -92,8 +92,20 @@ p.lead{
   transition:transform .18s cubic-bezier(.16,1,.3,1), box-shadow .18s;
   display:inline-block;
 }
+/* DER VERLAUF BEGANN ZU DUNKEL FUER DIE DUNKLE SCHRIFT DARAUF.
+   Am 14.09.2026 nachgerechnet, Schrift #03060c gegen die drei Stuetzstellen:
+
+     #0648e8 (Anfang)    2,99:1   faellt durch
+     #0a78f5 (Mitte)     4,85:1
+     #1fe8ff (Ende)     13,57:1
+
+   Gemessen hiess das: 36,8 % der Knopfflaeche unter 4.5:1, schlechteste
+   Stelle 1,01:1 -- in der linken oberen Ecke war die Beschriftung schlicht
+   weg. Der Anfang beginnt deshalb jetzt bei #0d85f7 (5,52:1); die Richtung
+   Blau -> Cyan bleibt, nur das dunkle Ende faellt heraus, auf dem ohnehin
+   nichts lesbar war. */
 .knopf--voll{
-  background:linear-gradient(135deg,#0648e8,#0a78f5 45%,#1fe8ff);
+  background:linear-gradient(135deg,#0d85f7,#1aa9fb 45%,#1fe8ff);
   color:#03060c; box-shadow:0 10px 30px rgba(10,120,245,.28);
 }
 .knopf--leer{color:var(--c-text); border-color:rgba(150,180,230,.26)}
@@ -139,7 +151,9 @@ p.lead{
 #fuss a{color:var(--c-dim); text-decoration:none}
 #fuss a:hover,#fuss a:focus-visible{color:var(--c-text); text-decoration:underline}
 
-/* Rückfallfassung: kein WebGL, reduzierte Bewegung oder schwaches Gerät */
+/* Rückfallfassung: kein WebGL, schwache Grafik, Kontextverlust oder ein
+   Aufbau, der nicht fertig wird. Ein Zustand fuer alle vier -- der Besucher
+   soll nicht vier verschiedene Enttaeuschungen kennenlernen. */
 html[data-welt="aus"] #buehne{display:none}
 html[data-welt="aus"] body{
   background:
@@ -147,6 +161,28 @@ html[data-welt="aus"] body{
     var(--c-base);
 }
 html[data-welt="aus"] #mess b{color:#97a5bf}
+
+/* Das Standbild liegt still hinter allem und kommt nur im Rueckfall.
+   Es steht NUR im ersten Bildschirm und rollt mit ihm weg: Ein eingefrorenes
+   Bild hinter der ganzen Seite gibt nichts, kostet aber jede Bildschirmflaeche
+   noch einmal -- auf der Startseite waren das gemessen 22,6 Megapixel in einer
+   einzigen Textur. Die Maske loest die Kante unten auf. */
+.standbild{display:none}
+html[data-welt="aus"] .standbild{
+  display:block; position:absolute; top:0; left:0; right:0; height:100svh;
+  z-index:0; pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,#000 68%,rgba(0,0,0,.55) 88%,transparent 100%);
+          mask-image:linear-gradient(180deg,#000 68%,rgba(0,0,0,.55) 88%,transparent 100%);
+}
+html[data-welt="aus"] .standbild img{
+  display:block; width:100%; height:100%; object-fit:cover; object-position:50% 42%;
+}
+/* Der Text muss darueber stehen und lesbar bleiben. */
+html[data-welt="aus"] #inhalt{position:relative; z-index:1}
+html[data-welt="aus"] .szene[data-beat="0"] .block{
+  background:linear-gradient(180deg,rgba(3,5,9,.40),rgba(3,5,9,.86) 46%,rgba(3,5,9,.94));
+  padding:clamp(1rem,2.4vw,2rem); border-radius:14px;
+}
 
 /* Die Schwelle ist zweigeteilt, und das aus Messung:
    Ein Telefon ist schmal — 760 px fangen es. Ein Tablet im Hochformat ist
@@ -210,6 +246,16 @@ html[data-welt="aus"] #mess b{color:#97a5bf}
 </a>
 
 <canvas id="buehne" data-canvas></canvas>
+
+<!-- DAS STANDBILD DIESES SAALS.
+     Bis zum 14.09.2026 zeigte diese Seite bei jedem Ausfall nur einen dunklen
+     Verlauf: gemessene mittlere Helligkeit 17,8 von 255, fuenf Prozent der
+     Flaeche ueberhaupt sichtbar. Ein Ausstellungsraum, in dem nichts steht.
+     Dasselbe Bild wie auf der Startseite -- es ist derselbe Saal. -->
+<picture class="standbild" aria-hidden="true">
+  <source srcset="assets/img/3d/buehne-standbild.avif" type="image/avif">
+  <img src="assets/img/3d/buehne-standbild.webp" alt="" width="1920" height="1080" decoding="async">
+</picture>
 
 <main id="inhalt">
 
@@ -287,6 +333,52 @@ html[data-welt="aus"] #mess b{color:#97a5bf}
      nichts zu suchen; beim Nachmessen ist sie unverzichtbar. -->
 <div id="mess" hidden>wird gemessen …</div>
 
+<!-- DAS NETZ LIEGT AUSSERHALB DES MODULGRAPHEN, und das ist der ganze Punkt.
+     Am 14.09.2026 gemessen: Wenn der Import von three.js haengt, wird diese
+     Seite nie fertig geladen -- page.goto brach nach 20 Sekunden ab, und
+     data-welt stand immer noch auf nichts. Ein Netz IM Modul haette da nie
+     gegriffen, denn es waere selbst nie geladen worden. Dasselbe gilt fuer
+     einen Syntaxfehler in einer der importierten Dateien: Der bricht den
+     ganzen Graphen ab, bevor eine Zeile davon laeuft.
+     Deshalb: ein gewoehnliches Skript, kein Modul, ohne jede Abhaengigkeit. -->
+<script>
+(function () {
+  var wurzel = document.documentElement;
+
+  function aus(grund) {
+    if (wurzel.getAttribute('data-welt') === 'aus') { return; }   /* einmal reicht */
+    wurzel.setAttribute('data-welt', 'aus');
+    var m = document.getElementById('mess');
+    if (m) { m.innerHTML = 'Rückfallfassung aktiv\nGrund: <b>' + grund + '</b>\nInhalt vollständig lesbar'; }
+  }
+  window.__buehneAus = aus;
+
+  /* Der Browser darf den Grafikkontext jederzeit einziehen -- beim
+     Energiesparen, beim Treiberwechsel, wenn zu viele Seiten zeichnen wollen.
+     Danach zeichnet die Leinwand nie wieder; ohne preventDefault versucht der
+     Browser nicht einmal, ihn zurueckzugeben. */
+  function leinwandBeobachten() {
+    var c = document.getElementById('buehne');
+    if (!c) { return; }
+    c.addEventListener('webglcontextlost', function (e) {
+      e.preventDefault();
+      aus('Grafikkontext verloren');
+    }, false);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', leinwandBeobachten);
+  } else {
+    leinwandBeobachten();
+  }
+
+  /* Zwoelf Sekunden. Steht bis dahin kein "an", ist etwas schiefgegangen,
+     das sich nicht selbst meldet. */
+  setTimeout(function () {
+    if (wurzel.getAttribute('data-welt') !== 'an') { aus('Aufbau dauerte länger als 12 s'); }
+  }, 12000);
+})();
+</script>
+
 <script type="importmap">
 {
   "imports": {
@@ -306,6 +398,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { BokehPass } from 'three/addons/postprocessing/BokehPass.js';
+/* Die Urteilsfunktion kommt aus der Hauptseite, nicht aus einer zweiten
+   Kopie hier: Eine zweite Kopie waere eine zweite Wahrheit. */
+import { grafikZuSchwach as zuSchwach } from '/assets/js/world/quality.js';
 
 const wurzel = document.documentElement;
 const leinwand = document.getElementById('buehne');
@@ -373,9 +468,14 @@ function webglDa() {
 
 const wenigerBewegung = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* Dieselbe Weiche wie auf der Startseite, aus derselben Datei -- damit nicht
+   zwei Stellen verschieden urteilen. Haswell-Grafik (Intel HD bis 6000) baut
+   diesen Saal nicht in ertraeglicher Zeit; sie bekommt das Standbild, statt es
+   zu versuchen und daran zu ersticken. */
 if (!webglDa()) {
-  wurzel.setAttribute('data-welt', 'aus');
-  mess.innerHTML = 'Rückfallfassung aktiv\nGrund: <b>kein WebGL</b>\nInhalt vollständig lesbar';
+  window.__buehneAus('kein WebGL');
+} else if (zuSchwach(GPU)) {
+  window.__buehneAus('Grafik zu schwach für die Echtzeitbühne');
 } else {
   starten();
 }
@@ -758,8 +858,13 @@ function starten() {
   /* --------------------------------------------------------------- Schleife */
   let letzte = performance.now(), fps = 0, zaehler = 0, fpsSumme = 0, schwach = 0;
   const start = performance.now();   /* Schonfrist: die ersten Sekunden zaehlen nicht */
+  let laeuft = true, aufgegeben = 0;
   function bild(jetzt) {
+    if (!laeuft) { return; }
     requestAnimationFrame(bild);
+    /* Erst wenn wirklich ein Bild steht, wird der Waechter draussen
+       abgestellt -- nicht schon, wenn die Module geladen sind. */
+    if (wurzel.getAttribute('data-welt') !== 'an') { wurzel.setAttribute('data-welt', 'an'); }
     const dt = Math.min((jetzt - letzte) / 1000, 0.1);
     letzte = jetzt;
 
@@ -825,6 +930,22 @@ function starten() {
       const reif = (jetzt - start) > 4000;
       if (!erzwungen && reif && document.hasFocus() && fps < 24) {
         schwach++;
+        /* WER AUCH AUF DER UNTERSTEN STUFE NICHT MITKOMMT, BEKOMMT DAS BILD.
+           Bisher endete die Leiter bei "low" und lief dort weiter, egal wie
+           zaeh. Drei weitere Messungen unter 24 Bildern/s heissen: Diese
+           Grafik traegt den Saal nicht. Ein ruhiges Standbild ist dann besser
+           als eine ruckelnde Kamerafahrt -- und es kostet nichts mehr. */
+        if (schwach >= 3 && stufe === 'low') {
+          aufgegeben++;
+          schwach = 0;
+          if (aufgegeben >= 1) {
+            laeuft = false;
+            renderer.setAnimationLoop(null);
+            try { renderer.dispose(); } catch (e) {}
+            window.__buehneAus('auch die niedrigste Stufe blieb unter 24 Bildern/s');
+            return;
+          }
+        }
         if (schwach >= 3 && stufe !== 'low') {
           const reihe = ['ultra', 'high', 'medium', 'low'];
           stufe = reihe[Math.min(reihe.indexOf(stufe) + 1, 3)];

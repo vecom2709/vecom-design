@@ -1430,6 +1430,38 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   MILCHGLAS OHNE BÜHNE IST NUR NEBEL VOR EINER WAND
+
+   `backdrop-filter` rechnet für jedes Element die Fläche dahinter neu — pro
+   Bild, im Grafikprozess. Das lohnt sich, solange dort ein Saal steht. Läuft
+   die Bühne nicht, liegt hinter Kopfleiste, Fuß und Kontaktkasten einfarbiger
+   Grund: Der Weichzeichner verwischt eine Fläche, die ohnehin überall gleich
+   aussieht.
+
+   Am 14.09.2026 nachgemessen — dieselbe Seite, ein Ladevorgang, alle
+   Animationen angehalten, Stil ein- und ausgeschaltet, vier Rollstände
+   (1.500, 6.000, 12.000, 17.000 px), Zustand „device":
+
+     Kopfleiste   größter Pixelunterschied 1 von 255 (im Bereich der Leiste)
+     Fuß          größter Pixelunterschied 1
+     Kontaktkasten größter Pixelunterschied 1
+
+   Man sieht es nicht. Man bezahlt es nur — und zwar auf genau den Geräten,
+   die ohnehin am wenigsten übrig haben. Also weg, in allen sechs Zuständen
+   ohne laufende Bühne. Im Zustand „on" bleibt alles, wie es ist: Dort steht
+   wirklich etwas dahinter.
+   --------------------------------------------------------------------------- */
+[data-world="no-webgl"] .header.is-stuck, [data-world="no-webgl"] .footer, [data-world="no-webgl"] .kontaktweg,
+[data-world="save-data"] .header.is-stuck, [data-world="save-data"] .footer, [data-world="save-data"] .kontaktweg,
+[data-world="device"] .header.is-stuck, [data-world="device"] .footer, [data-world="device"] .kontaktweg,
+[data-world="no-gsap"] .header.is-stuck, [data-world="no-gsap"] .footer, [data-world="no-gsap"] .kontaktweg,
+[data-world="init-error"] .header.is-stuck, [data-world="init-error"] .footer, [data-world="init-error"] .kontaktweg,
+[data-world="context-lost"] .header.is-stuck, [data-world="context-lost"] .footer, [data-world="context-lost"] .kontaktweg {
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+}
+
 /* ===========================================================================
    GLAS — und warum es erst jetzt Sinn ergibt
 
