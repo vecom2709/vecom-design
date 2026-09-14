@@ -69,9 +69,23 @@ const TAFELN = {
    hochzudrehen bekommt jedes Material seinen Wert — sonst ertrinkt das Bild
    in Türkis, weil die Bodenfugen am längsten im Bild sind. */
 const EMISSION = {
-  M_LichtCyan: 0.50, M_LichtBlau: 1.10, M_Deckenfeld: 1.05,
-  M_Kantenlicht: 1.70, M_Sockelkante: 1.00, M_Fuge: 1.00, M_Display: 0.85,
+  M_LichtCyan: 0.22, M_LichtBlau: 0.40, M_Deckenfeld: 0.14,
+  M_Kantenlicht: 0.70, M_Sockelkante: 1.00, M_Fuge: 0.35, M_Display: 0.85,
 };
+/* Zwei Werte sind nach der Bauabnahme gefallen, beide aus demselben Grund:
+   die Leuchtflächen sind gewachsen, weil sie jetzt dorthin reichen, wo sie
+   hingehören.
+
+   M_Deckenfeld stand auf 1,05, als die Decke aus vier Stummeln von je
+   3,4 x 0,47 m bestand — 6,4 m². Jetzt sind es vier durchgehende Querfugen
+   und zwei Längsfugen über die ganze Halle: 74,5 m², das Elffache.
+
+   M_LichtBlau stand auf 1,10, als die Portallichter ±4,30 m maßen — passend
+   zu einem Balken, der seine Pfosten nie berührte. Jetzt laufen sie über
+   ±8,60 m bis an die Pfosten. Am 14.09.2026 durch den Strahl geprüft: bei
+   1,10 lag der rechte Portalpfosten als hellste Fläche 9 m hinter der Marke
+   und hat sie im Bloom verschluckt — die Marke war da, gemessen bei 19,3 m
+   und unverdeckt, nur nicht mehr zu sehen. */
 
 /* --------------------------------------------------------------------------
    Der Objektiv-Pass.
@@ -250,15 +264,24 @@ export class Raum {
 
     /* Spitzlicht auf die Marke: ein harter Reflex ist der Unterschied
        zwischen blauer Farbe und blauem Metall. Es wandert mit ihr mit. */
-    this.spitze = new THREE.SpotLight(0xffffff, 260, 26, 0.55, 0.35, 1.8);
-    this.spitze.position.set(-5.5, 7.5, 7.5);
+    /* DIE LAMPEN HINGEN IM ROHBAU
+       ----------------------------------------------------------------
+       Beide standen dort, wo vor der Bauabnahme nichts war. Der Spot auf
+       y 7,5 steckte mitten in der Deckenplatte (Unterkante 7,38) und hat
+       sie von innen angestrahlt; das Wandlicht auf y 4,5 bei z -28 stand
+       unter einem Deckenstück, das früher bei z -21 aufhörte. Am
+       14.09.2026 durch den Strahl geprüft: die hellsten Flächen im Bild
+       waren dreimal die Decke, in 21 bis 28 m — nicht die Leuchten.
+       Jetzt hängen beide unter der Decke, wo Lampen hingehören. */
+    this.spitze = new THREE.SpotLight(0xffffff, 180, 26, 0.55, 0.35, 1.8);
+    this.spitze.position.set(-5.5, 6.40, 7.5);
     this.scene.add(this.spitze);
     this.scene.add(this.spitze.target);
     this.spitze.target.position.set(0, 3.4, -4);
 
     /* Wandwäsche hinten, damit der Raum nicht im Nichts endet */
-    this.wand = new THREE.PointLight(0x2f6ad0, 120, 30, 2.0);
-    this.wand.position.set(0, 4.5, -28);
+    this.wand = new THREE.PointLight(0x2f6ad0, 70, 26, 2.0);
+    this.wand.position.set(0, 3.60, -28);
     this.scene.add(this.wand);
   }
 
@@ -283,7 +306,7 @@ export class Raum {
     const aniso = this.renderer.capabilities.getMaxAnisotropy();
 
     return new Promise((fertig, schiefgegangen) => {
-      new GLTFLoader().load('/assets/3d/showroom.glb', (gltf) => {
+      new GLTFLoader().load('/assets/3d/showroom.glb?v=8fd4b309c9', (gltf) => {
         const m = gltf.scene;
         let dreiecke = 0;
         m.traverse((o) => {
@@ -317,14 +340,54 @@ export class Raum {
           }
           if (mat.name === 'M_Boden') {
             /* Der Boden trägt die Spiegelung — hier fällt jede Perfektion auf. */
-            mat.metalness = 0.88; mat.roughness = 0.30; mat.envMapIntensity = 0.75;
+            /* Der Boden spiegelt in three.js nicht den Saal, sondern die
+               Umgebungskarte — ein helles Studio. Solange die Halle schwarz
+               war, fiel das nicht auf; seit sie Flächen hat, wurde der Boden
+               zur hellsten Fläche im Bild. Weniger Umgebung, mehr Streuung. */
+            mat.metalness = 0.88; mat.roughness = 0.30; mat.envMapIntensity = 0.30;
             mat.roughnessMap = K_BODEN;
             mat.normalMap = K_NORMAL;
             mat.normalScale = new THREE.Vector2(0.22, 0.22);
           }
-          if (mat.name === 'M_MetallGeb' || mat.name === 'M_Chrom') {
-            mat.roughness = mat.name === 'M_Chrom' ? 0.22 : 0.52;
+          if (mat.name === 'M_MetallGeb' || mat.name === 'M_Chrom' || mat.name === 'M_MetallPfosten') {
+            /* M_MetallPfosten kam mit der Bauabnahme dazu: die Portalpfosten
+               reichen jetzt vom Boden bis unter den Balken und sind damit die
+               längste sichtbare Metallfläche im Raum. Ohne eigene Rauheit
+               käme sie als stumpfes Schwarz aus dem GLB — Rauheit 1,0 bei
+               Metall 1,0 spiegelt nichts, und ein Pfosten, der nichts
+               spiegelt, ist wieder nur eine Silhouette. */
+            mat.roughness = mat.name === 'M_Chrom' ? 0.30
+                          : mat.name === 'M_MetallPfosten' ? 0.42 : 0.56;
+            mat.metalness = 1.0;
+            mat.envMapIntensity = 0.55;
             mat.roughnessMap = K_METALL;
+            mat.normalMap = K_NORMAL;
+            mat.normalScale = new THREE.Vector2(0.16, 0.16);
+          }
+          if (mat.name === 'M_Decke' || mat.name === 'M_Wand') {
+            /* DIE ALBEDO MUSS HIER NIEDRIGER SEIN ALS IN BLENDER
+               ------------------------------------------------------------
+               Die Bauabnahme hat Wand und Decke von 0,008 auf 0,042 bzw.
+               0,058 gehoben — in Cycles ist das richtig und beinahe
+               unsichtbar: der Zugewinn steckt fast ganz im indirekten Licht,
+               das die Flächen untereinander austauschen.
+
+               three.js rechnet kein indirektes Licht. Hier multipliziert
+               dieselbe Zahl schlicht die direkt beleuchtete Wand — Faktor
+               sieben. Gemessen am 14.09.2026: die Bühne sprang von Mittel 57
+               auf 99, und die Marke, dunkelblaues Metall, verschwand als
+               Silhouette im Bloom der hellen Halle dahinter.
+
+               Also zwei Werte für dieselbe Wand. Nicht, weil einer falsch
+               ist, sondern weil zwei verschiedene Renderer dieselbe Zahl
+               verschieden meinen. */
+            mat.color.setScalar(mat.name === 'M_Wand' ? 0.016 : 0.022);
+          }
+          if (mat.name === 'M_Decke') {
+            /* Putz, nicht Papier: ohne Struktur wird die größte Fläche im
+               Bild eine glatte Ebene, und das sieht man sofort. */
+            mat.roughness = 0.88;
+            mat.roughnessMap = K_BODEN;
             mat.normalMap = K_NORMAL;
             mat.normalScale = new THREE.Vector2(0.16, 0.16);
           }

@@ -38,21 +38,21 @@ import { b2t } from './raum.js';
    die Werte klein). key/spitze/wand: Lichtstärken. bloom: Leuchten.
    scrim: wie stark der Schleier die Welt hinter dem Text abdunkelt. */
 export const RAUM_BEATS = [
-  { id: 'hero',     cam: b2t(-8.0, -13.0, 2.60), ziel: b2t(-3.2,  4.0, 3.30), fov: 48, fog: 0.0098, key: 2.2, spitze: 260, wand: 120, bloom: 0.58, scrim: 0.00 },
-  { id: 'work',     cam: b2t(-4.5,  12.5, 3.40), ziel: b2t( 2.0, 21.0, 3.00), fov: 52, fog: 0.0125, key: 1.6, spitze: 120, wand: 210, bloom: 0.50, scrim: 0.74 },
-  { id: 'services', cam: b2t( 3.5,  -2.0, 2.90), ziel: b2t(-2.0, 14.0, 3.40), fov: 50, fog: 0.0150, key: 2.0, spitze: 190, wand: 170, bloom: 0.52, scrim: 0.62 },
-  { id: 'plans',    cam: b2t( 2.2,  -6.5, 3.50), ziel: b2t( 0.0,  4.0, 3.35), fov: 42, fog: 0.0110, key: 2.4, spitze: 240, wand: 110, bloom: 0.46, scrim: 0.78 },
-  { id: 'process',  cam: b2t(-2.6,  -1.2, 3.90), ziel: b2t( 0.4,  4.0, 3.30), fov: 38, fog: 0.0105, key: 2.6, spitze: 320, wand:  90, bloom: 0.54, scrim: 0.86 },
-  { id: 'about',    cam: b2t( 7.5,  -4.0, 3.00), ziel: b2t(-1.5,  8.0, 3.20), fov: 54, fog: 0.0135, key: 1.8, spitze: 150, wand: 150, bloom: 0.48, scrim: 0.84 },
-  { id: 'video',    cam: b2t(-1.2,  -4.5, 1.50), ziel: b2t( 0.0,  4.2, 3.90), fov: 48, fog: 0.0115, key: 2.2, spitze: 280, wand: 120, bloom: 0.52, scrim: 0.84 },
-  { id: 'pillars',  cam: b2t( 2.0,  -6.0, 6.20), ziel: b2t( 0.0,  6.0, 2.40), fov: 50, fog: 0.0100, key: 2.6, spitze: 240, wand: 140, bloom: 0.48, scrim: 0.68 },
-  { id: 'partner',  cam: b2t(-1.0,  18.0, 3.00), ziel: b2t( 1.5, 30.0, 3.20), fov: 52, fog: 0.0165, key: 1.5, spitze:  90, wand: 150, bloom: 0.42, scrim: 0.88 },
+  { id: 'hero',     cam: b2t(-8.0, -13.0, 2.60), ziel: b2t(-3.2,  4.0, 3.30), fov: 48, fog: 0.0098, key: 0.99, spitze: 117.0, wand: 54.0, bloom: 0.26, scrim: 0.00 },
+  { id: 'work',     cam: b2t(-4.5,  12.5, 3.40), ziel: b2t( 2.0, 21.0, 3.00), fov: 52, fog: 0.0125, key: 0.72, spitze: 54.0, wand: 94.5, bloom: 0.23, scrim: 0.74 },
+  { id: 'services', cam: b2t( 3.5,  -2.0, 2.90), ziel: b2t(-2.0, 14.0, 3.40), fov: 50, fog: 0.0150, key: 0.9, spitze: 85.5, wand: 76.5, bloom: 0.23, scrim: 0.62 },
+  { id: 'plans',    cam: b2t( 2.2,  -6.5, 3.50), ziel: b2t( 0.0,  4.0, 3.35), fov: 42, fog: 0.0110, key: 1.08, spitze: 108.0, wand: 49.5, bloom: 0.21, scrim: 0.78 },
+  { id: 'process',  cam: b2t(-2.6,  -1.2, 3.90), ziel: b2t( 0.4,  4.0, 3.30), fov: 38, fog: 0.0105, key: 1.17, spitze: 144.0, wand:  90, bloom: 0.24, scrim: 0.86 },
+  { id: 'about',    cam: b2t( 7.5,  -4.0, 3.00), ziel: b2t(-1.5,  8.0, 3.20), fov: 54, fog: 0.0135, key: 0.81, spitze: 67.5, wand: 67.5, bloom: 0.22, scrim: 0.84 },
+  { id: 'video',    cam: b2t(-1.2,  -4.5, 1.50), ziel: b2t( 0.0,  4.2, 3.90), fov: 48, fog: 0.0115, key: 0.99, spitze: 126.0, wand: 54.0, bloom: 0.23, scrim: 0.84 },
+  { id: 'pillars',  cam: b2t( 2.0,  -6.0, 6.20), ziel: b2t( 0.0,  6.0, 2.40), fov: 50, fog: 0.0100, key: 1.17, spitze: 108.0, wand: 63.0, bloom: 0.22, scrim: 0.68 },
+  { id: 'partner',  cam: b2t(-1.0,  18.0, 3.00), ziel: b2t( 1.5, 30.0, 3.20), fov: 52, fog: 0.0165, key: 0.68, spitze:  90, wand: 67.5, bloom: 0.19, scrim: 0.88 },
   /* FAQ stand mit der Kamera dicht an der Marke -- das ganze Bild war
      mittelblau, und die Glasscheiben darauf verloren jeden Kontrast.
      Jetzt von weiter hinten und an der Marke vorbei in den Gang: dunkler
      Grund, ruhige Flaeche, die Marke nur noch am Rand. */
-  { id: 'faq',      cam: b2t( 7.5,   2.0, 3.10), ziel: b2t( 2.0, 16.0, 3.10), fov: 50, fog: 0.0170, key: 1.4, spitze:  80, wand: 130, bloom: 0.34, scrim: 0.86 },
-  { id: 'contact',  cam: b2t(-3.0, -11.0, 2.50), ziel: b2t( 0.0,  4.6, 3.40), fov: 44, fog: 0.0105, key: 2.3, spitze: 250, wand: 130, bloom: 0.50, scrim: 0.78 },
+  { id: 'faq',      cam: b2t( 7.5,   2.0, 3.10), ziel: b2t( 2.0, 16.0, 3.10), fov: 50, fog: 0.0170, key: 0.63, spitze:  80, wand: 58.5, bloom: 0.15, scrim: 0.86 },
+  { id: 'contact',  cam: b2t(-3.0, -11.0, 2.50), ziel: b2t( 0.0,  4.6, 3.40), fov: 44, fog: 0.0105, key: 1.03, spitze: 112.5, wand: 58.5, bloom: 0.23, scrim: 0.78 },
 ];
 
 /* Der Eröffnungsflug. Startpunkt weit vor dem Raum und hoch; von hier fährt
@@ -61,7 +61,7 @@ export const RAUM_BEATS = [
 export const RAUM_OPENING = {
   id: 'opening',
   cam: b2t(-9.0, -33.0, 4.60), ziel: b2t(0, 5.0, 3.30), fov: 54,
-  fog: 0.0330, key: 0.9, spitze: 70, wand: 40, bloom: 0.30, scrim: 0.00,
+  fog: 0.0330, key: 0.41, spitze: 31.5, wand: 18.0, bloom: 0.14, scrim: 0.00,
 };
 
 /* Auf schmalen Schirmen liegt der Hero-Text über der Marke statt neben ihr —
@@ -78,7 +78,7 @@ export const RAUM_OPENING = {
    von unten nach oben läuft: dunkel, wo die Zeilen stehen, offen darüber,
    wo der Raum zu sehen sein soll. Der Bruch liegt bewusst auf demselben
    Wert wie in app.css; wer den einen ändert, muss den anderen mitziehen. */
-const HERO_GEDRAENGT = { fog: 0.0125, key: 2.0, spitze: 195, bloom: 0.42, scrim: 0.06 };
+const HERO_GEDRAENGT = { fog: 0.0125, key: 0.9, spitze: 87.75, bloom: 0.19, scrim: 0.06 };
 
 export function bindRaumBeats({ raum, gsap, ScrollTrigger }) {
   const r = raum;

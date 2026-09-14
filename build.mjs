@@ -411,6 +411,25 @@ function build(lang, seite) {
     const datei = preisseite.ziele[lang].split('/').pop();
     h = h.replace(/href="(?:prezzi|preise|pricing)\.html"/g, `href="${datei}"`);
   }
+  /* --------------------------------------------------------------------------
+     Waehrungsschreibweise der Preistabelle.
+
+     Die Quelle ist italienisch und schreibt "345 – 400 €" — Zeichen hinten,
+     wie im Deutschen und Italienischen ueblich. Englisch schreibt es
+     andersherum: "€345 – 400". Die Kettenpruefung prueft genau das, und sie
+     hat am 14.09.2026 gerissen: seit dem Commit vom 13.09. lag die englische
+     Seite in italienischer Schreibweise oben, und weil eine gerissene Kette
+     den Deploy anhaelt, ist seitdem ueberhaupt nichts mehr live gegangen.
+     Ein Zeichen an der falschen Stelle hat die ganze Auslieferung angehalten.
+
+     Deshalb steht die Regel jetzt hier und nicht in den Uebersetzungen: Sie
+     gilt fuer jede Zelle mit data-preis, auch fuer die, die morgen dazukommt.
+     -------------------------------------------------------------------------- */
+  if (lang === 'en') {
+    h = h.replace(/(data-preis="[^"]+">)([0-9.,]+(?:\s*[–-]\s*[0-9.,]+)?)\s*€(<)/g,
+      (_, vor, zahlen, nach) => vor + '€' + zahlen.replace(/\./g, ',') + nach);
+  }
+
   const betreuungsseite = SEITEN.find((x) => x.quelle === 'assistenza.html');
   if (betreuungsseite) {
     const datei = betreuungsseite.ziele[lang].split('/').pop();

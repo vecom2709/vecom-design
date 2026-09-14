@@ -66,3 +66,12 @@ _to_delete/
 # Steht hier, seit der Ordner am 13.09.2026 neben dem Klon im selben
 # Verzeichnis liegt: Ein "git add -A" haette ihn sonst mitgenommen.
 3d-produktion/
+
+# Ausnahme: die Skripte selbst. Sie sind ein paar Kilobyte gross und tragen
+# das Wissen, das die Blender-Datei nicht traegt — warum der Saal ein Keil
+# ist, warum die Webfassung andere Zahlen braucht als Cycles. Am 14.09.2026
+# aufgenommen, nachdem bauabnahme.py um ein Haar nur auf einem Rechner
+# existiert haette. Die .blend-Dateien, Renderings und Texturen bleiben
+# draussen — die sind der Grund fuer die Regel darueber.
+!3d-produktion/
+!3d-produktion/*.py

@@ -4303,3 +4303,116 @@ Struktur) — nicht hell, nur vorhanden; die vier Deckenfelder bekommen je vier
 schlanke Abhängungen von 3 cm nach oben in die Decke; und die Portalpfosten,
 die im Dunkeln verschwanden, bekommen ein etwas helleres Metall, damit der
 9 m lange Querbalken sichtbar auf etwas steht.
+
+### Widerruf: sie schwebten doch (14.09.2026)
+
+Der Abschnitt darüber ist falsch. „Geometrisch schwebt nichts" stand dort,
+weil ich die Objekte nach ihren Positionen gefragt hatte und nicht nach ihren
+Ausdehnungen. Die Positionen waren plausibel. Die Ausdehnungen waren es nicht.
+
+Nachgemessen mit den Weltkoordinaten aller Eckpunkte statt mit `location`:
+
+| Bauteil | gemessen | hätte sein müssen |
+|---|---|---|
+| Boden | Y −9,11 … 20,87 | bis Y 34 — der Saal geht bis zur Rückwand |
+| Decke | Y −8,82 … 21,16 | ebenso |
+| Seitenwände | Z 1,76 … 6,74 | Z 1,19 (Boden) … 7,38 (Decke) |
+| Rückwand | Z 1,24 … 5,05 | ebenso |
+| Portalbalken | X −4,50 … 4,50 | bis zu den Pfosten bei X ±8,6 |
+| Portalpfosten | Z 2,28 … 5,78 | vom Boden bis unter den Balken |
+| Deckenfelder | Z 7,84 … 7,90 | die Decke liegt bei 7,38 … 8,71 |
+| Podest | Z 0,75 … 1,06 | der Boden endet bei 1,19 |
+
+Die hinteren dreizehn Meter des Saals — genau dort, wo die Displays hängen —
+hatten weder Boden noch Decke. Die Seitenwände schwebten 57 cm über dem Boden
+und hörten 64 cm unter der Decke auf; sie waren selbst schwebende Platten. Die
+Portalbalken spannten neun Meter zwischen Pfosten, die 17,2 m auseinander
+stehen, und berührten ihre eigenen Pfosten nicht — **das sind die Balken, die
+Uwe an der Decke gesehen hat.** Die Lichtpaneele steckten im Deckenstein, die
+Abhängungen darüber: Sie waren in der Vorschau vom 13.09. nicht zu dunkel,
+sondern eingemauert. Die Korrektur „helleres Metall, dickerer Durchmesser"
+ging am Problem vorbei.
+
+**Die Lehre ist nicht „sorgfältiger hinsehen".** `location` ist der
+Objektursprung, `dimensions` der Huellquader im Objektmass, und `bound_box`
+ist nach einer Punktänderung noch der alte Wert. Keine der drei Angaben sagt,
+wo ein Bauteil in der Welt anfängt und aufhört. Nur die Eckpunkte durch
+`matrix_world` sagen das. Wer Architektur prüft, prüft Fugen — also Kanten
+gegen Kanten, nicht Mittelpunkte gegen Erwartungen. `bauabnahme.py` macht
+genau das und druckt jede Kante mit.
+
+DAZU DER GRUND, WARUM DER SAAL EIN LOCH WAR: **die Wände hatten Albedo
+0,008.** Kein reales Material ist so dunkel — schwarze Wandfarbe liegt bei
+0,04, dunkler Putz bei 0,06, und selbst Ruß kommt nicht unter 0,02. Bei 0,008
+schluckt die Wand 99 % des Lichts und kann nichts zurückwerfen. Es gab keine
+Fläche, auf der das Auge aufsetzen kann; was keine Fläche hat, sieht aus, als
+schwebte es. Die Dunkelheit eines Raums kommt aus dem Licht, nicht aus der
+Farbe — Wand 0,042, Boden 0,030, Decke 0,058, und die Decke ist jetzt wie in
+jedem realen Innenraum die hellste Fläche.
+
+Die Deckenfelder sind bündig in die Decke eingelassen, statt an Stangen zu
+hängen: Was bündig sitzt, kann nicht schweben. Die 16 Abhängungen sind damit
+gegenstandslos und entfernt. Zwei durchgehende Längsfugen geben der Decke eine
+Richtung und liefern das Grundlicht, das der geschlossene Raum braucht —
+vorher fiel Weltlicht durch die Lücken ein, die es nicht mehr gibt.
+
+**Dasselbe kaputte Modell lag live.** Die ausgelieferte `showroom.glb`
+nachgemessen: neun Meter breite Portalbalken, dreißig Meter Boden im
+vierundvierzig Meter langen Saal. Was auf vecom-design.it zu sehen war, hatte
+exakt denselben Fehler — Blender zu reparieren und die Seite zu vergessen
+hätte gar nichts geheilt. `web_export.py` exportiert neu; ohne Draco, weil
+`raum.js` mit blankem GLTFLoader lädt, und ohne Softboxen und Dunstvolumen,
+weil das in three.js drei weiße Rechtecke und ein grauer Klotz wären.
+
+### Der Saal ist ein Keil (14.09.2026)
+
+Die Bauabnahme von heute Morgen hat die Balken zum Stehen gebracht und dabei
+neue erzeugt. Der Grund stand von Anfang an im Modell, ich hatte nur nach
+Kanten gesucht und nicht nach **Ebenen**:
+
+**Boden und Decke sind beide um −0,024 m/m geneigt.** Vorn, an der Schwelle,
+liegt der Boden auf 1,19 m und die Decke auf 8,56 m; hinten an der Rückwand
+auf 0,01 m und 7,38 m. Die lichte Höhe bleibt über die ganzen 49 Meter bei
+7,37 m — der ganze Saal kippt. Das ist erzwungene Perspektive, derselbe Trick
+wie bei den Portalen, die nach hinten niedriger werden: Der Raum wirkt tiefer,
+als er ist.
+
+Nur wusste das keiner der Einbauten. Alles saß auf absoluten Höhen:
+
+| Bauteil | nach der ersten Bauabnahme | Boden/Decke dort |
+|---|---|---|
+| Podest | Z 1,19 … 1,52 | Boden 0,78 — **41 cm in der Luft** |
+| Deckenfugen | Z 7,33 … 7,39 | Decke vorn 8,56 — **1,2 m darunter** |
+| Bodenlichtfugen | Z 1,17 … 1,21 | Boden fällt auf 0,01 — halb vergraben |
+| Portalpfosten | Z 1,17 … | Boden 0,59 / 0,40 / 0,21 |
+| Lamellen | Z 1,17 … | Boden 0,01 |
+
+**Wer in einem geneigten Raum mit absoluten Höhen arbeitet, baut
+zwangsläufig in die Luft.** `bauabnahme.py` rechnet jetzt gegen zwei Ebenen —
+`boden(y)` und `decke(y)` — statt gegen zwei Zahlen. Jeder Einbau bekommt
+seinen Sitz relativ zu der Fläche, auf der er steht oder in der er hängt.
+
+DIE BÜHNE IM BROWSER MUSSTE EIGENE WERTE BEKOMMEN. Cycles und three.js meinen
+dieselben Zahlen verschieden, und zwar systematisch:
+
+* **Albedo.** Wand 0,008 → 0,042 ist in Cycles fast unsichtbar, der Gewinn
+  steckt im indirekten Licht. three.js kennt kein indirektes Licht; dort
+  multipliziert dieselbe Zahl die direkt beleuchtete Wand mit sieben.
+* **Lampen.** Der Spot saß auf y 7,5 — mitten in der Deckenplatte, deren
+  Unterkante bei 7,38 liegt. Er hat die Decke von innen angestrahlt. Das
+  Wandlicht stand unter einem Deckenstück, das es vorher nicht gab.
+* **Bloom.** Für eine schwarze Halle gerechnet. Sobald es Flächen gibt, die
+  ihn tragen, wird aus Glanz ein Schleier. Alle dreizehn Beat-Werte auf 45 %.
+* **Boden.** Er spiegelt nicht den Saal, sondern die Umgebungskarte — ein
+  helles Studio. Solange die Halle schwarz war, fiel das nicht auf.
+
+Gemessen im kopflosen Browser (1440 × 900, SwiftShader, Stufe „medium",
+Bühne ohne Text und Schleier): live heute Mittel 103, neu 123. Heller, aber
+nicht mehr ausgebrannt (0,9 % statt 4,7 %) — und der Unterschied ist, dass
+über dem Saal jetzt eine Decke ist statt Schwärze.
+
+**Das Werkzeug dazu ist der Strahl, nicht das Auge.** Dreimal habe ich die
+falsche Ursache vermutet und geändert, ohne dass sich etwas bewegte. Erst ein
+Raycast durch die Bildschirmkoordinate der Marke hat es entschieden: Marke_V,
+19,3 m, unverdeckt, sichtbar — sie war da, nur übertönt. Wer Licht vermutet,
+soll messen, was der Strahl trifft.

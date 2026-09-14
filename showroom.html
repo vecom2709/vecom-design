@@ -548,7 +548,7 @@ function starten() {
   const K_BODEN  = karte('boden-rauheit.webp', 9);
   const K_METALL = karte('metall-rauheit.webp', 4);
   const K_NORMAL = karte('fein-normal.webp', 12);
-  new GLTFLoader().load('/assets/3d/showroom.glb', (gltf) => {
+  new GLTFLoader().load('/assets/3d/showroom.glb?v=8fd4b309c9', (gltf) => {
     const m = gltf.scene;
     m.traverse((o) => {
       if (!o.isMesh) return;
@@ -591,8 +591,10 @@ function starten() {
         mat.normalMap = K_NORMAL;
         mat.normalScale = new THREE.Vector2(0.22, 0.22);
       }
-      if (mat.name === 'M_MetallGeb' || mat.name === 'M_Chrom') {
-        mat.roughness = mat.name === 'M_Chrom' ? 0.22 : 0.52;
+      if (mat.name === 'M_MetallGeb' || mat.name === 'M_Chrom' || mat.name === 'M_MetallPfosten') {
+        mat.roughness = mat.name === 'M_Chrom' ? 0.22
+                      : mat.name === 'M_MetallPfosten' ? 0.38 : 0.52;
+        mat.metalness = 1.0;
         mat.roughnessMap = K_METALL;
         mat.normalMap = K_NORMAL;
         mat.normalScale = new THREE.Vector2(0.16, 0.16);

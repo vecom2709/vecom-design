@@ -150,7 +150,7 @@ RewriteRule ^_[^/]*$ - [R=404,L]
 # --------------------------------------------------------------------------
 <IfModule mod_rewrite.c>
   RewriteCond %{QUERY_STRING} (^|&)v=[A-Za-z0-9]+($|&)
-  RewriteRule \.(css|js|webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm)$ - [E=FESTGENAGELT:1]
+  RewriteRule \.(css|js|webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb)$ - [E=FESTGENAGELT:1]
 </IfModule>
 # WARUM DIE ZEILE IM SELBEN FILESMATCH STEHT UND NICHT DANEBEN
 # Erster Versuch war ein eigener Header-Block hinter den anderen. Gemessen:
