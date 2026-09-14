@@ -4221,3 +4221,85 @@ Einseiter wie für fünfzehn Seiten in drei Sprachen mit Buchungssystem. Das ist
 derselbe Fehler wie oben, nur im Abo. Uwe hat in Migration 044 ausdrücklich
 entschieden, dass der Monatsbetrag nicht steigt; hier steht es nur, damit es
 beim nächsten Mal nicht wieder gefunden werden muss.
+### Glas über dem Raum, und eine Gravur, die lesbar bleibt (14.09.2026)
+
+Uwe: „Die gesamte Webseite soll auch sehr hyperrealistisch mit Glass Effekte
+bestehen" — und kurz darauf: „Lass die Schrift im Glas wie eingraviert
+aussehen aber ultra photorealistisch."
+
+**Warum Glas erst jetzt Sinn ergibt.** Glasmorphismus auf flachem Grund ist
+eine Scheibe vor einer Farbe — Dekoration. Seit der Blender-Raum hinter der
+ganzen Seite steht, ist es das Gegenteil: Jede Fläche zeigt etwas, und die
+Karten bekommen Tiefe geschenkt, statt sie mit Schatten zu behaupten. Der
+ganze Block hängt deshalb an `[data-world="on"]`. Läuft die Bühne nicht,
+bleibt die Seite exakt die alte, und der teure `backdrop-filter` wird gar
+nicht erst gerechnet.
+
+DREI DINGE UNTERSCHEIDEN ECHTES GLAS VON MILCHGLAS, und keins davon ist die
+Unschärfe: die **Kante**, die Licht fängt (oben links hell, unten rechts
+kühl); die **Dicke**, sichtbar als heller Strich knapp innen an der
+Oberkante — die angeleuchtete Stirnfläche; und die **Sättigung**, die steigt,
+weil Glas Licht bricht (`saturate(150%)`, keine Aufhellung).
+
+Die Unschärfe ist der teure Teil, nicht der schöne: `backdrop-filter` rechnet
+pro Element die Fläche dahinter neu, über einer laufenden 3D-Bühne. Der
+Radius hängt deshalb an der Qualitätsstufe, die die Bühne ohnehin ermittelt —
+22 px, 14, 8. Gleiche Optik, andere Rechenarbeit. `site-world.js` schreibt
+die Stufe als `data-stufe` an die Wurzel.
+
+**DIE GRAVUR — und warum der übliche Weg falsch ist.** „Eingraviert" und
+„lesbar" widersprechen sich, wenn man Gravur als Vertiefung denkt: Eine Rille
+in dunklem Glas ist dunkler als das Glas, und jede Zeile wäre weg. Genau
+daran scheitert der Letterpress-Effekt aus der Werkzeugkiste.
+
+Es gibt aber eine zweite Art, Glas zu beschriften, und sie ist die häufigere:
+**sandgestrahlt**. Die aufgeraute Fläche streut das Licht, statt es
+durchzulassen — geätzte Schrift auf dunklem Glas ist deshalb HELLER als ihre
+Umgebung. Jede Duschkabine zeigt es. Drei Lagen: die dunkle Schnittkante
+oben, die helle Gegenkante unten, und zwei Streuradien (eng und weit, weil
+eine einzelne Unschärfe wie Leuchtreklame aussieht).
+
+**Nur Auszeichnungsschrift.** Bei 16-px-Zeilen sitzen die drei Lagen enger
+beieinander als die Strichstärke; was bei einer Überschrift Tiefe ist, wird
+dort Matsch. Gravuren gibt es auf Türschildern, nicht in Büchern.
+
+ZWEI SACHEN, DIE ERST DAS MESSEN ZEIGTE:
+
+1. **`text-shadow` war auf den wichtigsten Überschriften wirkungslos.** Ein
+   guter Teil der Auszeichnungsschrift ist Verlaufsschrift
+   (`background-clip:text` mit `color:transparent`). Dort malt `text-shadow`
+   hinter eine durchsichtige Schrift. `drop-shadow` arbeitet dagegen auf dem
+   fertig gezeichneten Ergebnis und nimmt den Verlauf mit.
+2. **Der erste Glaston war zu durchsichtig.** Mit `.46` lag die Scheibe im
+   FAQ-Abschnitt fast auf der Helligkeit der Schrift darauf. Der Grund war
+   die Bühne: Dort stand die Kamera dicht an der Marke, das ganze Bild war
+   mittelblau. Zwei Korrekturen — Ton auf `.68`, und der FAQ-Beat schaut
+   jetzt von weiter hinten an der Marke vorbei in den Gang.
+
+Dazu bekommen die Überschriften einen eigenen weichen Grund: Der Schleier der
+Bühne ist ein runder Verlauf, der die Ränder abdunkelt und die Mitte offen
+lässt — und in der Mitte steht die Marke. Ein zweiter globaler Schleier wäre
+die falsche Antwort; stattdessen bringt jede Überschrift ihren eigenen mit,
+weit über den Textblock hinaus auslaufend.
+
+Gemessen nach dem Umbau (Text ausgeblendet, reiner Grund, 1440x900):
+Überschrift 0,0 % unter 4.5:1 (schlechtester 8,54), Einleitung 0,0 % (6,25),
+Kartentext 0,1 % (4,43).
+
+### Die schwebenden Balken schweben nicht (14.09.2026)
+
+Uwe: „Es schweben komische Balken im Showroom, auch an der Decke sind komische
+Balken." Nachgemessen, Objekt für Objekt: **Geometrisch schwebt nichts.** Die
+Deckenfelder, die Portalbalken und die Lichtleisten sitzen alle dort, wo sie
+hingehören.
+
+Der Fehler ist ein Beleuchtungsfehler: **Die Decke ist fast schwarz** —
+Grundfarbe 0,006 bei Rauheit 0,95, also schwarzer Samt. Man sieht sie nicht.
+Und was unter einer unsichtbaren Decke hängt, hängt an nichts.
+
+`raum_decke.py` setzt deshalb an drei Stellen an: die Decke bekommt ein
+eigenes Material (Grundton verdreifacht, ein Hauch Glanz, eine große ruhige
+Struktur) — nicht hell, nur vorhanden; die vier Deckenfelder bekommen je vier
+schlanke Abhängungen von 3 cm nach oben in die Decke; und die Portalpfosten,
+die im Dunkeln verschwanden, bekommen ein etwas helleres Metall, damit der
+9 m lange Querbalken sichtbar auf etwas steht.

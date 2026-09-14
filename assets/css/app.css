@@ -1238,6 +1238,210 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   }
 }
 
+/* ===========================================================================
+   GLAS — und warum es erst jetzt Sinn ergibt
+
+   Glasmorphismus auf flachem Grund ist Dekoration: Man schaut durch eine
+   Scheibe auf eine Farbe. Seit hinter der ganzen Seite ein Raum steht, ist
+   es das Gegenteil — jede Fläche zeigt etwas, und die Karten bekommen Tiefe
+   geschenkt, statt sie mit Schatten behaupten zu müssen.
+
+   Deshalb hängt der ganze Block an [data-world="on"]. Läuft die Bühne nicht,
+   bleibt die Seite exakt die, die sie vorher war, und der teure
+   backdrop-filter wird gar nicht erst gerechnet.
+
+   WAS ECHTES GLAS VON MILCHGLAS UNTERSCHEIDET — drei Dinge, und keins davon
+   ist die Unschärfe:
+
+   1. DIE KANTE FÄNGT LICHT. Oben links hell, unten rechts dunkel. Eine
+      Scheibe ohne Kante ist ein Rechteck aus Nebel. Dafür ist der
+      Verlaufsrahmen da, den .framed ohnehin schon hatte — er wird hier nur
+      auf Glas umgestellt statt auf Linie.
+   2. DIE DICKE zeigt sich als heller Strich knapp INNEN an der Oberkante.
+      Das ist die Stirnfläche des Glases, von oben angeleuchtet. Ein Pixel,
+      und ohne ihn sieht jede Scheibe aus wie aufgemalt.
+   3. DIE SÄTTIGUNG STEIGT. Glas bricht Licht; was dahinter liegt, wird eine
+      Spur farbiger, nicht blasser. saturate(150%) statt einer Aufhellung.
+
+   DIE UNSCHÄRFE IST DER TEURE TEIL, NICHT DER SCHÖNE.
+   backdrop-filter kostet pro Element eine eigene Komposition der Fläche
+   dahinter — über einer laufenden 3D-Bühne ist das die teuerste Zeile CSS
+   auf dieser Seite. Der Radius hängt deshalb an der Qualitätsstufe, die die
+   Bühne ohnehin schon ermittelt (siehe quality.js): 22 px auf starken
+   Geräten, 14 in der Mitte, 8 auf schwachen. Die Optik bleibt dieselbe, nur
+   die Rechenarbeit nicht.
+   =========================================================================== */
+:root {
+  /* GEMESSEN, NICHT GEWAEHLT: Mit .46 lag die Scheibe im FAQ-Abschnitt fast
+     auf derselben Helligkeit wie die Schrift darauf — 99,7 % der Flaeche
+     unter 4.5:1. Der Grund ist die Buehne dahinter: Dort steht die Kamera
+     dicht an der Marke, und das Bild ist ueberall mittelblau. Eine Scheibe
+     muss ueber JEDEM Hintergrund tragen, nicht nur ueber dem dunklen. */
+  --glas-ton:        rgba(8, 13, 24, .68);
+  --glas-unschaerfe: 22px;
+  --glas-kante-hell: rgba(190, 215, 255, .58);
+  --glas-kante-matt: rgba(120, 150, 200, .10);
+  --glas-kante-kalt: rgba(150, 190, 255, .30);
+}
+[data-stufe="medium"] { --glas-unschaerfe: 14px; --glas-ton: rgba(8, 13, 24, .74); }
+[data-stufe="low"]    { --glas-unschaerfe: 8px;  --glas-ton: rgba(8, 13, 24, .80); }
+
+[data-world="on"] .framed,
+[data-world="on"] .faq__item,
+[data-world="on"] .kontaktweg {
+  background-color: var(--glas-ton);
+  background-image: none;
+  -webkit-backdrop-filter: blur(var(--glas-unschaerfe)) saturate(150%);
+  backdrop-filter: blur(var(--glas-unschaerfe)) saturate(150%);
+  border-color: transparent;
+  box-shadow:
+    /* die Stirnflaeche oben */
+    inset 0 1px 0 0 rgba(220, 235, 255, .14),
+    /* die Unterkante liegt im Schatten der eigenen Dicke */
+    inset 0 -1px 0 0 rgba(0, 0, 0, .40),
+    /* Umgebungsschatten, weit und weich */
+    0 26px 64px -30px rgba(0, 0, 0, .80),
+    /* Kontaktschatten, eng und dunkel — er setzt die Karte auf den Grund */
+    0 3px 12px -5px rgba(0, 0, 0, .65);
+}
+
+/* Der Rahmen von .framed wird zur Glaskante: heller Anschnitt oben links,
+   matt in der Mitte, kühler Rückschein unten rechts. */
+[data-world="on"] .framed::after {
+  background: linear-gradient(150deg,
+    var(--glas-kante-hell) 0%,
+    var(--glas-kante-matt) 46%,
+    var(--glas-kante-kalt) 100%);
+  opacity: .92;
+}
+
+/* Die Medienkarten tragen ein Bildschirmfoto — dort liegt die Scheibe VOR
+   dem Bild, nicht darunter. Sie behalten ihren Rand, damit das Bild nicht
+   in den Raum ausfranst. */
+[data-world="on"] .card { background-color: rgba(8, 13, 22, .70); }
+
+/* Die FAQ-Zeilen sind keine Karten, sondern eine Leiste: dünnere Scheibe,
+   damit zehn davon untereinander nicht wie ein Stapel Deckel wirken. */
+[data-world="on"] .faq__item {
+  -webkit-backdrop-filter: blur(calc(var(--glas-unschaerfe) * .6)) saturate(140%);
+  backdrop-filter: blur(calc(var(--glas-unschaerfe) * .6)) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 0 rgba(220, 235, 255, .10),
+    0 10px 28px -20px rgba(0, 0, 0, .7);
+}
+
+/* Die Kopfzeile ist die einzige Scheibe, die immer im Bild bleibt. Sie
+   bekommt denselben Ton, damit sie nicht wie ein Fremdkoerper ueber dem
+   Glas darunter schwebt. */
+[data-world="on"] .header.is-stuck {
+  background-color: var(--glas-ton);
+  -webkit-backdrop-filter: blur(var(--glas-unschaerfe)) saturate(150%);
+  backdrop-filter: blur(var(--glas-unschaerfe)) saturate(150%);
+}
+
+/* Ohne backdrop-filter (aeltere Browser) wuerde die Scheibe zum Loch:
+   halbdurchsichtige Flaeche ohne Unschaerfe, und der Raum liegt roh unter
+   dem Text. Dann lieber die alte, deckende Flaeche. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-world="on"] .framed,
+  [data-world="on"] .faq__item,
+  [data-world="on"] .kontaktweg,
+  [data-world="on"] .card,
+  [data-world="on"] .header.is-stuck { background-color: var(--c-surface); }
+}
+
+/* ---------------------------------------------------------------------------
+   DIE ÜBERSCHRIFTEN BRAUCHEN IHREN EIGENEN GRUND
+
+   Die Karten sitzen auf Glas, die Überschriften nicht — sie stehen frei im
+   Raum. Der Schleier der Bühne hilft ihnen nur bedingt: Er ist ein runder
+   Verlauf, der die Ränder abdunkelt und die Mitte offen lässt, und genau in
+   der Mitte steht die Marke. Auf der Preise-Seite lag der Einleitungstext
+   dadurch quer über dem hellsten Punkt des ganzen Bildes.
+
+   Ein zweiter globaler Schleier wäre die falsche Antwort — dann wäre vom
+   Raum überall weniger zu sehen, nur damit an vier Stellen Text lesbar
+   bleibt. Stattdessen bringt jede Überschrift ihren eigenen, weichen Grund
+   mit: ein Verlauf, der über den Textblock hinausreicht und weit vor dessen
+   Rand ausläuft. Man sieht ihn nicht, man liest nur besser.
+   --------------------------------------------------------------------------- */
+[data-world="on"] .sechead { position: relative; }
+[data-world="on"] .sechead::before {
+  content: ''; position: absolute; z-index: -1; pointer-events: none;
+  /* großzügig über den Text hinaus, damit die Kante nie zu sehen ist */
+  inset: -2.2rem -3.5rem -1.6rem -3.5rem;
+  background: radial-gradient(60% 80% at 30% 50%,
+    rgba(3, 5, 9, .82) 0%, rgba(3, 5, 9, .62) 45%,
+    rgba(3, 5, 9, .22) 72%, rgba(3, 5, 9, 0) 100%);
+}
+/* Die geteilte Fassung trägt rechts eine zweite Spalte — dort steht der
+   Fließtext, und dort ist der Grund am nötigsten. */
+@media (min-width: 900px) {
+  [data-world="on"] .sechead--split::before {
+    background: radial-gradient(70% 85% at 50% 50%,
+      rgba(3, 5, 9, .80) 0%, rgba(3, 5, 9, .60) 50%,
+      rgba(3, 5, 9, .20) 78%, rgba(3, 5, 9, 0) 100%);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   GRAVUR IM GLAS
+
+   „Wie eingraviert" und „gut lesbar" widersprechen sich, wenn man Gravur als
+   Vertiefung denkt: Eine Rille in dunklem Glas ist dunkler als das Glas —
+   und damit wäre jede Zeile weg. Genau daran scheitert der übliche
+   Letterpress-Effekt aus der Werkzeugkiste.
+
+   Es gibt aber eine zweite Art, Glas zu beschriften, und sie ist sogar die
+   häufigere: sandgestrahlt. Die aufgeraute Fläche streut das Licht, statt es
+   durchzulassen — eine geätzte Schrift auf dunklem Glas ist deshalb HELLER
+   als ihre Umgebung, nicht dunkler. Jede Duschkabine, jedes Türschild, jede
+   Kanzleitür zeigt es. Das ist beides zugleich: physikalisch richtig und
+   lesbar.
+
+   Drei Lagen, von innen nach außen:
+   1. DIE SCHNITTKANTE OBEN — eine harte dunkle Linie, ein Pixel. Dort trifft
+      das Licht von oben auf die Kante der Vertiefung und wird verschluckt.
+      Ohne sie liegt die Schrift auf dem Glas statt darin.
+   2. DIE STREUUNG — ein weicher heller Schein um die Buchstaben. Das ist das
+      Licht, das sich in der aufgerauten Fläche verteilt. Zwei Radien, ein
+      enger und ein weiter, weil eine einzelne Unschärfe wie Leuchtreklame
+      aussieht.
+   3. DIE GEGENKANTE UNTEN — eine feine helle Linie, die das Licht von oben
+      direkt zurückwirft.
+
+   NUR AUSZEICHNUNGSSCHRIFT, KEIN FLIESSTEXT. Bei 16 px Zeilen sitzen die
+   drei Lagen enger beieinander als die Strichstärke der Schrift; was bei
+   einer Überschrift Tiefe ist, wird dort Matsch. Gravuren gibt es auf
+   Türschildern, nicht in Büchern.
+   --------------------------------------------------------------------------- */
+/* WARUM drop-shadow UND NICHT text-shadow
+   Ein guter Teil der Auszeichnungsschrift auf dieser Seite ist
+   Verlaufsschrift: background-clip:text mit color:transparent. Auf so einem
+   Element malt text-shadow den Schatten HINTER eine durchsichtige Schrift —
+   man sieht ihn entweder gar nicht oder als Klotz. drop-shadow arbeitet
+   dagegen auf dem fertig gezeichneten Ergebnis und nimmt den Verlauf mit.
+   Gekostet hat das eine Messung: Die Gravur war auf genau den Überschriften
+   unsichtbar, auf die es ankam. */
+[data-world="on"] .sechead h2,
+[data-world="on"] .card h3,
+[data-world="on"] .plan h3,
+[data-world="on"] .faq__item summary,
+[data-world="on"] .eyebrow,
+[data-world="on"] .card__tag,
+[data-world="on"] .plan__price {
+  filter:
+    drop-shadow(0 -1px 0 rgba(0, 0, 0, .58))        /* die Schnittkante */
+    drop-shadow(0 1px 0 rgba(215, 233, 255, .13))   /* die Gegenkante */
+    drop-shadow(0 0 8px rgba(155, 195, 255, .22))   /* Streuung, eng */
+    drop-shadow(0 0 24px rgba(120, 170, 255, .12)); /* Streuung, weit */
+}
+/* Mattiertes Glas ist nie ganz weiß und immer eine Spur kühler — sonst sieht
+   die Gravur aus wie aufgedruckt. Nur dort, wo kein Verlauf liegt; sonst
+   würde die Farbe den Verlauf ausschalten. */
+[data-world="on"] .faq__item summary,
+[data-world="on"] .card h3 { color: #dfe9fb; }
+
 /* Alles Inhaltliche liegt über der Bühne. */
 main, .footer { position: relative; z-index: 2; }
 .progress, .grain, .vignette, .cursor, .cursor-dot { position: fixed; }
