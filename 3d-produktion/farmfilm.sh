@@ -9,9 +9,11 @@
 #      Es kostet keine Dekodierung, keinen Akku, und es steht sofort.
 #      AVIF zuerst, WebP als Rueckfall.
 #
-#   2. Einen kurzen Film in zwei Fassungen. AV1 ist rund ein Drittel
-#      kleiner als H.264, kann aber noch nicht jeder abspielen; darum
-#      beide, und der Browser nimmt, was er kann.
+#   2. Einen kurzen Film in zwei Fassungen. VP9 ist bei gleicher Bildguete
+#      rund ein Viertel kleiner als H.264, kann aber nicht jeder abspielen;
+#      darum beide, und der Browser nimmt, was er kann. AV1 waere noch
+#      kleiner, aber Haswell-Grafik dekodiert weder AV1 noch VP9 in
+#      Hardware -- und genau die soll hier nicht ins Schwitzen kommen.
 #
 #   3. Ein Plakatbild fuer den Film, damit im ersten Moment nicht
 #      Schwarz steht.
@@ -37,11 +39,42 @@ ffmpeg -y -loglevel error -i "$EINZEL" -frames:v 1 -c:v libwebp -quality 78 \
        "$ZIEL/img/3d/buehne-standbild.webp"
 
 # ---------------------------------------------------------------- Film
-# 24 Bilder je Sekunde: 240 Frames sind damit genau zehn Sekunden. Der Film
-# laeuft in der Schleife, deshalb keine Tonspur und keine langen Keyframe-
-# Abstaende -- ein Sprung am Ende faellt sonst auf.
+# 24 Bilder je Sekunde: 240 Frames sind damit genau zehn Sekunden.
+#
+# Der Film laeuft NICHT in der Schleife, und das ist keine Nachlaessigkeit,
+# sondern das, was die Kamerafahrt selbst sagt. Am 14.09.2026 nachgemessen,
+# mittlerer Bildunterschied je Paar:
+#
+#   Bild 239 -> 240    0,91   die Kamera kommt zur Ruhe
+#   Bild   1 ->   2    0,44   und sie startet aus der Ruhe
+#   Bild 240 ->   1   48,38   aber an einer voellig anderen Stelle
+#
+# Die Fahrt hat eine weiche Ein- und Ausblende an beiden Enden und endet
+# woanders, als sie beginnt. In der Schleife gaebe das einen harten Schnitt
+# alle zehn Sekunden. Also: einmal spielen, auf dem letzten Bild stehen
+# bleiben. Im Markup heisst das autoplay muted playsinline -- ohne loop.
+#
+# Die Stufen wurden gemessen, nicht geraten. SSIM gegen die PNG-Quelle,
+# Bild fuer Bild nach dem Dekodieren verglichen (die Filterkette direkt auf
+# den Videostrom zu setzen misst sonst um ein Bild versetzt und liefert fuer
+# jede Einstellung dieselbe Zahl -- darauf bin ich einmal hereingefallen):
+#
+#   VP9  crf 36   2,28 MB   0,9612      H.264 crf 24   2,71 MB   0,9605
+#   VP9  crf 40   1,54 MB   0,9578      H.264 crf 26   2,04 MB   0,9571
+#   VP9  crf 44   1,09 MB   0,9541      H.264 crf 28   1,59 MB   0,9533
+#
+# Im 1:1-Ausschnitt ist zwischen allen dreien nichts zu sehen -- auch die
+# Schrift auf der Tafel bleibt bei crf 44 lesbar. Die Zahlen bleiben so eng
+# beieinander, weil das Bildrauschen aus 256 Samples selbst Bitrate frisst;
+# noch mehr Bitrate ginge in das Rauschen, nicht ins Bild. Darum VP9 bei 40.
+# H.264 bleibt bei 26: Er ist der Rueckfall fuer die schwachen Rechner, und
+# dort ist die halbe Megabyte mehr besser angelegt als bei denen, die
+# ohnehin VP9 bekommen.
+#
+# -g 48 haelt alle zwei Sekunden ein Schluesselbild bereit -- nicht wegen
+# der Schleife, sondern damit ein Sprung in der Zeitleiste sofort steht.
 ffmpeg -y -loglevel error -framerate 24 -pattern_type glob -i "$QUELLE/*.png" \
-       -c:v libvpx-vp9 -crf 36 -b:v 0 -row-mt 1 -g 48 -an \
+       -c:v libvpx-vp9 -crf 40 -b:v 0 -row-mt 1 -g 48 -an \
        -pix_fmt yuv420p "$ZIEL/video/buehne.webm"
 ffmpeg -y -loglevel error -framerate 24 -pattern_type glob -i "$QUELLE/*.png" \
        -c:v libx264 -crf 26 -preset slow -profile:v high -g 48 -an \
