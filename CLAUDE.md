@@ -104,10 +104,27 @@ im Deploy löscht dort, was das andere gerade hochgeladen hat. Wer getrennte
 Konten braucht, nimmt einen Fork und Pull Requests — nie zwei gleichberechtigte
 Repositories.
 
-Schreibrecht bekommt das zweite Konto über **Settings → Collaborators**. Die
-Commit-Identität bleibt auf beiden Rechnern `Vecom Design
-<kontakt@vecom-design.it>`, damit die Historie einheitlich bleibt; wer gepusht
-hat, steht ohnehin nur in der Signatur.
+Schreibrecht bekommt das zweite Konto über **Settings → Collaborators**.
+
+**Wer schreibt, steht seit dem 14.09.2026 im Autorfeld.** Bis dahin trugen alle
+Commits `Vecom Design <kontakt@vecom-design.it>`, auch die von Claude — damit
+die Historie einheitlich blieb. Das war eine Vereinfachung, die eine Frage
+offenließ, die man einer Historie ansehen können sollte: Wer hat das
+geschrieben?
+
+* **Uwe** committet weiter als `Vecom Design <kontakt@vecom-design.it>`.
+* **Claude** committet als `Claude <noreply@anthropic.com>` — gesetzt
+  *repository-lokal* (`git config --local`), damit es keine anderen Projekte
+  auf demselben Rechner erwischt.
+* In beiden Fällen bleibt `Co-Authored-By: Claude …` samt Sitzungslink unten
+  im Text stehen. Das Autorfeld sagt, wer getippt hat; die Fußzeile sagt, in
+  welcher Sitzung.
+
+**Rückwirkend wird nichts geändert.** Die Commits bis `d277b1c` bleiben, wie sie
+sind. Vier davon liegen auf `origin/main` und sind über den Deploy längst live;
+sie umzuschreiben hieße, veröffentlichte Historie mit Gewalt zu überschreiben —
+auf einem Repository mit zwei Arbeitskopien und automatischem Deploy. Eine
+Historie darf einen Schnitt haben. Sie darf nicht gefälscht werden.
 
 Vier Regeln, die aus Schaden entstanden sind:
 
