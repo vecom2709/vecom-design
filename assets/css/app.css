@@ -1274,12 +1274,22 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
    steht nur die Kopfzeile, und dort darf der Raum zu sehen sein. Die Marke
    bleibt als dunkle Form dahinter erkennbar, statt gegen jede Zeile zu
    kämpfen. */
+/* Die beiden Stoerfaelle standen hier zuerst nicht mit in der Liste, und
+   das war kein Schoenheitsfehler: Auf 390x844 gemessen am 14.09.2026 fiel
+   dann der Verlauf fuer breite Schirme durch -- der, der links dunkel und
+   rechts offen laeuft. Auf einem Telefon gibt es aber kein Rechts ohne
+   Text. Ergebnis: 3,5 % der Ueberschrift unter 4.5:1, schlechteste Stelle
+   1,59:1, waehrend derselbe Schirm im Zustand "device" bei 0,0 % lag.
+   Ein Zustand, den niemand absichtlich herbeifuehrt, ist genau der, den
+   niemand nachmisst. */
 @media (max-width: 899px) {
   [data-world="on"] .hero::after,
   [data-world="no-webgl"] .hero::after,
   [data-world="save-data"] .hero::after,
   [data-world="device"] .hero::after,
-  [data-world="no-gsap"] .hero::after {
+  [data-world="no-gsap"] .hero::after,
+  [data-world="init-error"] .hero::after,
+  [data-world="context-lost"] .hero::after {
     background: linear-gradient(180deg,
       rgba(3, 5, 9, .26) 0%, rgba(3, 5, 9, .70) 13%,
       rgba(3, 5, 9, .82) 34%, rgba(3, 5, 9, .86) 100%);
