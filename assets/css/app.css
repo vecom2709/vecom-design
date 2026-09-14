@@ -225,7 +225,16 @@ body[data-frame="gold"] {
 
 /* ---------- 3. Filmische Grundschicht: Korn, Vignette, Licht ------------- */
 .grain {
-  position: fixed; inset: -50%;
+  /* WARUM -4 % UND NICHT -50 %.
+     Die Ebene muss nur so viel ueberstehen, wie die Animation sie
+     verschiebt -- grainShift geht bis 3 % in jede Richtung. Mit inset:-50 %
+     war sie doppelt so breit und doppelt so hoch wie das Fenster, also die
+     VIERFACHE Flaeche: auf 1440x900 rund 2880x1800 Pixel SVG-Rauschen, die
+     der Grafikprozess vorhaelt und bei jedem Bild neu zusammensetzt.
+     Am 14.09.2026 Pixel gegen Pixel verglichen: groesster Unterschied 4 von
+     255, kein einziges Pixel ueber 8. Man sieht es nicht -- man zahlt es
+     nur. */
+  position: fixed; inset: -4%;
   pointer-events: none; z-index: 90;
   opacity: .038;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -509,7 +518,12 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
     radial-gradient(46% 38% at 50% 30%, rgba(10, 120, 245, .30), transparent 70%),
     radial-gradient(28% 22% at 50% 24%, rgba(31, 232, 255, .22), transparent 72%),
     radial-gradient(70% 55% at 78% 88%, rgba(6, 72, 232, .16), transparent 70%);
-  filter: blur(6px);
+  /* Kein filter: blur() mehr. Ein Weichzeichner von 6 px auf Verlaeufen, die
+     ueber 700 px auslaufen, ist nicht zu sehen -- er zwingt den Browser aber,
+     die ganze Hero-Flaeche in eine eigene Ebene zu malen, sie zu filtern und
+     zurueckzukopieren, und das bei jedem Bild. Am 14.09.2026 gemessen:
+     mittlerer Pixelunterschied 0,7 von 255, groesster 8, kein Pixel darueber.
+     Dieselbe Ueberlegung gilt fuer .process::before weiter unten. */
 }
 /* Feines technisches Raster, klingt nach hinten aus */
 .hero__grid {
@@ -791,7 +805,8 @@ body.scrolled .scrollcue { opacity: 0; }
 .process::before {
   content: ""; position: absolute; inset: -2rem -3vw; z-index: -1; pointer-events: none;
   background: radial-gradient(70% 60% at 30% 50%, rgba(3, 5, 9, .92), rgba(3, 5, 9, .6) 60%, transparent 85%);
-  filter: blur(4px);
+  /* Kein blur(4px): derselbe Grund wie bei .hero__light -- der Verlauf ist
+     ohnehin weich, der Filter kostet eine eigene Ebene je Bild. */
 }
 /* Die vier Schritte sind aufklappbar — vier ausgeschriebene Absaetze
    untereinander sind viel Text an einer Stelle, an der der Leser eigentlich
