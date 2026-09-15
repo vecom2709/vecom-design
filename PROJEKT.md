@@ -4569,3 +4569,69 @@ zählt, und dass die Kundenliste ihn zeigt.
 aus dem Menü — also den Zustand von gestern —, fällt „unter der Tür „Kunden"
 liegt auch die vollständige Kundenliste". Der Fehler, der gestern durchkam,
 käme heute nicht mehr durch.
+
+## Aufräumen: was ausgeliefert wurde, ohne dass es sollte (15.09.2026)
+
+Anlass war eine einfache Frage — ob man Unnützes aus dem Repository nehmen
+kann, damit es ohne Nachfragen läuft. Gemessen wurde zuerst, entfernt danach.
+
+**Die Pages-Vorschau lieferte den Quelltext aus.** `pages.yml` lud mit
+`path: .` das ganze Repository hoch. `https://vecom2709.github.io/vecom-design/kunde.php`
+kam mit **Status 200 und 60.513 Byte PHP** zurück, `app/pruefung/kette.php`
+mit **353.195 Byte**. Auf All-Inkl ist die eine per Deploy-Ausschluss draußen
+und die andere per `.htaccess` gesperrt — auf Pages gibt es weder Apache noch
+PHP, also greift keine der beiden Sperren. **Merksatz: Eine Sperre wirkt dort,
+wo sie gelesen wird. Ein zweiter Auslieferungsweg erbt sie nicht.** Die
+Vorschau sammelt jetzt ein, statt auszuschließen — eine neue Datei unter
+`app/` ist damit von sich aus draußen —, und jede Seite bekommt ein `noindex`,
+damit die Kopie der Hauptdomain keine Sichtbarkeit wegnimmt.
+
+**`/de/` und `/en/` lagen im Repository, obwohl `build.mjs` sie erzeugt.**
+Beide Abläufe bauen sie vor dem Hochladen neu. Beleg: gelöscht, `node
+build.mjs`, alle sechs Dateien byte-identisch wieder da. Sie sind jetzt in
+`.gitignore`. **Die drei italienischen Seiten bleiben versioniert — sie sind
+Quelle UND Ziel** (`build.mjs`, Zeile 103). Der erste Versuch nahm
+`prezzi.html` mit; der Lauf brach mit ENOENT ab, und zwar erst *nach*
+`de/index.html`, also mitten in der Arbeit. Ein halb gebautes Verzeichnis
+sieht wie ein erfolgreicher Lauf aus, wenn man nur hinsieht, ob Dateien da
+sind.
+
+**Sechs Megabyte toter Film.** `erklaervideo-de/-en/-it.mp4` sind die
+Vorgänger des Ablauf-Films, seit dem Umbau nirgends verlinkt. Dazu die tote
+Kette der alten Unterseite: `assets/js/world/main.js` wird von keiner Datei
+geladen, `story.js` nur von `main.js`, `world.css` von niemandem. `scene.js`
+bleibt — die lädt auch `site-world.js`. Alle sechs stehen in der Abrissliste;
+ohne sie wären sie aus dem Repository verschwunden und auf dem Webspace
+liegengeblieben.
+
+**Benutzer und Server standen im Klartext in `ftp-deploy.yml`.** Das Passwort
+lag richtig als Secret — aber ein öffentliches Repository, das Benutzer und
+Server nennt, hat die Anmeldung zur Hälfte verraten. Beide kommen jetzt aus
+Repository-Variablen, vorerst mit Rückfall auf die alten Werte, damit nichts
+hängenbleibt.
+
+#### Was dabei *nicht* angefasst wurde
+
+- **`origin/glas-gravur`** ist kein toter Zweig: 204 Zeilen Glas- und
+  Gravur-CSS, von denen kein Selektor in `main` steckt. Liegengeblieben, nicht
+  verworfen — der Zweig hängt 23 Commits zurück und will vor dem Zusammenführen
+  neu aufgesetzt werden.
+- **`assets/img/geraete/buehne-*.webp`** erscheinen in keiner Seite, sind aber
+  in ihrer README mit Herkunft, Maßstab (31,35 px/cm) und Lizenz dokumentiert.
+  Zusammen 36 KB. Dokumentiertes Ausgangsmaterial wirft man nicht weg, um 36 KB
+  zu sparen.
+- **Die History.** 58 MB `.git`, davon rund 20 MB alte Videofassungen. Ein
+  `filter-repo` würde alle 342 Commit-Nummern ändern — bei zwei Arbeitskopien
+  und automatischem Deploy ist das teurer als die 20 MB.
+
+#### Geprüft
+
+154 PHP-Dateien ohne Syntaxfehler. Alle vier Workflows gültiges YAML. Sieben
+Seiten örtlich im Browser, **keine einzige 404** durch die Entfernungen.
+
+Und eine Falle, die beinahe als Fehler gemeldet worden wäre: Beim örtlichen
+Lauf landeten `/de/` und `/en/` auf `/` mit `lang=it` — das sah nach einer
+kaputten Sprachauslieferung aus. Gegen die Live-Seite geprüft: `/de/` liefert
+`lang=de`, `/en/` liefert `lang=en`, beide mit dem richtigen Titel. Es war der
+eingebaute PHP-Server, der Verzeichnisse anders routet. **Die Tabelle in
+CLAUDE.md warnt genau davor, und sie hatte wieder recht.**
