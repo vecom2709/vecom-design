@@ -29,11 +29,15 @@ jobs:
           PW: ${{ secrets.COCKPIT_PASSWORD }}
           FTPPW: ${{ secrets.FTP_PASSWORD }}
           DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTPUSER: ${{ vars.FTP_USER }}
+          FTPHOST: ${{ vars.FTP_HOST }}
         run: |
           fehlt=0
           if [ -z "$PW" ];    then echo "::error::Secret COCKPIT_PASSWORD fehlt — siehe Kopf dieser Datei."; fehlt=1; fi
           if [ -z "$FTPPW" ]; then echo "::error::Secret FTP_PASSWORD fehlt."; fehlt=1; fi
           if [ -z "$DIR" ];   then echo "::error::Variable FTP_SERVER_DIR fehlt."; fehlt=1; fi
+          if [ -z "$FTPUSER" ]; then echo "::error::Variable FTP_USER fehlt."; fehlt=1; fi
+          if [ -z "$FTPHOST" ]; then echo "::error::Variable FTP_HOST fehlt."; fehlt=1; fi
           if [ "$fehlt" = "1" ]; then exit 1; fi
           echo "Alle Angaben vorhanden."
 
@@ -48,6 +52,8 @@ jobs:
         env:
           FTPPW: ${{ secrets.FTP_PASSWORD }}
           DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTPUSER: ${{ vars.FTP_USER }}
+          FTPHOST: ${{ vars.FTP_HOST }}
         run: |
           mkdir -p out
           printf '%s' '<?php echo __DIR__;' > out/pfad.php
@@ -55,7 +61,7 @@ jobs:
             set ssl:verify-certificate no; set ftp:ssl-force true;
             set ftp:ssl-protect-data true; set ftp:passive-mode true;
             set net:timeout 20; set net:max-retries 3;
-            open -u 'f018ae3f,$FTPPW' w021fb9a.kasserver.com;
+            open -u '$FTPUSER,$FTPPW' $FTPHOST;
             cd '$DIR'cockpit;
             put out/pfad.php -o pfad.php;
             bye"
@@ -72,6 +78,8 @@ jobs:
           PW: ${{ secrets.COCKPIT_PASSWORD }}
           FTPPW: ${{ secrets.FTP_PASSWORD }}
           DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTPUSER: ${{ vars.FTP_USER }}
+          FTPHOST: ${{ vars.FTP_HOST }}
           BENUTZER: ${{ inputs.benutzer }}
           PFAD: ${{ steps.pfad.outputs.pfad }}
         run: |
@@ -95,7 +103,7 @@ jobs:
             set ssl:verify-certificate no; set ftp:ssl-force true;
             set ftp:ssl-protect-data true; set ftp:passive-mode true;
             set net:timeout 20; set net:max-retries 3;
-            open -u 'f018ae3f,$FTPPW' w021fb9a.kasserver.com;
+            open -u '$FTPUSER,$FTPPW' $FTPHOST;
             cd '$DIR'cockpit;
             put out/.htpasswd -o .htpasswd;
             put out/.htaccess -o .htaccess;

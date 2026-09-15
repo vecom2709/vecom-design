@@ -186,7 +186,7 @@ var TUN = [
     gewinn:"hoch", wer:"10 Min du",
     warum:"Beide stehen im Klartext in einem Chatverlauf. Mit dem FTP-Zugang kann jemand deine Website austauschen, mit dem Token in deinem Namen Code veröffentlichen. Das trifft nicht nur dich, sondern auch die drei Kundenprojekte auf demselben Webspace.",
     schritte:[
-      "Im KAS von All-Inkl: FTP → Zugang f018ae3f bearbeiten → neues Passwort setzen.",
+      "Im KAS von All-Inkl: FTP → den Zugang der Domain bearbeiten (der Benutzername steht bei GitHub unter Settings → Secrets and variables → Actions → Variables als FTP_USER) → neues Passwort setzen.",
       "Bei GitHub: Settings → Developer settings → Personal access tokens → das betroffene Token auf „Revoke“.",
       "Bei GitHub im Repository vecom2709/vecom-design: Settings → Secrets and variables → Actions → FTP_PASSWORD auf das neue Passwort setzen.",
       "Einmal etwas auf main pushen und prüfen, ob der Deploy grün durchläuft."

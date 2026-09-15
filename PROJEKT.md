@@ -4635,3 +4635,20 @@ kaputten Sprachauslieferung aus. Gegen die Live-Seite geprüft: `/de/` liefert
 `lang=de`, `/en/` liefert `lang=en`, beide mit dem richtigen Titel. Es war der
 eingebaute PHP-Server, der Verzeichnisse anders routet. **Die Tabelle in
 CLAUDE.md warnt genau davor, und sie hatte wieder recht.**
+
+### Nachtrag am selben Tag: die Variablen stehen, der Name ist trotzdem draußen
+
+`FTP_USER` und `FTP_HOST` sind bei GitHub als Repository-Variablen angelegt.
+Damit konnte der Rückfall aus `ftp-deploy.yml` raus — und bei der Suche danach
+kamen drei weitere Stellen zum Vorschein, an denen derselbe Benutzername stand:
+zweimal in `cockpit-schutz.yml` (eigener lftp-Aufruf, derselbe Zugang) und
+einmal als Anleitung in `cockpit/index.html`. Alle drei sind umgestellt; im
+Arbeitsbaum steht der Name jetzt nirgends mehr.
+
+**Das macht ihn nicht ungeschehen.** `git log -S` findet ihn in **zehn
+Commits**, und die sind veröffentlicht. Ein öffentliches Repository kann man
+nicht zurückrufen: Forks, Klone und Caches haben den Stand. Der wirksame
+Schritt steht deshalb nicht hier, sondern im KAS — **neuen FTP-Zugang anlegen,
+den alten löschen, `FTP_USER` und das Secret `FTP_PASSWORD` auf den neuen
+setzen.** Danach ist der alte Name ein Name ohne Tür. Das Cockpit führt diese
+Aufgabe ohnehin schon, mit demselben Grund und aus demselben Anlass.
