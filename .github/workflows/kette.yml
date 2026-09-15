@@ -49,6 +49,27 @@ jobs:
           extensions: pdo_mysql, mbstring, intl, curl, gd
           coverage: none
 
+      # WARUM HIER GEBAUT WIRD
+      #
+      # Die Kette liest die erzeugten Sprachseiten: Sie vergleicht die Preise
+      # in de/index.html, de/preise.html, en/index.html und en/pricing.html
+      # gegen den Baukasten im Konfigurator. Seit dem 15.09.2026 liegen diese
+      # vier Dateien nicht mehr im Repository -- build.mjs erzeugt sie. Im
+      # Checkout fehlten sie damit, und die Pruefung riss an 14 Stellen mit
+      # Meldungen wie "der Rueckfall in de/index.html traegt die gerechneten
+      # Spannen (wirklich: f1=325 - 400 EUR ...)". Das sah nach falschen
+      # Preisen aus und war in Wahrheit eine fehlende Datei.
+      #
+      # Der Deploy baut sie ebenfalls, aber erst in seinem eigenen Job -- und
+      # der laeuft NACH der Kette. Wer eine Datei erzeugen laesst, muss sie
+      # ueberall erzeugen lassen, wo sie gelesen wird.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sprachseiten erzeugen
+        run: node build.mjs
+
       - name: Auf die Datenbank warten
         run: |
           for i in $(seq 1 30); do
