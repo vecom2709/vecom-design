@@ -75,3 +75,27 @@ _to_delete/
 # draussen — die sind der Grund fuer die Regel darueber.
 !3d-produktion/
 !3d-produktion/*.py
+
+# Die erzeugten Sprachfassungen. build.mjs baut /de/ und /en/ aus den drei
+# italienischen Seiten und i18n-data.js -- in beiden Ablaeufen, dem
+# FTP-Deploy und der Pages-Vorschau, jeweils vor dem Hochladen. Gemessen am
+# 15.09.2026: geloescht, neu gebaut, alle sechs Dateien bis aufs Byte gleich.
+#
+# Bis dahin lagen sie trotzdem im Repository. Damit gab es zwei Wahrheiten
+# ueber denselben Text: die Quelle und eine Abschrift, die beim naechsten
+# Deploy ueberschrieben wurde. Wer die Abschrift aenderte, sah seine
+# Aenderung vier Minuten spaeter verschwinden -- ohne Meldung. Genau davor
+# warnt die Tabelle in CLAUDE.md; die Warnung war noetig, weil die Dateien
+# da waren.
+#
+# index.html, prezzi.html und assistenza.html bleiben ausdruecklich
+# versioniert: sie sind Quelle UND Ziel (build.mjs, Zeile 103). Wer sie
+# mitnimmt, nimmt die Vorlage mit -- der Lauf bricht dann mit ENOENT ab,
+# und zwar erst nach /de/index.html, also mitten in der Arbeit.
+#
+# Zum oertlichen Ansehen einmal "node build.mjs" laufen lassen.
+/de/
+/en/
+
+# Sammelordner der Pages-Vorschau. Entsteht nur im Ablauf, nie von Hand.
+/_vorschau/
