@@ -1,39 +1,49 @@
-# Erklärvideo „Wie deine Website entsteht"
+# Filme auf vecom-design.it
 
-**Datei:** `webseite-erstellen.mp4` — 1280 × 720, 62 Sekunden, 3,3 MB, ohne Ton.
+## Der Ablauf-Film — `ablauf-<sprache>.mp4`
 
-## Was darin zu sehen ist
+Was die Startseite im Abschnitt „Ablauf" abspielt. Drei Fassungen, je eine
+Sprache, eingebunden in `index.html`; `build.mjs` tauscht beim Bauen den
+Dateinamen mit (`ablauf-[a-z]{2}\.mp4`), `/de/` und `/en/` bekommen so von
+selbst die richtige.
 
-Kein KI-Video und keine Stockbilder: Jedes Bild ist die laufende Website
-vecom-design.it. Über die Aufnahme sind Titelkarten gelegt, dazwischen wird
-gescrollt und geklickt wie bei einem echten Besuch — inklusive Vorführung des
-Anfrageformulars.
+Gemessen am 15.09.2026:
 
-Ablauf: Intro → Startseite → 01 Gespräch (Formular wird ausgefüllt) →
-02 Richtung → 03 Umsetzung (Referenzen) → 04 Launch → Preis → Abbinder.
+| Datei | Länge | Größe |
+|---|---|---|
+| `ablauf-de.mp4` | 2:55 | 5,2 MB |
+| `ablauf-en.mp4` | 2:34 | 4,5 MB |
+| `ablauf-it.mp4` | 2:48 | 4,9 MB |
 
-## Neu aufnehmen
+1280 × 720, H.264, **mit Ton** (AAC). Kein KI-Video und keine Stockbilder:
+aufgenommen wird `explainer-ablauf.html`, also die eigene laufende Seite.
 
-    node tools/record-video.mjs                      # Live-Seite
-    node tools/record-video.mjs http://localhost:8181/de/
-    node tools/record-video.mjs https://vecom-design.it/de/ --3d
+### Neu aufnehmen
 
-Danach umwandeln:
+    node tools/record-ablauf.mjs http://localhost:8181 de   # → video/ablauf-de.webm
+    node tools/ton-einbauen.mjs de                          # → video/ablauf-de.mp4
 
-    ffmpeg -i video/*.webm -c:v libx264 -preset slow -crf 22 \
-           -pix_fmt yuv420p -movflags +faststart -r 30 \
-           video/webseite-erstellen.mp4
+Das Drehbuch steht oben in `tools/record-ablauf.mjs`.
 
-**Wichtig:** Ohne `--3d` läuft die Aufnahme ohne die 3D-Bühne. Grund: Auf einem
-Rechner ohne Grafikkarte rendert der Browser die Szene in Software mit etwa
-einem Bild pro Sekunde — das Video würde ruckeln. Mit einer normalen Grafikkarte
-`--3d` verwenden, dann ist die Bühne im Video zu sehen.
+**Wichtig:** Ohne Grafikkarte rendert der Browser die 3D-Bühne in Software mit
+etwa einem Bild pro Sekunde — das Video ruckelt dann. Auf einem Rechner ohne
+GPU die Bühne abschalten, statt das Ergebnis hinzunehmen.
 
-Das Drehbuch (Titelkarten, Reihenfolge, Haltezeiten) steht oben in
-`tools/record-video.mjs` in einer einzigen Liste und ist dort änderbar.
+## Was sonst hier liegt
 
-## Einsatz
+- `jonika-*.mp4`, `mensaena-*.mp4` — Referenzaufnahmen der Kundenseiten,
+  eingebunden im Abschnitt „Arbeiten".
+- `clip1-fehler.mp4`, `clip2-preis.mp4`, `clip3-ablauf.mp4` — Hochkant-Clips
+  für TikTok und Reels, 720 × 1280. Beschrieben in `tiktok.md`; auf der Website
+  werden sie nicht abgespielt.
+- `sprechertext.md`, `tiktok.md` — Drehbücher. Gehen nie auf den Webspace,
+  der Deploy schließt `.md` aus.
 
-- Auf der Website: als `<video>` im Ablauf-Abschnitt, stumm und mit Vorschaubild
-- Instagram/TikTok: hochkant neu aufnehmen (Viewport im Skript auf 720 × 1280)
-- Angebots-E-Mail: als Link, nicht als Anhang (3,3 MB)
+## Warum hier keine `erklaervideo-*.mp4` mehr liegt
+
+Bis zum 15.09.2026 lagen drei Dateien dieses Namens im Repository — die
+Vorgänger des Ablauf-Films, zusammen 6,0 MB. Sie waren seit dem Umbau in
+keiner Seite mehr verlinkt; `build.mjs` kannte nur noch `ablauf-`. Diese
+README beschrieb bis dahin eine vierte Datei, `webseite-erstellen.mp4`, die
+es überhaupt nicht mehr gab. Eine Doku, die auf eine fehlende Datei zeigt,
+schickt beim nächsten Mal jemanden auf die Suche.

@@ -157,6 +157,12 @@ jobs:
             rm -f $DIR/pakete.html;
             rm -f $DIR/_baukasten.html;
             rm -f $DIR/_baukasten_ende.html;
+            rm -f $DIR/video/erklaervideo-de.mp4;
+            rm -f $DIR/video/erklaervideo-en.mp4;
+            rm -f $DIR/video/erklaervideo-it.mp4;
+            rm -f $DIR/assets/js/world/main.js;
+            rm -f $DIR/assets/js/world/story.js;
+            rm -f $DIR/assets/css/world.css;
             bye"
 
       - name: Cockpit-Schutz nachsehen
