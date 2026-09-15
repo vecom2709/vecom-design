@@ -70,6 +70,8 @@ jobs:
         env:
           PW: ${{ secrets.FTP_PASSWORD }}
           DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTPUSER: ${{ vars.FTP_USER }}
+          FTPHOST: ${{ vars.FTP_HOST }}
         run: |
           if [ -z "$PW" ]; then
             echo "::warning::FTP_PASSWORD fehlt — siehe Kopf dieser Datei. Kein Upload."
@@ -78,6 +80,9 @@ jobs:
           if [ -z "$DIR" ]; then
             echo "::warning::Variable FTP_SERVER_DIR fehlt — Zielverzeichnis der Domain eintragen. Kein Upload."
             echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ -z "$FTPUSER" ] || [ -z "$FTPHOST" ]; then
+            echo "::warning::FTP_USER oder FTP_HOST fehlt als Repository-Variable. Der Deploy laeuft mit den Ersatzwerten aus dieser Datei weiter, aber die stehen im Klartext in einem oeffentlichen Repository. Beide unter Settings, Secrets and variables, Actions, Variables anlegen -- danach den Rueckfall im naechsten Schritt loeschen."
           fi
           echo "ok=true" >> "$GITHUB_OUTPUT"
 
@@ -90,8 +95,18 @@ jobs:
         env:
           PW: ${{ secrets.FTP_PASSWORD }}
           DIR: ${{ vars.FTP_SERVER_DIR }}
+          FTPUSER: ${{ vars.FTP_USER }}
+          FTPHOST: ${{ vars.FTP_HOST }}
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          # Benutzer und Server kommen aus Repository-Variablen. Bis zum
+          # 15.09.2026 standen beide im Klartext in dieser Datei -- in einem
+          # oeffentlichen Repository ist das die halbe Anmeldung, offen
+          # lesbar. Der Rueckfall steht hier, damit der Deploy nicht an einer
+          # fehlenden Variablen haengenbleibt; sobald FTP_USER und FTP_HOST
+          # gesetzt sind, gehoeren die beiden Ersatzwerte geloescht.
+          U="${FTPUSER:-f018ae3f}"
+          H="${FTPHOST:-w021fb9a.kasserver.com}"
           # DIE ABRISSLISTE
           #
           # mirror --reverse laedt hoch und loescht nie. Wer eine Datei aus dem
@@ -125,7 +140,7 @@ jobs:
             set net:timeout 20;
             set net:max-retries 3;
             set mirror:parallel-transfer-count 3;
-            open -u 'f018ae3f,$PW' w021fb9a.kasserver.com;
+            open -u '$U,$PW' $H;
             rm -rf $DIR.git;
             mirror --reverse --continue --verbose=1 \
               --exclude '^\.git' \
