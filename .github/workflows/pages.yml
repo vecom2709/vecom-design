@@ -1,6 +1,28 @@
-# Veröffentlicht die Seite bei jedem Push auf main über GitHub Pages.
-# Kein Token nötig: der Workflow bekommt seine Rechte von GitHub selbst.
-name: Deploy to GitHub Pages
+# Veroeffentlicht eine VORSCHAU der Seite ueber GitHub Pages.
+#
+# Das echte Hosting ist All-Inkl (siehe ftp-deploy.yml) — vecom-design.it.
+# Pages ist nur der zweite Blick: ein Stand zum Herzeigen, ohne FTP, ohne PHP.
+#
+# WARUM HIER EINE AUSWAHL STEHT UND NICHT "path: ."
+#
+# Bis zum 15.09.2026 lud dieser Ablauf das ganze Repository hoch. Gemessen an
+# diesem Tag: https://vecom2709.github.io/vecom-design/kunde.php lieferte
+# 60.513 Byte PHP-Quelltext mit Status 200, app/pruefung/kette.php 353.195 Byte.
+# Auf All-Inkl sind beide gesperrt — die eine per Deploy-Ausschluss, die andere
+# per .htaccess. Auf Pages greift keins von beidem: es gibt dort kein Apache,
+# das eine .htaccess liest, und keinen PHP-Deuter, der eine .php ausfuehrt
+# statt sie auszuliefern. Zwei Sperren, die woanders wirken, sind hier keine.
+#
+# Deshalb wird jetzt eingesammelt statt ausgeschlossen: Was nicht ausdruecklich
+# in die Vorschau gehoert, kommt gar nicht erst hinein. Eine neue Datei in app/
+# ist damit von sich aus draussen — eine Ausschlussliste haette man erweitern
+# muessen und irgendwann vergessen.
+#
+# Serverseiten (*.php) fehlen in der Vorschau vollstaendig. Das ist Absicht:
+# Sie koennen dort nicht laufen, und ein Formular, das aussieht wie eines und
+# keines ist, taeuscht mehr, als es zeigt.
+
+name: Vorschau auf GitHub Pages
 
 on:
   push:
@@ -24,13 +46,48 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # Sprachseiten /de/ und /en/ aus index.html + i18n-data.js neu erzeugen
+
+      # Sprachseiten /de/ und /en/ aus index.html + i18n-data.js erzeugen.
+      # Sie liegen nicht im Repository (siehe .gitignore) — hier entstehen sie.
       - name: Sprachseiten bauen
         run: node build.mjs
+
+      - name: Vorschau einsammeln
+        run: |
+          set -e
+          rm -rf _vorschau
+          mkdir -p _vorschau
+          # Nur das Schaufenster: Seiten, Gestalt, Bilder, Filme.
+          for p in index.html showroom.html explainer.html explainer-ablauf.html \
+                   legal.html tiktok.html world.html 404.html prezzi.html \
+                   assistenza.html de en assets video richtungen .nojekyll; do
+            [ -e "$p" ] && cp -r "$p" _vorschau/
+          done
+          # Serverseiten und Werkstatt bleiben draussen — zur Sicherheit noch
+          # einmal nachgeraeumt, falls oben je ein Ordner mit .php dazukommt.
+          find _vorschau -name '*.php' -delete
+          find _vorschau -name '*.md'  -delete
+
+      # Die Vorschau zeigt dieselben Texte wie vecom-design.it. Ohne diesen
+      # Schritt konkurriert sie in der Suche mit der Seite, fuer die sie wirbt.
+      # Das <link rel=canonical> in den Dateien zeigt zwar auf die Hauptdomain,
+      # aber canonical ist ein Hinweis, noindex eine Ansage.
+      - name: Vorschau aus dem Suchindex nehmen
+        run: |
+          set -e
+          find _vorschau -name '*.html' -print0 | xargs -0 sed -i \
+            's|<head>|<head>\n<meta name="robots" content="noindex,nofollow">|I'
+          # Eine eigene robots.txt: die aus dem Repository verweist auf die
+          # Sitemap der Hauptdomain und gehoert deshalb nicht hierher.
+          printf 'User-agent: *\nDisallow: /cockpit/\n' > _vorschau/robots.txt
+          echo "Seiten mit noindex:"
+          grep -rl 'name="robots" content="noindex' _vorschau --include='*.html' | wc -l
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _vorschau
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
