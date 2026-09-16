@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
-<link rel="stylesheet" href="assets/css/app.css?v=37f26a43">
+<link rel="stylesheet" href="assets/css/app.css?v=cc6e4867">
 
 
 <script type="importmap">
@@ -722,16 +722,29 @@
     <div class="sechead sechead--split" data-stagger>
       <span class="marg" data-i18n="marg.m4">da provare</span>
       <h2 data-reveal data-i18n="probieren.head">Non credermi. Provalo.</h2>
-      <p data-reveal data-i18n="probieren.lead">Questo tavolo è qui, non su un’altra pagina. Giralo, cambia legno e metallo. Mentre lo fai, guarda i numeri accanto: sono la risposta alla domanda quanto costa.</p>
+      <p data-reveal data-i18n="probieren.lead">Quattro domande, un solo oggetto. Giralo col dito, cambialo, guastalo. I numeri accanto non li devi credere: li stai misurando tu.</p>
     </div>
 
-    <!-- DIE WERKBANK
-         Zwei Stufen in einem Kasten: Die Leinwand ist die Echtzeitfassung,
-         das Bild darunter dieselbe Variante gerechnet. Welche von beiden zu
-         sehen ist, entscheidet werkbank.js nach Geraet und Bildrate -- und
-         die Regler bedienen beide. Deshalb funktioniert der Abschnitt auch
-         dann vollstaendig, wenn 3D gar nicht erst startet. -->
-    <div class="werkbank" data-werkbank data-werkbank-stufe="bild" data-reveal>
+    <!-- DAS LABOR
+         Vier Register an EINEM Objekt in EINER Buehne: ein Renderer, ein
+         Modell, ein Download. Ein zweiter WebGL-Kontext je Station waere
+         die naheliegende und die falsche Loesung -- die Seite traegt im
+         Hintergrund schon eine 3D-Welt.
+
+         Die Woerter, die JavaScript setzt, stehen als data-wort-* im
+         Markup und kommen damit aus dem Woerterbuch. Sonst waere die
+         Ablesung auf allen drei Sprachfassungen deutsch. -->
+    <div class="werkbank" data-werkbank data-werkbank-stufe="bild" data-werkbank-station="konfigurator" data-reveal
+         data-i18n-attr="data-wort-bild:probieren.wbBereit,data-wort-laedt:probieren.wbLaedt,data-wort-fps:probieren.wbFps"
+         data-wort-bild="immagine calcolata" data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s">
+
+      <div class="werkbank__reiter" role="tablist" data-i18n-attr="aria-label:probieren.rGruppe" aria-label="Quattro prove sullo stesso oggetto">
+        <button type="button" role="tab" data-station="konfigurator" aria-selected="true"  data-i18n="probieren.rKonfig">Configuratore</button>
+        <button type="button" role="tab" data-station="material"     aria-selected="false" data-i18n="probieren.rMaterial">Materiale</button>
+        <button type="button" role="tab" data-station="vergleich"    aria-selected="false" data-i18n="probieren.rVergleich">Foto o tempo reale</button>
+        <button type="button" role="tab" data-station="geraet"       aria-selected="false" data-i18n="probieren.rGeraet">Il tuo dispositivo</button>
+      </div>
+
       <div class="werkbank__buehne">
         <canvas hidden data-i18n-attr="aria-label:probieren.wbAlt"
                 aria-label="Tavolo da pranzo in tre dimensioni, da girare"></canvas>
@@ -741,45 +754,90 @@
              width="1600" height="1000" loading="lazy" decoding="async" alt="Tavolo da pranzo in tre dimensioni, da girare">
         <p class="werkbank__ablesung">
           <span class="werkbank__nummer" data-werkbank-nummer>VD-T-W200-EIM</span>
-          <span class="werkbank__stand" data-werkbank-stand data-i18n="probieren.wbBereit">immagine calcolata</span>
+          <span class="werkbank__stand" data-werkbank-stand>immagine calcolata</span>
         </p>
       </div>
 
       <div class="werkbank__pult">
-        <div class="achse">
-          <span class="achse__name" data-i18n="probieren.aHolz">Legno</span>
-          <div class="achse__knoepfe">
-            <button type="button" data-achse="holz" data-wert="Eiche" data-i18n="probieren.hEiche">Rovere</button>
-            <button type="button" data-achse="holz" data-wert="Esche" data-i18n="probieren.hEsche">Frassino</button>
-            <button type="button" data-achse="holz" data-wert="Nussbaum" data-i18n="probieren.hNussbaum">Noce</button>
-            <button type="button" data-achse="holz" data-wert="Raeuchereiche" data-i18n="probieren.hRaeuchereiche">Rovere affumicato</button>
+
+        <!-- 1. Was kostet die 73. Variante? -->
+        <div data-pult="konfigurator">
+          <div class="achse">
+            <span class="achse__name" data-i18n="probieren.aHolz">Legno</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-achse="holz" data-wert="Eiche" data-i18n="probieren.hEiche">Rovere</button>
+              <button type="button" data-achse="holz" data-wert="Esche" data-i18n="probieren.hEsche">Frassino</button>
+              <button type="button" data-achse="holz" data-wert="Nussbaum" data-i18n="probieren.hNussbaum">Noce</button>
+              <button type="button" data-achse="holz" data-wert="Raeuchereiche" data-i18n="probieren.hRaeuchereiche">Rovere affumicato</button>
+            </div>
           </div>
-        </div>
-        <div class="achse">
-          <span class="achse__name" data-i18n="probieren.aMetall">Metallo</span>
-          <div class="achse__knoepfe">
-            <button type="button" data-achse="metall" data-wert="Messing" data-i18n="probieren.mMessing">Ottone</button>
-            <button type="button" data-achse="metall" data-wert="Edelstahl" data-i18n="probieren.mEdelstahl">Acciaio inox</button>
-            <button type="button" data-achse="metall" data-wert="Schwarzstahl" data-i18n="probieren.mSchwarzstahl">Acciaio nero</button>
+          <div class="achse">
+            <span class="achse__name" data-i18n="probieren.aMetall">Metallo</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-achse="metall" data-wert="Messing" data-i18n="probieren.mMessing">Ottone</button>
+              <button type="button" data-achse="metall" data-wert="Edelstahl" data-i18n="probieren.mEdelstahl">Acciaio inox</button>
+              <button type="button" data-achse="metall" data-wert="Schwarzstahl" data-i18n="probieren.mSchwarzstahl">Acciaio nero</button>
+            </div>
           </div>
-        </div>
-        <div class="achse">
-          <span class="achse__name" data-i18n="probieren.aGestell">Basamento</span>
-          <div class="achse__knoepfe">
-            <button type="button" data-achse="gestell" data-wert="wange" data-i18n="probieren.gWange">A fianchi</button>
-            <button type="button" data-achse="gestell" data-wert="vierbein" data-i18n="probieren.gVierbein">Quattro gambe</button>
+          <div class="achse">
+            <span class="achse__name" data-i18n="probieren.aGestell">Basamento</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-achse="gestell" data-wert="wange" data-i18n="probieren.gWange">A fianchi</button>
+              <button type="button" data-achse="gestell" data-wert="vierbein" data-i18n="probieren.gVierbein">Quattro gambe</button>
+            </div>
           </div>
-        </div>
-        <div class="achse">
-          <span class="achse__name" data-i18n="probieren.aLaenge">Lunghezza</span>
-          <div class="achse__knoepfe">
-            <button type="button" data-achse="laenge" data-wert="klein" data-i18n="probieren.lKlein">1,80 m</button>
-            <button type="button" data-achse="laenge" data-wert="mittel" data-i18n="probieren.lMittel">2,00 m</button>
-            <button type="button" data-achse="laenge" data-wert="gross" data-i18n="probieren.lGross">2,40 m</button>
+          <div class="achse">
+            <span class="achse__name" data-i18n="probieren.aLaenge">Lunghezza</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-achse="laenge" data-wert="klein" data-i18n="probieren.lKlein">1,80 m</button>
+              <button type="button" data-achse="laenge" data-wert="mittel" data-i18n="probieren.lMittel">2,00 m</button>
+              <button type="button" data-achse="laenge" data-wert="gross" data-i18n="probieren.lGross">2,40 m</button>
+            </div>
           </div>
+          <p class="werkbank__satz" data-i18n="probieren.wbSatz">72 varianti. Un modello di 133 KB. Con le foto sarebbero 72 appuntamenti — e la settantatreesima non esisterebbe.</p>
         </div>
 
-        <p class="werkbank__satz" data-i18n="probieren.wbSatz">72 varianti. Un modello di 133 KB. Con le foto sarebbero 72 appuntamenti — e la settantatreesima non esisterebbe.</p>
+        <!-- 2. Warum sieht das eine teuer aus? -->
+        <div data-pult="material" hidden>
+          <div class="achse">
+            <span class="achse__name"><span data-i18n="probieren.mRauheit">Ruvidità</span> <b class="achse__wert" data-anzeige="rauheit">0.26</b></span>
+            <input type="range" min="0" max="100" value="26" data-regler="rauheit"
+                   data-i18n-attr="aria-label:probieren.mRauheit" aria-label="Ruvidità">
+          </div>
+          <div class="achse">
+            <span class="achse__name"><span data-i18n="probieren.mMetallanteil">Quota metallica</span> <b class="achse__wert" data-anzeige="metall">1.00</b></span>
+            <input type="range" min="0" max="100" value="100" data-regler="metall"
+                   data-i18n-attr="aria-label:probieren.mMetallanteil" aria-label="Quota metallica">
+          </div>
+          <div class="achse__knoepfe">
+            <button type="button" data-regler-zurueck data-i18n="probieren.mZurueck">Rimetti i valori veri</button>
+          </div>
+          <p class="werkbank__satz" data-i18n="probieren.mSatz">Due numeri separano «sembra costoso» da «sembra plastica». Sono gli stessi due che decidono se il tuo prodotto in rete convince o no.</p>
+        </div>
+
+        <!-- 3. Wann lohnt sich welches? -->
+        <div data-pult="vergleich" hidden>
+          <div class="achse__knoepfe">
+            <button type="button" data-gegenueber aria-pressed="false" data-i18n="probieren.vSchalter">Mostra la foto calcolata</button>
+          </div>
+          <p class="werkbank__satz" data-i18n="probieren.vSatz">Stessa inquadratura, due strade. La foto è più nitida e vale per una variante sola: 41 KB, pronta subito. Il tempo reale costa 319 KB una volta e poi vale per tutte e 72 — e per la prossima che aggiungi domani.</p>
+        </div>
+
+        <!-- 4. Läuft das auf dem alten Handy? -->
+        <div data-pult="geraet" hidden>
+          <div class="achse">
+            <span class="achse__name" data-i18n="probieren.gStufe">Livello</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-stufe="ultra" data-i18n="probieren.gUltra">Ultra</button>
+              <button type="button" data-stufe="hoch" aria-pressed="true" data-i18n="probieren.gHoch">Alto</button>
+              <button type="button" data-stufe="mittel" data-i18n="probieren.gMittel">Medio</button>
+              <button type="button" data-stufe="niedrig" data-i18n="probieren.gNiedrig">Basso</button>
+              <button type="button" data-stufe="bild" data-i18n="probieren.gBild">Solo immagine</button>
+            </div>
+          </div>
+          <p class="werkbank__satz" data-i18n="probieren.gSatz">I tuoi clienti arrivano con tutto. Per questo il sito esiste in cinque livelli, non in due: guarda i fotogrammi al secondo mentre cambi. L’ultimo livello non è un guasto — è la stessa cosa, calcolata prima.</p>
+        </div>
+
       </div>
     </div>
 
@@ -1475,7 +1533,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=a7195097" defer></script>
+<script src="assets/js/i18n-it.js?v=8e653744" defer></script>
 <script src="assets/js/app.js?v=e9109416" defer></script>
 <script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
 <script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>
@@ -1489,7 +1547,7 @@
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
-<script type="module" src="assets/js/werkbank.js?v=18ade5da"></script>
+<script type="module" src="assets/js/werkbank.js?v=79d7bab9"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

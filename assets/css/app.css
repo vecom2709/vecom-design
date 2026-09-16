@@ -3607,3 +3607,96 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 @media (prefers-reduced-motion: reduce) {
   .achse__knoepfe button { transition: none; }
 }
+
+
+/* ==========================================================================
+   DAS LABOR — Register, Regler, Stufen
+
+   Die Registerleiste laeuft ueber beide Spalten. Sie ist die Gliederung des
+   Abschnitts: vier Fragen, ein Objekt. Wer sie nicht anfasst, sieht trotzdem
+   den Konfigurator -- das erste Register ist das wichtigste und steht vorn.
+   ========================================================================== */
+.werkbank__reiter {
+  grid-column: 1 / -1;
+  display: flex; flex-wrap: wrap; gap: .2rem;
+  padding: .55rem .55rem 0;
+  border-bottom: 1px solid var(--c-line);
+  background: rgba(6, 9, 15, .55);
+}
+.werkbank__reiter button {
+  min-height: 44px; padding: .6rem 1.05rem;
+  font-family: var(--f-display); font-size: var(--t-sm); font-weight: 600;
+  letter-spacing: .01em;
+  color: var(--c-text-faint); background: transparent;
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 12px 12px 0 0; cursor: pointer;
+  transition: color var(--d-ui) var(--e-std), background-color var(--d-ui) var(--e-std);
+}
+.werkbank__reiter button:hover { color: var(--c-text); }
+/* Das gewaehlte Register sitzt auf der Trennlinie und schneidet sie durch --
+   so liest man, dass darunter SEIN Inhalt liegt und nicht irgendeiner. */
+.werkbank__reiter button[aria-selected="true"] {
+  color: var(--c-text); background: var(--c-surface);
+  border-color: var(--c-line);
+  box-shadow: 0 1px 0 0 var(--c-surface);
+  margin-bottom: -1px;
+}
+.werkbank__reiter button:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: -2px; }
+
+/* ALLE VIER PULTE LIEGEN IN DERSELBEN RASTERZELLE.
+   Der Grund ist nicht Schoenheit, sondern Ruhe: Wuerde das versteckte Pult
+   mit display:none verschwinden, waere die Zeile beim Konfigurator 512 px
+   und beim Vergleich 350 px hoch -- die Buehne daneben schrumpfte mit, und
+   der Tisch sprang bei jedem Registerwechsel. Uebereinander gelegt, misst
+   die Zelle immer das hoechste der vier Pulte, in jeder Sprache von selbst.
+   visibility statt display nimmt das verborgene Pult aus Tabfolge und
+   Vorlesereihenfolge, laesst es aber Platz belegen. */
+.werkbank__pult { display: grid; }
+.werkbank__pult > [data-pult] {
+  grid-area: 1 / 1;
+  display: grid; align-content: start; gap: clamp(.9rem, 1.8vw, 1.3rem);
+}
+/* Das !important ist hier kein Notnagel, sondern die Antwort auf Zeile 115:
+   dort steht [hidden] { display: none !important } fuer die ganze Seite.
+   Ohne Gegengewicht faellt das verborgene Pult aus dem Raster, und der
+   Sprung von oben ist wieder da -- gemessen 513 / 400 / 352 px, 17.09.2026. */
+.werkbank__pult > [data-pult][hidden] {
+  display: grid !important; visibility: hidden; pointer-events: none;
+}
+
+/* Regler. Der Wert steht daneben und aendert sich mit -- ohne Zahl ist ein
+   Schieber eine Behauptung. */
+.achse__wert {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--t-xs); color: var(--c-cyan); letter-spacing: 0;
+  text-transform: none; margin-left: .35rem;
+}
+.werkbank__pult input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 44px; background: transparent; cursor: pointer;
+}
+.werkbank__pult input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 99px;
+  background: linear-gradient(90deg, rgba(150,180,230,.18), rgba(31,232,255,.5));
+}
+.werkbank__pult input[type="range"]::-moz-range-track {
+  height: 4px; border-radius: 99px;
+  background: linear-gradient(90deg, rgba(150,180,230,.18), rgba(31,232,255,.5));
+}
+.werkbank__pult input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 22px; height: 22px; margin-top: -9px;
+  border-radius: 50%; background: var(--c-cyan);
+  border: 3px solid var(--c-base); box-shadow: 0 2px 10px rgba(31,232,255,.35);
+}
+.werkbank__pult input[type="range"]::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--c-cyan); border: 3px solid var(--c-base);
+}
+.werkbank__pult input[type="range"]:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 4px; }
+
+/* Im Register "Foto oder Echtzeit" liegt das Bild UEBER der Leinwand --
+   beide sind absolut gesetzt, das Bild kommt im Markup danach. Der
+   Umschalter blendet es ein und aus; die Kamera steht dann auf dem
+   Fotowinkel, damit man zwei Verfahren vergleicht und nicht zwei Ansichten. */
+.werkbank[data-werkbank-foto="an"] .werkbank__buehne img { z-index: 1; }
