@@ -24,7 +24,7 @@ window.VECOM_I18N.en = {
       desc: "Custom websites and online stores from Aragona, Sicily. Trilingual IT/DE/EN, built to rank on Google. Prices in the open, quote in 90 seconds.",
       locale: "en_GB"
     },
-    nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", probieren: "Try it", cta: "Get a quote" },
+    nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", probieren: "Try it", luecke: "The numbers", cta: "Get a quote" },
     buehne: { echt: "Captures of the live site" },
     hero: {
       eyebrow: "Web design studio — websites, brands, online stores",
@@ -121,6 +121,23 @@ window.VECOM_I18N.en = {
       w4r: "A book you read before you open it",
       w5r: "One clientele, three languages",
       w6r: "A book world you can walk through",
+    },
+    luecke: {
+      marg: "the quiet invoice",
+      head: "Do the maths. With your numbers.",
+      lead: "Four sliders. You know three of them better than I do, and you set the fourth yourself. What comes out is not a quote — it is what lands with somebody else every month.",
+      r1: "Visitors to your site, per month",
+      r2: "Out of a hundred visitors, how many give you the job",
+      r3: "What an average job is worth to you",
+      r4: "What would be possible",
+      r4n: "The one number that comes from me. Move it.",
+      heute: "Today you take in",
+      monat: "a month that lands with somebody else",
+      jahr: "Over twelve months",
+      satz: "The arithmetic is deliberately blunt: visitors times job rate times job value. No correction factors, no industry curve. If your three numbers are right, so is the fourth.",
+      satzNull: "At these values you are already getting everything there is. Then it is not about more enquiries but better ones — and I am just as happy to talk about that.",
+      cta: "Go through this with me",
+      cta2: "What it costs"
     },
     probieren: {
       head: "Don’t believe me. Try it.",

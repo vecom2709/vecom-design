@@ -3700,3 +3700,126 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    Umschalter blendet es ein und aus; die Kamera steht dann auf dem
    Fotowinkel, damit man zwei Verfahren vergleicht und nicht zwei Ansichten. */
 .werkbank[data-werkbank-foto="an"] .werkbank__buehne img { z-index: 1; }
+
+
+/* ==========================================================================
+   DIE STILLE RECHNUNG
+
+   Zwei Spalten wie die Werkbank, aber andersherum gewichtet: Links stehen
+   die vier Regler, rechts das Blatt mit dem Ergebnis. Das Ergebnis steht
+   rechts, weil dort im Lesefluss die Antwort erwartet wird -- und weil der
+   Daumen auf dem Telefon unter den Reglern landet, wo das Blatt dann folgt.
+
+   Die Regler benutzen .achse und .achse__wert aus der Werkbank. Bewusst:
+   Labor und Rechnung sollen wie zwei Register desselben Werkzeugs
+   aussehen, nicht wie zwei Bauteile von zwei Leuten.
+   ========================================================================== */
+.rechnung {
+  display: grid; gap: 0;
+  border: 1px solid var(--c-line); border-radius: var(--radius-lg);
+  background: var(--c-surface); overflow: hidden;
+  margin-top: clamp(1.6rem, 3vw, 2.6rem);
+}
+@media (min-width: 900px) {
+  .rechnung { grid-template-columns: minmax(0, 1fr) minmax(0, .95fr); }
+}
+.rechnung__pult {
+  display: grid; align-content: start; gap: clamp(1.1rem, 2.2vw, 1.6rem);
+  padding: clamp(1.4rem, 2.6vw, 2.2rem);
+}
+
+/* Der vierte Regler ist eine Annahme und darf nicht aussehen wie die drei
+   Zahlen, die dem Besucher gehoeren. Eine Linie darueber, ein Satz
+   darunter -- mehr Trennung braucht es nicht, mehr waere Misstrauen. */
+.achse--annahme {
+  padding-top: clamp(1rem, 2vw, 1.4rem);
+  border-top: 1px solid var(--c-line);
+}
+.achse__fussnote {
+  font-size: var(--t-xs); color: var(--c-text-faint); line-height: 1.5;
+}
+
+/* Die Regler der Rechnung sehen aus wie die der Werkbank. Statt beide
+   Regelbloecke zu pflegen, greift der Selektor hier mit. */
+.rechnung input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 44px; background: transparent; cursor: pointer;
+}
+.rechnung input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 99px;
+  background: linear-gradient(90deg, rgba(150,180,230,.18), rgba(31,232,255,.5));
+}
+.rechnung input[type="range"]::-moz-range-track {
+  height: 4px; border-radius: 99px;
+  background: linear-gradient(90deg, rgba(150,180,230,.18), rgba(31,232,255,.5));
+}
+.rechnung input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 22px; height: 22px; margin-top: -9px;
+  border-radius: 50%; background: var(--c-cyan);
+  border: 3px solid var(--c-base); box-shadow: 0 2px 10px rgba(31,232,255,.35);
+}
+.rechnung input[type="range"]::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--c-cyan); border: 3px solid var(--c-base);
+}
+.rechnung input[type="range"]:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 4px; }
+
+/* DAS BLATT. Eigener, dunklerer Grund: Was hier steht, hat der Besucher
+   nicht eingegeben, sondern bekommen. Der Unterschied muss sichtbar sein,
+   sonst liest sich das Ergebnis wie ein weiteres Eingabefeld. */
+.rechnung__blatt {
+  display: grid; align-content: center; gap: .55rem;
+  padding: clamp(1.4rem, 2.6vw, 2.2rem);
+  background:
+    radial-gradient(90% 80% at 70% 15%, rgba(31,232,255,.07) 0%, rgba(31,232,255,0) 60%),
+    rgba(6, 9, 15, .55);
+  border-top: 1px solid var(--c-line);
+}
+@media (min-width: 900px) {
+  .rechnung__blatt { border-top: 0; border-left: 1px solid var(--c-line); }
+}
+.rechnung__heute {
+  margin: 0;
+  font-family: var(--f-display); font-size: var(--t-xs);
+  letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-faint);
+}
+.rechnung__heute b { color: var(--c-text); font-weight: 600; margin-left: .5rem; }
+
+/* Die grosse Zahl. tabular-nums, weil sie beim Ziehen des Reglers laeuft --
+   ohne feste Ziffernbreite zappelt die ganze Zeile. */
+.rechnung__gross {
+  margin: .2rem 0 0;
+  font-family: var(--f-display); font-weight: 700;
+  font-size: clamp(2.6rem, 6.4vw, 4.2rem); line-height: 1;
+  letter-spacing: -.02em; color: var(--c-cyan);
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
+.rechnung__unter {
+  margin: 0; max-width: 24ch;
+  font-size: var(--t-sm); color: var(--c-text); line-height: 1.45;
+}
+.rechnung__jahr {
+  margin: .5rem 0 0;
+  font-family: var(--f-display); font-size: var(--t-xs);
+  letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-faint);
+}
+.rechnung__jahr b {
+  color: var(--c-text); font-weight: 600; margin-left: .5rem;
+  font-variant-numeric: tabular-nums;
+}
+.rechnung__satz {
+  margin: .9rem 0 0; font-size: var(--t-xs);
+  color: var(--c-text-faint); line-height: 1.6; max-width: 46ch;
+}
+.rechnung__weiter {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 1.4rem;
+  margin: 1.1rem 0 0;
+}
+
+/* Deckt das Ziel die heutige Quote nicht, gibt es keine Luecke. Dann
+   verschwindet die grosse Null samt Unterzeile -- eine 0 EUR in
+   Leuchtfarbe waere die duemmste Antwort auf eine ehrliche Eingabe. */
+.rechnung[data-rechnung-leer="ja"] .rechnung__gross,
+.rechnung[data-rechnung-leer="ja"] .rechnung__unter,
+.rechnung[data-rechnung-leer="ja"] .rechnung__jahr { display: none; }

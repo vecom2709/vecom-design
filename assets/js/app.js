@@ -209,6 +209,15 @@
     if (ol && loc) ol.setAttribute('content', loc);
 
     document.documentElement.lang = lang;
+
+    /* Ein Signal fuer alle, die selbst Text erzeugen. Die stille Rechnung
+       formatiert Betraege nach Sprache (1.800 € / €1,800) und muss deshalb
+       nicht nur beim ersten Setzen mitziehen, sondern auch, wenn der
+       Besucher oben rechts umschaltet. Ohne dieses Ereignis stuenden die
+       Zahlen danach im Format der vorigen Sprache. */
+    document.documentElement.setAttribute('data-i18n-fertig', lang);
+    document.dispatchEvent(new CustomEvent('vecom:sprache', { detail: { lang: lang } }));
+
     document.querySelectorAll('[data-lang]').forEach(function (b) {
       b.setAttribute('aria-pressed', String(b.getAttribute('data-lang') === lang));
     });
