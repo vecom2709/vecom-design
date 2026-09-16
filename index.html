@@ -373,7 +373,7 @@
         <span data-i18n="hero.cta1">Parliamo del tuo progetto</span>
         <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
       </a>
-      <a class="btn" href="#work" data-i18n="hero.cta2">Guarda i lavori</a>
+      <a class="btn" href="#luecke" data-i18n="hero.cta2">Quanto ti costa oggi</a>
     </div>
 
     <dl class="hero__meta" data-reveal>
@@ -934,6 +934,22 @@
 
 
 
+
+<!-- ===================== Kundenstimmen =====================
+     Wird aus der Verwaltung gefuellt (stimmen-daten.php). Solange keine
+     freigegeben ist, bleibt der Abschnitt verborgen — ein leerer Bereich mit
+     der Ueberschrift "Was Kunden sagen" waere die schlechteste aller
+     Antworten auf diese Frage. -->
+<section class="section" id="stimmen" data-stimmen hidden>
+  <div class="wrap">
+    <div class="sechead sechead--neben" data-stagger>
+      <span class="marg" data-i18n="plans.voicesMarg">voci dei clienti</span>
+      <h2 data-reveal data-i18n="plans.voicesHead">Cosa dicono i clienti</h2>
+      <p data-reveal data-i18n="plans.voicesLead">Parole loro, non mie. Ogni frase è qui con il nome di chi l’ha detta.</p>
+    </div>
+    <div class="stimmen" data-stimmen-liste></div>
+  </div>
+</section>
 <!-- Zwischenruf -->
 <section class="interlude">
   <div class="wrap">
@@ -1380,21 +1396,7 @@
   </div>
 </section>
 
-<!-- ===================== Kundenstimmen =====================
-     Wird aus der Verwaltung gefuellt (stimmen-daten.php). Solange keine
-     freigegeben ist, bleibt der Abschnitt verborgen — ein leerer Bereich mit
-     der Ueberschrift "Was Kunden sagen" waere die schlechteste aller
-     Antworten auf diese Frage. -->
-<section class="section" id="stimmen" data-stimmen hidden>
-  <div class="wrap">
-    <div class="sechead sechead--neben" data-stagger>
-      <span class="marg" data-i18n="plans.voicesMarg">voci dei clienti</span>
-      <h2 data-reveal data-i18n="plans.voicesHead">Cosa dicono i clienti</h2>
-      <p data-reveal data-i18n="plans.voicesLead">Parole loro, non mie. Ogni frase è qui con il nome di chi l’ha detta.</p>
-    </div>
-    <div class="stimmen" data-stimmen-liste></div>
-  </div>
-</section>
+
 
 <!-- ===================== Partnermarke ===================== -->
 <section class="section partner" id="partner">
@@ -1618,7 +1620,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=8645bcf5" defer></script>
+<script src="assets/js/i18n-it.js?v=23b9f851" defer></script>
 <script src="assets/js/app.js?v=3814d400" defer></script>
 <script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
 <script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>

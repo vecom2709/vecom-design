@@ -32,7 +32,7 @@ window.VECOM_I18N.de = {
       t2: "Kunden bringen.",
       lead: "Ich baue Websites für Unternehmen, Selbstständige und lokale Betriebe — jede von Grund auf, keine aus der Vorlage. In zwei Wochen online, zum Festpreis, den du vorher freigibst.",
       cta1: "Angebot holen",
-      cta2: "Arbeiten ansehen",
+      cta2: "Was es dich heute kostet",
       cta3: "In die 3D-Welt eintreten",
       m1t: "Online in", m1d: "2–6 Wochen",
       m2t: "Preise", m2d: "nach Bedarf, nicht nach Paket",

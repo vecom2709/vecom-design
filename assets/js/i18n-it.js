@@ -32,7 +32,7 @@ window.VECOM_I18N.it = {
       t2: "portarti clienti.",
       lead: "Costruisco siti per aziende, professionisti e attività locali — ognuno da zero, nessuno da un modello. Online in due settimane, a un prezzo fisso che approvi tu prima.",
       cta1: "Parliamo del tuo progetto",
-      cta2: "Guarda i lavori",
+      cta2: "Quanto ti costa oggi",
       cta3: "Entra nell’esperienza 3D",
       m1t: "Online in", m1d: "2–6 settimane",
       m2t: "Prezzi", m2d: "su misura, non a pacchetto",

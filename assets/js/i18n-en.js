@@ -32,7 +32,7 @@ window.VECOM_I18N.en = {
       t2: "bring you clients.",
       lead: "I build websites for companies, professionals and local businesses — each one from scratch, none from a template. Live in two weeks, at a fixed price you approve first.",
       cta1: "Tell me what you need",
-      cta2: "See the work",
+      cta2: "What it costs you today",
       cta3: "Enter the 3D experience",
       m1t: "Live in", m1d: "2–6 weeks",
       m2t: "Pricing", m2d: "to fit, not off the shelf",
