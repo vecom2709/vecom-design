@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produktkonfigurator — Vecom Design</title>
+<meta name="description" content="72 Varianten eines Massivholztischs, jede einzeln mit dem Pfadverfolger der Unreal Engine gerechnet. Ein Variantenwechsel kostet 16 KB und läuft auf jedem Gerät gleich.">
+<link rel="canonical" href="https://vecom-design.it/tisch.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Produktkonfigurator — Vecom Design">
+<meta property="og:description" content="72 Varianten, in Unreal Engine gerechnet. Kein Echtzeit-3D im Browser — und trotzdem drehbar.">
+<meta property="og:url" content="https://vecom-design.it/tisch.html">
+<meta property="og:image" content="https://vecom-design.it/assets/img/3d/tisch/ansicht/gross/VD-T-W200-EIM.webp">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="preload" as="image" href="/assets/img/3d/tisch/ansicht/gross/VD-T-W200-EIM.webp">
+<style>
+:root{
+  --c-base:#05070d; --c-surface:#0c1119; --c-linie:#1b2330;
+  --c-text:#e9eef8; --c-dim:#97a5bf; --c-faint:#808ea9;
+  --c-blue:#0a78f5; --c-cyan:#1fe8ff;
+  --f-display:'Archivo',system-ui,sans-serif;
+  --f-text:'Inter',system-ui,sans-serif;
+  --page-x:clamp(1.25rem,5vw,5.5rem);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--c-base); color:var(--c-text);
+  font-family:var(--f-text); -webkit-font-smoothing:antialiased;
+  line-height:1.6;
+}
+
+/* Ein Ausstellungsstueck ohne Ausgang ist eine Falle -- oben links steht
+   immer der Weg zurueck auf die Website. Gleiche Loesung wie im Showroom. */
+#zurueck{
+  position:fixed; top:clamp(.9rem,2.2vw,1.6rem); left:var(--page-x); z-index:9;
+  display:inline-flex; gap:.5rem; align-items:center;
+  font:600 .8rem/1 var(--f-text); letter-spacing:.09em; text-transform:uppercase;
+  color:var(--c-dim); text-decoration:none;
+  padding:.6rem .95rem; border:1px solid var(--c-linie); border-radius:999px;
+  background:rgba(5,7,13,.72); backdrop-filter:blur(8px);
+  transition:color .18s, border-color .18s;
+}
+#zurueck:hover{color:var(--c-text); border-color:#31405a}
+
+.kopf{padding:clamp(6rem,14vh,9rem) var(--page-x) clamp(2rem,5vh,3.25rem); max-width:60rem}
+.kicker{
+  margin:0 0 1.1rem; font:600 .78rem/1 var(--f-text);
+  letter-spacing:.17em; text-transform:uppercase; color:var(--c-cyan);
+}
+h1{
+  margin:0 0 1.1rem; font-family:var(--f-display);
+  font-size:clamp(2.3rem,6.4vw,4.6rem); font-weight:700;
+  line-height:1.02; letter-spacing:-.025em;
+}
+h1 .glanz{
+  background:linear-gradient(96deg,var(--c-blue),var(--c-cyan));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.lead{margin:0; max-width:46rem; font-size:clamp(1rem,1.35vw,1.16rem); color:var(--c-dim)}
+
+/* ---- Werkbank: Buehne links, Bedienung rechts ---- */
+.werk{
+  padding:0 var(--page-x) clamp(3rem,8vh,5rem);
+  display:grid; gap:clamp(1.25rem,2.5vw,2rem); align-items:start;
+  grid-template-columns:1fr;
+}
+@media (min-width:1080px){ .werk{grid-template-columns:minmax(0,1fr) 23rem} }
+
+.buehne{min-width:0}
+.rahmen{
+  position:relative; width:100%; aspect-ratio:16/10;
+  border:1px solid var(--c-linie); border-radius:14px; overflow:hidden;
+  background:#04060b;
+}
+.rahmen.platte{aspect-ratio:32/15}
+/* Im Drehmodus ist der Rahmen ein Bedienelement, kein Bild mehr.
+   touch-action:none, sonst scrollt das Telefon die Seite statt zu drehen. */
+.rahmen.dreh{cursor:grab; touch-action:none; user-select:none}
+.rahmen.dreh.zieht{cursor:grabbing}
+.rahmen.dreh:focus-visible{outline:2px solid var(--c-cyan); outline-offset:3px}
+.rahmen img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  opacity:0; transition:opacity .22s ease;
+}
+.rahmen img.da{opacity:1}
+/* Die kleine Fassung liegt darunter und ist sofort da. Das grosse Bild
+   blendet darueber, sobald es geladen ist -- kein Blitzen, kein Warten. */
+.rahmen img.klein{opacity:1}
+.laedt{
+  position:absolute; right:14px; bottom:12px; font:12px/1 ui-monospace,monospace;
+  color:var(--c-faint); opacity:0; transition:opacity .2s;
+}
+.laedt.an{opacity:1}
+
+.ansichten{display:flex; gap:.5rem; margin:1rem 0 0; justify-content:center; flex-wrap:wrap}
+.ansichten button{
+  background:transparent; border:1px solid var(--c-linie); color:var(--c-dim);
+  padding:.5rem 1.05rem; border-radius:999px; cursor:pointer;
+  font:500 .9rem/1 var(--f-text); transition:color .15s, border-color .15s, background .15s;
+}
+.ansichten button:hover{color:var(--c-text); border-color:#31405a}
+.ansichten button[aria-pressed=true]{background:var(--c-text); color:#05070d; border-color:var(--c-text)}
+.hinweis{
+  margin:.85rem auto 0; max-width:42rem; text-align:center;
+  font-size:.86rem; line-height:1.55; color:var(--c-faint);
+}
+.hinweis b{color:var(--c-dim); font-weight:600}
+
+/* ---- Bedientafel ---- */
+.tafel{
+  background:var(--c-surface); border:1px solid var(--c-linie); border-radius:14px;
+  padding:1.6rem 1.5rem 1.75rem; display:flex; flex-direction:column; gap:1.35rem;
+}
+.tafel h2{
+  margin:0; font-family:var(--f-display); font-size:1.28rem;
+  font-weight:700; letter-spacing:-.01em;
+}
+.tafel .unter{margin:.3rem 0 0; color:var(--c-faint); font-size:.86rem}
+.achse>span{
+  display:block; font:600 .69rem/1 var(--f-text); letter-spacing:.15em;
+  text-transform:uppercase; color:var(--c-faint); margin-bottom:.55rem;
+}
+.wahl{display:flex; flex-wrap:wrap; gap:.45rem}
+.wahl button{
+  background:#111926; border:1px solid var(--c-linie); color:var(--c-text);
+  padding:.55rem .85rem; border-radius:9px; cursor:pointer;
+  font:500 .87rem/1 var(--f-text); transition:border-color .15s, background .15s;
+}
+.wahl button:hover{border-color:#31405a}
+.wahl button[aria-pressed=true]{
+  background:var(--c-cyan); color:#05070d; border-color:var(--c-cyan); font-weight:600;
+}
+
+.artikel{
+  font:500 .95rem/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.07em; color:var(--c-cyan);
+}
+dl{
+  display:grid; grid-template-columns:auto 1fr; gap:.4rem 1rem;
+  margin:.85rem 0 0; font-size:.87rem;
+}
+dt{color:var(--c-faint)}
+dd{margin:0; text-align:right; font-variant-numeric:tabular-nums}
+.warnung{color:#ffb4a2; font-size:.82rem; margin:.7rem 0 0}
+.fuss{
+  margin-top:auto; padding-top:1rem; border-top:1px solid var(--c-linie);
+  color:var(--c-faint); font-size:.79rem; line-height:1.65;
+}
+.fuss b{color:var(--c-dim); font-weight:600}
+
+/* ---- Wie es gebaut ist ---- */
+.machart{
+  padding:clamp(3rem,8vh,5.5rem) var(--page-x);
+  border-top:1px solid var(--c-linie); background:linear-gradient(180deg,#070a11,#05070d);
+}
+.machart h2{
+  margin:0 0 .8rem; font-family:var(--f-display);
+  font-size:clamp(1.6rem,3.4vw,2.5rem); font-weight:700;
+  line-height:1.08; letter-spacing:-.02em;
+}
+.machart>.lead{margin-bottom:clamp(2rem,4vh,3rem)}
+.karten{display:grid; gap:1.1rem; grid-template-columns:1fr}
+@media (min-width:720px){ .karten{grid-template-columns:repeat(3,1fr)} }
+.karte{
+  background:var(--c-surface); border:1px solid var(--c-linie);
+  border-radius:13px; padding:1.4rem 1.35rem;
+}
+.karte h3{
+  margin:0 0 .55rem; font-family:var(--f-display); font-size:1.06rem;
+  font-weight:700; letter-spacing:-.005em;
+}
+.karte p{margin:0; font-size:.9rem; color:var(--c-dim)}
+.zahl{
+  display:block; font-family:var(--f-display); font-size:2.1rem; font-weight:700;
+  line-height:1; letter-spacing:-.03em; color:var(--c-cyan); margin-bottom:.6rem;
+}
+
+/* ---- Abschluss ---- */
+.schluss{
+  padding:clamp(3.5rem,9vh,6rem) var(--page-x) clamp(4rem,10vh,7rem);
+  border-top:1px solid var(--c-linie); text-align:center;
+}
+.schluss h2{
+  margin:0 auto .9rem; max-width:24ch; font-family:var(--f-display);
+  font-size:clamp(1.7rem,3.8vw,2.8rem); font-weight:700;
+  line-height:1.06; letter-spacing:-.022em;
+}
+.schluss .lead{margin:0 auto clamp(1.6rem,3vh,2.2rem)}
+.knoepfe{display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap}
+.knopf{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:.85rem 1.6rem; border-radius:999px; text-decoration:none;
+  font:600 .93rem/1 var(--f-text); letter-spacing:.005em; transition:filter .18s, border-color .18s;
+}
+.knopf--voll{
+  background:linear-gradient(96deg,var(--c-blue),var(--c-cyan)); color:#04070d;
+}
+.knopf--voll:hover{filter:brightness(1.08)}
+.knopf--leer{border:1px solid var(--c-linie); color:var(--c-text)}
+.knopf--leer:hover{border-color:#31405a}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+
+<a id="zurueck" href="/de/"><span aria-hidden="true">←</span> Vecom Design</a>
+
+<header class="kopf">
+  <p class="kicker">Studie · 3D Experiences</p>
+  <h1>Ein Tisch.<br><span class="glanz">72-mal gerechnet.</span></h1>
+  <p class="lead">
+    Jede Variante ist ein eigener Lauf des Pfadverfolgers aus Unreal Engine 5 —
+    kein Echtzeit-3D im Browser. Deshalb sieht sie auf einem drei Jahre alten
+    Telefon genauso aus wie auf einer Workstation, und ein Wechsel kostet
+    16 Kilobyte statt eines Neuaufbaus der Szene.
+  </p>
+</header>
+
+<section class="werk">
+  <div class="buehne">
+    <div class="rahmen" id="rahmen" tabindex="0" role="img" aria-label="Massivholztisch">
+      <img id="bildKlein" class="klein" alt="">
+      <img id="bildGross" alt="Massivholztisch von Vecom Design">
+      <span class="laedt" id="laedt">lädt …</span>
+    </div>
+    <div class="ansichten" id="ansichten">
+      <button type="button" data-satz="ansicht" aria-pressed="true">Ansicht</button>
+      <button type="button" data-satz="platte" aria-pressed="false">Platte</button>
+      <button type="button" data-satz="drehen" aria-pressed="false">Drehen</button>
+    </div>
+    <p class="hinweis" id="hinweis" hidden></p>
+  </div>
+
+  <aside class="tafel">
+    <div>
+      <h2>Esstisch</h2>
+      <p class="unter">Vier Achsen, 72 gültige Kombinationen</p>
+    </div>
+
+    <div class="achse"><span>Holz</span><div class="wahl" id="a-holz"></div></div>
+    <div class="achse"><span>Metall</span><div class="wahl" id="a-metall"></div></div>
+    <div class="achse"><span>Gestell</span><div class="wahl" id="a-gestell"></div></div>
+    <div class="achse"><span>Länge</span><div class="wahl" id="a-laenge"></div></div>
+
+    <div>
+      <div class="artikel" id="artikel">—</div>
+      <dl id="masse"></dl>
+      <p class="warnung" id="warnung" hidden></p>
+    </div>
+
+    <p class="fuss">
+      Die Belichtung ist <b>fest</b>: Blende 5,6, 1/60 s, ISO 100. Eine
+      Automatik würde Nussbaum und Esche gleich hell zeigen — dann vergleicht
+      man die Regelung statt die Hölzer.
+    </p>
+  </aside>
+</section>
+
+<section class="machart">
+  <h2>Warum gerechnete Bilder<br>und keine Echtzeitszene.</h2>
+  <p class="lead">
+    Ein Konfigurator, der im Browser rendert, ist beeindruckend — solange der
+    Besucher eine Grafikkarte hat. Wir drehen es um: Gerechnet wird einmal, auf
+    einer Maschine, die dafür gebaut ist. Der Browser zeigt nur noch Bilder.
+  </p>
+  <div class="karten">
+    <div class="karte">
+      <span class="zahl">180</span>
+      <h3>Einzelläufe</h3>
+      <p>72 Ansichten, 72 Plattenaufnahmen für die Maserung, 36 Schritte für
+         die Drehung — jedes Bild ein eigener Lauf mit 192 Abtastungen.</p>
+    </div>
+    <div class="karte">
+      <span class="zahl">16 KB</span>
+      <h3>je Variantenwechsel</h3>
+      <p>Eine kleine Fassung liegt nach dem ersten Laden vollständig im
+         Zwischenspeicher und erscheint sofort; die große blendet darüber,
+         sobald sie da ist. Keine Lücke, kein Warten.</p>
+    </div>
+    <div class="karte">
+      <span class="zahl">0</span>
+      <h3>Geräte außen vor</h3>
+      <p>Kein WebGL, keine Shader, keine Qualitätsstufen. Was der Besucher
+         sieht, hängt nicht davon ab, was in seinem Gerät steckt.</p>
+    </div>
+  </div>
+</section>
+
+<section class="schluss">
+  <h2>Dasselbe geht mit Ihrem Produkt.</h2>
+  <p class="lead">
+    Möbel, Maschinen, Verpackung, Innenausbau — überall, wo es Varianten gibt
+    und ein Foto je Variante zu teuer wäre. Wir bauen das Modell, richten das
+    Studio ein und liefern den Konfigurator fertig für Ihre Seite.
+  </p>
+  <div class="knoepfe">
+    <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">Projekt starten</a>
+    <a class="knopf knopf--leer" href="/showroom.html">Zum 3D-Showroom</a>
+  </div>
+</section>
+
+<script type="module" src="/assets/js/tisch-konfigurator.js"></script>
+</body>
+</html>
