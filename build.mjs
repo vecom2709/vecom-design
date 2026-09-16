@@ -138,6 +138,21 @@ const SEITEN = [
     faq: null,
     heim: true,
   },
+  /* Der Produktkonfigurator. Anders als die drei oben traegt er sein eigenes
+     Stilblatt im Kopf und laedt kein i18n-Skript: Alle Texte stehen nach dem
+     Bauen fest in der Seite. Das ist Absicht -- die Seite soll ohne app.js,
+     ohne GSAP und ohne three.js auskommen, sonst waere die Behauptung
+     "laeuft auf jedem Geraet gleich" nur halb wahr.
+     Die Bilder unter assets/img/3d/tisch/ sind fuer alle drei Fassungen
+     dieselben; der Pfad steht deshalb absolut im Skript. */
+  {
+    quelle: 'tavolo.html',
+    ziele: { it: 'tavolo.html', de: 'de/tisch.html', en: 'en/table.html' },
+    adressen: { it: 'tavolo.html', de: 'de/tisch.html', en: 'en/table.html' },
+    meta: { titel: 'tavolo.metaTitle', text: 'tavolo.metaDesc' },
+    faq: null,
+    heim: true,
+  },
 ];
 
 function hreflang(seite) {
@@ -250,7 +265,15 @@ function build(lang, seite) {
     spec.split(',').forEach((pair) => {
       const [a, k] = pair.split(':').map((x) => x.trim());
       const v = get(lang, k);
-      if (typeof v !== 'string' || out.includes(`${a}="`)) return;
+      if (typeof v !== 'string') return;
+      /* ERST WEG, DANN SETZEN -- dieselbe Regel wie bei der Telefonzeile.
+         Die Quelle ist zugleich das italienische Ziel. Beim deutschen
+         Durchgang steht das Attribut also schon da, mit italienischem Text,
+         und ein "nur ergaenzen, was fehlt" laesst es stehen. Genau so trug
+         de/tisch.html am 16.09.2026 ein italienisches alt -- sichtbar nur
+         fuer Vorleseprogramme und Suchmaschinen, also fuer niemanden, der
+         es gemeldet haette. */
+      out = out.replace(new RegExp(`\\s${a}="[^"]*"`), '');
       out = out.slice(0, -1) + ` ${a}="${escAttr(v)}"` + '>';
     });
     return out;
@@ -443,6 +466,24 @@ function build(lang, seite) {
   if (lang === 'en') {
     h = h.replace(/(data-preis="[^"]+">)([0-9.,]+(?:\s*[–-]\s*[0-9.,]+)?)\s*€(<)/g,
       (_, vor, zahlen, nach) => vor + '€' + zahlen.replace(/\./g, ',') + nach);
+  }
+
+  /* --------------------------------------------------------------------------
+     Verweise auf den Produktkonfigurator.
+
+     Dieselbe Mechanik wie bei der Preisseite: Er heisst in jeder Sprache
+     anders -- tavolo.html, tisch.html, table.html -- und liegt jeweils neben
+     der Startseite derselben Sprache. Wer im Quelltext irgendeine der drei
+     Schreibweisen verlinkt, bekommt die richtige.
+
+     Die Regel fasst auch die Form mit fuehrendem Schraegstrich: Bis zum
+     16.09.2026 stand die Seite als einzelne deutsche Fassung unter
+     /tisch.html und war von der Startseite genau so verlinkt.
+     -------------------------------------------------------------------------- */
+  const tischseite = SEITEN.find((x) => x.quelle === 'tavolo.html');
+  if (tischseite) {
+    const datei = tischseite.ziele[lang].split('/').pop();
+    h = h.replace(/href="\/?(?:tavolo|tisch|table)\.html"/g, `href="${datei}"`);
   }
 
   const betreuungsseite = SEITEN.find((x) => x.quelle === 'assistenza.html');

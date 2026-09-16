@@ -40,6 +40,37 @@ window.VECOM_I18N.it = {
       scroll: "Scorri"
     },
     marquee: "Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza",
+    /* Der Konfigurator auf tavolo.html. Eigener Ast, damit die Seite die
+       Woerterbuecher der Startseite nicht anfasst. */
+    tavolo: {
+      metaTitle: "Configuratore di prodotto — Vecom Design",
+      metaDesc: "72 varianti di un tavolo in legno massello, ognuna calcolata singolarmente con il path tracer di Unreal Engine. Cambiare variante costa 16 KB e funziona uguale su ogni dispositivo.",
+      kicker: "Studio · 3D Experiences",
+      h1a: "Un tavolo.",
+      h1b: "Calcolato 72 volte.",
+      lead: "Ogni variante è un passaggio a sé del path tracer di Unreal Engine 5 — niente 3D in tempo reale nel browser. Per questo si vede uguale su un telefono di tre anni fa e su una workstation, e cambiarla costa 16 kilobyte invece di ricostruire la scena.",
+      bildAlt: "Tavolo in legno massello di Vecom Design",
+      laedt: "carico …",
+      v1: "Vista", v2: "Piano", v3: "Gira",
+      produkt: "Tavolo da pranzo",
+      unter: "Quattro assi, 72 combinazioni valide",
+      a1: "Legno", a2: "Metallo", a3: "Base", a4: "Lunghezza",
+      fuss_b: "L’esposizione è fissa:",
+      fuss_p: "diaframma 5,6, 1/60 s, ISO 100. Un’automatica mostrerebbe noce e frassino con la stessa luminosità — e allora si confronta la regolazione, non i legni.",
+      m_h1: "Perché immagini calcolate",
+      m_h2: "e non una scena in tempo reale.",
+      m_lead: "Un configuratore che rende nel browser è impressionante — finché il visitatore ha una scheda grafica. Io lo rovescio: si calcola una volta sola, su una macchina fatta per questo. Il browser mostra solo immagini.",
+      k1t: "passaggi singoli",
+      k1p: "72 viste, 72 riprese del piano per la venatura, 36 scatti per la rotazione — ogni immagine un passaggio a sé con 192 campionamenti.",
+      k2t: "per cambio variante",
+      k2p: "Dopo il primo caricamento la versione piccola è tutta in cache e compare subito; quella grande sfuma sopra appena è pronta. Nessun buco, nessuna attesa.",
+      k3t: "dispositivi esclusi",
+      k3p: "Niente WebGL, niente shader, nessun livello di qualità. Quello che il visitatore vede non dipende da cosa ha nel dispositivo.",
+      s_h: "Lo stesso vale per il tuo prodotto.",
+      s_lead: "Mobili, macchine, imballaggi, arredo su misura — ovunque ci siano varianti e una foto per ognuna costi troppo. Costruisco il modello, allestisco lo studio e consegno il configuratore pronto per il tuo sito.",
+      s_b1: "Avvia il progetto",
+      s_b2: "Allo showroom 3D"
+    },
     beweis: {
       marg: "tempo reale",
       head: "Tempo reale, non fermo immagine",
@@ -54,7 +85,7 @@ window.VECOM_I18N.it = {
       k3t: "Costruito una volta, usato tre.",
       k3p: "La stessa scena alimenta la pagina prodotto, lo stand in fiera e il tablet della tua rete vendita — e da qualsiasi posizione di camera restituisce un fermo immagine in risoluzione di stampa. L’investimento iniziale si divide così su tre budget.",
       probe_a: "Prova il configuratore",
-      probe_p: "Un esempio finito: 72 varianti di un tavolo da pranzo, calcolate una per una. Giralo, cambia legno e metallo — nel browser, senza plugin. (La pagina è per ora solo in tedesco.)",
+      probe_p: "Un esempio finito: 72 varianti di un tavolo da pranzo, calcolate una per una. Giralo, cambia legno e metallo — nel browser, senza plugin.",
       nein_t: "Quando non sono io la persona giusta.",
       nein_p: "Se ti serve una sola immagine per un annuncio. Se non ci sono varianti. Se il risultato va in stampa e da nessun’altra parte. Te lo dico al primo colloquio — e ti indico qualcuno che ti calcola un’ottima immagine."
     },

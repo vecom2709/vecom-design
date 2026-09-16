@@ -40,8 +40,36 @@ window.VECOM_I18N.en = {
       scroll: "Scroll"
     },
     marquee: "Custom websites · Online stores · Logo & brand identity · SEO · Online booking · Hosting & care",
-    /* British spelling throughout — the target markets for this argument
-       (furniture, yacht interiors) are largely European. */
+    /* The configurator on tavolo.html (English: en/table.html). */
+    tavolo: {
+      metaTitle: "Product configurator — Vecom Design",
+      metaDesc: "72 variants of a solid wood table, each one computed on its own with the Unreal Engine path tracer. Switching variant costs 16 KB and behaves the same on every device.",
+      kicker: "Study · 3D Experiences",
+      h1a: "One table.",
+      h1b: "Computed 72 times.",
+      lead: "Every variant is its own pass of the Unreal Engine 5 path tracer — no real-time 3D in the browser. That is why it looks the same on a three-year-old phone as on a workstation, and a change costs 16 kilobytes instead of rebuilding the scene.",
+      bildAlt: "Solid wood table by Vecom Design",
+      laedt: "loading …",
+      v1: "View", v2: "Top", v3: "Spin",
+      produkt: "Dining table",
+      unter: "Four axes, 72 valid combinations",
+      a1: "Wood", a2: "Metal", a3: "Base", a4: "Length",
+      fuss_b: "The exposure is fixed:",
+      fuss_p: "f/5.6, 1/60 s, ISO 100. Automatic metering would show walnut and ash equally bright — and then you are comparing the metering, not the woods.",
+      m_h1: "Why computed images",
+      m_h2: "and not a real-time scene.",
+      m_lead: "A configurator that renders in the browser is impressive — as long as the visitor has a graphics card. I turn it around: it is computed once, on a machine built for it. The browser only shows images.",
+      k1t: "single passes",
+      k1p: "72 views, 72 top shots for the grain, 36 steps for the rotation — every image its own pass with 192 samples.",
+      k2t: "per variant change",
+      k2p: "After the first load the small version sits entirely in cache and appears at once; the large one fades in over it as soon as it arrives. No gap, no waiting.",
+      k3t: "devices ruled out",
+      k3p: "No WebGL, no shaders, no quality tiers. What the visitor sees does not depend on what is inside their device.",
+      s_h: "The same works for your product.",
+      s_lead: "Furniture, machines, packaging, fitted interiors — anywhere there are variants and a photograph of each would cost too much. I build the model, set up the studio and hand over the configurator ready for your site.",
+      s_b1: "Start a project",
+      s_b2: "To the 3D showroom"
+    },
     beweis: {
       marg: "real time",
       head: "Real time, not a still image",
@@ -56,7 +84,7 @@ window.VECOM_I18N.en = {
       k3t: "Built once. Used three times.",
       k3p: "The same scene drives the product page, the trade-fair stand and your field sales tablet — and yields a print-resolution still from any camera position. The initial investment splits across three budgets.",
       probe_a: "Try the configurator",
-      probe_p: "A finished example: 72 variants of a dining table, each one computed on its own. Spin it, change the wood and the metal — in the browser, no plugin. (The page is in German for now.)",
+      probe_p: "A finished example: 72 variants of a dining table, each one computed on its own. Spin it, change the wood and the metal — in the browser, no plugin.",
       nein_t: "When I am the wrong choice.",
       nein_p: "If you need one hero image for an advertisement. If there are no variants. If the result goes to print and nowhere else. I will tell you in the first call — and point you to someone who will render you a very good image."
     },

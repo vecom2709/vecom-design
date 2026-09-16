@@ -40,9 +40,36 @@ window.VECOM_I18N.de = {
       scroll: "Scrollen"
     },
     marquee: "Maßgeschneiderte Websites · Online-Shops · Logo & Markenauftritt · SEO · Online-Terminbuchung · Hosting & Betreuung",
-    /* Echtzeit statt Standbild. Geduzt wie der Rest der Seite (Stimme in
-       PROJEKT.md) — die Sie-Fassung aus dem Konzept ist hier umgeschrieben,
-       nicht die Seite umgestellt. */
+    /* Der Konfigurator auf tavolo.html (deutsch: de/tisch.html). */
+    tavolo: {
+      metaTitle: "Produktkonfigurator — Vecom Design",
+      metaDesc: "72 Varianten eines Massivholztischs, jede einzeln mit dem Pfadverfolger der Unreal Engine gerechnet. Ein Variantenwechsel kostet 16 KB und läuft auf jedem Gerät gleich.",
+      kicker: "Studie · 3D Experiences",
+      h1a: "Ein Tisch.",
+      h1b: "72-mal gerechnet.",
+      lead: "Jede Variante ist ein eigener Lauf des Pfadverfolgers aus Unreal Engine 5 — kein Echtzeit-3D im Browser. Deshalb sieht sie auf einem drei Jahre alten Telefon genauso aus wie auf einer Workstation, und ein Wechsel kostet 16 Kilobyte statt eines Neuaufbaus der Szene.",
+      bildAlt: "Massivholztisch von Vecom Design",
+      laedt: "lädt …",
+      v1: "Ansicht", v2: "Platte", v3: "Drehen",
+      produkt: "Esstisch",
+      unter: "Vier Achsen, 72 gültige Kombinationen",
+      a1: "Holz", a2: "Metall", a3: "Gestell", a4: "Länge",
+      fuss_b: "Die Belichtung ist fest:",
+      fuss_p: "Blende 5,6, 1/60 s, ISO 100. Eine Automatik würde Nussbaum und Esche gleich hell zeigen — dann vergleicht man die Regelung statt die Hölzer.",
+      m_h1: "Warum gerechnete Bilder",
+      m_h2: "und keine Echtzeitszene.",
+      m_lead: "Ein Konfigurator, der im Browser rendert, ist beeindruckend — solange der Besucher eine Grafikkarte hat. Ich drehe es um: Gerechnet wird einmal, auf einer Maschine, die dafür gebaut ist. Der Browser zeigt nur noch Bilder.",
+      k1t: "Einzelläufe",
+      k1p: "72 Ansichten, 72 Plattenaufnahmen für die Maserung, 36 Schritte für die Drehung — jedes Bild ein eigener Lauf mit 192 Abtastungen.",
+      k2t: "je Variantenwechsel",
+      k2p: "Eine kleine Fassung liegt nach dem ersten Laden vollständig im Zwischenspeicher und erscheint sofort; die große blendet darüber, sobald sie da ist. Keine Lücke, kein Warten.",
+      k3t: "Geräte außen vor",
+      k3p: "Kein WebGL, keine Shader, keine Qualitätsstufen. Was der Besucher sieht, hängt nicht davon ab, was in seinem Gerät steckt.",
+      s_h: "Dasselbe geht mit deinem Produkt.",
+      s_lead: "Möbel, Maschinen, Verpackung, Innenausbau — überall, wo es Varianten gibt und ein Foto je Variante zu teuer wäre. Ich baue das Modell, richte das Studio ein und liefere den Konfigurator fertig für deine Seite.",
+      s_b1: "Projekt starten",
+      s_b2: "Zum 3D-Showroom"
+    },
     beweis: {
       marg: "echtzeit",
       head: "Echtzeit statt Standbild",

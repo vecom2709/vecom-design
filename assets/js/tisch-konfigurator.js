@@ -38,10 +38,50 @@ const KUERZEL = {
   gestell:{ wange: 'W', vierbein: 'V' },
   laenge: { klein: '180', mittel: '200', gross: '240' },
 };
-const BESCHRIFTUNG = {
-  Raeuchereiche: 'Räuchereiche', wange: 'Wange', vierbein: 'Vierbein',
-  klein: '1,80 m', mittel: '2,00 m', gross: '2,40 m',
+/* ---------------------------------------------------------------- Sprache
+   Die Seite gibt es dreisprachig. Die Achsenwerte im Katalog bleiben aber
+   deutsche Schluessel (Eiche, wange, gross): Sie sind Daten und stecken in
+   den Artikelnummern und Dateinamen. Uebersetzt wird nur, was der Besucher
+   liest.
+
+   Woher die Sprache kommt: aus <html lang>, das build.mjs je Fassung setzt.
+   Damit braucht diese Datei keine eigene Weiche, keinen zweiten Build und
+   keine dritte Kopie -- eine Datei bedient alle drei Seiten. */
+const SPRACHE = ['de', 'it', 'en'].includes((document.documentElement.lang || '').slice(0, 2))
+  ? document.documentElement.lang.slice(0, 2)
+  : 'de';
+
+const WORTE = {
+  de: {
+    Raeuchereiche: 'Räuchereiche', wange: 'Wange', vierbein: 'Vierbein',
+    klein: '1,80 m', mittel: '2,00 m', gross: '2,40 m',
+    masse: ['Länge', 'Breite', 'Oberkante', 'Beinfreiheit', 'Überstand', 'Gedecke je Seite'],
+    hinweis: 'Gerechnet als <b>36 Bilder à 10°</b> für <b>Eiche · Messing · Wange · 2,00 m</b>. '
+           + 'Ziehen, wischen oder ← → drücken. Jede andere Variante liegt als Standbild vor.',
+  },
+  it: {
+    Eiche: 'Rovere', Esche: 'Frassino', Nussbaum: 'Noce', Raeuchereiche: 'Rovere affumicato',
+    Schwarzstahl: 'Acciaio nero', Edelstahl: 'Acciaio inox', Messing: 'Ottone',
+    wange: 'Fianco pieno', vierbein: 'Quattro gambe',
+    klein: '1,80 m', mittel: '2,00 m', gross: '2,40 m',
+    masse: ['Lunghezza', 'Larghezza', 'Altezza piano', 'Spazio gambe', 'Sporgenza', 'Coperti per lato'],
+    hinweis: 'Calcolate <b>36 immagini a 10°</b> per <b>rovere · ottone · fianco pieno · 2,00 m</b>. '
+           + 'Trascina, scorri o premi ← →. Ogni altra variante è disponibile come fermo immagine.',
+  },
+  en: {
+    Eiche: 'Oak', Esche: 'Ash', Nussbaum: 'Walnut', Raeuchereiche: 'Smoked oak',
+    Schwarzstahl: 'Black steel', Edelstahl: 'Stainless steel', Messing: 'Brass',
+    wange: 'Panel base', vierbein: 'Four legs',
+    klein: '1.80 m', mittel: '2.00 m', gross: '2.40 m',
+    masse: ['Length', 'Width', 'Top height', 'Legroom', 'Overhang', 'Settings per side'],
+    hinweis: 'Computed as <b>36 images at 10°</b> for <b>oak · brass · panel base · 2.00 m</b>. '
+           + 'Drag, swipe or press ← →. Every other variant is there as a still.',
+  },
 };
+const wort = (k) => WORTE[SPRACHE][k] || k;
+/* Komma oder Punkt ist keine Kleinigkeit: "2.40 m" liest ein deutscher
+   Besucher als zweitausendvierhundert Meter, bis er stutzt. */
+const zahl = (v, n) => v.toFixed(n).replace('.', SPRACHE === 'en' ? '.' : ',');
 
 /* Die eine Variante, die als Umlauf vorliegt. */
 const DREH_WAHL = { holz: 'Eiche', metall: 'Messing', gestell: 'wange', laenge: 'mittel' };
@@ -81,7 +121,7 @@ function bedienungBauen() {
     for (const wert of katalog.achsen[achse]) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = BESCHRIFTUNG[wert] || wert;
+      b.textContent = wort(wert);
       b.dataset.wert = wert;
       b.setAttribute('aria-pressed', String(wahl[achse] === wert));
       b.addEventListener('click', () => {
@@ -167,13 +207,14 @@ function schildSetzen(artikel) {
   const s = katalog.varianten.find((v) => v.artikel === artikel);
   document.getElementById('artikel').textContent = artikel;
   if (!s) return;
+  const M = WORTE[SPRACHE].masse;
   document.getElementById('masse').innerHTML = [
-    ['Länge', s.laenge_m.toFixed(2) + ' m'],
-    ['Breite', s.breite_m.toFixed(2) + ' m'],
-    ['Oberkante', s.oberkante_m.toFixed(3) + ' m'],
-    ['Beinfreiheit', s.beinfreiheit_m.toFixed(3) + ' m'],
-    ['Überstand', s.ueberstand_m.toFixed(3) + ' m'],
-    ['Gedecke je Seite', String(s.gedecke_je_seite)],
+    [M[0], zahl(s.laenge_m, 2) + ' m'],
+    [M[1], zahl(s.breite_m, 2) + ' m'],
+    [M[2], zahl(s.oberkante_m, 3) + ' m'],
+    [M[3], zahl(s.beinfreiheit_m, 3) + ' m'],
+    [M[4], zahl(s.ueberstand_m, 3) + ' m'],
+    [M[5], String(s.gedecke_je_seite)],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   const w = document.getElementById('warnung');
   w.hidden = s.haelt;
@@ -192,11 +233,7 @@ const drehPfad = (groesse, i) =>
 
 function drehAnzeigen() {
   hinweis.hidden = false;
-  hinweis.innerHTML =
-    'Gerechnet als <b>36 Bilder à 10°</b> für ' +
-    '<b>Eiche · Messing · Wange · 2,00 m</b>. ' +
-    'Ziehen, wischen oder ← → drücken. ' +
-    'Jede andere Variante liegt als Standbild vor.';
+  hinweis.innerHTML = WORTE[SPRACHE].hinweis;
   bildGross.classList.remove('da');
   bildKlein.src = drehPfad('klein', drehIndex);
   winkelMelden();
