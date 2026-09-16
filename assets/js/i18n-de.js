@@ -40,6 +40,27 @@ window.VECOM_I18N.de = {
       scroll: "Scrollen"
     },
     marquee: "Maßgeschneiderte Websites · Online-Shops · Logo & Markenauftritt · SEO · Online-Terminbuchung · Hosting & Betreuung",
+    /* Echtzeit statt Standbild. Geduzt wie der Rest der Seite (Stimme in
+       PROJEKT.md) — die Sie-Fassung aus dem Konzept ist hier umgeschrieben,
+       nicht die Seite umgestellt. */
+    beweis: {
+      marg: "echtzeit",
+      head: "Echtzeit statt Standbild",
+      lead: "Warum ich Produkte baue, die man drehen kann — und wann ein Foto reicht.",
+      k1l: "varianz",
+      k1t: "Die 145. Variante kostet nichts.",
+      k1p: "Ein Sessel in sechs Stoffen, vier Hölzern, drei Maßen und zwei Gestellen ergibt 144 Ansichten. Ein Fotograf liefert eine. Ein Renderstudio stellt 144 in Rechnung. Eine Echtzeitszene zeigt alle — und die 145. am nächsten Tag ebenfalls, zum Preis eines Parameters.",
+      k2l: "entscheidung",
+      k2t: "Wer selbst gedreht hat, hat entschieden.",
+      k2p: "Ein Produktbild wird gut eine Sekunde angesehen. Ein Objekt, das dein Kunde selbst dreht, färbt und bemisst, beschäftigt ihn ein Vielfaches davon. Die Anfrage kommt dann nicht mehr als „Was kostet das?“, sondern als fertige Konfiguration mit Artikelnummern.",
+      k3l: "wiederverwendung",
+      k3t: "Einmal gebaut, dreifach verwendet.",
+      k3p: "Dieselbe Szene liefert die Produktseite, den Messestand und das Tablet deines Außendienstes — und aus jeder Kameraposition ein Katalogbild in Druckauflösung. Deine Erstinvestition verteilt sich damit auf drei Budgets.",
+      probe_a: "Konfigurator ausprobieren",
+      probe_p: "Ein fertiges Beispiel: 72 Varianten eines Esstischs, jede einzeln gerechnet. Dreh ihn, wechsle Holz und Metall — im Browser, ohne Zusatzsoftware.",
+      nein_t: "Wann ich der Falsche bin.",
+      nein_p: "Wenn du ein Heldenbild für eine Anzeige brauchst. Wenn es keine Varianten gibt. Wenn das Ergebnis in den Druck geht und sonst nirgendwohin. Dann sage ich es dir im ersten Gespräch — und empfehle dir jemanden, der dir ein sehr gutes Bild rechnet."
+    },
     services: {
       head: "Was ich für dich umsetze",
       lead: "Alles aus einer Hand. Du kannst mit einem Bereich anfangen oder den ganzen Auftritt abgeben.",

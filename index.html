@@ -31,8 +31,8 @@
 
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=10542fcd">
+<link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
+<link rel="stylesheet" href="assets/css/app.css?v=7a5ff739">
 
 
 <script type="importmap">
@@ -391,6 +391,55 @@
 <div class="marquee" aria-hidden="true">
   <div class="marquee__track" data-marquee><span>Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza</span><span aria-hidden="true">Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza</span></div>
 </div>
+
+<!-- ===================== Echtzeit statt Standbild =====================
+     Die Begruendung der Positionierung, bevor die Arbeiten kommen. Reine
+     Kopie, keine Mechanik: Der Abschnitt darf nichts behaupten, was die
+     Seite noch nicht kann. Klassen ausschliesslich aus dem Bestand
+     (.section/.wrap/.sechead/.services/.service) -- kein neues Stilblatt.
+     Der zugehoerige Kamerazustand steht in site-beats.js unter 'beweis';
+     ohne ihn bliebe der Schleier auf dem Hero-Wert und der Text unlesbar.
+     ==================================================================== -->
+<section class="section" id="beweis">
+  <div class="wrap">
+    <div class="sechead sechead--split" data-stagger>
+      <span class="marg" data-i18n="beweis.marg">tempo reale</span>
+      <h2 data-reveal data-i18n="beweis.head">Tempo reale, non fermo immagine</h2>
+      <p data-reveal data-i18n="beweis.lead">Perché costruisco prodotti che si possono girare — e quando invece basta una foto.</p>
+    </div>
+
+    <div class="services" data-stagger>
+      <article class="service" data-reveal>
+        <span class="service__no" data-i18n="beweis.k1l">varianti</span>
+        <h3 data-i18n="beweis.k1t">La 145ª variante non costa nulla.</h3>
+        <p data-i18n="beweis.k1p">Una poltrona in sei tessuti, quattro legni, tre misure e due basi fa 144 viste. Un fotografo ne consegna una. Uno studio di rendering te ne fattura 144. Una scena in tempo reale le mostra tutte — e domani anche la 145ª, al prezzo di un parametro.</p>
+      </article>
+      <article class="service" data-reveal>
+        <span class="service__no" data-i18n="beweis.k2l">decisione</span>
+        <h3 data-i18n="beweis.k2t">Chi l’ha girata da solo ha già deciso.</h3>
+        <p data-i18n="beweis.k2p">Una foto di prodotto trattiene l’attenzione per circa un secondo. Un oggetto che il tuo cliente gira, colora e dimensiona da sé la trattiene molte volte tanto. La richiesta non arriva più come «quanto costa?», ma come configurazione finita, con i codici articolo.</p>
+      </article>
+      <article class="service" data-reveal>
+        <span class="service__no" data-i18n="beweis.k3l">riutilizzo</span>
+        <h3 data-i18n="beweis.k3t">Costruito una volta, usato tre.</h3>
+        <p data-i18n="beweis.k3p">La stessa scena alimenta la pagina prodotto, lo stand in fiera e il tablet della tua rete vendita — e da qualsiasi posizione di camera restituisce un fermo immagine in risoluzione di stampa. L’investimento iniziale si divide così su tre budget.</p>
+      </article>
+    </div>
+
+    <!-- Der Beleg zur Behauptung. Absoluter Pfad ohne Sprachanteil: Die
+         Seite gibt es einmal, build.mjs laesst sie in allen drei Fassungen
+         so stehen. -->
+    <p class="beweis__probe" data-reveal>
+      <a class="btn btn--primary" href="/tisch.html" data-i18n="beweis.probe_a">Prova il configuratore</a>
+      <span data-i18n="beweis.probe_p">Un esempio finito: 72 varianti di un tavolo da pranzo, calcolate una per una. Giralo, cambia legno e metallo — nel browser, senza plugin. (La pagina è per ora solo in tedesco.)</span>
+    </p>
+
+    <p class="beweis__grenze" data-reveal>
+      <strong data-i18n="beweis.nein_t">Quando non sono io la persona giusta.</strong>
+      <span data-i18n="beweis.nein_p">Se ti serve una sola immagine per un annuncio. Se non ci sono varianti. Se il risultato va in stampa e da nessun’altra parte. Te lo dico al primo colloquio — e ti indico qualcuno che ti calcola un’ottima immagine.</span>
+    </p>
+  </div>
+</section>
 
 <!-- ===================== Arbeiten ===================== -->
 <section class="section" id="work">
@@ -1330,17 +1379,17 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=d13253d4" defer></script>
-<script src="assets/js/app.js?v=f8ecc8c9" defer></script>
-<script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
-<script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
-<script src="assets/vendor/ScrollTrigger.min.js?v=05ca5ad8" defer></script>
-<script src="assets/vendor/lenis.min.js?v=daec1872" defer></script>
+<script src="assets/js/i18n-it.js?v=6481d2ed" defer></script>
+<script src="assets/js/app.js?v=e9109416" defer></script>
+<script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
+<script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>
+<script src="assets/vendor/ScrollTrigger.min.js?v=b66217e9" defer></script>
+<script src="assets/vendor/lenis.min.js?v=3d9a280d" defer></script>
 <!-- Zehn Dateien, die nur die Startseite braucht, in einer: assets/js/start.js.
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      rail, vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
-<script src="assets/js/start.js?v=c50f985e" defer></script>
-<script type="module" src="assets/js/world/site-world.js?v=95ba9375"></script>
+<script src="assets/js/start.js?v=cbafcedd" defer></script>
+<script type="module" src="assets/js/world/site-world.js?v=feee3947"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

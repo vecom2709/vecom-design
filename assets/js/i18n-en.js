@@ -40,6 +40,26 @@ window.VECOM_I18N.en = {
       scroll: "Scroll"
     },
     marquee: "Custom websites · Online stores · Logo & brand identity · SEO · Online booking · Hosting & care",
+    /* British spelling throughout — the target markets for this argument
+       (furniture, yacht interiors) are largely European. */
+    beweis: {
+      marg: "real time",
+      head: "Real time, not a still image",
+      lead: "Why I build products you can turn — and when a photograph is enough.",
+      k1l: "variants",
+      k1t: "The 145th variant is free.",
+      k1p: "Six fabrics, four woods, three sizes, two frames: 144 views of a single chair. A photographer delivers one. A render studio invoices 144. A real-time scene shows all of them — and the 145th tomorrow, for the price of a parameter.",
+      k2l: "decision",
+      k2t: "A customer who has turned it has already decided.",
+      k2p: "A product photograph holds attention for about a second. An object your customer rotates, recolours and resizes himself holds it many times longer. The enquiry then arrives as a finished configuration with part numbers, not as “what does it cost?”.",
+      k3l: "reuse",
+      k3t: "Built once. Used three times.",
+      k3p: "The same scene drives the product page, the trade-fair stand and your field sales tablet — and yields a print-resolution still from any camera position. The initial investment splits across three budgets.",
+      probe_a: "Try the configurator",
+      probe_p: "A finished example: 72 variants of a dining table, each one computed on its own. Spin it, change the wood and the metal — in the browser, no plugin. (The page is in German for now.)",
+      nein_t: "When I am the wrong choice.",
+      nein_p: "If you need one hero image for an advertisement. If there are no variants. If the result goes to print and nowhere else. I will tell you in the first call — and point you to someone who will render you a very good image."
+    },
     services: {
       head: "What I build for you",
       lead: "All of it from one pair of hands. Start with one area, or hand over the whole presence.",

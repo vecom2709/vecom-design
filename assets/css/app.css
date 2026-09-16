@@ -3356,3 +3356,96 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .ast__p p { margin: 0; font-size: var(--t-sm); color: var(--c-text-dim); }
 .ast__cta { margin-top: clamp(1.6rem, 3vw, 2.4rem); max-width: 62ch; color: var(--c-text-dim); }
 .ast__cta strong { color: var(--c-text); }
+
+
+/* ==========================================================================
+   Echtzeit statt Standbild — die Grenzzeile
+
+   Der Abschnitt #beweis benutzt sonst ausschliesslich vorhandene Klassen
+   (.section, .wrap, .sechead, .services, .service). Nur diese eine Zeile
+   braucht eigenen Stil: Sie sagt, wann Vecom der falsche Anbieter ist, und
+   steht deshalb bewusst leiser als die drei Karten darueber — aber nicht so
+   leise, dass man sie ueberliest. Ohne eigene Regel saesse sie als normaler
+   Abschnittstext in voller Breite und Helligkeit und wuerde mit den Karten
+   um dieselbe Aufmerksamkeit streiten.
+
+   Werte ausschliesslich aus dem Token-Satz, keine neuen Farben, keine neuen
+   Abstaende, keine neue Dauer.
+   ========================================================================== */
+/* Nachtrag 16.09.2026, im Browser nachgesehen: Die Zeile lag zuerst direkt
+   auf der laufenden Welt. Die drei Karten daneben haben mit --c-base einen
+   eigenen Grund, diese Zeile hatte keinen -- ihr Kontrast haette also an der
+   Helligkeit einer Szene gehangen, die sich mit der Tageszeit aendert. Das
+   ist derselbe Mechanismus wie am 14.09.2026. Statt einen beweglichen
+   Hintergrund zu messen, bekommt die Zeile denselben festen Grund wie die
+   Karten: #808ea9 auf #05070d sind rund 7,8:1, egal was die Szene macht. */
+.beweis__grenze {
+  margin: 1px 0 0;                 /* dieselbe 1px-Fuge wie zwischen den Karten */
+  max-width: none;
+  background: var(--c-base);
+  padding: var(--s-3) clamp(1.5rem, 2.4vw, 2.1rem);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--c-text-faint);
+  border-block-end: 1px solid var(--c-line);
+}
+.beweis__grenze strong {
+  display: block;
+  color: var(--c-text-dim);
+  font-family: var(--f-display);
+  font-weight: 600;
+  margin-bottom: .25rem;
+}
+
+/* Drei Karten brauchen ein anderes Raster als sechs.
+   -----------------------------------------------------------------------
+   .services schaltet bei 760px auf zwei und erst bei 1120px auf drei Spalten.
+   Fuer die sechs Leistungskarten geht das auf (drei Reihen zu zweit). Fuer die
+   drei Karten hier nicht: Auf einem 1040px breiten Fenster -- genau Uwes
+   Fenstergroesse, gemessen am 16.09.2026 -- standen zwei Karten oben und eine
+   allein darunter. Eine einzelne Karte in einer Reihe liest sich wie ein
+   Nachtrag, nicht wie der dritte von drei gleichwertigen Gruenden.
+
+   Deshalb hier nur zwei Zustaende: untereinander oder zu dritt nebeneinander.
+   Der Umbruch liegt bei 900px, weil drei Spalten darunter schmaler als 32ch
+   wuerden und die Zahlenreihe im ersten Absatz dann dreimal umbricht.
+   ID-Spezifitaet, damit die Reihenfolge im Stilblatt keine Rolle spielt. */
+#beweis .services { grid-template-columns: 1fr; }
+@media (min-width: 900px) {
+  #beweis .services { grid-template-columns: repeat(3, 1fr); }
+}
+
+
+/* ==========================================================================
+   Echtzeit statt Standbild — die Probe aufs Exempel
+
+   Der Abschnitt darueber behauptet etwas. Diese Zeile belegt es: Sie fuehrt
+   auf /tisch.html, wo 72 gerechnete Varianten im Browser durchklickbar sind.
+   Eine Behauptung ohne begehbaren Beleg ist auf einer Agenturseite das
+   Gegenteil von Beweis — deshalb steht der Verweis IM Abschnitt und nicht
+   irgendwo im Fussbereich.
+
+   Gleiche 1px-Fuge und derselbe feste Grund wie bei den Karten und der
+   Grenzzeile: Ein Knopf auf der laufenden Welt haette einen Kontrast, der
+   sich mit der Szene aendert. Derselbe Mechanismus wie am 14.09.2026.
+
+   Der Verweis ist bewusst sprachunabhaengig (/tisch.html, eine Fassung).
+   build.mjs dreht nur Verweise, fuer die es eine eigene Regel gibt; ein
+   absoluter Pfad ohne Sprachanteil bleibt in allen drei Fassungen stehen.
+   ========================================================================== */
+.beweis__probe {
+  margin: 1px 0 0;
+  max-width: none;
+  background: var(--c-base);
+  padding: var(--s-3) clamp(1.5rem, 2.4vw, 2.1rem);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .85rem 1.3rem;
+}
+.beweis__probe span {
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  color: var(--c-text-dim);
+  max-width: 48ch;
+}

@@ -40,6 +40,24 @@ window.VECOM_I18N.it = {
       scroll: "Scorri"
     },
     marquee: "Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza",
+    beweis: {
+      marg: "tempo reale",
+      head: "Tempo reale, non fermo immagine",
+      lead: "Perché costruisco prodotti che si possono girare — e quando invece basta una foto.",
+      k1l: "varianti",
+      k1t: "La 145ª variante non costa nulla.",
+      k1p: "Una poltrona in sei tessuti, quattro legni, tre misure e due basi fa 144 viste. Un fotografo ne consegna una. Uno studio di rendering te ne fattura 144. Una scena in tempo reale le mostra tutte — e domani anche la 145ª, al prezzo di un parametro.",
+      k2l: "decisione",
+      k2t: "Chi l’ha girata da solo ha già deciso.",
+      k2p: "Una foto di prodotto trattiene l’attenzione per circa un secondo. Un oggetto che il tuo cliente gira, colora e dimensiona da sé la trattiene molte volte tanto. La richiesta non arriva più come «quanto costa?», ma come configurazione finita, con i codici articolo.",
+      k3l: "riutilizzo",
+      k3t: "Costruito una volta, usato tre.",
+      k3p: "La stessa scena alimenta la pagina prodotto, lo stand in fiera e il tablet della tua rete vendita — e da qualsiasi posizione di camera restituisce un fermo immagine in risoluzione di stampa. L’investimento iniziale si divide così su tre budget.",
+      probe_a: "Prova il configuratore",
+      probe_p: "Un esempio finito: 72 varianti di un tavolo da pranzo, calcolate una per una. Giralo, cambia legno e metallo — nel browser, senza plugin. (La pagina è per ora solo in tedesco.)",
+      nein_t: "Quando non sono io la persona giusta.",
+      nein_p: "Se ti serve una sola immagine per un annuncio. Se non ci sono varianti. Se il risultato va in stampa e da nessun’altra parte. Te lo dico al primo colloquio — e ti indico qualcuno che ti calcola un’ottima immagine."
+    },
     services: {
       head: "Cosa realizzo per te",
       lead: "Sei ambiti, un unico interlocutore. Puoi partire da uno solo o affidarmi tutta la presenza online.",
