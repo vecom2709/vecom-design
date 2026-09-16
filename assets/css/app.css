@@ -3496,3 +3496,114 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   .card--probe > img.card__poster { transition: none; }
   .card--probe:hover > img.card__poster { transform: none; }
 }
+
+
+/* ==========================================================================
+   DIE WERKBANK — der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren"
+
+   Zwei Spalten: links die Buehne (Leinwand oder gerechnetes Bild), rechts
+   das Pult mit den Reglern. Unter 900 px untereinander, Buehne zuerst --
+   auf dem Telefon will man erst sehen, was man da bedient.
+
+   Die Buehne hat ein festes Seitenverhaeltnis statt einer Mindesthoehe:
+   Das Bild dahinter ist 1600 x 1000, und ein Kasten, der mit dem Text
+   waechst, haette bei jeder Sprache ein anderes Format.
+   ========================================================================== */
+.werkbank {
+  display: grid; gap: clamp(1.2rem, 2.4vw, 2rem);
+  border: 1px solid var(--c-line); border-radius: var(--radius-lg);
+  background: var(--c-surface); overflow: hidden;
+  padding: 0;
+}
+@media (min-width: 900px) {
+  .werkbank { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 0; }
+  /* ZWEI SPALTEN, ALSO KEIN SEITENVERHAELTNIS MEHR.
+     Mit aspect-ratio UND einer von aussen erzwungenen Hoehe rechnet der
+     Browser die BREITE aus der Hoehe -- die Buehne wurde dann breiter als
+     ihre Rasterspalte und schob sich quer ueber die Knoepfe. Am fertigen
+     Bild gesehen, 16.09.2026. Hier bestimmt die Zeilenhoehe.
+
+     Zwei Klassennamen, weil dieser Block VOR der allgemeinen Regel steht:
+     Bei gleicher Spezifitaet gewinnt sonst die spaetere Zeile. */
+  .werkbank .werkbank__buehne { aspect-ratio: auto; min-height: 22rem; }
+}
+
+.werkbank__buehne {
+  position: relative;
+  /* Auf schmalen Schirmen bestimmt das Seitenverhaeltnis die Hoehe: Dort
+     steht die Buehne allein in ihrer Zeile und hat kein Mass von aussen. */
+  aspect-ratio: 16 / 10;
+  background:
+    radial-gradient(70% 55% at 50% 42%, #10161f 0%, #070a10 62%, #05070d 100%);
+  overflow: hidden;
+}
+.werkbank__buehne canvas,
+.werkbank__buehne img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block; object-fit: cover;
+}
+.werkbank__buehne canvas { touch-action: pan-y; cursor: grab; }
+.werkbank__buehne canvas:active { cursor: grabbing; }
+.werkbank__buehne canvas:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: -4px; }
+
+/* DIE ABLESUNG. Sie ist der halbe Zweck des Abschnitts: Wer beim Drehen
+   sieht, dass 269 KB geladen wurden und 60 Bilder je Sekunde laufen, braucht
+   keinen Satz mehr ueber Ladezeiten. Deshalb steht sie IM Bild und nicht
+   darunter -- und auf eigenem dunklem Grund, weil die Szene dahinter hell
+   werden kann. */
+.werkbank__ablesung {
+  position: absolute; left: 0; right: 0; bottom: 0; margin: 0;
+  display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: .3rem 1rem;
+  padding: .7rem clamp(.9rem, 2vw, 1.3rem);
+  background: linear-gradient(to top, rgba(4, 6, 11, .92), rgba(4, 6, 11, 0));
+  font-family: var(--f-display); font-size: var(--t-xs);
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.werkbank__nummer { color: var(--c-cyan); }
+.werkbank__stand { color: var(--c-text-faint); }
+
+.werkbank__pult {
+  display: grid; align-content: start; gap: clamp(.9rem, 1.8vw, 1.3rem);
+  padding: clamp(1.3rem, 2.4vw, 2rem);
+}
+.achse { display: grid; gap: .5rem; }
+.achse__name {
+  font-family: var(--f-display); font-size: var(--t-xs);
+  letter-spacing: .2em; text-transform: uppercase; color: var(--c-text-faint);
+}
+.achse__knoepfe { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+/* Die Knoepfe sind die eigentliche Bedienung der Seite. Mindestens 44 px
+   hoch, damit sie auf dem Telefon zu treffen sind, und der gewaehlte
+   Zustand steht in aria-pressed -- nicht nur in der Farbe. */
+.achse__knoepfe button {
+  min-height: 44px; padding: .55rem 1rem;
+  font-family: var(--f-display); font-size: var(--t-sm); font-weight: 600;
+  color: var(--c-text-dim); background: rgba(8, 12, 19, .7);
+  border: 1px solid var(--c-line); border-radius: 12px;
+  cursor: pointer;
+  transition: color var(--d-ui) var(--e-std), border-color var(--d-ui) var(--e-std),
+              background-color var(--d-ui) var(--e-std);
+}
+.achse__knoepfe button:hover { color: var(--c-text); border-color: var(--c-line-strong); }
+.achse__knoepfe button[aria-pressed="true"] {
+  color: var(--c-base); background: var(--c-cyan); border-color: var(--c-cyan);
+}
+.achse__knoepfe button:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 2px; }
+
+.werkbank__satz {
+  margin: .4rem 0 0; font-size: var(--t-sm); line-height: 1.6;
+  color: var(--c-text-dim); max-width: 42ch;
+}
+
+.werkbank__weiter {
+  margin-top: var(--s-3);
+  display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.6rem;
+  font-size: var(--t-sm); color: var(--c-text-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .achse__knoepfe button { transition: none; }
+}

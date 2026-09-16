@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
-<link rel="stylesheet" href="assets/css/app.css?v=e1568d81">
+<link rel="stylesheet" href="assets/css/app.css?v=37f26a43">
 
 
 <script type="importmap">
@@ -722,40 +722,72 @@
     <div class="sechead sechead--split" data-stagger>
       <span class="marg" data-i18n="marg.m4">da provare</span>
       <h2 data-reveal data-i18n="probieren.head">Non credermi. Provalo.</h2>
-      <p data-reveal data-i18n="probieren.lead">Due pezzi sono aperti a chiunque: niente registrazione, niente plugin. Girali, cambiali, guarda quanto ci mettono a caricare sul tuo telefono. È lo stesso codice che finirebbe nel tuo progetto.</p>
+      <p data-reveal data-i18n="probieren.lead">Questo tavolo è qui, non su un’altra pagina. Giralo, cambia legno e metallo. Mentre lo fai, guarda i numeri accanto: sono la risposta alla domanda quanto costa.</p>
     </div>
 
-    <div class="work" data-stagger>
-      <article class="card framed card--probe card--half" data-reveal style="--p1: rgba(176,128,42,.5); --p2: rgba(28,44,82,.42);">
-        <img class="card__poster" src="assets/img/3d/tisch/drehen/gross/dreh-06.webp?v=73aeb345"
-             data-i18n-attr="alt:probieren.p1alt"
+    <!-- DIE WERKBANK
+         Zwei Stufen in einem Kasten: Die Leinwand ist die Echtzeitfassung,
+         das Bild darunter dieselbe Variante gerechnet. Welche von beiden zu
+         sehen ist, entscheidet werkbank.js nach Geraet und Bildrate -- und
+         die Regler bedienen beide. Deshalb funktioniert der Abschnitt auch
+         dann vollstaendig, wenn 3D gar nicht erst startet. -->
+    <div class="werkbank" data-werkbank data-werkbank-stufe="bild" data-reveal>
+      <div class="werkbank__buehne">
+        <canvas hidden data-i18n-attr="aria-label:probieren.wbAlt"
+                aria-label="Tavolo da pranzo in tre dimensioni, da girare"></canvas>
+        <img data-werkbank-bild src="assets/img/3d/tisch/ansicht/gross/VD-T-W200-EIM.webp?v=841fe859"
+             data-i18n-attr="alt:probieren.wbAlt"
             
-             width="1600" height="1000" loading="lazy" decoding="async" alt="Tavolo da pranzo in rovere con basamento in ottone, immagine calcolata">
-        <div class="card__body">
-          <span class="card__tag" data-i18n="probieren.p1tag">Configuratore 3D</span>
-          <h3 data-i18n="probieren.p1t">Tavolo da pranzo, 72 varianti</h3>
-          <p data-i18n="probieren.p1p">Quattro legni, tre metalli, due basamenti, tre lunghezze. Ogni combinazione è un’immagine calcolata a parte — 180 in tutto, comprese le 36 pose di un giro completo. Tu giri il tavolo col dito; il browser non calcola nulla.</p>
-          <p class="card__result" data-i18n="probieren.p1r">Gira anche su un telefono di tre anni fa</p>
-          <a class="card__link card__link--live" href="tavolo.html" data-i18n="probieren.p1l">Apri il configuratore</a>
-        </div>
-      </article>
+             width="1600" height="1000" loading="lazy" decoding="async" alt="Tavolo da pranzo in tre dimensioni, da girare">
+        <p class="werkbank__ablesung">
+          <span class="werkbank__nummer" data-werkbank-nummer>VD-T-W200-EIM</span>
+          <span class="werkbank__stand" data-werkbank-stand data-i18n="probieren.wbBereit">immagine calcolata</span>
+        </p>
+      </div>
 
-      <article class="card framed card--probe card--half" data-reveal style="--p1: rgba(31,232,255,.34); --p2: rgba(10,120,245,.4);">
-        <img class="card__poster" src="assets/img/work/showroom-3d.webp?v=e1375295"
-             data-i18n-attr="alt:probieren.p2alt"
-            
-             width="1400" height="612" loading="lazy" decoding="async" alt="Sala espositiva tridimensionale con la V di Vecom Design">
-        <div class="card__body">
-          <span class="card__tag" data-i18n="probieren.p2tag">Spazio 3D</span>
-          <h3 data-i18n="probieren.p2t">Uno showroom da attraversare</h3>
-          <p data-i18n="probieren.p2p">Una sala costruita nel browser: scorri e ci cammini dentro, ogni stazione è un ambito di lavoro. Luce, riflessi e profondità di campo calcolati in tempo reale — con una versione più leggera per ogni dispositivo che non ce la fa.</p>
-          <p class="card__result" data-i18n="probieren.p2r">Cinque stazioni, un solo percorso</p>
-          <a class="card__link card__link--live" href="showroom.html" data-i18n="probieren.p2l">Entra nello showroom</a>
+      <div class="werkbank__pult">
+        <div class="achse">
+          <span class="achse__name" data-i18n="probieren.aHolz">Legno</span>
+          <div class="achse__knoepfe">
+            <button type="button" data-achse="holz" data-wert="Eiche" data-i18n="probieren.hEiche">Rovere</button>
+            <button type="button" data-achse="holz" data-wert="Esche" data-i18n="probieren.hEsche">Frassino</button>
+            <button type="button" data-achse="holz" data-wert="Nussbaum" data-i18n="probieren.hNussbaum">Noce</button>
+            <button type="button" data-achse="holz" data-wert="Raeuchereiche" data-i18n="probieren.hRaeuchereiche">Rovere affumicato</button>
+          </div>
         </div>
-      </article>
+        <div class="achse">
+          <span class="achse__name" data-i18n="probieren.aMetall">Metallo</span>
+          <div class="achse__knoepfe">
+            <button type="button" data-achse="metall" data-wert="Messing" data-i18n="probieren.mMessing">Ottone</button>
+            <button type="button" data-achse="metall" data-wert="Edelstahl" data-i18n="probieren.mEdelstahl">Acciaio inox</button>
+            <button type="button" data-achse="metall" data-wert="Schwarzstahl" data-i18n="probieren.mSchwarzstahl">Acciaio nero</button>
+          </div>
+        </div>
+        <div class="achse">
+          <span class="achse__name" data-i18n="probieren.aGestell">Basamento</span>
+          <div class="achse__knoepfe">
+            <button type="button" data-achse="gestell" data-wert="wange" data-i18n="probieren.gWange">A fianchi</button>
+            <button type="button" data-achse="gestell" data-wert="vierbein" data-i18n="probieren.gVierbein">Quattro gambe</button>
+          </div>
+        </div>
+        <div class="achse">
+          <span class="achse__name" data-i18n="probieren.aLaenge">Lunghezza</span>
+          <div class="achse__knoepfe">
+            <button type="button" data-achse="laenge" data-wert="klein" data-i18n="probieren.lKlein">1,80 m</button>
+            <button type="button" data-achse="laenge" data-wert="mittel" data-i18n="probieren.lMittel">2,00 m</button>
+            <button type="button" data-achse="laenge" data-wert="gross" data-i18n="probieren.lGross">2,40 m</button>
+          </div>
+        </div>
+
+        <p class="werkbank__satz" data-i18n="probieren.wbSatz">72 varianti. Un modello di 133 KB. Con le foto sarebbero 72 appuntamenti — e la settantatreesima non esisterebbe.</p>
+      </div>
     </div>
 
-    <p class="work__note" data-i18n="probieren.note">Sono online tutti e due, adesso. Nessuna installazione, nessun account, nessun appuntamento.</p>
+    <p class="werkbank__weiter" data-reveal>
+      <a class="card__link card__link--live" href="tavolo.html" data-i18n="probieren.p1l">Apri il configuratore completo</a>
+      <a class="card__link card__link--live" href="showroom.html" data-i18n="probieren.p2l">Entra nello showroom 3D</a>
+      <span data-i18n="probieren.note">Sono online tutti e due, adesso. Nessuna installazione, nessun account, nessun appuntamento.</span>
+    </p>
   </div>
 </section>
 
@@ -1443,7 +1475,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=36c86392" defer></script>
+<script src="assets/js/i18n-it.js?v=a7195097" defer></script>
 <script src="assets/js/app.js?v=e9109416" defer></script>
 <script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
 <script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>
@@ -1454,6 +1486,10 @@
      rail, vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
 <script src="assets/js/start.js?v=cbafcedd" defer></script>
 <script type="module" src="assets/js/world/site-world.js?v=feee3947"></script>
+<!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
+     Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
+     Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
+<script type="module" src="assets/js/werkbank.js?v=18ade5da"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

@@ -1,0 +1,243 @@
+{
+  "dateien": {
+    "geometrie": "tisch.glb",
+    "holz": {
+      "Eiche": {
+        "grundfarbe": "holz-eiche-grundfarbe.webp",
+        "rauheit": "holz-eiche-rauheit.webp"
+      },
+      "Esche": {
+        "grundfarbe": "holz-esche-grundfarbe.webp",
+        "rauheit": "holz-esche-rauheit.webp"
+      },
+      "Nussbaum": {
+        "grundfarbe": "holz-nussbaum-grundfarbe.webp",
+        "rauheit": "holz-nussbaum-rauheit.webp"
+      },
+      "Raeuchereiche": {
+        "grundfarbe": "holz-raeuchereiche-grundfarbe.webp",
+        "rauheit": "holz-raeuchereiche-rauheit.webp"
+      }
+    },
+    "katalog": "tisch-katalog.json"
+  },
+  "einheit": "Meter",
+  "hinweise": {
+    "draco": "nicht verwendet -- der Loader der Seite laedt mit blankem GLTFLoader",
+    "gestell": "Ein Satz je Form. Die Laenge entsteht durch VERSCHIEBEN der Teile, nicht durch Skalieren des ganzen Gestells -- sonst wuerde das 12-mm-Wangenblech mitwachsen.",
+    "metall": "Die Metallteile tragen UV und Tangenten, obwohl sie keine Textur brauchen. three.js baut daraus den Tangentenrahmen fuer die Anisotropie; ohne UV ist der Rahmen entartet und die Flaeche rendert weiss. Die Buerstrichtung liegt in U und folgt der laengsten Kante des Teils -- Wange und Fuss quer, Traverse und Laengszarge laengs, Bein senkrecht.",
+    "platten": "Drei eigene Netze, weil gestreckte Maserung sofort auffaellt. Die UV sind auf 2,40 m bezogen; kuerzere Platten greifen einen Ausschnitt derselben Textur ab -- vier Texturen statt zwoelf.",
+    "tangenten": "TANGENT ist mitexportiert (+83 KB). Der Bildschirmableitungs-Weg von three.js funktioniert auch, wird aber bei streifendem Blick unruhig -- genau dort, wo man den gebuersteten Glanz sieht."
+  },
+  "laengen": {
+    "gross": {
+      "gestell": {
+        "vierbein": {
+          "vierbein_bein_+1+1": {
+            "x": 1.054
+          },
+          "vierbein_bein_+1-1": {
+            "x": 1.054
+          },
+          "vierbein_bein_-1+1": {
+            "x": -1.054
+          },
+          "vierbein_bein_-1-1": {
+            "x": -1.054
+          },
+          "vierbein_zarge_laengs_+1": {
+            "skala_x": 1.23697,
+            "x": 0.0
+          },
+          "vierbein_zarge_laengs_-1": {
+            "skala_x": 1.23697,
+            "x": 0.0
+          },
+          "vierbein_zarge_quer_+1": {
+            "x": 1.044
+          },
+          "vierbein_zarge_quer_-1": {
+            "x": -1.044
+          }
+        },
+        "wange": {
+          "wange_fuss_l": {
+            "x": -0.94
+          },
+          "wange_fuss_r": {
+            "x": 0.94
+          },
+          "wange_traverse": {
+            "skala_x": 1.27248,
+            "x": 0.0
+          },
+          "wange_wange_l": {
+            "x": -0.94
+          },
+          "wange_wange_r": {
+            "x": 0.94
+          }
+        }
+      },
+      "meter": 2.4,
+      "platte": "platte_240",
+      "uv_ausschnitt_u": [
+        0.0,
+        1.0
+      ]
+    },
+    "klein": {
+      "gestell": {
+        "vierbein": {
+          "vierbein_bein_+1+1": {
+            "x": 0.754
+          },
+          "vierbein_bein_+1-1": {
+            "x": 0.754
+          },
+          "vierbein_bein_-1+1": {
+            "x": -0.754
+          },
+          "vierbein_bein_-1-1": {
+            "x": -0.754
+          },
+          "vierbein_zarge_laengs_+1": {
+            "skala_x": 0.88152,
+            "x": 0.0
+          },
+          "vierbein_zarge_laengs_-1": {
+            "skala_x": 0.88152,
+            "x": 0.0
+          },
+          "vierbein_zarge_quer_+1": {
+            "x": 0.744
+          },
+          "vierbein_zarge_quer_-1": {
+            "x": -0.744
+          }
+        },
+        "wange": {
+          "wange_fuss_l": {
+            "x": -0.64
+          },
+          "wange_fuss_r": {
+            "x": 0.64
+          },
+          "wange_traverse": {
+            "skala_x": 0.86376,
+            "x": 0.0
+          },
+          "wange_wange_l": {
+            "x": -0.64
+          },
+          "wange_wange_r": {
+            "x": 0.64
+          }
+        }
+      },
+      "meter": 1.8,
+      "platte": "platte_180",
+      "uv_ausschnitt_u": [
+        0.0,
+        0.75
+      ]
+    },
+    "mittel": {
+      "gestell": {
+        "vierbein": {
+          "vierbein_bein_+1+1": {
+            "x": 0.854
+          },
+          "vierbein_bein_+1-1": {
+            "x": 0.854
+          },
+          "vierbein_bein_-1+1": {
+            "x": -0.854
+          },
+          "vierbein_bein_-1-1": {
+            "x": -0.854
+          },
+          "vierbein_zarge_laengs_+1": {
+            "skala_x": 1.0,
+            "x": 0.0
+          },
+          "vierbein_zarge_laengs_-1": {
+            "skala_x": 1.0,
+            "x": 0.0
+          },
+          "vierbein_zarge_quer_+1": {
+            "x": 0.844
+          },
+          "vierbein_zarge_quer_-1": {
+            "x": -0.844
+          }
+        },
+        "wange": {
+          "wange_fuss_l": {
+            "x": -0.74
+          },
+          "wange_fuss_r": {
+            "x": 0.74
+          },
+          "wange_traverse": {
+            "skala_x": 1.0,
+            "x": 0.0
+          },
+          "wange_wange_l": {
+            "x": -0.74
+          },
+          "wange_wange_r": {
+            "x": 0.74
+          }
+        }
+      },
+      "meter": 2.0,
+      "platte": "platte_200",
+      "uv_ausschnitt_u": [
+        0.0,
+        0.83333
+      ]
+    }
+  },
+  "material": {
+    "holz": {
+      "metallisch": 0.0,
+      "texturen": "siehe dateien.holz"
+    },
+    "metall": {
+      "Edelstahl": {
+        "anisotropie": 0.72,
+        "grundfarbe": [
+          0.56,
+          0.57,
+          0.58
+        ],
+        "metallisch": 1.0,
+        "rauheit": 0.24
+      },
+      "Messing": {
+        "anisotropie": 0.45,
+        "grundfarbe": [
+          0.91,
+          0.778,
+          0.423
+        ],
+        "metallisch": 1.0,
+        "rauheit": 0.26
+      },
+      "Schwarzstahl": {
+        "bemerkung": "pulverbeschichtet, deshalb kein Metall im Sinne von PBR",
+        "grundfarbe": [
+          0.0105,
+          0.0111,
+          0.013
+        ],
+        "klarlack": 0.35,
+        "metallisch": 0.0,
+        "rauheit": 0.38
+      }
+    }
+  },
+  "modell": "VECOM Esstisch",
+  "stand": "2026-09-16"
+}
