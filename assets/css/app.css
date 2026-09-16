@@ -3420,7 +3420,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    Echtzeit statt Standbild — die Probe aufs Exempel
 
    Der Abschnitt darueber behauptet etwas. Diese Zeile belegt es: Sie fuehrt
-   auf /tisch.html, wo 72 gerechnete Varianten im Browser durchklickbar sind.
+   auf die Konfiguratorseite, wo 72 gerechnete Varianten durchklickbar sind.
    Eine Behauptung ohne begehbaren Beleg ist auf einer Agenturseite das
    Gegenteil von Beweis — deshalb steht der Verweis IM Abschnitt und nicht
    irgendwo im Fussbereich.
@@ -3429,9 +3429,11 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    Grenzzeile: Ein Knopf auf der laufenden Welt haette einen Kontrast, der
    sich mit der Szene aendert. Derselbe Mechanismus wie am 14.09.2026.
 
-   Der Verweis ist bewusst sprachunabhaengig (/tisch.html, eine Fassung).
-   build.mjs dreht nur Verweise, fuer die es eine eigene Regel gibt; ein
-   absoluter Pfad ohne Sprachanteil bleibt in allen drei Fassungen stehen.
+   Der Verweis zeigt auf tavolo.html, ohne fuehrenden Schraegstrich. Die Seite
+   heisst in jeder Sprache anders (tavolo / tisch / table) und liegt jeweils
+   neben der Startseite derselben Sprache; build.mjs dreht den Namen beim
+   Bauen. Bis zum 16.09.2026 gab es sie nur einmal unter /tisch.html -- diesen
+   Stand beschrieb der Absatz hier vorher.
    ========================================================================== */
 .beweis__probe {
   margin: 1px 0 0;
@@ -3448,4 +3450,65 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   line-height: 1.6;
   color: var(--c-text-dim);
   max-width: 48ch;
+}
+
+
+/* ==========================================================================
+   Zum Ausprobieren -- Karten, die man anfassen kann
+
+   Gebaut wie .card--live: Bild oben, Text unten auf eigener Flaeche. Aber
+   eine eigene Klasse, denn .card--live schaltet .card__poster ausdruecklich
+   ab (dort sitzt oben ein Browserrahmen, kein Standbild).
+
+   Warum Text nicht ins Bild darf: Beide Aufnahmen sind dunkle 3D-Bilder mit
+   hellen Kanten, und der Kontrast wechselt quer durchs Bild. Ein Verlauf
+   darueber wuerde an einer Stelle reichen und an der naechsten nicht.
+   ========================================================================== */
+.card--probe {
+  padding: 0; gap: 0;
+  /* Bild nach seinem Seitenverhaeltnis, Text nimmt den Rest -- NICHT
+     umgekehrt. Mit "minmax(0,1fr) auto" bekam das Bild, was der Text uebrig
+     liess; da die beiden Texte verschieden lang sind, begannen die
+     Textkaesten nebeneinander auf verschiedener Hoehe. Gemessen am
+     16.09.2026: 20 Pixel Versatz, genug, dass es auffaellt. */
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
+}
+.card--probe > img.card__poster {
+  position: relative; inset: auto; z-index: 0;
+  width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover;
+  /* Im Ruhezustand zurueckgenommen, beim Ueberfahren volle Helligkeit: Das
+     Bild soll die Ueberschrift daneben nicht ueberstrahlen, aber antworten,
+     wenn jemand darauf zeigt. */
+  filter: saturate(.9) contrast(1.04) brightness(.84);
+  transition: transform var(--d-scene) var(--e-std), filter var(--d-scene) var(--e-std);
+}
+.card--probe:hover > img.card__poster {
+  transform: scale(1.05);
+  filter: saturate(1) contrast(1.06) brightness(1);
+}
+/* Der dunkle Verlauf der Karte liegt auf z-index -1, also hinter dem stehenden
+   Bild. Er kaeme ohnehin nicht zum Vorschein -- abgeschaltet, damit er nicht
+   auftaucht, sobald jemand am Stapel etwas aendert. */
+.card--probe::after { display: none; }
+
+/* Hinweis auf die Sprache des Stuecks. Der Showroom ist bisher nur deutsch;
+   wer von der italienischen Seite kommt, soll das vor dem Klick wissen und
+   nicht danach. In der deutschen Fassung ist der Schluessel leer -- ein
+   Hinweis "auf Deutsch" auf der deutschen Seite waere Laerm. */
+.karte__hinweis {
+  display: inline-flex; align-items: center; gap: .45rem;
+  font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--c-text-faint);
+}
+.karte__hinweis::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--c-cyan); opacity: .55;
+}
+/* Leerer Schluessel: kein Kasten, kein Abstand, keine Luecke. */
+.karte__hinweis:empty { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card--probe > img.card__poster { transition: none; }
+  .card--probe:hover > img.card__poster { transform: none; }
 }

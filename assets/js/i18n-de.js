@@ -24,7 +24,7 @@ window.VECOM_I18N.de = {
       desc: "Maßgeschneiderte Websites und Online-Shops aus Sizilien, deutschsprachig. Dreisprachig IT/DE/EN, für Google gebaut. Preise offen gelegt, Angebot in 90 Sekunden.",
       locale: "de_DE"
     },
-    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", cta: "Angebot anfordern" },
+    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", probieren: "Ausprobieren", cta: "Angebot anfordern" },
     buehne: { echt: "Aufnahmen der laufenden Seite" },
     hero: {
       eyebrow: "Webdesign aus Sizilien — Websites, Marken, Online-Shops",
@@ -121,6 +121,24 @@ window.VECOM_I18N.de = {
       w4r: "Ein Buch, das man liest, bevor man es aufschlägt",
       w5r: "Eine Kundschaft, drei Sprachen",
       w6r: "Eine Buchwelt, durch die man hindurchgeht",
+    },
+    probieren: {
+      head: "Glaub mir nicht. Probier es aus.",
+      lead: "Zwei Stücke stehen jedem offen: keine Anmeldung, kein Plugin. Dreh sie, ändere sie, sieh nach, wie schnell sie auf deinem Handy laden. Es ist derselbe Code, der in deinem Projekt landen würde.",
+      p1tag: "3D-Konfigurator",
+      p1t: "Esstisch, 72 Varianten",
+      p1p: "Vier Hölzer, drei Metalle, zwei Gestelle, drei Längen. Jede Kombination ist ein einzeln gerechnetes Bild — 180 insgesamt, samt der 36 Stellungen einer vollen Drehung. Du drehst den Tisch mit dem Finger; der Browser rechnet dabei nichts.",
+      p1r: "Dreht auch auf dem drei Jahre alten Handy",
+      p1l: "Konfigurator öffnen",
+      p1alt: "Esstisch aus Eiche mit Wangengestell aus Messing, gerechnetes Bild",
+      p2tag: "3D-Raum",
+      p2t: "Ein Showroom zum Durchgehen",
+      p2p: "Eine Halle im Browser: Du scrollst und gehst hindurch, jede Station ist ein Arbeitsbereich. Licht, Spiegelungen und Tiefenschärfe in Echtzeit — mit einer leichteren Fassung für jedes Gerät, das nicht mitkommt.",
+      p2r: "Fünf Stationen, ein Weg",
+      p2l: "Showroom betreten",
+      p2hint: "",
+      p2alt: "Dreidimensionaler Ausstellungsraum mit dem V von Vecom Design",
+      note: "Beide sind jetzt online. Keine Installation, kein Konto, kein Termin."
     },
     process: {
       head: "So arbeite ich",
@@ -313,7 +331,7 @@ window.VECOM_I18N.de = {
       a: "Eine Website ist keine Visitenkarte. Sie ist das erste Verkaufsgespräch — und es findet ohne dich statt.",
       b: "Gestaltung, die niemand bemerkt, ist die, die funktioniert. Auffallen tut sie erst, wenn sie fehlt.",
     },
-    marg: { m1: "sechs Bereiche", m2: "echte Projekte", m3: "Preise" },
+    marg: { m1: "sechs Bereiche", m2: "echte Projekte", m3: "Preise", m4: "zum Ausprobieren" },
 masz: {
       kicker: "Jenseits der Pakete",
       head: "Dein Vorhaben passt in kein Paket?",

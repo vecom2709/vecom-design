@@ -24,7 +24,7 @@ window.VECOM_I18N.en = {
       desc: "Custom websites and online stores from Aragona, Sicily. Trilingual IT/DE/EN, built to rank on Google. Prices in the open, quote in 90 seconds.",
       locale: "en_GB"
     },
-    nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", cta: "Get a quote" },
+    nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", probieren: "Try it", cta: "Get a quote" },
     buehne: { echt: "Captures of the live site" },
     hero: {
       eyebrow: "Web design studio — websites, brands, online stores",
@@ -121,6 +121,24 @@ window.VECOM_I18N.en = {
       w4r: "A book you read before you open it",
       w5r: "One clientele, three languages",
       w6r: "A book world you can walk through",
+    },
+    probieren: {
+      head: "Don't believe me. Try it.",
+      lead: "Two pieces are open to anyone: no sign-up, no plugin. Turn them, change them, see how fast they load on your phone. It is the same code that would end up in your project.",
+      p1tag: "3D configurator",
+      p1t: "Dining table, 72 variants",
+      p1p: "Four woods, three metals, two bases, three lengths. Every combination is a separately rendered image — 180 of them, including the 36 positions of a full turn. You spin the table with your finger; the browser computes nothing.",
+      p1r: "Spins on a three-year-old phone too",
+      p1l: "Open the configurator",
+      p1alt: "Oak dining table with a brass panel base, rendered image",
+      p2tag: "3D space",
+      p2t: "A showroom you walk through",
+      p2p: "A hall built in the browser: you scroll and move through it, each station is one field of work. Light, reflections and depth of field in real time — with a lighter version for every device that cannot keep up.",
+      p2r: "Five stations, one route",
+      p2l: "Enter the showroom",
+      p2hint: "currently in German only",
+      p2alt: "Three-dimensional showroom with the Vecom Design V",
+      note: "Both are online right now. No install, no account, no appointment."
     },
     process: {
       head: "How we work",
@@ -313,7 +331,7 @@ window.VECOM_I18N.en = {
       a: "A website isn’t a business card. It’s the first sales conversation — and it happens without you.",
       b: "Design nobody notices is the design that works. You only see it when it’s missing.",
     },
-    marg: { m1: "six areas", m2: "real projects", m3: "pricing" },
+    marg: { m1: "six areas", m2: "real projects", m3: "pricing", m4: "try it" },
 masz: {
       kicker: "Beyond the packages",
       head: "Your project doesn’t fit a package?",

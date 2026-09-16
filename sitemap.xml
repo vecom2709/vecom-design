@@ -73,4 +73,36 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/assistenza.html"/>
     <lastmod>2026-09-03</lastmod><priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://vecom-design.it/tavolo.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/tavolo.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/tisch.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/table.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tavolo.html"/>
+    <lastmod>2026-09-16</lastmod><priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/tisch.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/tavolo.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/tisch.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/table.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tavolo.html"/>
+    <lastmod>2026-09-16</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/table.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/tavolo.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/tisch.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/table.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tavolo.html"/>
+    <lastmod>2026-09-16</lastmod><priority>0.7</priority>
+  </url>
+  <!-- Der Showroom gibt es bisher nur auf Deutsch. Deshalb kein hreflang:
+       Eine Angabe ohne Gegenstueck in der anderen Sprache wertet Google als
+       fehlerhaft, und "keine Angabe" ist bei einer einsprachigen Seite die
+       richtige Aussage. Kommt die Uebersetzung, kommen die drei Zeilen. -->
+  <url>
+    <loc>https://vecom-design.it/showroom.html</loc>
+    <lastmod>2026-09-16</lastmod><priority>0.7</priority>
+  </url>
 </urlset>

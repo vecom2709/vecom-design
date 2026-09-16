@@ -24,7 +24,7 @@ window.VECOM_I18N.it = {
       desc: "Siti su misura, e-commerce e loghi da Aragona (AG). Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi allo scoperto, preventivo in 90 secondi.",
       locale: "it_IT"
     },
-    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", cta: "Richiedi preventivo" },
+    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", probieren: "Da provare", cta: "Richiedi preventivo" },
     buehne: { echt: "Riprese del sito online" },
     hero: {
       eyebrow: "Webdesign dalla Sicilia — siti, marchi, e-commerce",
@@ -122,6 +122,24 @@ window.VECOM_I18N.it = {
       w4r: "Un libro che si legge già prima di aprirlo",
       w5r: "Una clientela, tre lingue",
       w6r: "Un mondo in cui il libro si può attraversare",
+    },
+    probieren: {
+      head: "Non credermi. Provalo.",
+      lead: "Due pezzi sono aperti a chiunque: niente registrazione, niente plugin. Girali, cambiali, guarda quanto ci mettono a caricare sul tuo telefono. È lo stesso codice che finirebbe nel tuo progetto.",
+      p1tag: "Configuratore 3D",
+      p1t: "Tavolo da pranzo, 72 varianti",
+      p1p: "Quattro legni, tre metalli, due basamenti, tre lunghezze. Ogni combinazione è un'immagine calcolata a parte — 180 in tutto, comprese le 36 pose di un giro completo. Tu giri il tavolo col dito; il browser non calcola nulla.",
+      p1r: "Gira anche su un telefono di tre anni fa",
+      p1l: "Apri il configuratore",
+      p1alt: "Tavolo da pranzo in rovere con basamento in ottone, immagine calcolata",
+      p2tag: "Spazio 3D",
+      p2t: "Uno showroom da attraversare",
+      p2p: "Una sala costruita nel browser: scorri e ci cammini dentro, ogni stazione è un ambito di lavoro. Luce, riflessi e profondità di campo calcolati in tempo reale — con una versione più leggera per ogni dispositivo che non ce la fa.",
+      p2r: "Cinque stazioni, un solo percorso",
+      p2l: "Entra nello showroom",
+      p2hint: "per ora solo in tedesco",
+      p2alt: "Sala espositiva tridimensionale con la V di Vecom Design",
+      note: "Sono online tutti e due, adesso. Nessuna installazione, nessun account, nessun appuntamento."
     },
     process: {
       head: "Come lavoriamo",
@@ -314,7 +332,7 @@ window.VECOM_I18N.it = {
       a: "Un sito non è un biglietto da visita. È il primo colloquio di vendita — e avviene senza di te.",
       b: "Il design che nessuno nota è quello che funziona. Si vede solo quando manca.",
     },
-    marg: { m1: "sei ambiti", m2: "progetti reali", m3: "prezzi" },
+    marg: { m1: "sei ambiti", m2: "progetti reali", m3: "prezzi", m4: "da provare" },
 masz: {
       kicker: "Oltre i pacchetti",
       head: "Il tuo progetto non rientra in un pacchetto?",
