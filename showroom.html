@@ -1,15 +1,20 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="it" data-lang-fixed="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>3D Experience — Vecom Design</title>
-<meta name="description" content="Ein begehbarer Ausstellungsraum im Browser: Webdesign, Onlineshops, Branding und 3D-Erlebnisse von Vecom Design — gebaut, nicht zusammengesteckt.">
+<meta name="description" content="Una sala espositiva da attraversare nel browser: siti, e-commerce, marchi ed esperienze 3D di Vecom Design — sviluppati, non assemblati.">
 <link rel="canonical" href="https://vecom-design.it/showroom.html">
+<link rel="alternate" hreflang="it" href="https://vecom-design.it/showroom.html">
+<link rel="alternate" hreflang="de" href="https://vecom-design.it/de/showroom.html">
+<link rel="alternate" hreflang="en" href="https://vecom-design.it/en/showroom.html">
+<link rel="alternate" hreflang="x-default" href="https://vecom-design.it/showroom.html">
 <meta property="og:type" content="website">
 <meta property="og:title" content="3D Experience — Vecom Design">
-<meta property="og:description" content="Ein begehbarer Ausstellungsraum im Browser. Webdesign, Onlineshops, Branding und 3D-Erlebnisse aus Sizilien.">
+<meta property="og:description" content="Una sala espositiva da attraversare nel browser: siti, e-commerce, marchi ed esperienze 3D di Vecom Design — sviluppati, non assemblati.">
 <meta property="og:url" content="https://vecom-design.it/showroom.html">
+<meta property="og:locale" content="it_IT">
 <meta property="og:image" content="https://vecom-design.it/assets/img/work/vecomshop.webp">
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
 <link rel="stylesheet" href="/assets/css/fonts.css">
@@ -262,15 +267,48 @@ html[data-welt="aus"] .standbild::after{
     inset:auto 0 -6vh 0; height:74vh;
   }
 }
+
+/* Ueberschriften zeilenweise.
+   Jede Sprache bricht an einer anderen Stelle, und der Umbruch gehoert
+   deshalb ins Woerterbuch und nicht als <br> in den Satz. Bleibt eine Zeile
+   in einer Sprache leer, verschwindet sie ganz statt eine Luecke zu lassen. */
+h1 .zeile,h2 .zeile{display:block}
+h1 .zeile:empty,h2 .zeile:empty{display:none}
+
+/* Sprachwahl oben rechts -- das Gegenstueck zum Weg zurueck oben links.
+   ACHTUNG: In diesem Kommentar steht bewusst NICHT, wonach build.mjs sucht,
+   um die drei Verweise auszutauschen. Am 16.09.2026 hat ein Kommentar, der
+   das Suchmuster woertlich enthielt, beim Bauen alles zwischen sich und der
+   echten Sprachwahl geschluckt. Der Aufbau steht in build.mjs. */
+.lang{
+  position:fixed; top:18px; right:var(--page-x); z-index:6;
+  display:flex; align-items:center; gap:.1rem;
+  font-family:var(--f-display); font-size:.78rem; font-weight:600;
+  letter-spacing:.14em; padding:.3rem .45rem; border-radius:999px;
+  border:1px solid rgba(150,180,230,.18); background:rgba(5,7,13,.55);
+  backdrop-filter:blur(8px);
+}
+.lang a,.lang .lang__current{
+  padding:.2rem .55rem; border-radius:999px; text-decoration:none;
+  color:var(--c-faint); transition:color .25s, background-color .25s;
+}
+.lang a:hover,.lang a:focus-visible{color:var(--c-text); background:rgba(150,180,230,.12)}
+.lang .lang__current{color:var(--c-text); background:rgba(31,232,255,.14)}
+/* Steht ein Standbild dahinter, reicht die halbdurchsichtige Flaeche nicht. */
+html[data-welt="aus"] .lang{background:rgba(5,7,13,.88)}
 </style>
 </head>
 <body>
 
 <!-- Ein Ausstellungsraum ohne Ausgang ist eine Falle: oben links steht
      deshalb immer der Weg zurueck auf die Website. -->
-<a id="zurueck" href="/de/">
+<a id="zurueck" href="index.html">
   <span aria-hidden="true">←</span> Vecom Design
 </a>
+
+<div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
+        <span class="lang__current" aria-current="true">IT</span><a href="./de/showroom.html" hreflang="de" lang="de">DE</a><a href="./en/showroom.html" hreflang="en" lang="en">EN</a>
+      </div>
 
 <canvas id="buehne" data-canvas></canvas>
 
@@ -280,65 +318,65 @@ html[data-welt="aus"] .standbild::after{
      Flaeche ueberhaupt sichtbar. Ein Ausstellungsraum, in dem nichts steht.
      Dasselbe Bild wie auf der Startseite -- es ist derselbe Saal. -->
 <picture class="standbild" aria-hidden="true">
-  <source srcset="assets/img/3d/buehne-standbild.avif" type="image/avif">
-  <img src="assets/img/3d/buehne-standbild.webp" alt="" width="1920" height="1080" decoding="async">
+  <source srcset="assets/img/3d/buehne-standbild.avif?v=fd5bfde3" type="image/avif">
+  <img src="assets/img/3d/buehne-standbild.webp?v=5d6083d7" alt="" width="1920" height="1080" decoding="async">
 </picture>
 
 <main id="inhalt">
 
   <section class="szene" data-beat="0">
     <div class="block">
-      <p class="kicker">Vecom Design — Sizilien</p>
-      <h1>Digitale Ideen.<br><span class="glanz">Ohne Grenzen.</span></h1>
-      <p class="lead">Websites, Onlineshops, Marken und dreidimensionale Erlebnisse — entwickelt, nicht zusammengesteckt.</p>
+      <p class="kicker" data-i18n="showroom.b0k">Vecom Design — Sicilia</p>
+      <h1><span class="zeile" data-i18n="showroom.b0h1">Idee digitali.</span><span class="zeile glanz" data-i18n="showroom.b0h2">Senza confini.</span></h1>
+      <p class="lead" data-i18n="showroom.b0lead">Siti, e-commerce, marchi ed esperienze tridimensionali — sviluppati, non assemblati.</p>
       <div class="knoepfe">
-        <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">Projekt starten</a>
-        <a class="knopf knopf--leer" href="/de/#work">Projekte entdecken</a>
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=it&amp;start=1" data-i18n="showroom.b0a">Avvia il progetto</a>
+        <a class="knopf knopf--leer" href="/#work" data-i18n="showroom.b0b">Scopri i lavori</a>
       </div>
     </div>
   </section>
 
   <section class="szene" data-beat="1">
     <div class="block rechts">
-      <p class="kicker">Digital Studio</p>
-      <h2>Ein Raum,<br>fünf Wege hinein.</h2>
-      <p class="lead">Jeder Bereich hat seinen Platz im Studio. Du gehst hindurch, statt eine Liste zu lesen.</p>
+      <p class="kicker" data-i18n="showroom.b1k">Digital Studio</p>
+      <h2><span class="zeile" data-i18n="showroom.b1h1">Uno spazio,</span><span class="zeile" data-i18n="showroom.b1h2">cinque vie per entrare.</span></h2>
+      <p class="lead" data-i18n="showroom.b1lead">Ogni ambito ha il suo posto nello studio. Ci cammini dentro invece di leggere un elenco.</p>
       <div class="felder">
-        <div class="feld"><span>Webdesign</span><span>individuell, keine Vorlage</span></div>
-        <div class="feld"><span>Onlineshops</span><span>vom Produkt bis zur Zahlung</span></div>
-        <div class="feld"><span>Branding</span><span>Logo, Farben, Regeln</span></div>
-        <div class="feld"><span>3D Experiences</span><span>neu im Programm</span></div>
-        <div class="feld"><span>Wartung &amp; Support</span><span>ein Ansprechpartner</span></div>
+        <div class="feld"><span data-i18n="showroom.f1a">Webdesign</span><span data-i18n="showroom.f1b">su misura, nessun template</span></div>
+        <div class="feld"><span data-i18n="showroom.f2a">E-commerce</span><span data-i18n="showroom.f2b">dal prodotto al pagamento</span></div>
+        <div class="feld"><span data-i18n="showroom.f3a">Branding</span><span data-i18n="showroom.f3b">logo, colori, regole</span></div>
+        <div class="feld"><span data-i18n="showroom.f4a">3D Experiences</span><span data-i18n="showroom.f4b">novità in programma</span></div>
+        <div class="feld"><span data-i18n="showroom.f5a">Manutenzione e assistenza</span><span data-i18n="showroom.f5b">un unico referente</span></div>
       </div>
     </div>
   </section>
 
   <section class="szene" data-beat="2">
     <div class="block">
-      <p class="kicker">Die Marke</p>
-      <h2>Aus den echten<br>Konturen gebaut.</h2>
-      <p class="lead">Kein nachgezeichnetes V: Das Objekt entsteht aus denselben Umrissen wie die Bildmarke — deshalb sitzt jede Kante dort, wo sie im Logo sitzt.</p>
+      <p class="kicker" data-i18n="showroom.b2k">Il marchio</p>
+      <h2><span class="zeile" data-i18n="showroom.b2h1">Costruito dai</span><span class="zeile" data-i18n="showroom.b2h2">contorni veri.</span></h2>
+      <p class="lead" data-i18n="showroom.b2lead">Non una V ridisegnata: l’oggetto nasce dagli stessi contorni del marchio — per questo ogni spigolo sta dove sta nel logo.</p>
     </div>
   </section>
 
   <section class="szene" data-beat="3">
     <div class="block rechts">
-      <p class="kicker">3D Experience Website</p>
-      <h2>Webseiten, die man<br>nicht nur besucht.</h2>
-      <p class="lead">Modernes Webdesign, verbunden mit interaktiven 3D-Welten, hochwertigen Animationen und immersiven Erlebnissen — für Unternehmen, die sich sichtbar abheben wollen.</p>
+      <p class="kicker" data-i18n="showroom.b3k">3D Experience Website</p>
+      <h2><span class="zeile" data-i18n="showroom.b3h1">Siti che non si</span><span class="zeile" data-i18n="showroom.b3h2">visitano soltanto.</span></h2>
+      <p class="lead" data-i18n="showroom.b3lead">Webdesign moderno unito a mondi 3D interattivi, animazioni di livello ed esperienze immersive — per aziende che vogliono distinguersi davvero.</p>
       <div class="knoepfe">
-        <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">3D-Projekt anfragen</a>
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=it&amp;start=1" data-i18n="showroom.b3a">Richiedi un progetto 3D</a>
       </div>
     </div>
   </section>
 
   <section class="szene" data-beat="4">
     <div class="block mitte">
-      <p class="kicker">Der Weg nach vorn</p>
-      <h2>Bereit, etwas<br><span class="glanz">Außergewöhnliches</span><br>zu erschaffen?</h2>
+      <p class="kicker" data-i18n="showroom.b4k">La strada avanti</p>
+      <h2><span class="zeile" data-i18n="showroom.b4h1">Pronto a creare</span><span class="zeile glanz" data-i18n="showroom.b4h2">qualcosa di straordinario?</span><span class="zeile" data-i18n="showroom.b4h3"></span></h2>
       <div class="knoepfe">
-        <a class="knopf knopf--voll" href="/bedarf.php?lang=de&amp;start=1">Jetzt Projekt starten</a>
-        <a class="knopf knopf--leer" href="https://wa.me/393801907017" target="_blank" rel="noopener">WhatsApp</a>
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=it&amp;start=1" data-i18n="showroom.b4a">Avvia ora il progetto</a>
+        <a class="knopf knopf--leer" href="https://wa.me/393801907017" target="_blank" rel="noopener" data-i18n="showroom.b4b">WhatsApp</a>
       </div>
     </div>
   </section>
@@ -346,12 +384,12 @@ html[data-welt="aus"] .standbild::after{
 </main>
 
 <footer id="fuss">
-  <span>© Vecom Design · Aragona (AG), Sizilien</span>
-  <a href="/legal.html#impressum">Impressum</a>
-  <a href="/legal.html#privacy">Datenschutz</a>
-  <a href="/legal.html#agb">AGB</a>
-  <a href="/legal.html#widerruf">Widerruf</a>
-  <a href="/de/preise.html">Preise</a>
+  <span data-i18n="showroom.fussort">© Vecom Design · Aragona (AG), Sicilia</span>
+  <a href="/legal.html#impressum" data-i18n="showroom.fuss1">Note legali</a>
+  <a href="/legal.html#privacy" data-i18n="showroom.fuss2">Privacy</a>
+  <a href="/legal.html#agb" data-i18n="showroom.fuss3">Condizioni</a>
+  <a href="/legal.html#widerruf" data-i18n="showroom.fuss4">Recesso</a>
+  <a href="prezzi.html" data-i18n="showroom.fuss5">Prezzi</a>
   <a href="mailto:kontakt@vecom-design.it">kontakt@vecom-design.it</a>
 </footer>
 

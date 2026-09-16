@@ -3492,22 +3492,6 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    auftaucht, sobald jemand am Stapel etwas aendert. */
 .card--probe::after { display: none; }
 
-/* Hinweis auf die Sprache des Stuecks. Der Showroom ist bisher nur deutsch;
-   wer von der italienischen Seite kommt, soll das vor dem Klick wissen und
-   nicht danach. In der deutschen Fassung ist der Schluessel leer -- ein
-   Hinweis "auf Deutsch" auf der deutschen Seite waere Laerm. */
-.karte__hinweis {
-  display: inline-flex; align-items: center; gap: .45rem;
-  font-size: var(--t-xs); letter-spacing: .08em; text-transform: uppercase;
-  color: var(--c-text-faint);
-}
-.karte__hinweis::before {
-  content: ""; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--c-cyan); opacity: .55;
-}
-/* Leerer Schluessel: kein Kasten, kein Abstand, keine Luecke. */
-.karte__hinweis:empty { display: none; }
-
 @media (prefers-reduced-motion: reduce) {
   .card--probe > img.card__poster { transition: none; }
   .card--probe:hover > img.card__poster { transform: none; }

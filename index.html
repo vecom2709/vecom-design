@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
-<link rel="stylesheet" href="assets/css/app.css?v=10c81854">
+<link rel="stylesheet" href="assets/css/app.css?v=e1568d81">
 
 
 <script type="importmap">
@@ -712,10 +712,11 @@
                       Sprache anders (tavolo / tisch / table) und liegt jeweils
                       neben der Startseite derselben Sprache -- build.mjs dreht
                       den Dateinamen beim Bauen, der blosse Name genuegt.
-       /showroom.html mit fuehrendem Schraegstrich. Diese Seite gibt es nur
-                      einmal, im Stammverzeichnis. Ein absoluter Pfad bleibt
-                      auch aus /de/ und /en/ heraus richtig; ein relativer
-                      zeigte dort ins Leere. -->
+       showroom.html  ebenfalls ohne Schraegstrich, aber aus einem anderen
+                      Grund: Diese Seite heisst in allen drei Sprachen gleich
+                      und liegt jeweils neben der Startseite ihrer Sprache.
+                      Der blosse Name stimmt deshalb aus jeder Ebene, ganz
+                      ohne Drehregel. -->
 <section class="section" id="probieren">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
@@ -733,7 +734,7 @@
         <div class="card__body">
           <span class="card__tag" data-i18n="probieren.p1tag">Configuratore 3D</span>
           <h3 data-i18n="probieren.p1t">Tavolo da pranzo, 72 varianti</h3>
-          <p data-i18n="probieren.p1p">Quattro legni, tre metalli, due basamenti, tre lunghezze. Ogni combinazione è un'immagine calcolata a parte — 180 in tutto, comprese le 36 pose di un giro completo. Tu giri il tavolo col dito; il browser non calcola nulla.</p>
+          <p data-i18n="probieren.p1p">Quattro legni, tre metalli, due basamenti, tre lunghezze. Ogni combinazione è un’immagine calcolata a parte — 180 in tutto, comprese le 36 pose di un giro completo. Tu giri il tavolo col dito; il browser non calcola nulla.</p>
           <p class="card__result" data-i18n="probieren.p1r">Gira anche su un telefono di tre anni fa</p>
           <a class="card__link card__link--live" href="tavolo.html" data-i18n="probieren.p1l">Apri il configuratore</a>
         </div>
@@ -749,8 +750,7 @@
           <h3 data-i18n="probieren.p2t">Uno showroom da attraversare</h3>
           <p data-i18n="probieren.p2p">Una sala costruita nel browser: scorri e ci cammini dentro, ogni stazione è un ambito di lavoro. Luce, riflessi e profondità di campo calcolati in tempo reale — con una versione più leggera per ogni dispositivo che non ce la fa.</p>
           <p class="card__result" data-i18n="probieren.p2r">Cinque stazioni, un solo percorso</p>
-          <a class="card__link card__link--live" href="/showroom.html" data-i18n="probieren.p2l">Entra nello showroom</a>
-          <span class="karte__hinweis" data-i18n="probieren.p2hint">per ora solo in tedesco</span>
+          <a class="card__link card__link--live" href="showroom.html" data-i18n="probieren.p2l">Entra nello showroom</a>
         </div>
       </article>
     </div>
@@ -1443,7 +1443,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=0b87799e" defer></script>
+<script src="assets/js/i18n-it.js?v=36c86392" defer></script>
 <script src="assets/js/app.js?v=e9109416" defer></script>
 <script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
 <script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>

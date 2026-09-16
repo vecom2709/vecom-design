@@ -138,6 +138,24 @@ const SEITEN = [
     faq: null,
     heim: true,
   },
+  /* Der Showroom. Wie der Konfigurator eine Seite mit eigenem Stilblatt im
+     Kopf; sie laedt weder app.css noch ein i18n-Skript, alle Texte stehen
+     nach dem Bauen fest drin.
+
+     Der Dateiname ist in allen drei Sprachen derselbe -- die Ausnahme in
+     dieser Liste. "Showroom" ist im Italienischen und Deutschen dasselbe
+     Wort wie im Englischen, eine Uebersetzung waere eine Erfindung. Weil die
+     Datei ueberall gleich heisst und jeweils neben der Startseite ihrer
+     Sprache liegt, braucht sie keine eigene Drehregel: Der blosse Name
+     stimmt aus jeder der drei Ebenen. */
+  {
+    quelle: 'showroom.html',
+    ziele: { it: 'showroom.html', de: 'de/showroom.html', en: 'en/showroom.html' },
+    adressen: { it: 'showroom.html', de: 'de/showroom.html', en: 'en/showroom.html' },
+    meta: { titel: 'showroom.metaTitle', text: 'showroom.metaDesc' },
+    faq: null,
+    heim: true,
+  },
   /* Der Produktkonfigurator. Anders als die drei oben traegt er sein eigenes
      Stilblatt im Kopf und laedt kein i18n-Skript: Alle Texte stehen nach dem
      Bauen fest in der Seite. Das ist Absicht -- die Seite soll ohne app.js,
@@ -391,6 +409,11 @@ function build(lang, seite) {
      Deshalb steht die Regel hier und nicht im Block fuer Unterseiten: Sie
      gilt fuer jede Seite, die auf den Konfigurator zeigt.
      -------------------------------------------------------------------------- */
+  /* Der Showroom haengt zusaetzlich &start=1 an: Wer aus dem Raum kommt, soll
+     im Konfigurator nicht noch einmal auf "los" druecken muessen. Die Regel
+     darunter faengt diese Form nicht, weil sie am Anfuehrungszeichen endet --
+     deshalb hier eine eigene, und sie muss VOR der allgemeinen stehen. */
+  h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php\?lang=[a-z]{2}&amp;start=1"/g, `href="/bedarf.php?lang=${lang}&amp;start=1"`);
   h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
   // Dieselbe Regel fuer die Solo-Hosting-Seite: Auch sie kennt die Sprache
   // nur ueber ?lang= — ohne die Drehung zeigte der deutsche Hosting-Knopf
