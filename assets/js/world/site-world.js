@@ -8,7 +8,7 @@
    - fehlt WebGL, ist reduzierte Bewegung gewünscht oder ist das Gerät schwach,
      bleibt exakt die Seite übrig, die vorher da war
    ========================================================================== */
-import { Quality, detectLevel, supportsWebGL, grafikZuSchwach, grafikKennung } from './quality.js';
+import { Quality, detectLevel, supportsWebGL, grafikZuSchwach, nurSoftwaregrafik, grafikKennung } from './quality.js';
 /* three.js und die Bühne werden erst geladen, wenn feststeht, dass sie laufen
    sollen — auf schwachen Telefonen spart das rund 750 KB, die sonst nur
    heruntergeladen und weggeworfen würden. */
@@ -53,20 +53,26 @@ if (!canvas) {
   standbild();
 } else if (saveData) {
   off('save-data');
-} else if (grafikZuSchwach()) {
-  /* DIE GRAFIK ENTSCHEIDET, NICHT DIE KERNE
+} else if (nurSoftwaregrafik()) {
+  /* DIE GRAFIK ENTSCHEIDET, NICHT DIE KERNE -- ABER SIE ENTSCHEIDET
+     UEBER DIE BUEHNE, DIE WIRKLICH GEBAUT WIRD
      ------------------------------------------------------------------
-     weak() unten fragt nach Speicher und Kernen und nur auf Touch-Geraeten.
-     Uwes eigener Rechner faellt durch jedes dieser Netze: ein i7-4600U mit
-     vier Threads, Maus statt Finger, 8 GB -- und einer Intel HD 4400 von
-     2013. Am 14.09.2026 blieb vecom-design.it auf genau diesem Geraet so
-     lange haengen, dass Chrome ueber eine halbe Minute lang kein Skript
-     mehr ausfuehren konnte. Die Seite war nicht langsam, sie war weg.
+     Die halbe Minute Stillstand vom 14.09.2026 auf einer Intel HD 4400 ist
+     echt, und die Lehre daraus bleibt. Nur stand damals der schwere
+     Blender-Raum auf der Buehne, und das Geraet landete ausserdem auf der
+     mittleren Stufe -- mit Bloom und erhoehter Pixeldichte. Beides ist
+     seither anders: detectLevel() stuft eine alte Grafik auf 'low', und
+     hier steht seit dem 17.09.2026 wieder die leichte Marken-Buehne, die
+     auf genau diesem Rechner monatelang lief, bevor der Raum kam.
 
-     Wer hier landet, bekommt das gerechnete Standbild. Das ist kein
-     Rueckschritt: Es ist dasselbe Bild aus demselben Raum, nur in Cycles
-     gerechnet statt in Echtzeit -- mit indirektem Licht, das three.js gar
-     nicht kann. */
+     Eine alte Grafik ist deshalb kein Ausschlussgrund mehr. Ein
+     Software-Rasterizer schon: Der rechnet jedes Bild auf der CPU und
+     blockiert den Aufbau am Stueck -- gemessen 16,1 s auf SwiftShader,
+     gegenueber 20,6 s fuer den Raum. Dagegen hilft keine Stufe.
+
+     Bleibt das Netz darunter: quality.onAufgeben baut die Buehne ab, wenn
+     selbst die unterste Stufe die Bilder nicht schafft. Wer dort landet,
+     bekommt das gerechnete Standbild. */
   off('device');
 } else if (weak) {
   off('device');
@@ -91,29 +97,35 @@ if (!canvas) {
 
 async function start() {
   const quality = new Quality(detectLevel());
-  /* DIE BUEHNE IST SEIT DEM 13.09.2026 DER BLENDER-RAUM
+  /* DIE BUEHNE IST SEIT DEM 17.09.2026 WIEDER DIE MARKE
      ------------------------------------------------------------------
-     Vorher stand hier scene.js: eine im Code gebaute Welt mit einem aus
-     Konturpunkten extrudierten V, einem Boden, Staub und einem Halo. Sie
-     war gut gemacht -- aber sie war gerechnet, und man sah es.
+     Vom 13. bis zum 17.09.2026 stand hier raum.js: der in Blender gebaute
+     Raum mit Podest, Portalen, Deckenfeldern und Displays. Er war der
+     reichere Ort -- aber er hat die Marke zum Ausstellungsstueck gemacht,
+     und wer die Seite scrollte, sah vor allem Architektur.
 
-     Jetzt laedt raum.js den Raum, der in Blender gebaut wurde: Podest,
-     Portale, Deckenfelder, Displays mit echten Arbeiten, und die Marke als
-     Koerper mit eigenen Kanten. Ueber die Leitung kostet das 26 KB (die GLB
-     gezippt) plus drei Texturkarten -- weniger als das Bild, das frueher im
-     Hero stand.
+     Zurueck steht jetzt scene.js: eine im Code gebaute Welt mit dem aus den
+     Konturen der Logodatei extrudierten V, Staub und Halo. Der Koerper
+     dreht sich frei im Nebel und wandert beim Scrollen von Abschnitt zu
+     Abschnitt hinter den Inhalt -- das ist die Bewegung, die Uwe gemeint
+     hat, und sie lief auf seinem eigenen Rechner, bevor der Raum kam.
 
-     scene.js, site-beats.js, bruch.js und logo-shape.js bleiben liegen: Der
-     Wechsel haengt an diesen beiden Zeilen, und wer zurueck will, tauscht
-     sie zurueck. */
-  let world, bindRaumBeats;
+     Der Tausch haengt weiter an diesen beiden Zeilen. raum.js, raum-beats.js
+     und das Modell bleiben liegen: showroom.html benutzt den Raum weiter,
+     und wer ihn zurueckholen will, tauscht die zwei Zeilen zurueck.
+
+     Gemessen am 17.09.2026 auf SwiftShader, Aufbau als eine Blockade:
+     Raum 20,6 s -- Marke 16,1 s. Beide zu viel fuer einen Rasterizer auf
+     der CPU, deshalb bleibt der draussen. Eine alte, echte Grafik traegt
+     die Marke; den Raum trug sie nicht. */
+  let world, bindBeats;
   try {
-    const [{ Raum }, beats] = await Promise.all([
-      import('./raum.js'),
-      import('./raum-beats.js'),
+    const [{ World }, beats] = await Promise.all([
+      import('./scene.js'),
+      import('./site-beats.js'),
     ]);
-    bindRaumBeats = beats.bindRaumBeats;
-    world = new Raum(canvas, quality);
+    bindBeats = beats.bindSiteBeats;
+    world = new World(canvas, quality);
     /* Ohne Modell keine Buehne. Waere hier kein Warten, saehe der Besucher
        fuer einen Moment einen leeren, blauschwarzen Raum -- und bei einem
        Ladefehler dauerhaft. Der Inhalt der Seite steht derweil laengst; das
@@ -128,8 +140,14 @@ async function start() {
 
        Zwoelf Sekunden sind grosszuegig: Eine schlechte Leitung soll nicht
        zum Abbruch fuehren, ein ueberfordertes Geraet schon. */
-    const zuLang = new Promise((_, weg) => setTimeout(() => weg(new Error('Aufbau dauerte laenger als 12 s')), 12000));
-    await Promise.race([world.bereit, zuLang]);
+    /* Nur die Raum-Buehne laedt ein Modell nach und hat deshalb ein
+       .bereit. Die Marken-Buehne steht nach dem Konstruktor. Eine Uhr, die
+       auf nichts wartet, wuerde nach zwoelf Sekunden ins Leere ablehnen --
+       eine unbehandelte Ablehnung in jeder Sitzung. */
+    if (world.bereit) {
+      const zuLang = new Promise((_, weg) => setTimeout(() => weg(new Error('Aufbau dauerte laenger als 12 s')), 12000));
+      await Promise.race([world.bereit, zuLang]);
+    }
   } catch (e) {
     console.warn('3D-Bühne nicht gestartet:', e);
     try { if (world) world.dispose(); } catch (e2) { /* nichts */ }
@@ -153,7 +171,7 @@ async function start() {
   }
 
   await (document.fonts ? document.fonts.ready : Promise.resolve());
-  bindRaumBeats({ raum: world, gsap, ScrollTrigger });
+  bindBeats({ world, gsap, ScrollTrigger });
 
     /* ----------------------------------------------------------------------
      DIE SONNE FOLGT DER UHR DES BESUCHERS
@@ -259,62 +277,69 @@ async function start() {
    Bildschleife. Was fehlt, kann auch nicht versehentlich wieder anspringen.
    -------------------------------------------------------------------------- */
 async function standbild() {
-  /* Auch hier zuerst die Grafik fragen. Ein stehendes Bild aus der
-     Echtzeitwelt kostet trotzdem den ganzen Aufbau: Modell laden, Shader
-     uebersetzen, einmal zeichnen. Auf einer Intel HD 4400 ist genau das
-     der teure Teil -- das Stehenbleiben danach ist gratis. Wer die Buehne
-     nicht bauen kann, bekommt das gerechnete Bild, und das passt hier
-     ohnehin am besten: Es bewegt sich per Definition nicht. */
-  if (grafikZuSchwach()) { off('device'); return; }
+  /* Auch hier zuerst die Grafik fragen -- aber nur nach dem einen, was
+     wirklich nicht geht. Ein stehendes Bild aus der Echtzeitwelt kostet
+     trotzdem den ganzen Aufbau: Szene stellen, Shader uebersetzen, einmal
+     zeichnen. Auf einem Software-Rasterizer ist genau das der teure Teil;
+     auf einer alten, echten Grafik ist es bezahlbar. */
+  if (nurSoftwaregrafik()) { off('device'); return; }
 
   const quality = new Quality(detectLevel());
-  let raum, hero;
+  let world, hero;
   try {
-    const [{ Raum }, beats] = await Promise.all([
-      import('./raum.js'),
-      import('./raum-beats.js'),
+    const [{ World }, beats] = await Promise.all([
+      import('./scene.js'),
+      import('./site-beats.js'),
     ]);
-    raum = new Raum(canvas, quality);
-    const zuLang = new Promise((_, weg) => setTimeout(() => weg(new Error('Aufbau dauerte laenger als 12 s')), 12000));
-    await Promise.race([raum.bereit, zuLang]);
-    hero = beats.RAUM_BEATS[0];
+    world = new World(canvas, quality);
+    hero = beats.SITE_BEATS[0];
   } catch (e) {
     console.warn('3D-Standbild nicht gestartet:', e);
-    try { if (raum) raum.dispose(); } catch (e2) { /* nichts */ }
+    try { if (world) world.dispose(); } catch (e2) { /* nichts */ }
     off('device');
     return;
   }
 
   canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); off('context-lost'); });
 
-  /* Auf schmalen Schirmen liegt der Text ueber der Buehne — dieselbe
-     Ruecknahme wie im bewegten Fall, sonst waere der Hero dort unlesbar.
-     Die Werte stehen in raum-beats.js; hier nur die zwei, die ohne die
-     Beat-Maschine gebraucht werden. */
+  /* Auf schmalen Schirmen liegt der Text ueber der Buehne -- dieselbe
+     Ruecknahme wie im bewegten Fall (HERO_GEDRAENGT in site-beats.js),
+     sonst waere der Hero dort unlesbar. */
   const schmal = !window.matchMedia('(min-width: 900px)').matches;
-  raum.camGoal.copy(hero.cam);
-  raum.lookGoal.copy(hero.ziel);
-  raum.fovZiel = hero.fov;
-  raum.scene.fog.density = schmal ? 0.0125 : hero.fog;
-  raum.key.intensity = schmal ? 2.0 : hero.key;
-  raum.spitze.intensity = schmal ? 195 : hero.spitze;
-  raum.wand.intensity = hero.wand;
-  raum.bloom.strength = schmal ? 0.42 : hero.bloom;
-  root.style.setProperty('--world-scrim', String(schmal ? 0.06 : hero.scrim));
+  const bild = () => {
+    world.camGoal.set(hero.cam[0], hero.cam[1], hero.cam[2]);
+    world.lookGoal.set(hero.look[0], hero.look[1], hero.look[2]);
+    world.scene.fog.density = schmal ? 0.088 : hero.fog;
+    world.key.intensity = schmal ? 125 : hero.key;
+    world.bloom.strength = schmal ? 0.09 : hero.bloom;
+    world.drift.rotY = hero.rotY;
+    world.drift.rotX = hero.rotX;
+    world.logo.rotation.y = hero.rotY;
+    world.logo.rotation.x = hero.rotX;
+    world.logo.position.set(hero.pos[0], hero.pos[1], hero.pos[2]);
+    /* Die Kamera faehrt im bewegten Fall gedaempft an ihren Sollwert. Hier
+       gibt es keinen zweiten Frame, in dem sie ankommen koennte -- also
+       wird sie direkt gesetzt. */
+    world.camera.position.copy(world.camGoal);
+    world.camTarget.copy(world.lookGoal);
+    world.camera.lookAt(world.camTarget);
+    root.style.setProperty('--world-scrim', String(schmal ? 0.60 : hero.scrim));
+    world.render();
+  };
+  bild();
 
-  raum.standbild();
   root.setAttribute('data-stufe', quality.level);
   root.setAttribute('data-world', 'on');
   root.setAttribute('data-opening', 'done');
   if (window.__auftaktFrei) { window.__auftaktFrei(); }
 
-  /* Ein neues Fenstermass braucht ein neues Bild — sonst steht ein
+  /* Ein neues Fenstermass braucht ein neues Bild -- sonst steht ein
      verzerrter Ausschnitt da. Das ist keine Bewegung, sondern eine Antwort. */
   let warte = 0;
   window.addEventListener('resize', () => {
     clearTimeout(warte);
-    warte = setTimeout(() => raum.standbild(), 200);
+    warte = setTimeout(() => { world.resize(); bild(); }, 200);
   }, { passive: true });
 
-  window.__vecomWorld = { world: raum, quality, lenis: null, ruhig: true };
+  window.__vecomWorld = { world, quality, lenis: null, ruhig: true };
 }

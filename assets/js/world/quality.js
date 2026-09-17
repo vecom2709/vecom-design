@@ -218,6 +218,21 @@ export function grafikKennung() {
   }
 }
 
+/* SOFTWARE ODER NUR SCHWACH — DAS IST NICHT DASSELBE
+   ---------------------------------------------------------------------------
+   grafikZuSchwach() wirft beides in einen Topf: einen Rasterizer, der auf der
+   CPU rechnet, und eine alte, aber echte Grafik. Fuer den schweren Blender-Raum
+   war das richtig. Fuer die leichte Marken-Buehne ist es zu grob: Eine HD 4400
+   hat sie getragen, ein Software-Rasterizer nicht. Gemessen am 17.09.2026 auf
+   SwiftShader: 16,1 s Blockade am Stueck, allein fuer den Aufbau.
+
+   Deshalb gibt es die Frage jetzt auch einzeln. Wer sie benutzt, muss wissen,
+   was er baut. */
+export function nurSoftwaregrafik(kennung) {
+  const k = kennung === undefined ? grafikKennung() : kennung;
+  return istSoftwareRasterizer(k);
+}
+
 export function grafikZuSchwach(kennung) {
   const k = kennung === undefined ? grafikKennung() : kennung;
   return kennungZuSchwach(k) || istSoftwareRasterizer(k);
