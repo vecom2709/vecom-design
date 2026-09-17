@@ -1,0 +1,516 @@
+{
+  "abschnitte": [
+    {
+      "nummer": 1,
+      "praefix": "p01_",
+      "sammlung": "01_Bodenplatte",
+      "titel": "Bodenplatte"
+    },
+    {
+      "nummer": 2,
+      "praefix": "p02_",
+      "sammlung": "02_Rohbau_EG",
+      "titel": "Rohbau Erdgeschoss"
+    },
+    {
+      "nummer": 3,
+      "praefix": "p03_",
+      "sammlung": "03_Geschossdecke",
+      "titel": "Decke und Auskragung"
+    },
+    {
+      "nummer": 4,
+      "praefix": "p04_",
+      "sammlung": "04_Rohbau_OG",
+      "titel": "Rohbau Obergeschoss"
+    },
+    {
+      "nummer": 5,
+      "praefix": "p05_",
+      "sammlung": "05_Dach_Attika",
+      "titel": "Dach und Attika"
+    },
+    {
+      "nummer": 6,
+      "praefix": "p06_",
+      "sammlung": "06_Glas_Fassade",
+      "titel": "Glas und Fassade"
+    },
+    {
+      "nummer": 7,
+      "praefix": "p07_",
+      "sammlung": "07_Innenausbau",
+      "titel": "Innenausbau"
+    },
+    {
+      "nummer": 8,
+      "praefix": "p08_",
+      "sammlung": "08_Aussenanlage",
+      "titel": "Aussenanlage"
+    }
+  ],
+  "dateien": {
+    "bytes": 362380,
+    "geometrie": "haus.glb"
+  },
+  "dreiecke": 3764,
+  "durchgaenge": [
+    {
+      "x0": 6.75,
+      "x1": 9.75,
+      "y0": 1.4,
+      "y1": 4.4,
+      "z": 0.0
+    },
+    {
+      "x0": 1.0,
+      "x1": 1.95,
+      "y0": 8.55,
+      "y1": 8.8,
+      "z": 0.0
+    },
+    {
+      "x0": 3.4,
+      "x1": 4.35,
+      "y0": 8.55,
+      "y1": 8.8,
+      "z": 0.0
+    },
+    {
+      "x0": 6.2,
+      "x1": 8.4,
+      "y0": 3.8,
+      "y1": 4.05,
+      "z": 0.0
+    },
+    {
+      "x0": 9.5,
+      "x1": 9.75,
+      "y0": 5.2,
+      "y1": 7.6,
+      "z": 0.0
+    },
+    {
+      "x0": 5.15,
+      "x1": 5.4,
+      "y0": 1.4,
+      "y1": 4.4,
+      "z": 0.0
+    },
+    {
+      "x0": 5.15,
+      "x1": 5.4,
+      "y0": 9.6,
+      "y1": 10.55,
+      "z": 3.6
+    },
+    {
+      "x0": 12.0,
+      "x1": 12.95,
+      "y0": 5.15,
+      "y1": 5.4,
+      "z": 3.6
+    },
+    {
+      "x0": 7.15,
+      "x1": 7.4,
+      "y0": 6.6,
+      "y1": 7.55,
+      "z": 3.6
+    },
+    {
+      "x0": 7.15,
+      "x1": 7.4,
+      "y0": 10.6,
+      "y1": 11.55,
+      "z": 3.6
+    }
+  ],
+  "einheit": "Meter",
+  "geschosse": [
+    {
+      "flaeche": 170.1,
+      "raeume": [
+        {
+          "flaeche": 39.36,
+          "schluessel": "entree",
+          "x0": 0.4,
+          "x1": 5.2,
+          "y0": 0.4,
+          "y1": 8.6,
+          "z": 0.0
+        },
+        {
+          "flaeche": 3.98,
+          "schluessel": "wc",
+          "x0": 0.4,
+          "x1": 2.55,
+          "y0": 8.75,
+          "y1": 10.6,
+          "z": 0.0
+        },
+        {
+          "flaeche": 4.62,
+          "schluessel": "technik",
+          "x0": 2.7,
+          "x1": 5.2,
+          "y0": 8.75,
+          "y1": 10.6,
+          "z": 0.0
+        },
+        {
+          "flaeche": 42.26,
+          "schluessel": "essen",
+          "x0": 5.35,
+          "x1": 17.6,
+          "y0": 0.4,
+          "y1": 3.85,
+          "z": 0.0
+        },
+        {
+          "flaeche": 27.72,
+          "schluessel": "kueche",
+          "x0": 5.35,
+          "x1": 9.55,
+          "y0": 4.0,
+          "y1": 10.6,
+          "z": 0.0
+        },
+        {
+          "flaeche": 52.14,
+          "schluessel": "wohnen",
+          "x0": 9.7,
+          "x1": 17.6,
+          "y0": 4.0,
+          "y1": 10.6,
+          "z": 0.0
+        }
+      ],
+      "schluessel": "eg",
+      "z": 0.0
+    },
+    {
+      "flaeche": 97.7,
+      "raeume": [
+        {
+          "flaeche": 16.65,
+          "schluessel": "galerie",
+          "x0": 5.35,
+          "x1": 14.6,
+          "y0": 3.4,
+          "y1": 5.2,
+          "z": 3.6
+        },
+        {
+          "flaeche": 14.34,
+          "schluessel": "galerie2",
+          "x0": 5.35,
+          "x1": 7.2,
+          "y0": 5.35,
+          "y1": 13.1,
+          "z": 3.6
+        },
+        {
+          "flaeche": 12.18,
+          "schluessel": "bad",
+          "x0": 2.4,
+          "x1": 5.2,
+          "y0": 8.75,
+          "y1": 13.1,
+          "z": 3.6
+        },
+        {
+          "flaeche": 13.28,
+          "schluessel": "kind1",
+          "x0": 7.35,
+          "x1": 10.8,
+          "y0": 5.35,
+          "y1": 9.2,
+          "z": 3.6
+        },
+        {
+          "flaeche": 12.94,
+          "schluessel": "kind2",
+          "x0": 7.35,
+          "x1": 10.8,
+          "y0": 9.35,
+          "y1": 13.1,
+          "z": 3.6
+        },
+        {
+          "flaeche": 28.29,
+          "schluessel": "master",
+          "x0": 10.95,
+          "x1": 14.6,
+          "y0": 5.35,
+          "y1": 13.1,
+          "z": 3.6
+        }
+      ],
+      "schluessel": "og",
+      "z": 3.6
+    }
+  ],
+  "hinweise": {
+    "begehung": "raeume + durchgaenge sind die Flaechen, auf denen sich die Kamera bewegen darf. Keine echte Kollision: Ein Rechtecktest kostet nichts und faehrt nie durch eine Wand.",
+    "draco": "nicht verwendet -- die Seite laedt mit blankem GLTFLoader",
+    "praefix": "Die Bauabschnitte stecken im Knotennamen (p01_ bis p08_). glTF nimmt Collections nicht mit, Namen schon.",
+    "ursprung": "Jedes Bauteil hat seinen Ursprung UNTEN. Deshalb laesst sich das Haus mit scale.y von 0 auf 1 aus dem Grundriss hochwachsen, ohne die Geometrie anzufassen."
+  },
+  "hoehen": {
+    "attika": 7.25,
+    "augen": 1.65,
+    "dach": 6.5,
+    "dach_ok": 6.9,
+    "decke": 3.2,
+    "eg": 0.0,
+    "og": 3.6,
+    "raum_eg": 3.2,
+    "raum_og": 2.9
+  },
+  "je_abschnitt": {
+    "01_Bodenplatte": 1,
+    "02_Rohbau_EG": 39,
+    "03_Geschossdecke": 10,
+    "04_Rohbau_OG": 35,
+    "05_Dach_Attika": 5,
+    "06_Glas_Fassade": 137,
+    "07_Innenausbau": 54,
+    "08_Aussenanlage": 26
+  },
+  "koerper": {
+    "eg": {
+      "x0": 0.0,
+      "x1": 18.0,
+      "y0": 0.0,
+      "y1": 11.0
+    },
+    "og": {
+      "x0": 2.0,
+      "x1": 15.0,
+      "y0": 3.0,
+      "y1": 13.5
+    }
+  },
+  "luftraum": {
+    "x0": 2.4,
+    "x1": 5.2,
+    "y0": 3.4,
+    "y1": 8.6
+  },
+  "material": {
+    "Alu_Anthrazit": {
+      "alpha": 1.0,
+      "farbe": [
+        0.048,
+        0.05,
+        0.054
+      ],
+      "metall": 0.85,
+      "rauheit": 0.32
+    },
+    "Eiche_Diele": {
+      "alpha": 1.0,
+      "farbe": [
+        0.27,
+        0.156,
+        0.075
+      ],
+      "metall": 0.0,
+      "rauheit": 0.44
+    },
+    "Eiche_Lamelle": {
+      "alpha": 1.0,
+      "farbe": [
+        0.37,
+        0.232,
+        0.116
+      ],
+      "metall": 0.0,
+      "rauheit": 0.44
+    },
+    "Estrich": {
+      "alpha": 1.0,
+      "farbe": [
+        0.502,
+        0.497,
+        0.486
+      ],
+      "metall": 0.0,
+      "rauheit": 0.8
+    },
+    "Glas": {
+      "alpha": 0.16,
+      "farbe": [
+        0.72,
+        0.8,
+        0.84
+      ],
+      "metall": 0.0,
+      "rauheit": 0.02
+    },
+    "Kies": {
+      "alpha": 1.0,
+      "farbe": [
+        0.181,
+        0.177,
+        0.169
+      ],
+      "metall": 0.0,
+      "rauheit": 0.88
+    },
+    "Naturstein": {
+      "alpha": 1.0,
+      "farbe": [
+        0.287,
+        0.282,
+        0.274
+      ],
+      "metall": 0.0,
+      "rauheit": 0.38
+    },
+    "Poolstein": {
+      "alpha": 1.0,
+      "farbe": [
+        0.054,
+        0.105,
+        0.123
+      ],
+      "metall": 0.0,
+      "rauheit": 0.3
+    },
+    "Putz_Weiss": {
+      "alpha": 1.0,
+      "farbe": [
+        0.731,
+        0.723,
+        0.709
+      ],
+      "metall": 0.0,
+      "rauheit": 0.76
+    },
+    "Rasen": {
+      "alpha": 1.0,
+      "farbe": [
+        0.085,
+        0.152,
+        0.045
+      ],
+      "metall": 0.0,
+      "rauheit": 0.92
+    },
+    "Sichtbeton": {
+      "alpha": 1.0,
+      "farbe": [
+        0.437,
+        0.429,
+        0.413
+      ],
+      "metall": 0.0,
+      "rauheit": 0.68
+    },
+    "Travertin": {
+      "alpha": 1.0,
+      "farbe": [
+        0.532,
+        0.493,
+        0.425
+      ],
+      "metall": 0.0,
+      "rauheit": 0.42
+    },
+    "Wasser": {
+      "alpha": 0.78,
+      "farbe": [
+        0.02,
+        0.115,
+        0.145
+      ],
+      "metall": 0.0,
+      "rauheit": 0.04
+    },
+    "Zypresse": {
+      "alpha": 1.0,
+      "farbe": [
+        0.055,
+        0.105,
+        0.048
+      ],
+      "metall": 0.0,
+      "rauheit": 0.9
+    }
+  },
+  "objekte": 307,
+  "rundgang": [
+    {
+      "blick": 0,
+      "raum": "ankunft",
+      "x": 3.1,
+      "y": -5.4,
+      "z": 0.0
+    },
+    {
+      "blick": 10,
+      "raum": "entree",
+      "x": 3.1,
+      "y": 2.0,
+      "z": 0.0
+    },
+    {
+      "blick": 95,
+      "raum": "entree",
+      "x": 3.6,
+      "y": 6.2,
+      "z": 0.0
+    },
+    {
+      "blick": 75,
+      "raum": "essen",
+      "x": 8.6,
+      "y": 2.1,
+      "z": 0.0
+    },
+    {
+      "blick": 165,
+      "raum": "wohnen",
+      "x": 13.4,
+      "y": 6.2,
+      "z": 0.0
+    },
+    {
+      "blick": 190,
+      "raum": "wohnen",
+      "x": 13.8,
+      "y": 9.4,
+      "z": 0.0
+    },
+    {
+      "blick": 250,
+      "raum": "kueche",
+      "x": 7.4,
+      "y": 8.2,
+      "z": 0.0
+    },
+    {
+      "blick": 265,
+      "raum": "galerie",
+      "x": 6.3,
+      "y": 4.3,
+      "z": 3.6
+    },
+    {
+      "blick": 175,
+      "raum": "master",
+      "x": 12.7,
+      "y": 9.2,
+      "z": 3.6
+    },
+    {
+      "blick": 185,
+      "raum": "master",
+      "x": 12.7,
+      "y": 12.2,
+      "z": 3.6
+    }
+  ]
+}

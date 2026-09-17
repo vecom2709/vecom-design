@@ -3823,3 +3823,110 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .rechnung[data-rechnung-leer="ja"] .rechnung__gross,
 .rechnung[data-rechnung-leer="ja"] .rechnung__unter,
 .rechnung[data-rechnung-leer="ja"] .rechnung__jahr { display: none; }
+
+
+/* ==========================================================================
+   DAS HAUS — derselbe Kasten wie die Werkbank, ein anderer Inhalt
+
+   Die Klasse .werkbank traegt Raster, Reiter, Buehne und Pult. Hier kommt
+   nur dazu, was es beim Tisch nicht gibt: der gezeichnete Grundriss.
+
+   WARUM DER PLAN EIN SVG IST UND KEIN BILD
+   Er ist in jeder Aufloesung scharf, er ist uebersetzbar (die Raumnamen
+   stehen im Woerterbuch), er wiegt nichts -- und er steht auch dann, wenn
+   das Geraet kein WebGL hat. Ein Abschnitt ueber Architektur, der ohne 3D
+   leer ist, waere auf dem halben Geraetepark eine leere Flaeche.
+   ========================================================================== */
+.haus .werkbank__buehne {
+  background:
+    radial-gradient(75% 60% at 50% 38%, #121a25 0%, #080c13 64%, #05070c 100%);
+}
+
+.plan {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  padding: clamp(.8rem, 2vw, 1.6rem);
+  box-sizing: border-box;
+  /* Der Plan wird in Metern gezeichnet. Ohne overflow: visible schneidet
+     der Kasten die Masskette unter der Suedkante ab. */
+  overflow: visible;
+}
+.plan[hidden] { display: none; }
+/* Der Plan liegt UEBER der Leinwand und blendet sich aus, waehrend das Haus
+   hochwaechst. Er darf dabei keine Zeiger abfangen -- sonst liesse sich die
+   Szene darunter nicht drehen, solange noch ein Rest Plan zu sehen ist. */
+.plan { pointer-events: none; z-index: 2; transition: opacity .25s linear; }
+
+/* Der Umriss: eine Linie, kein Fuellton. Das Haus soll als Figur lesbar
+   sein, nicht als Flaeche. */
+.plan__grund {
+  fill: rgba(12, 18, 27, .55);
+  stroke: rgba(150, 180, 230, .38);
+  stroke-width: .12;
+  vector-effect: non-scaling-stroke;
+}
+.plan__raum {
+  fill: rgba(150, 180, 230, .07);
+  stroke: rgba(190, 214, 245, .55);
+  stroke-width: .10;
+  vector-effect: non-scaling-stroke;
+}
+/* Der Luftraum ueber der Halle ist KEIN Raum -- er bekommt deshalb eine
+   gestrichelte Kante und keine Flaeche. Wer ihn als Zimmer liest, zaehlt
+   die Wohnflaeche zweimal. */
+.plan__luft {
+  fill: none;
+  stroke: rgba(31, 232, 255, .5);
+  stroke-width: .10;
+  stroke-dasharray: .32 .22;
+  vector-effect: non-scaling-stroke;
+}
+/* Tuerdurchgaenge in Cyan: Sie sind zugleich die Stellen, an denen die
+   Kamera bei der Begehung zwischen zwei Raeumen wechseln darf. Derselbe
+   Datensatz, zwei Verwendungen. */
+.plan__tuer {
+  fill: rgba(31, 232, 255, .22);
+  stroke: none;
+}
+.plan__name {
+  fill: var(--c-text);
+  font-family: var(--f-display);
+  font-size: .46px; font-weight: 600;
+  text-anchor: middle;
+  letter-spacing: .01em;
+}
+.plan__mass {
+  fill: var(--c-cyan);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .38px;
+  text-anchor: middle;
+}
+.plan__kette {
+  stroke: rgba(190, 214, 245, .45);
+  stroke-width: .06;
+  vector-effect: non-scaling-stroke;
+}
+.plan__kettentext {
+  fill: var(--c-text-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .36px;
+  text-anchor: middle;
+}
+
+/* Bei der Begehung gehoert die Leinwand dem Besucher: Greifhand, und der
+   Finger soll nicht die Seite scrollen, waehrend er sich umsieht. */
+.haus[data-haus-station="begehung"] .werkbank__buehne canvas {
+  cursor: grab; touch-action: none;
+}
+.haus[data-haus-station="begehung"] .werkbank__buehne canvas:active { cursor: grabbing; }
+.haus .werkbank__buehne canvas { touch-action: pan-y; cursor: grab; }
+.haus .werkbank__buehne canvas:focus-visible {
+  outline: 2px solid var(--c-cyan); outline-offset: -4px;
+}
+
+/* Solange der Plan steht, ist die Leinwand weg -- und umgekehrt. Beide
+   liegen uebereinander, deshalb entscheidet das hidden-Attribut, nicht die
+   Reihenfolge im Markup. */
+.haus .werkbank__buehne canvas[hidden],
+.haus .werkbank__buehne img[hidden] { display: none; }

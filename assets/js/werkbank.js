@@ -66,8 +66,14 @@ function nummerZeigen() { const n = el('[data-werkbank-nummer]'); if (n) { n.tex
 /* Ein Wort aus dem Wörterbuch, das im Markup hinterlegt ist — so bleibt
    jeder sichtbare Text übersetzbar, auch der, den JavaScript setzt. */
 function wort(name, ersatz) {
-  const q = el('[data-wort-' + name + ']');
-  return (q && q.getAttribute('data-wort-' + name)) || ersatz;
+  /* ZUERST AM KASTEN SELBST. querySelector durchsucht nur Nachfahren, und
+     die data-wort-* stehen am Kasten — bisher griff deshalb immer der
+     deutsche Ersatztext. Auf der deutschen Fassung sah das richtig aus, auf
+     der italienischen stand „Bilder/s". Gefunden am 17.09.2026 beim Haus. */
+  const attr = 'data-wort-' + name;
+  if (kasten && kasten.hasAttribute(attr)) { return kasten.getAttribute(attr) || ersatz; }
+  const q = el('[' + attr + ']');
+  return (q && q.getAttribute(attr)) || ersatz;
 }
 
 function bildFassungSetzen() {

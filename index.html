@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
-<link rel="stylesheet" href="assets/css/app.css?v=8f89c2cf">
+<link rel="stylesheet" href="assets/css/app.css?v=b24e09e0">
 
 
 <script type="importmap">
@@ -294,6 +294,7 @@
 <nav class="rail" aria-label="Abschnitte">
   <a href="#luecke"><i></i><span data-i18n="nav.luecke">Il conto</span></a>
   <a href="#probieren"><i></i><span data-i18n="nav.probieren">Da provare</span></a>
+  <a href="#haus"><i></i><span data-i18n="nav.haus">La casa</span></a>
   <a href="#work"><i></i><span data-i18n="nav.work">Lavori</span></a>
   <a href="#services"><i></i><span data-i18n="nav.services">Servizi</span></a>
   <a href="#plans"><i></i><span data-i18n="nav.plans">Prezzi</span></a>
@@ -627,6 +628,109 @@
   </div>
 </section>
 
+
+
+<!-- ===================== Das Haus =====================
+
+     Der Tisch darueber zeigt, was ein Produkt im Netz kann. Dieser
+     Abschnitt zeigt dasselbe fuer ein Gebaeude -- und spricht damit die
+     Kundschaft an, bei der sich das am schnellsten rechnet: Bautraeger,
+     Architekten, Makler, Handwerksbetriebe mit erklaerungsbeduerftigen
+     Leistungen.
+
+     Drei Register an EINEM Modell (362 KB):
+       Grundriss  Der Plan liegt flach und richtet sich zum Haus auf.
+       Bauablauf  Acht Abschnitte, vor und zurueck.
+       Begehung   Kamera auf 1,65 m, durch die Tuer, durch die Raeume.
+
+     Der Grundriss wird als SVG GEZEICHNET, nicht als Bild geladen: scharf
+     in jeder Aufloesung, uebersetzbar, und er steht auch ohne WebGL. Ein
+     Abschnitt, der ohne 3D nichts zeigt, ist auf dem halben Geraetepark
+     leer.
+
+     Raumnamen und Abschnittstitel stehen als EINE Liste je Sprache
+     (data-wort-raeume, data-wort-abschnitte). Zwanzig einzelne
+     data-i18n-attr-Paare in einer Zeile waeren nicht zu pflegen.
+     ================================================================ -->
+<section class="section" id="haus">
+  <div class="wrap">
+    <div class="sechead sechead--split" data-stagger>
+      <span class="marg" data-i18n="haus.marg">architettura</span>
+      <h2 data-reveal data-i18n="haus.head">Dalla pianta alla casa. In tre secondi.</h2>
+      <p data-reveal data-i18n="haus.lead">Una villa da 268 m², 362 KB. Alza la casa dalla pianta, guardala nascere per fasi, poi entra e cammina dentro. Tutto qui, senza installare niente.</p>
+    </div>
+
+    <div class="werkbank haus" data-haus data-haus-stufe="bild" data-haus-station="grundriss" data-reveal
+         data-i18n-attr="data-wort-laedt:haus.wLaedt,data-wort-fps:haus.wFps,data-wort-planbereit:haus.wPlan,data-wort-planfehler:haus.wFehler,data-wort-raeume:haus.raeume,data-wort-abschnitte:haus.abschnitte"
+        
+        
+        
+         data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s" data-wort-planbereit="pianta disegnata" data-wort-planfehler="pianta non raggiungibile" data-wort-raeume="eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo" data-wort-abschnitte="1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino">
+
+      <div class="werkbank__reiter" role="tablist" data-i18n-attr="aria-label:haus.rGruppe" aria-label="Tre prove sulla stessa casa">
+        <button type="button" role="tab" data-hstation="grundriss" aria-selected="true" data-i18n="haus.rPlan">Pianta</button>
+        <button type="button" role="tab" data-hstation="bauablauf" aria-selected="false" data-i18n="haus.rBau">Cantiere</button>
+        <button type="button" role="tab" data-hstation="begehung" aria-selected="false" data-i18n="haus.rGehen">Visita</button>
+      </div>
+
+      <div class="werkbank__buehne">
+        <canvas hidden data-i18n-attr="aria-label:haus.wbAlt" aria-label="Villa in tre dimensioni, da percorrere"></canvas>
+        <svg class="plan" data-haus-plan viewBox="0 0 20 13" preserveAspectRatio="xMidYMid meet"
+             role="img" data-i18n-attr="aria-label:haus.planAlt" aria-label="Pianta della villa, quotata"></svg>
+        <img data-haus-bild hidden src="assets/img/3d/haus/haus-garten.webp?v=f155b0ab" width="1600" height="900"
+             loading="lazy" decoding="async" data-i18n-attr="alt:haus.wbAlt" alt="Villa in tre dimensioni, da percorrere">
+        <p class="werkbank__ablesung">
+          <span class="werkbank__nummer" data-haus-titel>Piano terra</span>
+          <span class="werkbank__stand" data-haus-stand>pianta disegnata</span>
+        </p>
+      </div>
+
+      <div class="werkbank__pult">
+
+        <div data-hpult="grundriss">
+          <div class="achse">
+            <span class="achse__name" data-i18n="haus.aGeschoss">Piano</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-geschoss="eg" aria-pressed="true" data-i18n="haus.gEg">Piano terra</button>
+              <button type="button" data-geschoss="og" aria-pressed="false" data-i18n="haus.gOg">Piano primo</button>
+            </div>
+          </div>
+          <div class="achse">
+            <span class="achse__name"><span data-i18n="haus.aWachstum">Altezza</span> <b class="achse__wert" data-haus-wachstum>100 %</b></span>
+            <input type="range" min="0" max="100" step="1" value="100" data-regler="wachstum"
+                   data-i18n-attr="aria-label:haus.aWachstum" aria-label="Altezza">
+          </div>
+          <div class="achse__knoepfe">
+            <button type="button" data-aufrichten data-i18n="haus.bAufrichten">Alza la casa</button>
+          </div>
+          <p class="werkbank__satz" data-i18n="haus.sPlan">La pianta non è un’immagine: è disegnata dal modello, con le misure vere. Sposta il cursore e i muri escono dal pavimento — nello stesso ordine in cui si costruiscono.</p>
+        </div>
+
+        <div data-hpult="bauablauf" hidden>
+          <div class="achse">
+            <span class="achse__name"><span data-i18n="haus.aStufe">Fase</span> <b class="achse__wert"><span data-stufe-wert>8</span>/8</b></span>
+            <input type="range" min="1" max="8" step="1" value="8" data-regler="stufe"
+                   data-i18n-attr="aria-label:haus.aStufe" aria-label="Fase">
+          </div>
+          <p class="werkbank__satz" data-i18n="haus.sBau">Otto fasi, avanti e indietro: platea, grezzo, solaio con lo sbalzo, copertura, vetrate, finiture, giardino. Il cliente vede dove finiscono i suoi soldi — prima che arrivi il primo camion.</p>
+        </div>
+
+        <div data-hpult="begehung" hidden>
+          <div class="achse__knoepfe">
+            <button type="button" data-punkt="-1" data-i18n="haus.bZurueck">Indietro</button>
+            <button type="button" data-punkt="1" data-i18n="haus.bWeiter">Punto successivo</button>
+          </div>
+          <p class="werkbank__satz" data-i18n="haus.sGehen">Occhi a 1,65 m. Trascina per guardarti intorno, W A S D o le frecce per camminare, oppure salta di stanza in stanza. Dieci punti, dall’arrivo alla camera sullo sbalzo.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <p class="werkbank__weiter" data-reveal>
+      <span data-i18n="haus.note">Un modello, 362 KB. Le stesse tre prove funzionano su un capannone, un appartamento o un intero quartiere.</span>
+    </p>
+  </div>
+</section>
 
 
 <!-- ===================== Echtzeit statt Standbild =====================
@@ -1620,7 +1724,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=23b9f851" defer></script>
+<script src="assets/js/i18n-it.js?v=2d36cd73" defer></script>
 <script src="assets/js/app.js?v=3814d400" defer></script>
 <script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
 <script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>
@@ -1634,8 +1738,12 @@
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
-<script type="module" src="assets/js/werkbank.js?v=79d7bab9"></script>
+<script type="module" src="assets/js/werkbank.js?v=4fc961bf"></script>
 <script type="module" src="assets/js/luecke.js?v=adb3f6d7"></script>
+<!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
+     Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
+     auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
+<script type="module" src="assets/js/haus.js?v=cba1531e"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------
