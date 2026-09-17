@@ -118,37 +118,37 @@ function planZeichnen() {
   const by = K.y1 - K.y0 + 2 * rand;
 
   const teile = [];
-  teile.push('<rect class="plan__grund" x="' + (K.x0) + '" y="' + (K.y0) +
+  teile.push('<rect class="grundriss__grund" x="' + (K.x0) + '" y="' + (K.y0) +
              '" width="' + (K.x1 - K.x0) + '" height="' + (K.y1 - K.y0) + '"/>');
 
   for (const r of g.raeume) {
-    teile.push('<rect class="plan__raum" x="' + r.x0 + '" y="' + r.y0 +
+    teile.push('<rect class="grundriss__raum" x="' + r.x0 + '" y="' + r.y0 +
                '" width="' + (r.x1 - r.x0) + '" height="' + (r.y1 - r.y0) + '"/>');
   }
   if (geschoss === 'og' && plan.luftraum) {
     const L = plan.luftraum;
-    teile.push('<rect class="plan__luft" x="' + L.x0 + '" y="' + L.y0 +
+    teile.push('<rect class="grundriss__luft" x="' + L.x0 + '" y="' + L.y0 +
                '" width="' + (L.x1 - L.x0) + '" height="' + (L.y1 - L.y0) + '"/>');
   }
   for (const d of plan.durchgaenge) {
     const inGeschoss = Math.abs(d.z - g.z) < 0.5;
     if (!inGeschoss) { continue; }
-    teile.push('<rect class="plan__tuer" x="' + d.x0 + '" y="' + d.y0 +
+    teile.push('<rect class="grundriss__tuer" x="' + d.x0 + '" y="' + d.y0 +
                '" width="' + (d.x1 - d.x0) + '" height="' + (d.y1 - d.y0) + '"/>');
   }
   for (const r of g.raeume) {
     const mx = (r.x0 + r.x1) / 2;
     const my = (r.y0 + r.y1) / 2;
-    teile.push('<text class="plan__name" x="' + mx + '" y="' + (my - 0.18) + '">' +
+    teile.push('<text class="grundriss__name" x="' + mx + '" y="' + (my - 0.18) + '">' +
                raumName(r.schluessel) + '</text>');
-    teile.push('<text class="plan__mass" x="' + mx + '" y="' + (my + 0.62) + '">' +
+    teile.push('<text class="grundriss__mass" x="' + mx + '" y="' + (my + 0.62) + '">' +
                r.flaeche.toFixed(1).replace('.', ',') + ' m²</text>');
   }
   /* Maßkette an der Südkante: eine Zahl, die man nachmessen kann, macht aus
      einer Zeichnung einen Plan. */
-  teile.push('<line class="plan__kette" x1="' + K.x0 + '" y1="' + (K.y1 + 0.75) +
+  teile.push('<line class="grundriss__kette" x1="' + K.x0 + '" y1="' + (K.y1 + 0.75) +
              '" x2="' + K.x1 + '" y2="' + (K.y1 + 0.75) + '"/>');
-  teile.push('<text class="plan__kettentext" x="' + ((K.x0 + K.x1) / 2) +
+  teile.push('<text class="grundriss__kettentext" x="' + ((K.x0 + K.x1) / 2) +
              '" y="' + (K.y1 + 0.52) + '">' +
              (K.x1 - K.x0).toFixed(2).replace('.', ',') + ' m</text>');
 

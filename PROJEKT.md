@@ -4652,3 +4652,69 @@ Schritt steht deshalb nicht hier, sondern im KAS — **neuen FTP-Zugang anlegen,
 den alten löschen, `FTP_USER` und das Secret `FTP_PASSWORD` auf den neuen
 setzen.** Danach ist der alte Name ein Name ohne Tür. Das Cockpit führt diese
 Aufgabe ohnehin schon, mit demselben Grund und aus demselben Anlass.
+
+### 17.09.2026 — Zwei Dinge hießen `.plan`, und die Bestellknöpfe waren tot
+
+Uwe: „Das Fenster von dem Paket 9,90 Euro ist zu groß, passe es an den anderen
+großen an."
+
+Die Karte war zu groß — aber nicht, weil jemand eine Breite falsch gesetzt
+hatte. Gemessen bei 1600 Punkten: **1600 × 1967 statt 420 × 727**, auf
+`position: absolute`, außerhalb ihres Rasterfeldes. Dasselbe bei der
+Betreuungskarte daneben und bei den drei Stufen auf der Betreuungsseite.
+
+#### Die Ursache
+
+Die neue Grundriss-Grafik aus „Die Villa im Labor" trägt die Klasse `.plan`:
+
+```css
+.plan { position: absolute; inset: 0; width: 100%; height: 100%; }
+.plan { pointer-events: none; z-index: 2; }
+```
+
+`.plan` war seit Langem die **Preiskarte** (`.plans > .plan`). Die neue Regel
+steht später in der Datei und gewinnt gegen die ältere. Jede Preiskarte wurde
+damit zum Grundriss-Overlay.
+
+#### Was wirklich kaputt war
+
+Nicht die Größe. **`pointer-events: none`.** An der Mitte beider Bestellknöpfe
+lieferte `elementFromPoint` **nichts** zurück — „Dieses Paket anfragen" und
+„Deine Domain anfragen" waren nicht anklickbar. Wer Betreuung oder Domain &
+Hosting bestellen wollte, konnte es nicht. Auf der Betreuungsseite ebenso, alle
+drei Stufen.
+
+Aufgefallen ist nur die Größe. Ein toter Knopf sieht aus wie ein Knopf — das
+ist der Grund, warum diese Art Fehler lange steht.
+
+#### Die Reparatur
+
+Der Grundriss heißt jetzt `.grundriss`, samt seiner acht Kindklassen
+(`grundriss__grund`, `__raum`, `__luft`, `__tuer`, `__name`, `__mass`,
+`__kette`, `__kettentext`) — in `app.css`, in `haus.js` und an dem einen `<svg>`
+in `index.html`. Umbenannt wurde der **Neuling**: Die Preiskarte steht an fünf
+Stellen im HTML und wird von `pakete-live.js` als Vorlage gesucht.
+
+Die Kindklassen kollidierten heute noch nicht — `plan__price` und
+`plan__grund` sind verschiedene Wörter. Sie sind trotzdem mit umbenannt: Zwei
+Dinge mit demselben Namensstamm sind keine Stilfrage, sondern eine Falle, die
+beim nächsten `plan__name` wieder zuschnappt.
+
+#### Nachgemessen
+
+| | vorher | nachher |
+|---|---|---|
+| Karte bei 1600 px | 1600 × 1967, absolut | 420 × 727, im Raster |
+| `pointer-events` | `none` | `auto` |
+| Bestellknöpfe anklickbar | 0 von 5 | **5 von 5** |
+| Grundriss | zeichnet | zeichnet (6 Räume, Maße, Türen, Maßkette) |
+
+Kette **1325 Prüfungen, alle grün**. Kein Querscrollen bei 1600, 900 und 390
+Punkten.
+
+**Nebenbefund, nicht behoben:** `node build.mjs` schreibt schon auf dem
+unveränderten Hauptzweig vier HTML-Seiten um — die eingecheckten Cache-Stempel
+für `fonts.css`, `app.js`, `i18n-it.js`, `sprachhinweis.js` und
+`pakete-live.js` stimmen nicht mehr mit dem Inhalt überein. Der Deploy baut
+ohnehin, die ausgelieferte Seite ist also richtig; das Repository und der
+Bauschritt sind nur verschiedener Meinung darüber, was drinsteht.

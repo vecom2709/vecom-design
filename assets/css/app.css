@@ -2930,6 +2930,58 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 .schau__waehler button:hover { color: var(--c-text); }
 .schau__waehler button[aria-current="true"] { background: var(--c-surface-2); color: var(--c-text); }
 .card--schau .card__body { display: grid; gap: .5rem; padding: 0 clamp(1.4rem,2.4vw,2.2rem) clamp(1.4rem,2.4vw,2.2rem); }
+
+/* DER TEXTGRUND LAESST DIE BUEHNE DURCH
+   ---------------------------------------------------------------------------
+   Uwe, 15.09.2026: „Mach es leicht transparent, so dass man den Hintergrund
+   noch leicht sieht."
+
+   Vorher stand hier der Grund jeder Karte: von rgba(9,13,22,.96) nach
+   var(--c-surface) -- also oben 96 Prozent deckend und unten ganz. Genau
+   darunter liegt die Buehne (oder ihr gerechnetes Standbild), und die war
+   damit weg. Der Kasten sass wie ein Aufkleber auf einem Raum, den er
+   verdeckte.
+
+   Deckkraft statt Weichzeichner: Ein backdrop-filter kostet auf jedem Bild
+   Rechenzeit, und in den Rueckfallzustaenden verwischt er eine Flaeche, die
+   ueberall gleich aussieht -- dieselbe Lehre wie bei Kopfleiste und Fuss am
+   14.09. Alpha kostet nichts.
+
+   WIE WEIT, ENTSCHEIDET NICHT DER GESCHMACK
+
+   Mein erster Versuch stand bei 72 Prozent. Gegen den Grund, den der Browser
+   im Ruecklfallzustand malt, ergab das 7,6:1 -- reichlich. Der Zustand ist
+   aber der dunkelste: Dort liegt fast Schwarz hinter dem Text. Auf der
+   laufenden Buehne steht dort Licht. Das Standbild der Buehne hat Stellen mit
+   reinem Weiss (die Leuchten), und faellt eine davon hinter den Fliesstext,
+   sind es 3,20:1 -- unter der Schwelle von 4,5.
+
+   Gerechnet, welche Deckkraft ueber WEISS noch 4,5:1 traegt: 81 Prozent oben,
+   83 unten. Also 85 -- mit etwas Luft, und immer noch weit von den
+   urspruenglichen 96 bis 100 entfernt. Der Grund scheint durch, der Text
+   bleibt lesbar, auch an der hellsten Stelle, die die Buehne hergibt. */
+.card--schau .card__body {
+  background: linear-gradient(180deg, rgba(9, 13, 22, .85), rgba(12, 17, 25, .88));
+}
+
+/* WARUM DER RAUM UEBER DEM TEXT UNVERAENDERT BLEIBT
+
+   Naheliegend waere gewesen, ihn gleich mit aufzumachen -- er laeuft von
+   durchsichtig nach 74 Prozent, und unten deckt er den Boden der Buehne zu.
+   Gemessen sprach etwas dagegen: Ganz unten in diesem Verlauf steht die
+   Bildunterschrift („Aufnahmen der laufenden Seite" samt Adresse), und die
+   traegt ueber einer hellen Buehnenstelle schon bei 74 Prozent nur 3,47:1 --
+   unter der Schwelle von 4,5, und zwar seit jeher, nicht erst jetzt. Mein
+   erster Versuch mit 54 Prozent haette daraus 1,68:1 gemacht.
+
+   Eine bestehende Schwaeche zu vergroessern, weil daneben etwas huebscher
+   wird, ist kein Tausch, den man machen sollte. Der Raum bleibt also, wie er
+   war; die Durchsicht kommt aus dem Textfeld darunter, wo sie gemessen
+   traegt. Oben ist der Verlauf ohnehin ganz durchsichtig -- dort war die
+   Buehne nie verdeckt.
+
+   Die 3,47:1 der Bildunterschrift sind damit nicht behoben. Sie stehen im
+   Protokoll, damit sie nicht wieder verlorengehen. */
 .schau__text[hidden] { display: none; }
 
 /* Ohne 3D, mit reduzierter Bewegung oder auf schmalen Schirmen: die Karussells
@@ -3842,7 +3894,24 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
     radial-gradient(75% 60% at 50% 38%, #121a25 0%, #080c13 64%, #05070c 100%);
 }
 
-.plan {
+/* WARUM DIESE GRAFIK NICHT MEHR .plan HEISST
+   ---------------------------------------------------------------------------
+   Sie hiess so, und .plan war seit Langem die PREISKARTE (.plans > .plan --
+   Betreuung 39 EUR, Domain & Hosting 9,90 EUR, die drei Stufen auf
+   assistenza.html). Diese Regel steht spaeter in der Datei und gewann
+   deshalb gegen die aeltere: Beide Preiskarten standen danach auf
+   position:absolute, 1600 statt 552 Pixel breit, ausserhalb ihres Feldes --
+   und, viel schlimmer, auf pointer-events:none.
+
+   Am 17.09.2026 gemessen: An der Mitte beider Bestellknoepfe lieferte
+   elementFromPoint NICHTS zurueck. "Dieses Paket anfragen" und "Domain
+   anfragen" waren nicht anklickbar. Wer bestellen wollte, konnte es nicht.
+
+   Auffaellig war zuerst nur die Groesse -- der tote Knopf sieht aus wie ein
+   Knopf. Deshalb traegt der Grundriss jetzt seinen eigenen Namen, samt
+   Kindern: zwei Dinge mit demselben Klassennamen sind kein Stilproblem,
+   sondern eine Falle, die beim naechsten Mal wieder zuschnappt. */
+.grundriss {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
   display: block;
@@ -3852,21 +3921,21 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
      der Kasten die Masskette unter der Suedkante ab. */
   overflow: visible;
 }
-.plan[hidden] { display: none; }
+.grundriss[hidden] { display: none; }
 /* Der Plan liegt UEBER der Leinwand und blendet sich aus, waehrend das Haus
    hochwaechst. Er darf dabei keine Zeiger abfangen -- sonst liesse sich die
    Szene darunter nicht drehen, solange noch ein Rest Plan zu sehen ist. */
-.plan { pointer-events: none; z-index: 2; transition: opacity .25s linear; }
+.grundriss { pointer-events: none; z-index: 2; transition: opacity .25s linear; }
 
 /* Der Umriss: eine Linie, kein Fuellton. Das Haus soll als Figur lesbar
    sein, nicht als Flaeche. */
-.plan__grund {
+.grundriss__grund {
   fill: rgba(12, 18, 27, .55);
   stroke: rgba(150, 180, 230, .38);
   stroke-width: .12;
   vector-effect: non-scaling-stroke;
 }
-.plan__raum {
+.grundriss__raum {
   fill: rgba(150, 180, 230, .07);
   stroke: rgba(190, 214, 245, .55);
   stroke-width: .10;
@@ -3875,7 +3944,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 /* Der Luftraum ueber der Halle ist KEIN Raum -- er bekommt deshalb eine
    gestrichelte Kante und keine Flaeche. Wer ihn als Zimmer liest, zaehlt
    die Wohnflaeche zweimal. */
-.plan__luft {
+.grundriss__luft {
   fill: none;
   stroke: rgba(31, 232, 255, .5);
   stroke-width: .10;
@@ -3885,29 +3954,29 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 /* Tuerdurchgaenge in Cyan: Sie sind zugleich die Stellen, an denen die
    Kamera bei der Begehung zwischen zwei Raeumen wechseln darf. Derselbe
    Datensatz, zwei Verwendungen. */
-.plan__tuer {
+.grundriss__tuer {
   fill: rgba(31, 232, 255, .22);
   stroke: none;
 }
-.plan__name {
+.grundriss__name {
   fill: var(--c-text);
   font-family: var(--f-display);
   font-size: .46px; font-weight: 600;
   text-anchor: middle;
   letter-spacing: .01em;
 }
-.plan__mass {
+.grundriss__mass {
   fill: var(--c-cyan);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .38px;
   text-anchor: middle;
 }
-.plan__kette {
+.grundriss__kette {
   stroke: rgba(190, 214, 245, .45);
   stroke-width: .06;
   vector-effect: non-scaling-stroke;
 }
-.plan__kettentext {
+.grundriss__kettentext {
   fill: var(--c-text-faint);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .36px;
