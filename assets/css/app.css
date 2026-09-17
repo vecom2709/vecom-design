@@ -2539,8 +2539,34 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   border-top:1px solid var(--c-line);
   display:grid; gap:clamp(28px,4vw,56px);
 }
+/* Kopf, Einleitung und Karte sollen in beiden Haelften auf derselben Linie
+   beginnen. Die Einleitungen sind unterschiedlich lang — links vier Zeilen,
+   rechts drei —, und ohne Hilfe startet die rechte Karte 28px hoeher und
+   endet 36px frueher. Zwei Karten nebeneinander, deren Kanten nicht fluchten,
+   liest man nicht als Absicht, sondern als Versehen.
+
+   subgrid legt beide Haelften auf dieselben Zeilen des Aussenrasters: die
+   hoehere Einleitung bestimmt die Zeilenhoehe, danach beginnen beide Karten
+   gleichzeitig und enden gleichzeitig. Die linke Haelfte hat zwei Absaetze
+   mehr (Hinweis und "Alle Stufen"); die stehen in den Zeilen vier und fuenf,
+   die rechts leer bleiben.
+
+   row-gap:0 ist noetig, weil ein Subgrid sonst die Zeilenluecke des Aussen-
+   rasters erbt — hier bis zu 56px zwischen Ueberschrift und Einleitung. Die
+   Abstaende macht wie bisher der Rand der Absaetze.
+
+   Ohne subgrid-Unterstuetzung greift nur die erste Zeile: dann steht es wie
+   vorher, leicht versetzt, aber nicht kaputt. */
 @media (min-width:900px){
-  .monatlich{grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start}
+  .monatlich{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:auto auto auto auto auto;
+    align-items:start;
+  }
+  .monatlich .care{
+    display:grid; grid-row:span 5; grid-template-rows:subgrid;
+    align-self:stretch; row-gap:0;
+  }
 }
 .monatlich .care{margin-top:0; padding-top:0; border-top:0}
 @media (max-width:899px){
