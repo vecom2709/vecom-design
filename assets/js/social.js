@@ -8,7 +8,7 @@
    Beispiel:  facebook: 'https://www.facebook.com/vecomdesign',
    ========================================================================== */
 window.VECOM_SOCIAL = {
-  facebook:  '',
+  facebook:  'https://www.facebook.com/vecomdesign',
   instagram: '',
   tiktok:    '',
   x:         '',
