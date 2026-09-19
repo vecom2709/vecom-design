@@ -188,6 +188,18 @@ function stationSetzen(neu) {
   kasten.setAttribute('data-haus-station', neu);
   if (echtzeit) { echtzeit.stationSetzen(neu); }
   else { bildFassungSetzen(); }
+  /* Das Vergleichsregister beginnt IMMER beim Foto. Wer es oeffnet, soll
+     zuerst sehen, wie gut es geht -- und dann selbst umschalten. Anders
+     herum wirkt die Echtzeitfassung wie der Normalfall und das Foto wie
+     eine Zugabe; hier ist es umgekehrt gemeint. */
+  if (neu === 'vergleich') {
+    standpunktSetzen(standpunkt);
+    fotoSchalten(true);
+  } else {
+    kasten.setAttribute('data-haus-foto', 'aus');
+    const bild = el('[data-haus-bild]');
+    if (bild && echtzeit) { bild.hidden = true; }
+  }
 }
 
 /* Der gezeichnete Plan liegt ÜBER der Leinwand und blendet sich aus, während
@@ -211,18 +223,88 @@ const BILDER = {
   grundriss: null,
   bauablauf: 'haus-garten',
   begehung: 'haus-wohnen',
-  licht: 'haus-terrasse',
+  vergleich: 'haus-garten',
 };
+
+/* Die Fassung im Markup trägt den Versionsstempel, den der Bau vergibt
+   (…webp?v=abc123). Wechselt JavaScript das Bild, muss derselbe Stempel
+   mit — sonst holt ein wiederkehrender Besucher die alte Datei aus dem
+   Zwischenspeicher und sieht ein Haus, das es so nicht mehr gibt. */
+let _stempel = null;
+function stempel() {
+  if (_stempel === null) {
+    const bild = el('[data-haus-bild]');
+    const roh = bild ? (bild.getAttribute('src') || '') : '';
+    const i = roh.indexOf('?');
+    _stempel = i < 0 ? '' : roh.slice(i);
+  }
+  return _stempel;
+}
 
 function bildFassungSetzen() {
   const bild = el('[data-haus-bild]');
   const svg = el('[data-haus-plan]');
-  const name = BILDER[station];
+  const name = station === 'vergleich' ? 'haus-' + standpunkt : BILDER[station];
   if (svg) { svg.hidden = name !== null; }
   if (bild) {
     bild.hidden = name === null;
-    if (name) { bild.src = '/assets/img/3d/haus/' + name + '.webp'; }
+    if (name) {
+      const w = '/assets/img/3d/haus/' + name;
+      const v = stempel();
+      /* Zwei Stufen aus demselben gerechneten Bild: 1600 px für die Anzeige,
+         800 px für schmale Geräte. Das spart dort rund zwei Drittel der
+         Bytes, ohne dass jemand einen Unterschied sieht. */
+      bild.srcset = w + '-800.webp' + v + ' 800w, ' + w + '.webp' + v + ' 1600w';
+      bild.sizes = '(max-width: 900px) 100vw, 1000px';
+      bild.src = w + '.webp' + v;
+    }
   }
+}
+
+/* ------------------------------------------------------ Foto oder Echtzeit
+
+   Das Register, in dem der Besucher sieht, was der Unterschied kostet und
+   was er bringt. Dasselbe Haus, einmal in Cycles gerechnet (Minuten je
+   Bild auf einer RTX 5070, EIN Standpunkt, 21 bis 41 KB) und einmal in
+   Echtzeit (einmal das Modell laden, dann jeder Standpunkt sofort).
+
+   ENTSCHEIDEND: Die Echtzeitkamera springt auf GENAU den Standpunkt, aus
+   dem gerechnet wurde. Sonst vergleicht man zwei Ansichten statt zwei
+   Verfahren — und das waere ein unehrlicher Vergleich. Die Standpunkte
+   stehen im Manifest, direkt aus villa_szene.py exportiert.                */
+
+let standpunkt = 'garten';
+let fotoAn = true;
+
+function standpunktSetzen(neu) {
+  standpunkt = neu;
+  alle('[data-standpunkt]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.getAttribute('data-standpunkt') === neu));
+  });
+  if (echtzeit) { echtzeit.standpunktSetzen(neu, fotoAn); }
+  if (station === 'vergleich' && fotoAn) { bildFassungSetzen(); }
+  const s = plan && plan.fotostandpunkte && plan.fotostandpunkte[standpunkt];
+  titel(raumName(standpunkt) + (s ? ' · ' + s.brennweite + ' mm' : ''));
+}
+
+function fotoSchalten(an) {
+  fotoAn = an;
+  kasten.setAttribute('data-haus-foto', an ? 'an' : 'aus');
+  const b = el('[data-fotoschalter]');
+  if (b) {
+    b.setAttribute('aria-pressed', String(an));
+    b.textContent = an ? wort('vEchtzeit', 'Echtzeit zeigen')
+                       : wort('vFoto', 'Gerechnetes Foto zeigen');
+  }
+  if (station === 'vergleich') {
+    if (an) {
+      bildFassungSetzen();
+    } else {
+      const bild = el('[data-haus-bild]');
+      if (bild) { bild.hidden = true; }
+    }
+  }
+  if (echtzeit) { echtzeit.standpunktSetzen(standpunkt, an); }
 }
 
 /* ------------------------------------------------------------- Echtzeit */
@@ -421,6 +503,22 @@ function echtzeitVerdrahten(w, leinwand) {
     wunsch.ziel.copy(nachDrei(mitte.x, mitte.y + 1.5, 3.2));
   }
 
+  /* Der Standpunkt eines gerechneten Bildes, Eins zu eins. Brennweite in
+     Millimeter auf einem 36-mm-Sensor -- dieselbe Umrechnung, die Blender
+     benutzt, sonst stimmt der Bildausschnitt nicht und der Vergleich taugt
+     nichts. */
+  let stehtFest = null;
+  function fotoBlick() {
+    if (!stehtFest) { return; }
+    wunsch.pos.copy(nachDrei(stehtFest.pos[0], stehtFest.pos[1], stehtFest.pos[2]));
+    wunsch.ziel.copy(nachDrei(stehtFest.ziel[0], stehtFest.ziel[1], stehtFest.ziel[2]));
+    const grad = 2 * Math.atan(18 / stehtFest.brennweite) * 180 / Math.PI;
+    if (Math.abs(kamera.fov - grad) > 0.01) {
+      kamera.fov = grad;
+      kamera.updateProjectionMatrix();
+    }
+  }
+
   /* --- Begehung --------------------------------------------------------
      Kein Physikmodul: Der nächste Schritt muss in einem Raumrechteck oder
      einem Türdurchgang landen, sonst findet er nicht statt. Dieselben
@@ -511,13 +609,34 @@ function echtzeitVerdrahten(w, leinwand) {
   /* --- Bildschleife ---------------------------------------------------- */
   let bilder = 0, letzteMessung = performance.now(), fps = 0, letzte = performance.now();
 
+  /* RÜCKFALL NACH UNTEN, GEMESSEN STATT GERATEN.
+     Das möblierte Haus ist 1,6 MB und deutlich schwerer als der Tisch. Wer
+     darunter zusammenbricht, soll nicht vier Bilder je Sekunde bekommen,
+     sondern die gerechneten Fotos — die sind auf so einem Gerät ohnehin das
+     bessere Bild. Drei Sekunden unter acht Bildern reichen als Beleg; kurze
+     Einbrüche beim Laden der Textur sollen nicht zählen. */
+  let mager = 0;
   function messen(jetzt) {
     bilder += 1;
     if (jetzt - letzteMessung >= 1000) {
       fps = Math.round(bilder * 1000 / (jetzt - letzteMessung));
       bilder = 0; letzteMessung = jetzt;
       melden(fps + ' ' + wort('fps', 'Bilder/s') + ' · ' + kb(geladen));
+      mager = fps < 8 ? mager + 1 : 0;
+      if (mager >= 3 && !kasten.hasAttribute('data-haus-erzwungen')) {
+        zurueckfallen();
+      }
     }
+  }
+
+  function zurueckfallen() {
+    cancelAnimationFrame(lauf);
+    echtzeit = null;
+    kasten.setAttribute('data-haus-stufe', 'bild');
+    leinwand.hidden = true;
+    melden(wort('planbereit', 'Grundriss gezeichnet') + ' · ' + kb(geladen));
+    bildFassungSetzen();
+    planSchleier(0);
   }
 
   function schleife(jetzt) {
@@ -538,6 +657,7 @@ function echtzeitVerdrahten(w, leinwand) {
       kamera.lookAt(blick.ziel);
     } else {
       if (station === 'grundriss') { planBlick(); }
+      else if (station === 'vergleich') { fotoBlick(); }
       else { if (!ruhig && !zieht) { umlauf += dt * 0.055; } schauBlick(); }
       const k = 1 - Math.pow(0.0025, dt);
       kamera.position.lerp(wunsch.pos, k);
@@ -574,6 +694,13 @@ function echtzeitVerdrahten(w, leinwand) {
       } else if (neu === 'bauablauf') {
         wachstumSetzen(1);
         stufeSetzen(Number((el('[data-regler="stufe"]') || {}).value || 8));
+      } else if (neu === 'vergleich') {
+        wachstumSetzen(1);
+        stufeSetzen(8);
+        /* Bei einem Innenstandpunkt muss die Perspektivkorrektur weg: Die
+           gerechneten Innenbilder sind frei geneigt, die Aussenbilder
+           lotrecht. Hier genuegt Position und Blickpunkt -- beides steht
+           im Manifest. */
       } else {
         wachstumSetzen(1);
         stufeSetzen(8);
@@ -584,7 +711,13 @@ function echtzeitVerdrahten(w, leinwand) {
     wachstumSetzen,
     stufeSetzen,
     punktWeiter(d) { punktSetzen(punkt + d); },
-    anhalten() { cancelAnimationFrame(lauf); },
+    standpunktSetzen(name) {
+      stehtFest = (plan && plan.fotostandpunkte && plan.fotostandpunkte[name]) || null;
+    },
+    anhalten() {
+      cancelAnimationFrame(lauf);
+      renderer.dispose();
+    },
   };
 
   lauf = requestAnimationFrame(schleife);
@@ -622,6 +755,11 @@ function knoepfeVerdrahten() {
       if (echtzeit) { echtzeit.punktWeiter(Number(b.getAttribute('data-punkt'))); }
     });
   });
+  alle('[data-standpunkt]').forEach((b) => {
+    b.addEventListener('click', () => standpunktSetzen(b.getAttribute('data-standpunkt')));
+  });
+  const fs = el('[data-fotoschalter]');
+  if (fs) { fs.addEventListener('click', () => fotoSchalten(!fotoAn)); }
   /* „Haus aufrichten": der Regler fährt von selbst durch. Das ist der
      Moment, für den der Abschnitt gebaut ist — er darf nicht davon
      abhängen, dass jemand einen Schieber findet. */
@@ -669,6 +807,9 @@ async function starten() {
   const frage = new URLSearchParams(location.search).get('haus');
   const darf = frage === 'echtzeit'
     || (frage !== 'bild' && supportsWebGL() && !grafikZuSchwach());
+  /* ?haus=echtzeit schaltet auch den Rueckfall ab -- sonst kann man die
+     Echtzeitfassung auf einem langsamen Geraet gar nicht pruefen. */
+  if (frage === 'echtzeit') { kasten.setAttribute('data-haus-erzwungen', 'ja'); }
 
   stationSetzen('grundriss');
   if (!darf) {
@@ -692,10 +833,15 @@ async function starten() {
   await sichtbar();
 
   melden(wort('laedt', 'lädt') + ' …');
+  /* Die Groesse steht im Manifest, das ohnehin schon geladen ist. Vorher
+     stand hier eine feste Zahl -- und die Ablesung behauptete nach dem
+     Moeblieren weiter 363 KB, obwohl 1,6 MB ueber die Leitung gingen. Eine
+     gemessene Zahl, die nicht stimmt, ist schlimmer als keine. */
+  const angesagt = (plan.dateien && plan.dateien.bytes) || 0;
   try {
     const a = await fetch(D + 'haus.glb', { method: 'HEAD' });
-    geladen += Number(a.headers.get('content-length') || 362380);
-  } catch (f) { geladen += 362380; }
+    geladen += Number(a.headers.get('content-length') || angesagt);
+  } catch (f) { geladen += angesagt; }
 
   try {
     const welt = await echtzeitStarten(leinwand);

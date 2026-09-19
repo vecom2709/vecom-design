@@ -4025,3 +4025,9 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    Reihenfolge im Markup. */
 .haus .werkbank__buehne canvas[hidden],
 .haus .werkbank__buehne img[hidden] { display: none; }
+
+/* Im Register "Foto oder Echtzeit" liegt das gerechnete Bild UEBER der
+   Leinwand. Beide sind absolut gesetzt, das Bild kommt im Markup danach --
+   der z-index macht die Reihenfolge unabhaengig davon. */
+.haus[data-haus-foto="an"] .werkbank__buehne img { z-index: 3; }
+.haus .werkbank__buehne img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

@@ -31,8 +31,8 @@
 
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=f6120680">
+<link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
+<link rel="stylesheet" href="assets/css/app.css?v=62fdfaca">
 
 
 <script type="importmap">
@@ -657,7 +657,7 @@
     <div class="sechead sechead--split" data-stagger>
       <span class="marg" data-i18n="haus.marg">architettura</span>
       <h2 data-reveal data-i18n="haus.head">Dalla pianta alla casa. In tre secondi.</h2>
-      <p data-reveal data-i18n="haus.lead">Una villa da 268 m², 362 KB. Alza la casa dalla pianta, guardala nascere per fasi, poi entra e cammina dentro. Tutto qui, senza installare niente.</p>
+      <p data-reveal data-i18n="haus.lead">Una villa da 268 m², arredata, 1,9 MB. Alza la casa dalla pianta, guardala nascere per fasi, entra e cammina dentro — e confrontala con la foto calcolata. Tutto qui, senza installare niente.</p>
     </div>
 
     <div class="werkbank haus" data-haus data-haus-stufe="bild" data-haus-station="grundriss" data-reveal
@@ -665,19 +665,20 @@
         
         
         
-         data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s" data-wort-planbereit="pianta disegnata" data-wort-planfehler="pianta non raggiungibile" data-wort-raeume="eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo" data-wort-abschnitte="1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino">
+         data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s" data-wort-planbereit="pianta disegnata" data-wort-planfehler="pianta non raggiungibile" data-wort-raeume="eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo|garten=Giardino|terrasse=Terrazza" data-wort-abschnitte="1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino">
 
       <div class="werkbank__reiter" role="tablist" data-i18n-attr="aria-label:haus.rGruppe" aria-label="Tre prove sulla stessa casa">
         <button type="button" role="tab" data-hstation="grundriss" aria-selected="true" data-i18n="haus.rPlan">Pianta</button>
         <button type="button" role="tab" data-hstation="bauablauf" aria-selected="false" data-i18n="haus.rBau">Cantiere</button>
         <button type="button" role="tab" data-hstation="begehung" aria-selected="false" data-i18n="haus.rGehen">Visita</button>
+        <button type="button" role="tab" data-hstation="vergleich" aria-selected="false" data-i18n="haus.rVergleich">Foto o tempo reale</button>
       </div>
 
       <div class="werkbank__buehne">
         <canvas hidden data-i18n-attr="aria-label:haus.wbAlt" aria-label="Villa in tre dimensioni, da percorrere"></canvas>
         <svg class="grundriss" data-haus-plan viewBox="0 0 20 13" preserveAspectRatio="xMidYMid meet"
              role="img" data-i18n-attr="aria-label:haus.planAlt" aria-label="Pianta della villa, quotata"></svg>
-        <img data-haus-bild hidden src="assets/img/3d/haus/haus-garten.webp?v=f155b0ab" width="1600" height="900"
+        <img data-haus-bild hidden src="assets/img/3d/haus/haus-garten.webp?v=85743df2" width="1600" height="900"
              loading="lazy" decoding="async" data-i18n-attr="alt:haus.wbAlt" alt="Villa in tre dimensioni, da percorrere">
         <p class="werkbank__ablesung">
           <span class="werkbank__nummer" data-haus-titel>Piano terra</span>
@@ -715,6 +716,28 @@
           <p class="werkbank__satz" data-i18n="haus.sBau">Otto fasi, avanti e indietro: platea, grezzo, solaio con lo sbalzo, copertura, vetrate, finiture, giardino. Il cliente vede dove finiscono i suoi soldi — prima che arrivi il primo camion.</p>
         </div>
 
+        <!-- Vier Standpunkte, an denen ein gerechnetes Bild vorliegt. Der
+             Umschalter legt es ueber die Leinwand; die Echtzeitkamera steht
+             dann auf genau demselben Punkt (Werte aus dem Manifest). Sonst
+             vergleicht man zwei Ansichten statt zwei Verfahren. -->
+        <div data-hpult="vergleich" hidden>
+          <div class="achse">
+            <span class="achse__name" data-i18n="haus.aStandpunkt">Punto di ripresa</span>
+            <div class="achse__knoepfe">
+              <button type="button" data-standpunkt="garten" aria-pressed="true" data-i18n="haus.pGarten">Giardino</button>
+              <button type="button" data-standpunkt="ankunft" aria-pressed="false" data-i18n="haus.pAnkunft">Ingresso</button>
+              <button type="button" data-standpunkt="terrasse" aria-pressed="false" data-i18n="haus.pTerrasse">Terrazza</button>
+              <button type="button" data-standpunkt="wohnen" aria-pressed="false" data-i18n="haus.pWohnen">Soggiorno</button>
+              <button type="button" data-standpunkt="essen" aria-pressed="false" data-i18n="haus.pEssen">Pranzo</button>
+              <button type="button" data-standpunkt="kueche" aria-pressed="false" data-i18n="haus.pKueche">Cucina</button>
+              <button type="button" data-standpunkt="master" aria-pressed="false" data-i18n="haus.pMaster">Camera</button>
+            </div>
+          </div>
+          <div class="achse__knoepfe">
+            <button type="button" data-fotoschalter aria-pressed="true" data-i18n="haus.vEchtzeit">Mostra il tempo reale</button>
+          </div>
+          <p class="werkbank__satz" data-i18n="haus.sVergleich">Stessa casa, stesso punto, due strade. La foto è calcolata in Cycles: minuti di calcolo, un solo punto di vista, da 21 a 65 KB. Il tempo reale costa 1,9 MB una volta e poi vale per ogni punto, ogni fase e ogni passo dentro casa.</p>
+        </div>
         <div data-hpult="begehung" hidden>
           <div class="achse__knoepfe">
             <button type="button" data-punkt="-1" data-i18n="haus.bZurueck">Indietro</button>
@@ -727,7 +750,7 @@
     </div>
 
     <p class="werkbank__weiter" data-reveal>
-      <span data-i18n="haus.note">Un modello, 362 KB. Le stesse tre prove funzionano su un capannone, un appartamento o un intero quartiere.</span>
+      <span data-i18n="haus.note">Un modello, 1,9 MB, arredato. Le stesse quattro prove funzionano su un capannone, un appartamento o un intero quartiere.</span>
     </p>
   </div>
 </section>
@@ -1724,17 +1747,17 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=98d90235" defer></script>
-<script src="assets/js/app.js?v=3537bcfa" defer></script>
-<script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
-<script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
-<script src="assets/vendor/ScrollTrigger.min.js?v=05ca5ad8" defer></script>
-<script src="assets/vendor/lenis.min.js?v=daec1872" defer></script>
+<script src="assets/js/i18n-it.js?v=4943153b" defer></script>
+<script src="assets/js/app.js?v=3814d400" defer></script>
+<script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
+<script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>
+<script src="assets/vendor/ScrollTrigger.min.js?v=b66217e9" defer></script>
+<script src="assets/vendor/lenis.min.js?v=3d9a280d" defer></script>
 <!-- Zehn Dateien, die nur die Startseite braucht, in einer: assets/js/start.js.
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      rail, vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
-<script src="assets/js/start.js?v=48282a60" defer></script>
-<script type="module" src="assets/js/world/site-world.js?v=b6944826"></script>
+<script src="assets/js/start.js?v=92f9c596" defer></script>
+<script type="module" src="assets/js/world/site-world.js?v=cc0844c0"></script>
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
@@ -1743,7 +1766,7 @@
 <!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
      Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
      auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
-<script type="module" src="assets/js/haus.js?v=7543f790"></script>
+<script type="module" src="assets/js/haus.js?v=eb9cddf3"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------
