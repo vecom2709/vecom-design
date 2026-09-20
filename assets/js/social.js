@@ -11,7 +11,7 @@ window.VECOM_SOCIAL = {
   facebook:  'https://www.facebook.com/vecomdesign',
   instagram: '',
   tiktok:    '',
-  x:         '',
+  x:         'https://x.com/vecomdesign',
 };
 
 (function () {
