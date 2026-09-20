@@ -178,6 +178,11 @@ function geschossSetzen(neu) {
 /* ------------------------------------------------------- Register wechseln */
 
 function stationSetzen(neu) {
+  /* Ohne Echtzeitfassung gibt es nichts zu zeigen: Die Stufen sind fuenf
+     Zustaende EINER laufenden Szene, kein Bilderreigen. Statt eines leeren
+     Registers landet der Besucher wieder beim Grundriss -- und der ist in
+     der Bildfassung gezeichnet und vollstaendig. */
+  if (neu === 'entstehung' && !echtzeit) { neu = 'grundriss'; }
   station = neu;
   alle('[data-hstation]').forEach((b) => {
     b.setAttribute('aria-selected', String(b.getAttribute('data-hstation') === neu));
@@ -377,7 +382,11 @@ async function echtzeitStarten(leinwand) {
   szene.add(sonne);
   szene.add(sonne.target);
   sonne.target.position.set(9, 2, -5.5);
-  szene.add(new THREE.HemisphereLight(0xcfe0f2, 0x3a4030, 0.72));
+  /* Benannt, weil das Register "Entstehung" es hochdreht: In der Stufe
+     "Materials" macht allein das Fuellicht das Bild, damit man die
+     Materialien sieht und nicht die Lichtsetzung. */
+  const fuellicht = new THREE.HemisphereLight(0xcfe0f2, 0x3a4030, 0.72);
+  szene.add(fuellicht);
 
   /* -------------------------------------------------------- Modell laden */
   const glb = await new GLTFLoader().loadAsync(D + 'haus.glb');
@@ -407,14 +416,15 @@ async function echtzeitStarten(leinwand) {
   for (const o of wachsen) { o.userData.zielY = o.scale.y; }
 
   return { THREE, renderer, szene, kamera, haus, abschnitt, wachsen,
-           sonne, umgebung, pmrem };
+           sonne, fuellicht, himmelTex, umgebung, pmrem };
 }
 
 
 /* --------------------------------------------------- Die Welt bedienen */
 
 function echtzeitVerdrahten(w, leinwand) {
-  const { THREE, renderer, szene, kamera, abschnitt, wachsen, sonne } = w;
+  const { THREE, renderer, szene, kamera, haus, abschnitt, wachsen,
+          sonne, fuellicht, himmelTex, umgebung } = w;
 
   /* Blender: X rechts, Y in den Garten, Z oben.
      three nach dem Y-oben-Export: X bleibt, Z = -Y, Y = Z.
@@ -467,6 +477,128 @@ function echtzeitVerdrahten(w, leinwand) {
     if (r && Number(r.value) !== stufe) { r.value = String(stufe); }
   }
 
+  /* --- Entstehung: wie aus Massen ein Bild wird -------------------------
+
+     Fuenf Stufen an DEMSELBEN Modell, das auch Grundriss, Bauablauf und
+     Begehung traegt. Genau darin liegt die Aussage: Es ist nicht fuenfmal
+     eine Illustration, es ist einmal ein Haus, fuenfmal anders gerechnet.
+
+       0  Wireframe   nur Kanten. Kein Material, kein Licht, kein Himmel.
+       1  Modeling    ein einziges mattes Material ueber allem. So sieht
+                      ein Modell aus, bevor es Material bekommt -- und so
+                      sieht man, ob die FORM stimmt, ohne dass Farbe es
+                      uebertuencht.
+       2  Materials   die echten Materialien, aber flaches Licht. Jetzt
+                      macht das Material das Bild, nicht die Lichtsetzung.
+       3  Lighting    Sonne, Schatten, Umgebung. Das fertige Bild --
+                      stehend, wie aus einem Renderer.
+       4  Web         dasselbe Bild, aber es laeuft. Die Kamera dreht
+                      weiter, der Besucher kann sie anfassen, die Ablesung
+                      zaehlt Bilder je Sekunde. Der Unterschied zwischen
+                      Stufe 3 und 4 ist kein Bildunterschied, und genau das
+                      ist die Aussage.
+
+     WAS HIER NICHT STEHT: Unreal. Das waere ein Pfadverfolger-Bild, es
+     laeuft nicht im Browser und wird es nie. Ein Postfilter, der so tut
+     als ob, waere eine Attrappe -- die Stufe kommt herein, sobald von
+     DIESEM Haus ein echtes Unreal-Bild vorliegt, und keinen Tag frueher.
+
+     Die Kanten werden erst beim ersten Aufruf gebaut (rund 300 Netze) und
+     dann behalten. Sie entstehen im Endzustand des Hauses, deshalb setzt
+     die Station vorher Wachstum und Abschnitt auf voll. */
+  const ENTSTEHUNG_STUFEN = 5;
+  let entstehung = 4;
+  let gitter = null;
+  const ton = new THREE.MeshStandardMaterial({
+    color: 0xc9c4bc, roughness: 0.93, metalness: 0.0,
+  });
+  const schwarz = new THREE.Color(0x05070d);
+  const studio = new THREE.Color(0x191d23);   /* neutraler Grund fuer das Tonmodell */
+  const nebel = szene.fog;
+  const SONNE_VOLL = sonne.intensity;
+
+  function gitterBauen() {
+    if (gitter) { return gitter; }
+    gitter = new THREE.Group();
+    const linie = new THREE.LineBasicMaterial({
+      color: 0x1fe8ff, transparent: true, opacity: 0.5,
+    });
+    /* EdgesGeometry statt material.wireframe: Ein Quader mit wireframe
+       zeigt auch seine Diagonalen -- das sieht nach Dreiecksuppe aus,
+       nicht nach Zeichnung. EdgesGeometry zeigt die Kanten, die ein
+       Mensch als Kanten sieht. */
+    haus.updateMatrixWorld(true);
+    haus.traverse((o) => {
+      if (!o.isMesh || !o.geometry) { return; }
+      const k = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 28), linie);
+      o.matrixWorld.decompose(k.position, k.quaternion, k.scale);
+      gitter.add(k);
+    });
+    szene.add(gitter);
+    return gitter;
+  }
+
+  function entstehungSetzen(i) {
+    entstehung = Math.max(0, Math.min(ENTSTEHUNG_STUFEN - 1, i));
+    const s = entstehung;
+
+    const nurKanten = s === 0;
+    const tonstufe  = s === 1;
+    const flach     = s <= 2;
+
+    if (nurKanten) { gitterBauen(); }
+    if (gitter) { gitter.visible = nurKanten; }
+    haus.visible = !nurKanten;
+
+    if (!nurKanten) {
+      haus.traverse((o) => {
+        if (!o.isMesh) { return; }
+        if (!o.userData.echtesMaterial) { o.userData.echtesMaterial = o.material; }
+        o.material = tonstufe ? ton : o.userData.echtesMaterial;
+      });
+    }
+
+    /* JEDE STUFE HAT IHR EIGENES LICHT, SONST ZEIGT SIE NICHTS
+       ------------------------------------------------------------------
+       Der erste Anlauf schaltete fuer 0 bis 2 einfach die Sonne ab und das
+       Fuellicht hoch. Gemessen am Bild: Das Tonmodell stand dann als blasse
+       Silhouette vor blassem Himmel -- kein Schatten, keine Kante, keine
+       Form. Ein Tonmodell braucht gerade GENUG Licht, um die Form zu
+       zeigen, und einen neutralen Grund, damit nichts davon ablenkt.
+
+         0  schwarz, kein Nebel, keine Umgebung  -- nur Linien
+         1  neutraler Grund, schwaches Streiflicht ohne Schatten, keine
+            Umgebung: die Form, sonst nichts
+         2  Himmel und Umgebung zurueck, aber keine Sonne und kein
+            Schatten: jetzt macht das MATERIAL das Bild
+         3  alles an, Bild steht
+         4  alles an, Bild laeuft */
+    sonne.visible = s !== 0 && s !== 2;
+    sonne.intensity = (s === 1) ? 1.15 : SONNE_VOLL;
+    sonne.castShadow = s >= 3;
+    renderer.shadowMap.enabled = s >= 3;
+    fuellicht.intensity = (s === 1) ? 1.45 : (s === 2 ? 1.30 : 0.72);
+    szene.environment = (s >= 2) ? umgebung : null;
+    szene.background = nurKanten ? schwarz : (s === 1 ? studio : himmelTex);
+    szene.fog = (s <= 1) ? null : nebel;
+
+    /* Erst die letzte Stufe laeuft. Vorher steht das Bild -- sonst waere
+       der Unterschied zwischen "Lighting" und "Web" gar keiner. */
+    standbild = s < 4;
+
+    kasten.setAttribute('data-haus-entstehung', String(s));
+    alle('[data-estufe]').forEach((b) => {
+      b.setAttribute('aria-selected', String(Number(b.getAttribute('data-estufe')) === s));
+    });
+    const r = el('[data-regler="entstehung"]');
+    if (r && Number(r.value) !== s) { r.value = String(s); }
+    const w = el('[data-entstehung-wort]');
+    if (w) {
+      const liste = (kasten.getAttribute('data-wort-estufen') || '').split('|');
+      w.textContent = (liste[s] || '').trim();
+    }
+  }
+
   /* --- Kamerabahnen ----------------------------------------------------
      Drei Register, drei Kamerazustände. Der Wechsel wird geglitten, nicht
      geschnitten: Ein Schnitt zwischen Vogelperspektive und Augenhöhe
@@ -475,6 +607,7 @@ function echtzeitVerdrahten(w, leinwand) {
   const wunsch = { pos: new THREE.Vector3(), ziel: new THREE.Vector3() };
   let umlauf = 0.0;
   let frei = false;               /* true = Begehung, Kamera gehört dem Besucher */
+  let standbild = false;          /* true = Kamera steht (Register Entstehung) */
 
   /* DIE KAMERA RICHTET SICH MIT AUF.
      Bei 0 % steht sie senkrecht über dem Haus — dieselbe Ansicht wie der
@@ -658,7 +791,7 @@ function echtzeitVerdrahten(w, leinwand) {
     } else {
       if (station === 'grundriss') { planBlick(); }
       else if (station === 'vergleich') { fotoBlick(); }
-      else { if (!ruhig && !zieht) { umlauf += dt * 0.055; } schauBlick(); }
+      else { if (!ruhig && !zieht && !standbild) { umlauf += dt * 0.055; } schauBlick(); }
       const k = 1 - Math.pow(0.0025, dt);
       kamera.position.lerp(wunsch.pos, k);
       blick.ziel.lerp(wunsch.ziel, k);
@@ -701,12 +834,24 @@ function echtzeitVerdrahten(w, leinwand) {
            gerechneten Innenbilder sind frei geneigt, die Aussenbilder
            lotrecht. Hier genuegt Position und Blickpunkt -- beides steht
            im Manifest. */
+      } else if (neu === 'entstehung') {
+        /* Erst voll aufstellen, DANN die Stufe setzen: Die Kanten entstehen
+           im Endzustand, und ein halb gewachsenes Haus haette halbe Kanten
+           hinterlassen, die spaeter nicht mehr mitwachsen. */
+        wachstumSetzen(1);
+        stufeSetzen(8);
+        entstehungSetzen(entstehung);
       } else {
         wachstumSetzen(1);
         stufeSetzen(8);
         if (neu === 'begehung') { punktSetzen(punkt); leinwand.focus({ preventScroll: true }); }
       }
+      /* Jedes andere Register bekommt das fertige Bild zurueck -- sonst
+         steht die Begehung im Tonmodell, wenn vorher "Modeling" gewaehlt
+         war. */
+      if (neu !== 'entstehung' && entstehung !== 4) { entstehungSetzen(4); }
     },
+    entstehungSetzen,
     geschossSetzen() { /* die Echtzeitfassung zeigt immer das ganze Haus */ },
     wachstumSetzen,
     stufeSetzen,
@@ -734,6 +879,20 @@ function knoepfeVerdrahten() {
   alle('[data-geschoss]').forEach((b) => {
     b.addEventListener('click', () => geschossSetzen(b.getAttribute('data-geschoss')));
   });
+  /* Entstehung: fuenf Knoepfe UND ein Regler auf derselben Sache. Der
+     Regler ist fuer den Daumen, die Knoepfe fuer die Tastatur und fuer
+     jeden, der gezielt eine Stufe sucht statt durchzufahren. */
+  alle('[data-estufe]').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (echtzeit) { echtzeit.entstehungSetzen(Number(b.getAttribute('data-estufe'))); }
+    });
+  });
+  const estufe = el('[data-regler="entstehung"]');
+  if (estufe) {
+    estufe.addEventListener('input', () => {
+      if (echtzeit) { echtzeit.entstehungSetzen(Number(estufe.value)); }
+    });
+  }
   const wachs = el('[data-regler="wachstum"]');
   if (wachs) {
     wachs.addEventListener('input', () => {

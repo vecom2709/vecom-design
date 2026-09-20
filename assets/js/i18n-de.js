@@ -126,6 +126,13 @@ window.VECOM_I18N.de = {
       unter: "Zieh den Griff. Links die Anordnung, die man \u00fcberall sieht; rechts derselbe Betrieb mit Rhythmus, Kontrast und Rangfolge."
     },
     sig: { a: "Ideen werden sichtbar.", b: "Marken werden Erlebnisse." },
+    /* Der Qualitaetswaehler in der Kopfzeile. Die Schluessel fehlten seit
+       jeher: Auf /de/ und /en/ stand dort italienischer Text, sichtbar
+       fuer jeden Besucher. Gefunden beim Gegenpruefen aller Schluessel. */
+    world: {
+      quality: "Qualität",
+      qAuto: "Automatisch", qUltra: "Ultra", qHigh: "Hoch", qMedium: "Mittel", qLow: "Niedrig"
+    },
     work: {
       head: "Umgesetzte Arbeiten",
       lead: "Laufende und fertige Projekte aus verschiedenen Branchen — gleiche Arbeitsweise, gleiche Sorgfalt.",
@@ -189,6 +196,11 @@ window.VECOM_I18N.de = {
       planAlt: "Grundriss der Villa, mit Maßen",
       raeume: "eg=Erdgeschoss|og=Obergeschoss|entree=Entrée|wc=Gäste-WC|technik=Technik|essen=Essen|kueche=Küche|wohnen=Wohnen|galerie=Galerie|galerie2=Galerie|bad=Bad|kind1=Kind 1|kind2=Kind 2|master=Schlafen|ankunft=Zufahrt|garten=Garten|terrasse=Terrasse",
       abschnitte: "1=Bodenplatte|2=Rohbau Erdgeschoss|3=Decke und Auskragung|4=Rohbau Obergeschoss|5=Dach und Attika|6=Glas und Fassade|7=Innenausbau|8=Außenanlage",
+      rEntstehung: "Wie es entsteht",
+      aStufeE: "Stufe",
+      eGruppe: "Fünf Stufen an derselben Szene",
+      estufen: "Wireframe|Modeling|Materials|Lighting|Web",
+      sEntstehung: "Dasselbe Modell, fünfmal anders gerechnet: Kanten, Form, Material, Licht — und am Ende die Seite, auf der die Szene nicht stehen bleibt und du sie anfassen kannst. Zwischen „Lighting“ und „Web“ ändert sich das Bild nicht: Es ändert sich, dass es weiterläuft.",
       rVergleich: "Foto oder Echtzeit",
       aStandpunkt: "Standpunkt",
       pGarten: "Garten",

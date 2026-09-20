@@ -126,6 +126,13 @@ window.VECOM_I18N.en = {
       unter: "Drag the handle. On the left the layout you see everywhere; on the right the same business with rhythm, contrast and hierarchy."
     },
     sig: { a: "Ideas become visible.", b: "Brands become experiences." },
+    /* Der Qualitaetswaehler in der Kopfzeile. Die Schluessel fehlten seit
+       jeher: Auf /de/ und /en/ stand dort italienischer Text, sichtbar
+       fuer jeden Besucher. Gefunden beim Gegenpruefen aller Schluessel. */
+    world: {
+      quality: "Quality",
+      qAuto: "Automatic", qUltra: "Ultra", qHigh: "High", qMedium: "Medium", qLow: "Low"
+    },
     work: {
       head: "Delivered work",
       lead: "Live and ongoing projects across different fields — same method, same level of care.",
@@ -189,6 +196,11 @@ window.VECOM_I18N.en = {
       planAlt: "Floor plan of the villa, dimensioned",
       raeume: "eg=Ground floor|og=Upper floor|entree=Entrance|wc=Cloakroom|technik=Plant|essen=Dining|kueche=Kitchen|wohnen=Living|galerie=Landing|galerie2=Landing|bad=Bathroom|kind1=Bedroom 1|kind2=Bedroom 2|master=Main bedroom|ankunft=Driveway|garten=Garden|terrasse=Terrace",
       abschnitte: "1=Ground slab|2=Ground floor shell|3=Slab and cantilever|4=Upper floor shell|5=Roof and parapet|6=Glazing and facade|7=Fit-out|8=Landscaping",
+      rEntstehung: "How it is made",
+      aStufeE: "Stage",
+      eGruppe: "Five stages on the same scene",
+      estufen: "Wireframe|Modeling|Materials|Lighting|Web",
+      sEntstehung: "The same model, computed five different ways: edges, form, material, light — and finally the website, where the scene does not stop and you can take hold of it. Between “Lighting” and “Web” the image does not change: what changes is that it keeps running.",
       rVergleich: "Photo or real time",
       aStandpunkt: "Viewpoint",
       pGarten: "Garden",

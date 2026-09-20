@@ -127,6 +127,13 @@ window.VECOM_I18N.it = {
       unter: "Trascina la maniglia. A sinistra la disposizione che si vede ovunque, a destra la stessa azienda con ritmo, contrasto e gerarchia."
     },
     sig: { a: "Le idee diventano visibili.", b: "I marchi diventano esperienze." },
+    /* Der Qualitaetswaehler in der Kopfzeile. Die Schluessel fehlten seit
+       jeher: Auf /de/ und /en/ stand dort italienischer Text, sichtbar
+       fuer jeden Besucher. Gefunden beim Gegenpruefen aller Schluessel. */
+    world: {
+      quality: "Qualità",
+      qAuto: "Automatica", qUltra: "Ultra", qHigh: "Alta", qMedium: "Media", qLow: "Bassa"
+    },
     work: {
       head: "Lavori realizzati",
       lead: "Progetti online e in corso, in settori diversi — stesso metodo, stesso livello di cura.",
@@ -190,6 +197,11 @@ window.VECOM_I18N.it = {
       planAlt: "Pianta della villa, quotata",
       raeume: "eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo|garten=Giardino|terrasse=Terrazza",
       abschnitte: "1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino",
+      rEntstehung: "Come nasce",
+      aStufeE: "Stadio",
+      eGruppe: "Cinque stadi sulla stessa scena",
+      estufen: "Wireframe|Modeling|Materials|Lighting|Web",
+      sEntstehung: "Lo stesso modello, cinque volte calcolato diversamente: spigoli, forma, materiali, luce — e alla fine il sito, dove la scena non si ferma e la puoi prendere in mano. Fra “Lighting” e “Web” non cambia l’immagine: cambia che continua a girare.",
       rVergleich: "Foto o tempo reale",
       aStandpunkt: "Punto di ripresa",
       pGarten: "Giardino",

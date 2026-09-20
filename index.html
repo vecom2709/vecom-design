@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=98e5f2e1">
+<link rel="stylesheet" href="assets/css/app.css?v=f43bec86">
 
 
 <script type="importmap">
@@ -686,16 +686,17 @@
     </div>
 
     <div class="werkbank haus" data-haus data-haus-stufe="bild" data-haus-station="grundriss" data-reveal
-         data-i18n-attr="data-wort-laedt:haus.wLaedt,data-wort-fps:haus.wFps,data-wort-planbereit:haus.wPlan,data-wort-planfehler:haus.wFehler,data-wort-raeume:haus.raeume,data-wort-abschnitte:haus.abschnitte"
+         data-i18n-attr="data-wort-laedt:haus.wLaedt,data-wort-fps:haus.wFps,data-wort-planbereit:haus.wPlan,data-wort-planfehler:haus.wFehler,data-wort-raeume:haus.raeume,data-wort-abschnitte:haus.abschnitte,data-wort-estufen:haus.estufen"
         
         
         
-         data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s" data-wort-planbereit="pianta disegnata" data-wort-planfehler="pianta non raggiungibile" data-wort-raeume="eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo|garten=Giardino|terrasse=Terrazza" data-wort-abschnitte="1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino">
+         data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s" data-wort-planbereit="pianta disegnata" data-wort-planfehler="pianta non raggiungibile" data-wort-raeume="eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo|garten=Giardino|terrasse=Terrazza" data-wort-abschnitte="1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino" data-wort-estufen="Wireframe|Modeling|Materials|Lighting|Web">
 
       <div class="werkbank__reiter" role="tablist" data-i18n-attr="aria-label:haus.rGruppe" aria-label="Tre prove sulla stessa casa">
         <button type="button" role="tab" data-hstation="grundriss" aria-selected="true" data-i18n="haus.rPlan">Pianta</button>
         <button type="button" role="tab" data-hstation="bauablauf" aria-selected="false" data-i18n="haus.rBau">Cantiere</button>
         <button type="button" role="tab" data-hstation="begehung" aria-selected="false" data-i18n="haus.rGehen">Visita</button>
+        <button type="button" role="tab" data-hstation="entstehung" aria-selected="false" data-i18n="haus.rEntstehung">Come nasce</button>
         <button type="button" role="tab" data-hstation="vergleich" aria-selected="false" data-i18n="haus.rVergleich">Foto o tempo reale</button>
       </div>
 
@@ -739,6 +740,29 @@
                    data-i18n-attr="aria-label:haus.aStufe" aria-label="Fase">
           </div>
           <p class="werkbank__satz" data-i18n="haus.sBau">Otto fasi, avanti e indietro: platea, grezzo, solaio con lo sbalzo, copertura, vetrate, finiture, giardino. Il cliente vede dove finiscono i suoi soldi — prima che arrivi il primo camion.</p>
+        </div>
+
+        <!-- WIE EINE SZENE ENTSTEHT
+             Fuenf Zustaende DERSELBEN laufenden Szene, nicht fuenf Bilder.
+             Die sechste Stufe aus dem Auftrag -- Unreal -- steht bewusst
+             nicht dabei: Sie ist ein Pfadverfolger-Bild und laeuft nicht im
+             Browser. Sie kommt herein, sobald von genau diesem Haus ein
+             echtes Unreal-Bild vorliegt. -->
+        <div data-hpult="entstehung" hidden>
+          <div class="achse">
+            <span class="achse__name"><span data-i18n="haus.aStufeE">Stadio</span>
+              <b class="achse__wert" data-entstehung-wort>Web</b></span>
+            <input type="range" min="0" max="4" step="1" value="4" data-regler="entstehung"
+                   data-i18n-attr="aria-label:haus.aStufeE" aria-label="Stadio">
+          </div>
+          <div class="estufen" role="tablist" data-i18n-attr="aria-label:haus.eGruppe" aria-label="Cinque stadi sulla stessa scena">
+            <button type="button" role="tab" data-estufe="0" aria-selected="false">Wireframe</button>
+            <button type="button" role="tab" data-estufe="1" aria-selected="false">Modeling</button>
+            <button type="button" role="tab" data-estufe="2" aria-selected="false">Materials</button>
+            <button type="button" role="tab" data-estufe="3" aria-selected="false">Lighting</button>
+            <button type="button" role="tab" data-estufe="4" aria-selected="true">Web</button>
+          </div>
+          <p class="werkbank__satz" data-i18n="haus.sEntstehung">Lo stesso modello, cinque volte calcolato diversamente: spigoli, forma, materiali, luce — e alla fine il sito, dove la scena non si ferma e la puoi prendere in mano. Fra “Lighting” e “Web” non cambia l’immagine: cambia che continua a girare.</p>
         </div>
 
         <!-- Vier Standpunkte, an denen ein gerechnetes Bild vorliegt. Der
@@ -1875,7 +1899,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=504c14c0" defer></script>
+<script src="assets/js/i18n-it.js?v=5c2dc7de" defer></script>
 <script src="assets/js/app.js?v=3537bcfa" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1894,7 +1918,7 @@
 <!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
      Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
      auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
-<script type="module" src="assets/js/haus.js?v=77528787"></script>
+<script type="module" src="assets/js/haus.js?v=46dcdf98"></script>
 <!-- Der Signature Moment vor dem Kontakt. Eigenes Modul, weil es die
      echten Logokonturen aus world/logo-shape.js braucht -- 2D-Leinwand,
      kein dritter Grafikkontext. -->

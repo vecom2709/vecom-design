@@ -4353,3 +4353,64 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   text-shadow: none;
   filter: drop-shadow(0 4px 18px rgba(0, 0, 0, .6));
 }
+
+/* ==========================================================================
+   DAS REGISTER "WIE ES ENTSTEHT"
+   --------------------------------------------------------------------------
+   Fuenf Stufen an derselben laufenden Szene. Die Knoepfe sind eine Leiter
+   und keine Liste: Sie stehen in einer Reihe, jeder traegt seine Nummer,
+   und die erreichte Stufe faerbt alle darunter mit ein. So sieht man auf
+   einen Blick, wo man in der Kette steht -- und nicht nur, was gerade
+   ausgewaehlt ist.
+   ========================================================================== */
+
+.estufen {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px; margin-top: .7rem;
+}
+.estufen button {
+  display: flex; flex-direction: column; gap: 3px; align-items: flex-start;
+  min-height: 44px; padding: .5rem .55rem;
+  font-family: var(--f-display); font-size: var(--t-xs); font-weight: 600;
+  letter-spacing: .03em; text-align: left;
+  color: var(--c-text-faint); background: none;
+  border: 0; border-top: 2px solid var(--c-line);
+  cursor: pointer;
+  transition: color var(--d-ui) var(--e-std), border-color var(--d-ui) var(--e-std);
+}
+.estufen button::before {
+  content: '0' counter(estufe); counter-increment: estufe;
+  font-size: .82em; letter-spacing: .1em; opacity: .7;
+}
+.estufen { counter-reset: estufe; }
+.estufen button:hover { color: var(--c-text); }
+.estufen button[aria-selected="true"] { color: var(--c-cyan); border-top-color: var(--c-cyan); }
+.estufen button:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 2px; }
+
+/* Die Stufen davor bleiben sichtbar mitgefaerbt -- der Weg dorthin gehoert
+   zur Aussage. Gemacht ueber data-haus-entstehung am Kasten, weil CSS
+   keinen "kleiner als" -Vergleich auf Attributen kennt. */
+.haus[data-haus-entstehung="1"] .estufen button[data-estufe="0"],
+.haus[data-haus-entstehung="2"] .estufen button[data-estufe="0"],
+.haus[data-haus-entstehung="2"] .estufen button[data-estufe="1"],
+.haus[data-haus-entstehung="3"] .estufen button[data-estufe="0"],
+.haus[data-haus-entstehung="3"] .estufen button[data-estufe="1"],
+.haus[data-haus-entstehung="3"] .estufen button[data-estufe="2"],
+.haus[data-haus-entstehung="4"] .estufen button[data-estufe="0"],
+.haus[data-haus-entstehung="4"] .estufen button[data-estufe="1"],
+.haus[data-haus-entstehung="4"] .estufen button[data-estufe="2"],
+.haus[data-haus-entstehung="4"] .estufen button[data-estufe="3"] {
+  color: var(--c-text-dim); border-top-color: rgba(31, 232, 255, .45);
+}
+
+/* Ohne Echtzeitfassung gibt es dieses Register nicht: Die fuenf Stufen sind
+   Zustaende EINER laufenden Szene, kein Bilderreigen. */
+.haus[data-haus-stufe="bild"] [data-hstation="entstehung"] { display: none; }
+
+/* Die Leiste hat jetzt fuenf Reiter statt vier. Auf dem Handy passt das
+   nicht mehr nebeneinander -- sie darf umbrechen, statt zu schrumpfen, bis
+   niemand sie mehr trifft. */
+@media (max-width: 720px) {
+  .haus .werkbank__reiter { flex-wrap: wrap; }
+  .estufen { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
