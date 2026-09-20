@@ -1,0 +1,37 @@
+# Zeilenenden: im Repository IMMER LF, in jeder Arbeitskopie IMMER LF.
+#
+# WARUM DAS HIER STEHEN MUSS
+# An diesem Repository haengen zwei Arbeitskopien -- ein Mac und ein
+# Windows-Rechner -- und ein Deploy, der beim Hochladen baut. Git fuer
+# Windows stellt Textdateien beim Auschecken standardmaessig auf CRLF um.
+# Der Inhalt im Repository bleibt dabei LF, also faellt es nirgends auf.
+#
+# Bis build.mjs laeuft. Der stempelt jede Datei mit einer Pruefsumme ihres
+# INHALTS (assets/css/app.css?v=287e3c0e), und derselbe Quelltext mit CRLF
+# ergibt eine andere Pruefsumme als mit LF. Folge, am 20.09.2026 gemessen:
+# Nach jedem oertlichen `node build.mjs` auf Windows waren index.html,
+# prezzi.html, assistenza.html und tavolo.html geaendert -- 25 Zeilen je
+# Datei, alles nur Stempel. Wer das committet, dreht sie auf der anderen
+# Seite wieder zurueck. Zwei Arbeitskopien, die sich gegenseitig
+# ueberschreiben, ohne dass jemand etwas geaendert hat.
+#
+# eol=lf statt nur text=auto: text=auto allein laesst die Arbeitskopie auf
+# Windows weiterhin CRLF haben. Erst eol=lf macht sie ueberall gleich --
+# und nur dann stimmen die Stempel auf beiden Rechnern ueberein.
+#
+# Fuer den Browser, node, PHP und Apache ist LF ohnehin das Richtige.
+* text=auto eol=lf
+
+# Binaerdateien fasst git gar nicht erst an.
+*.webp  binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.glb   binary
+*.woff  binary
+*.woff2 binary
+*.mp4   binary
+*.webm  binary
+*.pdf   binary
+*.zip   binary
