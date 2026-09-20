@@ -325,39 +325,90 @@ async function echtzeitStarten(leinwand) {
     powerPreference: 'high-performance',
   });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.22;
+  /* AgX, nicht ACES -- DIESELBE Kennlinie wie in der gerechneten Fassung.
+     Blender rendert die Vergleichsbilder mit AgX; ACES rollt oben haerter
+     ab und faerbt Lichter anders. Gemessen: Mit ACES blieben die hellsten
+     5 Prozent des Bildes bei (206,203,197) gegen (231,225,218) im
+     gerechneten Bild, und mehr Belichtung half nicht -- sie sassen schon
+     in der Schulter der Kennlinie. Das war kein Belichtungsfehler,
+     sondern ein Kennlinienfehler. */
+  renderer.toneMapping = THREE.AgXToneMapping;
+  /* 1,22 -> 1,40 am 20.09.2026: Nach dem Wechsel auf das Himmelspanorama
+     lagen die hellsten 5 Prozent des Bildes bei (200,196,190) gegen
+     (231,225,218) im gerechneten Bild -- 13 Prozent zu dunkel. Die
+     Belichtung wird an der Kamera gesetzt, nicht an den Lichtern. */
+  /* 1,40 mit AgX. Am Bild eingestellt, nicht geraten:
+
+       ACES 1,22   hellste 5 % (200,196,190)   Rasen (51,70,44)
+       ACES 1,40   hellste 5 % (206,203,197)   Rasen (56,76,48)
+       AgX  1,40   hellste 5 % (183,179,174)   Rasen (72,86,64)
+       AgX  2,20   hellste 5 % (199,196,192)   Rasen (88,103,80)
+       Cycles      hellste 5 % (231,225,218)   Rasen (69,78,41)
+
+     Mit AgX bei 1,40 treffen die MITTELTOENE -- und die tragen das Bild.
+     Mehr Belichtung hebt nur die Mitten weiter ueber die Referenz, waehrend
+     die Lichter in der Schulter stehen bleiben. Der Rest des Abstands oben
+     ist kein Fehler: Das gerechnete Bild "Zufahrt" ist mit -3,70 EV eine
+     halbe Blende heller belichtet als der Rest (villa_szene.py, KAMERAS) --
+     eine Entscheidung je Bild, die eine laufende Szene nicht nachmachen
+     kann und nicht nachmachen soll. */
+  renderer.toneMappingExposure = 1.40;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const szene = new THREE.Scene();
   const kamera = new THREE.PerspectiveCamera(50, 1, 0.08, 400);
 
-  /* HIMMEL UND UMGEBUNGSLICHT AUS EINER QUELLE.
-     Ein Verlauf auf einer Leinwand, einmal als Hintergrund und einmal durch
-     den PMREM-Generator als Umgebung. Das ist der Unterschied zwischen
-     Produktfoto und Blitzlicht: Die Umgebung trägt das Bild, nicht das
-     Führungslicht. Eine echte HDR-Datei wäre besser und kostet 2 MB. */
-  const himmelTex = (() => {
-    const c = document.createElement('canvas');
-    c.width = 16; c.height = 256;
-    const g = c.getContext('2d');
-    const v = g.createLinearGradient(0, 0, 0, 256);
-    v.addColorStop(0.00, '#7ea9d8');
-    v.addColorStop(0.42, '#bcd3e8');
-    v.addColorStop(0.50, '#e6ecef');
-    v.addColorStop(0.52, '#6f7a68');
-    v.addColorStop(1.00, '#2d3a26');
-    g.fillStyle = v; g.fillRect(0, 0, 16, 256);
-    const t = new THREE.CanvasTexture(c);
-    t.mapping = THREE.EquirectangularReflectionMapping;
-    t.colorSpace = THREE.SRGBColorSpace;
-    return t;
-  })();
+  /* HIMMEL UND UMGEBUNGSLICHT AUS BLENDER, NICHT AUS EINEM VERLAUF
+     ------------------------------------------------------------------
+     Hier stand ein Verlauf auf einer 16x256-Leinwand, einmal als
+     Hintergrund und einmal durch den PMREM-Generator als Umgebung. Dazu
+     ein HemisphereLight mit 0,72. Das Ergebnis, an zwei gegenueber-
+     liegenden Standpunkten gemessen: Im gerechneten Bild sind "Zufahrt"
+     (Kamera im Suedwesten) UND "Garten" (Nordosten) hell -- das kann
+     keine einzelne gerichtete Sonne. Cycles rechnet dort mit Blenders
+     Himmelsmodell; das Bild lebt vom Himmelslicht. Im Browser fiel
+     dagegen jede von der Sonne abgewandte Flaeche ins Graue, und der
+     Vergleich "Foto oder Echtzeit" zeigte zwei verschiedene Haeuser.
+
+     Jetzt kommt der Himmel aus DERSELBEN Szene wie die gerechneten
+     Bilder: himmel_web.py gibt Blenders Nishita-Himmel als Kugelpanorama
+     aus, mit demselben Sonnenstand und einer Rasenflaeche in der unteren
+     Halbkugel -- ohne die waeren alle Untersichten tiefschwarz.
+
+     OHNE SONNENSCHEIBE, und das mit Absicht: Die Sonne ist hier eine
+     eigene gerichtete Lampe. Stuende sie auch im Panorama, zaehlte sie
+     doppelt; ausserdem traegt eine 8-Bit-Datei ihren Helligkeitssprung
+     nicht und liefe als weisser Fleck mit falschem weichem Schatten mit.
+     Das ist der bekannte Fehler bei HDRIs mit gekappter Spitze.
+
+     Kosten: 9 KB. Ein glatter Himmelsverlauf komprimiert extrem gut --
+     gegen die verlustfreie Fassung (445 KB) weicht er um hoechstens 7
+     von 255 ab, und der PMREM-Generator verwischt das ohnehin. */
+  const himmelTex = await new Promise((fertig) => {
+    new THREE.TextureLoader().load(
+      '/assets/img/3d/haus/haus-himmel.webp',
+      (t) => {
+        t.mapping = THREE.EquirectangularReflectionMapping;
+        t.colorSpace = THREE.SRGBColorSpace;
+        fertig(t);
+      },
+      undefined,
+      () => fertig(null));
+  });
+
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const umgebung = pmrem.fromEquirectangular(himmelTex).texture;
-  szene.environment = umgebung;
-  szene.background = himmelTex;
+  const umgebung = himmelTex ? pmrem.fromEquirectangular(himmelTex).texture : null;
+  if (umgebung) {
+    szene.environment = umgebung;
+    szene.background = himmelTex;
+    /* Das Panorama ist auf -5,17 EV belichtet, damit die hellste Stelle
+       des Himmels knapp unter dem Anschlag bleibt. Diese Zahl holt den
+       Pegel zurueck; sie ist am Bild gegen die gerechnete Fassung
+       eingestellt, nicht gerechnet -- die uebrigen Lichter dieser Szene
+       stehen ebenfalls in willkuerlichen Einheiten. */
+    szene.environmentIntensity = 1.35;
+  }
   szene.fog = new THREE.Fog(0xbcd3e8, 120, 330);
 
   /* SONNENSTAND AUS DEM MANIFEST, NICHT AUS EINER ZWEITEN ZAHL
@@ -413,10 +464,11 @@ async function echtzeitStarten(leinwand) {
   szene.add(sonne);
   szene.add(sonne.target);
   sonne.target.position.set(9, 2, -5.5);
-  /* Benannt, weil das Register "Entstehung" es hochdreht: In der Stufe
-     "Materials" macht allein das Fuellicht das Bild, damit man die
-     Materialien sieht und nicht die Lichtsetzung. */
-  const fuellicht = new THREE.HemisphereLight(0xcfe0f2, 0x3a4030, 0.72);
+  /* Steht auf NULL und bleibt es, solange nicht das Register
+     "Entstehung" es braucht. Ein Aufhelllicht ohne Quelle hat in einer
+     Szene nichts verloren -- das Himmelslicht kommt jetzt aus dem
+     Panorama, und das hat eine. */
+  const fuellicht = new THREE.HemisphereLight(0xcfe0f2, 0x3a4030, 0.0);
   szene.add(fuellicht);
 
   /* -------------------------------------------------------- Modell laden */
@@ -608,7 +660,11 @@ function echtzeitVerdrahten(w, leinwand) {
     sonne.intensity = (s === 1) ? 1.15 : SONNE_VOLL;
     sonne.castShadow = s >= 3;
     renderer.shadowMap.enabled = s >= 3;
-    fuellicht.intensity = (s === 1) ? 1.45 : (s === 2 ? 1.30 : 0.72);
+    /* Stufe 1 (Tonmodell) hat keine Umgebung -- dort MUSS ein Licht her,
+       sonst sieht man die Form nicht. Ueberall sonst traegt das
+       Himmelspanorama, und ein zusaetzliches Aufhelllicht waere genau
+       die Sorte Licht ohne Quelle, die ein Bild kuenstlich macht. */
+    fuellicht.intensity = (s === 1) ? 1.45 : 0.0;
     szene.environment = (s >= 2) ? umgebung : null;
     szene.background = nurKanten ? schwarz : (s === 1 ? studio : himmelTex);
     szene.fog = (s <= 1) ? null : nebel;
