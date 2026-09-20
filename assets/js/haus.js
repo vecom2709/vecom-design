@@ -360,11 +360,42 @@ async function echtzeitStarten(leinwand) {
   szene.background = himmelTex;
   szene.fog = new THREE.Fog(0xbcd3e8, 120, 330);
 
-  /* Sonne: derselbe Stand wie im gerechneten Bild (27° hoch, Azimut 191°) —
-     wer beide nebeneinander sieht, soll dasselbe Haus sehen. */
+  /* SONNENSTAND AUS DEM MANIFEST, NICHT AUS EINER ZWEITEN ZAHL
+     ----------------------------------------------------------------
+     Hier stand bis zum 20.09.2026 ein fest eingetragener Azimut von 191°
+     mit dem Kommentar, das sei "derselbe Stand wie im gerechneten Bild".
+     Im Manifest steht 249° -- geschrieben von villa_web.py aus
+     villa_szene.py, also aus derselben Quelle, aus der auch die
+     gerechneten Bilder stammen. Zwei Zahlen fuer dieselbe Sache, und eine
+     davon war alt; gemerkt hat es niemand, weil beide plausibel aussehen.
+
+     Die Umrechnung stimmte dagegen schon. In villa_szene.py steht:
+
+         so.rotation_euler = (radians(90 - HOEHE), 0, radians(AZIMUT))
+
+     Eine Blender-Sonne strahlt entlang ihrer lokalen -Z. Nach Rx(90-h)
+     und Rz(az) zeigt sie nach (-cos h·sin az, cos h·cos az, -sin h); die
+     Richtung ZUR Sonne ist das Negative davon, also in Blender
+     (sin az, -cos az) waagerecht. nachDrei() macht daraus (x, z, -y) --
+     und genau das rechnet die Zeile unten. Sie bleibt, nur die Zahl kommt
+     jetzt von dort, wo sie hingehoert.
+
+     WAS DAMIT NICHT ERLEDIGT IST, und das gehoert dazu:
+     Der Vergleich Foto/Echtzeit sieht danach immer noch unterschiedlich
+     aus, und die Ursache ist nicht die Sonnenrichtung. Gegengeprueft an
+     zwei gegenueberliegenden Standpunkten: Im gerechneten Bild sind
+     "Zufahrt" (Kamera bei -X/-Y) UND "Garten" (Kamera bei +X/+Y) beide
+     hell -- das kann keine einzelne gerichtete Sonne. Cycles rechnet hier
+     mit Blenders Himmelsmodell bei Belichtung -3,1; das Bild lebt vom
+     Himmelslicht, nicht vom Schlaglicht. Die Echtzeitfassung hat dagegen
+     ein Hemisphaerenlicht von 0,72 und einen groben Verlauf als Umgebung,
+     und deshalb fallen alle abgewandten Flaechen ins Graue.
+
+     Das ist der naechste Schritt an dieser Stelle -- und einer, der
+     gemessen werden will, nicht geschaetzt. */
   const sonne = new THREE.DirectionalLight(0xfff0dc, 3.1);
-  const hoehe = 27 * Math.PI / 180;
-  const az = 191 * Math.PI / 180;
+  const hoehe = ((plan && plan.sonne && plan.sonne.hoehe) || 27) * Math.PI / 180;
+  const az = ((plan && plan.sonne && plan.sonne.azimut) || 249) * Math.PI / 180;
   sonne.position.set(
     40 * Math.cos(hoehe) * Math.sin(az),
     40 * Math.sin(hoehe),
