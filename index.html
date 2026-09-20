@@ -31,8 +31,8 @@
 
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/fonts.css?v=6983e735">
-<link rel="stylesheet" href="assets/css/app.css?v=62fdfaca">
+<link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
+<link rel="stylesheet" href="assets/css/app.css?v=98e5f2e1">
 
 
 <script type="importmap">
@@ -475,6 +475,31 @@
   </div>
 </section>
 
+<!-- ===================== Non immaginare un sito =====================
+     Der Rahmen vor den beiden Beweisen. Er sagt nicht, was wir koennen,
+     sondern verschiebt, wonach der Leser ueberhaupt fragt: nicht "was
+     kostet eine Website", sondern "was koennte meine Marke sein".
+
+     Bewusst ohne Ueberschriftenkopf und ohne Knopf: Wer hier stehen
+     bleibt, soll weiterscrollen und es SEHEN -- unmittelbar darunter
+     stehen die Werkbank und das Haus. Ein Handlungsaufruf an dieser
+     Stelle wuerde genau davon wegfuehren.
+     ================================================================ -->
+<section class="vorstellung" id="experience">
+  <div class="wrap">
+    <p class="vorstellung__weg" data-reveal data-i18n="vor.h1">Non immaginare un sito.</p>
+    <h2 class="vorstellung__gross" data-reveal data-i18n="vor.h2">Immagina un mondo digitale per il tuo marchio.</h2>
+    <p class="vorstellung__woerter" data-reveal>
+      <span data-i18n="vor.w1">Web.</span>
+      <span data-i18n="vor.w2">3D.</span>
+      <span data-i18n="vor.w3">Motion.</span>
+      <span data-i18n="vor.w4">Interaction.</span>
+      <span data-i18n="vor.w5">Experience.</span>
+    </p>
+    <p class="vorstellung__lead" data-reveal data-i18n="vor.lead">Qui sotto non ci sono video né finte. Gira nel tuo browser, adesso, sul tuo dispositivo — e sotto c’è il numero di fotogrammi al secondo, così non devi credermi sulla parola.</p>
+  </div>
+</section>
+
 <!-- ===================== Zum Ausprobieren =====================
 
      Die Arbeiten darueber kann man ansehen. Hier kann man sie anfassen -- und
@@ -764,6 +789,34 @@
      Der zugehoerige Kamerazustand steht in site-beats.js unter 'beweis';
      ohne ihn bliebe der Schleier auf dem Hero-Wert und der Text unlesbar.
      ==================================================================== -->
+<!-- ===================== E se…? =====================
+     Die Bruecke von zwei fremden Beispielen (Tisch, Villa) zum eigenen
+     Betrieb des Lesers. Ohne sie bleiben die Demos Spielzeug: "schoen,
+     aber was hat das mit meiner Schreinerei zu tun?"
+
+     Fuenf Fragen, keine sechs: Die fuenfte zielt auf den Leser selbst
+     und nicht mehr auf seine Ware -- danach kommt nichts Besseres.
+     ============================================================== -->
+<section class="section wenn" id="wenn">
+  <div class="wrap">
+    <div class="sechead sechead--split" data-stagger>
+      <span class="marg" data-i18n="wenn.marg">e se…</span>
+      <h2 data-reveal data-i18n="wenn.head">E se…?</h2>
+      <p data-reveal data-i18n="wenn.lead">Cinque domande. Se una ti riguarda, il resto è una conversazione di venti minuti.</p>
+    </div>
+
+    <ul class="wenn__liste" data-stagger>
+      <li data-reveal data-i18n="wenn.w1">E se il tuo cliente potesse girare il tuo prodotto prima di comprarlo?</li>
+      <li data-reveal data-i18n="wenn.w2">E se potesse visitare la casa prima che esista?</li>
+      <li data-reveal data-i18n="wenn.w3">E se configurasse la sua macchina e la vedesse smontarsi davanti agli occhi?</li>
+      <li data-reveal data-i18n="wenn.w4">E se il tuo marchio non fosse un logo in un angolo, ma un luogo?</li>
+      <li data-reveal data-i18n="wenn.w5">E se la tua pagina fosse quella di cui parlano, invece di quella che chiudono?</li>
+    </ul>
+
+    <p class="wenn__fuer" data-reveal data-i18n="wenn.fuer">Immobiliare e architettura · Automotive · Lusso e moda · Arredamento e interior · Turismo e ospitalità · Industria e meccanica · Ristorazione · Arte e cultura</p>
+  </div>
+</section>
+
 <section class="section" id="beweis">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
@@ -793,6 +846,66 @@
     <!-- Der Beleg zur Behauptung. Der blosse Dateiname genuegt: Die Seite
          heisst in jeder Sprache anders und liegt jeweils neben der
          Startseite derselben Sprache -- build.mjs dreht den Namen. -->
+    <!-- DERSELBE BETRIEB, ZWEI SEITEN
+         Der Abschnitt argumentiert bis hierher mit Worten. Ein Schieber
+         zeigt in einer Sekunde, was drei Absaetze erklaeren.
+
+         Bewusst KEIN Bildschirmfoto einer echten fremden Seite: Das waere
+         eine Behauptung ueber einen Betrieb, der nicht gefragt wurde --
+         und rechtlich wie menschlich der falsche Weg. Beide Seiten sind
+         angedeutet, mit den Mitteln dieser Seite selbst. -->
+    <div class="vergleich" data-vergleich data-reveal>
+      <div class="vergleich__feld" data-feld>
+        <!-- Beide Seiten sind gebaut, nicht gemalt: echte Kaesten statt
+             Verlaufsschichten. Der erste Versuch stapelte acht
+             background-Layer mit Prozentpositionen uebereinander -- die
+             rechnen anders als Pixel, und die drei Karten unten lagen
+             dann uebereinander statt nebeneinander.
+
+             Der Unterschied soll aus RANGFOLGE kommen, nicht aus Farbe:
+             links ist alles gleich gross, mittig und gleich laut; rechts
+             gibt es genau eine Ueberschrift, genau einen Knopf und viel
+             Ruhe darum. Deshalb hat die rechte Seite WENIGER Teile. -->
+        <div class="vergleich__seite vergleich__seite--normal" aria-hidden="true">
+          <span class="vergleich__marke" data-i18n="verg.a">Standard</span>
+          <div class="mock mock--normal">
+            <div class="mock__kopf">
+              <span class="mock__logo"></span>
+              <span class="mock__nav"></span><span class="mock__nav"></span>
+              <span class="mock__nav"></span><span class="mock__nav"></span>
+            </div>
+            <div class="mock__rumpf">
+              <span class="mock__h"></span>
+              <span class="mock__z"></span><span class="mock__z"></span><span class="mock__z"></span>
+              <span class="mock__knopf"></span>
+              <div class="mock__karten">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="vergleich__seite vergleich__seite--vecom" aria-hidden="true">
+          <span class="vergleich__marke" data-i18n="verg.b">VECOM</span>
+          <div class="mock mock--vecom">
+            <div class="mock__kopf">
+              <span class="mock__logo"></span>
+              <span class="mock__nav"></span><span class="mock__nav"></span>
+            </div>
+            <div class="mock__rumpf">
+              <span class="mock__h"></span>
+              <span class="mock__z"></span>
+              <span class="mock__knopf"></span>
+              <div class="mock__bild"></div>
+            </div>
+          </div>
+        </div>
+        <input type="range" min="0" max="100" value="50" class="vergleich__regler"
+               data-regler data-i18n-attr="aria-label:verg.regler" aria-label="Confronto">
+        <span class="vergleich__griff" data-griff aria-hidden="true"></span>
+      </div>
+      <p class="vergleich__unter" data-i18n="verg.unter">Trascina la maniglia. A sinistra la disposizione che si vede ovunque, a destra la stessa azienda con ritmo, contrasto e gerarchia.</p>
+    </div>
+
     <p class="beweis__probe" data-reveal>
       <a class="btn btn--primary" href="tavolo.html" data-i18n="beweis.probe_a">Prova il configuratore</a>
       <span data-i18n="beweis.probe_p">Un esempio finito: 72 varianti di un tavolo da pranzo, calcolate una per una. Giralo, cambia legno e metallo — nel browser, senza plugin.</span>
@@ -1640,6 +1753,21 @@
   </div>
 </section>
 
+<!-- ===================== Il momento della firma =====================
+     Die letzte Flaeche vor dem Kontakt. Kein Argument mehr, kein Beleg:
+     Die Marke setzt sich aus Licht zusammen, und zwei Saetze sagen,
+     wofuer sie steht.
+
+     Die Punkte finden zu den ECHTEN Konturen aus logo-shape.js -- zu
+     denselben, aus denen die 3D-Bildmarke hinter der Seite entsteht.
+     Kein nachgebautes V.
+     =============================================================== -->
+<section class="signatur" id="signatur" data-signatur>
+  <canvas class="signatur__leinwand" data-signatur-leinwand aria-hidden="true"></canvas>
+  <p class="signatur__a" data-i18n="sig.a">Le idee diventano visibili.</p>
+  <p class="signatur__b" data-i18n="sig.b">I marchi diventano esperienze.</p>
+</section>
+
 <!-- ===================== Kontakt ===================== -->
 <section class="section contact" id="contact">
   <div class="contact__light" aria-hidden="true"></div>
@@ -1747,17 +1875,17 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=4943153b" defer></script>
-<script src="assets/js/app.js?v=3814d400" defer></script>
-<script src="assets/js/sprachhinweis.js?v=984a093a" defer></script>
-<script src="assets/vendor/gsap.min.js?v=4d0f51c9" defer></script>
-<script src="assets/vendor/ScrollTrigger.min.js?v=b66217e9" defer></script>
-<script src="assets/vendor/lenis.min.js?v=3d9a280d" defer></script>
+<script src="assets/js/i18n-it.js?v=504c14c0" defer></script>
+<script src="assets/js/app.js?v=3537bcfa" defer></script>
+<script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
+<script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
+<script src="assets/vendor/ScrollTrigger.min.js?v=05ca5ad8" defer></script>
+<script src="assets/vendor/lenis.min.js?v=daec1872" defer></script>
 <!-- Zehn Dateien, die nur die Startseite braucht, in einer: assets/js/start.js.
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      rail, vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
-<script src="assets/js/start.js?v=92f9c596" defer></script>
-<script type="module" src="assets/js/world/site-world.js?v=cc0844c0"></script>
+<script src="assets/js/start.js?v=a623fb43" defer></script>
+<script type="module" src="assets/js/world/site-world.js?v=b6944826"></script>
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
@@ -1766,7 +1894,11 @@
 <!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
      Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
      auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
-<script type="module" src="assets/js/haus.js?v=eb9cddf3"></script>
+<script type="module" src="assets/js/haus.js?v=77528787"></script>
+<!-- Der Signature Moment vor dem Kontakt. Eigenes Modul, weil es die
+     echten Logokonturen aus world/logo-shape.js braucht -- 2D-Leinwand,
+     kein dritter Grafikkontext. -->
+<script type="module" src="assets/js/signatur.js?v=c3f4b3e7"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

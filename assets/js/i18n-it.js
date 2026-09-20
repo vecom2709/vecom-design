@@ -105,6 +105,28 @@ window.VECOM_I18N.it = {
       s6t: "Hosting e assistenza", s6p: "Dopo il lancio comincia il lavoro vero. Backup, aggiornamenti e modifiche restano a me — tu ti occupi della tua attività.",
       s6l: "Dominio, e-mail, certificati SSL|Backup e aggiornamenti regolari|Modifiche incluse ogni mese|Un referente raggiungibile"
     },
+    vor: {
+      h1: "Non immaginare un sito.",
+      h2: "Immagina un mondo digitale per il tuo marchio.",
+      w1: "Web.", w2: "3D.", w3: "Motion.", w4: "Interaction.", w5: "Experience.",
+      lead: "Qui sotto non ci sono video n\u00e9 finte. Gira nel tuo browser, adesso, sul tuo dispositivo \u2014 e sotto c\u2019\u00e8 il numero di fotogrammi al secondo, cos\u00ec non devi credermi sulla parola."
+    },
+    wenn: {
+      marg: "e se\u2026",
+      head: "E se\u2026?",
+      lead: "Cinque domande. Se una ti riguarda, il resto \u00e8 una conversazione di venti minuti.",
+      w1: "E se il tuo cliente potesse girare il tuo prodotto prima di comprarlo?",
+      w2: "E se potesse visitare la casa prima che esista?",
+      w3: "E se configurasse la sua macchina e la vedesse smontarsi davanti agli occhi?",
+      w4: "E se il tuo marchio non fosse un logo in un angolo, ma un luogo?",
+      w5: "E se la tua pagina fosse quella di cui parlano, invece di quella che chiudono?",
+      fuer: "Immobiliare e architettura \u00b7 Automotive \u00b7 Lusso e moda \u00b7 Arredamento e interior \u00b7 Turismo e ospitalit\u00e0 \u00b7 Industria e meccanica \u00b7 Ristorazione \u00b7 Arte e cultura"
+    },
+    verg: {
+      a: "Standard", b: "VECOM", regler: "Confronto",
+      unter: "Trascina la maniglia. A sinistra la disposizione che si vede ovunque, a destra la stessa azienda con ritmo, contrasto e gerarchia."
+    },
+    sig: { a: "Le idee diventano visibili.", b: "I marchi diventano esperienze." },
     work: {
       head: "Lavori realizzati",
       lead: "Progetti online e in corso, in settori diversi — stesso metodo, stesso livello di cura.",

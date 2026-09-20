@@ -104,6 +104,28 @@ window.VECOM_I18N.en = {
       s6t: "Hosting & care", s6p: "The real work starts after launch. Backups, updates and changes stay with me — you get on with your business.",
       s6l: "Domain, email, SSL certificates|Regular backups and updates|Changes included every month|One contact, reachable"
     },
+    vor: {
+      h1: "Don\u2019t picture a website.",
+      h2: "Picture a digital world for your brand.",
+      w1: "Web.", w2: "3D.", w3: "Motion.", w4: "Interaction.", w5: "Experience.",
+      lead: "Nothing below is a video or a mock-up. It runs in your browser, right now, on your device \u2014 with the frames per second printed underneath, so you don\u2019t have to take my word for it."
+    },
+    wenn: {
+      marg: "what if",
+      head: "What if \u2026?",
+      lead: "Five questions. If one of them is about you, the rest is a twenty-minute conversation.",
+      w1: "What if your customer could turn your product before buying it?",
+      w2: "What if they could walk the house before it exists?",
+      w3: "What if they configured their car and watched it take itself apart?",
+      w4: "What if your brand weren\u2019t a logo in the corner, but a place?",
+      w5: "What if your page were the one they talk about, instead of the one they close?",
+      fuer: "Real estate & architecture \u00b7 Automotive \u00b7 Luxury & fashion \u00b7 Furniture & interiors \u00b7 Tourism & hospitality \u00b7 Industry & engineering \u00b7 Restaurants \u00b7 Arts & culture"
+    },
+    verg: {
+      a: "Standard", b: "VECOM", regler: "Comparison",
+      unter: "Drag the handle. On the left the layout you see everywhere; on the right the same business with rhythm, contrast and hierarchy."
+    },
+    sig: { a: "Ideas become visible.", b: "Brands become experiences." },
     work: {
       head: "Delivered work",
       lead: "Live and ongoing projects across different fields — same method, same level of care.",

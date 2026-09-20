@@ -104,6 +104,28 @@ window.VECOM_I18N.de = {
       s6t: "Hosting & Betreuung", s6p: "Nach dem Launch beginnt die eigentliche Arbeit. Backups, Updates und Änderungen bleiben bei mir — du kümmerst dich um dein Geschäft.",
       s6l: "Domain, E-Mail, SSL-Zertifikate|Regelmäßige Backups und Updates|Änderungen jeden Monat inklusive|Ein Ansprechpartner, erreichbar"
     },
+    vor: {
+      h1: "Stell dir keine Website vor.",
+      h2: "Stell dir eine digitale Welt f\u00fcr deine Marke vor.",
+      w1: "Web.", w2: "3D.", w3: "Motion.", w4: "Interaction.", w5: "Experience.",
+      lead: "Hier unten ist kein Video und keine Attrappe. Das l\u00e4uft in deinem Browser, jetzt, auf deinem Ger\u00e4t \u2014 und darunter steht die Zahl der Bilder je Sekunde, damit du mir nicht glauben musst."
+    },
+    wenn: {
+      marg: "was w\u00e4re, wenn",
+      head: "Was w\u00e4re, wenn \u2026?",
+      lead: "F\u00fcnf Fragen. Wenn eine davon dich betrifft, ist der Rest ein Gespr\u00e4ch von zwanzig Minuten.",
+      w1: "Was w\u00e4re, wenn dein Kunde dein Produkt drehen k\u00f6nnte, bevor er es kauft?",
+      w2: "Was w\u00e4re, wenn er das Haus besichtigen k\u00f6nnte, bevor es steht?",
+      w3: "Was w\u00e4re, wenn er sein Auto konfiguriert und es sich vor seinen Augen auseinanderbaut?",
+      w4: "Was w\u00e4re, wenn deine Marke kein Logo in der Ecke w\u00e4re, sondern ein Ort?",
+      w5: "Was w\u00e4re, wenn deine Seite die w\u00e4re, \u00fcber die sie reden \u2014 statt die, die sie schlie\u00dfen?",
+      fuer: "Immobilien & Architektur \u00b7 Automotive \u00b7 Luxus & Mode \u00b7 M\u00f6bel & Interior \u00b7 Tourismus & Hotellerie \u00b7 Industrie & Maschinenbau \u00b7 Gastronomie \u00b7 Kunst & Kultur"
+    },
+    verg: {
+      a: "Standard", b: "VECOM", regler: "Vergleich",
+      unter: "Zieh den Griff. Links die Anordnung, die man \u00fcberall sieht; rechts derselbe Betrieb mit Rhythmus, Kontrast und Rangfolge."
+    },
+    sig: { a: "Ideen werden sichtbar.", b: "Marken werden Erlebnisse." },
     work: {
       head: "Umgesetzte Arbeiten",
       lead: "Laufende und fertige Projekte aus verschiedenen Branchen — gleiche Arbeitsweise, gleiche Sorgfalt.",

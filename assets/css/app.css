@@ -4031,3 +4031,325 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    der z-index macht die Reihenfolge unabhaengig davon. */
 .haus[data-haus-foto="an"] .werkbank__buehne img { z-index: 3; }
 .haus .werkbank__buehne img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* ==========================================================================
+   VORSTELLUNG — "Non immaginare un sito."
+   --------------------------------------------------------------------------
+   Der Rahmen vor Werkbank und Haus. Lauter als ein Zwischenruf, leiser als
+   ein Abschnitt: kein Kopf, kein Knopf, keine Marginalie. Wer hier steht,
+   soll weiterscrollen, nicht abbiegen.
+   ========================================================================== */
+
+.vorstellung {
+  position: relative;
+  padding-block: clamp(4rem, 8vw, 8rem);
+  text-align: center;
+  background:
+    radial-gradient(120% 90% at 50% -20%, rgba(10, 120, 245, .16), transparent 62%),
+    radial-gradient(70% 60% at 82% 120%, rgba(31, 232, 255, .09), transparent 60%);
+  border-block: 1px solid var(--c-line);
+  overflow: clip;
+}
+.vorstellung .wrap { max-width: 64ch; }
+
+/* Der Widerspruch traegt die Stelle: Der erste Satz wird durchgestrichen und
+   tritt zurueck, der zweite uebernimmt. Zwei Saetze gleich laut waeren nur
+   zwei Saetze. */
+.vorstellung__weg {
+  margin: 0 0 var(--s-2);
+  font-family: var(--f-display);
+  font-size: var(--t-lg);
+  line-height: 1.1;
+  color: var(--c-text-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: rgba(31, 232, 255, .45);
+}
+
+.vorstellung__gross {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: var(--t-hoehe);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  /* EIGENER VERLAUF, NICHT --grad-text
+     Der Seitenverlauf ist fuer EINE Zeile gemacht. Ueber drei Zeilen legt er
+     seine dunkelste Stelle auf die mittlere -- gemessen: die Ueberschrift
+     stand grau im Bild, obwohl jede einzelne Farbe darin hell ist. */
+  background: linear-gradient(100deg, #ffffff 0%, #ffffff 58%, #9fd9ff 82%, #1fe8ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* DER GEERBTE TEXTSCHATTEN MUSS WEG -- UND ZWAR AUSDRUECKLICH
+     ------------------------------------------------------------------
+     text-shadow ist eine VERERBTE Eigenschaft. Diese Ueberschrift hat
+     keine eigene, erbt aber
+       rgba(0,0,0,.5) 0 1px 1px, rgba(0,0,0,.45) 0 6px 16px
+     von weiter oben. Auf Verlaufsschrift (background-clip:text mit
+     color:transparent) malt der Browser diesen Schatten durch die
+     durchsichtige Schrift hindurch -- das Ergebnis war ein neutrales
+     Grau. Gemessen: Median (99,99,99) statt der weissen Verlaufsfarbe,
+     bei einem Verlauf, in dem kein einziger dunkler Farbwert vorkommt.
+     Die Tabelle weiter oben in dieser Datei warnt genau davor; ich habe
+     sie erst gelesen, nachdem ich es nachgemessen hatte.
+
+     Stattdessen drop-shadow: Das arbeitet auf dem fertig gezeichneten
+     Ergebnis und nimmt den Verlauf mit, statt hinter ihm zu liegen. */
+  text-shadow: none;
+  filter:
+    drop-shadow(0 1px 0 rgba(0, 0, 0, .45))
+    drop-shadow(0 6px 22px rgba(0, 0, 0, .55));
+}
+
+.vorstellung__woerter {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  /* Eng genug, dass die fuenf Woerter auf dem Schreibtisch in EINE Zeile
+     passen -- bei .28em und 24 px Abstand fiel "EXPERIENCE." allein in
+     die zweite, und das las sich wie ein Nachtrag statt wie eine Reihe. */
+  gap: var(--s-1) var(--s-2);
+  margin: var(--s-4) 0 0;
+  font-family: var(--f-display);
+  font-size: var(--t-sm);
+  letter-spacing: .20em;
+  text-transform: uppercase;
+  color: var(--c-cyan);
+}
+.vorstellung__woerter span { position: relative; }
+.vorstellung__woerter span::after {
+  content: ''; position: absolute; inset-inline: 0; bottom: -.45em; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-cyan), transparent);
+  opacity: .5;
+}
+
+.vorstellung__lead {
+  margin: var(--s-4) auto 0; max-width: 52ch;
+  color: var(--c-text-dim); font-size: var(--t-base);
+}
+
+/* ==========================================================================
+   E SE…? — die Bruecke vom Beispiel zum eigenen Betrieb
+   ========================================================================== */
+
+.wenn__liste { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+/* Ab 1000 px zwei Spalten: Die Ueberschrift steht links, der Vorspann
+   rechts -- darunter blieb die rechte Haelfte sonst leer, und fuenf kurze
+   Zeilen in einer schmalen Spalte sahen aus wie eine Restliste. */
+@media (min-width: 1000px) {
+  .wenn__liste { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-3) var(--s-6); }
+}
+.wenn__liste li {
+  position: relative; padding-left: 2.2em;
+  font-family: var(--f-display);
+  font-size: var(--t-md); font-weight: 500; line-height: 1.32;
+  color: var(--c-text); text-wrap: pretty; max-width: 42ch;
+}
+.wenn__liste li::before {
+  content: ''; position: absolute; left: 0; top: .66em;
+  width: 1.4em; height: 1px; background: var(--c-cyan);
+}
+.wenn__fuer {
+  margin-top: var(--s-6);
+  font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--c-text-faint); line-height: 2.1; max-width: 70ch;
+}
+
+/* ==========================================================================
+   DERSELBE BETRIEB, ZWEI SEITEN
+   ========================================================================== */
+
+.vergleich { margin-top: var(--s-6); }
+
+/* AUFGEPASST: aspect-ratio UND min-height vertragen sich nicht.
+   Gemessen auf dem iPhone 13 (390 px): Bei 16/9 waere das Feld 197 px hoch,
+   ein min-height von 260 px zwaenge es auf 260 -- und der Browser rechnet
+   daraufhin die BREITE auf 462 px hoch, um das Verhaeltnis zu halten. Das
+   Feld stand dann 70 px ueber den rechten Rand hinaus.
+   Deshalb kein min-height, sondern je Bildschirmbreite ein Verhaeltnis. */
+.vergleich__feld {
+  position: relative; aspect-ratio: 4 / 5;
+  border: 1px solid var(--c-line); border-radius: var(--radius-lg);
+  overflow: hidden; isolation: isolate; touch-action: pan-y;
+  --schnitt: 50%;
+}
+@media (min-width: 620px) { .vergleich__feld { aspect-ratio: 16 / 9; } }
+
+.vergleich__seite { position: absolute; inset: 0; }
+
+/* DIE BEIDEN ATTRAPPEN
+   --------------------------------------------------------------------------
+   Angedeutet, nicht abfotografiert: Ein Bildschirmfoto einer echten fremden
+   Seite waere eine Behauptung ueber einen Betrieb, der nicht gefragt wurde.
+
+   Der Unterschied kommt aus RANGFOLGE, nicht aus Farbe. Links sieben Bauteile
+   in einer Spalte, alle mittig, alle gleich laut -- man weiss nicht, wohin
+   man sehen soll. Rechts vier Bauteile, linksbuendig, eine Ueberschrift und
+   ein Knopf, die lauter sind als alles andere. Waere rechts nur dunkler und
+   blauer, bewiese der Vergleich nichts. */
+.vergleich__seite--normal { background: #ffffff; }
+.vergleich__seite--vecom {
+  clip-path: inset(0 0 0 var(--schnitt));
+  background:
+    radial-gradient(90% 120% at 18% -10%, rgba(10, 120, 245, .30), transparent 58%),
+    radial-gradient(70% 90% at 88% 110%, rgba(31, 232, 255, .16), transparent 62%),
+    linear-gradient(162deg, #0b1220, #05070d);
+}
+
+.mock {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  /* Die Attrappe ist immer so breit wie das GANZE Feld, auch wenn nur ihre
+     Haelfte zu sehen ist -- sonst rutscht der Inhalt beim Ziehen mit. */
+  width: 100%;
+}
+.mock__kopf {
+  display: flex; align-items: center; gap: 10px;
+  padding: 3.4% 5%;
+  flex: 0 0 auto;
+}
+.mock__logo { width: 42px; height: 11px; border-radius: 2px; }
+.mock__nav  { width: 26px; height: 6px;  border-radius: 3px; }
+.mock__rumpf { flex: 1 1 auto; display: flex; flex-direction: column; padding: 0 5% 5%; }
+.mock__h { border-radius: 3px; }
+.mock__z { border-radius: 3px; }
+.mock__knopf { border-radius: 4px; }
+
+/* --- links: alles mittig, alles gleich laut --- */
+.mock--normal .mock__kopf { justify-content: center; border-bottom: 1px solid #e8ebef; background: #f6f7f9; }
+.mock--normal .mock__logo { background: #c8ced7; }
+.mock--normal .mock__nav  { background: #dfe3e9; }
+.mock--normal .mock__rumpf { align-items: center; padding-top: 7%; gap: 3.2%; }
+.mock--normal .mock__h { width: 54%; height: 15px; background: #cfd4dc; }
+.mock--normal .mock__z { width: 66%; height: 8px; background: #e6e9ee; }
+.mock--normal .mock__knopf { width: 22%; height: 26px; background: #c3c9d3; margin-top: 1%; }
+.mock--normal .mock__karten {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3%;
+  width: 100%; margin-top: auto; padding-top: 5%;
+}
+.mock--normal .mock__karten span { aspect-ratio: 3 / 4; background: #eef0f3; border-radius: 4px; }
+
+/* --- rechts: eine Ueberschrift, ein Knopf, viel Ruhe ---
+   WARUM DIE RECHTE ATTRAPPE RECHTSBUENDIG IST
+   Beide Attrappen sind so breit wie das ganze Feld -- so gehoert sich das
+   bei einem Vorher-Nachher-Schieber, sonst wandert der Inhalt beim Ziehen
+   mit. Damit sieht man von jeder Seite aber nur eine HAELFTE. Stuende der
+   VECOM-Text wie ueblich links, laege er dauerhaft unter der Standardseite
+   und die rechte Haelfte zeigte nur eine leere Flaeche.
+   Also: Standard mittig (eine symmetrische Anordnung liest sich auch halb
+   noch als symmetrisch), VECOM rechts. Dann traegt jede Haelfte ihre
+   eigene Aussage. */
+.mock--vecom .mock__kopf { justify-content: flex-end; padding-right: 13%; }
+.mock--vecom .mock__logo { background: linear-gradient(120deg, #0648e8, #1fe8ff); order: 3; }
+.mock--vecom .mock__nav  { background: rgba(150, 180, 230, .22); }
+.mock--vecom .mock__rumpf { align-items: flex-end; padding-top: 6%; gap: 3%; }
+.mock--vecom .mock__h {
+  width: 44%; height: 26px;
+  background: linear-gradient(100deg, #ffffff, #a8dcff 62%, #1fe8ff);
+}
+/* Zweite, kuerzere Zeile: Ein einzelner breiter Balken liest sich als
+   Balken, zwei ungleich lange lesen sich als Ueberschrift. */
+.mock--vecom .mock__h::after {
+  content: ''; display: block; position: relative; top: 34px;
+  margin-left: auto; width: 62%; height: 26px; border-radius: 3px;
+  background: linear-gradient(100deg, #cfe6ff, #1fe8ff);
+}
+.mock--vecom .mock__rumpf { padding-bottom: 0; }
+.mock--vecom .mock__z { margin-top: 34px; }
+.mock--vecom .mock__z { width: 26%; height: 7px; background: rgba(150, 180, 230, .28); }
+.mock--vecom .mock__knopf {
+  width: 17%; height: 30px; margin-top: 1.5%;
+  background: linear-gradient(135deg, #0648e8, #1fe8ff);
+  box-shadow: 0 10px 30px -12px rgba(31, 232, 255, .8);
+}
+.mock--vecom .mock__bild {
+  width: 100%; flex: 0 0 46%; margin-top: auto; border-radius: 8px 8px 0 0;
+  background:
+    radial-gradient(70% 110% at 66% 45%, rgba(31, 232, 255, .30), transparent 72%),
+    linear-gradient(150deg, rgba(150, 180, 230, .12), rgba(10, 120, 245, .10));
+  border: 1px solid rgba(150, 180, 230, .16);
+}
+
+/* Die Beschriftung sitzt UNTEN, nicht oben: Oben liegt in beiden
+   Attrappen die Kopfzeile, und auf dem Handy lagen Schild und Navigation
+   uebereinander. */
+.vergleich__marke {
+  position: absolute; bottom: var(--s-2); z-index: 4;
+  font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase;
+  padding: 4px 11px; border-radius: 999px;
+}
+.vergleich__seite--normal .vergleich__marke {
+  left: var(--s-2); background: rgba(10, 16, 28, .09); color: #5c6370;
+}
+.vergleich__seite--vecom .vergleich__marke {
+  right: var(--s-2); background: rgba(31, 232, 255, .12); color: var(--c-cyan);
+}
+
+/* Der Regler ist ein echtes <input type="range">: Tastatur, Screenreader und
+   Touch funktionieren ohne eine Zeile Zusatzcode. Sichtbar ist er nicht --
+   sichtbar ist der Griff, den er steuert. */
+.vergleich__regler {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: ew-resize; margin: 0; z-index: 3;
+}
+.vergleich__regler:focus-visible + .vergleich__griff::after {
+  box-shadow: 0 0 0 3px rgba(31, 232, 255, .55);
+}
+.vergleich__griff {
+  position: absolute; top: 0; bottom: 0; left: var(--schnitt);
+  width: 2px; margin-left: -1px; z-index: 2; pointer-events: none;
+  background: linear-gradient(180deg, rgba(31,232,255,.25), var(--c-cyan), rgba(31,232,255,.25));
+}
+.vergleich__griff::after {
+  content: '‹ ›'; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px; height: 46px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: rgba(8, 11, 19, .84); border: 1px solid var(--c-cyan);
+  color: var(--c-cyan); font-size: 14px; letter-spacing: 2px;
+  box-shadow: 0 6px 24px -8px rgba(0, 0, 0, .9);
+}
+.vergleich__unter {
+  margin: var(--s-2) 0 0; color: var(--c-text-dim); font-size: var(--t-sm);
+  max-width: 62ch;
+}
+
+/* ==========================================================================
+   DER SIGNATURE MOMENT
+   ========================================================================== */
+
+.signatur {
+  position: relative;
+  min-height: min(78vh, 700px);
+  display: grid; grid-template-rows: auto 1fr auto;
+  align-items: center; justify-items: center;
+  gap: var(--s-3);
+  padding: var(--section-y) var(--page-x);
+  text-align: center;
+  background: radial-gradient(70% 55% at 50% 50%, rgba(10, 120, 245, .10), transparent 70%);
+}
+/* Die Leinwand liegt NICHT ueber dem ganzen Abschnitt, sondern genau in
+   der mittleren Rasterzeile. Erst lag sie absolut ueber allem und war auf
+   die volle Abschnittshoehe samt Polsterung zentriert -- die Bildmarke
+   schnitt dann oben durch "Ideen werden sichtbar." und unten durch
+   "Marken werden Erlebnisse." */
+.signatur__leinwand {
+  grid-row: 2; grid-column: 1;
+  width: 100%; height: 100%; min-height: 34vh;
+  align-self: stretch; justify-self: stretch;
+}
+.signatur__a, .signatur__b {
+  position: relative; margin: 0;
+  font-family: var(--f-display); font-size: var(--t-lg); font-weight: 650;
+  line-height: 1.15; text-wrap: balance;
+}
+.signatur__a { grid-row: 1; color: var(--c-text); }
+.signatur__b {
+  grid-row: 3;
+  background: linear-gradient(100deg, #ffffff, #9ad7ff 58%, #1fe8ff);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  /* Gleicher Grund wie bei .vorstellung__gross: geerbter text-shadow
+     faerbt Verlaufsschrift grau. */
+  text-shadow: none;
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, .6));
+}
