@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=f43bec86">
+<link rel="stylesheet" href="assets/css/app.css?v=06495529">
 
 
 <script type="importmap">
@@ -292,7 +292,6 @@
 <div class="world-scrim" aria-hidden="true"></div>
 <div class="world-cut" aria-hidden="true"></div>
 <nav class="rail" aria-label="Abschnitte">
-  <a href="#luecke"><i></i><span data-i18n="nav.luecke">Il conto</span></a>
   <a href="#probieren"><i></i><span data-i18n="nav.probieren">Da provare</span></a>
   <a href="#haus"><i></i><span data-i18n="nav.haus">La casa</span></a>
   <a href="#work"><i></i><span data-i18n="nav.work">Lavori</span></a>
@@ -374,7 +373,7 @@
         <span data-i18n="hero.cta1">Parliamo del tuo progetto</span>
         <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
       </a>
-      <a class="btn" href="#luecke" data-i18n="hero.cta2">Quanto ti costa oggi</a>
+      <a class="btn" href="#plans" data-i18n="hero.cta2">Quanto costa</a>
     </div>
 
     <dl class="hero__meta" data-reveal>
@@ -394,87 +393,6 @@
 <div class="marquee" aria-hidden="true">
   <div class="marquee__track" data-marquee><span>Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza</span><span aria-hidden="true">Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza</span></div>
 </div>
-<!-- ===================== Die stille Rechnung =====================
-
-     Der Hero behauptet: "Deine Website soll Kunden bringen." Dieser
-     Abschnitt macht aus der Behauptung eine Zahl -- und zwar eine, die der
-     Besucher selbst eingestellt hat. Wer den Regler bewegt hat, glaubt die
-     Rechnung nicht, er hat sie gemacht.
-
-     DREI REGLER KENNT ER, EINEN NICHT. Besucher, heutige Quote und
-     Auftragswert sind seine Zahlen. "Was moeglich waere" ist eine Annahme --
-     und steht deshalb ebenfalls auf einem Regler und nicht in einer
-     Fussnote. Eine Annahme, die man nicht verschieben kann, ist eine
-     Behauptung.
-
-     KEINE KORREKTURFAKTOREN. Besucher mal Quote mal Auftragswert, sonst
-     nichts. Jede Branchenkurve waere eine Zahl von mir in einer Rechnung,
-     die seine sein soll -- und wuerde sie genau dadurch entwerten.
-
-     Klassen aus dem Bestand plus .rechnung* -- die Regler selbst benutzen
-     .achse aus der Werkbank, damit Labor und Rechnung wie ein Werkzeug
-     aussehen und nicht wie zwei.
-     ================================================================ -->
-<section class="section" id="luecke">
-  <div class="wrap">
-    <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="luecke.marg">il conto silenzioso</span>
-      <h2 data-reveal data-i18n="luecke.head">Fatti il conto. Con i tuoi numeri.</h2>
-      <p data-reveal data-i18n="luecke.lead">Quattro cursori. Tre li conosci meglio di me, il quarto lo imposti tu. Quello che esce non è un preventivo: è quello che ogni mese finisce da qualcun altro.</p>
-    </div>
-
-    <div class="rechnung" data-rechnung data-rechnung-leer="nein" data-reveal
-         data-i18n-attr="data-wort-satz:luecke.satz,data-wort-null:luecke.satzNull"
-        
-         data-wort-satz="Il calcolo è volutamente grezzo: visitatori per tasso di incarico per valore dell’incarico. Nessun fattore correttivo, nessuna curva di settore. Se i tuoi tre numeri sono giusti, lo è anche il quarto." data-wort-null="Con questi valori stai già ricavando tutto quello che c’è. Allora non si tratta di avere più richieste, ma richieste migliori — e ne parlo altrettanto volentieri.">
-
-      <div class="rechnung__pult">
-        <div class="achse">
-          <span class="achse__name"><span data-i18n="luecke.r1">Visitatori sul tuo sito, al mese</span> <b class="achse__wert" data-anzeige="besucher">1.200</b></span>
-          <input type="range" min="100" max="20000" step="100" value="1200" data-regler="besucher"
-                 data-i18n-attr="aria-label:luecke.r1" aria-label="Visitatori sul tuo sito, al mese">
-        </div>
-        <div class="achse">
-          <span class="achse__name"><span data-i18n="luecke.r2">Su cento visitatori, quanti ti danno un incarico</span> <b class="achse__wert" data-anzeige="quote">0,3 %</b></span>
-          <input type="range" min="1" max="30" step="1" value="3" data-regler="quote"
-                 data-i18n-attr="aria-label:luecke.r2" aria-label="Su cento visitatori, quanti ti danno un incarico">
-        </div>
-        <div class="achse">
-          <span class="achse__name"><span data-i18n="luecke.r3">Quanto vale in media un incarico</span> <b class="achse__wert" data-anzeige="wert">1.800 €</b></span>
-          <input type="range" min="200" max="20000" step="100" value="1800" data-regler="wert"
-                 data-i18n-attr="aria-label:luecke.r3" aria-label="Quanto vale in media un incarico">
-        </div>
-        <div class="achse achse--annahme">
-          <span class="achse__name"><span data-i18n="luecke.r4">Quanto sarebbe possibile</span> <b class="achse__wert" data-anzeige="ziel">0,8 %</b></span>
-          <input type="range" min="1" max="30" step="1" value="8" data-regler="ziel"
-                 data-i18n-attr="aria-label:luecke.r4" aria-label="Quanto sarebbe possibile">
-          <span class="achse__fussnote" data-i18n="luecke.r4n">L’unico numero che ci metto io. Spostalo.</span>
-        </div>
-      </div>
-
-      <div class="rechnung__blatt">
-        <p class="rechnung__heute">
-          <span data-i18n="luecke.heute">Oggi ti arrivano</span>
-          <b data-rechnung-heute>—</b>
-        </p>
-        <p class="rechnung__gross"><b data-rechnung-luecke>—</b></p>
-        <p class="rechnung__unter">
-          <span data-i18n="luecke.monat">al mese che finisce da qualcun altro</span>
-        </p>
-        <p class="rechnung__jahr">
-          <span data-i18n="luecke.jahr">In dodici mesi</span>
-          <b data-rechnung-jahr>—</b>
-        </p>
-        <p class="rechnung__satz" data-rechnung-satz>Il calcolo è volutamente grezzo: visitatori per tasso di incarico per valore dell’incarico. Nessun fattore correttivo, nessuna curva di settore. Se i tuoi tre numeri sono giusti, lo è anche il quarto.</p>
-        <p class="rechnung__weiter">
-          <a class="btn btn--primary" href="#contact" data-i18n="luecke.cta">Vediamo insieme questo conto</a>
-          <a class="card__link card__link--live" href="#plans" data-i18n="luecke.cta2">Quanto costa</a>
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- ===================== Non immaginare un sito =====================
      Der Rahmen vor den beiden Beweisen. Er sagt nicht, was wir koennen,
      sondern verschiebt, wonach der Leser ueberhaupt fragt: nicht "was
@@ -1899,7 +1817,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=5c2dc7de" defer></script>
+<script src="assets/js/i18n-it.js?v=7372864c" defer></script>
 <script src="assets/js/app.js?v=3537bcfa" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1914,7 +1832,6 @@
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
 <script type="module" src="assets/js/werkbank.js?v=4fc961bf"></script>
-<script type="module" src="assets/js/luecke.js?v=adb3f6d7"></script>
 <!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
      Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
      auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->

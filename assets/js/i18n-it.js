@@ -24,7 +24,7 @@ window.VECOM_I18N.it = {
       desc: "Siti su misura, e-commerce e loghi da Aragona (AG). Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi allo scoperto, preventivo in 90 secondi.",
       locale: "it_IT"
     },
-    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", probieren: "Da provare", luecke: "Il conto", haus: "La casa", cta: "Richiedi preventivo" },
+    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", probieren: "Da provare", haus: "La casa", cta: "Richiedi preventivo" },
     buehne: { echt: "Riprese del sito online" },
     hero: {
       eyebrow: "Webdesign dalla Sicilia — siti, marchi, e-commerce",
@@ -32,7 +32,7 @@ window.VECOM_I18N.it = {
       t2: "portarti clienti.",
       lead: "Costruisco siti per aziende, professionisti e attività locali — ognuno da zero, nessuno da un modello. Online in due settimane, a un prezzo fisso che approvi tu prima.",
       cta1: "Parliamo del tuo progetto",
-      cta2: "Quanto ti costa oggi",
+      cta2: "Quanto costa",
       cta3: "Entra nell’esperienza 3D",
       m1t: "Online in", m1d: "2–6 settimane",
       m2t: "Prezzi", m2d: "su misura, non a pacchetto",
@@ -151,23 +151,6 @@ window.VECOM_I18N.it = {
       w4r: "Un libro che si legge già prima di aprirlo",
       w5r: "Una clientela, tre lingue",
       w6r: "Un mondo in cui il libro si può attraversare",
-    },
-    luecke: {
-      marg: "il conto silenzioso",
-      head: "Fatti il conto. Con i tuoi numeri.",
-      lead: "Quattro cursori. Tre li conosci meglio di me, il quarto lo imposti tu. Quello che esce non è un preventivo: è quello che ogni mese finisce da qualcun altro.",
-      r1: "Visitatori sul tuo sito, al mese",
-      r2: "Su cento visitatori, quanti ti danno un incarico",
-      r3: "Quanto vale in media un incarico",
-      r4: "Quanto sarebbe possibile",
-      r4n: "L’unico numero che ci metto io. Spostalo.",
-      heute: "Oggi ti arrivano",
-      monat: "al mese che finisce da qualcun altro",
-      jahr: "In dodici mesi",
-      satz: "Il calcolo è volutamente grezzo: visitatori per tasso di incarico per valore dell’incarico. Nessun fattore correttivo, nessuna curva di settore. Se i tuoi tre numeri sono giusti, lo è anche il quarto.",
-      satzNull: "Con questi valori stai già ricavando tutto quello che c’è. Allora non si tratta di avere più richieste, ma richieste migliori — e ne parlo altrettanto volentieri.",
-      cta: "Vediamo insieme questo conto",
-      cta2: "Quanto costa"
     },
     haus: {
       marg: "architettura",

@@ -24,7 +24,7 @@ window.VECOM_I18N.de = {
       desc: "Maßgeschneiderte Websites und Online-Shops aus Sizilien, deutschsprachig. Dreisprachig IT/DE/EN, für Google gebaut. Preise offen gelegt, Angebot in 90 Sekunden.",
       locale: "de_DE"
     },
-    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", probieren: "Ausprobieren", luecke: "Die Rechnung", haus: "Das Haus", cta: "Angebot anfordern" },
+    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", probieren: "Ausprobieren", haus: "Das Haus", cta: "Angebot anfordern" },
     buehne: { echt: "Aufnahmen der laufenden Seite" },
     hero: {
       eyebrow: "Webdesign aus Sizilien — Websites, Marken, Online-Shops",
@@ -32,7 +32,7 @@ window.VECOM_I18N.de = {
       t2: "Kunden bringen.",
       lead: "Ich baue Websites für Unternehmen, Selbstständige und lokale Betriebe — jede von Grund auf, keine aus der Vorlage. In zwei Wochen online, zum Festpreis, den du vorher freigibst.",
       cta1: "Angebot holen",
-      cta2: "Was es dich heute kostet",
+      cta2: "Was es kostet",
       cta3: "In die 3D-Welt eintreten",
       m1t: "Online in", m1d: "2–6 Wochen",
       m2t: "Preise", m2d: "nach Bedarf, nicht nach Paket",
@@ -150,23 +150,6 @@ window.VECOM_I18N.de = {
       w4r: "Ein Buch, das man liest, bevor man es aufschlägt",
       w5r: "Eine Kundschaft, drei Sprachen",
       w6r: "Eine Buchwelt, durch die man hindurchgeht",
-    },
-    luecke: {
-      marg: "die stille rechnung",
-      head: "Rechne es dir aus. Mit deinen Zahlen.",
-      lead: "Vier Regler. Drei davon kennst du besser als ich, den vierten stellst du selbst. Was unten steht, ist kein Angebot — es ist das, was jeden Monat bei jemand anderem landet.",
-      r1: "Besucher auf deiner Seite, im Monat",
-      r2: "Von hundert Besuchern beauftragen dich heute",
-      r3: "Was ein Auftrag im Schnitt einbringt",
-      r4: "Was möglich wäre",
-      r4n: "Die einzige Zahl, die von mir kommt. Verschieb sie.",
-      heute: "Heute kommen bei dir an",
-      monat: "im Monat, die bei jemand anderem landen",
-      jahr: "In zwölf Monaten",
-      satz: "Die Rechnung ist absichtlich stumpf: Besucher mal Auftragsquote mal Auftragswert. Keine Korrekturfaktoren, keine Branchenkurve. Wenn deine drei Zahlen stimmen, stimmt auch die vierte.",
-      satzNull: "Bei diesen Werten holst du schon alles heraus, was drin ist. Dann geht es nicht um mehr Anfragen, sondern um bessere — darüber rede ich genauso gern.",
-      cta: "Diese Rechnung mit mir durchgehen",
-      cta2: "Was das kostet"
     },
     haus: {
       marg: "architektur",

@@ -183,6 +183,7 @@ jobs:
             rm -f $DIR/assets/js/world/story.js;
             rm -f $DIR/assets/css/world.css;
             rm -f $DIR/tisch.html;
+            rm -f $DIR/assets/js/luecke.js;
             bye"
 
       - name: Cockpit-Schutz nachsehen

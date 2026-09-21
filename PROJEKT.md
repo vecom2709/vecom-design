@@ -4739,3 +4739,11 @@ laute Meldung; Webhook ohne Stripe-Kopfzeile schreibt nichts mehr; `FOR UPDATE`
 beim Buchen; Fehlschlag einer Monatsrate ohne Zugriff auf eine nicht
 vorhandene Bestellung. Kette **1368 Prüfungen** (Abschnitt 55), jeder der vier
 alten Fehler in der Gegenprobe gefangen.
+
+### 21.09.2026 — „Die stille Rechnung" ist raus
+
+Auf Uwes Wunsch komplett entfernt: Abschnitt `#luecke` („Rechne es dir aus.
+Mit deinen Zahlen."), Navigationspunkt, `luecke.js` (steht in der
+Abrissliste), `.rechnung`-Stile, Texte in drei Sprachen und der Kamerazustand
+in `site-beats.js`. Der zweite Hero-Knopf führt jetzt auf die Preise
+(„Was es kostet" → `#plans`) statt ins Leere.

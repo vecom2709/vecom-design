@@ -26,13 +26,6 @@ export const SITE_BEATS = [
      Zeile hier mitnehmen — sonst springt die Kamera unmotiviert. */
   { id: 'hero',     cam: [1.1, 0.8, 12.4],  look: [1.7, 0.1, 0],  pos: [3.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, mat: 'metal', rays: 0.0, blur: 0.22, focus: 0.34, scrim: 0.00 },
 
-  /* DIE STILLE RECHNUNG -- der erste Abschnitt hinter dem Hero.
-     Hier wird gerechnet, nicht geschaut: Die Marke weicht nach rechts hinten
-     aus und der Schleier geht auf 0.82. Ohne eigenen Beat behielte dieser
-     Abschnitt den Hero-Wert scrim 0.00 -- die grosse Zahl staende dann auf
-     der hellsten Stelle der Szene und waere nicht mehr abzulesen. */
-  { id: 'luecke',   cam: [0.9, 0.9, 12.0],  look: [1.2, 0.0, 0],  pos: [4.2, -0.3, -1.6], rotY: -0.44, rotX: 0.02, fog: 0.040, key: 280, spec: 24, bloom: 0.36, rough: 0.28, keyPos: [-4.5, 7.0, 6.5], halo: 0.22, mat: 'metal', rays: 0.0, blur: 0.26, focus: 0.28, scrim: 0.82 },
-
   /* DAS LABOR. Der Tisch ist hier das Objekt, nicht die Marke -- zwei
      dreidimensionale Dinge, die um denselben Blick streiten, ergeben Unruhe.
      Die Marke geht deshalb weit nach links hinten, das Licht zurueck, der
