@@ -140,7 +140,9 @@ final class Kundenzugang
     ];
 
     /** Die Reihenfolge, wie sie auf der Fortschrittsleiste steht. */
-    public const REIHE = ['anfrage', 'angebot', 'angaben', 'arbeit', 'entwurf', 'freigabe', 'online'];
+    /* Seit dem 21.09.2026 kommen die Angaben vor dem Angebot: erst der
+       grosse Fragebogen, dann Preis und Anzahlung. */
+    public const REIHE = ['anfrage', 'angaben', 'angebot', 'arbeit', 'entwurf', 'freigabe', 'online'];
 
     /**
      * Alles, was die Kundenseite braucht — aus derselben Quelle, aus der

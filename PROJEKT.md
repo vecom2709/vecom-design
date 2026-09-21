@@ -4747,3 +4747,7 @@ Mit deinen Zahlen."), Navigationspunkt, `luecke.js` (steht in der
 Abrissliste), `.rechnung`-Stile, Texte in drei Sprachen und der Kamerazustand
 in `site-beats.js`. Der zweite Hero-Knopf führt jetzt auf die Preise
 („Was es kostet" → `#plans`) statt ins Leere.
+
+### 21.09.2026 — Erst der große Fragebogen, dann der Preis
+Der Fragebogen hing an `project_id NOT NULL`, ein Projekt entsteht erst mit der Anzahlung — also kamen Preis und Zahlungslink zwangsläufig vor dem Fragebogen. Jetzt gehört er dem Kunden (Migration 049), liegt ab der Anfrage auf der Kundenseite, und Angebot senden, Zahlungslink erzeugen/senden und Direktbuchung einer Website sind hart gesperrt, bis er abgeschickt ist; bei der Zahlung wandert er ins Projekt, ohne zweite Einladung.
+Die Führung zeigt dafür „Fragebogen verschicken“ (Einladung bleibt Uwes Klick); Kette Abschnitt 56, Gegenprobe mit vier Sabotagen, alle gefangen.

@@ -206,7 +206,26 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
         </div>
       <?php endif; ?>
 
-      <?php if (($nachricht['text'] ?? '') !== '' && $kundeDa): ?>
+      <?php if ($kundeDa && empty($fragebogenFertig)): ?>
+        <?php /* Kein Preis vor dem Fragebogen (21.09.2026): Die fertige
+                 Preisnachricht steht erst da, wenn der Kunde den grossen
+                 Fragebogen abgeschickt hat. Bis dahin steht hier, was fehlt,
+                 und der Knopf, der es besorgt. */ ?>
+        <div class="block" data-tun="preis">
+          <h2 style="font-size:15px;margin:0 0 6px">Erst der Fragebogen, dann der Preis</h2>
+          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
+            Die Zahl oben ist die Rechnung des Konfigurators — noch kein Preis für den Kunden.
+            Der geht erst raus, wenn er den großen Fragebogen abgeschickt hat; erst seine
+            Antworten legen fest, was gebaut wird.
+          </p>
+          <form method="post" action="<?= Fmt::h(url('')) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_vorab">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h('bedarf/' . (int) $b['id']) ?>">
+            <input type="hidden" name="id" value="<?= (int) $b['customer_id'] ?>">
+            <button class="knopf haupt">Fragebogen verschicken</button>
+          </form>
+        </div>
+      <?php elseif (($nachricht['text'] ?? '') !== '' && $kundeDa): ?>
         <?php /* data-tun: Kommt man ueber die Leiste "Jetzt dran" hierher,
                  leuchtet genau dieser Abschnitt auf. Ein Formular nennt seine
                  Handlung sonst im Feld "tat" -- hier ist die Handlung aber

@@ -572,6 +572,12 @@ if ($post) {
                                      FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?',
                                      [(int) $z['order_id']]) : null;
                 if (!$z || !$bst || !$z['link_url']) { throw new RuntimeException('Für diese Zahlung gibt es noch keinen Link.'); }
+                // Auch ein schon erzeugter Link geht nicht vor dem Fragebogen raus.
+                require_once __DIR__ . '/src/Onboarding.php';
+                if (Onboarding::brauchtVorPreis((int) $bst['id']) && !Onboarding::fertig((int) $bst['customer_id'])) {
+                    throw new RuntimeException('Erst der große Fragebogen, dann der Zahlungslink. '
+                        . 'Solange der Kunde ihn nicht abgeschickt hat, steht der Preis nicht fest.');
+                }
                 $spr = (string) ($bst['kunde_sprache'] ?: 'it');
                 $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo',
                                  'gesamt' => 'il pagamento', 'nachtrag' => 'le voci aggiunte'],
@@ -1025,6 +1031,12 @@ if ($post) {
                 if ($z['status'] === 'bezahlt') { throw new RuntimeException('Diese Rate ist bereits bezahlt.'); }
                 $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
                 $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $b['customer_id']]);
+                // Kein Zahlungslink vor dem grossen Fragebogen (21.09.2026).
+                require_once __DIR__ . '/src/Onboarding.php';
+                if (Onboarding::brauchtVorPreis((int) $b['id']) && !Onboarding::fertig((int) $b['customer_id'])) {
+                    throw new RuntimeException('Erst der große Fragebogen, dann der Zahlungslink. '
+                        . 'Solange der Kunde ihn nicht abgeschickt hat, steht der Preis nicht fest.');
+                }
                 $stripe = new StripeAnbieter();
                 $url = $stripe->bezahlseite($z, $b, $k);
                 Db::update('payments', (int) $z['id'], [
@@ -1429,6 +1441,26 @@ if ($post) {
                       . ($ergaenzt ? " · Website-Texte bei $ergaenzt Paket(en) ergänzt" : '')
                     : 'Datenbank war bereits aktuell');
                 weiter($_POST['zurueck'] ?? '');
+
+            case 'fragebogen_vorab':
+                /* Der grosse Fragebogen VOR dem Preis (21.09.2026). Legt ihn an,
+                   falls es ihn noch nicht gibt, und schickt die Einladung --
+                   beim zweiten Klick noch einmal. */
+                require_once __DIR__ . '/src/Onboarding.php';
+                require_once __DIR__ . '/src/Mail.php';
+                require_once __DIR__ . '/src/Texte.php';
+                $fkid = (int) ($_POST['id'] ?? 0);
+                if (Onboarding::fertig($fkid)) {
+                    $_SESSION['gut'] = 'Der Fragebogen ist schon ausgefüllt — jetzt ist der Preis dran.';
+                    weiter($_POST['zurueck'] ?? ('kunden/' . $fkid));
+                }
+                $schonRaus = (Onboarding::aktuell($fkid)['eingeladen_am'] ?? null) !== null;
+                if (!Onboarding::einladenVorab($fkid, $schonRaus)) {
+                    throw new RuntimeException('Die Einladung ging nicht raus. Steht der Brevo-Schlüssel? '
+                        . 'Der Fragebogen selbst liegt trotzdem auf der Seite des Kunden.');
+                }
+                $_SESSION['gut'] = $schonRaus ? 'Erinnerung an den Fragebogen verschickt.' : 'Fragebogen verschickt.';
+                weiter($_POST['zurueck'] ?? ('kunden/' . $fkid));
 
             case 'fragebogen_einladen':
                 require_once __DIR__ . '/src/Onboarding.php';
@@ -2516,6 +2548,11 @@ switch ($route) {
                 'kundeDa'   => $kundeDa,
                 'angebotId' => (int) sicher(static fn() => Db::wert(
                     'SELECT id FROM angebote WHERE bedarf_id = ? LIMIT 1', [$id], 0), 0),
+                /* Der Preis geht erst raus, wenn der grosse Fragebogen zurueck ist. */
+                'fragebogenFertig' => $kundeDa && (bool) sicher(static function () use ($b) {
+                    require_once __DIR__ . '/src/Onboarding.php';
+                    return Onboarding::fertig((int) $b['customer_id']);
+                }, false),
             ]);
             break;
         }

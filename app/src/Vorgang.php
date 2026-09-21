@@ -34,10 +34,12 @@ declare(strict_types=1);
 final class Vorgang
 {
     /** Die Stufen in ihrer Reihenfolge. Der Index ist der Fortschritt. */
+    /* Seit dem 21.09.2026 steht der Fragebogen VOR dem Angebot: Erst die
+       Antworten, dann der Preis, dann die Zahlung. Siehe fragebogenVorPreis(). */
     public const STUFEN = [
         'gespraech'   => 'Gespräch',
-        'angebot'     => 'Angebot',
         'onboarding'  => 'Fragebogen',
+        'angebot'     => 'Angebot',
         'arbeit'      => 'In Arbeit',
         'vorschau'    => 'Vorschau',
         'freigabe'    => 'Freigegeben',
@@ -233,9 +235,12 @@ final class Vorgang
             'SELECT * FROM payments WHERE order_id = ? ORDER BY FIELD(art, ?, ?, ?), id',
             [$bestellId, 'anzahlung', 'gesamt', 'restzahlung']);
 
+        /* Ohne Projekt (noch nicht bezahlt) der Fragebogen, der dem Kunden
+           schon vor dem Preis gehoert. */
         $fragebogen = $projektId !== null
             ? self::eine('SELECT * FROM questionnaires WHERE project_id = ?', [$projektId])
-            : null;
+            : self::eine('SELECT * FROM questionnaires WHERE customer_id = ? AND project_id IS NULL
+                           ORDER BY id DESC LIMIT 1', [(int) $z['customer_id']]);
 
         $v = [
             'schluessel'  => 'b' . $bestellId,
@@ -313,7 +318,10 @@ final class Vorgang
             'anfrage_text'  => (string) ($z['nachricht'] ?? ''),
             'anfrage_status'=> (string) $z['status'],
             'zahlungen'   => [],
-            'fragebogen'  => null,
+            'fragebogen'  => $z['customer_id'] !== null
+                ? self::eine('SELECT * FROM questionnaires WHERE customer_id = ? AND project_id IS NULL
+                               ORDER BY id DESC LIMIT 1', [(int) $z['customer_id']])
+                : null,
             'begonnen'    => (string) $z['created_at'],
             'bewegt'      => self::juengste([
                 $z['updated_at'] ?? null,
@@ -499,6 +507,18 @@ final class Vorgang
                Kunde bekommt. Etwas zu verschicken, ohne es gelesen zu haben,
                ist kein Handgriff, den man einem Knopf ueberlassen sollte. */
             $bZiel = 'bestellungen/' . (int) $v['bestell_id'];
+
+            /* Kein Zahlungslink ohne den grossen Fragebogen -- solange er
+               noch nicht draussen ist. War er es schon (vor dem 21.09.2026
+               verschickt), hat der Kunde ihn; dann laeuft es wie bisher, und
+               der Fragebogen kommt nach der Zahlung. */
+            $linkRaus = !empty($anzahlung['link_url'])
+                && self::mailRaus('zahlungslink', 'payment_id', (int) $anzahlung['id']);
+            if (!$linkRaus && self::brauchtFragebogenVorPreis($v)) {
+                $schritt = self::fragebogenVorPreis($v, (int) $v['kunde_id']);
+                if ($schritt !== null) { return $schritt; }
+            }
+
             if (empty($anzahlung['link_url'])) {
                 return self::setzen($v, 'angebot', self::DU, 'Zahlungslink erzeugen',
                     'Ohne Link kann der Kunde nicht zahlen.',
@@ -807,6 +827,52 @@ final class Vorgang
         return self::ruhtSeitTagen($v);
     }
 
+    /* ======================================================================
+       DER GROSSE FRAGEBOGEN KOMMT VOR DEM PREIS  (21.09.2026)
+
+       Uwe: "Wir koennen nicht vorher den Preis nennen, bevor der Fragebogen
+       ausgefuellt wird. Im Dashboard vom Kunden muss zwingend der grosse
+       Fragebogen da sein, bevor wir ueberhaupt den Zahlungslink zusenden
+       koennen."
+
+       Diese eine Stelle haelt die Reihenfolge fuer die Fuehrung: Preis
+       nennen, Angebot senden und Zahlungslink erzeugen/senden kommen erst,
+       wenn der Kunde den Fragebogen abgeschickt hat. Vorher heisst der
+       naechste Schritt "Fragebogen verschicken" -- oder, wenn er draussen
+       ist, "Erinnern". Die Taten selbst sind zusaetzlich gesperrt
+       (Angebot::senden, zahlungslink, zahlungslink_senden): Wer an der
+       Fuehrung vorbei klickt, bekommt eine Erklaerung statt eines Preises.
+       ====================================================================== */
+
+    /** Der Schritt, solange der Fragebogen fehlt -- oder null, wenn er da ist. */
+    private static function fragebogenVorPreis(array $v, int $kid): ?array
+    {
+        if ($kid <= 0) { return null; }
+        $f = self::eine('SELECT * FROM questionnaires WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$kid]);
+        if ($f !== null && (string) $f['status'] === 'abgeschlossen') { return null; }
+
+        $ziel = 'vorgaenge/' . $v['schluessel'] . '?tun=fragebogen_vorab';
+        if ($f === null || empty($f['eingeladen_am'])) {
+            return self::setzen($v, 'onboarding', self::DU, 'Fragebogen verschicken',
+                'Vor dem Preis kommt der große Fragebogen. Erst mit seinen Antworten steht fest, '
+                . 'was gebaut wird — und was es kostet.',
+                'fragebogen_vorab', $kid, [], $ziel);
+        }
+        return self::setzen($v, 'onboarding', self::KUNDE, 'Erinnern',
+            'Der Fragebogen ist beim Kunden. Solange er fehlt, gibt es keinen Preis und keinen Zahlungslink.',
+            'fragebogen_vorab', $kid, [], $ziel);
+    }
+
+    /** Eine Website ja, Betreuung und feste Bestandsaufnahme nein. Siehe Onboarding::brauchtVorPreis. */
+    private static function brauchtFragebogenVorPreis(array $v): bool
+    {
+        if (($v['bestell_id'] ?? null) === null) { return true; }
+        return (bool) self::wert(
+            "SELECT COUNT(*) FROM orders o LEFT JOIN packages pk ON pk.id = o.package_id
+              WHERE o.id = ? AND (pk.art = 'website' OR pk.slug = 'individuelles-angebot')",
+            [(int) $v['bestell_id']]);
+    }
+
     private static function gespraechSchritt(array $v): array
     {
         $kid = $v['kunde_id'];
@@ -822,6 +888,8 @@ final class Vorgang
             $ziel = 'angebote/' . (int) $angebot['id'];
             switch ((string) $angebot['status']) {
                 case 'entwurf':
+                    $schritt = self::fragebogenVorPreis($v, (int) $kid);
+                    if ($schritt !== null) { return $schritt; }
                     return self::setzen($v, 'gespraech', self::DU, 'Angebot senden',
                         'Das Angebot steht als Entwurf. Der Kunde hat es noch nicht.',
                         null, null, [], $ziel . '?tun=angebot_senden');
@@ -933,6 +1001,11 @@ final class Vorgang
               ORDER BY id DESC LIMIT 1", [$kid]);
 
         if ($bedarf !== null) {
+            /* Der Konfigurator hat gerechnet -- aber ein Preis geht erst
+               raus, wenn der grosse Fragebogen zurueck ist. */
+            $schritt = self::fragebogenVorPreis($v, (int) $kid);
+            if ($schritt !== null) { return $schritt; }
+
             $ziel = 'bedarf/' . (int) $bedarf['id'];
             $seit = (string) ($bedarf['abgesendet_am'] ?: $bedarf['created_at']);
 
@@ -1386,7 +1459,7 @@ final class Vorgang
 
         /* --- Ein Fragebogen liegt ----------------------------------------- */
         foreach (self::zeilen(
-            "SELECT q.project_id, q.eingeladen_am, q.erinnert_am, c.name AS kunde, c.company AS firma
+            "SELECT q.project_id, q.customer_id, q.eingeladen_am, q.erinnert_am, c.name AS kunde, c.company AS firma
                FROM questionnaires q JOIN customers c ON c.id = q.customer_id
               WHERE q.status = 'offen' AND q.eingeladen_am IS NOT NULL
                 AND q.eingeladen_am <= DATE_SUB(NOW(), INTERVAL ? DAY)
@@ -1399,7 +1472,8 @@ final class Vorgang
                          . ($q['erinnert_am'] ? ', einmal erinnert' : ', noch nicht erinnert'),
                 'tage'  => -$tage,
                 'eilig' => $tage >= 7,
-                'ziel'  => 'projekte/' . (int) $q['project_id'],
+                'ziel'  => $q['project_id'] !== null
+                    ? 'projekte/' . (int) $q['project_id'] : 'kunden/' . (int) $q['customer_id'],
             ];
         }
 

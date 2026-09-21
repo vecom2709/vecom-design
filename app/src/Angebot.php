@@ -532,6 +532,15 @@ final class Angebot
         if (!$a || $a['status'] !== 'entwurf') { return false; }
         if ((int) $a['summe_cents'] <= 0 && (int) $a['monatlich_cents'] <= 0) { return false; }
 
+        /* Kein Preis vor dem Fragebogen (21.09.2026). Geworfen statt false:
+           Wer hier an der Fuehrung vorbei klickt, soll lesen, warum nichts
+           rausging -- nicht vor einer Seite stehen, auf der sich nichts tut. */
+        require_once __DIR__ . '/Onboarding.php';
+        if (!Onboarding::fertig((int) $a['customer_id'])) {
+            throw new RuntimeException('Das Angebot geht erst raus, wenn der Kunde den großen Fragebogen '
+                . 'abgeschickt hat — erst seine Antworten legen fest, was gebaut wird und was es kostet.');
+        }
+
         $tage = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
         Db::update('angebote', $angebotId, [
             'status'      => 'gesendet',

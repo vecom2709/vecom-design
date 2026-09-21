@@ -88,7 +88,7 @@ final class Telefonfragebogen
         return self::still(static fn() => Db::one(
             "SELECT q.*, p.name AS projekt
                FROM questionnaires q
-               JOIN projects p ON p.id = q.project_id
+               LEFT JOIN projects p ON p.id = q.project_id   -- seit 21.09.2026 auch vor dem Preis
               WHERE q.customer_id = ? AND q.status <> 'abgeschlossen'
               ORDER BY q.id DESC LIMIT 1", [$kundeId]), null);
     }

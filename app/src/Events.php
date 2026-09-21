@@ -435,6 +435,13 @@ final class Events
                 Db::update('orders', (int) $z['order_id'], ['status' => 'bezahlt']);
                 $projektId = self::projektAusBestellung((int) $z['order_id']);
                 self::projektStatus($projektId, 'zahlung_bestaetigt', false);
+                /* Kam der Fragebogen schon vor dem Preis (der Normalfall seit
+                   dem 21.09.2026), sind die Angaben mit der Zahlung schon da --
+                   das Projekt steht damit gleich einen Schritt weiter. */
+                if ((string) Db::wert('SELECT status FROM questionnaires WHERE project_id = ?', [$projektId], '')
+                        === 'abgeschlossen') {
+                    self::projektStatus($projektId, 'informationen_erhalten', false);
+                }
             } else {
                 $vorhanden = Db::one('SELECT id, status FROM projects WHERE order_id = ?', [(int) $z['order_id']]);
                 $projektId = $vorhanden ? (int) $vorhanden['id'] : null;
@@ -525,6 +532,33 @@ final class Events
             } catch (Throwable $e) {
                 self::melden('mail_fehler', 'Fragebogen konnte nicht verschickt werden', 'schlecht',
                     $e->getMessage(), '/projekte/' . (int) $nachlauf['projekt']);
+            }
+
+            /* WAS SONST BEIM ABSCHICKEN DES FRAGEBOGENS PASSIERT
+               ------------------------------------------------------------
+               Kam der Fragebogen vor dem Preis, lief sein Abschicken ohne
+               Projekt -- Briefing und Domainvorschlag brauchen aber eins
+               (Onboarding::absenden laesst sie dann bewusst aus). Jetzt gibt
+               es das Projekt, also jetzt. Jedes in eigenem Netz: Nichts davon
+               darf eine gebuchte Zahlung beruehren. */
+            $fbJetzt = null;
+            try {
+                $fbJetzt = Db::one('SELECT * FROM questionnaires WHERE project_id = ?', [(int) $nachlauf['projekt']]);
+            } catch (Throwable $e) { /* dann eben nicht */ }
+            if ($fbJetzt && (string) $fbJetzt['status'] === 'abgeschlossen') {
+                try {
+                    $schon = trim((string) Db::wert('SELECT briefing FROM projects WHERE id = ?',
+                        [(int) $nachlauf['projekt']], ''));
+                    if ($schon === '') {
+                        require_once __DIR__ . '/Briefing.php';
+                        Briefing::speichern((int) $nachlauf['projekt']);
+                    }
+                } catch (Throwable $e) { /* der Knopf am Projekt bleibt */ }
+                try {
+                    require_once __DIR__ . '/Hosting.php';
+                    Hosting::nachFragebogen((int) $nachlauf['projekt'], (int) $fbJetzt['customer_id'],
+                        (array) (json_decode((string) ($fbJetzt['data'] ?? ''), true) ?: []));
+                } catch (Throwable $e) { /* von Hand nachholbar */ }
             }
         }
 
@@ -683,6 +717,19 @@ final class Events
             'start_date'  => date('Y-m-d'),
             'deadline'    => date('Y-m-d', strtotime('+30 days')),
         ]);
+
+        /* SEIT DEM 21.09.2026 KOMMT DER FRAGEBOGEN VOR DEM PREIS
+           Dann liegt er schon da, ohne Projekt (siehe Onboarding::vorab) --
+           meist ausgefuellt. Er wandert jetzt hierher. Ein zweiter, leerer
+           daneben waere eine Frage, die der Kunde schon beantwortet hat. */
+        $vorab = Db::one('SELECT id FROM questionnaires WHERE customer_id = ? AND project_id IS NULL
+                           ORDER BY id DESC LIMIT 1 FOR UPDATE', [(int) $b['customer_id']]);
+        if ($vorab) {
+            Db::update('questionnaires', (int) $vorab['id'], ['project_id' => $projektId]);
+            self::protokoll('projekt_neu', 'Projekt angelegt: ' . $name . ' — mit dem Fragebogen von vorher',
+                (int) $b['customer_id'], $bestellId, $projektId);
+            return $projektId;
+        }
 
         /* Der Fragebogen gehoert zum Projekt und entsteht mit ihm -- und er
            entsteht nicht leer: Was der Kunde im Konfigurator schon gesagt hat,

@@ -293,6 +293,20 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
 
 /* ---------- Was auf der Seite steht ---------- */
 $seite = $kunde ? Kundenzugang::seite($kunde) : null;
+
+/* DER GROSSE FRAGEBOGEN STEHT DA, SOBALD ER DRAN IST  (21.09.2026)
+   Vor dem Preis gehoert er dem Kunden, noch keinem Projekt. Ist er dran und
+   gibt es ihn noch nicht, entsteht er hier -- vorbelegt mit dem, was der
+   Kunde im Konfigurator schon gesagt hat. Es geht dabei nichts raus: Die
+   Einladung per Mail bleibt Uwes Klick. Aber auf dieser Seite steht er,
+   auch wenn der Kunde von selbst vorbeischaut. */
+if ($kunde && ($seite['stufe'] ?? '') === 'angaben' && empty($seite['vorgang']['projekt_id'])
+    && empty($seite['vorgang']['fragebogen'])) {
+    if (sicherLesen(fn() => Onboarding::vorab((int) $kunde['id']), 0)) {
+        $seite = Kundenzugang::seite($kunde);
+    }
+}
+
 $v     = $seite['vorgang'] ?? null;
 $stufe = $seite['stufe'] ?? 'anfrage';
 $pid   = $v['projekt_id'] ?? null;
@@ -313,8 +327,12 @@ $vertraege = $kunde ? (array) sicherLesen(fn() => Db::all(
         AND EXISTS (SELECT 1 FROM payments z WHERE z.order_id = o.id AND z.status = 'bezahlt')
       ORDER BY o.id DESC", [(int) $kunde['id']])) : [];
 
+/* Mit Projekt dessen Fragebogen; ohne Projekt der, der vor dem Preis kommt. */
 $fragebogen = $pid ? sicherLesen(fn() => Db::one(
-    'SELECT * FROM questionnaires WHERE project_id = ?', [(int) $pid]), null) : null;
+    'SELECT * FROM questionnaires WHERE project_id = ?', [(int) $pid]), null)
+  : ($kunde ? sicherLesen(fn() => Db::one(
+    'SELECT * FROM questionnaires WHERE customer_id = ? AND project_id IS NULL ORDER BY id DESC LIMIT 1',
+    [(int) $kunde['id']]), null) : null);
 
 /* Der Schluessel des Fragebogens. Er kann fehlen — etwa direkt nachdem der
    Zugang zurueckgezogen wurde. Dann entsteht hier ein frischer, statt dass

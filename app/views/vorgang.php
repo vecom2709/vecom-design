@@ -353,7 +353,7 @@ $kettenWer = static fn(array $p): string => ($p['wer'] ?? 'du') === 'kunde' ? ' 
    nicht als if-Kette, damit ein neuer Handgriff an einer Stelle eingetragen
    wird und nicht an vieren. */
 $schubladen = [
-    'gespraech' => ['fragebogen_einladen', 'fragebogen_erinnern', 'fragebogen_link',
+    'gespraech' => ['fragebogen_vorab', 'fragebogen_einladen', 'fragebogen_erinnern', 'fragebogen_link',
                     'nachricht_senden', 'kunde_nachricht', 'nachrichten_gelesen',
                     'mehrbedarf_nachtrag', 'mehrbedarf_erledigt'],
     'geld'      => ['anfrage_bestellung', 'angebot_senden', 'angebot_zusage',
@@ -470,19 +470,25 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
     <?php endif; ?>
   </div>
 
-  <?php /* ---------- Fragebogen ---------- */ ?>
-  <?php if ($fb): ?>
+  <?php /* ---------- Fragebogen ----------
+           Seit dem 21.09.2026 auch vor der Zahlung: Dann gehoert er dem
+           Kunden und noch keinem Projekt, und er muss zurueck sein, bevor
+           ein Preis rausgeht. Der Block steht deshalb auch dann, wenn es ihn
+           noch gar nicht gibt, aber die Fuehrung nach ihm fragt. */ ?>
+  <?php $fbGefragt = (($s['tat'] ?? null) === 'fragebogen_vorab'); ?>
+  <?php if ($fb || $fbGefragt): ?>
   <?php
-    $fbDaten  = $fb['data'] ? (json_decode((string) $fb['data'], true) ?: []) : [];
-    $fbFertig = $fb['status'] === 'abgeschlossen';
+    $fbDaten  = ($fb['data'] ?? null) ? (json_decode((string) $fb['data'], true) ?: []) : [];
+    $fbFertig = ($fb['status'] ?? '') === 'abgeschlossen';
   ?>
   <div class="block">
     <h2>Fragebogen<span class="mehr"><span class="marke2 <?= $fbFertig ? 'gut' : '' ?>">
       <?= $fbFertig ? 'Abgeschlossen' : 'Offen' ?></span></span></h2>
     <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
-      Eingeladen: <?= Fmt::h($fb['eingeladen_am'] ? Fmt::datum($fb['eingeladen_am']) : 'noch nicht') ?>
-      <?php if ($fb['erinnert_am']): ?> · erinnert: <?= Fmt::h(Fmt::datum($fb['erinnert_am'])) ?><?php endif; ?>
-      <?php if ($fbFertig): ?> · zurück: <?= Fmt::h(Fmt::datum($fb['submitted_at'])) ?><?php endif; ?></p>
+      Eingeladen: <?= Fmt::h(($fb['eingeladen_am'] ?? null) ? Fmt::datum($fb['eingeladen_am']) : 'noch nicht') ?>
+      <?php if ($fb['erinnert_am'] ?? null): ?> · erinnert: <?= Fmt::h(Fmt::datum($fb['erinnert_am'])) ?><?php endif; ?>
+      <?php if ($fbFertig): ?> · zurück: <?= Fmt::h(Fmt::datum($fb['submitted_at'])) ?><?php endif; ?>
+      <?php if (!$pid): ?> · <strong>vor dem Preis</strong> — Angebot und Zahlungslink warten auf ihn<?php endif; ?></p>
 
     <?php if ($fbDaten): ?>
       <?php foreach (Texte::FRAGEBOGEN as $inhalt): ?>
@@ -509,7 +515,16 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_einladen">
         <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
         <input type="hidden" name="id" value="<?= (int) $pid ?>">
-        <button class="knopf"><?= $fb['eingeladen_am'] ? 'Noch einmal verschicken' : 'Fragebogen verschicken' ?></button></form>
+        <button class="knopf"><?= ($fb['eingeladen_am'] ?? null) ? 'Noch einmal verschicken' : 'Fragebogen verschicken' ?></button></form>
+    <?php elseif (!$fbFertig && !$pid && !empty($v['kunde_id'])): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_vorab">
+        <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
+        <input type="hidden" name="id" value="<?= (int) $v['kunde_id'] ?>">
+        <button class="knopf<?= $fbGefragt ? ' haupt' : '' ?>"><?= ($fb['eingeladen_am'] ?? null) ? 'Noch einmal verschicken' : 'Fragebogen verschicken' ?></button></form>
+      <?php if (!$fb): ?>
+        <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Er entsteht beim Verschicken, vorbelegt mit dem, was der Kunde im Konfigurator angekreuzt hat.</p>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
   <?php endif; ?>

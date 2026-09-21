@@ -109,6 +109,12 @@ try {
     $stripeOffen  = $stripe->bereit() && $stripe->webhookBereit() && ($stripe->modus() === 'live' || $testSichtbar);
     if ($slug !== '') {
         $paket = Db::one('SELECT * FROM packages WHERE slug = ? AND active = 1 AND oeffentlich = 1 AND direktkauf = 1', [$slug]);
+        /* Eine Website wird nie direkt gebucht (21.09.2026): Erst der grosse
+           Fragebogen, dann der Preis, dann die Bezahlseite. Bisher hielt das
+           nur ein Schalter in der Paketliste (Migration 043) -- ein Haken zu
+           viel in der Verwaltung, und die Anzahlung waere wieder vor dem
+           Fragebogen faellig. Jetzt haelt es der Code. */
+        if ($paket && Onboarding::brauchtVorPreisPaket($paket)) { $paket = null; }
     }
 } catch (Throwable $e) {
     $stripeOffen = false;

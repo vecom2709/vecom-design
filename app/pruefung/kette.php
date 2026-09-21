@@ -4171,6 +4171,16 @@ $angId = (int) Db::insert('angebote', [
     'token' => bin2hex(random_bytes(24)),
 ]);
 $vorMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'angebot' AND customer_id = ?", [$angKunde], 0);
+
+/* Seit dem 21.09.2026: kein Angebot vor dem grossen Fragebogen. Erst die
+   Sperre, dann der Fragebogen, dann geht es raus. */
+require_once $wurzel . '/src/Onboarding.php';
+$angSperre = '';
+try { Angebot::senden($angId); } catch (RuntimeException $e) { $angSperre = $e->getMessage(); }
+pruefe('ohne ausgefuellten Fragebogen geht das Angebot nicht raus',
+    str_contains($angSperre, 'Fragebogen')
+    && (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [$angId], '') === 'entwurf', $angSperre);
+Onboarding::absenden(Onboarding::vorab($angKunde), ['branche' => 'Probe']);
 pruefe('das Angebot laesst sich verschicken', Angebot::senden($angId) === true);
 pruefe('es steht danach auf gesendet',
     (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [$angId], '') === 'gesendet');
@@ -4190,6 +4200,7 @@ pruefe('ein Entwurf ohne Betrag geht nicht raus', (static function () use ($angK
 })());
 Db::run('DELETE FROM mails WHERE customer_id = ?', [$angKunde]);
 Db::run('DELETE FROM angebote WHERE customer_id = ?', [$angKunde]);
+Db::run('DELETE FROM questionnaires WHERE customer_id = ?', [$angKunde]);
 Db::run("DELETE FROM notifications WHERE type = 'mail_fehler'");
 
 /* ============================================================================
@@ -5554,8 +5565,11 @@ pruefe('alle dreizehn eigenen Blöcke stehen noch da',
    Umbau schon steht — die Akte und das Projekt liegen als Schubladen auf
    dieser Seite. Wer die alten Seiten ganz braucht, findet den Verweis in
    der jeweiligen Schublade, im Zusammenhang. */
-pruefe('und sechsundzwanzig Knöpfe — drei Wege ins Nirgendwo weniger',
-    substr_count($tVorgang, 'class="knopf') === 26,
+/* 27 seit dem 21.09.2026: "Fragebogen verschicken" VOR dem Preis. Der
+   bisherige Knopf verschickt den Fragebogen eines Projekts -- vor der
+   Zahlung gibt es keins, also braucht es einen eigenen. */
+pruefe('und siebenundzwanzig Knöpfe — drei Wege ins Nirgendwo weniger, einer vor dem Preis mehr',
+    substr_count($tVorgang, 'class="knopf') === 27,
     (string) substr_count($tVorgang, 'class="knopf'));
 pruefe('die Kundenakte kommt als Schublade dazu', str_contains($tVorgang, "'/kunde.php'"));
 pruefe('die Projektstücke auch', str_contains($tVorgang, '$projektteile ?? []'));
@@ -6400,6 +6414,192 @@ Db::run("UPDATE webhook_events SET status = 'empfangen', received_at = DATE_SUB(
     [(int) $a1['id']]);
 $a5 = Webhook::annehmen('stripe', $evt, 'checkout.session.completed', '{}');
 pruefe('ein Ereignis, das seit Minuten haengt, wird noch einmal verarbeitet', $a5['weiter'] === true, json_encode($a5));
+
+/* ============================================================================
+   56. Erst der Fragebogen, dann der Preis, dann die Zahlung
+
+   Uwe am 21.09.2026: "Der grosse Fragebogen ist nicht rausgegangen. Wir
+   koennen nicht vorher den Preis nennen, bevor der Fragebogen ausgefuellt
+   wird. Im Dashboard vom Kunden muss zwingend der grosse Fragebogen da sein,
+   bevor wir ueberhaupt den Zahlungslink zusenden koennen."
+
+   Bis dahin hing ein Fragebogen an einem Projekt, und ein Projekt entstand
+   erst mit der Anzahlung. Ein Kunde, der noch nicht bezahlt hatte, konnte
+   gar keinen Fragebogen bekommen. Dieser Abschnitt spielt den Weg so, wie
+   ein Kunde ihn geht: Konfigurator -> Fragebogen -> Preis -> Angebot ->
+   Zusage -> Zahlungslink -> Zahlung -> Projekt mit DEMSELBEN Fragebogen.
+   ============================================================================ */
+abschnitt('56. Erst der Fragebogen, dann der Preis');
+
+require_once $wurzel . '/src/Onboarding.php';
+require_once $wurzel . '/src/Bedarf.php';
+require_once $wurzel . '/src/Baukasten.php';
+require_once $wurzel . '/src/Angebot.php';
+require_once $wurzel . '/src/Kundenzugang.php';
+
+/* ---------- Der Kunde kommt ueber den Konfigurator ---------------------- */
+$fvB = Bedarf::starten('de');
+Bedarf::speichern((int) $fvB['id'], ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 1], 3);
+$fvAb = Bedarf::absenden((int) $fvB['id'], ['name' => 'Fragebogen Zuerst', 'email' => 'fragebogen-zuerst@pruefung.example',
+    'sprache' => 'de']);
+pruefe('der Konfigurator ist abgeschickt', $fvAb === true);
+$fvK = (int) Db::wert('SELECT id FROM customers WHERE email = ?', ['fragebogen-zuerst@pruefung.example'], 0);
+$fvA = (int) Db::wert('SELECT id FROM anfragen WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$fvK], 0);
+pruefe('daraus sind Kunde und Anfrage entstanden', $fvK > 0 && $fvA > 0, "$fvK / $fvA");
+
+$fvV = Vorgang::laden('a' . $fvA);
+pruefe('der naechste Schritt ist der Fragebogen, nicht der Preis',
+    ($fvV['schritt']['knopf'] ?? '') === 'Fragebogen verschicken' && $fvV['stufe'] === 'onboarding',
+    ($fvV['schritt']['knopf'] ?? '-') . ' / ' . $fvV['stufe']);
+pruefe('und er fuehrt auf die Vorgangsseite, wo der Knopf leuchtet',
+    str_contains((string) ($fvV['schritt']['ziel'] ?? ''), '?tun=fragebogen_vorab'), (string) ($fvV['schritt']['ziel'] ?? ''));
+pruefe('auf der Kundenseite steht die Stufe "Angaben"',
+    (Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$fvK]))['stufe'] ?? '') === 'angaben');
+pruefe('in der Fortschrittsleiste des Kunden kommen die Angaben vor dem Angebot',
+    array_search('angaben', Kundenzugang::REIHE, true) < array_search('angebot', Kundenzugang::REIHE, true));
+pruefe('auch in Uwes Stufen steht der Fragebogen vor dem Angebot',
+    array_search('onboarding', array_keys(Vorgang::STUFEN), true) < array_search('angebot', array_keys(Vorgang::STUFEN), true));
+pruefe('noch ist der Fragebogen nicht fertig', Onboarding::fertig($fvK) === false);
+
+/* ---------- Der Fragebogen entsteht ohne Projekt ------------------------- */
+$fvF = Onboarding::vorab($fvK);
+pruefe('der Fragebogen entsteht vor jedem Projekt', $fvF > 0
+    && Db::one('SELECT project_id FROM questionnaires WHERE id = ?', [$fvF])['project_id'] === null);
+pruefe('ein zweiter Griff legt keinen zweiten an',
+    Onboarding::vorab($fvK) === $fvF
+    && (int) Db::wert('SELECT COUNT(*) FROM questionnaires WHERE customer_id = ?', [$fvK], 0) === 1);
+pruefe('er ist vorbelegt mit dem, was im Konfigurator stand',
+    trim((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fvF], '')) !== '');
+
+$vorVorab = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'fragebogen_vorab' AND customer_id = ?", [$fvK], 0);
+Onboarding::einladenVorab($fvK);
+$fvMail = Db::one("SELECT * FROM mails WHERE anlass = 'fragebogen_vorab' AND customer_id = ? ORDER BY id DESC LIMIT 1", [$fvK]);
+pruefe('die Einladung wird versucht (Postausgang)',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'fragebogen_vorab' AND customer_id = ?", [$fvK], 0) === $vorVorab + 1);
+[$fvBetreff, $fvText] = Texte::mail('fragebogen_vorab', 'de', ['name' => 'X', 'link' => 'L']);
+pruefe('sie verspricht einen Preis erst NACH dem Fragebogen und spricht von keiner Zahlung',
+    str_contains($fvBetreff, 'Preis') && !str_contains($fvText, 'Anzahlung') && !str_contains($fvText, 'bezahlt'));
+pruefe('es gibt sie in allen drei Sprachen', (static function () {
+    foreach (['it', 'de', 'en'] as $sp) {
+        [$b, $t] = Texte::mail('fragebogen_vorab', $sp, ['name' => 'X', 'link' => 'L']);
+        if (trim($b) === '' || !str_contains($t, 'L')) { return false; }
+    }
+    return true;
+})());
+
+/* Ohne Mailserver ging nichts raus; so, als waere die Einladung draussen: */
+Db::update('questionnaires', $fvF, ['eingeladen_am' => date('Y-m-d H:i:s')]);
+$fvV = Vorgang::laden('a' . $fvA);
+pruefe('ist er verschickt, wartet der Kunde — mit "Erinnern" als Knopf',
+    $fvV['dran'] === Vorgang::KUNDE && ($fvV['schritt']['knopf'] ?? '') === 'Erinnern', $fvV['dran']);
+
+/* ---------- Vorher geht kein Angebot raus -------------------------------- */
+$fvAng = (int) Angebot::ausBedarf((int) $fvB['id']);
+pruefe('ein Angebot als Entwurf darf entstehen', $fvAng > 0);
+$fvV = Vorgang::laden('a' . $fvA);
+pruefe('aber die Fuehrung sagt auch dann: erst der Fragebogen',
+    $fvV['stufe'] === 'onboarding', ($fvV['schritt']['knopf'] ?? '-'));
+$fvSperre = '';
+try { Angebot::senden($fvAng); } catch (RuntimeException $e) { $fvSperre = $e->getMessage(); }
+pruefe('und wer trotzdem auf Senden drueckt, bekommt eine Erklaerung statt eines Preises',
+    str_contains($fvSperre, 'Fragebogen')
+    && (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [$fvAng], '') === 'entwurf', $fvSperre);
+
+/* ---------- Der Kunde schickt den Fragebogen ab -------------------------- */
+$vorMeld = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'fragebogen_fertig'", [], 0);
+Onboarding::absenden($fvF, ['branche' => 'Tischlerei', 'ziel' => 'Mehr Anfragen']);
+pruefe('der Fragebogen ist abgeschickt', Onboarding::fertig($fvK) === true);
+$fvMeld = Db::one("SELECT * FROM notifications WHERE type = 'fragebogen_fertig' ORDER BY id DESC LIMIT 1");
+pruefe('Uwe bekommt Bescheid — mit dem Hinweis, dass jetzt der Preis dran ist',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'fragebogen_fertig'", [], 0) === $vorMeld + 1
+    && str_contains((string) $fvMeld['title'], 'Preis') && (string) $fvMeld['link'] === '/kunden/' . $fvK,
+    (string) ($fvMeld['title'] ?? '') . ' ' . (string) ($fvMeld['link'] ?? ''));
+
+$fvV = Vorgang::laden('a' . $fvA);
+pruefe('jetzt ist das Angebot dran', $fvV['stufe'] === 'gespraech'
+    && ($fvV['schritt']['knopf'] ?? '') === 'Angebot senden', ($fvV['schritt']['knopf'] ?? '-'));
+pruefe('das Angebot geht jetzt raus', Angebot::senden($fvAng) === true);
+
+/* ---------- Zusage, Bestellung, Zahlungslink ----------------------------- */
+$fvToken = (string) Db::wert('SELECT token FROM angebote WHERE id = ?', [$fvAng], '');
+$fvBest = (int) Angebot::annehmen($fvToken, ['text' => 'AGB und Widerruf gelesen', 'sprache' => 'de']);
+pruefe('der Kunde sagt zu, und es entsteht eine Bestellung', $fvBest > 0);
+pruefe('die Bestellung braucht den Fragebogen vor dem Preis', Onboarding::brauchtVorPreis($fvBest) === true);
+$fvV = Vorgang::laden('b' . $fvBest);
+pruefe('mit ausgefuelltem Fragebogen geht es direkt zum Zahlungslink',
+    ($fvV['schritt']['knopf'] ?? '') === 'Zahlungslink erzeugen', ($fvV['schritt']['knopf'] ?? '-'));
+
+/* ---------- Die Zahlung: dasselbe Blatt, keine zweite Einladung --------- */
+$fvZ = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art IN ('anzahlung','gesamt') ORDER BY id LIMIT 1", [$fvBest], 0);
+Events::zahlungBestaetigen($fvZ, 'probe-fragebogen-zuerst', 'manuell');
+$fvP = (int) Db::wert('SELECT id FROM projects WHERE order_id = ?', [$fvBest], 0);
+pruefe('mit der Zahlung entsteht das Projekt', $fvP > 0);
+pruefe('der Fragebogen von vorher gehoert jetzt zum Projekt',
+    (int) Db::wert('SELECT project_id FROM questionnaires WHERE id = ?', [$fvF], 0) === $fvP);
+pruefe('es gibt keinen zweiten, leeren daneben',
+    (int) Db::wert('SELECT COUNT(*) FROM questionnaires WHERE customer_id = ?', [$fvK], 0) === 1);
+pruefe('der Kunde wird nicht noch einmal zum Fragebogen eingeladen',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'zahlung_ok' AND customer_id = ?", [$fvK], 0) === 0);
+pruefe('das Projekt steht gleich auf "Informationen erhalten"',
+    (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$fvP], '') === 'informationen_erhalten',
+    (string) Db::wert('SELECT status FROM projects WHERE id = ?', [$fvP], ''));
+$fvV = Vorgang::laden('b' . $fvBest);
+pruefe('und die Fuehrung ist beim Bauen, nicht beim Fragebogen',
+    $fvV['stufe'] === 'arbeit', $fvV['stufe'] . ' / ' . ($fvV['schritt']['knopf'] ?? '-'));
+
+/* ---------- Eine Bestellung ohne Fragebogen: kein Zahlungslink ---------- */
+$fgK = Events::kundeFinden(['name' => 'Ohne Fragebogen', 'email' => 'ohne-fragebogen@pruefung.example', 'sprache' => 'de']);
+$fgB = Events::bestellungAnlegen($fgK, $paketId, 'Bestellung vor dem Fragebogen');
+$fgV = Vorgang::laden('b' . $fgB);
+pruefe('eine Website-Bestellung ohne Fragebogen fuehrt zum Fragebogen, nicht zum Zahlungslink',
+    Onboarding::brauchtVorPreis($fgB) === false
+        ? true   // das Paket der Kette ist keine Website -- dann gilt die Sperre nicht
+        : ($fgV['stufe'] === 'onboarding' && ($fgV['schritt']['knopf'] ?? '') === 'Fragebogen verschicken'),
+    $fgV['stufe'] . ' / ' . ($fgV['schritt']['knopf'] ?? '-'));
+$fgWeb = (int) Db::wert("SELECT id FROM packages WHERE art = 'website' ORDER BY id LIMIT 1", [], 0);
+if ($fgWeb > 0) {
+    $fgB2 = Events::bestellungAnlegen($fgK, $fgWeb, 'Website vor dem Fragebogen');
+    $fgV2 = Vorgang::laden('b' . $fgB2);
+    pruefe('bei einer Website ausdruecklich: erst der Fragebogen',
+        $fgV2['stufe'] === 'onboarding' && ($fgV2['schritt']['knopf'] ?? '') === 'Fragebogen verschicken',
+        $fgV2['stufe'] . ' / ' . ($fgV2['schritt']['knopf'] ?? '-'));
+}
+$fgBetr = (int) Db::wert("SELECT id FROM packages WHERE art = 'betreuung' ORDER BY id LIMIT 1", [], 0);
+if ($fgBetr > 0) {
+    $fgB3 = Events::bestellungAnlegen($fgK, $fgBetr, 'Betreuung');
+    pruefe('eine Betreuung braucht keinen Fragebogen vor dem Preis', Onboarding::brauchtVorPreis($fgB3) === false);
+}
+
+/* ---------- Kein Direktkauf an der Kette vorbei ------------------------- */
+/* buchen.php schickt direkt zur Bezahlseite -- ohne Angebot, ohne Fragebogen.
+   Fuer Websites hielt das bisher nur der Schalter "oeffentlich" (Migration
+   043). Ein Haken in der Verwaltung, und die Anzahlung kaeme wieder vor dem
+   Fragebogen. Deshalb sperrt der Code, und diese Pruefung sieht nach. */
+pruefe('ein Website-Paket gilt als "erst der Fragebogen"',
+    Onboarding::brauchtVorPreisPaket(['art' => 'website', 'slug' => 'irgendwas']) === true);
+pruefe('das Sammelpaket fuer Angebote auch',
+    Onboarding::brauchtVorPreisPaket(['art' => 'sonstiges', 'slug' => 'individuelles-angebot']) === true);
+pruefe('Betreuung und Hosting bleiben direkt kaufbar',
+    Onboarding::brauchtVorPreisPaket(['art' => 'betreuung', 'slug' => 'betreuung'])  === false
+    && Onboarding::brauchtVorPreisPaket(['art' => 'hosting', 'slug' => 'hosting']) === false);
+$fgBuchen = (string) file_get_contents(dirname(__DIR__, 2) . '/buchen.php');
+pruefe('buchen.php weist ein Website-Paket ab, auch wenn es freigeschaltet ist',
+    preg_match('~if \(\$paket && Onboarding::brauchtVorPreisPaket\(\$paket\)\) \{ \$paket = null; \}~', $fgBuchen) === 1);
+
+/* ---------- Kein Umweg in den Hosting-Direktverkauf ---------------------- */
+/* Ein Hosting-Auftrag ohne Projekt ist das Kennzeichen des reinen Domain-&-
+   Hosting-Kunden. Legte das Abschicken VOR dem Preis einen an, landete ein
+   Website-Kunde in "Wartet auf Zustimmung" statt bei seinem Preis. */
+$fdK = Events::kundeFinden(['name' => 'Domain Vorher', 'email' => 'domain-vorher@pruefung.example', 'sprache' => 'de']);
+$fdF = Onboarding::vorab($fdK);
+Onboarding::absenden($fdF, ['altseite' => 'nein', 'domain' => 'neu', 'wunsch1' => 'domain-vorher-probe.it']);
+pruefe('der Fragebogen vor dem Preis legt keinen Hosting-Auftrag an',
+    (int) Db::wert('SELECT COUNT(*) FROM hosting_auftraege WHERE customer_id = ?', [$fdK], 0) === 0);
+
+/* ---------- Ein Fragebogen ohne Projekt laesst sich oeffnen -------------- */
+$fvLaden = Onboarding::laden(Onboarding::token($fdF));
+pruefe('der Fragebogen ohne Projekt laesst sich ueber seinen Schluessel oeffnen',
+    $fvLaden !== null && (int) $fvLaden['id'] === $fdF);
 
 /* ============================================================================
    Aufräumen und Bilanz

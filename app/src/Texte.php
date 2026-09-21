@@ -1445,6 +1445,17 @@ final class Texte
             'en' => ['As promised on the phone',
                 "Hello{name},\n\nas promised, here it all is in writing — so you still have it tomorrow.\n\n{block}\n\nHere is the questionnaire with your answers already filled in — the rest takes a few minutes, and the quote comes out of it:\n\n{link}\n\nNo hurry and no obligation. If you would rather talk it through, just reply to this email.\n\nUwe Vetter · Vecom Design"],
         ],
+        /* Die Einladung zum grossen Fragebogen VOR dem Preis (21.09.2026).
+           Nicht 'zahlung_ok' -- die sagt "deine Anzahlung ist angekommen",
+           und vor dem Preis ist nichts angekommen. */
+        'fragebogen_vorab' => [
+            'it' => ['Prima di darti un prezzo',
+                "Ciao {name},\n\ngrazie per le tue indicazioni. Prima di darti un prezzo voglio capire bene di cosa hai bisogno — altrimenti tirerei a indovinare, e alla fine lo pagheresti tu.\n\nPer questo c’è un questionario. Lo trovi sulla tua pagina; puoi salvare e continuare più tardi:\n\n{link}\n\nAppena lo ricevo, ti mando un preventivo a prezzo fisso. Fino ad allora nulla è vincolante.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Bevor ich dir einen Preis nenne',
+                "Hallo {name},\n\ndanke für deine Angaben. Bevor ich dir einen Preis nenne, möchte ich genau verstehen, was du brauchst — sonst rate ich, und das zahlst am Ende du.\n\nDafür gibt es einen Fragebogen. Er steht auf deiner Seite; du kannst zwischendurch speichern und später weitermachen:\n\n{link}\n\nSobald er da ist, bekommst du von mir ein Angebot mit festem Preis. Bis dahin ist nichts verbindlich.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Before I give you a price',
+                "Hello {name},\n\nthank you for the details. Before I give you a price, I want to understand exactly what you need — otherwise I would be guessing, and in the end you would pay for it.\n\nThat is what the questionnaire is for. It is on your page; you can save and continue later:\n\n{link}\n\nAs soon as it is in, you will get a fixed-price quote from me. Until then nothing is binding.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
         'fragebogen_erinnerung' => [
             'it' => ['Un promemoria per il tuo progetto',
                 "Ciao {name},\n\nmanca ancora il questionario per il tuo progetto. Senza quelle informazioni non possiamo iniziare davvero.\n\nEccolo — dieci minuti bastano:\n\n{link}\n\nSe qualcosa non è chiaro, rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],

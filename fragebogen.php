@@ -138,7 +138,8 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Throwable $e) {
         try {
             Events::melden('fragebogen_fehler', 'Fragebogen konnte nicht gespeichert werden', 'schlecht',
-                $e->getMessage(), '/projekte/' . (int) $f['project_id']);
+                $e->getMessage(), $f['project_id'] !== null
+                    ? '/projekte/' . (int) $f['project_id'] : '/kunden/' . (int) $f['customer_id']);
         } catch (Throwable $e2) { /* dann eben nicht */ }
         header('Location: ' . $adresse($jetzt, 'panne')); exit;
     }
@@ -342,7 +343,9 @@ $gruppenWort = [
 <?php elseif ($fertig): ?>
   <div class="block">
     <div class="hinweis gut"><?= $h($m === 'danke' ? $S('danke') : $S('schon')) ?></div>
-    <p style="color:var(--dim);font-size:14px"><?= $h((string) $f['projekt']) ?></p>
+    <?php if (trim((string) ($f['projekt'] ?? '')) !== ''): ?>
+      <p style="color:var(--dim);font-size:14px"><?= $h((string) $f['projekt']) ?></p>
+    <?php endif; ?>
     <a class="knopf haupt" style="margin-top:12px" href="<?= $h($heim) ?>"><?= $h(Texte::h(Texte::PROJEKT['titel'] ?? [], $sprache, 'Dein Projekt')) ?></a>
   </div>
   <?php foreach (Texte::FRAGEBOGEN as $abschnitt => $teil): ?>
