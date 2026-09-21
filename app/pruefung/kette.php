@@ -4419,7 +4419,17 @@ final class AbgleichProbe
         if (!isset($this->antworten[$id])) {
             throw new RuntimeException('Stripe: No such checkout session: ' . $id);
         }
-        return $this->antworten[$id];
+        /* Stripe nennt immer den Betrag, der bezahlt wurde. Seit dem
+           21.09.2026 bucht der Abgleich nur, wenn er zur Rate passt -- eine
+           Probe, die "0" meldet, wuerde jede Buchung verhindern. "null" heisst
+           hier: den Betrag der Rate nehmen, die an dieser Seite haengt. */
+        $a = $this->antworten[$id];
+        if (($a['betrag'] ?? null) === null) {
+            $r = Db::one('SELECT amount_cents, currency FROM payments WHERE provider_sitzung = ?', [$id]);
+            $a['betrag']   = (int) ($r['amount_cents'] ?? 0);
+            $a['waehrung'] = strtoupper((string) ($r['currency'] ?? 'EUR'));
+        }
+        return $a;
     }
 }
 
@@ -4442,7 +4452,7 @@ $agRate = static function (string $email, string $sitzung, int $minutenAlt = 30)
 };
 
 $agBezahlt = static fn(string $pi) => ['bezahlt' => true, 'referenz' => $pi,
-    'status' => 'complete', 'abgelaufen' => false, 'betrag' => 0, 'waehrung' => 'EUR'];
+    'status' => 'complete', 'abgelaufen' => false, 'betrag' => null, 'waehrung' => 'EUR'];
 $agOffen = ['bezahlt' => false, 'referenz' => '', 'status' => 'open',
     'abgelaufen' => false, 'betrag' => 0, 'waehrung' => 'EUR'];
 $agWeg = ['bezahlt' => false, 'referenz' => '', 'status' => 'expired',
@@ -6155,6 +6165,241 @@ pruefe('ohne Antworten ist die Schwelle nicht erreicht',
     Baukasten::genugGesagt([]) === false);
 pruefe('mit der ersten Antwort schon',
     Baukasten::genugGesagt(['zweck' => ['zeigen']]) === true);
+
+/* ============================================================================
+   55. Der Bezahllink, der nicht stirbt — und was sonst am Geld hing
+
+   Gefunden bei der Durchsicht des ganzen Zahlungssystems am 21.09.2026:
+
+   1. Eine Stripe-Bezahlseite lebt hoechstens 24 Stunden. Jede Zahlungsmail
+      trug trotzdem genau diese Adresse, die Monatsmail mit sieben Tagen Frist.
+   2. Ein Webhook, der scheiterte, bekam von Stripe eine Wiederholung -- und
+      die wurde als "bereits verarbeitet" beantwortet und verworfen.
+   3. Gebucht wurde, ohne den bezahlten Betrag anzusehen.
+   4. Ein Fehlschlag bei einer Monatsrate griff auf eine Bestellung zu, die es
+      nicht gibt.
+   ============================================================================ */
+abschnitt('55. Der Bezahllink, der nicht stirbt');
+
+require_once $wurzel . '/src/Bezahllink.php';
+require_once $wurzel . '/src/Webhook.php';
+require_once $wurzel . '/src/Abo.php';
+require_once $wurzel . '/src/Kundenzugang.php';
+
+/** Ein Stripe, das Bezahlseiten anlegt und nach ihnen gefragt werden kann. */
+final class BezahlProbe
+{
+    public array $angelegt = [];
+    public array $sitzungen = [];
+    private string $letzte = '';
+    public function __construct(private bool $bereit = true) {}
+    public function bereit(): bool { return $this->bereit; }
+    public function letzteSitzung(): string { return $this->letzte; }
+    public function bezahlseite(array $z, array $b, array $k, ?string $erfolg = null): string
+    {
+        $n = count($this->angelegt) + 1;
+        $this->letzte = 'cs_probe_' . (int) $z['id'] . '_' . $n;
+        $this->angelegt[] = ['sitzung' => $this->letzte, 'betrag' => (int) $z['amount_cents'],
+                             'erfolg' => $erfolg, 'titel' => (string) ($b['package_name'] ?? '')];
+        $this->sitzungen[$this->letzte] = ['bezahlt' => false, 'referenz' => '', 'status' => 'open',
+            'abgelaufen' => false, 'betrag' => (int) $z['amount_cents'], 'waehrung' => strtoupper((string) $z['currency'])];
+        return 'https://checkout.stripe.com/c/pay/' . $this->letzte;
+    }
+    public function sitzungLesen(string $id): array
+    {
+        if (!isset($this->sitzungen[$id])) { throw new RuntimeException('No such checkout session: ' . $id); }
+        return $this->sitzungen[$id];
+    }
+    public function ablaufen(string $id): void
+    {
+        $this->sitzungen[$id]['status'] = 'expired';
+        $this->sitzungen[$id]['abgelaufen'] = true;
+    }
+    public function bezahlen(string $id, ?int $betrag = null): void
+    {
+        $this->sitzungen[$id]['bezahlt'] = true;
+        $this->sitzungen[$id]['status'] = 'complete';
+        $this->sitzungen[$id]['referenz'] = 'pi_' . $id;
+        if ($betrag !== null) { $this->sitzungen[$id]['betrag'] = $betrag; }
+    }
+}
+
+$blRate = static function (string $email) use ($paketId): array {
+    $k = Events::kundeFinden(['name' => 'Bezahllink ' . $email, 'email' => $email, 'sprache' => 'de']);
+    $b = Events::bestellungAnlegen($k, $paketId, 'Bezahllinkprobe');
+    $z = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$b], 0);
+    return ['kunde' => $k, 'bestellung' => $b, 'zahlung' => $z, 'token' => Kundenzugang::token($k)];
+};
+
+/* ---------- Die Adresse, die nach draussen geht --------------------------- */
+$bl = $blRate('bezahllink-a@pruefung.example');
+$blAdresse = Bezahllink::fuer($bl['zahlung']);
+pruefe('der Bezahllink liegt auf der eigenen Domain',
+    str_starts_with($blAdresse, 'https://pruefung.example/bezahlen.php?t='), $blAdresse);
+pruefe('er traegt Schluessel und Rate',
+    str_contains($blAdresse, $bl['token']) && str_ends_with($blAdresse, '&z=' . $bl['zahlung']), $blAdresse);
+
+/* ---------- Wer nicht darf ------------------------------------------------- */
+$probe = new BezahlProbe();
+$w = Bezahllink::oeffnen(str_repeat('0', 48), $bl['zahlung'], $probe);
+pruefe('ein falscher Schluessel fuehrt auf die Startseite, nicht zu Stripe',
+    $w['grund'] === 'fremd' && $w['ziel'] === 'https://pruefung.example/', json_encode($w));
+
+$blFremd = $blRate('bezahllink-fremd@pruefung.example');
+$w = Bezahllink::oeffnen($blFremd['token'], $bl['zahlung'], $probe);
+pruefe('der Schluessel eines anderen Kunden oeffnet diese Rate nicht',
+    $w['grund'] === 'fremd' && str_contains($w['ziel'], $blFremd['token']), json_encode($w));
+pruefe('und es entsteht dabei keine Bezahlseite', count($probe->angelegt) === 0);
+
+$w = Bezahllink::oeffnen($bl['token'], $bl['zahlung'], new BezahlProbe(false));
+pruefe('ohne Stripe geht es auf die Kundenseite', $w['grund'] === 'aus', json_encode($w));
+
+/* ---------- Der Normalfall: neu, dann offen ------------------------------- */
+$w = Bezahllink::oeffnen($bl['token'], $bl['zahlung'], $probe);
+pruefe('der erste Klick legt eine Bezahlseite an', $w['grund'] === 'neu' && count($probe->angelegt) === 1,
+    json_encode($w));
+pruefe('und fuehrt zu Stripe', str_starts_with($w['ziel'], 'https://checkout.stripe.com/'), $w['ziel']);
+$zBl = Db::one('SELECT * FROM payments WHERE id = ?', [$bl['zahlung']]);
+pruefe('die Nummer der Bezahlseite steht an der Rate (fuer den Abgleich)',
+    (string) $zBl['provider_sitzung'] === $probe->letzteSitzung() && $probe->letzteSitzung() !== '',
+    (string) $zBl['provider_sitzung']);
+pruefe('die Rate steht auf "in Bearbeitung"', (string) $zBl['status'] === 'in_bearbeitung', (string) $zBl['status']);
+$fristErst = (string) $zBl['link_bis'];
+pruefe('die Aufforderung laeuft vierzehn Tage',
+    abs(strtotime($fristErst) - strtotime('+' . Events::LINK_GILT_TAGE . ' days')) < 120, $fristErst);
+
+$w = Bezahllink::oeffnen($bl['token'], $bl['zahlung'], $probe);
+pruefe('der zweite Klick fuehrt auf dieselbe, noch laufende Seite',
+    $w['grund'] === 'offen' && $w['ziel'] === (string) $zBl['link_url'], json_encode($w));
+pruefe('es entsteht keine zweite Seite', count($probe->angelegt) === 1, (string) count($probe->angelegt));
+
+/* ---------- Der Fall, um den es geht: am naechsten Tag -------------------- */
+$probe->ablaufen($probe->letzteSitzung());
+$w = Bezahllink::oeffnen($bl['token'], $bl['zahlung'], $probe);
+pruefe('nach Ablauf der Stripe-Seite entsteht eine frische', $w['grund'] === 'neu' && count($probe->angelegt) === 2,
+    json_encode($w));
+$zBl = Db::one('SELECT * FROM payments WHERE id = ?', [$bl['zahlung']]);
+pruefe('der Abgleich fragt ab jetzt die neue Seite', (string) $zBl['provider_sitzung'] === $probe->letzteSitzung(),
+    (string) $zBl['provider_sitzung']);
+pruefe('ein Klick verlaengert die Aufforderung nicht', (string) $zBl['link_bis'] === $fristErst,
+    (string) $zBl['link_bis'] . ' statt ' . $fristErst);
+
+/* Der Betrag, der JETZT gilt. Geaendert wird ueber die Datenbank, wie es
+   die Verwaltung tut; die naechste Seite muss den neuen Betrag tragen. */
+$blNeu = (int) $zBl['amount_cents'] + 5000;
+Db::update('payments', $bl['zahlung'], ['amount_cents' => $blNeu]);
+$probe->ablaufen($probe->letzteSitzung());
+Bezahllink::oeffnen($bl['token'], $bl['zahlung'], $probe);
+pruefe('eine frische Seite traegt den Betrag, der jetzt gilt',
+    end($probe->angelegt)['betrag'] === $blNeu, (string) end($probe->angelegt)['betrag']);
+
+/* ---------- Bezahlt, aber der Webhook schweigt ---------------------------- */
+$probe->bezahlen($probe->letzteSitzung());
+$w = Bezahllink::oeffnen($bl['token'], $bl['zahlung'], $probe);
+pruefe('wer nach dem Bezahlen noch einmal klickt, bucht die Zahlung', $w['grund'] === 'eben_bezahlt',
+    json_encode($w));
+pruefe('die Rate steht auf bezahlt',
+    (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$bl['zahlung']], '') === 'bezahlt');
+pruefe('und landet auf seiner Seite, nicht auf einer zweiten Bezahlseite',
+    str_contains($w['ziel'], 'kunde.php?t=') && count($probe->angelegt) === 3, $w['ziel']);
+pruefe('ein Beleg ist entstanden',
+    (int) Db::wert('SELECT COUNT(*) FROM invoices WHERE payment_id = ?', [$bl['zahlung']], 0) === 1);
+$w = Bezahllink::oeffnen($bl['token'], $bl['zahlung'], $probe);
+pruefe('ein Klick auf eine bezahlte Rate fuehrt auf die Kundenseite', $w['grund'] === 'bezahlt', json_encode($w));
+
+/* ---------- Bezahlt, aber nicht der geforderte Betrag --------------------- */
+$bw = $blRate('bezahllink-betrag@pruefung.example');
+$probeW = new BezahlProbe();
+Bezahllink::oeffnen($bw['token'], $bw['zahlung'], $probeW);
+$zBw = Db::one('SELECT * FROM payments WHERE id = ?', [$bw['zahlung']]);
+$probeW->bezahlen($probeW->letzteSitzung(), (int) $zBw['amount_cents'] - 10000);
+$vorAbw = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_abweichung'", [], 0);
+$w = Bezahllink::oeffnen($bw['token'], $bw['zahlung'], $probeW);
+pruefe('ein abweichender Betrag wird nicht gebucht',
+    $w['grund'] === 'abweichung'
+    && (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$bw['zahlung']], '') !== 'bezahlt',
+    json_encode($w));
+pruefe('kein Beleg ueber eine Summe, die nicht geflossen ist',
+    (int) Db::wert('SELECT COUNT(*) FROM invoices WHERE payment_id = ?', [$bw['zahlung']], 0) === 0);
+pruefe('sondern eine laute Meldung',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_abweichung'", [], 0) === $vorAbw + 1);
+Bezahllink::oeffnen($bw['token'], $bw['zahlung'], $probeW);
+pruefe('die Meldung kommt je Zahlungsvorgang nur einmal',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_abweichung'", [], 0) === $vorAbw + 1);
+pruefe('eine falsche Waehrung ist ebenfalls eine Abweichung',
+    Events::zahlungVonStripe($bw['zahlung'], 'pi_waehrung', (int) $zBw['amount_cents'], 'USD') === 'abweichung');
+
+/* Derselbe Schutz im Abgleich. */
+$ga = $blRate('bezahllink-abgleich@pruefung.example');
+Db::update('payments', $ga['zahlung'], ['provider' => 'stripe', 'status' => 'in_bearbeitung',
+    'provider_sitzung' => 'cs_abgleich_falsch']);
+Db::run('UPDATE payments SET updated_at = DATE_SUB(NOW(), INTERVAL 30 MINUTE) WHERE id = ?', [$ga['zahlung']]);
+$gaBetrag = (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$ga['zahlung']], 0);
+$gaGebucht = Cron::zahlungenAbgleichen(new AbgleichProbe(['cs_abgleich_falsch' => ['bezahlt' => true,
+    'referenz' => 'pi_abgleich_falsch', 'status' => 'complete', 'abgelaufen' => false,
+    'betrag' => $gaBetrag + 1, 'waehrung' => 'EUR']]));
+pruefe('auch der Abgleich bucht keinen abweichenden Betrag',
+    $gaGebucht === 0 && (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$ga['zahlung']], '') !== 'bezahlt',
+    (string) $gaGebucht);
+pruefe('und fragt dieselbe Seite danach nicht alle zehn Minuten wieder',
+    /* Db::wert gibt fuer NULL den Ersatzwert zurueck -- deshalb die ganze Zeile. */
+    array_key_exists('provider_sitzung', $gaZeile = (array) Db::one('SELECT provider_sitzung FROM payments WHERE id = ?', [$ga['zahlung']]))
+    && $gaZeile['provider_sitzung'] === null);
+
+/* ---------- Was nicht mehr bezahlt werden kann ---------------------------- */
+$bs = $blRate('bezahllink-storno@pruefung.example');
+Db::update('orders', $bs['bestellung'], ['status' => 'storniert']);
+$w = Bezahllink::oeffnen($bs['token'], $bs['zahlung'], new BezahlProbe());
+pruefe('eine stornierte Bestellung laesst sich nicht bezahlen', $w['grund'] === 'zu', json_encode($w));
+
+/* ---------- Die Monatsrate: kein Auftrag, trotzdem ein Bezahlknopf -------- */
+$bmK = Events::kundeFinden(['name' => 'Bezahllink Monat', 'email' => 'bezahllink-monat@pruefung.example', 'sprache' => 'de']);
+$bmAbo = Abo::anlegen($bmK, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']);
+$bmRate = (int) Abo::abrechnen($bmAbo);
+pruefe('eine Monatsrate ist angelegt', $bmRate > 0, (string) $bmRate);
+$bmLink = Bezahllink::fuer($bmRate);
+pruefe('auch eine Monatsrate bekommt den dauerhaften Link', str_contains($bmLink, '/bezahlen.php?t='), $bmLink);
+$probeM = new BezahlProbe();
+$w = Bezahllink::oeffnen(Kundenzugang::token($bmK), $bmRate, $probeM);
+pruefe('der Klick legt dafuer eine Bezahlseite an', $w['grund'] === 'neu', json_encode($w));
+pruefe('mit dem Namen des Vertrags statt einer leeren Zeile',
+    trim((string) ($probeM->angelegt[0]['titel'] ?? '')) !== '', json_encode($probeM->angelegt));
+pruefe('und nach dem Bezahlen geht es auf die Kundenseite',
+    str_contains((string) ($probeM->angelegt[0]['erfolg'] ?? ''), '/kunde.php?t='), (string) ($probeM->angelegt[0]['erfolg'] ?? ''));
+
+/* Der Fehlschlag einer Monatsrate griff auf eine Bestellung zu, die es nicht gibt. */
+$vorFehl = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_fehler'", [], 0);
+$fehlerBeiMonat = null;
+set_error_handler(static function (int $nr, string $text) use (&$fehlerBeiMonat) { $fehlerBeiMonat = $text; return true; });
+Events::zahlungFehlgeschlagen($bmRate, 'Karte abgelehnt');
+restore_error_handler();
+pruefe('ein Fehlschlag bei einer Monatsrate laeuft ohne Warnung durch', $fehlerBeiMonat === null, (string) $fehlerBeiMonat);
+$bmMeldung = Db::one("SELECT * FROM notifications WHERE type = 'zahlung_fehler' ORDER BY id DESC LIMIT 1");
+pruefe('und die Meldung zeigt auf den Kunden, nicht auf "/bestellungen/0"',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_fehler'", [], 0) === $vorFehl + 1
+    && (string) $bmMeldung['link'] === '/kunden/' . $bmK, (string) ($bmMeldung['link'] ?? ''));
+
+/* ---------- Der Webhook: eine Wiederholung wird wirklich wiederholt ------- */
+$evt = 'evt_probe_' . bin2hex(random_bytes(4));
+$a1 = Webhook::annehmen('stripe', $evt, 'checkout.session.completed', '{}');
+pruefe('ein neues Ereignis wird angenommen', $a1['weiter'] === true && (int) $a1['id'] > 0, json_encode($a1));
+$a2 = Webhook::annehmen('stripe', $evt, 'checkout.session.completed', '{}');
+pruefe('dasselbe, solange es noch laeuft: 409 statt "erledigt"',
+    $a2['weiter'] === false && $a2['code'] === 409, json_encode($a2));
+Db::update('webhook_events', (int) $a1['id'], ['status' => 'fehler', 'error' => 'Probe']);
+$a3 = Webhook::annehmen('stripe', $evt, 'checkout.session.completed', '{}');
+pruefe('nach einem Fehler wird die Wiederholung von Stripe verarbeitet',
+    $a3['weiter'] === true && (int) $a3['id'] === (int) $a1['id'], json_encode($a3));
+pruefe('und steht dafuer wieder auf "empfangen"',
+    (string) Db::wert('SELECT status FROM webhook_events WHERE id = ?', [(int) $a1['id']], '') === 'empfangen');
+Db::update('webhook_events', (int) $a1['id'], ['status' => 'verarbeitet']);
+$a4 = Webhook::annehmen('stripe', $evt, 'checkout.session.completed', '{}');
+pruefe('ein verarbeitetes Ereignis wird nicht noch einmal verarbeitet',
+    $a4['weiter'] === false && $a4['code'] === 200, json_encode($a4));
+Db::run("UPDATE webhook_events SET status = 'empfangen', received_at = DATE_SUB(NOW(), INTERVAL 10 MINUTE) WHERE id = ?",
+    [(int) $a1['id']]);
+$a5 = Webhook::annehmen('stripe', $evt, 'checkout.session.completed', '{}');
+pruefe('ein Ereignis, das seit Minuten haengt, wird noch einmal verarbeitet', $a5['weiter'] === true, json_encode($a5));
 
 /* ============================================================================
    Aufräumen und Bilanz

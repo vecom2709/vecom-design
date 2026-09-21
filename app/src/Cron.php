@@ -406,7 +406,17 @@ final class Cron
                 $s = $stripe->sitzungLesen((string) $z['provider_sitzung']);
 
                 if ($s['bezahlt']) {
-                    Events::zahlungBestaetigen((int) $z['id'], (string) $s['referenz'], 'stripe');
+                    // Gebucht wird nur, wenn der Betrag passt -- siehe Events::zahlungVonStripe.
+                    $wie = Events::zahlungVonStripe((int) $z['id'], (string) $s['referenz'],
+                        (int) $s['betrag'], (string) $s['waehrung']);
+                    if ($wie === 'abweichung') {
+                        /* Gemeldet ist es. Nicht alle zehn Minuten wieder
+                           fragen: Die Seite ist bezahlt, an ihr aendert sich
+                           nichts mehr -- den Rest entscheidet ein Mensch. */
+                        Db::update('payments', (int) $z['id'], ['provider_sitzung' => null]);
+                        continue;
+                    }
+                    if ($wie !== 'gebucht') { continue; }
                     $gebucht++;
                     Events::protokoll('zahlung_abgleich',
                         'Beim Abgleich mit Stripe als bezahlt vorgefunden: '

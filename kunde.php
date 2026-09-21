@@ -21,7 +21,7 @@ if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
-foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme', 'Kunde'] as $k) {
+foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme', 'Kunde', 'Bezahllink'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 
@@ -474,7 +474,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
     <div class="tun">
       <?php if ($stufe === 'angebot' && $offen): ?>
-        <a class="knopf haupt" href="<?= $h((string) $offen['link_url']) ?>">
+        <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
           <?= $h((string) ($offen['bezeichnung'] ?: 'Zahlung')) ?> ·
           <?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></a>
 
@@ -538,7 +538,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <?php endif; ?>
 
       <?php elseif ($stufe === 'freigabe' && $offen): ?>
-        <a class="knopf haupt" href="<?= $h((string) $offen['link_url']) ?>">
+        <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
           <?= $h((string) ($offen['bezeichnung'] ?: 'Restzahlung')) ?> ·
           <?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></a>
 
@@ -764,7 +764,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
                   elseif (!$bezahlt): ?> · <?= $h($T('monatWartet')) ?><?php endif; ?></span>
                 <?php if (!$bezahlt && !empty($m['link_url']) && $stripeKassiert): ?>
                   <a class="knopf haupt" style="margin-left:auto"
-                     href="<?= $h((string) $m['link_url']) ?>"><?= $h($T('monatZahlen')) ?></a>
+                     href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $m['id']), (string) $m['link_url'])) ?>"><?= $h($T('monatZahlen')) ?></a>
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>

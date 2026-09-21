@@ -565,6 +565,7 @@ if ($post) {
             case 'zahlungslink_senden':
                 require_once __DIR__ . '/src/Mail.php';
                 require_once __DIR__ . '/src/Texte.php';
+                require_once __DIR__ . '/src/Bezahllink.php';
                 $zid = (int) ($_POST['id'] ?? 0);
                 $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zid]);
                 $bst = $z ? Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache
@@ -582,7 +583,8 @@ if ($post) {
                 [$betreff, $text] = Texte::mail('zahlungslink', $spr, [
                     'name' => (string) $bst['kunde'], 'paket' => (string) $bst['package_name'],
                     'was' => $was, 'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
-                    'link' => (string) $z['link_url'],
+                    // Die dauerhafte Adresse, nicht die Stripe-Seite: die lebt 24 Stunden.
+                    'link' => Bezahllink::fuer($zid),
                 ]);
                 Mail::senden('zahlungslink', (string) $bst['kunde_email'], $betreff, $text,
                     ['customer_id' => (int) $bst['customer_id'], 'order_id' => (int) $bst['id'], 'payment_id' => $zid]);

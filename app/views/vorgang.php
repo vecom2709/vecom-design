@@ -623,8 +623,11 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
             <?php endif; ?>
           </div>
         </div>
-        <?php if ($z['link_url'] && $z['status'] !== 'bezahlt'): ?>
-          <input readonly value="<?= Fmt::h((string) $z['link_url']) ?>" onclick="this.select()"
+        <?php if ($z['link_url'] && $z['status'] !== 'bezahlt'):
+          /* Zum Kopieren die dauerhafte Adresse -- die Stripe-Seite in
+             link_url lebt hoechstens 24 Stunden. Siehe Bezahllink.php. */
+          require_once __DIR__ . '/../src/Bezahllink.php'; ?>
+          <input readonly value="<?= Fmt::h((string) sicher(static fn() => Bezahllink::fuer((int) $z['id']), (string) $z['link_url'])) ?>" onclick="this.select()"
                  style="margin-top:9px;width:100%;font-size:12px;font-family:ui-monospace,monospace">
         <?php endif; ?>
       </div>

@@ -398,6 +398,9 @@ final class Nachricht
                     'provider_sitzung' => $stripe->letzteSitzung(),
                     'link_url' => $link, 'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
                 ]);
+                // In die Mail kommt die dauerhafte Adresse -- die Stripe-Seite lebt 24 Stunden.
+                require_once __DIR__ . '/Bezahllink.php';
+                $link = Bezahllink::fuer((int) $z['id']);
             }
         } catch (Throwable $e) {
             Events::melden('integration_fehler', 'Zahlungslink für die Restzahlung ging nicht', 'warnung',

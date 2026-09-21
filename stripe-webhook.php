@@ -21,7 +21,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('nicht eingerichtet'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Webhook'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
@@ -33,6 +33,23 @@ $rohtext = (string) file_get_contents('php://input');
 $kopf    = function_exists('getallheaders') ? (array) getallheaders() : [];
 if (!$kopf && isset($_SERVER['HTTP_STRIPE_SIGNATURE'])) {
     $kopf = ['Stripe-Signature' => $_SERVER['HTTP_STRIPE_SIGNATURE']];
+}
+
+/* OHNE UNTERSCHRIFT KEIN EINTRAG
+   Jeder im Netz kann an diese Adresse schicken, was er will. Bisher legte
+   jeder solche Aufruf eine Zeile im Protokoll an und schaltete Stripe in
+   der Verwaltung auf "Fehler" -- ein Suchroboter genuegte, damit die
+   Uebersicht eine Stoerung meldete, die keine war. Ohne Stripe-Kopfzeile
+   ist es nicht Stripe: abweisen, nichts schreiben. Mit Kopfzeile, aber
+   falscher Unterschrift, ist es dagegen ein echter Befund -- meist ein
+   Signaturgeheimnis, das nicht zum eingetragenen Endpunkt passt. */
+$mitKopf = false;
+foreach ($kopf as $name => $_) {
+    if (strtolower((string) $name) === 'stripe-signature') { $mitKopf = true; break; }
+}
+if (!$mitKopf) {
+    http_response_code(400);
+    exit('ungueltig');
 }
 
 $stripe   = new StripeAnbieter();
@@ -53,16 +70,15 @@ if ($ereignis === null) {
     exit('ungueltig');
 }
 
-/* Festhalten. Ist das Ereignis schon da, war es schon dran — dann nur 200. */
-try {
-    $webhookId = Db::insert('webhook_events', [
-        'provider' => 'stripe', 'event_id' => $ereignis['id'], 'event_type' => $ereignis['typ'],
-        'signature_ok' => 1, 'status' => 'empfangen', 'payload' => mb_substr($rohtext, 0, 60000),
-    ]);
-} catch (Throwable $e) {
-    http_response_code(200);
-    exit('bereits verarbeitet');
+/* Festhalten -- oder entscheiden, warum nicht. Ein gescheitertes Ereignis,
+   das Stripe noch einmal schickt, wird jetzt wirklich noch einmal
+   verarbeitet. Die ganze Geschichte steht in app/src/Webhook.php. */
+$annahme = Webhook::annehmen('stripe', $ereignis['id'], $ereignis['typ'], $rohtext);
+if (!$annahme['weiter']) {
+    http_response_code($annahme['code']);
+    exit($annahme['text']);
 }
+$webhookId = (int) $annahme['id'];
 
 /* Verarbeiten. */
 try {
@@ -73,8 +89,16 @@ try {
         case 'checkout.session.async_payment_succeeded':
             $zahlungId = (int) ($o['metadata']['zahlung_id'] ?? $o['client_reference_id'] ?? 0);
             if ($zahlungId <= 0) { throw new RuntimeException('Keine Zahlungsnummer im Ereignis.'); }
-            if (($o['payment_status'] ?? '') !== 'paid') { throw new RuntimeException('Sitzung ist nicht bezahlt.'); }
-            Events::zahlungBestaetigen($zahlungId, (string) ($o['payment_intent'] ?? $o['id']), 'stripe');
+            if (($o['payment_status'] ?? '') !== 'paid') {
+                /* checkout.session.completed kommt bei Zahlarten mit Verzoegerung
+                   (Lastschrift) schon, BEVOR das Geld da ist -- mit "unpaid".
+                   Das ist kein Fehler, sondern Warten auf async_payment_succeeded.
+                   Bisher warf es und meldete eine Stoerung. */
+                break;
+            }
+            // Gebucht wird nur, wenn der Betrag zur Rate passt -- siehe Events::zahlungVonStripe.
+            Events::zahlungVonStripe($zahlungId, (string) ($o['payment_intent'] ?? $o['id']),
+                (int) ($o['amount_total'] ?? -1), (string) ($o['currency'] ?? ''));
             break;
 
         case 'checkout.session.async_payment_failed':

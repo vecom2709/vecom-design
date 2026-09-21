@@ -157,8 +157,17 @@ final class Mahnung
                         'link_url' => $url,
                         'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
                     ]);
-                    return (string) $url;
+                    // Die dauerhafte Adresse -- eine Mahnung wird selten am selben Tag bezahlt.
+                    require_once __DIR__ . '/Bezahllink.php';
+                    return Bezahllink::fuer((int) $z['id']);
                 }
+            }
+            /* Monatsraten hatten hier bisher keinen Bezahlknopf, weil die
+               Bezahlseite eine Bestellung verlangte. Der dauerhafte Link
+               braucht keine: Er legt die Seite beim Klick aus dem Vertrag an. */
+            if ($stripe->bereit() && $z['order_id'] === null) {
+                require_once __DIR__ . '/Bezahllink.php';
+                return Bezahllink::fuer((int) $z['id']);
             }
         } catch (Throwable $e) { /* dann die Kundenseite */ }
 

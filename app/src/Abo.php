@@ -350,7 +350,9 @@ final class Abo
             require_once __DIR__ . '/Zahlung/Stripe.php';
             $stripe = new StripeAnbieter();
             if ($stripe->bereit()) {
-                $link = (string) $stripe->bezahlseite($z, ['order_no' => $z['bezeichnung']], $k, $erfolgUrl);
+                $link = (string) $stripe->bezahlseite($z,
+                    ['id' => '', 'order_no' => (string) $z['bezeichnung'], 'package_name' => (string) ($z['paket_name'] ?? '')],
+                    $k, $erfolgUrl);
                 if ($link !== '') {
                     Db::update('payments', $zahlungId, [
                         'provider' => 'stripe', 'status' => 'in_bearbeitung',
@@ -360,6 +362,10 @@ final class Abo
                         'link_url' => $link,
                         'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
                     ]);
+                    /* In die Mail kommt die dauerhafte Adresse. Die Mail nennt eine
+                       Frist von sieben Tagen -- die Stripe-Seite lebt einen. */
+                    require_once __DIR__ . '/Bezahllink.php';
+                    $link = Bezahllink::fuer($zahlungId);
                 }
             }
         } catch (Throwable $e) { $link = ''; }

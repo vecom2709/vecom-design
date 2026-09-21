@@ -386,7 +386,13 @@ final class Events
     public static function zahlungBestaetigen(int $zahlungId, ?string $referenz = null, string $anbieter = 'manuell'): void
     {
         $nachlauf = Db::transaktion(static function () use ($zahlungId, $referenz, $anbieter) {
-            $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zahlungId]);
+            /* FOR UPDATE: Kommen Webhook, Abgleich und ein Klick auf den
+               Bezahllink gleichzeitig, lasen bisher alle drei "noch offen" und
+               buchten alle drei. Der Beleg war durch seinen Schluessel
+               geschuetzt, die Mails und Meldungen nicht -- der Kunde bekam
+               seine Bestaetigung doppelt. Mit der Sperre wartet der zweite,
+               bis der erste festgeschrieben hat, und liest dann "bezahlt". */
+            $z = Db::one('SELECT * FROM payments WHERE id = ? FOR UPDATE', [$zahlungId]);
             if (!$z) { throw new RuntimeException('Zahlung nicht gefunden.'); }
             if ($z['status'] === 'bezahlt') { return null; }   // schon verarbeitet, nichts doppelt tun
 
@@ -546,6 +552,56 @@ final class Events
         }
     }
 
+    /**
+     * Bucht, was Stripe als bezahlt meldet -- aber nur, wenn Betrag und
+     * Waehrung zur Rate passen.
+     *
+     * Bisher genuegte "payment_status = paid". Welcher Betrag bezahlt wurde,
+     * sah niemand nach. Eine Bezahlseite nimmt ihren Betrag aber zum
+     * Zeitpunkt ihrer Entstehung mit: Wird die Rate danach geaendert und
+     * zahlt der Kunde ueber den alten Link, stand hier "bezahlt" beim NEUEN
+     * Betrag -- und der Beleg, ein Dokument mit zehn Jahren Aufbewahrung,
+     * nannte eine Summe, die nie geflossen ist.
+     *
+     * Weicht es ab, wird nicht gebucht, sondern laut gemeldet: Ob der Kunde
+     * nachzahlt, ob erstattet wird oder ob die Rate falsch war, kann nur ein
+     * Mensch entscheiden. Die Meldung kommt je Zahlungsvorgang einmal.
+     *
+     * @return string 'gebucht' | 'schon' | 'abweichung'
+     */
+    public static function zahlungVonStripe(int $zahlungId, string $referenz, int $betrag, string $waehrung): string
+    {
+        $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zahlungId]);
+        if (!$z) { throw new RuntimeException('Zahlung nicht gefunden.'); }
+        if ((string) $z['status'] === 'bezahlt') { return 'schon'; }
+
+        $soll  = (int) $z['amount_cents'];
+        $sollW = strtoupper((string) $z['currency']);
+        $istW  = strtoupper(trim($waehrung));
+        if ($betrag !== $soll || $istW !== $sollW) {
+            $kennung = 'Vorgang ' . ($referenz !== '' ? $referenz : '?') . ', Rate #' . $zahlungId;
+            $schon = (int) Db::wert(
+                "SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_abweichung' AND body LIKE ?",
+                ['%' . $kennung . '%'], 0);
+            if ($schon === 0) {
+                $was = (string) ($z['bezeichnung'] ?: 'Rate');
+                $link = $z['order_id'] !== null ? '/bestellungen/' . (int) $z['order_id'] : '/zahlungen';
+                self::protokoll('zahlung_abweichung',
+                    'Bezahlt, aber mit anderem Betrag: ' . Fmt::geld($betrag, $istW ?: $sollW)
+                    . ' statt ' . Fmt::geld($soll, $sollW) . ' (' . $was . ')',
+                    null, $z['order_id'] !== null ? (int) $z['order_id'] : null);
+                self::melden('zahlung_abweichung', 'Bezahlt, aber nicht der geforderte Betrag', 'schlecht',
+                    'Stripe meldet ' . Fmt::geld($betrag, $istW ?: $sollW) . ' für „' . $was . '“, gefordert sind '
+                    . Fmt::geld($soll, $sollW) . '. Nicht automatisch gebucht — bei Stripe ansehen und von Hand '
+                    . 'buchen oder erstatten. ' . $kennung . '.', $link);
+            }
+            return 'abweichung';
+        }
+
+        self::zahlungBestaetigen($zahlungId, $referenz, 'stripe');
+        return 'gebucht';
+    }
+
     /** Was bei einer Bestellung noch offen ist — in Cent. */
     public static function offenerBetrag(int $bestellId): int
     {
@@ -560,12 +616,22 @@ final class Events
     {
         $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zahlungId]);
         if (!$z) { return; }
+        if ((string) $z['status'] === 'bezahlt') { return; }   // ein spaeter Fehlversuch nimmt nichts zurueck
         Db::update('payments', $zahlungId, ['status' => 'fehlgeschlagen']);
-        $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
+
+        /* Eine Monatsrate aus Betreuung oder Hosting hat keine Bestellung.
+           Hier stand bisher ein Zugriff auf eine Bestellung, die es nicht
+           gibt -- Kundennummer 0, Link auf "/bestellungen/0". */
+        $b = $z['order_id'] !== null
+            ? Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]) : null;
+        $kundeId = $b ? (int) $b['customer_id']
+            : (int) Db::wert('SELECT customer_id FROM abos WHERE id = ?', [(int) ($z['abo_id'] ?? 0)], 0);
+        $worauf = $b ? (string) $b['order_no'] : (string) ($z['bezeichnung'] ?: 'Monatsrate');
         self::protokoll('zahlung_fehler', 'Zahlung fehlgeschlagen' . ($grund ? ": $grund" : ''),
-            (int) $b['customer_id'], (int) $z['order_id']);
+            $kundeId ?: null, $b ? (int) $b['id'] : null);
         self::melden('zahlung_fehler', 'Zahlung fehlgeschlagen', 'schlecht',
-            $b['order_no'] . ($grund ? " — $grund" : ''), '/bestellungen/' . (int) $z['order_id']);
+            $worauf . ($grund ? " — $grund" : ''),
+            $b ? '/bestellungen/' . (int) $b['id'] : ($kundeId > 0 ? '/kunden/' . $kundeId : '/zahlungen'));
     }
 
     /* ---------- Projekt ---------- */

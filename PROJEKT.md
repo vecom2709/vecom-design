@@ -4718,3 +4718,24 @@ für `fonts.css`, `app.js`, `i18n-it.js`, `sprachhinweis.js` und
 `pakete-live.js` stimmen nicht mehr mit dem Inhalt überein. Der Deploy baut
 ohnehin, die ausgelieferte Seite ist also richtig; das Repository und der
 Bauschritt sind nur verschiedener Meinung darüber, was drinsteht.
+
+---
+
+### 21.09.2026 — Durchsicht des Zahlungssystems: der Bezahllink stirbt nicht mehr
+
+**Eine Stripe-Bezahlseite lebt höchstens 24 Stunden** (expires_at 30 min – 24 h,
+nicht verlängerbar). Trotzdem stand genau diese Adresse in jeder Zahlungsmail
+und auf den Knöpfen der Kundenseite, die Monatsmail mit sieben Tagen Frist,
+die Verwaltung mit „gültig bis" +14 Tage. Nach außen geht jetzt nur noch
+`/bezahlen.php?t=<Kundenschlüssel>&z=<Rate>` (`Bezahllink.php`): fragt beim
+Klick die letzte Seite ab, bucht sie, wenn bezahlt, führt auf sie, wenn sie
+läuft, und legt sonst eine frische mit dem jetzt geltenden Betrag an.
+**Regel:** Eine Stripe-URL gehört nie in eine Mail, nur `Bezahllink::fuer()`.
+
+Außerdem: Wiederholungen von Stripe nach einem Webhook-Fehler wurden als
+„bereits verarbeitet" verworfen (`Webhook::annehmen`); gebucht wird nur noch,
+wenn Betrag und Währung zur Rate passen (`Events::zahlungVonStripe`), sonst
+laute Meldung; Webhook ohne Stripe-Kopfzeile schreibt nichts mehr; `FOR UPDATE`
+beim Buchen; Fehlschlag einer Monatsrate ohne Zugriff auf eine nicht
+vorhandene Bestellung. Kette **1368 Prüfungen** (Abschnitt 55), jeder der vier
+alten Fehler in der Gegenprobe gefangen.
