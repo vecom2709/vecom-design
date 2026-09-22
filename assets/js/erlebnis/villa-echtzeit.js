@@ -236,6 +236,39 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     return false;
   }
 
+  /* Wo die Begehung anfaengt.
+
+     Vorher stand hier rundgang[0] -- und das war ein Fehler, den erst ein
+     Blick aufs Bild gezeigt hat: Der erste Wegpunkt im Manifest ist der
+     Fotostandpunkt "Ankunft" bei (3.1, -5.4), also draussen auf dem Vorplatz.
+     Begehbar ist aber nur, was im Manifest ein Raum oder ein Tuerdurchgang
+     ist, und das faengt erst bei y = 0,75 an. Der Besucher stand damit mit
+     der Nase an der Haustuer und konnte keinen Schritt gehen -- keine Taste
+     tat etwas, weil jede Achse einzeln an der Wand abgewiesen wurde.
+
+     Der Startpunkt ist jetzt am Bild gewaehlt -- elf Kandidaten gerechnet
+     und nebeneinandergelegt: (11,6 | 2,2), Blick 40 Grad. Von dort steht die
+     Sitzgruppe mittig im Bild, die Eckverglasung geht nach rechts weg, und
+     kein Wandstueck frisst ein Drittel des Bildes. Die naheliegenden
+     Wegpunkte taugen dafuer nicht: Das Entree zeigt eine Treppenwand, der
+     Essplatz eine dunkle Ecke. Ist der Punkt einmal nicht mehr begehbar,
+     wird der erste begehbare Wegpunkt genommen und erst dann die Mitte des
+     groessten Raums -- damit die Begehung nie wieder an einer Wand anfaengt. */
+  const GEH_HEIM = [11.6, 2.2]; const GEH_HEIM_BLICK = 40;
+
+  function gehStart() {
+    if (begehbar(GEH_HEIM[0], GEH_HEIM[1])) return GEH_HEIM;
+    const w = rundgang.find(p => !p.z && begehbar(p.x, p.y));
+    if (w) return [w.x, w.y];
+    const r = raeume.slice().sort((a, b) => (b.x1 - b.x0) * (b.y1 - b.y0) - (a.x1 - a.x0) * (a.y1 - a.y0))[0];
+    return r ? [(r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2] : [11.6, 2.2];
+  }
+  function gehBlick() {
+    if (begehbar(GEH_HEIM[0], GEH_HEIM[1])) return THREE.MathUtils.degToRad(90 - GEH_HEIM_BLICK);
+    const w = rundgang.find(p => !p.z && begehbar(p.x, p.y));
+    return THREE.MathUtils.degToRad(90 - (w ? w.blick || 0 : 0));
+  }
+
   const tasten = new Set();
   const GEH_TASTEN = { KeyW: [1, 0], KeyS: [-1, 0], KeyA: [0, -1], KeyD: [0, 1], ArrowUp: [1, 0], ArrowDown: [-1, 0] };
 
@@ -485,10 +518,8 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
       sicht();
       if (modus === 'grundriss') heim = draufParameter();
       else if (modus === 'bau') heim = parameter('ankunft');
-      else if (modus === 'gehen') {
-        const p = rundgang[0] || { x: 3.1, y: -5.4, blick: 0 };
-        heim = gehParameter([p.x, p.y], THREE.MathUtils.degToRad(90 - (p.blick || 0)));
-      } else heim = parameter('garten');
+      else if (modus === 'gehen') heim = gehParameter(gehStart(), gehBlick());
+      else heim = parameter('garten');
       soll = { ...heim, ort: heim.ort ? [...heim.ort] : undefined };
       ist = { ...soll, ort: soll.ort ? [...soll.ort] : undefined };
       ruhtGemeldet = true; letzteBewegung = performance.now();
@@ -512,6 +543,15 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
       einmal();
     },
     _sonne(x, y, z) { sonne.position.copy(sonnenZiel.position).addScaledVector(new THREE.Vector3(x, y, z).normalize(), 60); einmal(); },
+    /* Startpunkt der Begehung von aussen setzen, um ihn am Bild zu waehlen
+       statt ihn zu schaetzen. Blick in Grad wie im Manifest: 0 = nach Norden. */
+    _wo() { return soll.ort ? { x: +soll.ort[0].toFixed(2), y: +soll.ort[1].toFixed(2), gier: Math.round(THREE.MathUtils.radToDeg(soll.gier)) } : null; },
+    _geh(x, y, blick) {
+      heim = gehParameter([x, y], THREE.MathUtils.degToRad(90 - blick));
+      soll = { ...heim, ort: [...heim.ort] };
+      ist = { ...soll, ort: [...soll.ort] };
+      kameraSetzen(ist); einmal();
+    },
     info() { return { renderer: 'WebGL 2', dreiecke: Math.round(dreiecke), pixel: r.getPixelRatio(), schatten: schattenAn ? schattenGroesse : 0 }; },
     entsorgen() {
       anhalten(); ro.disconnect();
