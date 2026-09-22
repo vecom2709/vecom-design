@@ -1,70 +1,54 @@
 /* ==========================================================================
-   erlebnis.css — die Erlebnisseite (esperienza.html, de/erlebnis.html,
-   en/experience.html).
+   erlebnis.css — der Erlebnisteil der Startseite.
 
-   Eigene Datei statt Stilblock im Kopf wie bei tavolo.html: Die Seite ist
-   rund dreimal so lang, und ein Stilblatt mit Fingerabdruck bleibt beim
-   Rueckkehrer im Speicher, ein Kopfblock wird jedes Mal mitgeladen.
+   Seit dem 22.09.2026 ist das keine eigene Seite mehr: Der Bereich
+   "Was könnte deine Website?" steht auf der Startseite selbst, gleich hinter
+   der Vorstellung. Diese Datei gilt deshalb NUR innerhalb von .erlebnis --
+   jede Regel ist darauf eingeschränkt, und die Farb- und Zeitwerte stehen auf
+   .erlebnis statt auf :root. So kann app.css nichts von hier erben und
+   umgekehrt: zwei Stilblätter auf einer Seite, die sich nicht in die Quere
+   kommen.
 
    DESIGN-DNA
-   Haltung:   ruhig, praezise, beweisend
+   Haltung:   ruhig, präzise, beweisend
    Prinzip:   Architekturfotografie im Magazin -- ein grosses Bild, wenig
               Text, darunter die Aufnahmedaten wie eine Bildunterschrift
-   Farbe:     Grund #05070d, Flaeche #0c1119, Text #e9eef8, ein Akzent
-              (Blau->Cyan) nur fuer die eine Handlung und den aktiven Zustand
-   Schrift:   Archivo (Anzeige) und Inter (Text), wie auf der ganzen Seite
-   Bewegung:  traege einschwingend, keine Federn; Blenden 600 ms
-   Nicht:     kein Spiele-Menue, keine Glaskarten ueberall, kein Effekt ohne
+   Farbe:     dieselbe Palette wie app.css (Grund #05070d, Akzent Blau->Cyan);
+              der Akzent nur für die eine Handlung und den aktiven Zustand
+   Bewegung:  träge einschwingend, keine Federn; Blenden 600 ms
+   Nicht:     kein Spiele-Menü, keine Glaskarten überall, kein Effekt ohne
               Aussage
    ========================================================================== */
-:root{
+
+.erlebnis{
   --c-base:#05070d; --c-surface:#0c1119; --c-surface-2:#111826; --c-linie:#1b2330; --c-linie-hell:#2a3649;
   --c-text:#e9eef8; --c-dim:#a3b0c8; --c-faint:#8593ad;
   --c-blue:#0a78f5; --c-cyan:#1fe8ff; --c-warm:#ffd9a8;
   --f-display:'Archivo',system-ui,sans-serif;
   --f-text:'Inter',system-ui,sans-serif;
-  --page-x:clamp(1rem,5vw,5.5rem);
   --radius:14px;
   --e-standard:cubic-bezier(.16,1,.3,1);
   --t-ui:180ms; --t-move:240ms; --t-blende:600ms;
 }
-*{box-sizing:border-box}
-html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
-body{
-  margin:0; background:var(--c-base); color:var(--c-text);
-  font-family:var(--f-text); -webkit-font-smoothing:antialiased;
-  line-height:1.6; overflow-x:hidden;
-}
-img{max-width:100%; display:block}
-button{font:inherit; color:inherit}
-:focus-visible{outline:2px solid var(--c-cyan); outline-offset:3px; border-radius:6px}
+.erlebnis *{box-sizing:border-box}
+
+
+.erlebnis img{max-width:100%; display:block}
+.erlebnis button{font:inherit; color:inherit}
+.erlebnis :focus-visible{outline:2px solid var(--c-cyan); outline-offset:3px; border-radius:6px}
 
 /* ---- Rueckweg und Sprachwahl: wie tavolo.html und der Showroom ---- */
-#zurueck{
-  position:fixed; top:clamp(.75rem,2.2vw,1.6rem); left:var(--page-x); z-index:20;
-  display:inline-flex; gap:.5rem; align-items:center; min-height:44px;
-  font:600 .8rem/1 var(--f-text); letter-spacing:.09em; text-transform:uppercase;
-  color:var(--c-dim); text-decoration:none;
-  padding:.6rem .95rem; border:1px solid var(--c-linie); border-radius:999px;
-  background:rgba(5,7,13,.78); backdrop-filter:blur(8px);
-  transition:color var(--t-ui), border-color var(--t-ui);
-}
-#zurueck:hover{color:var(--c-text); border-color:var(--c-linie-hell)}
+
+
 /* ACHTUNG: Das Suchmuster fuer die Sprachwahl steht in build.mjs, nicht hier
    -- ein Beispiel in einem Kommentar dieser Art hat am 16.09.2026 in
    tavolo.html den halben Kopf weggeschnitten. In einer eigenen .css-Datei
    liest der Build nicht, aber die Regel gilt trotzdem. */
-.lang{
-  position:fixed; top:clamp(.75rem,2.2vw,1.6rem); right:var(--page-x); z-index:20;
-  display:inline-flex; gap:.15rem; align-items:center;
-  padding:.15rem .25rem; border:1px solid var(--c-linie); border-radius:999px;
-  background:rgba(5,7,13,.78); backdrop-filter:blur(8px);
-  font:600 .74rem/1 var(--f-text); letter-spacing:.09em;
-}
-.lang a,.lang__current{display:inline-flex; align-items:center; justify-content:center; min-height:40px; min-width:40px; padding:0 .6rem; border-radius:999px; text-decoration:none}
-.lang a{color:var(--c-faint); transition:color var(--t-ui)}
-.lang a:hover{color:var(--c-text)}
-.lang__current{background:var(--c-text); color:#05070d}
+
+
+
+
+
 
 /* ---- Kopf ---- */
 /* ---- Erster Bildschirm: Titel links, Buehne rechts ----
@@ -72,31 +56,24 @@ button{font:inherit; color:inherit}
    den Abschnitten darunter (gleiche linke und rechte Kante), und die Buehne
    bekommt die volle Hoehe des ersten Bildschirms, statt unter einem
    hohen Kopf zu verschwinden. Darunter: Titel oben, Buehne randlos. */
-.held{padding:clamp(5.2rem,11vh,6.5rem) var(--page-x) 0}
-.kopf{padding:0 0 clamp(1.2rem,3vh,1.8rem)}
-.kopf .lead{max-width:40rem}
-@media (min-width:1100px){
-  .held{
-    display:grid; grid-template-columns:minmax(19rem,.34fr) minmax(0,1fr);
-    gap:clamp(2rem,3.2vw,3.5rem); align-items:start;
-    padding-top:clamp(5.5rem,12vh,7rem);
-  }
-  .kopf{padding:clamp(.5rem,3vh,2.5rem) 0 0}
-}
-.kicker{
+
+
+
+
+.erlebnis .kicker{
   margin:0 0 1rem; font:600 .78rem/1.2 var(--f-text);
   letter-spacing:.17em; text-transform:uppercase; color:var(--c-cyan);
 }
-h1,h2,h3{font-family:var(--f-display); font-weight:700; margin:0; text-wrap:balance}
-h1{font-size:clamp(2.3rem,6vw,4rem); line-height:1.02; letter-spacing:-.028em; margin-bottom:.9rem}
-@media (min-width:1100px){ h1{font-size:clamp(2.1rem,2.9vw,3.6rem)} .kopf .lead{font-size:1.04rem} }
-h1 .glanz{
-  background:linear-gradient(96deg,var(--c-blue),var(--c-cyan));
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-}
-h2{font-size:clamp(1.7rem,3.7vw,2.75rem); line-height:1.08; letter-spacing:-.022em; margin-bottom:.9rem}
-h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
-.lead{margin:0; max-width:44rem; font-size:clamp(1.02rem,1.3vw,1.16rem); color:var(--c-dim)}
+
+
+
+
+/* Nur die Zwischenüberschriften im Block. Der Abschnittskopf oben gehört der
+   Startseite (.sechead) und behält deren Größe -- sonst stünde hier eine
+   zweite Tonart. */
+.erlebnis .abschnitt h2{font-size:clamp(1.55rem,3vw,2.3rem); line-height:1.1; letter-spacing:-.02em; margin-bottom:.8rem}
+.erlebnis h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
+.erlebnis .lead{margin:0; max-width:44rem; font-size:clamp(1.02rem,1.3vw,1.16rem); color:var(--c-dim)}
 
 /* ---- Die Buehne ----
    16:9, weil die gerechneten Bilder 16:9 sind und das Echtzeitmodell mit
@@ -104,8 +81,8 @@ h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
    wird die Buehne hoeher und beschneidet links und rechts (object-fit:cover)
    -- das Echtzeitmodell rechnet diesen Beschnitt in villa-echtzeit.js nach,
    sonst liefe das Haus beim Ueberblenden auseinander. */
-.villa{min-width:0}
-.buehne{
+.erlebnis .villa{min-width:0}
+.erlebnis .buehne{
   position:relative; margin:0 auto; overflow:hidden; isolation:isolate;
   width:100%; aspect-ratio:16/9;
   border-radius:var(--radius); background:#0a0e16;
@@ -116,33 +93,33 @@ h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
    Ruecklink, unten die Regler. Sie rueckt dann nach rechts an die Kante
    der Abschnitte darunter. */
 @media (min-width:1100px){
-  .buehne{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0}
+  .erlebnis .buehne{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0}
 }
 @media (max-width:700px){
-  .villa{margin:0 calc(-1 * var(--page-x))}
-  .buehne{aspect-ratio:4/3; border-radius:0; border-left:0; border-right:0}
+  .erlebnis .villa{margin:0 calc(-1 * var(--page-x))}
+  .erlebnis .buehne{aspect-ratio:4/3; border-radius:0; border-left:0; border-right:0}
 }
-.buehne picture{display:contents}
-.ruhe{
+.erlebnis .buehne picture{display:contents}
+.erlebnis .ruhe{
   position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
   opacity:0; transition:opacity var(--t-blende) var(--e-standard);
   z-index:1;
 }
-.ruhe.ist-an{opacity:1}
-.ruhe.ist-oben{z-index:2}
-.echtzeit{position:absolute; inset:0; z-index:3; opacity:0; transition:opacity var(--t-blende) var(--e-standard); cursor:grab}
-.echtzeit canvas{display:block; width:100%; height:100%; outline:none}
+.erlebnis .ruhe.ist-an{opacity:1}
+.erlebnis .ruhe.ist-oben{z-index:2}
+.erlebnis .echtzeit{position:absolute; inset:0; z-index:3; opacity:0; transition:opacity var(--t-blende) var(--e-standard); cursor:grab}
+.erlebnis .echtzeit canvas{display:block; width:100%; height:100%; outline:none}
 /* Die Leinwand kann unsichtbar unter dem Foto liegen und trotzdem den Fokus
    haben -- dann zeigt die ganze Buehne, wo die Tastatur gerade ist. */
-.buehne:has(canvas:focus-visible){outline:2px solid var(--c-cyan); outline-offset:3px}
-.buehne.ist-echtzeit .echtzeit{opacity:1}
-.buehne.ist-ziehen .echtzeit{cursor:grabbing}
+.erlebnis .buehne:has(canvas:focus-visible){outline:2px solid var(--c-cyan); outline-offset:3px}
+.erlebnis .buehne.ist-echtzeit .echtzeit{opacity:1}
+.erlebnis .buehne.ist-ziehen .echtzeit{cursor:grabbing}
 /* Waehrend das Foto oben liegt, faengt die Leinwand trotzdem den Finger --
    wer auf das Foto greift, bekommt sofort das Modell unter der Hand. */
-.buehne.hat-echtzeit .echtzeit{pointer-events:auto}
-.buehne:not(.hat-echtzeit) .echtzeit{pointer-events:none}
+.erlebnis .buehne.hat-echtzeit .echtzeit{pointer-events:auto}
+.erlebnis .buehne:not(.hat-echtzeit) .echtzeit{pointer-events:none}
 
-.kennung{
+.erlebnis .kennung{
   position:absolute; left:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
   display:inline-flex; align-items:center; gap:.55rem; max-width:calc(100% - 15rem);
   padding:.5rem .8rem; border-radius:999px;
@@ -150,9 +127,9 @@ h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
   font:500 .82rem/1.25 var(--f-text); color:var(--c-text);
   border:1px solid rgba(255,255,255,.08);
 }
-.kennung__punkt{width:8px; height:8px; border-radius:50%; flex:none; background:var(--c-warm); box-shadow:0 0 0 3px rgba(255,217,168,.18)}
-.buehne.ist-echtzeit .kennung__punkt{background:var(--c-cyan); box-shadow:0 0 0 3px rgba(31,232,255,.18)}
-.bewegen{
+.erlebnis .kennung__punkt{width:8px; height:8px; border-radius:50%; flex:none; background:var(--c-warm); box-shadow:0 0 0 3px rgba(255,217,168,.18)}
+.erlebnis .buehne.ist-echtzeit .kennung__punkt{background:var(--c-cyan); box-shadow:0 0 0 3px rgba(31,232,255,.18)}
+.erlebnis .bewegen{
   position:absolute; right:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
   display:inline-flex; align-items:center; gap:.55rem; min-height:44px;
   padding:.6rem 1.05rem; border-radius:999px; cursor:pointer;
@@ -161,204 +138,203 @@ h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
   font:600 .88rem/1 var(--f-text); color:var(--c-text);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
-.bewegen:hover{border-color:var(--c-cyan); background:rgba(10,20,34,.86)}
-.bewegen__zeichen{
+.erlebnis .bewegen:hover{border-color:var(--c-cyan); background:rgba(10,20,34,.86)}
+.erlebnis .bewegen__zeichen{
   width:16px; height:16px; border-radius:50%;
   border:2px solid var(--c-cyan); border-right-color:transparent; position:relative;
 }
-.bewegen__zeichen::after{
+.erlebnis .bewegen__zeichen::after{
   content:''; position:absolute; right:-4px; top:-1px;
   border:4px solid transparent; border-left-color:var(--c-cyan); transform:rotate(-30deg);
 }
-.bewegen[aria-busy="true"] .bewegen__zeichen{animation:drehen 1s linear infinite}
+.erlebnis .bewegen[aria-busy="true"] .bewegen__zeichen{animation:drehen 1s linear infinite}
 @keyframes drehen{to{transform:rotate(360deg)}}
 @media (max-width:520px){
-  .kennung{font-size:.74rem; max-width:calc(100% - 1.2rem); bottom:auto; top:.6rem}
+  .erlebnis .kennung{font-size:.74rem; max-width:calc(100% - 1.2rem); bottom:auto; top:.6rem}
 }
 
-.regler{
+.erlebnis .regler{
   width:100%; margin:clamp(.9rem,2vh,1.3rem) auto 0;
   display:flex; flex-wrap:wrap; gap:.9rem 2rem; justify-content:space-between;
 }
-@media (max-width:700px){ .regler{padding:0 var(--page-x)} }
-@media (min-width:1100px){ .regler{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0} }
-.gruppe{display:flex; flex-direction:column; gap:.5rem; min-width:0; max-width:100%}
-.gruppe__name{font:600 .74rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
-.chips{display:flex; gap:.4rem; overflow-x:auto; scrollbar-width:none; padding:2px; margin:-2px}
-.chips::-webkit-scrollbar{display:none}
-.chips--umbruch{flex-wrap:wrap; overflow:visible}
-.chips button{
+@media (max-width:700px){ .erlebnis .regler{padding:0 var(--page-x)} }
+@media (min-width:1100px){ .erlebnis .regler{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0} }
+.erlebnis .gruppe{display:flex; flex-direction:column; gap:.5rem; min-width:0; max-width:100%}
+.erlebnis .gruppe__name{font:600 .74rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
+.erlebnis .chips{display:flex; gap:.4rem; overflow-x:auto; scrollbar-width:none; padding:2px; margin:-2px}
+.erlebnis .chips::-webkit-scrollbar{display:none}
+.erlebnis .chips--umbruch{flex-wrap:wrap; overflow:visible}
+.erlebnis .chips button{
   flex:none; min-height:44px; padding:.55rem .95rem; border-radius:999px; cursor:pointer;
   background:var(--c-surface); border:1px solid var(--c-linie); color:var(--c-dim);
   font:500 .9rem/1 var(--f-text); white-space:nowrap;
   transition:color var(--t-ui), border-color var(--t-ui), background var(--t-ui);
 }
-.chips button:hover{color:var(--c-text); border-color:var(--c-linie-hell)}
-.chips button[aria-pressed="true"]{background:var(--c-text); color:#05070d; border-color:var(--c-text)}
-.hinweis{margin:1.3rem 0 0; font-size:.9rem; line-height:1.55; color:var(--c-faint); max-width:40rem}
-.hinweis b{color:var(--c-dim); font-weight:600}
-.weiter{display:inline-flex; align-items:center; gap:.45rem; min-height:44px; margin-top:.9rem; color:var(--c-cyan); font-weight:600; font-size:.95rem; text-decoration:none}
-.weiter:hover{text-decoration:underline; text-underline-offset:4px}
-@media (max-width:1099px){ .weiter{display:none} }
+.erlebnis .chips button:hover{color:var(--c-text); border-color:var(--c-linie-hell)}
+.erlebnis .chips button[aria-pressed="true"]{background:var(--c-text); color:#05070d; border-color:var(--c-text)}
+.erlebnis .hinweis{margin:1.3rem 0 0; font-size:.9rem; line-height:1.55; color:var(--c-faint); max-width:40rem}
+.erlebnis .hinweis b{color:var(--c-dim); font-weight:600}
+
+
+
 
 /* ---- Abschnitte ---- */
-.abschnitt{padding:clamp(4rem,11vh,7rem) var(--page-x) 0}
-.abschnitt__kopf{max-width:50rem; margin-bottom:clamp(1.6rem,4vh,2.6rem)}
+.erlebnis .abschnitt{padding:clamp(3rem,7vh,5rem) 0 0}
+.erlebnis .abschnitt__kopf{max-width:50rem; margin-bottom:clamp(1.6rem,4vh,2.6rem)}
 
 /* ---- Wegweiser ---- */
-.hub__raster{display:grid; gap:clamp(1.2rem,2.5vw,2.2rem); grid-template-columns:1fr; align-items:start}
-@media (min-width:1040px){ .hub__raster{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)} }
-.feld{border:0; margin:0 0 1.6rem; padding:0; min-width:0}
-.feld legend{padding:0; margin-bottom:.7rem; font:600 .74rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
-.ziele{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr)); gap:.55rem}
-.ziel{
+.erlebnis .hub__raster{display:grid; gap:clamp(1.2rem,2.5vw,2.2rem); grid-template-columns:1fr; align-items:start}
+@media (min-width:1040px){ .erlebnis .hub__raster{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)} }
+.erlebnis .feld{border:0; margin:0 0 1.6rem; padding:0; min-width:0}
+.erlebnis .feld legend{padding:0; margin-bottom:.7rem; font:600 .74rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
+.erlebnis .ziele{display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr)); gap:.55rem}
+.erlebnis .ziel{
   text-align:left; cursor:pointer; min-height:44px;
   padding:.9rem 1rem; border-radius:12px;
   background:var(--c-surface); border:1px solid var(--c-linie);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
-.ziel b{display:block; font:600 1rem/1.25 var(--f-text); color:var(--c-text)}
-.ziel span{display:block; margin-top:.25rem; font-size:.86rem; line-height:1.35; color:var(--c-faint)}
-.ziel:hover{border-color:var(--c-linie-hell)}
-.ziel[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(31,232,255,.07),rgba(10,120,245,.04))}
+.erlebnis .ziel b{display:block; font:600 1rem/1.25 var(--f-text); color:var(--c-text)}
+.erlebnis .ziel span{display:block; margin-top:.25rem; font-size:.86rem; line-height:1.35; color:var(--c-faint)}
+.erlebnis .ziel:hover{border-color:var(--c-linie-hell)}
+.erlebnis .ziel[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(31,232,255,.07),rgba(10,120,245,.04))}
 
-.ergebnis{
+.erlebnis .ergebnis{
   position:relative; border-radius:var(--radius); padding:clamp(1.3rem,2.6vw,2rem);
   background:var(--c-surface); border:1px solid var(--c-linie); min-height:18rem;
 }
-@media (min-width:1040px){ .ergebnis{position:sticky; top:5.5rem} }
-.ergebnis__branche{margin:0 0 .6rem; font:600 .74rem/1.2 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-cyan)}
-.ergebnis h3{font-size:clamp(1.3rem,2.2vw,1.65rem); line-height:1.15; margin-bottom:1.1rem}
-.ergebnis h4{margin:1.2rem 0 .5rem; font:600 .8rem/1.2 var(--f-text); letter-spacing:.08em; text-transform:uppercase; color:var(--c-faint)}
-.ergebnis ul{margin:0; padding:0; list-style:none; display:grid; gap:.45rem}
-.ergebnis li{position:relative; padding-left:1.5rem; color:var(--c-text); font-size:.98rem; line-height:1.45}
-.ergebnis .kann li::before{content:''; position:absolute; left:.15rem; top:.5em; width:.55rem; height:.3rem; border-left:2px solid var(--c-cyan); border-bottom:2px solid var(--c-cyan); transform:rotate(-45deg)}
-.ergebnis .nicht li{color:var(--c-dim)}
-.ergebnis .nicht li::before{content:''; position:absolute; left:.2rem; top:.72em; width:.6rem; height:2px; background:var(--c-faint)}
-.ergebnis__stufe{display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin-top:1.3rem; padding-top:1.1rem; border-top:1px solid var(--c-linie); font-size:.92rem; color:var(--c-dim)}
-.ergebnis__stufe b{font-family:var(--f-display); font-size:1.5rem; color:var(--c-text); line-height:1}
-.ergebnis__ohne{margin:1.1rem 0 0; font-size:.94rem; color:var(--c-dim)}
-.ergebnis .knoepfe{justify-content:flex-start; margin-top:1.4rem}
-.ergebnis.ist-neu{animation:auftauchen var(--t-move) var(--e-standard)}
+@media (min-width:1040px){ .erlebnis .ergebnis{position:sticky; top:5.5rem} }
+.erlebnis .ergebnis__branche{margin:0 0 .6rem; font:600 .74rem/1.2 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-cyan)}
+.erlebnis .ergebnis h3{font-size:clamp(1.3rem,2.2vw,1.65rem); line-height:1.15; margin-bottom:1.1rem}
+.erlebnis .ergebnis h4{margin:1.2rem 0 .5rem; font:600 .8rem/1.2 var(--f-text); letter-spacing:.08em; text-transform:uppercase; color:var(--c-faint)}
+.erlebnis .ergebnis ul{margin:0; padding:0; list-style:none; display:grid; gap:.45rem}
+.erlebnis .ergebnis li{position:relative; padding-left:1.5rem; color:var(--c-text); font-size:.98rem; line-height:1.45}
+.erlebnis .ergebnis .kann li::before{content:''; position:absolute; left:.15rem; top:.5em; width:.55rem; height:.3rem; border-left:2px solid var(--c-cyan); border-bottom:2px solid var(--c-cyan); transform:rotate(-45deg)}
+.erlebnis .ergebnis .nicht li{color:var(--c-dim)}
+.erlebnis .ergebnis .nicht li::before{content:''; position:absolute; left:.2rem; top:.72em; width:.6rem; height:2px; background:var(--c-faint)}
+.erlebnis .ergebnis__stufe{display:flex; align-items:baseline; gap:.6rem; flex-wrap:wrap; margin-top:1.3rem; padding-top:1.1rem; border-top:1px solid var(--c-linie); font-size:.92rem; color:var(--c-dim)}
+.erlebnis .ergebnis__stufe b{font-family:var(--f-display); font-size:1.5rem; color:var(--c-text); line-height:1}
+.erlebnis .ergebnis__ohne{margin:1.1rem 0 0; font-size:.94rem; color:var(--c-dim)}
+.erlebnis .ergebnis .knoepfe{justify-content:flex-start; margin-top:1.4rem}
+.erlebnis .ergebnis.ist-neu{animation:auftauchen var(--t-move) var(--e-standard)}
 @keyframes auftauchen{from{opacity:.35; transform:translateY(6px)}to{opacity:1; transform:none}}
 
 /* ---- Knoepfe ---- */
-.knoepfe{display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap}
-.knopf{
+.erlebnis .knoepfe{display:flex; gap:.7rem; justify-content:center; flex-wrap:wrap}
+.erlebnis .knopf{
   display:inline-flex; align-items:center; justify-content:center; min-height:48px;
   padding:.85rem 1.5rem; border-radius:999px; text-decoration:none; cursor:pointer;
   font:600 .95rem/1 var(--f-text); letter-spacing:.005em; border:0;
   transition:filter var(--t-ui), border-color var(--t-ui), background var(--t-ui);
 }
-.knopf--voll{background:linear-gradient(96deg,var(--c-blue),var(--c-cyan)); color:#04070d}
-.knopf--voll:hover{filter:brightness(1.08)}
-.knopf--leer{border:1px solid var(--c-linie-hell); color:var(--c-text); background:transparent}
-.knopf--leer:hover{border-color:var(--c-dim)}
+.erlebnis .knopf--voll{background:linear-gradient(96deg,var(--c-blue),var(--c-cyan)); color:#04070d}
+.erlebnis .knopf--voll:hover{filter:brightness(1.08)}
+.erlebnis .knopf--leer{border:1px solid var(--c-linie-hell); color:var(--c-text); background:transparent}
+.erlebnis .knopf--leer:hover{border-color:var(--c-dim)}
 
 /* ---- Tisch ---- */
-.tisch{display:grid; gap:clamp(1.5rem,3vw,3rem); grid-template-columns:1fr; align-items:center}
-@media (min-width:1000px){ .tisch{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)} }
-.tisch__text .lead{margin-bottom:1.4rem}
-.fakten{display:flex; flex-wrap:wrap; gap:1.4rem 2.2rem; margin:0 0 1.6rem}
-.fakten div{display:flex; flex-direction:column}
-.fakten dt{font:700 1.7rem/1 var(--f-display); letter-spacing:-.02em; color:var(--c-text)}
-.fakten dd{margin:.35rem 0 0; font-size:.86rem; color:var(--c-faint)}
-.dreh{
+.erlebnis .tisch{display:grid; gap:clamp(1.5rem,3vw,3rem); grid-template-columns:1fr; align-items:center}
+@media (min-width:1000px){ .erlebnis .tisch{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)} }
+.erlebnis .tisch__text .lead{margin-bottom:1.4rem}
+.erlebnis .fakten{display:flex; flex-wrap:wrap; gap:1.4rem 2.2rem; margin:0 0 1.6rem}
+.erlebnis .fakten div{display:flex; flex-direction:column}
+.erlebnis .fakten dt{font:700 1.7rem/1 var(--f-display); letter-spacing:-.02em; color:var(--c-text)}
+.erlebnis .fakten dd{margin:.35rem 0 0; font-size:.86rem; color:var(--c-faint)}
+.erlebnis .dreh{
   position:relative; border-radius:var(--radius); overflow:hidden; cursor:grab;
   background:#e9e6e1; aspect-ratio:16/10; border:1px solid var(--c-linie);
   touch-action:pan-y; user-select:none; -webkit-user-select:none;
 }
-.dreh:active{cursor:grabbing}
-.dreh img{width:100%; height:100%; object-fit:cover; pointer-events:none}
-.dreh__hinweis{
+.erlebnis .dreh:active{cursor:grabbing}
+.erlebnis .dreh img{width:100%; height:100%; object-fit:cover; pointer-events:none}
+.erlebnis .dreh__hinweis{
   position:absolute; left:50%; bottom:.9rem; transform:translateX(-50%);
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.5rem .85rem; border-radius:999px;
   background:rgba(5,7,13,.78); color:var(--c-text); font:500 .84rem/1 var(--f-text);
   transition:opacity var(--t-move);
 }
-.dreh__hinweis i{width:22px; height:2px; background:var(--c-cyan); position:relative}
-.dreh__hinweis i::before,.dreh__hinweis i::after{content:''; position:absolute; top:-3px; border:4px solid transparent}
-.dreh__hinweis i::before{left:-6px; border-right-color:var(--c-cyan)}
-.dreh__hinweis i::after{right:-6px; border-left-color:var(--c-cyan)}
-.dreh.ist-benutzt .dreh__hinweis{opacity:0}
+.erlebnis .dreh__hinweis i{width:22px; height:2px; background:var(--c-cyan); position:relative}
+.erlebnis .dreh__hinweis i::before, .erlebnis .dreh__hinweis i::after{content:''; position:absolute; top:-3px; border:4px solid transparent}
+.erlebnis .dreh__hinweis i::before{left:-6px; border-right-color:var(--c-cyan)}
+.erlebnis .dreh__hinweis i::after{right:-6px; border-left-color:var(--c-cyan)}
+.erlebnis .dreh.ist-benutzt .dreh__hinweis{opacity:0}
 
 /* ---- Stufen ---- */
-.stufenwahl{display:grid; gap:.55rem; grid-template-columns:repeat(2,minmax(0,1fr))}
-@media (min-width:760px){ .stufenwahl{grid-template-columns:repeat(3,minmax(0,1fr))} }
-@media (min-width:1280px){ .stufenwahl{grid-template-columns:repeat(6,minmax(0,1fr))} }
-.stufenwahl button{
+.erlebnis .stufenwahl{display:grid; gap:.55rem; grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:760px){ .erlebnis .stufenwahl{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (min-width:1280px){ .erlebnis .stufenwahl{grid-template-columns:repeat(6,minmax(0,1fr))} }
+.erlebnis .stufenwahl button{
   text-align:left; cursor:pointer; padding:1rem 1.05rem; border-radius:12px; min-height:44px;
   background:var(--c-surface); border:1px solid var(--c-linie);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
-.stufenwahl b{display:block; font:700 .95rem/1 var(--f-display); letter-spacing:.06em; color:var(--c-text)}
-.stufenwahl span{display:block; margin-top:.45rem; font-size:.86rem; line-height:1.4; color:var(--c-faint)}
-.stufenwahl button:hover{border-color:var(--c-linie-hell)}
-.stufenwahl button[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(31,232,255,.07),rgba(10,120,245,.04))}
-.stufenwahl button.ist-auto::after{content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--c-cyan); margin-left:.4rem; vertical-align:middle}
-.ablesung{margin-top:1.4rem; padding:1.1rem 1.2rem; border-radius:12px; border:1px dashed var(--c-linie-hell)}
-.ablesung__satz{margin:0 0 .8rem; color:var(--c-text)}
-.ablesung__werte{display:grid; grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr)); gap:.8rem 1.4rem; margin:0}
-.ablesung__werte dt{font-size:.8rem; color:var(--c-faint)}
-.ablesung__werte dd{margin:.15rem 0 0; font:600 1.15rem/1.2 var(--f-display); font-variant-numeric:tabular-nums}
+.erlebnis .stufenwahl b{display:block; font:700 .95rem/1 var(--f-display); letter-spacing:.06em; color:var(--c-text)}
+.erlebnis .stufenwahl span{display:block; margin-top:.45rem; font-size:.86rem; line-height:1.4; color:var(--c-faint)}
+.erlebnis .stufenwahl button:hover{border-color:var(--c-linie-hell)}
+.erlebnis .stufenwahl button[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(31,232,255,.07),rgba(10,120,245,.04))}
+.erlebnis .stufenwahl button.ist-auto::after{content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--c-cyan); margin-left:.4rem; vertical-align:middle}
+.erlebnis .ablesung{margin-top:1.4rem; padding:1.1rem 1.2rem; border-radius:12px; border:1px dashed var(--c-linie-hell)}
+.erlebnis .ablesung__satz{margin:0 0 .8rem; color:var(--c-text)}
+.erlebnis .ablesung__werte{display:grid; grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr)); gap:.8rem 1.4rem; margin:0}
+.erlebnis .ablesung__werte dt{font-size:.8rem; color:var(--c-faint)}
+.erlebnis .ablesung__werte dd{margin:.15rem 0 0; font:600 1.15rem/1.2 var(--f-display); font-variant-numeric:tabular-nums}
 
 /* ---- Technik ---- */
-.werkzeuge{display:grid; gap:.8rem; grid-template-columns:1fr}
-@media (min-width:700px){ .werkzeuge{grid-template-columns:repeat(2,minmax(0,1fr))} }
-@media (min-width:1080px){ .werkzeuge{grid-template-columns:repeat(3,minmax(0,1fr))} }
-.werkzeug{padding:1.3rem 1.3rem 1.1rem; border-radius:12px; background:var(--c-surface); border:1px solid var(--c-linie)}
-.werkzeug h3{margin-bottom:.45rem}
-.werkzeug > p{margin:0; color:var(--c-dim); font-size:.97rem}
-.werkzeug details{margin-top:.8rem}
-.werkzeug summary{cursor:pointer; color:var(--c-cyan); font-weight:600; font-size:.9rem; list-style:none; min-height:32px; display:inline-flex; align-items:center; gap:.4rem}
-.werkzeug summary::-webkit-details-marker{display:none}
-.werkzeug summary::before{content:'+'; font-weight:700; width:1em; text-align:center}
-.werkzeug details[open] summary::before{content:'–'}
-.werkzeug details p{margin:.4rem 0 0; font-size:.9rem; color:var(--c-faint)}
+.erlebnis .werkzeuge{display:grid; gap:.8rem; grid-template-columns:1fr}
+@media (min-width:700px){ .erlebnis .werkzeuge{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (min-width:1080px){ .erlebnis .werkzeuge{grid-template-columns:repeat(3,minmax(0,1fr))} }
+.erlebnis .werkzeug{padding:1.3rem 1.3rem 1.1rem; border-radius:12px; background:var(--c-surface); border:1px solid var(--c-linie)}
+.erlebnis .werkzeug h3{margin-bottom:.45rem}
+.erlebnis .werkzeug > p{margin:0; color:var(--c-dim); font-size:.97rem}
+.erlebnis .werkzeug details{margin-top:.8rem}
+.erlebnis .werkzeug summary{cursor:pointer; color:var(--c-cyan); font-weight:600; font-size:.9rem; list-style:none; min-height:32px; display:inline-flex; align-items:center; gap:.4rem}
+.erlebnis .werkzeug summary::-webkit-details-marker{display:none}
+.erlebnis .werkzeug summary::before{content:'+'; font-weight:700; width:1em; text-align:center}
+.erlebnis .werkzeug details[open] summary::before{content:'–'}
+.erlebnis .werkzeug details p{margin:.4rem 0 0; font-size:.9rem; color:var(--c-faint)}
 
 /* ---- Vorher / Nachher ---- */
-.paare{display:grid; gap:.8rem; grid-template-columns:repeat(auto-fill,minmax(min(100%,32rem),1fr))}
-.paar{display:grid; grid-template-columns:1fr 1fr; border-radius:12px; overflow:hidden; border:1px solid var(--c-linie)}
-@media (max-width:520px){ .paar{grid-template-columns:1fr} }
-.paar__seite{padding:1.15rem 1.15rem 1.2rem; background:var(--c-surface)}
-.paar__seite--exp{background:var(--c-surface-2); border-left:1px solid var(--c-linie)}
-@media (max-width:520px){ .paar__seite--exp{border-left:0; border-top:1px solid var(--c-linie)} }
-.paar__art{display:block; margin-bottom:.5rem; font:600 .7rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
-.paar__seite--exp .paar__art{color:var(--c-cyan)}
-.paar h3{font-size:1.02rem; margin-bottom:.35rem}
-.paar p{margin:0; font-size:.9rem; color:var(--c-dim); line-height:1.5}
+.erlebnis .paare{display:grid; gap:.8rem; grid-template-columns:repeat(auto-fill,minmax(min(100%,32rem),1fr))}
+.erlebnis .paar{display:grid; grid-template-columns:1fr 1fr; border-radius:12px; overflow:hidden; border:1px solid var(--c-linie)}
+@media (max-width:520px){ .erlebnis .paar{grid-template-columns:1fr} }
+.erlebnis .paar__seite{padding:1.15rem 1.15rem 1.2rem; background:var(--c-surface)}
+.erlebnis .paar__seite--exp{background:var(--c-surface-2); border-left:1px solid var(--c-linie)}
+@media (max-width:520px){ .erlebnis .paar__seite--exp{border-left:0; border-top:1px solid var(--c-linie)} }
+.erlebnis .paar__art{display:block; margin-bottom:.5rem; font:600 .7rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
+.erlebnis .paar__seite--exp .paar__art{color:var(--c-cyan)}
+.erlebnis .paar h3{font-size:1.02rem; margin-bottom:.35rem}
+.erlebnis .paar p{margin:0; font-size:.9rem; color:var(--c-dim); line-height:1.5}
 
 /* ---- Streaming ---- */
-.kette{list-style:none; margin:0; padding:0; display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr)); counter-reset:k}
-.kette__glied{position:relative; padding:1.2rem; border-radius:12px; background:var(--c-surface); border:1px solid var(--c-linie)}
-.kette__glied svg{width:52px; height:52px; margin-bottom:.7rem; fill:none; stroke:var(--c-dim); stroke-width:2; stroke-linecap:round}
-.kette__glied svg .an{fill:var(--c-cyan); stroke:none}
-.kette__glied h3{margin-bottom:.3rem}
-.kette__glied p{margin:0; font-size:.92rem; color:var(--c-dim)}
+.erlebnis .kette{list-style:none; margin:0; padding:0; display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr)); counter-reset:k}
+.erlebnis .kette__glied{position:relative; padding:1.2rem; border-radius:12px; background:var(--c-surface); border:1px solid var(--c-linie)}
+.erlebnis .kette__glied svg{width:52px; height:52px; margin-bottom:.7rem; fill:none; stroke:var(--c-dim); stroke-width:2; stroke-linecap:round}
+.erlebnis .kette__glied svg .an{fill:var(--c-cyan); stroke:none}
+.erlebnis .kette__glied h3{margin-bottom:.3rem}
+.erlebnis .kette__glied p{margin:0; font-size:.92rem; color:var(--c-dim)}
 @media (min-width:900px){
-  .kette__glied:not(:last-child)::after{
+  .erlebnis .kette__glied:not(:last-child)::after{
     content:''; position:absolute; top:50%; right:-1rem; width:1rem; height:2px;
     background:repeating-linear-gradient(90deg,var(--c-cyan) 0 4px,transparent 4px 8px);
     animation:fluss 1.2s linear infinite;
   }
 }
 @keyframes fluss{to{background-position:8px 0}}
-.ehrlich{margin:1.2rem 0 0; max-width:50rem; font-size:.94rem; color:var(--c-faint)}
+.erlebnis .ehrlich{margin:1.2rem 0 0; max-width:50rem; font-size:.94rem; color:var(--c-faint)}
 
 /* ---- Schluss ---- */
-.schluss{padding:clamp(4.5rem,12vh,8rem) var(--page-x) clamp(4rem,10vh,7rem); text-align:center; margin-top:clamp(4rem,10vh,6rem); border-top:1px solid var(--c-linie)}
-.schluss h2{max-width:22ch; margin-left:auto; margin-right:auto}
-.schluss .lead{margin:0 auto clamp(1.6rem,3vh,2.2rem)}
+.erlebnis .schluss{padding:clamp(3rem,7vh,4.5rem) 0 0; text-align:center; margin-top:clamp(2.5rem,6vh,4rem); border-top:1px solid var(--c-linie)}
+.erlebnis .schluss h2{max-width:22ch; margin-left:auto; margin-right:auto}
+.erlebnis .schluss .lead{margin:0 auto clamp(1.6rem,3vh,2.2rem)}
 
 /* ---- Fuss ---- */
-.fuss{display:flex; flex-wrap:wrap; gap:.6rem 1.6rem; justify-content:space-between; align-items:center;
-  padding:1.6rem var(--page-x) 2rem; border-top:1px solid var(--c-linie); font-size:.86rem; color:var(--c-faint)}
-.fuss nav{display:flex; gap:1.2rem; flex-wrap:wrap}
-.fuss a{color:var(--c-dim); text-decoration:none; min-height:44px; display:inline-flex; align-items:center}
-.fuss a:hover{color:var(--c-text)}
+
+
+
+
 
 @media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  *,*::before,*::after{transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important}
+  
+  .erlebnis *, .erlebnis *::before, .erlebnis *::after{transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important}
 }

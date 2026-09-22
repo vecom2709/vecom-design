@@ -33,6 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=06495529">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=0e615527">
 
 
 <script type="importmap">
@@ -292,8 +293,7 @@
 <div class="world-scrim" aria-hidden="true"></div>
 <div class="world-cut" aria-hidden="true"></div>
 <nav class="rail" aria-label="Abschnitte">
-  <a href="#probieren"><i></i><span data-i18n="nav.probieren">Da provare</span></a>
-  <a href="#haus"><i></i><span data-i18n="nav.haus">La casa</span></a>
+  <a href="#erlebnis"><i></i><span data-i18n="nav.erlebnis">Esperienza</span></a>
   <a href="#work"><i></i><span data-i18n="nav.work">Lavori</span></a>
   <a href="#services"><i></i><span data-i18n="nav.services">Servizi</span></a>
   <a href="#plans"><i></i><span data-i18n="nav.plans">Prezzi</span></a>
@@ -418,321 +418,180 @@
   </div>
 </section>
 
-<!-- ===================== Zum Ausprobieren =====================
 
-     Die Arbeiten darueber kann man ansehen. Hier kann man sie anfassen -- und
-     genau darum geht es auf einer Agenturseite: Wer selbst gedreht hat, glaubt
-     nicht mehr, dass es geht. Er weiss es.
+<!-- ===================== Was könnte deine Website? =====================
 
-     Beide Stuecke lagen bis heute praktisch unverlinkt herum. showroom.html
-     war von der Startseite aus ueberhaupt nicht erreichbar, der Konfigurator
-     nur ueber einen Satz im Abschnitt "Echtzeit statt Standbild". Gebaut und
-     nicht gezeigt ist dasselbe wie nicht gebaut.
+     Der Hauptbereich der Seite. Bis zum 22.09.2026 lagen hier drei getrennte
+     Technik-Abschnitte (Werkbank "Zum Ausprobieren", das Haus-Labor und
+     "Echtzeit statt Standbild"); sie zeigten Technik, bevor irgendwer gefragt
+     hatte, was der Besucher will. Jetzt steht hier zuerst das Ergebnis --
+     eine Villa, gerechnet wie ein Foto, die man selbst drehen kann -- und
+     danach die Frage nach seinem Ziel.
 
-     Zwei Verweisarten, zwei Gruende:
-       tavolo.html    ohne fuehrenden Schraegstrich. Die Seite heisst in jeder
-                      Sprache anders (tavolo / tisch / table) und liegt jeweils
-                      neben der Startseite derselben Sprache -- build.mjs dreht
-                      den Dateinamen beim Bauen, der blosse Name genuegt.
-       showroom.html  ebenfalls ohne Schraegstrich, aber aus einem anderen
-                      Grund: Diese Seite heisst in allen drei Sprachen gleich
-                      und liegt jeweils neben der Startseite ihrer Sprache.
-                      Der blosse Name stimmt deshalb aus jeder Ebene, ganz
-                      ohne Drehregel. -->
-<section class="section" id="probieren">
+     Das Stilblatt assets/css/erlebnis.css gilt ausschliesslich innerhalb von
+     .erlebnis, damit es sich mit app.css nicht ins Gehege kommt. Die Texte
+     stehen unter erlebnis.* im Woerterbuch; was erst im Browser entsteht,
+     steht in assets/js/erlebnis/erlebnis.js. -->
+<section class="section erlebnis" id="erlebnis">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="marg.m4">da provare</span>
-      <h2 data-reveal data-i18n="probieren.head">Non credermi. Provalo.</h2>
-      <p data-reveal data-i18n="probieren.lead">Quattro domande, un solo oggetto. Giralo col dito, cambialo, guastalo. I numeri accanto non li devi credere: li stai misurando tu.</p>
+      <span class="marg" data-i18n="erlebnis.kicker">Vecom Experience</span>
+      <h2 data-reveal><span data-i18n="erlebnis.h1a">Cosa potrebbe fare</span> <span data-i18n="erlebnis.h1b">il tuo sito?</span></h2>
+      <p data-reveal data-i18n="erlebnis.lead">La stessa villa, due volte: calcolata come una foto — e come modello che giri tu, nel tuo browser. Lascia andare e il modello torna a essere la foto.</p>
     </div>
 
-    <!-- DAS LABOR
-         Vier Register an EINEM Objekt in EINER Buehne: ein Renderer, ein
-         Modell, ein Download. Ein zweiter WebGL-Kontext je Station waere
-         die naheliegende und die falsche Loesung -- die Seite traegt im
-         Hintergrund schon eine 3D-Welt.
+    <!-- DIE BUEHNE
+         Unten liegt immer das gerechnete Foto (Blender Cycles). Das Echtzeitmodell
+         kommt erst auf Wunsch dazu und liegt darueber; sobald die Kamera wieder auf
+         einem Standpunkt ruht, blendet das Foto zurueck. data-src traegt den Pfad
+         des Echtzeitmoduls -- so bekommt es von build.mjs einen Fingerabdruck wie
+         jede andere Datei, obwohl es erst per import() geladen wird. -->
+    <section class="villa" id="villa">
+      <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=220adc47">
+        <picture>
+          <source media="(max-width: 700px)" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=f5217a4f">
+          <img class="ruhe ist-an" id="ruhe-a" src="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=70c6cbff" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bildAlt" alt="Villa con piscina nel paesaggio siciliano, calcolata con Blender Cycles">
+        </picture>
+        <img class="ruhe" id="ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
+        <div class="echtzeit" id="echtzeit" aria-hidden="true"></div>
+        <figcaption class="kennung" id="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span id="kennung-text">Blender Cycles · 384</span></figcaption>
+        <button type="button" class="bewegen" id="bewegen" hidden><span class="bewegen__zeichen" aria-hidden="true"></span><span id="bewegen-text" data-i18n="erlebnis.bewegen">Giralo tu</span></button>
+      </figure>
 
-         Die Woerter, die JavaScript setzt, stehen als data-wort-* im
-         Markup und kommen damit aus dem Woerterbuch. Sonst waere die
-         Ablesung auf allen drei Sprachfassungen deutsch. -->
-    <div class="werkbank" data-werkbank data-werkbank-stufe="bild" data-werkbank-station="konfigurator" data-reveal
-         data-i18n-attr="data-wort-bild:probieren.wbBereit,data-wort-laedt:probieren.wbLaedt,data-wort-fps:probieren.wbFps"
-         data-wort-bild="immagine calcolata" data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s">
-
-      <div class="werkbank__reiter" role="tablist" data-i18n-attr="aria-label:probieren.rGruppe" aria-label="Quattro prove sullo stesso oggetto">
-        <button type="button" role="tab" data-station="konfigurator" aria-selected="true"  data-i18n="probieren.rKonfig">Configuratore</button>
-        <button type="button" role="tab" data-station="material"     aria-selected="false" data-i18n="probieren.rMaterial">Materiale</button>
-        <button type="button" role="tab" data-station="vergleich"    aria-selected="false" data-i18n="probieren.rVergleich">Foto o tempo reale</button>
-        <button type="button" role="tab" data-station="geraet"       aria-selected="false" data-i18n="probieren.rGeraet">Il tuo dispositivo</button>
+      <div class="regler">
+        <div class="gruppe" role="group" aria-labelledby="l-zeit">
+          <span class="gruppe__name" id="l-zeit" data-i18n="erlebnis.zeitLabel">Ora del giorno</span>
+          <div class="chips" id="zeiten">
+            <button type="button" data-zeit="morgen" aria-pressed="false" data-i18n="erlebnis.z1">Mattina</button>
+            <button type="button" data-zeit="mittag" aria-pressed="false" data-i18n="erlebnis.z2">Mezzogiorno</button>
+            <button type="button" data-zeit="nachmittag" aria-pressed="true" data-i18n="erlebnis.z3">Pomeriggio</button>
+            <button type="button" data-zeit="abend" aria-pressed="false" data-i18n="erlebnis.z4">Sera</button>
+            <button type="button" data-zeit="nacht" aria-pressed="false" data-i18n="erlebnis.z5">Ora blu</button>
+          </div>
+        </div>
+        <div class="gruppe" role="group" aria-labelledby="l-stand">
+          <span class="gruppe__name" id="l-stand" data-i18n="erlebnis.standLabel">Punto di vista</span>
+          <div class="chips" id="staende">
+            <button type="button" data-stand="garten" aria-pressed="true" data-i18n="erlebnis.s1">Giardino</button>
+            <button type="button" data-stand="ankunft" aria-pressed="false" data-i18n="erlebnis.s2">Arrivo</button>
+            <button type="button" data-stand="terrasse" aria-pressed="false" data-i18n="erlebnis.s3">Terrazza</button>
+            <button type="button" data-stand="wohnen" aria-pressed="false" data-i18n="erlebnis.s4">Soggiorno</button>
+            <button type="button" data-stand="essen" aria-pressed="false" data-i18n="erlebnis.s5">Zona pranzo</button>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <div class="werkbank__buehne">
-        <canvas hidden data-i18n-attr="aria-label:probieren.wbAlt"
-                aria-label="Tavolo da pranzo in tre dimensioni, da girare"></canvas>
-        <img data-werkbank-bild src="assets/img/3d/tisch/ansicht/gross/VD-T-W200-EIM.webp?v=841fe859"
-             data-i18n-attr="alt:probieren.wbAlt"
-            
-             width="1600" height="1000" loading="lazy" decoding="async" alt="Tavolo da pranzo in tre dimensioni, da girare">
-        <p class="werkbank__ablesung">
-          <span class="werkbank__nummer" data-werkbank-nummer>VD-T-W200-EIM</span>
-          <span class="werkbank__stand" data-werkbank-stand>immagine calcolata</span>
-        </p>
+      <p class="hinweis"><b data-i18n="erlebnis.hinweis_b">Cosa vedi:</b> <span data-i18n="erlebnis.hinweis_p">La foto è calcolata con Blender Cycles — sole vero, cielo fisico, 384 campioni per pixel. Il modello da girare è la stessa casa in 32.280 triangoli e 127 KB, dal vivo nel tuo browser. Il giardino, i cipressi e gli uliveti esistono solo nella foto: per un telefono sarebbero troppo pesanti.</span></p>
+
+
+    <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.hub_kicker">La guida</p>
+        <h2 id="hub-h" data-i18n="erlebnis.hub_h">Cosa deve ottenere il tuo sito per te?</h2>
+        <p class="lead" data-i18n="erlebnis.hub_lead">Tocca un obiettivo. Il settore adatto è già scelto — puoi cambiarlo. Accanto vedi subito cosa potrebbe fare il tuo sito e cosa lascio fuori di proposito.</p>
+      </header>
+      <div class="hub__raster">
+        <div class="hub__wahl">
+          <fieldset class="feld">
+            <legend data-i18n="erlebnis.zielLabel">Il tuo obiettivo</legend>
+            <div class="ziele" id="ziele"></div>
+          </fieldset>
+          <fieldset class="feld">
+            <legend data-i18n="erlebnis.brancheLabel">Il tuo settore</legend>
+            <div class="chips chips--umbruch" id="branchen"></div>
+          </fieldset>
+        </div>
+        <article class="ergebnis" id="ergebnis" aria-live="polite">
+          <noscript><p class="lead" data-i18n="erlebnis.hub_noscript">La guida ha bisogno di JavaScript. Tutto l’essenziale è comunque su questa pagina — oppure scrivimi direttamente.</p></noscript>
+        </article>
       </div>
+    </section>
 
-      <div class="werkbank__pult">
-
-        <!-- 1. Was kostet die 73. Variante? -->
-        <div data-pult="konfigurator">
-          <div class="achse">
-            <span class="achse__name" data-i18n="probieren.aHolz">Legno</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-achse="holz" data-wert="Eiche" data-i18n="probieren.hEiche">Rovere</button>
-              <button type="button" data-achse="holz" data-wert="Esche" data-i18n="probieren.hEsche">Frassino</button>
-              <button type="button" data-achse="holz" data-wert="Nussbaum" data-i18n="probieren.hNussbaum">Noce</button>
-              <button type="button" data-achse="holz" data-wert="Raeuchereiche" data-i18n="probieren.hRaeuchereiche">Rovere affumicato</button>
-            </div>
-          </div>
-          <div class="achse">
-            <span class="achse__name" data-i18n="probieren.aMetall">Metallo</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-achse="metall" data-wert="Messing" data-i18n="probieren.mMessing">Ottone</button>
-              <button type="button" data-achse="metall" data-wert="Edelstahl" data-i18n="probieren.mEdelstahl">Acciaio inox</button>
-              <button type="button" data-achse="metall" data-wert="Schwarzstahl" data-i18n="probieren.mSchwarzstahl">Acciaio nero</button>
-            </div>
-          </div>
-          <div class="achse">
-            <span class="achse__name" data-i18n="probieren.aGestell">Basamento</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-achse="gestell" data-wert="wange" data-i18n="probieren.gWange">A fianchi</button>
-              <button type="button" data-achse="gestell" data-wert="vierbein" data-i18n="probieren.gVierbein">Quattro gambe</button>
-            </div>
-          </div>
-          <div class="achse">
-            <span class="achse__name" data-i18n="probieren.aLaenge">Lunghezza</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-achse="laenge" data-wert="klein" data-i18n="probieren.lKlein">1,80 m</button>
-              <button type="button" data-achse="laenge" data-wert="mittel" data-i18n="probieren.lMittel">2,00 m</button>
-              <button type="button" data-achse="laenge" data-wert="gross" data-i18n="probieren.lGross">2,40 m</button>
-            </div>
-          </div>
-          <p class="werkbank__satz" data-i18n="probieren.wbSatz">72 varianti. Un modello di 133 KB. Con le foto sarebbero 72 appuntamenti — e la settantatreesima non esisterebbe.</p>
-        </div>
-
-        <!-- 2. Warum sieht das eine teuer aus? -->
-        <div data-pult="material" hidden>
-          <div class="achse">
-            <span class="achse__name"><span data-i18n="probieren.mRauheit">Ruvidità</span> <b class="achse__wert" data-anzeige="rauheit">0.26</b></span>
-            <input type="range" min="0" max="100" value="26" data-regler="rauheit"
-                   data-i18n-attr="aria-label:probieren.mRauheit" aria-label="Ruvidità">
-          </div>
-          <div class="achse">
-            <span class="achse__name"><span data-i18n="probieren.mMetallanteil">Quota metallica</span> <b class="achse__wert" data-anzeige="metall">1.00</b></span>
-            <input type="range" min="0" max="100" value="100" data-regler="metall"
-                   data-i18n-attr="aria-label:probieren.mMetallanteil" aria-label="Quota metallica">
-          </div>
-          <div class="achse__knoepfe">
-            <button type="button" data-regler-zurueck data-i18n="probieren.mZurueck">Rimetti i valori veri</button>
-          </div>
-          <p class="werkbank__satz" data-i18n="probieren.mSatz">Due numeri separano «sembra costoso» da «sembra plastica». Sono gli stessi due che decidono se il tuo prodotto in rete convince o no.</p>
-        </div>
-
-        <!-- 3. Wann lohnt sich welches? -->
-        <div data-pult="vergleich" hidden>
-          <div class="achse__knoepfe">
-            <button type="button" data-gegenueber aria-pressed="false" data-i18n="probieren.vSchalter">Mostra la foto calcolata</button>
-          </div>
-          <p class="werkbank__satz" data-i18n="probieren.vSatz">Stessa inquadratura, due strade. La foto è più nitida e vale per una variante sola: 41 KB, pronta subito. Il tempo reale costa 319 KB una volta e poi vale per tutte e 72 — e per la prossima che aggiungi domani.</p>
-        </div>
-
-        <!-- 4. Läuft das auf dem alten Handy? -->
-        <div data-pult="geraet" hidden>
-          <div class="achse">
-            <span class="achse__name" data-i18n="probieren.gStufe">Livello</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-stufe="ultra" data-i18n="probieren.gUltra">Ultra</button>
-              <button type="button" data-stufe="hoch" aria-pressed="true" data-i18n="probieren.gHoch">Alto</button>
-              <button type="button" data-stufe="mittel" data-i18n="probieren.gMittel">Medio</button>
-              <button type="button" data-stufe="niedrig" data-i18n="probieren.gNiedrig">Basso</button>
-              <button type="button" data-stufe="bild" data-i18n="probieren.gBild">Solo immagine</button>
-            </div>
-          </div>
-          <p class="werkbank__satz" data-i18n="probieren.gSatz">I tuoi clienti arrivano con tutto. Per questo il sito esiste in cinque livelli, non in due: guarda i fotogrammi al secondo mentre cambi. L’ultimo livello non è un guasto — è la stessa cosa, calcolata prima.</p>
-        </div>
-
+    <section class="abschnitt tisch" id="tisch" aria-labelledby="tisch-h">
+      <div class="tisch__text">
+        <p class="kicker" data-i18n="erlebnis.tisch_kicker">Prodotto · 36 viste calcolate</p>
+        <h2 id="tisch-h"><span data-i18n="erlebnis.tisch_h1">Un prodotto da girare —</span> <span data-i18n="erlebnis.tisch_h2">senza scheda grafica.</span></h2>
+        <p class="lead" data-i18n="erlebnis.tisch_lead">Ogni passo di questa rotazione è un’immagine a sé del path tracer di Unreal Engine. Nel browser non si calcola nulla — per questo il tavolo appare uguale su un vecchio telefono e su una workstation.</p>
+        <dl class="fakten">
+          <div><dt>36</dt><dd data-i18n="erlebnis.tisch_f1">immagini singole</dd></div>
+          <div><dt>~20&nbsp;KB</dt><dd data-i18n="erlebnis.tisch_f2">per passo</dd></div>
+          <div><dt>192</dt><dd data-i18n="erlebnis.tisch_f3">campioni per immagine</dd></div>
+        </dl>
+        <a class="knopf knopf--leer" href="tavolo.html" data-i18n="erlebnis.tisch_link">Al configuratore con 72 varianti</a>
       </div>
-    </div>
+      <div class="dreh" id="dreh" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="35" aria-valuenow="0" data-i18n-attr="aria-label:erlebnis.tisch_ziehen" aria-label="Trascina per girare">
+        <img id="dreh-bild" src="assets/img/3d/tisch/drehen/gross/dreh-00.webp?v=edfb43b5" width="1600" height="1000" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.tisch_alt" alt="Tavolo in legno massello di Vecom Design, vista calcolata">
+        <span class="dreh__hinweis" aria-hidden="true"><i></i><span data-i18n="erlebnis.tisch_ziehen">Trascina per girare</span></span>
+      </div>
+    </section>
 
-    <p class="werkbank__weiter" data-reveal>
-      <a class="card__link card__link--live" href="tavolo.html" data-i18n="probieren.p1l">Apri il configuratore completo</a>
-      <a class="card__link card__link--live" href="showroom.html" data-i18n="probieren.p2l">Entra nello showroom 3D</a>
-      <a class="card__link card__link--live" href="esperienza.html" data-i18n="probieren.p3l">Cosa potrebbe fare il tuo sito?</a>
-      <span data-i18n="probieren.note">Sono online tutti e tre, adesso. Nessuna installazione, nessun account, nessun appuntamento.</span>
-    </p>
+    <section class="abschnitt stufen" id="stufen" aria-labelledby="stufen-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.stufen_kicker">Adaptive Experience</p>
+        <h2 id="stufen-h" data-i18n="erlebnis.stufen_h">Ogni dispositivo riceve la versione migliore che può reggere.</h2>
+        <p class="lead" data-i18n="erlebnis.stufen_lead">La pagina misura cosa sa fare il tuo dispositivo e sceglie il livello da sola. Qui puoi cambiarlo e vedere sulla villa in alto cosa cambia — aspetto e inquadratura restano uguali, cambia solo il carico di calcolo.</p>
+      </header>
+      <div class="stufenwahl" role="group" aria-labelledby="stufen-h" id="stufenwahl">
+        <button type="button" data-stufe="AUTO" aria-pressed="true"><b>AUTO</b><span data-i18n="erlebnis.auto_s">misura il tuo dispositivo</span></button>
+        <button type="button" data-stufe="SAFE" aria-pressed="false"><b>ECO</b><span data-i18n="erlebnis.eco_s">Immagini calcolate, niente 3D. Si apre subito, funziona ovunque.</span></button>
+        <button type="button" data-stufe="MEDIUM" aria-pressed="false"><b>STANDARD</b><span data-i18n="erlebnis.std_s">3D vero, senza ombre, densità di pixel semplice.</span></button>
+        <button type="button" data-stufe="HIGH" aria-pressed="false"><b>HIGH</b><span data-i18n="erlebnis.high_s">Ombre del sole morbide, bordi più fini.</span></button>
+        <button type="button" data-stufe="ULTRA" aria-pressed="false"><b>ULTRA</b><span data-i18n="erlebnis.ultra_s">Mappa delle ombre grande, densità di pixel piena.</span></button>
+        <button type="button" data-stufe="CINEMATIC" aria-pressed="false"><b>CINEMATIC</b><span data-i18n="erlebnis.cine_s">Path tracing — la foto. Su richiesta dal vivo da Unreal Engine in streaming.</span></button>
+      </div>
+      <div class="ablesung" id="ablesung" aria-live="polite">
+        <p class="ablesung__satz" id="ablesung-satz"></p>
+        <dl class="ablesung__werte" id="ablesung-werte"></dl>
+      </div>
+    </section>
+
+    <section class="abschnitt technik" id="technik" aria-labelledby="technik-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.tech_kicker">La tecnica dietro</p>
+        <h2 id="technik-h" data-i18n="erlebnis.tech_h">Una frase per strumento. Di più, se vuoi.</h2>
+      </header>
+      <div class="werkzeuge">
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t1n">Blender</h3><p data-i18n="erlebnis.t1a">Il tuo oggetto viene ricostruito in digitale — così preciso da sembrare fotografato.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t1b">Modellato con misure reali in Blender 5.2, calcolato con Cycles su una RTX 5070. La villa ha 647 componenti e 26 materiali; il giardino con oltre 600.000 fili d’erba, cipressi fatti di ciuffi di rami e uliveti nasce solo per le foto.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t4n">Path tracing</h3><p data-i18n="erlebnis.t4a">La luce viene calcolata come si propaga nella realtà — da qui l’effetto di una foto.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t4b">Blender Cycles con cielo fisico, rifrazione reale del vetro e caustiche, fino a 32 rimbalzi di luce. L’esposizione è misurata: intonaco bianco al sole a 0,83–0,86 di luminanza, come la imposterebbe un fotografo sul set.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t2n">Three.js</h3><p data-i18n="erlebnis.t2a">Il tuo visitatore gira il modello direttamente nel browser — senza app, senza plugin.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t2b">Three.js r185, servito dal nostro server. La casa arriva come GLB con 32.280 triangoli: 2,0 MB su disco, 127 KB in rete. Si carica solo quando qualcuno vuole girarla.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t3n">Adaptive Experience</h3><p data-i18n="erlebnis.t3a">La pagina si adatta a ogni dispositivo — nessuno riceve una versione che scatta.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t3b">Un nucleo proprio (experience-core): misura del dispositivo, breve test di prestazioni, cinque livelli. Un controllore abbassa il livello se i fotogrammi calano in modo stabile, e lo rialza con prudenza.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t5n">Unreal Engine</h3><p data-i18n="erlebnis.t5a">Per immobili premium: qualità da cinema, e il comando ce l’ha il tuo cliente.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t5b">Unreal Engine 5 con Lumen per la versione in tempo reale e path tracing per i filmati. La stessa villa è già allestita lì e calibrata su Cycles.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t6n">Pixel Streaming</h3><p data-i18n="erlebnis.t6a">La grafica la calcola un server — il tuo cliente la vede sul telefono.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t6b">Pixel Streaming via WebRTC. Parte solo con un clic, con limite di tempo e tetto mensile, perché ogni minuto costa una scheda grafica a noleggio.</p></details></article>
+      </div>
+    </section>
+
+    <section class="abschnitt vergleich" id="vergleich" aria-labelledby="vergleich-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.vgl_kicker">Prima / dopo</p>
+        <h2 id="vergleich-h" data-i18n="erlebnis.vgl_h">Sito normale o experience?</h2>
+        <p class="lead" data-i18n="erlebnis.vgl_lead">Entrambi hanno il loro posto. Questa panoramica deve aiutarti a decidere — non screditare i siti normali.</p>
+      </header>
+      <div class="paare">
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p1a_t">Foto di prodotto</h3><p data-i18n="erlebnis.p1a_p">Basta, se il tuo prodotto esiste in un’unica versione e una buona foto mostra tutto.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p1b_t">Prodotto da girare</h3><p data-i18n="erlebnis.p1b_p">Conviene quando ci sono varianti: 72 versioni del tavolo da un solo modello invece di 72 servizi fotografici.</p></div></div>
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p2a_t">Foto dell’immobile</h3><p data-i18n="erlebnis.p2a_p">Bastano, se l’immobile è finito e si fotografa bene.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p2b_t">Visita calcolata</h3><p data-i18n="erlebnis.p2b_p">Conviene se non è ancora costruito, se è lontano o se vuoi selezionare i contatti prima.</p></div></div>
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p3a_t">Sito aziendale classico</h3><p data-i18n="erlebnis.p3a_p">Basta — ed è giusto — se i clienti devono chiamare: artigiani, studi medici, officine.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p3b_t">Motion e storytelling</h3><p data-i18n="erlebnis.p3b_p">Conviene se vendi un’atmosfera: hotel, cantina, marchio.</p></div></div>
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p4a_t">Galleria di immagini</h3><p data-i18n="erlebnis.p4a_p">Basta per i pezzi unici veri — un’auto usata vuole foto vere.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p4b_t">Configuratore</h3><p data-i18n="erlebnis.p4b_p">Conviene con molte versioni: colori, misure, materiali, dotazioni.</p></div></div>
+      </div>
+    </section>
+
+    <section class="abschnitt strom" id="streaming" aria-labelledby="strom-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.str_kicker">Pixel Streaming</p>
+        <h2 id="strom-h" data-i18n="erlebnis.str_h">Grafica di alto livello anche sul telefono</h2>
+        <p class="lead" data-i18n="erlebnis.str_lead">Un server nel data center calcola l’immagine e la invia come video. Il tuo visitatore comanda con il dito — il suo dispositivo non deve calcolare nulla.</p>
+      </header>
+      <ol class="kette">
+        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="52" rx="5"/><path d="M20 18h24M20 28h24M20 38h24"/><circle cx="44" cy="48" r="2.5" class="an"/></svg><h3 data-i18n="erlebnis.str1t">Server</h3><p data-i18n="erlebnis.str1p">Una scheda grafica nel data center calcola la scena Unreal.</p></li>
+        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 30c7-12 17-18 24-18s17 6 24 18"/><path d="M16 36c5-8 11-12 16-12s11 4 16 12"/><path d="M24 42c3-4 5-6 8-6s5 2 8 6"/><circle cx="32" cy="50" r="3" class="an"/></svg><h3 data-i18n="erlebnis.str2t">Stream</h3><p data-i18n="erlebnis.str2p">Le immagini finite viaggiano in rete come video, i tocchi tornano indietro.</p></li>
+        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="19" y="4" width="26" height="56" rx="5"/><path d="M19 12h26M19 50h26"/><circle cx="32" cy="55" r="1.5" class="an"/></svg><h3 data-i18n="erlebnis.str3t">Telefono</h3><p data-i18n="erlebnis.str3p">Mostra l’immagine e rimanda scorrimenti e tocchi.</p></li>
+      </ol>
+      <p class="ehrlich" data-i18n="erlebnis.str_ehrlich">A dirla tutta: uno stream costa a ogni minuto. Per questo non parte mai da solo, ma solo con un clic — e per la villa di questa pagina, per ora, solo su appuntamento.</p>
+    </section>
   </div>
 </section>
 
 
-
-<!-- ===================== Das Haus =====================
-
-     Der Tisch darueber zeigt, was ein Produkt im Netz kann. Dieser
-     Abschnitt zeigt dasselbe fuer ein Gebaeude -- und spricht damit die
-     Kundschaft an, bei der sich das am schnellsten rechnet: Bautraeger,
-     Architekten, Makler, Handwerksbetriebe mit erklaerungsbeduerftigen
-     Leistungen.
-
-     Drei Register an EINEM Modell (362 KB):
-       Grundriss  Der Plan liegt flach und richtet sich zum Haus auf.
-       Bauablauf  Acht Abschnitte, vor und zurueck.
-       Begehung   Kamera auf 1,65 m, durch die Tuer, durch die Raeume.
-
-     Der Grundriss wird als SVG GEZEICHNET, nicht als Bild geladen: scharf
-     in jeder Aufloesung, uebersetzbar, und er steht auch ohne WebGL. Ein
-     Abschnitt, der ohne 3D nichts zeigt, ist auf dem halben Geraetepark
-     leer.
-
-     Raumnamen und Abschnittstitel stehen als EINE Liste je Sprache
-     (data-wort-raeume, data-wort-abschnitte). Zwanzig einzelne
-     data-i18n-attr-Paare in einer Zeile waeren nicht zu pflegen.
-     ================================================================ -->
-<section class="section" id="haus">
-  <div class="wrap">
-    <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="haus.marg">architettura</span>
-      <h2 data-reveal data-i18n="haus.head">Dalla pianta alla casa. In tre secondi.</h2>
-      <p data-reveal data-i18n="haus.lead">Una villa da 268 m², arredata, 1,9 MB. Alza la casa dalla pianta, guardala nascere per fasi, entra e cammina dentro — e confrontala con la foto calcolata. Tutto qui, senza installare niente.</p>
-    </div>
-
-    <div class="werkbank haus" data-haus data-haus-stufe="bild" data-haus-station="grundriss" data-reveal
-         data-i18n-attr="data-wort-laedt:haus.wLaedt,data-wort-fps:haus.wFps,data-wort-planbereit:haus.wPlan,data-wort-planfehler:haus.wFehler,data-wort-raeume:haus.raeume,data-wort-abschnitte:haus.abschnitte,data-wort-estufen:haus.estufen"
-        
-        
-        
-         data-wort-laedt="caricamento" data-wort-fps="fotogrammi/s" data-wort-planbereit="pianta disegnata" data-wort-planfehler="pianta non raggiungibile" data-wort-raeume="eg=Piano terra|og=Piano primo|entree=Ingresso|wc=Bagno ospiti|technik=Tecnica|essen=Pranzo|kueche=Cucina|wohnen=Soggiorno|galerie=Disimpegno|galerie2=Disimpegno|bad=Bagno|kind1=Camera 1|kind2=Camera 2|master=Camera padronale|ankunft=Arrivo|garten=Giardino|terrasse=Terrazza" data-wort-abschnitte="1=Platea|2=Grezzo piano terra|3=Solaio e sbalzo|4=Grezzo piano primo|5=Copertura|6=Vetrate e facciata|7=Finiture|8=Giardino" data-wort-estufen="Wireframe|Modeling|Materials|Lighting|Web">
-
-      <div class="werkbank__reiter" role="tablist" data-i18n-attr="aria-label:haus.rGruppe" aria-label="Tre prove sulla stessa casa">
-        <button type="button" role="tab" data-hstation="grundriss" aria-selected="true" data-i18n="haus.rPlan">Pianta</button>
-        <button type="button" role="tab" data-hstation="bauablauf" aria-selected="false" data-i18n="haus.rBau">Cantiere</button>
-        <button type="button" role="tab" data-hstation="begehung" aria-selected="false" data-i18n="haus.rGehen">Visita</button>
-        <button type="button" role="tab" data-hstation="entstehung" aria-selected="false" data-i18n="haus.rEntstehung">Come nasce</button>
-        <button type="button" role="tab" data-hstation="vergleich" aria-selected="false" data-i18n="haus.rVergleich">Foto o tempo reale</button>
-      </div>
-
-      <div class="werkbank__buehne">
-        <canvas hidden data-i18n-attr="aria-label:haus.wbAlt" aria-label="Villa in tre dimensioni, da percorrere"></canvas>
-        <svg class="grundriss" data-haus-plan viewBox="0 0 20 13" preserveAspectRatio="xMidYMid meet"
-             role="img" data-i18n-attr="aria-label:haus.planAlt" aria-label="Pianta della villa, quotata"></svg>
-        <img data-haus-bild hidden src="assets/img/3d/haus/haus-garten.webp?v=85743df2" width="1600" height="900"
-             loading="lazy" decoding="async" data-i18n-attr="alt:haus.wbAlt" alt="Villa in tre dimensioni, da percorrere">
-        <p class="werkbank__ablesung">
-          <span class="werkbank__nummer" data-haus-titel>Piano terra</span>
-          <span class="werkbank__stand" data-haus-stand>pianta disegnata</span>
-        </p>
-      </div>
-
-      <div class="werkbank__pult">
-
-        <div data-hpult="grundriss">
-          <div class="achse">
-            <span class="achse__name" data-i18n="haus.aGeschoss">Piano</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-geschoss="eg" aria-pressed="true" data-i18n="haus.gEg">Piano terra</button>
-              <button type="button" data-geschoss="og" aria-pressed="false" data-i18n="haus.gOg">Piano primo</button>
-            </div>
-          </div>
-          <div class="achse">
-            <span class="achse__name"><span data-i18n="haus.aWachstum">Altezza</span> <b class="achse__wert" data-haus-wachstum>100 %</b></span>
-            <input type="range" min="0" max="100" step="1" value="100" data-regler="wachstum"
-                   data-i18n-attr="aria-label:haus.aWachstum" aria-label="Altezza">
-          </div>
-          <div class="achse__knoepfe">
-            <button type="button" data-aufrichten data-i18n="haus.bAufrichten">Alza la casa</button>
-          </div>
-          <p class="werkbank__satz" data-i18n="haus.sPlan">La pianta non è un’immagine: è disegnata dal modello, con le misure vere. Sposta il cursore e i muri escono dal pavimento — nello stesso ordine in cui si costruiscono.</p>
-        </div>
-
-        <div data-hpult="bauablauf" hidden>
-          <div class="achse">
-            <span class="achse__name"><span data-i18n="haus.aStufe">Fase</span> <b class="achse__wert"><span data-stufe-wert>8</span>/8</b></span>
-            <input type="range" min="1" max="8" step="1" value="8" data-regler="stufe"
-                   data-i18n-attr="aria-label:haus.aStufe" aria-label="Fase">
-          </div>
-          <p class="werkbank__satz" data-i18n="haus.sBau">Otto fasi, avanti e indietro: platea, grezzo, solaio con lo sbalzo, copertura, vetrate, finiture, giardino. Il cliente vede dove finiscono i suoi soldi — prima che arrivi il primo camion.</p>
-        </div>
-
-        <!-- WIE EINE SZENE ENTSTEHT
-             Fuenf Zustaende DERSELBEN laufenden Szene, nicht fuenf Bilder.
-             Die sechste Stufe aus dem Auftrag -- Unreal -- steht bewusst
-             nicht dabei: Sie ist ein Pfadverfolger-Bild und laeuft nicht im
-             Browser. Sie kommt herein, sobald von genau diesem Haus ein
-             echtes Unreal-Bild vorliegt. -->
-        <div data-hpult="entstehung" hidden>
-          <div class="achse">
-            <span class="achse__name"><span data-i18n="haus.aStufeE">Stadio</span>
-              <b class="achse__wert" data-entstehung-wort>Web</b></span>
-            <input type="range" min="0" max="4" step="1" value="4" data-regler="entstehung"
-                   data-i18n-attr="aria-label:haus.aStufeE" aria-label="Stadio">
-          </div>
-          <div class="estufen" role="tablist" data-i18n-attr="aria-label:haus.eGruppe" aria-label="Cinque stadi sulla stessa scena">
-            <button type="button" role="tab" data-estufe="0" aria-selected="false">Wireframe</button>
-            <button type="button" role="tab" data-estufe="1" aria-selected="false">Modeling</button>
-            <button type="button" role="tab" data-estufe="2" aria-selected="false">Materials</button>
-            <button type="button" role="tab" data-estufe="3" aria-selected="false">Lighting</button>
-            <button type="button" role="tab" data-estufe="4" aria-selected="true">Web</button>
-          </div>
-          <p class="werkbank__satz" data-i18n="haus.sEntstehung">Lo stesso modello, cinque volte calcolato diversamente: spigoli, forma, materiali, luce — e alla fine il sito, dove la scena non si ferma e la puoi prendere in mano. Fra “Lighting” e “Web” non cambia l’immagine: cambia che continua a girare.</p>
-        </div>
-
-        <!-- Vier Standpunkte, an denen ein gerechnetes Bild vorliegt. Der
-             Umschalter legt es ueber die Leinwand; die Echtzeitkamera steht
-             dann auf genau demselben Punkt (Werte aus dem Manifest). Sonst
-             vergleicht man zwei Ansichten statt zwei Verfahren. -->
-        <div data-hpult="vergleich" hidden>
-          <div class="achse">
-            <span class="achse__name" data-i18n="haus.aStandpunkt">Punto di ripresa</span>
-            <div class="achse__knoepfe">
-              <button type="button" data-standpunkt="garten" aria-pressed="true" data-i18n="haus.pGarten">Giardino</button>
-              <button type="button" data-standpunkt="ankunft" aria-pressed="false" data-i18n="haus.pAnkunft">Ingresso</button>
-              <button type="button" data-standpunkt="terrasse" aria-pressed="false" data-i18n="haus.pTerrasse">Terrazza</button>
-              <button type="button" data-standpunkt="wohnen" aria-pressed="false" data-i18n="haus.pWohnen">Soggiorno</button>
-              <button type="button" data-standpunkt="essen" aria-pressed="false" data-i18n="haus.pEssen">Pranzo</button>
-              <button type="button" data-standpunkt="kueche" aria-pressed="false" data-i18n="haus.pKueche">Cucina</button>
-              <button type="button" data-standpunkt="master" aria-pressed="false" data-i18n="haus.pMaster">Camera</button>
-            </div>
-          </div>
-          <div class="achse__knoepfe">
-            <button type="button" data-fotoschalter aria-pressed="true" data-i18n="haus.vEchtzeit">Mostra il tempo reale</button>
-          </div>
-          <p class="werkbank__satz" data-i18n="haus.sVergleich">Stessa casa, stesso punto, due strade. La foto è calcolata in Cycles: minuti di calcolo, un solo punto di vista, da 21 a 65 KB. Il tempo reale costa 1,9 MB una volta e poi vale per ogni punto, ogni fase e ogni passo dentro casa.</p>
-        </div>
-        <div data-hpult="begehung" hidden>
-          <div class="achse__knoepfe">
-            <button type="button" data-punkt="-1" data-i18n="haus.bZurueck">Indietro</button>
-            <button type="button" data-punkt="1" data-i18n="haus.bWeiter">Punto successivo</button>
-          </div>
-          <p class="werkbank__satz" data-i18n="haus.sGehen">Occhi a 1,65 m. Trascina per guardarti intorno, W A S D o le frecce per camminare, oppure salta di stanza in stanza. Dieci punti, dall’arrivo alla camera sullo sbalzo.</p>
-        </div>
-
-      </div>
-    </div>
-
-    <p class="werkbank__weiter" data-reveal>
-      <a class="card__link card__link--live" href="esperienza.html" data-i18n="haus.erlebnis">La villa calcolata come una foto — e cosa potrebbe fare il tuo sito</a>
-      <span data-i18n="haus.note">Un modello, 1,9 MB, arredato. Le stesse quattro prove funzionano su un capannone, un appartamento o un intero quartiere.</span>
-    </p>
-  </div>
-</section>
-
-
-<!-- ===================== Echtzeit statt Standbild =====================
-     Die Begruendung der Positionierung, bevor die Arbeiten kommen. Reine
-     Kopie, keine Mechanik: Der Abschnitt darf nichts behaupten, was die
-     Seite noch nicht kann. Klassen ausschliesslich aus dem Bestand
-     (.section/.wrap/.sechead/.services/.service) -- kein neues Stilblatt.
-     Der zugehoerige Kamerazustand steht in site-beats.js unter 'beweis';
-     ohne ihn bliebe der Schleier auf dem Hero-Wert und der Text unlesbar.
-     ==================================================================== -->
 <!-- ===================== E se…? =====================
      Die Bruecke von zwei fremden Beispielen (Tisch, Villa) zum eigenen
      Betrieb des Lesers. Ohne sie bleiben die Demos Spielzeug: "schoen,
@@ -761,106 +620,6 @@
   </div>
 </section>
 
-<section class="section" id="beweis">
-  <div class="wrap">
-    <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="beweis.marg">tempo reale</span>
-      <h2 data-reveal data-i18n="beweis.head">Tempo reale, non fermo immagine</h2>
-      <p data-reveal data-i18n="beweis.lead">Perché costruisco prodotti che si possono girare — e quando invece basta una foto.</p>
-    </div>
-
-    <div class="services" data-stagger>
-      <article class="service" data-reveal>
-        <span class="service__no" data-i18n="beweis.k1l">varianti</span>
-        <h3 data-i18n="beweis.k1t">La 145ª variante non costa nulla.</h3>
-        <p data-i18n="beweis.k1p">Una poltrona in sei tessuti, quattro legni, tre misure e due basi fa 144 viste. Un fotografo ne consegna una. Uno studio di rendering te ne fattura 144. Una scena in tempo reale le mostra tutte — e domani anche la 145ª, al prezzo di un parametro.</p>
-      </article>
-      <article class="service" data-reveal>
-        <span class="service__no" data-i18n="beweis.k2l">decisione</span>
-        <h3 data-i18n="beweis.k2t">Chi l’ha girata da solo ha già deciso.</h3>
-        <p data-i18n="beweis.k2p">Una foto di prodotto trattiene l’attenzione per circa un secondo. Un oggetto che il tuo cliente gira, colora e dimensiona da sé la trattiene molte volte tanto. La richiesta non arriva più come «quanto costa?», ma come configurazione finita, con i codici articolo.</p>
-      </article>
-      <article class="service" data-reveal>
-        <span class="service__no" data-i18n="beweis.k3l">riutilizzo</span>
-        <h3 data-i18n="beweis.k3t">Costruito una volta, usato tre.</h3>
-        <p data-i18n="beweis.k3p">La stessa scena alimenta la pagina prodotto, lo stand in fiera e il tablet della tua rete vendita — e da qualsiasi posizione di camera restituisce un fermo immagine in risoluzione di stampa. L’investimento iniziale si divide così su tre budget.</p>
-      </article>
-    </div>
-
-    <!-- Der Beleg zur Behauptung. Der blosse Dateiname genuegt: Die Seite
-         heisst in jeder Sprache anders und liegt jeweils neben der
-         Startseite derselben Sprache -- build.mjs dreht den Namen. -->
-    <!-- DERSELBE BETRIEB, ZWEI SEITEN
-         Der Abschnitt argumentiert bis hierher mit Worten. Ein Schieber
-         zeigt in einer Sekunde, was drei Absaetze erklaeren.
-
-         Bewusst KEIN Bildschirmfoto einer echten fremden Seite: Das waere
-         eine Behauptung ueber einen Betrieb, der nicht gefragt wurde --
-         und rechtlich wie menschlich der falsche Weg. Beide Seiten sind
-         angedeutet, mit den Mitteln dieser Seite selbst. -->
-    <div class="vergleich" data-vergleich data-reveal>
-      <div class="vergleich__feld" data-feld>
-        <!-- Beide Seiten sind gebaut, nicht gemalt: echte Kaesten statt
-             Verlaufsschichten. Der erste Versuch stapelte acht
-             background-Layer mit Prozentpositionen uebereinander -- die
-             rechnen anders als Pixel, und die drei Karten unten lagen
-             dann uebereinander statt nebeneinander.
-
-             Der Unterschied soll aus RANGFOLGE kommen, nicht aus Farbe:
-             links ist alles gleich gross, mittig und gleich laut; rechts
-             gibt es genau eine Ueberschrift, genau einen Knopf und viel
-             Ruhe darum. Deshalb hat die rechte Seite WENIGER Teile. -->
-        <div class="vergleich__seite vergleich__seite--normal" aria-hidden="true">
-          <span class="vergleich__marke" data-i18n="verg.a">Standard</span>
-          <div class="mock mock--normal">
-            <div class="mock__kopf">
-              <span class="mock__logo"></span>
-              <span class="mock__nav"></span><span class="mock__nav"></span>
-              <span class="mock__nav"></span><span class="mock__nav"></span>
-            </div>
-            <div class="mock__rumpf">
-              <span class="mock__h"></span>
-              <span class="mock__z"></span><span class="mock__z"></span><span class="mock__z"></span>
-              <span class="mock__knopf"></span>
-              <div class="mock__karten">
-                <span></span><span></span><span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="vergleich__seite vergleich__seite--vecom" aria-hidden="true">
-          <span class="vergleich__marke" data-i18n="verg.b">VECOM</span>
-          <div class="mock mock--vecom">
-            <div class="mock__kopf">
-              <span class="mock__logo"></span>
-              <span class="mock__nav"></span><span class="mock__nav"></span>
-            </div>
-            <div class="mock__rumpf">
-              <span class="mock__h"></span>
-              <span class="mock__z"></span>
-              <span class="mock__knopf"></span>
-              <div class="mock__bild"></div>
-            </div>
-          </div>
-        </div>
-        <input type="range" min="0" max="100" value="50" class="vergleich__regler"
-               data-regler data-i18n-attr="aria-label:verg.regler" aria-label="Confronto">
-        <span class="vergleich__griff" data-griff aria-hidden="true"></span>
-      </div>
-      <p class="vergleich__unter" data-i18n="verg.unter">Trascina la maniglia. A sinistra la disposizione che si vede ovunque, a destra la stessa azienda con ritmo, contrasto e gerarchia.</p>
-    </div>
-
-    <p class="beweis__probe" data-reveal>
-      <a class="btn btn--primary" href="tavolo.html" data-i18n="beweis.probe_a">Prova il configuratore</a>
-      <span data-i18n="beweis.probe_p">Un esempio finito: 72 varianti di un tavolo da pranzo, calcolate una per una. Giralo, cambia legno e metallo — nel browser, senza plugin.</span>
-    </p>
-
-    <p class="beweis__grenze" data-reveal>
-      <strong data-i18n="beweis.nein_t">Quando non sono io la persona giusta.</strong>
-      <span data-i18n="beweis.nein_p">Se ti serve una sola immagine per un annuncio. Se non ci sono varianti. Se il risultato va in stampa e da nessun’altra parte. Te lo dico al primo colloquio — e ti indico qualcuno che ti calcola un’ottima immagine.</span>
-    </p>
-  </div>
-</section>
 
 <!-- ===================== Arbeiten ===================== -->
 <section class="section" id="work">
@@ -1819,7 +1578,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=922910be" defer></script>
+<script src="assets/js/i18n-it.js?v=b34552b4" defer></script>
 <script src="assets/js/app.js?v=3537bcfa" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1833,15 +1592,17 @@
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
-<script type="module" src="assets/js/werkbank.js?v=4fc961bf"></script>
 <!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
      Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
      auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
-<script type="module" src="assets/js/haus.js?v=455ab651"></script>
 <!-- Der Signature Moment vor dem Kontakt. Eigenes Modul, weil es die
      echten Logokonturen aus world/logo-shape.js braucht -- 2D-Leinwand,
      kein dritter Grafikkontext. -->
 <script type="module" src="assets/js/signatur.js?v=c3f4b3e7"></script>
+
+<!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
+     Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=71c69f9b"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

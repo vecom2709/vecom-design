@@ -26,18 +26,13 @@ export const SITE_BEATS = [
      Zeile hier mitnehmen — sonst springt die Kamera unmotiviert. */
   { id: 'hero',     cam: [1.1, 0.8, 12.4],  look: [1.7, 0.1, 0],  pos: [3.3, 0.1, 0],  rotY: -0.52, rotX: 0.04, fog: 0.044, key: 260, spec: 26, bloom: 0.38, rough: 0.30, keyPos: [-4.5, 7.5, 6.0], halo: 0.30, mat: 'metal', rays: 0.0, blur: 0.22, focus: 0.34, scrim: 0.00 },
 
-  /* DAS LABOR. Der Tisch ist hier das Objekt, nicht die Marke -- zwei
-     dreidimensionale Dinge, die um denselben Blick streiten, ergeben Unruhe.
-     Die Marke geht deshalb weit nach links hinten, das Licht zurueck, der
-     Schleier hoch. */
-  { id: 'probieren', cam: [-0.6, 1.0, 13.2], look: [-0.4, 0.0, 0], pos: [-4.2, 0.1, -2.2], rotY: 0.28, rotX: 0.0, fog: 0.042, key: 250, spec: 20, bloom: 0.32, rough: 0.26, keyPos: [-5.0, 6.5, 6.0], halo: 0.14, mat: 'glass', rays: 0.0, blur: 0.30, focus: 0.24, scrim: 0.88 },
+  /* DER ERLEBNISTEIL (bis 22.09.2026: 'probieren'). Hier steht die gerechnete
+     Villa im Bild, nicht die Marke -- zwei dreidimensionale Dinge, die um
+     denselben Blick streiten, ergeben Unruhe. Die Marke geht deshalb weit
+     nach links hinten, das Licht zurueck, der Schleier hoch. Der Abschnitt
+     ist lang; ein Beat traegt ihn ganz. */
+  { id: 'erlebnis', cam: [-0.6, 1.0, 13.2], look: [-0.4, 0.0, 0], pos: [-4.2, 0.1, -2.2], rotY: 0.28, rotX: 0.0, fog: 0.042, key: 250, spec: 20, bloom: 0.32, rough: 0.26, keyPos: [-5.0, 6.5, 6.0], halo: 0.14, mat: 'glass', rays: 0.0, blur: 0.30, focus: 0.24, scrim: 0.88 },
 
-  /* Der Argumentabschnitt steht zwischen Hero und Arbeiten und traegt drei
-     Textkarten. Die Marke weicht deshalb nach links aus dem Lesefeld, und
-     der Schleier liegt auf 0.80 wie bei allen Abschnitten, in denen gelesen
-     wird -- ohne eigenen Beat behielte er den Hero-Wert 0.00, und genau so
-     ist am 14.09.2026 die Textflaeche unter 4.5:1 gerutscht. */
-  { id: 'beweis',   cam: [0.2, 0.9, 11.2],   look: [0.2, 0.0, 0],   pos: [-3.0, 0.0, 0],  rotY: -0.18, rotX: 0.02, fog: 0.036, key: 300, spec: 30, bloom: 0.42, rough: 0.22, keyPos: [-5.0, 6.5, 6.5], halo: 0.20, mat: 'glass', rays: 0.0, blur: 0.28, focus: 0.26, scrim: 0.80 },
   { id: 'work',     cam: [-2.4, 1.1, 9.6],   look: [-1.3, 0.0, 0],  pos: [-1.8, -0.1, 0], rotY: -0.34,  rotX: -0.04, fog: 0.030, key: 330, spec: 42, bloom: 0.44, rough: 0.16, keyPos: [-5.5, 5.5, 7.5], halo: 0.16, mat: 'glass', rays: 0.0, blur: 0.32, focus: 0.24, scrim: 0.74 },
   { id: 'services', cam: [2.4, 1.0, 8.8],  look: [1.2, 0.1, 0], pos: [2.0, 0.0, 0], rotY: 0.22, rotX: 0.02, fog: 0.034, key: 420, spec: 40, bloom: 0.52, rough: 0.26, keyPos: [5.5, 6.0, 5.0], halo: 0.24, mat: 'metal', rays: 0.0, blur: 0.26, focus: 0.28, scrim: 0.62 },
   { id: 'plans',    cam: [-0.4, 0.6, 10.4], look: [-1.0, 0.0, 0], pos: [-1.6, 0.0, 0], rotY: 0.02, rotX: 0.0,  fog: 0.038, key: 300, spec: 18, bloom: 0.40, rough: 0.22, keyPos: [-4.0, 7.0, 7.0], halo: 0.22, mat: 'metal', rays: 0.0, blur: 0.28, focus: 0.26, scrim: 0.78 },

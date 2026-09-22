@@ -24,7 +24,7 @@ window.VECOM_I18N.de = {
       desc: "Maßgeschneiderte Websites und Online-Shops aus Sizilien, deutschsprachig. Dreisprachig IT/DE/EN, für Google gebaut. Preise offen gelegt, Angebot in 90 Sekunden.",
       locale: "de_DE"
     },
-    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", probieren: "Ausprobieren", haus: "Das Haus", cta: "Angebot anfordern" },
+    nav: { services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", erlebnis: "Erlebnis",  cta: "Angebot anfordern" },
     buehne: { echt: "Aufnahmen der laufenden Seite" },
     hero: {
       eyebrow: "Webdesign aus Sizilien — Websites, Marken, Online-Shops",

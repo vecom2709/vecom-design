@@ -530,6 +530,7 @@ const ablesungSatz = $('#ablesung-satz');
 const ablesungWerte = $('#ablesung-werte');
 
 function ablesungZeigen() {
+  if (!ablesungSatz || !ablesungWerte) return;
   const s = wirksameStufe();
   const g = zustand.geraet;
   let grund = '';
@@ -548,7 +549,7 @@ function ablesungZeigen() {
 }
 
 function stufeAnwenden() {
-  for (const b of $$('button', stufenwahl)) {
+  for (const b of (stufenwahl ? $$('button', stufenwahl) : [])) {
     b.setAttribute('aria-pressed', String(b.dataset.stufe === zustand.wahl));
     b.classList.toggle('ist-auto', zustand.wahl === 'AUTO' && b.dataset.stufe === (zustand.stufe === 'LOW' ? 'MEDIUM' : zustand.stufe));
   }
@@ -558,12 +559,14 @@ function stufeAnwenden() {
   ablesungZeigen();
 }
 
-stufenwahl.addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-stufe]');
-  if (!b) return;
-  zustand.wahl = b.dataset.stufe;
-  stufeAnwenden();
-});
+if (stufenwahl) {
+  stufenwahl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-stufe]');
+    if (!b) return;
+    zustand.wahl = b.dataset.stufe;
+    stufeAnwenden();
+  });
+}
 
 async function geraetMessen() {
   if (!webglDa()) { zustand.stufe = 'SAFE'; stufeAnwenden(); return; }
@@ -608,6 +611,7 @@ const ergebnisEl = $('#ergebnis');
 const hub = { ziel: 'zeigen', branche: 'immobilien' };
 
 function wegweiserAufbauen() {
+  if (!zieleEl || !branchenEl || !ergebnisEl) return;
   zieleEl.innerHTML = Object.entries(TEXT.ziele).map(([id, [t, s]]) =>
     `<button type="button" class="ziel" data-ziel="${id}" aria-pressed="${id === hub.ziel}"><b>${esc(t)}</b><span>${esc(s)}</span></button>`).join('');
   branchenEl.innerHTML = Object.entries(TEXT.branchen).map(([id, b]) =>
@@ -616,6 +620,7 @@ function wegweiserAufbauen() {
 }
 
 function ergebnisZeigen(bewegt = true) {
+  if (!ergebnisEl) return;
   const b = TEXT.branchen[hub.branche]; const d = BRANCHEN_DEMO[hub.branche];
   const demo = d.demo === 'villa'
     ? `<button type="button" class="knopf knopf--leer" data-demo="villa">${esc(TEXT.demoVilla)}</button>`
@@ -636,20 +641,20 @@ function ergebnisZeigen(bewegt = true) {
   if (bewegt && !BEWEGUNG_AUS) { ergebnisEl.classList.remove('ist-neu'); void ergebnisEl.offsetWidth; ergebnisEl.classList.add('ist-neu'); }
 }
 
-zieleEl.addEventListener('click', (e) => {
+if (zieleEl) zieleEl.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-ziel]'); if (!b) return;
   hub.ziel = b.dataset.ziel; hub.branche = ZIEL_ZU_BRANCHE[hub.ziel] || hub.branche;
   for (const x of $$('button', zieleEl)) x.setAttribute('aria-pressed', String(x === b));
   for (const x of $$('button', branchenEl)) x.setAttribute('aria-pressed', String(x.dataset.branche === hub.branche));
   ergebnisZeigen();
 });
-branchenEl.addEventListener('click', (e) => {
+if (branchenEl) branchenEl.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-branche]'); if (!b) return;
   hub.branche = b.dataset.branche;
   for (const x of $$('button', branchenEl)) x.setAttribute('aria-pressed', String(x === b));
   ergebnisZeigen();
 });
-ergebnisEl.addEventListener('click', (e) => {
+if (ergebnisEl) ergebnisEl.addEventListener('click', (e) => {
   const b = e.target.closest('[data-demo="villa"]'); if (!b) return;
   const d = BRANCHEN_DEMO[hub.branche];
   standSetzen(d.stand); zeitSetzen(d.zeit);
@@ -658,59 +663,61 @@ ergebnisEl.addEventListener('click', (e) => {
 
 /* ================================================================ TISCH */
 const dreh = $('#dreh');
-const drehBild = $('#dreh-bild');
-const DREH_N = 36;
-const DREH = '/assets/img/3d/tisch/drehen/';
-const drehAdresse = (i, g) => `${DREH}${g}/dreh-${String(((i % DREH_N) + DREH_N) % DREH_N).padStart(2, '0')}.webp`;
-let drehI = 0; let drehGross = new Set(); let drehBereit = false; let drehZiehen = null; let selbstlauf = null;
+if (dreh) {
+  const drehBild = $('#dreh-bild');
+  const DREH_N = 36;
+  const DREH = '/assets/img/3d/tisch/drehen/';
+  const drehAdresse = (i, g) => `${DREH}${g}/dreh-${String(((i % DREH_N) + DREH_N) % DREH_N).padStart(2, '0')}.webp`;
+  let drehI = 0; let drehGross = new Set(); let drehBereit = false; let drehZiehen = null; let selbstlauf = null;
 
-function drehZeigen(i) {
-  drehI = ((i % DREH_N) + DREH_N) % DREH_N;
-  drehBild.src = drehAdresse(drehI, drehGross.has(drehI) ? 'gross' : 'klein');
-  dreh.setAttribute('aria-valuenow', String(drehI));
-}
-function drehVorladen() {
-  if (drehBereit) return; drehBereit = true;
-  // Klein zuerst (je gut 4 KB): Dann springt das Drehen nie ins Leere.
-  for (let i = 0; i < DREH_N; i++) { const k = new Image(); k.src = drehAdresse(i, 'klein'); }
-  let n = 0;
-  const weiter = () => {
-    if (n >= DREH_N) return;
-    const i = n++; const g = new Image();
-    g.onload = () => { drehGross.add(i); if (i === drehI) drehZeigen(drehI); weiter(); };
-    g.onerror = weiter; g.src = drehAdresse(i, 'gross');
-  };
-  weiter(); weiter();
-}
-function selbstlaufStop() { if (selbstlauf) { clearInterval(selbstlauf); selbstlauf = null; } }
-dreh.addEventListener('pointerdown', (e) => {
-  drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
-  drehZiehen = { x: e.clientX, i: drehI }; dreh.setPointerCapture(e.pointerId);
-});
-dreh.addEventListener('pointermove', (e) => {
-  if (!drehZiehen) return;
-  const schritt = Math.max(6, dreh.clientWidth / 48);
-  drehZeigen(drehZiehen.i - Math.round((e.clientX - drehZiehen.x) / schritt));
-});
-const drehLos = () => { drehZiehen = null; };
-dreh.addEventListener('pointerup', drehLos); dreh.addEventListener('pointercancel', drehLos);
-dreh.addEventListener('keydown', (e) => {
-  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-  e.preventDefault(); drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
-  drehZeigen(drehI + (e.key === 'ArrowRight' ? 1 : -1));
-});
-new IntersectionObserver((eintraege) => {
-  for (const e of eintraege) {
-    if (e.isIntersecting) {
-      drehVorladen();
-      // Einmal langsam drehen, damit man sieht, dass es geht -- danach Ruhe.
-      if (!BEWEGUNG_AUS && !selbstlauf && !dreh.classList.contains('ist-benutzt')) {
-        let n = 0;
-        selbstlauf = setInterval(() => { drehZeigen(drehI + 1); if (++n >= DREH_N) selbstlaufStop(); }, 140);
-      }
-    } else selbstlaufStop();
+  function drehZeigen(i) {
+    drehI = ((i % DREH_N) + DREH_N) % DREH_N;
+    drehBild.src = drehAdresse(drehI, drehGross.has(drehI) ? 'gross' : 'klein');
+    dreh.setAttribute('aria-valuenow', String(drehI));
   }
-}, { threshold: 0.45 }).observe(dreh);
+  function drehVorladen() {
+    if (drehBereit) return; drehBereit = true;
+    // Klein zuerst (je gut 4 KB): Dann springt das Drehen nie ins Leere.
+    for (let i = 0; i < DREH_N; i++) { const k = new Image(); k.src = drehAdresse(i, 'klein'); }
+    let n = 0;
+    const weiter = () => {
+      if (n >= DREH_N) return;
+      const i = n++; const g = new Image();
+      g.onload = () => { drehGross.add(i); if (i === drehI) drehZeigen(drehI); weiter(); };
+      g.onerror = weiter; g.src = drehAdresse(i, 'gross');
+    };
+    weiter(); weiter();
+  }
+  function selbstlaufStop() { if (selbstlauf) { clearInterval(selbstlauf); selbstlauf = null; } }
+  dreh.addEventListener('pointerdown', (e) => {
+    drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
+    drehZiehen = { x: e.clientX, i: drehI }; dreh.setPointerCapture(e.pointerId);
+  });
+  dreh.addEventListener('pointermove', (e) => {
+    if (!drehZiehen) return;
+    const schritt = Math.max(6, dreh.clientWidth / 48);
+    drehZeigen(drehZiehen.i - Math.round((e.clientX - drehZiehen.x) / schritt));
+  });
+  const drehLos = () => { drehZiehen = null; };
+  dreh.addEventListener('pointerup', drehLos); dreh.addEventListener('pointercancel', drehLos);
+  dreh.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault(); drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
+    drehZeigen(drehI + (e.key === 'ArrowRight' ? 1 : -1));
+  });
+  new IntersectionObserver((eintraege) => {
+    for (const e of eintraege) {
+      if (e.isIntersecting) {
+        drehVorladen();
+        // Einmal langsam drehen, damit man sieht, dass es geht -- danach Ruhe.
+        if (!BEWEGUNG_AUS && !selbstlauf && !dreh.classList.contains('ist-benutzt')) {
+          let n = 0;
+          selbstlauf = setInterval(() => { drehZeigen(drehI + 1); if (++n >= DREH_N) selbstlaufStop(); }, 140);
+        }
+      } else selbstlaufStop();
+    }
+  }, { threshold: 0.45 }).observe(dreh);
+}
 
 /* ================================================================ START */
 if (new URLSearchParams(location.search).has('pruefen')) window.__erlebnis = zustand;

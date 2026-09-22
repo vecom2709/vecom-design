@@ -24,7 +24,7 @@ window.VECOM_I18N.en = {
       desc: "Custom websites and online stores from Aragona, Sicily. Trilingual IT/DE/EN, built to rank on Google. Prices in the open, quote in 90 seconds.",
       locale: "en_GB"
     },
-    nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", probieren: "Try it", haus: "The house", cta: "Get a quote" },
+    nav: { services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", erlebnis: "Experience",  cta: "Get a quote" },
     buehne: { echt: "Captures of the live site" },
     hero: {
       eyebrow: "Web design studio — websites, brands, online stores",

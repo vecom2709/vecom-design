@@ -24,7 +24,7 @@ window.VECOM_I18N.it = {
       desc: "Siti su misura, e-commerce e loghi da Aragona (AG). Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi allo scoperto, preventivo in 90 secondi.",
       locale: "it_IT"
     },
-    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", probieren: "Da provare", haus: "La casa", cta: "Richiedi preventivo" },
+    nav: { services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", erlebnis: "Esperienza",  cta: "Richiedi preventivo" },
     buehne: { echt: "Riprese del sito online" },
     hero: {
       eyebrow: "Webdesign dalla Sicilia — siti, marchi, e-commerce",

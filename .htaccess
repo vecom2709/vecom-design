@@ -29,6 +29,21 @@ RewriteCond %{QUERY_STRING} (^|&)lang=en(&|$)
 RewriteRule ^pakete\.html$ /en/pricing.html? [R=301,L]
 RewriteRule ^pakete\.html$ /prezzi.html? [R=301,L]
 
+# Die Erlebnisseite ist in die Startseite gewandert.
+#
+# Am 22.09.2026 stand sie zwei Stunden lang als eigene Seite online
+# (esperienza.html / de/erlebnis.html / en/experience.html) und war von der
+# Startseite aus verlinkt. Seitdem ist ihr Inhalt der Hauptbereich der
+# Startseite selbst. Der Deploy spiegelt nur und loescht nie -- die alten
+# Dateien liegen also weiter auf dem Webspace, und ohne diese Regeln waeren
+# sie erreichbar, doppelt indexiert und inhaltlich veraltet.
+#
+# 301 auf die Startseite der jeweiligen Sprache, nicht 404: Wer den Link
+# schon hat, soll dort landen, wo der Inhalt jetzt steht.
+RewriteRule ^esperienza\.html$ /? [R=301,L]
+RewriteRule ^de/erlebnis\.html$ /de/? [R=301,L]
+RewriteRule ^en/experience\.html$ /en/? [R=301,L]
+
 # Die Zähldatei ist nicht für Besucher bestimmt
 <Files "besuche.csv">
   Require all denied
