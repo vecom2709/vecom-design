@@ -837,9 +837,10 @@ final class Vorgang
 
        Diese eine Stelle haelt die Reihenfolge fuer die Fuehrung: Preis
        nennen, Angebot senden und Zahlungslink erzeugen/senden kommen erst,
-       wenn der Kunde den Fragebogen abgeschickt hat. Vorher heisst der
-       naechste Schritt "Fragebogen verschicken" -- oder, wenn er draussen
-       ist, "Erinnern". Die Taten selbst sind zusaetzlich gesperrt
+       wenn der Kunde den Fragebogen abgeschickt hat. Vorher ist der Kunde
+       dran -- der Fragebogen liegt auf seiner Seite. "Fragebogen
+       verschicken" steht nur da, wo er die Adresse seiner Seite nie bekommen
+       hat; bleibt es still, heisst der Schritt "Nachfassen". Die Taten selbst sind zusaetzlich gesperrt
        (Angebot::senden, zahlungslink, zahlungslink_senden): Wer an der
        Fuehrung vorbei klickt, bekommt eine Erklaerung statt eines Preises.
        ====================================================================== */
@@ -852,15 +853,43 @@ final class Vorgang
         if ($f !== null && (string) $f['status'] === 'abgeschlossen') { return null; }
 
         $ziel = 'vorgaenge/' . $v['schluessel'] . '?tun=fragebogen_vorab';
-        if ($f === null || empty($f['eingeladen_am'])) {
+
+        /* WER SEINE SEITE HAT, BRAUCHT KEINE ZWEITE EINLADUNG (22.09.2026)
+           ------------------------------------------------------------------
+           Der Fragebogen liegt auf der Kundenseite, und die Adresse dieser
+           Seite stand schon in der Eingangsbestaetigung, die nach dem
+           Konfigurator automatisch rausgeht. "Fragebogen verschicken" als
+           naechster Schritt hiess also: dieselbe Seite ein zweites Mal
+           schicken -- eine Arbeit, die nichts bewegt, und eine Mail, die der
+           Kunde nicht braucht.
+
+           Der Knopf bleibt, aber als Angebot und nicht als Auftrag: Er ist
+           der naechste Schritt nur noch fuer den, der seine Seite nie
+           bekommen hat -- ein Kunde aus dem Telefon oder von Hand angelegt.
+           Sonst ist schlicht der Kunde dran. */
+        $weissBescheid = !empty($f['eingeladen_am'])
+            || self::mailRaus('anfrage_eingegangen', 'customer_id', $kid);
+
+        if (!$weissBescheid) {
             return self::setzen($v, 'onboarding', self::DU, 'Fragebogen verschicken',
-                'Vor dem Preis kommt der große Fragebogen. Erst mit seinen Antworten steht fest, '
-                . 'was gebaut wird — und was es kostet.',
+                'Der Kunde hat den Link zu seiner Seite noch nicht — ohne ihn weiß er nichts vom '
+                . 'Fragebogen. Und vor dem Preis kommt der Fragebogen: Erst mit seinen Antworten '
+                . 'steht fest, was gebaut wird und was es kostet.',
                 'fragebogen_vorab', $kid, [], $ziel);
         }
-        return self::setzen($v, 'onboarding', self::KUNDE, 'Erinnern',
-            'Der Fragebogen ist beim Kunden. Solange er fehlt, gibt es keinen Preis und keinen Zahlungslink.',
-            'fragebogen_vorab', $kid, [], $ziel);
+
+        $tage = self::stillSeit($v);
+        if ($tage >= self::STILL_PREIS) {
+            return self::setzen($v, 'onboarding', self::DU, 'Nachfassen',
+                'Der Fragebogen liegt seit ' . $tage . ' Tagen auf seiner Seite, ohne dass sich etwas '
+                . 'tut. Ein Satz genügt — die meisten haben es schlicht vergessen.',
+                'fragebogen_vorab', $kid, [], $ziel);
+        }
+
+        return self::setzen($v, 'onboarding', self::KUNDE, 'Fragebogen ausfüllen',
+            'Der Fragebogen liegt auf seiner Kundenseite; den Link dorthin hat er mit der '
+            . 'Eingangsbestätigung bekommen. Solange die Antworten fehlen, gibt es keinen Preis '
+            . 'und keinen Zahlungslink.');
     }
 
     /** Eine Website ja, Betreuung und feste Bestandsaufnahme nein. Siehe Onboarding::brauchtVorPreis. */

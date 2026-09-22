@@ -216,13 +216,15 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
           <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
             Die Zahl oben ist die Rechnung des Konfigurators — noch kein Preis für den Kunden.
             Der geht erst raus, wenn er den großen Fragebogen abgeschickt hat; erst seine
-            Antworten legen fest, was gebaut wird.
+            Antworten legen fest, was gebaut wird. Der Fragebogen liegt auf seiner Kundenseite,
+            deren Adresse er mit der Eingangsbestätigung bekommen hat — die Mail hier ist nur
+            der Anstoß, falls er ihn übersieht.
           </p>
           <form method="post" action="<?= Fmt::h(url('')) ?>">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_vorab">
             <input type="hidden" name="zurueck" value="<?= Fmt::h('bedarf/' . (int) $b['id']) ?>">
             <input type="hidden" name="id" value="<?= (int) $b['customer_id'] ?>">
-            <button class="knopf haupt">Fragebogen verschicken</button>
+            <button class="knopf">Fragebogen-Link schicken</button>
           </form>
         </div>
       <?php elseif (($nachricht['text'] ?? '') !== '' && $kundeDa): ?>

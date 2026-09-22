@@ -6487,11 +6487,65 @@ pruefe('es gibt sie in allen drei Sprachen', (static function () {
     return true;
 })());
 
+/* ---------- Wer seine Seite hat, braucht keine zweite Einladung --------- */
+/* Die Adresse der Kundenseite steht schon in der Eingangsbestaetigung, die
+   nach dem Konfigurator automatisch rausgeht -- und der Fragebogen liegt auf
+   genau dieser Seite. "Fragebogen verschicken" als naechster Schritt hiesse
+   dann: dieselbe Seite ein zweites Mal schicken (22.09.2026). Ohne
+   Mailserver geht hier nichts raus, also wird die Bestaetigung so vermerkt,
+   wie sie im Betrieb aussieht. */
+Db::insert('mails', ['anlass' => 'anfrage_eingegangen', 'empfaenger' => 'fragebogen-zuerst@pruefung.example',
+    'betreff' => 'Deine Anfrage ist angekommen', 'status' => 'gesendet', 'customer_id' => $fvK]);
+$fvV = Vorgang::laden('a' . $fvA);
+pruefe('hat der Kunde seine Seite, ist er dran — und nicht wir mit einer zweiten Mail',
+    $fvV['dran'] === Vorgang::KUNDE && ($fvV['schritt']['knopf'] ?? '') === 'Fragebogen ausfüllen',
+    $fvV['dran'] . ' / ' . ($fvV['schritt']['knopf'] ?? '-'));
+pruefe('der Schritt schickt nichts und fuehrt nirgendwohin',
+    ($fvV['schritt']['tat'] ?? null) === null && ($fvV['schritt']['ziel'] ?? null) === null,
+    (string) ($fvV['schritt']['ziel'] ?? '-'));
+pruefe('die Vorgangsseite sagt dann, dass hier nichts zu klicken ist',
+    str_contains((string) file_get_contents(dirname(__DIR__) . '/views/vorgang.php'),
+        "elseif (\$s !== null && \$v['dran'] === Vorgang::KUNDE)"));
+
+/* Die Punkteliste der Stufe erzaehlt vor dem Preis auch die neue
+   Reihenfolge -- keine Anzahlung vor dem Fragebogen, keine Pflichtmail. */
+require_once $wurzel . '/src/Ablauf.php';
+$fvPunkte = array_column(Ablauf::checkliste(Vorgang::laden('a' . $fvA)), 'was');
+pruefe('vor dem Preis steht keine Anzahlung in der Punkteliste',
+    !in_array('Anzahlung ist eingegangen', $fvPunkte, true)
+    && !in_array('Fragebogen ist verschickt', $fvPunkte, true), implode(' · ', $fvPunkte));
+pruefe('dafuer steht dort, dass der Fragebogen auf der Kundenseite liegt',
+    in_array('Fragebogen liegt auf der Kundenseite', $fvPunkte, true)
+    && in_array('Fragebogen ist zurück', $fvPunkte, true), implode(' · ', $fvPunkte));
+
+/* Die Verwaltung zeigt den Fragebogen trotzdem -- auch ohne Tat im Schritt.
+   Sonst waere der Block genau dann weg, wenn der Kunde dran ist. */
+$fvVorgangAnsicht = (string) file_get_contents(dirname(__DIR__) . '/views/vorgang.php');
+pruefe('die Vorgangsseite zeigt den Fragebogen auch, wenn der Kunde dran ist',
+    str_contains($fvVorgangAnsicht, "(\$v['stufe'] ?? '') === 'onboarding' && empty(\$pid) && !empty(\$v['kunde_id'])"));
+pruefe('und nennt den Knopf nach dem, was er tut',
+    str_contains($fvVorgangAnsicht, 'Fragebogen-Link schicken')
+    && str_contains((string) file_get_contents(dirname(__DIR__) . '/views/bedarf.php'), 'Fragebogen-Link schicken'));
+
+/* Bleibt es still, wird aus dem Warten ein Nachfassen -- aber wieder mit
+   einem Knopf, nicht mit einer Pflichtmail. */
+$fvStill = date('Y-m-d H:i:s', strtotime('-9 days'));
+Db::run('UPDATE anfragen SET created_at = ?, updated_at = ? WHERE id = ?', [$fvStill, $fvStill, $fvA]);
+Db::run('UPDATE bedarf SET created_at = ?, abgesendet_am = ? WHERE id = ?', [$fvStill, $fvStill, (int) $fvB['id']]);
+Db::run('UPDATE questionnaires SET created_at = ?, updated_at = ? WHERE id = ?', [$fvStill, $fvStill, $fvF]);
+$fvV = Vorgang::laden('a' . $fvA);
+pruefe('liegt der Fragebogen tagelang still, heisst der Schritt "Nachfassen"',
+    ($fvV['schritt']['knopf'] ?? '') === 'Nachfassen' && $fvV['dran'] === Vorgang::DU,
+    ($fvV['schritt']['knopf'] ?? '-') . ' / ' . $fvV['dran']);
+Db::run('UPDATE anfragen SET created_at = NOW(), updated_at = NOW() WHERE id = ?', [$fvA]);
+Db::run('UPDATE bedarf SET created_at = NOW(), abgesendet_am = NOW() WHERE id = ?', [(int) $fvB['id']]);
+Db::run('UPDATE questionnaires SET created_at = NOW(), updated_at = NOW() WHERE id = ?', [$fvF]);
+
 /* Ohne Mailserver ging nichts raus; so, als waere die Einladung draussen: */
 Db::update('questionnaires', $fvF, ['eingeladen_am' => date('Y-m-d H:i:s')]);
 $fvV = Vorgang::laden('a' . $fvA);
-pruefe('ist er verschickt, wartet der Kunde — mit "Erinnern" als Knopf',
-    $fvV['dran'] === Vorgang::KUNDE && ($fvV['schritt']['knopf'] ?? '') === 'Erinnern', $fvV['dran']);
+pruefe('auch nach einer Einladung bleibt es beim Kunden',
+    $fvV['dran'] === Vorgang::KUNDE && ($fvV['schritt']['knopf'] ?? '') === 'Fragebogen ausfüllen', $fvV['dran']);
 
 /* ---------- Vorher geht kein Angebot raus -------------------------------- */
 $fvAng = (int) Angebot::ausBedarf((int) $fvB['id']);

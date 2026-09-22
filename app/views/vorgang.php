@@ -282,6 +282,13 @@ $kettenWer = static fn(array $p): string => ($p['wer'] ?? 'du') === 'kunde' ? ' 
       <?php endif; ?>
     </div>
 
+  <?php elseif ($s !== null && $v['dran'] === Vorgang::KUNDE): ?>
+    <?php /* Der Kunde ist dran, und zwar auf seiner eigenen Seite. Ein
+             blauer Knopf hierhin waere ein Klick, der nichts tut --
+             schlimmer als kein Knopf (22.09.2026). */ ?>
+    <div class="tun"><span style="color:var(--leise);font-size:13px"><?= Fmt::h($s['knopf']) ?>
+      — das passiert auf seiner Kundenseite; hier ist nichts zu klicken.</span></div>
+
   <?php elseif ($s !== null): ?>
     <div class="tun"><span style="color:var(--leise);font-size:13px"><?= Fmt::h($s['knopf']) ?>
       — dafür ist unten das Feld „Gespräch“.</span></div>
@@ -475,7 +482,13 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
            Kunden und noch keinem Projekt, und er muss zurueck sein, bevor
            ein Preis rausgeht. Der Block steht deshalb auch dann, wenn es ihn
            noch gar nicht gibt, aber die Fuehrung nach ihm fragt. */ ?>
-  <?php $fbGefragt = (($s['tat'] ?? null) === 'fragebogen_vorab'); ?>
+  <?php /* Seit dem 22.09.2026 ist in dieser Phase der Kunde dran, nicht Uwe
+           -- der Schritt traegt dann keine Tat mehr. Der Block muss trotzdem
+           stehen: Er ist die einzige Stelle, an der zu sehen ist, wie weit
+           der Fragebogen ist, und an der sich eine Einladung nachschieben
+           laesst. */ ?>
+  <?php $fbGefragt = (($s['tat'] ?? null) === 'fragebogen_vorab')
+      || (($v['stufe'] ?? '') === 'onboarding' && empty($pid) && !empty($v['kunde_id'])); ?>
   <?php if ($fb || $fbGefragt): ?>
   <?php
     $fbDaten  = ($fb['data'] ?? null) ? (json_decode((string) $fb['data'], true) ?: []) : [];
@@ -521,10 +534,11 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_vorab">
         <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
         <input type="hidden" name="id" value="<?= (int) $v['kunde_id'] ?>">
-        <button class="knopf<?= $fbGefragt ? ' haupt' : '' ?>"><?= ($fb['eingeladen_am'] ?? null) ? 'Noch einmal verschicken' : 'Fragebogen verschicken' ?></button></form>
-      <?php if (!$fb): ?>
-        <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Er entsteht beim Verschicken, vorbelegt mit dem, was der Kunde im Konfigurator angekreuzt hat.</p>
-      <?php endif; ?>
+        <button class="knopf<?= (($s['tat'] ?? null) === 'fragebogen_vorab') ? ' haupt' : '' ?>"><?= ($fb['eingeladen_am'] ?? null) ? 'Noch einmal verschicken' : 'Fragebogen-Link schicken' ?></button></form>
+      <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">
+        <?= $fb
+            ? 'Er liegt auf der Kundenseite — die Adresse hat der Kunde mit der Eingangsbestätigung bekommen. Diese Mail ist nur der Anstoß, falls er ihn übersieht.'
+            : 'Er entsteht beim Verschicken oder sobald der Kunde seine Seite öffnet, vorbelegt mit dem, was er im Konfigurator angekreuzt hat.' ?></p>
     <?php endif; ?>
   </div>
   <?php endif; ?>

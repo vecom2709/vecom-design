@@ -363,6 +363,26 @@ final class Ablauf
                 break;
 
             case 'onboarding':
+                /* ZWEI WEGE, DIESELBE STUFE (22.09.2026)
+                   Vor dem Preis gibt es weder Bestellung noch Anzahlung: Der
+                   Fragebogen kommt zuerst, und er liegt auf der Kundenseite.
+                   "Anzahlung ist eingegangen" als erster Punkt behauptete
+                   dort die alte Reihenfolge, und "Fragebogen ist verschickt"
+                   forderte eine Mail, die niemand mehr braucht -- die Adresse
+                   der Seite stand schon in der Eingangsbestaetigung. */
+                if (($v['projekt_id'] ?? null) === null) {
+                    $kid = (int) ($v['kunde_id'] ?? 0);
+                    $P('Bedarf ist erfasst', !empty($v['bedarf']), $kunde);
+                    $P('Fragebogen liegt auf der Kundenseite', $fb !== null, $du);
+                    $P('Kunde hat den Link zu seiner Seite',
+                        ($fb !== null && $hat($fb['eingeladen_am'] ?? null))
+                        || ($kid > 0 && self::mailGing('anfrage_eingegangen', 'customer_id', $kid)), $du);
+                    $P('Fragebogen ist zurück',
+                        $fb !== null && (string) $fb['status'] !== 'offen', $kunde);
+                    $P('Preis und Angebot sind raus',
+                        !empty($v['angebot']) && $hat($v['angebot']['gesendet_am'] ?? null), $du);
+                    break;
+                }
                 $P('Anzahlung ist eingegangen',
                     $az !== null && (string) $az['status'] === 'bezahlt', $kunde);
                 $P('Fragebogen ist angelegt', $fb !== null, $du);
