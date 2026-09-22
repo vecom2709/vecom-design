@@ -32,7 +32,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/app.css?v=06495529">
+<link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=82fa1f14">
 
 
@@ -340,6 +340,18 @@
           <option value="low" data-i18n="world.qLow">Bassa</option>
         </select>
       </label>
+      <!-- Zweiter Zugang zum Cockpit. Der erste steht seit jeher unten in der
+           Fusszeile; seit der Erlebnisteil auf der Startseite liegt, ist die
+           Seite 25.000 Pixel lang, und ein Zahnrad ganz unten ist fuer die
+           taegliche Arbeit kein Zugang mehr. Gleiche Gestaltung wie dort:
+           klein, unbeschriftet, halbdurchsichtig -- fuer Uwe da, ohne
+           Besuchern ins Auge zu springen. -->
+      <a class="admin admin--kopf" href="/cockpit/" rel="nofollow noopener" aria-label="Cockpit" title="Cockpit">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+        </svg>
+      </a>
       <a class="btn btn--primary" href="#contact" data-i18n="nav.cta">Richiedi preventivo</a>
       <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu">
         <span></span><span></span><span></span>

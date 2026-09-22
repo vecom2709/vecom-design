@@ -2510,6 +2510,11 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   transition: opacity var(--d-ui) linear, color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
 .admin:hover { opacity: 1; color: var(--c-cyan); background: rgba(31, 232, 255, .08); }
+/* Derselbe Zugang oben im Kopf. Auf schmalen Geraeten faellt er weg: Dort
+   ist der Platz fuer Sprache, Angebot und Menue da, und das Cockpit bedient
+   niemand am Telefon. */
+.admin--kopf { width: 34px; height: 34px; opacity: .32; }
+@media (max-width: 860px) { .admin--kopf { display: none; } }
 
 
 /* ---------- Betreuung als eigener Block ----------------------------------
