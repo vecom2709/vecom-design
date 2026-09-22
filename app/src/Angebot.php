@@ -606,6 +606,65 @@ final class Angebot
         return true;
     }
 
+    /* ======================================================================
+       KEIN ZAHLUNGSLINK VOR DER ZUSAGE  (22.09.2026)
+
+       Uwe: "Ich konnte den Zahlungslink senden, obwohl das Angebot noch
+       nicht bestaetigt war." Genau so war es: Die Bestellung kann auch von
+       Hand aus einer Anfrage entstehen, und ab da fragte niemand mehr, ob
+       zu diesem Kunden noch ein Angebot offen beim Kunden liegt. Der Kunde
+       bekam dann eine Zahlungsaufforderung ueber einen Betrag, dem er nie
+       zugestimmt hat -- rechtlich eine Forderung ohne Vertrag und
+       menschlich der schnellste Weg, Vertrauen zu verlieren.
+
+       Was blockiert: ein Angebot im Entwurf oder verschickt ("wartet auf
+       ihn"). Was nicht blockiert: kein Angebot (Telefonauftrag, Betreuung,
+       Hosting), ein angenommenes, ein abgelehntes und ein abgelaufenes --
+       in diesen drei Faellen ist die Sache entweder entschieden oder es gab
+       nie etwas zu entscheiden.
+       ====================================================================== */
+
+    /** Status, in denen ein Angebot noch auf die Entscheidung des Kunden wartet. */
+    public const WARTET = ['entwurf', 'gesendet'];
+
+    /**
+     * Das Angebot, das zu dieser Bestellung noch auf die Zusage wartet --
+     * oder null, wenn nichts im Weg steht.
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function wartetAufZusage(int $bestellId): ?array
+    {
+        $b = Db::one('SELECT id, customer_id FROM orders WHERE id = ?', [$bestellId]);
+        if (!$b) { return null; }
+
+        // Ist diese Bestellung selbst aus einem angenommenen Angebot entstanden,
+        // ist die Zusage da -- ein spaeterer Entwurf fuer denselben Kunden
+        // (Nachtrag, naechstes Projekt) hat damit nichts zu tun.
+        $ausZusage = (int) Db::wert(
+            "SELECT COUNT(*) FROM angebote WHERE order_id = ? AND status = 'angenommen'", [$bestellId], 0);
+        if ($ausZusage > 0) { return null; }
+
+        $platzhalter = implode(',', array_fill(0, count(self::WARTET), '?'));
+        return Db::one(
+            "SELECT * FROM angebote
+              WHERE customer_id = ? AND (order_id IS NULL OR order_id = ?)
+                AND status IN ($platzhalter)
+              ORDER BY id DESC LIMIT 1",
+            array_merge([(int) $b['customer_id'], $bestellId], self::WARTET));
+    }
+
+    /** Der Satz, der erklaert, warum der Zahlungslink jetzt nicht rausgeht. */
+    public static function warumKeinZahlungslink(array $a): string
+    {
+        return (string) $a['status'] === 'entwurf'
+            ? 'Das Angebot ' . $a['nummer'] . ' ist noch ein Entwurf — der Kunde hat es nicht '
+              . 'einmal gesehen. Erst senden, dann seine Zusage abwarten, dann der Zahlungslink.'
+            : 'Das Angebot ' . $a['nummer'] . ' liegt beim Kunden und ist noch nicht angenommen. '
+              . 'Eine Zahlungsaufforderung über einen Betrag, dem er nicht zugestimmt hat, geht '
+              . 'nicht raus. Hat er am Telefon zugesagt, trag die Zusage am Angebot ein.';
+    }
+
     /** Der Link, unter dem der Kunde sein Angebot sieht. */
     public static function link(array $a): string
     {

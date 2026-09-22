@@ -519,6 +519,35 @@ final class Vorgang
                 if ($schritt !== null) { return $schritt; }
             }
 
+            /* KEIN ZAHLUNGSLINK VOR DER ZUSAGE (22.09.2026)
+               Die Bestellung kann auch von Hand aus einer Anfrage entstehen.
+               Liegt dann noch ein Angebot beim Kunden, waere der naechste
+               Schritt eine Zahlungsaufforderung ueber einen Betrag, dem er
+               nie zugestimmt hat. Der naechste Schritt ist seine Zusage --
+               und die Taten sind zusaetzlich gesperrt. */
+            require_once __DIR__ . '/Angebot.php';
+            $wartet = self::still(static fn() => Angebot::wartetAufZusage((int) $v['bestell_id']), null);
+            if (is_array($wartet)) {
+                $aZiel = 'angebote/' . (int) $wartet['id'];
+                if ((string) $wartet['status'] === 'entwurf') {
+                    return self::setzen($v, 'gespraech', self::DU, 'Angebot senden',
+                        'Zu dieser Bestellung steht ein Angebot als Entwurf. Der Kunde hat es noch '
+                        . 'nicht — und ohne seine Zusage geht kein Zahlungslink raus.',
+                        null, null, [], $aZiel . '?tun=angebot_senden');
+                }
+                $tageA = self::stillSeit($v);
+                if ($tageA >= self::STILL_ANGEBOT) {
+                    return self::setzen($v, 'gespraech', self::DU, 'Nachfassen',
+                        'Das Angebot liegt seit ' . $tageA . ' Tagen beim Kunden. Erst seine Zusage, '
+                        . 'dann der Zahlungslink.',
+                        null, null, [], $aZiel);
+                }
+                return self::setzen($v, 'gespraech', self::KUNDE, 'Angebot annehmen',
+                    'Das Angebot ist beim Kunden. Erst seine Zusage, dann der Zahlungslink — '
+                    . 'sagt er am Telefon zu, trag die Zusage am Angebot ein.',
+                    null, null, [], $aZiel);
+            }
+
             if (empty($anzahlung['link_url'])) {
                 return self::setzen($v, 'angebot', self::DU, 'Zahlungslink erzeugen',
                     'Ohne Link kann der Kunde nicht zahlen.',

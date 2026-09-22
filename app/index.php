@@ -578,6 +578,10 @@ if ($post) {
                     throw new RuntimeException('Erst der große Fragebogen, dann der Zahlungslink. '
                         . 'Solange der Kunde ihn nicht abgeschickt hat, steht der Preis nicht fest.');
                 }
+                // Und auch er geht nicht raus, solange das Angebot nicht angenommen ist.
+                require_once __DIR__ . '/src/Angebot.php';
+                $wartetS = Angebot::wartetAufZusage((int) $bst['id']);
+                if ($wartetS !== null) { throw new RuntimeException(Angebot::warumKeinZahlungslink($wartetS)); }
                 $spr = (string) ($bst['kunde_sprache'] ?: 'it');
                 $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo',
                                  'gesamt' => 'il pagamento', 'nachtrag' => 'le voci aggiunte'],
@@ -1078,6 +1082,10 @@ if ($post) {
                     throw new RuntimeException('Erst der große Fragebogen, dann der Zahlungslink. '
                         . 'Solange der Kunde ihn nicht abgeschickt hat, steht der Preis nicht fest.');
                 }
+                // Und kein Zahlungslink, solange ein Angebot auf die Zusage wartet (22.09.2026).
+                require_once __DIR__ . '/src/Angebot.php';
+                $wartet = Angebot::wartetAufZusage((int) $b['id']);
+                if ($wartet !== null) { throw new RuntimeException(Angebot::warumKeinZahlungslink($wartet)); }
                 $stripe = new StripeAnbieter();
                 $url = $stripe->bezahlseite($z, $b, $k);
                 Db::update('payments', (int) $z['id'], [

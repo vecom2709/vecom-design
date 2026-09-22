@@ -19,6 +19,11 @@
 <?php endif; ?></div></div>
 <div class="zwei"><div>
   <?php
+  /* Wartet zu dieser Bestellung noch ein Angebot auf die Zusage des Kunden?
+     Dann geht kein Zahlungslink raus -- siehe Angebot::wartetAufZusage. */
+  require_once __DIR__ . '/../src/Angebot.php';
+  $wartetAngebot = sicher(static fn() => Angebot::wartetAufZusage((int) $b['id']), null);
+
   $bezahlt = 0; $offen = 0;
   foreach ($zahlungen as $z) {
       if ($z['status'] === 'bezahlt') { $bezahlt += (int) $z['amount_cents']; }
@@ -87,11 +92,19 @@
               <button class="knopf" title="Seit <?= (int) $mUeber ?> Tagen überfällig — Text und frischer Zahlungslink sind fertig"><?=
                 Fmt::h(Mahnung::name($mNaechste)) ?></button></form>
           <?php endif; ?>
-          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
-            <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink">
-            <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
-            <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
-            <button class="knopf haupt"><?= $z['link_url'] ? 'Neuen Link erzeugen' : 'Zahlungslink erzeugen' ?></button></form>
+          <?php /* KEIN ZAHLUNGSLINK VOR DER ZUSAGE (22.09.2026)
+                   Der Handgriff ist ohnehin gesperrt. Ein Knopf, der nur eine
+                   Fehlermeldung ausloest, ist aber kein Knopf, sondern eine
+                   Falle -- hier steht stattdessen, was zuerst passieren muss. */ ?>
+          <?php if ($wartetAngebot === null): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlungslink">
+              <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
+              <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+              <button class="knopf haupt"><?= $z['link_url'] ? 'Neuen Link erzeugen' : 'Zahlungslink erzeugen' ?></button></form>
+          <?php else: ?>
+            <a class="knopf haupt" href="<?= Fmt::h(url('angebote/' . (int) $wartetAngebot['id'])) ?>">Zum Angebot <?= Fmt::h((string) $wartetAngebot['nummer']) ?> &rsaquo;</a>
+          <?php endif; ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlung_bestaetigen">
             <input type="hidden" name="zurueck" value="bestellungen/<?= (int) $b['id'] ?>">
@@ -108,7 +121,11 @@
         </div>
       </div>
 
-      <?php if (!$z['link_url'] && $z['status'] !== 'bezahlt'): ?>
+      <?php if ($wartetAngebot !== null && $z['status'] !== 'bezahlt'): ?>
+        <p style="color:var(--gelb);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+          <?= Fmt::h(Angebot::warumKeinZahlungslink($wartetAngebot)) ?>
+        </p>
+      <?php elseif (!$z['link_url'] && $z['status'] !== 'bezahlt'): ?>
         <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
           Noch kein Zahlungslink. Erzeuge ihn oben — danach steht hier die fertige
           Nachricht mit Betrag und Link, so wie sie beim Kunden ankommt, und du
@@ -116,7 +133,7 @@
         </p>
       <?php endif; ?>
 
-      <?php if ($z['link_url'] && $z['status'] !== 'bezahlt'):
+      <?php if ($z['link_url'] && $z['status'] !== 'bezahlt' && $wartetAngebot === null):
         /* Weitergegeben wird die dauerhafte Adresse. Die Stripe-Seite in
            link_url lebt hoechstens 24 Stunden; wer diesen Link in WhatsApp
            kopiert, soll dem Kunden keinen schicken, der morgen tot ist. */

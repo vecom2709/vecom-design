@@ -6782,6 +6782,83 @@ pruefe('und die Verwaltung kennt den Handgriff',
         "case 'zahlung_nachfragen':"));
 
 /* ============================================================================
+   58. Kein Zahlungslink vor der Zusage   (22.09.2026)
+
+   Uwe: "Ich konnte den Zahlungslink senden, obwohl das Angebot noch nicht
+   bestaetigt war." Genau so war es: Eine Bestellung kann auch von Hand aus
+   einer Anfrage entstehen, und ab da fragte niemand mehr, ob zu diesem
+   Kunden noch ein Angebot beim Kunden liegt. Der Kunde haette eine
+   Zahlungsaufforderung ueber einen Betrag bekommen, dem er nie zugestimmt
+   hat.
+   ============================================================================ */
+abschnitt('58. Kein Zahlungslink vor der Zusage');
+
+require_once $wurzel . '/src/Angebot.php';
+
+$kzK = Events::kundeFinden(['name' => 'Zusage Fehlt', 'email' => 'zusage-fehlt@pruefung.example', 'sprache' => 'de']);
+Onboarding::absenden(Onboarding::vorab($kzK), ['branche' => 'Probe']);
+$kzB = Events::bestellungAnlegen($kzK, $paketId, 'Von Hand angelegt, ohne Zusage');
+pruefe('ohne Angebot steht der Zusage nichts im Weg', Angebot::wartetAufZusage($kzB) === null);
+
+$kzA = (int) Db::insert('angebote', [
+    'customer_id' => $kzK, 'nummer' => 'PR8-' . substr((string) hrtime(true), -9),
+    'sprache' => 'de', 'status' => 'entwurf', 'titel' => 'Probe Zusage',
+    'summe_cents' => 120000, 'monatlich_cents' => 0, 'currency' => 'EUR',
+    'gueltig_bis' => date('Y-m-d', strtotime('+14 days')),
+    'token' => bin2hex(random_bytes(24)),
+]);
+$kzW = Angebot::wartetAufZusage($kzB);
+pruefe('ein Entwurf haelt den Zahlungslink auf',
+    is_array($kzW) && (int) $kzW['id'] === $kzA && (string) $kzW['status'] === 'entwurf');
+pruefe('und die Erklaerung sagt, dass der Kunde es nicht einmal gesehen hat',
+    str_contains(Angebot::warumKeinZahlungslink($kzW), 'Entwurf'));
+$kzV = Vorgang::laden('b' . $kzB);
+pruefe('die Fuehrung schickt erst das Angebot, nicht den Zahlungslink',
+    ($kzV['schritt']['knopf'] ?? '') === 'Angebot senden', ($kzV['schritt']['knopf'] ?? '-'));
+
+Angebot::senden($kzA);
+$kzW2 = Angebot::wartetAufZusage($kzB);
+pruefe('ein verschicktes Angebot haelt ihn genauso auf',
+    is_array($kzW2) && (string) $kzW2['status'] === 'gesendet');
+$kzV2 = Vorgang::laden('b' . $kzB);
+pruefe('jetzt ist der Kunde dran — mit seiner Zusage, nicht mit einer Zahlung',
+    ($kzV2['schritt']['knopf'] ?? '') === 'Angebot annehmen' && $kzV2['dran'] === Vorgang::KUNDE,
+    ($kzV2['schritt']['knopf'] ?? '-') . ' / ' . $kzV2['dran']);
+
+/* Die Zusage von Hand (am Telefon) loest die Sperre -- aber nur fuer die
+   Bestellung, die dabei entsteht. */
+$kzBest = (int) Angebot::zusagenVonHand($kzA);
+pruefe('die Zusage von Hand legt eine Bestellung an', $kzBest > 0);
+pruefe('danach steht dem Zahlungslink nichts mehr im Weg',
+    Angebot::wartetAufZusage($kzBest) === null);
+$kzV3 = Vorgang::laden('b' . $kzBest);
+pruefe('und die Fuehrung fuehrt zum Zahlungslink',
+    ($kzV3['schritt']['knopf'] ?? '') === 'Zahlungslink erzeugen', ($kzV3['schritt']['knopf'] ?? '-'));
+
+/* Ein abgelehntes Angebot blockiert nicht: Sagt der Kunde danach am Telefon
+   doch zu, waere jede Sperre nur im Weg. */
+$kzA2 = (int) Db::insert('angebote', [
+    'customer_id' => $kzK, 'nummer' => 'PR9-' . substr((string) hrtime(true), -9),
+    'sprache' => 'de', 'status' => 'abgelehnt', 'titel' => 'Abgelehnt',
+    'summe_cents' => 90000, 'monatlich_cents' => 0, 'currency' => 'EUR',
+    'token' => bin2hex(random_bytes(24)),
+]);
+pruefe('ein abgelehntes Angebot haelt nichts mehr auf',
+    Angebot::wartetAufZusage($kzBest) === null);
+Db::run('DELETE FROM angebote WHERE id = ?', [$kzA2]);
+
+/* Die Taten selbst sind gesperrt -- wer an der Fuehrung vorbei klickt,
+   bekommt eine Erklaerung statt einer Zahlungsaufforderung. */
+$kzIndex = (string) file_get_contents(dirname(__DIR__) . '/index.php');
+pruefe('"Zahlungslink erzeugen" fragt nach der Zusage',
+    preg_match('~case \'zahlungslink\':.*?Angebot::wartetAufZusage~s', $kzIndex) === 1);
+pruefe('"Zahlungslink senden" ebenso',
+    preg_match('~case \'zahlungslink_senden\':.*?Angebot::wartetAufZusage~s', $kzIndex) === 1);
+pruefe('und die Bestellseite zeigt statt des Knopfs den Weg zum Angebot',
+    str_contains((string) file_get_contents(dirname(__DIR__) . '/views/bestellung.php'),
+        'Angebot::wartetAufZusage'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
