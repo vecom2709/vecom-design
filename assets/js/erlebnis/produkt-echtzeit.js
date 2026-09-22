@@ -368,7 +368,9 @@ export async function erstellen({
     zeiger.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (zeiger.size === 2) { const [a, b] = [...zeiger.values()]; spreiz = Math.hypot(a.x - b.x, a.y - b.y); }
     ziehen = { x: e.clientX, y: e.clientY, id: e.pointerId };
-    leinwand.setPointerCapture(e.pointerId);
+    // Kann werfen, wenn der Zeiger schon wieder weg ist (schneller Tipp) --
+    // dann eben ohne Einfangen, das Drehen geht trotzdem.
+    try { leinwand.setPointerCapture(e.pointerId); } catch { /* ohne */ }
     bewegt();
   });
   leinwand.addEventListener('pointermove', (e) => {
