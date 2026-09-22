@@ -146,9 +146,9 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
        Fotos ist sie laengst durch gebaute Zypressen an der Westgrenze
        ersetzt -- im Modell stuende sie zwischen Kamera und Haus, und beim
        Ueberblenden wuechsen fuenf gruene Kegel aus dem Rasen. */
+    const idx = o.geometry.index; dreiecke += (idx ? idx.count : o.geometry.attributes.position.count) / 3;
     if (/zypresse/i.test(o.name)) { o.visible = false; return; }
     o.castShadow = true; o.receiveShadow = true;
-    const idx = o.geometry.index; dreiecke += (idx ? idx.count : o.geometry.attributes.position.count) / 3;
     const m = o.material; if (!m) return;
     materialien.add(m);
     if (m.transparent || /glas/i.test(m.name)) o.castShadow = false;
@@ -173,7 +173,7 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
   let soll = parameter(stand);           // wohin die Kamera will
   let ist = { ...soll };                 // wo sie gerade ist
   let heim = parameter(stand);           // der Standpunkt des Fotos
-  let ziehen = null; let letzteBewegung = 0; let ruhtGemeldet = true;
+  let ziehen = null; let letzteBewegung = performance.now(); let ruhtGemeldet = true;
 
   function projektion(p, w, h) {
     const a = w / h;
@@ -333,7 +333,7 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     bilder++;
     if (!seit) seit = t;
     if (t - seit >= 500) { fps = Math.round((bilder * 1000) / (t - seit)); bilder = 0; seit = t; }
-    beiBild && beiBild(dt * 1000, fps);
+    beiBild && beiBild(dt * 1000, fps, false);
     if (!ziehen && rest < 0.002 && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
       ruhtGemeldet = true; ist = { ...heim }; kameraSetzen(ist); r.render(szene, kamera);
       beiRuhe && beiRuhe();
@@ -341,8 +341,10 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     // Steht die Kamera und zieht niemand, gibt es nichts Neues zu zeichnen.
     // Die Schleife ruht dann, bis der naechste Finger kommt -- ein Laptop
     // soll nicht fuer ein stehendes Bild die Grafikkarte heizen.
-    else if (!ziehen && ruhtGemeldet && rest < 0.0005 && performance.now() - letzteBewegung > 2500) {
-      laeuft = false; aktiv = false; return;
+    else if (!ziehen && ruhtGemeldet && rest < 0.0005 && performance.now() - letzteBewegung > 6000) {
+      laeuft = false; aktiv = false;
+      beiBild && beiBild(dt * 1000, fps, true);
+      return;
     }
     requestAnimationFrame(bild);
   }

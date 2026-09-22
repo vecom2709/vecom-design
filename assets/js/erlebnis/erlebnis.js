@@ -33,6 +33,7 @@ const T = {
     staende: { garten: 'Garten', ankunft: 'Ankunft', terrasse: 'Terrasse', wohnen: 'Wohnraum', essen: 'Essplatz' },
     foto: (p) => `Gerechnet · Blender Cycles · ${p} Abtastungen je Bildpunkt`,
     echtzeit: (r, f, s) => `Echtzeit · ${r} · ${f} Bilder/s · Stufe ${s}`,
+    echtzeitRuht: (r, s) => `Echtzeit · ${r} · Stufe ${s}`,
     kehrt: 'Loslassen — die Kamera kehrt zum Foto zurück',
     laedt: 'Lade das 3D-Modell …',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Das 3D-Modell bleibt aus — so bleibt die Seite schnell.',
@@ -119,6 +120,7 @@ const T = {
     staende: { garten: 'Giardino', ankunft: 'Arrivo', terrasse: 'Terrazza', wohnen: 'Soggiorno', essen: 'Zona pranzo' },
     foto: (p) => `Calcolata · Blender Cycles · ${p} campioni per pixel`,
     echtzeit: (r, f, s) => `Tempo reale · ${r} · ${f} fotogrammi/s · livello ${s}`,
+    echtzeitRuht: (r, s) => `Tempo reale · ${r} · livello ${s}`,
     kehrt: 'Lascia andare — la camera torna alla foto',
     laedt: 'Carico il modello 3D …',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Il modello 3D resta spento — così la pagina resta veloce.',
@@ -205,6 +207,7 @@ const T = {
     staende: { garten: 'Garden', ankunft: 'Arrival', terrasse: 'Terrace', wohnen: 'Living room', essen: 'Dining area' },
     foto: (p) => `Rendered · Blender Cycles · ${p} samples per pixel`,
     echtzeit: (r, f, s) => `Real time · ${r} · ${f} fps · tier ${s}`,
+    echtzeitRuht: (r, s) => `Real time · ${r} · tier ${s}`,
     kehrt: 'Let go — the camera returns to the photo',
     laedt: 'Loading the 3D model …',
     keinWebgl: 'This device shows the rendered images. The 3D model stays off — that keeps the page fast.',
@@ -464,13 +467,17 @@ async function echtzeitLaden(stumm = false) {
 }
 
 let kennungTakt = 0;
-function bildGemeldet(dtMs, fps) {
-  if (zustand.manager && zustand.wahl === 'AUTO') zustand.manager.bildGemeldet(dtMs);
+function bildGemeldet(dtMs, fps, schlaeft) {
+  if (zustand.manager && zustand.wahl === 'AUTO' && !schlaeft) zustand.manager.bildGemeldet(dtMs);
   const t = performance.now();
-  if (t - kennungTakt > 500 && zustand.echtzeit) {
+  if ((schlaeft || t - kennungTakt > 500) && zustand.echtzeit) {
     kennungTakt = t;
     const name = TEXT.stufeNamen[wirksameStufe()] || wirksameStufe();
-    kennungText.textContent = TEXT.echtzeit('WebGL 2', fps || '…', name);
+    // Ruht die Schleife (nichts bewegt sich), steht keine Bildrate da --
+    // eine eingefrorene Zahl neben einem stehenden Bild waere eine Behauptung.
+    kennungText.textContent = schlaeft || !fps
+      ? TEXT.echtzeitRuht('WebGL 2', name)
+      : TEXT.echtzeit('WebGL 2', fps, name);
     ablesungZeigen();
   }
 }
