@@ -32,6 +32,7 @@ const T = {
     zeiten: { morgen: 'Morgen', mittag: 'Mittag', nachmittag: 'Nachmittag', abend: 'Abend', nacht: 'Blaue Stunde' },
     staende: { garten: 'Garten', ankunft: 'Ankunft', terrasse: 'Terrasse', wohnen: 'Wohnraum', essen: 'Essplatz' },
     foto: (p) => `Gerechnet · Blender Cycles · ${p} Abtastungen je Bildpunkt`,
+    fotoKurz: 'Gerechnet · Blender Cycles',
     echtzeit: (r, f, s) => `Echtzeit · ${r} · ${f} Bilder/s · Stufe ${s}`,
     echtzeitRuht: (r, s) => `Echtzeit · ${r} · Stufe ${s}`,
     kehrt: 'Loslassen — die Kamera kehrt zum Foto zurück',
@@ -119,6 +120,7 @@ const T = {
     zeiten: { morgen: 'Mattina', mittag: 'Mezzogiorno', nachmittag: 'Pomeriggio', abend: 'Sera', nacht: 'Ora blu' },
     staende: { garten: 'Giardino', ankunft: 'Arrivo', terrasse: 'Terrazza', wohnen: 'Soggiorno', essen: 'Zona pranzo' },
     foto: (p) => `Calcolata · Blender Cycles · ${p} campioni per pixel`,
+    fotoKurz: 'Calcolata · Blender Cycles',
     echtzeit: (r, f, s) => `Tempo reale · ${r} · ${f} fotogrammi/s · livello ${s}`,
     echtzeitRuht: (r, s) => `Tempo reale · ${r} · livello ${s}`,
     kehrt: 'Lascia andare — la camera torna alla foto',
@@ -206,6 +208,7 @@ const T = {
     zeiten: { morgen: 'Morning', mittag: 'Noon', nachmittag: 'Afternoon', abend: 'Evening', nacht: 'Blue hour' },
     staende: { garten: 'Garden', ankunft: 'Arrival', terrasse: 'Terrace', wohnen: 'Living room', essen: 'Dining area' },
     foto: (p) => `Rendered · Blender Cycles · ${p} samples per pixel`,
+    fotoKurz: 'Rendered · Blender Cycles',
     echtzeit: (r, f, s) => `Real time · ${r} · ${f} fps · tier ${s}`,
     echtzeitRuht: (r, s) => `Real time · ${r} · tier ${s}`,
     kehrt: 'Let go — the camera returns to the photo',
@@ -339,7 +342,13 @@ function bildAdresse(stand, zeit) {
 }
 
 function kennungFoto() {
-  kennungText.textContent = `${TEXT.foto(PROBEN)} · ${TEXT.staende[zustand.stand]}, ${TEXT.zeiten[zustand.zeit]}`;
+  const wo = `${TEXT.staende[zustand.stand]}, ${TEXT.zeiten[zustand.zeit]}`;
+  // Auf einer schmalen Buehne (kleines Fenster, Telefon) wuerde die lange
+  // Fassung vierzeilig ueber das halbe Bild laufen. Dann nur das Werkzeug
+  // und der Standpunkt -- die Abtastungen stehen im Text daneben.
+  kennungText.textContent = buehne.clientWidth < 620
+    ? `${TEXT.fotoKurz} · ${wo}`
+    : `${TEXT.foto(PROBEN)} · ${wo}`;
 }
 
 let bildAuftrag = 0;
