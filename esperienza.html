@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it" data-lang-fixed="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vecom Experience — Cosa potrebbe fare il tuo sito?</title>
+<meta name="description" content="La stessa villa due volte: in tempo reale nel browser e calcolata come una foto. Scegli obiettivo e settore e guarda cosa potrebbe fare il tuo sito — su ogni dispositivo.">
+<link rel="canonical" href="https://vecom-design.it/esperienza.html">
+<link rel="alternate" hreflang="it" href="https://vecom-design.it/esperienza.html">
+<link rel="alternate" hreflang="de" href="https://vecom-design.it/de/erlebnis.html">
+<link rel="alternate" hreflang="en" href="https://vecom-design.it/en/experience.html">
+<link rel="alternate" hreflang="x-default" href="https://vecom-design.it/esperienza.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Vecom Experience — Cosa potrebbe fare il tuo sito?">
+<meta property="og:description" content="La stessa villa due volte: in tempo reale nel browser e calcolata come una foto. Scegli obiettivo e settore e guarda cosa potrebbe fare il tuo sito — su ogni dispositivo.">
+<meta property="og:url" content="https://vecom-design.it/esperienza.html">
+<meta property="og:locale" content="it_IT">
+<meta property="og:image" content="https://vecom-design.it/assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp">
+<meta name="theme-color" content="#05070d">
+<link rel="icon" href="assets/img/favicon-32.png?v=d9973df7" sizes="32x32">
+<link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=1a98f2cc">
+<link rel="preload" as="image" href="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=4d745a88" media="(min-width: 701px)">
+<link rel="preload" as="image" href="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=fc5422b8" media="(max-width: 700px)">
+<!-- Absolute Pfade: dieselbe Zuordnung gilt in /, /de/ und /en/, ohne dass
+     build.mjs sie umschreiben muss. Gleiche Fassung wie im Showroom. -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "/assets/vendor/three/three.module.min.js",
+    "three/addons/": "/assets/vendor/three/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- Ein Ausstellungsstueck ohne Ausgang ist eine Falle. href="index.html":
+     build.mjs dreht ihn je Fassung auf /, /de/ oder /en/ (heim:true). -->
+<a id="zurueck" href="index.html"><span aria-hidden="true">←</span> Vecom Design</a>
+
+<div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
+        <span class="lang__current" aria-current="true">IT</span><a href="./de/erlebnis.html" hreflang="de" lang="de">DE</a><a href="./en/experience.html" hreflang="en" lang="en">EN</a>
+      </div>
+
+<main>
+<div class="held">
+<header class="kopf">
+  <p class="kicker" data-i18n="erlebnis.kicker">Vecom Experience</p>
+  <h1><span data-i18n="erlebnis.h1a">Cosa potrebbe fare</span> <span class="glanz" data-i18n="erlebnis.h1b">il tuo sito?</span></h1>
+  <p class="lead" data-i18n="erlebnis.lead">La stessa villa, due volte: calcolata come una foto — e come modello che giri tu, nel tuo browser. Lascia andare e il modello torna a essere la foto.</p>
+  <p class="hinweis"><b data-i18n="erlebnis.hinweis_b">Cosa vedi:</b> <span data-i18n="erlebnis.hinweis_p">La foto è calcolata con Blender Cycles — sole vero, cielo fisico, 384 campioni per pixel. Il modello da girare è la stessa casa in 32.280 triangoli e 127 KB, dal vivo nel tuo browser. Il giardino, i cipressi e gli uliveti esistono solo nella foto: per un telefono sarebbero troppo pesanti.</span></p>
+  <a class="weiter" href="#wegweiser"><span data-i18n="erlebnis.zumZiel">Scegli il tuo obiettivo</span> <span aria-hidden="true">↓</span></a>
+</header>
+
+<!-- DIE BUEHNE
+     Unten liegt immer das gerechnete Foto (Blender Cycles). Das Echtzeitmodell
+     kommt erst auf Wunsch dazu und liegt darueber; sobald die Kamera wieder auf
+     einem Standpunkt ruht, blendet das Foto zurueck. data-src traegt den Pfad
+     des Echtzeitmoduls -- so bekommt es von build.mjs einen Fingerabdruck wie
+     jede andere Datei, obwohl es erst per import() geladen wird. -->
+<section class="villa" id="villa">
+  <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=ef748a2b">
+    <picture>
+      <source media="(max-width: 700px)" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=fc5422b8">
+      <img class="ruhe ist-an" id="ruhe-a" src="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=4d745a88" width="1600" height="900" fetchpriority="high" decoding="async" data-i18n-attr="alt:erlebnis.bildAlt" alt="Villa con piscina nel paesaggio siciliano, calcolata con Blender Cycles">
+    </picture>
+    <img class="ruhe" id="ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
+    <div class="echtzeit" id="echtzeit" aria-hidden="true"></div>
+    <figcaption class="kennung" id="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span id="kennung-text">Blender Cycles · 384</span></figcaption>
+    <button type="button" class="bewegen" id="bewegen" hidden><span class="bewegen__zeichen" aria-hidden="true"></span><span id="bewegen-text" data-i18n="erlebnis.bewegen">Giralo tu</span></button>
+  </figure>
+
+  <div class="regler">
+    <div class="gruppe" role="group" aria-labelledby="l-zeit">
+      <span class="gruppe__name" id="l-zeit" data-i18n="erlebnis.zeitLabel">Ora del giorno</span>
+      <div class="chips" id="zeiten">
+        <button type="button" data-zeit="morgen" aria-pressed="false" data-i18n="erlebnis.z1">Mattina</button>
+        <button type="button" data-zeit="mittag" aria-pressed="false" data-i18n="erlebnis.z2">Mezzogiorno</button>
+        <button type="button" data-zeit="nachmittag" aria-pressed="true" data-i18n="erlebnis.z3">Pomeriggio</button>
+        <button type="button" data-zeit="abend" aria-pressed="false" data-i18n="erlebnis.z4">Sera</button>
+        <button type="button" data-zeit="nacht" aria-pressed="false" data-i18n="erlebnis.z5">Ora blu</button>
+      </div>
+    </div>
+    <div class="gruppe" role="group" aria-labelledby="l-stand">
+      <span class="gruppe__name" id="l-stand" data-i18n="erlebnis.standLabel">Punto di vista</span>
+      <div class="chips" id="staende">
+        <button type="button" data-stand="garten" aria-pressed="true" data-i18n="erlebnis.s1">Giardino</button>
+        <button type="button" data-stand="ankunft" aria-pressed="false" data-i18n="erlebnis.s2">Arrivo</button>
+        <button type="button" data-stand="terrasse" aria-pressed="false" data-i18n="erlebnis.s3">Terrazza</button>
+        <button type="button" data-stand="wohnen" aria-pressed="false" data-i18n="erlebnis.s4">Soggiorno</button>
+        <button type="button" data-stand="kueche" aria-pressed="false" data-i18n="erlebnis.s5">Cucina</button>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
+  <header class="abschnitt__kopf">
+    <p class="kicker" data-i18n="erlebnis.hub_kicker">La guida</p>
+    <h2 id="hub-h" data-i18n="erlebnis.hub_h">Cosa deve ottenere il tuo sito per te?</h2>
+    <p class="lead" data-i18n="erlebnis.hub_lead">Tocca un obiettivo. Il settore adatto è già scelto — puoi cambiarlo. Accanto vedi subito cosa potrebbe fare il tuo sito e cosa lascio fuori di proposito.</p>
+  </header>
+  <div class="hub__raster">
+    <div class="hub__wahl">
+      <fieldset class="feld">
+        <legend data-i18n="erlebnis.zielLabel">Il tuo obiettivo</legend>
+        <div class="ziele" id="ziele"></div>
+      </fieldset>
+      <fieldset class="feld">
+        <legend data-i18n="erlebnis.brancheLabel">Il tuo settore</legend>
+        <div class="chips chips--umbruch" id="branchen"></div>
+      </fieldset>
+    </div>
+    <article class="ergebnis" id="ergebnis" aria-live="polite">
+      <noscript><p class="lead" data-i18n="erlebnis.hub_noscript">La guida ha bisogno di JavaScript. Tutto l’essenziale è comunque su questa pagina — oppure scrivimi direttamente.</p></noscript>
+    </article>
+  </div>
+</section>
+
+<section class="abschnitt tisch" id="tisch" aria-labelledby="tisch-h">
+  <div class="tisch__text">
+    <p class="kicker" data-i18n="erlebnis.tisch_kicker">Prodotto · 36 viste calcolate</p>
+    <h2 id="tisch-h"><span data-i18n="erlebnis.tisch_h1">Un prodotto da girare —</span> <span data-i18n="erlebnis.tisch_h2">senza scheda grafica.</span></h2>
+    <p class="lead" data-i18n="erlebnis.tisch_lead">Ogni passo di questa rotazione è un’immagine a sé del path tracer di Unreal Engine. Nel browser non si calcola nulla — per questo il tavolo appare uguale su un vecchio telefono e su una workstation.</p>
+    <dl class="fakten">
+      <div><dt>36</dt><dd data-i18n="erlebnis.tisch_f1">immagini singole</dd></div>
+      <div><dt>~20&nbsp;KB</dt><dd data-i18n="erlebnis.tisch_f2">per passo</dd></div>
+      <div><dt>192</dt><dd data-i18n="erlebnis.tisch_f3">campioni per immagine</dd></div>
+    </dl>
+    <a class="knopf knopf--leer" href="tavolo.html" data-i18n="erlebnis.tisch_link">Al configuratore con 72 varianti</a>
+  </div>
+  <div class="dreh" id="dreh" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="35" aria-valuenow="0" data-i18n-attr="aria-label:erlebnis.tisch_ziehen" aria-label="Trascina per girare">
+    <img id="dreh-bild" src="assets/img/3d/tisch/drehen/gross/dreh-00.webp?v=edfb43b5" width="1600" height="1000" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.tisch_alt" alt="Tavolo in legno massello di Vecom Design, vista calcolata">
+    <span class="dreh__hinweis" aria-hidden="true"><i></i><span data-i18n="erlebnis.tisch_ziehen">Trascina per girare</span></span>
+  </div>
+</section>
+
+<section class="abschnitt stufen" id="stufen" aria-labelledby="stufen-h">
+  <header class="abschnitt__kopf">
+    <p class="kicker" data-i18n="erlebnis.stufen_kicker">Adaptive Experience</p>
+    <h2 id="stufen-h" data-i18n="erlebnis.stufen_h">Ogni dispositivo riceve la versione migliore che può reggere.</h2>
+    <p class="lead" data-i18n="erlebnis.stufen_lead">La pagina misura cosa sa fare il tuo dispositivo e sceglie il livello da sola. Qui puoi cambiarlo e vedere sulla villa in alto cosa cambia — aspetto e inquadratura restano uguali, cambia solo il carico di calcolo.</p>
+  </header>
+  <div class="stufenwahl" role="group" aria-labelledby="stufen-h" id="stufenwahl">
+    <button type="button" data-stufe="AUTO" aria-pressed="true"><b>AUTO</b><span data-i18n="erlebnis.auto_s">misura il tuo dispositivo</span></button>
+    <button type="button" data-stufe="SAFE" aria-pressed="false"><b>ECO</b><span data-i18n="erlebnis.eco_s">Immagini calcolate, niente 3D. Si apre subito, funziona ovunque.</span></button>
+    <button type="button" data-stufe="MEDIUM" aria-pressed="false"><b>STANDARD</b><span data-i18n="erlebnis.std_s">3D vero, senza ombre, densità di pixel semplice.</span></button>
+    <button type="button" data-stufe="HIGH" aria-pressed="false"><b>HIGH</b><span data-i18n="erlebnis.high_s">Ombre del sole morbide, bordi più fini.</span></button>
+    <button type="button" data-stufe="ULTRA" aria-pressed="false"><b>ULTRA</b><span data-i18n="erlebnis.ultra_s">Mappa delle ombre grande, densità di pixel piena.</span></button>
+    <button type="button" data-stufe="CINEMATIC" aria-pressed="false"><b>CINEMATIC</b><span data-i18n="erlebnis.cine_s">Path tracing — la foto. Su richiesta dal vivo da Unreal Engine in streaming.</span></button>
+  </div>
+  <div class="ablesung" id="ablesung" aria-live="polite">
+    <p class="ablesung__satz" id="ablesung-satz"></p>
+    <dl class="ablesung__werte" id="ablesung-werte"></dl>
+  </div>
+</section>
+
+<section class="abschnitt technik" id="technik" aria-labelledby="technik-h">
+  <header class="abschnitt__kopf">
+    <p class="kicker" data-i18n="erlebnis.tech_kicker">La tecnica dietro</p>
+    <h2 id="technik-h" data-i18n="erlebnis.tech_h">Una frase per strumento. Di più, se vuoi.</h2>
+  </header>
+  <div class="werkzeuge">
+    <article class="werkzeug"><h3 data-i18n="erlebnis.t1n">Blender</h3><p data-i18n="erlebnis.t1a">Il tuo oggetto viene ricostruito in digitale — così preciso da sembrare fotografato.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t1b">Modellato con misure reali in Blender 5.2, calcolato con Cycles su una RTX 5070. La villa ha 647 componenti e 26 materiali; il giardino con oltre 600.000 fili d’erba, cipressi fatti di ciuffi di rami e uliveti nasce solo per le foto.</p></details></article>
+    <article class="werkzeug"><h3 data-i18n="erlebnis.t4n">Path tracing</h3><p data-i18n="erlebnis.t4a">La luce viene calcolata come si propaga nella realtà — da qui l’effetto di una foto.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t4b">Blender Cycles con cielo fisico, rifrazione reale del vetro e caustiche, fino a 32 rimbalzi di luce. L’esposizione è misurata: intonaco bianco al sole a 0,83–0,86 di luminanza, come la imposterebbe un fotografo sul set.</p></details></article>
+    <article class="werkzeug"><h3 data-i18n="erlebnis.t2n">Three.js</h3><p data-i18n="erlebnis.t2a">Il tuo visitatore gira il modello direttamente nel browser — senza app, senza plugin.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t2b">Three.js r185, servito dal nostro server. La casa arriva come GLB con 32.280 triangoli: 2,0 MB su disco, 127 KB in rete. Si carica solo quando qualcuno vuole girarla.</p></details></article>
+    <article class="werkzeug"><h3 data-i18n="erlebnis.t3n">Adaptive Experience</h3><p data-i18n="erlebnis.t3a">La pagina si adatta a ogni dispositivo — nessuno riceve una versione che scatta.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t3b">Un nucleo proprio (experience-core): misura del dispositivo, breve test di prestazioni, cinque livelli. Un controllore abbassa il livello se i fotogrammi calano in modo stabile, e lo rialza con prudenza.</p></details></article>
+    <article class="werkzeug"><h3 data-i18n="erlebnis.t5n">Unreal Engine</h3><p data-i18n="erlebnis.t5a">Per immobili premium: qualità da cinema, e il comando ce l’ha il tuo cliente.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t5b">Unreal Engine 5 con Lumen per la versione in tempo reale e path tracing per i filmati. La stessa villa è già allestita lì e calibrata su Cycles.</p></details></article>
+    <article class="werkzeug"><h3 data-i18n="erlebnis.t6n">Pixel Streaming</h3><p data-i18n="erlebnis.t6a">La grafica la calcola un server — il tuo cliente la vede sul telefono.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t6b">Pixel Streaming via WebRTC. Parte solo con un clic, con limite di tempo e tetto mensile, perché ogni minuto costa una scheda grafica a noleggio.</p></details></article>
+  </div>
+</section>
+
+<section class="abschnitt vergleich" id="vergleich" aria-labelledby="vergleich-h">
+  <header class="abschnitt__kopf">
+    <p class="kicker" data-i18n="erlebnis.vgl_kicker">Prima / dopo</p>
+    <h2 id="vergleich-h" data-i18n="erlebnis.vgl_h">Sito normale o experience?</h2>
+    <p class="lead" data-i18n="erlebnis.vgl_lead">Entrambi hanno il loro posto. Questa panoramica deve aiutarti a decidere — non screditare i siti normali.</p>
+  </header>
+  <div class="paare">
+    <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p1a_t">Foto di prodotto</h3><p data-i18n="erlebnis.p1a_p">Basta, se il tuo prodotto esiste in un’unica versione e una buona foto mostra tutto.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p1b_t">Prodotto da girare</h3><p data-i18n="erlebnis.p1b_p">Conviene quando ci sono varianti: 72 versioni del tavolo da un solo modello invece di 72 servizi fotografici.</p></div></div>
+    <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p2a_t">Foto dell’immobile</h3><p data-i18n="erlebnis.p2a_p">Bastano, se l’immobile è finito e si fotografa bene.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p2b_t">Visita calcolata</h3><p data-i18n="erlebnis.p2b_p">Conviene se non è ancora costruito, se è lontano o se vuoi selezionare i contatti prima.</p></div></div>
+    <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p3a_t">Sito aziendale classico</h3><p data-i18n="erlebnis.p3a_p">Basta — ed è giusto — se i clienti devono chiamare: artigiani, studi medici, officine.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p3b_t">Motion e storytelling</h3><p data-i18n="erlebnis.p3b_p">Conviene se vendi un’atmosfera: hotel, cantina, marchio.</p></div></div>
+    <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p4a_t">Galleria di immagini</h3><p data-i18n="erlebnis.p4a_p">Basta per i pezzi unici veri — un’auto usata vuole foto vere.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p4b_t">Configuratore</h3><p data-i18n="erlebnis.p4b_p">Conviene con molte versioni: colori, misure, materiali, dotazioni.</p></div></div>
+  </div>
+</section>
+
+<section class="abschnitt strom" id="streaming" aria-labelledby="strom-h">
+  <header class="abschnitt__kopf">
+    <p class="kicker" data-i18n="erlebnis.str_kicker">Pixel Streaming</p>
+    <h2 id="strom-h" data-i18n="erlebnis.str_h">Grafica di alto livello anche sul telefono</h2>
+    <p class="lead" data-i18n="erlebnis.str_lead">Un server nel data center calcola l’immagine e la invia come video. Il tuo visitatore comanda con il dito — il suo dispositivo non deve calcolare nulla.</p>
+  </header>
+  <ol class="kette">
+    <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="52" rx="5"/><path d="M20 18h24M20 28h24M20 38h24"/><circle cx="44" cy="48" r="2.5" class="an"/></svg><h3 data-i18n="erlebnis.str1t">Server</h3><p data-i18n="erlebnis.str1p">Una scheda grafica nel data center calcola la scena Unreal.</p></li>
+    <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 30c7-12 17-18 24-18s17 6 24 18"/><path d="M16 36c5-8 11-12 16-12s11 4 16 12"/><path d="M24 42c3-4 5-6 8-6s5 2 8 6"/><circle cx="32" cy="50" r="3" class="an"/></svg><h3 data-i18n="erlebnis.str2t">Stream</h3><p data-i18n="erlebnis.str2p">Le immagini finite viaggiano in rete come video, i tocchi tornano indietro.</p></li>
+    <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="19" y="4" width="26" height="56" rx="5"/><path d="M19 12h26M19 50h26"/><circle cx="32" cy="55" r="1.5" class="an"/></svg><h3 data-i18n="erlebnis.str3t">Telefono</h3><p data-i18n="erlebnis.str3p">Mostra l’immagine e rimanda scorrimenti e tocchi.</p></li>
+  </ol>
+  <p class="ehrlich" data-i18n="erlebnis.str_ehrlich">A dirla tutta: uno stream costa a ogni minuto. Per questo non parte mai da solo, ma solo con un clic — e per la villa di questa pagina, per ora, solo su appuntamento.</p>
+</section>
+
+<section class="schluss" id="start" aria-labelledby="schluss-h">
+  <h2 id="schluss-h" data-i18n="erlebnis.s_h">Questo posso costruirlo per te.</h2>
+  <p class="lead" data-i18n="erlebnis.s_lead">Tu porti il tuo immobile, il tuo prodotto o la tua idea. Io lo ricostruisco, preparo la luce e consegno l’experience pronta per il tuo sito — al livello adatto ai tuoi visitatori.</p>
+  <div class="knoepfe">
+    <a class="knopf knopf--voll" href="/bedarf.php?lang=it" data-i18n="erlebnis.s_b1">Avvia il progetto</a>
+    <a class="knopf knopf--leer" href="prezzi.html" data-i18n="erlebnis.s_b2">Quanto costa</a>
+  </div>
+</section>
+</main>
+
+<footer class="fuss">
+  <span>© 2026 Vecom Design</span>
+  <nav data-i18n-attr="aria-label:footer.h2" aria-label="Legale">
+    <a href="legal.html#impressum" data-i18n="footer.g1">Note legali</a>
+    <a href="legal.html#privacy" data-i18n="footer.g2">Privacy</a>
+  </nav>
+</footer>
+
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=49c78ca2"></script>
+</body>
+</html>

@@ -170,6 +170,19 @@ const SEITEN = [
     meta: { titel: 'tavolo.metaTitle', text: 'tavolo.metaDesc' },
     faq: null,
     heim: true,
+  },  /* Die Erlebnisseite. Wie Konfigurator und Showroom mit eigenem Stilblatt,
+     aber als Datei (assets/css/erlebnis.css), weil sie rund dreimal so lang
+     ist. Die Adresse ist in jeder Sprache ein eigenes Wort --
+     esperienza, erlebnis, experience --, weil Suchende genau so tippen.
+     Die Bilder unter assets/img/erlebnis/ sind fuer alle drei Fassungen
+     dieselben; was JavaScript nachlaedt, steht dort mit absolutem Pfad. */
+  {
+    quelle: 'esperienza.html',
+    ziele: { it: 'esperienza.html', de: 'de/erlebnis.html', en: 'en/experience.html' },
+    adressen: { it: 'esperienza.html', de: 'de/erlebnis.html', en: 'en/experience.html' },
+    meta: { titel: 'erlebnis.metaTitle', text: 'erlebnis.metaDesc' },
+    faq: null,
+    heim: true,
   },
 ];
 
@@ -507,6 +520,15 @@ function build(lang, seite) {
   if (tischseite) {
     const datei = tischseite.ziele[lang].split('/').pop();
     h = h.replace(/href="\/?(?:tavolo|tisch|table)\.html"/g, `href="${datei}"`);
+  }
+
+  /* Verweise auf die Erlebnisseite: dieselbe Mechanik wie beim
+     Konfigurator. Wer im Quelltext irgendeine der drei Schreibweisen
+     verlinkt, bekommt die der jeweiligen Sprache. */
+  const erlebnisseite = SEITEN.find((x) => x.quelle === 'esperienza.html');
+  if (erlebnisseite) {
+    const datei = erlebnisseite.ziele[lang].split('/').pop();
+    h = h.replace(/href="\/?(?:esperienza|erlebnis|experience)\.html(#[a-z-]+)?"/g, (m, anker) => `href="${datei}${anker || ''}"`);
   }
 
   const betreuungsseite = SEITEN.find((x) => x.quelle === 'assistenza.html');
