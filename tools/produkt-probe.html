@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- Prüfstand für produkt-echtzeit.js: rendert das Modell mit der Poster-
+     kamera auf 1600x900, damit es sich Pixel für Pixel mit dem gerechneten
+     Foto vergleichen lässt. Wird nicht veröffentlicht (tools/ ist vom
+     Deploy ausgeschlossen). Aufruf: /tools/produkt-probe.html?m=auto -->
+<html lang="de"><head><meta charset="utf-8"><title>Produkt-Prüfstand</title>
+<style>html,body{margin:0;background:#000}#b{width:1600px;height:900px;position:relative}#b canvas{width:100%;height:100%;display:block}</style>
+<script type="importmap">{"imports":{"three":"/assets/vendor/three/three.module.min.js","three/addons/":"/assets/vendor/three/jsm/"}}</script>
+</head><body><div id="b"></div>
+<script type="module">
+import { erstellen } from '/assets/js/erlebnis/produkt-echtzeit.js';
+const m = new URLSearchParams(location.search).get('m') || 'auto';
+const q = new URLSearchParams(location.search);
+const v = Number(q.get('v') || 0);
+const look = q.get('look') ? JSON.parse(q.get('look')) : undefined;
+const bel = q.get('bel') ? Number(q.get('bel')) : undefined;
+window.__fertig = false;
+erstellen({
+  behaelter: document.getElementById('b'),
+  glb: `/assets/3d/branchen/${m}/${m}.glb`,
+  kameraUrl: `/assets/3d/branchen/${m}/kamera.json`, bodenUrl: `/assets/3d/branchen/${m}/boden-licht.webp`,
+  einstellungen: { pixel: 1, spiegel: q.get('spiegel') !== '0' }, variante: v, look, belichtung: bel,
+}).then((p) => { window.__p = p; window.__fertig = true; }).catch((e) => { window.__fehler = String(e && e.stack || e); });
+</script></body></html>

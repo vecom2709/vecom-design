@@ -57,6 +57,8 @@ const T = {
     stufen: { A: 'Klar & schnell', B: 'Premium mit feiner Bewegung', C: 'Motion & Storytelling', D: 'Immersiv mit 3D' },
     demoVilla: 'Diese Demo ansehen',
     demoTisch: 'Zur Produkt-Demo',
+    demoAuto: 'Zum Auto-Konfigurator',
+    demoShop: 'Zum Shop-Beispiel',
     start: 'Projekt starten',
     ohneDemo: 'Hier braucht es kein 3D. Eine Seite, die in zwei Sekunden am Telefon steht, bringt mehr als jede Szene.',
     ziele: {
@@ -91,6 +93,12 @@ const T = {
         titel: 'Dein Gast weiß, wo er sitzt, bevor er reserviert.',
         kann: ['die Terrasse bei Abendlicht zeigen', 'die Speisekarte als echten Text zeigen — lesbar in zwei Sekunden', 'Öffnungszeiten, Anruf und Weg immer im Daumenbereich halten', 'Reservierungen per WhatsApp mit einem Tippen annehmen'],
         nicht: ['3D-Modelle von Gerichten', 'die Karte nur als PDF'],
+      },
+      automotive: {
+        n: 'Automotive', u: 'Autohaus, Händler, Werkstatt',
+        titel: 'Dein Kunde stellt sein Auto zusammen, bevor er zur Probefahrt kommt.',
+        kann: ['jeden Lack und jede Felge aus einem Modell zeigen', 'das Auto auf Knopfdruck in seine Teile zerlegen', 'Scheinwerfer, Innenraum und Details aus der Nähe zeigen', 'die Probefahrt mit fertiger Konfiguration anfragen lassen'],
+        nicht: ['Bildergalerien mit vierzig Fotos', 'ein Konfigurator, der erst eine App braucht'],
       },
       ecommerce: {
         n: 'Shop & Manufaktur', u: 'Möbel, Produkte, Varianten',
@@ -147,6 +155,8 @@ const T = {
     stufen: { A: 'Chiaro e veloce', B: 'Premium con movimento discreto', C: 'Motion e storytelling', D: 'Immersivo in 3D' },
     demoVilla: 'Guarda questa demo',
     demoTisch: 'Alla demo di prodotto',
+    demoAuto: 'Al configuratore auto',
+    demoShop: 'All’esempio di negozio',
     start: 'Avvia il progetto',
     ohneDemo: 'Qui il 3D non serve. Una pagina che si apre in due secondi sul telefono rende più di qualsiasi scena.',
     ziele: {
@@ -181,6 +191,12 @@ const T = {
         titel: 'Il tuo ospite sa dove si siederà prima di prenotare.',
         kann: ['mostrare la terrazza con la luce della sera', 'mostrare il menù come testo vero — leggibile in due secondi', 'tenere orari, chiamata e percorso sempre sotto il pollice', 'accettare prenotazioni su WhatsApp con un tocco'],
         nicht: ['modelli 3D dei piatti', 'il menù solo in PDF'],
+      },
+      automotive: {
+        n: 'Automotive', u: 'Concessionaria, rivenditore, officina',
+        titel: 'Il tuo cliente compone la sua auto prima di venire al test drive.',
+        kann: ['mostrare ogni vernice e ogni cerchio da un solo modello', 'scomporre l’auto nei suoi pezzi con un tocco', 'mostrare fari, interni e dettagli da vicino', 'far richiedere il test drive con la configurazione pronta'],
+        nicht: ['gallerie di quaranta foto', 'un configuratore che richiede un’app'],
       },
       ecommerce: {
         n: 'Shop e manifattura', u: 'Mobili, prodotti, varianti',
@@ -237,6 +253,8 @@ const T = {
     stufen: { A: 'Clear & fast', B: 'Premium with subtle motion', C: 'Motion & storytelling', D: 'Immersive 3D' },
     demoVilla: 'See this demo',
     demoTisch: 'To the product demo',
+    demoAuto: 'To the car configurator',
+    demoShop: 'To the shop example',
     start: 'Start the project',
     ohneDemo: 'No 3D needed here. A page that is up in two seconds on a phone does more than any scene.',
     ziele: {
@@ -271,6 +289,12 @@ const T = {
         titel: 'Your guest knows where they will sit before booking.',
         kann: ['show the terrace in evening light', 'show the menu as real text — readable in two seconds', 'keep hours, call and directions under the thumb', 'take reservations on WhatsApp with one tap'],
         nicht: ['3D models of dishes', 'the menu only as a PDF'],
+      },
+      automotive: {
+        n: 'Automotive', u: 'Dealership, reseller, garage',
+        titel: 'Your customer builds their car before coming in for a test drive.',
+        kann: ['show every paint and every wheel from one model', 'take the car apart at a tap', 'show headlights, interior and details up close', 'let people request the test drive with the configuration attached'],
+        nicht: ['galleries of forty photos', 'a configurator that needs an app first'],
       },
       ecommerce: {
         n: 'Shop & maker', u: 'Furniture, products, variants',
@@ -311,14 +335,16 @@ const ZIEL_ZU_BRANCHE = {
   buchen: 'hotel', vertrauen: 'medizin', erlebnis: 'architektur',
 };
 const BRANCHEN_DEMO = {
+  automotive: { demo: 'auto', stufe: 'D' },
   immobilien: { demo: 'villa', stand: 'garten', zeit: 'nachmittag', stufe: 'C' },
   architektur: { demo: 'villa', stand: 'ankunft', zeit: 'mittag', stufe: 'D' },
   hotel: { demo: 'villa', stand: 'terrasse', zeit: 'abend', stufe: 'C' },
   gastro: { demo: 'villa', stand: 'terrasse', zeit: 'nacht', stufe: 'B' },
-  ecommerce: { demo: 'tisch', stufe: 'C' },
+  ecommerce: { demo: 'shop', stufe: 'C' },
   handwerk: { demo: 'klar', stufe: 'A' },
   medizin: { demo: 'klar', stufe: 'A' },
-  industrie: { demo: 'tisch', stufe: 'C' },
+  // Zerlegen ist das Werkzeug der Industrie -- Baugruppen einzeln zeigen.
+  industrie: { demo: 'auto', stufe: 'C' },
 };
 
 /* ------------------------------------------------------------------ Hilfen */
@@ -643,6 +669,9 @@ function stufeAnwenden() {
   }
   const s = wirksameStufe();
   if (zustand.villa && BUEHNEN_STUFEN[s]) zustand.villa.stufe(BUEHNEN_STUFEN[s]);
+  // Die Branchen-Bühnen (branchen.js) richten sich nach derselben Stufe.
+  document.documentElement.dataset.erlebnisStufe = s;
+  document.dispatchEvent(new CustomEvent('vecom:stufe', { detail: { stufe: s } }));
   bewegenAnbieten();
   ablesungZeigen();
 }
@@ -712,7 +741,9 @@ function ergebnisZeigen(bewegt = true) {
   const b = TEXT.branchen[hub.branche]; const d = BRANCHEN_DEMO[hub.branche];
   const demo = d.demo === 'villa'
     ? `<button type="button" class="knopf knopf--leer" data-demo="villa">${esc(TEXT.demoVilla)}</button>`
-    : d.demo === 'tisch' ? `<a class="knopf knopf--leer" href="#tisch">${esc(TEXT.demoTisch)}</a>` : '';
+    : d.demo === 'tisch' ? `<a class="knopf knopf--leer" href="#tisch">${esc(TEXT.demoTisch)}</a>`
+    : d.demo === 'auto' ? `<a class="knopf knopf--leer" href="#bd-auto">${esc(TEXT.demoAuto)}</a>`
+    : d.demo === 'shop' ? `<a class="knopf knopf--leer" href="#bd-shop">${esc(TEXT.demoShop)}</a>` : '';
   ergebnisEl.innerHTML = `
     <p class="ergebnis__branche">${esc(b.n)} · ${esc(b.u)}</p>
     <h3>${esc(b.titel)}</h3>

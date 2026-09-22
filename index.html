@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=82fa1f14">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=61618240">
 
 
 <script type="importmap">
@@ -532,6 +532,120 @@
           <noscript><p class="lead" data-i18n="erlebnis.hub_noscript">La guida ha bisogno di JavaScript. Tutto l’essenziale è comunque su questa pagina — oppure scrivimi direttamente.</p></noscript>
         </article>
       </div>
+    </section>
+
+    <!-- Branchen-Demos (23.09.2026): Automotive und Shop, jeweils mit dem
+         Werkzeug, das dort verkauft. Gleiches Muster wie die Villa: erst das
+         gerechnete Foto, auf Griff das Modell in Echtzeit (branchen.js,
+         produkt-echtzeit.js). Der Möbel-Tisch darunter ist die dritte
+         Technik -- ganz ohne Grafikkarte. -->
+    <section class="abschnitt branchen" id="branchen-demo" aria-labelledby="bd-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.bd_kicker">Una tecnica per ogni settore</p>
+        <h2 id="bd-h" data-i18n="erlebnis.bd_h">Auto, negozio, mobili — tre strumenti, un sito.</h2>
+        <p class="lead" data-i18n="erlebnis.bd_lead">Ogni settore vende in modo diverso. Una concessionaria vende vernice e tecnica, un negozio colore e taglia, una falegnameria il legno. Qui lo stesso sito è costruito tre volte — ogni volta con lo strumento che lì vende.</p>
+      </header>
+      <div class="bd-reiter" id="bd-reiter" role="tablist" data-i18n-attr="aria-label:erlebnis.bd_reiter" aria-label="Settore">
+        <button type="button" role="tab" id="bd-tab-auto" aria-controls="bd-auto" aria-selected="true" tabindex="0"><span class="bd-reiter__nr">01</span><span data-i18n="erlebnis.bd_tab_auto">Automotive</span></button>
+        <button type="button" role="tab" id="bd-tab-shop" aria-controls="bd-shop" aria-selected="false" tabindex="-1"><span class="bd-reiter__nr">02</span><span data-i18n="erlebnis.bd_tab_shop">Negozio online</span></button>
+        <a class="bd-reiter__weiter" href="#tisch"><span class="bd-reiter__nr">03</span><span data-i18n="erlebnis.bd_tab_moebel">Mobili, più in basso</span></a>
+      </div>
+
+      <div class="bd-panel" id="bd-auto" role="tabpanel" aria-labelledby="bd-tab-auto">
+        <div class="bd-raster">
+          <div class="bd-links">
+            <figure class="buehne buehne--produkt" id="bd-buehne-auto" data-modell="auto" data-variante="karmin" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=8ccc899a">
+              <picture>
+                <source media="(max-width: 700px)" srcset="assets/img/erlebnis/branchen/auto-karmin-800.webp?v=b78cc585">
+                <img class="ruhe ruhe-a ist-an ist-oben" src="assets/img/erlebnis/branchen/auto-karmin.webp?v=adb135e9" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bd_auto_alt" alt="Auto sportiva rosso carminio in uno studio fotografico scuro, calcolata con Blender Cycles">
+              </picture>
+              <img class="ruhe ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
+              <div class="echtzeit" aria-hidden="true"></div>
+              <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">Calcolato · Blender Cycles · 384 campioni</span></figcaption>
+              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span></button>
+            </figure>
+            <p class="bd-griff" data-i18n="erlebnis.bd_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire</p>
+          </div>
+          <div class="bd-rechts">
+            <h3 data-i18n="erlebnis.bd_auto_h">Configuratore con vista esplosa</h3>
+            <p class="bd-text" data-i18n="erlebnis.bd_auto_p">Tre vernici, un solo file: cambia il materiale, non l’immagine. E con un tocco l’auto si scompone nei suoi pezzi — per chi vuole mostrare la tecnica, non solo la carrozzeria.</p>
+            <div class="gruppe">
+              <span class="gruppe__name" id="bd-l-lack" data-i18n="erlebnis.bd_lack">Vernice</span>
+              <div class="chips chips--umbruch" id="bd-lack" role="group" aria-labelledby="bd-l-lack">
+                <button type="button" data-variante="karmin" data-nr="0" aria-pressed="true"><i class="farbpunkt" style="--f:#b3121c" aria-hidden="true"></i><span data-i18n="erlebnis.bd_lack_karmin">Rosso carminio</span></button>
+                <button type="button" data-variante="perl" data-nr="1" aria-pressed="false"><i class="farbpunkt" style="--f:#e6e8ec" aria-hidden="true"></i><span data-i18n="erlebnis.bd_lack_perl">Bianco perla</span></button>
+                <button type="button" data-variante="graphit" data-nr="2" aria-pressed="false"><i class="farbpunkt" style="--f:#55595f" aria-hidden="true"></i><span data-i18n="erlebnis.bd_lack_graphit">Grafite</span></button>
+              </div>
+            </div>
+            <div class="gruppe">
+              <span class="gruppe__name" id="bd-l-ansicht" data-i18n="erlebnis.bd_ansicht">Vista</span>
+              <div class="chips chips--umbruch" id="bd-ansicht" role="group" aria-labelledby="bd-l-ansicht">
+                <button type="button" data-zerlegt="0" aria-pressed="true" data-i18n="erlebnis.bd_ganz">Intera</button>
+                <button type="button" data-zerlegt="1" aria-pressed="false" data-i18n="erlebnis.bd_zerlegt">Esplosa</button>
+              </div>
+            </div>
+            <p class="bd-hinweis" id="bd-auto-hinweis" hidden></p>
+            <dl class="fakten bd-fakten">
+              <div><dt>3</dt><dd data-i18n="erlebnis.bd_auto_f1">vernici in un solo file</dd></div>
+              <div><dt data-i18n="erlebnis.bd_auto_z2">3,4 MB</dt><dd data-i18n="erlebnis.bd_auto_f2">caricati solo al primo tocco</dd></div>
+              <div><dt data-i18n="erlebnis.bd_auto_z3">213.347</dt><dd data-i18n="erlebnis.bd_auto_f3">triangoli in tempo reale</dd></div>
+            </dl>
+            <a class="knopf knopf--voll" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_auto_cta">Una cosa così per la tua concessionaria</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="bd-panel" id="bd-shop" role="tabpanel" aria-labelledby="bd-tab-shop" hidden>
+        <div class="bd-raster">
+          <div class="bd-links">
+            <figure class="buehne buehne--produkt" id="bd-buehne-schuh" data-modell="schuh" data-variante="blau" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=8ccc899a">
+              <picture>
+                <source media="(max-width: 700px)" srcset="assets/img/erlebnis/branchen/schuh-blau-800.webp?v=4f649a50">
+                <img class="ruhe ruhe-a ist-an ist-oben" src="assets/img/erlebnis/branchen/schuh-blau.webp?v=a48abedc" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bd_schuh_alt" alt="Scarpa da corsa azzurra su fondo scuro, calcolata con Blender Cycles">
+              </picture>
+              <img class="ruhe ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
+              <div class="echtzeit" aria-hidden="true"></div>
+              <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">Calcolato · Blender Cycles · 384 campioni</span></figcaption>
+              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span></button>
+            </figure>
+            <p class="bd-griff" data-i18n="erlebnis.bd_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire</p>
+          </div>
+          <div class="bd-rechts">
+            <p class="bd-muster" data-i18n="erlebnis.bd_muster">Prodotto di esempio · non in vendita</p>
+            <h3 class="bd-produkt"><span data-i18n="erlebnis.bd_schuh_h">Scarpa da corsa Aria</span> <span class="bd-preis" data-i18n="erlebnis.bd_preis">129,00 €</span></h3>
+            <p class="bd-text" data-i18n="erlebnis.bd_schuh_p">Cambiare colore senza ricaricare, girare, ingrandire, scegliere la taglia, mettere nel carrello — tutto sulla stessa pagina. Così si compra senza cercare.</p>
+            <div class="gruppe">
+              <span class="gruppe__name" id="bd-l-farbe" data-i18n="erlebnis.bd_farbe">Colore</span>
+              <div class="chips chips--umbruch" id="bd-farbe" role="group" aria-labelledby="bd-l-farbe">
+                <button type="button" data-variante="blau" data-nr="0" aria-pressed="true"><i class="farbpunkt" style="--f:#4aa7df" aria-hidden="true"></i><span data-i18n="erlebnis.bd_farbe_blau">Azzurro</span></button>
+                <button type="button" data-variante="rose" data-nr="1" aria-pressed="false"><i class="farbpunkt" style="--f:#e6c4c8" aria-hidden="true"></i><span data-i18n="erlebnis.bd_farbe_rose">Rosa</span></button>
+                <button type="button" data-variante="anthrazit" data-nr="2" aria-pressed="false"><i class="farbpunkt" style="--f:#4a4d52" aria-hidden="true"></i><span data-i18n="erlebnis.bd_farbe_anthrazit">Antracite</span></button>
+              </div>
+            </div>
+            <div class="gruppe">
+              <span class="gruppe__name" id="bd-l-groesse" data-i18n="erlebnis.bd_groesse">Taglia (EU)</span>
+              <div class="chips chips--umbruch bd-groessen" id="bd-groesse" role="group" aria-labelledby="bd-l-groesse">
+                <button type="button" data-groesse="38" aria-pressed="false">38</button><button type="button" data-groesse="39" aria-pressed="false">39</button><button type="button" data-groesse="40" aria-pressed="false">40</button><button type="button" data-groesse="41" aria-pressed="false">41</button><button type="button" data-groesse="42" aria-pressed="false">42</button><button type="button" data-groesse="43" aria-pressed="false">43</button><button type="button" data-groesse="44" aria-pressed="false">44</button><button type="button" data-groesse="45" aria-pressed="false">45</button>
+              </div>
+            </div>
+            <div class="bd-kauf">
+              <button type="button" class="knopf knopf--voll" id="bd-in-korb" data-name="Aria" data-i18n="erlebnis.bd_in_korb" data-i18n-attr="data-preis:erlebnis.bd_preis" data-preis="129,00 €">Aggiungi al carrello</button>
+              <p class="bd-meldung" id="bd-korb-meldung" role="status" aria-live="polite"></p>
+            </div>
+            <div class="bd-korb" id="bd-korb" aria-live="polite">
+              <p class="bd-korb__kopf"><span id="bd-korb-zahl">Carrello (0)</span> <span class="bd-korb__demo" data-i18n="erlebnis.bd_demo">Demo: non viene ordinato nulla.</span></p>
+              <ul class="bd-korb__liste" id="bd-korb-liste"><li class="leer">Il carrello è vuoto.</li></ul>
+            </div>
+            <dl class="fakten bd-fakten">
+              <div><dt>3</dt><dd data-i18n="erlebnis.bd_schuh_f1">colori in un file da 0,9 MB</dd></div>
+              <div><dt>0</dt><dd data-i18n="erlebnis.bd_schuh_f2">ricaricamenti al cambio colore</dd></div>
+              <div><dt>360°</dt><dd data-i18n="erlebnis.bd_schuh_f3">da girare e ingrandire</dd></div>
+            </dl>
+            <a class="knopf knopf--leer" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_shop_cta">Una cosa così per il tuo negozio</a>
+          </div>
+        </div>
+      </div>
+      <p class="bd-nachweis" data-i18n="erlebnis.bd_nachweis">Modelli: auto da «Car Concept» di Eric Chadwick / Darmstadt Graphics Group, scarpa di Shopify — entrambi CC BY 4.0, loghi rimossi. Luce da studio: Poly Haven (CC0). Calcolati con Blender Cycles.</p>
     </section>
 
     <section class="abschnitt tisch" id="tisch" aria-labelledby="tisch-h">
@@ -1617,7 +1731,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=58d076fa" defer></script>
+<script src="assets/js/i18n-it.js?v=b0744741" defer></script>
 <script src="assets/js/app.js?v=3537bcfa" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1641,7 +1755,8 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=970d6d92"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=66a01226"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=df8702ee"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

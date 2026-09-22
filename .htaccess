@@ -152,7 +152,7 @@ RewriteRule ^_[^/]*$ - [R=404,L]
     Header set Cache-Control "no-cache, must-revalidate"
   </FilesMatch>
 
-  <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb)$">
+  <FilesMatch "\.(webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb|hdr)$">
     Header set Cache-Control "public, max-age=2592000"
     Header set Cache-Control "public, max-age=31536000, immutable" env=FESTGENAGELT
   </FilesMatch>
@@ -186,7 +186,7 @@ RewriteRule ^_[^/]*$ - [R=404,L]
 # --------------------------------------------------------------------------
 <IfModule mod_rewrite.c>
   RewriteCond %{QUERY_STRING} (^|&)v=[A-Za-z0-9]+($|&)
-  RewriteRule \.(css|js|webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb)$ - [E=FESTGENAGELT:1]
+  RewriteRule \.(css|js|webp|avif|jpg|jpeg|png|svg|woff2|woff|mp4|webm|glb|hdr)$ - [E=FESTGENAGELT:1]
 </IfModule>
 # WARUM DIE ZEILE IM SELBEN FILESMATCH STEHT UND NICHT DANEBEN
 # Erster Versuch war ein eigener Header-Block hinter den anderen. Gemessen:
@@ -214,7 +214,10 @@ RewriteRule ^_[^/]*$ - [R=404,L]
 # --------------------------------------------------------------------------
 <IfModule mod_mime.c>
   AddType model/gltf-binary .glb
+  # Studio-Umgebungen der Branchen-Demos (assets/3d/branchen, 23.09.2026):
+  # RGBE, fast ueberall Null -- gezippt von rund 105 auf 60 KB.
+  AddType image/vnd.radiance .hdr
 </IfModule>
 <IfModule mod_deflate.c>
-  AddOutputFilterByType DEFLATE model/gltf-binary application/json text/html text/css application/javascript text/javascript image/svg+xml
+  AddOutputFilterByType DEFLATE model/gltf-binary image/vnd.radiance application/json text/html text/css application/javascript text/javascript image/svg+xml
 </IfModule>
