@@ -170,6 +170,28 @@ final class Kundenzugang
         elseif ($aid !== null)  { $v = self::still(fn() => Vorgang::laden('a' . (int) $aid), null); }
 
         $stufe = $v ? (self::STUFEN[$v['stufe']] ?? 'anfrage') : 'anfrage';
+
+        /* DAS ANGEBOT SELBST GEHOERT AUF DIE KUNDENSEITE (22.09.2026)
+           ------------------------------------------------------------------
+           Uwes Stufenleiste kennt waehrend der ganzen Angebotsphase nur
+           "Gespraech" -- fuer ihn richtig, denn er redet ja noch. Uebersetzt
+           stand beim Kunden deshalb "Deine Anfrage ist da. Ich melde mich mit
+           einem Vorschlag", obwohl der Vorschlag laengst bei ihm lag. Und ein
+           Knopf dorthin gab es nicht: Der einzige dieser Stufe war der
+           Zahlknopf, und den gibt es erst nach der Annahme. Wer die Mail
+           nicht mehr fand, kam nicht weiter.
+
+           Also entscheidet hier die Tatsache, nicht die Uebersetzung: Liegt
+           ein gesendetes Angebot beim Kunden, steht seine Seite auf
+           "Angebot" -- mit dem Schluessel, der ihn dorthin bringt. */
+        $angebot = $kid > 0 ? self::still(fn() => Db::one(
+            "SELECT id, nummer, token, status, summe_cents, monatlich_cents, currency, gueltig_bis
+               FROM angebote
+              WHERE customer_id = ? AND status = 'gesendet'
+                AND (gueltig_bis IS NULL OR gueltig_bis >= CURDATE())
+              ORDER BY id DESC LIMIT 1", [$kid]), null) : null;
+        if ($angebot !== null && $stufe === 'anfrage') { $stufe = 'angebot'; }
+
         $nr    = array_search($stufe, self::REIHE, true);
 
         // Die Adresse der Seite: solange sie nicht online ist, der Entwurf.
@@ -219,7 +241,8 @@ final class Kundenzugang
         if ($wer === 'kunde') {
             // ... aber nur, wenn es den Knopf wirklich gibt.
             if ($stufe === 'angaben' && !self::hatFragebogen($v)) { $wer = 'wir'; }
-            if (($stufe === 'angebot' || $stufe === 'freigabe') && !self::hatZahllink($v)) { $wer = 'wir'; }
+            if ($stufe === 'angebot' && $angebot === null && !self::hatZahllink($v)) { $wer = 'wir'; }
+            if ($stufe === 'freigabe' && !self::hatZahllink($v)) { $wer = 'wir'; }
         }
         if ($v && $v['dran'] === Vorgang::NIEMAND) { $wer = 'niemand'; }
 
@@ -229,6 +252,8 @@ final class Kundenzugang
             'stufe'    => $stufe,
             'stufe_nr' => $nr === false ? 0 : (int) $nr,
             'dran'     => $wer,
+            // Das offene Angebot, damit die Kundenseite darauf verlinken kann.
+            'angebot'  => $angebot !== null ? (array) $angebot : null,
             'vorschau'      => $vorschau,
             'vorschau_frei' => $vorschauFrei,
             'abnahme_frei'  => $abnahmeFrei,

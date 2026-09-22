@@ -355,6 +355,10 @@ foreach ($dateien as $d) { if (($d['uploaded_by'] ?? '') === 'kunde') { $vomKund
    weitergeht. Vorher waere die Aufforderung verfrueht, nachher ueberholt. */
 $materialDran = in_array($stufe ?? '', ['angaben', 'arbeit'], true);
 
+/* Das gesendete Angebot, das noch offen ist -- der Weg zurueck, wenn die
+   E-Mail nicht mehr auffindbar ist (22.09.2026). */
+$angebotOffen = $seite['angebot'] ?? null;
+
 /** Die offene Zahlung, auf die der Kunde gerade schaut. */
 $offen = null;
 foreach ((array) ($v['zahlungen'] ?? []) as $z) {
@@ -488,10 +492,26 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <div class="wer"><?= $h($seite['dran'] === 'kunde' ? $T('duBistDran')
         : ($seite['dran'] === 'niemand' ? $T('nichtsOffen') : $T('wirSindDran'))) ?></div>
     <h2><?= $h($TS($stufe)) ?></h2>
-    <p><?= $h($TS($stufe, 'text')) ?></p>
+    <p><?= $h($stufe === 'angebot' && $angebotOffen && !$offen
+        ? Texte::h(Texte::SEITE['angebotText'] ?? [], $sprache)
+        : $TS($stufe, 'text')) ?></p>
 
     <div class="tun">
-      <?php if ($stufe === 'angebot' && $offen): ?>
+      <?php if ($stufe === 'angebot' && $angebotOffen && !$offen): ?>
+        <?php /* Der Knopf zum Angebot. Er steht vor dem Zahlknopf, weil es
+                 den erst nach der Annahme gibt -- und weil niemand zahlen
+                 soll, ohne gelesen zu haben, wofuer. */ ?>
+        <a class="knopf haupt" href="/angebot.php?t=<?= $h(rawurlencode((string) $angebotOffen['token'])) ?>">
+          <?= $h(Texte::h(Texte::SEITE['angebotAnsehen'] ?? [], $sprache, 'Angebot ansehen')) ?>
+          <?php if ((int) $angebotOffen['summe_cents'] > 0): ?>
+            · <?= Fmt::geld((int) $angebotOffen['summe_cents'], (string) $angebotOffen['currency']) ?>
+          <?php endif; ?></a>
+        <?php if (!empty($angebotOffen['gueltig_bis'])): ?>
+          <span class="mini" style="flex-basis:100%"><?= $h(Texte::h(Texte::SEITE['angebotGilt'] ?? [], $sprache, 'Gültig bis')) ?>
+            <?= $h(Fmt::datum((string) $angebotOffen['gueltig_bis'])) ?></span>
+        <?php endif; ?>
+
+      <?php elseif ($stufe === 'angebot' && $offen): ?>
         <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
           <?= $h((string) ($offen['bezeichnung'] ?: 'Zahlung')) ?> ·
           <?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></a>

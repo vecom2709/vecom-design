@@ -581,6 +581,18 @@ final class Texte
            Genau in dem Moment, in dem jemand vor 48 Feldern steht und sie auf
            morgen verschieben will, ist der Satz „das geht auch am Telefon"
            die einzige Werbung, die etwas nuetzt. */
+        /* Das Angebot auf der Kundenseite (22.09.2026). Bis dahin fuehrte der
+           einzige Weg dorthin ueber die E-Mail -- wer sie nicht mehr fand,
+           stand auf seiner Seite vor einem Satz ohne Knopf. */
+        'angebotAnsehen' => ['it' => 'Guarda il preventivo',
+                             'de' => 'Angebot ansehen',
+                             'en' => 'View your quote'],
+        'angebotText' => [
+            'it' => 'Leggilo con calma. Se va bene, lo accetti lì; se qualcosa non torna, scrivimelo.',
+            'de' => 'Sieh es dir in Ruhe an. Passt es, nimmst du es dort an; passt etwas nicht, schreib mir.',
+            'en' => 'Take your time. If it works, you accept it there; if something doesn’t fit, tell me.',
+        ],
+        'angebotGilt' => ['it' => 'Valido fino al', 'de' => 'Gültig bis', 'en' => 'Valid until'],
         'fragebogenTelefon' => [
             'it' => 'Oppure senza tastiera: clicca la finestra vocale qui in basso a destra — Manuela, la nostra assistente, compila il questionario insieme a te. Lei chiede, tu racconti; ogni risposta viene salvata subito.',
             'de' => 'Oder ganz ohne Tippen: Klick auf das Sprachfenster unten rechts — Manuela, unsere Assistentin, füllt den Fragebogen gemeinsam mit dir aus. Sie fragt, du erzählst; jede Antwort wird sofort gespeichert.',
@@ -964,7 +976,11 @@ final class Texte
                        'de' => 'Ich sehe sie mir an und melde mich mit einem Vorschlag.',
                        'en' => 'I’m looking at it and will come back with a proposal.']],
         'angebot'  => ['wer' => 'kunde',
-            'kurz' => ['it' => 'Acconto', 'de' => 'Anzahlung', 'en' => 'Deposit'],
+            /* Die Stufe traegt zwei Schritte: das Angebot lesen und annehmen,
+               danach die Anzahlung. "Anzahlung" als Aufschrift widersprach
+               deshalb der Ueberschrift darunter, solange das Angebot noch
+               offen war (22.09.2026). */
+            'kurz' => ['it' => 'Preventivo', 'de' => 'Angebot', 'en' => 'Quote'],
             'it' => 'Il tuo preventivo', 'de' => 'Dein Angebot steht', 'en' => 'Your quote is ready',
             'text' => ['it' => 'Con l’acconto iniziamo. Il pagamento avviene su una pagina di Stripe.',
                        'de' => 'Mit der Anzahlung fangen wir an. Bezahlt wird auf einer Seite von Stripe.',

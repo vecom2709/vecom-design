@@ -6520,10 +6520,32 @@ pruefe('jetzt ist das Angebot dran', $fvV['stufe'] === 'gespraech'
     && ($fvV['schritt']['knopf'] ?? '') === 'Angebot senden', ($fvV['schritt']['knopf'] ?? '-'));
 pruefe('das Angebot geht jetzt raus', Angebot::senden($fvAng) === true);
 
-/* ---------- Zusage, Bestellung, Zahlungslink ----------------------------- */
+/* ---------- Das Angebot steht auch auf der Kundenseite ------------------- */
+/* Es ging nur per Mail raus. Auf seiner Seite stand "Dein Angebot steht" und
+   darunter nichts: Der einzige Knopf dieser Stufe war der Zahlknopf, und den
+   gibt es erst nach der Annahme. Wer die Mail nicht mehr fand, kam nicht
+   weiter (22.09.2026). */
 $fvToken = (string) Db::wert('SELECT token FROM angebote WHERE id = ?', [$fvAng], '');
+$fvSeite = Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$fvK]));
+pruefe('die Kundenseite steht auf der Stufe "Angebot"', ($fvSeite['stufe'] ?? '') === 'angebot',
+    (string) ($fvSeite['stufe'] ?? '-'));
+pruefe('und der Kunde ist dran, nicht wir', ($fvSeite['dran'] ?? '') === 'kunde',
+    (string) ($fvSeite['dran'] ?? '-'));
+pruefe('das Angebot liegt mit seinem Schluessel auf der Seite',
+    is_array($fvSeite['angebot'] ?? null)
+    && (string) $fvSeite['angebot']['token'] === $fvToken
+    && (int) $fvSeite['angebot']['id'] === $fvAng);
+$fvKundeSeite = (string) file_get_contents(dirname(__DIR__, 2) . '/kunde.php');
+pruefe('kunde.php zeigt auf dieser Stufe den Knopf zum Angebot',
+    str_contains($fvKundeSeite, "if (\$stufe === 'angebot' && \$angebotOffen && !\$offen): ?>")
+    && str_contains($fvKundeSeite, '/angebot.php?t=<?= $h(rawurlencode((string) $angebotOffen[\'token\']))'));
+
+/* ---------- Zusage, Bestellung, Zahlungslink ----------------------------- */
 $fvBest = (int) Angebot::annehmen($fvToken, ['text' => 'AGB und Widerruf gelesen', 'sprache' => 'de']);
 pruefe('der Kunde sagt zu, und es entsteht eine Bestellung', $fvBest > 0);
+$fvSeite2 = Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$fvK]));
+pruefe('nach der Zusage steht das Angebot nicht mehr als offen auf der Seite',
+    ($fvSeite2['angebot'] ?? null) === null);
 pruefe('die Bestellung braucht den Fragebogen vor dem Preis', Onboarding::brauchtVorPreis($fvBest) === true);
 $fvV = Vorgang::laden('b' . $fvBest);
 pruefe('mit ausgefuelltem Fragebogen geht es direkt zum Zahlungslink',
