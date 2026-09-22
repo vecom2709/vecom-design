@@ -154,7 +154,7 @@ const SPIEGEL = {
 
 export async function erstellen({
   behaelter, glb, kameraUrl, bodenUrl, einstellungen = { pixel: 1.5, schatten: 0 },
-  bezeichnung, beiBewegung, beiRuhe, beiBild, variante = 0, belichtung,
+  bezeichnung, beiBewegung, beiRuhe, beiBild, beiAnker, variante = 0, belichtung,
   look,
 }) {
   const K = await fetch(kameraUrl).then((a) => a.json());
@@ -246,26 +246,107 @@ export async function erstellen({
     einmal();
   }
 
-  /* ------------------------------------------------------------ Zerlegen */
+  /* ------------------------------------------------------------ Zerlegen
+     Wie eine technische Explosionszeichnung, nicht wie eine Explosion: Jede
+     Baugruppe fährt auf ihrer eigenen, konstruktiv sinnvollen Achse aus --
+     Türen zur Seite, Haube nach vorn oben, Heck nach hinten oben, das Dach
+     senkrecht hoch, Räder auf der Achse nach außen, dahinter Bremsscheibe
+     und Sattel gestaffelt. Und nacheinander: erst die Hülle, dann Glas und
+     Dach, dann Räder und Bremsen, zuletzt der Innenraum. So liest man, wie
+     das Auto gebaut ist.
+
+     Die erste Fassung schob jedes Teil strahlenförmig von der Modellmitte
+     weg, alle gleichzeitig -- das sah aus wie ein Unfall, nicht wie ein
+     Aufbau. Die Regeln stehen jetzt als Daten in kamera.json ("zerlegen"),
+     damit ein anderes Modell eigene bekommt, ohne dass hier Code wechselt.
+
+     Achsen in Weltkoordinaten: seite = nach außen (Vorzeichen der Seite, auf
+     der das Teil sitzt), hoch = +Y, vor = +Z (Fahrtrichtung). */
+  const Z_REGELN = (K.zerlegen && K.zerlegen.regeln) || [];
+  const Z_DAUER = (K.zerlegen && K.zerlegen.dauer) || 2.4;
+  const Z_BREITE = (K.zerlegen && K.zerlegen.breite) || 0.34;
   const gesamt = new THREE.Box3().setFromObject(modell);
   const mitte = gesamt.getCenter(new THREE.Vector3());
   const teile = [];
-  const k = new THREE.Box3(); const c = new THREE.Vector3();
-  modell.traverse((o) => {
-    if (!o.isMesh) return;
-    k.setFromObject(o); k.getCenter(c);
-    const weg = c.clone().sub(mitte);
-    // Etwas mehr nach oben als zur Seite: Ein zerlegtes Auto liest sich,
-    // wenn das Dach abhebt und die Räder nach außen gehen -- nicht, wenn
-    // alles flach auf dem Boden auseinanderrutscht.
-    weg.y = Math.max(0, weg.y) * 1.8 + 0.12;
-    teile.push({ o, ruhe: o.position.clone(), weg: o.parent.worldToLocal(c.clone().add(weg)).sub(o.parent.worldToLocal(c.clone())) });
-  });
-  let zerlegt = 0; let zerlegtSoll = 0;
-  function zerlegenAnwenden() {
-    const e = zerlegt * zerlegt * (3 - 2 * zerlegt);   // weich an beiden Enden
-    for (const t of teile) t.o.position.copy(t.ruhe).addScaledVector(t.weg, e * 0.6);
+  const anker = new Map();           // Beschriftung -> Teil
+  {
+    const regeln = Z_REGELN.map((r) => ({ ...r, re: new RegExp(r.muster), eltern: r.eltern ? new RegExp(r.eltern) : null }));
+    const bewegt = new Set();
+    const k = new THREE.Box3(); const c = new THREE.Vector3();
+    modell.updateMatrixWorld(true);
+    modell.traverse((o) => {
+      if (o === modell) return;
+      // Hängt schon ein Vorfahr an einer Regel, fährt dieses Teil mit ihm.
+      for (let v = o.parent; v; v = v.parent) if (bewegt.has(v)) return;
+      const name = o.name || '';
+      const eltern = (o.parent && o.parent.name) || '';
+      const r = regeln.find((x) => x.re.test(name) && (!x.eltern || x.eltern.test(eltern)));
+      if (!r) return;
+      bewegt.add(o);
+      k.setFromObject(o); k.getCenter(c);
+      const seite = Math.sign(c.x - mitte.x) || 1;
+      const weltWeg = new THREE.Vector3((r.seite || 0) * seite, r.hoch || 0, r.vor || 0);
+      const lokal = o.parent.worldToLocal(c.clone().add(weltWeg)).sub(o.parent.worldToLocal(c.clone()));
+      const t = { o, ruhe: o.position.clone(), weg: lokal, start: r.start || 0, beschriftung: r.beschriftung || null, mitteLokal: o.worldToLocal(c.clone()) };
+      teile.push(t);
+      o.traverse((m) => { if (m.isMesh) m.castShadow = true; });
+      if (t.beschriftung && !anker.has(t.beschriftung)) anker.set(t.beschriftung, [t]);
+      else if (t.beschriftung) anker.get(t.beschriftung).push(t);
+    });
   }
+  let zerlegt = 0; let zerlegtSoll = 0; let zerlegtSeit = 0;
+  const weich = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+  function anteil(t, p) { return weich(Math.min(1, Math.max(0, (p - t.start) / Z_BREITE))); }
+  function zerlegenAnwenden() {
+    for (const t of teile) t.o.position.copy(t.ruhe).addScaledVector(t.weg, anteil(t, zerlegt * (1 + Z_BREITE)));
+  }
+
+  /* Wie weit muss die Kamera zurück, damit das Zerlegte ganz ins Bild passt?
+     Gerechnet an der Hülle im voll zerlegten Zustand, nicht geschätzt: Die
+     erste Fassung ging pauschal auf das 1,5-Fache -- zu wenig, als die Türen
+     1,15 m zur Seite fuhren. */
+  function zerlegtHuelle() {
+    const vorher = zerlegt; zerlegt = 1; zerlegenAnwenden(); modell.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(modell);
+    zerlegt = vorher; zerlegenAnwenden(); modell.updateMatrixWorld(true);
+    return b;
+  }
+
+  /* Kleinster Abstand, bei dem alle acht Ecken der Hülle im Bild liegen --
+     mit dem Bildwinkel und Beschnitt, der gerade gilt. Die zweite Fassung
+     passte eine Kugel um den Zielpunkt ein: sicher, aber das zerlegte Auto
+     stand danach als Spielzeug in der Bildmitte (Probe 2). */
+  function einpassen(b, winkel, neig) {
+    const ecken = [];
+    for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) ecken.push(new THREE.Vector3(x, y, z));
+    const merk = { ...ist }; const v = new THREE.Vector3();
+    const passt = (abst) => {
+      ist = { ...ist, winkel, neig, abst }; kameraSetzen(); kamera.updateMatrixWorld();
+      return ecken.every((e) => { v.copy(e).project(kamera); return Math.abs(v.x) < 0.9 && v.y < 0.78 && v.y > -0.9 && v.z < 1; });
+    };
+    let lo = heim.abst * 0.6, hi = heim.abst * 4;
+    for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (passt(m)) hi = m; else lo = m; }
+    ist = merk; kameraSetzen();
+    return hi;
+  }
+
+  /* Schatten nur für das, was sich bewegt. Unter dem ganzen Auto liegt der
+     gebackene Kontaktschatten aus Blender; ein zweiter Echtzeitschatten dort
+     hätte den Boden doppelt abgedunkelt. Ein Rad, das 85 cm neben dem Auto
+     schwebt, braucht aber seinen eigenen -- sonst schwebt es wirklich. Das
+     Licht hat die Stärke null: Es wirft nur Schatten, es hellt nichts auf. */
+  const schattenLicht = new THREE.DirectionalLight(0xffffff, 0);
+  schattenLicht.position.set(mitte.x + 0.8, mitte.y + 12, mitte.z + 1.2);
+  schattenLicht.target.position.copy(mitte);
+  Object.assign(schattenLicht.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 30 });
+  schattenLicht.shadow.bias = -0.0004; schattenLicht.shadow.normalBias = 0.02;
+  schattenLicht.shadow.radius = 6; schattenLicht.shadow.blurSamples = 16;
+  szene.add(schattenLicht, schattenLicht.target);
+  const schattenFlaeche = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), new THREE.ShadowMaterial({ opacity: 0, transparent: true, depthWrite: false }));
+  schattenFlaeche.rotation.x = -Math.PI / 2;
+  schattenFlaeche.receiveShadow = true;
+  schattenFlaeche.renderOrder = 1;
+  szene.add(schattenFlaeche);
 
   /* ---------------------------------------------------------------- Boden */
   const B = K.boden;
@@ -294,6 +375,7 @@ export async function erstellen({
   boden.position.set(B.mitte[0], B.mitte[1] - 0.0005, B.mitte[2]);
   boden.renderOrder = -1;
   szene.add(boden);
+  schattenFlaeche.position.set(B.mitte[0], B.mitte[1] + 0.001, B.mitte[2]);
 
   let spiegel = null;
   function spiegelBauen(an) {
@@ -414,8 +496,18 @@ export async function erstellen({
   });
 
   /* ------------------------------------------------------------- Stufen */
+  let schattenErlaubt = false;
   function stufeSetzen(e) {
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, e.pixel));
+    // Echtzeitschatten der zerlegten Teile: wie die Spiegelung erst ab HIGH.
+    schattenErlaubt = !!e.spiegel && teile.length > 0;
+    if (schattenErlaubt !== r.shadowMap.enabled) {
+      r.shadowMap.enabled = schattenErlaubt; r.shadowMap.type = THREE.PCFShadowMap;   // PCFSoft ist in r185 abgekuendigt
+      r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = true;
+      schattenLicht.castShadow = schattenErlaubt;
+      schattenLicht.shadow.mapSize.set(e.pixel >= 2 ? 2048 : 1024, e.pixel >= 2 ? 2048 : 1024);
+      schattenFlaeche.material.needsUpdate = true;
+    }
     // Die Spiegelung rendert das Modell ein zweites Mal -- erst ab HIGH, und
     // nur, wo das Poster eine zeigt (Schuh: rauer Boden, keine Spiegelung).
     spiegelBauen(!!e.spiegel && (K.web_spiegel?.staerke ?? 0.3) > 0);
@@ -434,6 +526,35 @@ export async function erstellen({
   }
   const ro = new ResizeObserver(groesse); ro.observe(behaelter);
 
+  /* ---------------------------------------------------------- Beschriftung
+     Wo die beschrifteten Baugruppen gerade auf dem Bildschirm liegen. Die
+     Seite zeichnet daraus die Etiketten (branchen.js); hier wird nur
+     gerechnet. Von zwei gleichen Teilen (linke und rechte Tür, vier Räder)
+     zählt das, das der Kamera am nächsten ist -- das andere steht dahinter. */
+  const pw = new THREE.Vector3(); const pn = new THREE.Vector3();
+  let ankerLeer = true; const zerlegtHuelleJetzt = new THREE.Box3();
+  function ankerMelden() {
+    if (!beiAnker) return;
+    if (zerlegt < 0.02) { if (!ankerLeer) { beiAnker([]); ankerLeer = true; } return; }
+    ankerLeer = false;
+    const w = leinwand.clientWidth, h = leinwand.clientHeight; const liste = [];
+    for (const [schluessel, gruppe] of anker) {
+      let beste = null; let bestAbst = Infinity; let a = 0;
+      for (const t of gruppe) {
+        t.o.localToWorld(pw.copy(t.mitteLokal));
+        const d = pw.distanceTo(kamera.position);
+        if (d < bestAbst) { bestAbst = d; beste = pw.clone(); }
+        a = Math.max(a, anteil(t, zerlegt * (1 + Z_BREITE)));
+      }
+      pn.copy(beste).project(kamera);
+      const x = (pn.x * 0.5 + 0.5) * w, y = (-pn.y * 0.5 + 0.5) * h;
+      liste.push({ schluessel, x, y, sichtbar: pn.z < 1 && x > 8 && x < w - 8 && y > 8 && y < h - 8, anteil: a });
+    }
+    zerlegtHuelleJetzt.setFromObject(modell).getCenter(pw);
+    pn.copy(pw).project(kamera);
+    beiAnker(liste, { x: (pn.x * 0.5 + 0.5) * w, y: (-pn.y * 0.5 + 0.5) * h, w, h });
+  }
+
   /* ------------------------------------------------------------ Bildschleife */
   let laeuft = false; let aktiv = false; let letzt = 0; let bilder = 0; let seit = 0; let fps = 0;
   let zurueck = true;      // fährt nach dem Loslassen auf den Standpunkt
@@ -444,16 +565,27 @@ export async function erstellen({
     if (!aktiv || document.hidden) { laeuft = false; return; }
     const dt = letzt ? Math.min(0.25, (t - letzt) / 1000) : 1 / 60; letzt = t;
     if (zurueck && !ziehen && !zeiger.size && zerlegtSoll === 0 && performance.now() - letzteBewegung > 1400) soll = { ...heim };
+    /* Zerlegt dreht sich das Modell langsam, bis jemand selbst greift --
+       ein zerlegtes Auto liest man erst, wenn man um es herumgeht. Nach
+       25 s steht es wieder still, damit die Grafikkarte nicht endlos rechnet. */
+    if (zerlegtSoll === 1 && zerlegt === 1 && !ziehen && !zeiger.size && !BEWEGUNG_AUS
+        && performance.now() - letzteBewegung > 2500 && performance.now() - zerlegtSeit < 25000) {
+      soll.winkel += dt * 0.14;
+    }
     const f = BEWEGUNG_AUS ? 1 : 1 - Math.exp(-dt * (ziehen ? 9 : 2.6));
     let rest = annaehern(f);
     if (zerlegt !== zerlegtSoll) {
-      const schritt = BEWEGUNG_AUS ? 1 : dt / 1.6;
+      const schritt = BEWEGUNG_AUS ? 1 : dt / Z_DAUER;
       zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
       zerlegenAnwenden(); rest += Math.abs(zerlegtSoll - zerlegt) + 0.01;
       letzteBewegung = performance.now();
+      if (schattenErlaubt) r.shadowMap.needsUpdate = true;
     }
+    schattenFlaeche.material.opacity = schattenErlaubt ? 0.5 * Math.min(1, zerlegt * 1.6) : 0;
+    schattenFlaeche.visible = schattenFlaeche.material.opacity > 0.001;
     kameraSetzen();
     r.render(szene, kamera);
+    ankerMelden();
     bilder++;
     if (!seit) seit = t;
     if (t - seit >= 500) { fps = Math.round((bilder * 1000) / (t - seit)); bilder = 0; seit = t; }
@@ -482,7 +614,17 @@ export async function erstellen({
       /* Zerlegt braucht das Modell rund anderthalbmal so viel Platz. Mit der
          Kamera des Fotos flogen Dach und Hinterrad aus dem Bild (erste
          Probe) -- also zurück und etwas höher, damit man hineinsieht. */
-      if (an) soll = { ...soll, abst: heim.abst * 1.5, neig: Math.min(grenzen.neig[1], heim.neig + 0.14) };
+      if (an) {
+        zerlegtSeit = performance.now();
+        const b = zerlegtHuelle();
+        const neig = Math.min(grenzen.neig[1], heim.neig + 0.16);
+        // Für den ganzen Rundgang passend: Das zerlegte Auto dreht sich
+        // danach langsam, und von der Seite ist es breiter als von vorn.
+        let abst = 0;
+        for (let i = 0; i < 12; i++) abst = Math.max(abst, einpassen(b, soll.winkel + (i * Math.PI) / 6, neig));
+        grenzen.abst[1] = Math.max(grenzen.abst[1], abst * 1.25);
+        soll = { ...soll, abst, neig };
+      }
       starten();
     },
     get zerlegt() { return zerlegtSoll === 1; },
@@ -501,7 +643,8 @@ export async function erstellen({
     stufe: stufeSetzen,
     starten, anhalten,
     get fps() { return fps; },
-    info() { return { renderer: 'WebGL 2', dreiecke: Math.round(dreiecke), pixel: r.getPixelRatio() }; },
+    info() { return { renderer: 'WebGL 2', dreiecke: Math.round(dreiecke), pixel: r.getPixelRatio(), teile: teile.length, beschriftet: [...anker.keys()], winkel: +ist.winkel.toFixed(3), zerlegt, laeuft, fps }; },
+    _teile() { return teile.map((t) => (t.o.name || '(' + t.o.parent.name + ')') + ' @' + t.start); },
     /* Nur für die Prüfung: Belichtung, HDRI-Versatz und Lichtstärken am
        Poster abgleichen, ohne neu zu laden. */
     _abgleich(o) {

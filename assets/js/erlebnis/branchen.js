@@ -32,6 +32,7 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', sitze: 'Sitze' },
   },
   it: {
     foto: 'Calcolato · Blender Cycles · 384 campioni',
@@ -46,6 +47,7 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', sitze: 'Sedili' },
   },
   en: {
     foto: 'Rendered · Blender Cycles · 384 samples',
@@ -60,6 +62,7 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', sitze: 'Seats' },
   },
 };
 const TEXT = TEXTE[SPRACHE];
@@ -97,6 +100,67 @@ function buehneAnlegen(fig) {
   const knopf = $('.bewegen', fig); const knopfText = $('.bewegen__text', fig);
   const kennung = $('.kennung__text', fig);
   const halter = $('.echtzeit', fig);
+  /* Etiketten der Baugruppen im zerlegten Zustand -- wie in einer
+     technischen Zeichnung: Punkt am Teil, kurze Linie, Name. Sie liegen im
+     DOM über der Leinwand (lesbar, übersetzbar, für Vorleser zugänglich) und
+     folgen jedem Bild; die Lage rechnet produkt-echtzeit.js. */
+  const schicht = document.createElement('div');
+  schicht.className = 'bd-etiketten'; schicht.setAttribute('aria-hidden', 'true');
+  const SVG = 'http://www.w3.org/2000/svg';
+  const linien = document.createElementNS(SVG, 'svg'); linien.setAttribute('class', 'bd-linien');
+  schicht.appendChild(linien); fig.appendChild(schicht);
+  const etiketten = new Map();
+  /* Lage wie bei einer Explosionszeichnung: Das Etikett sitzt vom Teil aus
+     gesehen nach außen (weg von der Mitte des Modells), eine dünne Linie
+     führt zum Punkt am Teil. Überlappen sich zwei, schieben sie sich in ein
+     paar Runden auseinander. Die erste Fassung stapelte alle Namen senkrecht
+     über den Teilen -- bei acht Teilen ein Turm aus Schildern. */
+  function ankerZeigen(liste, mitte) {
+    const sichtbar = liste.filter((a) => a.sichtbar && a.anteil > 0.05 && TEXT.teile[a.schluessel]);
+    if (!mitte || !sichtbar.length) { for (const e of etiketten.values()) { e.el.hidden = true; e.linie.style.display = 'none'; e.punkt.style.display = 'none'; } return; }
+    const W = mitte.w, H = mitte.h;
+    linien.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    const kaesten = sichtbar.map((a) => {
+      let e = etiketten.get(a.schluessel);
+      if (!e) {
+        const el = document.createElement('span'); el.className = 'bd-etikett'; el.textContent = TEXT.teile[a.schluessel];
+        schicht.appendChild(el);
+        const linie = document.createElementNS(SVG, 'line'); const punkt = document.createElementNS(SVG, 'circle');
+        punkt.setAttribute('r', '4'); linien.append(linie, punkt);
+        e = { el, linie, punkt, b: 0, h: 0 }; etiketten.set(a.schluessel, e);
+      }
+      if (!e.b) { e.el.hidden = false; e.b = e.el.offsetWidth || 110; e.h = e.el.offsetHeight || 26; }
+      let dx = a.x - mitte.x, dy = a.y - mitte.y; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      const weit = 46 + 0.12 * Math.min(W, H);
+      return { a, e, dx, x: a.x + dx * weit - (dx < 0 ? e.b : 0), y: a.y + dy * weit * 0.8 - e.h / 2 };
+    });
+    for (let runde = 0; runde < 10; runde++) {
+      for (let i = 0; i < kaesten.length; i++) for (let j = i + 1; j < kaesten.length; j++) {
+        const p = kaesten[i], q = kaesten[j];
+        const ueberX = Math.min(p.x + p.e.b, q.x + q.e.b) - Math.max(p.x, q.x) + 8;
+        const ueberY = Math.min(p.y + p.e.h, q.y + q.e.h) - Math.max(p.y, q.y) + 6;
+        if (ueberX > 0 && ueberY > 0) { const s = (p.y < q.y ? -1 : 1) * ueberY / 2; p.y += s; q.y -= s; }
+      }
+      // Oben links steht die Kennung (auf dem Telefon oben), unten der Knopf:
+      // Etiketten bleiben aus diesen Streifen heraus.
+      const oben = W < 620 ? 50 : 8, unten = H - 62;
+      for (const k of kaesten) { k.x = Math.min(W - k.e.b - 8, Math.max(8, k.x)); k.y = Math.min(unten - k.e.h, Math.max(oben, k.y)); }
+    }
+    const aktiv = new Set();
+    for (const k of kaesten) {
+      aktiv.add(k.a.schluessel);
+      const deck = String(Math.min(1, (k.a.anteil - 0.05) * 1.6));
+      k.e.el.hidden = false; k.e.el.style.opacity = deck;
+      k.e.el.style.transform = `translate3d(${k.x.toFixed(1)}px, ${k.y.toFixed(1)}px, 0)`;
+      const zx = k.dx < 0 ? k.x + k.e.b : k.x, zy = k.y + k.e.h / 2;
+      Object.entries({ x1: k.a.x, y1: k.a.y, x2: zx, y2: zy }).forEach(([n, v]) => k.e.linie.setAttribute(n, v.toFixed(1)));
+      k.e.punkt.setAttribute('cx', k.a.x.toFixed(1)); k.e.punkt.setAttribute('cy', k.a.y.toFixed(1));
+      k.e.linie.style.display = k.e.punkt.style.display = '';
+      k.e.linie.style.opacity = k.e.punkt.style.opacity = deck;
+    }
+    for (const [key, e] of etiketten) if (!aktiv.has(key)) { e.el.hidden = true; e.linie.style.display = 'none'; e.punkt.style.display = 'none'; }
+  }
+
   const z = { variante: fig.dataset.variante, gezeigt: fig.dataset.variante, echtzeit: false, p: null, laedt: null, zerlegt: false, licht: false };
 
   function adresse(v) {
@@ -143,6 +207,7 @@ function buehneAnlegen(fig) {
           beiBewegung: () => an(),
           beiRuhe: () => aus(),
           beiBild: (dt, fps, schlaeft) => { if (z.echtzeit && !z.zerlegt) kennung.textContent = TEXT.echtzeit(schlaeft ? 0 : fps); },
+          beiAnker: ankerZeigen,
         });
         z.p = p; fig.classList.add('hat-echtzeit'); halter.removeAttribute('aria-hidden');
         return p;

@@ -307,6 +307,20 @@
 .erlebnis .bd-korb__demo{font-weight:400; font-size:.82rem; color:var(--c-faint)}
 .erlebnis .bd-korb__liste{list-style:none; margin:0; padding:0; display:grid; gap:.35rem; font-size:.92rem; color:var(--c-text)}
 .erlebnis .bd-korb__liste .leer{color:var(--c-faint)}
+/* Etiketten im zerlegten Zustand: Punkt am Teil, dünne Linie nach außen,
+   Name am Ende. Groß und kontrastreich genug, um sie beim Drehen zu lesen. */
+.erlebnis .bd-etiketten{position:absolute; inset:0; z-index:4; pointer-events:none; overflow:hidden}
+.erlebnis .bd-linien{position:absolute; inset:0; width:100%; height:100%}
+.erlebnis .bd-linien line{stroke:rgba(31,232,255,.75); stroke-width:1}
+.erlebnis .bd-linien circle{fill:var(--c-cyan); stroke:rgba(31,232,255,.3); stroke-width:4}
+.erlebnis .bd-etikett{
+  position:absolute; left:0; top:0; will-change:transform; white-space:nowrap;
+  padding:.32rem .65rem; border-radius:999px;
+  background:rgba(5,7,13,.86); border:1px solid rgba(31,232,255,.45);
+  font:600 .84rem/1.1 var(--f-text); color:var(--c-text); letter-spacing:.01em;
+}
+@media (max-width:620px){ .erlebnis .bd-etikett{font-size:.74rem; padding:.24rem .5rem} }
+
 .erlebnis .bd-nachweis{margin:clamp(1.4rem,3vh,2rem) 0 0; max-width:54rem; font-size:.8rem; line-height:1.55; color:var(--c-faint)}
 @media (prefers-reduced-motion:reduce){ .erlebnis .bd-korb.ist-neu{animation:none} }
 

@@ -89,5 +89,115 @@
   0.0008,
   0.0034,
   0.0094
- ]
+ ],
+ "zerlegen": {
+  "dauer": 3.0,
+  "breite": 0.34,
+  "hinweis": "Achsen in Weltkoordinaten: seite = nach aussen, hoch = +Y, vor = Fahrtrichtung. start = Anteil der Gesamtzeit, ab dem die Gruppe losfaehrt.",
+  "regeln": [
+   {
+    "muster": "^BodyDoor[LR]Color1$",
+    "seite": 1.15,
+    "hoch": 0.1,
+    "start": 0.0,
+    "beschriftung": "tueren"
+   },
+   {
+    "muster": "^BodyHood$",
+    "hoch": 0.8,
+    "vor": 0.6,
+    "start": 0.06,
+    "beschriftung": "haube"
+   },
+   {
+    "muster": "^BodyRearPanelsColor1$",
+    "hoch": 0.7,
+    "vor": -0.9,
+    "start": 0.12,
+    "beschriftung": "heck"
+   },
+   {
+    "muster": "^License[ _]Plate$",
+    "vor": 0.35,
+    "start": 0.1
+   },
+   {
+    "muster": "^BodyRoofPanel$",
+    "hoch": 1.25,
+    "start": 0.22,
+    "beschriftung": "dach"
+   },
+   {
+    "muster": "^BodyWindshield(Gasket|Wipers|WipersBase)?$",
+    "hoch": 0.95,
+    "vor": 0.35,
+    "start": 0.28
+   },
+   {
+    "muster": "^BodyPillars$",
+    "hoch": 0.62,
+    "start": 0.32
+   },
+   {
+    "muster": "Rim$",
+    "eltern": "^Wheel",
+    "seite": 0.9,
+    "start": 0.42,
+    "beschriftung": "raeder"
+   },
+   {
+    "muster": "^$",
+    "eltern": "^Wheel",
+    "seite": 0.9,
+    "start": 0.42
+   },
+   {
+    "muster": "BrakeDisc$",
+    "seite": 0.5,
+    "start": 0.5,
+    "beschriftung": "bremse"
+   },
+   {
+    "muster": "BrakePad$",
+    "seite": 0.32,
+    "hoch": 0.04,
+    "start": 0.54
+   },
+   {
+    "muster": "^Engine$",
+    "hoch": 0.5,
+    "start": 0.58,
+    "beschriftung": "antrieb"
+   },
+   {
+    "muster": "^InteriorSeats",
+    "hoch": 0.45,
+    "start": 0.64,
+    "beschriftung": "sitze"
+   },
+   {
+    "muster": "^InteriorSteeringCylinder$",
+    "hoch": 0.34,
+    "vor": -0.12,
+    "start": 0.68
+   },
+   {
+    "muster": "^InteriorSteering(Base|DashColumn|HandleL|HandleR)$",
+    "hoch": 0.3,
+    "vor": -0.1,
+    "start": 0.68
+   },
+   {
+    "muster": "^InteriorDash(Mid|Sides)$|^InteriorSteeringDash$",
+    "hoch": 0.24,
+    "vor": 0.1,
+    "start": 0.7
+   },
+   {
+    "muster": "^InteriorFloormats$",
+    "hoch": 0.12,
+    "start": 0.74
+   }
+  ]
+ }
 }
