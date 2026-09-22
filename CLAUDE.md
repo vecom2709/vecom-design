@@ -142,9 +142,19 @@ Vier Regeln, die aus Schaden entstanden sind:
 
 ### Dateien auf den Windows-Rechner bringen
 
-`git` liegt dort nicht im Suchpfad, sondern in Visual Studio:
-`C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe`.
-`where git` findet nichts — das heißt nicht, dass keins da ist.
+Seit dem 22.09.2026 liegt dort ein eigenes Git for Windows unter
+`C:\Program Files\Git\cmd\git.exe`, und es steht im Suchpfad — `git` genügt.
+Der frühere Umweg über das Git in Visual Studio
+(`…\Team Explorer\Git\cmd\git.exe`) gilt nicht mehr; dieser Pfad existiert
+nicht. Wer ihn noch fest verdrahtet hat, bekommt `CommandNotFoundException`
+und hält es für ein Rechteproblem.
+
+PowerShell-Befehle an den Windows-Rechner gehen als **Skriptdatei**, nie als
+`powershell -Command "…"`: Bei der Durchreichung wird `$g` und jede andere
+Variable vorher ersetzt, und der Befehl läuft ohne sie weiter, statt zu
+scheitern — der erste Fehler steht dann sechs Zeilen später und zeigt in die
+falsche Richtung. Also `.ps1` schreiben und mit
+`powershell -NoProfile -ExecutionPolicy Bypass -File …` starten.
 
 **Nach jeder Dateiübertragung die Prüfsumme vergleichen.** Am 13.09.2026
 gemessen: Beim Übertragen von Bildern hängt die Werkzeugkette jeder `.webp` einen
