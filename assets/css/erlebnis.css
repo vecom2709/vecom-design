@@ -144,7 +144,7 @@ h3{font-size:1.14rem; line-height:1.25; letter-spacing:-.01em}
 
 .kennung{
   position:absolute; left:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
-  display:inline-flex; align-items:center; gap:.55rem; max-width:calc(100% - 9rem);
+  display:inline-flex; align-items:center; gap:.55rem; max-width:calc(100% - 15rem);
   padding:.5rem .8rem; border-radius:999px;
   background:rgba(5,7,13,.74); backdrop-filter:blur(8px);
   font:500 .82rem/1.25 var(--f-text); color:var(--c-text);

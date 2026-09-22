@@ -551,11 +551,27 @@ stufenwahl.addEventListener('click', (e) => {
 
 async function geraetMessen() {
   if (!webglDa()) { zustand.stufe = 'SAFE'; stufeAnwenden(); return; }
+  /* Nicht in einem Hintergrund-Tab messen. Dort feuert requestAnimationFrame
+     nicht, die Messung des Kerns wartet darauf -- und wer die Seite mit der
+     mittleren Maustaste in einem zweiten Tab oeffnet, bekaeme fuer immer
+     "wird gemessen". Am 22.09.2026 auf dem Arbeitsrechner genau so gesehen. */
+  if (document.hidden) {
+    await new Promise((ok) => document.addEventListener('visibilitychange', function fn() {
+      if (document.hidden) return;
+      document.removeEventListener('visibilitychange', fn); ok();
+    }));
+  }
   try {
     const kern = await import('../../vendor/experience/index.js');
     const m = new kern.AdaptiveExperienceManager({ szene: kern.SZENE_PRODUKT });
     zustand.manager = m;
-    const e = await m.initialisieren();
+    // Zehn Sekunden sind grosszuegig; wer dann noch nicht geantwortet hat,
+    // bekommt die vorsichtige Vorgabe und darf spaeter nachliefern.
+    const e = await Promise.race([
+      m.initialisieren(),
+      new Promise((ok) => setTimeout(() => ok(null), 10000)),
+    ]);
+    if (!e) { zustand.stufe = zustand.stufe || 'HIGH'; stufeAnwenden(); return; }
     zustand.geraet = m.geraet;
     zustand.stufe = e.strategie === 'SAFE_MEDIA' ? 'SAFE' : e.stufe;
     m.abonnieren((z) => {
