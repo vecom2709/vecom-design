@@ -1642,18 +1642,26 @@ final class Texte
            diese Mail an den Kunden — mit dem Link, unter dem er das Angebot
            ansieht und annimmt. Vorher blieb der Link in der Verwaltung liegen
            und der Kunde bekam nichts. */
+        /* KEIN PREIS IN DER MAIL (22.09.2026)
+           Der Betrag stand in der Betreffzeile und im ersten Satz -- also im
+           Vorschautext jedes Postfachs, lesbar fuer jeden, der zufaellig auf
+           den Bildschirm sieht, und weitergeleitet mit jedem "Fwd:". Das
+           Angebot gehoert auf die Kundenseite: Dort steht es vollstaendig,
+           dort wird es angenommen oder abgelehnt, und dort ist es auch in
+           vier Wochen noch zu finden. Die Mail sagt nur noch, dass es da
+           ist. */
         'angebot' => [
-            'it' => ['Il tuo preventivo di Vecom Design — {betrag}',
-                "Ciao {name},\n\necco il tuo preventivo personale: {betrag}.\n\n"
-                . "Puoi vederlo e accettarlo qui, valido fino al {gueltig}:\n\n{link}\n\n"
+            'it' => ['Il tuo preventivo è pronto',
+                "Ciao {name},\n\nil tuo preventivo personale è pronto e ti aspetta sulla tua pagina:\n\n{link}\n\n"
+                . "Lì lo vedi per intero, voce per voce, e da lì puoi accettarlo o rifiutarlo.{gueltigsatz}\n\n"
                 . "Domande? Rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Dein Angebot von Vecom Design — {betrag}',
-                "Hallo {name},\n\nhier ist dein persönliches Angebot: {betrag}.\n\n"
-                . "Ansehen und annehmen kannst du es hier, gültig bis {gueltig}:\n\n{link}\n\n"
+            'de' => ['Dein Angebot liegt bereit',
+                "Hallo {name},\n\ndein persönliches Angebot ist fertig und liegt auf deiner Seite:\n\n{link}\n\n"
+                . "Dort siehst du es vollständig, Punkt für Punkt, und dort kannst du es annehmen oder ablehnen.{gueltigsatz}\n\n"
                 . "Fragen? Antworte einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
-            'en' => ['Your quote from Vecom Design — {betrag}',
-                "Hello {name},\n\nhere is your personal quote: {betrag}.\n\n"
-                . "You can view and accept it here, valid until {gueltig}:\n\n{link}\n\n"
+            'en' => ['Your quote is ready',
+                "Hello {name},\n\nyour personal quote is ready and waiting on your page:\n\n{link}\n\n"
+                . "There you can see it in full, item by item, and accept or decline it.{gueltigsatz}\n\n"
                 . "Questions? Just reply to this email.\n\nUwe Vetter · Vecom Design"],
         ],
     ];

@@ -55,7 +55,15 @@ final class Webhook
             }
         }
 
-        $alt = Db::one('SELECT id, status, received_at FROM webhook_events WHERE provider = ? AND event_id = ?',
+        /* Das Alter rechnet die Datenbank aus. Steht sie auf UTC und die
+           Anwendung auf Rom, waeren es sonst zwei Stunden Unterschied allein
+           in der Uhr -- ein Ereignis, das gerade erst angenommen wurde,
+           gaelte dann als seit Minuten haengend und wuerde ein zweites Mal
+           verarbeitet (gefunden am 22.09.2026, als dieselbe Rechnung an
+           anderer Stelle die Kettenpruefung riss). */
+        $alt = Db::one('SELECT id, status, received_at,
+                               TIMESTAMPDIFF(SECOND, received_at, NOW()) AS alter_sekunden
+                          FROM webhook_events WHERE provider = ? AND event_id = ?',
             [$anbieter, $ereignisId]);
         if (!$alt) {
             return ['weiter' => false, 'id' => null, 'code' => 500, 'text' => 'fehler'];
@@ -65,7 +73,7 @@ final class Webhook
             return ['weiter' => false, 'id' => (int) $alt['id'], 'code' => 200, 'text' => 'bereits verarbeitet'];
         }
 
-        $alter = time() - (int) strtotime((string) $alt['received_at']);
+        $alter = (int) $alt['alter_sekunden'];
         if ($status === 'empfangen' && $alter < self::LAEUFT_SEKUNDEN) {
             return ['weiter' => false, 'id' => (int) $alt['id'], 'code' => 409, 'text' => 'in arbeit'];
         }

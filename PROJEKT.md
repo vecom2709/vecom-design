@@ -4774,3 +4774,7 @@ Nebenbei berichtigt: Auf dem Windows-Rechner liegt seit heute ein eigenes **Git 
 ### 22.09.2026 — Keine zweite Einladung zu einer Seite, die der Kunde schon hat
 Uwe: „Wenn der Fragebogen im Dashboard ausgefüllt werden soll, macht es keinen Sinn, dass die Führung ‚Fragebogen verschicken‘ anzeigt.“ Stimmt: Die Adresse der Kundenseite steht schon in der Eingangsbestätigung, die nach dem Konfigurator automatisch rausgeht — der Schritt hätte dieselbe Seite ein zweites Mal geschickt.
 Jetzt ist in dieser Phase der Kunde dran („Fragebogen ausfüllen“, ohne Knopf); „Fragebogen verschicken“ bleibt nur für Kunden ohne Link, nach fünf stillen Tagen heißt der Schritt „Nachfassen“. Punkteliste vor dem Preis ohne Anzahlung und ohne Pflichtmail. Kette 1422, Gegenprobe gefangen.
+
+### 22.09.2026 — Das Angebot nur noch als Hinweis in der Mail, und eine Frage an Stripe
+Die Angebots-Mail trug Betrag und Angebotslink — der Preis stand damit im Vorschautext jedes Postfachs. Jetzt sagt sie nur, dass das Angebot bereitliegt, und führt auf die Kundenseite; dort steht es vollständig und wird angenommen oder abgelehnt.
+Zweitens: Hängt eine Rate länger als eine Stunde auf „in Bearbeitung“, fragt die Führung „Bei Stripe nachfragen“ statt zu erinnern — ein Klick bucht, was Stripe als bezahlt kennt. Nebenbefund: Alter von Datenbankzeiten nie mit PHPs Uhr rechnen (UTC/Rom), sondern mit TIMESTAMPDIFF; im Webhook ebenso korrigiert. Kette 1434, vier Gegenproben gefangen.

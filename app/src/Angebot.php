@@ -571,22 +571,30 @@ final class Angebot
                 // fehlt sie, die des Kunden.
                 $sprache = strtolower((string) ($a['sprache'] ?: ($k['sprache'] ?: 'it')));
                 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
-                $waehrung = (string) ($a['currency'] ?? 'EUR');
-                $einmal   = (int) $a['summe_cents'];
-                $monat    = (int) $a['monatlich_cents'];
-                $betrag   = $einmal > 0 ? Fmt::geld($einmal, $waehrung) : '';
-                if ($monat > 0) {
-                    $proMonat = Fmt::geld($monat, $waehrung)
-                        . ($sprache === 'it' ? '/mese' : ($sprache === 'en' ? '/month' : '/Monat'));
-                    $betrag = $betrag !== '' ? $betrag . ' + ' . $proMonat : $proMonat;
-                }
-                if ($betrag === '') { $betrag = Fmt::geld(0, $waehrung); }
+                /* Der Betrag wird hier nicht mehr gebraucht: Er steht im
+                   Angebot auf der Kundenseite, nicht in der Mail. */
                 $gueltig = $a['gueltig_bis'] !== null ? Fmt::datum((string) $a['gueltig_bis']) : '';
+                /* Der Link fuehrt auf die Kundenseite, nicht direkt aufs
+                   Angebot: Dort steht alles beieinander -- Angebot, Nachrichten,
+                   Unterlagen -- und die Adresse ist dieselbe wie in jeder
+                   anderen Mail. Von dort ist das Angebot einen Knopf entfernt.
+                   Nur wenn sich kein Kundenschluessel erzeugen laesst, bleibt
+                   der direkte Weg. */
+                require_once __DIR__ . '/Kundenzugang.php';
+                try {
+                    $ziel = Kundenzugang::linkFuer((int) $a['customer_id']);
+                } catch (Throwable $e) {
+                    $ziel = self::link($a);
+                }
+                $gueltigsatz = $gueltig !== ''
+                    ? ['it' => ' Il preventivo è valido fino al ' . $gueltig . '.',
+                       'de' => ' Das Angebot gilt bis ' . $gueltig . '.',
+                       'en' => ' The quote is valid until ' . $gueltig . '.'][$sprache] ?? ''
+                    : '';
                 [$betreff, $text] = Texte::mail('angebot', $sprache, [
-                    'name'    => (string) $k['name'],
-                    'betrag'  => $betrag,
-                    'gueltig' => $gueltig,
-                    'link'    => self::link($a),
+                    'name'        => (string) $k['name'],
+                    'gueltigsatz' => $gueltigsatz,
+                    'link'        => $ziel,
                 ]);
                 Mail::senden('angebot', (string) $k['email'], $betreff, $text, [
                     'customer_id' => (int) $a['customer_id'],

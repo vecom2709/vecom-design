@@ -530,6 +530,33 @@ final class Vorgang
                     'Der Link ist da, aber der Kunde hat ihn noch nicht.',
                     'zahlungslink_senden', (int) $anzahlung['id'], [], $bZiel . '?tun=zahlungslink_senden');
             }
+            /* HAT ER VIELLEICHT SCHON BEZAHLT? (22.09.2026)
+               "In Bearbeitung" heisst: Der Kunde stand auf der Bezahlseite.
+               Ob er dort fertig geworden ist, weiss nur Stripe -- und das
+               meldet es per Webhook. Kommt der nicht an (falscher Modus,
+               anderes Signaturgeheimnis, Endpunkt nicht eingetragen), bleibt
+               die Rate hier stehen, waehrend das Geld drueben liegt. Der
+               naechtliche Abgleich faengt das auf; laeuft er nicht, faengt es
+               gar nichts. Deshalb steht die Frage jetzt als Schritt da,
+               sobald eine Rate laenger haengt als eine Stunde. */
+            /* Das Alter rechnet die Datenbank aus, nicht PHP: Steht die
+               Datenbank auf UTC und die Anwendung auf Rom, waeren sonst
+               zwei Stunden Unterschied allein in der Uhr -- die Frage staende
+               sofort da, obwohl der Kunde gerade erst geklickt hat. Genau das
+               hat die Kettenpruefung gefangen. */
+            $haengtMinuten = (int) self::wert(
+                'SELECT TIMESTAMPDIFF(MINUTE, updated_at, NOW()) FROM payments WHERE id = ?',
+                [(int) $anzahlung['id']]);
+            if ((string) $anzahlung['status'] === 'in_bearbeitung'
+                && trim((string) ($anzahlung['provider_sitzung'] ?? '')) !== ''
+                && $haengtMinuten >= 60) {
+                return self::setzen($v, 'angebot', self::DU, 'Bei Stripe nachfragen',
+                    'Der Kunde war auf der Bezahlseite, und seitdem hat sich hier nichts mehr '
+                    . 'getan. Ein Klick fragt Stripe, ob die Rate bezahlt ist — wenn ja, wird '
+                    . 'sie sofort gebucht.',
+                    'zahlung_nachfragen', (int) $anzahlung['id'], [], $bZiel . '?tun=zahlung_nachfragen');
+            }
+
             return self::setzen($v, 'angebot', self::KUNDE, 'Erinnern',
                 'Der Kunde hat den Zahlungslink und hat noch nicht bezahlt.',
                 'zahlungslink_senden', (int) $anzahlung['id'], [], $bZiel . '?tun=zahlungslink_senden');

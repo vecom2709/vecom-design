@@ -160,6 +160,23 @@
           <small style="color:var(--leise)" title="Der Link selbst haelt, solange die Rate offen ist — er holt beim Klick eine frische Bezahlseite.">Aufforderung läuft bis <?= Fmt::h(Fmt::zeit($z['link_bis'])) ?></small>
         </div>
 
+        <?php /* BEI STRIPE NACHFRAGEN (22.09.2026)
+                 "In Bearbeitung" heisst: Der Kunde stand auf der Bezahlseite.
+                 Ob er fertig geworden ist, weiss nur Stripe -- und meldet es
+                 per Webhook. Kommt der nicht an, bleibt die Rate hier offen,
+                 waehrend das Geld drueben liegt. Dieser Knopf fragt direkt
+                 nach, statt auf den naechtlichen Abgleich zu warten. */ ?>
+        <?php if (trim((string) ($z['provider_sitzung'] ?? '')) !== '' && (string) $z['status'] !== 'bezahlt'): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" id="abschnitt-zahlung_nachfragen"
+                data-tun="zahlung_nachfragen" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="zahlung_nachfragen">
+            <input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h('bestellungen/' . (int) $b['id']) ?>">
+            <button class="knopf">Bei Stripe nachfragen</button>
+            <small style="color:var(--leise)">Fragt, ob diese Rate bei Stripe bezahlt ist — und bucht sie dann sofort.</small>
+          </form>
+        <?php endif; ?>
+
         <?php /* Vorher lesen, dann senden. Der Knopf oben verschickt genau
                  diesen Text -- er entsteht aus derselben Funktion. */ ?>
         <details style="margin-top:10px;border:1px solid var(--linie);border-radius:10px;padding:10px 12px" open>

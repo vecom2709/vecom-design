@@ -1023,6 +1023,47 @@ if ($post) {
                     (string) ($_POST['anbieter'] ?? 'manuell'));
                 zurueck('bestellungen/' . (int) ($_POST['order_id'] ?? 0));
 
+            case 'zahlung_nachfragen':
+                /* BEI STRIPE NACHFRAGEN (22.09.2026)
+                   Uwe: "Wenn der Kunde bezahlt hat, wird das in der Verwaltung
+                   nicht angezeigt." Der Grund ist immer derselbe: Der Webhook
+                   kam nicht an -- falscher Modus, anderes Signaturgeheimnis,
+                   Endpunkt nicht eingetragen -- und der naechtliche Abgleich
+                   lief noch nicht oder gar nicht. Hier fragt ein Klick
+                   nach, statt darauf zu warten. Gebucht wird ueber denselben
+                   Weg wie beim Webhook, mit derselben Betragspruefung. */
+                require_once __DIR__ . '/src/Zahlung/Anbieter.php';
+                require_once __DIR__ . '/src/Zahlung/Stripe.php';
+                $nz = Db::one('SELECT * FROM payments WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
+                if (!$nz) { throw new RuntimeException('Zahlung nicht gefunden.'); }
+                if ((string) $nz['status'] === 'bezahlt') {
+                    $_SESSION['gut'] = 'Diese Rate steht schon als bezahlt.';
+                    zurueck('bestellungen/' . (int) ($nz['order_id'] ?? 0));
+                }
+                $nSitzung = trim((string) ($nz['provider_sitzung'] ?? ''));
+                if ($nSitzung === '') {
+                    throw new RuntimeException('Zu dieser Rate gibt es keine Bezahlseite bei Stripe — '
+                        . 'erzeuge zuerst einen Zahlungslink.');
+                }
+                $nStripe = new StripeAnbieter();
+                if (!$nStripe->bereit()) { throw new RuntimeException('Stripe ist nicht eingerichtet.'); }
+                $nS = $nStripe->sitzungLesen($nSitzung);
+                if (!empty($nS['bezahlt'])) {
+                    $nWie = Events::zahlungVonStripe((int) $nz['id'], (string) $nS['referenz'],
+                        (int) $nS['betrag'], (string) $nS['waehrung']);
+                    $_SESSION['gut'] = $nWie === 'gebucht'
+                        ? 'Stripe sagt: bezahlt. Die Rate ist jetzt gebucht.'
+                        : ($nWie === 'abweichung'
+                            ? 'Stripe hat gezahlt bekommen, aber einen anderen Betrag — steht als Meldung.'
+                            : 'Stripe sagt: bezahlt; gebucht war die Rate schon.');
+                } elseif (!empty($nS['abgelaufen'])) {
+                    $_SESSION['gut'] = 'Die Bezahlseite ist abgelaufen, bezahlt wurde nicht. '
+                        . 'Erzeuge einen neuen Zahlungslink.';
+                } else {
+                    $_SESSION['gut'] = 'Stripe sagt: noch nicht bezahlt.';
+                }
+                zurueck('bestellungen/' . (int) ($nz['order_id'] ?? 0));
+
             case 'zahlungslink':
                 require_once __DIR__ . '/src/Zahlung/Anbieter.php';
                 require_once __DIR__ . '/src/Zahlung/Stripe.php';

@@ -4187,6 +4187,35 @@ pruefe('es steht danach auf gesendet',
 pruefe('und der Kunde bekommt dabei eine Angebots-Mail (Postausgang)',
     (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'angebot' AND customer_id = ?", [$angKunde], 0)
         === $vorMails + 1);
+
+/* KEIN PREIS IN DER MAIL (22.09.2026)
+   Der Betrag stand in der Betreffzeile -- also im Vorschautext jedes
+   Postfachs. Das Angebot gehoert auf die Kundenseite; die Mail sagt nur,
+   dass es da ist, und fuehrt dorthin. */
+$angMail = Db::one("SELECT * FROM mails WHERE anlass = 'angebot' AND customer_id = ? ORDER BY id DESC LIMIT 1",
+    [$angKunde]);
+$angBetrag = Fmt::geld(90000, 'EUR');
+pruefe('in der Betreffzeile steht kein Betrag mehr',
+    $angMail !== null
+    && !str_contains((string) $angMail['betreff'], $angBetrag)
+    && !str_contains((string) $angMail['betreff'], '900'),
+    (string) ($angMail['betreff'] ?? '-'));
+pruefe('auch der Text nennt keinen Betrag und fuehrt auf die Kundenseite',
+    (static function (): bool {
+        foreach (['it', 'de', 'en'] as $sp) {
+            [$b, $t] = Texte::mail('angebot', $sp,
+                ['name' => 'Probe', 'link' => 'ZIELADRESSE', 'gueltigsatz' => ' Gilt bis morgen.']);
+            if (str_contains($b, '{') || str_contains($t, '{')) { return false; }
+            if (!str_contains($t, 'ZIELADRESSE')) { return false; }
+            // Kein Platzhalter fuer Geld mehr -- weder im Betreff noch im Text.
+            if (str_contains($b . $t, 'betrag') || preg_match('~\d+[.,]\d\d\s?€~u', $t)) { return false; }
+        }
+        return true;
+    })());
+$angQuelle = (string) file_get_contents($wurzel . '/src/Angebot.php');
+pruefe('und die Adresse in der Mail ist die der Kundenseite',
+    str_contains($angQuelle, 'Kundenzugang::linkFuer((int) $a[\'customer_id\'])')
+    && str_contains(Kundenzugang::linkFuer($angKunde), '/kunde.php?t='));
 pruefe('ein Entwurf ohne Betrag geht nicht raus', (static function () use ($angKunde) {
     $leer = (int) Db::insert('angebote', [
         'customer_id' => $angKunde, 'nummer' => 'PR0-' . substr((string) hrtime(true), -9),
@@ -6676,6 +6705,81 @@ pruefe('der Fragebogen vor dem Preis legt keinen Hosting-Auftrag an',
 $fvLaden = Onboarding::laden(Onboarding::token($fdF));
 pruefe('der Fragebogen ohne Projekt laesst sich ueber seinen Schluessel oeffnen',
     $fvLaden !== null && (int) $fvLaden['id'] === $fdF);
+
+/* ============================================================================
+   57. Bezahlt, aber die Verwaltung weiss nichts davon   (22.09.2026)
+
+   Uwe: "Wenn der Kunde bezahlt hat, wird das in der Verwaltung nicht
+   angezeigt." Der Grund ist immer derselbe: Der Webhook kam nicht an --
+   falscher Modus, anderes Signaturgeheimnis, Endpunkt nicht eingetragen --
+   und der naechtliche Abgleich lief noch nicht oder gar nicht. Die Rate
+   stand dann auf "in Bearbeitung", und die Fuehrung sagte "Erinnern": eine
+   Zahlungserinnerung an jemanden, der laengst bezahlt hat.
+
+   Jetzt fragt ein Schritt nach, sobald eine Rate laenger als eine Stunde
+   haengt -- und der Knopf bucht, was Stripe als bezahlt kennt.
+   ============================================================================ */
+abschnitt('57. Bezahlt, aber die Verwaltung weiss nichts davon');
+
+$nfK = Events::kundeFinden(['name' => 'Stripe Haengt', 'email' => 'stripe-haengt@pruefung.example', 'sprache' => 'de']);
+$nfB = Events::bestellungAnlegen($nfK, $paketId, 'Rate haengt bei Stripe');
+Onboarding::absenden(Onboarding::vorab($nfK), ['branche' => 'Probe']);
+$nfZ = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$nfB], 0);
+pruefe('die Probe hat eine Anzahlung', $nfZ > 0);
+
+/* So, wie es nach einem Klick auf die Bezahlseite aussieht: Link ist raus,
+   Sitzung steht, Rate in Bearbeitung -- und seit zwei Stunden nichts mehr. */
+Db::update('payments', $nfZ, ['status' => 'in_bearbeitung', 'provider' => 'stripe',
+    'provider_sitzung' => 'cs_probe_haengt', 'link_url' => 'https://checkout.stripe.com/c/pay/cs_probe_haengt']);
+Db::insert('mails', ['anlass' => 'zahlungslink', 'empfaenger' => 'stripe-haengt@pruefung.example',
+    'betreff' => 'Dein Zahlungslink', 'status' => 'gesendet', 'customer_id' => $nfK,
+    'order_id' => $nfB, 'payment_id' => $nfZ]);
+Db::run('UPDATE payments SET updated_at = DATE_SUB(NOW(), INTERVAL 2 HOUR) WHERE id = ?', [$nfZ]);
+
+$nfV = Vorgang::laden('b' . $nfB);
+pruefe('haengt die Rate, fragt die Fuehrung bei Stripe nach statt zu erinnern',
+    ($nfV['schritt']['knopf'] ?? '') === 'Bei Stripe nachfragen'
+    && ($nfV['schritt']['tat'] ?? '') === 'zahlung_nachfragen'
+    && (int) ($nfV['schritt']['id'] ?? 0) === $nfZ,
+    ($nfV['schritt']['knopf'] ?? '-'));
+
+/* Frisch geklickt heisst: der Kunde ist vielleicht noch auf der Bezahlseite.
+   Dann ist Nachfragen verfrueht, und es bleibt beim Erinnern. */
+Db::run('UPDATE payments SET updated_at = NOW() WHERE id = ?', [$nfZ]);
+$nfV2 = Vorgang::laden('b' . $nfB);
+pruefe('frisch angeklickt wird nicht gleich nachgefragt',
+    ($nfV2['schritt']['knopf'] ?? '') === 'Erinnern', ($nfV2['schritt']['knopf'] ?? '-'));
+
+/* Der Handgriff selbst: Was Stripe als bezahlt kennt, wird gebucht -- und
+   steht danach in Protokoll und Meldungen, also in der Verwaltung. */
+$nfVorMeld = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_ok'", [], 0);
+$nfBetrag = (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$nfZ], 0);
+$nfWie = Events::zahlungVonStripe($nfZ, 'pi_probe_haengt', $nfBetrag, 'eur');
+pruefe('die Nachfrage bucht die Rate', $nfWie === 'gebucht'
+    && (string) Db::wert('SELECT status FROM payments WHERE id = ?', [$nfZ], '') === 'bezahlt', (string) $nfWie);
+pruefe('und die Verwaltung zeigt es — als Meldung und im Protokoll',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_ok'", [], 0) === $nfVorMeld + 1
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'zahlung_ok' AND order_id = ?", [$nfB], 0) > 0);
+$nfV3 = Vorgang::laden('b' . $nfB);
+pruefe('der Vorgang steht danach nicht mehr beim Geld',
+    $nfV3['stufe'] !== 'angebot', $nfV3['stufe']);
+
+/* Knopf und Handgriff muessen beide da sein: Ein Schritt ohne Knopf ist eine
+   Sackgasse, ein Knopf ohne Handgriff ein Fehler beim Klicken. */
+$nfBestellSeite = (string) file_get_contents(dirname(__DIR__) . '/views/bestellung.php');
+/* Dieselbe Rechnung steckt im Webhook: Dort entscheidet das Alter eines
+   Ereignisses, ob ein zweiter Lauf zugelassen wird. Beide Uhren muessen
+   dieselbe sein -- sonst gilt ein eben angenommenes Ereignis als haengend. */
+pruefe('auch der Webhook rechnet das Alter mit der Uhr der Datenbank',
+    str_contains((string) file_get_contents($wurzel . '/src/Webhook.php'), 'TIMESTAMPDIFF(SECOND, received_at, NOW())')
+    && !str_contains((string) file_get_contents($wurzel . '/src/Webhook.php'), "time() - (int) strtotime"));
+
+pruefe('die Bestellseite hat den Knopf "Bei Stripe nachfragen"',
+    str_contains($nfBestellSeite, 'value="zahlung_nachfragen"')
+    && str_contains($nfBestellSeite, 'data-tun="zahlung_nachfragen"'));
+pruefe('und die Verwaltung kennt den Handgriff',
+    str_contains((string) file_get_contents(dirname(__DIR__) . '/index.php'),
+        "case 'zahlung_nachfragen':"));
 
 /* ============================================================================
    Aufräumen und Bilanz
