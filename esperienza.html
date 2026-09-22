@@ -19,9 +19,9 @@
 <meta name="theme-color" content="#05070d">
 <link rel="icon" href="assets/img/favicon-32.png?v=d9973df7" sizes="32x32">
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=1a98f2cc">
-<link rel="preload" as="image" href="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=4d745a88" media="(min-width: 701px)">
-<link rel="preload" as="image" href="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=fc5422b8" media="(max-width: 700px)">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=07d27d20">
+<link rel="preload" as="image" href="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=70c6cbff" media="(min-width: 701px)">
+<link rel="preload" as="image" href="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=f5217a4f" media="(max-width: 700px)">
 <!-- Absolute Pfade: dieselbe Zuordnung gilt in /, /de/ und /en/, ohne dass
      build.mjs sie umschreiben muss. Gleiche Fassung wie im Showroom. -->
 <script type="importmap">
@@ -60,10 +60,10 @@
      des Echtzeitmoduls -- so bekommt es von build.mjs einen Fingerabdruck wie
      jede andere Datei, obwohl es erst per import() geladen wird. -->
 <section class="villa" id="villa">
-  <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=ef748a2b">
+  <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=8d0cbce9">
     <picture>
-      <source media="(max-width: 700px)" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=fc5422b8">
-      <img class="ruhe ist-an" id="ruhe-a" src="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=4d745a88" width="1600" height="900" fetchpriority="high" decoding="async" data-i18n-attr="alt:erlebnis.bildAlt" alt="Villa con piscina nel paesaggio siciliano, calcolata con Blender Cycles">
+      <source media="(max-width: 700px)" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=f5217a4f">
+      <img class="ruhe ist-an" id="ruhe-a" src="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=70c6cbff" width="1600" height="900" fetchpriority="high" decoding="async" data-i18n-attr="alt:erlebnis.bildAlt" alt="Villa con piscina nel paesaggio siciliano, calcolata con Blender Cycles">
     </picture>
     <img class="ruhe" id="ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
     <div class="echtzeit" id="echtzeit" aria-hidden="true"></div>
@@ -89,7 +89,7 @@
         <button type="button" data-stand="ankunft" aria-pressed="false" data-i18n="erlebnis.s2">Arrivo</button>
         <button type="button" data-stand="terrasse" aria-pressed="false" data-i18n="erlebnis.s3">Terrazza</button>
         <button type="button" data-stand="wohnen" aria-pressed="false" data-i18n="erlebnis.s4">Soggiorno</button>
-        <button type="button" data-stand="kueche" aria-pressed="false" data-i18n="erlebnis.s5">Cucina</button>
+        <button type="button" data-stand="essen" aria-pressed="false" data-i18n="erlebnis.s5">Zona pranzo</button>
       </div>
     </div>
   </div>
@@ -218,6 +218,6 @@
   </nav>
 </footer>
 
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=49c78ca2"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=6ea94149"></script>
 </body>
 </html>

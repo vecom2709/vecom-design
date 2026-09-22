@@ -44,7 +44,11 @@ export const STAENDE = {
   ankunft:  { pos: [-7.5, -13.0, 3.2], ziel: [7.0, 3.0, 2.6],  lens: 35 },
   terrasse: { pos: [17.5, 20.0, 2.6],  ziel: [7.0, 8.0, 2.6],  lens: 24 },
   wohnen:   { pos: [10.6, 4.9, 1.62],  ziel: [15.6, 9.6, 1.35], lens: 20, innen: true },
-  kueche:   { pos: [9.1, 10.0, 1.62],  ziel: [5.8, 5.4, 1.2],  lens: 20, innen: true },
+  /* Die Kueche stand hier bis zum 22.09.2026 an fuenfter Stelle. Ihr Blick
+     (9,1 / 10,0 nach 5,8 / 5,4) zeigt zu zwei Dritteln eine leere Wand --
+     im gerechneten Bild sofort zu sehen. Der Essplatz zeigt Tisch, Stuehle,
+     das Fensterband und die Sonnenflecken auf dem Boden. */
+  essen:    { pos: [16.4, 3.1, 1.6],   ziel: [7.6, 1.6, 1.3],  lens: 22, innen: true },
 };
 
 /* Sonnenstand wie lauf_ruhebilder.ZEITEN (Höhe, Azimut). Die übrigen Werte

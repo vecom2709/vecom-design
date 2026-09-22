@@ -30,7 +30,7 @@ const SPRACHE = ['it', 'de', 'en'].includes(L) ? L : 'it';
 const T = {
   de: {
     zeiten: { morgen: 'Morgen', mittag: 'Mittag', nachmittag: 'Nachmittag', abend: 'Abend', nacht: 'Blaue Stunde' },
-    staende: { garten: 'Garten', ankunft: 'Ankunft', terrasse: 'Terrasse', wohnen: 'Wohnraum', kueche: 'Küche' },
+    staende: { garten: 'Garten', ankunft: 'Ankunft', terrasse: 'Terrasse', wohnen: 'Wohnraum', essen: 'Essplatz' },
     foto: (p) => `Gerechnet · Blender Cycles · ${p} Abtastungen je Bildpunkt`,
     echtzeit: (r, f, s) => `Echtzeit · ${r} · ${f} Bilder/s · Stufe ${s}`,
     kehrt: 'Loslassen — die Kamera kehrt zum Foto zurück',
@@ -116,7 +116,7 @@ const T = {
   },
   it: {
     zeiten: { morgen: 'Mattina', mittag: 'Mezzogiorno', nachmittag: 'Pomeriggio', abend: 'Sera', nacht: 'Ora blu' },
-    staende: { garten: 'Giardino', ankunft: 'Arrivo', terrasse: 'Terrazza', wohnen: 'Soggiorno', kueche: 'Cucina' },
+    staende: { garten: 'Giardino', ankunft: 'Arrivo', terrasse: 'Terrazza', wohnen: 'Soggiorno', essen: 'Zona pranzo' },
     foto: (p) => `Calcolata · Blender Cycles · ${p} campioni per pixel`,
     echtzeit: (r, f, s) => `Tempo reale · ${r} · ${f} fotogrammi/s · livello ${s}`,
     kehrt: 'Lascia andare — la camera torna alla foto',
@@ -202,7 +202,7 @@ const T = {
   },
   en: {
     zeiten: { morgen: 'Morning', mittag: 'Noon', nachmittag: 'Afternoon', abend: 'Evening', nacht: 'Blue hour' },
-    staende: { garten: 'Garden', ankunft: 'Arrival', terrasse: 'Terrace', wohnen: 'Living room', kueche: 'Kitchen' },
+    staende: { garten: 'Garden', ankunft: 'Arrival', terrasse: 'Terrace', wohnen: 'Living room', essen: 'Dining area' },
     foto: (p) => `Rendered · Blender Cycles · ${p} samples per pixel`,
     echtzeit: (r, f, s) => `Real time · ${r} · ${f} fps · tier ${s}`,
     kehrt: 'Let go — the camera returns to the photo',

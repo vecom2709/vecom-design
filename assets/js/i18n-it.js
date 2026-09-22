@@ -56,7 +56,7 @@ window.VECOM_I18N.it = {
       zeitLabel: "Ora del giorno",
       standLabel: "Punto di vista",
       z1: "Mattina", z2: "Mezzogiorno", z3: "Pomeriggio", z4: "Sera", z5: "Ora blu",
-      s1: "Giardino", s2: "Arrivo", s3: "Terrazza", s4: "Soggiorno", s5: "Cucina",
+      s1: "Giardino", s2: "Arrivo", s3: "Terrazza", s4: "Soggiorno", s5: "Zona pranzo",
       bewegen: "Giralo tu",
       hinweis_b: "Cosa vedi:",
       hinweis_p: "La foto è calcolata con Blender Cycles — sole vero, cielo fisico, 384 campioni per pixel. Il modello da girare è la stessa casa in 32.280 triangoli e 127 KB, dal vivo nel tuo browser. Il giardino, i cipressi e gli uliveti esistono solo nella foto: per un telefono sarebbero troppo pesanti.",

@@ -54,7 +54,7 @@ window.VECOM_I18N.de = {
       zeitLabel: "Tageszeit",
       standLabel: "Standpunkt",
       z1: "Morgen", z2: "Mittag", z3: "Nachmittag", z4: "Abend", z5: "Blaue Stunde",
-      s1: "Garten", s2: "Ankunft", s3: "Terrasse", s4: "Wohnraum", s5: "Küche",
+      s1: "Garten", s2: "Ankunft", s3: "Terrasse", s4: "Wohnraum", s5: "Essplatz",
       bewegen: "Selbst drehen",
       hinweis_b: "Was du siehst:",
       hinweis_p: "Das Foto ist in Blender Cycles gerechnet — echte Sonne, physikalischer Himmel, 384 Abtastungen je Bildpunkt. Das Modell zum Drehen ist dasselbe Haus in 32.280 Dreiecken und 127 KB, live in deinem Browser. Der Garten, die Zypressen und die Olivenhaine gibt es nur im Foto: Sie wären für ein Telefon zu schwer.",

@@ -77,7 +77,7 @@ button{font:inherit; color:inherit}
 .kopf .lead{max-width:40rem}
 @media (min-width:1100px){
   .held{
-    display:grid; grid-template-columns:minmax(17rem,.34fr) minmax(0,1fr);
+    display:grid; grid-template-columns:minmax(19rem,.34fr) minmax(0,1fr);
     gap:clamp(2rem,3.2vw,3.5rem); align-items:start;
     padding-top:clamp(5.5rem,12vh,7rem);
   }
@@ -89,8 +89,7 @@ button{font:inherit; color:inherit}
 }
 h1,h2,h3{font-family:var(--f-display); font-weight:700; margin:0; text-wrap:balance}
 h1{font-size:clamp(2.3rem,6vw,4rem); line-height:1.02; letter-spacing:-.028em; margin-bottom:.9rem}
-@media (min-width:1100px){ h1{font-size:clamp(2.3rem,3.05vw,3.7rem)} .kopf .lead{font-size:1.04rem} }
-h1 .glanz{white-space:nowrap}
+@media (min-width:1100px){ h1{font-size:clamp(2.1rem,2.9vw,3.6rem)} .kopf .lead{font-size:1.04rem} }
 h1 .glanz{
   background:linear-gradient(96deg,var(--c-blue),var(--c-cyan));
   -webkit-background-clip:text; background-clip:text; color:transparent;

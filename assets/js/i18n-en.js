@@ -54,7 +54,7 @@ window.VECOM_I18N.en = {
       zeitLabel: "Time of day",
       standLabel: "Viewpoint",
       z1: "Morning", z2: "Noon", z3: "Afternoon", z4: "Evening", z5: "Blue hour",
-      s1: "Garden", s2: "Arrival", s3: "Terrace", s4: "Living room", s5: "Kitchen",
+      s1: "Garden", s2: "Arrival", s3: "Terrace", s4: "Living room", s5: "Dining area",
       bewegen: "Turn it yourself",
       hinweis_b: "What you see:",
       hinweis_p: "The photo is rendered in Blender Cycles — real sun, physical sky, 384 samples per pixel. The model you turn is the same house in 32,280 triangles and 127 KB, live in your browser. The garden, the cypresses and the olive groves exist only in the photo: they would be too heavy for a phone.",
