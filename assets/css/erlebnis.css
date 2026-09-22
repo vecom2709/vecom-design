@@ -172,6 +172,17 @@
 }
 .erlebnis .chips button:hover{color:var(--c-text); border-color:var(--c-linie-hell)}
 .erlebnis .chips button[aria-pressed="true"]{background:var(--c-text); color:#05070d; border-color:var(--c-text)}
+.erlebnis .schritte{width:min(100%, var(--buehne-b)); margin:.9rem auto 0; display:flex; flex-direction:column; gap:.5rem}
+.erlebnis .schritte .chips button{padding:.5rem .8rem}
+.erlebnis .schritte .chips button b{font-family:var(--f-display); margin-right:.35rem; color:var(--c-cyan)}
+.erlebnis .schritte .chips button[aria-pressed="true"] b{color:#05070d}
+@media (min-width:1100px){ .erlebnis .schritte{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0} }
+@media (max-width:700px){ .erlebnis .schritte{padding:0 var(--page-x)} }
+
+.erlebnis .hilfe{width:min(100%, var(--buehne-b)); margin:.9rem auto 0; font-size:.92rem; color:var(--c-cyan)}
+@media (min-width:1100px){ .erlebnis .hilfe{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0} }
+@media (max-width:700px){ .erlebnis .hilfe{padding:0 var(--page-x)} }
+
 .erlebnis .hinweis{margin:1.3rem 0 0; font-size:.9rem; line-height:1.55; color:var(--c-faint); max-width:40rem}
 .erlebnis .hinweis b{color:var(--c-dim); font-weight:600}
 

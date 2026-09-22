@@ -35,6 +35,8 @@ const T = {
     fotoKurz: 'Gerechnet · Blender Cycles',
     echtzeit: (r, f, s) => `Echtzeit · ${r} · ${f} Bilder/s · Stufe ${s}`,
     echtzeitRuht: (r, s) => `Echtzeit · ${r} · Stufe ${s}`,
+    ansichten: { stand: 'Foto', grundriss: 'Grundriss', bau: 'Bauablauf', gehen: 'Hineingehen' },
+    kennungAnsicht: (r, s, a) => `Echtzeit · ${r} · Stufe ${s} · ${a}`,
     kehrt: 'Loslassen — die Kamera kehrt zum Foto zurück',
     laedt: 'Lade das 3D-Modell …',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Das 3D-Modell bleibt aus — so bleibt die Seite schnell.',
@@ -123,6 +125,8 @@ const T = {
     fotoKurz: 'Calcolata · Blender Cycles',
     echtzeit: (r, f, s) => `Tempo reale · ${r} · ${f} fotogrammi/s · livello ${s}`,
     echtzeitRuht: (r, s) => `Tempo reale · ${r} · livello ${s}`,
+    ansichten: { stand: 'Foto', grundriss: 'Pianta', bau: 'Costruzione', gehen: 'Entra dentro' },
+    kennungAnsicht: (r, s, a) => `Tempo reale · ${r} · livello ${s} · ${a}`,
     kehrt: 'Lascia andare — la camera torna alla foto',
     laedt: 'Carico il modello 3D …',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Il modello 3D resta spento — così la pagina resta veloce.',
@@ -211,6 +215,8 @@ const T = {
     fotoKurz: 'Rendered · Blender Cycles',
     echtzeit: (r, f, s) => `Real time · ${r} · ${f} fps · tier ${s}`,
     echtzeitRuht: (r, s) => `Real time · ${r} · tier ${s}`,
+    ansichten: { stand: 'Photo', grundriss: 'Floor plan', bau: 'Construction', gehen: 'Walk inside' },
+    kennungAnsicht: (r, s, a) => `Real time · ${r} · tier ${s} · ${a}`,
     kehrt: 'Let go — the camera returns to the photo',
     laedt: 'Loading the 3D model …',
     keinWebgl: 'This device shows the rendered images. The 3D model stays off — that keeps the page fast.',
@@ -334,7 +340,7 @@ const ruheA = $('#ruhe-a');
 const ruheB = $('#ruhe-b');
 const kennungText = $('#kennung-text');
 const knopfBewegen = $('#bewegen');
-const zustand = { stand: 'garten', zeit: 'nachmittag', echtzeit: false, villa: null, laedt: null, stufe: null, wahl: 'AUTO' };
+const zustand = { stand: 'garten', zeit: 'nachmittag', ansicht: 'stand', schritt: 8, echtzeit: false, villa: null, laedt: null, stufe: null, wahl: 'AUTO' };
 
 function bildAdresse(stand, zeit) {
   const klein = buehne.clientWidth * (window.devicePixelRatio || 1) <= 900;
@@ -401,6 +407,81 @@ function zeitSetzen(zeit) {
   bildZeigen(zustand.stand, zeit);
   if (zustand.villa) zustand.villa.zeit(zeit);
   if (!zustand.echtzeit) kennungFoto();
+}
+
+/* ---------------------------------------------------- Ansicht und Aufbau
+   Grundriss, Bauablauf und Begehung lagen bis zum 22.09.2026 in einem
+   eigenen Abschnitt (haus.js). Sie gehoeren an dieselbe Buehne wie das Foto:
+   Es ist dasselbe Haus, nur anders angesehen. Alle drei brauchen das
+   Echtzeitmodell -- ohne WebGL bleiben die Knoepfe weg. */
+const ansichtenEl = $('#ansichten');
+const schritteEl = $('#schritte');
+const bauschritteEl = $('#bauschritte');
+
+function woerterbuch() {
+  return (window.VECOM_I18N && window.VECOM_I18N[SPRACHE] && window.VECOM_I18N[SPRACHE].erlebnis) || {};
+}
+
+function ansichtChips() {
+  if (!ansichtenEl) return;
+  for (const b of $$('button', ansichtenEl)) b.setAttribute('aria-pressed', String(b.dataset.ansicht === zustand.ansicht));
+  if (schritteEl) schritteEl.hidden = zustand.ansicht !== 'bau';
+  const staende = $('#staende');
+  if (staende) staende.parentElement.hidden = zustand.ansicht !== 'stand';
+  // Jede Ansicht sagt in einem Satz, was sie ist und wie man sie bedient.
+  const hilfe = $('#ansicht-hilfe');
+  if (hilfe) {
+    const t = woerterbuch()[zustand.ansicht + '_hilfe'];
+    hilfe.textContent = t || '';
+    hilfe.hidden = !t;
+  }
+}
+
+function bauschritteAufbauen() {
+  if (!bauschritteEl || bauschritteEl.children.length) return;
+  /* Die Namen der acht Abschnitte stehen im Woerterbuch (erlebnis.b1 bis b8),
+     nicht hier: Sie stehen in drei Sprachen und gehoeren zum Text der Seite,
+     nicht zur Mechanik. Fehlt das Woerterbuch, bleibt die Nummer. */
+  const w = woerterbuch();
+  bauschritteEl.innerHTML = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => {
+    const t = w['b' + n] || String(n);
+    return `<button type="button" data-schritt="${n}" aria-pressed="${n === zustand.schritt}"><b>${n}</b> <span>${esc(t)}</span></button>`;
+  }).join('');
+}
+
+async function ansichtSetzen(name) {
+  if (name === zustand.ansicht) return;
+  if (name !== 'stand') {
+    const v = await echtzeitLaden();
+    if (!v) return;
+    zustand.ansicht = name;
+    if (name === 'bau') bauschritteAufbauen();
+    ansichtChips();
+    echtzeitAn();
+    v.ansicht(name, zustand.schritt);
+  } else {
+    zustand.ansicht = 'stand';
+    ansichtChips();
+    if (zustand.villa) zustand.villa.stand(zustand.stand);
+    echtzeitAus();
+  }
+  kennungSetzen();
+}
+
+if (ansichtenEl) {
+  ansichtenEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-ansicht]');
+    if (b) ansichtSetzen(b.dataset.ansicht);
+  });
+}
+if (bauschritteEl) {
+  bauschritteEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-schritt]');
+    if (!b) return;
+    zustand.schritt = Number(b.dataset.schritt);
+    for (const x of $$('button', bauschritteEl)) x.setAttribute('aria-pressed', String(x === b));
+    if (zustand.villa) zustand.villa.schritt(zustand.schritt);
+  });
 }
 
 $('#staende').addEventListener('click', (e) => { const b = e.target.closest('button[data-stand]'); if (b) standSetzen(b.dataset.stand); });
@@ -475,18 +556,25 @@ async function echtzeitLaden(stumm = false) {
   }
 }
 
+function kennungSetzen(fps) {
+  if (!zustand.echtzeit) { kennungFoto(); return; }
+  const name = TEXT.stufeNamen[wirksameStufe()] || wirksameStufe();
+  if (zustand.ansicht !== 'stand') {
+    kennungText.textContent = TEXT.kennungAnsicht('WebGL 2', name, TEXT.ansichten[zustand.ansicht]);
+    return;
+  }
+  kennungText.textContent = fps ? TEXT.echtzeit('WebGL 2', fps, name) : TEXT.echtzeitRuht('WebGL 2', name);
+}
+
 let kennungTakt = 0;
 function bildGemeldet(dtMs, fps, schlaeft) {
   if (zustand.manager && zustand.wahl === 'AUTO' && !schlaeft) zustand.manager.bildGemeldet(dtMs);
   const t = performance.now();
   if ((schlaeft || t - kennungTakt > 500) && zustand.echtzeit) {
     kennungTakt = t;
-    const name = TEXT.stufeNamen[wirksameStufe()] || wirksameStufe();
     // Ruht die Schleife (nichts bewegt sich), steht keine Bildrate da --
     // eine eingefrorene Zahl neben einem stehenden Bild waere eine Behauptung.
-    kennungText.textContent = schlaeft || !fps
-      ? TEXT.echtzeitRuht('WebGL 2', name)
-      : TEXT.echtzeit('WebGL 2', fps, name);
+    kennungSetzen(schlaeft ? 0 : fps);
     ablesungZeigen();
   }
 }

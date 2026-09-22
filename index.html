@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=06495529">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=0e615527">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=82fa1f14">
 
 
 <script type="importmap">
@@ -447,7 +447,7 @@
          des Echtzeitmoduls -- so bekommt es von build.mjs einen Fingerabdruck wie
          jede andere Datei, obwohl es erst per import() geladen wird. -->
     <section class="villa" id="villa">
-      <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=220adc47">
+      <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=39a5a313">
         <picture>
           <source media="(max-width: 700px)" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=f5217a4f">
           <img class="ruhe ist-an" id="ruhe-a" src="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=70c6cbff" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bildAlt" alt="Villa con piscina nel paesaggio siciliano, calcolata con Blender Cycles">
@@ -469,7 +469,16 @@
             <button type="button" data-zeit="nacht" aria-pressed="false" data-i18n="erlebnis.z5">Ora blu</button>
           </div>
         </div>
-        <div class="gruppe" role="group" aria-labelledby="l-stand">
+        <div class="gruppe" role="group" aria-labelledby="l-ansicht">
+      <span class="gruppe__name" id="l-ansicht" data-i18n="erlebnis.ansichtLabel">Vista</span>
+      <div class="chips" id="ansichten">
+        <button type="button" data-ansicht="stand" aria-pressed="true" data-i18n="erlebnis.a1">Foto</button>
+        <button type="button" data-ansicht="grundriss" aria-pressed="false" data-i18n="erlebnis.a2">Pianta</button>
+        <button type="button" data-ansicht="bau" aria-pressed="false" data-i18n="erlebnis.a3">Costruzione</button>
+        <button type="button" data-ansicht="gehen" aria-pressed="false" data-i18n="erlebnis.a4">Entra dentro</button>
+      </div>
+    </div>
+    <div class="gruppe" role="group" aria-labelledby="l-stand">
           <span class="gruppe__name" id="l-stand" data-i18n="erlebnis.standLabel">Punto di vista</span>
           <div class="chips" id="staende">
             <button type="button" data-stand="garten" aria-pressed="true" data-i18n="erlebnis.s1">Giardino</button>
@@ -482,7 +491,12 @@
       </div>
     </section>
 
-      <p class="hinweis"><b data-i18n="erlebnis.hinweis_b">Cosa vedi:</b> <span data-i18n="erlebnis.hinweis_p">La foto è calcolata con Blender Cycles — sole vero, cielo fisico, 384 campioni per pixel. Il modello da girare è la stessa casa in 32.280 triangoli e 127 KB, dal vivo nel tuo browser. Il giardino, i cipressi e gli uliveti esistono solo nella foto: per un telefono sarebbero troppo pesanti.</span></p>
+      <div class="schritte" id="schritte" hidden>
+    <span class="gruppe__name" id="l-schritt" data-i18n="erlebnis.schrittLabel">Fase</span>
+    <div class="chips" id="bauschritte" role="group" aria-labelledby="l-schritt"></div>
+  </div>
+  <p class="hilfe" id="ansicht-hilfe" hidden></p>
+  <p class="hinweis"><b data-i18n="erlebnis.hinweis_b">Cosa vedi:</b> <span data-i18n="erlebnis.hinweis_p">La foto è calcolata con Blender Cycles — sole vero, cielo fisico, 384 campioni per pixel. Il modello da girare è la stessa casa in 32.280 triangoli e 127 KB, dal vivo nel tuo browser. Il giardino, i cipressi e gli uliveti esistono solo nella foto: per un telefono sarebbero troppo pesanti.</span></p>
 
 
     <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
@@ -587,6 +601,19 @@
         <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="19" y="4" width="26" height="56" rx="5"/><path d="M19 12h26M19 50h26"/><circle cx="32" cy="55" r="1.5" class="an"/></svg><h3 data-i18n="erlebnis.str3t">Telefono</h3><p data-i18n="erlebnis.str3p">Mostra l’immagine e rimanda scorrimenti e tocchi.</p></li>
       </ol>
       <p class="ehrlich" data-i18n="erlebnis.str_ehrlich">A dirla tutta: uno stream costa a ogni minuto. Per questo non parte mai da solo, ma solo con un clic — e per la villa di questa pagina, per ora, solo su appuntamento.</p>
+
+    <!-- Abschluss des Erlebnisteils. Beim Zusammenlegen mit der Startseite war
+         er zuerst herausgefallen: Der Bereich endete mit einem Absatz über
+         Streaming, und der naechste Handlungsaufruf stand zweitausend Pixel
+         weiter unten. -->
+    <div class="schluss">
+      <h2 data-i18n="erlebnis.s_h">Questo posso costruirlo per te.</h2>
+      <p class="lead" data-i18n="erlebnis.s_lead">Tu porti il tuo immobile, il tuo prodotto o la tua idea. Io lo ricostruisco, preparo la luce e consegno l’experience pronta per il tuo sito — al livello adatto ai tuoi visitatori.</p>
+      <div class="knoepfe">
+        <a class="knopf knopf--voll" href="/bedarf.php?lang=it" data-i18n="erlebnis.s_b1">Avvia il progetto</a>
+        <a class="knopf knopf--leer" href="prezzi.html" data-i18n="erlebnis.s_b2">Quanto costa</a>
+      </div>
+    </div>
     </section>
   </div>
 </section>
@@ -1578,7 +1605,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=b34552b4" defer></script>
+<script src="assets/js/i18n-it.js?v=58d076fa" defer></script>
 <script src="assets/js/app.js?v=3537bcfa" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1602,7 +1629,7 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=71c69f9b"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=970d6d92"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

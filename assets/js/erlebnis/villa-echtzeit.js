@@ -32,6 +32,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const GLB = '/assets/3d/haus/haus.glb';
+const MANIFEST = '/assets/3d/haus/haus-manifest.json';
 const HIMMEL = '/assets/img/3d/haus/haus-himmel.webp';
 const REF = 16 / 9;
 const BEWEGUNG_AUS = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -92,6 +93,23 @@ function verlauf(stopps) {
    Winkel um den Zielpunkt, Kamerahöhe. Innen: fester Ort, Blickrichtung
    und Neigung. So lässt sich beides mit denselben Fingerbewegungen drehen
    und beim Zurückfahren einzeln dämpfen. */
+/* Die Draufsicht ist keine Foto-Kamera, sondern ein Plan: senkrecht von
+   oben, Norden oben. Damit das Haus formatfuellend liegt, haengt die Hoehe
+   an der Brennweite und am Bildverhaeltnis -- gerechnet, nicht geraten. */
+// Mitte zwischen Haus, Terrasse und Pool -- nicht die Hausmitte: sonst
+// liegt das Becken ausserhalb des Bildes.
+const MITTE = [9.0, 7.0];
+export function draufParameter(lens = 26) {
+  // 26 m ueber dem Boden: Bei 26 mm liegen damit rund 36 m Breite im Bild.
+  // Bei 21 m stiess das Haus oben und rechts an -- nachgemessen am Bild.
+  return { drauf: true, lens, mitte: MITTE, hoehe: 26 };
+}
+/* Begehung: Augenhoehe 1,65 m (haus-manifest: hoehen.augen), Blick frei.
+   Gegangen wird nur dort, wo im Manifest ein Raum oder ein Durchgang ist. */
+export function gehParameter(ort, gier) {
+  return { gehen: true, lens: 24, ort: [ort[0], ort[1], 1.65], gier, neig: 0 };
+}
+
 function parameter(name) {
   const s = STAENDE[name];
   const [px, py, pz] = s.pos; const [zx, zy, zz] = s.ziel;
@@ -140,6 +158,12 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
   const gltf = await new GLTFLoader().loadAsync(GLB);
   const haus = gltf.scene; szene.add(haus);
   const schirme = new Set(); const materialien = new Set(); let dreiecke = 0;
+  /* Nach Bauabschnitt sortiert (p01_ bis p08_, Praefixe aus
+     haus-manifest.json). Damit laesst sich das Haus Schritt fuer Schritt
+     aufbauen und fuer den Grundriss die Decke abnehmen. */
+  const nachAbschnitt = new Map();
+  const oben = [];
+  const kasten = new THREE.Box3();
   haus.traverse((o) => {
     if (!o.isMesh) return;
     /* Die alte Kegelreihe aus villa.py steht noch im Web-Modell. In den
@@ -153,6 +177,16 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     materialien.add(m);
     if (m.transparent || /glas/i.test(m.name)) o.castShadow = false;
     if (m.name === 'Leuchtenschirm') schirme.add(m);
+    const t = /^p0(\d)_/.exec(o.name);
+    if (t) {
+      const nr = Number(t[1]);
+      if (!nachAbschnitt.has(nr)) nachAbschnitt.set(nr, []);
+      nachAbschnitt.get(nr).push(o);
+    }
+    // Was ueber 3,2 m beginnt, gehoert ins Obergeschoss oder aufs Dach --
+    // im Grundriss faellt es weg, sonst sieht man nur die Attika.
+    kasten.setFromObject(o);
+    if (kasten.min.y > 3.2) oben.push(o);
     // Poolwasser: im Web-Modell ein helles, stumpfes Blau. In den Fotos ist
     // das Becken dunkel und spiegelt -- so sieht Wasser aus, wenn man von
     // der Seite draufschaut.
@@ -165,6 +199,45 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
       m.envMapIntensity = 0.45;
     }
   });
+
+  /* Grundriss und Begehung brauchen die Maße, nicht das Modell: Raumrechtecke
+     und Türdurchgänge stehen im Manifest, aus derselben Quelle wie das GLB.
+     Zwei getrennte Beschreibungen desselben Hauses laufen sonst auseinander
+     (dieselbe Überlegung wie in haus.js). */
+  let plan = null;
+  try { plan = await fetch(MANIFEST).then((a) => a.json()); } catch { plan = null; }
+  const raeume = plan && plan.geschosse && plan.geschosse[0] ? plan.geschosse[0].raeume : [];
+  const durchgaenge = plan ? plan.durchgaenge || [] : [];
+  const rundgang = plan ? plan.rundgang || [] : [];
+
+  let modus = 'stand'; let bauschritt = 8;
+  function sicht() {
+    const grundriss = modus === 'grundriss';
+    for (const o of oben) o.visible = !grundriss;
+    for (const [nr, liste] of nachAbschnitt) {
+      const an = modus === 'bau' ? nr <= bauschritt
+        : grundriss ? nr !== 3 && nr !== 4 && nr !== 5
+        : true;
+      for (const o of liste) { if (!/zypresse/i.test(o.name)) o.visible = an; }
+    }
+  }
+
+  /* Darf die Kamera dorthin? Erlaubt ist, was in einem Raum des Erdgeschosses
+     oder in einem Türdurchgang liegt. Das kostet nichts, faehrt nie durch eine
+     Wand und kommt aus derselben Quelle wie der Grundriss. */
+  function begehbar(x, y) {
+    const rand = 0.35;
+    for (const r of raeume) {
+      if (x > r.x0 + rand && x < r.x1 - rand && y > r.y0 + rand && y < r.y1 - rand) return true;
+    }
+    for (const d of durchgaenge) {
+      if (x > d.x0 - 0.1 && x < d.x1 + 0.1 && y > d.y0 - 0.5 && y < d.y1 + 0.5) return true;
+    }
+    return false;
+  }
+
+  const tasten = new Set();
+  const GEH_TASTEN = { KeyW: [1, 0], KeyS: [-1, 0], KeyA: [0, -1], KeyD: [0, 1], ArrowUp: [1, 0], ArrowDown: [-1, 0] };
 
   behaelter.appendChild(leinwand);
   if (bezeichnung) leinwand.setAttribute('aria-label', bezeichnung);
@@ -183,7 +256,7 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     kamera.aspect = a;
     kamera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(tanVc));
     kamera.updateProjectionMatrix();
-    if (!p.innen) {
+    if (!p.innen && !p.gehen && !p.drauf) {
       // shift_y wie in villa_szene._kamera, in Sensorbreiten des 16:9-Bildes.
       const [zx, zy, zz] = p.ziel;
       const cx = zx + Math.cos(p.winkel) * p.abst; const cy = zy + Math.sin(p.winkel) * p.abst;
@@ -195,7 +268,17 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
   }
 
   function kameraSetzen(p) {
-    if (p.innen) {
+    if (p.drauf) {
+      // Norden oben: der Aufblick braucht einen eigenen Oben-Vektor, sonst
+      // dreht three.js den Plan um seine eigene Achse.
+      kamera.up.set(0, 0, -1);
+      kamera.position.copy(b3(p.mitte[0], p.mitte[1], p.hoehe));
+      kamera.lookAt(b3(p.mitte[0], p.mitte[1], 0));
+      projektion(p, leinwand.clientWidth || 16, leinwand.clientHeight || 9);
+      return;
+    }
+    kamera.up.set(0, 1, 0);
+    if (p.gehen || p.innen) {
       const [x, y, z] = p.ort;
       kamera.position.copy(b3(x, y, z));
       const d = new THREE.Vector3(Math.cos(p.gier) * Math.cos(p.neig), Math.sin(p.gier) * Math.cos(p.neig), Math.sin(p.neig));
@@ -212,10 +295,15 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
 
   function annaehern(k) {
     let rest = 0;
-    if (ist.innen !== soll.innen || ist.lens !== soll.lens) { ist = { ...soll }; return 0; }
-    if (soll.innen) {
+    if (!!ist.innen !== !!soll.innen || !!ist.drauf !== !!soll.drauf || !!ist.gehen !== !!soll.gehen || ist.lens !== soll.lens) { ist = { ...soll }; return 0; }
+    if (soll.drauf) return 0;
+    if (soll.innen || soll.gehen) {
       const dg = wickel(soll.gier - ist.gier); ist.gier += dg * k; ist.neig += (soll.neig - ist.neig) * k;
       rest = Math.abs(dg) + Math.abs(soll.neig - ist.neig);
+      if (soll.gehen) {
+        ist.ort = ist.ort.map((w, i) => w + (soll.ort[i] - w) * k);
+        rest += Math.abs(soll.ort[0] - ist.ort[0]) * 0.2 + Math.abs(soll.ort[1] - ist.ort[1]) * 0.2;
+      }
     } else {
       const dw = wickel(soll.winkel - ist.winkel); ist.winkel += dw * k;
       ist.hoehe += (soll.hoehe - ist.hoehe) * k; ist.abst += (soll.abst - ist.abst) * k;
@@ -238,7 +326,8 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     if (!ziehen || e.pointerId !== ziehen.id) return;
     const dx = e.clientX - ziehen.x, dy = e.clientY - ziehen.y;
     ziehen.x = e.clientX; ziehen.y = e.clientY;
-    if (soll.innen) {
+    if (soll.drauf) return;
+    if (soll.innen || soll.gehen) {
       soll.gier -= dx * 0.004;
       soll.neig = Math.max(-0.6, Math.min(0.45, soll.neig - dy * 0.003));
     } else {
@@ -251,7 +340,15 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
   /* Tastatur: Pfeile drehen wie der Finger. Die Leinwand ist fokussierbar,
      sobald es sie gibt; wer mit Tab ankommt, bekommt dasselbe Modell. */
   leinwand.tabIndex = 0;
+  leinwand.addEventListener('keyup', (e) => { tasten.delete(e.code); });
+  leinwand.addEventListener('blur', () => tasten.clear());
   leinwand.addEventListener('keydown', (e) => {
+    if (modus === 'gehen' && GEH_TASTEN[e.code]) {
+      e.preventDefault(); tasten.add(e.code);
+      ruhtGemeldet = false; letzteBewegung = performance.now();
+      beiBewegung && beiBewegung(); starten();
+      return;
+    }
     const t = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
     if (!t) return;
     e.preventDefault();
@@ -325,7 +422,25 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     // Zurück zum Standpunkt, sobald niemand mehr zieht. 1,4 s ist so lang,
     // dass ein zweiter Griff nicht gegen die Rückfahrt kämpft, und so kurz,
     // dass man den Zusammenhang Modell -> Foto noch sieht.
-    if (!ziehen && performance.now() - letzteBewegung > 1400) soll = { ...heim };
+    if (modus === 'gehen' && tasten.size) {
+      // 1,35 m/s -- ein ruhiger Schritt. Wer rennt, sieht nichts.
+      let vx = 0, vy = 0;
+      for (const c of tasten) { const t = GEH_TASTEN[c]; if (t) { vx += t[0]; vy += t[1]; } }
+      const laenge = Math.hypot(vx, vy) || 1;
+      const s = 1.35 * dt / laenge;
+      const vor = [Math.cos(soll.gier), Math.sin(soll.gier)];
+      const quer = [-vor[1], vor[0]];
+      const nx = soll.ort[0] + (vor[0] * vx + quer[0] * vy) * s;
+      const ny = soll.ort[1] + (vor[1] * vx + quer[1] * vy) * s;
+      // Achsen einzeln pruefen: an einer Wand entlang geht es weiter, statt
+      // dass der Schritt ganz verfaellt.
+      if (begehbar(nx, soll.ort[1])) soll.ort[0] = nx;
+      if (begehbar(soll.ort[0], ny)) soll.ort[1] = ny;
+      letzteBewegung = performance.now();
+    }
+    // Nur der Foto-Modus faehrt von selbst auf den Standpunkt zurueck --
+    // im Grundriss, im Bauablauf und beim Gehen waere das eine Entmuendigung.
+    if (modus === 'stand' && !ziehen && performance.now() - letzteBewegung > 1400) soll = { ...heim };
     const k = BEWEGUNG_AUS ? 1 : 1 - Math.exp(-dt * (ziehen ? 9 : 2.6));
     const rest = annaehern(k);
     kameraSetzen(ist);
@@ -334,14 +449,14 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     if (!seit) seit = t;
     if (t - seit >= 500) { fps = Math.round((bilder * 1000) / (t - seit)); bilder = 0; seit = t; }
     beiBild && beiBild(dt * 1000, fps, false);
-    if (!ziehen && rest < 0.002 && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
+    if (modus === 'stand' && !ziehen && rest < 0.002 && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
       ruhtGemeldet = true; ist = { ...heim }; kameraSetzen(ist); r.render(szene, kamera);
       beiRuhe && beiRuhe();
     }
     // Steht die Kamera und zieht niemand, gibt es nichts Neues zu zeichnen.
     // Die Schleife ruht dann, bis der naechste Finger kommt -- ein Laptop
     // soll nicht fuer ein stehendes Bild die Grafikkarte heizen.
-    else if (!ziehen && ruhtGemeldet && rest < 0.0005 && performance.now() - letzteBewegung > 6000) {
+    else if (!ziehen && !tasten.size && ruhtGemeldet && rest < 0.0005 && performance.now() - letzteBewegung > 6000) {
       laeuft = false; aktiv = false;
       beiBild && beiBild(dt * 1000, fps, true);
       return;
@@ -356,7 +471,32 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
     /* Standwechsel springt: Die Seite blendet in diesem Moment ohnehin das
        Foto des neuen Standpunkts ein. Eine Fahrt zwischen Garten und Küche
        ginge durch Wände. */
-    stand(name) { heim = parameter(name); soll = { ...heim }; ist = { ...heim }; ruhtGemeldet = true; kameraSetzen(ist); einmal(); },
+    stand(name) {
+      modus = 'stand'; sicht();
+      heim = parameter(name); soll = { ...heim }; ist = { ...heim }; ruhtGemeldet = true;
+      kameraSetzen(ist); einmal();
+    },
+    /* Grundriss, Bauablauf, Begehung -- die drei Ansichten aus dem alten
+       Haus-Labor, jetzt in derselben Buehne. Sie kehren nicht von selbst zum
+       Foto zurueck; das tut nur der Standpunkt-Modus. */
+    ansicht(name, schritt) {
+      modus = name === 'grundriss' || name === 'bau' || name === 'gehen' ? name : 'stand';
+      if (schritt) bauschritt = Math.max(1, Math.min(8, schritt));
+      sicht();
+      if (modus === 'grundriss') heim = draufParameter();
+      else if (modus === 'bau') heim = parameter('ankunft');
+      else if (modus === 'gehen') {
+        const p = rundgang[0] || { x: 3.1, y: -5.4, blick: 0 };
+        heim = gehParameter([p.x, p.y], THREE.MathUtils.degToRad(90 - (p.blick || 0)));
+      } else heim = parameter('garten');
+      soll = { ...heim, ort: heim.ort ? [...heim.ort] : undefined };
+      ist = { ...soll, ort: soll.ort ? [...soll.ort] : undefined };
+      ruhtGemeldet = true; letzteBewegung = performance.now();
+      kameraSetzen(ist); einmal();
+      if (modus !== 'stand') { leinwand.focus({ preventScroll: true }); starten(); }
+    },
+    schritt(nr) { bauschritt = Math.max(1, Math.min(8, nr)); sicht(); einmal(); },
+    get modus() { return modus; },
     zeit(name) { zeitJetzt = name; lichtSetzen(); einmal(); },
     stufe: stufeSetzen,
     starten, anhalten,
