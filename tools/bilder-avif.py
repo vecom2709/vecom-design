@@ -35,6 +35,13 @@ BRANCHEN = {
     'schuh/poster-midnight.png': 'schuh-blau',
     'schuh/poster-beach.png': 'schuh-rose',
     'schuh/poster-street.png': 'schuh-anthrazit',
+    # Serienautos (fahrzeug_bau.py, 23.09.2026)
+    'kleinwagen/poster-azzurro.png': 'kleinwagen-azzurro',
+    'kleinwagen/poster-bianco.png': 'kleinwagen-bianco',
+    'kleinwagen/poster-salvia.png': 'kleinwagen-salvia',
+    'mittelklasse/poster-blu-notte.png': 'mittelklasse-blunotte',
+    'mittelklasse/poster-argento.png': 'mittelklasse-argento',
+    'mittelklasse/poster-rosso.png': 'mittelklasse-rosso',
 }
 
 
@@ -55,7 +62,10 @@ def main():
     webp = '--webp' in sys.argv
     if art == 'branchen':
         for q, z in BRANCHEN.items():
-            print(schreiben(os.path.join(ordner, q), os.path.join(ZIEL_BR, z), webp))
+            # Nur was im Ordner liegt -- so laesst sich ein einzelnes Modell
+            # nachrechnen, ohne die anderen Poster erneut zu kodieren.
+            if os.path.exists(os.path.join(ordner, q)):
+                print(schreiben(os.path.join(ordner, q), os.path.join(ZIEL_BR, z), webp))
     elif art == 'villa':
         for f in sorted(os.listdir(ordner)):
             if f.startswith('ruhe-') and f.endswith('.png') and '-kueche-' not in f:

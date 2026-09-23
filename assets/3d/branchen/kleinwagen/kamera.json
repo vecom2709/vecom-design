@@ -1,0 +1,168 @@
+{
+ "objekt": "kleinwagen",
+ "sensor_breite_mm": 36.0,
+ "brennweite_mm": 85.0,
+ "position": [
+  -7.6555495262146,
+  1.0499999523162842,
+  10.536959648132324
+ ],
+ "ziel": [
+  0.0,
+  0.550000011920929,
+  -0.0
+ ],
+ "blende": 8.0,
+ "fokus_m": 13.033992767333984,
+ "hdri": "studio_small_03",
+ "hdri_drehung_grad": 205.0,
+ "hdri_staerke": 0.55,
+ "hdri_schwelle": 0.9,
+ "boden_hoehe": 0.0,
+ "belichtung": 0.0,
+ "aufloesung": [
+  1600,
+  900
+ ],
+ "varianten": [
+  "Azzurro",
+  "Bianco",
+  "Salvia"
+ ],
+ "umgebung": {
+  "datei": "umgebung.hdr",
+  "ort": [
+   0.0,
+   0.6593917012214661,
+   -0.0
+  ]
+ },
+ "umgebung_boden": {
+  "datei": "umgebung-boden.hdr"
+ },
+ "boden": {
+  "datei": "boden-licht.webp",
+  "groesse_m": 16.0,
+  "mitte": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "albedo_gebacken": 0.08,
+  "albedo_echt": 0.006,
+  "ansicht": "Standard",
+  "insel_m": [
+   2.6,
+   9.0
+  ],
+  "auslauf_m": [
+   4.0,
+   14.0
+  ],
+  "glanz_max": 0.4,
+  "rauheit": [
+   0.26,
+   0.4
+  ],
+  "licht_skala": 0.29177064981753587
+ },
+ "look": {
+  "kontrast": 1.3,
+  "pivot": 0.606,
+  "saettigung": 1.25
+ },
+ "web_belichtung": 0.6,
+ "web_spiegel": {
+  "staerke": 0.22,
+  "lod": 4.5
+ },
+ "web_boden": {
+  "glanz": 0.4,
+  "umgebung": 0.5,
+  "farbe": [
+   1.0,
+   1.05,
+   1.15
+  ]
+ },
+ "grund_srgb": [
+  0.0008,
+  0.0034,
+  0.0094
+ ],
+ "zerlegen": {
+  "dauer": 3.0,
+  "breite": 0.34,
+  "regeln": [
+   {
+    "muster": "^tuer_[vh](_|$)",
+    "seite": 1.15,
+    "hoch": 0.1,
+    "start": 0.0,
+    "beschriftung": "tueren"
+   },
+   {
+    "muster": "^haube$",
+    "hoch": 0.8,
+    "vor": 0.6,
+    "start": 0.06,
+    "beschriftung": "haube"
+   },
+   {
+    "muster": "^(klappe|klappe_spoiler|rueckleuchte.*|stoss_h|kennzeichen_h)$",
+    "hoch": 0.55,
+    "vor": -0.9,
+    "start": 0.12,
+    "beschriftung": "heck"
+   },
+   {
+    "muster": "^(stoss_v|grill_.*|einlass.*|scheinwerfer.*|kennzeichen_v)$",
+    "vor": 0.75,
+    "start": 0.1
+   },
+   {
+    "muster": "^(frontscheibe|wischer)$",
+    "hoch": 0.95,
+    "vor": 0.35,
+    "start": 0.28
+   },
+   {
+    "muster": "^(reifen|felge|felgenbett|schrauben|nabendeckel)_[vh]_[lr]$",
+    "seite": 0.9,
+    "start": 0.42,
+    "beschriftung": "raeder"
+   },
+   {
+    "muster": "^(bremsscheibe|sattel)_[vh]_[lr]$",
+    "seite": 0.5,
+    "start": 0.5,
+    "beschriftung": "bremse"
+   },
+   {
+    "muster": "^antrieb_",
+    "hoch": 0.55,
+    "start": 0.58,
+    "beschriftung": "antrieb"
+   },
+   {
+    "muster": "^fahrwerk_",
+    "hoch": 0.3,
+    "start": 0.62,
+    "beschriftung": "fahrwerk"
+   },
+   {
+    "muster": "^innen_sitze$",
+    "hoch": 0.45,
+    "start": 0.66,
+    "beschriftung": "sitze"
+   },
+   {
+    "muster": "^innen_(lenkrad|armatur)$",
+    "hoch": 0.28,
+    "vor": 0.1,
+    "start": 0.7
+   }
+  ]
+ },
+ "dreiecke": 235424
+}

@@ -50,6 +50,28 @@ final class Bedarf
             ],
             'zweck' => ['zeigen', 'kontakt'],
         ],
+        // Kleinwagen und Mittelklasse (23.09.2026): eigene Entwuerfe neben dem
+        // Konzeptauto, gleiche Zwecke wie die Automotive-Demo.
+        'kleinwagen' => [
+            'name' => ['it' => 'demo automotive, utilitaria', 'de' => 'Automotive-Demo, Kleinwagen', 'en' => 'automotive demo, small car'],
+            'art'  => ['it' => 'vernice', 'de' => 'Lack', 'en' => 'paint'],
+            'varianten' => [
+                'azzurro' => ['it' => 'azzurro metallizzato', 'de' => 'Azurblau Metallic', 'en' => 'azure blue metallic'],
+                'bianco'  => ['it' => 'bianco pastello', 'de' => 'Uni-Weiß', 'en' => 'solid white'],
+                'salvia'  => ['it' => 'verde salvia metallizzato', 'de' => 'Salbeigrün Metallic', 'en' => 'sage green metallic'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
+        'mittelklasse' => [
+            'name' => ['it' => 'demo automotive, berlina', 'de' => 'Automotive-Demo, Mittelklasse', 'en' => 'automotive demo, mid-size saloon'],
+            'art'  => ['it' => 'vernice', 'de' => 'Lack', 'en' => 'paint'],
+            'varianten' => [
+                'blunotte' => ['it' => 'blu notte metallizzato', 'de' => 'Nachtblau Metallic', 'en' => 'midnight blue metallic'],
+                'argento'  => ['it' => 'argento metallizzato', 'de' => 'Silber Metallic', 'en' => 'silver metallic'],
+                'rosso'    => ['it' => 'rosso metallizzato', 'de' => 'Rot Metallic', 'en' => 'red metallic'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
         'schuh' => [
             'name' => ['it' => 'demo e-commerce', 'de' => 'E-Commerce-Demo', 'en' => 'e-commerce demo'],
             'art'  => ['it' => 'colore', 'de' => 'Farbe', 'en' => 'colour'],

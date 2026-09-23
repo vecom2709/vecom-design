@@ -6482,6 +6482,12 @@ pruefe('unbekannte oder freie Demo-Angaben kommen nicht durch',
     Bedarf::demoPruefen('schuh-rose-99') === '' && Bedarf::demoPruefen('auto-lila') === ''
     && Bedarf::demoPruefen('auto-karmin-42') === '' && Bedarf::demoPruefen('<b>x</b>') === '');
 pruefe('die Demo legt den Zweck nahe', Bedarf::demoZweck('schuh-blau') === ['shop']);
+pruefe('die neuen Automodelle werden angenommen', Bedarf::demoPruefen('kleinwagen-azzurro') === 'kleinwagen-azzurro'
+    && Bedarf::demoPruefen('mittelklasse-blunotte') === 'mittelklasse-blunotte');
+pruefe('fremde Lacke der Automodelle werden abgewiesen', Bedarf::demoPruefen('kleinwagen-karmin') === ''
+    && Bedarf::demoPruefen('mittelklasse-azzurro') === '' && Bedarf::demoPruefen('kleinwagen-azzurro-42') === '');
+pruefe('Automodell im Anfragetext', str_contains(Bedarf::demoText('mittelklasse-rosso', 'de'), 'Mittelklasse')
+    && str_contains(Bedarf::demoText('mittelklasse-rosso', 'de'), 'Rot Metallic'));
 $dmB = Bedarf::starten('de');
 Bedarf::speichern((int) $dmB['id'], ['zweck' => ['shop'], 'umfang' => 'wenige', 'sprachen' => 1], 3);
 $dmOk = Bedarf::absenden((int) $dmB['id'], ['name' => 'Demo Kundin', 'email' => 'demo-auswahl@pruefung.example',

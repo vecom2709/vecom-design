@@ -32,7 +32,20 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
-    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung' },
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung' },
+    modelle: {
+      kleinwagen: { alt: 'Kleinwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
+        daten: 'Eigener Entwurf · Länge 4,07 m · Breite 1,76 m · Höhe 1,45 m · Radstand 2,57 m',
+        bau: 'Dreizylinder quer, Frontantrieb · McPherson vorn, Verbundlenker hinten',
+        lacke: { azzurro: 'Azurblau Metallic', bianco: 'Uni-Weiß', salvia: 'Salbeigrün Metallic' } },
+      mittelklasse: { alt: 'Mittelklasse-Limousine in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
+        daten: 'Eigener Entwurf · Länge 4,76 m · Breite 1,83 m · Höhe 1,44 m · Radstand 2,85 m',
+        bau: 'Vierzylinder längs, Hinterradantrieb · Federbeine vorn, Mehrlenker hinten',
+        lacke: { blunotte: 'Nachtblau Metallic', argento: 'Silber Metallic', rosso: 'Rot Metallic' } },
+      auto: { alt: 'Karminroter Sportwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
+        daten: 'Designstudie · Länge 4,36 m · Höhe 1,31 m', bau: 'Konzeptauto „CarConcept“ von Khronos (CC BY 4.0)',
+        lacke: { karmin: 'Karminrot', perl: 'Perlweiß', graphit: 'Graphit' } },
+    },
   },
   it: {
     foto: 'Calcolato · Blender Cycles · 384 campioni',
@@ -47,7 +60,20 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
-    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura' },
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura' },
+    modelle: {
+      kleinwagen: { alt: 'Utilitaria in uno studio fotografico scuro, calcolata con Blender Cycles',
+        daten: 'Progetto proprio · lunghezza 4,07 m · larghezza 1,76 m · altezza 1,45 m · passo 2,57 m',
+        bau: 'Tre cilindri trasversale, trazione anteriore · McPherson davanti, ponte torcente dietro',
+        lacke: { azzurro: 'Azzurro metallizzato', bianco: 'Bianco pastello', salvia: 'Verde salvia metallizzato' } },
+      mittelklasse: { alt: 'Berlina media in uno studio fotografico scuro, calcolata con Blender Cycles',
+        daten: 'Progetto proprio · lunghezza 4,76 m · larghezza 1,83 m · altezza 1,44 m · passo 2,85 m',
+        bau: 'Quattro cilindri longitudinale, trazione posteriore · montanti davanti, multilink dietro',
+        lacke: { blunotte: 'Blu notte metallizzato', argento: 'Argento metallizzato', rosso: 'Rosso metallizzato' } },
+      auto: { alt: 'Auto sportiva rosso carminio in uno studio fotografico scuro, calcolata con Blender Cycles',
+        daten: 'Studio di design · lunghezza 4,36 m · altezza 1,31 m', bau: 'Concept car «CarConcept» di Khronos (CC BY 4.0)',
+        lacke: { karmin: 'Rosso carminio', perl: 'Bianco perla', graphit: 'Grafite' } },
+    },
   },
   en: {
     foto: 'Rendered · Blender Cycles · 384 samples',
@@ -62,7 +88,20 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
-    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces' },
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces' },
+    modelle: {
+      kleinwagen: { alt: 'Small car in a dark photo studio, rendered with Blender Cycles',
+        daten: 'Our own design · length 4.07 m · width 1.76 m · height 1.45 m · wheelbase 2.57 m',
+        bau: 'Transverse three-cylinder, front-wheel drive · MacPherson front, twist beam rear',
+        lacke: { azzurro: 'Azure blue metallic', bianco: 'Solid white', salvia: 'Sage green metallic' } },
+      mittelklasse: { alt: 'Mid-size saloon in a dark photo studio, rendered with Blender Cycles',
+        daten: 'Our own design · length 4.76 m · width 1.83 m · height 1.44 m · wheelbase 2.85 m',
+        bau: 'Longitudinal four-cylinder, rear-wheel drive · struts front, multi-link rear',
+        lacke: { blunotte: 'Midnight blue metallic', argento: 'Silver metallic', rosso: 'Red metallic' } },
+      auto: { alt: 'Carmine red sports car in a dark photo studio, rendered with Blender Cycles',
+        daten: 'Design study · length 4.36 m · height 1.31 m', bau: 'Khronos “CarConcept” concept car (CC BY 4.0)',
+        lacke: { karmin: 'Carmine red', perl: 'Pearl white', graphit: 'Graphite' } },
+    },
   },
 };
 const TEXT = TEXTE[SPRACHE];
@@ -76,6 +115,14 @@ const BILD_STAND = '2';
 /* Dasselbe für Modelle, Umgebungen und Kameradaten unter assets/3d/branchen. */
 const MODELL_STAND = '3';
 const PFAD = '/assets/img/erlebnis/branchen/';
+/* Modelle der Automotive-Demo: Lackschluessel (= Dateiname der Fotos und
+   Reihenfolge der Varianten im GLB), Farbe des Punkts, gemessene Uebertragung
+   (gzip, samt three.js) und Dreiecke der Echtzeitfassung. */
+const MODELLE = {
+  kleinwagen: { mb: 1.1, dreiecke: 235424, lacke: [['azzurro', '#2a64ad'], ['bianco', '#ebeae5'], ['salvia', '#8a9d8c']] },
+  mittelklasse: { mb: 1.1, dreiecke: 241827, lacke: [['blunotte', '#1f2c52'], ['argento', '#b8bbbf'], ['rosso', '#8f1519']] },
+  auto: { mb: 2.9, dreiecke: 213347, lacke: [['karmin', '#b3121c'], ['perl', '#e6e8ec'], ['graphit', '#55595f']] },
+};
 
 /* Stufe aus dem Erlebnisteil (erlebnis.js misst das Gerät). Die Spiegelung
    im Boden rendert das Modell ein zweites Mal -- erst ab HIGH. */
@@ -125,11 +172,13 @@ function zaehlen(e) {
 
 // Welche Etiketten auf schmalen Bühnen bleiben (Schuh: alle drei).
 const KNAPP = new Map([['tueren', true], ['haube', true], ['raeder', true], ['antrieb', true],
-  ['heck', false], ['dach', false], ['bremse', false], ['sitze', false]]);
+  ['heck', false], ['dach', false], ['bremse', false], ['sitze', false], ['fahrwerk', false]]);
 
 /* ---------------------------------------------------------------- Bühne */
 function buehneAnlegen(fig) {
-  const modell = fig.dataset.modell;
+  // Beim Auto umschaltbar (Kleinwagen, Mittelklasse, Sportwagen): alles, was
+  // Adressen baut, liest den aktuellen Wert.
+  let modell = fig.dataset.modell;
   const ruheA = $('.ruhe-a', fig); const ruheB = $('.ruhe-b', fig);
   const knopf = $('.bewegen', fig); const knopfText = $('.bewegen__text', fig);
   const kennung = $('.kennung__text', fig);
@@ -244,7 +293,7 @@ function buehneAnlegen(fig) {
           bodenUrl: basis + `boden-licht.webp?v=${MODELL_STAND}`,
           einstellungen: stufe(),
           variante: Number(fig.dataset.varianteNr || 0),
-          bezeichnung: TEXT.leinwand[modell],
+          bezeichnung: TEXT.leinwand[modell === 'schuh' ? 'schuh' : 'auto'],
           beiBewegung: () => an(),
           beiRuhe: () => aus(),
           beiBild: (dt, fps, schlaeft) => { if (z.echtzeit && !z.zerlegt) kennung.textContent = TEXT.echtzeit(schlaeft ? 0 : fps); },
@@ -260,7 +309,7 @@ function buehneAnlegen(fig) {
   }
   function an() {
     if (!z.p) return;
-    z.echtzeit = true; fig.classList.add('ist-echtzeit'); zaehlen(`${modell === 'auto' ? 'auto' : 'schuh'}-drehen`);
+    z.echtzeit = true; fig.classList.add('ist-echtzeit'); zaehlen(`${modell === 'schuh' ? 'schuh' : 'auto'}-drehen`);
     knopfText.textContent = TEXT.zumFoto;
     kennung.textContent = z.zerlegt ? TEXT.zerlegt : TEXT.echtzeit(0);
     z.p.starten();
@@ -327,7 +376,26 @@ function buehneAnlegen(fig) {
   document.addEventListener('vecom:stufe', stufeSetzen);
   if (!webglDa()) { knopf.hidden = true; }
   kennungFoto();
-  return { variante, zerlegen, licht, details, get z() { return z; } };
+  /* Modell wechseln (Automotive): Echtzeit des alten Modells freigeben --
+     WebGL-Kontexte sind knapp, und zwei Autos gleichzeitig im Speicher
+     braucht niemand. Dann das Foto des neuen Modells; war die Echtzeit an,
+     laedt sie fuer das neue gleich nach. */
+  async function modellWechseln(neu, v, nr, alt) {
+    if (neu === modell) return;
+    const warEchtzeit = z.echtzeit;
+    if (z.p) { try { z.p.entsorgen(); } catch (f) { console.warn('[branchen] entsorgen:', f); } }
+    z.p = null; z.laedt = null; z.zerlegt = false; z.licht = false; z.details = false; z.echtzeit = false;
+    fig.classList.remove('hat-echtzeit', 'ist-echtzeit'); halter.setAttribute('aria-hidden', 'true');
+    ankerZeigen([], null);
+    modell = neu; fig.dataset.modell = neu;
+    z.variante = v; fig.dataset.variante = v; fig.dataset.varianteNr = String(nr);
+    knopfText.textContent = TEXT.drehen; kennungFoto();
+    const oben = ruheA.classList.contains('ist-oben') ? ruheA : ruheB;
+    if (alt) oben.alt = alt;
+    await bildZeigen(v);
+    if (warEchtzeit) { const p = await laden(); if (p) an(); }
+  }
+  return { variante, zerlegen, licht, details, modellWechseln, get z() { return z; }, get modell() { return modell; } };
 }
 
 /* ------------------------------------------------------------- Reiter */
@@ -380,9 +448,49 @@ if (autoFig) {
     const k = e.target.closest('button[data-variante]'); if (!k) return;
     for (const x of $$('button', lack)) x.setAttribute('aria-pressed', String(x === k));
     b.variante(k.dataset.variante, Number(k.dataset.nr));
-    auswahlMitgeben($('#bd-auto-cta'), `auto-${k.dataset.variante}`);
+    auswahlMitgeben($('#bd-auto-cta'), `${b.modell}-${k.dataset.variante}`);
   });
-  auswahlMitgeben($('#bd-auto-cta'), `auto-${autoFig.dataset.variante}`);
+  auswahlMitgeben($('#bd-auto-cta'), `${b.modell}-${autoFig.dataset.variante}`);
+  /* Drei Autos (23.09.2026): Kleinwagen und Mittelklasse sind eigene
+     Entwuerfe mit den Massen ihrer Klasse (3d-produktion/scripts/
+     fahrzeug_bau.py), der Sportwagen ist das Konzeptauto. Je Modell eigene
+     Lacke, Fakten und eine Datenzeile; Fotos und Modelle liegen je Modell
+     unter demselben Namensschema. */
+  const modellWahl = $('#bd-modell');
+  const daten = $('#bd-daten');
+  const LOKAL = { it: 'it-IT', de: 'de-DE', en: 'en-GB' }[SPRACHE];
+  function lackChips(m, aktiv) {
+    if (!lack) return;
+    lack.replaceChildren(...MODELLE[m].lacke.map(([key, farbe], nr) => {
+      const k = document.createElement('button');
+      k.type = 'button'; k.dataset.variante = key; k.dataset.nr = String(nr);
+      k.setAttribute('aria-pressed', String(key === aktiv));
+      const punkt = document.createElement('i'); punkt.className = 'farbpunkt'; punkt.setAttribute('aria-hidden', 'true');
+      punkt.style.setProperty('--f', farbe);
+      const name = document.createElement('span'); name.textContent = TEXT.modelle[m].lacke[key];
+      k.append(punkt, name);
+      return k;
+    }));
+  }
+  function faktenSetzen(m) {
+    const M = MODELLE[m]; const T = TEXT.modelle[m];
+    if (daten) { $('.bd-daten__masse', daten).textContent = T.daten; $('.bd-daten__bau', daten).textContent = T.bau; }
+    const mb = M.mb.toLocaleString(LOKAL, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' MB';
+    const z2 = $('#bd-auto-z2'); if (z2) z2.textContent = mb;
+    const z3 = $('#bd-auto-z3'); if (z3) z3.textContent = M.dreiecke.toLocaleString(LOKAL);
+    const gr = $('.bewegen__groesse', autoFig); if (gr) gr.textContent = mb;
+  }
+  modellWahl && modellWahl.addEventListener('click', (e) => {
+    const k = e.target.closest('button[data-modell]'); if (!k) return;
+    const m = k.dataset.modell; if (!MODELLE[m] || m === b.modell) return;
+    for (const x of $$('button', modellWahl)) x.setAttribute('aria-pressed', String(x === k));
+    const [erster] = MODELLE[m].lacke[0];
+    lackChips(m, erster); faktenSetzen(m);
+    if (ansicht) for (const x of $$('button', ansicht)) x.setAttribute('aria-pressed', String(x.dataset.zerlegt === '0'));
+    b.modellWechseln(m, erster, 0, TEXT.modelle[m].alt);
+    auswahlMitgeben($('#bd-auto-cta'), `${m}-${erster}`);
+    zaehlen(`modell-${m}`);
+  });
   const ansicht = $('#bd-ansicht');
   ansicht && ansicht.addEventListener('click', (e) => {
     const k = e.target.closest('button[data-zerlegt]'); if (!k) return;

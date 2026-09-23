@@ -16,6 +16,7 @@
 const EREIGNISSE = [
     'villa-drehen', 'auto-drehen', 'auto-zerlegen', 'schuh-drehen', 'schuh-details',
     'schuh-korb', 'tisch-drehen', 'cta-auto', 'cta-shop',
+    'modell-kleinwagen', 'modell-mittelklasse', 'modell-auto',
 ];
 $datei = __DIR__ . '/demo.csv';
 

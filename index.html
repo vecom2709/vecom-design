@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=d07fada6">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=d6a9d952">
 
 
 <script type="importmap">
@@ -583,7 +583,16 @@
           </div>
           <div class="bd-rechts">
             <h3 data-i18n="erlebnis.bd_auto_h">Configuratore con vista esplosa</h3>
-            <p class="bd-text" data-i18n="erlebnis.bd_auto_p">Tre vernici, un solo file: cambia il materiale, non l’immagine. E con un tocco l’auto si scompone nei suoi pezzi — per chi vuole mostrare la tecnica, non solo la carrozzeria.</p>
+            <p class="bd-text" data-i18n="erlebnis.bd_auto_p">Tre auto, tre vernici ciascuna: cambia il materiale, non l’immagine. E con un tocco l’auto si scompone nei suoi pezzi — carrozzeria, motore, assali. Per chi vuole mostrare la tecnica, non solo la lamiera.</p>
+            <div class="gruppe">
+              <span class="gruppe__name" id="bd-l-modell" data-i18n="erlebnis.bd_modell">Modello</span>
+              <div class="chips chips--umbruch" id="bd-modell" role="group" aria-labelledby="bd-l-modell">
+                <button type="button" data-modell="kleinwagen" aria-pressed="false" data-i18n="erlebnis.bd_m_klein">Utilitaria</button>
+                <button type="button" data-modell="mittelklasse" aria-pressed="false" data-i18n="erlebnis.bd_m_mittel">Berlina</button>
+                <button type="button" data-modell="auto" aria-pressed="true" data-i18n="erlebnis.bd_m_sport">Sportiva</button>
+              </div>
+              <p class="bd-daten" id="bd-daten" aria-live="polite"><span class="bd-daten__masse" data-i18n="erlebnis.bd_daten_sport">Studio di design · lunghezza 4,36 m · altezza 1,31 m</span><span class="bd-daten__bau" data-i18n="erlebnis.bd_bau_sport">Concept car «CarConcept» di Khronos (CC BY 4.0)</span></p>
+            </div>
             <div class="gruppe">
               <span class="gruppe__name" id="bd-l-lack" data-i18n="erlebnis.bd_lack">Vernice</span>
               <div class="chips chips--umbruch" id="bd-lack" role="group" aria-labelledby="bd-l-lack">
@@ -602,8 +611,8 @@
             <p class="bd-hinweis" id="bd-auto-hinweis" hidden></p>
             <dl class="fakten bd-fakten">
               <div><dt>3</dt><dd data-i18n="erlebnis.bd_auto_f1">vernici in un solo file</dd></div>
-              <div><dt data-i18n="erlebnis.bd_auto_z2">2,9 MB</dt><dd data-i18n="erlebnis.bd_auto_f2">caricati solo al primo tocco</dd></div>
-              <div><dt data-i18n="erlebnis.bd_auto_z3">213.347</dt><dd data-i18n="erlebnis.bd_auto_f3">triangoli in tempo reale</dd></div>
+              <div><dt id="bd-auto-z2" data-i18n="erlebnis.bd_auto_z2">2,9 MB</dt><dd data-i18n="erlebnis.bd_auto_f2">caricati solo al primo tocco</dd></div>
+              <div><dt id="bd-auto-z3" data-i18n="erlebnis.bd_auto_z3">213.347</dt><dd data-i18n="erlebnis.bd_auto_f3">triangoli in tempo reale</dd></div>
             </dl>
             <a class="knopf knopf--voll" id="bd-auto-cta" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_auto_cta">Una cosa così per la tua concessionaria</a>
           </div>
@@ -1770,7 +1779,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=735764cc" defer></script>
+<script src="assets/js/i18n-it.js?v=967df003" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1795,7 +1804,7 @@
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
 <script type="module" src="assets/js/erlebnis/erlebnis.js?v=f7217591"></script>
-<script type="module" src="assets/js/erlebnis/branchen.js?v=0ea2ebaa"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=8d445d9d"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------
