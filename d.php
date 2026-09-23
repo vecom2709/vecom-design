@@ -20,7 +20,7 @@ const EREIGNISSE = [
     'demo-villa', 'demo-auto', 'demo-shop', 'demo-tisch',
     'demo-wein', 'wein-stufe-1', 'wein-stufe-2',
     'demo-schmuck', 'schmuck-stufe-1', 'schmuck-stufe-2', 'schmuck-stufe-3',
-    'demo-kueche', 'kueche-stufe-1', 'kueche-stufe-2',
+    'demo-kueche', 'kueche-stufe-1', 'kueche-stufe-2', 'kueche-planer', 'kueche-oeffnen', 'cta-kueche',
     'demo-gastro', 'gastro-stufe-1',
     'demo-salon', 'salon-stufe-1', 'salon-stufe-2',
     'demo-lkw', 'lkw-stufe-1', 'lkw-stufe-2', 'lkw-stufe-3',

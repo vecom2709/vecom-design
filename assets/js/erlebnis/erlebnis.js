@@ -966,8 +966,8 @@ let demoOeffnen = null;
 if (demos) {
   const kacheln = [...demos.querySelectorAll('[data-demo]')];
   const buehnen = [...document.querySelectorAll('[data-demo-buehne]')];
-  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch', wein: 'produkt', schmuck: 'produkt', kueche: 'produkt', gastro: 'produkt', salon: 'produkt', lkw: 'produkt' };
-  const AUS_ADRESSE = { wein: 'wein', schmuck: 'schmuck', kueche: 'kueche', gastro: 'gastro', salon: 'salon', lkw: 'lkw', villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
+  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch', wein: 'produkt', schmuck: 'produkt', kueche: 'planer', gastro: 'produkt', salon: 'produkt', lkw: 'produkt' };
+  const AUS_ADRESSE = { wein: 'wein', schmuck: 'schmuck', kueche: 'kueche', kuechenplaner: 'kueche', gastro: 'gastro', salon: 'salon', lkw: 'lkw', villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
   let offen = null;
   const zuklappen = (b) => { if (!b.hidden) { b.dispatchEvent(new CustomEvent('demo:zu')); b.hidden = true; } };
   function oeffnen(demo, rollen = true) {
@@ -975,6 +975,8 @@ if (demos) {
     if (!ziel) return;
     for (const b of buehnen) if (b !== ziel) zuklappen(b);
     ziel.hidden = false;
+    // Bühnen mit eigenem Skript (Küchenplaner) laden erst jetzt
+    ziel.dispatchEvent(new CustomEvent('demo:auf'));
     // Auto und Shop teilen sich eine Bühne mit Reitern -- den richtigen wählen.
     if (demo === 'auto' || demo === 'shop') document.getElementById(`bd-tab-${demo}`)?.click();
     // Weitere Branchen teilen sich eine Produktbühne: branchen.js wechselt das Modell.

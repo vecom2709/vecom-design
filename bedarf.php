@@ -107,6 +107,11 @@ $demoRoh = Bedarf::demoPruefen(strtolower(trim((string) ($_GET['demo'] ?? ''))))
 if ($demoRoh !== '') { $_SESSION['bedarf_demo'] = $demoRoh; }
 $demo     = (string) ($_SESSION['bedarf_demo'] ?? '');
 $demoText = Bedarf::demoText($demo, $sprache);
+// Kuechenplan aus dem Planer: gleiche Behandlung, eigener Schluessel
+$planRoh = Bedarf::planPruefen((string) ($_GET['plan'] ?? ''));
+if ($planRoh !== '') { $_SESSION['bedarf_plan'] = $planRoh; }
+$plan = (string) ($_SESSION['bedarf_plan'] ?? '');
+if ($plan !== '') { $demoText = ($demoText !== '' ? $demoText . ': ' : '') . Bedarf::planText($plan, $sprache); }
 
 /* ---------- Laden oder anfangen ---------- */
 $token = trim((string) ($_REQUEST['t'] ?? ''));
@@ -175,8 +180,9 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 // der er gerade zufaellig liest.
                 'sprache'      => (string) ($_POST['sprache_wahl'] ?? ''),
                 'demo'         => $demo,
+                'plan'         => $plan,
             ]);
-            if ($ok) { unset($_SESSION['bedarf_demo']); }
+            if ($ok) { unset($_SESSION['bedarf_demo'], $_SESSION['bedarf_plan']); }
             /* Die Dankeseite in SEINER Sprache, nicht in der, in der er
                gelesen hat. Wer gerade "Deutsch" angegeben hat und dann eine
                italienische Bestaetigung sieht, glaubt zu Recht, die Angabe

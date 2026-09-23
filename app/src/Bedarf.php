@@ -83,7 +83,103 @@ final class Bedarf
             'groessen' => [38, 45],
             'zweck' => ['shop'],
         ],
+        // Produktdemos der Galerie (24.09.2026, Wunsch A3): die gewaehlte
+        // Variante kommt mit in die Anfrage.
+        'wein' => [
+            'name' => ['it' => 'demo vino e prodotti naturali', 'de' => 'Demo Wein & Naturprodukte', 'en' => 'wine & natural products demo'],
+            'art'  => ['it' => 'prodotto', 'de' => 'Produkt', 'en' => 'product'],
+            'varianten' => [
+                'rosso' => ['it' => 'vino rosso', 'de' => 'Rotwein', 'en' => 'red wine'],
+                'bianco' => ['it' => 'vino bianco', 'de' => 'Weißwein', 'en' => 'white wine'],
+                'olio' => ['it' => 'olio d’oliva', 'de' => 'Olivenöl', 'en' => 'olive oil'],
+            ],
+            'zweck' => ['zeigen', 'shop'],
+        ],
+        'schmuck' => [
+            'name' => ['it' => 'demo gioielli e orologi', 'de' => 'Demo Schmuck & Uhren', 'en' => 'jewellery & watches demo'],
+            'art'  => ['it' => 'metallo', 'de' => 'Metall', 'en' => 'metal'],
+            'varianten' => [
+                'stahl' => ['it' => 'acciaio', 'de' => 'Edelstahl', 'en' => 'steel'],
+                'gelbgold' => ['it' => 'oro giallo', 'de' => 'Gelbgold', 'en' => 'yellow gold'],
+                'rosegold' => ['it' => 'oro rosa', 'de' => 'Roségold', 'en' => 'rose gold'],
+            ],
+            'zweck' => ['zeigen', 'shop'],
+        ],
+        'kueche' => [
+            'name' => ['it' => 'progettatore cucina', 'de' => 'Küchenplaner', 'en' => 'kitchen planner'],
+            'art'  => ['it' => '', 'de' => '', 'en' => ''],
+            'varianten' => [
+                'planer' => ['it' => 'progetto su misura', 'de' => 'eigene Planung', 'en' => 'own plan'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
+        'gastro' => [
+            'name' => ['it' => 'demo ristorazione', 'de' => 'Demo Gastronomie', 'en' => 'restaurant demo'],
+            'art'  => ['it' => 'tavola', 'de' => 'Tisch', 'en' => 'table'],
+            'varianten' => [
+                'weiss' => ['it' => 'lino bianco', 'de' => 'weißes Leinen', 'en' => 'white linen'],
+                'terrakotta' => ['it' => 'terracotta', 'de' => 'Terrakotta', 'en' => 'terracotta'],
+                'anthrazit' => ['it' => 'antracite', 'de' => 'Anthrazit', 'en' => 'charcoal'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
+        'lkw' => [
+            'name' => ['it' => 'demo logistica', 'de' => 'Demo Logistik', 'en' => 'logistics demo'],
+            'art'  => ['it' => 'colore flotta', 'de' => 'Flottenfarbe', 'en' => 'fleet colour'],
+            'varianten' => [
+                'rot' => ['it' => 'rosso', 'de' => 'Rot', 'en' => 'red'],
+                'weiss' => ['it' => 'bianco', 'de' => 'Weiß', 'en' => 'white'],
+                'blau' => ['it' => 'blu', 'de' => 'Blau', 'en' => 'blue'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
     ];
+
+    /* DER KUECHENPLAN
+       ----------------------------------------------------------------------
+       Der Planer auf der Startseite gibt seinen Plan als kurzen Code mit
+       (plan=l-300-240-240_salbei-eiche-messing-1_e110a60s80g60_a60k80c60_).
+       Geprueft wird Zeichen fuer Zeichen gegen dieselbe Grammatik wie im
+       Planer; lesbar gemacht wird er hier, damit in der Anfrage nicht ein
+       Code steht, sondern eine Kueche. */
+    private const PLAN_RE = '/^([zli])-(\d{3})-(\d{3})-(\d{3})_(salbei|weiss|nussbaum|graphit)-(eiche|marmor|keramik)-(messing|edelstahl|schwarz|grifflos)-([01])_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})$/';
+    private const PLAN_WOERTER = [
+        'form'  => ['z' => ['it' => 'lineare', 'de' => 'Küchenzeile', 'en' => 'single wall'], 'l' => ['it' => 'ad angolo', 'de' => 'L-Form', 'en' => 'L-shaped'], 'i' => ['it' => 'con isola', 'de' => 'mit Insel', 'en' => 'with island']],
+        'wand'  => ['it' => 'parete', 'de' => 'Wand', 'en' => 'wall'],
+        'insel' => ['it' => 'isola', 'de' => 'Insel', 'en' => 'island'],
+        'moebel'=> ['it' => 'mobili', 'de' => 'Schränke', 'en' => 'cabinets'],
+        'ober'  => ['it' => 'con pensili', 'de' => 'mit Hängeschränken', 'en' => 'with wall cabinets'],
+        'stil'  => ['salbei' => ['it' => 'ante salvia', 'de' => 'Fronten Salbei', 'en' => 'sage fronts'], 'weiss' => ['it' => 'ante bianche', 'de' => 'Fronten Weiß', 'en' => 'white fronts'], 'nussbaum' => ['it' => 'ante noce', 'de' => 'Fronten Nussbaum', 'en' => 'walnut fronts'], 'graphit' => ['it' => 'ante grafite', 'de' => 'Fronten Graphit', 'en' => 'graphite fronts'],
+                    'eiche' => ['it' => 'piano rovere', 'de' => 'Platte Eiche', 'en' => 'oak worktop'], 'marmor' => ['it' => 'piano marmo', 'de' => 'Platte Marmor', 'en' => 'marble worktop'], 'keramik' => ['it' => 'piano ceramica', 'de' => 'Platte Keramik', 'en' => 'ceramic worktop'],
+                    'messing' => ['it' => 'maniglie ottone', 'de' => 'Griffe Messing', 'en' => 'brass handles'], 'edelstahl' => ['it' => 'maniglie acciaio', 'de' => 'Griffe Edelstahl', 'en' => 'steel handles'], 'schwarz' => ['it' => 'maniglie nere', 'de' => 'Griffe Schwarz', 'en' => 'black handles'], 'grifflos' => ['it' => 'senza maniglie', 'de' => 'grifflos', 'en' => 'handleless']],
+    ];
+
+    public static function planPruefen(string $roh): string
+    {
+        $roh = strtolower(trim($roh));
+        return (strlen($roh) <= 300 && preg_match(self::PLAN_RE, $roh)) ? $roh : '';
+    }
+
+    /** "L-Form, Wand A 300 cm, Wand B 240 cm, 11 Schränke, Fronten Salbei, …" */
+    public static function planText(string $plan, string $sprache): string
+    {
+        $plan = self::planPruefen($plan);
+        if ($plan === '' || !preg_match(self::PLAN_RE, $plan, $t)) { return ''; }
+        $w = self::PLAN_WOERTER;
+        $h = static fn (array $x): string => Texte::h($x, $sprache);
+        $teile = [$h($w['form'][$t[1]]), $h($w['wand']) . ' A ' . (int) $t[2] . ' cm'];
+        if ($t[1] === 'l') { $teile[] = $h($w['wand']) . ' B ' . (int) $t[3] . ' cm'; }
+        $zahl = preg_match_all('/[a-z]\d+/', $t[9] . $t[10] . $t[11]);
+        if ($t[1] === 'i') {
+            $insel = array_sum(array_map('intval', preg_split('/[a-z]/', $t[11], -1, PREG_SPLIT_NO_EMPTY)));
+            $teile[] = $h($w['insel']) . ' ' . $insel . ' cm';
+        }
+        $teile[] = $zahl . ' ' . $h($w['moebel']);
+        foreach ([5, 6, 7] as $i) { $teile[] = $h($w['stil'][$t[$i]]); }
+        if ($t[8] === '1') { $teile[] = $h($w['ober']); }
+        return implode(', ', $teile);
+    }
+
 
     /** Prueft einen Demo-Schluessel und gibt ihn bereinigt zurueck — oder ''. */
     public static function demoPruefen(string $roh): string
@@ -107,7 +203,8 @@ final class Bedarf
         if ($demo === '') { return ''; }
         $t = explode('-', $demo);
         $d = self::DEMOS[$t[0]];
-        $text = Texte::h($d['name'], $sprache) . ', ' . Texte::h($d['art'], $sprache) . ' '
+        $art = Texte::h($d['art'], $sprache);
+        $text = Texte::h($d['name'], $sprache) . ', ' . ($art !== '' ? $art . ' ' : '')
               . Texte::h($d['varianten'][$t[1]], $sprache);
         if (isset($t[2])) { $text .= ', ' . ($sprache === 'it' ? 'taglia' : ($sprache === 'de' ? 'Größe' : 'size')) . ' ' . $t[2]; }
         return $text;
@@ -268,6 +365,12 @@ final class Bedarf
 
         // Kam er aus einer Demo, steht seine Auswahl als erste Zeile da.
         $demo = self::demoText((string) ($kontakt['demo'] ?? ''), $sprache);
+        // Kuechenplan: lesbar plus Link, der genau diese Planung wieder oeffnet
+        $plan = self::planPruefen((string) ($kontakt['plan'] ?? ''));
+        if ($plan !== '') {
+            $demo = ($demo !== '' ? $demo . ': ' : '') . self::planText($plan, $sprache)
+                  . "\n" . rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/' . ($sprache === 'it' ? '' : $sprache . '/') . '?plan=' . $plan . '#kuechenplaner';
+        }
         $vorspann = $demo === '' ? '' : strtr(Texte::h(Texte::BEDARF['demoAusgang'], $sprache), ['{wahl}' => $demo]) . "\n\n";
 
         // Ab hier darf alles scheitern, ohne den Bedarf mitzunehmen.

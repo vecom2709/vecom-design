@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=b847cac8">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=ffd7e63a">
 
 
 <script type="importmap">
@@ -495,9 +495,9 @@
           <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/schmuck-kachel-800.avif?v=d2b12e2c"><img src="assets/img/erlebnis/branchen/schmuck-kachel-800.webp?v=3ed5d4f2" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
           <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_schmuck_b">Gioielli e orologi</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_schmuck_t">Orologio da aprire</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_schmuck_x">Tempo reale · 1,2 MB</span></span>
         </button></li>
-        <li><button type="button" class="demo-kachel" data-demo="kueche" aria-controls="produkt-demo" aria-expanded="false">
+        <li><button type="button" class="demo-kachel" data-demo="kueche" aria-controls="kuechenplaner" aria-expanded="false">
           <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-salbei-800.avif?v=1f49c9b3"><img src="assets/img/erlebnis/branchen/kueche-salbei-800.webp?v=189b53f1" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
-          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_kueche_b">Cucine su misura</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_kueche_t">Isola da aprire</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_kueche_x">Tempo reale · 1,6 MB</span></span>
+          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_kueche_b">Cucine su misura</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_kueche_t">Progetta la tua cucina</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_kueche_x">Tempo reale · misure a norma</span></span>
         </button></li>
         <li><button type="button" class="demo-kachel" data-demo="gastro" aria-controls="produkt-demo" aria-expanded="false">
           <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/gastro-weiss-800.avif?v=12cbc52c"><img src="assets/img/erlebnis/branchen/gastro-weiss-800.webp?v=d8080b28" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
@@ -782,6 +782,34 @@
       <p class="bd-nachweis" data-i18n="erlebnis.pd_nachweis">Modelli ed etichette progettati da Vecom Design, calcolati con Blender Cycles. Luce da studio: Poly Haven (CC0).</p>
     </section>
 
+
+    <!-- Küchenplaner (24.09.2026, Wunsch Uwe: „wie bei Ikea mit Maßen"):
+         ersetzt die Kochinsel zum Drehen. Bedienung baut kuechenplaner.js,
+         die Szene kuechenplaner-3d.js -- geladen erst beim Öffnen. -->
+    <section class="abschnitt branchen demo-buehne kp" id="kuechenplaner" data-demo-buehne="planer" data-anfrage="/bedarf.php" aria-labelledby="kp-h" hidden>
+      <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
+      <header class="kp-titel">
+        <p class="kicker" data-i18n="erlebnis.kp_kicker">Cucine su misura · progettatore</p>
+        <h2 id="kp-h" data-i18n="erlebnis.kp_h">Progetta la tua cucina — al centimetro.</h2>
+        <p class="lead" data-i18n="erlebnis.kp_lead">Scegli la forma, inserisci le misure delle pareti, disponi i mobili. La cucina nasce in scala secondo la norma, e il controllo del progetto ti dice subito cosa funziona.</p>
+      </header>
+      <div class="bd-raster kp-raster">
+        <div class="bd-links">
+          <figure class="buehne buehne--produkt kp-buehne" data-src="assets/js/erlebnis/kuechenplaner-3d.js?v=4f8de9c0">
+            <picture>
+              <source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-salbei.avif?v=570d0aa0">
+              <img class="ruhe ist-an ist-oben" src="assets/img/erlebnis/branchen/kueche-salbei.webp?v=8dffd242" width="1600" height="900" loading="lazy" decoding="async" alt="">
+            </picture>
+            <div class="echtzeit"></div>
+            <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">…</span></figcaption>
+          </figure>
+          <div class="kp-ansicht"></div>
+          <p class="bd-griff" data-i18n="erlebnis.kp_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire · tocca un mobile per modificarlo</p>
+          <p class="kp-hinweis" aria-live="polite"></p>
+        </div>
+        <div class="bd-rechts kp-panel"></div>
+      </div>
+    </section>
 
     <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
       <header class="abschnitt__kopf">
@@ -1886,7 +1914,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=bb9af33a" defer></script>
+<script src="assets/js/i18n-it.js?v=1f5065d4" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1910,8 +1938,9 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=20ff834a"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=41254f69"></script>
 <script type="module" src="assets/js/erlebnis/branchen.js?v=737b4a62"></script>
+<script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=9086c2d8"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------
