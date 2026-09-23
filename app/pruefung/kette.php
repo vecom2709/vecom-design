@@ -6955,6 +6955,9 @@ pruefe('das Angebot hat einen Sprachumschalter',
 $spApp = (string) file_get_contents($spWurzel . '/assets/js/app.js');
 pruefe('app.js liest den Keks, den die PHP-Seiten setzen',
     str_contains($spApp, 'vecomlang=([a-z]{2})'));
+pruefe('und zwar an einer Stelle — auch die Weiche beim Direkteinstieg fragt dort',
+    substr_count($spApp, 'gemerkt()') >= 3
+    && !str_contains($spApp, "try { wunsch = localStorage.getItem(STORE); } catch (e) {}"));
 pruefe('und der Sprachhinweis fragt nicht gegen eine Wahl an, die dort getroffen wurde',
     str_contains((string) file_get_contents($spWurzel . '/assets/js/sprachhinweis.js'),
         'vecomlang=([a-z]{2})'));

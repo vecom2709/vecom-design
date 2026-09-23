@@ -34,6 +34,20 @@
     en: { home: '/en/', preise: '/en/pricing.html', betreuung: '/en/care.html' }
   };
 
+  /* Die gemerkte Wahl -- Keks vor Speicher (23.09.2026). Beide werden hier
+     zusammen geschrieben; nur der Keks wird auch von den PHP-Seiten
+     gesetzt. Wer zuletzt auf der Kundenseite umgeschaltet hat, soll nicht
+     an einer aelteren Wahl im Speicher haengen bleiben. */
+  function gemerkt() {
+    var keks = /(?:^|;)\s*vecomlang=([a-z]{2})/.exec(document.cookie || '');
+    if (keks && LANGS.indexOf(keks[1]) > -1) { return keks[1]; }
+    try {
+      var saved = localStorage.getItem(STORE);
+      if (LANGS.indexOf(saved) > -1) { return saved; }
+    } catch (e) {}
+    return null;
+  }
+
   function merken(lang) {
     try { localStorage.setItem(STORE, lang); } catch (e) {}
     try {
@@ -56,8 +70,7 @@
     var fest = document.documentElement.getAttribute('data-lang-fixed');
     if (!fest || LANGS.indexOf(fest) < 0) { return; }
     var hier = seiteVon(location.pathname);
-    var wunsch = null;
-    try { wunsch = localStorage.getItem(STORE); } catch (e) {}
+    var wunsch = gemerkt();
     var vonInnen = document.referrer.indexOf(location.origin + '/') === 0
         || document.referrer === location.origin;
     if (hier && !vonInnen && wunsch && LANGS.indexOf(wunsch) > -1 && wunsch !== fest) {
@@ -79,18 +92,8 @@
     if (fixed && LANGS.indexOf(fixed) > -1) return fixed;
     var url = new URLSearchParams(location.search).get('lang');
     if (LANGS.indexOf(url) > -1) return url;
-    /* Der Keks steht VOR dem localStorage (23.09.2026). Beide werden
-       zusammen geschrieben, wenn hier umgeschaltet wird -- aber die
-       PHP-Seiten schreiben nur den Keks. Er ist damit immer mindestens so
-       frisch wie der Speicher. Andersherum gewann die alte Wahl: Wer auf
-       der Angebotsseite auf Italienisch schaltete und dann die AGB
-       oeffnete, las wieder Deutsch. */
-    var keks = /(?:^|;)\s*vecomlang=([a-z]{2})/.exec(document.cookie || '');
-    if (keks && LANGS.indexOf(keks[1]) > -1) { return keks[1]; }
-    try {
-      var saved = localStorage.getItem(STORE);
-      if (LANGS.indexOf(saved) > -1) return saved;
-    } catch (e) {}
+    var wahl = gemerkt();
+    if (wahl) { return wahl; }
     var nav = (navigator.languages || [navigator.language || ''])
       .map(function (l) { return String(l).slice(0, 2).toLowerCase(); });
     for (var i = 0; i < nav.length; i++) if (LANGS.indexOf(nav[i]) > -1) return nav[i];
