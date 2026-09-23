@@ -32,7 +32,7 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
-    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', sitze: 'Sitze' },
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung' },
   },
   it: {
     foto: 'Calcolato · Blender Cycles · 384 campioni',
@@ -47,7 +47,7 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
-    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', sitze: 'Sedili' },
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura' },
   },
   en: {
     foto: 'Rendered · Blender Cycles · 384 samples',
@@ -62,7 +62,7 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
-    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', sitze: 'Seats' },
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces' },
   },
 };
 const TEXT = TEXTE[SPRACHE];
@@ -74,7 +74,7 @@ const $$ = (s, w = document) => [...w.querySelectorAll(s)];
    dreißig Tage). */
 const BILD_STAND = '1';
 /* Dasselbe für Modelle, Umgebungen und Kameradaten unter assets/3d/branchen. */
-const MODELL_STAND = '1';
+const MODELL_STAND = '2';
 const PFAD = '/assets/img/erlebnis/branchen/';
 
 /* Stufe aus dem Erlebnisteil (erlebnis.js misst das Gerät). Die Spiegelung
@@ -92,6 +92,18 @@ function stufe() {
 function webglDa() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2')); } catch { return false; }
 }
+
+/* AVIF, wo der Browser es kann (23.09.2026; dieselbe Pruefung wie in erlebnis.js): bei gleicher Treue zum
+   Cycles-PNG rund 45 % kleiner als WebP (tools/bilder-avif.py). Das <picture>
+   im HTML waehlt selbst; die Adressen, die JavaScript beim Wechseln setzt,
+   brauchen dieselbe Entscheidung -- ein 1-px-AVIF sagt, ob es geht. */
+const AVIF_PROBE = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADrbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAOcGl0bQAAAAAAAQAAAB5pbG9jAAAAAEQAAAEAAQAAAAEAAAETAAAAKAAAAChpaW5mAAAAAAABAAAAGmluZmUCAAAAAAEAAGF2MDFDb2xvcgAAAABqaXBycAAAAEtpcGNvAAAAFGlzcGUAAAAAAAAAAQAAAAEAAAAQcGl4aQAAAAADCAgIAAAADGF2MUOBAAwAAAAAE2NvbHJuY2x4AAEADQAGgAAAABdpcG1hAAAAAAAAAAEAAQQBAoMEAAAAMG1kYXQSAAoIGAAGiAhoNCAyGhlHh4Yhh5555oAAAJBAyRxhSytNj1FFTqSg';
+let bildEndung = 'webp';
+const avifPruefung = new Promise((ok) => {
+  const i = new Image();
+  i.onload = () => ok(i.naturalWidth === 1); i.onerror = () => ok(false);
+  i.src = AVIF_PROBE;
+}).then((ja) => { if (ja) bildEndung = 'avif'; return ja; });
 
 /* ---------------------------------------------------------------- Bühne */
 function buehneAnlegen(fig) {
@@ -161,11 +173,11 @@ function buehneAnlegen(fig) {
     for (const [key, e] of etiketten) if (!aktiv.has(key)) { e.el.hidden = true; e.linie.style.display = 'none'; e.punkt.style.display = 'none'; }
   }
 
-  const z = { variante: fig.dataset.variante, gezeigt: fig.dataset.variante, echtzeit: false, p: null, laedt: null, zerlegt: false, licht: false };
+  const z = { variante: fig.dataset.variante, gezeigt: fig.dataset.variante, echtzeit: false, p: null, laedt: null, zerlegt: false, licht: false, details: false };
 
   function adresse(v) {
     const klein = fig.clientWidth * (window.devicePixelRatio || 1) <= 900;
-    return `${PFAD}${modell}-${v}${klein ? '-800' : ''}.webp?v=${BILD_STAND}`;
+    return `${PFAD}${modell}-${v}${klein ? '-800' : ''}.${bildEndung}?v=${BILD_STAND}`;
   }
   function kennungFoto() { kennung.textContent = fig.clientWidth < 560 ? TEXT.fotoKurz : TEXT.foto; }
   let auftrag = 0;
@@ -173,8 +185,10 @@ function buehneAnlegen(fig) {
     const nr = ++auftrag;
     const oben = ruheA.classList.contains('ist-oben') ? ruheA : ruheB.classList.contains('ist-oben') ? ruheB : ruheA;
     const unten = oben === ruheA ? ruheB : ruheA;
-    const quelle = unten.parentElement && unten.parentElement.tagName === 'PICTURE' ? unten.parentElement.querySelector('source') : null;
-    if (quelle) quelle.remove();
+    const bild = unten.parentElement && unten.parentElement.tagName === 'PICTURE' ? unten.parentElement : null;
+    if (bild) for (const q of [...bild.querySelectorAll('source')]) q.remove();
+    await avifPruefung;
+    if (nr !== auftrag) return;
     unten.src = adresse(v); z.gezeigt = v;
     try { await unten.decode(); } catch { /* ohne Vorab-Dekodieren */ }
     if (nr !== auftrag) return;
@@ -226,7 +240,7 @@ function buehneAnlegen(fig) {
   }
   function aus() {
     // Zerlegt und mit Licht gibt es kein Foto -- dann bleibt die Echtzeit.
-    if (!z.echtzeit || z.zerlegt || z.licht) return;
+    if (!z.echtzeit || z.zerlegt || z.licht || z.details) return;
     // In der Echtzeit gewählte Variante: erst ihr Foto unterlegen, dann blenden.
     if (z.gezeigt !== z.variante) bildZeigen(z.variante);
     z.echtzeit = false; fig.classList.remove('ist-echtzeit');
@@ -238,8 +252,8 @@ function buehneAnlegen(fig) {
     if (z.echtzeit) {
       // Zurück zum Foto: zusammensetzen, Licht aus, auf den Standpunkt
       // fahren. Das Foto blendet ein, sobald die Kamera dort steht (beiRuhe).
-      z.zerlegt = false; z.licht = false;
-      if (z.p) { z.p.zerlegen(false); z.p.licht(false); z.p.heim(); }
+      z.zerlegt = false; z.licht = false; z.details = false;
+      if (z.p) { z.p.zerlegen(false); z.p.licht(false); z.p.punkte(false); z.p.heim(); }
       fig.dispatchEvent(new CustomEvent('bd:zurueck'));
       return;
     }
@@ -274,11 +288,19 @@ function buehneAnlegen(fig) {
     an();
     if (!an_ && !z.zerlegt) p.heim();
   }
+  /* Details: feste Namen am Modell (Schuh). Wie zerlegt bleibt dabei die
+     Echtzeit stehen -- auf dem Foto gibt es keine Etiketten. */
+  async function details(an_) {
+    const p = await laden(); if (!p) return;
+    z.details = an_; p.punkte(an_);
+    an();
+    if (!an_ && !z.zerlegt && !z.licht) p.heim();
+  }
   function stufeSetzen() { if (z.p) z.p.stufe(stufe()); }
   document.addEventListener('vecom:stufe', stufeSetzen);
   if (!webglDa()) { knopf.hidden = true; }
   kennungFoto();
-  return { variante, zerlegen, licht, get z() { return z; } };
+  return { variante, zerlegen, licht, details, get z() { return z; } };
 }
 
 /* ------------------------------------------------------------- Reiter */
@@ -309,6 +331,18 @@ if (reiter) {
   window.addEventListener('hashchange', ausAdresse); ausAdresse();
 }
 
+/* Der Knopf unter jeder Demo nimmt die Auswahl mit in den Konfigurator
+   (bedarf.php?demo=auto-karmin, demo=schuh-rose-42). Dort steht sie dann
+   als erste Zeile der Anfrage -- wer einen Lack gewaehlt hat, soll ihn
+   nicht noch einmal beschreiben muessen. bedarf.php laesst nur bekannte
+   Schluessel durch; hier wird nur zusammengesetzt. */
+function auswahlMitgeben(a, demo) {
+  if (!a) return;
+  const u = new URL(a.getAttribute('href'), location.href);
+  u.searchParams.set('demo', demo);
+  a.setAttribute('href', u.pathname + u.search);
+}
+
 /* ------------------------------------------------------------ Auto */
 const autoFig = $('#bd-buehne-auto');
 if (autoFig) {
@@ -318,7 +352,9 @@ if (autoFig) {
     const k = e.target.closest('button[data-variante]'); if (!k) return;
     for (const x of $$('button', lack)) x.setAttribute('aria-pressed', String(x === k));
     b.variante(k.dataset.variante, Number(k.dataset.nr));
+    auswahlMitgeben($('#bd-auto-cta'), `auto-${k.dataset.variante}`);
   });
+  auswahlMitgeben($('#bd-auto-cta'), `auto-${autoFig.dataset.variante}`);
   const ansicht = $('#bd-ansicht');
   ansicht && ansicht.addEventListener('click', (e) => {
     const k = e.target.closest('button[data-zerlegt]'); if (!k) return;
@@ -349,16 +385,34 @@ if (schuhFig) {
   const korbKnopf = $('#bd-in-korb'); const korbListe = $('#bd-korb-liste'); const korbZahl = $('#bd-korb-zahl');
   const meldung = $('#bd-korb-meldung');
   const korb = [];
+  function shopAuswahl() {
+    const f = farben && $('button[aria-pressed="true"]', farben);
+    const g = groessen && $('button[aria-pressed="true"]', groessen);
+    auswahlMitgeben($('#bd-shop-cta'), `schuh-${f ? f.dataset.variante : schuhFig.dataset.variante}${g ? '-' + g.dataset.groesse : ''}`);
+  }
   farben && farben.addEventListener('click', (e) => {
     const k = e.target.closest('button[data-variante]'); if (!k) return;
     for (const x of $$('button', farben)) x.setAttribute('aria-pressed', String(x === k));
     b.variante(k.dataset.variante, Number(k.dataset.nr));
+    shopAuswahl();
   });
+  const detailWahl = $('#bd-details');
+  detailWahl && detailWahl.addEventListener('click', (e) => {
+    const k = e.target.closest('button[data-details]'); if (!k) return;
+    for (const x of $$('button', detailWahl)) x.setAttribute('aria-pressed', String(x === k));
+    b.details(k.dataset.details === '1');
+  });
+  schuhFig.addEventListener('bd:zurueck', () => {
+    if (detailWahl) for (const x of $$('button', detailWahl)) x.setAttribute('aria-pressed', String(x.dataset.details === '0'));
+  });
+  if (!webglDa() && detailWahl) detailWahl.closest('.gruppe').hidden = true;
   groessen && groessen.addEventListener('click', (e) => {
     const k = e.target.closest('button[data-groesse]'); if (!k) return;
     for (const x of $$('button', groessen)) x.setAttribute('aria-pressed', String(x === k));
     if (meldung) meldung.textContent = '';
+    shopAuswahl();
   });
+  shopAuswahl();
   function korbZeigen() {
     if (!korbListe) return;
     korbListe.innerHTML = korb.length

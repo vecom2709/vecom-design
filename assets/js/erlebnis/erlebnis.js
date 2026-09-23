@@ -368,9 +368,20 @@ const kennungText = $('#kennung-text');
 const knopfBewegen = $('#bewegen');
 const zustand = { stand: 'garten', zeit: 'nachmittag', ansicht: 'stand', schritt: 8, echtzeit: false, villa: null, laedt: null, stufe: null, wahl: 'AUTO' };
 
-function bildAdresse(stand, zeit) {
+/* AVIF, wo der Browser es kann (23.09.2026): bei gleicher Treue zum
+   Cycles-PNG rund 45 % kleiner als WebP (tools/bilder-avif.py). Das <picture>
+   im HTML waehlt selbst; die Adressen, die JavaScript beim Wechseln setzt,
+   brauchen dieselbe Entscheidung -- ein 1-px-AVIF sagt, ob es geht. */
+const AVIF_PROBE = 'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADrbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAAAAAAAOcGl0bQAAAAAAAQAAAB5pbG9jAAAAAEQAAAEAAQAAAAEAAAETAAAAKAAAAChpaW5mAAAAAAABAAAAGmluZmUCAAAAAAEAAGF2MDFDb2xvcgAAAABqaXBycAAAAEtpcGNvAAAAFGlzcGUAAAAAAAAAAQAAAAEAAAAQcGl4aQAAAAADCAgIAAAADGF2MUOBAAwAAAAAE2NvbHJuY2x4AAEADQAGgAAAABdpcG1hAAAAAAAAAAEAAQQBAoMEAAAAMG1kYXQSAAoIGAAGiAhoNCAyGhlHh4Yhh5555oAAAJBAyRxhSytNj1FFTqSg';
+let bildEndung = 'webp';
+const avifPruefung = new Promise((ok) => {
+  const i = new Image();
+  i.onload = () => ok(i.naturalWidth === 1); i.onerror = () => ok(false);
+  i.src = AVIF_PROBE;
+}).then((ja) => { if (ja) bildEndung = 'avif'; return ja; });
+function bildAdresse(stand, zeit, endung = bildEndung) {
   const klein = buehne.clientWidth * (window.devicePixelRatio || 1) <= 900;
-  return `${BILDER}ruhe-${stand}-${zeit}${klein ? '-800' : ''}.webp?v=${BILD_STAND}`;
+  return `${BILDER}ruhe-${stand}-${zeit}${klein ? '-800' : ''}.${endung}?v=${BILD_STAND}`;
 }
 
 function kennungFoto() {
@@ -390,20 +401,21 @@ async function bildZeigen(stand, zeit) {
   const unten = oben === ruheA ? ruheB : ruheA;
   const neu = new Image();
   neu.decoding = 'async';
-  let adresse = bildAdresse(stand, zeit);
+  await avifPruefung;
   const laden = (a) => new Promise((ok, nein) => { neu.onload = ok; neu.onerror = nein; neu.src = a; });
-  try {
-    await laden(adresse);
-  } catch {
-    // Noch nicht gerechnet: der nächste fertige Stand statt eines Lochs.
-    adresse = bildAdresse(stand, 'nachmittag');
-    try { await laden(adresse); } catch { return; }
+  // Reihenfolge: gewuenschtes Bild, dann dasselbe als WebP, dann -- noch
+  // nicht gerechnet -- der Nachmittag statt eines Lochs.
+  const kandidaten = [...new Set([bildAdresse(stand, zeit), bildAdresse(stand, zeit, 'webp'),
+    bildAdresse(stand, 'nachmittag'), bildAdresse(stand, 'nachmittag', 'webp')])];
+  let adresse = null;
+  for (const k of kandidaten) {
+    try { await laden(k); adresse = k; break; } catch { /* naechste */ }
   }
-  if (nr !== bildAuftrag) return;
-  // <picture> bindet ruhe-a an seine <source>; ohne sie zu leeren, gewinnt
-  // beim ersten Wechsel auf schmalen Geräten wieder die Quelle.
-  const quelle = unten.parentElement && unten.parentElement.tagName === 'PICTURE' ? unten.parentElement.querySelector('source') : null;
-  if (quelle) quelle.remove();
+  if (!adresse || nr !== bildAuftrag) return;
+  // <picture> bindet ruhe-a an seine <source>-Eintraege; ohne sie zu leeren,
+  // gewinnt beim ersten Wechsel wieder eine davon.
+  const bild = unten.parentElement && unten.parentElement.tagName === 'PICTURE' ? unten.parentElement : null;
+  if (bild) for (const q of [...bild.querySelectorAll('source')]) q.remove();
   unten.src = adresse;
   try { await unten.decode(); } catch { /* dann eben ohne Vorab-Dekodieren */ }
   if (nr !== bildAuftrag) return;
@@ -837,6 +849,49 @@ if (dreh) {
     }
   }, { threshold: 0.45 }).observe(dreh);
 }
+
+/* ======================================================= KAPITEL & KLAPPBLOCK
+   23.09.2026. Die Kapitelleiste markiert, wo man gerade ist -- gemessen an
+   einer Linie auf 45 % der Fensterhöhe, nicht am oberen Rand: Sonst gilt ein
+   Abschnitt erst als erreicht, wenn man ihn schon halb gelesen hat. Der Tisch
+   gehört zu „Auto & Shop" (auch ein Produkt), der Klappblock zu „Stufen". */
+const kapitel = $('#kapitel');
+if (kapitel) {
+  const links = [...kapitel.querySelectorAll('a')];
+  const ZUORDNUNG = [['villa', 0], ['wegweiser', 1], ['branchen-demo', 2], ['tisch', 2], ['stufen', 3], ['tiefer', 3]];
+  const ziele = ZUORDNUNG.map(([id, i]) => [document.getElementById(id), i]).filter(([el]) => el);
+  let aktiv = -1;
+  const markieren = (i) => {
+    if (i === aktiv) return; aktiv = i;
+    links.forEach((a, k) => (k === i ? a.setAttribute('aria-current', 'true') : a.removeAttribute('aria-current')));
+    // Auf dem Telefon passt die Leiste nicht immer ganz: das aktive Wort sichtbar halten.
+    const a = links[i]; if (a && kapitel.scrollWidth > kapitel.clientWidth) kapitel.scrollTo({ left: a.offsetLeft - 12, behavior: BEWEGUNG_AUS ? 'auto' : 'smooth' });
+  };
+  const sichtbar = new Set();
+  const io = new IntersectionObserver((eintraege) => {
+    for (const e of eintraege) (e.isIntersecting ? sichtbar.add(e.target) : sichtbar.delete(e.target));
+    const treffer = ziele.filter(([el]) => sichtbar.has(el));
+    if (treffer.length) markieren(treffer[treffer.length - 1][1]);
+  }, { rootMargin: '-45% 0px -54% 0px' });
+  ziele.forEach(([el]) => io.observe(el));
+  // Unter der Kopfleiste sitzen, solange sie da ist; sie weicht beim Scrollen nach unten.
+  const kopf = document.querySelector('.header');
+  const oben = () => {
+    const da = kopf && !kopf.classList.contains('ist-weg');
+    const px = da ? kopf.offsetHeight + (parseFloat(getComputedStyle(kopf).top) || 0) : 0;
+    kapitel.style.setProperty('--kapitel-top', `${Math.round(px) + 8}px`);
+  };
+  if (kopf) new MutationObserver(oben).observe(kopf, { attributes: true, attributeFilter: ['class'] });
+  addEventListener('resize', oben, { passive: true }); oben();
+}
+// Wer mit #technik, #vergleich oder #streaming kommt, bekommt den Block offen.
+const tiefer = $('#tiefer');
+function tieferAusAdresse() {
+  const id = decodeURIComponent(location.hash.slice(1)); if (!id || !tiefer) return;
+  const ziel = document.getElementById(id);
+  if (ziel && ziel !== tiefer && tiefer.contains(ziel) && !tiefer.open) { tiefer.open = true; requestAnimationFrame(() => ziel.scrollIntoView()); }
+}
+addEventListener('hashchange', tieferAusAdresse); tieferAusAdresse();
 
 /* ================================================================ START */
 if (new URLSearchParams(location.search).has('pruefen')) window.__erlebnis = zustand;

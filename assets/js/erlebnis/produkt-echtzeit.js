@@ -295,6 +295,14 @@ export async function erstellen({
     });
   }
   let zerlegt = 0; let zerlegtSoll = 0; let zerlegtSeit = 0;
+  /* Feste Punkte mit Namen (23.09.2026, zuerst beim Schuh): Wo sich nichts
+     zerlegen laesst, zeigt die Ansicht "Details" die Teile trotzdem --
+     Obermaterial, Zwischensohle, Schnuerung. Die Orte stehen in kamera.json
+     (punkte), gemessen per Strahl auf das Netz; die Normale sagt, ob der
+     Punkt gerade zur Kamera zeigt oder hinter dem Schuh liegt. */
+  const punkte = (K.punkte || []).map((q) => ({ schluessel: q.schluessel, ort: new THREE.Vector3(...q.ort), normale: new THREE.Vector3(...(q.normale || [0, 1, 0])).normalize() }));
+  let punkteSoll = 0; let punkteAnteil = 0;
+  const pz = new THREE.Vector3(); const pnrm = new THREE.Vector3();
   const weich = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
   function anteil(t, p) { return weich(Math.min(1, Math.max(0, (p - t.start) / Z_BREITE))); }
   function zerlegenAnwenden() {
@@ -535,6 +543,24 @@ export async function erstellen({
   let ankerLeer = true; const zerlegtHuelleJetzt = new THREE.Box3();
   function ankerMelden() {
     if (!beiAnker) return;
+    if (zerlegt < 0.02 && punkte.length && punkteAnteil > 0.01) {
+      ankerLeer = false;
+      const w = leinwand.clientWidth, h = leinwand.clientHeight; const liste = [];
+      for (const q of punkte) {
+        modell.localToWorld(pw.copy(q.ort));
+        pnrm.copy(q.normale).transformDirection(modell.matrixWorld);
+        const zurKamera = pnrm.dot(pz.copy(kamera.position).sub(pw).normalize());
+        pn.copy(pw).project(kamera);
+        const x = (pn.x * 0.5 + 0.5) * w, y = (-pn.y * 0.5 + 0.5) * h;
+        // Weich ausblenden, wenn der Punkt sich von der Kamera wegdreht
+        const sicht = Math.max(0, Math.min(1, (zurKamera - 0.05) / 0.2));
+        liste.push({ schluessel: q.schluessel, x, y, sichtbar: pn.z < 1 && sicht > 0 && x > 8 && x < w - 8 && y > 8 && y < h - 8, anteil: punkteAnteil * sicht });
+      }
+      zerlegtHuelleJetzt.setFromObject(modell).getCenter(pw);
+      pn.copy(pw).project(kamera);
+      beiAnker(liste, { x: (pn.x * 0.5 + 0.5) * w, y: (-pn.y * 0.5 + 0.5) * h, w, h });
+      return;
+    }
     if (zerlegt < 0.02) { if (!ankerLeer) { beiAnker([]); ankerLeer = true; } return; }
     ankerLeer = false;
     const w = leinwand.clientWidth, h = leinwand.clientHeight; const liste = [];
@@ -580,6 +606,11 @@ export async function erstellen({
       zerlegenAnwenden(); rest += Math.abs(zerlegtSoll - zerlegt) + 0.01;
       letzteBewegung = performance.now();
       if (schattenErlaubt) r.shadowMap.needsUpdate = true;
+    }
+    if (punkteAnteil !== punkteSoll) {
+      const schritt = BEWEGUNG_AUS ? 1 : dt / 0.35;
+      punkteAnteil = punkteSoll > punkteAnteil ? Math.min(punkteSoll, punkteAnteil + schritt) : Math.max(punkteSoll, punkteAnteil - schritt);
+      rest += Math.abs(punkteSoll - punkteAnteil) + 0.01;
     }
     schattenFlaeche.material.opacity = schattenErlaubt ? 0.5 * Math.min(1, zerlegt * 1.6) : 0;
     schattenFlaeche.visible = schattenFlaeche.material.opacity > 0.001;
@@ -628,6 +659,9 @@ export async function erstellen({
       starten();
     },
     get zerlegt() { return zerlegtSoll === 1; },
+    /* Details: die festen Punkte aus kamera.json beschriften (siehe oben). */
+    punkte(an) { punkteSoll = an && punkte.length ? 1 : 0; ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
+    get hatPunkte() { return punkte.length > 0; },
     /* Nachtansicht: Das Studio geht fast aus, und übrig bleibt, was am
        Modell selbst leuchtet -- Tagfahrlicht, Rückleuchten, Armaturen. Die
        Scheinwerfer sind im Modell ohnehin an; ein Schalter "Licht an" hätte

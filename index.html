@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=a75f7f14">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=6453ce7b">
 
 
 <script type="importmap">
@@ -452,6 +452,17 @@
       <p data-reveal data-i18n="erlebnis.lead">La stessa villa, due volte: calcolata come una foto — e come modello che giri tu, nel tuo browser. Lascia andare e il modello torna a essere la foto.</p>
     </div>
 
+    <!-- Kapitelleiste (23.09.2026): Der Erlebnisteil ist vier Bildschirme
+         lang. Eine schmale Leiste bleibt oben stehen und sagt, wo man ist und
+         was noch kommt -- ohne sie scrollt man an den Demos vorbei, ohne zu
+         wissen, dass es sie gibt. -->
+    <nav class="kapitel" id="kapitel" aria-label="Vecom Experience">
+      <a href="#villa" data-i18n="erlebnis.kap1">Villa</a>
+      <a href="#wegweiser" data-i18n="erlebnis.kap2">La guida</a>
+      <a href="#branchen-demo" data-i18n="erlebnis.kap3">Auto e negozio</a>
+      <a href="#stufen" data-i18n="erlebnis.kap4">Livelli</a>
+    </nav>
+
     <!-- DIE BUEHNE
          Unten liegt immer das gerechnete Foto (Blender Cycles). Das Echtzeitmodell
          kommt erst auf Wunsch dazu und liegt darueber; sobald die Kamera wieder auf
@@ -461,7 +472,9 @@
     <section class="villa" id="villa">
       <figure class="buehne" id="buehne" data-src="assets/js/erlebnis/villa-echtzeit.js?v=dba469d9">
         <picture>
-          <source media="(max-width: 700px)" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=f5217a4f">
+          <source media="(max-width: 700px)" type="image/avif" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.avif?v=ca3c8a94">
+          <source media="(max-width: 700px)" type="image/webp" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=f5217a4f">
+          <source type="image/avif" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag.avif?v=5b8064e6">
           <img class="ruhe ist-an" id="ruhe-a" src="assets/img/erlebnis/villa/ruhe-garten-nachmittag.webp?v=70c6cbff" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bildAlt" alt="Villa con piscina nel paesaggio siciliano, calcolata con Blender Cycles">
         </picture>
         <img class="ruhe" id="ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
@@ -554,15 +567,17 @@
       <div class="bd-panel" id="bd-auto" role="tabpanel" aria-labelledby="bd-tab-auto">
         <div class="bd-raster">
           <div class="bd-links">
-            <figure class="buehne buehne--produkt" id="bd-buehne-auto" data-modell="auto" data-variante="karmin" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=f52d525b">
+            <figure class="buehne buehne--produkt" id="bd-buehne-auto" data-modell="auto" data-variante="karmin" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=689447b3">
               <picture>
-                <source media="(max-width: 700px)" srcset="assets/img/erlebnis/branchen/auto-karmin-800.webp?v=b78cc585">
+                <source media="(max-width: 700px)" type="image/avif" srcset="assets/img/erlebnis/branchen/auto-karmin-800.avif?v=dd22b548">
+                <source media="(max-width: 700px)" type="image/webp" srcset="assets/img/erlebnis/branchen/auto-karmin-800.webp?v=b78cc585">
+                <source type="image/avif" srcset="assets/img/erlebnis/branchen/auto-karmin.avif?v=399ba0f2">
                 <img class="ruhe ruhe-a ist-an ist-oben" src="assets/img/erlebnis/branchen/auto-karmin.webp?v=adb135e9" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bd_auto_alt" alt="Auto sportiva rosso carminio in uno studio fotografico scuro, calcolata con Blender Cycles">
               </picture>
               <img class="ruhe ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
               <div class="echtzeit" aria-hidden="true"></div>
               <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">Calcolato · Blender Cycles · 384 campioni</span></figcaption>
-              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span></button>
+              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span><span class="bewegen__groesse" data-i18n="erlebnis.bd_auto_mb">2,9 MB</span></button>
             </figure>
             <p class="bd-griff" data-i18n="erlebnis.bd_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire</p>
           </div>
@@ -587,10 +602,10 @@
             <p class="bd-hinweis" id="bd-auto-hinweis" hidden></p>
             <dl class="fakten bd-fakten">
               <div><dt>3</dt><dd data-i18n="erlebnis.bd_auto_f1">vernici in un solo file</dd></div>
-              <div><dt data-i18n="erlebnis.bd_auto_z2">3,4 MB</dt><dd data-i18n="erlebnis.bd_auto_f2">caricati solo al primo tocco</dd></div>
+              <div><dt data-i18n="erlebnis.bd_auto_z2">2,9 MB</dt><dd data-i18n="erlebnis.bd_auto_f2">caricati solo al primo tocco</dd></div>
               <div><dt data-i18n="erlebnis.bd_auto_z3">213.347</dt><dd data-i18n="erlebnis.bd_auto_f3">triangoli in tempo reale</dd></div>
             </dl>
-            <a class="knopf knopf--voll" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_auto_cta">Una cosa così per la tua concessionaria</a>
+            <a class="knopf knopf--voll" id="bd-auto-cta" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_auto_cta">Una cosa così per la tua concessionaria</a>
           </div>
         </div>
       </div>
@@ -598,15 +613,17 @@
       <div class="bd-panel" id="bd-shop" role="tabpanel" aria-labelledby="bd-tab-shop" hidden>
         <div class="bd-raster">
           <div class="bd-links">
-            <figure class="buehne buehne--produkt" id="bd-buehne-schuh" data-modell="schuh" data-variante="blau" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=f52d525b">
+            <figure class="buehne buehne--produkt" id="bd-buehne-schuh" data-modell="schuh" data-variante="blau" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=689447b3">
               <picture>
-                <source media="(max-width: 700px)" srcset="assets/img/erlebnis/branchen/schuh-blau-800.webp?v=4f649a50">
+                <source media="(max-width: 700px)" type="image/avif" srcset="assets/img/erlebnis/branchen/schuh-blau-800.avif?v=a6e999ea">
+                <source media="(max-width: 700px)" type="image/webp" srcset="assets/img/erlebnis/branchen/schuh-blau-800.webp?v=4f649a50">
+                <source type="image/avif" srcset="assets/img/erlebnis/branchen/schuh-blau.avif?v=9f89ae40">
                 <img class="ruhe ruhe-a ist-an ist-oben" src="assets/img/erlebnis/branchen/schuh-blau.webp?v=a48abedc" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.bd_schuh_alt" alt="Scarpa da corsa azzurra su fondo scuro, calcolata con Blender Cycles">
               </picture>
               <img class="ruhe ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
               <div class="echtzeit" aria-hidden="true"></div>
               <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">Calcolato · Blender Cycles · 384 campioni</span></figcaption>
-              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span></button>
+              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span><span class="bewegen__groesse" data-i18n="erlebnis.bd_schuh_mb">1,2 MB</span></button>
             </figure>
             <p class="bd-griff" data-i18n="erlebnis.bd_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire</p>
           </div>
@@ -628,6 +645,13 @@
                 <button type="button" data-groesse="38" aria-pressed="false">38</button><button type="button" data-groesse="39" aria-pressed="false">39</button><button type="button" data-groesse="40" aria-pressed="false">40</button><button type="button" data-groesse="41" aria-pressed="false">41</button><button type="button" data-groesse="42" aria-pressed="false">42</button><button type="button" data-groesse="43" aria-pressed="false">43</button><button type="button" data-groesse="44" aria-pressed="false">44</button><button type="button" data-groesse="45" aria-pressed="false">45</button>
               </div>
             </div>
+            <div class="gruppe">
+              <span class="gruppe__name" id="bd-l-details" data-i18n="erlebnis.bd_ansicht">Vista</span>
+              <div class="chips chips--umbruch" id="bd-details" role="group" aria-labelledby="bd-l-details">
+                <button type="button" data-details="0" aria-pressed="true" data-i18n="erlebnis.bd_produkt">Prodotto</button>
+                <button type="button" data-details="1" aria-pressed="false" data-i18n="erlebnis.bd_details">Dettagli</button>
+              </div>
+            </div>
             <div class="bd-kauf">
               <button type="button" class="knopf knopf--voll" id="bd-in-korb" data-name="Aria" data-i18n="erlebnis.bd_in_korb" data-i18n-attr="data-preis:erlebnis.bd_preis" data-preis="129,00 €">Aggiungi al carrello</button>
               <p class="bd-meldung" id="bd-korb-meldung" role="status" aria-live="polite"></p>
@@ -641,7 +665,7 @@
               <div><dt>0</dt><dd data-i18n="erlebnis.bd_schuh_f2">ricaricamenti al cambio colore</dd></div>
               <div><dt>360°</dt><dd data-i18n="erlebnis.bd_schuh_f3">da girare e ingrandire</dd></div>
             </dl>
-            <a class="knopf knopf--leer" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_shop_cta">Una cosa così per il tuo negozio</a>
+            <a class="knopf knopf--leer" id="bd-shop-cta" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_shop_cta">Una cosa così per il tuo negozio</a>
           </div>
         </div>
       </div>
@@ -686,6 +710,20 @@
       </div>
     </section>
 
+    <!-- Technik, Vergleich und Streaming (23.09.2026 zusammengelegt): drei
+         Abschnitte für die, die es genau wissen wollen. Offen standen sie als
+         anderthalb Bildschirme zwischen den Demos und dem Abschluss -- wer
+         nur sehen wollte, was möglich ist, musste sich hindurchscrollen.
+         Zugeklappt bleiben sie auffindbar; wer mit #technik & Co. kommt,
+         bekommt sie offen (erlebnis.js). -->
+    <details class="tiefer" id="tiefer">
+      <summary class="tiefer__kopf">
+        <span class="tiefer__text">
+          <span class="tiefer__titel" data-i18n="erlebnis.tiefer_t">Tecnica, confronto, streaming</span>
+          <span class="tiefer__zusatz" data-i18n="erlebnis.tiefer_z">Per chi vuole sapere come funziona — tre parti brevi.</span>
+        </span>
+        <i class="tiefer__zeichen" aria-hidden="true"></i>
+      </summary>
     <section class="abschnitt technik" id="technik" aria-labelledby="technik-h">
       <header class="abschnitt__kopf">
         <p class="kicker" data-i18n="erlebnis.tech_kicker">La tecnica dietro</p>
@@ -727,6 +765,8 @@
         <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="19" y="4" width="26" height="56" rx="5"/><path d="M19 12h26M19 50h26"/><circle cx="32" cy="55" r="1.5" class="an"/></svg><h3 data-i18n="erlebnis.str3t">Telefono</h3><p data-i18n="erlebnis.str3p">Mostra l’immagine e rimanda scorrimenti e tocchi.</p></li>
       </ol>
       <p class="ehrlich" data-i18n="erlebnis.str_ehrlich">A dirla tutta: uno stream costa a ogni minuto. Per questo non parte mai da solo, ma solo con un clic — e per la villa di questa pagina, per ora, solo su appuntamento.</p>
+    </section>
+    </details>
 
     <!-- Abschluss des Erlebnisteils. Beim Zusammenlegen mit der Startseite war
          er zuerst herausgefallen: Der Bereich endete mit einem Absatz über
@@ -740,7 +780,6 @@
         <a class="knopf knopf--leer" href="prezzi.html" data-i18n="erlebnis.s_b2">Quanto costa</a>
       </div>
     </div>
-    </section>
   </div>
 </section>
 
@@ -1731,7 +1770,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=bd0b9d3f" defer></script>
+<script src="assets/js/i18n-it.js?v=8a734b26" defer></script>
 <script src="assets/js/app.js?v=3537bcfa" defer></script>
 <script src="assets/js/sprachhinweis.js?v=56d4e7b8" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1755,8 +1794,8 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=cd60eadf"></script>
-<script type="module" src="assets/js/erlebnis/branchen.js?v=5d3a3332"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=724a00cb"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=12cfeb05"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

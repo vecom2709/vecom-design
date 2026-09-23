@@ -148,6 +148,15 @@
   border:4px solid transparent; border-left-color:var(--c-cyan); transform:rotate(-30deg);
 }
 .erlebnis .bewegen[aria-busy="true"] .bewegen__zeichen{animation:drehen 1s linear infinite}
+/* Ladegroesse neben „Selbst drehen": Wer im Mobilnetz ist, soll vorher
+   wissen, was der Klick kostet. Nach dem Laden hat die Zahl keinen Sinn
+   mehr -- dann heisst der Knopf „Zum Foto" und sie verschwindet. */
+.erlebnis .bewegen__groesse{
+  font-weight:500; color:var(--c-dim); font-variant-numeric:tabular-nums;
+  padding-left:.55rem; border-left:1px solid rgba(255,255,255,.2);
+}
+.erlebnis .bewegen[aria-busy="true"] .bewegen__groesse,
+.erlebnis .buehne.hat-echtzeit .bewegen__groesse{display:none}
 @keyframes drehen{to{transform:rotate(360deg)}}
 @media (max-width:520px){
   .erlebnis .kennung{font-size:.74rem; max-width:calc(100% - 1.2rem); bottom:auto; top:.6rem}
@@ -429,3 +438,53 @@
   
   .erlebnis *, .erlebnis *::before, .erlebnis *::after{transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important}
 }
+
+/* ---- Kapitelleiste (23.09.2026) --------------------------------------------
+   Bleibt im Erlebnisteil oben stehen. Sitzt unter der Kopfleiste, solange die
+   sichtbar ist (--kapitel-top setzt erlebnis.js), sonst ganz oben. Schmal
+   genug, dass sie nicht wie eine zweite Navigation wirkt: vier Wörter. */
+.erlebnis .kapitel{
+  position:sticky; top:var(--kapitel-top,0px); z-index:60;
+  display:flex; gap:.2rem; width:max-content; max-width:100%;
+  margin:clamp(1.4rem,3.5vh,2.2rem) auto 0; padding:.3rem;
+  overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain;
+  background:rgba(5,7,13,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  border:1px solid var(--c-linie-hell); border-radius:999px;
+  transition:top 320ms var(--e-standard);
+}
+.erlebnis .kapitel::-webkit-scrollbar{display:none}
+.erlebnis .kapitel a{
+  flex:none; display:inline-flex; align-items:center; min-height:40px; padding:0 1rem;
+  border-radius:999px; color:var(--c-dim); text-decoration:none;
+  font:500 .9rem/1 var(--f-text); white-space:nowrap;
+  transition:color var(--t-ui), background var(--t-ui);
+}
+.erlebnis .kapitel a:hover{color:var(--c-text)}
+.erlebnis .kapitel a[aria-current="true"]{color:var(--c-text); background:rgba(31,232,255,.13); box-shadow:inset 0 0 0 1px rgba(31,232,255,.35)}
+@media (pointer:coarse){ .erlebnis .kapitel a{min-height:44px; padding:0 .9rem} }
+@media (prefers-reduced-motion:reduce){ .erlebnis .kapitel{transition:none} }
+
+/* ---- Technik, Vergleich, Streaming: ein Klappblock (23.09.2026) ---------- */
+.erlebnis .tiefer{margin-top:clamp(3rem,7vh,5rem); border-top:1px solid var(--c-linie); border-bottom:1px solid var(--c-linie)}
+.erlebnis .tiefer__kopf{
+  list-style:none; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:1.2rem;
+  padding:clamp(1.3rem,3vh,1.9rem) .2rem; min-height:44px;
+}
+.erlebnis .tiefer__kopf::-webkit-details-marker{display:none}
+.erlebnis .tiefer__titel{display:block; font:700 clamp(1.25rem,2.3vw,1.7rem)/1.15 var(--f-display); letter-spacing:-.015em; color:var(--c-text)}
+.erlebnis .tiefer__zusatz{display:block; margin-top:.35rem; color:var(--c-dim); font-size:.98rem}
+.erlebnis .tiefer__zeichen{
+  flex:none; position:relative; width:44px; height:44px; border-radius:50%;
+  border:1px solid rgba(31,232,255,.45); transition:transform var(--t-move) var(--e-standard), border-color var(--t-ui);
+}
+.erlebnis .tiefer__zeichen::before,.erlebnis .tiefer__zeichen::after{
+  content:''; position:absolute; left:50%; top:50%; width:14px; height:2px; margin:-1px 0 0 -7px; background:var(--c-cyan); border-radius:1px;
+}
+.erlebnis .tiefer__zeichen::after{transform:rotate(90deg)}
+.erlebnis .tiefer__kopf:hover .tiefer__zeichen{border-color:var(--c-cyan)}
+.erlebnis .tiefer[open] .tiefer__zeichen{transform:rotate(45deg)}
+.erlebnis .tiefer[open]{padding-bottom:clamp(2rem,5vh,3rem)}
+.erlebnis .tiefer > .abschnitt:first-of-type{padding-top:.4rem}
+@media (prefers-reduced-motion:reduce){ .erlebnis .tiefer__zeichen{transition:none} }
+/* Der Abschluss folgt direkt auf den Klappblock: eine Linie genügt. */
+.erlebnis .tiefer + .schluss{border-top:0; margin-top:0}
