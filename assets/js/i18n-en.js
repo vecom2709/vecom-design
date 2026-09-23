@@ -100,7 +100,7 @@ window.VECOM_I18N.en = {
       bd_ansicht: "View",
       bd_ganz: "Whole",
       bd_zerlegt: "Exploded",
-      bd_produkt: "Product", bd_details: "Details", bd_auto_z2: "2.9 MB", bd_auto_mb: "2.9 MB", bd_schuh_mb: "1.2 MB", bd_auto_z3: "213,347",
+      villa_mb: "0.4 MB", bd_produkt: "Product", bd_details: "Details", bd_auto_z2: "2.9 MB", bd_auto_mb: "2.9 MB", bd_schuh_mb: "1.2 MB", bd_auto_z3: "213,347",
       bd_auto_f1: "paints in one file",
       bd_auto_f2: "loaded only on first touch",
       bd_auto_f3: "triangles in real time",

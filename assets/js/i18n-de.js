@@ -100,7 +100,7 @@ window.VECOM_I18N.de = {
       bd_ansicht: "Ansicht",
       bd_ganz: "Ganz",
       bd_zerlegt: "Zerlegt",
-      bd_produkt: "Produkt", bd_details: "Details", bd_auto_z2: "2,9 MB", bd_auto_mb: "2,9 MB", bd_schuh_mb: "1,2 MB", bd_auto_z3: "213.347",
+      villa_mb: "0,4 MB", bd_produkt: "Produkt", bd_details: "Details", bd_auto_z2: "2,9 MB", bd_auto_mb: "2,9 MB", bd_schuh_mb: "1,2 MB", bd_auto_z3: "213.347",
       bd_auto_f1: "Lacke in einer Datei",
       bd_auto_f2: "geladen erst beim ersten Griff",
       bd_auto_f3: "Dreiecke in Echtzeit",

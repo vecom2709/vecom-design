@@ -48,6 +48,9 @@ RewriteRule ^en/experience\.html$ /en/? [R=301,L]
 <Files "besuche.csv">
   Require all denied
 </Files>
+<Files "demo.csv">
+  Require all denied
+</Files>
 <Files "config.local.php">
   Require all denied
 </Files>

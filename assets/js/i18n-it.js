@@ -102,7 +102,7 @@ window.VECOM_I18N.it = {
       bd_ansicht: "Vista",
       bd_ganz: "Intera",
       bd_zerlegt: "Esplosa",
-      bd_produkt: "Prodotto", bd_details: "Dettagli", bd_auto_z2: "2,9 MB", bd_auto_mb: "2,9 MB", bd_schuh_mb: "1,2 MB", bd_auto_z3: "213.347",
+      villa_mb: "0,4 MB", bd_produkt: "Prodotto", bd_details: "Dettagli", bd_auto_z2: "2,9 MB", bd_auto_mb: "2,9 MB", bd_schuh_mb: "1,2 MB", bd_auto_z3: "213.347",
       bd_auto_f1: "vernici in un solo file",
       bd_auto_f2: "caricati solo al primo tocco",
       bd_auto_f3: "triangoli in tempo reale",

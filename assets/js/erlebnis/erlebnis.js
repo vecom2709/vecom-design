@@ -354,6 +354,14 @@ const BEWEGUNG_AUS = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const leerlauf = (fn, ms = 1500) => ('requestIdleCallback' in window ? requestIdleCallback(fn, { timeout: ms }) : setTimeout(fn, ms));
 
+/* Zählen, welche Demo genutzt wird (d.php: keine IP, kein Cookie, nur
+   Datum, Stunde, Ereignis, Geräteart). Jedes Ereignis einmal je Seitenaufruf. */
+const GEZAEHLT = new Set();
+function zaehlen(e) {
+  if (GEZAEHLT.has(e)) return; GEZAEHLT.add(e);
+  try { navigator.sendBeacon ? navigator.sendBeacon(`/d.php?e=${e}`) : fetch(`/d.php?e=${e}`, { method: 'POST', keepalive: true }); } catch { /* egal */ }
+}
+
 /* ================================================================== BÜHNE */
 const BILDER = '/assets/img/erlebnis/villa/';
 /* Stand der gerechneten Bilder. Wer sie neu rechnet und hochlädt, zählt hier
@@ -620,7 +628,7 @@ function bildGemeldet(dtMs, fps, schlaeft) {
 function echtzeitAn() {
   if (!zustand.villa) return;
   zustand.echtzeit = true;
-  buehne.classList.add('ist-echtzeit');
+  buehne.classList.add('ist-echtzeit'); zaehlen('villa-drehen');
   $('#bewegen-text').textContent = TEXT.zumFoto;
   zustand.villa.starten();
 }
@@ -877,7 +885,7 @@ if (dreh) {
   }
   function selbstlaufStop() { if (selbstlauf) { selbstlauf = false; ziel = Math.round(pos); } }
   dreh.addEventListener('pointerdown', (e) => {
-    drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
+    drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt'); zaehlen('tisch-drehen');
     drehZiehen = { x: e.clientX, p: pos };
     try { dreh.setPointerCapture(e.pointerId); } catch { /* ohne Zeigerfang */ }
     anstossen();

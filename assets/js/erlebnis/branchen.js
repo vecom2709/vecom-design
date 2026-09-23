@@ -72,9 +72,9 @@ const $$ = (s, w = document) => [...w.querySelectorAll(s)];
 /* Stand der gerechneten Bilder: JavaScript setzt diese Adressen, nicht
    build.mjs -- wer neu rechnet, zählt hier hoch (der Server gibt Bildern
    dreißig Tage). */
-const BILD_STAND = '1';
+const BILD_STAND = '2';
 /* Dasselbe für Modelle, Umgebungen und Kameradaten unter assets/3d/branchen. */
-const MODELL_STAND = '2';
+const MODELL_STAND = '3';
 const PFAD = '/assets/img/erlebnis/branchen/';
 
 /* Stufe aus dem Erlebnisteil (erlebnis.js misst das Gerät). Die Spiegelung
@@ -89,8 +89,18 @@ function stufe() {
   const s = document.documentElement.dataset.erlebnisStufe || 'HIGH';
   return STUFEN[s] || STUFEN.HIGH;
 }
+/* Einmal fragen, dann merken -- und den Probe-Kontext sofort freigeben.
+   Bis zum 23.09.2026 legte jeder Aufruf einen neuen WebGL-Kontext an (vier
+   beim Seitenstart, keiner freigegeben). Browser erlauben nur eine Handvoll
+   gleichzeitig; der älteste geht dann verloren -- im schlimmsten Fall der
+   der Villa. Gemessen kostete das beim Start am gedrosselten Telefon den
+   größten Teil der 148 ms, die branchen.js auf dem Hauptfaden brauchte. */
+let webglAntwort = null;
 function webglDa() {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2')); } catch { return false; }
+  if (webglAntwort === null) {
+    try { const c = document.createElement('canvas'); const g = c.getContext('webgl2'); webglAntwort = !!g; if (g) g.getExtension('WEBGL_lose_context')?.loseContext(); } catch { webglAntwort = false; }
+  }
+  return webglAntwort;
 }
 
 /* AVIF, wo der Browser es kann (23.09.2026; dieselbe Pruefung wie in erlebnis.js): bei gleicher Treue zum
@@ -104,6 +114,18 @@ const avifPruefung = new Promise((ok) => {
   i.onload = () => ok(i.naturalWidth === 1); i.onerror = () => ok(false);
   i.src = AVIF_PROBE;
 }).then((ja) => { if (ja) bildEndung = 'avif'; return ja; });
+
+/* Zählen, welche Demo genutzt wird (d.php: keine IP, kein Cookie, nur
+   Datum, Stunde, Ereignis, Geräteart). Jedes Ereignis einmal je Seitenaufruf. */
+const GEZAEHLT = new Set();
+function zaehlen(e) {
+  if (GEZAEHLT.has(e)) return; GEZAEHLT.add(e);
+  try { navigator.sendBeacon ? navigator.sendBeacon(`/d.php?e=${e}`) : fetch(`/d.php?e=${e}`, { method: 'POST', keepalive: true }); } catch { /* egal */ }
+}
+
+// Welche Etiketten auf schmalen Bühnen bleiben (Schuh: alle drei).
+const KNAPP = new Map([['tueren', true], ['haube', true], ['raeder', true], ['antrieb', true],
+  ['heck', false], ['dach', false], ['bremse', false], ['sitze', false]]);
 
 /* ---------------------------------------------------------------- Bühne */
 function buehneAnlegen(fig) {
@@ -128,7 +150,12 @@ function buehneAnlegen(fig) {
      paar Runden auseinander. Die erste Fassung stapelte alle Namen senkrecht
      über den Teilen -- bei acht Teilen ein Turm aus Schildern. */
   function ankerZeigen(liste, mitte) {
-    const sichtbar = liste.filter((a) => a.sichtbar && a.anteil > 0.05 && TEXT.teile[a.schluessel]);
+    /* Auf dem Telefon (Bühne unter 520 px) deckten acht Schilder das halbe
+       Auto zu -- am 23.09.2026 auf 390 px nachgesehen. Dort nur die vier
+       Baugruppen, die man ohne Schild am wenigsten errät. */
+    const schmal = mitte && mitte.w < 520;
+    const sichtbar = liste.filter((a) => a.sichtbar && a.anteil > 0.05 && TEXT.teile[a.schluessel]
+      && (!schmal || !KNAPP.has(a.schluessel) || KNAPP.get(a.schluessel)));
     if (!mitte || !sichtbar.length) { for (const e of etiketten.values()) { e.el.hidden = true; e.linie.style.display = 'none'; e.punkt.style.display = 'none'; } return; }
     const W = mitte.w, H = mitte.h;
     linien.setAttribute('viewBox', `0 0 ${W} ${H}`);
@@ -233,7 +260,7 @@ function buehneAnlegen(fig) {
   }
   function an() {
     if (!z.p) return;
-    z.echtzeit = true; fig.classList.add('ist-echtzeit');
+    z.echtzeit = true; fig.classList.add('ist-echtzeit'); zaehlen(`${modell === 'auto' ? 'auto' : 'schuh'}-drehen`);
     knopfText.textContent = TEXT.zumFoto;
     kennung.textContent = z.zerlegt ? TEXT.zerlegt : TEXT.echtzeit(0);
     z.p.starten();
@@ -277,7 +304,7 @@ function buehneAnlegen(fig) {
      das Foto kommt zurück (beiRuhe -> aus). */
   async function zerlegen(an_) {
     const p = await laden(); if (!p) return;
-    z.zerlegt = an_;
+    z.zerlegt = an_; if (an_) zaehlen('auto-zerlegen');
     an();
     p.zerlegen(an_);
     if (!an_ && !z.licht) p.heim();
@@ -292,7 +319,7 @@ function buehneAnlegen(fig) {
      Echtzeit stehen -- auf dem Foto gibt es keine Etiketten. */
   async function details(an_) {
     const p = await laden(); if (!p) return;
-    z.details = an_; p.punkte(an_);
+    z.details = an_; p.punkte(an_); if (an_) zaehlen('schuh-details');
     an();
     if (!an_ && !z.zerlegt && !z.licht) p.heim();
   }
@@ -338,6 +365,7 @@ if (reiter) {
    Schluessel durch; hier wird nur zusammengesetzt. */
 function auswahlMitgeben(a, demo) {
   if (!a) return;
+  if (!a.dataset.gezaehlt) { a.dataset.gezaehlt = '1'; a.addEventListener('click', () => zaehlen(a.id === 'bd-auto-cta' ? 'cta-auto' : 'cta-shop')); }
   const u = new URL(a.getAttribute('href'), location.href);
   u.searchParams.set('demo', demo);
   a.setAttribute('href', u.pathname + u.search);
@@ -424,6 +452,7 @@ if (schuhFig) {
     const g = groessen && $('button[aria-pressed="true"]', groessen);
     if (!g) { if (meldung) meldung.textContent = TEXT.groesseFehlt; groessen && $('button', groessen).focus(); return; }
     const f = farben && $('button[aria-pressed="true"]', farben);
+    zaehlen('schuh-korb');
     korb.push({ name: korbKnopf.dataset.name, farbe: f ? f.textContent.trim() : '', groesse: g.dataset.groesse, preis: korbKnopf.dataset.preis });
     korbZeigen();
     const kasten = $('#bd-korb');
