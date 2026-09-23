@@ -96,6 +96,15 @@ if ($empfehlCode !== '') {
     } catch (Throwable $e) { $empfehlCode = ''; }
 }
 
+/* ---------- Auswahl aus einer Branchen-Demo ----------
+   Wie der Empfehlungscode: Sie kommt ueber die Adresse herein, muss aber
+   das Sprachtor und alle Schritte ueberleben -- also in die Sitzung.
+   Bedarf::demoPruefen laesst nur bekannte Schluessel durch. */
+$demoRoh = Bedarf::demoPruefen(strtolower(trim((string) ($_GET['demo'] ?? ''))));
+if ($demoRoh !== '') { $_SESSION['bedarf_demo'] = $demoRoh; }
+$demo     = (string) ($_SESSION['bedarf_demo'] ?? '');
+$demoText = Bedarf::demoText($demo, $sprache);
+
 /* ---------- Laden oder anfangen ---------- */
 $token = trim((string) ($_REQUEST['t'] ?? ''));
 $b = null;
@@ -127,6 +136,10 @@ try {
             $tor = true;
         } else {
             $b = Bedarf::starten($sprache);
+            // Wer vom Autohaus-Beispiel kommt, will zeigen und erreichbar
+            // sein; wer vom Schuh kommt, will verkaufen. Vorbelegt, nicht
+            // festgelegt -- im ersten Schritt laesst es sich aendern.
+            if ($demo !== '') { Bedarf::speichern((int) $b['id'], ['zweck' => Bedarf::demoZweck($demo)], 1); }
             header('Location: ' . $adresse(1, (string) $b['token'])); exit;
         }
     }
@@ -158,7 +171,9 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Seine Antwort auf die Sprachfrage — nicht die Fassung, in
                 // der er gerade zufaellig liest.
                 'sprache'      => (string) ($_POST['sprache_wahl'] ?? ''),
+                'demo'         => $demo,
             ]);
+            if ($ok) { unset($_SESSION['bedarf_demo']); }
             /* Die Dankeseite in SEINER Sprache, nicht in der, in der er
                gelesen hat. Wer gerade "Deutsch" angegeben hat und dann eine
                italienische Bestaetigung sieht, glaubt zu Recht, die Angabe
@@ -371,6 +386,9 @@ $geld = static function (int $cents) use ($sprache): string {
 
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($T('panne')) ?></div><?php endif; ?>
   <?php if ($m === 'pflicht'): ?><div class="hinweis schlecht"><?= $h($T('pflicht')) ?></div><?php endif; ?>
+  <?php if ($demoText !== '' && ($schritt === 1 || $schritt === $anzahl)): ?>
+    <p class="erkannt"><?= $h(strtr($T('demoErkannt'), ['{wahl}' => $demoText])) ?></p>
+  <?php endif; ?>
 
   <form method="post" action="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $h($sprache) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">

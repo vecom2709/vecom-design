@@ -30,6 +30,74 @@ final class Bedarf
     /** So lange bleibt ein begonnener, nie abgesendeter Bedarf abrufbar. */
     public const GUELTIG_TAGE = 30;
 
+    /* DIE AUSWAHL AUS DEN BRANCHEN-DEMOS
+       ----------------------------------------------------------------------
+       Auf der Startseite kann man einen Lack waehlen oder einen Schuh in
+       Farbe und Groesse. Der Knopf darunter fuehrt hierher -- und bisher
+       ging die Auswahl dabei verloren. Jetzt kommt sie als kurzer Schluessel
+       mit (demo=auto-karmin, demo=schuh-blau-42).
+
+       Nur was hier steht, kommt durch. Die Adresse ist oeffentlich; freier
+       Text daraus landete sonst ungeprueft in Uwes Posteingang. */
+    public const DEMOS = [
+        'auto' => [
+            'name' => ['it' => 'demo automotive', 'de' => 'Automotive-Demo', 'en' => 'automotive demo'],
+            'art'  => ['it' => 'vernice', 'de' => 'Lack', 'en' => 'paint'],
+            'varianten' => [
+                'karmin'  => ['it' => 'rosso carminio', 'de' => 'Karminrot', 'en' => 'carmine red'],
+                'perl'    => ['it' => 'bianco perla', 'de' => 'Perlweiß', 'en' => 'pearl white'],
+                'graphit' => ['it' => 'grafite', 'de' => 'Graphit', 'en' => 'graphite'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
+        'schuh' => [
+            'name' => ['it' => 'demo e-commerce', 'de' => 'E-Commerce-Demo', 'en' => 'e-commerce demo'],
+            'art'  => ['it' => 'colore', 'de' => 'Farbe', 'en' => 'colour'],
+            'varianten' => [
+                'blau'      => ['it' => 'azzurro', 'de' => 'Hellblau', 'en' => 'light blue'],
+                'rose'      => ['it' => 'rosa', 'de' => 'Rosé', 'en' => 'rose'],
+                'anthrazit' => ['it' => 'antracite', 'de' => 'Anthrazit', 'en' => 'anthracite'],
+            ],
+            'groessen' => [38, 45],
+            'zweck' => ['shop'],
+        ],
+    ];
+
+    /** Prueft einen Demo-Schluessel und gibt ihn bereinigt zurueck — oder ''. */
+    public static function demoPruefen(string $roh): string
+    {
+        if (!preg_match('/^([a-z]+)-([a-z]+)(?:-(\d{2}))?$/', $roh, $t)) { return ''; }
+        $d = self::DEMOS[$t[1]] ?? null;
+        if (!$d || !isset($d['varianten'][$t[2]])) { return ''; }
+        $g = $t[3] ?? '';
+        if ($g !== '') {
+            if (!isset($d['groessen'])) { return ''; }
+            [$von, $bis] = $d['groessen'];
+            if ((int) $g < $von || (int) $g > $bis) { return ''; }
+        }
+        return $t[1] . '-' . $t[2] . ($g !== '' ? '-' . $g : '');
+    }
+
+    /** "Automotive-Demo, Lack Karminrot" — in der Sprache des Kunden. */
+    public static function demoText(string $demo, string $sprache): string
+    {
+        $demo = self::demoPruefen($demo);
+        if ($demo === '') { return ''; }
+        $t = explode('-', $demo);
+        $d = self::DEMOS[$t[0]];
+        $text = Texte::h($d['name'], $sprache) . ', ' . Texte::h($d['art'], $sprache) . ' '
+              . Texte::h($d['varianten'][$t[1]], $sprache);
+        if (isset($t[2])) { $text .= ', ' . ($sprache === 'it' ? 'taglia' : ($sprache === 'de' ? 'Größe' : 'size')) . ' ' . $t[2]; }
+        return $text;
+    }
+
+    /** Welche Zwecke eine Demo nahelegt — zum Vorbelegen der ersten Frage. */
+    public static function demoZweck(string $demo): array
+    {
+        $demo = self::demoPruefen($demo);
+        return $demo === '' ? [] : self::DEMOS[explode('-', $demo)[0]]['zweck'];
+    }
+
     /* ----------------------------------------------------------------------
        Anlegen, laden, speichern
        ---------------------------------------------------------------------- */
@@ -176,6 +244,10 @@ final class Bedarf
             'abgesendet_am'   => date('Y-m-d H:i:s'),
         ]);
 
+        // Kam er aus einer Demo, steht seine Auswahl als erste Zeile da.
+        $demo = self::demoText((string) ($kontakt['demo'] ?? ''), $sprache);
+        $vorspann = $demo === '' ? '' : strtr(Texte::h(Texte::BEDARF['demoAusgang'], $sprache), ['{wahl}' => $demo]) . "\n\n";
+
         // Ab hier darf alles scheitern, ohne den Bedarf mitzunehmen.
         try {
             require_once __DIR__ . '/Anfrage.php';
@@ -192,7 +264,7 @@ final class Bedarf
                 // keine Vermutung, und die Verwaltung soll den Unterschied
                 // kennen.
                 'sprache_gefragt' => true,
-                'nachricht' => self::zusammenfassung($antworten, $sprache, $spanne, (int) $r['monatlich_cents']),
+                'nachricht' => $vorspann . self::zusammenfassung($antworten, $sprache, $spanne, (int) $r['monatlich_cents']),
             ]);
             if ($anfrageId) {
                 Db::update('bedarf', $id, ['anfrage_id' => $anfrageId]);

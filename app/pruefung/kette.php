@@ -6476,6 +6476,21 @@ $fvK = (int) Db::wert('SELECT id FROM customers WHERE email = ?', ['fragebogen-z
 $fvA = (int) Db::wert('SELECT id FROM anfragen WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$fvK], 0);
 pruefe('daraus sind Kunde und Anfrage entstanden', $fvK > 0 && $fvA > 0, "$fvK / $fvA");
 
+/* ---------- Die Auswahl aus einer Branchen-Demo kommt mit ------------- */
+pruefe('eine Demo-Auswahl mit Groesse wird angenommen', Bedarf::demoPruefen('schuh-rose-42') === 'schuh-rose-42');
+pruefe('unbekannte oder freie Demo-Angaben kommen nicht durch',
+    Bedarf::demoPruefen('schuh-rose-99') === '' && Bedarf::demoPruefen('auto-lila') === ''
+    && Bedarf::demoPruefen('auto-karmin-42') === '' && Bedarf::demoPruefen('<b>x</b>') === '');
+pruefe('die Demo legt den Zweck nahe', Bedarf::demoZweck('schuh-blau') === ['shop']);
+$dmB = Bedarf::starten('de');
+Bedarf::speichern((int) $dmB['id'], ['zweck' => ['shop'], 'umfang' => 'wenige', 'sprachen' => 1], 3);
+$dmOk = Bedarf::absenden((int) $dmB['id'], ['name' => 'Demo Kundin', 'email' => 'demo-auswahl@pruefung.example',
+    'sprache' => 'de', 'demo' => 'schuh-rose-42']);
+$dmN = (string) Db::wert('SELECT a.nachricht FROM anfragen a JOIN customers c ON c.id = a.customer_id WHERE c.email = ? ORDER BY a.id DESC LIMIT 1',
+    ['demo-auswahl@pruefung.example'], '');
+pruefe('die Auswahl steht als erste Zeile in der Anfrage',
+    $dmOk && str_starts_with($dmN, 'Ausgangspunkt: E-Commerce-Demo, Farbe Rosé, Größe 42'), mb_substr($dmN, 0, 80));
+
 $fvV = Vorgang::laden('a' . $fvA);
 pruefe('der naechste Schritt ist der Fragebogen, nicht der Preis',
     ($fvV['schritt']['knopf'] ?? '') === 'Fragebogen verschicken' && $fvV['stufe'] === 'onboarding',

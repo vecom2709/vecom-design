@@ -1774,6 +1774,19 @@ final class Texte
             'de' => 'Empfohlen von {name} — danke euch beiden.',
             'en' => 'Recommended by {name} — thank you both.',
         ],
+        // Wer aus einer Branchen-Demo der Startseite kommt, bringt seine
+        // Auswahl mit. Sie steht oben in der Anfrage, damit Uwe weiss,
+        // wovon der Kunde ausgeht, ohne nachfragen zu muessen.
+        'demoAusgang' => [
+            'it' => 'Punto di partenza: {wahl}',
+            'de' => 'Ausgangspunkt: {wahl}',
+            'en' => 'Starting point: {wahl}',
+        ],
+        'demoErkannt' => [
+            'it' => 'Parto dalla tua scelta nella demo: {wahl}.',
+            'de' => 'Ich gehe von deiner Auswahl in der Demo aus: {wahl}.',
+            'en' => 'I’m starting from your choice in the demo: {wahl}.',
+        ],
         'knappheit' => [
             'it' => 'Prezzo di lancio — restano {n} posti su {g}.',
             'de' => 'Einführungspreis — noch {n} von {g} Plätzen.',
