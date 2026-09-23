@@ -355,7 +355,12 @@ function build(lang, seite) {
     // Die Importmap steht als JSON im HTML — sie wird von der Regel oben nicht
     // erfasst und muss eigens umgeschrieben werden, sonst fehlt three.js in /de/.
     h = h.replace(/"\.\/assets\//g, `"${up}assets/`);
-    h = h.replace(/href="legal\.html/g, `href="${up}legal.html`);
+    /* Die Rechtsseite traegt die Sprache in der Adresse (23.09.2026):
+       legal.html liegt nur einmal da und faellt ohne Hinweis auf
+       Italienisch zurueck -- aus /de/ heraus waere das die falsche
+       Fassung, ausgerechnet bei AGB und Datenschutz. */
+    h = h.replace(/href="legal\.html(#[a-z]+)?"/g,
+                  (m, anker) => `href="${up}legal.html?lang=${lang}${anker || ''}"`);
     // Unterseiten kennen die Sprache nur über ?lang= — sonst öffnen sie
     // italienisch, egal von welcher Sprachseite man kommt.
     h = h.replace(/href="pakete\.html#([a-z]+)"/g, `href="${up}pakete.html?lang=${lang}#$1"`);

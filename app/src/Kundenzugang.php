@@ -91,17 +91,36 @@ final class Kundenzugang
         return self::still(fn() => Db::one('SELECT * FROM customers WHERE token = ?', [$token]), null);
     }
 
-    /** Die vollstaendige Adresse, die in jede E-Mail gehoert. */
-    public static function link(string $token): string
+    /**
+     * Die vollstaendige Adresse, die in jede E-Mail gehoert.
+     *
+     * MIT SPRACHE (23.09.2026)
+     *
+     * Die Kundenseite nimmt die Sprache aus der Adresse, dann aus dem Keks,
+     * dann aus der Kundenakte. Ohne Sprache in der Adresse gewinnt der Keks
+     * -- und der steht auf dem, was der Besucher zuletzt auf der oeffentlichen
+     * Seite gelesen hat. Wer sich die Startseite auf Italienisch angesehen
+     * hat und dann seinen deutschen Link aus der Mail oeffnet, bekaeme
+     * Italienisch. Deshalb traegt der Link die Sprache, in der die Mail
+     * geschrieben ist.
+     */
+    public static function link(string $token, string $sprache = ''): string
     {
+        require_once __DIR__ . '/Sprache.php';
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
-        return $basis . '/kunde.php?t=' . rawurlencode($token);
+        $adresse = $basis . '/kunde.php?t=' . rawurlencode($token);
+        return in_array(strtolower(trim($sprache)), Sprache::ALLE, true)
+            ? Sprache::anhaengen($adresse, $sprache) : $adresse;
     }
 
     /** Bequem: Adresse zu einer Kundennummer, Schluessel notfalls erzeugend. */
-    public static function linkFuer(int $kundeId): string
+    public static function linkFuer(int $kundeId, string $sprache = ''): string
     {
-        return self::link(self::token($kundeId));
+        if ($sprache === '') {
+            $sprache = (string) self::still(
+                fn() => Db::wert('SELECT sprache FROM customers WHERE id = ?', [$kundeId], ''), '');
+        }
+        return self::link(self::token($kundeId), $sprache);
     }
 
     /**

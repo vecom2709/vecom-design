@@ -53,15 +53,24 @@ try {
     catch (Throwable $e2) { /* dann eben nicht */ }
 }
 
-$sprache = $a ? (string) $a['sprache'] : 'it';
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+/* DAS ANGEBOT FOLGT DEM LESER (23.09.2026)
+   Bisher galt allein die Sprache, in der das Angebot gemacht wurde -- und
+   es gab keinen Umschalter. Wer ein italienisch erstelltes Angebot bekam,
+   konnte nicht auf Deutsch lesen, was er da annimmt. Jetzt entscheidet die
+   Wahl des Lesers; die Sprache des Angebots ist nur noch die Vorgabe. */
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage($a ? (string) $a['sprache'] : '');
+Sprache::merken($sprache);
 $T = static fn(string $s): string => Texte::h(Texte::ANGEBOT[$s] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 
 $W = Widerruf::texte($sprache);
 
+/* Nach jedem Schritt bleibt die Sprache stehen, in der gelesen wurde --
+   sonst steht nach dem Klick wieder die Sprache des Angebots da. */
 $adresse = static fn(string $meldung = ''): string =>
-    '/angebot.php?t=' . rawurlencode($token) . ($meldung !== '' ? '&m=' . rawurlencode($meldung) : '');
+    '/angebot.php?t=' . rawurlencode($token) . '&lang=' . rawurlencode($sprache)
+    . ($meldung !== '' ? '&m=' . rawurlencode($meldung) : '');
 
 /* ---------- Antworten, dann umleiten ---------- */
 if ($a && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -191,6 +200,15 @@ $datum = static function (?string $d): string {
   .zahlung{color:var(--leise);font-size:13px;line-height:1.65;margin:14px 0 0}
   .tun{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
   .tun .knopf{flex:1 1 auto}
+  /* Der Sprachumschalter -- dieselbe Gestalt wie auf der Kundenseite. Wer
+     lesen soll, was er annimmt, muss die Sprache wechseln koennen. */
+  .wortmarke{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .sprachwahl{margin-left:auto;display:inline-flex;gap:2px;padding:2px;
+    border:1px solid var(--linie);border-radius:9px}
+  .sprachwahl a{display:inline-block;padding:5px 10px;border-radius:7px;
+    font-size:12px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
+  .sprachwahl a:hover{color:var(--dim)}
+  .sprachwahl a.jetzt{background:rgba(255,255,255,.09);color:#fff}
   .neinbox{margin-top:14px;padding-top:14px;border-top:1px solid var(--linie)}
   .neinbox summary{cursor:pointer;color:var(--leise);font-size:13px}
   .neinbox textarea{margin-top:10px}
@@ -230,6 +248,15 @@ $datum = static function (?string $d): string {
   <div class="wortmarke">
     <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
+    <?php if (!$panne && $a): ?>
+      <span class="sprachwahl" role="group" aria-label="Lingua / Sprache / Language">
+        <?php foreach (['it' => 'IT', 'de' => 'DE', 'en' => 'EN'] as $sl => $wort): ?>
+          <a href="<?= $h('/angebot.php?t=' . rawurlencode($token) . '&lang=' . $sl) ?>"
+             class="<?= $sprache === $sl ? 'jetzt' : '' ?>"
+             <?= $sprache === $sl ? 'aria-current="true"' : '' ?>><?= $wort ?></a>
+        <?php endforeach; ?>
+      </span>
+    <?php endif; ?>
   </div>
 
 <?php if ($panne): ?>
@@ -317,7 +344,7 @@ $datum = static function (?string $d): string {
 
   <?php if ($offen): ?>
     <div class="block">
-      <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>"
+      <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>"
             data-frage="<?= $h($T('annehmen')) ?>?"
             data-ja="<?= $h($T('jaAnnehmen')) ?>"
             data-nein="<?= $h($T('abbrechen')) ?>">
@@ -354,7 +381,7 @@ $datum = static function (?string $d): string {
           <div class="hinweis warnung" style="margin-top:10px"><?= $h($T('aendernGenug')) ?></div>
         <?php endif; ?>
 
-        <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>" id="rechner">
+        <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>" id="rechner">
           <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
           <input type="hidden" name="t" value="<?= $h($token) ?>">
 
@@ -427,7 +454,7 @@ $datum = static function (?string $d): string {
 
       <details class="neinbox">
         <summary><?= $h($T('ablehnen')) ?></summary>
-        <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>">
+        <form method="post" action="/angebot.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
           <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
           <input type="hidden" name="t" value="<?= $h($token) ?>">
           <div class="feld">
@@ -441,7 +468,7 @@ $datum = static function (?string $d): string {
   <?php endif; ?>
 
   <div class="block" style="text-align:center">
-    <a class="knopf" href="/angebot.php?t=<?= $h(rawurlencode($token)) ?>&amp;pdf=1"><?= $h($T('pdf')) ?></a>
+    <a class="knopf" href="/angebot.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>&amp;pdf=1"><?= $h($T('pdf')) ?></a>
   </div>
 <?php endif; ?>
 </div>

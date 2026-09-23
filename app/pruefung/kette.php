@@ -6874,6 +6874,98 @@ pruefe('und die Bestellseite zeigt statt des Knopfs den Weg zum Angebot',
         'Angebot::wartetAufZusage'));
 
 /* ============================================================================
+   59. Die gewaehlte Sprache traegt durch   (23.09.2026)
+
+   Uwe: "Entsprechend welche Sprache der Besucher waehlt, muss jede Seite,
+   jede Unterseite, egal wo, in der gewaehlten Sprache sein."
+
+   Vorher entschied jede Seite fuer sich, und keine PHP-Seite hat die Wahl je
+   gemerkt: Wer auf der Kundenseite DE waehlte, bekam auf legal.html wieder
+   Italienisch -- ausgerechnet bei AGB und Datenschutz.
+   ============================================================================ */
+abschnitt('59. Die gewaehlte Sprache traegt durch');
+
+require_once $wurzel . '/src/Sprache.php';
+require_once $wurzel . '/src/Fuss.php';
+require_once $wurzel . '/src/Widerruf.php';
+
+/* ---------- Die Reihenfolge der Quellen -------------------------------- */
+$altKeks = $_COOKIE[Sprache::KEKS] ?? null;
+$altLang = $_REQUEST['lang'] ?? null;
+unset($_COOKIE[Sprache::KEKS], $_REQUEST['lang']);
+
+pruefe('ohne alles ist es Italienisch', Sprache::ausAnfrage() === 'it');
+pruefe('was an der Sache haengt, gilt als Vorgabe', Sprache::ausAnfrage('de') === 'de');
+$_COOKIE[Sprache::KEKS] = 'en';
+pruefe('der Keks schlaegt die Vorgabe', Sprache::ausAnfrage('de') === 'en');
+$_REQUEST['lang'] = 'it';
+pruefe('die Wahl in der Adresse schlaegt alles', Sprache::ausAnfrage('de') === 'it');
+$_REQUEST['lang'] = 'kl';
+pruefe('Unsinn in der Adresse wird nicht geglaubt', Sprache::ausAnfrage('de') === 'en');
+unset($_REQUEST['lang']);
+unset($_COOKIE[Sprache::KEKS]);
+if ($altKeks !== null) { $_COOKIE[Sprache::KEKS] = $altKeks; }
+if ($altLang !== null) { $_REQUEST['lang'] = $altLang; }
+
+pruefe('die Sprache haengt sich sauber an jede Adresse',
+    Sprache::anhaengen('https://x/kunde.php?t=abc', 'de') === 'https://x/kunde.php?t=abc&lang=de'
+    && Sprache::anhaengen('https://x/legal.html#agb', 'de') === 'https://x/legal.html?lang=de#agb'
+    && Sprache::anhaengen('https://x/a?lang=it#z', 'en') === 'https://x/a?lang=en#z');
+
+/* ---------- Die Rechtsseite, in der richtigen Sprache ------------------- */
+foreach (['it', 'de', 'en'] as $spL) {
+    pruefe("der Rechtsfuss fuehrt auf die $spL-Fassung", (static function () use ($spL): bool {
+        $fuss = Fuss::html($spL);
+        foreach (['impressum', 'privacy', 'agb', 'widerruf'] as $anker) {
+            if (!str_contains($fuss, 'legal.html?lang=' . $spL . '#' . $anker)) { return false; }
+        }
+        return true;
+    })());
+    pruefe("auch der Haken unter AGB und Datenschutz zeigt auf $spL",
+        substr_count(Widerruf::texte($spL)['agb'], 'legal.html?lang=' . $spL) === 2,
+        Widerruf::texte($spL)['agb']);
+}
+
+/* ---------- Der Link in der Mail traegt die Sprache des Kunden ---------- */
+$spK = Events::kundeFinden(['name' => 'Sprache Deutsch', 'email' => 'sprache-de@pruefung.example', 'sprache' => 'de']);
+$spL2 = Kundenzugang::linkFuer($spK);
+pruefe('der Link zur Kundenseite traegt die Sprache des Kunden',
+    str_contains($spL2, '/kunde.php?t=') && str_contains($spL2, 'lang=de'), $spL2);
+pruefe('und ausdruecklich anders geht auch',
+    str_contains(Kundenzugang::linkFuer($spK, 'en'), 'lang=en'));
+
+/* ---------- Jede oeffentliche Seite merkt die Wahl --------------------- */
+/* Ohne das waere die Wahl auf der naechsten Seite wieder weg -- auch auf den
+   statischen, die den Keks lesen. */
+$spWurzel = dirname(__DIR__, 2);
+foreach (['bedarf.php', 'buchen.php', 'hosting.php', 'kunde.php', 'fragebogen.php',
+          'projekt.php', 'vorgang.php', 'angebot.php'] as $spSeite) {
+    $spQuelle = (string) file_get_contents($spWurzel . '/' . $spSeite);
+    pruefe($spSeite . ' waehlt die Sprache an einer Stelle und merkt sie',
+        str_contains($spQuelle, 'Sprache::ausAnfrage(') && str_contains($spQuelle, 'Sprache::merken('));
+}
+
+/* ---------- Das Angebot laesst sich umschalten ------------------------- */
+$spAngebot = (string) file_get_contents($spWurzel . '/angebot.php');
+pruefe('das Angebot hat einen Sprachumschalter',
+    str_contains($spAngebot, 'class="sprachwahl"')
+    && str_contains($spAngebot, "'&lang=' . \$sl"));
+
+/* ---------- Die statischen Seiten folgen dem Keks ---------------------- */
+$spApp = (string) file_get_contents($spWurzel . '/assets/js/app.js');
+pruefe('app.js liest den Keks, den die PHP-Seiten setzen',
+    str_contains($spApp, 'vecomlang=([a-z]{2})'));
+pruefe('und der Sprachhinweis fragt nicht gegen eine Wahl an, die dort getroffen wurde',
+    str_contains((string) file_get_contents($spWurzel . '/assets/js/sprachhinweis.js'),
+        'vecomlang=([a-z]{2})'));
+foreach (['de/index.html' => 'de', 'en/care.html' => 'en'] as $spDatei => $spSpr) {
+    if (!is_file($spWurzel . '/' . $spDatei)) { continue; }
+    pruefe($spDatei . ' verlinkt die Rechtsseite in ' . $spSpr,
+        str_contains((string) file_get_contents($spWurzel . '/' . $spDatei),
+            'legal.html?lang=' . $spSpr . '#impressum'));
+}
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

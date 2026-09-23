@@ -61,8 +61,9 @@ if ($a && $a['order_id']) {
     }
 }
 
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($a['sprache'] ?? 'it')));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage((string) ($a['sprache'] ?? ''));
+Sprache::merken($sprache);
 
 /* Waehlt der Kunde hier unten eine Sprache, gilt sie ab jetzt auch fuer
    jede Mail an ihn. Vorher aenderte der Umschalter nur diese eine Seite. */

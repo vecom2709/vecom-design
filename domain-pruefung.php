@@ -37,8 +37,8 @@ header('X-Robots-Tag: noindex, nofollow');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: no-referrer');
 
-$sprache = strtolower((string) ($_GET['lang'] ?? 'it'));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage();
 
 $antwort = static function (string $stand, string $weg = '') use ($sprache): void {
     echo json_encode([

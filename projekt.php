@@ -61,8 +61,9 @@ try {
    Website benutzt hat. Waehlt er hier unten eine andere, sagt er es selbst,
    und das ist die staerkere Auskunft: Sie wird vermerkt, damit auch jede
    spaetere Mail in dieser Sprache kommt und nicht zurueckfaellt. */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($f['kunde_sprache'] ?? 'it')));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage((string) ($f['kunde_sprache'] ?? ''));
+Sprache::merken($sprache);
 
 if ($f !== null
     && isset($_REQUEST['lang'])

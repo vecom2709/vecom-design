@@ -56,8 +56,9 @@ $hier  = 'kunde.php?t=' . rawurlencode($token);
    ihm auch die Verwaltung so — das ist der eigentliche Punkt: Die Sprache
    auf dieser Seite und die Sprache seiner Post sind dieselbe Angabe.
    ------------------------------------------------------------------------- */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($kunde['sprache'] ?? ($_COOKIE['vecomlang'] ?? 'it'))));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage((string) ($kunde['sprache'] ?? ''));
+Sprache::merken($sprache);
 
 $spracheGewaehlt = false;
 if ($kunde && isset($_GET['lang']) && in_array($sprache, ['it', 'de', 'en'], true)) {
@@ -501,7 +502,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <?php /* Der Knopf zum Angebot. Er steht vor dem Zahlknopf, weil es
                  den erst nach der Annahme gibt -- und weil niemand zahlen
                  soll, ohne gelesen zu haben, wofuer. */ ?>
-        <a class="knopf haupt" href="/angebot.php?t=<?= $h(rawurlencode((string) $angebotOffen['token'])) ?>">
+        <a class="knopf haupt" href="/angebot.php?t=<?= $h(rawurlencode((string) $angebotOffen['token'])) ?>&amp;lang=<?= $h($sprache) ?>">
           <?= $h(Texte::h(Texte::SEITE['angebotAnsehen'] ?? [], $sprache, 'Angebot ansehen')) ?>
           <?php if ((int) $angebotOffen['summe_cents'] > 0): ?>
             · <?= Fmt::geld((int) $angebotOffen['summe_cents'], (string) $angebotOffen['currency']) ?>

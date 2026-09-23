@@ -54,8 +54,11 @@ header('X-Content-Type-Options: nosniff');
 header('X-Robots-Tag: noindex, nofollow');
 
 /* ---------- Sprache ---------- */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($_COOKIE['vecomlang'] ?? 'it')));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+/* Eine Stelle entscheidet ueber die Sprache, und sie merkt sie fuer die
+   naechste Seite -- auch fuer die statischen (23.09.2026). */
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage();
+Sprache::merken($sprache);
 
 $T = static fn(string $s): string => Texte::h(Texte::BEDARF[$s] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');

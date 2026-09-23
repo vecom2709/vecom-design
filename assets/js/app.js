@@ -79,6 +79,14 @@
     if (fixed && LANGS.indexOf(fixed) > -1) return fixed;
     var url = new URLSearchParams(location.search).get('lang');
     if (LANGS.indexOf(url) > -1) return url;
+    /* Der Keks steht VOR dem localStorage (23.09.2026). Beide werden
+       zusammen geschrieben, wenn hier umgeschaltet wird -- aber die
+       PHP-Seiten schreiben nur den Keks. Er ist damit immer mindestens so
+       frisch wie der Speicher. Andersherum gewann die alte Wahl: Wer auf
+       der Angebotsseite auf Italienisch schaltete und dann die AGB
+       oeffnete, las wieder Deutsch. */
+    var keks = /(?:^|;)\s*vecomlang=([a-z]{2})/.exec(document.cookie || '');
+    if (keks && LANGS.indexOf(keks[1]) > -1) { return keks[1]; }
     try {
       var saved = localStorage.getItem(STORE);
       if (LANGS.indexOf(saved) > -1) return saved;

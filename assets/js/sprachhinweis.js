@@ -133,7 +133,10 @@
     if (!will || will === hier) { return; }
 
     // Eine gespeicherte Wahl ist eine Entscheidung — auch dann nicht fragen.
-    var gemerkt = lesen(STORE);
+    // Der Keks zuerst: Wahlen auf den PHP-Seiten (Kundenseite, Angebot,
+    // Konfigurator) stehen nur dort (23.09.2026).
+    var keks = /(?:^|;)\s*vecomlang=([a-z]{2})/.exec(document.cookie || '');
+    var gemerkt = (keks && SPRACHEN.indexOf(keks[1]) > -1) ? keks[1] : lesen(STORE);
     if (gemerkt && SPRACHEN.indexOf(gemerkt) > -1) {
       if (gemerkt === hier) { return; }
       will = gemerkt;

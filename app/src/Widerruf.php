@@ -43,7 +43,19 @@ final class Widerruf
     public static function texte(string $sprache): array
     {
         $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
-        return self::ALLE[$s];
+        $t = self::ALLE[$s];
+
+        /* Die Verweise auf AGB und Datenschutz tragen die Sprache mit
+           (23.09.2026): legal.html faellt sonst auf Italienisch zurueck, und
+           der Haken darunter bestaetigt Texte, die der Kunde nicht lesen
+           konnte. */
+        require_once __DIR__ . '/Sprache.php';
+        $t['agb'] = str_replace(
+            ['href="/legal.html#agb"', 'href="/legal.html#privacy"'],
+            ['href="' . htmlspecialchars(Sprache::legal($s, 'agb'), ENT_QUOTES, 'UTF-8') . '"',
+             'href="' . htmlspecialchars(Sprache::legal($s, 'privacy'), ENT_QUOTES, 'UTF-8') . '"'],
+            $t['agb']);
+        return $t;
     }
 
     public static function t(string $schluessel, string $sprache): string

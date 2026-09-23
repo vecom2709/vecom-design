@@ -44,8 +44,9 @@ header('X-Content-Type-Options: nosniff');
 
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($_COOKIE['vecomlang'] ?? 'it')));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage();
+Sprache::merken($sprache);
 
 /* Alle Saetze der Seite — dreisprachig, an einem Ort. */
 $W = [

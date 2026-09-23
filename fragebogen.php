@@ -69,8 +69,9 @@ try {
    jede spaetere Mail -- Vorschau, Restzahlung, "deine Seite ist online" --
    kommt von da an in derselben Sprache. Vorher aenderte der Umschalter nur
    diese eine Seite, und die naechste Mail fiel wieder zurueck. */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($f['kunde_sprache'] ?? ($_COOKIE['vecomlang'] ?? 'it'))));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage((string) ($f['kunde_sprache'] ?? ''));
+Sprache::merken($sprache);
 
 if ($f !== null
     && isset($_REQUEST['lang'])

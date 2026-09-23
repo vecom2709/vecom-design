@@ -32,8 +32,9 @@ session_name('vecombuchung');
 session_start();
 
 /* ---------- Sprache ---------- */
-$sprache = strtolower((string) ($_REQUEST['lang'] ?? ($_COOKIE['vecomlang'] ?? 'it')));
-if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+require_once __DIR__ . '/app/src/Sprache.php';
+$sprache = Sprache::ausAnfrage();
+Sprache::merken($sprache);
 
 $T = [
   'it' => [

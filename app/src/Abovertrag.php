@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Sprache.php';
+
 require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Fmt.php';
 require_once __DIR__ . '/Config.php';
@@ -273,7 +275,9 @@ final class Abovertrag
         /* ---------- AGB und Datenschutz ---------- */
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
         $y += 8;
-        $p->text($rand, $y, $w['agb'] . ':  ' . $basis . '/legal.html', 8.5, false, 'links', $grau);
+        // Mit Sprache: Wer das Blatt auf Deutsch in der Hand haelt, soll die
+        // AGB auch auf Deutsch aufrufen koennen (23.09.2026).
+        $p->text($rand, $y, $w['agb'] . ':  ' . Sprache::legal($sprache), 8.5, false, 'links', $grau);
 
         /* ---------- Fuss ---------- */
         $fuss = Pdf::A4_HOCH - 82;

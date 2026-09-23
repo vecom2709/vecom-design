@@ -5,6 +5,7 @@ require_once __DIR__ . '/Mail.php';
 require_once __DIR__ . '/Texte.php';
 require_once __DIR__ . '/Onboarding.php';
 require_once __DIR__ . '/Events.php';   // Zahlungsziel und Linkdauer stehen dort
+require_once __DIR__ . '/Sprache.php';
 
 /**
  * Nachrichten zwischen Kunde und Verwaltung — an einem Ort statt verstreut
@@ -503,8 +504,10 @@ final class Nachricht
             'firma'     => implode("\n", $firma),
             'widerruf'  => Widerruf::t('widText', $sprache),
             'zustimmung'=> $zustimmung,
-            'agb'       => $basis . '/legal.html#agb',
-            'privacy'   => $basis . '/legal.html#privacy',
+            // Mit Sprache -- sonst steht in der deutschen Mail ein Verweis,
+            // der auf eine italienische Rechtsseite fuehrt (23.09.2026).
+            'agb'       => Sprache::legal($sprache, 'agb'),
+            'privacy'   => Sprache::legal($sprache, 'privacy'),
             'link'      => self::link($projektId) ?? $basis,
         ]);
 

@@ -47,12 +47,17 @@ final class Fuss
     {
         $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
         $w = self::WORTE[$s];
-        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/legal.html';
+        /* MIT SPRACHE (23.09.2026)
+           legal.html faellt ohne Hinweis auf Italienisch zurueck. Ein
+           deutscher Kunde las also die AGB auf Italienisch -- ausgerechnet
+           die Seite, auf die es ankommt. Jetzt steht die Sprache in der
+           Adresse, und die Seite dort nimmt sie. */
+        require_once __DIR__ . '/Sprache.php';
 
         $h = static fn(string $x): string => htmlspecialchars($x, ENT_QUOTES, 'UTF-8');
         $teile = [];
         foreach (['impressum', 'privacy', 'agb', 'widerruf'] as $anker) {
-            $teile[] = '<a href="' . $h($basis . '#' . $anker) . '" target="_blank" rel="noopener">'
+            $teile[] = '<a href="' . $h(Sprache::legal($s, $anker)) . '" target="_blank" rel="noopener">'
                 . $h($w[$anker]) . '</a>';
         }
 
