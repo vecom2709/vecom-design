@@ -359,7 +359,7 @@ const BILDER = '/assets/img/erlebnis/villa/';
 /* Stand der gerechneten Bilder. Wer sie neu rechnet und hochlädt, zählt hier
    hoch -- der Server gibt Bildern dreißig Tage, und diese Adressen setzt
    JavaScript, nicht build.mjs. */
-const BILD_STAND = '2';
+const BILD_STAND = '3';
 const PROBEN = 384;
 const buehne = $('#buehne');
 const ruheA = $('#ruhe-a');
