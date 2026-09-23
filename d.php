@@ -17,6 +17,12 @@ const EREIGNISSE = [
     'villa-drehen', 'auto-drehen', 'auto-zerlegen', 'schuh-drehen', 'schuh-details',
     'schuh-korb', 'tisch-drehen', 'cta-auto', 'cta-shop',
     'modell-kleinwagen', 'modell-mittelklasse', 'modell-auto',
+    // Serienautos (23.09.2026): Fahrerplatz, Ausstattung, Zerlegen in Stufen
+    'kleinwagen-innen', 'mittelklasse-innen',
+    'kleinwagen-ausstattung-stoff-anthrazit', 'kleinwagen-ausstattung-stoff-grau-blau', 'kleinwagen-ausstattung-kunstleder-hell',
+    'mittelklasse-ausstattung-stoff-anthrazit', 'mittelklasse-ausstattung-leder-cognac', 'mittelklasse-ausstattung-leder-elfenbein',
+    'kleinwagen-stufe-1', 'kleinwagen-stufe-2', 'kleinwagen-stufe-3', 'kleinwagen-stufe-4',
+    'mittelklasse-stufe-1', 'mittelklasse-stufe-2', 'mittelklasse-stufe-3', 'mittelklasse-stufe-4',
 ];
 $datei = __DIR__ . '/demo.csv';
 

@@ -26,13 +26,26 @@ for (const node of doc.getRoot().listNodes()) {
     nach += prim.getIndices().getCount() / 3;
   }
 }
-// Innenraum und Glas fuer die Echtzeit abdunkeln: three.js beleuchtet den
-// Innenraum mit der vollen Umgebung (keine Verdeckung durch das Dach wie in
-// Cycles) -- die Sitze standen im ersten Test hellgrau hinter der Scheibe.
-const DUNKLER = { 'Seat Fabric': 0.35, 'Interior Dark': 0.35, 'Headliner': 0.3, 'Leather Dark': 0.5, 'Glass': 0.62 };
+// Glas fuer die Echtzeit abdunkeln (three.js ohne Transmission). Der
+// Innenraum wurde bis 23.09.2026 hier pauschal abgedunkelt; seitdem bringt
+// er seine Verdeckung als gebackene Punktfarbe mit (fahrzeug_bau.py, AO).
+const DUNKLER = { 'Glass': 0.62 };
 for (const m of doc.getRoot().listMaterials()) {
   const f = DUNKLER[m.getName()]; if (!f) continue;
   const c = m.getBaseColorFactor(); m.setBaseColorFactor([c[0] * f, c[1] * f, c[2] * f, c[3]]);
 }
+// Texturen: WebP, Stoffkarten 512 px (eine Kachel sind 5-8 cm -- mehr sieht
+// man im Browser nicht), Displays 1024 px (Schrift muss lesbar bleiben),
+// Reifenflanke 2048 x 256 (die Karte laeuft einmal um den Reifen; bei 512
+// waeren die 15-mm-Buchstaben 4 px breit und nur noch Rauschen).
+const sharp = (await import(path.join(M, 'sharp/dist/index.cjs'))).default;
+await doc.transform(
+  F.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], pattern: /display/i, quality: 88 }),
+  F.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], pattern: /reifen/i, quality: 90 }),
+  // Positiv benennen, nicht per Ausschluss: textureCompress prueft Name ODER
+  // URI, und die leere URI eingebetteter Bilder passt auf jedes /^(?!...)/ --
+  // so wurden bis 23.09.2026 auch Displays und Reifen auf 512 px gestaucht.
+  F.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], pattern: /^(innen|neu|lack)-/i, quality: 82 }),
+);
 await io.write(aus, doc);
 console.log(JSON.stringify({ vor, nach }));

@@ -14,7 +14,7 @@ dasselbe Studio wie beim Konzeptauto. Hier entsteht daraus:
                                            Raender fest) + meshopt
   assets/3d/branchen/<was>/kamera.json     Kamera, Boden, Umgebung, Zerlegen
   assets/3d/branchen/<was>/boden-licht.webp  Bodenbeleuchtung (sRGB, normiert)
-  assets/3d/branchen/<was>/umgebung*.hdr     Rundumbilder 1024 x 512, RGBE
+  assets/3d/branchen/<was>/umgebung*.hdr     Rundumbilder RGBE (Spiegelung 2048, Boden 1024)
 
 WARUM JE TEIL VEREINFACHEN, MIT FESTEN RAENDERN
 Die Echtzeitfassung aus Blender hat gut 620 000 Dreiecke. Einheitlich mit
@@ -39,22 +39,51 @@ GT = os.environ.get('GLTF_TRANSFORM', '/home/claude/demos/npm/node_modules/.bin/
 # Web-Einstellungen wie beim Konzeptauto: gleiches Studio, gleicher Look.
 WEB = ('look', 'web_belichtung', 'web_spiegel', 'web_boden', 'grund_srgb')
 
-# Explosionsansicht: Achsen in Weltkoordinaten (three.js): seite = nach aussen,
-# hoch = +Y, vor = Fahrtrichtung. start = Anteil der Gesamtzeit.
+# Explosionsansicht in vier Stufen (Uwe, 23.09.2026: "zerlegen detaillierter"):
+# 1 Anbauteile (Tueren oeffnen an den Scharnieren, Hauben, Stossfaenger),
+# 2 Innenraum, 3 Antrieb, 4 Fahrwerk und Rohbau (der Lack weicht der grauen
+# Tauchgrundierung). Achsen in Weltkoordinaten (three.js): seite = nach
+# aussen, hoch = +Y, vor = Fahrtrichtung. start = Anteil der Gesamtzeit;
+# jede Stufe beginnt erst, wenn die vorige steht (Luecke > breite).
+# dreh: Grad um die Scharnierachse aus den extras des Knotens.
 ZERLEGEN = {
-    'dauer': 3.0, 'breite': 0.34,
+    'dauer': 7.0, 'breite': 0.14,
+    'stufen': ['anbau', 'innenraum', 'antrieb', 'fahrwerk'],
     'regeln': [
-        {'muster': '^tuer_[vh](_|$)', 'seite': 1.15, 'hoch': 0.1, 'start': 0.0, 'beschriftung': 'tueren'},
-        {'muster': '^haube$', 'hoch': 0.8, 'vor': 0.6, 'start': 0.06, 'beschriftung': 'haube'},
-        {'muster': '^(klappe|klappe_spoiler|rueckleuchte.*|stoss_h|kennzeichen_h)$', 'hoch': 0.55, 'vor': -0.9, 'start': 0.12, 'beschriftung': 'heck'},
-        {'muster': '^(stoss_v|grill_.*|einlass.*|scheinwerfer.*|kennzeichen_v)$', 'vor': 0.75, 'start': 0.10},
-        {'muster': '^(frontscheibe|wischer)$', 'hoch': 0.95, 'vor': 0.35, 'start': 0.28},
-        {'muster': '^(reifen|felge|felgenbett|schrauben|nabendeckel)_[vh]_[lr]$', 'seite': 0.9, 'start': 0.42, 'beschriftung': 'raeder'},
-        {'muster': '^(bremsscheibe|sattel)_[vh]_[lr]$', 'seite': 0.5, 'start': 0.5, 'beschriftung': 'bremse'},
-        {'muster': '^antrieb_', 'hoch': 0.55, 'start': 0.58, 'beschriftung': 'antrieb'},
-        {'muster': '^fahrwerk_', 'hoch': 0.30, 'start': 0.62, 'beschriftung': 'fahrwerk'},
-        {'muster': '^innen_sitze$', 'hoch': 0.45, 'start': 0.66, 'beschriftung': 'sitze'},
-        {'muster': '^innen_(lenkrad|armatur)$', 'hoch': 0.28, 'vor': 0.1, 'start': 0.70},
+        # --- 1 Anbauteile
+        {'muster': '^tuer_v_[rl]_angel$', 'dreh': True, 'start': 0.00, 'stufe': 1, 'beschriftung': 'tueren'},
+        {'muster': '^tuer_h_[rl]_angel$', 'dreh': True, 'start': 0.03, 'stufe': 1},
+        {'muster': '^haube$', 'hoch': 0.8, 'vor': 0.6, 'start': 0.05, 'stufe': 1, 'beschriftung': 'haube'},
+        {'muster': '^(stoss_v|grill_.*|einlass.*|scheinwerfer.*|kennzeichen_v)$', 'vor': 0.75, 'start': 0.07, 'stufe': 1},
+        {'muster': '^(klappe|klappe_spoiler|rueckleuchte.*|stoss_h|kennzeichen_h)$', 'hoch': 0.55, 'vor': -0.9, 'start': 0.08, 'stufe': 1, 'beschriftung': 'heck'},
+        {'muster': '^(frontscheibe|wischer)$', 'hoch': 0.95, 'vor': 0.35, 'start': 0.10, 'stufe': 1},
+        # --- 2 Innenraum
+        {'muster': '^innen_himmel$', 'hoch': 0.75, 'start': 0.25, 'stufe': 2, 'beschriftung': 'himmel'},
+        {'muster': '^innen_sitz_(fahrer|beifahrer)$', 'hoch': 0.55, 'seite': 0.25, 'start': 0.27, 'stufe': 2, 'beschriftung': 'sitze'},
+        {'muster': '^innen_ruecksitz$', 'hoch': 0.60, 'vor': -0.30, 'start': 0.29, 'stufe': 2},
+        {'muster': '^innen_lenkrad$', 'hoch': 0.30, 'vor': -0.25, 'start': 0.31, 'stufe': 2, 'beschriftung': 'lenkrad'},
+        {'muster': '^innen_armatur$', 'hoch': 0.50, 'vor': 0.35, 'start': 0.33, 'stufe': 2, 'beschriftung': 'cockpit'},
+        {'muster': '^innen_konsole$', 'hoch': 0.42, 'start': 0.34, 'stufe': 2},
+        # --- 3 Antrieb: der Motor geht in Schichten nach oben auseinander
+        {'muster': '^antrieb_ventildeckel$', 'hoch': 1.05, 'start': 0.50, 'stufe': 3},
+        {'muster': '^antrieb_kopf$', 'hoch': 0.82, 'start': 0.51, 'stufe': 3, 'beschriftung': 'zylinderkopf'},
+        {'muster': '^antrieb_saugrohr$', 'hoch': 0.62, 'vor': 0.25, 'start': 0.52, 'stufe': 3},
+        {'muster': '^antrieb_(turbo_.*|ladeluft)$', 'hoch': 0.62, 'vor': -0.30, 'start': 0.52, 'stufe': 3, 'beschriftung': 'turbo'},
+        {'muster': '^antrieb_(block|oelfilter)$', 'hoch': 0.50, 'start': 0.53, 'stufe': 3, 'beschriftung': 'antrieb'},
+        {'muster': '^antrieb_(riemenscheiben|riemen|lichtmaschine|klima)$', 'hoch': 0.50, 'seite': 0.35, 'start': 0.54, 'stufe': 3},
+        {'muster': '^antrieb_oelwanne$', 'hoch': 0.30, 'start': 0.54, 'stufe': 3},
+        {'muster': '^antrieb_(getriebe|getriebewanne)$', 'hoch': 0.35, 'seite': 0.45, 'start': 0.55, 'stufe': 3, 'beschriftung': 'getriebe'},
+        {'muster': '^antrieb_(kuehler|luefter)$', 'vor': 0.65, 'hoch': 0.2, 'start': 0.56, 'stufe': 3, 'beschriftung': 'kuehler'},
+        {'muster': '^antrieb_batterie$', 'hoch': 0.55, 'seite': 0.3, 'start': 0.56, 'stufe': 3},
+        {'muster': '^antrieb_(wellen|baelge|kardanwelle|kardan_lager|differenzial)$', 'seite': 0.35, 'hoch': 0.15, 'start': 0.57, 'stufe': 3},
+        {'muster': '^antrieb_(auspuff|katalysator)$', 'hoch': 0.12, 'seite': 0.55, 'start': 0.58, 'stufe': 3, 'beschriftung': 'abgas'},
+        {'muster': '^antrieb_tank$', 'hoch': 0.25, 'seite': -0.0, 'vor': -0.2, 'start': 0.58, 'stufe': 3},
+        # --- 4 Fahrwerk und Rohbau
+        {'muster': '^(reifen|felge|felgenbett|schrauben|nabendeckel)_[vh]_[lr]$', 'seite': 0.9, 'start': 0.75, 'stufe': 4, 'beschriftung': 'raeder'},
+        {'muster': '^(bremsscheibe|sattel)_[vh]_[lr]$', 'seite': 0.5, 'start': 0.78, 'stufe': 4, 'beschriftung': 'bremse'},
+        {'muster': '^fahrwerk_(federbeine|federn_v|lager_v|stabilisator|lenkung|lenkbaelge)$', 'hoch': -0.05, 'vor': 0.35, 'start': 0.80, 'stufe': 4, 'beschriftung': 'fahrwerk'},
+        {'muster': '^fahrwerk_(hinterachse|lager_h|federn_h|daempfer_h)$', 'hoch': -0.05, 'vor': -0.40, 'start': 0.81, 'stufe': 4},
+        {'muster': '^karosserie$', 'start': 0.82, 'stufe': 4, 'beschriftung': 'rohbau', 'rohbau': True},
     ],
 }
 
@@ -90,12 +119,16 @@ def exr_lesen(p):
     return np.stack(kan, -1)
 
 
-def hdr_schreiben(p, rgb):
+def hdr_schreiben(p, rgb, halbieren=True):
     import cv2
-    # 2048 x 1024 -> 1024 x 512 als Flaechenmittel (keine Aliasing-Funken)
-    h, w = rgb.shape[:2]
-    klein = rgb.reshape(h // 2, 2, w // 2, 2, 3).mean((1, 3)).astype(np.float32)
-    cv2.imwrite(p, klein[..., ::-1])
+    # Die Spiegelungsumgebung bleibt seit 23.09.2026 in voller Aufloesung
+    # (2048 x 1024): Bei 1024 verschwammen die Softbox-Kanten im Lack zu
+    # einem Fleck -- genau die Kante, an der das Auge Lack als Lack erkennt.
+    # Die Bodenumgebung wird nur gestreut gesehen und bleibt halb.
+    if halbieren:
+        h, w = rgb.shape[:2]
+        rgb = rgb.reshape(h // 2, 2, w // 2, 2, 3).mean((1, 3))
+    cv2.imwrite(p, rgb.astype(np.float32)[..., ::-1])
 
 
 def srgb_zu_linear(v):
@@ -122,7 +155,7 @@ def main(was, quelle):
     print('Modell', glb, os.path.getsize(glb), 'Bytes', n, 'Dreiecke (roh', dreiecke(roh), ')')
     # 2) Umgebungen
     for name in ('umgebung', 'umgebung-boden'):
-        hdr_schreiben(os.path.join(ziel, f'{name}.hdr'), exr_lesen(os.path.join(render, f'{name}.exr')))
+        hdr_schreiben(os.path.join(ziel, f'{name}.hdr'), exr_lesen(os.path.join(render, f'{name}.exr')), name != 'umgebung')
     # 3) Boden
     b = np.asarray(Image.open(os.path.join(render, 'boden.png')), np.float64)
     tiefe = 65535.0 if b.max() > 255 else 255.0
@@ -142,6 +175,11 @@ def main(was, quelle):
     for s in WEB:
         k[s] = auto[s]
     k['zerlegen'] = ZERLEGEN
+    # Innenraum: Kamera vom Fahrerplatz (branchen_studio.py, Modus innen) --
+    # Ziel der Kamerafahrt und Standpunkt der Innenraumfotos
+    ki = os.path.join(render, 'kamera-innen.json')
+    if os.path.exists(ki):
+        k['innen'] = json.load(open(ki, encoding='utf-8'))
     k['dreiecke'] = n
     with open(os.path.join(ziel, 'kamera.json'), 'w', encoding='utf-8') as f:
         json.dump(k, f, ensure_ascii=False, indent=1)

@@ -497,3 +497,8 @@
    Information fuer die, die sie suchen, kein zweiter Blickfang. */
 .erlebnis .bd-daten{margin:.55rem 0 0; display:grid; gap:.15rem; font-size:.86rem; line-height:1.45; color:var(--c-faint)}
 .erlebnis .bd-daten__masse{color:var(--c-dim)}
+
+/* Schritte der Explosionsansicht (Serienautos, 23.09.2026) */
+.bd-stufen { margin-top: 10px; }
+.bd-stufen b { font-weight: 700; margin-right: 2px; opacity: 0.72; font-variant-numeric: tabular-nums; }
+.bd-stufen button[aria-pressed="true"] b { opacity: 1; }

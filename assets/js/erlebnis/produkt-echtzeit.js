@@ -237,12 +237,26 @@ export async function erstellen({
   });
   const leuchtStaerke = new Map([...leuchtend].map((m) => [m, m.emissiveIntensity]));
 
+  /* Zwei Gruppen im selben GLB (23.09.2026): Lacke und Ausstattungen
+     ("Innen: ..."). Jedes Netz gehoert zu genau einer Gruppe; beim Wechsel
+     des Lacks darf der Innenraum nicht auf seinen Standard zurueckfallen.
+     assignFinalMaterial: Netze mit gebackener Verdeckung (Punktfarbe)
+     brauchen eine Materialkopie mit vertexColors -- ohne sie war der
+     Innenraum nach dem ersten Wechsel wieder flach ausgeleuchtet. */
+  const istInnen = (i) => /^Innen/.test(namen[i] || '');
+  const lackIdx = namen.map((_, i) => i).filter((i) => !istInnen(i));
+  const innenIdx = namen.map((_, i) => i).filter(istInnen);
+  let aktLack = lackIdx.length ? lackIdx[0] : 0; let aktInnen = innenIdx.length ? innenIdx[0] : -1;
   async function varianteSetzen(i) {
+    if (istInnen(i)) aktInnen = i; else aktLack = i;
     const auftraege = zuordnung.map(async (z) => {
-      const treffer = z.mappings.find((mp) => mp.variants.includes(i));
+      const treffer = z.mappings.find((mp) => mp.variants.includes(aktLack) || mp.variants.includes(aktInnen));
       z.mesh.material = treffer ? await parser.getDependency('material', treffer.material) : z.standard;
+      parser.assignFinalMaterial(z.mesh);
+      if (rohbauMat) rohbauMat.delete(z.mesh.material);
     });
     await Promise.all(auftraege);
+    rohbauAnwenden();
     einmal();
   }
 
@@ -287,7 +301,15 @@ export async function erstellen({
       const seite = Math.sign(c.x - mitte.x) || 1;
       const weltWeg = new THREE.Vector3((r.seite || 0) * seite, r.hoch || 0, r.vor || 0);
       const lokal = o.parent.worldToLocal(c.clone().add(weltWeg)).sub(o.parent.worldToLocal(c.clone()));
-      const t = { o, ruhe: o.position.clone(), weg: lokal, start: r.start || 0, beschriftung: r.beschriftung || null, mitteLokal: o.worldToLocal(c.clone()) };
+      const t = { o, ruhe: o.position.clone(), weg: lokal, start: r.start || 0, stufe: r.stufe || 1, beschriftung: r.beschriftung || null, mitteLokal: o.worldToLocal(c.clone()) };
+      /* Tueren drehen an ihrer Scharnierachse (extras aus fahrzeug_bau.py):
+         Achse in glTF-Koordinaten, Winkel in Grad, Vorzeichen so, dass die
+         Hinterkante nach aussen schwingt. */
+      if (r.dreh && o.userData && o.userData.achse) {
+        t.dreh = { achse: new THREE.Vector3(...o.userData.achse).normalize(), winkel: THREE.MathUtils.degToRad(o.userData.winkel || 65) * -(o.userData.seite || 1), ruhe: o.quaternion.clone() };
+        t.weg = new THREE.Vector3();
+      }
+      if (r.rohbau) t.rohbau = true;
       teile.push(t);
       o.traverse((m) => { if (m.isMesh) m.castShadow = true; });
       if (t.beschriftung && !anker.has(t.beschriftung)) anker.set(t.beschriftung, [t]);
@@ -305,8 +327,45 @@ export async function erstellen({
   const pz = new THREE.Vector3(); const pnrm = new THREE.Vector3();
   const weich = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
   function anteil(t, p) { return weich(Math.min(1, Math.max(0, (p - t.start) / Z_BREITE))); }
+  /* Stufen: Zielwert von "zerlegt", bei dem alle Teile bis einschliesslich
+     Stufe k stehen und die naechste Stufe noch nicht begonnen hat. */
+  const STUFEN_ZIEL = [0];
+  for (let k = 1; k <= 4; k++) {
+    const st = teile.filter((t) => t.stufe <= k).map((t) => t.start);
+    STUFEN_ZIEL.push(st.length ? Math.min(1, (Math.max(...st) + Z_BREITE) / (1 + Z_BREITE)) : STUFEN_ZIEL[k - 1]);
+  }
+  const tuerQ = new THREE.Quaternion();
+  let fahrerTuer = 0;               // Kamerafahrt: Fahrertuer oeffnen, unabhaengig vom Zerlegen
+  let rohbau = 0;
   function zerlegenAnwenden() {
-    for (const t of teile) t.o.position.copy(t.ruhe).addScaledVector(t.weg, anteil(t, zerlegt * (1 + Z_BREITE)));
+    const p = zerlegt * (1 + Z_BREITE);
+    for (const t of teile) {
+      const a = anteil(t, p);
+      if (t.dreh) {
+        const f = t.o.name === 'tuer_v_r_angel' ? Math.max(a, fahrerTuer) : a;
+        t.o.quaternion.copy(t.dreh.ruhe).multiply(tuerQ.setFromAxisAngle(t.dreh.achse, t.dreh.winkel * f));
+      } else t.o.position.copy(t.ruhe).addScaledVector(t.weg, a);
+      if (t.rohbau) rohbau = a;
+    }
+    rohbauAnwenden();
+  }
+  /* Rohbau (Stufe 4): Der Lack weicht der grauen Tauchgrundierung (KTL),
+     so steht eine Karosserie vor der Lackierung im Werk. */
+  const rohbauMat = new Map();
+  const KTL = new THREE.Color().setRGB(0.29, 0.30, 0.31);
+  let rohbauStand = -1;
+  function rohbauAnwenden() {
+    if (Math.abs(rohbau - rohbauStand) < 1e-4) return;
+    rohbauStand = rohbau;
+    for (const z of zuordnung) {
+      if (!z.mappings.some((mp) => mp.variants.some((v) => lackIdx.includes(v)))) continue;
+      const m = z.mesh.material;
+      if (!rohbauMat.has(m)) rohbauMat.set(m, { c: m.color.clone(), me: m.metalness, ro: m.roughness, cc: m.clearcoat || 0 });
+      const o = rohbauMat.get(m);
+      m.color.copy(o.c).lerp(KTL, rohbau);
+      m.metalness = o.me * (1 - rohbau); m.roughness = o.ro + (0.62 - o.ro) * rohbau;
+      if ('clearcoat' in m) m.clearcoat = o.cc * (1 - rohbau);
+    }
   }
 
   /* Wie weit muss die Kamera zurück, damit das Zerlegte ganz ins Bild passt?
@@ -435,7 +494,17 @@ export async function erstellen({
     kamera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(tanVc));
     kamera.updateProjectionMatrix();
   }
+  /* Freie Kamera (Kamerafahrt in den Innenraum): Ort, Blickziel und
+     Brennweite direkt statt ueber die Umlaufbahn um Z. */
+  let frei = null;
   function kameraSetzen() {
+    if (frei) {
+      kamera.position.copy(frei.ort); kamera.lookAt(frei.ziel);
+      const merk = ist.lens; ist.lens = frei.lens;
+      projektion(leinwand.clientWidth || 16, leinwand.clientHeight || 9);
+      ist.lens = merk;
+      return;
+    }
     const cn = Math.cos(ist.neig);
     kamera.position.set(Z.x + Math.sin(ist.winkel) * cn * ist.abst, Z.y + Math.sin(ist.neig) * ist.abst, Z.z + Math.cos(ist.winkel) * cn * ist.abst);
     kamera.lookAt(Z);
@@ -445,6 +514,102 @@ export async function erstellen({
     const dw = wickel(soll.winkel - ist.winkel);
     ist.winkel += dw * f; ist.neig += (soll.neig - ist.neig) * f; ist.abst += (soll.abst - ist.abst) * f;
     return Math.abs(dw) + Math.abs(soll.neig - ist.neig) + Math.abs(soll.abst - ist.abst) * 0.05;
+  }
+
+  /* ------------------------------------------------------------ Innenraum
+     Kamerafahrt durch die Fahrertuer (23.09.2026): erst um das Auto herum
+     auf die Fahrerseite (Umlaufbahn, die Tuer schwingt dabei auf), dann auf
+     einer Bahn durch die Tueroeffnung bis zum Augpunkt des Fahrers -- genau
+     der Standpunkt der Innenraumfotos aus Cycles (kamera.json "innen").
+     Dort schliesst die Tuer, und wer zieht, schaut sich um. Zurueck
+     dieselbe Bahn rueckwaerts. */
+  const KI = K.innen || null;
+  const innenAuge = KI ? new THREE.Vector3(...KI.position) : null;
+  const innenZiel = KI ? new THREE.Vector3(...KI.ziel) : null;
+  let modus = 'aussen';          // aussen | rein | innen | raus
+  let wartendZerlegen = null; let aktStufe = 0;
+  const MIT_STUFEN = !!(K.zerlegen && K.zerlegen.stufen);
+  let fahrt = null;              // { t, dauer, ort: [..], ziel: [..], lens: [a, b], fertig }
+  const blick = { gier: 0, nick: 0 }; const blickSoll = { gier: 0, nick: 0 };
+  let tuerSoll = 0;
+  const weichS = (x) => x * x * (3 - 2 * x);
+  function bahnPunkt(pkte, u) {
+    // Catmull-Rom durch die Stuetzpunkte, u in [0, 1]
+    const n = pkte.length - 1; const f = Math.min(n - 1e-6, u * n); const i = Math.floor(f); const t = f - i;
+    const p0 = pkte[Math.max(0, i - 1)], p1 = pkte[i], p2 = pkte[i + 1], p3 = pkte[Math.min(n, i + 2)];
+    const t2 = t * t, t3 = t2 * t;
+    return new THREE.Vector3(
+      0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+      0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+      0.5 * (2 * p1.z + (-p0.z + p2.z) * t + (2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z) * t2 + (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * t3));
+  }
+  function tuerPunkt() {
+    // Vor der geoeffneten Fahrertuer: 0,95 m neben dem Augpunkt, etwas dahinter
+    return innenAuge.clone().add(new THREE.Vector3(0.95, 0.10, -0.14));
+  }
+  function umlaufZuTuer() {
+    const a = tuerPunkt();
+    return { winkel: Math.atan2(a.x - Z.x, a.z - Z.z) - 0.25, neig: 0.10, abst: Math.max(heim.abst * 0.72, 3.3), lens: heim.lens };
+  }
+  function fahrtAnfangen(richtung) {
+    const umlauf = umlaufZuTuer(); const cn = Math.cos(umlauf.neig);
+    const ausPunkt = new THREE.Vector3(Z.x + Math.sin(umlauf.winkel) * cn * umlauf.abst, Z.y + Math.sin(umlauf.neig) * umlauf.abst, Z.z + Math.cos(umlauf.winkel) * cn * umlauf.abst);
+    const ort = [ausPunkt, tuerPunkt(), innenAuge.clone()];
+    const ziel = [Z.clone(), innenZiel.clone().lerp(Z, 0.35), innenZiel.clone()];
+    const lens = [heim.lens, KI.brennweite_mm || 20];
+    if (richtung < 0) { ort.reverse(); ziel.reverse(); lens.reverse(); }
+    fahrt = { t: 0, dauer: 2.6, ort, ziel, lens, richtung };
+  }
+  function blickRichtung() {
+    const v = innenZiel.clone().sub(innenAuge);
+    v.applyAxisAngle(new THREE.Vector3(0, 1, 0), -blick.gier);
+    const rechts = new THREE.Vector3().crossVectors(v, new THREE.Vector3(0, 1, 0)).normalize();
+    v.applyAxisAngle(rechts, -blick.nick);
+    return innenAuge.clone().add(v);
+  }
+  /* Ein Schritt der Fahrt; true, solange noch Bewegung ist. */
+  function innenSchritt(dt) {
+    let bewegt_ = false;
+    // Tuer
+    if (fahrerTuer !== tuerSoll) {
+      const s = BEWEGUNG_AUS ? 1 : dt / 1.1;
+      fahrerTuer = tuerSoll > fahrerTuer ? Math.min(tuerSoll, fahrerTuer + s) : Math.max(tuerSoll, fahrerTuer - s);
+      zerlegenAnwenden(); bewegt_ = true;
+    }
+    if (modus === 'rein' && !fahrt) {
+      // Phase 1: Umlauf zur Fahrerseite, bis die Kamera dort steht
+      soll = { ...umlaufZuTuer() };
+      if (Math.abs(wickel(soll.winkel - ist.winkel)) < 0.03 && Math.abs(soll.abst - ist.abst) < 0.05 && fahrerTuer > 0.85) fahrtAnfangen(1);
+      return true;
+    }
+    if (fahrt) {
+      fahrt.t = Math.min(1, fahrt.t + (BEWEGUNG_AUS ? 1 : dt / fahrt.dauer));
+      const u = weichS(fahrt.t);
+      const ziel = fahrt.ziel[0].clone().lerp(fahrt.ziel[1], Math.min(1, u * 2)).lerp(fahrt.ziel[2], Math.max(0, u * 2 - 1));
+      frei = { ort: bahnPunkt(fahrt.ort, u), ziel, lens: fahrt.lens[0] + (fahrt.lens[1] - fahrt.lens[0]) * u };
+      if (fahrt.t >= 1) {
+        if (fahrt.richtung > 0) { modus = 'innen'; fahrt = null; tuerSoll = 0; blick.gier = blick.nick = blickSoll.gier = blickSoll.nick = 0; letzteBewegung = performance.now(); }
+        else {
+          modus = 'aussen'; fahrt = null; frei = null; tuerSoll = 0;
+          const umlauf = umlaufZuTuer(); ist = { ...ist, ...umlauf }; soll = { ...heim };
+          if (wartendZerlegen) { const w = wartendZerlegen; wartendZerlegen = null; api.zerlegen(w); }
+        }
+      }
+      return true;
+    }
+    if (modus === 'innen') {
+      const f = BEWEGUNG_AUS ? 1 : 1 - Math.exp(-dt * (ziehen ? 10 : 3));
+      blick.gier += (blickSoll.gier - blick.gier) * f; blick.nick += (blickSoll.nick - blick.nick) * f;
+      // nach dem Loslassen langsam zurueck auf den Standpunkt des Fotos
+      if (!ziehen && performance.now() - letzteBewegung > 2200) { blickSoll.gier = 0; blickSoll.nick = 0; }
+      frei = { ort: innenAuge, ziel: blickRichtung(), lens: KI.brennweite_mm || 20 };
+      return bewegt_ || Math.abs(blickSoll.gier - blick.gier) + Math.abs(blickSoll.nick - blick.nick) > 0.0005 || fahrerTuer !== tuerSoll;
+    }
+    if (modus === 'raus' && !fahrt) {
+      if (fahrerTuer > 0.85) fahrtAnfangen(-1);
+      return true;
+    }
+    return bewegt_;
   }
 
   /* ---------------------------------------------------------------- Finger */
@@ -474,6 +639,12 @@ export async function erstellen({
     if (!ziehen || e.pointerId !== ziehen.id) return;
     const dx = e.clientX - ziehen.x, dy = e.clientY - ziehen.y;
     ziehen.x = e.clientX; ziehen.y = e.clientY;
+    if (modus === 'innen') {
+      blickSoll.gier = THREE.MathUtils.clamp(blickSoll.gier + dx * 0.004, -1.2, 1.2);
+      blickSoll.nick = THREE.MathUtils.clamp(blickSoll.nick + dy * 0.003, -0.45, 0.35);
+      letzteBewegung = performance.now(); return;
+    }
+    if (modus !== 'aussen') return;
     soll.winkel -= dx * 0.006;
     soll.neig = THREE.MathUtils.clamp(soll.neig + dy * 0.004, ...grenzen.neig);
     letzteBewegung = performance.now();
@@ -565,6 +736,9 @@ export async function erstellen({
     ankerLeer = false;
     const w = leinwand.clientWidth, h = leinwand.clientHeight; const liste = [];
     for (const [schluessel, gruppe] of anker) {
+      // Mit Stufen: nur die Schilder der Stufe, die gerade aufgeht -- bei
+      // allen vier waeren es dreizehn Schilder um ein Auto (Probe 23.09.).
+      if (MIT_STUFEN && aktStufe && !gruppe.some((t) => t.stufe === aktStufe)) continue;
       let beste = null; let bestAbst = Infinity; let a = 0;
       for (const t of gruppe) {
         t.o.localToWorld(pw.copy(t.mitteLokal));
@@ -590,16 +764,17 @@ export async function erstellen({
   function bild(t) {
     if (!aktiv || document.hidden) { laeuft = false; return; }
     const dt = letzt ? Math.min(0.25, (t - letzt) / 1000) : 1 / 60; letzt = t;
-    if (zurueck && !ziehen && !zeiger.size && zerlegtSoll === 0 && performance.now() - letzteBewegung > 1400) soll = { ...heim };
+    if (modus === 'aussen' && zurueck && !ziehen && !zeiger.size && zerlegtSoll === 0 && performance.now() - letzteBewegung > 1400) soll = { ...heim };
     /* Zerlegt dreht sich das Modell langsam, bis jemand selbst greift --
        ein zerlegtes Auto liest man erst, wenn man um es herumgeht. Nach
        25 s steht es wieder still, damit die Grafikkarte nicht endlos rechnet. */
-    if (zerlegtSoll === 1 && zerlegt === 1 && !ziehen && !zeiger.size && !BEWEGUNG_AUS
+    if (modus === 'aussen' && zerlegtSoll > 0 && zerlegt === zerlegtSoll && !ziehen && !zeiger.size && !BEWEGUNG_AUS
         && performance.now() - letzteBewegung > 2500 && performance.now() - zerlegtSeit < 25000) {
       soll.winkel += dt * 0.14;
     }
     const f = BEWEGUNG_AUS ? 1 : 1 - Math.exp(-dt * (ziehen ? 9 : 2.6));
-    let rest = annaehern(f);
+    let rest = modus === 'innen' || fahrt ? 0 : annaehern(f);
+    if (modus !== 'aussen' || fahrerTuer !== tuerSoll) { if (innenSchritt(dt)) rest += 0.01; }
     if (zerlegt !== zerlegtSoll) {
       const schritt = BEWEGUNG_AUS ? 1 : dt / Z_DAUER;
       zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
@@ -622,9 +797,14 @@ export async function erstellen({
     if (t - seit >= 500) { fps = Math.round((bilder * 1000) / (t - seit)); bilder = 0; seit = t; }
     beiBild && beiBild(dt * 1000, fps, false);
     const amZiel = rest < 0.002 && zerlegt === 0 && zerlegtSoll === 0;
-    if (zurueck && !ziehen && !zeiger.size && amZiel && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
+    if (modus === 'innen' && !ziehen && !zeiger.size && rest < 0.002 && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
+      // Innenraum in Ruhe: Standpunkt = Innenraumfoto, die Seite blendet es ein
+      ruhtGemeldet = true; blick.gier = blick.nick = 0; frei = { ort: innenAuge, ziel: innenZiel, lens: KI.brennweite_mm || 20 };
+      kameraSetzen(); r.render(szene, kamera);
+      beiRuhe && beiRuhe('innen');
+    } else if (modus === 'aussen' && zurueck && !ziehen && !zeiger.size && amZiel && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
       ruhtGemeldet = true; ist = { ...heim }; kameraSetzen(); r.render(szene, kamera);
-      beiRuhe && beiRuhe();
+      beiRuhe && beiRuhe('aussen');
     } else if (!ziehen && !zeiger.size && ruhtGemeldet && rest < 0.0005 && performance.now() - letzteBewegung > 6000) {
       laeuft = false; aktiv = false; beiBild && beiBild(dt * 1000, fps, true); return;
     }
@@ -634,14 +814,18 @@ export async function erstellen({
   if (variante) await varianteSetzen(variante);
   stufeSetzen(einstellungen);
 
-  return {
+  const api = {
     varianten: namen,
     variante: varianteSetzen,
     /* 0 = ganz, 1 = zerlegt. Solange es zerlegt ist, bleibt die Kamera
        stehen, wo der Besucher sie hingedreht hat -- das Foto zeigt nur das
        ganze Modell. */
     zerlegen(an) {
-      zerlegtSoll = an ? 1 : 0; ruhtGemeldet = false; letzteBewegung = performance.now();
+      // Vom Fahrerplatz aus erst hinausfahren, dann zerlegen (merken)
+      if (modus !== 'aussen') { wartendZerlegen = an; if (an) this.innenraum(false); return; }
+      aktStufe = typeof an === 'number' ? Math.max(0, Math.min(4, an)) : (an ? 4 : 0);
+      zerlegtSoll = STUFEN_ZIEL[aktStufe];
+      ruhtGemeldet = false; letzteBewegung = performance.now();
       /* Zerlegt braucht das Modell rund anderthalbmal so viel Platz. Mit der
          Kamera des Fotos flogen Dach und Hinterrad aus dem Bild (erste
          Probe) -- also zurück und etwas höher, damit man hineinsieht. */
@@ -658,7 +842,26 @@ export async function erstellen({
       }
       starten();
     },
-    get zerlegt() { return zerlegtSoll === 1; },
+    get zerlegt() { return zerlegtSoll > 0; },
+    get stufen() { return (K.zerlegen && K.zerlegen.stufen) || []; },
+    /* Innenraum: true = Kamerafahrt durch die Fahrertuer auf den Fahrerplatz,
+       false = zurueck nach draussen. Geht nur zusammengesetzt. */
+    get hatInnen() { return !!KI; },
+    get innen() { return modus === 'innen' || modus === 'rein'; },
+    innenraum(an) {
+      if (!KI) return;
+      ruhtGemeldet = false; letzteBewegung = performance.now();
+      if (an && (modus === 'aussen' || modus === 'raus')) {
+        if (zerlegtSoll > 0) zerlegtSoll = 0;
+        if (modus === 'raus' && fahrt) { fahrt.richtung = 1; fahrt.ort.reverse(); fahrt.ziel.reverse(); fahrt.lens.reverse(); fahrt.t = 1 - fahrt.t; }
+        modus = 'rein'; tuerSoll = 1;
+      } else if (!an && (modus === 'innen' || modus === 'rein')) {
+        if (modus === 'rein' && !fahrt) { modus = 'aussen'; tuerSoll = 0; soll = { ...heim }; }
+        else if (modus === 'rein' && fahrt) { fahrt.richtung = -1; fahrt.ort.reverse(); fahrt.ziel.reverse(); fahrt.lens.reverse(); fahrt.t = 1 - fahrt.t; modus = 'raus'; }
+        else { modus = 'raus'; tuerSoll = 1; }
+      }
+      starten();
+    },
     /* Details: die festen Punkte aus kamera.json beschriften (siehe oben). */
     punkte(an) { punkteSoll = an && punkte.length ? 1 : 0; ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
     get hatPunkte() { return punkte.length > 0; },
@@ -673,7 +876,11 @@ export async function erstellen({
       for (const [m, s] of leuchtStaerke) m.emissiveIntensity = an ? s * 2.2 : s;
       einmal(); starten();
     },
-    heim() { soll = { ...heim }; ruhtGemeldet = false; letzteBewegung = performance.now() - 2000; starten(); },
+    heim() {
+      if (modus !== 'aussen') { this.innenraum(false); return; }
+      soll = { ...heim }; ruhtGemeldet = false; letzteBewegung = performance.now() - 2000; starten();
+    },
+    ausstattung(k) { return innenIdx[k] !== undefined ? varianteSetzen(innenIdx[k]) : null; },
     stufe: stufeSetzen,
     starten, anhalten,
     get fps() { return fps; },
@@ -696,4 +903,5 @@ export async function erstellen({
     },
     entsorgen() { anhalten(); ro.disconnect(); r.dispose(); umgebung.dispose(); umgebungBoden.dispose(); leinwand.remove(); },
   };
+  return api;
 }

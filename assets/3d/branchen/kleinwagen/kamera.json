@@ -3,23 +3,23 @@
  "sensor_breite_mm": 36.0,
  "brennweite_mm": 85.0,
  "position": [
-  -7.6555495262146,
+  -7.680395126342773,
   1.0499999523162842,
-  10.536959648132324
+  10.564533233642578
  ],
  "ziel": [
   0.0,
   0.550000011920929,
-  -0.0
+  -0.006623983383178711
  ],
  "blende": 8.0,
- "fokus_m": 13.033992767333984,
+ "fokus_m": 13.076231956481934,
  "hdri": "studio_small_03",
  "hdri_drehung_grad": 205.0,
  "hdri_staerke": 0.55,
- "hdri_schwelle": 0.9,
+ "hdri_schwelle": 0.0,
  "boden_hoehe": 0.0,
- "belichtung": 0.0,
+ "belichtung": -2.0,
  "aufloesung": [
   1600,
   900
@@ -27,14 +27,17 @@
  "varianten": [
   "Azzurro",
   "Bianco",
-  "Salvia"
+  "Salvia",
+  "Innen: Stoff Anthrazit",
+  "Innen: Stoff Grau-Blau",
+  "Innen: Kunstleder Hell"
  ],
  "umgebung": {
   "datei": "umgebung.hdr",
   "ort": [
    0.0,
    0.6593917012214661,
-   -0.0
+   -0.006623983383178711
   ]
  },
  "umgebung_boden": {
@@ -46,7 +49,7 @@
   "mitte": [
    0.0,
    0.0,
-   0.0
+   -0.006623983383178711
   ],
   "albedo_gebacken": 0.08,
   "albedo_echt": 0.006,
@@ -64,7 +67,7 @@
    0.26,
    0.4
   ],
-  "licht_skala": 0.29177064981753587
+  "licht_skala": 0.07227185068231748
  },
  "look": {
   "kontrast": 1.3,
@@ -91,78 +94,251 @@
   0.0094
  ],
  "zerlegen": {
-  "dauer": 3.0,
-  "breite": 0.34,
+  "dauer": 7.0,
+  "breite": 0.14,
+  "stufen": [
+   "anbau",
+   "innenraum",
+   "antrieb",
+   "fahrwerk"
+  ],
   "regeln": [
    {
-    "muster": "^tuer_[vh](_|$)",
-    "seite": 1.15,
-    "hoch": 0.1,
+    "muster": "^tuer_v_[rl]_angel$",
+    "dreh": true,
     "start": 0.0,
+    "stufe": 1,
     "beschriftung": "tueren"
+   },
+   {
+    "muster": "^tuer_h_[rl]_angel$",
+    "dreh": true,
+    "start": 0.03,
+    "stufe": 1
    },
    {
     "muster": "^haube$",
     "hoch": 0.8,
     "vor": 0.6,
-    "start": 0.06,
+    "start": 0.05,
+    "stufe": 1,
     "beschriftung": "haube"
+   },
+   {
+    "muster": "^(stoss_v|grill_.*|einlass.*|scheinwerfer.*|kennzeichen_v)$",
+    "vor": 0.75,
+    "start": 0.07,
+    "stufe": 1
    },
    {
     "muster": "^(klappe|klappe_spoiler|rueckleuchte.*|stoss_h|kennzeichen_h)$",
     "hoch": 0.55,
     "vor": -0.9,
-    "start": 0.12,
+    "start": 0.08,
+    "stufe": 1,
     "beschriftung": "heck"
-   },
-   {
-    "muster": "^(stoss_v|grill_.*|einlass.*|scheinwerfer.*|kennzeichen_v)$",
-    "vor": 0.75,
-    "start": 0.1
    },
    {
     "muster": "^(frontscheibe|wischer)$",
     "hoch": 0.95,
     "vor": 0.35,
-    "start": 0.28
+    "start": 0.1,
+    "stufe": 1
+   },
+   {
+    "muster": "^innen_himmel$",
+    "hoch": 0.75,
+    "start": 0.25,
+    "stufe": 2,
+    "beschriftung": "himmel"
+   },
+   {
+    "muster": "^innen_sitz_(fahrer|beifahrer)$",
+    "hoch": 0.55,
+    "seite": 0.25,
+    "start": 0.27,
+    "stufe": 2,
+    "beschriftung": "sitze"
+   },
+   {
+    "muster": "^innen_ruecksitz$",
+    "hoch": 0.6,
+    "vor": -0.3,
+    "start": 0.29,
+    "stufe": 2
+   },
+   {
+    "muster": "^innen_lenkrad$",
+    "hoch": 0.3,
+    "vor": -0.25,
+    "start": 0.31,
+    "stufe": 2,
+    "beschriftung": "lenkrad"
+   },
+   {
+    "muster": "^innen_armatur$",
+    "hoch": 0.5,
+    "vor": 0.35,
+    "start": 0.33,
+    "stufe": 2,
+    "beschriftung": "cockpit"
+   },
+   {
+    "muster": "^innen_konsole$",
+    "hoch": 0.42,
+    "start": 0.34,
+    "stufe": 2
+   },
+   {
+    "muster": "^antrieb_ventildeckel$",
+    "hoch": 1.05,
+    "start": 0.5,
+    "stufe": 3
+   },
+   {
+    "muster": "^antrieb_kopf$",
+    "hoch": 0.82,
+    "start": 0.51,
+    "stufe": 3,
+    "beschriftung": "zylinderkopf"
+   },
+   {
+    "muster": "^antrieb_saugrohr$",
+    "hoch": 0.62,
+    "vor": 0.25,
+    "start": 0.52,
+    "stufe": 3
+   },
+   {
+    "muster": "^antrieb_(turbo_.*|ladeluft)$",
+    "hoch": 0.62,
+    "vor": -0.3,
+    "start": 0.52,
+    "stufe": 3,
+    "beschriftung": "turbo"
+   },
+   {
+    "muster": "^antrieb_(block|oelfilter)$",
+    "hoch": 0.5,
+    "start": 0.53,
+    "stufe": 3,
+    "beschriftung": "antrieb"
+   },
+   {
+    "muster": "^antrieb_(riemenscheiben|riemen|lichtmaschine|klima)$",
+    "hoch": 0.5,
+    "seite": 0.35,
+    "start": 0.54,
+    "stufe": 3
+   },
+   {
+    "muster": "^antrieb_oelwanne$",
+    "hoch": 0.3,
+    "start": 0.54,
+    "stufe": 3
+   },
+   {
+    "muster": "^antrieb_(getriebe|getriebewanne)$",
+    "hoch": 0.35,
+    "seite": 0.45,
+    "start": 0.55,
+    "stufe": 3,
+    "beschriftung": "getriebe"
+   },
+   {
+    "muster": "^antrieb_(kuehler|luefter)$",
+    "vor": 0.65,
+    "hoch": 0.2,
+    "start": 0.56,
+    "stufe": 3,
+    "beschriftung": "kuehler"
+   },
+   {
+    "muster": "^antrieb_batterie$",
+    "hoch": 0.55,
+    "seite": 0.3,
+    "start": 0.56,
+    "stufe": 3
+   },
+   {
+    "muster": "^antrieb_(wellen|baelge|kardanwelle|kardan_lager|differenzial)$",
+    "seite": 0.35,
+    "hoch": 0.15,
+    "start": 0.57,
+    "stufe": 3
+   },
+   {
+    "muster": "^antrieb_(auspuff|katalysator)$",
+    "hoch": 0.12,
+    "seite": 0.55,
+    "start": 0.58,
+    "stufe": 3,
+    "beschriftung": "abgas"
+   },
+   {
+    "muster": "^antrieb_tank$",
+    "hoch": 0.25,
+    "seite": -0.0,
+    "vor": -0.2,
+    "start": 0.58,
+    "stufe": 3
    },
    {
     "muster": "^(reifen|felge|felgenbett|schrauben|nabendeckel)_[vh]_[lr]$",
     "seite": 0.9,
-    "start": 0.42,
+    "start": 0.75,
+    "stufe": 4,
     "beschriftung": "raeder"
    },
    {
     "muster": "^(bremsscheibe|sattel)_[vh]_[lr]$",
     "seite": 0.5,
-    "start": 0.5,
+    "start": 0.78,
+    "stufe": 4,
     "beschriftung": "bremse"
    },
    {
-    "muster": "^antrieb_",
-    "hoch": 0.55,
-    "start": 0.58,
-    "beschriftung": "antrieb"
-   },
-   {
-    "muster": "^fahrwerk_",
-    "hoch": 0.3,
-    "start": 0.62,
+    "muster": "^fahrwerk_(federbeine|federn_v|lager_v|stabilisator|lenkung|lenkbaelge)$",
+    "hoch": -0.05,
+    "vor": 0.35,
+    "start": 0.8,
+    "stufe": 4,
     "beschriftung": "fahrwerk"
    },
    {
-    "muster": "^innen_sitze$",
-    "hoch": 0.45,
-    "start": 0.66,
-    "beschriftung": "sitze"
+    "muster": "^fahrwerk_(hinterachse|lager_h|federn_h|daempfer_h)$",
+    "hoch": -0.05,
+    "vor": -0.4,
+    "start": 0.81,
+    "stufe": 4
    },
    {
-    "muster": "^innen_(lenkrad|armatur)$",
-    "hoch": 0.28,
-    "vor": 0.1,
-    "start": 0.7
+    "muster": "^karosserie$",
+    "start": 0.82,
+    "stufe": 4,
+    "beschriftung": "rohbau",
+    "rohbau": true
    }
   ]
  },
- "dreiecke": 235424
+ "innen": {
+  "position": [
+   0.30000001192092896,
+   1.1200000047683716,
+   -0.37900009751319885
+  ],
+  "ziel": [
+   0.07999999821186066,
+   0.8600000143051147,
+   0.2609998881816864
+  ],
+  "brennweite_mm": 20.0,
+  "sensor_breite_mm": 36.0,
+  "varianten": [
+   "Innen: Stoff Anthrazit",
+   "Innen: Stoff Grau-Blau",
+   "Innen: Kunstleder Hell"
+  ]
+ },
+ "dreiecke": 387222
 }

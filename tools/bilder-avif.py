@@ -42,6 +42,11 @@ BRANCHEN = {
     'mittelklasse/poster-blu-notte.png': 'mittelklasse-blunotte',
     'mittelklasse/poster-argento.png': 'mittelklasse-argento',
     'mittelklasse/poster-rosso.png': 'mittelklasse-rosso',
+    # Fahrerplatz je Ausstattung (branchen_studio.py, Modus innen) -- Standbild
+    # am Ende der Kamerafahrt und Rueckfall ohne Echtzeit
+    **{f'{m}/innen-{k}.png': f'{m}-innen-{k}' for m, ks in (
+        ('kleinwagen', ('stoff-anthrazit', 'stoff-grau-blau', 'kunstleder-hell')),
+        ('mittelklasse', ('stoff-anthrazit', 'leder-cognac', 'leder-elfenbein'))) for k in ks},
 }
 
 

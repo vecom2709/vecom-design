@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=d6a9d952">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=2f3e6e94">
 
 
 <script type="importmap">
@@ -567,7 +567,7 @@
       <div class="bd-panel" id="bd-auto" role="tabpanel" aria-labelledby="bd-tab-auto">
         <div class="bd-raster">
           <div class="bd-links">
-            <figure class="buehne buehne--produkt" id="bd-buehne-auto" data-modell="auto" data-variante="karmin" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=689447b3">
+            <figure class="buehne buehne--produkt" id="bd-buehne-auto" data-modell="auto" data-variante="karmin" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=e2d8f6b9">
               <picture>
                 <source media="(max-width: 700px)" type="image/avif" srcset="assets/img/erlebnis/branchen/auto-karmin-800.avif?v=95ac45b1">
                 <source media="(max-width: 700px)" type="image/webp" srcset="assets/img/erlebnis/branchen/auto-karmin-800.webp?v=b78cc585">
@@ -582,8 +582,8 @@
             <p class="bd-griff" data-i18n="erlebnis.bd_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire</p>
           </div>
           <div class="bd-rechts">
-            <h3 data-i18n="erlebnis.bd_auto_h">Configuratore con vista esplosa</h3>
-            <p class="bd-text" data-i18n="erlebnis.bd_auto_p">Tre auto, tre vernici ciascuna: cambia il materiale, non l’immagine. E con un tocco l’auto si scompone nei suoi pezzi — carrozzeria, motore, assali. Per chi vuole mostrare la tecnica, non solo la lamiera.</p>
+            <h3 data-i18n="erlebnis.bd_auto_h">Configuratore con abitacolo e vista esplosa</h3>
+            <p class="bd-text" data-i18n="erlebnis.bd_auto_p">Tre auto, ognuna con tre vernici e tre interni: cambia il materiale, non l’immagine. La telecamera entra dalla portiera del guidatore fino al posto guida, e con un tocco l’auto si scompone passo dopo passo — portiere, abitacolo, motore, telaio. Per chi vuole mostrare la tecnica, non solo la lamiera.</p>
             <div class="gruppe">
               <span class="gruppe__name" id="bd-l-modell" data-i18n="erlebnis.bd_modell">Modello</span>
               <div class="chips chips--umbruch" id="bd-modell" role="group" aria-labelledby="bd-l-modell">
@@ -601,16 +601,27 @@
                 <button type="button" data-variante="graphit" data-nr="2" aria-pressed="false"><i class="farbpunkt" style="--f:#55595f" aria-hidden="true"></i><span data-i18n="erlebnis.bd_lack_graphit">Grafite</span></button>
               </div>
             </div>
+            <div class="gruppe" id="bd-g-innen" hidden>
+              <span class="gruppe__name" id="bd-l-innen" data-i18n="erlebnis.bd_innen">Interni</span>
+              <div class="chips chips--umbruch" id="bd-innen" role="group" aria-labelledby="bd-l-innen"></div>
+            </div>
             <div class="gruppe">
               <span class="gruppe__name" id="bd-l-ansicht" data-i18n="erlebnis.bd_ansicht">Vista</span>
               <div class="chips chips--umbruch" id="bd-ansicht" role="group" aria-labelledby="bd-l-ansicht">
-                <button type="button" data-zerlegt="0" aria-pressed="true" data-i18n="erlebnis.bd_ganz">Intera</button>
-                <button type="button" data-zerlegt="1" aria-pressed="false" data-i18n="erlebnis.bd_zerlegt">Esplosa</button>
+                <button type="button" data-ansicht="aussen" aria-pressed="true" data-i18n="erlebnis.bd_ganz">Esterno</button>
+                <button type="button" data-ansicht="innen" aria-pressed="false" data-i18n="erlebnis.bd_innenansicht" hidden>Posto guida</button>
+                <button type="button" data-ansicht="zerlegt" aria-pressed="false" data-i18n="erlebnis.bd_zerlegt">Esplosa</button>
+              </div>
+              <div class="chips chips--umbruch bd-stufen" id="bd-stufen" role="group" data-i18n-attr="aria-label:erlebnis.bd_stufen" hidden aria-label="Passo">
+                <button type="button" data-stufe="1" aria-pressed="false"><b>1</b> <span data-i18n="erlebnis.bd_stufe_anbau">Portiere e cofani</span></button>
+                <button type="button" data-stufe="2" aria-pressed="false"><b>2</b> <span data-i18n="erlebnis.bd_stufe_innenraum">Abitacolo</span></button>
+                <button type="button" data-stufe="3" aria-pressed="false"><b>3</b> <span data-i18n="erlebnis.bd_stufe_antrieb">Motore</span></button>
+                <button type="button" data-stufe="4" aria-pressed="false"><b>4</b> <span data-i18n="erlebnis.bd_stufe_fahrwerk">Telaio e scocca</span></button>
               </div>
             </div>
             <p class="bd-hinweis" id="bd-auto-hinweis" hidden></p>
             <dl class="fakten bd-fakten">
-              <div><dt>3</dt><dd data-i18n="erlebnis.bd_auto_f1">vernici in un solo file</dd></div>
+              <div><dt>3</dt><dd data-i18n="erlebnis.bd_auto_f1">vernici e interni in un solo file</dd></div>
               <div><dt id="bd-auto-z2" data-i18n="erlebnis.bd_auto_z2">2,9 MB</dt><dd data-i18n="erlebnis.bd_auto_f2">caricati solo al primo tocco</dd></div>
               <div><dt id="bd-auto-z3" data-i18n="erlebnis.bd_auto_z3">213.347</dt><dd data-i18n="erlebnis.bd_auto_f3">triangoli in tempo reale</dd></div>
             </dl>
@@ -622,7 +633,7 @@
       <div class="bd-panel" id="bd-shop" role="tabpanel" aria-labelledby="bd-tab-shop" hidden>
         <div class="bd-raster">
           <div class="bd-links">
-            <figure class="buehne buehne--produkt" id="bd-buehne-schuh" data-modell="schuh" data-variante="blau" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=689447b3">
+            <figure class="buehne buehne--produkt" id="bd-buehne-schuh" data-modell="schuh" data-variante="blau" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=e2d8f6b9">
               <picture>
                 <source media="(max-width: 700px)" type="image/avif" srcset="assets/img/erlebnis/branchen/schuh-blau-800.avif?v=9488dd44">
                 <source media="(max-width: 700px)" type="image/webp" srcset="assets/img/erlebnis/branchen/schuh-blau-800.webp?v=4b2a112a">
@@ -1779,7 +1790,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=9283f2e5" defer></script>
+<script src="assets/js/i18n-it.js?v=77639b7b" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1804,7 +1815,7 @@
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
 <script type="module" src="assets/js/erlebnis/erlebnis.js?v=f7217591"></script>
-<script type="module" src="assets/js/erlebnis/branchen.js?v=8d445d9d"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=2d548fa7"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

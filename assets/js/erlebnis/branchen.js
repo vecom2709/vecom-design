@@ -24,6 +24,7 @@ const TEXTE = {
     fotoKurz: 'Gerechnet · Blender Cycles',
     echtzeit: (f) => `Echtzeit · WebGL 2${f ? ` · ${f} Bilder/s` : ''}`,
     zerlegt: 'Echtzeit · zerlegt in seine Teile',
+    innen: 'Echtzeit · Fahrerplatz', innenFoto: 'Gerechnet · Blender Cycles · Fahrerplatz',
     laedt: 'Lade das 3D-Modell …',
     drehen: 'Selbst drehen', zumFoto: 'Zurück zum Foto',
     leinwand: { auto: 'Das Auto in Echtzeit — ziehen oder Pfeiltasten zum Drehen', schuh: 'Der Schuh in Echtzeit — ziehen oder Pfeiltasten zum Drehen' },
@@ -32,16 +33,18 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
-    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung' },
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert' },
     modelle: {
       kleinwagen: { alt: 'Kleinwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,07 m · Breite 1,76 m · Höhe 1,45 m · Radstand 2,57 m',
         bau: 'Dreizylinder quer, Frontantrieb · McPherson vorn, Verbundlenker hinten',
-        lacke: { azzurro: 'Azurblau Metallic', bianco: 'Uni-Weiß', salvia: 'Salbeigrün Metallic' } },
+        lacke: { azzurro: 'Azurblau Metallic', bianco: 'Uni-Weiß', salvia: 'Salbeigrün Metallic' },
+        innen: { 'stoff-anthrazit': 'Stoff Anthrazit', 'stoff-grau-blau': 'Stoff Grau-Blau', 'kunstleder-hell': 'Kunstleder Hell' }, innenAlt: 'Fahrerplatz des Kleinwagens, gerechnet mit Blender Cycles' },
       mittelklasse: { alt: 'Mittelklasse-Limousine in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,76 m · Breite 1,83 m · Höhe 1,44 m · Radstand 2,85 m',
         bau: 'Vierzylinder längs, Hinterradantrieb · Federbeine vorn, Mehrlenker hinten',
-        lacke: { blunotte: 'Nachtblau Metallic', argento: 'Silber Metallic', rosso: 'Rot Metallic' } },
+        lacke: { blunotte: 'Nachtblau Metallic', argento: 'Silber Metallic', rosso: 'Rot Metallic' },
+        innen: { 'stoff-anthrazit': 'Stoff Anthrazit', 'leder-cognac': 'Leder Cognac', 'leder-elfenbein': 'Leder Elfenbein' }, innenAlt: 'Fahrerplatz der Limousine, gerechnet mit Blender Cycles' },
       auto: { alt: 'Karminroter Sportwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
         daten: 'Designstudie · Länge 4,36 m · Höhe 1,31 m', bau: 'Konzeptauto „CarConcept“ von Khronos (CC BY 4.0)',
         lacke: { karmin: 'Karminrot', perl: 'Perlweiß', graphit: 'Graphit' } },
@@ -52,6 +55,7 @@ const TEXTE = {
     fotoKurz: 'Calcolato · Blender Cycles',
     echtzeit: (f) => `Tempo reale · WebGL 2${f ? ` · ${f} fps` : ''}`,
     zerlegt: 'Tempo reale · scomposto nei suoi pezzi',
+    innen: 'Tempo reale · posto guida', innenFoto: 'Calcolato · Blender Cycles · posto guida',
     laedt: 'Carico il modello 3D …',
     drehen: 'Giralo tu', zumFoto: 'Torna alla foto',
     leinwand: { auto: 'L’auto in tempo reale — trascina o usa le frecce per girarla', schuh: 'La scarpa in tempo reale — trascina o usa le frecce per girarla' },
@@ -60,16 +64,18 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
-    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura' },
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo' },
     modelle: {
       kleinwagen: { alt: 'Utilitaria in uno studio fotografico scuro, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,07 m · larghezza 1,76 m · altezza 1,45 m · passo 2,57 m',
         bau: 'Tre cilindri trasversale, trazione anteriore · McPherson davanti, ponte torcente dietro',
-        lacke: { azzurro: 'Azzurro metallizzato', bianco: 'Bianco pastello', salvia: 'Verde salvia metallizzato' } },
+        lacke: { azzurro: 'Azzurro metallizzato', bianco: 'Bianco pastello', salvia: 'Verde salvia metallizzato' },
+        innen: { 'stoff-anthrazit': 'Tessuto antracite', 'stoff-grau-blau': 'Tessuto grigio-blu', 'kunstleder-hell': 'Similpelle chiara' }, innenAlt: 'Posto guida dell’utilitaria, calcolato con Blender Cycles' },
       mittelklasse: { alt: 'Berlina media in uno studio fotografico scuro, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,76 m · larghezza 1,83 m · altezza 1,44 m · passo 2,85 m',
         bau: 'Quattro cilindri longitudinale, trazione posteriore · montanti davanti, multilink dietro',
-        lacke: { blunotte: 'Blu notte metallizzato', argento: 'Argento metallizzato', rosso: 'Rosso metallizzato' } },
+        lacke: { blunotte: 'Blu notte metallizzato', argento: 'Argento metallizzato', rosso: 'Rosso metallizzato' },
+        innen: { 'stoff-anthrazit': 'Tessuto antracite', 'leder-cognac': 'Pelle cognac', 'leder-elfenbein': 'Pelle avorio' }, innenAlt: 'Posto guida della berlina, calcolato con Blender Cycles' },
       auto: { alt: 'Auto sportiva rosso carminio in uno studio fotografico scuro, calcolata con Blender Cycles',
         daten: 'Studio di design · lunghezza 4,36 m · altezza 1,31 m', bau: 'Concept car «CarConcept» di Khronos (CC BY 4.0)',
         lacke: { karmin: 'Rosso carminio', perl: 'Bianco perla', graphit: 'Grafite' } },
@@ -80,6 +86,7 @@ const TEXTE = {
     fotoKurz: 'Rendered · Blender Cycles',
     echtzeit: (f) => `Real time · WebGL 2${f ? ` · ${f} fps` : ''}`,
     zerlegt: 'Real time · taken apart',
+    innen: 'Real time · driver’s seat', innenFoto: 'Rendered · Blender Cycles · driver’s seat',
     laedt: 'Loading the 3D model …',
     drehen: 'Turn it yourself', zumFoto: 'Back to the photo',
     leinwand: { auto: 'The car in real time — drag or use the arrow keys to turn it', schuh: 'The shoe in real time — drag or use the arrow keys to turn it' },
@@ -88,16 +95,18 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
-    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces' },
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed' },
     modelle: {
       kleinwagen: { alt: 'Small car in a dark photo studio, rendered with Blender Cycles',
         daten: 'Our own design · length 4.07 m · width 1.76 m · height 1.45 m · wheelbase 2.57 m',
         bau: 'Transverse three-cylinder, front-wheel drive · MacPherson front, twist beam rear',
-        lacke: { azzurro: 'Azure blue metallic', bianco: 'Solid white', salvia: 'Sage green metallic' } },
+        lacke: { azzurro: 'Azure blue metallic', bianco: 'Solid white', salvia: 'Sage green metallic' },
+        innen: { 'stoff-anthrazit': 'Anthracite cloth', 'stoff-grau-blau': 'Grey-blue cloth', 'kunstleder-hell': 'Light leatherette' }, innenAlt: 'Driver’s seat of the small car, rendered with Blender Cycles' },
       mittelklasse: { alt: 'Mid-size saloon in a dark photo studio, rendered with Blender Cycles',
         daten: 'Our own design · length 4.76 m · width 1.83 m · height 1.44 m · wheelbase 2.85 m',
         bau: 'Longitudinal four-cylinder, rear-wheel drive · struts front, multi-link rear',
-        lacke: { blunotte: 'Midnight blue metallic', argento: 'Silver metallic', rosso: 'Red metallic' } },
+        lacke: { blunotte: 'Midnight blue metallic', argento: 'Silver metallic', rosso: 'Red metallic' },
+        innen: { 'stoff-anthrazit': 'Anthracite cloth', 'leder-cognac': 'Cognac leather', 'leder-elfenbein': 'Ivory leather' }, innenAlt: 'Driver’s seat of the saloon, rendered with Blender Cycles' },
       auto: { alt: 'Carmine red sports car in a dark photo studio, rendered with Blender Cycles',
         daten: 'Design study · length 4.36 m · height 1.31 m', bau: 'Khronos “CarConcept” concept car (CC BY 4.0)',
         lacke: { karmin: 'Carmine red', perl: 'Pearl white', graphit: 'Graphite' } },
@@ -111,16 +120,18 @@ const $$ = (s, w = document) => [...w.querySelectorAll(s)];
 /* Stand der gerechneten Bilder: JavaScript setzt diese Adressen, nicht
    build.mjs -- wer neu rechnet, zählt hier hoch (der Server gibt Bildern
    dreißig Tage). */
-const BILD_STAND = '2';
+const BILD_STAND = '3';
 /* Dasselbe für Modelle, Umgebungen und Kameradaten unter assets/3d/branchen. */
-const MODELL_STAND = '3';
+const MODELL_STAND = '4';
 const PFAD = '/assets/img/erlebnis/branchen/';
 /* Modelle der Automotive-Demo: Lackschluessel (= Dateiname der Fotos und
    Reihenfolge der Varianten im GLB), Farbe des Punkts, gemessene Uebertragung
    (gzip, samt three.js) und Dreiecke der Echtzeitfassung. */
 const MODELLE = {
-  kleinwagen: { mb: 1.1, dreiecke: 235424, lacke: [['azzurro', '#2a64ad'], ['bianco', '#ebeae5'], ['salvia', '#8a9d8c']] },
-  mittelklasse: { mb: 1.1, dreiecke: 241827, lacke: [['blunotte', '#1f2c52'], ['argento', '#b8bbbf'], ['rosso', '#8f1519']] },
+  kleinwagen: { mb: 3.2, dreiecke: 387222, lacke: [['azzurro', '#2a64ad'], ['bianco', '#ebeae5'], ['salvia', '#8a9d8c']],
+    innen: [['stoff-anthrazit', '#2b2c30'], ['stoff-grau-blau', '#3d5578'], ['kunstleder-hell', '#b9b8b3']] },
+  mittelklasse: { mb: 3.2, dreiecke: 384108, lacke: [['blunotte', '#1f2c52'], ['argento', '#b8bbbf'], ['rosso', '#8f1519']],
+    innen: [['stoff-anthrazit', '#2b2c30'], ['leder-cognac', '#8a4a22'], ['leder-elfenbein', '#d8cdb4']] },
   auto: { mb: 2.9, dreiecke: 213347, lacke: [['karmin', '#b3121c'], ['perl', '#e6e8ec'], ['graphit', '#55595f']] },
 };
 
@@ -249,13 +260,14 @@ function buehneAnlegen(fig) {
     for (const [key, e] of etiketten) if (!aktiv.has(key)) { e.el.hidden = true; e.linie.style.display = 'none'; e.punkt.style.display = 'none'; }
   }
 
-  const z = { variante: fig.dataset.variante, gezeigt: fig.dataset.variante, echtzeit: false, p: null, laedt: null, zerlegt: false, licht: false, details: false };
+  const z = { variante: fig.dataset.variante, gezeigt: fig.dataset.variante, echtzeit: false, p: null, laedt: null, zerlegt: false, licht: false, details: false,
+    innen: false, ausstattung: null, ausstattungNr: 0 };
 
   function adresse(v) {
     const klein = fig.clientWidth * (window.devicePixelRatio || 1) <= 900;
     return `${PFAD}${modell}-${v}${klein ? '-800' : ''}.${bildEndung}?v=${BILD_STAND}`;
   }
-  function kennungFoto() { kennung.textContent = fig.clientWidth < 560 ? TEXT.fotoKurz : TEXT.foto; }
+  function kennungFoto() { kennung.textContent = z.innen ? TEXT.innenFoto : (fig.clientWidth < 560 ? TEXT.fotoKurz : TEXT.foto); }
   let auftrag = 0;
   async function bildZeigen(v) {
     const nr = ++auftrag;
@@ -295,11 +307,12 @@ function buehneAnlegen(fig) {
           variante: Number(fig.dataset.varianteNr || 0),
           bezeichnung: TEXT.leinwand[modell === 'schuh' ? 'schuh' : 'auto'],
           beiBewegung: () => an(),
-          beiRuhe: () => aus(),
-          beiBild: (dt, fps, schlaeft) => { if (z.echtzeit && !z.zerlegt) kennung.textContent = TEXT.echtzeit(schlaeft ? 0 : fps); },
+          beiRuhe: (ansicht) => aus(ansicht),
+          beiBild: (dt, fps, schlaeft) => { if (z.echtzeit && !z.zerlegt) kennung.textContent = z.innen ? TEXT.innen : TEXT.echtzeit(schlaeft ? 0 : fps); },
           beiAnker: ankerZeigen,
         });
         z.p = p; fig.classList.add('hat-echtzeit'); halter.removeAttribute('aria-hidden');
+        if (z.ausstattung && p.ausstattung) await p.ausstattung(z.ausstattungNr);
         return p;
       })();
     }
@@ -314,11 +327,16 @@ function buehneAnlegen(fig) {
     kennung.textContent = z.zerlegt ? TEXT.zerlegt : TEXT.echtzeit(0);
     z.p.starten();
   }
-  function aus() {
+  /* Foto zur aktuellen Ansicht: aussen der Lack, innen die Ausstattung
+     (Innenraumfoto vom Fahrerplatz, dieselbe Kamera wie das Ziel der
+     Kamerafahrt). */
+  function fotoSchluessel() { return z.innen && z.ausstattung ? `innen-${z.ausstattung}` : z.variante; }
+  function aus(ansicht) {
     // Zerlegt und mit Licht gibt es kein Foto -- dann bleibt die Echtzeit.
     if (!z.echtzeit || z.zerlegt || z.licht || z.details) return;
+    if ((ansicht === 'innen') !== z.innen) return;
     // In der Echtzeit gewählte Variante: erst ihr Foto unterlegen, dann blenden.
-    if (z.gezeigt !== z.variante) bildZeigen(z.variante);
+    if (z.gezeigt !== fotoSchluessel()) bildZeigen(fotoSchluessel());
     z.echtzeit = false; fig.classList.remove('ist-echtzeit');
     knopfText.textContent = TEXT.drehen; kennungFoto();
     setTimeout(() => { if (!z.echtzeit && z.p) z.p.anhalten(); }, 700);
@@ -329,7 +347,8 @@ function buehneAnlegen(fig) {
       // Zurück zum Foto: zusammensetzen, Licht aus, auf den Standpunkt
       // fahren. Das Foto blendet ein, sobald die Kamera dort steht (beiRuhe).
       z.zerlegt = false; z.licht = false; z.details = false;
-      if (z.p) { z.p.zerlegen(false); z.p.licht(false); z.p.punkte(false); z.p.heim(); }
+      const warInnen = z.innen; z.innen = false;
+      if (z.p) { z.p.zerlegen(false); z.p.licht(false); z.p.punkte(false); if (warInnen) z.p.innenraum(false); else z.p.heim(); }
       fig.dispatchEvent(new CustomEvent('bd:zurueck'));
       return;
     }
@@ -345,15 +364,33 @@ function buehneAnlegen(fig) {
 
   async function variante(v, nr) {
     z.variante = v; fig.dataset.variante = v; fig.dataset.varianteNr = String(nr);
-    if (!z.echtzeit) bildZeigen(v);
+    if (!z.echtzeit && !z.innen) bildZeigen(v);
     if (z.p) await z.p.variante(nr);
+  }
+  /* Ausstattung: Material im Modell (Echtzeit) bzw. Innenraumfoto. */
+  async function ausstattung(key, nr) {
+    z.ausstattung = key; z.ausstattungNr = nr;
+    if (z.innen && !z.echtzeit) bildZeigen(fotoSchluessel());
+    if (z.p) await z.p.ausstattung(nr);
+  }
+  /* Fahrerplatz: Kamerafahrt durch die Fahrertuer (Echtzeit) -- ohne WebGL
+     das gerechnete Innenraumfoto. */
+  async function innenraum(an_) {
+    z.innen = an_;
+    if (an_) zaehlen(`${modell}-innen`);
+    const p = webglDa() ? await laden() : null;
+    if (!p || !p.hatInnen) { bildZeigen(fotoSchluessel()); kennungFoto(); return; }
+    if (z.zerlegt) { z.zerlegt = false; }
+    an();
+    p.innenraum(an_);
   }
   /* Zerlegt und mit Licht gibt es kein Foto -- solange bleibt die Echtzeit
      stehen. Wird beides wieder zurückgenommen, fährt die Kamera heim, und
      das Foto kommt zurück (beiRuhe -> aus). */
   async function zerlegen(an_) {
     const p = await laden(); if (!p) return;
-    z.zerlegt = an_; if (an_) zaehlen('auto-zerlegen');
+    z.zerlegt = !!an_; if (an_) zaehlen('auto-zerlegen');
+    if (an_ && z.innen) { z.innen = false; p.innenraum(false); }
     an();
     p.zerlegen(an_);
     if (!an_ && !z.licht) p.heim();
@@ -384,7 +421,8 @@ function buehneAnlegen(fig) {
     if (neu === modell) return;
     const warEchtzeit = z.echtzeit;
     if (z.p) { try { z.p.entsorgen(); } catch (f) { console.warn('[branchen] entsorgen:', f); } }
-    z.p = null; z.laedt = null; z.zerlegt = false; z.licht = false; z.details = false; z.echtzeit = false;
+    z.p = null; z.laedt = null; z.zerlegt = false; z.licht = false; z.details = false; z.echtzeit = false; z.innen = false;
+    z.ausstattung = MODELLE[neu] && MODELLE[neu].innen ? MODELLE[neu].innen[0][0] : null; z.ausstattungNr = 0;
     fig.classList.remove('hat-echtzeit', 'ist-echtzeit'); halter.setAttribute('aria-hidden', 'true');
     ankerZeigen([], null);
     modell = neu; fig.dataset.modell = neu;
@@ -395,7 +433,7 @@ function buehneAnlegen(fig) {
     await bildZeigen(v);
     if (warEchtzeit) { const p = await laden(); if (p) an(); }
   }
-  return { variante, zerlegen, licht, details, modellWechseln, get z() { return z; }, get modell() { return modell; } };
+  return { variante, ausstattung, innenraum, zerlegen, licht, details, modellWechseln, get z() { return z; }, get modell() { return modell; } };
 }
 
 /* ------------------------------------------------------------- Reiter */
@@ -444,11 +482,30 @@ const autoFig = $('#bd-buehne-auto');
 if (autoFig) {
   const b = buehneAnlegen(autoFig);
   const lack = $('#bd-lack');
+  const innenWahl = $('#bd-innen'); const innenGruppe = $('#bd-g-innen');
+  const stufen = $('#bd-stufen');
+  function ansichtZeigen(a, stufe = 0) {
+    if (ansicht) for (const x of $$('button', ansicht)) x.setAttribute('aria-pressed', String(x.dataset.ansicht === a));
+    if (stufen) {
+      stufen.hidden = a !== 'zerlegt' || !MODELLE[b.modell].innen;
+      for (const x of $$('button', stufen)) x.setAttribute('aria-pressed', String(Number(x.dataset.stufe) === stufe));
+    }
+  }
   lack && lack.addEventListener('click', (e) => {
     const k = e.target.closest('button[data-variante]'); if (!k) return;
     for (const x of $$('button', lack)) x.setAttribute('aria-pressed', String(x === k));
+    // Einen Lack sieht man von aussen: vom Fahrerplatz geht es dafuer hinaus.
+    if (b.z.innen) { b.innenraum(false); ansichtZeigen('aussen'); }
     b.variante(k.dataset.variante, Number(k.dataset.nr));
     auswahlMitgeben($('#bd-auto-cta'), `${b.modell}-${k.dataset.variante}`);
+  });
+  innenWahl && innenWahl.addEventListener('click', (e) => {
+    const k = e.target.closest('button[data-ausstattung]'); if (!k) return;
+    for (const x of $$('button', innenWahl)) x.setAttribute('aria-pressed', String(x === k));
+    b.ausstattung(k.dataset.ausstattung, Number(k.dataset.nr));
+    // Eine Ausstattung sieht man innen: die Kamera faehrt auf den Fahrerplatz.
+    if (!b.z.innen) { b.innenraum(true); ansichtZeigen('innen'); }
+    zaehlen(`${b.modell}-ausstattung-${k.dataset.ausstattung}`);
   });
   auswahlMitgeben($('#bd-auto-cta'), `${b.modell}-${autoFig.dataset.variante}`);
   /* Drei Autos (23.09.2026): Kleinwagen und Mittelklasse sind eigene
@@ -472,6 +529,22 @@ if (autoFig) {
       return k;
     }));
   }
+  function innenChips(m, aktiv) {
+    const I = MODELLE[m].innen;
+    if (innenGruppe) innenGruppe.hidden = !I;
+    const kn = ansicht && $('button[data-ansicht="innen"]', ansicht); if (kn) kn.hidden = !I;
+    if (!innenWahl || !I) { if (innenWahl) innenWahl.replaceChildren(); return; }
+    innenWahl.replaceChildren(...I.map(([key, farbe], nr) => {
+      const k = document.createElement('button');
+      k.type = 'button'; k.dataset.ausstattung = key; k.dataset.nr = String(nr);
+      k.setAttribute('aria-pressed', String(key === aktiv));
+      const punkt = document.createElement('i'); punkt.className = 'farbpunkt'; punkt.setAttribute('aria-hidden', 'true');
+      punkt.style.setProperty('--f', farbe);
+      const name = document.createElement('span'); name.textContent = TEXT.modelle[m].innen[key];
+      k.append(punkt, name);
+      return k;
+    }));
+  }
   function faktenSetzen(m) {
     const M = MODELLE[m]; const T = TEXT.modelle[m];
     if (daten) { $('.bd-daten__masse', daten).textContent = T.daten; $('.bd-daten__bau', daten).textContent = T.bau; }
@@ -485,17 +558,30 @@ if (autoFig) {
     const m = k.dataset.modell; if (!MODELLE[m] || m === b.modell) return;
     for (const x of $$('button', modellWahl)) x.setAttribute('aria-pressed', String(x === k));
     const [erster] = MODELLE[m].lacke[0];
-    lackChips(m, erster); faktenSetzen(m);
-    if (ansicht) for (const x of $$('button', ansicht)) x.setAttribute('aria-pressed', String(x.dataset.zerlegt === '0'));
+    lackChips(m, erster); innenChips(m, MODELLE[m].innen ? MODELLE[m].innen[0][0] : null); faktenSetzen(m);
+    ansichtZeigen('aussen');
     b.modellWechseln(m, erster, 0, TEXT.modelle[m].alt);
     auswahlMitgeben($('#bd-auto-cta'), `${m}-${erster}`);
     zaehlen(`modell-${m}`);
   });
   const ansicht = $('#bd-ansicht');
   ansicht && ansicht.addEventListener('click', (e) => {
-    const k = e.target.closest('button[data-zerlegt]'); if (!k) return;
-    for (const x of $$('button', ansicht)) x.setAttribute('aria-pressed', String(x === k));
-    b.zerlegen(k.dataset.zerlegt === '1');
+    const k = e.target.closest('button[data-ansicht]'); if (!k) return;
+    const a = k.dataset.ansicht;
+    if (a === 'aussen') { if (b.z.innen) b.innenraum(false); if (b.z.zerlegt) b.zerlegen(false); ansichtZeigen('aussen'); }
+    else if (a === 'innen') { if (b.z.zerlegt) b.zerlegen(false); b.innenraum(true); ansichtZeigen('innen'); }
+    else {
+      // Zerlegen in Stufen (Serienautos): erst die Anbauteile, weiter ueber
+      // die Schritte. Das Konzeptauto zerlegt sich in einem Zug.
+      const st = MODELLE[b.modell].innen ? 1 : true;
+      b.zerlegen(st); ansichtZeigen('zerlegt', st === true ? 0 : 1);
+    }
+  });
+  stufen && stufen.addEventListener('click', (e) => {
+    const k = e.target.closest('button[data-stufe]'); if (!k) return;
+    const n = Number(k.dataset.stufe);
+    b.zerlegen(n); ansichtZeigen('zerlegt', n);
+    zaehlen(`${b.modell}-stufe-${n}`);
   });
   /* Eine Nachtansicht (Studio aus, nur die Leuchten des Autos) stand hier
      bis zum 23.09.2026 als dritter Schalter. Ohne Bloom glühten die
@@ -503,8 +589,9 @@ if (autoFig) {
      der nichts zeigt, kostet mehr Vertrauen, als er bringt. Die Funktion
      bleibt im Modul (licht()), der Schalter ist weg. */
   const licht = null;
+  innenChips(b.modell, MODELLE[b.modell].innen ? MODELLE[b.modell].innen[0][0] : null);
   autoFig.addEventListener('bd:zurueck', () => {
-    if (ansicht) for (const x of $$('button', ansicht)) x.setAttribute('aria-pressed', String(x.dataset.zerlegt === '0'));
+    ansichtZeigen('aussen');
     if (licht) licht.setAttribute('aria-pressed', 'false');
   });
   if (!webglDa()) {
