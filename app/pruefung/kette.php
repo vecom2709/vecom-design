@@ -6975,6 +6975,60 @@ foreach (['de/index.html' => 'de', 'en/care.html' => 'en'] as $spDatei => $spSpr
 }
 
 /* ============================================================================
+   60. Keine Fertigungszeit im Schaufenster   (23.09.2026)
+
+   Uwe: "Keine Fertigungszeit angeben, sondern ausbessern je nach Aufwand."
+
+   Auf der Seite stand "In zwei Wochen online", "Online in 2-6 Wochen",
+   "2 Wochen bis zur fertigen Seite" und in den Vorlagen "meist zwei bis
+   vier Wochen". Eine Zahl, die fuer alle gilt, ist geraten -- und ein
+   Versprechen, das der Umfang gar nicht halten kann. Gesagt wird jetzt,
+   wovon es abhaengt; die Dauer nennt Uwe, wenn er den Umfang kennt.
+
+   Diese Pruefung sieht in den Texten nach, nicht im Code: Sie faellt auf,
+   wenn jemand eine Wochenzahl zurueckschreibt.
+   ============================================================================ */
+abschnitt('60. Keine Fertigungszeit im Schaufenster');
+
+$fzWurzel = dirname(__DIR__, 2);
+
+/* Was eine Fertigungszeit ist: eine Zahl (Ziffer oder Wort) vor Wochen oder
+   Tagen. Was keine ist: Zahlungsfristen, Linklaufzeiten, Vertragslaufzeiten
+   -- die stehen in Monaten oder als "14 Tage" in den Rechtstexten und
+   gehoeren dort hin. Geprueft werden deshalb nur die Schaufenstertexte. */
+$fzMuster = '~(zwei|drei|vier|fünf|sechs|due|tre|quattro|two|three|four|[0-9])'
+          . '\s*(–|-|bis|a|to|o|or|e|und)?\s*([0-9]|zwei|drei|vier|sechs|due|tre|quattro|two|three|six)?'
+          . '\s*(wochen|woche|settimane|settimana|weeks|week)~iu';
+
+foreach (['it', 'de', 'en'] as $fzSpr) {
+    $fzText = (string) file_get_contents($fzWurzel . '/assets/js/i18n-' . $fzSpr . '.js');
+    pruefe('die Website verspricht keine Fertigungszeit (' . $fzSpr . ')',
+        preg_match($fzMuster, $fzText) === 0,
+        (static function () use ($fzMuster, $fzText): string {
+            preg_match($fzMuster, $fzText, $t);
+            return $t ? trim((string) $t[0]) : '';
+        })());
+}
+
+$fzVorlagen = (string) file_get_contents($fzWurzel . '/app/src/vorlagen.json');
+pruefe('auch die fertigen Textbausteine nennen keine Wochenzahl',
+    preg_match($fzMuster, $fzVorlagen) === 0,
+    (static function () use ($fzMuster, $fzVorlagen): string {
+        preg_match($fzMuster, $fzVorlagen, $t);
+        return $t ? trim((string) $t[0]) : '';
+    })());
+
+/* Dafuer steht dort, wovon es abhaengt -- sonst waere die Frage "wie lange
+   dauert es" unbeantwortet, und das ist schlechter als eine Zahl. */
+foreach (['it' => 'quanto c', 'de' => 'nach dem Umfang', 'en' => 'on the scope'] as $fzSpr => $fzSatz) {
+    pruefe('stattdessen sagt der Text, wovon es abhaengt (' . $fzSpr . ')',
+        str_contains((string) file_get_contents($fzWurzel . '/assets/js/i18n-' . $fzSpr . '.js'), 'Umfang')
+        || str_contains($fzVorlagen, $fzSatz)
+        || str_contains((string) file_get_contents($fzWurzel . '/assets/js/i18n-' . $fzSpr . '.js'), 'scope')
+        || str_contains((string) file_get_contents($fzWurzel . '/assets/js/i18n-' . $fzSpr . '.js'), 'lavoro, non a calendario'));
+}
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
