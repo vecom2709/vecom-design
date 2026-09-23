@@ -437,7 +437,7 @@ function zeitSetzen(zeit) {
 
 /* ---------------------------------------------------- Ansicht und Aufbau
    Grundriss, Bauablauf und Begehung lagen bis zum 22.09.2026 in einem
-   eigenen Abschnitt (haus.js). Sie gehoeren an dieselbe Buehne wie das Foto:
+   eigenen Abschnitt (haus.js, am 23.09.2026 entfernt). Sie gehoeren an dieselbe Buehne wie das Foto:
    Es ist dasselbe Haus, nur anders angesehen. Alle drei brauchen das
    Echtzeitmodell -- ohne WebGL bleiben die Knoepfe weg. */
 const ansichtenEl = $('#ansichten');

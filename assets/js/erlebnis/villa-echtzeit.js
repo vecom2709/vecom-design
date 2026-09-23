@@ -203,7 +203,7 @@ export async function erstelle({ behaelter, stand = 'garten', zeit = 'nachmittag
   /* Grundriss und Begehung brauchen die Maße, nicht das Modell: Raumrechtecke
      und Türdurchgänge stehen im Manifest, aus derselben Quelle wie das GLB.
      Zwei getrennte Beschreibungen desselben Hauses laufen sonst auseinander
-     (dieselbe Überlegung wie in haus.js). */
+     (dieselbe Überlegung wie im früheren haus.js, entfernt am 23.09.2026). */
   let plan = null;
   try { plan = await fetch(MANIFEST).then((a) => a.json()); } catch { plan = null; }
   const raeume = plan && plan.geschosse && plan.geschosse[0] ? plan.geschosse[0].raeume : [];
