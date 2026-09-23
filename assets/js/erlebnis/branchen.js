@@ -161,9 +161,9 @@ const $$ = (s, w = document) => [...w.querySelectorAll(s)];
 /* Stand der gerechneten Bilder: JavaScript setzt diese Adressen, nicht
    build.mjs -- wer neu rechnet, zählt hier hoch (der Server gibt Bildern
    dreißig Tage). */
-const BILD_STAND = '3';
+const BILD_STAND = '4';
 /* Dasselbe für Modelle, Umgebungen und Kameradaten unter assets/3d/branchen. */
-const MODELL_STAND = '4';
+const MODELL_STAND = '5';
 const PFAD = '/assets/img/erlebnis/branchen/';
 /* Modelle der Automotive-Demo: Lackschluessel (= Dateiname der Fotos und
    Reihenfolge der Varianten im GLB), Farbe des Punkts, gemessene Uebertragung

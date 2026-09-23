@@ -32,7 +32,7 @@ TEXTUREN = {
 # Materialanpassungen im Web (Name -> {'umgebung': Staerke der Rundumkarte})
 WEB_MATERIAL = {'salon': {'Spiegel': {'umgebung': 0.6, 'spiegel_dunkel': 0.04}}}
 # Teile, die kaum vereinfacht werden (Namensmuster je Produkt)
-FEIN = {'gastro': '^(decke|serviette_)'}
+FEIN = {'gastro': '^(decke|serviette_)', 'schmuck': '^band_(oben|unten)$'}
 ZERLEGEN = {
     'wein': {
         'dauer': 3.2, 'breite': 0.30, 'stufen': ['kiste', 'flasche'],
