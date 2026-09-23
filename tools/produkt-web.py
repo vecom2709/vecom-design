@@ -24,6 +24,7 @@ TEXTUREN = {
     'wein': [['^etikett', 1024], ['^(holz|innen|kork)', 512]],
     # Zifferblatt 1024: Schriftzug bleibt in der Nahansicht lesbar
     'schmuck': [['^zifferblatt', 1024], ['^innen-leder', 512], ['^werk', 256]],
+    'kueche': [['^kueche-(eiche|marmor)', 2048], ['^kueche-', 1024], ['^(holz|innen)', 1024]],
 }
 ZERLEGEN = {
     'wein': {
@@ -54,6 +55,23 @@ ZERLEGEN = {
             {'muster': '^werk_unruh$', 'hoch': 0.0085, 'start': 0.68, 'stufe': 3, 'beschriftung': 'unruh'},
             {'muster': '^werk_(rad|lager)_', 'hoch': 0.0072, 'start': 0.70, 'stufe': 3},
             {'muster': '^werk_bruecke_', 'hoch': 0.0055, 'start': 0.72, 'stufe': 3},
+        ],
+    },
+    # Kochinsel: erst Tueren und Auszuege auf (Vollauszug 400 mm), dann hebt
+    # sich die Platte mit Kochfeld und Armatur ab und gibt Becken und Korpus frei.
+    'kueche': {
+        'dauer': 3.4, 'breite': 0.30, 'stufen': ['oeffnen', 'platte'],
+        'regeln': [
+            {'muster': '^tuer_1_angel$', 'dreh': True, 'start': 0.00, 'stufe': 1, 'beschriftung': 'tuer'},
+            {'muster': '^tuer_2_angel$', 'dreh': True, 'start': 0.06, 'stufe': 1},
+            {'muster': '^lade_0_0$', 'vor': 0.40, 'start': 0.10, 'stufe': 1},
+            {'muster': '^lade_0_1$', 'vor': 0.40, 'start': 0.16, 'stufe': 1, 'beschriftung': 'auszug'},
+            {'muster': '^lade_0_2$', 'vor': 0.40, 'start': 0.22, 'stufe': 1},
+            {'muster': '^lade_3_[01]$', 'vor': 0.40, 'start': 0.26, 'stufe': 1},
+            {'muster': '^platte$', 'hoch': 0.34, 'start': 0.60, 'stufe': 2, 'beschriftung': 'platte'},
+            {'muster': '^kochfeld$', 'hoch': 0.40, 'start': 0.62, 'stufe': 2, 'beschriftung': 'kochfeld'},
+            {'muster': '^armatur_', 'hoch': 0.46, 'start': 0.64, 'stufe': 2, 'beschriftung': 'armatur'},
+            {'muster': '^becken', 'hoch': 0.10, 'start': 0.70, 'stufe': 2, 'beschriftung': 'becken'},
         ],
     },
 }

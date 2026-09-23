@@ -161,6 +161,7 @@ window.VECOM_I18N.it = {
       demo_shop_b: "Negozio online", demo_shop_t: "Scarpa con carrello", demo_shop_x: "Tempo reale · 1,2 MB",
       demo_wein_b: "Vino e prodotti naturali", demo_wein_t: "Bottiglia e cassetta regalo", demo_wein_x: "Tempo reale · 1,6 MB",
       demo_schmuck_b: "Gioielli e orologi", demo_schmuck_t: "Orologio da aprire", demo_schmuck_x: "Tempo reale · 1,2 MB",
+      demo_kueche_b: "Cucine su misura", demo_kueche_t: "Isola da aprire", demo_kueche_x: "Tempo reale · 1,6 MB",
       pd_auswahl: "Prodotto", pd_ansicht: "Vista", pd_nachweis: "Modelli ed etichette progettati da Vecom Design, calcolati con Blender Cycles. Luce da studio: Poly Haven (CC0).",
       demo_tisch_b: "Mobili", demo_tisch_t: "Tavolo da girare", demo_tisch_x: "36 immagini · senza scheda grafica",
       tiefer_t: "Tecnica, confronto, streaming",

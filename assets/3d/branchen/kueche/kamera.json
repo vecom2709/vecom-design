@@ -1,0 +1,170 @@
+{
+ "objekt": "kueche",
+ "sensor_breite_mm": 36.0,
+ "brennweite_mm": 50.0,
+ "position": [
+  1.9871035814285278,
+  1.5499999523162842,
+  3.7461981773376465
+ ],
+ "ziel": [
+  0.0,
+  0.550000011920929,
+  0.009000003337860107
+ ],
+ "blende": 11.0,
+ "fokus_m": 4.3491644859313965,
+ "hdri": "studio_small_03",
+ "hdri_drehung_grad": 150.0,
+ "hdri_staerke": 0.55,
+ "hdri_schwelle": 0.0,
+ "boden_hoehe": 0.0,
+ "belichtung": -2.299999952316284,
+ "aufloesung": [
+  1600,
+  900
+ ],
+ "varianten": [
+  "Salbei",
+  "Weiss",
+  "Nussbaum"
+ ],
+ "umgebung": {
+  "datei": "umgebung.hdr",
+  "ort": [
+   0.0,
+   0.5856750011444092,
+   0.009000003337860107
+  ]
+ },
+ "umgebung_boden": {
+  "datei": "umgebung-boden.hdr"
+ },
+ "boden": {
+  "datei": "boden-licht.webp",
+  "groesse_m": 1.6,
+  "mitte": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "albedo_gebacken": 0.08,
+  "albedo_echt": 0.006,
+  "ansicht": "Standard",
+  "insel_m": [
+   0.25,
+   0.9
+  ],
+  "auslauf_m": [
+   0.35,
+   1.4
+  ],
+  "glanz_max": 0.12,
+  "rauheit": [
+   0.45,
+   0.6
+  ],
+  "licht_skala": 0.04970656598412723
+ },
+ "look": {
+  "kontrast": 1.3,
+  "pivot": 0.606,
+  "saettigung": 1.25
+ },
+ "web_belichtung": 0.6,
+ "web_spiegel": {
+  "staerke": 0,
+  "lod": 4.0
+ },
+ "web_boden": {
+  "glanz": 0.6,
+  "umgebung": 0.5,
+  "farbe": [
+   1.0,
+   1.05,
+   1.15
+  ]
+ },
+ "grund_srgb": [
+  0.0008,
+  0.0034,
+  0.0094
+ ],
+ "zerlegen": {
+  "dauer": 3.4,
+  "breite": 0.3,
+  "stufen": [
+   "oeffnen",
+   "platte"
+  ],
+  "regeln": [
+   {
+    "muster": "^tuer_1_angel$",
+    "dreh": true,
+    "start": 0.0,
+    "stufe": 1,
+    "beschriftung": "tuer"
+   },
+   {
+    "muster": "^tuer_2_angel$",
+    "dreh": true,
+    "start": 0.06,
+    "stufe": 1
+   },
+   {
+    "muster": "^lade_0_0$",
+    "vor": 0.4,
+    "start": 0.1,
+    "stufe": 1
+   },
+   {
+    "muster": "^lade_0_1$",
+    "vor": 0.4,
+    "start": 0.16,
+    "stufe": 1,
+    "beschriftung": "auszug"
+   },
+   {
+    "muster": "^lade_0_2$",
+    "vor": 0.4,
+    "start": 0.22,
+    "stufe": 1
+   },
+   {
+    "muster": "^lade_3_[01]$",
+    "vor": 0.4,
+    "start": 0.26,
+    "stufe": 1
+   },
+   {
+    "muster": "^platte$",
+    "hoch": 0.34,
+    "start": 0.6,
+    "stufe": 2,
+    "beschriftung": "platte"
+   },
+   {
+    "muster": "^kochfeld$",
+    "hoch": 0.4,
+    "start": 0.62,
+    "stufe": 2,
+    "beschriftung": "kochfeld"
+   },
+   {
+    "muster": "^armatur_",
+    "hoch": 0.46,
+    "start": 0.64,
+    "stufe": 2,
+    "beschriftung": "armatur"
+   },
+   {
+    "muster": "^becken",
+    "hoch": 0.1,
+    "start": 0.7,
+    "stufe": 2,
+    "beschriftung": "becken"
+   }
+  ]
+ },
+ "dreiecke": 13410
+}
