@@ -372,9 +372,19 @@ export async function erstellen({
      Gerechnet an der Hülle im voll zerlegten Zustand, nicht geschätzt: Die
      erste Fassung ging pauschal auf das 1,5-Fache -- zu wenig, als die Türen
      1,15 m zur Seite fuhren. */
-  function zerlegtHuelle() {
+  /* fokus (RegExp): nur diese Teile samt Kindern -- bei der Uhr der Kopf
+     ohne Band und Ring. Das ganze Stillleben einzupassen machte die zerlegte
+     Uhr zum Punkt in der Bildmitte (Probe 23.09.2026). */
+  function zerlegtHuelle(fokus = null) {
     const vorher = zerlegt; zerlegt = 1; zerlegenAnwenden(); modell.updateMatrixWorld(true);
-    const b = new THREE.Box3().setFromObject(modell);
+    let b = new THREE.Box3();
+    if (fokus) {
+      modell.traverse((o) => {
+        if (!o.isMesh) return;
+        for (let v = o; v && v !== modell; v = v.parent) if (fokus.test(v.name || '')) { b.expandByObject(o); return; }
+      });
+      if (b.isEmpty()) b = new THREE.Box3().setFromObject(modell);
+    } else b.setFromObject(modell);
     zerlegt = vorher; zerlegenAnwenden(); modell.updateMatrixWorld(true);
     return b;
   }
@@ -383,17 +393,18 @@ export async function erstellen({
      mit dem Bildwinkel und Beschnitt, der gerade gilt. Die zweite Fassung
      passte eine Kugel um den Zielpunkt ein: sicher, aber das zerlegte Auto
      stand danach als Spielzeug in der Bildmitte (Probe 2). */
-  function einpassen(b, winkel, neig) {
+  function einpassen(b, winkel, neig, mitte = null) {
     const ecken = [];
     for (const x of [b.min.x, b.max.x]) for (const y of [b.min.y, b.max.y]) for (const z of [b.min.z, b.max.z]) ecken.push(new THREE.Vector3(x, y, z));
-    const merk = { ...ist }; const v = new THREE.Vector3();
+    const merk = { ...ist }; const v = new THREE.Vector3(); const merkZ = Z.clone();
+    if (mitte) Z.copy(mitte);
     const passt = (abst) => {
       ist = { ...ist, winkel, neig, abst }; kameraSetzen(); kamera.updateMatrixWorld();
       return ecken.every((e) => { v.copy(e).project(kamera); return Math.abs(v.x) < 0.9 && v.y < 0.78 && v.y > -0.9 && v.z < 1; });
     };
-    let lo = heim.abst * 0.6, hi = heim.abst * 4;
+    let lo = heim.abst * (mitte ? 0.12 : 0.6), hi = heim.abst * 4;
     for (let i = 0; i < 22; i++) { const m = (lo + hi) / 2; if (passt(m)) hi = m; else lo = m; }
-    ist = merk; kameraSetzen();
+    Z.copy(merkZ); ist = merk; kameraSetzen();
     return hi;
   }
 
@@ -483,6 +494,8 @@ export async function erstellen({
     lens: K.brennweite_mm,
   };
   let soll = { ...heim }; let ist = { ...heim };
+  // Umlaufziel: gleitet beim Zerlegen mit Fokus auf die Mitte der Teile
+  const zHeim = Z.clone(); const zSoll = Z.clone();
   const grenzen = { neig: [0.02, 1.2], abst: [heim.abst * 0.55, heim.abst * 1.6] };
 
   function projektion(w, h) {
@@ -513,7 +526,8 @@ export async function erstellen({
   function annaehern(f) {
     const dw = wickel(soll.winkel - ist.winkel);
     ist.winkel += dw * f; ist.neig += (soll.neig - ist.neig) * f; ist.abst += (soll.abst - ist.abst) * f;
-    return Math.abs(dw) + Math.abs(soll.neig - ist.neig) + Math.abs(soll.abst - ist.abst) * 0.05;
+    const dz = Z.distanceTo(zSoll); Z.lerp(zSoll, f);
+    return Math.abs(dw) + Math.abs(soll.neig - ist.neig) + Math.abs(soll.abst - ist.abst) * 0.05 + dz / Math.max(heim.abst, 1e-3);
   }
 
   /* ------------------------------------------------------------ Innenraum
@@ -831,15 +845,18 @@ export async function erstellen({
          Probe) -- also zurück und etwas höher, damit man hineinsieht. */
       if (an) {
         zerlegtSeit = performance.now();
-        const b = zerlegtHuelle();
+        const fokus = K.zerlegen && K.zerlegen.fokus ? new RegExp(K.zerlegen.fokus) : null;
+        const b = zerlegtHuelle(fokus);
+        const mitte = fokus ? b.getCenter(new THREE.Vector3()) : null;
         const neig = Math.min(grenzen.neig[1], heim.neig + 0.16);
         // Für den ganzen Rundgang passend: Das zerlegte Auto dreht sich
         // danach langsam, und von der Seite ist es breiter als von vorn.
         let abst = 0;
-        for (let i = 0; i < 12; i++) abst = Math.max(abst, einpassen(b, soll.winkel + (i * Math.PI) / 6, neig));
+        for (let i = 0; i < 12; i++) abst = Math.max(abst, einpassen(b, soll.winkel + (i * Math.PI) / 6, neig, mitte));
         grenzen.abst[1] = Math.max(grenzen.abst[1], abst * 1.25);
+        if (fokus) { grenzen.abst[0] = Math.min(grenzen.abst[0], abst * 0.6); zSoll.copy(mitte); }
         soll = { ...soll, abst, neig };
-      }
+      } else zSoll.copy(zHeim);
       starten();
     },
     get zerlegt() { return zerlegtSoll > 0; },
@@ -878,7 +895,7 @@ export async function erstellen({
     },
     heim() {
       if (modus !== 'aussen') { this.innenraum(false); return; }
-      soll = { ...heim }; ruhtGemeldet = false; letzteBewegung = performance.now() - 2000; starten();
+      soll = { ...heim }; zSoll.copy(zHeim); ruhtGemeldet = false; letzteBewegung = performance.now() - 2000; starten();
     },
     ausstattung(k) { return innenIdx[k] !== undefined ? varianteSetzen(innenIdx[k]) : null; },
     stufe: stufeSetzen,

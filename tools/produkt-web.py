@@ -22,6 +22,8 @@ FW = importlib.util.module_from_spec(_s); _s.loader.exec_module(FW)
 # Texturen je Produkt: Muster -> Kantenlaenge (fahrzeug-vereinfachen.mjs liest TEXTUR_REGELN)
 TEXTUREN = {
     'wein': [['^etikett', 1024], ['^(holz|innen|kork)', 512]],
+    # Zifferblatt 1024: Schriftzug bleibt in der Nahansicht lesbar
+    'schmuck': [['^zifferblatt', 1024], ['^innen-leder', 512], ['^werk', 256]],
 }
 ZERLEGEN = {
     'wein': {
@@ -30,6 +32,28 @@ ZERLEGEN = {
             {'muster': '^kiste_tuer_angel$', 'dreh': True, 'start': 0.00, 'stufe': 1, 'beschriftung': 'kiste'},
             {'muster': '^flasche_kapsel$', 'hoch': 0.075, 'start': 0.55, 'stufe': 2, 'beschriftung': 'kapsel'},
             {'muster': '^flasche_kork$', 'hoch': 0.045, 'start': 0.62, 'stufe': 2, 'beschriftung': 'kork'},
+        ],
+    },
+    # Uhr liegt flach: alles hebt sich nach oben, in der Reihenfolge, in der
+    # ein Uhrmacher sie oeffnet. Hoehen so gestaffelt, dass sich kein Teil
+    # mit dem darueber schneidet (Glas 10,2 mm + 40 mm liegt ueber allem).
+    'schmuck': {
+        'dauer': 3.6, 'breite': 0.26, 'stufen': ['glas', 'zeiger', 'werk'],
+        # Kamera passt beim Zerlegen nur den Uhrkopf ein (Band und Ring bleiben Kulisse)
+        'fokus': '^(uhr_|zeiger_|blatt_|werk_)',
+        'regeln': [
+            {'muster': '^uhr_glas$', 'hoch': 0.040, 'start': 0.00, 'stufe': 1, 'beschriftung': 'glas'},
+            {'muster': '^uhr_luenette$', 'hoch': 0.028, 'start': 0.08, 'stufe': 1, 'beschriftung': 'luenette'},
+            {'muster': '^uhr_krone(_kappe)?$', 'seite': 0.012, 'start': 0.14, 'stufe': 1, 'beschriftung': 'krone'},
+            {'muster': '^zeiger_kappe$', 'hoch': 0.030, 'start': 0.30, 'stufe': 2},
+            {'muster': '^zeiger_sekunde$', 'hoch': 0.026, 'start': 0.32, 'stufe': 2},
+            {'muster': '^zeiger_minute$', 'hoch': 0.022, 'start': 0.36, 'stufe': 2, 'beschriftung': 'zeiger'},
+            {'muster': '^zeiger_stunde$', 'hoch': 0.018, 'start': 0.40, 'stufe': 2},
+            {'muster': '^blatt_', 'hoch': 0.014, 'start': 0.46, 'stufe': 2, 'beschriftung': 'blatt'},
+            {'muster': '^werk_rotor$', 'hoch': 0.010, 'start': 0.64, 'stufe': 3, 'beschriftung': 'rotor'},
+            {'muster': '^werk_unruh$', 'hoch': 0.0085, 'start': 0.68, 'stufe': 3, 'beschriftung': 'unruh'},
+            {'muster': '^werk_(rad|lager)_', 'hoch': 0.0072, 'start': 0.70, 'stufe': 3},
+            {'muster': '^werk_bruecke_', 'hoch': 0.0055, 'start': 0.72, 'stufe': 3},
         ],
     },
 }

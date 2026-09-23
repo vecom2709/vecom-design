@@ -966,8 +966,8 @@ let demoOeffnen = null;
 if (demos) {
   const kacheln = [...demos.querySelectorAll('[data-demo]')];
   const buehnen = [...document.querySelectorAll('[data-demo-buehne]')];
-  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch', wein: 'produkt' };
-  const AUS_ADRESSE = { wein: 'wein', villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
+  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch', wein: 'produkt', schmuck: 'produkt' };
+  const AUS_ADRESSE = { wein: 'wein', schmuck: 'schmuck', villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
   let offen = null;
   const zuklappen = (b) => { if (!b.hidden) { b.dispatchEvent(new CustomEvent('demo:zu')); b.hidden = true; } };
   function oeffnen(demo, rollen = true) {

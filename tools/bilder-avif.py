@@ -44,12 +44,29 @@ BRANCHEN = {
     'mittelklasse/poster-rosso.png': 'mittelklasse-rosso',
     # Produktdemos der Galerie (24.09.2026)
     'wein/poster-rosso.png': 'wein-rosso', 'wein/poster-bianco.png': 'wein-bianco', 'wein/poster-olio.png': 'wein-olio',
+    'schmuck/poster-stahl.png': 'schmuck-stahl', 'schmuck/poster-gelbgold.png': 'schmuck-gelbgold', 'schmuck/poster-rosegold.png': 'schmuck-rosegold',
     # Fahrerplatz je Ausstattung (branchen_studio.py, Modus innen) -- Standbild
     # am Ende der Kamerafahrt und Rueckfall ohne Echtzeit
     **{f'{m}/innen-{k}.png': f'{m}-innen-{k}' for m, ks in (
         ('kleinwagen', ('stoff-anthrazit', 'stoff-grau-blau', 'kunstleder-hell')),
         ('mittelklasse', ('stoff-anthrazit', 'leder-cognac', 'leder-elfenbein'))) for k in ks},
 }
+
+
+# Galeriekacheln mit eigenem Ausschnitt (links, oben, rechts, unten im
+# 1600er-Poster): Die Uhr liegt im Poster unten rechts -- in der Kachel lag
+# sie unter der Beschriftung, zu sehen war nur das Band (23.09.2026).
+KACHEL = {
+    'schmuck/poster-stahl.png': ('schmuck-kachel', (470, 348, 1450, 899)),
+}
+
+
+def kachel_schreiben(quelle, ziel_stamm, box, webp=False):
+    bild = Image.open(quelle).convert('RGB').crop(box).resize((800, 450), Image.LANCZOS)
+    bild.save(f'{ziel_stamm}-800.avif', 'AVIF', quality=AVIF_Q_KLEIN, speed=3)
+    if webp:
+        bild.save(f'{ziel_stamm}-800.webp', 'WEBP', quality=WEBP_Q, method=6)
+    return ziel_stamm
 
 
 def schreiben(quelle, ziel_stamm, webp=False):
@@ -73,6 +90,9 @@ def main():
             # nachrechnen, ohne die anderen Poster erneut zu kodieren.
             if os.path.exists(os.path.join(ordner, q)):
                 print(schreiben(os.path.join(ordner, q), os.path.join(ZIEL_BR, z), webp))
+        for q, (z, box) in KACHEL.items():
+            if os.path.exists(os.path.join(ordner, q)):
+                print(kachel_schreiben(os.path.join(ordner, q), os.path.join(ZIEL_BR, z), box, webp))
     elif art == 'villa':
         for f in sorted(os.listdir(ordner)):
             if f.startswith('ruhe-') and f.endswith('.png') and '-kueche-' not in f:

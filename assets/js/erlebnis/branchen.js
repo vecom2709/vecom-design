@@ -33,7 +33,7 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
-    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert', kiste: 'Holzkiste mit Tür', kapsel: 'Kapsel', kork: 'Naturkorken' },
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert', kiste: 'Holzkiste mit Tür', kapsel: 'Kapsel', kork: 'Naturkorken', glas: 'Saphirglas', luenette: 'Lünette', krone: 'Krone', zeiger: 'Zeiger', blatt: 'Zifferblatt mit Indizes', rotor: 'Aufzugsrotor', unruh: 'Unruh' },
     modelle: {
       kleinwagen: { alt: 'Kleinwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,07 m · Breite 1,76 m · Höhe 1,45 m · Radstand 2,57 m',
@@ -64,7 +64,7 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
-    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo', kiste: 'Cassetta in legno', kapsel: 'Capsula', kork: 'Tappo in sughero' },
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo', kiste: 'Cassetta in legno', kapsel: 'Capsula', kork: 'Tappo in sughero', glas: 'Vetro zaffiro', luenette: 'Lunetta', krone: 'Corona', zeiger: 'Lancette', blatt: 'Quadrante con indici', rotor: 'Rotore di carica', unruh: 'Bilanciere' },
     modelle: {
       kleinwagen: { alt: 'Utilitaria in uno studio fotografico scuro, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,07 m · larghezza 1,76 m · altezza 1,45 m · passo 2,57 m',
@@ -95,7 +95,7 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
-    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed', kiste: 'Wooden case with door', kapsel: 'Capsule', kork: 'Natural cork' },
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed', kiste: 'Wooden case with door', kapsel: 'Capsule', kork: 'Natural cork', glas: 'Sapphire crystal', luenette: 'Bezel', krone: 'Crown', zeiger: 'Hands', blatt: 'Dial with indices', rotor: 'Winding rotor', unruh: 'Balance wheel' },
     modelle: {
       kleinwagen: { alt: 'Small car in a dark photo studio, rendered with Blender Cycles',
         daten: 'Our own design · length 4.07 m · width 1.76 m · height 1.45 m · wheelbase 2.57 m',
@@ -122,18 +122,22 @@ const PRODUKT_TEXTE = {
   de: {
     stufen: 'Ansicht', ganz: 'Geschlossen', auswahl: 'Produkt',
     wein: { kicker: 'Wein & Naturprodukte', titel: 'Flasche mit Etikett zum Wählen', text: 'Drei Produkte aus einer Datei: Glas, Inhalt, Kapsel und Etikett wechseln zusammen, das Foto kommt gerechnet. Die Holzkiste öffnet sich, die Flasche gibt Kapsel und Korken frei — so sieht man, was man verschenkt.', alt: 'Weinflasche und Holzkiste im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Kellerei', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olivenöl extra vergine' }, schritte: ['Kiste öffnen', 'Flasche öffnen'] },
+    schmuck: { kicker: 'Schmuck & Uhren', titel: 'Uhr und Ring im Makrolicht', text: 'Metall, Zifferblatt, Band und Stein wechseln zusammen — Edelstahl, Gelbgold oder Roségold, gerechnet wie im Fotostudio. Die Uhr öffnet sich wie beim Uhrmacher: erst Glas und Lünette, dann Zeiger und Zifferblatt, zuletzt das Werk.', alt: 'Automatikuhr und Solitärring im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Juweliergeschäft', varianten: { stahl: 'Edelstahl · Saphir', gelbgold: 'Gelbgold · Diamant', rosegold: 'Roségold · Rubin' }, schritte: ['Glas & Lünette', 'Zeiger & Zifferblatt', 'Werk'] },
   },
   it: {
     stufen: 'Vista', ganz: 'Chiusa', auswahl: 'Prodotto',
     wein: { kicker: 'Vino e prodotti naturali', titel: 'Bottiglia con etichetta a scelta', text: 'Tre prodotti in un solo file: vetro, contenuto, capsula ed etichetta cambiano insieme, la foto arriva già calcolata. La cassetta di legno si apre, la bottiglia libera capsula e tappo — così si vede cosa si regala.', alt: 'Bottiglia di vino e cassetta di legno in studio scuro, calcolate con Blender Cycles', cta: 'Una cosa così per la mia cantina', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olio extra vergine' }, schritte: ['Apri la cassetta', 'Apri la bottiglia'] },
+    schmuck: { kicker: 'Gioielli e orologi', titel: 'Orologio e anello in luce macro', text: 'Metallo, quadrante, cinturino e pietra cambiano insieme — acciaio, oro giallo o oro rosa, calcolati come in studio fotografico. L’orologio si apre come dall’orologiaio: prima vetro e lunetta, poi lancette e quadrante, infine il movimento.', alt: 'Orologio automatico e anello solitario in studio scuro, calcolati con Blender Cycles', cta: 'Una cosa così per la mia gioielleria', varianten: { stahl: 'Acciaio · Zaffiro', gelbgold: 'Oro giallo · Diamante', rosegold: 'Oro rosa · Rubino' }, schritte: ['Vetro e lunetta', 'Lancette e quadrante', 'Movimento'] },
   },
   en: {
     stufen: 'View', ganz: 'Closed', auswahl: 'Product',
     wein: { kicker: 'Wine & natural products', titel: 'Bottle with a label to choose', text: 'Three products from one file: glass, contents, capsule and label change together, the photo comes pre-rendered. The wooden case opens, the bottle releases capsule and cork — so people see what they are giving.', alt: 'Wine bottle and wooden case in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my winery', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Extra virgin olive oil' }, schritte: ['Open the case', 'Open the bottle'] },
+    schmuck: { kicker: 'Jewellery & watches', titel: 'Watch and ring in macro light', text: 'Metal, dial, strap and stone change together — steel, yellow gold or rose gold, rendered like a photo studio. The watch opens the way a watchmaker would: crystal and bezel first, then hands and dial, finally the movement.', alt: 'Automatic watch and solitaire ring in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my jewellery shop', varianten: { stahl: 'Steel · Sapphire', gelbgold: 'Yellow gold · Diamond', rosegold: 'Rose gold · Ruby' }, schritte: ['Crystal & bezel', 'Hands & dial', 'Movement'] },
   },
 }[SPRACHE];
 const PRODUKTE = {
   wein: { mb: 1.6, varianten: [['rosso', '#5b0f1c'], ['bianco', '#d9cf8a'], ['olio', '#66751f']] },
+  schmuck: { mb: 1.2, varianten: [['stahl', '#b9bcc0'], ['gelbgold', '#d9b25a'], ['rosegold', '#d99a86']] },
 };
 const $ = (s, w = document) => w.querySelector(s);
 const $$ = (s, w = document) => [...w.querySelectorAll(s)];
