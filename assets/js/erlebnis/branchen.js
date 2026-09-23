@@ -23,7 +23,7 @@ const TEXTE = {
     foto: 'Gerechnet · Blender Cycles · 384 Abtastungen',
     fotoKurz: 'Gerechnet · Blender Cycles',
     echtzeit: (f) => `Echtzeit · WebGL 2${f ? ` · ${f} Bilder/s` : ''}`,
-    zerlegt: 'Echtzeit · zerlegt in seine Teile',
+    zerlegt: 'Echtzeit · zerlegt in seine Teile', geoeffnet: 'Echtzeit · geöffnet',
     innen: 'Echtzeit · Fahrerplatz', innenFoto: 'Gerechnet · Blender Cycles · Fahrerplatz',
     laedt: 'Lade das 3D-Modell …',
     drehen: 'Selbst drehen', zumFoto: 'Zurück zum Foto',
@@ -33,7 +33,7 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
-    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert' },
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert', kiste: 'Holzkiste mit Tür', kapsel: 'Kapsel', kork: 'Naturkorken' },
     modelle: {
       kleinwagen: { alt: 'Kleinwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,07 m · Breite 1,76 m · Höhe 1,45 m · Radstand 2,57 m',
@@ -54,7 +54,7 @@ const TEXTE = {
     foto: 'Calcolato · Blender Cycles · 384 campioni',
     fotoKurz: 'Calcolato · Blender Cycles',
     echtzeit: (f) => `Tempo reale · WebGL 2${f ? ` · ${f} fps` : ''}`,
-    zerlegt: 'Tempo reale · scomposto nei suoi pezzi',
+    zerlegt: 'Tempo reale · scomposto nei suoi pezzi', geoeffnet: 'Tempo reale · aperto',
     innen: 'Tempo reale · posto guida', innenFoto: 'Calcolato · Blender Cycles · posto guida',
     laedt: 'Carico il modello 3D …',
     drehen: 'Giralo tu', zumFoto: 'Torna alla foto',
@@ -64,7 +64,7 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
-    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo' },
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo', kiste: 'Cassetta in legno', kapsel: 'Capsula', kork: 'Tappo in sughero' },
     modelle: {
       kleinwagen: { alt: 'Utilitaria in uno studio fotografico scuro, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,07 m · larghezza 1,76 m · altezza 1,45 m · passo 2,57 m',
@@ -85,7 +85,7 @@ const TEXTE = {
     foto: 'Rendered · Blender Cycles · 384 samples',
     fotoKurz: 'Rendered · Blender Cycles',
     echtzeit: (f) => `Real time · WebGL 2${f ? ` · ${f} fps` : ''}`,
-    zerlegt: 'Real time · taken apart',
+    zerlegt: 'Real time · taken apart', geoeffnet: 'Real time · opened',
     innen: 'Real time · driver’s seat', innenFoto: 'Rendered · Blender Cycles · driver’s seat',
     laedt: 'Loading the 3D model …',
     drehen: 'Turn it yourself', zumFoto: 'Back to the photo',
@@ -95,7 +95,7 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
-    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed' },
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed', kiste: 'Wooden case with door', kapsel: 'Capsule', kork: 'Natural cork' },
     modelle: {
       kleinwagen: { alt: 'Small car in a dark photo studio, rendered with Blender Cycles',
         daten: 'Our own design · length 4.07 m · width 1.76 m · height 1.45 m · wheelbase 2.57 m',
@@ -114,6 +114,27 @@ const TEXTE = {
   },
 };
 const TEXT = TEXTE[SPRACHE];
+
+/* Produktdemos der Galerie (24.09.2026): eine Bühne, das Modell wechselt je
+   Kachel. Texte je Sprache, Varianten und Schritte je Produkt. Die Schritte
+   sind die Stufen des Zerlegens (kamera.json -> zerlegen.stufen). */
+const PRODUKT_TEXTE = {
+  de: {
+    stufen: 'Ansicht', ganz: 'Geschlossen', auswahl: 'Produkt',
+    wein: { kicker: 'Wein & Naturprodukte', titel: 'Flasche mit Etikett zum Wählen', text: 'Drei Produkte aus einer Datei: Glas, Inhalt, Kapsel und Etikett wechseln zusammen, das Foto kommt gerechnet. Die Holzkiste öffnet sich, die Flasche gibt Kapsel und Korken frei — so sieht man, was man verschenkt.', alt: 'Weinflasche und Holzkiste im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Kellerei', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olivenöl extra vergine' }, schritte: ['Kiste öffnen', 'Flasche öffnen'] },
+  },
+  it: {
+    stufen: 'Vista', ganz: 'Chiusa', auswahl: 'Prodotto',
+    wein: { kicker: 'Vino e prodotti naturali', titel: 'Bottiglia con etichetta a scelta', text: 'Tre prodotti in un solo file: vetro, contenuto, capsula ed etichetta cambiano insieme, la foto arriva già calcolata. La cassetta di legno si apre, la bottiglia libera capsula e tappo — così si vede cosa si regala.', alt: 'Bottiglia di vino e cassetta di legno in studio scuro, calcolate con Blender Cycles', cta: 'Una cosa così per la mia cantina', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olio extra vergine' }, schritte: ['Apri la cassetta', 'Apri la bottiglia'] },
+  },
+  en: {
+    stufen: 'View', ganz: 'Closed', auswahl: 'Product',
+    wein: { kicker: 'Wine & natural products', titel: 'Bottle with a label to choose', text: 'Three products from one file: glass, contents, capsule and label change together, the photo comes pre-rendered. The wooden case opens, the bottle releases capsule and cork — so people see what they are giving.', alt: 'Wine bottle and wooden case in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my winery', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Extra virgin olive oil' }, schritte: ['Open the case', 'Open the bottle'] },
+  },
+}[SPRACHE];
+const PRODUKTE = {
+  wein: { mb: 1.6, varianten: [['rosso', '#5b0f1c'], ['bianco', '#d9cf8a'], ['olio', '#66751f']] },
+};
 const $ = (s, w = document) => w.querySelector(s);
 const $$ = (s, w = document) => [...w.querySelectorAll(s)];
 
@@ -324,7 +345,7 @@ function buehneAnlegen(fig) {
     if (!z.p) return;
     z.echtzeit = true; fig.classList.add('ist-echtzeit'); zaehlen(`${modell === 'schuh' ? 'schuh' : 'auto'}-drehen`);
     knopfText.textContent = TEXT.zumFoto;
-    kennung.textContent = z.zerlegt ? TEXT.zerlegt : TEXT.echtzeit(0);
+    kennung.textContent = z.zerlegt ? (fig.id === 'bd-buehne-produkt' ? TEXT.geoeffnet : TEXT.zerlegt) : TEXT.echtzeit(0);
     z.p.starten();
   }
   /* Foto zur aktuellen Ansicht: aussen der Lack, innen die Ausstattung
@@ -674,4 +695,59 @@ if (schuhFig) {
     if (meldung) meldung.textContent = '';
   });
   korbZeigen();
+}
+
+/* ------------------------------------------------------------ Produkte
+   Eine Bühne für alle weiteren Branchen der Galerie (Wein, ...). Die Kachel
+   meldet per vecom:produkt, welches Produkt; hier wechselt das Modell, und
+   die rechte Spalte füllt sich aus PRODUKT_TEXTE / PRODUKTE. */
+const produktFig = $('#bd-buehne-produkt');
+if (produktFig) {
+  const b = buehneAnlegen(produktFig);
+  BUEHNEN.push(b);
+  const kicker = $('#pd-kicker'), titel = $('#pd-h'), text = $('#pd-text'), wahl = $('#pd-var'), schritte = $('#pd-schritte');
+  const groesse = $('.bewegen__groesse', produktFig), cta = $('#pd-cta');
+  const LOKAL = { it: 'it-IT', de: 'de-DE', en: 'en-GB' }[SPRACHE];
+  $('#produkt-demo')?.addEventListener('demo:zu', () => b.ruhen());
+  function schrittZeigen(n) { for (const x of $$('button', schritte)) x.setAttribute('aria-pressed', String(Number(x.dataset.stufe) === n)); }
+  function fuellen(was) {
+    const T = PRODUKT_TEXTE[was], M = PRODUKTE[was]; if (!T || !M) return;
+    kicker.textContent = T.kicker; titel.textContent = T.titel; text.textContent = T.text;
+    if (groesse) groesse.textContent = M.mb.toLocaleString(LOKAL, { minimumFractionDigits: 1 }) + ' MB';
+    if (cta) { cta.textContent = T.cta; auswahlMitgeben(cta, `${was}-${M.varianten[0][0]}`); }
+    wahl.replaceChildren(...M.varianten.map(([key, farbe], nr) => {
+      const k = document.createElement('button'); k.type = 'button'; k.dataset.variante = key; k.dataset.nr = String(nr);
+      k.setAttribute('aria-pressed', String(nr === 0));
+      const punkt = document.createElement('i'); punkt.className = 'farbpunkt'; punkt.setAttribute('aria-hidden', 'true'); punkt.style.setProperty('--f', farbe);
+      const name = document.createElement('span'); name.textContent = T.varianten[key];
+      k.append(punkt, name); return k;
+    }));
+    const knoepfe = [[0, PRODUKT_TEXTE.ganz], ...T.schritte.map((t, i) => [i + 1, t])];
+    schritte.replaceChildren(...knoepfe.map(([n, t]) => {
+      const k = document.createElement('button'); k.type = 'button'; k.dataset.stufe = String(n);
+      k.setAttribute('aria-pressed', String(n === 0));
+      if (n) { const nr = document.createElement('b'); nr.textContent = String(n); k.append(nr, ' '); }
+      k.append(t); return k;
+    }));
+  }
+  document.addEventListener('vecom:produkt', async (e) => {
+    const was = e.detail.demo; if (!PRODUKTE[was]) return;
+    fuellen(was);
+    await b.modellWechseln(was, PRODUKTE[was].varianten[0][0], 0, PRODUKT_TEXTE[was].alt);
+  });
+  wahl.addEventListener('click', (e) => {
+    const k = e.target.closest('button[data-variante]'); if (!k) return;
+    for (const x of $$('button', wahl)) x.setAttribute('aria-pressed', String(x === k));
+    b.variante(k.dataset.variante, Number(k.dataset.nr));
+    if (cta) auswahlMitgeben(cta, `${b.modell}-${k.dataset.variante}`);
+  });
+  schritte.addEventListener('click', (e) => {
+    const k = e.target.closest('button[data-stufe]'); if (!k) return;
+    const n = Number(k.dataset.stufe);
+    schrittZeigen(n);
+    b.zerlegen(n || false);
+    if (n) zaehlen(`${b.modell}-stufe-${n}`);
+  });
+  produktFig.addEventListener('bd:zurueck', () => schrittZeigen(0));
+  if (!webglDa()) schritte.closest('.gruppe').hidden = true;
 }

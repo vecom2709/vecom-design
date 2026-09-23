@@ -966,8 +966,8 @@ let demoOeffnen = null;
 if (demos) {
   const kacheln = [...demos.querySelectorAll('[data-demo]')];
   const buehnen = [...document.querySelectorAll('[data-demo-buehne]')];
-  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch' };
-  const AUS_ADRESSE = { villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
+  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch', wein: 'produkt' };
+  const AUS_ADRESSE = { wein: 'wein', villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
   let offen = null;
   const zuklappen = (b) => { if (!b.hidden) { b.dispatchEvent(new CustomEvent('demo:zu')); b.hidden = true; } };
   function oeffnen(demo, rollen = true) {
@@ -977,6 +977,8 @@ if (demos) {
     ziel.hidden = false;
     // Auto und Shop teilen sich eine Bühne mit Reitern -- den richtigen wählen.
     if (demo === 'auto' || demo === 'shop') document.getElementById(`bd-tab-${demo}`)?.click();
+    // Weitere Branchen teilen sich eine Produktbühne: branchen.js wechselt das Modell.
+    if (BUEHNE[demo] === 'produkt') document.dispatchEvent(new CustomEvent('vecom:produkt', { detail: { demo } }));
     for (const k of kacheln) k.setAttribute('aria-expanded', String(k.dataset.demo === demo));
     // Telefon: Die Reihe wischt seitlich -- die offene Kachel ins Blickfeld holen
     const reihe = demos.querySelector('.demos__reihe'); const k = kacheln.find((x) => x.dataset.demo === demo);

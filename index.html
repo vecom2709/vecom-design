@@ -487,6 +487,10 @@
           <picture><img src="assets/img/3d/tisch/drehen/gross/dreh-04.webp?v=df83fb17" width="1600" height="1000" loading="lazy" decoding="async" alt=""></picture>
           <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_tisch_b">Mobili</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_tisch_t">Tavolo da girare</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_tisch_x">36 immagini · senza scheda grafica</span></span>
         </button></li>
+        <li><button type="button" class="demo-kachel" data-demo="wein" aria-controls="produkt-demo" aria-expanded="false">
+          <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/wein-rosso-800.avif?v=fc411a99"><img src="assets/img/erlebnis/branchen/wein-rosso-800.webp?v=fcf9b32c" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
+          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_wein_b">Vino e prodotti naturali</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_wein_t">Bottiglia e cassetta regalo</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_wein_x">Tempo reale · 1,6 MB</span></span>
+        </button></li>
       </ul>
     </div>
 
@@ -721,6 +725,43 @@
         <span class="dreh__hinweis" aria-hidden="true"><i></i><span data-i18n="erlebnis.tisch_ziehen">Trascina per girare</span></span>
       </div>
     </section>
+    <!-- Produktdemos der Galerie (24.09.2026): eine Bühne, das Modell wechselt
+         je Kachel (branchen.js, PRODUKTE). Aufbau wie Auto und Shop. -->
+    <section class="abschnitt branchen demo-buehne" id="produkt-demo" data-demo-buehne="produkt" aria-labelledby="pd-h" hidden>
+      <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
+      <div class="bd-panel" id="bd-produkt">
+        <div class="bd-raster">
+          <div class="bd-links">
+            <figure class="buehne buehne--produkt" id="bd-buehne-produkt" data-modell="wein" data-variante="rosso" data-variante-nr="0" data-src="assets/js/erlebnis/produkt-echtzeit.js?v=e2d8f6b9">
+              <picture>
+                <img class="ruhe ruhe-a ist-an ist-oben" src="assets/img/erlebnis/branchen/wein-rosso.webp?v=7f12aaef" width="1600" height="900" loading="lazy" decoding="async" alt="">
+              </picture>
+              <img class="ruhe ruhe-b" alt="" aria-hidden="true" decoding="async" width="1600" height="900">
+              <div class="echtzeit" aria-hidden="true"></div>
+              <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">Calcolato · Blender Cycles</span></figcaption>
+              <button type="button" class="bewegen"><span class="bewegen__zeichen" aria-hidden="true"></span><span class="bewegen__text" data-i18n="erlebnis.bewegen">Giralo tu</span><span class="bewegen__groesse">1,6 MB</span></button>
+            </figure>
+            <p class="bd-griff" data-i18n="erlebnis.bd_griff">Trascina per girare · Ctrl + rotella o due dita per ingrandire</p>
+          </div>
+          <div class="bd-rechts">
+            <p class="bd-muster" id="pd-kicker"></p>
+            <h3 class="bd-produkt" id="pd-h"></h3>
+            <p class="bd-text" id="pd-text"></p>
+            <div class="gruppe">
+              <span class="gruppe__name" id="pd-l-var" data-i18n="erlebnis.pd_auswahl">Prodotto</span>
+              <div class="chips chips--umbruch" id="pd-var" role="group" aria-labelledby="pd-l-var"></div>
+            </div>
+            <div class="gruppe">
+              <span class="gruppe__name" id="pd-l-schritte" data-i18n="erlebnis.pd_ansicht">Vista</span>
+              <div class="chips chips--umbruch bd-stufen" id="pd-schritte" role="group" aria-labelledby="pd-l-schritte"></div>
+            </div>
+            <a class="knopf knopf--voll" id="pd-cta" href="/bedarf.php?lang=it"></a>
+          </div>
+        </div>
+      </div>
+      <p class="bd-nachweis" data-i18n="erlebnis.pd_nachweis">Modelli ed etichette progettati da Vecom Design, calcolati con Blender Cycles. Luce da studio: Poly Haven (CC0).</p>
+    </section>
+
 
     <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
       <header class="abschnitt__kopf">
@@ -1825,7 +1866,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=675eb601" defer></script>
+<script src="assets/js/i18n-it.js?v=839d256f" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1849,8 +1890,8 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=87093862"></script>
-<script type="module" src="assets/js/erlebnis/branchen.js?v=2bc2d8b3"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=c2b048fe"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=f1eb4233"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

@@ -42,6 +42,8 @@ BRANCHEN = {
     'mittelklasse/poster-blu-notte.png': 'mittelklasse-blunotte',
     'mittelklasse/poster-argento.png': 'mittelklasse-argento',
     'mittelklasse/poster-rosso.png': 'mittelklasse-rosso',
+    # Produktdemos der Galerie (24.09.2026)
+    'wein/poster-rosso.png': 'wein-rosso', 'wein/poster-bianco.png': 'wein-bianco', 'wein/poster-olio.png': 'wein-olio',
     # Fahrerplatz je Ausstattung (branchen_studio.py, Modus innen) -- Standbild
     # am Ende der Kamerafahrt und Rueckfall ohne Echtzeit
     **{f'{m}/innen-{k}.png': f'{m}-innen-{k}' for m, ks in (

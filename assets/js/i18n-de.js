@@ -157,6 +157,8 @@ window.VECOM_I18N.de = {
       demo_villa_b: "Architektur", demo_villa_t: "Villa auf Sizilien", demo_villa_x: "Echtzeit · 0,4 MB",
       demo_auto_b: "Automotive", demo_auto_t: "Drei Autos, innen und außen", demo_auto_x: "Echtzeit · ab 2,9 MB",
       demo_shop_b: "Onlineshop", demo_shop_t: "Laufschuh mit Warenkorb", demo_shop_x: "Echtzeit · 1,2 MB",
+      demo_wein_b: "Wein & Naturprodukte", demo_wein_t: "Flasche und Geschenkkiste", demo_wein_x: "Echtzeit · 1,6 MB",
+      pd_auswahl: "Produkt", pd_ansicht: "Ansicht", pd_nachweis: "Modelle und Etiketten entworfen von Vecom Design, gerechnet mit Blender Cycles. Studiolicht: Poly Haven (CC0).",
       demo_tisch_b: "Möbel", demo_tisch_t: "Tisch zum Drehen", demo_tisch_x: "36 Bilder · ohne Grafikkarte",
       tiefer_t: "Technik, Vergleich, Streaming",
       tiefer_z: "Für alle, die wissen wollen, wie es funktioniert — drei kurze Teile.",

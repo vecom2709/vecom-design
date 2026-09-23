@@ -157,6 +157,8 @@ window.VECOM_I18N.en = {
       demo_villa_b: "Architecture", demo_villa_t: "Villa in Sicily", demo_villa_x: "Real time · 0.4 MB",
       demo_auto_b: "Automotive", demo_auto_t: "Three cars, inside and out", demo_auto_x: "Real time · from 2.9 MB",
       demo_shop_b: "Online shop", demo_shop_t: "Running shoe with cart", demo_shop_x: "Real time · 1.2 MB",
+      demo_wein_b: "Wine & natural products", demo_wein_t: "Bottle and gift case", demo_wein_x: "Real time · 1.6 MB",
+      pd_auswahl: "Product", pd_ansicht: "View", pd_nachweis: "Models and labels designed by Vecom Design, rendered with Blender Cycles. Studio light: Poly Haven (CC0).",
       demo_tisch_b: "Furniture", demo_tisch_t: "Table to turn", demo_tisch_x: "36 images · no graphics card",
       tiefer_t: "Technology, comparison, streaming",
       tiefer_z: "For anyone who wants to know how it works — three short parts.",

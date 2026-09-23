@@ -39,7 +39,11 @@ for (const m of doc.getRoot().listMaterials()) {
 // Reifenflanke 2048 x 256 (die Karte laeuft einmal um den Reifen; bei 512
 // waeren die 15-mm-Buchstaben 4 px breit und nur noch Rauschen).
 const sharp = (await import(path.join(M, 'sharp/dist/index.cjs'))).default;
-await doc.transform(
+// Produktdemos (tools/produkt-web.py) geben ihre Regeln mit: [[Muster, Kante], ...]
+const REGELN = JSON.parse(process.env.TEXTUR_REGELN || '[]');
+if (REGELN.length) {
+  await doc.transform(...REGELN.map(([m, k]) => F.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [k, k], pattern: new RegExp(m, 'i'), quality: 86 })));
+} else await doc.transform(
   F.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [1024, 1024], pattern: /display/i, quality: 88 }),
   F.textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [2048, 2048], pattern: /reifen/i, quality: 90 }),
   // Positiv benennen, nicht per Ausschluss: textureCompress prueft Name ODER

@@ -18,6 +18,7 @@ const EREIGNISSE = [
     'schuh-korb', 'tisch-drehen', 'cta-auto', 'cta-shop',
     'modell-kleinwagen', 'modell-mittelklasse', 'modell-auto',
     'demo-villa', 'demo-auto', 'demo-shop', 'demo-tisch',
+    'demo-wein', 'wein-stufe-1', 'wein-stufe-2',
     // Serienautos (23.09.2026): Fahrerplatz, Ausstattung, Zerlegen in Stufen
     'kleinwagen-innen', 'mittelklasse-innen',
     'kleinwagen-ausstattung-stoff-anthrazit', 'kleinwagen-ausstattung-stoff-grau-blau', 'kleinwagen-ausstattung-kunstleder-hell',
