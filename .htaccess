@@ -106,11 +106,9 @@ RewriteRule ^_to_delete/ - [R=404,L]
 # _rahmen.css ist ein echtes Stilblatt und muss weiter ausgeliefert werden.
 RewriteRule ^_[^/]*$ - [R=404,L]
 
-# 23.09.2026: haus.js und werkbank.js sind aus dem Repository raus, liegen
-# aber noch auf dem Webspace -- der Deploy loescht nie, und die Abrissliste
-# steht in .github/workflows/ftp-deploy.yml, die das gh-Token auf dem
-# Windows-Rechner nicht aendern darf (kein workflow-Recht). Bis sie dort
-# stehen: "Gone" statt alter Code, den niemand mehr pflegt.
+# 23.09.2026: haus.js und werkbank.js sind entfernt (Abrissliste in
+# ftp-deploy.yml). Die Regel bleibt: Wer eine alte Adresse im Cache hat,
+# bekommt "Gone" statt eines Rateversuchs.
 RewriteRule ^assets/js/(haus|werkbank)\.js$ - [G,L]
 
 # --------------------------------------------------------------------------
