@@ -233,7 +233,22 @@ export async function erstellen({
       if (ext) zuordnung.push({ mesh: o, standard: o.material, mappings: ext.mappings });
     }
     const m = o.material;
-    if (m && m.emissive && /head|brake|signal|light|dashboard|flamme/i.test(m.name || '')) leuchtend.add(m);
+    if (m && m.emissive && /head|brake|signal|light|dashboard|flamme|licht/i.test(m.name || '')) leuchtend.add(m);
+    /* Materialanpassung je Produkt aus kamera.json ("web_material"): Der
+       Salonspiegel zeigte die Softbox der Rundumkarte als weisses Viereck --
+       im Foto nimmt die Lichtverknuepfung den Spiegel aus, hier die Staerke
+       der Umgebung (wie eine Flagge am Set). */
+    const wm = K.web_material && m && K.web_material[m.name];
+    if (wm && wm.umgebung !== undefined) m.envMapIntensity = wm.umgebung;
+    /* "spiegel_dunkel": Die Softboxen der Echtzeit sind Flaechenlichter --
+       ein Metallspiegel zeigt sie als weisses Viereck, und three.js kann ein
+       Licht nicht fuer ein Material ausnehmen. Das Foto zeigt den Spiegel
+       fast schwarz (er spiegelt das dunkle Studio); hier dasselbe als dunkles
+       Glas mit wenig Glanz. */
+    if (wm && wm.spiegel_dunkel) {
+      o.material = new THREE.MeshPhysicalMaterial({ name: m.name, color: 0x050506, metalness: 0, roughness: 0.03,
+        specularIntensity: wm.spiegel_dunkel, envMapIntensity: m.envMapIntensity });
+    }
   });
   const leuchtStaerke = new Map([...leuchtend].map((m) => [m, m.emissiveIntensity]));
   /* Lichtquellen im Modell (Empties "kerzenlicht", Gastronomie): Punktlicht,
@@ -241,8 +256,10 @@ export async function erstellen({
      in three.js kein Licht auf Tisch und Glaeser. */
   const punktLichter = [];
   modell.traverse((o) => {
-    if (!/^kerzenlicht/.test(o.name || '')) return;
-    const l = new THREE.PointLight(0xffa04a, 0, 2.5, 2);
+    const art = /^(kerzen|spiegel)licht/.exec(o.name || ''); if (!art) return;
+    // Kerze warm und schwach, LED hinter dem Spiegel neutralweiss und kraeftiger
+    const l = art[1] === 'kerzen' ? new THREE.PointLight(0xffa04a, 0, 2.5, 2) : new THREE.PointLight(0xfff0dc, 0, 3.0, 2);
+    l.userData.an = art[1] === 'kerzen' ? 0.9 : 2.5;
     o.add(l); punktLichter.push(l);
   });
 
@@ -900,7 +917,7 @@ export async function erstellen({
       bodenMat.envMapIntensity = (K.web_boden?.umgebung ?? 1) * (an ? 0.15 : 1);
       bodenMat.lightMapIntensity = bodenLichtStaerke * (an ? 0.08 : 1);
       for (const [m, s] of leuchtStaerke) m.emissiveIntensity = an ? s * 2.2 : s;
-      for (const l of punktLichter) l.intensity = an ? 0.9 : 0;
+      for (const l of punktLichter) l.intensity = an ? l.userData.an : 0;
       einmal(); starten();
     },
     heim() {

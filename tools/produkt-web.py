@@ -26,7 +26,10 @@ TEXTUREN = {
     'schmuck': [['^zifferblatt', 1024], ['^innen-leder', 512], ['^werk', 256]],
     'kueche': [['^kueche-(eiche|marmor)', 2048], ['^kueche-', 1024], ['^(holz|innen)', 1024]],
     'gastro': [['^innen-stoff', 512], ['^(kueche|holz)', 512]],
+    'salon': [['^innen-', 512], ['^(kueche|holz)', 512]],
 }
+# Materialanpassungen im Web (Name -> {'umgebung': Staerke der Rundumkarte})
+WEB_MATERIAL = {'salon': {'Spiegel': {'umgebung': 0.6, 'spiegel_dunkel': 0.04}}}
 # Teile, die kaum vereinfacht werden (Namensmuster je Produkt)
 FEIN = {'gastro': '^(decke|serviette_)'}
 ZERLEGEN = {
@@ -77,6 +80,14 @@ ZERLEGEN = {
             {'muster': '^becken', 'hoch': 0.10, 'start': 0.70, 'stufe': 2, 'beschriftung': 'becken'},
         ],
     },
+    # Salon: Der Stuhl dreht zum Gast und faehrt hydraulisch 80 mm hoch
+    # (Schritt 2 "Abendlicht" ist kein Zerlegen, siehe PRODUKTE.licht).
+    'salon': {
+        'dauer': 2.6, 'breite': 0.9, 'stufen': ['stuhl'],
+        'regeln': [
+            {'muster': '^stuhl_angel$', 'dreh': True, 'hoch': 0.08, 'start': 0.0, 'stufe': 1, 'beschriftung': 'stuhl'},
+        ],
+    },
 }
 
 
@@ -115,6 +126,8 @@ def main(was, quelle):
             k[s] = schuh[s]
     if was in ZERLEGEN:
         k['zerlegen'] = ZERLEGEN[was]
+    if was in WEB_MATERIAL:
+        k['web_material'] = WEB_MATERIAL[was]
     k['dreiecke'] = n
     with open(os.path.join(ziel, 'kamera.json'), 'w', encoding='utf-8') as f:
         json.dump(k, f, ensure_ascii=False, indent=1)
