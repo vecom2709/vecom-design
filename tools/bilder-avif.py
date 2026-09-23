@@ -62,6 +62,7 @@ BRANCHEN = {
 # sie unter der Beschriftung, zu sehen war nur das Band (23.09.2026).
 KACHEL = {
     'schmuck/poster-stahl.png': ('schmuck-kachel', (470, 348, 1450, 899)),
+    'salon/poster-cognac.png': ('salon-kachel', (430, 330, 1290, 814)),
 }
 
 
