@@ -160,6 +160,7 @@ window.VECOM_I18N.en = {
       demo_wein_b: "Wine & natural products", demo_wein_t: "Bottle and gift case", demo_wein_x: "Real time · 1.6 MB",
       demo_schmuck_b: "Jewellery & watches", demo_schmuck_t: "A watch that opens", demo_schmuck_x: "Real time · 1.2 MB",
       demo_kueche_b: "Kitchen design", demo_kueche_t: "An island that opens", demo_kueche_x: "Real time · 1.6 MB",
+      demo_gastro_b: "Restaurants", demo_gastro_t: "A table for two, laid", demo_gastro_x: "Real time · 1.2 MB",
       pd_auswahl: "Product", pd_ansicht: "View", pd_nachweis: "Models and labels designed by Vecom Design, rendered with Blender Cycles. Studio light: Poly Haven (CC0).",
       demo_tisch_b: "Furniture", demo_tisch_t: "Table to turn", demo_tisch_x: "36 images · no graphics card",
       tiefer_t: "Technology, comparison, streaming",

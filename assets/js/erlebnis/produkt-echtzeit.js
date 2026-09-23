@@ -233,9 +233,18 @@ export async function erstellen({
       if (ext) zuordnung.push({ mesh: o, standard: o.material, mappings: ext.mappings });
     }
     const m = o.material;
-    if (m && m.emissive && /head|brake|signal|light|dashboard/i.test(m.name || '')) leuchtend.add(m);
+    if (m && m.emissive && /head|brake|signal|light|dashboard|flamme/i.test(m.name || '')) leuchtend.add(m);
   });
   const leuchtStaerke = new Map([...leuchtend].map((m) => [m, m.emissiveIntensity]));
+  /* Lichtquellen im Modell (Empties "kerzenlicht", Gastronomie): Punktlicht,
+     das nur am Abend brennt -- die Flamme selbst leuchtet, aber sie wirft
+     in three.js kein Licht auf Tisch und Glaeser. */
+  const punktLichter = [];
+  modell.traverse((o) => {
+    if (!/^kerzenlicht/.test(o.name || '')) return;
+    const l = new THREE.PointLight(0xffa04a, 0, 2.5, 2);
+    o.add(l); punktLichter.push(l);
+  });
 
   /* Zwei Gruppen im selben GLB (23.09.2026): Lacke und Ausstattungen
      ("Innen: ..."). Jedes Netz gehoert zu genau einer Gruppe; beim Wechsel
@@ -891,6 +900,7 @@ export async function erstellen({
       bodenMat.envMapIntensity = (K.web_boden?.umgebung ?? 1) * (an ? 0.15 : 1);
       bodenMat.lightMapIntensity = bodenLichtStaerke * (an ? 0.08 : 1);
       for (const [m, s] of leuchtStaerke) m.emissiveIntensity = an ? s * 2.2 : s;
+      for (const l of punktLichter) l.intensity = an ? 0.9 : 0;
       einmal(); starten();
     },
     heim() {

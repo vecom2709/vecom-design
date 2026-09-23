@@ -25,7 +25,10 @@ TEXTUREN = {
     # Zifferblatt 1024: Schriftzug bleibt in der Nahansicht lesbar
     'schmuck': [['^zifferblatt', 1024], ['^innen-leder', 512], ['^werk', 256]],
     'kueche': [['^kueche-(eiche|marmor)', 2048], ['^kueche-', 1024], ['^(holz|innen)', 1024]],
+    'gastro': [['^innen-stoff', 512], ['^(kueche|holz)', 512]],
 }
+# Teile, die kaum vereinfacht werden (Namensmuster je Produkt)
+FEIN = {'gastro': '^(decke|serviette_)'}
 ZERLEGEN = {
     'wein': {
         'dauer': 3.2, 'breite': 0.30, 'stufen': ['kiste', 'flasche'],
@@ -83,7 +86,7 @@ def main(was, quelle):
     render = os.path.join(quelle, 'render', was)
     roh = os.path.join(quelle, 'quelle', f'{was}-web.glb')
     tmp = f'/tmp/{was}-einfach.glb'
-    env = dict(os.environ, TEXTUR_REGELN=json.dumps(TEXTUREN.get(was, [])))
+    env = dict(os.environ, TEXTUR_REGELN=json.dumps(TEXTUREN.get(was, [])), FEIN=FEIN.get(was, ''))
     subprocess.run(['node', os.path.join(HIER, 'fahrzeug-vereinfachen.mjs'), roh, tmp], check=True, env=env)
     glb = os.path.join(ziel, f'{was}.glb')
     subprocess.run([FW.GT, 'meshopt', tmp, glb, '--level', 'high'], check=True)

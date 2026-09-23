@@ -46,6 +46,7 @@ BRANCHEN = {
     'wein/poster-rosso.png': 'wein-rosso', 'wein/poster-bianco.png': 'wein-bianco', 'wein/poster-olio.png': 'wein-olio',
     'schmuck/poster-stahl.png': 'schmuck-stahl', 'schmuck/poster-gelbgold.png': 'schmuck-gelbgold', 'schmuck/poster-rosegold.png': 'schmuck-rosegold',
     'kueche/poster-salbei.png': 'kueche-salbei', 'kueche/poster-weiss.png': 'kueche-weiss', 'kueche/poster-nussbaum.png': 'kueche-nussbaum',
+    'gastro/poster-weiss.png': 'gastro-weiss', 'gastro/poster-terrakotta.png': 'gastro-terrakotta', 'gastro/poster-anthrazit.png': 'gastro-anthrazit',
     # Fahrerplatz je Ausstattung (branchen_studio.py, Modus innen) -- Standbild
     # am Ende der Kamerafahrt und Rueckfall ohne Echtzeit
     **{f'{m}/innen-{k}.png': f'{m}-innen-{k}' for m, ks in (

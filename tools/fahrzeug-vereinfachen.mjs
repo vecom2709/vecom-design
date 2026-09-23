@@ -16,12 +16,19 @@ const [ein, aus] = process.argv.slice(2);
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
 const doc = await io.read(ein);
 const BLECH = /^(karosserie|haube|klappe|klappe_spoiler|stoss_[vh]|tuer_[vh]_[lr]|frontscheibe|boden)$/;
+// Produktdemos: Teile, die gar nicht vereinfacht werden (FEIN = RegExp), z. B. die
+// Tischdecke -- vereinfacht zeigte ihr Fall unter dem Kerzenlicht Saegezaehne.
+const FEIN = process.env.FEIN ? new RegExp(process.env.FEIN) : null;
 let vor = 0, nach = 0;
 for (const node of doc.getRoot().listNodes()) {
   const mesh = node.getMesh(); if (!mesh) continue;
+  const fein = FEIN && FEIN.test(node.getName());
   const fehler = BLECH.test(node.getName()) ? 0.0001 : 0.0004;
   for (const prim of mesh.listPrimitives()) {
     vor += prim.getIndices().getCount() / 3;
+    // Doppellagige Teile (Tischdecke mit Staerke): jede Vereinfachung
+    // verschiebt die Lagen gegeneinander, die innere sticht durch.
+    if (fein) { nach += prim.getIndices().getCount() / 3; continue; }
     F.simplifyPrimitive(prim, { simplifier: MeshoptSimplifier, ratio: 0, error: fehler, lockBorder: true });
     nach += prim.getIndices().getCount() / 3;
   }

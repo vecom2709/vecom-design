@@ -124,24 +124,28 @@ const PRODUKT_TEXTE = {
     wein: { kicker: 'Wein & Naturprodukte', titel: 'Flasche mit Etikett zum Wählen', text: 'Drei Produkte aus einer Datei: Glas, Inhalt, Kapsel und Etikett wechseln zusammen, das Foto kommt gerechnet. Die Holzkiste öffnet sich, die Flasche gibt Kapsel und Korken frei — so sieht man, was man verschenkt.', alt: 'Weinflasche und Holzkiste im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Kellerei', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olivenöl extra vergine' }, schritte: ['Kiste öffnen', 'Flasche öffnen'] },
     schmuck: { kicker: 'Schmuck & Uhren', titel: 'Uhr und Ring im Makrolicht', text: 'Metall, Zifferblatt, Band und Stein wechseln zusammen — Edelstahl, Gelbgold oder Roségold, gerechnet wie im Fotostudio. Die Uhr öffnet sich wie beim Uhrmacher: erst Glas und Lünette, dann Zeiger und Zifferblatt, zuletzt das Werk.', alt: 'Automatikuhr und Solitärring im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Juweliergeschäft', varianten: { stahl: 'Edelstahl · Saphir', gelbgold: 'Gelbgold · Diamant', rosegold: 'Roségold · Rubin' }, schritte: ['Glas & Lünette', 'Zeiger & Zifferblatt', 'Werk'] },
     kueche: { kicker: 'Küchenbau', titel: 'Kochinsel zum Aufmachen', text: 'Fronten, Arbeitsplatte und Griffe wechseln zusammen — Salbei mit Eiche, Weiß mit Carrara-Marmor, Nussbaum mit Keramik. Türen und Auszüge öffnen sich, die Platte hebt ab: So sieht der Kunde vor dem Aufmaß, was er bekommt.', alt: 'Kochinsel mit Spüle und Kochfeld im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Küchenstudio', varianten: { salbei: 'Salbei · Eiche · Messing', weiss: 'Weiß · Carrara · Edelstahl', nussbaum: 'Nussbaum · Keramik · Schwarz' }, schritte: ['Öffnen', 'Platte abheben'] },
+    gastro: { kicker: 'Gastronomie', titel: 'Tisch für zwei, gedeckt', text: 'Tischdecke und Geschirr wechseln zusammen — weißes Leinen mit Porzellan, Terrakotta mit Steingut, Anthrazit mit schwarzem Steingut. Gedeckt nach der Grundregel des Service; am Abend trägt die Kerze das Licht.', alt: 'Gedeckter Tisch für zwei mit Kerze im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Restaurant', varianten: { weiss: 'Leinen weiß · Porzellan', terrakotta: 'Terrakotta · Steingut sand', anthrazit: 'Anthrazit · Steingut schwarz' }, ganz: 'Tag', schritte: ['Abend'] },
   },
   it: {
     stufen: 'Vista', ganz: 'Chiusa', auswahl: 'Prodotto',
     wein: { kicker: 'Vino e prodotti naturali', titel: 'Bottiglia con etichetta a scelta', text: 'Tre prodotti in un solo file: vetro, contenuto, capsula ed etichetta cambiano insieme, la foto arriva già calcolata. La cassetta di legno si apre, la bottiglia libera capsula e tappo — così si vede cosa si regala.', alt: 'Bottiglia di vino e cassetta di legno in studio scuro, calcolate con Blender Cycles', cta: 'Una cosa così per la mia cantina', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olio extra vergine' }, schritte: ['Apri la cassetta', 'Apri la bottiglia'] },
     schmuck: { kicker: 'Gioielli e orologi', titel: 'Orologio e anello in luce macro', text: 'Metallo, quadrante, cinturino e pietra cambiano insieme — acciaio, oro giallo o oro rosa, calcolati come in studio fotografico. L’orologio si apre come dall’orologiaio: prima vetro e lunetta, poi lancette e quadrante, infine il movimento.', alt: 'Orologio automatico e anello solitario in studio scuro, calcolati con Blender Cycles', cta: 'Una cosa così per la mia gioielleria', varianten: { stahl: 'Acciaio · Zaffiro', gelbgold: 'Oro giallo · Diamante', rosegold: 'Oro rosa · Rubino' }, schritte: ['Vetro e lunetta', 'Lancette e quadrante', 'Movimento'] },
     kueche: { kicker: 'Cucine su misura', titel: 'Isola da aprire', text: 'Ante, piano e maniglie cambiano insieme — salvia con rovere, bianco con marmo di Carrara, noce con ceramica. Ante e cassetti si aprono, il piano si solleva: il cliente vede cosa riceve prima del rilievo.', alt: 'Isola cucina con lavello e piano cottura in studio scuro, calcolata con Blender Cycles', cta: 'Una cosa così per il mio showroom', varianten: { salbei: 'Salvia · Rovere · Ottone', weiss: 'Bianco · Carrara · Acciaio', nussbaum: 'Noce · Ceramica · Nero' }, schritte: ['Apri', 'Solleva il piano'] },
+    gastro: { kicker: 'Ristorazione', titel: 'Tavolo per due, apparecchiato', text: 'Tovaglia e stoviglie cambiano insieme — lino bianco con porcellana, terracotta con gres, antracite con gres nero. Apparecchiato secondo le regole del servizio; di sera la luce è quella della candela.', alt: 'Tavolo apparecchiato per due con candela in studio scuro, calcolato con Blender Cycles', cta: 'Una cosa così per il mio ristorante', varianten: { weiss: 'Lino bianco · Porcellana', terrakotta: 'Terracotta · Gres sabbia', anthrazit: 'Antracite · Gres nero' }, ganz: 'Giorno', schritte: ['Sera'] },
   },
   en: {
     stufen: 'View', ganz: 'Closed', auswahl: 'Product',
     wein: { kicker: 'Wine & natural products', titel: 'Bottle with a label to choose', text: 'Three products from one file: glass, contents, capsule and label change together, the photo comes pre-rendered. The wooden case opens, the bottle releases capsule and cork — so people see what they are giving.', alt: 'Wine bottle and wooden case in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my winery', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Extra virgin olive oil' }, schritte: ['Open the case', 'Open the bottle'] },
     schmuck: { kicker: 'Jewellery & watches', titel: 'Watch and ring in macro light', text: 'Metal, dial, strap and stone change together — steel, yellow gold or rose gold, rendered like a photo studio. The watch opens the way a watchmaker would: crystal and bezel first, then hands and dial, finally the movement.', alt: 'Automatic watch and solitaire ring in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my jewellery shop', varianten: { stahl: 'Steel · Sapphire', gelbgold: 'Yellow gold · Diamond', rosegold: 'Rose gold · Ruby' }, schritte: ['Crystal & bezel', 'Hands & dial', 'Movement'] },
     kueche: { kicker: 'Kitchen design', titel: 'An island that opens', text: 'Fronts, worktop and handles change together — sage with oak, white with Carrara marble, walnut with ceramic. Doors and drawers open, the worktop lifts: customers see what they get before the survey.', alt: 'Kitchen island with sink and hob in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my kitchen studio', varianten: { salbei: 'Sage · Oak · Brass', weiss: 'White · Carrara · Steel', nussbaum: 'Walnut · Ceramic · Black' }, schritte: ['Open', 'Lift the worktop'] },
+    gastro: { kicker: 'Restaurants', titel: 'A table for two, laid', text: 'Tablecloth and tableware change together — white linen with porcelain, terracotta with stoneware, charcoal with black stoneware. Laid by the rules of service; in the evening the candle carries the light.', alt: 'Table laid for two with a candle in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my restaurant', varianten: { weiss: 'White linen · Porcelain', terrakotta: 'Terracotta · Sand stoneware', anthrazit: 'Charcoal · Black stoneware' }, ganz: 'Day', schritte: ['Evening'] },
   },
 }[SPRACHE];
 const PRODUKTE = {
   wein: { mb: 1.6, varianten: [['rosso', '#5b0f1c'], ['bianco', '#d9cf8a'], ['olio', '#66751f']] },
   schmuck: { mb: 1.2, varianten: [['stahl', '#b9bcc0'], ['gelbgold', '#d9b25a'], ['rosegold', '#d99a86']] },
   kueche: { mb: 1.6, varianten: [['salbei', '#6f7f6c'], ['weiss', '#e4e2dc'], ['nussbaum', '#5a3a24']] },
+  gastro: { mb: 1.2, licht: 1, varianten: [['weiss', '#e8e6e0'], ['terrakotta', '#a4492c'], ['anthrazit', '#3a3b3e']] },
 };
 const $ = (s, w = document) => w.querySelector(s);
 const $$ = (s, w = document) => [...w.querySelectorAll(s)];
@@ -730,7 +734,7 @@ if (produktFig) {
       const name = document.createElement('span'); name.textContent = T.varianten[key];
       k.append(punkt, name); return k;
     }));
-    const knoepfe = [[0, PRODUKT_TEXTE.ganz], ...T.schritte.map((t, i) => [i + 1, t])];
+    const knoepfe = [[0, T.ganz || PRODUKT_TEXTE.ganz], ...T.schritte.map((t, i) => [i + 1, t])];
     schritte.replaceChildren(...knoepfe.map(([n, t]) => {
       const k = document.createElement('button'); k.type = 'button'; k.dataset.stufe = String(n);
       k.setAttribute('aria-pressed', String(n === 0));
@@ -753,7 +757,10 @@ if (produktFig) {
     const k = e.target.closest('button[data-stufe]'); if (!k) return;
     const n = Number(k.dataset.stufe);
     schrittZeigen(n);
-    b.zerlegen(n || false);
+    // Ein Schritt kann statt Zerlegen das Licht wechseln (Gastronomie: Abend)
+    const lichtStufe = PRODUKTE[b.modell] && PRODUKTE[b.modell].licht;
+    if (lichtStufe && n === lichtStufe) { b.zerlegen(false); b.licht(true); }
+    else { if (lichtStufe) b.licht(false); b.zerlegen(n || false); }
     if (n) zaehlen(`${b.modell}-stufe-${n}`);
   });
   produktFig.addEventListener('bd:zurueck', () => schrittZeigen(0));
