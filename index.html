@@ -33,7 +33,7 @@
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
 <link rel="stylesheet" href="assets/css/app.css?v=fbbe513a">
-<link rel="stylesheet" href="assets/css/erlebnis.css?v=2f3e6e94">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=b847cac8">
 
 
 <script type="importmap">
@@ -449,7 +449,7 @@
     <div class="sechead sechead--split" data-stagger>
       <span class="marg" data-i18n="erlebnis.kicker">Vecom Experience</span>
       <h2 data-reveal><span data-i18n="erlebnis.h1a">Cosa potrebbe fare</span> <span data-i18n="erlebnis.h1b">il tuo sito?</span></h2>
-      <p data-reveal data-i18n="erlebnis.lead">La stessa villa, due volte: calcolata come una foto — e come modello che giri tu, nel tuo browser. Lascia andare e il modello torna a essere la foto.</p>
+      <p data-reveal data-i18n="erlebnis.lead">Ogni settore vende in modo diverso — per questo ogni demo ha il suo strumento. Prima la foto calcolata, su richiesta il modello che giri tu nel browser. Si carica solo ciò che apri.</p>
     </div>
 
     <!-- Kapitelleiste (23.09.2026): Der Erlebnisteil ist auch zugeklappt noch
@@ -457,11 +457,41 @@
          was noch kommt -- ohne sie scrollt man an den Demos vorbei, ohne zu
          wissen, dass es sie gibt. -->
     <nav class="kapitel" id="kapitel" aria-label="Vecom Experience">
-      <a href="#villa" data-i18n="erlebnis.kap1">Villa</a>
+      <a href="#demos" data-i18n="erlebnis.kap1">Demo</a>
       <a href="#wegweiser" data-i18n="erlebnis.kap2">La guida</a>
-      <a href="#branchen-demo" data-i18n="erlebnis.kap3">Auto e negozio</a>
       <a href="#stufen" data-i18n="erlebnis.kap4">Livelli</a>
     </nav>
+
+    <!-- DEMO-GALERIE (24.09.2026, Uwe: "klein nebeneinander, erst mit dem
+         Draufklicken wie gehabt"). Vorher standen Villa, Auto, Shop und Tisch
+         untereinander -- gut fünf Bildschirme, an denen man vorbeiscrollte.
+         Jetzt eine Reihe Kacheln (nur das kleine Foto, ~30 KB je Kachel); ein
+         Klick öffnet die bisherige Bühne direkt darunter, ein zweiter oder
+         "Schließen" klappt sie zu und hält ihre Echtzeit an (erlebnis.js). -->
+    <div class="demos" id="demos">
+      <p class="demos__hinweis" data-i18n="erlebnis.demos_hinweis">Scegli una demo — si apre qui sotto.</p>
+      <ul class="demos__reihe" role="list">
+        <li><button type="button" class="demo-kachel" data-demo="villa" aria-controls="demo-villa" aria-expanded="false">
+          <picture><source type="image/avif" srcset="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.avif?v=ca86b668"><img src="assets/img/erlebnis/villa/ruhe-garten-nachmittag-800.webp?v=5a69a722" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
+          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_villa_b">Architettura</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_villa_t">Villa in Sicilia</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_villa_x">Tempo reale · 0,4 MB</span></span>
+        </button></li>
+        <li><button type="button" class="demo-kachel" data-demo="auto" aria-controls="branchen-demo" aria-expanded="false">
+          <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/auto-karmin-800.avif?v=95ac45b1"><img src="assets/img/erlebnis/branchen/auto-karmin-800.webp?v=b78cc585" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
+          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_auto_b">Automotive</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_auto_t">Tre auto, dentro e fuori</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_auto_x">Tempo reale · da 2,9 MB</span></span>
+        </button></li>
+        <li><button type="button" class="demo-kachel" data-demo="shop" aria-controls="branchen-demo" aria-expanded="false">
+          <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/schuh-blau-800.avif?v=9488dd44"><img src="assets/img/erlebnis/branchen/schuh-blau-800.webp?v=4b2a112a" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
+          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_shop_b">Negozio online</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_shop_t">Scarpa con carrello</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_shop_x">Tempo reale · 1,2 MB</span></span>
+        </button></li>
+        <li><button type="button" class="demo-kachel" data-demo="tisch" aria-controls="tisch" aria-expanded="false">
+          <picture><img src="assets/img/3d/tisch/drehen/gross/dreh-04.webp?v=df83fb17" width="1600" height="1000" loading="lazy" decoding="async" alt=""></picture>
+          <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_tisch_b">Mobili</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_tisch_t">Tavolo da girare</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_tisch_x">36 immagini · senza scheda grafica</span></span>
+        </button></li>
+      </ul>
+    </div>
+
+    <div class="demo-buehne" id="demo-villa" data-demo-buehne="villa" hidden>
+    <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
 
     <!-- DIE BUEHNE
          Unten liegt immer das gerechnete Foto (Blender Cycles). Das Echtzeitmodell
@@ -522,43 +552,24 @@
   </div>
   <p class="hilfe" id="ansicht-hilfe" hidden></p>
   <p class="hinweis"><b data-i18n="erlebnis.hinweis_b">Cosa vedi:</b> <span data-i18n="erlebnis.hinweis_p">La foto è calcolata con Blender Cycles — sole vero, cielo fisico, 384 campioni per pixel. Il modello da girare è la stessa casa in 32.280 triangoli e 127 KB, dal vivo nel tuo browser. Il giardino, il muretto a secco, i cipressi e gli uliveti esistono solo nella foto: per un telefono sarebbero troppo pesanti.</span></p>
+    </div>
 
 
-    <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
-      <header class="abschnitt__kopf">
-        <p class="kicker" data-i18n="erlebnis.hub_kicker">La guida</p>
-        <h2 id="hub-h" data-i18n="erlebnis.hub_h">Cosa deve ottenere il tuo sito per te?</h2>
-        <p class="lead" data-i18n="erlebnis.hub_lead">Tocca un obiettivo. Il settore adatto è già scelto — puoi cambiarlo. Accanto vedi subito cosa potrebbe fare il tuo sito e cosa lascio fuori di proposito.</p>
-      </header>
-      <div class="hub__raster">
-        <div class="hub__wahl">
-          <fieldset class="feld">
-            <legend data-i18n="erlebnis.zielLabel">Il tuo obiettivo</legend>
-            <div class="ziele" id="ziele"></div>
-          </fieldset>
-          <fieldset class="feld">
-            <legend data-i18n="erlebnis.brancheLabel">Il tuo settore</legend>
-            <div class="chips chips--umbruch" id="branchen"></div>
-          </fieldset>
-        </div>
-        <article class="ergebnis" id="ergebnis" aria-live="polite">
-          <noscript><p class="lead" data-i18n="erlebnis.hub_noscript">La guida ha bisogno di JavaScript. Tutto l’essenziale è comunque su questa pagina — oppure scrivimi direttamente.</p></noscript>
-        </article>
-      </div>
-    </section>
+
 
     <!-- Branchen-Demos (23.09.2026): Automotive und Shop, jeweils mit dem
          Werkzeug, das dort verkauft. Gleiches Muster wie die Villa: erst das
          gerechnete Foto, auf Griff das Modell in Echtzeit (branchen.js,
          produkt-echtzeit.js). Der Möbel-Tisch darunter ist die dritte
          Technik -- ganz ohne Grafikkarte. -->
-    <section class="abschnitt branchen" id="branchen-demo" aria-labelledby="bd-h">
+    <section class="abschnitt branchen demo-buehne" id="branchen-demo" data-demo-buehne="branchen" aria-labelledby="bd-h" hidden>
+      <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
       <header class="abschnitt__kopf">
         <p class="kicker" data-i18n="erlebnis.bd_kicker">Una tecnica per ogni settore</p>
         <h2 id="bd-h" data-i18n="erlebnis.bd_h">Auto, negozio, mobili — tre strumenti, un sito.</h2>
         <p class="lead" data-i18n="erlebnis.bd_lead">Ogni settore vende in modo diverso. Una concessionaria vende vernice e tecnica, un negozio colore e taglia, una falegnameria il legno. Qui lo stesso sito è costruito tre volte — ogni volta con lo strumento che lì vende.</p>
       </header>
-      <div class="bd-reiter" id="bd-reiter" role="tablist" data-i18n-attr="aria-label:erlebnis.bd_reiter" aria-label="Settore">
+      <div class="bd-reiter" id="bd-reiter" role="tablist" hidden data-i18n-attr="aria-label:erlebnis.bd_reiter" aria-label="Settore">
         <button type="button" role="tab" id="bd-tab-auto" aria-controls="bd-auto" aria-selected="true" tabindex="0"><span class="bd-reiter__nr">01</span><span data-i18n="erlebnis.bd_tab_auto">Automotive</span></button>
         <button type="button" role="tab" id="bd-tab-shop" aria-controls="bd-shop" aria-selected="false" tabindex="-1"><span class="bd-reiter__nr">02</span><span data-i18n="erlebnis.bd_tab_shop">Negozio online</span></button>
         <a class="bd-reiter__weiter" href="#tisch"><span class="bd-reiter__nr">03</span><span data-i18n="erlebnis.bd_tab_moebel">Mobili, più in basso</span></a>
@@ -692,7 +703,8 @@
       <p class="bd-nachweis" data-i18n="erlebnis.bd_nachweis">Modelli: auto da «Car Concept» di Eric Chadwick / Darmstadt Graphics Group, scarpa di Shopify — entrambi CC BY 4.0, loghi rimossi. Luce da studio: Poly Haven (CC0). Calcolati con Blender Cycles.</p>
     </section>
 
-    <section class="abschnitt tisch" id="tisch" aria-labelledby="tisch-h">
+    <section class="abschnitt tisch demo-buehne" id="tisch" data-demo-buehne="tisch" aria-labelledby="tisch-h" hidden>
+      <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
       <div class="tisch__text">
         <p class="kicker" data-i18n="erlebnis.tisch_kicker">Prodotto · 36 viste calcolate</p>
         <h2 id="tisch-h"><span data-i18n="erlebnis.tisch_h1">Un prodotto da girare —</span> <span data-i18n="erlebnis.tisch_h2">senza scheda grafica.</span></h2>
@@ -707,6 +719,29 @@
       <div class="dreh" id="dreh" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="35" aria-valuenow="0" data-i18n-attr="aria-label:erlebnis.tisch_ziehen" aria-label="Trascina per girare">
         <img id="dreh-bild" src="assets/img/3d/tisch/drehen/gross/dreh-00.webp?v=edfb43b5" width="1600" height="1000" loading="lazy" decoding="async" data-i18n-attr="alt:erlebnis.tisch_alt" alt="Tavolo in legno massello di Vecom Design, vista calcolata">
         <span class="dreh__hinweis" aria-hidden="true"><i></i><span data-i18n="erlebnis.tisch_ziehen">Trascina per girare</span></span>
+      </div>
+    </section>
+
+    <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.hub_kicker">La guida</p>
+        <h2 id="hub-h" data-i18n="erlebnis.hub_h">Cosa deve ottenere il tuo sito per te?</h2>
+        <p class="lead" data-i18n="erlebnis.hub_lead">Tocca un obiettivo. Il settore adatto è già scelto — puoi cambiarlo. Accanto vedi subito cosa potrebbe fare il tuo sito e cosa lascio fuori di proposito.</p>
+      </header>
+      <div class="hub__raster">
+        <div class="hub__wahl">
+          <fieldset class="feld">
+            <legend data-i18n="erlebnis.zielLabel">Il tuo obiettivo</legend>
+            <div class="ziele" id="ziele"></div>
+          </fieldset>
+          <fieldset class="feld">
+            <legend data-i18n="erlebnis.brancheLabel">Il tuo settore</legend>
+            <div class="chips chips--umbruch" id="branchen"></div>
+          </fieldset>
+        </div>
+        <article class="ergebnis" id="ergebnis" aria-live="polite">
+          <noscript><p class="lead" data-i18n="erlebnis.hub_noscript">La guida ha bisogno di JavaScript. Tutto l’essenziale è comunque su questa pagina — oppure scrivimi direttamente.</p></noscript>
+        </article>
       </div>
     </section>
 
@@ -1790,7 +1825,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=77639b7b" defer></script>
+<script src="assets/js/i18n-it.js?v=675eb601" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1814,8 +1849,8 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=f7217591"></script>
-<script type="module" src="assets/js/erlebnis/branchen.js?v=2d548fa7"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=87093862"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=2bc2d8b3"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

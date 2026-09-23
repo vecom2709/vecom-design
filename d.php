@@ -17,6 +17,7 @@ const EREIGNISSE = [
     'villa-drehen', 'auto-drehen', 'auto-zerlegen', 'schuh-drehen', 'schuh-details',
     'schuh-korb', 'tisch-drehen', 'cta-auto', 'cta-shop',
     'modell-kleinwagen', 'modell-mittelklasse', 'modell-auto',
+    'demo-villa', 'demo-auto', 'demo-shop', 'demo-tisch',
     // Serienautos (23.09.2026): Fahrerplatz, Ausstattung, Zerlegen in Stufen
     'kleinwagen-innen', 'mittelklasse-innen',
     'kleinwagen-ausstattung-stoff-anthrazit', 'kleinwagen-ausstattung-stoff-grau-blau', 'kleinwagen-ausstattung-kunstleder-hell',

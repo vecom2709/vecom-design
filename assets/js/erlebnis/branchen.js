@@ -433,8 +433,25 @@ function buehneAnlegen(fig) {
     await bildZeigen(v);
     if (warEchtzeit) { const p = await laden(); if (p) an(); }
   }
-  return { variante, ausstattung, innenraum, zerlegen, licht, details, modellWechseln, get z() { return z; }, get modell() { return modell; } };
+  /* Die Demo-Galerie (erlebnis.js) klappt die Bühne zu: sofort zurück aufs
+     Foto und die Schleife anhalten -- eine unsichtbare Bühne soll keine
+     Grafikkarte beschäftigen. Ohne Fahrt, man sieht es ja nicht. */
+  function ruhen() {
+    if (!z.p || !z.echtzeit) return;
+    z.zerlegt = false; z.licht = false; z.details = false;
+    if (z.innen) { z.innen = false; z.p.innenraum(false); }
+    z.p.zerlegen(false); z.p.licht(false); z.p.punkte(false); z.p.heim();
+    z.echtzeit = false; fig.classList.remove('ist-echtzeit');
+    bildZeigen(fotoSchluessel()); knopfText.textContent = TEXT.drehen; kennungFoto();
+    fig.dispatchEvent(new CustomEvent('bd:zurueck'));
+    z.p.anhalten();
+  }
+  return { variante, ausstattung, innenraum, zerlegen, licht, details, modellWechseln, ruhen, get z() { return z; }, get modell() { return modell; } };
 }
+
+/* Galerie: Bühne zugeklappt -> beide Demos anhalten (siehe ruhen()). */
+const BUEHNEN = [];
+document.getElementById('branchen-demo')?.addEventListener('demo:zu', () => { for (const b of BUEHNEN) b.ruhen(); });
 
 /* ------------------------------------------------------------- Reiter */
 const reiter = $('#bd-reiter');
@@ -481,6 +498,7 @@ function auswahlMitgeben(a, demo) {
 const autoFig = $('#bd-buehne-auto');
 if (autoFig) {
   const b = buehneAnlegen(autoFig);
+  BUEHNEN.push(b);
   const lack = $('#bd-lack');
   const innenWahl = $('#bd-innen'); const innenGruppe = $('#bd-g-innen');
   const stufen = $('#bd-stufen');
@@ -604,6 +622,7 @@ if (autoFig) {
 const schuhFig = $('#bd-buehne-schuh');
 if (schuhFig) {
   const b = buehneAnlegen(schuhFig);
+  BUEHNEN.push(b);
   const farben = $('#bd-farbe'); const groessen = $('#bd-groesse');
   const korbKnopf = $('#bd-in-korb'); const korbListe = $('#bd-korb-liste'); const korbZahl = $('#bd-korb-zahl');
   const meldung = $('#bd-korb-meldung');

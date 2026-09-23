@@ -797,6 +797,7 @@ if (ergebnisEl) ergebnisEl.addEventListener('click', (e) => {
   const b = e.target.closest('[data-demo="villa"]'); if (!b) return;
   const d = BRANCHEN_DEMO[hub.branche];
   standSetzen(d.stand); zeitSetzen(d.zeit);
+  if (demoOeffnen) demoOeffnen('villa', false);
   $('#villa').scrollIntoView({ behavior: BEWEGUNG_AUS ? 'auto' : 'smooth', block: 'center' });
 });
 
@@ -926,7 +927,7 @@ if (dreh) {
 const kapitel = $('#kapitel');
 if (kapitel) {
   const links = [...kapitel.querySelectorAll('a')];
-  const ZUORDNUNG = [['villa', 0], ['wegweiser', 1], ['branchen-demo', 2], ['tisch', 2], ['stufen', 3], ['tiefer', 3]];
+  const ZUORDNUNG = [['demos', 0], ['demo-villa', 0], ['branchen-demo', 0], ['tisch', 0], ['wegweiser', 1], ['stufen', 2], ['tiefer', 2]];
   const ziele = ZUORDNUNG.map(([id, i]) => [document.getElementById(id), i]).filter(([el]) => el);
   let aktiv = -1;
   const markieren = (i) => {
@@ -952,6 +953,71 @@ if (kapitel) {
   if (kopf) new MutationObserver(oben).observe(kopf, { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', oben, { passive: true }); oben();
 }
+/* ========================================================== DEMO-GALERIE
+   24.09.2026. Kacheln statt untereinander stehender Bühnen. Ein Klick öffnet
+   die Bühne direkt unter der Reihe, ein zweiter Klick oder "Schließen" klappt
+   sie zu. Zugeklappt wird die Echtzeit angehalten (Ereignis demo:zu an der
+   Bühne; branchen.js und die Villa hören darauf) -- sonst rechnete eine
+   unsichtbare Szene weiter. Alte Adressen (#villa, #bd-auto, #tisch, ...)
+   öffnen die passende Bühne, damit Links aus dem Wegweiser und von außen
+   weiter funktionieren. */
+const demos = $('#demos');
+let demoOeffnen = null;
+if (demos) {
+  const kacheln = [...demos.querySelectorAll('[data-demo]')];
+  const buehnen = [...document.querySelectorAll('[data-demo-buehne]')];
+  const BUEHNE = { villa: 'villa', auto: 'branchen', shop: 'branchen', tisch: 'tisch' };
+  const AUS_ADRESSE = { villa: 'villa', 'demo-villa': 'villa', buehne: 'villa', 'branchen-demo': 'auto', 'bd-auto': 'auto', 'bd-shop': 'shop', tisch: 'tisch', dreh: 'tisch' };
+  let offen = null;
+  const zuklappen = (b) => { if (!b.hidden) { b.dispatchEvent(new CustomEvent('demo:zu')); b.hidden = true; } };
+  function oeffnen(demo, rollen = true) {
+    const ziel = buehnen.find((b) => b.dataset.demoBuehne === BUEHNE[demo]);
+    if (!ziel) return;
+    for (const b of buehnen) if (b !== ziel) zuklappen(b);
+    ziel.hidden = false;
+    // Auto und Shop teilen sich eine Bühne mit Reitern -- den richtigen wählen.
+    if (demo === 'auto' || demo === 'shop') document.getElementById(`bd-tab-${demo}`)?.click();
+    for (const k of kacheln) k.setAttribute('aria-expanded', String(k.dataset.demo === demo));
+    // Telefon: Die Reihe wischt seitlich -- die offene Kachel ins Blickfeld holen
+    const reihe = demos.querySelector('.demos__reihe'); const k = kacheln.find((x) => x.dataset.demo === demo);
+    if (reihe && k && reihe.scrollWidth > reihe.clientWidth) reihe.scrollTo({ left: k.parentElement.offsetLeft - reihe.offsetLeft - 16, behavior: BEWEGUNG_AUS ? 'auto' : 'smooth' });
+    offen = demo; zaehlen(`demo-${demo}`);
+    if (rollen) requestAnimationFrame(() => ziel.scrollIntoView({ behavior: BEWEGUNG_AUS ? 'auto' : 'smooth', block: 'start' }));
+  }
+  function schliessen(rollen = true) {
+    for (const b of buehnen) zuklappen(b);
+    for (const k of kacheln) k.setAttribute('aria-expanded', 'false');
+    const war = offen; offen = null;
+    if (rollen && war) {
+      const k = kacheln.find((x) => x.dataset.demo === war);
+      demos.scrollIntoView({ behavior: BEWEGUNG_AUS ? 'auto' : 'smooth', block: 'start' });
+      k && k.focus({ preventScroll: true });
+    }
+  }
+  demos.addEventListener('click', (e) => {
+    const k = e.target.closest('[data-demo]'); if (!k) return;
+    if (offen === k.dataset.demo) schliessen(false); else oeffnen(k.dataset.demo);
+  });
+  for (const z of document.querySelectorAll('[data-demo-zu]')) z.addEventListener('click', () => schliessen());
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !offen || !document.activeElement) return;
+    if (document.activeElement.closest('[data-demo-buehne]')) schliessen();
+  });
+  function demoAusAdresse() {
+    const id = decodeURIComponent(location.hash.slice(1)); if (!id) return;
+    let demo = AUS_ADRESSE[id];
+    if (!demo) {
+      // Anker tief in einer Bühne (z. B. #bd-auto-cta): deren Demo öffnen
+      const el = document.getElementById(id); const b = el && el.closest('[data-demo-buehne]');
+      if (b) demo = b.dataset.demoBuehne === 'branchen' ? (el.closest('#bd-shop') ? 'shop' : 'auto') : b.dataset.demoBuehne;
+    }
+    if (demo && demo !== offen) oeffnen(demo);
+  }
+  addEventListener('hashchange', demoAusAdresse); demoAusAdresse();
+  demoOeffnen = oeffnen;
+}
+$('#demo-villa')?.addEventListener('demo:zu', () => { if (zustand.echtzeit) { if (zustand.villa) zustand.villa.stand(zustand.stand); echtzeitAus(); } });
+
 // Wer mit #technik, #vergleich oder #streaming kommt, bekommt den Block offen.
 const tiefer = $('#tiefer');
 function tieferAusAdresse() {

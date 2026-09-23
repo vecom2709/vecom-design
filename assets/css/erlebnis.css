@@ -502,3 +502,64 @@
 .bd-stufen { margin-top: 10px; }
 .bd-stufen b { font-weight: 700; margin-right: 2px; opacity: 0.72; font-variant-numeric: tabular-nums; }
 .bd-stufen button[aria-pressed="true"] b { opacity: 1; }
+
+/* ---- Demo-Galerie (24.09.2026) ---------------------------------------------
+   Kacheln nebeneinander; die Bühne öffnet sich erst auf Klick direkt darunter.
+   Eine Kachel = ein gerechnetes Foto (800 px), Branche, Titel, Technik und
+   Ladegröße -- wer klickt, weiß, was kommt. Offen: cyan umrandet, wie der
+   aktive Eintrag der Kapitelleiste. Telefon: eine Reihe zum Wischen. */
+.erlebnis .demos{margin-top:clamp(1.6rem,4vh,2.6rem); scroll-margin-top:84px}
+.erlebnis .demos__hinweis{color:var(--c-dim); font-size:.95rem; margin:0 0 .9rem}
+.erlebnis .demos__reihe{
+  list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:clamp(.7rem,1.4vw,1rem);
+}
+.erlebnis .demo-kachel{
+  position:relative; display:block; width:100%; padding:0; text-align:left; cursor:pointer;
+  aspect-ratio:4/3; overflow:hidden; isolation:isolate;
+  border:1px solid var(--c-linie-hell); border-radius:var(--radius); background:var(--c-surface);
+  transition:border-color var(--t-ui), box-shadow var(--t-ui), transform var(--t-move) var(--e-standard);
+}
+.erlebnis .demo-kachel img{
+  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2;
+  transition:transform 520ms var(--e-standard), filter var(--t-move);
+}
+.erlebnis .demo-kachel::after{
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:linear-gradient(to top, rgba(5,7,13,.94) 0%, rgba(5,7,13,.72) 38%, rgba(5,7,13,0) 70%);
+}
+.erlebnis .demo-kachel__text{position:absolute; left:0; right:0; bottom:0; display:grid; gap:.2rem; padding:.95rem 1rem}
+.erlebnis .demo-kachel__branche{font:600 .72rem/1.2 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-cyan)}
+.erlebnis .demo-kachel__titel{font:600 1.08rem/1.2 var(--f-display); color:var(--c-text); letter-spacing:-.01em}
+.erlebnis .demo-kachel__technik{font:500 .82rem/1.3 var(--f-text); color:var(--c-dim)}
+.erlebnis .demo-kachel:hover{border-color:rgba(31,232,255,.45)}
+.erlebnis .demo-kachel:hover img{transform:scale(1.04)}
+.erlebnis .demo-kachel[aria-expanded="true"]{border-color:var(--c-cyan); box-shadow:0 0 0 1px var(--c-cyan), 0 10px 40px rgba(31,232,255,.12)}
+.erlebnis .demo-kachel[aria-expanded="true"] .demo-kachel__technik::before{content:"● "; color:var(--c-cyan)}
+@media (max-width:700px){
+  .erlebnis .demos__reihe{grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:72%;
+    overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; margin:0 calc(-1 * var(--page-x)); padding:0 var(--page-x)}
+  .erlebnis .demos__reihe::-webkit-scrollbar{display:none}
+  .erlebnis .demos__reihe > li{scroll-snap-align:start}
+}
+/* Geöffnete Bühne: kurz einblenden, Platz für die Kapitelleiste beim Anspringen */
+.erlebnis .demo-buehne{position:relative; scroll-margin-top:84px}
+.erlebnis .demo-buehne:not([hidden]){animation:demo-auf 420ms var(--e-standard)}
+@keyframes demo-auf{from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none}}
+.erlebnis #demo-villa{margin-top:clamp(1.6rem,4vh,2.4rem)}
+.erlebnis .demo-zu{
+  display:inline-flex; align-items:center; gap:.4rem; min-height:40px; padding:0 1rem; margin:0 0 .9rem;
+  position:relative; z-index:2;
+  border:1px solid var(--c-linie-hell); border-radius:999px; background:rgba(5,7,13,.7); cursor:pointer;
+  font:500 .9rem/1 var(--f-text); color:var(--c-dim); transition:color var(--t-ui), border-color var(--t-ui);
+}
+.erlebnis .demo-zu:hover{color:var(--c-text); border-color:rgba(31,232,255,.45)}
+.erlebnis .demo-zu span[aria-hidden]{font-size:1.2rem; line-height:1}
+@media (pointer:coarse){ .erlebnis .demo-zu{min-height:44px} }
+@media (prefers-reduced-motion:reduce){
+  .erlebnis .demo-buehne:not([hidden]){animation:none}
+  .erlebnis .demo-kachel, .erlebnis .demo-kachel img{transition:none}
+}
+/* hidden muss gegen display:grid/flex der Abschnitte gewinnen */
+.erlebnis .demo-buehne[hidden], .erlebnis .bd-reiter[hidden]{display:none}
+.erlebnis .tisch > .demo-zu{grid-column:1/-1; justify-self:start; margin:0}
