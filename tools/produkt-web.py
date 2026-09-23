@@ -161,6 +161,18 @@ def main(was, quelle):
             k[s] = schuh[s]
     if was in ZERLEGEN:
         k['zerlegen'] = ZERLEGEN[was]
+    # Seit 24.09.2026 stehen einige Regeln nur in der ausgelieferten
+    # kamera.json (Uhr: Explosionsansicht, Tablett, Gravur, Ring -- 25 Regeln
+    # mit gemessenen Lagen; Lkw: Ladeplaner). Beim Neuerzeugen uebernehmen,
+    # statt sie still zu verlieren.
+    alt = os.path.join(ziel, 'kamera.json')
+    if os.path.exists(alt):
+        a = json.load(open(alt, encoding='utf-8'))
+        if a.get('zerlegen', {}).get('ansichten'):
+            k['zerlegen'] = a['zerlegen']
+        for s in ('ladung', 'stein_karat'):
+            if s in a:
+                k[s] = a[s]
     if was in WEB_MATERIAL:
         k['web_material'] = WEB_MATERIAL[was]
     k['dreiecke'] = n

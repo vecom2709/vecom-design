@@ -34,6 +34,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 
@@ -325,9 +326,17 @@ export async function erstellen({
       bewegt.add(o);
       k.setFromObject(o); k.getCenter(c);
       const seite = Math.sign(c.x - mitte.x) || 1;
-      const weltWeg = new THREE.Vector3((r.seite || 0) * seite, r.hoch || 0, r.vor || 0);
-      const lokal = o.parent.worldToLocal(c.clone().add(weltWeg)).sub(o.parent.worldToLocal(c.clone()));
-      const t = { o, ruhe: o.position.clone(), weg: lokal, start: r.start || 0, stufe: r.stufe || 1, beschriftung: r.beschriftung || null, mitteLokal: o.worldToLocal(c.clone()) };
+      /* weg: [x, y, z] in Metern, Welt -- für Explosionsansichten, in denen
+         jedes Teil seinen eigenen Platz bekommt (Uhr, Wunsch U1). Sonst die
+         alten Achsen seite/hoch/vor. */
+      const weltWeg = r.weg ? new THREE.Vector3(...r.weg) : new THREE.Vector3((r.seite || 0) * seite, r.hoch || 0, r.vor || 0);
+      const zuLokal = (w) => o.parent.worldToLocal(c.clone().add(w)).sub(o.parent.worldToLocal(c.clone()));
+      const lokal = zuLokal(weltWeg);
+      const t = { o, ruhe: o.position.clone(), ruheQ: o.quaternion.clone(), weg: lokal, start: r.start || 0, stufe: r.stufe || 1, beschriftung: r.beschriftung || null, mitteLokal: o.worldToLocal(c.clone()) };
+      // Wenden (Grad um Welt-X, z. B. Gehäuseboden mit Gravur nach oben)
+      if (r.wende) t.wende = THREE.MathUtils.degToRad(r.wende);
+      // Uhrmacher-Tablett (Wunsch U2): zweiter Platz, flach auf dem Tisch
+      if (r.tablett) t.tab = zuLokal(new THREE.Vector3(...r.tablett));
       /* Tueren drehen an ihrer Scharnierachse (extras aus fahrzeug_bau.py):
          Achse in glTF-Koordinaten, Winkel in Grad, Vorzeichen so, dass die
          Hinterkante nach aussen schwingt. */
@@ -363,14 +372,116 @@ export async function erstellen({
   const tuerQ = new THREE.Quaternion();
   let fahrerTuer = 0;               // Kamerafahrt: Fahrertuer oeffnen, unabhaengig vom Zerlegen
   let rohbau = 0;
+  const X_ACHSE = new THREE.Vector3(1, 0, 0);
+
+  /* Gravur auf dem Gehäuseboden (Wunsch U3). Ein Kreis aus der Leinwand
+     liegt genau auf der Außenseite des Bodens und hängt an ihm -- er wendet
+     sich mit ihm. Randtext wie auf echten Böden, in der Mitte der Text des
+     Kunden. Dunkel und matt: So sieht eine Lasergravur in Stahl aus. */
+  let gravur = null;
+  {
+    const bo = modell.getObjectByName('uhr_boden');
+    if (bo) {
+      modell.updateMatrixWorld(true);
+      const hb = new THREE.Box3().setFromObject(bo), hc = hb.getCenter(new THREE.Vector3()), hs = hb.getSize(new THREE.Vector3());
+      const lw = document.createElement('canvas'); lw.width = lw.height = 1024;
+      const tex = new THREE.CanvasTexture(lw); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+      const mat = new THREE.MeshStandardMaterial({ color: 0x2c2d30, metalness: 0.85, roughness: 0.62, alphaMap: tex, transparent: true, polygonOffset: true, polygonOffsetFactor: -2 });
+      const kreis = new THREE.Mesh(new THREE.CircleGeometry(Math.min(hs.x, hs.z) * 0.45, 96), mat);
+      kreis.rotation.x = Math.PI / 2;                    // schaut nach unten (Außenseite)
+      kreis.position.set(hc.x, hb.min.y - 0.00004, hc.z);
+      modell.add(kreis); bo.attach(kreis);
+      gravur = { lw, tex, kreis };
+    }
+  }
+  function gravurZeichnen(text) {
+    if (!gravur) return;
+    const g = gravur.lw.getContext('2d'), W = 1024;
+    g.clearRect(0, 0, W, W); g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    // Randtext im Kreis (wie ein Serienboden)
+    const rand = '  VECOM DESIGN · EDELSTAHL 316L · SAPHIRGLAS · WASSERDICHT 10 BAR · AUTOMATIK  ';
+    g.font = '600 38px Arial, sans-serif';
+    const r = W * 0.43, schritt = (Math.PI * 2) / rand.length;
+    for (let i = 0; i < rand.length; i++) {
+      g.save(); g.translate(W / 2, W / 2); g.rotate(i * schritt); g.translate(0, -r); g.fillText(rand[i], 0, 0); g.restore();
+    }
+    g.lineWidth = 4; g.strokeStyle = '#fff'; g.beginPath(); g.arc(W / 2, W / 2, W * 0.385, 0, Math.PI * 2); g.stroke();
+    // Kundentext: bis zu drei Zeilen, Schrift wird kleiner, bis alles passt
+    const zeilen = String(text || '').split(/\n/).map((z) => z.trim()).filter(Boolean).slice(0, 3);
+    let gr = 120;
+    const breit = W * 0.62;
+    for (;;) { g.font = `italic 500 ${gr}px Georgia, 'Times New Roman', serif`; if (zeilen.every((z) => g.measureText(z).width <= breit) || gr <= 44) break; gr -= 6; }
+    const zh = gr * 1.18, y0 = W / 2 - ((zeilen.length - 1) * zh) / 2;
+    zeilen.forEach((z, i) => g.fillText(z, W / 2, y0 + i * zh));
+    gravur.tex.needsUpdate = true;
+  }
+  gravurZeichnen('');
+
+  /* Ladeplaner (Wunsch B5): Der Auflieger nimmt 33 Europaletten auf, drei
+     nebeneinander, elf Reihen. Das Modell bringt eine Palette samt Ladung
+     und Folie als Vorlage mit; hier entstehen daraus alle 33 Plätze (gleiche
+     Geometrie, eigene Lage), und der Schieber zeigt die ersten n davon --
+     von der Stirnwand nach hinten, so wie ein Stapler lädt. */
+  const ladePlaetze = [];
+  if (K.ladung) {
+    const L = K.ladung, vorlagen = L.vorlagen.map((n) => modell.getObjectByName(n)).filter(Boolean);
+    const weg = new RegExp(L.muster);
+    const alt = []; modell.traverse((o) => { if (weg.test(o.name || '')) alt.push(o); });
+    for (const o of alt) o.visible = false;
+    if (vorlagen.length) {
+      const basisZ = vorlagen[0].position.z, basisX = vorlagen[0].position.x;
+      for (let reihe = 0; reihe < L.reihen; reihe++) {
+        for (const x of L.quer) {
+          const platz = vorlagen.map((v) => {
+            const k = v.clone(); k.visible = true; k.name = '';
+            k.position.x += x - basisX; k.position.z += L.z0 + reihe * L.schritt - basisZ;
+            v.parent.add(k); return k;
+          });
+          ladePlaetze.push(platz);
+        }
+      }
+    }
+  }
+  function ladungSetzen(n) {
+    ladePlaetze.forEach((p, i) => { for (const o of p) o.visible = i < n; });
+    if (schattenErlaubt) r.shadowMap.needsUpdate = true;
+    einmal();
+  }
+  // Start ohne ladungSetzen: dort wird der Schatten angestoßen, und den gibt es hier noch nicht
+  ladePlaetze.forEach((p, i) => { for (const o of p) o.visible = i < (K.ladung.start ?? 24); });
+
+  /* Stein in Karat (Wunsch U4): Der Durchmesser eines Brillanten wächst mit
+     der dritten Wurzel des Gewichts (1 ct ≈ 6,5 mm). Stein, Fassung und
+     Krappen wachsen zusammen um den Fuß der Fassung. */
+  const steinTeile = ['ring_stein', 'ring_kopf', 'ring_krappe_0', 'ring_krappe_1', 'ring_krappe_2', 'ring_krappe_3'].map((n) => modell.getObjectByName(n)).filter(Boolean);
+  const steinRuhe = steinTeile.map((o) => ({ o, p: o.position.clone(), s: o.scale.clone() }));
+  let steinFuss = null;
+  if (steinTeile.length) {
+    const b = new THREE.Box3(); for (const o of steinTeile) b.expandByObject(o);
+    const c = b.getCenter(new THREE.Vector3());
+    const kopf = modell.getObjectByName('ring_kopf');
+    const kb = kopf ? new THREE.Box3().setFromObject(kopf) : b;
+    steinFuss = steinTeile[0].parent.worldToLocal(new THREE.Vector3(c.x, kb.min.y, c.z));
+  }
+  function steinSetzen(karat) {
+    if (!steinFuss) return;
+    const f = Math.cbrt(karat / (K.stein_karat || 1.0));
+    for (const { o, p, s: sk } of steinRuhe) { o.position.copy(p).sub(steinFuss).multiplyScalar(f).add(steinFuss); o.scale.copy(sk).multiplyScalar(f); }
+    einmal();
+  }
+  let tablett = 0; let tablettSoll = 0;
   function zerlegenAnwenden() {
-    const p = zerlegt * (1 + Z_BREITE);
+    const p = zerlegt * (1 + Z_BREITE), pt = tablett * (1 + Z_BREITE);
     for (const t of teile) {
       const a = anteil(t, p);
       if (t.dreh) {
         const f = t.o.name === 'tuer_v_r_angel' ? Math.max(a, fahrerTuer) : a;
         t.o.quaternion.copy(t.dreh.ruhe).multiply(tuerQ.setFromAxisAngle(t.dreh.achse, t.dreh.winkel * f));
-      } else t.o.position.copy(t.ruhe).addScaledVector(t.weg, a);
+      } else {
+        t.o.position.copy(t.ruhe).addScaledVector(t.weg, a);
+        if (t.tab) { const b = anteil(t, pt); t.o.position.addScaledVector(t.tab, b).addScaledVector(t.weg, -b); }
+        if (t.wende) t.o.quaternion.copy(t.ruheQ).premultiply(tuerQ.setFromAxisAngle(X_ACHSE, t.wende * a));
+      }
       if (t.rohbau) rohbau = a;
     }
     rohbauAnwenden();
@@ -401,8 +512,8 @@ export async function erstellen({
   /* fokus (RegExp): nur diese Teile samt Kindern -- bei der Uhr der Kopf
      ohne Band und Ring. Das ganze Stillleben einzupassen machte die zerlegte
      Uhr zum Punkt in der Bildmitte (Probe 23.09.2026). */
-  function zerlegtHuelle(fokus = null) {
-    const vorher = zerlegt; zerlegt = 1; zerlegenAnwenden(); modell.updateMatrixWorld(true);
+  function zerlegtHuelle(fokus = null, zStand = 1, tStand = 0) {
+    const vorher = zerlegt, vorherT = tablett; zerlegt = zStand; tablett = tStand; zerlegenAnwenden(); modell.updateMatrixWorld(true);
     let b = new THREE.Box3();
     if (fokus) {
       modell.traverse((o) => {
@@ -411,7 +522,7 @@ export async function erstellen({
       });
       if (b.isEmpty()) b = new THREE.Box3().setFromObject(modell);
     } else b.setFromObject(modell);
-    zerlegt = vorher; zerlegenAnwenden(); modell.updateMatrixWorld(true);
+    zerlegt = vorher; tablett = vorherT; zerlegenAnwenden(); modell.updateMatrixWorld(true);
     return b;
   }
 
@@ -567,6 +678,9 @@ export async function erstellen({
   const innenAuge = KI ? new THREE.Vector3(...KI.position) : null;
   const innenZiel = KI ? new THREE.Vector3(...KI.ziel) : null;
   let modus = 'aussen';          // aussen | rein | innen | raus
+  let ansichtAktiv = false;      // feste Ansicht (Tablett, Gravur, Ring): Kamera bleibt
+  let schilderAus = false;
+  let zeltUmgebung = null;
   let wartendZerlegen = null; let aktStufe = 0;
   const MIT_STUFEN = !!(K.zerlegen && K.zerlegen.stufen);
   let fahrt = null;              // { t, dauer, ort: [..], ziel: [..], lens: [a, b], fertig }
@@ -772,13 +886,13 @@ export async function erstellen({
       beiAnker(liste, { x: (pn.x * 0.5 + 0.5) * w, y: (-pn.y * 0.5 + 0.5) * h, w, h });
       return;
     }
-    if (zerlegt < 0.02) { if (!ankerLeer) { beiAnker([]); ankerLeer = true; } return; }
+    if (zerlegt < 0.02 || schilderAus) { if (!ankerLeer) { beiAnker([]); ankerLeer = true; } return; }
     ankerLeer = false;
     const w = leinwand.clientWidth, h = leinwand.clientHeight; const liste = [];
     for (const [schluessel, gruppe] of anker) {
       // Mit Stufen: nur die Schilder der Stufe, die gerade aufgeht -- bei
       // allen vier waeren es dreizehn Schilder um ein Auto (Probe 23.09.).
-      if (MIT_STUFEN && aktStufe && !gruppe.some((t) => t.stufe === aktStufe)) continue;
+      if (MIT_STUFEN && aktStufe && !ansichtAktiv && !gruppe.some((t) => t.stufe === aktStufe)) continue;
       let beste = null; let bestAbst = Infinity; let a = 0;
       for (const t of gruppe) {
         t.o.localToWorld(pw.copy(t.mitteLokal));
@@ -804,21 +918,23 @@ export async function erstellen({
   function bild(t) {
     if (!aktiv || document.hidden) { laeuft = false; return; }
     const dt = letzt ? Math.min(0.25, (t - letzt) / 1000) : 1 / 60; letzt = t;
-    if (modus === 'aussen' && zurueck && !ziehen && !zeiger.size && zerlegtSoll === 0 && performance.now() - letzteBewegung > 1400) soll = { ...heim };
+    if (modus === 'aussen' && zurueck && !ansichtAktiv && !ziehen && !zeiger.size && zerlegtSoll === 0 && performance.now() - letzteBewegung > 1400) soll = { ...heim };
     /* Zerlegt dreht sich das Modell langsam, bis jemand selbst greift --
        ein zerlegtes Auto liest man erst, wenn man um es herumgeht. Nach
        25 s steht es wieder still, damit die Grafikkarte nicht endlos rechnet. */
-    if (modus === 'aussen' && zerlegtSoll > 0 && zerlegt === zerlegtSoll && !ziehen && !zeiger.size && !BEWEGUNG_AUS
+    if (modus === 'aussen' && zerlegtSoll > 0 && zerlegt === zerlegtSoll && !ansichtAktiv && !ziehen && !zeiger.size && !BEWEGUNG_AUS
         && performance.now() - letzteBewegung > 2500 && performance.now() - zerlegtSeit < 25000) {
       soll.winkel += dt * 0.14;
     }
     const f = BEWEGUNG_AUS ? 1 : 1 - Math.exp(-dt * (ziehen ? 9 : 2.6));
     let rest = modus === 'innen' || fahrt ? 0 : annaehern(f);
     if (modus !== 'aussen' || fahrerTuer !== tuerSoll) { if (innenSchritt(dt)) rest += 0.01; }
-    if (zerlegt !== zerlegtSoll) {
+    if (zerlegt !== zerlegtSoll || tablett !== tablettSoll) {
       const schritt = BEWEGUNG_AUS ? 1 : dt / Z_DAUER;
-      zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
-      zerlegenAnwenden(); rest += Math.abs(zerlegtSoll - zerlegt) + 0.01;
+      // Aufs Tablett erst, wenn alles zerlegt ist; vom Tablett zurück, bevor es zusammengeht
+      if (tablett !== tablettSoll && (tablettSoll === 0 || zerlegt === zerlegtSoll)) tablett = tablettSoll > tablett ? Math.min(tablettSoll, tablett + schritt) : Math.max(tablettSoll, tablett - schritt);
+      else if (tablett === 0 || tablettSoll > 0) zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
+      zerlegenAnwenden(); rest += Math.abs(zerlegtSoll - zerlegt) + Math.abs(tablettSoll - tablett) + 0.01;
       letzteBewegung = performance.now();
       if (schattenErlaubt) r.shadowMap.needsUpdate = true;
     }
@@ -836,7 +952,7 @@ export async function erstellen({
     if (!seit) seit = t;
     if (t - seit >= 500) { fps = Math.round((bilder * 1000) / (t - seit)); bilder = 0; seit = t; }
     beiBild && beiBild(dt * 1000, fps, false);
-    const amZiel = rest < 0.002 && zerlegt === 0 && zerlegtSoll === 0;
+    const amZiel = rest < 0.002 && zerlegt === 0 && zerlegtSoll === 0 && !ansichtAktiv;
     if (modus === 'innen' && !ziehen && !zeiger.size && rest < 0.002 && performance.now() - letzteBewegung > 1400 && !ruhtGemeldet) {
       // Innenraum in Ruhe: Standpunkt = Innenraumfoto, die Seite blendet es ein
       ruhtGemeldet = true; blick.gier = blick.nick = 0; frei = { ort: innenAuge, ziel: innenZiel, lens: KI.brennweite_mm || 20 };
@@ -866,6 +982,39 @@ export async function erstellen({
       aktStufe = typeof an === 'number' ? Math.max(0, Math.min(4, an)) : (an ? 4 : 0);
       zerlegtSoll = STUFEN_ZIEL[aktStufe];
       ruhtGemeldet = false; letzteBewegung = performance.now();
+      /* Ansichten (Uhr, 24.09.2026): Eine Stufe kann statt "weiter zerlegen"
+         einen festen Blick meinen -- aufs Tablett, auf den Gehäuseboden mit
+         Gravur, auf den Ring. Die Kamera passt dann genau diese Teile ein und
+         bleibt dort, statt nach dem Loslassen zum Foto zurückzufahren. */
+      const A = K.zerlegen && K.zerlegen.ansichten && K.zerlegen.ansichten[String(aktStufe)];
+      const T_STUFE = K.zerlegen && K.zerlegen.tablett_stufe;
+      tablettSoll = T_STUFE && aktStufe === T_STUFE ? 1 : 0;
+      ansichtAktiv = !!A; schilderAus = !!(A && A.schilder === false);
+      /* Schmucklicht: Im Studio-Rundumbild spiegelt poliertes Metall aus der
+         Nähe fast nur Schwarz (Probe Ring 24.09.2026, alle vier Drehungen).
+         Juweliere fotografieren in einem Lichtzelt -- das ist RoomEnvironment:
+         helle Flächen rundum. Nur für diese Ansicht, danach zurück. */
+      if (A && A.umgebung === 'zelt') {
+        if (!zeltUmgebung) { const pg = new THREE.PMREMGenerator(r); zeltUmgebung = pg.fromScene(new RoomEnvironment(), 0.02).texture; pg.dispose(); }
+        szene.environment = zeltUmgebung; szene.environmentIntensity = A.umgebung_staerke || 0.9;
+      } else if (szene.environment !== umgebung) { szene.environment = umgebung; szene.environmentIntensity = 1; }
+      if (A) {
+        zerlegtSoll = A.zerlegt ? STUFEN_ZIEL[Math.min(4, A.zerlegt)] : 0;
+        if (A.tablett) tablettSoll = 1;
+        zerlegtSeit = performance.now();
+        const fokusA = new RegExp(A.fokus);
+        const b = zerlegtHuelle(fokusA, zerlegtSoll, tablettSoll);
+        const mitteA = b.getCenter(new THREE.Vector3());
+        const neigA = A.neig !== undefined ? A.neig : Math.min(grenzen.neig[1], heim.neig + 0.16);
+        const winkelA = A.winkel !== undefined ? A.winkel : soll.winkel;
+        const abstA = einpassen(b, winkelA, neigA, mitteA) * (A.luft || 1.15);
+        grenzen.abst[0] = Math.min(grenzen.abst[0], abstA * 0.5);
+        grenzen.abst[1] = Math.max(grenzen.abst[1], abstA * 1.4);
+        zSoll.copy(mitteA);
+        soll = { ...soll, abst: abstA, neig: neigA, winkel: winkelA };
+        starten();
+        return;
+      }
       /* Zerlegt braucht das Modell rund anderthalbmal so viel Platz. Mit der
          Kamera des Fotos flogen Dach und Hinterrad aus dem Bild (erste
          Probe) -- also zurück und etwas höher, damit man hineinsieht. */
@@ -922,8 +1071,14 @@ export async function erstellen({
     },
     heim() {
       if (modus !== 'aussen') { this.innenraum(false); return; }
+      ansichtAktiv = false; schilderAus = false;
+      if (szene.environment !== umgebung) { szene.environment = umgebung; szene.environmentIntensity = 1; }
       soll = { ...heim }; zSoll.copy(zHeim); ruhtGemeldet = false; letzteBewegung = performance.now() - 2000; starten();
     },
+    gravur(text) { gravurZeichnen(text); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
+    ladung(n) { ladungSetzen(n); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
+    get ladePlaetze() { return ladePlaetze.length; },
+    stein(karat) { steinSetzen(karat); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
     ausstattung(k) { return innenIdx[k] !== undefined ? varianteSetzen(innenIdx[k]) : null; },
     stufe: stufeSetzen,
     starten, anhalten,

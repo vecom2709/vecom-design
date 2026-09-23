@@ -265,7 +265,32 @@
     "start": 0.72,
     "stufe": 3
    }
-  ]
+  ],
+  "ansichten": {
+   "1": {
+    "zerlegt": 1,
+    "fokus": "^af_",
+    "neig": 0.3,
+    "luft": 1.02
+   }
+  }
  },
- "dreiecke": 90286
+ "dreiecke": 90286,
+ "ladung": {
+  "vorlagen": [
+   "palette_0",
+   "ladung_0",
+   "folie_0"
+  ],
+  "muster": "^(palette|ladung|folie)_\\d+$",
+  "reihen": 11,
+  "quer": [
+   -0.81,
+   0.0,
+   0.81
+  ],
+  "z0": 4.65,
+  "schritt": -1.225,
+  "start": 24
+ }
 }

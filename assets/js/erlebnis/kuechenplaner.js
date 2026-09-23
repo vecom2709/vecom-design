@@ -63,7 +63,7 @@ const TEXTE = {
     ansicht: 'Ansicht', ansichten: { '3d': '3D', oben: 'Von oben' }, oeffnen: 'Türen & Auszüge öffnen', masseZeigen: 'Maße zeigen',
     pruefung: 'Planungsprüfung', stueck: 'Stückliste',
     stueckZeile: (n, t, b) => `${n} × ${t}, ${b} cm`, platteLfm: (m) => `Arbeitsplatte: ${m} m`, oberZahl: (n) => `Hängeschränke: ${n}`,
-    cta: 'Diese Küche anfragen', teilen: 'Link zur Planung kopieren', kopiert: 'Link kopiert',
+    cta: 'Diesen Planer für mein Küchenstudio', kunde: 'So sieht es Ihre Kundschaft: Planung ans Studio senden', kTitel: 'Planung ans Küchenstudio senden', kTermin: 'mit Beratungstermin im Studio', kSchraenke: (n) => `${n} Schränke`, teilen: 'Link zur Planung kopieren', kopiert: 'Link kopiert',
     kennung: (f) => `Echtzeit · maßstäblich${f ? ` · ${f} Bilder/s` : ''}`, kennungPlan: 'Grundriss · maßstäblich',
     laedt: 'Lade den Planer …', keinWebgl: 'Dieses Gerät zeigt den Grundriss. Die 3D-Ansicht braucht WebGL 2.',
     leinwand: 'Die geplante Küche in 3D — ziehen zum Drehen, Pfeiltasten, Schrank antippen zum Bearbeiten',
@@ -102,7 +102,7 @@ const TEXTE = {
     ansicht: 'Vista', ansichten: { '3d': '3D', oben: 'Dall’alto' }, oeffnen: 'Apri ante e cassetti', masseZeigen: 'Mostra misure',
     pruefung: 'Controllo del progetto', stueck: 'Elenco mobili',
     stueckZeile: (n, t, b) => `${n} × ${t}, ${b} cm`, platteLfm: (m) => `Piano di lavoro: ${m} m`, oberZahl: (n) => `Pensili: ${n}`,
-    cta: 'Richiedi questa cucina', teilen: 'Copia il link al progetto', kopiert: 'Link copiato',
+    cta: 'Questo progettatore per il mio showroom', kunde: 'Come lo vede il cliente: invia il progetto allo showroom', kTitel: 'Invia il progetto allo showroom', kTermin: 'con appuntamento in showroom', kSchraenke: (n) => `${n} mobili`, teilen: 'Copia il link al progetto', kopiert: 'Link copiato',
     kennung: (f) => `Tempo reale · in scala${f ? ` · ${f} fps` : ''}`, kennungPlan: 'Pianta · in scala',
     laedt: 'Carico il progettatore …', keinWebgl: 'Questo dispositivo mostra la pianta. La vista 3D richiede WebGL 2.',
     leinwand: 'La cucina progettata in 3D — trascina per girare, frecce, tocca un mobile per modificarlo',
@@ -141,7 +141,7 @@ const TEXTE = {
     ansicht: 'View', ansichten: { '3d': '3D', oben: 'From above' }, oeffnen: 'Open doors & drawers', masseZeigen: 'Show dimensions',
     pruefung: 'Plan check', stueck: 'Cabinet list',
     stueckZeile: (n, t, b) => `${n} × ${t}, ${b} cm`, platteLfm: (m) => `Worktop: ${m} m`, oberZahl: (n) => `Wall cabinets: ${n}`,
-    cta: 'Enquire about this kitchen', teilen: 'Copy link to this plan', kopiert: 'Link copied',
+    cta: 'This planner for my kitchen studio', kunde: 'What your customers see: send the plan to the studio', kTitel: 'Send the plan to the kitchen studio', kTermin: 'with a consultation in the studio', kSchraenke: (n) => `${n} cabinets`, teilen: 'Copy link to this plan', kopiert: 'Link copied',
     kennung: (f) => `Real time · to scale${f ? ` · ${f} fps` : ''}`, kennungPlan: 'Floor plan · to scale',
     laedt: 'Loading the planner …', keinWebgl: 'This device shows the floor plan. The 3D view needs WebGL 2.',
     leinwand: 'The planned kitchen in 3D — drag to turn, arrow keys, tap a cabinet to edit it',
@@ -505,6 +505,7 @@ if (sek) {
       el('div', { class: 'kp-pruefung', role: 'status' }, el('span', { class: 'gruppe__name', text: TEXTE.pruefung }),
         el('ul', {}, ...hinweise.map(([art, t]) => el('li', { class: `kp-h kp-h--${art}` }, t)))),
       el('details', { class: 'kp-stueck' }, el('summary', { text: TEXTE.stueck }), el('ul', {}, ...stueckliste(plan).map((t) => el('li', { text: t })))),
+      el('button', { type: 'button', class: 'knopf knopf--leer kunde-knopf', onclick: kundeZeigen }, TEXTE.kunde),
       el('div', { class: 'kp-aktion' }, ctaKnopf(), el('button', { type: 'button', class: 'knopf knopf--leer', onclick: teilen }, TEXTE.teilen)),
     );
     ansichtLeiste();
@@ -525,6 +526,16 @@ if (sek) {
     const u = new URL(sek.dataset.anfrage || '/bedarf.php', location.href);
     u.searchParams.set('lang', SPRACHE); u.searchParams.set('demo', 'kueche-planer'); u.searchParams.set('plan', codieren(plan));
     return el('a', { class: 'knopf knopf--voll', href: u.pathname + u.search, onclick: () => zaehlen('cta-kueche') }, TEXTE.cta);
+  }
+  // Der Weg des Endkunden (kundenablauf.js): die Planung mit allen Maßen ans Studio
+  function kundeZeigen() {
+    const zahl = laeufe(plan).reduce((n, [k]) => n + plan.reihen[k].length, 0);
+    const masse = laeufe(plan).map(([k]) => `${TEXTE.waende[k]} ${k === 'insel' ? summe(plan.reihen.insel) : plan.waende[k]} cm`).join(' · ');
+    zaehlen('kueche-kunde');
+    document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: {
+      titel: TEXTE.kTitel, zeilen: [`${TEXTE.formen[plan.form]} · ${masse}`, `${TEXTE.kSchraenke(zahl)} · ${TEXTE.frontNamen[plan.front]} · ${TEXTE.platteNamen[plan.platte]} · ${TEXTE.griffNamen[plan.griff]}`, TEXTE.kTermin],
+      termin: { zeiten: ['10:00', '14:00', '17:00'] }, ziel: panel.querySelector('.kp-aktion a')?.getAttribute('href') || '/bedarf.php',
+    } }));
   }
   async function teilen(e) {
     const u = new URL(location.href); u.search = ''; u.searchParams.set('plan', codieren(plan)); u.hash = 'kuechenplaner';

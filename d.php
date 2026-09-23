@@ -19,11 +19,13 @@ const EREIGNISSE = [
     'modell-kleinwagen', 'modell-mittelklasse', 'modell-auto',
     'demo-villa', 'demo-auto', 'demo-shop', 'demo-tisch',
     'demo-wein', 'wein-stufe-1', 'wein-stufe-2',
-    'demo-schmuck', 'schmuck-stufe-1', 'schmuck-stufe-2', 'schmuck-stufe-3',
+    'demo-schmuck', 'schmuck-stufe-1', 'schmuck-stufe-2', 'schmuck-stufe-3', 'schmuck-stufe-4', 'schmuck-karat',
     'demo-kueche', 'kueche-stufe-1', 'kueche-stufe-2', 'kueche-planer', 'kueche-oeffnen', 'cta-kueche',
     'demo-gastro', 'gastro-stufe-1',
     'demo-salon', 'salon-stufe-1', 'salon-stufe-2',
-    'demo-lkw', 'lkw-stufe-1', 'lkw-stufe-2', 'lkw-stufe-3',
+    // Haarfarben statt Salonstuhl (24.09.2026)
+    'haar-drehen', 'tisch-wahl', 'tisch-kunde', 'haar-kunde', 'produkt-kunde', 'auto-kunde', 'kueche-kunde', 'haar-schwarz', 'haar-kastanie', 'haar-kupfer', 'haar-balayage', 'haar-aschblond', 'haar-rosegold',
+    'demo-lkw', 'lkw-stufe-1', 'lkw-stufe-2', 'lkw-stufe-3', 'lkw-ladung', 'ka-cta', 'ka-gesendet',
     // Serienautos (23.09.2026): Fahrerplatz, Ausstattung, Zerlegen in Stufen
     'kleinwagen-innen', 'mittelklasse-innen',
     'kleinwagen-ausstattung-stoff-anthrazit', 'kleinwagen-ausstattung-stoff-grau-blau', 'kleinwagen-ausstattung-kunstleder-hell',

@@ -26,6 +26,9 @@ const TEXTE = {
     zerlegt: 'Echtzeit · zerlegt in seine Teile', geoeffnet: 'Echtzeit · geöffnet',
     innen: 'Echtzeit · Fahrerplatz', innenFoto: 'Gerechnet · Blender Cycles · Fahrerplatz',
     laedt: 'Lade das 3D-Modell …',
+    ladung: 'Ladung', ladungFmt: (n, p, lm) => `${n} von 33 Europaletten · Auslastung ${p} % · ${lm} Lademeter`,
+    probeTitel: 'Probefahrt anfragen', probeModell: { kleinwagen: 'Kleinwagen', mittelklasse: 'Mittelklasse-Limousine', auto: 'Sportwagen-Studie' },
+    gravur: 'Ihre Gravur', gravurPlatz: 'Für Anna – 24.09.2026', gravurHinweis: 'Bis zu drei Zeilen, erscheint sofort auf dem Boden.', karat: 'Stein', karatFmt: (k, mm) => `${k} ct · ${mm} mm`,
     drehen: 'Selbst drehen', zumFoto: 'Zurück zum Foto',
     leinwand: { auto: 'Das Auto in Echtzeit — ziehen oder Pfeiltasten zum Drehen', schuh: 'Der Schuh in Echtzeit — ziehen oder Pfeiltasten zum Drehen' },
     korb: (n, f, g, p) => `${n} · ${f} · Gr. ${g} — ${p}`,
@@ -33,7 +36,7 @@ const TEXTE = {
     korbZahl: (n) => `Warenkorb (${n})`,
     groesseFehlt: 'Erst eine Größe wählen.',
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
-    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert', kiste: 'Holzkiste mit Tür', kapsel: 'Kapsel', kork: 'Naturkorken', glas: 'Saphirglas', luenette: 'Lünette', krone: 'Krone', zeiger: 'Zeiger', blatt: 'Zifferblatt mit Indizes', rotor: 'Aufzugsrotor', unruh: 'Unruh', tuer: 'Tür mit Topfscharnier', auszug: 'Vollauszug', platte: 'Arbeitsplatte 40 mm', kochfeld: 'Induktionskochfeld', armatur: 'Armatur', becken: 'Unterbaubecken', stuhl: 'Hydraulik, drehbar', plane: 'Schiebeplane', kabine: 'Kippkabine', zwilling: 'Zwillingsbereifung', achsen: 'Dreiachsaggregat' },
+    teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert', kiste: 'Holzkiste – fertig als Geschenk', kapsel: 'Kapsel – schützt den Korken', kork: 'Naturkorken – der Wein atmet', glas: 'Saphirglas – praktisch kratzfest', luenette: 'Lünette – schützt das Glas', krone: 'Verschraubte Krone – dicht bis 10 bar', zeiger: 'Zeiger mit Leuchtmasse – ablesbar im Dunkeln', blatt: 'Zifferblatt – Indizes einzeln gesetzt', rotor: 'Rotor – zieht die Uhr beim Tragen auf', unruh: 'Unruh – schlägt 28.800-mal pro Stunde', platine: 'Platine – trägt das ganze Werk', boden: 'Gehäuseboden – Platz für Ihre Gravur', bruecke: 'Brücken – halten die Räder', rad: 'Räderwerk – überträgt die Kraft', tuer: 'Tür mit Topfscharnier', auszug: 'Vollauszug', platte: 'Arbeitsplatte 40 mm', kochfeld: 'Induktionskochfeld', armatur: 'Armatur', becken: 'Unterbaubecken', stuhl: 'Hydraulik, drehbar', plane: 'Schiebeplane – Seitenladung in Minuten', kabine: 'Kippkabine – Motor schnell erreichbar', zwilling: 'Zwillingsbereifung – mehr Traglast', achsen: 'Dreiachsaggregat – 24 t Achslast' },
     modelle: {
       kleinwagen: { alt: 'Kleinwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,07 m · Breite 1,76 m · Höhe 1,45 m · Radstand 2,57 m',
@@ -57,6 +60,9 @@ const TEXTE = {
     zerlegt: 'Tempo reale · scomposto nei suoi pezzi', geoeffnet: 'Tempo reale · aperto',
     innen: 'Tempo reale · posto guida', innenFoto: 'Calcolato · Blender Cycles · posto guida',
     laedt: 'Carico il modello 3D …',
+    ladung: 'Carico', ladungFmt: (n, p, lm) => `${n} di 33 europallet · riempimento ${p} % · ${lm} metri di carico`,
+    probeTitel: 'Richiedi un giro di prova', probeModell: { kleinwagen: 'Utilitaria', mittelklasse: 'Berlina media', auto: 'Studio di sportiva' },
+    gravur: 'La tua incisione', gravurPlatz: 'Per Anna – 24.09.2026', gravurHinweis: 'Fino a tre righe, appare subito sul fondello.', karat: 'Pietra', karatFmt: (k, mm) => `${k} ct · ${mm} mm`,
     drehen: 'Giralo tu', zumFoto: 'Torna alla foto',
     leinwand: { auto: 'L’auto in tempo reale — trascina o usa le frecce per girarla', schuh: 'La scarpa in tempo reale — trascina o usa le frecce per girarla' },
     korb: (n, f, g, p) => `${n} · ${f} · tg. ${g} — ${p}`,
@@ -64,7 +70,7 @@ const TEXTE = {
     korbZahl: (n) => `Carrello (${n})`,
     groesseFehlt: 'Scegli prima una taglia.',
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
-    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo', kiste: 'Cassetta in legno', kapsel: 'Capsula', kork: 'Tappo in sughero', glas: 'Vetro zaffiro', luenette: 'Lunetta', krone: 'Corona', zeiger: 'Lancette', blatt: 'Quadrante con indici', rotor: 'Rotore di carica', unruh: 'Bilanciere', tuer: 'Anta con cerniera a scomparsa', auszug: 'Cassetto a estrazione totale', platte: 'Piano 40 mm', kochfeld: 'Piano a induzione', armatur: 'Miscelatore', becken: 'Lavello sottotop', stuhl: 'Idraulica, girevole', plane: 'Telone scorrevole', kabine: 'Cabina ribaltabile', zwilling: 'Ruote gemellate', achsen: 'Gruppo a tre assi' },
+    teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo', kiste: 'Cassetta in legno – già pronta da regalare', kapsel: 'Capsula – protegge il tappo', kork: 'Tappo in sughero – il vino respira', glas: 'Vetro zaffiro – quasi antigraffio', luenette: 'Lunetta – protegge il vetro', krone: 'Corona a vite – tenuta 10 bar', zeiger: 'Lancette luminescenti – leggibili al buio', blatt: 'Quadrante – indici applicati uno a uno', rotor: 'Rotore – carica l’orologio mentre lo indossi', unruh: 'Bilanciere – 28.800 alternanze l’ora', platine: 'Platina – porta tutto il movimento', boden: 'Fondello – spazio per la tua incisione', bruecke: 'Ponti – tengono le ruote', rad: 'Ruotismo – trasmette la forza', tuer: 'Anta con cerniera a scomparsa', auszug: 'Cassetto a estrazione totale', platte: 'Piano 40 mm', kochfeld: 'Piano a induzione', armatur: 'Miscelatore', becken: 'Lavello sottotop', stuhl: 'Idraulica, girevole', plane: 'Telone scorrevole – carico laterale in pochi minuti', kabine: 'Cabina ribaltabile – motore subito accessibile', zwilling: 'Ruote gemellate – più portata', achsen: 'Gruppo a tre assi – 24 t sugli assi' },
     modelle: {
       kleinwagen: { alt: 'Utilitaria in uno studio fotografico scuro, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,07 m · larghezza 1,76 m · altezza 1,45 m · passo 2,57 m',
@@ -88,6 +94,9 @@ const TEXTE = {
     zerlegt: 'Real time · taken apart', geoeffnet: 'Real time · opened',
     innen: 'Real time · driver’s seat', innenFoto: 'Rendered · Blender Cycles · driver’s seat',
     laedt: 'Loading the 3D model …',
+    ladung: 'Load', ladungFmt: (n, p, lm) => `${n} of 33 Euro pallets · ${p} % full · ${lm} loading metres`,
+    probeTitel: 'Request a test drive', probeModell: { kleinwagen: 'Small car', mittelklasse: 'Mid-size saloon', auto: 'Sports car study' },
+    gravur: 'Your engraving', gravurPlatz: 'For Anna – 24.09.2026', gravurHinweis: 'Up to three lines, appears on the case back at once.', karat: 'Stone', karatFmt: (k, mm) => `${k} ct · ${mm} mm`,
     drehen: 'Turn it yourself', zumFoto: 'Back to the photo',
     leinwand: { auto: 'The car in real time — drag or use the arrow keys to turn it', schuh: 'The shoe in real time — drag or use the arrow keys to turn it' },
     korb: (n, f, g, p) => `${n} · ${f} · size ${g} — ${p}`,
@@ -95,7 +104,7 @@ const TEXTE = {
     korbZahl: (n) => `Cart (${n})`,
     groesseFehlt: 'Pick a size first.',
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
-    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed', kiste: 'Wooden case with door', kapsel: 'Capsule', kork: 'Natural cork', glas: 'Sapphire crystal', luenette: 'Bezel', krone: 'Crown', zeiger: 'Hands', blatt: 'Dial with indices', rotor: 'Winding rotor', unruh: 'Balance wheel', tuer: 'Door with concealed hinge', auszug: 'Full-extension drawer', platte: 'Worktop 40 mm', kochfeld: 'Induction hob', armatur: 'Tap', becken: 'Undermount sink', stuhl: 'Hydraulic, swivelling', plane: 'Sliding curtain', kabine: 'Tilting cab', zwilling: 'Twin tyres', achsen: 'Tri-axle bogie' },
+    teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed', kiste: 'Wooden case – ready to give', kapsel: 'Capsule – protects the cork', kork: 'Natural cork – lets the wine breathe', glas: 'Sapphire crystal – virtually scratch-proof', luenette: 'Bezel – protects the crystal', krone: 'Screw-down crown – sealed to 10 bar', zeiger: 'Luminous hands – readable in the dark', blatt: 'Dial – indices set one by one', rotor: 'Rotor – winds the watch as you wear it', unruh: 'Balance – 28,800 beats an hour', platine: 'Main plate – carries the movement', boden: 'Case back – room for your engraving', bruecke: 'Bridges – hold the wheels', rad: 'Gear train – passes on the power', tuer: 'Door with concealed hinge', auszug: 'Full-extension drawer', platte: 'Worktop 40 mm', kochfeld: 'Induction hob', armatur: 'Tap', becken: 'Undermount sink', stuhl: 'Hydraulic, swivelling', plane: 'Sliding curtain – side loading in minutes', kabine: 'Tilting cab – engine within reach', zwilling: 'Twin tyres – more payload', achsen: 'Tri-axle bogie – 24 t axle load' },
     modelle: {
       kleinwagen: { alt: 'Small car in a dark photo studio, rendered with Blender Cycles',
         daten: 'Our own design · length 4.07 m · width 1.76 m · height 1.45 m · wheelbase 2.57 m',
@@ -121,39 +130,39 @@ const TEXT = TEXTE[SPRACHE];
 const PRODUKT_TEXTE = {
   de: {
     stufen: 'Ansicht', ganz: 'Geschlossen', auswahl: 'Produkt',
-    wein: { kicker: 'Wein & Naturprodukte', titel: 'Flasche mit Etikett zum Wählen', text: 'Drei Produkte aus einer Datei: Glas, Inhalt, Kapsel und Etikett wechseln zusammen, das Foto kommt gerechnet. Die Holzkiste öffnet sich, die Flasche gibt Kapsel und Korken frei — so sieht man, was man verschenkt.', alt: 'Weinflasche und Holzkiste im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Kellerei', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olivenöl extra vergine' }, schritte: ['Kiste öffnen', 'Flasche öffnen'] },
-    schmuck: { kicker: 'Schmuck & Uhren', titel: 'Uhr und Ring im Makrolicht', text: 'Metall, Zifferblatt, Band und Stein wechseln zusammen — Edelstahl, Gelbgold oder Roségold, gerechnet wie im Fotostudio. Die Uhr öffnet sich wie beim Uhrmacher: erst Glas und Lünette, dann Zeiger und Zifferblatt, zuletzt das Werk.', alt: 'Automatikuhr und Solitärring im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Juweliergeschäft', varianten: { stahl: 'Edelstahl · Saphir', gelbgold: 'Gelbgold · Diamant', rosegold: 'Roségold · Rubin' }, schritte: ['Glas & Lünette', 'Zeiger & Zifferblatt', 'Werk'] },
+    wein: { kunde: { knopf: 'So sieht es Ihre Kundschaft: als Geschenk bestellen', titel: 'Geschenkbox bestellen', zeilen: ['Holzkiste mit Tür', 'Grußkarte handgeschrieben'] }, kicker: 'Wein & Naturprodukte', titel: 'Flasche mit Etikett zum Wählen', text: 'Drei Produkte aus einer Datei: Glas, Inhalt, Kapsel und Etikett wechseln zusammen, das Foto kommt gerechnet. Die Holzkiste öffnet sich, die Flasche gibt Kapsel und Korken frei — so sieht man, was man verschenkt.', alt: 'Weinflasche und Holzkiste im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Kellerei', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olivenöl extra vergine' }, schritte: ['Kiste öffnen', 'Flasche öffnen'] },
+    schmuck: { kunde: { knopf: 'So sieht es Ihre Kundschaft: zur Anprobe reservieren', titel: 'Anprobe im Geschäft reservieren', zeilen: ['Uhr und Ring liegen bereit'] }, kicker: 'Schmuck & Uhren', titel: 'Uhr und Ring im Makrolicht', text: 'Metall, Zifferblatt, Band und Stein wechseln zusammen — Edelstahl, Gelbgold oder Roségold, gerechnet wie im Fotostudio. Die Uhr zerfällt in all ihre Teile, jedes frei sichtbar, und legt sich danach geordnet aufs Uhrmacher-Tablett. Den Gehäuseboden graviert der Kunde selbst, und beim Ring wählt er das Karat.', alt: 'Automatikuhr und Solitärring im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Juweliergeschäft', varianten: { stahl: 'Edelstahl · Saphir', gelbgold: 'Gelbgold · Diamant', rosegold: 'Roségold · Rubin' }, schritte: ['Explosionsansicht', 'Uhrmacher-Tablett', 'Gravur', 'Ring & Karat'] },
     kueche: { kicker: 'Küchenbau', titel: 'Kochinsel zum Aufmachen', text: 'Fronten, Arbeitsplatte und Griffe wechseln zusammen — Salbei mit Eiche, Weiß mit Carrara-Marmor, Nussbaum mit Keramik. Türen und Auszüge öffnen sich, die Platte hebt ab: So sieht der Kunde vor dem Aufmaß, was er bekommt.', alt: 'Kochinsel mit Spüle und Kochfeld im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Küchenstudio', varianten: { salbei: 'Salbei · Eiche · Messing', weiss: 'Weiß · Carrara · Edelstahl', nussbaum: 'Nussbaum · Keramik · Schwarz' }, schritte: ['Öffnen', 'Platte abheben'] },
-    gastro: { kicker: 'Gastronomie', titel: 'Tisch für zwei, gedeckt', text: 'Tischdecke und Geschirr wechseln zusammen — weißes Leinen mit Porzellan, Terrakotta mit Steingut, Anthrazit mit schwarzem Steingut. Gedeckt nach der Grundregel des Service; am Abend trägt die Kerze das Licht.', alt: 'Gedeckter Tisch für zwei mit Kerze im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Restaurant', varianten: { weiss: 'Leinen weiß · Porzellan', terrakotta: 'Terrakotta · Steingut sand', anthrazit: 'Anthrazit · Steingut schwarz' }, ganz: 'Tag', schritte: ['Abend'] },
-    salon: { kicker: 'Friseur & Salon', titel: 'Bedienplatz mit Stuhl und Spiegel', text: 'Polster, Metall und Wand wechseln zusammen — Cognac mit Messing auf Salbei, Schwarz mit Chrom auf Kalk, Samt in Petrol mit Schwarz auf Anthrazit. Der Stuhl dreht sich zum Gast und fährt hoch; am Abend leuchtet nur der Spiegel.', alt: 'Friseurstuhl vor hinterleuchtetem Spiegel im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meinen Salon', varianten: { cognac: 'Cognac · Messing · Salbei', schwarz: 'Schwarz · Chrom · Kalk', petrol: 'Samt Petrol · Schwarz · Anthrazit' }, schritte: ['Stuhl drehen', 'Abendlicht'] },
-    lkw: { kicker: 'Logistik', titel: 'Sattelzug mit Ladung', text: 'Zugmaschine und Planenauflieger nach EU-Maßen, 16,5 Meter, mit Europaletten beladen. Kabine und Plane wechseln die Farbe mit Ihrer Flotte; die Plane fährt zur Seite, die Kabine kippt, die Achsen gehen auseinander.', alt: 'Sattelzug mit Planenauflieger im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Spedition', varianten: { rot: 'Rot · Plane weiß', weiss: 'Weiß · Plane grau', blau: 'Blau · Plane blau' }, schritte: ['Plane öffnen', 'Kabine kippen', 'Achsen'] },
+    gastro: { kunde: { knopf: 'So sieht es Ihr Gast: Tisch reservieren', titel: 'Tisch reservieren', zeilen: ['Tisch am Fenster'] }, kicker: 'Gastronomie', titel: 'Tisch für zwei, gedeckt', text: 'Tischdecke und Geschirr wechseln zusammen — weißes Leinen mit Porzellan, Terrakotta mit Steingut, Anthrazit mit schwarzem Steingut. Gedeckt nach der Grundregel des Service; am Abend trägt die Kerze das Licht.', alt: 'Gedeckter Tisch für zwei mit Kerze im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für mein Restaurant', varianten: { weiss: 'Leinen weiß · Porzellan', terrakotta: 'Terrakotta · Steingut sand', anthrazit: 'Anthrazit · Steingut schwarz' }, ganz: 'Tag', schritte: ['Abend'] },
+    salon: { kunde: { knopf: 'So sieht es Ihre Kundschaft: Termin buchen', titel: 'Termin buchen', zeilen: ['Schneiden & Föhnen'] }, kicker: 'Friseur & Salon', titel: 'Bedienplatz mit Stuhl und Spiegel', text: 'Polster, Metall und Wand wechseln zusammen — Cognac mit Messing auf Salbei, Schwarz mit Chrom auf Kalk, Samt in Petrol mit Schwarz auf Anthrazit. Der Stuhl dreht sich zum Gast und fährt hoch; am Abend leuchtet nur der Spiegel.', alt: 'Friseurstuhl vor hinterleuchtetem Spiegel im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meinen Salon', varianten: { cognac: 'Cognac · Messing · Salbei', schwarz: 'Schwarz · Chrom · Kalk', petrol: 'Samt Petrol · Schwarz · Anthrazit' }, schritte: ['Stuhl drehen', 'Abendlicht'] },
+    lkw: { kunde: { knopf: 'So sieht es Ihr Kunde: Transport anfragen', titel: 'Transport anfragen', zeilen: ['Planenauflieger 13,6 m, Seitenladung'] }, kicker: 'Logistik', titel: 'Sattelzug mit Ladung', text: 'Zugmaschine und Planenauflieger nach EU-Maßen, 16,5 Meter, mit Europaletten beladen. Kabine und Plane wechseln die Farbe mit Ihrer Flotte; die Plane fährt zur Seite, die Kabine kippt, die Achsen gehen auseinander.', alt: 'Sattelzug mit Planenauflieger im dunklen Studio, gerechnet mit Blender Cycles', cta: 'So etwas für meine Spedition', varianten: { rot: 'Rot · Plane weiß', weiss: 'Weiß · Plane grau', blau: 'Blau · Plane blau' }, schritte: ['Plane öffnen', 'Kabine kippen', 'Achsen'] },
   },
   it: {
     stufen: 'Vista', ganz: 'Chiusa', auswahl: 'Prodotto',
-    wein: { kicker: 'Vino e prodotti naturali', titel: 'Bottiglia con etichetta a scelta', text: 'Tre prodotti in un solo file: vetro, contenuto, capsula ed etichetta cambiano insieme, la foto arriva già calcolata. La cassetta di legno si apre, la bottiglia libera capsula e tappo — così si vede cosa si regala.', alt: 'Bottiglia di vino e cassetta di legno in studio scuro, calcolate con Blender Cycles', cta: 'Una cosa così per la mia cantina', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olio extra vergine' }, schritte: ['Apri la cassetta', 'Apri la bottiglia'] },
-    schmuck: { kicker: 'Gioielli e orologi', titel: 'Orologio e anello in luce macro', text: 'Metallo, quadrante, cinturino e pietra cambiano insieme — acciaio, oro giallo o oro rosa, calcolati come in studio fotografico. L’orologio si apre come dall’orologiaio: prima vetro e lunetta, poi lancette e quadrante, infine il movimento.', alt: 'Orologio automatico e anello solitario in studio scuro, calcolati con Blender Cycles', cta: 'Una cosa così per la mia gioielleria', varianten: { stahl: 'Acciaio · Zaffiro', gelbgold: 'Oro giallo · Diamante', rosegold: 'Oro rosa · Rubino' }, schritte: ['Vetro e lunetta', 'Lancette e quadrante', 'Movimento'] },
+    wein: { kunde: { knopf: 'Come lo vede il cliente: ordina come regalo', titel: 'Ordina la confezione regalo', zeilen: ['Cassetta in legno con anta', 'Biglietto scritto a mano'] }, kicker: 'Vino e prodotti naturali', titel: 'Bottiglia con etichetta a scelta', text: 'Tre prodotti in un solo file: vetro, contenuto, capsula ed etichetta cambiano insieme, la foto arriva già calcolata. La cassetta di legno si apre, la bottiglia libera capsula e tappo — così si vede cosa si regala.', alt: 'Bottiglia di vino e cassetta di legno in studio scuro, calcolate con Blender Cycles', cta: 'Una cosa così per la mia cantina', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Olio extra vergine' }, schritte: ['Apri la cassetta', 'Apri la bottiglia'] },
+    schmuck: { kunde: { knopf: 'Come lo vede il cliente: prenota per provarlo', titel: 'Prenota una prova in negozio', zeilen: ['Orologio e anello pronti per te'] }, kicker: 'Gioielli e orologi', titel: 'Orologio e anello in luce macro', text: 'Metallo, quadrante, cinturino e pietra cambiano insieme — acciaio, oro giallo o oro rosa, calcolati come in studio fotografico. L’orologio si scompone in tutti i suoi pezzi, ognuno ben visibile, e poi si dispone in ordine sul vassoio dell’orologiaio. Il fondello lo incide il cliente stesso, e per l’anello sceglie i carati.', alt: 'Orologio automatico e anello solitario in studio scuro, calcolati con Blender Cycles', cta: 'Una cosa così per la mia gioielleria', varianten: { stahl: 'Acciaio · Zaffiro', gelbgold: 'Oro giallo · Diamante', rosegold: 'Oro rosa · Rubino' }, schritte: ['Esploso', 'Vassoio dell’orologiaio', 'Incisione', 'Anello e carati'] },
     kueche: { kicker: 'Cucine su misura', titel: 'Isola da aprire', text: 'Ante, piano e maniglie cambiano insieme — salvia con rovere, bianco con marmo di Carrara, noce con ceramica. Ante e cassetti si aprono, il piano si solleva: il cliente vede cosa riceve prima del rilievo.', alt: 'Isola cucina con lavello e piano cottura in studio scuro, calcolata con Blender Cycles', cta: 'Una cosa così per il mio showroom', varianten: { salbei: 'Salvia · Rovere · Ottone', weiss: 'Bianco · Carrara · Acciaio', nussbaum: 'Noce · Ceramica · Nero' }, schritte: ['Apri', 'Solleva il piano'] },
-    gastro: { kicker: 'Ristorazione', titel: 'Tavolo per due, apparecchiato', text: 'Tovaglia e stoviglie cambiano insieme — lino bianco con porcellana, terracotta con gres, antracite con gres nero. Apparecchiato secondo le regole del servizio; di sera la luce è quella della candela.', alt: 'Tavolo apparecchiato per due con candela in studio scuro, calcolato con Blender Cycles', cta: 'Una cosa così per il mio ristorante', varianten: { weiss: 'Lino bianco · Porcellana', terrakotta: 'Terracotta · Gres sabbia', anthrazit: 'Antracite · Gres nero' }, ganz: 'Giorno', schritte: ['Sera'] },
-    salon: { kicker: 'Parrucchieri e saloni', titel: 'Postazione con poltrona e specchio', text: 'Imbottitura, metallo e parete cambiano insieme — cuoio con ottone su salvia, nero con cromo su calce, velluto petrolio con nero su antracite. La poltrona si gira verso il cliente e si alza; di sera resta acceso solo lo specchio.', alt: 'Poltrona da parrucchiere davanti a uno specchio retroilluminato in studio scuro, calcolata con Blender Cycles', cta: 'Una cosa così per il mio salone', varianten: { cognac: 'Cuoio · Ottone · Salvia', schwarz: 'Nero · Cromo · Calce', petrol: 'Velluto petrolio · Nero · Antracite' }, schritte: ['Gira la poltrona', 'Luce serale'] },
-    lkw: { kicker: 'Logistica', titel: 'Autoarticolato con carico', text: 'Trattore e semirimorchio centinato a misure UE, 16,5 metri, carico di europallet. Cabina e telone prendono i colori della vostra flotta; il telone scorre, la cabina si ribalta, gli assi si separano.', alt: 'Autoarticolato con semirimorchio centinato in studio scuro, calcolato con Blender Cycles', cta: 'Una cosa così per la mia azienda di trasporti', varianten: { rot: 'Rosso · Telone bianco', weiss: 'Bianco · Telone grigio', blau: 'Blu · Telone blu' }, schritte: ['Apri il telone', 'Ribalta la cabina', 'Assi'] },
+    gastro: { kunde: { knopf: 'Come lo vede l’ospite: prenota un tavolo', titel: 'Prenota un tavolo', zeilen: ['Tavolo alla finestra'] }, kicker: 'Ristorazione', titel: 'Tavolo per due, apparecchiato', text: 'Tovaglia e stoviglie cambiano insieme — lino bianco con porcellana, terracotta con gres, antracite con gres nero. Apparecchiato secondo le regole del servizio; di sera la luce è quella della candela.', alt: 'Tavolo apparecchiato per due con candela in studio scuro, calcolato con Blender Cycles', cta: 'Una cosa così per il mio ristorante', varianten: { weiss: 'Lino bianco · Porcellana', terrakotta: 'Terracotta · Gres sabbia', anthrazit: 'Antracite · Gres nero' }, ganz: 'Giorno', schritte: ['Sera'] },
+    salon: { kunde: { knopf: 'Come lo vede il cliente: prenota', titel: 'Prenota un appuntamento', zeilen: ['Taglio e piega'] }, kicker: 'Parrucchieri e saloni', titel: 'Postazione con poltrona e specchio', text: 'Imbottitura, metallo e parete cambiano insieme — cuoio con ottone su salvia, nero con cromo su calce, velluto petrolio con nero su antracite. La poltrona si gira verso il cliente e si alza; di sera resta acceso solo lo specchio.', alt: 'Poltrona da parrucchiere davanti a uno specchio retroilluminato in studio scuro, calcolata con Blender Cycles', cta: 'Una cosa così per il mio salone', varianten: { cognac: 'Cuoio · Ottone · Salvia', schwarz: 'Nero · Cromo · Calce', petrol: 'Velluto petrolio · Nero · Antracite' }, schritte: ['Gira la poltrona', 'Luce serale'] },
+    lkw: { kunde: { knopf: 'Come lo vede il cliente: richiedi un trasporto', titel: 'Richiedi un trasporto', zeilen: ['Semirimorchio centinato 13,6 m, carico laterale'] }, kicker: 'Logistica', titel: 'Autoarticolato con carico', text: 'Trattore e semirimorchio centinato a misure UE, 16,5 metri, carico di europallet. Cabina e telone prendono i colori della vostra flotta; il telone scorre, la cabina si ribalta, gli assi si separano.', alt: 'Autoarticolato con semirimorchio centinato in studio scuro, calcolato con Blender Cycles', cta: 'Una cosa così per la mia azienda di trasporti', varianten: { rot: 'Rosso · Telone bianco', weiss: 'Bianco · Telone grigio', blau: 'Blu · Telone blu' }, schritte: ['Apri il telone', 'Ribalta la cabina', 'Assi'] },
   },
   en: {
     stufen: 'View', ganz: 'Closed', auswahl: 'Product',
-    wein: { kicker: 'Wine & natural products', titel: 'Bottle with a label to choose', text: 'Three products from one file: glass, contents, capsule and label change together, the photo comes pre-rendered. The wooden case opens, the bottle releases capsule and cork — so people see what they are giving.', alt: 'Wine bottle and wooden case in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my winery', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Extra virgin olive oil' }, schritte: ['Open the case', 'Open the bottle'] },
-    schmuck: { kicker: 'Jewellery & watches', titel: 'Watch and ring in macro light', text: 'Metal, dial, strap and stone change together — steel, yellow gold or rose gold, rendered like a photo studio. The watch opens the way a watchmaker would: crystal and bezel first, then hands and dial, finally the movement.', alt: 'Automatic watch and solitaire ring in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my jewellery shop', varianten: { stahl: 'Steel · Sapphire', gelbgold: 'Yellow gold · Diamond', rosegold: 'Rose gold · Ruby' }, schritte: ['Crystal & bezel', 'Hands & dial', 'Movement'] },
+    wein: { kunde: { knopf: 'What your customers see: order as a gift', titel: 'Order the gift box', zeilen: ['Wooden case with door', 'Handwritten card'] }, kicker: 'Wine & natural products', titel: 'Bottle with a label to choose', text: 'Three products from one file: glass, contents, capsule and label change together, the photo comes pre-rendered. The wooden case opens, the bottle releases capsule and cork — so people see what they are giving.', alt: 'Wine bottle and wooden case in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my winery', varianten: { rosso: 'Nero d’Avola', bianco: 'Grillo', olio: 'Extra virgin olive oil' }, schritte: ['Open the case', 'Open the bottle'] },
+    schmuck: { kunde: { knopf: 'What your customers see: reserve a fitting', titel: 'Reserve a fitting in store', zeilen: ['Watch and ring set aside for you'] }, kicker: 'Jewellery & watches', titel: 'Watch and ring in macro light', text: 'Metal, dial, strap and stone change together — steel, yellow gold or rose gold, rendered like a photo studio. The watch comes apart into every single part, each one in plain view, then lays itself out on the watchmaker’s tray. Customers engrave the case back themselves and pick the carat for the ring.', alt: 'Automatic watch and solitaire ring in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my jewellery shop', varianten: { stahl: 'Steel · Sapphire', gelbgold: 'Yellow gold · Diamond', rosegold: 'Rose gold · Ruby' }, schritte: ['Exploded view', 'Watchmaker’s tray', 'Engraving', 'Ring & carat'] },
     kueche: { kicker: 'Kitchen design', titel: 'An island that opens', text: 'Fronts, worktop and handles change together — sage with oak, white with Carrara marble, walnut with ceramic. Doors and drawers open, the worktop lifts: customers see what they get before the survey.', alt: 'Kitchen island with sink and hob in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my kitchen studio', varianten: { salbei: 'Sage · Oak · Brass', weiss: 'White · Carrara · Steel', nussbaum: 'Walnut · Ceramic · Black' }, schritte: ['Open', 'Lift the worktop'] },
-    gastro: { kicker: 'Restaurants', titel: 'A table for two, laid', text: 'Tablecloth and tableware change together — white linen with porcelain, terracotta with stoneware, charcoal with black stoneware. Laid by the rules of service; in the evening the candle carries the light.', alt: 'Table laid for two with a candle in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my restaurant', varianten: { weiss: 'White linen · Porcelain', terrakotta: 'Terracotta · Sand stoneware', anthrazit: 'Charcoal · Black stoneware' }, ganz: 'Day', schritte: ['Evening'] },
-    salon: { kicker: 'Hair & salon', titel: 'Styling station with chair and mirror', text: 'Upholstery, metal and wall change together — cognac with brass on sage, black with chrome on lime plaster, petrol velvet with black on charcoal. The chair turns to the guest and rises; in the evening only the mirror glows.', alt: 'Styling chair in front of a backlit mirror in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my salon', varianten: { cognac: 'Cognac · Brass · Sage', schwarz: 'Black · Chrome · Lime', petrol: 'Petrol velvet · Black · Charcoal' }, schritte: ['Turn the chair', 'Evening light'] },
-    lkw: { kicker: 'Logistics', titel: 'Articulated lorry with load', text: 'Tractor unit and curtainsider to EU dimensions, 16.5 metres, loaded with Euro pallets. Cab and curtain take your fleet colours; the curtain slides open, the cab tilts, the axles come apart.', alt: 'Articulated lorry with curtainsider trailer in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my haulage company', varianten: { rot: 'Red · White curtain', weiss: 'White · Grey curtain', blau: 'Blue · Blue curtain' }, schritte: ['Open the curtain', 'Tilt the cab', 'Axles'] },
+    gastro: { kunde: { knopf: 'What your guests see: book a table', titel: 'Book a table', zeilen: ['Window table'] }, kicker: 'Restaurants', titel: 'A table for two, laid', text: 'Tablecloth and tableware change together — white linen with porcelain, terracotta with stoneware, charcoal with black stoneware. Laid by the rules of service; in the evening the candle carries the light.', alt: 'Table laid for two with a candle in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my restaurant', varianten: { weiss: 'White linen · Porcelain', terrakotta: 'Terracotta · Sand stoneware', anthrazit: 'Charcoal · Black stoneware' }, ganz: 'Day', schritte: ['Evening'] },
+    salon: { kunde: { knopf: 'What your customers see: book', titel: 'Book an appointment', zeilen: ['Cut & blow-dry'] }, kicker: 'Hair & salon', titel: 'Styling station with chair and mirror', text: 'Upholstery, metal and wall change together — cognac with brass on sage, black with chrome on lime plaster, petrol velvet with black on charcoal. The chair turns to the guest and rises; in the evening only the mirror glows.', alt: 'Styling chair in front of a backlit mirror in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my salon', varianten: { cognac: 'Cognac · Brass · Sage', schwarz: 'Black · Chrome · Lime', petrol: 'Petrol velvet · Black · Charcoal' }, schritte: ['Turn the chair', 'Evening light'] },
+    lkw: { kunde: { knopf: 'What your customers see: request a transport', titel: 'Request a transport', zeilen: ['Curtainsider 13.6 m, side loading'] }, kicker: 'Logistics', titel: 'Articulated lorry with load', text: 'Tractor unit and curtainsider to EU dimensions, 16.5 metres, loaded with Euro pallets. Cab and curtain take your fleet colours; the curtain slides open, the cab tilts, the axles come apart.', alt: 'Articulated lorry with curtainsider trailer in a dark studio, rendered with Blender Cycles', cta: 'Something like this for my haulage company', varianten: { rot: 'Red · White curtain', weiss: 'White · Grey curtain', blau: 'Blue · Blue curtain' }, schritte: ['Open the curtain', 'Tilt the cab', 'Axles'] },
   },
 }[SPRACHE];
 const PRODUKTE = {
-  wein: { mb: 1.6, varianten: [['rosso', '#5b0f1c'], ['bianco', '#d9cf8a'], ['olio', '#66751f']] },
-  schmuck: { mb: 1.2, varianten: [['stahl', '#b9bcc0'], ['gelbgold', '#d9b25a'], ['rosegold', '#d99a86']] },
+  wein: { mb: 1.6, kunde: {}, varianten: [['rosso', '#5b0f1c'], ['bianco', '#d9cf8a'], ['olio', '#66751f']] },
+  schmuck: { mb: 1.2, kunde: { termin: { zeiten: ['10:00', '12:00', '15:00', '17:30'] } }, varianten: [['stahl', '#b9bcc0'], ['gelbgold', '#d9b25a'], ['rosegold', '#d99a86']] },
   kueche: { mb: 1.6, varianten: [['salbei', '#6f7f6c'], ['weiss', '#e4e2dc'], ['nussbaum', '#5a3a24']] },
-  lkw: { mb: 1.1, varianten: [['rot', '#8f1519'], ['weiss', '#e6e8ec'], ['blau', '#1f2c52']] },
+  lkw: { mb: 1.1, kunde: { termin: { zeiten: ['06:00', '08:00', '10:00', '14:00'] } }, varianten: [['rot', '#8f1519'], ['weiss', '#e6e8ec'], ['blau', '#1f2c52']] },
   salon: { mb: 1.2, licht: 2, varianten: [['cognac', '#8a4a22'], ['schwarz', '#1d1d1f'], ['petrol', '#15474d']] },
-  gastro: { mb: 1.2, licht: 1, varianten: [['weiss', '#e8e6e0'], ['terrakotta', '#a4492c'], ['anthrazit', '#3a3b3e']] },
+  gastro: { mb: 1.2, licht: 1, kunde: { personen: true, termin: { zeiten: ['12:30', '13:15', '19:00', '19:30', '20:30'] } }, varianten: [['weiss', '#e8e6e0'], ['terrakotta', '#a4492c'], ['anthrazit', '#3a3b3e']] },
 };
 const $ = (s, w = document) => w.querySelector(s);
 const $$ = (s, w = document) => [...w.querySelectorAll(s)];
@@ -374,7 +383,8 @@ function buehneAnlegen(fig) {
   function fotoSchluessel() { return z.innen && z.ausstattung ? `innen-${z.ausstattung}` : z.variante; }
   function aus(ansicht) {
     // Zerlegt und mit Licht gibt es kein Foto -- dann bleibt die Echtzeit.
-    if (!z.echtzeit || z.zerlegt || z.licht || z.details) return;
+    // Eine geänderte Ladung (Ladeplaner) gibt es auf keinem Foto -- dann auch.
+    if (!z.echtzeit || z.zerlegt || z.licht || z.details || z.ladung) return;
     if ((ansicht === 'innen') !== z.innen) return;
     // In der Echtzeit gewählte Variante: erst ihr Foto unterlegen, dann blenden.
     if (z.gezeigt !== fotoSchluessel()) bildZeigen(fotoSchluessel());
@@ -387,7 +397,7 @@ function buehneAnlegen(fig) {
     if (z.echtzeit) {
       // Zurück zum Foto: zusammensetzen, Licht aus, auf den Standpunkt
       // fahren. Das Foto blendet ein, sobald die Kamera dort steht (beiRuhe).
-      z.zerlegt = false; z.licht = false; z.details = false;
+      z.zerlegt = false; z.licht = false; z.details = false; z.ladung = false;
       const warInnen = z.innen; z.innen = false;
       if (z.p) { z.p.zerlegen(false); z.p.licht(false); z.p.punkte(false); if (warInnen) z.p.innenraum(false); else z.p.heim(); }
       fig.dispatchEvent(new CustomEvent('bd:zurueck'));
@@ -462,7 +472,7 @@ function buehneAnlegen(fig) {
     if (neu === modell) return;
     const warEchtzeit = z.echtzeit;
     if (z.p) { try { z.p.entsorgen(); } catch (f) { console.warn('[branchen] entsorgen:', f); } }
-    z.p = null; z.laedt = null; z.zerlegt = false; z.licht = false; z.details = false; z.echtzeit = false; z.innen = false;
+    z.p = null; z.laedt = null; z.zerlegt = false; z.licht = false; z.details = false; z.echtzeit = false; z.innen = false; z.ladung = false;
     z.ausstattung = MODELLE[neu] && MODELLE[neu].innen ? MODELLE[neu].innen[0][0] : null; z.ausstattungNr = 0;
     fig.classList.remove('hat-echtzeit', 'ist-echtzeit'); halter.setAttribute('aria-hidden', 'true');
     ankerZeigen([], null);
@@ -487,7 +497,10 @@ function buehneAnlegen(fig) {
     fig.dispatchEvent(new CustomEvent('bd:zurueck'));
     z.p.anhalten();
   }
-  return { variante, ausstattung, innenraum, zerlegen, licht, details, modellWechseln, ruhen, get z() { return z; }, get modell() { return modell; } };
+  async function gravur(t) { const p = await laden(); if (p) p.gravur(t); }
+  async function stein(k) { const p = await laden(); if (p) p.stein(k); }
+  async function ladung(n) { const p = await laden(); if (!p) return; z.ladung = true; an(); p.ladung(n); }
+  return { variante, ausstattung, innenraum, zerlegen, licht, details, gravur, stein, ladung, modellWechseln, ruhen, get z() { return z; }, get modell() { return modell; } };
 }
 
 /* Galerie: Bühne zugeklappt -> beide Demos anhalten (siehe ruhen()). */
@@ -567,6 +580,17 @@ if (autoFig) {
     zaehlen(`${b.modell}-ausstattung-${k.dataset.ausstattung}`);
   });
   auswahlMitgeben($('#bd-auto-cta'), `${b.modell}-${autoFig.dataset.variante}`);
+  /* Wunsch B6: Probefahrt mit genau diesem Lack und dieser Ausstattung --
+     so, wie es der Kunde des Autohauses erlebt (kundenablauf.js). */
+  $('#bd-auto-kunde')?.addEventListener('click', () => {
+    const m = b.modell, TM = TEXT.modelle[m];
+    const l = lack && lack.querySelector('button[aria-pressed="true"]');
+    const i = innenWahl && innenWahl.querySelector('button[aria-pressed="true"]');
+    const zeilen = [TEXT.probeModell[m], TM.lacke[l ? l.dataset.variante : MODELLE[m].lacke[0][0]]];
+    if (i && TM.innen) zeilen.push(TM.innen[i.dataset.ausstattung]);
+    zaehlen('auto-kunde');
+    document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: { titel: TEXT.probeTitel, zeilen, termin: { zeiten: ['09:00', '11:00', '14:00', '16:30'] }, ziel: $('#bd-auto-cta').getAttribute('href') } }));
+  });
   /* Drei Autos (23.09.2026): Kleinwagen und Mittelklasse sind eigene
      Entwuerfe mit den Massen ihrer Klasse (3d-produktion/scripts/
      fahrzeug_bau.py), der Sportwagen ist das Konzeptauto. Je Modell eigene
@@ -732,9 +756,12 @@ if (produktFig) {
   function schrittZeigen(n) { for (const x of $$('button', schritte)) x.setAttribute('aria-pressed', String(Number(x.dataset.stufe) === n)); }
   function fuellen(was) {
     const T = PRODUKT_TEXTE[was], M = PRODUKTE[was]; if (!T || !M) return;
+    if (typeof extraZeigen === 'function') extraZeigen(0, was);
     kicker.textContent = T.kicker; titel.textContent = T.titel; text.textContent = T.text;
     if (groesse) groesse.textContent = M.mb.toLocaleString(LOKAL, { minimumFractionDigits: 1 }) + ' MB';
     if (cta) { cta.textContent = T.cta; auswahlMitgeben(cta, `${was}-${M.varianten[0][0]}`); }
+    const kk = $('#pd-kunde');
+    if (kk) { kk.hidden = !(T.kunde && M.kunde); if (T.kunde) kk.textContent = T.kunde.knopf; }
     wahl.replaceChildren(...M.varianten.map(([key, farbe], nr) => {
       const k = document.createElement('button'); k.type = 'button'; k.dataset.variante = key; k.dataset.nr = String(nr);
       k.setAttribute('aria-pressed', String(nr === 0));
@@ -761,16 +788,85 @@ if (produktFig) {
     b.variante(k.dataset.variante, Number(k.dataset.nr));
     if (cta) auswahlMitgeben(cta, `${b.modell}-${k.dataset.variante}`);
   });
+  /* Zusätze je Stufe (Uhr, 24.09.2026): Bei „Gravur" ein Textfeld, dessen
+     Inhalt sofort auf dem Gehäuseboden steht (U3); bei „Ring" das Karat (U4).
+     Der Durchmesser folgt der dritten Wurzel des Gewichts, 1 ct = 6,5 mm. */
+  const extra = $('#pd-extra');
+  let gravurText = '', karatWahl = 1, ladungN = 24;
+  function extraZeigen(n, was = b.modell) {
+    if (!extra) return;
+    if (was === 'lkw' && extra.querySelector('#pd-ladung')) return;   // Schieber nicht unter dem Finger ersetzen
+    extra.replaceChildren(); extra.hidden = true;
+    if (was === 'lkw') {
+      /* Ladeplaner (B5): Speditionen denken in Paletten und Lademetern. Drei
+         Europaletten stehen quer nebeneinander, eine Reihe braucht 1,2 m. */
+      const id = 'pd-ladung';
+      const l = document.createElement('label'); l.className = 'gruppe__name'; l.htmlFor = id; l.textContent = TEXT.ladung;
+      const r = document.createElement('input'); r.type = 'range'; r.id = id; r.min = '1'; r.max = '33'; r.step = '1'; r.value = String(ladungN); r.className = 'pd-ladung';
+      const w = document.createElement('p'); w.className = 'pd-ladung-wert'; w.setAttribute('aria-live', 'polite');
+      const zeigen = () => {
+        const lm = (Math.ceil(ladungN / 3) * 1.2).toLocaleString(LOKAL, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        w.textContent = TEXT.ladungFmt(ladungN, Math.round((ladungN / 33) * 100), lm);
+        r.setAttribute('aria-valuetext', w.textContent);
+      };
+      r.addEventListener('input', () => {
+        ladungN = Number(r.value); zeigen(); b.ladung(ladungN);
+        // Ladung sieht man nur bei offener Plane: sonst den ersten Schritt auslösen
+        const offen = schritte.querySelector('button[aria-pressed="true"]');
+        if (!offen || offen.dataset.stufe === '0') schritte.querySelector('button[data-stufe="1"]')?.click();
+      });
+      r.addEventListener('change', () => zaehlen('lkw-ladung'), { once: true });
+      zeigen(); extra.append(l, r, w); extra.hidden = false;
+      return;
+    }
+    if (was !== 'schmuck') return;
+    if (n === 3) {
+      const id = 'pd-gravur';
+      const l = document.createElement('label'); l.className = 'gruppe__name'; l.htmlFor = id; l.textContent = TEXT.gravur;
+      const f = document.createElement('textarea'); f.id = id; f.className = 'pd-gravur'; f.rows = 2; f.maxLength = 60; f.placeholder = TEXT.gravurPlatz; f.value = gravurText;
+      f.addEventListener('input', () => { gravurText = f.value.split('\n').slice(0, 3).join('\n'); b.gravur(gravurText); });
+      const h = document.createElement('p'); h.className = 'pd-klein'; h.textContent = TEXT.gravurHinweis;
+      extra.append(l, f, h); extra.hidden = false;
+      b.gravur(gravurText || TEXT.gravurPlatz);
+      if (!gravurText) f.addEventListener('focus', () => { if (!gravurText) b.gravur(''); }, { once: true });
+    } else if (n === 4) {
+      const l = document.createElement('span'); l.className = 'gruppe__name'; l.id = 'pd-l-karat'; l.textContent = TEXT.karat;
+      const c = document.createElement('div'); c.className = 'chips chips--umbruch'; c.setAttribute('role', 'group'); c.setAttribute('aria-labelledby', 'pd-l-karat');
+      for (const k of [0.5, 0.75, 1, 1.5, 2]) {
+        const bt = document.createElement('button'); bt.type = 'button'; bt.setAttribute('aria-pressed', String(k === karatWahl));
+        const mm = (6.5 * Math.cbrt(k)).toLocaleString(LOKAL, { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+        bt.textContent = TEXT.karatFmt(k.toLocaleString(LOKAL), mm);
+        bt.addEventListener('click', () => { karatWahl = k; for (const x of c.children) x.setAttribute('aria-pressed', String(x === bt)); b.stein(k); zaehlen('schmuck-karat'); });
+        c.append(bt);
+      }
+      extra.append(l, c); extra.hidden = false;
+    }
+  }
   schritte.addEventListener('click', (e) => {
     const k = e.target.closest('button[data-stufe]'); if (!k) return;
     const n = Number(k.dataset.stufe);
-    schrittZeigen(n);
+    schrittZeigen(n); extraZeigen(n);
     // Ein Schritt kann statt Zerlegen das Licht wechseln (Gastronomie: Abend)
     const lichtStufe = PRODUKTE[b.modell] && PRODUKTE[b.modell].licht;
     if (lichtStufe && n === lichtStufe) { b.zerlegen(false); b.licht(true); }
     else { if (lichtStufe) b.licht(false); b.zerlegen(n || false); }
     if (n) zaehlen(`${b.modell}-stufe-${n}`);
   });
-  produktFig.addEventListener('bd:zurueck', () => schrittZeigen(0));
+  produktFig.addEventListener('bd:zurueck', () => { schrittZeigen(0); extraZeigen(0); });
+  /* Der Weg des Endkunden (kundenablauf.js): mit der gewählten Variante und,
+     bei der Uhr, Gravur und Karat -- genau so käme es beim Betrieb an. */
+  if (new URLSearchParams(location.search).has('pruefen')) window.__produkt = () => b.z.p;
+  $('#pd-kunde')?.addEventListener('click', () => {
+    const was = b.modell, T = PRODUKT_TEXTE[was], M = PRODUKTE[was]; if (!T || !T.kunde || !M.kunde) return;
+    const aktiv = wahl.querySelector('button[aria-pressed="true"]');
+    const zeilen = [T.varianten[aktiv ? aktiv.dataset.variante : M.varianten[0][0]], ...T.kunde.zeilen];
+    if (was === 'lkw') zeilen.splice(1, 0, TEXT.ladungFmt(ladungN, Math.round((ladungN / 33) * 100), (Math.ceil(ladungN / 3) * 1.2).toLocaleString(LOKAL, { minimumFractionDigits: 1, maximumFractionDigits: 1 })));
+    if (was === 'schmuck') {
+      if (karatWahl !== 1) zeilen.splice(1, 0, TEXT.karatFmt(karatWahl.toLocaleString(LOKAL), (6.5 * Math.cbrt(karatWahl)).toLocaleString(LOKAL, { maximumFractionDigits: 1, minimumFractionDigits: 1 })));
+      if (gravurText.trim()) zeilen.splice(1, 0, `${TEXT.gravur}: „${gravurText.trim().replace(/\n/g, ' / ')}“`);
+    }
+    zaehlen('produkt-kunde');
+    document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: { titel: T.kunde.titel, zeilen, ...M.kunde, ziel: cta ? cta.getAttribute('href') : '/bedarf.php' } }));
+  });
   if (!webglDa()) schritte.closest('.gruppe').hidden = true;
 }

@@ -91,95 +91,441 @@
   0.0094
  ],
  "zerlegen": {
-  "dauer": 3.6,
-  "breite": 0.26,
+  "dauer": 3.8,
+  "breite": 0.3,
   "stufen": [
-   "glas",
-   "zeiger",
-   "werk"
+   "explosion",
+   "tablett",
+   "gravur",
+   "ring"
   ],
   "fokus": "^(uhr_|zeiger_|blatt_|werk_)",
   "regeln": [
    {
     "muster": "^uhr_glas$",
-    "hoch": 0.04,
+    "weg": [
+     -0.046,
+     0.0751,
+     -0.008
+    ],
     "start": 0.0,
     "stufe": 1,
-    "beschriftung": "glas"
+    "beschriftung": "glas",
+    "tablett": [
+     0.045,
+     -0.0101,
+     -0.05
+    ]
    },
    {
     "muster": "^uhr_luenette$",
-    "hoch": 0.028,
-    "start": 0.08,
+    "weg": [
+     -0.046,
+     0.0522,
+     -0.008
+    ],
+    "start": 0.06,
     "stufe": 1,
-    "beschriftung": "luenette"
-   },
-   {
-    "muster": "^uhr_krone(_kappe)?$",
-    "seite": 0.012,
-    "start": 0.14,
-    "stufe": 1,
-    "beschriftung": "krone"
+    "beschriftung": "luenette",
+    "tablett": [
+     0.09,
+     -0.0087,
+     -0.05
+    ]
    },
    {
     "muster": "^zeiger_kappe$",
-    "hoch": 0.03,
-    "start": 0.3,
-    "stufe": 2
+    "weg": [
+     -0.046,
+     0.0397,
+     -0.008
+    ],
+    "start": 0.12,
+    "stufe": 1,
+    "tablett": [
+     0.104,
+     -0.007,
+     0.072
+    ]
    },
    {
     "muster": "^zeiger_sekunde$",
-    "hoch": 0.026,
-    "start": 0.32,
-    "stufe": 2
+    "weg": [
+     -0.0478,
+     0.0367,
+     -0.00488
+    ],
+    "start": 0.15,
+    "stufe": 1,
+    "tablett": [
+     0.091,
+     -0.00715,
+     0.0668
+    ]
    },
    {
     "muster": "^zeiger_minute$",
-    "hoch": 0.022,
-    "start": 0.36,
-    "stufe": 2,
-    "beschriftung": "zeiger"
+    "weg": [
+     -0.04222,
+     0.034,
+     -0.01016
+    ],
+    "start": 0.18,
+    "stufe": 1,
+    "beschriftung": "zeiger",
+    "tablett": [
+     0.0557,
+     -0.0068,
+     0.0756
+    ]
    },
    {
     "muster": "^zeiger_stunde$",
-    "hoch": 0.018,
-    "start": 0.4,
-    "stufe": 2
+    "weg": [
+     -0.04834,
+     0.0313,
+     -0.00962
+    ],
+    "start": 0.21,
+    "stufe": 1,
+    "tablett": [
+     0.0439,
+     -0.0065,
+     0.0747
+    ]
    },
    {
     "muster": "^blatt_",
-    "hoch": 0.014,
-    "start": 0.46,
-    "stufe": 2,
-    "beschriftung": "blatt"
+    "weg": [
+     -0.046,
+     0.008,
+     -0.008
+    ],
+    "start": 0.26,
+    "stufe": 1,
+    "beschriftung": "blatt",
+    "tablett": [
+     0.135,
+     -0.0057,
+     -0.05
+    ]
    },
    {
     "muster": "^werk_rotor$",
-    "hoch": 0.01,
-    "start": 0.64,
-    "stufe": 3,
-    "beschriftung": "rotor"
+    "weg": [
+     0.046,
+     0.0807,
+     -0.008
+    ],
+    "start": 0.3,
+    "stufe": 1,
+    "beschriftung": "rotor",
+    "tablett": [
+     0.0875,
+     -0.00495,
+     -0.011
+    ]
+   },
+   {
+    "muster": "^werk_rad_0$",
+    "weg": [
+     0.0488,
+     0.0571,
+     -0.0122
+    ],
+    "start": 0.36,
+    "stufe": 1,
+    "beschriftung": "rad",
+    "tablett": [
+     0.108,
+     -0.0047,
+     0.044
+    ]
+   },
+   {
+    "muster": "^werk_rad_1$",
+    "weg": [
+     0.0411,
+     0.0571,
+     -0.01255
+    ],
+    "start": 0.36,
+    "stufe": 1,
+    "tablett": [
+     0.135,
+     -0.0047,
+     0.0445
+    ]
+   },
+   {
+    "muster": "^werk_rad_2$",
+    "weg": [
+     0.05055,
+     0.0571,
+     -0.00415
+    ],
+    "start": 0.36,
+    "stufe": 1,
+    "tablett": [
+     0.1375,
+     -0.0047,
+     0.0325
+    ]
    },
    {
     "muster": "^werk_unruh$",
-    "hoch": 0.0085,
-    "start": 0.68,
-    "stufe": 3,
-    "beschriftung": "unruh"
+    "weg": [
+     0.0404,
+     0.059,
+     -0.0038
+    ],
+    "start": 0.36,
+    "stufe": 1,
+    "beschriftung": "unruh",
+    "tablett": [
+     0.1,
+     -0.00475,
+     0.032
+    ]
    },
    {
-    "muster": "^werk_(rad|lager)_",
-    "hoch": 0.0072,
-    "start": 0.7,
-    "stufe": 3
+    "muster": "^werk_lager_0$",
+    "weg": [
+     0.05365,
+     0.0541,
+     -0.008
+    ],
+    "start": 0.38,
+    "stufe": 1,
+    "tablett": [
+     0.1515,
+     -0.0047,
+     0.038
+    ]
    },
    {
-    "muster": "^werk_bruecke_",
-    "hoch": 0.0055,
-    "start": 0.72,
-    "stufe": 3
+    "muster": "^werk_lager_1$",
+    "weg": [
+     0.04951,
+     0.0541,
+     -0.01484
+    ],
+    "start": 0.38,
+    "stufe": 1,
+    "tablett": [
+     0.1621,
+     -0.0047,
+     0.0456
+    ]
+   },
+   {
+    "muster": "^werk_lager_2$",
+    "weg": [
+     0.0415,
+     0.0541,
+     -0.01421
+    ],
+    "start": 0.38,
+    "stufe": 1,
+    "tablett": [
+     0.177,
+     -0.0047,
+     0.0449
+    ]
+   },
+   {
+    "muster": "^werk_lager_3$",
+    "weg": [
+     0.03844,
+     0.0541,
+     -0.00683
+    ],
+    "start": 0.38,
+    "stufe": 1,
+    "tablett": [
+     0.1864,
+     -0.0047,
+     0.0367
+    ]
+   },
+   {
+    "muster": "^werk_lager_4$",
+    "weg": [
+     0.04366,
+     0.0541,
+     -0.00071
+    ],
+    "start": 0.38,
+    "stufe": 1,
+    "tablett": [
+     0.1866,
+     -0.0047,
+     0.0299
+    ]
+   },
+   {
+    "muster": "^werk_lager_5$",
+    "weg": [
+     0.0514,
+     0.0541,
+     -0.0026
+    ],
+    "start": 0.38,
+    "stufe": 1,
+    "tablett": [
+     0.184,
+     -0.0047,
+     0.032
+    ]
+   },
+   {
+    "muster": "^werk_bruecke_a$",
+    "weg": [
+     0.046,
+     0.0335,
+     -0.004
+    ],
+    "start": 0.42,
+    "stufe": 1,
+    "beschriftung": "bruecke",
+    "tablett": [
+     0.0395,
+     -0.0041,
+     0.035
+    ]
+   },
+   {
+    "muster": "^werk_bruecke_b$",
+    "weg": [
+     0.046,
+     0.0365,
+     -0.013
+    ],
+    "start": 0.42,
+    "stufe": 1,
+    "tablett": [
+     0.0635,
+     -0.0041,
+     0.0442
+    ]
+   },
+   {
+    "muster": "^werk_platine$",
+    "weg": [
+     0.046,
+     0.0104,
+     -0.008
+    ],
+    "start": 0.48,
+    "stufe": 1,
+    "beschriftung": "platine",
+    "tablett": [
+     0.045,
+     -0.0029,
+     -0.004
+    ]
+   },
+   {
+    "muster": "^uhr_krone$",
+    "weg": [
+     0.01,
+     0.0,
+     0.0
+    ],
+    "start": 0.1,
+    "stufe": 1,
+    "beschriftung": "krone",
+    "tablett": [
+     0.1008,
+     -0.00245,
+     0.072
+    ]
+   },
+   {
+    "muster": "^uhr_krone_kappe$",
+    "weg": [
+     0.016,
+     0.0,
+     0.0
+    ],
+    "start": 0.1,
+    "stufe": 1,
+    "tablett": [
+     0.1112,
+     -0.0025,
+     0.072
+    ]
+   },
+   {
+    "muster": "^uhr_krone_tubus$",
+    "weg": [
+     0.005,
+     0.0,
+     0.0
+    ],
+    "start": 0.1,
+    "stufe": 1,
+    "tablett": [
+     0.1242,
+     -0.0041,
+     0.072
+    ]
+   },
+   {
+    "muster": "^uhr_boden$",
+    "weg": [
+     0.046,
+     0.0,
+     0.04
+    ],
+    "start": 0.55,
+    "stufe": 1,
+    "beschriftung": "boden",
+    "tablett": [
+     0.135,
+     0.0001,
+     -0.004
+    ],
+    "wende": 180
    }
-  ]
+  ],
+  "tablett_stufe": 2,
+  "ansichten": {
+   "2": {
+    "zerlegt": 1,
+    "tablett": 1,
+    "fokus": "^(uhr_|zeiger_|blatt_|werk_)",
+    "neig": 1.05,
+    "luft": 1.04,
+    "winkel": 0.26
+   },
+   "3": {
+    "zerlegt": 1,
+    "fokus": "^uhr_boden$",
+    "neig": 1.15,
+    "luft": 1.35,
+    "schilder": false,
+    "umgebung": "zelt",
+    "umgebung_staerke": 0.7
+   },
+   "4": {
+    "zerlegt": 0,
+    "fokus": "^ring_",
+    "neig": 0.66,
+    "luft": 1.0,
+    "schilder": false,
+    "winkel": 0.26,
+    "umgebung": "zelt",
+    "umgebung_staerke": 0.9
+   },
+   "1": {
+    "zerlegt": 1,
+    "fokus": "^(uhr_|zeiger_|blatt_|werk_)",
+    "neig": 0.5,
+    "luft": 1.04,
+    "winkel": 0.26
+   }
+  }
  },
  "dreiecke": 30195
 }

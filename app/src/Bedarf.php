@@ -123,6 +123,19 @@ final class Bedarf
             ],
             'zweck' => ['zeigen', 'kontakt'],
         ],
+        'haar' => [
+            'name' => ['it' => 'demo parrucchieri', 'de' => 'Friseur-Demo', 'en' => 'hair salon demo'],
+            'art'  => ['it' => 'colore desiderato', 'de' => 'Wunschfarbe', 'en' => 'chosen colour'],
+            'varianten' => [
+                'schwarz' => ['it' => 'nero naturale', 'de' => 'Naturschwarz', 'en' => 'natural black'],
+                'kastanie' => ['it' => 'castano', 'de' => 'Kastanie', 'en' => 'chestnut'],
+                'kupfer' => ['it' => 'ramato', 'de' => 'Kupfer', 'en' => 'copper'],
+                'balayage' => ['it' => 'balayage caramello', 'de' => 'Karamell-Balayage', 'en' => 'caramel balayage'],
+                'aschblond' => ['it' => 'biondo cenere', 'de' => 'Aschblond', 'en' => 'ash blonde'],
+                'rosegold' => ['it' => 'oro rosa', 'de' => 'Rosé-Gold', 'en' => 'rose gold'],
+            ],
+            'zweck' => ['zeigen', 'kontakt'],
+        ],
         'lkw' => [
             'name' => ['it' => 'demo logistica', 'de' => 'Demo Logistik', 'en' => 'logistics demo'],
             'art'  => ['it' => 'colore flotta', 'de' => 'Flottenfarbe', 'en' => 'fleet colour'],
