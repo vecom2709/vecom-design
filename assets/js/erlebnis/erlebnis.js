@@ -792,59 +792,119 @@ if (ergebnisEl) ergebnisEl.addEventListener('click', (e) => {
   $('#villa').scrollIntoView({ behavior: BEWEGUNG_AUS ? 'auto' : 'smooth', block: 'center' });
 });
 
-/* ================================================================ TISCH */
+/* ================================================================ TISCH
+   23.09.2026, Uwe: „der Tisch flackert beim Drehen". Gemessen, zwei Ursachen:
+   1. Das Bild wechselte zwischen zwei Sätzen: 360 px („klein", vorab) und
+      1600 px („gross", nachgeladen). Solange nicht alle großen da waren,
+      kam beim Drehen abwechselnd ein scharfes und ein hochskaliertes,
+      weiches Bild -- das Auge liest das als Flackern. Dazu setzte jedes
+      Bild img.src neu; ein noch nicht dekodiertes Bild kann für einen
+      Frame leer bleiben.
+   2. Die Messingwangen spiegeln das Studiolicht. Bei 36 Schritten à 10°
+      springt die mittlere Helligkeit von einem Bild zum nächsten um bis zu
+      15 Stufen (44 → 55 zwischen 7 und 8): Die Wange ist im einen Bild
+      dunkel, im nächsten voll im Licht.
+   Jetzt: ein <canvas> über dem Standbild, gezeichnet nur aus fertig
+   dekodierten Bildern EINES Satzes (erst klein, dann -- einmal, wenn alle
+   da sind -- groß), und zwischen zwei Nachbarbildern wird überblendet:
+   Die Stellung ist eine Kommazahl, nicht mehr ein ganzer Schritt. Beim
+   Loslassen rastet sie auf das nächste ganze Bild ein, damit im Stand kein
+   Doppelbild bleibt. */
 const dreh = $('#dreh');
 if (dreh) {
   const drehBild = $('#dreh-bild');
   const DREH_N = 36;
   const DREH = '/assets/img/3d/tisch/drehen/';
-  const drehAdresse = (i, g) => `${DREH}${g}/dreh-${String(((i % DREH_N) + DREH_N) % DREH_N).padStart(2, '0')}.webp`;
-  let drehI = 0; let drehGross = new Set(); let drehBereit = false; let drehZiehen = null; let selbstlauf = null;
+  const drehAdresse = (i, g) => `${DREH}${g}/dreh-${String(i).padStart(2, '0')}.webp`;
+  const mod = (i) => ((i % DREH_N) + DREH_N) % DREH_N;
+  const leinwand = document.createElement('canvas');
+  leinwand.className = 'dreh__leinwand'; leinwand.setAttribute('aria-hidden', 'true');
+  dreh.insertBefore(leinwand, drehBild.nextSibling);
+  const ctx = leinwand.getContext('2d');
+  let satz = null;             // Array der fertig dekodierten Bilder (ein Satz)
+  let pos = 0; let ziel = 0;   // Stellung in Bildern, Kommazahl
+  let drehBereit = false; let drehZiehen = null; let selbstlauf = false; let rafId = 0; let letzt = 0;
 
-  function drehZeigen(i) {
-    drehI = ((i % DREH_N) + DREH_N) % DREH_N;
-    drehBild.src = drehAdresse(drehI, drehGross.has(drehI) ? 'gross' : 'klein');
-    dreh.setAttribute('aria-valuenow', String(drehI));
+  async function satzLaden(g) {
+    const liste = await Promise.all(Array.from({ length: DREH_N }, async (_, i) => {
+      const b = new Image(); b.decoding = 'async'; b.src = drehAdresse(i, g);
+      try { await b.decode(); return b; } catch { return null; }
+    }));
+    return liste.every(Boolean) ? liste : null;
   }
-  function drehVorladen() {
+  function groesse() {
+    const r = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.round(dreh.clientWidth * r), h = Math.round(dreh.clientHeight * r);
+    if (leinwand.width !== w || leinwand.height !== h) { leinwand.width = w; leinwand.height = h; }
+  }
+  function malen(b, alpha) {
+    // wie object-fit: cover
+    const W = leinwand.width, H = leinwand.height, s = Math.max(W / b.naturalWidth, H / b.naturalHeight);
+    const w = b.naturalWidth * s, h = b.naturalHeight * s;
+    ctx.globalAlpha = alpha; ctx.drawImage(b, (W - w) / 2, (H - h) / 2, w, h);
+  }
+  function zeichnen() {
+    if (!satz) return;
+    groesse();
+    const i0 = Math.floor(pos), f = pos - i0;
+    malen(satz[mod(i0)], 1);
+    if (f > 0.001) malen(satz[mod(i0 + 1)], f);
+    ctx.globalAlpha = 1;
+    dreh.setAttribute('aria-valuenow', String(mod(Math.round(pos))));
+  }
+  function schleife(t) {
+    const dt = letzt ? Math.min(0.05, (t - letzt) / 1000) : 1 / 60; letzt = t;
+    if (selbstlauf) {
+      ziel += dt * 7;              // 36 Bilder in gut 5 s, wie zuvor
+      if (ziel >= DREH_N) { ziel = DREH_N; selbstlauf = false; }
+    }
+    if (drehZiehen) pos = ziel;
+    else pos += (ziel - pos) * (BEWEGUNG_AUS ? 1 : 1 - Math.exp(-dt * 18));
+    if (Math.abs(ziel - pos) < 0.002) pos = ziel;
+    zeichnen();
+    if (selbstlauf || drehZiehen || pos !== ziel) rafId = requestAnimationFrame(schleife);
+    else { rafId = 0; letzt = 0; pos = ziel = mod(Math.round(ziel)); zeichnen(); }
+  }
+  const anstossen = () => { if (!rafId && satz) rafId = requestAnimationFrame(schleife); };
+
+  async function drehVorladen() {
     if (drehBereit) return; drehBereit = true;
-    // Klein zuerst (je gut 4 KB): Dann springt das Drehen nie ins Leere.
-    for (let i = 0; i < DREH_N; i++) { const k = new Image(); k.src = drehAdresse(i, 'klein'); }
-    let n = 0;
-    const weiter = () => {
-      if (n >= DREH_N) return;
-      const i = n++; const g = new Image();
-      g.onload = () => { drehGross.add(i); if (i === drehI) drehZeigen(drehI); weiter(); };
-      g.onerror = weiter; g.src = drehAdresse(i, 'gross');
-    };
-    weiter(); weiter();
+    const klein = await satzLaden('klein');
+    if (klein && !satz) { satz = klein; leinwand.classList.add('ist-an'); zeichnen(); anstossen(); }
+    // Den großen Satz erst übernehmen, wenn er VOLLSTÄNDIG da ist -- nie gemischt.
+    const gross = await satzLaden('gross');
+    if (gross) { satz = gross; leinwand.classList.add('ist-an'); zeichnen(); anstossen(); }
   }
-  function selbstlaufStop() { if (selbstlauf) { clearInterval(selbstlauf); selbstlauf = null; } }
+  function selbstlaufStop() { if (selbstlauf) { selbstlauf = false; ziel = Math.round(pos); } }
   dreh.addEventListener('pointerdown', (e) => {
     drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
-    drehZiehen = { x: e.clientX, i: drehI }; dreh.setPointerCapture(e.pointerId);
+    drehZiehen = { x: e.clientX, p: pos };
+    try { dreh.setPointerCapture(e.pointerId); } catch { /* ohne Zeigerfang */ }
+    anstossen();
   });
   dreh.addEventListener('pointermove', (e) => {
     if (!drehZiehen) return;
     const schritt = Math.max(6, dreh.clientWidth / 48);
-    drehZeigen(drehZiehen.i - Math.round((e.clientX - drehZiehen.x) / schritt));
+    ziel = drehZiehen.p - (e.clientX - drehZiehen.x) / schritt;
+    anstossen();
   });
-  const drehLos = () => { drehZiehen = null; };
+  const drehLos = () => { if (!drehZiehen) return; drehZiehen = null; ziel = Math.round(pos); anstossen(); };
   dreh.addEventListener('pointerup', drehLos); dreh.addEventListener('pointercancel', drehLos);
   dreh.addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
     e.preventDefault(); drehVorladen(); selbstlaufStop(); dreh.classList.add('ist-benutzt');
-    drehZeigen(drehI + (e.key === 'ArrowRight' ? 1 : -1));
+    ziel = Math.round(ziel) + (e.key === 'ArrowRight' ? 1 : -1); anstossen();
   });
+  new ResizeObserver(() => zeichnen()).observe(dreh);
   new IntersectionObserver((eintraege) => {
     for (const e of eintraege) {
       if (e.isIntersecting) {
-        drehVorladen();
-        // Einmal langsam drehen, damit man sieht, dass es geht -- danach Ruhe.
-        if (!BEWEGUNG_AUS && !selbstlauf && !dreh.classList.contains('ist-benutzt')) {
-          let n = 0;
-          selbstlauf = setInterval(() => { drehZeigen(drehI + 1); if (++n >= DREH_N) selbstlaufStop(); }, 140);
-        }
+        drehVorladen().then(() => {
+          // Einmal langsam drehen, damit man sieht, dass es geht -- danach Ruhe.
+          if (!BEWEGUNG_AUS && !selbstlauf && !dreh.classList.contains('ist-benutzt') && !dreh.dataset.gedreht) {
+            dreh.dataset.gedreht = '1'; selbstlauf = true; anstossen();
+          }
+        });
       } else selbstlaufStop();
     }
   }, { threshold: 0.45 }).observe(dreh);
