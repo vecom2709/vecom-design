@@ -27,6 +27,7 @@ TEXTUREN = {
     'kueche': [['^kueche-(eiche|marmor)', 2048], ['^kueche-', 1024], ['^(holz|innen)', 1024]],
     'gastro': [['^innen-stoff', 512], ['^(kueche|holz)', 512]],
     'salon': [['^innen-', 512], ['^(kueche|holz)', 512]],
+    'lkw': [['^lkw-plane', 2048], ['^holz', 512]],
 }
 # Materialanpassungen im Web (Name -> {'umgebung': Staerke der Rundumkarte})
 WEB_MATERIAL = {'salon': {'Spiegel': {'umgebung': 0.6, 'spiegel_dunkel': 0.04}}}
@@ -86,6 +87,40 @@ ZERLEGEN = {
         'dauer': 2.6, 'breite': 0.9, 'stufen': ['stuhl'],
         'regeln': [
             {'muster': '^stuhl_angel$', 'dreh': True, 'hoch': 0.08, 'start': 0.0, 'stufe': 1, 'beschriftung': 'stuhl'},
+        ],
+    },
+    # Sattelzug: Plane faehrt in acht Feldern nach hinten zusammen, dann
+    # kippt die Kabine, zuletzt gehen die Raeder nach aussen.
+    'lkw': {
+        'dauer': 4.2, 'breite': 0.28, 'stufen': ['plane', 'kabine', 'achsen'],
+        'regeln': [
+            {'muster': '^plane_l_0$', 'vor': -11.407, 'start': 0.12, 'stufe': 1},
+            {'muster': '^plane_r_0$', 'vor': -11.407, 'start': 0.12, 'stufe': 1},
+            {'muster': '^plane_l_1$', 'vor': -9.778, 'start': 0.1, 'stufe': 1},
+            {'muster': '^plane_r_1$', 'vor': -9.778, 'start': 0.1, 'stufe': 1},
+            {'muster': '^plane_l_2$', 'vor': -8.148, 'start': 0.08, 'stufe': 1},
+            {'muster': '^plane_r_2$', 'vor': -8.148, 'start': 0.08, 'stufe': 1},
+            {'muster': '^plane_l_3$', 'vor': -6.518, 'start': 0.06, 'stufe': 1, 'beschriftung': 'plane'},
+            {'muster': '^plane_r_3$', 'vor': -6.518, 'start': 0.06, 'stufe': 1},
+            {'muster': '^plane_l_4$', 'vor': -4.889, 'start': 0.04, 'stufe': 1},
+            {'muster': '^plane_r_4$', 'vor': -4.889, 'start': 0.04, 'stufe': 1},
+            {'muster': '^plane_l_5$', 'vor': -3.259, 'start': 0.02, 'stufe': 1},
+            {'muster': '^plane_r_5$', 'vor': -3.259, 'start': 0.02, 'stufe': 1},
+            {'muster': '^plane_l_6$', 'vor': -1.63, 'start': 0.0, 'stufe': 1},
+            {'muster': '^plane_r_6$', 'vor': -1.63, 'start': 0.0, 'stufe': 1},
+            {'muster': '^kab_angel$', 'dreh': True, 'start': 0.4, 'stufe': 2, 'beschriftung': 'kabine'},
+            {'muster': '^rad_va_l$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_va_r$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_ha_l_aussen$', 'seite': 0.9, 'start': 0.72, 'stufe': 3, 'beschriftung': 'zwilling'},
+            {'muster': '^rad_ha_r_aussen$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_ha_l_innen$', 'seite': 0.45, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_ha_r_innen$', 'seite': 0.45, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_af0_l$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_af0_r$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_af1_l$', 'seite': 0.9, 'start': 0.72, 'stufe': 3, 'beschriftung': 'achsen'},
+            {'muster': '^rad_af1_r$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_af2_l$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
+            {'muster': '^rad_af2_r$', 'seite': 0.9, 'start': 0.72, 'stufe': 3},
         ],
     },
 }

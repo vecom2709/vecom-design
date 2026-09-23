@@ -23,6 +23,7 @@ const EREIGNISSE = [
     'demo-kueche', 'kueche-stufe-1', 'kueche-stufe-2',
     'demo-gastro', 'gastro-stufe-1',
     'demo-salon', 'salon-stufe-1', 'salon-stufe-2',
+    'demo-lkw', 'lkw-stufe-1', 'lkw-stufe-2', 'lkw-stufe-3',
     // Serienautos (23.09.2026): Fahrerplatz, Ausstattung, Zerlegen in Stufen
     'kleinwagen-innen', 'mittelklasse-innen',
     'kleinwagen-ausstattung-stoff-anthrazit', 'kleinwagen-ausstattung-stoff-grau-blau', 'kleinwagen-ausstattung-kunstleder-hell',

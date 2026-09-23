@@ -162,6 +162,7 @@ window.VECOM_I18N.en = {
       demo_kueche_b: "Kitchen design", demo_kueche_t: "An island that opens", demo_kueche_x: "Real time · 1.6 MB",
       demo_gastro_b: "Restaurants", demo_gastro_t: "A table for two, laid", demo_gastro_x: "Real time · 1.2 MB",
       demo_salon_b: "Hair & salon", demo_salon_t: "Styling station", demo_salon_x: "Real time · 1.2 MB",
+      demo_lkw_b: "Logistics", demo_lkw_t: "Articulated lorry", demo_lkw_x: "Real time · 1.1 MB",
       pd_auswahl: "Product", pd_ansicht: "View", pd_nachweis: "Models and labels designed by Vecom Design, rendered with Blender Cycles. Studio light: Poly Haven (CC0).",
       demo_tisch_b: "Furniture", demo_tisch_t: "Table to turn", demo_tisch_x: "36 images · no graphics card",
       tiefer_t: "Technology, comparison, streaming",
