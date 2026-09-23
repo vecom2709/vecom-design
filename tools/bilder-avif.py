@@ -22,6 +22,9 @@ import sys
 from PIL import Image
 
 AVIF_Q = 60         # gemessen, siehe oben
+# Bei 800 px lag q60 knapp UEBER dem Fehler des WebP (1,38 zu 1,31). q66 lag
+# darunter (1,18) -- und besser als q68/q70, gemessen, nicht geschaetzt.
+AVIF_Q_KLEIN = 66
 WEBP_Q = 82
 ZIEL_BR = 'assets/img/erlebnis/branchen'
 ZIEL_VI = 'assets/img/erlebnis/villa'
@@ -40,8 +43,8 @@ def schreiben(quelle, ziel_stamm, webp=False):
     if bild.size != (1600, 900):
         bild = bild.resize((1600, 900), Image.LANCZOS)
     klein = bild.resize((800, 450), Image.LANCZOS)
-    for b, anhang in ((bild, ''), (klein, '-800')):
-        b.save(f'{ziel_stamm}{anhang}.avif', 'AVIF', quality=AVIF_Q, speed=3)
+    for b, anhang, q in ((bild, '', AVIF_Q), (klein, '-800', AVIF_Q_KLEIN)):
+        b.save(f'{ziel_stamm}{anhang}.avif', 'AVIF', quality=q, speed=3)
         if webp:
             b.save(f'{ziel_stamm}{anhang}.webp', 'WEBP', quality=WEBP_Q, method=6)
     return ziel_stamm
