@@ -428,26 +428,69 @@
   });
 
   // 3e Eigener Cursor plus magnetische Knöpfe
+  /* ZEIGER (24.09.2026, Uwe: „Mauszeiger professionell, passend zur Seite").
+     Vorher lagen drei Dinge übereinander: der Systempfeil, ein grauer Ring
+     mit mix-blend-mode: difference und ein Punkt. Difference kehrt Gold in
+     Blau um -- auf dem Goldknopf stand ein blauer Kreis. Jetzt:
+       - Punkt sitzt ohne Verzögerung auf der Spitze (Genauigkeit),
+       - Ring folgt gedämpft (Gewicht, wie ein Objektiv, das nachzieht),
+       - Systempfeil erst ausgeblendet, wenn der eigene Zeiger wirklich
+         läuft (body.cursor-ready) -- scheitert das Skript, bleibt der Pfeil,
+       - Zustände per Ereignis-Delegation, damit auch später eingesetzte
+         Elemente (Projektwahl, Demos) sie bekommen:
+           Link/Knopf  -> Ring weitet sich, zarte Goldfläche
+           Textfeld    -> Ring wird zur Schreibmarke
+           Ziehfläche  -> Ring mit Wort („Ziehen", „Schieben")
+           gedrückt    -> Ring zieht sich zusammen. */
   var fine = window.matchMedia('(pointer: fine)').matches;
   if (fine && !reduced) {
     var ring = document.querySelector('.cursor');
     var dot = document.querySelector('.cursor-dot');
-    if (ring && dot) {
-      var mxp = window.innerWidth / 2, myp = window.innerHeight / 2, rx = mxp, ry = myp;
-      document.addEventListener('pointermove', function (e) {
-        document.body.classList.add('cursor-ready');
-        mxp = e.clientX; myp = e.clientY;
-        dot.style.transform = 'translate3d(' + mxp + 'px,' + myp + 'px,0)';
-      }, { passive: true });
-      (function ride() {
-        rx += (mxp - rx) * 0.16; ry += (myp - ry) * 0.16;
-        ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0)';
-        requestAnimationFrame(ride);
-      })();
-      document.querySelectorAll('a, button, input, textarea, select, .card').forEach(function (el) {
-        el.addEventListener('pointerenter', function () { document.body.classList.add('is-hovering'); });
-        el.addEventListener('pointerleave', function () { document.body.classList.remove('is-hovering'); });
-      });
+    if (!ring) { ring = document.createElement('div'); ring.className = 'cursor'; ring.setAttribute('aria-hidden', 'true'); document.body.appendChild(ring); }
+    if (!dot) { dot = document.createElement('div'); dot.className = 'cursor-dot'; dot.setAttribute('aria-hidden', 'true'); document.body.appendChild(dot); }
+    var wort = document.createElement('span'); wort.className = 'cursor__wort'; ring.appendChild(wort);
+    var sprache = (document.documentElement.lang || 'it').slice(0, 2);
+    var WOERTER = {
+      ziehen:   { de: 'Ziehen', it: 'Trascina', en: 'Drag' },
+      schieben: { de: 'Schieben', it: 'Scorri', en: 'Slide' },
+    };
+    var ZIEH = '.werkbank__buehne canvas, .haus canvas, [data-cursor="ziehen"]';
+    var SCHIEB = '.vergleich__regler, .studie__vergleich input[type="range"], [data-cursor="schieben"]';
+    var TEXT = 'input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), textarea, [contenteditable="true"]';
+    var KNOPF = 'a, button, select, label, summary, [role="button"], .card';
+    var mxp = window.innerWidth / 2, myp = window.innerHeight / 2, rx = mxp, ry = myp, laeuft = false;
+    var body = document.body;
+    function zustand(el) {
+      body.classList.remove('is-hovering', 'cursor--text', 'cursor--wort', 'cursor--gold');
+      if (!el || !el.closest) return;
+      var z = el.closest(ZIEH), s = z ? null : el.closest(SCHIEB);
+      if (z || s) {
+        wort.textContent = WOERTER[z ? 'ziehen' : 'schieben'][sprache] || WOERTER[z ? 'ziehen' : 'schieben'].it;
+        body.classList.add('cursor--wort'); return;
+      }
+      if (el.closest(TEXT)) { body.classList.add('cursor--text'); return; }
+      if (el.closest(KNOPF)) body.classList.add('is-hovering');
+      /* Gold auf Gold verschwindet: über den Goldknöpfen wird der Ring dunkel */
+      body.classList.toggle('cursor--gold', !!el.closest('.btn--primary, .knopf.haupt'));
+    }
+    document.addEventListener('pointermove', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;   // Stift/Touch: Systemzeiger
+      body.classList.add('cursor-ready');
+      mxp = e.clientX; myp = e.clientY;
+      dot.style.transform = 'translate3d(' + mxp + 'px,' + myp + 'px,0)';
+      if (!laeuft) { laeuft = true; rx = mxp; ry = myp; requestAnimationFrame(ride); }
+    }, { passive: true });
+    document.addEventListener('pointerover', function (e) { zustand(e.target); }, { passive: true });
+    document.addEventListener('pointerdown', function () { body.classList.add('cursor--druck'); }, { passive: true });
+    document.addEventListener('pointerup', function () { body.classList.remove('cursor--druck'); }, { passive: true });
+    document.documentElement.addEventListener('pointerleave', function () { body.classList.remove('cursor-ready'); });
+    /* Die Schleife läuft nur, solange der Ring noch nachzieht -- ein ruhender
+       Zeiger kostet keinen einzigen Frame. */
+    function ride() {
+      rx += (mxp - rx) * 0.2; ry += (myp - ry) * 0.2;
+      ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0)';
+      if (Math.abs(mxp - rx) + Math.abs(myp - ry) > 0.1) requestAnimationFrame(ride);
+      else laeuft = false;
     }
 
     document.querySelectorAll('[data-magnetic]').forEach(function (el) {

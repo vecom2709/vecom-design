@@ -282,29 +282,66 @@ body[data-frame="gold"] {
   transition: transform 90ms linear;
 }
 
-/* Eigener Cursor (nur feine Zeiger) */
+/* Eigener Zeiger (nur Maus, nicht bei reduzierter Bewegung).
+   Gold auf Dunkel, mit einem Hauch dunkler Kontur, damit er auch über hellen
+   Fotos und dem Goldknopf sichtbar bleibt -- ohne mix-blend-mode, das Gold
+   in Blau umkehrte. Der Systempfeil verschwindet erst, wenn der eigene
+   Zeiger läuft (body.cursor-ready). */
 .cursor, .cursor-dot { display: none; }
-@media (pointer: fine) {
+@media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  body.cursor-ready, body.cursor-ready * { cursor: none !important; }
   .cursor {
-    display: block; opacity: 0; position: fixed; z-index: 130; top: 0; left: 0;
-    width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%;
-    border: 1px solid var(--c-line-strong);
-    pointer-events: none;
+    display: grid; place-items: center;
+    opacity: 0; position: fixed; z-index: 130; top: 0; left: 0;
+    width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 999px;
+    border: 1px solid rgba(241, 211, 139, .72);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(0, 0, 0, .12);
+    pointer-events: none; will-change: transform;
     transition: width var(--d-move) var(--e-std), height var(--d-move) var(--e-std),
-                margin var(--d-move) var(--e-std), border-color var(--d-ui) linear,
-                opacity var(--d-ui) linear, background-color var(--d-ui) linear;
-    mix-blend-mode: difference;
+                margin var(--d-move) var(--e-std), border-radius var(--d-move) var(--e-std),
+                border-color var(--d-ui) linear, background-color var(--d-ui) linear,
+                opacity var(--d-ui) linear, scale 160ms var(--e-std);
   }
   .cursor-dot {
     display: block; opacity: 0; position: fixed; z-index: 131; top: 0; left: 0;
-    width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%;
-    background: var(--c-cyan); pointer-events: none;
+    width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
+    background: linear-gradient(135deg, #f7e6ae, #c8963a);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .35);
+    pointer-events: none; will-change: transform;
+    transition: opacity var(--d-ui) linear, scale var(--d-move) var(--e-std);
+  }
+  .cursor__wort {
+    font: 600 10px/1 var(--f-text); letter-spacing: .16em; text-transform: uppercase;
+    color: #16120b; opacity: 0; transition: opacity var(--d-ui) linear;
   }
   body.cursor-ready .cursor, body.cursor-ready .cursor-dot { opacity: 1; }
+
+  /* Link, Knopf: Ring weitet sich, Punkt tritt zurück */
   body.is-hovering .cursor {
-    width: 74px; height: 74px; margin: -37px 0 0 -37px;
-    border-color: var(--c-cyan); background: rgba(241, 211, 139, .07);
+    width: 58px; height: 58px; margin: -29px 0 0 -29px;
+    border-color: rgba(241, 211, 139, .95); background-color: rgba(241, 211, 139, .10);
   }
+  body.is-hovering .cursor-dot { scale: .6; }
+  body.cursor--gold .cursor { border-color: rgba(22, 18, 11, .6); background-color: rgba(255, 255, 255, .14); box-shadow: none; }
+  body.cursor--gold .cursor-dot { background: #16120b; box-shadow: none; }
+
+  /* Textfeld: der Ring wird zur Schreibmarke */
+  body.cursor--text .cursor {
+    width: 2px; height: 24px; margin: -12px 0 0 -1px; border-radius: 1px;
+    border-color: transparent; background-color: #f1d38b; box-shadow: 0 0 0 1px rgba(0, 0, 0, .3);
+  }
+  body.cursor--text .cursor-dot { opacity: 0; }
+
+  /* Ziehen / Schieben: goldene Scheibe mit Wort */
+  body.cursor--wort .cursor {
+    width: 76px; height: 76px; margin: -38px 0 0 -38px;
+    border-color: transparent;
+    background: linear-gradient(115deg, #b98a31 0%, #f7e6ae 30%, #d6a849 55%, #c49438 100%);
+  }
+  body.cursor--wort .cursor__wort { opacity: 1; }
+  body.cursor--wort .cursor-dot { opacity: 0; }
+
+  body.cursor--druck .cursor { scale: .82; }
 }
 
 /* ---------- 4. Kopfzeile ------------------------------------------------- */
