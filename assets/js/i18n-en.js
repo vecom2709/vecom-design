@@ -292,6 +292,7 @@ window.VECOM_I18N.en = {
       qAuto: "Automatic", qUltra: "Ultra", qHigh: "High", qMedium: "Medium", qLow: "Low"
     },
     work: {
+      wahl: "Projects", vergleich: "Before / after",
       head: "Delivered work",
       lead: "Live and ongoing projects across different fields — same method, same level of care.",
       w1tag: "Platform", w1t: "Mensaena", w1p: "A neighbourhood platform with listings, mutual help and dates. Complex structure kept usable for people who aren’t technical.", w1l: "mensaena.de",

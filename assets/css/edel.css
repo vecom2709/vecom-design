@@ -166,3 +166,78 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .technikseite__zurueck { margin-top: var(--s-6); text-align: center; }
 .technikseite__zurueck a { color: var(--c-text-dim); border-bottom: 1px solid var(--edel-linie); padding-bottom: .15rem; }
 .technikseite__zurueck a:hover { color: var(--c-text); border-color: var(--c-cyan); }
+
+/* ---------- Umgesetzte Arbeiten als Fallstudien (R1–R4, F1–F4) ----------- */
+/* .work war ein 2-/6-Spalten-Raster für Karten; die Fallstudie ist eine Einheit über die volle Breite */
+.work:has(> .studie) { display: block; }
+/* Erste Fassung stellte das Foto links neben den Text: 660 px Foto neben
+   800 px Text, das Foto verlor (Probe 1440, 24.09.). Jetzt trägt das Foto die
+   volle Breite wie ein Filmbild, der Fall steht darunter in drei Spalten. */
+.studie { display: grid; grid-template-columns: minmax(0, 1fr); gap: clamp(1.25rem, 2.4vw, 2rem); }
+.studie__buehne { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: var(--c-surface); grid-row: 2;
+  outline: 1px solid var(--edel-linie); outline-offset: 10px; }
+.studie__innen { position: absolute; left: 0; top: 0; width: 2400px; height: 1350px; transform-origin: 0 0; }
+.studie__foto { position: absolute; inset: 0; width: 2400px; height: 1350px; max-width: none; transition: opacity .6s ease; }
+.studie__live { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; background: #000; }
+.studie__live img { display: block; width: 100%; height: auto; max-width: none;
+  animation: fall-scroll 42s cubic-bezier(.45, 0, .55, 1) 2.5s infinite alternate; }
+/* Das Telefon steht vor der Schärfeebene (Fokus auf dem Laptop, f/2.8).
+   Gemessen am Render: Rand des Telefons 10–90 % über ~7 px, Laptop ~5 px —
+   gut 1,9 px zusätzliche Unschärfe, auf die 390er Seite umgerechnet ~2,8 px.
+   Ohne sie klebt eine gestochen scharfe Seite auf einem weichen Foto. */
+.studie__live[data-fall-live="telefon"] { filter: blur(2.2px); }
+@keyframes fall-scroll { 0%, 8% { transform: translateY(0); } 92%, 100% { transform: translateY(var(--weg, 0px)); } }
+.studie__glanz { position: absolute; inset: 0; width: 2400px; height: 1350px; max-width: none; mix-blend-mode: screen; pointer-events: none; }
+.studie__glanz:not([src]) { display: none; }
+.studie__film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: opacity .5s ease; }
+.studie__buehne.ist-wechsel .studie__foto { opacity: .35; }
+.studie__text { grid-row: 3; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) minmax(0, 1fr);
+  column-gap: clamp(1.5rem, 3.5vw, 3.5rem); align-items: start; min-height: 17rem; }
+.studie__text > * { grid-column: 1; }
+.studie__text > .studie__felder { grid-column: 2; grid-row: 1 / span 6; margin-top: 0; }
+.studie__text > .studie__zahlen { grid-column: 3; grid-row: 1 / span 3; margin-top: 0; flex-direction: column; gap: var(--s-3);
+  padding: 0 0 0 clamp(1rem, 2vw, 2rem); border-top: 0; border-left: 1px solid var(--edel-linie); }
+.studie__text > .studie__links { grid-column: 3; }
+.studie__branche { font-size: var(--t-xs); letter-spacing: .26em; text-transform: uppercase; color: var(--c-cyan); }
+.studie__name { margin-top: .6rem; font-size: clamp(2rem, 1.4rem + 1.6vw, 3rem); line-height: 1.05; color: var(--c-text); font-weight: 500; }
+.studie__felder { margin: var(--s-4) 0 0; display: grid; gap: var(--s-3); }
+.studie__felder dt { font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase; color: var(--c-text-faint); }
+.studie__felder dd { margin: .35rem 0 0; color: var(--c-text-dim); line-height: 1.6; }
+.studie__felder .studie__ergebnis { font-family: var(--f-serif); font-style: italic; font-size: 1.45rem; line-height: 1.3; color: var(--c-text); }
+.studie__zahlen { display: flex; flex-wrap: wrap; gap: var(--s-4); margin: var(--s-4) 0 0; padding-top: var(--s-3); border-top: 1px solid var(--edel-linie); }
+.studie__zahlen dt { font-family: var(--f-serif); font-size: 2.2rem; line-height: 1; color: var(--c-text); }
+.studie__zahlen dd { margin: .35rem 0 0; max-width: 11rem; font-size: var(--t-sm); color: var(--c-text-dim); }
+.studie__stimme { margin: var(--s-4) 0 0; padding-left: 1rem; border-left: 2px solid var(--c-cyan); }
+.studie__stimme blockquote { margin: 0; font-family: var(--f-serif); font-size: 1.3rem; color: var(--c-text); }
+.studie__stimme figcaption { margin-top: .4rem; font-size: var(--t-sm); color: var(--c-text-dim); }
+.studie__links { margin-top: var(--s-4); }
+.studie__links a { color: var(--c-text); border-bottom: 1px solid var(--edel-linie); padding-bottom: .15rem; }
+.studie__links a { display: inline-block; }
+.studie__links a span { display: block; margin-top: .2rem; color: var(--c-text-dim); font-size: var(--t-sm); }
+.studie__links a:hover { border-color: var(--c-cyan); }
+.studie__wahl { grid-row: 1; display: flex; flex-wrap: wrap; gap: .5rem; }
+.studie__wahl button { font: inherit; font-size: var(--t-sm); padding: .6rem 1rem; border-radius: 999px; border: 1px solid var(--edel-linie);
+  background: none; color: var(--c-text-dim); cursor: pointer; transition: border-color .2s ease, color .2s ease; }
+.studie__wahl button:hover { color: var(--c-text); }
+.studie__wahl button[aria-pressed="true"] { border-color: var(--c-cyan); color: #fff; }
+/* F3 Vorher/Nachher: liegt deckungsgleich über der Bühne, links alt, rechts neu */
+.studie__vergleich { grid-row: 2; position: relative; aspect-ratio: 16 / 9; overflow: hidden; z-index: 3;
+  background: #000; --teil: 50%; }
+.studie__vergleich[hidden] { display: none; }
+.studie__vergleich img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.studie__vergleich img:first-child { clip-path: inset(0 calc(100% - var(--teil)) 0 0); z-index: 1; }
+.studie__vergleich::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--teil); width: 2px; margin-left: -1px;
+  background: #fff; box-shadow: 0 0 12px rgba(0, 0, 0, .5); z-index: 2; pointer-events: none; }
+.studie__vergleich input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; z-index: 3; }
+.studie__vergleich:focus-within { outline: 2px solid var(--c-cyan); outline-offset: 4px; }
+.studie__vergleich-knopf { font: inherit; background: none; border: 0; border-bottom: 1px solid var(--edel-linie); padding: 0 0 .15rem;
+  color: var(--c-text); cursor: pointer; }
+.studie__vergleich-knopf[aria-pressed="true"] { border-color: var(--c-cyan); }
+@media (max-width: 640px) { .studie__buehne, .studie__vergleich { aspect-ratio: 4 / 3; } }
+@media (max-width: 960px) {
+  .studie__text { grid-template-columns: minmax(0, 1fr); }
+  .studie__text > .studie__felder, .studie__text > .studie__zahlen, .studie__text > .studie__links { grid-column: 1; grid-row: auto; }
+  .studie__text > .studie__felder { margin-top: var(--s-4); }
+  .studie__text > .studie__zahlen { flex-direction: row; margin-top: var(--s-4); padding: var(--s-3) 0 0; border-left: 0; border-top: 1px solid var(--edel-linie); }
+}
+@media (prefers-reduced-motion: reduce) { .studie__live img { animation: none; } }

@@ -293,6 +293,7 @@ window.VECOM_I18N.it = {
       qAuto: "Automatica", qUltra: "Ultra", qHigh: "Alta", qMedium: "Media", qLow: "Bassa"
     },
     work: {
+      wahl: "Progetti", vergleich: "Prima / dopo",
       head: "Lavori realizzati",
       lead: "Progetti online e in corso, in settori diversi — stesso metodo, stesso livello di cura.",
       w1tag: "Piattaforma", w1t: "Mensaena", w1p: "Piattaforma di quartiere con annunci, aiuto reciproco e appuntamenti. Struttura complessa resa semplice da usare, anche per chi non è pratico di tecnologia.", w1l: "mensaena.de",
