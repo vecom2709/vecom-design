@@ -90,5 +90,123 @@
   0.0034,
   0.0094
  ],
- "dreiecke": 50736
+ "zerlegen": {
+  "dauer": 2.6,
+  "breite": 0.35,
+  "stufen": [
+   "abend",
+   "servieren",
+   "dessert"
+  ],
+  "tablett_stufe": 3,
+  "tablett_zuerst": true,
+  "regeln": [
+   {
+    "muster": "^serviette_[01]$",
+    "weg": [
+     0.0,
+     0.45,
+     0.0
+    ],
+    "verschwinden": true,
+    "start": 0.0,
+    "stufe": 2
+   },
+   {
+    "muster": "^teller_vorspeise_[01]$",
+    "weg": [
+     0.0,
+     0.45,
+     0.0
+    ],
+    "verschwinden": true,
+    "start": 0.08,
+    "stufe": 2
+   },
+   {
+    "muster": "^gang1_0_pasta$",
+    "von": [
+     0.0,
+     0.4,
+     0.0
+    ],
+    "start": 0.4,
+    "stufe": 2,
+    "tablett": [
+     0.0,
+     0.45,
+     0.0
+    ],
+    "tablett_weg": true,
+    "beschriftung": "pasta"
+   },
+   {
+    "muster": "^gang1_",
+    "von": [
+     0.0,
+     0.4,
+     0.0
+    ],
+    "start": 0.4,
+    "stufe": 2,
+    "tablett": [
+     0.0,
+     0.45,
+     0.0
+    ],
+    "tablett_weg": true
+   },
+   {
+    "muster": "^gang2_0_panna$",
+    "von": [
+     0.0,
+     0.4,
+     0.0
+    ],
+    "start": 0.85,
+    "stufe": 3,
+    "beschriftung": "dessert"
+   },
+   {
+    "muster": "^gang2_",
+    "von": [
+     0.0,
+     0.4,
+     0.0
+    ],
+    "start": 0.85,
+    "stufe": 3
+   }
+  ],
+  "ansichten": {
+   "2": {
+    "zerlegt": 2,
+    "fokus": "^gang1_0_",
+    "neig": 0.62,
+    "luft": 3.2
+   },
+   "3": {
+    "zerlegt": 3,
+    "tablett": 1,
+    "fokus": "^gang2_0_",
+    "neig": 0.62,
+    "luft": 3.2
+   }
+  }
+ },
+ "karte": {
+  "netz": "menukarte_vorn",
+  "name": "Trattoria Aurora",
+  "gerichte": [
+   [
+    "Spaghetti al pomodoro",
+    "basilico, parmigiano"
+   ],
+   [
+    "Panna cotta",
+    "coulis di lamponi"
+   ]
+  ]
+ },
+ "dreiecke": 254070
 }

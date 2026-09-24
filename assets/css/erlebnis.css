@@ -718,3 +718,16 @@
 .erlebnis .tisch-still.ist-an{opacity:1}
 .erlebnis .dreh.hat-still .dreh__hinweis{opacity:1}
 .erlebnis .dreh .dreh__hinweis{z-index:4}
+/* Logo ausprobieren (A1) */
+.erlebnis .pd-logo{display:flex; flex-direction:column; gap:.5rem; margin-top:.4rem}
+.erlebnis .pd-logo__zeile{display:flex; flex-wrap:wrap; gap:.5rem; align-items:center}
+.erlebnis .pd-logo__datei{position:absolute; width:1px; height:1px; opacity:0; overflow:hidden}
+.erlebnis .pd-logo__datei:focus-visible + label{outline:2px solid var(--c-cyan); outline-offset:2px}
+.erlebnis .pd-logo label.knopf{cursor:pointer}
+.erlebnis .pd-name{max-width:26rem; min-height:44px; padding:0 .85rem; border-radius:12px; border:1px solid var(--c-linie-hell); background:var(--c-surface); color:var(--c-text); font:500 1rem/1 var(--f-text)}
+/* AR (A2) */
+.erlebnis .ar-knopf{align-self:flex-start; display:inline-flex; align-items:center; gap:.5rem}
+.erlebnis .ar-knopf::before{content:""; width:14px; height:14px; border:2px solid currentColor; border-radius:3px; transform:rotate(45deg) scale(.8)}
+.ar-ueber{position:fixed; inset:auto 0 0 0; display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom)); background:rgba(5,7,13,.72); color:#fff; font:500 1rem/1.3 system-ui, sans-serif}
+.ar-ueber p{margin:0}
+.ar-ueber button{min-height:44px; padding:0 1.1rem; border-radius:999px; border:1px solid rgba(255,255,255,.4); background:transparent; color:#fff; font:600 .95rem/1 system-ui, sans-serif}

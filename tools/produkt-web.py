@@ -31,16 +31,45 @@ TEXTUREN = {
 }
 # Materialanpassungen im Web (Name -> {'umgebung': Staerke der Rundumkarte})
 WEB_MATERIAL = {'salon': {'Spiegel': {'umgebung': 0.6, 'spiegel_dunkel': 0.04}}}
+# Tischkarte (Gastronomie): Beispielname und Gerichte, im Web ueberschreibbar
+KARTE = {'gastro': {'netz': 'menukarte_vorn', 'name': 'Trattoria Aurora',
+                    'gerichte': [['Spaghetti al pomodoro', 'basilico, parmigiano'], ['Panna cotta', 'coulis di lamponi']]}}
 # Teile, die kaum vereinfacht werden (Namensmuster je Produkt)
 FEIN = {'gastro': '^(decke|serviette_)', 'schmuck': '^band_(oben|unten)$'}
 ZERLEGEN = {
-    'wein': {
-        'dauer': 3.2, 'breite': 0.30, 'stufen': ['kiste', 'flasche'],
+    # Gastronomie (B3): Schritt 1 ist das Abendlicht (branchen.js, licht), 2
+    # serviert den Hauptgang (Serviette und Vorspeisenteller gehen, Pasta kommt
+    # von oben), 3 das Dessert -- vorher wird die Pasta abgeraeumt.
+    'gastro': {
+        'dauer': 2.6, 'breite': 0.35, 'stufen': ['abend', 'servieren', 'dessert'],
+        'tablett_stufe': 3, 'tablett_zuerst': True,
+        # Nah an den Teller des vorderen Gastes -- sonst passte die Kamera die
+        # abgeraeumten Teile 45 cm ueber dem Tisch mit ein (Probe 24.09.2026)
+        'ansichten': {'2': {'zerlegt': 2, 'fokus': '^gang1_0_', 'neig': 0.62, 'luft': 3.2},
+                      '3': {'zerlegt': 3, 'tablett': 1, 'fokus': '^gang2_0_', 'neig': 0.62, 'luft': 3.2}},
         'regeln': [
-            {'muster': '^kiste_tuer_angel$', 'dreh': True, 'start': 0.00, 'stufe': 1, 'beschriftung': 'kiste'},
-            {'muster': '^flasche_kapsel$', 'hoch': 0.075, 'start': 0.55, 'stufe': 2, 'beschriftung': 'kapsel'},
-            {'muster': '^flasche_kork$', 'hoch': 0.045, 'start': 0.62, 'stufe': 2, 'beschriftung': 'kork'},
+            {'muster': '^serviette_[01]$', 'weg': [0.0, 0.45, 0.0], 'verschwinden': True, 'start': 0.0, 'stufe': 2},
+            {'muster': '^teller_vorspeise_[01]$', 'weg': [0.0, 0.45, 0.0], 'verschwinden': True, 'start': 0.08, 'stufe': 2},
+            {'muster': '^gang1_0_pasta$', 'von': [0.0, 0.40, 0.0], 'start': 0.40, 'stufe': 2, 'tablett': [0.0, 0.45, 0.0], 'tablett_weg': True, 'beschriftung': 'pasta'},
+            {'muster': '^gang1_', 'von': [0.0, 0.40, 0.0], 'start': 0.40, 'stufe': 2, 'tablett': [0.0, 0.45, 0.0], 'tablett_weg': True},
+            {'muster': '^gang2_0_panna$', 'von': [0.0, 0.40, 0.0], 'start': 0.85, 'stufe': 3, 'beschriftung': 'dessert'},
+            {'muster': '^gang2_', 'von': [0.0, 0.40, 0.0], 'start': 0.85, 'stufe': 3},
         ],
+    },
+    'wein': {
+        'dauer': 3.2, 'breite': 0.30, 'stufen': ['kiste', 'flasche', 'einschenken'],
+        'regeln': [
+            {'muster': '^kiste[23]?_tuer_angel$', 'dreh': True, 'start': 0.00, 'stufe': 1, 'beschriftung': 'kiste'},
+            {'muster': '^flasche_kapsel$', 'hoch': 0.075, 'start': 0.40, 'stufe': 2, 'beschriftung': 'kapsel'},
+            {'muster': '^flasche_kork$', 'hoch': 0.045, 'start': 0.45, 'stufe': 2, 'beschriftung': 'kork'},
+            # Einschenken (B1): kippen um den Drehpunkt (pr_wein.py) und dabei
+            # heben -- weg in glTF-Metern: 6 mm vor, 166 mm hoch, 15 mm zum Glas
+            {'muster': '^flasche_angel$', 'dreh': True, 'weg': [0.006, 0.166, 0.015], 'start': 0.70, 'stufe': 3, 'beschriftung': 'einschenken'},
+        ],
+        # Wein im Glas steigt, sobald die Flasche steht (produkt-echtzeit.js)
+        'einschenken': {'glas': 'weinglas_wein', 'flasche': 'flasche_glas', 'muendung': [0.0, 0.2995, 0.0], 'stufe': 3, 'dauer': 3.4},
+        # Geschenkkiste fuer 1, 2 oder 3 Flaschen: sichtbar ist immer eine
+        'gruppen': {'geschenk': {'1': '^kiste_', '2': '^kiste2_', '3': '^kiste3_', 'start': '1'}},
     },
     # Uhr liegt flach: alles hebt sich nach oben, in der Reihenfolge, in der
     # ein Uhrmacher sie oeffnet. Hoehen so gestaffelt, dass sich kein Teil
@@ -170,11 +199,13 @@ def main(was, quelle):
         a = json.load(open(alt, encoding='utf-8'))
         if a.get('zerlegen', {}).get('ansichten'):
             k['zerlegen'] = a['zerlegen']
-        for s in ('ladung', 'stein_karat'):
+        for s in ('ladung', 'stein_karat', 'logo', 'karte'):
             if s in a:
                 k[s] = a[s]
     if was in WEB_MATERIAL:
         k['web_material'] = WEB_MATERIAL[was]
+    if was in KARTE:
+        k['karte'] = KARTE[was]
     k['dreiecke'] = n
     with open(os.path.join(ziel, 'kamera.json'), 'w', encoding='utf-8') as f:
         json.dump(k, f, ensure_ascii=False, indent=1)

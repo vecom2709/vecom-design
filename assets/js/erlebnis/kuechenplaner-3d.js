@@ -201,9 +201,10 @@ export async function starten(buehne, plan, mitteilen) {
 
     // Raum: Boden, Wände
     const la = p.waende.a / 100, lb = p.form === 'l' ? p.waende.b / 100 : 0;
-    const boden = netz(quader(la + 6, 0.02, 7, la / 2, -0.01, 2.8, 0), mat.boden, false); kueche.add(boden);
-    kueche.add(netz(quader(la + 0.8, M.WAND_H, 0.08, la / 2 + (p.form === 'l' ? 0.4 : 0), M.WAND_H / 2, -0.04, 0), mat.wand));
-    if (p.form === 'l') kueche.add(netz(quader(0.08, M.WAND_H, lb + 0.4, -0.04, M.WAND_H / 2, lb / 2 + 0.2, 0), mat.wand));
+    // Raum: im AR-Modus weggelassen (userData.raum) -- dort ist der echte Raum
+    const boden = netz(quader(la + 6, 0.02, 7, la / 2, -0.01, 2.8, 0), mat.boden, false); boden.userData.raum = true; kueche.add(boden);
+    const wandA = netz(quader(la + 0.8, M.WAND_H, 0.08, la / 2 + (p.form === 'l' ? 0.4 : 0), M.WAND_H / 2, -0.04, 0), mat.wand); wandA.userData.raum = true; kueche.add(wandA);
+    if (p.form === 'l') { const wb = netz(quader(0.08, M.WAND_H, lb + 0.4, -0.04, M.WAND_H / 2, lb / 2 + 0.2, 0), mat.wand); wb.userData.raum = true; kueche.add(wb); }
 
     const laeufe = [{ wand: 'a', laenge: la, module: p.reihen.a }];
     if (p.form === 'l') laeufe.push({ wand: 'b', laenge: lb, module: p.reihen.b, start: M.PT });
@@ -268,7 +269,7 @@ export async function starten(buehne, plan, mitteilen) {
       const V0 = 0.02, V1 = 0.02 + M.TIEFE, VF = V1 + M.FRONT;   // Korpus hinten/vorn, Frontfläche
       // Klickbare Hülle
       const huelle = new THREE.Mesh(box(u0, u1, 0, hoch ? M.HOCH : M.ARBEIT, 0, VF, mat.auswahl, 0), mat.auswahl);
-      huelle.visible = false; huelle.userData = { lauf: lauf.wand, index: i }; kueche.add(huelle); module.push(huelle);
+      huelle.visible = false; huelle.userData = { lauf: lauf.wand, index: i, keinAR: true }; kueche.add(huelle); module.push(huelle);
       if (u1 > lauf.laenge + 0.005 && !lauf.insel) {
         const z = new THREE.Mesh(box(u0, u1, 0, hoch ? M.HOCH : M.ARBEIT, 0, VF, mat.zuviel, 0), mat.zuviel); kueche.add(z);
       }
@@ -693,6 +694,7 @@ export async function starten(buehne, plan, mitteilen) {
     masse(an) { zeigeMasse = an; },
     auswahl,
     heim() { soll.az = HEIM[form].az; soll.pol = HEIM[form].pol; },
+    arQuelle() { return kueche; },
     anhalten() { laeuft = false; },
     fortsetzen() { if (!laeuft) { laeuft = true; uhr.update(); schleife(); } },
     entsorgen() { laeuft = false; entsorgenGruppe(kueche); renderer.dispose(); renderer.domElement.remove(); etiketten.remove(); },

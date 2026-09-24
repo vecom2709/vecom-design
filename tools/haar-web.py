@@ -52,7 +52,7 @@ def main(quelle):
         b = Image.open(mitte).convert('RGB')
         speichern(b, os.path.join(ZIEL, 'poster'), 80, avif=True)
         w, h = b.size   # Kachel: Kopf und Schultern, 16:9
-        kw = int(w * 0.46); kh = int(kw * 9 / 16); x0 = (w - kw) // 2; y0 = int(h * 0.16)
+        kw = int(w * 0.52); kh = int(kw * 9 / 16); x0 = (w - kw) // 2; y0 = int(h * 0.06)
         speichern(b.crop((x0, y0, x0 + kw, y0 + kh)).resize((800, 450), Image.LANCZOS), os.path.join(ZIEL, 'kachel-800'), 80, avif=True)
     for f, s in summe.items():
         print(f'{f}: {s / 1024:.0f} KB gross (16 Bilder)')

@@ -49,6 +49,7 @@ const STIL = {
 /* ------------------------------------------------------------ Texte */
 const TEXTE = {
   de: {
+    ar: { knopf: 'Im eigenen Raum ansehen (AR)', laden: 'Einen Moment – die Küche lädt. Dann noch einmal tippen.', vorbereiten: 'AR wird vorbereitet …', oeffnen: 'Jetzt in AR öffnen', fehler: 'AR ließ sich auf diesem Gerät nicht starten.', handy: 'AR funktioniert auf dem Handy: iPhone mit Safari oder Android mit Chrome. Öffnen Sie diese Seite dort – mit dem Link zur Planung kommt Ihre Küche mit.', suchen: 'Handy langsam über den Boden bewegen …', tippen: 'Tippen, um die Küche hinzustellen', steht: 'Steht. Zum Umstellen noch einmal tippen.', zu: 'Beenden' },
     form: 'Grundform', formen: { zeile: 'Küchenzeile', l: 'L-Form', insel: 'Mit Insel' },
     masse: 'Maße des Raums', waende: { a: 'Wand A', b: 'Wand B', insel: 'Insel' },
     auto: 'Automatisch planen', autoText: 'Setzt Spüle, Geschirrspüler, Kochfeld und Kühlschrank an die richtige Stelle und füllt den Rest passend auf.',
@@ -88,6 +89,7 @@ const TEXTE = {
     },
   },
   it: {
+    ar: { knopf: 'Nella tua stanza (AR)', laden: 'Un momento – la cucina si carica. Poi tocca di nuovo.', vorbereiten: 'Preparo l’AR …', oeffnen: 'Apri in AR', fehler: 'Su questo dispositivo l’AR non è partita.', handy: 'L’AR funziona sul telefono: iPhone con Safari o Android con Chrome. Apri lì questa pagina – con il link al progetto arriva anche la tua cucina.', suchen: 'Muovi piano il telefono sopra il pavimento …', tippen: 'Tocca per posizionare la cucina', steht: 'Fatto. Tocca di nuovo per spostarla.', zu: 'Esci' },
     form: 'Forma', formen: { zeile: 'Lineare', l: 'Ad angolo', insel: 'Con isola' },
     masse: 'Misure della stanza', waende: { a: 'Parete A', b: 'Parete B', insel: 'Isola' },
     auto: 'Progetta in automatico', autoText: 'Mette lavello, lavastoviglie, piano cottura e frigorifero al posto giusto e completa il resto su misura.',
@@ -127,6 +129,7 @@ const TEXTE = {
     },
   },
   en: {
+    ar: { knopf: 'See it in your room (AR)', laden: 'One moment – the kitchen is loading. Then tap again.', vorbereiten: 'Preparing AR …', oeffnen: 'Open in AR now', fehler: 'AR could not start on this device.', handy: 'AR works on phones: iPhone with Safari or Android with Chrome. Open this page there – the plan link brings your kitchen along.', suchen: 'Move your phone slowly over the floor …', tippen: 'Tap to place the kitchen', steht: 'Placed. Tap again to move it.', zu: 'Exit' },
     form: 'Layout', formen: { zeile: 'Single wall', l: 'L-shaped', insel: 'With island' },
     masse: 'Room dimensions', waende: { a: 'Wall A', b: 'Wall B', insel: 'Island' },
     auto: 'Plan it for me', autoText: 'Puts sink, dishwasher, hob and fridge in the right place and fills the rest to size.',
@@ -506,6 +509,8 @@ if (sek) {
         el('ul', {}, ...hinweise.map(([art, t]) => el('li', { class: `kp-h kp-h--${art}` }, t)))),
       el('details', { class: 'kp-stueck' }, el('summary', { text: TEXTE.stueck }), el('ul', {}, ...stueckliste(plan).map((t) => el('li', { text: t })))),
       el('button', { type: 'button', class: 'knopf knopf--leer kunde-knopf', onclick: kundeZeigen }, TEXTE.kunde),
+      el('button', { type: 'button', class: 'knopf knopf--leer ar-knopf', onclick: arZeigen }, TEXTE.ar.knopf),
+      el('p', { class: 'kp-klein kp-ar-hinweis', 'aria-live': 'polite' }),
       el('div', { class: 'kp-aktion' }, ctaKnopf(), el('button', { type: 'button', class: 'knopf knopf--leer', onclick: teilen }, TEXTE.teilen)),
     );
     ansichtLeiste();
@@ -514,6 +519,7 @@ if (sek) {
   // Beim Ziehen am Schieber höchstens einmal je Bild neu bauen
   let nachziehen = 0;
   function szeneNachziehen() {
+    if (arZustand.url) { URL.revokeObjectURL(arZustand.url); arZustand.url = null; }
     if (nachziehen) return;
     nachziehen = requestAnimationFrame(() => {
       nachziehen = 0;
@@ -526,6 +532,17 @@ if (sek) {
     const u = new URL(sek.dataset.anfrage || '/bedarf.php', location.href);
     u.searchParams.set('lang', SPRACHE); u.searchParams.set('demo', 'kueche-planer'); u.searchParams.set('plan', codieren(plan));
     return el('a', { class: 'knopf knopf--voll', href: u.pathname + u.search, onclick: () => zaehlen('cta-kueche') }, TEXTE.cta);
+  }
+  /* Die geplante Küche im eigenen Raum (A2): Boden und Wände bleiben weg,
+     Maßstab 1:1. Jeder Neuaufbau macht die vorbereitete USDZ-Datei alt. */
+  const arZustand = {};
+  async function arZeigen(e) {
+    const knopf = e.currentTarget, hinweis = panel.querySelector('.kp-ar-hinweis');
+    const melden = (t) => { if (hinweis) hinweis.textContent = t; };
+    if (!api) { melden(TEXTE.ar.laden); starten(); return; }
+    zaehlen('ar-kueche');
+    const AR = await import(new URL('ar.js', import.meta.url).href);
+    await AR.ausloesen(arZustand, knopf, api.arQuelle(), TEXTE.ar, melden);
   }
   // Der Weg des Endkunden (kundenablauf.js): die Planung mit allen Maßen ans Studio
   function kundeZeigen() {

@@ -18,10 +18,10 @@ const EREIGNISSE = [
     'schuh-korb', 'tisch-drehen', 'cta-auto', 'cta-shop',
     'modell-kleinwagen', 'modell-mittelklasse', 'modell-auto',
     'demo-villa', 'demo-auto', 'demo-shop', 'demo-tisch',
-    'demo-wein', 'wein-stufe-1', 'wein-stufe-2',
+    'demo-wein', 'wein-stufe-1', 'wein-stufe-2', 'wein-stufe-3', 'wein-kiste',
     'demo-schmuck', 'schmuck-stufe-1', 'schmuck-stufe-2', 'schmuck-stufe-3', 'schmuck-stufe-4', 'schmuck-karat',
     'demo-kueche', 'kueche-stufe-1', 'kueche-stufe-2', 'kueche-planer', 'kueche-oeffnen', 'cta-kueche',
-    'demo-gastro', 'gastro-stufe-1',
+    'demo-gastro', 'gastro-stufe-1', 'gastro-stufe-2', 'gastro-stufe-3', 'logo',
     'demo-salon', 'salon-stufe-1', 'salon-stufe-2',
     // Haarfarben statt Salonstuhl (24.09.2026)
     'haar-drehen', 'tisch-wahl', 'tisch-kunde', 'haar-kunde', 'produkt-kunde', 'auto-kunde', 'kueche-kunde', 'haar-schwarz', 'haar-kastanie', 'haar-kupfer', 'haar-balayage', 'haar-aschblond', 'haar-rosegold',

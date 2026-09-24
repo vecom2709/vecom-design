@@ -284,6 +284,8 @@ export async function erstellen({
     });
     await Promise.all(auftraege);
     rohbauAnwenden();
+    if (weinGlas) weinStoff();
+    logoAnwenden();
     einmal();
   }
 
@@ -337,12 +339,19 @@ export async function erstellen({
       if (r.wende) t.wende = THREE.MathUtils.degToRad(r.wende);
       // Uhrmacher-Tablett (Wunsch U2): zweiter Platz, flach auf dem Tisch
       if (r.tablett) t.tab = zuLokal(new THREE.Vector3(...r.tablett));
+      /* Servieren (Gastronomie, B3): "von" = von dort kommt das Teil herein
+         (im Ruhezustand unsichtbar); "verschwinden" = nach dem Weg ausgeblendet
+         (abgeräumt); "tablett_weg" = nach dem zweiten Weg ausgeblendet. */
+      if (r.von) { t.von = zuLokal(new THREE.Vector3(...r.von)); t.einblenden = true; }
+      if (r.verschwinden) t.verschwinden = true;
+      if (r.tablett_weg) t.tabWeg = true;
       /* Tueren drehen an ihrer Scharnierachse (extras aus fahrzeug_bau.py):
          Achse in glTF-Koordinaten, Winkel in Grad, Vorzeichen so, dass die
          Hinterkante nach aussen schwingt. */
       if (r.dreh && o.userData && o.userData.achse) {
         t.dreh = { achse: new THREE.Vector3(...o.userData.achse).normalize(), winkel: THREE.MathUtils.degToRad(o.userData.winkel || 65) * -(o.userData.seite || 1), ruhe: o.quaternion.clone() };
-        t.weg = new THREE.Vector3();
+        // Drehen UND verschieben (Flasche beim Einschenken: kippen und heben)
+        if (r.weg) t.mitWeg = true; else t.weg = new THREE.Vector3();
       }
       if (r.rohbau) t.rohbau = true;
       teile.push(t);
@@ -417,6 +426,69 @@ export async function erstellen({
   }
   gravurZeichnen('');
 
+  /* Einschenken (Wunsch B1): Steht die Flasche über dem Glas, steigt der Wein.
+     Der Wein im Glas ist ein fertiger Körper bis zum vollen Stand; eine
+     Schnittebene legt den Pegel fest. Beidseitig gezeichnet, damit die
+     Schnittfläche wie eine Oberfläche aussieht. Dazu ein Strahl von der
+     Mündung zum Pegel -- nur solange eingeschenkt wird. */
+  const E = K.zerlegen && K.zerlegen.einschenken;
+  const pegelEbene = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+  let fuell = 0, fuellSoll = 0, weinGlas = null, weinBox = null, flascheGlas = null, strahl = null;
+  const muendung = new THREE.Vector3(), strahlZiel = new THREE.Vector3();
+  if (E) {
+    weinGlas = modell.getObjectByName(E.glas);
+    flascheGlas = modell.getObjectByName(E.flasche);
+    if (weinGlas) {
+      r.localClippingEnabled = true;
+      modell.updateMatrixWorld(true);
+      weinBox = new THREE.Box3().setFromObject(weinGlas);
+      weinGlas.visible = false;
+      strahl = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshPhysicalMaterial({ color: 0x3a0610, roughness: 0.08, clearcoat: 1 }));
+      strahl.visible = false; szene.add(strahl);
+    }
+  }
+  function weinStoff() {
+    // Nach jedem Variantenwechsel hängt ein anderer Stoff am Glaswein: Ebene neu setzen
+    weinGlas.traverse((m) => {
+      if (!m.isMesh) return;
+      m.material.clippingPlanes = [pegelEbene]; m.material.side = THREE.DoubleSide;
+      strahl.material.color.copy(m.material.color);
+    });
+  }
+  function pegelSetzen() {
+    if (!weinGlas) return;
+    const y = weinBox.min.y + (weinBox.max.y - weinBox.min.y) * fuell;
+    pegelEbene.constant = y;
+    weinGlas.visible = fuell > 0.002;
+  }
+  function strahlSetzen(an) {
+    if (!strahl || !flascheGlas) return;
+    strahl.visible = an;
+    if (!an) return;
+    flascheGlas.updateMatrixWorld(true);
+    muendung.set(...E.muendung).applyMatrix4(flascheGlas.matrixWorld);
+    weinBox.getCenter(strahlZiel); strahlZiel.y = weinBox.min.y + (weinBox.max.y - weinBox.min.y) * fuell;
+    strahlZiel.x = (strahlZiel.x + muendung.x) / 2 + (strahlZiel.x - muendung.x) * 0.15;
+    const mitte = muendung.clone().lerp(strahlZiel, 0.5); mitte.x += 0.004;
+    const kurve = new THREE.QuadraticBezierCurve3(muendung, new THREE.Vector3(muendung.x + 0.012, (muendung.y + strahlZiel.y) / 2 + 0.01, muendung.z), strahlZiel);
+    strahl.geometry.dispose();
+    strahl.geometry = new THREE.TubeGeometry(kurve, 24, 0.0022, 10, false);
+  }
+  /* Gruppen, von denen immer eine sichtbar ist (Geschenkkiste 1/2/3 Flaschen) */
+  const gruppen = (K.zerlegen && K.zerlegen.gruppen) || {};
+  const gruppenStand = {};
+  function gruppeSetzen(name, wert) {
+    const G = gruppen[name]; if (!G) return;
+    gruppenStand[name] = wert;
+    const muster = Object.entries(G).filter(([k]) => k !== 'start').map(([k, m]) => [k, new RegExp(m)]);
+    modell.traverse((o) => {
+      if (o.parent !== modell && !(o.parent && o.parent.parent === modell && !o.parent.name)) return;
+      for (const [k, re] of muster) if (re.test(o.name || '')) o.visible = k === wert;
+    });
+  }
+  for (const [name, G] of Object.entries(gruppen)) gruppeSetzen(name, G.start);
+  if (weinGlas) weinStoff();
+
   /* Ladeplaner (Wunsch B5): Der Auflieger nimmt 33 Europaletten auf, drei
      nebeneinander, elf Reihen. Das Modell bringt eine Palette samt Ladung
      und Folie als Vorlage mit; hier entstehen daraus alle 33 Plätze (gleiche
@@ -450,6 +522,99 @@ export async function erstellen({
   // Start ohne ladungSetzen: dort wird der Schatten angestoßen, und den gibt es hier noch nicht
   ladePlaetze.forEach((p, i) => { for (const o of p) o.visible = i < (K.ladung.start ?? 24); });
 
+  /* Ihr Logo auf dem Produkt (Wunsch A1). Bereiche je Karte in kamera.json
+     ("logo": Stoffname, Bereich im Bild, woher der saubere Grund kommt).
+     Der alte Schriftzug wird mit einem sauberen Streifen desselben Papiers,
+     derselben Plane, desselben Zifferblatts überdeckt; darauf das Logo,
+     eingepasst. Alles im Browser -- das Bild verlässt das Gerät nicht. */
+  const LOGO = K.logo || [];
+  let logoBild = null;
+  function logoAnwenden() {
+    if (LOGO.length) modell.traverse((m) => {
+      if (!m.isMesh || !m.material || !m.material.map) return;
+      const spec = LOGO.find((l) => new RegExp(l.stoff).test(m.material.name || ''));
+      if (!spec) return;
+      const mat = m.material;
+      const KARTEN = ['map', 'normalMap', 'roughnessMap', 'metalnessMap'];
+      if (!mat.userData.logoQuelle) { mat.userData.logoQuelle = {}; for (const k of KARTEN) mat.userData.logoQuelle[k] = mat[k]; }
+      const Q = mat.userData.logoQuelle, q = Q.map;
+      if (!logoBild) { for (const k of KARTEN) if (mat[k] !== Q[k]) { mat[k] = Q[k]; mat.needsUpdate = true; } return; }
+      if (mat.userData.logoFuer === logoBild) return;
+      // Alten Schriftzug tilgen -- auch in Normal- und Rauheitskarte: Sonst
+      // steht die alte Prägung als Relief unter dem neuen Logo (Probe Etikett).
+      const tilgen = (quelle) => {
+        const img = quelle.image, W = img.width, H = img.height;
+        const c = document.createElement('canvas'); c.width = W; c.height = H;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+        const [x0, y0, x1, y1] = spec.bereich.map((v, i) => Math.round(v * (i % 2 ? H : W)));
+        if (spec.streifen) {
+          // Kein freier Fleck in voller Größe (Weinetikett): einen sauberen
+          // senkrechten Streifen derselben Zeilen nebeneinanderlegen
+          const sx = Math.round(spec.streifen[0] * W), sw = Math.round((spec.streifen[1] - spec.streifen[0]) * W);
+          for (let x = x0; x < x1; x += sw) g.drawImage(img, sx, y0, Math.min(sw, x1 - x), y1 - y0, x, y0, Math.min(sw, x1 - x), y1 - y0);
+        } else {
+          const [dx, dy] = spec.grund || [0, 0];
+          g.drawImage(img, x0 + dx * W, y0 + dy * H, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+        }
+        return { c, g, W, H, x0, y0, x1, y1 };
+      };
+      const alsTextur = (c, vorbild) => {
+        const t = new THREE.CanvasTexture(c);
+        t.flipY = vorbild.flipY; t.colorSpace = vorbild.colorSpace; t.wrapS = vorbild.wrapS; t.wrapT = vorbild.wrapT; t.channel = vorbild.channel;
+        t.offset.copy(vorbild.offset); t.repeat.copy(vorbild.repeat); t.rotation = vorbild.rotation; t.center.copy(vorbild.center);
+        t.anisotropy = r.capabilities.getMaxAnisotropy(); return t;
+      };
+      for (const k of KARTEN.slice(1)) if (Q[k] && Q[k].image) { mat[k] = alsTextur(tilgen(Q[k]).c, Q[k]); }
+      const { c, g, x0, y0, x1, y1 } = tilgen(q);
+      const bw = (x1 - x0) * 0.84, bh = (y1 - y0) * 0.84;
+      const f = Math.min(bw / logoBild.width, bh / logoBild.height);
+      const lw = logoBild.width * f, lh = logoBild.height * f, lx = (x0 + x1 - lw) / 2, ly = (y0 + y1 - lh) / 2;
+      if (spec.einfarbig) {
+        // Auf dunklem Grund (Zifferblatt) einfarbig hell, wie gedruckt
+        const t = document.createElement('canvas'); t.width = Math.ceil(lw); t.height = Math.ceil(lh);
+        const tg = t.getContext('2d'); tg.drawImage(logoBild, 0, 0, lw, lh);
+        tg.globalCompositeOperation = 'source-in'; tg.fillStyle = spec.einfarbig; tg.fillRect(0, 0, lw, lh);
+        g.drawImage(t, lx, ly);
+      } else g.drawImage(logoBild, lx, ly, lw, lh);
+      mat.map = alsTextur(c, q); mat.userData.logoFuer = logoBild; mat.needsUpdate = true;
+    });
+    kartenAnwenden();
+  }
+
+  /* Tischkarte (Gastronomie, B3/A1): Name des Restaurants, Logo, Gerichte --
+     auf einer Leinwand gezeichnet; die Beispielschrift aus dem Foto (nur_foto)
+     ist im Web ausgeblendet. */
+  modell.traverse((o) => { if (o.userData && o.userData.nur_foto) o.visible = false; });
+  const KARTE = K.karte || null;
+  let karteName = '';
+  function kartenAnwenden() {
+    if (!KARTE) return;
+    const m = modell.getObjectByName(KARTE.netz); if (!m) return;
+    const W = 1000, H = 1400;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    g.fillStyle = '#dcd4c2'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#8c6a3a'; g.lineWidth = 6; g.strokeRect(40, 40, W - 80, H - 80);
+    g.fillStyle = '#1a1a1c'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    let y = 230;
+    if (logoBild) {
+      const f = Math.min(560 / logoBild.width, 240 / logoBild.height);
+      g.drawImage(logoBild, (W - logoBild.width * f) / 2, 110, logoBild.width * f, logoBild.height * f); y = 400;
+    }
+    const name = karteName || KARTE.name;
+    let gr = 92; do { g.font = `600 ${gr}px Georgia, 'Times New Roman', serif`; gr -= 4; } while (g.measureText(name).width > W - 160 && gr > 40);
+    g.fillText(name, W / 2, y);
+    g.font = '500 44px Georgia, serif'; g.fillStyle = '#8c6a3a'; g.fillText('— Menu —', W / 2, y + 120);
+    let z = y + 250;
+    for (const [gericht, dazu] of KARTE.gerichte) {
+      g.fillStyle = '#1a1a1c'; g.font = '600 58px Georgia, serif'; g.fillText(gericht, W / 2, z);
+      g.fillStyle = '#4a4540'; g.font = 'italic 44px Georgia, serif'; g.fillText(dazu, W / 2, z + 64); z += 200;
+    }
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = r.capabilities.getMaxAnisotropy();
+    m.traverse((n) => { if (n.isMesh) { n.material = n.material.clone(); n.material.map = tex; n.material.color.set(0xffffff); n.material.needsUpdate = true; } });
+  }
+  if (KARTE) kartenAnwenden();
+
   /* Stein in Karat (Wunsch U4): Der Durchmesser eines Brillanten wächst mit
      der dritten Wurzel des Gewichts (1 ct ≈ 6,5 mm). Stein, Fassung und
      Krappen wachsen zusammen um den Fuß der Fassung. */
@@ -477,9 +642,13 @@ export async function erstellen({
       if (t.dreh) {
         const f = t.o.name === 'tuer_v_r_angel' ? Math.max(a, fahrerTuer) : a;
         t.o.quaternion.copy(t.dreh.ruhe).multiply(tuerQ.setFromAxisAngle(t.dreh.achse, t.dreh.winkel * f));
+        if (t.mitWeg) t.o.position.copy(t.ruhe).addScaledVector(t.weg, f);
       } else {
         t.o.position.copy(t.ruhe).addScaledVector(t.weg, a);
-        if (t.tab) { const b = anteil(t, pt); t.o.position.addScaledVector(t.tab, b).addScaledVector(t.weg, -b); }
+        let b = 0;
+        if (t.tab) { b = anteil(t, pt); t.o.position.addScaledVector(t.tab, b).addScaledVector(t.weg, -b); }
+        if (t.von) t.o.position.addScaledVector(t.von, 1 - a);
+        if (t.einblenden || t.verschwinden || t.tabWeg) t.o.visible = (!t.einblenden || a > 0.001) && (!t.verschwinden || a < 0.999) && (!t.tabWeg || b < 0.999);
         if (t.wende) t.o.quaternion.copy(t.ruheQ).premultiply(tuerQ.setFromAxisAngle(X_ACHSE, t.wende * a));
       }
       if (t.rohbau) rohbau = a;
@@ -895,11 +1064,13 @@ export async function erstellen({
       if (MIT_STUFEN && aktStufe && !ansichtAktiv && !gruppe.some((t) => t.stufe === aktStufe)) continue;
       let beste = null; let bestAbst = Infinity; let a = 0;
       for (const t of gruppe) {
+        if (!t.o.visible) continue;          // abgeräumt oder noch nicht serviert: kein Schild
         t.o.localToWorld(pw.copy(t.mitteLokal));
         const d = pw.distanceTo(kamera.position);
         if (d < bestAbst) { bestAbst = d; beste = pw.clone(); }
         a = Math.max(a, anteil(t, zerlegt * (1 + Z_BREITE)));
       }
+      if (!beste) continue;
       pn.copy(beste).project(kamera);
       const x = (pn.x * 0.5 + 0.5) * w, y = (-pn.y * 0.5 + 0.5) * h;
       liste.push({ schluessel, x, y, sichtbar: pn.z < 1 && x > 8 && x < w - 8 && y > 8 && y < h - 8, anteil: a });
@@ -932,11 +1103,24 @@ export async function erstellen({
     if (zerlegt !== zerlegtSoll || tablett !== tablettSoll) {
       const schritt = BEWEGUNG_AUS ? 1 : dt / Z_DAUER;
       // Aufs Tablett erst, wenn alles zerlegt ist; vom Tablett zurück, bevor es zusammengeht
-      if (tablett !== tablettSoll && (tablettSoll === 0 || zerlegt === zerlegtSoll)) tablett = tablettSoll > tablett ? Math.min(tablettSoll, tablett + schritt) : Math.max(tablettSoll, tablett - schritt);
-      else if (tablett === 0 || tablettSoll > 0) zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
+      // tablett_zuerst (Gastronomie): erst abräumen, dann den nächsten Gang bringen
+      const T_ZUERST = K.zerlegen && K.zerlegen.tablett_zuerst;
+      if (tablett !== tablettSoll && (T_ZUERST || tablettSoll === 0 || zerlegt === zerlegtSoll)) tablett = tablettSoll > tablett ? Math.min(tablettSoll, tablett + schritt) : Math.max(tablettSoll, tablett - schritt);
+      else if (T_ZUERST || tablett === 0 || tablettSoll > 0) zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
       zerlegenAnwenden(); rest += Math.abs(zerlegtSoll - zerlegt) + Math.abs(tablettSoll - tablett) + 0.01;
       letzteBewegung = performance.now();
       if (schattenErlaubt) r.shadowMap.needsUpdate = true;
+    }
+    if (weinGlas) {
+      // Einschenken: erst wenn die Flasche über dem Glas steht
+      const bereit = aktStufe >= E.stufe && zerlegt >= STUFEN_ZIEL[E.stufe] - 1e-4;
+      fuellSoll = bereit ? 1 : (aktStufe >= E.stufe ? fuell : 0);
+      if (fuell !== fuellSoll) {
+        const schritt = BEWEGUNG_AUS ? 1 : dt / (fuellSoll > fuell ? (E.dauer || 3.4) : 1.2);
+        fuell = fuellSoll > fuell ? Math.min(fuellSoll, fuell + schritt) : Math.max(fuellSoll, fuell - schritt);
+        rest += Math.abs(fuellSoll - fuell) + 0.01;
+      }
+      pegelSetzen(); strahlSetzen(bereit && fuell < 0.995);
     }
     if (punkteAnteil !== punkteSoll) {
       const schritt = BEWEGUNG_AUS ? 1 : dt / 0.35;
@@ -970,6 +1154,9 @@ export async function erstellen({
   if (variante) await varianteSetzen(variante);
   stufeSetzen(einstellungen);
 
+  // Servieren: Gänge, die erst hereinkommen, sind am Anfang unsichtbar.
+  // Erst hier -- zerlegenAnwenden braucht alles, was oben angelegt wird.
+  if (teile.some((t) => t.einblenden)) zerlegenAnwenden();
   const api = {
     varianten: namen,
     variante: varianteSetzen,
@@ -1076,6 +1263,18 @@ export async function erstellen({
       soll = { ...heim }; zSoll.copy(zHeim); ruhtGemeldet = false; letzteBewegung = performance.now() - 2000; starten();
     },
     gravur(text) { gravurZeichnen(text); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
+    async logo(datei) {
+      if (!datei) { logoBild = null; logoAnwenden(); einmal(); return true; }
+      const url = URL.createObjectURL(datei);
+      const b = new Image(); b.src = url;
+      try { await b.decode(); } catch { URL.revokeObjectURL(url); return false; }
+      logoBild = b; logoAnwenden(); ruhtGemeldet = false; letzteBewegung = performance.now(); starten();
+      return true;
+    },
+    karte(name) { karteName = name; kartenAnwenden(); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
+    get modellObjekt() { return modell; },
+    get hatLogo() { return LOGO.length > 0 || !!KARTE; },
+    gruppe(name, wert) { gruppeSetzen(name, wert); ruhtGemeldet = false; letzteBewegung = performance.now(); if (schattenErlaubt) r.shadowMap.needsUpdate = true; starten(); },
     ladung(n) { ladungSetzen(n); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
     get ladePlaetze() { return ladePlaetze.length; },
     stein(karat) { steinSetzen(karat); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },

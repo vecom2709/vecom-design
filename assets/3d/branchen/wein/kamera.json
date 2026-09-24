@@ -3,22 +3,22 @@
  "sensor_breite_mm": 36.0,
  "brennweite_mm": 85.0,
  "position": [
-  0.5960204005241394,
-  0.259990394115448,
-  1.516265869140625
+  1.1567308902740479,
+  0.2598734498023987,
+  2.597860097885132
  ],
  "ziel": [
-  -0.0903521180152893,
-  0.1699904054403305,
-  -0.025352153927087784
+  -0.0018460974097251892,
+  0.1698734313249588,
+  -0.004346095025539398
  ],
  "blende": 11.0,
- "fokus_m": 1.6899092197418213,
+ "fokus_m": 2.849890947341919,
  "hdri": "studio_small_03",
  "hdri_drehung_grad": 150.0,
  "hdri_staerke": 0.55,
  "hdri_schwelle": 0.0,
- "boden_hoehe": -9.60000033956021e-06,
+ "boden_hoehe": -0.00012656250328291208,
  "belichtung": 0.0,
  "aufloesung": [
   1600,
@@ -32,9 +32,9 @@
  "umgebung": {
   "datei": "umgebung.hdr",
   "ort": [
-   -0.0903521180152893,
-   0.15524472296237946,
-   -0.025352153927087784
+   -0.0018460974097251892,
+   0.15518039464950562,
+   -0.004346095025539398
   ]
  },
  "umgebung_boden": {
@@ -45,7 +45,7 @@
   "groesse_m": 1.6,
   "mitte": [
    0.0,
-   -9.60000033956021e-06,
+   -0.00012656250328291208,
    0.0
   ],
   "albedo_gebacken": 0.08,
@@ -64,7 +64,7 @@
    0.45,
    0.6
   ],
-  "licht_skala": 0.25415209433082675
+  "licht_skala": 0.27467731206038465
  },
  "look": {
   "kontrast": 1.3,
@@ -95,11 +95,12 @@
   "breite": 0.3,
   "stufen": [
    "kiste",
-   "flasche"
+   "flasche",
+   "einschenken"
   ],
   "regeln": [
    {
-    "muster": "^kiste_tuer_angel$",
+    "muster": "^kiste[23]?_tuer_angel$",
     "dreh": true,
     "start": 0.0,
     "stufe": 1,
@@ -108,18 +109,64 @@
    {
     "muster": "^flasche_kapsel$",
     "hoch": 0.075,
-    "start": 0.55,
+    "start": 0.4,
     "stufe": 2,
     "beschriftung": "kapsel"
    },
    {
     "muster": "^flasche_kork$",
     "hoch": 0.045,
-    "start": 0.62,
+    "start": 0.45,
     "stufe": 2,
     "beschriftung": "kork"
+   },
+   {
+    "muster": "^flasche_angel$",
+    "dreh": true,
+    "weg": [
+     0.006,
+     0.166,
+     0.015
+    ],
+    "start": 0.7,
+    "stufe": 3,
+    "beschriftung": "einschenken"
    }
-  ]
+  ],
+  "einschenken": {
+   "glas": "weinglas_wein",
+   "flasche": "flasche_glas",
+   "muendung": [
+    0.0,
+    0.2995,
+    0.0
+   ],
+   "stufe": 3,
+   "dauer": 3.4
+  },
+  "gruppen": {
+   "geschenk": {
+    "1": "^kiste_",
+    "2": "^kiste2_",
+    "3": "^kiste3_",
+    "start": "1"
+   }
+  }
  },
- "dreiecke": 14806
+ "logo": [
+  {
+   "stoff": "^Etikett",
+   "bereich": [
+    0.15,
+    0.12,
+    0.85,
+    0.49
+   ],
+   "streifen": [
+    0.075,
+    0.27
+   ]
+  }
+ ],
+ "dreiecke": 25548
 }
