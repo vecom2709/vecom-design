@@ -641,10 +641,10 @@ export class World {
        -- Klarlack, Buerstung, Anisotropie -- bleibt, und gerade das macht
        den Unterschied zwischen Metall und Farbe. */
     const gs = {
-      uGold: { value: new THREE.Color(0xf0b64d) },     // poliertes Gold, F0 ~ 1,00/0,71/0,29
-      uSilber: { value: new THREE.Color(0xe9ebee) },   // Silber, leicht kuehl
-      uX0: { value: -groesse.x * 0.22 },
-      uX1: { value: groesse.x * 0.26 },
+      uGold: { value: new THREE.Color(0xd99a2b) },     // poliertes Gold: kraeftig, sonst frisst der Klarlack die Farbe
+      uSilber: { value: new THREE.Color(0xc9ccd1) },   // Silber, leicht kuehl
+      uX0: { value: -groesse.x * 0.02 },
+      uX1: { value: groesse.x * 0.34 },
     };
     this.goldSilber = gs;
     this.mat.onBeforeCompile = (sh) => {
