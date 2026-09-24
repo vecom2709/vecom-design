@@ -791,7 +791,7 @@ function starten() {
       if (mat.name === 'M_Marke') {
         /* Auch eloxiertes Metall ist nicht makellos: die feine Struktur nimmt
            der Flaeche das Gegossene, ohne dass man sie bewusst sieht. */
-        mat.metalness = 1.0; mat.roughness = 0.155; mat.envMapIntensity = 1.0;
+        mat.metalness = 1.0; mat.roughness = 0.26; mat.envMapIntensity = 1.0;   /* 0,155 -> 0,26: leicht gebuerstetes Gold statt Spiegel (Uwe) */
         /* 1,0 statt 2,0 seit dem Gold: Die alte Albedo war dunkles Blau
            (~0,05), Gold spiegelt rund fuenfzehnmal mehr. Mit 2,0 lief die
            Marke im Bloom zu einem weissen Fleck aus (auf der RTX 5070
@@ -820,7 +820,8 @@ function starten() {
               'vec4 diffuseColor = vec4( mix( uGold, uSilber, smoothstep( uX0, uX1, vGsX ) ), opacity );');
         };
         mat.customProgramCacheKey = () => 'vecom-saal-gold-silber';
-        if ('clearcoat' in mat) mat.clearcoat = Math.min(mat.clearcoat, 0.1);
+        if ('clearcoat' in mat) mat.clearcoat = 0;   /* kein Lack: satiniertes Metall */
+        if ('anisotropy' in mat) mat.anisotropy = Math.max(mat.anisotropy || 0, 0.6);
         mat.needsUpdate = true;
         mat.roughnessMap = K_METALL;
         mat.normalMap = K_NORMAL;

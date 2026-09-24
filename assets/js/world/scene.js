@@ -51,7 +51,7 @@ const THEMEN = {
     key: [0xffffff, 340],
     rimA: [BLUE, 90], rimB: [CYAN, 55],
     fill: [0xb39861, 18], spec: [0xffffff, 34], pointer: [0xf4e0aa, 26],
-    logo: { color: 0xf0b64d, roughness: 0.3, envMapIntensity: 1.9, iridescence: 0.08 },
+    logo: { color: 0xf0b64d, roughness: 0.36, envMapIntensity: 1.5, iridescence: 0.0 },   // satiniertes Gold, s. MATERIALS.metal
     boden: { color: 0x110f0c, roughness: 0.3, envMapIntensity: 0.7 },
     /* Nachts braucht es keinen Fond: Der Grund IST dunkel. */
     fond: { farbe: 0x070605, staerke: 0.0 },
@@ -617,10 +617,13 @@ export class World {
       roughness: TM.logo.roughness,   // je nach Grund: dunkel spiegelt mehr
 
       roughnessMap: brushed,      // gebürstete Struktur: bricht die tote Fläche
-      clearcoat: 1.0,
+      /* Leicht gebuerstetes Gold statt Lack (Uwe, 24.09.2026: „Reflexion
+         nicht zu stark"): Ein voller Klarlack legt eine zweite, weisse
+         Spiegelung ueber das Gold -- genau die war zu stark. */
+      clearcoat: 0.15,
       clearcoatRoughness: 0.07,
       envMapIntensity: TM.logo.envMapIntensity,
-      anisotropy: 0.6,           // längliche Reflexe wie bei geschliffenem Metall
+      anisotropy: 0.75,          // längliche Reflexe wie bei geschliffenem Metall -- beim satinierten Gold deutlicher
       anisotropyRotation: Math.PI / 3,
       transmission: 0.0,          // wird für den Glaszustand hochgefahren
       thickness: 0.0,
@@ -917,15 +920,15 @@ export class World {
   /* Drei Aggregatzustände desselben Motivs. Die Werte werden von außen
      angetweent, hier stehen nur die Ziele. */
   static MATERIALS = {
-    metal: { metalness: 0.86, roughness: 0.30, transmission: 0.0, ior: 1.5, thickness: 0.0,
-             clearcoatRoughness: 0.07, iridescence: 0.08, emissiveIntensity: 0.0, envMapIntensity: 1.9, opacity: 1 },
+    metal: { metalness: 0.86, roughness: 0.36, transmission: 0.0, ior: 1.5, thickness: 0.0,
+             clearcoatRoughness: 0.07, iridescence: 0.0, emissiveIntensity: 0.0, envMapIntensity: 1.5, opacity: 1 },
     /* Kein Glas mehr: Durchsichtigkeit zeigt bei einem massiven Körper die
        Rückseiten mit — das sah wie doppelte Spiegelungen aus. Stattdessen
        poliertes Metall: schärfere Reflexe, mehr Glanz, keine Doppelbilder. */
-    glass: { metalness: 0.95, roughness: 0.09, transmission: 0.0, ior: 1.5, thickness: 0.0,
-             clearcoatRoughness: 0.02, iridescence: 0.22, emissiveIntensity: 0.0, envMapIntensity: 2.2, opacity: 1 },
-    glow:  { metalness: 0.75, roughness: 0.22, transmission: 0.0, ior: 1.5, thickness: 0.0,
-             clearcoatRoughness: 0.05, iridescence: 0.2, emissiveIntensity: 1.5, envMapIntensity: 1.4, opacity: 1 },
+    glass: { metalness: 0.95, roughness: 0.20, transmission: 0.0, ior: 1.5, thickness: 0.0,
+             clearcoatRoughness: 0.02, iridescence: 0.05, emissiveIntensity: 0.0, envMapIntensity: 1.7, opacity: 1 },
+    glow:  { metalness: 0.75, roughness: 0.28, transmission: 0.0, ior: 1.5, thickness: 0.0,
+             clearcoatRoughness: 0.05, iridescence: 0.05, emissiveIntensity: 1.5, envMapIntensity: 1.2, opacity: 1 },
   };
 
   /* Die Lichtquelle in Bildkoordinaten — die Strahlen müssen dort ansetzen,
