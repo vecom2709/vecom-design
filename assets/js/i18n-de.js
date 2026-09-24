@@ -818,6 +818,23 @@ masz: {
       back: "Zurück zur Startseite"
     },
     /* Umbau 24.09.2026 (Richtung B): Mein Betrieb ist …, Bildbänder, WhatsApp, Technikseite */
+    intro: {
+      skip: "Überspringen"
+    },
+    vs: {
+      kicker: "In 30 Sekunden",
+      h1: "Ihre Website,",
+      h2: "bevor es sie gibt.",
+      lead: "Name Ihres Betriebs und Branche — und Sie sehen sie sofort, auf Laptop und Telefon.",
+      name: "Name Ihres Betriebs",
+      nameBsp: "z. B. Trattoria Da Rosa",
+      branche: "Branche",
+      ort: "Ort (freiwillig)",
+      ortBsp: "z. B. Agrigento",
+      knopf: "Vorschau zeigen",
+      weiter: "Gefällt Ihnen die Richtung? Ich schicke Ihnen den Link zu Ihrem Dashboard — dort machen wir daraus Ihre echte Website.",
+      hinweis: "Das ist eine automatisch gesetzte Skizze aus Name, Branche und einem Bild — noch kein Entwurf. Ihre echte Website gestalten wir gemeinsam."
+    },
     edel: {
       b_kicker: "Beispiele nach Branche",
       b_h1: "Mein Betrieb",
@@ -840,6 +857,16 @@ masz: {
       tk_h2: "hinter den Demos",
       tk_lead: "Auf der Startseite zählt, was Ihre Kunden sehen. Hier steht, wie es gemacht ist — für alle, die es genau wissen möchten.",
       tk_fuss: "Technik",
-      tk_zurueck: "Zurück zur Startseite"
+      tk_zurueck: "Zurück zur Startseite",
+      v_h: "Warum Sie vertrauen können",
+      v1t: "Festpreis vorab",
+      v1s: "Sie geben ihn frei, bevor es losgeht",
+      v2t: "Ein Ansprechpartner",
+      v2s: "Persönlich, auf Deutsch und Italienisch",
+      v3t: "Alles aus einer Hand",
+      v3s: "Gestaltung, Technik, Hosting und Pflege",
+      v4t: "Server in Deutschland",
+      v4s: "DSGVO-konform",
+      logos_k: "Projekte, die schon laufen"
     }
 };

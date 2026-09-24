@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ergebnis = 'gesendet';
     try {
         Einrichtung_sicher();
-        $r = Zugang::anfordern($email, $sprache, ['quelle' => 'seite', 'empfehl_code' => $code]);
+        $r = Zugang::anfordern($email, $sprache, ['quelle' => Zugang::quelle((string) ($_POST['quelle'] ?? 'seite')), 'empfehl_code' => $code]);
         if (!$r['ok']) { $ergebnis = 'ungueltig'; }
         /* Ob die Mail wirklich rausging, steht in der Verwaltung (Mails,
            Meldungen). Hier NICHT: Ein anderer Satz bei einer Bestandsadresse

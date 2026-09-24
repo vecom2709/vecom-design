@@ -7223,6 +7223,15 @@ pruefe('S2: ein Empfehlungscode reist mit', str_contains($zgBedarfPhp, "'&e=' . 
 pruefe('S2: {konfigurator} in den Vorlagen zeigt auf den Einstieg',
     str_contains((string) file_get_contents($wurzel . '/src/Vorlage.php'), "'/zugang.php?lang='"));
 
+/* ---------- N1: Herkunft „Vorschau" (24.09.2026) ----------------------- */
+pruefe('N1: die Quelle „vorschau“ wird angenommen', Zugang::quelle(' Vorschau ') === 'vorschau');
+pruefe('N1: eine unbekannte Quelle wird zu „seite“', Zugang::quelle('<script>') === 'seite' && Zugang::quelle(null) === 'seite');
+Zugang::anfordern('vorschau@pruefung.example', 'de', ['quelle' => 'vorschau']);
+pruefe('N1: der Zugang aus der Vorschau trägt seine Herkunft',
+    Db::wert('SELECT quelle FROM zugaenge WHERE email = ?', ['vorschau@pruefung.example'], '') === 'vorschau');
+pruefe('N1: zugang.php reicht die Quelle nur geprüft weiter',
+    str_contains((string) file_get_contents(dirname(__DIR__, 2) . '/zugang.php'), 'Zugang::quelle((string) ($_POST[\'quelle\']'));
+
 /* ---------- Texte und Messung (S3, S4) ----------------------------------- */
 foreach (['zugang', 'zugang_bestand', 'zugang_erinnerung', 'vorhaben_erinnerung'] as $zgA) {
     foreach (['it', 'de', 'en'] as $zgL2) {

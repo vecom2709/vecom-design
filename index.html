@@ -31,10 +31,29 @@
 
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+/* INTRO „Gegossenes Gold" (24.09.2026, Uwe: I1). Die Entscheidung fällt hier,
+   vor dem ersten Bild -- sonst stünde erst die Seite da und dann ein
+   schwarzer Vorhang darüber. Kein Intro bei: reduzierter Bewegung,
+   Datensparmodus, langsamer Verbindung, Robotern und Messwerkzeugen, einem
+   Sprung zu einem Abschnitt (#...), Wechsel innerhalb der eigenen Seiten,
+   und nicht öfter als einmal in 30 Tagen. ?intro=1 erzwingt, ?intro=0 nicht. */
+(function () { try {
+  var q = location.search, d = document.documentElement, n = navigator, c = n.connection || {};
+  var zwang = /[?&]intro=1/.test(q);
+  var an = zwang || (!/[?&]intro=0/.test(q) && !location.hash
+    && !matchMedia('(prefers-reduced-motion: reduce)').matches && !c.saveData
+    && !/(^|slow-)2g|3g/.test(c.effectiveType || '') && !n.webdriver
+    && !/bot|crawl|spider|lighthouse|headless|pagespeed/i.test(n.userAgent)
+    && !(document.referrer && document.referrer.indexOf(location.origin) === 0));
+  if (an && !zwang) { var t = +localStorage.getItem('vd-intro') || 0; if (Date.now() - t < 30 * 864e5) an = false; }
+  if (an) d.classList.add('intro-an');
+} catch (e) {} })();
+</script>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=5f96b3a3">
+<link rel="stylesheet" href="assets/css/app.css?v=6b4fd1e2">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
-<link rel="stylesheet" href="assets/css/edel.css?v=2689c962">
+<link rel="stylesheet" href="assets/css/edel.css?v=12725911">
 
 
 <script type="importmap">
@@ -269,6 +288,41 @@
 
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
+<div class="intro" data-intro aria-hidden="true">
+  <video class="intro__film" muted playsinline preload="none" disablepictureinpicture></video>
+  <button class="intro__weiter" type="button" data-i18n="intro.skip">Salta</button>
+</div>
+<script>
+(function () {
+  var d = document.documentElement;
+  if (!d.classList.contains('intro-an')) return;
+  var box = document.querySelector('[data-intro]'), v = box.querySelector('video'), fertig = false;
+  var hoch = innerHeight > innerWidth * 1.1;
+  var name = '/assets/video/intro-' + (hoch ? 'hoch' : 'quer');   // absolut: dieselbe Zeile steht auch in /de/ und /en/
+  /* AV1 zuerst (kleiner), H.264 als Rückfall -- was der Browser kann. */
+  [['.webm', 'video/webm; codecs=av01.0.08M.08'], ['.mp4', 'video/mp4; codecs=avc1.640028']].forEach(function (x) {
+    var s = document.createElement('source'); s.src = name + x[0]; s.type = x[1]; v.appendChild(s);
+  });
+  function ende() {
+    if (fertig) return; fertig = true;
+    d.classList.add('intro-weg');
+    setTimeout(function () { d.classList.remove('intro-an', 'intro-weg'); box.remove(); }, 750);
+  }
+  /* Spielt der Film nach 1,5 s nicht, gibt es kein Intro: nie warten lassen. */
+  var frist = setTimeout(ende, 1500);
+  v.addEventListener('playing', function () { clearTimeout(frist); try { localStorage.setItem('vd-intro', String(Date.now())); } catch (e) {} }, { once: true });
+  v.addEventListener('ended', ende); v.addEventListener('error', ende);
+  /* Eine einzelne Quelle, die dieser Browser nicht kann, ist kein Abbruch --
+     erst wenn keine mehr übrig ist (NETWORK_NO_SOURCE). */
+  v.addEventListener('error', function () { if (v.networkState === 3) ende(); }, true);
+  box.querySelector('button').addEventListener('click', ende);
+  addEventListener('keydown', function (e) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') ende(); });
+  addEventListener('wheel', ende, { passive: true, once: true });
+  addEventListener('touchmove', ende, { passive: true, once: true });
+  v.load(); var p = v.play(); if (p && p.catch) p.catch(ende);
+})();
+</script>
+
 <div class="boot" data-boot aria-hidden="true">
   <svg viewBox="0 0 100 100" width="110" height="110" fill="none" stroke="url(#bootGrad)" stroke-width="1.6" stroke-linejoin="round">
     <defs><linearGradient id="bootGrad" x1="0" y1="1" x2="1" y2="0">
@@ -384,6 +438,34 @@
   <div class="scrollcue" aria-hidden="true">
     <span data-i18n="hero.scroll">Scorra</span>
     <i></i>
+  </div>
+</section>
+
+<!-- ===================== Vertrauen (N2) und Kunden (N4) =====================
+     24.09.2026, Uwe: Ja zu N2 und N4. Eine ruhige Zeile, keine Kacheln und
+     keine Symbole: Wer vom Aufmacher kommt, soll in einem Blick die vier
+     Fragen beantwortet sehen, die vor jedem Auftrag stehen -- was kostet es,
+     mit wem rede ich, wer macht was, wo liegen meine Daten. Darunter die
+     Marken, deren Seiten schon laufen; ein Klick darauf öffnet die
+     Fallstudie. Nur echte Kunden, nur mit deren Einverständnis. -->
+<section class="vertrauen" aria-labelledby="vertrauen-h">
+  <div class="wrap">
+    <h2 id="vertrauen-h" class="sr-only" data-i18n="edel.v_h">Perché fidarsi</h2>
+    <ul class="vertrauen__liste" data-reveal>
+      <li><strong data-i18n="edel.v1t">Prezzo fisso, prima</strong><span data-i18n="edel.v1s">Lo approva Lei, prima di iniziare</span></li>
+      <li><strong data-i18n="edel.v2t">Un solo referente</strong><span data-i18n="edel.v2s">Di persona, in italiano e in tedesco</span></li>
+      <li><strong data-i18n="edel.v3t">Tutto da un solo fornitore</strong><span data-i18n="edel.v3s">Design, tecnica, hosting e assistenza</span></li>
+      <li><strong data-i18n="edel.v4t">Server in Germania</strong><span data-i18n="edel.v4s">Conforme al GDPR</span></li>
+    </ul>
+    <div class="kunden" data-reveal>
+      <p class="kunden__kicker" data-i18n="edel.logos_k">Progetti già online</p>
+      <ul class="kunden__liste">
+        <li><a href="#work" data-zu-projekt="cavaleri"><img src="assets/img/kunden/cavaleri.webp?v=0d9d005a" alt="Cavaleri Srl" width="419" height="96" loading="lazy" decoding="async" style="--h:26px"></a></li>
+        <li><a href="#work" data-zu-projekt="jonika"><span class="kunden__wort">Jonika Venturis</span></a></li>
+        <li><a href="#work" data-zu-projekt="mensaena"><img src="assets/img/kunden/mensaena.webp?v=f1858225" alt="Mensaena" width="469" height="96" loading="lazy" decoding="async" style="--h:27px"></a></li>
+        <li><a href="#work" data-zu-projekt="trendonix"><img src="assets/img/kunden/trendonix.webp?v=e7c7d460" alt="Trendonix" width="1324" height="96" loading="lazy" decoding="async" style="--h:13px"></a></li>
+      </ul>
+    </div>
   </div>
 </section>
 
@@ -900,6 +982,54 @@
      freigegeben ist, bleibt der Abschnitt verborgen — ein leerer Bereich mit
      der Ueberschrift "Was Kunden sagen" waere die schlechteste aller
      Antworten auf diese Frage. -->
+<!-- ===================== Ihre Seite in 30 Sekunden (N1) =====================
+     24.09.2026, Uwe: Ja zu N1. Name und Branche eintippen, sofort die eigene
+     Startseite als Skizze auf Laptop und Telefon sehen — im Fotorender der
+     Fallstudien. Die Skizze ist HTML in den Bildschirmflächen (vorschau.js),
+     der Name steht wirklich darin. Darunter ehrlich, was es ist, und der Weg
+     weiter über dieselbe E-Mail-Adresse (Quelle „vorschau"). -->
+<section class="section vorschau" id="vorschau" aria-labelledby="vorschau-h">
+  <div class="wrap">
+    <div class="sechead" data-stagger>
+      <span class="marg" data-i18n="vs.kicker">In 30 secondi</span>
+      <h2 id="vorschau-h" data-reveal><span data-i18n="vs.h1">Il suo sito,</span> <em data-i18n="vs.h2">prima che esista.</em></h2>
+      <p data-reveal data-i18n="vs.lead">Nome dell’attività e settore — e lo vede subito, su laptop e smartphone.</p>
+    </div>
+    <form class="vorschau__form" data-vorschau-form data-reveal>
+      <label class="vorschau__feld"><span data-i18n="vs.name">Nome dell’attività</span>
+        <input name="betrieb" maxlength="36" required autocomplete="organization" spellcheck="false" data-i18n-attr="placeholder:vs.nameBsp" placeholder="es. Trattoria Da Rosa"></label>
+      <label class="vorschau__feld"><span data-i18n="vs.branche">Settore</span>
+        <select name="branche"></select></label>
+      <label class="vorschau__feld"><span data-i18n="vs.ort">Luogo (facoltativo)</span>
+        <input name="ort" maxlength="28" autocomplete="address-level2" spellcheck="false" data-i18n-attr="placeholder:vs.ortBsp" placeholder="es. Agrigento"></label>
+      <button class="btn btn--primary" type="submit"><span data-i18n="vs.knopf">Mostrare l’anteprima</span></button>
+    </form>
+    <p class="sr-only" role="status" aria-live="polite" data-vorschau-status></p>
+    <div class="vorschau__buehne" data-vorschau-buehne aria-hidden="true" hidden>
+      <div class="vorschau__innen" data-vorschau-innen>
+        <img class="vorschau__foto" src="assets/img/arbeiten/cavaleri/an.webp?v=e72004a5" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+        <div class="vorschau__schirm" data-schirm="laptop"></div>
+        <div class="vorschau__schirm vorschau__schirm--telefon" data-schirm="telefon"></div>
+        <img class="vorschau__glanz" src="assets/img/arbeiten/cavaleri/aus.webp?v=e14b2e43" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+      </div>
+    </div>
+    <div class="vorschau__weiter" data-vorschau-weiter hidden>
+      <p class="vorschau__satz" data-i18n="vs.weiter">Le piace la direzione? Le mando il link alla sua dashboard — lì ne facciamo il suo sito vero.</p>
+      <form class="zugangsfeld" action="/zugang.php?lang=it" method="post" data-zugang="vorschau">
+        <input type="hidden" name="quelle" value="vorschau">
+        <label class="sr-only" for="zf-vorschau" data-i18n="zugang.feld">Il suo indirizzo e-mail</label>
+        <div class="zugangsfeld__zeile">
+          <input id="zf-vorschau" type="email" name="email" required autocomplete="email" inputmode="email" spellcheck="false"
+                 data-i18n-attr="placeholder:zugang.feld" placeholder="Il suo indirizzo e-mail">
+          <button class="btn btn--primary" type="submit"><span data-i18n="zugang.knopf">Ricevere la mia dashboard</span></button>
+        </div>
+        <p class="zugangsfeld__ok" role="status" aria-live="polite" hidden></p>
+      </form>
+      <p class="vorschau__hinweis" data-i18n="vs.hinweis">Questa è una bozza composta in automatico da nome, settore e un’immagine — non ancora un progetto. Il suo sito vero lo progettiamo insieme.</p>
+    </div>
+  </div>
+</section>
+
 <section class="section" id="stimmen" data-stimmen hidden>
   <div class="wrap">
     <div class="sechead sechead--neben" data-stagger>
@@ -1412,13 +1542,19 @@
 
 <!-- WhatsApp mit Gesicht (V4, 24.09.2026): ein Mensch statt eines Formulars.
      Erscheint erst nach dem Aufmacher, damit er dort nichts verdeckt. -->
+<!-- Handy-Leiste (N7, 24.09.2026): nur auf schmalen Bildschirmen, erst nach
+     dem Aufmacher, weg beim Runterscrollen (Lesen), da beim Hochscrollen
+     (Suchen). Nicht, solange das Kontaktformular im Bild ist. -->
+<div class="handyleiste" data-handyleiste aria-hidden="true">
+  <a class="btn btn--primary" href="/zugang.php?lang=it" tabindex="-1"><span data-i18n="nav.cta">La mia dashboard</span></a>
+</div>
 <a class="wa-knopf" href="https://wa.me/message/ZA5MG7SV4WEQM1" target="_blank" rel="noopener" data-wa-knopf data-i18n-attr="aria-label:edel.waAria" aria-label="Scrivere a Uwe su WhatsApp">
   <img src="assets/img/uwe-kopf-128.webp?v=b2e7c79a" alt="" width="40" height="40" loading="lazy" decoding="async">
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=c397f8c9" defer></script>
-<script src="assets/js/app.js?v=377e910d" defer></script>
+<script src="assets/js/i18n-it.js?v=aafed1dd" defer></script>
+<script src="assets/js/app.js?v=61cf3242" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
 <script src="assets/vendor/ScrollTrigger.min.js?v=05ca5ad8" defer></script>
@@ -1446,6 +1582,7 @@
 <script type="module" src="assets/js/erlebnis/betrieb.js?v=99355cb0"></script>
 <script type="module" src="assets/js/zugang.js?v=a205dcfe"></script>
 <script type="module" src="assets/js/arbeiten.js?v=e16f11f4"></script>
+<script type="module" src="assets/js/vorschau.js?v=2897b396"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

@@ -62,6 +62,17 @@ final class Zugang
      * @param array{quelle?:string,empfehl_code?:string,name?:string} $extra
      * @return array{ok:bool,art:string,mail:bool}
      */
+    /** Woher die Adresse kam. Nur bekannte Werte -- ein Formularfeld ist
+        Besuchereingabe und landet sonst ungeprüft in der Auswertung.
+        'vorschau' = „Ihre Seite in 30 Sekunden" (N1, 24.09.2026). */
+    public const QUELLEN = ['seite', 'vorschau'];
+
+    public static function quelle(?string $roh): string
+    {
+        $roh = strtolower(trim((string) $roh));
+        return in_array($roh, self::QUELLEN, true) ? $roh : 'seite';
+    }
+
     public static function anfordern(string $email, string $sprache, array $extra = []): array
     {
         $email = mb_strtolower(trim($email));
@@ -104,7 +115,7 @@ final class Zugang
                 'email'        => $email,
                 'name'         => mb_substr(trim((string) ($extra['name'] ?? '')), 0, 120) ?: null,
                 'sprache'      => $sprache,
-                'quelle'       => mb_substr((string) ($extra['quelle'] ?? 'seite'), 0, 20),
+                'quelle'       => self::quelle($extra['quelle'] ?? 'seite'),
                 'bedarf_id'    => isset($extra['bedarf_id']) ? (int) $extra['bedarf_id'] : null,
                 'empfehl_code' => preg_match('/^[A-Z0-9]{5,16}$/', $code) ? $code : null,
             ]);

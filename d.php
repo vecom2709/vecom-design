@@ -34,7 +34,9 @@ const EREIGNISSE = [
     'mittelklasse-stufe-1', 'mittelklasse-stufe-2', 'mittelklasse-stufe-3', 'mittelklasse-stufe-4',
     'whatsapp',
     // E-Mail-Einstieg (24.09.2026): aus welchem Feld die Adresse kam
-    'zugang-hero', 'zugang-kontakt',
+    'zugang-hero', 'zugang-kontakt', 'zugang-vorschau',
+    // Ihre Seite in 30 Sekunden (N1, 24.09.2026): Vorschau gezeigt, Branche
+    'vorschau-gezeigt',
     // Umgesetzte Arbeiten (24.09.2026): welche Fallstudie gewählt, welche Seite besucht
     'arbeit-cavaleri', 'arbeit-jonika', 'arbeit-mensaena', 'arbeit-trendonix',
     'arbeit-besuch-cavaleri', 'arbeit-besuch-jonika', 'arbeit-besuch-mensaena', 'arbeit-besuch-trendonix',

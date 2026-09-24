@@ -4347,3 +4347,35 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   .haus .werkbank__reiter { flex-wrap: wrap; }
   .estufen { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---------- Seitenübergänge (N6 — 24.09.2026) ----------
+   Zwischen den eigenen Seiten blendet der Browser weich über, und die
+   Marke oben links gleitet an ihren neuen Platz, statt zu verschwinden und
+   neu zu erscheinen. Browser ohne Unterstützung laden wie bisher. */
+@view-transition { navigation: auto; }
+.brand img { view-transition-name: marke; }
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: 420ms; animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+}
+::view-transition-group(marke) { animation-duration: 520ms; animation-timing-function: cubic-bezier(.16, 1, .3, 1); }
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
+
+/* ---------- Intro „Gegossenes Gold" (24.09.2026) ----------
+   Schwarzer Vorhang mit dem Film, nur wenn der Kopf ihn freigibt
+   (html.intro-an). Der Film füllt das Bild, am Ende blendet der Vorhang
+   auf die Startseite, deren V dort steht, wo es im Film stehen bleibt. */
+.intro { display: none; }
+html.intro-an .intro { display: block; position: fixed; inset: 0; z-index: 2147483600; background: #050403;
+  transition: opacity 700ms cubic-bezier(.4, 0, .2, 1); }
+html.intro-an body { overflow: hidden; }
+html.intro-weg .intro { opacity: 0; pointer-events: none; }
+.intro__film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.intro__weiter { position: absolute; right: clamp(1rem, 3vw, 2.2rem); bottom: clamp(1rem, 3vw, 2rem);
+  min-height: 44px; padding: .6rem 1.2rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(241, 211, 139, .35); background: rgba(10, 9, 8, .45); color: rgba(247, 243, 234, .8);
+  font: 500 .8rem/1 var(--f-text); letter-spacing: .14em; text-transform: uppercase;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); opacity: 0; animation: intro-knopf 400ms 900ms forwards; }
+.intro__weiter:hover, .intro__weiter:focus-visible { color: #fff; border-color: rgba(241, 211, 139, .7); }
+@keyframes intro-knopf { to { opacity: 1; } }

@@ -271,3 +271,121 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
   .zugangsfeld input { min-height: 52px; padding: 0 12px; }
   .zugangsfeld .btn { min-height: 52px; justify-content: center; }
 }
+
+/* ---------- Vertrauen und Kunden (N2, N4 — 24.09.2026) ----------
+   Eine Zeile, vier Aussagen, getrennt von feinen Goldlinien. Keine
+   Symbole: Sie würden die Zeile in vier Kacheln zerlegen und lauter machen,
+   als sie sein soll. Darunter die Marken in einem Ton (Champagner), damit
+   keine fremde Farbe gegen das Gold spielt. */
+.vertrauen { position: relative; z-index: 2; padding: clamp(2.2rem, 4vw, 3.4rem) 0 clamp(2.6rem, 5vw, 4.2rem);
+  border-top: 1px solid var(--edel-linie); border-bottom: 1px solid var(--edel-linie);
+  background: linear-gradient(180deg, rgba(10, 9, 8, .72), rgba(10, 9, 8, .9)); }
+.vertrauen__liste { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+.vertrauen__liste li { display: flex; flex-direction: column; gap: .35rem; padding: .2rem clamp(1rem, 2vw, 1.8rem); }
+.vertrauen__liste li + li { border-left: 1px solid; border-image: linear-gradient(180deg, transparent, rgba(241, 211, 139, .45), transparent) 1; }
+.vertrauen__liste strong { font-family: var(--f-serif); font-weight: 500; font-size: clamp(1.15rem, 1rem + .45vw, 1.4rem); color: var(--c-text); letter-spacing: .005em; }
+.vertrauen__liste span { font-size: var(--t-sm); line-height: 1.5; color: var(--c-text-dim); }
+.kunden { margin-top: clamp(1.8rem, 3.5vw, 2.8rem); display: flex; align-items: center; gap: clamp(1rem, 3vw, 2.6rem); flex-wrap: wrap; }
+.kunden__kicker { margin: 0; font-size: var(--t-xs); letter-spacing: .28em; text-transform: uppercase; color: var(--c-text-faint); white-space: nowrap; }
+.kunden__liste { display: flex; align-items: center; flex-wrap: wrap; gap: clamp(1.4rem, 3.4vw, 3.2rem); margin: 0; padding: 0; list-style: none; }
+.kunden__liste a { display: inline-flex; align-items: center; min-height: 44px; opacity: .62; transition: opacity var(--d-ui) linear; }
+.kunden__liste a:hover, .kunden__liste a:focus-visible { opacity: 1; }
+.kunden__liste img { height: var(--h, 24px); width: auto; display: block; }
+.kunden__wort { font-family: var(--f-serif); font-style: italic; font-size: 1.35rem; letter-spacing: .01em; color: #fff0d6; }
+@media (max-width: 899px) {
+  .vertrauen__liste { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 1.4rem; }
+  .vertrauen__liste li:nth-child(3) { border-left: 0; }
+  .kunden { justify-content: flex-start; }
+}
+@media (max-width: 520px) {
+  .vertrauen__liste li { padding-inline: .6rem; }
+  .kunden__liste { gap: 1.1rem 1.8rem; }
+}
+
+/* ---------- Handy-Leiste (N7 — 24.09.2026) ---------- */
+.handyleiste { display: none; }
+@media (max-width: 760px) {
+  .handyleiste {
+    display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 59;
+    padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, rgba(10, 9, 8, 0), rgba(10, 9, 8, .86) 38%);
+    transform: translateY(110%); transition: transform 340ms cubic-bezier(.16, 1, .3, 1);
+    pointer-events: none;
+  }
+  .handyleiste .btn { width: 100%; justify-content: center; min-height: 50px; pointer-events: auto; }
+  body.leiste-an .handyleiste { transform: none; }
+  /* Der WhatsApp-Knopf steigt mit, damit nichts übereinanderliegt */
+  body.leiste-an .wa-knopf { transform: translateY(-70px); }
+  .wa-knopf { transition: transform 340ms cubic-bezier(.16, 1, .3, 1), opacity .3s; }
+}
+@media (prefers-reduced-motion: reduce) { .handyleiste, .wa-knopf { transition: none; } }
+/* Der Telefonassistent sitzt rechts unten im geschlossenen Schattenbaum und
+   ist von außen nicht verschiebbar. Ein fester, transformierter Wirt macht
+   ihn zum Bezugsrahmen seines Inhalts (Transform erzeugt einen neuen
+   Enthaltungsblock für position: fixed) -- so steigt er mit der Leiste. */
+@media (max-width: 760px) {
+  ai-voicereceptionist { display: block; position: fixed; right: 0; bottom: 0; width: 0; height: 0; z-index: 2147483000;
+    transform: translateY(0); transition: transform 340ms cubic-bezier(.16, 1, .3, 1); }
+  body.leiste-an ai-voicereceptionist { transform: translateY(-70px); }
+}
+
+/* ---------- Ihre Seite in 30 Sekunden (N1 — 24.09.2026) ---------- */
+.vorschau__form { display: grid; grid-template-columns: 1.3fr 1fr 1fr auto; gap: .9rem; align-items: end; margin-top: clamp(1.4rem, 3vw, 2.2rem); }
+.vorschau__feld { display: flex; flex-direction: column; gap: .45rem; font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-faint); }
+.vorschau__feld input, .vorschau__feld select {
+  min-height: 52px; padding: 0 1rem; border-radius: 12px; border: 1px solid var(--edel-linie);
+  background: rgba(17, 15, 13, .62); color: var(--c-text); font: 400 1rem/1.2 var(--f-text); letter-spacing: 0; text-transform: none;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.vorschau__feld select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #e9cf86 50%), linear-gradient(135deg, #e9cf86 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 2.4rem; }
+.vorschau__feld select option { background: #141311; color: #f7f3ea; }
+.vorschau__feld input:focus, .vorschau__feld select:focus { outline: none; border-color: var(--c-cyan); box-shadow: 0 0 0 3px rgba(241, 211, 139, .14); }
+.vorschau__form .btn { min-height: 52px; }
+.vorschau__buehne { position: relative; margin-top: clamp(1.6rem, 3vw, 2.4rem); overflow: hidden; border: 1px solid var(--edel-linie); background: #0d0c0a; }
+.vorschau__innen { position: absolute; left: 0; top: 0; width: 2400px; height: 1350px; transform-origin: 0 0; }
+.vorschau__foto, .vorschau__glanz { position: absolute; inset: 0; width: 2400px; height: 1350px; max-width: none; }
+.vorschau__glanz { mix-blend-mode: screen; pointer-events: none; }
+.vorschau__schirm { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; background: #0b0a09; }
+/* Das Telefon steht im Foto hinter der Schärfeebene — wie bei den Fallstudien */
+.vorschau__schirm--telefon { filter: blur(2.2px); }
+.vorschau__weiter { margin-top: clamp(1.4rem, 3vw, 2rem); display: grid; gap: 1rem; max-width: 640px; }
+.vorschau__satz { margin: 0; font-family: var(--f-serif); font-size: clamp(1.25rem, 1.05rem + .6vw, 1.6rem); line-height: 1.35; color: var(--c-text); }
+.vorschau__hinweis { margin: 0; font-size: var(--t-sm); line-height: 1.55; color: var(--c-text-faint); }
+@media (max-width: 899px) { .vorschau__form { grid-template-columns: 1fr 1fr; } .vorschau__form .btn { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .vorschau__form { grid-template-columns: 1fr; } }
+
+/* Die Skizze im Bildschirm: gesetzt in CSS-Pixeln des Geräts (1440 x 824 bzw.
+   390 x 727), damit Schriftgrößen stimmen wie auf einer echten Seite. */
+.vs-seite { position: relative; width: 100%; height: 100%; color: #f7f3ea; font-family: 'Inter', system-ui, sans-serif;
+  background: linear-gradient(90deg, rgba(8, 7, 6, .92) 0%, rgba(8, 7, 6, .72) 38%, rgba(8, 7, 6, .15) 72%), var(--bild) center / cover no-repeat, #0b0a09; }
+.vs-kopf { display: flex; align-items: center; gap: 44px; padding: 30px 64px; }
+.vs-marke { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 500; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; }
+.vs-nav { display: flex; gap: 36px; margin-left: auto; font-size: 15px; color: rgba(247, 243, 234, .78); }
+.vs-kopfknopf { padding: 11px 20px; border: 1px solid var(--akzent); border-radius: 999px; font-size: 14px; color: var(--akzent); }
+.vs-held { position: absolute; left: 64px; bottom: 118px; max-width: 660px; }
+.vs-eyebrow { margin: 0 0 20px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; color: var(--akzent); }
+.vs-h1 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: calc(78px * var(--gr, 1)); line-height: 1.02; letter-spacing: -.01em; }
+.vs-h1 em { font-style: italic; color: var(--akzent); }
+.vs-lead { margin: 22px 0 0; max-width: 520px; font-size: 19px; line-height: 1.55; color: rgba(247, 243, 234, .82); }
+.vs-knoepfe { margin-top: 32px; }
+.vs-btn { display: inline-block; padding: 17px 30px; border-radius: 999px; font-size: 16px; font-weight: 600; color: #16120b;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, .1)), var(--akzent); }
+/* Telefon */
+.vs-seite--telefon { background: linear-gradient(180deg, rgba(8, 7, 6, .35) 0%, rgba(8, 7, 6, .55) 40%, rgba(8, 7, 6, .95) 78%), var(--bild) 60% 30% / cover no-repeat, #0b0a09; }
+.vs-seite--telefon .vs-kopf { padding: 22px 22px; justify-content: space-between; }
+.vs-seite--telefon .vs-marke { font-size: 24px; max-width: 280px; }
+.vs-burger { width: 26px; height: 12px; border-top: 2px solid #f7f3ea; border-bottom: 2px solid #f7f3ea; }
+.vs-seite--telefon .vs-held { left: 22px; right: 22px; bottom: 44px; }
+.vs-seite--telefon .vs-eyebrow { font-size: 11px; margin-bottom: 14px; }
+.vs-seite--telefon .vs-h1 { font-size: calc(44px * var(--gr, 1)); }
+.vs-seite--telefon .vs-lead { font-size: 15px; margin-top: 14px; }
+.vs-seite--telefon .vs-knoepfe { margin-top: 22px; }
+.vs-seite--telefon .vs-btn { display: block; text-align: center; padding: 15px 20px; font-size: 15px; }
+.vs-seite--laptop { display: flex; flex-direction: column; }
+.vs-leiste { flex: 0 0 74px; display: flex; align-items: center; gap: 10px; padding: 0 22px; background: #1c1b19; border-bottom: 1px solid #2a2825; }
+.vs-leiste i { width: 13px; height: 13px; border-radius: 50%; background: #3a3834; }
+.vs-adresse { margin-left: 18px; padding: 9px 22px; border-radius: 10px; background: #2a2825; font-size: 16px; color: rgba(247, 243, 234, .72); letter-spacing: .01em; }
+.vs-seite--laptop .vs-held { bottom: 118px; }
+.vs-seite--laptop .vs-kopf { position: relative; }
+.vs-seite--laptop { background: linear-gradient(90deg, rgba(8, 7, 6, .92) 0%, rgba(8, 7, 6, .72) 38%, rgba(8, 7, 6, .15) 72%), var(--bild) center 70% / cover no-repeat, #0b0a09; }

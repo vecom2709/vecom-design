@@ -818,6 +818,23 @@ masz: {
       back: "Back to the home page"
     },
     /* Umbau 24.09.2026 (Richtung B): Mein Betrieb ist …, Bildbänder, WhatsApp, Technikseite */
+    intro: {
+      skip: "Skip"
+    },
+    vs: {
+      kicker: "In 30 seconds",
+      h1: "Your website,",
+      h2: "before it exists.",
+      lead: "Your business name and trade — and you see it at once, on laptop and phone.",
+      name: "Business name",
+      nameBsp: "e.g. Trattoria Da Rosa",
+      branche: "Trade",
+      ort: "Town (optional)",
+      ortBsp: "e.g. Agrigento",
+      knopf: "Show preview",
+      weiter: "Like the direction? I’ll send you the link to your dashboard — that’s where we turn it into your real website.",
+      hinweis: "This is a sketch set automatically from name, trade and an image — not yet a design. We design your real website together."
+    },
     edel: {
       b_kicker: "Examples by industry",
       b_h1: "My business",
@@ -840,6 +857,16 @@ masz: {
       tk_h2: "behind the demos",
       tk_lead: "On the home page, what counts is what your customers see. Here is how it is made — for anyone who wants to know exactly.",
       tk_fuss: "Technology",
-      tk_zurueck: "Back to the home page"
+      tk_zurueck: "Back to the home page",
+      v_h: "Why you can rely on it",
+      v1t: "Fixed price upfront",
+      v1s: "You approve it before work starts",
+      v2t: "One person to talk to",
+      v2s: "In person, in German and Italian",
+      v3t: "All from one place",
+      v3s: "Design, build, hosting and care",
+      v4t: "Hosted in Germany",
+      v4s: "GDPR-compliant",
+      logos_k: "Already live"
     }
 };

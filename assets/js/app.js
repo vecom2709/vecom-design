@@ -503,6 +503,40 @@
     });
   }
 
+  /* ---------- 3f. Kundenmarken öffnen ihre Fallstudie (N4) --------------- */
+  document.querySelectorAll('[data-zu-projekt]').forEach(function (a) {
+    a.addEventListener('click', function () {
+      var knopf = document.querySelector('.studie__wahl button[data-id="' + a.getAttribute('data-zu-projekt') + '"]');
+      // Die Projektwahl entsteht erst, wenn die Fallstudien geladen sind
+      if (knopf) setTimeout(function () { knopf.click(); }, 350);
+    });
+  });
+
+  /* ---------- 3g. Handy-Leiste (N7) ---------------------------------------- */
+  var leiste = document.querySelector('[data-handyleiste]');
+  if (leiste && window.matchMedia('(max-width: 760px)').matches && 'IntersectionObserver' in window) {
+    var heroSicht = true, formSicht = false, letzteY = window.scrollY, runter = false;
+    var aktualisieren = function () {
+      var an = !heroSicht && !formSicht && !runter;
+      document.body.classList.toggle('leiste-an', an);
+      leiste.setAttribute('aria-hidden', an ? 'false' : 'true');
+      leiste.querySelector('a').tabIndex = an ? 0 : -1;
+    };
+    var hero = document.querySelector('.hero');
+    if (hero) new IntersectionObserver(function (e) { heroSicht = e[0].isIntersecting; aktualisieren(); }).observe(hero);
+    var formulare = document.querySelectorAll('.zugangsfeld');
+    var sichtbar = new Set();
+    var fo = new IntersectionObserver(function (es) {
+      es.forEach(function (x) { if (x.isIntersecting) sichtbar.add(x.target); else sichtbar.delete(x.target); });
+      formSicht = sichtbar.size > 0; aktualisieren();
+    });
+    formulare.forEach(function (f) { fo.observe(f); });
+    window.addEventListener('scroll', function () {
+      var y = window.scrollY;
+      if (Math.abs(y - letzteY) > 12) { runter = y > letzteY; letzteY = y; aktualisieren(); }
+    }, { passive: true });
+  }
+
   /* ---------- 4. Formular ------------------------------------------------- */
   // Ohne Server: das Formular baut eine fertige E-Mail. Kein Datenversand von hier.
   var form = document.querySelector('.form');
