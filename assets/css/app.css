@@ -6,23 +6,23 @@
 
 /* ---------- 1. Tokens ---------------------------------------------------- */
 :root {
-  /* Farbe — Basis aus dem Logo abgeleitet (Blau #0648E8 → Cyan #1FE8FF) */
-  --c-base:        #05070d;   /* tiefster Grund */
-  --c-base-2:      #080b13;
-  --c-surface:     #0c1119;   /* Karten, Flächen */
-  --c-surface-2:   #111826;
-  --c-line:        rgba(150, 180, 230, .13);
-  --c-line-strong: rgba(150, 180, 230, .26);
+  /* Farbe — Basis aus dem Logo abgeleitet (Blau #8A6322 → Cyan #F1D38B) */
+  --c-base:        #0a0908;   /* tiefster Grund */
+  --c-base-2:      #0f0e0c;
+  --c-surface:     #141311;   /* Karten, Flächen */
+  --c-surface-2:   #1F1C18;
+  --c-line:        rgba(224, 206, 156, .13);
+  --c-line-strong: rgba(224, 206, 156, .26);
 
-  --c-text:        #e9eef8;
-  --c-text-dim:    #97a5bf;
-  --c-text-faint:  #808ea9;
+  --c-text:        #f7f3ea;
+  --c-text-dim:    #b4ada2;
+  --c-text-faint:  #9e978b;
 
-  --c-blue-deep:   #0648e8;
-  --c-blue:        #0a78f5;
-  --c-cyan:        #1fe8ff;
+  --c-blue-deep:   #8a6322;
+  --c-blue:        #c8963e;
+  --c-cyan:        #f1d38b;
   --grad-brand:    linear-gradient(135deg, var(--c-blue-deep) 0%, var(--c-blue) 45%, var(--c-cyan) 100%);
-  --grad-text:     linear-gradient(100deg, #cfe0ff 0%, #ffffff 35%, #79c8ff 70%, #1fe8ff 100%);
+  --grad-text:     linear-gradient(100deg, #faf0d4 0%, #ffffff 35%, #f0d488 70%, #f1d38b 100%);
 
   /* Typografie — Ratio 1.25, fluid */
   --f-display: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -82,7 +82,7 @@
     inset 0 1px 0 rgba(255, 255, 255, .1),
     0 6px 14px -5px rgba(0, 0, 0, .8),
     0 48px 90px -30px rgba(0, 0, 0, 1),
-    0 0 60px -20px rgba(10, 120, 245, .5);
+    0 0 60px -20px rgba(200, 150, 62, .5);
 
   /* Textschatten — Schrift liegt auf dem Grund, statt darin zu kleben */
   --ink-drop:   0 1px 1px rgba(0, 0, 0, .55), 0 14px 30px rgba(0, 0, 0, .5);
@@ -94,9 +94,9 @@
 
   /* Rahmenkante der Flächen. Standard: Markenlicht (blau → cyan).
      Für eine goldene Fassung genügt <body data-frame="gold"> — siehe README. */
-  --frame-a: rgba(10, 120, 245, .55);
-  --frame-b: rgba(31, 232, 255, .38);
-  --frame-c: rgba(150, 180, 230, .10);
+  --frame-a: rgba(200, 150, 62, .55);
+  --frame-b: rgba(241, 211, 139, .38);
+  --frame-c: rgba(224, 206, 156, .10);
 
   /* Motion-Contract — projektweit ein Satz Werte */
   --d-snap:   120ms;
@@ -283,7 +283,7 @@ body[data-frame="gold"] {
   body.cursor-ready .cursor, body.cursor-ready .cursor-dot { opacity: 1; }
   body.is-hovering .cursor {
     width: 74px; height: 74px; margin: -37px 0 0 -37px;
-    border-color: var(--c-cyan); background: rgba(31, 232, 255, .07);
+    border-color: var(--c-cyan); background: rgba(241, 211, 139, .07);
   }
 }
 
@@ -308,7 +308,7 @@ body[data-frame="gold"] {
 html { scroll-padding-top: clamp(4.5rem, 8vw, 6rem); }
 
 .header.is-stuck {
-  background: rgba(5, 7, 13, .72);
+  background: rgba(10, 9, 8, .72);
   backdrop-filter: blur(16px) saturate(140%);
   border-bottom-color: var(--c-line);
   box-shadow: 0 18px 40px -30px rgba(0, 0, 0, 1);
@@ -356,7 +356,7 @@ html { scroll-padding-top: clamp(4.5rem, 8vw, 6rem); }
 
    Also werden genau diese Punkte heller, und nur dann, wenn wirklich ein
    Saal dahinter steht. Auf flachem Grund bleibt die Navigation gedaempft,
-   wie sie gedacht ist. #b2c2df traegt 4,62:1 ueber 0,076 -- nachgerechnet,
+   wie sie gedacht ist. #dcd1b5 traegt 4,62:1 ueber 0,076 -- nachgerechnet,
    nicht ausprobiert. */
 html[data-world="on"] .nav a,
 html[data-world="no-webgl"] .nav a,
@@ -364,7 +364,7 @@ html[data-world="save-data"] .nav a,
 html[data-world="device"] .nav a,
 html[data-world="no-gsap"] .nav a,
 html[data-world="init-error"] .nav a,
-html[data-world="context-lost"] .nav a { color: #b2c2df; }
+html[data-world="context-lost"] .nav a { color: #dcd1b5; }
 .header__tools { display: flex; align-items: center; gap: var(--s-2); }
 
 /* Sprachwahl */
@@ -427,7 +427,7 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
   background: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .09),
-    inset 0 0 0 1px rgba(150, 180, 230, .16),
+    inset 0 0 0 1px rgba(224, 206, 156, .16),
     0 2px 6px -3px rgba(0, 0, 0, .8),
     0 16px 30px -20px rgba(0, 0, 0, .95);
   transition: transform var(--d-move) var(--e-std), box-shadow var(--d-move) var(--e-std),
@@ -446,17 +446,17 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .22),
     0 4px 10px -4px rgba(0, 0, 0, .85),
-    0 22px 44px -20px rgba(10, 120, 245, .75);
+    0 22px 44px -20px rgba(200, 150, 62, .75);
 }
 .btn:active { transform: translateY(0); transition-duration: var(--d-snap); }
 
 /* Hauptknopf: heller Körper mit Lichtkante oben und Kontaktschatten unten */
 .btn--primary {
   color: var(--c-base); font-weight: 600;
-  background: linear-gradient(180deg, #ffffff 0%, #eaeff9 52%, #d8e0f0 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8f4eb 52%, #eee9da 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .9),
-    inset 0 -1px 0 rgba(10, 30, 70, .16),
+    inset 0 -1px 0 rgba(66, 49, 14, .16),
     0 2px 5px -2px rgba(0, 0, 0, .75),
     0 20px 38px -22px rgba(0, 0, 0, 1);
 }
@@ -465,7 +465,7 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .3),
     0 4px 10px -3px rgba(0, 0, 0, .8),
-    0 26px 52px -20px rgba(10, 120, 245, .8);
+    0 26px 52px -20px rgba(200, 150, 62, .8);
 }
 /* Kurzer Glanz beim Überfahren — dieselbe Bewegung wie der Lichtstreifen im Hero */
 .btn--primary::after {
@@ -483,13 +483,13 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
   position: relative; flex: none; overflow: hidden;
   width: 26px; height: 26px; border-radius: 50%;
   display: grid; place-items: center; margin-right: -.35rem;
-  background: rgba(10, 20, 40, .10);
-  box-shadow: inset 0 0 0 1px rgba(10, 20, 40, .16);
+  background: rgba(29, 25, 20, .10);
+  box-shadow: inset 0 0 0 1px rgba(29, 25, 20, .16);
   transition: background-color var(--d-move) var(--e-std), box-shadow var(--d-move) var(--e-std);
 }
 .btn:not(.btn--primary) .btn__ico {
   background: rgba(255, 255, 255, .07);
-  box-shadow: inset 0 0 0 1px rgba(150, 180, 230, .22);
+  box-shadow: inset 0 0 0 1px rgba(224, 206, 156, .22);
 }
 .btn__arrow {
   grid-area: 1 / 1; flex: none;
@@ -515,9 +515,9 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 .hero__light {
   position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background:
-    radial-gradient(46% 38% at 50% 30%, rgba(10, 120, 245, .30), transparent 70%),
-    radial-gradient(28% 22% at 50% 24%, rgba(31, 232, 255, .22), transparent 72%),
-    radial-gradient(70% 55% at 78% 88%, rgba(6, 72, 232, .16), transparent 70%);
+    radial-gradient(46% 38% at 50% 30%, rgba(200, 150, 62, .30), transparent 70%),
+    radial-gradient(28% 22% at 50% 24%, rgba(241, 211, 139, .22), transparent 72%),
+    radial-gradient(70% 55% at 78% 88%, rgba(138, 99, 34, .16), transparent 70%);
   /* Kein filter: blur() mehr. Ein Weichzeichner von 6 px auf Verlaeufen, die
      ueber 700 px auslaufen, ist nicht zu sehen -- er zwingt den Browser aber,
      die ganze Hero-Flaeche in eine eigene Ebene zu malen, sie zu filtern und
@@ -529,8 +529,8 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 .hero__grid {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background-image:
-    linear-gradient(to right, rgba(150, 180, 230, .07) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(150, 180, 230, .07) 1px, transparent 1px);
+    linear-gradient(to right, rgba(224, 206, 156, .07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(224, 206, 156, .07) 1px, transparent 1px);
   background-size: 72px 72px;
   mask-image: radial-gradient(72% 62% at 50% 40%, #000 20%, transparent 78%);
   transform: perspective(700px) rotateX(0deg);
@@ -542,7 +542,7 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
   width: clamp(300px, 46vw, 660px);
   transform: translate3d(calc(-50% + var(--mx, 0px)), calc(-52% + var(--my, 0px)), 0) scale(var(--mk, 1));
   opacity: .17;
-  filter: drop-shadow(0 0 90px rgba(10, 120, 245, .5));
+  filter: drop-shadow(0 0 90px rgba(200, 150, 62, .5));
   transition: opacity var(--d-scene) var(--e-std);
 }
 /* Lichtstreifen, der einmal über die Marke wandert */
@@ -607,7 +607,7 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 .hero__meta dt { font-size: var(--t-xs); letter-spacing: .22em; text-transform: uppercase; color: var(--c-text-faint); }
 /* Dieselbe Sache eine Etage tiefer: Von den drei Kennzahlen steht die
    dritte -- "Lingue" -- am weitesten rechts und damit im hellsten Teil.
-   Gemessen: 5,96:1, 5,64:1, 3,62:1. #96a4c0 traegt 4,78:1 ueber dem dort
+   Gemessen: 5,96:1, 5,64:1, 3,62:1. #b4aea2 traegt 4,78:1 ueber dem dort
    gemessenen Grund von 0,038. */
 html[data-world="on"] .hero__meta dt,
 html[data-world="no-webgl"] .hero__meta dt,
@@ -615,7 +615,7 @@ html[data-world="save-data"] .hero__meta dt,
 html[data-world="device"] .hero__meta dt,
 html[data-world="no-gsap"] .hero__meta dt,
 html[data-world="init-error"] .hero__meta dt,
-html[data-world="context-lost"] .hero__meta dt { color: #96a4c0; }
+html[data-world="context-lost"] .hero__meta dt { color: #b4aea2; }
 .hero__meta dd { margin: .45rem 0 0; font-family: var(--f-display); font-size: var(--t-md); }
 
 .scrollcue {
@@ -687,7 +687,7 @@ body.scrolled .scrollcue { opacity: 0; }
 }
 .service::before {
   content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0;
-  background: radial-gradient(90% 120% at var(--gx, 50%) 0%, rgba(10, 120, 245, .16), transparent 70%);
+  background: radial-gradient(90% 120% at var(--gx, 50%) 0%, rgba(200, 150, 62, .16), transparent 70%);
   transition: opacity var(--d-move) var(--e-std);
 }
 .service:hover::before { opacity: 1; }
@@ -741,7 +741,7 @@ body.scrolled .scrollcue { opacity: 0; }
   background:
     radial-gradient(80% 65% at 22% 12%, var(--p1), transparent 62%),
     radial-gradient(70% 60% at 88% 78%, var(--p2), transparent 66%),
-    linear-gradient(160deg, #0a0f19, #070a11);
+    linear-gradient(160deg, #14120f, #0e0c0a);
   transform: scale(1.03);
   filter: saturate(.8) contrast(1.05) brightness(.72);
   transition: transform var(--d-scene) var(--e-std), filter var(--d-scene) var(--e-std);
@@ -751,7 +751,7 @@ body.scrolled .scrollcue { opacity: 0; }
 .card::after {
   content: ""; position: absolute; inset: 0; z-index: -1;
   background:
-    linear-gradient(to top, rgba(4, 6, 11, .96) 2%, rgba(4, 6, 11, .82) 26%, rgba(4, 6, 11, .3) 58%, transparent 86%);
+    linear-gradient(to top, rgba(9, 8, 6, .96) 2%, rgba(9, 8, 6, .82) 26%, rgba(9, 8, 6, .3) 58%, transparent 86%);
 }
 .card__initial { display: none; }
 .card__initial--unused {
@@ -804,7 +804,7 @@ body.scrolled .scrollcue { opacity: 0; }
    Kamera nah heran, dann reicht der allgemeine Schleier nicht. */
 .process::before {
   content: ""; position: absolute; inset: -2rem -3vw; z-index: -1; pointer-events: none;
-  background: radial-gradient(70% 60% at 30% 50%, rgba(3, 5, 9, .92), rgba(3, 5, 9, .6) 60%, transparent 85%);
+  background: radial-gradient(70% 60% at 30% 50%, rgba(7, 6, 5, .92), rgba(7, 6, 5, .6) 60%, transparent 85%);
   /* Kein blur(4px): derselbe Grund wie bei .hero__light -- der Verlauf ist
      ohnehin weich, der Filter kostet eine eigene Ebene je Bild. */
 }
@@ -943,7 +943,7 @@ body.scrolled .scrollcue { opacity: 0; }
 .contact { position: relative; overflow: hidden; }
 .contact__light {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(50% 60% at 78% 20%, rgba(6, 72, 232, .22), transparent 70%);
+  background: radial-gradient(50% 60% at 78% 20%, rgba(138, 99, 34, .22), transparent 70%);
 }
 .contact__grid { position: relative; z-index: 1; display: grid; gap: clamp(2rem, 5vw, 4rem); }
 @media (min-width: 940px) { .contact__grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); } }
@@ -971,7 +971,7 @@ body.scrolled .scrollcue { opacity: 0; }
   transition: border-color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
 .field input:hover, .field textarea:hover, .field select:hover { border-color: var(--c-line-strong); }
-.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--c-cyan); background: rgba(31, 232, 255, .04); }
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--c-cyan); background: rgba(241, 211, 139, .04); }
 .field textarea { resize: vertical; min-height: 130px; }
 .field select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--c-text-dim) 50%), linear-gradient(135deg, var(--c-text-dim) 50%, transparent 50%); background-position: calc(100% - 20px) 21px, calc(100% - 15px) 21px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
 .field select option { background: var(--c-surface-2); }
@@ -986,7 +986,7 @@ body.scrolled .scrollcue { opacity: 0; }
   border-top: 1px solid var(--c-line); padding-block: var(--s-5) var(--s-4);
   /* Der Fuß schließt die Seite ab — dort soll die Bühne ausklingen, nicht
      weiterlaufen. */
-  background: linear-gradient(to bottom, rgba(3, 5, 9, .82), #03050a 45%);
+  background: linear-gradient(to bottom, rgba(7, 6, 5, .82), #080705 45%);
   backdrop-filter: blur(4px);
 }
 /* Zentrierte Fußzeile: Marke, ein Satz, eine Zeile Verweise. Die frühere
@@ -1055,7 +1055,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   .burger { display: flex; }
   .nav {
     position: fixed; inset: 0; z-index: 99;
-    background: rgba(5, 7, 13, .97); backdrop-filter: blur(20px);
+    background: rgba(10, 9, 8, .97); backdrop-filter: blur(20px);
     flex-direction: column; justify-content: center; gap: var(--s-3);
     opacity: 0; pointer-events: none; transform: translateY(-8px);
     transition: opacity var(--d-move) var(--e-std), transform var(--d-move) var(--e-std);
@@ -1103,7 +1103,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 .legal__body ul { margin: 0; padding-left: 1.2rem; display: grid; gap: .4rem; }
 .todo {
   display: inline-block; padding: .1rem .5rem; border-radius: 6px;
-  background: rgba(31, 232, 255, .1); border: 1px dashed rgba(31, 232, 255, .45);
+  background: rgba(241, 211, 139, .1); border: 1px dashed rgba(241, 211, 139, .45);
   color: var(--c-cyan); font-size: .92em; letter-spacing: .02em;
 }
 
@@ -1114,24 +1114,24 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 .screen {
   position: absolute; inset: 0; z-index: -2; margin: 0;
   container-type: size;                 /* cqw/cqh für die Zeigerposition */
-  background: #070b13;
+  background: #0f0d0b;
   overflow: hidden;
   display: grid; grid-template-rows: auto 1fr;
 }
 .screen__chrome {
   display: flex; align-items: center; gap: .6rem;
   padding: .5rem .7rem; min-height: 34px;
-  background: linear-gradient(180deg, #131a28, #0c111b);
-  box-shadow: inset 0 -1px 0 rgba(150, 180, 230, .16);
+  background: linear-gradient(180deg, #211e1a, #161411);
+  box-shadow: inset 0 -1px 0 rgba(224, 206, 156, .16);
   position: relative; z-index: 2;
 }
 .screen__dots { display: flex; gap: 5px; flex: none; }
-.screen__dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(150, 180, 230, .28); }
+.screen__dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(224, 206, 156, .28); }
 .screen__url {
   flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: 11px; letter-spacing: .04em; color: var(--c-text-faint);
   background: rgba(255, 255, 255, .04); border-radius: 6px; padding: .18rem .55rem;
-  box-shadow: inset 0 0 0 1px rgba(150, 180, 230, .12);
+  box-shadow: inset 0 0 0 1px rgba(224, 206, 156, .12);
 }
 .screen__url::before { content: "🔒"; font-size: 8px; margin-right: .4rem; opacity: .6; filter: grayscale(1); }
 /* Ladebalken wie im echten Browser */
@@ -1166,7 +1166,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 /* Klick: Ring läuft vom Zeiger weg */
 .screen__cursor::after {
   content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px;
-  border-radius: 50%; border: 2px solid rgba(31, 232, 255, .9); opacity: 0;
+  border-radius: 50%; border: 2px solid rgba(241, 211, 139, .9); opacity: 0;
 }
 .screen.is-clicking .screen__cursor::after { animation: screenClick 420ms var(--e-std); }
 @keyframes screenClick {
@@ -1176,7 +1176,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 
 /* Karten mit Vorführung: Text bleibt lesbar, Verlauf etwas kräftiger */
 .card--live::after {
-  background: linear-gradient(to top, rgba(4, 6, 11, .96) 6%, rgba(4, 6, 11, .55) 42%, rgba(4, 6, 11, .12) 72%);
+  background: linear-gradient(to top, rgba(9, 8, 6, .96) 6%, rgba(9, 8, 6, .55) 42%, rgba(9, 8, 6, .12) 72%);
 }
 .card--live .card__initial { display: none; }
 .card__initial--unused { display: none; }
@@ -1214,8 +1214,8 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 .card .card__body, .card--live .card__body {
   display: grid; gap: .45rem; align-content: start;
   padding: clamp(1.2rem, 2vw, 1.9rem);
-  background: linear-gradient(180deg, rgba(9, 13, 22, .96), var(--c-surface));
-  box-shadow: inset 0 1px 0 rgba(150, 180, 230, .14);
+  background: linear-gradient(180deg, rgba(17, 16, 14, .96), var(--c-surface));
+  box-shadow: inset 0 1px 0 rgba(224, 206, 156, .14);
 }
 
 /* ---------- 21. Die Welt hinter der Seite ------------------------------- */
@@ -1355,7 +1355,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 
 .world-scrim {
   position: fixed; inset: 0; z-index: 1; pointer-events: none;
-  background: radial-gradient(120% 90% at 50% 45%, rgba(3, 5, 9, .55), rgba(3, 5, 9, .92) 100%);
+  background: radial-gradient(120% 90% at 50% 45%, rgba(7, 6, 5, .55), rgba(7, 6, 5, .92) 100%);
   opacity: var(--world-scrim);
   transition: opacity 400ms linear;
 }
@@ -1392,9 +1392,9 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 [data-world="context-lost"] .hero::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(100deg,
-    rgba(3, 5, 9, .96) 0%, rgba(3, 5, 9, .94) 44%,
-    rgba(3, 5, 9, .62) 54%, rgba(3, 5, 9, .26) 64%,
-    rgba(3, 5, 9, .06) 78%, rgba(3, 5, 9, 0) 90%);
+    rgba(7, 6, 5, .96) 0%, rgba(7, 6, 5, .94) 44%,
+    rgba(7, 6, 5, .62) 54%, rgba(7, 6, 5, .26) 64%,
+    rgba(7, 6, 5, .06) 78%, rgba(7, 6, 5, 0) 90%);
 }
 /* Auf dem Telefon gibt es keine freie Bahn.
    Am 13.09.2026 auf 390x844 ausgemessen, Zeile für Zeile: Der Text belegt
@@ -1425,8 +1425,8 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   [data-world="init-error"] .hero::after,
   [data-world="context-lost"] .hero::after {
     background: linear-gradient(180deg,
-      rgba(3, 5, 9, .26) 0%, rgba(3, 5, 9, .70) 13%,
-      rgba(3, 5, 9, .82) 34%, rgba(3, 5, 9, .86) 100%);
+      rgba(7, 6, 5, .26) 0%, rgba(7, 6, 5, .70) 13%,
+      rgba(7, 6, 5, .82) 34%, rgba(7, 6, 5, .86) 100%);
   }
 }
 
@@ -1501,14 +1501,14 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
      unter 4.5:1. Der Grund ist die Buehne dahinter: Dort steht die Kamera
      dicht an der Marke, und das Bild ist ueberall mittelblau. Eine Scheibe
      muss ueber JEDEM Hintergrund tragen, nicht nur ueber dem dunklen. */
-  --glas-ton:        rgba(8, 13, 24, .68);
+  --glas-ton:        rgba(18, 16, 14, .68);
   --glas-unschaerfe: 22px;
-  --glas-kante-hell: rgba(190, 215, 255, .58);
-  --glas-kante-matt: rgba(120, 150, 200, .10);
-  --glas-kante-kalt: rgba(150, 190, 255, .30);
+  --glas-kante-hell: rgba(248, 234, 197, .58);
+  --glas-kante-matt: rgba(194, 171, 126, .10);
+  --glas-kante-kalt: rgba(243, 222, 162, .30);
 }
-[data-stufe="medium"] { --glas-unschaerfe: 14px; --glas-ton: rgba(8, 13, 24, .74); }
-[data-stufe="low"]    { --glas-unschaerfe: 8px;  --glas-ton: rgba(8, 13, 24, .80); }
+[data-stufe="medium"] { --glas-unschaerfe: 14px; --glas-ton: rgba(18, 16, 14, .74); }
+[data-stufe="low"]    { --glas-unschaerfe: 8px;  --glas-ton: rgba(18, 16, 14, .80); }
 
 [data-world="on"] .framed,
 [data-world="on"] .faq__item,
@@ -1520,7 +1520,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   border-color: transparent;
   box-shadow:
     /* die Stirnflaeche oben */
-    inset 0 1px 0 0 rgba(220, 235, 255, .14),
+    inset 0 1px 0 0 rgba(251, 244, 224, .14),
     /* die Unterkante liegt im Schatten der eigenen Dicke */
     inset 0 -1px 0 0 rgba(0, 0, 0, .40),
     /* Umgebungsschatten, weit und weich */
@@ -1542,7 +1542,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 /* Die Medienkarten tragen ein Bildschirmfoto — dort liegt die Scheibe VOR
    dem Bild, nicht darunter. Sie behalten ihren Rand, damit das Bild nicht
    in den Raum ausfranst. */
-[data-world="on"] .card { background-color: rgba(8, 13, 22, .70); }
+[data-world="on"] .card { background-color: rgba(17, 15, 13, .70); }
 
 /* Die FAQ-Zeilen sind keine Karten, sondern eine Leiste: dünnere Scheibe,
    damit zehn davon untereinander nicht wie ein Stapel Deckel wirken. */
@@ -1550,7 +1550,7 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   -webkit-backdrop-filter: blur(calc(var(--glas-unschaerfe) * .6)) saturate(140%);
   backdrop-filter: blur(calc(var(--glas-unschaerfe) * .6)) saturate(140%);
   box-shadow:
-    inset 0 1px 0 0 rgba(220, 235, 255, .10),
+    inset 0 1px 0 0 rgba(251, 244, 224, .10),
     0 10px 28px -20px rgba(0, 0, 0, .7);
 }
 
@@ -1595,16 +1595,16 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
   /* großzügig über den Text hinaus, damit die Kante nie zu sehen ist */
   inset: -2.2rem -3.5rem -1.6rem -3.5rem;
   background: radial-gradient(60% 80% at 30% 50%,
-    rgba(3, 5, 9, .82) 0%, rgba(3, 5, 9, .62) 45%,
-    rgba(3, 5, 9, .22) 72%, rgba(3, 5, 9, 0) 100%);
+    rgba(7, 6, 5, .82) 0%, rgba(7, 6, 5, .62) 45%,
+    rgba(7, 6, 5, .22) 72%, rgba(7, 6, 5, 0) 100%);
 }
 /* Die geteilte Fassung trägt rechts eine zweite Spalte — dort steht der
    Fließtext, und dort ist der Grund am nötigsten. */
 @media (min-width: 900px) {
   [data-world="on"] .sechead--split::before {
     background: radial-gradient(70% 85% at 50% 50%,
-      rgba(3, 5, 9, .80) 0%, rgba(3, 5, 9, .60) 50%,
-      rgba(3, 5, 9, .20) 78%, rgba(3, 5, 9, 0) 100%);
+      rgba(7, 6, 5, .80) 0%, rgba(7, 6, 5, .60) 50%,
+      rgba(7, 6, 5, .20) 78%, rgba(7, 6, 5, 0) 100%);
   }
 }
 
@@ -1656,15 +1656,15 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 [data-world="on"] .plan__price {
   filter:
     drop-shadow(0 -1px 0 rgba(0, 0, 0, .58))        /* die Schnittkante */
-    drop-shadow(0 1px 0 rgba(215, 233, 255, .13))   /* die Gegenkante */
-    drop-shadow(0 0 8px rgba(155, 195, 255, .22))   /* Streuung, eng */
-    drop-shadow(0 0 24px rgba(120, 170, 255, .12)); /* Streuung, weit */
+    drop-shadow(0 1px 0 rgba(251, 242, 219, .13))   /* die Gegenkante */
+    drop-shadow(0 0 8px rgba(244, 223, 166, .22))   /* Streuung, eng */
+    drop-shadow(0 0 24px rgba(240, 212, 135, .12)); /* Streuung, weit */
 }
 /* Mattiertes Glas ist nie ganz weiß und immer eine Spur kühler — sonst sieht
    die Gravur aus wie aufgedruckt. Nur dort, wo kein Verlauf liegt; sonst
    würde die Farbe den Verlauf ausschalten. */
 [data-world="on"] .faq__item summary,
-[data-world="on"] .card h3 { color: #dfe9fb; }
+[data-world="on"] .card h3 { color: #f9f3e1; }
 
 /* Alles Inhaltliche liegt über der Bühne. */
 main, .footer { position: relative; z-index: 2; }
@@ -1711,12 +1711,12 @@ main, .footer { position: relative; z-index: 2; }
 [data-world="on"] .chip--quality {
   display: none; align-items: center; gap: .5rem; min-height: 40px;
   padding: .45rem .8rem; border-radius: 12px;
-  background: rgba(8, 12, 20, .55); backdrop-filter: blur(14px);
-  box-shadow: inset 0 0 0 1px rgba(150, 180, 230, .16);
+  background: rgba(16, 14, 12, .55); backdrop-filter: blur(14px);
+  box-shadow: inset 0 0 0 1px rgba(224, 206, 156, .16);
   font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--c-text-dim);
 }
 .chip--quality select { background: none; border: 0; color: inherit; font: inherit; letter-spacing: inherit; }
-.chip--quality select option { background: #0c1119; color: #e9eef8; letter-spacing: 0; text-transform: none; }
+.chip--quality select option { background: #141311; color: #f7f3ea; letter-spacing: 0; text-transform: none; }
 @media (max-width: 1100px) { [data-world="on"] .chip--quality { display: none; } }
 
 /* ---------- 22. Fragen ---------------------------------------------------- */
@@ -1757,7 +1757,7 @@ main, .footer { position: relative; z-index: 2; }
   content: ""; position: absolute; left: -1.2rem; top: 1.2rem; bottom: 1.2rem; width: 2px;
   background: var(--grad-brand); border-radius: 2px;
 }
-#process:has(.is-active) .step.is-active .step__no { filter: drop-shadow(0 0 18px rgba(31, 232, 255, .5)); }
+#process:has(.is-active) .step.is-active .step__no { filter: drop-shadow(0 0 18px rgba(241, 211, 139, .5)); }
 
 /* ---------- 23. Feinschliff ---------------------------------------------- */
 /* Wortweise Enthüllung (nur Überschriften) */
@@ -1772,7 +1772,7 @@ main, .footer { position: relative; z-index: 2; }
 .card:hover { transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(-6px); }
 .card.is-tilted::before {
   content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
-  background: radial-gradient(30% 30% at var(--lx, 50%) var(--ly, 50%), rgba(120, 190, 255, .16), transparent 70%);
+  background: radial-gradient(30% 30% at var(--lx, 50%) var(--ly, 50%), rgba(240, 212, 135, .16), transparent 70%);
 }
 
 /* Preisumschalter */
@@ -1797,7 +1797,7 @@ main, .footer { position: relative; z-index: 2; }
 /* Filmischer Schnitt zwischen den Kapiteln */
 .world-cut {
   position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
-  background: linear-gradient(100deg, transparent 38%, rgba(120, 190, 255, .10) 50%, transparent 62%);
+  background: linear-gradient(100deg, transparent 38%, rgba(240, 212, 135, .10) 50%, transparent 62%);
 }
 [data-cut] .world-cut { animation: worldCut 600ms var(--e-std); }
 @keyframes worldCut {
@@ -2001,8 +2001,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   content: counter(schritt); grid-column: 1; grid-row: 1 / span 2;
   width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
   font-family: var(--f-display); font-size: var(--t-xs); font-weight: 700;
-  color: var(--c-cyan); background: rgba(31, 232, 255, .10);
-  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .28);
+  color: var(--c-cyan); background: rgba(241, 211, 139, .10);
+  box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .28);
 }
 .det__ablauf li > * { grid-column: 2; }
 .det__ablauf b { font-size: var(--t-sm); color: var(--c-text); }
@@ -2022,8 +2022,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   content: counter(ab); grid-column: 1; grid-row: 1 / span 2;
   width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
   font-family: var(--f-display); font-size: var(--t-xs); font-weight: 700;
-  color: var(--c-cyan); background: rgba(31, 232, 255, .10);
-  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .26);
+  color: var(--c-cyan); background: rgba(241, 211, 139, .10);
+  box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .26);
 }
 .ablaufliste li > * { grid-column: 2; }
 .ablaufliste b { font-size: var(--t-sm); color: var(--c-text); }
@@ -2034,8 +2034,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .qform__paket {
   display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .9rem;
   margin: 0 0 var(--s-3); padding: .75rem 1.1rem;
-  border-radius: 999px; background: rgba(10, 120, 245, .10);
-  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .28);
+  border-radius: 999px; background: rgba(200, 150, 62, .10);
+  box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .28);
   font-size: var(--t-sm);
 }
 .qform__paket-label {
@@ -2061,8 +2061,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 }
 .chip-opt:hover { color: var(--c-text); box-shadow: inset 0 0 0 1px var(--c-line-strong); transform: translateY(-1px); }
 .chip-opt[aria-pressed="true"] {
-  color: #fff; background: rgba(10, 120, 245, .16);
-  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .55), 0 8px 22px -14px rgba(10, 120, 245, .9);
+  color: #fff; background: rgba(200, 150, 62, .16);
+  box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .55), 0 8px 22px -14px rgba(200, 150, 62, .9);
 }
 .qform__url { display: grid; gap: .45rem; margin-top: .3rem; }
 .qform__url span { font-size: var(--t-xs); letter-spacing: .18em; text-transform: uppercase; color: var(--c-text-faint); }
@@ -2074,7 +2074,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, .5);
   transition: border-color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
-.qform input:focus, .qform textarea:focus { outline: none; border-color: var(--c-cyan); background: rgba(31, 232, 255, .04); }
+.qform input:focus, .qform textarea:focus { outline: none; border-color: var(--c-cyan); background: rgba(241, 211, 139, .04); }
 .qform input.is-missing, .qform textarea.is-missing { border-color: rgba(255, 120, 120, .7); }
 .qform textarea { resize: vertical; min-height: 118px; }
 
@@ -2087,8 +2087,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .qform__done[hidden] { display: none; }
 .qform__check {
   display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%;
-  color: var(--c-cyan); background: rgba(31, 232, 255, .10);
-  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .4), 0 0 34px -10px rgba(31, 232, 255, .6);
+  color: var(--c-cyan); background: rgba(241, 211, 139, .10);
+  box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .4), 0 0 34px -10px rgba(241, 211, 139, .6);
 }
 .qform.is-sent .qform__done .qform__hint { display: none; }
 .qform__done h3 { font-size: var(--t-lg); }
@@ -2159,7 +2159,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 }
 .cmp__col ul { gap: .55rem; }
 .cmp__col li { font-size: var(--t-sm); color: var(--c-text-dim); }
-.cmp__col--best { background: rgba(10, 120, 245, .07); box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .22); }
+.cmp__col--best { background: rgba(200, 150, 62, .07); box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .22); }
 .cmp__col--best .cmp__name { color: var(--c-cyan); }
 @media (max-width: 779px) {
   .cmp__labels { display: none; }   /* auf schmalen Schirmen wären zwei Spalten unlesbar */
@@ -2184,11 +2184,11 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 /* 6 — Eigene Strichzeichnungen, auf dasselbe Raster gezeichnet wie die Schrift */
 .service__ico {
   display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px;
-  color: var(--c-cyan); background: rgba(31, 232, 255, .06);
-  box-shadow: inset 0 0 0 1px rgba(31, 232, 255, .18);
+  color: var(--c-cyan); background: rgba(241, 211, 139, .06);
+  box-shadow: inset 0 0 0 1px rgba(241, 211, 139, .18);
   transition: transform var(--d-move) var(--e-std), background-color var(--d-ui) linear;
 }
-.service:hover .service__ico { transform: translateY(-2px); background: rgba(31, 232, 255, .12); }
+.service:hover .service__ico { transform: translateY(-2px); background: rgba(241, 211, 139, .12); }
 
 /* 7 — Randnotiz: Kniff aus dem Buchsatz, wirkt sofort redaktionell */
 .marg {
@@ -2214,13 +2214,13 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 /* 12 — Ladebild: der Umriss zeichnet sich, dann übernimmt die Szene */
 .boot {
   position: fixed; inset: 0; z-index: 70; display: grid; place-items: center;
-  background: #03050a;
+  background: #080705;
   animation: bootOut 600ms var(--e-std) 1900ms forwards;
 }
 .boot path {
   stroke-dasharray: 400; stroke-dashoffset: 400;
   animation: bootDraw 1500ms var(--e-std) 120ms forwards;
-  filter: drop-shadow(0 0 12px rgba(31, 232, 255, .45));
+  filter: drop-shadow(0 0 12px rgba(241, 211, 139, .45));
 }
 .boot path:nth-child(2) { animation-delay: 320ms; }
 @keyframes bootDraw { to { stroke-dashoffset: 0; } }
@@ -2273,7 +2273,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   transition: transform var(--d-move) var(--e-std), box-shadow var(--d-move) var(--e-std);
 }
 .vid:hover { transform: translateY(-4px); box-shadow: var(--elev-hover); }
-.vid img, .vid video { width: 100%; height: auto; display: block; background: #05070d; }
+.vid img, .vid video { width: 100%; height: auto; display: block; background: #0a0908; }
 .vid__play {
   /* Tief statt mittig: Das Vorschaubild ist die Titelkarte des Videos, und die
      traegt oben Logo und Ueberschrift. Ein Knopf in der Bildmitte lag genau
@@ -2281,17 +2281,17 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   position: absolute; left: 50%; top: 76%; transform: translate(-50%, -50%);
   display: inline-flex; align-items: center; gap: .6rem; cursor: pointer;
   padding: .8rem 1.3rem .8rem 1.05rem; border: 0; border-radius: 999px;
-  background: linear-gradient(180deg, #fff, #e2e9f7); color: var(--c-base);
+  background: linear-gradient(180deg, #fff, #f5f1e4); color: var(--c-base);
   font-size: var(--t-sm); font-weight: 600; letter-spacing: .01em;
   box-shadow: 0 3px 8px -2px rgba(0,0,0,.7), 0 22px 45px -20px rgba(0,0,0,1);
   transition: transform var(--d-move) var(--e-std), box-shadow var(--d-move) var(--e-std);
 }
-.vid__play:hover { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 4px 10px -2px rgba(0,0,0,.75), 0 28px 55px -18px rgba(10,120,245,.8); }
+.vid__play:hover { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 4px 10px -2px rgba(0,0,0,.75), 0 28px 55px -18px rgba(200,150,62,.8); }
 .vid.is-playing .vid__play { display: none; }
 .vid figcaption {
   display: grid; gap: .25rem; padding: clamp(.75rem, 1.6vw, 1rem) clamp(1rem, 2vw, 1.4rem);
-  background: linear-gradient(180deg, rgba(9, 13, 22, .96), var(--c-surface));
-  box-shadow: inset 0 1px 0 rgba(150, 180, 230, .14);
+  background: linear-gradient(180deg, rgba(17, 16, 14, .96), var(--c-surface));
+  box-shadow: inset 0 1px 0 rgba(224, 206, 156, .14);
 }
 .vid figcaption b { font-family: var(--f-display); font-stretch: 104%; font-size: var(--t-md); }
 .vid figcaption span { font-size: var(--t-xs); letter-spacing: .1em; text-transform: uppercase; color: var(--c-text-faint); }
@@ -2469,8 +2469,8 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 }
 .social__a:hover {
   color: #fff; transform: translateY(-3px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(31,232,255,.45),
-              0 16px 32px -16px rgba(10,120,245,.8);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(241,211,139,.45),
+              0 16px 32px -16px rgba(200,150,62,.8);
 }
 .social__a:active { transform: translateY(0); }
 
@@ -2486,7 +2486,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   border-radius: 12px; color: var(--c-text-faint); opacity: .5;
   transition: opacity var(--d-ui) linear, color var(--d-ui) linear, background-color var(--d-ui) linear;
 }
-.admin:hover { opacity: 1; color: var(--c-cyan); background: rgba(31, 232, 255, .08); }
+.admin:hover { opacity: 1; color: var(--c-cyan); background: rgba(241, 211, 139, .08); }
 /* Derselbe Zugang oben im Kopf. Auf schmalen Geraeten faellt er weg: Dort
    ist der Platz fuer Sprache, Angebot und Menue da, und das Cockpit bedient
    niemand am Telefon. */
@@ -2574,12 +2574,12 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
    nebeneinander sehen und nicht auf das naechste warten muessen. */
 .stimmen{display:grid;gap:clamp(16px,2vw,24px);grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 .stimme{margin:0;padding:clamp(20px,2.4vw,28px);border:1px solid var(--linie,rgba(255,255,255,.1));border-radius:16px;background:var(--flaeche2,rgba(255,255,255,.02))}
-.stimme__sterne{display:block;letter-spacing:2px;margin-bottom:12px;color:var(--cyan,#1fe8ff);font-size:14px}
+.stimme__sterne{display:block;letter-spacing:2px;margin-bottom:12px;color:var(--cyan,#f1d38b);font-size:14px}
 .stimme__sterne i{color:var(--linie2,rgba(255,255,255,.18));font-style:normal}
 .stimme blockquote{margin:0;font-size:clamp(15px,1.5vw,17px);line-height:1.65}
 .stimme blockquote::before{content:"\201E"}
 .stimme blockquote::after{content:"\201C"}
-.stimme figcaption{margin-top:14px;font-size:13px;color:var(--leise,#6b7280)}
+.stimme figcaption{margin-top:14px;font-size:13px;color:var(--leise,#7a7771)}
 
 
 /* ---------- Individuelle Projekte ----------------------------------------
@@ -2605,7 +2605,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
      sonst steigt die Bewegung nach ihrem Gipfel noch einmal an und der
      Leser weiß nicht mehr, worauf sie hinauswollte. */
   background:
-    radial-gradient(130% 150% at 6% 0%, rgba(10, 120, 245, .07), transparent 60%),
+    radial-gradient(130% 150% at 6% 0%, rgba(200, 150, 62, .07), transparent 60%),
     linear-gradient(180deg, var(--c-surface-2), var(--c-surface));
   box-shadow: var(--elev-1);
 }
@@ -2631,7 +2631,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   padding: clamp(20px, 2.4vw, 28px);
   border-radius: var(--radius);
   border: 1px solid var(--c-line);
-  background: rgba(150, 180, 230, .045);
+  background: rgba(224, 206, 156, .045);
 }
 .masz__listhead {
   margin: 0 0 .9rem;
@@ -2690,7 +2690,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   /* Solange die Platte laedt, ist hier sonst ein Loch: die Karte ist
      durchscheinend, und man sieht die 3D-Welt hinter zwei schwarzen
      Rechtecken. Ein dunkler Grund macht daraus eine dunkle Buehne. */
-  background: #0a0e16;
+  background: #12100e;
 }
 .buehne__platte { display: block; width: 100%; height: auto; }
 
@@ -2706,13 +2706,13 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .geraet--handy { left: 6.580%; top: 7.229%; width: 89.707%; height: 89.616%; border-radius: 3px; }
 
 .geraet__schirm {
-  position: absolute; inset: 0; overflow: hidden; background: #05070d; border-radius: inherit;
+  position: absolute; inset: 0; overflow: hidden; background: #0a0908; border-radius: inherit;
   /* Die Kundenseite hat lange weisse Abschnitte. Ohne Behandlung wird die
      Karte in dem Moment zu einem weissen Klotz — und ein Bildschirm in einem
      dunklen Raum sieht so nie aus. Drei Dinge fehlen einer eingesetzten
      Aufnahme: der Schein, den er in den Raum wirft, ein Hauch Schleier, und
      die dunkleren Ecken. Alle drei sind hier billig zu haben. */
-  box-shadow: 0 0 52px 8px rgba(140, 180, 255, .12);
+  box-shadow: 0 0 52px 8px rgba(242, 218, 153, .12);
   filter: brightness(.95) saturate(1.03);
 }
 /* Die beiden Kundenseiten sind 7-mal auseinander: Cavaleri liegt im Mittel
@@ -2726,7 +2726,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 }
 [data-ton="dunkel"] .geraet__schirm::after {
   background:
-    radial-gradient(126% 122% at 50% 44%, transparent 62%, rgba(2, 8, 20, .17) 100%),
+    radial-gradient(126% 122% at 50% 44%, transparent 62%, rgba(14, 11, 8, .17) 100%),
     linear-gradient(112deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .016) 24%, transparent 48%);
 }
 
@@ -2742,13 +2742,13 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 }
 [data-ton="gemischt"] .geraet__schirm::after {
   background:
-    radial-gradient(124% 120% at 50% 44%, transparent 57%, rgba(2, 8, 20, .25) 100%),
+    radial-gradient(124% 120% at 50% 44%, transparent 57%, rgba(14, 11, 8, .25) 100%),
     linear-gradient(112deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 24%, transparent 48%);
 }.geraet__bahn { display: block; width: 100%; will-change: transform; }
 /* Film statt Bildbahn: gleiche Flaeche, gleicher Ausschnitt. Die Aufnahme ist
    im Seitenverhaeltnis des Bildschirms gedreht, cover schneidet also nichts
    Wesentliches weg. */
-.geraet__film { display: block; width: 100%; height: 100%; object-fit: cover; background: #05070d; }
+.geraet__film { display: block; width: 100%; height: 100%; object-fit: cover; background: #0a0908; }
 .geraet__bahn img { display: block; width: 100%; height: auto; }
 
 /* Glas: ohne diesen Streifen liest sich die Aufnahme als aufgeklebtes
@@ -2756,7 +2756,7 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
 .geraet__schirm::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; z-index: 4;
   background:
-    radial-gradient(122% 118% at 50% 44%, transparent 52%, rgba(2, 10, 26, .36) 100%),
+    radial-gradient(122% 118% at 50% 44%, transparent 52%, rgba(18, 14, 10, .36) 100%),
     linear-gradient(112deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .022) 24%, transparent 48%);
 }
 
@@ -2767,10 +2767,10 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   position: absolute; left: 0; top: 0; width: 14px; height: 14px; margin: -7px 0 0 -7px;
   border-radius: 50%; pointer-events: none; z-index: 2;
   background: rgba(255, 255, 255, .92);
-  box-shadow: 0 0 0 1px rgba(5, 7, 13, .55), 0 0 14px 2px rgba(31, 232, 255, .45);
+  box-shadow: 0 0 0 1px rgba(10, 9, 8, .55), 0 0 14px 2px rgba(241, 211, 139, .45);
   transition: transform 60ms linear, width 160ms var(--e-std), height 160ms var(--e-std);
 }
-.geraet__zeiger.ist-klick { width: 26px; height: 26px; margin: -13px 0 0 -13px; background: rgba(31, 232, 255, .35); }
+.geraet__zeiger.ist-klick { width: 26px; height: 26px; margin: -13px 0 0 -13px; background: rgba(241, 211, 139, .35); }
 
 /* Ladebalken oben im Bildschirm, wie im echten Browser */
 .geraet--laptop::after {
@@ -2848,12 +2848,12 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
      Ebene, eine Kante quer durch beide waere gelogen. Jede Reihe bekommt
      stattdessen ihren eigenen Schattengrund. */
   background: linear-gradient(180deg,
-    transparent 0%, rgba(8,12,20,.22) 30%, rgba(8,12,20,.55) 66%, rgba(9,13,21,.74) 100%);
+    transparent 0%, rgba(16,14,12,.22) 30%, rgba(16,14,12,.55) 66%, rgba(17,15,13,.74) 100%);
 }
 .schau__gleis::after {
   content: ""; position: absolute; left: 6%; right: 6%; bottom: -6px; height: 26px;
   pointer-events: none; z-index: 0;
-  background: radial-gradient(60% 100% at 50% 0%, rgba(150,170,205,.13), transparent 72%);
+  background: radial-gradient(60% 100% at 50% 0%, rgba(201,188,154,.13), transparent 72%);
 }
 
 .schau__gleis {
@@ -2895,31 +2895,31 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 .stueck__kasten { position: absolute; transform-style: preserve-3d; --t: 7px; }
 .schau__gleis--laptop .stueck__kasten { left: 5.62%; right: 6.56%; top: .59%; bottom: 13.65%; }
 .schau__gleis--handy  .stueck__kasten { left: 1.2%;  right: 1.2%;  top: .8%;  bottom: .8%; --t: 9px; }
-.kante { position: absolute; background: linear-gradient(180deg, #3f454e, #20242b 40%, #171a20); }
+.kante { position: absolute; background: linear-gradient(180deg, #4a4743, #282623 40%, #1d1c1a); }
 .k-l { left: 0; top: 0; width: var(--t); height: 100%; transform-origin: left center;   transform: rotateY(-90deg) translateZ(calc(var(--t) / -2)); }
 .k-r { right: 0; top: 0; width: var(--t); height: 100%; transform-origin: right center; transform: rotateY(90deg)  translateZ(calc(var(--t) / -2)); }
 .k-o { left: 0; top: 0; width: 100%; height: var(--t); transform-origin: center top;    transform: rotateX(90deg)  translateZ(calc(var(--t) / -2));
-       background: linear-gradient(90deg, #2a2f37, #5c636e 30%, #3a4049); }
+       background: linear-gradient(90deg, #33312e, #696661 30%, #45423e); }
 .k-u { left: 0; bottom: 0; width: 100%; height: var(--t); transform-origin: center bottom; transform: rotateX(-90deg) translateZ(calc(var(--t) / -2));
-       background: linear-gradient(90deg, #15181d, #23272e); }
+       background: linear-gradient(90deg, #1a1918, #2b2926); }
 .stueck__hinten { position: absolute; inset: 0; transform: translateZ(calc(var(--t) / -2));
-  background: linear-gradient(160deg, #31363f, #1b1e24); border-radius: 5px; }
+  background: linear-gradient(160deg, #3b3935, #22201d); border-radius: 5px; }
 
 .stueck__schirm {
-  position: absolute; overflow: hidden; background: #05070d; z-index: 3;
-  box-shadow: 0 0 46px 8px rgba(140, 180, 255, .10);
+  position: absolute; overflow: hidden; background: #0a0908; z-index: 3;
+  box-shadow: 0 0 46px 8px rgba(242, 218, 153, .10);
 }
 .schau__gleis--laptop .stueck__schirm { left: 7.25%; top: 3.16%; width: 84.667%; height: 83.591%; }
 .schau__gleis--handy  .stueck__schirm { left: 6.58%; top: 7.23%; width: 89.707%; height: 89.616%; border-radius: 3px; }
 .stueck__schirm::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 4;
   background:
-    radial-gradient(122% 118% at 50% 44%, transparent 55%, rgba(2,10,26,.30) 100%),
+    radial-gradient(122% 118% at 50% 44%, transparent 55%, rgba(18,14,10,.30) 100%),
     linear-gradient(112deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 24%, transparent 48%);
 }
 .stueck__bahn { display: block; width: 100%; }
 .stueck__bahn img, .stueck__film { display: block; width: 100%; }
-.stueck__film { height: 100%; object-fit: cover; background: #05070d; }
+.stueck__film { height: 100%; object-fit: cover; background: #0a0908; }
 [data-ton="dunkel"]   .stueck__schirm { filter: brightness(1.16) saturate(1.06); box-shadow: 0 0 52px 9px rgba(227,200,139,.12); }
 [data-ton="gemischt"] .stueck__schirm { filter: brightness(1.03) saturate(1.03); box-shadow: 0 0 50px 9px rgba(214,169,74,.12); }
 
@@ -2944,7 +2944,7 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
    Uwe, 15.09.2026: „Mach es leicht transparent, so dass man den Hintergrund
    noch leicht sieht."
 
-   Vorher stand hier der Grund jeder Karte: von rgba(9,13,22,.96) nach
+   Vorher stand hier der Grund jeder Karte: von rgba(17,16,14,.96) nach
    var(--c-surface) -- also oben 96 Prozent deckend und unten ganz. Genau
    darunter liegt die Buehne (oder ihr gerechnetes Standbild), und die war
    damit weg. Der Kasten sass wie ein Aufkleber auf einem Raum, den er
@@ -2969,7 +2969,7 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
    urspruenglichen 96 bis 100 entfernt. Der Grund scheint durch, der Text
    bleibt lesbar, auch an der hellsten Stelle, die die Buehne hergibt. */
 .card--schau .card__body {
-  background: linear-gradient(180deg, rgba(9, 13, 22, .85), rgba(12, 17, 25, .88));
+  background: linear-gradient(180deg, rgba(17, 16, 14, .85), rgba(20, 19, 17, .88));
 }
 
 /* WARUM DER RAUM UEBER DEM TEXT UNVERAENDERT BLEIBT
@@ -3153,9 +3153,9 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 .sprachhinweis{
   display:flex; align-items:center; gap:12px; flex-wrap:wrap;
   padding:10px clamp(16px,4vw,32px);
-  background:color-mix(in oklab, var(--blau,#0648e8) 12%, #0a0e14);
-  border-bottom:1px solid color-mix(in oklab, var(--cyan,#1fe8ff) 26%, transparent);
-  font-size:14px; line-height:1.45; color:var(--hell,#e8ecf1);
+  background:color-mix(in oklab, var(--blau,#8a6322) 12%, #100f0d);
+  border-bottom:1px solid color-mix(in oklab, var(--cyan,#f1d38b) 26%, transparent);
+  font-size:14px; line-height:1.45; color:var(--hell,#efedea);
   /* Ueber der Kopfzeile, die fest bei z-index 100 steht. Ohne das liegt sie
      zwar sichtbar da, faengt aber keinen Klick mehr — die Kopfzeile schluckt
      ihn. Genau das ist beim Testen passiert. */
@@ -3176,17 +3176,17 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .sprachhinweis__text{flex:1 1 auto; min-width:12ch}
 .sprachhinweis__ja{
   flex:0 0 auto; padding:7px 16px; border-radius:999px; text-decoration:none;
-  background:linear-gradient(92deg,var(--blau,#0648e8),var(--cyan,#1fe8ff));
+  background:linear-gradient(92deg,var(--blau,#8a6322),var(--cyan,#f1d38b));
   color:#fff; font-weight:600; font-size:13.5px; white-space:nowrap;
 }
 .sprachhinweis__ja:hover{filter:brightness(1.08)}
 .sprachhinweis__nein{
   flex:0 0 auto; background:none; border:0; cursor:pointer;
-  color:var(--leise,#6b7280); font-size:13px; padding:7px 4px; white-space:nowrap;
+  color:var(--leise,#7a7771); font-size:13px; padding:7px 4px; white-space:nowrap;
 }
-.sprachhinweis__nein:hover{color:var(--dim,#9aa4b2)}
+.sprachhinweis__nein:hover{color:var(--dim,#aba7a1)}
 .sprachhinweis__ja:focus-visible,.sprachhinweis__nein:focus-visible{
-  outline:2px solid var(--cyan,#1fe8ff); outline-offset:3px;
+  outline:2px solid var(--cyan,#f1d38b); outline-offset:3px;
 }
 @media (max-width:520px){
   .sprachhinweis{font-size:13.5px; gap:8px}
@@ -3438,7 +3438,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    Helligkeit einer Szene gehangen, die sich mit der Tageszeit aendert. Das
    ist derselbe Mechanismus wie am 14.09.2026. Statt einen beweglichen
    Hintergrund zu messen, bekommt die Zeile denselben festen Grund wie die
-   Karten: #808ea9 auf #05070d sind rund 7,8:1, egal was die Szene macht. */
+   Karten: #9e978b auf #0a0908 sind rund 7,8:1, egal was die Szene macht. */
 .beweis__grenze {
   margin: 1px 0 0;                 /* dieselbe 1px-Fuge wie zwischen den Karten */
   max-width: none;
@@ -3594,7 +3594,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
      steht die Buehne allein in ihrer Zeile und hat kein Mass von aussen. */
   aspect-ratio: 16 / 10;
   background:
-    radial-gradient(70% 55% at 50% 42%, #10161f 0%, #070a10 62%, #05070d 100%);
+    radial-gradient(70% 55% at 50% 42%, #1a1815 0%, #0d0c0a 62%, #0a0908 100%);
   overflow: hidden;
 }
 .werkbank__buehne canvas,
@@ -3617,7 +3617,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   display: flex; flex-wrap: wrap; align-items: baseline;
   gap: .3rem 1rem;
   padding: .7rem clamp(.9rem, 2vw, 1.3rem);
-  background: linear-gradient(to top, rgba(4, 6, 11, .92), rgba(4, 6, 11, 0));
+  background: linear-gradient(to top, rgba(9, 8, 6, .92), rgba(9, 8, 6, 0));
   font-family: var(--f-display); font-size: var(--t-xs);
   letter-spacing: .12em; text-transform: uppercase;
 }
@@ -3641,7 +3641,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .achse__knoepfe button {
   min-height: 44px; padding: .55rem 1rem;
   font-family: var(--f-display); font-size: var(--t-sm); font-weight: 600;
-  color: var(--c-text-dim); background: rgba(8, 12, 19, .7);
+  color: var(--c-text-dim); background: rgba(15, 14, 12, .7);
   border: 1px solid var(--c-line); border-radius: 12px;
   cursor: pointer;
   transition: color var(--d-ui) var(--e-std), border-color var(--d-ui) var(--e-std),
@@ -3681,7 +3681,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   display: flex; flex-wrap: wrap; gap: .2rem;
   padding: .55rem .55rem 0;
   border-bottom: 1px solid var(--c-line);
-  background: rgba(6, 9, 15, .55);
+  background: rgba(12, 11, 9, .55);
 }
 .werkbank__reiter button {
   min-height: 44px; padding: .6rem 1.05rem;
@@ -3737,17 +3737,17 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 }
 .werkbank__pult input[type="range"]::-webkit-slider-runnable-track {
   height: 4px; border-radius: 99px;
-  background: linear-gradient(90deg, rgba(150,180,230,.18), rgba(31,232,255,.5));
+  background: linear-gradient(90deg, rgba(224,206,156,.18), rgba(241,211,139,.5));
 }
 .werkbank__pult input[type="range"]::-moz-range-track {
   height: 4px; border-radius: 99px;
-  background: linear-gradient(90deg, rgba(150,180,230,.18), rgba(31,232,255,.5));
+  background: linear-gradient(90deg, rgba(224,206,156,.18), rgba(241,211,139,.5));
 }
 .werkbank__pult input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 22px; height: 22px; margin-top: -9px;
   border-radius: 50%; background: var(--c-cyan);
-  border: 3px solid var(--c-base); box-shadow: 0 2px 10px rgba(31,232,255,.35);
+  border: 3px solid var(--c-base); box-shadow: 0 2px 10px rgba(241,211,139,.35);
 }
 .werkbank__pult input[type="range"]::-moz-range-thumb {
   width: 22px; height: 22px; border-radius: 50%;
@@ -3776,7 +3776,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    ========================================================================== */
 .haus .werkbank__buehne {
   background:
-    radial-gradient(75% 60% at 50% 38%, #121a25 0%, #080c13 64%, #05070c 100%);
+    radial-gradient(75% 60% at 50% 38%, #1e1c19 0%, #0f0e0c 64%, #0a0907 100%);
 }
 
 /* WARUM DIESE GRAFIK NICHT MEHR .plan HEISST
@@ -3815,14 +3815,14 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 /* Der Umriss: eine Linie, kein Fuellton. Das Haus soll als Figur lesbar
    sein, nicht als Flaeche. */
 .grundriss__grund {
-  fill: rgba(12, 18, 27, .55);
-  stroke: rgba(150, 180, 230, .38);
+  fill: rgba(22, 20, 17, .55);
+  stroke: rgba(224, 206, 156, .38);
   stroke-width: .12;
   vector-effect: non-scaling-stroke;
 }
 .grundriss__raum {
-  fill: rgba(150, 180, 230, .07);
-  stroke: rgba(190, 214, 245, .55);
+  fill: rgba(224, 206, 156, .07);
+  stroke: rgba(241, 228, 194, .55);
   stroke-width: .10;
   vector-effect: non-scaling-stroke;
 }
@@ -3831,7 +3831,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    die Wohnflaeche zweimal. */
 .grundriss__luft {
   fill: none;
-  stroke: rgba(31, 232, 255, .5);
+  stroke: rgba(241, 211, 139, .5);
   stroke-width: .10;
   stroke-dasharray: .32 .22;
   vector-effect: non-scaling-stroke;
@@ -3840,7 +3840,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    Kamera bei der Begehung zwischen zwei Raeumen wechseln darf. Derselbe
    Datensatz, zwei Verwendungen. */
 .grundriss__tuer {
-  fill: rgba(31, 232, 255, .22);
+  fill: rgba(241, 211, 139, .22);
   stroke: none;
 }
 .grundriss__name {
@@ -3857,7 +3857,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   text-anchor: middle;
 }
 .grundriss__kette {
-  stroke: rgba(190, 214, 245, .45);
+  stroke: rgba(241, 228, 194, .45);
   stroke-width: .06;
   vector-effect: non-scaling-stroke;
 }
@@ -3904,8 +3904,8 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   padding-block: clamp(4rem, 8vw, 8rem);
   text-align: center;
   background:
-    radial-gradient(120% 90% at 50% -20%, rgba(10, 120, 245, .16), transparent 62%),
-    radial-gradient(70% 60% at 82% 120%, rgba(31, 232, 255, .09), transparent 60%);
+    radial-gradient(120% 90% at 50% -20%, rgba(200, 150, 62, .16), transparent 62%),
+    radial-gradient(70% 60% at 82% 120%, rgba(241, 211, 139, .09), transparent 60%);
   border-block: 1px solid var(--c-line);
   overflow: clip;
 }
@@ -3922,7 +3922,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   color: var(--c-text-faint);
   text-decoration: line-through;
   text-decoration-thickness: 2px;
-  text-decoration-color: rgba(31, 232, 255, .45);
+  text-decoration-color: rgba(241, 211, 139, .45);
 }
 
 .vorstellung__gross {
@@ -3937,7 +3937,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
      Der Seitenverlauf ist fuer EINE Zeile gemacht. Ueber drei Zeilen legt er
      seine dunkelste Stelle auf die mittlere -- gemessen: die Ueberschrift
      stand grau im Bild, obwohl jede einzelne Farbe darin hell ist. */
-  background: linear-gradient(100deg, #ffffff 0%, #ffffff 58%, #9fd9ff 82%, #1fe8ff 100%);
+  background: linear-gradient(100deg, #ffffff 0%, #ffffff 58%, #f4e0aa 82%, #f1d38b 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -4050,9 +4050,9 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .vergleich__seite--vecom {
   clip-path: inset(0 0 0 var(--schnitt));
   background:
-    radial-gradient(90% 120% at 18% -10%, rgba(10, 120, 245, .30), transparent 58%),
-    radial-gradient(70% 90% at 88% 110%, rgba(31, 232, 255, .16), transparent 62%),
-    linear-gradient(162deg, #0b1220, #05070d);
+    radial-gradient(90% 120% at 18% -10%, rgba(200, 150, 62, .30), transparent 58%),
+    radial-gradient(70% 90% at 88% 110%, rgba(241, 211, 139, .16), transparent 62%),
+    linear-gradient(162deg, #191612, #0a0908);
 }
 
 .mock {
@@ -4075,18 +4075,18 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .mock__knopf { border-radius: 4px; }
 
 /* --- links: alles mittig, alles gleich laut --- */
-.mock--normal .mock__kopf { justify-content: center; border-bottom: 1px solid #e8ebef; background: #f6f7f9; }
-.mock--normal .mock__logo { background: #c8ced7; }
-.mock--normal .mock__nav  { background: #dfe3e9; }
+.mock--normal .mock__kopf { justify-content: center; border-bottom: 1px solid #edecea; background: #f8f8f7; }
+.mock--normal .mock__logo { background: #d3d0cc; }
+.mock--normal .mock__nav  { background: #e6e5e2; }
 .mock--normal .mock__rumpf { align-items: center; padding-top: 7%; gap: 3.2%; }
-.mock--normal .mock__h { width: 54%; height: 15px; background: #cfd4dc; }
-.mock--normal .mock__z { width: 66%; height: 8px; background: #e6e9ee; }
-.mock--normal .mock__knopf { width: 22%; height: 26px; background: #c3c9d3; margin-top: 1%; }
+.mock--normal .mock__h { width: 54%; height: 15px; background: #d8d6d3; }
+.mock--normal .mock__z { width: 66%; height: 8px; background: #eceae8; }
+.mock--normal .mock__knopf { width: 22%; height: 26px; background: #cfccc7; margin-top: 1%; }
 .mock--normal .mock__karten {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 3%;
   width: 100%; margin-top: auto; padding-top: 5%;
 }
-.mock--normal .mock__karten span { aspect-ratio: 3 / 4; background: #eef0f3; border-radius: 4px; }
+.mock--normal .mock__karten span { aspect-ratio: 3 / 4; background: #f2f1ef; border-radius: 4px; }
 
 /* --- rechts: eine Ueberschrift, ein Knopf, viel Ruhe ---
    WARUM DIE RECHTE ATTRAPPE RECHTSBUENDIG IST
@@ -4099,34 +4099,34 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
    noch als symmetrisch), VECOM rechts. Dann traegt jede Haelfte ihre
    eigene Aussage. */
 .mock--vecom .mock__kopf { justify-content: flex-end; padding-right: 13%; }
-.mock--vecom .mock__logo { background: linear-gradient(120deg, #0648e8, #1fe8ff); order: 3; }
-.mock--vecom .mock__nav  { background: rgba(150, 180, 230, .22); }
+.mock--vecom .mock__logo { background: linear-gradient(120deg, #8a6322, #f1d38b); order: 3; }
+.mock--vecom .mock__nav  { background: rgba(224, 206, 156, .22); }
 .mock--vecom .mock__rumpf { align-items: flex-end; padding-top: 6%; gap: 3%; }
 .mock--vecom .mock__h {
   width: 44%; height: 26px;
-  background: linear-gradient(100deg, #ffffff, #a8dcff 62%, #1fe8ff);
+  background: linear-gradient(100deg, #ffffff, #f5e3b2 62%, #f1d38b);
 }
 /* Zweite, kuerzere Zeile: Ein einzelner breiter Balken liest sich als
    Balken, zwei ungleich lange lesen sich als Ueberschrift. */
 .mock--vecom .mock__h::after {
   content: ''; display: block; position: relative; top: 34px;
   margin-left: auto; width: 62%; height: 26px; border-radius: 3px;
-  background: linear-gradient(100deg, #cfe6ff, #1fe8ff);
+  background: linear-gradient(100deg, #faf0d4, #f1d38b);
 }
 .mock--vecom .mock__rumpf { padding-bottom: 0; }
 .mock--vecom .mock__z { margin-top: 34px; }
-.mock--vecom .mock__z { width: 26%; height: 7px; background: rgba(150, 180, 230, .28); }
+.mock--vecom .mock__z { width: 26%; height: 7px; background: rgba(224, 206, 156, .28); }
 .mock--vecom .mock__knopf {
   width: 17%; height: 30px; margin-top: 1.5%;
-  background: linear-gradient(135deg, #0648e8, #1fe8ff);
-  box-shadow: 0 10px 30px -12px rgba(31, 232, 255, .8);
+  background: linear-gradient(135deg, #8a6322, #f1d38b);
+  box-shadow: 0 10px 30px -12px rgba(241, 211, 139, .8);
 }
 .mock--vecom .mock__bild {
   width: 100%; flex: 0 0 46%; margin-top: auto; border-radius: 8px 8px 0 0;
   background:
-    radial-gradient(70% 110% at 66% 45%, rgba(31, 232, 255, .30), transparent 72%),
-    linear-gradient(150deg, rgba(150, 180, 230, .12), rgba(10, 120, 245, .10));
-  border: 1px solid rgba(150, 180, 230, .16);
+    radial-gradient(70% 110% at 66% 45%, rgba(241, 211, 139, .30), transparent 72%),
+    linear-gradient(150deg, rgba(224, 206, 156, .12), rgba(200, 150, 62, .10));
+  border: 1px solid rgba(224, 206, 156, .16);
 }
 
 /* Die Beschriftung sitzt UNTEN, nicht oben: Oben liegt in beiden
@@ -4138,10 +4138,10 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   padding: 4px 11px; border-radius: 999px;
 }
 .vergleich__seite--normal .vergleich__marke {
-  left: var(--s-2); background: rgba(10, 16, 28, .09); color: #5c6370;
+  left: var(--s-2); background: rgba(22, 19, 16, .09); color: #6b6762;
 }
 .vergleich__seite--vecom .vergleich__marke {
-  right: var(--s-2); background: rgba(31, 232, 255, .12); color: var(--c-cyan);
+  right: var(--s-2); background: rgba(241, 211, 139, .12); color: var(--c-cyan);
 }
 
 /* Der Regler ist ein echtes <input type="range">: Tastatur, Screenreader und
@@ -4152,19 +4152,19 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   opacity: 0; cursor: ew-resize; margin: 0; z-index: 3;
 }
 .vergleich__regler:focus-visible + .vergleich__griff::after {
-  box-shadow: 0 0 0 3px rgba(31, 232, 255, .55);
+  box-shadow: 0 0 0 3px rgba(241, 211, 139, .55);
 }
 .vergleich__griff {
   position: absolute; top: 0; bottom: 0; left: var(--schnitt);
   width: 2px; margin-left: -1px; z-index: 2; pointer-events: none;
-  background: linear-gradient(180deg, rgba(31,232,255,.25), var(--c-cyan), rgba(31,232,255,.25));
+  background: linear-gradient(180deg, rgba(241,211,139,.25), var(--c-cyan), rgba(241,211,139,.25));
 }
 .vergleich__griff::after {
   content: '‹ ›'; position: absolute; top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center;
-  background: rgba(8, 11, 19, .84); border: 1px solid var(--c-cyan);
+  background: rgba(15, 14, 12, .84); border: 1px solid var(--c-cyan);
   color: var(--c-cyan); font-size: 14px; letter-spacing: 2px;
   box-shadow: 0 6px 24px -8px rgba(0, 0, 0, .9);
 }
@@ -4185,7 +4185,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
   gap: var(--s-3);
   padding: var(--section-y) var(--page-x);
   text-align: center;
-  background: radial-gradient(70% 55% at 50% 50%, rgba(10, 120, 245, .10), transparent 70%);
+  background: radial-gradient(70% 55% at 50% 50%, rgba(200, 150, 62, .10), transparent 70%);
 }
 /* Die Leinwand liegt NICHT ueber dem ganzen Abschnitt, sondern genau in
    der mittleren Rasterzeile. Erst lag sie absolut ueber allem und war auf
@@ -4205,7 +4205,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .signatur__a { grid-row: 1; color: var(--c-text); }
 .signatur__b {
   grid-row: 3;
-  background: linear-gradient(100deg, #ffffff, #9ad7ff 58%, #1fe8ff);
+  background: linear-gradient(100deg, #ffffff, #f4dfa5 58%, #f1d38b);
   -webkit-background-clip: text; background-clip: text; color: transparent;
   /* Gleicher Grund wie bei .vorstellung__gross: geerbter text-shadow
      faerbt Verlaufsschrift grau. */
@@ -4259,7 +4259,7 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .haus[data-haus-entstehung="4"] .estufen button[data-estufe="1"],
 .haus[data-haus-entstehung="4"] .estufen button[data-estufe="2"],
 .haus[data-haus-entstehung="4"] .estufen button[data-estufe="3"] {
-  color: var(--c-text-dim); border-top-color: rgba(31, 232, 255, .45);
+  color: var(--c-text-dim); border-top-color: rgba(241, 211, 139, .45);
 }
 
 /* Ohne Echtzeitfassung gibt es dieses Register nicht: Die fuenf Stufen sind

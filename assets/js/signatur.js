@@ -100,9 +100,9 @@ if (g) {
     const kern = Math.max(0, 1 - k * 1.6);
     if (kern > 0.01) {
       const r = g.createRadialGradient(b / 2, h * 0.5, 0, b / 2, h * 0.5, Math.min(b, h) * 0.5);
-      r.addColorStop(0, 'rgba(31, 232, 255, ' + (0.36 * kern) + ')');
-      r.addColorStop(0.45, 'rgba(10, 120, 245, ' + (0.13 * kern) + ')');
-      r.addColorStop(1, 'rgba(10, 120, 245, 0)');
+      r.addColorStop(0, 'rgba(241, 211, 139, ' + (0.36 * kern) + ')');
+      r.addColorStop(0.45, 'rgba(200, 150, 62, ' + (0.13 * kern) + ')');
+      r.addColorStop(1, 'rgba(200, 150, 62, 0)');
       g.fillStyle = r;
       g.fillRect(0, 0, b, h);
     }
@@ -117,8 +117,8 @@ if (g) {
          erzählt, dass aus Streulicht eine Form wird. */
       const s = 0.7 + e * 1.15;
       g.fillStyle = e > 0.94
-        ? 'rgba(233, 240, 255, ' + (0.55 + 0.4 * p.v) + ')'
-        : 'rgba(31, 232, 255, ' + (0.18 + 0.45 * e) + ')';
+        ? 'rgba(253, 248, 235, ' + (0.55 + 0.4 * p.v) + ')'
+        : 'rgba(241, 211, 139, ' + (0.18 + 0.45 * e) + ')';
       g.fillRect(x - s / 2, y - s / 2, s, s);
     }
     g.globalCompositeOperation = 'source-over';

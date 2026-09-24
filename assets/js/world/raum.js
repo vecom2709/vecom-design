@@ -140,7 +140,7 @@ const KameraShader = {
    Tagesgang derselbe bleibt; wer ihn dort ändert, muss ihn hier mitziehen. */
 const SONNENLEITER = [
   [0.00, 0xff7a3c], [0.18, 0xff9d52], [0.38, 0xfec67e],
-  [0.62, 0xffe3b8], [1.00, 0xdce8ff],
+  [0.62, 0xffe3b8], [1.00, 0xfbf4e0],
 ];
 
 function sonnenfarbe(h, ziel) {
@@ -188,9 +188,9 @@ export class Raum {
     if ('outputColorSpace' in this.renderer) this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x03050a);
+    this.scene.background = new THREE.Color(0x080705);
     /* Die Dichte setzen die Abschnitte; hier steht nur der Anfangswert. */
-    this.scene.fog = new THREE.FogExp2(0x04070e, 0.0098);
+    this.scene.fog = new THREE.FogExp2(0x0a0908, 0.0098);
 
     this.camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.1, 200);
     this.camGoal = b2t(-5.2, -15.8, 2.35);
@@ -242,7 +242,7 @@ export class Raum {
       t.dispose();
     });
 
-    this.key = new THREE.DirectionalLight(0xdce8ff, 2.2);
+    this.key = new THREE.DirectionalLight(0xfbf4e0, 2.2);
     this.key.position.set(-6, 9, 8);
     if (S.schatten) {
       this.key.castShadow = true;
@@ -255,11 +255,11 @@ export class Raum {
     }
     this.scene.add(this.key);
 
-    this.gegen = new THREE.DirectionalLight(0x1fe8ff, 0.8);
+    this.gegen = new THREE.DirectionalLight(0xf1d38b, 0.8);
     this.gegen.position.set(3, 5, -14);
     this.scene.add(this.gegen);
 
-    this.himmel = new THREE.HemisphereLight(0x2a4a80, 0x02040a, 0.55);
+    this.himmel = new THREE.HemisphereLight(0x7a6130, 0x070605, 0.55);
     this.scene.add(this.himmel);
 
     /* Spitzlicht auf die Marke: ein harter Reflex ist der Unterschied
@@ -280,7 +280,7 @@ export class Raum {
     this.spitze.target.position.set(0, 3.4, -4);
 
     /* Wandwäsche hinten, damit der Raum nicht im Nichts endet */
-    this.wand = new THREE.PointLight(0x2f6ad0, 70, 26, 2.0);
+    this.wand = new THREE.PointLight(0xc4963b, 70, 26, 2.0);
     this.wand.position.set(0, 3.60, -28);
     this.scene.add(this.wand);
   }
@@ -544,7 +544,7 @@ export class Raum {
 
     if (t === null) {
       this.key.position.set(-6, 9, 8);
-      this.key.color.setHex(0xdce8ff);
+      this.key.color.setHex(0xfbf4e0);
       this.key.intensity = 2.2;
       this.sonne = null;
       return;

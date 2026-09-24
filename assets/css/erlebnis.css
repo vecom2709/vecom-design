@@ -13,7 +13,7 @@
    Haltung:   ruhig, präzise, beweisend
    Prinzip:   Architekturfotografie im Magazin -- ein grosses Bild, wenig
               Text, darunter die Aufnahmedaten wie eine Bildunterschrift
-   Farbe:     dieselbe Palette wie app.css (Grund #05070d, Akzent Blau->Cyan);
+   Farbe:     dieselbe Palette wie app.css (Grund #0a0908, Akzent Blau->Cyan);
               der Akzent nur für die eine Handlung und den aktiven Zustand
    Bewegung:  träge einschwingend, keine Federn; Blenden 600 ms
    Nicht:     kein Spiele-Menü, keine Glaskarten überall, kein Effekt ohne
@@ -21,9 +21,9 @@
    ========================================================================== */
 
 .erlebnis{
-  --c-base:#05070d; --c-surface:#0c1119; --c-surface-2:#111826; --c-linie:#1b2330; --c-linie-hell:#2a3649;
-  --c-text:#e9eef8; --c-dim:#a3b0c8; --c-faint:#8593ad;
-  --c-blue:#0a78f5; --c-cyan:#1fe8ff; --c-warm:#ffd9a8;
+  --c-base:#0a0908; --c-surface:#141311; --c-surface-2:#1F1C18; --c-linie:#2e281d; --c-linie-hell:#473e2c;
+  --c-text:#f7f3ea; --c-dim:#c5bda6; --c-faint:#a29b90;
+  --c-blue:#c8963e; --c-cyan:#f1d38b; --c-warm:#ffd9a8;
   --f-display:'Archivo',system-ui,sans-serif;
   --f-text:'Inter',system-ui,sans-serif;
   --radius:14px;
@@ -85,7 +85,7 @@
 .erlebnis .buehne{
   position:relative; margin:0 auto; overflow:hidden; isolation:isolate;
   width:100%; aspect-ratio:16/9;
-  border-radius:var(--radius); background:#0a0e16;
+  border-radius:var(--radius); background:#12100e;
   border:1px solid var(--c-linie);
   touch-action:pan-y;
 }
@@ -123,22 +123,22 @@
   position:absolute; left:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
   display:inline-flex; align-items:center; gap:.55rem; max-width:calc(100% - 15rem);
   padding:.5rem .8rem; border-radius:999px;
-  background:rgba(5,7,13,.74); backdrop-filter:blur(8px);
+  background:rgba(10,9,8,.74); backdrop-filter:blur(8px);
   font:500 .82rem/1.25 var(--f-text); color:var(--c-text);
   border:1px solid rgba(255,255,255,.08);
 }
 .erlebnis .kennung__punkt{width:8px; height:8px; border-radius:50%; flex:none; background:var(--c-warm); box-shadow:0 0 0 3px rgba(255,217,168,.18)}
-.erlebnis .buehne.ist-echtzeit .kennung__punkt{background:var(--c-cyan); box-shadow:0 0 0 3px rgba(31,232,255,.18)}
+.erlebnis .buehne.ist-echtzeit .kennung__punkt{background:var(--c-cyan); box-shadow:0 0 0 3px rgba(241,211,139,.18)}
 .erlebnis .bewegen{
   position:absolute; right:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
   display:inline-flex; align-items:center; gap:.55rem; min-height:44px;
   padding:.6rem 1.05rem; border-radius:999px; cursor:pointer;
-  background:rgba(5,7,13,.74); backdrop-filter:blur(8px);
-  border:1px solid rgba(31,232,255,.45);
+  background:rgba(10,9,8,.74); backdrop-filter:blur(8px);
+  border:1px solid rgba(241,211,139,.45);
   font:600 .88rem/1 var(--f-text); color:var(--c-text);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
-.erlebnis .bewegen:hover{border-color:var(--c-cyan); background:rgba(10,20,34,.86)}
+.erlebnis .bewegen:hover{border-color:var(--c-cyan); background:rgba(26,22,18,.86)}
 .erlebnis .bewegen__zeichen{
   width:16px; height:16px; border-radius:50%;
   border:2px solid var(--c-cyan); border-right-color:transparent; position:relative;
@@ -180,11 +180,11 @@
   transition:color var(--t-ui), border-color var(--t-ui), background var(--t-ui);
 }
 .erlebnis .chips button:hover{color:var(--c-text); border-color:var(--c-linie-hell)}
-.erlebnis .chips button[aria-pressed="true"]{background:var(--c-text); color:#05070d; border-color:var(--c-text)}
+.erlebnis .chips button[aria-pressed="true"]{background:var(--c-text); color:#0a0908; border-color:var(--c-text)}
 .erlebnis .schritte{width:min(100%, var(--buehne-b)); margin:.9rem auto 0; display:flex; flex-direction:column; gap:.5rem}
 .erlebnis .schritte .chips button{padding:.5rem .8rem}
 .erlebnis .schritte .chips button b{font-family:var(--f-display); margin-right:.35rem; color:var(--c-cyan)}
-.erlebnis .schritte .chips button[aria-pressed="true"] b{color:#05070d}
+.erlebnis .schritte .chips button[aria-pressed="true"] b{color:#0a0908}
 @media (min-width:1100px){ .erlebnis .schritte{width:min(100%, calc((100svh - 14.5rem) * 16 / 9)); margin-right:0} }
 @media (max-width:700px){ .erlebnis .schritte{padding:0 var(--page-x)} }
 
@@ -217,7 +217,7 @@
 .erlebnis .ziel b{display:block; font:600 1rem/1.25 var(--f-text); color:var(--c-text)}
 .erlebnis .ziel span{display:block; margin-top:.25rem; font-size:.86rem; line-height:1.35; color:var(--c-faint)}
 .erlebnis .ziel:hover{border-color:var(--c-linie-hell)}
-.erlebnis .ziel[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(31,232,255,.07),rgba(10,120,245,.04))}
+.erlebnis .ziel[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(241,211,139,.07),rgba(200,150,62,.04))}
 
 .erlebnis .ergebnis{
   position:relative; border-radius:var(--radius); padding:clamp(1.3rem,2.6vw,2rem);
@@ -247,7 +247,7 @@
   font:600 .95rem/1 var(--f-text); letter-spacing:.005em; border:0;
   transition:filter var(--t-ui), border-color var(--t-ui), background var(--t-ui);
 }
-.erlebnis .knopf--voll{background:linear-gradient(96deg,var(--c-blue),var(--c-cyan)); color:#04070d}
+.erlebnis .knopf--voll{background:linear-gradient(96deg,var(--c-blue),var(--c-cyan)); color:#0a0907}
 .erlebnis .knopf--voll:hover{filter:brightness(1.08)}
 .erlebnis .knopf--leer{border:1px solid var(--c-linie-hell); color:var(--c-text); background:transparent}
 .erlebnis .knopf--leer:hover{border-color:var(--c-dim)}
@@ -311,7 +311,7 @@
 .erlebnis .bd-meldung:empty{display:none}
 .erlebnis .bd-korb{border:1px solid var(--c-linie); border-radius:12px; padding:.85rem 1rem; background:var(--c-surface)}
 .erlebnis .bd-korb.ist-neu{animation:bd-korb-neu .9s var(--e-standard)}
-@keyframes bd-korb-neu{from{border-color:var(--c-cyan); box-shadow:0 0 0 3px rgba(31,232,255,.18)} to{border-color:var(--c-linie); box-shadow:none}}
+@keyframes bd-korb-neu{from{border-color:var(--c-cyan); box-shadow:0 0 0 3px rgba(241,211,139,.18)} to{border-color:var(--c-linie); box-shadow:none}}
 .erlebnis .bd-korb__kopf{margin:0 0 .5rem; display:flex; justify-content:space-between; gap:.4rem 1rem; flex-wrap:wrap; font:600 .92rem/1.3 var(--f-text); color:var(--c-text)}
 .erlebnis .bd-korb__demo{font-weight:400; font-size:.82rem; color:var(--c-faint)}
 .erlebnis .bd-korb__liste{list-style:none; margin:0; padding:0; display:grid; gap:.35rem; font-size:.92rem; color:var(--c-text)}
@@ -320,12 +320,12 @@
    Name am Ende. Groß und kontrastreich genug, um sie beim Drehen zu lesen. */
 .erlebnis .bd-etiketten{position:absolute; inset:0; z-index:4; pointer-events:none; overflow:hidden}
 .erlebnis .bd-linien{position:absolute; inset:0; width:100%; height:100%}
-.erlebnis .bd-linien line{stroke:rgba(31,232,255,.75); stroke-width:1}
-.erlebnis .bd-linien circle{fill:var(--c-cyan); stroke:rgba(31,232,255,.3); stroke-width:4}
+.erlebnis .bd-linien line{stroke:rgba(241,211,139,.75); stroke-width:1}
+.erlebnis .bd-linien circle{fill:var(--c-cyan); stroke:rgba(241,211,139,.3); stroke-width:4}
 .erlebnis .bd-etikett{
   position:absolute; left:0; top:0; will-change:transform; white-space:nowrap;
   padding:.32rem .65rem; border-radius:999px;
-  background:rgba(5,7,13,.86); border:1px solid rgba(31,232,255,.45);
+  background:rgba(10,9,8,.86); border:1px solid rgba(241,211,139,.45);
   font:600 .84rem/1.1 var(--f-text); color:var(--c-text); letter-spacing:.01em;
 }
 @media (max-width:620px){ .erlebnis .bd-etikett{font-size:.74rem; padding:.24rem .5rem} }
@@ -351,7 +351,7 @@
   position:absolute; left:50%; bottom:.9rem; transform:translateX(-50%);
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.5rem .85rem; border-radius:999px;
-  background:rgba(5,7,13,.78); color:var(--c-text); font:500 .84rem/1 var(--f-text);
+  background:rgba(10,9,8,.78); color:var(--c-text); font:500 .84rem/1 var(--f-text);
   transition:opacity var(--t-move);
 }
 .erlebnis .dreh__hinweis i{width:22px; height:2px; background:var(--c-cyan); position:relative}
@@ -372,7 +372,7 @@
 .erlebnis .stufenwahl b{display:block; font:700 .95rem/1 var(--f-display); letter-spacing:.06em; color:var(--c-text)}
 .erlebnis .stufenwahl span{display:block; margin-top:.45rem; font-size:.86rem; line-height:1.4; color:var(--c-faint)}
 .erlebnis .stufenwahl button:hover{border-color:var(--c-linie-hell)}
-.erlebnis .stufenwahl button[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(31,232,255,.07),rgba(10,120,245,.04))}
+.erlebnis .stufenwahl button[aria-pressed="true"]{border-color:var(--c-cyan); background:linear-gradient(180deg,rgba(241,211,139,.07),rgba(200,150,62,.04))}
 .erlebnis .stufenwahl button.ist-auto::after{content:''; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--c-cyan); margin-left:.4rem; vertical-align:middle}
 .erlebnis .ablesung{margin-top:1.4rem; padding:1.1rem 1.2rem; border-radius:12px; border:1px dashed var(--c-linie-hell)}
 .erlebnis .ablesung__satz{margin:0 0 .8rem; color:var(--c-text)}
@@ -448,7 +448,7 @@
   display:flex; gap:.2rem; width:max-content; max-width:100%;
   margin:clamp(1.4rem,3.5vh,2.2rem) auto 0; padding:.3rem;
   overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain;
-  background:rgba(5,7,13,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  background:rgba(10,9,8,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   border:1px solid var(--c-linie-hell); border-radius:999px;
   transition:top 320ms var(--e-standard);
 }
@@ -460,7 +460,7 @@
   transition:color var(--t-ui), background var(--t-ui);
 }
 .erlebnis .kapitel a:hover{color:var(--c-text)}
-.erlebnis .kapitel a[aria-current="true"]{color:var(--c-text); background:rgba(31,232,255,.13); box-shadow:inset 0 0 0 1px rgba(31,232,255,.35)}
+.erlebnis .kapitel a[aria-current="true"]{color:var(--c-text); background:rgba(241,211,139,.13); box-shadow:inset 0 0 0 1px rgba(241,211,139,.35)}
 @media (pointer:coarse){ .erlebnis .kapitel a{min-height:44px; padding:0 .9rem} }
 @media (prefers-reduced-motion:reduce){ .erlebnis .kapitel{transition:none} }
 
@@ -475,7 +475,7 @@
 .erlebnis .tiefer__zusatz{display:block; margin-top:.35rem; color:var(--c-dim); font-size:.98rem}
 .erlebnis .tiefer__zeichen{
   flex:none; position:relative; width:44px; height:44px; border-radius:50%;
-  border:1px solid rgba(31,232,255,.45); transition:transform var(--t-move) var(--e-standard), border-color var(--t-ui);
+  border:1px solid rgba(241,211,139,.45); transition:transform var(--t-move) var(--e-standard), border-color var(--t-ui);
 }
 .erlebnis .tiefer__zeichen::before,.erlebnis .tiefer__zeichen::after{
   content:''; position:absolute; left:50%; top:50%; width:14px; height:2px; margin:-1px 0 0 -7px; background:var(--c-cyan); border-radius:1px;
@@ -526,15 +526,15 @@
 }
 .erlebnis .demo-kachel::after{
   content:""; position:absolute; inset:0; z-index:-1;
-  background:linear-gradient(to top, rgba(5,7,13,.94) 0%, rgba(5,7,13,.72) 38%, rgba(5,7,13,0) 70%);
+  background:linear-gradient(to top, rgba(10,9,8,.94) 0%, rgba(10,9,8,.72) 38%, rgba(10,9,8,0) 70%);
 }
 .erlebnis .demo-kachel__text{position:absolute; left:0; right:0; bottom:0; display:grid; gap:.2rem; padding:.95rem 1rem}
 .erlebnis .demo-kachel__branche{font:600 .72rem/1.2 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-cyan)}
 .erlebnis .demo-kachel__titel{font:600 1.08rem/1.2 var(--f-display); color:var(--c-text); letter-spacing:-.01em}
 .erlebnis .demo-kachel__technik{font:500 .82rem/1.3 var(--f-text); color:var(--c-dim)}
-.erlebnis .demo-kachel:hover{border-color:rgba(31,232,255,.45)}
+.erlebnis .demo-kachel:hover{border-color:rgba(241,211,139,.45)}
 .erlebnis .demo-kachel:hover img{transform:scale(1.04)}
-.erlebnis .demo-kachel[aria-expanded="true"]{border-color:var(--c-cyan); box-shadow:0 0 0 1px var(--c-cyan), 0 10px 40px rgba(31,232,255,.12)}
+.erlebnis .demo-kachel[aria-expanded="true"]{border-color:var(--c-cyan); box-shadow:0 0 0 1px var(--c-cyan), 0 10px 40px rgba(241,211,139,.12)}
 .erlebnis .demo-kachel[aria-expanded="true"] .demo-kachel__technik::before{content:"● "; color:var(--c-cyan)}
 @media (max-width:700px){
   .erlebnis .demos__reihe{grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:72%;
@@ -550,10 +550,10 @@
 .erlebnis .demo-zu{
   display:inline-flex; align-items:center; gap:.4rem; min-height:40px; padding:0 1rem; margin:0 0 .9rem;
   position:relative; z-index:2;
-  border:1px solid var(--c-linie-hell); border-radius:999px; background:rgba(5,7,13,.7); cursor:pointer;
+  border:1px solid var(--c-linie-hell); border-radius:999px; background:rgba(10,9,8,.7); cursor:pointer;
   font:500 .9rem/1 var(--f-text); color:var(--c-dim); transition:color var(--t-ui), border-color var(--t-ui);
 }
-.erlebnis .demo-zu:hover{color:var(--c-text); border-color:rgba(31,232,255,.45)}
+.erlebnis .demo-zu:hover{color:var(--c-text); border-color:rgba(241,211,139,.45)}
 .erlebnis .demo-zu span[aria-hidden]{font-size:1.2rem; line-height:1}
 @media (pointer:coarse){ .erlebnis .demo-zu{min-height:44px} }
 @media (prefers-reduced-motion:reduce){
@@ -578,16 +578,16 @@
 .erlebnis .kp-masse{position:absolute; inset:0; pointer-events:none; overflow:hidden}
 .erlebnis .kp-mass{
   position:absolute; left:0; top:0; padding:.18rem .42rem; border-radius:4px; white-space:nowrap;
-  background:rgba(5,7,13,.8); color:var(--c-text); font:600 .74rem/1.1 var(--f-text); font-variant-numeric:tabular-nums;
+  background:rgba(10,9,8,.8); color:var(--c-text); font:600 .74rem/1.1 var(--f-text); font-variant-numeric:tabular-nums;
   transition:opacity var(--t-ui);
 }
-.erlebnis .kp-mass--summe{background:var(--c-text); color:#05070d; font-size:.8rem}
+.erlebnis .kp-mass--summe{background:var(--c-text); color:#0a0908; font-size:.8rem}
 .erlebnis .kp-mass--zuviel{background:#ff5a4f; color:#fff}
 .erlebnis .kp-ansicht{display:flex; flex-wrap:wrap; gap:.4rem .9rem; margin-top:.8rem}
 .erlebnis .kp-ansicht button[disabled]{opacity:.45; cursor:default}
 .erlebnis .kp-hinweis:empty{display:none}
 .erlebnis .kp-hinweis{margin:.4rem 0 0; color:var(--c-warm); font-size:.9rem}
-.erlebnis .kp-plan-box{position:absolute; inset:0; z-index:4; background:#0a0e16; display:grid; place-items:center; padding:1rem}
+.erlebnis .kp-plan-box{position:absolute; inset:0; z-index:4; background:#12100e; display:grid; place-items:center; padding:1rem}
 .erlebnis .kp-plan{width:100%; height:100%}
 .erlebnis .chips button .kp-form{width:24px; height:16px; margin-right:.5rem; fill:currentColor; opacity:.9}
 @media (max-width:700px){
@@ -617,7 +617,7 @@
   padding:.3rem .35rem .3rem .3rem; border-radius:12px; border:1px solid var(--c-linie); background:var(--c-surface);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
-.erlebnis .kp-modul.ist-gewaehlt{border-color:var(--c-cyan); background:rgba(31,232,255,.06)}
+.erlebnis .kp-modul.ist-gewaehlt{border-color:var(--c-cyan); background:rgba(241,211,139,.06)}
 .erlebnis .kp-modul__name{
   display:flex; align-items:center; gap:.6rem; min-width:0; min-height:44px; text-align:left;
   background:none; border:0; color:inherit; cursor:pointer; padding:0 .3rem; font:inherit;
@@ -686,7 +686,7 @@
 /* ========================================================== KUNDENABLAUF
    „So sieht es Ihre Kundschaft" -- Vorführung des Endkunden-Schritts. */
 .erlebnis .ka{padding:0; border:0; background:transparent; max-width:min(34rem, calc(100vw - 2rem)); width:100%; color:var(--c-text)}
-.erlebnis .ka::backdrop{background:rgba(3,5,10,.72); backdrop-filter:blur(4px)}
+.erlebnis .ka::backdrop{background:rgba(8,7,5,.72); backdrop-filter:blur(4px)}
 .erlebnis .ka[open]{animation:demo-auf 320ms var(--e-standard)}
 .erlebnis .ka-karte{position:relative; display:flex; flex-direction:column; gap:1rem; padding:clamp(1.2rem,3vw,1.8rem); border-radius:20px; background:var(--c-surface); border:1px solid var(--c-linie-hell); box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .erlebnis .ka-zu{position:absolute; top:.6rem; right:.6rem; width:44px; height:44px; border-radius:50%; border:0; background:transparent; color:var(--c-dim); font-size:1.5rem; cursor:pointer}
@@ -699,17 +699,17 @@
 .erlebnis .ka-name{font:600 .72rem/1 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-faint)}
 .erlebnis .ka-chips{display:flex; flex-wrap:wrap; gap:.35rem}
 .erlebnis .ka-chips button{min-height:40px; padding:0 .8rem; border-radius:999px; border:1px solid var(--c-linie); background:transparent; color:var(--c-dim); font:500 .88rem/1 var(--f-text); cursor:pointer}
-.erlebnis .ka-chips button[aria-pressed="true"]{background:var(--c-text); color:#05070d; border-color:var(--c-text)}
+.erlebnis .ka-chips button[aria-pressed="true"]{background:var(--c-text); color:#0a0908; border-color:var(--c-text)}
 .erlebnis .ka-aktion{display:flex; flex-wrap:wrap; gap:.6rem}
 .erlebnis .ka-hinweis{margin:0; font-size:.8rem; color:var(--c-faint)}
-.erlebnis .ka-eingang{display:flex; flex-direction:column; gap:.5rem; padding:1rem 1.1rem; border-radius:16px; background:#f4f5f7; color:#14161a; box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.erlebnis .ka-eingang__kopf{display:flex; justify-content:space-between; gap:1rem; font-size:.8rem; color:#5b6270}
-.erlebnis .ka-eingang__kopf b{color:#0a78f5}
+.erlebnis .ka-eingang{display:flex; flex-direction:column; gap:.5rem; padding:1rem 1.1rem; border-radius:16px; background:#f6f6f5; color:#181716; box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.erlebnis .ka-eingang__kopf{display:flex; justify-content:space-between; gap:1rem; font-size:.8rem; color:#6a6761}
+.erlebnis .ka-eingang__kopf b{color:#c8963e}
 .erlebnis .ka-eingang strong{font-size:1.02rem}
 .erlebnis .ka-eingang ul{margin:0; padding-left:1.1rem; font-size:.92rem; line-height:1.5}
 .erlebnis .ka-eingang__knoepfe{display:flex; gap:.5rem; margin-top:.3rem}
-.erlebnis .ka-eingang__knoepfe span{flex:1; text-align:center; padding:.5rem; border-radius:10px; background:#e2e6ee; font-size:.84rem; font-weight:600}
-.erlebnis .ka-eingang__knoepfe span:first-child{background:#0a78f5; color:#fff}
+.erlebnis .ka-eingang__knoepfe span{flex:1; text-align:center; padding:.5rem; border-radius:10px; background:#edeae3; font-size:.84rem; font-weight:600}
+.erlebnis .ka-eingang__knoepfe span:first-child{background:#c8963e; color:#fff}
 .erlebnis .kunde-knopf{align-self:flex-start; display:inline-flex; align-items:center; gap:.5rem}
 .erlebnis .kunde-knopf::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--c-warm); box-shadow:0 0 0 3px rgba(255,217,168,.18)}
 .erlebnis .pd-ladung{width:100%; max-width:26rem; accent-color:var(--c-cyan); min-height:36px}
@@ -732,6 +732,6 @@
 /* AR (A2) */
 .erlebnis .ar-knopf{align-self:flex-start; display:inline-flex; align-items:center; gap:.5rem}
 .erlebnis .ar-knopf::before{content:""; width:14px; height:14px; border:2px solid currentColor; border-radius:3px; transform:rotate(45deg) scale(.8)}
-.ar-ueber{position:fixed; inset:auto 0 0 0; display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom)); background:rgba(5,7,13,.72); color:#fff; font:500 1rem/1.3 system-ui, sans-serif}
+.ar-ueber{position:fixed; inset:auto 0 0 0; display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom)); background:rgba(10,9,8,.72); color:#fff; font:500 1rem/1.3 system-ui, sans-serif}
 .ar-ueber p{margin:0}
 .ar-ueber button{min-height:44px; padding:0 1.1rem; border-radius:999px; border:1px solid rgba(255,255,255,.4); background:transparent; color:#fff; font:600 .95rem/1 system-ui, sans-serif}

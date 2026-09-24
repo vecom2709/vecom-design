@@ -12,9 +12,9 @@ import { FinishShader } from './finish-pass.js';
 import { LOGO_CONTOURS } from './logo-shape.js';
 import { bruchGeometrie, bruchMaterial } from './bruch.js';
 
-const BLUE = 0x0648e8;
-const CYAN = 0x1fe8ff;
-const DEEP = 0x030509;
+const BLUE = 0x8a6322;
+const CYAN = 0xf1d38b;
+const DEEP = 0x070605;
 
 /* ==========================================================================
    ZWEI LICHTSITUATIONEN, EIN AUFBAU
@@ -36,25 +36,25 @@ const DEEP = 0x030509;
    ========================================================================== */
 const THEMEN = {
   dark: {
-    grund: ['#070f22', '#040814', '#02040a'],
-    nebelFarbe: 0x02040a, nebelDichte: 0.032,
-    envGrund: 0x02030a,
+    grund: ['#191510', '#0E0C0A', '#070605'],
+    nebelFarbe: 0x070605, nebelDichte: 0.032,
+    envGrund: 0x070605,
     /* [Breite, Hoehe, Farbe, Staerke, Position, Drehung] */
     panels: [
       [13, 8,  0xffffff, 6.5, [-1, 9, 2],    [Math.PI / 2, 0, 0]],
-      [11, 13, 0x1c6cff, 6.0, [-9, 1.5, 1],  [0, Math.PI / 2, 0]],
-      [4,  13, 0x1fe8ff, 5.5, [9, 0.5, -1],  [0, -Math.PI / 2, 0]],
-      [20, 13, 0x0a1633, 1.6, [0, 0, -11],   null],
-      [20, 20, 0x03050c, 1.0, [0, -6, 0],    [-Math.PI / 2, 0, 0]],
+      [11, 13, 0xffc478, 6.0, [-9, 1.5, 1],  [0, Math.PI / 2, 0]],
+      [4,  13, 0xf1d38b, 5.5, [9, 0.5, -1],  [0, -Math.PI / 2, 0]],
+      [20, 13, 0x251f18, 1.6, [0, 0, -11],   null],
+      [20, 20, 0x090806, 1.0, [0, -6, 0],    [-Math.PI / 2, 0, 0]],
     ],
-    ambient: [0x0a1526, 0.35],
+    ambient: [0x1c1814, 0.35],
     key: [0xffffff, 340],
     rimA: [BLUE, 90], rimB: [CYAN, 55],
-    fill: [0x5a7cba, 18], spec: [0xffffff, 34], pointer: [0x9fd0ff, 26],
-    logo: { color: 0x164bc4, roughness: 0.3, envMapIntensity: 1.9, iridescence: 0.08 },
-    boden: { color: 0x070c16, roughness: 0.3, envMapIntensity: 0.7 },
+    fill: [0xb39861, 18], spec: [0xffffff, 34], pointer: [0xf4e0aa, 26],
+    logo: { color: 0xf0b64d, roughness: 0.3, envMapIntensity: 1.9, iridescence: 0.08 },
+    boden: { color: 0x110f0c, roughness: 0.3, envMapIntensity: 0.7 },
     /* Nachts braucht es keinen Fond: Der Grund IST dunkel. */
-    fond: { farbe: 0x02040a, staerke: 0.0 },
+    fond: { farbe: 0x070605, staerke: 0.0 },
     belichtung: 1.05,
     bloom: 0.46,
     vignette: 0.55,
@@ -460,7 +460,7 @@ export class World {
        gemessen. Ohne Zeigerlicht fiel er von (254,255,254) auf (3,137,158)
        -- alles andere zusammen machte weniger aus als dieses eine Licht.
        Es sitzt dicht vor der Kerbe, folgt dem Mauszeiger und war mit
-       0x9fd0ff kuehl eingestellt. Genau dieser Fleck ist das, was jemand
+       0xf4e0aa kuehl eingestellt. Genau dieser Fleck ist das, was jemand
        "den Glanz" nennt, und er blieb den ganzen Tag derselbe.
 
        Er nimmt die Sonne jetzt zu drei Vierteln auf und wird am Horizont
@@ -624,7 +624,7 @@ export class World {
       transmission: 0.0,          // wird für den Glaszustand hochgefahren
       thickness: 0.0,
       ior: 1.5,
-      emissive: new THREE.Color(0x1a6cff),
+      emissive: new THREE.Color(0xffbe6e),
       emissiveIntensity: 0.0,
       iridescence: TM.logo.iridescence,   // nur ein Hauch — mehr kippt ins Violette
       iridescenceIOR: 1.35,
@@ -656,7 +656,7 @@ export class World {
     this.logo.scale.setScalar(1.75);
 
     // Licht im Spalt: wird sichtbar, sobald die Schenkel auseinandergehen.
-    this.gap = new THREE.PointLight(0x39d8ff, 0, 6, 2);
+    this.gap = new THREE.PointLight(0xe9b64f, 0, 6, 2);
     this.gap.position.set(0, 0, 0.3);
     this.logo.add(this.gap);
 
@@ -743,8 +743,8 @@ export class World {
     const c = document.createElement('canvas');
     c.width = c.height = s;
     const g = c.getContext('2d').createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-    g.addColorStop(0.0, 'rgba(60,150,255,0.95)');
-    g.addColorStop(0.35, 'rgba(20,90,230,0.35)');
+    g.addColorStop(0.0, 'rgba(234,183,81,0.95)');
+    g.addColorStop(0.35, 'rgba(214,155,36,0.35)');
     g.addColorStop(1.0, 'rgba(0,0,0,0)');
     const ctx = c.getContext('2d');
     ctx.fillStyle = g;

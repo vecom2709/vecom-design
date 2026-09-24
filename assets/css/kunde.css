@@ -15,20 +15,20 @@
 
 :root{
   /* Farben wie auf der Website, aus dem Logo abgeleitet */
-  --grund:      #05070d;
-  --grund2:     #080b13;
-  --flaeche:    #0c1119;
-  --flaeche2:   #111826;
-  --linie:      rgba(150,180,230,.13);
-  --linie2:     rgba(150,180,230,.26);
+  --grund:      #0a0908;
+  --grund2:     #0f0e0c;
+  --flaeche:    #141311;
+  --flaeche2:   #1F1C18;
+  --linie:      rgba(224,206,156,.13);
+  --linie2:     rgba(224,206,156,.26);
 
-  --text:       #e9eef8;
-  --dim:        #97a5bf;
-  --leise:      #808ea9;
+  --text:       #f7f3ea;
+  --dim:        #b4ada2;
+  --leise:      #9e978b;
 
-  --blau:       #0648e8;
-  --blau2:      #0a78f5;
-  --cyan:       #1fe8ff;
+  --blau:       #8a6322;
+  --blau2:      #c8963e;
+  --cyan:       #f1d38b;
   --verlauf:    linear-gradient(135deg, var(--blau) 0%, var(--blau2) 45%, var(--cyan) 100%);
 
   --gut:        #34d39b;
@@ -57,8 +57,8 @@ body{
 body::before{
   content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
   background:
-    radial-gradient(62vw 44vh at 50% -12%, rgba(10,120,245,.15), transparent 64%),
-    radial-gradient(46vw 34vh at 88% 104%, rgba(31,232,255,.07), transparent 62%);
+    radial-gradient(62vw 44vh at 50% -12%, rgba(200,150,62,.15), transparent 64%),
+    radial-gradient(46vw 34vh at 88% 104%, rgba(241,211,139,.07), transparent 62%);
 }
 
 .seite{position:relative; z-index:1; max-width:760px; margin:0 auto; padding:0 20px}
@@ -150,7 +150,7 @@ input[type=file]{
 .knopf.haupt{
   background:var(--verlauf); border-color:transparent; color:#fff; font-weight:650;
 }
-.knopf.haupt:hover{box-shadow:0 14px 34px -16px rgba(10,120,245,.85)}
+.knopf.haupt:hover{box-shadow:0 14px 34px -16px rgba(200,150,62,.85)}
 .knopf.stumm{background:transparent; color:var(--dim); border-color:transparent}
 
 /* ---------- Hinweise ---------- */
@@ -167,8 +167,8 @@ input[type=file]{
   border:1px solid var(--linie); background:rgba(255,255,255,.02);
 }
 .nachricht.wir{
-  background:linear-gradient(135deg, rgba(10,120,245,.10), rgba(31,232,255,.05));
-  border-color:rgba(31,232,255,.20);
+  background:linear-gradient(135deg, rgba(200,150,62,.10), rgba(241,211,139,.05));
+  border-color:rgba(241,211,139,.20);
 }
 .nachricht .wer{
   display:flex; justify-content:space-between; gap:12px;
@@ -195,7 +195,7 @@ input[type=file]{
   content:counter(s); grid-column:1; grid-row:1 / span 2;
   width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
   font:650 12.5px/1 var(--f-text); color:var(--cyan);
-  background:rgba(31,232,255,.10); box-shadow:inset 0 0 0 1px rgba(31,232,255,.30);
+  background:rgba(241,211,139,.10); box-shadow:inset 0 0 0 1px rgba(241,211,139,.30);
 }
 .schritte li > *{grid-column:2}
 .schritte b{display:block; font-size:14.5px; font-weight:650}
@@ -222,7 +222,7 @@ input[type=file]{
 }
 .stufen li.jetzt .kreis{
   border-color:var(--cyan); color:var(--cyan);
-  box-shadow:0 0 0 4px rgba(31,232,255,.12);
+  box-shadow:0 0 0 4px rgba(241,211,139,.12);
 }
 .stufen li.jetzt > div b{color:var(--cyan)}
 .stufen b{display:block; font-size:14.5px; font-weight:600}
@@ -289,7 +289,7 @@ input[type=file]{
    noch einmal nachlesen will, worauf er Ja sagt, kann das dahinter. */
 .frage{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0 0;
   padding:12px 14px;border:1px solid var(--cyan);border-radius:12px;
-  background:rgba(31,232,255,.07);font-size:14px;line-height:1.55;color:var(--text)}
+  background:rgba(241,211,139,.07);font-size:14px;line-height:1.55;color:var(--text)}
 .frage > span{flex:1 1 240px;min-width:0}
 tr.fragezeile > td{border:0}
 tr.fragezeile .frage{margin:0 0 8px}

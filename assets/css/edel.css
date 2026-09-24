@@ -17,7 +17,7 @@
    ========================================================================== */
 :root {
   --f-serif: 'Cormorant', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --edel-linie: rgba(150, 190, 240, .18);
+  --edel-linie: rgba(233, 213, 157, .18);
 }
 
 /* ---------- Schrift ----------------------------------------------------- */
@@ -122,7 +122,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .band picture, .band img { display: block; width: 100%; height: 100%; }
 .band img { object-fit: cover; }
 .band::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, var(--c-base) 0, transparent 18%, transparent 55%, rgba(5, 7, 13, .82) 100%); }
+  background: linear-gradient(180deg, var(--c-base) 0, transparent 18%, transparent 55%, rgba(10, 9, 8, .82) 100%); }
 .band figcaption { position: absolute; z-index: 1; left: 0; right: 0; bottom: clamp(1.6rem, 5vh, 3rem); }
 .band figcaption small { display: block; margin-bottom: .7rem; font-size: var(--t-xs); letter-spacing: .3em; text-transform: uppercase; color: var(--c-cyan); }
 .band figcaption span { display: block; max-width: 32rem; font-family: var(--f-serif); font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.3rem); line-height: 1.2; color: #fff; text-shadow: 0 2px 24px rgba(0, 0, 0, .8); }
@@ -142,7 +142,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
      „wichtig ist, dass der Telefonassistent rechts bleibt wie vorher“. */
   position: fixed; left: clamp(.9rem, 2vw, 1.5rem); bottom: clamp(.9rem, 2vw, 1.5rem); z-index: 60;
   display: flex; align-items: center; gap: .7rem; padding: .45rem 1.1rem .45rem .45rem;
-  background: rgba(12, 17, 25, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: rgba(20, 19, 17, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--c-line-strong); border-radius: 999px;
   font-size: var(--t-sm); color: var(--c-text);
   box-shadow: 0 14px 34px -14px rgba(0, 0, 0, .9);
@@ -160,7 +160,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 /* Ohne Aufmacher lag der Text direkt auf der hellen Bühne — unlesbar
    (Probe 24.09.2026). Oben bleibt das V noch sichtbar, dann tragender Grund. */
 .technikseite { padding-top: clamp(8rem, 16vh, 11rem);
-  background: linear-gradient(180deg, rgba(5, 7, 13, .78) 0, rgba(5, 7, 13, .94) 320px, var(--c-base) 640px); }
+  background: linear-gradient(180deg, rgba(10, 9, 8, .78) 0, rgba(10, 9, 8, .94) 320px, var(--c-base) 640px); }
 .technikseite .sechead h1 { font-size: calc(var(--t-xl) * 1.25); }
 .technikseite .tiefer__kopf { display: none; }        /* hier immer offen, kein Zuklappen */
 .technikseite__zurueck { margin-top: var(--s-6); text-align: center; }
@@ -249,17 +249,17 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .zugangsfeld { width: 100%; max-width: 560px; }
 .zugangsfeld__zeile { display: flex; gap: 6px; padding: 6px; border-radius: 999px;
-  background: rgba(8, 12, 22, .62); border: 1px solid var(--edel-linie);
+  background: rgba(17, 15, 13, .62); border: 1px solid var(--edel-linie);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   transition: border-color .2s ease, box-shadow .2s ease; }
-.zugangsfeld__zeile:focus-within { border-color: var(--c-cyan); box-shadow: 0 0 0 3px rgba(31, 232, 255, .14); }
+.zugangsfeld__zeile:focus-within { border-color: var(--c-cyan); box-shadow: 0 0 0 3px rgba(241, 211, 139, .14); }
 .zugangsfeld input { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0 18px; border: 0; background: none;
   color: var(--c-text); font: inherit; font-size: 16px; outline: none; }
 .zugangsfeld input::placeholder { color: var(--c-text-dim); opacity: .85; }
 .zugangsfeld .btn { flex: 0 0 auto; min-height: 48px; border-radius: 999px; white-space: nowrap; }
 .zugangsfeld__note { margin: .8rem 0 0 .4rem; max-width: 52ch; font-size: var(--t-sm); line-height: 1.55; color: var(--c-text-dim); }
 .zugangsfeld__ok { margin: .8rem 0 0; padding: .9rem 1.1rem; border-radius: 14px; font-size: var(--t-sm); line-height: 1.55;
-  color: var(--c-text); background: rgba(31, 232, 255, .08); border: 1px solid rgba(31, 232, 255, .32); }
+  color: var(--c-text); background: rgba(241, 211, 139, .08); border: 1px solid rgba(241, 211, 139, .32); }
 .zugangsfeld.ist-fehler .zugangsfeld__ok { background: rgba(255, 90, 90, .08); border-color: rgba(255, 110, 110, .4); }
 .zugangsfeld.ist-gesendet .zugangsfeld__zeile { opacity: .45; pointer-events: none; }
 .zugangsfeld.ist-sendet .btn { opacity: .7; cursor: progress; }
