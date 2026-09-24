@@ -44,7 +44,7 @@ const BASE = 'https://vecom-design.it';
    Datei holt nur die vier Werte, wenn kein Listenblatt da ist. */
 const BUENDEL_TEILE = [
   'screens', 'schau', 'polish', 'pakete-live', 'preise-live', 'stimmen-live',
-  'rail', 'vids', 'depth', 'sig', 'social', 'vergleich',
+  'vids', 'depth', 'sig', 'social', 'vergleich',
 ];
 const BUENDEL_ZIEL = 'assets/js/start.js';
 

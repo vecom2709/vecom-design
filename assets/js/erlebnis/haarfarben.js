@@ -162,6 +162,12 @@ if (sek) {
     const p = document.createElement('i'); p.className = 'farbpunkt'; p.setAttribute('aria-hidden', 'true'); p.style.setProperty('--f', c);
     k.append(p, TEXTE.namen[f]); return k;
   }));
+  // Nur Farben anbieten, deren Bilder schon gerechnet sind (farben.json
+  // schreibt tools/haar-web.py) -- ein Chip ohne Bilder lädt ins Leere.
+  fetch(`${BASIS}farben.json?s=${STAND}`).then((r) => r.json()).then((j) => {
+    const da = new Set(j.farben || []);
+    if (da.size) for (const k of wahl.querySelectorAll('button')) k.hidden = !da.has(k.dataset.farbe);
+  }).catch(() => {});
   wahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-farbe]'); if (k && k.dataset.farbe !== farbe) farbeWaehlen(k.dataset.farbe, true); });
   // Die übrigen Farben leise vorladen, sobald jemand wählt -- klein zuerst
   wahl.addEventListener('pointerenter', () => { for (const [f] of FARBEN) if (!saetze.has(f)) satzHolen(f); }, { once: true });

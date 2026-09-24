@@ -2207,32 +2207,9 @@ html.hero-in .hero h1 .line-mask > span { transform: none; }
   }
 }
 
-/* 8 — Kapitelleiste */
-.rail {
-  position: fixed; right: clamp(.8rem, 1.6vw, 1.6rem); top: 50%; transform: translateY(-50%);
-  z-index: 40; display: grid; gap: .1rem;
-  opacity: 0; pointer-events: none;
-  transition: opacity var(--d-move) var(--e-std);
-}
-.rail.is-on { opacity: 1; pointer-events: auto; }
-.rail a {
-  display: flex; align-items: center; gap: .6rem; justify-content: flex-end;
-  padding: .2rem; min-height: 44px; color: var(--c-text-faint);
-  font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase;
-}
-.rail span {
-  opacity: 0; transform: translateX(6px);
-  transition: opacity var(--d-move) var(--e-std), transform var(--d-move) var(--e-std);
-}
-.rail a:hover span, .rail a[aria-current="true"] span { opacity: 1; transform: none; }
-.rail i {
-  width: 22px; height: 1px; background: var(--c-line-strong); flex: none;
-  transition: width var(--d-move) var(--e-std), background-color var(--d-ui) linear;
-}
-.rail a:hover i { width: 30px; background: var(--c-text-dim); }
-.rail a[aria-current="true"] { color: var(--c-text); }
-.rail a[aria-current="true"] i { width: 38px; background: var(--c-cyan); box-shadow: 0 0 10px rgba(31,232,255,.6); }
-@media (max-width: 1100px) { .rail { display: none; } }
+/* 8 — Kapitelleiste rechts: entfernt am 24.09.2026 auf Uwes Wunsch
+   (Leistungen, Preise usw. am Rand lenkten ab). */
+
 
 /* 12 — Ladebild: der Umriss zeichnet sich, dann übernimmt die Szene */
 .boot {

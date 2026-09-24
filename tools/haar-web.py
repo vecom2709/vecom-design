@@ -16,6 +16,7 @@ waeren pro Farbe mehrere Megabyte; die Buehne ist auf dem Rechner selten
 breiter als 1000 CSS-Pixel. Klein laedt zuerst (schnelles erstes Bild), gross
 wird erst uebernommen, wenn der ganze Satz da ist.
 """
+import json
 import os
 import sys
 
@@ -54,6 +55,11 @@ def main(quelle):
         w, h = b.size   # Kachel: Kopf und Schultern, 16:9
         kw = int(w * 0.52); kh = int(kw * 9 / 16); x0 = (w - kw) // 2; y0 = int(h * 0.06)
         speichern(b.crop((x0, y0, x0 + kw, y0 + kh)).resize((800, 450), Image.LANCZOS), os.path.join(ZIEL, 'kachel-800'), 80, avif=True)
+    # Welche Farben vollstaendig da sind -- die Seite zeigt nur diese
+    fertig = [f for f in FARBEN if all(os.path.exists(os.path.join(ZIEL, f, g, f'dreh-{i:02d}.webp')) for g in ('gross', 'klein') for i in range(N))]
+    with open(os.path.join(ZIEL, 'farben.json'), 'w', encoding='utf-8') as fh:
+        json.dump({'farben': fertig}, fh)
+    print('fertig:', fertig)
     for f, s in summe.items():
         print(f'{f}: {s / 1024:.0f} KB gross (16 Bilder)')
 
