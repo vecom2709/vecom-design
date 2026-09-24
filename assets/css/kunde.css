@@ -32,8 +32,8 @@
   --verlauf:    linear-gradient(135deg, var(--blau) 0%, var(--blau2) 45%, var(--cyan) 100%);
   /* Dieselben Metallverlaeufe wie auf der Startseite (app.css): Wer vom
      Knopf dort hierher kommt, soll denselben Knopf wiedersehen. */
-  --metall:     linear-gradient(115deg,#c9a24f 0%,#f6e6b4 22%,#d6b262 40%,#cfd2d6 60%,#fafbfc 76%,#b9bdc2 100%);
-  --metall-text:linear-gradient(100deg,#d4ab57 0%,#f7e7b8 26%,#c79a43 46%,#e6e8eb 70%,#aeb2b8 100%);
+  --metall:     linear-gradient(115deg,#b98a31 0%,#f7e6ae 20%,#d6a849 38%,#a67a26 56%,#f3dc98 76%,#c49438 100%);
+  --metall-text:linear-gradient(100deg,#cf9f3e 0%,#f8e6ad 26%,#c8963a 48%,#f1d68e 72%,#b98a31 100%);
 
   --gut:        #34d39b;
   --gut-grund:  rgba(52,211,155,.10);

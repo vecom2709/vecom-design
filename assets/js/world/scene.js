@@ -642,7 +642,7 @@ export class World {
        den Unterschied zwischen Metall und Farbe. */
     const gs = {
       uGold: { value: new THREE.Color(0xd99a2b) },     // poliertes Gold: kraeftig, sonst frisst der Klarlack die Farbe
-      uSilber: { value: new THREE.Color(0xc9ccd1) },   // Silber, leicht kuehl
+      uSilber: { value: new THREE.Color(0xd99a2b) },   // seit 24.09.2026 Vollgold: beide Seiten Gold. Der Mischshader bleibt, damit ein Rueckweg zu Gold-Silber eine Zeile ist.
       uX0: { value: -groesse.x * 0.02 },
       uX1: { value: groesse.x * 0.34 },
     };

@@ -33,11 +33,16 @@
   --silber-tief:   #6c7076;
   --silber:        #a7abb1;
   --silber-licht:  #eef0f2;
-  --grad-brand:    linear-gradient(115deg, #6e5019 0%, #b8893a 14%, #f3dfa2 27%, #c29543 40%,
-                                   #8f9297 56%, #eceef1 70%, #a3a7ad 84%, #6c7076 100%);
-  --grad-metall:   linear-gradient(115deg, #c9a24f 0%, #f6e6b4 22%, #d6b262 40%,
-                                   #cfd2d6 60%, #fafbfc 76%, #b9bdc2 100%);
-  --grad-text:     linear-gradient(100deg, #d4ab57 0%, #f7e7b8 26%, #c79a43 46%, #e6e8eb 70%, #aeb2b8 100%);
+  /* Variante „echtes glaenzendes Gold" (24.09.2026, Uwe): Die Verlaeufe
+     sind reines Gold mit zwei Glanzkanten -- dunkle Zone, heller Streifen,
+     Koerper, zweiter Streifen, Rueckfall. So sieht poliertes Metall aus,
+     das seine Umgebung spiegelt; ein Verlauf von Hell nach Dunkel wirkt
+     dagegen wie Farbe. Silber bleibt als Token fuer den Hintergrund. */
+  --grad-brand:    linear-gradient(115deg, #5e430f 0%, #b8862c 14%, #f6e3a3 27%, #c8973a 40%,
+                                   #8a6420 56%, #f0d48a 70%, #b98a31 84%, #6e5019 100%);
+  --grad-metall:   linear-gradient(115deg, #b98a31 0%, #f7e6ae 20%, #d6a849 38%,
+                                   #a67a26 56%, #f3dc98 76%, #c49438 100%);
+  --grad-text:     linear-gradient(100deg, #cf9f3e 0%, #f8e6ad 26%, #c8963a 48%, #f1d68e 72%, #b98a31 100%);
 
   /* Typografie — Ratio 1.25, fluid */
   --f-display: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
