@@ -596,9 +596,9 @@ function starten() {
   /* Warme Graustufenfassung: Das Original ist eine blau-tuerkise Buehne
      (Mittel RGB 7/37/54) und faerbte jede Spiegelung im Saal blau --
      dieselbe Umstellung wie im Cycles-Standbild (saal_goldsilber.py).
-     Darin eingebacken die Lichtflaeche hinter der Kamera aus demselben
-     Skript: Ohne sie spiegelte der Goldschenkel nur dunklen Saal
-     (gemessen V 0,13-0,24 gegen 0,58 auf der Silberseite). */
+     Die Lichtflaeche hinter der Kamera aus dem Cycles-Skript ist hier
+     NICHT eingebacken: Mit ihr lief die Marke in der Naheinstellung zu
+     Weiss aus (RTX 5070) -- hier traegt das Spitzlicht diese Aufgabe. */
   new THREE.TextureLoader().load('/assets/img/env/studio-warm.webp', (t) => {
     t.mapping = THREE.EquirectangularReflectionMapping;
     if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace;
@@ -631,7 +631,7 @@ function starten() {
   /* Sass auf y 7,5 -- mitten in der Deckenplatte, deren Unterkante bei 7,38
      liegt -- und hat sie von innen angestrahlt. Vor der Bauabnahme gab es
      dort keine Decke, deshalb ist es nie aufgefallen. */
-  const spitze = new THREE.SpotLight(0xffffff, 180, 26, 0.55, 0.35, 1.8);
+  const spitze = new THREE.SpotLight(0xffffff, 50, 26, 0.55, 0.35, 1.8);   /* 180 -> 50: Gold spiegelt rund fuenfzehnmal mehr als das alte Blau; mit 90 lief der nahe Schenkel in der Einstellung „Marke“ zu Weiss aus (RTX 5070) */
   spitze.position.set(-5.5, 6.40, 7.5);
   szene.add(spitze);
   szene.add(spitze.target);
@@ -761,7 +761,18 @@ function starten() {
         M_Sockelkante: [1.0, 0.76, 0.40], M_Deckenfeld: [1.0, 0.93, 0.83],
       };
       if (WARM[mat.name] && mat.emissive) {
-        mat.emissive.setRGB(...WARM[mat.name]);
+        /* Gleiche Leuchtdichte wie vorher: Tiefgold hat 2,5-mal so viel
+           Luminanz wie das alte Blau (0,54 gegen 0,21). Ohne Ausgleich lief
+           das Portallicht im Bloom zu einem grossen Fleck aus (RTX 5070). */
+        /* Materialien teilen sich mehrere Meshes: Faktor nur beim ersten
+           Mal bestimmen, danach nach jedem Setzen von STAERKE anwenden. */
+        if (mat.userData.warmFaktor === undefined) {
+          const lum = (c) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+          const vorher = lum(mat.emissive);
+          mat.emissive.setRGB(...WARM[mat.name]);
+          mat.userData.warmFaktor = vorher > 0 ? vorher / lum(mat.emissive) : 1;
+        }
+        mat.emissiveIntensity *= mat.userData.warmFaktor;
         if (mat.color && mat.color.getHex() !== 0) mat.color.setRGB(...WARM[mat.name]);
       }
       if (mat.name === 'M_Chrom') mat.color.setRGB(0.545, 0.535, 0.515);
@@ -780,7 +791,11 @@ function starten() {
       if (mat.name === 'M_Marke') {
         /* Auch eloxiertes Metall ist nicht makellos: die feine Struktur nimmt
            der Flaeche das Gegossene, ohne dass man sie bewusst sieht. */
-        mat.metalness = 1.0; mat.roughness = 0.155; mat.envMapIntensity = 2.0;
+        mat.metalness = 1.0; mat.roughness = 0.155; mat.envMapIntensity = 1.0;
+        /* 1,0 statt 2,0 seit dem Gold: Die alte Albedo war dunkles Blau
+           (~0,05), Gold spiegelt rund fuenfzehnmal mehr. Mit 2,0 lief die
+           Marke im Bloom zu einem weissen Fleck aus (auf der RTX 5070
+           nachgesehen, Kamera am Ankunftspunkt). */
         /* Poliertes Gold wie die Marke auf der Startseite und im Standbild
            (physikalische F0-Farbe). Der Mischshader aus der Gold-Silber-
            Fassung bleibt, beide Seiten sind jetzt Gold. Die blaue Verlaufstextur aus Blender faellt
@@ -939,7 +954,7 @@ function starten() {
     /* Der Bloom rechnet auf halber Kantenlaenge — ein Viertel der Pixel.
        Er ist ohnehin ein Weichzeichner; die Haelfte sieht man ihm nicht an,
        die Bildrate schon. */
-    if (S.bloom) bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth * 0.5, innerHeight * 0.5), S.bloomStaerke, 0.58, 0.92);
+    if (S.bloom) bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth * 0.5, innerHeight * 0.5), S.bloomStaerke, 0.58, 1.05);   /* Schwelle 0,92 -> 1,05 seit dem Gold: sonst blueht jede Spiegelung auf der Marke, nicht nur Licht */
     if (S.bloom) composer.addPass(bloomPass);
     gradePass = new ShaderPass(KameraShader);
     composer.addPass(gradePass);
