@@ -51,7 +51,7 @@ final class Vorlage
         return (array) (self::daten()['gruppen'] ?? []);
     }
 
-    private const ANREDE = ['it' => 'Ciao', 'de' => 'Hallo', 'en' => 'Hello'];
+    private const ANREDE = ['it' => 'Buongiorno', 'de' => 'Guten Tag', 'en' => 'Hello'];
     private const GRUSS  = [
         'it' => "A presto\nUwe Vetter · Vecom Design",
         'de' => "Herzliche Grüße\nUwe Vetter · Vecom Design",
@@ -143,7 +143,7 @@ final class Vorlage
         if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 
         $werte = self::werte($kundeId, $k, $sprache);
-        $anrede = (self::ANREDE[$sprache] ?? 'Ciao') . ' ' . $werte['{vorname}'] . ",\n\n";
+        $anrede = (self::ANREDE[$sprache] ?? self::ANREDE['it']) . ' ' . $werte['{vorname}'] . ",\n\n";
         $gruss  = "\n\n" . (self::GRUSS[$sprache] ?? '');
 
         $aus = [];

@@ -94,13 +94,13 @@
       t11: "Die Unwirksamkeit einzelner Bestimmungen berührt die Wirksamkeit der übrigen nicht.",
 
       w0: "Widerrufsrecht",
-      wlead: "Als Verbraucher kannst du den Vertrag innerhalb von vierzehn Tagen ohne Angabe von Gründen widerrufen. Verlangst du, dass die Arbeit schon vor Ablauf dieser Frist beginnt, erlischt das Recht in dem Moment, in dem die Leistung vollständig erbracht ist; widerrufst du vorher, wird der bis dahin geleistete Teil berechnet. Für den Widerruf genügt eine eindeutige Nachricht an kontakt@vecom-design.it.",
+      wlead: "Als Verbraucher können Sie den Vertrag innerhalb von vierzehn Tagen ohne Angabe von Gründen widerrufen. Verlangen Sie, dass die Arbeit schon vor Ablauf dieser Frist beginnt, erlischt das Recht in dem Moment, in dem die Leistung vollständig erbracht ist; widerrufen Sie vorher, wird der bis dahin geleistete Teil berechnet. Für den Widerruf genügt eine eindeutige Nachricht an kontakt@vecom-design.it.",
       w1h: "Frist von vierzehn Tagen",
-      w1: "Die Frist beträgt vierzehn Tage ab Vertragsschluss. Für den Widerruf genügt eine eindeutige Erklärung — eine E-Mail reicht. Das Formular unten kannst du verwenden, musst du aber nicht.",
+      w1: "Die Frist beträgt vierzehn Tage ab Vertragsschluss. Für den Widerruf genügt eine eindeutige Erklärung — eine E-Mail reicht. Das Formular unten können Sie verwenden, müssen es aber nicht.",
       w2h: "Folgen des Widerrufs",
       w2: "Vecom Design erstattet alles Erhaltene binnen vierzehn Tagen nach Eingang der Erklärung, über dasselbe Zahlungsmittel, das der Kunde verwendet hat. Wurde die Arbeit auf ausdrücklichen Wunsch des Kunden bereits begonnen, wird der bis dahin geleistete Teil berechnet, im Verhältnis zum vereinbarten Gesamtumfang.",
       w3h: "Muster-Widerrufsformular",
-      w3: "Dieses Formular nur ausfüllen und zurücksenden, wenn du den Vertrag widerrufen willst.",
+      w3: "Dieses Formular nur ausfüllen und zurücksenden, wenn Sie den Vertrag widerrufen wollen.",
       wform: "An: Vecom Design, Uwe Vetter, kontakt@vecom-design.it\n\nHiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag über\ndie folgende Dienstleistung (*):\n\nBestellt am (*) / erhalten am (*): ______________________\nName des/der Verbraucher(s): ______________________\nAnschrift des/der Verbraucher(s): ______________________\nDatum: ______________________\nUnterschrift des/der Verbraucher(s) (nur bei Mitteilung auf Papier): ______________________\n\n(*) Unzutreffendes streichen.",
 
       back: "Zurück zur Startseite"

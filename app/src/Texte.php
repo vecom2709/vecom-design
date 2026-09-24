@@ -43,7 +43,7 @@ final class Texte
 
         /* ---------- 1 ---------------------------------------------------- */
         'unternehmen' => [
-            'it' => 'La tua azienda', 'de' => 'Dein Unternehmen', 'en' => 'Your business',
+            'it' => 'La sua azienda', 'de' => 'Ihr Unternehmen', 'en' => 'Your business',
             'felder' => [
                 'firmenname' => ['it' => 'Nome dell’azienda', 'de' => 'Firmenname', 'en' => 'Company name', 'art' => 'text'],
 
@@ -67,10 +67,10 @@ final class Texte
                     ],
                 ],
 
-                'beschreibung' => ['it' => 'Cosa fate, in poche frasi', 'de' => 'Was ihr macht, in wenigen Sätzen', 'en' => 'What you do, in a few sentences', 'art' => 'lang'],
+                'beschreibung' => ['it' => 'Cosa fate, in poche frasi', 'de' => 'Was Sie machen, in wenigen Sätzen', 'en' => 'What you do, in a few sentences', 'art' => 'lang'],
 
                 'zielgruppe' => [
-                    'it' => 'Chi sono i vostri clienti?', 'de' => 'Wer sind eure Kunden?', 'en' => 'Who are your customers?',
+                    'it' => 'Chi sono i vostri clienti?', 'de' => 'Wer sind Ihre Kunden?', 'en' => 'Who are your customers?',
                     'art' => 'mehr', 'frei' => true,
                     'optionen' => [
                         'privat'    => ['it' => 'Privati', 'de' => 'Privatleute', 'en' => 'Private customers'],
@@ -84,10 +84,10 @@ final class Texte
                     ],
                 ],
 
-                'ort' => ['it' => 'In quale città o paese siete?', 'de' => 'In welchem Ort seid ihr?', 'en' => 'Which town are you in?', 'art' => 'text'],
+                'ort' => ['it' => 'In quale città o paese siete?', 'de' => 'In welchem Ort sind Sie?', 'en' => 'Which town are you in?', 'art' => 'text'],
 
                 'gebiet' => [
-                    'it' => 'Fin dove arrivate?', 'de' => 'Wie weit reicht euer Einzugsgebiet?', 'en' => 'How far do you reach?',
+                    'it' => 'Fin dove arrivate?', 'de' => 'Wie weit reicht Ihr Einzugsgebiet?', 'en' => 'How far do you reach?',
                     'art' => 'eins',
                     'optionen' => [
                         'ort'      => ['it' => 'Il paese e i dintorni', 'de' => 'Der Ort und die Umgebung', 'en' => 'The town and around it'],
@@ -132,7 +132,7 @@ final class Texte
                         'verkauf'   => ['it' => 'Vendere online', 'de' => 'Online verkaufen', 'en' => 'Sell online'],
                         'gefunden'  => ['it' => 'Farsi trovare su Google', 'de' => 'Bei Google gefunden werden', 'en' => 'Be found on Google'],
                         'serioes'    => ['it' => 'Fare bella figura — il biglietto da visita', 'de' => 'Seriös wirken — die Visitenkarte', 'en' => 'Look credible — the calling card'],
-                        'besuch'    => ['it' => 'Far venire la gente da voi', 'de' => 'Leute zu euch in den Laden holen', 'en' => 'Get people to come by'],
+                        'besuch'    => ['it' => 'Far venire la gente da voi', 'de' => 'Leute zu Ihnen in den Laden holen', 'en' => 'Get people to come by'],
                         'bewerber'  => ['it' => 'Trovare collaboratori', 'de' => 'Bewerber finden', 'en' => 'Find staff'],
                     ],
                 ],
@@ -146,7 +146,7 @@ final class Texte
                         'verkauf'   => ['it' => 'Vendere online', 'de' => 'Online verkaufen', 'en' => 'Sell online'],
                         'gefunden'  => ['it' => 'Farsi trovare su Google', 'de' => 'Bei Google gefunden werden', 'en' => 'Be found on Google'],
                         'serioes'    => ['it' => 'Fare bella figura', 'de' => 'Seriös wirken', 'en' => 'Look credible'],
-                        'besuch'    => ['it' => 'Far venire la gente da voi', 'de' => 'Leute zu euch holen', 'en' => 'Get people to come by'],
+                        'besuch'    => ['it' => 'Far venire la gente da voi', 'de' => 'Leute zu Ihnen holen', 'en' => 'Get people to come by'],
                         'bewerber'  => ['it' => 'Trovare collaboratori', 'de' => 'Bewerber finden', 'en' => 'Find staff'],
                         'nichts'    => ['it' => 'Nient’altro, conta solo il primo', 'de' => 'Nichts weiter, nur das erste zählt', 'en' => 'Nothing else, only the first counts'],
                     ],
@@ -155,14 +155,14 @@ final class Texte
                 /* Die nuetzlichste Frage im ganzen Bogen. Eine Zeile, und sie
                    entscheidet, was im ersten Bildschirm steht. */
                 'einesache' => ['it' => 'Se un visitatore ricorda una cosa sola di voi — quale deve essere?',
-                                'de' => 'Wenn ein Besucher nur eine Sache über euch mitnimmt — welche?',
+                                'de' => 'Wenn ein Besucher nur eine Sache über Sie mitnimmt — welche?',
                                 'en' => 'If a visitor remembers one thing about you — which one?',
                                 'art' => 'text'],
 
                 /* Sagt mir, ob ein Formular ueberhaupt Sinn hat oder ob nur
                    die Telefonnummer gross genug sein muss. */
                 'heute' => ['it' => 'Oggi, quando qualcuno vi telefona o scrive: cosa succede?',
-                            'de' => 'Was passiert heute, wenn jemand euch anruft oder schreibt?',
+                            'de' => 'Was passiert heute, wenn jemand Sie anruft oder Ihnen schreibt?',
                             'en' => 'Today, when someone calls or writes: what happens?',
                             'art' => 'lang'],
 
@@ -173,8 +173,8 @@ final class Texte
 
                 /* Vorbelegt aus Branche und Ort. Korrigieren koennen alle,
                    erfinden fast niemand -- vorher stand hier "gute Pizza". */
-                'suchwoerter' => ['it' => 'Con quali parole dovrebbero trovarvi su Google? Correggi la proposta.',
-                                  'de' => 'Mit welchen Wörtern sollen Leute euch bei Google finden? Ändere den Vorschlag.',
+                'suchwoerter' => ['it' => 'Con quali parole dovrebbero trovarvi su Google? Corregga pure la proposta.',
+                                  'de' => 'Mit welchen Wörtern sollen Leute Sie bei Google finden? Passen Sie den Vorschlag an.',
                                   'en' => 'Which words should people find you by on Google? Edit the suggestion.',
                                   'art' => 'lang', 'vorschlag' => 'suchwoerter'],
             ],
@@ -212,8 +212,8 @@ final class Texte
 
                 'funktionen_wahl' => ['it' => 'Che cosa deve avere il sito', 'de' => 'Was die Website können soll', 'en' => 'What the site should have', 'art' => 'wahl'],
 
-                'seiten' => ['it' => 'Come si chiamano le pagine? Cambia pure la proposta.',
-                             'de' => 'Wie sollen die Seiten heißen? Ändere den Vorschlag ruhig.',
+                'seiten' => ['it' => 'Come si chiamano le pagine? Cambi pure la proposta.',
+                             'de' => 'Wie sollen die Seiten heißen? Ändern Sie den Vorschlag ruhig.',
                              'en' => 'What should the pages be called? Change the suggestion freely.',
                              'art' => 'lang', 'vorschlag' => 'seiten'],
 
@@ -236,7 +236,7 @@ final class Texte
                                'en' => 'From the current site: what has to stay, no matter what?',
                                'art' => 'lang', 'wenn' => ['feld' => 'altseite', 'ist' => ['ja', 'aufbau']]],
                 'stoert'   => ['it' => 'Del sito attuale: che cosa vi dà più fastidio?',
-                               'de' => 'An der jetzigen Seite: Was stört euch am meisten?',
+                               'de' => 'An der jetzigen Seite: Was stört Sie am meisten?',
                                'en' => 'About the current site: what bothers you most?',
                                'art' => 'lang', 'wenn' => ['feld' => 'altseite', 'ist' => ['ja', 'aufbau']]],
             ],
@@ -259,12 +259,12 @@ final class Texte
                         'kraeftig' => ['it' => 'Deciso e moderno — colori forti', 'de' => 'Kräftig und modern — starke Farben', 'en' => 'Bold and modern — strong colours'],
                         'boden'    => ['it' => 'Artigianale e concreto', 'de' => 'Handwerklich und bodenständig', 'en' => 'Crafted and down to earth'],
                         'verspielt'=> ['it' => 'Vivace, con un po’ di gioco', 'de' => 'Verspielt, mit etwas Spaß', 'en' => 'Playful, with some fun'],
-                        'weissnicht'=> ['it' => 'Non lo so — decidi tu', 'de' => 'Weiß ich nicht — entscheide du', 'en' => 'I don’t know — you decide'],
+                        'weissnicht'=> ['it' => 'Non lo so — decida Lei', 'de' => 'Weiß ich nicht — entscheiden Sie', 'en' => 'I don’t know — you decide'],
                     ],
                 ],
 
                 'farben' => [
-                    'it' => 'Colori: cosa vi piace?', 'de' => 'Farben: Was gefällt euch?', 'en' => 'Colours: what do you like?',
+                    'it' => 'Colori: cosa vi piace?', 'de' => 'Farben: Was gefällt Ihnen?', 'en' => 'Colours: what do you like?',
                     'art' => 'mehr', 'frei' => true,
                     'optionen' => [
                         'wielogo'  => ['it' => 'Come il nostro logo', 'de' => 'Wie unser Logo', 'en' => 'Like our logo'],
@@ -275,12 +275,12 @@ final class Texte
                         'gelb'     => ['it' => 'Giallo', 'de' => 'Gelb', 'en' => 'Yellow'],
                         'erde'     => ['it' => 'Terra, sabbia, beige', 'de' => 'Erdtöne, Sand, Beige', 'en' => 'Earth, sand, beige'],
                         'schwarz'  => ['it' => 'Nero e bianco', 'de' => 'Schwarz und Weiß', 'en' => 'Black and white'],
-                        'weissnicht'=> ['it' => 'Non lo so — decidi tu', 'de' => 'Weiß ich nicht — entscheide du', 'en' => 'I don’t know — you decide'],
+                        'weissnicht'=> ['it' => 'Non lo so — decida Lei', 'de' => 'Weiß ich nicht — entscheiden Sie', 'en' => 'I don’t know — you decide'],
                     ],
                 ],
 
                 'wirkung' => [
-                    'it' => 'Come deve sentirsi chi apre il sito? Scegli fino a tre.',
+                    'it' => 'Come deve sentirsi chi apre il sito? Scelga fino a tre.',
                     'de' => 'Wie soll sich anfühlen, wer die Seite öffnet? Bis zu drei.',
                     'en' => 'How should it feel to open the site? Up to three.',
                     'art' => 'mehr', 'frei' => true,
@@ -304,7 +304,7 @@ final class Texte
                     'it' => 'Caratteri', 'de' => 'Schriften', 'en' => 'Fonts',
                     'art' => 'eins', 'frei' => true,
                     'optionen' => [
-                        'egal'    => ['it' => 'Nessuna preferenza — decidi tu', 'de' => 'Keine Wünsche — entscheide du', 'en' => 'No preference — you decide'],
+                        'egal'    => ['it' => 'Nessuna preferenza — decida Lei', 'de' => 'Keine Wünsche — entscheiden Sie', 'en' => 'No preference — you decide'],
                         'wielogo' => ['it' => 'Come nel logo', 'de' => 'Wie im Logo', 'en' => 'Like the logo'],
                         'haus'    => ['it' => 'Abbiamo un carattere aziendale — lo scrivo qui sotto', 'de' => 'Wir haben eine Hausschrift — schreibe ich unten', 'en' => 'We have a house font — I’ll write it below'],
                     ],
@@ -325,7 +325,7 @@ final class Texte
                 ],
 
                 'vorbilder' => ['it' => 'Siti che vi piacciono — anche di altri settori',
-                                'de' => 'Websites, die euch gefallen — auch aus anderen Branchen',
+                                'de' => 'Websites, die Ihnen gefallen — auch aus anderen Branchen',
                                 'en' => 'Websites you like — from any industry',
                                 'art' => 'lang'],
 
@@ -346,7 +346,7 @@ final class Texte
                    einzige Auskunft, die zaehlt: habe ich es, kommt es noch,
                    oder muss ich es machen. Genau danach plane ich. */
                 'material' => [
-                    'it' => 'Che cosa avete già?', 'de' => 'Was habt ihr schon?', 'en' => 'What do you already have?',
+                    'it' => 'Che cosa avete già?', 'de' => 'Was haben Sie schon?', 'en' => 'What do you already have?',
                     'art' => 'stand',
                     'zeilen' => [
                         'logo'      => ['it' => 'Logo', 'de' => 'Logo', 'en' => 'Logo'],
@@ -354,7 +354,7 @@ final class Texte
                         'produkt'   => ['it' => 'Foto di prodotti o lavori', 'de' => 'Fotos von Produkten oder Arbeiten', 'en' => 'Photos of products or work'],
                         'team'      => ['it' => 'Foto del team', 'de' => 'Team- oder Personenfotos', 'en' => 'Team or people photos'],
                         'video'     => ['it' => 'Video', 'de' => 'Video', 'en' => 'Video'],
-                        'texte'     => ['it' => 'Testi su di voi', 'de' => 'Texte über euch', 'en' => 'Copy about you'],
+                        'texte'     => ['it' => 'Testi su di voi', 'de' => 'Texte über Ihr Unternehmen', 'en' => 'Copy about you'],
                         'preise'    => ['it' => 'Menù o listino prezzi', 'de' => 'Speisekarte oder Preisliste', 'en' => 'Menu or price list'],
                         'zeiten'    => ['it' => 'Orari di apertura', 'de' => 'Öffnungszeiten', 'en' => 'Opening hours'],
                         'stimmen'   => ['it' => 'Recensioni di clienti', 'de' => 'Kundenstimmen', 'en' => 'Customer reviews'],
@@ -366,8 +366,8 @@ final class Texte
                     'art' => 'eins',
                     'optionen' => [
                         'selbst' => ['it' => 'Li scriviamo noi', 'de' => 'Schreiben wir selbst', 'en' => 'We write them'],
-                        'teils'  => ['it' => 'In parte noi, in parte tu', 'de' => 'Teils wir, teils du', 'en' => 'Partly us, partly you'],
-                        'du'     => ['it' => 'Scrivili tu', 'de' => 'Bitte schreibst du sie', 'en' => 'Please write them'],
+                        'teils'  => ['it' => 'In parte noi, in parte Lei', 'de' => 'Teils wir, teils Sie', 'en' => 'Partly us, partly you'],
+                        'du'     => ['it' => 'Li scriva Lei', 'de' => 'Bitte schreiben Sie sie', 'en' => 'Please write them'],
                     ],
                 ],
 
@@ -385,7 +385,7 @@ final class Texte
                 ],
 
                 'anrede' => [
-                    'it' => 'Come vi rivolgete ai clienti?', 'de' => 'Wie sprecht ihr eure Kunden an?', 'en' => 'How do you address customers?',
+                    'it' => 'Come vi rivolgete ai clienti?', 'de' => 'Wie sprechen Sie Ihre Kunden an?', 'en' => 'How do you address customers?',
                     'art' => 'eins',
                     'optionen' => [
                         'sie'  => ['it' => 'Con il Lei — formale', 'de' => 'Mit Sie — förmlich', 'en' => 'Formally'],
@@ -454,7 +454,7 @@ final class Texte
                     'optionen' => [
                         'uns'      => ['it' => 'Ce l’abbiamo, è intestato a noi', 'de' => 'Haben wir, läuft auf uns', 'en' => 'We have one, registered to us'],
                         'fremd'    => ['it' => 'Ce l’abbiamo, ma è di un’agenzia o di un conoscente', 'de' => 'Haben wir, liegt aber bei einer Agentur oder einem Bekannten', 'en' => 'We have one, but an agency or acquaintance holds it'],
-                        'neu'      => ['it' => 'Non ce l’abbiamo — proponi tre indirizzi qui sotto',
+                        'neu'      => ['it' => 'Non ce l’abbiamo — propongo tre indirizzi qui sotto',
                                        'de' => 'Haben wir nicht — ich schlage unten drei vor',
                                        'en' => 'We have none — I’ll suggest three below'],
                         'weissnicht'=> ['it' => 'Non lo so', 'de' => 'Weiß ich nicht', 'en' => 'I don’t know'],
@@ -515,7 +515,7 @@ final class Texte
                     'optionen' => [
                         'ich'    => ['it' => 'Lo faccio io stesso', 'de' => 'Ich selbst', 'en' => 'I do it myself'],
                         'intern' => ['it' => 'Qualcuno da noi', 'de' => 'Jemand bei uns im Betrieb', 'en' => 'Someone in the business'],
-                        'du'     => ['it' => 'Preferirei affidarlo a te', 'de' => 'Am liebsten du', 'en' => 'I’d rather you did'],
+                        'du'     => ['it' => 'Preferirei affidarlo a Lei', 'de' => 'Am liebsten Sie', 'en' => 'I’d rather you did'],
                         'offen'  => ['it' => 'Ancora da decidere', 'de' => 'Noch offen', 'en' => 'Still open'],
                     ],
                 ],
@@ -531,36 +531,36 @@ final class Texte
     ];
 
     public const SEITE = [
-        'titel'      => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
-        'lead'       => ['it' => 'Sei passi brevi, circa dieci minuti. Quasi tutto è da spuntare — scrivi solo dove serve davvero.',
-                         'de' => 'Sechs kurze Schritte, etwa zehn Minuten. Das meiste ist Anklicken — schreiben musst du nur, wo es wirklich zählt.',
+        'titel'      => ['it' => 'Il suo progetto', 'de' => 'Ihr Projekt', 'en' => 'Your project'],
+        'lead'       => ['it' => 'Sei passi brevi, circa dieci minuti. Quasi tutto è da spuntare — scriva solo dove serve davvero.',
+                         'de' => 'Sechs kurze Schritte, etwa zehn Minuten. Das meiste ist Anklicken — schreiben müssen Sie nur, wo es wirklich zählt.',
                          'en' => 'Six short steps, about ten minutes. Most of it is tapping — you only write where it really counts.'],
-        'freiZeile'  => ['it' => 'Vuoi aggiungere qualcosa? (facoltativo)',
+        'freiZeile'  => ['it' => 'Vuole aggiungere qualcosa? (facoltativo)',
                          'de' => 'Etwas dazu sagen? (freiwillig)',
                          'en' => 'Anything to add? (optional)'],
         'domainHilfe'=> ['it' => 'Non avete ancora un indirizzo? Scegliete il terzo punto: proponete tre nomi e vi dico subito quali sono liberi.',
-                         'de' => 'Noch keine Adresse? Wähl den dritten Punkt — dann schlägst du drei Namen vor und ich sage dir sofort, welche frei sind.',
+                         'de' => 'Noch keine Adresse? Wählen Sie den dritten Punkt — dann schlagen Sie drei Namen vor, und ich sage Ihnen sofort, welche frei sind.',
                          'en' => 'No address yet? Pick the third option — suggest three names and I’ll tell you right away which are free.'],
-        'wunschHilfe'=> ['it' => 'Scrivi tre indirizzi, il preferito per primo. Ti dico subito quali sono liberi. Esempio: latuaazienda.it',
-                         'de' => 'Schreib drei Adressen, die liebste zuerst. Ich sage dir sofort, welche frei sind. Beispiel: deinefirma.it',
+        'wunschHilfe'=> ['it' => 'Scriva tre indirizzi, il preferito per primo. Le dico subito quali sono liberi. Esempio: lasuaazienda.it',
+                         'de' => 'Schreiben Sie drei Adressen, die liebste zuerst. Ich sage Ihnen sofort, welche frei sind. Beispiel: ihrefirma.it',
                          'en' => 'Write three addresses, your favourite first. I’ll tell you right away which are free. Example: yourcompany.com'],
         'pruefeLaeuft'=> ['it' => 'Controllo…', 'de' => 'Sehe nach…', 'en' => 'Checking…'],
-        'schonGesagt'=> ['it' => 'Alcune risposte sono già compilate: le hai date quando hai calcolato il prezzo. Correggile pure se nel frattempo è cambiato qualcosa.',
-                         'de' => 'Ein paar Antworten stehen schon drin — die hast du gegeben, als du den Preis ausgerechnet hast. Ändere sie ruhig, wenn sich etwas geändert hat.',
+        'schonGesagt'=> ['it' => 'Alcune risposte sono già compilate: le ha date quando ha calcolato il prezzo. Le corregga pure se nel frattempo è cambiato qualcosa.',
+                         'de' => 'Ein paar Antworten stehen schon drin — die haben Sie gegeben, als Sie den Preis ausgerechnet haben. Ändern Sie sie ruhig, wenn sich etwas geändert hat.',
                          'en' => 'A few answers are already filled in — you gave them when you worked out the price. Change them if anything has moved on.'],
-        'speichern'  => ['it' => 'Salva e continua dopo', 'de' => 'Zwischenspeichern', 'en' => 'Save for later'],
-        'absenden'   => ['it' => 'Invia definitivamente', 'de' => 'Endgültig absenden', 'en' => 'Send'],
-        'gespeichert'=> ['it' => 'Salvato. Puoi tornare quando vuoi con lo stesso link.',
-                         'de' => 'Gespeichert. Du kannst mit demselben Link jederzeit zurückkommen.',
+        'speichern'  => ['it' => 'Salvare e continuare dopo', 'de' => 'Zwischenspeichern', 'en' => 'Save for later'],
+        'absenden'   => ['it' => 'Inviare definitivamente', 'de' => 'Endgültig absenden', 'en' => 'Send'],
+        'gespeichert'=> ['it' => 'Salvato. Può tornare quando vuole con lo stesso link.',
+                         'de' => 'Gespeichert. Sie können mit demselben Link jederzeit zurückkommen.',
                          'en' => 'Saved. Come back any time with the same link.'],
         'danke'      => ['it' => 'Grazie! Ho ricevuto tutto e mi metto al lavoro.',
                          'de' => 'Danke! Ich habe alles bekommen und lege los.',
                          'en' => 'Thank you! I have everything and I’m getting started.'],
         'weg'        => ['it' => 'Questo link non è più valido.', 'de' => 'Dieser Link gilt nicht mehr.', 'en' => 'This link is no longer valid.'],
-        'schon'      => ['it' => 'Hai già inviato le informazioni. Grazie!', 'de' => 'Du hast die Angaben schon abgeschickt. Danke!', 'en' => 'You have already sent your answers. Thank you!'],
-        'pflicht'    => ['it' => 'Compila almeno il nome dell’azienda.', 'de' => 'Bitte trag mindestens den Firmennamen ein.', 'en' => 'Please enter at least the company name.'],
-        'panne'      => ['it' => 'Qualcosa non ha funzionato. Riprova tra poco — oppure scrivimi e me ne occupo io.',
-                         'de' => 'Da hat etwas nicht geklappt. Versuch es gleich noch einmal — oder schreib mir, dann kümmere ich mich.',
+        'schon'      => ['it' => 'Ha già inviato le informazioni. Grazie!', 'de' => 'Sie haben die Angaben schon abgeschickt. Vielen Dank!', 'en' => 'You have already sent your answers. Thank you!'],
+        'pflicht'    => ['it' => 'Compili almeno il nome dell’azienda.', 'de' => 'Bitte tragen Sie mindestens den Firmennamen ein.', 'en' => 'Please enter at least the company name.'],
+        'panne'      => ['it' => 'Qualcosa non ha funzionato. Riprovi tra poco — oppure mi scriva e me ne occupo io.',
+                         'de' => 'Da hat etwas nicht geklappt. Versuchen Sie es gleich noch einmal — oder schreiben Sie mir, dann kümmere ich mich darum.',
                          'en' => 'Something went wrong. Please try again shortly — or write to me and I’ll sort it out.'],
 
         /* Der Fragebogen laeuft in Abschnitten. Vier kurze Seiten statt einer
@@ -569,14 +569,14 @@ final class Texte
         'schritt'    => ['it' => 'Passo {n} di {g}', 'de' => 'Schritt {n} von {g}', 'en' => 'Step {n} of {g}'],
         'weiter'     => ['it' => 'Avanti', 'de' => 'Weiter', 'en' => 'Continue'],
         'zurueck'    => ['it' => 'Indietro', 'de' => 'Zurück', 'en' => 'Back'],
-        'letzter'    => ['it' => 'Ultimo passo — poi hai finito.', 'de' => 'Letzter Schritt — dann bist du durch.', 'en' => 'Last step — then you’re done.'],
-        'leerOk'     => ['it' => 'Quello che non sai, lascialo pure vuoto.',
-                         'de' => 'Was du nicht weißt, lass einfach leer.',
+        'letzter'    => ['it' => 'Ultimo passo — poi ha finito.', 'de' => 'Letzter Schritt — dann haben Sie es geschafft.', 'en' => 'Last step — then you’re done.'],
+        'leerOk'     => ['it' => 'Quello che non sa, lo lasci pure vuoto.',
+                         'de' => 'Was Sie nicht wissen, lassen Sie einfach leer.',
                          'en' => 'Leave anything you don’t know blank.'],
-        'autoOk'     => ['it' => 'Salvo automaticamente a ogni passo. Puoi chiudere e tornare quando vuoi.',
-                         'de' => 'Ich speichere bei jedem Schritt automatisch. Du kannst zumachen und später zurückkommen.',
+        'autoOk'     => ['it' => 'Salvo automaticamente a ogni passo. Può chiudere e tornare quando vuole.',
+                         'de' => 'Ich speichere bei jedem Schritt automatisch. Sie können die Seite schließen und später zurückkommen.',
                          'en' => 'I save at every step. You can close this and come back any time.'],
-        'weiterMachen' => ['it' => 'Continua il questionario', 'de' => 'Fragebogen weiter ausfüllen', 'en' => 'Continue the questionnaire'],
+        'weiterMachen' => ['it' => 'Continuare il questionario', 'de' => 'Fragebogen weiter ausfüllen', 'en' => 'Continue the questionnaire'],
         /* Der Weg ohne Tastatur. Er steht direkt unter dem Fragebogen-Knopf:
            Genau in dem Moment, in dem jemand vor 48 Feldern steht und sie auf
            morgen verschieben will, ist der Satz „das geht auch am Telefon"
@@ -584,18 +584,18 @@ final class Texte
         /* Das Angebot auf der Kundenseite (22.09.2026). Bis dahin fuehrte der
            einzige Weg dorthin ueber die E-Mail -- wer sie nicht mehr fand,
            stand auf seiner Seite vor einem Satz ohne Knopf. */
-        'angebotAnsehen' => ['it' => 'Guarda il preventivo',
+        'angebotAnsehen' => ['it' => 'Vedere il preventivo',
                              'de' => 'Angebot ansehen',
                              'en' => 'View your quote'],
         'angebotText' => [
-            'it' => 'Leggilo con calma. Se va bene, lo accetti lì; se qualcosa non torna, scrivimelo.',
-            'de' => 'Sieh es dir in Ruhe an. Passt es, nimmst du es dort an; passt etwas nicht, schreib mir.',
+            'it' => 'Lo legga con calma. Se va bene, lo accetta lì; se qualcosa non torna, me lo scriva.',
+            'de' => 'Sehen Sie es sich in Ruhe an. Passt es, nehmen Sie es dort an; passt etwas nicht, schreiben Sie mir.',
             'en' => 'Take your time. If it works, you accept it there; if something doesn’t fit, tell me.',
         ],
         'angebotGilt' => ['it' => 'Valido fino al', 'de' => 'Gültig bis', 'en' => 'Valid until'],
         'fragebogenTelefon' => [
-            'it' => 'Oppure senza tastiera: clicca la finestra vocale qui in basso a destra — Manuela, la nostra assistente, compila il questionario insieme a te. Lei chiede, tu racconti; ogni risposta viene salvata subito.',
-            'de' => 'Oder ganz ohne Tippen: Klick auf das Sprachfenster unten rechts — Manuela, unsere Assistentin, füllt den Fragebogen gemeinsam mit dir aus. Sie fragt, du erzählst; jede Antwort wird sofort gespeichert.',
+            'it' => 'Oppure senza tastiera: clicchi sulla finestra vocale qui in basso a destra — Manuela, la nostra assistente, compila il questionario insieme a Lei. Manuela chiede, Lei racconta; ogni risposta viene salvata subito.',
+            'de' => 'Oder ganz ohne Tippen: Klicken Sie auf das Sprachfenster unten rechts — Manuela, unsere Assistentin, füllt den Fragebogen gemeinsam mit Ihnen aus. Manuela fragt, Sie erzählen; jede Antwort wird sofort gespeichert.',
             'en' => 'Or skip the typing: click the voice window in the bottom right — Manuela, our assistant, fills in the questionnaire together with you. She asks, you talk; every answer is saved right away.',
         ],
 
@@ -607,10 +607,10 @@ final class Texte
            der Domain. Angelegt wird erst nach der finalen Freigabe; auch das
            steht ausdruecklich da, damit niemand am naechsten Tag nach seinen
            Zugangsdaten fragt. */
-        'hostingTitel' => ['it' => 'Il tuo dominio', 'de' => 'Deine Wunschdomain', 'en' => 'Your domain'],
+        'hostingTitel' => ['it' => 'Il suo dominio', 'de' => 'Ihre Wunschdomain', 'en' => 'Your domain'],
         'hostingAngebot' => [
-            'it' => 'Nel questionario hai indicato che non hai ancora un sito né un dominio. Registriamo e gestiamo noi {domain} per te: dominio, spazio web, certificato SSL e una casella e-mail. Costa {preis} al mese in più (12 mesi di durata minima, poi disdici a fine mese). Attiviamo tutto quando il tuo sito è pronto — e riceverai i tuoi dati di accesso qui su questa pagina.',
-            'de' => 'Im Fragebogen hast du angegeben, dass du noch keine Website und keine Domain hast. Wir schalten und betreuen {domain} für dich: Domain, Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach. Das kostet zusätzlich {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Angelegt wird alles, sobald deine Website fertig ist — deine Zugangsdaten bekommst du dann hier auf dieser Seite.',
+            'it' => 'Nel questionario ha indicato che non ha ancora un sito né un dominio. Registriamo e gestiamo noi {domain} per Lei: dominio, spazio web, certificato SSL e una casella e-mail. Costa {preis} al mese in più (12 mesi di durata minima, poi può disdire a fine mese). Attiviamo tutto quando il suo sito è pronto — e riceverà i suoi dati di accesso qui su questa pagina.',
+            'de' => 'Im Fragebogen haben Sie angegeben, dass Sie noch keine Website und keine Domain haben. Wir schalten und betreuen {domain} für Sie: Domain, Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach. Das kostet zusätzlich {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Angelegt wird alles, sobald Ihre Website fertig ist — Ihre Zugangsdaten bekommen Sie dann hier auf dieser Seite.',
             'en' => 'In the questionnaire you said you don’t have a website or a domain yet. We’ll register and run {domain} for you: domain, web space, SSL certificate and an email mailbox. It costs an extra {preis} per month (12-month minimum term, then cancel at month’s end). Everything is set up once your website is finished — you’ll receive your access details right here on this page.',
         ],
         /* Der Ja-Knopf ist der Vertragsschluss — also sagt er es auch:
@@ -624,23 +624,23 @@ final class Texte
                             'en' => 'Contract sheet (PDF)'],
         'hostingNein' => ['it' => 'No, grazie', 'de' => 'Nein, danke', 'en' => 'No, thanks'],
         'hostingDanke' => [
-            'it' => 'Perfetto — appena il tuo sito è pronto, attiviamo il dominio e ti mettiamo qui i dati di accesso.',
-            'de' => 'Abgemacht — sobald deine Website fertig ist, schalten wir die Domain und legen dir hier die Zugangsdaten bereit.',
+            'it' => 'Perfetto — appena il suo sito è pronto, attiviamo il dominio e le mettiamo qui i dati di accesso.',
+            'de' => 'Sehr gern — sobald Ihre Website fertig ist, schalten wir die Domain und legen Ihnen hier die Zugangsdaten bereit.',
             'en' => 'Great — as soon as your website is finished, we’ll set up the domain and put your access details here.',
         ],
         'hostingDankeSolo' => [
-            'it' => 'Perfetto — ti abbiamo mandato la prima rata mensile per e-mail. Appena il pagamento arriva, attiviamo tutto e i tuoi dati di accesso compaiono qui.',
-            'de' => 'Abgemacht — die erste Monatsrate kommt per E-Mail zu dir. Sobald die Zahlung da ist, schalten wir alles, und deine Zugangsdaten erscheinen hier.',
+            'it' => 'Perfetto — le abbiamo mandato la prima rata mensile per e-mail. Appena il pagamento arriva, attiviamo tutto e i suoi dati di accesso compaiono qui.',
+            'de' => 'Sehr gern — die erste Monatsrate kommt per E-Mail zu Ihnen. Sobald die Zahlung da ist, schalten wir alles, und Ihre Zugangsdaten erscheinen hier.',
             'en' => 'Great — the first monthly instalment is on its way to you by email. As soon as the payment arrives, we set everything up and your access details appear here.',
         ],
         'hostingAbgelehnt' => [
-            'it' => 'Va bene, senza. Se cambi idea, scrivicelo qui nella pagina.',
-            'de' => 'In Ordnung, dann ohne. Falls du es dir anders überlegst, schreib uns einfach hier auf der Seite.',
+            'it' => 'Va bene, senza. Se cambia idea, ce lo scriva qui nella pagina.',
+            'de' => 'In Ordnung, dann ohne. Falls Sie es sich anders überlegen, schreiben Sie uns einfach hier auf der Seite.',
             'en' => 'All right, we’ll skip it. If you change your mind, just write to us here on this page.',
         ],
         'hostingWartet' => [
-            'it' => '{domain} è riservato per te — lo attiviamo appena il tuo sito è pronto.',
-            'de' => '{domain} ist für dich vorgemerkt — wir schalten sie, sobald deine Website fertig ist.',
+            'it' => '{domain} è riservato per Lei — lo attiviamo appena il suo sito è pronto.',
+            'de' => '{domain} ist für Sie vorgemerkt — wir schalten sie, sobald Ihre Website fertig ist.',
             'en' => '{domain} is reserved for you — we’ll set it up as soon as your website is finished.',
         ],
         /* Die Solo-Fassungen: kein Fragebogen, keine Website — hier kommt
@@ -648,49 +648,49 @@ final class Texte
            deshalb nicht den Fragebogen, und nach der Zustimmung wartet
            nichts auf eine fertige Seite, sondern auf die erste Zahlung. */
         'hostingAngebotSolo' => [
-            'it' => 'Il dominio {domain} è libero — te lo registriamo e gestiamo noi: dominio, 10 GB di spazio web, certificato SSL e una casella e-mail, con i tuoi dati di accesso. Costa {preis} al mese (12 mesi di durata minima, poi disdici a fine mese). Appena arriva il primo pagamento mensile, attiviamo tutto — e i tuoi dati di accesso compaiono qui su questa pagina.',
-            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für dich: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit deinen eigenen Zugangsdaten. Das kostet {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Sobald deine erste Monatszahlung da ist, schalten wir alles — deine Zugangsdaten erscheinen dann hier auf dieser Seite.',
+            'it' => 'Il dominio {domain} è libero — glielo registriamo e gestiamo noi: dominio, 10 GB di spazio web, certificato SSL e una casella e-mail, con i suoi dati di accesso. Costa {preis} al mese (12 mesi di durata minima, poi può disdire a fine mese). Appena arriva il primo pagamento mensile, attiviamo tutto — e i suoi dati di accesso compaiono qui su questa pagina.',
+            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für Sie: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit Ihren eigenen Zugangsdaten. Das kostet {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Sobald Ihre erste Monatszahlung da ist, schalten wir alles — Ihre Zugangsdaten erscheinen dann hier auf dieser Seite.',
             'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, 10 GB of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month (12-month minimum term, then cancel at month’s end). As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
         ],
         'hostingWartetZahlung' => [
-            'it' => '{domain} è riservato per te. Ti abbiamo mandato la prima rata mensile — appena il pagamento arriva, attiviamo tutto e i dati di accesso compaiono qui.',
-            'de' => '{domain} ist für dich vorgemerkt. Die erste Monatsrate ist unterwegs zu dir — sobald die Zahlung da ist, schalten wir alles, und die Zugangsdaten erscheinen hier.',
+            'it' => '{domain} è riservato per Lei. Le abbiamo mandato la prima rata mensile — appena il pagamento arriva, attiviamo tutto e i dati di accesso compaiono qui.',
+            'de' => '{domain} ist für Sie vorgemerkt. Die erste Monatsrate ist unterwegs zu Ihnen — sobald die Zahlung da ist, schalten wir alles, und die Zugangsdaten erscheinen hier.',
             'en' => '{domain} is reserved for you. The first monthly instalment is on its way to you — as soon as the payment arrives, we set everything up and your access details appear here.',
         ],
         'hostingFertig' => [
-            'it' => '{domain} è attivo. Se ti servono di nuovo i dati di accesso, scrivicelo — ne impostiamo di nuovi.',
-            'de' => '{domain} ist geschaltet. Brauchst du die Zugangsdaten noch einmal, sag Bescheid — wir setzen neue.',
+            'it' => '{domain} è attivo. Se le servono di nuovo i dati di accesso, ce lo scriva — ne impostiamo di nuovi.',
+            'de' => '{domain} ist geschaltet. Brauchen Sie die Zugangsdaten noch einmal, geben Sie uns Bescheid — wir setzen neue.',
             'en' => '{domain} is up and running. If you need your access details again, let us know — we’ll set new ones.',
         ],
         /* Der einmalige Abruf: Die Daten liegen verschluesselt und werden mit
            dem Anzeigen geloescht. Deshalb die Rueckfrage vor dem Klick und
            der deutliche Satz danach. */
         'hostingZugangHilfe' => [
-            'it' => 'I tuoi dati di accesso sono pronti. Vengono mostrati una sola volta — poi li cancelliamo da qui.',
-            'de' => 'Deine Zugangsdaten liegen bereit. Sie werden genau einmal angezeigt — danach löschen wir sie hier.',
+            'it' => 'I suoi dati di accesso sono pronti. Vengono mostrati una sola volta — poi li cancelliamo da qui.',
+            'de' => 'Ihre Zugangsdaten liegen bereit. Sie werden genau einmal angezeigt — danach löschen wir sie hier.',
             'en' => 'Your access details are ready. They are shown exactly once — after that we delete them from here.',
         ],
-        'hostingZugangKnopf' => ['it' => 'Mostra i dati di accesso (una volta sola)',
+        'hostingZugangKnopf' => ['it' => 'Mostrare i dati di accesso (una volta sola)',
                                  'de' => 'Zugangsdaten einmalig anzeigen',
                                  'en' => 'Show access details (one time only)'],
         'hostingZugangSicher' => [
-            'it' => 'Mostrare adesso? Funziona una sola volta — tieni pronto dove salvarli.',
-            'de' => 'Jetzt anzeigen? Das geht nur ein einziges Mal — halte bereit, wo du sie speicherst.',
+            'it' => 'Mostrare adesso? Funziona una sola volta — tenga pronto dove salvarli.',
+            'de' => 'Jetzt anzeigen? Das geht nur ein einziges Mal — halten Sie bereit, wo Sie sie speichern.',
             'en' => 'Show them now? This works only once — have somewhere ready to save them.',
         ],
         'hostingZugangAendern' => [
-            'it' => 'Consiglio: dopo aver salvato i dati, cambia le password nel pannello KAS (kas.all-inkl.com) — così le conosci solo tu.',
-            'de' => 'Tipp: Ändere die Passwörter nach dem Speichern im KAS-Kundenmenü (kas.all-inkl.com) — dann kennst nur noch du sie.',
+            'it' => 'Consiglio: dopo aver salvato i dati, cambi le password nel pannello KAS (kas.all-inkl.com) — così le conosce solo Lei.',
+            'de' => 'Tipp: Ändern Sie die Passwörter nach dem Speichern im KAS-Kundenmenü (kas.all-inkl.com) — dann kennen nur noch Sie sie.',
             'en' => 'Tip: after saving, change the passwords in the KAS panel (kas.all-inkl.com) — then only you know them.',
         ],
         'hostingZugangJetzt' => [
-            'it' => 'Salva questi dati ADESSO — è l’unica volta che vengono mostrati.',
-            'de' => 'Speichere diese Daten JETZT — sie werden nur dieses eine Mal angezeigt.',
+            'it' => 'Salvi questi dati ADESSO — è l’unica volta che vengono mostrati.',
+            'de' => 'Speichern Sie diese Daten JETZT — sie werden nur dieses eine Mal angezeigt.',
             'en' => 'Save these details NOW — this is the only time they are shown.',
         ],
         'hostingZugangWeg' => [
-            'it' => 'I dati di accesso non sono più disponibili qui. Scrivicelo e ne impostiamo di nuovi.',
-            'de' => 'Die Zugangsdaten sind hier nicht mehr hinterlegt. Sag Bescheid, dann setzen wir neue.',
+            'it' => 'I dati di accesso non sono più disponibili qui. Ce lo scriva e ne impostiamo di nuovi.',
+            'de' => 'Die Zugangsdaten sind hier nicht mehr hinterlegt. Geben Sie uns Bescheid, dann setzen wir neue.',
             'en' => 'The access details are no longer stored here. Let us know and we’ll set new ones.',
         ],
 
@@ -705,14 +705,14 @@ final class Texte
            es gelesen hat. Eine Zahl, die hier von selbst erscheint, waere
            eine Nachforderung, der niemand zugestimmt hat. */
         'beauftragt'  => ['it' => 'Nel preventivo', 'de' => 'Im Angebot', 'en' => 'In the quote'],
-        'wasDrin'     => ['it' => 'Le voci spuntate sono quelle del preventivo che hai accettato. Puoi togliere e aggiungere: quello che aggiungi lo guardo io e ti scrivo.',
-                          'de' => 'Angehakt ist, was in deinem angenommenen Angebot steht. Du darfst wegnehmen und dazunehmen — was dazukommt, sehe ich mir an und melde mich dazu.',
+        'wasDrin'     => ['it' => 'Le voci spuntate sono quelle del preventivo che ha accettato. Può togliere e aggiungere: quello che aggiunge lo guardo io e le scrivo.',
+                          'de' => 'Angehakt ist, was in Ihrem angenommenen Angebot steht. Sie dürfen wegnehmen und dazunehmen — was dazukommt, sehe ich mir an und melde mich dazu.',
                           'en' => 'The ticked items are the ones in the quote you accepted. Feel free to remove or add — anything you add, I’ll look at and come back to you about.'],
-        'nichtDrin'   => ['it' => 'Non è ancora nel preventivo — ti scrivo prima di iniziare.',
+        'nichtDrin'   => ['it' => 'Non è ancora nel preventivo — le scrivo prima di iniziare.',
                           'de' => 'Das ist im Angebot noch nicht enthalten — ich melde mich dazu, bevor ich anfange.',
                           'en' => 'That isn’t in the quote yet — I’ll come back to you before I start.'],
-        'wenigerDrin' => ['it' => 'Questo era nel preventivo. Se non ti serve più, dimmelo pure — ne parliamo.',
-                          'de' => 'Das stand im Angebot. Wenn du es nicht mehr brauchst, sag ruhig Bescheid — wir reden darüber.',
+        'wenigerDrin' => ['it' => 'Questo era nel preventivo. Se non le serve più, me lo dica pure — ne parliamo.',
+                          'de' => 'Das stand im Angebot. Wenn Sie es nicht mehr brauchen, sagen Sie ruhig Bescheid — wir sprechen darüber.',
                           'en' => 'That was in the quote. If you no longer need it, do say — we’ll talk it through.'],
         'seitenHilfe' => ['it' => 'Conta anche la pagina iniziale.',
                           'de' => 'Die Startseite zählt mit.',
@@ -721,52 +721,52 @@ final class Texte
 
     /** Die Seite, auf der der Kunde seinem Projekt zusieht. */
     public const PROJEKT = [
-        'titel'       => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
+        'titel'       => ['it' => 'Il suo progetto', 'de' => 'Ihr Projekt', 'en' => 'Your project'],
         'stand'       => ['it' => 'A che punto siamo', 'de' => 'Wo wir stehen', 'en' => 'Where we are'],
-        'vorschau'    => ['it' => 'Guarda l’anteprima', 'de' => 'Vorschau ansehen', 'en' => 'View the preview'],
-        'fragebogen'  => ['it' => 'Compila il questionario', 'de' => 'Zum Fragebogen', 'en' => 'Fill in the questionnaire'],
+        'vorschau'    => ['it' => 'Vedere l’anteprima', 'de' => 'Vorschau ansehen', 'en' => 'View the preview'],
+        'fragebogen'  => ['it' => 'Compilare il questionario', 'de' => 'Zum Fragebogen', 'en' => 'Fill in the questionnaire'],
         'fragebogenOffen' => ['it' => 'Il questionario è ancora aperto — senza quelle informazioni non possiamo andare avanti.',
                               'de' => 'Der Fragebogen ist noch offen — ohne die Angaben kommen wir nicht weiter.',
                               'en' => 'The questionnaire is still open — we can’t move on without it.'],
         'nachrichten' => ['it' => 'Messaggi', 'de' => 'Nachrichten', 'en' => 'Messages'],
-        'schreiben'   => ['it' => 'Scrivi un messaggio', 'de' => 'Nachricht schreiben', 'en' => 'Write a message'],
+        'schreiben'   => ['it' => 'Scrivere un messaggio', 'de' => 'Nachricht schreiben', 'en' => 'Write a message'],
         'senden'      => ['it' => 'Invia', 'de' => 'Absenden', 'en' => 'Send'],
         'gesendet'    => ['it' => 'Messaggio inviato. Rispondo il prima possibile.',
                           'de' => 'Nachricht ist raus. Ich melde mich so schnell wie möglich.',
                           'en' => 'Message sent. I’ll get back to you as soon as I can.'],
         'nochNichts'  => ['it' => 'Ancora nessun messaggio.', 'de' => 'Noch keine Nachrichten.', 'en' => 'No messages yet.'],
-        'du'          => ['it' => 'Tu', 'de' => 'Du', 'en' => 'You'],
+        'du'          => ['it' => 'Lei', 'de' => 'Sie', 'en' => 'You'],
         'wir'         => ['it' => 'Vecom Design', 'de' => 'Vecom Design', 'en' => 'Vecom Design'],
         'dateien'     => ['it' => 'File', 'de' => 'Dateien', 'en' => 'Files'],
-        'hochladen'   => ['it' => 'Carica file', 'de' => 'Datei hochladen', 'en' => 'Upload a file'],
+        'hochladen'   => ['it' => 'Caricare file', 'de' => 'Datei hochladen', 'en' => 'Upload a file'],
         'dateiHinweis'=> ['it' => 'Foto, logo, testi, PDF — al massimo {max} per file.',
                           'de' => 'Fotos, Logo, Texte, PDF — höchstens {max} je Datei.',
                           'en' => 'Photos, logo, copy, PDFs — {max} per file at most.'],
         'dateiOk'     => ['it' => 'File ricevuto. Grazie!', 'de' => 'Datei ist da. Danke!', 'en' => 'File received. Thank you!'],
         'keineDateien'=> ['it' => 'Ancora nessun file.', 'de' => 'Noch keine Dateien.', 'en' => 'No files yet.'],
         'vonUns'      => ['it' => 'da me', 'de' => 'von mir', 'en' => 'from me'],
-        'vonDir'      => ['it' => 'da te', 'de' => 'von dir', 'en' => 'from you'],
-        'leer'        => ['it' => 'Scrivi qualcosa prima di inviare.', 'de' => 'Bitte schreib etwas, bevor du absendest.', 'en' => 'Please write something first.'],
+        'vonDir'      => ['it' => 'da Lei', 'de' => 'von Ihnen', 'en' => 'from you'],
+        'leer'        => ['it' => 'Scriva qualcosa prima di inviare.', 'de' => 'Bitte schreiben Sie etwas, bevor Sie absenden.', 'en' => 'Please write something first.'],
         'belege'      => ['it' => 'Ricevute', 'de' => 'Belege', 'en' => 'Receipts'],
-        'schauen'     => ['it' => 'Dai un’occhiata', 'de' => 'Schau es dir an', 'en' => 'Take a look'],
-        'schauenText' => ['it' => 'La bozza è visibile. Guardala con calma e scrivimi cosa ne pensi — non devi approvare niente adesso. Quando il sito è finito ti avviso, e solo allora potrai dare il via libera.',
-                          'de' => 'Der Entwurf ist für dich freigeschaltet. Schau ihn dir in Ruhe an und schreib mir, was dir auffällt — freigeben musst du noch nichts. Wenn die Seite fertig ist, melde ich mich; erst dann kannst du sie abnehmen.',
+        'schauen'     => ['it' => 'Dia un’occhiata', 'de' => 'Sehen Sie es sich an', 'en' => 'Take a look'],
+        'schauenText' => ['it' => 'La bozza è visibile. La guardi con calma e mi scriva cosa ne pensa — non deve approvare niente adesso. Quando il sito è finito la avviso, e solo allora potrà dare il via libera.',
+                          'de' => 'Der Entwurf ist für Sie freigeschaltet. Sehen Sie ihn sich in Ruhe an und schreiben Sie mir, was Ihnen auffällt — freigeben müssen Sie noch nichts. Wenn die Seite fertig ist, melde ich mich; erst dann können Sie sie abnehmen.',
                           'en' => 'The draft is open for you. Take your time and tell me what you notice — you don’t have to approve anything yet. When the site is finished I’ll let you know; only then can you sign it off.'],
-        'kosten'      => ['it' => 'Le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, te lo dico prima e ricevi il preventivo con il prezzo — senza il tuo ok non parte niente.',
-                          'de' => 'Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich es dir vorher und schicke dir ein Angebot mit dem Preis — ohne dein Ja passiert nichts.',
+        'kosten'      => ['it' => 'Le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, glielo dico prima e riceve il preventivo con il prezzo — senza il suo ok non parte niente.',
+                          'de' => 'Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich es Ihnen vorher und schicke Ihnen ein Angebot mit dem Preis — ohne Ihr Ja passiert nichts.',
                           'en' => 'Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price — nothing happens without your go-ahead.'],
-        'freigabe'    => ['it' => 'Il sito è pronto — decidi tu', 'de' => 'Die Seite ist fertig — jetzt entscheidest du', 'en' => 'The site is ready — it’s your call'],
-        'freigabeText'=> ['it' => 'Se il sito va bene così, dallo pure per buono — poi lo pubblico. Se qualcosa non va, scrivimelo: lo sistemo.',
-                          'de' => 'Wenn die Seite so passt, gib sie frei — dann veröffentliche ich. Wenn etwas nicht stimmt, schreib es mir: ich ändere es.',
+        'freigabe'    => ['it' => 'Il sito è pronto — decida Lei', 'de' => 'Die Seite ist fertig — jetzt entscheiden Sie', 'en' => 'The site is ready — it’s your call'],
+        'freigabeText'=> ['it' => 'Se il sito va bene così, lo approvi pure — poi lo pubblico. Se qualcosa non va, me lo scriva: lo sistemo.',
+                          'de' => 'Wenn die Seite so passt, geben Sie sie frei — dann veröffentliche ich. Wenn etwas nicht stimmt, schreiben Sie es mir: Ich ändere es.',
                           'en' => 'If the site is right, approve it — then I publish. If something is off, tell me: I’ll change it.'],
-        'freigeben'   => ['it' => 'Va bene così — pubblica', 'de' => 'Passt so — veröffentlichen', 'en' => 'Looks good — publish it'],
+        'freigeben'   => ['it' => 'Va bene così — si può pubblicare', 'de' => 'Passt so — veröffentlichen', 'en' => 'Looks good — publish it'],
         'aendern'     => ['it' => 'Vorrei delle modifiche', 'de' => 'Ich möchte Änderungen', 'en' => 'I’d like changes'],
         'freigegeben' => ['it' => 'Grazie! Mi metto subito a pubblicare.',
                           'de' => 'Danke! Ich kümmere mich gleich um die Veröffentlichung.',
                           'en' => 'Thank you! I’ll get it published right away.'],
         'aenderungOk' => ['it' => 'Ricevuto. Ci metto mano.', 'de' => 'Angekommen. Ich mache mich dran.', 'en' => 'Got it. I’m on it.'],
-        'aendernWie'  => ['it' => 'Scrivi cosa cambiare prima di inviare.',
-                          'de' => 'Schreib bitte dazu, was geändert werden soll.',
+        'aendernWie'  => ['it' => 'Scriva cosa cambiare prima di inviare.',
+                          'de' => 'Schreiben Sie bitte dazu, was geändert werden soll.',
                           'en' => 'Please write what should change.'],
         'keineBelege' => ['it' => 'Ancora nessuna ricevuta.', 'de' => 'Noch keine Belege.', 'en' => 'No receipts yet.'],
     ];
@@ -781,18 +781,18 @@ final class Texte
      * dran ist, und ob er selbst etwas tun muss.
      */
     public const KUNDE = [
-        'hallo'      => ['it' => 'Ciao {name}', 'de' => 'Hallo {name}', 'en' => 'Hi {name}'],
+        'hallo'      => ['it' => 'Buongiorno {name}', 'de' => 'Guten Tag {name}', 'en' => 'Hi {name}'],
         /* Auf seiner Seite, damit er die Nummer von seinen Belegen
            wiederfindet, ohne ein PDF aufmachen zu muessen. */
         'kundennr'   => ['it' => 'N. cliente', 'de' => 'Kundennummer', 'en' => 'Customer no.'],
-        'titel'      => ['it' => 'Il tuo progetto', 'de' => 'Dein Projekt', 'en' => 'Your project'],
-        'duBistDran' => ['it' => 'Tocca a te', 'de' => 'Jetzt bist du dran', 'en' => 'Over to you'],
+        'titel'      => ['it' => 'Il suo progetto', 'de' => 'Ihr Projekt', 'en' => 'Your project'],
+        'duBistDran' => ['it' => 'Tocca a Lei', 'de' => 'Jetzt sind Sie gefragt', 'en' => 'Over to you'],
         'wirSindDran'=> ['it' => 'Ci penso io', 'de' => 'Ich bin dran', 'en' => 'I am on it'],
         'nichtsOffen'=> ['it' => 'Tutto a posto', 'de' => 'Alles erledigt', 'en' => 'All done'],
-        'gespraech'  => ['it' => 'Scrivimi', 'de' => 'Schreib mir', 'en' => 'Write to me'],
+        'gespraech'  => ['it' => 'Mi scriva', 'de' => 'Schreiben Sie mir', 'en' => 'Write to me'],
         'gespraechHilfe' => [
             'it' => 'Qui rispondo io — di solito entro un giorno lavorativo.',
-            'de' => 'Hier antworte ich dir — meist innerhalb eines Werktags.',
+            'de' => 'Hier antworte ich Ihnen — meist innerhalb eines Werktags.',
             'en' => 'I answer here — usually within one working day.'],
         /* "Unterlagen" und "Dateien" standen frueher untereinander und klangen
            gleich. Das eine sind Belege von uns, das andere sein Material. */
@@ -802,16 +802,16 @@ final class Texte
            ist — umziehen, sichern, weitergeben —, und dass niemand etwas
            kuendigen muss, um es zu bekommen. Wer ein ZIP ohne diesen Satz
            bekommt, legt es weg und fragt sich, ob das ein Abschied war. */
-        'paket'      => ['it' => 'Il tuo sito da portare con te',
-                         'de' => 'Deine Website zum Mitnehmen',
+        'paket'      => ['it' => 'Il suo sito da portare con sé',
+                         'de' => 'Ihre Website zum Mitnehmen',
                          'en' => 'Your website to take with you'],
         'paketHilfe' => [
-            'it' => 'Tutti i file del tuo sito in un unico pacchetto. È tuo: ti serve per cambiare hosting, per una copia di sicurezza, o se un giorno ci lavora qualcun altro. Il sito resta online come prima.',
-            'de' => 'Alle Dateien deiner Website in einem Paket. Es gehört dir: für einen Anbieterwechsel, als Sicherung, oder falls einmal jemand anderes daran arbeitet. Die Seite bleibt online wie bisher.',
+            'it' => 'Tutti i file del suo sito in un unico pacchetto. È suo: le serve per cambiare hosting, per una copia di sicurezza, o se un giorno ci lavora qualcun altro. Il sito resta online come prima.',
+            'de' => 'Alle Dateien Ihrer Website in einem Paket. Es gehört Ihnen: für einen Anbieterwechsel, als Sicherung, oder falls einmal jemand anderes daran arbeitet. Die Seite bleibt online wie bisher.',
             'en' => 'Every file of your site in one package. It’s yours: for moving to another host, as a backup, or if someone else works on it one day. The site stays online as before.'],
-        'paketHolen' => ['it' => 'Scarica il pacchetto', 'de' => 'Paket herunterladen', 'en' => 'Download the package'],
+        'paketHolen' => ['it' => 'Scaricare il pacchetto', 'de' => 'Paket herunterladen', 'en' => 'Download the package'],
         'unterlagen' => ['it' => 'Ricevute e fatture', 'de' => 'Belege und Rechnungen', 'en' => 'Receipts and invoices'],
-        'dateien'    => ['it' => 'Il tuo materiale', 'de' => 'Dein Material', 'en' => 'Your material'],
+        'dateien'    => ['it' => 'Il suo materiale', 'de' => 'Ihr Material', 'en' => 'Your material'],
         'dateienHilfe' => [
             'it' => 'Logo, foto, testi — quello che serve per il sito.',
             'de' => 'Logo, Fotos, Texte — alles, was für die Seite gebraucht wird.',
@@ -829,29 +829,29 @@ final class Texte
            Deshalb sagt die Seite jetzt in der Phase, in der es zaehlt,
            deutlich, dass Material gebraucht wird -- und wo es hingehoert. */
         'materialRuf' => [
-            'it' => 'Hai già logo, foto o testi? Caricali qui — con quelli posso partire davvero.',
-            'de' => 'Hast du Logo, Fotos oder Texte schon da? Lad sie hier hoch — damit kann ich wirklich anfangen.',
+            'it' => 'Ha già logo, foto o testi? Li carichi qui — con quelli posso partire davvero.',
+            'de' => 'Haben Sie Logo, Fotos oder Texte schon da? Laden Sie sie hier hoch — damit kann ich wirklich anfangen.',
             'en' => 'Do you already have a logo, photos or copy? Upload them here — with those I can really start.'],
         'materialWie' => [
             'it' => 'Va bene tutto: foto dal telefono, un PDF, il vecchio volantino. Meglio troppo che troppo poco — scelgo io.',
             'de' => 'Alles ist recht: Handyfotos, ein PDF, der alte Flyer. Lieber zu viel als zu wenig — aussuchen kann ich.',
             'en' => 'Anything helps: phone photos, a PDF, the old flyer. Better too much than too little — I can pick.'],
         'materialKnopf' => [
-            'it' => 'Carica il materiale', 'de' => 'Material hochladen', 'en' => 'Upload your material'],
+            'it' => 'Caricare il materiale', 'de' => 'Material hochladen', 'en' => 'Upload your material'],
         'materialDa' => [
-            'it' => 'Ricevuto, grazie. Se arriva altro, caricalo pure — meglio adesso che dopo.',
-            'de' => 'Angekommen, danke. Wenn noch etwas dazukommt, lad es ruhig hoch — jetzt ist besser als später.',
+            'it' => 'Ricevuto, grazie. Se arriva altro, lo carichi pure — meglio adesso che dopo.',
+            'de' => 'Angekommen, danke. Wenn noch etwas dazukommt, laden Sie es ruhig hoch — jetzt ist besser als später.',
             'en' => 'Received, thank you. If more turns up, do upload it — sooner is better than later.'],
 
-        'deineSeite' => ['it' => 'Il tuo sito', 'de' => 'Deine Website', 'en' => 'Your website'],
+        'deineSeite' => ['it' => 'Il suo sito', 'de' => 'Ihre Website', 'en' => 'Your website'],
         /* Der Bereich steht auch dann da, wenn es noch nichts zu sehen gibt.
            Versteckt waere er eine Leerstelle, die Fragen erzeugt: Wo sehe ich
            denn nun meine Seite? So weiss der Kunde, wo sie erscheinen wird. */
-        'nochNichts'  => ['it' => 'Appena la bozza è pronta, la trovi qui — ti avviso.',
-                          'de' => 'Sobald dein Entwurf fertig ist, kannst du ihn hier ansehen — ich sage dir Bescheid.',
+        'nochNichts'  => ['it' => 'Appena la bozza è pronta, la trova qui — la avviso.',
+                          'de' => 'Sobald Ihr Entwurf fertig ist, können Sie ihn hier ansehen — ich gebe Ihnen Bescheid.',
                           'en' => 'As soon as your draft is ready you can view it here — I’ll let you know.'],
-        'entwurfAnsehen' => ['it' => 'Guarda l’anteprima', 'de' => 'Entwurf ansehen', 'en' => 'View the draft'],
-        'seiteAnsehen'   => ['it' => 'Apri il sito', 'de' => 'Website öffnen', 'en' => 'Open the site'],
+        'entwurfAnsehen' => ['it' => 'Vedere l’anteprima', 'de' => 'Entwurf ansehen', 'en' => 'View the draft'],
+        'seiteAnsehen'   => ['it' => 'Aprire il sito', 'de' => 'Website öffnen', 'en' => 'Open the site'],
 
         /* ANSEHEN UND ABNEHMEN SIND ZWEIERLEI
            ------------------------------------------------------------------
@@ -860,54 +860,54 @@ final class Texte
            und die Abnahme haengt an der Restzahlung. Jetzt sagt die Seite in
            der Schau-Phase ausdruecklich, dass noch nichts zu entscheiden ist. */
         'nurSchauen' => [
-            'it' => 'Guardalo con calma. Non devi approvare niente adesso — il sito non è ancora finito. Scrivimi cosa ne pensi; ti avviso quando è pronto.',
-            'de' => 'Schau ihn dir in Ruhe an. Freigeben musst du noch nichts — die Seite ist noch nicht fertig. Schreib mir, was dir auffällt; ich sage dir Bescheid, wenn sie fertig ist.',
+            'it' => 'Lo guardi con calma. Non deve approvare niente adesso — il sito non è ancora finito. Mi scriva cosa ne pensa; la avviso quando è pronto.',
+            'de' => 'Sehen Sie ihn sich in Ruhe an. Freigeben müssen Sie noch nichts — die Seite ist noch nicht fertig. Schreiben Sie mir, was Ihnen auffällt; ich gebe Ihnen Bescheid, wenn sie fertig ist.',
             'en' => 'Take your time. You don’t have to approve anything yet — the site isn’t finished. Tell me what you notice; I’ll let you know when it’s ready.'],
         'fertigTitel' => [
-            'it' => 'Il sito è pronto — decidi tu',
-            'de' => 'Die Seite ist fertig — jetzt entscheidest du',
+            'it' => 'Il sito è pronto — decida Lei',
+            'de' => 'Die Seite ist fertig — jetzt entscheiden Sie',
             'en' => 'The site is ready — it’s your call'],
         'fertigText' => [
-            'it' => 'Se va bene così, dai il via libera: da lì pubblico. Se manca ancora qualcosa, scrivimelo.',
-            'de' => 'Wenn sie so passt, gib sie frei — dann veröffentliche ich. Wenn noch etwas fehlt, schreib es mir.',
+            'it' => 'Se va bene così, dia il via libera: da lì pubblico. Se manca ancora qualcosa, me lo scriva.',
+            'de' => 'Wenn sie so passt, geben Sie sie frei — dann veröffentliche ich. Wenn noch etwas fehlt, schreiben Sie es mir.',
             'en' => 'If it’s right, sign it off — then I publish. If something is still missing, tell me.'],
 
         /* Der Kostensatz. Er steht bewusst DA, wo entschieden wird, und nicht
            in einer AGB-Zeile: Wer erst mit der Rechnung erfaehrt, dass ein
            Wunsch extra kostete, hat zu Recht schlechte Laune. */
         'aenderungKosten' => [
-            'it' => 'Le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, te lo dico prima e ricevi il preventivo con il prezzo — senza il tuo ok non parte niente.',
-            'de' => 'Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich es dir vorher und schicke dir ein Angebot mit dem Preis — ohne dein Ja passiert nichts.',
+            'it' => 'Le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, glielo dico prima e riceve il preventivo con il prezzo — senza il suo ok non parte niente.',
+            'de' => 'Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich es Ihnen vorher und schicke Ihnen ein Angebot mit dem Preis — ohne Ihr Ja passiert nichts.',
             'en' => 'Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price — nothing happens without your go-ahead.'],
         'aenderung'  => ['it' => 'Vorrei una modifica', 'de' => 'Ich möchte etwas ändern', 'en' => 'I’d like a change'],
         'aenderungHilfe' => [
-            'it' => 'Scrivi cosa cambiare. Ti dico se rientra nella manutenzione o cosa costa.',
-            'de' => 'Schreib, was anders soll. Ich sage dir, ob es zur Betreuung gehört oder was es kostet.',
+            'it' => 'Scriva cosa cambiare. Le dico se rientra nella manutenzione o cosa costa.',
+            'de' => 'Schreiben Sie, was anders sein soll. Ich sage Ihnen, ob es zur Betreuung gehört oder was es kostet.',
             'en' => 'Tell me what should change. I’ll say whether it’s covered or what it costs.'],
         /* Die Betreuung ist ein eigener Vertrag. Der Kunde soll ihn sehen —
            und kuendigen koennen, ohne jemandem schreiben zu muessen. Ein
            Vertrag, aus dem man nur per Bittbrief herauskommt, ist keiner. */
-        'betreuung'     => ['it' => 'La tua assistenza', 'de' => 'Deine Betreuung', 'en' => 'Your care plan'],
+        'betreuung'     => ['it' => 'La sua assistenza', 'de' => 'Ihre Betreuung', 'en' => 'Your care plan'],
         'betreuungMtl'  => ['it' => 'al mese', 'de' => 'im Monat', 'en' => 'per month'],
         'betreuungSeit' => ['it' => 'Attiva dal {datum}', 'de' => 'Läuft seit {datum}', 'en' => 'Running since {datum}'],
         'betreuungMind' => ['it' => 'Durata minima fino al {datum}', 'de' => 'Mindestlaufzeit bis {datum}',
                             'en' => 'Minimum term until {datum}'],
-        'kuendigen'     => ['it' => 'Disdici l’assistenza', 'de' => 'Betreuung kündigen', 'en' => 'Cancel the care plan'],
+        'kuendigen'     => ['it' => 'Disdire l’assistenza', 'de' => 'Betreuung kündigen', 'en' => 'Cancel the care plan'],
         'jaKuendigen'   => ['it' => 'Sì, disdico', 'de' => 'Ja, kündigen', 'en' => 'Yes, cancel'],
         'abbrechen'     => ['it' => 'Annulla', 'de' => 'Abbrechen', 'en' => 'Cancel'],
-        'kuendigenWann' => ['it' => 'Se disdici adesso, l’assistenza resta attiva fino al {datum} — fino ad allora paghi, dopo no.',
-                            'de' => 'Wenn du jetzt kündigst, läuft die Betreuung noch bis zum {datum} — bis dahin zahlst du, danach nicht mehr.',
+        'kuendigenWann' => ['it' => 'Se disdice adesso, l’assistenza resta attiva fino al {datum} — fino ad allora paga, dopo no.',
+                            'de' => 'Wenn Sie jetzt kündigen, läuft die Betreuung noch bis zum {datum} — bis dahin zahlen Sie, danach nicht mehr.',
                             'en' => 'If you cancel now, care runs until {datum} — you pay until then, not after.'],
-        'kuendigenSicher' => ['it' => 'Vuoi davvero disdire? Ricevi subito la conferma scritta.',
-                              'de' => 'Wirklich kündigen? Du bekommst sofort die schriftliche Bestätigung.',
+        'kuendigenSicher' => ['it' => 'Vuole davvero disdire? Riceve subito la conferma scritta.',
+                              'de' => 'Wirklich kündigen? Sie bekommen sofort die schriftliche Bestätigung.',
                               'en' => 'Really cancel? You’ll get the written confirmation straight away.'],
-        'gekuendigt'    => ['it' => 'Disdetta ricevuta. L’assistenza resta attiva fino al {datum}. La conferma è nella tua posta.',
-                            'de' => 'Kündigung ist angekommen. Die Betreuung läuft bis zum {datum}. Die Bestätigung liegt in deinem Postfach.',
+        'gekuendigt'    => ['it' => 'Disdetta ricevuta. L’assistenza resta attiva fino al {datum}. La conferma è nella sua posta.',
+                            'de' => 'Kündigung ist angekommen. Die Betreuung läuft bis zum {datum}. Die Bestätigung liegt in Ihrem Postfach.',
                             'en' => 'Cancellation received. Care runs until {datum}. The confirmation is in your inbox.'],
         'laeuftBis'     => ['it' => 'Disdetta — attiva fino al {datum}', 'de' => 'Gekündigt — läuft bis {datum}',
                             'en' => 'Cancelled — runs until {datum}'],
-        'betreuungWeg'  => ['it' => 'L’assistenza è terminata il {datum}. Il sito resta tuo e resta online.',
-                            'de' => 'Die Betreuung ist am {datum} ausgelaufen. Die Website bleibt deine und bleibt online.',
+        'betreuungWeg'  => ['it' => 'L’assistenza è terminata il {datum}. Il sito resta suo e resta online.',
+                            'de' => 'Die Betreuung ist am {datum} ausgelaufen. Die Website gehört weiter Ihnen und bleibt online.',
                             'en' => 'Care ended on {datum}. The site stays yours and stays online.'],
         /* Die abgerechneten Monate auf der Kundenseite. Ohne sie stand dort
            der Vertrag, aber nicht, was daraus faellig ist — und genau auf
@@ -917,9 +917,9 @@ final class Texte
         'monate'        => ['it' => 'Mesi fatturati', 'de' => 'Abgerechnete Monate', 'en' => 'Billed months'],
         'monatOffen'    => ['it' => 'Da pagare', 'de' => 'Offen', 'en' => 'Outstanding'],
         'monatBezahlt'  => ['it' => 'Pagato', 'de' => 'Bezahlt', 'en' => 'Paid'],
-        'monatZahlen'   => ['it' => 'Paga adesso', 'de' => 'Jetzt bezahlen', 'en' => 'Pay now'],
+        'monatZahlen'   => ['it' => 'Pagare adesso', 'de' => 'Jetzt bezahlen', 'en' => 'Pay now'],
         'monatFaellig'  => ['it' => 'Scadenza {datum}', 'de' => 'Fällig am {datum}', 'en' => 'Due {datum}'],
-        'monatWartet'   => ['it' => 'Ti scrivo io quando è il momento di pagare.',
+        'monatWartet'   => ['it' => 'Le scrivo io quando è il momento di pagare.',
                             'de' => 'Ich melde mich, wenn sie zu zahlen ist.',
                             'en' => 'I’ll write to you when it’s time to pay.'],
         /* Der Weg per Ueberweisung — solange es keinen Zahlungslink gibt
@@ -927,8 +927,8 @@ final class Texte
         'ueberweisung'     => ['it' => 'Pagamento con bonifico',
                                'de' => 'Zahlung per Überweisung',
                                'en' => 'Payment by bank transfer'],
-        'ueberweisungHilfe'=> ['it' => 'Puoi pagare comodamente con bonifico bancario. Indica la causale qui sotto così riconosco subito il pagamento.',
-                               'de' => 'Du kannst bequem per Überweisung zahlen. Gib den Verwendungszweck unten an, dann erkenne ich die Zahlung sofort.',
+        'ueberweisungHilfe'=> ['it' => 'Può pagare comodamente con bonifico bancario. Indichi la causale qui sotto così riconosco subito il pagamento.',
+                               'de' => 'Sie können bequem per Überweisung zahlen. Geben Sie den Verwendungszweck unten an, dann erkenne ich die Zahlung sofort.',
                                'en' => 'You can pay conveniently by bank transfer. Please add the reference below so I recognise the payment right away.'],
         'ueEmpf'  => ['it' => 'Beneficiario', 'de' => 'Empfänger', 'en' => 'Recipient'],
         'ueBank'  => ['it' => 'Banca',       'de' => 'Bank',      'en' => 'Bank'],
@@ -937,30 +937,30 @@ final class Texte
            Seite, nicht in einer weiteren E-Mail — dort ist er ohnehin, wenn
            er zufrieden nachsieht, wie die Seite laeuft. */
         'stimme'        => ['it' => 'Com’è andata?', 'de' => 'Wie war es?', 'en' => 'How was it?'],
-        'stimmeHilfe'   => ['it' => 'Se sei contento, due frasi mi aiutano molto: com’è andata a lavorare insieme e cosa è cambiato per la tua attività. Se qualcosa non è andato, quello mi interessa ancora di più — scrivilo lo stesso.',
-                            'de' => 'Wenn du zufrieden bist, helfen mir zwei Sätze sehr: wie die Zusammenarbeit war und was sich für deinen Betrieb geändert hat. Wenn etwas nicht gepasst hat, interessiert mich das noch mehr — schreib es genauso.',
+        'stimmeHilfe'   => ['it' => 'Se il risultato la soddisfa, due frasi mi aiutano molto: com’è andata a lavorare insieme e cosa è cambiato per la sua attività. Se qualcosa non è andato, quello mi interessa ancora di più — lo scriva lo stesso.',
+                            'de' => 'Wenn Sie zufrieden sind, helfen mir zwei Sätze sehr: wie die Zusammenarbeit war und was sich für Ihren Betrieb geändert hat. Wenn etwas nicht gepasst hat, interessiert mich das noch mehr — schreiben Sie es genauso.',
                             'en' => 'If you’re happy, two sentences help me a lot: what the work was like and what changed for your business. If something wasn’t right, I want to hear that even more — write it just the same.'],
         'stimmeFeld'    => ['it' => 'Due frasi bastano.', 'de' => 'Zwei Sätze reichen.', 'en' => 'Two sentences are enough.'],
-        'stimmeSterne'  => ['it' => 'Come valuti il lavoro?', 'de' => 'Wie bewertest du die Arbeit?', 'en' => 'How would you rate the work?'],
-        'stimmeErlaubnis' => ['it' => 'Puoi pubblicarla sul tuo sito con il mio nome e quello della mia azienda.',
-                              'de' => 'Du darfst das auf deiner Website zeigen, mit meinem Namen und meiner Firma.',
+        'stimmeSterne'  => ['it' => 'Come valuta il lavoro?', 'de' => 'Wie bewerten Sie die Arbeit?', 'en' => 'How would you rate the work?'],
+        'stimmeErlaubnis' => ['it' => 'Può pubblicarla sul suo sito con il mio nome e quello della mia azienda.',
+                              'de' => 'Sie dürfen das auf Ihrer Website zeigen, mit meinem Namen und meiner Firma.',
                               'en' => 'You may show this on your site, with my name and my company.'],
         'stimmeErlaubnisNein' => ['it' => 'Senza la spunta la leggo solo io — e va benissimo così.',
                                   'de' => 'Ohne Häkchen lese nur ich sie — und das ist völlig in Ordnung.',
                                   'en' => 'Without the tick only I read it — and that’s perfectly fine.'],
         'stimmeSenden'  => ['it' => 'Invia', 'de' => 'Absenden', 'en' => 'Send'],
-        'stimmeDanke'   => ['it' => 'Grazie davvero. La leggo con calma — se l’hai autorizzata, la metto sul sito dopo averla vista.',
-                            'de' => 'Danke dir wirklich. Ich lese sie in Ruhe — wenn du es erlaubt hast, stelle ich sie danach auf die Website.',
+        'stimmeDanke'   => ['it' => 'Grazie davvero. La leggo con calma — se l’ha autorizzata, la metto sul sito dopo averla vista.',
+                            'de' => 'Herzlichen Dank. Ich lese sie in Ruhe — wenn Sie es erlaubt haben, stelle ich sie danach auf die Website.',
                             'en' => 'Thank you, genuinely. I’ll read it properly — if you allowed it, it goes on the site after I’ve seen it.'],
-        'stimmeSchon'   => ['it' => 'Hai già lasciato la tua opinione. Grazie!', 'de' => 'Du hast schon geschrieben. Danke dir!',
+        'stimmeSchon'   => ['it' => 'Ha già lasciato la sua opinione. Grazie!', 'de' => 'Sie haben schon geschrieben. Vielen Dank!',
                             'en' => 'You’ve already written. Thank you!'],
         'lesenswert' => [
-            'it' => 'Questa pagina resta tua. Salvala tra i preferiti — la trovi sempre qui, anche fra mesi.',
-            'de' => 'Diese Seite bleibt deine. Leg sie dir als Lesezeichen an — du findest sie hier auch noch in Monaten.',
+            'it' => 'Questa pagina resta sua. La salvi tra i preferiti — la trova sempre qui, anche fra mesi.',
+            'de' => 'Diese Seite gehört Ihnen. Legen Sie sie als Lesezeichen an — Sie finden sie hier auch noch in Monaten.',
             'en' => 'This page stays yours. Bookmark it — it will still be here months from now.'],
         'nichtGefunden' => [
-            'it' => 'Questo link non è valido. Scrivimi e te ne mando uno nuovo.',
-            'de' => 'Dieser Link gilt nicht mehr. Schreib mir kurz, dann schicke ich dir einen neuen.',
+            'it' => 'Questo link non è valido. Mi scriva e gliene mando uno nuovo.',
+            'de' => 'Dieser Link gilt nicht mehr. Schreiben Sie mir kurz, dann schicke ich Ihnen einen neuen.',
             'en' => 'This link is no longer valid. Write to me and I’ll send a new one.'],
     ];
 
@@ -971,8 +971,8 @@ final class Texte
     public const KUNDE_STUFEN = [
         'anfrage'  => ['wer' => 'wir',
             'kurz' => ['it' => 'Richiesta', 'de' => 'Anfrage', 'en' => 'Enquiry'],
-            'it' => 'La tua richiesta è arrivata', 'de' => 'Deine Anfrage ist da', 'en' => 'I have your enquiry',
-            'text' => ['it' => 'La sto guardando e ti scrivo con una proposta.',
+            'it' => 'La sua richiesta è arrivata', 'de' => 'Ihre Anfrage ist da', 'en' => 'I have your enquiry',
+            'text' => ['it' => 'La sto guardando e le scrivo con una proposta.',
                        'de' => 'Ich sehe sie mir an und melde mich mit einem Vorschlag.',
                        'en' => 'I’m looking at it and will come back with a proposal.']],
         'angebot'  => ['wer' => 'kunde',
@@ -981,28 +981,28 @@ final class Texte
                deshalb der Ueberschrift darunter, solange das Angebot noch
                offen war (22.09.2026). */
             'kurz' => ['it' => 'Preventivo', 'de' => 'Angebot', 'en' => 'Quote'],
-            'it' => 'Il tuo preventivo', 'de' => 'Dein Angebot steht', 'en' => 'Your quote is ready',
+            'it' => 'Il suo preventivo', 'de' => 'Ihr Angebot steht', 'en' => 'Your quote is ready',
             'text' => ['it' => 'Con l’acconto iniziamo. Il pagamento avviene su una pagina di Stripe.',
                        'de' => 'Mit der Anzahlung fangen wir an. Bezahlt wird auf einer Seite von Stripe.',
                        'en' => 'The deposit gets us started. Payment happens on a Stripe page.']],
         'angaben'  => ['wer' => 'kunde',
             'kurz' => ['it' => 'Dati', 'de' => 'Angaben', 'en' => 'Details'],
-            'it' => 'Adesso servono le tue informazioni', 'de' => 'Jetzt brauche ich deine Angaben',
+            'it' => 'Adesso servono le sue informazioni', 'de' => 'Jetzt brauche ich Ihre Angaben',
             'en' => 'Now I need your details',
-            'text' => ['it' => 'Poche domande sulla tua azienda e sul sito. Puoi interrompere e riprendere.',
-                       'de' => 'Ein paar Fragen zu deinem Betrieb und zur Seite. Du kannst zwischendurch aufhören und später weitermachen.',
+            'text' => ['it' => 'Poche domande sulla sua azienda e sul sito. Può interrompere e riprendere.',
+                       'de' => 'Ein paar Fragen zu Ihrem Betrieb und zur Seite. Sie können zwischendurch aufhören und später weitermachen.',
                        'en' => 'A few questions about your business and the site. You can stop and continue later.']],
         'arbeit'   => ['wer' => 'wir',
             'kurz' => ['it' => 'In corso', 'de' => 'Bau', 'en' => 'Build'],
-            'it' => 'Sto costruendo', 'de' => 'Ich baue deine Seite', 'en' => 'I’m building your site',
-            'text' => ['it' => 'Ti avviso appena c’è qualcosa da guardare.',
+            'it' => 'Sto costruendo', 'de' => 'Ich baue Ihre Seite', 'en' => 'I’m building your site',
+            'text' => ['it' => 'La avviso appena c’è qualcosa da guardare.',
                        'de' => 'Ich melde mich, sobald es etwas zu sehen gibt.',
                        'en' => 'I’ll let you know as soon as there’s something to look at.']],
         'entwurf'  => ['wer' => 'kunde',
             'kurz' => ['it' => 'Anteprima', 'de' => 'Entwurf', 'en' => 'Draft'],
-            'it' => 'La tua anteprima è pronta', 'de' => 'Dein Entwurf ist fertig', 'en' => 'Your draft is ready',
-            'text' => ['it' => 'Guardala con calma. Va bene così? Scrivimelo. Vuoi cambiare qualcosa? Anche quello.',
-                       'de' => 'Sieh sie dir in Ruhe an. Passt sie? Schreib mir. Soll etwas anders? Auch.',
+            'it' => 'La sua anteprima è pronta', 'de' => 'Ihr Entwurf ist fertig', 'en' => 'Your draft is ready',
+            'text' => ['it' => 'La guardi con calma. Va bene così? Me lo scriva. Vuole cambiare qualcosa? Anche quello.',
+                       'de' => 'Sehen Sie ihn sich in Ruhe an. Passt er? Schreiben Sie mir. Soll etwas anders werden? Auch das.',
                        'en' => 'Take your time. Happy with it? Tell me. Want changes? Tell me too.']],
         'freigabe' => ['wer' => 'kunde',
             'kurz' => ['it' => 'Saldo', 'de' => 'Restzahlung', 'en' => 'Balance'],
@@ -1013,15 +1013,15 @@ final class Texte
                        'en' => 'As soon as it arrives, I put the site live.']],
         'online'   => ['wer' => 'niemand',
             'kurz' => ['it' => 'Online', 'de' => 'Online', 'en' => 'Live'],
-            'it' => 'Il tuo sito è online', 'de' => 'Deine Website ist online', 'en' => 'Your site is live',
-            'text' => ['it' => 'Lo tengo d’occhio io. Se vuoi cambiare qualcosa, scrivi qui sotto.',
-                       'de' => 'Ich habe ein Auge darauf. Wenn du etwas ändern willst, schreib es unten.',
+            'it' => 'Il suo sito è online', 'de' => 'Ihre Website ist online', 'en' => 'Your site is live',
+            'text' => ['it' => 'Lo tengo d’occhio io. Se vuole cambiare qualcosa, scriva qui sotto.',
+                       'de' => 'Ich habe ein Auge darauf. Wenn Sie etwas ändern möchten, schreiben Sie es unten.',
                        'en' => 'I keep an eye on it. If you want a change, write below.']],
         'fertig'   => ['wer' => 'niemand',
             'kurz' => ['it' => 'Concluso', 'de' => 'Fertig', 'en' => 'Done'],
             'it' => 'Progetto concluso', 'de' => 'Projekt abgeschlossen', 'en' => 'Project completed',
-            'text' => ['it' => 'Grazie. Se ti serve qualcosa, sono qui.',
-                       'de' => 'Danke dir. Wenn du etwas brauchst, bin ich da.',
+            'text' => ['it' => 'Grazie. Se le serve qualcosa, sono qui.',
+                       'de' => 'Vielen Dank. Wenn Sie etwas brauchen, bin ich da.',
                        'en' => 'Thank you. If you need anything, I’m here.']],
     ];
 
@@ -1033,7 +1033,7 @@ final class Texte
         'design'                 => ['it' => 'Progettazione', 'de' => 'Gestaltung', 'en' => 'Design'],
         'entwicklung'            => ['it' => 'Realizzazione', 'de' => 'Umsetzung', 'en' => 'Development'],
         'vorschau'               => ['it' => 'Anteprima pronta', 'de' => 'Vorschau steht', 'en' => 'Preview ready'],
-        'kundenfeedback'         => ['it' => 'Aspetto il tuo parere', 'de' => 'Ich warte auf deine Rückmeldung', 'en' => 'Waiting for your feedback'],
+        'kundenfeedback'         => ['it' => 'Aspetto il suo parere', 'de' => 'Ich warte auf Ihre Rückmeldung', 'en' => 'Waiting for your feedback'],
         'aenderungen'            => ['it' => 'Modifiche in corso', 'de' => 'Änderungen laufen', 'en' => 'Making changes'],
         'finale_freigabe'        => ['it' => 'Ultima approvazione', 'de' => 'Letzte Freigabe', 'en' => 'Final approval'],
         'veroeffentlichung'      => ['it' => 'Pubblicazione', 'de' => 'Veröffentlichung', 'en' => 'Publishing'],
@@ -1045,55 +1045,55 @@ final class Texte
     /* Die Seite vor dem Auftrag. Bewusst knapp: Es gibt noch keinen Stand,
        keine Rechnung und keine Vorschau — nur reden und Unterlagen schicken. */
     public const VORGANG = [
-        'titel'      => ['it' => 'La tua richiesta', 'de' => 'Deine Anfrage', 'en' => 'Your enquiry'],
-        'lead'       => ['it' => 'Qui seguiamo la conversazione finché non decidiamo insieme. Niente di quanto vedi qui ti impegna.',
-                         'de' => 'Hier läuft unser Austausch, bis wir uns einig sind. Nichts davon verpflichtet dich zu etwas.',
+        'titel'      => ['it' => 'La sua richiesta', 'de' => 'Ihre Anfrage', 'en' => 'Your enquiry'],
+        'lead'       => ['it' => 'Qui seguiamo la conversazione finché non decidiamo insieme. Niente di quanto vede qui la impegna.',
+                         'de' => 'Hier läuft unser Austausch, bis wir uns einig sind. Nichts davon verpflichtet Sie zu etwas.',
                          'en' => 'This is where our conversation runs until we agree. None of it commits you to anything.'],
-        'angefragt'  => ['it' => 'Cosa hai chiesto', 'de' => 'Was du angefragt hast', 'en' => 'What you asked for'],
+        'angefragt'  => ['it' => 'Cosa ha chiesto', 'de' => 'Was Sie angefragt haben', 'en' => 'What you asked for'],
         'paket'      => ['it' => 'Pacchetto scelto', 'de' => 'Gewähltes Paket', 'en' => 'Chosen package'],
         'am'         => ['it' => 'Ricevuta il', 'de' => 'Eingegangen am', 'en' => 'Received on'],
         'unverbind'  => ['it' => 'Gratuita e senza impegno — un incarico nasce solo con il contratto firmato.',
                          'de' => 'Kostenlos und unverbindlich — ein Auftrag entsteht erst mit dem unterschriebenen Vertrag.',
                          'en' => 'Free and without obligation — a project only begins with a signed contract.'],
         'soGehts'    => ['it' => 'Come funziona', 'de' => 'So läuft es', 'en' => 'How it works'],
-        'g0'         => ['it' => 'Tutto passa da questa pagina. Nessun account, nessuna password: il link è il tuo accesso, dal telefono come dal computer.',
-                         'de' => 'Alles läuft über diese Seite. Kein Konto, kein Passwort: Der Link ist dein Zugang, auf dem Handy wie am Rechner.',
+        'g0'         => ['it' => 'Tutto passa da questa pagina. Nessun account, nessuna password: il link è il suo accesso, dal telefono come dal computer.',
+                         'de' => 'Alles läuft über diese Seite. Kein Konto, kein Passwort: Der Link ist Ihr Zugang, auf dem Handy wie am Rechner.',
                          'en' => 'Everything runs through this page. No account, no password: the link is your way in, on a phone or a computer.'],
-        'g1'         => ['it' => 'Mettila da parte', 'de' => 'Leg sie dir ab', 'en' => 'Keep this page'],
-        'g1d'        => ['it' => 'Salva questa pagina tra i preferiti o tieni l’e-mail con il link. Se lo perdi, scrivimi: te ne mando uno nuovo.',
-                         'de' => 'Setz ein Lesezeichen oder behalte die E-Mail mit dem Link. Wenn er verloren geht, schreib mir — dann kommt ein neuer.',
+        'g1'         => ['it' => 'La metta da parte', 'de' => 'Bewahren Sie sie auf', 'en' => 'Keep this page'],
+        'g1d'        => ['it' => 'Salvi questa pagina tra i preferiti o tenga l’e-mail con il link. Se lo perde, mi scriva: gliene mando uno nuovo.',
+                         'de' => 'Setzen Sie ein Lesezeichen oder behalten Sie die E-Mail mit dem Link. Wenn er verloren geht, schreiben Sie mir — dann kommt ein neuer.',
                          'en' => 'Bookmark it or keep the email with the link. If it gets lost, write to me and you’ll get a new one.'],
-        'g2'         => ['it' => 'Scrivimi qui, non per e-mail', 'de' => 'Schreib mir hier, nicht per E-Mail', 'en' => 'Write here, not by email'],
+        'g2'         => ['it' => 'Mi scriva qui, non per e-mail', 'de' => 'Schreiben Sie mir hier, nicht per E-Mail', 'en' => 'Write here, not by email'],
         'g2d'        => ['it' => 'Così resta tutto in un posto solo e niente si perde. Ogni messaggio mi arriva subito.',
                          'de' => 'So steht alles an einer Stelle und nichts geht unter. Jede Nachricht erreicht mich sofort.',
                          'en' => 'That way everything stays in one place and nothing gets lost. Every message reaches me at once.'],
-        'g3'         => ['it' => 'Carica quello che ho bisogno di vedere', 'de' => 'Lade hoch, was ich sehen sollte', 'en' => 'Upload what I should see'],
-        'g3d'        => ['it' => 'Logo, foto, testi, il sito vecchio. Scegli il file qui sotto e invia.',
+        'g3'         => ['it' => 'Carichi quello che ho bisogno di vedere', 'de' => 'Laden Sie hoch, was ich sehen sollte', 'en' => 'Upload what I should see'],
+        'g3d'        => ['it' => 'Logo, foto, testi, il sito vecchio. Scelga il file qui sotto e invii.',
                          'de' => 'Logo, Fotos, Texte, die alte Seite. Datei unten auswählen und senden.',
                          'en' => 'Logo, photos, text, the old site. Pick the file below and send.'],
         'g4'         => ['it' => 'E poi?', 'de' => 'Und dann?', 'en' => 'And then?'],
-        'g4d'        => ['it' => 'Ti mando una proposta a prezzo fisso. Se ti convince, ricevi il link per il pagamento — e questa stessa pagina cresce con noi: questionario, bozza, approvazione, messa online.',
-                         'de' => 'Ich schicke dir einen Vorschlag zum Festpreis. Passt er, bekommst du den Zahlungslink — und genau diese Seite wächst mit: Fragebogen, Entwurf, Freigabe, Veröffentlichung.',
+        'g4d'        => ['it' => 'Le mando una proposta a prezzo fisso. Se la convince, riceve il link per il pagamento — e questa stessa pagina cresce con noi: questionario, bozza, approvazione, messa online.',
+                         'de' => 'Ich schicke Ihnen einen Vorschlag zum Festpreis. Passt er, bekommen Sie den Zahlungslink — und genau diese Seite wächst mit: Fragebogen, Entwurf, Freigabe, Veröffentlichung.',
                          'en' => 'I send you a proposal at a fixed price. If it suits you, you get the payment link — and this same page grows with us: questionnaire, draft, approval, going live.'],
         'nachrichten'=> ['it' => 'Messaggi', 'de' => 'Nachrichten', 'en' => 'Messages'],
-        'schreiben'  => ['it' => 'Scrivimi', 'de' => 'Schreib mir', 'en' => 'Write to me'],
+        'schreiben'  => ['it' => 'Mi scriva', 'de' => 'Schreiben Sie mir', 'en' => 'Write to me'],
         'senden'     => ['it' => 'Invia', 'de' => 'Senden', 'en' => 'Send'],
         'gesendet'   => ['it' => 'Messaggio inviato.', 'de' => 'Nachricht ist raus.', 'en' => 'Message sent.'],
         'nochNichts' => ['it' => 'Ancora nessun messaggio.', 'de' => 'Noch keine Nachricht.', 'en' => 'No messages yet.'],
-        'du'         => ['it' => 'Tu', 'de' => 'Du', 'en' => 'You'],
+        'du'         => ['it' => 'Lei', 'de' => 'Sie', 'en' => 'You'],
         'wir'        => ['it' => 'Vecom Design', 'de' => 'Vecom Design', 'en' => 'Vecom Design'],
-        'dateien'    => ['it' => 'I tuoi documenti', 'de' => 'Deine Unterlagen', 'en' => 'Your files'],
-        'hochladen'  => ['it' => 'Carica un file', 'de' => 'Datei hochladen', 'en' => 'Upload a file'],
+        'dateien'    => ['it' => 'I suoi documenti', 'de' => 'Ihre Unterlagen', 'en' => 'Your files'],
+        'hochladen'  => ['it' => 'Caricare un file', 'de' => 'Datei hochladen', 'en' => 'Upload a file'],
         'dateiHinweis'=> ['it' => 'Logo, immagini, testi — quello che dovrei vedere. Massimo {max} per file.',
                           'de' => 'Logo, Bilder, Texte — was ich sehen sollte. Höchstens {max} je Datei.',
                           'en' => 'Logo, images, text — whatever I should see. At most {max} per file.'],
         'dateiOk'    => ['it' => 'Ricevuto, grazie.', 'de' => 'Angekommen, danke.', 'en' => 'Received, thank you.'],
         'keineDateien'=> ['it' => 'Ancora nessun documento.', 'de' => 'Noch nichts hochgeladen.', 'en' => 'Nothing uploaded yet.'],
-        'weg'        => ['it' => 'Questo link non è più valido. Scrivimi a kontakt@vecom-design.it e te ne mando uno nuovo.',
-                         'de' => 'Dieser Link gilt nicht mehr. Schreib an kontakt@vecom-design.it, dann kommt ein neuer.',
+        'weg'        => ['it' => 'Questo link non è più valido. Mi scriva a kontakt@vecom-design.it e gliene mando uno nuovo.',
+                         'de' => 'Dieser Link gilt nicht mehr. Schreiben Sie an kontakt@vecom-design.it, dann kommt ein neuer.',
                          'en' => 'This link is no longer valid. Write to kontakt@vecom-design.it and you will get a new one.'],
-        'panne'      => ['it' => 'Al momento non raggiungibile. Riprova tra poco.',
-                         'de' => 'Gerade nicht erreichbar. Versuch es gleich noch einmal.',
+        'panne'      => ['it' => 'Al momento non raggiungibile. Riprovi tra poco.',
+                         'de' => 'Gerade nicht erreichbar. Versuchen Sie es gleich noch einmal.',
                          'en' => 'Not reachable right now. Please try again shortly.'],
     ];
 
@@ -1102,17 +1102,17 @@ final class Texte
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
         'betreuung_faellig' => [
             'it' => ['Assistenza {monat} — {betrag}',
-                "Ciao {name},\n\nl’assistenza di {monat} è pronta: {betrag}.\n\n"
-                . "Puoi pagare qui, entro il {frist}:\n{link}\n\n"
+                "Buongiorno {name},\n\nl’assistenza di {monat} è pronta: {betrag}.\n\n"
+                . "Può pagare qui, entro il {frist}:\n{link}\n\n"
                 . "Cosa è compreso: aggiornamenti, backup, controllo del sito e piccole modifiche. "
-                . "Se questo mese ti serve qualcosa in particolare, scrivimi.\n\n"
+                . "Se questo mese le serve qualcosa in particolare, mi scriva.\n\n"
                 . "La ricevuta arriva subito dopo il pagamento."],
             'de' => ['Betreuung {monat} — {betrag}',
-                "Hallo {name},\n\ndie Betreuung für {monat} steht an: {betrag}.\n\n"
-                . "Hier kannst du zahlen, bis zum {frist}:\n{link}\n\n"
-                . "Enthalten sind Aktualisierungen, Sicherungen, die Überwachung deiner Seite "
-                . "und kleine Änderungen. Wenn diesen Monat etwas Bestimmtes ansteht, schreib mir.\n\n"
-                . "Den Beleg bekommst du gleich nach der Zahlung."],
+                "Guten Tag {name},\n\ndie Betreuung für {monat} steht an: {betrag}.\n\n"
+                . "Hier können Sie zahlen, bis zum {frist}:\n{link}\n\n"
+                . "Enthalten sind Aktualisierungen, Sicherungen, die Überwachung Ihrer Seite "
+                . "und kleine Änderungen. Wenn diesen Monat etwas Bestimmtes ansteht, schreiben Sie mir.\n\n"
+                . "Den Beleg bekommen Sie gleich nach der Zahlung."],
             'en' => ['Care for {monat} — {betrag}',
                 "Hello {name},\n\nthe monthly care for {monat} is due: {betrag}.\n\n"
                 . "You can pay here, by {frist}:\n{link}\n\n"
@@ -1127,19 +1127,19 @@ final class Texte
            dran: Erst mit ihr wird angelegt. Das sagt der zweite Absatz. */
         'hosting_faellig' => [
             'it' => ['Dominio & hosting {monat} — {betrag}',
-                "Ciao {name},\n\nla rata di dominio & hosting per {monat} è pronta: {betrag}.\n\n"
-                . "Puoi pagare qui, entro il {frist}:\n{link}\n\n"
-                . "Se è la tua prima rata: appena arriva il pagamento attiviamo dominio, "
-                . "spazio web, SSL e casella e-mail — e i tuoi dati di accesso compaiono "
-                . "sulla tua pagina personale.\n\n"
+                "Buongiorno {name},\n\nla rata di dominio & hosting per {monat} è pronta: {betrag}.\n\n"
+                . "Può pagare qui, entro il {frist}:\n{link}\n\n"
+                . "Se è la sua prima rata: appena arriva il pagamento attiviamo dominio, "
+                . "spazio web, SSL e casella e-mail — e i suoi dati di accesso compaiono "
+                . "sulla sua pagina personale.\n\n"
                 . "La ricevuta arriva subito dopo il pagamento."],
             'de' => ['Domain & Hosting {monat} — {betrag}',
-                "Hallo {name},\n\ndie Rate für Domain & Hosting im {monat} steht an: {betrag}.\n\n"
-                . "Hier kannst du zahlen, bis zum {frist}:\n{link}\n\n"
-                . "Falls das deine erste Rate ist: Sobald die Zahlung da ist, schalten wir "
-                . "Domain, Speicherplatz, SSL und E-Mail-Postfach — und deine Zugangsdaten "
-                . "erscheinen auf deiner persönlichen Seite.\n\n"
-                . "Den Beleg bekommst du gleich nach der Zahlung."],
+                "Guten Tag {name},\n\ndie Rate für Domain & Hosting im {monat} steht an: {betrag}.\n\n"
+                . "Hier können Sie zahlen, bis zum {frist}:\n{link}\n\n"
+                . "Falls das Ihre erste Rate ist: Sobald die Zahlung da ist, schalten wir "
+                . "Domain, Speicherplatz, SSL und E-Mail-Postfach — und Ihre Zugangsdaten "
+                . "erscheinen auf Ihrer persönlichen Seite.\n\n"
+                . "Den Beleg bekommen Sie gleich nach der Zahlung."],
             'en' => ['Domain & hosting {monat} — {betrag}',
                 "Hello {name},\n\nthe domain & hosting instalment for {monat} is due: {betrag}.\n\n"
                 . "You can pay here, by {frist}:\n{link}\n\n"
@@ -1154,19 +1154,19 @@ final class Texte
            Fernabsatzvertrag verlangt die Bestaetigung auf dauerhaftem
            Datentraeger. Bei den anderen ist sie schlicht guter Stil. */
         'vertrag_monat' => [
-            'it' => ['Il tuo contratto: {paket} — {betrag} al mese',
-                "Ciao {name},\n\necco la conferma del tuo contratto mensile, nero su bianco:\n\n"
+            'it' => ['Il suo contratto: {paket} — {betrag} al mese',
+                "Buongiorno {name},\n\necco la conferma del suo contratto mensile, nero su bianco:\n\n"
                 . "{paket} — {betrag} al mese\nInizio: {beginn}\nDurata minima fino al: {mindest}\n\n"
-                . "In allegato trovi il foglio del contratto con tutte le condizioni, il diritto "
-                . "di recesso compreso — conservalo pure. Lo trovi anche sulla tua pagina:\n{link}\n\n"
-                . "Dopo la durata minima disdici quando vuoi a fine mese, dalla tua pagina o "
+                . "In allegato trova il foglio del contratto con tutte le condizioni, il diritto "
+                . "di recesso compreso — lo conservi pure. Lo trova anche sulla sua pagina:\n{link}\n\n"
+                . "Dopo la durata minima può disdire quando vuole a fine mese, dalla sua pagina o "
                 . "rispondendo a questa e-mail."],
-            'de' => ['Dein Vertrag: {paket} — {betrag} im Monat',
-                "Hallo {name},\n\nhier die Bestätigung deines Monatsvertrags, schwarz auf weiß:\n\n"
+            'de' => ['Ihr Vertrag: {paket} — {betrag} im Monat',
+                "Guten Tag {name},\n\nhier die Bestätigung Ihres Monatsvertrags, schwarz auf weiß:\n\n"
                 . "{paket} — {betrag} im Monat\nBeginn: {beginn}\nMindestlaufzeit bis: {mindest}\n\n"
-                . "Im Anhang liegt dein Vertragsblatt mit allen Bedingungen samt Widerrufsrecht — "
-                . "zum Aufheben. Du findest es auch jederzeit auf deiner Seite:\n{link}\n\n"
-                . "Nach der Mindestlaufzeit kündigst du jederzeit zum Monatsende — auf deiner "
+                . "Im Anhang liegt Ihr Vertragsblatt mit allen Bedingungen samt Widerrufsrecht — "
+                . "zum Aufheben. Sie finden es auch jederzeit auf Ihrer Seite:\n{link}\n\n"
+                . "Nach der Mindestlaufzeit kündigen Sie jederzeit zum Monatsende — auf Ihrer "
                 . "Seite oder einfach als Antwort auf diese E-Mail."],
             'en' => ['Your contract: {paket} — {betrag} per month',
                 "Hello {name},\n\nhere is the confirmation of your monthly contract, in black and white:\n\n"
@@ -1183,22 +1183,22 @@ final class Texte
            gezeigt. Die Mail sagt, wo, wie lange — und dass er die
            Passwoerter danach im KAS selbst aendern soll. */
         'hosting_fertig' => [
-            'it' => ['Il tuo dominio {domain} è attivo — i dati di accesso ti aspettano',
-                "Ciao {name},\n\nfatto: {domain} è attivo, con spazio web, casella e-mail e il tuo "
-                . "account personale.\n\nI tuoi dati di accesso sono pronti sulla tua pagina — per "
-                . "sicurezza vengono mostrati UNA SOLA volta, quindi tieni pronto dove salvarli:\n{link}\n\n"
-                . "Importante: dopo averli salvati, cambia le password nel pannello KAS "
-                . "(kas.all-inkl.com) — così le conosci solo tu. Se non ritiri i dati entro "
+            'it' => ['Il suo dominio {domain} è attivo — i dati di accesso la aspettano',
+                "Buongiorno {name},\n\nfatto: {domain} è attivo, con spazio web, casella e-mail e il suo "
+                . "account personale.\n\nI suoi dati di accesso sono pronti sulla sua pagina — per "
+                . "sicurezza vengono mostrati UNA SOLA volta, quindi tenga pronto dove salvarli:\n{link}\n\n"
+                . "Importante: dopo averli salvati, cambi le password nel pannello KAS "
+                . "(kas.all-inkl.com) — così le conosce solo Lei. Se non ritira i dati entro "
                 . "{tage} giorni, li cancelliamo e su richiesta ne impostiamo di nuovi.\n\n"
-                . "Per qualsiasi cosa, rispondi pure a questa e-mail."],
-            'de' => ['Deine Domain {domain} ist geschaltet — die Zugangsdaten warten auf dich',
-                "Hallo {name},\n\ngeschafft: {domain} ist geschaltet, mit Speicherplatz, "
-                . "E-Mail-Postfach und deinem eigenen Account.\n\nDeine Zugangsdaten liegen auf "
-                . "deiner Seite bereit — aus Sicherheitsgründen werden sie nur EIN einziges Mal "
-                . "angezeigt, halte also bereit, wo du sie speicherst:\n{link}\n\n"
-                . "Wichtig: Ändere die Passwörter nach dem Speichern im KAS-Kundenmenü "
-                . "(kas.all-inkl.com) — dann kennst nur noch du sie. Rufst du die Daten nicht "
-                . "innerhalb von {tage} Tagen ab, löschen wir sie und setzen dir auf Zuruf neue.\n\n"
+                . "Per qualsiasi cosa, risponda pure a questa e-mail."],
+            'de' => ['Ihre Domain {domain} ist geschaltet — die Zugangsdaten warten auf Sie',
+                "Guten Tag {name},\n\ngeschafft: {domain} ist geschaltet, mit Speicherplatz, "
+                . "E-Mail-Postfach und Ihrem eigenen Account.\n\nIhre Zugangsdaten liegen auf "
+                . "Ihrer Seite bereit — aus Sicherheitsgründen werden sie nur EIN einziges Mal "
+                . "angezeigt, halten Sie also bereit, wo Sie sie speichern:\n{link}\n\n"
+                . "Wichtig: Ändern Sie die Passwörter nach dem Speichern im KAS-Kundenmenü "
+                . "(kas.all-inkl.com) — dann kennen nur noch Sie sie. Rufen Sie die Daten nicht "
+                . "innerhalb von {tage} Tagen ab, löschen wir sie und setzen Ihnen auf Zuruf neue.\n\n"
                 . "Bei allem anderen: einfach auf diese E-Mail antworten."],
             'en' => ['Your domain {domain} is live — your access details are waiting',
                 "Hello {name},\n\ndone: {domain} is live, with web space, an email mailbox and "
@@ -1213,18 +1213,18 @@ final class Texte
            Die Mail bringt den Kunden auf seine Seite, wo Preis und Ja-Knopf
            stehen — die ZUSTIMMUNG passiert dort, nie in der Mail. */
         'hosting_angebot' => [
-            'it' => ['Il tuo dominio {domain} è libero',
-                "Ciao {name},\n\nbuone notizie: il dominio {domain} è libero.\n\n"
-                . "Sulla tua pagina personale trovi l’offerta con il prezzo mensile e "
+            'it' => ['Il suo dominio {domain} è libero',
+                "Buongiorno {name},\n\nbuone notizie: il dominio {domain} è libero.\n\n"
+                . "Sulla sua pagina personale trova l’offerta con il prezzo mensile e "
                 . "tutto quello che è compreso — dominio, spazio web, certificato SSL e "
-                . "casella e-mail, con i tuoi dati di accesso:\n{link}\n\n"
-                . "Decidi lì con un clic. Se hai domande, rispondi pure a questa e-mail."],
-            'de' => ['Deine Wunschdomain {domain} ist frei',
-                "Hallo {name},\n\ngute Nachricht: Die Domain {domain} ist frei.\n\n"
-                . "Auf deiner persönlichen Seite steht das Angebot mit dem Monatspreis und "
+                . "casella e-mail, con i suoi dati di accesso:\n{link}\n\n"
+                . "Decide lì con un clic. Se ha domande, risponda pure a questa e-mail."],
+            'de' => ['Ihre Wunschdomain {domain} ist frei',
+                "Guten Tag {name},\n\ngute Nachricht: Die Domain {domain} ist frei.\n\n"
+                . "Auf Ihrer persönlichen Seite steht das Angebot mit dem Monatspreis und "
                 . "allem, was drinsteckt — Domain, Speicherplatz, SSL-Zertifikat und "
-                . "E-Mail-Postfach, mit deinen eigenen Zugangsdaten:\n{link}\n\n"
-                . "Dort entscheidest du mit einem Klick. Bei Fragen antworte einfach auf diese E-Mail."],
+                . "E-Mail-Postfach, mit Ihren eigenen Zugangsdaten:\n{link}\n\n"
+                . "Dort entscheiden Sie mit einem Klick. Bei Fragen antworten Sie einfach auf diese E-Mail."],
             'en' => ['Your domain {domain} is available',
                 "Hello {name},\n\ngood news: the domain {domain} is available.\n\n"
                 . "Your personal page has the offer with the monthly price and everything "
@@ -1269,15 +1269,15 @@ final class Texte
            neue Rate dazukommt. */
         'zahlung_erinnerung' => [
             'it' => ['Promemoria: {was} — {betrag}',
-                "Ciao {name},\n\nti ricordo un pagamento ancora aperto — {was}, {betrag}. Era in scadenza il {faellig}.\n\n"
+                "Buongiorno {name},\n\nle ricordo un pagamento ancora aperto — {was}, {betrag}. Era in scadenza il {faellig}.\n\n"
                 . "Probabilmente è solo sfuggito, o il link precedente era scaduto. Eccone uno nuovo, valido due settimane:\n{link}\n\n"
-                . "Se hai già pagato, ignora questo messaggio — a volte ci mettiamo un giorno a incrociarci.\n\n"
-                . "Se qualcosa non torna, scrivimi e troviamo una soluzione."],
+                . "Se ha già pagato, ignori questo messaggio — a volte ci mettiamo un giorno a incrociarci.\n\n"
+                . "Se qualcosa non torna, mi scriva e troviamo una soluzione."],
             'de' => ['Erinnerung: {was} — {betrag}',
-                "Hallo {name},\n\nkurze Erinnerung an eine offene Zahlung — {was}, {betrag}. Fällig war der {faellig}.\n\n"
+                "Guten Tag {name},\n\nkurze Erinnerung an eine offene Zahlung — {was}, {betrag}. Fällig war der {faellig}.\n\n"
                 . "Wahrscheinlich ist es nur untergegangen, oder der alte Link war abgelaufen. Hier ist ein neuer, zwei Wochen gültig:\n{link}\n\n"
-                . "Wenn du schon bezahlt hast, ist diese Mail hinfällig — manchmal kreuzen wir uns um einen Tag.\n\n"
-                . "Wenn etwas nicht passt, schreib mir, dann finden wir einen Weg."],
+                . "Wenn Sie schon bezahlt haben, ist diese Mail hinfällig — manchmal kreuzen wir uns um einen Tag.\n\n"
+                . "Wenn etwas nicht passt, schreiben Sie mir, dann finden wir einen Weg."],
             'en' => ['Reminder: {was} — {betrag}',
                 "Hello {name},\n\na short reminder about the {was}: {betrag}, due on {faellig}.\n\n"
                 . "It has probably just slipped through, or the old link had expired. Here is a fresh one, valid for two weeks:\n{link}\n\n"
@@ -1286,18 +1286,18 @@ final class Texte
         ],
         'zahlung_mahnung' => [
             'it' => ['Sollecito di pagamento — {was}, {betrag}',
-                "Ciao {name},\n\nresta aperto un pagamento — {was}, {betrag}. Era dovuto il {faellig} e a oggi non risulta arrivato. "
-                . "Ti avevo già scritto una volta.\n\n"
-                . "Ti chiedo di saldare entro il {frist}:\n{link}\n\n"
+                "Buongiorno {name},\n\nresta aperto un pagamento — {was}, {betrag}. Era dovuto il {faellig} e a oggi non risulta arrivato. "
+                . "Le avevo già scritto una volta.\n\n"
+                . "Le chiedo di saldare entro il {frist}:\n{link}\n\n"
                 . "Se c’è un motivo — una fattura in sospeso, un mese difficile, qualcosa che non va nel lavoro — "
-                . "dimmelo e concordiamo qualcosa. Una rateizzazione è sempre meglio di un silenzio.\n\n"
+                . "me lo dica e concordiamo qualcosa. Una rateizzazione è sempre meglio di un silenzio.\n\n"
                 . "Riferimento: {vorgang}."],
             'de' => ['Zahlungserinnerung — {was}, {betrag}',
-                "Hallo {name},\n\noffen ist noch eine Zahlung — {was}, {betrag}. Fällig war der {faellig}, eingegangen ist bis heute nichts. "
-                . "Ich hatte dir dazu schon einmal geschrieben.\n\n"
-                . "Ich bitte dich, den Betrag bis zum {frist} zu begleichen:\n{link}\n\n"
-                . "Wenn es einen Grund gibt — eine offene Rechnung bei dir, ein schwacher Monat, etwas am Ergebnis, das nicht stimmt — "
-                . "sag es mir, dann finden wir eine Lösung. Eine Ratenzahlung ist mir lieber als Schweigen.\n\n"
+                "Guten Tag {name},\n\noffen ist noch eine Zahlung — {was}, {betrag}. Fällig war der {faellig}, eingegangen ist bis heute nichts. "
+                . "Ich hatte Ihnen dazu schon einmal geschrieben.\n\n"
+                . "Ich bitte Sie, den Betrag bis zum {frist} zu begleichen:\n{link}\n\n"
+                . "Wenn es einen Grund gibt — eine offene Rechnung bei Ihnen, ein schwacher Monat, etwas am Ergebnis, das nicht stimmt — "
+                . "sagen Sie es mir, dann finden wir eine Lösung. Eine Ratenzahlung ist mir lieber als Schweigen.\n\n"
                 . "Vorgang: {vorgang}."],
             'en' => ['Payment reminder — {was}, {betrag}',
                 "Hello {name},\n\nthe {was} of {betrag} was due on {faellig} and has not arrived. "
@@ -1309,20 +1309,20 @@ final class Texte
         ],
         'zahlung_letzte' => [
             'it' => ['Ultimo sollecito — {was}, {betrag}',
-                "Ciao {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
-                . "Ti do tempo fino al {frist}:\n{link}\n\n"
-                . "Se entro quella data non arriva nulla, sospendo il lavoro sul tuo sito, che non viene pubblicato "
+                "Buongiorno {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
+                . "Le do tempo fino al {frist}:\n{link}\n\n"
+                . "Se entro quella data non arriva nulla, sospendo il lavoro sul suo sito, che non viene pubblicato "
                 . "e i cui diritti d’uso restano miei fino al saldo completo — come previsto dalle condizioni. "
                 . "Da quel momento decorrono anche gli interessi di mora di legge.\n\n"
-                . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
+                . "Preferirei di gran lunga sentirla. Una telefonata basta.\n\n"
                 . "Riferimento: {vorgang}, cliente {kundennr}."],
             'de' => ['Letzte Mahnung — {was}, {betrag}',
-                "Hallo {name},\n\neine Zahlung ist weiterhin offen — {was}, {betrag}, fällig am {faellig}. Das ist meine dritte und letzte Nachricht dazu.\n\n"
-                . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
-                . "Kommt bis dahin nichts, ruht die Arbeit an deiner Website. Sie geht nicht online, und die Nutzungsrechte "
+                "Guten Tag {name},\n\neine Zahlung ist weiterhin offen — {was}, {betrag}, fällig am {faellig}. Das ist meine dritte und letzte Nachricht dazu.\n\n"
+                . "Ich setze Ihnen eine Frist bis zum {frist}:\n{link}\n\n"
+                . "Kommt bis dahin nichts, ruht die Arbeit an Ihrer Website. Sie geht nicht online, und die Nutzungsrechte "
                 . "bleiben bis zur vollständigen Zahlung bei mir — so steht es in den Bedingungen. Ab dann laufen außerdem "
                 . "die gesetzlichen Verzugszinsen.\n\n"
-                . "Mir wäre ein Anruf deutlich lieber. Melde dich einfach.\n\n"
+                . "Mir wäre ein Anruf deutlich lieber. Melden Sie sich einfach.\n\n"
                 . "Vorgang: {vorgang}, Kunde {kundennr}."],
             'en' => ['Final reminder — {was}, {betrag}',
                 "Hello {name},\n\nthe {was} of {betrag}, due on {faellig}, is still outstanding. This is my third and final message about it.\n\n"
@@ -1344,23 +1344,23 @@ final class Texte
            damit der Mahnstand einer Rate an einer Stelle gezaehlt wird. */
         'zahlung_letzte_betreuung' => [
             'it' => ['Ultimo sollecito — assistenza, {betrag}',
-                "Ciao {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
-                . "Ti do tempo fino al {frist}:\n{link}\n\n"
+                "Buongiorno {name},\n\nun importo resta non pagato — {was}, {betrag}, scaduto il {faellig}. Questo è il mio terzo e ultimo messaggio.\n\n"
+                . "Le do tempo fino al {frist}:\n{link}\n\n"
                 . "Se entro quella data non arriva nulla, sospendo l’assistenza: niente aggiornamenti, "
-                . "niente copie di sicurezza, nessun controllo. Il sito resta online e resta tuo — "
+                . "niente copie di sicurezza, nessun controllo. Il sito resta online e resta suo — "
                 . "quello che si ferma è la manutenzione. Se la situazione non si sblocca, chiudo il "
                 . "contratto di assistenza per inadempimento. Da quel momento decorrono anche gli "
                 . "interessi di mora di legge.\n\n"
-                . "Preferirei di gran lunga sentirti. Una telefonata basta.\n\n"
+                . "Preferirei di gran lunga sentirla. Una telefonata basta.\n\n"
                 . "Riferimento: {vorgang}, cliente {kundennr}."],
             'de' => ['Letzte Mahnung — Betreuung, {betrag}',
-                "Hallo {name},\n\neine Zahlung ist weiterhin offen — {was}, {betrag}, fällig am {faellig}. Das ist meine dritte und letzte Nachricht dazu.\n\n"
-                . "Ich setze dir eine Frist bis zum {frist}:\n{link}\n\n"
+                "Guten Tag {name},\n\neine Zahlung ist weiterhin offen — {was}, {betrag}, fällig am {faellig}. Das ist meine dritte und letzte Nachricht dazu.\n\n"
+                . "Ich setze Ihnen eine Frist bis zum {frist}:\n{link}\n\n"
                 . "Kommt bis dahin nichts, setze ich die Betreuung aus: keine Aktualisierungen, "
-                . "keine Sicherungen, keine Kontrolle. Deine Seite bleibt online und bleibt deine — "
+                . "keine Sicherungen, keine Kontrolle. Ihre Seite bleibt online und bleibt Ihr Eigentum — "
                 . "was ruht, ist die Pflege. Bleibt es dabei, kündige ich den Betreuungsvertrag aus "
                 . "wichtigem Grund. Ab dann laufen außerdem die gesetzlichen Verzugszinsen.\n\n"
-                . "Mir wäre ein Anruf deutlich lieber. Melde dich einfach.\n\n"
+                . "Mir wäre ein Anruf deutlich lieber. Melden Sie sich einfach.\n\n"
                 . "Vorgang: {vorgang}, Kunde {kundennr}."],
             'en' => ['Final reminder — care, {betrag}',
                 "Hello {name},\n\nthe {was} of {betrag}, due on {faellig}, is still outstanding. This is my third and final message about it.\n\n"
@@ -1383,15 +1383,15 @@ final class Texte
            Umsatzsteuernummer hinterlegt ist. */
         'beleg' => [
             'it' => ['{wort} {nummer} — {betrag}',
-                "Ciao {name},\n\nho ricevuto il tuo pagamento: {was}, {betrag}. Grazie.\n\n"
-                . "In allegato trovi il documento {nummer} in PDF, da conservare.\n\n"
-                . "Tutti i documenti restano anche sulla tua pagina:\n{seite}\n\n"
-                . "Se qualcosa non torna, scrivimi e me ne occupo io."],
+                "Buongiorno {name},\n\nho ricevuto il suo pagamento: {was}, {betrag}. Grazie.\n\n"
+                . "In allegato trova il documento {nummer} in PDF, da conservare.\n\n"
+                . "Tutti i documenti restano anche sulla sua pagina:\n{seite}\n\n"
+                . "Se qualcosa non torna, mi scriva e me ne occupo io."],
             'de' => ['{wort} {nummer} — {betrag}',
-                "Hallo {name},\n\ndeine Zahlung ist angekommen: {was}, {betrag}. Danke dafür.\n\n"
+                "Guten Tag {name},\n\nIhre Zahlung ist angekommen: {was}, {betrag}. Vielen Dank dafür.\n\n"
                 . "Im Anhang liegt der {wort} {nummer} als PDF, zum Aufheben.\n\n"
-                . "Alle Unterlagen findest du außerdem auf deiner Seite:\n{seite}\n\n"
-                . "Wenn etwas nicht stimmt, schreib mir — ich kümmere mich darum."],
+                . "Alle Unterlagen finden Sie außerdem auf Ihrer Seite:\n{seite}\n\n"
+                . "Wenn etwas nicht stimmt, schreiben Sie mir — ich kümmere mich darum."],
             'en' => ['{wort} {nummer} — {betrag}',
                 "Hello {name},\n\nyour payment has arrived: {was}, {betrag}. Thank you.\n\n"
                 . "Attached is document {nummer} as a PDF, for your records.\n\n"
@@ -1402,27 +1402,27 @@ final class Texte
            angekommen ist — und er hat schwarz auf weiss, dass ihn nichts
            bindet. Beides fehlte bisher ganz. */
         'anfrage_eingegangen' => [
-            'it' => ['Ho ricevuto la tua richiesta',
-                "Ciao {name},\n\ngrazie per la tua richiesta{paketsatz}. È arrivata e la sto leggendo con calma. Ti rispondo entro un giorno lavorativo con una prima indicazione concreta.\n\nLa richiesta è gratuita e senza impegno: un incarico nasce soltanto quando ci accordiamo per iscritto.\n\nDa qui in poi passa tutto da questa pagina:\n\n{link}\n\nLì vedi sempre a che punto siamo, puoi scrivermi e caricare i tuoi documenti (fino a {maxdatei} per file). Nessun account, nessuna password. Salvala tra i preferiti: il link resta valido, dal primo contatto fino a molto dopo la messa online.\n\nA presto\nUwe Vetter · Vecom Design"],
-            'de' => ['Deine Anfrage ist angekommen',
-                "Hallo {name},\n\ndanke für deine Anfrage{paketsatz}. Sie ist da und ich lese sie in Ruhe durch. Innerhalb eines Werktags hörst du von mir, mit einer ersten konkreten Einschätzung.\n\nDie Anfrage ist kostenlos und unverbindlich: Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind.\n\nAlles Weitere läuft über diese eine Seite:\n\n{link}\n\nDort siehst du jederzeit, was gerade dran ist, kannst mir schreiben und Unterlagen hochladen (bis {maxdatei} je Datei). Kein Konto, kein Passwort. Leg sie als Lesezeichen ab — der Link bleibt gültig, vom ersten Kontakt bis lange nach dem Onlinegang.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['Ho ricevuto la sua richiesta',
+                "Buongiorno {name},\n\ngrazie per la sua richiesta{paketsatz}. È arrivata e la sto leggendo con calma. Le rispondo entro un giorno lavorativo con una prima indicazione concreta.\n\nLa richiesta è gratuita e senza impegno: un incarico nasce soltanto quando ci accordiamo per iscritto.\n\nDa qui in poi passa tutto da questa pagina:\n\n{link}\n\nLì vede sempre a che punto siamo, può scrivermi e caricare i suoi documenti (fino a {maxdatei} per file). Nessun account, nessuna password. La salvi tra i preferiti: il link resta valido, dal primo contatto fino a molto dopo la messa online.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihre Anfrage ist angekommen',
+                "Guten Tag {name},\n\nvielen Dank für Ihre Anfrage{paketsatz}. Sie ist da, und ich lese sie in Ruhe durch. Innerhalb eines Werktags hören Sie von mir, mit einer ersten konkreten Einschätzung.\n\nDie Anfrage ist kostenlos und unverbindlich: Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind.\n\nAlles Weitere läuft über diese eine Seite:\n\n{link}\n\nDort sehen Sie jederzeit, was gerade dran ist, können mir schreiben und Unterlagen hochladen (bis {maxdatei} je Datei). Kein Konto, kein Passwort. Legen Sie sie als Lesezeichen ab — der Link bleibt gültig, vom ersten Kontakt bis lange nach dem Onlinegang.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your enquiry has arrived',
                 "Hello {name},\n\nthank you for your enquiry{paketsatz}. It has arrived and I am reading it properly. You will hear from me within one working day, with a first concrete assessment.\n\nThe enquiry is free and without obligation: a project only comes about once we agree in writing.\n\nEverything else runs through this one page:\n\n{link}\n\nThere you can always see what is due next, write to me and upload your material (up to {maxdatei} per file). No account, no password. Bookmark it — the link stays valid, from the first contact until long after going live.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         /* Der Zahlungslink, wenn der Kunde zugesagt hat. */
         'zahlungslink' => [
             'it' => ['Il link per il pagamento — {paket}',
-                "Ciao {name},\n\ncome concordato, ecco il link per il pagamento — {was}, {betrag}:\n\n{link}\n\nIl pagamento avviene tramite un fornitore certificato; i dati della carta non passano da me. Appena arriva ti scrivo e partiamo.\n\nSe qualcosa non torna, rispondi a questa e-mail prima di pagare.\n\nA presto\nUwe Vetter · Vecom Design"],
-            'de' => ['Dein Zahlungslink — {paket}',
-                "Hallo {name},\n\nwie besprochen hier der Link für die Zahlung — {was}, {betrag}:\n\n{link}\n\nBezahlt wird über einen geprüften Anbieter; deine Kartendaten sehe ich nicht. Sobald die Zahlung da ist, melde ich mich und wir legen los.\n\nWenn etwas nicht stimmt, antworte einfach auf diese E-Mail, bevor du zahlst.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                "Buongiorno {name},\n\ncome concordato, ecco il link per il pagamento — {was}, {betrag}:\n\n{link}\n\nIl pagamento avviene tramite un fornitore certificato; i dati della carta non passano da me. Appena arriva le scrivo e partiamo.\n\nSe qualcosa non torna, risponda a questa e-mail prima di pagare.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr Zahlungslink — {paket}',
+                "Guten Tag {name},\n\nwie besprochen hier der Link für die Zahlung — {was}, {betrag}:\n\n{link}\n\nBezahlt wird über einen geprüften Anbieter; Ihre Kartendaten sehe ich nicht. Sobald die Zahlung da ist, melde ich mich und wir legen los.\n\nWenn etwas nicht stimmt, antworten Sie einfach auf diese E-Mail, bevor Sie zahlen.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your payment link — {paket}',
                 "Hello {name},\n\nas agreed, here is the payment link — {was}, {betrag}:\n\n{link}\n\nPayment runs through a certified provider; I never see your card details. As soon as it arrives I will write and we start.\n\nIf anything looks wrong, just reply to this email before paying.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'zahlung_ok' => [
             'it' => ['Pagamento ricevuto — {paket}',
-                "Ciao {name},\n\nho ricevuto il tuo acconto di {betrag}. Grazie!\n\nOra iniziamo: il prossimo passo è raccontarmi il tuo progetto.\nApri questo link e compila con calma — puoi salvare e continuare più tardi:\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],
+                "Buongiorno {name},\n\nho ricevuto il suo acconto di {betrag}. Grazie!\n\nOra iniziamo: il prossimo passo è raccontarmi il suo progetto.\nApra questo link e compili con calma — può salvare e continuare più tardi:\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Zahlung erhalten — {paket}',
-                "Hallo {name},\n\ndeine Anzahlung über {betrag} ist angekommen. Danke!\n\nJetzt geht es los: Der nächste Schritt ist, mir dein Projekt zu beschreiben.\nÖffne diesen Link und fülle in Ruhe aus — du kannst zwischendurch speichern:\n\n{link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                "Guten Tag {name},\n\nIhre Anzahlung über {betrag} ist angekommen. Vielen Dank!\n\nJetzt geht es los: Der nächste Schritt ist, mir Ihr Projekt zu beschreiben.\nÖffnen Sie diesen Link und füllen Sie ihn in Ruhe aus — Sie können zwischendurch speichern:\n\n{link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Payment received — {paket}',
                 "Hello {name},\n\nyour deposit of {betrag} has arrived. Thank you!\n\nNext step: tell me about your project.\nOpen this link and take your time — you can save and come back:\n\n{link}\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
@@ -1434,10 +1434,10 @@ final class Texte
            steht dann alles, was er wissen darf, weil dort der Link der
            Ausweis ist und nicht die Stimme. */
         'kundenseite' => [
-            'it' => ['La tua pagina — Vecom Design',
-                "Ciao {name},\n\ncome detto al telefono, ecco la tua pagina:\n\n{link}\n\nLì trovi sempre a che punto siamo e cosa puoi fare adesso. Il link è personale — non serve password.\n\nSe qualcosa non torna, rispondi a questa e-mail.\n\nA presto\nUwe Vetter · Vecom Design"],
-            'de' => ['Deine Seite — Vecom Design',
-                "Hallo {name},\n\nwie am Telefon besprochen, hier deine Seite:\n\n{link}\n\nDort steht immer, wo wir stehen und was du gerade tun kannst. Der Link gehört dir persönlich — ein Passwort brauchst du nicht.\n\nWenn etwas nicht stimmt, antworte einfach auf diese E-Mail.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['La sua pagina — Vecom Design',
+                "Buongiorno {name},\n\ncome detto al telefono, ecco la sua pagina:\n\n{link}\n\nLì trova sempre a che punto siamo e cosa può fare adesso. Il link è personale — non serve password.\n\nSe qualcosa non torna, risponda a questa e-mail.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihre Seite — Vecom Design',
+                "Guten Tag {name},\n\nwie am Telefon besprochen, hier Ihre Seite:\n\n{link}\n\nDort steht immer, wo wir stehen und was Sie gerade tun können. Der Link gehört Ihnen persönlich — ein Passwort brauchen Sie nicht.\n\nWenn etwas nicht stimmt, antworten Sie einfach auf diese E-Mail.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your page — Vecom Design',
                 "Hello {name},\n\nas discussed on the phone, here is your page:\n\n{link}\n\nIt always shows where we stand and what you can do right now. The link is personal — no password needed.\n\nIf anything looks wrong, just reply to this email.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
@@ -1465,26 +1465,26 @@ final class Texte
            Nicht 'zahlung_ok' -- die sagt "deine Anzahlung ist angekommen",
            und vor dem Preis ist nichts angekommen. */
         'fragebogen_vorab' => [
-            'it' => ['Prima di darti un prezzo',
-                "Ciao {name},\n\ngrazie per le tue indicazioni. Prima di darti un prezzo voglio capire bene di cosa hai bisogno — altrimenti tirerei a indovinare, e alla fine lo pagheresti tu.\n\nPer questo c’è un questionario. Lo trovi sulla tua pagina; puoi salvare e continuare più tardi:\n\n{link}\n\nAppena lo ricevo, ti mando un preventivo a prezzo fisso. Fino ad allora nulla è vincolante.\n\nA presto\nUwe Vetter · Vecom Design"],
-            'de' => ['Bevor ich dir einen Preis nenne',
-                "Hallo {name},\n\ndanke für deine Angaben. Bevor ich dir einen Preis nenne, möchte ich genau verstehen, was du brauchst — sonst rate ich, und das zahlst am Ende du.\n\nDafür gibt es einen Fragebogen. Er steht auf deiner Seite; du kannst zwischendurch speichern und später weitermachen:\n\n{link}\n\nSobald er da ist, bekommst du von mir ein Angebot mit festem Preis. Bis dahin ist nichts verbindlich.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['Prima di darle un prezzo',
+                "Buongiorno {name},\n\ngrazie per le sue indicazioni. Prima di darle un prezzo voglio capire bene di cosa ha bisogno — altrimenti tirerei a indovinare, e alla fine lo pagherebbe Lei.\n\nPer questo c’è un questionario. Lo trova sulla sua pagina; può salvare e continuare più tardi:\n\n{link}\n\nAppena lo ricevo, le mando un preventivo a prezzo fisso. Fino ad allora nulla è vincolante.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Bevor ich Ihnen einen Preis nenne',
+                "Guten Tag {name},\n\nvielen Dank für Ihre Angaben. Bevor ich Ihnen einen Preis nenne, möchte ich genau verstehen, was Sie brauchen — sonst rate ich, und das zahlen am Ende Sie.\n\nDafür gibt es einen Fragebogen. Er steht auf Ihrer Seite; Sie können zwischendurch speichern und später weitermachen:\n\n{link}\n\nSobald er da ist, bekommen Sie von mir ein Angebot mit festem Preis. Bis dahin ist nichts verbindlich.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Before I give you a price',
                 "Hello {name},\n\nthank you for the details. Before I give you a price, I want to understand exactly what you need — otherwise I would be guessing, and in the end you would pay for it.\n\nThat is what the questionnaire is for. It is on your page; you can save and continue later:\n\n{link}\n\nAs soon as it is in, you will get a fixed-price quote from me. Until then nothing is binding.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'fragebogen_erinnerung' => [
-            'it' => ['Un promemoria per il tuo progetto',
-                "Ciao {name},\n\nmanca ancora il questionario per il tuo progetto. Senza quelle informazioni non possiamo iniziare davvero.\n\nEccolo — dieci minuti bastano:\n\n{link}\n\nSe qualcosa non è chiaro, rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Kurze Erinnerung an deinen Fragebogen',
-                "Hallo {name},\n\nfür dein Projekt fehlt noch der Fragebogen. Ohne die Angaben können wir nicht richtig loslegen.\n\nHier ist er — zehn Minuten reichen:\n\n{link}\n\nWenn etwas unklar ist, antworte einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
+            'it' => ['Un promemoria per il suo progetto',
+                "Buongiorno {name},\n\nmanca ancora il questionario per il suo progetto. Senza quelle informazioni non possiamo iniziare davvero.\n\nEccolo — dieci minuti bastano:\n\n{link}\n\nSe qualcosa non è chiaro, risponda pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Kurze Erinnerung an Ihren Fragebogen',
+                "Guten Tag {name},\n\nfür Ihr Projekt fehlt noch der Fragebogen. Ohne die Angaben können wir nicht richtig loslegen.\n\nHier ist er — zehn Minuten reichen:\n\n{link}\n\nWenn etwas unklar ist, antworten Sie einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
             'en' => ['A quick reminder about your questionnaire',
                 "Hello {name},\n\nthe questionnaire for your project is still open. Without it we can’t really start.\n\nHere it is — ten minutes is enough:\n\n{link}\n\nIf anything is unclear, just reply to this email.\n\nUwe Vetter · Vecom Design"],
         ],
         'vorschau' => [
-            'it' => ['Puoi dare un’occhiata all’anteprima — {paket}',
-                "Ciao {name},\n\nl’anteprima del tuo sito è visibile. Guardala con calma:\n\n{link}\n\nNon devi approvare niente adesso: il sito non è ancora finito. Dimmi solo cosa ne pensi — quello che non va lo sistemo. Quando è pronto davvero ti avviso, e solo allora potrai dare il via libera.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Du kannst dir den Entwurf ansehen — {paket}',
-                "Hallo {name},\n\nder Entwurf deiner Website ist für dich freigeschaltet. Schau ihn dir in Ruhe an:\n\n{link}\n\nFreigeben musst du noch nichts — die Seite ist noch nicht fertig. Sag mir einfach, was dir auffällt; was nicht passt, ändere ich. Wenn sie wirklich fertig ist, melde ich mich, und erst dann kannst du sie abnehmen.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['Può dare un’occhiata all’anteprima — {paket}',
+                "Buongiorno {name},\n\nl’anteprima del suo sito è visibile. La guardi con calma:\n\n{link}\n\nNon deve approvare niente adesso: il sito non è ancora finito. Mi dica solo cosa ne pensa — quello che non va lo sistemo. Quando è pronto davvero la avviso, e solo allora potrà dare il via libera.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Sie können sich den Entwurf ansehen — {paket}',
+                "Guten Tag {name},\n\nder Entwurf Ihrer Website ist für Sie freigeschaltet. Sehen Sie ihn sich in Ruhe an:\n\n{link}\n\nFreigeben müssen Sie noch nichts — die Seite ist noch nicht fertig. Sagen Sie mir einfach, was Ihnen auffällt; was nicht passt, ändere ich. Wenn sie wirklich fertig ist, melde ich mich, und erst dann können Sie sie abnehmen.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['You can take a look at the draft — {paket}',
                 "Hello {name},\n\nthe draft of your site is open for you. Take your time with it:\n\n{link}\n\nYou don’t have to approve anything yet — the site isn’t finished. Just tell me what you notice; whatever doesn’t fit, I’ll change. When it really is done I’ll let you know, and only then can you sign it off.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
@@ -1501,10 +1501,10 @@ final class Texte
            vorher als Angebot mit Preis. Wer das erst erfaehrt, wenn die
            Rechnung kommt, hat zu Recht schlechte Laune. */
         'abnahme' => [
-            'it' => ['Il tuo sito è pronto — dagli un’occhiata finale — {paket}',
-                "Ciao {name},\n\nil sito è finito. Guardalo con calma:\n\n{link}\n\nSe va bene così, dai il via libera dalla tua pagina: da lì pubblico.\n\nSe invece c’è ancora qualcosa da cambiare, scrivimelo — le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, te lo dico prima e ti mando il preventivo con il prezzo: senza il tuo ok non parte niente e non ti arriva nessun costo a sorpresa.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Deine Seite ist fertig — schau sie dir an — {paket}',
-                "Hallo {name},\n\ndie Seite ist fertig. Schau sie dir in Ruhe an:\n\n{link}\n\nWenn sie so passt, gib sie auf deiner Seite frei — dann veröffentliche ich.\n\nWenn noch etwas anders soll, schreib es mir. Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich dir das vorher und schicke dir ein Angebot mit dem Preis: Ohne dein Ja passiert nichts, und es kommt nichts nachträglich dazu.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['Il suo sito è pronto — gli dia un’occhiata finale — {paket}',
+                "Buongiorno {name},\n\nil sito è finito. Lo guardi con calma:\n\n{link}\n\nSe va bene così, dia il via libera dalla sua pagina: da lì pubblico.\n\nSe invece c’è ancora qualcosa da cambiare, me lo scriva — le modifiche che rientrano in quanto concordato sono comprese. Se una richiesta va oltre, glielo dico prima e le mando il preventivo con il prezzo: senza il suo ok non parte niente e non le arriva nessun costo a sorpresa.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihre Seite ist fertig — sehen Sie sie sich an — {paket}',
+                "Guten Tag {name},\n\ndie Seite ist fertig. Sehen Sie sie sich in Ruhe an:\n\n{link}\n\nWenn sie so passt, geben Sie sie auf Ihrer Seite frei — dann veröffentliche ich.\n\nWenn noch etwas anders sein soll, schreiben Sie es mir. Änderungen im vereinbarten Umfang sind enthalten. Geht ein Wunsch darüber hinaus, sage ich Ihnen das vorher und schicke Ihnen ein Angebot mit dem Preis: Ohne Ihr Ja passiert nichts, und es kommt nichts nachträglich dazu.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your site is ready — take a look — {paket}',
                 "Hello {name},\n\nthe site is finished. Take your time with it:\n\n{link}\n\nIf it’s right, sign it off from your page — then I’ll publish it.\n\nIf something should still change, tell me. Changes within the agreed scope are included. If a request goes beyond that, I’ll say so first and send you a quote with the price: nothing happens without your go-ahead, and nothing is added afterwards.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
@@ -1520,26 +1520,26 @@ final class Texte
            den meisten Postfaechern gar nicht an und landen sonst im Spam.
            Der Link fuehrt auf seine Projektseite, die er kennt. */
         'paket' => [
-            'it' => ['Il tuo sito da portare con te — {paket}',
-                "Ciao {name},\n\nil tuo sito è pronto anche da scaricare: tutti i file, in un unico pacchetto ({datei}).\n\nLo trovi qui:\n{link}\n\nÈ tuo. Ti serve se un giorno vuoi cambiare hosting, se vuoi una copia di sicurezza, o se qualcun altro ci deve lavorare. Non devi disdire niente per averlo — il sito resta online come prima.\n\nSe hai bisogno di una mano per usarlo, scrivimi.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Deine Website zum Mitnehmen — {paket}',
-                "Hallo {name},\n\ndeine Website liegt jetzt auch zum Herunterladen bereit: alle Dateien in einem Paket ({datei}).\n\nDu findest es hier:\n{link}\n\nEs gehört dir. Du brauchst es, wenn du irgendwann den Anbieter wechseln willst, wenn du eine Sicherung haben möchtest, oder wenn jemand anderes daran arbeiten soll. Kündigen musst du dafür nichts — die Seite bleibt online wie bisher.\n\nWenn du Hilfe brauchst, melde dich einfach.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['Il suo sito da portare con sé — {paket}',
+                "Buongiorno {name},\n\nil suo sito è pronto anche da scaricare: tutti i file, in un unico pacchetto ({datei}).\n\nLo trova qui:\n{link}\n\nÈ suo. Le serve se un giorno vuole cambiare hosting, se vuole una copia di sicurezza, o se qualcun altro ci deve lavorare. Non deve disdire niente per averlo — il sito resta online come prima.\n\nSe ha bisogno di una mano per usarlo, mi scriva.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihre Website zum Mitnehmen — {paket}',
+                "Guten Tag {name},\n\nIhre Website liegt jetzt auch zum Herunterladen bereit: alle Dateien in einem Paket ({datei}).\n\nSie finden es hier:\n{link}\n\nEs gehört Ihnen. Sie brauchen es, wenn Sie irgendwann den Anbieter wechseln wollen, wenn Sie eine Sicherung haben möchten, oder wenn jemand anderes daran arbeiten soll. Kündigen müssen Sie dafür nichts — die Seite bleibt online wie bisher.\n\nWenn Sie Hilfe brauchen, melden Sie sich einfach.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your website to take with you — {paket}',
                 "Hello {name},\n\nyour website is now also ready to download: every file, in one package ({datei}).\n\nYou’ll find it here:\n{link}\n\nIt’s yours. You’ll want it if you ever move to another host, if you’d like a backup, or if someone else is to work on it. You don’t have to cancel anything for this — the site stays online as before.\n\nIf you need a hand with it, just get in touch.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'online' => [
-            'it' => ['Il tuo sito è online — {paket}',
-                "Ciao {name},\n\nil sito è online:\n{link}\n\nGrazie per la fiducia. Se serve qualcosa, sono qui.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Deine Website ist online — {paket}',
-                "Hallo {name},\n\ndie Website ist online:\n{link}\n\nDanke für dein Vertrauen. Wenn etwas ist, melde dich einfach.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'it' => ['Il suo sito è online — {paket}',
+                "Buongiorno {name},\n\nil sito è online:\n{link}\n\nGrazie per la fiducia. Se serve qualcosa, sono qui.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihre Website ist online — {paket}',
+                "Guten Tag {name},\n\ndie Website ist online:\n{link}\n\nDanke für Ihr Vertrauen. Wenn etwas ist, melden Sie sich einfach.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your site is live — {paket}',
                 "Hello {name},\n\nthe site is live:\n{link}\n\nThank you for your trust. If anything comes up, just get in touch.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'nachricht' => [
-            'it' => ['Un messaggio sul tuo progetto',
-                "Ciao {name},\n\nti ho scritto sul tuo progetto:\n\n{text}\n\nPuoi rispondere qui:\n{link}\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Eine Nachricht zu deinem Projekt',
-                "Hallo {name},\n\nich habe dir zu deinem Projekt geschrieben:\n\n{text}\n\nAntworten kannst du hier:\n{link}\n\nUwe Vetter · Vecom Design"],
+            'it' => ['Un messaggio sul suo progetto',
+                "Buongiorno {name},\n\nle ho scritto sul suo progetto:\n\n{text}\n\nPuò rispondere qui:\n{link}\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Eine Nachricht zu Ihrem Projekt',
+                "Guten Tag {name},\n\nich habe Ihnen zu Ihrem Projekt geschrieben:\n\n{text}\n\nAntworten können Sie hier:\n{link}\n\nUwe Vetter · Vecom Design"],
             'en' => ['A message about your project',
                 "Hello {name},\n\nI’ve written to you about your project:\n\n{text}\n\nYou can reply here:\n{link}\n\nUwe Vetter · Vecom Design"],
         ],
@@ -1550,33 +1550,33 @@ final class Texte
            haengen das Widerrufsformular und der Beleg daran. */
         'auftragsbestaetigung' => [
             'it' => ['Conferma d’ordine {bestellnr} — {paket}',
-                "Ciao {name},\n\n"
-                . "questa è la conferma del tuo ordine. Conservala: contiene tutte le informazioni sul contratto.\n\n"
-                . "--------------------------------------------------\nIL TUO ORDINE\n--------------------------------------------------\n"
+                "Buongiorno {name},\n\n"
+                . "questa è la conferma del suo ordine. La conservi: contiene tutte le informazioni sul contratto.\n\n"
+                . "--------------------------------------------------\nIL SUO ORDINE\n--------------------------------------------------\n"
                 . "Ordine:     {bestellnr}\nData:       {datum}\nServizio:   {paket}\n"
                 . "Totale:     {gesamt}\n{raten}\n\n"
-                . "--------------------------------------------------\nCHI TI FORNISCE IL SERVIZIO\n--------------------------------------------------\n"
+                . "--------------------------------------------------\nCHI LE FORNISCE IL SERVIZIO\n--------------------------------------------------\n"
                 . "{firma}\n\n"
                 . "--------------------------------------------------\nDIRITTO DI RECESSO\n--------------------------------------------------\n"
                 . "{widerruf}\n\n"
-                . "In allegato trovi il modulo di recesso tipo. Non devi usarlo per forza: basta una comunicazione chiara.\n\n"
+                . "In allegato trova il modulo di recesso tipo. Non deve usarlo per forza: basta una comunicazione chiara.\n\n"
                 . "{zustimmung}\n\n"
                 . "Condizioni generali: {agb}\nInformativa privacy: {privacy}\n\n"
-                . "La tua pagina di progetto:\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],
+                . "La sua pagina di progetto:\n\n{link}\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Auftragsbestätigung {bestellnr} — {paket}',
-                "Hallo {name},\n\n"
-                . "das ist die Bestätigung deines Auftrags. Heb sie auf — sie enthält alle Angaben zum Vertrag.\n\n"
-                . "--------------------------------------------------\nDEIN AUFTRAG\n--------------------------------------------------\n"
+                "Guten Tag {name},\n\n"
+                . "das ist die Bestätigung Ihres Auftrags. Bewahren Sie sie auf — sie enthält alle Angaben zum Vertrag.\n\n"
+                . "--------------------------------------------------\nIHR AUFTRAG\n--------------------------------------------------\n"
                 . "Bestellung: {bestellnr}\nDatum:      {datum}\nLeistung:   {paket}\n"
                 . "Gesamt:     {gesamt}\n{raten}\n\n"
                 . "--------------------------------------------------\nWER DIE LEISTUNG ERBRINGT\n--------------------------------------------------\n"
                 . "{firma}\n\n"
                 . "--------------------------------------------------\nWIDERRUFSRECHT\n--------------------------------------------------\n"
                 . "{widerruf}\n\n"
-                . "Im Anhang findest du das Muster-Widerrufsformular. Du musst es nicht benutzen — eine eindeutige Nachricht genügt.\n\n"
+                . "Im Anhang finden Sie das Muster-Widerrufsformular. Sie müssen es nicht benutzen — eine eindeutige Nachricht genügt.\n\n"
                 . "{zustimmung}\n\n"
                 . "AGB: {agb}\nDatenschutzerklärung: {privacy}\n\n"
-                . "Deine Projektseite:\n\n{link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                . "Ihre Projektseite:\n\n{link}\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Order confirmation {bestellnr} — {paket}',
                 "Hello {name},\n\n"
                 . "this is the confirmation of your order. Please keep it — it holds all the contract details.\n\n"
@@ -1599,25 +1599,25 @@ final class Texte
            dasselbe, und genau deshalb muss es dastehen. */
         'kuendigung' => [
             'it' => ['Disdetta confermata — {paket}',
-                "Ciao {name},\n\nho ricevuto la tua disdetta e te la confermo per iscritto.\n\n"
+                "Buongiorno {name},\n\nho ricevuto la sua disdetta e gliela confermo per iscritto.\n\n"
                 . "{paket} resta attiva fino al {ende}.\n"
-                . "Fino a quella data ti viene addebitato {betrag} al mese, dopo non più — l’ultimo addebito è quello del mese in cui rientra il {ende}.\n\n"
+                . "Fino a quella data le viene addebitato {betrag} al mese, dopo non più — l’ultimo addebito è quello del mese in cui rientra il {ende}.\n\n"
                 . "Cosa succede dopo:\n\n"
-                . "· Il sito resta online e resta tuo. Non si spegne nulla.\n"
-                . "· Aggiornamenti, backup e controlli si fermano. Da quel giorno il sito è nelle tue mani o in quelle di chi vorrai.\n"
-                . "· Su richiesta ti do tutti gli accessi e un backup completo, così puoi spostarlo dove preferisci.\n\n"
-                . "La tua pagina resta raggiungibile anche dopo: {seite}\n\n"
-                . "Se hai disdetto per qualcosa che non ha funzionato, scrivimelo — mi interessa davvero, anche se non cambi idea."],
+                . "· Il sito resta online e resta suo. Non si spegne nulla.\n"
+                . "· Aggiornamenti, backup e controlli si fermano. Da quel giorno il sito è nelle sue mani o in quelle di chi vorrà.\n"
+                . "· Su richiesta le do tutti gli accessi e un backup completo, così può spostarlo dove preferisce.\n\n"
+                . "La sua pagina resta raggiungibile anche dopo: {seite}\n\n"
+                . "Se ha disdetto per qualcosa che non ha funzionato, me lo scriva — mi interessa davvero, anche se non cambia idea."],
             'de' => ['Kündigung bestätigt — {paket}',
-                "Hallo {name},\n\ndeine Kündigung ist angekommen, und hiermit bestätige ich sie dir schriftlich.\n\n"
+                "Guten Tag {name},\n\nIhre Kündigung ist angekommen, und hiermit bestätige ich sie Ihnen schriftlich.\n\n"
                 . "{paket} läuft noch bis zum {ende}.\n"
                 . "Bis dahin werden {betrag} im Monat abgebucht, danach nicht mehr — die letzte Abbuchung ist die für den Monat, in den der {ende} fällt.\n\n"
                 . "Was danach passiert:\n\n"
-                . "· Die Website bleibt online und bleibt deine. Es wird nichts abgeschaltet.\n"
-                . "· Aktualisierungen, Sicherungen und Überwachung hören auf. Ab dem Tag liegt die Seite in deiner Hand oder in der von jemandem, den du beauftragst.\n"
-                . "· Auf Wunsch bekommst du alle Zugänge und eine vollständige Sicherung, damit du sie mitnehmen kannst.\n\n"
-                . "Deine Seite bleibt auch danach erreichbar: {seite}\n\n"
-                . "Wenn du gekündigt hast, weil etwas nicht gepasst hat, schreib es mir — das interessiert mich wirklich, auch wenn du es dir nicht anders überlegst."],
+                . "· Die Website bleibt online und gehört weiter Ihnen. Es wird nichts abgeschaltet.\n"
+                . "· Aktualisierungen, Sicherungen und Überwachung hören auf. Ab dem Tag liegt die Seite in Ihrer Hand oder in der von jemandem, den Sie beauftragen.\n"
+                . "· Auf Wunsch bekommen Sie alle Zugänge und eine vollständige Sicherung, damit Sie sie mitnehmen können.\n\n"
+                . "Ihre Seite bleibt auch danach erreichbar: {seite}\n\n"
+                . "Wenn Sie gekündigt haben, weil etwas nicht gepasst hat, schreiben Sie es mir — das interessiert mich wirklich, auch wenn Sie es sich nicht anders überlegen."],
             'en' => ['Cancellation confirmed — {paket}',
                 "Hello {name},\n\nyour cancellation has arrived, and this is your written confirmation.\n\n"
                 . "{paket} runs until {ende}.\n"
@@ -1632,9 +1632,9 @@ final class Texte
 
         'restzahlung' => [
             'it' => ['Saldo per {paket}',
-                "Ciao {name},\n\nil sito è pronto per la consegna. Resta il saldo di {betrag}:\n\n{link}\n\nGrazie!\nUwe Vetter · Vecom Design"],
+                "Buongiorno {name},\n\nil sito è pronto per la consegna. Resta il saldo di {betrag}:\n\n{link}\n\nGrazie!\nUwe Vetter · Vecom Design"],
             'de' => ['Restzahlung für {paket}',
-                "Hallo {name},\n\ndie Website ist bereit zur Übergabe. Offen ist noch die Restzahlung über {betrag}:\n\n{link}\n\nDanke!\nUwe Vetter · Vecom Design"],
+                "Guten Tag {name},\n\ndie Website ist bereit zur Übergabe. Offen ist noch die Restzahlung über {betrag}:\n\n{link}\n\nDanke!\nUwe Vetter · Vecom Design"],
             'en' => ['Balance for {paket}',
                 "Hello {name},\n\nthe site is ready for handover. The remaining balance is {betrag}:\n\n{link}\n\nThank you!\nUwe Vetter · Vecom Design"],
         ],
@@ -1651,14 +1651,14 @@ final class Texte
            vier Wochen noch zu finden. Die Mail sagt nur noch, dass es da
            ist. */
         'angebot' => [
-            'it' => ['Il tuo preventivo è pronto',
-                "Ciao {name},\n\nil tuo preventivo personale è pronto e ti aspetta sulla tua pagina:\n\n{link}\n\n"
-                . "Lì lo vedi per intero, voce per voce, e da lì puoi accettarlo o rifiutarlo.{gueltigsatz}\n\n"
-                . "Domande? Rispondi pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
-            'de' => ['Dein Angebot liegt bereit',
-                "Hallo {name},\n\ndein persönliches Angebot ist fertig und liegt auf deiner Seite:\n\n{link}\n\n"
-                . "Dort siehst du es vollständig, Punkt für Punkt, und dort kannst du es annehmen oder ablehnen.{gueltigsatz}\n\n"
-                . "Fragen? Antworte einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
+            'it' => ['Il suo preventivo è pronto',
+                "Buongiorno {name},\n\nil suo preventivo personale è pronto e la aspetta sulla sua pagina:\n\n{link}\n\n"
+                . "Lì lo vede per intero, voce per voce, e da lì può accettarlo o rifiutarlo.{gueltigsatz}\n\n"
+                . "Domande? Risponda pure a questa e-mail.\n\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr Angebot liegt bereit',
+                "Guten Tag {name},\n\nIhr persönliches Angebot ist fertig und liegt auf Ihrer Seite:\n\n{link}\n\n"
+                . "Dort sehen Sie es vollständig, Punkt für Punkt, und dort können Sie es annehmen oder ablehnen.{gueltigsatz}\n\n"
+                . "Fragen? Antworten Sie einfach auf diese E-Mail.\n\nUwe Vetter · Vecom Design"],
             'en' => ['Your quote is ready',
                 "Hello {name},\n\nyour personal quote is ready and waiting on your page:\n\n{link}\n\n"
                 . "There you can see it in full, item by item, and accept or decline it.{gueltigsatz}\n\n"
@@ -1669,43 +1669,43 @@ final class Texte
     /* ----------------------------------------------------------------------
        Der Bedarfs-Konfigurator auf der Website.
 
-       Der Ton ist derselbe wie ueberall: duzen, kurze Saetze, und was der
+       Der Ton ist derselbe wie ueberall: siezen, kurze Saetze, und was der
        Kunde tun soll, steht im ersten Satz. Was hier NICHT steht, ist ein
        Preis — der entsteht erst am Ende aus seinen Antworten.
        ---------------------------------------------------------------------- */
     public const BEDARF = [
-        'titel' => ['it' => 'Che cosa ti serve?', 'de' => 'Was brauchst du?', 'en' => 'What do you need?'],
+        'titel' => ['it' => 'Di che cosa ha bisogno?', 'de' => 'Was brauchen Sie?', 'en' => 'What do you need?'],
         'lead'  => [
-            'it' => 'Otto domande brevi, circa un minuto e mezzo. Alla fine sai in che ordine di prezzo ti muovi — senza impegno.',
-            'de' => 'Acht kurze Fragen, etwa anderthalb Minuten. Am Ende weißt du, in welcher Größenordnung du liegst — unverbindlich.',
+            'it' => 'Otto domande brevi, circa un minuto e mezzo. Alla fine sa in che ordine di prezzo si muove — senza impegno.',
+            'de' => 'Acht kurze Fragen, etwa anderthalb Minuten. Am Ende wissen Sie, in welcher Größenordnung Sie liegen — unverbindlich.',
             'en' => 'Eight short questions, about ninety seconds. At the end you know the ballpark — no obligation.',
         ],
         'schritt'  => ['it' => 'Passo {n} di {g}', 'de' => 'Schritt {n} von {g}', 'en' => 'Step {n} of {g}'],
         'weiter'   => ['it' => 'Avanti', 'de' => 'Weiter', 'en' => 'Next'],
         'zurueck'  => ['it' => 'Indietro', 'de' => 'Zurück', 'en' => 'Back'],
-        'absenden' => ['it' => 'Richiedi il preventivo', 'de' => 'Angebot anfordern', 'en' => 'Request a quote'],
+        'absenden' => ['it' => 'Richiedere il preventivo', 'de' => 'Angebot anfordern', 'en' => 'Request a quote'],
 
         'ergebnisTitel' => [
-            'it' => 'Per quello che hai descritto',
-            'de' => 'Für das, was du beschrieben hast',
+            'it' => 'Per quello che ha descritto',
+            'de' => 'Für das, was Sie beschrieben haben',
             'en' => 'For what you have described',
         ],
         'ergebnisText' => [
-            'it' => 'Questa è una stima, non un preventivo. Il prezzo definitivo te lo mando entro 24 ore, con le voci una per una — e vale quello.',
-            'de' => 'Das ist eine Schätzung, kein Angebot. Den verbindlichen Preis schicke ich dir binnen 24 Stunden, Position für Position — und der gilt dann.',
+            'it' => 'Questa è una stima, non un preventivo. Il prezzo definitivo glielo mando entro 24 ore, con le voci una per una — e vale quello.',
+            'de' => 'Das ist eine Schätzung, kein Angebot. Den verbindlichen Preis schicke ich Ihnen binnen 24 Stunden, Position für Position — und der gilt dann.',
             'en' => 'This is an estimate, not a quote. I will send you the binding price within 24 hours, item by item — and that one holds.',
         ],
         'ergebnisMonat' => [
-            'it' => 'più {betrag} al mese per l’assistenza, se la vuoi. È un contratto a parte e puoi decidere dopo.',
-            'de' => 'dazu {betrag} im Monat für die Betreuung, wenn du magst. Das ist ein eigener Vertrag, und du kannst später entscheiden.',
+            'it' => 'più {betrag} al mese per l’assistenza, se la desidera. È un contratto a parte e può decidere dopo.',
+            'de' => 'dazu {betrag} im Monat für die Betreuung, wenn Sie möchten. Das ist ein eigener Vertrag, und Sie können später entscheiden.',
             'en' => 'plus {betrag} a month for care, if you want it. That is a separate contract and you can decide later.',
         ],
         'kontaktTitel' => [
-            'it' => 'Dove ti mando il preventivo?',
+            'it' => 'Dove le mando il preventivo?',
             'de' => 'Wohin schicke ich das Angebot?',
             'en' => 'Where should I send the quote?',
         ],
-        'fName'    => ['it' => 'Come ti chiami', 'de' => 'Wie heißt du', 'en' => 'Your name'],
+        'fName'    => ['it' => 'Il suo nome', 'de' => 'Ihr Name', 'en' => 'Your name'],
         'fEmail'   => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
         'fTelefon' => ['it' => 'Telefono (facoltativo)', 'de' => 'Telefon (freiwillig)', 'en' => 'Phone (optional)'],
         'fFirma'   => ['it' => 'Nome dell’attività (facoltativo)', 'de' => 'Name des Betriebs (freiwillig)', 'en' => 'Business name (optional)'],
@@ -1723,55 +1723,55 @@ final class Texte
            gehoert sie hin -- sie beantwortet nicht, was gebaut wird, sondern
            wie wir miteinander reden. */
         'fSprache' => [
-            'it' => 'In che lingua vuoi che ti scriva',
-            'de' => 'In welcher Sprache soll ich dir schreiben',
+            'it' => 'In che lingua desidera che le scriva',
+            'de' => 'In welcher Sprache soll ich Ihnen schreiben',
             'en' => 'Which language should I write to you in',
         ],
         'fSpracheHilfe' => [
-            'it' => 'Vale per le e-mail, i documenti e la tua pagina. Puoi cambiarla in qualsiasi momento.',
-            'de' => 'Gilt für E-Mails, Unterlagen und deine eigene Seite. Du kannst sie jederzeit ändern.',
+            'it' => 'Vale per le e-mail, i documenti e la sua pagina. Può cambiarla in qualsiasi momento.',
+            'de' => 'Gilt für E-Mails, Unterlagen und Ihre eigene Seite. Sie können sie jederzeit ändern.',
             'en' => 'Applies to emails, documents and your own page. You can change it at any time.',
         ],
 
         'danke' => [
-            'it' => 'Grazie! Ho ricevuto tutto. Ti scrivo entro 24 ore con il preventivo.',
+            'it' => 'Grazie! Ho ricevuto tutto. Le scrivo entro 24 ore con il preventivo.',
             'de' => 'Danke! Alles angekommen. Ich melde mich binnen 24 Stunden mit dem Angebot.',
             'en' => 'Thank you! I have everything. I will come back to you within 24 hours with the quote.',
         ],
         'pflicht' => [
             'it' => 'Mi servono almeno il nome e un indirizzo e-mail valido.',
-            'de' => 'Ich brauche mindestens deinen Namen und eine gültige E-Mail-Adresse.',
+            'de' => 'Ich brauche mindestens Ihren Namen und eine gültige E-Mail-Adresse.',
             'en' => 'I need at least your name and a valid email address.',
         ],
         'nichts' => [
-            'it' => 'Scegli almeno una risposta, così posso calcolare qualcosa.',
-            'de' => 'Wähle mindestens eine Antwort, damit ich etwas rechnen kann.',
+            'it' => 'Scelga almeno una risposta, così posso calcolare qualcosa.',
+            'de' => 'Wählen Sie mindestens eine Antwort, damit ich etwas rechnen kann.',
             'en' => 'Pick at least one answer so I have something to work with.',
         ],
         'panne' => [
-            'it' => 'Qualcosa non ha funzionato. Riprova tra poco — quello che hai già scelto è salvato.',
-            'de' => 'Etwas hat nicht geklappt. Versuch es gleich noch einmal — was du gewählt hast, ist gespeichert.',
+            'it' => 'Qualcosa non ha funzionato. Riprovi tra poco — quello che ha già scelto è salvato.',
+            'de' => 'Etwas hat nicht geklappt. Versuchen Sie es gleich noch einmal — was Sie gewählt haben, ist gespeichert.',
             'en' => 'Something went wrong. Try again shortly — what you picked is saved.',
         ],
         'weg' => [
-            'it' => 'Questo link non è più valido. Puoi ricominciare da capo.',
-            'de' => 'Dieser Link gilt nicht mehr. Du kannst neu anfangen.',
+            'it' => 'Questo link non è più valido. Può ricominciare da capo.',
+            'de' => 'Dieser Link gilt nicht mehr. Sie können neu anfangen.',
             'en' => 'This link is no longer valid. You can start again.',
         ],
-        'neu' => ['it' => 'Ricomincia', 'de' => 'Neu anfangen', 'en' => 'Start again'],
+        'neu' => ['it' => 'Ricominciare', 'de' => 'Neu anfangen', 'en' => 'Start again'],
         'fEmpfehlung' => [
-            'it' => 'Chi ti ha consigliato noi? (facoltativo)',
+            'it' => 'Chi le ha consigliato noi? (facoltativo)',
             'de' => 'Wer hat uns empfohlen? (freiwillig)',
             'en' => 'Who recommended us? (optional)',
         ],
         'empfehlungHilfe' => [
-            'it' => 'Il nome basta. Se diventa un lavoro, chi ti ha mandato riceve uno sconto sull’assistenza.',
+            'it' => 'Il nome basta. Se diventa un lavoro, chi ci ha consigliati riceve uno sconto sull’assistenza.',
             'de' => 'Der Name genügt. Wird ein Auftrag daraus, bekommt derjenige einen Nachlass auf seine Betreuung.',
             'en' => 'A name is enough. If it turns into a job, they get a discount on their care plan.',
         ],
         'empfehlungErkannt' => [
             'it' => 'Consigliato da {name} — grazie a entrambi.',
-            'de' => 'Empfohlen von {name} — danke euch beiden.',
+            'de' => 'Empfohlen von {name} — vielen Dank an Sie beide.',
             'en' => 'Recommended by {name} — thank you both.',
         ],
         // Wer aus einer Branchen-Demo der Startseite kommt, bringt seine
@@ -1783,8 +1783,8 @@ final class Texte
             'en' => 'Starting point: {wahl}',
         ],
         'demoErkannt' => [
-            'it' => 'Parto dalla tua scelta nella demo: {wahl}.',
-            'de' => 'Ich gehe von deiner Auswahl in der Demo aus: {wahl}.',
+            'it' => 'Parto dalla sua scelta nella demo: {wahl}.',
+            'de' => 'Ich gehe von Ihrer Auswahl in der Demo aus: {wahl}.',
             'en' => 'I’m starting from your choice in the demo: {wahl}.',
         ],
         'knappheit' => [
@@ -1798,8 +1798,8 @@ final class Texte
             'en' => 'Once those {g} projects are done, prices go up. Anyone holding a quote keeps theirs.',
         ],
         'autoOk' => [
-            'it' => 'Salvo a ogni passo. Puoi chiudere e tornare con lo stesso link.',
-            'de' => 'Ich speichere bei jedem Schritt. Du kannst zumachen und mit demselben Link zurückkommen.',
+            'it' => 'Salvo a ogni passo. Può chiudere e tornare con lo stesso link.',
+            'de' => 'Ich speichere bei jedem Schritt. Sie können die Seite schließen und mit demselben Link zurückkommen.',
             'en' => 'I save at every step. You can close this and return with the same link.',
         ],
 
@@ -1827,13 +1827,13 @@ final class Texte
            gegebenenfalls einen Satz aendern, senden.
            ------------------------------------------------------------------ */
         'preisBetreff' => [
-            'it' => 'Il prezzo per il tuo sito',
-            'de' => 'Der Preis für deine Website',
+            'it' => 'Il prezzo per il suo sito',
+            'de' => 'Der Preis für Ihre Website',
             'en' => 'The price for your website',
         ],
         'preisEinleitung' => [
-            'it' => 'grazie per le tue indicazioni. In base a quello che mi hai descritto, il sito viene {preis}.',
-            'de' => 'danke für deine Angaben. Nach dem, was du beschrieben hast, kostet die Website {preis}.',
+            'it' => 'grazie per le sue indicazioni. In base a quello che mi ha descritto, il sito viene {preis}.',
+            'de' => 'vielen Dank für Ihre Angaben. Nach dem, was Sie beschrieben haben, kostet die Website {preis}.',
             'en' => 'thank you for your answers. Based on what you described, the website comes to {preis}.',
         ],
         'preisInhalt' => [
@@ -1842,8 +1842,8 @@ final class Texte
             'en' => 'What that includes:',
         ],
         'preisBetreuung' => [
-            'it' => 'In più c’è l’assistenza mensile, {betrag} al mese. È un contratto a parte e puoi anche farne a meno: il sito funziona lo stesso.',
-            'de' => 'Dazu kommt die monatliche Betreuung, {betrag} im Monat. Das ist ein eigener Vertrag, den du auch weglassen kannst — die Website läuft genauso.',
+            'it' => 'In più c’è l’assistenza mensile, {betrag} al mese. È un contratto a parte e può anche farne a meno: il sito funziona lo stesso.',
+            'de' => 'Dazu kommt die monatliche Betreuung, {betrag} im Monat. Das ist ein eigener Vertrag, den Sie auch weglassen können — die Website läuft genauso.',
             'en' => 'On top of that there is the monthly care, {betrag} a month. That is a separate contract and you can do without it — the site runs just the same.',
         ],
         /* KEIN "WENN DAS PASST" MEHR
@@ -1857,8 +1857,8 @@ final class Texte
            Es kommt jetzt in jedem Fall — mit einem Knopf zum Annehmen. Wer
            etwas anders will, sagt es weiterhin. */
         'preisSchluss' => [
-            'it' => 'Il preventivo dettagliato te lo mando subito dopo, voce per voce: basta un clic per accettarlo. Se c’è qualcosa da aggiungere o da togliere, dimmelo e rifaccio il conto.',
-            'de' => 'Das Angebot dazu schicke ich dir gleich hinterher — Posten für Posten, mit einem Klick zum Annehmen. Soll etwas dazu oder weg, sag Bescheid, dann rechne ich es neu.',
+            'it' => 'Il preventivo dettagliato glielo mando subito dopo, voce per voce: basta un clic per accettarlo. Se c’è qualcosa da aggiungere o da togliere, me lo dica e rifaccio il conto.',
+            'de' => 'Das Angebot dazu schicke ich Ihnen gleich hinterher — Posten für Posten, mit einem Klick zum Annehmen. Soll etwas dazu oder weg, sagen Sie Bescheid, dann rechne ich es neu.',
             'en' => 'The detailed quote follows right after — line by line, with a single click to accept. If something should be added or removed, tell me and I will redo the figures.',
         ],
     ];
@@ -1867,13 +1867,13 @@ final class Texte
        Das Angebot, so wie der Kunde es sieht.
 
        Ein Angebot ist der Moment, in dem aus einem Gespraech Geld wird. Der
-       Ton bleibt trotzdem derselbe: duzen, kurze Saetze, und keine Zeile,
+       Ton bleibt trotzdem derselbe: siezen, kurze Saetze, und keine Zeile,
        die man zweimal lesen muss.
        ---------------------------------------------------------------------- */
     public const ANGEBOT = [
-        'titel'   => ['it' => 'La tua offerta', 'de' => 'Dein Angebot', 'en' => 'Your quote'],
+        'titel'   => ['it' => 'La sua offerta', 'de' => 'Ihr Angebot', 'en' => 'Your quote'],
         'lead'    => [
-            'it' => 'Ecco che cosa costa quello che ci siamo detti. Nessuna sorpresa dopo: quello che leggi qui è il prezzo.',
+            'it' => 'Ecco che cosa costa quello che ci siamo detti. Nessuna sorpresa dopo: quello che legge qui è il prezzo.',
             'de' => 'Das kostet, worüber wir gesprochen haben. Keine Überraschungen danach — was hier steht, ist der Preis.',
             'en' => 'Here is what we discussed, and what it costs. No surprises later — what you read here is the price.',
         ],
@@ -1896,7 +1896,7 @@ final class Texte
            schliesst einen Vertrag, und das darf man ihm auch sagen. */
         'zustKopf' => [
             'it' => 'Prima di accettare',
-            'de' => 'Bevor du annimmst',
+            'de' => 'Bevor Sie annehmen',
             'en' => 'Before you accept',
         ],
         'fehlerZust' => [
@@ -1910,7 +1910,7 @@ final class Texte
             'de' => 'Was passt nicht? Eine Zeile genügt — sie hilft mir weiter.',
             'en' => 'What is not right? One line is enough — it helps me.',
         ],
-        'pdf' => ['it' => 'Scarica in PDF', 'de' => 'Als PDF herunterladen', 'en' => 'Download as PDF'],
+        'pdf' => ['it' => 'Scaricare in PDF', 'de' => 'Als PDF herunterladen', 'en' => 'Download as PDF'],
         'proMonat'  => ['it' => 'al mese', 'de' => 'im Monat', 'en' => 'per month'],
         'pdfAn'     => ['it' => 'A', 'de' => 'An', 'en' => 'To'],
         'pdfDatum'  => ['it' => 'Data', 'de' => 'Datum', 'en' => 'Date'],
@@ -1919,18 +1919,18 @@ final class Texte
         'pdfWas'    => ['it' => 'Prestazione', 'de' => 'Leistung', 'en' => 'Item'],
         'pdfBetrag' => ['it' => 'Importo', 'de' => 'Betrag', 'en' => 'Amount'],
         'pdfFest'   => [
-            'it' => 'Quello che leggi qui è il prezzo. Se durante il lavoro serve altro, te lo dico prima.',
+            'it' => 'Quello che legge qui è il prezzo. Se durante il lavoro serve altro, glielo dico prima.',
             'de' => 'Was hier steht, ist der Preis. Kommt während der Arbeit etwas dazu, spreche ich es vorher ab.',
             'en' => 'What is written here is the price. If anything comes up during the work, I agree it with you first.',
         ],
         'dankeAn' => [
-            'it' => 'Grazie! Ti scrivo subito con il link per l’acconto — poi si comincia.',
+            'it' => 'Grazie! Le scrivo subito con il link per l’acconto — poi si comincia.',
             'de' => 'Danke! Ich melde mich gleich mit dem Link für die Anzahlung — dann geht es los.',
             'en' => 'Thank you! I will send you the deposit link shortly — then we start.',
         ],
         'dankeAb' => [
-            'it' => 'Va bene, grazie per avermelo detto. Se cambi idea, sai dove trovarmi.',
-            'de' => 'Alles gut, danke für die Rückmeldung. Wenn du es dir anders überlegst, weißt du, wo ich bin.',
+            'it' => 'Va bene, grazie per avermelo detto. Se cambia idea, sa dove trovarmi.',
+            'de' => 'Alles gut, danke für die Rückmeldung. Wenn Sie es sich anders überlegen, wissen Sie, wo Sie mich finden.',
             'en' => 'That is fine, thanks for telling me. If you change your mind, you know where I am.',
         ],
         'schonAn' => [
@@ -1944,8 +1944,8 @@ final class Texte
             'en' => 'This quote was declined.',
         ],
         'abgelaufen' => [
-            'it' => 'Questa offerta è scaduta. Scrivimi e te ne faccio una nuova — di solito al prezzo di prima.',
-            'de' => 'Dieses Angebot ist abgelaufen. Schreib mir, dann mache ich ein neues — meist zum alten Preis.',
+            'it' => 'Questa offerta è scaduta. Mi scriva e gliene faccio una nuova — di solito al prezzo di prima.',
+            'de' => 'Dieses Angebot ist abgelaufen. Schreiben Sie mir, dann mache ich ein neues — meist zum alten Preis.',
             'en' => 'This quote has expired. Write to me and I will make a new one — usually at the old price.',
         ],
         /* ---- Gegenvorschlag ------------------------------------------
@@ -1953,13 +1953,13 @@ final class Texte
            sieht, ist eine Auskunft -- deshalb sagt jeder dieser Saetze, dass
            das verbindliche Angebot danach kommt. */
         'aendernKopf' => [
-            'it' => 'Ti serve qualcosa in più o in meno?',
-            'de' => 'Brauchst du mehr oder weniger?',
+            'it' => 'Le serve qualcosa in più o in meno?',
+            'de' => 'Brauchen Sie mehr oder weniger?',
             'en' => 'Need more, or less?',
         ],
         'aendernLead' => [
-            'it' => 'Togli la spunta a quello che non ti serve, cambia il numero di pagine, aggiungi quello che manca. Il totale si aggiorna subito.',
-            'de' => 'Nimm das Häkchen weg, was du nicht brauchst, ändere die Zahl der Seiten, nimm dazu, was fehlt. Die Summe rechnet sich sofort mit.',
+            'it' => 'Tolga la spunta a quello che non le serve, cambi il numero di pagine, aggiunga quello che manca. Il totale si aggiorna subito.',
+            'de' => 'Entfernen Sie das Häkchen bei allem, was Sie nicht brauchen, ändern Sie die Zahl der Seiten, nehmen Sie dazu, was fehlt. Die Summe rechnet sich sofort mit.',
             'en' => 'Untick what you don’t need, change the number of pages, add what’s missing. The total updates as you go.',
         ],
         'aendernDazu' => [
@@ -1973,8 +1973,8 @@ final class Texte
             'en' => 'With these changes',
         ],
         'aendernKeinAngebot' => [
-            'it' => 'Indicazione, non un’offerta. Quella vincolante te la mando io, di solito lo stesso giorno.',
-            'de' => 'Auskunft, kein Angebot. Das verbindliche schicke ich dir, meist noch am selben Tag.',
+            'it' => 'Indicazione, non un’offerta. Quella vincolante gliela mando io, di solito lo stesso giorno.',
+            'de' => 'Auskunft, kein Angebot. Das verbindliche schicke ich Ihnen, meist noch am selben Tag.',
             'en' => 'A guide, not a quote. The binding one comes from me, usually the same day.',
         ],
         'aendernAnfrage' => [
@@ -1993,23 +1993,23 @@ final class Texte
             'en' => 'This suits me better',
         ],
         'aendernDanke' => [
-            'it' => 'Ricevuto. Ti mando l’offerta aggiornata, di solito lo stesso giorno.',
-            'de' => 'Angekommen. Ich schicke dir das geänderte Angebot, meist noch am selben Tag.',
+            'it' => 'Ricevuto. Le mando l’offerta aggiornata, di solito lo stesso giorno.',
+            'de' => 'Angekommen. Ich schicke Ihnen das geänderte Angebot, meist noch am selben Tag.',
             'en' => 'Got it. I’ll send you the updated quote, usually the same day.',
         ],
         'aendernGenug' => [
-            'it' => 'Abbiamo già fatto due giri. Se manca ancora qualcosa, chiamami: in due minuti al telefono si risolve meglio che qui.',
-            'de' => 'Wir haben schon zweimal hin und her. Wenn noch etwas fehlt, ruf mich an — zwei Minuten am Telefon klären mehr als eine dritte Runde.',
+            'it' => 'Abbiamo già fatto due giri. Se manca ancora qualcosa, mi chiami: in due minuti al telefono si risolve meglio che qui.',
+            'de' => 'Wir haben schon zweimal hin und her. Wenn noch etwas fehlt, rufen Sie mich an — zwei Minuten am Telefon klären mehr als eine dritte Runde.',
             'en' => 'We’ve been back and forth twice. If something is still missing, call me — two minutes on the phone beats a third round.',
         ],
         'aendernOffen' => [
-            'it' => 'Il tuo desiderio è arrivato. Ti rispondo con l’offerta aggiornata.',
-            'de' => 'Dein Wunsch ist angekommen. Ich melde mich mit dem geänderten Angebot.',
+            'it' => 'Il suo desiderio è arrivato. Le rispondo con l’offerta aggiornata.',
+            'de' => 'Ihr Wunsch ist angekommen. Ich melde mich mit dem geänderten Angebot.',
             'en' => 'Your request has arrived. I’ll come back with the updated quote.',
         ],
         'ersetzt' => [
-            'it' => 'Questa offerta è stata sostituita da una nuova, con le modifiche che mi hai chiesto. La trovi nell’e-mail più recente. Qui sotto resta la versione precedente, così puoi confrontarle.',
-            'de' => 'Dieses Angebot wurde durch ein neues ersetzt — mit den Änderungen, um die du gebeten hast. Es steht in der jüngeren E-Mail. Hier unten bleibt die vorige Fassung stehen, damit du vergleichen kannst.',
+            'it' => 'Questa offerta è stata sostituita da una nuova, con le modifiche che mi ha chiesto. La trova nell’e-mail più recente. Qui sotto resta la versione precedente, così può confrontarle.',
+            'de' => 'Dieses Angebot wurde durch ein neues ersetzt — mit den Änderungen, um die Sie gebeten haben. Es steht in der jüngeren E-Mail. Hier unten bleibt die vorige Fassung stehen, damit Sie vergleichen können.',
             'en' => 'This quote has been replaced by a new one with the changes you asked for. It is in the more recent email. The previous version stays below so you can compare.',
         ],
         'weg' => [
@@ -2018,8 +2018,8 @@ final class Texte
             'en' => 'This link is no longer valid.',
         ],
         'panne' => [
-            'it' => 'Qualcosa non ha funzionato. Riprova tra poco.',
-            'de' => 'Etwas hat nicht geklappt. Versuch es gleich noch einmal.',
+            'it' => 'Qualcosa non ha funzionato. Riprovi tra poco.',
+            'de' => 'Etwas hat nicht geklappt. Versuchen Sie es gleich noch einmal.',
             'en' => 'Something went wrong. Please try again shortly.',
         ],
     ];
@@ -2043,14 +2043,14 @@ final class Texte
 
         'kundenseite' => [
             'it' => [
-                'Ti mando subito il link alla tua pagina, all’indirizzo che abbiamo.',
-                'Lì vedi a che punto siamo e cosa puoi fare adesso.',
-                'Se non arriva, guarda nello spam.',
+                'Le mando subito il link alla sua pagina, all’indirizzo che abbiamo.',
+                'Lì vede a che punto siamo e cosa può fare adesso.',
+                'Se non arriva, guardi nello spam.',
             ],
             'de' => [
-                'Ich schicke dir gleich den Link zu deiner Seite — an die Adresse, die wir haben.',
-                'Dort siehst du, wo wir stehen und was du jetzt tun kannst.',
-                'Wenn nichts ankommt, sieh bitte im Spam nach.',
+                'Ich schicke Ihnen gleich den Link zu Ihrer Seite — an die Adresse, die wir haben.',
+                'Dort sehen Sie, wo wir stehen und was Sie jetzt tun können.',
+                'Wenn nichts ankommt, sehen Sie bitte im Spam nach.',
             ],
             'en' => [
                 'I am sending you the link to your page right now, to the address we have.',
@@ -2061,14 +2061,14 @@ final class Texte
 
         'fragebogen_neu' => [
             'it' => [
-                'Ti rimando subito il questionario, all’indirizzo che abbiamo.',
-                'Aprilo con calma: puoi salvare e continuare più tardi.',
-                'Se una domanda non ti è chiara, lasciala vuota e mandalo lo stesso.',
+                'Le rimando subito il questionario, all’indirizzo che abbiamo.',
+                'Lo apra con calma: può salvare e continuare più tardi.',
+                'Se una domanda non le è chiara, la lasci vuota e lo mandi lo stesso.',
             ],
             'de' => [
-                'Ich schicke dir den Fragebogen gleich noch einmal — an die Adresse, die wir haben.',
-                'Öffne ihn in Ruhe. Du kannst zwischendurch speichern und später weitermachen.',
-                'Wenn eine Frage unklar ist, lass sie leer und schick ihn trotzdem ab.',
+                'Ich schicke Ihnen den Fragebogen gleich noch einmal — an die Adresse, die wir haben.',
+                'Öffnen Sie ihn in Ruhe. Sie können zwischendurch speichern und später weitermachen.',
+                'Wenn eine Frage unklar ist, lassen Sie sie leer und schicken Sie ihn trotzdem ab.',
             ],
             'en' => [
                 'I am sending you the questionnaire again, to the address we have.',
@@ -2079,12 +2079,12 @@ final class Texte
 
         'fragebogen_zurueck' => [
             'it' => [
-                'Il tuo questionario è già arrivato.',
-                'Non devi fare altro: adesso tocca a noi.',
+                'Il suo questionario è già arrivato.',
+                'Non deve fare altro: adesso tocca a noi.',
             ],
             'de' => [
-                'Dein Fragebogen ist schon bei uns.',
-                'Du musst nichts mehr tun — jetzt sind wir dran.',
+                'Ihr Fragebogen ist schon bei uns.',
+                'Sie müssen nichts mehr tun — jetzt sind wir dran.',
             ],
             'en' => [
                 'Your questionnaire has already reached us.',
@@ -2095,11 +2095,11 @@ final class Texte
         'fragebogen_noch_nicht' => [
             'it' => [
                 'Il questionario non è ancora partito.',
-                'Te lo manda Uwe: arriva per e-mail.',
+                'Glielo manda Uwe: arriva per e-mail.',
             ],
             'de' => [
-                'Der Fragebogen ist noch nicht bei dir raus.',
-                'Uwe schickt ihn dir — er kommt per E-Mail.',
+                'Der Fragebogen ist noch nicht an Sie rausgegangen.',
+                'Uwe schickt ihn Ihnen — er kommt per E-Mail.',
             ],
             'en' => [
                 'The questionnaire has not gone out yet.',
@@ -2110,11 +2110,11 @@ final class Texte
         'vorschau_noch_nicht' => [
             'it' => [
                 'L’anteprima non è ancora aperta.',
-                'Appena è pronta ricevi un’e-mail con il link.',
+                'Appena è pronta riceve un’e-mail con il link.',
             ],
             'de' => [
                 'Der Entwurf ist noch nicht freigegeben.',
-                'Sobald er steht, bekommst du eine E-Mail mit dem Link.',
+                'Sobald er steht, bekommen Sie eine E-Mail mit dem Link.',
             ],
             'en' => [
                 'The draft is not open yet.',
@@ -2124,12 +2124,12 @@ final class Texte
 
         'unbekannt' => [
             'it' => [
-                'Con questo numero non ti trovo.',
-                'Dimmi il tuo problema: lo passo avanti e qualcuno ti richiama.',
+                'Con questo numero non la trovo.',
+                'Mi dica il suo problema: lo passo avanti e qualcuno la richiama.',
             ],
             'de' => [
-                'Unter dieser Nummer finde ich dich nicht.',
-                'Sag mir, worum es geht — ich gebe es weiter, und jemand ruft dich zurück.',
+                'Unter dieser Nummer finde ich Sie nicht.',
+                'Sagen Sie mir, worum es geht — ich gebe es weiter, und jemand ruft Sie zurück.',
             ],
             'en' => [
                 'I cannot find you under this number.',
@@ -2140,11 +2140,11 @@ final class Texte
         'gemeldet' => [
             'it' => [
                 'Ho preso nota e l’ho passata avanti.',
-                'Qualcuno ti richiama.',
+                'Qualcuno la richiama.',
             ],
             'de' => [
                 'Ich habe das aufgenommen und weitergegeben.',
-                'Jemand meldet sich bei dir.',
+                'Jemand meldet sich bei Ihnen.',
             ],
             'en' => [
                 'I have noted this and passed it on.',

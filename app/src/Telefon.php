@@ -850,7 +850,9 @@ final class Telefon
             ? (string) Db::wert('SELECT name FROM customers WHERE id = ?', [$kundeId], '')
             : trim((string) ($d['name'] ?? ''));
 
-        $text = str_replace(['{name}', '{link}'], [$name !== '' ? $name : $t['anrede_ohne'], $link], $t['text']);
+        // Ohne Namen stand dort "Guten Tag ," -- dann faellt das Leerzeichen vor dem Komma mit weg
+        $text = $name !== '' ? str_replace('{name}', $name, $t['text']) : str_replace(' {name}', '', $t['text']);
+        $text = str_replace('{link}', $link, $text);
         $raus = Mail::senden('telefon_angebot', $an, $t['betreff'], $text,
                              $kundeId > 0 ? ['customer_id' => $kundeId] : []);
 
@@ -874,19 +876,19 @@ final class Telefon
     /** @var array<string,array<string,string>> */
     private const MAILTEXT = [
         'it' => [
-            'betreff' => 'Il tuo preventivo — Vecom Design',
+            'betreff' => 'Il suo preventivo — Vecom Design',
             'anrede_ohne' => '',
-            'text' => "Ciao {name},\n\ncome promesso al telefono: qui puoi completare le poche domande "
-                . "che mancano. Alla fine sai in che ordine di prezzo ti muovi — senza impegno.\n\n{link}\n\n"
-                . "Se qualcosa non è chiaro, rispondi pure a questa mail.\n\nA presto\nVecom Design",
+            'text' => "Buongiorno {name},\n\ncome promesso al telefono: qui può completare le poche domande "
+                . "che mancano. Alla fine sa subito in che ordine di prezzo si muove — senza impegno.\n\n{link}\n\n"
+                . "Se qualcosa non è chiaro, risponda pure a questa e-mail.\n\nA presto\nVecom Design",
         ],
         'de' => [
-            'betreff' => 'Dein Angebot — Vecom Design',
+            'betreff' => 'Ihr Angebot — Vecom Design',
             'anrede_ohne' => '',
-            'text' => "Hallo {name},\n\nwie am Telefon besprochen: Hier kannst du die paar restlichen "
-                . "Fragen beantworten. Danach weißt du, in welcher Größenordnung du liegst — "
-                . "unverbindlich.\n\n{link}\n\nWenn etwas unklar ist, antworte einfach auf diese Mail.\n\n"
-                . "Bis bald\nVecom Design",
+            'text' => "Guten Tag {name},\n\nwie am Telefon besprochen: Hier können Sie die wenigen restlichen "
+                . "Fragen beantworten. Danach wissen Sie, in welcher Größenordnung Sie liegen — "
+                . "unverbindlich.\n\n{link}\n\nWenn etwas unklar ist, antworten Sie einfach auf diese E-Mail.\n\n"
+                . "Herzliche Grüße\nVecom Design",
         ],
         'en' => [
             'betreff' => 'Your quote — Vecom Design',
