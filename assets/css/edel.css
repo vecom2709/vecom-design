@@ -1,0 +1,165 @@
+/* ==========================================================================
+   VECOM DESIGN — edel.css (Umbau 24.09.2026, Richtung B „Magazin" in Blau)
+
+   Uwe: „Gesamte Vecom Seite soll edel, exclusive aber sehr ansprechend
+   wirken, der Kunde soll direkt verstehen worum es geht." Aus drei lokalen
+   Richtungen wählte er B — „aber im Blau und das V bewegend wie es vorher
+   war". Deshalb liegt diese Datei ÜBER app.css und erlebnis.css und ändert
+   nur, was die Richtung ausmacht:
+
+   - E2 Schrift: Überschriften in Cormorant Garamond, die Kursive ist das
+     eine Akzentmittel (im Markenverlauf Blau → Cyan). Fließtext bleibt Inter.
+   - E3 Ruhe: kein Filmkorn, mehr Luft zwischen den Abschnitten.
+   - K3 „Mein Betrieb ist …", E4 Bildbänder, V4 WhatsApp-Knopf mit Foto.
+
+   Die Blauwerte kommen aus den Tokens in app.css; hier wird keine neue
+   Farbe erfunden. Nur transform und opacity werden animiert.
+   ========================================================================== */
+:root {
+  --f-serif: 'Cormorant', 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --edel-linie: rgba(150, 190, 240, .18);
+}
+
+/* ---------- Schrift ----------------------------------------------------- */
+/* Cormorant hat ein kleines x — gleiche Wirkung braucht rund ein Fünftel mehr
+   Größe als die Archivo davor. Gewicht 500: 400 wird auf Dunkel zu dünn. */
+h1, h2, h3 {
+  font-family: var(--f-serif); font-stretch: normal; font-weight: 500;
+  letter-spacing: -.008em; line-height: 1.02;
+}
+.sechead h2, .contact h2, .betrieb h2 { font-size: calc(var(--t-xl) * 1.2); }
+h3 { font-size: 1.18em; letter-spacing: 0; line-height: 1.12; }
+h1 em, h2 em, h3 em, .hero h1 .accent {
+  font-style: italic; font-weight: 500;
+  background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;
+  padding-right: .06em;            /* die Kursive läuft sonst aus dem Verlauf */
+}
+
+/* ---------- Ruhe (E3) --------------------------------------------------- */
+.grain { display: none; }
+.hero__light { opacity: .75; }
+
+/* ---------- Aufmacher B -------------------------------------------------- */
+.hero--b { padding-top: clamp(6.5rem, 12vh, 9rem); padding-bottom: clamp(4rem, 9vh, 7rem); }
+.hero--b .eyebrow { letter-spacing: .32em; }
+.hero--b h1 {
+  font-size: clamp(2.9rem, 1.2rem + 4.6vw, 6.2rem); font-weight: 500;
+  line-height: 1; letter-spacing: -.012em; margin-top: var(--s-3);
+  text-wrap: balance;
+}
+/* Eine Maske für den ganzen Satz: Die Umbrüche wählt der Browser (balance),
+   je Sprache anders — fest getrennte Zeilen brachen auf 1440 in vier. */
+.hero--b .hero__lead { font-size: clamp(1.05rem, 1rem + .3vw, 1.22rem); line-height: 1.62; margin-top: var(--s-4); }
+@media (min-width: 900px) {
+  .hero--b h1 { max-width: 62%; }
+  .hero--b .hero__lead { max-width: 48%; }
+}
+@media (min-width: 1200px) {
+  .hero--b h1 { max-width: 56%; }
+  .hero--b .hero__lead { max-width: 42%; }
+}
+.hero--b .hero__cta { align-items: center; gap: var(--s-4); margin-top: var(--s-4); }
+.hero__leise {
+  font-family: var(--f-serif); font-style: italic; font-size: 1.4rem; color: var(--c-text);
+  border-bottom: 1px solid var(--edel-linie); padding-bottom: .15rem;
+  transition: border-color var(--d-ui, .18s) ease, color var(--d-ui, .18s) ease;
+}
+.hero__leise:hover { color: #fff; border-color: var(--c-cyan); }
+
+/* ---------- Mein Betrieb ist … (K3) ------------------------------------- */
+.betrieb__raster {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: clamp(1rem, 2.4vw, 2rem);
+}
+.betrieb__kopf { grid-column: 1 / 7; }
+.betrieb__kopf .marg { display: block; margin-bottom: var(--s-3); }
+.betrieb__kopf p { margin-top: var(--s-3); max-width: 30rem; color: var(--c-text-dim); }
+.betrieb__liste { grid-column: 1 / 7; margin-top: var(--s-5); border-top: 1px solid var(--edel-linie); counter-reset: n; }
+.betrieb__liste button {
+  display: grid; grid-template-columns: 3rem 1fr auto; align-items: baseline; width: 100%;
+  padding: 1rem 0; border: 0; border-bottom: 1px solid var(--edel-linie); background: none;
+  text-align: left; cursor: pointer; counter-increment: n;
+}
+.betrieb__liste button::before { content: counter(n, decimal-leading-zero); font-size: var(--t-xs); letter-spacing: .14em; color: var(--c-text-faint); }
+.betrieb__liste button span { display: inline-block; transition: color .25s ease, transform .35s var(--e-std, cubic-bezier(.16,1,.3,1)); font-family: var(--f-serif); font-size: clamp(1.4rem, 1.2rem + .6vw, 1.8rem); color: var(--c-text-dim); }
+.betrieb__liste button::after { content: "→"; color: transparent; transition: color .25s ease; }
+.betrieb__liste button:hover span, .betrieb__liste button[aria-pressed="true"] span { color: var(--c-text); }
+.betrieb__liste button[aria-pressed="true"] span { font-style: italic; transform: translateX(.6rem); }
+.betrieb__liste button[aria-pressed="true"]::after { color: var(--c-cyan); }
+.betrieb__liste button:focus-visible { outline: 1px solid var(--c-cyan); outline-offset: 4px; }
+.betrieb__vitrine { grid-column: 8 / 13; grid-row: 1 / 3; align-self: start; position: sticky; top: 7rem; }
+.betrieb__bild {
+  position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--c-surface);
+  outline: 1px solid var(--edel-linie); outline-offset: 10px;
+}
+.betrieb__bild img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transform: scale(1.03);
+  transition: opacity .7s var(--e-std, ease), transform 2.4s var(--e-std, ease);
+}
+.betrieb__bild img.ist-an { opacity: 1; transform: none; }
+.betrieb__satz { margin-top: var(--s-4); font-family: var(--f-serif); font-size: clamp(1.3rem, 1.1rem + .5vw, 1.6rem); line-height: 1.35; color: var(--c-text); min-height: 4.1em; }
+.betrieb__knoepfe { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); margin-top: var(--s-3); }
+.betrieb__anfrage { font-size: var(--t-sm); color: var(--c-text-dim); border-bottom: 1px solid var(--edel-linie); padding-bottom: .15rem; }
+.betrieb__anfrage:hover { color: var(--c-text); border-color: var(--c-cyan); }
+/* Telefon: Die Liste wird zu Chips ÜBER dem Bild — sonst wählte man unten
+   und das Bild wechselte außer Sicht (Probe 390 px, 24.09.2026). */
+@media (max-width: 900px) {
+  .betrieb__raster { grid-template-columns: 1fr; }
+  .betrieb__kopf, .betrieb__liste, .betrieb__vitrine { grid-column: 1; grid-row: auto; }
+  .betrieb__kopf { order: 1; } .betrieb__liste { order: 2; } .betrieb__vitrine { order: 3; }
+  .betrieb__vitrine { position: static; margin-top: var(--s-4); }
+  .betrieb__liste { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: var(--s-4); border-top: 0; }
+  .betrieb__liste button { display: inline-flex; width: auto; padding: .55rem .95rem; border: 1px solid var(--edel-linie); border-radius: 999px; }
+  .betrieb__liste button::before, .betrieb__liste button::after { content: none; }
+  .betrieb__liste button span { font-size: 1.12rem; }
+  .betrieb__liste button[aria-pressed="true"] { border-color: var(--c-cyan); }
+  .betrieb__liste button[aria-pressed="true"] span { transform: none; color: #fff; }
+  .betrieb__satz { min-height: 0; }
+}
+
+/* ---------- Bildbänder (E4) --------------------------------------------- */
+.band { position: relative; margin: 0; height: min(82svh, 760px); overflow: hidden; }
+.band picture, .band img { display: block; width: 100%; height: 100%; }
+.band img { object-fit: cover; }
+.band::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, var(--c-base) 0, transparent 18%, transparent 55%, rgba(5, 7, 13, .82) 100%); }
+.band figcaption { position: absolute; z-index: 1; left: 0; right: 0; bottom: clamp(1.6rem, 5vh, 3rem); }
+.band figcaption small { display: block; margin-bottom: .7rem; font-size: var(--t-xs); letter-spacing: .3em; text-transform: uppercase; color: var(--c-cyan); }
+.band figcaption span { display: block; max-width: 32rem; font-family: var(--f-serif); font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.3rem); line-height: 1.2; color: #fff; text-shadow: 0 2px 24px rgba(0, 0, 0, .8); }
+@media (max-width: 700px) { .band { height: 62svh; } .band img { object-position: 60% 50%; } }
+
+/* ---------- Kleinigkeiten ------------------------------------------------ */
+.erlebnis .erlebnis__technik { margin-top: var(--s-5); text-align: center; font-size: var(--t-sm); }
+.erlebnis .erlebnis__technik a { color: var(--c-text-dim); border-bottom: 1px solid var(--edel-linie); padding-bottom: .15rem; }
+.erlebnis .erlebnis__technik a:hover { color: var(--c-text); border-color: var(--c-cyan); }
+.plans__monatlich { margin-top: var(--s-5); color: var(--c-text-dim); }
+.plans__monatlich a { color: var(--c-text); border-bottom: 1px solid var(--edel-linie); margin-left: .3rem; }
+
+/* ---------- WhatsApp mit Foto (V4) --------------------------------------- */
+.wa-knopf {
+  position: fixed; right: clamp(.9rem, 2vw, 1.5rem); bottom: clamp(.9rem, 2vw, 1.5rem); z-index: 60;
+  display: flex; align-items: center; gap: .7rem; padding: .45rem 1.1rem .45rem .45rem;
+  background: rgba(12, 17, 25, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--c-line-strong); border-radius: 999px;
+  font-size: var(--t-sm); color: var(--c-text);
+  box-shadow: 0 14px 34px -14px rgba(0, 0, 0, .9);
+  opacity: 0; transform: translateY(12px); pointer-events: none;
+  transition: opacity .4s ease, transform .5s var(--e-std, ease), border-color .2s ease;
+}
+.wa-knopf.ist-an { opacity: 1; transform: none; pointer-events: auto; }
+.wa-knopf:hover { border-color: var(--c-cyan); }
+.wa-knopf img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.wa-knopf i { width: 8px; height: 8px; border-radius: 50%; background: #3ecf7a; box-shadow: 0 0 0 3px rgba(62, 207, 122, .2); }
+@media (max-width: 700px) { .wa-knopf { padding: .35rem; } .wa-knopf span, .wa-knopf i { display: none; } .wa-knopf img { width: 46px; height: 46px; } }
+@media (prefers-reduced-motion: reduce) { .wa-knopf { transition: none; } .betrieb__bild img { transition: opacity .2s linear; transform: none; } }
+
+/* ---------- Technikseite ------------------------------------------------- */
+/* Ohne Aufmacher lag der Text direkt auf der hellen Bühne — unlesbar
+   (Probe 24.09.2026). Oben bleibt das V noch sichtbar, dann tragender Grund. */
+.technikseite { padding-top: clamp(8rem, 16vh, 11rem);
+  background: linear-gradient(180deg, rgba(5, 7, 13, .78) 0, rgba(5, 7, 13, .94) 320px, var(--c-base) 640px); }
+.technikseite .sechead h1 { font-size: calc(var(--t-xl) * 1.25); }
+.technikseite .tiefer__kopf { display: none; }        /* hier immer offen, kein Zuklappen */
+.technikseite__zurueck { margin-top: var(--s-6); text-align: center; }
+.technikseite__zurueck a { color: var(--c-text-dim); border-bottom: 1px solid var(--edel-linie); padding-bottom: .15rem; }
+.technikseite__zurueck a:hover { color: var(--c-text); border-color: var(--c-cyan); }

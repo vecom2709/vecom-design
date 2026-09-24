@@ -32,6 +32,10 @@ const EREIGNISSE = [
     'mittelklasse-ausstattung-stoff-anthrazit', 'mittelklasse-ausstattung-leder-cognac', 'mittelklasse-ausstattung-leder-elfenbein',
     'kleinwagen-stufe-1', 'kleinwagen-stufe-2', 'kleinwagen-stufe-3', 'kleinwagen-stufe-4',
     'mittelklasse-stufe-1', 'mittelklasse-stufe-2', 'mittelklasse-stufe-3', 'mittelklasse-stufe-4',
+    'whatsapp',
+    // Mein Betrieb ist … (24.09.2026): welche Branche gewählt, welche Demo geöffnet
+    'betrieb-restaurant', 'betrieb-friseur', 'betrieb-autohaus', 'betrieb-kueche', 'betrieb-juwelier', 'betrieb-weingut', 'betrieb-spedition', 'betrieb-moebel', 'betrieb-mode', 'betrieb-immobilien',
+    'betrieb-oeffnen-restaurant', 'betrieb-oeffnen-friseur', 'betrieb-oeffnen-autohaus', 'betrieb-oeffnen-kueche', 'betrieb-oeffnen-juwelier', 'betrieb-oeffnen-weingut', 'betrieb-oeffnen-spedition', 'betrieb-oeffnen-moebel', 'betrieb-oeffnen-mode', 'betrieb-oeffnen-immobilien',
 ];
 $datei = __DIR__ . '/demo.csv';
 

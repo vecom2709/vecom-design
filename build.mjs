@@ -163,6 +163,17 @@ const SEITEN = [
      "laeuft auf jedem Geraet gleich" nur halb wahr.
      Die Bilder unter assets/img/3d/tisch/ sind fuer alle drei Fassungen
      dieselben; der Pfad steht deshalb absolut im Skript. */
+  /* Die Technikseite (Umbau 24.09.2026): Qualitaetsstufen, Technik, Vergleich
+     und Streaming, von der Startseite hierher verlegt (Vorschlag K1). Sie
+     traegt dieselben Skripte wie die Startseite. */
+  {
+    quelle: 'tecnica.html',
+    ziele: { it: 'tecnica.html', de: 'de/technik.html', en: 'en/technology.html' },
+    adressen: { it: 'tecnica.html', de: 'de/technik.html', en: 'en/technology.html' },
+    meta: { titel: 'edel.tk_metaTitle', text: 'edel.tk_metaDesc' },
+    faq: null,
+    heim: true,
+  },
   {
     quelle: 'tavolo.html',
     ziele: { it: 'tavolo.html', de: 'de/tisch.html', en: 'en/table.html' },
@@ -511,6 +522,13 @@ function build(lang, seite) {
   if (tischseite) {
     const datei = tischseite.ziele[lang].split('/').pop();
     h = h.replace(/href="\/?(?:tavolo|tisch|table)\.html"/g, `href="${datei}"`);
+  }
+
+  // Die Technikseite (24.09.2026): tecnica.html, technik.html, technology.html
+  const technikseite = SEITEN.find((x) => x.quelle === 'tecnica.html');
+  if (technikseite) {
+    const datei = technikseite.ziele[lang].split('/').pop();
+    h = h.replace(/href="(?:tecnica|technik|technology)\.html/g, `href="${datei}`);
   }
 
   const betreuungsseite = SEITEN.find((x) => x.quelle === 'assistenza.html');

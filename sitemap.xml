@@ -7,7 +7,7 @@
     <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/"/>
-    <lastmod>2026-08-31</lastmod><priority>1.0</priority>
+    <lastmod>2026-09-24</lastmod><priority>1.0</priority>
   </url>
   <url>
     <loc>https://vecom-design.it/de/</loc>
@@ -120,5 +120,29 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/showroom.html"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/showroom.html"/>
     <lastmod>2026-09-16</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/tecnica.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/tecnica.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/technik.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/technology.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tecnica.html"/>
+    <lastmod>2026-09-24</lastmod><priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/technik.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/tecnica.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/technik.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/technology.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tecnica.html"/>
+    <lastmod>2026-09-24</lastmod><priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/technology.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/tecnica.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/technik.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/technology.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tecnica.html"/>
+    <lastmod>2026-09-24</lastmod><priority>0.4</priority>
   </url>
 </urlset>

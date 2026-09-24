@@ -31,9 +31,10 @@
 
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/fonts.css?v=cced0c71">
+<link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
 <link rel="stylesheet" href="assets/css/app.css?v=ccc457c1">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=185481ff">
+<link rel="stylesheet" href="assets/css/edel.css?v=160c29b0">
 
 
 <script type="importmap">
@@ -308,12 +309,12 @@
     </a>
 
     <nav class="nav" id="nav" aria-label="Hauptnavigation">
+      <a href="#betrieb" data-i18n="nav.betrieb">Esempi</a>
       <a href="#work" data-i18n="nav.work">Lavori</a>
       <a href="#services" data-i18n="nav.services">Servizi</a>
       <a href="#plans" data-i18n="nav.plans">Prezzi</a>
       <a href="#process" data-i18n="nav.process">Metodo</a>
       <a href="#about" data-i18n="about.nav">Chi sono</a>
-      <a href="#faq" data-i18n="nav.faq">FAQ</a>
       <a href="#contact" data-i18n="nav.contact">Contatti</a>
     </nav>
 
@@ -321,16 +322,6 @@
       <div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
         <span class="lang__current" aria-current="true">IT</span><a href="./de/" hreflang="de" lang="de">DE</a><a href="./en/" hreflang="en" lang="en">EN</a>
       </div>
-            <label class="chip chip--quality">
-        <span data-i18n="world.quality">Qualità</span>
-        <select data-quality aria-label="Qualität / Qualità / Quality">
-          <option value="auto" data-i18n="world.qAuto">Automatica</option>
-          <option value="ultra" data-i18n="world.qUltra">Ultra</option>
-          <option value="high" data-i18n="world.qHigh">Alta</option>
-          <option value="medium" data-i18n="world.qMedium">Media</option>
-          <option value="low" data-i18n="world.qLow">Bassa</option>
-        </select>
-      </label>
       <!-- Zweiter Zugang zum Cockpit. Der erste steht seit jeher unten in der
            Fusszeile; seit der Erlebnisteil auf der Startseite liegt, ist die
            Seite 25.000 Pixel lang, und ein Zahnrad ganz unten ist fuer die
@@ -355,35 +346,30 @@
 <span id="top"></span>
 
 <!-- ===================== Hero ===================== -->
-<section class="hero">
+<section class="hero hero--b">
   <div class="hero__light" aria-hidden="true"></div>
-  <div class="hero__grid" aria-hidden="true"></div>
-  <img class="hero__mark" src="assets/img/logo-mark.webp?v=e934798b" alt="" width="420" height="330" aria-hidden="true">
-  <div class="hero__sweep" aria-hidden="true"></div>
 
+  <!-- AUFMACHER (Umbau 24.09.2026, Richtung B „Magazin“ in Blau): eine
+       Aussage links, rechts bleibt die Bühne mit dem bewegten V frei —
+       Uwe: „b aber im blau und das V bewegend wie es vorher war“. Das
+       gerahmte Bild der Vorschau B ist deshalb in „Mein Betrieb ist …“
+       gewandert; hier hätte es das V verdeckt. -->
   <div class="wrap hero__inner" data-stagger>
-    <p class="eyebrow" data-reveal data-i18n="hero.eyebrow">Webdesign dalla Sicilia — siti, marchi, e-commerce</p>
+    <p class="eyebrow" data-reveal data-i18n="hero.eyebrow">Webdesign dalla Sicilia</p>
 
     <h1>
-      <span class="line-mask"><span data-i18n="hero.t1">Il suo sito deve</span></span>
-      <span class="line-mask"><span class="accent" data-i18n="hero.t2">portarle clienti.</span></span>
+      <span class="line-mask"><span><span data-i18n="hero.t1">Il sito che il suo</span> <em class="accent" data-i18n="hero.t2">mestiere</em> <span data-i18n="hero.t3">merita.</span></span></span>
     </h1>
 
-    <p class="hero__lead" data-reveal data-i18n="hero.lead">Costruisco siti per aziende, professionisti e attività locali — ognuno da zero, nessuno da un modello. A un prezzo fisso che approva Lei, prima.</p>
+    <p class="hero__lead" data-reveal data-i18n="hero.lead">Per attività con ambizione — ristorante, salone, concessionaria, manifattura. I suoi clienti vivono la sua offerta già sul sito. Su misura, a un prezzo fisso che approva Lei, prima.</p>
 
     <div class="hero__cta" data-reveal>
-      <a class="btn btn--primary" href="#contact" data-magnetic>
-        <span data-i18n="hero.cta1">Parliamo del suo progetto</span>
+      <a class="btn btn--primary" href="/bedarf.php?lang=it" data-magnetic>
+        <span data-i18n="hero.cta1">Richieda un preventivo</span>
         <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
       </a>
-      <a class="btn" href="#plans" data-i18n="hero.cta2">Quanto costa</a>
+      <a class="hero__leise" href="#betrieb" data-i18n="hero.cta2">oppure guardi prima gli esempi</a>
     </div>
-
-    <dl class="hero__meta" data-reveal>
-      <div><dt data-i18n="hero.m1t">Tempi</dt><dd data-i18n="hero.m1d">secondo il lavoro, non a calendario</dd></div>
-      <div><dt data-i18n="hero.m2t">Prezzi</dt><dd data-i18n="hero.m2d">su misura, non a pacchetto</dd></div>
-      <div><dt data-i18n="hero.m3t">Lingue</dt><dd data-i18n="hero.m3d">IT · DE · EN</dd></div>
-    </dl>
   </div>
 
   <div class="scrollcue" aria-hidden="true">
@@ -392,32 +378,28 @@
   </div>
 </section>
 
-<!-- ===================== Laufband ===================== -->
-<div class="marquee" aria-hidden="true">
-  <div class="marquee__track" data-marquee><span>Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza</span><span aria-hidden="true">Siti web su misura · E-commerce · Logo e identità · SEO · Prenotazioni online · Hosting e assistenza</span></div>
-</div>
-<!-- ===================== Non immaginare un sito =====================
-     Der Rahmen vor den beiden Beweisen. Er sagt nicht, was wir koennen,
-     sondern verschiebt, wonach der Leser ueberhaupt fragt: nicht "was
-     kostet eine Website", sondern "was koennte meine Marke sein".
-
-     Bewusst ohne Ueberschriftenkopf und ohne Knopf: Wer hier stehen
-     bleibt, soll weiterscrollen und es SEHEN -- unmittelbar darunter
-     stehen die Werkbank und das Haus. Ein Handlungsaufruf an dieser
-     Stelle wuerde genau davon wegfuehren.
-     ================================================================ -->
-<section class="vorstellung" id="experience">
-  <div class="wrap">
-    <p class="vorstellung__weg" data-reveal data-i18n="vor.h1">Non immagini un sito.</p>
-    <h2 class="vorstellung__gross" data-reveal data-i18n="vor.h2">Immagini un mondo digitale per il suo marchio.</h2>
-    <p class="vorstellung__woerter" data-reveal>
-      <span data-i18n="vor.w1">Web.</span>
-      <span data-i18n="vor.w2">3D.</span>
-      <span data-i18n="vor.w3">Motion.</span>
-      <span data-i18n="vor.w4">Interaction.</span>
-      <span data-i18n="vor.w5">Experience.</span>
-    </p>
-    <p class="vorstellung__lead" data-reveal data-i18n="vor.lead">Qui sotto non ci sono video né finte. Gira nel suo browser, adesso, sul suo dispositivo — e sotto c’è il numero di fotogrammi al secondo, così non deve credermi sulla parola.</p>
+<!-- ===================== Mein Betrieb ist … =====================
+     Vorschlag K3 und K4 (24.09.2026): Hier standen drei Abschnitte, die fast
+     dasselbe sagten — „Stellen Sie sich eine digitale Welt vor“, „Was wäre,
+     wenn …“ und der Wegweiser nach Ziel und Branche. Jetzt eine Frage, die
+     jeder Betrieb sofort beantworten kann: Was bin ich? Die Antwort zeigt das
+     passende Beispiel und führt mit einem Klick in die Demo (betrieb.js). -->
+<section class="section betrieb" id="betrieb" aria-labelledby="betrieb-h">
+  <div class="wrap betrieb__raster">
+    <header class="betrieb__kopf" data-stagger>
+      <span class="marg" data-i18n="edel.b_kicker">Esempi per settore</span>
+      <h2 id="betrieb-h" data-reveal><span data-i18n="edel.b_h1">La mia attività</span> <em data-i18n="edel.b_h2">è …</em></h2>
+      <p data-reveal data-i18n="edel.b_lead">Scelga il suo settore — e veda che cosa vivrebbero i suoi clienti sul suo sito. Non un video, ma demo vere che girano nel browser.</p>
+    </header>
+    <div class="betrieb__vitrine" data-reveal>
+      <div class="betrieb__bild" data-betrieb-bild></div>
+      <p class="betrieb__satz" aria-live="polite" data-betrieb-satz></p>
+      <div class="betrieb__knoepfe">
+        <button type="button" class="btn btn--primary" data-betrieb-oeffnen><span data-i18n="edel.b_open">Apra l’esempio</span></button>
+        <a class="betrieb__anfrage" href="/bedarf.php?lang=it" data-betrieb-anfrage data-i18n="edel.b_cta">Lo voglio per la mia attività</a>
+      </div>
+    </div>
+    <div class="betrieb__liste" role="group" aria-labelledby="betrieb-h" data-betrieb-liste></div>
   </div>
 </section>
 
@@ -443,15 +425,6 @@
       <p data-reveal data-i18n="erlebnis.lead">Ogni settore vende in modo diverso — per questo ogni demo ha il suo strumento. Prima la foto calcolata, su richiesta il modello che può girare Lei nel browser. Si carica solo ciò che apre.</p>
     </div>
 
-    <!-- Kapitelleiste (23.09.2026): Der Erlebnisteil ist auch zugeklappt noch
-         gut fünf Bildschirme lang. Eine schmale Leiste bleibt oben stehen und sagt, wo man ist und
-         was noch kommt -- ohne sie scrollt man an den Demos vorbei, ohne zu
-         wissen, dass es sie gibt. -->
-    <nav class="kapitel" id="kapitel" aria-label="Vecom Experience">
-      <a href="#demos" data-i18n="erlebnis.kap1">Demo</a>
-      <a href="#wegweiser" data-i18n="erlebnis.kap2">La guida</a>
-      <a href="#stufen" data-i18n="erlebnis.kap4">Livelli</a>
-    </nav>
 
     <!-- DEMO-GALERIE (24.09.2026, Uwe: "klein nebeneinander, erst mit dem
          Draufklicken wie gehabt"). Vorher standen Villa, Auto, Shop und Tisch
@@ -840,106 +813,7 @@
       </div>
     </section>
 
-    <section class="abschnitt hub" id="wegweiser" aria-labelledby="hub-h">
-      <header class="abschnitt__kopf">
-        <p class="kicker" data-i18n="erlebnis.hub_kicker">La guida</p>
-        <h2 id="hub-h" data-i18n="erlebnis.hub_h">Cosa deve ottenere il suo sito per Lei?</h2>
-        <p class="lead" data-i18n="erlebnis.hub_lead">Tocchi un obiettivo. Il settore adatto è già scelto — può cambiarlo. Accanto vede subito cosa potrebbe fare il suo sito e cosa lascio fuori di proposito.</p>
-      </header>
-      <div class="hub__raster">
-        <div class="hub__wahl">
-          <fieldset class="feld">
-            <legend data-i18n="erlebnis.zielLabel">Il suo obiettivo</legend>
-            <div class="ziele" id="ziele"></div>
-          </fieldset>
-          <fieldset class="feld">
-            <legend data-i18n="erlebnis.brancheLabel">Il suo settore</legend>
-            <div class="chips chips--umbruch" id="branchen"></div>
-          </fieldset>
-        </div>
-        <article class="ergebnis" id="ergebnis" aria-live="polite">
-          <noscript><p class="lead" data-i18n="erlebnis.hub_noscript">La guida ha bisogno di JavaScript. Tutto l’essenziale è comunque su questa pagina — oppure mi scriva direttamente.</p></noscript>
-        </article>
-      </div>
-    </section>
-
-    <section class="abschnitt stufen" id="stufen" aria-labelledby="stufen-h">
-      <header class="abschnitt__kopf">
-        <p class="kicker" data-i18n="erlebnis.stufen_kicker">Adaptive Experience</p>
-        <h2 id="stufen-h" data-i18n="erlebnis.stufen_h">Ogni dispositivo riceve la versione migliore che può reggere.</h2>
-        <p class="lead" data-i18n="erlebnis.stufen_lead">La pagina misura cosa sa fare il suo dispositivo e sceglie il livello da sola. Qui può cambiarlo e vedere sulla villa in alto cosa cambia — aspetto e inquadratura restano uguali, cambia solo il carico di calcolo.</p>
-      </header>
-      <div class="stufenwahl" role="group" aria-labelledby="stufen-h" id="stufenwahl">
-        <button type="button" data-stufe="AUTO" aria-pressed="true"><b>AUTO</b><span data-i18n="erlebnis.auto_s">misura il suo dispositivo</span></button>
-        <button type="button" data-stufe="SAFE" aria-pressed="false"><b>ECO</b><span data-i18n="erlebnis.eco_s">Immagini calcolate, niente 3D. Si apre subito, funziona ovunque.</span></button>
-        <button type="button" data-stufe="MEDIUM" aria-pressed="false"><b>STANDARD</b><span data-i18n="erlebnis.std_s">3D vero, senza ombre, densità di pixel semplice.</span></button>
-        <button type="button" data-stufe="HIGH" aria-pressed="false"><b>HIGH</b><span data-i18n="erlebnis.high_s">Ombre del sole morbide, bordi più fini.</span></button>
-        <button type="button" data-stufe="ULTRA" aria-pressed="false"><b>ULTRA</b><span data-i18n="erlebnis.ultra_s">Mappa delle ombre grande, densità di pixel piena.</span></button>
-        <button type="button" data-stufe="CINEMATIC" aria-pressed="false"><b>CINEMATIC</b><span data-i18n="erlebnis.cine_s">Path tracing — la foto. Su richiesta dal vivo da Unreal Engine in streaming.</span></button>
-      </div>
-      <div class="ablesung" id="ablesung" aria-live="polite">
-        <p class="ablesung__satz" id="ablesung-satz"></p>
-        <dl class="ablesung__werte" id="ablesung-werte"></dl>
-      </div>
-    </section>
-
-    <!-- Technik, Vergleich und Streaming (23.09.2026 zusammengelegt): drei
-         Abschnitte für die, die es genau wissen wollen. Offen standen sie als
-         anderthalb Bildschirme zwischen den Demos und dem Abschluss -- wer
-         nur sehen wollte, was möglich ist, musste sich hindurchscrollen.
-         Zugeklappt bleiben sie auffindbar; wer mit #technik & Co. kommt,
-         bekommt sie offen (erlebnis.js). -->
-    <details class="tiefer" id="tiefer">
-      <summary class="tiefer__kopf">
-        <span class="tiefer__text">
-          <span class="tiefer__titel" data-i18n="erlebnis.tiefer_t">Tecnica, confronto, streaming</span>
-          <span class="tiefer__zusatz" data-i18n="erlebnis.tiefer_z">Per chi vuole sapere come funziona — tre parti brevi.</span>
-        </span>
-        <i class="tiefer__zeichen" aria-hidden="true"></i>
-      </summary>
-    <section class="abschnitt technik" id="technik" aria-labelledby="technik-h">
-      <header class="abschnitt__kopf">
-        <p class="kicker" data-i18n="erlebnis.tech_kicker">La tecnica dietro</p>
-        <h2 id="technik-h" data-i18n="erlebnis.tech_h">Una frase per strumento. Di più, se desidera.</h2>
-      </header>
-      <div class="werkzeuge">
-        <article class="werkzeug"><h3 data-i18n="erlebnis.t1n">Blender</h3><p data-i18n="erlebnis.t1a">Il suo oggetto viene ricostruito in digitale — così preciso da sembrare fotografato.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t1b">Modellato con misure reali in Blender 5.2, calcolato con Cycles su una RTX 5070. La villa ha 647 componenti e 26 materiali; il giardino con oltre 600.000 fili d’erba, cipressi fatti di ciuffi di rami, un muretto a secco di circa 7.800 pietre singole e uliveti nasce solo per le foto.</p></details></article>
-        <article class="werkzeug"><h3 data-i18n="erlebnis.t4n">Path tracing</h3><p data-i18n="erlebnis.t4a">La luce viene calcolata come si propaga nella realtà — da qui l’effetto di una foto.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t4b">Blender Cycles con cielo fisico, rifrazione reale del vetro e caustiche, fino a 32 rimbalzi di luce. L’esposizione è misurata: intonaco bianco al sole a 0,83–0,86 di luminanza, come la imposterebbe un fotografo sul set.</p></details></article>
-        <article class="werkzeug"><h3 data-i18n="erlebnis.t2n">Three.js</h3><p data-i18n="erlebnis.t2a">Il suo visitatore gira il modello direttamente nel browser — senza app, senza plugin.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t2b">Three.js r185, servito dal nostro server. La casa arriva come GLB con 32.280 triangoli: 2,0 MB su disco, 127 KB in rete. Si carica solo quando qualcuno vuole girarla.</p></details></article>
-        <article class="werkzeug"><h3 data-i18n="erlebnis.t3n">Adaptive Experience</h3><p data-i18n="erlebnis.t3a">La pagina si adatta a ogni dispositivo — nessuno riceve una versione che scatta.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t3b">Un nucleo proprio (experience-core): misura del dispositivo, breve test di prestazioni, cinque livelli. Un controllore abbassa il livello se i fotogrammi calano in modo stabile, e lo rialza con prudenza.</p></details></article>
-        <article class="werkzeug"><h3 data-i18n="erlebnis.t5n">Unreal Engine</h3><p data-i18n="erlebnis.t5a">Per immobili premium: qualità da cinema, e il comando ce l’ha il suo cliente.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t5b">Unreal Engine 5 con Lumen per la versione in tempo reale e path tracing per i filmati. La stessa villa è già allestita lì e calibrata su Cycles.</p></details></article>
-        <article class="werkzeug"><h3 data-i18n="erlebnis.t6n">Pixel Streaming</h3><p data-i18n="erlebnis.t6a">La grafica la calcola un server — il suo cliente la vede sul telefono.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t6b">Pixel Streaming via WebRTC. Parte solo con un clic, con limite di tempo e tetto mensile, perché ogni minuto costa una scheda grafica a noleggio.</p></details></article>
-      </div>
-    </section>
-
-    <section class="abschnitt vergleich" id="vergleich" aria-labelledby="vergleich-h">
-      <header class="abschnitt__kopf">
-        <p class="kicker" data-i18n="erlebnis.vgl_kicker">Prima / dopo</p>
-        <h2 id="vergleich-h" data-i18n="erlebnis.vgl_h">Sito normale o experience?</h2>
-        <p class="lead" data-i18n="erlebnis.vgl_lead">Entrambi hanno il loro posto. Questa panoramica deve aiutarla a decidere — non screditare i siti normali.</p>
-      </header>
-      <div class="paare">
-        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p1a_t">Foto di prodotto</h3><p data-i18n="erlebnis.p1a_p">Basta, se il suo prodotto esiste in un’unica versione e una buona foto mostra tutto.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p1b_t">Prodotto da girare</h3><p data-i18n="erlebnis.p1b_p">Conviene quando ci sono varianti: 72 versioni del tavolo da un solo modello invece di 72 servizi fotografici.</p></div></div>
-        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p2a_t">Foto dell’immobile</h3><p data-i18n="erlebnis.p2a_p">Bastano, se l’immobile è finito e si fotografa bene.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p2b_t">Visita calcolata</h3><p data-i18n="erlebnis.p2b_p">Conviene se non è ancora costruito, se è lontano o se desidera selezionare i contatti prima.</p></div></div>
-        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p3a_t">Sito aziendale classico</h3><p data-i18n="erlebnis.p3a_p">Basta — ed è giusto — se i clienti devono chiamare: artigiani, studi medici, officine.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p3b_t">Motion e storytelling</h3><p data-i18n="erlebnis.p3b_p">Conviene se vende un’atmosfera: hotel, cantina, marchio.</p></div></div>
-        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p4a_t">Galleria di immagini</h3><p data-i18n="erlebnis.p4a_p">Basta per i pezzi unici veri — un’auto usata vuole foto vere.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p4b_t">Configuratore</h3><p data-i18n="erlebnis.p4b_p">Conviene con molte versioni: colori, misure, materiali, dotazioni.</p></div></div>
-      </div>
-    </section>
-
-    <section class="abschnitt strom" id="streaming" aria-labelledby="strom-h">
-      <header class="abschnitt__kopf">
-        <p class="kicker" data-i18n="erlebnis.str_kicker">Pixel Streaming</p>
-        <h2 id="strom-h" data-i18n="erlebnis.str_h">Grafica di alto livello anche sul telefono</h2>
-        <p class="lead" data-i18n="erlebnis.str_lead">Un server nel data center calcola l’immagine e la invia come video. Il suo visitatore comanda con il dito — il dispositivo non deve calcolare nulla.</p>
-      </header>
-      <ol class="kette">
-        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="52" rx="5"/><path d="M20 18h24M20 28h24M20 38h24"/><circle cx="44" cy="48" r="2.5" class="an"/></svg><h3 data-i18n="erlebnis.str1t">Server</h3><p data-i18n="erlebnis.str1p">Una scheda grafica nel data center calcola la scena Unreal.</p></li>
-        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 30c7-12 17-18 24-18s17 6 24 18"/><path d="M16 36c5-8 11-12 16-12s11 4 16 12"/><path d="M24 42c3-4 5-6 8-6s5 2 8 6"/><circle cx="32" cy="50" r="3" class="an"/></svg><h3 data-i18n="erlebnis.str2t">Stream</h3><p data-i18n="erlebnis.str2p">Le immagini finite viaggiano in rete come video, i tocchi tornano indietro.</p></li>
-        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="19" y="4" width="26" height="56" rx="5"/><path d="M19 12h26M19 50h26"/><circle cx="32" cy="55" r="1.5" class="an"/></svg><h3 data-i18n="erlebnis.str3t">Telefono</h3><p data-i18n="erlebnis.str3p">Mostra l’immagine e rimanda scorrimenti e tocchi.</p></li>
-      </ol>
-      <p class="ehrlich" data-i18n="erlebnis.str_ehrlich">A dirla tutta: uno stream costa a ogni minuto. Per questo non parte mai da solo, ma solo con un clic — e per la villa di questa pagina, per ora, solo su appuntamento.</p>
-    </section>
-    </details>
+    <p class="erlebnis__technik"><a href="tecnica.html" data-i18n="edel.technik">Per chi ama la tecnica: livelli di qualità, confronto e streaming</a></p>
 
     <!-- Abschluss des Erlebnisteils. Beim Zusammenlegen mit der Startseite war
          er zuerst herausgefallen: Der Bereich endete mit einem Absatz über
@@ -957,34 +831,21 @@
 </section>
 
 
-<!-- ===================== E se…? =====================
-     Die Bruecke von zwei fremden Beispielen (Tisch, Villa) zum eigenen
-     Betrieb des Lesers. Ohne sie bleiben die Demos Spielzeug: "schoen,
-     aber was hat das mit meiner Schreinerei zu tun?"
 
-     Fuenf Fragen, keine sechs: Die fuenfte zielt auf den Leser selbst
-     und nicht mehr auf seine Ware -- danach kommt nichts Besseres.
-     ============================================================== -->
-<section class="section wenn" id="wenn">
-  <div class="wrap">
-    <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="wenn.marg">e se…</span>
-      <h2 data-reveal data-i18n="wenn.head">E se…?</h2>
-      <p data-reveal data-i18n="wenn.lead">Cinque domande. Se una la riguarda, il resto è una conversazione di venti minuti.</p>
-    </div>
 
-    <ul class="wenn__liste" data-stagger>
-      <li data-reveal data-i18n="wenn.w1">E se il suo cliente potesse girare il suo prodotto prima di comprarlo?</li>
-      <li data-reveal data-i18n="wenn.w2">E se potesse visitare la casa prima che esista?</li>
-      <li data-reveal data-i18n="wenn.w3">E se configurasse la sua macchina e la vedesse smontarsi davanti agli occhi?</li>
-      <li data-reveal data-i18n="wenn.w4">E se il suo marchio non fosse un logo in un angolo, ma un luogo?</li>
-      <li data-reveal data-i18n="wenn.w5">E se la sua pagina fosse quella di cui parlano, invece di quella che chiudono?</li>
-    </ul>
 
-    <p class="wenn__fuer" data-reveal data-i18n="wenn.fuer">Immobiliare e architettura · Automotive · Lusso e moda · Arredamento e interior · Turismo e ospitalità · Industria e meccanica · Ristorazione · Arte e cultura</p>
-  </div>
-</section>
 
+<!-- Bildband (E4, 24.09.2026): ein gerechnetes Demo-Bild über die ganze Breite,
+     still und groß wie in einem Magazin — Pause zwischen zwei Abschnitten. -->
+<figure class="band band--1">
+  <picture>
+    <source media="(max-width: 800px)" type="image/avif" srcset="assets/img/erlebnis/branchen/schmuck-gelbgold-800.avif?v=98d04100">
+    <source media="(max-width: 800px)" type="image/webp" srcset="assets/img/erlebnis/branchen/schmuck-gelbgold-800.webp?v=beba2829">
+    <source type="image/avif" srcset="assets/img/erlebnis/branchen/schmuck-gelbgold.avif?v=398fdbc0">
+    <img src="assets/img/erlebnis/branchen/schmuck-gelbgold.webp?v=0e140dbe" width="1600" height="900" loading="lazy" decoding="async" alt="Automatikuhr und Solitärring im dunklen Studio">
+  </picture>
+  <figcaption class="wrap"><small data-i18n="edel.band1k">Gioielleria</small><span data-i18n="edel.band1t">L’orologio si apre pezzo per pezzo — così il cliente vede che cosa sta pagando.</span></figcaption>
+</figure>
 
 <!-- ===================== Arbeiten ===================== -->
 <section class="section" id="work">
@@ -1184,56 +1045,6 @@
         </div>
         </div>
       </article>
-      <article class="card framed card--b" data-reveal style="--p1: rgba(211,139,26,.55); --p2: rgba(127,174,47,.34);">
-        <div class="depth" data-depth
-          data-img="assets/img/work/terraviva.webp"
-          data-depth-src="assets/img/work/terraviva-depth.webp?v=0b9066f1">
-          <img src="assets/img/work/terraviva.webp?v=3e0e8bd5" alt="" width="1400" height="939" loading="lazy" decoding="async">
-          <canvas aria-hidden="true"></canvas>
-        </div>
-        <div class="card__body">
-          <span class="card__tag" data-i18n="work.w2tag">E-commerce</span>
-        <h3 data-i18n="work.w2t">TerraViva Sicilia</h3>
-        <p data-i18n="work.w2p">Gastronomia siciliana in cofanetti regalo: una pagina sola dal prodotto al pagamento, pensata per l’acquisto d’impulso.</p>
-        <p class="card__result" data-i18n="work.w2r">Dal prodotto al pagamento in una pagina</p>
-          <span class="card__link" data-i18n="work.w2l">In lavorazione</span>
-        </div>
-      </article>
-      <article class="card framed card--b" data-reveal style="--p1: rgba(28,92,58,.66); --p2: rgba(184,145,47,.36);">
-        <div class="depth" data-depth
-          data-img="assets/img/work/vecomshop.webp"
-          data-depth-src="assets/img/work/vecomshop-depth.webp?v=5506bb4a">
-          <img src="assets/img/work/vecomshop.webp?v=bf57bd2c" alt="" width="1400" height="939" loading="lazy" decoding="async">
-          <canvas aria-hidden="true"></canvas>
-        </div>
-        <div class="card__body">
-          <span class="card__tag" data-i18n="work.w3tag">Marchio ed e-commerce</span>
-        <h3 data-i18n="work.w3t">Vecom Shop</h3>
-        <p data-i18n="work.w3p">Prodotti naturali siciliani posizionati nella fascia premium: verde scuro, oro, molto spazio attorno al prodotto — l’estetica fa parte del prezzo.</p>
-        <p class="card__result" data-i18n="work.w3r">Posizionamento premium visibile a colpo d’occhio</p>
-          <span class="card__link" data-i18n="work.w3l">In lavorazione</span>
-        </div>
-      </article>
-      <article class="card framed card--live card--b" data-reveal style="--p1: rgba(176,36,140,.55); --p2: rgba(74,46,168,.42);">
-        <figure class="screen" data-screen>
-          <div class="screen__chrome">
-            <span class="screen__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="screen__url">manuelbrandner85.github.io/Friseursalon-Nadia</span>
-            <span class="screen__progress" aria-hidden="true"></span>
-          </div>
-          <div class="screen__viewport">
-            <img class="screen__page" src="assets/img/work/charme-live.webp?v=cb7f40e5" alt="Aufnahme der Website des Friseursalons Charme Color" width="900" height="2320" loading="lazy" decoding="async">
-            <span class="screen__cursor" aria-hidden="true"></span>
-          </div>
-        </figure>
-        <div class="card__body">
-          <span class="card__tag" data-i18n="work.w5tag">Sito trilingue</span>
-        <h3 data-i18n="work.w5t">Charme Color</h3>
-        <p data-i18n="work.w5p">Salone di parrucchiere con listino, appuntamenti e presentazione in tre lingue — perché la clientela parla italiano, tedesco e inglese.</p>
-        <p class="card__result" data-i18n="work.w5r">Una clientela, tre lingue</p>
-          <span class="card__link" data-i18n="work.w5l">In lavorazione</span>
-        </div>
-      </article>
     </div>
 
     <p class="work__note" data-i18n="work.note">Tutti questi siti sono online. I link portano direttamente lì.</p>
@@ -1256,12 +1067,6 @@
       <p data-reveal data-i18n="plans.voicesLead">Parole loro, non mie. Ogni frase è qui con il nome di chi l’ha detta.</p>
     </div>
     <div class="stimmen" data-stimmen-liste></div>
-  </div>
-</section>
-<!-- Zwischenruf -->
-<section class="interlude">
-  <div class="wrap">
-    <p data-reveal data-i18n="inter.a">Un sito non è un biglietto da visita. È il primo colloquio di vendita — e avviene senza di Lei.</p>
   </div>
 </section>
 
@@ -1429,107 +1234,13 @@
       <p class="orient__note" data-i18n="weg.faelleNote">Nel primo prezzo c’è tutta la costruzione: grafica, telefono, modulo di contatto, pubblicazione. Ogni pagina in più costa poi 65 – 85 €, ogni altra lingua 40 – 55 € per pagina. Sono le stesse voci con cui calcolo il suo preventivo.</p>
     </div>
 
-    <!-- ====================================================================
-         Die zwei Monatsvertraege nebeneinander.
-
-         Betreuung und Hosting sind eigene Vertraege — deshalb je ein eigener
-         Block mit eigener Ueberschrift. Untereinander sahen sie allerdings
-         beide aus wie ein Dreispaltenraster, aus dem zwei Karten gefallen
-         sind: Das .plans-Raster ist fuer drei gebaut, und seit die
-         Festpreis-Karte weg ist, steht in jedem nur noch eine.
-
-         Nebeneinander stimmt es wieder — und es stimmt auch inhaltlich: Es
-         sind die beiden Dinge, die man hier monatlich und unabhaengig von
-         einer Website abschliessen kann.
-         ==================================================================== -->
-    <div class="monatlich">
-    <div class="care" id="betreuung">
-      <h3 class="care__head" data-i18n="plans.careHead">Assistenza mensile</h3>
-      <p class="care__lead" data-i18n="plans.careLead">Un contratto a parte, non legato alla costruzione del sito: può prenderla in aggiunta, oppure da sola per un sito che ha già. Dodici mesi di durata minima, poi può disdire quando vuole a fine mese. Se le serve più tempo di modifiche al mese, ne parliamo — ci sono due livelli più ampi.</p>
-      <div class="plans" data-betreuung data-stagger>
-        <article data-paket="betreuung-basis" class="plan framed" data-reveal>
-          <h3 data-i18n="plans.bn1">Assistenza Base</h3>
-          <p class="plan__sub" data-i18n="plans.bs1">Il sito resta aggiornato e raggiungibile</p>
-          <p class="plan__price"><span data-i18n="plans.bp1">39 €</span><small data-i18n="plans.careMonth">al mese</small></p>
-          <ul data-i18n-list="plans.bf1">
-          <li class="is-lead">Incluso:</li>
-          <li>Aggiornamenti e patch di sicurezza, ogni mese</li>
-          <li>Backup mensile dell’intero sito</li>
-          <li>Controllo della raggiungibilità e del certificato SSL — me ne accorgo prima di Lei</li>
-          <li>Piccole modifiche incluse: testi, foto, orari, recapiti</li>
-          <li>Assistenza diretta, senza ticket: scrive a me e rispondo io</li>
-        </ul>
-          <p class="plan__ideal" data-i18n="plans.bi1">Per siti piccoli che devono semplicemente funzionare.</p>
-          <a class="btn" href="?paket=betreuung-basis#contact" data-i18n="plans.cta">Richieda questo pacchetto</a>
-        </article>
-      </div>
-      <p class="plans__note" data-i18n="plans.careNote">Per un sito che non ho costruito io guardo prima cosa c’è: presa in carico 99 € una tantum, che le scalo se poi prende l’assistenza. Senza assistenza il sito funziona lo stesso — solo che gli aggiornamenti non li fa nessuno.</p>
-      <p class="betreuung__mehr"><a href="assistenza.html" data-i18n="plans.careMehr">Tutti i livelli e le condizioni</a></p>
-    </div>
-
-    <div class="care" id="hosting">
-      <h3 class="care__head" data-i18n="plans.hostHead">Solo dominio &amp; hosting</h3>
-      <p class="care__lead" data-i18n="plans.hostLead">Non le serve (ancora) un sito? Il suo dominio con casella e-mail professionale funziona anche da solo: glielo registriamo, lo gestiamo noi e Lei riceve i suoi dati di accesso. Un contratto mensile a parte — e se un giorno vorrà il sito, il dominio c’è già.</p>
-      <div class="plans" data-hosting data-stagger>
-        <article data-paket="hosting" class="plan framed" data-reveal>
-          <h3 data-i18n="plans.hostName">Dominio &amp; Hosting</h3>
-          <p class="plan__sub" data-i18n="plans.hostSub">Dominio, spazio web, SSL e casella e-mail</p>
-          <p class="plan__price"><span data-i18n="plans.hostPrice">9,90 €</span><small data-i18n="plans.careMonth">al mese</small></p>
-          <ul data-i18n-list="plans.hostF">
-          <li class="is-lead">Incluso:</li>
-          <li>Il suo dominio (.it, .de, .com, .eu …) — registrato e gestito da noi</li>
-          <li>10 GB di spazio web con accesso FTP</li>
-          <li>Certificato SSL incluso — si rinnova da solo</li>
-          <li>Casella e-mail info@nomedominio — altre le crea Lei</li>
-          <li>Account proprio con i SUOI dati di accesso</li>
-        </ul>
-          <p class="plan__ideal" data-i18n="plans.hostIdeal">Per chi vuole un dominio con e-mail professionale — senza sito. 12 mesi di durata minima, poi si può disdire a fine mese.</p>
-          <a class="btn" href="/hosting.php?lang=it" data-i18n="plans.hostCta">Richieda il suo dominio</a>
-        </article>
-      </div>
-    </div>
-    </div>
-
+    <p class="plans__monatlich"><span data-i18n="edel.monatlich">Assistenza e hosting sono contratti mensili a parte — indipendenti da un nuovo sito.</span> <a href="assistenza.html" data-i18n="plans.careMehr">Tutti i livelli e le condizioni</a></p>
 
     <p class="plans__note" data-i18n="plans.note">I prezzi indicati sono quelli che paga.</p>
   </div>
 </section>
 
-<!-- ===================== Individuelle Projekte =====================
-     Bewusst KEINE fuenfte Zahl neben den vier Beispielen. Was keinen Preis
-     hat, darf nicht neben Preisen stehen: der Leser vergleicht sonst eine
-     Leerstelle mit 1.350 Euro und liest sie als "unbezahlbar". Eigener
-     Abschnitt, eigene Form, eigener Ton.
-     ============================================================== -->
-<section class="section masz" id="individuell">
-  <div class="wrap">
-    <div class="masz__panel framed" data-paket="individuell" data-reveal>
-      <div class="masz__text">
-        <p class="eyebrow" data-i18n="masz.kicker">Oltre i pacchetti</p>
-        <h3 data-i18n="masz.head">Il suo progetto non rientra in un pacchetto?</h3>
-        <p class="masz__lead" data-i18n="masz.lead">Lo costruisco lo stesso — ma non in serie. Certi progetti non stanno in tre righe e un prezzo fisso: un negozio con una logica sua, un sistema di prenotazioni, un catalogo multilingue, un gestionale che le toglie il lavoro ripetitivo.</p>
-        <p class="masz__p" data-i18n="masz.p1">Quanto costa dipende da tre cose: cosa deve saper fare, quanto c’è già e con che tempi. Per questo qui non trova una cifra. Il prezzo nasce dal colloquio, dove guardiamo insieme il lavoro che serve davvero e come se lo immagina. E quando siamo d’accordo lo metto per iscritto: fisso, prima di cominciare.</p>
-        <div class="masz__tun">
-          <a class="btn btn--primary" href="/bedarf.php?lang=it">
-            <span data-i18n="masz.cta">Mi racconti il progetto</span></a>
-        </div>
-        <p class="masz__note" data-i18n="masz.note">Il primo colloquio è gratuito e non la impegna a nulla. Alla fine sa quanto costa e perché — anche se poi mi dice di no.</p>
-      </div>
 
-      <aside class="masz__liste">
-        <p class="masz__listhead" data-i18n="masz.listHead">Di solito sono cose così</p>
-        <ul data-i18n-list="masz.list">
-          <li>Un negozio con una logica sua — scaglioni di prezzo, varianti, regole di spedizione</li>
-          <li>Prenotazioni o appuntamenti che dietro fanno i conti giusti — disponibilità, orari, sovrapposizioni</li>
-          <li>Un catalogo multilingue che nasce dai suoi dati, senza riscrivere tutto a mano</li>
-          <li>Un gestionale che le toglie il lavoro che rifà ogni settimana</li>
-          <li>Il collegamento con quello che usa già: cassa, magazzino, contabilità</li>
-          <li>Un sito che esiste già e va rimesso in ordine, non rifatto da zero</li>
-        </ul>
-      </aside>
-    </div>
-  </div>
-</section>
 
 <!-- ===================== Ablauf ===================== -->
 <section class="section" id="process">
@@ -1604,50 +1315,20 @@
   </div>
 </section>
 
-<!-- ===================== Die Assistentin =====================
-     Alles hier ist gedeckt: Jeder Punkt entspricht einem Werkzeug, das sie
-     wirklich hat (preis_auskunft, seite_ansehen, angebot_link, termin,
-     lage/hilfe, fragebogen). Kommt ein Werkzeug dazu oder faellt eines weg,
-     muss dieser Abschnitt mitziehen — Werbung, die mehr verspricht, als das
-     Telefon halten kann, kostet genau das Vertrauen, das sie aufbauen soll. -->
-<section class="section" id="assistente">
-  <div class="wrap">
-    <div class="sechead sechead--split" data-stagger>
-      <span class="marg" data-i18n="ast.marg">giorno e notte</span>
-      <h2 data-reveal data-i18n="ast.head">Un’assistente che risponde davvero</h2>
-      <p data-reveal data-i18n="ast.lead">Si chiama Manuela, è l’assistente AI di Vecom Design e risponde al telefono e nella finestra vocale qui sul sito — giorno e notte, in italiano, tedesco e inglese. Non è un risponditore: può chiederle delle cose, e le fa.</p>
-    </div>
 
-    <div class="ast framed" data-stagger>
-      <article class="ast__p" data-reveal>
-        <h3 data-i18n="ast.k1t">Le dice subito i prezzi</h3>
-        <p data-i18n="ast.k1p">Una fascia di prezzo realistica per il suo progetto già al primo minuto — senza lasciare il numero e aspettare che qualcuno richiami.</p>
-      </article>
-      <article class="ast__p" data-reveal>
-        <h3 data-i18n="ast.k2t">Dà un’occhiata al suo sito</h3>
-        <p data-i18n="ast.k2p">Le dica l’indirizzo del suo sito attuale: lo controlla durante la telefonata e le dice cosa nota — cosa funziona e cosa lo frena.</p>
-      </article>
-      <article class="ast__p" data-reveal>
-        <h3 data-i18n="ast.k3t">Le manda il preventivo</h3>
-        <p data-i18n="ast.k3p">Riceve il link del configuratore con dentro quello che le ha già raccontato: lo apre, completa le risposte e vede la sua fascia di prezzo.</p>
-      </article>
-      <article class="ast__p" data-reveal>
-        <h3 data-i18n="ast.k4t">Fissa un appuntamento vero</h3>
-        <p data-i18n="ast.k4p">Un giorno e un’ora precisi per parlare con Uwe — non un generico «la richiameremo».</p>
-      </article>
-      <article class="ast__p" data-reveal>
-        <h3 data-i18n="ast.k5t">Conosce il suo progetto</h3>
-        <p data-i18n="ast.k5p">Se Lei è già cliente, sa a che punto è e cosa manca, e la guida passo passo quando qualcosa si inceppa.</p>
-      </article>
-      <article class="ast__p" data-reveal>
-        <h3 data-i18n="ast.k6t">Compila il questionario con Lei</h3>
-        <p data-i18n="ast.k6p">Le domande iniziali sul progetto? Le fate insieme al telefono: Manuela chiede, Lei racconta, un quarto d’ora — senza toccare la tastiera.</p>
-      </article>
-    </div>
 
-    <p class="ast__cta" data-reveal><strong data-i18n="ast.cta1">La provi adesso: la finestra vocale è qui in basso a destra.</strong> <span data-i18n="ast.cta2">Le chieda qualcosa che un risponditore normale non saprebbe. E quando serve un essere umano, prende nota di tutto e la fa richiamare da Uwe.</span></p>
-  </div>
-</section>
+
+<!-- Bildband (E4, 24.09.2026): ein gerechnetes Demo-Bild über die ganze Breite,
+     still und groß wie in einem Magazin — Pause zwischen zwei Abschnitten. -->
+<figure class="band band--2">
+  <picture>
+    <source media="(max-width: 800px)" type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-nussbaum-800.avif?v=4e3ecc66">
+    <source media="(max-width: 800px)" type="image/webp" srcset="assets/img/erlebnis/branchen/kueche-nussbaum-800.webp?v=4721c8f9">
+    <source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-nussbaum.avif?v=ef38ac68">
+    <img src="assets/img/erlebnis/branchen/kueche-nussbaum.webp?v=fca45e4e" width="1600" height="900" loading="lazy" decoding="async" alt="Küchenblock in Nussbaum mit Keramikplatte">
+  </picture>
+  <figcaption class="wrap"><small data-i18n="edel.band2k">Cucine</small><span data-i18n="edel.band2t">Progettata con le misure delle proprie pareti — il progetto arriva insieme alla richiesta.</span></figcaption>
+</figure>
 
 <!-- ===================== Über mich ===================== -->
 <section class="section about" id="about">
@@ -1682,62 +1363,12 @@
   </div>
 </section>
 
-<!-- ===================== Prinzipien ===================== -->
-<section class="section" id="pillars">
-  <div class="wrap">
-    <div class="sechead sechead--neben" data-stagger>
-      <h2 data-reveal data-i18n="pillars.head">Perché sceglierci</h2>
-    </div>
-    <div class="pillars framed" data-stagger>
-      <div class="pillar" data-reveal><strong data-i18n="pillars.v1">0</strong><span data-i18n="pillars.l1">Modelli — ogni sito nasce da zero</span></div>
-      <div class="pillar" data-reveal><strong data-i18n="pillars.v2">0</strong><span data-i18n="pillars.l2">Costi nascosti: il preventivo approvato è il prezzo finale</span></div>
-      <div class="pillar" data-reveal><strong data-i18n="pillars.v3">100%</strong><span data-i18n="pillars.l3">Di sua proprietà: codice e file consegnati, nessun vincolo</span></div>
-      <div class="pillar" data-reveal><strong data-i18n="pillars.v4">1</strong><span data-i18n="pillars.l4">Referente unico, dal primo colloquio all’assistenza</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- Zwischenruf -->
-<section class="interlude">
-  <div class="wrap">
-    <p data-reveal data-i18n="inter.b">Il design che nessuno nota è quello che funziona. Si vede solo quando manca.</p>
-  </div>
-</section>
 
 
 
-<!-- ===================== Partnermarke ===================== -->
-<section class="section partner" id="partner">
-  <div class="wrap partner__inner" data-stagger>
-    <div class="partner__logos" data-reveal>
-      <figure class="partner__logo framed">
-        <a href="https://www.trendonix-buecher.de" target="_blank" rel="noopener">
-          <img src="assets/img/trendonix.webp?v=8eb20ea0" alt="Trendonix" width="700" height="554" loading="lazy" decoding="async">
-          <span class="partner__sheen partner__sheen--tx" aria-hidden="true"></span>
-        </a>
-        <figcaption class="partner__url">
-          <a href="https://www.trendonix-buecher.de" target="_blank" rel="noopener">www.trendonix-buecher.de</a>
-        </figcaption>
-      </figure>
 
-      <figure class="partner__logo framed">
-        <a href="https://jonika-venturis.com" target="_blank" rel="noopener">
-          <img src="assets/img/jonika.webp?v=46c4d122" alt="Jonika Venturis — Autorin und Verlegerin" width="700" height="143" loading="lazy" decoding="async">
-          <span class="partner__sheen partner__sheen--jv" aria-hidden="true"></span>
-        </a>
-        <figcaption class="partner__url">
-          <a href="https://jonika-venturis.com" target="_blank" rel="noopener">jonika-venturis.com</a>
-        </figcaption>
-      </figure>
-    </div>
 
-    <div class="partner__text">
-      <p class="eyebrow" data-reveal data-i18n="partner.eyebrow">In collaborazione con</p>
-      <h2 data-reveal data-i18n="partner.head">Trendonix &amp; Jonika Venturis</h2>
-      <p data-reveal data-i18n="partner.text">Il marchio editoriale Trendonix e l’autrice Jonika Venturis: libri illustrati e progetti narrativi. Dalla stessa mano: concezione, identità visiva e presenza online.</p>
-    </div>
-  </div>
-</section>
+
 
 <!-- ===================== Fragen ===================== -->
 <section class="section" id="faq">
@@ -1821,20 +1452,7 @@
   </div>
 </section>
 
-<!-- ===================== Il momento della firma =====================
-     Die letzte Flaeche vor dem Kontakt. Kein Argument mehr, kein Beleg:
-     Die Marke setzt sich aus Licht zusammen, und zwei Saetze sagen,
-     wofuer sie steht.
 
-     Die Punkte finden zu den ECHTEN Konturen aus logo-shape.js -- zu
-     denselben, aus denen die 3D-Bildmarke hinter der Seite entsteht.
-     Kein nachgebautes V.
-     =============================================================== -->
-<section class="signatur" id="signatur" data-signatur>
-  <canvas class="signatur__leinwand" data-signatur-leinwand aria-hidden="true"></canvas>
-  <p class="signatur__a" data-i18n="sig.a">Le idee diventano visibili.</p>
-  <p class="signatur__b" data-i18n="sig.b">I marchi diventano esperienze.</p>
-</section>
 
 <!-- ===================== Kontakt ===================== -->
 <section class="section contact" id="contact">
@@ -1903,6 +1521,7 @@
         <a href="#work" data-i18n="footer.l2">Lavori</a>
         <a href="#process" data-i18n="footer.l3">Metodo</a>
         <a href="prezzi.html" data-i18n="footer.l5">Prezzi</a>
+        <a href="tecnica.html" data-i18n="edel.tk_fuss">Tecnica</a>
         <a href="#contact" data-i18n="footer.l4">Contatti</a>
         <span class="footer__sep" aria-hidden="true"></span>
         <a href="legal.html#impressum" data-i18n="footer.g1">Note legali</a>
@@ -1943,7 +1562,14 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=68873c0c" defer></script>
+<!-- WhatsApp mit Gesicht (V4, 24.09.2026): ein Mensch statt eines Formulars.
+     Erscheint erst nach dem Aufmacher, damit er dort nichts verdeckt. -->
+<a class="wa-knopf" href="https://wa.me/message/ZA5MG7SV4WEQM1" target="_blank" rel="noopener" data-wa-knopf data-i18n-attr="aria-label:edel.waAria" aria-label="Scrivere a Uwe su WhatsApp">
+  <img src="assets/img/uwe-kopf-128.webp?v=b2e7c79a" alt="" width="40" height="40" loading="lazy" decoding="async">
+  <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
+</a>
+
+<script src="assets/js/i18n-it.js?v=f781e182" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1960,19 +1586,16 @@
 <!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
      Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
      auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
-<!-- Der Signature Moment vor dem Kontakt. Eigenes Modul, weil es die
-     echten Logokonturen aus world/logo-shape.js braucht -- 2D-Leinwand,
-     kein dritter Grafikkontext. -->
-<script type="module" src="assets/js/signatur.js?v=c3f4b3e7"></script>
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=a596078d"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=1da4985e"></script>
 <script type="module" src="assets/js/erlebnis/branchen.js?v=e559611e"></script>
 <script type="module" src="assets/js/erlebnis/haarfarben.js?v=4d053d2d"></script>
 <script type="module" src="assets/js/erlebnis/kundenablauf.js?v=58d4d44d"></script>
 <script type="module" src="assets/js/erlebnis/tisch-wahl.js?v=4800cc29"></script>
 <script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=f3a1f1fc"></script>
+<script type="module" src="assets/js/erlebnis/betrieb.js?v=99355cb0"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

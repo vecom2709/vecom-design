@@ -393,6 +393,7 @@ function bildAdresse(stand, zeit, endung = bildEndung) {
 }
 
 function kennungFoto() {
+  if (!buehne || !kennungText) return;      // Technikseite: dort gibt es keine Villa
   const wo = `${TEXT.staende[zustand.stand]}, ${TEXT.zeiten[zustand.zeit]}`;
   // Auf einer schmalen Buehne (kleines Fenster, Telefon) wuerde die lange
   // Fassung vierzeilig ueber das halbe Bild laufen. Dann nur das Werkzeug
@@ -530,8 +531,8 @@ if (bauschritteEl) {
   });
 }
 
-$('#staende').addEventListener('click', (e) => { const b = e.target.closest('button[data-stand]'); if (b) standSetzen(b.dataset.stand); });
-$('#zeiten').addEventListener('click', (e) => { const b = e.target.closest('button[data-zeit]'); if (b) zeitSetzen(b.dataset.zeit); });
+$('#staende')?.addEventListener('click', (e) => { const b = e.target.closest('button[data-stand]'); if (b) standSetzen(b.dataset.stand); });
+$('#zeiten')?.addEventListener('click', (e) => { const b = e.target.closest('button[data-zeit]'); if (b) zeitSetzen(b.dataset.zeit); });
 
 /* ------------------------------------------------------------ Echtzeit */
 /* Einmal fragen, dann merken: Jede Probe legt einen WebGL-Kontext an, und
@@ -642,7 +643,7 @@ function echtzeitAus() {
   setTimeout(() => { if (!zustand.echtzeit && zustand.villa) zustand.villa.anhalten(); }, 700);
 }
 
-knopfBewegen.addEventListener('click', async () => {
+knopfBewegen?.addEventListener('click', async () => {
   if (zustand.echtzeit) {
     if (zustand.villa) zustand.villa.stand(zustand.stand);
     echtzeitAus();
@@ -654,7 +655,7 @@ knopfBewegen.addEventListener('click', async () => {
 
 function bewegenAnbieten() {
   const eco = wirksameStufe() === 'SAFE' || zustand.wahl === 'CINEMATIC';
-  knopfBewegen.hidden = !webglDa() || eco;
+  if (knopfBewegen) knopfBewegen.hidden = !webglDa() || eco;
   if (eco) echtzeitAus();
 }
 
@@ -1035,12 +1036,12 @@ addEventListener('hashchange', tieferAusAdresse); tieferAusAdresse();
 if (new URLSearchParams(location.search).has('pruefen')) window.__erlebnis = zustand;
 kennungFoto();
 wegweiserAufbauen();
-if (webglDa()) knopfBewegen.hidden = false;
+if (webglDa() && knopfBewegen) knopfBewegen.hidden = false;
 ablesungZeigen();
 // Wer auf das Foto greift, bekommt sofort das Modell -- aber erst laden,
 // wenn jemand es will. Maus: schon beim Überfahren vorwärmen.
-buehne.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && knopfBewegen.hidden === false) leerlauf(() => echtzeitLaden(true), 400); }, { once: true });
-buehne.addEventListener('pointerdown', async (e) => {
+buehne?.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && knopfBewegen.hidden === false) leerlauf(() => echtzeitLaden(true), 400); }, { once: true });
+buehne?.addEventListener('pointerdown', async (e) => {
   // Nicht bei Beruehrung: Auf dem Telefon beginnt jedes Scrollen ueber der
   // Buehne mit einem pointerdown. Dort laedt das Modell nur ueber den Knopf
   // -- sonst kostete schon das Vorbeiscrollen ein halbes Megabyte.

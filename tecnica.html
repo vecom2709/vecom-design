@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="it" data-lang-fixed="it" data-title-key="meta.title">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La tecnica dietro le demo — livelli di qualità, confronto, streaming | Vecom Design</title>
+<meta name="description" content="Come le demo 3D di Vecom Design girano fluide su ogni dispositivo: livelli di qualità automatici, tempo reale contro video a confronto e streaming Unreal per scene che nessun telefono può calcolare.">
+<meta name="theme-color" content="#05070d">
+
+<link rel="canonical" href="https://vecom-design.it/tecnica.html">
+
+<!-- Sprachvarianten: die Seite merkt sich die Wahl, ?lang= macht sie teilbar -->
+<link rel="alternate" hreflang="it" href="https://vecom-design.it/tecnica.html">
+<link rel="alternate" hreflang="de" href="https://vecom-design.it/de/technik.html">
+<link rel="alternate" hreflang="en" href="https://vecom-design.it/en/technology.html">
+<link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tecnica.html">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Vecom Design">
+<meta property="og:url" content="https://vecom-design.it/tecnica.html">
+<meta property="og:title" content="La tecnica dietro le demo — livelli di qualità, confronto, streaming | Vecom Design">
+<meta property="og:description" content="Come le demo 3D di Vecom Design girano fluide su ogni dispositivo: livelli di qualità automatici, tempo reale contro video a confronto e streaming Unreal per scene che nessun telefono può calcolare.">
+<meta property="og:locale" content="it_IT">
+<meta property="og:image" content="https://vecom-design.it/assets/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="assets/img/favicon-32.png?v=d9973df7" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png?v=e187d887">
+
+<link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
+<link rel="stylesheet" href="assets/css/app.css?v=ccc457c1">
+<link rel="stylesheet" href="assets/css/erlebnis.css?v=185481ff">
+<link rel="stylesheet" href="assets/css/edel.css?v=160c29b0">
+
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./assets/vendor/three/three.module.min.js",
+    "three/addons/": "./assets/vendor/three/jsm/"
+  }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "@id": "https://vecom-design.it/#studio",
+  "name": "Vecom Design",
+  "url": "https://vecom-design.it/",
+  "image": "https://vecom-design.it/assets/img/og-image.jpg",
+  "description": "Studio creativo per siti web, marchi e negozi online.",
+  "founder": {
+    "@type": "Person",
+    "@id": "https://vecom-design.it/#uwe-vetter",
+    "name": "Uwe Vetter",
+    "jobTitle": "Web designer",
+    "knowsLanguage": [
+      "it",
+      "de",
+      "en"
+    ],
+    "worksFor": {
+      "@id": "https://vecom-design.it/#studio"
+    }
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Aragona",
+    "addressRegion": "Agrigento",
+    "addressCountry": "IT"
+  },
+  "availableLanguage": [
+    "it",
+    "de",
+    "en"
+  ],
+  "areaServed": [
+    {
+      "@type": "AdministrativeArea",
+      "name": "Provincia di Agrigento"
+    },
+    {
+      "@type": "AdministrativeArea",
+      "name": "Sicilia"
+    },
+    "IT",
+    "DE",
+    "AT",
+    "CH"
+  ],
+  "knowsLanguage": [
+    "it",
+    "de",
+    "en"
+  ],
+  "priceRange": "€€",
+  "makesOffer": [
+    {
+      "@type": "Offer",
+      "name": "Individuelle Website",
+      "priceCurrency": "EUR",
+      "priceSpecification": {
+        "@type": "PriceSpecification",
+        "priceCurrency": "EUR",
+        "minPrice": "325"
+      },
+      "description": "Preis nach Bedarf: Umfang, Sprachen, Funktionen und vorhandenes Material bestimmen ihn. Unverbindliche Einschaetzung online, verbindliches Angebot binnen 24 Stunden.",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Individuelle Website",
+        "serviceType": "Webdesign"
+      }
+    },
+    {
+      "@type": "Offer",
+      "name": "Monatliche Betreuung",
+      "price": "39",
+      "priceCurrency": "EUR",
+      "description": "Aktualisierungen, Sicherungen, Ueberwachung und kleine Aenderungen. Freiwillig und ein eigener Vertrag, auch fuer eine bestehende Website.",
+      "itemOffered": {
+        "@type": "Service",
+        "name": "Monatliche Betreuung",
+        "serviceType": "Website-Wartung"
+      }
+    }
+  ],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Leistungen",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Webdesign & Entwicklung"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Logo & Corporate Design"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Online-Shop & Buchung"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Motion, 3D & Bildwelten"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "SEO & Performance"
+        }
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Service",
+          "name": "Hosting & Betreuung"
+        }
+      }
+    ]
+  },
+  "email": "kontakt@vecom-design.it",
+  "founder": {
+    "@type": "Person",
+    "name": "Uwe Vetter"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Via d'Ascoli 25",
+    "postalCode": "92021",
+    "addressLocality": "Aragona",
+    "addressRegion": "AG",
+    "addressCountry": "IT"
+  }
+}
+</script>
+</head>
+
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="boot" data-boot aria-hidden="true">
+  <svg viewBox="0 0 100 100" width="110" height="110" fill="none" stroke="url(#bootGrad)" stroke-width="1.6" stroke-linejoin="round">
+    <defs><linearGradient id="bootGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#0648e8"/><stop offset="1" stop-color="#1fe8ff"/>
+    </linearGradient></defs>
+    <path d="M4.49 3.50 L43.81 93.15 L46.41 97.34 L52.50 95.10 L55.76 90.36 L61.84 75.56 L32.73 10.20 L29.69 6.01 L24.91 3.50 Z"/>
+    <path d="M94.86 3.78 L68.79 4.06 L64.44 7.13 L59.23 17.74 L54.24 30.87 L71.40 31.15 L67.70 38.97 L51.63 38.97 L53.80 45.95 L64.88 69.41 L73.79 51.81 Z"/>
+  </svg>
+</div>
+<canvas class="stage" data-canvas aria-hidden="true"></canvas>
+<!-- DAS STANDBILD DER BUEHNE. Es steht hier und nicht mehr im Stilblatt,
+     und dafuer gibt es zwei Gruende. Erstens der Fingerabdruck: In ein
+     url() im CSS schreibt build.mjs nicht hinein, der Server gibt Bildern
+     dreissig Tage, und ein Rueckkehrer haette das alte Bild noch einen
+     Monat behalten. Zweitens die Reichweite: image-set() mit type()
+     versteht nicht jeder Browser, und wer es nicht versteht, bekam gar
+     kein Bild -- ausgerechnet in dem Zustand, der fuer die schwachen
+     Geraete gedacht ist. Ein <picture> kann jeder. -->
+<picture class="buehne-standbild" aria-hidden="true">
+  <source srcset="assets/img/3d/buehne-standbild.avif?v=fd5bfde3" type="image/avif">
+  <img src="assets/img/3d/buehne-standbild.webp?v=5d6083d7" alt="" width="1920" height="1080" decoding="async">
+</picture>
+<div class="world-scrim" aria-hidden="true"></div>
+<div class="world-cut" aria-hidden="true"></div>
+
+<div class="progress" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+<div class="cursor" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+
+<!-- ===================== Kopfzeile ===================== -->
+<header class="header">
+  <div class="wrap header__inner">
+    <a class="brand" href="index.html" aria-label="Vecom Design">
+      <img src="assets/img/logo-mark.webp?v=e934798b" alt="" width="420" height="330" fetchpriority="high">
+      <span class="brand__name">Vecom<span>Design</span></span>
+    </a>
+
+    <nav class="nav" id="nav" aria-label="Hauptnavigation">
+      <a href="/#betrieb" data-i18n="nav.betrieb">Esempi</a>
+      <a href="/#work" data-i18n="nav.work">Lavori</a>
+      <a href="/#services" data-i18n="nav.services">Servizi</a>
+      <a href="/#plans" data-i18n="nav.plans">Prezzi</a>
+      <a href="/#process" data-i18n="nav.process">Metodo</a>
+      <a href="/#about" data-i18n="about.nav">Chi sono</a>
+      <a href="/#contact" data-i18n="nav.contact">Contatti</a>
+    </nav>
+
+    <div class="header__tools">
+      <div class="lang lang--links" role="group" aria-label="Lingua / Sprache / Language">
+        <span class="lang__current" aria-current="true">IT</span><a href="./de/technik.html" hreflang="de" lang="de">DE</a><a href="./en/technology.html" hreflang="en" lang="en">EN</a>
+      </div>
+      <!-- Zweiter Zugang zum Cockpit. Der erste steht seit jeher unten in der
+           Fusszeile; seit der Erlebnisteil auf der Startseite liegt, ist die
+           Seite 25.000 Pixel lang, und ein Zahnrad ganz unten ist fuer die
+           taegliche Arbeit kein Zugang mehr. Gleiche Gestaltung wie dort:
+           klein, unbeschriftet, halbdurchsichtig -- fuer Uwe da, ohne
+           Besuchern ins Auge zu springen. -->
+      <a class="admin admin--kopf" href="/cockpit/" rel="nofollow noopener" aria-label="Cockpit" title="Cockpit">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+        </svg>
+      </a>
+      <a class="btn btn--primary" href="/#contact" data-i18n="nav.cta">Preventivo su misura</a>
+      <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<span id="top"></span>
+<!-- TECHNIKSEITE (Umbau 24.09.2026, Vorschlag K1): Qualitätsstufen, Technik,
+     Vergleich und Streaming standen mitten auf der Startseite und kosteten
+     dort vier Bildschirme, die ein Restaurantbesitzer nicht braucht. Hier sind
+     sie vollständig für alle, die es genau wissen wollen. Dieselben Skripte
+     wie auf der Startseite: erlebnis.js erkennt die Abschnitte an ihren IDs. -->
+<section class="section erlebnis technikseite">
+  <div class="wrap">
+    <div class="sechead sechead--split" data-stagger>
+      <span class="marg" data-i18n="edel.tk_kicker">Tecnica</span>
+      <h1 data-reveal><span data-i18n="edel.tk_h1">La tecnica</span> <em data-i18n="edel.tk_h2">dietro le demo</em></h1>
+      <p data-reveal data-i18n="edel.tk_lead">Nella pagina iniziale conta ciò che vedono i suoi clienti. Qui c’è come è fatto — per chi vuole saperlo con precisione.</p>
+    </div>
+    <section class="abschnitt stufen" id="stufen" aria-labelledby="stufen-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.stufen_kicker">Adaptive Experience</p>
+        <h2 id="stufen-h" data-i18n="erlebnis.stufen_h">Ogni dispositivo riceve la versione migliore che può reggere.</h2>
+        <p class="lead" data-i18n="erlebnis.stufen_lead">La pagina misura cosa sa fare il suo dispositivo e sceglie il livello da sola. Aspetto e inquadratura restano uguali su ogni livello, cambia solo il carico di calcolo. Qui può cambiarlo per provare.</p>
+      </header>
+      <div class="stufenwahl" role="group" aria-labelledby="stufen-h" id="stufenwahl">
+        <button type="button" data-stufe="AUTO" aria-pressed="true"><b>AUTO</b><span data-i18n="erlebnis.auto_s">misura il suo dispositivo</span></button>
+        <button type="button" data-stufe="SAFE" aria-pressed="false"><b>ECO</b><span data-i18n="erlebnis.eco_s">Immagini calcolate, niente 3D. Si apre subito, funziona ovunque.</span></button>
+        <button type="button" data-stufe="MEDIUM" aria-pressed="false"><b>STANDARD</b><span data-i18n="erlebnis.std_s">3D vero, senza ombre, densità di pixel semplice.</span></button>
+        <button type="button" data-stufe="HIGH" aria-pressed="false"><b>HIGH</b><span data-i18n="erlebnis.high_s">Ombre del sole morbide, bordi più fini.</span></button>
+        <button type="button" data-stufe="ULTRA" aria-pressed="false"><b>ULTRA</b><span data-i18n="erlebnis.ultra_s">Mappa delle ombre grande, densità di pixel piena.</span></button>
+        <button type="button" data-stufe="CINEMATIC" aria-pressed="false"><b>CINEMATIC</b><span data-i18n="erlebnis.cine_s">Path tracing — la foto. Su richiesta dal vivo da Unreal Engine in streaming.</span></button>
+      </div>
+      <div class="ablesung" id="ablesung" aria-live="polite">
+        <p class="ablesung__satz" id="ablesung-satz"></p>
+        <dl class="ablesung__werte" id="ablesung-werte"></dl>
+      </div>
+    </section>
+
+    <!-- Technik, Vergleich und Streaming (23.09.2026 zusammengelegt): drei
+         Abschnitte für die, die es genau wissen wollen. Offen standen sie als
+         anderthalb Bildschirme zwischen den Demos und dem Abschluss -- wer
+         nur sehen wollte, was möglich ist, musste sich hindurchscrollen.
+         Zugeklappt bleiben sie auffindbar; wer mit #technik & Co. kommt,
+         bekommt sie offen (erlebnis.js). -->
+    <details class="tiefer" id="tiefer" open>
+      <summary class="tiefer__kopf">
+        <span class="tiefer__text">
+          <span class="tiefer__titel" data-i18n="erlebnis.tiefer_t">Tecnica, confronto, streaming</span>
+          <span class="tiefer__zusatz" data-i18n="erlebnis.tiefer_z">Per chi vuole sapere come funziona — tre parti brevi.</span>
+        </span>
+        <i class="tiefer__zeichen" aria-hidden="true"></i>
+      </summary>
+    <section class="abschnitt technik" id="technik" aria-labelledby="technik-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.tech_kicker">La tecnica dietro</p>
+        <h2 id="technik-h" data-i18n="erlebnis.tech_h">Una frase per strumento. Di più, se desidera.</h2>
+      </header>
+      <div class="werkzeuge">
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t1n">Blender</h3><p data-i18n="erlebnis.t1a">Il suo oggetto viene ricostruito in digitale — così preciso da sembrare fotografato.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t1b">Modellato con misure reali in Blender 5.2, calcolato con Cycles su una RTX 5070. La villa ha 647 componenti e 26 materiali; il giardino con oltre 600.000 fili d’erba, cipressi fatti di ciuffi di rami, un muretto a secco di circa 7.800 pietre singole e uliveti nasce solo per le foto.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t4n">Path tracing</h3><p data-i18n="erlebnis.t4a">La luce viene calcolata come si propaga nella realtà — da qui l’effetto di una foto.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t4b">Blender Cycles con cielo fisico, rifrazione reale del vetro e caustiche, fino a 32 rimbalzi di luce. L’esposizione è misurata: intonaco bianco al sole a 0,83–0,86 di luminanza, come la imposterebbe un fotografo sul set.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t2n">Three.js</h3><p data-i18n="erlebnis.t2a">Il suo visitatore gira il modello direttamente nel browser — senza app, senza plugin.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t2b">Three.js r185, servito dal nostro server. La casa arriva come GLB con 32.280 triangoli: 2,0 MB su disco, 127 KB in rete. Si carica solo quando qualcuno vuole girarla.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t3n">Adaptive Experience</h3><p data-i18n="erlebnis.t3a">La pagina si adatta a ogni dispositivo — nessuno riceve una versione che scatta.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t3b">Un nucleo proprio (experience-core): misura del dispositivo, breve test di prestazioni, cinque livelli. Un controllore abbassa il livello se i fotogrammi calano in modo stabile, e lo rialza con prudenza.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t5n">Unreal Engine</h3><p data-i18n="erlebnis.t5a">Per immobili premium: qualità da cinema, e il comando ce l’ha il suo cliente.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t5b">Unreal Engine 5 con Lumen per la versione in tempo reale e path tracing per i filmati. La stessa villa è già allestita lì e calibrata su Cycles.</p></details></article>
+        <article class="werkzeug"><h3 data-i18n="erlebnis.t6n">Pixel Streaming</h3><p data-i18n="erlebnis.t6a">La grafica la calcola un server — il suo cliente la vede sul telefono.</p><details><summary data-i18n="erlebnis.tech_mehr">Di più</summary><p data-i18n="erlebnis.t6b">Pixel Streaming via WebRTC. Parte solo con un clic, con limite di tempo e tetto mensile, perché ogni minuto costa una scheda grafica a noleggio.</p></details></article>
+      </div>
+    </section>
+
+    <section class="abschnitt vergleich" id="vergleich" aria-labelledby="vergleich-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.vgl_kicker">Prima / dopo</p>
+        <h2 id="vergleich-h" data-i18n="erlebnis.vgl_h">Sito normale o experience?</h2>
+        <p class="lead" data-i18n="erlebnis.vgl_lead">Entrambi hanno il loro posto. Questa panoramica deve aiutarla a decidere — non screditare i siti normali.</p>
+      </header>
+      <div class="paare">
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p1a_t">Foto di prodotto</h3><p data-i18n="erlebnis.p1a_p">Basta, se il suo prodotto esiste in un’unica versione e una buona foto mostra tutto.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p1b_t">Prodotto da girare</h3><p data-i18n="erlebnis.p1b_p">Conviene quando ci sono varianti: 72 versioni del tavolo da un solo modello invece di 72 servizi fotografici.</p></div></div>
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p2a_t">Foto dell’immobile</h3><p data-i18n="erlebnis.p2a_p">Bastano, se l’immobile è finito e si fotografa bene.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p2b_t">Visita calcolata</h3><p data-i18n="erlebnis.p2b_p">Conviene se non è ancora costruito, se è lontano o se desidera selezionare i contatti prima.</p></div></div>
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p3a_t">Sito aziendale classico</h3><p data-i18n="erlebnis.p3a_p">Basta — ed è giusto — se i clienti devono chiamare: artigiani, studi medici, officine.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p3b_t">Motion e storytelling</h3><p data-i18n="erlebnis.p3b_p">Conviene se vende un’atmosfera: hotel, cantina, marchio.</p></div></div>
+        <div class="paar"><div class="paar__seite"><span class="paar__art" data-i18n="erlebnis.vgl_links">Sito normale</span><h3 data-i18n="erlebnis.p4a_t">Galleria di immagini</h3><p data-i18n="erlebnis.p4a_p">Basta per i pezzi unici veri — un’auto usata vuole foto vere.</p></div><div class="paar__seite paar__seite--exp"><span class="paar__art" data-i18n="erlebnis.vgl_rechts">Vecom Experience</span><h3 data-i18n="erlebnis.p4b_t">Configuratore</h3><p data-i18n="erlebnis.p4b_p">Conviene con molte versioni: colori, misure, materiali, dotazioni.</p></div></div>
+      </div>
+    </section>
+
+    <section class="abschnitt strom" id="streaming" aria-labelledby="strom-h">
+      <header class="abschnitt__kopf">
+        <p class="kicker" data-i18n="erlebnis.str_kicker">Pixel Streaming</p>
+        <h2 id="strom-h" data-i18n="erlebnis.str_h">Grafica di alto livello anche sul telefono</h2>
+        <p class="lead" data-i18n="erlebnis.str_lead">Un server nel data center calcola l’immagine e la invia come video. Il suo visitatore comanda con il dito — il dispositivo non deve calcolare nulla.</p>
+      </header>
+      <ol class="kette">
+        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="52" rx="5"/><path d="M20 18h24M20 28h24M20 38h24"/><circle cx="44" cy="48" r="2.5" class="an"/></svg><h3 data-i18n="erlebnis.str1t">Server</h3><p data-i18n="erlebnis.str1p">Una scheda grafica nel data center calcola la scena Unreal.</p></li>
+        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 30c7-12 17-18 24-18s17 6 24 18"/><path d="M16 36c5-8 11-12 16-12s11 4 16 12"/><path d="M24 42c3-4 5-6 8-6s5 2 8 6"/><circle cx="32" cy="50" r="3" class="an"/></svg><h3 data-i18n="erlebnis.str2t">Stream</h3><p data-i18n="erlebnis.str2p">Le immagini finite viaggiano in rete come video, i tocchi tornano indietro.</p></li>
+        <li class="kette__glied"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="19" y="4" width="26" height="56" rx="5"/><path d="M19 12h26M19 50h26"/><circle cx="32" cy="55" r="1.5" class="an"/></svg><h3 data-i18n="erlebnis.str3t">Telefono</h3><p data-i18n="erlebnis.str3p">Mostra l’immagine e rimanda scorrimenti e tocchi.</p></li>
+      </ol>
+      <p class="ehrlich" data-i18n="erlebnis.str_ehrlich">A dirla tutta: uno stream costa a ogni minuto. Per questo non parte mai da solo, ma solo con un clic — e per la villa di questa pagina, per ora, solo su appuntamento.</p>
+    </section>
+    </details>
+
+    <p class="technikseite__zurueck"><a href="/#erlebnis" data-i18n="edel.tk_zurueck">Torni alla pagina iniziale</a></p>
+  </div>
+</section>
+</main>
+
+<!-- ===================== Fußzeile ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="footer__top">
+      <img class="footer__logo" src="assets/img/logo-full-dark.webp?v=14956810" alt="Vecom Design" width="560" height="435" loading="lazy">
+      <p class="footer__claim" data-i18n="footer.claim">Siti, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.</p>
+      <nav class="social" aria-label="Social Media">
+        <a class="social__a" data-social="facebook" href="#" target="_blank" rel="noopener me" aria-label="Facebook" hidden><svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><path d="M14 8.5h2.2V5.6c-.4-.05-1.6-.17-3-.17-3 0-5 1.8-5 5.2V13H5.6v3.3h2.6V24h3.4v-7.7h2.6l.4-3.3h-3V11c0-1 .3-1.6 1.4-1.6z"/></svg></a>
+        <a class="social__a" data-social="instagram" href="#" target="_blank" rel="noopener me" aria-label="Instagram" hidden><svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><rect x="4.2" y="4.2" width="15.6" height="15.6" rx="4.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="16.6" cy="7.4" r="1.15"/></svg></a>
+        <a class="social__a" data-social="tiktok" href="#" target="_blank" rel="noopener me" aria-label="TikTok" hidden><svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><path d="M14.1 3.2h2.6c.2 1.6 1.1 2.9 2.5 3.5.6.3 1.2.4 1.9.5v2.7c-1.6 0-3-.5-4.3-1.4v5.9c0 1.4-.4 2.7-1.3 3.7a5.4 5.4 0 0 1-9.6-3.4 5.4 5.4 0 0 1 6.4-5.3v2.8a2.6 2.6 0 1 0 1.8 2.5z"/></svg></a>
+        <a class="social__a" data-social="x" href="#" target="_blank" rel="noopener me" aria-label="X" hidden><svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor" aria-hidden="true"><path d="M4.4 3.6h4.3l3.6 4.9 4.3-4.9h2.6l-5.6 6.4 6 8.4h-4.3l-3.9-5.4-4.7 5.4H4.1l6.1-7z"/></svg></a>
+      </nav>
+      <nav class="footer__links" aria-label="Fußzeile">
+        <a href="/#services" data-i18n="footer.l1">Servizi</a>
+        <a href="/#work" data-i18n="footer.l2">Lavori</a>
+        <a href="/#process" data-i18n="footer.l3">Metodo</a>
+        <a href="prezzi.html" data-i18n="footer.l5">Prezzi</a>
+        <a href="tecnica.html" data-i18n="edel.tk_fuss">Tecnica</a>
+        <a href="/#contact" data-i18n="footer.l4">Contatti</a>
+        <span class="footer__sep" aria-hidden="true"></span>
+        <a href="legal.html#impressum" data-i18n="footer.g1">Note legali</a>
+        <a href="legal.html#privacy" data-i18n="footer.g2">Privacy</a>
+        <a href="legal.html#agb" data-i18n="footer.g3">Condizioni</a>
+        <a href="legal.html#widerruf" data-i18n="footer.g4">Recesso</a>
+      </nav>
+    </div>
+
+    <div class="footer__bottom">
+      <span>© <span data-year>2026</span> Vecom Design — <span data-i18n="footer.rights">Tutti i diritti riservati.</span></span>
+      <span data-i18n="footer.made">Progettato e sviluppato ad Aragona. Da me.</span>
+      <p id="zaehler" class="zaehler"></p>
+      <!-- Partnerprogramm ALL-INKL.COM
+           Das Bild liegt bewusst auf dem eigenen Webspace und nicht bei
+           all-inkl: Ein fremd eingebundenes Bild schickt bei JEDEM Aufruf die
+           IP jedes Besuchers dorthin — auf einer Seite, die zwei Zeilen weiter
+           unten "kein fremder Dienst, keine IP-Speicherung" schreibt, waere das
+           ein Widerspruch, den die Datenschutzerklaerung ausbaden muesste.
+           Am Partnerprogramm aendert das nichts: Gezaehlt wird der Klick auf
+           den Verweis, und der traegt die Kennung.
+           rel="sponsored": So nennt man einen bezahlten Verweis gegenueber
+           Suchmaschinen. Ohne das gilt er als gekaufter Link und kann der
+           eigenen Seite schaden. -->
+      <a class="fusspartner" href="https://all-inkl.com/PAC9EEE95AB5374"
+         target="_blank" rel="sponsored noopener"
+         title="ALL-INKL.COM — Webhosting, Server, Domains">
+        <img src="assets/img/all-inkl-88x31.webp?v=3a76ad43" width="88" height="31" loading="lazy"
+             alt="Gehostet bei ALL-INKL.COM — Webhosting, Server und Domains">
+      </a>
+      <a class="admin" href="/cockpit/" rel="nofollow noopener" aria-label="Cockpit" title="Cockpit">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<!-- WhatsApp mit Gesicht (V4, 24.09.2026): ein Mensch statt eines Formulars.
+     Erscheint erst nach dem Aufmacher, damit er dort nichts verdeckt. -->
+<a class="wa-knopf" href="https://wa.me/message/ZA5MG7SV4WEQM1" target="_blank" rel="noopener" data-wa-knopf data-i18n-attr="aria-label:edel.waAria" aria-label="Scrivere a Uwe su WhatsApp">
+  <img src="assets/img/uwe-kopf-128.webp?v=b2e7c79a" alt="" width="40" height="40" loading="lazy" decoding="async">
+  <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
+</a>
+
+<script src="assets/js/i18n-it.js?v=f781e182" defer></script>
+<script src="assets/js/app.js?v=bc5ba11c" defer></script>
+<script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
+<script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
+<script src="assets/vendor/ScrollTrigger.min.js?v=05ca5ad8" defer></script>
+<script src="assets/vendor/lenis.min.js?v=daec1872" defer></script>
+<!-- Zehn Dateien, die nur die Startseite braucht, in einer: assets/js/start.js.
+     Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
+     vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
+<script src="assets/js/start.js?v=beebd958" defer></script>
+<script type="module" src="assets/js/world/site-world.js?v=b6944826"></script>
+<!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
+     Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
+     Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
+<!-- Die Villa im Labor: Grundriss, Bauablauf, Begehung an einem Modell.
+     Laedt erst, wenn der Abschnitt ins Bild kommt -- und faellt ohne WebGL
+     auf den GEZEICHNETEN Grundriss zurueck, nicht auf ein leeres Feld. -->
+
+<!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
+     Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=1da4985e"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=e559611e"></script>
+<script type="module" src="assets/js/erlebnis/haarfarben.js?v=4d053d2d"></script>
+<script type="module" src="assets/js/erlebnis/kundenablauf.js?v=58d4d44d"></script>
+<script type="module" src="assets/js/erlebnis/tisch-wahl.js?v=4800cc29"></script>
+<script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=f3a1f1fc"></script>
+<script type="module" src="assets/js/erlebnis/betrieb.js?v=99355cb0"></script>
+
+<!-- DAS NETZ UNTER DER BÜHNE
+     ------------------------------------------------------------------------
+     Am 14.09.2026 hat sich gezeigt, dass die Bühne auf eine Art ausfallen
+     kann, die keiner ihrer eigenen Rückfälle auffängt: Bricht schon das
+     Laden der Module, läuft off() nie — der Fehler passiert, bevor es die
+     Funktion gibt. Der Besucher sah dann weder Welt noch Standbild, sondern
+     nichts. Genau das ist auf Uwes Rechner passiert, weil sein Browser eine
+     ältere quality.js im Speicher hatte und die neue site-world.js daraus
+     einen Namen wollte, den es dort noch nicht gab.
+
+     Deshalb hier, außerhalb des Modulgraphen und ohne jede Abhängigkeit:
+     Steht nach zwölf Sekunden immer noch kein Zustand an <html>, ist etwas
+     schiefgegangen, das sich selbst nicht mehr melden kann. Dann das
+     gerechnete Standbild — es hängt nur an CSS und braucht kein Skript. -->
+<script>
+(function () {
+  var w = document.documentElement;
+  setTimeout(function () {
+    if (!w.getAttribute('data-world')) {
+      w.setAttribute('data-world', 'init-error');
+      var c = document.querySelector('canvas.stage');
+      if (c) { c.hidden = true; }
+      if (window.__auftaktFrei) { window.__auftaktFrei(); }
+    }
+  }, 12000);
+})();
+</script>
+
+<!-- Besucherzählung: läuft ausschließlich auf dem eigenen Webspace.
+     Kein fremder Dienst, kein Cookie, keine IP-Speicherung. -->
+<script>
+(function(){
+  var el = document.getElementById('zaehler');
+  if(!el) return;
+  fetch('/zahl.php', {cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var f = function(n){ return n.toLocaleString('de-DE'); };
+      el.innerHTML = '<b>' + f(d.gesamt) + '</b> Besuche &middot; ' + f(d.heute) + ' heute';
+    })
+    .catch(function(){});
+})();
+</script>
+<!-- MANUELA — DER TELEFONASSISTENT
+     Laedt direkt beim Seitenaufruf: Der Besucher soll nichts anklicken
+     muessen, um zu sehen, dass er sprechen kann. Es sind rund 230 KB
+     fremdes JavaScript von STRATO, das localStorage und Cookies setzt.
+     Deshalb steht der Assistent seit dieser Aenderung in der
+     Datenschutzerklaerung unter "Telefonassistent" — legal.html,
+     Abschnitt p8. Wer das hier wieder herausnimmt, nimmt ihn auch dort
+     heraus. -->
+<script>
+(function () {
+  /* NACHGELADEN, NICHT MITGELADEN. Am 14.09.2026 gemessen: Mit defer haengt
+     das DOMContentLoaded der ganzen Seite an STRATOs Erreichbarkeit --
+     12.713 ms statt 350 ms, wenn das Skript nicht kommt. defer macht ein
+     Skript nicht unschaedlich; es verschiebt es nur bis kurz vor das
+     Ereignis und haelt das Ereignis dann auf. Und "kommt nicht" ist kein
+     Ausnahmefall: Jede Werbeblockerliste kennt voicereceptionist.
+     Jetzt haengt er sich nach dem load-Ereignis ein. Der Assistent kommt
+     weiterhin von allein -- niemand muss etwas anklicken, und in der
+     Datenschutzerklaerung bleibt alles, wie es steht -- aber die Seite
+     wartet nicht mehr auf ihn. */
+  var quelle = 'https://strato.ai-voicereceptionist.com/widget/v1/embed.js';
+  function holen() {
+    var s = document.createElement('script');
+    s.src = quelle;
+    s.async = true;
+    s.setAttribute('data-agent-id', 'a6ea7fe1-fd3e-4850-8e7b-7f9f558b3b4d');
+    document.body.appendChild(s);
+  }
+  function gleich() {
+    /* Erst wenn der Browser nichts Besseres zu tun hat -- mit Zeitlimit,
+       weil requestIdleCallback auf einer beschaeftigten Seite sonst spaet
+       kommt oder gar nicht. */
+    if (window.requestIdleCallback) { requestIdleCallback(holen, { timeout: 2500 }); }
+    else { setTimeout(holen, 800); }
+  }
+  if (document.readyState === 'complete') { gleich(); }
+  else { window.addEventListener('load', gleich, { once: true }); }
+})();
+</script>
+<img src="/z.php" width="1" height="1" alt="" aria-hidden="true"
+     style="position:absolute;left:-9999px;top:0">
+</body>
+</html>
