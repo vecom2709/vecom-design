@@ -471,8 +471,8 @@ export class World {
 
     /* Die Kantenlichter nehmen die Stimmung auf, ohne die Marke zu
        verlassen: Das Blau bleibt Blau, es wird nur waermer oder kuehler. */
-    this.rimA.color.setHSL(0.60 - bogen * 0.02, 0.85, 0.42 + bogen * 0.10);
-    this.rimB.color.setHSL(0.52 + bogen * 0.02, 0.90, 0.44 + bogen * 0.08);
+    this.rimA.color.setHSL(0.105 - bogen * 0.01, 0.70, 0.40 + bogen * 0.10);   // Gold statt Blau (24.09.2026)
+    this.rimB.color.setHSL(0.12 + bogen * 0.01, 0.65, 0.62 + bogen * 0.06);   // Champagner
 
     const himmel = this._himmelTextur(t, false);
     /* Und der Himmel selbst darf am Rand des Tages mehr zeigen: Dann liegt
@@ -828,7 +828,7 @@ export class World {
           float d = length(gl_PointCoord - 0.5);
           if (d > 0.5) discard;
           float a = smoothstep(0.5, 0.0, d) * vA * 0.10;
-          gl_FragColor = vec4(vec3(0.55, 0.74, 1.0), a);
+          gl_FragColor = vec4(vec3(1.0, 0.86, 0.58), a);   // Staub im Goldlicht
         }`,
     });
     this.dust = new THREE.Points(g, m);

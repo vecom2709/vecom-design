@@ -206,7 +206,7 @@ export function bruchMaterial(THREEns, vorlage) {
         uniform float uGlut; varying float vInnen; varying float vRiss;`)
       .replace('#include <dithering_fragment>', `#include <dithering_fragment>
         gl_FragColor.rgb += vec3(1.0, 0.74, 0.42) * vInnen * pow(vRiss, 3.0) * 5.0 * uGlut;
-        gl_FragColor.rgb += vec3(0.16, 0.78, 1.0) * vInnen * (0.18 + vRiss * 1.9) * uGlut;`);
+        gl_FragColor.rgb += vec3(1.0, 0.72, 0.28) * vInnen * (0.18 + vRiss * 1.9) * uGlut;`);
   };
   mat.customProgramCacheKey = () => 'vecom-bruch';
   return { mat, uniformen };
