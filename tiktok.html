@@ -11,15 +11,15 @@
 <title>Vecom Design — Clips</title>
 <link rel="stylesheet" href="assets/css/fonts.css">
 <style>
-  :root{--cyan:#1fe8ff;--blau:#0648e8;--grund:#05070d;--text:#e9eef8;--leise:#93a2bd;
+  :root{--cyan:#f1d38b;--blau:#8a6322;--grund:#0a0908;--text:#f7f3ea;--leise:#b1ab9f;
         --e:cubic-bezier(.16,1,.3,1)}
   *{box-sizing:border-box;margin:0;padding:0}
   body{width:720px;height:1280px;overflow:hidden;background:var(--grund);color:var(--text);
        font-family:'Inter',system-ui,sans-serif}
   .stage{position:relative;width:720px;height:1280px;display:grid;place-content:center;padding:0 64px}
   .glow{position:absolute;inset:0;background:
-    radial-gradient(55% 34% at 50% 32%,rgba(10,120,245,.26),transparent 70%),
-    radial-gradient(45% 28% at 70% 85%,rgba(6,72,232,.16),transparent 72%)}
+    radial-gradient(55% 34% at 50% 32%,rgba(200,150,62,.26),transparent 70%),
+    radial-gradient(45% 28% at 70% 85%,rgba(138,99,34,.16),transparent 72%)}
   .grain{position:absolute;inset:0;opacity:.04;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
   .spot{display:none}
@@ -33,7 +33,7 @@
         font-size:27px;line-height:1.45;color:var(--leise);letter-spacing:0}
   .beat.kick{font-size:19px;letter-spacing:.28em;text-transform:uppercase;color:var(--cyan);
         font-stretch:94%;font-weight:600}
-  .grad{background:linear-gradient(100deg,#cfe0ff,#fff 30%,#79c8ff 65%,var(--cyan));
+  .grad{background:linear-gradient(100deg,#faf0d4,#fff 30%,#f0d488 65%,var(--cyan));
         -webkit-background-clip:text;background-clip:text;color:transparent}
   .no{color:#ff8a8a}
   .price{font-size:110px;letter-spacing:-.045em}

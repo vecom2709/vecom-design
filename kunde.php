@@ -414,7 +414,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   @media (min-width:641px){ .wegzahl{display:none} }
   /* Der eine Kasten, der sagt, was dran ist. */
   .dran{border:1px solid var(--linie2);border-radius:16px;padding:20px 22px;margin-bottom:20px;
-    background:linear-gradient(135deg,rgba(6,72,232,.16),rgba(31,232,255,.05))}
+    background:linear-gradient(135deg,rgba(138,99,34,.16),rgba(241,211,139,.05))}
   .dran.warten{background:none}
   .dran .wer{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
   .dran.warten .wer{color:var(--leise)}
@@ -437,7 +437,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
      Ohne Logo, Fotos und Texte steht das Projekt, und das sieht von aussen
      so aus, als laege es an mir. */
   .materialruf{border:1px solid var(--cyan);border-radius:12px;padding:13px 15px;margin:10px 0 14px;
-    background:rgba(31,232,255,.07)}
+    background:rgba(241,211,139,.07)}
   .materialruf b{display:block;font-size:14.5px;line-height:1.55;color:var(--cyan);margin-bottom:5px}
   .materialruf span{display:block;font-size:12.5px;line-height:1.6;color:var(--dim)}
   /* Der Kasten mit dem Material bekommt eine ruhige Betonung, solange er
@@ -644,7 +644,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <?php $hs = (string) $hosting['status']; ?>
 
     <?php if ($hs === 'vorgeschlagen'): ?>
-      <div class="klapp" style="border-color:var(--akzent,#2563eb)">
+      <div class="klapp" style="border-color:var(--akzent,#dca434)">
         <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
         <p style="margin:10px 0 4px;font-size:17px;font-weight:650"><?= $h((string) $hosting['domain']) ?></p>
         <p class="mini" style="margin:6px 0 0"><?= $h(strtr(

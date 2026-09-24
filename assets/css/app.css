@@ -21,8 +21,23 @@
   --c-blue-deep:   #8a6322;
   --c-blue:        #c8963e;
   --c-cyan:        #f1d38b;
-  --grad-brand:    linear-gradient(135deg, var(--c-blue-deep) 0%, var(--c-blue) 45%, var(--c-cyan) 100%);
-  --grad-text:     linear-gradient(100deg, #faf0d4 0%, #ffffff 35%, #f0d488 70%, #f1d38b 100%);
+  /* GOLD UND SILBER (24.09.2026, Uwe: „hyperrealistisches Gold-Silber-Verlauf,
+     sehr edel“). Metall sieht nicht aus wie eine Farbe, sondern wie gespiegelte
+     Umgebung: dunkle Zone, heller Glanzstreifen, Rueckfall. Deshalb hat jeder
+     Verlauf zwei Lichtkanten (eine im Gold, eine im Silber) statt eines
+     sanften Uebergangs von A nach B. Gold nach Messwerten fuer poliertes Gold
+     (F0 ~ 1,00/0,71/0,29 linear), Silber leicht kuehl (0,97/0,96/0,91). */
+  --gold-tief:     #6e5019;
+  --gold:          #c79a43;
+  --gold-licht:    #f5e2a6;
+  --silber-tief:   #6c7076;
+  --silber:        #a7abb1;
+  --silber-licht:  #eef0f2;
+  --grad-brand:    linear-gradient(115deg, #6e5019 0%, #b8893a 14%, #f3dfa2 27%, #c29543 40%,
+                                   #8f9297 56%, #eceef1 70%, #a3a7ad 84%, #6c7076 100%);
+  --grad-metall:   linear-gradient(115deg, #c9a24f 0%, #f6e6b4 22%, #d6b262 40%,
+                                   #cfd2d6 60%, #fafbfc 76%, #b9bdc2 100%);
+  --grad-text:     linear-gradient(100deg, #d4ab57 0%, #f7e7b8 26%, #c79a43 46%, #e6e8eb 70%, #aeb2b8 100%);
 
   /* Typografie — Ratio 1.25, fluid */
   --f-display: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -453,7 +468,12 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 /* Hauptknopf: heller Körper mit Lichtkante oben und Kontaktschatten unten */
 .btn--primary {
   color: var(--c-base); font-weight: 600;
-  background: linear-gradient(180deg, #ffffff 0%, #f8f4eb 52%, #eee9da 100%);
+  /* Gold-Silber als Koerper, darueber eine senkrechte Lichtkurve wie bei
+     gebuerstetem Metall: oben Glanz, Mitte Koerper, unten Schatten. */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 42%, rgba(0,0,0,.10) 100%),
+    var(--grad-metall);
+  color: #16120b;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, .9),
     inset 0 -1px 0 rgba(66, 49, 14, .16),

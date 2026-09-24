@@ -352,7 +352,7 @@ $preisZeile = strtr($W['preis'], ['{preis}' => $preisText]);
   .drin li::before{content:'✓';color:var(--cyan);font-weight:700}
   .hin{font-size:12.5px;color:var(--leise);line-height:1.55;margin:14px 0 0}
   .freimeld{border:1px solid var(--cyan);border-radius:12px;padding:14px 16px;margin:0 0 16px;
-    background:rgba(31,232,255,.06)}
+    background:rgba(241,211,139,.06)}
   .freimeld b{font-size:17px}
   .zust{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;
     margin:12px 0;font-size:12.5px;line-height:1.5;color:var(--dim);cursor:pointer}

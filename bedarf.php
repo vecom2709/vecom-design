@@ -321,7 +321,7 @@ $geld = static function (int $cents) use ($sprache): string {
   .wahl input:checked + .kaestchen::after{content:"";position:absolute;inset:3px;
     border-radius:50%;background:var(--cyan)}
   .wahl .kaestchen.eckig::after{border-radius:2px}
-  .wahl label:has(input:checked){border-color:var(--cyan);background:rgba(0,180,216,.07)}
+  .wahl label:has(input:checked){border-color:var(--cyan);background:rgba(192,136,24,.07)}
   .wahl input:focus-visible + .kaestchen{outline:2px solid var(--cyan);outline-offset:3px}
   .wahl .wort{font-size:15px;line-height:1.4}
 
@@ -332,11 +332,11 @@ $geld = static function (int $cents) use ($sprache): string {
   .ergebnis .erklaerung{color:var(--leise);font-size:13px;line-height:1.65;margin:14px auto 0;max-width:44ch}
 
   .knapp{margin:16px auto 0;max-width:44ch;padding:10px 14px;border-radius:10px;
-    background:rgba(0,180,216,.09);border:1px solid rgba(0,180,216,.28);
+    background:rgba(192,136,24,.09);border:1px solid rgba(192,136,24,.28);
     font-size:13.5px;line-height:1.55;color:var(--dim)}
   .knapp span{display:block;margin-top:4px;color:var(--leise);font-size:12.5px}
   .erkannt{margin:4px 0 0;padding:10px 14px;border-radius:10px;
-    background:rgba(0,180,216,.09);border:1px solid rgba(0,180,216,.28);
+    background:rgba(192,136,24,.09);border:1px solid rgba(192,136,24,.28);
     font-size:13.5px;color:var(--dim)}
   .leiste2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .leiste2 .rechts{margin-left:auto}

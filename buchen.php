@@ -224,7 +224,7 @@ $anz   = (int) round($preis * 50 / 100);
   .ablauf li::before{grid-column:1;grid-row:1/span 2}
   .ablauf li::before{content:counter(s);width:26px;height:26px;border-radius:50%;
     display:grid;place-items:center;font-size:12px;font-weight:700;
-    background:rgba(31,232,255,.12);color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(31,232,255,.3)}
+    background:rgba(241,211,139,.12);color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(241,211,139,.3)}
   .ablauf b{display:block;font-size:14px}
   .ablauf span{display:block;font-size:12.5px;color:var(--dim);line-height:1.45}
   .zustimmung{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;

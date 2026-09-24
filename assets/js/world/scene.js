@@ -597,6 +597,7 @@ export class World {
     const geo = new THREE.ExtrudeGeometry(shapes, EXTRUDE);
     geo.computeBoundingBox();
     const c = geo.boundingBox.getCenter(new THREE.Vector3());
+    const groesse = geo.boundingBox.getSize(new THREE.Vector3());
     geo.dispose();
 
     const parts = shapes.map((sh) => {
@@ -630,6 +631,31 @@ export class World {
       iridescenceIOR: 1.35,
       iridescenceThicknessRange: [180, 420],
     });
+
+    /* GOLD, DAS IN SILBER UEBERGEHT (24.09.2026, Uwe: „hyperrealistisches
+       Gold-Silber-Verlauf, sehr edel“). Ein Metall mit zwei Farben ist keine
+       Textur, sondern eine andere Albedo je Ort: Der linke Schenkel ist
+       poliertes Gold, der rechte Silber, dazwischen ein weicher Uebergang wie
+       bei zweifarbig gearbeitetem Schmuck. Die Albedo wird im Shader aus der
+       Lage im Koerper gemischt (Objektraum, also dreht sie mit). Alles andere
+       -- Klarlack, Buerstung, Anisotropie -- bleibt, und gerade das macht
+       den Unterschied zwischen Metall und Farbe. */
+    const gs = {
+      uGold: { value: new THREE.Color(0xf0b64d) },     // poliertes Gold, F0 ~ 1,00/0,71/0,29
+      uSilber: { value: new THREE.Color(0xe9ebee) },   // Silber, leicht kuehl
+      uX0: { value: -groesse.x * 0.22 },
+      uX1: { value: groesse.x * 0.26 },
+    };
+    this.goldSilber = gs;
+    this.mat.onBeforeCompile = (sh) => {
+      Object.assign(sh.uniforms, gs);
+      sh.vertexShader = 'varying float vGsX;\n' + sh.vertexShader.replace(
+        '#include <begin_vertex>', '#include <begin_vertex>\n  vGsX = position.x;');
+      sh.fragmentShader = 'uniform vec3 uGold;\nuniform vec3 uSilber;\nuniform float uX0;\nuniform float uX1;\nvarying float vGsX;\n'
+        + sh.fragmentShader.replace('vec4 diffuseColor = vec4( diffuse, opacity );',
+          'vec4 diffuseColor = vec4( mix( uGold, uSilber, smoothstep( uX0, uX1, vGsX ) ), opacity );');
+    };
+    this.mat.customProgramCacheKey = () => 'vecom-gold-silber';
 
     this.logo = new THREE.Group();
     this.logoLeft = new THREE.Mesh(parts[0], this.mat);

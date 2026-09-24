@@ -12,8 +12,8 @@
 <link rel="stylesheet" href="assets/css/fonts.css">
 <style>
   :root{
-    --blau:#0648e8; --cyan:#1fe8ff; --grund:#05070d; --flaeche:#0c1119;
-    --text:#e9eef8; --leise:#8b9ab5; --linie:rgba(150,180,230,.16);
+    --blau:#8a6322; --cyan:#f1d38b; --grund:#0a0908; --flaeche:#141311;
+    --text:#f7f3ea; --leise:#a9a397; --linie:rgba(224,206,156,.16);
     --e:cubic-bezier(.16,1,.3,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -23,8 +23,8 @@
 
   /* Grundlicht + Korn, damit es zur Website passt */
   .glow{position:absolute;inset:0;background:
-    radial-gradient(52% 44% at 50% 38%,rgba(10,120,245,.22),transparent 70%),
-    radial-gradient(40% 34% at 80% 85%,rgba(6,72,232,.14),transparent 72%)}
+    radial-gradient(52% 44% at 50% 38%,rgba(200,150,62,.22),transparent 70%),
+    radial-gradient(40% 34% at 80% 85%,rgba(138,99,34,.14),transparent 72%)}
   .grain{position:absolute;inset:0;opacity:.035;pointer-events:none;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
@@ -40,7 +40,7 @@
   p{font-size:24px;line-height:1.5;color:var(--leise);max-width:48ch}
   .kicker{font-family:'Archivo',sans-serif;font-stretch:94%;font-size:15px;
      letter-spacing:.3em;text-transform:uppercase;color:var(--cyan)}
-  .grad{background:linear-gradient(100deg,#cfe0ff,#fff 35%,#79c8ff 70%,var(--cyan));
+  .grad{background:linear-gradient(100deg,#faf0d4,#fff 35%,#f0d488 70%,var(--cyan));
      -webkit-background-clip:text;background-clip:text;color:transparent}
 
   /* Einfahrende Zeilen */
@@ -60,18 +60,18 @@
        font-size:15px;color:var(--cyan);letter-spacing:.18em;margin-bottom:12px;display:block}
 
   /* Fensterattrappe */
-  .win{width:560px;border-radius:14px;overflow:hidden;background:#070b13;
+  .win{width:560px;border-radius:14px;overflow:hidden;background:#0f0d0b;
        box-shadow:0 40px 90px -40px #000,inset 0 0 0 1px var(--linie)}
-  .win__bar{display:flex;gap:6px;align-items:center;padding:10px 12px;background:#131a28}
-  .win__bar i{width:8px;height:8px;border-radius:50%;background:rgba(150,180,230,.3)}
+  .win__bar{display:flex;gap:6px;align-items:center;padding:10px 12px;background:#211e1a}
+  .win__bar i{width:8px;height:8px;border-radius:50%;background:rgba(224,206,156,.3)}
   .win__url{margin-left:10px;font-size:11px;color:var(--leise);letter-spacing:.05em}
   .win__body{padding:22px;display:grid;gap:12px}
-  .bar{height:12px;border-radius:6px;background:rgba(150,180,230,.16)}
+  .bar{height:12px;border-radius:6px;background:rgba(224,206,156,.16)}
   .bar.w70{width:70%}.bar.w45{width:45%}.bar.w90{width:90%}
   .bar.blue{background:linear-gradient(90deg,var(--blau),var(--cyan))}
 
   /* Fortschritt */
-  .prog{height:3px;background:rgba(150,180,230,.18);border-radius:3px;overflow:hidden;width:460px}
+  .prog{height:3px;background:rgba(224,206,156,.18);border-radius:3px;overflow:hidden;width:460px}
   .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blau),var(--cyan))}
   .sc.on .prog i{width:100%;transition:width 2.6s var(--e) .3s}
 

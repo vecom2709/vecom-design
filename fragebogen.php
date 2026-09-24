@@ -251,7 +251,7 @@ $gruppenWort = [
   .haken:hover{border-color:var(--cyan)}
   /* Angehakt sieht anders aus als nicht angehakt — sonst muss man das
      Kaestchen suchen, um zu wissen, was gilt. */
-  .haken:has(input:checked){border-color:var(--blau);background:rgba(6,72,232,.045)}
+  .haken:has(input:checked){border-color:var(--blau);background:rgba(138,99,34,.045)}
   .haken input{margin:2px 0 0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--blau)}
   .haken span{flex:1 1 auto;min-width:0;display:block;font-size:14px;line-height:1.45}
   .haken span b{display:block;font-weight:600}
@@ -264,7 +264,7 @@ $gruppenWort = [
                  border:1px solid currentColor;border-radius:999px;padding:3px 9px;white-space:nowrap}
   .feld p.mehr,.feld p.weniger{margin:12px 0 0;font-size:13px;line-height:1.55;
          border-radius:9px;padding:10px 12px}
-  .feld p.mehr{color:var(--cyan);background:rgba(31,232,255,.07);border:1px solid rgba(31,232,255,.3)}
+  .feld p.mehr{color:var(--cyan);background:rgba(241,211,139,.07);border:1px solid rgba(241,211,139,.3)}
   .feld p.weniger{color:var(--dim);background:rgba(127,127,127,.07);border:1px solid var(--linie)}
 
   /* ---- Auswahl statt Schreiben -------------------------------------------
@@ -279,7 +279,7 @@ $gruppenWort = [
           font-size:14px;line-height:1.4;
           transition:border-color .14s ease, background .14s ease}
   .option:hover{border-color:var(--cyan)}
-  .option:has(input:checked){border-color:var(--blau);background:rgba(6,72,232,.055);font-weight:500}
+  .option:has(input:checked){border-color:var(--blau);background:rgba(138,99,34,.055);font-weight:500}
   .option input{margin:0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--blau)}
   .option span{flex:1 1 auto;min-width:0}
   /* Die freie Zeile gehoert optisch unter die Auswahl, nicht daneben —
@@ -313,7 +313,7 @@ $gruppenWort = [
                    transition:border-color .14s ease, background .14s ease, color .14s ease}
   .standwahl label:hover{border-color:var(--cyan)}
   .standwahl label.an,
-  .standwahl label:has(input:checked){border-color:var(--blau);background:rgba(6,72,232,.09);
+  .standwahl label:has(input:checked){border-color:var(--blau);background:rgba(138,99,34,.09);
                       color:var(--blau);font-weight:600}
   /* Bei vier Zustaenden nebeneinander waere jeder Knopf so schmal, dass die
      Beschriftung umbricht. Also bekommt das Kaestchen die Arbeit und die

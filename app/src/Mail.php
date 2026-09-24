@@ -333,19 +333,19 @@ final class Mail
      * Die Farben. Dieselben wie auf der Website, aber fuer hellen Grund
      * gerechnet.
      *
-     * Das Cyan #1fe8ff der Nachtfassung hat auf Weiss 1,4:1 — als Schrift
+     * Das helle Champagnergold #f1d38b hat auf Weiss kaum Kontrast — als Schrift
      * unlesbar, als Knopffarbe schlimmer. Auf dem Briefbogen traegt deshalb
      * das tiefe Blau, und das Cyan kommt nur im Farbstreifen vor, wo es
      * nichts lesbar halten muss.
      */
-    private const BLAU_TIEF = '#0648e8';
-    private const BLAU      = '#0a78f5';
-    private const CYAN      = '#1fe8ff';
-    private const GRUND     = '#eef1f7';
+    private const BLAU_TIEF = '#8a6322';
+    private const BLAU      = '#c8963e';
+    private const CYAN      = '#f1d38b';
+    private const GRUND     = '#f6f4ef';
     private const FLAECHE   = '#ffffff';
-    private const TEXT      = '#101620';
-    private const LEISE     = '#6b7688';
-    private const LINIE     = '#e2e6ee';
+    private const TEXT      = '#1A1816';
+    private const LEISE     = '#807b73';
+    private const LINIE     = '#edeae3';
 
     /**
      * Derselbe Brief, nur als HTML — auf dem Briefbogen von Vecom Design.
@@ -462,13 +462,13 @@ final class Mail
                Medienabfragen kann (Gmail), sieht die helle Fassung, und die
                ist die richtige. */
             . '@media (prefers-color-scheme:dark){'
-            . '.vd-grund{background:#0b0e14!important}'
-            . '.vd-blatt{background:#141a24!important}'
-            . '.vd-text,.vd-text p{color:#e7ecf5!important}'
-            . '.vd-leise{color:#93a0b5!important}'
-            . '.vd-marke{color:#f2f5fa!important}'
-            . '.vd-linie{border-color:#2a3342!important}'
-            . '.vd-adr{color:#8fb4ff!important}'
+            . '.vd-grund{background:#11100e!important}'
+            . '.vd-blatt{background:#1e1c1a!important}'
+            . '.vd-text,.vd-text p{color:#f4f1e8!important}'
+            . '.vd-leise{color:#aca69c!important}'
+            . '.vd-marke{color:#f9f8f3!important}'
+            . '.vd-linie{border-color:#3b3731!important}'
+            . '.vd-adr{color:#f3db9b!important}'
             . '}'
             . '@media (max-width:520px){'
             /* Nur die seitliche Luft schrumpft. Nimmt man hier die ganze
