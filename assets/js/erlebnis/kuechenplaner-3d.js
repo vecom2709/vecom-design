@@ -34,43 +34,33 @@ function karte(url, farbig, kachel, anis) {
   return t;
 }
 
-function fliesen(anis) {
-  const c = document.createElement('canvas'); c.width = c.height = 512;   // 2 x 2 Fliesen = 1,20 m
-  const g = c.getContext('2d');
-  const tone = ['#d3cdc3', '#cfc9be', '#d6d0c6', '#d1cbc0'];
-  for (let i = 0; i < 4; i++) {
-    const x = (i % 2) * 256, y = Math.floor(i / 2) * 256;
-    g.fillStyle = tone[i]; g.fillRect(x, y, 256, 256);
-    // leichte Wolkung je Fliese
-    for (let k = 0; k < 90; k++) { g.fillStyle = `rgba(${k % 2 ? 255 : 120},${k % 2 ? 250 : 112},${k % 2 ? 240 : 100},0.035)`; g.beginPath(); g.arc(x + Math.random() * 256, y + Math.random() * 256, 8 + Math.random() * 40, 0, 7); g.fill(); }
-  }
-  g.fillStyle = '#b3aca1';
-  for (const p of [0, 256]) { g.fillRect(p, 0, 2, 512); g.fillRect(0, p, 512, 2); }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 1.2, 1 / 1.2); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = anis;
-  return t;
-}
-
 export function materialien(renderer) {
   const an = Math.min(8, renderer.capabilities.getMaxAnisotropy());
   const K = (n, f, k) => karte(PFAD + n, f, k, an);
+  /* Moderne Küche (24.09.2026, K1): dieselben Oberflächen wie im Render --
+     Eiche furniert, Kaschmir und Tiefschwarz supermatt, Keramik Calacatta Oro
+     und Nero, Griffmulde in Champagner. Steinkarten laden erst, wenn die
+     Platte gewählt wird (spaet), damit der Planer nicht 0,5 MB vorab zieht. */
+  const spaet = (mat, laden) => { mat.userData.laden = laden; return mat; };
   const m = {
     front: {
-      salbei: new THREE.MeshPhysicalMaterial({ color: 0x6b7a6b, roughness: 0.62, clearcoat: 0.15, clearcoatRoughness: 0.5 }),
+      furnier: new THREE.MeshPhysicalMaterial({ map: K('furnier-farbe.webp', true, 1.83), normalMap: K('furnier-normal.webp', false, 1.83), normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.46, sheen: 0.15, sheenRoughness: 0.6, sheenColor: 0x6b4a2c }),
+      kaschmir: new THREE.MeshPhysicalMaterial({ color: 0xb5aa9a, roughness: 0.62 }),
+      tiefschwarz: new THREE.MeshPhysicalMaterial({ color: 0x19191a, roughness: 0.55 }),
       weiss: new THREE.MeshPhysicalMaterial({ color: 0xe6e4df, roughness: 0.42, clearcoat: 0.2, clearcoatRoughness: 0.4 }),
-      nussbaum: new THREE.MeshPhysicalMaterial({ map: K('nussbaum-farbe.webp', true, 0.4), normalMap: K('nussbaum-normal.webp', false, 0.4), normalScale: new THREE.Vector2(0.2, 0.2), roughness: 0.48 }),
-      graphit: new THREE.MeshPhysicalMaterial({ color: 0x393836, roughness: 0.5, clearcoat: 0.15, clearcoatRoughness: 0.5 }),
     },
     platte: {
-      eiche: new THREE.MeshPhysicalMaterial({ map: K('eiche-farbe.webp', true, 2.4), normalMap: K('eiche-normal.webp', false, 2.4), normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.5 }),
-      marmor: new THREE.MeshPhysicalMaterial({ map: K('marmor-farbe.webp', true, 1.2), roughness: 0.12, clearcoat: 0.6, clearcoatRoughness: 0.08 }),
-      keramik: new THREE.MeshPhysicalMaterial({ map: K('keramik-farbe.webp', true, 1.2), normalMap: K('keramik-normal.webp', false, 1.2), normalScale: new THREE.Vector2(0.12, 0.12), roughness: 0.58 }),
+      oro: spaet(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.3 }), (mm) => { mm.map = K('oro-farbe.webp', true, 1.6); }),
+      nero: spaet(new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.32 }), (mm) => { mm.map = K('nero-farbe.webp', true, 1.6); }),
+      keramik: spaet(new THREE.MeshPhysicalMaterial({ roughness: 0.58, normalScale: new THREE.Vector2(0.12, 0.12) }), (mm) => { mm.map = K('keramik-farbe.webp', true, 1.2); mm.normalMap = K('keramik-normal.webp', false, 1.2); }),
+      eiche: spaet(new THREE.MeshPhysicalMaterial({ roughness: 0.5, normalScale: new THREE.Vector2(0.35, 0.35) }), (mm) => { mm.map = K('eiche-farbe.webp', true, 2.4); mm.normalMap = K('eiche-normal.webp', false, 2.4); }),
     },
     griff: {
-      messing: new THREE.MeshPhysicalMaterial({ color: 0xe1b36c, metalness: 1, roughness: 0.3 }),
+      // Grifflos: die Mulde ist ein Profil in Champagner, wie im Render
+      grifflos: new THREE.MeshPhysicalMaterial({ color: 0xbd9a5f, metalness: 1, roughness: 0.34 }),
+      messing: new THREE.MeshPhysicalMaterial({ color: 0xd8bb86, metalness: 1, roughness: 0.28 }),
       edelstahl: new THREE.MeshPhysicalMaterial({ color: 0xc9c9c6, metalness: 1, roughness: 0.26 }),
       schwarz: new THREE.MeshPhysicalMaterial({ color: 0x161615, metalness: 0, roughness: 0.45 }),
-      grifflos: new THREE.MeshPhysicalMaterial({ color: 0x0d0d0c, roughness: 0.6 }),
     },
     korpus: new THREE.MeshStandardMaterial({ color: 0xdad9d5, roughness: 0.5 }),
     zarge: new THREE.MeshStandardMaterial({ color: 0x3e3d3c, metalness: 0.6, roughness: 0.35 }),
@@ -78,10 +68,9 @@ export function materialien(renderer) {
     edelstahl: new THREE.MeshPhysicalMaterial({ color: 0xbfbfbc, metalness: 1, roughness: 0.22 }),
     glasSchwarz: new THREE.MeshPhysicalMaterial({ color: 0x060605, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03 }),
     kochfeld: new THREE.MeshPhysicalMaterial({ map: K('kochfeld.webp', true, 1), roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02 }),
-    // Boden: Feinsteinzeug 60 x 60 mit Fuge, gezeichnet statt geladen. Die
-    // Keramikkarte der Platte als Boden wirkte fleckig und viel zu dunkel.
-    boden: new THREE.MeshStandardMaterial({ map: fliesen(an), roughness: 0.55 }),
-    wand: new THREE.MeshStandardMaterial({ color: 0xebe7e0, roughness: 0.92 }),
+    // Boden: Eichendielen wie im Render (vorher gezeichnete Fliesen); Wände Kalkputz
+    boden: new THREE.MeshStandardMaterial({ map: K('diele-farbe.webp', true, 1.7), normalMap: K('diele-normal.webp', false, 1.7), normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.42 }),
+    wand: new THREE.MeshStandardMaterial({ map: K('putz-farbe.webp', true, 2.0), roughness: 0.92 }),
     led: new THREE.MeshStandardMaterial({ color: 0xfff4e2, emissive: 0xfff1dc, emissiveIntensity: 2.2 }),
     auswahl: new THREE.MeshBasicMaterial({ color: 0xf1d38b, transparent: true, opacity: 0.22, depthWrite: false }),
     zuviel: new THREE.MeshBasicMaterial({ color: 0xff4a4a, transparent: true, opacity: 0.28, depthWrite: false }),
@@ -92,6 +81,7 @@ export function materialien(renderer) {
     birne: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffd9a0, emissiveIntensity: 6 }),
   };
   m.kochfeld.map.repeat.set(1, 1);
+  m.bereit = (mat) => { if (mat && mat.userData.laden) { mat.userData.laden(mat); delete mat.userData.laden; mat.needsUpdate = true; } return mat; };
   return m;
 }
 
@@ -196,7 +186,7 @@ export async function starten(buehne, plan, mitteilen) {
     if (p.form !== form) { form = p.form; soll.az = HEIM[form].az; soll.pol = HEIM[form].pol; }
     entsorgenGruppe(kueche); kueche = new THREE.Group(); szene.add(kueche);
     fronten = []; module = []; masse = []; etiketten.replaceChildren();
-    const F = mat.front[p.front], PL = mat.platte[p.platte], G = mat.griff[p.griff];
+    const F = mat.front[p.front] || mat.front.furnier, PL = mat.bereit(mat.platte[p.platte] || mat.platte.oro), G = mat.griff[p.griff] || mat.griff.grifflos;
     const grifflos = p.griff === 'grifflos';
 
     // Raum: Boden, Wände

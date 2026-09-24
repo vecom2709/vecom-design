@@ -7232,6 +7232,24 @@ pruefe('N1: der Zugang aus der Vorschau trägt seine Herkunft',
 pruefe('N1: zugang.php reicht die Quelle nur geprüft weiter',
     str_contains((string) file_get_contents(dirname(__DIR__, 2) . '/zugang.php'), 'Zugang::quelle((string) ($_POST[\'quelle\']'));
 
+/* ---------- Anrede im Fragebogen (24.09.2026) ------------------------------
+   Die Seite siezt (Sie/Lei). Der Fragebogen duzte an vier Stellen — gefunden,
+   als die acht Fragen für den Dashboard-Einblick durchgeklickt wurden. */
+$du = ['de' => '/\b(du|dein|deine|deinen|dich|dir|hast|brauchst|machst|wähle)\b/iu',
+       'it' => '/\b(tu|tuo|tua|tuoi|tue|hai|puoi|ti|scegli|vuoi)\b/iu'];
+$gefunden = [];
+foreach (Baukasten::FRAGEN as $fid => $f) {
+    $texte = ['frage' => $f['frage'] ?? [], 'hilfe' => $f['hilfe'] ?? []];
+    foreach (($f['optionen'] ?? []) as $oid => $o) { $texte["opt.$oid"] = is_array($o) ? $o : []; }
+    foreach ($texte as $teil => $spr) {
+        foreach ($du as $sp => $muster) {
+            $t = (string) ($spr[$sp] ?? '');
+            if ($t !== '' && preg_match($muster, $t)) { $gefunden[] = "$fid.$teil.$sp: $t"; }
+        }
+    }
+}
+pruefe('Fragebogen siezt auf Deutsch und Italienisch', $gefunden === [], implode(' | ', $gefunden));
+
 /* ---------- Texte und Messung (S3, S4) ----------------------------------- */
 foreach (['zugang', 'zugang_bestand', 'zugang_erinnerung', 'vorhaben_erinnerung'] as $zgA) {
     foreach (['it', 'de', 'en'] as $zgL2) {

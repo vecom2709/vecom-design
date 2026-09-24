@@ -80,7 +80,7 @@ final class Nachricht
                 // Der Link nur, wenn er nicht ohnehin schon im Text steht —
                 // eine Vorlage bringt ihn oft selbst mit.
                 $anhang = ($link && !str_contains($text, $link))
-                    ? "\n\n" . (['it' => 'La tua pagina:', 'de' => 'Deine Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link
+                    ? "\n\n" . (['it' => 'La sua pagina:', 'de' => 'Ihre Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link
                     : '';
 
                 // Ein eigener Betreff heisst: Der Text ist ein fertiger Brief
@@ -152,7 +152,7 @@ final class Nachricht
             // zweiter Umschlag um einen fertigen Brief.
             $betreff = Vorlage::betreff($kid, $eigenerBetreff);
             $inhalt  = $text . (str_contains($text, $link) ? '' : "\n\n"
-                . (['it' => 'La tua pagina:', 'de' => 'Deine Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link);
+                . (['it' => 'La sua pagina:', 'de' => 'Ihre Seite:', 'en' => 'Your page:'][$sprache] ?? '') . ' ' . $link);
         } else {
             [$betreff, $inhalt] = Texte::mail('nachricht', $sprache, [
                 'name' => (string) $p['kunde'],
@@ -487,8 +487,8 @@ final class Nachricht
         $zustimmung = '';
         if (!empty($b['zustimmung_text'])) {
             $wann = (string) ($b['widerruf_ok_am'] ?? $b['agb_ok_am'] ?? '');
-            $kopf = ['it' => 'Hai confermato al momento dell\'ordine',
-                     'de' => 'Beim Bestellen hast du bestätigt',
+            $kopf = ['it' => 'Al momento dell\'ordine ha confermato',
+                     'de' => 'Beim Bestellen haben Sie bestätigt',
                      'en' => 'At the time of ordering you confirmed'][$sprache];
             $zustimmung = $kopf . ($wann !== '' ? ' (' . Fmt::datum($wann) . '):' : ':') . "\n"
                 . preg_replace('~^~m', '  ', trim((string) $b['zustimmung_text']));

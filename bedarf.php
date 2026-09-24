@@ -273,8 +273,8 @@ if ($b && $schritt === $anzahl) {
 }
 
 $geld = static function (int $cents) use ($sprache): string {
-    $z = number_format($cents / 100, 0, ',', '.');
-    return $sprache === 'en' ? '€' . $z : $z . ' €';
+    // Englisch trennt Tausender mit Komma: €1,500 -- nicht €1.500 (gesehen im Dashboard-Einblick)
+    return $sprache === 'en' ? '€' . number_format($cents / 100, 0, '.', ',') : number_format($cents / 100, 0, ',', '.') . ' €';
 };
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>">

@@ -352,6 +352,26 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .vorschau__weiter { margin-top: clamp(1.4rem, 3vw, 2rem); display: grid; gap: 1rem; max-width: 640px; }
 .vorschau__satz { margin: 0; font-family: var(--f-serif); font-size: clamp(1.25rem, 1.05rem + .6vw, 1.6rem); line-height: 1.35; color: var(--c-text); }
 .vorschau__hinweis { margin: 0; font-size: var(--t-sm); line-height: 1.55; color: var(--c-text-faint); }
+/* V4 Logo: dezente Zeile unter dem Formular, das Logo bleibt lokal */
+.vorschau__logo { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.1rem; margin-top: .2rem; }
+.vorschau__logoknopf { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; padding: 0 1.05rem; border-radius: 999px; cursor: pointer;
+  border: 1px dashed rgba(233, 207, 134, .38); color: #e9cf86; font-size: var(--t-sm); transition: border-color 180ms, background-color 180ms; }
+.vorschau__logoknopf:hover { border-color: rgba(233, 207, 134, .75); background: rgba(233, 207, 134, .06); }
+.vorschau__logoknopf:focus-within { outline: 2px solid var(--c-cyan); outline-offset: 3px; }
+.vorschau__logochip { display: inline-flex; align-items: center; gap: .5rem; height: 44px; padding: 4px 6px 4px 12px; border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--edel-linie); }
+.vorschau__logochip[hidden] { display: none; }
+.vorschau__logochip img { max-height: 28px; max-width: 120px; object-fit: contain; }
+.vorschau__logochip button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255, 255, 255, .08); color: var(--c-text); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.vorschau__logochip button:hover { background: rgba(255, 255, 255, .16); }
+.vorschau__logonote { font-size: var(--t-xs); color: var(--c-text-faint); }
+.vorschau__logo[data-fehler] .vorschau__logonote { color: #e3a58f; }
+/* In der Skizze: Logo statt Wortmarke; dunkle Logos werden hell gesetzt,
+   Logos mit weissem Grund bekommen ein helles Schild. */
+.vs-logo { display: block; height: 54px; max-width: 300px; object-fit: contain; object-position: left center; }
+.vs-seite--telefon .vs-logo { height: 34px; max-width: 200px; }
+.vs-logo--hell { filter: brightness(0) invert(.96); }
+.vs-logo--schild { background: #f7f3ea; padding: 8px 14px; border-radius: 10px; height: 58px; }
+.vs-seite--telefon .vs-logo--schild { height: 44px; padding: 6px 10px; }
 @media (max-width: 899px) { .vorschau__form { grid-template-columns: 1fr 1fr; } .vorschau__form .btn { grid-column: 1 / -1; } }
 @media (max-width: 520px) { .vorschau__form { grid-template-columns: 1fr; } }
 

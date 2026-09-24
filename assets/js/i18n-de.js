@@ -368,6 +368,9 @@ window.VECOM_I18N.de = {
       schritt1: "E-Mail-Adresse eintragen: Der Link zu Ihrem persönlichen Dashboard kommt sofort.",
       schritt2: "Dort acht kurze Fragen beantworten und gleich Ihre Preisspanne sehen, Posten für Posten.",
       schritt3: "Angebot, Anzahlung, Entwurf und Übergabe laufen über dasselbe Dashboard. Sie entscheiden jeden Schritt.",
+      einblick_t1: "Ihr Dashboard", einblick_t2: "Ihr Richtpreis", einblick_t3: "Während ich baue", einblick_g: "Ansichten des Dashboards",
+      einblick_k: "Echte Ansichten aus dem Dashboard, mit Beispieldaten.",
+      einblick_a1: "Das persönliche Dashboard: der erste Schritt, das Vorhaben beschreiben", einblick_a2: "Nach acht Fragen: die Preisspanne als Richtwert", einblick_a3: "Während des Baus: wo das Projekt steht und welches Material angekommen ist",
       preisseite: "Alle Preise, Posten für Posten",
       cta: "Mein Dashboard anfordern",
       note: "Kostenlos und unverbindlich. Kein Konto, kein Passwort: Der Link ist Ihr Zugang.",
@@ -821,6 +824,13 @@ masz: {
     intro: {
       skip: "Überspringen"
     },
+    zl: {
+      g1: "0 €", z1: "Antwort innerhalb eines Werktags",
+      g2: "Anzahlung 50 % bei Auftrag", z2: "Sie geben die erste Ansicht frei",
+      g3: "Keine Zahlung", z3: "Sie sehen den Stand über Ihren Link",
+      g4: "Restzahlung 50 % bei Übergabe", z4: "Online erst nach Ihrem Ja",
+      hinweis: "Wie lange es bei Ihnen dauert, sage ich Ihnen, sobald feststeht, was gebaut wird — im Angebot, schriftlich."
+    },
     vs: {
       kicker: "In 30 Sekunden",
       h1: "Ihre Website,",
@@ -831,6 +841,7 @@ masz: {
       branche: "Branche",
       ort: "Ort (freiwillig)",
       ortBsp: "z. B. Agrigento",
+      logo: "Logo hinzufügen (optional)", logoWeg: "Logo entfernen", logoLokal: "Ihr Logo bleibt auf Ihrem Gerät — es wird nicht hochgeladen.", logoFehler: "Bitte ein Bild als PNG, JPG, WebP oder SVG bis 5 MB.",
       knopf: "Vorschau zeigen",
       weiter: "Gefällt Ihnen die Richtung? Ich schicke Ihnen den Link zu Ihrem Dashboard — dort machen wir daraus Ihre echte Website.",
       hinweis: "Das ist eine automatisch gesetzte Skizze aus Name, Branche und einem Bild — noch kein Entwurf. Ihre echte Website gestalten wir gemeinsam."
@@ -846,6 +857,7 @@ masz: {
       band1t: "Die Uhr öffnet sich Teil für Teil — so sieht der Kunde, wofür er bezahlt.",
       band2k: "Küchenstudio",
       band2t: "Geplant mit den eigenen Wandmaßen — der Plan kommt mit der Anfrage bei Ihnen an.",
+      band2alt: "Moderne Küche: Insel mit Keramikplatte Calacatta Oro, Hochschränke in Eiche, Nachmittagslicht",
       wa: "Schreiben Sie mir",
       waAria: "Uwe über WhatsApp schreiben",
       technik: "Für Technikinteressierte: Qualitätsstufen, Vergleich und Streaming",

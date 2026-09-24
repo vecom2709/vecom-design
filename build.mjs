@@ -339,6 +339,8 @@ function build(lang, seite) {
   // baut sie auseinander. Deshalb weiter unten zusätzlich eine Prüfung.
   h = h.replace(/ablauf-[a-z]{2}\.mp4/g, `ablauf-${lang}.mp4`);
   h = h.replace(/video-ablauf-[a-z]{2}\.webp/g, `video-ablauf-${lang}.webp`);
+  // Dashboard-Einblick (V1): echte Ansichten je Sprache
+  h = h.replace(/einblick\/(h?\d)-[a-z]{2}\.webp/g, `einblick/$1-${lang}.webp`);
 
   // 2. Kopfdaten
   const url = `${BASE}/${seite.adressen[lang]}`;

@@ -368,6 +368,9 @@ window.VECOM_I18N.en = {
       schritt1: "Enter your email: the link to your personal dashboard arrives straight away.",
       schritt2: "There you answer eight short questions and see your price range at once, item by item.",
       schritt3: "Quote, deposit, draft and handover all run through the same dashboard. You decide every step.",
+      einblick_t1: "Your dashboard", einblick_t2: "Your price", einblick_t3: "While I build", einblick_g: "Dashboard views",
+      einblick_k: "Real dashboard views, with sample data.",
+      einblick_a1: "The personal dashboard: the first step, describing the project", einblick_a2: "After eight questions: the indicative price range", einblick_a3: "During the build: where the project stands and which material has arrived",
       preisseite: "All prices, line by line",
       cta: "Get my dashboard",
       note: "Free and without obligation. No account, no password: the link is your access.",
@@ -821,6 +824,13 @@ masz: {
     intro: {
       skip: "Skip"
     },
+    zl: {
+      g1: "€0", z1: "Reply within one working day",
+      g2: "50 % deposit on order", z2: "You approve the first screen",
+      g3: "No payment", z3: "You follow progress via your link",
+      g4: "50 % balance on handover", z4: "Live only after your yes",
+      hinweis: "How long it takes in your case I tell you as soon as we know what is being built — in the quote, in writing."
+    },
     vs: {
       kicker: "In 30 seconds",
       h1: "Your website,",
@@ -831,6 +841,7 @@ masz: {
       branche: "Trade",
       ort: "Town (optional)",
       ortBsp: "e.g. Agrigento",
+      logo: "Add your logo (optional)", logoWeg: "Remove logo", logoLokal: "Your logo stays on your device — it is not uploaded.", logoFehler: "Please use a PNG, JPG, WebP or SVG image up to 5 MB.",
       knopf: "Show preview",
       weiter: "Like the direction? I’ll send you the link to your dashboard — that’s where we turn it into your real website.",
       hinweis: "This is a sketch set automatically from name, trade and an image — not yet a design. We design your real website together."
@@ -846,6 +857,7 @@ masz: {
       band1t: "The watch opens part by part — so the customer sees what they are paying for.",
       band2k: "Kitchen studio",
       band2t: "Planned to the customer’s own wall measurements — the plan arrives with the enquiry.",
+      band2alt: "Modern kitchen: island in Calacatta Oro ceramic, oak tall units, afternoon light",
       wa: "Message me",
       waAria: "Message Uwe on WhatsApp",
       technik: "For the technically curious: quality levels, comparison and streaming",

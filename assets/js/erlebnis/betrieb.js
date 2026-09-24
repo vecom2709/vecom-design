@@ -22,7 +22,7 @@ const BETRIEBE = [
   { id: 'restaurant', demo: 'gastro', bild: 'branchen/gastro-weiss-800.webp' },
   { id: 'friseur', demo: 'salon', bild: 'haar/kachel-800.webp' },
   { id: 'autohaus', demo: 'auto', bild: 'branchen/auto-karmin-800.webp' },
-  { id: 'kueche', demo: 'kueche', bild: 'branchen/kueche-nussbaum-800.webp' },
+  { id: 'kueche', demo: 'kueche', bild: 'branchen/kueche-modern-800.webp' },
   { id: 'juwelier', demo: 'schmuck', bild: 'branchen/schmuck-gelbgold-800.webp' },
   { id: 'weingut', demo: 'wein', bild: 'branchen/wein-rosso-800.webp' },
   { id: 'spedition', demo: 'lkw', bild: 'branchen/lkw-rot-800.webp' },

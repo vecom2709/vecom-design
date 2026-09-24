@@ -51,9 +51,9 @@
 } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=6b4fd1e2">
+<link rel="stylesheet" href="assets/css/app.css?v=3565202d">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
-<link rel="stylesheet" href="assets/css/edel.css?v=12725911">
+<link rel="stylesheet" href="assets/css/edel.css?v=cf1c4fa6">
 
 
 <script type="importmap">
@@ -551,7 +551,7 @@
           <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_schmuck_b">Gioielli e orologi</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_schmuck_t">Orologio da aprire</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_schmuck_x">Tempo reale · 1,2 MB</span></span>
         </button></li>
         <li><button type="button" class="demo-kachel" data-demo="kueche" aria-controls="kuechenplaner" aria-expanded="false">
-          <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-salbei-800.avif?v=1f49c9b3"><img src="assets/img/erlebnis/branchen/kueche-salbei-800.webp?v=189b53f1" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
+          <picture><source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-modern-800.avif?v=d1869fd1"><img src="assets/img/erlebnis/branchen/kueche-modern-800.webp?v=a8a71a9d" width="800" height="450" loading="lazy" decoding="async" alt=""></picture>
           <span class="demo-kachel__text"><span class="demo-kachel__branche" data-i18n="erlebnis.demo_kueche_b">Cucine su misura</span><span class="demo-kachel__titel" data-i18n="erlebnis.demo_kueche_t">Progetti la sua cucina</span><span class="demo-kachel__technik" data-i18n="erlebnis.demo_kueche_x">Tempo reale · misure a norma</span></span>
         </button></li>
         <li><button type="button" class="demo-kachel" data-demo="gastro" aria-controls="produkt-demo" aria-expanded="false">
@@ -888,10 +888,10 @@
       </header>
       <div class="bd-raster kp-raster">
         <div class="bd-links">
-          <figure class="buehne buehne--produkt kp-buehne" data-src="assets/js/erlebnis/kuechenplaner-3d.js?v=6dcdb50b">
+          <figure class="buehne buehne--produkt kp-buehne" data-src="assets/js/erlebnis/kuechenplaner-3d.js?v=83b0fee9">
             <picture>
-              <source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-salbei.avif?v=570d0aa0">
-              <img class="ruhe ist-an ist-oben" src="assets/img/erlebnis/branchen/kueche-salbei.webp?v=8dffd242" width="1600" height="900" loading="lazy" decoding="async" alt="">
+              <source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-modern.avif?v=31fff415">
+              <img class="ruhe ist-an ist-oben" src="assets/img/erlebnis/branchen/kueche-modern.webp?v=9b03e2fe" width="1600" height="900" loading="lazy" decoding="async" alt="">
             </picture>
             <div class="echtzeit"></div>
             <figcaption class="kennung" aria-live="polite"><i class="kennung__punkt" aria-hidden="true"></i><span class="kennung__text">…</span></figcaption>
@@ -1003,6 +1003,14 @@
       <label class="vorschau__feld"><span data-i18n="vs.ort">Luogo (facoltativo)</span>
         <input name="ort" maxlength="28" autocomplete="address-level2" spellcheck="false" data-i18n-attr="placeholder:vs.ortBsp" placeholder="es. Agrigento"></label>
       <button class="btn btn--primary" type="submit"><span data-i18n="vs.knopf">Mostrare l’anteprima</span></button>
+      <!-- V4 (24.09.2026): Logo nur im Browser gelesen, nie hochgeladen -->
+      <div class="vorschau__logo">
+        <label class="vorschau__logoknopf"><input class="sr-only" type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" data-vorschau-logo>
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span data-i18n="vs.logo">Aggiungere il logo (facoltativo)</span></label>
+        <span class="vorschau__logochip" data-vorschau-logochip hidden><img alt="" data-vorschau-logobild><button type="button" data-vorschau-logoweg data-i18n-attr="aria-label:vs.logoWeg" aria-label="Togliere il logo">×</button></span>
+        <span class="vorschau__logonote" data-vorschau-logonote data-i18n="vs.logoLokal">Il suo logo resta sul suo dispositivo — non viene caricato.</span>
+      </div>
     </form>
     <p class="sr-only" role="status" aria-live="polite" data-vorschau-status></p>
     <div class="vorschau__buehne" data-vorschau-buehne aria-hidden="true" hidden>
@@ -1166,6 +1174,28 @@
         <li><b>2</b><span data-i18n="weg.schritt2">Lì risponde a otto domande brevi e vede subito la sua fascia di prezzo, voce per voce.</span></li>
         <li><b>3</b><span data-i18n="weg.schritt3">Preventivo, acconto, anteprima e consegna passano tutti dalla stessa dashboard. Decide sempre Lei.</span></li>
       </ol>
+
+      <!-- V1 Dashboard-Einblick (24.09.2026): echte Ansichten der Dashboard-
+           Seiten, lokal mit Beispieldaten aufgenommen (tools: siehe PROJEKT.md).
+           Die Schritte links schalten das Bild; ohne JS steht Bild 1. -->
+      <figure class="einblick" data-einblick>
+        <div class="einblick__fenster">
+          <div class="einblick__leiste" aria-hidden="true"><i></i><i></i><i></i><span>vecom-design.it/kunde</span></div>
+          <div class="einblick__bilder">
+            <picture><source media="(max-width: 640px)" srcset="assets/img/einblick/h1-it.webp?v=1b3673ea" width="585" height="840"><img class="ist-an" data-einblick-bild="1" src="assets/img/einblick/1-it.webp?v=85b8a90e" width="1280" height="707" loading="lazy" decoding="async" data-i18n-attr="alt:weg.einblick_a1" alt="La dashboard personale: il primo passo, raccontare il progetto"></picture>
+            <picture><source media="(max-width: 640px)" srcset="assets/img/einblick/h2-it.webp?v=39b8f511" width="585" height="840"><img data-einblick-bild="2" src="assets/img/einblick/2-it.webp?v=2262ee04" width="1280" height="707" loading="lazy" decoding="async" data-i18n-attr="alt:weg.einblick_a2" alt="Dopo otto domande: la fascia di prezzo indicativa"></picture>
+            <picture><source media="(max-width: 640px)" srcset="assets/img/einblick/h3-it.webp?v=d9dd0c83" width="585" height="840"><img data-einblick-bild="3" src="assets/img/einblick/3-it.webp?v=0ec74248" width="1280" height="707" loading="lazy" decoding="async" data-i18n-attr="alt:weg.einblick_a3" alt="Durante la realizzazione: a che punto è il progetto e il materiale caricato"></picture>
+          </div>
+        </div>
+        <figcaption class="einblick__zeile">
+          <span class="einblick__reiter" role="group" data-i18n-attr="aria-label:weg.einblick_g" aria-label="Viste della dashboard">
+            <button type="button" data-einblick-zu="1" aria-pressed="true"><b>1</b><span data-i18n="weg.einblick_t1">La sua dashboard</span></button>
+            <button type="button" data-einblick-zu="2" aria-pressed="false"><b>2</b><span data-i18n="weg.einblick_t2">Il suo prezzo</span></button>
+            <button type="button" data-einblick-zu="3" aria-pressed="false"><b>3</b><span data-i18n="weg.einblick_t3">Mentre costruisco</span></button>
+          </span>
+          <small data-i18n="weg.einblick_k">Viste vere della dashboard, con dati di esempio.</small>
+        </figcaption>
+      </figure>
     </div>
 
     <!-- ====================================================================
@@ -1220,6 +1250,17 @@
       <h2 data-reveal data-i18n="process.head">Come lavoriamo</h2>
       <p data-reveal data-i18n="process.lead">Quattro passaggi, un preventivo fisso. Nessuna sorpresa in fattura.</p>
     </div>
+
+    <!-- V2 Zeitleiste (24.09.2026): wann Sie zahlen und was Sie entscheiden.
+         Bewusst ohne Tageszahlen -- die FAQ sagt, warum: Der Zeitrahmen steht
+         fest, sobald klar ist, was gebaut wird. Nur belegte Zusagen hier. -->
+    <ol class="zeitleiste" data-reveal>
+      <li><span class="zeitleiste__no">01</span><b data-i18n="process.p1t">Colloquio</b><span class="zeitleiste__geld" data-i18n="zl.g1">0 €</span><span class="zeitleiste__zusage" data-i18n="zl.z1">Risposta entro un giorno lavorativo</span></li>
+      <li><span class="zeitleiste__no">02</span><b data-i18n="process.p2t">Direzione</b><span class="zeitleiste__geld" data-i18n="zl.g2">Acconto 50 % all’ordine</span><span class="zeitleiste__zusage" data-i18n="zl.z2">Approva Lei la prima schermata</span></li>
+      <li><span class="zeitleiste__no">03</span><b data-i18n="process.p3t">Realizzazione</b><span class="zeitleiste__geld" data-i18n="zl.g3">Nessun pagamento</span><span class="zeitleiste__zusage" data-i18n="zl.z3">Vede lo stato dal suo link</span></li>
+      <li><span class="zeitleiste__no">04</span><b data-i18n="process.p4t">Lancio e crescita</b><span class="zeitleiste__geld" data-i18n="zl.g4">Saldo 50 % alla consegna</span><span class="zeitleiste__zusage" data-i18n="zl.z4">Online solo dopo il suo sì</span></li>
+    </ol>
+    <p class="zeitleiste__hinweis" data-reveal data-i18n="zl.hinweis">Quanto dura nel suo caso glielo dico appena è chiaro che cosa costruiamo — nel preventivo, per iscritto.</p>
 
     <div class="process" data-stagger>
       <details class="step" data-reveal open>
@@ -1293,10 +1334,10 @@
      still und groß wie in einem Magazin — Pause zwischen zwei Abschnitten. -->
 <figure class="band band--2">
   <picture>
-    <source media="(max-width: 800px)" type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-nussbaum-800.avif?v=4e3ecc66">
-    <source media="(max-width: 800px)" type="image/webp" srcset="assets/img/erlebnis/branchen/kueche-nussbaum-800.webp?v=4721c8f9">
-    <source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-nussbaum.avif?v=ef38ac68">
-    <img src="assets/img/erlebnis/branchen/kueche-nussbaum.webp?v=fca45e4e" width="1600" height="900" loading="lazy" decoding="async" alt="Küchenblock in Nussbaum mit Keramikplatte">
+    <source media="(max-width: 800px)" type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-modern-insel-800.avif?v=cedb1464">
+    <source media="(max-width: 800px)" type="image/webp" srcset="assets/img/erlebnis/branchen/kueche-modern-insel-800.webp?v=9221a582">
+    <source type="image/avif" srcset="assets/img/erlebnis/branchen/kueche-modern-insel.avif?v=7cb1c902">
+    <img src="assets/img/erlebnis/branchen/kueche-modern-insel.webp?v=e96a6ada" width="1600" height="900" loading="lazy" decoding="async" data-i18n-attr="alt:edel.band2alt" alt="Cucina moderna: isola in ceramica Calacatta Oro, colonne in rovere, luce del pomeriggio">
   </picture>
   <figcaption class="wrap"><small data-i18n="edel.band2k">Cucine</small><span data-i18n="edel.band2t">Progettata con le misure delle proprie pareti — il progetto arriva insieme alla richiesta.</span></figcaption>
 </figure>
@@ -1553,8 +1594,8 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=aafed1dd" defer></script>
-<script src="assets/js/app.js?v=61cf3242" defer></script>
+<script src="assets/js/i18n-it.js?v=10317eb1" defer></script>
+<script src="assets/js/app.js?v=b889f82b" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
 <script src="assets/vendor/ScrollTrigger.min.js?v=05ca5ad8" defer></script>
@@ -1578,11 +1619,11 @@
 <script type="module" src="assets/js/erlebnis/haarfarben.js?v=a72d6515"></script>
 <script type="module" src="assets/js/erlebnis/kundenablauf.js?v=58d4d44d"></script>
 <script type="module" src="assets/js/erlebnis/tisch-wahl.js?v=24ca84f5"></script>
-<script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=0963e057"></script>
-<script type="module" src="assets/js/erlebnis/betrieb.js?v=99355cb0"></script>
+<script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=5aa3a1b0"></script>
+<script type="module" src="assets/js/erlebnis/betrieb.js?v=c5d58cb7"></script>
 <script type="module" src="assets/js/zugang.js?v=a205dcfe"></script>
 <script type="module" src="assets/js/arbeiten.js?v=e16f11f4"></script>
-<script type="module" src="assets/js/vorschau.js?v=2897b396"></script>
+<script type="module" src="assets/js/vorschau.js?v=c446c82a"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

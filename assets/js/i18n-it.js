@@ -369,6 +369,9 @@ window.VECOM_I18N.it = {
       schritt1: "Inserisca la sua e-mail: le arriva subito il link alla sua dashboard personale.",
       schritt2: "Lì risponde a otto domande brevi e vede subito la sua fascia di prezzo, voce per voce.",
       schritt3: "Preventivo, acconto, anteprima e consegna passano tutti dalla stessa dashboard. Decide sempre Lei.",
+      einblick_t1: "La sua dashboard", einblick_t2: "Il suo prezzo", einblick_t3: "Mentre costruisco", einblick_g: "Viste della dashboard",
+      einblick_k: "Viste vere della dashboard, con dati di esempio.",
+      einblick_a1: "La dashboard personale: il primo passo, raccontare il progetto", einblick_a2: "Dopo otto domande: la fascia di prezzo indicativa", einblick_a3: "Durante la realizzazione: a che punto è il progetto e il materiale caricato",
       preisseite: "Tutti i prezzi, voce per voce",
       cta: "Ricevere la mia dashboard",
       note: "Gratuito e senza impegno. Nessun account, nessuna password: il link è il suo accesso.",
@@ -822,6 +825,13 @@ masz: {
     intro: {
       skip: "Salta"
     },
+    zl: {
+      g1: "0 €", z1: "Risposta entro un giorno lavorativo",
+      g2: "Acconto 50 % all’ordine", z2: "Approva Lei la prima schermata",
+      g3: "Nessun pagamento", z3: "Vede lo stato dal suo link",
+      g4: "Saldo 50 % alla consegna", z4: "Online solo dopo il suo sì",
+      hinweis: "Quanto dura nel suo caso glielo dico appena è chiaro che cosa costruiamo — nel preventivo, per iscritto."
+    },
     vs: {
       kicker: "In 30 secondi",
       h1: "Il suo sito,",
@@ -832,6 +842,7 @@ masz: {
       branche: "Settore",
       ort: "Luogo (facoltativo)",
       ortBsp: "es. Agrigento",
+      logo: "Aggiungere il logo (facoltativo)", logoWeg: "Togliere il logo", logoLokal: "Il suo logo resta sul suo dispositivo — non viene caricato.", logoFehler: "Serve un’immagine PNG, JPG, WebP o SVG fino a 5 MB.",
       knopf: "Mostrare l’anteprima",
       weiter: "Le piace la direzione? Le mando il link alla sua dashboard — lì ne facciamo il suo sito vero.",
       hinweis: "Questa è una bozza composta in automatico da nome, settore e un’immagine — non ancora un progetto. Il suo sito vero lo progettiamo insieme."
@@ -847,6 +858,7 @@ masz: {
       band1t: "L’orologio si apre pezzo per pezzo — così il cliente vede che cosa sta pagando.",
       band2k: "Cucine",
       band2t: "Progettata con le misure delle proprie pareti — il progetto arriva insieme alla richiesta.",
+      band2alt: "Cucina moderna: isola in ceramica Calacatta Oro, colonne in rovere, luce del pomeriggio",
       wa: "Mi scriva",
       waAria: "Scrivere a Uwe su WhatsApp",
       technik: "Per chi ama la tecnica: livelli di qualità, confronto e streaming",

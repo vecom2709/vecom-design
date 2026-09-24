@@ -512,6 +512,29 @@
     });
   });
 
+  /* ---------- 3h. Dashboard-Einblick (V1) ---------------------------------- */
+  // Drei echte Ansichten, per Knopf gewechselt. Nur Klassen und aria-pressed;
+  // die Bilder liegen schon im Dokument (lazy), gewechselt wird per Deckkraft.
+  document.querySelectorAll('[data-einblick]').forEach(function (fig) {
+    var knoepfe = fig.querySelectorAll('[data-einblick-zu]');
+    var bilder = fig.querySelectorAll('[data-einblick-bild]');
+    var gemeldet = false;
+    knoepfe.forEach(function (k) {
+      k.addEventListener('click', function () {
+        var n = k.getAttribute('data-einblick-zu');
+        knoepfe.forEach(function (x) { x.setAttribute('aria-pressed', String(x === k)); });
+        bilder.forEach(function (b) {
+          if (b.getAttribute('data-einblick-bild') === n) { b.loading = 'eager'; b.classList.add('ist-an'); }
+          else { b.classList.remove('ist-an'); }
+        });
+        if (!gemeldet) {
+          gemeldet = true;
+          try { navigator.sendBeacon && navigator.sendBeacon('/d.php?e=einblick'); } catch (e) { /* egal */ }
+        }
+      });
+    });
+  });
+
   /* ---------- 3g. Handy-Leiste (N7) ---------------------------------------- */
   var leiste = document.querySelector('[data-handyleiste]');
   if (leiste && window.matchMedia('(max-width: 760px)').matches && 'IntersectionObserver' in window) {

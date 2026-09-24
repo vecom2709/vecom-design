@@ -3165,6 +3165,65 @@ p.buehne__fuss b { color: var(--c-cyan); font-weight: 600; }
 }
 
 /* --------------------------------------------------------------------------
+   Zeitleiste im Ablauf (V2, 24.09.2026) — Geld und Entscheidung je Schritt.
+   Eine Linie, vier Punkte; auf dem Handy senkrecht.
+   -------------------------------------------------------------------------- */
+.zeitleiste{list-style:none; margin:clamp(20px,3vw,34px) 0 0; padding:0; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); position:relative}
+.zeitleiste::before{content:""; position:absolute; left:12px; right:12px; top:14px; height:1px;
+  background:linear-gradient(90deg, color-mix(in oklab, var(--c-cyan) 55%, transparent), color-mix(in oklab, var(--c-cyan) 18%, transparent))}
+.zeitleiste li{position:relative; display:flex; flex-direction:column; gap:6px; padding-right:18px}
+.zeitleiste__no{position:relative; z-index:1; width:29px; height:29px; border-radius:50%; display:grid; place-items:center; margin-bottom:10px;
+  font-family:var(--f-display); font-size:12px; color:var(--c-cyan); background:var(--c-base, #0b0a09);
+  box-shadow:inset 0 0 0 1px color-mix(in oklab, var(--c-cyan) 45%, transparent)}
+.zeitleiste b{font-size:var(--t-sm); color:var(--c-text); font-weight:600}
+.zeitleiste__geld{font-family:var(--f-serif); font-size:clamp(1.05rem,.95rem + .4vw,1.3rem); color:#e9cf86; line-height:1.25}
+.zeitleiste__zusage{font-size:var(--t-xs); color:var(--c-text-dim); line-height:1.5}
+.zeitleiste__hinweis{margin:clamp(14px,2vw,20px) 0 clamp(24px,3.4vw,40px); font-size:var(--t-xs); color:var(--c-text-faint); max-width:70ch}
+@media (max-width:760px){
+  .zeitleiste{grid-template-columns:1fr; gap:18px}
+  .zeitleiste::before{left:14px; right:auto; top:14px; bottom:14px; width:1px; height:auto;
+    background:linear-gradient(180deg, color-mix(in oklab, var(--c-cyan) 55%, transparent), color-mix(in oklab, var(--c-cyan) 18%, transparent))}
+  .zeitleiste li{display:grid; grid-template-columns:29px minmax(0,1fr); column-gap:14px; row-gap:2px; padding:0}
+  .zeitleiste__no{grid-row:1 / span 3; margin:0}
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard-Einblick (V1, 24.09.2026) — das, wovon der Block redet, sichtbar.
+   Volle Breite unter Text und Schritten; ein ruhiges Browserfenster, drei
+   echte Ansichten, die weich ineinander übergehen. Keine Automatik.
+   -------------------------------------------------------------------------- */
+.einblick{grid-column:1 / -1; width:100%; max-width:980px; justify-self:center; margin:clamp(6px,1.4vw,14px) 0 0}
+.einblick__fenster{border-radius:14px; overflow:hidden; border:1px solid color-mix(in oklab, var(--c-cyan) 16%, transparent);
+  background:#0c0b0a; box-shadow:0 30px 80px -40px rgba(0,0,0,.8), 0 0 0 1px rgba(0,0,0,.4)}
+.einblick__leiste{display:flex; align-items:center; gap:8px; height:38px; padding:0 14px; background:#181715; border-bottom:1px solid #26241f}
+.einblick__leiste i{width:10px; height:10px; border-radius:50%; background:#34312c}
+.einblick__leiste span{margin-left:12px; padding:5px 14px; border-radius:8px; background:#23211d; font-size:12px; color:rgba(247,243,234,.62); letter-spacing:.01em}
+.einblick__bilder{position:relative; aspect-ratio:1280 / 707}
+.einblick__bilder img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top;
+  opacity:0; transition:opacity 520ms cubic-bezier(.16,1,.3,1);
+  -webkit-mask-image:linear-gradient(180deg,#000 82%,transparent); mask-image:linear-gradient(180deg,#000 82%,transparent)}
+.einblick__bilder img.ist-an{opacity:1}
+.einblick__zeile{display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 20px; margin-top:14px}
+.einblick__reiter{display:flex; flex-wrap:wrap; gap:8px}
+.einblick__reiter button{display:inline-flex; align-items:center; gap:9px; min-height:44px; padding:0 16px 0 8px; border-radius:999px; cursor:pointer;
+  border:1px solid color-mix(in oklab, var(--c-cyan) 18%, transparent); background:transparent; color:var(--c-text-dim); font:inherit; font-size:var(--t-sm);
+  transition:border-color 180ms, background-color 180ms, color 180ms}
+.einblick__reiter button b{width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font-family:var(--f-display); font-size:13px; color:var(--c-cyan);
+  background:color-mix(in oklab, var(--c-blue) 24%, transparent)}
+.einblick__reiter button:hover{color:var(--c-text); border-color:color-mix(in oklab, var(--c-cyan) 40%, transparent)}
+.einblick__reiter button[aria-pressed="true"]{color:var(--c-text); border-color:color-mix(in oklab, var(--c-cyan) 55%, transparent); background:color-mix(in oklab, var(--c-cyan) 7%, transparent)}
+.einblick__reiter button:focus-visible{outline:2px solid var(--c-cyan); outline-offset:3px}
+.einblick__zeile small{font-size:var(--t-xs); color:var(--c-text-faint)}
+@media (prefers-reduced-motion:reduce){ .einblick__bilder img{transition:none} }
+/* Handy: die Dashboard-Ansichten im Hochformat (eigene Aufnahmen bei 390 px) */
+@media (max-width:640px){
+  .einblick__bilder{aspect-ratio:585 / 840}
+  .einblick__leiste{height:32px}
+  .einblick__reiter{gap:6px}
+  .einblick__reiter button{min-height:44px; padding:0 12px 0 6px; font-size:13px}
+}
+
+/* --------------------------------------------------------------------------
    Orientierung — vier Zahlen statt einer Preiskarte
 
    Das eine, was die Festpreis-Karte konnte, war: eine Zahl nennen. Ohne jede

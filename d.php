@@ -37,6 +37,9 @@ const EREIGNISSE = [
     'zugang-hero', 'zugang-kontakt', 'zugang-vorschau',
     // Ihre Seite in 30 Sekunden (N1, 24.09.2026): Vorschau gezeigt, Branche
     'vorschau-gezeigt',
+    'vorschau-logo',
+    // Dashboard-Einblick (V1, 24.09.2026): jemand hat sich die Ansichten angesehen
+    'einblick',
     // Umgesetzte Arbeiten (24.09.2026): welche Fallstudie gewählt, welche Seite besucht
     'arbeit-cavaleri', 'arbeit-jonika', 'arbeit-mensaena', 'arbeit-trendonix',
     'arbeit-besuch-cavaleri', 'arbeit-besuch-jonika', 'arbeit-besuch-mensaena', 'arbeit-besuch-trendonix',

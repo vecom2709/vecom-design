@@ -68,8 +68,8 @@ final class Baukasten
                 'en' => 'What should the website do?',
             ],
             'hilfe' => [
-                'it' => 'Scegli tutto quello che serve. Puoi anche sceglierne uno solo.',
-                'de' => 'Wähle alles aus, was du brauchst. Eines reicht auch.',
+                'it' => 'Scelga tutto quello che le serve. Ne basta anche uno solo.',
+                'de' => 'Wählen Sie alles aus, was Sie brauchen. Eines reicht auch.',
                 'en' => 'Pick everything you need. One is fine too.',
             ],
             'optionen' => [
@@ -119,8 +119,8 @@ final class Baukasten
         'material' => [
             'art' => 'mehrfach',
             'frage' => [
-                'it' => 'Che cosa hai già pronto?',
-                'de' => 'Was hast du schon fertig?',
+                'it' => 'Che cosa ha già pronto?',
+                'de' => 'Was haben Sie schon fertig?',
                 'en' => 'What do you already have?',
             ],
             'hilfe' => [
@@ -138,7 +138,7 @@ final class Baukasten
         'bestand' => [
             'art' => 'einfach',
             'frage' => [
-                'it' => 'Hai già un sito?',
+                'it' => 'Ha già un sito?',
                 'de' => 'Gibt es schon eine Website?',
                 'en' => 'Do you already have a website?',
             ],
@@ -152,8 +152,8 @@ final class Baukasten
         'zeit' => [
             'art' => 'einfach',
             'frage' => [
-                'it' => 'Per quando ti serve?',
-                'de' => 'Bis wann brauchst du sie?',
+                'it' => 'Per quando le serve?',
+                'de' => 'Bis wann brauchen Sie sie?',
                 'en' => 'When do you need it?',
             ],
             'optionen' => [
@@ -166,7 +166,7 @@ final class Baukasten
         'betreuung' => [
             'art' => 'einfach',
             'frage' => [
-                'it' => 'Vuoi che me ne occupi anche dopo?',
+                'it' => 'Vuole che me ne occupi anche dopo?',
                 'de' => 'Soll ich mich auch danach kümmern?',
                 'en' => 'Should I look after it afterwards?',
             ],
@@ -185,8 +185,8 @@ final class Baukasten
         'branche' => [
             'art' => 'einfach',
             'frage' => [
-                'it' => 'Di che cosa ti occupi?',
-                'de' => 'Was machst du?',
+                'it' => 'Di che cosa si occupa?',
+                'de' => 'Was machen Sie?',
                 'en' => 'What do you do?',
             ],
             'hilfe' => [
