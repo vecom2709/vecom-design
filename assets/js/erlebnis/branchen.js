@@ -944,7 +944,7 @@ if (produktFig) {
       if (gravurText.trim()) zeilen.splice(1, 0, `${TEXT.gravur}: „${gravurText.trim().replace(/\n/g, ' / ')}“`);
     }
     zaehlen('produkt-kunde');
-    document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: { titel: T.kunde.titel, zeilen, ...M.kunde, ziel: cta ? cta.getAttribute('href') : '/bedarf.php' } }));
+    document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: { titel: T.kunde.titel, zeilen, ...M.kunde, ziel: cta ? cta.getAttribute('href') : '/zugang.php' } }));
   });
   if (!webglDa()) schritte.closest('.gruppe').hidden = true;
 }

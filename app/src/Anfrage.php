@@ -35,6 +35,19 @@ final class Anfrage
             'notes' => 'Über das Formular auf der Website angefragt.',
         ]);
 
+        /* LEERE FELDER DER AKTE ERGAENZEN, NIE UEBERSCHREIBEN (24.09.2026)
+           Seit dem E-Mail-Einstieg entsteht der Kunde, bevor er seinen Namen
+           nennt (D2) -- kundeFinden() findet ihn dann und laesst die Akte,
+           wie sie ist. Ohne diese Zeilen stuende er fuer immer namenlos in
+           der Verwaltung, auf Angebot und Beleg. Was schon drinsteht, bleibt:
+           Eine Anfrage darf keine gepflegte Akte umschreiben. */
+        foreach (['name' => $name, 'phone' => trim((string) ($d['telefon'] ?? '')),
+                  'company' => trim((string) ($d['firma'] ?? ''))] as $spalte => $wert) {
+            if ($wert === '') { continue; }
+            Db::run("UPDATE customers SET $spalte = ? WHERE id = ? AND ($spalte IS NULL OR $spalte = '')",
+                [mb_substr($wert, 0, $spalte === 'phone' ? 60 : 160), $kundeId]);
+        }
+
         // Die Sprache gehoert an den KUNDEN, nicht nur an die Anfrage.
         //
         // Hier lag ein Fehler, den man erst am Ende der Kette sieht: Die

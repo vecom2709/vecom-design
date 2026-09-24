@@ -308,6 +308,21 @@ if ($kunde && ($seite['stufe'] ?? '') === 'angaben' && empty($seite['vorgang']['
     }
 }
 
+/* DAS VORHABEN (24.09.2026, D1): Ist es dran und fehlt der Bedarf dazu --
+   verfallen, aufgeraeumt oder nie angelegt --, entsteht er hier. Wie beim
+   Fragebogen oben: Es geht dabei nichts raus, es steht nur bereit. */
+if ($kunde && ($seite['stufe'] ?? '') === 'vorhaben' && empty($seite['bedarf'])) {
+    require_once __DIR__ . '/app/src/Zugang.php';
+    if (sicherLesen(fn() => Zugang::bedarfFuerKunde((int) $kunde['id'], $sprache), null)) {
+        $seite = Kundenzugang::seite($kunde);
+    }
+}
+/* Die Rueckmeldungen aus dem Einstieg: frisch geoeffnet, Vorhaben abgesendet */
+$willkommen = $kunde && ($_GET['willkommen'] ?? '') === '1';
+if ($kunde && ($_GET['m'] ?? '') === 'vorhaben' && $meldung === null) {
+    $meldung = $T('vorhabenDanke');
+}
+
 $v     = $seite['vorgang'] ?? null;
 $stufe = $seite['stufe'] ?? 'anfrage';
 $pid   = $v['projekt_id'] ?? null;
@@ -465,8 +480,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 <?php else: ?>
 
   <div class="kopfzeile">
-    <h1 style="font-size:21px"><?= $h(str_replace('{name}',
-        explode(' ', (string) $kunde['name'])[0], $T('hallo'))) ?></h1>
+    <?php /* Ohne Namen (E-Mail-Einstieg, D2) kein „Guten Tag ,“ */ ?>
+    <?php $vorname = trim(explode(' ', trim((string) $kunde['name']))[0] ?? ''); ?>
+    <h1 style="font-size:21px"><?= $h($vorname !== '' ? str_replace('{name}', $vorname, $T('hallo')) : $T('halloOhne')) ?></h1>
     <?php /* Seine Nummer, dieselbe wie auf Angebot, Vertragsblatt und Beleg.
              Er soll sie nennen koennen, ohne ein PDF aufzumachen. */ ?>
     <?php $knr = trim((string) sicherLesen(fn() => Kunde::nummer((int) $kunde['id']), '')); ?>
@@ -478,6 +494,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
   <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
   <?php if ($meldung): ?><div class="hinweis gut"><?= $h($meldung) ?></div><?php endif; ?>
+  <?php if ($willkommen): ?><div class="hinweis gut"><?= $h($T('willkommen')) ?></div><?php endif; ?>
 
   <?php /* ---------- Wo er steht ---------- */ ?>
   <ul class="weg">
@@ -498,7 +515,15 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         : $TS($stufe, 'text')) ?></p>
 
     <div class="tun">
-      <?php if ($stufe === 'angebot' && $angebotOffen && !$offen): ?>
+      <?php if ($stufe === 'vorhaben' && !empty($seite['bedarf']['token'])): ?>
+        <?php /* Die acht Fragen (D1). Hat er schon angefangen, heisst der
+                 Knopf „weiter ausfüllen“ -- wie beim Fragebogen. */ ?>
+        <?php $vbSchritt = max(1, (int) ($seite['bedarf']['schritt'] ?? 1));
+              $vbAngefangen = trim((string) ($seite['bedarf']['antworten'] ?? '')) !== ''; ?>
+        <a class="knopf haupt" href="/bedarf.php?t=<?= $h(rawurlencode((string) $seite['bedarf']['token'])) ?>&amp;lang=<?= $h($sprache) ?>&amp;schritt=<?= (int) $vbSchritt ?>">
+          <?= $h(Texte::h(Texte::SEITE[$vbAngefangen ? 'vorhabenWeiter' : 'vorhabenKnopf'] ?? [], $sprache)) ?></a>
+
+      <?php elseif ($stufe === 'angebot' && $angebotOffen && !$offen): ?>
         <?php /* Der Knopf zum Angebot. Er steht vor dem Zahlknopf, weil es
                  den erst nach der Annahme gibt -- und weil niemand zahlen
                  soll, ohne gelesen zu haben, wofuer. */ ?>

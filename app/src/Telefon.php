@@ -842,8 +842,12 @@ final class Telefon
             }
         }
 
-        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
-        $link  = $basis . '/bedarf.php?t=' . $bedarf['token'] . '&lang=' . $sprache;
+        /* Seit dem 24.09.2026 zeigt der Link ins Dashboard (S2): Der am Telefon
+           begonnene Bedarf ist dort der Schritt „Vorhaben“. Ein Kunde mitten
+           in einem Auftrag bekommt weiter den direkten Konfigurator-Link --
+           Zugang::linkNachAnruf() entscheidet das an einer Stelle. */
+        require_once __DIR__ . '/Zugang.php';
+        $link = Zugang::linkNachAnruf($an, $sprache, $bedarf, $kundeId, trim((string) ($d['name'] ?? '')));
 
         $t = self::MAILTEXT[$sprache] ?? self::MAILTEXT['it'];
         $name = $kundeId > 0
@@ -2220,10 +2224,21 @@ final class Telefon
         $faden = trim((string) ($d['gespraech'] ?? ''));
         $z = $faden !== '' ? self::still(static fn() => Bedarf::laden($faden), null) : null;
 
-        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
-        $link  = is_array($z)
-            ? $basis . '/bedarf.php?t=' . $z['token'] . '&lang=' . $sprache
-            : $basis . '/bedarf.php?lang=' . $sprache;
+        /* Ins Dashboard wie beim Angebotslink (24.09.2026, S2). Ohne
+           begonnenes Gespraech gibt es trotzdem einen Bedarf: Das Vorhaben
+           im Dashboard braucht einen, und ein Link ohne Schluessel fuehrte
+           ohnehin nur zum Einstieg zurueck, wo er seine Adresse ein zweites
+           Mal eintippen muesste. */
+        require_once __DIR__ . '/Zugang.php';
+        if (!is_array($z)) { $z = self::still(static fn() => Bedarf::starten($sprache), null); }
+        $link = is_array($z)
+            ? (string) self::still(static fn() => Zugang::linkNachAnruf($an, $sprache, $z, $kundeId,
+                  trim((string) ($d['name'] ?? ''))), '')
+            : '';
+        if ($link === '') {
+            $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+            $link  = $basis . '/zugang.php?lang=' . $sprache;
+        }
 
         $stuecke = [];
         if (is_array($z)) {

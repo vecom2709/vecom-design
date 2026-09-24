@@ -531,6 +531,9 @@ final class Texte
     ];
 
     public const SEITE = [
+        /* Der Knopf zum Vorhaben im Dashboard (24.09.2026) */
+        'vorhabenKnopf'  => ['it' => 'Descrivere il progetto', 'de' => 'Vorhaben beschreiben', 'en' => 'Describe your project'],
+        'vorhabenWeiter' => ['it' => 'Continuare il progetto', 'de' => 'Vorhaben weiter ausfüllen', 'en' => 'Continue your project'],
         'titel'      => ['it' => 'Il suo progetto', 'de' => 'Ihr Projekt', 'en' => 'Your project'],
         'lead'       => ['it' => 'Sei passi brevi, circa dieci minuti. Quasi tutto è da spuntare — scriva solo dove serve davvero.',
                          'de' => 'Sechs kurze Schritte, etwa zehn Minuten. Das meiste ist Anklicken — schreiben müssen Sie nur, wo es wirklich zählt.',
@@ -782,6 +785,17 @@ final class Texte
      */
     public const KUNDE = [
         'hallo'      => ['it' => 'Buongiorno {name}', 'de' => 'Guten Tag {name}', 'en' => 'Hi {name}'],
+        /* Wer ueber den E-Mail-Einstieg kommt, hat noch keinen Namen genannt
+           (D2: gefragt wird erst im Vorhaben). „Guten Tag ,“ waere die Folge. */
+        'halloOhne'  => ['it' => 'Buongiorno', 'de' => 'Guten Tag', 'en' => 'Hello'],
+        'willkommen' => [
+            'it' => 'Benvenuto nella sua dashboard personale. Da qui passa tutto, fino alla consegna del sito. La salvi tra i preferiti: il link resta valido.',
+            'de' => 'Willkommen in Ihrem persönlichen Dashboard. Hier läuft alles bis zur Übergabe Ihrer Website. Legen Sie die Seite als Lesezeichen ab, der Link bleibt gültig.',
+            'en' => 'Welcome to your personal dashboard. Everything runs through here until your website is handed over. Bookmark this page, the link stays valid.'],
+        'vorhabenDanke' => [
+            'it' => 'Grazie, il suo progetto è arrivato. Le ho appena inviato una conferma via e-mail.',
+            'de' => 'Danke, Ihr Vorhaben ist angekommen. Eine Bestätigung ist gerade per E-Mail unterwegs.',
+            'en' => 'Thank you, your project has arrived. A confirmation is on its way by email.'],
         /* Auf seiner Seite, damit er die Nummer von seinen Belegen
            wiederfindet, ohne ein PDF aufmachen zu muessen. */
         'kundennr'   => ['it' => 'N. cliente', 'de' => 'Kundennummer', 'en' => 'Customer no.'],
@@ -969,8 +983,18 @@ final class Texte
      * handeln muss. "kunde" heisst: Er selbst. "wir" heisst: Er wartet.
      */
     public const KUNDE_STUFEN = [
+        /* Der erste Schritt im Dashboard (24.09.2026, D1): die acht Fragen.
+           Er teilt sich den Platz auf der Fortschrittsleiste mit „anfrage“ --
+           vorher beschreibt er sein Vorhaben, danach liegt es bei mir. */
+        'vorhaben' => ['wer' => 'kunde',
+            'kurz' => ['it' => 'Progetto', 'de' => 'Vorhaben', 'en' => 'Project'],
+            'it' => 'Mi racconti il suo progetto', 'de' => 'Erzählen Sie mir von Ihrem Vorhaben',
+            'en' => 'Tell me about your project',
+            'text' => ['it' => 'Otto domande brevi, circa un minuto e mezzo. Subito dopo vede un prezzo indicativo, senza impegno.',
+                       'de' => 'Acht kurze Fragen, etwa anderthalb Minuten. Gleich danach sehen Sie einen Richtpreis, unverbindlich.',
+                       'en' => 'Eight short questions, about ninety seconds. Right after, you see a guide price, no obligation.']],
         'anfrage'  => ['wer' => 'wir',
-            'kurz' => ['it' => 'Richiesta', 'de' => 'Anfrage', 'en' => 'Enquiry'],
+            'kurz' => ['it' => 'Progetto', 'de' => 'Vorhaben', 'en' => 'Project'],
             'it' => 'La sua richiesta è arrivata', 'de' => 'Ihre Anfrage ist da', 'en' => 'I have your enquiry',
             'text' => ['it' => 'La sto guardando e le scrivo con una proposta.',
                        'de' => 'Ich sehe sie mir an und melde mich mit einem Vorschlag.',
@@ -1401,6 +1425,45 @@ final class Texte
         /* Sofort nach dem Absenden. Zwei Aufgaben: der Kunde weiss, dass es
            angekommen ist — und er hat schwarz auf weiss, dass ihn nichts
            bindet. Beides fehlte bisher ganz. */
+        /* ---------- Der E-Mail-Einstieg (24.09.2026, S3) ----------
+           Kein Konto, kein Passwort: der Link IST der Zugang. Die vier
+           Schritte stehen in der Mail, damit niemand denkt, er habe sich
+           bloss fuer einen Newsletter eingetragen. */
+        'zugang' => [
+            'it' => ['Il suo accesso personale — Vecom Design',
+                "Buongiorno{name},\n\necco la sua dashboard personale di Vecom Design:\n\n{link}\n\nDa lì passa tutto, fino alla consegna del sito. I prossimi passi:\n\n1. Il suo progetto: otto domande brevi, poi vede subito un prezzo indicativo.\n2. I suoi dati: qualche domanda sulla sua attività, perché il preventivo sia preciso.\n3. Preventivo e acconto: legge il preventivo con calma e decide lei.\n4. Anteprima e approvazione: vede il suo sito prima che vada online.\n\nNessun account, nessuna password. Apra il link entro {tage} giorni; dopo il primo clic resta valido e può salvarlo tra i preferiti.\n\nNon ha richiesto lei questa e-mail? Allora la ignori: senza un clic sul link non viene salvato nulla.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr persönlicher Zugang – Vecom Design',
+                "Guten Tag{name},\n\nhier ist Ihr persönliches Dashboard bei Vecom Design:\n\n{link}\n\nDarüber läuft alles bis zur Übergabe Ihrer Website. Die nächsten Schritte:\n\n1. Ihr Vorhaben: acht kurze Fragen, danach sehen Sie sofort einen Richtpreis.\n2. Ihre Angaben: ein paar Fragen zu Ihrem Betrieb, damit das Angebot genau passt.\n3. Angebot und Anzahlung: Sie lesen das Angebot in Ruhe und entscheiden.\n4. Entwurf und Freigabe: Sie sehen Ihre Seite, bevor sie online geht.\n\nKein Konto, kein Passwort. Öffnen Sie den Link innerhalb von {tage} Tagen; nach dem ersten Klick bleibt er gültig, und Sie können ihn als Lesezeichen ablegen.\n\nSie haben diese Mail nicht angefordert? Dann ignorieren Sie sie einfach: Ohne einen Klick auf den Link wird nichts gespeichert.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your personal access – Vecom Design',
+                "Hello{name},\n\nhere is your personal dashboard at Vecom Design:\n\n{link}\n\nEverything runs through it until your website is handed over. The next steps:\n\n1. Your project: eight short questions, then you see a guide price straight away.\n2. Your details: a few questions about your business, so the quote fits exactly.\n3. Quote and deposit: you read the quote in your own time and decide.\n4. Draft and approval: you see your site before it goes live.\n\nNo account, no password. Open the link within {tage} days; after the first click it stays valid and you can bookmark it.\n\nDidn’t request this email? Then just ignore it: nothing is stored unless the link is clicked.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* Schon Kunde: derselbe Link noch einmal (E2). */
+        'zugang_bestand' => [
+            'it' => ['Il link alla sua dashboard — Vecom Design',
+                "Buongiorno{name},\n\nha chiesto di nuovo il link alla sua dashboard. Eccolo:\n\n{link}\n\nÈ lo stesso di sempre: lì trova tutto quello che abbiamo fatto finora.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Der Link zu Ihrem Dashboard – Vecom Design',
+                "Guten Tag{name},\n\nSie haben den Link zu Ihrem Dashboard noch einmal angefordert. Hier ist er:\n\n{link}\n\nEs ist derselbe wie bisher: Dort finden Sie alles, was wir bisher gemacht haben.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['The link to your dashboard – Vecom Design',
+                "Hello{name},\n\nyou asked for the link to your dashboard again. Here it is:\n\n{link}\n\nIt is the same one as before: everything we have done so far is there.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* D3: ungeoeffnet nach einem Tag -- genau einmal. */
+        'zugang_erinnerung' => [
+            'it' => ['La sua dashboard la aspetta — Vecom Design',
+                "Buongiorno{name},\n\nieri ha chiesto il suo accesso personale, ma il link non è ancora stato aperto. Eccolo di nuovo:\n\n{link}\n\nUn clic basta, e si parte dal suo progetto. Se ha cambiato idea, non deve fare nulla: non le scriverò più per questo.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr Dashboard wartet – Vecom Design',
+                "Guten Tag{name},\n\nSie haben gestern Ihren persönlichen Zugang angefordert, der Link ist aber noch nicht geöffnet. Hier ist er noch einmal:\n\n{link}\n\nEin Klick genügt, dann geht es mit Ihrem Vorhaben los. Haben Sie es sich anders überlegt, müssen Sie nichts tun: Deswegen schreibe ich Ihnen nicht noch einmal.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your dashboard is waiting – Vecom Design',
+                "Hello{name},\n\nyesterday you asked for your personal access, but the link has not been opened yet. Here it is again:\n\n{link}\n\nOne click is enough and we start with your project. If you have changed your mind, you don’t need to do anything: I won’t write about this again.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* D3: geoeffnet, Vorhaben offen -- nach zwei und nach sieben Tagen. */
+        'vorhaben_erinnerung' => [
+            'it' => ['Il suo progetto è a un minuto e mezzo — Vecom Design',
+                "Buongiorno{name},\n\nnella sua dashboard manca ancora un passo: otto domande brevi sul suo progetto. Subito dopo vede un prezzo indicativo, senza impegno.\n\n{link}\n\nSe preferisce parlarne a voce, risponda semplicemente a questa e-mail.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr Vorhaben ist anderthalb Minuten entfernt – Vecom Design',
+                "Guten Tag{name},\n\nin Ihrem Dashboard fehlt noch ein Schritt: acht kurze Fragen zu Ihrem Vorhaben. Gleich danach sehen Sie einen Richtpreis, unverbindlich.\n\n{link}\n\nWenn Sie lieber darüber sprechen möchten, antworten Sie einfach auf diese Mail.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your project is ninety seconds away – Vecom Design',
+                "Hello{name},\n\none step is still open in your dashboard: eight short questions about your project. Right after, you see a guide price, no obligation.\n\n{link}\n\nIf you would rather talk it through, just reply to this email.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
         'anfrage_eingegangen' => [
             'it' => ['Ho ricevuto la sua richiesta',
                 "Buongiorno {name},\n\ngrazie per la sua richiesta{paketsatz}. È arrivata e la sto leggendo con calma. Le rispondo entro un giorno lavorativo con una prima indicazione concreta.\n\nLa richiesta è gratuita e senza impegno: un incarico nasce soltanto quando ci accordiamo per iscritto.\n\nDa qui in poi passa tutto da questa pagina:\n\n{link}\n\nLì vede sempre a che punto siamo, può scrivermi e caricare i suoi documenti (fino a {maxdatei} per file). Nessun account, nessuna password. La salvi tra i preferiti: il link resta valido, dal primo contatto fino a molto dopo la messa online.\n\nA presto\nUwe Vetter · Vecom Design"],
@@ -1673,6 +1736,51 @@ final class Texte
        Kunde tun soll, steht im ersten Satz. Was hier NICHT steht, ist ein
        Preis — der entsteht erst am Ende aus seinen Antworten.
        ---------------------------------------------------------------------- */
+    /* Die Seite zugang.php und die Felder auf der Startseite (24.09.2026, E1).
+       Der Satz nach dem Absenden ist fuer jede Adresse derselbe (E2) --
+       ob neu, schon Kunde oder frei erfunden. */
+    public const ZUGANG = [
+        'titel' => ['it' => 'La sua dashboard personale', 'de' => 'Ihr persönliches Dashboard', 'en' => 'Your personal dashboard'],
+        'lead'  => [
+            'it' => 'Inserisca il suo indirizzo e-mail: le mando il link alla sua dashboard personale. Da lì passa tutto, fino alla consegna del sito.',
+            'de' => 'Tragen Sie Ihre E-Mail-Adresse ein: Ich schicke Ihnen den Link zu Ihrem persönlichen Dashboard. Darüber läuft alles bis zur Übergabe Ihrer Website.',
+            'en' => 'Enter your email address and I will send you the link to your personal dashboard. Everything runs through it until your website is handed over.'],
+        'feld'  => ['it' => 'Il suo indirizzo e-mail', 'de' => 'Ihre E-Mail-Adresse', 'en' => 'Your email address'],
+        'knopf' => ['it' => 'Inviarmi la dashboard', 'de' => 'Mein Dashboard zusenden', 'en' => 'Send me my dashboard'],
+        'schritte' => [
+            'it' => 'Progetto · Dati · Preventivo · Anteprima · Online',
+            'de' => 'Vorhaben · Angaben · Angebot · Entwurf · Online',
+            'en' => 'Project · Details · Quote · Draft · Live'],
+        'hinweis' => [
+            'it' => 'Nessun account, nessuna password. Gratuito e senza impegno.',
+            'de' => 'Kein Konto, kein Passwort. Kostenlos und unverbindlich.',
+            'en' => 'No account, no password. Free and without obligation.'],
+        'gesendet' => [
+            'it' => 'Fatto. Controlli la sua casella di posta: il link è in arrivo. Non lo trova? Guardi anche nella cartella spam.',
+            'de' => 'Erledigt. Sehen Sie in Ihr Postfach: Der Link ist unterwegs. Nicht da? Schauen Sie auch im Spam-Ordner nach.',
+            'en' => 'Done. Check your inbox: the link is on its way. Not there? Have a look in your spam folder too.'],
+        'ungueltig' => [
+            'it' => 'Questo indirizzo non sembra corretto. Lo controlli, per favore.',
+            'de' => 'Diese Adresse scheint nicht zu stimmen. Bitte prüfen Sie sie noch einmal.',
+            'en' => 'That address doesn’t look right. Please check it again.'],
+        'abgelaufen' => [
+            'it' => 'Questo link è scaduto. Inserisca di nuovo il suo indirizzo e gliene mando uno nuovo.',
+            'de' => 'Dieser Link ist abgelaufen. Tragen Sie Ihre Adresse noch einmal ein, dann schicke ich Ihnen einen neuen.',
+            'en' => 'This link has expired. Enter your address again and I will send you a new one.'],
+        'unbekannt' => [
+            'it' => 'Questo link non è valido. Inserisca il suo indirizzo e gliene mando uno nuovo.',
+            'de' => 'Dieser Link gilt nicht. Tragen Sie Ihre Adresse ein, dann schicke ich Ihnen einen neuen.',
+            'en' => 'This link is not valid. Enter your address and I will send you a new one.'],
+        'panne' => [
+            'it' => 'Qualcosa non ha funzionato. Riprovi tra poco oppure mi scriva direttamente.',
+            'de' => 'Etwas hat nicht geklappt. Versuchen Sie es gleich noch einmal oder schreiben Sie mir direkt.',
+            'en' => 'Something went wrong. Try again shortly or write to me directly.'],
+        'datenschutz' => [
+            'it' => 'Uso il suo indirizzo solo per inviarle il link e per il suo progetto. Se non apre il link, viene cancellato dopo {tage} giorni.',
+            'de' => 'Ich nutze Ihre Adresse nur für den Link und für Ihr Vorhaben. Öffnen Sie den Link nicht, wird sie nach {tage} Tagen gelöscht.',
+            'en' => 'I only use your address to send the link and for your project. If you don’t open the link, it is deleted after {tage} days.'],
+    ];
+
     public const BEDARF = [
         'titel' => ['it' => 'Di che cosa ha bisogno?', 'de' => 'Was brauchen Sie?', 'en' => 'What do you need?'],
         'lead'  => [
@@ -1705,6 +1813,16 @@ final class Texte
             'de' => 'Wohin schicke ich das Angebot?',
             'en' => 'Where should I send the quote?',
         ],
+        /* Im Dashboard (D1, D2): Die Adresse ist schon da, gefragt wird nur,
+           wie ich ihn ansprechen soll -- und ob er mir eine Nummer gibt. */
+        'kontaktTitelDashboard' => [
+            'it' => 'Come posso chiamarla?',
+            'de' => 'Wie darf ich Sie ansprechen?',
+            'en' => 'How should I address you?',
+        ],
+        'absendenDashboard' => ['it' => 'Inviare il progetto', 'de' => 'Vorhaben absenden', 'en' => 'Send your project'],
+        'zumDashboard'      => ['it' => '← La sua dashboard', 'de' => '← Ihr Dashboard', 'en' => '← Your dashboard'],
+        'emailFest'         => ['it' => 'Le scrivo a', 'de' => 'Ich schreibe Ihnen an', 'en' => 'I will write to'],
         'fName'    => ['it' => 'Il suo nome', 'de' => 'Ihr Name', 'en' => 'Your name'],
         'fEmail'   => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
         'fTelefon' => ['it' => 'Telefono (facoltativo)', 'de' => 'Telefon (freiwillig)', 'en' => 'Phone (optional)'],

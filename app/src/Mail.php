@@ -312,6 +312,12 @@ final class Mail
             return ['it' => 'Apri il questionario', 'de' => 'Fragebogen öffnen',
                     'en' => 'Open the form'][$sprache];
         }
+        /* Der E-Mail-Einstieg (24.09.2026): Der Knopf sagt, wohin er fuehrt --
+           „Öffnen“ allein klingt nach einem Anhang. */
+        if (in_array($anlass, ['zugang', 'zugang_bestand', 'zugang_erinnerung', 'vorhaben_erinnerung'], true)) {
+            return ['it' => 'Aprire la mia dashboard', 'de' => 'Mein Dashboard öffnen',
+                    'en' => 'Open my dashboard'][$sprache];
+        }
         if (in_array($anlass, $ansehen, true)) {
             return ['it' => 'Guarda il sito', 'de' => 'Seite ansehen',
                     'en' => 'View the site'][$sprache];

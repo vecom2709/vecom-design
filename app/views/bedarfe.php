@@ -21,6 +21,42 @@
   </div>
 </div>
 
+<?php /* ---------- Traegt der E-Mail-Einstieg? (S4, 24.09.2026) ----------
+         Seit dem 24.09. beginnt der Weg mit einer Adresse statt mit acht
+         Fragen. Ob das mehr Auftraege bringt, zeigt nur der Vergleich: dieselben
+         Stufen fuer beide Wege, gezaehlt je Mensch, nicht je Mail. Der alte Weg
+         laeuft aus -- er zaehlt nur noch, was ueber alte Links hereinkommt. */ ?>
+<?php $zt = (array) ($zugangTrichter ?? []); ?>
+<?php if ($zt): ?>
+<div class="block">
+  <h2>E-Mail-Einstieg <span class="mehr" style="font-weight:400;color:var(--leise)">letzte <?= (int) $zt['tage'] ?> Tage</span></h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 14px">
+    Jede Stufe zählt Menschen: Adresse eingetragen → Link geöffnet → Vorhaben ausgefüllt →
+    Angebot bekommen → Anzahlung bezahlt. Die Prozentzahl sagt, wie viele von der Stufe davor
+    es geschafft haben — dort, wo sie einbricht, liegt die Arbeit.</p>
+  <div class="tabellenrahmen"><table>
+    <thead><tr><th>Weg</th><th>eingetragen</th><th>geöffnet</th><th>Vorhaben</th><th>Angebot</th><th>bezahlt</th></tr></thead>
+    <tbody>
+    <?php foreach (['neu' => 'E-Mail-Einstieg', 'alt' => 'Konfigurator (alt)'] as $wk => $wort): ?>
+      <?php $r = (array) ($zt[$wk] ?? []); $vorher = null; ?>
+      <tr><td><b><?= Fmt::h($wort) ?></b></td>
+      <?php foreach (['eingetragen', 'geoeffnet', 'vorhaben', 'angebot', 'bezahlt'] as $st): ?>
+        <?php $z = $r[$st] ?? null; ?>
+        <td><?php if ($z === null): ?><span style="color:var(--leise)">—</span><?php else: ?>
+          <?= (int) $z ?><?php if ($vorher !== null && $vorher > 0): ?>
+            <span style="color:var(--leise);font-size:12px"> · <?= (int) round($z / $vorher * 100) ?> %</span><?php endif; ?>
+          <?php $vorher = (int) $z; endif; ?></td>
+      <?php endforeach; ?></tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+  <?php if ((int) ($zt['bestand'] ?? 0) > 0): ?>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Dazu <?= (int) $zt['bestand'] ?>×
+      hat ein bestehender Kunde seinen Link noch einmal angefordert — das ist kein neuer Zugang.</p>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <?php /* Der zweite Knopf trifft auch abgesendete Anfragen. Deshalb steht er
          unten, nicht oben, und verlangt ein getipptes Wort -- ein Klick aus
          Gewohnheit soll nicht reichen. */ ?>

@@ -253,7 +253,7 @@ final class Vorlage
             '{angebotnummer}'  => $punkte((string) ($ang['nummer'] ?? '')),
             '{angebotsumme}'   => isset($ang['summe_cents']) && (int) $ang['summe_cents'] > 0
                                     ? Fmt::geld((int) $ang['summe_cents'], (string) ($ang['currency'] ?? 'EUR')) : '…',
-            '{konfigurator}'   => $web . '/bedarf.php?lang=' . $sprache,
+            '{konfigurator}'   => $web . '/zugang.php?lang=' . $sprache,   // seit 24.09.2026 der E-Mail-Einstieg
             '{preisseite}'     => $preisseite,
             '{empfehlungslink}'=> $code !== '' ? $web . '/e/' . $code : '…',
             '{empfehlungscode}'=> $punkte($code),

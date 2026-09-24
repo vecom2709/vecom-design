@@ -775,7 +775,7 @@ function ergebnisZeigen(bewegt = true) {
     ${d.demo === 'klar' ? `<p class="ergebnis__ohne">${esc(TEXT.ohneDemo)}</p>` : ''}
     <div class="ergebnis__stufe"><span>${esc(TEXT.stufeKopf)}</span><b>${d.stufe}</b><span>${esc(TEXT.stufen[d.stufe])}</span></div>
     <div class="knoepfe">
-      <a class="knopf knopf--voll" href="/bedarf.php?lang=${SPRACHE}">${esc(TEXT.start)}</a>
+      <a class="knopf knopf--voll" href="/zugang.php?lang=${SPRACHE}">${esc(TEXT.start)}</a>
       ${demo}
     </div>`;
   if (bewegt && !BEWEGUNG_AUS) { ergebnisEl.classList.remove('ist-neu'); void ergebnisEl.offsetWidth; ergebnisEl.classList.add('ist-neu'); }

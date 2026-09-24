@@ -2620,6 +2620,12 @@ switch ($route) {
                   LIMIT 200"), []),
             'leer' => (int) sicher(static fn() => Db::wert(
                 "SELECT COUNT(*) FROM bedarf WHERE status = 'offen' AND $leerFilter", [], 0), 0),
+            /* S4 (24.09.2026): Traegt der E-Mail-Einstieg? Derselbe Trichter
+               fuer den neuen und den alten Weg, nebeneinander. */
+            'zugangTrichter' => sicher(static function () {
+                require_once __DIR__ . '/src/Zugang.php';
+                return Zugang::trichter(90);
+            }, []),
         ]);
         break;
 

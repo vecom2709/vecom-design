@@ -137,7 +137,7 @@ if (sek) {
     const vorher = satz; farbe = f;
     for (const k of wahl.querySelectorAll('button')) k.setAttribute('aria-pressed', String(k.dataset.farbe === f));
     info.textContent = TEXTE.info[f];
-    const u = new URL(sek.dataset.anfrage || '/bedarf.php', location.href);
+    const u = new URL(sek.dataset.anfrage || '/zugang.php', location.href);
     u.searchParams.set('lang', SPRACHE); u.searchParams.set('demo', `haar-${f}`);
     cta.href = u.pathname + u.search;
     buehne.classList.add('ist-laedt'); kennung.textContent = TEXTE.laedt;

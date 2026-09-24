@@ -34,7 +34,7 @@
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
 <link rel="stylesheet" href="assets/css/app.css?v=ccc457c1">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=185481ff">
-<link rel="stylesheet" href="assets/css/edel.css?v=14053bd7">
+<link rel="stylesheet" href="assets/css/edel.css?v=ad8d9a49">
 
 
 <script type="importmap">
@@ -203,7 +203,7 @@
       "name": "Quanto costa un sito web su misura?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Non lavoro a pacchetti fissi: il prezzo nasce da quello che le serve davvero — numero di pagine, lingue, funzioni e quanto materiale ha già pronto. In un minuto e mezzo, rispondendo a otto domande sul sito, sa in che ordine di prezzo si muove; si parte da 325 €. L’assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approva, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo."
+        "text": "Non lavoro a pacchetti fissi: il prezzo nasce da quello che le serve davvero — numero di pagine, lingue, funzioni e quanto materiale ha già pronto. Inserisca la sua e-mail, riceve la sua dashboard personale e lì, con otto domande brevi, sa in un minuto e mezzo in che ordine di prezzo si muove; si parte da 325 €. L’assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approva, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo."
       }
     },
     {
@@ -334,7 +334,7 @@
           <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 8.9 19a1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 5 8.9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
         </svg>
       </a>
-      <a class="btn btn--primary" href="#contact" data-i18n="nav.cta">Preventivo su misura</a>
+      <a class="btn btn--primary" href="#contact" data-i18n="nav.cta">La mia dashboard</a>
       <button class="burger" type="button" aria-expanded="false" aria-controls="nav" aria-label="Menu">
         <span></span><span></span><span></span>
       </button>
@@ -364,10 +364,19 @@
     <p class="hero__lead" data-reveal data-i18n="hero.lead">Per attività con ambizione — ristorante, salone, concessionaria, manifattura. I suoi clienti vivono la sua offerta già sul sito. Su misura, a un prezzo fisso che approva Lei, prima.</p>
 
     <div class="hero__cta" data-reveal>
-      <a class="btn btn--primary" href="/bedarf.php?lang=it" data-magnetic>
-        <span data-i18n="hero.cta1">Richieda un preventivo</span>
-        <span class="btn__ico" aria-hidden="true"><span class="btn__arrow btn__arrow--out"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span><span class="btn__arrow btn__arrow--in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13"/><path d="m12 6 6 6-6 6"/></svg></span></span>
-      </a>
+      <!-- Der Einstieg ist eine E-Mail-Adresse (24.09.2026, E1): ein Feld,
+           ein Knopf, und darunter in einem Satz, was danach kommt. Der Link
+           erscheint nie auf dem Bildschirm, er geht nur ans Postfach (E2). -->
+      <form class="zugangsfeld" action="/zugang.php?lang=it" method="post" data-zugang="hero">
+        <label class="sr-only" for="zf-hero" data-i18n="zugang.feld">Il suo indirizzo e-mail</label>
+        <div class="zugangsfeld__zeile">
+          <input id="zf-hero" type="email" name="email" required autocomplete="email" inputmode="email" spellcheck="false"
+                 data-i18n-attr="placeholder:zugang.feld" placeholder="Il suo indirizzo e-mail">
+          <button class="btn btn--primary" type="submit"><span data-i18n="zugang.knopf">Ricevere la mia dashboard</span></button>
+        </div>
+        <p class="zugangsfeld__note" data-i18n="zugang.note">Le mando il link alla sua dashboard personale: da lì passa tutto, fino alla consegna del sito. Nessun account, nessuna password.</p>
+        <p class="zugangsfeld__ok" role="status" aria-live="polite" hidden></p>
+      </form>
       <a class="hero__leise" href="#betrieb" data-i18n="hero.cta2">oppure guardi prima gli esempi</a>
     </div>
   </div>
@@ -396,7 +405,7 @@
       <p class="betrieb__satz" aria-live="polite" data-betrieb-satz></p>
       <div class="betrieb__knoepfe">
         <button type="button" class="btn btn--primary" data-betrieb-oeffnen><span data-i18n="edel.b_open">Apra l’esempio</span></button>
-        <a class="betrieb__anfrage" href="/bedarf.php?lang=it" data-betrieb-anfrage data-i18n="edel.b_cta">Lo voglio per la mia attività</a>
+        <a class="betrieb__anfrage" href="/zugang.php?lang=it" data-betrieb-anfrage data-i18n="edel.b_cta">Lo voglio per la mia attività</a>
       </div>
     </div>
     <div class="betrieb__liste" role="group" aria-labelledby="betrieb-h" data-betrieb-liste></div>
@@ -625,7 +634,7 @@
               <div><dt id="bd-auto-z3" data-i18n="erlebnis.bd_auto_z3">213.347</dt><dd data-i18n="erlebnis.bd_auto_f3">triangoli in tempo reale</dd></div>
             </dl>
             <button type="button" class="knopf knopf--leer kunde-knopf" id="bd-auto-kunde" data-i18n="erlebnis.bd_auto_kunde">Come lo vede il cliente: richieda un giro di prova</button>
-            <a class="knopf knopf--voll" id="bd-auto-cta" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_auto_cta">Una cosa così per la sua concessionaria</a>
+            <a class="knopf knopf--voll" id="bd-auto-cta" href="/zugang.php?lang=it" data-i18n="erlebnis.bd_auto_cta">Una cosa così per la sua concessionaria</a>
           </div>
         </div>
       </div>
@@ -685,7 +694,7 @@
               <div><dt>0</dt><dd data-i18n="erlebnis.bd_schuh_f2">ricaricamenti al cambio colore</dd></div>
               <div><dt>360°</dt><dd data-i18n="erlebnis.bd_schuh_f3">da girare e ingrandire</dd></div>
             </dl>
-            <a class="knopf knopf--leer" id="bd-shop-cta" href="/bedarf.php?lang=it" data-i18n="erlebnis.bd_shop_cta">Una cosa così per il suo negozio</a>
+            <a class="knopf knopf--leer" id="bd-shop-cta" href="/zugang.php?lang=it" data-i18n="erlebnis.bd_shop_cta">Una cosa così per il suo negozio</a>
           </div>
         </div>
       </div>
@@ -745,7 +754,7 @@
             <button type="button" class="knopf knopf--leer kunde-knopf" id="pd-kunde" hidden></button>
             <button type="button" class="knopf knopf--leer ar-knopf" id="pd-ar" hidden data-i18n="erlebnis.ar_knopf">Nella sua stanza (AR)</button>
             <p class="pd-klein" id="pd-ar-hinweis" aria-live="polite"></p>
-            <a class="knopf knopf--voll" id="pd-cta" href="/bedarf.php?lang=it"></a>
+            <a class="knopf knopf--voll" id="pd-cta" href="/zugang.php?lang=it"></a>
           </div>
         </div>
       </div>
@@ -756,7 +765,7 @@
     <!-- Haarfarben (24.09.2026, Wunsch Uwe: „passendes für Friseur statt des
          Stuhls, der sich dreht"): Wunschfarbe von allen Seiten, dann Termin.
          Bilder aus Blender Cycles, Bedienung haarfarben.js. -->
-    <section class="abschnitt branchen demo-buehne hf" id="haarfarben" data-demo-buehne="haar" data-anfrage="/bedarf.php" aria-labelledby="hf-h" hidden>
+    <section class="abschnitt branchen demo-buehne hf" id="haarfarben" data-demo-buehne="haar" data-anfrage="/zugang.php" aria-labelledby="hf-h" hidden>
       <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
       <div class="bd-raster">
         <div class="bd-links">
@@ -779,7 +788,7 @@
           </div>
           <p class="hf-info" aria-live="polite"></p>
           <button type="button" class="knopf knopf--leer kunde-knopf hf-kunde" data-i18n="erlebnis.hf_kunde">Come lo vede la cliente: prenoti con il colore</button>
-          <a class="knopf knopf--voll hf-cta" href="/bedarf.php?lang=it" data-i18n="erlebnis.hf_cta">La consulenza colore per il mio salone</a>
+          <a class="knopf knopf--voll hf-cta" href="/zugang.php?lang=it" data-i18n="erlebnis.hf_cta">La consulenza colore per il mio salone</a>
         </div>
       </div>
       <p class="bd-nachweis" data-i18n="erlebnis.hf_nachweis">Capelli, testa e mantellina modellati da Vecom Design: 110.000 ciocche come curve, shader fisico per capelli (melanina), calcolati con Blender Cycles.</p>
@@ -788,7 +797,7 @@
     <!-- Küchenplaner (24.09.2026, Wunsch Uwe: „wie bei Ikea mit Maßen"):
          ersetzt die Kochinsel zum Drehen. Bedienung baut kuechenplaner.js,
          die Szene kuechenplaner-3d.js -- geladen erst beim Öffnen. -->
-    <section class="abschnitt branchen demo-buehne kp" id="kuechenplaner" data-demo-buehne="planer" data-anfrage="/bedarf.php" aria-labelledby="kp-h" hidden>
+    <section class="abschnitt branchen demo-buehne kp" id="kuechenplaner" data-demo-buehne="planer" data-anfrage="/zugang.php" aria-labelledby="kp-h" hidden>
       <button type="button" class="demo-zu" data-demo-zu><span aria-hidden="true">×</span> <span data-i18n="erlebnis.demo_zu">Chiudi</span></button>
       <header class="kp-titel">
         <p class="kicker" data-i18n="erlebnis.kp_kicker">Cucine su misura · progettatore</p>
@@ -823,7 +832,7 @@
       <h2 data-i18n="erlebnis.s_h">Questo posso costruirlo per Lei.</h2>
       <p class="lead" data-i18n="erlebnis.s_lead">Lei porta il suo immobile, il suo prodotto o la sua idea. Io lo ricostruisco, preparo la luce e consegno l’experience pronta per il suo sito — al livello adatto ai suoi visitatori.</p>
       <div class="knoepfe">
-        <a class="knopf knopf--voll" href="/bedarf.php?lang=it" data-i18n="erlebnis.s_b1">Avvii il progetto</a>
+        <a class="knopf knopf--voll" href="/zugang.php?lang=it" data-i18n="erlebnis.s_b1">Avvii il progetto</a>
         <a class="knopf knopf--leer" href="prezzi.html" data-i18n="erlebnis.s_b2">Quanto costa</a>
       </div>
     </div>
@@ -1012,20 +1021,20 @@
         <h3 data-i18n="weg.head">Quanto costa il suo sito dipende da che cosa deve saper fare</h3>
         <p data-i18n="weg.lead">Niente pacchetti in cui doversi adattare per forza: paga le voci che la riguardano e nessun’altra. Quante pagine, quante lingue, che cosa deve saper fare — da lì nasce la cifra.</p>
         <div class="bedarfsweg__tun">
-          <a class="btn btn--primary btn--gross" href="/bedarf.php?lang=it"><span data-i18n="weg.cta">Scopra il prezzo</span></a>
-          <!-- Wer erst lesen will, was es kostet, bevor er acht Fragen
+          <a class="btn btn--primary btn--gross" href="/zugang.php?lang=it"><span data-i18n="weg.cta">Ricevere la mia dashboard</span></a>
+          <!-- Wer erst lesen will, was es kostet, bevor er seine Adresse
                beantwortet, geht hier lang. Ohne diesen Verweis waere die
                Preisseite von der Startseite aus nicht erreichbar - und eine
                Seite, auf die nichts zeigt, wird auch nicht gefunden. -->
           <a class="bedarfsweg__mehr" href="prezzi.html" data-i18n="weg.preisseite">Tutti i prezzi, voce per voce</a>
         </div>
-        <p class="bedarfsweg__note" data-i18n="weg.note">Gratuito e senza impegno. I suoi dati glieli chiedo solo alla fine, quando il preventivo lo desidera davvero.</p>
+        <p class="bedarfsweg__note" data-i18n="weg.note">Gratuito e senza impegno. Nessun account, nessuna password: il link è il suo accesso.</p>
       </div>
 
       <ol class="schritte">
-        <li><b>1</b><span data-i18n="weg.schritt1">Risponda a otto domande. Un minuto e mezzo, senza account.</span></li>
-        <li><b>2</b><span data-i18n="weg.schritt2">Vede subito la sua fascia di prezzo, con le voci che la compongono.</span></li>
-        <li><b>3</b><span data-i18n="weg.schritt3">Il preventivo vincolante le arriva entro 24 ore. Poi decide Lei se accettarlo.</span></li>
+        <li><b>1</b><span data-i18n="weg.schritt1">Inserisca la sua e-mail: le arriva subito il link alla sua dashboard personale.</span></li>
+        <li><b>2</b><span data-i18n="weg.schritt2">Lì risponde a otto domande brevi e vede subito la sua fascia di prezzo, voce per voce.</span></li>
+        <li><b>3</b><span data-i18n="weg.schritt3">Preventivo, acconto, anteprima e consegna passano tutti dalla stessa dashboard. Decide sempre Lei.</span></li>
       </ol>
     </div>
 
@@ -1215,7 +1224,7 @@
           <span data-i18n="faq.q1">Quanto costa un sito web su misura?</span>
           <span class="faq__sign" aria-hidden="true"></span>
         </summary>
-        <p data-i18n="faq.a1">Non lavoro a pacchetti fissi: il prezzo nasce da quello che le serve davvero — numero di pagine, lingue, funzioni e quanto materiale ha già pronto. In un minuto e mezzo, rispondendo a otto domande sul sito, sa in che ordine di prezzo si muove; si parte da 325 €. L’assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approva, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.</p>
+        <p data-i18n="faq.a1">Non lavoro a pacchetti fissi: il prezzo nasce da quello che le serve davvero — numero di pagine, lingue, funzioni e quanto materiale ha già pronto. Inserisca la sua e-mail, riceve la sua dashboard personale e lì, con otto domande brevi, sa in un minuto e mezzo in che ordine di prezzo si muove; si parte da 325 €. L’assistenza mensile da 39 € è facoltativa ed è un contratto a parte. Il preventivo è gratuito e senza impegno; quando lo approva, quella cifra è il prezzo finale — in fattura non compare nulla che non fosse nel preventivo.</p>
       </details>
       <details class="faq__item" data-reveal>
         <summary>
@@ -1292,7 +1301,7 @@
   <div class="wrap contact__grid">
     <div data-stagger>
       <h2 data-reveal data-i18n="form.head">Come si comincia</h2>
-      <p class="contact__lead" data-reveal data-i18n="form.lead">Mi dica che cosa le serve: otto domande brevi, e alla fine sa già in che ordine di prezzo si muove. Se preferisce scrivere due righe, qui sotto trova i miei recapiti.</p>
+      <p class="contact__lead" data-reveal data-i18n="form.lead">Inserisca il suo indirizzo e-mail: le mando il link alla sua dashboard personale, e da lì passa tutto fino alla consegna del sito. Se preferisce scrivere due righe, qui sotto trova i miei recapiti.</p>
 
       <dl class="contact__data" data-reveal>
         <div><dt data-i18n="contact.dt1">E-mail</dt><dd data-i18n="contact.dd1">kontakt@vecom-design.it</dd></div>
@@ -1318,19 +1327,26 @@
          beantwortet dann die falschen Fragen. Ein Weg genuegt, und es ist
          der, aus dem ein Preis entsteht. -->
     <div class="kontaktweg" data-reveal>
-      <a class="btn btn--primary btn--gross" href="/bedarf.php?lang=it">
-        <span data-i18n="form.cta">Richieda il preventivo</span>
-      </a>
-      <p class="kontaktweg__note" data-i18n="form.ctaNote">Otto domande brevi, circa un minuto e mezzo. Alla fine vede subito la sua fascia di prezzo — senza account e senza impegno.</p>
+      <form class="zugangsfeld zugangsfeld--gross" action="/zugang.php?lang=it" method="post" data-zugang="kontakt">
+        <label class="sr-only" for="zf-kontakt" data-i18n="zugang.feld">Il suo indirizzo e-mail</label>
+        <div class="zugangsfeld__zeile">
+          <input id="zf-kontakt" type="email" name="email" required autocomplete="email" inputmode="email" spellcheck="false"
+                 data-i18n-attr="placeholder:zugang.feld" placeholder="Il suo indirizzo e-mail">
+          <button class="btn btn--primary" type="submit"><span data-i18n="zugang.knopf">Ricevere la mia dashboard</span></button>
+        </div>
+        <p class="zugangsfeld__note" data-i18n="zugang.note">Le mando il link alla sua dashboard personale: da lì passa tutto, fino alla consegna del sito. Nessun account, nessuna password.</p>
+        <p class="zugangsfeld__ok" role="status" aria-live="polite" hidden></p>
+      </form>
+      <p class="kontaktweg__note" data-i18n="form.ctaNote">Nella dashboard: otto domande brevi, poi vede subito la sua fascia di prezzo. Nessun account e nessun impegno.</p>
 
-      <h3 class="ablaufkopf" data-i18n="form.ablaufHead">Che cosa succede dopo l’invio</h3>
+      <h3 class="ablaufkopf" data-i18n="form.ablaufHead">Che cosa succede dopo</h3>
       <ol class="ablaufliste" data-reveal>
-        <li><b data-i18n="form.ab1">Conferma subito</b><span data-i18n="form.ab1d">Le arriva un’e-mail con il riepilogo e un link privato: nessun account, nessuna password.</span></li>
-        <li><b data-i18n="form.ab2">Risposta entro un giorno lavorativo</b><span data-i18n="form.ab2d">Con una prima indicazione concreta — non con un «dipende».</span></li>
+        <li><b data-i18n="form.ab1">Il link arriva subito</b><span data-i18n="form.ab1d">Un’e-mail con il link alla sua dashboard personale: nessun account, nessuna password.</span></li>
+        <li><b data-i18n="form.ab2">Il suo progetto in un minuto e mezzo</b><span data-i18n="form.ab2d">Otto domande brevi nella dashboard, poi vede subito un prezzo indicativo.</span></li>
         <li><b data-i18n="form.ab3">Tutto in un posto solo</b><span data-i18n="form.ab3d">Dal suo link mi scrive e carica logo, foto e testi. Niente si perde nella posta.</span></li>
         <li><b data-i18n="form.ab4">I soldi solo alla fine</b><span data-i18n="form.ab4d">Prima una proposta a prezzo fisso. Vincolante solo con il contratto firmato.</span></li>
       </ol>
-      <p class="qform__trust" data-i18n="form.trust">Gratuito e senza impegno · Risposta entro un giorno lavorativo · I suoi dati arrivano solo a me</p>
+      <p class="qform__trust" data-i18n="form.trust">Gratuito e senza impegno · Nessun account · I suoi dati arrivano solo a me</p>
     </div>
   </div>
 </section>
@@ -1401,7 +1417,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=7dffecef" defer></script>
+<script src="assets/js/i18n-it.js?v=c397f8c9" defer></script>
 <script src="assets/js/app.js?v=bc5ba11c" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1421,14 +1437,15 @@
 
 <!-- Der Erlebnisteil: Bühne, Wegweiser, Tischdrehung, Stufen.
      Lädt das Echtzeitmodell erst, wenn jemand danach greift. -->
-<script type="module" src="assets/js/erlebnis/erlebnis.js?v=1da4985e"></script>
-<script type="module" src="assets/js/erlebnis/branchen.js?v=e559611e"></script>
-<script type="module" src="assets/js/erlebnis/haarfarben.js?v=4d053d2d"></script>
+<script type="module" src="assets/js/erlebnis/erlebnis.js?v=57988d2d"></script>
+<script type="module" src="assets/js/erlebnis/branchen.js?v=8300eab7"></script>
+<script type="module" src="assets/js/erlebnis/haarfarben.js?v=a72d6515"></script>
 <script type="module" src="assets/js/erlebnis/kundenablauf.js?v=58d4d44d"></script>
-<script type="module" src="assets/js/erlebnis/tisch-wahl.js?v=4800cc29"></script>
-<script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=f3a1f1fc"></script>
+<script type="module" src="assets/js/erlebnis/tisch-wahl.js?v=24ca84f5"></script>
+<script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=0963e057"></script>
 <script type="module" src="assets/js/erlebnis/betrieb.js?v=99355cb0"></script>
-<script type="module" src="assets/js/arbeiten.js?v=2685648f"></script>
+<script type="module" src="assets/js/zugang.js?v=a205dcfe"></script>
+<script type="module" src="assets/js/arbeiten.js?v=e16f11f4"></script>
 
 <!-- DAS NETZ UNTER DER BÜHNE
      ------------------------------------------------------------------------

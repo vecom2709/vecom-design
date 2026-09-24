@@ -430,6 +430,11 @@ function build(lang, seite) {
      deshalb hier eine eigene, und sie muss VOR der allgemeinen stehen. */
   h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php\?lang=[a-z]{2}&amp;start=1"/g, `href="/bedarf.php?lang=${lang}&amp;start=1"`);
   h = h.replace(/href="(?:\/|\.\.\/)?bedarf\.php(?:\?lang=[a-z]{2})?"/g, `href="/bedarf.php?lang=${lang}"`);
+  /* Der E-Mail-Einstieg (24.09.2026) kennt die Sprache ebenfalls nur ueber
+     ?lang= -- und steht auch als Formular-Ziel (action=) im Aufmacher und im
+     Kontaktbereich. Ohne diese Regel ginge die deutsche Willkommensmail
+     italienisch raus. */
+  h = h.replace(/(href|action)="(?:\/|\.\.\/)?zugang\.php(?:\?lang=[a-z]{2})?"/g, (_, attr) => `${attr}="/zugang.php?lang=${lang}"`);
   // Dieselbe Regel fuer die Solo-Hosting-Seite: Auch sie kennt die Sprache
   // nur ueber ?lang= — ohne die Drehung zeigte der deutsche Hosting-Knopf
   // auf die italienische Fassung (so gefunden am 08.09., live).

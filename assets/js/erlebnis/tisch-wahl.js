@@ -87,7 +87,7 @@ if (sek && dreh && ziel) {
     document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: {
       titel: T.kTitel,
       zeilen: [`${T[wahl.holz]} · ${T[wahl.laenge]} · ${T[wahl.gestell]} · ${T[wahl.metall]}`, v ? T.platz(v.gedecke_je_seite * 2) : '', T.kLieferung].filter(Boolean),
-      termin: { zeiten: ['09:00', '13:00', '16:00'] }, ziel: `/bedarf.php?lang=${SPRACHE}`,
+      termin: { zeiten: ['09:00', '13:00', '16:00'] }, ziel: `/zugang.php?lang=${SPRACHE}`,
     } }));
   });
   ziel.append(gruppe('holz', Object.keys(K.holz)), gruppe('laenge', Object.keys(K.laenge)), gruppe('gestell', Object.keys(K.gestell)), gruppe('metall', Object.keys(K.metall)), daten, kunde);

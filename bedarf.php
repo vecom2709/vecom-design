@@ -117,7 +117,6 @@ if ($plan !== '') { $demoText = ($demoText !== '' ? $demoText . ': ' : '') . Bed
 $token = trim((string) ($_REQUEST['t'] ?? ''));
 $b = null;
 $panne = false;
-$tor = false;   // Sprachtor statt Fragen zeigen
 
 try {
     Baukasten::sicherstellen();
@@ -125,37 +124,57 @@ try {
         $b = Bedarf::laden($token);
     }
     if (!$b && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-        /* DAS SPRACHTOR — DIE ERSTE FRAGE, UND SIE IST PFLICHT
+        /* Das Sprachtor, das hier bis zum 24.09.2026 stand, ist mit dem
+           E-Mail-Einstieg weggefallen: Die Sprache kommt jetzt aus der
+           Fassung der Seite, auf der er die Adresse eintraegt, und gefragt
+           wird er im Vorhaben (Feld „In welcher Sprache soll ich Ihnen
+           schreiben“). Ohne Schluessel entsteht hier nichts mehr. */
+        /* SEIT DEM 24.09.2026 BEGINNT ES MIT DER ADRESSE (S2)
            ------------------------------------------------------------------
-           An dieser einen Angabe haengt alles Spaetere: jede Mail, jeder
-           Beleg, seine ganze Kundenseite. Sie ergab sich bisher aus der
-           Fassung der Website, auf der jemand landete -- und wer die
-           italienische Startseite nicht umstellt, bekam von da an alles auf
-           Italienisch, ohne je gefragt worden zu sein.
-
-           Deshalb steht sie jetzt vor allem anderen und laesst sich nicht
-           uebergehen: Ohne Klick entsteht kein Bedarf, und es geht nicht
-           weiter. Ein Bildschirm, ein Klick -- und dafuer stimmt danach
-           jedes Wort, das dieser Mensch von uns liest.
-
-           Nebenbei entsteht dadurch auch kein Datensatz mehr, nur weil ein
-           Suchprogramm die Adresse aufgerufen hat. */
-        if (($_GET['start'] ?? '') !== '1') {
-            $tor = true;
-        } else {
-            $b = Bedarf::starten($sprache);
-            // Wer vom Autohaus-Beispiel kommt, will zeigen und erreichbar
-            // sein; wer vom Schuh kommt, will verkaufen. Vorbelegt, nicht
-            // festgelegt -- im ersten Schritt laesst es sich aendern.
-            if ($demo !== '') { Bedarf::speichern((int) $b['id'], ['zweck' => Bedarf::demoZweck($demo)], 1); }
-            header('Location: ' . $adresse(1, (string) $b['token'])); exit;
-        }
+           Wer ohne Schluessel kommt -- ueber einen alten Knopf, ein
+           Lesezeichen, den Showroom oder einen Empfehlungslink /e/CODE --,
+           landet beim E-Mail-Einstieg. Die acht Fragen beantwortet er
+           danach in seinem Dashboard. Ein Link mit Schluessel (etwa aus
+           einer Mail des Telefonassistenten) oeffnet weiter genau diesen
+           Bedarf -- kein bereits verschickter Link stirbt. */
+        header('Location: /zugang.php?lang=' . rawurlencode($sprache)
+            . ($empfehlCode !== '' ? '&e=' . rawurlencode($empfehlCode) : ''), true, 302);
+        exit;
     }
 } catch (Throwable $e) {
     $panne = true;
     try {
         Events::melden('bedarf_fehler', 'Konfigurator nicht erreichbar', 'schlecht', $e->getMessage(), '/anfragen');
     } catch (Throwable $e2) { /* dann eben nicht */ }
+}
+
+/* ---------- Im Dashboard (24.09.2026, D1/D2) ----------
+   Gehoert der Bedarf schon einem Kunden, kommt er aus seinem Dashboard: Die
+   Adresse ist bekannt und wird nicht noch einmal gefragt, der Weg zurueck
+   steht oben, und nach dem Absenden geht es dorthin zurueck statt auf eine
+   Dankeseite. */
+$imDashboard = false; $dashKunde = null; $dashLink = '';
+if ($b && $b['customer_id'] !== null) {
+    try {
+        require_once __DIR__ . '/app/src/Kundenzugang.php';
+        $dashKunde = Db::one('SELECT id, name, email, phone, company, sprache FROM customers WHERE id = ?', [(int) $b['customer_id']]);
+        if ($dashKunde) {
+            $imDashboard = true;
+            $dashLink = Kundenzugang::linkFuer((int) $dashKunde['id'], $sprache);
+        }
+    } catch (Throwable $e) { $imDashboard = false; }
+    if ($imDashboard && $empfehlCode === '' && trim((string) ($b['empfehl_code'] ?? '')) !== '') {
+        $empfehlCode = strtoupper(trim((string) $b['empfehl_code']));
+        try {
+            $eid = Empfehlung::kundeZuCode($empfehlCode);
+            if ($eid) { $empfehlName = (string) Db::wert('SELECT name FROM customers WHERE id = ?', [$eid], ''); }
+            else { $empfehlCode = ''; }
+        } catch (Throwable $e) { $empfehlCode = ''; }
+    }
+    // Schon abgesendet? Dann gehoert er ins Dashboard, nicht auf eine Dankeseite
+    if ($imDashboard && $b['status'] !== 'offen' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: ' . $dashLink, true, 303); exit;
+    }
 }
 
 /* ---------- Schreiben, dann umleiten ---------- */
@@ -171,7 +190,8 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($tat === 'absenden') {
             $ok = Bedarf::absenden((int) $b['id'], [
                 'name'    => (string) ($_POST['name'] ?? ''),
-                'email'   => (string) ($_POST['email'] ?? ''),
+                // Im Dashboard steht die Adresse fest: die, deren Link er geoeffnet hat
+                'email'   => $imDashboard ? (string) $dashKunde['email'] : (string) ($_POST['email'] ?? ''),
                 'telefon' => (string) ($_POST['telefon'] ?? ''),
                 'firma'   => (string) ($_POST['firma'] ?? ''),
                 'empfehl_code' => $empfehlCode,
@@ -190,6 +210,10 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                schon deutsch. */
             $zielSprache = strtolower(trim((string) ($_POST['sprache_wahl'] ?? '')));
             if (!in_array($zielSprache, ['it', 'de', 'en'], true)) { $zielSprache = $sprache; }
+            if ($ok && $imDashboard) {
+                header('Location: ' . Kundenzugang::linkFuer((int) $dashKunde['id'], $zielSprache) . '&m=vorhaben', true, 303);
+                exit;
+            }
             header('Location: /bedarf.php?t=' . rawurlencode((string) $b['token'])
                 . '&lang=' . rawurlencode($zielSprache)
                 . '&schritt=' . $anzahl
@@ -319,21 +343,6 @@ $geld = static function (int $cents) use ($sprache): string {
   .leiste2 .knopf{flex:0 1 auto;padding-left:26px;padding-right:26px}
   @media (max-width:520px){ .leiste2 .knopf{flex:1 1 auto} .leiste2 .rechts{display:none} }
 
-  /* Das Sprachtor. Drei gleich grosse Ziele, untereinander — auf dem Telefon
-     ist das die verlaesslichste Form, und nichts davon ist vorausgewaehlt:
-     Es soll ein Klick sein, keine Bestaetigung einer Vermutung. */
-  .sprachtor{display:flex;flex-direction:column;gap:10px}
-  /* Bewusst KEIN Hauptknopf: Drei gleich laute Farbflaechen sagen "alles ist
-     wichtig", und das heisst nichts. Hier ist die Wahl die Betonung, nicht
-     die Flaeche — ruhige Kacheln, die erst unter dem Zeiger aufleuchten. */
-  .sprachtor .knopf{display:flex;flex-direction:column;align-items:center;gap:3px;
-    padding:17px 20px;text-align:center;line-height:1.35;
-    background:rgba(255,255,255,.035);border:1px solid var(--linie);
-    transition:border-color .18s ease, background .18s ease}
-  .sprachtor .knopf:hover,.sprachtor .knopf:focus-visible{
-    background:rgba(0,180,216,.10);border-color:var(--cyan)}
-  .sprachtor .knopf b{font-size:16.5px;font-weight:600;color:#fff}
-  .sprachtor .knopf span{font-size:12.5px;font-weight:400;color:var(--leise)}
 </style>
 </head>
 <body>
@@ -343,33 +352,7 @@ $geld = static function (int $cents) use ($sprache): string {
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
 
-<?php if ($tor && !$panne): ?>
-  <?php /* Dreisprachig, und das ist keine Spielerei: Wer nach der Sprache
-           fragt, darf die Frage nicht in einer Sprache stellen, die der
-           Leser vielleicht nicht kann. Jeder Knopf spricht fuer sich
-           selbst. */ ?>
-  <div class="bkopf" style="text-align:center">
-    <h1 style="font-size:20px;margin:0 0 8px">Lingua · Sprache · Language</h1>
-    <p class="lead" style="margin:0 auto;max-width:40ch">
-      Vale per le e-mail, i documenti e la tua pagina.<br>
-      Gilt für E-Mails, Unterlagen und deine Seite.<br>
-      Applies to emails, documents and your page.
-    </p>
-  </div>
-  <div class="block">
-    <div class="sprachtor">
-      <?php foreach ([
-        'it' => ['Italiano', 'Continua in italiano'],
-        'de' => ['Deutsch',  'Auf Deutsch weiter'],
-        'en' => ['English',  'Continue in English'],
-      ] as $sl => [$wort, $satz]): ?>
-        <a class="knopf" href="/bedarf.php?lang=<?= $sl ?>&amp;start=1<?= $empfehlCode !== '' ? '&amp;e=' . $h(rawurlencode($empfehlCode)) : '' ?>">
-          <b><?= $h($wort) ?></b><span><?= $h($satz) ?></span></a>
-      <?php endforeach; ?>
-    </div>
-  </div>
-
-<?php elseif ($panne || !$b): ?>
+<?php if ($panne || !$b): ?>
   <div class="block">
     <div class="hinweis schlecht"><?= $h($T($panne ? 'panne' : 'weg')) ?></div>
     <a class="knopf haupt" href="/bedarf.php?lang=<?= $h($sprache) ?>"><?= $h($T('neu')) ?></a>
@@ -383,6 +366,9 @@ $geld = static function (int $cents) use ($sprache): string {
 
 <?php else: ?>
   <div class="bkopf">
+    <?php if ($imDashboard): ?>
+      <a href="<?= $h($dashLink) ?>" style="display:inline-block;margin:0 0 10px;font-size:13.5px;color:var(--dim)"><?= $h($T('zumDashboard')) ?></a>
+    <?php endif; ?>
     <h1 style="font-size:21px;margin:0 0 6px"><?= $h($T('titel')) ?></h1>
     <p class="lead" style="margin:0"><?= $h($T('lead')) ?></p>
     <ul class="punkte">
@@ -458,17 +444,25 @@ $geld = static function (int $cents) use ($sprache): string {
       <?php endif; ?>
 
       <div class="block">
-        <h2 style="font-size:18px;margin:0 0 14px"><?= $h($T('kontaktTitel')) ?></h2>
+        <h2 style="font-size:18px;margin:0 0 14px"><?= $h($T($imDashboard ? 'kontaktTitelDashboard' : 'kontaktTitel')) ?></h2>
         <div class="feld">
           <label for="f_name"><?= $h($T('fName')) ?> *</label>
           <input id="f_name" name="name" autocomplete="name" required
-                 value="<?= $h((string) ($b['name'] ?? '')) ?>">
+                 value="<?= $h((string) (($b['name'] ?? '') !== '' ? $b['name'] : ($dashKunde['name'] ?? ''))) ?>">
         </div>
+        <?php if ($imDashboard): ?>
+          <?php /* D2: Die Adresse ist bewiesen -- er hat den Link aus diesem
+                   Postfach geoeffnet. Sie steht da, zum Nachlesen, nicht zum
+                   Aendern: Eine hier getippte andere Adresse fuehrte in eine
+                   zweite Kundenakte. */ ?>
+          <p class="erkannt" style="margin:0 0 14px"><?= $h($T('emailFest')) ?> <b><?= $h((string) $dashKunde['email']) ?></b></p>
+        <?php else: ?>
         <div class="feld">
           <label for="f_email"><?= $h($T('fEmail')) ?> *</label>
           <input id="f_email" name="email" type="email" autocomplete="email" required
                  value="<?= $h((string) ($b['email'] ?? '')) ?>">
         </div>
+        <?php endif; ?>
         <div class="feld">
           <label for="f_telefon"><?= $h($T('fTelefon')) ?></label>
           <input id="f_telefon" name="telefon" type="tel" autocomplete="tel"
@@ -522,7 +516,7 @@ $geld = static function (int $cents) use ($sprache): string {
         <?php if ($schritt < $anzahl): ?>
           <button class="knopf haupt" name="tat" value="weiter"><?= $h($T('weiter')) ?></button>
         <?php else: ?>
-          <button class="knopf haupt" name="tat" value="absenden"><?= $h($T('absenden')) ?></button>
+          <button class="knopf haupt" name="tat" value="absenden"><?= $h($T($imDashboard ? 'absendenDashboard' : 'absenden')) ?></button>
         <?php endif; ?>
       </div>
       <p class="beiseite"><?= $h($T('autoOk')) ?></p>

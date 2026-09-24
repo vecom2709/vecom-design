@@ -85,6 +85,12 @@ final class Cron
             'websites'    => static fn() => Monitoring::alle(),
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
             'erinnerungen'=> static fn() => Onboarding::erinnerungen(),
+            /* Der E-Mail-Einstieg (24.09.2026): hoechstens drei Erinnerungen
+               (D3), und nie geoeffnete Adressen verschwinden nach Ablauf (E4). */
+            'zugaenge'    => static function () {
+                require_once __DIR__ . '/Zugang.php';
+                return ['erinnert' => Zugang::erinnern(), 'geloescht' => Zugang::aufraeumen()];
+            },
             /* ZUERST NACHFRAGEN, DANN ABLAUFEN LASSEN
                Der Abgleich steht bewusst vor dem Ablaufenlassen: Wer in der letzten
                Minute vor Ablauf bezahlt hat, soll gebucht werden und nicht

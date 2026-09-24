@@ -529,7 +529,7 @@ if (sek) {
   }
 
   function ctaKnopf() {
-    const u = new URL(sek.dataset.anfrage || '/bedarf.php', location.href);
+    const u = new URL(sek.dataset.anfrage || '/zugang.php', location.href);
     u.searchParams.set('lang', SPRACHE); u.searchParams.set('demo', 'kueche-planer'); u.searchParams.set('plan', codieren(plan));
     return el('a', { class: 'knopf knopf--voll', href: u.pathname + u.search, onclick: () => zaehlen('cta-kueche') }, TEXTE.cta);
   }
@@ -551,7 +551,7 @@ if (sek) {
     zaehlen('kueche-kunde');
     document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: {
       titel: TEXTE.kTitel, zeilen: [`${TEXTE.formen[plan.form]} · ${masse}`, `${TEXTE.kSchraenke(zahl)} · ${TEXTE.frontNamen[plan.front]} · ${TEXTE.platteNamen[plan.platte]} · ${TEXTE.griffNamen[plan.griff]}`, TEXTE.kTermin],
-      termin: { zeiten: ['10:00', '14:00', '17:00'] }, ziel: panel.querySelector('.kp-aktion a')?.getAttribute('href') || '/bedarf.php',
+      termin: { zeiten: ['10:00', '14:00', '17:00'] }, ziel: panel.querySelector('.kp-aktion a')?.getAttribute('href') || '/zugang.php',
     } }));
   }
   async function teilen(e) {

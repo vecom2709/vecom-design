@@ -211,7 +211,38 @@ final class Kundenzugang
               ORDER BY id DESC LIMIT 1", [$kid]), null) : null;
         if ($angebot !== null && $stufe === 'anfrage') { $stufe = 'angebot'; }
 
-        $nr    = array_search($stufe, self::REIHE, true);
+        /* DAS VORHABEN — DER ERSTE SCHRITT IM DASHBOARD (24.09.2026, D1)
+           ------------------------------------------------------------------
+           Wer ueber den E-Mail-Einstieg kommt, hat noch nichts gesagt: keine
+           Anfrage, keine Bestellung, nur sich selbst. Seine Seite beginnt
+           deshalb mit den acht Fragen -- demselben Bedarf wie bisher, nur
+           jetzt ihm gehoerend. Erst das Absenden macht daraus die Anfrage,
+           und ab da laeuft alles wie gehabt.
+
+           Auch fuer den, der frueher nur geschrieben hat: Fuer ihn sagt Uwes
+           Fuehrung „Konfigurator schicken“, und die Einladung fuehrt jetzt
+           hierher. Nicht aber fuer eine Anfrage, die schon ein Paket nennt
+           (etwa das Hosting-Vormerken) -- der bekommt kein Vorhaben
+           untergeschoben, das er nie wollte. Gelesen wird nur -- anlegen tut
+           kunde.php, damit diese Funktion ohne Nebenwirkung bleibt. */
+        $bedarf = null;
+        $mitPaket = $aid !== null && trim((string) self::still(fn() => Db::wert(
+            'SELECT paket_slug FROM anfragen WHERE id = ?', [(int) $aid], ''), '')) !== '';
+        if ($bid === null && !$mitPaket && $kid > 0 && $angebot === null
+            && in_array($stufe, ['anfrage'], true)) {
+            require_once __DIR__ . '/Zugang.php';
+            require_once __DIR__ . '/Bedarf.php';
+            if ((bool) self::still(fn() => Zugang::vorhabenOffen($kid), false)) {
+                $stufe = 'vorhaben';
+                $bedarf = self::still(fn() => Db::one(
+                    "SELECT * FROM bedarf WHERE customer_id = ? AND status = 'offen' AND created_at >= ?
+                      ORDER BY id DESC LIMIT 1",
+                    [$kid, date('Y-m-d H:i:s', time() - Bedarf::GUELTIG_TAGE * 86400)]), null);
+            }
+        }
+
+        // Das Vorhaben teilt sich den ersten Platz der Leiste mit der Anfrage
+        $nr    = array_search($stufe === 'vorhaben' ? 'anfrage' : $stufe, self::REIHE, true);
 
         // Die Adresse der Seite: solange sie nicht online ist, der Entwurf.
         //
@@ -273,6 +304,8 @@ final class Kundenzugang
             'dran'     => $wer,
             // Das offene Angebot, damit die Kundenseite darauf verlinken kann.
             'angebot'  => $angebot !== null ? (array) $angebot : null,
+            // Der offene Bedarf fuer den Schritt „vorhaben“ (sonst null)
+            'bedarf'   => $bedarf !== null ? (array) $bedarf : null,
             'vorschau'      => $vorschau,
             'vorschau_frei' => $vorschauFrei,
             'abnahme_frei'  => $abnahmeFrei,

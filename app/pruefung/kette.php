@@ -6945,7 +6945,7 @@ pruefe('und ausdruecklich anders geht auch',
    statischen, die den Keks lesen. */
 $spWurzel = dirname(__DIR__, 2);
 foreach (['bedarf.php', 'buchen.php', 'hosting.php', 'kunde.php', 'fragebogen.php',
-          'projekt.php', 'vorgang.php', 'angebot.php'] as $spSeite) {
+          'projekt.php', 'vorgang.php', 'angebot.php', 'zugang.php'] as $spSeite) {
     $spQuelle = (string) file_get_contents($spWurzel . '/' . $spSeite);
     pruefe($spSeite . ' waehlt die Sprache an einer Stelle und merkt sie',
         str_contains($spQuelle, 'Sprache::ausAnfrage(') && str_contains($spQuelle, 'Sprache::merken('));
@@ -7027,6 +7027,216 @@ foreach (['it' => 'quanto c', 'de' => 'nach dem Umfang', 'en' => 'on the scope']
         || str_contains((string) file_get_contents($fzWurzel . '/assets/js/i18n-' . $fzSpr . '.js'), 'scope')
         || str_contains((string) file_get_contents($fzWurzel . '/assets/js/i18n-' . $fzSpr . '.js'), 'lavoro, non a calendario'));
 }
+
+
+/* ============================================================================
+   61. Der Einstieg ist eine E-Mail-Adresse (24.09.2026)
+
+   Uwe: „Statt dem Fragebogen ist es besser, dass der Kunde seine E-Mail
+   einträgt … Die Kette darf nicht unterbrochen werden, alles muss sauber
+   funktionieren.“ Geprüft wird deshalb der ganze neue Anfang bis zu der
+   Stelle, an der die alte Kette übernimmt (Abschnitt 56), und dass nichts
+   davon eine Adresse verrät oder einen zweiten Kunden anlegt.
+   ============================================================================ */
+abschnitt('61. Der Einstieg ist eine E-Mail-Adresse');
+
+require_once $wurzel . '/src/Zugang.php';
+require_once $wurzel . '/src/Kundenzugang.php';
+require_once $wurzel . '/src/Bedarf.php';
+require_once $wurzel . '/src/Vorgang.php';
+
+$zgMail = 'einstieg@pruefung.example';
+$zgMails = static fn(string $anlass, string $an): int =>
+    (int) Db::wert('SELECT COUNT(*) FROM mails WHERE anlass = ? AND empfaenger = ?', [$anlass, $an], 0);
+
+/* ---------- Anfordern ---------------------------------------------------- */
+pruefe('eine unbrauchbare Adresse wird abgelehnt',
+    Zugang::anfordern('keine-adresse', 'de')['ok'] === false);
+$zg1 = Zugang::anfordern(' Einstieg@Pruefung.example ', 'de');
+pruefe('eine neue Adresse bekommt einen Zugang', $zg1['ok'] === true && $zg1['art'] === 'neu', json_encode($zg1));
+pruefe('die Willkommensmail wird versucht', $zgMails('zugang', $zgMail) === 1, (string) $zgMails('zugang', $zgMail));
+pruefe('E4: vor dem Öffnen steht niemand in der Kundenliste',
+    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$zgMail], 0) === 0);
+pruefe('E4: und es gibt keine Anfrage',
+    (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE email = ?', [$zgMail], 0) === 0);
+Zugang::anfordern($zgMail, 'de');
+pruefe('zweimal gedrückt: derselbe Zugang, kein zweiter',
+    (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ?', [$zgMail], 0) === 1);
+pruefe('… und dieselbe Mail noch einmal', $zgMails('zugang', $zgMail) === 2);
+
+/* E2: Der Link steht nie auf dem Bildschirm. zugang.php antwortet dem Feld
+   nur mit ok und einem Satz -- der Satz ist für jede Adresse derselbe. */
+$zgQuelle = (string) file_get_contents(dirname(__DIR__, 2) . '/zugang.php');
+pruefe('E2: zugang.php gibt nur „ok“ und einen Satz zurück, nie einen Link',
+    str_contains($zgQuelle, "json_encode(['ok' => \$ergebnis === 'gesendet', 'meldung' => \$T(\$ergebnis)]")
+    && !preg_match('/json_encode\([^;]*(link|token)/i', $zgQuelle));
+pruefe('E2: die Rückmeldung unterscheidet nicht zwischen neu und bekannt',
+    !str_contains($zgQuelle, "'bestand'"));
+
+/* ---------- Öffnen ------------------------------------------------------- */
+pruefe('ein falscher Schlüssel öffnet nichts', Zugang::oeffnen(str_repeat('a', 48))['ok'] === false);
+pruefe('ein kaputter Schlüssel auch nicht', Zugang::oeffnen('../../etc')['ok'] === false);
+$zgToken = (string) Db::wert('SELECT token FROM zugaenge WHERE email = ?', [$zgMail], '');
+$zgO = Zugang::oeffnen($zgToken);
+$zgK = (int) ($zgO['kunde_id'] ?? 0);
+pruefe('beim Öffnen entsteht der Kunde', $zgO['ok'] === true && $zgK > 0 && !empty($zgO['neu']), json_encode($zgO));
+pruefe('der Weg führt ins Dashboard', str_contains((string) ($zgO['link'] ?? ''), 'kunde.php?t='));
+pruefe('die Sprache der Seite hängt am Kunden',
+    (string) Db::wert('SELECT sprache FROM customers WHERE id = ?', [$zgK], '') === 'de');
+pruefe('für das Vorhaben liegt ein Bedarf bereit',
+    (int) Db::wert("SELECT COUNT(*) FROM bedarf WHERE customer_id = ? AND status = 'offen'", [$zgK], 0) === 1);
+$zgO2 = Zugang::oeffnen($zgToken);
+pruefe('ein zweites Öffnen führt einfach hinein',
+    $zgO2['ok'] === true && (int) $zgO2['kunde_id'] === $zgK && empty($zgO2['neu']));
+pruefe('… ohne zweiten Kunden und ohne zweiten Bedarf',
+    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$zgMail], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM bedarf WHERE customer_id = ?", [$zgK], 0) === 1);
+
+/* ---------- Das Dashboard beginnt mit dem Vorhaben (D1) ----------------- */
+$zgKunde = (array) Db::one('SELECT * FROM customers WHERE id = ?', [$zgK]);
+$zgS = Kundenzugang::seite($zgKunde);
+pruefe('D1: der erste Schritt ist das Vorhaben', ($zgS['stufe'] ?? '') === 'vorhaben', (string) ($zgS['stufe'] ?? ''));
+pruefe('… und er ist dran', ($zgS['dran'] ?? '') === 'kunde');
+pruefe('… auf dem ersten Platz der Leiste', (int) ($zgS['stufe_nr'] ?? -1) === 0);
+pruefe('… mit dem Bedarf, zu dem der Knopf führt', !empty($zgS['bedarf']['token']));
+pruefe('die Kundenseite hat den Knopf zum Vorhaben',
+    str_contains((string) file_get_contents(dirname(__DIR__, 2) . '/kunde.php'), "\$stufe === 'vorhaben'"));
+pruefe('D2: ohne Namen kein „Guten Tag ,“', trim((string) $zgKunde['name']) === ''
+    && str_contains((string) file_get_contents(dirname(__DIR__, 2) . '/kunde.php'), "\$T('halloOhne')"));
+
+/* Verfallener Bedarf: Das Dashboard darf nicht ohne Knopf dastehen. */
+Db::run('UPDATE bedarf SET created_at = NOW() - INTERVAL 40 DAY WHERE customer_id = ?', [$zgK]);
+pruefe('ist der Bedarf verfallen, zeigt die Stufe trotzdem das Vorhaben',
+    (Kundenzugang::seite($zgKunde)['stufe'] ?? '') === 'vorhaben');
+$zgB = Zugang::bedarfFuerKunde($zgK, 'de');
+pruefe('… und ein frischer Bedarf entsteht', (int) $zgB['customer_id'] === $zgK && $zgB['status'] === 'offen');
+pruefe('… der die Adresse aus der Akte trägt', (string) $zgB['email'] === $zgMail);
+
+/* ---------- Absenden: ab hier übernimmt die alte Kette ------------------ */
+Bedarf::speichern((int) $zgB['id'], ['zweck' => ['zeigen', 'kontakt'], 'umfang' => 'wenige', 'sprachen' => 2], 3);
+$zgAb = Bedarf::absenden((int) $zgB['id'], ['name' => 'Giulia Einstieg', 'email' => $zgMail,
+    'telefon' => '+39 333 000 0000', 'firma' => 'Trattoria Einstieg', 'sprache' => 'de']);
+pruefe('das Vorhaben lässt sich absenden', $zgAb === true);
+pruefe('daraus entsteht die Anfrage wie bisher',
+    (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE customer_id = ?', [$zgK], 0) === 1);
+pruefe('am selben Kunden, keinem zweiten',
+    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$zgMail], 0) === 1);
+$zgKunde = (array) Db::one('SELECT * FROM customers WHERE id = ?', [$zgK]);
+pruefe('D2: der Name landet in der leeren Akte', (string) $zgKunde['name'] === 'Giulia Einstieg', (string) $zgKunde['name']);
+pruefe('… Telefon und Betrieb ebenso',
+    (string) $zgKunde['phone'] !== '' && (string) $zgKunde['company'] === 'Trattoria Einstieg');
+pruefe('die Eingangsbestätigung geht raus wie bisher', $zgMails('anfrage_eingegangen', $zgMail) === 1);
+$zgS2 = Kundenzugang::seite($zgKunde);
+pruefe('danach ist das Vorhaben erledigt', ($zgS2['stufe'] ?? '') !== 'vorhaben', (string) ($zgS2['stufe'] ?? ''));
+$zgV = Vorgang::laden('a' . (int) Db::wert('SELECT id FROM anfragen WHERE customer_id = ?', [$zgK], 0));
+pruefe('Uwes Führung kennt den nächsten Schritt: erst der Fragebogen',
+    is_array($zgV) && str_contains((string) ($zgV['warum'] ?? '') . json_encode($zgV['schritt'] ?? null, JSON_UNESCAPED_UNICODE), 'Fragebogen'),
+    is_array($zgV) ? (string) ($zgV['warum'] ?? '') : '—');
+
+/* Eine gepflegte Akte wird nie überschrieben */
+Db::run('UPDATE customers SET name = ? WHERE id = ?', ['Giulia Gepflegt', $zgK]);
+require_once $wurzel . '/src/Anfrage.php';
+Anfrage::annehmen(['name' => 'Anders Getippt', 'email' => $zgMail, 'sprache' => 'de']);
+pruefe('eine spätere Anfrage schreibt keinen gepflegten Namen um',
+    (string) Db::wert('SELECT name FROM customers WHERE id = ?', [$zgK], '') === 'Giulia Gepflegt');
+
+/* ---------- Schon Kunde: derselbe Link noch einmal (E2) ----------------- */
+$zgZeilen = (int) Db::wert('SELECT COUNT(*) FROM zugaenge', [], 0);
+$zgBest = Zugang::anfordern($zgMail, 'it');
+pruefe('E2: ein Bestandskunde bekommt seinen Link noch einmal', $zgBest['art'] === 'bestand');
+pruefe('… ohne neuen Zugang', (int) Db::wert('SELECT COUNT(*) FROM zugaenge', [], 0) === $zgZeilen);
+pruefe('… per Mail', $zgMails('zugang_bestand', $zgMail) === 1);
+
+/* ---------- Eine Anfrage mit Paket bekommt kein Vorhaben untergeschoben -- */
+$zgHost = Events::kundeFinden(['name' => 'Nur Hosting', 'email' => 'nur-hosting@pruefung.example']);
+Db::insert('anfragen', ['customer_id' => $zgHost, 'name' => 'Nur Hosting', 'email' => 'nur-hosting@pruefung.example',
+    'sprache' => 'de', 'status' => 'neu', 'paket_slug' => 'hosting']);
+pruefe('wer nur Hosting vorgemerkt hat, sieht kein Vorhaben',
+    (Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$zgHost]))['stufe'] ?? '') !== 'vorhaben');
+/* … wohl aber, wer nur geschrieben hat: Für ihn sagt die Führung „Konfigurator schicken“. */
+$zgFrei = Events::kundeFinden(['name' => 'Nur Geschrieben', 'email' => 'nur-geschrieben@pruefung.example']);
+Db::insert('anfragen', ['customer_id' => $zgFrei, 'name' => 'Nur Geschrieben', 'email' => 'nur-geschrieben@pruefung.example',
+    'sprache' => 'de', 'status' => 'neu', 'nachricht' => 'Ich brauche eine Seite.']);
+pruefe('wer nur geschrieben hat, bekommt das Vorhaben in seinem Dashboard',
+    (Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$zgFrei]))['stufe'] ?? '') === 'vorhaben');
+
+/* ---------- Ablaufen und aufräumen (E4) ---------------------------------- */
+Zugang::anfordern('alt@pruefung.example', 'it');
+Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 9 DAY WHERE email = 'alt@pruefung.example'");
+pruefe('ein nie geöffneter Link läuft ab',
+    (Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'alt@pruefung.example'", [], ''))['grund'] ?? '') === 'abgelaufen');
+pruefe('… und legt dabei keinen Kunden an',
+    (int) Db::wert("SELECT COUNT(*) FROM customers WHERE email = 'alt@pruefung.example'", [], 0) === 0);
+Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 30 DAY WHERE email = ?", [$zgMail]);
+$zgWeg = Zugang::aufraeumen();
+pruefe('aufgeräumt wird nur, was nie geöffnet wurde',
+    $zgWeg >= 1 && (int) Db::wert("SELECT COUNT(*) FROM zugaenge WHERE email = 'alt@pruefung.example'", [], 0) === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ?', [$zgMail], 0) === 1);
+pruefe('ein geöffneter Link führt auch nach Wochen noch hinein', Zugang::oeffnen($zgToken)['ok'] === true);
+
+/* ---------- Erinnern (D3): höchstens drei, dann Ruhe --------------------- */
+Zugang::anfordern('zoegert@pruefung.example', 'it');
+Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 2 DAY WHERE email = 'zoegert@pruefung.example'");
+Zugang::erinnern();
+pruefe('D3: ungeöffnet nach einem Tag eine Erinnerung', $zgMails('zugang_erinnerung', 'zoegert@pruefung.example') === 1);
+Zugang::erinnern();
+pruefe('D3: … und nur eine', $zgMails('zugang_erinnerung', 'zoegert@pruefung.example') === 1);
+
+Zugang::anfordern('liegt@pruefung.example', 'de');
+$zgL = Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'liegt@pruefung.example'", [], ''));
+Db::run("UPDATE zugaenge SET geoeffnet_am = NOW() - INTERVAL 3 DAY WHERE email = 'liegt@pruefung.example'");
+Zugang::erinnern();
+pruefe('D3: Vorhaben offen nach zwei Tagen: erste Erinnerung', $zgMails('vorhaben_erinnerung', 'liegt@pruefung.example') === 1);
+Zugang::erinnern();
+pruefe('D3: die zweite kommt nicht vor dem siebten Tag', $zgMails('vorhaben_erinnerung', 'liegt@pruefung.example') === 1);
+Db::run("UPDATE zugaenge SET geoeffnet_am = NOW() - INTERVAL 8 DAY WHERE email = 'liegt@pruefung.example'");
+Zugang::erinnern(); Zugang::erinnern();
+pruefe('D3: nach sieben Tagen die zweite, danach Ruhe', $zgMails('vorhaben_erinnerung', 'liegt@pruefung.example') === 2);
+
+Zugang::anfordern('fertig@pruefung.example', 'de');
+$zgF = Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'fertig@pruefung.example'", [], ''));
+$zgFB = Zugang::bedarfFuerKunde((int) $zgF['kunde_id'], 'de');
+Bedarf::speichern((int) $zgFB['id'], ['zweck' => ['zeigen']], 1);
+Bedarf::absenden((int) $zgFB['id'], ['name' => 'Schon Fertig', 'email' => 'fertig@pruefung.example', 'sprache' => 'de']);
+Db::run("UPDATE zugaenge SET geoeffnet_am = NOW() - INTERVAL 3 DAY WHERE email = 'fertig@pruefung.example'");
+Zugang::erinnern();
+pruefe('D3: wer sein Vorhaben abgeschickt hat, wird nicht erinnert', $zgMails('vorhaben_erinnerung', 'fertig@pruefung.example') === 0);
+
+/* ---------- Nach einem Anruf (S2) ---------------------------------------- */
+$zgTB = Bedarf::starten('de');
+$zgTL = Zugang::linkNachAnruf('anrufer@pruefung.example', 'de', $zgTB);
+pruefe('S2: eine neue Adresse vom Telefon bekommt einen Zugang', str_contains($zgTL, 'zugang.php?t='), $zgTL);
+$zgTO = Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'anrufer@pruefung.example'", [], ''));
+pruefe('S2: beim Öffnen hängt der am Telefon begonnene Bedarf am Kunden',
+    (int) Db::wert('SELECT customer_id FROM bedarf WHERE id = ?', [(int) $zgTB['id']], 0) === (int) $zgTO['kunde_id']);
+pruefe('S2: und es entsteht kein zweiter Bedarf daneben',
+    (int) Db::wert("SELECT COUNT(*) FROM bedarf WHERE customer_id = ? AND status = 'offen'", [(int) $zgTO['kunde_id']], 0) === 1);
+$zgTB2 = Bedarf::starten('de');
+pruefe('S2: ein Kunde mitten im Auftrag behält den direkten Link',
+    str_contains(Zugang::linkNachAnruf('x@x.example', 'de', $zgTB2, $kundeId), 'bedarf.php?t='));
+
+/* ---------- Alte Wege laufen weiter (S2) --------------------------------- */
+$zgBedarfPhp = (string) file_get_contents(dirname(__DIR__, 2) . '/bedarf.php');
+pruefe('S2: bedarf.php ohne Schlüssel führt zum E-Mail-Einstieg',
+    str_contains($zgBedarfPhp, "header('Location: /zugang.php?lang='"));
+pruefe('S2: ein Empfehlungscode reist mit', str_contains($zgBedarfPhp, "'&e=' . rawurlencode(\$empfehlCode)"));
+pruefe('S2: {konfigurator} in den Vorlagen zeigt auf den Einstieg',
+    str_contains((string) file_get_contents($wurzel . '/src/Vorlage.php'), "'/zugang.php?lang='"));
+
+/* ---------- Texte und Messung (S3, S4) ----------------------------------- */
+foreach (['zugang', 'zugang_bestand', 'zugang_erinnerung', 'vorhaben_erinnerung'] as $zgA) {
+    foreach (['it', 'de', 'en'] as $zgL2) {
+        [$zgBt, $zgTx] = Texte::mail($zgA, $zgL2, ['name' => '', 'link' => 'https://x/y', 'tage' => '7']);
+        pruefe("S3: Mail „{$zgA}“ ({$zgL2}) hat Betreff, Link und keinen offenen Platzhalter",
+            $zgBt !== '' && str_contains($zgTx, 'https://x/y') && !preg_match('/\{[a-z]+\}/', $zgBt . $zgTx));
+    }
+}
+$zgT = Zugang::trichter(90);
+pruefe('S4: der Trichter zählt eingetragen ≥ geöffnet ≥ Vorhaben',
+    $zgT['neu']['eingetragen'] >= $zgT['neu']['geoeffnet'] && $zgT['neu']['geoeffnet'] >= $zgT['neu']['vorhaben']
+    && $zgT['neu']['vorhaben'] >= 1, json_encode($zgT['neu']));
+pruefe('S4: die Verwaltung zeigt ihn', str_contains((string) file_get_contents($wurzel . '/views/bedarfe.php'), 'zugangTrichter'));
+pruefe('der Cronlauf erinnert und räumt auf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Zugang::erinnern()'));
 
 /* ============================================================================
    Aufräumen und Bilanz
