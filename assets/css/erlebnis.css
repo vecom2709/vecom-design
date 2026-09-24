@@ -660,7 +660,11 @@
 /* ========================================================== HAARFARBEN
    24.09.2026. Bildsequenz wie beim Tisch, aber je Farbe ein Satz; die
    Leinwand liegt über dem Poster, der Hinweis verschwindet nach dem ersten Griff. */
-.erlebnis .hf-buehne{cursor:grab; user-select:none; -webkit-user-select:none; background:#141313}
+.erlebnis .hf-buehne{cursor:grab; user-select:none; -webkit-user-select:none; background:#141313; touch-action:pan-y}
+/* Das Posterbild liegt unter der Leinwand und fing das Ziehen ab: Ein <img>
+   startet beim Ziehen den Bild-Drag des Browsers, der Zeiger wird abgebrochen
+   (pointercancel) -- der Kopf drehte sich nie (Probe 24.09.2026). */
+.erlebnis .hf-buehne img{pointer-events:none; -webkit-user-drag:none}
 .erlebnis .hf-buehne:active{cursor:grabbing}
 .erlebnis .hf-buehne:focus-visible{outline:2px solid var(--c-cyan); outline-offset:3px}
 .erlebnis .hf-leinwand{position:absolute; inset:0; width:100%; height:100%; z-index:3; opacity:0; transition:opacity 240ms linear; pointer-events:none}

@@ -44,9 +44,11 @@ ZERLEGEN = {
         'dauer': 2.6, 'breite': 0.35, 'stufen': ['abend', 'servieren', 'dessert'],
         'tablett_stufe': 3, 'tablett_zuerst': True,
         # Nah an den Teller des vorderen Gastes -- sonst passte die Kamera die
-        # abgeraeumten Teile 45 cm ueber dem Tisch mit ein (Probe 24.09.2026)
+        # abgeraeumten Teile 45 cm ueber dem Tisch mit ein (Probe 24.09.2026).
+        # Dessert mit weniger Luft: Sein Fokus schliesst den eigenen Teller
+        # (21 cm) ein, die Pasta nur 11 cm -- gleiche Luft stand doppelt so weit weg.
         'ansichten': {'2': {'zerlegt': 2, 'fokus': '^gang1_0_', 'neig': 0.62, 'luft': 3.2},
-                      '3': {'zerlegt': 3, 'tablett': 1, 'fokus': '^gang2_0_', 'neig': 0.62, 'luft': 3.2}},
+                      '3': {'zerlegt': 3, 'tablett': 1, 'fokus': '^gang2_0_', 'neig': 0.62, 'luft': 1.7}},
         'regeln': [
             {'muster': '^serviette_[01]$', 'weg': [0.0, 0.45, 0.0], 'verschwinden': True, 'start': 0.0, 'stufe': 2},
             {'muster': '^teller_vorspeise_[01]$', 'weg': [0.0, 0.45, 0.0], 'verschwinden': True, 'start': 0.08, 'stufe': 2},
