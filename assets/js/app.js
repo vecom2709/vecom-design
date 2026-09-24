@@ -487,7 +487,7 @@
     /* Die Schleife läuft nur, solange der Ring noch nachzieht -- ein ruhender
        Zeiger kostet keinen einzigen Frame. */
     function ride() {
-      rx += (mxp - rx) * 0.2; ry += (myp - ry) * 0.2;
+      rx += (mxp - rx) * 0.26; ry += (myp - ry) * 0.26;   // wenig Nachzug: ruhig, nicht schwammig
       ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0)';
       if (Math.abs(mxp - rx) + Math.abs(myp - ry) > 0.1) requestAnimationFrame(ride);
       else laeuft = false;

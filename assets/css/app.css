@@ -293,9 +293,11 @@ body[data-frame="gold"] {
   .cursor {
     display: grid; place-items: center;
     opacity: 0; position: fixed; z-index: 130; top: 0; left: 0;
-    width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 999px;
-    border: 1px solid rgba(241, 211, 139, .72);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(0, 0, 0, .12);
+    /* Dezent (Uwe, 24.09.2026: „dezenter, aber edel"): kleiner, feiner,
+       halb durchsichtig -- der Zeiger begleitet, er tritt nicht auf. */
+    width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 999px;
+    border: 1px solid rgba(241, 211, 139, .42);
+    box-shadow: 0 0 0 .5px rgba(0, 0, 0, .22);
     pointer-events: none; will-change: transform;
     transition: width var(--d-move) var(--e-std), height var(--d-move) var(--e-std),
                 margin var(--d-move) var(--e-std), border-radius var(--d-move) var(--e-std),
@@ -304,45 +306,51 @@ body[data-frame="gold"] {
   }
   .cursor-dot {
     display: block; opacity: 0; position: fixed; z-index: 131; top: 0; left: 0;
-    width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
-    background: linear-gradient(135deg, #f7e6ae, #c8963a);
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, .35);
+    width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%;
+    background: #e9cf86;
+    box-shadow: 0 0 0 .5px rgba(0, 0, 0, .4);
     pointer-events: none; will-change: transform;
     transition: opacity var(--d-ui) linear, scale var(--d-move) var(--e-std);
   }
   .cursor__wort {
-    font: 600 10px/1 var(--f-text); letter-spacing: .16em; text-transform: uppercase;
+    font: 600 9px/1 var(--f-text); letter-spacing: .18em; text-transform: uppercase;
     color: #16120b; opacity: 0; transition: opacity var(--d-ui) linear;
   }
   body.cursor-ready .cursor, body.cursor-ready .cursor-dot { opacity: 1; }
 
   /* Link, Knopf: Ring weitet sich, Punkt tritt zurück */
   body.is-hovering .cursor {
-    width: 58px; height: 58px; margin: -29px 0 0 -29px;
-    border-color: rgba(241, 211, 139, .95); background-color: rgba(241, 211, 139, .10);
+    width: 40px; height: 40px; margin: -20px 0 0 -20px;
+    border-color: rgba(241, 211, 139, .7); background-color: rgba(241, 211, 139, .05);
   }
-  body.is-hovering .cursor-dot { scale: .6; }
+  body.is-hovering .cursor-dot { scale: .75; }
   body.cursor--gold .cursor { border-color: rgba(22, 18, 11, .6); background-color: rgba(255, 255, 255, .14); box-shadow: none; }
   body.cursor--gold .cursor-dot { background: #16120b; box-shadow: none; }
 
   /* Textfeld: der Ring wird zur Schreibmarke */
   body.cursor--text .cursor {
-    width: 2px; height: 24px; margin: -12px 0 0 -1px; border-radius: 1px;
-    border-color: transparent; background-color: #f1d38b; box-shadow: 0 0 0 1px rgba(0, 0, 0, .3);
+    width: 1.5px; height: 20px; margin: -10px 0 0 -.75px; border-radius: 1px;
+    border-color: transparent; background-color: rgba(241, 211, 139, .85); box-shadow: none;
   }
   body.cursor--text .cursor-dot { opacity: 0; }
 
   /* Ziehen / Schieben: goldene Scheibe mit Wort */
   body.cursor--wort .cursor {
-    width: 76px; height: 76px; margin: -38px 0 0 -38px;
+    width: 62px; height: 62px; margin: -31px 0 0 -31px;
     border-color: transparent;
     background: linear-gradient(115deg, #b98a31 0%, #f7e6ae 30%, #d6a849 55%, #c49438 100%);
   }
   body.cursor--wort .cursor__wort { opacity: 1; }
   body.cursor--wort .cursor-dot { opacity: 0; }
 
-  body.cursor--druck .cursor { scale: .82; }
+  body.cursor--druck .cursor { scale: .88; }
 }
+
+/* Telefonassistent (STRATO-Widget): Es setzt seine Akzentfarbe als
+   Inline-Stil (--accent: #066ff9) -- ein blauer Kreis auf einer goldenen
+   Seite. Die Variable liest das Widget im eigenen Schattenbaum; ein
+   !important von außen gewinnt gegen den Inline-Stil (gemessen). */
+ai-voicereceptionist { --accent: #c8963e !important; }
 
 /* ---------- 4. Kopfzeile ------------------------------------------------- */
 .header {

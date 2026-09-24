@@ -59,7 +59,7 @@ export function materialien(renderer) {
       salbei: new THREE.MeshPhysicalMaterial({ color: 0x6b7a6b, roughness: 0.62, clearcoat: 0.15, clearcoatRoughness: 0.5 }),
       weiss: new THREE.MeshPhysicalMaterial({ color: 0xe6e4df, roughness: 0.42, clearcoat: 0.2, clearcoatRoughness: 0.4 }),
       nussbaum: new THREE.MeshPhysicalMaterial({ map: K('nussbaum-farbe.webp', true, 0.4), normalMap: K('nussbaum-normal.webp', false, 0.4), normalScale: new THREE.Vector2(0.2, 0.2), roughness: 0.48 }),
-      graphit: new THREE.MeshPhysicalMaterial({ color: 0x35373a, roughness: 0.5, clearcoat: 0.15, clearcoatRoughness: 0.5 }),
+      graphit: new THREE.MeshPhysicalMaterial({ color: 0x393836, roughness: 0.5, clearcoat: 0.15, clearcoatRoughness: 0.5 }),
     },
     platte: {
       eiche: new THREE.MeshPhysicalMaterial({ map: K('eiche-farbe.webp', true, 2.4), normalMap: K('eiche-normal.webp', false, 2.4), normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.5 }),
@@ -69,26 +69,26 @@ export function materialien(renderer) {
     griff: {
       messing: new THREE.MeshPhysicalMaterial({ color: 0xe1b36c, metalness: 1, roughness: 0.3 }),
       edelstahl: new THREE.MeshPhysicalMaterial({ color: 0xc9c9c6, metalness: 1, roughness: 0.26 }),
-      schwarz: new THREE.MeshPhysicalMaterial({ color: 0x151516, metalness: 0, roughness: 0.45 }),
-      grifflos: new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: 0.6 }),
+      schwarz: new THREE.MeshPhysicalMaterial({ color: 0x161615, metalness: 0, roughness: 0.45 }),
+      grifflos: new THREE.MeshPhysicalMaterial({ color: 0x0d0d0c, roughness: 0.6 }),
     },
     korpus: new THREE.MeshStandardMaterial({ color: 0xdad9d5, roughness: 0.5 }),
-    zarge: new THREE.MeshStandardMaterial({ color: 0x3a3c40, metalness: 0.6, roughness: 0.35 }),
+    zarge: new THREE.MeshStandardMaterial({ color: 0x3e3d3c, metalness: 0.6, roughness: 0.35 }),
     sockel: new THREE.MeshStandardMaterial({ color: 0x1a1a1b, roughness: 0.6 }),
     edelstahl: new THREE.MeshPhysicalMaterial({ color: 0xbfbfbc, metalness: 1, roughness: 0.22 }),
-    glasSchwarz: new THREE.MeshPhysicalMaterial({ color: 0x050506, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03 }),
+    glasSchwarz: new THREE.MeshPhysicalMaterial({ color: 0x060605, roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03 }),
     kochfeld: new THREE.MeshPhysicalMaterial({ map: K('kochfeld.webp', true, 1), roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02 }),
     // Boden: Feinsteinzeug 60 x 60 mit Fuge, gezeichnet statt geladen. Die
     // Keramikkarte der Platte als Boden wirkte fleckig und viel zu dunkel.
     boden: new THREE.MeshStandardMaterial({ map: fliesen(an), roughness: 0.55 }),
     wand: new THREE.MeshStandardMaterial({ color: 0xebe7e0, roughness: 0.92 }),
     led: new THREE.MeshStandardMaterial({ color: 0xfff4e2, emissive: 0xfff1dc, emissiveIntensity: 2.2 }),
-    auswahl: new THREE.MeshBasicMaterial({ color: 0x1fe8ff, transparent: true, opacity: 0.22, depthWrite: false }),
+    auswahl: new THREE.MeshBasicMaterial({ color: 0xf1d38b, transparent: true, opacity: 0.22, depthWrite: false }),
     zuviel: new THREE.MeshBasicMaterial({ color: 0xff4a4a, transparent: true, opacity: 0.28, depthWrite: false }),
     porzellan: new THREE.MeshPhysicalMaterial({ color: 0xf2f1ee, roughness: 0.08, clearcoat: 0.5 }),
     glasKlar: new THREE.MeshPhysicalMaterial({ color: 0xe8eeee, roughness: 0.05, transmission: 0.85, thickness: 0.004, ior: 1.5 }),
     einsatz: new THREE.MeshStandardMaterial({ color: 0xb58c62, roughness: 0.55 }),
-    schirm: new THREE.MeshPhysicalMaterial({ color: 0x1d1e20, roughness: 0.4, side: THREE.DoubleSide }),
+    schirm: new THREE.MeshPhysicalMaterial({ color: 0x1f1f1e, roughness: 0.4, side: THREE.DoubleSide }),
     birne: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffd9a0, emissiveIntensity: 6 }),
   };
   m.kochfeld.map.repeat.set(1, 1);
@@ -154,8 +154,8 @@ export async function starten(buehne, plan, mitteilen) {
   renderer.domElement.setAttribute('aria-label', plan.texte?.leinwand || 'Küche in 3D');
   const szene = new THREE.Scene();
   // Der Boden läuft im Dunst aus, statt an einer harten Kante im Schwarz zu enden
-  szene.background = new THREE.Color(0x14161a);
-  szene.fog = new THREE.Fog(0x14161a, 7.5, 15);
+  szene.background = new THREE.Color(0x181716);
+  szene.fog = new THREE.Fog(0x181716, 7.5, 15);
   const pm = new THREE.PMREMGenerator(renderer);
   szene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
   szene.environmentIntensity = 0.55;
@@ -166,7 +166,7 @@ export async function starten(buehne, plan, mitteilen) {
   sonne.castShadow = true; sonne.shadow.mapSize.set(2048, 2048); sonne.shadow.bias = -0.0004; sonne.shadow.normalBias = 0.02;
   sonne.shadow.radius = 5;
   szene.add(sonne, sonne.target);
-  szene.add(new THREE.HemisphereLight(0xf2f4f8, 0x6b645c, 0.55));
+  szene.add(new THREE.HemisphereLight(0xf8f6f2, 0x6b645c, 0.55));
 
   const kamera = new THREE.PerspectiveCamera(38, 16 / 9, 0.05, 60);
   const oben = new THREE.OrthographicCamera(-4, 4, 3, -3, 0.1, 30);

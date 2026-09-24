@@ -46,7 +46,7 @@ export async function webxrStarten(quelle, texte) {
   szene.add(new THREE.HemisphereLight(0xffffff, 0x8a8078, 1.6));
   const sonne = new THREE.DirectionalLight(0xffffff, 1.4); sonne.position.set(1, 3, 2); szene.add(sonne);
   szene.add(obj);
-  const ring = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.15, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x1fe8ff }));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.15, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xf1d38b }));
   ring.matrixAutoUpdate = false; ring.visible = false; szene.add(ring);
   const kam = new THREE.PerspectiveCamera();
   const r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
