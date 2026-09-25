@@ -7806,6 +7806,168 @@ pruefe('C4: die Zuordnung kennt nur Branchen, die es im Fragebogen gibt',
     $c4q[1] !== [] && array_diff($c4q[1], $c4Optionen) === []);
 
 /* ============================================================================
+   69. Automatisch abbuchen (Phase 2) -- mit nachgebautem Stripe, ohne Netz
+   ============================================================================ */
+abschnitt('69. Automatisch abbuchen');
+require_once $wurzel . '/src/Abbuchung.php';
+require_once $wurzel . '/src/Mahnung.php';
+require_once $wurzel . '/src/Zahlung/Anbieter.php';
+require_once $wurzel . '/src/Zahlung/Stripe.php';
+
+$abS = new class {
+    public string $kundeSitzung = 'cus_T1';
+    public string $antwort = 'bezahlt';
+    public int $abgebucht = 0;
+    public array $geloest = [];
+    public int $anlagen = 0;
+    public function bereit(): bool { return true; }
+    public function kunde(array $k): string { $this->anlagen++; return 'cus_T1'; }
+    public function einrichtungsseite(string $sk, int $abo, string $zurueck, string $abbruch, string $sp): string {
+        return 'https://checkout.stripe.test/setup?abo=' . $abo . '&zurueck=' . rawurlencode($zurueck);
+    }
+    public function einrichtungLesen(string $s): array {
+        return ['fertig' => true, 'abo_id' => (int) ($GLOBALS['abAbo'] ?? 0), 'kunde' => $this->kundeSitzung,
+                'zahlmittel' => $s === 'cs_neu' ? 'pm_2' : 'pm_1', 'art' => 'card', 'text' => 'Visa •••• 4242'];
+    }
+    public function abbuchen(array $z, string $sk, string $pm): array {
+        $this->abgebucht++;
+        return ['status' => $this->antwort, 'vorgang' => 'pi_T' . $z['id'], 'grund' => $this->antwort === 'abgelehnt' ? 'Karte abgelehnt' : '',
+                'betrag' => (int) $z['amount_cents'], 'waehrung' => strtoupper((string) $z['currency'])];
+    }
+    public function zahlmittelLoesen(string $pm): void { $this->geloest[] = $pm; }
+};
+
+$abK = Events::kundeFinden(['name' => 'Abbuchung Probe', 'email' => 'abbuchung@pruefung.example', 'sprache' => 'de']);
+$abAbo = Abo::anlegen($abK, ['paket_slug' => 'betreuung-plus', 'zahlart' => 'karte']);
+$GLOBALS['abAbo'] = $abAbo;
+$abFremd = Events::kundeFinden(['name' => 'Fremd Probe', 'email' => 'fremd-abbuchung@pruefung.example']);
+
+$abUrl = Abbuchung::einrichten($abAbo, $abK, 'https://vecom-design.it/kunde.php?t=x', 'de', $abS);
+pruefe('Phase 2: Hinterlegen führt zu Stripe und merkt sich die Stripe-Kundennummer',
+    str_starts_with($abUrl, 'https://checkout.stripe.test/setup')
+    && Db::wert('SELECT stripe_kunde FROM customers WHERE id = ?', [$abK], '') === 'cus_T1');
+$abFehler = '';
+try { Abbuchung::einrichten($abAbo, $abFremd, 'x', 'de', $abS); } catch (Throwable $e) { $abFehler = $e->getMessage(); }
+pruefe('Phase 2: für einen fremden Vertrag gibt es keine Seite', $abFehler !== '');
+
+pruefe('Phase 2: der Rückweg eines anderen Kunden hängt nichts an diesen Vertrag',
+    Abbuchung::abschliessen('cs_probe', $abFremd, 'de', $abS) === false
+    && Db::one('SELECT zahlmittel_id FROM abos WHERE id = ?', [$abAbo])['zahlmittel_id'] === null);
+$abS->kundeSitzung = 'cus_ANDERER';
+pruefe('Phase 2: eine Sitzung eines anderen Stripe-Kunden wird abgewiesen',
+    Abbuchung::abschliessen('cs_probe', $abK, 'de', $abS) === false);
+$abS->kundeSitzung = 'cus_T1';
+pruefe('Phase 2: nicht jede Zeichenkette wird bei Stripe nachgefragt', Abbuchung::abschliessen('../x', $abK, 'de', $abS) === false);
+$abOk = Abbuchung::abschliessen('cs_probe', $abK, 'de', $abS);
+$abZ = Db::all("SELECT * FROM zustimmungen WHERE customer_id = ? AND art = 'abbuchung'", [$abK]);
+pruefe('Phase 2: das Zahlungsmittel steht am Vertrag, die Zustimmung mit Wortlaut, Betrag und Vorlauf',
+    $abOk && Db::wert('SELECT zahlmittel_text FROM abos WHERE id = ?', [$abAbo], '') === 'Visa •••• 4242'
+    && count($abZ) === 1 && str_contains((string) $abZ[0]['text'], '69,00') && str_contains((string) $abZ[0]['text'], '2 Tage')
+    && (int) $abZ[0]['bezug_id'] === $abAbo);
+Abbuchung::abschliessen('cs_probe', null, 'it', $abS);   // der Webhook kommt hinterher
+pruefe('Phase 2: Rückweg und Webhook -- einmal festgehalten, nicht zweimal',
+    (int) Db::wert("SELECT COUNT(*) FROM zustimmungen WHERE customer_id = ? AND art = 'abbuchung'", [$abK], 0) === 1);
+
+/* Rate anlegen und ankündigen. Die Prüfkette hat keinen Mailversand; der
+   nachgebaute trägt die Mail als gesendet ein wie der echte. */
+$abPost = static function (string $anlass, string $an, string $b, string $t, array $bezug): bool {
+    Db::insert('mails', ['anlass' => $anlass, 'empfaenger' => $an, 'betreff' => $b, 'status' => 'gesendet',
+        'customer_id' => $bezug['customer_id'] ?? null, 'payment_id' => $bezug['payment_id'] ?? null]);
+    return true;
+};
+$abR0 = Abo::abrechnen($abAbo, '2027-06');
+pruefe('Phase 2: kommt die Ankündigung nicht an, wird die Rate nicht zur Abbuchung vorgemerkt',
+    Abbuchung::ankuendigen($abR0, static fn() => false) === 'versand_fehler'
+    && Db::one('SELECT method FROM payments WHERE id = ?', [$abR0])['method'] === null);
+Db::run("UPDATE payments SET status = 'bezahlt' WHERE id = ?", [$abR0]);   // aus dem Weg
+$abR1 = Abo::abrechnen($abAbo, '2026-10');
+$abWie = Abbuchung::ankuendigen($abR1, $abPost);
+$abP = Db::one('SELECT * FROM payments WHERE id = ?', [$abR1]);
+pruefe('Phase 2: statt Zahlungslink eine Ankündigung, fällig in zwei Tagen',
+    $abWie === 'raus' && $abP['method'] === 'abbuchung'
+    && $abP['faellig_am'] === date('Y-m-d', strtotime('+2 days'))
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'abbuchung_angekuendigt' AND payment_id = ?", [$abR1], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'betreuung_faellig' AND payment_id = ?", [$abR1], 0) === 0);
+pruefe('Phase 2: zweimal ankündigen schickt nicht zweimal', Abbuchung::ankuendigen($abR1, $abPost) === 'nicht_dran');
+Abbuchung::faellige($abS);
+pruefe('Phase 2: vor dem angekündigten Tag wird nichts abgebucht', $abS->abgebucht === 0);
+
+Db::run('UPDATE payments SET faellig_am = CURDATE() WHERE id = ?', [$abR1]);
+$abN = Abbuchung::faellige($abS);
+pruefe('Phase 2: am Tag wird abgebucht und gebucht (Karte)',
+    $abN['bezahlt'] === 1 && Db::wert('SELECT status FROM payments WHERE id = ?', [$abR1], '') === 'bezahlt'
+    && Db::wert('SELECT provider_ref FROM payments WHERE id = ?', [$abR1], '') === 'pi_T' . $abR1);
+Abbuchung::faellige($abS);
+pruefe('Phase 2: eine bezahlte Rate wird nicht noch einmal abgebucht', $abS->abgebucht === 1);
+
+/* Lastschrift unterwegs: nicht mahnen */
+$abR2 = Abo::abrechnen($abAbo, '2026-11');
+Abbuchung::ankuendigen($abR2, $abPost);
+Db::run('UPDATE payments SET faellig_am = CURDATE() WHERE id = ?', [$abR2]);
+$abS->antwort = 'laeuft';
+Abbuchung::faellige($abS);
+Db::run('UPDATE payments SET faellig_am = ? WHERE id = ?', [date('Y-m-d', strtotime('-20 days')), $abR2]);
+$abMahn = array_column(Mahnung::faellige(1), 'id');
+pruefe('Phase 2: eine laufende Lastschrift wartet auf den Abgleich und wird nicht gemahnt',
+    Db::wert('SELECT status FROM payments WHERE id = ?', [$abR2], '') === 'in_bearbeitung'
+    && Db::wert('SELECT provider_sitzung FROM payments WHERE id = ?', [$abR2], '') === 'pi_T' . $abR2
+    && !in_array($abR2, array_map('intval', $abMahn), true));
+
+/* Abgelehnt: gewohnter Weg */
+$abR3 = Abo::abrechnen($abAbo, '2026-12');
+Abbuchung::ankuendigen($abR3, $abPost);
+Db::run('UPDATE payments SET faellig_am = CURDATE() WHERE id = ?', [$abR3]);
+$abS->antwort = 'abgelehnt';
+$abVorher = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_fehler'", [], 0);
+Abbuchung::faellige($abS);
+Abbuchung::gescheitert($abR3, 'noch einmal gemeldet (Webhook)');
+$abP3 = Db::one('SELECT * FROM payments WHERE id = ?', [$abR3]);
+pruefe('Phase 2: abgelehnt -- Uwe erfährt es einmal, der Kunde bekommt den gewohnten Zahlungslink',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'zahlung_fehler'", [], 0) === $abVorher + 1
+    && $abP3['method'] === null && $abP3['status'] !== 'bezahlt'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'betreuung_faellig' AND payment_id = ?", [$abR3], 0) === 1);
+pruefe('Phase 2: danach ist sie eine normale Rate -- mahnbar wie jede andere',
+    in_array($abR3, array_map('intval', array_column(Mahnung::faellige(1), 'id')), true)
+    || $abP3['faellig_am'] > date('Y-m-d', strtotime('-3 days')));
+
+/* Der Cron-Weg: neue Rate mit Zahlungsmittel wird angekündigt */
+Db::run('UPDATE abos SET naechste_abrechnung = CURDATE() WHERE id = ?', [$abAbo]);
+Abo::abrechnungenAnlegen();
+$abR4 = (int) Db::wert("SELECT id FROM payments WHERE abo_id = ? AND abrechnungsmonat = ?", [$abAbo, date('Y-m')], 0);
+pruefe('Phase 2: der Monatslauf versucht die Ankündigung -- und schickt den Link, wenn sie nicht ankam',
+    $abR4 > 0 && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'abbuchung_angekuendigt' AND payment_id = ?", [$abR4], 0) === 1
+    && Db::one('SELECT method FROM payments WHERE id = ?', [$abR4])['method'] === null
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'betreuung_faellig' AND payment_id = ?", [$abR4], 0) === 1);
+$abR5 = Abo::abrechnen($abAbo, '2027-02');
+Abbuchung::ankuendigen($abR5, $abPost);
+
+/* Wechsel und Ende */
+Abbuchung::abschliessen('cs_neu', $abK, 'de', $abS);
+pruefe('Phase 2: ein neues Zahlungsmittel ersetzt das alte, und das alte wird bei Stripe gelöst',
+    Db::wert('SELECT zahlmittel_id FROM abos WHERE id = ?', [$abAbo], '') === 'pm_2' && in_array('pm_1', $abS->geloest, true));
+pruefe('Phase 2: nur der eigene Vertrag lässt sich beenden', Abbuchung::beenden($abAbo, $abFremd, $abS) === false);
+pruefe('Phase 2: beenden -- zurück auf den Link, die angekündigte Rate gleich mit',
+    Abbuchung::beenden($abAbo, $abK, $abS)
+    && Db::one('SELECT zahlmittel_id FROM abos WHERE id = ?', [$abAbo])['zahlmittel_id'] === null
+    && Db::one('SELECT method FROM payments WHERE id = ?', [$abR5])['method'] === null
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'betreuung_faellig' AND payment_id = ?", [$abR5], 0) === 1);
+
+$abWh = (string) file_get_contents($wurzel . '/../stripe-webhook.php');
+pruefe('Phase 2: der Webhook kennt Hinterlegen, Abbuchung und Scheitern -- Bezahlseiten buchen nicht doppelt',
+    str_contains($abWh, "(\$o['mode'] ?? '') === 'setup'") && str_contains($abWh, "case 'payment_intent.succeeded':")
+    && str_contains($abWh, "(\$o['metadata']['art'] ?? '') === 'abbuchung'") && str_contains($abWh, 'Abbuchung::gescheitert('));
+pruefe('Phase 2: Karte und Konto erscheinen nur als Marke und letzte vier Ziffern',
+    StripeAnbieter::zahlmittelText(['type' => 'card', 'card' => ['brand' => 'visa', 'last4' => '4242']]) === 'Visa •••• 4242'
+    && StripeAnbieter::zahlmittelText(['type' => 'sepa_debit', 'sepa_debit' => ['last4' => '3000']]) === 'SEPA •••• 3000');
+$abT = true;
+foreach (['it', 'de', 'en'] as $abSp) {
+    [$abB, $abX] = Texte::mail('abbuchung_angekuendigt', $abSp, ['name' => 'X', 'monat' => 'M', 'betrag' => 'B', 'datum' => 'D', 'zahlmittel' => 'Z', 'seite' => 'S']);
+    if (preg_match('~\{[a-z]+\}~', $abB . $abX) || !str_contains($abX, 'Z')) { $abT = false; }
+    if (preg_match('~\{(?!paket\}|betrag\}|tage\})[a-z]+\}~', Texte::h(Texte::KUNDE['abbuchungZustimmung'], $abSp))) { $abT = false; }
+}
+pruefe('Phase 2: Ankündigung und Zustimmung dreisprachig, ohne offene Platzhalter', $abT);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

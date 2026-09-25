@@ -113,6 +113,11 @@ final class Mahnung
                     AND z.faellig_am <= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                     AND COALESCE(o.status, 'aktiv') <> 'storniert'
                     AND c.anonym_am IS NULL
+                    /* Eine Rate in automatischer Abbuchung (Phase 2) ist nicht
+                       ueberfaellig, sondern unterwegs: Eine SEPA-Lastschrift
+                       braucht bis zu einer Woche. Scheitert sie, verliert sie
+                       die Markierung und kommt ganz normal hierher. */
+                    AND COALESCE(z.method, '') <> 'abbuchung'
                   ORDER BY z.faellig_am, z.id", [$nach]);
         } catch (Throwable $e) {
             return [];

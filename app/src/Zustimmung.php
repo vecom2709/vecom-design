@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 final class Zustimmung
 {
-    public const ARTEN = ['hosting', 'domain_transfer', 'domain_neu', 'mail', 'migration'];
+    public const ARTEN = ['hosting', 'domain_transfer', 'domain_neu', 'mail', 'migration', 'abbuchung'];
 
     public static function festhalten(string $art, int $kundeId, string $text, string $sprache,
                                       string $fassung, ?int $projektId = null, ?int $bezugId = null): int

@@ -86,6 +86,16 @@ try {
 
     switch ($ereignis['typ']) {
         case 'checkout.session.completed':
+            /* Phase 2: Die Seite zum Hinterlegen von Karte/Lastschrift hat
+               keinen Betrag und keine Rate -- sie haengt ein Zahlungsmittel
+               an einen Vertrag. Meist war der Rueckweg schneller; dann ist
+               dies ein zweites, folgenloses Ja. */
+            if (($o['mode'] ?? '') === 'setup') {
+                require_once __DIR__ . '/app/src/Abbuchung.php';
+                Abbuchung::abschliessen((string) ($o['id'] ?? ''), null, 'it', $stripe);
+                break;
+            }
+            // weiter wie eine bezahlte Seite
         case 'checkout.session.async_payment_succeeded':
             $zahlungId = (int) ($o['metadata']['zahlung_id'] ?? $o['client_reference_id'] ?? 0);
             if ($zahlungId <= 0) { throw new RuntimeException('Keine Zahlungsnummer im Ereignis.'); }
@@ -101,10 +111,22 @@ try {
                 (int) ($o['amount_total'] ?? -1), (string) ($o['currency'] ?? ''));
             break;
 
+        case 'payment_intent.succeeded':
+            /* Nur unsere Abbuchungen: Bezahlseiten buchen ueber
+               checkout.session.completed, sonst stuende alles doppelt an. */
+            if (($o['metadata']['art'] ?? '') === 'abbuchung' && (int) ($o['metadata']['zahlung_id'] ?? 0) > 0) {
+                Events::zahlungVonStripe((int) $o['metadata']['zahlung_id'], (string) ($o['id'] ?? ''),
+                    (int) ($o['amount_received'] ?? -1), (string) ($o['currency'] ?? ''));
+            }
+            break;
+
         case 'checkout.session.async_payment_failed':
         case 'payment_intent.payment_failed':
             $zahlungId = (int) ($o['metadata']['zahlung_id'] ?? 0);
-            if ($zahlungId > 0) {
+            if ($zahlungId > 0 && ($o['metadata']['art'] ?? '') === 'abbuchung') {
+                require_once __DIR__ . '/app/src/Abbuchung.php';
+                Abbuchung::gescheitert($zahlungId, (string) ($o['last_payment_error']['message'] ?? 'von Stripe abgelehnt'));
+            } elseif ($zahlungId > 0) {
                 Events::zahlungFehlgeschlagen($zahlungId,
                     (string) ($o['last_payment_error']['message'] ?? 'von Stripe abgelehnt'));
             }

@@ -308,6 +308,16 @@ final class Abo
                                 'SELECT customer_id FROM abos WHERE id = ?', [(int) $a['id']], 0), 0);
                             $ziel = $kid > 0
                                 ? (string) self::still(fn() => Kundenzugang::linkFuer($kid), '') : '';
+                            /* Phase 2: Mit hinterlegtem Zahlungsmittel wird
+                               angekuendigt und spaeter abgebucht, statt einen
+                               Link zu schicken. */
+                            $mittel = (string) self::still(fn() => Db::wert(
+                                'SELECT zahlmittel_id FROM abos WHERE id = ?', [(int) $a['id']], ''), '');
+                            if ($mittel !== '') {
+                                require_once __DIR__ . '/Abbuchung.php';
+                                if (Abbuchung::ankuendigen($rate) === 'raus') { return; }
+                                // Ankuendigung kam nicht an: dann der Link, nie eine stille Abbuchung.
+                            }
                             self::anfordern($rate, $ziel !== '' ? $ziel : null);
                         });
                     }

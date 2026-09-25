@@ -104,6 +104,13 @@ final class Cron
                erst auf "ausstehend" zurueckfallen. */
             'zahlabgleich'=> static fn() => self::zahlungenAbgleichen(),
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
+            /* Phase 2: angekuendigte Raten am Tag abbuchen. Nach dem Abgleich,
+               damit eine gerade eingegangene Lastschrift zaehlt, bevor
+               irgendetwas neu versucht wird. */
+            'abbuchungen' => static function () {
+                require_once __DIR__ . '/Abbuchung.php';
+                return Abbuchung::faellige();
+            },
             /* Die erste Zahlungserinnerung, drei Tage nach Faelligkeit, mit
                frischem Link. Nur diese eine Stufe laeuft von selbst — die
                beiden schaerferen stehen auf "Heute" und warten auf Uwe. */
@@ -443,6 +450,12 @@ final class Cron
                    vergeblich ab. */
                 if ($s['abgelaufen']) {
                     Db::update('payments', (int) $z['id'], ['provider_sitzung' => null]);
+                    /* Eine Lastschrift, die zurueckging: Das ist ein Scheitern,
+                       kein Verfallen -- der Kunde bekommt den Zahlungslink. */
+                    if (str_starts_with((string) $z['provider_sitzung'], 'pi_')) {
+                        require_once __DIR__ . '/Abbuchung.php';
+                        Abbuchung::gescheitert((int) $z['id'], (string) $s['status']);
+                    }
                 }
             } catch (Throwable $e) {
                 // Eine Rate, die klemmt, darf die anderen nicht aufhalten.

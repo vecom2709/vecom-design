@@ -23,7 +23,10 @@
       <td><a href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'])) ?>"><?= Fmt::h($a['firma'] ?: $a['kunde']) ?></a></td>
       <td><?= Fmt::h((string) $a['paket_name']) ?></td>
       <td><?= Fmt::h(Fmt::geld((int) $a['betrag_cents'], (string) $a['currency'])) ?></td>
-      <td><?= Fmt::h(Abo::ZAHLARTEN[$a['zahlart']] ?? (string) $a['zahlart']) ?></td>
+      <?php /* Phase 2: Was hinterlegt ist, zaehlt mehr als die Zahlart beim Anlegen. */ ?>
+      <td><?= (string) ($a['zahlmittel_text'] ?? '') !== ''
+            ? '<span title="Automatische Abbuchung seit ' . Fmt::h(Fmt::datum((string) $a['zahlmittel_am'])) . '">↻ ' . Fmt::h((string) $a['zahlmittel_text']) . '</span>'
+            : Fmt::h(Abo::ZAHLARTEN[$a['zahlart']] ?? (string) $a['zahlart']) ?></td>
       <td><?= Fmt::h(Fmt::datum((string) $a['beginn'])) ?></td>
       <td><?= Fmt::h(Fmt::datum((string) $a['mindestlaufzeit_bis'])) ?></td>
       <td><span class="marke2 <?= Fmt::h($ton) ?>"><?= Fmt::h($wort) ?></span>

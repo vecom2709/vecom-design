@@ -182,6 +182,12 @@ final class StripeAnbieter implements Anbieter
             throw new RuntimeException('Für Stripe fehlt der geheime Schlüssel in app/config.local.php.');
         }
 
+        /* Eine Abbuchung (Phase 2) hat keine Bezahlseite, sondern einen
+           Zahlungsvorgang (pi_...). Der Abgleich fragt beides hier -- eine
+           Lastschrift braucht Tage, und der Webhook dafuer ist nicht
+           eingetragen. */
+        if (str_starts_with($sitzungId, 'pi_')) { return $this->vorgangLesen($sitzungId); }
+
         $a = $this->anfrage('GET', '/v1/checkout/sessions/' . rawurlencode($sitzungId), []);
 
         if (isset($a['error'])) {
@@ -203,6 +209,147 @@ final class StripeAnbieter implements Anbieter
             'betrag'     => (int) ($a['amount_total'] ?? 0),
             'waehrung'   => strtoupper((string) ($a['currency'] ?? '')),
         ];
+    }
+
+    /* ================================================================== */
+    /*  Abbuchen (Phase 2, 25.09.2026)                                    */
+    /*                                                                    */
+    /*  Kein Stripe-Abonnement: Die Fristen rechnet Abo.php. Hier wird nur */
+    /*  ein Zahlungsmittel hinterlegt und je Rate einmal abgebucht.        */
+    /* ================================================================== */
+
+    /** Die Stripe-Kundennummer -- einmal angelegt, danach wiederverwendet. */
+    public function kunde(array $kunde): string
+    {
+        $da = trim((string) ($kunde['stripe_kunde'] ?? ''));
+        if ($da !== '') { return $da; }
+        $a = $this->anfrage('POST', '/v1/customers', [
+            'email' => (string) $kunde['email'],
+            'name'  => (string) (($kunde['company'] ?? '') ?: $kunde['name']),
+            'metadata[kunde_id]' => (string) $kunde['id'],
+            'preferred_locales[0]' => (string) ($kunde['sprache'] ?? 'it'),
+        ], 'kunde-' . (int) $kunde['id']);
+        if (empty($a['id'])) {
+            throw new RuntimeException('Stripe hat keinen Kunden angelegt: ' . (string) ($a['error']['message'] ?? '?'));
+        }
+        return (string) $a['id'];
+    }
+
+    /**
+     * Die Stripe-Seite, auf der der Kunde Karte oder Lastschrift hinterlegt
+     * (Checkout im Modus "setup": nichts wird bezahlt). Welche Zahlarten
+     * erscheinen, bestimmt das Stripe-Konto -- deshalb hier keine Liste,
+     * nur die Waehrung.
+     */
+    public function einrichtungsseite(string $stripeKunde, int $aboId, string $zurueck, string $abbruch, string $sprache): string
+    {
+        $a = $this->anfrage('POST', '/v1/checkout/sessions', [
+            'mode'        => 'setup',
+            'currency'    => 'eur',
+            'customer'    => $stripeKunde,
+            'client_reference_id' => 'abo-' . $aboId,
+            'metadata[abo_id]'    => (string) $aboId,
+            'setup_intent_data[metadata][abo_id]' => (string) $aboId,
+            'success_url' => $zurueck . (str_contains($zurueck, '?') ? '&' : '?') . 'einrichtung={CHECKOUT_SESSION_ID}',
+            'cancel_url'  => $abbruch,
+            'locale'      => in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'auto',
+        ]);
+        if (empty($a['url'])) {
+            throw new RuntimeException('Stripe hat keine Seite geliefert: ' . (string) ($a['error']['message'] ?? '?'));
+        }
+        return (string) $a['url'];
+    }
+
+    /**
+     * Was auf der Einrichtungsseite hinterlegt wurde.
+     *
+     * @return array{fertig:bool, abo_id:int, kunde:string, zahlmittel:string, art:string, text:string}
+     */
+    public function einrichtungLesen(string $sitzungId): array
+    {
+        $a = $this->anfrage('GET', '/v1/checkout/sessions/' . rawurlencode($sitzungId),
+            ['expand' => ['setup_intent.payment_method']]);
+        if (isset($a['error'])) { throw new RuntimeException('Stripe: ' . (string) ($a['error']['message'] ?? '?')); }
+        $si = is_array($a['setup_intent'] ?? null) ? $a['setup_intent'] : [];
+        $pm = is_array($si['payment_method'] ?? null) ? $si['payment_method'] : [];
+        return [
+            'fertig'     => ($a['mode'] ?? '') === 'setup' && ($a['status'] ?? '') === 'complete'
+                            && ($si['status'] ?? '') === 'succeeded' && !empty($pm['id']),
+            'abo_id'     => (int) ($a['metadata']['abo_id'] ?? 0),
+            'kunde'      => (string) ($a['customer'] ?? ''),
+            'zahlmittel' => (string) ($pm['id'] ?? ''),
+            'art'        => (string) ($pm['type'] ?? ''),
+            'text'       => self::zahlmittelText($pm),
+        ];
+    }
+
+    /** "Visa •••• 4242" / "SEPA •••• 3000" -- mehr zeigen wir nie. */
+    public static function zahlmittelText(array $pm): string
+    {
+        if (($pm['type'] ?? '') === 'card') {
+            return ucfirst((string) ($pm['card']['brand'] ?? 'Karte')) . ' •••• ' . (string) ($pm['card']['last4'] ?? '');
+        }
+        if (($pm['type'] ?? '') === 'sepa_debit') {
+            return 'SEPA •••• ' . (string) ($pm['sepa_debit']['last4'] ?? '');
+        }
+        return (string) ($pm['type'] ?? '');
+    }
+
+    /**
+     * Eine Rate abbuchen -- ohne dass der Kunde dabei ist ("off_session").
+     *
+     * @return array{status:string, vorgang:string, grund:string}
+     *         status: bezahlt | laeuft (Lastschrift, dauert Tage) | abgelehnt
+     */
+    public function abbuchen(array $zahlung, string $stripeKunde, string $zahlmittel): array
+    {
+        $a = $this->anfrage('POST', '/v1/payment_intents', [
+            'amount'         => (string) (int) $zahlung['amount_cents'],
+            'currency'       => strtolower((string) $zahlung['currency']),
+            'customer'       => $stripeKunde,
+            'payment_method' => $zahlmittel,
+            'off_session'    => 'true',
+            'confirm'        => 'true',
+            'description'    => (string) Config::get('firma', 'Vecom Design') . ' · ' . (string) $zahlung['bezeichnung'],
+            'metadata[zahlung_id]' => (string) $zahlung['id'],
+            'metadata[art]'        => 'abbuchung',
+        /* Je Rate und Betrag genau ein Vorgang: Laeuft der Cron doppelt oder
+           bricht die Verbindung ab, bucht Stripe trotzdem nur einmal ab. */
+        ], 'abbuchung-' . (int) $zahlung['id'] . '-' . (int) $zahlung['amount_cents'] . '-' . $zahlmittel);
+
+        /* Abgelehnt kommt als Fehler -- mit dem Vorgang darin. */
+        $pi = isset($a['error']) ? (array) ($a['error']['payment_intent'] ?? []) : $a;
+        $status = (string) ($pi['status'] ?? '');
+        $grund = (string) ($a['error']['message'] ?? ($pi['last_payment_error']['message'] ?? ''));
+        return [
+            'status'  => $status === 'succeeded' ? 'bezahlt' : ($status === 'processing' ? 'laeuft' : 'abgelehnt'),
+            'vorgang' => (string) ($pi['id'] ?? ''),
+            'grund'   => $grund !== '' ? $grund : $status,
+            'betrag'  => (int) ($pi['amount_received'] ?? ($pi['amount'] ?? 0)),
+            'waehrung'=> strtoupper((string) ($pi['currency'] ?? '')),
+        ];
+    }
+
+    /** Fuer den Abgleich: ein Zahlungsvorgang in derselben Form wie sitzungLesen(). */
+    private function vorgangLesen(string $id): array
+    {
+        $a = $this->anfrage('GET', '/v1/payment_intents/' . rawurlencode($id), []);
+        if (isset($a['error'])) { throw new RuntimeException('Stripe: ' . (string) ($a['error']['message'] ?? '?')); }
+        $st = (string) ($a['status'] ?? '');
+        return [
+            'bezahlt'    => $st === 'succeeded',
+            'referenz'   => (string) ($a['id'] ?? $id),
+            'status'     => $st,
+            'abgelaufen' => in_array($st, ['canceled', 'requires_payment_method'], true),
+            'betrag'     => (int) ($a['amount_received'] ?? 0),
+            'waehrung'   => strtoupper((string) ($a['currency'] ?? '')),
+        ];
+    }
+
+    /** Ein Zahlungsmittel wieder loesen, wenn der Kunde die Abbuchung beendet. */
+    public function zahlmittelLoesen(string $zahlmittel): void
+    {
+        if ($zahlmittel !== '') { $this->anfrage('POST', '/v1/payment_methods/' . rawurlencode($zahlmittel) . '/detach', []); }
     }
 
     /**

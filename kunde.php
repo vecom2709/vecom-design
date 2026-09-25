@@ -21,7 +21,7 @@ if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
-foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme', 'Kunde', 'Bezahllink'] as $k) {
+foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding', 'Mail', 'Abo', 'Stimme', 'Kunde', 'Bezahllink', 'Abbuchung'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 
@@ -94,6 +94,16 @@ if ($kunde && isset($_GET['datei'])) {
         [(int) $_GET['datei'], (int) $kunde['id']]), null);
     if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
     Ablage::ausliefern($d);
+}
+
+/* Phase 2: zurueck von der Stripe-Seite zum Hinterlegen. Nachgefragt wird
+   bei Stripe selbst, nicht der Adresse geglaubt -- und nur fuer den eigenen
+   Vertrag (Abbuchung::abschliessen prueft Kunde und Stripe-Kunde). */
+$abbuchungNeu = null;
+if ($kunde && isset($_GET['einrichtung'])) {
+    require_once __DIR__ . '/app/src/Abbuchung.php';
+    $abbuchungNeu = (bool) sicherLesen(fn() => Abbuchung::abschliessen((string) $_GET['einrichtung'],
+        (int) $kunde['id'], $sprache), false);
 }
 
 /* C4: das Logo fuer die Skizze -- nie das Original, sondern das von GD neu
@@ -254,6 +264,23 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     $e = Abo::kuendigen((int) $abo['id'], 'kunde');
                     $meldung = str_replace('{datum}', Fmt::datum($e['ende']),
                         Texte::h(Texte::KUNDE['gekuendigt'] ?? [], $sprache, 'Kündigung ist angekommen.'));
+                }
+
+            } elseif ($tat === 'abbuchung_ein' || $tat === 'abbuchung_aus') {
+                /* Phase 2: Karte oder Lastschrift hinterlegen -- der Klick
+                   fuehrt zu Stripe, dort gibt der Kunde die Daten ein; hier
+                   kommen sie nie an. Beenden geht mit einem Klick zurueck
+                   auf den gewohnten Zahlungslink. */
+                require_once __DIR__ . '/app/src/Abbuchung.php';
+                $abo = sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null);
+                if ($abo && $tat === 'abbuchung_ein') {
+                    $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+                    $ziel = Abbuchung::einrichten((int) $abo['id'], (int) $kunde['id'],
+                        $basis . '/' . $hier . '&lang=' . rawurlencode($sprache), $sprache);
+                    header('Location: ' . $ziel, true, 303); exit;
+                }
+                if ($abo && Abbuchung::beenden((int) $abo['id'], (int) $kunde['id'])) {
+                    $meldung = $T('abbuchungAus');
                 }
 
             } elseif ($tat === 'hosting_antwort') {
@@ -504,6 +531,8 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
   <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
   <?php if ($meldung): ?><div class="hinweis gut"><?= $h($meldung) ?></div><?php endif; ?>
+  <?php if ($abbuchungNeu === true): ?><div class="hinweis gut"><?= $h($T('abbuchungEin')) ?></div><?php endif; ?>
+  <?php if ($abbuchungNeu === false): ?><div class="hinweis schlecht"><?= $h($T('abbuchungNicht')) ?></div><?php endif; ?>
   <?php if ($willkommen): ?><div class="hinweis gut"><?= $h($T('willkommen')) ?></div><?php endif; ?>
 
   <?php /* ---------- Wo er steht ---------- */ ?>
@@ -822,6 +851,30 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
                   && ($stCheck->modus() === 'live' || $testAn);
           } catch (Throwable $e) { $stripeKassiert = false; }
         ?>
+        <?php /* ---------- Phase 2: automatisch abbuchen ----------
+                 Nur, wo Stripe wirklich kassieren kann, und nur fuer einen
+                 laufenden Vertrag. Der Satz ueber dem Knopf ist genau der
+                 Wortlaut, der als Zustimmung gespeichert wird. */ ?>
+        <?php if ($stripeKassiert && in_array((string) $abo['status'], ['aktiv', 'gekuendigt'], true)): ?>
+          <div id="vertrag" style="margin-top:14px;padding:13px 15px;border:1px solid var(--linie);border-radius:12px">
+            <?php if ((string) ($abo['zahlmittel_id'] ?? '') !== ''): ?>
+              <div class="mini" style="font-weight:650"><?= $h($T('abbuchungAktiv')) ?></div>
+              <p class="mini" style="margin:4px 0 10px;color:var(--dim)"><?= $h(strtr($T('abbuchungMit'), ['{zahlmittel}' => (string) $abo['zahlmittel_text']])) ?></p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <form method="post" action="<?= $h($hier) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="abbuchung_ein">
+                  <button class="knopf"><?= $h($T('abbuchungAendern')) ?></button></form>
+                <form method="post" action="<?= $h($hier) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="abbuchung_aus">
+                  <button class="knopf"><?= $h($T('abbuchungBeenden')) ?></button></form>
+              </div>
+            <?php else: ?>
+              <div class="mini" style="font-weight:650"><?= $h($T('abbuchungTitel')) ?></div>
+              <p class="mini" style="margin:4px 0 10px;color:var(--dim)"><?= $h(Abbuchung::zustimmungsText($abo, $sprache)) ?></p>
+              <form method="post" action="<?= $h($hier) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="abbuchung_ein">
+                <button class="knopf haupt"><?= $h($T('abbuchungKnopf')) ?></button></form>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
+
         <?php if ($monate): ?>
           <div style="margin-top:14px">
             <div class="mini" style="font-weight:650;margin-bottom:6px"><?= $h($T('monate')) ?></div>
@@ -832,10 +885,12 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
                 <span style="min-width:9em"><?= $h(Abo::monatswort((string) $m['abrechnungsmonat'], $sprache)) ?></span>
                 <span style="font-variant-numeric:tabular-nums"><?= Fmt::geld((int) $m['amount_cents'], (string) $m['currency']) ?></span>
                 <span class="mini" style="color:var(--dim)"><?= $h($bezahlt ? $T('monatBezahlt') : $T('monatOffen')) ?><?php
-                  if (!$bezahlt && $m['faellig_am']): ?> · <?= $h(str_replace('{datum}',
+                  if (!$bezahlt && (string) ($m['method'] ?? '') === 'abbuchung' && $m['faellig_am']): ?> · <?= $h(str_replace('{datum}',
+                    Fmt::datum((string) $m['faellig_am']), $T('monatAbbuchung'))) ?><?php
+                  elseif (!$bezahlt && $m['faellig_am']): ?> · <?= $h(str_replace('{datum}',
                     Fmt::datum((string) $m['faellig_am']), $T('monatFaellig'))) ?><?php
                   elseif (!$bezahlt): ?> · <?= $h($T('monatWartet')) ?><?php endif; ?></span>
-                <?php if (!$bezahlt && !empty($m['link_url']) && $stripeKassiert): ?>
+                <?php if (!$bezahlt && !empty($m['link_url']) && $stripeKassiert && (string) ($m['method'] ?? '') !== 'abbuchung'): ?>
                   <a class="knopf haupt" style="margin-left:auto"
                      href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $m['id']), (string) $m['link_url'])) ?>"><?= $h($T('monatZahlen')) ?></a>
                 <?php endif; ?>

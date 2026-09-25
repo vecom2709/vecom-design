@@ -1043,6 +1043,23 @@ final class Texte
             'en' => 'Received, thank you. If more turns up, do upload it — sooner is better than later.'],
 
         'deineSeite' => ['it' => 'Il suo sito', 'de' => 'Ihre Website', 'en' => 'Your website'],
+        /* Phase 2: automatisch abbuchen. abbuchungZustimmung ist der Wortlaut,
+           der als Zustimmung gespeichert wird -- aendern heisst: FASSUNG in
+           Abbuchung.php hochzaehlen. */
+        'abbuchungTitel'   => ['it' => 'Pagare in automatico', 'de' => 'Automatisch bezahlen', 'en' => 'Pay automatically'],
+        'abbuchungZustimmung' => [
+            'it' => 'Autorizzo Vecom Design ad addebitare ogni mese {betrag} per {paket} sulla carta o sul conto che inserisco ora su Stripe, per tutta la durata del contratto. Ogni addebito mi viene annunciato per e-mail {tage} giorni prima. Posso revocare qui in qualsiasi momento; la durata e la disdetta del contratto restano invariate.',
+            'de' => 'Ich erlaube Vecom Design, für {paket} jeden Monat {betrag} von der Karte oder dem Konto abzubuchen, das ich jetzt bei Stripe hinterlege — solange der Vertrag läuft. Jede Abbuchung wird mir {tage} Tage vorher per E-Mail angekündigt. Ich kann das hier jederzeit beenden; Laufzeit und Kündigung des Vertrags ändern sich dadurch nicht.',
+            'en' => 'I authorise Vecom Design to charge {betrag} each month for {paket} to the card or account I now add at Stripe, for as long as the contract runs. Each charge is announced to me by email {tage} days in advance. I can end this here at any time; the contract term and notice stay the same.'],
+        'abbuchungKnopf'   => ['it' => 'Inserire carta o conto', 'de' => 'Karte oder Konto hinterlegen', 'en' => 'Add card or account'],
+        'abbuchungAktiv'   => ['it' => 'Pagamento automatico attivo', 'de' => 'Automatische Abbuchung aktiv', 'en' => 'Automatic payment on'],
+        'abbuchungMit'     => ['it' => 'Addebito su {zahlmittel}. Ogni addebito viene annunciato per e-mail prima.', 'de' => 'Abgebucht wird von {zahlmittel}. Jede Abbuchung kündigen wir vorher per E-Mail an.', 'en' => 'Charged to {zahlmittel}. Every charge is announced by email first.'],
+        'abbuchungAendern' => ['it' => 'Cambiare carta o conto', 'de' => 'Karte oder Konto ändern', 'en' => 'Change card or account'],
+        'abbuchungBeenden' => ['it' => 'Pagare di nuovo con link', 'de' => 'Wieder per Link zahlen', 'en' => 'Pay by link again'],
+        'abbuchungAus'     => ['it' => 'Fatto: d’ora in poi riceve di nuovo un link di pagamento ogni mese.', 'de' => 'Erledigt: Ab jetzt bekommen Sie wieder jeden Monat einen Zahlungslink.', 'en' => 'Done: from now on you get a payment link each month again.'],
+        'abbuchungEin'     => ['it' => 'Grazie — da ora l’addebito è automatico. Ogni volta la avviso prima per e-mail.', 'de' => 'Danke — ab jetzt wird automatisch abgebucht. Sie bekommen vorher jedes Mal eine E-Mail.', 'en' => 'Thank you — from now on payment is automatic. You get an email before each charge.'],
+        'abbuchungNicht'   => ['it' => 'Non è stato salvato nulla. Se vuole, riprovi.', 'de' => 'Es wurde nichts hinterlegt. Versuchen Sie es gern noch einmal.', 'en' => 'Nothing was saved. Feel free to try again.'],
+        'monatAbbuchung'   => ['it' => 'addebito il {datum}', 'de' => 'wird am {datum} abgebucht', 'en' => 'charged on {datum}'],
         'skizzeTitel'  => ['it' => 'Com’è oggi — e come potrebbe essere', 'de' => 'Wie es heute ist — und wie es werden könnte', 'en' => 'How it is today — and how it could be'],
         'skizzeHeute'  => ['it' => 'Il suo sito attuale ({adresse}), misurato il {datum}:', 'de' => 'Ihre bisherige Seite ({adresse}), gemessen am {datum}:', 'en' => 'Your current site ({adresse}), measured on {datum}:'],
         'skizzeHinweis'=> ['it' => 'Una bozza composta in automatico dai suoi dati — non ancora il progetto. Quello lo facciamo insieme.',
@@ -1314,6 +1331,22 @@ final class Texte
     public const MAILS = [
         /* Die monatliche Betreuung. Kein Verkaufstext: Wer sie hat, hat sie
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
+        /* Phase 2: die Vorabinformation vor jeder Abbuchung. Bei SEPA ist
+           sie Pflicht -- und bei der Karte ehrlich. */
+        'abbuchung_angekuendigt' => [
+            'it' => ['{monat}: addebito di {betrag} il {datum}',
+                "Buongiorno {name},\n\nil {datum} addebiteremo {betrag} per {monat} su {zahlmittel}.\n\n"
+                . "Non deve fare nulla. La ricevuta arriva dopo l’addebito.\n\n"
+                . "Se vuole cambiare carta o conto, o tornare al link di pagamento:\n{seite}"],
+            'de' => ['{monat}: Abbuchung von {betrag} am {datum}',
+                "Guten Tag {name},\n\nam {datum} buchen wir {betrag} für {monat} von {zahlmittel} ab.\n\n"
+                . "Sie müssen nichts tun. Der Beleg kommt nach der Abbuchung.\n\n"
+                . "Karte oder Konto ändern oder wieder per Link zahlen:\n{seite}"],
+            'en' => ['{monat}: {betrag} will be charged on {datum}',
+                "Hello {name},\n\non {datum} we will charge {betrag} for {monat} to {zahlmittel}.\n\n"
+                . "You don’t need to do anything. The receipt follows the charge.\n\n"
+                . "To change card or account, or to pay by link again:\n{seite}"],
+        ],
         'betreuung_faellig' => [
             'it' => ['Assistenza {monat} — {betrag}',
                 "Buongiorno {name},\n\nl’assistenza di {monat} è pronta: {betrag}.\n\n"
