@@ -85,6 +85,13 @@ final class Cron
             'websites'    => static fn() => Monitoring::alle(),
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
             'erinnerungen'=> static fn() => Onboarding::erinnerungen(),
+            /* A1 + A3: alte Website und P. IVA lesen -- was der Fragebogen beim
+               ersten Oeffnen nicht geschafft hat. Wenige je Lauf: Jeder
+               Abruf ist Zeit auf einem fremden Server. */
+            'vorwissen'   => static function () {
+                require_once __DIR__ . '/Vorwissen.php';
+                return Vorwissen::nachholen();
+            },
             /* Der E-Mail-Einstieg (24.09.2026): hoechstens drei Erinnerungen
                (D3), und nie geoeffnete Adressen verschwinden nach Ablauf (E4). */
             'zugaenge'    => static function () {

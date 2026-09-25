@@ -187,6 +187,7 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(32)); }
 
 $daten = [];
+$ausSeite = $f ? (json_decode((string) ($f['seite_felder'] ?? ''), true) ?: []) : [];
 if ($f && $f['data'] !== null && $f['data'] !== '') {
     $daten = json_decode((string) $f['data'], true) ?: [];
 }
@@ -511,6 +512,10 @@ $gruppenWort = [
         ?>
         <div class="feld<?= $fehltFeld === $feldName ? ' fehlt' : '' ?>"<?php if (!$sichtbar): ?> hidden<?php endif; ?><?php if (isset($feld['wenn'])): ?> data-wenn="<?= $h($feld['wenn']['feld']) ?>" data-ist="<?= $h(implode(',', (array) $feld['wenn']['ist'])) ?>"<?php endif; ?>>
           <label <?= $ohneLabelFuer ? '' : 'for="f_' . $h($feldName) . '"' ?>><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
+          <?php /* A1/A3: was wir eingetragen haben, sagt es -- solange es noch unser Wert ist. */ ?>
+          <?php if (isset($ausSeite[$feldName]) && (string) ($daten[$feldName] ?? '') === (string) $ausSeite[$feldName]): ?>
+            <p class="beiseite aus-seite" style="margin:0 0 9px">↺ <?= $h($S('ausSeite')) ?></p>
+          <?php endif; ?>
           <?php if (!empty($feld['hilfe'])): ?>
             <p class="beiseite" style="margin:0 0 9px"><?= $h($S((string) $feld['hilfe'])) ?></p>
           <?php endif; ?>
@@ -919,3 +924,17 @@ $gruppenWort = [
 <?php endif; ?>
 </body>
 </html>
+<?php
+/* A1 + A3: Die alte Website und die P. IVA lesen -- NACHDEM die Seite beim
+   Kunden ist. Eine fremde Seite kann zehn Sekunden brauchen; die sollen
+   nicht zwischen Klick und Fragebogen liegen. Die Sitzung wird vorher
+   freigegeben, sonst wartete sein naechster Klick auf diesen Abruf. Ohne
+   FastCGI (eingebauter Server) macht es der Cron. */
+if ($f && !$fertig && empty($f['seite_gelesen_am']) && function_exists('fastcgi_finish_request')) {
+    session_write_close();
+    fastcgi_finish_request();
+    try {
+        require_once __DIR__ . '/app/src/Vorwissen.php';
+        Vorwissen::fuerFragebogen((int) $f['id']);
+    } catch (Throwable $e) { /* der Cron versucht es nicht noch einmal -- gelesen ist gelesen */ }
+}

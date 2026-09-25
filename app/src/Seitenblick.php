@@ -351,6 +351,37 @@ final class Seitenblick
      * Kostet Millisekunden statt Sekunden und ruft nichts ab -- gebraucht
      * wird sie dort, wo entschieden werden muss, ob ein Abruf sich lohnt.
      */
+    /**
+     * Die Seite selbst, nicht das Urteil darueber (A1, 25.09.2026).
+     *
+     * Fuer den Fragebogen: Was auf der alten Seite schon steht -- Telefon,
+     * Anschrift, Profile, P. IVA --, soll der Kunde nicht noch einmal tippen.
+     * Dieselbe Suche und dieselbe Grenze wie am Telefon (nur echte
+     * Domainnamen, Unterseiten nur derselben Domain); gespeichert wird hier
+     * nichts, das Lesen macht Seiteninhalt.
+     *
+     * @return array{url:string, html:string, unterseiten:array<string,string>}|null
+     */
+    public static function abrufen(string $roh): ?array
+    {
+        require_once __DIR__ . '/Domainpruefung.php';
+        $name = Domainpruefung::normalisieren($roh);
+        if ($name === null || self::istFremdesProfil($name)) { return null; }
+        $a = self::aufloesen($name);
+        if (empty($a['erreichbar']) || (string) ($a['html'] ?? '') === '') { return null; }
+        $start = (string) ($a['end_url'] ?? '');
+        return ['url' => $start, 'html' => (string) $a['html'],
+                'unterseiten' => self::unterseiten($start, (string) $a['html'])];
+    }
+
+    /** Ein Profil bei Instagram & Co. ist keine eigene Seite -- es ist ein Social-Link. */
+    public static function istProfil(string $roh): bool
+    {
+        require_once __DIR__ . '/Domainpruefung.php';
+        $name = Domainpruefung::normalisieren($roh);
+        return $name !== null && self::istFremdesProfil($name);
+    }
+
     public static function existiert(string $roh): bool
     {
         require_once __DIR__ . '/Domainpruefung.php';

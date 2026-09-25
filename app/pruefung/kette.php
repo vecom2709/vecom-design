@@ -7682,6 +7682,99 @@ pruefe('B4: der Diktierknopf ist ohne Spracherkennung im Browser versteckt',
     (bool) preg_match('~class="diktat" data-ziel="[^"]*" hidden~', $fbSeite) && str_contains($fbSeite, 'webkitSpeechRecognition'));
 
 /* ============================================================================
+   67. Vorwissen: alte Website und P. IVA lesen (A1 + A3) -- ohne Netz
+   ============================================================================ */
+abschnitt('67. Vorwissen: alte Website und P. IVA');
+require_once $wurzel . '/src/Vorwissen.php';
+
+pruefe('A3: die Prüfziffer der P. IVA wird gerechnet (gültig/vertippt)',
+    Vies::italienischGueltig('00743110157') && !Vies::italienischGueltig('00743110158') && !Vies::italienischGueltig('00000000000'));
+pruefe('A3: „P.IVA IT 00743110157“ und „00743110157“ ergeben dieselbe Nummer; vertippt gar keine',
+    Vies::zerlegen('P.IVA IT 00743110157') === ['IT', '00743110157'] && Vies::zerlegen('00743110157') === ['IT', '00743110157']
+    && Vies::zerlegen('00743110158') === null);
+$vwAmt = Vies::lesen('{"isValid":true,"userError":"VALID","name":"TRATTORIA SOLE SRL","address":"VIA ROMA 1 \n90133 PALERMO PA\n"}', 'IT', '00743110157');
+pruefe('A3: die Antwort des Registers wird gelesen, der Ort daraus ist „Palermo“',
+    $vwAmt && $vwAmt['gueltig'] && $vwAmt['name'] === 'TRATTORIA SOLE SRL' && $vwAmt['anschrift'] === "VIA ROMA 1\n90133 PALERMO PA"
+    && Vies::ortAus($vwAmt['anschrift']) === 'Palermo');
+pruefe('A3: „Dienst nicht erreichbar“ heisst später noch einmal, nicht „ungültig“',
+    Vies::lesen('{"isValid":false,"userError":"MS_UNAVAILABLE"}', 'IT', '00743110157') === null);
+$vwDe = Vies::lesen('{"isValid":true,"userError":"VALID","name":"---","address":"---"}', 'DE', '123456789');
+pruefe('A3: Staaten, die Name und Anschrift nicht herausgeben („---“), liefern nur „gültig“',
+    $vwDe && $vwDe['gueltig'] && $vwDe['name'] === null && $vwDe['anschrift'] === null);
+
+$vwHtml = '<html><head><title>Trattoria Sole | Cucina siciliana a Palermo</title>
+<meta name="description" content="Dal 1962 cuciniamo pesce fresco del mercato di Palermo, con le ricette della nonna.">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Sole"},
+ {"@type":"Restaurant","name":"Trattoria Sole","telephone":"+39 091 123456","email":"info@trattoria-sole.it",
+  "address":{"@type":"PostalAddress","streetAddress":"Via Roma 1","postalCode":"90133","addressLocality":"Palermo"},
+  "sameAs":["https://www.instagram.com/trattoriasole/","https://www.facebook.com/sharer/sharer.php?u=x"]}]}</script>
+</head><body><a href="mailto:studio@webdesigner.example">Credits</a>
+<a href="https://www.facebook.com/trattoriasole">FB</a> P.IVA 00743110157</body></html>';
+$vwF = Seiteninhalt::lesen($vwHtml, 'https://www.trattoria-sole.it/');
+pruefe('A1: strukturierte Daten zuerst: Name, Telefon, E-Mail, Anschrift, Profil, P. IVA',
+    ($vwF['name'] ?? '') === 'Trattoria Sole' && ($vwF['telefon'] ?? '') === '+39 091 123456'
+    && ($vwF['email'] ?? '') === 'info@trattoria-sole.it' && ($vwF['ort'] ?? '') === 'Palermo'
+    && ($vwF['strasse'] ?? '') === 'Via Roma 1' && ($vwF['piva'] ?? '') === 'IT00743110157'
+    && ($vwF['social'] ?? '') === 'https://www.instagram.com/trattoriasole/');
+$vwHtml2 = '<html><head><title>Bottega Rossi – Ceramiche</title></head><body>
+<a href="https://www.facebook.com/sharer/sharer.php?u=x">Condividi</a><a href="https://instagram.com/bottegarossi">IG</a>
+<a href="mailto:studio@webdesigner.example">Sito by Studio</a><a href="mailto:ciao@bottegarossi.it">Scrivici</a>
+<a href="tel:+390916543210">Chiama</a><footer>Via Etnea 5 - 95131 Catania (CT) - P. IVA 00743110158 - Partita IVA 00743110157</footer></body></html>';
+$vwF2 = Seiteninhalt::lesen($vwHtml2, 'https://bottegarossi.it/');
+pruefe('A1: ohne strukturierte Daten: Titel, tel-Link, eigene Mail vor der des Webdesigners, kein Teilen-Link',
+    ($vwF2['name'] ?? '') === 'Bottega Rossi' && ($vwF2['telefon'] ?? '') === '+390916543210'
+    && ($vwF2['email'] ?? '') === 'ciao@bottegarossi.it' && ($vwF2['social'] ?? '') === 'https://instagram.com/bottegarossi');
+pruefe('A1: aus dem Text nur Prüfbares: vertippte P. IVA übersprungen, Ort aus „95131 Catania (CT)“',
+    ($vwF2['piva'] ?? '') === 'IT00743110157' && ($vwF2['ort'] ?? '') === 'Catania' && ($vwF2['plz'] ?? '') === '95131');
+
+/* Der ganze Weg in den Fragebogen -- mit Attrappen statt Netz. */
+$vwK = Events::kundeFinden(['name' => 'Vorwissen Probe', 'email' => 'info@trattoria-sole.it']);
+Db::run("UPDATE customers SET company = NULL, city = NULL, phone = NULL, vat_id = NULL WHERE id = ?", [$vwK]);
+$vwQ = Onboarding::vorab($vwK);
+Onboarding::speichern($vwQ, ['telefon' => '333 1234567']);   // das hat ER geschrieben
+$vwStill = date('Y-m-d H:i:s', strtotime('-5 hours'));
+Db::run('UPDATE questionnaires SET updated_at = ? WHERE id = ?', [$vwStill, $vwQ]);
+$vwGefragt = [];
+$vwSeite = static function (string $a) use (&$vwGefragt, $vwHtml): ?array {
+    $vwGefragt[] = $a; return ['url' => 'https://www.trattoria-sole.it/', 'html' => $vwHtml, 'unterseiten' => []];
+};
+$vwReg = static fn(string $n): ?array => Vies::lesen('{"isValid":true,"userError":"VALID","name":"TRATTORIA SOLE SRL","address":"VIA ROMA 1 \n90133 PALERMO PA\n"}', 'IT', '00743110157');
+$vwNeu = Vorwissen::fuerFragebogen($vwQ, $vwSeite, $vwReg);
+$vwD = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$vwQ], ''), true) ?: [];
+pruefe('A1: die Adresse kommt aus seiner E-Mail-Domain', $vwGefragt === ['trattoria-sole.it']);
+pruefe('A1: leere Felder werden gefüllt (Name, Ort, Profil, Beschreibung, alte Seite)',
+    ($vwD['firmenname'] ?? '') === 'Trattoria Sole' && ($vwD['ort'] ?? '') === 'Palermo'
+    && ($vwD['social'] ?? '') === 'https://www.instagram.com/trattoriasole/' && ($vwD['altseite'] ?? '') === 'ja'
+    && str_starts_with((string) ($vwD['beschreibung'] ?? ''), 'Dal 1962'));
+pruefe('A1: was der Kunde selbst geschrieben hat, bleibt -- auch wenn die Seite etwas anderes sagt',
+    ($vwD['telefon'] ?? '') === '333 1234567' && !isset($vwNeu['telefon']));
+pruefe('A3: das Impressum kommt amtlich aus dem Register, mit P. IVA',
+    ($vwD['impressum'] ?? '') === "TRATTORIA SOLE SRL\nVIA ROMA 1, 90133 PALERMO PA\nP. IVA IT00743110157");
+$vwZ = Db::one('SELECT seite_felder, seite_gelesen_am, seite_adresse, updated_at FROM questionnaires WHERE id = ?', [$vwQ]);
+$vwMerk = json_decode((string) $vwZ['seite_felder'], true) ?: [];
+pruefe('A1: gemerkt wird, was WIR eingetragen haben (für den Hinweis „bitte prüfen“), nicht, was er schrieb',
+    isset($vwMerk['firmenname'], $vwMerk['impressum']) && !isset($vwMerk['telefon']) && $vwZ['seite_adresse'] === 'trattoria-sole.it');
+pruefe('A1: unser Eintragen zählt nicht als Bewegung des Kunden (Erinnerungen bleiben richtig)',
+    $vwZ['updated_at'] === $vwStill);
+$vwGefragt = [];
+pruefe('A1: ein zweiter Lauf fragt keinen fremden Server mehr',
+    Vorwissen::fuerFragebogen($vwQ, $vwSeite, $vwReg) === [] && $vwGefragt === []);
+pruefe('A1: „keine Website“ heisst: nicht suchen',
+    Vorwissen::adresseFuer($vwK, ['altseite' => 'nein'], 'info@trattoria-sole.it') === null
+    && Vorwissen::adresseFuer($vwK, [], 'mario@gmail.com') === null);
+$vwK2 = Events::kundeFinden(['name' => 'Vorwissen Fertig', 'email' => 'x@bottegarossi.it']);
+$vwQ2 = Onboarding::vorab($vwK2);
+Db::run("UPDATE questionnaires SET status = 'abgeschlossen' WHERE id = ?", [$vwQ2]);
+pruefe('A1: ein abgeschickter Fragebogen wird nicht mehr angefasst (sein Kern trägt das Angebot)',
+    Vorwissen::fuerFragebogen($vwQ2, $vwSeite, $vwReg) === [] && Vorwissen::eintragen($vwQ2, ['ort' => 'X']) === []);
+$vwFb = file_get_contents($wurzel . '/../fragebogen.php');
+pruefe('A1: gelesen wird erst nach dem Ausliefern, und die Sitzung ist vorher frei',
+    (int) strpos($vwFb, 'session_write_close();') > 0
+    && (int) strpos($vwFb, 'session_write_close();') < (int) strpos($vwFb, 'fastcgi_finish_request();')
+    && (int) strpos($vwFb, 'fastcgi_finish_request();') < (int) strpos($vwFb, 'Vorwissen::fuerFragebogen'));
+pruefe('A1: der Cron holt nach', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Vorwissen::nachholen()'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
