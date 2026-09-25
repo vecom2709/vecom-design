@@ -483,6 +483,50 @@ final class Texte
                               'art' => 'text', 'pruefen' => true,
                               'wenn' => ['feld' => 'domain', 'ist' => ['neu']]],
 
+                /* DOMAIN, HOSTING UND E-MAIL SIND DREI ENTSCHEIDUNGEN (25.09.2026)
+                   ----------------------------------------------------------
+                   Bis heute kannte der Ablauf nur einen Fall: keine Domain,
+                   also neue Domain, Hosting und Postfach in einem Paket. Wer
+                   seine Domain behalten, sie umziehen lassen oder seine
+                   E-Mail bei Microsoft 365 lassen wollte, kam nicht vor.
+                   Jetzt entscheidet der Kunde jedes davon selbst, und keine
+                   Antwort ist vorgewaehlt -- eine Vorauswahl "zu uns
+                   uebertragen" waere ein Schubs, kein Angebot.
+
+                   Verbindlich ist keine dieser Antworten. Bestellt wird erst
+                   mit dem Knopf "zahlungspflichtig bestellen" auf der
+                   Kundenseite, und dort steht dann genau das, was hier
+                   gewaehlt wurde. */
+                'domain_name' => ['it' => 'Qual è il dominio?', 'de' => 'Welche Domain ist es?', 'en' => 'Which domain is it?',
+                                  'art' => 'text', 'wenn' => ['feld' => 'domain', 'ist' => ['uns', 'fremd']]],
+                'domain_wahl' => [
+                    'it' => 'Che cosa deve succedere con il dominio?', 'de' => 'Was soll mit der Domain passieren?', 'en' => 'What should happen with the domain?',
+                    'art' => 'eins', 'wenn' => ['feld' => 'domain', 'ist' => ['uns', 'fremd']],
+                    'optionen' => [
+                        'behalten'    => ['it' => 'Resta dal fornitore attuale', 'de' => 'Sie bleibt bei unserem bisherigen Anbieter', 'en' => 'It stays with our current provider'],
+                        'uebertragen' => ['it' => 'Deve passare a Vecom Design', 'de' => 'Sie soll zu Vecom Design umziehen', 'en' => 'It should move to Vecom Design'],
+                        'offen'       => ['it' => 'Non lo so ancora — mi consigli', 'de' => 'Weiß ich noch nicht — bitte beraten', 'en' => 'Not sure yet — please advise'],
+                    ],
+                ],
+                'hosting_wahl' => [
+                    'it' => 'Dove deve essere ospitato il nuovo sito?', 'de' => 'Wo soll die neue Website laufen?', 'en' => 'Where should the new website be hosted?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'vecom'  => ['it' => 'Da Vecom Design — prezzo e condizioni li vedo prima di ordinare', 'de' => 'Bei Vecom Design — Preis und Bedingungen sehe ich vor der Bestellung', 'en' => 'With Vecom Design — I’ll see price and terms before ordering'],
+                        'bisher' => ['it' => 'Dal nostro fornitore attuale o da uno scelto da noi', 'de' => 'Bei unserem bisherigen Anbieter oder einem, den wir wählen', 'en' => 'With our current provider or one we choose'],
+                        'offen'  => ['it' => 'Non lo so ancora — mi consigli', 'de' => 'Noch offen — bitte beraten', 'en' => 'Still open — please advise'],
+                    ],
+                ],
+                'mail_wahl' => [
+                    'it' => 'E l’e-mail con il vostro dominio?', 'de' => 'Und die E-Mail mit Ihrer Domain?', 'en' => 'And email with your domain?',
+                    'art' => 'eins',
+                    'optionen' => [
+                        'bisher' => ['it' => 'Resta com’è (per es. dal fornitore, Microsoft 365, Gmail)', 'de' => 'Bleibt, wie sie ist (z. B. beim Anbieter, Microsoft 365, Gmail)', 'en' => 'Stays as it is (e.g. provider, Microsoft 365, Gmail)'],
+                        'vecom'  => ['it' => 'Una casella da Vecom Design (kontakt@il-vostro-dominio)', 'de' => 'Ein Postfach über Vecom Design (kontakt@ihre-domain)', 'en' => 'A mailbox through Vecom Design (kontakt@your-domain)'],
+                        'keine'  => ['it' => 'Non ci serve', 'de' => 'Brauchen wir nicht', 'en' => 'We don’t need it'],
+                    ],
+                ],
+
                 'karte' => [
                     'it' => 'Scheda Google dell’attività', 'de' => 'Google-Unternehmenseintrag', 'en' => 'Google Business listing',
                     'art' => 'eins', 'frei' => true,
@@ -611,6 +655,7 @@ final class Texte
            steht ausdruecklich da, damit niemand am naechsten Tag nach seinen
            Zugangsdaten fragt. */
         'hostingTitel' => ['it' => 'Il suo dominio', 'de' => 'Ihre Wunschdomain', 'en' => 'Your domain'],
+        'hostingTitelHosting' => ['it' => 'Il suo hosting', 'de' => 'Ihr Hosting', 'en' => 'Your hosting'],
         'hostingAngebot' => [
             'it' => 'Nel questionario ha indicato che non ha ancora un sito né un dominio. Registriamo e gestiamo noi {domain} per Lei: dominio, spazio web, certificato SSL e una casella e-mail. Costa {preis} al mese in più (12 mesi di durata minima, poi può disdire a fine mese). Attiviamo tutto quando il suo sito è pronto — e riceverà i suoi dati di accesso qui su questa pagina.',
             'de' => 'Im Fragebogen haben Sie angegeben, dass Sie noch keine Website und keine Domain haben. Wir schalten und betreuen {domain} für Sie: Domain, Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach. Das kostet zusätzlich {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Angelegt wird alles, sobald Ihre Website fertig ist — Ihre Zugangsdaten bekommen Sie dann hier auf dieser Seite.',
@@ -619,6 +664,66 @@ final class Texte
         /* Der Ja-Knopf ist der Vertragsschluss — also sagt er es auch:
            "mit Zahlungspflicht", wie es das Fernabsatzrecht verlangt
            (Button-Loesung; it: obbligo di pagare). */
+        /* DER KASTEN AUS DEN DREI ENTSCHEIDUNGEN (25.09.2026)
+           Hosting.php::angebotText setzt ihn aus dem zusammen, was der Kunde
+           im Fragebogen gewaehlt hat. Genau dieser Text wird bei "Ja" als
+           Zustimmung gespeichert -- er muss deshalb vollstaendig sagen, was
+           passiert und was es kostet. */
+        'hostingWahlEinleitung' => [
+            'it' => 'Nel questionario ha scelto di far ospitare il sito da Vecom Design.',
+            'de' => 'Sie haben im Fragebogen gewählt, dass die Website bei Vecom Design laufen soll.',
+            'en' => 'In the questionnaire you chose to have the website hosted by Vecom Design.',
+        ],
+        'hostingDomain_neu' => [
+            'it' => 'Registriamo {domain} a nome Suo e lo gestiamo per Lei.',
+            'de' => 'Wir registrieren {domain} auf Ihren Namen und betreuen sie für Sie.',
+            'en' => 'We register {domain} in your name and manage it for you.',
+        ],
+        'hostingDomain_transfer' => [
+            'it' => 'Il suo dominio {domain} passa a noi — il titolare resta Lei. Per il trasferimento ci serve poi il codice Auth dal suo fornitore attuale; le impostazioni della sua e-mail le riprendiamo invariate.',
+            'de' => 'Ihre Domain {domain} zieht zu uns um — Inhaber bleiben Sie. Für den Umzug brauchen wir später den Auth-Code von Ihrem bisherigen Anbieter; die Einträge Ihrer E-Mail übernehmen wir unverändert.',
+            'en' => 'Your domain {domain} moves to us — you stay the owner. For the transfer we will need the Auth code from your current provider; your email settings are carried over unchanged.',
+        ],
+        'hostingDomain_behalten' => [
+            'it' => 'Il suo dominio {domain} resta dal fornitore attuale. Lì si cambia solo la voce che punta al sito — la sua e-mail non viene toccata.',
+            'de' => 'Ihre Domain {domain} bleibt bei Ihrem bisherigen Anbieter. Dort wird nur der Eintrag geändert, der auf die Website zeigt — Ihre E-Mail bleibt davon unberührt.',
+            'en' => 'Your domain {domain} stays with your current provider. Only the record that points to the website is changed there — your email is not touched.',
+        ],
+        'hostingDomain_offen' => [
+            'it' => 'Che cosa succede con il suo dominio {domain} lo decidiamo prima insieme — senza il suo sì esplicito non trasferiamo nulla.',
+            'de' => 'Was mit Ihrer Domain {domain} geschieht, besprechen wir vorher mit Ihnen — ohne Ihr ausdrückliches Ja wird nichts übertragen.',
+            'en' => 'What happens with your domain {domain} we agree with you first — nothing is transferred without your explicit yes.',
+        ],
+        'hostingUmfang' => [
+            'it' => 'Incluso: 10 GB di spazio web e il certificato SSL{mail}.',
+            'de' => 'Enthalten: 10 GB Speicherplatz und SSL-Zertifikat{mail}.',
+            'en' => 'Included: 10 GB of web space and an SSL certificate{mail}.',
+        ],
+        'hostingUmfangMail' => [
+            'it' => ', più una casella e-mail kontakt@{domain}',
+            'de' => ', dazu ein E-Mail-Postfach kontakt@{domain}',
+            'en' => ', plus an email mailbox kontakt@{domain}',
+        ],
+        'hostingPreisSatz' => [
+            'it' => 'Costa {preis} al mese in più ({monate} mesi di durata minima, poi disdetta a fine mese).',
+            'de' => 'Das kostet zusätzlich {preis} im Monat ({monate} Monate Mindestlaufzeit, danach zum Monatsende kündbar).',
+            'en' => 'It costs an extra {preis} per month ({monate}-month minimum term, then cancel at month’s end).',
+        ],
+        'hostingWann' => [
+            'it' => 'Attiviamo tutto quando il suo sito è pronto e la prima rata mensile è pagata — i dati di accesso li riceve qui su questa pagina.',
+            'de' => 'Angelegt wird alles, sobald Ihre Website fertig und die erste Monatsrate bezahlt ist — Ihre Zugangsdaten bekommen Sie dann hier auf dieser Seite.',
+            'en' => 'Everything is set up once your website is finished and the first monthly instalment is paid — you’ll receive your access details right here on this page.',
+        ],
+        'hostingUmfangMailFertig' => [
+            'it' => 'spazio web, casella e-mail e il suo account personale',
+            'de' => 'Speicherplatz, E-Mail-Postfach und Ihrem eigenen Account',
+            'en' => 'web space, an email mailbox and your own account',
+        ],
+        'hostingUmfangFertig' => [
+            'it' => 'spazio web e il suo account personale',
+            'de' => 'Speicherplatz und Ihrem eigenen Account',
+            'en' => 'web space and your own account',
+        ],
         'hostingJa'   => ['it' => 'Sì, ordino con obbligo di pagare — {preis} al mese',
                           'de' => 'Ja, zahlungspflichtig bestellen — {preis} im Monat',
                           'en' => 'Yes, order with obligation to pay — {preis} per month'],
@@ -627,9 +732,9 @@ final class Texte
                             'en' => 'Contract sheet (PDF)'],
         'hostingNein' => ['it' => 'No, grazie', 'de' => 'Nein, danke', 'en' => 'No, thanks'],
         'hostingDanke' => [
-            'it' => 'Perfetto — appena il suo sito è pronto, attiviamo il dominio e le mettiamo qui i dati di accesso.',
-            'de' => 'Sehr gern — sobald Ihre Website fertig ist, schalten wir die Domain und legen Ihnen hier die Zugangsdaten bereit.',
-            'en' => 'Great — as soon as your website is finished, we’ll set up the domain and put your access details here.',
+            'it' => 'Perfetto — appena il suo sito è pronto le mandiamo la prima rata mensile; quando è pagata attiviamo tutto e le mettiamo qui i dati di accesso.',
+            'de' => 'Sehr gern — sobald Ihre Website fertig ist, kommt die erste Monatsrate zu Ihnen; ist sie bezahlt, schalten wir alles und legen Ihnen hier die Zugangsdaten bereit.',
+            'en' => 'Great — once your website is finished, the first monthly instalment comes to you; when it is paid, we set everything up and put your access details here.',
         ],
         'hostingDankeSolo' => [
             'it' => 'Perfetto — le abbiamo mandato la prima rata mensile per e-mail. Appena il pagamento arriva, attiviamo tutto e i suoi dati di accesso compaiono qui.',
@@ -642,9 +747,9 @@ final class Texte
             'en' => 'All right, we’ll skip it. If you change your mind, just write to us here on this page.',
         ],
         'hostingWartet' => [
-            'it' => '{domain} è riservato per Lei — lo attiviamo appena il suo sito è pronto.',
-            'de' => '{domain} ist für Sie vorgemerkt — wir schalten sie, sobald Ihre Website fertig ist.',
-            'en' => '{domain} is reserved for you — we’ll set it up as soon as your website is finished.',
+            'it' => '{domain} è previsto per Lei — lo attiviamo quando il sito è pronto e la prima rata mensile è pagata.',
+            'de' => '{domain} ist für Sie vorgemerkt — wir schalten sie, sobald Ihre Website fertig und die erste Monatsrate bezahlt ist.',
+            'en' => '{domain} is reserved for you — we’ll set it up once your website is finished and the first monthly instalment is paid.',
         ],
         /* Die Solo-Fassungen: kein Fragebogen, keine Website — hier kommt
            jemand NUR fuer Domain und Hosting. Der Satz zum Angebot nennt
@@ -1208,16 +1313,14 @@ final class Texte
            Passwoerter danach im KAS selbst aendern soll. */
         'hosting_fertig' => [
             'it' => ['Il suo dominio {domain} è attivo — i dati di accesso la aspettano',
-                "Buongiorno {name},\n\nfatto: {domain} è attivo, con spazio web, casella e-mail e il suo "
-                . "account personale.\n\nI suoi dati di accesso sono pronti sulla sua pagina — per "
+                "Buongiorno {name},\n\nfatto: {domain} è attivo, con {umfang}.\n\nI suoi dati di accesso sono pronti sulla sua pagina — per "
                 . "sicurezza vengono mostrati UNA SOLA volta, quindi tenga pronto dove salvarli:\n{link}\n\n"
                 . "Importante: dopo averli salvati, cambi le password nel pannello KAS "
                 . "(kas.all-inkl.com) — così le conosce solo Lei. Se non ritira i dati entro "
                 . "{tage} giorni, li cancelliamo e su richiesta ne impostiamo di nuovi.\n\n"
                 . "Per qualsiasi cosa, risponda pure a questa e-mail."],
             'de' => ['Ihre Domain {domain} ist geschaltet — die Zugangsdaten warten auf Sie',
-                "Guten Tag {name},\n\ngeschafft: {domain} ist geschaltet, mit Speicherplatz, "
-                . "E-Mail-Postfach und Ihrem eigenen Account.\n\nIhre Zugangsdaten liegen auf "
+                "Guten Tag {name},\n\ngeschafft: {domain} ist geschaltet, mit {umfang}.\n\nIhre Zugangsdaten liegen auf "
                 . "Ihrer Seite bereit — aus Sicherheitsgründen werden sie nur EIN einziges Mal "
                 . "angezeigt, halten Sie also bereit, wo Sie sie speichern:\n{link}\n\n"
                 . "Wichtig: Ändern Sie die Passwörter nach dem Speichern im KAS-Kundenmenü "
@@ -1225,8 +1328,7 @@ final class Texte
                 . "innerhalb von {tage} Tagen ab, löschen wir sie und setzen Ihnen auf Zuruf neue.\n\n"
                 . "Bei allem anderen: einfach auf diese E-Mail antworten."],
             'en' => ['Your domain {domain} is live — your access details are waiting',
-                "Hello {name},\n\ndone: {domain} is live, with web space, an email mailbox and "
-                . "your own account.\n\nYour access details are ready on your page — for security "
+                "Hello {name},\n\ndone: {domain} is live, with {umfang}.\n\nYour access details are ready on your page — for security "
                 . "they are shown only ONCE, so have somewhere ready to save them:\n{link}\n\n"
                 . "Important: after saving them, change the passwords in the KAS panel "
                 . "(kas.all-inkl.com) — then only you know them. If you don’t collect the details "

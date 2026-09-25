@@ -4000,22 +4000,39 @@ pruefe('eine Preisaenderung am Paket laesst den zugestimmten Preis stehen',
     (int) Db::wert('SELECT preis_cents FROM hosting_auftraege WHERE id = ?', [$hoId], 0) === 990);
 Db::run("UPDATE packages SET monthly_cents = 990 WHERE slug = 'hosting'");
 
-/* beiStatuswechsel: nur die finale Freigabe legt an — und weil der
-   KAS-Zugang im Test fehlt, bleibt der Auftrag ehrlich auf zugestimmt
-   und Uwe bekommt eine Meldung statt eines halben Accounts. */
+/* beiStatuswechsel: Die finale Freigabe legt NICHT mehr sofort an
+   (25.09.2026). Sie schliesst den Monatsvertrag und schickt die erste Rate;
+   angelegt wird erst, wenn die bezahlt ist -- vorher entstand der
+   KAS-Account, bevor ein Cent fuer das Hosting da war. */
 Hosting::beiStatuswechsel($hoProjektId, 'vorschau');
 pruefe('ein anderer Statuswechsel ruehrt den Auftrag nicht an', (string) Db::wert(
     'SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
 Db::run("DELETE FROM notifications WHERE type = 'hosting_fehler'");
+Db::update('projects', $hoProjektId, ['status' => 'finale_freigabe']);
 Hosting::beiStatuswechsel($hoProjektId, 'finale_freigabe');
-pruefe('bei finaler Freigabe ohne KAS-Zugang bleibt der Auftrag zugestimmt',
+pruefe('bei finaler Freigabe bleibt der Auftrag zugestimmt — noch nichts angelegt',
+    (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
+pruefe('und es wurde auch nichts versucht (keine KAS-Meldung)', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) === 0);
+$hoAbo1 = (int) Db::wert("SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'", [$hoKundeId], 0);
+pruefe('stattdessen steht der Hosting-Vertrag', $hoAbo1 > 0);
+$hoRate = Db::one("SELECT * FROM payments WHERE abo_id = ? ORDER BY id LIMIT 1", [$hoAbo1]);
+pruefe('mit der ersten Monatsrate, offen', $hoRate && (string) $hoRate['status'] !== 'bezahlt'
+    && (int) $hoRate['amount_cents'] === 990, json_encode($hoRate ? [$hoRate['status'], $hoRate['amount_cents']] : null));
+Hosting::beiStatuswechsel($hoProjektId, 'finale_freigabe');
+pruefe('eine zweite Freigabe schliesst keinen zweiten Vertrag',
+    (int) Db::wert("SELECT COUNT(*) FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'", [$hoKundeId], 0) === 1);
+/* Die Rate ist bezahlt -> jetzt wird angelegt. Ohne KAS-Zugang im Test
+   bleibt der Auftrag ehrlich zugestimmt, und Uwe bekommt eine Meldung
+   statt eines halben Accounts. */
+Hosting::nachZahlung($hoAbo1);
+pruefe('nach der Zahlung wird angelegt (im Test: KAS fehlt, Auftrag bleibt zugestimmt)',
     (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
 pruefe('und es liegt eine Meldung fuer Uwe da', (int) Db::wert(
     "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) === 1);
 
 /* Die Abo-Regel: Betreuung und Hosting laufen nebeneinander, aber keine
    zwei Vertraege derselben Art. */
-$hoAbo1 = Abo::anlegen($hoKundeId, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']);
 pruefe('ein Hosting-Vertrag entsteht', $hoAbo1 > 0);
 gesperrt('ein zweiter Hosting-Vertrag ist gesperrt',
     static fn() => Abo::anlegen($hoKundeId, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']));
@@ -7430,6 +7447,112 @@ $vrV = Abo::kuendigungsvorschau(['kuendigung_tage' => 0] + $vrA, '2026-09-20');
 pruefe('ohne Frist wie bisher zum laufenden Monatsende (30.09.)', $vrV['ende'] === '2026-09-30', $vrV['ende']);
 Db::run('DELETE FROM abos WHERE id = ?', [$vrAbo]);
 Db::run('DELETE FROM packages WHERE id = ?', [$vrPaket]);
+
+/* ============================================================================
+   64. Phase 1b/c: Domain, Hosting und E-Mail sind getrennte Entscheidungen
+   ============================================================================ */
+abschnitt('64. Domain, Hosting, E-Mail getrennt');
+require_once $wurzel . '/src/Hosting.php';
+require_once $wurzel . '/src/Zustimmung.php';
+
+/* Die drei Fragen stehen im Fragebogen, dreisprachig, ohne Vorauswahl. */
+$lsFelder = [];
+foreach (Texte::FRAGEBOGEN as $lsBlock) { $lsFelder += (array) ($lsBlock['felder'] ?? []); }
+foreach (['domain_name', 'domain_wahl', 'hosting_wahl', 'mail_wahl'] as $lsF) {
+    $lsDef = $lsFelder[$lsF] ?? null;
+    $lsOk = is_array($lsDef) && isset($lsDef['it'], $lsDef['de'], $lsDef['en']) && !isset($lsDef['vorgabe']);
+    foreach ((array) ($lsDef['optionen'] ?? []) as $lsO) { $lsOk = $lsOk && isset($lsO['it'], $lsO['de'], $lsO['en']); }
+    pruefe("Fragebogen: „{$lsF}“ dreisprachig, nichts vorgewählt", $lsOk);
+}
+pruefe('„uebertragen“ ist eine Wahl, nie eine Vorgabe',
+    isset($lsFelder['domain_wahl']['optionen']['uebertragen']) && !isset($lsFelder['domain_wahl']['vorgabe']));
+
+$lsKunde = Events::kundeFinden(['name' => 'Leistung Probe', 'email' => 'leistung@pruefung.example', 'sprache' => 'de']);
+Db::run("UPDATE customers SET sprache = 'de' WHERE id = ?", [$lsKunde]);
+$lsProjekt = Db::insert('projects', ['customer_id' => $lsKunde, 'name' => 'Leistungsprobe', 'status' => 'entwicklung']);
+$lsAuftrag = static fn(): ?array => Db::one("SELECT * FROM hosting_auftraege WHERE customer_id = ? AND status <> 'abgelehnt'
+                                              ORDER BY id DESC LIMIT 1", [$lsKunde]);
+
+/* Regel 13: Eine Website loest KEIN Hosting aus. */
+foreach (['bisher', 'offen'] as $lsW) {
+    Hosting::nachFragebogen($lsProjekt, $lsKunde, ['hosting_wahl' => $lsW, 'domain' => 'uns',
+        'domain_name' => 'trattoria-kette.it', 'domain_wahl' => 'behalten', 'mail_wahl' => 'bisher']);
+    pruefe("Hosting „{$lsW}“ erzeugt keinen Auftrag", $lsAuftrag() === null);
+}
+
+/* Hosting bei Vecom, Domain bleibt, E-Mail bleibt. */
+Hosting::nachFragebogen($lsProjekt, $lsKunde, ['hosting_wahl' => 'vecom', 'domain' => 'uns',
+    'domain_name' => 'https://www.Trattoria-Kette.it/', 'domain_wahl' => 'behalten', 'mail_wahl' => 'bisher']);
+$lsA = $lsAuftrag();
+pruefe('Hosting „vecom“ erzeugt einen Vorschlag', $lsA !== null && (string) $lsA['status'] === 'vorgeschlagen');
+pruefe('die Domain wird aus der Angabe gelesen und bereinigt', $lsA && (string) $lsA['domain'] === 'trattoria-kette.it',
+    (string) ($lsA['domain'] ?? '-'));
+pruefe('Domain „behalten“ und E-Mail „bisher“ stehen am Auftrag',
+    $lsA && (string) $lsA['domain_aktion'] === 'behalten' && (string) $lsA['mail'] === 'bisher');
+$lsText = $lsA ? Hosting::angebotText($lsA, 'de') : '';
+pruefe('der Kasten sagt, dass die Domain beim Anbieter bleibt und die E-Mail unberührt',
+    str_contains($lsText, 'bleibt bei Ihrem bisherigen Anbieter') && str_contains($lsText, 'E-Mail bleibt davon unberührt'), $lsText);
+pruefe('und bietet kein Postfach an', !str_contains($lsText, 'kontakt@'));
+pruefe('und nennt Preis und Mindestlaufzeit aus der Verwaltung',
+    str_contains($lsText, '9,90') && str_contains($lsText, '12 Monate'), $lsText);
+Hosting::nachFragebogen($lsProjekt, $lsKunde, ['hosting_wahl' => 'vecom', 'domain' => 'uns',
+    'domain_name' => 'andere-kette.it', 'domain_wahl' => 'uebertragen', 'mail_wahl' => 'vecom']);
+pruefe('ein zweiter Fragebogen legt keinen zweiten Auftrag daneben',
+    (int) Db::wert("SELECT COUNT(*) FROM hosting_auftraege WHERE customer_id = ?", [$lsKunde], 0) === 1);
+
+/* Ja: Die Zustimmung steht mit genau dem Wortlaut des Kastens da. */
+pruefe('der Kunde stimmt zu', Hosting::antwort((int) $lsA['id'], $lsKunde, true));
+$lsZ = Db::all('SELECT * FROM zustimmungen WHERE customer_id = ? ORDER BY id', [$lsKunde]);
+pruefe('es gibt genau eine Zustimmung „hosting“ — keinen Umzug', count($lsZ) === 1 && (string) $lsZ[0]['art'] === 'hosting',
+    implode(',', array_column($lsZ, 'art')));
+pruefe('mit dem Wortlaut des Kastens, dem Knopf, Fassung und Sprache',
+    $lsZ && str_starts_with((string) $lsZ[0]['text'], $lsText) && str_contains((string) $lsZ[0]['text'], 'zahlungspflichtig')
+    && (string) $lsZ[0]['fassung'] === Hosting::FASSUNG && (string) $lsZ[0]['sprache'] === 'de'
+    && (int) $lsZ[0]['bezug_id'] === (int) $lsA['id']);
+
+/* Umzug: nur wenn gewaehlt -- dann aber mit eigener Zustimmung. */
+Db::run('DELETE FROM hosting_auftraege WHERE customer_id = ?', [$lsKunde]);
+Db::run('DELETE FROM zustimmungen WHERE customer_id = ?', [$lsKunde]);
+Hosting::nachFragebogen($lsProjekt, $lsKunde, ['hosting_wahl' => 'vecom', 'domain' => 'fremd',
+    'domain_name' => 'umzug-kette.it', 'domain_wahl' => 'uebertragen', 'mail_wahl' => 'vecom']);
+$lsA = $lsAuftrag();
+pruefe('„uebertragen“ + E-Mail „vecom“ stehen am Auftrag',
+    $lsA && (string) $lsA['domain_aktion'] === 'transfer' && (string) $lsA['mail'] === 'vecom');
+$lsText = $lsA ? Hosting::angebotText($lsA, 'de') : '';
+pruefe('der Kasten nennt Auth-Code, Inhaber und das Postfach',
+    str_contains($lsText, 'Auth-Code') && str_contains($lsText, 'Inhaber bleiben Sie')
+    && str_contains($lsText, 'kontakt@umzug-kette.it'), $lsText);
+Hosting::antwort((int) $lsA['id'], $lsKunde, true);
+pruefe('der Umzug hat seine eigene Zustimmung',
+    (int) Db::wert("SELECT COUNT(*) FROM zustimmungen WHERE customer_id = ? AND art = 'domain_transfer'", [$lsKunde], 0) === 1);
+
+/* Ohne Angabe zur Domain nie ein Umzug: "offen" heisst besprechen. */
+Db::run('DELETE FROM hosting_auftraege WHERE customer_id = ?', [$lsKunde]);
+Hosting::nachFragebogen($lsProjekt, $lsKunde, ['hosting_wahl' => 'vecom', 'domain' => 'uns',
+    'domain_name' => 'offen-kette.it']);
+$lsA = $lsAuftrag();
+pruefe('ohne Domain-Wahl: „offen“, nie „transfer“', $lsA && (string) $lsA['domain_aktion'] === 'offen');
+pruefe('ohne E-Mail-Wahl: kein Postfach (offen)', $lsA && (string) $lsA['mail'] === 'offen');
+pruefe('und der Kasten verspricht, nichts ohne Ja zu übertragen',
+    $lsA && str_contains(Hosting::angebotText($lsA, 'de'), 'ohne Ihr ausdrückliches Ja'));
+foreach (['it', 'en'] as $lsL) {
+    $lsT = $lsA ? Hosting::angebotText($lsA, $lsL) : '';
+    pruefe("der Kasten steht auch auf „{$lsL}“, ohne offene Platzhalter",
+        $lsT !== '' && !preg_match('~\{[a-z]+\}~', $lsT) && str_contains($lsT, 'offen-kette.it'), $lsT);
+}
+
+/* Hosting gewuenscht, aber keine Domain: Anruf statt Sackgasse. */
+Db::run('DELETE FROM hosting_auftraege WHERE customer_id = ?', [$lsKunde]);
+Db::run("DELETE FROM notifications WHERE type = 'hosting_domain'");
+Hosting::nachFragebogen($lsProjekt, $lsKunde, ['hosting_wahl' => 'vecom', 'domain' => 'weissnicht']);
+pruefe('ohne Domain kein Auftrag', $lsAuftrag() === null);
+pruefe('aber eine Meldung für Uwe', (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'hosting_domain'", [], 0) === 1);
+
+/* Eine Zustimmung ohne Wortlaut gibt es nicht. */
+gesperrt('eine Zustimmung ohne Text wird abgewiesen',
+    static fn() => Zustimmung::festhalten('hosting', $lsKunde, '  ', 'de', 'x'));
+gesperrt('eine unbekannte Art auch',
+    static fn() => Zustimmung::festhalten('irgendwas', $lsKunde, 'Text', 'de', 'x'));
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -360,7 +360,26 @@ $eing = !empty($eingebettet);
 
     <?php if ($hostingA): ?>
       <div class="tabellenrahmen"><table><tbody>
-        <tr><td style="width:38%">Domain</td><td><b><?= Fmt::h((string) $hostingA['domain']) ?></b></td></tr>
+        <tr><td style="width:38%">Domain</td><td><b><?= Fmt::h((string) $hostingA['domain']) ?></b>
+          <?php /* Was mit der Domain geschehen soll (Migration 053). "Umzug" nur,
+                   wenn der Kunde es ausdruecklich gewaehlt hat. */ ?>
+          <small style="color:var(--leise)"> — <?= Fmt::h([
+              'neu' => 'neu registrieren', 'transfer' => 'Umzug zu Vecom (Kunde hat ihn gewählt)',
+              'behalten' => 'bleibt beim bisherigen Anbieter', 'offen' => 'noch mit dem Kunden klären',
+          ][(string) ($hostingA['domain_aktion'] ?? 'neu')] ?? (string) $hostingA['domain_aktion']) ?></small></td></tr>
+        <tr><td>E-Mail</td><td><?= Fmt::h([
+              'vecom' => 'Postfach kontakt@' . $hostingA['domain'] . ' über Vecom',
+              'bisher' => 'bleibt beim bisherigen Anbieter — kein Postfach, MX nicht anfassen',
+              'keine' => 'keine', 'offen' => 'noch offen — kein Postfach, bis der Kunde es wählt',
+          ][(string) ($hostingA['mail'] ?? 'vecom')] ?? (string) $hostingA['mail']) ?></td></tr>
+        <?php $hZust = sicher(static fn() => Db::one("SELECT * FROM zustimmungen WHERE art = 'hosting' AND bezug_id = ?
+                                                      ORDER BY id DESC LIMIT 1", [(int) $hostingA['id']]), null); ?>
+        <?php if ($hZust): ?>
+          <tr><td>Zustimmung</td><td><details><summary><?= Fmt::h(Fmt::zeit((string) $hZust['created_at'])) ?>
+            · Fassung <?= Fmt::h((string) $hZust['fassung']) ?> · <?= Fmt::h(strtoupper((string) $hZust['sprache'])) ?></summary>
+            <p style="white-space:pre-line;color:var(--dim);font-size:12.5px;margin:6px 0 0"><?= Fmt::h((string) $hZust['text']) ?></p>
+          </details></td></tr>
+        <?php endif; ?>
         <tr><td>Monatlich</td><td><?= Fmt::h(Fmt::geld((int) $hostingA['preis_cents'])) ?><?=
           $hostingA['inklusive'] ? ' <small style="color:var(--leise)">— in der Betreuung enthalten</small>' : '' ?></td></tr>
         <?php if ($hostingA['kas_login']): ?>
@@ -376,7 +395,7 @@ $eing = !empty($eingebettet);
         <?php elseif ((string) $hostingA['status'] === 'zugestimmt'): ?>
           <?= $hostingA['project_id'] === null
               ? 'Zugestimmt. Angelegt wird von selbst, sobald die erste Monatsrate bezahlt ist.'
-              : 'Zugestimmt. Angelegt wird von selbst bei der finalen Freigabe des Projekts.' ?>
+              : 'Zugestimmt. Bei der finalen Freigabe geht die erste Monatsrate raus; angelegt wird von selbst, sobald sie bezahlt ist (steckt das Hosting in Betreuung Plus/Premium, gleich bei der Freigabe).' ?>
         <?php else: ?>
           Angelegt<?= $hostingA['angelegt_am'] ? ' am ' . Fmt::h(Fmt::datum((string) $hostingA['angelegt_am'])) : '' ?>.
           <?= $hostingA['zugang_blob'] !== null ? 'Die Zugangsdaten warten auf den einmaligen Abruf durch den Kunden.'
@@ -390,7 +409,7 @@ $eing = !empty($eingebettet);
       <?php endif; ?>
       <?php if ((string) $hostingA['status'] === 'zugestimmt'): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px"
-              data-frage="Jetzt anlegen? KAS-Account, Domain und Postfach entstehen sofort — die Domain kostet dich Registrierungsgebühr."
+              data-frage="Jetzt anlegen, ohne auf die Zahlung zu warten? Der KAS-Account entsteht sofort<?= ($hostingA['mail'] ?? 'vecom') === 'vecom' ? ', dazu das Postfach' : '' ?><?= ($hostingA['domain_aktion'] ?? 'neu') === 'neu' ? ' — und die Domain-Bestellung danach kostet dich Registrierungsgebühr' : '' ?>."
               data-ja="Ja, anlegen">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_anlegen">
           <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">

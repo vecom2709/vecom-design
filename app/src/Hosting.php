@@ -45,6 +45,9 @@ final class Hosting
     /** Das erste Postfach eines Hosting-Kunden. */
     public const POSTFACH = 'kontakt';
 
+    /** Fassung des Kastentextes -- wird mit jeder Zustimmung gespeichert. */
+    public const FASSUNG = '2026-09-25';
+
     /** Nach so vielen Tagen ohne Abruf werden die Zugangsdaten vernichtet. */
     public const ZUGANG_TAGE = 14;
 
@@ -68,8 +71,18 @@ final class Hosting
     public static function nachFragebogen(int $projektId, int $kundeId, array $antworten): void
     {
         self::still(static function () use ($projektId, $kundeId, $antworten) {
-            if (!self::brauchtDomain($antworten)) { return; }
             if ($kundeId <= 0) { return; }
+
+            /* SEIT 25.09.2026: DER KUNDE ENTSCHEIDET
+               Beantwortet der Fragebogen "Wo soll die Website laufen?",
+               gilt nur das. Hosting entsteht NIE, weil eine Website gebaut
+               wird -- nur, wenn "bei Vecom Design" gewaehlt ist. Aeltere
+               Frageboegen ohne diese Frage behalten ihren alten Weg. */
+            if (array_key_exists('hosting_wahl', $antworten)) {
+                self::nachWahl($projektId, $kundeId, $antworten);
+                return;
+            }
+            if (!self::brauchtDomain($antworten)) { return; }
 
             /* Nur einmal: Wer den Fragebogen nachreicht oder aendert,
                bekommt keinen zweiten Vorschlag neben den ersten. */
@@ -97,6 +110,55 @@ final class Hosting
             ]);
             Events::protokoll('hosting_vorschlag', 'Wunschdomain frei: ' . $frei, $kundeId, null, $projektId ?: null);
         });
+    }
+
+    /**
+     * Der Weg mit den drei Entscheidungen (Domain, Hosting, E-Mail).
+     *
+     * Hosting nur bei "vecom". Die Domain folgt dem, was der Kunde gewaehlt
+     * hat -- ein Umzug zu Vecom nur bei "uebertragen", sonst bleibt sie, wo
+     * sie ist. Ein Postfach nur bei "vecom". Nichts davon ist schon bestellt:
+     * Das geschieht erst mit dem Knopf auf der Kundenseite, und dort steht
+     * genau diese Zusammenstellung.
+     */
+    private static function nachWahl(int $projektId, int $kundeId, array $antworten): void
+    {
+        if ((string) ($antworten['hosting_wahl'] ?? '') !== 'vecom') { return; }
+
+        $schon = Db::one('SELECT id FROM hosting_auftraege WHERE customer_id = ? AND status <> ?',
+            [$kundeId, 'abgelehnt']);
+        if ($schon) { return; }
+
+        $stand = (string) ($antworten['domain'] ?? '');
+        $domain = null;
+        $aktion = 'offen';
+        if ($stand === 'neu') {
+            $domain = self::ersteFreie($antworten);
+            $aktion = 'neu';
+        } elseif (in_array($stand, ['uns', 'fremd'], true)) {
+            $domain = Domainpruefung::normalisieren((string) ($antworten['domain_name'] ?? ''));
+            $aktion = ['behalten' => 'behalten', 'uebertragen' => 'transfer'][(string) ($antworten['domain_wahl'] ?? '')] ?? 'offen';
+        }
+        $mailWahl = (string) ($antworten['mail_wahl'] ?? '');
+        $mail = in_array($mailWahl, ['vecom', 'bisher', 'keine'], true) ? $mailWahl : 'offen';
+
+        if ($domain === null) {
+            /* Hosting gewuenscht, aber keine Domain, mit der es laufen
+               koennte: kein Sackgassen-Vorschlag, sondern ein Anruf. */
+            Events::melden('hosting_domain', 'Hosting gewünscht, Domain unklar', 'hinweis',
+                'Der Kunde möchte Hosting bei Vecom Design, aber aus dem Fragebogen ergibt sich keine '
+                . 'Domain (keine freie Wunschdomain oder kein Name angegeben). Mit ihm klären.',
+                '/kunden/' . $kundeId);
+            return;
+        }
+
+        Db::insert('hosting_auftraege', [
+            'customer_id' => $kundeId, 'project_id' => $projektId ?: null,
+            'domain' => $domain, 'domain_aktion' => $aktion, 'mail' => $mail,
+            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
+        ]);
+        Events::protokoll('hosting_vorschlag', 'Hosting bei Vecom gewählt: ' . $domain
+            . ' (Domain ' . $aktion . ', E-Mail ' . $mail . ')', $kundeId, null, $projektId ?: null);
     }
 
     /** Sagt der Fragebogen: keine Website, Domain neu, Wuensche vorhanden? */
@@ -145,6 +207,46 @@ final class Hosting
     }
 
     /**
+     * Der Text im Kasten auf der Kundenseite -- und, bei "Ja", der Wortlaut
+     * der Zustimmung. Eine Quelle fuer beides: Was gespeichert wird, ist
+     * genau das, was dastand.
+     */
+    public static function angebotText(array $a, string $sprache): string
+    {
+        require_once __DIR__ . '/Texte.php';
+        $t = static fn(string $k): string => (string) (Texte::SEITE[$k][$sprache] ?? Texte::SEITE[$k]['it'] ?? '');
+        $werte = [
+            '{domain}' => (string) $a['domain'],
+            '{preis}'  => Fmt::geld((int) $a['preis_cents'], 'EUR'),
+            '{monate}' => (string) self::mindestMonate(),
+        ];
+        // Der Solo-Kauf (ohne Website) hat seinen eigenen, laengst
+        // abgenommenen Text: neue Domain samt Postfach.
+        if ($a['project_id'] === null) {
+            return strtr($t('hostingAngebotSolo'), $werte);
+        }
+        $aktion = in_array((string) ($a['domain_aktion'] ?? 'neu'), ['neu', 'transfer', 'behalten', 'offen'], true)
+            ? (string) $a['domain_aktion'] : 'offen';
+        $mail = (string) ($a['mail'] ?? 'vecom') === 'vecom' ? $t('hostingUmfangMail') : '';
+        $saetze = [
+            $t('hostingWahlEinleitung'),
+            $t('hostingDomain_' . $aktion),
+            strtr($t('hostingUmfang'), ['{mail}' => $mail]),
+            $t('hostingPreisSatz'),
+            $t('hostingWann'),
+        ];
+        return strtr(implode(' ', array_filter($saetze, static fn(string $x): bool => $x !== '')), $werte);
+    }
+
+    /** Die Mindestlaufzeit des Hosting-Produkts (Migration 052). */
+    private static function mindestMonate(): int
+    {
+        require_once __DIR__ . '/Abo.php';
+        $p = (array) self::still(static fn() => Db::one("SELECT * FROM packages WHERE slug = 'hosting'"), []);
+        return Abo::mindestMonate($p);
+    }
+
+    /**
      * Der Kunde stimmt zu — oder lehnt ab. Beides ist eine Antwort.
      *
      * Der Preis wird im Moment der Zustimmung eingefroren, wie er im
@@ -160,6 +262,26 @@ final class Hosting
         Db::update('hosting_auftraege', $auftragId, $ja
             ? ['status' => 'zugestimmt', 'zugestimmt_am' => date('Y-m-d H:i:s')]
             : ['status' => 'abgelehnt']);
+
+        /* Der Wortlaut, dem zugestimmt wurde -- Kastentext und Knopf, in der
+           Sprache des Kunden. Ein Domain-Umzug bekommt eine eigene Zeile:
+           Er ist ein eigener Auftrag und darf nie nur "mitgemeint" sein. */
+        if ($ja) {
+            self::still(static function () use ($a, $auftragId, $kundeId) {
+                require_once __DIR__ . '/Zustimmung.php';
+                require_once __DIR__ . '/Texte.php';
+                $sprache = strtolower((string) Db::wert('SELECT sprache FROM customers WHERE id = ?', [$kundeId], 'it'));
+                if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+                $knopf = strtr((string) (Texte::SEITE['hostingJa'][$sprache] ?? ''),
+                    ['{preis}' => Fmt::geld((int) $a['preis_cents'], 'EUR')]);
+                $text = self::angebotText($a, $sprache) . "\n\n[" . $knopf . ']';
+                $projekt = $a['project_id'] !== null ? (int) $a['project_id'] : null;
+                Zustimmung::festhalten('hosting', $kundeId, $text, $sprache, self::FASSUNG, $projekt, $auftragId);
+                if ((string) ($a['domain_aktion'] ?? '') === 'transfer') {
+                    Zustimmung::festhalten('domain_transfer', $kundeId, $text, $sprache, self::FASSUNG, $projekt, $auftragId);
+                }
+            });
+        }
         Events::protokoll($ja ? 'hosting_zugestimmt' : 'hosting_abgelehnt',
             ($ja ? 'Domain & Hosting zugestimmt: ' : 'Domain & Hosting abgelehnt: ') . $a['domain'],
             $kundeId, null, $a['project_id'] !== null ? (int) $a['project_id'] : null);
@@ -175,31 +297,44 @@ final class Hosting
            zu registrieren kostet Geld, und das gibt es nicht auf Verdacht.
            Den Anschluss macht Events::zahlungBestaetigen -> nachZahlung(). */
         if ($ja && $a['project_id'] === null) {
-            self::still(static function () use ($a, $kundeId) {
-                require_once __DIR__ . '/Abo.php';
-                require_once __DIR__ . '/Kundenzugang.php';
-                $schonVertrag = Db::one(
-                    "SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
-                       AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
-                if (!$schonVertrag) {
-                    $aboId = Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
-                        'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
-                    $rate = Abo::abrechnen($aboId);
-                    /* Der Zahlungslink dieser ersten Rate fuehrt nach dem
-                       Bezahlen auf die persoenliche Kundenseite — so landet der
-                       Kunde erst auf der Bezahlseite und danach auf seinem
-                       Dashboard, nie davor. */
-                    if ($rate !== null) {
-                        $ziel = self::still(static fn() => Kundenzugang::linkFuer($kundeId), '');
-                        Abo::anfordern($rate, $ziel !== '' ? $ziel : null);
-                    }
-                }
-            });
+            self::still(static fn() => self::vertragUndErsteRate($a, $kundeId));
             Events::melden('hosting_zugestimmt', 'Solo-Hosting zugestimmt: ' . $a['domain'], 'gut',
                 'Vertrag und erste Rate stehen. Angelegt wird, sobald die Zahlung da ist.',
                 '/kunden/' . $kundeId);
         }
         return true;
+    }
+
+    /** Steckt das Hosting in einer laufenden Betreuung (Plus/Premium)? */
+    public static function inklusive(int $kundeId): bool
+    {
+        return (bool) self::still(static fn() => (bool) Db::one(
+            "SELECT a.id FROM abos a JOIN packages p ON p.id = a.package_id
+              WHERE a.customer_id = ? AND a.status IN ('angelegt','aktiv','gekuendigt')
+                AND p.slug IN ('" . implode("','", self::INKLUSIVE_BEI) . "')", [$kundeId]), false);
+    }
+
+    /**
+     * Monatsvertrag und erste Rate samt Zahlungsaufforderung -- einmal je
+     * Kunde. Angelegt wird erst, wenn diese Rate bezahlt ist (nachZahlung).
+     * Der Zahlungslink fuehrt danach auf die persoenliche Kundenseite.
+     */
+    private static function vertragUndErsteRate(array $a, int $kundeId): void
+    {
+        require_once __DIR__ . '/Abo.php';
+        require_once __DIR__ . '/Kundenzugang.php';
+        $schonVertrag = Db::one(
+            "SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
+               AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
+        if ($schonVertrag) { return; }
+        $aboId = Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
+            'projekt_id' => $a['project_id'] !== null ? (int) $a['project_id'] : null,
+            'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
+        $rate = Abo::abrechnen($aboId);
+        if ($rate !== null) {
+            $ziel = self::still(static fn() => Kundenzugang::linkFuer($kundeId), '');
+            Abo::anfordern($rate, $ziel !== '' ? $ziel : null);
+        }
     }
 
     /**
@@ -213,8 +348,15 @@ final class Hosting
         self::still(static function () use ($aboId) {
             $abo = Db::one("SELECT * FROM abos WHERE id = ? AND paket_slug = 'hosting'", [$aboId]);
             if (!$abo) { return; }
-            $a = Db::one("SELECT * FROM hosting_auftraege
-                           WHERE customer_id = ? AND status = 'zugestimmt' AND project_id IS NULL",
+            /* Solo-Auftrag sofort; ein Auftrag zu einer Website erst, wenn
+               die Website freigegeben ist (sonst stuende das Hosting vor der
+               Seite da, fuer die es gedacht ist). */
+            $a = Db::one("SELECT h.* FROM hosting_auftraege h
+                            LEFT JOIN projects p ON p.id = h.project_id
+                           WHERE h.customer_id = ? AND h.status = 'zugestimmt'
+                             AND (h.project_id IS NULL
+                                  OR p.status IN ('finale_freigabe','veroeffentlichung','online','abgeschlossen'))
+                           ORDER BY h.id LIMIT 1",
                 [(int) $abo['customer_id']]);
             if ($a) { self::anlegen((int) $a['id']); }
         });
@@ -310,7 +452,18 @@ final class Hosting
         self::still(static function () use ($projektId) {
             $a = Db::one("SELECT * FROM hosting_auftraege
                            WHERE project_id = ? AND status = 'zugestimmt'", [$projektId]);
-            if ($a) { self::anlegen((int) $a['id']); }
+            if (!$a) { return; }
+            $kundeId = (int) $a['customer_id'];
+
+            /* ERST DIE ZAHLUNG, DANN DAS ANLEGEN (25.09.2026)
+               Bis heute wurde hier sofort angelegt und der Monatsvertrag erst
+               dabei geschlossen -- Account und Domain entstanden, bevor ein
+               Cent fuer das Hosting da war. Jetzt wie beim Solo-Kauf: Vertrag
+               und erste Rate, angelegt wird in nachZahlung(). Steckt das
+               Hosting in der Betreuung (Plus/Premium), gibt es keine eigene
+               Rate -- dann gleich. */
+            if (self::inklusive($kundeId)) { self::anlegen((int) $a['id']); return; }
+            self::vertragUndErsteRate($a, $kundeId);
         });
     }
 
@@ -359,8 +512,13 @@ final class Hosting
             $offen[] = 'Domain im KAS anlegen (Login war aus der Antwort nicht zu lesen)';
         }
 
-        $mailPw = Kas::passwortNeu();
-        if ($als !== null) {
+        /* Ein Postfach nur, wenn der Kunde E-Mail ueber Vecom gewaehlt hat
+           (25.09.2026). Bleibt seine E-Mail bei Microsoft 365 oder beim alten
+           Anbieter, waere ein Postfach hier nicht nur ueberfluessig -- es
+           koennte ihm Mails wegfangen, sobald jemand die MX-Eintraege umstellt. */
+        $mitPostfach = (string) ($a['mail'] ?? 'vecom') === 'vecom';
+        $mailPw = $mitPostfach ? Kas::passwortNeu() : '';
+        if ($als !== null && $mitPostfach) {
             /* kontakt@ statt info@ (Uwe, 25.09.2026): dieselbe Adresse, die
                Vecom selbst benutzt -- kontakt@vecom-design.it. */
             $m = Kas::postfachAnlegen(self::POSTFACH, $domain, $mailPw, $als);
@@ -372,15 +530,13 @@ final class Hosting
         $blob = self::verschluesseln([
             'kas_login' => $acc['login'], 'kas_passwort' => $acc['kas_passwort'],
             'ftp_passwort' => $acc['ftp_passwort'],
-            'postfach' => self::POSTFACH . '@' . $domain, 'postfach_passwort' => $mailPw,
+            'postfach' => $mitPostfach ? self::POSTFACH . '@' . $domain : '',
+            'postfach_passwort' => $mailPw,
             'server' => ($acc['login'] !== '' ? $acc['login'] : 'w…') . '.kasserver.com',
         ]);
 
         /* 4. Der Monatsvertrag — ausser er steckt in der Betreuung. */
-        $inklusive = self::still(static fn() => (bool) Db::one(
-            "SELECT a.id FROM abos a JOIN packages p ON p.id = a.package_id
-              WHERE a.customer_id = ? AND a.status IN ('angelegt','aktiv','gekuendigt')
-                AND p.slug IN ('" . implode("','", self::INKLUSIVE_BEI) . "')", [$kundeId]), false);
+        $inklusive = self::inklusive($kundeId);
         if (!$inklusive) {
             self::still(static function () use ($kundeId, $a) {
                 require_once __DIR__ . '/Abo.php';
@@ -421,21 +577,38 @@ final class Hosting
                     'domain' => $domain,
                     'link'   => Kundenzugang::linkFuer($kundeId),
                     'tage'   => (string) self::ZUGANG_TAGE,
+                    'umfang' => (string) (Texte::SEITE[$mitPostfach ? 'hostingUmfangMailFertig' : 'hostingUmfangFertig'][$sprache] ?? ''),
                 ]);
                 Mail::senden('hosting_fertig', (string) $k['email'], $betreff, $text,
                     ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
             }
         } catch (Throwable $e) { /* die Anzeige auf der Kundenseite steht trotzdem bereit */ }
 
-        /* 6. Die Aufgabe fuer Uwe: bestellen — und was liegen blieb. */
-        Events::melden('hosting_bestellen', 'Domain bestellen: ' . $domain, 'hinweis',
+        /* 6. Die Aufgabe fuer Uwe -- je nachdem, was mit der Domain geschehen
+           soll. Registrieren und Umziehen gehen nur im Domainbestellsystem
+           (keine API bei All-Inkl), SSL per Let's Encrypt nur im KAS. Bei einer
+           Domain, die beim alten Anbieter bleibt, darf NUR der Web-Eintrag
+           geaendert werden: MX, SPF, DKIM, DMARC und TXT sind Sache des Kunden. */
+        $aktion = (string) ($a['domain_aktion'] ?? 'neu');
+        $schritt = [
+            'neu'      => 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
+                        . ' auf den Kunden als Inhaber bestellen — Nameserver ns5.kasserver.com. ',
+            'transfer' => 'Umzug (KK) von ' . $domain . ': Auth-Code beim Kunden anfordern (nicht per Mail im Klartext '
+                        . 'aufbewahren), VORHER die DNS-Einträge beim alten Anbieter ablesen und MX, SPF, DKIM, DMARC '
+                        . 'und TXT im KAS-DNS eintragen, dann den KK-Antrag im Domainbestellsystem stellen. Inhaber bleibt der Kunde. ',
+            'behalten' => 'Die Domain ' . $domain . ' bleibt beim bisherigen Anbieter des Kunden: dort nur A/AAAA für '
+                        . $domain . ' und www auf den KAS-Server zeigen lassen — MX, SPF, DKIM, DMARC und TXT NICHT anfassen. ',
+            'offen'    => 'Mit dem Kunden klären, ob ' . $domain . ' beim alten Anbieter bleibt oder umzieht — '
+                        . 'ohne sein ausdrückliches Ja wird nichts übertragen. ',
+        ][$aktion] ?? '';
+        Events::melden('hosting_bestellen', ($aktion === 'neu' ? 'Domain bestellen: ' : 'Domain einrichten: ') . $domain, 'hinweis',
             'Erledigt: ' . implode(' · ', $schritte) . '. '
-            . 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
-            . ' bestellen — Nameserver ns5.kasserver.com. '
+            . $schritt
             . 'Danach im KAS den SSL-Schutz (Let\'s Encrypt, kostenlos) für die Domain aktivieren. '
+            . ($mitPostfach ? '' : 'Kein Postfach angelegt — der Kunde behält seine E-Mail, wo sie ist. ')
             . ($offen ? 'Außerdem von Hand: ' . implode(' · ', $offen) . '. ' : '')
             . ($inklusive ? 'Abrechnung: in der Betreuung enthalten.'
-                : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' € ist angelegt.'),
+                : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' € läuft.'),
             '/kunden/' . $kundeId);
         Events::protokoll('hosting_angelegt', 'Hosting angelegt: ' . $domain
             . ($acc['login'] !== '' ? ' (' . $acc['login'] . ')' : ''), $kundeId, null,

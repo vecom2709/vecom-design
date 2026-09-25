@@ -645,13 +645,12 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
     <?php if ($hs === 'vorgeschlagen'): ?>
       <div class="klapp" style="border-color:var(--akzent,#dca434)">
-        <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
+        <div class="summe"><?= $h($HT(($hosting['domain_aktion'] ?? 'neu') === 'neu' ? 'hostingTitel' : 'hostingTitelHosting', 'Deine Wunschdomain')) ?></div>
         <p style="margin:10px 0 4px;font-size:17px;font-weight:650"><?= $h((string) $hosting['domain']) ?></p>
-        <p class="mini" style="margin:6px 0 0"><?= $h(strtr(
-            $HT($hosting['project_id'] === null ? 'hostingAngebotSolo' : 'hostingAngebot'), [
-            '{domain}' => (string) $hosting['domain'],
-            '{preis}'  => Fmt::geld((int) $hosting['preis_cents'], 'EUR'),
-        ])) ?></p>
+        <?php /* Derselbe Text, der bei "Ja" als Zustimmung gespeichert wird
+                 (Hosting::angebotText) -- aus den drei Entscheidungen des
+                 Fragebogens zusammengesetzt. */ ?>
+        <p class="mini" style="margin:6px 0 0"><?= $h(Hosting::angebotText($hosting, $sprache)) ?></p>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
           <form method="post" action="<?= $h($hier) ?>">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_antwort">
@@ -671,7 +670,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
     <?php elseif ($hs === 'zugestimmt'): ?>
       <div class="klapp ruht">
-        <div class="summe"><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?></div>
+        <div class="summe"><?= $h($HT(($hosting['domain_aktion'] ?? 'neu') === 'neu' ? 'hostingTitel' : 'hostingTitelHosting', 'Deine Wunschdomain')) ?></div>
         <p class="mini" style="margin:8px 0 0"><?= $h(strtr(
             $HT($hosting['project_id'] === null ? 'hostingWartetZahlung' : 'hostingWartet'), [
             '{domain}' => (string) $hosting['domain']])) ?></p>
@@ -679,7 +678,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
     <?php elseif (in_array($hs, ['angelegt', 'aktiv'], true)): ?>
       <details class="klapp" <?= $hostingZugang !== null || $hosting['zugang_blob'] !== null ? 'open' : '' ?>>
-        <summary><?= $h($HT('hostingTitel', 'Deine Wunschdomain')) ?> · <?= $h((string) $hosting['domain']) ?></summary>
+        <summary><?= $h($HT(($hosting['domain_aktion'] ?? 'neu') === 'neu' ? 'hostingTitel' : 'hostingTitelHosting', 'Deine Wunschdomain')) ?> · <?= $h((string) $hosting['domain']) ?></summary>
 
         <?php if ($hostingZugang !== null): ?>
           <?php /* Der eine Moment. Feld fuer Feld, kopierbar — und der Satz
