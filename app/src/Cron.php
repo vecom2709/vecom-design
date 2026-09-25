@@ -121,6 +121,11 @@ final class Cron
                 return Altseite::nachholen();
             },
             /* Phase 6c: hinterlegte Zugaenge pruefen, abgelaufene loeschen. */
+            /* Phase 6b: E-Mail-Umzuege portionsweise, danach Nachlauf. */
+            'mailumzug'   => static function () {
+                require_once __DIR__ . '/Mailumzug.php';
+                return Mailumzug::cron();
+            },
             'seitenumzug' => static function () {
                 require_once __DIR__ . '/Seitenumzug.php';
                 return Seitenumzug::cron();

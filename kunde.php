@@ -302,6 +302,14 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                             : Texte::h(Texte::SEITE['hostingDanke'] ?? [], $sprache, 'Abgemacht.'));
                 }
 
+            } elseif ($tat === 'mailumzug_zugang') {
+                /* Phase 6b: Zustimmung und Passwoerter in einem Klick. */
+                require_once __DIR__ . '/app/src/Mailumzug.php';
+                $wie = Mailumzug::zugangSpeichern((int) ($_POST['umzug'] ?? 0), (int) $kunde['id'], $_POST, $sprache);
+                if ($wie === 'ok') { $meldung = $T('mailumzugDa'); }
+                elseif ($wie === 'unvollstaendig') { $fehler[] = $T('mailumzugFehlt'); }
+                elseif ($wie === 'host') { $fehler[] = $T('seitenumzugHost'); }
+
             } elseif ($tat === 'seitenumzug_zugang') {
                 /* Phase 6c: Zustimmung und Zugang in einem Klick -- der Knopf
                    IST die Zustimmung, ihr Wortlaut steht darueber. */
@@ -1039,6 +1047,43 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php endif; ?>
     </div>
   <?php endif; ?>
+
+  <?php /* ---------- Phase 6b: E-Mail-Umzug ----------
+           Erscheint erst, wenn Uwe ihn angefragt hat. Der Satz ueber den
+           Feldern ist der gespeicherte Wortlaut; der Klick ist die Zustimmung. */ ?>
+  <?php $mUs = $kunde ? (array) sicherLesen(function () use ($kunde) { require_once __DIR__ . '/app/src/Mailumzug.php';
+      return Mailumzug::fuerKunde((int) $kunde['id']); }, []) : []; ?>
+  <?php foreach ($mUs as $mU): if ((string) $mU['stand'] === 'abgebrochen') { continue; } ?>
+    <div class="klapp" id="mailumzug-<?= (int) $mU['id'] ?>" style="padding:14px 16px">
+      <div class="summe"><?= $h($T('mailumzugTitel')) ?> · <?= $h((string) $mU['adresse']) ?></div>
+      <?php if ((string) $mU['stand'] === 'fertig'): ?>
+        <p class="mini" style="margin:8px 0 0"><?= $h(strtr($T('mailumzugFertig'), ['{kopiert}' => (string) (int) $mU['kopiert'], '{datum}' => Fmt::datum((string) $mU['loeschen_am'])])) ?></p>
+      <?php elseif (in_array((string) $mU['stand'], ['zugang_da', 'laeuft'], true)): ?>
+        <p class="mini" style="margin:8px 0 0"><?= $h((string) $mU['stand'] === 'zugang_da' ? $T('mailumzugDa')
+            : strtr($T('mailumzugLaeuft'), ['{kopiert}' => (string) (int) $mU['kopiert'], '{gesamt}' => (string) (int) $mU['gesamt']])) ?></p>
+      <?php else: ?>
+        <?php if ((string) $mU['stand'] === 'fehler'): ?>
+          <div class="hinweis schlecht" style="margin:8px 0"><?= $h(strtr($T('mailumzugFehler'), ['{fehler}' => (string) $mU['fehler']])) ?></div>
+        <?php endif; ?>
+        <p class="mini" style="margin:8px 0 6px;color:var(--dim)"><?= $h(Mailumzug::zustimmungsText((string) $mU['adresse'], (string) $mU['ziel_adresse'], $sprache)) ?></p>
+        <p class="mini" style="margin:0 0 10px;color:var(--leise)"><?= $h($T('mailumzugHilfe')) ?></p>
+        <form method="post" action="<?= $h($hier) ?>#mailumzug-<?= (int) $mU['id'] ?>" autocomplete="off">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="mailumzug_zugang">
+          <input type="hidden" name="umzug" value="<?= (int) $mU['id'] ?>">
+          <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+            <input name="alt_pass" type="password" required placeholder="<?= $h($T('mailumzugAltPass')) ?>" aria-label="<?= $h($T('mailumzugAltPass')) ?>" autocomplete="new-password">
+            <input name="neu_pass" type="password" required placeholder="<?= $h($T('mailumzugNeuPass')) ?>" aria-label="<?= $h($T('mailumzugNeuPass')) ?>" autocomplete="new-password">
+          </div>
+          <details style="margin-top:8px"><summary class="mini"><?= $h($T('mailumzugServer')) ?></summary>
+            <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:8px">
+              <input name="alt_server" placeholder="<?= $h(Mailumzug::serverFuer((string) $mU['adresse'], static fn() => [])) ?>" aria-label="Server alt" spellcheck="false">
+              <input name="alt_user" placeholder="<?= $h((string) $mU['adresse']) ?>" aria-label="Benutzer alt" spellcheck="false">
+            </div></details>
+          <button class="knopf haupt" style="margin-top:10px"><?= $h($T('mailumzugKnopf')) ?></button>
+        </form>
+      <?php endif; ?>
+    </div>
+  <?php endforeach; ?>
 
   <?php /* ---------- C4: Heute und wie es werden koennte ----------
            Solange es noch keinen Entwurf gibt: die 30-Sekunden-Skizze der

@@ -170,6 +170,41 @@ $eing = !empty($eingebettet);
         </div>
       </div>
     <?php endif; ?>
+    <?php /* Phase 6b: E-Mail-Umzug -- laeuft von selbst, hier nur Stand und Knoepfe. */ ?>
+    <?php require_once __DIR__ . '/../src/Mailumzug.php';
+      $mUs = sicher(static fn() => Mailumzug::fuerKunde((int) $k['id']), []);
+      $mZiel = (string) sicher(static fn() => Db::wert("SELECT CONCAT('kontakt@', domain) FROM hosting_auftraege WHERE customer_id = ? AND mail = 'vecom' ORDER BY id DESC LIMIT 1", [(int) $k['id']], ''), ''); ?>
+    <?php foreach ($mUs as $mU): if ((string) $mU['stand'] === 'abgebrochen') { continue; } ?>
+      <div style="margin:0 0 10px;padding:10px 14px;border:1px solid var(--linie);border-radius:10px;font-size:13px">
+        <b>E-Mail-Umzug</b> <?= Fmt::h((string) $mU['adresse']) ?> → <?= Fmt::h((string) $mU['ziel_adresse']) ?>
+        <span class="marke2 <?= ['fertig' => 'gut', 'fehler' => 'schlecht', 'laeuft' => 'warnung'][(string) $mU['stand']] ?? '' ?>" style="margin-left:6px"><?=
+          Fmt::h(['angefragt' => 'wartet auf Zustimmung', 'zugang_da' => 'startet im nächsten Cron', 'laeuft' => 'läuft',
+                  'fertig' => 'kopiert — Nachlauf bis ' . Fmt::datum((string) $mU['loeschen_am']), 'fehler' => 'hängt'][(string) $mU['stand']] ?? (string) $mU['stand']) ?></span>
+        <div style="color:var(--leise);margin-top:4px"><?= (int) $mU['kopiert'] ?> von <?= (int) $mU['gesamt'] ?> Mails kopiert<?=
+          (int) $mU['zu_gross'] > 0 ? ' · ' . (int) $mU['zu_gross'] . ' über 50 MB übersprungen' : '' ?><?=
+          $mU['letzter_lauf'] ? ' · zuletzt ' . Fmt::h(Fmt::seit((string) $mU['letzter_lauf'])) : '' ?></div>
+        <?php if ((string) $mU['stand'] === 'fehler'): ?><div style="color:var(--rot);margin-top:4px"><?= Fmt::h((string) $mU['fehler']) ?></div><?php endif; ?>
+        <?php if ($mU['zugang_blob'] !== null): ?>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <?php foreach ([['mailumzug_jetzt', 'Jetzt abgleichen'], ['mailumzug_abbrechen', 'Anhalten']] as [$mT, $mW]): ?>
+              <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $mT ?>">
+                <input type="hidden" name="id" value="<?= (int) $mU['id'] ?>"><input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                <button class="knopf" style="padding:4px 10px"><?= Fmt::h($mW) ?></button></form>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
+    <?php endforeach; ?>
+    <details style="margin:0 0 10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">E-Mails aus dem alten Postfach umziehen …</summary>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="mailumzug_anfragen">
+        <input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+        <input name="adresse" type="email" required value="<?= Fmt::h((string) $k['email']) ?>" placeholder="alte Adresse" style="max-width:230px" aria-label="Altes Postfach">
+        <span>→</span>
+        <input name="ziel" type="email" value="<?= Fmt::h($mZiel) ?>" placeholder="neue Adresse" style="max-width:230px" aria-label="Neues Postfach">
+        <button class="knopf">Umzug anfragen</button>
+        <span style="color:var(--leise);font-size:12.5px">Der Kunde stimmt zu und gibt beide Passwörter auf seiner Seite ein. Danach läuft alles von selbst.</span>
+      </form></details>
     <?php if (!$dateien): ?><div class="leer">Noch nichts.</div><?php else: ?>
       <?php foreach ($dateien as $d): ?>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">

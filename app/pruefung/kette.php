@@ -8406,6 +8406,135 @@ foreach (['it', 'de', 'en'] as $suSp) {
 pruefe('Phase 6c: Anfrage-Mail und Zustimmung dreisprachig, ohne offene Platzhalter', $suTx);
 
 /* ============================================================================
+   76. E-Mails umziehen (Phase 6b) -- mit nachgebautem IMAP-Server
+   (gegen einen echten Dovecot am 25.09.2026 ebenso durchgespielt)
+   ============================================================================ */
+abschnitt('76. E-Mails umziehen');
+require_once $wurzel . '/src/Mailumzug.php';
+
+final class KetteImap {
+    /** @var array<string,array> Postfach => ['trenner'=>, 'ordner'=>[name=>['merkmale'=>[], 'uv'=>int, 'mails'=>[uid=>[flags,datum,inhalt]]]]] */
+    public static array $welt = [];
+    public static array $gelesenMarkiert = [];
+    private string $wer = '';
+    public function __construct(public string $host, public int $port) {}
+    public function anmelden(string $u, string $p): void {
+        $k = $this->host . '|' . $u;
+        if (!isset(self::$welt[$k]) || self::$welt[$k]['pass'] !== $p) { throw new RuntimeException('NO [AUTHENTICATIONFAILED]'); }
+        $this->wer = $k;
+    }
+    public function ordner(): array {
+        $w = self::$welt[$this->wer]; $aus = [];
+        foreach ($w['ordner'] as $n => $o) { $aus[] = ['name' => $n, 'trenner' => $w['trenner'], 'merkmale' => $o['merkmale']]; }
+        return $aus;
+    }
+    private string $offen = '';
+    public function oeffnen(string $o, bool $nurLesen = true): array {
+        $x = self::$welt[$this->wer]['ordner'][$o] ?? throw new RuntimeException('NO no such mailbox');
+        $this->offen = $o; return ['anzahl' => count($x['mails']), 'uidvalidity' => $x['uv']];
+    }
+    public function uids(int $ab = 1): array {
+        return array_values(array_filter(array_keys(self::$welt[$this->wer]['ordner'][$this->offen]['mails']), static fn($u) => $u >= $ab));
+    }
+    public function holen(int $uid): ?array { $m = self::$welt[$this->wer]['ordner'][$this->offen]['mails'][$uid] ?? null;
+        return $m ? ['flags' => $m[0], 'datum' => $m[1], 'inhalt' => $m[2]] : null; }
+    public function anlegen(string $o): void { self::$welt[$this->wer]['ordner'][$o] ??= ['merkmale' => [], 'uv' => 1, 'mails' => []]; }
+    public function anhaengen(string $o, string $inhalt, array $flags, string $datum): void {
+        if (!isset(self::$welt[$this->wer]['ordner'][$o])) { throw new RuntimeException('NO [TRYCREATE]'); }
+        $m = &self::$welt[$this->wer]['ordner'][$o]['mails'];
+        $m[(int) (max(array_keys($m) ?: [0]) + 1)] = [$flags, $datum, $inhalt];
+    }
+}
+KetteImap::$welt = [
+    'imap.alt.example|rosa@alt.example' => ['pass' => 'Alt-1', 'trenner' => '.', 'ordner' => [
+        'INBOX' => ['merkmale' => [], 'uv' => 7, 'mails' => [1 => [['\\Seen'], '01-Sep-2025 10:00:00 +0200', "Subject: Eins\r\n\r\nA"],
+                                                                2 => [[], '02-Sep-2025 10:00:00 +0200', "Subject: Zwei\r\n\r\nB"]]],
+        'Posta inviata' => ['merkmale' => ['\\Sent'], 'uv' => 3, 'mails' => [5 => [['\\Seen'], '03-Sep-2025 10:00:00 +0200', "Subject: Raus\r\n\r\nC"]]],
+        'Archivio' => ['merkmale' => ['\\Noselect', '\\HasChildren'], 'uv' => 0, 'mails' => []],
+        'Archivio.2024' => ['merkmale' => [], 'uv' => 9, 'mails' => [1 => [[], '04-Sep-2024 10:00:00 +0200', "Subject: Alt\r\n\r\nD"]]],
+    ]],
+    'w0199999.kasserver.com|kontakt@neu.example' => ['pass' => 'Neu-2', 'trenner' => '/', 'ordner' => [
+        'INBOX' => ['merkmale' => [], 'uv' => 1, 'mails' => []],
+        'Sent' => ['merkmale' => ['\\Sent'], 'uv' => 1, 'mails' => []],
+    ]],
+];
+Mailumzug::$verbinden = static fn(string $h, int $p, bool $t) => new KetteImap($h, $p);
+Mailumzug::$hostErlaubt = static fn(string $h) => !in_array($h, ['127.0.0.1', 'localhost'], true);
+
+pruefe('Phase 6b: der Server wird aus der Adresse oder den MX-Einträgen geraten, sonst imap.<domain>',
+    Mailumzug::serverFuer('x@gmail.com') === 'imap.gmail.com' && Mailumzug::serverFuer('x@libero.it') === 'imapmail.libero.it'
+    && Mailumzug::serverFuer('x@firma.it', static fn() => ['firma-it.mail.protection.outlook.com']) === 'outlook.office365.com'
+    && Mailumzug::serverFuer('x@firma.it', static fn() => ['mx.aruba.it']) === 'imaps.aruba.it'
+    && Mailumzug::serverFuer('x@firma.it', static fn() => []) === 'imap.firma.it');
+
+$muK = Events::kundeFinden(['name' => 'Rosa Mail', 'email' => 'rosa@alt.example', 'sprache' => 'it']);
+Db::insert('hosting_auftraege', ['customer_id' => $muK, 'domain' => 'neu.example', 'status' => 'angelegt', 'preis_cents' => 990,
+    'domain_aktion' => 'neu', 'mail' => 'vecom', 'kas_login' => 'w0199999']);
+$muId = Mailumzug::anfragen($muK, 'rosa@alt.example', 'kontakt@neu.example');
+pruefe('Phase 6b: der neue Server kommt aus dem KAS-Account des Kunden', Mailumzug::zielServer($muK) === 'w0199999.kasserver.com');
+pruefe('Phase 6b: ohne beide Passwörter oder mit internem Server nichts gespeichert, nichts zugestimmt',
+    Mailumzug::zugangSpeichern($muId, $muK, ['alt_pass' => 'Alt-1'], 'it') === 'unvollstaendig'
+    && Mailumzug::zugangSpeichern($muId, $muK, ['alt_pass' => 'x', 'neu_pass' => 'y', 'alt_server' => '127.0.0.1'], 'it') === 'host'
+    && (int) Db::wert("SELECT COUNT(*) FROM zustimmungen WHERE customer_id = ? AND art = 'mailumzug'", [$muK], 0) === 0);
+pruefe('Phase 6b: ein fremder Kunde kann nicht zustimmen',
+    Mailumzug::zugangSpeichern($muId, $muK + 999, ['alt_pass' => 'Alt-1', 'neu_pass' => 'Neu-2'], 'it') === 'nicht_dran');
+
+/* Falsches Passwort: Fehler mit Grund, Kunde kann neu eingeben */
+Mailumzug::zugangSpeichern($muId, $muK, ['alt_server' => 'imap.alt.example', 'alt_pass' => 'falsch', 'neu_pass' => 'Neu-2'], 'it');
+pruefe('Phase 6b: falsches Passwort -- „hängt“ mit Grund, und der Kunde darf neu eingeben',
+    Mailumzug::weiter($muId) === 'fehler' && str_contains((string) Db::wert('SELECT fehler FROM mailumzuege WHERE id = ?', [$muId], ''), 'Altes Postfach')
+    && Mailumzug::zugangSpeichern($muId, $muK, ['alt_server' => 'imap.alt.example', 'alt_pass' => 'Alt-1', 'neu_pass' => 'Neu-2'], 'it') === 'ok');
+$muRow = Db::one('SELECT * FROM mailumzuege WHERE id = ?', [$muId]);
+pruefe('Phase 6b: Passwörter nur verschlüsselt; Zustimmung mit Wortlaut beider Adressen',
+    !str_contains((string) $muRow['zugang_blob'], 'Alt-1') && !str_contains((string) $muRow['zugang_blob'], 'Neu-2')
+    && str_contains((string) Db::wert("SELECT text FROM zustimmungen WHERE customer_id = ? AND art = 'mailumzug' ORDER BY id DESC LIMIT 1", [$muK], ''), 'kontakt@neu.example'));
+
+$muStand = Mailumzug::weiter($muId);
+$muNeu = KetteImap::$welt['w0199999.kasserver.com|kontakt@neu.example']['ordner'];
+pruefe('Phase 6b: alles kopiert -- Posteingang, Gesendet in den Gesendet-Ordner des neuen Servers, Unterordner mit dessen Trennzeichen',
+    $muStand === 'fertig' && count($muNeu['INBOX']['mails']) === 2 && count($muNeu['Sent']['mails']) === 1
+    && isset($muNeu['Archivio/2024']) && count($muNeu['Archivio/2024']['mails']) === 1 && !isset($muNeu['Posta inviata']) && !isset($muNeu['Archivio.2024']));
+pruefe('Phase 6b: „gelesen“ und Datum ziehen mit um',
+    $muNeu['INBOX']['mails'][1][0] === ['\\Seen'] && $muNeu['INBOX']['mails'][2][0] === [] && $muNeu['INBOX']['mails'][1][1] === '01-Sep-2025 10:00:00 +0200');
+$muR = Db::one('SELECT * FROM mailumzuege WHERE id = ?', [$muId]);
+pruefe('Phase 6b: fertig -- Uwe und Kunde erfahren es, der Zugang bleibt für den Nachlauf 14 Tage',
+    (int) $muR['kopiert'] === 4 && (string) $muR['stand'] === 'fertig' && $muR['zugang_blob'] !== null
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'mailumzug_fertig'", [], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'mailumzug_fertig' AND customer_id = ?", [$muK], 0) === 1);
+
+KetteImap::$welt['imap.alt.example|rosa@alt.example']['ordner']['INBOX']['mails'][3] = [[], '05-Sep-2025 10:00:00 +0200', "Subject: Spaet\r\n\r\nE"];
+Mailumzug::weiter($muId);
+Mailumzug::weiter($muId);
+$muNeu = KetteImap::$welt['w0199999.kasserver.com|kontakt@neu.example']['ordner'];
+pruefe('Phase 6b: der Nachlauf holt nur das Neue -- keine Doppelten, keine zweite Fertig-Meldung',
+    count($muNeu['INBOX']['mails']) === 3 && (int) Db::wert('SELECT kopiert FROM mailumzuege WHERE id = ?', [$muId], 0) === 5
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'mailumzug_fertig'", [], 0) === 1);
+
+KetteImap::$welt['imap.alt.example|rosa@alt.example']['ordner']['INBOX']['uv'] = 8;   // neu nummeriert
+Mailumzug::weiter($muId);
+pruefe('Phase 6b: nummeriert der alte Server einen Ordner neu (UIDVALIDITY), wird er neu gelesen statt still übersprungen',
+    count(KetteImap::$welt['w0199999.kasserver.com|kontakt@neu.example']['ordner']['INBOX']['mails']) === 6);
+
+Db::run('UPDATE mailumzuege SET loeschen_am = NOW() - INTERVAL 1 HOUR WHERE id = ?', [$muId]);
+$muC = Mailumzug::cron();
+pruefe('Phase 6b: nach dem Nachlauf löscht der Cron die Passwörter',
+    $muC['geloescht'] >= 1 && Db::one('SELECT zugang_blob FROM mailumzuege WHERE id = ?', [$muId])['zugang_blob'] === null);
+pruefe('Phase 6b: Anfragen schickt Post und fragt vorher, Anhalten löscht und fragt vorher',
+    Ablauf::wiegt('mailumzug_anfragen') === Ablauf::RAUS && Ablauf::wiegt('mailumzug_abbrechen') === Ablauf::SCHWER
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Mailumzug::cron()'));
+$muT = true;
+foreach (['it', 'de', 'en'] as $muS) {
+    foreach (['mailumzug_anfrage', 'mailumzug_fertig'] as $muA) {
+        [$b, $t] = Texte::mail($muA, $muS, ['name' => 'X', 'alt' => 'a@x', 'neu' => 'b@y', 'anzahl' => '3', 'tage' => '14', 'seite' => 'S']);
+        if (preg_match('~\{[a-z]+\}~', $b . $t)) { $muT = false; }
+    }
+    if (preg_match('~\{[a-z]+\}~', Mailumzug::zustimmungsText('a@x', 'b@y', $muS))) { $muT = false; }
+}
+pruefe('Phase 6b: Mails und Zustimmung dreisprachig, ohne offene Platzhalter', $muT);
+Mailumzug::$verbinden = null;
+Mailumzug::$hostErlaubt = null;
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

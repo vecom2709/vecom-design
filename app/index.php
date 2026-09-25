@@ -891,6 +891,35 @@ if ($post) {
                 $_SESSION['gut'] = 'Die alte Seite wird gesichert. Das dauert ein paar Cronläufe; danach liegt eine ZIP-Datei in der Ablage.';
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'mailumzug_anfragen':
+            case 'mailumzug_jetzt':
+            case 'mailumzug_abbrechen':
+                /* Phase 6b: den E-Mail-Umzug anfragen, einen Lauf sofort
+                   anstossen (statt auf den Cron zu warten) oder abbrechen. */
+                require_once __DIR__ . '/src/Mailumzug.php';
+                $mid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'mailumzug_anfragen') {
+                    $neu = Mailumzug::anfragen($mid, (string) ($_POST['adresse'] ?? ''), (string) ($_POST['ziel'] ?? ''));
+                    require_once __DIR__ . '/src/Mail.php';
+                    require_once __DIR__ . '/src/Texte.php';
+                    require_once __DIR__ . '/src/Kundenzugang.php';
+                    $mk = Db::one('SELECT * FROM customers WHERE id = ?', [$mid]);
+                    $mu = Db::one('SELECT * FROM mailumzuege WHERE id = ?', [$neu]);
+                    $sp = in_array((string) ($mk['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $mk['sprache'] : 'it';
+                    [$mb, $mt] = Texte::mail('mailumzug_anfrage', $sp, ['name' => (string) ($mk['name'] ?? ''),
+                        'alt' => (string) $mu['adresse'], 'neu' => (string) $mu['ziel_adresse'], 'seite' => Kundenzugang::linkFuer($mid)]);
+                    $ok = $mk && Mail::senden('mailumzug_anfrage', (string) $mk['email'], $mb, $mt,
+                        ['customer_id' => $mid, 'antwortAn' => Mail::eigeneAdresse()]);
+                    $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Angefragt — der Kunde stimmt auf seiner Seite zu und gibt die Passwörter dort ein.'
+                        : 'Angefragt, aber die Mail ging nicht raus — schick ihm seinen Link von Hand.';
+                } elseif ($tat === 'mailumzug_jetzt') {
+                    $_SESSION['gut'] = 'Lauf: ' . Mailumzug::weiter($mid) . '.';
+                } else {
+                    Mailumzug::abbrechen($mid);
+                    $_SESSION['gut'] = 'Angehalten. Die Passwörter sind gelöscht.';
+                }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'seitenumzug_anfragen':
             case 'seitenumzug_zeigen':
             case 'seitenumzug_testen':

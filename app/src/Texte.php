@@ -1053,6 +1053,22 @@ final class Texte
         /* Phase 2: automatisch abbuchen. abbuchungZustimmung ist der Wortlaut,
            der als Zustimmung gespeichert wird -- aendern heisst: FASSUNG in
            Abbuchung.php hochzaehlen. */
+        /* Phase 6b: E-Mail-Umzug. mailumzugZustimmung ist der gespeicherte Wortlaut. */
+        'mailumzugTitel' => ['it' => 'Trasferimento delle e-mail', 'de' => 'Umzug Ihrer E-Mails', 'en' => 'Moving your emails'],
+        'mailumzugZustimmung' => [
+            'it' => 'Incarico Vecom Design di copiare tutte le e-mail e cartelle da {alt} a {neu}. Presso il fornitore attuale non viene cancellato né modificato nulla (le e-mail restano anche non lette). Per {tage} giorni dopo la prima copia vengono riprese anche le e-mail nuove; poi le password qui inserite vengono cancellate.',
+            'de' => 'Ich beauftrage Vecom Design, alle E-Mails und Ordner von {alt} nach {neu} zu kopieren. Beim bisherigen Anbieter wird nichts gelöscht oder verändert (auch ungelesene Mails bleiben ungelesen). {tage} Tage nach der ersten Kopie werden neu eingehende Mails noch nachgeholt; danach werden die hier eingegebenen Passwörter gelöscht.',
+            'en' => 'I engage Vecom Design to copy all emails and folders from {alt} to {neu}. Nothing is deleted or changed at the current provider (unread mails stay unread). For {tage} days after the first copy, newly arriving mails are picked up too; then the passwords entered here are deleted.'],
+        'mailumzugHilfe' => ['it' => 'Gmail: serve una „password per le app“. Microsoft 365/Outlook spesso non permette l’accesso IMAP con password — in quel caso ci pensiamo noi.', 'de' => 'Gmail: Sie brauchen ein „App-Passwort“. Microsoft 365/Outlook erlaubt IMAP oft nicht mit Passwort — dann übernehmen wir das von Hand.', 'en' => 'Gmail: you need an “app password”. Microsoft 365/Outlook often does not allow IMAP with a password — then we take care of it by hand.'],
+        'mailumzugAltPass' => ['it' => 'Password della casella attuale', 'de' => 'Passwort des bisherigen Postfachs', 'en' => 'Password of the current mailbox'],
+        'mailumzugNeuPass' => ['it' => 'Password della nuova casella', 'de' => 'Passwort des neuen Postfachs', 'en' => 'Password of the new mailbox'],
+        'mailumzugServer'  => ['it' => 'Server (lo troviamo noi, se lo lascia vuoto)', 'de' => 'Server (leer lassen — wir finden ihn)', 'en' => 'Server (leave empty — we find it)'],
+        'mailumzugKnopf'   => ['it' => 'Acconsento e avvio il trasferimento', 'de' => 'Zustimmen und Umzug starten', 'en' => 'Agree and start the move'],
+        'mailumzugLaeuft'  => ['it' => 'In corso: {kopiert} di {gesamt} e-mail copiate. Continua da sé, può chiudere la pagina.', 'de' => 'Läuft: {kopiert} von {gesamt} E-Mails kopiert. Das geht von selbst weiter — Sie können die Seite schließen.', 'en' => 'Running: {kopiert} of {gesamt} emails copied. It continues on its own — you can close the page.'],
+        'mailumzugFertig'  => ['it' => 'Fatto: {kopiert} e-mail sono nella nuova casella. Fino al {datum} riprendiamo anche quelle nuove.', 'de' => 'Fertig: {kopiert} E-Mails sind im neuen Postfach. Bis zum {datum} holen wir auch neu eingehende nach.', 'en' => 'Done: {kopiert} emails are in the new mailbox. Until {datum} we also pick up newly arriving ones.'],
+        'mailumzugFehler'  => ['it' => 'Non ha funzionato: {fehler} Controlli i dati e riprovi.', 'de' => 'Das hat nicht geklappt: {fehler} Bitte die Angaben prüfen und noch einmal.', 'en' => 'That did not work: {fehler} Please check the details and try again.'],
+        'mailumzugFehlt'   => ['it' => 'Servono le password di entrambe le caselle.', 'de' => 'Es braucht die Passwörter beider Postfächer.', 'en' => 'Both mailbox passwords are needed.'],
+        'mailumzugDa'      => ['it' => 'Grazie — il trasferimento parte a minuti.', 'de' => 'Danke — der Umzug startet in den nächsten Minuten.', 'en' => 'Thank you — the move starts within minutes.'],
         /* Phase 6c: 1:1-Umzug der Website auf der Kundenseite. seitenumzugZustimmung
            ist der Wortlaut, der gespeichert wird -- aendern heisst FASSUNG hochzaehlen. */
         'seitenumzugTitel' => ['it' => 'Trasferimento del suo sito', 'de' => 'Umzug Ihrer Website', 'en' => 'Moving your website'],
@@ -1371,6 +1387,26 @@ final class Texte
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
         /* Phase 2: die Vorabinformation vor jeder Abbuchung. Bei SEPA ist
            sie Pflicht -- und bei der Karte ehrlich. */
+        /* Phase 6b: E-Mail-Umzug -- Anfrage und Abschluss. Nie ein Passwort in der Mail. */
+        'mailumzug_anfrage' => [
+            'it' => ['Trasferire le sue e-mail da {alt}',
+                "Buongiorno {name},\n\ncopiamo le sue e-mail (con tutte le cartelle) da {alt} nella nuova casella {neu}. Presso il fornitore attuale non si cancella nulla.\n\n"
+                . "Sulla sua pagina dà il consenso e inserisce le due password — per favore non per e-mail:\n{seite}"],
+            'de' => ['Ihre E-Mails von {alt} umziehen',
+                "Guten Tag {name},\n\nwir kopieren Ihre E-Mails (mit allen Ordnern) von {alt} in das neue Postfach {neu}. Beim bisherigen Anbieter wird nichts gelöscht.\n\n"
+                . "Auf Ihrer Seite stimmen Sie zu und geben die beiden Passwörter ein — bitte nicht per E-Mail:\n{seite}"],
+            'en' => ['Moving your emails from {alt}',
+                "Hello {name},\n\nwe copy your emails (with all folders) from {alt} into the new mailbox {neu}. Nothing is deleted at the current provider.\n\n"
+                . "On your page you give your consent and enter both passwords — please not by email:\n{seite}"],
+        ],
+        'mailumzug_fertig' => [
+            'it' => ['Le sue e-mail sono nella nuova casella',
+                "Buongiorno {name},\n\n{anzahl} e-mail da {alt} ora sono anche in {neu}. Per {tage} giorni riprendiamo automaticamente quelle che arrivano ancora nella vecchia casella; poi cancelliamo le password.\n\n{seite}"],
+            'de' => ['Ihre E-Mails sind im neuen Postfach',
+                "Guten Tag {name},\n\n{anzahl} E-Mails aus {alt} liegen jetzt auch in {neu}. {tage} Tage lang holen wir automatisch nach, was im alten Postfach noch ankommt; danach löschen wir die Passwörter.\n\n{seite}"],
+            'en' => ['Your emails are in the new mailbox',
+                "Hello {name},\n\n{anzahl} emails from {alt} are now also in {neu}. For {tage} days we automatically pick up whatever still arrives in the old mailbox; then we delete the passwords.\n\n{seite}"],
+        ],
         /* Phase 6c: Uwe fragt den 1:1-Umzug an. Kein Passwort in der Mail --
            nur der Weg zur Seite, auf der zugestimmt und eingegeben wird. */
         'seitenumzug_anfrage' => [

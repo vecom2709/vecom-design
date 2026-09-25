@@ -187,6 +187,12 @@ final class Ablauf
             'Es entsteht ein echter Account beim Anbieter und ein Monatsvertrag, und der Kunde bekommt '
             . 'seine Zugangsdaten.',
             'Ja, Hosting anlegen'],
+        'mailumzug_anfragen' => [self::RAUS,
+            'Der Kunde bekommt eine Mail: Er soll auf seiner Seite dem Umzug zustimmen und die Passwörter des alten und des neuen Postfachs eingeben.',
+            'Ja, anfragen'],
+        'mailumzug_abbrechen' => [self::SCHWER,
+            'Der E-Mail-Umzug wird angehalten, und die Passwörter werden gelöscht. Schon Kopiertes bleibt im neuen Postfach.',
+            'Ja, abbrechen'],
         'seitenumzug_anfragen' => [self::RAUS,
             'Der Kunde bekommt eine Mail: Er soll auf seiner Seite dem Umzug zustimmen und den Zugang zu seinem alten Webspace eingeben.',
             'Ja, anfragen'],
