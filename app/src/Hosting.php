@@ -476,6 +476,7 @@ final class Hosting
         'account'  => 'KAS-Account',
         'domain'   => 'Domain im KAS',
         'postfach' => 'Postfach',
+        'dns'      => 'DNS vom alten Anbieter',
         'vertrag'  => 'Monatsvertrag',
         'kunde'    => 'Mail an den Kunden',
         'aufgabe'  => 'Aufgabe für Uwe',
@@ -564,6 +565,10 @@ final class Hosting
             public function domainAnlegen(string $d, ?array $als = null): array { return Kas::domainAnlegen($d, $als); }
             public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array { return Kas::postfachAnlegen($l, $d, $pw, $als); }
             public function passwortNeu(): string { return Kas::passwortNeu(); }
+            public function dnsLesen(string $d, ?array $als = null): array { return Kas::dnsLesen($d, $als); }
+            public function dnsHinzufuegen(string $d, string $t, string $n, string $w, int $aux = 0, ?array $als = null): array { return Kas::dnsHinzufuegen($d, $t, $n, $w, $aux, $als); }
+            public function dnsAendern(string $id, string $w, int $aux = 0, ?array $als = null): array { return Kas::dnsAendern($id, $w, $aux, $als); }
+            public function bestand(string $d): array { require_once __DIR__ . '/Domainumzug.php'; return Domainumzug::bestandsaufnahme($d); }
         };
     }
 
@@ -585,7 +590,15 @@ final class Hosting
         $st = self::schritte($auftragId);
         /* Beansprucht, aber die Schritte stehen noch nicht: Ein anderer Aufruf
            ist genau jetzt dabei. Nicht dazwischenfunken. */
-        if (count($st) < count(self::SCHRITTE)) { return ['ok' => false, 'text' => 'Wird gerade eingerichtet.']; }
+        if (!isset($st['account'])) { return ['ok' => false, 'text' => 'Wird gerade eingerichtet.']; }
+        /* Ein Schritt, den es beim Anlegen noch nicht gab (DNS, 25.09.2026):
+           nachtragen, statt den Auftrag daran haengen zu lassen. */
+        foreach (array_keys(self::SCHRITTE) as $s) {
+            if (!isset($st[$s])) {
+                Db::run('INSERT IGNORE INTO hosting_schritte (auftrag_id, schritt, status) VALUES (?, ?, ?)', [$auftragId, $s, 'offen']);
+            }
+        }
+        $st = self::schritte($auftragId);
 
         /* Domain und Postfach, die mitten im Aufruf abbrachen, duerfen einfach
            noch einmal: Ein zweites Anlegen meldet "gibt es schon", und das
@@ -672,8 +685,34 @@ final class Hosting
             }
         }
         $st = self::schritte($auftragId);
-        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach'])) {
-            return ['ok' => false, 'text' => 'Domain oder Postfach wird noch einmal versucht.'];
+
+        /* 2b. DNS VOM ALTEN ANBIETER -- nur beim Umzug, und nur wenn die
+           Domain im KAS steht. Was heute beim alten Anbieter eingetragen
+           ist, kommt in die KAS-Zone, BEVOR die Nameserver umziehen: Sonst
+           kommen danach keine Mails mehr an, und Bestaetigungen (Google,
+           Microsoft) sind weg. */
+        if (self::dran($st['dns'])) {
+            if ((string) ($a['domain_aktion'] ?? '') !== 'transfer') {
+                self::schritt($auftragId, 'dns', 'entfaellt', (string) ($a['domain_aktion'] ?? '') === 'behalten'
+                    ? 'Die Domain bleibt beim bisherigen Anbieter — dort nur den Web-Eintrag ändern.'
+                    : 'Neue Domain — es gibt nichts zu übernehmen.');
+            } elseif ($als === null || (string) $st['domain']['status'] !== 'fertig') {
+                self::schritt($auftragId, 'dns', 'hand', 'Ohne Domain im KAS oder ohne Login nicht automatisch — Einträge aus der Kundenakte im KAS eintragen.');
+            } else {
+                self::schritt($auftragId, 'dns', 'laeuft', null, true);
+                try {
+                    $r = self::dnsUebernehmen($domain, (string) ($a['mail'] ?? 'vecom'), $als, $kas);
+                    self::schritt($auftragId, 'dns', !empty($r['hand']) ? 'hand'
+                        : ($r['ok'] ? 'fertig' : ((int) $st['dns']['versuche'] + 1 >= self::VERSUCHE ? 'hand' : 'fehler')), $r['text']);
+                } catch (Throwable $e) {
+                    self::schritt($auftragId, 'dns', (int) $st['dns']['versuche'] + 1 >= self::VERSUCHE ? 'hand' : 'fehler', $e->getMessage());
+                }
+            }
+            $st = self::schritte($auftragId);
+        }
+
+        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach']) || !self::erledigt($st['dns'])) {
+            return ['ok' => false, 'text' => 'Domain, Postfach oder DNS wird noch einmal versucht.'];
         }
 
         /* 3. DER MONATSVERTRAG -- ausser er steckt in der Betreuung. Beim
@@ -793,6 +832,126 @@ final class Hosting
         }
 
         return ['ok' => true, 'text' => $hand ? 'Angelegt, mit Handarbeit: ' . implode(' · ', $hand) : 'Angelegt.'];
+    }
+
+    /**
+     * Welche Eintraege vom alten Anbieter in die KAS-Zone gehoeren.
+     *
+     * DIE REGEL
+     *   - Web (A/AAAA/CNAME fuer @ und www) und NS nie: Genau die sollen ja
+     *     kuenftig auf den KAS zeigen -- das stellt der KAS selbst ein.
+     *   - Bleibt die E-Mail beim alten Anbieter (Microsoft 365, Google ...):
+     *     MX, SPF, DKIM und DMARC mitnehmen -- und die MX des KAS ersetzen.
+     *   - Laeuft die E-Mail kuenftig ueber Vecom: nichts davon, der KAS hat
+     *     seine eigenen. Mitgenommen werden nur fremde TXT-Eintraege
+     *     (Bestaetigungen von Google, Microsoft, Facebook ...).
+     *
+     * @param list<array{name:string,typ:string,wert:string}> $bestand
+     * @return array{eintraege:list<array{typ:string,name:string,daten:string,aux:int}>, mx_ersetzen:bool}
+     */
+    public static function dnsAuswahl(array $bestand, string $mail): array
+    {
+        $mailBleibt = $mail !== 'vecom';
+        $aus = [];
+        foreach ($bestand as $e) {
+            $name = $e['name'] === '@' ? '' : (string) $e['name'];
+            $typ = strtoupper((string) $e['typ']);
+            $wert = trim((string) $e['wert']);
+            if (in_array($typ, ['NS', 'A', 'AAAA'], true) || ($typ === 'CNAME' && in_array($name, ['', 'www'], true))) { continue; }
+            $istSpf = $typ === 'TXT' && stripos($wert, 'v=spf1') === 0;
+            $istMail = $typ === 'MX' || $istSpf || str_starts_with($name, '_dmarc') || str_contains($name, '._domainkey');
+            if ($istMail && !$mailBleibt) { continue; }
+            $aux = 0;
+            if ($typ === 'MX' && preg_match('~^(\d+)\s+(\S+)$~', $wert, $m)) { $aux = (int) $m[1]; $wert = rtrim($m[2], '.'); }
+            $aus[] = ['typ' => $typ, 'name' => $name, 'daten' => $wert, 'aux' => $aux];
+        }
+        $mxDa = (bool) array_filter($aus, static fn($x) => $x['typ'] === 'MX');
+        return ['eintraege' => $aus, 'mx_ersetzen' => $mailBleibt && $mxDa];
+    }
+
+    /** Die Auswahl in die KAS-Zone schreiben. */
+    private static function dnsUebernehmen(string $domain, string $mail, array $als, object $kas): array
+    {
+        $bestand = $kas->bestand($domain);
+        $plan = self::dnsAuswahl($bestand, $mail);
+        if (!$plan['eintraege']) { return ['ok' => true, 'text' => 'Beim alten Anbieter stand nichts, was mit muss.']; }
+        $umgeschrieben = 0;
+        $uebrigKas = 0;
+        $eintraege = $plan['eintraege'];
+        if ($plan['mx_ersetzen']) {
+            /* Die MX des KAS duerfen nicht neben denen des alten Anbieters
+               stehen -- sonst landet ein Teil der Post in einem KAS-Postfach,
+               das es fuer diesen Kunden gar nicht gibt. GELOESCHT wird nicht
+               (Kas hat mit Absicht keine loeschende Methode): Die KAS-MX
+               werden auf die alten Ziele UMGESCHRIEBEN. Nur ausdruecklich
+               aenderbare mit Nummer; bleibt einer uebrig, entscheidet Uwe. */
+            $zone = $kas->dnsLesen($domain, $als);
+            if (!$zone['ok']) { return ['ok' => false, 'text' => 'KAS-Zone nicht lesbar: ' . $zone['text']]; }
+            $alteMx = array_values(array_filter($eintraege, static fn($e) => $e['typ'] === 'MX'));
+            $sonst = array_values(array_filter($eintraege, static fn($e) => $e['typ'] !== 'MX'));
+            $kasMx = array_values(array_filter($zone['eintraege'], static fn($z) => $z['typ'] === 'MX'));
+            foreach ($kasMx as $z) {
+                if (!$z['aenderbar'] || $z['id'] === '' || !$alteMx) { $uebrigKas++; continue; }
+                $ziel = array_shift($alteMx);
+                $r = $kas->dnsAendern($z['id'], $ziel['daten'], $ziel['aux'], $als);
+                if ($r['ok']) { $umgeschrieben++; } else { array_unshift($alteMx, $ziel); $uebrigKas++; }
+            }
+            $eintraege = array_merge($alteMx, $sonst);
+        }
+        $fehler = [];
+        $gut = $umgeschrieben;
+        foreach ($eintraege as $e) {
+            $r = $kas->dnsHinzufuegen($domain, $e['typ'], $e['name'], $e['daten'], $e['aux'], $als);
+            if ($r['ok']) { $gut++; } else { $fehler[] = $e['typ'] . ' ' . ($e['name'] ?: '@') . ': ' . $r['text']; }
+        }
+        if ($fehler) { return ['ok' => false, 'text' => $gut . ' übernommen, nicht: ' . implode(' · ', $fehler)]; }
+        if ($uebrigKas > 0) {
+            return ['ok' => true, 'hand' => true, 'text' => $gut . ' Einträge übernommen. Im KAS steht noch ' . $uebrigKas
+                . ' eigener MX-Eintrag — bitte dort löschen, sonst geht ein Teil der Post ins Leere.'];
+        }
+        return ['ok' => true, 'text' => $gut . ' Einträge übernommen' . ($umgeschrieben ? ', davon ' . $umgeschrieben . ' KAS-MX umgeschrieben' : '') . ' — einmal im KAS ansehen.'];
+    }
+
+    /** Ab diesem Anteil am Speicher meldet sich die Verwaltung. */
+    public const SPEICHER_WARNUNG = 0.9;
+
+    /**
+     * Der Speicher aller Kunden-Accounts -- einmal am Tag, ein Aufruf fuer alle
+     * (get_space mit show_subaccounts). Ab 90 % gibt es EINE Meldung je Account
+     * und Monat, nicht jeden Tag eine.
+     *
+     * @param callable():array|null $lesen austauschbar fuer die Pruefkette (Form wie Kas::speicherUnterkonten)
+     * @return array{gelesen:int, gewarnt:int}
+     */
+    public static function speicherPruefen(?callable $lesen = null): array
+    {
+        $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_speicher_am'", [], '');
+        if ($lesen === null && $zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-20 hours'))) { return ['gelesen' => 0, 'gewarnt' => 0]; }
+        $r = $lesen !== null ? $lesen() : Kas::speicherUnterkonten();
+        if (!$r['ok']) { return ['gelesen' => 0, 'gewarnt' => 0]; }
+        Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_speicher', ?), ('kas_speicher_am', ?)
+                  ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [json_encode($r['belegt']), date('Y-m-d H:i:s')]);
+        $gewarnt = 0;
+        foreach (Db::all("SELECT h.*, COALESCE(NULLIF(c.company,''), NULLIF(c.name,''), c.email) AS wer
+                            FROM hosting_auftraege h JOIN customers c ON c.id = h.customer_id
+                           WHERE h.kas_login IS NOT NULL AND h.status IN ('angelegt','aktiv')") as $h) {
+            $mb = $r['belegt'][(string) $h['kas_login']] ?? null;
+            if ($mb === null || $mb < self::SPEICHER_MB * self::SPEICHER_WARNUNG) { continue; }
+            $schluessel = 'speicher_warnung_' . $h['kas_login'] . '_' . date('Y-m');
+            if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '') !== '') { continue; }
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)', [$schluessel, (string) $mb]);
+            Events::melden('hosting_speicher', 'Speicher fast voll: ' . $h['domain'], 'warnung',
+                $h['wer'] . ' belegt ' . number_format($mb / 1024, 1, ',', '.') . ' von ' . (int) (self::SPEICHER_MB / 1024)
+                . ' GB. Aufräumen (alte Mails, Sicherungen) oder mehr Speicher vereinbaren.', '/kunden/' . (int) $h['customer_id']);
+            $gewarnt++;
+        }
+        return ['gelesen' => count($r['belegt']), 'gewarnt' => $gewarnt];
+    }
+
+    /** Belegter Speicher in MB je KAS-Login, wie zuletzt gelesen. */
+    public static function speicher(): array
+    {
+        return json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_speicher'", [], ''), true) ?: [];
     }
 
     /** Eine Meldung fuer Uwe, wenn ein Schritt Handarbeit geworden ist. */

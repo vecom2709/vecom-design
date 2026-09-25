@@ -113,6 +113,11 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::fortsetzen();
             },
+            /* Einmal am Tag: Speicher aller Kunden-Accounts, Warnung ab 90 %. */
+            'speicher'    => static function () {
+                require_once __DIR__ . '/Hosting.php';
+                return Hosting::speicherPruefen();
+            },
             /* Phase 5: beantragte Domain-Umzuege -- zeigen die Nameserver
                schon auf All-Inkl? */
             /* Phase 6a: alte Seiten portionsweise sichern. */

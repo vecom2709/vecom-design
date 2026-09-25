@@ -371,6 +371,125 @@ final class Kas
                 'text' => $erg['ok'] ? 'Postfach ' . $lokal . '@' . $domain . ' ist angelegt.' : $erg['text']];
     }
 
+    /* ==================================================================== */
+    /*  DNS, Speicher, Cronjob (25.09.2026, aus der KAS-Doku)               */
+    /*                                                                      */
+    /*  Die Doku nennt die Parameter, aber nicht die Felder der Antworten.  */
+    /*  Deshalb wird tolerant gelesen -- und was sich nicht sicher als      */
+    /*  bestimmter Eintrag erkennen laesst, wird nie geloescht.             */
+    /* ==================================================================== */
+
+    /** zone_host verlangt den Punkt am Ende ("meinedomain.de." -- so im Beispiel der Doku). */
+    public static function zone(string $domain): string
+    {
+        return rtrim(strtolower(trim($domain)), '.') . '.';
+    }
+
+    /**
+     * Die Eintraege einer Zone.
+     * @return array{ok:bool,text:string,eintraege:list<array{id:string,name:string,typ:string,daten:string,aux:string,aenderbar:bool}>}
+     */
+    public static function dnsLesen(string $domain, ?array $als = null): array
+    {
+        $erg = self::rufen('get_dns_settings', ['zone_host' => self::zone($domain)], $als);
+        if (!$erg['ok']) { return ['ok' => false, 'text' => $erg['text'], 'eintraege' => []]; }
+        $roh = $erg['daten'];
+        if (is_array($roh) && isset($roh['record_id'])) { $roh = [$roh]; }
+        $aus = [];
+        foreach ((array) $roh as $r) {
+            if (!is_array($r)) { continue; }
+            $aus[] = [
+                'id'   => (string) ($r['record_id'] ?? ''),
+                'name' => (string) ($r['record_name'] ?? ''),
+                'typ'  => strtoupper((string) ($r['record_type'] ?? '')),
+                'daten'=> (string) ($r['record_data'] ?? ''),
+                'aux'  => (string) ($r['record_aux'] ?? ''),
+                /* Nur was ausdruecklich als aenderbar markiert ist, gilt als
+                   aenderbar -- fehlt das Feld, fassen wir es nicht an. */
+                'aenderbar' => in_array(strtoupper((string) ($r['record_changeable'] ?? 'N')), ['Y', '1', 'TRUE'], true),
+            ];
+        }
+        return ['ok' => true, 'text' => '', 'eintraege' => $aus];
+    }
+
+    /** @return array{ok:bool,text:string} "gibt es schon" zaehlt als ok */
+    public static function dnsHinzufuegen(string $domain, string $typ, string $name, string $daten, int $aux = 0, ?array $als = null): array
+    {
+        $erg = self::rufen('add_dns_settings', [
+            'zone_host' => self::zone($domain), 'record_type' => strtoupper($typ),
+            'record_name' => $name, 'record_data' => $daten, 'record_aux' => (string) $aux,
+        ], $als);
+        if (!$erg['ok'] && stripos($erg['text'], 'record_already_exists') !== false) {
+            return ['ok' => true, 'text' => 'war schon da'];
+        }
+        return ['ok' => $erg['ok'], 'text' => $erg['ok'] ? 'eingetragen' : $erg['text']];
+    }
+
+    /**
+     * Einen Eintrag umschreiben (update_dns_settings). Geloescht wird in
+     * dieser Klasse nie -- auch keine DNS-Eintraege (siehe Pruefkette).
+     * @return array{ok:bool,text:string}
+     */
+    public static function dnsAendern(string $id, string $daten, int $aux = 0, ?array $als = null): array
+    {
+        if (!preg_match('~^\d+$~', $id)) { return ['ok' => false, 'text' => 'Keine gültige Eintragsnummer.']; }
+        $erg = self::rufen('update_dns_settings', ['record_id' => $id, 'record_data' => $daten, 'record_aux' => (string) $aux], $als);
+        if (!$erg['ok'] && stripos($erg['text'], 'nothing_to_do') !== false) { return ['ok' => true, 'text' => 'unverändert']; }
+        return ['ok' => $erg['ok'], 'text' => $erg['text']];
+    }
+
+    /**
+     * Speicher aller Unter-Accounts in einem Aufruf (get_space, show_subaccounts=Y).
+     * @return array{ok:bool,text:string,belegt:array<string,int>} Login => belegte MB
+     */
+    public static function speicherUnterkonten(): array
+    {
+        $erg = self::rufen('get_space', ['show_subaccounts' => 'Y']);
+        if (!$erg['ok']) { return ['ok' => false, 'text' => $erg['text'], 'belegt' => []]; }
+        $belegt = [];
+        $sammeln = static function ($d) use (&$sammeln, &$belegt): void {
+            if (!is_array($d)) { return; }
+            $login = (string) ($d['account_login'] ?? $d['login'] ?? '');
+            if ($login !== '' && preg_match('/^w[0-9a-f]{7}$/i', $login)) {
+                /* Die Doku sagt kBytes. Genommen wird das erste Feld, dessen
+                   Name nach "belegt" klingt -- sonst lieber gar nichts. */
+                foreach ($d as $k => $v) {
+                    if (is_numeric($v) && preg_match('~used|belegt|space_used|webspace_used~i', (string) $k)) {
+                        $belegt[$login] = (int) round(((float) $v) / 1024);
+                        break;
+                    }
+                }
+            }
+            foreach ($d as $v) { if (is_array($v)) { $sammeln($v); } }
+        };
+        $sammeln($erg['daten']);
+        return ['ok' => true, 'text' => $belegt ? '' : 'Die Antwort enthielt keine lesbaren Werte.', 'belegt' => $belegt];
+    }
+
+    /** @return array{ok:bool,text:string,urls:list<string>} */
+    public static function cronjobs(): array
+    {
+        $erg = self::rufen('get_cronjobs');
+        if (!$erg['ok']) { return ['ok' => false, 'text' => $erg['text'], 'urls' => []]; }
+        $urls = [];
+        array_walk_recursive($erg['daten'], static function ($v, $k) use (&$urls) {
+            if (is_string($v) && in_array((string) $k, ['http_url', 'cronjob_url', 'url'], true)) { $urls[] = $v; }
+        });
+        return ['ok' => true, 'text' => '', 'urls' => $urls];
+    }
+
+    /** Den Cronjob der Verwaltung anlegen: alle zehn Minuten, per HTTPS. */
+    public static function cronjobAnlegen(string $url, string $kommentar = 'Vecom Verwaltung'): array
+    {
+        $ohne = preg_replace('~^https?://~i', '', $url) ?? $url;
+        $erg = self::rufen('add_cronjob', [
+            'protocol' => 'https', 'http_url' => $ohne, 'cronjob_comment' => mb_substr($kommentar, 0, 60),
+            'minute' => '*/10', 'hour' => '*', 'day_of_month' => '*', 'month' => '*', 'day_of_week' => '*',
+            'is_active' => 'Y',
+        ]);
+        return ['ok' => $erg['ok'], 'text' => $erg['ok'] ? 'Der Cronjob ist im KAS eingetragen.' : $erg['text']];
+    }
+
     /** Sucht in der API-Antwort nach dem vergebenen Account-Login. */
     private static function loginAus(mixed $daten): string
     {

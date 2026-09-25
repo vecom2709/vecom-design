@@ -13,7 +13,13 @@
     Der Webspace hat keinen eigenen Dienst, der von allein läuft. Der Anstoß kommt vom
     KAS: Er ruft alle zehn Minuten diese Adresse auf. Ohne den Schlüssel darin passiert nichts.
   </p>
-  <div class="feld"><label>Diese Adresse im KAS eintragen</label>
+  <?php /* 25.09.2026: Der Eintrag geht auch per KAS-Schnittstelle (add_cronjob). */ ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 12px">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="cron_kas_anlegen">
+    <button class="knopf">Im KAS eintragen lassen</button>
+    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Alle zehn Minuten, per HTTPS. Steht er schon da, passiert nichts.</span>
+  </form>
+  <div class="feld"><label>Oder diese Adresse von Hand im KAS eintragen</label>
     <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adresse) ?>"></div>
   <ol style="color:var(--dim);font-size:13.5px;line-height:1.9;padding-left:20px;margin:0">
     <li>Im KAS links auf <b>Tools</b> → <b>Cronjobs</b></li>

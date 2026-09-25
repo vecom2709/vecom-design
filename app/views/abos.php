@@ -70,7 +70,8 @@
   <div class="block"><div class="leer">Noch kein Hosting-Auftrag.</div></div>
 <?php else: ?>
 <div class="block"><div class="tabellenrahmen"><table>
-  <thead><tr><th>Kunde</th><th>Domain</th><th>Domain soll</th><th>E-Mail</th><th>Monatlich</th><th>Stand</th></tr></thead><tbody>
+  <thead><tr><th>Kunde</th><th>Domain</th><th>Domain soll</th><th>E-Mail</th><th>Speicher</th><th>Monatlich</th><th>Stand</th></tr></thead><tbody>
+  <?php require_once __DIR__ . '/../src/Hosting.php'; $hSpeicher = sicher(static fn() => Hosting::speicher(), []); ?>
   <?php foreach ($hosting as $h): ?>
     <?php
       $hTon = ['angelegt' => 'gut', 'aktiv' => 'gut', 'in_arbeit' => 'warnung', 'zugestimmt' => '', 'vorgeschlagen' => ''][$h['status']] ?? '';
@@ -84,6 +85,10 @@
                       'offen' => 'noch offen'][(string) ($h['domain_aktion'] ?? 'neu')] ?? (string) $h['domain_aktion']) ?></td>
       <td><?= Fmt::h(['vecom' => 'Postfach bei uns', 'bisher' => 'bleibt, wo sie ist', 'keine' => 'keine',
                       'offen' => 'noch offen'][(string) ($h['mail'] ?? 'vecom')] ?? (string) $h['mail']) ?></td>
+      <?php $hMb = $hSpeicher[(string) ($h['kas_login'] ?? '')] ?? null; ?>
+      <td><?= $hMb === null ? '<span style="color:var(--leise)">—</span>'
+            : '<span' . ($hMb >= Hosting::SPEICHER_MB * Hosting::SPEICHER_WARNUNG ? ' style="color:var(--rot)"' : '') . '>'
+              . Fmt::h(number_format($hMb / 1024, 1, ',', '.')) . ' / ' . (int) (Hosting::SPEICHER_MB / 1024) . ' GB</span>' ?></td>
       <td><?= $h['inklusive'] ? '<span style="color:var(--leise)">in Betreuung</span>' : Fmt::h(Fmt::geld((int) $h['preis_cents'])) ?></td>
       <td><span class="marke2 <?= Fmt::h($hTon) ?>"><?= Fmt::h($hWort) ?></span>
         <?php if ((int) $h['schritte'] > 0 && !in_array((string) $h['status'], ['vorgeschlagen', 'zugestimmt'], true)): ?>

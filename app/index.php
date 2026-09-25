@@ -883,6 +883,19 @@ if ($post) {
                 else { $_SESSION['fehler'] = 'Nicht angelegt: ' . $he['text']; }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'cron_kas_anlegen':
+                /* Den Cronjob der Verwaltung selbst im KAS eintragen -- statt
+                   ihn abzutippen. Gibt es ihn schon, passiert nichts. */
+                require_once __DIR__ . '/src/Kas.php';
+                require_once __DIR__ . '/src/Cron.php';
+                $cz = Kas::cronjobs();
+                if (!$cz['ok']) { $_SESSION['fehler'] = 'KAS nicht erreichbar: ' . $cz['text']; zurueck('einstellungen?b=ueberwachung'); }
+                $schon = array_filter($cz['urls'], static fn($u) => str_contains((string) $u, 'cron.php') && str_contains((string) $u, Cron::schluessel()));
+                if ($schon) { $_SESSION['gut'] = 'Der Cronjob steht schon im KAS.'; zurueck('einstellungen?b=ueberwachung'); }
+                $ce = Kas::cronjobAnlegen(Cron::adresse());
+                $_SESSION[$ce['ok'] ? 'gut' : 'fehler'] = $ce['text'];
+                zurueck('einstellungen?b=ueberwachung');
+
             case 'altseite_sichern':
                 /* Phase 6a: nur lesen, was oeffentlich ist -- gesammelt wird im
                    Cron, das Ergebnis liegt als ZIP in der Ablage. */

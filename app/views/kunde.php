@@ -561,7 +561,11 @@ $eing = !empty($eingebettet);
                                            'unklar' => 'nicht lesbar (bei .it nur per WHOIS)'][(string) ($umzugA['sperre'] ?? 'unklar')] ?? '—') ?></b>
             <?= $umzugA['sperre_am'] ? ' · geprüft ' . Fmt::h(Fmt::datum((string) $umzugA['sperre_am'])) : '' ?></p>
           <?php $uDns = json_decode((string) ($umzugA['dns_json'] ?? ''), true) ?: []; ?>
-          <?php if ($uDns && !in_array((string) $umzugA['stand'], ['beantragt', 'fertig'], true)): ?>
+          <?php $uDnsSchritt = (array) (($hSchritte ?? [])['dns'] ?? []); ?>
+          <?php if ((string) ($uDnsSchritt['status'] ?? '') === 'fertig'): ?>
+            <p style="font-size:12.5px;margin:10px 0 0">✓ <b>DNS automatisch in den KAS übernommen</b>
+              <span style="color:var(--leise)">— <?= Fmt::h((string) $uDnsSchritt['text']) ?></span></p>
+          <?php elseif ($uDns && !in_array((string) $umzugA['stand'], ['beantragt', 'fertig'], true)): ?>
             <p style="font-size:12.5px;margin:10px 0 4px"><b>Vor dem Antrag im KAS-DNS eintragen</b>
               <span style="color:var(--leise)">— sonst kommen beim Kunden nach dem Umzug keine Mails mehr an. NS nicht übernehmen.</span></p>
             <div class="tabellenrahmen"><table class="schlicht"><tbody>

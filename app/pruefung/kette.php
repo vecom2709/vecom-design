@@ -8016,7 +8016,9 @@ $hs1 = $hsNeu();
 $hsE = Hosting::anlegen($hs1, $hsKas);
 pruefe('Phase 3: alles klappt -- jeder Schritt erledigt, Auftrag angelegt',
     $hsE['ok'] && $hsStatus($hs1) === 'angelegt'
-    && array_unique(array_column(Hosting::schritte($hs1), 'status')) === ['fertig']);
+    /* Seit dem DNS-Schritt (Abschnitt 77): bei einer neuen Domain "entfaellt" er. */
+    && !array_diff(array_unique(array_column(Hosting::schritte($hs1), 'status')), ['fertig', 'entfaellt'])
+    && (string) Hosting::schritte($hs1)['dns']['status'] === 'entfaellt');
 pruefe('Phase 3: Domain und Postfach laufen im Unter-Account mit dessen Passwort aus der Ablage',
     in_array('domain:w0199999:Kas-Pw-1!', $hsKas->gerufen, true)
     && in_array('postfach:kontakt@schritt1-probe.it:pw', $hsKas->gerufen, true));
@@ -8533,6 +8535,83 @@ foreach (['it', 'de', 'en'] as $muS) {
 pruefe('Phase 6b: Mails und Zustimmung dreisprachig, ohne offene Platzhalter', $muT);
 Mailumzug::$verbinden = null;
 Mailumzug::$hostErlaubt = null;
+
+
+/* ============================================================================
+   77. Mehr aus der KAS-Schnittstelle: DNS übernehmen, Speicher, Cronjob
+   ============================================================================ */
+abschnitt('77. DNS übernehmen, Speicher, Cronjob');
+
+$kbBestand = [
+    ['name' => '@', 'typ' => 'A', 'wert' => '93.184.216.34'], ['name' => 'www', 'typ' => 'CNAME', 'wert' => 'altfirma.it'],
+    ['name' => '@', 'typ' => 'MX', 'wert' => '10 altfirma-it.mail.protection.outlook.com'],
+    ['name' => '@', 'typ' => 'TXT', 'wert' => 'v=spf1 include:spf.protection.outlook.com -all'],
+    ['name' => '@', 'typ' => 'TXT', 'wert' => 'google-site-verification=abc'],
+    ['name' => '_dmarc', 'typ' => 'TXT', 'wert' => 'v=DMARC1; p=quarantine'],
+    ['name' => 'selector1._domainkey', 'typ' => 'TXT', 'wert' => 'v=DKIM1; k=rsa; p=MIGf'],
+    ['name' => '@', 'typ' => 'NS', 'wert' => 'ns1.altanbieter.it'],
+];
+$kbBleibt = Hosting::dnsAuswahl($kbBestand, 'bisher');
+$kbTypen = array_map(static fn($e) => $e['typ'] . ':' . ($e['name'] ?: '@'), $kbBleibt['eintraege']);
+pruefe('KAS-DNS: bleibt die Mail beim alten Anbieter, ziehen MX, SPF, DKIM, DMARC und Bestätigungen mit -- Web und NS nie',
+    $kbTypen === ['MX:@', 'TXT:@', 'TXT:@', 'TXT:_dmarc', 'TXT:selector1._domainkey'] && $kbBleibt['mx_ersetzen']
+    && $kbBleibt['eintraege'][0]['aux'] === 10 && $kbBleibt['eintraege'][0]['daten'] === 'altfirma-it.mail.protection.outlook.com');
+$kbVecom = Hosting::dnsAuswahl($kbBestand, 'vecom');
+pruefe('KAS-DNS: läuft die Mail über Vecom, nur fremde Bestätigungen -- die Mail-Einträge des KAS bleiben',
+    count($kbVecom['eintraege']) === 1 && $kbVecom['eintraege'][0]['daten'] === 'google-site-verification=abc' && !$kbVecom['mx_ersetzen']);
+
+$kbKas = new class ($kbBestand) {
+    public array $zone = [['id' => '11', 'name' => '', 'typ' => 'MX', 'daten' => 'w0199999.kasserver.com', 'aux' => '10', 'aenderbar' => true],
+                          ['id' => '', 'name' => '', 'typ' => 'MX', 'daten' => 'unklar.kasserver.com', 'aux' => '20', 'aenderbar' => true],
+                          ['id' => '12', 'name' => '', 'typ' => 'A', 'daten' => '85.13.0.1', 'aux' => '0', 'aenderbar' => false]];
+    public array $umgeschrieben = []; public array $neu = []; public bool $einmalFehler = false;
+    public function __construct(public array $bestandDaten) {}
+    public function accountAnlegen(string $k, array $g = []): array { return ['ok' => true, 'login' => 'w0177777', 'kas_passwort' => 'K-1!', 'ftp_passwort' => 'F-2!', 'text' => 'ok']; }
+    public function domainAnlegen(string $d, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+    public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+    public function passwortNeu(): string { return 'P-3!'; }
+    public function bestand(string $d): array { return $this->bestandDaten; }
+    public function dnsLesen(string $d, ?array $als = null): array { return ['ok' => true, 'text' => '', 'eintraege' => $this->zone]; }
+    public function dnsAendern(string $id, string $w, int $aux = 0, ?array $als = null): array { $this->umgeschrieben[] = $id . '>' . $w . ':' . $aux; return ['ok' => true, 'text' => '']; }
+    public function dnsHinzufuegen(string $d, string $t, string $n, string $w, int $aux = 0, ?array $als = null): array {
+        if ($this->einmalFehler) { $this->einmalFehler = false; return ['ok' => false, 'text' => 'in_progress']; }
+        $this->neu[] = $t . ':' . ($n ?: '@') . ':' . ($als['login'] ?? '-'); return ['ok' => true, 'text' => 'eingetragen'];
+    }
+};
+$kbK = Events::kundeFinden(['name' => 'DNS Probe', 'email' => 'dns@altfirma-probe.it']);
+$kbA = (int) Db::insert('hosting_auftraege', ['customer_id' => $kbK, 'domain' => 'altfirma-probe.it', 'status' => 'zugestimmt',
+    'preis_cents' => 990, 'domain_aktion' => 'transfer', 'mail' => 'bisher']);
+$kbKas->einmalFehler = true;
+Hosting::anlegen($kbA, $kbKas);
+pruefe('KAS-DNS: klemmt die Zone, wird es wiederholt -- und der Kunde bekommt seine Zugangsdaten noch nicht',
+    (string) Hosting::schritte($kbA)['dns']['status'] === 'fehler' && (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$kbA], '') === 'in_arbeit');
+Db::run("UPDATE hosting_schritte SET updated_at = NOW() - INTERVAL 30 MINUTE WHERE auftrag_id = ?", [$kbA]);
+Hosting::fortsetzen($kbKas);
+$kbS = Hosting::schritte($kbA)['dns'];
+pruefe('KAS-DNS: die alten Einträge stehen in der KAS-Zone, im Unter-Account -- der KAS-MX umgeschrieben statt gelöscht',
+    /* Die Wiederholung schreibt denselben MX noch einmal -- harmlos, der KAS sagt dann nothing_to_do. */
+    array_values(array_unique($kbKas->umgeschrieben)) === ['11>altfirma-it.mail.protection.outlook.com:10']
+    && in_array('TXT:_dmarc:w0177777', $kbKas->neu, true) && !in_array('MX:@:w0177777', $kbKas->neu, true)
+    && !preg_grep('~^(A|NS|CNAME):~', $kbKas->neu)
+    && (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$kbA], '') === 'angelegt');
+pruefe('KAS-DNS: ein KAS-MX ohne Nummer bleibt stehen -- und das ist Handarbeit mit klarem Satz, kein stilles „fertig“',
+    (string) $kbS['status'] === 'hand' && str_contains((string) $kbS['text'], 'eigener MX-Eintrag'));
+
+/* Speicher */
+$kbH = (int) Db::insert('hosting_auftraege', ['customer_id' => $kbK, 'domain' => 'voll-probe.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'kas_login' => 'w0188888']);
+$kbLesen = static fn(): array => ['ok' => true, 'text' => '', 'belegt' => ['w0188888' => 9600, 'w0199999' => 120]];
+$kbVor = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'hosting_speicher'", [], 0);
+$kbE = Hosting::speicherPruefen($kbLesen);
+Hosting::speicherPruefen($kbLesen);
+pruefe('Speicher: ab 90 % eine Meldung je Account und Monat -- nicht jeden Tag',
+    $kbE['gewarnt'] === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'hosting_speicher'", [], 0) === $kbVor + 1
+    && (Hosting::speicher()['w0188888'] ?? 0) === 9600);
+pruefe('KAS: Zone mit Punkt am Ende, wie in der Doku; DNS-Umschreiben nur mit echter Nummer',
+    Kas::zone('Altfirma.it') === 'altfirma.it.' && Kas::zone('altfirma.it.') === 'altfirma.it.' && Kas::dnsAendern('abc', 'x')['ok'] === false);
+pruefe('Cronjob: der Knopf prüft erst, ob es ihn schon gibt, und der tägliche Speicherlauf steht im Cron',
+    str_contains((string) file_get_contents($wurzel . '/index.php'), "Kas::cronjobs()")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Hosting::speicherPruefen()'));
 
 /* ============================================================================
    Aufräumen und Bilanz
