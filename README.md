@@ -88,7 +88,7 @@ Alle offenen Stellen stehen in `[eckigen Klammern]` — Suche nach `[` findet si
 - [ ] Anschrift — `contact.dd3`
 - [ ] P. IVA / USt-IdNr. — `contact.dd4`
 - [ ] Ort im Hero — `hero.m3d`
-- [x] Alle drei Pakete eingetragen: Starter 499 € + 39 €/Monat · Business 899 € + 69 €/Monat · Premium 1.499 € + 99 €/Monat
+- [x] Keine Website-Pakete: Der Preis entsteht im Konfigurator (Tabelle `bausteine`) und wird im individuellen Angebot verbindlich
 - [ ] Laufzeit und Kündigungsfrist der monatlichen Wartung (`plans.note`, alle drei Sprachen)
 - [ ] Steuerlicher Hinweis prüfen: aktuell „zzgl. MwSt." (`plans.priceNote`)
 - [ ] `legal.html`: Firmierung, Anschrift, Verantwortlicher, Hosting-Anbieter
@@ -194,22 +194,19 @@ kommerzielle Nutzung und Selbst-Hosting eingeschlossen.
 
 ---
 
-## 11. Paketstruktur
+## 11. Preise
 
-Jedes Paket besteht aus sechs Schlüsseln, dreimal übersetzt:
+Für Websites gibt es **keine Pakete** — auch keine verborgenen. Die früheren
+Starter (499 €), Business (899 €) und Premium (1.499 €) sind seit dem 12.09.2026
+von der Seite und seit dem 25.09.2026 auch in der Datenbank aus (Migration 051);
+die Prüfkette hält fest, dass sie nicht zurückkehren.
 
-| Schlüssel | Inhalt | Beispiel (de) |
-|---|---|---|
-| `plans.n1` | Name | Starter (n2 Business, n3 Premium) |
-| `plans.s1` | Untertitel | Der perfekte Einstieg |
-| `plans.p1` | Einmalpreis | 499 € |
-| `plans.m1` | Monatsbeitrag | + 39 € monatliche Wartung |
-| `plans.f1` | Leistungen, mit `|` getrennt | Enthalten:\|Moderne Webseite bis 5 Seiten\|… |
-| `plans.i1` | Zielgruppe | Ideal für Selbstständige … |
-
-`plans.priceNote` („einmalig · zzgl. MwSt.") gilt für alle drei. Wer nach
-Kleinunternehmerregelung arbeitet, ersetzt den Zusatz in allen drei Sprachen.
-
+- **Preisposten:** Tabelle `bausteine` in der Verwaltung („Preisbausteine“),
+  Startdaten in `app/src/standardbausteine.json`. Daraus rechnen Konfigurator,
+  Preisseite (`preise-daten.php`), Telefonassistentin und Angebot — eine Quelle.
+- **Verbindlich** wird ein Preis nur im individuellen Angebot (`Angebot.php`).
+- **Monatliche Verträge** sind eigene Produkte in `packages`: Betreuung
+  Basis/Plus/Premium und Hosting. Sie sind keine Website-Pakete.
 
 ---
 

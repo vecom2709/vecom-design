@@ -151,14 +151,12 @@ final class Vorlage
             $betreff = (string) ($v['betreff'][$sprache] ?? $v['betreff']['it'] ?? '');
             $text    = (string) ($v['text'][$sprache] ?? $v['text']['it'] ?? '');
 
-            // Wer ein Angebot schreibt, hat noch keine Bestellung — die Preise
-            // koennen also nicht aus einer kommen. Solche Vorlagen nageln ihr
-            // Paket selbst fest, damit sie genau dann gefuellt sind, wenn man
-            // sie braucht.
+            /* Hier nagelten Vorlagen ihr Paket fest ("paket": "starter"), damit
+               sie vor der Bestellung einen Preis hatten -- so ging Starter 499
+               noch am 25.09.2026 in Nachrichten hinaus, obwohl es Pakete fuer
+               Websites seit dem 12.09. nicht mehr gibt. Vor der Bestellung
+               nennt eine Vorlage jetzt die Spanne aus dem Konfigurator. */
             $werteHier = $werte;
-            if (!empty($v['paket'])) {
-                $werteHier = array_merge($werte, self::paketWerte((string) $v['paket'], $sprache));
-            }
             $aus[] = [
                 'schluessel' => (string) $schluessel,
                 'gruppe'     => (string) ($v['gruppe'] ?? 'anfrage'),
@@ -248,6 +246,17 @@ final class Vorlage
             }, '');
         }
 
+        /* Die Spanne, die der Kunde im Konfigurator gesehen hat -- dieselbe
+           Zahl, keine zweite Rechnung. Ohne abgesendeten Bedarf bleiben
+           Punkte stehen und fallen beim Lesen auf. */
+        $bed = (array) self::still(fn() => Db::one(
+            "SELECT von_cents, bis_cents FROM bedarf WHERE customer_id = ? AND status <> 'offen'
+              AND von_cents > 0 ORDER BY id DESC LIMIT 1", [$kundeId]), []);
+        $spanne = $bed ? Fmt::geld((int) $bed['von_cents']) . ' – ' . Fmt::geld((int) $bed['bis_cents']) : '…';
+        $betreuungAb = (int) self::still(fn() => Db::wert(
+            "SELECT MIN(monthly_cents) FROM packages WHERE active = 1 AND oeffentlich = 1
+              AND art = 'betreuung' AND monthly_cents > 0", [], 0), 0);
+
         return [
             '{angebotlink}'    => $anglink !== '' ? $anglink : '…',
             '{angebotnummer}'  => $punkte((string) ($ang['nummer'] ?? '')),
@@ -268,43 +277,13 @@ final class Vorlage
             '{rest}'           => $preis > 0 ? Fmt::geld($preis - (int) round($preis / 2), $waehr) : '…',
             '{betreuung}'      => $monat > 0 ? Fmt::geld($monat, $waehr) : '…',
             '{betreuunginhalt}'=> self::betreuungInhalt($slug, $sprache),
-            '{paketinhalt}'    => self::paketInhalt($slug, $sprache),
-            '{alle_pakete}'    => self::allePakete($sprache),
+            '{spanne}'         => $spanne,
+            '{betreuung_ab}'   => $betreuungAb > 0 ? Fmt::geld($betreuungAb) : '…',
             '{alle_betreuung}' => self::alleBetreuung($sprache),
             '{bestandsaufnahme}' => self::preisVon('bestandsaufnahme'),
             '{betrag}'         => $offen > 0 ? Fmt::geld($offen) : '…',
             '{seite}'          => $punkte($seite),
             '{vorschau}'       => $punkte($vorschau),
-        ];
-    }
-
-    /**
-     * Die paketabhaengigen Platzhalter fuer ein bestimmtes Paket — unabhaengig
-     * davon, ob der Kunde schon etwas bestellt hat.
-     *
-     * @return array<string,string>
-     */
-    private static function paketWerte(string $slug, string $sprache): array
-    {
-        $p = (array) self::still(fn() => Db::one(
-            'SELECT * FROM packages WHERE slug = ?', [$slug]), []);
-        if (!$p) { return []; }
-
-        $waehr = (string) ($p['currency'] ?? 'EUR');
-        $preis = (int) ($p['price_cents'] ?? 0);
-        $monat = (int) ($p['monthly_cents'] ?? 0);
-
-        $t = ($p['texte'] ?? '') !== '' ? json_decode((string) $p['texte'], true) : null;
-        $name = (string) (is_array($t) ? ($t[$sprache]['name'] ?? $p['name']) : $p['name']);
-
-        return [
-            '{paket}'           => $name,
-            '{paketpreis}'      => $preis > 0 ? Fmt::geld($preis, $waehr) : '…',
-            '{anzahlung}'       => $preis > 0 ? Fmt::geld((int) round($preis / 2), $waehr) : '…',
-            '{rest}'            => $preis > 0 ? Fmt::geld($preis - (int) round($preis / 2), $waehr) : '…',
-            '{betreuung}'       => $monat > 0 ? Fmt::geld($monat, $waehr) : '…',
-            '{paketinhalt}'     => self::paketInhalt($slug, $sprache),
-            '{betreuunginhalt}' => self::betreuungInhalt($slug, $sprache),
         ];
     }
 
@@ -335,55 +314,6 @@ final class Vorlage
         $titel = (array) (self::daten()['betreuung_titel'] ?? []);
         $kopf  = (string) ($titel[$sprache] ?? $titel['it'] ?? '');
         return ($kopf !== '' ? $kopf . "\n" : '') . implode("\n", $zeilen);
-    }
-
-    /**
-     * Die Merkmale des Pakets — vollstaendig und widerspruchsfrei.
-     *
-     * Auf der Website stehen sie aufeinander aufbauend ("Alles aus Starter,
-     * plus:"). Wer sie nur aneinanderhaengt, bekommt in einem Angebot
-     * "Website bis 5 Seiten" und zwei Zeilen weiter "bis zu 10 Seiten".
-     * Die aufgeloesten Listen liegen deshalb fertig in vorlagen.json.
-     */
-    private static function paketInhalt(string $slug, string $sprache): string
-    {
-        $alle = (array) (self::daten()['paketinhalt'] ?? []);
-        $z = (array) ($alle[$slug] ?? []);
-        $zeilen = (array) ($z[$sprache] ?? $z['it'] ?? []);
-        if (!$zeilen) { return '…'; }
-
-        $titel = (array) (self::daten()['betreuung_titel'] ?? []);
-        $kopf  = (string) ($titel[$sprache] ?? $titel['it'] ?? '');
-        return ($kopf !== '' ? $kopf . "\n" : '') . implode("\n", $zeilen);
-    }
-
-    /** Alle Pakete mit Preis — fuer die Antwort auf "Was kostet eine Website?". */
-    private static function allePakete(string $sprache): string
-    {
-        // Nur die Website-Pakete. Seit Erstellung und Betreuung getrennte
-        // Produkte sind, stuenden hier sonst Zeilen mit 0 € Einmalpreis.
-        $liste = (array) self::still(fn() => Db::all(
-            "SELECT * FROM packages WHERE active = 1 AND art = 'website' ORDER BY sort, price_cents"), []);
-        if (!$liste) {
-            $liste = (array) self::still(fn() => Db::all(
-                'SELECT * FROM packages WHERE active = 1 ORDER BY sort, price_cents'), []);
-        }
-        if (!$liste) { return '…'; }
-
-        $wort = ['it' => ['una tantum', 'al mese'], 'de' => ['einmalig', 'im Monat'],
-                 'en' => ['one-off', 'per month']][$sprache] ?? ['una tantum', 'al mese'];
-
-        $aus = [];
-        foreach ($liste as $p) {
-            $t = $p['texte'] !== null && $p['texte'] !== '' ? json_decode((string) $p['texte'], true) : null;
-            $name = (string) (is_array($t) ? ($t[$sprache]['name'] ?? $p['name']) : $p['name']);
-            $sub  = (string) (is_array($t) ? ($t[$sprache]['sub'] ?? ($p['sub'] ?? '')) : ($p['sub'] ?? ''));
-            // Ohne Monatspreis: Die Betreuung steht als eigener Block darunter,
-            // weil sie ein eigenes Produkt ist und nicht am Paket haengt.
-            $zeile = $name . ' — ' . Fmt::geld((int) $p['price_cents'], (string) $p['currency']) . ' ' . $wort[0];
-            $aus[] = $zeile . ($sub !== '' ? "\n  " . $sub : '');
-        }
-        return implode("\n\n", $aus);
     }
 
     /** Die Betreuungspakete mit Preis und Inhalt — fuer ein Angebot ohne Website. */

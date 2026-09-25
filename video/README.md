@@ -33,7 +33,7 @@ GPU die Bühne abschalten, statt das Ergebnis hinzunehmen.
 
 - `jonika-*.mp4`, `mensaena-*.mp4` — Referenzaufnahmen der Kundenseiten,
   eingebunden im Abschnitt „Arbeiten".
-- `clip1-fehler.mp4`, `clip2-preis.mp4`, `clip3-ablauf.mp4` — Hochkant-Clips
+- `clip1-fehler.mp4`, `clip3-ablauf.mp4` — Hochkant-Clips (`clip2-preis.mp4` am 25.09.2026 entfernt: zeigte „ab 499 € · Festpreis“)
   für TikTok und Reels, 720 × 1280. Beschrieben in `tiktok.md`; auf der Website
   werden sie nicht abgespielt.
 - `sprechertext.md`, `tiktok.md` — Drehbücher. Gehen nie auf den Webspace,

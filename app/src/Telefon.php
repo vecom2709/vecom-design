@@ -533,16 +533,13 @@ final class Telefon
 
         $aus = ['waehrung' => 'EUR'];
 
-        /* Der Einstieg und die Betreuung stehen als Pakete in der Datenbank --
-           dieselben, die auf der Website stehen. */
-        $fest = self::still(static fn() => Db::one(
-            "SELECT name, price_cents FROM packages
-              WHERE active = 1 AND art = 'website' AND price_cents > 0
-              ORDER BY price_cents LIMIT 1"), null);
-        if ($fest) {
-            $aus['festpreis_euro'] = (int) round(((int) $fest['price_cents']) / 100);
-            $aus['festpreis_name'] = (string) $fest['name'];
-        }
+        /* KEIN FESTPREIS (25.09.2026)
+           Hier stand das billigste aktive Website-Paket als "festpreis" --
+           und weil Starter nur unsichtbar, aber aktiv war, sagte das Telefon
+           "Starter, 499 Euro", Wochen nachdem es von der Seite verschwunden
+           war. Websites haben keine Pakete; die Zahl kommt unten aus dem
+           Baukasten, als Spanne. Die Betreuung ist ein eigener Vertrag und
+           bleibt hier. */
         $betreu = self::still(static fn() => Db::one(
             "SELECT MIN(monthly_cents) AS ab FROM packages
               WHERE active = 1 AND art = 'betreuung' AND monthly_cents > 0"), null);
@@ -2323,8 +2320,11 @@ final class Telefon
         $aus = ['waehrung' => 'EUR', 'pakete' => [], 'bausteine' => []];
 
         foreach ((array) self::still(static fn() => Db::all(
+            /* Nur, was auch auf der Website steht, und nie ein Website-Paket:
+               Die gibt es nicht, der Preis kommt aus den Bausteinen darunter. */
             "SELECT name, art, price_cents, monthly_cents FROM packages
-              WHERE active = 1 ORDER BY art, price_cents, monthly_cents"), []) as $p) {
+              WHERE active = 1 AND oeffentlich = 1 AND art <> 'website'
+              ORDER BY art, price_cents, monthly_cents"), []) as $p) {
             $eintrag = ['name' => (string) $p['name'], 'art' => (string) $p['art']];
             if ((int) $p['price_cents'] > 0)   { $eintrag['preis_euro'] = (int) round(((int) $p['price_cents']) / 100); }
             if ((int) $p['monthly_cents'] > 0) { $eintrag['monatlich_euro'] = (int) round(((int) $p['monthly_cents']) / 100); }

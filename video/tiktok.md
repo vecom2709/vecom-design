@@ -19,7 +19,7 @@ Was steht bei dir oben auf der Startseite? 👇
 
 **Clip 2**
 „Kommt drauf an" ist keine Antwort. Bei mir stehen die Preise öffentlich auf
-der Seite: ab 499 € einmalig, Festpreis vor Beginn, der Code gehört dir.
+der Seite, Posten für Posten, und im Angebot steht dann eine Zahl, die sich nicht mehr bewegt. Der Code gehört dir.
 Fragen? Schreib mir.
 #website #preise #webdesign #transparenz #selbststaendigkeit #gruenden
 

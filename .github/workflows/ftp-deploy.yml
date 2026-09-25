@@ -186,6 +186,7 @@ jobs:
             rm -f $DIR/assets/js/luecke.js;
             rm -f $DIR/assets/js/haus.js;
             rm -f $DIR/assets/js/werkbank.js;
+            rm -f $DIR/video/clip2-preis.mp4;
             bye"
 
       - name: Cockpit-Schutz nachsehen

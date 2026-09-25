@@ -12,7 +12,7 @@ im Video; ruhig sprechen, lieber etwas langsamer als schneller.
 | 0:28 | Schritt drei: Wir bauen, du schaust zu. Abschnitt für Abschnitt, jeder wirklich fertig, bevor der nächste beginnt. Über einen privaten Link siehst du die Seite wachsen. |
 | 0:36 | Schritt vier: Online. Und danach nicht allein. Domain, E-Mail, Rechtstexte. Backups und kleine Änderungen übernehmen wir — du kümmerst dich um dein Geschäft. |
 | 0:44 | Der Code gehört dir. Kein Cookie-Banner. Ein Ansprechpartner. |
-| 0:52 | Ab 499 Euro einmalig. Angebot und Erstgespräch sind kostenlos. |
+| 0:52 | Alle Preise stehen offen auf der Seite, Posten für Posten. Angebot und Erstgespräch sind kostenlos. |
 | 0:58 | vecom-design.it — schreib mir. |
 
 ## Ton hinzufügen

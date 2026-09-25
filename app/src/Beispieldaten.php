@@ -92,6 +92,16 @@ final class Beispieldaten
         return $aus;
     }
 
+    /* Beispielbestellungen entstehen wie echte: aus einem individuellen
+       Angebot. Hier standen bis zum 25.09.2026 Starter 499, Business 899 und
+       Premium 1.499 als Rueckfall -- Pakete, die es fuer Websites nicht gibt. */
+    private static function angebot(int $cents): array
+    {
+        require_once __DIR__ . '/Angebot.php';
+        return ['id' => Angebot::internesPaket(), 'name' => 'Individuelles Angebot',
+                'price_cents' => $cents, 'monthly_cents' => 0];
+    }
+
     private static function tage(int $n): string { return date('Y-m-d H:i:s', strtotime("-$n days")); }
     private static function tag(int $n): string  { return date('Y-m-d', strtotime(($n < 0 ? '+' : '-') . abs($n) . ' days')); }
 
@@ -291,7 +301,7 @@ final class Beispieldaten
                 'notes' => 'Beispielkunde — verschwindet, sobald echte Daten da sind.',
                 'created_at' => self::tage(26),
             ],
-            'paket' => $pakete['business'] ?? ['id' => null, 'name' => 'Business', 'price_cents' => 89900, 'monthly_cents' => 6900],
+            'paket' => self::angebot(68000),   // fünf Seiten, Texte vom Kunden
             'bestellnummer' => self::nummer('VD', 1),
             'bestellstatus' => 'in_bearbeitung',
             'bestelltAm'    => self::tage(24),
@@ -417,7 +427,7 @@ final class Beispieldaten
                 'notes' => 'Beispielkunde — verschwindet, sobald echte Daten da sind.',
                 'created_at' => self::tage(98),
             ],
-            'paket' => $pakete['premium'] ?? ['id' => null, 'name' => 'Premium', 'price_cents' => 149900, 'monthly_cents' => 9900],
+            'paket' => self::angebot(185000),  // drei Sprachen mit Buchungssystem
             'bestellnummer' => self::nummer('VD', 2),
             'bestellstatus' => 'abgeschlossen',
             'bestelltAm'    => self::tage(95),
@@ -538,7 +548,7 @@ final class Beispieldaten
                 'notes' => 'Beispielkunde — verschwindet, sobald echte Daten da sind.',
                 'created_at' => self::tage(4),
             ],
-            'paket' => $pakete['starter'] ?? ['id' => null, 'name' => 'Starter', 'price_cents' => 49900, 'monthly_cents' => 3900],
+            'paket' => self::angebot(145000),  // kleiner Onlineshop
             'bestellnummer' => self::nummer('VD', 3),
             'bestellstatus' => 'onboarding',
             'bestelltAm'    => self::tage(3),

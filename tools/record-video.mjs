@@ -29,7 +29,7 @@ const KARTEN = {
     s2:     ['02 — Richtung', 'Du siehst den ersten Bildschirm, bevor der Rest gebaut wird.'],
     s3:     ['03 — Umsetzung', 'Sektion für Sektion. Du siehst die Seite wachsen, nicht erst am Ende eine Datei.'],
     s4:     ['04 — Launch & Wachstum', 'Domain, E-Mail, Rechtstexte — und danach bleiben wir erreichbar.'],
-    preis:  ['Ab 499 € einmalig', 'Angebot und Erstgespräch sind kostenlos.'],
+    preis:  ['Alle Preise offen, Posten für Posten', 'Angebot und Erstgespräch sind kostenlos.'],
     ende:   ['vecom-design.it', 'kontakt@vecom-design.it'],
   },
   it: {
@@ -38,7 +38,7 @@ const KARTEN = {
     s2:     ['02 — La direzione', 'Vedi la prima schermata prima che venga costruito il resto.'],
     s3:     ['03 — La realizzazione', 'Sezione per sezione. Vedi il sito crescere, non un file alla fine.'],
     s4:     ['04 — Lancio e crescita', 'Dominio, e-mail, testi legali — e restiamo raggiungibili.'],
-    preis:  ['Da 499 € una tantum', 'Preventivo e primo colloquio sono gratuiti.'],
+    preis:  ['Prezzi trasparenti, voce per voce', 'Preventivo e primo colloquio sono gratuiti.'],
     ende:   ['vecom-design.it', 'kontakt@vecom-design.it'],
   },
   en: {
@@ -47,7 +47,7 @@ const KARTEN = {
     s2:     ['02 — The direction', 'You see the first screen before the rest gets built.'],
     s3:     ['03 — The build', 'Section by section. You watch it grow instead of getting a file at the end.'],
     s4:     ['04 — Launch & growth', 'Domain, email, legal pages — and we stay reachable afterwards.'],
-    preis:  ['From €499 one-off', 'Quote and first conversation are free.'],
+    preis:  ['Open prices, item by item', 'Quote and first conversation are free.'],
     ende:   ['vecom-design.it', 'kontakt@vecom-design.it'],
   },
 };

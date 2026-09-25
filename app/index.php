@@ -240,10 +240,15 @@ if ($route === 'anmelden') {
     $fehler = null;
     if ($post) {
         Csrf::pruefen();
-        if (Auth::anmelden((string) ($_POST['email'] ?? ''), (string) ($_POST['passwort'] ?? ''))) {
+        $email = (string) ($_POST['email'] ?? '');
+        if (Auth::anmelden($email, (string) ($_POST['passwort'] ?? ''))) {
             weiter('');
         }
-        $fehler = 'E-Mail oder Passwort stimmt nicht.';
+        $minuten = Auth::gesperrt($email);
+        if ($minuten > 0) { http_response_code(429); }
+        $fehler = $minuten > 0
+            ? "Zu viele Fehlversuche. Bitte in $minuten Minuten noch einmal."
+            : 'E-Mail oder Passwort stimmt nicht.';
     }
     require __DIR__ . '/views/anmelden.php';
     exit;

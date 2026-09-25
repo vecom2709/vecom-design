@@ -178,13 +178,15 @@ pruefe('danach ist wieder nichts offen', Einrichtung::offene() === [],
    ============================================================================ */
 abschnitt('2. Kunde und Bestellung');
 
-/* Nur ein WEBSITE-Paket taugt als Bestellung: Seit Migration 041 ist auch
-   das Hosting-Paket aktiv (0 € einmalig) — eine Bestellung darueber waere
-   genau der Unsinn, den die Verwaltung selbst ueberall ausfiltert. */
-$paketId = (int) Db::wert(
-    "SELECT id FROM packages WHERE active = 1 AND art = 'website' AND price_cents > 0
-      ORDER BY id LIMIT 1", [], 0);
-pruefe('es gibt ein Paket zum Bestellen', $paketId > 0);
+/* Bestellt wird wie im echten Ablauf: ueber den Sammelposten
+   "Individuelles Angebot" mit dem Preis aus dem Angebot. Hier stand bis zum
+   25.09.2026 das billigste aktive Website-Paket -- also Starter 499, das es
+   seit dem 12.09. nicht mehr gibt. Die Kette pruefte damit einen Weg, den
+   kein Kunde mehr nimmt. */
+require_once dirname(__DIR__) . '/src/Angebot.php';
+$paketId = Angebot::internesPaket();
+const KETTE_PREIS = 120000;   // eine Angebotssumme, wie sie im Konfigurator entsteht
+pruefe('es gibt den Sammelposten für Angebote', $paketId > 0);
 
 $kundeId = Events::kundeFinden([
     'name' => 'Prüf Kunde', 'email' => 'kette@pruefung.example',
@@ -194,7 +196,7 @@ pruefe('Kunde entsteht', $kundeId > 0);
 pruefe('derselbe Kunde entsteht nicht zweimal',
     Events::kundeFinden(['name' => 'Prüf Kunde', 'email' => 'kette@pruefung.example']) === $kundeId);
 
-$bestellId = Events::bestellungAnlegen($kundeId, $paketId, 'Kettentest');
+$bestellId = Events::bestellungAnlegen($kundeId, $paketId, 'Kettentest', KETTE_PREIS);
 pruefe('Bestellung entsteht', $bestellId > 0);
 $b = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
 pruefe('Bestellung hat eine Nummer', trim((string) $b['order_no']) !== '', (string) $b['order_no']);
@@ -1151,23 +1153,15 @@ pruefe('und sie sagt, worauf sie beruht',
 pruefe('der Hinweis verbietet den Festpreis',
     str_contains((string) ($pa['hinweis'] ?? ''), 'Spanne'));
 
-/* Der Einstiegspreis muss aus der Paket-Tabelle kommen, nicht aus dem Code. */
-$festDb = (int) Db::wert("SELECT price_cents FROM packages
-                           WHERE active = 1 AND art = 'website' AND price_cents > 0
-                           ORDER BY price_cents LIMIT 1", [], 0);
-if ($festDb > 0) {
-    /* Die Preisauskunft nennt jetzt Zahlen -- und genau deshalb muss belegt
-   sein, dass es die oeffentlichen sind. Wer eine Kundennummer mitschickt,
-   bekommt dieselbe Auskunft wie jeder andere: kein Name, keine Adresse,
-   kein offener Posten. Oeffentlich ja, persoenlich nie. */
+/* Wer eine Kundennummer mitschickt, bekommt dieselbe Auskunft wie jeder
+   andere: kein Name, keine Adresse, kein offener Posten. Oeffentlich ja,
+   persoenlich nie. */
 $mitKunde = Telefon::preisAuskunft(['zweck' => 'shop', 'kunde_id' => $kundeId,
                                     'telefon' => '+39 380 111 2233']);
 $ohneKunde = Telefon::preisAuskunft(['zweck' => 'shop']);
 pruefe('eine Kundennummer ändert an der Preisauskunft nichts',
     $mitKunde === $ohneKunde,
     json_encode(array_diff_assoc($mitKunde, $ohneKunde), JSON_UNESCAPED_UNICODE));
-/* „festpreis_name" ist der Paketname („Starter"), nicht der eines Kunden --
-   deshalb wird hier auf das geprueft, was einen Menschen bezeichnet. */
 $flachP = json_encode($mitKunde, JSON_UNESCAPED_UNICODE);
 $leckP = [];
 foreach (['kunde', 'email', '@', 'iban', 'offen', 'rechnung', 'Salvatore'] as $wort) {
@@ -1175,10 +1169,22 @@ foreach (['kunde', 'email', '@', 'iban', 'offen', 'rechnung', 'Salvatore'] as $w
 }
 pruefe('und sie nennt niemanden', $leckP === [], implode(', ', $leckP));
 
-pruefe('der Festpreis kommt aus der Datenbank',
-        (int) ($pa['festpreis_euro'] ?? -1) === (int) round($festDb / 100),
-        ($pa['festpreis_euro'] ?? '—') . ' gegen ' . round($festDb / 100));
-}
+/* KEINE WEBSITE-PAKETE AM TELEFON (25.09.2026)
+   Bis heute gab preisAuskunft das billigste aktive Website-Paket als
+   Festpreis mit -- "Starter, 499 Euro", Wochen nachdem es von der Seite
+   verschwunden war. Geprueft wird mit einem absichtlich aktiven Paket, denn
+   genau so sah der Fehler aus: unsichtbar, aber aktiv. */
+$kpId = Db::insert('packages', ['slug' => 'kette-altpaket', 'name' => 'Altpaket',
+    'description' => 'Pruefzeile', 'price_cents' => 49900, 'monthly_cents' => 0, 'currency' => 'EUR',
+    'art' => 'website', 'active' => 1, 'oeffentlich' => 0, 'sort' => 99]);
+$kpAus = Telefon::preisAuskunft([]);
+pruefe('die Preisauskunft nennt keinen Festpreis',
+    !array_key_exists('festpreis_euro', $kpAus) && !array_key_exists('festpreis_name', $kpAus),
+    implode(',', array_keys($kpAus)));
+$kpWissen = json_encode(Telefon::wissen([]), JSON_UNESCAPED_UNICODE);
+pruefe('das Telefonwissen kennt kein Website-Paket',
+    !str_contains($kpWissen, 'Altpaket') && !str_contains($kpWissen, '"art":"website"'));
+Db::run('DELETE FROM packages WHERE id = ?', [$kpId]);
 
 /* --- Lage --------------------------------------------------------------- */
 $l = Telefon::lage();
@@ -4344,7 +4350,7 @@ pruefe('ein neuer macht den alten wertlos',
 // Ein eigenes Projekt, damit dieser Abschnitt niemandem sonst ins Handwerk pfuscht.
 $wsKunde = Events::kundeFinden(['name' => 'Werkstatt Kunde', 'email' => 'werkstatt@pruefung.example']);
 Db::run('UPDATE customers SET kundennr = ? WHERE id = ?', ['K-9999-0042', $wsKunde]);
-$wsBestellung = Events::bestellungAnlegen($wsKunde, $paketId, 'Werkstatt-Prüfung');
+$wsBestellung = Events::bestellungAnlegen($wsKunde, $paketId, 'Werkstatt-Prüfung', KETTE_PREIS);
 Events::bestellungStatus($wsBestellung, 'bezahlt');
 $wsProjekt = Events::projektAusBestellung($wsBestellung);
 pruefe('Prüfprojekt steht', $wsProjekt > 0);
@@ -4476,7 +4482,7 @@ final class AbgleichProbe
 /** Legt Kunde, Bestellung und eine offene Rate mit Bezahlseite an. */
 $agRate = static function (string $email, string $sitzung, int $minutenAlt = 30) use ($paketId): array {
     $k = Events::kundeFinden(['name' => 'Abgleich ' . $email, 'email' => $email, 'sprache' => 'de']);
-    $b = Events::bestellungAnlegen($k, $paketId, 'Abgleichprobe');
+    $b = Events::bestellungAnlegen($k, $paketId, 'Abgleichprobe', KETTE_PREIS);
     $z = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$b], 0);
     Db::update('payments', $z, [
         'provider' => 'stripe', 'status' => 'in_bearbeitung',
@@ -6170,12 +6176,35 @@ foreach ($sdFaelle as $sdName => [$sdTeile, $sdEvon, $sdEbis]) {
         $sdIvon === $sdEvon && $sdIbis === $sdEbis, ($sdIvon / 100) . ' – ' . ($sdIbis / 100) . ' €');
 }
 
-/* Die drei abgeschafften Pakete dürfen nach dem Säen nicht öffentlich sein. */
+/* KEINE WEBSITE-PAKETE (25.09.2026)
+   Websites haben keine Pakete; der Preis entsteht im Konfigurator. Bis heute
+   lagen Starter 499, Business 899 und Premium 1.499 noch als Startdaten vor
+   und waren in bestehenden Einrichtungen nur unsichtbar, nicht aus --
+   Telefon und Vorlagen lasen sie weiter. */
 foreach (Einrichtung::pakete() as $sdZeile) { /* säen wie bei einer Einrichtung */ }
-foreach (['starter', 'business', 'premium'] as $sdSlug) {
-    pruefe("$sdSlug bleibt nach dem Säen unsichtbar",
-        (int) Db::wert('SELECT oeffentlich FROM packages WHERE slug = ?', [$sdSlug], 1) === 0);
+$sdVorlage = json_decode((string) file_get_contents(dirname(__DIR__) . '/src/standardpakete.json'), true);
+pruefe('die Startdaten enthalten kein Website-Paket',
+    is_array($sdVorlage) && array_filter($sdVorlage, static fn(array $p): bool =>
+        ($p['art'] ?? 'website') === 'website') === []);
+pruefe('nach dem Säen ist kein Website-Paket aktiv oder sichtbar',
+    (int) Db::wert("SELECT COUNT(*) FROM packages WHERE art = 'website' AND (active = 1 OR oeffentlich = 1)", [], 1) === 0);
+
+/* Und in einer bestehenden Einrichtung: Migration 051 schaltet die alten
+   Zeilen aus, ohne sie zu loeschen (an ihnen haengen Bestellungen). */
+$sdAlt = [];
+foreach (['starter' => 49900, 'business' => 89900, 'premium' => 149900] as $sdSlug => $sdPreis) {
+    $sdAlt[] = Db::insert('packages', ['slug' => $sdSlug, 'name' => ucfirst($sdSlug),
+        'description' => 'alt', 'price_cents' => $sdPreis, 'monthly_cents' => 0, 'currency' => 'EUR',
+        'art' => 'website', 'active' => 1, 'oeffentlich' => 0, 'direktkauf' => 1, 'sort' => 1]);
 }
+foreach (array_filter(array_map('trim', explode(';', preg_replace('~^--.*$~m', '',
+        (string) file_get_contents(dirname(__DIR__) . '/migrations/051_keine_pakete.sql'))))) as $sdSql) {
+    Db::run($sdSql);
+}
+pruefe('Migration 051 schaltet die alten Pakete aus, ohne sie zu löschen',
+    (int) Db::wert("SELECT COUNT(*) FROM packages WHERE slug IN ('starter','business','premium')
+                     AND active = 0 AND oeffentlich = 0 AND direktkauf = 0", [], 0) === 3);
+Db::run('DELETE FROM packages WHERE id IN (' . implode(',', array_map('intval', $sdAlt)) . ')');
 pruefe('Betreuung Basis bleibt sichtbar',
     (int) Db::wert("SELECT oeffentlich FROM packages WHERE slug = 'betreuung-basis'", [], 0) === 1);
 
@@ -6269,7 +6298,7 @@ final class BezahlProbe
 
 $blRate = static function (string $email) use ($paketId): array {
     $k = Events::kundeFinden(['name' => 'Bezahllink ' . $email, 'email' => $email, 'sprache' => 'de']);
-    $b = Events::bestellungAnlegen($k, $paketId, 'Bezahllinkprobe');
+    $b = Events::bestellungAnlegen($k, $paketId, 'Bezahllinkprobe', KETTE_PREIS);
     $z = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$b], 0);
     return ['kunde' => $k, 'bestellung' => $b, 'zahlung' => $z, 'token' => Kundenzugang::token($k)];
 };
@@ -6675,16 +6704,16 @@ pruefe('und die Fuehrung ist beim Bauen, nicht beim Fragebogen',
 
 /* ---------- Eine Bestellung ohne Fragebogen: kein Zahlungslink ---------- */
 $fgK = Events::kundeFinden(['name' => 'Ohne Fragebogen', 'email' => 'ohne-fragebogen@pruefung.example', 'sprache' => 'de']);
-$fgB = Events::bestellungAnlegen($fgK, $paketId, 'Bestellung vor dem Fragebogen');
+$fgB = Events::bestellungAnlegen($fgK, $paketId, 'Bestellung vor dem Fragebogen', KETTE_PREIS);
 $fgV = Vorgang::laden('b' . $fgB);
 pruefe('eine Website-Bestellung ohne Fragebogen fuehrt zum Fragebogen, nicht zum Zahlungslink',
     Onboarding::brauchtVorPreis($fgB) === false
         ? true   // das Paket der Kette ist keine Website -- dann gilt die Sperre nicht
         : ($fgV['stufe'] === 'onboarding' && ($fgV['schritt']['knopf'] ?? '') === 'Fragebogen verschicken'),
     $fgV['stufe'] . ' / ' . ($fgV['schritt']['knopf'] ?? '-'));
-$fgWeb = (int) Db::wert("SELECT id FROM packages WHERE art = 'website' ORDER BY id LIMIT 1", [], 0);
+$fgWeb = Angebot::internesPaket();   // eine Website entsteht immer aus einem Angebot
 if ($fgWeb > 0) {
-    $fgB2 = Events::bestellungAnlegen($fgK, $fgWeb, 'Website vor dem Fragebogen');
+    $fgB2 = Events::bestellungAnlegen($fgK, $fgWeb, 'Website vor dem Fragebogen', KETTE_PREIS);
     $fgV2 = Vorgang::laden('b' . $fgB2);
     pruefe('bei einer Website ausdruecklich: erst der Fragebogen',
         $fgV2['stufe'] === 'onboarding' && ($fgV2['schritt']['knopf'] ?? '') === 'Fragebogen verschicken',
@@ -6743,7 +6772,7 @@ pruefe('der Fragebogen ohne Projekt laesst sich ueber seinen Schluessel oeffnen'
 abschnitt('57. Bezahlt, aber die Verwaltung weiss nichts davon');
 
 $nfK = Events::kundeFinden(['name' => 'Stripe Haengt', 'email' => 'stripe-haengt@pruefung.example', 'sprache' => 'de']);
-$nfB = Events::bestellungAnlegen($nfK, $paketId, 'Rate haengt bei Stripe');
+$nfB = Events::bestellungAnlegen($nfK, $paketId, 'Rate haengt bei Stripe', KETTE_PREIS);
 Onboarding::absenden(Onboarding::vorab($nfK), ['branche' => 'Probe']);
 $nfZ = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art = 'anzahlung'", [$nfB], 0);
 pruefe('die Probe hat eine Anzahlung', $nfZ > 0);
@@ -6818,7 +6847,7 @@ require_once $wurzel . '/src/Angebot.php';
 
 $kzK = Events::kundeFinden(['name' => 'Zusage Fehlt', 'email' => 'zusage-fehlt@pruefung.example', 'sprache' => 'de']);
 Onboarding::absenden(Onboarding::vorab($kzK), ['branche' => 'Probe']);
-$kzB = Events::bestellungAnlegen($kzK, $paketId, 'Von Hand angelegt, ohne Zusage');
+$kzB = Events::bestellungAnlegen($kzK, $paketId, 'Von Hand angelegt, ohne Zusage', KETTE_PREIS);
 pruefe('ohne Angebot steht der Zusage nichts im Weg', Angebot::wartetAufZusage($kzB) === null);
 
 $kzA = (int) Db::insert('angebote', [
@@ -7264,6 +7293,77 @@ pruefe('S4: der Trichter zählt eingetragen ≥ geöffnet ≥ Vorhaben',
     && $zgT['neu']['vorhaben'] >= 1, json_encode($zgT['neu']));
 pruefe('S4: die Verwaltung zeigt ihn', str_contains((string) file_get_contents($wurzel . '/views/bedarfe.php'), 'zugangTrichter'));
 pruefe('der Cronlauf erinnert und räumt auf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Zugang::erinnern()'));
+
+/* ============================================================================
+   62. Phase 0: keine Website-Pakete, Anmeldebremse, keine verlorene Zählung
+   ============================================================================ */
+abschnitt('62. Keine Pakete, Anmeldebremse, Zählung');
+
+/* Vorlagen: Hier setzten "angebot_starter" und "angebot_klein" bis zum
+   25.09.2026 fest den Starter-Preis ein. Keine Vorlage darf ein Paket
+   festnageln oder eine Paketzahl tragen. */
+require_once $wurzel . '/src/Vorlage.php';
+$p0Daten = json_decode((string) file_get_contents($wurzel . '/src/vorlagen.json'), true);
+$p0Paket = []; $p0Zahl = [];
+foreach ((array) ($p0Daten['vorlagen'] ?? []) as $p0K => $p0V) {
+    if (!empty($p0V['paket'])) { $p0Paket[] = $p0K; }
+    $p0Flach = json_encode($p0V, JSON_UNESCAPED_UNICODE);
+    if (preg_match('~\b(499|899|1\.499|1499)\b|Starter|\{paketinhalt\}|\{alle_pakete\}~', $p0Flach)) { $p0Zahl[] = $p0K; }
+}
+pruefe('keine Vorlage nagelt ein Paket fest', $p0Paket === [], implode(', ', $p0Paket));
+pruefe('keine Vorlage nennt einen alten Paketpreis', $p0Zahl === [], implode(', ', $p0Zahl));
+pruefe('die Paketinhalte der alten Pakete sind aus den Vorlagen', !isset($p0Daten['paketinhalt']));
+
+/* Und gefuellt: kein Platzhalter bleibt offen, keine Paketzahl rutscht aus
+   der Datenbank hinein. */
+$p0Offen = []; $p0Alt = [];
+foreach (Vorlage::fuer($kundeId) as $p0V) {
+    if (preg_match('~\{[a-z_]+\}~', $p0V['betreff'] . $p0V['text'], $p0M)) { $p0Offen[] = $p0V['schluessel'] . ' ' . $p0M[0]; }
+    if (preg_match('~\b499\b|\b899\b|1\.499~', $p0V['text'])) { $p0Alt[] = $p0V['schluessel']; }
+}
+pruefe('gefüllte Vorlagen haben keinen offenen Platzhalter', $p0Offen === [], implode('; ', $p0Offen));
+pruefe('gefüllte Vorlagen nennen keinen Paketpreis', $p0Alt === [], implode(', ', $p0Alt));
+
+/* Anmeldebremse: nach FEHL_GRENZE Fehlversuchen ist Schluss -- auch fuer
+   das richtige Passwort, sonst waere die Bremse nur ein Hinweis. */
+$p0Mail = 'bremse@pruefung.example';
+Db::insert('users', ['email' => $p0Mail, 'password_hash' => password_hash('richtig-richtig', PASSWORD_DEFAULT),
+    'name' => 'Bremse', 'role' => 'admin', 'active' => 1]);
+pruefe('vor dem ersten Fehlversuch ist niemand gesperrt', Auth::gesperrt($p0Mail) === 0);
+for ($p0i = 0; $p0i < Auth::FEHL_GRENZE; $p0i++) { Auth::anmelden($p0Mail, 'falsch-' . $p0i); }
+pruefe('nach ' . Auth::FEHL_GRENZE . ' Fehlversuchen ist die Adresse gesperrt', Auth::gesperrt($p0Mail) > 0,
+    (string) Auth::gesperrt($p0Mail));
+pruefe('gesperrt hilft auch das richtige Passwort nicht', Auth::anmelden($p0Mail, 'richtig-richtig') === false);
+pruefe('eine andere Adresse vom selben Absender ist ebenfalls gesperrt',
+    Auth::gesperrt('jemand-anders@pruefung.example') > 0);
+Db::run("DELETE FROM settings WHERE skey LIKE 'anm\\_fehl\\_%'");
+pruefe('nach dem Fenster ist die Sperre weg', Auth::gesperrt($p0Mail) === 0);
+Db::run('DELETE FROM users WHERE email = ?', [$p0Mail]);
+
+/* Keine verlorene Zaehlung: Jeder Ereignisname, den die Seite an d.php
+   schickt, muss dort in der Liste stehen -- sonst wird er still verworfen.
+   So gingen die AR-Aufrufe seit ihrer Einfuehrung verloren. */
+$p0D = (string) file_get_contents(dirname($wurzel) . '/d.php');
+preg_match('~const EREIGNISSE = \[(.*?)\];~s', $p0D, $p0L);
+preg_match_all("~'([a-z0-9-]+)'~", $p0L[1] ?? '', $p0E);
+$p0Erlaubt = array_flip($p0E[1]);
+$p0Fehlt = [];
+$p0Js = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname($wurzel) . '/assets/js', FilesystemIterator::SKIP_DOTS));
+foreach ($p0Js as $p0F) {
+    if (!str_ends_with((string) $p0F, '.js') || str_contains((string) $p0F, '/vendor/')) { continue; }
+    $p0Q = (string) file_get_contents((string) $p0F);
+    preg_match_all("~zaehlen\('([a-z0-9-]+)'\)|d\.php\?e=([a-z0-9-]+)~", $p0Q, $p0M, PREG_SET_ORDER);
+    foreach ($p0M as $p0T) {
+        $p0N = $p0T[1] !== '' ? $p0T[1] : ($p0T[2] ?? '');
+        if ($p0N !== '' && !isset($p0Erlaubt[$p0N])) { $p0Fehlt[] = basename((string) $p0F) . ': ' . $p0N; }
+    }
+    // AR in den Produktdemos: der Name entsteht aus AR_MODELLE
+    if (preg_match("~AR_MODELLE = new Set\(\[([^\]]+)\]\)~", $p0Q, $p0Ar)) {
+        preg_match_all("~'([a-z]+)'~", $p0Ar[1], $p0Am);
+        foreach ($p0Am[1] as $p0Mod) { if (!isset($p0Erlaubt["ar-$p0Mod"])) { $p0Fehlt[] = "ar-$p0Mod"; } }
+    }
+}
+pruefe('jedes gesendete Ereignis wird in d.php auch gezählt', $p0Fehlt === [], implode(', ', array_unique($p0Fehlt)));
 
 /* ============================================================================
    Aufräumen und Bilanz

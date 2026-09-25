@@ -33,6 +33,9 @@ const EREIGNISSE = [
     'kleinwagen-stufe-1', 'kleinwagen-stufe-2', 'kleinwagen-stufe-3', 'kleinwagen-stufe-4',
     'mittelklasse-stufe-1', 'mittelklasse-stufe-2', 'mittelklasse-stufe-3', 'mittelklasse-stufe-4',
     'whatsapp',
+    // AR-Ansicht (25.09.2026): gesendet seit dem Kuechenplaner und den Produkt-
+    // demos, aber nie in dieser Liste -- jede Zaehlung wurde still verworfen.
+    'ar-wein', 'ar-schmuck', 'ar-gastro', 'ar-kueche',
     // E-Mail-Einstieg (24.09.2026): aus welchem Feld die Adresse kam
     'zugang-hero', 'zugang-kontakt', 'zugang-vorschau',
     // Ihre Seite in 30 Sekunden (N1, 24.09.2026): Vorschau gezeigt, Branche

@@ -99,3 +99,6 @@ _to_delete/
 
 # Sammelordner der Pages-Vorschau. Entsteht nur im Ablauf, nie von Hand.
 /_vorschau/
+
+# Zaehldatei der Demos (d.php) -- entsteht auf dem Server
+demo.csv
