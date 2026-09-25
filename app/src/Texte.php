@@ -1053,6 +1053,23 @@ final class Texte
         /* Phase 2: automatisch abbuchen. abbuchungZustimmung ist der Wortlaut,
            der als Zustimmung gespeichert wird -- aendern heisst: FASSUNG in
            Abbuchung.php hochzaehlen. */
+        /* Phase 6c: 1:1-Umzug der Website auf der Kundenseite. seitenumzugZustimmung
+           ist der Wortlaut, der gespeichert wird -- aendern heisst FASSUNG hochzaehlen. */
+        'seitenumzugTitel' => ['it' => 'Trasferimento del suo sito', 'de' => 'Umzug Ihrer Website', 'en' => 'Moving your website'],
+        'seitenumzugZustimmung' => [
+            'it' => 'Incarico Vecom Design di trasferire da loro il mio sito {adresse} così com’è. A questo scopo fornisco l’accesso al mio spazio web attuale. Lì non viene modificato né cancellato nulla; prima si fa una copia di sicurezza. I dati di accesso sono conservati cifrati e cancellati a trasferimento concluso, al più tardi dopo {tage} giorni. Dopo conviene cambiare la password.',
+            'de' => 'Ich beauftrage Vecom Design, meine Website {adresse} so, wie sie ist, zu Vecom umzuziehen. Dafür gebe ich den Zugang zu meinem bisherigen Webspace. Dort wird nichts verändert oder gelöscht; zuerst wird eine Sicherung angelegt. Die Zugangsdaten werden verschlüsselt aufbewahrt und nach dem Umzug gelöscht, spätestens nach {tage} Tagen. Danach ändere ich das Passwort am besten.',
+            'en' => 'I engage Vecom Design to move my website {adresse} to them exactly as it is. For this I provide access to my current web space. Nothing there is changed or deleted; a backup is made first. The access details are stored encrypted and deleted once the move is done, at the latest after {tage} days. Afterwards I should change the password.'],
+        'seitenumzugHilfe' => ['it' => 'Li trova nel pannello del suo fornitore attuale, alla voce FTP. Il database serve solo se il sito ne usa uno (per es. WordPress).', 'de' => 'Sie finden sie im Kundenbereich Ihres bisherigen Anbieters unter FTP. Die Datenbank nur, wenn die Seite eine hat (z. B. WordPress).', 'en' => 'You find them in your current provider’s customer area under FTP. The database only if the site uses one (e.g. WordPress).'],
+        'seitenumzugFtpHost' => ['it' => 'Server FTP', 'de' => 'FTP-Server', 'en' => 'FTP server'],
+        'seitenumzugFtpUser' => ['it' => 'Utente FTP', 'de' => 'FTP-Benutzer', 'en' => 'FTP user'],
+        'seitenumzugFtpPass' => ['it' => 'Password FTP', 'de' => 'FTP-Passwort', 'en' => 'FTP password'],
+        'seitenumzugDb'      => ['it' => 'Database (se c’è)', 'de' => 'Datenbank (falls vorhanden)', 'en' => 'Database (if any)'],
+        'seitenumzugKnopf'   => ['it' => 'Acconsento e invio i dati', 'de' => 'Zustimmen und Zugang übermitteln', 'en' => 'Agree and send access'],
+        'seitenumzugDa'      => ['it' => 'Grazie — i dati sono arrivati. Ora prepariamo il trasferimento; il suo sito resta online come prima.', 'de' => 'Danke — der Zugang ist angekommen. Wir bereiten den Umzug vor; Ihre Seite bleibt bis dahin, wie sie ist.', 'en' => 'Thank you — the access has arrived. We are preparing the move; your site stays as it is until then.'],
+        'seitenumzugFehlt'   => ['it' => 'Servono almeno server, utente e password FTP.', 'de' => 'Es braucht mindestens FTP-Server, Benutzer und Passwort.', 'en' => 'At least FTP server, user and password are needed.'],
+        'seitenumzugHost'    => ['it' => 'Questo server non è raggiungibile da Internet. Controlli il nome.', 'de' => 'Dieser Server ist aus dem Internet nicht erreichbar. Bitte den Namen prüfen.', 'en' => 'This server cannot be reached from the internet. Please check the name.'],
+        'seitenumzugFertig'  => ['it' => 'Trasferimento concluso. I dati di accesso sono stati cancellati.', 'de' => 'Umzug abgeschlossen. Die Zugangsdaten sind gelöscht.', 'en' => 'Move complete. The access details have been deleted.'],
         /* Phase 5: Domain-Umzug auf der Kundenseite. */
         'umzugTitel'    => ['it' => 'Trasferimento del dominio', 'de' => 'Umzug Ihrer Domain', 'en' => 'Moving your domain'],
         'umzugSperre'   => ['it' => 'Il dominio è ancora bloccato presso il suo fornitore attuale. Nel suo pannello cerchi „blocco trasferimento“ (o „transfer lock“) e lo disattivi — altrimenti il trasferimento non parte.',
@@ -1354,6 +1371,22 @@ final class Texte
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
         /* Phase 2: die Vorabinformation vor jeder Abbuchung. Bei SEPA ist
            sie Pflicht -- und bei der Karte ehrlich. */
+        /* Phase 6c: Uwe fragt den 1:1-Umzug an. Kein Passwort in der Mail --
+           nur der Weg zur Seite, auf der zugestimmt und eingegeben wird. */
+        'seitenumzug_anfrage' => [
+            'it' => ['Trasferire il suo sito {adresse}',
+                "Buongiorno {name},\n\ncome d’accordo trasferiamo il suo sito {adresse} da noi, così com’è.\n\n"
+                . "Sulla sua pagina trova cosa serve (i dati di accesso al suo spazio web attuale) e il testo a cui dà il consenso. "
+                . "Per favore non mandi password per e-mail — le inserisca lì:\n{seite}"],
+            'de' => ['Umzug Ihrer Website {adresse}',
+                "Guten Tag {name},\n\nwie besprochen ziehen wir Ihre Website {adresse} so, wie sie ist, zu uns um.\n\n"
+                . "Auf Ihrer Seite steht, was wir dafür brauchen (den Zugang zu Ihrem bisherigen Webspace), und der Text, dem Sie zustimmen. "
+                . "Bitte keine Passwörter per E-Mail — geben Sie sie dort ein:\n{seite}"],
+            'en' => ['Moving your website {adresse}',
+                "Hello {name},\n\nas agreed we are moving your website {adresse} to us exactly as it is.\n\n"
+                . "Your page shows what we need (access to your current web space) and the text you agree to. "
+                . "Please don’t send passwords by email — enter them there:\n{seite}"],
+        ],
         /* Phase 5: der Umzug ist durch. */
         'domain_umgezogen' => [
             'it' => ['{domain} è arrivato da noi',

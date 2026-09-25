@@ -302,6 +302,15 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                             : Texte::h(Texte::SEITE['hostingDanke'] ?? [], $sprache, 'Abgemacht.'));
                 }
 
+            } elseif ($tat === 'seitenumzug_zugang') {
+                /* Phase 6c: Zustimmung und Zugang in einem Klick -- der Knopf
+                   IST die Zustimmung, ihr Wortlaut steht darueber. */
+                require_once __DIR__ . '/app/src/Seitenumzug.php';
+                $wie = Seitenumzug::zugangSpeichern((int) ($_POST['umzug'] ?? 0), (int) $kunde['id'], $_POST, $sprache);
+                if ($wie === 'ok') { $meldung = $T('seitenumzugDa'); }
+                elseif ($wie === 'unvollstaendig') { $fehler[] = $T('seitenumzugFehlt'); }
+                elseif ($wie === 'host') { $fehler[] = $T('seitenumzugHost'); }
+
             } elseif ($tat === 'umzug_code') {
                 /* Phase 5: Der Auth-Code kommt hierher statt in eine Mail --
                    verschluesselt, nur fuer den eigenen Umzug. */
@@ -992,6 +1001,43 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <?php endif; ?>
       </div>
     </details>
+  <?php endif; ?>
+
+  <?php /* ---------- Phase 6c: Umzug der bestehenden Website ----------
+           Erscheint erst, wenn Uwe ihn angefragt hat. Der Satz ueber den
+           Feldern ist genau der Wortlaut, der als Zustimmung gespeichert
+           wird; ohne diesen Klick gibt es keinen Zugang und keinen Umzug. */ ?>
+  <?php $sUmzug = $kunde ? sicherLesen(function () use ($kunde) { require_once __DIR__ . '/app/src/Seitenumzug.php';
+      return Seitenumzug::fuerKunde((int) $kunde['id']); }, null) : null; ?>
+  <?php if ($sUmzug && in_array((string) $sUmzug['stand'], ['angefragt', 'zugang_da', 'fertig'], true)): ?>
+    <div class="klapp" id="seitenumzug" style="padding:14px 16px">
+      <div class="summe"><?= $h($T('seitenumzugTitel')) ?> · <?= $h((string) $sUmzug['adresse']) ?></div>
+      <?php if ((string) $sUmzug['stand'] === 'fertig'): ?>
+        <p class="mini" style="margin:8px 0 0"><?= $h($T('seitenumzugFertig')) ?></p>
+      <?php elseif ((string) $sUmzug['stand'] === 'zugang_da'): ?>
+        <p class="mini" style="margin:8px 0 0"><?= $h($T('seitenumzugDa')) ?></p>
+      <?php else: ?>
+        <p class="mini" style="margin:8px 0 6px;color:var(--dim)"><?= $h(Seitenumzug::zustimmungsText((string) $sUmzug['adresse'], $sprache)) ?></p>
+        <p class="mini" style="margin:0 0 10px;color:var(--leise)"><?= $h($T('seitenumzugHilfe')) ?></p>
+        <form method="post" action="<?= $h($hier) ?>#seitenumzug" autocomplete="off">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="seitenumzug_zugang">
+          <input type="hidden" name="umzug" value="<?= (int) $sUmzug['id'] ?>">
+          <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+            <input name="ftp_host" required placeholder="<?= $h($T('seitenumzugFtpHost')) ?>" aria-label="<?= $h($T('seitenumzugFtpHost')) ?>" spellcheck="false">
+            <input name="ftp_user" required placeholder="<?= $h($T('seitenumzugFtpUser')) ?>" aria-label="<?= $h($T('seitenumzugFtpUser')) ?>" spellcheck="false">
+            <input name="ftp_pass" required type="password" placeholder="<?= $h($T('seitenumzugFtpPass')) ?>" aria-label="<?= $h($T('seitenumzugFtpPass')) ?>" autocomplete="new-password">
+          </div>
+          <details style="margin-top:8px"><summary class="mini"><?= $h($T('seitenumzugDb')) ?></summary>
+            <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:8px">
+              <input name="db_host" placeholder="Host" aria-label="Datenbank Host" spellcheck="false">
+              <input name="db_name" placeholder="Name" aria-label="Datenbank Name" spellcheck="false">
+              <input name="db_user" placeholder="User" aria-label="Datenbank User" spellcheck="false">
+              <input name="db_pass" type="password" placeholder="Password" aria-label="Datenbank Passwort" autocomplete="new-password">
+            </div></details>
+          <button class="knopf haupt" style="margin-top:10px"><?= $h($T('seitenumzugKnopf')) ?></button>
+        </form>
+      <?php endif; ?>
+    </div>
   <?php endif; ?>
 
   <?php /* ---------- C4: Heute und wie es werden koennte ----------

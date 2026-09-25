@@ -8333,6 +8333,79 @@ pruefe('Phase 6a: ist die Seite nicht erreichbar, steht ein Fehler da statt eine
     $asStand2 === 'fehler' && (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ?', [$asK2], 0) === 0);
 
 /* ============================================================================
+   75. Website 1:1 umziehen, begleitet (Phase 6c) -- mit nachgebautem FTP
+   ============================================================================ */
+abschnitt('75. Website 1:1 umziehen, begleitet');
+require_once $wurzel . '/src/Seitenumzug.php';
+
+$suAufl = static fn(string $h): array => ['ftp.intern.example' => ['10.0.0.5'], 'ftp.gut.example' => ['93.184.216.34']][$h] ?? [];
+pruefe('Phase 6c: nur öffentliche Server -- private Adressen, localhost und Unauflösbares nicht',
+    Seitenumzug::hostErlaubt('ftp.gut.example', $suAufl) && !Seitenumzug::hostErlaubt('ftp.intern.example', $suAufl)
+    && !Seitenumzug::hostErlaubt('127.0.0.1') && !Seitenumzug::hostErlaubt('192.168.1.10') && !Seitenumzug::hostErlaubt('localhost', $suAufl)
+    && !Seitenumzug::hostErlaubt('gibtsnicht.example', $suAufl) && Seitenumzug::hostErlaubt('93.184.216.34'));
+
+$suK = Events::kundeFinden(['name' => 'Umzug Seite', 'email' => 'umzug-seite@pruefung.example', 'sprache' => 'de']);
+$suId = Seitenumzug::anfragen($suK, 'https://www.alte-seite-probe.it/');
+pruefe('Phase 6c: angefragt, einmal je laufendem Umzug',
+    $suId > 0 && Seitenumzug::anfragen($suK, 'alte-seite-probe.it') === $suId
+    && (string) Db::wert('SELECT adresse FROM seitenumzuege WHERE id = ?', [$suId], '') === 'alte-seite-probe.it');
+$suFremd = Events::kundeFinden(['name' => 'Fremd Seite', 'email' => 'fremd-seite@pruefung.example']);
+pruefe('Phase 6c: ein fremder Kunde kann keinen Zugang hinterlegen',
+    Seitenumzug::zugangSpeichern($suId, $suFremd, ['ftp_host' => '93.184.216.34', 'ftp_user' => 'u', 'ftp_pass' => 'p'], 'de') === 'nicht_dran');
+pruefe('Phase 6c: ohne Passwort oder mit privatem Server wird nichts gespeichert und nichts zugestimmt',
+    Seitenumzug::zugangSpeichern($suId, $suK, ['ftp_host' => '93.184.216.34', 'ftp_user' => 'u'], 'de') === 'unvollstaendig'
+    && Seitenumzug::zugangSpeichern($suId, $suK, ['ftp_host' => '10.1.2.3', 'ftp_user' => 'u', 'ftp_pass' => 'p'], 'de') === 'host'
+    && (int) Db::wert("SELECT COUNT(*) FROM zustimmungen WHERE customer_id = ? AND art = 'migration'", [$suK], 0) === 0);
+$suOk = Seitenumzug::zugangSpeichern($suId, $suK, ['ftp_host' => '93.184.216.34', 'ftp_user' => 'alt_user',
+    'ftp_pass' => 'Geheim-FTP-123', 'db_pass' => 'Geheim-DB-456'], 'de');
+$suRow = Db::one('SELECT * FROM seitenumzuege WHERE id = ?', [$suId]);
+$suZ = Db::one("SELECT * FROM zustimmungen WHERE customer_id = ? AND art = 'migration'", [$suK]);
+pruefe('Phase 6c: Zustimmung mit Wortlaut, Zugang verschlüsselt, Löschdatum in 30 Tagen',
+    $suOk === 'ok' && $suZ && str_contains((string) $suZ['text'], 'alte-seite-probe.it') && str_contains((string) $suZ['text'], '30 Tagen')
+    && (int) $suZ['bezug_id'] === $suId
+    && !str_contains((string) $suRow['zugang_blob'], 'Geheim-FTP-123') && !str_contains((string) $suRow['zugang_blob'], 'Geheim-DB-456')
+    /* Gegen die Datenbankuhr: Setzen und Loeschen laufen beide ueber NOW() --
+       PHP (Rom) und Datenbank (UTC) liegen vor Mitternacht einen Tag auseinander. */
+    && substr((string) $suRow['loeschen_am'], 0, 10) === (string) Db::wert('SELECT DATE(NOW() + INTERVAL 30 DAY)', [], ''));
+pruefe('Phase 6c: das Passwort steht in keiner Meldung und keiner Mail',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE body LIKE '%Geheim-FTP%'", [], 0) === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE betreff LIKE '%Geheim-FTP%'", [], 0) === 0);
+
+$suGesehen = null;
+$suFtp = static function (array $z) use (&$suGesehen): array { $suGesehen = $z;
+    return ['ok' => true, 'text' => 'Anmeldung klappt (verschlüsselt).', 'liste' => ['public_html'], 'wordpress' => true]; };
+$suC = Seitenumzug::cron($suFtp);
+$suT = json_decode((string) Db::wert('SELECT test_json FROM seitenumzuege WHERE id = ?', [$suId], ''), true);
+pruefe('Phase 6c: der Cron prüft die Verbindung mit dem entschlüsselten Zugang und erkennt WordPress',
+    $suC['geprueft'] === 1 && ($suGesehen['ftp_pass'] ?? '') === 'Geheim-FTP-123' && !empty($suT['wordpress']));
+pruefe('Phase 6c: Uwe kann den Zugang lesen', (Seitenumzug::zugangLesen($suId)['db_pass'] ?? '') === 'Geheim-DB-456');
+
+pruefe('Phase 6c: ohne Sicherung kein Kopieren -- die Checkliste geht nur in Reihenfolge',
+    !Seitenumzug::schritt($suId, 'dateien', true) && Seitenumzug::schritt($suId, 'sicherung', true) && Seitenumzug::schritt($suId, 'dateien', true));
+pruefe('Phase 6c: abschließen geht erst, wenn alles abgehakt ist', !Seitenumzug::beenden($suId, true));
+foreach (['datenbank', 'test', 'dns'] as $suS) { Seitenumzug::schritt($suId, $suS, true); }
+pruefe('Phase 6c: abgeschlossen -- und der Zugang ist weg',
+    Seitenumzug::beenden($suId, true) && Db::one('SELECT zugang_blob FROM seitenumzuege WHERE id = ?', [$suId])['zugang_blob'] === null
+    && Seitenumzug::zugangLesen($suId) === null);
+
+$suId2 = Seitenumzug::anfragen($suK, 'zweite-probe.it');
+Seitenumzug::zugangSpeichern($suId2, $suK, ['ftp_host' => '93.184.216.34', 'ftp_user' => 'u', 'ftp_pass' => 'Pw-lang-genug'], 'de');
+Db::run('UPDATE seitenumzuege SET loeschen_am = NOW() - INTERVAL 1 HOUR, test_json = ? WHERE id = ?', ['{}', $suId2]);
+$suC2 = Seitenumzug::cron($suFtp);
+pruefe('Phase 6c: nach 30 Tagen löscht der Cron den Zugang auch ohne Abschluss',
+    $suC2['geloescht'] === 1 && Db::one('SELECT zugang_blob FROM seitenumzuege WHERE id = ?', [$suId2])['zugang_blob'] === null);
+pruefe('Phase 6c: Anfragen schickt Post und fragt vorher; Abschließen und Abbrechen löschen und fragen vorher',
+    Ablauf::wiegt('seitenumzug_anfragen') === Ablauf::RAUS && Ablauf::wiegt('seitenumzug_fertig') === Ablauf::SCHWER
+    && Ablauf::wiegt('seitenumzug_abbrechen') === Ablauf::SCHWER);
+$suTx = true;
+foreach (['it', 'de', 'en'] as $suSp) {
+    [$b, $t] = Texte::mail('seitenumzug_anfrage', $suSp, ['name' => 'X', 'adresse' => 'a.it', 'seite' => 'S']);
+    if (preg_match('~\{[a-z]+\}~', $b . $t)) { $suTx = false; }
+    if (preg_match('~\{[a-z]+\}~', Seitenumzug::zustimmungsText('a.it', $suSp))) { $suTx = false; }
+}
+pruefe('Phase 6c: Anfrage-Mail und Zustimmung dreisprachig, ohne offene Platzhalter', $suTx);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

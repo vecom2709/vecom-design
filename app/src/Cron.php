@@ -120,6 +120,11 @@ final class Cron
                 require_once __DIR__ . '/Altseite.php';
                 return Altseite::nachholen();
             },
+            /* Phase 6c: hinterlegte Zugaenge pruefen, abgelaufene loeschen. */
+            'seitenumzug' => static function () {
+                require_once __DIR__ . '/Seitenumzug.php';
+                return Seitenumzug::cron();
+            },
             'domains'     => static function () {
                 require_once __DIR__ . '/Domainumzug.php';
                 return Domainumzug::nachsehenAlle();

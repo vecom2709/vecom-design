@@ -891,6 +891,47 @@ if ($post) {
                 $_SESSION['gut'] = 'Die alte Seite wird gesichert. Das dauert ein paar Cronläufe; danach liegt eine ZIP-Datei in der Ablage.';
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'seitenumzug_anfragen':
+            case 'seitenumzug_zeigen':
+            case 'seitenumzug_testen':
+            case 'seitenumzug_schritt':
+            case 'seitenumzug_fertig':
+            case 'seitenumzug_abbrechen':
+                /* Phase 6c: den 1:1-Umzug begleiten. Kopieren tust du; hier
+                   stehen Zustimmung, Zugang, Test und Checkliste. */
+                require_once __DIR__ . '/src/Seitenumzug.php';
+                $sid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'seitenumzug_anfragen') {
+                    $neu = Seitenumzug::anfragen($sid, (string) ($_POST['adresse'] ?? ''));
+                    require_once __DIR__ . '/src/Mail.php';
+                    require_once __DIR__ . '/src/Texte.php';
+                    require_once __DIR__ . '/src/Kundenzugang.php';
+                    $sk = Db::one('SELECT * FROM customers WHERE id = ?', [$sid]);
+                    $sp = in_array((string) ($sk['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $sk['sprache'] : 'it';
+                    [$sb, $st] = Texte::mail('seitenumzug_anfrage', $sp, ['name' => (string) ($sk['name'] ?? ''),
+                        'adresse' => (string) Db::wert('SELECT adresse FROM seitenumzuege WHERE id = ?', [$neu], ''),
+                        'seite' => Kundenzugang::linkFuer($sid)]);
+                    $ok = $sk && Mail::senden('seitenumzug_anfrage', (string) $sk['email'], $sb, $st,
+                        ['customer_id' => $sid, 'antwortAn' => Mail::eigeneAdresse()]);
+                    $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Angefragt — der Kunde hat die Mail und stimmt auf seiner Seite zu.'
+                        : 'Angefragt, aber die Mail ging nicht raus — schick ihm seinen Link von Hand.';
+                } elseif ($tat === 'seitenumzug_zeigen') {
+                    $z = Seitenumzug::zugangLesen($sid);
+                    if ($z !== null) { $_SESSION['seitenumzug_zugang'][$sid] = $z; } else { $_SESSION['fehler'] = 'Kein Zugang hinterlegt.'; }
+                } elseif ($tat === 'seitenumzug_testen') {
+                    $r = Seitenumzug::testen($sid);
+                    $_SESSION[$r && $r['ok'] ? 'gut' : 'fehler'] = $r ? (string) $r['text'] : 'Kein Zugang hinterlegt.';
+                } elseif ($tat === 'seitenumzug_schritt') {
+                    if (!Seitenumzug::schritt($sid, (string) ($_POST['schritt'] ?? ''), ($_POST['wert'] ?? '') === '1')) {
+                        $_SESSION['fehler'] = 'Geht nur in Reihenfolge — die Sicherung zuerst.';
+                    }
+                } else {
+                    $ok = Seitenumzug::beenden($sid, $tat === 'seitenumzug_fertig');
+                    $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Erledigt. Der Zugang zum alten Webspace ist gelöscht.'
+                        : 'Abschließen geht erst, wenn alle Schritte abgehakt sind.';
+                }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'umzug_code_zeigen':
             case 'umzug_beantragt':
             case 'umzug_pruefen':

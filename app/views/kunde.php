@@ -114,6 +114,62 @@ $eing = !empty($eingebettet);
         <span style="color:var(--leise);font-size:12.5px">Texte, Bilder, PDFs → eine ZIP-Datei. Die alte Seite bleibt, wie sie ist.</span>
       </form>
     <?php endif; ?>
+    <?php /* Phase 6c: 1:1-Umzug der alten Seite -- angefragt von dir, zugestimmt
+             vom Kunden, kopiert von dir. Hier: Test, Zugang auf Klick, Checkliste. */ ?>
+    <?php require_once __DIR__ . '/../src/Seitenumzug.php';
+      $sU = sicher(static fn() => Seitenumzug::fuerKunde((int) $k['id']), null); ?>
+    <?php if (!$sU || in_array((string) $sU['stand'], ['fertig', 'abgebrochen'], true)): ?>
+      <details style="margin:0 0 10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">Alte Website 1:1 zu uns umziehen …
+        <?php if ($sU): ?><span style="color:var(--leise)">(zuletzt <?= Fmt::h((string) $sU['adresse']) ?>: <?= Fmt::h((string) $sU['stand']) ?>)</span><?php endif; ?></summary>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="seitenumzug_anfragen">
+          <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+          <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+          <input name="adresse" required value="<?= Fmt::h($altVorschlag) ?>" placeholder="alte-seite.it" style="max-width:240px" aria-label="Adresse der alten Seite">
+          <button class="knopf">Umzug anfragen</button>
+          <span style="color:var(--leise);font-size:12.5px">Der Kunde stimmt auf seiner Seite zu und gibt dort den Zugang ein — nie per Mail.</span>
+        </form></details>
+    <?php else: ?>
+      <?php $sT = json_decode((string) ($sU['test_json'] ?? ''), true); $sS = json_decode((string) ($sU['schritte'] ?? ''), true) ?: []; ?>
+      <div style="margin:0 0 12px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
+        <div style="font-weight:650">Website-Umzug <?= Fmt::h((string) $sU['adresse']) ?>
+          <span class="marke2 <?= (string) $sU['stand'] === 'zugang_da' ? 'warnung' : '' ?>" style="margin-left:6px"><?=
+            Fmt::h((string) $sU['stand'] === 'angefragt' ? 'wartet auf Zustimmung und Zugang' : 'Zugang ist da') ?></span></div>
+        <?php if ((string) $sU['stand'] === 'zugang_da'): ?>
+          <p style="font-size:12.5px;margin:6px 0 0;color:var(--leise)">Zugang wird gelöscht am <?= Fmt::h(Fmt::datum((string) $sU['loeschen_am'])) ?>.
+            Verbindung: <?= is_array($sT) ? '<b>' . Fmt::h((string) $sT['text']) . '</b>' . (!empty($sT['wordpress']) ? ' · WordPress erkannt' : '') : 'wird im nächsten Cron geprüft' ?></p>
+          <?php if (!empty($_SESSION['seitenumzug_zugang'][(int) $sU['id']])): $sZ = $_SESSION['seitenumzug_zugang'][(int) $sU['id']]; unset($_SESSION['seitenumzug_zugang'][(int) $sU['id']]); ?>
+            <div class="hinweis gut" style="margin-top:8px;font-size:13px">
+              <?php foreach (['ftp_host' => 'FTP-Server', 'ftp_user' => 'FTP-Benutzer', 'ftp_pass' => 'FTP-Passwort', 'db_host' => 'DB-Host',
+                              'db_name' => 'DB-Name', 'db_user' => 'DB-Benutzer', 'db_pass' => 'DB-Passwort'] as $sF => $sN): if ((string) ($sZ[$sF] ?? '') === '') { continue; } ?>
+                <?= Fmt::h($sN) ?>: <code style="user-select:all"><?= Fmt::h((string) $sZ[$sF]) ?></code><br>
+              <?php endforeach; ?>
+              <span style="color:var(--leise)">Nur jetzt sichtbar.</span></div>
+          <?php endif; ?>
+          <table class="schlicht" style="margin-top:8px"><tbody>
+            <?php foreach (Seitenumzug::SCHRITTE as $sK => $sText): $sDa = !empty($sS[$sK]); ?>
+              <tr><td style="width:1%"><?= $sDa ? '✓' : '·' ?></td><td><?= Fmt::h($sText) ?>
+                <?php if ($sDa): ?><small style="color:var(--leise)"> · <?= Fmt::h((string) $sS[$sK]) ?></small><?php endif; ?></td>
+                <td style="width:1%"><form method="post" action="<?= Fmt::h(url('')) ?>">
+                  <?= Csrf::feld() ?><input type="hidden" name="tat" value="seitenumzug_schritt">
+                  <input type="hidden" name="id" value="<?= (int) $sU['id'] ?>"><input type="hidden" name="schritt" value="<?= Fmt::h($sK) ?>">
+                  <input type="hidden" name="wert" value="<?= $sDa ? '0' : '1' ?>"><input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                  <button class="knopf" style="padding:4px 10px"><?= $sDa ? 'zurück' : 'erledigt' ?></button></form></td></tr>
+            <?php endforeach; ?>
+          </tbody></table>
+        <?php endif; ?>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+          <?php foreach ([['seitenumzug_zeigen', 'Zugang anzeigen', (string) $sU['stand'] === 'zugang_da'],
+                          ['seitenumzug_testen', 'Verbindung neu prüfen', (string) $sU['stand'] === 'zugang_da'],
+                          ['seitenumzug_fertig', 'Umzug abschließen', (string) $sU['stand'] === 'zugang_da' && count($sS) === count(Seitenumzug::SCHRITTE)],
+                          ['seitenumzug_abbrechen', 'Abbrechen', true]] as [$sTat, $sWort, $sZeig]): if (!$sZeig) { continue; } ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?>
+              <input type="hidden" name="tat" value="<?= Fmt::h($sTat) ?>"><input type="hidden" name="id" value="<?= (int) $sU['id'] ?>">
+              <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><button class="knopf"><?= Fmt::h($sWort) ?></button></form>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
     <?php if (!$dateien): ?><div class="leer">Noch nichts.</div><?php else: ?>
       <?php foreach ($dateien as $d): ?>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">
