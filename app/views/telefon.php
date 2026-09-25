@@ -122,7 +122,7 @@ $filter = (string) ($_GET['f'] ?? '');
         </td>
         <td style="vertical-align:top">
           <b><?php if ($r['kunde_id'] > 0): ?>
-            <a href="<?= Fmt::h(url('kunden/' . (int) $r['kunde_id'])) ?>"><?= Fmt::h($r['wer']) ?></a>
+            <a href="<?= Fmt::h(url('kunden/' . (int) $r['kunde_id'])) ?>"><?= Fmt::h(Fmt::name($r['wer'])) ?></a>
           <?php else: ?><?= Fmt::h($r['wer']) ?><?php endif; ?></b>
           <?php if ($r['anliegen'] !== ''): ?>
             <div style="color:var(--leise);font-size:12.5px;margin-top:3px"><?= Fmt::h($r['anliegen']) ?></div>
@@ -503,7 +503,7 @@ $filter = (string) ($_GET['f'] ?? '');
           </td>
           <td style="vertical-align:top">
             <?php if ((int) $o['kunde_id'] > 0): ?>
-              <a href="<?= Fmt::h(url('kunden/' . (int) $o['kunde_id'])) ?>"><?= Fmt::h((string) $o['wer']) ?></a>
+              <a href="<?= Fmt::h(url('kunden/' . (int) $o['kunde_id'])) ?>"><?= Fmt::h(Fmt::name($o['wer'])) ?></a>
             <?php else: ?><?= Fmt::h((string) $o['wer']) ?><?php endif; ?>
           </td>
           <td style="vertical-align:top;color:var(--leise);font-size:12.5px">
@@ -643,8 +643,8 @@ $filter = (string) ($_GET['f'] ?? '');
           <td><?= Fmt::h((string) $z['title']) ?></td>
           <td><?php if ($z['customer_id']): ?>
             <a href="<?= Fmt::h(url('kunden/' . (int) $z['customer_id'])) ?>"><?=
-              Fmt::h((string) sicher(static fn() => Db::wert(
-                'SELECT name FROM customers WHERE id = ?', [(int) $z['customer_id']], '—'), '—')) ?></a>
+              Fmt::h(Fmt::name((string) sicher(static fn() => Db::wert(
+                'SELECT COALESCE(NULLIF(name, \'\'), email) FROM customers WHERE id = ?', [(int) $z['customer_id']], ''), ''))) ?></a>
           <?php else: ?><span style="color:var(--leise)">—</span><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>

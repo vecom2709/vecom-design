@@ -20,7 +20,7 @@
 <?php foreach ($liste as $a): ?><tr>
 <td style="white-space:nowrap;color:var(--dim)"><?= Fmt::h(Fmt::zeit($a['created_at'])) ?></td>
 <td><?= Fmt::h($a['title']) ?></td>
-<td><?= $a['customer_id'] ? '<a href="' . Fmt::h(url('kunden/' . $a['customer_id'])) . '">' . Fmt::h((string) $a['kunde']) . '</a>' : '—' ?></td>
+<td><?= $a['customer_id'] ? '<a href="' . Fmt::h(url('kunden/' . $a['customer_id'])) . '">' . Fmt::h(Fmt::name($a['kunde'])) . '</a>' : '—' ?></td>
 <td style="color:var(--dim)"><?= Fmt::h($a['actor']) ?></td>
 <td style="text-align:right">
   <form method="post" action="<?= Fmt::h(url('')) ?>"

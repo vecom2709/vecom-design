@@ -124,7 +124,7 @@ $bildArten = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
           <?php endif; ?>
           <br><small style="color:var(--leise)"><?= Fmt::h($mime) ?></small></td>
         <td><?= $d['customer_id']
-              ? '<a href="' . Fmt::h(url('kunden/' . (int) $d['customer_id'])) . '">' . Fmt::h((string) ($d['firma'] ?: $d['kunde'])) . '</a>'
+              ? '<a href="' . Fmt::h(url('kunden/' . (int) $d['customer_id'])) . '">' . Fmt::h(Fmt::name($d['firma'], $d['kunde'])) . '</a>'
               : '—' ?></td>
         <td><?= $d['project_id']
               ? '<a href="' . Fmt::h(url('projekte/' . (int) $d['project_id'])) . '">' . Fmt::h((string) $d['projekt']) . '</a>'

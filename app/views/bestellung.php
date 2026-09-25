@@ -225,7 +225,7 @@
       <span class="wann"><?= Fmt::h(Fmt::seit($a['created_at'])) ?></span></li><?php endforeach; ?></ul><?php endif; ?></div>
 </div><div>
   <div class="block"><h2>Übersicht</h2><table><tbody>
-    <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . $b['customer_id'])) ?>"><?= Fmt::h($b['kunde']) ?></a></td></tr>
+    <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . $b['customer_id'])) ?>"><?= Fmt::h(Fmt::name($b['kunde'])) ?></a></td></tr>
     <tr><td>Paket</td><td><?= Fmt::h($b['package_name']) ?></td></tr>
     <tr><td>Preis</td><td><?= Fmt::geld((int) $b['price_cents'], $b['currency']) ?><?= $b['monthly_cents'] ? ' + ' . Fmt::geld((int) $b['monthly_cents']) . '/Mon.' : '' ?></td></tr>
     <tr><td>Bestellt</td><td><?= Fmt::h(Fmt::zeit($b['ordered_at'])) ?></td></tr>

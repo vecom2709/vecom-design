@@ -38,7 +38,7 @@
   </div>
 </div><div>
   <div class="block"><h2>Übersicht</h2><table><tbody>
-    <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . (int) $r['customer_id'])) ?>"><?= Fmt::h($r['firma'] ?: $r['kunde']) ?></a></td></tr>
+    <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . (int) $r['customer_id'])) ?>"><?= Fmt::h(Fmt::name($r['firma'], $r['kunde'])) ?></a></td></tr>
     <tr><td>Bestellung</td><td><?= $r['order_id'] ? '<a href="' . Fmt::h(url('bestellungen/' . (int) $r['order_id'])) . '">' . Fmt::h((string) $r['order_no']) . '</a>' : '—' ?></td></tr>
     <tr><td>Projekt</td><td><?= $r['project_id'] ? '<a href="' . Fmt::h(url('projekte/' . (int) $r['project_id'])) . '">ansehen</a>' : '—' ?></td></tr>
     <tr><td>Ausgestellt</td><td><?= Fmt::h(Fmt::datum((string) $r['issued_at'])) ?></td></tr>

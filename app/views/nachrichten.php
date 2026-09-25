@@ -12,7 +12,7 @@
       <?php $vomKunden = $m['sender'] === 'kunde'; $neu = $vomKunden && $m['read_at'] === null; ?>
       <tr>
         <td><?= $vomKunden
-              ? '<a href="' . Fmt::h(url('kunden/' . (int) $m['customer_id'])) . '">' . Fmt::h($m['firma'] ?: $m['kunde']) . '</a>'
+              ? '<a href="' . Fmt::h(url('kunden/' . (int) $m['customer_id'])) . '">' . Fmt::h(Fmt::name($m['firma'], $m['kunde'])) . '</a>'
               : '<span style="color:var(--leise)">du</span>' ?>
           <?php if ($neu): ?><br><span class="marke2 warnung">ungelesen</span><?php endif; ?></td>
         <td style="max-width:460px"><span style="white-space:pre-wrap;<?= $neu ? '' : 'color:var(--dim)' ?>"><?= Fmt::h(mb_substr((string) $m['body'], 0, 400)) ?><?= mb_strlen((string) $m['body']) > 400 ? '…' : '' ?></span></td>

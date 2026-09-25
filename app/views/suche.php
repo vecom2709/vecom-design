@@ -9,7 +9,7 @@ $gesamt = array_sum(array_map('count', $treffer)); ?>
 <?php foreach ($treffer as $gruppe => $zeilen): if (!$zeilen) continue; ?>
 <div class="block"><h2><?= Fmt::h($gruppe) ?></h2><table><tbody>
 <?php foreach ($zeilen as $t): ?><tr>
-<td><a href="<?= Fmt::h(url($wege[$gruppe] . '/' . $t['id'])) ?>"><?= Fmt::h($t['titel']) ?></a></td>
+<td><a href="<?= Fmt::h(url($wege[$gruppe] . '/' . $t['id'])) ?>"><?= Fmt::h(Fmt::name($t['titel'], $t['neben'], '#' . $t['id'])) ?></a></td>
 <td style="color:var(--dim)"><?= Fmt::h($t['neben']) ?></td></tr><?php endforeach; ?>
 </tbody></table></div>
 <?php endforeach; endif; ?>

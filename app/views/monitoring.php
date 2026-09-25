@@ -91,7 +91,7 @@
         <td><a href="<?= Fmt::h((string) $w['url']) ?>" target="_blank" rel="noopener"><?= Fmt::h($w['domain']) ?></a>
           <?php if (!(int) $w['monitoring']): ?><br><small style="color:var(--leise)">Überwachung aus</small><?php endif; ?>
           <?php if ($w['projekt']): ?><br><small style="color:var(--leise)"><a href="<?= Fmt::h(url('projekte/' . (int) $w['project_id'])) ?>"><?= Fmt::h($w['projekt']) ?></a></small><?php endif; ?></td>
-        <td><a href="<?= Fmt::h(url('kunden/' . (int) $w['customer_id'])) ?>"><?= Fmt::h($w['firma'] ?: $w['kunde']) ?></a></td>
+        <td><a href="<?= Fmt::h(url('kunden/' . (int) $w['customer_id'])) ?>"><?= Fmt::h(Fmt::name($w['firma'], $w['kunde'])) ?></a></td>
         <td><span class="marke2 <?= Status::ton((string) $w['status']) ?>"><?= Fmt::h(Status::label(Status::WEBSITE, (string) $w['status'])) ?></span></td>
         <td><?php if ($w['last_status']): ?>
               <?= (int) $w['last_status'] ?>

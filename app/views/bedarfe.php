@@ -87,7 +87,7 @@
       <?php if ($offen): ?>
         <span style="color:var(--leise)">— noch offen —</span>
       <?php else: ?>
-        <a href="<?= Fmt::h(url('bedarf/' . $b['id'])) ?>"><strong><?= Fmt::h((string) $b['name']) ?></strong></a>
+        <a href="<?= Fmt::h(url('bedarf/' . $b['id'])) ?>"><strong><?= Fmt::h(Fmt::name($b['name'], $b['email'] ?? null, '#' . $b['id'])) ?></strong></a>
         <?php if (($b['firma'] ?? '') !== ''): ?>
           <div style="color:var(--leise);font-size:12.5px"><?= Fmt::h((string) $b['firma']) ?></div>
         <?php endif; ?>

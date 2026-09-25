@@ -95,7 +95,7 @@ $stufen = [
       <tr>
         <td>
           <?php if ($z['empfehler_id']): ?>
-            <a href="<?= Fmt::h(url('kunden/' . $z['empfehler_id'])) ?>"><strong><?= Fmt::h((string) $z['empfehler']) ?></strong></a>
+            <a href="<?= Fmt::h(url('kunden/' . $z['empfehler_id'])) ?>"><strong><?= Fmt::h(Fmt::name($z['empfehler'])) ?></strong></a>
             <?php if (($z['code'] ?? '') !== ''): ?>
               <div style="color:var(--leise);font-size:12px;font-family:ui-monospace,monospace"><?= Fmt::h((string) $z['code']) ?></div>
             <?php endif; ?>

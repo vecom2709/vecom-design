@@ -12,7 +12,7 @@
         <a href="<?= Fmt::h(url('kunden/' . (int) $z['kunde_id'])) ?>"><strong>Betreuung</strong></a>
         <small style="color:var(--leise)"><?= Fmt::h((string) ($z['abo_paket'] ?? '')) ?></small>
       <?php endif; ?></td>
-  <td><a href="<?= Fmt::h(url('kunden/' . $z['kunde_id'])) ?>"><?= Fmt::h($z['kunde']) ?></a></td>
+  <td><a href="<?= Fmt::h(url('kunden/' . $z['kunde_id'])) ?>"><?= Fmt::h(Fmt::name($z['kunde'])) ?></a></td>
   <td><?= Fmt::h($z['bezeichnung'] ?: ucfirst((string) $z['art'])) ?></td>
   <td class="num"><?= Fmt::geld((int) $z['amount_cents'], $z['currency']) ?></td>
   <td><span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span></td>

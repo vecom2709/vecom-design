@@ -15,7 +15,7 @@
     <?php foreach ($liste as $q): ?>
       <?php $fertig = $q['status'] === 'abgeschlossen'; ?>
       <tr>
-        <td><a href="<?= Fmt::h(url('kunden/' . (int) $q['customer_id'])) ?>"><?= Fmt::h($q['firma'] ?: $q['kunde']) ?></a>
+        <td><a href="<?= Fmt::h(url('kunden/' . (int) $q['customer_id'])) ?>"><?= Fmt::h(Fmt::name($q['firma'], $q['kunde'])) ?></a>
             <br><small style="color:var(--leise)"><?= Fmt::h($q['kunde_email']) ?></small></td>
         <td><a href="<?= Fmt::h(url('projekte/' . (int) $q['project_id'])) ?>"><?= Fmt::h($q['projekt']) ?></a>
             <br><small style="color:var(--leise)"><?= Fmt::h(Status::label(Status::PROJEKT, (string) $q['projekt_status'])) ?></small></td>

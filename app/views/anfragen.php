@@ -16,7 +16,7 @@
       <tr>
         <td><?= Fmt::h(Fmt::datum($a['created_at'])) ?><br>
             <small style="color:var(--leise)"><?= Fmt::h(strtoupper((string) $a['sprache'])) ?></small></td>
-        <td><a href="<?= Fmt::h(url('anfragen/' . (int) $a['id'])) ?>"><?= Fmt::h($a['name']) ?></a><br>
+        <td><a href="<?= Fmt::h(url('anfragen/' . (int) $a['id'])) ?>"><?= Fmt::h(Fmt::name($a['name'], $a['email'])) ?></a><br>
             <small style="color:var(--leise)"><?= Fmt::h($a['email']) ?></small></td>
         <td><?= $a['paket_name'] ? Fmt::h($a['paket_name']) : '<span style="color:var(--leise)">—</span>' ?></td>
         <td><span class="marke2 <?= $marke ?>"><?= Fmt::h($wort) ?></span>

@@ -65,6 +65,25 @@ final class Fmt
         return round($b, $i ? 1 : 0) . ' ' . $e[$i];
     }
 
+    /**
+     * Wie ein Kunde (oder sonst jemand) in einer Liste heisst -- der erste
+     * nicht leere Wert, sonst "ohne Namen".
+     *
+     * WARUM ES DAS GIBT (25.09.2026)
+     * Wer ueber den E-Mail-Einstieg kommt, hat anfangs weder Namen noch
+     * Firma. In der Suche und in elf Listen war genau dieser Name der Link
+     * zur Kundenakte -- leer, also unsichtbar und nicht anklickbar. Uwe kam
+     * an seinen eigenen Probekunden nicht heran, um ihn zu loeschen.
+     */
+    public static function name(mixed ...$kandidaten): string
+    {
+        foreach ($kandidaten as $k) {
+            $t = trim((string) ($k ?? ''));
+            if ($t !== '') { return $t; }
+        }
+        return '(ohne Namen)';
+    }
+
     public static function h(?string $s): string
     {
         return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');

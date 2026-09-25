@@ -20,7 +20,7 @@
                'angelegt' => 'angelegt'][$a['status']] ?? $a['status'];
     ?>
     <tr>
-      <td><a href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'])) ?>"><?= Fmt::h($a['firma'] ?: $a['kunde']) ?></a></td>
+      <td><a href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'])) ?>"><?= Fmt::h(Fmt::name($a['firma'], $a['kunde'])) ?></a></td>
       <td><?= Fmt::h((string) $a['paket_name']) ?></td>
       <td><?= Fmt::h(Fmt::geld((int) $a['betrag_cents'], (string) $a['currency'])) ?></td>
       <?php /* Phase 2: Was hinterlegt ist, zaehlt mehr als die Zahlart beim Anlegen. */ ?>

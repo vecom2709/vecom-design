@@ -13,7 +13,7 @@
 <?php foreach ($liste as $k): ?>
 <tr><td style="font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dim)"><?=
   Fmt::h(trim((string) ($k['kundennr'] ?? '')) ?: '—') ?></td>
-<td><a href="<?= Fmt::h(url('kunden/' . $k['id'])) ?>"><strong><?= Fmt::h($k['name']) ?></strong></a>
+<td><a href="<?= Fmt::h(url('kunden/' . $k['id'])) ?>"><strong><?= Fmt::h(Fmt::name($k['name'], $k['company'], $k['email'], $k['kundennr'] ?? null)) ?></strong></a>
 <?php if (trim((string) ($k['anonym_am'] ?? '')) !== ''): ?>
   <span class="marke2 schlecht" style="margin-left:7px">anonymisiert</span><?php endif; ?></td>
 <td><?= Fmt::h($k['company'] ?: '—') ?></td><td><?= Fmt::h($k['email']) ?></td>

@@ -43,7 +43,7 @@
       <tr>
         <td><a href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'])) ?>"><?= Fmt::h($r['invoice_no']) ?></a>
           <?php if ($r['sent_at']): ?><br><small style="color:var(--gruen)">verschickt</small><?php endif; ?></td>
-        <td><a href="<?= Fmt::h(url('kunden/' . (int) $r['customer_id'])) ?>"><?= Fmt::h($r['firma'] ?: $r['kunde']) ?></a></td>
+        <td><a href="<?= Fmt::h(url('kunden/' . (int) $r['customer_id'])) ?>"><?= Fmt::h(Fmt::name($r['firma'], $r['kunde'])) ?></a></td>
         <td><?= Fmt::h(match ((string) $r['art']) {
               'anzahlung' => 'Anzahlung', 'restzahlung' => 'Restzahlung', default => 'Zahlung' }) ?>
           <?php if ($r['order_no']): ?><br><small style="color:var(--leise)"><?= Fmt::h((string) $r['order_no']) ?></small><?php endif; ?></td>

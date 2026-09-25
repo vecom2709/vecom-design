@@ -8099,6 +8099,26 @@ pruefe('Phase 3: der Cron setzt fort, und „wiederholen“ fragt vorher (schwer
     && Ablauf::wiegt('hosting_weiter') === Ablauf::SCHWER);
 
 /* ============================================================================
+   71. Kein unsichtbarer Link auf einen Kunden
+   ============================================================================ */
+abschnitt('71. Kunden ohne Namen bleiben anklickbar');
+pruefe('Fmt::name nimmt den ersten nicht leeren Wert, sonst „(ohne Namen)“',
+    Fmt::name('', null, '  ', 'x@y.it') === 'x@y.it' && Fmt::name(null, '') === '(ohne Namen)' && Fmt::name('Rosa', 'x') === 'Rosa');
+$knLeer = [];
+foreach (glob($wurzel . '/views/*.php') as $knDatei) {
+    $knText = (string) file_get_contents($knDatei);
+    /* Ein Link auf Kunde, Anfrage oder Bedarf, dessen Text nur ein Datenfeld
+       ist: Ist das leer, ist der Link unsichtbar (25.09.2026, Uwes Probekunde). */
+    if (preg_match_all("~url\\('(?:kunden|anfragen|bedarf)/'[^\\n]*?\\)\\) ?\\?>\"[^>]*>(?:<strong>)?<\\?= Fmt::h\\((?!Fmt::name)~", $knText, $knM)) {
+        $knLeer[] = basename($knDatei) . ' (' . count($knM[0]) . ')';
+    }
+    if (preg_match_all("~url\\('(?:kunden|anfragen|bedarf)/'[^\\n]*?'\">' \\. Fmt::h\\((?!Fmt::name)~", $knText, $knM)) {
+        $knLeer[] = basename($knDatei) . ' (' . count($knM[0]) . ')';
+    }
+}
+pruefe('kein Link auf Kunde, Anfrage oder Bedarf hat nur ein Datenfeld als Text', $knLeer === [], implode(', ', $knLeer));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

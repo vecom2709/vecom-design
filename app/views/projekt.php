@@ -558,7 +558,7 @@
 </div><div>
   <!--teil:uebersicht-->
   <div class="block"><h2>Übersicht</h2><table><tbody>
-    <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . $p['customer_id'])) ?>"><?= Fmt::h($p['kunde']) ?></a></td></tr>
+    <tr><td>Kunde</td><td><a href="<?= Fmt::h(url('kunden/' . $p['customer_id'])) ?>"><?= Fmt::h(Fmt::name($p['kunde'])) ?></a></td></tr>
     <tr><td>Bestellung</td><td><?= $p['order_id'] ? '<a href="' . Fmt::h(url('bestellungen/' . $p['order_id'])) . '">' . Fmt::h((string) $p['order_no']) . '</a>' : '—' ?></td></tr>
     <tr><td>Projektstatus</td><td><span class="marke2 <?= Status::ton($p['status']) ?>"><?= Fmt::h(Status::label(Status::PROJEKT, $p['status'])) ?></span></td></tr>
     <tr><td>Website-Status</td><td><span class="marke2 <?= Status::ton((string) ($website['status'] ?? '')) ?>"><?= Fmt::h($website ? Status::label(Status::WEBSITE, $website['status']) : 'keine hinterlegt') ?></span></td></tr>
