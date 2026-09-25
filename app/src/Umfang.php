@@ -109,6 +109,40 @@ final class Umfang
      *
      * @return array<string,array<string,array>> gruppe => slug => Katalogzeile
      */
+    /**
+     * Der Umfang aus dem Vorhaben (den acht Fragen) -- nur als AUSGANGSWERT
+     * fuer den Fragebogen, solange es noch kein angenommenes Angebot gibt
+     * (Uwe, 25.09.2026: "nichts doppelt fragen", A4).
+     *
+     * Bewusst getrennt von bezahlt(): Das hier ist, was der Kunde einmal
+     * angeklickt hat, nichts Beauftragtes. Der Fragebogen zeigt es deshalb
+     * ohne "beauftragt"-Hinweis und speichert es erst, wenn der Kunde den
+     * Schritt bestaetigt. Sobald ein Angebot angenommen ist, gilt wieder
+     * allein bezahlt().
+     */
+    public static function ausVorhaben(int $kundeId): ?array
+    {
+        if ($kundeId <= 0) { return null; }
+        require_once __DIR__ . '/Bedarf.php';
+        require_once __DIR__ . '/Baukasten.php';
+        $b = self::still(static fn() => Db::one(
+            "SELECT * FROM bedarf WHERE customer_id = ? AND status <> 'offen' ORDER BY id DESC LIMIT 1", [$kundeId]));
+        if (!$b) { return null; }
+        $r = self::still(static fn() => Baukasten::rechnen(Bedarf::antworten($b)));
+        if (!is_array($r)) { return null; }
+        $slugs = [];
+        foreach ((array) ($r['positionen'] ?? []) as $p) {
+            $slug = (string) ($p['slug'] ?? '');
+            if ($slug !== '') { $slugs[$slug] = max(1, (int) ($p['menge'] ?? 1)); }
+        }
+        return [
+            'quelle'   => 'vorhaben',
+            'seiten'   => 1 + (int) ($slugs['seite'] ?? 0),
+            'sprachen' => 1 + (int) ($slugs['sprache'] ?? 0),
+            'slugs'    => $slugs,
+        ];
+    }
+
     public static function katalogWahl(): array
     {
         require_once __DIR__ . '/Baukasten.php';

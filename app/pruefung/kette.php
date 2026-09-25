@@ -7555,6 +7555,101 @@ gesperrt('eine unbekannte Art auch',
     static fn() => Zustimmung::festhalten('irgendwas', $lsKunde, 'Text', 'de', 'x'));
 
 /* ============================================================================
+   65. Fragebogen: holen statt fragen, Kern und Kuer, nachfassen
+   (A2, A4, B1, B6, C1, C3 -- Uwe, 25.09.2026)
+   ============================================================================ */
+abschnitt('65. Fragebogen: weniger tippen, schneller fertig');
+require_once $wurzel . '/src/Fragen.php';
+require_once $wurzel . '/src/Bedarf.php';
+require_once $wurzel . '/src/Umfang.php';
+require_once $wurzel . '/src/Onboarding.php';
+
+/* Der Kern besteht nur aus Fragen, die es gibt. */
+$fbAlle = [];
+foreach (Texte::FRAGEBOGEN as $fbTeil) { $fbAlle += (array) ($fbTeil['felder'] ?? []); }
+pruefe('jede Kernfrage gibt es im Fragebogen', array_diff(Fragen::KERN, array_keys($fbAlle)) === [],
+    implode(', ', array_diff(Fragen::KERN, array_keys($fbAlle))));
+pruefe('der Kern ist höchstens ein Drittel des Fragebogens', count(Fragen::KERN) * 3 <= count($fbAlle),
+    count(Fragen::KERN) . ' von ' . count($fbAlle));
+pruefe('kein langes Textfeld ist Pflicht', array_filter(Fragen::KERN,
+    static fn(string $n): bool => ($fbAlle[$n]['art'] ?? '') === 'lang') === []);
+
+/* Was fehlt, wird gefunden -- und nur, was sichtbar ist. */
+pruefe('leer: es fehlt die erste Kernfrage (Firmenname, Schritt 1)', Fragen::kernFehlt([]) === [1, 'firmenname']);
+$fbKern = ['firmenname' => 'Trattoria', 'branche' => 'gastronomie', 'ziel1' => array_key_first($fbAlle['ziel1']['optionen']),
+    'seiten_zahl' => '4', 'sprachen_zahl' => '1', 'funktionen_wahl' => '', 'altseite' => 'nein',
+    'material' => 'logo:haben', 'texte' => array_key_first($fbAlle['texte']['optionen']),
+    'domain' => 'weissnicht', 'hosting_wahl' => 'offen', 'mail_wahl' => 'bisher', 'termin' => 'keins'];
+pruefe('mit allen Kernantworten fehlt nichts', Fragen::kernFehlt($fbKern) === null, json_encode(Fragen::kernFehlt($fbKern)));
+pruefe('eine leere Hakenliste zählt als Antwort', Fragen::kernFehlt($fbKern) === null);
+$fbOhne = $fbKern; $fbOhne['domain'] = 'uns';
+pruefe('„Haben wir eine Domain“ macht Name und Wahl zur Pflicht', Fragen::kernFehlt($fbOhne) === [6, 'domain_name'],
+    json_encode(Fragen::kernFehlt($fbOhne)));
+pruefe('Restzeit: leer mehr als eine Minute, vollständig null',
+    Fragen::restMinuten([], 1) >= 1 && Fragen::restMinuten($fbKern, 1) === 0);
+
+/* A2: Domain aus der E-Mail-Adresse, nie aus Freemail. */
+pruefe('info@trattoria-sole.it ergibt die Domain', Bedarf::domainAusMail('info@trattoria-sole.it') === 'trattoria-sole.it');
+foreach (['mario@gmail.com', 'anna@libero.it', 'x@pec.it', 'b@web.de', 'k@pruefung.example'] as $fbMail) {
+    pruefe("keine Domain aus $fbMail", Bedarf::domainAusMail($fbMail) === null);
+}
+
+/* A2 + A4: Vorbelegung aus Kundenakte und Vorhaben. */
+$fbKunde = Events::kundeFinden(['name' => 'Vorbelegt Probe', 'email' => 'info@vorbelegt-kette.it',
+    'phone' => '+39 0922 111222', 'company' => 'Vorbelegt SRL']);
+Db::insert('bedarf', ['customer_id' => $fbKunde, 'token' => bin2hex(random_bytes(24)), 'sprache' => 'de', 'status' => 'abgesendet',
+    'antworten' => json_encode(['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 'eine',
+        'material' => ['logo'], 'bestand' => 'neu', 'zeit' => 'schnell', 'betreuung' => 'ja', 'branche' => 'gastro'])]);
+$fbVor = Bedarf::alsFragebogen($fbKunde);
+pruefe('A2: Domain aus der E-Mail vorbelegt, als Vorschlag „läuft auf uns“',
+    ($fbVor['domain'] ?? '') === 'uns' && ($fbVor['domain_name'] ?? '') === 'vorbelegt-kette.it', json_encode($fbVor));
+pruefe('A4: Telefon, E-Mail und Firma aus der Akte',
+    ($fbVor['telefon'] ?? '') === '+39 0922 111222' && ($fbVor['email_web'] ?? '') === 'info@vorbelegt-kette.it'
+    && ($fbVor['firmenname'] ?? '') === 'Vorbelegt SRL');
+pruefe('A4: „schnell“ wird „so bald wie möglich“, Betreuung „ja“ wird „am liebsten Sie“',
+    ($fbVor['termin'] ?? '') === 'baldest' && ($fbVor['pflege'] ?? '') === 'du');
+$fbUmf = Umfang::ausVorhaben($fbKunde);
+pruefe('A4: Seiten aus dem Vorhaben als Ausgangswert — nie als „beauftragt“',
+    is_array($fbUmf) && $fbUmf['quelle'] === 'vorhaben' && $fbUmf['seiten'] > 1 && !isset($fbUmf['nummer']),
+    json_encode($fbUmf));
+
+/* B1/C1: Nach dem Absenden laesst sich nur noch Freiwilliges ergaenzen. */
+$fbId = Onboarding::vorab($fbKunde);
+Onboarding::speichern($fbId, $fbKern);
+Onboarding::absenden($fbId, []);
+Onboarding::nachtragen($fbId, ['firmenname' => 'Anders', 'vorbilder' => 'cavaleri.it', 'stil' => array_key_first($fbAlle['stil']['optionen'])]);
+$fbD = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$fbId], ''), true) ?: [];
+pruefe('nachtragen: der Kern bleibt, wie er abgeschickt wurde', ($fbD['firmenname'] ?? '') === 'Trattoria');
+pruefe('nachtragen: Freiwilliges kommt dazu', ($fbD['vorbilder'] ?? '') === 'cavaleri.it' && ($fbD['stil'] ?? '') !== '');
+pruefe('und der Fragebogen bleibt abgeschlossen',
+    (string) Db::wert('SELECT status FROM questionnaires WHERE id = ?', [$fbId], '') === 'abgeschlossen');
+
+/* C3: zwei Erinnerungen, dann Ruhe -- auch vor dem Preis. */
+$fbK2 = Events::kundeFinden(['name' => 'Erinnerung Probe', 'email' => 'erinnerung@pruefung.example']);
+$fbQ = Onboarding::vorab($fbK2);
+Onboarding::speichern($fbQ, ['firmenname' => 'Halb Fertig']);
+Db::run('UPDATE questionnaires SET updated_at = ? WHERE id = ?', [date('Y-m-d H:i:s', strtotime('-2 days')), $fbQ]);
+Onboarding::erinnerungen();
+$fbR = Db::one('SELECT erinnert_am, erinnert2_am FROM questionnaires WHERE id = ?', [$fbQ]);
+pruefe('C3: nach einem Tag Stille kommt die erste Erinnerung (auch ohne Einladung)', $fbR['erinnert_am'] !== null);
+Onboarding::erinnerungen();
+pruefe('C3: gleich danach keine zweite',
+    Db::one('SELECT erinnert2_am FROM questionnaires WHERE id = ?', [$fbQ])['erinnert2_am'] === null);
+$fbVorher = date('Y-m-d H:i:s', strtotime('-3 days'));
+Db::run('UPDATE questionnaires SET erinnert_am = ?, updated_at = ? WHERE id = ?', [$fbVorher, $fbVorher, $fbQ]);
+Onboarding::erinnerungen();
+pruefe('C3: zwei Tage nach der ersten, ohne Bewegung, kommt die zweite',
+    Db::one('SELECT erinnert2_am FROM questionnaires WHERE id = ?', [$fbQ])['erinnert2_am'] !== null);
+Db::run('UPDATE questionnaires SET erinnert2_am = NULL, erinnert_am = ?, updated_at = ? WHERE id = ?',
+    [$fbVorher, date('Y-m-d H:i:s', strtotime('-1 day')), $fbQ]);
+Onboarding::erinnerungen();
+pruefe('C3: hat der Kunde seitdem weitergemacht, kommt keine zweite',
+    Db::one('SELECT erinnert2_am FROM questionnaires WHERE id = ?', [$fbQ])['erinnert2_am'] === null);
+[$fbBt, $fbTx] = Texte::mail('fragebogen_erinnerung', 'de', ['name' => 'X', 'paket' => '', 'link' => 'https://x/y', 'minuten' => '3']);
+pruefe('C3: die Erinnerung nennt die Restzeit statt „zehn Minuten“',
+    str_contains($fbTx, 'noch etwa 3 Minuten') && !preg_match('~\{[a-z]+\}~', $fbBt . $fbTx));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

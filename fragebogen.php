@@ -111,6 +111,15 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $adresse($jetzt, 'panne')); exit;
     }
     if ($f['status'] === 'abgeschlossen') {
+        /* Freiwillige Angaben duerfen nach dem Absenden noch kommen (B1/C1).
+           Nur ausserhalb des Kerns -- Onboarding::nachtragen filtert. */
+        if (!empty($_POST['ergaenzen'])) {
+            try { Onboarding::nachtragen((int) $f['id'], $_POST); }
+            catch (Throwable $e) { header('Location: ' . $adresse($jetzt, 'panne') . '&ergaenzen=1'); exit; }
+            $tatE = (string) ($_POST['tat'] ?? 'weiter');
+            $ziel = $tatE === 'zurueck' ? max(1, $jetzt - 1) : ($tatE === 'fertig' ? 0 : min($anzahl, $jetzt + 1));
+            header('Location: ' . ($ziel === 0 ? $adresse(1, 'ergaenzt') : $adresse($ziel) . '&ergaenzen=1')); exit;
+        }
         header('Location: ' . $adresse(1, 'schon')); exit;
     }
 
@@ -121,12 +130,16 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // nicht mehr mit — also gegen das pruefen, was gespeichert ist.
             $bisher = [];
             if ($f['data'] !== null && $f['data'] !== '') { $bisher = json_decode((string) $f['data'], true) ?: []; }
-            $name = trim((string) ($_POST['firmenname'] ?? ($bisher['firmenname'] ?? '')));
-            if ($name === '') {
-                Onboarding::speichern((int) $f['id'], $_POST);
-                header('Location: ' . $adresse(1, 'pflicht')); exit;
+            /* Abgeschickt wird, sobald der KERN steht (B1/C1, 25.09.2026) --
+               nicht erst, wenn alles ausgefuellt ist. Fehlt noch eine
+               Kernfrage, fuehrt der Weg genau dorthin, markiert. */
+            Onboarding::speichern((int) $f['id'], $_POST);
+            $jetztDaten = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [(int) $f['id']], ''), true) ?: [];
+            $fehlt = Fragen::kernFehlt($jetztDaten);
+            if ($fehlt !== null) {
+                header('Location: ' . $adresse($fehlt[0], 'pflicht') . '&feld=' . rawurlencode($fehlt[1])); exit;
             }
-            Onboarding::absenden((int) $f['id'], $_POST);
+            Onboarding::absenden((int) $f['id'], []);
             header('Location: ' . $adresse(1, 'danke')); exit;
         }
 
@@ -154,7 +167,11 @@ if ($f && $f['data'] !== null && $f['data'] !== '') {
 }
 
 $m      = (string) ($_GET['m'] ?? '');
-$fertig = $f && ($f['status'] === 'abgeschlossen' || $m === 'danke');
+/* Nach dem Absenden: Wer ergaenzen will, sieht den Fragebogen noch einmal --
+   aber nur die freiwilligen Fragen (B1/C1). */
+$ergaenzen = $f && $f['status'] === 'abgeschlossen' && !empty($_GET['ergaenzen']);
+$fertig = $f && !$ergaenzen && ($f['status'] === 'abgeschlossen' || $m === 'danke' || $m === 'ergaenzt');
+$fehltFeld = (string) ($_GET['feld'] ?? '');
 
 /* WO GEHT ES WEITER?
    ----------------------------------------------------------------------
@@ -192,8 +209,6 @@ $schritt = isset($_GET['schritt']) ? max(1, min($anzahl, (int) $_GET['schritt'])
 $name    = $abschnitte[$schritt - 1];
 $inhalt  = Texte::FRAGEBOGEN[$name];
 
-$gesamtFelder = count(Onboarding::felder());
-$gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !== ''));
 
 /* ---------- Was beauftragt ist -----------------------------------------
    Die Hakenliste zeigt an, was im angenommenen Angebot steht. Gibt es
@@ -201,7 +216,11 @@ $gefuellt     = count(array_filter($daten, static fn($w) => trim((string) $w) !=
    die Liste eine gewoehnliche Auswahl ohne Vergleich: Dann ist nichts
    "nicht enthalten", weil es nichts gibt, worin es enthalten sein koennte. */
 $bezahlt  = $f ? Umfang::bezahlt((int) $f['project_id']) : null;
-$wahl     = Umfang::gewaehlt($daten, $bezahlt);
+/* Noch kein Angebot? Dann steht als Ausgangswert, was der Kunde im Vorhaben
+   angeklickt hat -- nicht noch einmal von vorn (A4, 25.09.2026). Kein
+   "beauftragt"-Hinweis: $bezahlt bleibt leer, das ist nichts Bestelltes. */
+$vorhaben = ($bezahlt === null && $f) ? Umfang::ausVorhaben((int) $f['customer_id']) : null;
+$wahl     = Umfang::gewaehlt($daten, $bezahlt ?? $vorhaben);
 $katWahl  = Umfang::katalogWahl();
 $gruppenWort = [
     'funktion'  => ['it' => 'Funzioni', 'de' => 'Funktionen', 'en' => 'Features'],
@@ -285,6 +304,16 @@ $gruppenWort = [
   /* Die freie Zeile gehoert optisch unter die Auswahl, nicht daneben —
      sonst liest sie sich wie eine eigene Frage. */
   .freizeile{margin-top:9px}
+  /* Kern und Kuer (B1): Das Freiwillige steht zugeklappt unter dem Kern. */
+  details.kuer{margin-top:18px;border-top:1px solid var(--linie,rgba(255,255,255,.1));padding-top:14px}
+  details.kuer>summary{cursor:pointer;color:var(--dim);font-size:14.5px;list-style:none;display:flex;gap:8px;align-items:center}
+  details.kuer>summary::-webkit-details-marker{display:none}
+  details.kuer>summary::before{content:"+";display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+    border:1px solid var(--linie,rgba(255,255,255,.18));font-size:14px;line-height:1}
+  details.kuer[open]>summary::before{content:"–"}
+  details.kuer[open]>summary{margin-bottom:10px}
+  /* Die Kernfrage, die beim Absenden noch fehlte. */
+  .feld.fehlt{outline:2px solid var(--akzent,#dca434);outline-offset:8px;border-radius:6px}
   .freizeile::placeholder{color:var(--leise)}
 
   /* ---- Die Materialliste --------------------------------------------------
@@ -343,7 +372,11 @@ $gruppenWort = [
 
 <?php elseif ($fertig): ?>
   <div class="block">
-    <div class="hinweis gut"><?= $h($m === 'danke' ? $S('danke') : $S('schon')) ?></div>
+    <div class="hinweis gut"><?= $h($m === 'danke' ? $S('danke') : ($m === 'ergaenzt' ? $S('ergaenzt') : $S('schon'))) ?></div>
+    <?php /* Der Kern ist abgeschickt, das Angebot kann kommen. Wer mag,
+             erzaehlt mehr -- freiwillig, jederzeit (B1/C1). */ ?>
+    <p class="beiseite" style="margin:10px 0 0"><?= $h($S('ergaenzenHinweis')) ?></p>
+    <a class="knopf" style="margin-top:10px" href="<?= $h($adresse(1) . '&ergaenzen=1') ?>"><?= $h($S('ergaenzenKnopf')) ?></a>
     <?php if (trim((string) ($f['projekt'] ?? '')) !== ''): ?>
       <p style="color:var(--dim);font-size:14px"><?= $h((string) $f['projekt']) ?></p>
     <?php endif; ?>
@@ -384,7 +417,12 @@ $gruppenWort = [
         <li class="<?= $i + 1 < $schritt ? 'durch' : ($i + 1 === $schritt ? 'jetzt' : '') ?>"></li>
       <?php endforeach; ?>
     </ul>
-    <div class="zaehler"><?= $h(strtr($S('schritt'), ['{n}' => (string) $schritt, '{g}' => (string) $anzahl])) ?></div>
+    <?php /* Die Frage, ob sich das Weitermachen lohnt, ist eine nach der Zeit,
+             nicht nach der Schrittnummer (B6). Gezaehlt werden nur die noch
+             offenen Kernfragen -- das Freiwillige haelt niemanden auf. */
+          $restMin = $ergaenzen ? 0 : Fragen::restMinuten($daten, $schritt); ?>
+    <div class="zaehler"><?= $h($ergaenzen ? $S('ergaenzenTitel')
+        : ($restMin <= 0 ? $S('fastFertig') : ($restMin === 1 ? $S('nochEineMin') : strtr($S('nochMin'), ['{m}' => (string) $restMin])))) ?></div>
   </div>
 
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($S('panne')) ?></div><?php endif; ?>
@@ -396,12 +434,20 @@ $gruppenWort = [
     <input type="hidden" name="t" value="<?= $h($token) ?>">
     <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
     <input type="hidden" name="schritt" value="<?= (int) $schritt ?>">
+    <?php if ($ergaenzen): ?><input type="hidden" name="ergaenzen" value="1"><?php endif; ?>
 
     <div class="block">
       <h2><?= $h(Texte::h($inhalt, $sprache)) ?></h2>
       <p class="beiseite" style="margin-top:0"><?= $h($S('leerOk')) ?></p>
+      <?php $kernTeile = []; $kuerTeile = []; ?>
       <?php foreach ($inhalt['felder'] as $feldName => $feld): ?>
         <?php
+          /* Jedes Feld wird einmal gezeichnet und dann einsortiert: Kern
+             offen, alles andere unter "Wenn Sie moegen" (B1). Im
+             Ergaenzen-Modus nach dem Absenden fehlt der Kern ganz. */
+          $istKern = Fragen::istKern($feldName);
+          if ($ergaenzen && $istKern) { continue; }
+          ob_start();
           /* BEDINGTE FRAGEN STEHEN IMMER IM HTML, NUR NICHT IMMER IM BILD
              ----------------------------------------------------------------
              Zuerst wurden sie serverseitig weggelassen. Das war richtig
@@ -418,7 +464,7 @@ $gruppenWort = [
           $sichtbar = Fragen::zeigen($feld, $daten);
           $ohneLabelFuer = in_array($feld['art'], ['wahl', 'eins', 'mehr', 'stand'], true);
         ?>
-        <div class="feld"<?php if (!$sichtbar): ?> hidden<?php endif; ?><?php if (isset($feld['wenn'])): ?> data-wenn="<?= $h($feld['wenn']['feld']) ?>" data-ist="<?= $h(implode(',', (array) $feld['wenn']['ist'])) ?>"<?php endif; ?>>
+        <div class="feld<?= $fehltFeld === $feldName ? ' fehlt' : '' ?>"<?php if (!$sichtbar): ?> hidden<?php endif; ?><?php if (isset($feld['wenn'])): ?> data-wenn="<?= $h($feld['wenn']['feld']) ?>" data-ist="<?= $h(implode(',', (array) $feld['wenn']['ist'])) ?>"<?php endif; ?>>
           <label <?= $ohneLabelFuer ? '' : 'for="f_' . $h($feldName) . '"' ?>><?= $h(Texte::h($feld, $sprache)) ?><?= $feldName === 'firmenname' ? ' *' : '' ?></label>
           <?php if (!empty($feld['hilfe'])): ?>
             <p class="beiseite" style="margin:0 0 9px"><?= $h($S((string) $feld['hilfe'])) ?></p>
@@ -557,27 +603,40 @@ $gruppenWort = [
                    value="<?= $h((string) ($daten[$feldName . '__frei'] ?? '')) ?>">
           <?php endif; ?>
         </div>
+        <?php $teil = (string) ob_get_clean(); if ($istKern) { $kernTeile[] = $teil; } else { $kuerTeile[] = $teil; } ?>
       <?php endforeach; ?>
+      <?= implode('', $kernTeile) ?>
+      <?php if ($kuerTeile): ?>
+        <?php /* Zugeklappt, aber da: Wer mag, erzaehlt mehr; wer nicht,
+                 klickt weiter. Im Ergaenzen-Modus gibt es nur diesen Teil,
+                 dann steht er offen. */ ?>
+        <details class="kuer"<?= $ergaenzen ? ' open' : '' ?>>
+          <summary><?= $h($kernTeile ? $S('kuer') : $S('kuerGanz')) ?></summary>
+          <?= implode('', $kuerTeile) ?>
+        </details>
+      <?php endif; ?>
     </div>
 
     <div class="block">
-      <?php if ($schritt === $anzahl): ?><p class="beiseite" style="margin-top:0"><?= $h($S('letzter')) ?></p><?php endif; ?>
+      <?php if ($schritt === $anzahl && !$ergaenzen): ?><p class="beiseite" style="margin-top:0"><?= $h($S('letzter')) ?></p><?php endif; ?>
       <div class="leiste2">
         <?php if ($schritt > 1): ?>
           <button class="knopf" name="tat" value="zurueck"><?= $h($S('zurueck')) ?></button>
         <?php endif; ?>
         <span class="rechts"></span>
-        <?php if ($schritt < $anzahl): ?>
+        <?php if ($ergaenzen): ?>
+          <?php if ($schritt < $anzahl): ?><button class="knopf" name="tat" value="weiter"><?= $h($S('weiter')) ?></button><?php endif; ?>
+          <button class="knopf haupt" name="tat" value="fertig"><?= $h($S('ergaenzenFertig')) ?></button>
+        <?php elseif ($schritt < $anzahl): ?>
           <button class="knopf haupt" name="tat" value="weiter"><?= $h($S('weiter')) ?></button>
         <?php else: ?>
           <button class="knopf" name="tat" value="pause"><?= $h($S('speichern')) ?></button>
           <button class="knopf haupt" name="tat" value="absenden"><?= $h($S('absenden')) ?></button>
         <?php endif; ?>
       </div>
-      <p class="beiseite"><?= $h($S('autoOk')) ?>
-        <?php if ($gefuellt > 0 && $gesamtFelder > 0): ?>
-          · <?= (int) $gefuellt ?>/<?= (int) $gesamtFelder ?>
-        <?php endif; ?></p>
+      <?php /* Hier stand "10/68" -- alle Felder mitgezaehlt, auch die
+               freiwilligen. Seit B1 sagt die Zeitangabe oben, was noch fehlt. */ ?>
+      <p class="beiseite"><?= $h($S('autoOk')) ?></p>
     </div>
   </form>
 

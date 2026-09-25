@@ -19,7 +19,8 @@ require_once __DIR__ . '/Texte.php';
 final class Onboarding
 {
     /** Nach so vielen Tagen ohne Antwort wird einmal erinnert. */
-    public const ERINNERUNG_NACH_TAGEN = 3;
+    public const ERINNERUNG_NACH_TAGEN = 1;   // erste Erinnerung (C3, 25.09.2026: vorher 3)
+    public const ZWEITE_NACH_TAGEN = 2;       // zweite, so lange nach der ersten
 
     /* ---------- Zugang ---------- */
 
@@ -320,28 +321,46 @@ final class Onboarding
      */
     public static function erinnerungen(int $nachTagen = self::ERINNERUNG_NACH_TAGEN): int
     {
+        /* ZWEI ERINNERUNGEN, AUCH VOR DEM PREIS (C3, 25.09.2026)
+           Erste: nach $nachTagen Tagen ohne Bewegung. Zweite: zwei Tage nach
+           der ersten, wenn seitdem nichts passiert ist. Gilt fuer verschickte
+           Frageboegen UND fuer den im Dashboard vor dem Preis (der hat Daten,
+           aber keine Einladung).
+
+           "Ohne Bewegung" misst updated_at -- und das setzt MariaDB bei JEDER
+           Aenderung neu, auch beim Vermerk der ersten Erinnerung. Deshalb
+           zaehlt fuer die zweite nur, ob updated_at hoechstens ein paar
+           Sekunden nach diesem Vermerk liegt: Dann war es der Vermerk selbst,
+           nicht der Kunde. */
+        $grund = "q.status = 'offen'
+                  AND (q.eingeladen_am IS NOT NULL OR (q.data IS NOT NULL AND q.data <> ''))";
+        $ersteAb = date('Y-m-d H:i:s', strtotime("-$nachTagen days"));
+        $zweiteAb = date('Y-m-d H:i:s', strtotime('-' . self::ZWEITE_NACH_TAGEN . ' days'));
         $faellig = Db::all(
-            "SELECT q.id, q.project_id, q.customer_id, q.token,
+            "SELECT q.id, q.project_id, q.customer_id, q.token, q.data, q.erinnert_am,
                     c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache,
                     o.id AS bestell_id, o.package_name AS paket
              FROM questionnaires q
              JOIN customers c ON c.id = q.customer_id
              LEFT JOIN projects p ON p.id = q.project_id
              LEFT JOIN orders o ON o.id = p.order_id
-             WHERE q.status = 'offen'
-               AND q.eingeladen_am IS NOT NULL
-               AND q.erinnert_am IS NULL
-               AND q.eingeladen_am <= ?
+             WHERE $grund AND c.anonym_am IS NULL
+               AND ((q.erinnert_am IS NULL AND q.updated_at <= ?)
+                 OR (q.erinnert_am IS NOT NULL AND q.erinnert2_am IS NULL AND q.erinnert_am <= ?
+                     AND q.updated_at <= DATE_ADD(q.erinnert_am, INTERVAL 5 SECOND)))
              LIMIT 25",
-            [date('Y-m-d H:i:s', strtotime("-$nachTagen days"))]
+            [$ersteAb, $zweiteAb]
         );
 
+        require_once __DIR__ . '/Fragen.php';
         $gezaehlt = 0;
         foreach ($faellig as $f) {
+            $daten = $f['data'] ? (json_decode((string) $f['data'], true) ?: []) : [];
             [$betreff, $text] = Texte::mail('fragebogen_erinnerung', self::sprache($f), [
-                'name'  => (string) $f['kunde'],
-                'paket' => (string) ($f['paket'] ?? ''),
-                'link'  => self::mailLink((int) $f['customer_id'], (int) $f['id']),
+                'name'    => (string) $f['kunde'],
+                'paket'   => (string) ($f['paket'] ?? ''),
+                'link'    => self::mailLink((int) $f['customer_id'], (int) $f['id']),
+                'minuten' => (string) max(1, Fragen::restMinuten($daten, 1)),
             ]);
             $ok = Mail::senden('fragebogen_erinnerung', (string) $f['kunde_email'], $betreff, $text, [
                 'customer_id' => (int) $f['customer_id'],
@@ -351,7 +370,9 @@ final class Onboarding
             ]);
             // Auch ein Fehlschlag wird vermerkt: lieber eine Erinnerung zu
             // wenig als jede Stunde dieselbe Mail an dieselbe Adresse.
-            Db::update('questionnaires', (int) $f['id'], ['erinnert_am' => date('Y-m-d H:i:s')]);
+            Db::update('questionnaires', (int) $f['id'], [
+                ($f['erinnert_am'] === null ? 'erinnert_am' : 'erinnert2_am') => date('Y-m-d H:i:s'),
+            ]);
             if ($ok) { $gezaehlt++; }
         }
         return $gezaehlt;
@@ -529,6 +550,39 @@ final class Onboarding
         Db::update('questionnaires', $fragebogenId, [
             'data' => json_encode($neu, JSON_UNESCAPED_UNICODE),
         ]);
+    }
+
+    /**
+     * Freiwillige Angaben NACH dem Absenden ergaenzen (B1/C1, 25.09.2026).
+     *
+     * Abgeschickt wird, sobald der Kern steht -- der Rest darf spaeter kommen.
+     * Hier landen nur Felder AUSSERHALB des Kerns: Auf dem Kern beruht das
+     * Angebot, und der darf sich nicht still hinter ihm aendern. Der Status
+     * bleibt "abgeschlossen".
+     */
+    public static function nachtragen(int $fragebogenId, array $antworten): void
+    {
+        require_once __DIR__ . '/Fragen.php';
+        $frei = [];
+        foreach ($antworten as $name => $wert) {
+            $basis = preg_replace('~__frei$~', '', (string) $name);
+            if (self::istFeld($basis) && !Fragen::istKern($basis)) { $frei[$name] = $wert; }
+        }
+        if (!$frei) { return; }
+        $f = Db::one('SELECT data, status FROM questionnaires WHERE id = ?', [$fragebogenId]);
+        if (!$f) { return; }
+        $alt = $f['data'] ? (json_decode((string) $f['data'], true) ?: []) : [];
+        $neu = array_merge($alt, self::saeubern($frei));
+        Db::update('questionnaires', $fragebogenId, ['data' => json_encode($neu, JSON_UNESCAPED_UNICODE)]);
+    }
+
+    /** Ist das ein Feld des Fragebogens? */
+    private static function istFeld(string $name): bool
+    {
+        foreach (Texte::FRAGEBOGEN as $abschnitt) {
+            if (isset($abschnitt['felder'][$name])) { return true; }
+        }
+        return false;
     }
 
     /**

@@ -467,6 +467,22 @@ final class Bedarf
      *
      * @return array<string,string> Feldname => Vorbelegung
      */
+    /** Freemail- und PEC-Anbieter: Deren Domain gehoert nicht dem Kunden. */
+    private const FREEMAIL = '~^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|mac|aol|gmx|web|t-online|'
+        . 'freenet|posteo|mailbox|protonmail|proton|tutanota|tuta|yandex|mail|email|libero|virgilio|tiscali|alice|tim|'
+        . 'fastwebnet|inwind|iol|katamail|pec|legalmail|arubapec|postacert|sicurezzapostale|pecimprese|bluewin|hispeed|'
+        . 'orange|free|wanadoo|laposte|sfr|btinternet|sky|zoho|qq|163)\\.~i';
+
+    /** Die eigene Domain aus einer E-Mail-Adresse -- oder null bei Freemail. */
+    public static function domainAusMail(string $email): ?string
+    {
+        $email = mb_strtolower(trim($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { return null; }
+        $dom = substr($email, strrpos($email, '@') + 1);
+        if (preg_match(self::FREEMAIL, $dom) || preg_match('~\\.(invalid|example|test|local)$~', $dom)) { return null; }
+        return $dom;
+    }
+
     public static function alsFragebogen(int $kundeId): array
     {
         try {
@@ -550,14 +566,39 @@ final class Bedarf
         if ($bestand === 'neu')      { $aus['altseite'] = 'nein'; }
         if ($bestand === 'erneuern' || $bestand === 'ueberarb') { $aus['altseite'] = 'ja'; }
 
+        /* NICHTS DOPPELT FRAGEN (A4, 25.09.2026)
+           Termin und Betreuung hat der Kunde im Vorhaben schon beantwortet.
+           Uebertragen wird nur, was sich eindeutig entspricht; "in ein paar
+           Wochen" hat im Fragebogen kein Gegenstueck und bleibt offen. */
+        $zeitZu = ['schnell' => 'baldest', 'offen' => 'keins'];
+        $zeit = (string) ($a['zeit'] ?? '');
+        if (isset($zeitZu[$zeit])) { $aus['termin'] = $zeitZu[$zeit]; }
+        $pflegeZu = ['ja' => 'du', 'vielleicht' => 'offen'];
+        $betr = (string) ($a['betreuung'] ?? '');
+        if (isset($pflegeZu[$betr])) { $aus['pflege'] = $pflegeZu[$betr]; }
+
         /* Firmenname und Ort stehen beim Kunden. Sie hier noch einmal zu
            fragen, ist der billigste Weg, jemanden zu verlieren, der gerade
-           bezahlt hat. */
+           bezahlt hat. Dasselbe gilt fuer Telefon und E-Mail. */
         try {
-            $k = Db::one('SELECT company, city FROM customers WHERE id = ?', [$kundeId]);
+            $k = Db::one('SELECT company, city, phone, email FROM customers WHERE id = ?', [$kundeId]);
             if ($k) {
                 if (trim((string) ($k['company'] ?? '')) !== '') { $aus['firmenname'] = (string) $k['company']; }
                 if (trim((string) ($k['city'] ?? '')) !== '')    { $aus['ort'] = (string) $k['city']; }
+                if (trim((string) ($k['phone'] ?? '')) !== '')   { $aus['telefon'] = (string) $k['phone']; }
+                if (trim((string) ($k['email'] ?? '')) !== '')   { $aus['email_web'] = (string) $k['email']; }
+
+                /* DIE DOMAIN STEHT OFT SCHON IN DER E-MAIL-ADRESSE (A2)
+                   Wer mit info@trattoria-sole.it schreibt, hat die Domain
+                   trattoria-sole.it. Dann ist "Haben wir, laeuft auf uns"
+                   die wahrscheinliche Antwort -- vorbelegt, nicht
+                   entschieden: Der Kunde sieht es und aendert es mit einem
+                   Klick. Bei Freemail (gmail, libero, ...) passiert nichts. */
+                $dom = self::domainAusMail((string) ($k['email'] ?? ''));
+                if ($dom !== null) {
+                    $aus['domain'] = 'uns';
+                    $aus['domain_name'] = $dom;
+                }
             }
         } catch (Throwable $e) { /* dann tippt er es eben selbst */ }
 

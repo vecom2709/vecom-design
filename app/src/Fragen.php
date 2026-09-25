@@ -90,6 +90,90 @@ final class Fragen
      * die noch nie eine hatten. Zwei leere Kaesten, die sagen: Hier ist
      * etwas, das du nicht beantwortest.
      */
+    /* ====================================================================
+       KERN UND KUER (B1, 25.09.2026)
+
+       52 Felder in sechs Schritten, davon 13 lange Texte -- das hielt
+       Kunden eine Viertelstunde auf, bevor sie einen Preis sahen. Uwe:
+       "so viele Informationen wie moeglich, aber der Kunde so wenig wie
+       moeglich machen". Also: Nur diese Fragen muessen beantwortet sein,
+       damit das Angebot rausgehen kann (C1) -- fast alle per Klick, viele
+       schon vorbelegt. Der Rest steht zugeklappt unter "Wenn Sie moegen"
+       und laesst sich auch nach dem Absenden noch ergaenzen.
+
+       Eine Liste, eine Stelle: Wer eine Frage zum Kern macht, macht sie
+       hier dazu -- nicht als Kennzeichen quer durch Texte.php.
+       ==================================================================== */
+    public const KERN = [
+        'firmenname', 'branche', 'ziel1',
+        'seiten_zahl', 'sprachen_zahl', 'funktionen_wahl', 'altseite',
+        'material', 'texte',
+        'domain', 'wunsch1', 'domain_name', 'domain_wahl', 'hosting_wahl', 'mail_wahl', 'termin',
+    ];
+
+    /** Sekunden, die eine Antwort je Art ungefaehr braucht -- fuer "noch etwa X Minuten" (B6). */
+    private const SEKUNDEN = ['eins' => 6, 'mehr' => 9, 'zahl' => 5, 'wahl' => 15, 'stand' => 15, 'text' => 12, 'lang' => 45];
+
+    public static function istKern(string $feldName): bool
+    {
+        return in_array($feldName, self::KERN, true);
+    }
+
+    /**
+     * Hat der Kunde auf diese Frage geantwortet?
+     *
+     * Zaehler und Hakenliste zeigen IMMER einen Wert -- aus dem Angebot, aus
+     * dem Vorhaben oder "1". Sie als offen zu zaehlen, schickte den Kunden
+     * zurueck zu einem Feld, in dem sichtbar "5" steht, mit dem Satz "da
+     * fehlt noch etwas" (am 25.09.2026 im Browser gesehen). Wer sie nicht
+     * anfasst, laesst den angezeigten Wert gelten.
+     */
+    public static function beantwortet(string $feldName, array $feld, array $daten): bool
+    {
+        if (in_array($feld['art'] ?? '', ['wahl', 'zahl'], true)) { return true; }
+        if (!array_key_exists($feldName, $daten)) { return false; }
+        return trim((string) $daten[$feldName]) !== '';
+    }
+
+    /**
+     * Die erste Kernfrage, die sichtbar ist und noch keine Antwort hat --
+     * als [Schritt (1-basiert), Feldname], oder null, wenn der Kern steht.
+     *
+     * @return array{0:int,1:string}|null
+     */
+    public static function kernFehlt(array $daten): ?array
+    {
+        $schritt = 0;
+        foreach (Texte::FRAGEBOGEN as $abschnitt) {
+            $schritt++;
+            foreach ((array) ($abschnitt['felder'] ?? []) as $name => $feld) {
+                if (!self::istKern($name) || !self::zeigen($feld, $daten)) { continue; }
+                if (!self::beantwortet($name, $feld, $daten)) { return [$schritt, $name]; }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Ungefaehre Minuten fuer die noch offenen KERN-Fragen ab diesem Schritt
+     * (B6). "Schritt 3 von 6" sagt nicht, wie lange es noch dauert -- und die
+     * Frage, ob sich das Weitermachen lohnt, ist eine nach der Zeit.
+     */
+    public static function restMinuten(array $daten, int $abSchritt): int
+    {
+        $sek = 0; $schritt = 0;
+        foreach (Texte::FRAGEBOGEN as $abschnitt) {
+            $schritt++;
+            if ($schritt < $abSchritt) { continue; }
+            foreach ((array) ($abschnitt['felder'] ?? []) as $name => $feld) {
+                if (!self::istKern($name) || !self::zeigen($feld, $daten)) { continue; }
+                if (self::beantwortet($name, $feld, $daten)) { continue; }
+                $sek += self::SEKUNDEN[$feld['art'] ?? 'text'] ?? 12;
+            }
+        }
+        return (int) ceil($sek / 60);
+    }
+
     public static function zeigen(array $feld, array $daten): bool
     {
         if (!isset($feld['wenn'])) { return true; }
