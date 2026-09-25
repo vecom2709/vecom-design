@@ -8607,6 +8607,11 @@ Hosting::speicherPruefen($kbLesen);
 pruefe('Speicher: ab 90 % eine Meldung je Account und Monat -- nicht jeden Tag',
     $kbE['gewarnt'] === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'hosting_speicher'", [], 0) === $kbVor + 1
     && (Hosting::speicher()['w0188888'] ?? 0) === 9600);
+pruefe('Speicher: "no_statistic_data" heißt "noch keine Zahlen", kein Fehler -- andere Fehler bleiben Fehler',
+    Kas::speicherAusAntwort(['ok' => false, 'daten' => null, 'text' => 'Die KAS-API meldet: no_statistic_data'])['ok'] === true
+    && Kas::speicherAusAntwort(['ok' => false, 'daten' => null, 'text' => 'Die KAS-API meldet: no_statistic_data'])['belegt'] === []
+    && Kas::speicherAusAntwort(['ok' => false, 'daten' => null, 'text' => 'Login oder Passwort stimmen nicht.'])['ok'] === false
+    && (Kas::speicherAusAntwort(['ok' => true, 'text' => '', 'daten' => [['account_login' => 'w0177777', 'used_space' => 2048000]]])['belegt']['w0177777'] ?? 0) === 2000);
 pruefe('KAS: Zone mit Punkt am Ende, wie in der Doku; DNS-Umschreiben nur mit echter Nummer',
     Kas::zone('Altfirma.it') === 'altfirma.it.' && Kas::zone('altfirma.it.') === 'altfirma.it.' && Kas::dnsAendern('abc', 'x')['ok'] === false);
 pruefe('Cronjob: der Knopf prüft erst, ob es ihn schon gibt, und der tägliche Speicherlauf steht im Cron',

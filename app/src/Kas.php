@@ -444,8 +444,26 @@ final class Kas
      */
     public static function speicherUnterkonten(): array
     {
-        $erg = self::rufen('get_space', ['show_subaccounts' => 'Y']);
-        if (!$erg['ok']) { return ['ok' => false, 'text' => $erg['text'], 'belegt' => []]; }
+        return self::speicherAusAntwort(self::rufen('get_space', ['show_subaccounts' => 'Y']));
+    }
+
+    /**
+     * Die Antwort von get_space auslegen -- getrennt, damit die Pruefkette sie pruefen kann.
+     *
+     * Am 25.09.2026 am echten Reseller-Zugang gemessen: Ohne Unterkonten (und bei
+     * frischen, noch nie ausgewerteten) antwortet KAS nicht mit einer leeren
+     * Liste, sondern mit dem Fehler "no_statistic_data". Das ist kein Defekt,
+     * sondern "noch nichts zu zaehlen" -- als Fehler gemeldet, stuende im
+     * Serverfeld jeden Tag ein roter Punkt, der nichts bedeutet.
+     */
+    public static function speicherAusAntwort(array $erg): array
+    {
+        if (!$erg['ok']) {
+            if (stripos((string) $erg['text'], 'no_statistic_data') !== false) {
+                return ['ok' => true, 'text' => 'KAS hat noch keine Speicherzahlen (bei neuen Konten erst nach etwa einem Tag).', 'belegt' => []];
+            }
+            return ['ok' => false, 'text' => $erg['text'], 'belegt' => []];
+        }
         $belegt = [];
         $sammeln = static function ($d) use (&$sammeln, &$belegt): void {
             if (!is_array($d)) { return; }
