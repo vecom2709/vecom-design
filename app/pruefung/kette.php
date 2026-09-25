@@ -8119,6 +8119,45 @@ foreach (glob($wurzel . '/views/*.php') as $knDatei) {
 pruefe('kein Link auf Kunde, Anfrage oder Bedarf hat nur ein Datenfeld als Text', $knLeer === [], implode(', ', $knLeer));
 
 /* ============================================================================
+   72. Verträge auf einen Blick (Phase 4)
+   ============================================================================ */
+abschnitt('72. Verträge auf einen Blick');
+require_once $wurzel . '/src/Leistungen.php';
+
+$lwZ = Leistungen::kennzahlen();
+pruefe('Phase 4: die Monatssumme ist dieselbe Zahl wie in Abo::monatlich()', $lwZ['monatlich'] === Abo::monatlich());
+pruefe('Phase 4: automatisch abgebucht zählt nur Verträge mit hinterlegtem Zahlungsmittel',
+    $lwZ['automatisch'] === (int) Db::wert("SELECT COUNT(*) FROM abos WHERE status IN ('aktiv','gekuendigt') AND zahlmittel_id IS NOT NULL", [], 0));
+
+$lwW = Leistungen::warten();
+$lwTitel = array_column($lwW, 'titel');
+pruefe('Phase 4: ein Hosting-Schritt von Hand steht auf der Liste -- mit Weg zur Kundenakte',
+    (bool) array_filter($lwW, static fn($w) => $w['titel'] === 'Hosting schritt5-probe.it' && str_starts_with($w['link'], 'kunden/')));
+
+$lwK = Events::kundeFinden(['name' => 'Blick Probe', 'email' => 'blick@pruefung.example']);
+$lwAbo = Abo::anlegen($lwK, ['paket_slug' => 'betreuung-basis']);
+$lwAlt = Abo::abrechnen($lwAbo, '2026-01');
+Db::run("UPDATE payments SET faellig_am = CURDATE() - INTERVAL 10 DAY, status = 'ausstehend' WHERE id = ?", [$lwAlt]);
+$lwUnterwegs = Abo::abrechnen($lwAbo, '2026-02');
+Db::run("UPDATE payments SET faellig_am = CURDATE() - INTERVAL 10 DAY, status = 'in_bearbeitung', method = 'abbuchung' WHERE id = ?", [$lwUnterwegs]);
+$lwW = Leistungen::warten();
+$lwBlick = array_values(array_filter($lwW, static fn($w) => str_starts_with($w['titel'], 'Blick Probe')));
+pruefe('Phase 4: eine überfällige Rate steht da -- eine laufende Lastschrift nicht (die ist unterwegs, nicht überfällig)',
+    count($lwBlick) === 1 && str_contains($lwBlick[0]['text'], 'Überfällig'));
+$lwZ2 = Leistungen::kennzahlen();
+pruefe('Phase 4: dieselbe Regel in der Kennzahl „Überfällig“',
+    $lwZ2['ueberfaellig'] === $lwZ['ueberfaellig'] + 1);
+
+Db::run("UPDATE abos SET status = 'gekuendigt', laeuft_bis = CURDATE() + INTERVAL 10 DAY WHERE id = ?", [$lwAbo]);
+pruefe('Phase 4: ein Vertrag, der in 30 Tagen ausläuft, meldet sich',
+    (bool) array_filter(Leistungen::warten(), static fn($w) => str_contains($w['text'], 'läuft am')));
+
+$lwH = Leistungen::hosting();
+pruefe('Phase 4: im Hosting stehen die Aufträge in Arbeit oben, mit Schritten und Handarbeit gezählt',
+    $lwH !== [] && (string) $lwH[0]['status'] === 'in_arbeit'
+    && (bool) array_filter($lwH, static fn($h) => (string) $h['domain'] === 'schritt5-probe.it' && (int) $h['hand'] === 1));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

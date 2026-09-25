@@ -118,7 +118,7 @@ $menue = [
     ['angebote', 'Angebote', 'angebote'],
     ['zahlungen', 'Zahlungen', 'zahlungen'],
     ['ausgaben', 'Ausgaben', 'ausgaben'],
-    ['abos', 'Betreuung', 'abos'],
+    ['abos', 'Verträge', 'abos'],
     ['finanzamt', 'Fürs Finanzamt', 'steuerakte'],
     ['dashboard', 'Zahlen', 'dashboard'],
   ]],

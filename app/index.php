@@ -2812,9 +2812,14 @@ switch ($route) {
 
     case 'abos':
         require_once __DIR__ . '/src/Abo.php';
+        require_once __DIR__ . '/src/Leistungen.php';
+        /* Phase 4: Vertraege, Hosting und was darauf wartet -- eine Seite. */
         ansicht('abos', [
             'liste'     => sicher(static fn() => Abo::alle(), []),
             'monatlich' => (int) sicher(static fn() => Abo::monatlich(), 0),
+            'zahlen'    => sicher(static fn() => Leistungen::kennzahlen(), []),
+            'warten'    => sicher(static fn() => Leistungen::warten(), []),
+            'hosting'   => sicher(static fn() => Leistungen::hosting(), []),
         ]);
         break;
 
