@@ -31,3 +31,33 @@
       Letzte Bilanz: <?= Fmt::h(json_encode($bilanz, JSON_UNESCAPED_UNICODE)) ?></p>
   <?php endif; ?>
 </div>
+
+<?php /* WAS DIESER SERVER KANN (25.09.2026)
+         Welche PHP-Erweiterungen da sind, entscheidet, was automatisch geht.
+         Bisher liess sich das nur im KAS nachsehen -- oder raten. Hier steht
+         es, wie der Server es selbst meldet. */ ?>
+<?php
+  $sysPunkte = [
+      ['PHP ' . PHP_VERSION, true, 'die Sprache der Verwaltung'],
+      ['soap', extension_loaded('soap'), 'KAS-Schnittstelle: Accounts, Domains, Postfächer anlegen'],
+      ['curl', extension_loaded('curl'), 'Stripe, Domainprüfung, alte Seiten lesen, VIES'],
+      ['openssl', extension_loaded('openssl'), 'Tresor für Zugangsdaten, verschlüsseltes IMAP'],
+      ['ftp', extension_loaded('ftp'), 'Verbindungstest beim 1:1-Umzug einer Website'],
+      ['zip', class_exists('ZipArchive'), 'alte Website als ZIP sichern'],
+      ['dom', class_exists('DOMDocument'), 'Texte aus alten Seiten lesen'],
+      ['gd', extension_loaded('gd'), 'Bildvorschauen in Ablage und Dashboard'],
+      ['fastcgi_finish_request', function_exists('fastcgi_finish_request'), 'alte Website sofort nach dem Öffnen des Fragebogens lesen (sonst im Cron)'],
+      ['imap', extension_loaded('imap'), 'nicht nötig — der E-Mail-Umzug spricht IMAP selbst'],
+  ];
+?>
+<div class="block"><h2>Was dieser Server kann</h2>
+  <table class="schlicht"><tbody>
+    <?php foreach ($sysPunkte as [$sysName, $sysDa, $sysWozu]): ?>
+      <tr><td style="width:1%;white-space:nowrap"><?= $sysDa ? '✓' : '✗' ?></td>
+        <td style="width:30%"><code><?= Fmt::h($sysName) ?></code></td>
+        <td style="color:var(--dim)"><?= Fmt::h($sysWozu) ?></td></tr>
+    <?php endforeach; ?>
+    <tr><td></td><td><code>max_execution_time</code></td><td style="color:var(--dim)"><?= Fmt::h((string) ini_get('max_execution_time')) ?> s
+      — die Umzüge arbeiten in Portionen von höchstens 40 s</td></tr>
+  </tbody></table>
+</div>
