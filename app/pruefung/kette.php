@@ -7650,6 +7650,38 @@ pruefe('C3: die Erinnerung nennt die Restzeit statt „zehn Minuten“',
     str_contains($fbTx, 'noch etwa 3 Minuten') && !preg_match('~\{[a-z]+\}~', $fbBt . $fbTx));
 
 /* ============================================================================
+   66. Fragebogen Runde 2: Chips, Diktieren, Hochladen, Manuela
+   ============================================================================ */
+abschnitt('66. Fragebogen: Chips, Diktieren, Hochladen, Manuela');
+
+$fbFelder = [];
+foreach (Texte::FRAGEBOGEN as $fbSchritt) {
+    foreach (($fbSchritt['felder'] ?? []) as $fbName => $fbFeld) { $fbFelder[$fbName] = $fbFeld['art'] ?? ''; }
+}
+$fbChipsGut = true;
+foreach (Texte::CHIPS as $fbName => $fbListe) {
+    if (!in_array($fbFelder[$fbName] ?? '', ['lang', 'kurz', 'text'], true)) { $fbChipsGut = false; echo "   Chip-Feld $fbName: ", $fbFelder[$fbName] ?? 'fehlt', "\n"; }
+    foreach ($fbListe as $fbChip) {
+        foreach (['it', 'de', 'en'] as $fbS) {
+            if (trim((string) ($fbChip[$fbS] ?? '')) === '' || str_contains((string) $fbChip[$fbS], ',')) { $fbChipsGut = false; }
+        }
+    }
+}
+pruefe('B2: jeder Chip gehört zu einem Textfeld des Fragebogens, dreisprachig, ohne Komma (Komma trennt die Chips)', $fbChipsGut);
+$fbSeite = file_get_contents(__DIR__ . '/../../fragebogen.php');
+pruefe('B5: das Formular schickt Dateien mit (multipart) und legt sie in dieselbe Ablage wie die Kundenseite',
+    str_contains($fbSeite, 'enctype="multipart/form-data"') && str_contains($fbSeite, 'Ablage::annehmen('));
+$fbReden = true;
+foreach (['it', 'de', 'en'] as $fbS) {
+    $fbT = Texte::h(Texte::SEITE['lieberReden'], $fbS);
+    if (!str_contains($fbT, '{nr}') || preg_match('~\{(?!nr\})[a-z]+\}~', $fbT)) { $fbReden = false; }
+    if (!str_contains(Texte::h(Texte::SEITE['hochgeladen'], $fbS), '{n}')) { $fbReden = false; }
+}
+pruefe('C2: der Manuela-Hinweis nennt die Kundennummer, sonst keine offenen Platzhalter', $fbReden);
+pruefe('B4: der Diktierknopf ist ohne Spracherkennung im Browser versteckt',
+    (bool) preg_match('~class="diktat" data-ziel="[^"]*" hidden~', $fbSeite) && str_contains($fbSeite, 'webkitSpeechRecognition'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

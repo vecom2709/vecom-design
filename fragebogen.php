@@ -110,6 +110,31 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_SESSION['csrf']) || !hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
         header('Location: ' . $adresse($jetzt, 'panne')); exit;
     }
+    /* B5: Mitgeschickte Dateien zuerst -- dieselbe Ablage wie auf der
+       Kundenseite. Ein Fehler hier haelt die Antworten nicht auf. */
+    $dateiFehler = '';
+    if (!empty($_FILES['dateien']['name']) && is_array($_FILES['dateien']['name'])) {
+        require_once __DIR__ . '/app/src/Ablage.php';
+        $angekommen = 0;
+        foreach ($_FILES['dateien']['name'] as $i => $dn) {
+            if ((int) ($_FILES['dateien']['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) { continue; }
+            $eine = ['name' => $dn, 'type' => $_FILES['dateien']['type'][$i] ?? '', 'tmp_name' => $_FILES['dateien']['tmp_name'][$i] ?? '',
+                     'error' => $_FILES['dateien']['error'][$i] ?? UPLOAD_ERR_NO_FILE, 'size' => $_FILES['dateien']['size'][$i] ?? 0];
+            try {
+                Ablage::annehmen($eine, $f['project_id'] !== null ? (int) $f['project_id'] : null, (int) $f['customer_id'], 'kunde');
+                $angekommen++;
+            } catch (Throwable $e) { $dateiFehler = $e->getMessage(); }
+        }
+        if ($dateiFehler !== '') { $_SESSION['fb_datei'] = ['schlecht', $dateiFehler]; }
+        elseif ($angekommen > 0) { $_SESSION['fb_datei'] = ['gut', '']; }
+        if ($angekommen > 0) {
+            try {
+                Events::melden('datei_neu', 'Neue Dateien aus dem Fragebogen', 'info',
+                    (string) ($f['kunde_firma'] ?: $f['kunde']) . ' — ' . $angekommen . ' Datei(en)', '/kunden/' . (int) $f['customer_id']);
+            } catch (Throwable $e) { /* die Dateien sind trotzdem da */ }
+        }
+    }
+
     if ($f['status'] === 'abgeschlossen') {
         /* Freiwillige Angaben duerfen nach dem Absenden noch kommen (B1/C1).
            Nur ausserhalb des Kerns -- Onboarding::nachtragen filtert. */
@@ -172,6 +197,8 @@ $m      = (string) ($_GET['m'] ?? '');
 $ergaenzen = $f && $f['status'] === 'abgeschlossen' && !empty($_GET['ergaenzen']);
 $fertig = $f && !$ergaenzen && ($f['status'] === 'abgeschlossen' || $m === 'danke' || $m === 'ergaenzt');
 $fehltFeld = (string) ($_GET['feld'] ?? '');
+$kundenNr  = $f ? (string) Db::wert('SELECT kundennr FROM customers WHERE id = ?', [(int) $f['customer_id']], '') : '';
+$dateienDa = $f ? (int) Db::wert("SELECT COUNT(*) FROM files WHERE customer_id = ? AND uploaded_by = 'kunde'", [(int) $f['customer_id']], 0) : 0;
 
 /* WO GEHT ES WEITER?
    ----------------------------------------------------------------------
@@ -312,6 +339,15 @@ $gruppenWort = [
     border:1px solid var(--linie,rgba(255,255,255,.18));font-size:14px;line-height:1}
   details.kuer[open]>summary::before{content:"–"}
   details.kuer[open]>summary{margin-bottom:10px}
+  /* B2 Chips, B4 Diktieren, B5 Hochladen */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font:inherit;font-size:13px;padding:6px 11px;border-radius:99px;cursor:pointer;
+    border:1px solid var(--linie,rgba(255,255,255,.18));background:transparent;color:var(--dim)}
+  .chip.an{border-color:var(--akzent,#dca434);color:var(--text,#fff)}
+  .diktat{font:inherit;font-size:13px;margin-top:8px;padding:6px 12px;border-radius:99px;cursor:pointer;
+    border:1px dashed var(--linie,rgba(255,255,255,.25));background:transparent;color:var(--dim)}
+  .diktat.laeuft{border-style:solid;border-color:#e0605a;color:#fff}
+  .hochladen input[type=file]{max-width:100%;font-size:13px}
   /* Die Kernfrage, die beim Absenden noch fehlte. */
   .feld.fehlt{outline:2px solid var(--akzent,#dca434);outline-offset:8px;border-radius:6px}
   .freizeile::placeholder{color:var(--leise)}
@@ -425,11 +461,20 @@ $gruppenWort = [
         : ($restMin <= 0 ? $S('fastFertig') : ($restMin === 1 ? $S('nochEineMin') : strtr($S('nochMin'), ['{m}' => (string) $restMin])))) ?></div>
   </div>
 
+  <?php /* C2: Wer lieber redet, redet -- Manuela kann den Fragebogen im
+           Gespraech ausfuellen (Telefon::fragebogen). Die Kundennummer, damit
+           sie den richtigen findet: Im Sprachfenster kommt keine Nummer mit. */ ?>
+  <?php if (!$ergaenzen && $schritt === 1 && $kundenNr !== ''): ?>
+    <p class="beiseite" style="margin:0 0 14px"><?= $h(strtr($S('lieberReden'), ['{nr}' => $kundenNr])) ?></p>
+  <?php endif; ?>
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($S('panne')) ?></div><?php endif; ?>
   <?php if ($m === 'pflicht'): ?><div class="hinweis schlecht"><?= $h($S('pflicht')) ?></div><?php endif; ?>
   <?php if ($m === 'gespeichert'): ?><div class="hinweis gut"><?= $h($S('gespeichert')) ?></div><?php endif; ?>
+  <?php if (!empty($_SESSION['fb_datei'])): [$dTon, $dText] = $_SESSION['fb_datei']; unset($_SESSION['fb_datei']); ?>
+    <div class="hinweis <?= $h($dTon) ?>"><?= $h($dTon === 'gut' ? $S('hochladenOk') : $dText) ?></div>
+  <?php endif; ?>
 
-  <form method="post" action="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
+  <form method="post" enctype="multipart/form-data" action="fragebogen.php?t=<?= $h(rawurlencode($token)) ?>&amp;lang=<?= $h($sprache) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
     <input type="hidden" name="t" value="<?= $h($token) ?>">
     <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
@@ -597,6 +642,31 @@ $gruppenWort = [
             <?php endif; ?>
           <?php endif; ?>
 
+          <?php /* B2: Satzbausteine zum Anklicken -- landen als Text im Feld. */ ?>
+          <?php if (!empty(Texte::CHIPS[$feldName])): ?>
+            <div class="chips" data-ziel="f_<?= $h($feldName) ?>">
+              <?php foreach (Texte::CHIPS[$feldName] as $chip): ?>
+                <button type="button" class="chip"><?= $h(Texte::h($chip, $sprache)) ?></button>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+          <?php /* B4: Diktieren -- nur fuer die langen Felder, und nur, wo der
+                   Browser Spracherkennung kann (das Skript blendet ihn ein). */ ?>
+          <?php if ($feld['art'] === 'lang' || $feldName === 'einesache'): ?>
+            <button type="button" class="diktat" data-ziel="f_<?= $h($feldName) ?>" hidden
+                    title="<?= $h($S('diktierenHinweis')) ?>"
+                    data-an="<?= $h($S('diktieren')) ?>" data-aus="<?= $h($S('diktierenAus')) ?>">🎙 <?= $h($S('diktieren')) ?></button>
+          <?php endif; ?>
+          <?php /* B5: Material gleich an der Frage hochladen, nicht irgendwo
+                   anders auf der Kundenseite. */ ?>
+          <?php if (in_array($feldName, ['material', 'logo'], true)): ?>
+            <div class="hochladen">
+              <p class="beiseite" style="margin:10px 0 6px"><?= $h($S('hochladenHier')) ?>
+                <?php if ($dateienDa > 0): ?> · <b><?= $h(strtr($S('hochgeladen'), ['{n}' => (string) $dateienDa])) ?></b><?php endif; ?></p>
+              <input type="file" name="dateien[]" multiple accept="image/*,.pdf,.doc,.docx,.txt,.svg,.ai,.eps,.zip">
+            </div>
+          <?php endif; ?>
+
           <?php if (!empty($feld['frei'])): ?>
             <input class="freizeile" id="f_<?= $h($feldName) ?>__frei" name="<?= $h($feldName) ?>__frei"
                    placeholder="<?= $h($S('freiZeile')) ?>"
@@ -640,6 +710,56 @@ $gruppenWort = [
     </div>
   </form>
 
+  <script>
+  /* B2 + B4 (25.09.2026): Satzbausteine und Diktieren.
+     Chips haengen ihren Text ans Feld an (mit Komma), ein zweiter Klick
+     nimmt ihn wieder heraus. Diktieren nutzt die Spracherkennung des
+     Browsers -- der Knopf erscheint nur, wo es sie gibt, und der Hinweis
+     sagt, wer sie ausfuehrt. Ohne Skript bleibt das Textfeld, wie es war. */
+  (function () {
+    document.querySelectorAll('.chips').forEach(function (reihe) {
+      var feld = document.getElementById(reihe.dataset.ziel);
+      if (!feld) { return; }
+      var teile = function () { return feld.value.split(/\s*,\s*/).filter(Boolean); };
+      reihe.querySelectorAll('.chip').forEach(function (chip) {
+        var wort = chip.textContent.trim();
+        if (teile().indexOf(wort) >= 0) { chip.classList.add('an'); }
+        chip.addEventListener('click', function () {
+          var t = teile(), i = t.indexOf(wort);
+          if (i >= 0) { t.splice(i, 1); chip.classList.remove('an'); } else { t.push(wort); chip.classList.add('an'); }
+          feld.value = t.join(', ');
+          feld.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      });
+    });
+    var Erkennung = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Erkennung) { return; }
+    var sprache = { it: 'it-IT', de: 'de-DE', en: 'en-GB' }[document.documentElement.lang] || 'it-IT';
+    document.querySelectorAll('.diktat').forEach(function (knopf) {
+      var feld = document.getElementById(knopf.dataset.ziel);
+      if (!feld) { return; }
+      knopf.hidden = false;
+      var laeuft = null;
+      knopf.addEventListener('click', function () {
+        if (laeuft) { laeuft.stop(); return; }
+        var r = new Erkennung();
+        r.lang = sprache; r.interimResults = false; r.continuous = true;
+        r.onresult = function (e) {
+          for (var i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) {
+              var satz = e.results[i][0].transcript.trim();
+              feld.value = (feld.value.trim() ? feld.value.trim() + ' ' : '') + satz;
+            }
+          }
+        };
+        r.onend = function () { laeuft = null; knopf.classList.remove('laeuft'); knopf.textContent = '🎙 ' + knopf.dataset.an; };
+        r.onerror = r.onend;
+        laeuft = r; knopf.classList.add('laeuft'); knopf.textContent = '■ ' + knopf.dataset.aus;
+        try { r.start(); } catch (e) { r.onend(); }
+      });
+    });
+  })();
+  </script>
   <script>
   /* ====================================================================
      ZWEI KLEINE DINGE, DIE OHNE SKRIPT AUCH GEHEN -- NUR LANGSAMER
@@ -777,5 +897,25 @@ $gruppenWort = [
          mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
          Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
 <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
+<?php /* C2: Manuela auch hier -- derselbe Loader wie auf der Kundenseite
+         (nachgeladen nach "load", siehe kunde.php: mit defer hing die ganze
+         Seite an STRATOs Erreichbarkeit). Datenschutz: legal.html, p8. */ ?>
+<?php if ($f && !$fertig): ?>
+<script>
+(function () {
+  function holen() {
+    var s = document.createElement('script');
+    s.src = 'https://strato.ai-voicereceptionist.com/widget/v1/embed.js';
+    s.async = true;
+    s.setAttribute('data-agent-id', 'a6ea7fe1-fd3e-4850-8e7b-7f9f558b3b4d');
+    document.body.appendChild(s);
+  }
+  function gleich() {
+    if (window.requestIdleCallback) { requestIdleCallback(holen, { timeout: 2500 }); } else { setTimeout(holen, 800); }
+  }
+  if (document.readyState === 'complete') { gleich(); } else { window.addEventListener('load', gleich, { once: true }); }
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>

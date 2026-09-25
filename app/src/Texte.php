@@ -39,6 +39,56 @@ final class Texte
          wenn      => [...]  nur zeigen, wenn ein anderes Feld passt
          vorschlag => '...'  Vorbelegung aus Branche und Ort
        ====================================================================== */
+    /* ANKLICKEN STATT SCHREIBEN (B2, 25.09.2026)
+       Satzbausteine unter den langen Textfeldern, die sich wiederholen. Ein
+       Klick setzt den Baustein ins Feld; der Kunde laesst ihn stehen oder
+       schreibt weiter. Bewusst KEIN neues Datenformat: Gespeichert wird
+       weiter Text, Briefing, Angebot und Telefon lesen wie bisher. */
+    public const CHIPS = [
+        'heute' => [
+            ['it' => 'Rispondo io al telefono', 'de' => 'Ich gehe selbst ans Telefon', 'en' => 'I answer the phone myself'],
+            ['it' => 'Spesso non riesco a rispondere', 'de' => 'Oft komme ich nicht ans Telefon', 'en' => 'I often can’t pick up'],
+            ['it' => 'Molti scrivono su WhatsApp', 'de' => 'Viele schreiben per WhatsApp', 'en' => 'Many write on WhatsApp'],
+            ['it' => 'Rispondo alle e-mail in giornata', 'de' => 'E-Mails beantworte ich am selben Tag', 'en' => 'I answer emails the same day'],
+            ['it' => 'Le richieste arrivano dai social', 'de' => 'Anfragen kommen über Social Media', 'en' => 'Enquiries come via social media'],
+        ],
+        'einesache' => [
+            ['it' => 'Qualità artigianale', 'de' => 'Handwerkliche Qualität', 'en' => 'Craft quality'],
+            ['it' => 'Azienda di famiglia da anni', 'de' => 'Familienbetrieb seit Jahren', 'en' => 'Family business for years'],
+            ['it' => 'Veloci e affidabili', 'de' => 'Schnell und zuverlässig', 'en' => 'Fast and reliable'],
+            ['it' => 'Consulenza personale', 'de' => 'Persönliche Beratung', 'en' => 'Personal advice'],
+            ['it' => 'Prodotti locali', 'de' => 'Aus der Region', 'en' => 'Local products'],
+        ],
+        'erhalten' => [
+            ['it' => 'Il logo', 'de' => 'Das Logo', 'en' => 'The logo'],
+            ['it' => 'I colori', 'de' => 'Die Farben', 'en' => 'The colours'],
+            ['it' => 'Le foto', 'de' => 'Die Fotos', 'en' => 'The photos'],
+            ['it' => 'I testi', 'de' => 'Die Texte', 'en' => 'The texts'],
+            ['it' => 'L’indirizzo del sito', 'de' => 'Die Adresse der Seite', 'en' => 'The site address'],
+        ],
+        'stoert' => [
+            ['it' => 'È superato', 'de' => 'Wirkt veraltet', 'en' => 'Looks dated'],
+            ['it' => 'Sul telefono si vede male', 'de' => 'Auf dem Handy schlecht', 'en' => 'Poor on mobile'],
+            ['it' => 'Non ci trovano su Google', 'de' => 'Bei Google nicht zu finden', 'en' => 'Not found on Google'],
+            ['it' => 'Non porta richieste', 'de' => 'Bringt keine Anfragen', 'en' => 'Brings no enquiries'],
+            ['it' => 'Non riesco a modificarlo da solo', 'de' => 'Ich kann nichts selbst ändern', 'en' => 'I can’t change anything myself'],
+            ['it' => 'È lento', 'de' => 'Lädt langsam', 'en' => 'Loads slowly'],
+        ],
+        'abneigung' => [
+            ['it' => 'Musica o video che partono da soli', 'de' => 'Musik oder Videos mit Selbststart', 'en' => 'Music or videos that autoplay'],
+            ['it' => 'Foto di repertorio', 'de' => 'Beliebige Stockfotos', 'en' => 'Generic stock photos'],
+            ['it' => 'Finestre pop-up', 'de' => 'Aufpoppende Fenster', 'en' => 'Pop-ups'],
+            ['it' => 'Troppo testo', 'de' => 'Zu viel Text', 'en' => 'Too much text'],
+            ['it' => 'Colori troppo accesi', 'de' => 'Knallige Farben', 'en' => 'Loud colours'],
+        ],
+        'beschreibung' => [
+            ['it' => 'Siamo un’azienda di famiglia', 'de' => 'Wir sind ein Familienbetrieb', 'en' => 'We’re a family business'],
+            ['it' => 'Lavoriamo su appuntamento', 'de' => 'Wir arbeiten nach Termin', 'en' => 'We work by appointment'],
+            ['it' => 'Clienti privati e aziende', 'de' => 'Privat- und Firmenkunden', 'en' => 'Private and business clients'],
+            ['it' => 'Consegniamo anche a domicilio', 'de' => 'Wir liefern auch nach Hause', 'en' => 'We also deliver'],
+        ],
+    ];
+
     public const FRAGEBOGEN = [
 
         /* ---------- 1 ---------------------------------------------------- */
@@ -616,6 +666,19 @@ final class Texte
         'schritt'    => ['it' => 'Passo {n} di {g}', 'de' => 'Schritt {n} von {g}', 'en' => 'Step {n} of {g}'],
         /* Kern und Kuer, Zeit statt Schritt, Ergaenzen nach dem Absenden
            (B1, B6, C1 -- 25.09.2026). */
+        'lieberReden' => ['it' => 'Preferisce parlare invece di cliccare? Manuela, l’assistente vocale di Vecom Design, compila il questionario con Lei — tocchi il pulsante in basso a destra e dica il suo numero cliente {nr}.',
+                          'de' => 'Lieber sprechen als klicken? Manuela, die Sprachassistentin von Vecom Design, geht den Fragebogen mit Ihnen durch — tippen Sie unten rechts auf den Knopf und nennen Sie Ihre Kundennummer {nr}.',
+                          'en' => 'Rather talk than click? Manuela, Vecom Design’s voice assistant, goes through the questionnaire with you — tap the button at the bottom right and say your customer number {nr}.'],
+        'diktieren'   => ['it' => 'Dettare', 'de' => 'Diktieren', 'en' => 'Dictate'],
+        'diktierenAus'=> ['it' => 'Stop', 'de' => 'Stopp', 'en' => 'Stop'],
+        'diktierenHinweis' => ['it' => 'Il riconoscimento vocale è del suo browser (per es. Google o Apple).',
+                               'de' => 'Die Spracherkennung übernimmt Ihr Browser (z. B. Google oder Apple).',
+                               'en' => 'Speech recognition is done by your browser (e.g. Google or Apple).'],
+        'hochladenHier' => ['it' => 'Può caricarli subito qui — foto, logo, menù (anche come foto dal telefono):',
+                            'de' => 'Gleich hier hochladen — Fotos, Logo, Speisekarte (auch als Handyfoto):',
+                            'en' => 'Upload them right here — photos, logo, menu (a phone photo is fine):'],
+        'hochgeladen'   => ['it' => '{n} file già caricati', 'de' => '{n} Dateien sind schon da', 'en' => '{n} files already uploaded'],
+        'hochladenOk'   => ['it' => 'Grazie, i file sono arrivati.', 'de' => 'Danke, die Dateien sind angekommen.', 'en' => 'Thank you, the files arrived.'],
         'nochMin'     => ['it' => 'Ancora circa {m} minuti', 'de' => 'Noch etwa {m} Minuten', 'en' => 'About {m} minutes to go'],
         'nochEineMin' => ['it' => 'Ancora circa un minuto', 'de' => 'Noch etwa eine Minute', 'en' => 'About one minute to go'],
         'fastFertig'  => ['it' => 'Quasi fatto', 'de' => 'Fast geschafft', 'en' => 'Almost done'],
