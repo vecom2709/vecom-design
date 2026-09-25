@@ -7736,7 +7736,8 @@ $vwStill = date('Y-m-d H:i:s', strtotime('-5 hours'));
 Db::run('UPDATE questionnaires SET updated_at = ? WHERE id = ?', [$vwStill, $vwQ]);
 $vwGefragt = [];
 $vwSeite = static function (string $a) use (&$vwGefragt, $vwHtml): ?array {
-    $vwGefragt[] = $a; return ['url' => 'https://www.trattoria-sole.it/', 'html' => $vwHtml, 'unterseiten' => []];
+    $vwGefragt[] = $a; return ['url' => 'https://www.trattoria-sole.it/', 'html' => $vwHtml, 'unterseiten' => [],
+                               'befunde' => [['nicht_mobil', 'schwer'], ['kein_impressum', 'mittel']]];
 };
 $vwReg = static fn(string $n): ?array => Vies::lesen('{"isValid":true,"userError":"VALID","name":"TRATTORIA SOLE SRL","address":"VIA ROMA 1 \n90133 PALERMO PA\n"}', 'IT', '00743110157');
 $vwNeu = Vorwissen::fuerFragebogen($vwQ, $vwSeite, $vwReg);
@@ -7773,6 +7774,36 @@ pruefe('A1: gelesen wird erst nach dem Ausliefern, und die Sitzung ist vorher fr
     && (int) strpos($vwFb, 'session_write_close();') < (int) strpos($vwFb, 'fastcgi_finish_request();')
     && (int) strpos($vwFb, 'fastcgi_finish_request();') < (int) strpos($vwFb, 'Vorwissen::fuerFragebogen'));
 pruefe('A1: der Cron holt nach', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Vorwissen::nachholen()'));
+
+/* ============================================================================
+   68. Heute und wie es werden könnte (C4)
+   ============================================================================ */
+abschnitt('68. Dashboard: Heute und wie es werden könnte');
+require_once $wurzel . '/src/Seitenblick.php';
+$c4Befunde = json_decode((string) Db::wert('SELECT seite_befunde FROM questionnaires WHERE id = ?', [$vwQ], ''), true) ?: [];
+pruefe('C4: die Befunde der alten Seite kommen aus demselben Abruf mit in den Fragebogen',
+    $c4Befunde === [['nicht_mobil', 'schwer'], ['kein_impressum', 'mittel']]);
+$c4Saetze = Seitenblick::inSaetzen([['nicht_mobil', 'schwer'], ['gibt_es_nicht_als_art', 'x'], 'kaputt'], 'de');
+pruefe('C4: gespeicherte Befunde werden Sätze -- Unbekanntes fällt still heraus',
+    count($c4Saetze) === 1 && str_contains($c4Saetze[0]['satz'], 'Handy'));
+$c4Kunde = (string) file_get_contents($wurzel . '/../kunde.php');
+$c4Js = (string) file_get_contents($wurzel . '/../assets/js/vorschau.js');
+preg_match("~\\\$zu = \[(.*?)\];~s", $c4Kunde, $c4m);
+preg_match_all("~=> '([a-z]+)'~", $c4m[1] ?? '', $c4z);
+$c4Fehlt = [];
+foreach (array_unique($c4z[1]) as $c4b) {
+    if (!preg_match('~^  ' . $c4b . ':\s+\{ bild:~m', $c4Js) || preg_match_all('~^    ' . $c4b . ': \[~m', $c4Js) !== 3) { $c4Fehlt[] = $c4b; }
+}
+pruefe('C4: jede Branche, die das Dashboard zeigt, hat in der Skizze Bild und Text in drei Sprachen',
+    count($c4z[1]) >= 7 && $c4Fehlt === []);
+if ($c4Fehlt) { echo '   fehlt: ', implode(', ', $c4Fehlt), "\n"; }
+pruefe('C4: das Logo für die Skizze ist nur das eigene, nur als Logo markiert, und nur neu gerechnet',
+    (bool) preg_match("~logobild.*?customer_id = \? AND rolle = 'logo'.*?vorschauAusliefern~s", $c4Kunde)
+    && str_contains((string) file_get_contents($wurzel . '/../fragebogen.php'), "'datei_rolle'"));
+preg_match_all("~'([a-z]+)' =>~", $c4m[1] ?? '', $c4q);
+$c4Optionen = array_keys((array) (Texte::FRAGEBOGEN['unternehmen']['felder']['branche']['optionen'] ?? []));
+pruefe('C4: die Zuordnung kennt nur Branchen, die es im Fragebogen gibt',
+    $c4q[1] !== [] && array_diff($c4q[1], $c4Optionen) === []);
 
 /* ============================================================================
    Aufräumen und Bilanz

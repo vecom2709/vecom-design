@@ -41,6 +41,7 @@ const BRANCHEN = {
   moebel:     { bild: '3d/tisch/ansicht/gross/VD-T-V180-EIM.webp', akzent: '#caa57a' },
   mode:       { bild: 'erlebnis/branchen/schuh-rose.webp', akzent: '#e0b3a6' },
   immobilien: { bild: 'erlebnis/villa/ruhe-garten-nachmittag.webp', akzent: '#d8c3a0' },
+  beherbergung: { bild: 'erlebnis/villa/ruhe-terrasse-abend.webp', akzent: '#e0b98a' },
 };
 
 /* [Name der Branche, Überschrift ({n} = Betrieb), Unterzeile, Knopf, Navigation] */
@@ -56,6 +57,7 @@ const T = {
     moebel: ['Möbel & Tischlerei', 'Möbel von {n}.', 'Holz, Maß und Gestell wählen — der Tisch steht sofort im Bild.', 'Tisch gestalten', ['Möbel', 'Werkstatt', 'Kontakt']],
     mode: ['Mode & Schuhe', '{n}. Die neue Kollektion.', 'Jedes Stück in der Hand drehen, jede Farbe echt.', 'Kollektion ansehen', ['Kollektion', 'Marke', 'Kontakt']],
     immobilien: ['Immobilien', '{n}. Häuser zum Betreten.', 'Durch das Haus gehen, bevor es steht — bei Tag und bei Nacht.', 'Besichtigung anfragen', ['Objekte', 'Projekte', 'Kontakt']],
+    beherbergung: ['Unterkunft', 'Ankommen bei {n}.', 'Zimmer ansehen, freie Tage sehen — und direkt bei Ihnen buchen, ohne Provision.', 'Verfügbarkeit prüfen', ['Zimmer', 'Umgebung', 'Kontakt']],
     namePlatzhalter: 'Ihr Betrieb', erstellt: (n) => `Skizze für ${n} erstellt.`,
     logoLokal: 'Ihr Logo bleibt auf Ihrem Gerät — es wird nicht hochgeladen.', logoFehler: 'Bitte ein Bild als PNG, JPG, WebP oder SVG bis 5 MB.',
   },
@@ -70,6 +72,7 @@ const T = {
     moebel: ['Mobili & falegnameria', 'I mobili di {n}.', 'Scegliere legno, misura e base — il tavolo è subito nell’immagine.', 'Creare il tavolo', ['Mobili', 'Laboratorio', 'Contatti']],
     mode: ['Moda & scarpe', '{n}. La nuova collezione.', 'Ogni pezzo da girare in mano, ogni colore vero.', 'Vedere la collezione', ['Collezione', 'Marchio', 'Contatti']],
     immobilien: ['Immobili', '{n}. Case da attraversare.', 'Entrare nella casa prima che esista — di giorno e di notte.', 'Richiedere una visita', ['Immobili', 'Progetti', 'Contatti']],
+    beherbergung: ['Ospitalità', 'Benvenuti da {n}.', 'Vedere le camere, i giorni liberi — e prenotare direttamente da voi, senza commissioni.', 'Verificare la disponibilità', ['Camere', 'Dintorni', 'Contatti']],
     namePlatzhalter: 'La sua attività', erstellt: (n) => `Bozza per ${n} creata.`,
     logoLokal: 'Il suo logo resta sul suo dispositivo — non viene caricato.', logoFehler: 'Serve un’immagine PNG, JPG, WebP o SVG fino a 5 MB.',
   },
@@ -84,6 +87,7 @@ const T = {
     moebel: ['Furniture & joinery', 'Furniture by {n}.', 'Choose wood, size and base — the table is in the picture at once.', 'Design your table', ['Furniture', 'Workshop', 'Contact']],
     mode: ['Fashion & shoes', '{n}. The new collection.', 'Turn every piece in your hand, every colour true.', 'See the collection', ['Collection', 'Brand', 'Contact']],
     immobilien: ['Real estate', '{n}. Homes to walk through.', 'Walk through the house before it is built — by day and by night.', 'Request a viewing', ['Properties', 'Projects', 'Contact']],
+    beherbergung: ['Stay', 'Arrive at {n}.', 'See the rooms and the free dates — and book directly with you, no commission.', 'Check availability', ['Rooms', 'Area', 'Contact']],
     namePlatzhalter: 'Your business', erstellt: (n) => `Sketch for ${n} created.`,
     logoLokal: 'Your logo stays on your device — it is not uploaded.', logoFehler: 'Please use a PNG, JPG, WebP or SVG image up to 5 MB.',
   },
@@ -134,9 +138,15 @@ const LOGO_TYPEN = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
 const LOGO_MAX = 5 * 1024 * 1024;
 
 function logoLesen(datei) {
+  if (!datei || !LOGO_TYPEN.includes(datei.type) || datei.size > LOGO_MAX) return Promise.reject(new Error('typ'));
+  return logoAnsehen(URL.createObjectURL(datei), true);
+}
+
+/* Dieselbe Pixelrechnung für ein Logo, das schon auf dem Server liegt (C4:
+   das hochgeladene im Dashboard). Gleicher Ursprung, sonst bliebe die
+   Leinwand gesperrt. */
+function logoAnsehen(url, eigeneUrl) {
   return new Promise((ok, fehler) => {
-    if (!datei || !LOGO_TYPEN.includes(datei.type) || datei.size > LOGO_MAX) { fehler(new Error('typ')); return; }
-    const url = URL.createObjectURL(datei);
     const img = new Image();
     img.decoding = 'async';
     img.onload = () => {
@@ -178,7 +188,7 @@ function logoLesen(datei) {
       // Dunkle, farbige Logos (tiefrot, marineblau) verlieren sich auf dem dunklen Kopf -> Schild
       ok({ url, akzent, klasse: (schild || (bunt && mittel < 0.24)) ? 'vs-logo--schild' : (!bunt && mittel < 0.32 ? 'vs-logo--hell' : '') });
     };
-    img.onerror = () => { URL.revokeObjectURL(url); fehler(new Error('bild')); };
+    img.onerror = () => { if (eigeneUrl) URL.revokeObjectURL(url); fehler(new Error('bild')); };
     img.src = url;
   });
 }
@@ -215,25 +225,13 @@ function seite(art, daten) {
   return s;
 }
 
-const sek = document.getElementById('vorschau');
-if (sek) {
-  const form = sek.querySelector('[data-vorschau-form]');
+/* Die Bühne: Foto, zwei Bildschirme, Glanz. Dieselbe auf der Startseite
+   (mit Formular) und im Dashboard (C4, mit den Angaben aus dem Fragebogen). */
+function buehneAn(sek) {
   const buehne = sek.querySelector('[data-vorschau-buehne]');
   const innen = sek.querySelector('[data-vorschau-innen]');
-  const weiter = sek.querySelector('[data-vorschau-weiter]');
-  const status = sek.querySelector('[data-vorschau-status]');
   const schirme = { laptop: sek.querySelector('[data-schirm="laptop"]'), telefon: sek.querySelector('[data-schirm="telefon"]') };
-  const auswahl = form.querySelector('select[name="branche"]');
-  for (const id of Object.keys(BRANCHEN)) {
-    const o = document.createElement('option'); o.value = id; o.textContent = T[id][0]; auswahl.append(o);
-  }
-  let ecken = null, gezeigt = false, laden = null, logo = null;
-  const logoFeld = form.querySelector('[data-vorschau-logo]');
-  const logoZeile = form.querySelector('.vorschau__logo');
-  const logoChip = form.querySelector('[data-vorschau-logochip]');
-  const logoBild = form.querySelector('[data-vorschau-logobild]');
-  const logoNote = form.querySelector('[data-vorschau-logonote]');
-
+  let ecken = null, laden = null;
   const holeEcken = () => laden || (laden = fetch(`${SZENE}ecken.json`).then((r) => r.json()).then((j) => { ecken = j; }));
 
   /* Wie arbeiten.js: auf schmalen Bildschirmen auf die Geräte schneiden,
@@ -246,6 +244,38 @@ if (sek) {
     buehne.style.height = `${Math.round((y1 - y0) * k)}px`;
     innen.style.transform = `translate(${-x0 * k}px, ${-y0 * k}px) scale(${k})`;
   }
+  async function setzen(daten) {
+    await holeEcken();
+    for (const [art, ziel] of Object.entries(schirme)) {
+      const [w, h0] = SEITE[art];
+      const h = art === 'laptop' ? h0 + LEISTE : h0;
+      ziel.style.width = `${w}px`; ziel.style.height = `${h}px`;
+      ziel.style.transform = homographie(w, h, ecken[art === 'laptop' ? 'laptop' : 'telefon_seite']);
+      ziel.replaceChildren(seite(art, daten));
+    }
+    buehne.hidden = false;
+    massstab();
+  }
+  window.addEventListener('resize', () => { if (!buehne.hidden) massstab(); }, { passive: true });
+  return { buehne, setzen };
+}
+
+const sek = document.getElementById('vorschau');
+if (sek) {
+  const form = sek.querySelector('[data-vorschau-form]');
+  const { buehne, setzen } = buehneAn(sek);
+  const weiter = sek.querySelector('[data-vorschau-weiter]');
+  const status = sek.querySelector('[data-vorschau-status]');
+  const auswahl = form.querySelector('select[name="branche"]');
+  for (const id of Object.keys(BRANCHEN)) {
+    const o = document.createElement('option'); o.value = id; o.textContent = T[id][0]; auswahl.append(o);
+  }
+  let gezeigt = false, logo = null;
+  const logoFeld = form.querySelector('[data-vorschau-logo]');
+  const logoZeile = form.querySelector('.vorschau__logo');
+  const logoChip = form.querySelector('[data-vorschau-logochip]');
+  const logoBild = form.querySelector('[data-vorschau-logobild]');
+  const logoNote = form.querySelector('[data-vorschau-logonote]');
 
   async function zeigen() {
     const fd = new FormData(form);
@@ -255,16 +285,8 @@ if (sek) {
       ort: String(fd.get('ort') || '').trim().slice(0, 28),
       logo,
     };
-    await holeEcken();
-    for (const [art, ziel] of Object.entries(schirme)) {
-      const [w, h0] = SEITE[art];
-      const h = art === 'laptop' ? h0 + LEISTE : h0;
-      ziel.style.width = `${w}px`; ziel.style.height = `${h}px`;
-      ziel.style.transform = homographie(w, h, ecken[art === 'laptop' ? 'laptop' : 'telefon_seite']);
-      ziel.replaceChildren(seite(art, daten));
-    }
-    buehne.hidden = false; weiter.hidden = false;
-    massstab();
+    await setzen(daten);
+    weiter.hidden = false;
     if (status) status.textContent = T.erstellt(daten.name);
     if (!gezeigt) {
       gezeigt = true;
@@ -306,5 +328,22 @@ if (sek) {
     if (!gezeigt) return;
     clearTimeout(takt); takt = setTimeout(zeigen, 180);
   });
-  window.addEventListener('resize', () => { if (!buehne.hidden) massstab(); }, { passive: true });
+}
+
+/* C4 (25.09.2026): Im Dashboard steht die Skizze fertig da -- mit Name,
+   Branche und Ort aus dem Fragebogen und, wenn schon hochgeladen, dem
+   eigenen Logo (vom Server neu gerechnet, siehe Ablage::vorschauAusliefern). */
+const fest = document.querySelector('[data-vorschau-fest]');
+if (fest && BRANCHEN[fest.dataset.branche]) {
+  const { setzen } = buehneAn(fest);
+  const daten = {
+    name: String(fest.dataset.name || '').trim().slice(0, 36) || T.namePlatzhalter,
+    branche: fest.dataset.branche,
+    ort: String(fest.dataset.ort || '').trim().slice(0, 28),
+    logo: null,
+  };
+  const los = () => setzen(daten);
+  if (fest.dataset.logo) {
+    logoAnsehen(fest.dataset.logo, false).then((l) => { daten.logo = l; }).catch(() => {}).finally(los);
+  } else { los(); }
 }

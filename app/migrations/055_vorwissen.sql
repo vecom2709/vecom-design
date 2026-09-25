@@ -14,3 +14,6 @@
 ALTER TABLE questionnaires ADD COLUMN IF NOT EXISTS seite_gelesen_am DATETIME NULL AFTER erinnert2_am;
 ALTER TABLE questionnaires ADD COLUMN IF NOT EXISTS seite_adresse VARCHAR(190) NULL AFTER seite_gelesen_am;
 ALTER TABLE questionnaires ADD COLUMN IF NOT EXISTS seite_felder TEXT NULL AFTER seite_adresse;
+-- seite_befunde:    JSON [[art, gewicht], ...] aus Seitenblick -- was an der
+--                   alten Seite gemessen wurde (C4: "Ihre Seite heute").
+ALTER TABLE questionnaires ADD COLUMN IF NOT EXISTS seite_befunde TEXT NULL AFTER seite_felder;

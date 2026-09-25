@@ -1,0 +1,54 @@
+/* ==========================================================================
+   vorschau.css — die Bühne der 30-Sekunden-Skizze (N1) und die Skizze selbst.
+   Eigene Datei seit C4 (25.09.2026): Startseite und Kunden-Dashboard zeigen
+   dieselbe Skizze; zwei Kopien der Regeln wären zwei Wahrheiten.
+   Das Formular der Startseite bleibt in edel.css.
+   ========================================================================== */
+.vorschau__buehne { position: relative; margin-top: clamp(1.6rem, 3vw, 2.4rem); overflow: hidden; border: 1px solid var(--edel-linie, rgba(255, 255, 255, .12)); background: #0d0c0a; }
+.vorschau__innen { position: absolute; left: 0; top: 0; width: 2400px; height: 1350px; transform-origin: 0 0; }
+.vorschau__foto, .vorschau__glanz { position: absolute; inset: 0; width: 2400px; height: 1350px; max-width: none; }
+.vorschau__glanz { mix-blend-mode: screen; pointer-events: none; }
+.vorschau__schirm { position: absolute; left: 0; top: 0; overflow: hidden; transform-origin: 0 0; background: #0b0a09; }
+/* Das Telefon steht im Foto hinter der Schärfeebene — wie bei den Fallstudien */
+.vorschau__schirm--telefon { filter: blur(2.2px); }
+/* In der Skizze: Logo statt Wortmarke; dunkle Logos werden hell gesetzt,
+   Logos mit weissem Grund bekommen ein helles Schild. */
+.vs-logo { display: block; height: 54px; max-width: 300px; object-fit: contain; object-position: left center; }
+.vs-seite--telefon .vs-logo { height: 34px; max-width: 200px; }
+.vs-logo--hell { filter: brightness(0) invert(.96); }
+.vs-logo--schild { background: #f7f3ea; padding: 8px 14px; border-radius: 10px; height: 58px; }
+.vs-seite--telefon .vs-logo--schild { height: 44px; padding: 6px 10px; }
+/* Die Skizze im Bildschirm: gesetzt in CSS-Pixeln des Geräts (1440 x 824 bzw.
+   390 x 727), damit Schriftgrößen stimmen wie auf einer echten Seite. */
+.vs-seite { position: relative; width: 100%; height: 100%; color: #f7f3ea; font-family: 'Inter', system-ui, sans-serif;
+  background: linear-gradient(90deg, rgba(8, 7, 6, .92) 0%, rgba(8, 7, 6, .72) 38%, rgba(8, 7, 6, .15) 72%), var(--bild) center / cover no-repeat, #0b0a09; }
+.vs-kopf { display: flex; align-items: center; gap: 44px; padding: 30px 64px; }
+.vs-marke { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 30px; font-weight: 500; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; }
+.vs-nav { display: flex; gap: 36px; margin-left: auto; font-size: 15px; color: rgba(247, 243, 234, .78); }
+.vs-kopfknopf { padding: 11px 20px; border: 1px solid var(--akzent); border-radius: 999px; font-size: 14px; color: var(--akzent); }
+.vs-held { position: absolute; left: 64px; bottom: 118px; max-width: 660px; }
+.vs-eyebrow { margin: 0 0 20px; font-size: 13px; letter-spacing: .3em; text-transform: uppercase; color: var(--akzent); }
+.vs-h1 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 500; font-size: calc(78px * var(--gr, 1)); line-height: 1.02; letter-spacing: -.01em; }
+.vs-h1 em { font-style: italic; color: var(--akzent); }
+.vs-lead { margin: 22px 0 0; max-width: 520px; font-size: 19px; line-height: 1.55; color: rgba(247, 243, 234, .82); }
+.vs-knoepfe { margin-top: 32px; }
+.vs-btn { display: inline-block; padding: 17px 30px; border-radius: 999px; font-size: 16px; font-weight: 600; color: #16120b;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .45), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, .1)), var(--akzent); }
+/* Telefon */
+.vs-seite--telefon { background: linear-gradient(180deg, rgba(8, 7, 6, .35) 0%, rgba(8, 7, 6, .55) 40%, rgba(8, 7, 6, .95) 78%), var(--bild) 60% 30% / cover no-repeat, #0b0a09; }
+.vs-seite--telefon .vs-kopf { padding: 22px 22px; justify-content: space-between; }
+.vs-seite--telefon .vs-marke { font-size: 24px; max-width: 280px; }
+.vs-burger { width: 26px; height: 12px; border-top: 2px solid #f7f3ea; border-bottom: 2px solid #f7f3ea; }
+.vs-seite--telefon .vs-held { left: 22px; right: 22px; bottom: 44px; }
+.vs-seite--telefon .vs-eyebrow { font-size: 11px; margin-bottom: 14px; }
+.vs-seite--telefon .vs-h1 { font-size: calc(44px * var(--gr, 1)); }
+.vs-seite--telefon .vs-lead { font-size: 15px; margin-top: 14px; }
+.vs-seite--telefon .vs-knoepfe { margin-top: 22px; }
+.vs-seite--telefon .vs-btn { display: block; text-align: center; padding: 15px 20px; font-size: 15px; }
+.vs-seite--laptop { display: flex; flex-direction: column; }
+.vs-leiste { flex: 0 0 74px; display: flex; align-items: center; gap: 10px; padding: 0 22px; background: #1c1b19; border-bottom: 1px solid #2a2825; }
+.vs-leiste i { width: 13px; height: 13px; border-radius: 50%; background: #3a3834; }
+.vs-adresse { margin-left: 18px; padding: 9px 22px; border-radius: 10px; background: #2a2825; font-size: 16px; color: rgba(247, 243, 234, .72); letter-spacing: .01em; }
+.vs-seite--laptop .vs-held { bottom: 118px; }
+.vs-seite--laptop .vs-kopf { position: relative; }
+.vs-seite--laptop { background: linear-gradient(90deg, rgba(8, 7, 6, .92) 0%, rgba(8, 7, 6, .72) 38%, rgba(8, 7, 6, .15) 72%), var(--bild) center 70% / cover no-repeat, #0b0a09; }

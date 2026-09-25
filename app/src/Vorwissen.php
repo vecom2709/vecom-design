@@ -77,6 +77,7 @@ final class Vorwissen
         $daten = json_decode((string) ($q['data'] ?? ''), true) ?: [];
 
         $funde = [];
+        $befunde = null;
         $adresse = self::adresseFuer((int) $q['customer_id'], $daten, (string) ($q['email'] ?? ''));
         if ($adresse !== null) {
             if (Seitenblick::istProfil($adresse)) {
@@ -86,6 +87,7 @@ final class Vorwissen
                 if ($r) {
                     $funde = Seiteninhalt::lesen($r['html'], $r['url'], $r['unterseiten'] ?? []);
                     $funde['_host'] = preg_replace('~^www\.~', '', (string) parse_url($r['url'], PHP_URL_HOST)) ?? '';
+                    $befunde = array_values(array_filter((array) ($r['befunde'] ?? []), 'is_array'));
                 }
             }
         }
@@ -99,7 +101,8 @@ final class Vorwissen
         $werte = self::zuFeldern($funde, $amtlich);
         $eingetragen = self::eintragen($id, $werte);
         if ($adresse !== null) {
-            Db::run('UPDATE questionnaires SET seite_adresse = ?, updated_at = updated_at WHERE id = ?', [mb_substr($adresse, 0, 190), $id]);
+            Db::run('UPDATE questionnaires SET seite_adresse = ?, seite_befunde = ?, updated_at = updated_at WHERE id = ?',
+                [mb_substr($adresse, 0, 190), $befunde !== null ? json_encode($befunde) : null, $id]);
         }
         return $eingetragen;
     }

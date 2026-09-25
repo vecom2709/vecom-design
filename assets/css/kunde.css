@@ -319,3 +319,8 @@ tr.fragezeile .frage{margin:0 0 8px}
   min-height:32px; display:inline-flex; align-items:center}
 .rechtsfuss a:hover,.rechtsfuss a:focus-visible{color:var(--cyan); text-decoration:underline}
 .rechtsfuss span{color:var(--linie2)}
+
+/* C4 (25.09.2026): Heute und wie es werden koennte -- die Skizze selbst steht in vorschau.css */
+.skizze-heute { margin: 0 0 4px; padding-left: 1.1em; color: var(--dim); font-size: 14px; line-height: 1.5; }
+.skizze-heute li + li { margin-top: 4px; }
+.skizze .vorschau__buehne { margin-top: 12px; border-radius: 10px; }

@@ -370,8 +370,31 @@ final class Seitenblick
         $a = self::aufloesen($name);
         if (empty($a['erreichbar']) || (string) ($a['html'] ?? '') === '') { return null; }
         $start = (string) ($a['end_url'] ?? '');
-        return ['url' => $start, 'html' => (string) $a['html'],
-                'unterseiten' => self::unterseiten($start, (string) $a['html'])];
+        $weitere = self::unterseiten($start, (string) $a['html']);
+        /* Das Urteil gleich mit (C4: "Ihre Seite heute" im Dashboard) --
+           aus demselben Abruf, und im Speicher fuer den Fall, dass er in
+           der naechsten Stunde anruft. */
+        $urteil = self::beurteilen($a, '', $weitere);
+        self::inSpeicher($name . '|', $urteil);
+        return ['url' => $start, 'html' => (string) $a['html'], 'unterseiten' => $weitere,
+                'befunde' => array_slice($urteil['roh'] ?? [], 0, self::HOECHSTENS)];
+    }
+
+    /**
+     * Gespeicherte Befunde ([art, gewicht]) in Saetze -- fuer Stellen, die
+     * nicht telefonieren, sondern zeigen.
+     *
+     * @param list<array{0:string,1:string}> $roh
+     * @return list<array{art:string,gewicht:string,satz:string,folge:string}>
+     */
+    public static function inSaetzen(array $roh, string $sprache): array
+    {
+        $aus = [];
+        foreach ($roh as $b) {
+            if (!is_array($b) || !isset(self::SAETZE[(string) ($b[0] ?? '')])) { continue; }
+            $aus[] = self::befund((string) $b[0], (string) ($b[1] ?? 'mittel'), $sprache);
+        }
+        return $aus;
     }
 
     /** Ein Profil bei Instagram & Co. ist keine eigene Seite -- es ist ein Social-Link. */
@@ -556,7 +579,7 @@ final class Seitenblick
      * @param  array<string,mixed> $d
      * @return array<string,mixed>
      */
-    private static function beurteilen(array $d, string $branche = ''): array
+    private static function beurteilen(array $d, string $branche = '', ?array $weitere = null): array
     {
         if (empty($d['erreichbar'])) {
             return ['erreichbar' => false,
@@ -567,7 +590,7 @@ final class Seitenblick
 
         $start  = (string) ($d['end_url'] ?? '');
         $html   = (string) ($d['html'] ?? '');
-        $weitere = self::unterseiten($start, $html);
+        $weitere ??= self::unterseiten($start, $html);   // abrufen() hat sie schon
         $alles  = $html . "\n" . implode("\n", $weitere);
         $klein  = mb_strtolower($alles);
         $text   = trim(preg_replace('~\s+~', ' ', strip_tags($html)) ?? '');

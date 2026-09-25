@@ -1043,6 +1043,11 @@ final class Texte
             'en' => 'Received, thank you. If more turns up, do upload it — sooner is better than later.'],
 
         'deineSeite' => ['it' => 'Il suo sito', 'de' => 'Ihre Website', 'en' => 'Your website'],
+        'skizzeTitel'  => ['it' => 'Com’è oggi — e come potrebbe essere', 'de' => 'Wie es heute ist — und wie es werden könnte', 'en' => 'How it is today — and how it could be'],
+        'skizzeHeute'  => ['it' => 'Il suo sito attuale ({adresse}), misurato il {datum}:', 'de' => 'Ihre bisherige Seite ({adresse}), gemessen am {datum}:', 'en' => 'Your current site ({adresse}), measured on {datum}:'],
+        'skizzeHinweis'=> ['it' => 'Una bozza composta in automatico dai suoi dati — non ancora il progetto. Quello lo facciamo insieme.',
+                           'de' => 'Eine automatisch gesetzte Skizze aus Ihren Angaben — noch nicht der Entwurf. Den machen wir zusammen.',
+                           'en' => 'A sketch set automatically from your details — not the design yet. That we do together.'],
         /* Der Bereich steht auch dann da, wenn es noch nichts zu sehen gibt.
            Versteckt waere er eine Leerstelle, die Fragen erzeugt: Wo sehe ich
            denn nun meine Seite? So weiss der Kunde, wo sie erscheinen wird. */

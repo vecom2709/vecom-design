@@ -134,7 +134,7 @@ final class Ablage
        Kunde soll sein Logo trotzdem schicken koennen. Dann zaehlt die Grenze
        je Kunde statt je Projekt. */
     /**
-     * @param string $rolle 'material' (was der Kunde schickt) oder 'paket'
+     * @param string $rolle 'material' (was der Kunde schickt), 'logo' (dasselbe, als Logo erkannt) oder 'paket'
      *        (die fertige Website in der Gegenrichtung). Ein Paket ist
      *        gross und zaehlt nicht gegen die Stueckzahl je Projekt — es ist
      *        keine Ablage, sondern ein Ergebnis.
@@ -191,7 +191,9 @@ final class Ablage
             'mime' => $typ, 'size_bytes' => $groesse,
             'uploaded_by' => in_array($wer, ['admin', 'werkstatt'], true) ? $wer : 'kunde',
             'user_id' => $wer === 'admin' ? Auth::id() : null,
-            'rolle' => $istPaket ? 'paket' : 'material',
+            /* 'logo' ist Material mit Namen: Es zaehlt wie Material, aber die
+               Skizze im Dashboard (C4) findet es, ohne am Dateinamen zu raten. */
+            'rolle' => $istPaket ? 'paket' : ($rolle === 'logo' ? 'logo' : 'material'),
         ]);
     }
 

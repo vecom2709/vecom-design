@@ -121,7 +121,8 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $eine = ['name' => $dn, 'type' => $_FILES['dateien']['type'][$i] ?? '', 'tmp_name' => $_FILES['dateien']['tmp_name'][$i] ?? '',
                      'error' => $_FILES['dateien']['error'][$i] ?? UPLOAD_ERR_NO_FILE, 'size' => $_FILES['dateien']['size'][$i] ?? 0];
             try {
-                Ablage::annehmen($eine, $f['project_id'] !== null ? (int) $f['project_id'] : null, (int) $f['customer_id'], 'kunde');
+                Ablage::annehmen($eine, $f['project_id'] !== null ? (int) $f['project_id'] : null, (int) $f['customer_id'], 'kunde',
+                    ($_POST['datei_rolle'] ?? '') === 'logo' ? 'logo' : 'material');
                 $angekommen++;
             } catch (Throwable $e) { $dateiFehler = $e->getMessage(); }
         }
@@ -669,6 +670,7 @@ $gruppenWort = [
               <p class="beiseite" style="margin:10px 0 6px"><?= $h($S('hochladenHier')) ?>
                 <?php if ($dateienDa > 0): ?> · <b><?= $h(strtr($S('hochgeladen'), ['{n}' => (string) $dateienDa])) ?></b><?php endif; ?></p>
               <input type="file" name="dateien[]" multiple accept="image/*,.pdf,.doc,.docx,.txt,.svg,.ai,.eps,.zip">
+              <?php if ($feldName === 'logo'): ?><input type="hidden" name="datei_rolle" value="logo"><?php endif; ?>
             </div>
           <?php endif; ?>
 

@@ -96,6 +96,15 @@ if ($kunde && isset($_GET['datei'])) {
     Ablage::ausliefern($d);
 }
 
+/* C4: das Logo fuer die Skizze -- nie das Original, sondern das von GD neu
+   gerechnete Bild (Ablage::vorschauAusliefern), und nur ein eigenes Logo. */
+if ($kunde && isset($_GET['logobild'])) {
+    $d = sicherLesen(fn() => Db::one("SELECT * FROM files WHERE id = ? AND customer_id = ? AND rolle = 'logo'",
+        [(int) $_GET['logobild'], (int) $kunde['id']]), null);
+    if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
+    Ablage::vorschauAusliefern($d, Ablage::VORSCHAU_KLEIN);
+}
+
 if ($kunde && isset($_GET['beleg'])) {
     require_once __DIR__ . '/app/src/Rechnung.php';
     $r = sicherLesen(fn() => Db::one(
@@ -392,6 +401,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
+<link rel="stylesheet" href="/assets/css/vorschau.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/vorschau.css') ?>">
 <style>
   /* Die Fortschrittsleiste: waagerecht, damit sie auf dem Handy nicht
      die halbe Seite frisst. Sieben Punkte, der aktuelle traegt die Farbe. */
@@ -887,6 +897,63 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </details>
   <?php endif; ?>
 
+  <?php /* ---------- C4: Heute und wie es werden koennte ----------
+           Solange es noch keinen Entwurf gibt: die 30-Sekunden-Skizze der
+           Startseite, aber mit SEINEN Angaben aus dem Fragebogen und seinem
+           Logo -- und daneben, was an seiner jetzigen Seite gemessen wurde
+           (Vorwissen/Seitenblick). Nur Gemessenes, kein Geschmacksurteil;
+           und die Skizze sagt, was sie ist. Fuer Branchen ohne passendes
+           Bild bleibt der Kasten weg, statt ein falsches zu zeigen. */ ?>
+  <?php
+    $skizze = null;
+    if ($seite['vorschau'] === '' && $seite['live'] === '') {
+        $skizze = sicherLesen(function () use ($kunde, $sprache) {
+            $q = Db::one('SELECT data, seite_befunde, seite_gelesen_am, seite_adresse FROM questionnaires
+                           WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [(int) $kunde['id']]);
+            if (!$q) { return null; }
+            $d = json_decode((string) ($q['data'] ?? ''), true) ?: [];
+            $zu = ['gastronomie' => 'restaurant', 'beherbergung' => 'beherbergung', 'schoenheit' => 'friseur',
+                   'wein' => 'weingut', 'laden' => 'mode', 'immobilien' => 'immobilien', 'transport' => 'spedition'];
+            $branche = $zu[(string) ($d['branche'] ?? '')] ?? null;
+            $name = trim((string) ($d['firmenname'] ?? '')) ?: trim((string) ($kunde['company'] ?? ''));
+            if ($branche === null || $name === '') { return null; }
+            $logo = Db::one("SELECT * FROM files WHERE customer_id = ? AND rolle = 'logo' ORDER BY id DESC LIMIT 1",
+                            [(int) $kunde['id']]);
+            require_once __DIR__ . '/app/src/Seitenblick.php';
+            return [
+                'name' => $name, 'branche' => $branche, 'ort' => trim((string) ($d['ort'] ?? '')),
+                'logo' => ($logo && Ablage::vorschaubar($logo)) ? (int) $logo['id'] : 0,
+                'heute' => Seitenblick::inSaetzen(json_decode((string) ($q['seite_befunde'] ?? ''), true) ?: [], $sprache),
+                'adresse' => (string) ($q['seite_adresse'] ?? ''),
+                'am' => (string) ($q['seite_gelesen_am'] ?? ''),
+            ];
+        }, null);
+    }
+  ?>
+  <?php if ($skizze): ?>
+    <details class="klapp skizze" open>
+      <summary><?= $h($T('skizzeTitel')) ?></summary>
+      <?php if ($skizze['heute']): ?>
+        <p class="mini" style="margin:12px 0 6px"><?= $h(strtr($T('skizzeHeute'), ['{adresse}' => $skizze['adresse'], '{datum}' => Fmt::datum($skizze['am'])])) ?></p>
+        <ul class="skizze-heute">
+          <?php foreach (array_slice($skizze['heute'], 0, 3) as $b): ?><li><?= $h($b['satz']) ?></li><?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+      <div class="skizze-ort" data-vorschau-fest data-name="<?= $h($skizze['name']) ?>" data-branche="<?= $h($skizze['branche']) ?>"
+           data-ort="<?= $h($skizze['ort']) ?>"<?php if ($skizze['logo']): ?> data-logo="<?= $h($hier) ?>&amp;logobild=<?= (int) $skizze['logo'] ?>"<?php endif; ?>>
+        <div class="vorschau__buehne" data-vorschau-buehne aria-hidden="true" hidden>
+          <div class="vorschau__innen" data-vorschau-innen>
+            <img class="vorschau__foto" src="/assets/img/arbeiten/cavaleri/an.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+            <div class="vorschau__schirm" data-schirm="laptop"></div>
+            <div class="vorschau__schirm vorschau__schirm--telefon" data-schirm="telefon"></div>
+            <img class="vorschau__glanz" src="/assets/img/arbeiten/cavaleri/aus.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+          </div>
+        </div>
+      </div>
+      <p class="mini" style="margin-top:10px"><?= $h($T('skizzeHinweis')) ?></p>
+    </details>
+  <?php endif; ?>
+
   <?php /* ---------- Deine Website: Entwurf und, sobald da, die echte ---------- */ ?>
   <?php /* Noch nichts freigeschaltet: Der Kasten steht trotzdem da, nur grau.
            Ab der Stufe, auf der wir bauen — vorher waere er verfrueht. */ ?>
@@ -1023,6 +1090,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
          Der Aenderungsstempel sorgt dafuer, dass eine neue Fassung auch
          ankommt und nicht aus dem Speicher des Browsers kommt. */ ?>
 <script src="/assets/js/frage.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/frage.js') ?>" defer></script>
+<?php if (!empty($skizze)): ?><script type="module" src="/assets/js/vorschau.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/vorschau.js') ?>"></script><?php endif; ?>
 <?php /* Impressum, Datenschutz und AGB — auch unter den Seiten, die man nur
          mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
          Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
