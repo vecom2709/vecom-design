@@ -115,6 +115,11 @@ final class Cron
             },
             /* Phase 5: beantragte Domain-Umzuege -- zeigen die Nameserver
                schon auf All-Inkl? */
+            /* Phase 6a: alte Seiten portionsweise sichern. */
+            'altseiten'   => static function () {
+                require_once __DIR__ . '/Altseite.php';
+                return Altseite::nachholen();
+            },
             'domains'     => static function () {
                 require_once __DIR__ . '/Domainumzug.php';
                 return Domainumzug::nachsehenAlle();

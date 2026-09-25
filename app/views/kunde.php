@@ -88,6 +88,32 @@ $eing = !empty($eingebettet);
   </div>
 
   <div class="block"><h2>Dateien</h2>
+    <?php /* Phase 6a: die alte Website als Vorlage sichern -- Texte, Bilder und
+             PDFs als eine ZIP-Datei hier in der Ablage. Nur lesen, nichts aendern. */ ?>
+    <?php
+      require_once __DIR__ . '/../src/Altseite.php';
+      $altS = sicher(static fn() => Altseite::fuerKunde((int) $k['id']), null);
+      $altVorschlag = (string) sicher(static fn() => Db::wert(
+          "SELECT COALESCE((SELECT seite_adresse FROM questionnaires WHERE customer_id = ? AND seite_adresse IS NOT NULL ORDER BY id DESC LIMIT 1),
+                           (SELECT website FROM anfragen WHERE customer_id = ? AND website IS NOT NULL AND website <> '' ORDER BY id DESC LIMIT 1), '')",
+          [(int) $k['id'], (int) $k['id']], ''), '');
+    ?>
+    <?php if ($altS && in_array((string) $altS['stand'], ['offen', 'laeuft'], true)): ?>
+      <p style="color:var(--dim);font-size:13px;margin:4px 0 10px">Die alte Seite <b><?= Fmt::h((string) $altS['host']) ?></b> wird gerade gesichert
+        — <?= count(json_decode((string) $altS['seiten'], true) ?: []) ?> Seiten gelesen. Die ZIP-Datei erscheint hier, sobald alles da ist.</p>
+    <?php else: ?>
+      <?php if ($altS && (string) $altS['stand'] === 'fehler'): ?>
+        <div class="hinweis schlecht" style="margin:4px 0 8px">Die letzte Sicherung von <?= Fmt::h((string) $altS['host']) ?> ging nicht: <?= Fmt::h((string) $altS['fehler']) ?></div>
+      <?php endif; ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="altseite_sichern">
+        <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+        <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+        <input name="adresse" required value="<?= Fmt::h($altVorschlag) ?>" placeholder="alte-seite.it" style="max-width:240px" aria-label="Adresse der alten Seite">
+        <button class="knopf">Alte Seite als Vorlage sichern</button>
+        <span style="color:var(--leise);font-size:12.5px">Texte, Bilder, PDFs → eine ZIP-Datei. Die alte Seite bleibt, wie sie ist.</span>
+      </form>
+    <?php endif; ?>
     <?php if (!$dateien): ?><div class="leer">Noch nichts.</div><?php else: ?>
       <?php foreach ($dateien as $d): ?>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">

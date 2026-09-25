@@ -883,6 +883,14 @@ if ($post) {
                 else { $_SESSION['fehler'] = 'Nicht angelegt: ' . $he['text']; }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'altseite_sichern':
+                /* Phase 6a: nur lesen, was oeffentlich ist -- gesammelt wird im
+                   Cron, das Ergebnis liegt als ZIP in der Ablage. */
+                require_once __DIR__ . '/src/Altseite.php';
+                Altseite::anlegen((int) ($_POST['id'] ?? 0), (string) ($_POST['adresse'] ?? ''));
+                $_SESSION['gut'] = 'Die alte Seite wird gesichert. Das dauert ein paar Cronläufe; danach liegt eine ZIP-Datei in der Ablage.';
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'umzug_code_zeigen':
             case 'umzug_beantragt':
             case 'umzug_pruefen':

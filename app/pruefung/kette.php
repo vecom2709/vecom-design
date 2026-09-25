@@ -8261,6 +8261,78 @@ foreach (['it', 'de', 'en'] as $duS) {
 pruefe('Phase 5: alle Umzugstexte dreisprachig, ohne offene Platzhalter', $duT);
 
 /* ============================================================================
+   74. Alte Website als Vorlage sichern (Phase 6a) -- mit nachgebauter Seite
+   ============================================================================ */
+abschnitt('74. Alte Website als Vorlage sichern');
+require_once $wurzel . '/src/Altseite.php';
+
+$asPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+$asSeiten = [
+    'https://trattoria-alt.it/' => ['text/html', '<html><head><title>Trattoria Alt</title><meta name="description" content="Cucina di casa"></head><body>
+        <nav><ul><li><a href="/">Home</a></li><li><a href="/chi-siamo">Chi siamo</a></li></ul></nav>
+        <h1>Benvenuti</h1><p>Dal 1962 cuciniamo con amore.</p><p>Dal 1962 cuciniamo con amore.</p>
+        <img src="/img/sala.png" alt="La sala"><img src="https://fremd-cdn.example/werbung.png">
+        <img srcset="/img/klein.png 400w, /img/gross.png 1600w" src="/img/klein.png" alt="Piatto">
+        <a href="/menu.pdf">Menù</a><a href="https://facebook.com/trattoria">FB</a><a href="mailto:x@y.it">Mail</a>
+        <script>var geheim = 1;</script><footer><p>© 2019 Impressum</p></footer></body></html>'],
+    'https://trattoria-alt.it/chi-siamo' => ['text/html', '<html><head><title>Chi siamo</title></head><body><h2>La famiglia</h2>
+        <p>Nonna Rosa ha aperto la trattoria.</p><ul><li>Pasta fatta in casa ogni giorno</li></ul></body></html>'],
+    'https://trattoria-alt.it/img/sala.png'  => ['image/png', $asPng],
+    'https://trattoria-alt.it/img/gross.png' => ['image/png', $asPng],
+    'https://trattoria-alt.it/menu.pdf'      => ['application/pdf', "%PDF-1.4\n% Menue\n"],
+];
+$asGeholt = [];
+$asHolen = static function (string $url) use ($asSeiten, &$asGeholt): array {
+    $asGeholt[] = $url;
+    return isset($asSeiten[$url]) ? ['ok' => true, 'typ' => $asSeiten[$url][0], 'inhalt' => $asSeiten[$url][1]] : ['ok' => false, 'typ' => '', 'inhalt' => ''];
+};
+
+$asL = Altseite::seiteLesen($asSeiten['https://trattoria-alt.it/'][1], 'https://trattoria-alt.it/');
+pruefe('Phase 6a: der Text kommt in Reihenfolge, ohne Navigation, Fuß, Skript und doppelte Absätze',
+    array_column($asL['bloecke'], 1) === ['Benvenuti', 'Dal 1962 cuciniamo con amore.']);
+pruefe('Phase 6a: aus dem srcset wird die größte Fassung genommen, PDFs werden als Dokument erkannt',
+    in_array(['https://trattoria-alt.it/img/gross.png', 'Piatto'], $asL['bilder'], true)
+    && $asL['dokumente'] === ['https://trattoria-alt.it/menu.pdf']);
+pruefe('Phase 6a: nur Adressen derselben Seite gehören dazu',
+    Altseite::eigen('https://www.trattoria-alt.it/x', 'trattoria-alt.it') && !Altseite::eigen('https://fremd-cdn.example/a.png', 'trattoria-alt.it')
+    && !Altseite::eigen('https://trattoria-alt.it.boese.example/', 'trattoria-alt.it'));
+
+$asK = Events::kundeFinden(['name' => 'Alt Probe', 'email' => 'alt@trattoria-alt.it']);
+$asFehler = '';
+try { Altseite::anlegen($asK, 'http://127.0.0.1/admin'); } catch (Throwable $e) { $asFehler = $e->getMessage(); }
+pruefe('Phase 6a: eine IP-Adresse ist keine alte Website', $asFehler !== '');
+$asId = Altseite::anlegen($asK, 'www.trattoria-alt.it');
+pruefe('Phase 6a: ein zweites Anlegen während der Sicherung ist dieselbe', Altseite::anlegen($asK, 'trattoria-alt.it') === $asId);
+$asStand = '';
+for ($i = 0; $i < 10 && $asStand !== 'fertig'; $i++) { $asStand = Altseite::weiter($asId, $asHolen); }
+$asA = Db::one('SELECT * FROM altseiten WHERE id = ?', [$asId]);
+$asF = $asA['datei_id'] ? Db::one('SELECT * FROM files WHERE id = ?', [(int) $asA['datei_id']]) : null;
+pruefe('Phase 6a: am Ende liegt eine ZIP-Datei beim Kunden in der Ablage',
+    $asStand === 'fertig' && $asF && (string) $asF['mime'] === 'application/zip' && (int) $asF['customer_id'] === $asK
+    && str_starts_with((string) $asF['orig_name'], 'alte-seite-trattoria-alt.it'));
+$asZip = new ZipArchive();
+$asZipOk = $asF && $asZip->open(Ablage::ordner() . '/' . $asF['stored_name']) === true;
+$asNamen = [];
+if ($asZipOk) { for ($i = 0; $i < $asZip->numFiles; $i++) { $asNamen[] = $asZip->getNameIndex($i); } }
+$asText = $asZipOk ? (string) $asZip->getFromName('texte.html') : '';
+pruefe('Phase 6a: in der ZIP stehen die Texte beider Seiten, die Bilder und das PDF',
+    str_contains($asText, 'Dal 1962 cuciniamo') && str_contains($asText, 'Nonna Rosa') && str_contains($asText, 'Pasta fatta in casa')
+    && count(preg_grep('~^bilder/.*\.png$~', $asNamen)) === 2 && count(preg_grep('~^dokumente/.*\.pdf$~', $asNamen)) === 1);
+pruefe('Phase 6a: Fremdes wird nie geholt (fremdes Bild, Facebook, Mail)',
+    !preg_grep('~fremd-cdn|facebook|mailto~', $asGeholt));
+pruefe('Phase 6a: der Arbeitsordner ist danach weg, und Uwe erfährt es',
+    !is_dir(Ablage::ordner() . '/altseite-' . $asId)
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'altseite_fertig'", [], 0) >= 1);
+if ($asZipOk) { $asZip->close(); }
+
+$asK2 = Events::kundeFinden(['name' => 'Alt Leer', 'email' => 'leer@pruefung.example']);
+$asId2 = Altseite::anlegen($asK2, 'gibt-es-nicht-probe.it');
+$asStand2 = '';
+for ($i = 0; $i < 3 && !in_array($asStand2, ['fertig', 'fehler'], true); $i++) { $asStand2 = Altseite::weiter($asId2, $asHolen); }
+pruefe('Phase 6a: ist die Seite nicht erreichbar, steht ein Fehler da statt einer leeren ZIP',
+    $asStand2 === 'fehler' && (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ?', [$asK2], 0) === 0);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

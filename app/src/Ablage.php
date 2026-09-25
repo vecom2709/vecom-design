@@ -85,6 +85,39 @@ final class Ablage
      * was der Browser behauptet. SVG fehlt mit Absicht: Es kann Skripte
      * enthalten und ist als Bildformat hier nicht noetig.
      */
+    /**
+     * Eine Datei ablegen, die der Server selbst erzeugt hat (Phase 6a: die
+     * gesicherte alte Website als ZIP). Dieselbe Typpruefung aus dem Inhalt
+     * wie beim Hochladen -- aber ohne die Stueckgrenze des Kunden und mit
+     * eigener Groessengrenze: Es ist unser Material, nicht seins.
+     */
+    public static function ausDatei(string $pfad, string $name, ?int $projektId, int $kundeId,
+                                    string $wer = 'werkstatt', int $hoechstens = 200 * 1024 * 1024): int
+    {
+        if (!is_file($pfad)) { throw new RuntimeException('Die Datei gibt es nicht.'); }
+        $groesse = (int) filesize($pfad);
+        if ($groesse <= 0 || $groesse > $hoechstens) {
+            throw new RuntimeException('Die Datei ist leer oder größer als ' . Fmt::bytes($hoechstens) . '.');
+        }
+        $typ = (string) (new finfo(FILEINFO_MIME_TYPE))->file($pfad);
+        if (!isset(self::ERLAUBT[$typ])) {
+            throw new RuntimeException('Dieses Dateiformat nehmen wir nicht an (' . $typ . ').');
+        }
+        $abgelegt = bin2hex(random_bytes(16)) . '.bin';
+        $ziel = self::ordner() . '/' . $abgelegt;
+        if (!@rename($pfad, $ziel) && !@copy($pfad, $ziel)) {
+            throw new RuntimeException('Die Datei ließ sich nicht ablegen.');
+        }
+        @chmod($ziel, 0644);
+        return Db::insert('files', [
+            'customer_id' => $kundeId, 'project_id' => $projektId,
+            'stored_name' => $abgelegt, 'orig_name' => self::namenSaeubern($name),
+            'mime' => $typ, 'size_bytes' => $groesse,
+            'uploaded_by' => in_array($wer, ['admin', 'werkstatt'], true) ? $wer : 'werkstatt',
+            'rolle' => 'material',
+        ]);
+    }
+
     private const ERLAUBT = [
         'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp',
         'image/gif'  => 'gif', 'image/heic' => 'heic', 'image/avif' => 'avif',
