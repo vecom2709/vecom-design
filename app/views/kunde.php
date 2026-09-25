@@ -354,8 +354,8 @@ $eing = !empty($eingebettet);
   ?>
   <div class="block"><h2>Domain &amp; Hosting
     <?php if ($hostingA): ?>
-      <span class="mehr"><span class="marke2 <?= ['zugestimmt'=>'gut','angelegt'=>'gut','aktiv'=>'gut'][$hostingA['status']] ?? '' ?>">
-        <?= Fmt::h(['vorgeschlagen'=>'vorgeschlagen','zugestimmt'=>'zugestimmt','angelegt'=>'angelegt','aktiv'=>'läuft'][$hostingA['status']] ?? (string) $hostingA['status']) ?></span></span>
+      <span class="mehr"><span class="marke2 <?= ['zugestimmt'=>'gut','angelegt'=>'gut','aktiv'=>'gut','in_arbeit'=>'warn'][$hostingA['status']] ?? '' ?>">
+        <?= Fmt::h(['vorgeschlagen'=>'vorgeschlagen','zugestimmt'=>'zugestimmt','in_arbeit'=>'wird eingerichtet','angelegt'=>'angelegt','aktiv'=>'läuft'][$hostingA['status']] ?? (string) $hostingA['status']) ?></span></span>
     <?php endif; ?></h2>
 
     <?php if ($hostingA): ?>
@@ -396,11 +396,37 @@ $eing = !empty($eingebettet);
           <?= $hostingA['project_id'] === null
               ? 'Zugestimmt. Angelegt wird von selbst, sobald die erste Monatsrate bezahlt ist.'
               : 'Zugestimmt. Bei der finalen Freigabe geht die erste Monatsrate raus; angelegt wird von selbst, sobald sie bezahlt ist (steckt das Hosting in Betreuung Plus/Premium, gleich bei der Freigabe).' ?>
+        <?php elseif ((string) $hostingA['status'] === 'in_arbeit'): ?>
+          Wird eingerichtet. Gescheiterte Schritte versucht der Cron nach <?= (int) Hosting::PAUSE_MINUTEN ?> Minuten noch einmal, höchstens <?= (int) Hosting::VERSUCHE ?>-mal.
+          Die Zugangsdaten gibt es für den Kunden erst, wenn alles Automatische durch ist.
         <?php else: ?>
           Angelegt<?= $hostingA['angelegt_am'] ? ' am ' . Fmt::h(Fmt::datum((string) $hostingA['angelegt_am'])) : '' ?>.
           <?= $hostingA['zugang_blob'] !== null ? 'Die Zugangsdaten warten auf den einmaligen Abruf durch den Kunden.'
               : 'Die Zugangsdaten sind abgerufen oder abgelaufen.' ?>
         <?php endif; ?></p>
+      <?php /* Phase 3: jeder Schritt einzeln -- was geklappt hat, was wartet, was Handarbeit ist. */ ?>
+      <?php $hSchritte = sicher(static fn() => Hosting::schritte((int) $hostingA['id']), []); ?>
+      <?php if ($hSchritte): ?>
+        <?php $hZeichen = ['fertig' => '✓', 'entfaellt' => '–', 'offen' => '·', 'laeuft' => '…', 'fehler' => '↻', 'hand' => '✋']; ?>
+        <div class="tabelle" style="margin-top:10px"><table class="schlicht"><tbody>
+          <?php foreach (Hosting::SCHRITTE as $hS => $hName): if (!isset($hSchritte[$hS])) { continue; } $hZ = $hSchritte[$hS]; ?>
+            <tr><td style="width:38%"><?= Fmt::h($hZeichen[(string) $hZ['status']] ?? '?') ?> <?= Fmt::h($hName) ?></td>
+              <td><?= Fmt::h(['fertig' => 'erledigt', 'entfaellt' => 'entfällt', 'offen' => 'offen', 'laeuft' => 'läuft',
+                              'fehler' => 'wird wiederholt', 'hand' => 'von Hand'][(string) $hZ['status']] ?? (string) $hZ['status']) ?>
+                <?php if ((int) $hZ['versuche'] > 1): ?><small style="color:var(--leise)"> · <?= (int) $hZ['versuche'] ?> Versuche</small><?php endif; ?>
+                <?php if ((string) ($hZ['text'] ?? '') !== ''): ?><br><small style="color:var(--dim)"><?= Fmt::h((string) $hZ['text']) ?></small><?php endif; ?></td></tr>
+          <?php endforeach; ?>
+        </tbody></table></div>
+        <?php $hOffen = array_filter($hSchritte, static fn($z) => in_array((string) $z['status'], ['fehler', 'hand'], true)); ?>
+        <?php if ($hOffen): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_weiter">
+            <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+            <input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
+            <button class="knopf">Offene Schritte wiederholen</button>
+          </form>
+        <?php endif; ?>
+      <?php endif; ?>
       <?php $uebrig = array_values(array_filter($hostingWuensche,
           static fn(string $w): bool => strtolower($w) !== strtolower((string) $hostingA['domain']))); ?>
       <?php if ($uebrig): ?>

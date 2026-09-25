@@ -467,154 +467,363 @@ final class Hosting
         });
     }
 
+    /* ==================================================================== */
+    /*  Einrichten in Schritten (Phase 3, 25.09.2026)                       */
+    /* ==================================================================== */
+
+    /** Die Schritte in ihrer Reihenfolge -- und wie sie in der Verwaltung heissen. */
+    public const SCHRITTE = [
+        'account'  => 'KAS-Account',
+        'domain'   => 'Domain im KAS',
+        'postfach' => 'Postfach',
+        'vertrag'  => 'Monatsvertrag',
+        'kunde'    => 'Mail an den Kunden',
+        'aufgabe'  => 'Aufgabe für Uwe',
+    ];
+
+    /** So oft versucht der Cron einen gescheiterten Schritt, dann ist er Handarbeit. */
+    public const VERSUCHE = 3;
+
+    /** Erst nach dieser Pause versucht es der Cron noch einmal (die KAS-API bremst gern). */
+    public const PAUSE_MINUTEN = 20;
+
     /**
-     * Account, Domain und Postfach anlegen — jeder Schritt einzeln.
+     * Einrichten anstossen.
      *
-     * Was klappt, klappt; was scheitert, steht woertlich in der Aufgabe.
-     * Ein halber Erfolg mit ehrlicher Restliste ist mehr wert als ein
-     * Alles-oder-nichts, das beim ersten Schluckauf gar nichts anlegt.
+     * WARUM ERST "BEANSPRUCHEN"
      *
+     * Bis zum 25.09.2026 stand der Auftrag nach einem Abbruch mitten im
+     * Anlegen weiter auf "zugestimmt" -- und die naechste bezahlte Rate legte
+     * einen zweiten KAS-Account an. Jetzt wechselt er als Erstes, in einem
+     * Befehl, auf "in_arbeit". Wer den Wechsel nicht selbst vollzieht, legt
+     * nichts an: kein zweiter Account, auch wenn Webhook, Abgleich und Knopf
+     * gleichzeitig kommen.
+     *
+     * @param object|null $kas austauschbar fuer die Pruefkette (accountAnlegen, domainAnlegen, postfachAnlegen, passwortNeu)
      * @return array{ok:bool,text:string}
      */
-    public static function anlegen(int $auftragId): array
+    public static function anlegen(int $auftragId, ?object $kas = null): array
     {
         $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
         if (!$a) { return ['ok' => false, 'text' => 'Auftrag nicht gefunden.']; }
+        if ((string) $a['status'] === 'in_arbeit') { return self::weiter($auftragId, $kas); }
         if ((string) $a['status'] !== 'zugestimmt') {
             return ['ok' => false, 'text' => 'Nur ein zugestimmter Auftrag wird angelegt (Stand: ' . $a['status'] . ').'];
         }
+        $meins = Db::run("UPDATE hosting_auftraege SET status = 'in_arbeit' WHERE id = ? AND status = 'zugestimmt'",
+                         [$auftragId])->rowCount();
+        if ($meins === 0) { return ['ok' => false, 'text' => 'Wird schon eingerichtet.']; }
 
+        $mitPostfach = (string) ($a['mail'] ?? 'vecom') === 'vecom';
+        foreach (array_keys(self::SCHRITTE) as $s) {
+            Db::run('INSERT IGNORE INTO hosting_schritte (auftrag_id, schritt, status, text) VALUES (?, ?, ?, ?)', [
+                $auftragId, $s,
+                ($s === 'postfach' && !$mitPostfach) ? 'entfaellt' : 'offen',
+                /* Ein Postfach nur bei E-Mail ueber Vecom: Bleibt sie bei
+                   Microsoft 365 oder beim alten Anbieter, koennte ein Postfach
+                   hier Mails wegfangen, sobald jemand die MX-Eintraege umstellt. */
+                ($s === 'postfach' && !$mitPostfach) ? 'Der Kunde behält seine E-Mail, wo sie ist.' : null]);
+        }
+        return self::weiter($auftragId, $kas);
+    }
+
+    /** Die Schritte eines Auftrags, nach Namen. */
+    public static function schritte(int $auftragId): array
+    {
+        $aus = [];
+        foreach (Db::all('SELECT * FROM hosting_schritte WHERE auftrag_id = ?', [$auftragId]) as $z) {
+            $aus[(string) $z['schritt']] = $z;
+        }
+        return $aus;
+    }
+
+    private static function schritt(int $auftragId, string $s, string $status, ?string $text = null, bool $versuch = false): void
+    {
+        Db::run('UPDATE hosting_schritte SET status = ?, text = ?' . ($versuch ? ', versuche = versuche + 1' : '')
+              . ' WHERE auftrag_id = ? AND schritt = ?',
+            [$status, $text !== null ? mb_substr($text, 0, 500) : null, $auftragId, $s]);
+    }
+
+    /** Ist ein Schritt durch -- so oder so? */
+    private static function erledigt(array $z): bool
+    {
+        return in_array((string) $z['status'], ['fertig', 'hand', 'entfaellt'], true);
+    }
+
+    /** Darf der Schritt (noch einmal) laufen? */
+    private static function dran(array $z): bool
+    {
+        return (string) $z['status'] === 'offen'
+            || ((string) $z['status'] === 'fehler' && (int) $z['versuche'] < self::VERSUCHE);
+    }
+
+    private static function kas(?object $k): object
+    {
+        return $k ?? new class {
+            public function accountAnlegen(string $kommentar, array $grenzen = []): array { return Kas::accountAnlegen($kommentar, $grenzen); }
+            public function domainAnlegen(string $d, ?array $als = null): array { return Kas::domainAnlegen($d, $als); }
+            public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array { return Kas::postfachAnlegen($l, $d, $pw, $als); }
+            public function passwortNeu(): string { return Kas::passwortNeu(); }
+        };
+    }
+
+    /**
+     * Die Schritte abarbeiten, die dran sind. Laeuft beim ersten Mal, im
+     * Cron (fortsetzen) und auf Uwes Knopf -- jedes Mal nur, was noch fehlt.
+     *
+     * @return array{ok:bool,text:string}
+     */
+    public static function weiter(int $auftragId, ?object $kas = null): array
+    {
+        $kas = self::kas($kas);
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        if (!$a || (string) $a['status'] !== 'in_arbeit') { return ['ok' => false, 'text' => 'Nichts in Arbeit.']; }
         $kundeId = (int) $a['customer_id'];
         $domain  = (string) $a['domain'];
         $k = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
         $wer = $k ? (string) ($k['company'] ?: $k['name']) : ('Kunde ' . $kundeId);
+        $st = self::schritte($auftragId);
+        /* Beansprucht, aber die Schritte stehen noch nicht: Ein anderer Aufruf
+           ist genau jetzt dabei. Nicht dazwischenfunken. */
+        if (count($st) < count(self::SCHRITTE)) { return ['ok' => false, 'text' => 'Wird gerade eingerichtet.']; }
 
-        $schritte = [];
-
-        /* 1. Der Account. Ohne ihn geht nichts weiter. */
-        $acc = Kas::accountAnlegen($wer . ' — ' . $domain, ['max_webspace' => self::SPEICHER_MB]);
-        if (!$acc['ok']) {
-            Events::melden('hosting_fehler', 'KAS-Account konnte nicht angelegt werden', 'schlecht',
-                $wer . ' / ' . $domain . ' — ' . $acc['text'] . ' Im KAS von Hand anlegen.',
-                '/kunden/' . $kundeId);
-            return ['ok' => false, 'text' => $acc['text']];
-        }
-        $schritte[] = 'Account ' . ($acc['login'] !== '' ? $acc['login'] : '(Login siehe Accountliste)');
-
-        /* 2. Domain und Postfach — im Unter-Account, mit dessen frischem
-           Passwort. Nur jetzt kennen wir es. */
-        $als = $acc['login'] !== '' ? ['login' => $acc['login'], 'passwort' => $acc['kas_passwort']] : null;
-        $offen = [];
-        if ($als !== null) {
-            $d = Kas::domainAnlegen($domain, $als);
-            $d['ok'] ? $schritte[] = 'Domain im KAS' : $offen[] = 'Domain im KAS anlegen (' . $d['text'] . ')';
-        } else {
-            $offen[] = 'Domain im KAS anlegen (Login war aus der Antwort nicht zu lesen)';
-        }
-
-        /* Ein Postfach nur, wenn der Kunde E-Mail ueber Vecom gewaehlt hat
-           (25.09.2026). Bleibt seine E-Mail bei Microsoft 365 oder beim alten
-           Anbieter, waere ein Postfach hier nicht nur ueberfluessig -- es
-           koennte ihm Mails wegfangen, sobald jemand die MX-Eintraege umstellt. */
-        $mitPostfach = (string) ($a['mail'] ?? 'vecom') === 'vecom';
-        $mailPw = $mitPostfach ? Kas::passwortNeu() : '';
-        if ($als !== null && $mitPostfach) {
-            /* kontakt@ statt info@ (Uwe, 25.09.2026): dieselbe Adresse, die
-               Vecom selbst benutzt -- kontakt@vecom-design.it. */
-            $m = Kas::postfachAnlegen(self::POSTFACH, $domain, $mailPw, $als);
-            $m['ok'] ? $schritte[] = 'Postfach ' . self::POSTFACH . '@' . $domain
-                     : $offen[] = 'Postfach ' . self::POSTFACH . '@ anlegen (' . $m['text'] . ')';
-        }
-
-        /* 3. Zugangsdaten verschluesselt ablegen — einmaliger Abruf. */
-        $blob = self::verschluesseln([
-            'kas_login' => $acc['login'], 'kas_passwort' => $acc['kas_passwort'],
-            'ftp_passwort' => $acc['ftp_passwort'],
-            'postfach' => $mitPostfach ? self::POSTFACH . '@' . $domain : '',
-            'postfach_passwort' => $mailPw,
-            'server' => ($acc['login'] !== '' ? $acc['login'] : 'w…') . '.kasserver.com',
-        ]);
-
-        /* 4. Der Monatsvertrag — ausser er steckt in der Betreuung. */
-        $inklusive = self::inklusive($kundeId);
-        if (!$inklusive) {
-            self::still(static function () use ($kundeId, $a) {
-                require_once __DIR__ . '/Abo.php';
-                // Beim Solo-Kunden entstand der Vertrag schon mit der
-                // Zustimmung — dann steht er hier bereits und bleibt, wie
-                // er ist. Nur wenn keiner da ist, kommt jetzt einer.
-                $schon = Db::one(
-                    "SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
-                       AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
-                if ($schon) { return; }
-                Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
-                    'projekt_id' => $a['project_id'] !== null ? (int) $a['project_id'] : null,
-                    'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
-            });
-        }
-
-        Db::update('hosting_auftraege', $auftragId, [
-            'status' => 'angelegt', 'angelegt_am' => date('Y-m-d H:i:s'),
-            'kas_login' => $acc['login'] ?: null, 'inklusive' => $inklusive ? 1 : 0,
-            'zugang_blob' => $blob,
-            'zugang_bis' => date('Y-m-d H:i:s', strtotime('+' . self::ZUGANG_TAGE . ' days')),
-            'notiz' => $offen ? ('Offen: ' . implode(' · ', $offen)) : null,
-        ]);
-
-        /* 5. Der Kunde erfaehrt es — OHNE Passwoerter in der Mail. Die Mail
-           zeigt nur den Weg zur einmaligen Anzeige und sagt ihm, die
-           Passwoerter danach im KAS zu aendern. In eigenem Netz: Ein
-           stummer Mailserver macht das Angelegte nicht ungeschehen. */
-        try {
-            if ($k && trim((string) $k['email']) !== '') {
-                require_once __DIR__ . '/Mail.php';
-                require_once __DIR__ . '/Texte.php';
-                require_once __DIR__ . '/Kundenzugang.php';
-                $sprache = strtolower((string) ($k['sprache'] ?: 'it'));
-                if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
-                [$betreff, $text] = Texte::mail('hosting_fertig', $sprache, [
-                    'name'   => (string) $k['name'],
-                    'domain' => $domain,
-                    'link'   => Kundenzugang::linkFuer($kundeId),
-                    'tage'   => (string) self::ZUGANG_TAGE,
-                    'umfang' => (string) (Texte::SEITE[$mitPostfach ? 'hostingUmfangMailFertig' : 'hostingUmfangFertig'][$sprache] ?? ''),
-                ]);
-                Mail::senden('hosting_fertig', (string) $k['email'], $betreff, $text,
-                    ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
+        /* Domain und Postfach, die mitten im Aufruf abbrachen, duerfen einfach
+           noch einmal: Ein zweites Anlegen meldet "gibt es schon", und das
+           zaehlt als Erfolg (siehe unten). Beim Account gilt das nicht. */
+        foreach (['domain', 'postfach'] as $s) {
+            if ((string) ($st[$s]['status'] ?? '') === 'laeuft') {
+                self::schritt($auftragId, $s, 'fehler', 'Abgebrochen mitten im Aufruf — wird wiederholt.');
             }
-        } catch (Throwable $e) { /* die Anzeige auf der Kundenseite steht trotzdem bereit */ }
+        }
+        $st = self::schritte($auftragId);
 
-        /* 6. Die Aufgabe fuer Uwe -- je nachdem, was mit der Domain geschehen
+        /* 1. DER ACCOUNT
+           "laeuft" beim Hereinkommen heisst: Der letzte Lauf brach mitten im
+           Aufruf ab. Ob der Account entstand, weiss nur der KAS -- ein
+           zweiter Versuch koennte einen zweiten anlegen. Also Uwe. */
+        if ((string) ($st['account']['status'] ?? '') === 'laeuft') {
+            self::schritt($auftragId, 'account', 'hand',
+                'Abgebrochen mitten im Anlegen. In der KAS-Accountliste nach „' . $wer . ' — ' . $domain
+                . '“ sehen: Gibt es ihn, dort weitermachen; sonst „Offene Schritte wiederholen“.');
+            self::melden($a, $wer, 'KAS-Account: unklar, ob er entstand');
+            return ['ok' => false, 'text' => 'Account unklar — von Hand prüfen.'];
+        }
+        if (self::dran($st['account'])) {
+            self::schritt($auftragId, 'account', 'laeuft', null, true);
+            $acc = $kas->accountAnlegen($wer . ' — ' . $domain, ['max_webspace' => self::SPEICHER_MB]);
+            if (!$acc['ok']) {
+                $versuche = (int) $st['account']['versuche'] + 1;
+                self::schritt($auftragId, 'account', $versuche >= self::VERSUCHE ? 'hand' : 'fehler', (string) $acc['text']);
+                /* Schon beim ersten Mal melden: Ohne Account passiert gar nichts,
+                   und oft ist es ein Zugang, den nur Uwe richten kann. */
+                self::melden($a, $wer, 'KAS-Account konnte nicht angelegt werden: ' . $acc['text']
+                    . ($versuche >= self::VERSUCHE ? ' Jetzt von Hand.' : ' Wird in ' . self::PAUSE_MINUTEN . ' Minuten noch einmal versucht.'));
+                return ['ok' => false, 'text' => (string) $acc['text']];
+            }
+            /* Die Zugangsdaten sofort verschluesselt ablegen -- sie sind das
+               Einzige, womit Domain und Postfach spaeter noch nachgeholt
+               werden koennen (gespeichert wird das Passwort nirgends sonst). */
+            $mitPostfach = (string) ($st['postfach']['status'] ?? '') !== 'entfaellt';
+            $blob = self::verschluesseln([
+                'kas_login' => $acc['login'], 'kas_passwort' => $acc['kas_passwort'],
+                'ftp_passwort' => $acc['ftp_passwort'],
+                'postfach' => $mitPostfach ? self::POSTFACH . '@' . $domain : '',
+                'postfach_passwort' => $mitPostfach ? $kas->passwortNeu() : '',
+                'server' => ($acc['login'] !== '' ? $acc['login'] : 'w…') . '.kasserver.com',
+            ]);
+            Db::update('hosting_auftraege', $auftragId, [
+                'kas_login' => $acc['login'] ?: null, 'zugang_blob' => $blob,
+                'zugang_bis' => date('Y-m-d H:i:s', strtotime('+' . self::ZUGANG_TAGE . ' days')),
+            ]);
+            self::schritt($auftragId, 'account', 'fertig', $acc['login'] !== '' ? 'Account ' . $acc['login'] : 'Angelegt — Login siehe Accountliste');
+            $st = self::schritte($auftragId);
+            $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        }
+        if ((string) $st['account']['status'] !== 'fertig') {
+            return ['ok' => false, 'text' => 'Der Account steht noch nicht.'];
+        }
+
+        /* 2. DOMAIN UND POSTFACH -- im Unter-Account, mit dessen Passwort aus
+           der verschluesselten Ablage. Ist die weg (abgerufen, abgelaufen)
+           oder fehlt der Login, geht es nur noch von Hand. */
+        $z = $a['zugang_blob'] !== null ? self::entschluesseln((string) $a['zugang_blob']) : null;
+        $als = ($z !== null && (string) ($z['kas_login'] ?? '') !== '')
+            ? ['login' => (string) $z['kas_login'], 'passwort' => (string) $z['kas_passwort']] : null;
+
+        foreach (['domain', 'postfach'] as $s) {
+            if (!self::dran($st[$s])) { continue; }
+            if ($als === null) {
+                self::schritt($auftragId, $s, 'hand', 'Ohne Login des Unter-Accounts nicht automatisch — im KAS anlegen.');
+                continue;
+            }
+            self::schritt($auftragId, $s, 'laeuft', null, true);
+            $r = $s === 'domain'
+                ? $kas->domainAnlegen($domain, $als)
+                : $kas->postfachAnlegen(self::POSTFACH, $domain, (string) ($z['postfach_passwort'] ?? ''), $als);
+            /* Kam die erste Antwort nie an, meldet der zweite Versuch "gibt
+               es schon" -- das ist dann ein Erfolg, kein Fehler. */
+            $schonDa = !$r['ok'] && preg_match('~already.?exist|exists|schon vorhanden~i', (string) $r['text']);
+            if ($r['ok'] || $schonDa) {
+                self::schritt($auftragId, $s, 'fertig', $schonDa ? 'War schon da.'
+                    : ($s === 'domain' ? 'Domain im KAS' : 'Postfach ' . self::POSTFACH . '@' . $domain));
+            } else {
+                $versuche = (int) $st[$s]['versuche'] + 1;
+                self::schritt($auftragId, $s, $versuche >= self::VERSUCHE ? 'hand' : 'fehler', (string) $r['text']);
+            }
+        }
+        $st = self::schritte($auftragId);
+        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach'])) {
+            return ['ok' => false, 'text' => 'Domain oder Postfach wird noch einmal versucht.'];
+        }
+
+        /* 3. DER MONATSVERTRAG -- ausser er steckt in der Betreuung. Beim
+           Solo-Kunden entstand er schon mit der Zustimmung; dann bleibt er. */
+        $inklusive = self::inklusive($kundeId);
+        if (self::dran($st['vertrag'])) {
+            if (!$inklusive) {
+                require_once __DIR__ . '/Abo.php';
+                $schon = Db::one("SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'
+                                    AND status IN ('angelegt','aktiv','gekuendigt')", [$kundeId]);
+                if (!$schon) {
+                    try {
+                        Abo::anlegen($kundeId, ['paket_slug' => 'hosting',
+                            'projekt_id' => $a['project_id'] !== null ? (int) $a['project_id'] : null,
+                            'zahlart' => 'manuell', 'betrag_cents' => (int) $a['preis_cents']]);
+                    } catch (Throwable $e) {
+                        self::schritt($auftragId, 'vertrag', 'hand', 'Vertrag nicht angelegt: ' . $e->getMessage());
+                    }
+                }
+            }
+            $st = self::schritte($auftragId);
+            if ((string) $st['vertrag']['status'] !== 'hand') {
+                self::schritt($auftragId, 'vertrag', 'fertig', $inklusive ? 'In der Betreuung enthalten.'
+                    : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' €');
+            }
+        }
+
+        /* Ab hier ist das Automatische durch: Der Auftrag gilt als angelegt,
+           und erst jetzt darf der Kunde die Zugangsdaten abrufen (mit dem
+           Abruf verschwinden sie -- vorher wuerden sie fuer Wiederholungen
+           noch gebraucht). */
+        $st = self::schritte($auftragId);
+        $hand = [];
+        foreach ($st as $s => $zeile) {
+            if ((string) $zeile['status'] === 'hand') { $hand[] = (self::SCHRITTE[$s] ?? $s) . ': ' . $zeile['text']; }
+        }
+        Db::update('hosting_auftraege', $auftragId, [
+            'status' => 'angelegt', 'angelegt_am' => date('Y-m-d H:i:s'), 'inklusive' => $inklusive ? 1 : 0,
+            'notiz' => $hand ? ('Von Hand: ' . implode(' · ', $hand)) : null,
+        ]);
+
+        /* 4. Der Kunde erfaehrt es -- OHNE Passwoerter in der Mail. Die Mail
+           zeigt nur den Weg zur einmaligen Anzeige. */
+        $mitPostfach = (string) $st['postfach']['status'] === 'fertig';
+        if (self::dran($st['kunde'])) {
+            $gesendet = false;
+            try {
+                if ($k && trim((string) $k['email']) !== '') {
+                    require_once __DIR__ . '/Mail.php';
+                    require_once __DIR__ . '/Texte.php';
+                    require_once __DIR__ . '/Kundenzugang.php';
+                    $sprache = strtolower((string) ($k['sprache'] ?: 'it'));
+                    if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+                    [$betreff, $text] = Texte::mail('hosting_fertig', $sprache, [
+                        'name'   => (string) $k['name'],
+                        'domain' => $domain,
+                        'link'   => Kundenzugang::linkFuer($kundeId),
+                        'tage'   => (string) self::ZUGANG_TAGE,
+                        'umfang' => (string) (Texte::SEITE[$mitPostfach ? 'hostingUmfangMailFertig' : 'hostingUmfangFertig'][$sprache] ?? ''),
+                    ]);
+                    $gesendet = Mail::senden('hosting_fertig', (string) $k['email'], $betreff, $text,
+                        ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
+                }
+            } catch (Throwable $e) { $gesendet = false; }
+            /* Eine Mail, die nicht rausging, haelt nichts auf: Die Anzeige
+               steht auf der Kundenseite bereit, und der Postausgang zeigt es. */
+            self::schritt($auftragId, 'kunde', 'fertig', $gesendet ? 'Mail ist raus.' : 'Mail nicht zugestellt — steht im Postausgang.');
+        }
+
+        /* 5. Die Aufgabe fuer Uwe -- je nachdem, was mit der Domain geschehen
            soll. Registrieren und Umziehen gehen nur im Domainbestellsystem
            (keine API bei All-Inkl), SSL per Let's Encrypt nur im KAS. Bei einer
            Domain, die beim alten Anbieter bleibt, darf NUR der Web-Eintrag
            geaendert werden: MX, SPF, DKIM, DMARC und TXT sind Sache des Kunden. */
-        $aktion = (string) ($a['domain_aktion'] ?? 'neu');
-        $schritt = [
-            'neu'      => 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
-                        . ' auf den Kunden als Inhaber bestellen — Nameserver ns5.kasserver.com. ',
-            'transfer' => 'Umzug (KK) von ' . $domain . ': Auth-Code beim Kunden anfordern (nicht per Mail im Klartext '
-                        . 'aufbewahren), VORHER die DNS-Einträge beim alten Anbieter ablesen und MX, SPF, DKIM, DMARC '
-                        . 'und TXT im KAS-DNS eintragen, dann den KK-Antrag im Domainbestellsystem stellen. Inhaber bleibt der Kunde. ',
-            'behalten' => 'Die Domain ' . $domain . ' bleibt beim bisherigen Anbieter des Kunden: dort nur A/AAAA für '
-                        . $domain . ' und www auf den KAS-Server zeigen lassen — MX, SPF, DKIM, DMARC und TXT NICHT anfassen. ',
-            'offen'    => 'Mit dem Kunden klären, ob ' . $domain . ' beim alten Anbieter bleibt oder umzieht — '
-                        . 'ohne sein ausdrückliches Ja wird nichts übertragen. ',
-        ][$aktion] ?? '';
-        Events::melden('hosting_bestellen', ($aktion === 'neu' ? 'Domain bestellen: ' : 'Domain einrichten: ') . $domain, 'hinweis',
-            'Erledigt: ' . implode(' · ', $schritte) . '. '
-            . $schritt
-            . 'Danach im KAS den SSL-Schutz (Let\'s Encrypt, kostenlos) für die Domain aktivieren. '
-            . ($mitPostfach ? '' : 'Kein Postfach angelegt — der Kunde behält seine E-Mail, wo sie ist. ')
-            . ($offen ? 'Außerdem von Hand: ' . implode(' · ', $offen) . '. ' : '')
-            . ($inklusive ? 'Abrechnung: in der Betreuung enthalten.'
-                : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' € läuft.'),
-            '/kunden/' . $kundeId);
-        Events::protokoll('hosting_angelegt', 'Hosting angelegt: ' . $domain
-            . ($acc['login'] !== '' ? ' (' . $acc['login'] . ')' : ''), $kundeId, null,
-            $a['project_id'] !== null ? (int) $a['project_id'] : null);
+        if (self::dran($st['aufgabe'])) {
+            $aktion = (string) ($a['domain_aktion'] ?? 'neu');
+            $was = [
+                'neu'      => 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
+                            . ' auf den Kunden als Inhaber bestellen — Nameserver ns5.kasserver.com. ',
+                'transfer' => 'Umzug (KK) von ' . $domain . ': Auth-Code beim Kunden anfordern (nicht per Mail im Klartext '
+                            . 'aufbewahren), VORHER die DNS-Einträge beim alten Anbieter ablesen und MX, SPF, DKIM, DMARC '
+                            . 'und TXT im KAS-DNS eintragen, dann den KK-Antrag im Domainbestellsystem stellen. Inhaber bleibt der Kunde. ',
+                'behalten' => 'Die Domain ' . $domain . ' bleibt beim bisherigen Anbieter des Kunden: dort nur A/AAAA für '
+                            . $domain . ' und www auf den KAS-Server zeigen lassen — MX, SPF, DKIM, DMARC und TXT NICHT anfassen. ',
+                'offen'    => 'Mit dem Kunden klären, ob ' . $domain . ' beim alten Anbieter bleibt oder umzieht — '
+                            . 'ohne sein ausdrückliches Ja wird nichts übertragen. ',
+            ][$aktion] ?? '';
+            $fertig = [];
+            foreach ($st as $s => $zeile) {
+                if ((string) $zeile['status'] === 'fertig' && in_array($s, ['account', 'domain', 'postfach'], true)) {
+                    $fertig[] = (string) $zeile['text'];
+                }
+            }
+            Events::melden('hosting_bestellen', ($aktion === 'neu' ? 'Domain bestellen: ' : 'Domain einrichten: ') . $domain, 'hinweis',
+                'Erledigt: ' . implode(' · ', $fertig) . '. '
+                . $was
+                . 'Danach im KAS den SSL-Schutz (Let\'s Encrypt, kostenlos) für die Domain aktivieren. '
+                . ((string) $st['postfach']['status'] === 'entfaellt' ? 'Kein Postfach angelegt — der Kunde behält seine E-Mail, wo sie ist. ' : '')
+                . ($hand ? 'Außerdem von Hand: ' . implode(' · ', $hand) . '. ' : '')
+                . ($inklusive ? 'Abrechnung: in der Betreuung enthalten.'
+                    : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' € läuft.'),
+                '/kunden/' . $kundeId);
+            self::schritt($auftragId, 'aufgabe', 'fertig', 'Auf „Heute“.');
+            Events::protokoll('hosting_angelegt', 'Hosting angelegt: ' . $domain
+                . ((string) ($a['kas_login'] ?? '') !== '' ? ' (' . $a['kas_login'] . ')' : ''), $kundeId, null,
+                $a['project_id'] !== null ? (int) $a['project_id'] : null);
+        }
 
-        return ['ok' => true, 'text' => implode(' · ', $schritte)];
+        return ['ok' => true, 'text' => $hand ? 'Angelegt, mit Handarbeit: ' . implode(' · ', $hand) : 'Angelegt.'];
+    }
+
+    /** Eine Meldung fuer Uwe, wenn ein Schritt Handarbeit geworden ist. */
+    private static function melden(array $a, string $wer, string $was): void
+    {
+        Events::melden('hosting_fehler', 'Hosting: ' . $was, 'schlecht',
+            $wer . ' / ' . $a['domain'] . ' — ' . $was . ' Die Schritte stehen beim Kunden in der Verwaltung.',
+            '/kunden/' . (int) $a['customer_id']);
+    }
+
+    /**
+     * Der Cron: gescheiterte oder liegengebliebene Schritte nach einer Pause
+     * noch einmal. "laeuft" beim Account wird dabei zu Handarbeit (weiter()),
+     * "hand" wird nie von selbst angefasst.
+     */
+    public static function fortsetzen(?object $kas = null): int
+    {
+        $ids = array_column(Db::all(
+            "SELECT DISTINCT h.id FROM hosting_auftraege h
+               JOIN hosting_schritte s ON s.auftrag_id = h.id
+              WHERE h.status = 'in_arbeit' AND s.status IN ('fehler', 'offen', 'laeuft') AND s.versuche < ?
+                AND s.updated_at < NOW() - INTERVAL " . (int) self::PAUSE_MINUTEN . " MINUTE
+              LIMIT 5", [self::VERSUCHE]), 'id');
+        foreach ($ids as $id) { self::still(static fn() => self::weiter((int) $id, $kas)); }
+        return count($ids);
+    }
+
+    /**
+     * Uwes Knopf "Offene Schritte wiederholen": gibt gescheiterten und von
+     * Hand markierten Schritten neue Versuche -- ausser dem Account, wenn
+     * unklar ist, ob er entstand (dann hat Uwe im KAS nachgesehen und
+     * drueckt den Knopf bewusst).
+     */
+    public static function wiederholen(int $auftragId, ?object $kas = null): array
+    {
+        Db::run("UPDATE hosting_schritte SET status = 'fehler', versuche = 0
+                  WHERE auftrag_id = ? AND status IN ('fehler', 'hand')", [$auftragId]);
+        Db::run("UPDATE hosting_auftraege SET status = 'in_arbeit' WHERE id = ? AND status = 'angelegt'
+                  AND EXISTS (SELECT 1 FROM hosting_schritte s WHERE s.auftrag_id = hosting_auftraege.id AND s.status = 'fehler')",
+                [$auftragId]);
+        return self::weiter($auftragId, $kas);
     }
 
     /* ==================================================================== */
@@ -631,6 +840,10 @@ final class Hosting
         $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ? AND customer_id = ?',
             [$auftragId, $kundeId]);
         if (!$a || $a['zugang_blob'] === null) { return null; }
+        /* Erst wenn das Automatische durch ist: Mit dem Abruf verschwindet
+           der Blob -- vorher braucht die Einrichtung ihn noch fuer Domain
+           und Postfach (Phase 3). */
+        if (!in_array((string) $a['status'], ['angelegt', 'aktiv'], true)) { return null; }
         if ($a['zugang_bis'] !== null && strtotime((string) $a['zugang_bis']) < time()) {
             Db::update('hosting_auftraege', $auftragId, ['zugang_blob' => null]);
             return null;

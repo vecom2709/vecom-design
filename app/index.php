@@ -883,6 +883,15 @@ if ($post) {
                 else { $_SESSION['fehler'] = 'Nicht angelegt: ' . $he['text']; }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'hosting_weiter':
+                /* Phase 3: gescheiterte oder von Hand markierte Schritte
+                   noch einmal -- nur was fehlt, nie ein zweiter Durchlauf. */
+                require_once __DIR__ . '/src/Hosting.php';
+                $he = Hosting::wiederholen((int) ($_POST['id'] ?? 0));
+                if ($he['ok']) { $_SESSION['gut'] = $he['text']; }
+                else { $_SESSION['fehler'] = $he['text']; }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'abo_anlegen':
                 require_once __DIR__ . '/src/Abo.php';
                 $kid = (int) ($_POST['id'] ?? 0);

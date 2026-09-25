@@ -840,6 +840,13 @@ final class Texte
             'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für Sie: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit Ihren eigenen Zugangsdaten. Das kostet {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Sobald Ihre erste Monatszahlung da ist, schalten wir alles — Ihre Zugangsdaten erscheinen dann hier auf dieser Seite.',
             'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, 10 GB of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month (12-month minimum term, then cancel at month’s end). As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
         ],
+        /* Phase 3: bezahlt, und es wird gerade eingerichtet -- "wartet auf
+           die Zahlung" waere hier falsch. */
+        'hostingInArbeit' => [
+            'it' => '{domain}: il pagamento è arrivato, stiamo attivando tutto. Appena è pronto, i suoi dati di accesso compaiono qui.',
+            'de' => '{domain}: Die Zahlung ist da, wir richten gerade alles ein. Sobald es steht, erscheinen Ihre Zugangsdaten hier.',
+            'en' => '{domain}: your payment has arrived and we are setting everything up. As soon as it is ready, your access details appear here.',
+        ],
         'hostingWartetZahlung' => [
             'it' => '{domain} è riservato per Lei. Le abbiamo mandato la prima rata mensile — appena il pagamento arriva, attiviamo tutto e i dati di accesso compaiono qui.',
             'de' => '{domain} ist für Sie vorgemerkt. Die erste Monatsrate ist unterwegs zu Ihnen — sobald die Zahlung da ist, schalten wir alles, und die Zugangsdaten erscheinen hier.',

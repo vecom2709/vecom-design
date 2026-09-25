@@ -187,6 +187,10 @@ final class Ablauf
             'Es entsteht ein echter Account beim Anbieter und ein Monatsvertrag, und der Kunde bekommt '
             . 'seine Zugangsdaten.',
             'Ja, Hosting anlegen'],
+        'hosting_weiter' => [self::SCHWER,
+            'Fehlende Teile werden beim Anbieter angelegt (Domain, Postfach). Stand beim Account „unklar“, '
+            . 'kann ein zweiter entstehen — vorher in der KAS-Accountliste nachsehen.',
+            'Ja, wiederholen'],
         'kas_account_anlegen' => [self::SCHWER,
             'Beim Anbieter entsteht ein echter Unter-Account. Das kostet ab sofort.',
             'Ja, Account anlegen'],

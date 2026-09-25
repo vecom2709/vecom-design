@@ -107,6 +107,12 @@ final class Cron
             /* Phase 2: angekuendigte Raten am Tag abbuchen. Nach dem Abgleich,
                damit eine gerade eingegangene Lastschrift zaehlt, bevor
                irgendetwas neu versucht wird. */
+            /* Phase 3: Hosting-Schritte, die scheiterten oder liegenblieben,
+               nach einer Pause noch einmal -- hoechstens dreimal je Schritt. */
+            'hosting'     => static function () {
+                require_once __DIR__ . '/Hosting.php';
+                return Hosting::fortsetzen();
+            },
             'abbuchungen' => static function () {
                 require_once __DIR__ . '/Abbuchung.php';
                 return Abbuchung::faellige();

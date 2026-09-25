@@ -707,11 +707,13 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         </div>
       </div>
 
-    <?php elseif ($hs === 'zugestimmt'): ?>
+    <?php elseif ($hs === 'zugestimmt' || $hs === 'in_arbeit'): ?>
+      <?php /* in_arbeit (Phase 3): Fuer den Kunden dasselbe Warten -- die
+               Schritte sind Uwes Sache, die Zugangsdaten kommen am Ende. */ ?>
       <div class="klapp ruht">
         <div class="summe"><?= $h($HT(($hosting['domain_aktion'] ?? 'neu') === 'neu' ? 'hostingTitel' : 'hostingTitelHosting', 'Deine Wunschdomain')) ?></div>
         <p class="mini" style="margin:8px 0 0"><?= $h(strtr(
-            $HT($hosting['project_id'] === null ? 'hostingWartetZahlung' : 'hostingWartet'), [
+            $HT($hs === 'in_arbeit' ? 'hostingInArbeit' : ($hosting['project_id'] === null ? 'hostingWartetZahlung' : 'hostingWartet')), [
             '{domain}' => (string) $hosting['domain']])) ?></p>
       </div>
 

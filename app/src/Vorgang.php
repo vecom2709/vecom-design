@@ -1073,6 +1073,12 @@ final class Vorgang
                     return self::setzen($v, 'gespraech', self::KUNDE, 'Wartet auf die erste Zahlung',
                         'Zugestimmt. Sobald die erste Monatsrate bezahlt ist, wird angelegt.',
                         null, null, [], $hZiel);
+                case 'in_arbeit':
+                    /* Phase 3: Es laeuft oder wartet auf Uwe -- welcher
+                       Schritt, steht beim Kunden. */
+                    return self::setzen($v, 'gespraech', self::DU, 'Hosting wird eingerichtet',
+                        'Einzelne Schritte laufen noch oder warten auf dich — die Liste steht beim Kunden.',
+                        null, null, [], $hZiel);
                 default:   // angelegt / aktiv
                     return self::setzen($v, 'gespraech', self::KUNDE, 'Domain & Hosting läuft',
                         'Account und Domain sind angelegt.',

@@ -4026,8 +4026,13 @@ pruefe('eine zweite Freigabe schliesst keinen zweiten Vertrag',
    bleibt der Auftrag ehrlich zugestimmt, und Uwe bekommt eine Meldung
    statt eines halben Accounts. */
 Hosting::nachZahlung($hoAbo1);
-pruefe('nach der Zahlung wird angelegt (im Test: KAS fehlt, Auftrag bleibt zugestimmt)',
-    (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'zugestimmt');
+/* Seit Phase 3 (25.09.2026): Der Auftrag wird als Erstes beansprucht
+   ("in_arbeit"), der Account-Schritt steht auf "wird wiederholt" -- vorher
+   blieb er "zugestimmt", und die naechste Rate haette ihn noch einmal
+   angefangen (siehe Abschnitt 70). */
+pruefe('nach der Zahlung wird angelegt (im Test: KAS fehlt, Account-Schritt wartet auf Wiederholung)',
+    (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$hoId], '') === 'in_arbeit'
+    && (string) (Hosting::schritte($hoId)['account']['status'] ?? '') === 'fehler');
 pruefe('und es liegt eine Meldung fuer Uwe da', (int) Db::wert(
     "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) === 1);
 
@@ -4136,8 +4141,8 @@ Db::run("DELETE FROM notifications WHERE type = 'hosting_fehler'");
 Events::zahlungBestaetigen((int) $soloRate['id'], 'kettentest-solo', 'manuell');
 pruefe('die Rate steht auf bezahlt', (string) Db::wert(
     'SELECT status FROM payments WHERE id = ?', [(int) $soloRate['id']], '') === 'bezahlt');
-pruefe('ohne KAS-Zugang bleibt der Solo-Auftrag zugestimmt', (string) Db::wert(
-    'SELECT status FROM hosting_auftraege WHERE id = ?', [$soloAuftrag], '') === 'zugestimmt');
+pruefe('ohne KAS-Zugang wartet der Solo-Auftrag auf die Wiederholung', (string) Db::wert(
+    'SELECT status FROM hosting_auftraege WHERE id = ?', [$soloAuftrag], '') === 'in_arbeit');
 pruefe('und die Meldung fuer Uwe liegt da', (int) Db::wert(
     "SELECT COUNT(*) FROM notifications WHERE type = 'hosting_fehler'", [], 0) >= 1);
 
@@ -7970,6 +7975,128 @@ foreach (['it', 'de', 'en'] as $abSp) {
     if (preg_match('~\{(?!paket\}|betrag\}|tage\})[a-z]+\}~', Texte::h(Texte::KUNDE['abbuchungZustimmung'], $abSp))) { $abT = false; }
 }
 pruefe('Phase 2: Ankündigung und Zustimmung dreisprachig, ohne offene Platzhalter', $abT);
+
+/* ============================================================================
+   70. Hosting in Schritten (Phase 3) -- mit nachgebautem KAS
+   ============================================================================ */
+abschnitt('70. Hosting in Schritten');
+require_once $wurzel . '/src/Hosting.php';
+
+$hsKas = new class {
+    public array $gerufen = [];
+    public array $antwort = ['account' => true, 'domain' => true, 'postfach' => true];
+    public string $login = 'w0199999';
+    public function accountAnlegen(string $kommentar, array $g = []): array {
+        $this->gerufen[] = 'account';
+        return $this->antwort['account'] === true
+            ? ['ok' => true, 'login' => $this->login, 'kas_passwort' => 'Kas-Pw-1!', 'ftp_passwort' => 'Ftp-Pw-2!', 'text' => 'ok']
+            : ['ok' => false, 'login' => '', 'kas_passwort' => '', 'ftp_passwort' => '', 'text' => (string) $this->antwort['account']];
+    }
+    public function domainAnlegen(string $d, ?array $als = null): array {
+        $this->gerufen[] = 'domain:' . ($als['login'] ?? '-') . ':' . ($als['passwort'] ?? '-');
+        return $this->antwort['domain'] === true ? ['ok' => true, 'text' => 'ok'] : ['ok' => false, 'text' => (string) $this->antwort['domain']];
+    }
+    public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array {
+        $this->gerufen[] = 'postfach:' . $l . '@' . $d . ':' . ($pw !== '' ? 'pw' : 'ohne');
+        return $this->antwort['postfach'] === true ? ['ok' => true, 'text' => 'ok'] : ['ok' => false, 'text' => (string) $this->antwort['postfach']];
+    }
+    public function passwortNeu(): string { return 'Post-Pw-3!'; }
+};
+$hsNeu = static function (string $mail = 'vecom') use (&$hsKas): int {
+    static $n = 0; $n++;
+    $k = Events::kundeFinden(['name' => 'Schritt Probe ' . $n, 'email' => 'schritt' . $n . '@pruefung.example']);
+    return (int) Db::insert('hosting_auftraege', ['customer_id' => $k, 'domain' => 'schritt' . $n . '-probe.it',
+        'status' => 'zugestimmt', 'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => $mail]);
+};
+$hsStatus = static fn(int $id): string => (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$id], '');
+$hsS = static fn(int $id, string $s): string => (string) (Hosting::schritte($id)[$s]['status'] ?? '');
+
+/* Glatt durch */
+$hs1 = $hsNeu();
+$hsE = Hosting::anlegen($hs1, $hsKas);
+pruefe('Phase 3: alles klappt -- jeder Schritt erledigt, Auftrag angelegt',
+    $hsE['ok'] && $hsStatus($hs1) === 'angelegt'
+    && array_unique(array_column(Hosting::schritte($hs1), 'status')) === ['fertig']);
+pruefe('Phase 3: Domain und Postfach laufen im Unter-Account mit dessen Passwort aus der Ablage',
+    in_array('domain:w0199999:Kas-Pw-1!', $hsKas->gerufen, true)
+    && in_array('postfach:kontakt@schritt1-probe.it:pw', $hsKas->gerufen, true));
+$hsKas->gerufen = [];
+Hosting::anlegen($hs1, $hsKas);
+Hosting::weiter($hs1, $hsKas);
+pruefe('Phase 3: ein angelegter Auftrag legt nie einen zweiten Account an', $hsKas->gerufen === []);
+
+/* Kein Postfach bei fremder E-Mail */
+$hs2 = $hsNeu('bisher');
+$hsKas->gerufen = [];
+Hosting::anlegen($hs2, $hsKas);
+pruefe('Phase 3: behält der Kunde seine E-Mail, entfällt das Postfach -- und wird nicht angelegt',
+    $hsS($hs2, 'postfach') === 'entfaellt' && $hsStatus($hs2) === 'angelegt'
+    && !preg_grep('~^postfach~', $hsKas->gerufen));
+
+/* Domain scheitert: Wiederholung ohne zweiten Account, Zugang erst am Ende */
+$hs3 = $hsNeu();
+$hsKas->antwort['domain'] = 'flood_protection';
+$hsKas->gerufen = [];
+Hosting::anlegen($hs3, $hsKas);
+$hsKunde3 = (int) Db::wert('SELECT customer_id FROM hosting_auftraege WHERE id = ?', [$hs3], 0);
+pruefe('Phase 3: scheitert die Domain, bleibt der Auftrag in Arbeit -- Account fertig, Domain wird wiederholt',
+    $hsStatus($hs3) === 'in_arbeit' && $hsS($hs3, 'account') === 'fertig' && $hsS($hs3, 'domain') === 'fehler');
+pruefe('Phase 3: solange etwas in Arbeit ist, gibt es für den Kunden noch keine Zugangsdaten (sie werden noch gebraucht)',
+    Hosting::zugangAbrufen($hs3, $hsKunde3) === null
+    && Db::one('SELECT zugang_blob FROM hosting_auftraege WHERE id = ?', [$hs3])['zugang_blob'] !== null);
+$hsKas->antwort['domain'] = 'domain_already_exists';
+$hsKas->gerufen = [];
+Db::run("UPDATE hosting_schritte SET updated_at = NOW() - INTERVAL 30 MINUTE WHERE auftrag_id = ?", [$hs3]);
+Hosting::fortsetzen($hsKas);
+pruefe('Phase 3: der Cron holt nach -- ohne neuen Account, und „gibt es schon“ zählt als erledigt',
+    !in_array('account', $hsKas->gerufen, true) && $hsS($hs3, 'domain') === 'fertig' && $hsStatus($hs3) === 'angelegt');
+$hsZ = Hosting::zugangAbrufen($hs3, $hsKunde3);
+pruefe('Phase 3: danach einmal abrufbar, mit dem richtigen Login -- und dann weg',
+    is_array($hsZ) && ($hsZ['kas_login'] ?? '') === 'w0199999' && Hosting::zugangAbrufen($hs3, $hsKunde3) === null);
+$hsKas->antwort['domain'] = true;
+
+/* Dreimal gescheitert: Handarbeit, der Rest geht weiter */
+$hs4 = $hsNeu();
+$hsKas->antwort['postfach'] = 'quota';
+Hosting::anlegen($hs4, $hsKas);
+for ($i = 0; $i < 3; $i++) {
+    Db::run("UPDATE hosting_schritte SET updated_at = NOW() - INTERVAL 30 MINUTE WHERE auftrag_id = ?", [$hs4]);
+    Hosting::fortsetzen($hsKas);
+}
+$hsP4 = Hosting::schritte($hs4)['postfach'];
+pruefe('Phase 3: nach drei Versuchen wird es Handarbeit -- der Auftrag schließt trotzdem ab und sagt, was fehlt',
+    (string) $hsP4['status'] === 'hand' && (int) $hsP4['versuche'] === 3 && $hsStatus($hs4) === 'angelegt'
+    && str_contains((string) Db::wert('SELECT notiz FROM hosting_auftraege WHERE id = ?', [$hs4], ''), 'Postfach'));
+$hsKas->antwort['postfach'] = true;
+$hsKas->gerufen = [];
+$hsW = Hosting::wiederholen($hs4, $hsKas);
+pruefe('Phase 3: „Offene Schritte wiederholen“ holt nur das Postfach nach',
+    $hsW['ok'] && $hsS($hs4, 'postfach') === 'fertig' && !in_array('account', $hsKas->gerufen, true)
+    && count(preg_grep('~^postfach~', $hsKas->gerufen)) === 1);
+
+/* Abbruch mitten im Account: nie blind wiederholen */
+$hs5 = $hsNeu();
+Db::run("UPDATE hosting_auftraege SET status = 'in_arbeit' WHERE id = ?", [$hs5]);
+foreach (array_keys(Hosting::SCHRITTE) as $hsN) {
+    Db::run('INSERT INTO hosting_schritte (auftrag_id, schritt, status) VALUES (?, ?, ?)', [$hs5, $hsN, $hsN === 'account' ? 'laeuft' : 'offen']);
+}
+$hsKas->gerufen = [];
+Db::run("UPDATE hosting_schritte SET updated_at = NOW() - INTERVAL 30 MINUTE WHERE auftrag_id = ?", [$hs5]);
+Hosting::fortsetzen($hsKas);
+pruefe('Phase 3: brach der Lauf mitten im Account ab, wird NICHT neu angelegt -- Uwe sieht in der Accountliste nach',
+    $hsKas->gerufen === [] && $hsS($hs5, 'account') === 'hand' && $hsStatus($hs5) === 'in_arbeit');
+
+/* Gleichzeitig: nur einer legt an */
+$hs6 = $hsNeu();
+$hsKas->gerufen = [];
+Db::run("UPDATE hosting_auftraege SET status = 'in_arbeit' WHERE id = ?", [$hs6]);   // der andere war schneller
+$hsZweit = Hosting::anlegen($hs6, $hsKas);
+pruefe('Phase 3: wer den Auftrag nicht selbst beansprucht hat, legt keinen Account an',
+    !in_array('account', $hsKas->gerufen, true));
+
+pruefe('Phase 3: der Cron setzt fort, und „wiederholen“ fragt vorher (schwerer Schritt)',
+    str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Hosting::fortsetzen()')
+    && Ablauf::wiegt('hosting_weiter') === Ablauf::SCHWER);
 
 /* ============================================================================
    Aufräumen und Bilanz
