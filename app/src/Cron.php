@@ -113,6 +113,12 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::fortsetzen();
             },
+            /* Phase 5: beantragte Domain-Umzuege -- zeigen die Nameserver
+               schon auf All-Inkl? */
+            'domains'     => static function () {
+                require_once __DIR__ . '/Domainumzug.php';
+                return Domainumzug::nachsehenAlle();
+            },
             'abbuchungen' => static function () {
                 require_once __DIR__ . '/Abbuchung.php';
                 return Abbuchung::faellige();

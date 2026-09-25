@@ -324,3 +324,6 @@ tr.fragezeile .frage{margin:0 0 8px}
 .skizze-heute { margin: 0 0 4px; padding-left: 1.1em; color: var(--dim); font-size: 14px; line-height: 1.5; }
 .skizze-heute li + li { margin-top: 4px; }
 .skizze .vorschau__buehne { margin-top: 12px; border-radius: 10px; }
+
+/* Nur fuer Vorleseprogramme -- das Feld hat einen sichtbaren Platzhalter. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

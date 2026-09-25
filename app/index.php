@@ -883,6 +883,29 @@ if ($post) {
                 else { $_SESSION['fehler'] = 'Nicht angelegt: ' . $he['text']; }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'umzug_code_zeigen':
+            case 'umzug_beantragt':
+            case 'umzug_pruefen':
+                /* Phase 5: Code einmal zeigen (fuers Domainbestellsystem),
+                   Antrag vermerken (loescht den Code), neu nachsehen. */
+                require_once __DIR__ . '/src/Domainumzug.php';
+                $uid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'umzug_code_zeigen') {
+                    $code = Domainumzug::codeLesen($uid);
+                    if ($code !== null && $code !== '') { $_SESSION['umzug_code'][$uid] = $code; }
+                    else { $_SESSION['fehler'] = 'Kein Auth-Code hinterlegt.'; }
+                } elseif ($tat === 'umzug_beantragt') {
+                    if (Domainumzug::beantragt($uid)) {
+                        $_SESSION['gut'] = 'Vermerkt. Der Auth-Code ist gelöscht; der Cron sieht nach, wann die Nameserver umstehen.';
+                    } else {
+                        $_SESSION['fehler'] = 'Nicht vermerkt — ohne hinterlegten Auth-Code gibt es keinen Antrag.';
+                    }
+                } else {
+                    Domainumzug::nachsehen($uid);
+                    $_SESSION['gut'] = 'DNS und Transfersperre neu gelesen.';
+                }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'hosting_weiter':
                 /* Phase 3: gescheiterte oder von Hand markierte Schritte
                    noch einmal -- nur was fehlt, nie ein zweiter Durchlauf. */

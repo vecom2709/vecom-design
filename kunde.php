@@ -302,6 +302,14 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                             : Texte::h(Texte::SEITE['hostingDanke'] ?? [], $sprache, 'Abgemacht.'));
                 }
 
+            } elseif ($tat === 'umzug_code') {
+                /* Phase 5: Der Auth-Code kommt hierher statt in eine Mail --
+                   verschluesselt, nur fuer den eigenen Umzug. */
+                require_once __DIR__ . '/app/src/Domainumzug.php';
+                $wie = Domainumzug::codeSpeichern((int) ($_POST['umzug'] ?? 0), (int) $kunde['id'], (string) ($_POST['code'] ?? ''));
+                if ($wie === 'ok') { $meldung = $T('umzugCodeOk'); }
+                elseif ($wie === 'falsch') { $fehler[] = $T('umzugCodeFalsch'); }
+
             } elseif ($tat === 'hosting_zugang') {
                 /* Der einmalige Abruf. Danach ist der Blob geloescht — die
                    Daten stehen genau jetzt auf dieser Seite und nie wieder. */
@@ -760,6 +768,38 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <?php else: ?>
           <p class="mini" style="margin-top:10px"><?= $h(strtr($HT('hostingFertig'), [
               '{domain}' => (string) $hosting['domain']])) ?></p>
+        <?php endif; ?>
+
+        <?php /* Phase 5: der Umzug der Domain -- was der Kunde tun muss
+                 (Sperre loesen, Code eingeben) und wie weit es ist. Den
+                 Antrag stellt Uwe; hier wird nur begleitet. */ ?>
+        <?php $umzug = ($hosting['domain_aktion'] ?? '') === 'transfer'
+            ? sicherLesen(function () use ($hosting) { require_once __DIR__ . '/app/src/Domainumzug.php';
+                  return Domainumzug::fuerAuftrag((int) $hosting['id']); }, null) : null; ?>
+        <?php if ($umzug): ?>
+          <div style="margin-top:14px;padding:13px 15px;border:1px solid var(--linie);border-radius:12px">
+            <div class="mini" style="font-weight:650"><?= $h($T('umzugTitel')) ?> · <?= $h((string) $umzug['domain']) ?></div>
+            <?php if ((string) $umzug['stand'] === 'fertig'): ?>
+              <p class="mini" style="margin:6px 0 0"><?= $h($T('umzugFertig')) ?></p>
+            <?php elseif ((string) $umzug['stand'] === 'beantragt'): ?>
+              <p class="mini" style="margin:6px 0 0"><?= $h($T('umzugBeantragt')) ?></p>
+            <?php elseif ((string) $umzug['stand'] === 'code_da'): ?>
+              <p class="mini" style="margin:6px 0 0"><?= $h($T('umzugCodeOk')) ?></p>
+            <?php else: ?>
+              <?php if ((string) $umzug['sperre'] === 'gesperrt'): ?>
+                <div class="hinweis schlecht" style="margin:8px 0"><?= $h($T('umzugSperre')) ?></div>
+              <?php endif; ?>
+              <p class="mini" style="margin:6px 0 10px;color:var(--dim)"><?= $h($T('umzugCodeHilfe')) ?></p>
+              <form method="post" action="<?= $h($hier) ?>" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <?= Csrf::feld() ?><input type="hidden" name="tat" value="umzug_code">
+                <input type="hidden" name="umzug" value="<?= (int) $umzug['id'] ?>">
+                <label class="sr-only" for="umzug-code"><?= $h($T('umzugCodeFeld')) ?></label>
+                <input id="umzug-code" name="code" required autocomplete="off" spellcheck="false" maxlength="64"
+                       placeholder="<?= $h($T('umzugCodeFeld')) ?>" style="max-width:260px;font-family:ui-monospace,monospace">
+                <button class="knopf haupt"><?= $h($T('umzugCodeKnopf')) ?></button>
+              </form>
+            <?php endif; ?>
+          </div>
         <?php endif; ?>
       </details>
     <?php endif; ?>

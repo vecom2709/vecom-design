@@ -427,6 +427,55 @@ $eing = !empty($eingebettet);
           </form>
         <?php endif; ?>
       <?php endif; ?>
+      <?php /* Phase 5: der Domain-Umzug -- Stand, Sperre, was im KAS-DNS stehen
+               muss, und der Code nur auf Klick. Den Antrag stellst du im
+               Domainbestellsystem; hier klickst du nur, DASS er gestellt ist. */ ?>
+      <?php $umzugA = (string) ($hostingA['domain_aktion'] ?? '') === 'transfer'
+          ? sicher(static function () use ($hostingA) { require_once __DIR__ . '/../src/Domainumzug.php';
+                return Domainumzug::fuerAuftrag((int) $hostingA['id']); }, null) : null; ?>
+      <?php if ($umzugA): ?>
+        <?php $uStand = ['code_fehlt' => 'wartet auf den Auth-Code', 'code_da' => 'Code ist da — Antrag stellen',
+                         'beantragt' => 'beantragt — der Cron sieht nach, wann die Nameserver umstehen', 'fertig' => 'umgezogen'][(string) $umzugA['stand']] ?? (string) $umzugA['stand']; ?>
+        <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
+          <div style="font-weight:650">Umzug <?= Fmt::h((string) $umzugA['domain']) ?>
+            <span class="marke2 <?= (string) $umzugA['stand'] === 'fertig' ? 'gut' : ((string) $umzugA['stand'] === 'code_da' ? 'warnung' : '') ?>" style="margin-left:6px"><?= Fmt::h($uStand) ?></span></div>
+          <p style="color:var(--leise);font-size:12.5px;margin:6px 0 0">
+            Transfersperre: <b><?= Fmt::h(['gesperrt' => 'gesetzt — der Kunde muss sie beim alten Anbieter lösen', 'frei' => 'keine',
+                                           'unklar' => 'nicht lesbar (bei .it nur per WHOIS)'][(string) ($umzugA['sperre'] ?? 'unklar')] ?? '—') ?></b>
+            <?= $umzugA['sperre_am'] ? ' · geprüft ' . Fmt::h(Fmt::datum((string) $umzugA['sperre_am'])) : '' ?></p>
+          <?php $uDns = json_decode((string) ($umzugA['dns_json'] ?? ''), true) ?: []; ?>
+          <?php if ($uDns && !in_array((string) $umzugA['stand'], ['beantragt', 'fertig'], true)): ?>
+            <p style="font-size:12.5px;margin:10px 0 4px"><b>Vor dem Antrag im KAS-DNS eintragen</b>
+              <span style="color:var(--leise)">— sonst kommen beim Kunden nach dem Umzug keine Mails mehr an. NS nicht übernehmen.</span></p>
+            <div class="tabellenrahmen"><table class="schlicht"><tbody>
+              <?php foreach ($uDns as $e): ?>
+                <tr<?= $e['typ'] === 'NS' ? ' style="opacity:.5"' : '' ?>><td style="width:22%"><code><?= Fmt::h((string) $e['name']) ?></code></td>
+                  <td style="width:10%"><?= Fmt::h((string) $e['typ']) ?></td>
+                  <td><code style="word-break:break-all;user-select:all"><?= Fmt::h((string) $e['wert']) ?></code></td></tr>
+              <?php endforeach; ?>
+            </tbody></table></div>
+          <?php endif; ?>
+          <?php if (!empty($_SESSION['umzug_code'][(int) $umzugA['id']])): ?>
+            <div class="hinweis gut" style="margin-top:10px">Auth-Code: <code style="user-select:all;font-size:15px"><?=
+              Fmt::h((string) $_SESSION['umzug_code'][(int) $umzugA['id']]) ?></code>
+              <span style="color:var(--leise)"> — nur jetzt sichtbar; nach „KK-Antrag gestellt“ ist er gelöscht.</span></div>
+            <?php unset($_SESSION['umzug_code'][(int) $umzugA['id']]); ?>
+          <?php endif; ?>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            <?php foreach ([['umzug_code_zeigen', 'Auth-Code anzeigen', (string) $umzugA['stand'] === 'code_da'],
+                            ['umzug_beantragt', 'KK-Antrag gestellt', (string) $umzugA['stand'] === 'code_da'],
+                            ['umzug_pruefen', 'DNS und Sperre neu prüfen', in_array((string) $umzugA['stand'], ['code_fehlt', 'code_da'], true)]] as [$uTat, $uWort, $uZeigen]):
+                if (!$uZeigen) { continue; } ?>
+              <form method="post" action="<?= Fmt::h(url('')) ?>">
+                <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= Fmt::h($uTat) ?>">
+                <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+                <input type="hidden" name="id" value="<?= (int) $umzugA['id'] ?>">
+                <button class="knopf"><?= Fmt::h($uWort) ?></button>
+              </form>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
       <?php $uebrig = array_values(array_filter($hostingWuensche,
           static fn(string $w): bool => strtolower($w) !== strtolower((string) $hostingA['domain']))); ?>
       <?php if ($uebrig): ?>

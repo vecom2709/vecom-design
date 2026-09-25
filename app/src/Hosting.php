@@ -753,9 +753,10 @@ final class Hosting
             $was = [
                 'neu'      => 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
                             . ' auf den Kunden als Inhaber bestellen — Nameserver ns5.kasserver.com. ',
-                'transfer' => 'Umzug (KK) von ' . $domain . ': Auth-Code beim Kunden anfordern (nicht per Mail im Klartext '
-                            . 'aufbewahren), VORHER die DNS-Einträge beim alten Anbieter ablesen und MX, SPF, DKIM, DMARC '
-                            . 'und TXT im KAS-DNS eintragen, dann den KK-Antrag im Domainbestellsystem stellen. Inhaber bleibt der Kunde. ',
+                'transfer' => 'Umzug (KK) von ' . $domain . ': Der Kunde gibt den Auth-Code auf seiner Seite ein (du bekommst '
+                            . 'Bescheid). In der Kundenakte steht die DNS-Bestandsaufnahme — MX, SPF, DKIM, DMARC und TXT '
+                            . 'VOR dem Antrag im KAS-DNS eintragen, dann den KK-Antrag im Domainbestellsystem stellen und '
+                            . '„KK-Antrag gestellt“ klicken. Inhaber bleibt der Kunde. ',
                 'behalten' => 'Die Domain ' . $domain . ' bleibt beim bisherigen Anbieter des Kunden: dort nur A/AAAA für '
                             . $domain . ' und www auf den KAS-Server zeigen lassen — MX, SPF, DKIM, DMARC und TXT NICHT anfassen. ',
                 'offen'    => 'Mit dem Kunden klären, ob ' . $domain . ' beim alten Anbieter bleibt oder umzieht — '
@@ -777,6 +778,15 @@ final class Hosting
                     : 'Monatsvertrag ' . number_format(((int) $a['preis_cents']) / 100, 2, ',', '.') . ' € läuft.'),
                 '/kunden/' . $kundeId);
             self::schritt($auftragId, 'aufgabe', 'fertig', 'Auf „Heute“.');
+            /* Phase 5: Beim Umzug gleich die Begleitung anlegen -- DNS-
+               Bestandsaufnahme und Sperre lesen, damit der Kunde auf seiner
+               Seite sieht, was er tun muss (Sperre loesen, Code eingeben). */
+            if ($aktion === 'transfer') {
+                try {
+                    require_once __DIR__ . '/Domainumzug.php';
+                    Domainumzug::anlegen($auftragId);
+                } catch (Throwable $e) { /* die Aufgabe fuer Uwe steht trotzdem */ }
+            }
             Events::protokoll('hosting_angelegt', 'Hosting angelegt: ' . $domain
                 . ((string) ($a['kas_login'] ?? '') !== '' ? ' (' . $a['kas_login'] . ')' : ''), $kundeId, null,
                 $a['project_id'] !== null ? (int) $a['project_id'] : null);
@@ -889,6 +899,12 @@ final class Hosting
         if (!Einrichtung::konfigSchreiben($pfad, $alt)) { return null; }
         return $neu;
     }
+
+    /** Phase 5: derselbe Tresor fuer den Auth-Code eines Domain-Umzugs. */
+    public static function versiegeln(array $daten): ?string { return self::verschluesseln($daten); }
+
+    /** @return array<string,string>|null */
+    public static function entsiegeln(string $blob): ?array { return self::entschluesseln($blob); }
 
     private static function verschluesseln(array $daten): ?string
     {

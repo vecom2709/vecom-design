@@ -187,6 +187,9 @@ final class Ablauf
             'Es entsteht ein echter Account beim Anbieter und ein Monatsvertrag, und der Kunde bekommt '
             . 'seine Zugangsdaten.',
             'Ja, Hosting anlegen'],
+        'umzug_beantragt' => [self::SCHWER,
+            'Nur klicken, wenn der Umzug im Domainbestellsystem beantragt ist: Der Auth-Code wird danach gelöscht.',
+            'Ja, Antrag ist gestellt'],
         'hosting_weiter' => [self::SCHWER,
             'Fehlende Teile werden beim Anbieter angelegt (Domain, Postfach). Stand beim Account „unklar“, '
             . 'kann ein zweiter entstehen — vorher in der KAS-Accountliste nachsehen.',

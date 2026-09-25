@@ -8158,6 +8158,109 @@ pruefe('Phase 4: im Hosting stehen die Aufträge in Arbeit oben, mit Schritten u
     && (bool) array_filter($lwH, static fn($h) => (string) $h['domain'] === 'schritt5-probe.it' && (int) $h['hand'] === 1));
 
 /* ============================================================================
+   73. Domain-Umzug begleiten (Phase 5) -- mit nachgebautem DNS und Registry
+   ============================================================================ */
+abschnitt('73. Domain-Umzug begleiten');
+require_once $wurzel . '/src/Domainumzug.php';
+
+$duDns = static function (string $h, int $t): array {
+    $z = [
+        'altfirma.it|' . DNS_A      => [['ip' => '93.184.216.34']],
+        'www.altfirma.it|' . DNS_CNAME => [['target' => 'altfirma.it']],
+        'altfirma.it|' . DNS_MX     => [['pri' => 10, 'target' => 'altfirma-it.mail.protection.outlook.com']],
+        'altfirma.it|' . DNS_TXT    => [['txt' => 'v=spf1 include:spf.protection.outlook.com -all'], ['txt' => 'google-site-verification=abc']],
+        '_dmarc.altfirma.it|' . DNS_TXT => [['txt' => 'v=DMARC1; p=quarantine']],
+        'selector1._domainkey.altfirma.it|' . DNS_TXT => [['entries' => ['v=DKIM1; k=rsa; ', 'p=MIGf']]],
+        'mail._domainkey.altfirma.it|' . DNS_TXT => [['txt' => 'irgendwas ohne Schluessel']],
+        'altfirma.it|' . DNS_NS     => [['target' => 'ns1.altanbieter.it'], ['target' => 'ns2.altanbieter.it']],
+    ];
+    return $z[$h . '|' . $t] ?? [];
+};
+$duE = Domainumzug::bestandsaufnahme('altfirma.it', $duDns);
+$duHat = static fn(string $n, string $t, string $w) => (bool) array_filter($duE, static fn($e) => $e['name'] === $n && $e['typ'] === $t && str_contains($e['wert'], $w));
+pruefe('Phase 5: die Bestandsaufnahme findet Web, MX, SPF, DMARC und DKIM -- genau das, was nach dem Umzug fehlen würde',
+    $duHat('@', 'A', '93.184.216.34') && $duHat('www', 'CNAME', 'altfirma.it') && $duHat('@', 'MX', '10 altfirma-it.mail')
+    && $duHat('@', 'TXT', 'v=spf1') && $duHat('_dmarc', 'TXT', 'DMARC1') && $duHat('selector1._domainkey', 'TXT', 'v=DKIM1; k=rsa; p=MIGf'));
+pruefe('Phase 5: ein DKIM-Name ohne Schlüssel zählt nicht', !$duHat('mail._domainkey', 'TXT', ''));
+
+pruefe('Phase 5: Transfersperre aus RDAP erkannt',
+    Domainumzug::sperre('x.de', static fn() => ['rdap' => ['status' => ['active', 'client transfer prohibited']], 'whois' => null]) === 'gesperrt'
+    && Domainumzug::sperre('x.de', static fn() => ['rdap' => ['status' => ['active']], 'whois' => null]) === 'frei');
+pruefe('Phase 5: bei .it aus WHOIS -- und ohne Auskunft ehrlich „unklar“',
+    Domainumzug::sperre('x.it', static fn() => ['rdap' => null, 'whois' => "Domain: x.it\nStatus:             clientTransferProhibited\n"]) === 'gesperrt'
+    && Domainumzug::sperre('x.it', static fn() => ['rdap' => null, 'whois' => "Domain: x.it\nStatus:             ok\n"]) === 'frei'
+    && Domainumzug::sperre('x.it', static fn() => ['rdap' => null, 'whois' => null]) === 'unklar');
+
+/* Der Weg: Hosting-Auftrag mit Umzug, fertig eingerichtet */
+$duK = Events::kundeFinden(['name' => 'Umzug Probe', 'email' => 'umzug@altfirma.it']);
+$duA = (int) Db::insert('hosting_auftraege', ['customer_id' => $duK, 'domain' => 'altfirma.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'transfer', 'mail' => 'vecom']);
+$duSp = static fn() => ['rdap' => null, 'whois' => "Status: clientTransferProhibited\n"];
+$duId = Domainumzug::anlegen($duA, $duDns, $duSp);
+pruefe('Phase 5: der Umzug entsteht einmal je Auftrag, mit Bestandsaufnahme und Sperre',
+    $duId > 0 && Domainumzug::anlegen($duA, $duDns, $duSp) === $duId
+    && (string) Domainumzug::fuerAuftrag($duA)['sperre'] === 'gesperrt'
+    && count(json_decode((string) Domainumzug::fuerAuftrag($duA)['dns_json'], true)) >= 6);
+$duNeu = (int) Db::insert('hosting_auftraege', ['customer_id' => $duK, 'domain' => 'neu-probe.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom']);
+pruefe('Phase 5: eine neu registrierte Domain bekommt keinen Umzug', Domainumzug::anlegen($duNeu, $duDns, $duSp) === null);
+
+$duFremd = Events::kundeFinden(['name' => 'Fremd Umzug', 'email' => 'fremd-umzug@pruefung.example']);
+pruefe('Phase 5: den Code kann nur der eigene Kunde hinterlegen', Domainumzug::codeSpeichern($duId, $duFremd, 'ABC-123-xyz') === 'nicht_dran');
+pruefe('Phase 5: was kein Code sein kann, wird nicht gespeichert',
+    Domainumzug::codeSpeichern($duId, $duK, 'ab c') === 'falsch' && Domainumzug::codeSpeichern($duId, $duK, '12') === 'falsch');
+pruefe('Phase 5: der Code wird verschlüsselt abgelegt -- im Klartext steht er nirgends',
+    Domainumzug::codeSpeichern($duId, $duK, 'Xk9#pQ2!zz') === 'ok'
+    && !str_contains((string) Db::wert('SELECT code_blob FROM domain_umzuege WHERE id = ?', [$duId], ''), 'Xk9#pQ2!zz')
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE betreff LIKE '%Xk9#pQ2!zz%' OR anlass LIKE 'domain%'", [], 0) === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE body LIKE '%Xk9#pQ2!zz%'", [], 0) === 0);
+pruefe('Phase 5: Uwe kann ihn lesen, solange der Antrag nicht gestellt ist', Domainumzug::codeLesen($duId) === 'Xk9#pQ2!zz');
+pruefe('Phase 5: „KK-Antrag gestellt“ löscht den Code, und zweimal geht es nicht',
+    Domainumzug::beantragt($duId) && Domainumzug::codeLesen($duId) === null && !Domainumzug::beantragt($duId)
+    && Db::one('SELECT code_blob FROM domain_umzuege WHERE id = ?', [$duId])['code_blob'] === null);
+
+$duPost = [];
+$duSenden = static function (string $anlass, string $an, string $b, string $t, array $bezug) use (&$duPost): bool { $duPost[] = $anlass; return true; };
+Domainumzug::nachsehenAlle($duDns, $duSenden);
+pruefe('Phase 5: solange die Nameserver beim alten Anbieter stehen, ist der Umzug nicht fertig',
+    (string) Domainumzug::fuerAuftrag($duA)['stand'] === 'beantragt' && $duPost === []);
+$duDnsNeu = static fn(string $h, int $t): array => $t === DNS_NS ? [['target' => 'ns5.kasserver.com'], ['target' => 'ns6.kasserver.com.']] : [];
+Domainumzug::nachsehenAlle($duDnsNeu, $duSenden);
+Domainumzug::nachsehenAlle($duDnsNeu, $duSenden);
+pruefe('Phase 5: zeigen alle Nameserver auf All-Inkl, ist er fertig -- Uwe und Kunde erfahren es einmal',
+    (string) Domainumzug::fuerAuftrag($duA)['stand'] === 'fertig' && $duPost === ['domain_umgezogen']
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'domain_fertig' AND body LIKE '%SSL%'", [], 0) === 1);
+pruefe('Phase 5: halb umgestellte Nameserver zählen nicht',
+    (static function () use ($duDns): bool {
+        $k = Events::kundeFinden(['name' => 'Halb', 'email' => 'halb@pruefung.example']);
+        $a = (int) Db::insert('hosting_auftraege', ['customer_id' => $k, 'domain' => 'halb-probe.it', 'status' => 'angelegt',
+            'preis_cents' => 990, 'domain_aktion' => 'transfer', 'mail' => 'vecom']);
+        $id = Domainumzug::anlegen($a, $duDns, static fn() => ['rdap' => null, 'whois' => null]);
+        Db::run("UPDATE domain_umzuege SET stand = 'beantragt' WHERE id = ?", [$id]);
+        Domainumzug::nachsehenAlle(static fn(string $h, int $t): array => $t === DNS_NS
+            ? [['target' => 'ns5.kasserver.com'], ['target' => 'ns1.altanbieter.it']] : [], static fn() => true);
+        return (string) Db::wert('SELECT stand FROM domain_umzuege WHERE id = ?', [$id], '') === 'beantragt';
+    })());
+$duG = Domainumzug::anlegen((int) Db::insert('hosting_auftraege', ['customer_id' => $duK, 'domain' => 'gesperrt-probe.it',
+    'status' => 'angelegt', 'preis_cents' => 990, 'domain_aktion' => 'transfer', 'mail' => 'vecom']), $duDns, $duSp);
+Db::run('UPDATE domain_umzuege SET sperre_am = NOW() - INTERVAL 7 HOUR WHERE id = ?', [$duG]);
+Domainumzug::nachsehenAlle($duDns, $duSenden, static fn() => ['rdap' => null, 'whois' => "Status: ok\n"]);
+pruefe('Phase 5: hebt der Kunde die Sperre auf, sieht der Cron es von selbst',
+    (string) Db::wert('SELECT sperre FROM domain_umzuege WHERE id = ?', [$duG], '') === 'frei');
+pruefe('Phase 5: „KK-Antrag gestellt“ fragt vorher, und der Cron sieht nach',
+    Ablauf::wiegt('umzug_beantragt') === Ablauf::SCHWER
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Domainumzug::nachsehenAlle()'));
+$duT = true;
+foreach (['it', 'de', 'en'] as $duS) {
+    [$b, $t] = Texte::mail('domain_umgezogen', $duS, ['name' => 'X', 'domain' => 'd.it', 'seite' => 'S']);
+    if (preg_match('~\{[a-z]+\}~', $b . $t)) { $duT = false; }
+    foreach (['umzugTitel', 'umzugSperre', 'umzugCodeHilfe', 'umzugCodeOk', 'umzugCodeFalsch', 'umzugBeantragt', 'umzugFertig'] as $duK2) {
+        if (trim(Texte::h(Texte::KUNDE[$duK2] ?? [], $duS)) === '') { $duT = false; }
+    }
+}
+pruefe('Phase 5: alle Umzugstexte dreisprachig, ohne offene Platzhalter', $duT);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -1053,6 +1053,20 @@ final class Texte
         /* Phase 2: automatisch abbuchen. abbuchungZustimmung ist der Wortlaut,
            der als Zustimmung gespeichert wird -- aendern heisst: FASSUNG in
            Abbuchung.php hochzaehlen. */
+        /* Phase 5: Domain-Umzug auf der Kundenseite. */
+        'umzugTitel'    => ['it' => 'Trasferimento del dominio', 'de' => 'Umzug Ihrer Domain', 'en' => 'Moving your domain'],
+        'umzugSperre'   => ['it' => 'Il dominio è ancora bloccato presso il suo fornitore attuale. Nel suo pannello cerchi „blocco trasferimento“ (o „transfer lock“) e lo disattivi — altrimenti il trasferimento non parte.',
+                            'de' => 'Die Domain ist bei Ihrem bisherigen Anbieter noch gesperrt. Suchen Sie dort im Kundenbereich nach „Transfersperre“ (oder „Transfer Lock“) und heben Sie sie auf — sonst kann der Umzug nicht starten.',
+                            'en' => 'The domain is still locked at your current provider. In their customer area look for “transfer lock” and switch it off — otherwise the transfer cannot start.'],
+        'umzugCodeHilfe'=> ['it' => 'Ci serve il codice di trasferimento (Auth-Code / AuthInfo). Lo trova nel pannello del suo fornitore attuale o lo chiede a loro. Lo inserisca qui — non per e-mail.',
+                            'de' => 'Wir brauchen den Umzugscode (Auth-Code / AuthInfo). Sie finden ihn im Kundenbereich Ihres bisherigen Anbieters oder fragen ihn dort an. Bitte hier eingeben — nicht per E-Mail.',
+                            'en' => 'We need the transfer code (auth code / AuthInfo). You find it in your current provider’s customer area or ask them for it. Please enter it here — not by email.'],
+        'umzugCodeFeld' => ['it' => 'Codice di trasferimento', 'de' => 'Umzugscode', 'en' => 'Transfer code'],
+        'umzugCodeKnopf'=> ['it' => 'Inviare il codice', 'de' => 'Code übermitteln', 'en' => 'Send code'],
+        'umzugCodeOk'   => ['it' => 'Grazie, il codice è arrivato. Ora prepariamo il trasferimento — non deve fare altro.', 'de' => 'Danke, der Code ist angekommen. Wir bereiten jetzt den Umzug vor — Sie müssen nichts weiter tun.', 'en' => 'Thank you, the code has arrived. We are now preparing the transfer — nothing else to do on your side.'],
+        'umzugCodeFalsch'=>['it' => 'Questo non sembra un codice di trasferimento (6–64 caratteri, senza spazi).', 'de' => 'Das sieht nicht wie ein Umzugscode aus (6–64 Zeichen, ohne Leerzeichen).', 'en' => 'That does not look like a transfer code (6–64 characters, no spaces).'],
+        'umzugBeantragt'=> ['it' => 'Il trasferimento è richiesto. Di solito dura da qualche ora a cinque giorni; il suo fornitore attuale potrebbe chiederle una conferma per e-mail — la confermi, per favore.', 'de' => 'Der Umzug ist beantragt. Das dauert meist ein paar Stunden bis fünf Tage; Ihr bisheriger Anbieter fragt eventuell per E-Mail nach einer Bestätigung — bitte bestätigen.', 'en' => 'The transfer has been requested. It usually takes a few hours to five days; your current provider may ask you to confirm by email — please do.'],
+        'umzugFertig'   => ['it' => 'Trasferimento concluso: il dominio ora è da noi.', 'de' => 'Umzug abgeschlossen: Die Domain liegt jetzt bei uns.', 'en' => 'Transfer complete: the domain is now with us.'],
         'abbuchungTitel'   => ['it' => 'Pagare in automatico', 'de' => 'Automatisch bezahlen', 'en' => 'Pay automatically'],
         'abbuchungZustimmung' => [
             'it' => 'Autorizzo Vecom Design ad addebitare ogni mese {betrag} per {paket} sulla carta o sul conto che inserisco ora su Stripe, per tutta la durata del contratto. Ogni addebito mi viene annunciato per e-mail {tage} giorni prima. Posso revocare qui in qualsiasi momento; la durata e la disdetta del contratto restano invariate.',
@@ -1340,6 +1354,18 @@ final class Texte
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
         /* Phase 2: die Vorabinformation vor jeder Abbuchung. Bei SEPA ist
            sie Pflicht -- und bei der Karte ehrlich. */
+        /* Phase 5: der Umzug ist durch. */
+        'domain_umgezogen' => [
+            'it' => ['{domain} è arrivato da noi',
+                "Buongiorno {name},\n\nil trasferimento di {domain} è concluso: il dominio ora è gestito da noi. "
+                . "Sito ed e-mail funzionano come prima — se nei prossimi giorni qualcosa non dovesse arrivare, ci scriva subito.\n\n{seite}"],
+            'de' => ['{domain} ist umgezogen',
+                "Guten Tag {name},\n\nder Umzug von {domain} ist abgeschlossen: Die Domain liegt jetzt bei uns. "
+                . "Website und E-Mail laufen weiter wie bisher — fällt Ihnen in den nächsten Tagen trotzdem etwas auf, schreiben Sie uns gleich.\n\n{seite}"],
+            'en' => ['{domain} has moved',
+                "Hello {name},\n\nthe transfer of {domain} is complete: the domain is now with us. "
+                . "Website and email keep working as before — if anything seems off in the next few days, write to us right away.\n\n{seite}"],
+        ],
         'abbuchung_angekuendigt' => [
             'it' => ['{monat}: addebito di {betrag} il {datum}',
                 "Buongiorno {name},\n\nil {datum} addebiteremo {betrag} per {monat} su {zahlmittel}.\n\n"

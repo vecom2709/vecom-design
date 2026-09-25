@@ -132,6 +132,33 @@ final class Domainpruefung
     }
 
     /** Die Auskunft der Registrierungsstelle, direkt gefragt. */
+    /**
+     * Die rohe RDAP-Auskunft zu einer vergebenen Domain (Phase 5: Transfer-
+     * sperre lesen). null, wenn es keine Stelle gibt oder sie nicht antwortet.
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function rdap(string $name): ?array
+    {
+        $name = self::normalisieren($name);
+        if ($name === null) { return null; }
+        $basis = self::stelleFuer(substr($name, (int) strrpos($name, '.') + 1));
+        if ($basis === null) { return null; }
+        $ch = curl_init(rtrim($basis, '/') . '/domain/' . rawurlencode($name));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 3,
+            CURLOPT_TIMEOUT => self::ZEITGRENZE, CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_HTTPHEADER => ['Accept: application/rdap+json'],
+            CURLOPT_USERAGENT => 'vecom-design.it Domainpruefung',
+        ]);
+        $koerper = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+        if ($code < 200 || $code >= 300 || !is_string($koerper)) { return null; }
+        $d = json_decode($koerper, true);
+        return is_array($d) && !isset($d['errorCode']) ? $d : null;
+    }
+
     private static function ueberRdap(string $name): string
     {
         $endung = substr($name, (int) strrpos($name, '.') + 1);
@@ -281,6 +308,33 @@ final class Domainpruefung
         'es' => ['whois.nic.es',   'not found'],
     ];
 
+    /**
+     * Die rohe WHOIS-Antwort -- auch fuer den Domain-Umzug (Phase 5: Sperre
+     * bei .it, wo es keine RDAP-Stelle gibt). null, wenn Port 43 zu ist.
+     */
+    public static function whois(string $name): ?string
+    {
+        $endung = substr($name, (int) strrpos($name, '.') + 1);
+        if (!isset(self::WHOIS[$endung])) { return null; }
+        $server = self::WHOIS[$endung][0];
+        static $zu = false;
+        if ($zu) { return null; }
+
+        $f = @fsockopen($server, 43, $nr, $txt, 2);
+        if (!$f) { $zu = true; return null; }
+        stream_set_timeout($f, 4);
+        @fwrite($f, $name . "\r\n");
+        $antwort = '';
+        $bis = microtime(true) + 5;
+        while (!feof($f) && microtime(true) < $bis && mb_strlen($antwort) < 20000) {
+            $stueck = fgets($f, 512);
+            if ($stueck === false) { break; }
+            $antwort .= $stueck;
+        }
+        fclose($f);
+        return $antwort !== '' ? $antwort : null;
+    }
+
     private static function ueberWhois(string $name): string
     {
         $endung = substr($name, (int) strrpos($name, '.') + 1);
@@ -292,21 +346,8 @@ final class Domainpruefung
            Zeitgrenze. Bei drei Wunschadressen waeren das sechs Sekunden
            Warten fuer dreimal dasselbe Nichts. Also wird gemerkt, dass es
            nicht geht, und der Rest der Anfrage geht direkt weiter. */
-        static $zu = false;
-        if ($zu) { return self::UNKLAR; }
-
-        $f = @fsockopen($server, 43, $nr, $txt, 2);
-        if (!$f) { $zu = true; return self::UNKLAR; }
-        stream_set_timeout($f, 4);
-        @fwrite($f, $name . "\r\n");
-        $antwort = '';
-        $bis = microtime(true) + 5;
-        while (!feof($f) && microtime(true) < $bis && mb_strlen($antwort) < 20000) {
-            $stueck = fgets($f, 512);
-            if ($stueck === false) { break; }
-            $antwort .= $stueck;
-        }
-        fclose($f);
+        $antwort = self::whois($name);
+        if ($antwort === null) { return self::UNKLAR; }
 
         $klein = mb_strtolower($antwort);
         if ($klein === '') { return self::UNKLAR; }
