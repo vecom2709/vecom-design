@@ -7956,6 +7956,10 @@ $abWh = (string) file_get_contents($wurzel . '/../stripe-webhook.php');
 pruefe('Phase 2: der Webhook kennt Hinterlegen, Abbuchung und Scheitern -- Bezahlseiten buchen nicht doppelt',
     str_contains($abWh, "(\$o['mode'] ?? '') === 'setup'") && str_contains($abWh, "case 'payment_intent.succeeded':")
     && str_contains($abWh, "(\$o['metadata']['art'] ?? '') === 'abbuchung'") && str_contains($abWh, 'Abbuchung::gescheitert('));
+$abSt = (string) file_get_contents($wurzel . '/src/Zahlung/Stripe.php');
+pruefe('Phase 2: zum Hinterlegen nur Karte und SEPA -- die Zahlarten, die fürs Abbuchen gemacht sind',
+    (bool) preg_match("~'mode'\s*=> 'setup',.*?'payment_method_types\[0\]' => 'card',\s*'payment_method_types\[1\]' => 'sepa_debit',~s", $abSt)
+    && !str_contains($abSt, "'payment_method_types[2]'"));
 pruefe('Phase 2: Karte und Konto erscheinen nur als Marke und letzte vier Ziffern',
     StripeAnbieter::zahlmittelText(['type' => 'card', 'card' => ['brand' => 'visa', 'last4' => '4242']]) === 'Visa •••• 4242'
     && StripeAnbieter::zahlmittelText(['type' => 'sepa_debit', 'sepa_debit' => ['last4' => '3000']]) === 'SEPA •••• 3000');

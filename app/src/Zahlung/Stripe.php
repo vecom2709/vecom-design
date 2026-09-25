@@ -237,15 +237,23 @@ final class StripeAnbieter implements Anbieter
 
     /**
      * Die Stripe-Seite, auf der der Kunde Karte oder Lastschrift hinterlegt
-     * (Checkout im Modus "setup": nichts wird bezahlt). Welche Zahlarten
-     * erscheinen, bestimmt das Stripe-Konto -- deshalb hier keine Liste,
-     * nur die Waehrung.
+     * (Checkout im Modus "setup": nichts wird bezahlt).
+     *
+     * NUR KARTE UND SEPA (25.09.2026, Uwe)
+     * Im Konto sind ein Dutzend Zahlarten an (Revolut Pay, Amazon Pay, Link,
+     * ...). Fuer eine Einmalzahlung ist das gut; fuers monatliche Abbuchen
+     * ohne den Kunden sind nur Karte und SEPA-Lastschrift gemacht. Bei den
+     * anderen haengt es am Anbieter, ob eine Abbuchung durchgeht -- und
+     * scheitert sie, kaeme jeden Monat doch wieder der Zahlungslink. Dazu
+     * erkennt der Kunde "Visa •••• 4242", aber nicht "revolut_pay".
      */
     public function einrichtungsseite(string $stripeKunde, int $aboId, string $zurueck, string $abbruch, string $sprache): string
     {
         $a = $this->anfrage('POST', '/v1/checkout/sessions', [
             'mode'        => 'setup',
             'currency'    => 'eur',
+            'payment_method_types[0]' => 'card',
+            'payment_method_types[1]' => 'sepa_debit',
             'customer'    => $stripeKunde,
             'client_reference_id' => 'abo-' . $aboId,
             'metadata[abo_id]'    => (string) $aboId,
