@@ -577,6 +577,15 @@ final class Texte
                     ],
                 ],
 
+                /* Weitere Adressen, die bei kontakt@ ankommen (25.09.2026) --
+                   beim Einrichten per KAS-Schnittstelle als Weiterleitung angelegt. */
+                'mail_weiter' => [
+                    'it' => 'Altri indirizzi che devono arrivare a kontakt@ (per es. info, prenotazioni) — facoltativo',
+                    'de' => 'Weitere Adressen, die bei kontakt@ ankommen sollen (z. B. info, buchung) — freiwillig',
+                    'en' => 'Other addresses that should arrive at kontakt@ (e.g. info, bookings) — optional',
+                    'art' => 'text', 'wenn' => ['feld' => 'mail_wahl', 'ist' => ['vecom']],
+                ],
+
                 'karte' => [
                     'it' => 'Scheda Google dell’attività', 'de' => 'Google-Unternehmenseintrag', 'en' => 'Google Business listing',
                     'art' => 'eins', 'frei' => true,

@@ -155,6 +155,7 @@ final class Hosting
         Db::insert('hosting_auftraege', [
             'customer_id' => $kundeId, 'project_id' => $projektId ?: null,
             'domain' => $domain, 'domain_aktion' => $aktion, 'mail' => $mail,
+            'weiterleitungen' => $mail === 'vecom' ? (implode(',', self::weiterleitungen((string) ($antworten['mail_weiter'] ?? ''))) ?: null) : null,
             'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
         ]);
         Events::protokoll('hosting_vorschlag', 'Hosting bei Vecom gewählt: ' . $domain
@@ -476,6 +477,7 @@ final class Hosting
         'account'  => 'KAS-Account',
         'domain'   => 'Domain im KAS',
         'postfach' => 'Postfach',
+        'weiterleitung' => 'Weiterleitungen',
         'dns'      => 'DNS vom alten Anbieter',
         'vertrag'  => 'Monatsvertrag',
         'kunde'    => 'Mail an den Kunden',
@@ -567,6 +569,7 @@ final class Hosting
             public function passwortNeu(): string { return Kas::passwortNeu(); }
             public function dnsLesen(string $d, ?array $als = null): array { return Kas::dnsLesen($d, $als); }
             public function dnsHinzufuegen(string $d, string $t, string $n, string $w, int $aux = 0, ?array $als = null): array { return Kas::dnsHinzufuegen($d, $t, $n, $w, $aux, $als); }
+            public function weiterleitungAnlegen(string $l, string $d, string $z, ?array $als = null): array { return Kas::weiterleitungAnlegen($l, $d, $z, $als); }
             public function dnsAendern(string $id, string $w, int $aux = 0, ?array $als = null): array { return Kas::dnsAendern($id, $w, $aux, $als); }
             public function bestand(string $d): array { require_once __DIR__ . '/Domainumzug.php'; return Domainumzug::bestandsaufnahme($d); }
         };
@@ -603,7 +606,7 @@ final class Hosting
         /* Domain und Postfach, die mitten im Aufruf abbrachen, duerfen einfach
            noch einmal: Ein zweites Anlegen meldet "gibt es schon", und das
            zaehlt als Erfolg (siehe unten). Beim Account gilt das nicht. */
-        foreach (['domain', 'postfach'] as $s) {
+        foreach (['domain', 'postfach', 'weiterleitung'] as $s) {
             if ((string) ($st[$s]['status'] ?? '') === 'laeuft') {
                 self::schritt($auftragId, $s, 'fehler', 'Abgebrochen mitten im Aufruf — wird wiederholt.');
             }
@@ -686,6 +689,29 @@ final class Hosting
         }
         $st = self::schritte($auftragId);
 
+        /* 2a. WEITERLEITUNGEN -- info@, buchung@ ... auf kontakt@, wie im
+           Fragebogen gewuenscht. Nur mit Postfach, nur im Unter-Account. */
+        if (self::dran($st['weiterleitung'])) {
+            $wl = self::weiterleitungen((string) ($a['weiterleitungen'] ?? ''));
+            if (!$wl || (string) $st['postfach']['status'] !== 'fertig') {
+                self::schritt($auftragId, 'weiterleitung', 'entfaellt', $wl ? 'Ohne Postfach bei uns keine Weiterleitung.' : 'Keine gewünscht.');
+            } elseif ($als === null) {
+                self::schritt($auftragId, 'weiterleitung', 'hand', 'Ohne Login des Unter-Accounts nicht automatisch: ' . implode(', ', $wl));
+            } else {
+                self::schritt($auftragId, 'weiterleitung', 'laeuft', null, true);
+                $nicht = [];
+                foreach ($wl as $lokal) {
+                    $r = $kas->weiterleitungAnlegen($lokal, $domain, self::POSTFACH . '@' . $domain, $als);
+                    if (!$r['ok']) { $nicht[] = $lokal . ' (' . $r['text'] . ')'; }
+                }
+                $versuche = (int) $st['weiterleitung']['versuche'] + 1;
+                self::schritt($auftragId, 'weiterleitung', $nicht ? ($versuche >= self::VERSUCHE ? 'hand' : 'fehler') : 'fertig',
+                    $nicht ? 'Nicht angelegt: ' . implode(' · ', $nicht)
+                           : implode(', ', array_map(static fn($l) => $l . '@', $wl)) . ' → ' . self::POSTFACH . '@' . $domain);
+            }
+            $st = self::schritte($auftragId);
+        }
+
         /* 2b. DNS VOM ALTEN ANBIETER -- nur beim Umzug, und nur wenn die
            Domain im KAS steht. Was heute beim alten Anbieter eingetragen
            ist, kommt in die KAS-Zone, BEVOR die Nameserver umziehen: Sonst
@@ -711,8 +737,8 @@ final class Hosting
             $st = self::schritte($auftragId);
         }
 
-        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach']) || !self::erledigt($st['dns'])) {
-            return ['ok' => false, 'text' => 'Domain, Postfach oder DNS wird noch einmal versucht.'];
+        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach']) || !self::erledigt($st['dns']) || !self::erledigt($st['weiterleitung'])) {
+            return ['ok' => false, 'text' => 'Domain, Postfach, Weiterleitung oder DNS wird noch einmal versucht.'];
         }
 
         /* 3. DER MONATSVERTRAG -- ausser er steckt in der Betreuung. Beim
@@ -910,6 +936,57 @@ final class Hosting
                 . ' eigener MX-Eintrag — bitte dort löschen, sonst geht ein Teil der Post ins Leere.'];
         }
         return ['ok' => true, 'text' => $gut . ' Einträge übernommen' . ($umgeschrieben ? ', davon ' . $umgeschrieben . ' KAS-MX umgeschrieben' : '') . ' — einmal im KAS ansehen.'];
+    }
+
+    /**
+     * "info, Buchung; office@firma.it" -> ['info', 'buchung', 'office'].
+     * Nur gueltige lokale Teile, ohne kontakt (das ist das Postfach selbst),
+     * hoechstens zehn.
+     * @return list<string>
+     */
+    public static function weiterleitungen(string $roh): array
+    {
+        $aus = [];
+        foreach (preg_split('~[\s,;]+~', mb_strtolower(trim($roh))) ?: [] as $t) {
+            $t = trim((string) preg_replace('~@.*$~', '', $t), '.-_ ');
+            if ($t === '' || $t === self::POSTFACH || !preg_match('~^[a-z0-9][a-z0-9._-]{0,39}$~', $t)) { continue; }
+            $aus[$t] = true;
+        }
+        return array_slice(array_keys($aus), 0, 10);
+    }
+
+    /* ---------- Nach Vertragsende: sperren, nicht loeschen ---------- */
+
+    /**
+     * Hosting-Auftraege, deren Vertrag vorbei ist, deren KAS-Zugang aber noch
+     * offen steht. Eigener Vertrag beendet -- oder, wenn das Hosting in der
+     * Betreuung steckte, die Betreuung beendet. Solange irgendein passender
+     * Vertrag laeuft, steht hier nichts.
+     * @return list<array<string,mixed>>
+     */
+    public static function zumSperren(): array
+    {
+        return Db::all("SELECT h.*, COALESCE(NULLIF(c.company,''), NULLIF(c.name,''), c.email) AS wer
+              FROM hosting_auftraege h JOIN customers c ON c.id = h.customer_id
+             WHERE h.status IN ('angelegt','aktiv') AND h.kas_login IS NOT NULL AND h.gesperrt_am IS NULL
+               AND EXISTS (SELECT 1 FROM abos a WHERE a.customer_id = h.customer_id AND a.status = 'beendet'
+                            AND (a.paket_slug = 'hosting' OR h.inklusive = 1))
+               AND NOT EXISTS (SELECT 1 FROM abos a JOIN packages p ON p.id = a.package_id
+                                WHERE a.customer_id = h.customer_id AND a.status IN ('angelegt','aktiv','gekuendigt')
+                                  AND (a.paket_slug = 'hosting' OR (h.inklusive = 1 AND p.art = 'betreuung')))");
+    }
+
+    /** Sperren (oder wieder oeffnen) -- auf Uwes Klick, mit Rueckfrage. */
+    public static function zugangSperren(int $auftragId, bool $sperren = true, ?callable $kas = null): array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ? AND kas_login IS NOT NULL', [$auftragId]);
+        if (!$a) { return ['ok' => false, 'text' => 'Kein KAS-Account an diesem Auftrag.']; }
+        $r = $kas !== null ? $kas((string) $a['kas_login'], $sperren) : Kas::zugangSperren((string) $a['kas_login'], $sperren);
+        if (!$r['ok']) { return $r; }
+        Db::run('UPDATE hosting_auftraege SET gesperrt_am = ' . ($sperren ? 'NOW()' : 'NULL') . ' WHERE id = ?', [$auftragId]);
+        Events::protokoll($sperren ? 'hosting_gesperrt' : 'hosting_entsperrt',
+            'KAS-Zugang ' . $a['kas_login'] . ' (' . $a['domain'] . ') ' . ($sperren ? 'gesperrt' : 'wieder geöffnet'), (int) $a['customer_id']);
+        return ['ok' => true, 'text' => $sperren ? 'Gesperrt. Account, Dateien und Domain bleiben — gelöscht wird nur von Hand im KAS.' : 'Wieder geöffnet.'];
     }
 
     /** Ab diesem Anteil am Speicher meldet sich die Verwaltung. */

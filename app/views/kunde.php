@@ -544,6 +544,24 @@ $eing = !empty($eingebettet);
           </form>
         <?php endif; ?>
       <?php endif; ?>
+      <?php /* Nach Vertragsende: sperren, nicht loeschen -- und wieder oeffnen koennen. */ ?>
+      <?php if ((string) ($hostingA['kas_login'] ?? '') !== '' && in_array((string) $hostingA['status'], ['angelegt', 'aktiv'], true)): ?>
+        <?php $hGesperrt = !empty($hostingA['gesperrt_am']);
+              $hSperrbar = !$hGesperrt && (bool) array_filter(sicher(static fn() => Hosting::zumSperren(), []), static fn($x) => (int) $x['id'] === (int) $hostingA['id']); ?>
+        <?php if ($hGesperrt || $hSperrbar): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $hGesperrt ? 'hosting_entsperren' : 'hosting_sperren' ?>">
+            <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
+            <?php if ($hGesperrt): ?>
+              <span style="color:var(--leise);font-size:12.5px">KAS-Zugang gesperrt seit <?= Fmt::h(Fmt::datum((string) $hostingA['gesperrt_am'])) ?>.</span>
+              <button class="knopf" style="margin-left:8px">Wieder öffnen</button>
+            <?php else: ?>
+              <span style="color:var(--rot);font-size:12.5px">Vertrag beendet, KAS-Zugang noch offen.</span>
+              <button class="knopf" style="margin-left:8px">Zugang sperren</button>
+            <?php endif; ?>
+          </form>
+        <?php endif; ?>
+      <?php endif; ?>
       <?php /* Phase 5: der Domain-Umzug -- Stand, Sperre, was im KAS-DNS stehen
                muss, und der Code nur auf Klick. Den Antrag stellst du im
                Domainbestellsystem; hier klickst du nur, DASS er gestellt ist. */ ?>

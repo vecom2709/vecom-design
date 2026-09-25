@@ -205,6 +205,9 @@ final class Ablauf
         'umzug_beantragt' => [self::SCHWER,
             'Nur klicken, wenn der Umzug im Domainbestellsystem beantragt ist: Der Auth-Code wird danach gelöscht.',
             'Ja, Antrag ist gestellt'],
+        'hosting_sperren' => [self::SCHWER,
+            'Der Kunde kommt nicht mehr in sein KAS. Account, Dateien, Domain und Mails bleiben — gelöscht wird nichts.',
+            'Ja, sperren'],
         'hosting_weiter' => [self::SCHWER,
             'Fehlende Teile werden beim Anbieter angelegt (Domain, Postfach). Stand beim Account „unklar“, '
             . 'kann ein zweiter entstehen — vorher in der KAS-Accountliste nachsehen.',

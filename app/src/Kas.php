@@ -478,6 +478,27 @@ final class Kas
         return ['ok' => true, 'text' => '', 'urls' => $urls];
     }
 
+    /** Eine Weiterleitung (add_mailforward) -- "gibt es schon" zaehlt als ok. */
+    public static function weiterleitungAnlegen(string $lokal, string $domain, string $ziel, ?array $als = null): array
+    {
+        $erg = self::rufen('add_mailforward', ['local_part' => $lokal, 'domain_part' => strtolower($domain), 'target_0' => $ziel], $als);
+        if (!$erg['ok'] && stripos($erg['text'], 'mail_forward_exists_as_forward') !== false) { return ['ok' => true, 'text' => 'war schon da']; }
+        return ['ok' => $erg['ok'], 'text' => $erg['ok'] ? 'angelegt' : $erg['text']];
+    }
+
+    /**
+     * Den KAS-Zugang eines Unter-Accounts sperren oder wieder oeffnen
+     * (update_account, kas_access_forbidden). Gesperrt, nicht geloescht:
+     * Account, Dateien und Domain bleiben.
+     */
+    public static function zugangSperren(string $login, bool $sperren = true): array
+    {
+        if (!preg_match('/^w[0-9a-f]{7}$/i', $login)) { return ['ok' => false, 'text' => 'Kein gültiges KAS-Login.']; }
+        $erg = self::rufen('update_account', ['account_login' => $login, 'kas_access_forbidden' => $sperren ? 'Y' : 'N']);
+        if (!$erg['ok'] && stripos($erg['text'], 'nothing_to_do') !== false) { return ['ok' => true, 'text' => 'war schon so']; }
+        return ['ok' => $erg['ok'], 'text' => $erg['ok'] ? ($sperren ? 'gesperrt' : 'geöffnet') : $erg['text']];
+    }
+
     /** Den Cronjob der Verwaltung anlegen: alle zehn Minuten, per HTTPS. */
     public static function cronjobAnlegen(string $url, string $kommentar = 'Vecom Verwaltung'): array
     {

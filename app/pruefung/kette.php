@@ -8614,6 +8614,68 @@ pruefe('Cronjob: der Knopf prüft erst, ob es ihn schon gibt, und der tägliche 
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Hosting::speicherPruefen()'));
 
 /* ============================================================================
+   78. Weiterleitungen und Sperre nach Vertragsende
+   ============================================================================ */
+abschnitt('78. Weiterleitungen und Sperre nach Vertragsende');
+
+pruefe('Weiterleitungen: aus „info, Buchung; office@firma.it“ werden saubere Namen -- ohne kontakt, ohne Unsinn',
+    Hosting::weiterleitungen('info, Buchung; office@firma.it kontakt ../x info') === ['info', 'buchung', 'office']
+    && Hosting::weiterleitungen('') === [] && count(Hosting::weiterleitungen(implode(' ', range('a', 'z')))) === 10);
+
+$wlKas = new class {
+    public array $wl = [];
+    public function accountAnlegen(string $k, array $g = []): array { return ['ok' => true, 'login' => 'w0166666', 'kas_passwort' => 'K-1!', 'ftp_passwort' => 'F-2!', 'text' => 'ok']; }
+    public function domainAnlegen(string $d, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+    public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+    public function passwortNeu(): string { return 'P-3!'; }
+    public function weiterleitungAnlegen(string $l, string $d, string $z, ?array $als = null): array { $this->wl[] = $l . '@' . $d . '>' . $z . ':' . ($als['login'] ?? '-'); return ['ok' => true, 'text' => 'angelegt']; }
+};
+$wlK = Events::kundeFinden(['name' => 'Weiter Probe', 'email' => 'weiter@pruefung.example']);
+$wlA = (int) Db::insert('hosting_auftraege', ['customer_id' => $wlK, 'domain' => 'weiter-probe.it', 'status' => 'zugestimmt',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'weiterleitungen' => 'info,buchung']);
+Hosting::anlegen($wlA, $wlKas);
+pruefe('Weiterleitungen: beim Einrichten angelegt, im Unter-Account, alle auf kontakt@',
+    $wlKas->wl === ['info@weiter-probe.it>kontakt@weiter-probe.it:w0166666', 'buchung@weiter-probe.it>kontakt@weiter-probe.it:w0166666']
+    && (string) Hosting::schritte($wlA)['weiterleitung']['status'] === 'fertig');
+
+/* Sperre: eigener Hosting-Vertrag beendet */
+/* Den Hosting-Vertrag hat der Einrichtungslauf oben schon geschlossen (Schritt "vertrag"). */
+$wlAbo = (int) Db::wert("SELECT id FROM abos WHERE customer_id = ? AND paket_slug = 'hosting'", [$wlK], 0);
+pruefe('Sperre: der Einrichtungslauf hat den Hosting-Vertrag geschlossen', $wlAbo > 0);
+pruefe('Sperre: solange der Vertrag läuft, steht nichts zum Sperren da',
+    !array_filter(Hosting::zumSperren(), static fn($x) => (int) $x['id'] === $wlA));
+Db::run("UPDATE abos SET status = 'beendet' WHERE id = ?", [$wlAbo]);
+pruefe('Sperre: nach Vertragsende steht er auf der Liste und in „Wartet auf dich“',
+    (bool) array_filter(Hosting::zumSperren(), static fn($x) => (int) $x['id'] === $wlA)
+    && (bool) array_filter(Leistungen::warten(), static fn($w) => ($w['marke'] ?? '') === 'Zugang offen' && str_contains($w['titel'], 'weiter-probe.it')));
+$wlGerufen = [];
+$wlSp = static function (string $login, bool $zu) use (&$wlGerufen): array { $wlGerufen[] = $login . ':' . ($zu ? 'Y' : 'N'); return ['ok' => true, 'text' => '']; };
+$wlR = Hosting::zugangSperren($wlA, true, $wlSp);
+pruefe('Sperre: gesperrt wird der Account des Kunden, vermerkt -- und dann ist er von der Liste',
+    $wlR['ok'] && $wlGerufen === ['w0166666:Y'] && Db::one('SELECT gesperrt_am FROM hosting_auftraege WHERE id = ?', [$wlA])['gesperrt_am'] !== null
+    && !array_filter(Hosting::zumSperren(), static fn($x) => (int) $x['id'] === $wlA));
+Hosting::zugangSperren($wlA, false, $wlSp);
+pruefe('Sperre: wieder öffnen geht', $wlGerufen[1] === 'w0166666:N' && Db::one('SELECT gesperrt_am FROM hosting_auftraege WHERE id = ?', [$wlA])['gesperrt_am'] === null);
+
+/* Hosting in der Betreuung: gesperrt wird erst, wenn die Betreuung vorbei ist */
+$wlK2 = Events::kundeFinden(['name' => 'Inklusive Probe', 'email' => 'inklusive@pruefung.example']);
+$wlA2 = (int) Db::insert('hosting_auftraege', ['customer_id' => $wlK2, 'domain' => 'inklusive-probe.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'kas_login' => 'w0155555', 'inklusive' => 1]);
+$wlB1 = Abo::anlegen($wlK2, ['paket_slug' => 'betreuung-plus']);
+Db::run("UPDATE abos SET status = 'beendet' WHERE id = ?", [$wlB1]);
+$wlB2 = Abo::anlegen($wlK2, ['paket_slug' => 'betreuung-premium']);
+pruefe('Sperre: steckt das Hosting in der Betreuung und läuft eine neue Betreuung, wird nicht gesperrt',
+    !array_filter(Hosting::zumSperren(), static fn($x) => (int) $x['id'] === $wlA2));
+Db::run("UPDATE abos SET status = 'beendet' WHERE id = ?", [$wlB2]);
+pruefe('Sperre: … erst wenn keine mehr läuft',
+    (bool) array_filter(Hosting::zumSperren(), static fn($x) => (int) $x['id'] === $wlA2));
+pruefe('Sperre: fragt vorher, und die Klasse kann weiterhin nichts löschen',
+    Ablauf::wiegt('hosting_sperren') === Ablauf::SCHWER
+    && !array_filter(get_class_methods('Kas'), static fn($m) => str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete')));
+pruefe('Fragebogen: die Frage nach Weiterleitungen erscheint nur mit Postfach bei Vecom',
+    (Texte::FRAGEBOGEN['formales']['felder']['mail_weiter']['wenn'] ?? null) === ['feld' => 'mail_wahl', 'ist' => ['vecom']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

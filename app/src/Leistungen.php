@@ -85,6 +85,18 @@ final class Leistungen
                       'link' => 'kunden/' . (int) $r['customer_id']];
         }
 
+        /* Vertrag vorbei, KAS-Zugang noch offen: sperren, nicht loeschen --
+           und nur auf Uwes Klick in der Kundenakte (Rueckfrage). */
+        try {
+            require_once __DIR__ . '/Hosting.php';
+            foreach (Hosting::zumSperren() as $r) {
+                $aus[] = ['ton' => 'warnung', 'marke' => 'Zugang offen',
+                          'titel' => Fmt::name($r['wer']) . ': ' . (string) $r['domain'],
+                          'text' => 'Der Vertrag ist beendet, der KAS-Zugang steht noch offen — in der Kundenakte sperren.',
+                          'link' => 'kunden/' . (int) $r['customer_id']];
+            }
+        } catch (Throwable $e) { /* vor Migration 062 */ }
+
         /* Vertraege, die bald auslaufen -- Zeit fuer ein Gespraech, nicht fuer eine Mahnung. */
         foreach ((array) self::still(fn() => Db::all(
             "SELECT a.customer_id, a.paket_name, a.laeuft_bis,

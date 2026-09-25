@@ -997,6 +997,13 @@ if ($post) {
                 }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'hosting_sperren':
+            case 'hosting_entsperren':
+                require_once __DIR__ . '/src/Hosting.php';
+                $hs = Hosting::zugangSperren((int) ($_POST['id'] ?? 0), $tat === 'hosting_sperren');
+                $_SESSION[$hs['ok'] ? 'gut' : 'fehler'] = $hs['text'];
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'hosting_weiter':
                 /* Phase 3: gescheiterte oder von Hand markierte Schritte
                    noch einmal -- nur was fehlt, nie ein zweiter Durchlauf. */
