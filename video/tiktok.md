@@ -6,8 +6,8 @@ TikTok, Instagram Reels, YouTube Shorts und Facebook Reels.
 | Datei | Aufhänger | Länge |
 |---|---|---|
 | `clip1-fehler.mp4` | „Deine Website erklärt, was du machst" | 14 s |
-| `clip2-preis.mp4` | „Was kostet eine Website?" | 14 s |
-| `clip3-ablauf.mp4` | „In 2 Wochen online" | 17 s |
+| `clip2-preis.mp4` | „Was kostet eine Website?" | 14 s — am 25.09.2026 entfernt, neu aufnehmen |
+| `clip3-ablauf.mp4` | „So läuft es ab" | 17 s — am 25.09.2026 entfernt, neu aufnehmen |
 
 ## Bildunterschriften zum Kopieren
 
@@ -24,8 +24,9 @@ Fragen? Schreib mir.
 #website #preise #webdesign #transparenz #selbststaendigkeit #gruenden
 
 **Clip 3**
-Von der ersten Nachricht bis online: zwei Wochen. Tag 1 reden wir, Tag 3 siehst
-du den ersten Entwurf, Woche 2 ist deine Seite live. Kein Baukasten, kein
+Du beschreibst dein Vorhaben, siehst deinen Preis Posten für Posten und gibst
+frei, bevor die Seite online geht. Wie lange es dauert, hängt am Umfang — das
+sage ich dir, sobald feststeht, was gebaut wird. Kein Baukasten, kein
 Abo-Zwang, ein Ansprechpartner.
 #webdesign #website #ablauf #kmu #handwerk #gastronomie
 

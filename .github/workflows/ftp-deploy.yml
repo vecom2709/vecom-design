@@ -158,6 +158,9 @@ jobs:
               --exclude '^app/pruefung/kette\.php$' \
               --exclude '^_to_delete/' \
               --exclude '^_[^/]*$' \
+              --exclude '^richtungen/' \
+              --exclude '^tiktok\.html$' \
+              --exclude '^video/clip[0-9]' \
               --exclude '\.md$' \
               ./ $DIR;
             rm -rf $DIR/_to_delete;
@@ -187,6 +190,10 @@ jobs:
             rm -f $DIR/assets/js/haus.js;
             rm -f $DIR/assets/js/werkbank.js;
             rm -f $DIR/video/clip2-preis.mp4;
+            rm -f $DIR/video/clip1-fehler.mp4;
+            rm -f $DIR/video/clip3-ablauf.mp4;
+            rm -f $DIR/tiktok.html;
+            rm -rf $DIR/richtungen;
             bye"
 
       - name: Cockpit-Schutz nachsehen

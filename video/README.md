@@ -33,7 +33,7 @@ GPU die Bühne abschalten, statt das Ergebnis hinzunehmen.
 
 - `jonika-*.mp4`, `mensaena-*.mp4` — Referenzaufnahmen der Kundenseiten,
   eingebunden im Abschnitt „Arbeiten".
-- `clip1-fehler.mp4`, `clip3-ablauf.mp4` — Hochkant-Clips (`clip2-preis.mp4` am 25.09.2026 entfernt: zeigte „ab 499 € · Festpreis“)
+- `clip1-fehler.mp4` — Hochkant-Clip (`clip2-preis.mp4` und `clip3-ablauf.mp4` am 25.09.2026 entfernt: „ab 499 € · Festpreis“ und „In 2 Wochen online“; neu aufnehmen aus `tiktok.html`). Seit dem 25.09. gehen Clips, `tiktok.html` und `richtungen/` nicht mehr auf den Webspace
   für TikTok und Reels, 720 × 1280. Beschrieben in `tiktok.md`; auf der Website
   werden sie nicht abgespielt.
 - `sprechertext.md`, `tiktok.md` — Drehbücher. Gehen nie auf den Webspace,

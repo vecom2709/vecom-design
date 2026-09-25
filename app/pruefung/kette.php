@@ -7363,6 +7363,18 @@ foreach ($p0Js as $p0F) {
         foreach ($p0Am[1] as $p0Mod) { if (!isset($p0Erlaubt["ar-$p0Mod"])) { $p0Fehlt[] = "ar-$p0Mod"; } }
     }
 }
+/* Keine Fertigungszeit und kein Festpreis in den Clips (Uwe, 25.09.2026),
+   und die Arbeitsdateien gehen nicht mehr auf den Webspace: tiktok.html,
+   die Clips und die Entwurfsrichtungen lagen oeffentlich, obwohl nichts
+   sie verlinkte -- mit "In 2 Wochen online" und "prezzo fisso". */
+$p0Tik = (string) file_get_contents(dirname($wurzel) . '/tiktok.html');
+pruefe('tiktok.html verspricht keine Dauer und keinen Festpreis',
+    !preg_match('~Wochen|Festpreis|\bab \d~u', $p0Tik));
+$p0Dep = (string) file_get_contents(dirname($wurzel) . '/.github/workflows/ftp-deploy.yml');
+foreach (["--exclude '^richtungen/'", "--exclude '^tiktok\\.html$'", "--exclude '^video/clip[0-9]'"] as $p0Ex) {
+    pruefe("der Deploy schließt $p0Ex aus", str_contains($p0Dep, $p0Ex));
+}
+
 require_once $wurzel . '/src/Hosting.php';
 pruefe('das erste Postfach eines Hosting-Kunden heißt kontakt@ (Uwe, 25.09.2026)', Hosting::POSTFACH === 'kontakt');
 pruefe('jedes gesendete Ereignis wird in d.php auch gezählt', $p0Fehlt === [], implode(', ', array_unique($p0Fehlt)));
