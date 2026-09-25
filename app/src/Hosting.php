@@ -24,7 +24,7 @@ require_once __DIR__ . '/Domainpruefung.php';
  *
  * 3. ANLEGEN — erst wenn der Bau fertig ist. Bei der finalen Freigabe
  *    (der Kunde hat die Vorschau abgenommen) legt die Verwaltung an:
- *    KAS-Account, Domain im Account, Postfach info@. Jeder Schritt einzeln
+ *    KAS-Account, Domain im Account, Postfach kontakt@. Jeder Schritt einzeln
  *    fehlertolerant; was nicht klappt, steht woertlich in der Aufgabe fuer
  *    Uwe. Die REGISTRIERUNG der Domain bleibt sein Handgriff im
  *    Domainbestellsystem — dafuer gibt es keine Schnittstelle, und All-Inkl
@@ -42,6 +42,9 @@ require_once __DIR__ . '/Domainpruefung.php';
  */
 final class Hosting
 {
+    /** Das erste Postfach eines Hosting-Kunden. */
+    public const POSTFACH = 'kontakt';
+
     /** Nach so vielen Tagen ohne Abruf werden die Zugangsdaten vernichtet. */
     public const ZUGANG_TAGE = 14;
 
@@ -358,15 +361,18 @@ final class Hosting
 
         $mailPw = Kas::passwortNeu();
         if ($als !== null) {
-            $m = Kas::postfachAnlegen('info', $domain, $mailPw, $als);
-            $m['ok'] ? $schritte[] = 'Postfach info@' . $domain : $offen[] = 'Postfach info@ anlegen (' . $m['text'] . ')';
+            /* kontakt@ statt info@ (Uwe, 25.09.2026): dieselbe Adresse, die
+               Vecom selbst benutzt -- kontakt@vecom-design.it. */
+            $m = Kas::postfachAnlegen(self::POSTFACH, $domain, $mailPw, $als);
+            $m['ok'] ? $schritte[] = 'Postfach ' . self::POSTFACH . '@' . $domain
+                     : $offen[] = 'Postfach ' . self::POSTFACH . '@ anlegen (' . $m['text'] . ')';
         }
 
         /* 3. Zugangsdaten verschluesselt ablegen — einmaliger Abruf. */
         $blob = self::verschluesseln([
             'kas_login' => $acc['login'], 'kas_passwort' => $acc['kas_passwort'],
             'ftp_passwort' => $acc['ftp_passwort'],
-            'postfach' => 'info@' . $domain, 'postfach_passwort' => $mailPw,
+            'postfach' => self::POSTFACH . '@' . $domain, 'postfach_passwort' => $mailPw,
             'server' => ($acc['login'] !== '' ? $acc['login'] : 'w…') . '.kasserver.com',
         ]);
 

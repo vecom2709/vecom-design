@@ -4035,7 +4035,7 @@ $hoKrypto = new ReflectionClass('Hosting');
 $hoVer = $hoKrypto->getMethod('verschluesseln'); $hoVer->setAccessible(true);
 $hoEnt = $hoKrypto->getMethod('entschluesseln'); $hoEnt->setAccessible(true);
 $hoDaten = ['kas_login' => 'w0000000', 'kas_passwort' => 'Geheim-123!', 'ftp_passwort' => 'Anders-456_',
-            'postfach' => 'info@domarella-kette.it', 'postfach_passwort' => 'Dritte-789!',
+            'postfach' => 'kontakt@domarella-kette.it', 'postfach_passwort' => 'Dritte-789!',
             'server' => 'w0000000.kasserver.com'];
 $hoBlob = $hoVer->invoke(null, $hoDaten);
 pruefe('die Zugangsdaten lassen sich verschluesseln', is_string($hoBlob) && $hoBlob !== '');
@@ -7363,6 +7363,8 @@ foreach ($p0Js as $p0F) {
         foreach ($p0Am[1] as $p0Mod) { if (!isset($p0Erlaubt["ar-$p0Mod"])) { $p0Fehlt[] = "ar-$p0Mod"; } }
     }
 }
+require_once $wurzel . '/src/Hosting.php';
+pruefe('das erste Postfach eines Hosting-Kunden heißt kontakt@ (Uwe, 25.09.2026)', Hosting::POSTFACH === 'kontakt');
 pruefe('jedes gesendete Ereignis wird in d.php auch gezählt', $p0Fehlt === [], implode(', ', array_unique($p0Fehlt)));
 
 /* ============================================================================
