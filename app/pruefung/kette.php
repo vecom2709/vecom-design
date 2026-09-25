@@ -7380,6 +7380,58 @@ pruefe('das erste Postfach eines Hosting-Kunden heißt kontakt@ (Uwe, 25.09.2026
 pruefe('jedes gesendete Ereignis wird in d.php auch gezählt', $p0Fehlt === [], implode(', ', array_unique($p0Fehlt)));
 
 /* ============================================================================
+   63. Phase 1a: Vertragsregeln stehen am Produkt, nicht im Code
+   ============================================================================ */
+abschnitt('63. Vertragsregeln in der Verwaltung');
+require_once $wurzel . '/src/Abo.php';
+
+/* Uwe, 25.09.2026: 12 Monate Mindestlaufzeit, danach monatlich zum
+   Monatsende. Auch nach dem Saeen einer frischen Einrichtung -- die Werte
+   stehen deshalb in Migration 052 UND in den Startdaten. */
+foreach (['betreuung-basis' => 0, 'betreuung-plus' => 60, 'betreuung-premium' => 120] as $vrSlug => $vrMin) {
+    $vrP = Db::one('SELECT mindest_monate, kuendigung_tage, inklusiv_minuten FROM packages WHERE slug = ?', [$vrSlug]);
+    pruefe("$vrSlug: 12 Monate, bis Monatsende, $vrMin Minuten inklusive",
+        $vrP && (int) $vrP['mindest_monate'] === 12 && (int) $vrP['kuendigung_tage'] === 0
+        && (int) $vrP['inklusiv_minuten'] === $vrMin, json_encode($vrP));
+}
+pruefe('Hosting: 12 Monate Mindestlaufzeit',
+    (int) Db::wert("SELECT mindest_monate FROM packages WHERE slug = 'hosting'", [], 0) === 12);
+
+/* Die Vertragstexte sagen "jederzeit zum Monatsende kuendbar". Solange sie
+   das sagen, darf kein Monatsprodukt eine Frist tragen -- sonst stuende im
+   Vertragsblatt etwas anderes als in der Rechnung des Enddatums. */
+pruefe('kein Monatsprodukt hat eine Frist, solange die Vertragstexte „zum Monatsende“ sagen',
+    (int) Db::wert("SELECT COUNT(*) FROM packages WHERE art IN ('betreuung','hosting') AND active = 1
+                     AND kuendigung_tage > 0", [], 1) === 0
+    && str_contains((string) file_get_contents($wurzel . '/src/Abovertrag.php'), 'zum Monatsende'));
+
+/* Der Vertrag kopiert die Regel des Produkts -- und nimmt die Konstante nur,
+   wenn am Produkt nichts steht. */
+$vrPaket = Db::insert('packages', ['slug' => 'kette-regel', 'name' => 'Regelprobe', 'description' => 'Pruefzeile',
+    'price_cents' => 0, 'monthly_cents' => 5000, 'currency' => 'EUR', 'art' => 'betreuung',
+    'active' => 0, 'oeffentlich' => 0, 'sort' => 99, 'mindest_monate' => 6, 'kuendigung_tage' => 30]);
+$vrKunde = Events::kundeFinden(['name' => 'Regel Probe', 'email' => 'regel@pruefung.example']);
+$vrAbo = Abo::anlegen($vrKunde, ['paket_slug' => 'kette-regel', 'zahlart' => 'manuell', 'beginn' => '2026-01-15']);
+$vrA = Db::one('SELECT * FROM abos WHERE id = ?', [$vrAbo]);
+pruefe('der Vertrag übernimmt die Mindestlaufzeit des Produkts (6 Monate)',
+    (string) $vrA['mindestlaufzeit_bis'] === '2026-07-14', (string) $vrA['mindestlaufzeit_bis']);
+pruefe('und die Frist', (int) $vrA['kuendigung_tage'] === 30);
+Db::update('packages', $vrPaket, ['mindest_monate' => 3]);
+pruefe('eine spätere Änderung am Produkt ändert den laufenden Vertrag nicht',
+    (string) Db::wert('SELECT mindestlaufzeit_bis FROM abos WHERE id = ?', [$vrAbo], '') === '2026-07-14');
+
+/* Das Ende: in der Mindestlaufzeit zu deren Monatsende; danach zum Ende des
+   Monats, in dem die Frist ablaeuft. */
+$vrV = Abo::kuendigungsvorschau($vrA, '2026-03-10');
+pruefe('in der Mindestlaufzeit endet der Vertrag mit ihr (31.07.)', $vrV['ende'] === '2026-07-31', $vrV['ende']);
+$vrV = Abo::kuendigungsvorschau($vrA, '2026-09-20');
+pruefe('danach mit 30 Tagen Frist: Kündigung am 20.09. wirkt zum 31.10.', $vrV['ende'] === '2026-10-31', $vrV['ende']);
+$vrV = Abo::kuendigungsvorschau(['kuendigung_tage' => 0] + $vrA, '2026-09-20');
+pruefe('ohne Frist wie bisher zum laufenden Monatsende (30.09.)', $vrV['ende'] === '2026-09-30', $vrV['ende']);
+Db::run('DELETE FROM abos WHERE id = ?', [$vrAbo]);
+Db::run('DELETE FROM packages WHERE id = ?', [$vrPaket]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

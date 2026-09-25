@@ -60,7 +60,10 @@
       }
     },
     "detail_url": "pakete.html#betreuung-basis",
-    "oeffentlich": 1
+    "oeffentlich": 1,
+    "mindest_monate": 12,
+    "kuendigung_tage": 0,
+    "inklusiv_minuten": 0
   },
   {
     "slug": "betreuung-plus",
@@ -131,7 +134,10 @@
       }
     },
     "detail_url": "pakete.html#betreuung-plus",
-    "oeffentlich": 1
+    "oeffentlich": 1,
+    "mindest_monate": 12,
+    "kuendigung_tage": 0,
+    "inklusiv_minuten": 60
   },
   {
     "slug": "betreuung-premium",
@@ -214,7 +220,10 @@
       }
     },
     "detail_url": "pakete.html#betreuung-premium",
-    "oeffentlich": 1
+    "oeffentlich": 1,
+    "mindest_monate": 12,
+    "kuendigung_tage": 0,
+    "inklusiv_minuten": 120
   },
   {
     "slug": "bestandsaufnahme",

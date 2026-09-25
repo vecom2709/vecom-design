@@ -20,6 +20,12 @@ $tx = static function (array $texte, string $l, string $feld): string {
 <div class="feld"><label>Kürzel (URL)</label><input name="slug" value="<?= Fmt::h($p['slug'] ?? '') ?>"></div></div>
 <div class="reihe"><div class="feld"><label>Preis einmalig (€)</label><input name="preis" value="<?= $p ? number_format($p['price_cents']/100, 2, ',', '') : '' ?>"></div>
 <div class="feld"><label>Monatlich (€)</label><input name="monat" value="<?= $p ? number_format($p['monthly_cents']/100, 2, ',', '') : '0' ?>"></div></div>
+<?php /* Vertragsregeln (Migration 052): stehen hier, nicht im Code. Werden beim
+         Vertragsschluss in den Vertrag kopiert -- eine Aenderung hier gilt nur
+         fuer neue Vertraege. Leer = Standard (12 Monate, bis Monatsende). */ ?>
+<div class="reihe"><div class="feld"><label>Mindestlaufzeit (Monate)</label><input name="mindest_monate" type="number" min="0" max="60" value="<?= isset($p['mindest_monate']) ? (int) $p['mindest_monate'] : '' ?>" placeholder="12"></div>
+<div class="feld"><label>Kündigungsfrist vor Monatsende (Tage)</label><input name="kuendigung_tage" type="number" min="0" max="365" value="<?= isset($p['kuendigung_tage']) ? (int) $p['kuendigung_tage'] : '' ?>" placeholder="0"></div>
+<div class="feld"><label>Änderungszeit inklusive (Minuten/Monat)</label><input name="inklusiv_minuten" type="number" min="0" max="6000" value="<?= isset($p['inklusiv_minuten']) ? (int) $p['inklusiv_minuten'] : '' ?>" placeholder="—"></div></div>
 <div class="feld"><label>Untertitel auf der Karte</label><input name="sub" value="<?= Fmt::h($p['sub'] ?? '') ?>" placeholder="Gefunden werden und Anfragen bekommen"></div>
 <div class="feld"><label>Leistungen (eine je Zeile · Zeilen mit Doppelpunkt am Ende werden zur Zwischenüberschrift)</label>
   <textarea name="features" rows="7"><?= Fmt::h($feat) ?></textarea></div>

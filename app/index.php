@@ -987,6 +987,13 @@ if ($post) {
                     'popular' => isset($_POST['popular']) ? 1 : 0,
                     'sort' => (int) ($_POST['sort'] ?? 0),
                 ];
+                /* Vertragsregeln (Migration 052). Leer heisst Standard, nicht 0 --
+                   eine Mindestlaufzeit von null Monaten waere ein anderer Vertrag. */
+                foreach (['mindest_monate', 'kuendigung_tage', 'inklusiv_minuten'] as $vr) {
+                    if (array_key_exists($vr, $_POST)) {
+                        $daten[$vr] = trim((string) $_POST[$vr]) === '' ? null : max(0, (int) $_POST[$vr]);
+                    }
+                }
                 if ($daten['name'] === '') { throw new RuntimeException('Der Name fehlt.'); }
                 $pid = (int) ($_POST['id'] ?? 0);
                 if ($pid > 0) { Db::update('packages', $pid, $daten); }

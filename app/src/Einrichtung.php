@@ -332,6 +332,7 @@ final class Einrichtung
                 'active' => 1, 'oeffentlich' => (int) ($p['oeffentlich'] ?? 1), 'popular' => $p['popular'], 'sort' => $p['sort'],
             ];
             if (self::spalteDa('packages', 'art')) { $daten['art'] = $p['art'] ?? 'website'; }
+            $daten += self::vertragsregeln($p);
             $da = Db::one('SELECT id FROM packages WHERE slug = ?', [$p['slug']]);
             if ($da) { Db::update('packages', (int) $da['id'], $daten); $ergebnis[] = $p['name'] . ' (aktualisiert)'; }
             else     { Db::insert('packages', $daten); $ergebnis[] = $p['name'] . ' (angelegt)'; }
@@ -367,6 +368,25 @@ final class Einrichtung
      *
      * @return array{angelegt:list<string>,entwirrt:list<string>,unberuehrt:list<string>}
      */
+    /**
+     * Laufzeit, Frist und Inklusivzeit aus den Startdaten (Migration 052).
+     *
+     * Dieselbe Falle wie am 13.09.2026: Startdaten werden NACH den
+     * Migrationen gesaet. Stuenden die Werte nur in 052, haette eine frische
+     * Einrichtung Betreuungspakete ohne Laufzeit. Nur Spalten, die es schon
+     * gibt -- vor 052 bleibt die Liste leer.
+     *
+     * @return array<string,int>
+     */
+    private static function vertragsregeln(array $p): array
+    {
+        $aus = [];
+        foreach (['mindest_monate', 'kuendigung_tage', 'inklusiv_minuten'] as $feld) {
+            if (array_key_exists($feld, $p) && self::spalteDa('packages', $feld)) { $aus[$feld] = (int) $p[$feld]; }
+        }
+        return $aus;
+    }
+
     public static function paketeTrennen(): array
     {
         $bilanz = ['angelegt' => [], 'entwirrt' => [], 'unberuehrt' => []];
@@ -387,7 +407,7 @@ final class Einrichtung
                     'texte' => isset($p['texte']) ? json_encode($p['texte'], JSON_UNESCAPED_UNICODE) : null,
                     'detail_url' => $p['detail_url'] ?? null,
                     'active' => 1, 'oeffentlich' => (int) ($p['oeffentlich'] ?? 1), 'popular' => $p['popular'], 'sort' => $p['sort'],
-                ]);
+                ] + self::vertragsregeln($p));
                 $bilanz['angelegt'][] = (string) $p['name'];
                 continue;
             }

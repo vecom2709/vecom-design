@@ -33,7 +33,14 @@ require_once __DIR__ . '/Auth.php';
 final class Abo
 {
     /** Erste Laufzeit in Monaten. Steht so auf der Website und im Angebot. */
-    public const MINDESTMONATE = 12;
+    public const MINDESTMONATE = 12;   // nur noch der Standard, wenn am Produkt nichts steht
+
+    /** Die Mindestlaufzeit eines Produkts in Monaten. */
+    public static function mindestMonate(array $paket): int
+    {
+        $m = (int) ($paket['mindest_monate'] ?? 0);
+        return $m > 0 ? $m : self::MINDESTMONATE;
+    }
 
     public const ZAHLARTEN = [
         'karte'   => 'Karte',
@@ -94,9 +101,12 @@ final class Abo
             'zahlart'     => $zahlart,
             'status'      => 'aktiv',
             'beginn'      => date('Y-m-d', $t),
-            // Zwoelf Monate ab Beginn, der letzte Tag davor. Ein Vertrag vom
-            // 15.3. laeuft bis zum 14.3. des Folgejahres.
-            'mindestlaufzeit_bis' => date('Y-m-d', strtotime('+' . self::MINDESTMONATE . ' months -1 day', $t)),
+            // Die Laufzeit steht am Produkt (Migration 052) und wird hier in den
+            // Vertrag kopiert: Eine spaetere Aenderung am Produkt aendert
+            // keinen Vertrag, der schon laeuft. Fehlt sie, gilt der Standard.
+            // Ein Vertrag vom 15.3. laeuft bis zum 14.3. des Folgejahres.
+            'mindestlaufzeit_bis' => date('Y-m-d', strtotime('+' . self::mindestMonate($p) . ' months -1 day', $t)),
+            'kuendigung_tage'     => (int) ($p['kuendigung_tage'] ?? 0),
             'naechste_abrechnung' => date('Y-m-d', $t),
         ]);
 
@@ -422,8 +432,10 @@ final class Abo
         }
 
         // Zum Ende des laufenden Monats — frueher geht nicht, weil der Monat
-        // bezahlt ist.
-        $monatsende = date('Y-m-t', $heute);
+        // bezahlt ist. Mit Frist (kuendigung_tage, Migration 052) zum Ende
+        // des Monats, in dem die Frist ablaeuft; bei 0 wie bisher.
+        $frist = max(0, (int) ($abo['kuendigung_tage'] ?? 0));
+        $monatsende = date('Y-m-t', strtotime('+' . $frist . ' days', $heute));
 
         $mindest = (string) $abo['mindestlaufzeit_bis'];
         $inMindest = $mindest !== '' && strtotime($mindest) > $heute;
@@ -431,7 +443,7 @@ final class Abo
         // Waehrend der Mindestlaufzeit: zu deren Ende, aber auf das Monatsende
         // gerundet — sonst endet ein Vertrag mitten im Monat, fuer den der
         // Kunde schon gezahlt hat.
-        $ende = $inMindest ? date('Y-m-t', strtotime($mindest)) : $monatsende;
+        $ende = $inMindest ? max(date('Y-m-t', strtotime($mindest)), $monatsende) : $monatsende;
 
         return ['moeglich' => true, 'ende' => $ende,
                 'grund' => $inMindest ? 'mindestlaufzeit' : 'monatsende',
