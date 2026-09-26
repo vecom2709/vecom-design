@@ -9984,6 +9984,16 @@ pruefe('Wer schon gekauft hat, wird über den Link nicht mehr zugeordnet (Verein
 pruefe('… von Hand durch Uwe aber schon', Partner::zuordnen($ztAlt, $ztP, 'hand') === 'zugeordnet');
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 
+/* Partnerseite in der Sprache des Partners (26.09.2026, Uwe: „ständig auf Englisch“) */
+abschnitt('Partner: seine Sprache');
+$psSeite = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerseite: die Sprache des Partners schlägt den Sprach-Keks der Website',
+    str_contains($psSeite, "Sprache::waehlen((string) \$p['sprache'])") && str_contains($psSeite, "UPDATE partner SET sprache"));
+$psId = Partner::anlegen(['name' => 'Sprache Test', 'email' => 'sprache@partner.example', 'status' => 'aktiv', 'sprache' => 'it']);
+Partner::bedingungenSetzen($psId, ['sprache' => 'de', 'monatsmail' => '1']);
+pruefe('Verwaltung: die Sprache eines Partners lässt sich einstellen', Partner::laden($psId)['sprache'] === 'de');
+Db::run('DELETE FROM partner WHERE id = ?', [$psId]);
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

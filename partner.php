@@ -41,13 +41,29 @@ catch (Throwable $e) {
 
 $token = (string) ($_GET['t'] ?? $_POST['t'] ?? '');
 $p = $token !== '' ? Partner::ausToken($token) : null;
-$sprache = Sprache::ausAnfrage($p['sprache'] ?? null);
-Sprache::merken($sprache);
+/* DIE SPRACHE DES PARTNERS GEWINNT (Uwe, 26.09.2026: „ständig auf Englisch“)
+   Auf der Partnerseite gilt die Sprache, die am Partner steht — nicht der
+   Sprach-Keks, den der Browser von der Website mitbringt (wer dort einmal
+   „English“ geklickt hat, sah seine Partnerseite danach immer englisch).
+   Nur ein Klick auf die Sprachwahl unten ändert sie — und dann für immer,
+   auch für seine Mails. */
+if ($p) {
+    $sprache = Sprache::gewaehlt() ? Sprache::ausAnfrage() : Sprache::waehlen((string) $p['sprache']);
+    if (Sprache::gewaehlt() && $sprache !== (string) $p['sprache']) {
+        Db::run('UPDATE partner SET sprache = ? WHERE id = ?', [$sprache, (int) $p['id']]);
+        $p['sprache'] = $sprache;
+    }
+} else {
+    $sprache = Sprache::ausAnfrage();
+    Sprache::merken($sprache);
+}
 $T = static fn(string $k): string => Texte::h(Texte::PARTNER[$k] ?? [], $sprache);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+/* Mit Schlüssel ohne lang: Sonst hielte jede Formularadresse die Sprache
+   dieser Seite fest und zählte als „gewählt“. */
 $selbst = static fn(array $extra = []) => '/partner.php?' . http_build_query(array_merge(
-    $p ? ['t' => $p['token']] : [], ['lang' => $sprache], $extra));
+    $p ? ['t' => $p['token']] : ['lang' => $sprache], $extra));
 
 $meldung = ''; $gut = false;
 

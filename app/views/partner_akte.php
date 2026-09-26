@@ -176,6 +176,9 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
           <option value="1" <?= $wahl($p[$k]) === '1' ? 'selected' : '' ?>>ja</option>
           <option value="0" <?= $wahl($p[$k]) === '0' ? 'selected' : '' ?>>nein</option></select></div>
       <?php endforeach; ?>
+      <div class="feld" style="flex:0 0 130px"><label>Sprache</label><select name="sprache">
+        <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $w): ?>
+          <option value="<?= $l ?>" <?= $p['sprache'] === $l ? 'selected' : '' ?>><?= $w ?></option><?php endforeach; ?></select></div>
       <div class="feld" style="flex:0 0 150px"><label>Monatsverträge (Monate)</label><input name="wiederkehrend_monate" value="<?= Fmt::h($p['wiederkehrend_monate'] !== null ? (string) $p['wiederkehrend_monate'] : '') ?>"></div>
     </div>
     <label style="font-size:13.5px;display:flex;align-items:center;margin:10px 0"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="monatsmail" value="1" <?= !empty($p['monatsmail']) ? 'checked' : '' ?>> Monatsbericht per E-Mail</label>

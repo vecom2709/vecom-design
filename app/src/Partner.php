@@ -256,6 +256,7 @@ final class Partner
         $m = trim((string) ($d['wiederkehrend_monate'] ?? ''));
         $neu['wiederkehrend_monate'] = $m === '' ? null : max(0, min(60, (int) $m));
         $neu['monatsmail'] = !empty($d['monatsmail']) ? 1 : 0;
+        if (in_array((string) ($d['sprache'] ?? ''), ['it', 'de', 'en'], true)) { $neu['sprache'] = (string) $d['sprache']; }
         $neu['notiz'] = mb_substr(trim((string) ($d['notiz'] ?? '')), 0, 2000);
         $vorher = array_intersect_key($p, $neu);
         Db::update('partner', $id, $neu);
