@@ -357,7 +357,7 @@ final class Partner
                 'notiz' => null, 'iban_blob' => null, 'iban_ende' => null, 'kontoinhaber' => null, 'paypal_email' => null,
                 'wise_empfaenger' => null, 'customer_id' => null, 'monatsmail' => 0, 'firma' => $p['firma'],
                 // Foto und Satz der Empfehlungsseite sind keine Belege -- sie gehen mit.
-                'foto' => null, 'foto_am' => null, 'profil_satz' => null,
+                'foto' => null, 'foto_am' => null, 'profil_satz' => null, 'seite_json' => null, 'seite_bild' => null, 'seite_bild_am' => null,
             ]);
             Events::pruefspur('partner_geloescht', 'partner', $id, ['name' => $name, 'email' => $p['email']],
                               ['ganz' => false, 'grund' => 'Belege müssen aufbewahrt werden']);

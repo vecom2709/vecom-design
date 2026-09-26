@@ -1,0 +1,118 @@
+<?php
+/* ==========================================================================
+   Gestalter der Empfehlungsseite im Partner-Dashboard (26.09.2026).
+   Eingebunden aus partner.php ($p, $sprache, $T, $h, $selbst, $meldung).
+   Alle Wahlen sind Schlüssel aus PartnerSeite -- das Formular kann nichts
+   anderes schicken, als dort steht (und der Server prüft es trotzdem).
+   ========================================================================== */
+$gs = PartnerSeite::gestaltung($p);
+$PS = Texte::PARTNER_SEITE;
+$W = static fn(array $t): string => Texte::h($t, $sprache);
+$gFehler = in_array($meldung, ['text_link', 'wa_nummer', 'bild_gross', 'bild_art'], true) ? $meldung : '';
+$vorschau = '/p.php?' . http_build_query(['c' => $p['code'], 'lang' => $sprache, 'n' => 1, 'v' => substr(md5((string) ($p['seite_am'] ?? '') . (string) ($p['foto_am'] ?? '')), 0, 6)]);
+$eigenesBild = !empty($p['seite_bild_am']) ? '/p.php?' . http_build_query(['titel' => $p['code'], 'v' => substr(md5((string) $p['seite_bild_am']), 0, 8)]) : null;
+$daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($datei, 'haar/') ? $datei : preg_replace('~\.webp$~', '-800.webp', $datei));
+?>
+<style>
+  .gs-wahl{display:flex;gap:8px;flex-wrap:wrap}
+  .gs-wahl label{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;color:var(--dim);text-align:center}
+  .gs-wahl input{position:absolute;opacity:0;width:1px;height:1px}
+  .gs-muster{width:74px;height:48px;border-radius:10px;border:2px solid var(--linie2);display:grid;grid-template-rows:1fr 10px;overflow:hidden}
+  .gs-muster i{display:block}
+  .gs-farbe{width:34px;height:34px;border-radius:50%;border:2px solid var(--linie2)}
+  .gs-bild{width:110px;aspect-ratio:16/9;border-radius:10px;border:2px solid var(--linie2);object-fit:cover;background:var(--flaeche2);display:grid;place-items:center;font-size:12px}
+  .gs-wahl input:checked + .gs-muster,.gs-wahl input:checked + .gs-farbe,.gs-wahl input:checked + .gs-bild{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(241,211,139,.35)}
+  .gs-wahl input:focus-visible + *{outline:2px solid var(--cyan);outline-offset:2px}
+  .gs-h{font-size:13px;color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 8px}
+  .gs-sprachen details{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+  .gs-sprachen summary{cursor:pointer;font-size:14px}
+  .gs-sprachen label{font-size:12.5px;color:var(--dim);display:block;margin:8px 0 4px}
+  .gs-sprachen input,.gs-sprachen textarea{width:100%;font-size:15px;padding:10px 12px;box-sizing:border-box}
+  .gs-haken{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--text);margin:6px 0}
+  .gs-haken input{width:auto;margin:0}
+  .gs-vorschau{margin-top:16px;border:1px solid var(--linie);border-radius:16px;overflow:hidden;background:var(--flaeche2);height:560px;position:relative}
+  .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
+  @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}
+</style>
+<div class="block pt" id="seite">
+  <h2><?= $h($W($PS['g_titel'])) ?></h2>
+  <?php if (($_GET['m'] ?? '') === 'g_gut'): ?><div class="hinweis gut" role="status"><?= $h($W($PS['g_gut'])) ?></div><?php endif; ?>
+  <?php if ($gFehler): ?><div class="hinweis schlecht" role="alert"><?= $h($W($PS[$gFehler])) ?></div><?php endif; ?>
+  <p class="klein" style="margin-top:0"><?= $h($W($PS['g_text'])) ?></p>
+
+  <form method="post" action="<?= $h($selbst()) ?>#seite" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+    <input type="hidden" name="tat" value="seite">
+    <input type="hidden" name="MAX_FILE_SIZE" value="<?= PartnerSeite::BILD_MAX_BYTE ?>">
+
+    <p class="gs-h"><?= $h($W($PS['g_vorlage'])) ?></p>
+    <div class="gs-wahl" role="radiogroup">
+      <?php foreach (PartnerSeite::VORLAGEN as $vk => $v): $ak = PartnerSeite::AKZENTE[$v['akzent']][$v['hell'] ? 'hell' : 'dunkel']; ?>
+        <label><input type="radio" name="vorlage" value="<?= $h($vk) ?>" <?= $gs['vorlage'] === $vk ? 'checked' : '' ?>>
+          <span class="gs-muster" style="background:<?= $h($v['grund']) ?>"><i></i><i style="background:<?= $h($ak) ?>"></i></span><?= $h($W($PS['vorlagen'][$vk])) ?></label>
+      <?php endforeach; ?>
+    </div>
+
+    <p class="gs-h"><?= $h($W($PS['g_akzent'])) ?></p>
+    <div class="gs-wahl" role="radiogroup">
+      <?php foreach (PartnerSeite::AKZENTE as $ak => $a): ?>
+        <label><input type="radio" name="akzent" value="<?= $h($ak) ?>" <?= $gs['akzent'] === $ak ? 'checked' : '' ?>>
+          <span class="gs-farbe" style="background:linear-gradient(135deg,<?= $h($a['dunkel']) ?> 50%,<?= $h($a['hell']) ?> 50%)"></span><?= $h($W($PS['akzente'][$ak])) ?></label>
+      <?php endforeach; ?>
+    </div>
+
+    <p class="gs-h"><?= $h($W($PS['g_bild'])) ?></p>
+    <div class="gs-wahl" role="radiogroup">
+      <label><input type="radio" name="bild" value="" <?= $gs['bild'] === '' ? 'checked' : '' ?>><span class="gs-bild">—</span><?= $h($W($PS['bilder'][''])) ?></label>
+      <?php if ($eigenesBild): ?>
+        <label><input type="radio" name="bild" value="eigen" <?= $gs['bild'] === 'eigen' ? 'checked' : '' ?>><img class="gs-bild" src="<?= $h($eigenesBild) ?>" alt=""><?= $h($W($PS['bilder']['eigen'])) ?></label>
+      <?php endif; ?>
+      <?php foreach (PartnerSeite::BILDER as $bk => $datei): ?>
+        <label><input type="radio" name="bild" value="<?= $h($bk) ?>" <?= $gs['bild'] === $bk ? 'checked' : '' ?>><img class="gs-bild" src="<?= $h($daumen($datei)) ?>" alt="" loading="lazy"><?= $h($W($PS['bilder'][$bk])) ?></label>
+      <?php endforeach; ?>
+    </div>
+    <label for="gs_bild" style="margin-top:10px"><?= $h($W($PS['g_bild_hoch'])) ?></label>
+    <input id="gs_bild" type="file" name="titelbild" accept="image/jpeg,image/png,image/webp">
+
+    <p class="gs-h"><?= $h($W($PS['g_texte'])) ?></p>
+    <div class="gs-sprachen">
+      <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
+        <details <?= $l === $sprache ? 'open' : '' ?>><summary><?= $h($wie) ?></summary>
+          <?php foreach (PartnerSeite::TEXT_MAX as $tk => $max):
+            $std = strtr(Texte::h(Texte::PARTNER_LANDE[$tk], $l), ['{name}' => Partner::anzeigeName($p)]);
+            $wort = $tk === 'titel' ? $W($PS['g_t_titel']) : ($tk === 'lead' ? $W($PS['g_t_lead']) : strtr($W($PS['g_t_p']), ['{n}' => substr($tk, 1)])); ?>
+            <label for="gs_<?= $l . $tk ?>"><?= $h($wort) ?> <span style="color:var(--leise)">(max. <?= $max ?>)</span></label>
+            <?php if ($tk === 'lead'): ?>
+              <textarea id="gs_<?= $l . $tk ?>" name="texte[<?= $l ?>][<?= $tk ?>]" rows="3" maxlength="<?= $max ?>" placeholder="<?= $h($std) ?>"><?= $h((string) ($gs['texte'][$l][$tk] ?? '')) ?></textarea>
+            <?php else: ?>
+              <input id="gs_<?= $l . $tk ?>" type="text" name="texte[<?= $l ?>][<?= $tk ?>]" maxlength="<?= $max ?>" placeholder="<?= $h($std) ?>" value="<?= $h((string) ($gs['texte'][$l][$tk] ?? '')) ?>">
+            <?php endif; ?>
+          <?php endforeach; ?>
+        </details>
+      <?php endforeach; ?>
+    </div>
+
+    <p class="gs-h"><?= $h($W($PS['g_bausteine'])) ?></p>
+    <?php foreach (PartnerSeite::BAUSTEINE as $bs): ?>
+      <label class="gs-haken"><input type="checkbox" name="bausteine[<?= $bs ?>]" value="1" <?= $gs['bausteine'][$bs] ? 'checked' : '' ?>> <?= $h($W($PS['g_b_' . $bs])) ?></label>
+    <?php endforeach; ?>
+    <label for="gs_wa"><?= $h($W($PS['g_wa'])) ?></label>
+    <input id="gs_wa" type="text" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20" value="<?= $h($gs['whatsapp']) ?>" placeholder="+39 …">
+
+    <button class="knopf haupt" type="submit" style="margin-top:14px"><?= $h($W($PS['g_speichern'])) ?></button>
+  </form>
+
+  <div class="knoepfe" style="margin-top:10px">
+    <?php if ($eigenesBild): ?>
+      <form method="post" action="<?= $h($selbst()) ?>#seite"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="seite_bild_weg">
+        <button class="knopf" type="submit"><?= $h($W($PS['g_bild_weg'])) ?></button></form>
+    <?php endif; ?>
+    <?php if (PartnerSeite::eigen($p)): ?>
+      <form method="post" action="<?= $h($selbst()) ?>#seite"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="seite_standard">
+        <button class="knopf" type="submit"><?= $h($W($PS['g_standard'])) ?></button></form>
+    <?php endif; ?>
+  </div>
+
+  <p class="gs-h"><?= $h($W($PS['g_vorschau'])) ?></p>
+  <div class="gs-vorschau"><iframe src="<?= $h($vorschau) ?>" title="<?= $h($W($PS['g_vorschau'])) ?>" loading="lazy"></iframe></div>
+</div>

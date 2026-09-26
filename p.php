@@ -35,12 +35,21 @@ if (!isset($_GET['c']) && preg_match('~^/p/([A-Za-z0-9]{5,16})(?:/([A-Za-z0-9-]{
 $p = null; $sprache = 'it';
 if (is_file($konfig)) {
     try {
-        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerSeite'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
         /* Das Foto der Empfehlungsseite (siehe PartnerWerbung). Nur aktive
            Partner; die Adresse trägt einen Versionsanhang, also darf lange
            zwischengespeichert werden. */
         if (isset($_GET['foto'])) {
             $f = Db::wert("SELECT foto FROM partner WHERE code = ? AND status = 'aktiv' AND foto IS NOT NULL", [strtoupper((string) $_GET['foto'])], null);
+            if (!is_string($f) || $f === '') { http_response_code(404); exit; }
+            header('Content-Type: image/webp');
+            header('Cache-Control: public, max-age=31536000, immutable');
+            header('X-Content-Type-Options: nosniff');
+            echo $f; exit;
+        }
+        /* Das eigene Titelbild der gestalteten Seite (PartnerSeite). */
+        if (isset($_GET['titel'])) {
+            $f = Db::wert("SELECT seite_bild FROM partner WHERE code = ? AND status = 'aktiv' AND seite_bild IS NOT NULL", [strtoupper((string) $_GET['titel'])], null);
             if (!is_string($f) || $f === '') { http_response_code(404); exit; }
             header('Content-Type: image/webp');
             header('Cache-Control: public, max-age=31536000, immutable');
@@ -66,7 +75,15 @@ header('Referrer-Policy: no-referrer');
 header('X-Robots-Tag: noindex, nofollow');
 if ($p === null) { header('Location: ' . $ziel, true, 302); exit; }
 
-$L = static fn(string $k): string => strtr(Texte::h(Texte::PARTNER_LANDE[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]);
+$g = PartnerSeite::gestaltung($p);
+/* Eigene Texte des Partners gehen vor, sonst der Standard (Texte::PARTNER_LANDE). */
+$L = static fn(string $k): string => in_array($k, ['titel', 'lead', 'p1', 'p2', 'p3'], true)
+    ? PartnerSeite::text($g, $sprache, $k, strtr(Texte::h(Texte::PARTNER_LANDE[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]))
+    : strtr(Texte::h(Texte::PARTNER_LANDE[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]);
+$S = static fn(array $t): string => strtr(Texte::h($t, $sprache), ['{name}' => Partner::anzeigeName($p)]);
+$vorlageHell = PartnerSeite::VORLAGEN[$g['vorlage']]['hell'];
+$metall = $g['vorlage'] === 'gold' && $g['akzent'] === 'gold';
+$titelbild = PartnerSeite::bildAdresse($p, $g);
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>">
@@ -97,6 +114,42 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
   .ld blockquote{margin:0 0 20px;padding:12px 16px;border-left:2px solid rgba(241,211,139,.6);font-size:16px;line-height:1.6;color:var(--text)}
   .ld blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:13.5px;color:var(--dim)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* Gestaltung des Partners (26.09.2026): nur Werte aus PartnerSeite -- nie CSS vom Partner. */
+  <?= PartnerSeite::css($g) ?>
+  <?php if (!$metall): ?>
+  .ld .knopf.haupt,.lp-wa{background:var(--akzent);color:var(--knopftext);border-color:transparent}
+  .ld li::before{background:var(--akzent)}
+  .ld blockquote{border-left-color:var(--akzent)}
+  <?php endif; ?>
+  <?php if ($vorlageHell): ?>
+  body::before{display:none}
+  /* Die Wortmarke bleibt Vecom -- auf hellem Grund in dunklem Gold statt des hellen Metallverlaufs. */
+  .wortmarke .wort b{background:none;-webkit-text-fill-color:#8a6322;color:#8a6322}
+  .block{background:var(--flaeche);border-color:var(--linie);box-shadow:0 18px 50px -34px rgba(40,30,15,.35)}
+  .ld input[type=email]{background:#fff;color:var(--text);border-color:var(--linie2)}
+  <?php endif; ?>
+  .lp-held{position:relative;margin:0 0 18px;border-radius:18px;overflow:hidden;aspect-ratio:16/9;background:var(--flaeche2)}
+  .lp-held img{width:100%;height:100%;object-fit:cover;display:block}
+  .lp-held::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.28))}
+  .lp h2{font-family:var(--f-display);font-size:20px;margin:0 0 14px}
+  .lp-arbeiten{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .lp-arbeiten figure{margin:0;border:1px solid var(--linie);border-radius:14px;overflow:hidden;background:var(--flaeche2)}
+  .lp-arbeiten img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;display:block}
+  .lp-arbeiten figcaption{padding:10px 12px;font-size:13.5px;line-height:1.45}
+  .lp-arbeiten figcaption b{display:block;font-size:14.5px}
+  .lp-arbeiten figcaption span{color:var(--dim)}
+  .lp-schritte{list-style:none;padding:0;margin:0;display:grid;gap:14px;counter-reset:s}
+  .lp-schritte li{display:flex;gap:14px;align-items:flex-start;counter-increment:s}
+  .lp-schritte li::before{content:counter(s);flex:0 0 32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--akzent);color:var(--knopftext)}
+  .lp-schritte b{display:block}
+  .lp-schritte span{color:var(--dim);font-size:15px}
+  .lp details{border-top:1px solid var(--linie);padding:12px 0}
+  .lp details:last-child{border-bottom:1px solid var(--linie)}
+  .lp summary{cursor:pointer;font-weight:600}
+  .lp details p{color:var(--dim);margin:8px 0 0}
+  .lp-wa{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;border-radius:12px;font-weight:650;text-decoration:none;padding:12px 18px;
+         border:1px solid var(--linie2);color:var(--text)}
+  .lp .weiter2{display:inline-block;margin-top:12px;color:var(--cyan);font-size:14.5px}
 </style>
 </head>
 <body>
@@ -106,6 +159,7 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
   <div class="block ld">
+    <?php if ($titelbild): ?><div class="lp-held"><img src="<?= $h($titelbild) ?>" alt="" width="1600" height="900" fetchpriority="high"></div><?php endif; ?>
     <?php $foto = PartnerWerbung::fotoAdresse($p); $satz = trim((string) ($p['profil_satz'] ?? '')); ?>
     <?php if ($foto): ?>
       <div class="empf"><img src="<?= $h($foto) ?>" alt="<?= $h($L('foto_alt')) ?>" width="64" height="64"><span class="marke" style="margin:0">★ <?= $h($L('marke')) ?></span></div>
@@ -127,6 +181,32 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
     <p class="klein"><?= $h($L('klein')) ?></p>
     <a class="weiter" href="<?= $h($ziel) ?>"><?= $h($L('weiter')) ?></a>
   </div>
+
+  <?php $PS = Texte::PARTNER_SEITE; ?>
+  <?php if ($g['bausteine']['ablauf']): ?>
+    <section class="block ld lp"><h2><?= $h($S($PS['ablauf_titel'])) ?></h2>
+      <ol class="lp-schritte"><?php foreach ($PS['ablauf'] as [$t, $u]): ?><li><div><b><?= $h($S($t)) ?></b><span><?= $h($S($u)) ?></span></div></li><?php endforeach; ?></ol>
+    </section>
+  <?php endif; ?>
+  <?php if ($g['bausteine']['arbeiten']): ?>
+    <section class="block ld lp"><h2><?= $h($S($PS['arbeiten_titel'])) ?></h2>
+      <div class="lp-arbeiten"><?php foreach ($PS['arbeiten'] as $aid => $a): ?>
+        <figure><img src="/assets/img/arbeiten/<?= $h($aid) ?>/an.webp" alt="<?= $h($a['name']) ?>" width="2400" height="1350" loading="lazy" decoding="async">
+          <figcaption><b><?= $h($a['name']) ?></b><span><?= $h(Texte::h($a, $sprache)) ?></span></figcaption></figure>
+      <?php endforeach; ?></div>
+      <a class="weiter2" href="<?= $h($ziel . '#work') ?>"><?= $h($S($PS['arbeiten_mehr'])) ?></a>
+    </section>
+  <?php endif; ?>
+  <?php if ($g['bausteine']['faq']): ?>
+    <section class="block ld lp"><h2><?= $h($S($PS['faq_titel'])) ?></h2>
+      <?php foreach ($PS['faq'] as [$q, $a]): ?><details><summary><?= $h($S($q)) ?></summary><p><?= $h($S($a)) ?></p></details><?php endforeach; ?>
+    </section>
+  <?php endif; ?>
+  <?php if ($g['bausteine']['whatsapp'] && $g['whatsapp'] !== ''): ?>
+    <section class="block ld lp">
+      <a class="lp-wa" href="https://wa.me/<?= $h(ltrim($g['whatsapp'], '+')) ?>?text=<?= rawurlencode($S($PS['wa_text'])) ?>" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg><?= $h($S($PS['wa_knopf'])) ?></a>
+    </section>
+  <?php endif; ?>
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
       <a class="<?= $l === $sprache ? 'jetzt' : '' ?>" href="<?= $h('/p.php?' . http_build_query(array_filter(['c' => $p['code'], 'k' => $_GET['k'] ?? null, 'lang' => $l, 'n' => 1]))) ?>"><?= $h($wie) ?></a>

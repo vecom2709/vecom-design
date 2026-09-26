@@ -3491,4 +3491,70 @@ final class Texte
         ['titel' => ['it' => 'Un video in 10 secondi', 'de' => 'Ein Video in 10 Sekunden', 'en' => 'A video in 10 seconds'], 'text' => ['it' => 'Crei un Reel con il suo QR e lo pubblichi oggi.', 'de' => 'Erzeugen Sie ein Reel mit Ihrem QR und posten Sie es heute.', 'en' => 'Create a Reel with your QR and post it today.'], 'anker' => 'medien'],
         ['titel' => ['it' => 'Chi le ha chiesto di un sito?', 'de' => 'Wer hat Sie zuletzt nach einer Website gefragt?', 'en' => 'Who last asked you about a website?'], 'text' => ['it' => 'Inserisca il contatto: lo chiamiamo noi e conta per lei.', 'de' => 'Tragen Sie den Kontakt ein: Wir melden uns, und er zählt für Sie.', 'en' => 'Enter the contact: we get in touch and it counts for you.'], 'anker' => 'melden'],
     ];
+
+    /* ------------------------------------------------------------------------
+       Selbst gestaltete Empfehlungsseite (26.09.2026). Bausteine der Seite
+       und Beschriftungen des Gestalters im Partner-Dashboard.
+       ------------------------------------------------------------------------ */
+    public const PARTNER_SEITE = [
+        'vorlagen' => ['gold' => ['it' => 'Oro scuro', 'de' => 'Gold dunkel', 'en' => 'Dark gold'], 'hell' => ['it' => 'Chiaro elegante', 'de' => 'Hell elegant', 'en' => 'Light elegant'],
+                       'mediterran' => ['it' => 'Mediterraneo', 'de' => 'Mediterran', 'en' => 'Mediterranean'], 'minimal' => ['it' => 'Minimal', 'de' => 'Minimal', 'en' => 'Minimal']],
+        'akzente' => ['gold' => ['it' => 'Oro', 'de' => 'Gold', 'en' => 'Gold'], 'terrakotta' => ['it' => 'Terracotta', 'de' => 'Terrakotta', 'en' => 'Terracotta'],
+                      'meer' => ['it' => 'Mare', 'de' => 'Meer', 'en' => 'Sea'], 'salbei' => ['it' => 'Salvia', 'de' => 'Salbei', 'en' => 'Sage'],
+                      'rose' => ['it' => 'Rosa', 'de' => 'Rosé', 'en' => 'Rose'], 'graphit' => ['it' => 'Grafite', 'de' => 'Graphit', 'en' => 'Graphite']],
+        'bilder' => ['' => ['it' => 'Nessuna immagine', 'de' => 'Kein Bild', 'en' => 'No image'], 'eigen' => ['it' => 'La mia foto', 'de' => 'Mein Foto', 'en' => 'My photo'],
+                     'gastro' => ['it' => 'Ristorante', 'de' => 'Restaurant', 'en' => 'Restaurant'], 'hotel' => ['it' => 'Hotel & casa vacanze', 'de' => 'Hotel & Ferienhaus', 'en' => 'Hotel & holiday home'],
+                     'friseur' => ['it' => 'Parrucchiere & beauty', 'de' => 'Friseur & Beauty', 'en' => 'Hair & beauty'], 'auto' => ['it' => 'Auto & officina', 'de' => 'Auto & Werkstatt', 'en' => 'Cars & garage'],
+                     'kueche' => ['it' => 'Artigianato & cucine', 'de' => 'Handwerk & Küchen', 'en' => 'Craft & kitchens'], 'wein' => ['it' => 'Vino & prodotti', 'de' => 'Wein & Produkte', 'en' => 'Wine & products'],
+                     'mode' => ['it' => 'Moda & negozio', 'de' => 'Mode & Laden', 'en' => 'Fashion & shop'], 'schmuck' => ['it' => 'Gioielli', 'de' => 'Schmuck', 'en' => 'Jewellery'],
+                     'transport' => ['it' => 'Trasporti', 'de' => 'Transport', 'en' => 'Transport']],
+        'arbeiten_titel' => ['it' => 'Alcuni nostri lavori', 'de' => 'Einige unserer Arbeiten', 'en' => 'Some of our work'],
+        'arbeiten' => [
+            'cavaleri' => ['name' => 'Cavaleri Srl', 'it' => 'Trasporti e logistica · Caltanissetta, dal 1974', 'de' => 'Transport & Logistik · Caltanissetta, seit 1974', 'en' => 'Transport & logistics · Caltanissetta, since 1974'],
+            'jonika' => ['name' => 'Jonika Venturis', 'it' => 'Autrice · libri per bambini', 'de' => 'Autorin · Kinderbücher', 'en' => 'Author · children’s books'],
+            'mensaena' => ['name' => 'Mensaena', 'it' => 'Piattaforma senza scopo di lucro · aiuto tra vicini', 'de' => 'Gemeinnützige Plattform · Nachbarschaftshilfe', 'en' => 'Non-profit platform · neighbourhood help'],
+        ],
+        'arbeiten_mehr' => ['it' => 'Vedere altri lavori →', 'de' => 'Weitere Arbeiten ansehen →', 'en' => 'See more work →'],
+        'ablauf_titel' => ['it' => 'Come funziona', 'de' => 'So läuft es ab', 'en' => 'How it works'],
+        'ablauf' => [
+            [['it' => 'Mi dice cosa le serve', 'de' => 'Sie sagen, was Sie brauchen', 'en' => 'You tell us what you need'], ['it' => 'Poche domande nella sua area personale — il prezzo indicativo lo vede subito.', 'de' => 'Ein paar Fragen in Ihrem persönlichen Bereich — den Richtpreis sehen Sie sofort.', 'en' => 'A few questions in your personal area — you see a guide price right away.']],
+            [['it' => 'Riceve l’offerta', 'de' => 'Sie bekommen das Angebot', 'en' => 'You get the quote'], ['it' => 'Punto per punto, entro un giorno lavorativo. Decide lei.', 'de' => 'Position für Position, innerhalb eines Werktags. Sie entscheiden.', 'en' => 'Item by item, within one working day. You decide.']],
+            [['it' => 'Costruiamo, lei segue', 'de' => 'Wir bauen, Sie sehen zu', 'en' => 'We build, you follow along'], ['it' => 'Ogni passo nella sua area, fino al sito online.', 'de' => 'Jeden Schritt in Ihrem Bereich, bis die Seite online ist.', 'en' => 'Every step in your area, until the site is live.']],
+        ],
+        'faq_titel' => ['it' => 'Domande frequenti', 'de' => 'Häufige Fragen', 'en' => 'Frequently asked questions'],
+        'faq' => [
+            [['it' => 'Quanto costa?', 'de' => 'Was kostet das?', 'en' => 'What does it cost?'], ['it' => 'Il questionario mostra subito un prezzo indicativo; l’offerta precisa arriva entro un giorno lavorativo.', 'de' => 'Der Fragebogen zeigt sofort einen Richtpreis; das genaue Angebot kommt innerhalb eines Werktags.', 'en' => 'The questionnaire shows a guide price right away; the exact quote follows within one working day.']],
+            [['it' => 'Mi impegno a qualcosa?', 'de' => 'Gehe ich eine Verpflichtung ein?', 'en' => 'Am I committing to anything?'], ['it' => 'No. La richiesta è gratuita e senza impegno: un incarico nasce solo quando ci accordiamo per iscritto.', 'de' => 'Nein. Die Anfrage ist kostenlos und unverbindlich: Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind.', 'en' => 'No. The enquiry is free and without obligation: a project only comes about once we agree in writing.']],
+            [['it' => 'Devo preparare qualcosa?', 'de' => 'Muss ich etwas vorbereiten?', 'en' => 'Do I need to prepare anything?'], ['it' => 'No. Quello che ha (logo, foto, testi) lo carica nella sua area; quello che manca lo vediamo insieme.', 'de' => 'Nein. Was Sie haben (Logo, Fotos, Texte), laden Sie in Ihrem Bereich hoch; was fehlt, besprechen wir.', 'en' => 'No. What you have (logo, photos, texts) you upload in your area; what’s missing we discuss together.']],
+            [['it' => 'In quali lingue?', 'de' => 'In welchen Sprachen?', 'en' => 'In which languages?'], ['it' => 'Parliamo italiano, tedesco e inglese — e il sito può essere in più lingue.', 'de' => 'Wir sprechen Italienisch, Deutsch und Englisch — und die Seite kann mehrsprachig sein.', 'en' => 'We speak Italian, German and English — and the site can be multilingual.']],
+        ],
+        'wa_knopf' => ['it' => 'Domande? Scrivi a {name} su WhatsApp', 'de' => 'Fragen? Schreib {name} auf WhatsApp', 'en' => 'Questions? Message {name} on WhatsApp'],
+        'wa_text' => ['it' => 'Ciao {name}, ho visto la pagina di Vecom Design e ho una domanda: ', 'de' => 'Hallo {name}, ich habe die Seite von Vecom Design gesehen und habe eine Frage: ', 'en' => 'Hi {name}, I saw the Vecom Design page and have a question: '],
+        // Gestalter im Dashboard
+        'g_titel' => ['it' => 'Personalizzi la sua pagina', 'de' => 'Ihre Seite gestalten', 'en' => 'Design your page'],
+        'g_text' => ['it' => 'Il logo Vecom, il modulo di richiesta e le note legali restano uguali — tutto il resto lo sceglie lei. Le modifiche sono subito online.', 'de' => 'Vecom-Logo, Anfrageformular und Rechtliches bleiben gleich — alles andere wählen Sie. Änderungen sind sofort online.', 'en' => 'The Vecom logo, enquiry form and legal footer stay the same — you choose everything else. Changes go live immediately.'],
+        'g_vorlage' => ['it' => 'Stile', 'de' => 'Vorlage', 'en' => 'Style'],
+        'g_akzent' => ['it' => 'Colore', 'de' => 'Farbe', 'en' => 'Colour'],
+        'g_bild' => ['it' => 'Immagine di copertina', 'de' => 'Titelbild', 'en' => 'Cover image'],
+        'g_bild_hoch' => ['it' => 'Carichi una sua foto (orizzontale, min. 400 px)', 'de' => 'Eigenes Foto hochladen (quer, mind. 400 px)', 'en' => 'Upload your own photo (landscape, min. 400 px)'],
+        'g_bild_weg' => ['it' => 'Rimuovi la mia foto', 'de' => 'Mein Foto entfernen', 'en' => 'Remove my photo'],
+        'g_texte' => ['it' => 'Testi (vuoto = testo standard)', 'de' => 'Texte (leer = Standardtext)', 'en' => 'Texts (empty = standard text)'],
+        'g_t_titel' => ['it' => 'Titolo', 'de' => 'Überschrift', 'en' => 'Headline'],
+        'g_t_lead' => ['it' => 'Introduzione', 'de' => 'Einleitung', 'en' => 'Introduction'],
+        'g_t_p' => ['it' => 'Vantaggio {n}', 'de' => 'Vorteil {n}', 'en' => 'Benefit {n}'],
+        'g_bausteine' => ['it' => 'Sezioni aggiuntive', 'de' => 'Zusätzliche Abschnitte', 'en' => 'Extra sections'],
+        'g_b_arbeiten' => ['it' => 'Alcuni nostri lavori', 'de' => 'Beispielarbeiten', 'en' => 'Example work'],
+        'g_b_ablauf' => ['it' => 'Come funziona (3 passi)', 'de' => 'Ablauf in 3 Schritten', 'en' => 'How it works (3 steps)'],
+        'g_b_faq' => ['it' => 'Domande frequenti', 'de' => 'Häufige Fragen', 'en' => 'FAQ'],
+        'g_b_whatsapp' => ['it' => 'Pulsante WhatsApp verso di me', 'de' => 'WhatsApp-Knopf zu mir', 'en' => 'WhatsApp button to me'],
+        'g_wa' => ['it' => 'Il suo numero WhatsApp (con prefisso, es. +39 …)', 'de' => 'Ihre WhatsApp-Nummer (mit Vorwahl, z. B. +39 …)', 'en' => 'Your WhatsApp number (with country code, e.g. +39 …)'],
+        'g_speichern' => ['it' => 'Salva e pubblica', 'de' => 'Speichern und veröffentlichen', 'en' => 'Save and publish'],
+        'g_standard' => ['it' => 'Torna allo standard', 'de' => 'Auf Standard zurücksetzen', 'en' => 'Reset to standard'],
+        'g_gut' => ['it' => 'Salvato — la sua pagina è aggiornata.', 'de' => 'Gespeichert — Ihre Seite ist aktualisiert.', 'en' => 'Saved — your page is updated.'],
+        'g_vorschau' => ['it' => 'Anteprima della sua pagina', 'de' => 'Vorschau Ihrer Seite', 'en' => 'Preview of your page'],
+        'text_link' => ['it' => 'Nei testi niente indirizzi web o e-mail, per favore.', 'de' => 'Bitte keine Web- oder E-Mail-Adressen in den Texten.', 'en' => 'Please no web or email addresses in the texts.'],
+        'wa_nummer' => ['it' => 'Il numero WhatsApp deve iniziare con + e il prefisso del paese.', 'de' => 'Die WhatsApp-Nummer muss mit + und Ländervorwahl beginnen.', 'en' => 'The WhatsApp number must start with + and the country code.'],
+        'bild_gross' => ['it' => 'L’immagine è troppo grande (max. 10 MB).', 'de' => 'Das Bild ist zu groß (höchstens 10 MB).', 'en' => 'The image is too large (max. 10 MB).'],
+        'bild_art' => ['it' => 'Per favore una foto JPG, PNG o WebP di almeno 400 px di larghezza.', 'de' => 'Bitte ein Foto als JPG, PNG oder WebP, mindestens 400 px breit.', 'en' => 'Please a JPG, PNG or WebP photo at least 400 px wide.'],
+    ];
 }

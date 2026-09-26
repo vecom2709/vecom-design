@@ -584,6 +584,13 @@ if ($post) {
                 } catch (InvalidArgumentException $e) { $_SESSION['fehler'] = 'Die Nachricht ist leer.'; }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0) . '#nachrichten');
 
+            case 'partner_seite_zurueck':
+                require_once __DIR__ . '/src/PartnerSeite.php';
+                PartnerSeite::zuruecksetzen((int) ($_POST['id'] ?? 0));
+                Events::protokoll('partner_seite_zurueck', 'Empfehlungsseite eines Partners auf Standard zurückgesetzt', null, null, null, ['partner_id' => (int) ($_POST['id'] ?? 0)]);
+                $_SESSION['gut'] = 'Die Seite steht wieder auf Standard (Foto und Satz bleiben).';
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
             case 'partner_profil_weg':
                 /* Foto und Satz einer Empfehlungsseite entfernen (26.09.2026):
                    Beides steht öffentlich auf unserer Domain. */

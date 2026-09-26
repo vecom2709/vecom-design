@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -198,6 +198,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $selbst($zurueck) . '#recherche', true, 303); exit;
                 }
                 $meldung = $f;
+            } elseif ($tat === 'seite' && $p) {
+                /* Selbst gestaltete Empfehlungsseite (26.09.2026): sofort live,
+                   Vecom bekommt eine Meldung und kann in der Akte zurücksetzen. */
+                $f = PartnerSeite::speichern((int) $p['id'], $_POST);
+                $datei = $_FILES['titelbild'] ?? null;
+                if ($f === 'ok' && is_array($datei) && ($datei['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                    $f = in_array($datei['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 'bild_gross'
+                       : ($datei['error'] === UPLOAD_ERR_OK && is_uploaded_file((string) $datei['tmp_name'])
+                          ? PartnerSeite::bildSpeichern((int) $p['id'], (string) $datei['tmp_name'], (int) $datei['size']) : 'bild_art');
+                }
+                if ($f === 'ok') {
+                    Events::melden('partner_seite', 'Partner hat seine Empfehlungsseite gestaltet: ' . $p['name'], 'info', null, '/partner/' . (int) $p['id']);
+                    header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;
+                }
+                $meldung = $f;
+            } elseif ($tat === 'seite_bild_weg' && $p) {
+                PartnerSeite::bildLoeschen((int) $p['id']);
+                header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;
+            } elseif ($tat === 'seite_standard' && $p) {
+                PartnerSeite::zuruecksetzen((int) $p['id']);
+                header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;
             } elseif ($tat === 'foto_weg' && $p) {
                 PartnerWerbung::fotoLoeschen((int) $p['id']);
                 header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;
@@ -558,6 +579,8 @@ if ($p && isset($_GET['karte'])) {
   </div>
 
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
+
+  <?php require __DIR__ . '/app/views/partner_seite.php'; ?>
 
   <?php $checkNeu = null;
     if (preg_match('/^[0-9a-f]{32}$/', (string) ($_GET['ck'] ?? ''))) {

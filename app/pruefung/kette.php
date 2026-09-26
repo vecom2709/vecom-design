@@ -11713,6 +11713,80 @@ pruefe('Senden fragt vorher (TRAGWEITE), Schlüssel liegt verschlüsselt in sett
     isset(Ablauf::TRAGWEITE['akq_brief_senden']) && str_contains((string) file_get_contents($wurzel . '/src/AkquiseBriefdienst.php'), 'Hosting::versiegeln'));
 
 /* ============================================================================
+   Partner gestalten ihre Empfehlungsseite (26.09.2026)
+   Uwe: „individuell gestalten — wichtig: Vecom-Logo bleibt“. Geprüft wird,
+   dass der Partner nur Schlüssel wählt (nie CSS/HTML/Adressen), dass jede
+   Farbkombination lesbar bleibt und dass Logo und Anfrageformular bleiben.
+   ============================================================================ */
+abschnitt('Partner: selbst gestaltete Empfehlungsseite');
+require_once $wurzel . '/src/PartnerSeite.php';
+$psId = Partner::anlegen(['name' => 'Gianni Gestalter', 'email' => 'gianni@partner.example', 'status' => 'aktiv', 'code' => 'GIANNIPS1', 'firma' => '', 'sprache' => 'it']);
+$psP = static fn(): array => Db::one('SELECT * FROM partner WHERE id = ?', [$psId]);
+$psG = PartnerSeite::gestaltung($psP());
+pruefe('Ohne Gestaltung: Standard (Gold dunkel, kein Bild, keine Bausteine)', $psG['vorlage'] === 'gold' && $psG['akzent'] === 'gold' && $psG['bild'] === '' && !in_array(true, $psG['bausteine'], true));
+pruefe('Texte mit Adressen werden abgewiesen, WhatsApp nur international',
+    PartnerSeite::speichern($psId, ['texte' => ['de' => ['lead' => 'Mehr auf meinseite.de']]]) === 'text_link'
+    && PartnerSeite::speichern($psId, ['texte' => ['it' => ['titel' => 'Scrivimi a me@x.it']]]) === 'text_link'
+    && PartnerSeite::speichern($psId, ['whatsapp' => '380 1234']) === 'wa_nummer');
+pruefe('Speichern: HTML fällt weg, Längen gekappt, unbekannte Vorlage/Farbe/Bild fallen auf Standard, 0039 wird +39',
+    PartnerSeite::speichern($psId, ['vorlage' => 'hacker', 'akzent' => 'url(javascript:1)', 'bild' => '../../etc/passwd',
+        'texte' => ['de' => ['titel' => '<script>x</script>Websites ' . str_repeat('a', 200), 'p1' => '<b>Fett</b> und gut']],
+        'bausteine' => ['faq' => '1', 'boese' => '1'], 'whatsapp' => '0039 380 123 4567']) === 'ok');
+$psG = PartnerSeite::gestaltung($psP());
+pruefe('… und die gespeicherte Gestaltung enthält nur geprüfte Werte',
+    $psG['vorlage'] === 'gold' && $psG['akzent'] === 'gold' && $psG['bild'] === '' && !str_contains(json_encode($psG), '<')
+    && mb_strlen($psG['texte']['de']['titel']) === PartnerSeite::TEXT_MAX['titel'] && $psG['texte']['de']['p1'] === 'Fett und gut'
+    && $psG['bausteine']['faq'] === true && !isset($psG['bausteine']['boese']) && $psG['whatsapp'] === '+393801234567', json_encode($psG, JSON_UNESCAPED_UNICODE));
+PartnerSeite::speichern($psId, ['vorlage' => 'mediterran', 'akzent' => 'meer', 'bild' => 'hotel', 'bausteine' => ['whatsapp' => '1'], 'whatsapp' => '']);
+$psG = PartnerSeite::gestaltung($psP());
+pruefe('Vorlage, Farbe, Bild aus der Auswahl; WhatsApp-Knopf ohne Nummer bleibt aus',
+    $psG['vorlage'] === 'mediterran' && $psG['akzent'] === 'meer' && PartnerSeite::bildAdresse($psP(), $psG) === '/assets/img/erlebnis/villa/ruhe-terrasse-abend.webp'
+    && $psG['bausteine']['whatsapp'] === false && str_contains(PartnerSeite::css($psG), '--akzent:#1d5a86'));
+$psFehlend = [];
+foreach (PartnerSeite::BILDER as $psK => $psD) { if (!is_file($wurzel . '/../assets/img/' . $psD)) { $psFehlend[] = $psD; } }
+pruefe('Jedes Titelbild der Auswahl liegt im Repository', $psFehlend === [], implode(', ', $psFehlend));
+$psLum = static function (string $hex): float {
+    $c = array_map(static fn($x) => hexdec($x) / 255, str_split(ltrim($hex, '#'), 2));
+    $c = array_map(static fn($v) => $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $c);
+    return 0.2126 * $c[0] + 0.7152 * $c[1] + 0.0722 * $c[2];
+};
+$psKontrast = static function (string $a, string $b) use ($psLum): float { [$x, $y] = [$psLum($a), $psLum($b)]; return (max($x, $y) + 0.05) / (min($x, $y) + 0.05); };
+$psSchwach = [];
+foreach (PartnerSeite::AKZENTE as $psK => $psA) {
+    if ($psKontrast($psA['hell'], '#ffffff') < 4.5) { $psSchwach[] = "$psK hell/weiß " . round($psKontrast($psA['hell'], '#ffffff'), 2); }
+    if ($psKontrast($psA['dunkel'], '#16120b') < 4.5) { $psSchwach[] = "$psK dunkel/schwarz " . round($psKontrast($psA['dunkel'], '#16120b'), 2); }
+    foreach (PartnerSeite::VORLAGEN as $psV => $psW) {
+        $psAk = $psA[$psW['hell'] ? 'hell' : 'dunkel'];
+        if ($psKontrast($psAk, $psW['flaeche']) < 3.0) { $psSchwach[] = "$psK auf $psV " . round($psKontrast($psAk, $psW['flaeche']), 2); }
+    }
+}
+foreach (PartnerSeite::VORLAGEN as $psV => $psW) {
+    if ($psKontrast($psW['text'], $psW['flaeche']) < 7) { $psSchwach[] = "$psV Text"; }
+    if ($psKontrast($psW['dim'], $psW['flaeche']) < 4.5) { $psSchwach[] = "$psV Nebentext " . round($psKontrast($psW['dim'], $psW['flaeche']), 2); }
+}
+pruefe('Jede Kombination aus Vorlage und Farbe ist lesbar (Knopftext ≥ 4,5:1, Akzent auf Fläche ≥ 3:1, Text ≥ 7:1)', $psSchwach === [], implode(', ', $psSchwach));
+$psDatei = tempnam(sys_get_temp_dir(), 'pstitel');
+$psBild = imagecreatetruecolor(2000, 1400); imagefill($psBild, 0, 0, imagecolorallocate($psBild, 30, 90, 140)); imagejpeg($psBild, $psDatei, 85); imagedestroy($psBild);
+$psE = PartnerSeite::bildSpeichern($psId, $psDatei, (int) filesize($psDatei));
+$psM = getimagesizefromstring((string) Db::wert('SELECT seite_bild FROM partner WHERE id = ?', [$psId], ''));
+pruefe('Eigenes Titelbild: 1600×900 WebP, sofort als Titelbild gewählt, Adresse mit Versionsanhang',
+    $psE === 'ok' && $psM && $psM[0] === 1600 && $psM[1] === 900 && $psM['mime'] === 'image/webp'
+    && PartnerSeite::gestaltung($psP())['bild'] === 'eigen' && str_contains((string) PartnerSeite::bildAdresse($psP(), PartnerSeite::gestaltung($psP())), '/p.php?titel=GIANNIPS1&v='));
+$psKlein = imagecreatetruecolor(300, 200); imagejpeg($psKlein, $psDatei, 80); imagedestroy($psKlein);
+pruefe('Zu kleines Bild oder keine Bilddatei → abgelehnt', PartnerSeite::bildSpeichern($psId, $psDatei, (int) filesize($psDatei)) === 'bild_art'
+    && (file_put_contents($psDatei, 'kein bild') !== false) && PartnerSeite::bildSpeichern($psId, $psDatei, 9) === 'bild_art');
+@unlink($psDatei);
+PartnerSeite::zuruecksetzen($psId);
+pruefe('Zurücksetzen: Gestaltung und Titelbild weg, Seite wieder Standard', !PartnerSeite::eigen($psP()) && PartnerSeite::gestaltung($psP())['vorlage'] === 'gold');
+$psPs = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Landeseite: Vecom-Logo und Anfrageformular bleiben, eigene Texte über PartnerSeite::text, Farben nur über PartnerSeite::css',
+    str_contains($psPs, '<div class="wortmarke">') && str_contains($psPs, 'logo-mark.webp') && str_contains($psPs, 'action="/zugang.php?lang=')
+    && str_contains($psPs, 'PartnerSeite::text($g, $sprache, $k,') && str_contains($psPs, '<?= PartnerSeite::css($g) ?>')
+    && str_contains($psPs, "status = 'aktiv' AND seite_bild IS NOT NULL"));
+pruefe('Vecom kann in der Partnerakte zurücksetzen (mit Rückfrage)', isset(Ablauf::TRAGWEITE['partner_seite_zurueck'])
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_seite_zurueck':"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -181,6 +181,21 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
 </div>
 <?php endif; ?>
 
+<?php if ($p['status'] !== 'geloescht' && (!empty($p['seite_json']) || !empty($p['seite_bild_am']))): require_once dirname(__DIR__) . '/src/PartnerSeite.php'; $psg = PartnerSeite::gestaltung($p); ?>
+<div class="block" id="seite">
+  <h2 style="font-size:15px;margin:0 0 6px">Selbst gestaltete Empfehlungsseite</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Vorlage <?= Fmt::h($psg['vorlage']) ?> · Farbe <?= Fmt::h($psg['akzent']) ?> · Bild <?= Fmt::h($psg['bild'] !== '' ? $psg['bild'] : 'keins') ?>
+    · <?= count($psg['texte']) ?> Sprache(n) mit eigenem Text · zuletzt geändert <?= Fmt::h(Fmt::zeit((string) ($p['seite_am'] ?? ''))) ?>.
+    <a href="/p.php?<?= Fmt::h(http_build_query(['c' => $p['code'], 'n' => 1])) ?>" target="_blank" rel="noopener" style="text-decoration:underline">Seite ansehen</a></p>
+  <?php foreach ($psg['texte'] as $pl => $pt): ?>
+    <p class="akq-klein" style="margin:0 0 6px;color:var(--dim)"><b><?= Fmt::h(strtoupper($pl)) ?>:</b> <?= Fmt::h(implode(' · ', $pt)) ?></p>
+  <?php endforeach; ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_seite_zurueck"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+    <button class="knopf">Auf Standard zurücksetzen</button></form>
+</div>
+<?php endif; ?>
+
 <?php if ($p['status'] !== 'geloescht'): ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Code und Link</h2>
