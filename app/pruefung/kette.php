@@ -11053,6 +11053,20 @@ pruefe('der Bericht nennt keine Firmennamen (der Zuruf läuft über einen fremde
     !str_contains($akWbQ, "['name']") && !preg_match('~SELECT[^"]*\bname\b~i', $akWbQ));
 pruefe('der Cron ruft den Wochenbericht auf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Akquise::wochenbericht()'));
 
+/* Gescheiterte Prüfung: nächster Versuch im nächsten Nachtlauf, nicht erst in 90 Tagen */
+$akFe = Akquise::firmaMelden(['name' => 'Sito Instabile', 'land' => 'IT', 'url' => 'https://sito-instabile.example', 'quelle' => 'osm:node/44']);
+Akquise::auditMelden($akFe['id'], ['status' => 'fehler', 'befunde' => []]);
+$akIds = static fn() => array_map(static fn($z) => (int) $z['id'], Akquise::naechsteAudits(50));
+Db::run("UPDATE akq_firmen SET audit_status = 'offen' WHERE audit_status = 'laeuft' AND id <> ?", [$akFe['id']]);
+pruefe('eine eben gescheiterte Prüfung wird nicht sofort wiederholt', !in_array($akFe['id'], $akIds(), true));
+Db::run("UPDATE akq_firmen SET updated_at = DATE_SUB(NOW(), INTERVAL 4 HOUR) WHERE id = ?", [$akFe['id']]);
+pruefe('nach drei Stunden kommt sie wieder dran', in_array($akFe['id'], $akIds(), true));
+for ($akN = 0; $akN < 3; $akN++) { Akquise::auditMelden($akFe['id'], ['status' => 'fehler', 'befunde' => []]); }
+Db::run("UPDATE akq_firmen SET updated_at = DATE_SUB(NOW(), INTERVAL 4 HOUR) WHERE id = ?", [$akFe['id']]);
+pruefe('nach drei Fehlversuchen in zwei Wochen ist Pause', !in_array($akFe['id'], $akIds(), true));
+pruefe('fehlt dem Worker der Browser, meldet er keine Website als gescheitert',
+    str_contains((string) file_get_contents($oben . '/tools/akquise/src/cli.ts'), "Executable doesn't exist"));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

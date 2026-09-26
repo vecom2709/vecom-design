@@ -471,7 +471,13 @@ final class Akquise
                FROM akq_firmen
               WHERE gesperrt = 0 AND url IS NOT NULL AND domain IS NOT NULL
                 AND (audit_status = 'offen'
-                     OR (audit_status IN ('fertig','fehler') AND geprueft_am < DATE_SUB(NOW(), INTERVAL " . self::NEUPRUEFUNG_TAGE . " DAY)))
+                     OR (audit_status = 'fertig' AND geprueft_am < DATE_SUB(NOW(), INTERVAL " . self::NEUPRUEFUNG_TAGE . " DAY))
+                     -- Ein Fehler ist oft voruebergehend (Seite kurz weg, Zeitueberschreitung):
+                     -- naechster Versuch nach drei Stunden, also im naechsten Nachtlauf.
+                     -- Hoechstens drei Fehlversuche in zwei Wochen, dann erst wieder nach der Frist oben.
+                     OR (audit_status = 'fehler' AND updated_at < DATE_SUB(NOW(), INTERVAL 3 HOUR)
+                         AND (SELECT COUNT(*) FROM akq_audits a WHERE a.firma_id = akq_firmen.id AND a.status = 'fehler'
+                                AND a.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)) < 3))
               ORDER BY (audit_status = 'offen') DESC, recherchiert_am ASC, id ASC
               LIMIT $anzahl");
         foreach ($zeilen as $z) {

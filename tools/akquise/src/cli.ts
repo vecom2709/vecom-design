@@ -77,8 +77,19 @@ async function audits(): Promise<void> {
       const belegt = e.befunde.filter((b) => b.status === 'VERIFIED').length;
       log.info('audit', `[${i + 1}/${firmen.length}] ${f.name} (${f.domain}): ${e.befunde.length} Befunde, ${belegt} belegt · Score ${antwort.score ?? '—'} · ${Math.round((Date.now() - t0) / 1000)} s`);
     } catch (e) {
-      log.fehler('audit', `${f.name}: ${(e as Error).message}`);
-      await api('audit_melden', { firma_id: f.id, status: 'fehler', befunde: [], messwerte: { fehler: (e as Error).message.slice(0, 300) } }).catch(() => {});
+      const text = (e as Error).message;
+      /* Liegt der Fehler bei UNS (Browser fehlt, Playwright kaputt), ist
+         keine Website schuld. Frueher wurde das als Audit-Fehler gemeldet --
+         am 26.09.2026 standen so acht Betriebe auf „gescheitert“, weil auf
+         diesem Rechner die Headless-Shell fehlte. Jetzt: Lauf anhalten,
+         nichts melden; die Firmen gehen nach zwei Stunden von selbst zurueck. */
+      if (/browserType\.launch|Executable doesn't exist|playwright install/i.test(text)) {
+        log.fehler('audit', `Der Browser auf diesem Rechner startet nicht — Lauf angehalten, nichts gemeldet. Abhilfe: npx playwright install chromium. (${text.split('\n')[0].slice(0, 160)})`);
+        process.exitCode = 1;
+        break;
+      }
+      log.fehler('audit', `${f.name}: ${text}`);
+      await api('audit_melden', { firma_id: f.id, status: 'fehler', befunde: [], messwerte: { fehler: text.slice(0, 300) } }).catch(() => {});
     }
   }
   await browserZu();
