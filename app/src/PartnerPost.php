@@ -181,6 +181,33 @@ final class PartnerPost
         return $n;
     }
 
+    /**
+     * Wochen-Impuls (26.09.2026, Uwe: Ja): montags ab 9 Uhr ein Hinweis aufs
+     * Handy mit einem fertigen Vorschlag, der Reihe nach aus
+     * Texte::PARTNER_IMPULSE. Nur an Partner mit eingeschalteten Hinweisen --
+     * wer sie abschaltet, bekommt auch keinen Impuls. Keine Mail: Eine
+     * wöchentliche Werbemail an die eigenen Partner wäre genau das, was sie
+     * ihren Kunden ersparen sollen.
+     */
+    public static function wochenImpuls(?int $jetzt = null): int
+    {
+        $jetzt ??= time();
+        require_once __DIR__ . '/Texte.php';
+        if ((int) date('N', $jetzt) !== 1 || (int) date('G', $jetzt) < 9) { return 0; }
+        $liste = Texte::PARTNER_IMPULSE;
+        $i = $liste[(int) date('W', $jetzt) % count($liste)];
+        $n = 0;
+        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL
+                            AND EXISTS (SELECT 1 FROM partner_push pp WHERE pp.partner_id = p.id)
+                            AND (p.impuls_am IS NULL OR p.impuls_am < ?)", [date('Y-m-d H:i:s', $jetzt - 6 * 86400)]) as $p) {
+            // Erst vermerken, dann schicken: Ein hängender Push-Dienst darf keine Serie auslösen.
+            Db::run('UPDATE partner SET impuls_am = ? WHERE id = ?', [date('Y-m-d H:i:s', $jetzt), (int) $p['id']]);
+            $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
+            if (self::push((int) $p['id'], Texte::h($i['titel'], $sp), Texte::h($i['text'], $sp), Partner::portalLink($p) . '#' . $i['anker']) > 0) { $n++; }
+        }
+        return $n;
+    }
+
     /* ==================================================================== */
     /*  Stand je Empfehlung                                                 */
     /* ==================================================================== */

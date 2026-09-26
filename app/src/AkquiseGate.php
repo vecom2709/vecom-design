@@ -176,6 +176,18 @@ final class AkquiseGate
             return ['status' => self::NICHT, 'gruende' => ['Die Firma hat abgelehnt.'], 'regel' => null, 'bedingung' => ''];
         }
 
+        // 1b. Ein Partner kümmert sich (26.09.2026): Solange er die Firma
+        //     reserviert hat, schreibt Vecom sie nicht selbst an -- zwei
+        //     Anfragen aus demselben Haus an denselben Betrieb kosten beide.
+        if (!empty($f['id'])) {
+            require_once __DIR__ . '/PartnerRecherche.php';
+            $res = PartnerRecherche::reserviertVon((int) $f['id']);
+            if ($res !== null) {
+                return ['status' => self::NICHT, 'gruende' => ['Partner ' . $res['name'] . ' kümmert sich (reserviert bis '
+                    . date('d.m.Y', strtotime((string) $res['bis'])) . ').'], 'regel' => null, 'bedingung' => ''];
+            }
+        }
+
         // 2. Keine Zweitansprache -- ausser die Firma hat selbst darum gebeten
         //    (Einwilligung festgehalten oder positive Antwort). Wer am Telefon
         //    sagt "schicken Sie mir das per Mail", soll die Mail bekommen.

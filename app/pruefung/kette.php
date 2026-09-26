@@ -11362,6 +11362,115 @@ foreach (Texte::PARTNER_MEDIEN['motive'] as $pmM) { foreach (['name', 'titel', '
 pruefe('Motive für Bilder und Video in allen drei Sprachen', $pmTexte && count(Texte::PARTNER_MEDIEN['motive']) === 5);
 
 /* ============================================================================
+   Partner: Kunden finden — Schnellcheck, Firmen-Finder, Vorstellung,
+   Wochen-Impuls (26.09.2026)
+   Die wichtigsten Zusagen: Der Schnellcheck ruft nie eine private Adresse ab
+   (auch nicht über einen Namen, der dorthin zeigt); eine reservierte Firma
+   sieht kein anderer Partner, und Vecoms eigene Akquise lässt sie in Ruhe;
+   der Firmen-Finder gibt keine Telefonnummern oder E-Mails heraus.
+   ============================================================================ */
+abschnitt('Partner: Kunden finden (Schnellcheck, Firmen-Finder, Vorstellung, Impuls)');
+require_once $wurzel . '/src/PartnerCheck.php';
+require_once $wurzel . '/src/PartnerRecherche.php';
+require_once $wurzel . '/src/AkquiseGate.php';
+pruefe('Schnellcheck: nur echte Website-Adressen (keine IP, kein localhost, kein fremder Port, keine Zugangsdaten)',
+    PartnerCheck::adresse('trattoria-rossi.it') === 'https://trattoria-rossi.it/'
+    && PartnerCheck::adresse('http://127.0.0.1/') === null && PartnerCheck::adresse('localhost') === null
+    && PartnerCheck::adresse('https://beispiel.it:8443/') === null && PartnerCheck::adresse('https://a:b@beispiel.it/') === null
+    && PartnerCheck::adresse('ftp://beispiel.it') === null && PartnerCheck::adresse('https://[::1]/') === null);
+PartnerCheck::$aufloeser = static fn(string $host): array => $host === 'intern.example' ? ['10.0.0.7'] : ['93.184.215.14'];
+pruefe('Schnellcheck: ein Name, der auf eine private Adresse zeigt, wird nicht abgerufen',
+    PartnerCheck::oeffentlicheIps('intern.example') === [] && PartnerCheck::holen('https://intern.example/')['fehler'] === 'nicht_oeffentlich'
+    && PartnerCheck::pruefen('intern.example')['fehler'] === 'adresse');
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 4200, 'url' => 'http://alt.example/', 'ssl_tage' => null, 'fehler' => '',
+    'inhalt' => '<html><head><title>Trattoria Alt</title></head><body><p>&copy; 2016 Trattoria</p></body></html>'];
+$prE = PartnerCheck::pruefen('alt.example');
+$prSt = array_column($prE['punkte'], 'stand', 'was');
+pruefe('Schnellcheck: alte Seite — langsam, ohne https, ohne Handy-Ansicht, © 2016 veraltet, Titel ohne Beschreibung',
+    $prSt === ['tempo' => 'schlecht', 'sicher' => 'schlecht', 'handy' => 'schlecht', 'google' => 'hinweis', 'aktuell' => 'schlecht', 'teilen' => 'hinweis'], json_encode($prSt));
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 600, 'url' => 'https://neu.example/', 'ssl_tage' => 80, 'fehler' => '',
+    'inhalt' => '<html><head><title>Hotel Neu</title><meta name="viewport" content="width=device-width"><meta name="description" content="Das schöne Hotel am Meer in Cefalù."><meta property="og:image" content="x.jpg"></head><body>© 2025–' . date('Y') . '</body></html>'];
+$prSt2 = array_column(PartnerCheck::pruefen('neu.example')['punkte'], 'stand', 'was');
+pruefe('Schnellcheck: gepflegte Seite — alle sechs Punkte grün', count(array_filter($prSt2, static fn($s) => $s === 'gut')) === 6, json_encode($prSt2));
+$prOhne = [];
+foreach (Texte::PARTNER_CHECK['punkte'] as $prK => $prT) { foreach ($prT as $prStand => $prSatz) { foreach (['it', 'de', 'en'] as $prL) { if (trim((string) ($prSatz[$prL] ?? '')) === '') { $prOhne[] = "$prK.$prStand.$prL"; } } } }
+pruefe('Schnellcheck: jeder Satz des Berichts in allen drei Sprachen', $prOhne === [], implode(', ', $prOhne));
+$prPid = Partner::anlegen(['name' => 'Rita Recherche', 'email' => 'rita@partner.example', 'status' => 'aktiv', 'code' => 'RITAFIND1', 'firma' => '', 'sprache' => 'de']);
+$prPid2 = Partner::anlegen(['name' => 'Otto Anders', 'email' => 'otto@partner.example', 'status' => 'aktiv', 'code' => 'OTTOFIND1', 'firma' => '', 'sprache' => 'de']);
+$prA = PartnerCheck::anlegen($prPid, 'alt.example');
+pruefe('Schnellcheck: Bericht mit Schlüssel angelegt, Adresse check.php?t=…', $prA['ok'] && preg_match('~/check\.php\?t=[0-9a-f]{32}$~', PartnerCheck::link($prA['token'])) === 1);
+for ($i = 0; $i < PartnerCheck::JE_TAG; $i++) { PartnerCheck::anlegen($prPid, 'alt.example'); }
+pruefe('Schnellcheck: höchstens ' . PartnerCheck::JE_TAG . ' am Tag je Partner', PartnerCheck::anlegen($prPid, 'alt.example')['grund'] === 'ck_genug');
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+$prChk = (string) file_get_contents($wurzel . '/../check.php');
+pruefe('Bericht (check.php): ohne Skript, nie im Index, Knopf auf den Kanal-Link des Partners',
+    !preg_match('~<script~i', $prChk) && str_contains($prChk, "default-src 'none'") && str_contains($prChk, 'noindex') && str_contains($prChk, "PartnerWerbung::link(\$p, 'check')"));
+
+// Firmen-Finder und Reservierung
+$prF = static fn(string $k, string $n, ?string $url, ?int $score, string $ort = 'Cefalù'): int => (int) Db::insert('akq_firmen', [
+    'kennung' => $k, 'name' => $n, 'name_norm' => mb_strtolower($n), 'land' => 'IT', 'stadt' => $ort, 'plz' => '90015', 'adresse' => 'Via Test 1',
+    'branche' => 'restaurant', 'url' => $url, 'domain' => $url ? (string) parse_url($url, PHP_URL_HOST) : null, 'score' => $score,
+    'telefon' => '+39 0921 000000', 'email' => 'info@' . $k . '.example']);
+$prF1 = $prF('KT00000001', 'Trattoria Ohne', null, null);
+$prF2 = $prF('KT00000002', 'Hotel Mittel', 'https://hm.example', 40);
+$prF3 = $prF('KT00000003', 'Bar Angeschrieben', 'https://ba.example', 70);
+Db::insert('akq_versand', ['firma_id' => $prF3, 'kanal' => 'brief', 'status' => 'von_hand', 'compliance' => 'ALLOWED', 'an' => 'Via Test 1', 'actor' => 'kette']);
+$prS = PartnerRecherche::suchen($prPid, 'Cefal', '', 'de', false);
+$prNamen = array_column($prS['treffer'], 'name');
+pruefe('Firmen-Finder: ohne Website zuerst, dann nach Chance', ($prNamen[0] ?? '') === 'Trattoria Ohne' && $prS['treffer'][0]['chance'] === 'hoch', json_encode($prNamen));
+pruefe('Firmen-Finder: keine Telefonnummer, keine E-Mail in den Treffern',
+    !preg_match('~0921|info@~', json_encode($prS, JSON_UNESCAPED_UNICODE)) && !array_key_exists('telefon', $prS['treffer'][0]) && !array_key_exists('email', $prS['treffer'][0]));
+pruefe('Firmen-Finder: von Vecom schon angeschrieben → nicht reservierbar',
+    (array_values(array_filter($prS['treffer'], static fn($t) => $t['id'] === $prF3))[0]['stand'] ?? '') === 'vecom'
+    && PartnerRecherche::reservieren($prPid, $prF3) === 'fi_vecom');
+pruefe('Reservierung: Rita reserviert, Otto sieht die Firma nicht mehr und kann sie nicht nehmen',
+    PartnerRecherche::reservieren($prPid, $prF1) === 'ok'
+    && !in_array($prF1, array_column(PartnerRecherche::suchen($prPid2, 'Cefal', '', 'de', false)['treffer'], 'id'), true)
+    && PartnerRecherche::reservieren($prPid2, $prF1) === 'fi_weg');
+$prG = AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$prF1]), 'brief');
+pruefe('Reservierung: Vecoms eigene Akquise lässt die Firma in Ruhe (AkquiseGate sagt NICHT)',
+    $prG['status'] === AkquiseGate::NICHT && str_contains(implode(' ', $prG['gruende']), 'Rita Recherche kümmert sich'), json_encode($prG['gruende'], JSON_UNESCAPED_UNICODE));
+Db::run('UPDATE partner_reservierungen SET bis = DATE_SUB(CURDATE(), INTERVAL 1 DAY) WHERE firma_id = ?', [$prF1]);
+pruefe('Reservierung: abgelaufen → wieder frei, Otto darf', PartnerRecherche::reservieren($prPid2, $prF1) === 'ok'
+    && PartnerRecherche::meine($prPid, 'de') === [] && count(PartnerRecherche::meine($prPid2, 'de')) === 1);
+PartnerRecherche::freigeben($prPid2, $prF1);
+pruefe('Reservierung: freigegeben → Gate prüft wieder normal', !str_contains(implode(' ', AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$prF1]), 'brief')['gruende']), 'kümmert sich'));
+for ($i = 0; $i < PartnerRecherche::MAX_AKTIV; $i++) { PartnerRecherche::reservieren($prPid, $prF(sprintf('KV%08d', $i), 'Voll ' . $i, null, null, 'Voll')); }
+pruefe('Reservierung: höchstens ' . PartnerRecherche::MAX_AKTIV . ' gleichzeitig', PartnerRecherche::reservieren($prPid, $prF2) === 'fi_voll');
+
+// Vorstellung durch Vecom
+Partner::vereinbarungMerken($prPid, 'x');
+$prM = Partner::kundeMelden($prPid, ['name' => 'Lina Kontakt', 'email' => 'lina-kontakt@esempio.example', 'einverstanden' => '1', 'sprache' => 'de'], 'de');
+$prBetreff = (string) Db::wert("SELECT betreff FROM mails WHERE anlass = 'anfrage_eingegangen' AND empfaenger = 'lina-kontakt@esempio.example' ORDER BY id DESC LIMIT 1", [], '');
+pruefe('Vorstellung: der gemeldete Kontakt bekommt keine „Danke für Ihre Anfrage“, sondern „Eine Empfehlung von Rita Recherche“',
+    $prM['ok'] && str_starts_with($prBetreff, 'Eine Empfehlung von Rita Recherche'), $prBetreff);
+pruefe('Vorstellung: Vorlage in drei Sprachen mit {partner} und {link}',
+    count(array_filter(['it', 'de', 'en'], static fn($l) => str_contains(Texte::MAILS['partner_vorstellung'][$l][1], '{partner}') && str_contains(Texte::MAILS['partner_vorstellung'][$l][1], '{link}'))) === 3);
+
+// Wochen-Impuls
+[, $prPunkt] = WebPush::paar();
+PartnerPost::aboSpeichern($prPid, 'https://push.example.org/rita', WebPush::b64($prPunkt), WebPush::b64(random_bytes(16)));
+$prGesendet = [];
+WebPush::$probe = static function (string $ziel, array $kopf, string $paket) use (&$prGesendet): int { $prGesendet[] = $ziel; return 201; };
+$prMontag = strtotime('next monday 10:00');
+$prVorher = count($prGesendet);
+PartnerPost::wochenImpuls(strtotime('next tuesday 10:00'));
+PartnerPost::wochenImpuls($prMontag - 3 * 3600);
+$prNachFalsch = count($prGesendet);
+PartnerPost::wochenImpuls($prMontag);
+$prNachMontag = count($prGesendet);
+PartnerPost::wochenImpuls($prMontag + 3600);
+WebPush::$probe = null;
+pruefe('Wochen-Impuls: nur montags ab 9 Uhr, nur an Partner mit Hinweisen, einmal je Woche',
+    $prNachFalsch === $prVorher && $prNachMontag === $prVorher + 1 && count($prGesendet) === $prNachMontag
+    && Db::wert('SELECT impuls_am FROM partner WHERE id = ?', [$prPid2], null) === null,
+    json_encode([$prVorher, $prNachFalsch, $prNachMontag, count($prGesendet)]));
+pruefe('Akquise-Firmenseite zeigt, welcher Partner sich kümmert', str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), 'PartnerRecherche::reserviertVon((int) $f[\'id\'])'));
+pruefe('Wochen-Impuls: jeder Impuls dreisprachig und mit einem Ziel, das es auf der Partnerseite gibt',
+    count(array_filter(Texte::PARTNER_IMPULSE, static fn($i) => isset($i['titel']['it'], $i['titel']['de'], $i['titel']['en'], $i['text']['en'])
+        && in_array($i['anker'], ['werbung', 'medien', 'recherche', 'melden'], true))) === count(Texte::PARTNER_IMPULSE));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -1191,6 +1191,8 @@ final class Partner
             'firma' => (string) ($d['firma'] ?? ''),
             'nachricht' => mb_substr(trim((string) ($d['anliegen'] ?? '')), 0, 2000) ?: '(Vom Partner gemeldet, ohne Beschreibung)',
             'sprache' => in_array((string) ($d['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : $sprache,
+            // Vorstellung durch Vecom (26.09.2026): Die Eingangsmail sagt, wer empfohlen hat.
+            'empfohlen_von' => trim((string) $p['firma']) !== '' ? trim((string) $p['name']) . ' (' . trim((string) $p['firma']) . ')' : trim((string) $p['name']),
         ]);
         if ($anfrage === null) { return ['ok' => false, 'grund' => 'angaben']; }
         $kid = (int) Db::wert('SELECT customer_id FROM anfragen WHERE id = ?', [$anfrage], 0);

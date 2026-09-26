@@ -59,6 +59,9 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
     <span class="akq-ampel <?= Fmt::h($ampel['farbe']) ?>"><i></i><?= Fmt::h($ampel['wort']) ?></span>
     <span class="akq-klein"><?= Fmt::h(implode(' · ', array_filter([(string) $f['stadt'], Akquise::branchenName($f['branche'])]))) ?></span>
   </div>
+  <?php require_once dirname(__DIR__) . '/src/PartnerRecherche.php'; $akqRes = PartnerRecherche::reserviertVon((int) $f['id']); if ($akqRes): ?>
+    <div class="hinweis" style="margin:10px 0">★ Partner <b><?= Fmt::h((string) $akqRes['name']) ?></b> kümmert sich um diesen Betrieb (reserviert bis <?= Fmt::h(date('d.m.Y', strtotime((string) $akqRes['bis']))) ?>). Bis dahin nicht selbst ansprechen — die Versandsperre greift ohnehin.</div>
+  <?php endif; ?>
   <ol class="akq-stufen5" aria-label="Wo steht dieser Betrieb?">
     <?php foreach (Akquise::STUFEN5 as $k => [$wort]): $nr = (int) array_search($k, $stufenReihe, true); ?>
       <li class="<?= $nr < $stufeNr ? 'st-fertig' : ($nr === $stufeNr ? 'st-jetzt' : '') ?>"<?= $nr === $stufeNr ? ' aria-current="step"' : '' ?>><?= Fmt::h($wort) ?></li>

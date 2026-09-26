@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -183,6 +183,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($f === 'ok') {
                     Events::melden('partner_profil', 'Partner hat seine Empfehlungsseite geändert: ' . $p['name'], 'info', null, '/partner/' . (int) $p['id']);
                     header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;
+                }
+                $meldung = $f;
+            } elseif ($tat === 'check' && $p) {
+                $r = PartnerCheck::anlegen((int) $p['id'], (string) ($_POST['url'] ?? ''));
+                if ($r['ok']) { header('Location: ' . $selbst(['ck' => $r['token']]) . '#recherche', true, 303); exit; }
+                $meldung = (string) $r['grund'];
+            } elseif (($tat === 'fi_reserv' || $tat === 'fi_frei') && $p) {
+                $fid = (int) ($_POST['firma'] ?? 0);
+                $f = 'ok';
+                if ($tat === 'fi_reserv') { $f = PartnerRecherche::reservieren((int) $p['id'], $fid); } else { PartnerRecherche::freigeben((int) $p['id'], $fid); }
+                if ($f === 'ok') {
+                    $zurueck = array_filter(['fi_ort' => (string) ($_GET['fi_ort'] ?? ''), 'fi_branche' => (string) ($_GET['fi_branche'] ?? ''), 'fi_nz' => 1], static fn($v) => $v !== '');
+                    header('Location: ' . $selbst($zurueck) . '#recherche', true, 303); exit;
                 }
                 $meldung = $f;
             } elseif ($tat === 'foto_weg' && $p) {
@@ -545,6 +558,13 @@ if ($p && isset($_GET['karte'])) {
   </div>
 
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
+
+  <?php $checkNeu = null;
+    if (preg_match('/^[0-9a-f]{32}$/', (string) ($_GET['ck'] ?? ''))) {
+        $ckZ = Db::one('SELECT token, ergebnis FROM partner_checks WHERE token = ? AND partner_id = ?', [(string) $_GET['ck'], (int) $p['id']]);
+        if ($ckZ) { $checkNeu = ['token' => (string) $ckZ['token'], 'ergebnis' => json_decode((string) $ckZ['ergebnis'], true) ?: ['host' => '', 'punkte' => []]]; }
+    }
+    require __DIR__ . '/app/views/partner_recherche.php'; ?>
 
   <?php PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
   <div class="block pt" id="nachrichten">
