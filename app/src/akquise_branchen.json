@@ -1,0 +1,477 @@
+{
+  "_hinweis": "Eine Quelle fuer Verwaltung (Akquise.php) und Worker (tools/akquise). osm = Overpass-Selektoren; pflicht = was ein Besucher dieser Branche auf der Seite finden muss (Codes aus dem Worker); experience = Grundeignung 0-10 fuer 3D/Animation/Scrollytelling, gewichtet mit dem tatsaechlichen Befund.",
+  "restaurant": {
+    "de": "Restaurant",
+    "it": "Ristorante",
+    "en": "Restaurant",
+    "tourismus": true,
+    "experience": 5,
+    "osm": [
+      "amenity=restaurant",
+      "amenity=fast_food"
+    ],
+    "pflicht": [
+      "reservierung",
+      "speisekarte",
+      "oeffnungszeiten",
+      "tel_klickbar",
+      "anfahrt"
+    ],
+    "experience_idee": "Cinematic Hero mit Gerichten und Raum, Speisekarte als schnelles, handytaugliches Kapitel statt PDF"
+  },
+  "hotel": {
+    "de": "Hotel",
+    "it": "Hotel",
+    "en": "Hotel",
+    "tourismus": true,
+    "experience": 8,
+    "osm": [
+      "tourism=hotel",
+      "tourism=motel",
+      "tourism=hostel"
+    ],
+    "pflicht": [
+      "buchung",
+      "zimmer",
+      "galerie",
+      "tel_klickbar",
+      "sprachen",
+      "anfahrt"
+    ],
+    "experience_idee": "360°-Zimmerrundgang und Scrollytelling ueber Lage und Umgebung, direkte Buchung im ersten Bildschirm"
+  },
+  "ferienwohnung": {
+    "de": "Ferienwohnung / B&B",
+    "it": "Casa vacanze / B&B",
+    "en": "Holiday home / B&B",
+    "tourismus": true,
+    "experience": 6,
+    "osm": [
+      "tourism=apartment",
+      "tourism=guest_house",
+      "tourism=chalet"
+    ],
+    "pflicht": [
+      "buchung",
+      "zimmer",
+      "galerie",
+      "tel_klickbar",
+      "sprachen",
+      "anfahrt"
+    ],
+    "experience_idee": "Interaktive Karte mit Strand, Orten und Wegen; 360°-Ansicht der Wohnung"
+  },
+  "agriturismo": {
+    "de": "Agriturismo",
+    "it": "Agriturismo",
+    "en": "Agriturismo",
+    "tourismus": true,
+    "experience": 8,
+    "osm": [
+      "guest_house=agritourism",
+      "tourism=guest_house&name~[Aa]gritur",
+      "tourism=hotel&name~[Aa]gritur"
+    ],
+    "name_muster": "agritur",
+    "pflicht": [
+      "buchung",
+      "zimmer",
+      "galerie",
+      "speisekarte",
+      "sprachen",
+      "anfahrt"
+    ],
+    "experience_idee": "Cinematic Landschaftsflug ueber Hof und Felder, Hofprodukte als interaktive Vitrine"
+  },
+  "bar_cafe": {
+    "de": "Bar / Café",
+    "it": "Bar / Caffè",
+    "en": "Bar / Café",
+    "tourismus": true,
+    "experience": 3,
+    "osm": [
+      "amenity=cafe",
+      "amenity=bar",
+      "amenity=pub",
+      "amenity=ice_cream"
+    ],
+    "pflicht": [
+      "oeffnungszeiten",
+      "tel_klickbar",
+      "anfahrt",
+      "galerie"
+    ],
+    "experience_idee": "Kurze Bewegtbild-Sequenz statt Bildergalerie"
+  },
+  "baeckerei": {
+    "de": "Bäckerei / Konditorei",
+    "it": "Panificio / Pasticceria",
+    "en": "Bakery / Pastry shop",
+    "tourismus": false,
+    "experience": 5,
+    "osm": [
+      "shop=bakery",
+      "shop=pastry",
+      "shop=confectionery"
+    ],
+    "pflicht": [
+      "oeffnungszeiten",
+      "tel_klickbar",
+      "anfahrt",
+      "produkte",
+      "bestellung"
+    ],
+    "experience_idee": "Produktvisualisierung der Spezialitaeten, Vorbestellung fuer Feiertage"
+  },
+  "handwerk": {
+    "de": "Handwerksbetrieb",
+    "it": "Artigiano",
+    "en": "Craftsman",
+    "tourismus": false,
+    "experience": 3,
+    "osm": [
+      "craft=carpenter",
+      "craft=electrician",
+      "craft=plumber",
+      "craft=painter",
+      "craft=roofer",
+      "craft=tiler",
+      "craft=stonemason",
+      "craft=metal_construction",
+      "craft=hvac",
+      "craft=glaziery",
+      "craft=joiner",
+      "craft=window_construction",
+      "craft=gardener",
+      "craft=locksmith"
+    ],
+    "pflicht": [
+      "leistungen",
+      "referenzen",
+      "angebot_cta",
+      "tel_klickbar",
+      "einsatzgebiet"
+    ],
+    "experience_idee": "Vorher-/Nachher-Regler fuer Projekte; nur wenn echtes Bildmaterial vorliegt"
+  },
+  "bau": {
+    "de": "Bauunternehmen / Architektur",
+    "it": "Impresa edile / Architettura",
+    "en": "Construction / Architecture",
+    "tourismus": false,
+    "experience": 9,
+    "osm": [
+      "craft=builder",
+      "office=construction_company",
+      "office=architect",
+      "office=engineer"
+    ],
+    "pflicht": [
+      "leistungen",
+      "referenzen",
+      "angebot_cta",
+      "tel_klickbar",
+      "zertifikate"
+    ],
+    "experience_idee": "Architekturvisualisierung (Blender/Unreal) laufender und fertiger Projekte, interaktive Projektkarte"
+  },
+  "immobilien": {
+    "de": "Immobilienmakler",
+    "it": "Agenzia immobiliare",
+    "en": "Real estate agency",
+    "tourismus": false,
+    "experience": 9,
+    "osm": [
+      "office=estate_agent"
+    ],
+    "pflicht": [
+      "objekte",
+      "galerie",
+      "angebot_cta",
+      "tel_klickbar",
+      "suche"
+    ],
+    "experience_idee": "Virtuelle 360°-Besichtigungen und 3D-Grundrisse; Objektsuche mit Karte"
+  },
+  "autohaus": {
+    "de": "Autohaus",
+    "it": "Concessionaria auto",
+    "en": "Car dealership",
+    "tourismus": false,
+    "experience": 8,
+    "osm": [
+      "shop=car",
+      "shop=motorcycle"
+    ],
+    "pflicht": [
+      "objekte",
+      "galerie",
+      "angebot_cta",
+      "tel_klickbar",
+      "oeffnungszeiten"
+    ],
+    "experience_idee": "Interaktive 3D-Fahrzeugansicht bzw. Konfigurator fuer Bestandsfahrzeuge"
+  },
+  "werkstatt": {
+    "de": "Kfz-Werkstatt",
+    "it": "Officina auto",
+    "en": "Car repair shop",
+    "tourismus": false,
+    "experience": 2,
+    "osm": [
+      "shop=car_repair",
+      "shop=tyres",
+      "craft=car_repair"
+    ],
+    "pflicht": [
+      "leistungen",
+      "termin",
+      "tel_klickbar",
+      "oeffnungszeiten",
+      "anfahrt"
+    ],
+    "experience_idee": "Online-Terminwunsch statt Animation — hier zaehlt Tempo"
+  },
+  "friseur": {
+    "de": "Friseur",
+    "it": "Parrucchiere",
+    "en": "Hair salon",
+    "tourismus": false,
+    "experience": 4,
+    "osm": [
+      "shop=hairdresser",
+      "shop=barber"
+    ],
+    "pflicht": [
+      "termin",
+      "leistungen",
+      "preise",
+      "tel_klickbar",
+      "galerie"
+    ],
+    "experience_idee": "Vorher-/Nachher-Galerie mit Bewegung, Online-Termin im ersten Bildschirm"
+  },
+  "beauty": {
+    "de": "Kosmetik / Beauty",
+    "it": "Estetica / Beauty",
+    "en": "Beauty salon",
+    "tourismus": false,
+    "experience": 5,
+    "osm": [
+      "shop=beauty",
+      "shop=cosmetics",
+      "shop=massage",
+      "leisure=spa",
+      "amenity=spa"
+    ],
+    "pflicht": [
+      "termin",
+      "leistungen",
+      "preise",
+      "tel_klickbar",
+      "galerie"
+    ],
+    "experience_idee": "Ruhige Premium-Animation, Behandlungen als Szenen statt Listen"
+  },
+  "fitness": {
+    "de": "Fitnessstudio",
+    "it": "Palestra",
+    "en": "Gym",
+    "tourismus": false,
+    "experience": 6,
+    "osm": [
+      "leisure=fitness_centre",
+      "leisure=sports_centre"
+    ],
+    "pflicht": [
+      "probetraining",
+      "kurse",
+      "preise",
+      "tel_klickbar",
+      "oeffnungszeiten"
+    ],
+    "experience_idee": "Studio-Rundgang in 360°, Kursplan interaktiv"
+  },
+  "tourismus": {
+    "de": "Tourismus / Reiseveranstalter",
+    "it": "Turismo / Tour operator",
+    "en": "Tourism / Tour operator",
+    "tourismus": true,
+    "experience": 8,
+    "osm": [
+      "office=travel_agent",
+      "shop=travel_agency",
+      "office=guide"
+    ],
+    "pflicht": [
+      "buchung",
+      "angebote",
+      "galerie",
+      "sprachen",
+      "tel_klickbar"
+    ],
+    "experience_idee": "Interaktive Routenkarte mit Scrollytelling, Touren als filmische Kapitel"
+  },
+  "einzelhandel": {
+    "de": "Einzelhandel",
+    "it": "Negozio",
+    "en": "Retail",
+    "tourismus": false,
+    "experience": 5,
+    "osm": [
+      "shop=clothes",
+      "shop=shoes",
+      "shop=jewelry",
+      "shop=furniture",
+      "shop=gift",
+      "shop=florist",
+      "shop=books",
+      "shop=electronics",
+      "shop=optician",
+      "shop=bicycle",
+      "shop=interior_decoration",
+      "shop=deli",
+      "shop=wine"
+    ],
+    "pflicht": [
+      "produkte",
+      "oeffnungszeiten",
+      "anfahrt",
+      "tel_klickbar",
+      "shop"
+    ],
+    "experience_idee": "Dynamische Produktdarstellung, ggf. 3D-Ansicht fuer Hochwertiges"
+  },
+  "produzent": {
+    "de": "Produzent (Wein, Öl, Lebensmittel)",
+    "it": "Produttore (vino, olio, alimentari)",
+    "en": "Producer (wine, oil, food)",
+    "tourismus": true,
+    "experience": 8,
+    "osm": [
+      "craft=winery",
+      "craft=brewery",
+      "craft=distillery",
+      "craft=cheese",
+      "craft=olive_press",
+      "shop=farm"
+    ],
+    "pflicht": [
+      "produkte",
+      "shop",
+      "galerie",
+      "sprachen",
+      "tel_klickbar"
+    ],
+    "experience_idee": "Produktvisualisierung (Flasche/Dose in 3D), Herkunft als Scrollytelling"
+  },
+  "industrie": {
+    "de": "Hersteller / Industrie",
+    "it": "Produzione / Industria",
+    "en": "Manufacturer / Industry",
+    "tourismus": false,
+    "experience": 9,
+    "osm": [
+      "man_made=works",
+      "office=company"
+    ],
+    "pflicht": [
+      "leistungen",
+      "referenzen",
+      "zertifikate",
+      "angebot_cta",
+      "sprachen"
+    ],
+    "experience_idee": "Interaktive 3D-Produkt- und Anlagenvisualisierung, virtueller Showroom"
+  },
+  "kanzlei": {
+    "de": "Kanzlei / Steuerberatung",
+    "it": "Studio legale / commercialista",
+    "en": "Law / accounting firm",
+    "tourismus": false,
+    "experience": 2,
+    "osm": [
+      "office=lawyer",
+      "office=notary",
+      "office=tax_advisor",
+      "office=accountant"
+    ],
+    "pflicht": [
+      "leistungen",
+      "team",
+      "termin",
+      "tel_klickbar",
+      "anfahrt"
+    ],
+    "experience_idee": "Keine Effekte — Klarheit, Vertrauen, schneller Terminweg",
+    "berufsrecht": true
+  },
+  "beratung": {
+    "de": "Beratung / Dienstleistung B2B",
+    "it": "Consulenza / servizi B2B",
+    "en": "Consulting / B2B services",
+    "tourismus": false,
+    "experience": 4,
+    "osm": [
+      "office=consulting",
+      "office=insurance",
+      "office=financial",
+      "office=it",
+      "office=logistics"
+    ],
+    "pflicht": [
+      "leistungen",
+      "referenzen",
+      "team",
+      "angebot_cta",
+      "tel_klickbar"
+    ],
+    "experience_idee": "Ruhige Datenvisualisierung statt 3D"
+  },
+  "medizin": {
+    "de": "Praxis / Gesundheit",
+    "it": "Studio medico / salute",
+    "en": "Medical practice",
+    "tourismus": false,
+    "experience": 2,
+    "osm": [
+      "amenity=dentist",
+      "amenity=doctors",
+      "amenity=clinic",
+      "amenity=veterinary",
+      "healthcare=physiotherapist"
+    ],
+    "pflicht": [
+      "leistungen",
+      "termin",
+      "oeffnungszeiten",
+      "tel_klickbar",
+      "anfahrt"
+    ],
+    "experience_idee": "Keine Effekte — Barrierefreiheit und Terminweg zuerst",
+    "berufsrecht": true
+  },
+  "dienstleister": {
+    "de": "Lokaler Dienstleister",
+    "it": "Servizi locali",
+    "en": "Local services",
+    "tourismus": false,
+    "experience": 3,
+    "osm": [
+      "amenity=driving_school",
+      "shop=dry_cleaning",
+      "shop=laundry",
+      "craft=photographer",
+      "shop=pet_grooming",
+      "office=moving_company"
+    ],
+    "pflicht": [
+      "leistungen",
+      "angebot_cta",
+      "tel_klickbar",
+      "oeffnungszeiten",
+      "anfahrt"
+    ],
+    "experience_idee": "Schneller Anfrageweg statt Effekte"
+  }
+}

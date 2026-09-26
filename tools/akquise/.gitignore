@@ -1,0 +1,5 @@
+# Schluessel und alles, was der Worker ueber fremde Firmen sammelt, gehoert
+# nie ins (oeffentliche) Repository.
+.env
+daten/
+node_modules/

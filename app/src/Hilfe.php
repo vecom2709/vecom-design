@@ -20,6 +20,7 @@ final class Hilfe
         'aktivitaeten'       => 'Hier steht, was passiert ist — wer wann bestellt, bezahlt, geschrieben oder freigegeben hat.',
         'vorgaenge'          => 'Hier stehen alle Kunden mit laufendem Auftrag, jeweils mit dem nächsten Schritt.',
         'kunden'             => 'Hier findest du jeden Kunden, auch ohne laufenden Auftrag. Ein Klick öffnet seine Akte.',
+        'akquise'            => 'Hier findest du Betriebe, deren Website nachweisbar Schwächen hat — geprüft, bewertet und mit einem Textvorschlag. Rausgeschickt wird nur, was du freigibst und was das Gate erlaubt.',
         'nachrichten'        => 'Hier liest und beantwortest du, was Kunden dir über ihre Seite schreiben.',
         'anfragen'           => 'Hier landen Anfragen von der Website. Antworte zuerst denen, die am längsten warten.',
         'bedarf'             => 'Hier siehst du, was Besucher im Preisrechner zusammengestellt haben, und machst daraus ein Angebot.',

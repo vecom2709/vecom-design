@@ -1,0 +1,32 @@
+{
+  "name": "vecom-akquise-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VECOM Lead Intelligence — Recherche, Website-Audit und Textvorschläge. Meldet an die Verwaltung (akquise.php), versendet nie selbst.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "pruefen": "tsx src/cli.ts pruefen",
+    "recherche": "tsx src/cli.ts recherche",
+    "audit": "tsx src/cli.ts audit",
+    "texte": "tsx src/cli.ts texte",
+    "alles": "tsx src/cli.ts alles",
+    "einzel": "tsx src/cli.ts einzel",
+    "test": "tsx --test test/*.test.ts",
+    "typen": "tsc --noEmit",
+    "osm": "tsx src/cli.ts osm"
+  },
+  "dependencies": {
+    "lighthouse": "13.5.0",
+    "playwright": "1.56.1",
+    "robots-parser": "3.0.1",
+    "tsx": "4.23.15",
+    "chrome-launcher": "1.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -141,6 +141,15 @@ final class Mail
                Adressen anklickbar sind. */
             'htmlContent' => self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache),
         ];
+        /* Eine persoenliche Erstansprache geht als reiner Text: Sie soll
+           aussehen wie ein Brief von einem Menschen, nicht wie ein
+           Rundschreiben mit Knopf. (Akquise, 24.09.2026) */
+        if (!empty($bezug['nurText'])) {
+            unset($inhalt['htmlContent']);
+        }
+        if (!empty($bezug['kopfzeilen']) && is_array($bezug['kopfzeilen'])) {
+            $inhalt['headers'] = array_map('strval', $bezug['kopfzeilen']);
+        }
         if (!empty($bezug['antwortAn']) && filter_var($bezug['antwortAn'], FILTER_VALIDATE_EMAIL)) {
             $inhalt['replyTo'] = ['email' => $bezug['antwortAn']];
         }

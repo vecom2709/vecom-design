@@ -293,6 +293,15 @@ if ($route === 'puls') {
     exit;
 }
 
+/* ---------- Akquise: eigenes Modul, eigener Verteiler ----------
+   Die Handgriffe (tat=akq_…) stehen in akquise_route.php, nicht in der
+   grossen Liste unten -- das Modul soll sich als Ganzes lesen lassen. Der
+   Verteiler der Seiten weiter unten fuehrt fuer GET in dieselbe Datei. */
+if ($route === 'akquise' && $post) {
+    require __DIR__ . '/akquise_route.php';
+    exit;
+}
+
 /* ---------- Schreibende Vorgaenge ---------- */
 if ($post) {
     // Eine zu grosse Datei verwirft der Server, bevor PHP sie sieht — dann
@@ -3925,6 +3934,10 @@ switch ($route) {
             'offen'      => sicher(static fn() => Telefon::offeneGespraeche(7), []),
         ]);
         break;
+
+    case 'akquise':
+        require __DIR__ . '/akquise_route.php';
+        exit;
 
     case 'monitoring':
         require_once __DIR__ . '/src/Monitoring.php';

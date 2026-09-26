@@ -26,6 +26,10 @@ $navZahlen['bereit'] = (int) sicher(static function (): int {
     require_once dirname(__DIR__) . '/src/Bereit.php';
     return (int) (Bereit::bilanz()[Bereit::FEHLER] ?? 0);
 }, 0);
+/* Akquise: nur Antworten, auf die ein Mensch reagieren sollte. Neue Leads
+   sind Bestand, keine Handlung -- sie tragen keine Zahl ins Menue. */
+$navZahlen['akquise'] = (int) sicher(fn() => Db::wert(
+    "SELECT COUNT(*) FROM akq_antworten WHERE erledigt = 0 AND klasse IN ('INTERESTED','CALL_REQUEST','PRICE_REQUEST','MORE_INFO')", [], 0), 0);
 $navZahlen['stimmen'] = (int) sicher(static function (): int {
     require_once __DIR__ . '/../src/Stimme.php';
     return Stimme::offene();
@@ -110,6 +114,11 @@ $menue = [
        die schon hinterlegten Kunden nicht mehr angezeigt wie Cavaleri."
        Die Liste gab es weiter, nur fuehrte kein Klick mehr hin. */
     ['kunden', 'Alle Kunden', 'kunden'],
+    /* Akquise (24.09.2026): Betriebe, die noch keine Kunden sind. Unter
+       dieser Tuer, weil es die fuenf Tueren bleiben sollen und weil es
+       dieselbe Frage ist -- wer wird Kunde. Die Zahl zaehlt nur Antworten,
+       auf die ein Mensch reagieren sollte, nie den Bestand an Leads. */
+    ['akquise', 'Neue Kunden finden', 'akquise'],
     ['nachrichten', 'Posteingang', 'nachrichten'],
     ['empfehlungen', 'Weiterempfehlung', 'empfehlungen'],
   ]],
