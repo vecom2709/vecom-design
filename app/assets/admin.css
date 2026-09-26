@@ -667,3 +667,26 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
   .bereit__zeile{flex-wrap:wrap;gap:10px;padding:14px}
   .bereit__tun{width:100%;padding-left:38px}
 }
+/* „Später“ unter „Du bist dran“ (26.09.2026): eingeklappt, aber mit Zahl */
+details.spaeter{margin-top:10px;border-top:1px solid var(--linie)}
+details.spaeter>summary{cursor:pointer;list-style:none;padding:12px 0 4px;color:var(--dim);font-size:13.5px;font-weight:600}
+details.spaeter>summary::-webkit-details-marker{display:none}
+details.spaeter>summary::before{content:"›";display:inline-block;margin-right:8px;transition:transform .15s}
+details.spaeter[open]>summary::before{transform:rotate(90deg)}
+details.spaeter>summary .mehr{margin-left:8px}
+/* Ein Satz, wozu die Seite da ist (26.09.2026) */
+.seitensatz{margin:0 0 14px;color:var(--leise);font-size:13px;line-height:1.55;max-width:72ch}
+/* Einführung beim ersten Anmelden */
+dialog.einfuehrung{border:1px solid var(--linie);border-radius:14px;background:var(--flaeche,#141210);color:var(--text);
+  padding:22px 24px;max-width:460px;width:calc(100% - 32px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog.einfuehrung::backdrop{background:rgba(0,0,0,.6)}
+.einfuehrung h2{margin:4px 0 8px;font-size:19px}
+.einfuehrung p{line-height:1.6;margin:0 0 12px}
+.ef__zaehler{color:var(--leise);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0}
+.ef__ort{background:none;border:0;padding:0;color:var(--cyan);cursor:pointer;font:inherit;font-size:13.5px}
+.ef__knoepfe{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.ef__knoepfe .knopf:first-child{margin-right:auto}
+/* .knopf setzt display und überstimmt sonst [hidden] -- dann standen
+   „Zurück“, „Weiter“ und „Los geht's“ gleichzeitig da (Sichtprüfung). */
+.einfuehrung [hidden]{display:none!important}
+dialog.einfuehrung{margin:auto;position:fixed;inset:0;height:fit-content}

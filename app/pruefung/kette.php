@@ -10196,6 +10196,42 @@ foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 
 Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
 
 /* ============================================================================
+   Verwaltung einfacher (26.09.2026, Uwe: „Mach“ zu den Vorschlägen 1–9)
+
+   Nur Ansicht und Führung -- an den Abläufen darunter ändert sich nichts.
+   Geprüft wird, dass die Vereinfachung nichts versteckt, was offen ist.
+   ============================================================================ */
+abschnitt('Verwaltung einfacher');
+$veHeute = (string) file_get_contents($oben . '/app/views/heute.php');
+pruefe('Heute: höchstens fünf vorne, der Rest unter „Später“ -- mit seiner Zahl',
+    str_contains($veHeute, "array_slice(\$liste['du'], 0, 5)") && str_contains($veHeute, 'Später<span class="mehr"><?= count($duSpaeter) ?>'));
+pruefe('Heute: nur die vorderste Zeile trägt den goldenen Knopf (Regel 3)',
+    str_contains($veHeute, "\$zeile(\$v, \$i === 0)") && substr_count($veHeute, "class=\"knopf haupt\"") === 0);
+pruefe('Heute: „Später“ zeigt dieselben Zeilen, keine geht verloren',
+    str_contains($veHeute, "foreach (\$duSpaeter as \$v) { \$zeile(\$v); }"));
+
+require_once $wurzel . '/src/Hilfe.php';
+preg_match_all("~'([a-z]+)', '[^']+', '[a-z]+'~", $mText, $veZ);
+$veOhne = array_values(array_filter(array_unique($veZ[1] ?? []), static fn($z) => Hilfe::satz($z) === ''));
+pruefe('Hilfe: jede Seite im Menü hat ihren Satz „Hier …“', $veOhne === [], implode(', ', $veOhne));
+pruefe('Hilfe: jeder Satz sagt, was man HIER tut (beginnt mit „Hier“)',
+    array_filter(Hilfe::SAETZE, static fn($t) => !str_starts_with($t, 'Hier')) === []);
+$veRouten = [];
+preg_match_all("~^    case '([a-z_]+)':~m", $rfQuelle, $veR);
+pruefe('Einführung: jeder Schritt führt auf eine Seite, die es gibt',
+    array_diff(array_column(Hilfe::EINFUEHRUNG, 0), $veR[1] ?? []) === [],
+    implode(', ', array_diff(array_column(Hilfe::EINFUEHRUNG, 0), $veR[1] ?? [])));
+Db::run("DELETE FROM settings WHERE skey = 'einfuehrung_99991'");
+$veVorher = Hilfe::gesehen(99991);
+Hilfe::merken(99991);
+pruefe('Einführung: einmal gesehen, kommt sie nicht wieder -- je Benutzer', !$veVorher && Hilfe::gesehen(99991) && !Hilfe::gesehen(99992));
+Db::run("DELETE FROM settings WHERE skey = 'einfuehrung_99991'");
+$veLayout = (string) file_get_contents($oben . '/app/views/layout.php');
+pruefe('Einführung: Schließen merkt sie ebenso wie Fertig, und „Einführung ansehen“ holt sie zurück',
+    str_contains($veLayout, 'value="einfuehrung_gesehen"') && str_contains($veLayout, "isset(\$_GET['einfuehrung'])")
+    && str_contains((string) file_get_contents($oben . '/app/index.php'), "case 'einfuehrung_gesehen':"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

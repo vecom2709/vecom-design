@@ -9,7 +9,7 @@
  */
 
 /** Eine Zeile: wer, warum, seit wann, und der Knopf. */
-$zeile = static function (array $v) {
+$zeile = static function (array $v, bool $vorne = false) {
     $tage = Vorgang::ruhtSeitTagen($v);
     $s    = $v['schritt'];
     $ziel = url('vorgaenge/' . $v['schluessel']);
@@ -49,14 +49,14 @@ $zeile = static function (array $v) {
             <?php foreach ($s['felder'] as $feld => $wert): ?>
               <input type="hidden" name="<?= Fmt::h($feld) ?>" value="<?= Fmt::h((string) $wert) ?>">
             <?php endforeach; ?>
-            <button class="knopf haupt"><?= Fmt::h($s['knopf']) ?></button>
+            <button class="knopf<?= $vorne ? ' haupt' : '' ?>"><?= Fmt::h($s['knopf']) ?></button>
           </form>
         <?php else: ?>
           <?php /* Fuehrt auf die Vorgangsseite statt sofort zu handeln — der
                    Pfeil sagt das, damit niemand einen Klick erwartet, der
                    nicht kommt. Was den Projektstand verschiebt, will vorher
                    im Zusammenhang gesehen werden. */ ?>
-          <a class="knopf haupt" href="<?= Fmt::h($tunZiel) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
+          <a class="knopf<?= $vorne ? ' haupt' : '' ?>" href="<?= Fmt::h($tunZiel) ?>"><?= Fmt::h($s['knopf']) ?> &rsaquo;</a>
         <?php endif; ?>
       </div>
     </div>
@@ -192,11 +192,25 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
   </div>
 <?php endif; ?>
 
+<?php /* HÖCHSTENS FÜNF, UND NUR EINER GOLDEN (26.09.2026, Uwe: „ja“)
+         Bei fünfzig Zeilen mit fünfzig goldenen Knöpfen vergleicht man, statt
+         zu handeln (Regel 3). Die Reihenfolge der Liste ist schon die
+         Dringlichkeit -- die ersten fünf sind die, um die es heute geht; der
+         Rest steht eingeklappt darunter, mit seiner Zahl. Zugeklappt ist
+         nicht verschwunden. */
+$duVorne = array_slice($liste['du'], 0, 5);
+$duSpaeter = array_slice($liste['du'], 5); ?>
 <div class="block">
   <h2>Du bist dran<span class="mehr"><?= count($liste['du']) ?></span></h2>
   <?php if (!$liste['du']): ?>
     <div class="leer">Nichts offen. Alles, was läuft, wartet gerade auf jemand anderen.</div>
-  <?php else: foreach ($liste['du'] as $v) { $zeile($v); } endif; ?>
+  <?php else: foreach ($duVorne as $i => $v) { $zeile($v, $i === 0); } endif; ?>
+  <?php if ($duSpaeter): ?>
+    <details class="klapp spaeter">
+      <summary>Später<span class="mehr"><?= count($duSpaeter) ?></span></summary>
+      <?php foreach ($duSpaeter as $v) { $zeile($v); } ?>
+    </details>
+  <?php endif; ?>
 </div>
 
 <?php /* ---------- Was nicht bei dir liegt ----------

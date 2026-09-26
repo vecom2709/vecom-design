@@ -571,6 +571,11 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Neuer Code gespeichert. Der alte Link führt ab jetzt nirgends mehr hin.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'einfuehrung_gesehen':
+                require_once __DIR__ . '/src/Hilfe.php';
+                if (Auth::id() !== null) { Hilfe::merken((int) Auth::id()); }
+                zurueck('heute');
+
             case 'partner_connect_pruefen':
                 require_once __DIR__ . '/src/Partner.php';
                 $r = Partner::connectPruefen();

@@ -235,6 +235,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     ?>
 
     <div class="gruppe"><?= Fmt::h(Auth::name()) ?></div>
+    <a href="?einfuehrung=1">Einführung ansehen</a>
     <a href="/cockpit/">Zum Cockpit</a>
     <a href="<?= Fmt::h(url('abmelden')) ?>">Abmelden</a>
   </nav>
@@ -394,6 +395,14 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       <?php endif; ?>
     </section>
     <?php endif; ?>
+    <?php
+    /* EIN SATZ, WOZU DIESE SEITE DA IST (26.09.2026) -- aus Hilfe::SAETZE,
+       damit jede Seite ihn an einer Stelle bekommt. Leise, eine Zeile. */
+    require_once __DIR__ . '/../src/Hilfe.php';
+    $seitenSatz = Hilfe::satz($aktiv);
+    if ($seitenSatz !== ''): ?>
+      <p class="seitensatz"><?= Fmt::h($seitenSatz) ?></p>
+    <?php endif; ?>
     <?php require $inhaltsdatei; ?>
   </main>
 </div>
@@ -412,6 +421,51 @@ if (class_exists('Ablauf')) {
     }
 }
 ?>
+<?php
+/* DIE EINFÜHRUNG (26.09.2026): beim ersten Anmelden von allein, danach nur
+   über „Einführung ansehen“. Fünf Schritte in einem Fenster über der Seite --
+   kein Umbau der Seiten, keine Daten verändert. Gemerkt wird sie beim
+   Schließen, ob fertig gelesen oder übersprungen: Wer sie wegklickt, will
+   sie nicht bei jedem Anmelden wieder. */
+$einfuehrungZeigen = isset($_GET['einfuehrung']) || (Auth::id() !== null && !Hilfe::gesehen((int) Auth::id()));
+if ($einfuehrungZeigen): $schritte = Hilfe::EINFUEHRUNG; ?>
+<dialog class="einfuehrung" id="einfuehrung" aria-labelledby="ef_titel">
+  <form method="post" action="<?= Fmt::h(url('')) ?>">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="einfuehrung_gesehen">
+    <input type="hidden" name="zurueck" value="<?= Fmt::h($route) ?>">
+    <p class="ef__zaehler"><span id="ef_nr">1</span> von <?= count($schritte) ?></p>
+    <?php foreach ($schritte as $i => [$ziel, $wort, $text]): ?>
+      <section class="ef__schritt" data-schritt="<?= $i ?>" <?= $i ? 'hidden' : '' ?>>
+        <h2 <?= $i ? '' : 'id="ef_titel"' ?>><?= Fmt::h($wort) ?></h2>
+        <p><?= Fmt::h($text) ?></p>
+        <?php /* Ein Knopf, kein Link: Wer hier hinspringt, hat die Einführung
+                 gesehen -- sonst begänne sie auf der nächsten Seite von vorn. */ ?>
+        <button class="ef__ort" name="zurueck" value="<?= Fmt::h($ziel) ?>">Dorthin: <?= Fmt::h($wort) ?> &rsaquo;</button>
+      </section>
+    <?php endforeach; ?>
+    <div class="ef__knoepfe">
+      <button class="knopf" name="ueberspringen" value="1">Schließen</button>
+      <button class="knopf" type="button" id="ef_zurueck" hidden>Zurück</button>
+      <button class="knopf haupt" type="button" id="ef_weiter" autofocus>Weiter</button>
+      <button class="knopf haupt" id="ef_fertig" hidden>Los geht's</button>
+    </div>
+  </form>
+</dialog>
+<script>
+(function () {
+  var d = document.getElementById('einfuehrung'); if (!d || !d.showModal) { return; }
+  var s = d.querySelectorAll('.ef__schritt'), i = 0;
+  function zeig(n) { i = n; s.forEach(function (x, k) { x.hidden = k !== n; });
+    document.getElementById('ef_nr').textContent = n + 1;
+    document.getElementById('ef_zurueck').hidden = n === 0;
+    document.getElementById('ef_weiter').hidden = n === s.length - 1;
+    document.getElementById('ef_fertig').hidden = n !== s.length - 1; }
+  document.getElementById('ef_weiter').onclick = function () { zeig(i + 1); };
+  document.getElementById('ef_zurueck').onclick = function () { zeig(i - 1); };
+  d.showModal();
+})();
+</script>
+<?php endif; ?>
 <script>window.vecomBremse = <?= json_encode($bremsTabelle, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script>
 <script>
 /* Kommt man ueber die Leiste "Jetzt dran", steht der gemeinte Knopf in der
