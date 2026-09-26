@@ -63,6 +63,9 @@ final class Ablauf
      * @var array<string,array{0:string,1:string,2:string}>
      */
     public const TRAGWEITE = [
+        'bewertung_bitten' => [self::RAUS,
+            'Der Kunde bekommt jetzt eine E-Mail mit der Bitte um eine Google-Bewertung (einmal je Kunde).',
+            'Ja, Bitte verschicken'],
         'fragebogen_einladen' => [self::RAUS,
             'Der Kunde bekommt jetzt die E-Mail mit dem Fragebogen.',
             'Ja, Fragebogen verschicken'],

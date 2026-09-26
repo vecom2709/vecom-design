@@ -23,6 +23,8 @@
         <div class="feld"><label>E-Mail</label><input name="firma_email" value="<?= Fmt::h((string) ($firma['firma_email'] ?? '')) ?>"></div>
         <div class="feld"><label>Telefon</label><input name="firma_telefon" value="<?= Fmt::h((string) ($firma['firma_telefon'] ?? '')) ?>"></div>
         <div class="feld"><label>Website</label><input name="firma_web" value="<?= Fmt::h((string) ($firma['firma_web'] ?? '')) ?>"></div>
+        <div class="feld"><label>Google-Bewertungslink</label><input name="firma_google_bewertung" placeholder="https://g.page/r/…/review"
+          value="<?= Fmt::h((string) ($firma['firma_google_bewertung'] ?? '')) ?>"></div>
         <div class="feld"><label>Bank</label><input name="firma_bank" value="<?= Fmt::h((string) ($firma['firma_bank'] ?? '')) ?>"></div>
         <div class="feld"><label>IBAN</label><input name="firma_iban" value="<?= Fmt::h((string) ($firma['firma_iban'] ?? '')) ?>"></div>
       </div>

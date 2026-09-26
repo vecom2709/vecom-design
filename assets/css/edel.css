@@ -361,3 +361,22 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 @media (max-width: 899px) { .vorschau__form { grid-template-columns: 1fr 1fr; } .vorschau__form .btn { grid-column: 1 / -1; } }
 @media (max-width: 520px) { .vorschau__form { grid-template-columns: 1fr; } }
 
+
+/* Rückruf-Wunsch (26.09.2026): eingeklappt unter den Kontaktdaten, leise --
+   die Hauptrolle bleibt beim E-Mail-Einstieg. */
+.rueckruf { margin-top: var(--s-3, 1.25rem); border-top: 1px solid var(--c-line); padding-top: .9rem; }
+.rueckruf > summary { cursor: pointer; list-style: none; min-height: 44px; display: flex; align-items: center; gap: .5rem;
+  color: var(--c-text); font-weight: 500; }
+.rueckruf > summary::-webkit-details-marker { display: none; }
+.rueckruf > summary::before { content: "›"; display: inline-block; transition: transform .2s; color: var(--c-accent, #c8963e); }
+.rueckruf[open] > summary::before { transform: rotate(90deg); }
+.rueckruf__form { display: grid; gap: .35rem; margin-top: .6rem; max-width: 26rem; }
+.rueckruf__form label { font-size: var(--t-xs, .8rem); letter-spacing: .08em; text-transform: uppercase; color: var(--c-text-faint); margin-top: .5rem; }
+.rueckruf__form input, .rueckruf__form select, .rueckruf__form textarea { min-height: 48px; padding: .6rem .9rem; border-radius: 12px;
+  border: 1px solid var(--c-line-strong); background: rgba(255,255,255,.03); color: var(--c-text); font: inherit; }
+.rueckruf__form textarea { min-height: 72px; resize: vertical; }
+.rueckruf__form select option { color: #111; }
+.rueckruf__form input:focus-visible, .rueckruf__form select:focus-visible, .rueckruf__form textarea:focus-visible { outline: 2px solid var(--c-accent, #c8963e); outline-offset: 1px; }
+.rueckruf__form .btn { margin-top: .8rem; justify-self: start; min-height: 48px; }
+.rueckruf__ok { margin: .4rem 0 0; color: var(--c-text); }
+.rueckruf__form.ist-gesendet input, .rueckruf__form.ist-gesendet select, .rueckruf__form.ist-gesendet textarea { opacity: .5; }

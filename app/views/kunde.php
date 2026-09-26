@@ -47,6 +47,25 @@ $eing = !empty($eingebettet);
       <td><span class="marke2 <?= Status::ton($p['status']) ?>"><?= Fmt::h(Status::label(Status::PROJEKT, $p['status'])) ?></span></td>
       <td class="num"><?= (int) $p['progress'] ?>%</td><td><?= Fmt::h(Fmt::datum($p['deadline'])) ?></td></tr><?php endforeach; ?>
     </tbody></table></div></div>
+  <?php /* Um eine Google-Bewertung bitten (26.09.2026): nur mit hinterlegtem
+           Link, nur wenn es ein Projekt gibt, und nur einmal je Kunde. Die Mail
+           geht erst nach der Rückfrage aus Ablauf::TRAGWEITE raus. */
+  require_once __DIR__ . '/../src/Firma.php';
+  $gLinkA = (string) sicher(static fn() => Firma::get('firma_google_bewertung'), '');
+  if (!($anonym ?? false) && $projekte && str_starts_with($gLinkA, 'https://') && (string) $k['email'] !== ''):
+    $gGebeten = (string) sicher(static fn() => Db::wert("SELECT MAX(created_at) FROM mails WHERE anlass = 'bewertung_bitte' AND customer_id = ? AND status = 'gesendet'", [(int) $k['id']], ''), ''); ?>
+    <div class="block"><h2>Google-Bewertung</h2>
+      <?php if ($gGebeten !== ''): ?>
+        <p style="color:var(--leise);font-size:13px;margin:0">Gebeten am <?= Fmt::h(Fmt::datum($gGebeten)) ?> — ein zweites Mal fragen wir nicht.</p>
+      <?php else: ?>
+        <p style="color:var(--leise);font-size:13px;margin:0 0 10px">Ist die Seite online und der Kunde zufrieden: eine kurze Mail mit deinem Bewertungslink, in seiner Sprache.</p>
+        <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?>
+          <input type="hidden" name="tat" value="bewertung_bitten"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+          <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+          <button class="knopf">Um Google-Bewertung bitten</button></form>
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
   <div class="block"><h2>Zahlungen</h2><div class="tabellenrahmen"><table>
     <thead><tr><th>Bestellung</th><th>Anbieter</th><th class="num">Betrag</th><th>Status</th><th>Bezahlt am</th></tr></thead><tbody>
     <?php if (!$zahlungen): ?><tr><td colspan="5"><div class="leer">Noch keine Zahlung.</div></td></tr><?php endif; ?>

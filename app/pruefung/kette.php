@@ -10356,6 +10356,51 @@ foreach (['it', 'de', 'en'] as $veL) {
         (bool) preg_match('~(zählt die Seite Besuche|conta le visite|counts visits)~u', (string) file_get_contents($oben . "/assets/js/legal-$veL.js")));
 }
 
+/* ---- Rückruf-Wunsch von der Website (Website-Vorschlag 7) ----
+   Die gefährlichste Stelle: Telefon::melden ordnet über das jüngste
+   Nachschlagen zu. Ein Website-Besucher, der kurz nach einem Anrufer das
+   Formular schickt, darf dessen Kunden nie erben. */
+$rrK = Events::kundeFinden(['name' => 'Anrufer Vorhin', 'email' => 'anrufer-vorhin@pruefung.example']);
+Db::insert('activities', ['type' => 'telefon_nachschlagen', 'title' => 'Nachgeschlagen', 'customer_id' => $rrK,
+    'meta' => json_encode(['treffer' => 1, 'nummer' => '3401112222'])]);
+pruefe('Rückruf: ein Anruf ordnet über das jüngste Nachschlagen zu (Gegenprobe)',
+    Telefon::kundeImGespraech(['telefon' => '+39 340 111 2222']) === $rrK);
+pruefe('Rückruf: ein Website-Wunsch erbt den Anrufer von eben NIE',
+    Telefon::kundeImGespraech(['telefon' => '+39 340 111 2222', 'quelle' => 'website']) === 0
+    && Telefon::kundeImGespraech(['quelle' => 'website']) === 0);
+Db::run('DELETE FROM notifications WHERE type = ?', ['telefon_rueckruf']);
+$rrR = Telefon::melden(['art' => 'rueckruf', 'quelle' => 'website', 'name' => 'Web Besucher', 'telefon' => '+39 340 111 2222',
+    'erreichbar' => 'morgen Vormittag', 'text' => 'Rückruf-Wunsch über die Website.']);
+$rrM = (string) Db::wert("SELECT meta FROM activities WHERE type = 'telefon_melde' ORDER BY id DESC LIMIT 1", [], '');
+pruefe('Rückruf: landet in Manuelas Rückrufliste, mit Zeitfenster und Quelle „website“, an keinem Kunden',
+    $rrR['ok'] && str_contains($rrM, '"quelle":"website"') && str_contains($rrM, 'morgen Vormittag')
+    && (string) Db::wert("SELECT link FROM notifications WHERE type = 'telefon_rueckruf' ORDER BY id DESC LIMIT 1", [], '') === '/heute');
+Db::run("DELETE FROM activities WHERE type = 'telefon_nachschlagen' AND customer_id = ?", [$rrK]);
+$rrQ = (string) file_get_contents($oben . '/rueckruf.php');
+pruefe('Rückruf: rueckruf.php prüft Name und mindestens sechs Ziffern, bremst Massenversand und antwortet nie mit einer Datenbankmeldung',
+    str_contains($rrQ, "preg_match_all('/\\d/', \$telefon) < 6") && str_contains($rrQ, '>= 10') && str_contains($rrQ, "'quelle' => 'website'")
+    && !str_contains($rrQ, '$e->getMessage()]') && str_contains($rrQ, "'grund' => 'panne'"));
+$rrI = (string) file_get_contents($oben . '/index.html');
+pruefe('Rückruf: auf der Startseite eingeklappt (Regel 3), dreisprachig',
+    str_contains($rrI, '<details class="rueckruf" data-rueckruf>')
+    && str_contains((string) file_get_contents($oben . '/assets/js/i18n-de.js'), 'Lieber zurückgerufen werden?')
+    && str_contains((string) file_get_contents($oben . '/assets/js/i18n-en.js'), 'Rather get a call back?'));
+
+/* ---- Google-Bewertung (Website-Vorschlag 6) ---- */
+pruefe('Bewertung: die Bitte geht nur nach der Rückfrage raus (TRAGWEITE)', isset(Ablauf::TRAGWEITE['bewertung_bitten'])
+    && Ablauf::TRAGWEITE['bewertung_bitten'][0] === Ablauf::RAUS);
+foreach (['it', 'de', 'en'] as $gbL) {
+    [$gbB, $gbT] = Texte::mail('bewertung_bitte', $gbL, ['name' => 'Anna', 'link' => 'https://g.page/r/X/review']);
+    pruefe("Bewertung ($gbL): Mail mit Namen und Link, ohne gerade Apostrophe",
+        $gbB !== '' && str_contains($gbT, 'Anna') && str_contains($gbT, 'https://g.page/r/X/review') && !str_contains($gbT . $gbB, "'"));
+}
+$gbI = (string) file_get_contents($oben . '/app/index.php');
+pruefe('Bewertung: je Kunde nur einmal, nur mit https-Link, nie bei anonymisierten Kunden',
+    str_contains($gbI, "Mail::schonGeschickt('bewertung_bitte', 'customer_id'") && str_contains($gbI, "!str_starts_with(\$bl, 'https://')")
+    && str_contains($gbI, 'AND anonym_am IS NULL'));
+pruefe('Bewertung: auf der Kundenseite nur ein Link, den der Kunde selbst klickt -- und nur mit https',
+    str_contains((string) file_get_contents($oben . '/kunde.php'), "str_starts_with((string) \$gLink, 'https://')"));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

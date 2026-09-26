@@ -514,6 +514,13 @@ window.VECOM_I18N.de = {
       failText: "Ihre Anfrage konnte gerade nicht zugestellt werden. Versuchen Sie es gleich noch einmal — oder schreiben Sie mir direkt an kontakt@vecom-design.it: Der Text, den Sie eingegeben haben, steckt schon im Knopf hier unten.",
       failBtn: "Per E-Mail schreiben"
     },
+    rr: {
+      frage: "Lieber zurückgerufen werden?", name: "Name", tel: "Telefonnummer",
+      wann: "Wann darf ich Sie anrufen?", w1: "Heute Nachmittag", w2: "Morgen Vormittag", w3: "Morgen Nachmittag", w4: "Wann es passt",
+      was: "Worum geht es? (freiwillig)", knopf: "Rückruf anfordern",
+      ok: "Danke! Ich rufe Sie im gewählten Zeitraum an.", fehler: "Das hat nicht geklappt. Schreiben Sie per WhatsApp oder E-Mail.",
+      angaben: "Es fehlt der Name oder die Telefonnummer.", viel: "Gerade kommen zu viele Anfragen. Bitte in einer Stunde noch einmal."
+    },
     contact: {
       head: "Sprechen wir darüber. Das Angebot ist kostenlos.",
       lead: "Schreiben Sie mir in wenigen Zeilen, was Sie anbieten und was Sie brauchen. Antwort innerhalb eines Werktags mit einer ersten Einschätzung zu Preis und Zeitrahmen — auf Italienisch, Deutsch oder Englisch.",

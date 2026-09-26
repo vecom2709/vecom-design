@@ -44,3 +44,30 @@ for (const form of document.querySelectorAll('form[data-zugang]')) {
 function zaehlen(e) {
   try { navigator.sendBeacon ? navigator.sendBeacon(`/d.php?e=${e}`) : fetch(`/d.php?e=${e}`, { method: 'POST', keepalive: true }); } catch { /* egal */ }
 }
+
+/* Rückruf-Wunsch (26.09.2026): wie das E-Mail-Feld -- der Besucher bleibt,
+   wo er ist. Die Sätze stehen übersetzt im Formular (data-rr), damit der
+   Build sie mit der Seite in jede Sprache bringt. */
+for (const box of document.querySelectorAll('details[data-rueckruf]')) {
+  box.addEventListener('toggle', () => { if (box.open) zaehlen('rueckruf-offen'); }, { once: true });
+  const form = box.querySelector('form[data-rueckruf-form]');
+  const ok = form.querySelector('.rueckruf__ok');
+  const knopf = form.querySelector('button[type="submit"]');
+  const satz = (k) => form.querySelector(`[data-rr="${k}"]`)?.textContent || '';
+  form.addEventListener('submit', async (ev) => {
+    if (!window.fetch) return;
+    ev.preventDefault();
+    knopf.disabled = true;
+    try {
+      const r = await fetch(form.action, { method: 'POST', body: new FormData(form), headers: { Accept: 'application/json' } });
+      const d = await r.json();
+      ok.textContent = d.ok ? satz('ok') : satz(d.grund === 'angaben' ? 'angaben' : d.grund === 'viel' ? 'viel' : 'fehler');
+      form.classList.toggle('ist-gesendet', !!d.ok);
+      if (d.ok) { zaehlen('rueckruf-gesendet'); form.querySelectorAll('input,select,textarea').forEach((x) => { x.disabled = true; }); }
+      else knopf.disabled = false;
+    } catch {
+      ok.textContent = satz('fehler'); knopf.disabled = false;
+    }
+    ok.hidden = false;
+  });
+}

@@ -515,6 +515,13 @@ window.VECOM_I18N.it = {
       failText: "La sua richiesta non è stata inviata. Riprovi tra un momento — oppure mi scriva direttamente a kontakt@vecom-design.it: il testo che ha compilato è già pronto nel pulsante qui sotto.",
       failBtn: "Mi scriva via e-mail"
     },
+    rr: {
+      frage: "Preferisce essere richiamato?", name: "Nome", tel: "Numero di telefono",
+      wann: "Quando la posso chiamare?", w1: "Oggi pomeriggio", w2: "Domani mattina", w3: "Domani pomeriggio", w4: "Quando vuole",
+      was: "Di cosa si tratta? (facoltativo)", knopf: "Richiamatemi",
+      ok: "Grazie! La richiamo nella fascia che ha scelto.", fehler: "Non è andato a buon fine. Scriva su WhatsApp o per e-mail.",
+      angaben: "Manca il nome o il numero di telefono.", viel: "In questo momento arrivano troppe richieste. Riprovi tra un’ora."
+    },
     contact: {
       head: "Parliamone. Il preventivo è gratuito.",
       lead: "Mi racconti in poche righe cosa vende e cosa le serve. Rispondo entro un giorno lavorativo con una prima indicazione di prezzo e tempi — in italiano, tedesco o inglese.",

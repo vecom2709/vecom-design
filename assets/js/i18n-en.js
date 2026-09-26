@@ -514,6 +514,13 @@ window.VECOM_I18N.en = {
       failText: "Your enquiry could not be delivered just now. Please try again in a moment — or write to me directly at kontakt@vecom-design.it: everything you typed is already in the button below.",
       failBtn: "Write me an email"
     },
+    rr: {
+      frage: "Rather get a call back?", name: "Name", tel: "Phone number",
+      wann: "When may I call you?", w1: "This afternoon", w2: "Tomorrow morning", w3: "Tomorrow afternoon", w4: "Whenever suits",
+      was: "What is it about? (optional)", knopf: "Request a call back",
+      ok: "Thank you! I will call you in the time you chose.", fehler: "That didn’t work. Please write on WhatsApp or by e-mail.",
+      angaben: "Your name or phone number is missing.", viel: "Too many requests right now. Please try again in an hour."
+    },
     contact: {
       head: "Let’s talk. The quote is free.",
       lead: "Tell me in a few lines what you offer and what you need. I reply within one working day with a first indication of price and timing — in Italian, German or English.",

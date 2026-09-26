@@ -1253,6 +1253,10 @@ final class Texte
         'stimmeDanke'   => ['it' => 'Grazie davvero. La leggo con calma — se l’ha autorizzata, la metto sul sito dopo averla vista.',
                             'de' => 'Herzlichen Dank. Ich lese sie in Ruhe — wenn Sie es erlaubt haben, stelle ich sie danach auf die Website.',
                             'en' => 'Thank you, genuinely. I’ll read it properly — if you allowed it, it goes on the site after I’ve seen it.'],
+        'stimmeGoogle'  => ['it' => 'Le andrebbe di scriverlo anche su Google? Per un piccolo studio conta moltissimo.',
+                            'de' => 'Möchten Sie das auch auf Google schreiben? Für ein kleines Studio zählt das sehr.',
+                            'en' => 'Would you also write it on Google? For a small studio it means a lot.'],
+        'stimmeGoogleKnopf' => ['it' => 'Valutare su Google', 'de' => 'Auf Google bewerten', 'en' => 'Review on Google'],
         'stimmeSchon'   => ['it' => 'Ha già lasciato la sua opinione. Grazie!', 'de' => 'Sie haben schon geschrieben. Vielen Dank!',
                             'en' => 'You’ve already written. Thank you!'],
         'lesenswert' => [
@@ -1430,6 +1434,11 @@ final class Texte
     ];
 
     public const MAILS = [
+        'bewertung_bitte' => [
+            'it' => ['Una piccola richiesta', "Buongiorno {name},\n\nil suo sito è online da un po’ — spero che le porti clienti.\n\nSe è soddisfatto del lavoro, mi aiuterebbe molto una sua recensione su Google. Bastano due righe:\n{link}\n\nGrazie di cuore,\nUwe"],
+            'de' => ['Eine kleine Bitte', "Guten Tag {name},\n\nIhre Website ist jetzt eine Weile online — ich hoffe, sie bringt Ihnen Kunden.\n\nWenn Sie zufrieden sind, hilft mir eine Bewertung auf Google sehr. Zwei Sätze genügen:\n{link}\n\nHerzlichen Dank,\nUwe"],
+            'en' => ['A small request', "Hello {name},\n\nyour website has been online for a while now — I hope it brings you customers.\n\nIf you are happy with the work, a Google review would help me a lot. Two sentences are enough:\n{link}\n\nThank you very much,\nUwe"],
+        ],
         'partner_neukunde' => [
             'it' => ['Un nuovo contatto tramite il suo link', "Buongiorno {name},\n\nqualcuno è arrivato tramite il suo link e ci ha contattati. Da ora questa persona è assegnata a lei: se acquista, riceve la sua provvigione.\n\n(Per rispetto non le diciamo chi è.)\n\nLa sua pagina: {portal}"],
             'de' => ['Ein neuer Kontakt über Ihren Link', "Guten Tag {name},\n\njemand ist über Ihren Link gekommen und hat uns kontaktiert. Diese Person ist ab jetzt Ihnen zugeordnet: Kauft sie, bekommen Sie Ihre Provision.\n\n(Aus Rücksicht sagen wir nicht, wer es ist.)\n\nIhre Seite: {portal}"],

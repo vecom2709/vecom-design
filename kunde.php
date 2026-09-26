@@ -863,6 +863,14 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <p class="mini" style="margin-top:10px"><?= $h($T('stimmeSchon')) ?></p>
         <div style="padding:11px 13px;border:1px solid var(--linie);border-radius:12px;margin-top:9px;
                     white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $stimme['text']) ?></div>
+        <?php /* Google-Bewertung (26.09.2026): nur ein Link, den der Kunde selbst
+                 anklickt -- nichts wird verschickt. Nur mit https-Adresse. */
+        require_once __DIR__ . '/app/src/Firma.php';
+        $gLink = sicherLesen(fn() => Firma::get('firma_google_bewertung'), '');
+        if (str_starts_with((string) $gLink, 'https://')): ?>
+          <p class="mini" style="margin-top:12px"><?= $h($T('stimmeGoogle')) ?></p>
+          <a class="knopf" href="<?= $h((string) $gLink) ?>" target="_blank" rel="noopener" style="margin-top:6px"><?= $h($T('stimmeGoogleKnopf')) ?></a>
+        <?php endif; ?>
       <?php else: ?>
         <p class="mini" style="margin-top:10px"><?= $h($T('stimmeHilfe')) ?></p>
         <form method="post" action="<?= $h($hier) ?>" style="margin-top:12px">

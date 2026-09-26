@@ -985,6 +985,7 @@ final class Telefon
         self::protokoll('melde', $kopf, $kundeId > 0 ? $kundeId : null,
                         ['art' => $art, 'dringend' => $dringend, 'nummer' => $telefon,
                          'name' => $name, 'erreichbar' => $erreichbar,
+                         'quelle' => ($d['quelle'] ?? '') === 'website' ? 'website' : 'telefon',
                          'anliegen' => mb_substr($text, 0, 300)]);
 
         /* Ohne Zeitfenster einmal nachfragen -- aber nur einmal, und nur wenn
@@ -3976,6 +3977,11 @@ final class Telefon
     {
         $mit = (int) ($d['kunde_id'] ?? 0);
         if ($mit > 0) { return $mit; }
+        /* Ein Rückruf-Wunsch von der Website (rueckruf.php, 26.09.2026) ist
+           kein Gespräch: Ohne diese Zeile erbte ein Besucher, der zehn
+           Minuten nach einem Anrufer das Formular abschickt, dessen Kunden --
+           samt Akte. Die Website ordnet nie über das Nachschlagen zu. */
+        if (($d['quelle'] ?? '') === 'website') { return 0; }
 
         /* NUR DAS LETZTE NACHSCHLAGEN ZÄHLT — UND ZWAR STRENG
            ------------------------------------------------------------------

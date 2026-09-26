@@ -33,6 +33,8 @@ final class Firma
         'firma_mwst'      => '0',
         'firma_regime'    => 'normal',
         'firma_hinweis'   => '',
+        // Link zum Bewerten im Google-Unternehmensprofil (26.09.2026); leer = nirgends angeboten
+        'firma_google_bewertung' => '',
     ];
 
     /** @var array<string,string>|null */

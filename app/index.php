@@ -571,6 +571,24 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Neuer Code gespeichert. Der alte Link führt ab jetzt nirgends mehr hin.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'bewertung_bitten':
+                require_once __DIR__ . '/src/Firma.php';
+                require_once __DIR__ . '/src/Texte.php';
+                require_once __DIR__ . '/src/Mail.php';
+                $bk = Db::one('SELECT id, name, email, sprache FROM customers WHERE id = ? AND anonym_am IS NULL', [(int) ($_POST['id'] ?? 0)]);
+                $bl = Firma::get('firma_google_bewertung');
+                if (!$bk || (string) $bk['email'] === '' || !str_starts_with($bl, 'https://')) {
+                    $_SESSION['fehler'] = 'Ohne E-Mail-Adresse oder Bewertungslink (Einstellungen → Firma) geht keine Bitte raus.';
+                } elseif (Mail::schonGeschickt('bewertung_bitte', 'customer_id', (int) $bk['id'])) {
+                    $_SESSION['fehler'] = 'Diesen Kunden haben wir schon gebeten — ein zweites Mal fragen wir nicht.';
+                } else {
+                    $bs = in_array((string) $bk['sprache'], ['it', 'de', 'en'], true) ? (string) $bk['sprache'] : 'it';
+                    [$bBetreff, $bText] = Texte::mail('bewertung_bitte', $bs, ['name' => trim(explode(' ', (string) $bk['name'])[0]), 'link' => $bl]);
+                    $ok = Mail::senden('bewertung_bitte', (string) $bk['email'], $bBetreff, $bText, ['customer_id' => (int) $bk['id']]);
+                    $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Die Bitte um eine Google-Bewertung ist raus.' : 'Die Mail ging nicht raus — siehe Meldungen.';
+                }
+                zurueck('kunden/' . (int) ($_POST['id'] ?? 0));
+
             case 'einmalig_erledigt':
                 require_once __DIR__ . '/src/Einmalig.php';
                 if (Einmalig::erledigt((string) ($_POST['schluessel'] ?? ''))) { $_SESSION['gut'] = 'Abgehakt.'; }

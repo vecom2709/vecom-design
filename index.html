@@ -53,7 +53,7 @@
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
 <link rel="stylesheet" href="assets/css/app.css?v=83ee458c">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
-<link rel="stylesheet" href="assets/css/edel.css?v=ad8624bb">
+<link rel="stylesheet" href="assets/css/edel.css?v=1424a7dc">
 <link rel="stylesheet" href="assets/css/vorschau.css?v=d4f9bf8a">
 
 
@@ -1483,6 +1483,33 @@
                  data-i18n="contact.dd6">Solo messaggi, non chiamate</a></dd></div>
       </dl>
 
+      <!-- Rückruf-Wunsch (26.09.2026): eingeklappt, damit er dem E-Mail-Einstieg
+           nicht die Hauptrolle nimmt. Landet in Manuelas Rückrufliste. -->
+      <details class="rueckruf" data-rueckruf>
+        <summary data-i18n="rr.frage">Preferisce essere richiamato?</summary>
+        <form class="rueckruf__form" action="/rueckruf.php" method="post" data-rueckruf-form>
+          <label for="rr-name" data-i18n="rr.name">Nome</label>
+          <input id="rr-name" name="name" required maxlength="120" autocomplete="name">
+          <label for="rr-tel" data-i18n="rr.tel">Numero di telefono</label>
+          <input id="rr-tel" name="telefon" type="tel" required maxlength="40" autocomplete="tel" inputmode="tel">
+          <label for="rr-wann" data-i18n="rr.wann">Quando la posso chiamare?</label>
+          <select id="rr-wann" name="wann">
+            <option value="heute_nachmittag" data-i18n="rr.w1">Oggi pomeriggio</option>
+            <option value="morgen_vormittag" data-i18n="rr.w2">Domani mattina</option>
+            <option value="morgen_nachmittag" data-i18n="rr.w3">Domani pomeriggio</option>
+            <option value="egal" data-i18n="rr.w4">Quando vuole</option>
+          </select>
+          <label for="rr-was" data-i18n="rr.was">Di cosa si tratta? (facoltativo)</label>
+          <textarea id="rr-was" name="anliegen" rows="2" maxlength="1000"></textarea>
+          <button class="btn" type="submit" data-i18n="rr.knopf">Richiamatemi</button>
+          <p class="rueckruf__ok" role="status" aria-live="polite" hidden></p>
+          <span hidden data-rr="ok" data-i18n="rr.ok">Grazie! La richiamo nella fascia che ha scelto.</span>
+          <span hidden data-rr="fehler" data-i18n="rr.fehler">Non è andato a buon fine. Scriva su WhatsApp o per e-mail.</span>
+          <span hidden data-rr="angaben" data-i18n="rr.angaben">Manca il nome o il numero di telefono.</span>
+          <span hidden data-rr="viel" data-i18n="rr.viel">In questo momento arrivano troppe richieste. Riprovi tra un’ora.</span>
+        </form>
+      </details>
+
     </div>
 
     <!-- Hier stand bis heute ein zweites Formular mit sechs Fragen. Es
@@ -1587,7 +1614,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=10317eb1" defer></script>
+<script src="assets/js/i18n-it.js?v=12d1a837" defer></script>
 <script src="assets/js/app.js?v=ad72aac6" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1614,7 +1641,7 @@
 <script type="module" src="assets/js/erlebnis/tisch-wahl.js?v=24ca84f5"></script>
 <script type="module" src="assets/js/erlebnis/kuechenplaner.js?v=5aa3a1b0"></script>
 <script type="module" src="assets/js/erlebnis/betrieb.js?v=c5d58cb7"></script>
-<script type="module" src="assets/js/zugang.js?v=a205dcfe"></script>
+<script type="module" src="assets/js/zugang.js?v=c8dd56fe"></script>
 <script type="module" src="assets/js/arbeiten.js?v=e16f11f4"></script>
 <script type="module" src="assets/js/vorschau.js?v=4f827fab"></script>
 
