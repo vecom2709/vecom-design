@@ -407,6 +407,9 @@ final class Bedarf
                 // keine Vermutung, und die Verwaltung soll den Unterschied
                 // kennen.
                 'sprache_gefragt' => true,
+                // Vor dem Angebot steht immer der große Fragebogen (21.09.2026);
+                // seit 26.09.2026 ist er die Fortsetzung dieser acht Fragen.
+                'fragebogen_folgt' => true,
                 'nachricht' => $vorspann . self::zusammenfassung($antworten, $sprache, $spanne, (int) $r['monatlich_cents']),
             ]);
             if ($anfrageId) {
@@ -481,6 +484,27 @@ final class Bedarf
         $dom = substr($email, strrpos($email, '@') + 1);
         if (preg_match(self::FREEMAIL, $dom) || preg_match('~\\.(invalid|example|test|local)$~', $dom)) { return null; }
         return $dom;
+    }
+
+    /**
+     * Der Richtpreis des jüngsten abgeschickten Bedarfs -- für den Fragebogen,
+     * der nach den acht Fragen weitergeht (26.09.2026). null, wenn es keinen
+     * gibt oder die Spanne abgeschaltet ist (bedarf_spanne_zeigen).
+     *
+     * @return array{von_cents:int,bis_cents:int,monatlich_cents:int}|null
+     */
+    public static function richtpreis(int $kundeId): ?array
+    {
+        try {
+            $zeigen = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'bedarf_spanne_zeigen'", [], '1') === '1';
+            if (!$zeigen) { return null; }
+            $b = Db::one("SELECT von_cents, bis_cents, monatlich_cents FROM bedarf
+                           WHERE customer_id = ? AND status <> 'offen' AND bis_cents > 0
+                           ORDER BY id DESC LIMIT 1", [$kundeId]);
+        } catch (Throwable $e) { return null; }
+        if (!$b) { return null; }
+        return ['von_cents' => (int) $b['von_cents'], 'bis_cents' => (int) $b['bis_cents'],
+                'monatlich_cents' => (int) $b['monatlich_cents']];
     }
 
     public static function alsFragebogen(int $kundeId): array

@@ -219,7 +219,23 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                schon deutsch. */
             $zielSprache = strtolower(trim((string) ($_POST['sprache_wahl'] ?? '')));
             if (!in_array($zielSprache, ['it', 'de', 'en'], true)) { $zielSprache = $sprache; }
+            /* EIN FRAGEBOGEN (26.09.2026, Uwe: „Die 8 Fragen sollen in den
+               großen Fragebogen zusammenlaufen“): Nach dem Richtpreis geht es
+               ohne Umweg über das Dashboard im selben Fragebogen weiter, mit
+               den Antworten von eben schon eingetragen. Klappt das nicht,
+               landet er wie bisher auf seiner Seite -- dort steht derselbe
+               Fragebogen als erster Knopf. */
             if ($ok && $imDashboard) {
+                try {
+                    require_once __DIR__ . '/app/src/Onboarding.php';
+                    $fbId = Onboarding::vorab((int) $dashKunde['id']);
+                    header('Location: /fragebogen.php?t=' . rawurlencode(Onboarding::token($fbId))
+                        . '&lang=' . rawurlencode($zielSprache) . '&m=vorhaben', true, 303);
+                    exit;
+                } catch (Throwable $e) {
+                    try { Events::melden('fragebogen_fehler', 'Fragebogen nach den acht Fragen nicht angelegt', 'schlecht',
+                        $e->getMessage(), '/kunden/' . (int) $dashKunde['id']); } catch (Throwable $e2) { /* egal */ }
+                }
                 header('Location: ' . Kundenzugang::linkFuer((int) $dashKunde['id'], $zielSprache) . '&m=vorhaben', true, 303);
                 exit;
             }
@@ -302,6 +318,8 @@ $geld = static function (int $cents) use ($sprache): string {
   .punkte li{flex:1 1 0;height:4px;border-radius:2px;background:var(--linie)}
   .punkte li.durch{background:var(--blau)}
   .punkte li.jetzt{background:var(--cyan)}
+  /* Die Angaben nach dem Richtpreis: ein Teil desselben Fragebogens */
+  .punkte li.angaben{flex-grow:3}
   .zaehler{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
   .beiseite{color:var(--leise);font-size:12.5px;line-height:1.6;margin-top:10px}
 
@@ -378,14 +396,36 @@ $geld = static function (int $cents) use ($sprache): string {
     <?php if ($imDashboard): ?>
       <a href="<?= $h($dashLink) ?>" style="display:inline-block;margin:0 0 10px;font-size:13.5px;color:var(--dim)"><?= $h($T('zumDashboard')) ?></a>
     <?php endif; ?>
-    <h1 style="font-size:21px;margin:0 0 6px"><?= $h($T('titel')) ?></h1>
-    <p class="lead" style="margin:0"><?= $h($T('lead')) ?></p>
+    <?php /* Im Dashboard sind die acht Fragen der Anfang des einen
+             Fragebogens (26.09.2026): gleiche Überschrift, ein letzter,
+             breiter Balken für die Angaben danach, und gezählt wird in
+             Minuten bis zum Ende -- wie im Fragebogen selbst (B6). Ohne
+             Dashboard bleibt es beim alten „Schritt n von 8“. */
+          $restMin = null;
+          if ($imDashboard) {
+              try {
+                  require_once __DIR__ . '/app/src/Fragen.php';
+                  $fbDaten = Bedarf::alsFragebogen((int) $dashKunde['id']);
+                  $fbRoh = Db::wert('SELECT data FROM questionnaires WHERE customer_id = ? ORDER BY id DESC LIMIT 1',
+                      [(int) $dashKunde['id']], null);
+                  if ($fbRoh) { $fbDaten = array_merge($fbDaten, (array) (json_decode((string) $fbRoh, true) ?: [])); }
+                  // Die acht Fragen sind Klicks: rund acht Sekunden je Frage
+                  $sek = max(0, $anzahl - $schritt) * 8 + Fragen::restMinuten($fbDaten, 1) * 60;
+                  $restMin = (int) ceil($sek / 60);
+              } catch (Throwable $e) { $restMin = null; }
+          } ?>
+    <h1 style="font-size:21px;margin:0 0 6px"><?= $h($T($imDashboard ? 'titelEins' : 'titel')) ?></h1>
+    <p class="lead" style="margin:0"><?= $h($T($imDashboard ? 'leadEins' : 'lead')) ?></p>
     <ul class="punkte">
       <?php for ($i = 1; $i <= $anzahl; $i++): ?>
         <li class="<?= $i < $schritt ? 'durch' : ($i === $schritt ? 'jetzt' : '') ?>"></li>
       <?php endfor; ?>
+      <?php if ($imDashboard): ?><li class="angaben" title="<?= $h(Texte::h(Texte::SEITE['angabenTitel'] ?? [], $sprache)) ?>"></li><?php endif; ?>
     </ul>
-    <div class="zaehler"><?= $h(strtr($T('schritt'), ['{n}' => (string) $schritt, '{g}' => (string) $anzahl])) ?></div>
+    <div class="zaehler"><?= $h($restMin === null
+        ? strtr($T('schritt'), ['{n}' => (string) $schritt, '{g}' => (string) $anzahl])
+        : ($restMin <= 1 ? Texte::h(Texte::SEITE['nochEineMin'] ?? [], $sprache)
+            : strtr(Texte::h(Texte::SEITE['nochMin'] ?? [], $sprache), ['{m}' => (string) $restMin]))) ?></div>
   </div>
 
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($T('panne')) ?></div><?php endif; ?>
@@ -442,7 +482,7 @@ $geld = static function (int $cents) use ($sprache): string {
           <?php if ($monatlich > 0): ?>
             <p class="monat"><?= $h(strtr($T('ergebnisMonat'), ['{betrag}' => $geld($monatlich)])) ?></p>
           <?php endif; ?>
-          <p class="erklaerung"><?= $h($T('ergebnisText')) ?></p>
+          <p class="erklaerung"><?= $h($T($imDashboard ? 'ergebnisTextEins' : 'ergebnisText')) ?></p>
           <?php if ($rest !== null && $rest > 0): ?>
             <p class="knapp">
               <?= $h(strtr($T('knappheit'), ['{n}' => (string) $rest, '{g}' => (string) $ziel])) ?>

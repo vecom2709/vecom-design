@@ -706,5 +706,30 @@ final class Onboarding
                     'antwortAn'   => (string) $f['kunde']['email'],
                 ]);
         } catch (Throwable $e) { /* Eine Meldung an mich selbst ist kein Grund zu scheitern */ }
+
+        /* DER KUNDE ERFÄHRT, WAS JETZT PASSIERT (26.09.2026)
+           ------------------------------------------------------------------
+           Vor dem Preis ist der abgeschickte Fragebogen das Ende seines Teils:
+           Danach ist Uwe dran, mit dem Angebot. Bisher bekam der Kunde dazu
+           nichts -- die letzte Mail war die nach den acht Fragen, und die sagt
+           seitdem „sobald der Fragebogen fertig ist“. Nach der Zahlung gibt es
+           diese Mail nicht: Da ist das Angebot längst angenommen. */
+        if ((int) ($f['fragebogen']['project_id'] ?? 0) === 0) {
+            try {
+                require_once __DIR__ . '/Texte.php';
+                $kid = (int) $f['fragebogen']['customer_id'];
+                $spr = in_array((string) ($f['kunde']['sprache'] ?? ''), ['it', 'de', 'en'], true)
+                    ? (string) $f['kunde']['sprache'] : 'it';
+                $name = trim((string) ($f['kunde']['name'] ?? ''));
+                [$betreff, $text] = Texte::mail('fragebogen_danke', $spr, [
+                    'name' => $name !== '' ? $name : ['it' => '', 'de' => '', 'en' => ''][$spr],
+                    'link' => self::mailLink($kid, (int) $f['fragebogen']['id']),
+                ]);
+                // „Guten Tag ,“ ohne Namen: das Komma gehört dann weg
+                if ($name === '') { $text = preg_replace('/^(\S+(?: \S+)?) ,/u', '$1,', $text) ?? $text; }
+                Mail::senden('fragebogen_danke', (string) $f['kunde']['email'], $betreff, $text,
+                    ['customer_id' => $kid]);
+            } catch (Throwable $e) { /* die Seite zeigt es trotzdem */ }
+        }
     }
 }

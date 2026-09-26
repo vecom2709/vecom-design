@@ -7340,6 +7340,117 @@ pruefe('S4: die Verwaltung zeigt ihn', str_contains((string) file_get_contents($
 pruefe('der Cronlauf erinnert und räumt auf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Zugang::erinnern()'));
 
 /* ============================================================================
+   Ein Fragebogen: die acht Fragen, der Richtpreis, die Angaben (26.09.2026)
+   Uwe: „Die 8 Fragen sollen in den großen Fragebogen zusammenlaufen, also ein
+   Fragebogen und der Richtpreis. Es soll aber an der Kette sinnvoll sein.“
+   Geprüft wird die Kette, nicht die Oberfläche: Was nach den acht Fragen im
+   Fragebogen steht, was der Kunde gesagt bekommt, und dass die Führung
+   danach genau einen nächsten Schritt kennt.
+   ============================================================================ */
+abschnitt('Ein Fragebogen: acht Fragen, Richtpreis, Angaben');
+require_once $wurzel . '/src/Umfang.php';
+require_once $wurzel . '/src/Onboarding.php';
+
+/* Die Bestätigung nach den acht Fragen verspricht kein Angebot mehr, das
+   bis zum fertigen Fragebogen gesperrt ist -- sie sagt, dass es weitergeht. */
+pruefe('nach den acht Fragen heißt die Bestätigung „Ihr Vorhaben ist angekommen“',
+    strpos((string) Db::wert("SELECT betreff FROM mails WHERE anlass = 'anfrage_eingegangen' AND empfaenger = ? ORDER BY id ASC LIMIT 1",
+        [$zgMail], ''), 'Ihr Vorhaben ist angekommen') !== false);
+pruefe('… unter dem alten Anlass, an dem die Führung „Kunde hat den Link“ erkennt',
+    $zgMails('anfrage_eingegangen', $zgMail) >= 1);
+foreach (['anfrage_eingegangen_fb' => ['questionario', 'Fragebogen', 'questionnaire'],
+          'fragebogen_danke'       => ['preventivo', 'Angebot', 'quote']] as $efA => $efWort) {
+    foreach (['it', 'de', 'en'] as $efI => $efL) {
+        [$efB, $efT] = Texte::mail($efA, $efL, ['name' => 'Giulia', 'link' => 'https://x/y', 'maxdatei' => '20 MB']);
+        pruefe("Mail „{$efA}“ ({$efL}): Betreff, Link, „{$efWort[$efI]}“, kein offener Platzhalter",
+            $efB !== '' && str_contains($efT, 'https://x/y') && str_contains($efT, $efWort[$efI])
+            && !preg_match('/\{[a-z]+\}/', $efB . $efT));
+    }
+}
+pruefe('die neue Bestätigung verspricht keine „erste Einschätzung“ mehr',
+    !str_contains(Texte::mail('anfrage_eingegangen_fb', 'de', ['name' => '', 'link' => '', 'maxdatei' => ''])[1], 'Einschätzung'));
+
+/* Was aus den acht Fragen im Fragebogen steht: die Zahlen des Richtpreises.
+   Das macht seit dem 25.09.2026 Umfang::ausVorhaben (A4) -- hier nur, dass es
+   für den Kunden aus dem E-Mail-Einstieg auch greift. */
+$efUmf = Umfang::ausVorhaben($zgK);
+pruefe('Seiten, Sprachen und Bausteine kommen aus dem abgeschickten Vorhaben',
+    is_array($efUmf) && ($efUmf['quelle'] ?? '') === 'vorhaben' && (int) $efUmf['seiten'] >= 1 && (int) $efUmf['sprachen'] >= 1,
+    json_encode($efUmf));
+$efAntw = Bedarf::antworten((array) Db::one("SELECT * FROM bedarf WHERE customer_id = ? AND status <> 'offen' ORDER BY id DESC LIMIT 1", [$zgK]));
+pruefe('die Sprachen sind die Antwort, nicht die je Seite gerechnete Menge',
+    (int) ($efUmf['sprachen'] ?? 0) === max(1, min(3, (int) ($efAntw['sprachen'] ?? 1))),
+    json_encode(['vorhaben' => $efUmf['sprachen'] ?? null, 'antwort' => $efAntw['sprachen'] ?? null, 'seiten' => $efUmf['seiten'] ?? null]));
+$efBid = (int) Db::wert("SELECT id FROM bedarf WHERE customer_id = ? AND status <> 'offen' ORDER BY id DESC LIMIT 1", [$zgK], 0);
+$efAlt = (string) Db::wert('SELECT antworten FROM bedarf WHERE id = ?', [$efBid], '');
+$efPflege = [];
+foreach (['ja' => 'du', 'vielleicht' => 'offen', 'nein' => null] as $efBet => $efSoll) {
+    $efA2 = json_decode($efAlt, true) ?: []; $efA2['betreuung'] = $efBet;
+    Db::run('UPDATE bedarf SET antworten = ? WHERE id = ?', [json_encode($efA2), $efBid]);
+    $efPflege[$efBet] = (Bedarf::alsFragebogen($zgK)['pflege'] ?? null) === $efSoll;
+}
+Db::run('UPDATE bedarf SET antworten = ? WHERE id = ?', [$efAlt, $efBid]);
+pruefe('Betreuung: „ja“ → ich pflege, „vielleicht“ → offen, „nein“ → er sagt selbst, wer',
+    !in_array(false, $efPflege, true), json_encode($efPflege));
+
+/* Der Richtpreis steht im Fragebogen, bis das Angebot ihn ablöst */
+$efRp = Bedarf::richtpreis($zgK);
+pruefe('der Richtpreis des abgeschickten Vorhabens ist abrufbar',
+    is_array($efRp) && $efRp['bis_cents'] > 0 && $efRp['von_cents'] <= $efRp['bis_cents'], json_encode($efRp));
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('bedarf_spanne_zeigen', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
+pruefe('… und verschwindet, wenn die Spanne abgeschaltet ist', Bedarf::richtpreis($zgK) === null);
+Db::run("UPDATE settings SET svalue = '1' WHERE skey = 'bedarf_spanne_zeigen'");
+$efFb = (string) file_get_contents(dirname(__DIR__, 2) . '/fragebogen.php');
+pruefe('der Fragebogen zeigt ihn nur ohne Projekt', str_contains($efFb, "empty(\$f['project_id'])) ? Bedarf::richtpreis("));
+pruefe('… zeigt die acht Fragen als erledigten ersten Teil', str_contains($efFb, 'class="durch vorlauf"'));
+pruefe('… und zählt weiter in Minuten, nicht in Schritten (B6)',
+    str_contains($efFb, 'Fragen::restMinuten($daten, $schritt)') && !str_contains($efFb, "\$S('schritt')"));
+pruefe('die acht Fragen im Dashboard zählen die Minuten bis zum Ende des Fragebogens',
+    str_contains((string) file_get_contents(dirname(__DIR__, 2) . '/bedarf.php'), 'Fragen::restMinuten($fbDaten, 1)'));
+$efBd = (string) file_get_contents(dirname(__DIR__, 2) . '/bedarf.php');
+pruefe('nach dem Richtpreis geht es ohne Umweg im Fragebogen weiter',
+    str_contains($efBd, "Onboarding::vorab((int) \$dashKunde['id'])") && str_contains($efBd, "header('Location: /fragebogen.php?t='"));
+pruefe('… und klappt das nicht, auf die Kundenseite wie bisher',
+    str_contains($efBd, "Kundenzugang::linkFuer((int) \$dashKunde['id'], \$zielSprache) . '&m=vorhaben'"));
+$efKs = (string) file_get_contents(dirname(__DIR__, 2) . '/kunde.php');
+pruefe('auf der Leiste ist der Fragebogen ein Feld, nicht zwei', str_contains($efKs, "\$x !== 'angaben'"));
+pruefe('nach dem Fragebogen sagt die Kundenseite, dass das Angebot kommt (nicht „Ihre Anfrage ist da“)',
+    str_contains($efKs, "\$angebotKommt = (\$echte ?? '') === 'anfrage' && !empty(\$fbFertig);"));
+pruefe('die Zugangsmail kennt einen Fragebogen, nicht zwei Schritte',
+    str_contains(Texte::mail('zugang', 'de', ['name' => '', 'link' => 'x', 'tage' => '7'])[1], '1. Ihr Fragebogen')
+    && !str_contains(Texte::mail('zugang', 'de', ['name' => '', 'link' => 'x', 'tage' => '7'])[1], 'Ihre Angaben:'));
+pruefe('die drei Stufen davor heißen alle „Fragebogen“',
+    count(array_unique(array_map(static fn($st) => Texte::h(Texte::KUNDE_STUFEN[$st]['kurz'], 'de'), ['vorhaben', 'anfrage', 'angaben']))) === 1
+    && Texte::h(Texte::KUNDE_STUFEN['angaben']['kurz'], 'de') === 'Fragebogen');
+
+/* Der Fragebogen, der nach den acht Fragen entsteht, trägt die Vorbelegung */
+$efId = Onboarding::vorab($zgK);
+$efDaten = json_decode((string) Db::wert('SELECT data FROM questionnaires WHERE id = ?', [$efId], ''), true) ?: [];
+pruefe('der Fragebogen nach den acht Fragen hat keinen Projektbezug und ist offen',
+    ($efQ = (array) Db::one('SELECT project_id, status FROM questionnaires WHERE id = ?', [$efId]))
+    && $efQ['project_id'] === null && (string) $efQ['status'] === 'offen', json_encode($efQ ?? null));
+pruefe('kein zweiter Fragebogen beim zweiten Griff', Onboarding::vorab($zgK) === $efId);
+
+/* Absenden vor dem Preis: der Kunde erfährt, was jetzt kommt, und die Führung
+   springt von „Fragebogen“ auf Preis und Angebot. */
+$efVorher = $zgMails('fragebogen_danke', $zgMail);
+Onboarding::absenden($efId, ['firmenname' => 'Trattoria Einstieg', 'branche' => 'gastronomie']);
+pruefe('abgeschickt vor dem Preis: der Kunde bekommt „Ihr Fragebogen ist komplett“',
+    $zgMails('fragebogen_danke', $zgMail) === $efVorher + 1);
+pruefe('… und zwar genau einmal', (function () use ($efId, $zgMails, $zgMail, $efVorher) {
+    Onboarding::absenden($efId, ['firmenname' => 'Trattoria Einstieg']);
+    return $zgMails('fragebogen_danke', $zgMail) === $efVorher + 1; })());
+pruefe('mit Projekt gibt es diese Mail nicht (dann ist das Angebot längst angenommen)',
+    str_contains((string) file_get_contents($wurzel . '/src/Onboarding.php'), "if ((int) (\$f['fragebogen']['project_id'] ?? 0) === 0) {\n            try {\n                require_once __DIR__ . '/Texte.php';"));
+$efV = Vorgang::laden('a' . (int) Db::wert('SELECT id FROM anfragen WHERE customer_id = ? ORDER BY id LIMIT 1', [$zgK], 0));
+$efSchritt = is_array($efV) ? json_encode($efV['schritt'] ?? null, JSON_UNESCAPED_UNICODE) : '';
+pruefe('danach kennt die Führung nicht mehr „Fragebogen“, sondern Preis oder Angebot',
+    !str_contains($efSchritt, 'Fragebogen') && (str_contains($efSchritt, 'Preis') || str_contains($efSchritt, 'Angebot')), $efSchritt);
+$efS = Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$zgK]));
+pruefe('die Kundenseite steht dann nicht mehr auf dem Fragebogen', !in_array($efS['stufe'] ?? '', ['vorhaben', 'angaben'], true), (string) ($efS['stufe'] ?? ''));
+
+
+/* ============================================================================
    62. Phase 0: keine Website-Pakete, Anmeldebremse, keine verlorene Zählung
    ============================================================================ */
 abschnitt('62. Keine Pakete, Anmeldebremse, Zählung');

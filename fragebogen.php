@@ -1,7 +1,11 @@
 <?php
 declare(strict_types=1);
 /* ==========================================================================
-   Der Fragebogen, den der Kunde nach der Anzahlung ausfuellt.
+   Der Fragebogen des Kunden -- seit dem 26.09.2026 der eine Fragebogen:
+   Er beginnt mit den acht Fragen (bedarf.php, danach der Richtpreis) und
+   geht hier mit den Angaben weiter. Vor dem Preis ist er Pflicht, bevor
+   ein Angebot rausgehen kann (21.09.2026); nach einer Direktbuchung kommt
+   er nach der Anzahlung.
 
    Kein Konto, kein Passwort: Der Link aus der E-Mail traegt einen langen
    Zufallsschluessel und oeffnet genau diesen einen Fragebogen. Wer den Link
@@ -10,8 +14,8 @@ declare(strict_types=1);
    WARUM IN ABSCHNITTEN
 
    Vorher standen einundzwanzig Felder auf einer Seite. Wer das auf dem Handy
-   oeffnet, sieht eine Wand und macht sie zu. Jetzt sind es vier kurze
-   Schritte mit fuenf bis sechs Feldern, und zwischen den Schritten wird
+   oeffnet, sieht eine Wand und macht sie zu. Jetzt sind es sechs kurze
+   Schritte mit fuenf bis acht Feldern, und zwischen den Schritten wird
    gespeichert — ohne dass der Kunde an einen Knopf denken muss. Er kann
    jederzeit zumachen und mit demselben Link an derselben Stelle weiter.
 
@@ -238,6 +242,28 @@ $schritt = isset($_GET['schritt']) ? max(1, min($anzahl, (int) $_GET['schritt'])
 $name    = $abschnitte[$schritt - 1];
 $inhalt  = Texte::FRAGEBOGEN[$name];
 
+/* ---------- Der eine Fragebogen (26.09.2026) ----------------------------
+   Uwe: „Die 8 Fragen sollen in den großen Fragebogen zusammenlaufen, also
+   ein Fragebogen und der Richtpreis.“ Hat der Kunde vor dem Preis die acht
+   Fragen beantwortet, sind sie hier der erste, schon erledigte Teil: ein
+   voller Balken vor den Abschnitten, und der Richtpreis steht oben, bis das
+   Angebot ihn ablöst. Gezählt wird weiter in Minuten, nicht in Schritten
+   (B6, 25.09.2026). Nach der Zahlung (Projekt da) gilt das Angebot -- dann
+   kein Richtpreis mehr. */
+require_once __DIR__ . '/app/src/Bedarf.php';
+$richtpreis = ($f && empty($f['project_id'])) ? Bedarf::richtpreis((int) $f['customer_id']) : null;
+$vorlauf = false;
+if ($f && empty($f['project_id'])) {
+    try {
+        $vorlauf = Db::wert("SELECT id FROM bedarf WHERE customer_id = ? AND status <> 'offen' LIMIT 1",
+            [(int) $f['customer_id']], null) !== null;
+    } catch (Throwable $e) { $vorlauf = false; }
+}
+$spanneText = static function (array $r) use ($sprache): string {
+    $g = static fn(int $c): string => $sprache === 'en'
+        ? '€' . number_format($c / 100, 0, '.', ',') : number_format($c / 100, 0, ',', '.') . ' €';
+    return $g($r['von_cents']) . ' – ' . $g($r['bis_cents']);
+};
 
 /* ---------- Was beauftragt ist -----------------------------------------
    Die Hakenliste zeigt an, was im angenommenen Angebot steht. Gibt es
@@ -274,9 +300,14 @@ $gruppenWort = [
   .fbkopf{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--linie)}
   /* Vier Punkte statt eines Prozentbalkens: Man sieht auf einen Blick,
      wie viel noch kommt — und dass es wenig ist. */
+  .richtpreis{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:rgba(192,136,24,.09);
+    border:1px solid rgba(192,136,24,.28);font-size:14px;line-height:1.5;color:var(--text)}
+  .richtpreis span{display:block;margin-top:2px;font-size:12.5px;color:var(--dim)}
   .punkte{display:flex;gap:6px;margin:14px 0 4px;list-style:none;padding:0}
   .punkte li{flex:1 1 0;height:4px;border-radius:2px;background:var(--linie)}
   .punkte li.durch{background:var(--blau)}
+  /* Die acht Fragen samt Richtpreis: ein Teil, doppelt breit, schon erledigt */
+  .punkte li.vorlauf{flex-grow:2}
   .punkte li.jetzt{background:var(--cyan)}
   .zaehler{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
   .beiseite{color:var(--leise);font-size:12.5px;line-height:1.6;margin-top:10px}
@@ -410,7 +441,7 @@ $gruppenWort = [
 
 <?php elseif ($fertig): ?>
   <div class="block">
-    <div class="hinweis gut"><?= $h($m === 'danke' ? $S('danke') : ($m === 'ergaenzt' ? $S('ergaenzt') : $S('schon'))) ?></div>
+    <div class="hinweis gut"><?= $h($m === 'danke' ? $S(empty($f['project_id']) ? 'dankeVorPreis' : 'danke') : ($m === 'ergaenzt' ? $S('ergaenzt') : $S('schon'))) ?></div>
     <?php /* Der Kern ist abgeschickt, das Angebot kann kommen. Wer mag,
              erzaehlt mehr -- freiwillig, jederzeit (B1/C1). */ ?>
     <p class="beiseite" style="margin:10px 0 0"><?= $h($S('ergaenzenHinweis')) ?></p>
@@ -441,16 +472,17 @@ $gruppenWort = [
 
 <?php else: ?>
   <div class="fbkopf">
-    <h1 style="font-size:21px;margin:0 0 6px"><?= $h($S('titel')) ?></h1>
-    <p class="lead" style="margin:0"><?= $h($S('lead')) ?></p>
+    <h1 style="font-size:21px;margin:0 0 6px"><?= $h($S($vorlauf ? 'titelWeiter' : 'titel')) ?></h1>
+    <p class="lead" style="margin:0"><?= $h($S($vorlauf ? 'leadWeiter' : 'lead')) ?></p>
     <?php /* Ein paar Felder sind schon gefuellt, weil der Kunde sie im
              Konfigurator beantwortet hat. Ohne diesen Satz fragt er sich, wer
              das getippt hat -- und traut sich womoeglich nicht, es zu
              aendern. Mit dem ersten eigenen Speichern verschwindet er. */ ?>
-    <?php if ($schritt === 1 && trim((string) ($f['data'] ?? '')) !== '' && ($f['status'] ?? '') === 'offen'): ?>
+    <?php if ($schritt === 1 && $m !== 'vorhaben' && trim((string) ($f['data'] ?? '')) !== '' && ($f['status'] ?? '') === 'offen'): ?>
       <p class="lead" style="margin:8px 0 0;color:var(--cyan)"><?= $h($S('schonGesagt')) ?></p>
     <?php endif; ?>
     <ul class="punkte">
+      <?php if ($vorlauf): ?><li class="durch vorlauf" title="<?= $h($S('vorlaufTitel')) ?>"></li><?php endif; ?>
       <?php foreach ($abschnitte as $i => $_): ?>
         <li class="<?= $i + 1 < $schritt ? 'durch' : ($i + 1 === $schritt ? 'jetzt' : '') ?>"></li>
       <?php endforeach; ?>
@@ -461,7 +493,13 @@ $gruppenWort = [
           $restMin = $ergaenzen ? 0 : Fragen::restMinuten($daten, $schritt); ?>
     <div class="zaehler"><?= $h($ergaenzen ? $S('ergaenzenTitel')
         : ($restMin <= 0 ? $S('fastFertig') : ($restMin === 1 ? $S('nochEineMin') : strtr($S('nochMin'), ['{m}' => (string) $restMin])))) ?></div>
+    <?php if ($richtpreis !== null): ?>
+      <p class="richtpreis"><b><?= $h(strtr($S('richtpreis'), ['{spanne}' => $spanneText($richtpreis)])) ?></b>
+        <span><?= $h($S('richtpreisHilfe')) ?></span></p>
+    <?php endif; ?>
   </div>
+
+  <?php if ($m === 'vorhaben'): ?><div class="hinweis gut"><?= $h($S('vorhabenAngekommen')) ?></div><?php endif; ?>
 
   <?php /* C2: Wer lieber redet, redet -- Manuela kann den Fragebogen im
            Gespraech ausfuellen (Telefon::fragebogen). Die Kundennummer, damit

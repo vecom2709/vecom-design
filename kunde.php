@@ -564,22 +564,47 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   <?php if ($willkommen): ?><div class="hinweis gut"><?= $h($T('willkommen')) ?></div><?php endif; ?>
 
   <?php /* ---------- Wo er steht ---------- */ ?>
+  <?php
+    /* EIN FRAGEBOGEN, EIN FELD AUF DER LEISTE (26.09.2026)
+       Vorhaben (acht Fragen) und Angaben (großer Fragebogen) sind für den
+       Kunden ein Fragebogen -- also ein Feld „Fragebogen“ statt zwei. Die
+       Stufen darunter bleiben, wie sie sind (Kundenzugang::REIHE, die Kette
+       prüft sie); nur die Anzeige legt sie zusammen. „anfrage“ nach dem
+       fertigen Fragebogen heißt: Ich schreibe das Angebot -- das Feld
+       „Angebot“ ist dann das aktuelle, auch wenn ich dran bin. */
+    $wegReihe = array_values(array_filter(Kundenzugang::REIHE, static fn($x) => $x !== 'angaben'));
+    $echte    = Kundenzugang::REIHE[$seite['stufe_nr']] ?? 'anfrage';
+    if ($stufe === 'vorhaben' || $echte === 'angaben') {
+        $wegNr = 0;
+    } elseif ($echte === 'anfrage') {
+        $fbFertig = sicherLesen(static fn() => Db::wert(
+            "SELECT status FROM questionnaires WHERE customer_id = ? ORDER BY id DESC LIMIT 1",
+            [(int) $kunde['id']], '') === 'abgeschlossen', false);
+        $wegNr = $fbFertig ? 1 : 0;
+    } else {
+        $wegNr = (int) array_search($echte, $wegReihe, true);
+    }
+  ?>
   <ul class="weg">
-    <?php foreach (Kundenzugang::REIHE as $i => $s): ?>
-      <li class="<?= $i < $seite['stufe_nr'] ? 'durch' : ($i === $seite['stufe_nr'] ? 'jetzt' : '') ?>"><?= $h($TS($s, 'kurz')) ?></li>
+    <?php foreach ($wegReihe as $i => $s): ?>
+      <li class="<?= $i < $wegNr ? 'durch' : ($i === $wegNr ? 'jetzt' : '') ?>"><?= $h($TS($s, 'kurz')) ?></li>
     <?php endforeach; ?>
   </ul>
   <div class="wegzahl"><?= $h(strtr(Texte::h(Texte::SEITE['schritt'] ?? [], $sprache, 'Schritt {n} von {g}'),
-      ['{n}' => (string) ($seite['stufe_nr'] + 1), '{g}' => (string) count(Kundenzugang::REIHE)])) ?></div>
+      ['{n}' => (string) ($wegNr + 1), '{g}' => (string) count($wegReihe)])) ?></div>
 
   <?php /* ---------- Der eine Schritt ---------- */ ?>
   <div class="dran <?= $seite['dran'] === 'kunde' ? '' : 'warten' ?>">
     <div class="wer"><?= $h($seite['dran'] === 'kunde' ? $T('duBistDran')
         : ($seite['dran'] === 'niemand' ? $T('nichtsOffen') : $T('wirSindDran'))) ?></div>
-    <h2><?= $h($TS($stufe)) ?></h2>
-    <p><?= $h($stufe === 'angebot' && $angebotOffen && !$offen
+    <?php /* Fragebogen fertig, Angebot noch nicht da: Er soll lesen, was
+             jetzt passiert und bis wann -- nicht „Ihre Anfrage ist da“. */
+          $angebotKommt = ($echte ?? '') === 'anfrage' && !empty($fbFertig); ?>
+    <h2><?= $h($angebotKommt ? Texte::h(Texte::SEITE['angebotKommt'] ?? [], $sprache) : $TS($stufe)) ?></h2>
+    <p><?= $h($angebotKommt ? Texte::h(Texte::SEITE['angebotKommtText'] ?? [], $sprache)
+        : ($stufe === 'angebot' && $angebotOffen && !$offen
         ? Texte::h(Texte::SEITE['angebotText'] ?? [], $sprache)
-        : $TS($stufe, 'text')) ?></p>
+        : $TS($stufe, 'text'))) ?></p>
 
     <div class="tun">
       <?php if ($stufe === 'vorhaben' && !empty($seite['bedarf']['token'])): ?>
@@ -623,6 +648,17 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           <?= $h($fbVoll > 0
               ? Texte::h(Texte::SEITE['weiterMachen'] ?? [], $sprache, 'Fragebogen weiter ausfüllen')
               : Texte::h(Texte::PROJEKT['fragebogen'] ?? [], $sprache, 'Zum Fragebogen')) ?></a>
+        <?php /* Der Richtpreis aus den acht Fragen bleibt sichtbar, bis das
+                 Angebot ihn ablöst (26.09.2026). */
+              require_once __DIR__ . '/app/src/Bedarf.php';
+              $rp = empty($fragebogen['project_id']) ? sicherLesen(fn() => Bedarf::richtpreis((int) $kunde['id']), null) : null;
+              $rpG = static fn(int $c): string => $sprache === 'en'
+                  ? '€' . number_format($c / 100, 0, '.', ',') : number_format($c / 100, 0, ',', '.') . ' €'; ?>
+        <?php if ($rp): ?>
+          <span class="mini" style="flex-basis:100%"><?= $h(strtr(Texte::h(Texte::SEITE['richtpreis'] ?? [], $sprache), ['{spanne}' =>
+              $rpG((int) $rp['von_cents']) . ' – ' . $rpG((int) $rp['bis_cents'])])) ?>
+            · <?= $h(Texte::h(Texte::SEITE['richtpreisHilfe'] ?? [], $sprache)) ?></span>
+        <?php endif; ?>
         <?php if ($fbVoll > 0 && $fbAlle > 0): ?>
           <span class="mini" style="flex-basis:100%"><?= (int) $fbVoll ?> / <?= (int) $fbAlle ?>
             <?= $h(Texte::h(['it' => 'campi compilati', 'de' => 'Felder ausgefüllt', 'en' => 'fields filled in'], $sprache)) ?></span>

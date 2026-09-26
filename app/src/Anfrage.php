@@ -111,7 +111,10 @@ final class Anfrage
         // Die Bestaetigung geht ganz zum Schluss und in einem eigenen Netz:
         // Die Anfrage steht bereits, ein stummer Mailserver darf sie nicht
         // mehr gefaehrden.
-        try { self::bestaetigen($id); } catch (Throwable $e) {
+        // Kommt die Anfrage aus den acht Fragen, geht der Fragebogen weiter --
+        // die Bestätigung sagt das, statt ein Angebot „innerhalb eines
+        // Werktags“ zu versprechen, das bis zum fertigen Fragebogen gesperrt ist.
+        try { self::bestaetigen($id, false, !empty($d['fragebogen_folgt'])); } catch (Throwable $e) {
             Events::melden('mail_fehler', 'Eingangsbestätigung nicht verschickt', 'schlecht',
                 mb_substr($e->getMessage(), 0, 180), '/anfragen/' . $id);
         }
@@ -170,7 +173,7 @@ final class Anfrage
     }
 
     /** Schickt dem Kunden die Eingangsbestaetigung. Nur einmal je Anfrage. */
-    public static function bestaetigen(int $anfrageId, bool $erneut = false): bool
+    public static function bestaetigen(int $anfrageId, bool $erneut = false, bool $fragebogenFolgt = false): bool
     {
         $a = Db::one('SELECT * FROM anfragen WHERE id = ?', [$anfrageId]);
         if (!$a) { return false; }
@@ -186,7 +189,7 @@ final class Anfrage
             : '';
         require_once __DIR__ . '/Fmt.php';
         require_once __DIR__ . '/Ablage.php';
-        [$betreff, $text] = Texte::mail('anfrage_eingegangen', $sprache, [
+        [$betreff, $text] = Texte::mail($fragebogenFolgt ? 'anfrage_eingegangen_fb' : 'anfrage_eingegangen', $sprache, [
             'name'      => (string) $a['name'],
             'paketsatz' => $paketsatz,
             'link'      => self::link(self::token($anfrageId)),

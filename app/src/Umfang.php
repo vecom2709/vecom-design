@@ -135,10 +135,15 @@ final class Umfang
             $slug = (string) ($p['slug'] ?? '');
             if ($slug !== '') { $slugs[$slug] = max(1, (int) ($p['menge'] ?? 1)); }
         }
+        /* Die Sprachen aus der Antwort, nicht aus der Menge: `sprache` wird
+           je Seite gerechnet (einheit 'seite'), bei fünf Seiten und zwei
+           Sprachen steht dort 5 -- der Fragebogen zeigte dann „6 Sprachen“.
+           Gefunden am 26.09.2026 im Browser, nicht in der Kette. */
+        $antwort = self::still(static fn() => Bedarf::antworten($b), []);
         return [
             'quelle'   => 'vorhaben',
             'seiten'   => 1 + (int) ($slugs['seite'] ?? 0),
-            'sprachen' => 1 + (int) ($slugs['sprache'] ?? 0),
+            'sprachen' => max(1, min(3, (int) ($antwort['sprachen'] ?? 1))),
             'slugs'    => $slugs,
         ];
     }

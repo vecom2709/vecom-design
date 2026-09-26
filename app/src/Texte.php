@@ -635,8 +635,30 @@ final class Texte
 
     public const SEITE = [
         /* Der Knopf zum Vorhaben im Dashboard (24.09.2026) */
-        'vorhabenKnopf'  => ['it' => 'Descrivere il progetto', 'de' => 'Vorhaben beschreiben', 'en' => 'Describe your project'],
-        'vorhabenWeiter' => ['it' => 'Continuare il progetto', 'de' => 'Vorhaben weiter ausfüllen', 'en' => 'Continue your project'],
+        /* Ein Fragebogen statt zwei (26.09.2026, Uwe: „Die 8 Fragen sollen in
+           den großen Fragebogen zusammenlaufen“): Der Knopf heißt, was er ist. */
+        'vorhabenKnopf'  => ['it' => 'Iniziare il questionario', 'de' => 'Fragebogen beginnen', 'en' => 'Start the questionnaire'],
+        'vorhabenWeiter' => ['it' => 'Continuare il questionario', 'de' => 'Fragebogen weiter ausfüllen', 'en' => 'Continue the questionnaire'],
+        'angebotKommt'     => ['it' => 'Preparo il suo preventivo', 'de' => 'Ich schreibe Ihr Angebot', 'en' => 'I’m writing your quote'],
+        'angebotKommtText' => ['it' => 'Il suo questionario è arrivato. Entro un giorno lavorativo trova qui il preventivo, voce per voce.',
+                               'de' => 'Ihr Fragebogen ist da. Innerhalb eines Werktags finden Sie hier Ihr Angebot, Position für Position.',
+                               'en' => 'Your questionnaire has arrived. Within one working day you will find your quote here, item by item.'],
+        'richtpreis'     => ['it' => 'Il suo prezzo indicativo: {spanne}', 'de' => 'Ihr Richtpreis: {spanne}', 'en' => 'Your guide price: {spanne}'],
+        'richtpreisHilfe'=> ['it' => 'Senza impegno. Il preventivo vincolante arriva appena il questionario è completo.',
+                             'de' => 'Unverbindlich. Das verbindliche Angebot kommt, sobald der Fragebogen fertig ist.',
+                             'en' => 'No obligation. The binding quote follows as soon as the questionnaire is complete.'],
+        'vorhabenAngekommen' => ['it' => 'Grazie, il suo progetto è arrivato. Adesso qualche informazione in più, perché il preventivo sia preciso — quello che ha appena risposto è già compilato. Può fermarsi e riprendere quando vuole.',
+                                 'de' => 'Danke, Ihr Vorhaben ist angekommen. Jetzt noch die Angaben, damit das Angebot genau passt — was Sie eben beantwortet haben, steht schon drin. Sie können jederzeit aufhören und weitermachen.',
+                                 'en' => 'Thank you, your project has arrived. Now a few more details so the quote fits exactly — what you just answered is already filled in. You can stop and continue any time.'],
+        /* Nach den acht Fragen: keine Schrittzahl (B6, 25.09.2026), die
+           Restzeit steht darüber als „Noch etwa X Minuten“. */
+        'vorlaufTitel' => ['it' => 'Otto domande e prezzo indicativo: fatto', 'de' => 'Acht Fragen und Richtpreis: erledigt', 'en' => 'Eight questions and guide price: done'],
+        'angabenTitel' => ['it' => 'Poi: le informazioni per il preventivo', 'de' => 'Danach: die Angaben für Ihr Angebot', 'en' => 'Then: the details for your quote'],
+        // Dieselbe Überschrift wie über den acht Fragen: ein Fragebogen
+        'titelWeiter'  => ['it' => 'Il suo questionario', 'de' => 'Ihr Fragebogen', 'en' => 'Your questionnaire'],
+        'leadWeiter' => ['it' => 'Ora solo l’essenziale, quasi tutto da spuntare. Il resto è facoltativo e si può aggiungere anche dopo.',
+                         'de' => 'Jetzt nur noch das Nötigste, fast alles zum Anklicken. Der Rest ist freiwillig und geht auch später.',
+                         'en' => 'Now just the essentials, mostly tapping. The rest is optional and can be added later.'],
         'titel'      => ['it' => 'Il suo progetto', 'de' => 'Ihr Projekt', 'en' => 'Your project'],
         'lead'       => ['it' => 'Solo l’essenziale, quasi tutto da spuntare — in pochi minuti. Il resto è facoltativo e si può aggiungere anche dopo.',
                          'de' => 'Nur das Nötigste, fast alles zum Anklicken — in wenigen Minuten. Der Rest ist freiwillig und geht auch später.',
@@ -662,6 +684,10 @@ final class Texte
         'danke'      => ['it' => 'Grazie! Ho ricevuto tutto e mi metto al lavoro.',
                          'de' => 'Danke! Ich habe alles bekommen und lege los.',
                          'en' => 'Thank you! I have everything and I’m getting started.'],
+        /* Vor dem Preis ist der Fragebogen das Ende seines Teils (26.09.2026) */
+        'dankeVorPreis' => ['it' => 'Grazie, il questionario è completo! Entro un giorno lavorativo trova il suo preventivo sulla sua pagina.',
+                            'de' => 'Danke, Ihr Fragebogen ist komplett! Innerhalb eines Werktags finden Sie Ihr Angebot auf Ihrer Seite.',
+                            'en' => 'Thank you, your questionnaire is complete! Within one working day you will find your quote on your page.'],
         'weg'        => ['it' => 'Questo link non è più valido.', 'de' => 'Dieser Link gilt nicht mehr.', 'en' => 'This link is no longer valid.'],
         'schon'      => ['it' => 'Ha già inviato le informazioni. Grazie!', 'de' => 'Sie haben die Angaben schon abgeschickt. Vielen Dank!', 'en' => 'You have already sent your answers. Thank you!'],
         'pflicht'    => ['it' => 'Manca ancora una risposta necessaria per il preventivo — è evidenziata qui sotto.', 'de' => 'Für das Angebot fehlt noch eine Antwort — sie ist unten markiert.', 'en' => 'One answer needed for the quote is still missing — it’s highlighted below.'],
@@ -1278,14 +1304,14 @@ final class Texte
            Er teilt sich den Platz auf der Fortschrittsleiste mit „anfrage“ --
            vorher beschreibt er sein Vorhaben, danach liegt es bei mir. */
         'vorhaben' => ['wer' => 'kunde',
-            'kurz' => ['it' => 'Progetto', 'de' => 'Vorhaben', 'en' => 'Project'],
-            'it' => 'Mi racconti il suo progetto', 'de' => 'Erzählen Sie mir von Ihrem Vorhaben',
-            'en' => 'Tell me about your project',
-            'text' => ['it' => 'Otto domande brevi, circa un minuto e mezzo. Subito dopo vede un prezzo indicativo, senza impegno.',
-                       'de' => 'Acht kurze Fragen, etwa anderthalb Minuten. Gleich danach sehen Sie einen Richtpreis, unverbindlich.',
-                       'en' => 'Eight short questions, about ninety seconds. Right after, you see a guide price, no obligation.']],
+            'kurz' => ['it' => 'Questionario', 'de' => 'Fragebogen', 'en' => 'Questionnaire'],
+            'it' => 'Il suo questionario', 'de' => 'Ihr Fragebogen',
+            'en' => 'Your questionnaire',
+            'text' => ['it' => 'Comincia con otto domande brevi sul suo progetto: subito dopo vede il suo prezzo indicativo, senza impegno. Poi qualche informazione per il preventivo — può fermarsi e riprendere quando vuole.',
+                       'de' => 'Er beginnt mit acht kurzen Fragen zu Ihrem Vorhaben — gleich danach sehen Sie Ihren Richtpreis, unverbindlich. Dann die Angaben für Ihr Angebot; Sie können jederzeit aufhören und weitermachen.',
+                       'en' => 'It starts with eight short questions about your project — right after, you see your guide price, no obligation. Then the details for your quote; you can stop and continue any time.']],
         'anfrage'  => ['wer' => 'wir',
-            'kurz' => ['it' => 'Progetto', 'de' => 'Vorhaben', 'en' => 'Project'],
+            'kurz' => ['it' => 'Questionario', 'de' => 'Fragebogen', 'en' => 'Questionnaire'],
             'it' => 'La sua richiesta è arrivata', 'de' => 'Ihre Anfrage ist da', 'en' => 'I have your enquiry',
             'text' => ['it' => 'La sto guardando e le scrivo con una proposta.',
                        'de' => 'Ich sehe sie mir an und melde mich mit einem Vorschlag.',
@@ -1301,9 +1327,9 @@ final class Texte
                        'de' => 'Mit der Anzahlung fangen wir an. Bezahlt wird auf einer Seite von Stripe.',
                        'en' => 'The deposit gets us started. Payment happens on a Stripe page.']],
         'angaben'  => ['wer' => 'kunde',
-            'kurz' => ['it' => 'Dati', 'de' => 'Angaben', 'en' => 'Details'],
-            'it' => 'Adesso servono le sue informazioni', 'de' => 'Jetzt brauche ich Ihre Angaben',
-            'en' => 'Now I need your details',
+            'kurz' => ['it' => 'Questionario', 'de' => 'Fragebogen', 'en' => 'Questionnaire'],
+            'it' => 'Il suo questionario: avanti da dove si era fermato', 'de' => 'Ihr Fragebogen — weiter, wo Sie aufgehört haben',
+            'en' => 'Your questionnaire — carry on where you left off',
             'text' => ['it' => 'Poche domande sulla sua azienda e sul sito. Può interrompere e riprendere.',
                        'de' => 'Ein paar Fragen zu Ihrem Betrieb und zur Seite. Sie können zwischendurch aufhören und später weitermachen.',
                        'en' => 'A few questions about your business and the site. You can stop and continue later.']],
@@ -1893,11 +1919,11 @@ final class Texte
            bloss fuer einen Newsletter eingetragen. */
         'zugang' => [
             'it' => ['Il suo accesso personale — Vecom Design',
-                "Buongiorno{name},\n\necco la sua dashboard personale di Vecom Design:\n\n{link}\n\nDa lì passa tutto, fino alla consegna del sito. I prossimi passi:\n\n1. Il suo progetto: otto domande brevi, poi vede subito un prezzo indicativo.\n2. I suoi dati: qualche domanda sulla sua attività, perché il preventivo sia preciso.\n3. Preventivo e acconto: legge il preventivo con calma e decide lei.\n4. Anteprima e approvazione: vede il suo sito prima che vada online.\n\nNessun account, nessuna password. Apra il link entro {tage} giorni; dopo il primo clic resta valido e può salvarlo tra i preferiti.\n\nNon ha richiesto lei questa e-mail? Allora la ignori: senza un clic sul link non viene salvato nulla.\n\nA presto\nUwe Vetter · Vecom Design"],
+                "Buongiorno{name},\n\necco la sua dashboard personale di Vecom Design:\n\n{link}\n\nDa lì passa tutto, fino alla consegna del sito. I prossimi passi:\n\n1. Il suo questionario: comincia con otto domande brevi e subito dopo vede un prezzo indicativo; poi qualche informazione sulla sua attività, perché il preventivo sia preciso.\n2. Preventivo e acconto: legge il preventivo con calma e decide lei.\n3. Anteprima e approvazione: vede il suo sito prima che vada online.\n\nNessun account, nessuna password. Apra il link entro {tage} giorni; dopo il primo clic resta valido e può salvarlo tra i preferiti.\n\nNon ha richiesto lei questa e-mail? Allora la ignori: senza un clic sul link non viene salvato nulla.\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Ihr persönlicher Zugang – Vecom Design',
-                "Guten Tag{name},\n\nhier ist Ihr persönliches Dashboard bei Vecom Design:\n\n{link}\n\nDarüber läuft alles bis zur Übergabe Ihrer Website. Die nächsten Schritte:\n\n1. Ihr Vorhaben: acht kurze Fragen, danach sehen Sie sofort einen Richtpreis.\n2. Ihre Angaben: ein paar Fragen zu Ihrem Betrieb, damit das Angebot genau passt.\n3. Angebot und Anzahlung: Sie lesen das Angebot in Ruhe und entscheiden.\n4. Entwurf und Freigabe: Sie sehen Ihre Seite, bevor sie online geht.\n\nKein Konto, kein Passwort. Öffnen Sie den Link innerhalb von {tage} Tagen; nach dem ersten Klick bleibt er gültig, und Sie können ihn als Lesezeichen ablegen.\n\nSie haben diese Mail nicht angefordert? Dann ignorieren Sie sie einfach: Ohne einen Klick auf den Link wird nichts gespeichert.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                "Guten Tag{name},\n\nhier ist Ihr persönliches Dashboard bei Vecom Design:\n\n{link}\n\nDarüber läuft alles bis zur Übergabe Ihrer Website. Die nächsten Schritte:\n\n1. Ihr Fragebogen: Er beginnt mit acht kurzen Fragen, danach sehen Sie sofort einen Richtpreis; dann ein paar Angaben zu Ihrem Betrieb, damit das Angebot genau passt.\n2. Angebot und Anzahlung: Sie lesen das Angebot in Ruhe und entscheiden.\n3. Entwurf und Freigabe: Sie sehen Ihre Seite, bevor sie online geht.\n\nKein Konto, kein Passwort. Öffnen Sie den Link innerhalb von {tage} Tagen; nach dem ersten Klick bleibt er gültig, und Sie können ihn als Lesezeichen ablegen.\n\nSie haben diese Mail nicht angefordert? Dann ignorieren Sie sie einfach: Ohne einen Klick auf den Link wird nichts gespeichert.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your personal access – Vecom Design',
-                "Hello{name},\n\nhere is your personal dashboard at Vecom Design:\n\n{link}\n\nEverything runs through it until your website is handed over. The next steps:\n\n1. Your project: eight short questions, then you see a guide price straight away.\n2. Your details: a few questions about your business, so the quote fits exactly.\n3. Quote and deposit: you read the quote in your own time and decide.\n4. Draft and approval: you see your site before it goes live.\n\nNo account, no password. Open the link within {tage} days; after the first click it stays valid and you can bookmark it.\n\nDidn’t request this email? Then just ignore it: nothing is stored unless the link is clicked.\n\nBest regards\nUwe Vetter · Vecom Design"],
+                "Hello{name},\n\nhere is your personal dashboard at Vecom Design:\n\n{link}\n\nEverything runs through it until your website is handed over. The next steps:\n\n1. Your questionnaire: it starts with eight short questions and you see a guide price straight away; then a few details about your business, so the quote fits exactly.\n2. Quote and deposit: you read the quote in your own time and decide.\n3. Draft and approval: you see your site before it goes live.\n\nNo account, no password. Open the link within {tage} days; after the first click it stays valid and you can bookmark it.\n\nDidn’t request this email? Then just ignore it: nothing is stored unless the link is clicked.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         /* Schon Kunde: derselbe Link noch einmal (E2). */
         'zugang_bestand' => [
@@ -1925,6 +1951,30 @@ final class Texte
                 "Guten Tag{name},\n\nin Ihrem Dashboard fehlt noch ein Schritt: acht kurze Fragen zu Ihrem Vorhaben. Gleich danach sehen Sie einen Richtpreis, unverbindlich.\n\n{link}\n\nWenn Sie lieber darüber sprechen möchten, antworten Sie einfach auf diese Mail.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your project is ninety seconds away – Vecom Design',
                 "Hello{name},\n\none step is still open in your dashboard: eight short questions about your project. Right after, you see a guide price, no obligation.\n\n{link}\n\nIf you would rather talk it through, just reply to this email.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* Nach den acht Fragen, wenn der Fragebogen weitergeht (26.09.2026).
+           Verschickt unter demselben Typ 'anfrage_eingegangen' -- die Führung
+           liest daran ab, dass der Kunde seinen Link hat. Der alte Text
+           versprach „innerhalb eines Werktags eine erste Einschätzung“; das
+           Angebot ist aber bis zum fertigen Fragebogen gesperrt. */
+        'anfrage_eingegangen_fb' => [
+            'it' => ['Il suo progetto è arrivato',
+                "Buongiorno {name},\n\ngrazie — il suo progetto è arrivato.\n\nManca solo il resto del questionario: qualche informazione sulla sua attività e sul sito, perché il preventivo sia preciso. Può fermarsi quando vuole e continuare con lo stesso link:\n\n{link}\n\nAppena il questionario è completo, riceve il preventivo entro un giorno lavorativo, direttamente su questa pagina. È gratuito e senza impegno: un incarico nasce soltanto quando ci accordiamo per iscritto.\n\nLì può anche scrivermi e caricare i suoi documenti (fino a {maxdatei} per file). Nessun account, nessuna password.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr Vorhaben ist angekommen',
+                "Guten Tag {name},\n\nvielen Dank — Ihr Vorhaben ist angekommen.\n\nJetzt fehlt nur noch der Rest des Fragebogens: ein paar Angaben zu Ihrem Betrieb und zur Seite, damit das Angebot genau passt. Sie können jederzeit aufhören und mit demselben Link weitermachen:\n\n{link}\n\nSobald der Fragebogen fertig ist, bekommen Sie Ihr Angebot innerhalb eines Werktags, direkt auf dieser Seite. Kostenlos und unverbindlich: Ein Auftrag entsteht erst, wenn wir uns schriftlich einig sind.\n\nDort können Sie mir auch schreiben und Unterlagen hochladen (bis {maxdatei} je Datei). Kein Konto, kein Passwort.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your project has arrived',
+                "Hello {name},\n\nthank you — your project has arrived.\n\nAll that is left is the rest of the questionnaire: a few details about your business and the site, so the quote fits exactly. You can stop any time and continue with the same link:\n\n{link}\n\nAs soon as the questionnaire is complete, you receive your quote within one working day, right on this page. Free and without obligation: a project only comes about once we agree in writing.\n\nThere you can also write to me and upload your material (up to {maxdatei} per file). No account, no password.\n\nBest regards\nUwe Vetter · Vecom Design"],
+        ],
+        /* Der Fragebogen ist vor dem Preis fertig: Der Kunde erfährt, was jetzt
+           passiert und bis wann (26.09.2026). Nur ohne Projekt -- danach ist
+           das Angebot längst angenommen. */
+        'fragebogen_danke' => [
+            'it' => ['Il suo questionario è completo',
+                "Buongiorno {name},\n\ngrazie — il suo questionario è completo e l’ho ricevuto.\n\nLo leggo con calma e entro un giorno lavorativo trova il suo preventivo, voce per voce, sulla sua pagina:\n\n{link}\n\nSe nel frattempo le viene in mente qualcosa, me lo scriva lì.\n\nA presto\nUwe Vetter · Vecom Design"],
+            'de' => ['Ihr Fragebogen ist komplett',
+                "Guten Tag {name},\n\nvielen Dank — Ihr Fragebogen ist komplett, und er ist bei mir angekommen.\n\nIch lese ihn in Ruhe, und innerhalb eines Werktags finden Sie Ihr Angebot, Position für Position, auf Ihrer Seite:\n\n{link}\n\nFällt Ihnen bis dahin noch etwas ein, schreiben Sie es mir einfach dort.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+            'en' => ['Your questionnaire is complete',
+                "Hello {name},\n\nthank you — your questionnaire is complete and has reached me.\n\nI’ll read it properly, and within one working day you will find your quote, item by item, on your page:\n\n{link}\n\nIf anything else comes to mind in the meantime, just write to me there.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         'anfrage_eingegangen' => [
             'it' => ['Ho ricevuto la sua richiesta',
@@ -2210,9 +2260,9 @@ final class Texte
         'feld'  => ['it' => 'Il suo indirizzo e-mail', 'de' => 'Ihre E-Mail-Adresse', 'en' => 'Your email address'],
         'knopf' => ['it' => 'Inviarmi la dashboard', 'de' => 'Mein Dashboard zusenden', 'en' => 'Send me my dashboard'],
         'schritte' => [
-            'it' => 'Progetto · Dati · Preventivo · Anteprima · Online',
-            'de' => 'Vorhaben · Angaben · Angebot · Entwurf · Online',
-            'en' => 'Project · Details · Quote · Draft · Live'],
+            'it' => 'Questionario · Preventivo · Anteprima · Online',
+            'de' => 'Fragebogen · Angebot · Entwurf · Online',
+            'en' => 'Questionnaire · Quote · Draft · Live'],
         'hinweis' => [
             'it' => 'Nessun account, nessuna password. Gratuito e senza impegno.',
             'de' => 'Kein Konto, kein Passwort. Kostenlos und unverbindlich.',
@@ -2282,7 +2332,19 @@ final class Texte
             'de' => 'Wie darf ich Sie ansprechen?',
             'en' => 'How should I address you?',
         ],
-        'absendenDashboard' => ['it' => 'Inviare il progetto', 'de' => 'Vorhaben absenden', 'en' => 'Send your project'],
+        'absendenDashboard' => ['it' => 'Avanti con il questionario', 'de' => 'Weiter im Fragebogen', 'en' => 'Continue the questionnaire'],
+        /* Im Dashboard ist das der Anfang des einen Fragebogens (26.09.2026) */
+        'titelEins' => ['it' => 'Il suo questionario', 'de' => 'Ihr Fragebogen', 'en' => 'Your questionnaire'],
+        'leadEins'  => [
+            'it' => 'Prima otto domande brevi sul suo progetto: subito dopo vede il suo prezzo indicativo. Poi le informazioni per il preventivo.',
+            'de' => 'Zuerst acht kurze Fragen zu Ihrem Vorhaben — gleich danach sehen Sie Ihren Richtpreis. Dann folgen die Angaben für Ihr Angebot.',
+            'en' => 'First eight short questions about your project — right after, you see your guide price. Then the details for your quote.',
+        ],
+        'ergebnisTextEins' => [
+            'it' => 'Questa è una stima, non un preventivo. Il preventivo vincolante, voce per voce, arriva appena ha completato il questionario — e vale quello.',
+            'de' => 'Das ist eine Schätzung, kein Angebot. Das verbindliche Angebot, Position für Position, kommt, sobald Sie den Fragebogen fertig haben — und das gilt dann.',
+            'en' => 'This is an estimate, not a quote. The binding quote, item by item, follows once you have completed the questionnaire — and that one holds.',
+        ],
         'zumDashboard'      => ['it' => '← La sua dashboard', 'de' => '← Ihr Dashboard', 'en' => '← Your dashboard'],
         'emailFest'         => ['it' => 'Le scrivo a', 'de' => 'Ich schreibe Ihnen an', 'en' => 'I will write to'],
         'fName'    => ['it' => 'Il suo nome', 'de' => 'Ihr Name', 'en' => 'Your name'],
