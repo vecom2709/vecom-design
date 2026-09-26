@@ -2727,6 +2727,10 @@ switch ($route) {
         require_once __DIR__ . '/src/Mail.php';
         require_once __DIR__ . '/src/Anfrage.php';
         require_once __DIR__ . '/src/Ablauf.php';
+        /* Erst wegräumen, was sich erledigt hat -- sonst zählt „Heute“ Meldungen,
+           deren Anlass vorbei ist (Meldungen, 26.09.2026). */
+        require_once __DIR__ . '/src/Meldungen.php';
+        sicher(static fn() => Meldungen::aufraeumen(), 0);
         $arbeit = sicher(static fn() => Vorgang::arbeitsliste(), ['du' => [], 'kunde' => [], 'ruht' => []]);
         /* WAS VON SELBST NACHRUECKT
            ------------------------------------------------------------------

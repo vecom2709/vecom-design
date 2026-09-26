@@ -142,6 +142,12 @@ final class Cron
                         [date('Y-m-d H:i:s')]);
                 return Partner::lauf() + ['berichte' => Partner::monatsberichte()];
             },
+            /* Meldungen, deren Anlass die Datenbank als vorbei belegt, gelten
+               als gelesen (26.09.2026). Nie auf Verdacht -- siehe Meldungen. */
+            'meldungen'   => static function () {
+                require_once __DIR__ . '/Meldungen.php';
+                return ['erledigt' => Meldungen::aufraeumen()];
+            },
             /* Vier Wochen nach dem Veroeffentlichen: an die Netlify-Vorschau erinnern (nie loeschen). */
             'netlify'     => static function () {
                 require_once __DIR__ . '/Veroeffentlichung.php';

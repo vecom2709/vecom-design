@@ -10247,6 +10247,40 @@ pruefe('Einführung: Schließen merkt sie ebenso wie Fertig, und „Einführung 
     str_contains($veLayout, 'value="einfuehrung_gesehen"') && str_contains($veLayout, "isset(\$_GET['einfuehrung'])")
     && str_contains((string) file_get_contents($oben . '/app/index.php'), "case 'einfuehrung_gesehen':"));
 
+require_once $wurzel . '/src/Meldungen.php';
+Db::run("DELETE FROM notifications WHERE type IN ('anfrage_neu','partner_stripe_connect','nachricht_rein','strato_zugang')");
+// Was frühere Abschnitte an Meldungen hinterlassen haben, zählt hier nicht mit.
+Db::run('UPDATE notifications SET read_at = NOW() WHERE read_at IS NULL');
+$veK = Events::kundeFinden(['name' => 'Meldung Probe', 'email' => 'meldung-probe@pruefung.example']);
+Db::insert('anfragen', ['status' => 'neu', 'customer_id' => $veK, 'name' => 'Meldung Probe', 'email' => 'meldung-probe@pruefung.example', 'sprache' => 'it']);
+$veA = (int) Db::wert('SELECT MAX(id) FROM anfragen', [], 0);
+Events::melden('anfrage_neu', 'Neue Anfrage', 'gut', null, '/anfragen/' . $veA);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_stripe_connect','fehlt') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+Events::melden('partner_stripe_connect', 'Stripe Connect ist nicht aktiviert', 'warnung', null, '/partner#wege');
+Db::insert('messages', ['customer_id' => $veK, 'sender' => 'kunde', 'body' => 'Hallo']);
+Events::melden('nachricht_rein', 'Neue Nachricht', 'info', null, '/kunden/' . $veK);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('strato_sitzung_seit','') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+Events::melden('strato_zugang', 'STRATO-Zugang abgelaufen', 'warnung', null, '/einstellungen?b=telefon');
+$veOffen = static fn(string $t): int => (int) Db::wert('SELECT COUNT(*) FROM notifications WHERE type = ? AND read_at IS NULL', [$t], 0);
+pruefe('Meldungen: solange der Anlass besteht, bleibt jede stehen',
+    Meldungen::aufraeumen() === 0 && $veOffen('anfrage_neu') === 1 && $veOffen('partner_stripe_connect') === 1
+    && $veOffen('nachricht_rein') === 1 && $veOffen('strato_zugang') === 1);
+Db::run("UPDATE anfragen SET status = 'in_arbeit' WHERE id = ?", [$veA]);
+Db::run("UPDATE settings SET svalue = 'ok' WHERE skey = 'partner_stripe_connect'");
+Db::run("UPDATE messages SET read_at = NOW() WHERE customer_id = ?", [$veK]);
+Db::run("UPDATE settings SET svalue = ? WHERE skey = 'strato_sitzung_seit'", [date('Y-m-d H:i:s', time() + 5)]);
+$veN = Meldungen::aufraeumen();
+pruefe('Meldungen: ist der Anlass vorbei, gelten sie als gelesen -- gelöscht wird keine',
+    $veN === 4 && $veOffen('anfrage_neu') + $veOffen('partner_stripe_connect') + $veOffen('nachricht_rein') + $veOffen('strato_zugang') === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type IN ('anfrage_neu','partner_stripe_connect','nachricht_rein','strato_zugang')", [], 0) === 4, (string) $veN);
+Events::melden('anfrage_neu', 'Ohne Gegenstand', 'gut', null, '/anfragen');
+pruefe('Meldungen: ohne erkennbaren Gegenstand im Link bleibt sie stehen',
+    Meldungen::aufraeumen() === 0 && $veOffen('anfrage_neu') === 1);
+pruefe('Meldungen: „Heute“ und der Cronlauf räumen auf',
+    str_contains($rfQuelle, 'Meldungen::aufraeumen()') && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'meldungen'"));
+Db::run("DELETE FROM notifications WHERE type IN ('anfrage_neu','partner_stripe_connect','nachricht_rein','strato_zugang')");
+Db::run("DELETE FROM settings WHERE skey = 'partner_stripe_connect'");
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
