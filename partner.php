@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -92,6 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Partner::vereinbarungMerken((int) $p['id'], Partner::vereinbarungText($sprache, $p));
                 }
                 header('Location: ' . $selbst(), true, 303); exit;
+            } elseif ($tat === 'weg' && $p) {
+                $f = PartnerWege::setzen((int) $p['id'], $_POST);
+                if ($f === null) { header('Location: ' . $selbst(['m' => 'w_gut']) . '#wege', true, 303); exit; }
+                $meldung = $f;
             } elseif ($tat === 'konto' && $p) {
                 $r = Partner::kontoEinrichten($p, $basis . $selbst());
                 if ($r['ok']) { header('Location: ' . $r['url'], true, 303); exit; }
@@ -205,7 +209,8 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
   <div class="block pt">
     <h1><?= $h($T('p_titel')) ?></h1>
     <p class="lead"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
-    <?php if ($meldung !== ''): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
+    <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch'], true); ?>
+    <?php if ($meldung !== '' && !$wegFehler): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
     <?php if ($p['status'] === 'pausiert'): ?><div class="hinweis"><?= $h($T('pausiert')) ?></div><?php endif; ?>
 
     <?php if (empty($p['vereinbarung_am'])): ?>
@@ -235,24 +240,54 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
       <div class="zahl"><b><?= $h(Fmt::geld((int) $k['provision'])) ?></b><span><?= $h($T('provision')) ?></span></div>
     </div>
     <p class="klein">
-      <?php foreach (['wartet', 'freigabe', 'bereit', 'ausgezahlt'] as $st): if ($sum[$st] > 0): ?>
+      <?php foreach (['wartet', 'freigabe', 'bereit', 'unterwegs', 'ausgezahlt'] as $st): if ($sum[$st] > 0): ?>
         <?= $h($T('s_' . $st)) ?>: <b><?= $h(Fmt::geld($sum[$st])) ?></b> &nbsp;
       <?php endif; endforeach; ?>
     </p>
   </div>
 
-  <div class="block pt">
-    <h2><?= $h($T('konto')) ?></h2>
-    <?php if (!empty($p['stripe_bereit'])): ?>
-      <div class="hinweis gut"><?= $h($T('konto_bereit')) ?></div>
-    <?php else: ?>
-      <p class="lead" style="font-size:14.5px"><?= $h($T('konto_text')) ?></p>
-      <form method="post" action="<?= $h($selbst()) ?>">
-        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
-        <input type="hidden" name="tat" value="konto">
-        <button class="knopf haupt"><?= $h($T(empty($p['stripe_konto']) ? 'konto_knopf' : 'konto_weiter')) ?></button>
-      </form>
-      <p class="klein"><?= $linkMd($T('stripe_agb')) ?></p>
+  <?php $wege = PartnerWege::fuerPartner($p); $weg = PartnerWege::weg($p); ?>
+  <div class="block pt" id="wege">
+    <h2><?= $h($T('wege')) ?></h2>
+    <?php if (($_GET['m'] ?? '') === 'w_gut'): ?><div class="hinweis gut"><?= $h($T('w_gut')) ?></div><?php endif; ?>
+    <?php if ($wegFehler): ?><div class="hinweis schlecht" role="alert"><?= $h($T($meldung)) ?></div>
+    <?php elseif ($weg !== null && !PartnerWege::bereit($p, $weg)): ?><div class="hinweis"><?= $h($T('w_fehlt')) ?></div><?php endif; ?>
+    <form method="post" action="<?= $h($selbst()) ?>#wege">
+      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+      <input type="hidden" name="tat" value="weg">
+      <?php foreach ($wege as $w): ?>
+        <label style="display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:15px">
+          <input type="radio" name="weg" value="<?= $h($w) ?>" <?= $w === $weg ? 'checked' : '' ?> style="margin-top:4px;width:auto">
+          <span><b><?= $h($T('w_' . $w)) ?></b><br><span style="color:var(--dim);font-size:13px"><?= $h($T('wd_' . $w)) ?></span></span></label>
+      <?php endforeach; ?>
+      <?php if (array_intersect($wege, ['sepa', 'wise'])): ?>
+        <label for="w_inh"><?= $h($T('inhaber')) ?></label>
+        <input id="w_inh" type="text" name="kontoinhaber" maxlength="160" value="<?= $h((string) ($_POST['kontoinhaber'] ?? $p['kontoinhaber'] ?? '')) ?>" autocomplete="name">
+        <label for="w_iban"><?= $h($T('iban')) ?><?= (string) ($p['iban_ende'] ?? '') !== '' ? ' — ' . $h($T('iban_da')) . ' …' . $h((string) $p['iban_ende']) : '' ?></label>
+        <input id="w_iban" type="text" name="iban" maxlength="42" autocomplete="off" inputmode="text" value="<?= $h((string) ($_POST['iban'] ?? '')) ?>" placeholder="IT60 X054 2811 1010 0000 0123 456">
+      <?php endif; ?>
+      <?php if (in_array('paypal', $wege, true)): ?>
+        <label for="w_pp"><?= $h($T('paypal_email')) ?></label>
+        <input id="w_pp" type="email" name="paypal_email" value="<?= $h((string) ($_POST['paypal_email'] ?? $p['paypal_email'] ?? '')) ?>" autocomplete="email">
+      <?php endif; ?>
+      <button class="knopf<?= empty($p['vereinbarung_am']) ? '' : ' haupt' ?>" type="submit"><?= $h($T('w_speichern')) ?></button>
+    </form>
+
+    <?php if ($weg === 'stripe'): ?>
+      <div style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
+      <h2><?= $h($T('konto')) ?></h2>
+      <?php if (!empty($p['stripe_bereit'])): ?>
+        <div class="hinweis gut"><?= $h($T('konto_bereit')) ?></div>
+      <?php else: ?>
+        <p class="lead" style="font-size:14.5px"><?= $h($T('konto_text')) ?></p>
+        <form method="post" action="<?= $h($selbst()) ?>">
+          <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+          <input type="hidden" name="tat" value="konto">
+          <button class="knopf"><?= $h($T(empty($p['stripe_konto']) ? 'konto_knopf' : 'konto_weiter')) ?></button>
+        </form>
+        <p class="klein"><?= $linkMd($T('stripe_agb')) ?></p>
+      <?php endif; ?>
+      </div>
     <?php endif; ?>
   </div>
 

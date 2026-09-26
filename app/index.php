@@ -493,6 +493,48 @@ if ($post) {
                 Partner::streichen((int) ($_POST['provision'] ?? 0), (string) ($_POST['grund'] ?? ''));
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_auszahlen':
+                require_once __DIR__ . '/src/PartnerWege.php';
+                $r = PartnerWege::auszahlen((int) ($_POST['id'] ?? 0));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_verrechnen':
+                require_once __DIR__ . '/src/PartnerWege.php';
+                $r = PartnerWege::verrechnen((int) ($_POST['id'] ?? 0), (int) ($_POST['zahlung'] ?? 0));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_sepa':
+                require_once __DIR__ . '/src/PartnerWege.php';
+                $r = PartnerWege::sepaDatei();
+                if (!$r['ok']) { $_SESSION['fehler'] = $r['text']; zurueck('partner'); }
+                header('Content-Type: application/xml; charset=utf-8');
+                header('Content-Disposition: attachment; filename="vecom-provisionen-' . date('Y-m-d-His') . '.xml"');
+                echo $r['xml'];
+                exit;
+
+            case 'partner_auszahlung_bestaetigen':
+            case 'partner_auszahlung_abbrechen':
+                require_once __DIR__ . '/src/PartnerWege.php';
+                $ok = $tat === 'partner_auszahlung_bestaetigen'
+                    ? PartnerWege::bestaetigen((int) ($_POST['auszahlung'] ?? 0))
+                    : PartnerWege::abbrechen((int) ($_POST['auszahlung'] ?? 0));
+                $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? ($tat === 'partner_auszahlung_bestaetigen'
+                    ? 'Als ausgeführt gebucht — der Partner bekommt seine Mail.' : 'Abgebrochen — die Provisionen sind wieder auszahlungsbereit.')
+                    : 'Diese Auszahlung ist nicht mehr offen.';
+                zurueck('partner');
+
+            case 'partner_wege':
+                require_once __DIR__ . '/src/PartnerWege.php';
+                $an = array_values(array_intersect(array_keys(PartnerWege::WEGE), (array) ($_POST['wege'] ?? [])));
+                if (!$an) { $_SESSION['fehler'] = 'Mindestens ein Weg muss an sein.'; zurueck('partner'); }
+                $vorher = Partner::einstellung('partner_wege');
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_wege', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [implode(',', $an)]);
+                Events::pruefspur('partner_wege', 'settings', null, ['partner_wege' => $vorher], ['partner_wege' => implode(',', $an)]);
+                $_SESSION['gut'] = 'Gespeichert.';
+                zurueck('partner');
+
             case 'partner_auszahlen_stripe':
                 require_once __DIR__ . '/src/Partner.php';
                 $r = Partner::auszahlenStripe((int) ($_POST['id'] ?? 0));
@@ -2966,8 +3008,16 @@ switch ($route) {
         if ($id !== null) {
             $pa = Partner::laden($id);
             if (!$pa) { http_response_code(404); exit('Partner nicht gefunden.'); }
+            require_once __DIR__ . '/src/PartnerWege.php';
             ansicht('partner_akte', [
                 'p' => $pa,
+                'weg' => PartnerWege::weg($pa),
+                'offeneRaten' => (int) ($pa['customer_id'] ?? 0) > 0 ? sicher(static fn() => Db::all(
+                    "SELECT z.id, z.bezeichnung, z.amount_cents, z.faellig_am FROM payments z
+                       LEFT JOIN orders o ON o.id = z.order_id LEFT JOIN abos a ON a.id = z.abo_id
+                      WHERE COALESCE(o.customer_id, a.customer_id) = ?
+                        AND z.status NOT IN ('bezahlt','rueckerstattet','teilweise_erstattet','storniert','abgebrochen')
+                      ORDER BY z.faellig_am, z.id", [(int) $pa['customer_id']]), []) : [],
                 'satz' => Partner::satzFuer($pa),
                 'summen' => Partner::summen($id),
                 'zahlen' => Partner::kennzahlen($id),
@@ -2984,7 +3034,12 @@ switch ($route) {
             ]);
             break;
         }
+        require_once __DIR__ . '/src/PartnerWege.php';
         ansicht('partner', [
+            'offeneAuszahlungen' => sicher(static fn() => Db::all(
+                "SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
+                  WHERE a.status = 'offen' ORDER BY a.id"), []),
+            'handarbeit' => sicher(static fn() => PartnerWege::handarbeit(), []),
             'liste' => sicher(static fn() => Db::all(
                 "SELECT p.*,
                         (SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks k WHERE k.partner_id = p.id) AS klicks,

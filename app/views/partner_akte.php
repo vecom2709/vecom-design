@@ -5,7 +5,7 @@
 $pz = static fn(?int $bp): string => $bp === null ? '' : rtrim(rtrim(number_format($bp / 100, 2, ',', ''), '0'), ',');
 $wahl = static fn($v): string => $v === null ? '' : ((int) $v === 1 ? '1' : '0');
 $stufe = ['wartet' => ['', 'wartet (Widerrufsfrist)'], 'freigabe' => ['warnung', 'zur Freigabe'], 'bereit' => ['gut', 'bereit'],
-          'ausgezahlt' => ['', 'ausgezahlt'], 'storniert' => ['', 'entfallen'], 'zurueckgeholt' => ['', 'zurückgeholt'],
+          'unterwegs' => ['warnung', 'unterwegs'], 'ausgezahlt' => ['', 'ausgezahlt'], 'storniert' => ['', 'entfallen'], 'zurueckgeholt' => ['', 'zurückgeholt'],
           'rueckforderung' => ['schlecht', 'zurückfordern']];
 $bereit = (int) Db::wert('SELECT COALESCE(SUM(provision_cents - einbehalt_cents),0) FROM partner_provisionen WHERE partner_id = ? AND status = \'bereit\'', [(int) $p['id']], 0);
 $min = Partner::zahl('partner_mindest_cents');
@@ -26,7 +26,10 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <?php if ($p['steuer_nr'] !== ''): ?><div><span style="color:var(--leise)">P. IVA / CF</span><br><?= Fmt::h($p['steuer_nr']) ?></div><?php endif; ?>
     <div><span style="color:var(--leise)">Link</span><br><code><?= Fmt::h(Partner::link($p)) ?></code></div>
     <div><span style="color:var(--leise)">Vereinbarung</span><br><?= $p['vereinbarung_am'] ? 'bestätigt ' . Fmt::h(Fmt::datum((string) $p['vereinbarung_am'])) : '<span class="marke2 warnung">noch nicht</span>' ?></div>
-    <div><span style="color:var(--leise)">Stripe</span><br><?= !empty($p['stripe_bereit']) ? '<span class="marke2 gut">bereit</span>' : (empty($p['stripe_konto']) ? 'nicht eingerichtet' : 'angefangen') ?></div>
+    <div><span style="color:var(--leise)">Auszahlung über</span><br><?= $weg !== null ? Fmt::h(PartnerWege::WEGE[$weg]) : '—' ?>
+      <?= $weg !== null ? (PartnerWege::bereit($p, $weg) ? '<span class="marke2 gut">bereit</span>' : '<span class="marke2 warnung">Angaben fehlen</span>') : '' ?>
+      <?php if (in_array($weg, ['sepa', 'wise'], true) && (string) $p['iban_ende'] !== ''): ?><div style="font-size:12px;color:var(--leise)"><?= Fmt::h((string) $p['kontoinhaber']) ?> · IBAN …<?= Fmt::h((string) $p['iban_ende']) ?></div><?php endif; ?>
+      <?php if ($weg === 'paypal'): ?><div style="font-size:12px;color:var(--leise)"><?= Fmt::h((string) $p['paypal_email']) ?></div><?php endif; ?></div>
   </div>
   <?php if ($p['kanal'] !== '' || (string) $p['bewerbung_text'] !== ''): ?>
     <p style="color:var(--dim);font-size:13px;line-height:1.6;margin:12px 0 0"><?= Fmt::h($p['kanal']) ?><?= (string) $p['bewerbung_text'] !== '' ? '<br>' . nl2br(Fmt::h((string) $p['bewerbung_text'])) : '' ?></p>
@@ -59,8 +62,16 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   </div>
   <?php if ($bereit > 0): ?>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:14px;border-top:1px solid var(--linie);padding-top:14px">
-      <?php if (!empty($p['stripe_bereit']) && $p['vereinbarung_am']): ?>
-        <?= $hin('partner_auszahlen_stripe', 'Jetzt ' . Fmt::geld($bereit) . ' über Stripe auszahlen', $p['status'] !== 'bewerbung') ?>
+      <?php if ($weg !== null && in_array($weg, PartnerWege::AUTOMATISCH, true) && PartnerWege::bereit($p, $weg) && $p['vereinbarung_am']): ?>
+        <?= $hin('partner_auszahlen', 'Jetzt ' . Fmt::geld($bereit) . ' über ' . PartnerWege::WEGE[$weg] . ' auszahlen', true) ?>
+      <?php elseif ($weg === 'gutschrift' && $offeneRaten && $p['vereinbarung_am']): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_verrechnen"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <div class="feld" style="margin:0"><label>Mit offener Rate verrechnen</label>
+            <select name="zahlung"><?php foreach ($offeneRaten as $r): ?><option value="<?= (int) $r['id'] ?>"><?= Fmt::h($r['bezeichnung'] . ' — ' . Fmt::geld((int) $r['amount_cents'])) ?></option><?php endforeach; ?></select></div>
+          <button class="knopf haupt">Verrechnen</button></form>
+      <?php elseif ($weg === 'sepa'): ?>
+        <span style="font-size:13px">SEPA: kommt in die nächste <a href="<?= Fmt::h(url('partner')) ?>">SEPA-Datei</a>.</span>
       <?php endif; ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_auszahlen_hand"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
@@ -106,7 +117,8 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <div class="tabellenrahmen"><table><tbody>
   <?php foreach ($auszahlungen as $a): ?>
     <tr><td><?= Fmt::h($a['nummer']) ?></td><td style="font-size:12.5px"><?= Fmt::h(Fmt::datum((string) $a['created_at'])) ?></td>
-        <td><?= $a['weg'] === 'stripe' ? 'Stripe' . ($a['automatisch'] ? ' (automatisch)' : '') : 'von Hand · ' . Fmt::h($a['referenz']) ?></td>
+        <td><?= Fmt::h(PartnerWege::WEGE[$a['weg']] ?? 'von Hand') ?><?= $a['automatisch'] ? ' (automatisch)' : '' ?><?= $a['weg'] === 'hand' ? ' · ' . Fmt::h($a['referenz']) : '' ?>
+          <?= $a['status'] === 'offen' ? '<span class="marke2 warnung">offen</span>' : ($a['status'] === 'abgebrochen' ? '<span class="marke2">abgebrochen</span>' : '') ?></td>
         <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $a['betrag_cents'])) ?></td>
         <td><a href="<?= Fmt::h(url('partner/' . (int) $p['id']) . '?beleg=' . (int) $a['id']) ?>" target="_blank">Beleg</a></td></tr>
   <?php endforeach; ?>

@@ -28,6 +28,41 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 </div>
 <?php endif; ?>
 
+<?php $sepa = array_values(array_filter($handarbeit, static fn($h) => $h['weg'] === 'sepa'));
+      $verr = array_values(array_filter($handarbeit, static fn($h) => $h['weg'] === 'gutschrift'));
+      if ($sepa || $verr || $offeneAuszahlungen): ?>
+<div class="block" style="border-color:rgba(251,191,36,.35)">
+  <h2 style="font-size:15px;margin:0 0 8px">Auszahlungen von Hand</h2>
+  <?php if ($sepa): ?>
+    <p style="font-size:13.5px;margin:0 0 8px"><?= count($sepa) ?> SEPA-Überweisung<?= count($sepa) === 1 ? '' : 'en' ?> fällig:
+      <?= Fmt::h(implode(', ', array_map(static fn($h) => $h['partner']['name'] . ' ' . Fmt::geld($h['summe']), $sepa))) ?></p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-bottom:10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_sepa">
+      <button class="knopf haupt">SEPA-Datei herunterladen</button>
+      <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Im Online-Banking hochladen; wenn die Bank ausgeführt hat, unten „ausgeführt“ klicken.</span>
+    </form>
+  <?php endif; ?>
+  <?php if ($verr): ?>
+    <p style="font-size:13.5px;margin:0 0 8px">Verrechnung möglich:
+      <?php foreach ($verr as $h): ?><a href="<?= Fmt::h(url('partner/' . (int) $h['partner']['id'])) ?>"><?= Fmt::h($h['partner']['name']) ?></a> <?= Fmt::h(Fmt::geld($h['summe'])) ?> <?php endforeach; ?></p>
+  <?php endif; ?>
+  <?php if ($offeneAuszahlungen): ?>
+    <div class="tabellenrahmen"><table><thead><tr><th>Beleg</th><th>Partner</th><th>Weg</th><th style="text-align:right">Betrag</th><th></th></tr></thead><tbody>
+    <?php foreach ($offeneAuszahlungen as $a): ?>
+      <tr><td><?= Fmt::h($a['nummer']) ?></td><td><?= Fmt::h($a['name']) ?></td><td><?= Fmt::h(PartnerWege::WEGE[$a['weg']] ?? $a['weg']) ?></td>
+          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $a['betrag_cents'])) ?></td>
+          <td style="white-space:nowrap">
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
+              <input type="hidden" name="tat" value="partner_auszahlung_bestaetigen"><input type="hidden" name="auszahlung" value="<?= (int) $a['id'] ?>">
+              <button class="knopf">Ausgeführt</button></form>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
+              <input type="hidden" name="tat" value="partner_auszahlung_abbrechen"><input type="hidden" name="auszahlung" value="<?= (int) $a['id'] ?>">
+              <button class="knopf">Abbrechen</button></form></td></tr>
+    <?php endforeach; ?></tbody></table></div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 10px">Alle Partner</h2>
   <?php if (!$uebrige): ?>
@@ -68,6 +103,32 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <div class="feld" style="flex:0 0 110px"><label>Sprache</label>
       <select name="sprache"><option value="it">Italiano</option><option value="de">Deutsch</option><option value="en">English</option></select></div>
     <button class="knopf">Anlegen und einladen</button>
+  </form>
+</div>
+
+<?php $an = array_map('trim', explode(',', Partner::einstellung('partner_wege'))); ?>
+<div class="block" id="wege">
+  <h2 style="font-size:15px;margin:0 0 6px">Auszahlungswege</h2>
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">Der Partner wählt auf seiner Seite unter den eingeschalteten.
+    Ein Weg erscheint dort nur, wenn er auch technisch bereit ist.</p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_wege">
+    <?php foreach (PartnerWege::WEGE as $w => $wort):
+      $tech = PartnerWege::technisch($w); ?>
+      <label style="display:flex;align-items:flex-start;gap:6px;font-size:13.5px;margin:6px 0">
+        <input type="checkbox" name="wege[]" value="<?= Fmt::h($w) ?>" <?= in_array($w, $an, true) ? 'checked' : '' ?> style="width:auto;margin:3px 0 0">
+        <span><b><?= Fmt::h($wort) ?></b>
+          <?= in_array($w, PartnerWege::AUTOMATISCH, true) ? '<span class="marke2" style="margin-left:4px">automatisch</span>' : '<span class="marke2" style="margin-left:4px">von Hand</span>' ?>
+          <?= $tech ? '' : '<span class="marke2 warnung" style="margin-left:4px">noch nicht eingerichtet</span>' ?>
+          <br><span style="color:var(--leise);font-size:12px"><?= Fmt::h([
+            'stripe' => 'Stripe Connect: im Stripe-Dashboard einmal „Connect“ aktivieren.',
+            'sepa' => 'Die Verwaltung baut eine SEPA-Datei für dein Online-Banking. Braucht deine IBAN unter Einstellungen → Firma.',
+            'paypal' => 'Braucht ein PayPal-Geschäftskonto mit freigeschalteten „Payouts“; client_id und secret in config.local.php (paypal).',
+            'wise' => 'Braucht ein Wise-Geschäftskonto; API-Token und Profil-ID in config.local.php (wise). Wise kann eine Bestätigung in der App verlangen.',
+            'gutschrift' => 'Nur für Partner, die selbst Kunde sind: Provision wird mit einer offenen Rate verrechnet.',
+          ][$w]) ?></span></span></label>
+    <?php endforeach; ?>
+    <button class="knopf">Wege speichern</button>
   </form>
 </div>
 

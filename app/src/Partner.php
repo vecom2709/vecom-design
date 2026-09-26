@@ -497,7 +497,9 @@ final class Partner
         $rest = (int) round((int) $pp['provision_cents'] * $anteil);
         $restEinbehalt = (int) round((int) $pp['einbehalt_cents'] * $anteil);
 
-        if ($pp['status'] !== 'ausgezahlt') {
+        /* Noch nicht raus: wartet, freigabe, bereit. „unterwegs“ (SEPA-Datei,
+           Wise offen) zählt als raus -- das Geld kann schon unterwegs sein. */
+        if (in_array($pp['status'], ['wartet', 'freigabe', 'bereit'], true)) {
             if ($voll || $rest <= 0) {
                 Db::run("UPDATE partner_provisionen SET status = 'storniert', grund = 'Zahlung erstattet' WHERE id = ?", [(int) $pp['id']]);
             } else {
@@ -577,7 +579,7 @@ final class Partner
     /** Summen je Status für einen Partner (Cent). */
     public static function summen(int $partnerId): array
     {
-        $s = array_fill_keys(['wartet', 'freigabe', 'bereit', 'ausgezahlt', 'storniert', 'zurueckgeholt', 'rueckforderung'], 0);
+        $s = array_fill_keys(['wartet', 'freigabe', 'bereit', 'unterwegs', 'ausgezahlt', 'storniert', 'zurueckgeholt', 'rueckforderung'], 0);
         foreach (Db::all('SELECT status, SUM(provision_cents) AS s FROM partner_provisionen WHERE partner_id = ? GROUP BY status', [$partnerId]) as $z) {
             $s[(string) $z['status']] = (int) $z['s'];
         }
@@ -756,15 +758,16 @@ final class Partner
     }
 
     /** Die Belegnummer wird sperrend vergeben (FOR UPDATE) — zwei Läufe, zwei Nummern. */
-    private static function auszahlungBuchen(int $partnerId, int $betrag, string $weg, string $ref, bool $auto, array $ids): int
+    public static function auszahlungBuchen(int $partnerId, int $betrag, string $weg, string $ref, bool $auto, array $ids,
+                                            string $status = 'erledigt', ?string $extern = null): int
     {
-        return (int) Db::transaktion(static function () use ($partnerId, $betrag, $weg, $ref, $auto, $ids) {
+        return (int) Db::transaktion(static function () use ($partnerId, $betrag, $weg, $ref, $auto, $ids, $status, $extern) {
             $jahr = date('Y');
             $letzte = (string) Db::wert("SELECT nummer FROM partner_auszahlungen WHERE nummer LIKE ? ORDER BY id DESC LIMIT 1 FOR UPDATE",
                                         ['PA-' . $jahr . '-%'], '');
             $nr = 'PA-' . $jahr . '-' . str_pad((string) ((int) substr($letzte, 8) + 1), 4, '0', STR_PAD_LEFT);
             $aid = Db::insert('partner_auszahlungen', ['nummer' => $nr, 'partner_id' => $partnerId, 'betrag_cents' => $betrag,
-                'weg' => $weg, 'referenz' => $ref, 'automatisch' => $auto ? 1 : 0]);
+                'weg' => $weg, 'referenz' => $ref, 'automatisch' => $auto ? 1 : 0, 'status' => $status, 'extern_id' => $extern]);
             if ($ids) { Db::run('UPDATE partner_provisionen SET auszahlung_id = ? WHERE id IN (' . implode(',', array_map('intval', $ids)) . ')', [$aid]); }
             return $aid;
         }, 5);
@@ -786,12 +789,26 @@ final class Partner
             self::still(static fn() => self::kontoPruefen($p), false);
         }
 
+        require_once __DIR__ . '/PartnerWege.php';
+
+        /* Was nie von allein geht (SEPA, Verrechnung): einmal am Tag sagen, dass es fällig ist. */
+        $hand = PartnerWege::handarbeit();
+        if ($hand && !self::heuteGemeldet('partner_handarbeit')) {
+            require_once __DIR__ . '/Fmt.php';
+            Events::melden('partner_handarbeit', count($hand) . ' Partner-Auszahlung' . (count($hand) === 1 ? '' : 'en') . ' von Hand fällig',
+                'hinweis', implode(', ', array_map(static fn($h) => $h['partner']['name'] . ' ' . Fmt::geld($h['summe'])
+                    . ' (' . PartnerWege::WEGE[$h['weg']] . ')', $hand)), '/partner');
+        }
+
         if (self::einstellung('partner_auto_auszahlen') !== '1') { return $r; }
         $limit = self::zahl('partner_auto_tageslimit_cents');
-        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND stripe_bereit = 1 AND vereinbarung_am IS NOT NULL") as $p) {
+        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND vereinbarung_am IS NOT NULL") as $p) {
+            $weg = PartnerWege::weg($p);
+            if (!in_array($weg, PartnerWege::AUTOMATISCH, true) || !PartnerWege::bereit($p, $weg)) { continue; }
             $offen = self::auszahlbar((int) $p['id']);
             if ($offen < self::zahl('partner_mindest_cents')) { continue; }
-            $heute = (int) Db::wert('SELECT COALESCE(SUM(betrag_cents),0) FROM partner_auszahlungen WHERE automatisch = 1 AND created_at >= CURDATE()', [], 0);
+            $heute = (int) Db::wert("SELECT COALESCE(SUM(betrag_cents),0) FROM partner_auszahlungen
+                                      WHERE automatisch = 1 AND status <> 'abgebrochen' AND created_at >= CURDATE()", [], 0);
             if ($heute + $offen > $limit) {
                 $r['wartet_limit']++;
                 if (!self::heuteGemeldet('partner_limit')) {
@@ -802,7 +819,7 @@ final class Partner
                 }
                 continue;
             }
-            $e = self::auszahlenStripe((int) $p['id'], true);
+            $e = PartnerWege::auszahlen((int) $p['id'], true);
             if ($e['ok']) { $r['ausgezahlt']++; }
         }
         return $r;
@@ -930,7 +947,9 @@ final class Partner
         $pdf->text($rand + 370, $y, $T('pdf_summe'), 11, true, 'rechts', $tinte);
         $pdf->text($rechts, $y, Fmt::geld((int) $a['betrag_cents']), 11, true, 'rechts', $tinte);
         $y += 24;
-        $pdf->text($rand, $y, $T('pdf_weg') . ': ' . ($a['weg'] === 'stripe' ? 'Stripe' : ((string) $a['referenz'] !== '' ? (string) $a['referenz'] : '—')),
+        require_once __DIR__ . '/PartnerWege.php';
+        $pdf->text($rand, $y, $T('pdf_weg') . ': ' . Texte::h(Texte::PARTNER['w_' . $a['weg']] ?? [], $sp, (string) $a['weg'])
+                   . ((string) $a['referenz'] !== '' && $a['weg'] === 'hand' ? ' · ' . (string) $a['referenz'] : ''),
                    9.5, false, 'links', $grau);
         $y += 30;
         foreach ($pdf->umbrechen($T('pdf_hinweis'), $rechts - $rand, 9) as $z) { $pdf->text($rand, $y, $z, 9, false, 'links', $grau); $y += 13; }

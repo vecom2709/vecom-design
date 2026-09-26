@@ -9693,6 +9693,166 @@ pruefe('Rückfrage: Auszahlen und Bedingungen fragen nach', Ablauf::wiegt('partn
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 
 /* ============================================================================
+   Partner: Auszahlungswege (26.09.2026) — SEPA, PayPal, Wise, Verrechnung
+   ============================================================================ */
+abschnitt('Partner: Auszahlungswege');
+require_once $wurzel . '/src/PartnerWege.php';
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
+$wgKunde = Events::kundeFinden(['name' => 'Wege Kunde', 'email' => 'wege-kunde@pruefung.example']);
+/* Eine bereite Provision, ohne den ganzen Bestellweg — der ist oben geprüft. */
+$wgProv = static function (int $pid, int $cents) use ($wgKunde): int {
+    $best = Events::bestellungAnlegen($wgKunde, Angebot::internesPaket(), 'Wege', 100000);
+    $z = (int) Db::wert('SELECT id FROM payments WHERE order_id = ? ORDER BY id LIMIT 1', [$best], 0);
+    Db::run("UPDATE payments SET status = 'bezahlt', paid_at = NOW() WHERE id = ?", [$z]);
+    return Db::insert('partner_provisionen', ['partner_id' => $pid, 'customer_id' => $wgKunde, 'payment_id' => $z, 'order_id' => $best,
+        'art' => 'website', 'basis_cents' => $cents * 10, 'provision_cents' => $cents, 'status' => 'bereit', 'frei_ab' => date('Y-m-d H:i:s')]);
+};
+
+pruefe('IBAN: gültige Prüfsumme wird erkannt, ein Zahlendreher nicht',
+    PartnerWege::ibanGueltig('IT60 X054 2811 1010 0000 0123 456') && !PartnerWege::ibanGueltig('IT60X0542811101000000123465')
+    && PartnerWege::ibanGueltig('DE89370400440532013000'));
+pruefe('Wege: PayPal und Wise erscheinen nur, wenn sie eingerichtet sind',
+    !in_array('paypal', PartnerWege::eingeschaltet(), true) && !in_array('wise', PartnerWege::eingeschaltet(), true)
+    && in_array('sepa', PartnerWege::eingeschaltet(), true));
+
+$wgA = Partner::anlegen(['name' => 'Anna Sepa', 'email' => 'anna@partner.example', 'status' => 'aktiv']);
+Partner::vereinbarungMerken($wgA, 'Probe');
+pruefe('Wege: Verrechnung nur für Partner, die selbst Kunde sind', !in_array('gutschrift', PartnerWege::fuerPartner(Partner::laden($wgA)), true));
+pruefe('SEPA: eine falsche IBAN wird abgelehnt', PartnerWege::setzen($wgA, ['weg' => 'sepa', 'kontoinhaber' => 'Anna', 'iban' => 'IT00X123']) === 'iban_falsch');
+pruefe('SEPA: ohne Kontoinhaber nicht gespeichert', PartnerWege::setzen($wgA, ['weg' => 'sepa', 'kontoinhaber' => '', 'iban' => 'IT60X0542811101000000123456']) === 'inhaber_fehlt');
+PartnerWege::setzen($wgA, ['weg' => 'sepa', 'kontoinhaber' => 'Anna Sepa', 'iban' => 'IT60 X054 2811 1010 0000 0123 456']);
+$wgP = Partner::laden($wgA);
+pruefe('SEPA: IBAN nur versiegelt gespeichert, lesbar nur die letzten vier, nicht in der Prüfspur',
+    $wgP['auszahlungsweg'] === 'sepa' && $wgP['iban_ende'] === '3456' && !str_contains((string) $wgP['iban_blob'], '0123456')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE after_json LIKE '%0123456%'", [], 0) === 0);
+pruefe('SEPA: geht nie von allein', PartnerWege::auszahlen($wgA, true)['ok'] === false);
+$wgP1 = $wgProv($wgA, 6000);
+Db::run("DELETE FROM settings WHERE skey = 'firma_iban'");
+pruefe('SEPA: ohne eigene IBAN keine Datei', PartnerWege::sepaDatei()['ok'] === false);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('firma_iban', 'DE89370400440532013000') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+require_once $wurzel . '/src/Firma.php';
+$wgRef = new ReflectionProperty('Firma', 'werte'); $wgRef->setAccessible(true); $wgRef->setValue(null, null);
+$wgS = PartnerWege::sepaDatei();
+$wgDom = new DOMDocument();
+pruefe('SEPA: gültiges XML (pain.001.001.03) mit Empfänger-IBAN, Betrag und Anzahl',
+    $wgS['ok'] && @$wgDom->loadXML($wgS['xml']) && str_contains($wgS['xml'], 'IT60X0542811101000000123456')
+    && str_contains($wgS['xml'], '<InstdAmt Ccy="EUR">60.00</InstdAmt>') && str_contains($wgS['xml'], '<NbOfTxs>1</NbOfTxs>')
+    && str_contains($wgS['xml'], 'pain.001.001.03'));
+pruefe('SEPA: danach „unterwegs“ und offen — ein zweites Herunterladen nimmt nichts doppelt',
+    Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgP1], '') === 'unterwegs' && PartnerWege::sepaDatei()['ok'] === false);
+$wgAus = (int) Db::wert("SELECT id FROM partner_auszahlungen WHERE partner_id = ? AND status = 'offen'", [$wgA], 0);
+PartnerWege::abbrechen($wgAus);
+pruefe('SEPA: abgebrochen — die Provision ist wieder bereit', Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgP1], '') === 'bereit');
+$wgS = PartnerWege::sepaDatei();
+$wgAus = (int) Db::wert("SELECT id FROM partner_auszahlungen WHERE partner_id = ? AND status = 'offen'", [$wgA], 0);
+PartnerWege::bestaetigen($wgAus);
+pruefe('SEPA: „ausgeführt“ — Provision ausgezahlt, Auszahlung erledigt',
+    Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgP1], '') === 'ausgezahlt'
+    && Db::wert('SELECT status FROM partner_auszahlungen WHERE id = ?', [$wgAus], '') === 'erledigt');
+Partner::beiErstattung((int) Db::wert('SELECT payment_id FROM partner_provisionen WHERE id = ?', [$wgP1], 0), 100000, 100000);
+pruefe('Erstattung nach SEPA-Auszahlung → zurückfordern', Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgP1], '') === 'rueckforderung');
+
+// PayPal und Wise über eine Probe
+$wgHttp = [];
+PartnerWege::$httpProbe = static function (string $dienst, string $m, string $weg, ?array $r) use (&$wgHttp): array {
+    $wgHttp[] = [$dienst, $weg, $r];
+    if ($dienst === 'paypal') { return ['batch_header' => ['payout_batch_id' => 'PB1']]; }
+    if ($weg === '/v1/accounts') { return ['id' => 777]; }
+    if (str_ends_with($weg, '/quotes')) { return ['id' => 'q-1']; }
+    if ($weg === '/v1/transfers') { return ['id' => 555]; }
+    if (str_ends_with($weg, '/payments')) { return $GLOBALS['wgWiseDirekt'] ? ['status' => 'COMPLETED'] : ['status' => 'REJECTED', 'errorCode' => 'sca']; }
+    return [];
+};
+pruefe('Wege: mit Zugang sind PayPal und Wise wählbar', in_array('paypal', PartnerWege::eingeschaltet(), true) && in_array('wise', PartnerWege::eingeschaltet(), true));
+$wgB = Partner::anlegen(['name' => 'Bruno Pay', 'email' => 'bruno@partner.example', 'status' => 'aktiv']);
+Partner::vereinbarungMerken($wgB, 'Probe');
+pruefe('PayPal: ungültige E-Mail abgelehnt', PartnerWege::setzen($wgB, ['weg' => 'paypal', 'paypal_email' => 'kein-mail']) === 'email_falsch');
+PartnerWege::setzen($wgB, ['weg' => 'paypal', 'paypal_email' => 'Bruno@PayPal.example']);
+$wgBp = $wgProv($wgB, 7000);
+$wgR = PartnerWege::auszahlen($wgB, true);
+pruefe('PayPal: automatisch, genau der Betrag, feste Stapelkennung (doppelt lehnt PayPal ab)',
+    $wgR['ok'] && $wgHttp[0][2]['items'][0]['amount']['value'] === '70.00' && $wgHttp[0][2]['items'][0]['receiver'] === 'bruno@paypal.example'
+    && str_starts_with($wgHttp[0][2]['sender_batch_header']['sender_batch_id'], 'vecom-' . $wgB . '-')
+    && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgBp], '') === 'ausgezahlt');
+pruefe('PayPal: ein zweiter Lauf zahlt nichts doppelt', PartnerWege::auszahlen($wgB, true)['ok'] === false);
+
+$wgC = Partner::anlegen(['name' => 'Carla Wise', 'email' => 'carla@partner.example', 'status' => 'aktiv']);
+Partner::vereinbarungMerken($wgC, 'Probe');
+PartnerWege::setzen($wgC, ['weg' => 'wise', 'kontoinhaber' => 'Carla Wise', 'iban' => 'DE89370400440532013000']);
+$wgCp = $wgProv($wgC, 8000);
+$GLOBALS['wgWiseDirekt'] = false;
+$wgHttp = [];
+$wgR = PartnerWege::auszahlen($wgC, true);
+pruefe('Wise: verlangt Wise die Bestätigung in der App → angelegt, „offen“, Provision unterwegs, Meldung an Uwe',
+    $wgR['ok'] && !empty($wgR['offen']) && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgCp], '') === 'unterwegs'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_wise'", [], 0) >= 1
+    && (int) Db::wert('SELECT wise_empfaenger FROM partner WHERE id = ?', [$wgC], 0) === 777);
+$wgTx = array_values(array_filter($wgHttp, static fn($x) => $x[1] === '/v1/transfers'))[0][2] ?? [];
+pruefe('Wise: feste Kennung je Provisionssatz (Wiederholung legt nicht doppelt an)', preg_match('/^[0-9a-f-]{36}$/', (string) ($wgTx['customerTransactionId'] ?? '')) === 1);
+PartnerWege::bestaetigen((int) Db::wert("SELECT id FROM partner_auszahlungen WHERE partner_id = ? AND status = 'offen'", [$wgC], 0));
+pruefe('Wise: nach Bestätigung ausgezahlt', Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgCp], '') === 'ausgezahlt');
+PartnerWege::$httpProbe = null;
+
+// Verrechnung
+$wgD = Partner::anlegen(['name' => 'Wege Kunde', 'email' => 'wege-kunde@pruefung.example', 'status' => 'aktiv']);
+Partner::vereinbarungMerken($wgD, 'Probe');
+pruefe('Verrechnung: wählbar, weil der Partner selbst Kunde ist', in_array('gutschrift', PartnerWege::fuerPartner(Partner::laden($wgD)), true));
+PartnerWege::setzen($wgD, ['weg' => 'gutschrift']);
+$wgDp = $wgProv($wgD, 3000);
+$wgBest = Events::bestellungAnlegen($wgKunde, Angebot::internesPaket(), 'Offene Rate', 20000);
+$wgOffen = Db::one("SELECT * FROM payments WHERE order_id = ? AND status <> 'bezahlt' ORDER BY id LIMIT 1", [$wgBest]);
+$wgVor = (int) Db::wert('SELECT SUM(amount_cents) FROM payments WHERE order_id = ?', [$wgBest], 0);
+$wgR = PartnerWege::verrechnen($wgD, (int) $wgOffen['id']);
+$wgNach = (int) Db::wert('SELECT SUM(amount_cents) FROM payments WHERE order_id = ?', [$wgBest], 0);
+pruefe('Verrechnung: die Rate wird geteilt — 30 € bezahlt (verrechnung), der Rest offen, der Umsatz bleibt gleich',
+    $wgR['ok'] && $wgVor === $wgNach
+    && (int) Db::wert("SELECT amount_cents FROM payments WHERE order_id = ? AND provider = 'verrechnung' AND status = 'bezahlt'", [$wgBest], 0) === 3000
+    && (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [(int) $wgOffen['id']], 0) === (int) $wgOffen['amount_cents'] - 3000
+    && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgDp], '') === 'ausgezahlt', $wgR['text']);
+pruefe('Verrechnung: keine Provision auf die Verrechnung selbst (eigener Kauf)',
+    (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen pp JOIN payments z ON z.id = pp.payment_id WHERE z.provider = 'verrechnung'", [], 0) === 0);
+
+// Cronlauf: Handarbeit wird gemeldet, nicht ausgeführt
+$wgE = $wgProv($wgA, 9000);
+Db::run("DELETE FROM notifications WHERE type = 'partner_handarbeit'");
+Db::run("DELETE FROM settings WHERE skey = 'partner_lauf_am'");
+Partner::lauf();
+pruefe('Cronlauf: SEPA fällig → eine Meldung, aber keine Auszahlung von allein',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_handarbeit'", [], 0) === 1
+    && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgE], '') === 'bereit');
+pruefe('Beleg: nennt den Weg in der Sprache des Partners', str_starts_with((string) Partner::belegPdf($wgAus), '%PDF'));
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+
+/* STRATO: wie lange Sitzungen halten (Uwe: „c“), Meldung nur bei echter Absage (Uwe: „b“) */
+abschnitt('STRATO: Sitzungsdauer und Meldung');
+$stAntwort = ['ok' => false, 'status' => 500, 'daten' => ['error' => 'Bad gateway']];
+Strato::$abrufProbe = static function (string $art, string $url, mixed $k) use (&$stAntwort): array { return $stAntwort; };
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+Db::run("DELETE FROM notifications WHERE type = 'strato_zugang'");
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('strato_anon', 'eyJprobe'), ('strato_refresh', 'r1'), ('strato_sitzung_seit', ?)",
+        [date('Y-m-d H:i:s', strtotime('-50 hours'))]);
+Strato::zugangsToken();
+pruefe('STRATO: ein 5xx beendet keine Sitzung und schlägt keinen Alarm',
+    Strato::sitzungen() === [] && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'strato_zugang'", [], 0) === 0);
+$stAntwort = ['ok' => false, 'status' => 400, 'daten' => ['error_description' => 'Invalid Refresh Token: Session Expired']];
+Strato::zugangsToken(); Strato::zugangsToken();
+$stS = Strato::sitzungen();
+pruefe('STRATO: echte Absage → Sitzung mit Dauer (50 Std.) und Grund gemerkt',
+    count($stS) === 1 && $stS[0]['stunden'] === 50 && str_contains($stS[0]['grund'], 'Session Expired') && Strato::sitzungSeit() === '');
+pruefe('STRATO: genau eine Meldung, auch wenn es weiter scheitert',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'strato_zugang'", [], 0) === 1);
+$stAntwort = ['ok' => true, 'status' => 200, 'daten' => ['access_token' => 'a', 'refresh_token' => 'b', 'expires_in' => 3600]];
+Strato::zugangSetzen('eyJprobe', 'neuer-token-123');
+pruefe('STRATO: neu hinterlegt → neue Sitzung beginnt, Meldesperre zurückgesetzt',
+    Strato::sitzungSeit() !== '' && Strato::wert('strato_gemeldet_am') === '');
+Strato::$abrufProbe = null;
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+$stAnsicht = (string) file_get_contents($wurzel . '/views/einstellungen/telefon.php');
+pruefe('STRATO: das irreführende Feld „Automatisch neu anmelden“ ist weg, die Anleitung da',
+    !str_contains($stAnsicht, 'strato_anmeldung') && str_contains($stAnsicht, 'Wie lange die Sitzungen hielten'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

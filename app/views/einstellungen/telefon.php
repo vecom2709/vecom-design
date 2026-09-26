@@ -298,9 +298,8 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
         Sitzung. Seit dem 7.9. verhindert eine Sperre das; ein einmal widerrufener Zugang
         lässt sich aber nicht wiederbeleben. Bitte hier neu hinterlegen.
       <?php else: ?>
-        STRATO hat die Sitzung beendet. Damit das nicht mehr von Hand nötig ist:
-        unten unter <a href="#strato-anmeldung">„Automatisch neu anmelden“</a> einmal E-Mail und
-        Passwort hinterlegen — danach richtet sich der Zugang selbst wieder auf.
+        STRATO hat die Sitzung beendet. Neu hinterlegen wie unten beschrieben — privates
+        Fenster, Cookie kopieren, einfügen, Fenster schließen (nicht abmelden).
       <?php endif; ?>
       </span></div>
   <?php elseif ($strato['eingerichtet']): ?>
@@ -382,32 +381,44 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
     <button class="knopf haupt">Zugang hinterlegen und prüfen</button>
   </form>
 
-  <?php $anmeldung = Strato::anmeldungEmail(); ?>
-  <div id="strato-anmeldung" style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
-    <h3 style="font-size:15px;margin:0 0 6px">Automatisch neu anmelden
-      <?php if ($anmeldung !== ''): ?><span class="marke2 gut" style="margin-left:8px">aktiv</span><?php endif; ?></h3>
-    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0 0 10px">
-      STRATO beendet Sitzungen nach einer Weile von selbst („Session Expired“). Mit deiner
-      STRATO-Anmeldung holt sich die Verwaltung dann selbst eine neue Sitzung — du musst keinen
-      Token mehr kopieren. Das Passwort wird verschlüsselt gespeichert, nie angezeigt und nur
-      benutzt, wenn der Token abgelehnt wird. Geht nur mit E-Mail und Passwort, nicht mit
-      Google-Login oder Bestätigungscode.</p>
-    <?php if ($anmeldung !== ''): ?>
-      <p style="font-size:13px;margin:0 0 10px">Hinterlegt für <b><?= Fmt::h($anmeldung) ?></b>.
-        Hast du das Passwort bei STRATO geändert, hier neu eintragen.</p>
-    <?php endif; ?>
-    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-      <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_anmeldung">
-      <div class="feld" style="flex:1;min-width:200px"><label>E-Mail bei STRATO</label>
-        <input type="email" name="email" autocomplete="off" value="<?= Fmt::h($anmeldung) ?>" required></div>
-      <div class="feld" style="flex:1;min-width:200px"><label>Passwort bei STRATO</label>
-        <input type="password" name="passwort" autocomplete="new-password" required></div>
-      <button class="knopf haupt">Anmeldung hinterlegen und prüfen</button>
-    </form>
-    <?php if ($anmeldung !== ''): ?>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
-        <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_anmeldung_weg">
-        <button class="knopf">Anmeldung entfernen</button></form>
+  <?php
+  /* WIE LANGE DIE SITZUNGEN HIELTEN (Uwe, 26.09.2026: „c“)
+     Das Feld „Automatisch neu anmelden“ stand bis heute hier. Es kann bei
+     Uwe nicht gehen: Er meldet sich bei STRATO mit Kundennummer an, und das
+     läuft über STRATOs eigenes Login, nicht über E-Mail und Passwort. Die
+     Anmeldeseite von STRATO von hier aus zu bedienen wäre Screen Scraping —
+     bricht bei jeder Änderung und bei jedem Bestätigungscode. Die Technik
+     dahinter (Strato::anmeldungSetzen) bleibt für Konten mit E-Mail-Login. */
+  $sitzungen = Strato::sitzungen();
+  $seit = Strato::sitzungSeit();
+  ?>
+  <div style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
+    <h3 style="font-size:15px;margin:0 0 6px">Wenn der Zugang abläuft</h3>
+    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0 0 8px">
+      Du bekommst sofort eine Meldung — hier und, wenn der Zuruf eingerichtet ist, aufs Handy.
+      Neu hinterlegen: STRATO in einem <b>privaten Fenster</b> öffnen, mit Kundennummer anmelden,
+      den Cookie <code>sb-…-auth-token</code> kopieren, oben einfügen, Fenster <b>schließen, nicht abmelden</b>.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <input id="strato_adresse" readonly value="https://strato.ai-voicereceptionist.com/" style="max-width:320px">
+      <button class="knopf" type="button" data-kopieren="strato_adresse">Adresse kopieren</button>
+      <span style="color:var(--leise);font-size:12px">… und im privaten Fenster einfügen (⇧⌘N / Strg+⇧+N)</span>
+    </div>
+    <?php if ($seit !== '' || $sitzungen): ?>
+      <p style="font-size:13px;margin:0 0 4px"><b>Wie lange die Sitzungen hielten</b></p>
+      <ul style="font-size:12.5px;color:var(--dim);line-height:1.8;margin:0;padding-left:18px">
+        <?php if ($seit !== ''): ?><li>jetzige: seit <?= Fmt::h(Fmt::datum($seit)) ?> (<?= (int) round((time() - strtotime($seit)) / 3600) ?> Std.)</li><?php endif; ?>
+        <?php foreach ($sitzungen as $x): $t = intdiv($x['stunden'], 24); ?>
+          <li><?= Fmt::h(Fmt::datum($x['von'])) ?> – <?= Fmt::h(Fmt::datum($x['bis'])) ?>:
+            <b><?= $t > 0 ? $t . ' Tg. ' : '' ?><?= $x['stunden'] % 24 ?> Std.</b>
+            <span style="color:var(--leise)">(<?= Fmt::h($x['grund']) ?>)</span></li>
+        <?php endforeach; ?>
+      </ul>
+      <?php if (count($sitzungen) >= 3):
+        $h = array_column($sitzungen, 'stunden'); $spanne = max($h) - min($h); ?>
+        <p style="font-size:12.5px;color:var(--leise);margin:6px 0 0"><?= $spanne <= 6
+          ? 'Die Sitzungen halten fast gleich lang (' . Fmt::h((string) round(array_sum($h) / count($h) / 24, 1)) . ' Tage) — STRATO schaltet nach fester Zeit ab.'
+          : 'Die Sitzungen halten verschieden lang — eher ein Abmelden oder eine zweite Sitzung im Browser als eine feste Frist.' ?></p>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
 

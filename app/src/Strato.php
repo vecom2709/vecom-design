@@ -157,6 +157,7 @@ final class Strato
             self::merken('strato_fehler', 'Neuanmeldung abgelehnt: ' . ($grund !== '' ? $grund : 'Status ' . $r['status']) . '.');
             return null;
         }
+        self::merken('strato_sitzung_seit', date('Y-m-d H:i:s'));
         return self::sitzungMerken($r['daten']);
     }
 
@@ -265,6 +266,8 @@ final class Strato
         if ($t === null) {
             return ['ok' => false, 'text' => 'Der Token wurde nicht angenommen: ' . self::wert('strato_fehler')];
         }
+        self::merken('strato_sitzung_seit', date('Y-m-d H:i:s'));
+        self::merken('strato_gemeldet_am', '');
         return ['ok' => true, 'text' => 'Der Zugang steht.'];
     }
 
@@ -343,6 +346,7 @@ final class Strato
                         self::merken('strato_gemeldet_am', '');
                         return $neu;
                     }
+                    self::sitzungEnde(self::wert('strato_fehler'));
                     self::einmalMelden();
                     return null;
                 }
@@ -354,6 +358,13 @@ final class Strato
                 self::merken('strato_fehler', $grund !== ''
                     ? $grund
                     : 'Der Zugang wurde abgelehnt (' . $a['status'] . '). Vermutlich abgemeldet oder abgelaufen.');
+                /* Nur eine echte Absage (400/401/403) ist ein Ende. Ein Netzfehler
+                   oder ein 5xx bei Supabase ist Wetter -- der nächste Lauf
+                   versucht es wieder, und Uwes Handy bleibt still. */
+                if (in_array((int) $a['status'], [400, 401, 403], true)) {
+                    self::sitzungEnde(self::wert('strato_fehler'));
+                    self::einmalMelden();
+                }
                 return null;
             }
 
@@ -376,10 +387,44 @@ final class Strato
         if ($am !== '' && $am > date('Y-m-d H:i:s', strtotime('-24 hours'))) { return; }
         self::merken('strato_gemeldet_am', date('Y-m-d H:i:s'));
         require_once __DIR__ . '/Events.php';
-        self::still(static fn() => Events::melden('strato_zugang', 'STRATO: automatische Neuanmeldung gescheitert',
-            'warnung', self::wert('strato_fehler') . ' Hast du das Passwort bei STRATO geändert? Dann unter '
-            . 'Einstellungen → Telefon neu hinterlegen.', '/einstellungen?b=telefon'));
+        self::still(static fn() => Events::melden('strato_zugang', 'STRATO-Zugang abgelaufen', 'warnung',
+            self::wert('strato_fehler') . ' — unter Einstellungen → Telefon neu hinterlegen (privates Fenster, '
+            . 'Cookie kopieren, einfügen). Bis dahin kommen keine Gespräche herüber.', '/einstellungen?b=telefon'));
+        /* Aufs Handy (Uwe, 26.09.2026: „b“): Bisher merkte er es erst beim
+           nächsten Blick in die Verwaltung -- manchmal Tage später. Ohne
+           Personendaten, höchstens einmal am Tag. */
+        self::still(static function () {
+            require_once __DIR__ . '/Zuruf.php';
+            Zuruf::vormerken('strato_abgelaufen', 'Vecom: Der STRATO-Zugang ist abgelaufen. In der Verwaltung unter '
+                . 'Einstellungen → Telefon neu hinterlegen.', 24 * 60);
+        });
     }
+
+    /**
+     * WIE LANGE HÄLT EINE SITZUNG? (Uwe, 26.09.2026: „c“)
+     * Jede hinterlegte Sitzung bekommt einen Anfang, jede abgelaufene ein
+     * Ende. Aus den letzten zehn lässt sich ablesen, ob STRATO nach festen
+     * Tagen abschaltet (dann sind alle gleich lang) oder ob ein Abmelden
+     * im Browser sie beendet (dann sind sie zufällig lang).
+     */
+    private static function sitzungEnde(string $grund): void
+    {
+        $seit = self::wert('strato_sitzung_seit');
+        if ($seit === '') { return; }
+        $liste = json_decode(self::wert('strato_sitzungen'), true) ?: [];
+        array_unshift($liste, ['von' => $seit, 'bis' => date('Y-m-d H:i:s'), 'grund' => mb_substr($grund, 0, 120)]);
+        self::merken('strato_sitzungen', (string) json_encode(array_slice($liste, 0, 10), JSON_UNESCAPED_UNICODE));
+        self::merken('strato_sitzung_seit', '');
+    }
+
+    /** @return list<array{von:string,bis:string,grund:string,stunden:int}> */
+    public static function sitzungen(): array
+    {
+        $liste = json_decode(self::wert('strato_sitzungen'), true) ?: [];
+        return array_map(static fn($x) => $x + ['stunden' => (int) round((strtotime($x['bis']) - strtotime($x['von'])) / 3600)], $liste);
+    }
+
+    public static function sitzungSeit(): string { return self::wert('strato_sitzung_seit'); }
 
     /** Der noch gültige Token aus dem Zwischenspeicher -- oder null. */
     private static function zwischengespeicherter(): ?string
