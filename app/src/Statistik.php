@@ -56,6 +56,9 @@ final class Statistik
         'ka-cta'           => '„So etwas für mich" im Ablauf gedrückt',
         'ka-gesendet'      => 'Ablauf-Anfrage abgeschickt',
         'whatsapp'         => 'WhatsApp-Knopf gedrückt',
+        'anruf'            => 'Anruf-Knopf gedrückt',
+        'rueckruf-offen'   => 'Rückruf-Formular geöffnet',
+        'rueckruf-gesendet'=> 'Rückruf-Wunsch abgeschickt',
     ];
 
     public static function wurzel(): string
@@ -97,11 +100,15 @@ final class Statistik
         $woche = [];
         for ($i = 0; $i < $wochen; $i++) { $woche[date('Y-m-d', strtotime("$start +$i weeks"))] = 0; }
         $quellen = []; $geraete = ['Rechner' => 0, 'Handy' => 0]; $stunden = array_fill(0, 24, 0);
+        $seiten = []; $kampagnen = [];
         $imZeitraum = 0; $heuteZahl = 0;
 
         $da = self::lesen(($wurzel ?? self::wurzel()) . '/besuche.csv', min($start, $abTage),
-            static function (array $t) use (&$woche, &$quellen, &$geraete, &$stunden, &$imZeitraum, &$heuteZahl, $start, $abTage, $heute): void {
+            static function (array $t) use (&$woche, &$quellen, &$geraete, &$stunden, &$imZeitraum, &$heuteZahl, &$seiten, &$kampagnen, $start, $abTage, $heute): void {
+                /* Seit 26.09.2026 sechs Spalten (Seite, Kampagne); ältere
+                   Zeilen haben vier und zählen weiter mit. */
                 [$tag, $std, $host, $geraet] = $t;
+                $seite = (string) ($t[4] ?? ''); $kampagne = (string) ($t[5] ?? '');
                 if ($tag > $heute) { return; }
                 if ($tag >= $start) {
                     $mo = date('Y-m-d', strtotime($tag . ' -' . ((int) date('N', strtotime($tag)) - 1) . ' days'));
@@ -113,17 +120,20 @@ final class Statistik
                 $q = $host === '' ? 'direkt / eigene Seite' : $host;
                 $quellen[$q] = ($quellen[$q] ?? 0) + 1;
                 if (isset($geraete[$geraet])) { $geraete[$geraet]++; }
+                if ($seite !== '') { $seiten[$seite] = ($seiten[$seite] ?? 0) + 1; }
+                if ($kampagne !== '') { $kampagnen[$kampagne] = ($kampagnen[$kampagne] ?? 0) + 1; }
                 $h = (int) $std;
                 if ($h >= 0 && $h < 24) { $stunden[$h]++; }
             });
 
-        arsort($quellen);
+        arsort($quellen); arsort($seiten); arsort($kampagnen);
         $wochenListe = [];
         foreach ($woche as $ab => $n) { $wochenListe[] = ['ab' => $ab, 'zahl' => $n]; }
         return [
             'da' => $da, 'tage' => $tage, 'heute' => $heuteZahl, 'summe' => $imZeitraum,
             'wochen' => $wochenListe, 'quellen' => array_slice($quellen, 0, 10, true),
             'geraete' => $geraete, 'stunden' => $stunden,
+            'seiten' => array_slice($seiten, 0, 10, true), 'kampagnen' => array_slice($kampagnen, 0, 10, true),
         ];
     }
 

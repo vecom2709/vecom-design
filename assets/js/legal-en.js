@@ -52,7 +52,7 @@
       p1h: "Controller",
       p1: "Uwe Vetter, Via d’Ascoli 25, 92021 Aragona (AG), Italy — kontakt@vecom-design.it",
       p2h: "In short",
-      p2: "This website uses no tracking cookies, loads no fonts from third-party servers and builds no user profiles. That is why there is no cookie banner. Data is only transmitted when you send the contact form — see below.",
+      p2: "This website uses no tracking cookies, loads no fonts from third-party servers and builds no user profiles. That is why there is no cookie banner. For statistics, the site counts visits on our own server: date, hour, which website you came from (its domain only), which page, the device type (phone or computer) and — if the link carries one — a campaign label such as “instagram”; likewise how often buttons such as “Call” or “WhatsApp” are pressed. No IP address, no cookie, no sharing with third parties; individual visits cannot be traced to anyone. The legal basis is our legitimate interest in improving the site (Art. 6(1)(f) GDPR). Personal data is only transmitted when you send the contact form — see below.",
       p3h: "Data collected when visiting",
       p3: "The site is hosted with ALL-INKL.COM — Neue Medien Münnich, Inh. René Münnich, Hauptstraße 68, 02742 Friedersdorf, Germany, on servers located in Germany. For security and operational reasons the provider records technical access data including IP address, date and time of the request, page requested, browser type and operating system. Legal basis: legitimate interest in secure operation (Art. 6(1)(f) GDPR). The data stays within the European Union; no transfer to third countries takes place.",
       p4h: "Contact form",

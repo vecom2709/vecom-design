@@ -3963,8 +3963,16 @@ switch ($route) {
         ]);
         break;
 
+    /* Besucher (26.09.2026): der Entwurf vom 25.09. eingebunden -- was die
+       Website zählt, ohne IP und ohne Keks. Umsatz steht unter „Zahlen“. */
     case 'statistiken':
-        ansicht('spaeter', ['bereich' => $route]);
+        require_once __DIR__ . '/src/Statistik.php';
+        require_once __DIR__ . '/src/Zugang.php';
+        ansicht('statistiken', [
+            'besuche' => Statistik::besuche(),
+            'demos'   => Statistik::demos(),
+            'trichter'=> sicher(static fn() => Zugang::trichter(), []),
+        ]);
         break;
 
     default:

@@ -156,6 +156,10 @@ $reiter = [
     ['partner', 'Partner', 'partner'],
     ['stimmen', 'Kundenstimmen', 'stimmen'],
   ],
+  'dashboard' => [
+    ['dashboard', 'Zahlen', 'dashboard'],
+    ['statistiken', 'Besucher', 'statistiken'],
+  ],
   'pakete' => [
     ['pakete', 'Pakete', 'pakete'],
     ['baukasten', 'Preisbausteine', 'baukasten'],

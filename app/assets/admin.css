@@ -710,3 +710,19 @@ dialog.einfuehrung{margin:auto;position:fixed;inset:0;height:fit-content}
   .unten .zahl{position:absolute;top:4px;right:calc(50% - 30px);font-style:normal;font-size:10.5px;min-width:18px;padding:0 5px}
   .inhalt{padding-bottom:96px}
 }
+/* Besucher (26.09.2026): eine Reihe, eine Farbe; Zahlen in Schriftfarbe */
+.leise{color:var(--leise);font-size:12.5px;margin:0 0 10px}
+.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 16px}
+.kachel{background:var(--flaeche);border:1px solid var(--linie);border-radius:var(--r);padding:12px 14px}
+.kachel span{display:block;color:var(--leise);font-size:12px}
+.kachel b{display:block;font-size:26px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums}
+.balkenliste{display:grid;gap:6px}
+.bl__zeile{display:grid;grid-template-columns:minmax(0,11rem) 1fr 3rem;gap:10px;align-items:center;font-size:13px;padding:2px 0}
+.bl__zeile:hover .bl__spur i{filter:brightness(1.15)}
+.bl__wort{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bl__spur{height:10px;background:var(--flaeche2);border-radius:0 4px 4px 0}
+.bl__spur i{display:block;height:100%;background:var(--blau);border-radius:0 4px 4px 0;min-width:2px}
+.bl__zahl{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.saeulen__achse{display:flex;justify-content:space-between;color:var(--leise);font-size:11.5px;margin:-16px 0 8px}
+.saeulen div:hover{filter:brightness(1.2)}
+@media(max-width:700px){.bl__zeile{grid-template-columns:minmax(0,8rem) 1fr 2.5rem}}

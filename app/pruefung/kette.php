@@ -10321,6 +10321,41 @@ pruefe('Handy: Leiste unten mit Heute, Kunden, Geld, Telefon -- und „Menü“ 
 pruefe('Handy: die Leiste trägt dieselben Summen wie die Türen im Menü',
     str_contains($veLay, 'if ($t[0] === $ziel) { return (int) $t[4]; }'));
 
+/* ---- Besucher (Website-Vorschlag 2) ---- */
+require_once $wurzel . '/src/Statistik.php';
+$veW = sys_get_temp_dir() . '/vd-stat-' . getmypid();
+@mkdir($veW);
+file_put_contents($veW . '/besuche.csv',
+    "2026-09-20\t10\t\tHandy\n"                                  // alte Zeile, vier Spalten
+  . "2026-09-25\t11\tgoogle.com\tHandy\t/de/\t\n"
+  . "2026-09-26\t12\tinstagram.com\tRechner\t/\tinstagram\n");
+file_put_contents($veW . '/demo.csv', "2026-09-26\t12\tanruf\tHandy\n2026-09-26\t12\twhatsapp\tHandy\n");
+$veB = Statistik::besuche(26, 90, $veW, '2026-09-26');
+pruefe('Besucher: alte Zeilen (vier Spalten) zählen weiter, neue bringen Seite und Kampagne mit',
+    $veB['summe'] === 3 && ($veB['seiten']['/de/'] ?? 0) === 1 && ($veB['kampagnen']['instagram'] ?? 0) === 1
+    && ($veB['quellen']['google.com'] ?? 0) === 1, json_encode([$veB['summe'], $veB['seiten'], $veB['kampagnen']]));
+$veD = Statistik::demos(90, $veW, '2026-09-26');
+$veWege = array_column($veD['wege'], 'zahl', 'wort');
+pruefe('Besucher: Anruf- und WhatsApp-Knopf werden als Wege gezählt',
+    ($veWege['Anruf-Knopf gedrückt'] ?? 0) === 1 && ($veWege['WhatsApp-Knopf gedrückt'] ?? 0) === 1);
+@unlink($veW . '/besuche.csv'); @unlink($veW . '/demo.csv'); @rmdir($veW);
+$veZ = (string) file_get_contents($oben . '/z.php');
+pruefe('Zählpixel: die Herkunft kommt aus ?r= (document.referrer) -- ein <img> trägt nur die eigene Seite',
+    str_contains($veZ, "isset(\$_GET['r'])") && !str_contains($veZ, 'REMOTE_ADDR') && !str_contains($veZ, 'setcookie'));
+$veZj = (string) file_get_contents($oben . '/assets/js/zaehlen.js');
+pruefe('Zählpixel: die Seite schickt Herkunft, Seite und utm_source mit',
+    str_contains($veZj, 'document.referrer') && str_contains($veZj, 'utm_source') && str_contains($veZj, 'location.pathname'));
+$veOhne = [];
+foreach (['index.html', 'prezzi.html', 'assistenza.html', 'showroom.html', 'tecnica.html', 'tavolo.html'] as $veS) {
+    $veH = (string) file_get_contents($oben . '/' . $veS);
+    if (!str_contains($veH, 'assets/js/zaehlen.js') || preg_match('~<img src="/z\.php"(?![^<]*</noscript>)~', str_replace("\n", ' ', $veH)) && !str_contains($veH, '<noscript><img src="/z.php"')) { $veOhne[] = $veS; }
+}
+pruefe('Zählpixel: alle sechs Seiten zählen, jede genau einmal (das <img> nur noch in <noscript>)', $veOhne === [], implode(', ', $veOhne));
+foreach (['it', 'de', 'en'] as $veL) {
+    pruefe("Datenschutz ($veL): die Besucherzählung ist beschrieben -- ohne IP, ohne Cookie",
+        (bool) preg_match('~(zählt die Seite Besuche|conta le visite|counts visits)~u', (string) file_get_contents($oben . "/assets/js/legal-$veL.js")));
+}
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

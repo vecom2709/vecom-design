@@ -626,3 +626,25 @@ for (const seite of SEITEN) {
     console.log(`geschrieben: ${ziel}${lang === 'it' ? ' (Italienisch, x-default)' : ''}`);
   }
 }
+
+/* --------------------------------------------------------------------------
+   legal.html STEMPELN (26.09.2026)
+
+   Die Seite liegt nur einmal da und wird nicht gebaut; sie laedt legal-it.js
+   und i18n-it.js mit einem ?v= und holt die anderen Sprachen mit DEMSELBEN
+   ?v= nach (app.js tauscht nur das Sprachkuerzel). Dateien mit ?v= haelt der
+   Browser ein Jahr (.htaccess, FESTGENAGELT). Der Stempel stand von Hand da,
+   war schon veraltet, und der neue Absatz zur Besucherzaehlung waere bei
+   jedem, der die Seite kannte, ein Jahr lang nicht angekommen.
+
+   Deshalb ein Stempel aus ALLEN drei Fassungen zusammen: Aendert sich eine
+   davon, aendert sich die Adresse fuer alle drei.
+   -------------------------------------------------------------------------- */
+{
+  const gemeinsam = (name) => createHash('sha1')
+    .update(['it', 'de', 'en'].map((l) => existsSync(`assets/js/${name}-${l}.js`) ? readFileSync(`assets/js/${name}-${l}.js`) : '').join('\n'))
+    .digest('hex').slice(0, 8);
+  const vorher = readFileSync('legal.html', 'utf8');
+  const nachher = vorher.replace(/(assets\/js\/(i18n|legal)-it\.js)(?:\?v=[A-Za-z0-9]*)?/g, (m, pfad, name) => `${pfad}?v=${gemeinsam(name)}`);
+  if (nachher !== vorher) { writeFileSync('legal.html', nachher); console.log('gestempelt: legal.html'); }
+}

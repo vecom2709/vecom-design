@@ -44,6 +44,7 @@ final class Hilfe
         'pakete'             => 'Hier legst du die Pakete an, die Kunden kaufen können.',
         'baukasten'          => 'Hier stellst du die Preise ein, aus denen der Preisrechner den Preis ausrechnet.',
         'telefon'            => 'Hier siehst du Manuelas Gespräche, Rückrufwünsche und Termine — und stellst sie ein.',
+        'statistiken'        => 'Hier siehst du, wie viele Besucher kommen, woher, auf welche Seite — und was sie anklicken. Ohne IP, ohne Cookie.',
         'suche'              => 'Hier findest du Kunden, Bestellungen und Angebote über Name, Nummer oder E-Mail.',
     ];
 
