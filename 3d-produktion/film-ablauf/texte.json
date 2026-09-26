@@ -1,35 +1,200 @@
 {
-  "_hinweis": "Texte des Ablauf-Films (26.09.2026). Gerendert IM Bild (Uwe: 'In den Film gerendert') -- jede Aenderung heisst neu rendern. Wortlaut aus assets/js/i18n-*.js 'abl' (am 02.09. von Muttersprachlern geprueft), wo er noch stimmt. NEU und noch ungeprueft: s6, s7-zeile, s8, s9 -- vor dem Rendern von je einem IT- und EN-Muttersprachler lesen lassen. Keine Zeitangaben (Regel 25.09.), keine Preise ausser 50/50.",
-  "szenen": [
-    {"id": "s1", "it": {"kicker": "", "titel": "Come funziona", "zeile": "Dal primo messaggio al sito pubblicato."},
-                 "de": {"kicker": "", "titel": "Wie es für Sie abläuft", "zeile": "Von der ersten Nachricht bis zur fertigen Seite."},
-                 "en": {"kicker": "", "titel": "How it works for you", "zeile": "From the first message to your site going live."}},
-    {"id": "s2", "it": {"kicker": "L’inizio", "titel": "Mi scrive.", "zeile": "Un breve modulo o una telefonata. Gratis e senza impegno."},
-                 "de": {"kicker": "Der Anfang", "titel": "Sie schreiben mir.", "zeile": "Ein kurzes Formular oder ein Anruf. Kostenlos und unverbindlich."},
-                 "en": {"kicker": "The start", "titel": "You send me a message.", "zeile": "A short form or a call. Free, no strings attached."}},
-    {"id": "s3", "it": {"kicker": "La sua pagina", "titel": "Un link. Tutto in un posto solo.", "zeile": "Nessun account, nessuna password. In alto vede sempre a che punto siamo."},
-                 "de": {"kicker": "Ihre eigene Seite", "titel": "Ein Link. Alles an einem Ort.", "zeile": "Kein Konto, kein Passwort. Oben sehen Sie immer, wo wir stehen."},
-                 "en": {"kicker": "Your own page", "titel": "One link. Everything in one place.", "zeile": "No account, no password. At the top you always see where we are."}},
-    {"id": "s4", "it": {"kicker": "Il questionario", "titel": "Mi racconta la sua attività.", "zeile": "Si salva da solo. Logo, foto e testi li carica lì."},
-                 "de": {"kicker": "Der Fragebogen", "titel": "Sie erzählen von Ihrem Betrieb.", "zeile": "Er speichert von allein. Logo, Fotos und Texte laden Sie dort hoch."},
-                 "en": {"kicker": "The questionnaire", "titel": "You tell me about your business.", "zeile": "It saves itself. You upload logo, photos and texts right there."}},
-    {"id": "s5", "it": {"kicker": "Preventivo e acconto", "titel": "Prezzo fisso, per iscritto, prima.", "zeile": "Metà all’ordine, metà alla consegna."},
-                 "de": {"kicker": "Angebot und Anzahlung", "titel": "Festpreis, schriftlich, vorher.", "zeile": "Die Hälfte bei Auftrag, die Hälfte bei Übergabe."},
-                 "en": {"kicker": "Quote and deposit", "titel": "Fixed price, in writing, up front.", "zeile": "Half to start, half on handover."}},
-    {"id": "s6", "it": {"kicker": "Mentre costruisco", "titel": "Io costruisco. Lei vede a che punto siamo.", "zeile": "Sezione per sezione, ognuna davvero finita."},
-                 "de": {"kicker": "Während ich baue", "titel": "Ich baue. Sie sehen den Stand.", "zeile": "Sektion für Sektion, jede wirklich fertig."},
-                 "en": {"kicker": "While I build", "titel": "I build. You see it happen.", "zeile": "Section by section, each one really finished."}},
-    {"id": "s7", "it": {"kicker": "Bozza e approvazione", "titel": "Il sito lo vede prima Lei.", "zeile": "Approva Lei, non io. Le modifiche le scrive direttamente sotto."},
-                 "de": {"kicker": "Entwurf und Freigabe", "titel": "Sie sehen Ihre Seite zuerst.", "zeile": "Freigegeben wird von Ihnen. Änderungen schreiben Sie direkt darunter."},
-                 "en": {"kicker": "Draft and approval", "titel": "You see it before anyone else does.", "zeile": "You approve it, not me. Changes go right underneath."}},
-    {"id": "s8", "it": {"kicker": "Dominio ed e-mail", "titel": "Sceglie Lei.", "zeile": "Nuovo dominio · trasferimento da noi · resta dov’è — l’e-mail da noi o come prima.", "rami": ["Nuovo", "Trasferimento", "Resta dov’è"]},
-                 "de": {"kicker": "Domain und E-Mail", "titel": "Sie haben die Wahl.", "zeile": "Neue Domain · Umzug zu uns · bleibt, wo sie ist — E-Mail bei uns oder wie bisher.", "rami": ["Neu", "Umzug", "Bleibt"]},
-                 "en": {"kicker": "Domain and email", "titel": "Your choice.", "zeile": "New domain · move it to us · keep it where it is — email with us or as before.", "rami": ["New", "Move", "Keep"]}},
-    {"id": "s9", "it": {"kicker": "Online", "titel": "Il suo sito, sul suo dominio.", "zeile": "Connessione sicura (HTTPS). E la sua pagina da me resta."},
-                 "de": {"kicker": "Online", "titel": "Ihre Seite, auf Ihrer Domain.", "zeile": "Sichere Verbindung (HTTPS). Und Ihre Seite bei mir bleibt."},
-                 "en": {"kicker": "Live", "titel": "Your site, on your domain.", "zeile": "Secure connection (HTTPS). And your page with me stays."}},
-    {"id": "s10", "it": {"kicker": "Dopo", "titel": "L’assistenza, se la desidera.", "zeile": "Mi scriva. Il primo colloquio è gratuito."},
-                  "de": {"kicker": "Danach", "titel": "Betreuung, wenn Sie sie wünschen.", "zeile": "Schreiben Sie mir. Das erste Gespräch kostet nichts."},
-                  "en": {"kicker": "Afterwards", "titel": "Ongoing care, if you want it.", "zeile": "Get in touch. The first conversation is free."}}
-  ]
+ "_hinweis": "Texte des Ablauf-Films (26.09.2026). Gerendert IM Bild (Uwe: 'In den Film gerendert') -- jede Aenderung heisst neu rendern. Wortlaut aus assets/js/i18n-*.js 'abl' (am 02.09. von Muttersprachlern geprueft), wo er noch stimmt. NEU und noch ungeprueft: s6, s7-zeile, s8, s9 -- vor dem Rendern von je einem IT- und EN-Muttersprachler lesen lassen. Keine Zeitangaben (Regel 25.09.), keine Preise ausser 50/50.",
+ "szenen": [
+  {
+   "id": "s1",
+   "it": {
+    "kicker": "",
+    "titel": "Come funziona",
+    "zeile": "Dal primo messaggio al sito pubblicato."
+   },
+   "de": {
+    "kicker": "",
+    "titel": "Wie es für Sie abläuft",
+    "zeile": "Von der ersten Nachricht bis zur fertigen Seite."
+   },
+   "en": {
+    "kicker": "",
+    "titel": "How it works for you",
+    "zeile": "From the first message to your site going live."
+   }
+  },
+  {
+   "id": "s2",
+   "it": {
+    "kicker": "L’inizio",
+    "titel": "Mi scrive.",
+    "zeile": "Un breve modulo o una telefonata. Gratis e senza impegno."
+   },
+   "de": {
+    "kicker": "Der Anfang",
+    "titel": "Sie schreiben mir.",
+    "zeile": "Ein kurzes Formular oder ein Anruf. Kostenlos und unverbindlich."
+   },
+   "en": {
+    "kicker": "The start",
+    "titel": "You send me a message.",
+    "zeile": "A short form or a call. Free, no strings attached."
+   }
+  },
+  {
+   "id": "s3",
+   "it": {
+    "kicker": "La sua pagina",
+    "titel": "Un link. Tutto in un posto solo.",
+    "zeile": "Nessun account, nessuna password. In alto vede sempre a che punto siamo."
+   },
+   "de": {
+    "kicker": "Ihre eigene Seite",
+    "titel": "Ein Link. Alles an einem Ort.",
+    "zeile": "Kein Konto, kein Passwort. Oben sehen Sie immer, wo wir stehen."
+   },
+   "en": {
+    "kicker": "Your own page",
+    "titel": "One link. Everything in one place.",
+    "zeile": "No account, no password. At the top you always see where we are."
+   }
+  },
+  {
+   "id": "s4",
+   "it": {
+    "kicker": "Il questionario",
+    "titel": "Mi racconta la sua attività.",
+    "zeile": "Si salva da solo. Logo, foto e testi li carica lì."
+   },
+   "de": {
+    "kicker": "Der Fragebogen",
+    "titel": "Sie erzählen von Ihrem Betrieb.",
+    "zeile": "Er speichert von allein. Logo, Fotos und Texte laden Sie dort hoch."
+   },
+   "en": {
+    "kicker": "The questionnaire",
+    "titel": "You tell me about your business.",
+    "zeile": "It saves itself. You upload logo, photos and texts right there."
+   }
+  },
+  {
+   "id": "s5",
+   "it": {
+    "kicker": "Preventivo e acconto",
+    "titel": "Prezzo fisso, per iscritto, prima.",
+    "zeile": "Metà all’ordine, metà alla consegna."
+   },
+   "de": {
+    "kicker": "Angebot und Anzahlung",
+    "titel": "Festpreis, schriftlich, vorher.",
+    "zeile": "Die Hälfte bei Auftrag, die Hälfte bei Übergabe."
+   },
+   "en": {
+    "kicker": "Quote and deposit",
+    "titel": "Fixed price, in writing, up front.",
+    "zeile": "Half to start, half on handover."
+   }
+  },
+  {
+   "id": "s6",
+   "it": {
+    "kicker": "Mentre costruisco",
+    "titel": "Io costruisco. Lei vede a che punto siamo.",
+    "zeile": "Sezione per sezione, ognuna davvero finita."
+   },
+   "de": {
+    "kicker": "Während ich baue",
+    "titel": "Ich baue. Sie sehen den Stand.",
+    "zeile": "Sektion für Sektion, jede wirklich fertig."
+   },
+   "en": {
+    "kicker": "While I build",
+    "titel": "I build. You see it happen.",
+    "zeile": "Section by section, each one really finished."
+   }
+  },
+  {
+   "id": "s7",
+   "it": {
+    "kicker": "Bozza e approvazione",
+    "titel": "Il sito lo vede prima Lei.",
+    "zeile": "Approva Lei, non io. Le modifiche le scrive direttamente sotto."
+   },
+   "de": {
+    "kicker": "Entwurf und Freigabe",
+    "titel": "Sie sehen Ihre Seite zuerst.",
+    "zeile": "Freigegeben wird von Ihnen. Änderungen schreiben Sie direkt darunter."
+   },
+   "en": {
+    "kicker": "Draft and approval",
+    "titel": "You see it before anyone else does.",
+    "zeile": "You approve it, not me. Changes go right underneath."
+   }
+  },
+  {
+   "id": "s8",
+   "it": {
+    "kicker": "Dominio ed e-mail",
+    "titel": "Sceglie Lei.",
+    "zeile": "Nuovo dominio · trasferimento da noi · resta dov’è — la posta da noi o come prima.",
+    "rami": [
+     "Nuovo",
+     "Trasferimento",
+     "Resta dov’è"
+    ]
+   },
+   "de": {
+    "kicker": "Domain und E-Mail",
+    "titel": "Sie haben die Wahl.",
+    "zeile": "Neue Domain · Umzug zu uns · bleibt, wo sie ist — E-Mail bei uns oder wie bisher.",
+    "rami": [
+     "Neu",
+     "Umzug",
+     "Bleibt"
+    ]
+   },
+   "en": {
+    "kicker": "Domain and email",
+    "titel": "Your choice.",
+    "zeile": "New domain · move it to us · keep it where it is — email with us or as before.",
+    "rami": [
+     "New",
+     "Move",
+     "Keep"
+    ]
+   }
+  },
+  {
+   "id": "s9",
+   "it": {
+    "kicker": "Online",
+    "titel": "Il suo sito, sul suo dominio.",
+    "zeile": "Connessione sicura (HTTPS). E la sua pagina da me resta."
+   },
+   "de": {
+    "kicker": "Online",
+    "titel": "Ihre Seite, auf Ihrer Domain.",
+    "zeile": "Sichere Verbindung (HTTPS). Und Ihre Seite bei mir bleibt."
+   },
+   "en": {
+    "kicker": "Live",
+    "titel": "Your site, on your domain.",
+    "zeile": "Secure connection (HTTPS). And your page with me stays."
+   }
+  },
+  {
+   "id": "s10",
+   "it": {
+    "kicker": "Dopo",
+    "titel": "L’assistenza, se la desidera.",
+    "zeile": "Mi scriva. Il primo colloquio è gratuito."
+   },
+   "de": {
+    "kicker": "Danach",
+    "titel": "Betreuung, wenn Sie sie wünschen.",
+    "zeile": "Schreiben Sie mir. Das erste Gespräch kostet nichts."
+   },
+   "en": {
+    "kicker": "Afterwards",
+    "titel": "Ongoing care, if you want it.",
+    "zeile": "Get in touch. The first conversation is free."
+   }
+  }
+ ]
 }

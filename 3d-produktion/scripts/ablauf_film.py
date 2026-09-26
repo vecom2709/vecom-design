@@ -178,6 +178,8 @@ SCHIRM = m_bildschirm()
 # ---------------------------------------------------------------- Werkzeuge
 def fase(o, breite=0.004, seg=3):
     """Jede reale Kante ist gefast -- ohne Fase glaenzt keine Kante."""
+    if breite <= 0:
+        return o          # Breite 0 = kein Modifikator (Blender verweigert sonst das Anwenden)
     mod = o.modifiers.new('Fase', 'BEVEL'); mod.width = breite; mod.segments = seg
     mod.limit_method = 'ANGLE'; mod.harden_normals = True
     return o
@@ -209,8 +211,14 @@ def text(name, inhalt, ort, groesse, mat, breite=2.6, tiefe=0.012, ausr='LEFT'):
     except Exception:
         pass
     # Fase klein halten: bei 0,35 x Tiefe quollen die Buchstaben auf (Probe 26.09.).
-    cu.size = groesse; cu.extrude = tiefe; cu.bevel_depth = min(0.0012, tiefe * 0.2); cu.bevel_resolution = 2
+    # Unter 3 mm Tiefe keine Fase: bei 0,4 mm sieht sie niemand, sie kostete
+    # aber 40 000 Flaechen je Textzeile (gezaehlt 26.09.).
+    cu.size = groesse; cu.extrude = tiefe
+    cu.bevel_depth = min(0.0012, tiefe * 0.2) if tiefe >= 0.003 else 0.0; cu.bevel_resolution = 1
     cu.align_x = ausr; cu.space_line = 1.08
+    # Aufloesung: 12 (Vorgabe) ergab 90 MB Schrift je Sprache im GLB (Export
+    # 26.09.). 5 Segmente je Kurvenstueck sind bei dieser Groesse glatt.
+    cu.resolution_u = 5
     cu.text_boxes[0].width = breite
     o = bpy.data.objects.new(name, cu); sc.collection.objects.link(o)
     o.location = ort; o.rotation_euler = (math.radians(90), 0, 0)   # steht, schaut nach -Y (zur Kamera)
@@ -481,12 +489,19 @@ def schrift(spr):
         s = station_ort(i) + Vector((-0.08, 0.1, 0))
         if t.get('kicker'):
             teile.append(text('TXT_%s_%02d_k' % (spr, i), t['kicker'].upper(), s + Vector((0, 0, 1.47)), 0.036, MATT, 1.15, 0.002))
-        teile.append(text('TXT_%s_%02d_t' % (spr, i), t['titel'], s + Vector((0, 0, 1.33)), 0.095, GOLD_POLIERT, 1.15, 0.006))
-        teile.append(text('TXT_%s_%02d_z' % (spr, i), t['zeile'], s + Vector((0, 0, 1.05)), 0.042, MATT, 1.15, 0.002))
+        titel = text('TXT_%s_%02d_t' % (spr, i), t['titel'], s + Vector((0, 0, 1.33)), 0.095, GOLD_POLIERT, 1.15, 0.006)
+        teile.append(titel)
+        # Die Zeile sitzt unter dem Titel, egal ob er ein- oder zweizeilig
+        # umbricht (IT ist oft laenger) -- gemessen, nicht geschaetzt.
+        bpy.context.view_layer.update()
+        zeilen = max(1, round((titel.dimensions.y + 0.02) / (0.095 * 1.08 + 1e-6)))
+        unten = 1.33 - 0.095 * 1.08 * (zeilen - 1) - 0.1
+        teile.append(text('TXT_%s_%02d_z' % (spr, i), t['zeile'], s + Vector((0, 0, unten)), 0.042, MATT, 1.15, 0.002))
         for k, ast in enumerate(t.get('rami', [])):
             # Auf der Vorderseite des Sockels, nicht in der Luft (Probe 26.09.)
             p = AESTE[k]
-            teile.append(text('TXT_%s_ast_%d' % (spr, k), ast, p + Vector((0, -0.212, 0.36)), 0.055, GOLD_POLIERT, 0.4, 0.002, 'CENTER'))
+            # Mittig: Blender zentriert IN der Textbox, die am Ursprung beginnt -- also um die halbe Breite zurueck.
+            teile.append(text('TXT_%s_ast_%d' % (spr, k), ast, p + Vector((-0.2, -0.212, 0.36)), 0.055, GOLD_POLIERT, 0.4, 0.002, 'CENTER'))
     return teile
 
 SCHRIFTEN = {s: schrift(s) for s in ('it', 'de', 'en')}
@@ -607,7 +622,10 @@ elif MODUS == 'export':
                 bpy.ops.object.convert(target='MESH')
                 o = bpy.context.object
             for m in list(o.modifiers):
-                bpy.ops.object.modifier_apply(modifier=m.name)
+                try:
+                    bpy.ops.object.modifier_apply(modifier=m.name)
+                except RuntimeError:
+                    o.modifiers.remove(m)      # wirkungslos (z. B. Breite 0): weglassen statt abbrechen
             aus.append(o)
         return aus
 
