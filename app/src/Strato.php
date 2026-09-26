@@ -523,7 +523,7 @@ final class Strato
         }
 
         $werkzeuge = Telefonwerkzeuge::objekte();
-        if (count($werkzeuge) !== count(Telefonwerkzeuge::REIHE)) {
+        if (count($werkzeuge) !== count(Telefonwerkzeuge::namen())) {
             return ['ok' => false, 'text' => 'Es fehlen Werkzeuge — nichts geschickt.'];
         }
 
@@ -605,6 +605,39 @@ final class Strato
     }
 
     public static function werkzeugeAm(): string { return self::wert('strato_werkzeuge_am'); }
+
+    /**
+     * Steht drüben die Fassung des Verhaltenstexts, die hier gepflegt wird?
+     * NUR LESEN: gesucht wird die Kennzeile irgendwo in der Konfiguration
+     * außer in den Werkzeugen (deren Beschreibungen tragen sie nicht). Wo
+     * STRATO den Text genau ablegt, müssen wir dafür nicht wissen — und
+     * falsch raten kann man so auch nicht.
+     *
+     * @return array{ok:bool,text:string,stand?:string,version?:int}
+     */
+    public static function verhaltenStand(): array
+    {
+        require_once __DIR__ . '/Telefonverhalten.php';
+        if (!self::eingerichtet()) { return ['ok' => false, 'text' => 'Kein Zugang zu STRATO hinterlegt.']; }
+        $token = self::zugangsToken();
+        if ($token === null) { return ['ok' => false, 'text' => 'Der Zugang wird nicht angenommen: ' . self::fehler()]; }
+        $id = self::wert('strato_agent');
+        $u  = self::PROJEKT . '/rest/v1/agent_configs?select=id,config' . ($id !== '' ? '&id=eq.' . rawurlencode($id) : '&limit=1');
+        $a  = self::abruf('GET', $u, self::wert('strato_anon'), $token, null, true);
+        $cfg = $a['daten'][0]->config ?? null;
+        if (!$a['ok'] || !$cfg instanceof stdClass) {
+            return ['ok' => false, 'text' => 'Die Konfiguration war nicht zu lesen (' . $a['status'] . ').'];
+        }
+        $ohneWerkzeuge = clone $cfg;
+        unset($ohneWerkzeuge->tools);
+        $v = Telefonverhalten::vergleichen((string) json_encode($ohneWerkzeuge, JSON_UNESCAPED_UNICODE));
+        self::merken('strato_verhalten', $v['stand'] . ':' . $v['version'] . ':' . date('Y-m-d H:i'));
+        return ['ok' => true] + $v + ['text' => match ($v['stand']) {
+            'aktuell' => 'Drüben steht die aktuelle Fassung (v' . $v['version'] . ').',
+            'aelter'  => 'Drüben steht v' . $v['version'] . ', hier gilt v' . Telefonverhalten::VERSION . '. Bitte neu einfügen.',
+            default   => 'Drüben steht der Verhaltenstext noch nicht. Bitte kopieren und bei STRATO einfügen.',
+        }];
+    }
 
     /* ==================================================================== */
     /*  Auswertung                                                          */

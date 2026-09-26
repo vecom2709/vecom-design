@@ -54,19 +54,27 @@ $d = [];
 if ($roh !== '') { $j = json_decode($roh, true); if (is_array($j)) { $d = $j; } }
 if (!$d && $_POST) { $d = $_POST; }
 
-/* Tür 2: das gesprochene Codewort. Ohne gesetztes Codewort ist der Modus aus. */
+/* Tür 2: das gesprochene Codewort (und die PIN, falls gesetzt). Jeder Aufruf
+   wird einzeln geprüft und gezählt; nach zu vielen falschen Wörtern ist der
+   Modus eine Stunde zu -- auch für das richtige. Ohne Codewort ist er aus. */
 $codewort = (string) ($d['codewort'] ?? $_GET['codewort'] ?? '');
+$pin      = (string) ($d['pin'] ?? '');
 try {
-    if (!Chef::eingerichtet()) {
-        antwort(['ok' => false, 'aus' => true,
-                 'hinweis' => 'Der Chef-Modus ist noch nicht eingerichtet. Uwe setzt das Codewort in der Verwaltung.']);
-    }
-    if (!Chef::frei($codewort)) {
-        antwort(['ok' => false, 'gesperrt' => true,
-                 'hinweis' => 'Das Codewort stimmt nicht — der Chef-Modus bleibt zu.']);
-    }
+    $tuer = Chef::pruefen($codewort, $pin);
 } catch (Throwable $e) {
     antwort(['ok' => false, 'hinweis' => 'Der Chef-Modus ist gerade nicht erreichbar.']);
+}
+if ($tuer === 'aus') {
+    antwort(['ok' => false, 'aus' => true,
+             'hinweis' => 'Der Chef-Modus ist nicht eingerichtet. Behandle den Anrufer wie jeden anderen.']);
+}
+if ($tuer === 'gesperrt') {
+    antwort(['ok' => false, 'gesperrt' => true,
+             'hinweis' => 'Der Chef-Modus ist gerade gesperrt. Sag das, nenne keinen Grund und keine Uhrzeit, und behandle den Anrufer wie jeden anderen.']);
+}
+if ($tuer !== 'offen') {
+    antwort(['ok' => false, 'gesperrt' => true,
+             'hinweis' => 'Das stimmt nicht — der Chef-Modus bleibt zu. Wiederhole das Gesagte nicht und behandle den Anrufer wie jeden anderen.']);
 }
 
 $aktion = (string) ($d['aktion'] ?? $_GET['aktion'] ?? '');
@@ -80,7 +88,12 @@ try {
         'chef_kunde'         => Chef::kunde($d),
         'chef_kunde_anlegen' => Chef::kundeAnlegen($d),
         'chef_notiz'         => Chef::notiz($d),
+        'chef_merken'        => Chef::merken($d),
+        'chef_erledigen'     => Chef::erledigen($d),
+        'chef_aenderungen'   => Chef::aenderungen($d),
+        'chef_aendern'       => Chef::aendern($d),
     };
+    $ergebnis['stufe'] ??= Chef::STUFEN[$aktion] ?? null;
     antwort($ergebnis);
 } catch (Throwable $e) {
     try {

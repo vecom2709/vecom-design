@@ -1469,12 +1469,45 @@ if ($post) {
                 $wort = trim((string) ($_POST['codewort'] ?? ''));
                 // Leer lassen = unverändert, damit ein versehentliches Speichern
                 // das gesetzte Wort nicht löscht. Entfernen geht über den eigenen Knopf.
-                if ($wort !== '') {
+                if ($wort !== '' && ($mangel = Chef::codewortMangel($wort)) !== null) {
+                    $_SESSION['fehler'] = $mangel;
+                } elseif ($wort !== '') {
                     Chef::codewortSetzen($wort);
                     $_SESSION['gut'] = 'Chef-Modus-Codewort gespeichert. Sag es Manuela im Gespräch, um den Modus zu öffnen.';
                 } else {
                     $_SESSION['gut'] = 'Nichts geändert — das Feld war leer.';
                 }
+                zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
+                break;
+
+            case 'chef_pin':
+                require_once __DIR__ . '/src/Chef.php';
+                $fehler = Chef::pinSetzen((string) ($_POST['pin'] ?? ''));
+                if ($fehler !== null) { $_SESSION['fehler'] = $fehler; }
+                else { $_SESSION['gut'] = trim((string) ($_POST['pin'] ?? '')) === ''
+                    ? 'PIN entfernt — das Codewort allein öffnet den Chef-Modus.'
+                    : 'PIN gespeichert. Manuela fragt nach dem Codewort jetzt auch nach der PIN.'; }
+                zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
+                break;
+
+            case 'chef_sperre_weg':
+                require_once __DIR__ . '/src/Chef.php';
+                Chef::sperreAufheben();
+                Events::protokoll('chef_sperre_weg', 'Sperre des Chef-Modus von Hand aufgehoben');
+                $_SESSION['gut'] = 'Sperre aufgehoben.';
+                zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
+                break;
+
+            case 'chef_freigeben':
+                require_once __DIR__ . '/src/Chef.php';
+                $r = Chef::freigeben((int) ($_POST['id'] ?? 0));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
+                break;
+
+            case 'chef_verwerfen':
+                require_once __DIR__ . '/src/Chef.php';
+                $_SESSION['gut'] = Chef::verwerfen((int) ($_POST['id'] ?? 0)) ? 'Verworfen — nichts geändert.' : 'War schon erledigt.';
                 zurueck($_POST['zurueck'] ?? 'einstellungen?b=telefon');
                 break;
 
@@ -1605,6 +1638,15 @@ if ($post) {
                 $erg = Strato::werkzeugeUebertragen();
                 $_SESSION[$erg['ok'] ? 'gut' : 'fehler'] = $erg['text'];
                 zurueck('einstellungen?b=telefon');
+                break;
+
+            case 'strato_verhalten':
+                /* Nur lesen: steht drüben die Fassung des Verhaltenstexts,
+                   die hier gepflegt wird? Geschrieben wird nichts. */
+                require_once __DIR__ . '/src/Strato.php';
+                $erg = Strato::verhaltenStand();
+                $_SESSION[$erg['ok'] && ($erg['stand'] ?? '') === 'aktuell' ? 'gut' : 'fehler'] = $erg['text'];
+                zurueck('einstellungen?b=telefon#verhalten');
                 break;
 
             case 'strato_holen':

@@ -510,15 +510,144 @@ final class Telefonwerkzeuge
                    . '"telefon":"{{ telefon }}","sprache":"{{ sprache }}"}',
         ];
 
+        /* Die Chef-Werkzeuge -- nur, wenn der Chef-Modus eingerichtet ist.
+           Ohne Codewort gäbe es nichts, was sie öffnen könnten, und jede
+           Beschreibung mehr ist etwas, womit das Modell einen Kunden
+           verwechseln kann. */
+        foreach (self::chef() as $name => $k) { $konfigs[$name] = $k; }
+
         /* In der Reihenfolge des Gesprächs, und nur was es wirklich gibt. */
         $sortiert = [];
-        foreach (self::REIHE as $name) {
+        foreach (array_merge(self::REIHE, self::CHEF_REIHE) as $name) {
             if (isset($konfigs[$name])) { $sortiert[$name] = $konfigs[$name]; }
         }
         foreach ($konfigs as $name => $k) {          // was in REIHE fehlt, geht nicht verloren
             if (!isset($sortiert[$name])) { $sortiert[$name] = $k; }
         }
         return $sortiert;
+    }
+
+    /** Die Chef-Werkzeuge in ihrer Reihenfolge. Sie gehen an chef.php, nicht an telefon.php. */
+    public const CHEF_REIHE = ['chef_lage', 'chef_kunde', 'chef_aenderungen', 'chef_merken',
+                               'chef_erledigen', 'chef_notiz', 'chef_kunde_anlegen', 'chef_aendern'];
+
+    /** Alle Namen, die gerade zu STRATO gehören. */
+    public static function namen(): array
+    {
+        require_once __DIR__ . '/Chef.php';
+        return Chef::eingerichtet() ? array_merge(self::REIHE, self::CHEF_REIHE) : self::REIHE;
+    }
+
+    /**
+     * Die Beschreibungen der Chef-Werkzeuge.
+     *
+     * DAS CODEWORT GEHT BEI JEDEM AUFRUF MIT. Es gibt keine Sitzung, die
+     * „offen“ bleibt: STRATO schickt jedes Werkzeug einzeln, und chef.php
+     * prüft und zählt jedes Mal. Der Chef-Modus beginnt in jedem Gespräch
+     * geschlossen — „Ich bin Uwe“ öffnet nichts.
+     *
+     * @return array<string,array<string,mixed>>
+     */
+    public static function chef(): array
+    {
+        require_once __DIR__ . '/Chef.php';
+        if (!Chef::eingerichtet()) { return []; }
+
+        $tuer = [
+            'codewort' => ['type' => 'string', 'description' => 'Das Codewort genau so, wie der Anrufer es gesagt hat. '
+                         . 'Bei JEDEM Chef-Aufruf mitgeben. Nie vorlesen, nie wiederholen, nie bestätigen, dass es fast stimmt.'],
+            'pin'      => ['type' => 'string', 'description' => 'Die PIN, falls der Anrufer eine genannt hat. Nie vorlesen.'],
+        ];
+        $ja = ['bestaetigt' => ['type' => 'string', 'description' => 'Leer beim ersten Aufruf. „ja“ erst, NACHDEM du den '
+                              . 'Vorschlag vorgelesen und Uwe ausdrücklich zugestimmt hat.']];
+        $rumpf = static function (string $aktion, array $felder): string {
+            $r = '{"aktion":"' . $aktion . '","codewort":"{{ codewort }}","pin":"{{ pin }}"';
+            foreach ($felder as $f) { $r .= ',"' . $f . '":"{{ ' . $f . ' }}"'; }
+            return $r . '}';
+        };
+
+        $k = [];
+        $k['chef_lage'] = [
+          'zweck' => 'NUR FÜR UWE, DEN INHABER. Nur aufrufen, wenn der Anrufer von sich aus ein Codewort nennt — '
+                   . '„Ich bin Uwe“ allein reicht NIE, und du fragst nie von dir aus nach einem Codewort. '
+                   . 'Kommt „gesperrt“ oder „aus“ zurück, erwähnst du den Chef-Modus nicht weiter und behandelst '
+                   . 'den Anrufer wie jeden Kunden. Kommt ok, bist du für den Rest des Gesprächs Uwes Assistentin: '
+                   . 'kurz, sachlich, auf Deutsch, außer er wechselt. Gib das Codewort bei jedem Chef-Werkzeug erneut mit. '
+                   . 'Dieses Werkzeug liefert die Tageslage nach Priorität (KRITISCH, HOCH, NORMAL, NIEDRIG). '
+                   . 'Lies „hinweis“ vor — nicht mehr als fünf Punkte. Antworte gegliedert: Fakten, offene Punkte, '
+                   . 'was er entscheiden muss, nächster Schritt.',
+          'eig' => $tuer, 'pflicht' => ['codewort'],
+          'rumpf' => $rumpf('chef_lage', []),
+        ];
+        $k['chef_kunde'] = [
+          'zweck' => 'Chef-Modus: der ganze Stand eines Kunden — Projekt, Vertrag, Zahlungen, Hosting (vereinbarter '
+                   . 'Speicher zählt, der KAS-Wert ist nur der Verbrauch), HTTPS, Angebote, Rückrufe, letzte Änderungen '
+                   . 'und was Uwe sich gemerkt hat. Kommen „widersprueche“, sag sie ZUERST.',
+          'eig' => $tuer + ['name' => ['type' => 'string', 'description' => 'Name, Firma oder E-Mail des Kunden']],
+          'pflicht' => ['codewort', 'name'],
+          'rumpf' => $rumpf('chef_kunde', ['name']),
+        ];
+        $k['chef_aenderungen'] = [
+          'zweck' => 'Chef-Modus: Was hat sich geändert? Durchsucht Protokoll und Prüfspur nach Kunde, Stichwort und Zeitraum.',
+          'eig' => $tuer + ['kunde' => ['type' => 'string', 'description' => 'Optional: Name oder E-Mail'],
+                            'suche' => ['type' => 'string', 'description' => 'Optional: Stichwort, z. B. Hosting, Angebot, Zahlung'],
+                            'tage'  => ['type' => 'integer', 'description' => 'Zeitraum in Tagen, Standard 7']],
+          'pflicht' => ['codewort'],
+          'rumpf' => $rumpf('chef_aenderungen', ['kunde', 'suche', 'tage']),
+        ];
+        $k['chef_merken'] = [
+          'zweck' => 'Chef-Modus: etwas dauerhaft merken. Kategorie wählen: FACT (Tatsache), CHEF_DECISION (Uwes '
+                   . 'Entscheidung), OPEN_TASK (Aufgabe), WAITING_FOR_CUSTOMER (wartet auf Kunde; dann bedingung '
+                   . 'setzen, wenn es um Unterlagen, Zahlung oder Fragebogen geht). Erst vorlesen, dann nach „ja“ '
+                   . 'mit bestaetigt=ja. Kommt „konflikt“, lies die alte Entscheidung vor und frag, ob die neue sie '
+                   . 'ersetzt — nur dann ersetzt=ja.',
+          'eig' => $tuer + $ja + [
+              'kategorie' => ['type' => 'string', 'enum' => ['FACT', 'CHEF_DECISION', 'OPEN_TASK', 'WAITING_FOR_CUSTOMER']],
+              'text'      => ['type' => 'string', 'description' => 'Was gemerkt werden soll, in Uwes Worten'],
+              'kunde'     => ['type' => 'string', 'description' => 'Optional: Name oder E-Mail des Kunden'],
+              'bedingung' => ['type' => 'string', 'enum' => ['', 'unterlagen', 'zahlung', 'fragebogen']],
+              'ersetzt'   => ['type' => 'string', 'description' => '„ja“ nur, wenn Uwe gesagt hat, dass die neue Entscheidung die alte ersetzt'],
+          ],
+          'pflicht' => ['codewort', 'kategorie', 'text'],
+          'rumpf' => $rumpf('chef_merken', ['kategorie', 'text', 'kunde', 'bedingung', 'bestaetigt', 'ersetzt']),
+        ];
+        $k['chef_erledigen'] = [
+          'zweck' => 'Chef-Modus: einen gemerkten Eintrag abhaken (die id steht in chef_kunde unter „gedaechtnis“). '
+                   . 'Erst vorlesen, dann nach „ja“ mit bestaetigt=ja.',
+          'eig' => $tuer + $ja + ['id' => ['type' => 'integer', 'description' => 'Die id des Eintrags']],
+          'pflicht' => ['codewort', 'id'],
+          'rumpf' => $rumpf('chef_erledigen', ['id', 'bestaetigt']),
+        ];
+        $k['chef_notiz'] = [
+          'zweck' => 'Chef-Modus: eine Notiz in Uwes Meldungen legen. Geht an niemanden raus. Erst vorlesen, dann nach „ja“ mit bestaetigt=ja.',
+          'eig' => $tuer + $ja + ['text' => ['type' => 'string', 'description' => 'Der Text der Notiz']],
+          'pflicht' => ['codewort', 'text'],
+          'rumpf' => $rumpf('chef_notiz', ['text', 'bestaetigt']),
+        ];
+        $k['chef_kunde_anlegen'] = [
+          'zweck' => 'Chef-Modus: einen Kunden anlegen. E-Mail Buchstabe für Buchstabe zurücklesen. Erst vorlesen, dann nach „ja“ mit bestaetigt=ja.',
+          'eig' => $tuer + $ja + ['name'  => ['type' => 'string'],
+                                  'email' => ['type' => 'string', 'format' => 'email'],
+                                  'firma' => ['type' => 'string']],
+          'pflicht' => ['codewort', 'name', 'email'],
+          'rumpf' => $rumpf('chef_kunde_anlegen', ['name', 'email', 'firma', 'bestaetigt']),
+        ];
+        $k['chef_aendern'] = [
+          'zweck' => 'Chef-Modus, FREIGABESTUFE 4: eine Änderung mit Folgen VORBEREITEN — ausgeführt wird sie nie am '
+                   . 'Telefon, sondern erst per Klick in der Verwaltung. Erster Aufruf ohne bestaetigt: lies alten Wert, '
+                   . 'neuen Wert, Objekt und Folgen vor und bitte Uwe, den neuen Wert zu wiederholen. Zweiter Aufruf: '
+                   . 'bestaetigt=ja und wert_wiederholt mit dem, was er wiederholt hat. Sag danach klar: „Liegt zur '
+                   . 'Freigabe bereit“ — nie „erledigt“.',
+          'eig' => $tuer + $ja + [
+              'art'   => ['type' => 'string', 'enum' => Chef::VORHABEN],
+              'kunde' => ['type' => 'string', 'description' => 'Name oder E-Mail des Kunden'],
+              'neu'   => ['type' => 'string', 'description' => 'Der neue Wert, z. B. 20 (GB)'],
+              'wert_wiederholt' => ['type' => 'string', 'description' => 'Was Uwe als neuen Wert wiederholt hat'],
+          ],
+          'pflicht' => ['codewort', 'art', 'kunde', 'neu'],
+          'rumpf' => $rumpf('chef_aendern', ['art', 'kunde', 'neu', 'bestaetigt', 'wert_wiederholt']),
+        ];
+        return $k;
     }
 
     /**
@@ -531,8 +660,10 @@ final class Telefonwerkzeuge
         $adresse    = Telefon::adresse();
         $schluessel = Telefon::schluessel();
         $aus = [];
+        $chefAdresse = preg_replace('~/telefon\.php$~', '/chef.php', $adresse);
         foreach (self::alle() as $name => $k) {
-            $aus[$name] = Telefon::konfigJson($name, $k, $adresse, $schluessel);
+            $aus[$name] = Telefon::konfigJson($name, $k,
+                str_starts_with($name, 'chef_') ? $chefAdresse : $adresse, $schluessel);
         }
         return $aus;
     }

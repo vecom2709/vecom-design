@@ -96,7 +96,32 @@ $chefAn = Chef::eingerichtet();
     </div>
     <button class="knopf haupt">Speichern</button>
   </form>
-  <?php if ($chefAn): ?>
+  <?php if ($chefAn):
+    $gesperrtBis = Chef::gesperrtBis();
+    $fehlHeute = (int) Db::wert("SELECT COUNT(*) FROM chef_versuche WHERE erfolg = 0 AND created_at >= NOW() - INTERVAL 1 DAY", [], 0);
+  ?>
+    <p style="font-size:12.5px;color:var(--leise);margin:12px 0 0;line-height:1.6">
+      Gespeichert ist nur ein Hash — das Wort selbst steht nirgends, auch nicht in der Datenbank.
+      Nach <?= Chef::SPERRE_VERSUCHE ?> falschen Wörtern in <?= Chef::SPERRE_FENSTER ?> Minuten ist der Modus
+      <?= Chef::SPERRE_DAUER ?> Minuten zu, auch für das richtige.
+      Falsche Versuche in den letzten 24 Stunden: <b><?= $fehlHeute ?></b>.</p>
+    <?php if ($gesperrtBis !== null): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="chef_sperre_weg">
+        <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+        <span class="marke2 schlecht">gesperrt bis <?= Fmt::h(substr($gesperrtBis, 11, 5)) ?> Uhr</span>
+        <button class="knopf" style="margin-left:8px">Sperre aufheben</button>
+      </form>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:12px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="chef_pin">
+      <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
+      <div class="feld" style="flex:1;min-width:180px">
+        <label>PIN (4–8 Ziffern, optional<?= Chef::mitPin() ? ' — ist gesetzt; leer speichern entfernt sie' : '' ?>)</label>
+        <input type="password" name="pin" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}|">
+      </div>
+      <button class="knopf">PIN speichern</button>
+    </form>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px"
           data-frage="Das Codewort wird entfernt — der Chef-Modus ist danach aus, bis du ein neues setzt. Fortfahren?"
           data-ja="Ja, Codewort entfernen">
@@ -105,6 +130,83 @@ $chefAn = Chef::eingerichtet();
       <button class="knopf">Codewort entfernen</button>
     </form>
   <?php endif; ?>
+</div>
+
+<?php
+/* ---------- Was am Telefon vorbereitet wurde, und was Uwe sich gemerkt hat ---------- */
+$freigaben = $chefAn ? Chef::gedaechtnis(['WAITING_FOR_APPROVAL']) : [];
+$merk = $chefAn ? array_values(array_filter(Chef::gedaechtnis(),
+    static fn($g) => $g['kategorie'] !== 'WAITING_FOR_APPROVAL')) : [];
+if ($freigaben || $merk): ?>
+<div class="block" id="freigaben">
+  <h2>Aus dem Chef-Modus
+    <?php if ($freigaben): ?><span class="marke2 warnung" style="margin-left:8px"><?= count($freigaben) ?> wartet auf Freigabe</span><?php endif; ?>
+  </h2>
+  <?php foreach ($freigaben as $g):
+    $v = json_decode((string) $g['vorhaben'], true) ?: []; ?>
+    <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin:10px 0">
+      <b><?= Fmt::h((string) $g['text']) ?></b>
+      <div style="font-size:12.5px;color:var(--leise);margin-top:4px">
+        Am Telefon vorbereitet am <?= Fmt::h(Fmt::datum((string) $g['created_at'])) ?>.
+        <?php if (($v['art'] ?? '') === 'hosting_speicher'): ?>
+          Folgen: Der vereinbarte Speicher ändert sich in VECOM; im KAS erst nach „KAS auf Vecom-Wert setzen“.
+          Stimmt der alte Wert beim Freigeben nicht mehr, wird nichts geändert.
+        <?php endif; ?>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <form method="post" action="<?= Fmt::h(url('')) ?>">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="chef_freigeben">
+          <input type="hidden" name="id" value="<?= (int) $g['id'] ?>">
+          <button class="knopf haupt">Freigeben</button></form>
+        <form method="post" action="<?= Fmt::h(url('')) ?>">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="chef_verwerfen">
+          <input type="hidden" name="id" value="<?= (int) $g['id'] ?>">
+          <button class="knopf">Verwerfen</button></form>
+      </div>
+    </div>
+  <?php endforeach; ?>
+  <?php if ($merk): ?>
+    <table style="margin-top:10px"><thead><tr><th>Art</th><th>Kunde</th><th>Vermerk</th><th>Seit</th></tr></thead><tbody>
+    <?php foreach (array_slice($merk, 0, 20) as $g):
+      $kn = $g['customer_id'] ? (string) Db::wert('SELECT name FROM customers WHERE id = ?', [(int) $g['customer_id']], '') : '';
+      $ueberholt = $g['kategorie'] === 'WAITING_FOR_CUSTOMER' ? Chef::eingetroffen($g) : null; ?>
+      <tr><td><span class="marke2"><?= Fmt::h(['FACT' => 'Fakt', 'CHEF_DECISION' => 'Entscheidung', 'OPEN_TASK' => 'Aufgabe',
+                 'WAITING_FOR_CUSTOMER' => 'wartet auf Kunde'][$g['kategorie']] ?? $g['kategorie']) ?></span></td>
+          <td><?= $kn !== '' ? '<a href="' . Fmt::h(url('kunden/' . (int) $g['customer_id'])) . '">' . Fmt::h($kn) . '</a>' : '—' ?></td>
+          <td><?= Fmt::h((string) $g['text']) ?><?php if ($ueberholt): ?><br><span class="marke2 warnung">überholt: <?= Fmt::h($ueberholt) ?></span><?php endif; ?></td>
+          <td style="white-space:nowrap"><?= Fmt::h(Fmt::datum((string) $g['created_at'])) ?></td></tr>
+    <?php endforeach; ?>
+    </tbody></table>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php
+/* ---------- Der Verhaltenstext ---------- */
+require_once dirname(__DIR__, 2) . '/src/Telefonverhalten.php';
+$vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_verhalten'", [], '');
+[$vWie, $vVer] = array_pad(explode(':', $vStand), 2, '');
+?>
+<div class="block" id="verhalten">
+  <h2>Verhaltenstext <span class="marke2" style="margin-left:8px">v<?= Telefonverhalten::VERSION ?></span>
+    <?php if ($vWie === 'aktuell'): ?><span class="marke2 gut" style="margin-left:6px">drüben aktuell</span>
+    <?php elseif ($vWie === 'aelter'): ?><span class="marke2 warnung" style="margin-left:6px">drüben v<?= Fmt::h($vVer) ?></span>
+    <?php elseif ($vWie === 'fehlt'): ?><span class="marke2 warnung" style="margin-left:6px">drüben nicht gefunden</span><?php endif; ?>
+  </h2>
+  <p style="color:var(--leise);font-size:13px;line-height:1.6;margin-bottom:10px">
+    Die Regeln, nach denen Manuela spricht: Sprache halten, nichts erfinden, nachfragen, zurücklesen,
+    sauber abschließen, Chef-Modus nur mit Codewort. Er gehört bei STRATO <b>unter</b> Stimme, Begrüßung und
+    Persönlichkeit ins Verhaltensfeld — die Verwaltung schreibt ihn dort nicht selbst hinein, damit nichts
+    überschrieben wird, was du drüben eingestellt hast. Sie prüft nur lesend, ob die Fassung angekommen ist.</p>
+  <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+    <button class="knopf haupt" type="button" data-kopieren="verhalten_text">Kopieren</button>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_verhalten">
+      <button class="knopf">Mit STRATO vergleichen</button></form>
+  </div>
+  <textarea id="verhalten_text" readonly rows="14"
+    style="width:100%;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45"
+  ><?= Fmt::h(Telefonverhalten::text()) ?></textarea>
 </div>
 
 <?php /* ---------- Die Merkliste ---------- */ ?>

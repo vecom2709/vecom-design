@@ -302,6 +302,14 @@ final class Ablauf
         'chef_codewort_weg' => [self::SCHWER,
             'Der Chef-Modus am Telefon ist danach zu.',
             'Ja, Codewort entfernen'],
+        'chef_pin' => [self::SCHWER,
+            'Die bisherige PIN gilt danach nicht mehr — Manuela öffnet den Chef-Modus nur noch mit Codewort und der neuen PIN.',
+            'Ja, PIN setzen'],
+        /* Stufe 4 aus dem Chef-Modus: am Telefon nur vorbereitet, hier wird
+           sie wirksam. Die Folgen stehen am Eintrag selbst. */
+        'chef_freigeben' => [self::SCHWER,
+            'Die am Telefon vorbereitete Änderung wird jetzt wirksam — mit den Folgen, die am Eintrag stehen.',
+            'Ja, freigeben'],
     ];
 
     /**
