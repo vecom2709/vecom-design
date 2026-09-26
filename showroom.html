@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it" data-lang-fixed="it">
+<html lang="it" data-lang-fixed="it" data-title-key="showroom.metaTitle" data-desc-key="showroom.metaDesc">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -139,7 +139,7 @@ p.lead{
   position:fixed; top:18px; left:var(--page-x); z-index:6;
   font-family:var(--f-display); font-size:.82rem; font-weight:600;
   letter-spacing:.16em; text-transform:uppercase; color:var(--c-dim);
-  text-decoration:none; padding:.5rem .9rem; border-radius:999px;
+  text-decoration:none; padding:.5rem .9rem; border-radius:999px; min-height:44px; display:inline-flex; align-items:center; gap:.4rem;
   border:1px solid rgba(224,206,156,.18); background:rgba(10,9,8,.55);
   backdrop-filter:blur(8px); transition:color .25s, border-color .25s;
 }
@@ -155,7 +155,7 @@ html[data-welt="aus"] #zurueck{background:rgba(10,9,8,.88); color:var(--c-text)}
   font-family:var(--f-text); font-size:.82rem; color:var(--c-faint);
   background:linear-gradient(to bottom, rgba(10,9,8,0), rgba(10,9,8,.92) 40%);
 }
-#fuss a{color:var(--c-dim); text-decoration:none}
+#fuss a{color:var(--c-dim); text-decoration:none; display:inline-block; padding:14px 2px} /* 44 px zum Treffen (26.09.2026, gemessen 16 px) */
 #fuss a:hover,#fuss a:focus-visible{color:var(--c-text); text-decoration:underline}
 
 /* Rückfallfassung: kein WebGL, schwache Grafik, Kontextverlust oder ein
@@ -289,9 +289,11 @@ h1 .zeile:empty,h2 .zeile:empty{display:none}
   backdrop-filter:blur(8px);
 }
 .lang a,.lang .lang__current{
-  padding:.2rem .55rem; border-radius:999px; text-decoration:none;
+  padding:.2rem .55rem; border-radius:999px; text-decoration:none; position:relative;
   color:var(--c-faint); transition:color .25s, background-color .25s;
 }
+/* 44 px zum Treffen, nur senkrecht -- wie auf der Startseite (26.09.2026, gemessen 20 px) */
+.lang a::before{content:""; position:absolute; left:0; right:0; top:50%; height:44px; transform:translateY(-50%)}
 .lang a:hover,.lang a:focus-visible{color:var(--c-text); background:rgba(224,206,156,.12)}
 .lang .lang__current{color:var(--c-text); background:rgba(241,211,139,.14)}
 /* Steht ein Standbild dahinter, reicht die halbdurchsichtige Flaeche nicht. */

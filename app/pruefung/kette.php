@@ -10401,6 +10401,18 @@ pruefe('Bewertung: je Kunde nur einmal, nur mit https-Link, nie bei anonymisiert
 pruefe('Bewertung: auf der Kundenseite nur ein Link, den der Kunde selbst klickt -- und nur mit https',
     str_contains((string) file_get_contents($oben . '/kunde.php'), "str_starts_with((string) \$gLink, 'https://')"));
 
+/* ---- Website: Titel/Beschreibung je Seite, Treffflächen (Vorschlag 10) ---- */
+$tkApp = (string) file_get_contents($oben . '/assets/js/app.js');
+pruefe('Website: app.js setzt die Beschreibung je Seite, nicht fest die der Startseite',
+    str_contains($tkApp, "getAttribute('data-desc-key') || 'meta.desc'"));
+$tkFalsch = [];
+foreach (['tecnica.html' => 'edel.tk_metaTitle', 'prezzi.html' => 'preise.metaTitle', 'assistenza.html' => 'betreuungsseite.metaTitle'] as $tkS => $tkK) {
+    if (!preg_match('~<html[^>]*data-title-key="' . preg_quote($tkK, '~') . '"[^>]*data-desc-key="[a-z_.A-Z]+"~', (string) file_get_contents($oben . '/' . $tkS))) { $tkFalsch[] = $tkS; }
+}
+pruefe('Website: jede Unterseite trägt ihren eigenen Titel- und Beschreibungsschlüssel (tecnica trug den der Startseite)', $tkFalsch === [], implode(', ', $tkFalsch));
+pruefe('Website: kleine Textlinks haben 44 px zum Treffen',
+    str_contains((string) file_get_contents($oben . '/assets/css/app.css'), '.betrieb__anfrage::before, .bedarfsweg__mehr::before, .fusspartner::before'));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

@@ -207,7 +207,10 @@
 
     // Kopfdaten der Seite
     var t = get(lang, document.documentElement.getAttribute('data-title-key') || 'meta.title');
-    var d = get(lang, 'meta.desc');
+    /* Die Beschreibung je Seite, wie der Titel (26.09.2026). Vorher stand
+       hier fest 'meta.desc': Jede Unterseite bekam zur Laufzeit die
+       Beschreibung der Startseite -- und Google liest die Seite gerendert. */
+    var d = get(lang, document.documentElement.getAttribute('data-desc-key') || 'meta.desc');
     if (t) document.title = t;
     var md = document.querySelector('meta[name="description"]');
     if (md && d) md.setAttribute('content', d);

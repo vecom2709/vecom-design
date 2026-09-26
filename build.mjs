@@ -272,6 +272,16 @@ function sprachdatei(h, lang) {
 
 function build(lang, seite) {
   let h = readFileSync(seite.quelle, 'utf8');
+  /* Titel- und Beschreibungsschluessel aus der Seitenliste, nicht von Hand
+     (26.09.2026): tecnica.html trug den Schluessel der Startseite, und
+     app.js ueberschrieb zur Laufzeit ihren Titel -- die Beschreibung jeder
+     Unterseite ohnehin. Eine Quelle der Wahrheit: SEITEN[].meta. */
+  if (seite.meta) {
+    h = h.replace(/<html([^>]*)>/, (m, attr) => {
+      attr = attr.replace(/\s+data-(?:title|desc)-key="[^"]*"/g, '');
+      return `<html${attr} data-title-key="${seite.meta.titel}" data-desc-key="${seite.meta.text}">`;
+    });
+  }
   h = sprachdatei(h, lang);
 
   // 1. Texte in der Zielsprache fest einsetzen

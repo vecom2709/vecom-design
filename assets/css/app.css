@@ -4448,3 +4448,11 @@ html.intro-weg .intro { opacity: 0; pointer-events: none; }
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); opacity: 0; animation: intro-knopf 400ms 900ms forwards; }
 .intro__weiter:hover, .intro__weiter:focus-visible { color: #fff; border-color: rgba(241, 211, 139, .7); }
 @keyframes intro-knopf { to { opacity: 1; } }
+
+/* Treffflächen (26.09.2026, gemessen 22–31 px): gleiche Technik wie bei der
+   Sprachwahl -- die Schrift bleibt, wie sie aussieht, der Daumen bekommt
+   44 px in der Höhe. Nur senkrecht, damit nichts in den Nachbarn greift. */
+.betrieb__anfrage, .bedarfsweg__mehr, .fusspartner { position: relative; }
+.betrieb__anfrage::before, .bedarfsweg__mehr::before, .fusspartner::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%);
+}
