@@ -10456,11 +10456,29 @@ pruefe('Verhalten direkt: ersetzt genau den alten VECOM-Block, Uwes Text davor u
 pruefe('Verhalten direkt: Werkzeuge, Stimme und leere Objekte bleiben unverändert (kein {} → [])',
     str_contains((string) $vsPatch, '"extra":{}') && str_contains((string) $vsPatch, '"properties":{}')
     && ($vsNeu->config->voice->name ?? '') === 'Manuela' && count($vsNeu->config->tools ?? []) === 1);
-$vsDrueben = json_encode(['id' => 'ag1', 'config' => ['a' => ['prompt' => 'x'], 'b' => ['instructions' => 'y']]]);
+/* Live am 26.09.: „Kandidaten: keine“ -- STRATO nennt das Feld anders.
+   Dann wird gefragt, nicht geraten. */
+Db::run("DELETE FROM settings WHERE skey = 'strato_verhalten_feld'");
+$vsDrueben = json_encode(['id' => 'ag1', 'config' => ['agent' => ['anweisung' => 'Sprich in kurzen Sätzen, zwei bis drei pro Antwort, und stelle danach eine Frage.'],
+    'gruss' => ['text' => 'Buongiorno, qui Vecom Design, sono Manuela. Come posso aiutarla oggi?'],
+    'geheim' => 'sk' . '_live_' . str_repeat('X', 48)]]);
 $vsPatch = null;
 $vsR2 = Strato::verhaltenSchreiben();
-pruefe('Verhalten direkt: ist nicht eindeutig, welches Feld, wird nichts geschrieben',
-    !$vsR2['ok'] && $vsPatch === null && str_contains($vsR2['text'], 'Kandidaten'), $vsR2['text']);
+$vsPfade = array_column($vsR2['wahl'] ?? [], 'pfad');
+pruefe('Verhalten direkt: ist nicht eindeutig, welches Feld, wird nichts geschrieben -- Uwe wählt aus den Textfeldern',
+    !$vsR2['ok'] && $vsPatch === null && in_array('agent.anweisung', $vsPfade, true) && in_array('gruss.text', $vsPfade, true), json_encode($vsR2));
+pruefe('Verhalten direkt: Werte ohne Leerzeichen (Schlüssel, Token) erscheinen nie in der Auswahl',
+    !in_array('geheim', $vsPfade, true) && !str_contains(json_encode($vsR2), 'sk_live'));
+$vsR2b = Strato::verhaltenSchreiben('agent.anweisung');
+$vsF2 = (string) (json_decode((string) $vsPatch)->config->agent->anweisung ?? '');
+pruefe('Verhalten direkt: ins gewählte Feld, Uwes Text bleibt, Begrüßung unberührt, Wahl gemerkt',
+    $vsR2b['ok'] && str_starts_with($vsF2, 'Sprich in kurzen Sätzen') && str_contains($vsF2, Telefonverhalten::ENDE)
+    && str_starts_with((string) (json_decode((string) $vsPatch)->config->gruss->text ?? ''), 'Buongiorno')
+    && (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_verhalten_feld'", [], '') === 'agent.anweisung');
+$vsPatch = null;
+pruefe('Verhalten direkt: beim nächsten Mal ohne Auswahl ins gemerkte Feld, der Block wird ersetzt statt verdoppelt',
+    Strato::verhaltenSchreiben()['ok'] && substr_count((string) (json_decode((string) $vsPatch)->config->agent->anweisung ?? ''), 'VECOM-VERHALTEN v') === 1);
+Db::run("DELETE FROM settings WHERE skey = 'strato_verhalten_feld'");
 $vsDrueben = json_encode(['id' => 'ag1', 'config' => ['behavior' => 'Nur Uwes Text.', 'greeting' => 'Ciao']]);
 $vsR3 = Strato::verhaltenSchreiben();
 $vsF3 = (string) (json_decode((string) $vsPatch)->config->behavior ?? '');

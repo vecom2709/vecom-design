@@ -210,6 +210,21 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_verhalten_schreiben">
       <button class="knopf">Direkt zu STRATO übertragen</button></form>
   </div>
+  <?php $vWahl = $_SESSION['verhalten_wahl'] ?? null; unset($_SESSION['verhalten_wahl']);
+  if (is_array($vWahl) && $vWahl): ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" class="hinweis" style="margin:0 0 12px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_verhalten_schreiben">
+      <p style="margin:0 0 8px"><b>In welches Feld gehört der Verhaltenstext?</b> Es ist das Feld, das mit deinem eigenen Text anfängt
+        (z. B. „Sprich in kurzen Sätzen …“). Deine Wahl wird gemerkt.</p>
+      <?php foreach ($vWahl as $i => $w): ?>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;cursor:pointer">
+          <input type="radio" name="feld" value="<?= Fmt::h($w['pfad']) ?>" <?= $i === 0 ? 'checked' : '' ?> style="width:auto;margin-top:3px">
+          <span><code><?= Fmt::h($w['pfad']) ?></code> · <?= (int) $w['laenge'] ?> Zeichen<br>
+            <span style="color:var(--leise);font-size:12.5px">„<?= Fmt::h($w['anfang']) ?> …“</span></span></label>
+      <?php endforeach; ?>
+      <button class="knopf haupt" style="margin-top:8px">In dieses Feld übertragen</button>
+    </form>
+  <?php endif; ?>
   <textarea id="verhalten_text" readonly rows="14"
     style="width:100%;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45"
   ><?= Fmt::h(Telefonverhalten::text()) ?></textarea>

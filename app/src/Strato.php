@@ -827,7 +827,7 @@ final class Strato
      *
      * @return array{ok:bool,text:string,feld?:string}
      */
-    public static function verhaltenSchreiben(): array
+    public static function verhaltenSchreiben(?string $gewaehlt = null): array
     {
         require_once __DIR__ . '/Telefonverhalten.php';
         if (!self::eingerichtet()) { return ['ok' => false, 'text' => 'Kein Zugang zu STRATO hinterlegt.']; }
@@ -860,11 +860,28 @@ final class Strato
         $namen = array_keys(array_filter($felder, static fn($v, $k) =>
             preg_match('~(behaviou?r|verhalten|instruction|prompt|system)~i', (string) preg_replace('~.*\.~', '', $k)) === 1,
             ARRAY_FILTER_USE_BOTH));
-        $ziel = count($mitBlock) === 1 ? $mitBlock[0] : (count($mitBlock) === 0 && count($namen) === 1 ? $namen[0] : null);
+        /* Von Uwe gewählt (einmal, dann gemerkt): hat Vorrang, solange es das
+           Feld noch gibt. Am 26.09. fand die Namenssuche live KEIN Feld --
+           STRATO nennt es anders. Raten wäre gefährlicher als fragen. */
+        $gemerkt = $gewaehlt ?? self::wert('strato_verhalten_feld');
+        $ziel = ($gemerkt !== '' && isset($felder[$gemerkt])) ? $gemerkt
+              : (count($mitBlock) === 1 ? $mitBlock[0] : (count($mitBlock) === 0 && count($namen) === 1 ? $namen[0] : null));
         if ($ziel === null) {
-            return ['ok' => false, 'text' => 'Nicht eindeutig, wohin der Text gehört — nichts geschrieben. Kandidaten: '
-                . (implode(', ', $mitBlock ?: $namen) ?: 'keine') . '. Bitte schick mir diese Zeile.'];
+            /* Zur Auswahl nur Felder, die wie Fließtext aussehen: mit
+               Leerzeichen und mindestens 40 Zeichen. Schlüssel und Token haben
+               keine Leerzeichen -- die erscheinen hier nie. */
+            $wahl = [];
+            foreach ($felder as $pfad => $v) {
+                if (mb_strlen($v) >= 40 && str_contains($v, ' ')) {
+                    $wahl[] = ['pfad' => $pfad, 'laenge' => mb_strlen($v), 'anfang' => mb_substr(preg_replace('~\s+~', ' ', $v), 0, 80)];
+                }
+            }
+            usort($wahl, static fn($x, $y) => $y['laenge'] <=> $x['laenge']);
+            return ['ok' => false, 'wahl' => array_slice($wahl, 0, 8),
+                    'text' => $wahl ? 'Ich weiß nicht sicher, welches Feld das Verhaltensfeld ist — nichts geschrieben. Bitte unten einmal auswählen.'
+                                    : 'In der Konfiguration steht kein Textfeld, das nach Verhalten aussieht — nichts geschrieben.'];
         }
+        if ($gewaehlt !== null) { self::merken('strato_verhalten_feld', $ziel); }
         $alt = $felder[$ziel];
         $block = rtrim(Telefonverhalten::text());
         $anf = strpos($alt, '### VECOM-VERHALTEN');

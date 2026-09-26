@@ -1847,8 +1847,11 @@ if ($post) {
                 /* Wenn die STRATO-Oberfläche den Text nicht speichert (26.09.2026):
                    derselbe Weg wie die Werkzeuge, nur ein Feld, danach nachlesen. */
                 require_once __DIR__ . '/src/Strato.php';
-                $erg = Strato::verhaltenSchreiben();
+                $vFeld = trim((string) ($_POST['feld'] ?? ''));
+                $erg = Strato::verhaltenSchreiben($vFeld !== '' ? $vFeld : null);
                 $_SESSION[$erg['ok'] ? 'gut' : 'fehler'] = $erg['text'];
+                // Die Auswahl gilt nur für den nächsten Seitenaufruf.
+                $_SESSION['verhalten_wahl'] = $erg['wahl'] ?? null;
                 zurueck('einstellungen?b=telefon#verhalten');
 
             case 'strato_verhalten':
