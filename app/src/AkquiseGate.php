@@ -39,10 +39,10 @@ final class AkquiseGate
     public const UNKLAR   = 'UNKNOWN';
 
     public const STATUS = [
-        self::ERLAUBT => 'Kontakt erlaubt',
-        self::PRUEFEN => 'Prüfung nötig',
-        self::NICHT   => 'Nicht anschreiben',
-        self::UNKLAR  => 'Unklar',
+        self::ERLAUBT => 'Ja, erlaubt',
+        self::PRUEFEN => 'Ja, nach kurzer Prüfung',
+        self::NICHT   => 'Nein',
+        self::UNKLAR  => 'Unklar — lieber nicht',
     ];
 
     public const KANAELE = [
@@ -176,8 +176,12 @@ final class AkquiseGate
             return ['status' => self::NICHT, 'gruende' => ['Die Firma hat abgelehnt.'], 'regel' => null, 'bedingung' => ''];
         }
 
-        // 2. Keine Zweitansprache
-        if (!empty($f['id'])) {
+        // 2. Keine Zweitansprache -- ausser die Firma hat selbst darum gebeten
+        //    (Einwilligung festgehalten oder positive Antwort). Wer am Telefon
+        //    sagt "schicken Sie mir das per Mail", soll die Mail bekommen.
+        $gebeten = trim((string) ($f['einwilligung'] ?? '')) !== ''
+            || in_array((string) ($f['antwort_status'] ?? ''), ['INTERESTED', 'MORE_INFO', 'CALL_REQUEST', 'PRICE_REQUEST'], true);
+        if (!empty($f['id']) && !$gebeten) {
             $schon = Db::one("SELECT kanal, created_at FROM akq_versand
                                WHERE firma_id = ? AND status IN ('gesendet','von_hand') ORDER BY id DESC LIMIT 1", [(int) $f['id']]);
             if ($schon) {
@@ -224,6 +228,55 @@ final class AkquiseGate
             $gruende[] = 'Die Regel wurde seit über 12 Monaten nicht geprüft.';
         }
         return ['status' => $status, 'gruende' => $gruende, 'regel' => $regel, 'bedingung' => $bedingung];
+    }
+
+    /**
+     * Die Ampel: Darf ich diese Firma ansprechen -- und wie?
+     *
+     * Fuer Listen gebaut: liest nur die Firma und die (zwischengespeicherten)
+     * Regeln, keine Sperrliste und keinen Versand. Das ist erlaubt, weil
+     * beides beim Eintragen schon auf die Firma durchgeschrieben wird
+     * (gesperrt, kontakt_status). Vor dem eigentlichen Versand prueft
+     * pruefen() trotzdem alles einzeln -- die Ampel ist Anzeige, kein Schloss.
+     *
+     * @return array{farbe:string,wort:string}  farbe: gruen|gelb|rot|grau
+     */
+    public static function ampel(array $f): array
+    {
+        if ((int) ($f['gesperrt'] ?? 0) === 1 || in_array((string) ($f['kontakt_status'] ?? ''), ['abgelehnt', 'gesperrt'], true)) {
+            return ['farbe' => 'rot', 'wort' => 'Nicht ansprechen'];
+        }
+        $land = strtoupper((string) ($f['land'] ?? ''));
+        $bed = trim((string) ($f['einwilligung'] ?? '')) !== '' ? 'einwilligung' : ((int) ($f['bestandskunde'] ?? 0) === 1 ? 'bestandskunde' : 'ohne');
+        $r = static fn(string $kanal) => self::regelErgebnis($land, $kanal, $bed);
+        if ($r('email') === self::ERLAUBT && !empty($f['email'])) { return ['farbe' => 'gruen', 'wort' => 'E-Mail erlaubt']; }
+        if (in_array((string) ($f['kontakt_status'] ?? ''), ['kontaktiert', 'geantwortet', 'kunde'], true)) {
+            return ['farbe' => 'grau', 'wort' => 'Schon kontaktiert'];
+        }
+        $brief = self::regelErgebnis($land, 'brief', 'ohne');   // Post braucht keine Einwilligung -- die Regel "ohne" gilt fuer alle
+        $tel = self::regelErgebnis($land, 'telefon', 'ohne');
+        if (in_array($brief, [self::ERLAUBT, self::PRUEFEN], true)) {
+            return ['farbe' => 'gelb', 'wort' => in_array($tel, [self::ERLAUBT, self::PRUEFEN], true) && Akquise::deutschsprachig($f)
+                ? 'Brief oder Anruf' : 'Per Brief'];
+        }
+        return ['farbe' => 'grau', 'wort' => 'Unklar'];
+    }
+
+    /** @var array<string,string> */
+    private static array $regelCache = [];
+
+    private static function regelErgebnis(string $land, string $kanal, string $bedingung): string
+    {
+        $k = "$land|$kanal|$bedingung";
+        if (!isset(self::$regelCache[$k])) {
+            $e = null;
+            foreach ([[$land, $kanal], [$land, '*'], ['*', $kanal], ['*', '*']] as [$l, $kk]) {
+                $e = Db::wert('SELECT ergebnis FROM akq_regeln WHERE land = ? AND kanal = ? AND bedingung = ? AND aktiv = 1', [$l, $kk, $bedingung], null);
+                if ($e !== null) { break; }
+            }
+            self::$regelCache[$k] = (string) ($e ?? self::UNKLAR);
+        }
+        return self::$regelCache[$k];
     }
 
     /** Schreibt den Status fuer den Hauptkanal E-Mail an die Firma. */

@@ -59,6 +59,16 @@ Automatisch versendet wird nur bei: freigegebenem Text **und** `CONTACT_ALLOWED`
 eingeschaltetem Versand **und** nicht gezogener Notbremse **und** eingehaltenen Grenzen
 (Tag, Stunde, Pause, Domain, Fehler, Bounces). Jeder verhinderte Versuch wird festgehalten.
 
+## Der Alltag (seit 26.09.2026)
+
+1. **Suchen:** Auf „Betriebe“ einen Ort eintippen → „Jetzt suchen“. Nachts sucht der Rechner die Betriebe und prüft ihre Websites.
+2. **Auswählen:** Morgens die Liste — Chance, Hauptproblem, Ampel. Je Zeile ein Knopf „nächster Schritt“.
+3. **Brief:** „Brief schreiben“ → Text lesen → „Text ist gut — freigeben“ (schaltet die Analyse-Seite ein) → „Brief drucken“ → einwerfen → „Als verschickt vermerken“.
+4. **Anruf** (deutschsprachige Betriebe): Anrufzettel mit Einstieg aus den Befunden und Antworten auf Einwände. Ergebnis mit einem Klick; „bitte per Mail“ hält die Einwilligung fest — danach ist die E-Mail erlaubt.
+5. **Antwort:** eintragen; „kein Interesse“ sperrt für immer. Montags kommt ein Wochenbericht aufs Handy.
+
+Ampel: grün = E-Mail erlaubt (Einwilligung), gelb = Brief (oder Anruf), rot = nicht ansprechen, grau = schon kontaktiert oder unklar.
+
 ## Phasen
 
 | Phase | Stand |

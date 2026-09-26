@@ -379,6 +379,18 @@ final class Ablauf
         'akq_befund_verwerfen' => [self::SCHWER,
             'Der Befund zählt danach nicht mehr im Score und erscheint in keinem Text.',
             'Ja, verwerfen'],
+        /* 26.09.2026: Brief und Anruf als Hauptweg */
+        'akq_vorlage_freigeben' => [self::SCHWER,
+            'Der Text gilt damit als gelesen und geprüft. Bei einem Brief wird zugleich die persönliche Analyse-Seite '
+            . 'eingeschaltet — sichtbar für jeden mit dem QR-Code, nicht in Suchmaschinen. Verschickt wird noch nichts.',
+            'Ja, freigeben'],
+        'akq_brief_verschickt' => [self::SCHWER,
+            'Der Brief wird als verschickt vermerkt, mit deiner Bestätigung als Prüfvermerk. Eine zweite Ansprache ist danach gesperrt.',
+            'Ja, vermerken'],
+        'akq_anruf' => [self::SCHWER,
+            'Das Gespräch wird als Kontakt vermerkt. „Kein Interesse“ sperrt den Betrieb dauerhaft; '
+            . '„Per E-Mail schicken“ hält die Einwilligung fest.',
+            'Ja, vermerken'],
     ];
 
     /**

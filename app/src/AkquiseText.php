@@ -317,6 +317,9 @@ final class AkquiseText
         if ($expBefund && !empty($kiDaten['experience_text'][$sprache])) { $expIdee = trim((string) $kiDaten['experience_text'][$sprache]); }
 
         $n = count($zeilen);
+        /* Brief: Anrede und Gruss bleiben, aber es gibt keinen Abmeldelink --
+           dafuer den Weg per Nachricht und den QR-Code zur Analyse-Seite. */
+        $brief = $kanal === 'brief';
         if ($sprache === 'de') {
             $betreff = $v(["Drei Beobachtungen zu {$domain}", "Kurze Rückmeldung zu Ihrer Website {$domain}", "{$name}: ein paar konkrete Punkte zu Ihrer Website"]);
             if ($n < 3) { $betreff = $v(["Eine Beobachtung zu {$domain}", "Kurze Rückmeldung zu Ihrer Website {$domain}"]); }
@@ -333,10 +336,12 @@ final class AkquiseText
             if ($expIdee !== '') { $t .= "Und falls Sie Lust auf mehr haben: {$expIdee}\n\n"; }
             $t .= "Solche Lösungen entwickeln wir bei {$abs['firma']}. Was wir für Unternehmenswebsites umsetzen, sehen Sie unter {$link}";
             $t .= $mitKonfigurator ? "\nWenn Sie mögen, zeigt Ihnen unser Bedarfsrechner in zwei Minuten und unverbindlich, was für Sie sinnvoll wäre: {$bedarf}\n\n" : "\n\n";
+            if ($brief) { $t .= "Ihre persönliche Auswertung mit Bildschirmfoto finden Sie über den QR-Code unten – ohne Anmeldung, nur für Sie.\n\n"; }
             $t .= $v(['Gern schicke ich Ihnen die Beobachtungen auch ausführlicher, mit Screenshots.', 'Wenn es Sie interessiert, gehe ich die Punkte gern in einem kurzen Gespräch mit Ihnen durch.']) . "\n\n";
             $t .= "Viele Grüße\n{$abs['inhaber']}\n{$abs['firma']} · {$abs['ort']}\n{$abs['email']}" . ($abs['telefon'] !== '' ? " · {$abs['telefon']}" : '') . "\n{$link}\n\n";
             $t .= '— Ihre Kontaktdaten stammen aus öffentlich zugänglichen Quellen (Ihre Website bzw. OpenStreetMap). '
-                . 'Wenn Sie keine weitere Nachricht von uns möchten, genügt eine kurze Antwort – dann melden wir uns nicht mehr.';
+                . ($brief ? 'Wenn Sie keine weitere Nachricht von uns möchten, genügt eine kurze Nachricht an ' . $abs['email'] . ' – dann melden wir uns nicht mehr.'
+                          : 'Wenn Sie keine weitere Nachricht von uns möchten, genügt eine kurze Antwort – dann melden wir uns nicht mehr.');
         } elseif ($sprache === 'it') {
             $betreff = $v(["Tre osservazioni su {$domain}", "Un breve riscontro sul vostro sito {$domain}", "{$name}: alcuni punti concreti sul vostro sito"]);
             if ($n < 3) { $betreff = $v(["Un’osservazione su {$domain}", "Un breve riscontro sul vostro sito {$domain}"]); }
@@ -353,10 +358,12 @@ final class AkquiseText
             if ($expIdee !== '') { $t .= "E se aveste voglia di qualcosa in più: {$expIdee}\n\n"; }
             $t .= "Sono soluzioni che sviluppiamo in {$abs['firma']}. Cosa realizziamo per i siti aziendali lo trovate su {$link}";
             $t .= $mitKonfigurator ? "\nSe vi va, il nostro calcolatore vi mostra in due minuti, senza impegno, cosa avrebbe senso per voi: {$bedarf}\n\n" : "\n\n";
+            if ($brief) { $t .= "La vostra analisi personale, con lo screenshot del sito, è raggiungibile dal codice QR qui sotto: senza registrazione, solo per voi.\n\n"; }
             $t .= $v(['Se vi interessa, vi mando volentieri le osservazioni in modo più dettagliato, con gli screenshot.', 'Se vi fa piacere, possiamo vedere insieme questi punti in una breve telefonata.']) . "\n\n";
             $t .= "Cordiali saluti\n{$abs['inhaber']}\n{$abs['firma']} · {$abs['ort']}\n{$abs['email']}" . ($abs['telefon'] !== '' ? " · {$abs['telefon']}" : '') . "\n{$link}\n\n";
             $t .= '— I vostri recapiti provengono da fonti pubblicamente accessibili (il vostro sito o OpenStreetMap). '
-                . 'Se non desiderate ricevere altri messaggi, basta una breve risposta: non vi scriveremo più.';
+                . ($brief ? 'Se non desiderate ricevere altri messaggi, basta una breve comunicazione a ' . $abs['email'] . ': non vi scriveremo più.'
+                          : 'Se non desiderate ricevere altri messaggi, basta una breve risposta: non vi scriveremo più.');
         } else {
             $betreff = $v(["Three observations about {$domain}", "Quick feedback on your website {$domain}", "{$name}: a few concrete points about your website"]);
             if ($n < 3) { $betreff = $v(["One observation about {$domain}", "Quick feedback on your website {$domain}"]); }
@@ -373,10 +380,12 @@ final class AkquiseText
             if ($expIdee !== '') { $t .= "And if you fancy something more: {$expIdee}\n\n"; }
             $t .= "These are the kind of solutions we build at {$abs['firma']}. You can see what we do for business websites at {$link}";
             $t .= $mitKonfigurator ? "\nIf you like, our needs calculator shows you in two minutes, with no obligation, what would make sense for you: {$bedarf}\n\n" : "\n\n";
+            if ($brief) { $t .= "Your personal analysis with a screenshot of your site is available via the QR code below – no sign-up, just for you.\n\n"; }
             $t .= $v(['I am happy to send you the observations in more detail, with screenshots.', 'If you are interested, I would be glad to walk you through the points in a short call.']) . "\n\n";
             $t .= "Kind regards\n{$abs['inhaber']}\n{$abs['firma']} · {$abs['ort']}\n{$abs['email']}" . ($abs['telefon'] !== '' ? " · {$abs['telefon']}" : '') . "\n{$link}\n\n";
             $t .= '— Your contact details come from publicly accessible sources (your website or OpenStreetMap). '
-                . 'If you would rather not hear from us again, a short reply is enough and we will not write again.';
+                . ($brief ? 'If you would rather not hear from us again, a short message to ' . $abs['email'] . ' is enough and we will not write again.'
+                          : 'If you would rather not hear from us again, a short reply is enough and we will not write again.');
         }
         return ['betreff' => $betreff, 'text' => $t, 'verwendet' => array_map(static fn($b) => (string) $b['code'], $wahl)];
     }

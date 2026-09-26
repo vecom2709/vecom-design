@@ -114,14 +114,19 @@ const TYPEN: Record<string, string[]> = {
 
 /** Verwaltungsgebiete einer Ebene mit diesem Namen, mit Region und Kreis. */
 export async function gebieteFinden(land: string, ebene: 'region' | 'kreis' | 'stadt', name: string): Promise<Gebiet[]> {
-  const q = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', limit: '15', countrycodes: land.toLowerCase(), q: name });
+  const q = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', namedetails: '1', limit: '15', countrycodes: land.toLowerCase(), q: name });
   const liste: any[] = await nominatim('/search?' + q, land === 'DE' ? 'de' : 'it');
   const n = name.toLowerCase().trim();
   const grenzen = liste.filter((r) => r.osm_type === 'relation' && r.category === 'boundary' && TYPEN[ebene].includes(r.addresstype));
+  /* Alle Namen eines Gebiets zaehlen, nicht nur der ortsuebliche: Uwe tippt
+     „Sizilien“ oder „Agrigent“, OpenStreetMap heisst es „Sicilia“/„Agrigento“. */
+  const namen = (r: any): string[] => [r.name, ...Object.values(r.namedetails ?? {})].map((x) => String(x ?? '').toLowerCase().trim());
   // Genau dieser Name -- sonst alle, die so anfangen ("Neustadt" → "Neustadt in Holstein" …), damit
   // die Mehrdeutigkeit mit Auswahl gemeldet wird statt "nichts gefunden".
-  let passend = grenzen.filter((r) => String(r.name ?? '').toLowerCase().trim() === n);
-  if (!passend.length) passend = grenzen.filter((r) => String(r.name ?? '').toLowerCase().startsWith(n));
+  let passend = grenzen.filter((r) => namen(r).includes(n));
+  if (!passend.length) passend = grenzen.filter((r) => namen(r).some((x) => x.startsWith(n)));
+  // „Libero consorzio comunale di Agrigento", „Landkreis Harburg": der Name steht am Ende.
+  if (!passend.length) passend = grenzen.filter((r) => namen(r).some((x) => x.endsWith(' ' + n)));
   const gesehen = new Set<number>();
   return passend.filter((r) => !gesehen.has(r.osm_id) && gesehen.add(r.osm_id)).map((r) => ({
     name: r.name, osmId: Number(r.osm_id), lat: Number(r.lat), lon: Number(r.lon),

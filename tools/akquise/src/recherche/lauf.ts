@@ -14,7 +14,7 @@ import { datenOrdner } from '../konfig.js';
 import { log } from '../log.js';
 import { alsFirma, betriebeIn, betriebeMitPlz, gebieteFinden, untergebiete, type Gebiet, type GefundeneFirma } from './overpass.js';
 
-interface Lauf { id: number; land: 'DE' | 'IT'; ebene: 'region' | 'kreis' | 'stadt' | 'plz'; gebiet: string; branchen: string[] }
+interface Lauf { id: number; land: 'DE' | 'IT'; ebene: 'auto' | 'region' | 'kreis' | 'stadt' | 'plz'; gebiet: string; branchen: string[] }
 interface Stand { erledigt: number[]; gemeinden?: (Gebiet & { region?: string; kreis?: string })[] }
 
 function standLesen(id: number): Stand {
@@ -38,9 +38,29 @@ async function melden(laufId: number, firmen: GefundeneFirma[]): Promise<{ neu: 
 async function gemeindenFuer(lauf: Lauf): Promise<(Gebiet & { region?: string; kreis?: string })[]> {
   // "Neustadt, Landkreis Harburg": der Teil nach dem Komma waehlt unter gleichnamigen Gebieten.
   const [name, oberhalb] = lauf.gebiet.split(',').map((s) => s.trim());
-  const ebene = lauf.ebene as 'region' | 'kreis' | 'stadt';
-  let kandidaten = await gebieteFinden(lauf.land, ebene, name);
-  if (!kandidaten.length) throw new Error(`Kein Gebiet „${name}" auf Ebene ${ebene} in ${lauf.land} gefunden.`);
+  let ebene: 'region' | 'kreis' | 'stadt';
+  let kandidaten: (Gebiet & { region?: string; kreis?: string })[] = [];
+  if (lauf.ebene === 'auto') {
+    /* „Jetzt suchen" in der Verwaltung: ein Name, keine Ebene. Der kleinste
+       Treffer gewinnt -- wer „Agrigento" tippt, meint meist die Stadt, nicht
+       die Provinz mit 43 Gemeinden. Die Provinz geht mit „Provinz Agrigento"
+       oder unter Suchauftraege mit fester Ebene. */
+    const prov = /^(provinz|provincia|landkreis|kreis|libero consorzio( comunale)?( di)?)\s+/i;
+    const reg = /^(region|regione|bundesland)\s+/i;
+    const reihe: ('stadt' | 'kreis' | 'region')[] = prov.test(name) ? ['kreis'] : reg.test(name) ? ['region'] : ['stadt', 'kreis', 'region'];
+    const rein = name.replace(prov, '').replace(reg, '');
+    ebene = reihe[0];
+    for (const e of reihe) {
+      kandidaten = await gebieteFinden(lauf.land, e, rein);
+      if (kandidaten.length) { ebene = e; break; }
+    }
+    if (!kandidaten.length) throw new Error(`„${name}" in ${lauf.land} nicht gefunden — weder als Ort noch als Provinz/Kreis noch als Region.`);
+    log.info('recherche', `„${name}" erkannt als ${{ stadt: 'Ort', kreis: 'Provinz/Kreis', region: 'Region' }[ebene]}`);
+  } else {
+    ebene = lauf.ebene as 'region' | 'kreis' | 'stadt';
+    kandidaten = await gebieteFinden(lauf.land, ebene, name);
+    if (!kandidaten.length) throw new Error(`Kein Gebiet „${name}" auf Ebene ${ebene} in ${lauf.land} gefunden.`);
+  }
 
   if (kandidaten.length > 1 || oberhalb) {
     const mitOrt = kandidaten;   // Region und Kreis liefert Nominatim schon mit

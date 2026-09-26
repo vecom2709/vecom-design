@@ -10772,7 +10772,7 @@ $akNull = null;
 try { AkquiseText::erzeugen($akF, $akAud, [], 'de'); } catch (RuntimeException $e) { $akNull = $e->getMessage(); }
 pruefe('ohne belegten Befund entsteht kein Text', $akNull !== null);
 
-$akV1 = AkquiseVersand::regelVorlage($akA['id'], 'it');
+$akV1 = AkquiseVersand::regelVorlage($akA['id'], 'it', 'email');
 pruefe('eine Regel-Vorlage entsteht als Entwurf', Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$akV1], '') === 'entwurf');
 pruefe('die Firma steht danach auf „Vorlage bereit"', Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [$akA['id']], '') === 'vorlage');
 $akX = Akquise::firmaMelden(['name' => 'Andere Firma', 'land' => 'IT', 'url' => 'https://andere.example', 'quelle' => 'osm:node/9']);
@@ -10796,7 +10796,7 @@ $akSend = static function (int $vid, string $vermerk = ''): ?string {
     try { AkquiseVersand::senden($vid, $vermerk); return null; } catch (RuntimeException $e) { return $e->getMessage(); }
 };
 $akGrund = $akSend($akV1);
-pruefe('ohne Einwilligung blockiert das Gate den Versand', $akGrund !== null && str_contains($akGrund, 'Nicht anschreiben'), (string) $akGrund);
+pruefe('ohne Einwilligung blockiert das Gate den Versand', $akGrund !== null && str_contains($akGrund, 'Anschreiben: Nein'), (string) $akGrund);
 pruefe('der verhinderte Versuch steht im Versandprotokoll',
     (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status = 'blockiert'", [$akA['id']]) === 1);
 Db::run('UPDATE akq_firmen SET einwilligung = ? WHERE id = ?', ['24.09.2026 Anruf, Inhaber bittet um Mail', $akA['id']]);
@@ -10925,6 +10925,133 @@ pruefe('akquise.php nimmt nur POST mit Schlüssel im Kopf, nie in der Adresse',
     && !str_contains((string) file_get_contents($oben . '/akquise.php'), "\$_GET['schluessel']"));
 pruefe('der Worker (tools/) wird nie auf den Webspace ausgeliefert',
     str_contains((string) file_get_contents($oben . '/.github/workflows/ftp-deploy.yml'), "--exclude '^tools/'"));
+
+/* ---------- Einfach gemacht (26.09.2026): Ampel, fünf Stufen, Brief, Anruf ---------- */
+$akAlle = array_merge(...array_map(static fn($x) => $x[1], array_values(Akquise::STUFEN5)));
+pruefe('die fünf Stufen decken jeden gespeicherten Kontaktzustand genau einmal ab',
+    count($akAlle) === count(array_unique($akAlle)) && !array_diff(array_keys(Akquise::KONTAKT_STATUS), $akAlle), implode(',', $akAlle));
+pruefe('„freigegeben" heißt auf dem Bildschirm „Bereit", „geantwortet" heißt „Antwort"',
+    Akquise::stufe5('freigegeben') === 'bereit' && Akquise::stufe5('geantwortet') === 'antwort' && Akquise::stufe5('gesperrt') === 'erledigt');
+pruefe('Chance statt Score: 72 ist „sehr gut", 20 „gering", ohne Prüfung ein Strich',
+    Akquise::chanceWort(72) === 'sehr gut' && Akquise::chanceWort(20) === 'gering' && Akquise::chanceWort(null) === '—');
+pruefe('belegt heißt „geprüft", vermutet heißt „unsicher"', Akquise::belegWort('VERIFIED') === 'geprüft' && Akquise::belegWort('UNVERIFIED') === 'unsicher');
+
+$akE = Akquise::firmaMelden(['name' => 'Pasticceria Semplice', 'land' => 'IT', 'stadt' => 'Aragona', 'url' => 'https://pasticceria-semplice.example',
+    'email' => 'info@pasticceria-semplice.example', 'telefon' => '0922 111 222', 'branche' => 'baeckerei', 'quelle' => 'osm:node/40']);
+Akquise::auditMelden($akE['id'], ['status' => 'fertig', 'befunde' => $akBefunde, 'sprache' => 'it']);
+$akEf = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akE['id']]);
+pruefe('Ampel: E-Mail-Adresse allein macht nichts grün — ohne Einwilligung „Per Brief"',
+    AkquiseGate::ampel($akEf)['farbe'] === 'gelb' && AkquiseGate::ampel($akEf)['wort'] === 'Per Brief', json_encode(AkquiseGate::ampel($akEf)));
+pruefe('Ampel: ein deutschsprachiger Betrieb bekommt „Brief oder Anruf"',
+    AkquiseGate::ampel(['land' => 'DE', 'kontakt_status' => 'neu', 'gesperrt' => 0])['wort'] === 'Brief oder Anruf');
+pruefe('Ampel: gesperrt ist rot', AkquiseGate::ampel(['land' => 'IT', 'gesperrt' => 1])['farbe'] === 'rot');
+pruefe('Ampel: mit festgehaltener Einwilligung ist E-Mail grün',
+    AkquiseGate::ampel(['land' => 'IT', 'email' => 'a@b.example', 'einwilligung' => 'Anruf 26.09.', 'gesperrt' => 0])['farbe'] === 'gruen');
+$akEf['vorlage_status'] = null;
+pruefe('nächster Schritt nach der Prüfung: „Brief schreiben" (als Formular, nicht als Link)',
+    (Akquise::naechsterSchritt($akEf)['wort'] ?? '') === 'Brief schreiben' && Akquise::naechsterSchritt($akEf)['art'] === 'post'
+    && Akquise::naechsterSchritt($akEf)['ziel'] === 'akq_vorlage_regel', json_encode(Akquise::naechsterSchritt($akEf)));
+pruefe('für eine gesperrte Firma gibt es keinen nächsten Schritt', Akquise::naechsterSchritt(['id' => 1, 'gesperrt' => 1]) === null);
+pruefe('der goldene Knopf zeigt nie auf eine Tat, die es nicht gibt',
+    str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_vorlage_regel'"));
+
+$akVb2 = AkquiseVersand::regelVorlage($akE['id'], 'it');
+$akVbZ = Db::one('SELECT * FROM akq_vorlagen WHERE id = ?', [$akVb2]);
+pruefe('ohne Kanalangabe und ohne Einwilligung entsteht ein BRIEF, keine E-Mail', $akVbZ['kanal'] === 'brief', (string) $akVbZ['kanal']);
+pruefe('der Brief nennt den QR-Code und den Weg „keine Post mehr" per Nachricht an Vecom',
+    str_contains((string) $akVbZ['text'], 'codice QR') && str_contains((string) $akVbZ['text'], 'kontakt@vecom-design.it'));
+pruefe('der Brief-Text besteht die Textprüfung', !json_decode((string) ($akVbZ['pruefhinweise'] ?? '[]'), true), (string) $akVbZ['pruefhinweise']);
+$akEf = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akE['id']]) + ['vorlage_status' => 'entwurf', 'vorlage_kanal' => 'brief'];
+pruefe('mit Entwurf heißt der nächste Schritt „Text prüfen"', (Akquise::naechsterSchritt($akEf)['wort'] ?? '') === 'Text prüfen');
+$akBz = null;
+try { AkquiseVersand::briefVerschickt($akE['id'], $akVb2, true); } catch (RuntimeException $e) { $akBz = $e->getMessage(); }
+pruefe('ein nicht freigegebener Brief lässt sich nicht als verschickt vermerken', $akBz !== null);
+AkquiseVersand::freigeben($akVb2);
+$akEf['vorlage_status'] = 'freigegeben';
+pruefe('freigegeben heißt der nächste Schritt „Brief drucken" (Druckseite)',
+    (Akquise::naechsterSchritt($akEf)['ziel'] ?? '') === 'akquise/' . $akE['id'] . '/brief');
+$akBz = null;
+try { AkquiseVersand::briefVerschickt($akE['id'], $akVb2, false); } catch (RuntimeException $e) { $akBz = $e->getMessage(); }
+pruefe('ohne Bestätigung (kein Widerspruch bekannt, Hinweis im Brief) wird nichts vermerkt', $akBz !== null
+    && Db::wert("SELECT kontakt_status FROM akq_firmen WHERE id = ?", [$akE['id']], '') !== 'kontaktiert');
+AkquiseVersand::briefVerschickt($akE['id'], $akVb2, true);
+pruefe('mit Bestätigung: Brief vermerkt, Firma „Kontaktiert", Vorlage „gesendet"',
+    Db::wert("SELECT kontakt_status FROM akq_firmen WHERE id = ?", [$akE['id']], '') === 'kontaktiert'
+    && Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$akVb2], '') === 'gesendet'
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND kanal = 'brief' AND status = 'von_hand'", [$akE['id']]) === 1);
+pruefe('danach ist eine zweite Ansprache gesperrt',
+    AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akE['id']]), 'brief')['status'] === AkquiseGate::NICHT);
+pruefe('die Druckseite zeichnet den QR-Code selbst — kein fremder QR-Dienst',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_brief.php'), '/assets/js/qrcode.js')
+    && !preg_match('~qrserver|chart\.googleapis|quickchart~', (string) file_get_contents($wurzel . '/views/akquise_brief.php')));
+pruefe('ein Entwurf wird mit „ENTWURF" quer über das Blatt gedruckt',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_brief.php'), "'ENTWURF'"));
+
+/* Anruf: deutschsprachig, Ergebnis mit einem Klick */
+$akT = Akquise::firmaMelden(['name' => 'Ferienwohnung Anruf', 'land' => 'DE', 'plz' => '55543', 'stadt' => 'Bad Kreuznach', 'telefon' => '0671 555',
+    'url' => 'https://fewo-anruf.example', 'quelle' => 'osm:node/41']);
+pruefe('Anruf ohne Pflichtvermerk wird abgelehnt (Telefon steht auf „nach Prüfung")', (static function () use ($akT) {
+    try { AkquiseVersand::anrufErgebnis($akT['id'], 'interesse', 'kurz'); } catch (RuntimeException $e) { return true; } return false; })());
+AkquiseVersand::anrufErgebnis($akT['id'], 'nicht_erreicht', 'Mailbox');
+pruefe('„nicht erreicht" zählt nicht als Kontakt', Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [$akT['id']], '') === 'neu'
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$akT['id']]) === 0);
+$akTm = AkquiseVersand::anrufErgebnis($akT['id'], 'per_mail', 'Anruf: Geschäftsnummer öffentlich, konkreter Anlass, kein Widerspruch bekannt.', 'Inhaber@FEWO-anruf.example');
+$akTf = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akT['id']]);
+pruefe('„bitte per Mail": Einwilligung mit wer/wann/wie festgehalten, Adresse übernommen',
+    str_contains((string) $akTf['einwilligung'], 'bittet um Zusendung') && $akTf['email'] === 'inhaber@fewo-anruf.example', (string) $akTf['einwilligung']);
+pruefe('… und steht in der Prüfspur', (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_rechtsgrundlage' AND entity_id = ?", [$akT['id']]) >= 1);
+pruefe('danach ist die E-Mail erlaubt, obwohl schon angerufen wurde (die Firma hat darum gebeten)',
+    AkquiseGate::pruefen($akTf, 'email')['status'] === AkquiseGate::ERLAUBT && AkquiseGate::ampel($akTf)['farbe'] === 'gruen',
+    json_encode(AkquiseGate::pruefen($akTf, 'email')['gruende']));
+$akK = Akquise::firmaMelden(['name' => 'Kein Interesse GmbH', 'land' => 'DE', 'plz' => '55545', 'telefon' => '0671 777', 'url' => 'https://kein-interesse.example', 'quelle' => 'osm:node/42']);
+AkquiseVersand::anrufErgebnis($akK['id'], 'kein_interesse', 'Anruf: Geschäftsnummer öffentlich, konkreter Anlass, kein Widerspruch bekannt.');
+pruefe('„Kein Interesse" am Telefon sperrt den Betrieb dauerhaft', (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$akK['id']]) === 1);
+$akAnruf = (string) file_get_contents($wurzel . '/views/akquise_anruf.php');
+pruefe('der Anrufzettel nennt nie einen Preis', !preg_match('~\d+\s*(€|euro|eur\b)~i', $akAnruf));
+foreach (['akq_anruf', 'akq_brief_verschickt', 'akq_vorlage_freigeben'] as $akTat) {
+    pruefe("„$akTat\" fragt vorher nach (TRAGWEITE)", isset(Ablauf::TRAGWEITE[$akTat]));
+}
+
+/* Liste und Suche */
+$akL = Akquise::liste(['kontakt' => 'kontaktiert'], 1);
+pruefe('Filter „Kontaktiert" findet den Brief-Betrieb', in_array($akE['id'], array_map(static fn($z) => (int) $z['id'], $akL['zeilen']), true));
+pruefe('die Liste hat fünf Spalten', substr_count((string) file_get_contents($wurzel . '/views/akquise.php'), '<th>') === 5);
+pruefe('„Jetzt suchen" legt einen Auftrag mit Ebene „auto" an, und der Worker kennt sie',
+    str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "'ebene' => 'auto'")
+    && str_contains((string) file_get_contents($oben . '/tools/akquise/src/recherche/lauf.ts'), "lauf.ebene === 'auto'"));
+
+/* Alter Lead-Scout: übernommen, ohne dass jemand zweimal angeschrieben wird */
+$akAlt = AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [
+    ['name' => 'Trattoria Vecchia Lista', 'land' => 'IT', 'stadt' => 'Favara', 'telefon' => '+39 333 000 111', 'quelle' => 'lead-scout:vecchia',
+     'sprache' => 'it', 'notiz' => 'Aus dem Lead-Scout.', 'schon_kontaktiert' => ['am' => '2026-09-23', 'kanal' => 'whatsapp', 'wie' => 'WhatsApp-Sendeknopf']],
+    ['name' => 'Bar Nuova Lista', 'land' => 'IT', 'stadt' => 'Favara', 'quelle' => 'lead-scout:nuova', 'notiz' => 'Aus dem Lead-Scout.'],
+]]);
+$akAltF = Db::one("SELECT * FROM akq_firmen WHERE quelle = 'lead-scout:vecchia'");
+pruefe('Lead-Scout-Übernahme: Notiz und Sprache kommen mit', $akAlt['neu'] === 2 && $akAltF['notiz'] === 'Aus dem Lead-Scout.' && $akAltF['sprache'] === 'it');
+pruefe('wer im Lead-Scout schon angeschrieben war, steht auf „Kontaktiert" — mit Datum im Versandprotokoll',
+    $akAltF['kontakt_status'] === 'kontaktiert'
+    && Db::wert("SELECT DATE(created_at) FROM akq_versand WHERE firma_id = ? AND status = 'von_hand'", [(int) $akAltF['id']], '') === '2026-09-23');
+AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Trattoria Vecchia Lista', 'land' => 'IT', 'stadt' => 'Favara',
+    'telefon' => '+39 333 000 111', 'quelle' => 'lead-scout:vecchia', 'schon_kontaktiert' => ['am' => '2026-09-23']]]]);
+pruefe('ein zweiter Import legt keinen zweiten Versand an',
+    (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?", [(int) $akAltF['id']]) === 1);
+AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Pizzeria Fremd', 'land' => 'IT', 'stadt' => 'Favara', 'quelle' => 'osm:node/43',
+    'schon_kontaktiert' => ['am' => '2026-09-23']]]]);
+pruefe('„schon kontaktiert" gilt nur für die Übernahme, nicht für die Recherche',
+    Db::wert("SELECT kontakt_status FROM akq_firmen WHERE quelle = 'osm:node/43'", [], '') === 'neu');
+pruefe('die Übernahmedatei liegt in daten/ und kommt nie ins Repository',
+    str_contains((string) file_get_contents($oben . '/tools/akquise/.gitignore'), 'daten/'));
+
+/* Wochenbericht */
+pruefe('Wochenbericht: nicht an einem Dienstag', isset(Akquise::wochenbericht(strtotime('2026-09-29 09:00'))['uebersprungen']));
+$akWb = Akquise::wochenbericht(strtotime('2026-09-28 08:00'));
+pruefe('Wochenbericht: montags früh, wenn sich etwas getan hat', ($akWb['gemeldet'] ?? null) === true && $akWb['gefunden'] >= 1, json_encode($akWb));
+pruefe('… aber nur einmal je Woche', (Akquise::wochenbericht(strtotime('2026-09-28 11:00'))['uebersprungen'] ?? '') === 'schon gemeldet');
+$akWbQ = (string) file_get_contents($wurzel . '/src/Akquise.php');
+$akWbQ = substr($akWbQ, (int) strpos($akWbQ, 'public static function wochenbericht'), 3600);
+pruefe('der Bericht nennt keine Firmennamen (der Zuruf läuft über einen fremden Dienst)',
+    !str_contains($akWbQ, "['name']") && !preg_match('~SELECT[^"]*\bname\b~i', $akWbQ));
+pruefe('der Cron ruft den Wochenbericht auf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Akquise::wochenbericht()'));
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -8,6 +8,8 @@
     "node": ">=22"
   },
   "scripts": {
+    "verbinden": "tsx src/cli.ts verbinden",
+    "import": "tsx src/cli.ts import",
     "pruefen": "tsx src/cli.ts pruefen",
     "recherche": "tsx src/cli.ts recherche",
     "audit": "tsx src/cli.ts audit",

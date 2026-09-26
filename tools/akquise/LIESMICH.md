@@ -25,6 +25,8 @@ Die `.env` und der Ordner `daten/` kommen nie ins Repository.
 
 | Befehl | Was passiert |
 |---|---|
+| `npm run verbinden` | einmalig: Schlüssel aus der Zwischenablage in `.env` (Verwaltung → Regeln & Versand → „Schlüssel erzeugen“ → „Kopieren“) |
+| `npm run import -- daten/lead-scout.json` | Firmenliste übernehmen (Datei bleibt in `daten/`, nie im Repository) |
 | `npm run pruefen` | Verbindung zur Verwaltung, Notbremse, Schlüssel |
 | `npm run recherche` | wartende Rechercheaufträge abarbeiten (Gemeinde für Gemeinde, fortsetzbar) |
 | `npm run audit` | nächste Websites prüfen (Standard 20 je Lauf) |

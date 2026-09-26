@@ -84,11 +84,19 @@ final class AkquiseVersand
         return $id;
     }
 
-    /** Erzeugt eine Regel-Vorlage aus dem letzten Audit. */
-    public static function regelVorlage(int $firmaId, ?string $sprache = null, string $kanal = 'email'): int
+    /**
+     * Erzeugt eine Regel-Vorlage aus dem letzten Audit.
+     *
+     * Ohne Kanalangabe: E-Mail nur, wenn die Ampel sie erlaubt -- sonst
+     * Brief. Ein E-Mail-Entwurf fuer eine Firma, die man nicht anschreiben
+     * darf, waere eine Einladung zum Fehler (26.09.2026).
+     */
+    public static function regelVorlage(int $firmaId, ?string $sprache = null, ?string $kanal = null): int
     {
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
         if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
+        $kanal = in_array($kanal, ['email', 'brief'], true) ? $kanal
+            : (AkquiseGate::ampel($f)['farbe'] === 'gruen' ? 'email' : 'brief');
         $audit = Akquise::letzterAudit($firmaId);
         if (!$audit || $audit['status'] !== 'fertig') { throw new RuntimeException('Es gibt noch kein fertiges Audit — ohne Befunde kein Text.'); }
         $sprache = $sprache && isset(AkquiseText::SPRACHEN[$sprache]) ? $sprache : AkquiseText::spracheFuer($f);
@@ -161,7 +169,7 @@ final class AkquiseVersand
 
         $gate = AkquiseGate::pruefen($f, 'email');
         if (in_array($gate['status'], [AkquiseGate::NICHT, AkquiseGate::UNKLAR], true)) {
-            self::blockiert($f, $vorlageId, 'email', $gate['status'], AkquiseGate::STATUS[$gate['status']] . ' — ' . ($gate['gruende'][0] ?? ''));
+            self::blockiert($f, $vorlageId, 'email', $gate['status'], 'Anschreiben: ' . AkquiseGate::STATUS[$gate['status']] . ' — ' . ($gate['gruende'][0] ?? ''));
         }
         if ($gate['status'] === AkquiseGate::PRUEFEN && mb_strlen(trim($pruefvermerk)) < 15) {
             self::blockiert($f, $vorlageId, 'email', $gate['status'], 'Prüfung nötig — ohne dokumentierten Prüfvermerk geht nichts raus.');
@@ -217,7 +225,7 @@ final class AkquiseVersand
         if (!isset(AkquiseGate::KANAELE[$kanal])) { throw new RuntimeException('Unbekannter Kanal.'); }
         $gate = AkquiseGate::pruefen($f, $kanal);
         if (in_array($gate['status'], [AkquiseGate::NICHT, AkquiseGate::UNKLAR], true)) {
-            self::blockiert($f, $vorlageId, $kanal, $gate['status'], AkquiseGate::STATUS[$gate['status']] . ' — ' . ($gate['gruende'][0] ?? ''));
+            self::blockiert($f, $vorlageId, $kanal, $gate['status'], 'Anschreiben: ' . AkquiseGate::STATUS[$gate['status']] . ' — ' . ($gate['gruende'][0] ?? ''));
         }
         if ($gate['status'] === AkquiseGate::PRUEFEN && mb_strlen(trim($begruendung)) < 15) {
             throw new RuntimeException('Bitte kurz begründen, warum die Kontaktaufnahme hier zulässig ist (mind. 15 Zeichen).');
@@ -232,6 +240,62 @@ final class AkquiseVersand
         Akquise::protokoll($firmaId, 'versand', 'Von Hand kontaktiert (' . AkquiseGate::KANAELE[$kanal] . ')', ['versand' => $id]);
         Events::pruefspur('akquise_von_hand', 'akq_versand', $id, [], ['kanal' => $kanal, 'begruendung' => $begruendung]);
         return $id;
+    }
+
+    /**
+     * Der Brief ist raus -- Uwe hat ihn gedruckt und eingeworfen.
+     *
+     * Brief steht auf "Pruefung noetig": Werbewiderspruch und
+     * Informationspflicht muessen erfuellt sein. Die Bestaetigung dieses
+     * Klicks IST die dokumentierte Pruefung; sie steht mit Datum und Name
+     * im Versandprotokoll und in der Pruefspur.
+     */
+    public static function briefVerschickt(int $firmaId, int $vorlageId, bool $bestaetigt): int
+    {
+        if (!$bestaetigt) {
+            throw new RuntimeException('Bitte bestätigen: kein Werbewiderspruch bekannt, Hinweise im Brief enthalten.');
+        }
+        $v = Db::one("SELECT * FROM akq_vorlagen WHERE id = ? AND firma_id = ? AND kanal = 'brief'", [$vorlageId, $firmaId]);
+        if (!$v || $v['status'] !== 'freigegeben') { throw new RuntimeException('Erst den Brief freigeben, dann drucken und verschicken.'); }
+        return self::vonHand($firmaId, 'brief', 'Brief per Post am ' . date('d.m.Y') . ' — kein Werbewiderspruch bekannt, '
+            . 'Widerspruchs- und Datenschutzhinweis im Brief (bestätigt von ' . (Auth::name() ?: 'System') . ')', $vorlageId);
+    }
+
+    /**
+     * Ergebnis eines Anrufs, mit einem Klick.
+     *
+     * "per_mail": Der Inhaber bittet am Telefon um Zusendung per E-Mail --
+     * das ist eine Einwilligung, und sie wird genau so festgehalten (wer,
+     * wann, wie). Danach steht die Ampel fuer E-Mail auf gruen.
+     */
+    public static function anrufErgebnis(int $firmaId, string $ergebnis, string $begruendung, string $email = ''): string
+    {
+        $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
+        if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
+        if ($ergebnis === 'nicht_erreicht') {
+            Akquise::protokoll($firmaId, 'anruf', 'Angerufen, nicht erreicht' . (trim($begruendung) !== '' ? ' — ' . mb_substr(trim($begruendung), 0, 200) : ''));
+            return 'Vermerkt: nicht erreicht. Du kannst es später noch einmal versuchen.';
+        }
+        if (!in_array($ergebnis, ['interesse', 'kein_interesse', 'per_mail'], true)) { throw new RuntimeException('Unbekanntes Ergebnis.'); }
+        self::vonHand($firmaId, 'telefon', $begruendung);
+        if ($ergebnis === 'kein_interesse') {
+            self::antwortEintragen($firmaId, 'Telefon', 'Anruf', 'Am Telefon: kein Interesse.', 'NOT_INTERESTED');
+            return 'Vermerkt und gesperrt — wir melden uns dort nicht mehr.';
+        }
+        if ($ergebnis === 'per_mail') {
+            $mail = Akquise::normEmail($email);
+            if ($mail === null) { throw new RuntimeException('Bitte die E-Mail-Adresse eintragen, die genannt wurde.'); }
+            $alt = ['einwilligung' => $f['einwilligung'], 'email' => $f['email']];
+            $neu = ['email' => $mail, 'einwilligung' => mb_substr('Anruf am ' . date('d.m.Y H:i') . ' (' . (Auth::name() ?: 'Uwe')
+                . '): bittet um Zusendung der Beobachtungen per E-Mail an ' . $mail, 0, 255)];
+            Db::update('akq_firmen', $firmaId, $neu);
+            Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', $firmaId, $alt, $neu);
+            AkquiseGate::statusSpeichern($firmaId);
+            self::antwortEintragen($firmaId, 'Telefon', 'Anruf', 'Am Telefon: bittet um Zusendung per E-Mail.', 'MORE_INFO');
+            return 'Einwilligung festgehalten. Die E-Mail ist jetzt erlaubt — Text prüfen und senden.';
+        }
+        self::antwortEintragen($firmaId, 'Telefon', 'Anruf', 'Am Telefon: Interesse.', 'INTERESTED');
+        return 'Vermerkt: Interesse. Jetzt Termin oder Angebot.';
     }
 
     /* ================================================================== */

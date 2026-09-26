@@ -236,6 +236,12 @@ final class Cron
                 require_once __DIR__ . '/Telefon.php';
                 return Telefon::rueckblickMelden();
             },
+            /* Montags frueh: was die Akquise in der Woche gefunden und bewegt
+               hat, als Zuruf aufs Handy (ersetzt den alten Lead-Scout). */
+            'akquise_woche' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate'] as $k) { require_once __DIR__ . "/$k.php"; }
+                return Akquise::wochenbericht();
+            },
             /* Die Gespraeche von STRATO herueberholen. Sie liegen dort hinter
                einer Anmeldung, in einer Liste ueber fuenf Seiten, und mit
                einer Aufbewahrungsfrist, die nicht uns gehoert. Hier stehen

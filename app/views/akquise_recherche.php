@@ -2,9 +2,9 @@
 /** @var array $laeufe @var array $branchen */
 $akqTeil = 'recherche';
 ?>
-<div class="kopf"><div><h1>Recherche</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Land → Region → Stadt → Branche. Ein Auftrag je Gebiet; der Worker auf deinem
-    Rechner holt ihn ab, fragt OpenStreetMap (Overpass) mit Pausen und meldet jede Firma genau einmal hierher.</p></div></div>
+<div class="kopf"><div><h1>Suchaufträge</h1>
+  <p style="color:var(--leise);font-size:13px;margin-top:6px">Für den Alltag genügt „Jetzt suchen“ auf der Seite „Betriebe“. Hier geht es genauer:
+    Ebene und Branchen selbst wählen, Aufträge ansehen und abbrechen. Dein Rechner holt jeden Auftrag nachts ab.</p></div></div>
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 
@@ -16,6 +16,7 @@ $akqTeil = 'recherche';
       <div class="reihe">
         <div class="feld"><label>Land</label><select name="land" required><option value="IT">Italien</option><option value="DE">Deutschland</option></select></div>
         <div class="feld"><label>Ebene</label><select name="ebene" required>
+          <option value="auto">Automatisch (Ort, sonst Provinz, sonst Region)</option>
           <option value="stadt">Stadt / Comune</option><option value="kreis">Landkreis / Provincia</option>
           <option value="region">Bundesland / Regione</option><option value="plz">PLZ / CAP</option></select></div>
       </div>

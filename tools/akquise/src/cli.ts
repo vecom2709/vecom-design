@@ -1,6 +1,7 @@
 /* ==========================================================================
    VECOM Akquise-Worker — Befehle
 
+     npm run verbinden    Schluessel aus der Zwischenablage eintragen (einmal)
      npm run pruefen      Verbindung zur Verwaltung testen
      npm run recherche    wartende Rechercheauftraege abarbeiten (OSM)
      npm run audit        naechste Websites pruefen (Playwright, Lighthouse)
@@ -24,6 +25,7 @@ import { browserZu } from './audit/browser.js';
 import { texteLauf } from './ki/texte.js';
 import { kiVerbrauch } from './ki/claude.js';
 import type { FirmaKurz } from './audit/typen.js';
+import { importieren, verbinden } from './einrichten.js';
 
 const befehl = process.argv[2] ?? 'hilfe';
 const SPERRE = join(datenOrdner(), 'lauf.lock');
@@ -117,11 +119,13 @@ async function osm(): Promise<void> {
 
 async function main(): Promise<void> {
   if (befehl === 'hilfe') {
-    console.log('Befehle: pruefen · recherche · audit · texte · alles · einzel <url> [branche] [IT|DE] [stadt] · osm <IT|DE> <stadt|kreis|region> <Name> [branchen]');
+    console.log('Befehle: verbinden · import <datei> · pruefen · recherche · audit · texte · alles · einzel <url> [branche] [IT|DE] [stadt] · osm <IT|DE> <stadt|kreis|region> <Name> [branchen]');
     return;
   }
   if (befehl === 'einzel') return einzel();
   if (befehl === 'osm') return osm();
+  if (befehl === 'verbinden') return verbinden();
+  if (befehl === 'import') return importieren(process.argv[3]);
   if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
   try {
     if (!(await pruefen())) { log.warn('start', 'Notbremse gezogen — es wird nichts getan.'); return; }

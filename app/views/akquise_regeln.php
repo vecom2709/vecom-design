@@ -71,8 +71,11 @@ $klasse = static fn(string $s): string => ['CONTACT_ALLOWED' => 'gut', 'REVIEW_R
   <div class="block">
     <h2>Worker-Schlüssel</h2>
     <?php if ($schluesselEinmal): ?>
-      <div class="hinweis gut" style="margin-bottom:10px">Einmalig sichtbar — jetzt in <code>tools/akquise/.env</code> als <code>AKQUISE_SCHLUESSEL=…</code> eintragen:</div>
-      <input readonly value="<?= Fmt::h($schluesselEinmal) ?>" onclick="this.select()" style="font-family:ui-monospace,monospace;margin-bottom:10px">
+      <div class="hinweis gut" style="margin-bottom:10px">Einmalig sichtbar. Auf „Kopieren“ klicken — auf deinem Rechner übernimmt
+        <code>npm run verbinden</code> den Schlüssel dann aus der Zwischenablage (er wird dabei nirgends angezeigt).</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="akq_schluessel" readonly value="<?= Fmt::h($schluesselEinmal) ?>" onclick="this.select()" style="font-family:ui-monospace,monospace">
+        <button class="knopf haupt" type="button" data-kopieren="akq_schluessel">Kopieren</button></div>
     <?php else: ?>
       <p class="akq-klein" style="margin-bottom:10px"><?= $schluesselDa ? 'Ein Schlüssel ist hinterlegt. Er wird nie wieder angezeigt.' : 'Noch kein Schlüssel — die Tür für den Worker ist zu.' ?></p>
     <?php endif; ?>

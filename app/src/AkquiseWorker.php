@@ -133,6 +133,7 @@ final class AkquiseWorker
             if (!is_array($roh)) { $fehler++; continue; }
             try {
                 $r = Akquise::firmaMelden($roh, $laufId);
+                if (str_starts_with((string) ($roh['quelle'] ?? ''), 'lead-scout:')) { Akquise::altbestand((int) $r['id'], $roh); }
                 $r['neu'] ? $neu++ : $dubletten++;
                 $ergebnisse[] = ['quelle' => $roh['quelle'] ?? null, 'id' => $r['id'], 'neu' => $r['neu']];
             } catch (Throwable $e) {

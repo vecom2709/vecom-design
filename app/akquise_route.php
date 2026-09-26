@@ -24,6 +24,12 @@ if ($post) {
     $tat = (string) ($_POST['tat'] ?? '');
     $fid = (int) ($_POST['firma'] ?? 0);
     $zu = static fn(string $wohin) => weiter('akquise' . ($wohin !== '' ? '/' . $wohin : ''));
+    /* Zurueck dorthin, wo der Knopf stand (Reiter „Alle Befunde", „Verlauf") --
+       aber nur innerhalb der Akquise. */
+    $zurueck = static function (string $sonst): never {
+        $z = (string) ($_POST['zurueck'] ?? '');
+        weiter(preg_match('~^akquise(/[0-9a-z_/-]*)?(\?ansicht=[a-z]+)?(#[a-z0-9_-]+)?$~', $z) ? $z : $sonst);
+    };
     try {
         switch ($tat) {
             case 'akq_lauf_anlegen':
@@ -31,7 +37,7 @@ if ($post) {
                 $ebene = (string) ($_POST['ebene'] ?? '');
                 $gebiet = trim((string) ($_POST['gebiet'] ?? ''));
                 if (!in_array($land, ['DE', 'IT'], true)) { throw new RuntimeException('Bitte Deutschland oder Italien wählen.'); }
-                if (!in_array($ebene, ['region', 'kreis', 'stadt', 'plz'], true)) { throw new RuntimeException('Unbekannte Ebene.'); }
+                if (!in_array($ebene, ['auto', 'region', 'kreis', 'stadt', 'plz'], true)) { throw new RuntimeException('Unbekannte Ebene.'); }
                 if ($gebiet === '' || mb_strlen($gebiet) > 120) { throw new RuntimeException('Bitte ein Gebiet angeben.'); }
                 $branchen = array_values(array_intersect((array) ($_POST['branchen'] ?? []), array_keys(Akquise::branchen())));
                 $doppelt = Db::wert("SELECT id FROM akq_laeufe WHERE land = ? AND ebene = ? AND gebiet = ? AND status IN ('wartet','laeuft')",
@@ -48,21 +54,69 @@ if ($post) {
                 $zu('recherche');
 
             case 'akq_vorlage_regel':
-                $vid = AkquiseVersand::regelVorlage($fid, (string) ($_POST['sprache'] ?? '') ?: null, (string) ($_POST['kanal'] ?? 'email'));
-                $_SESSION['gut'] = 'Vorlage geschrieben — bitte lesen, anpassen und erst dann freigeben.';
-                weiter('akquise/' . $fid . '#vorlage-' . $vid);
+                $vid = AkquiseVersand::regelVorlage($fid, (string) ($_POST['sprache'] ?? '') ?: null, ((string) ($_POST['kanal'] ?? '')) ?: null);
+                $_SESSION['gut'] = 'Text geschrieben — bitte lesen, bei Bedarf anpassen und dann freigeben.';
+                weiter('akquise/' . $fid . '#kontakt');
 
             case 'akq_vorlage_speichern':
                 $vid = (int) ($_POST['vorlage'] ?? 0);
                 $vid = AkquiseVersand::vorlageSpeichern($fid, null, (string) ($_POST['sprache'] ?? ''), (string) ($_POST['kanal'] ?? 'email'),
                     (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), 'hand', $vid ?: null);
-                $_SESSION['gut'] = 'Vorlage gespeichert.';
-                weiter('akquise/' . $fid . '#vorlage-' . $vid);
+                $_SESSION['gut'] = 'Gespeichert und geprüft.';
+                weiter('akquise/' . $fid . '#kontakt');
 
             case 'akq_vorlage_freigeben':
                 AkquiseVersand::freigeben((int) $_POST['vorlage']);
-                $_SESSION['gut'] = 'Freigegeben. Verschickt wird erst mit dem nächsten Klick — und nur, wenn das Gate es erlaubt.';
+                $fk = (string) Db::wert('SELECT kanal FROM akq_vorlagen WHERE id = ?', [(int) $_POST['vorlage']], '');
+                if ($fk === 'brief') {
+                    /* Der Brief traegt einen QR-Code zur Analyse-Seite. Die
+                       Freigabe des Briefs ist deshalb auch ihre Freigabe --
+                       so steht es in der Rueckfrage vor dem Knopf. */
+                    $an = AkquiseAnalyse::anlegen($fid);
+                    if ((int) ($an['aktiv'] ?? 0) !== 1) { AkquiseAnalyse::umschalten((int) $an['id'], true); }
+                    $_SESSION['gut'] = 'Freigegeben. Jetzt „Brief drucken“ — der QR-Code führt zur persönlichen Analyse-Seite.';
+                } else {
+                    $_SESSION['gut'] = 'Freigegeben. Verschickt wird erst mit dem nächsten Klick — und nur, wenn es erlaubt ist.';
+                }
+                weiter('akquise/' . $fid . '#kontakt');
+
+            case 'akq_brief_verschickt':
+                AkquiseVersand::briefVerschickt($fid, (int) $_POST['vorlage'], !empty($_POST['bestaetigt']));
+                $_SESSION['gut'] = 'Vermerkt: Brief ist unterwegs. Meldet sich jemand oder öffnet die Analyse-Seite, siehst du es hier.';
                 weiter('akquise/' . $fid);
+
+            case 'akq_anruf':
+                /* Der Pruefvermerk fuer den Anruf (B2B, mutmassliche Einwilligung):
+                   Uwe bestaetigt ihn mit einem Haken, die Notiz kommt dazu. */
+                $notiz = trim((string) ($_POST['notiz'] ?? ''));
+                $ergebnis = (string) ($_POST['ergebnis'] ?? '');
+                $vermerk = $ergebnis === 'nicht_erreicht' ? $notiz : (!empty($_POST['anlass'])
+                    ? 'Anruf: Geschäftsnummer öffentlich, konkreter Anlass (Befunde zur eigenen Website), kein Widerspruch bekannt.'
+                        . ($notiz !== '' ? ' Notiz: ' . $notiz : '')
+                    : $notiz);
+                $_SESSION['gut'] = AkquiseVersand::anrufErgebnis($fid, $ergebnis, $vermerk, (string) ($_POST['email'] ?? ''));
+                weiter('akquise/' . $fid);
+
+            case 'akq_anruf_nicht_erreicht':
+                $_SESSION['gut'] = AkquiseVersand::anrufErgebnis($fid, 'nicht_erreicht', trim((string) ($_POST['notiz'] ?? '')));
+                weiter('akquise/' . $fid);
+
+            case 'akq_suchen':
+                /* „Jetzt suchen": ein Ort, die Ebene sucht sich der Worker selbst
+                   (Gemeinde, sonst Kreis/Provinz, sonst Region). */
+                $land = strtoupper((string) ($_POST['land'] ?? 'IT'));
+                $gebiet = trim((string) ($_POST['gebiet'] ?? ''));
+                if (!in_array($land, ['DE', 'IT'], true) || $gebiet === '' || mb_strlen($gebiet) > 120) {
+                    throw new RuntimeException('Bitte einen Ort eintragen, zum Beispiel „Sciacca“.');
+                }
+                $branchen = array_values(array_intersect((array) ($_POST['branchen'] ?? []), array_keys(Akquise::branchen())));
+                $doppelt = Db::wert("SELECT id FROM akq_laeufe WHERE land = ? AND gebiet = ? AND status IN ('wartet','laeuft')", [$land, $gebiet], null);
+                if ($doppelt !== null) { throw new RuntimeException('„' . $gebiet . '“ steht schon auf der Liste für heute Nacht.'); }
+                $lid = Db::insert('akq_laeufe', ['land' => $land, 'ebene' => 'auto', 'gebiet' => $gebiet,
+                    'branchen' => $branchen ? json_encode($branchen) : null, 'angelegt_von' => Auth::name()]);
+                Akquise::protokoll(null, 'lauf', 'Suche angelegt: ' . $gebiet . ' (' . $land . ')', ['branchen' => $branchen], $lid);
+                $_SESSION['gut'] = '„' . $gebiet . '“ ist vorgemerkt. Dein Rechner sucht heute Nacht — morgen früh stehen die geprüften Betriebe hier.';
+                weiter('akquise');
 
             case 'akq_vorlage_verwerfen':
                 AkquiseVersand::verwerfen((int) $_POST['vorlage']);
@@ -125,7 +179,7 @@ if ($post) {
                 Db::update('akq_befunde', (int) $b['id'], ['status' => 'VERWORFEN']);
                 Akquise::protokoll($fid, 'befund', 'Befund verworfen: ' . $b['titel']);
                 Akquise::neuBewerten((int) $b['audit_id']);
-                weiter('akquise/' . $fid);
+                $zurueck('akquise/' . $fid);
 
             case 'akq_neu_pruefen':
                 Db::run("UPDATE akq_firmen SET audit_status = 'offen' WHERE id = ? AND url IS NOT NULL AND gesperrt = 0", [$fid]);
@@ -135,11 +189,11 @@ if ($post) {
 
             case 'akq_analyse_anlegen':
                 AkquiseAnalyse::anlegen($fid);
-                weiter('akquise/' . $fid . '#analyse');
+                weiter('akquise/' . $fid . '?ansicht=verlauf#analyse');
 
             case 'akq_analyse_umschalten':
                 AkquiseAnalyse::umschalten((int) $_POST['analyse'], !empty($_POST['an']));
-                weiter('akquise/' . $fid . '#analyse');
+                $zurueck('akquise/' . $fid . '?ansicht=verlauf#analyse');
 
             case 'akq_regel_speichern':
                 $rid = (int) ($_POST['regel'] ?? 0);
@@ -271,11 +325,38 @@ if ($teil !== '' && ctype_digit($teil)) {
     $fid = (int) $teil;
     $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
     if (!$f) { $_SESSION['fehler'] = 'Diese Firma gibt es nicht.'; weiter('akquise'); }
+    $zusatz = (string) ($teile[2] ?? '');
+    if ($zusatz === 'brief') {
+        /* Druckblatt: eigenes A4 ohne Menue. */
+        $audit = Akquise::letzterAudit($fid);
+        $befunde = $audit ? Akquise::befunde((int) $audit['id']) : [];
+        require __DIR__ . '/views/akquise_brief.php';
+        exit;
+    }
+    if ($zusatz === 'anruf') {
+        /* Anrufzettel: im Rahmen der Verwaltung, weil die Ergebnis-Knoepfe
+           die Rueckfrage aus Ablauf::TRAGWEITE brauchen (Kein Interesse sperrt). */
+        $audit = Akquise::letzterAudit($fid);
+        ansicht('akquise_anruf', [
+            'f' => $f, 'audit' => $audit,
+            'befunde' => $audit ? Akquise::befunde((int) $audit['id']) : [],
+            'gate' => AkquiseGate::pruefen($f, 'telefon'),
+        ]);
+        exit;
+    }
     $audit = Akquise::letzterAudit($fid);
     $befunde = $audit ? Akquise::befunde((int) $audit['id']) : [];
     $gates = [];
     foreach (array_keys(AkquiseGate::KANAELE) as $k) { $gates[$k] = AkquiseGate::pruefen($f, $k); }
+    $vorlagen = Db::all('SELECT * FROM akq_vorlagen WHERE firma_id = ? ORDER BY id DESC', [$fid]);
+    foreach ($vorlagen as $v) {
+        if ($v['status'] !== 'verworfen') { $f['vorlage_status'] = $v['status']; $f['vorlage_kanal'] = $v['kanal']; break; }
+    }
+    $ansicht = in_array($_GET['ansicht'] ?? '', ['befunde', 'verlauf'], true) ? (string) $_GET['ansicht'] : 'ueberblick';
     ansicht('akquise_firma', [
+        'ansicht' => $ansicht,
+        'ampel' => AkquiseGate::ampel($f),
+        'schritt' => Akquise::naechsterSchritt($f),
         'f' => $f,
         'audit' => $audit,
         'befunde' => $befunde,
@@ -283,7 +364,7 @@ if ($teil !== '' && ctype_digit($teil)) {
         'teile' => $audit && $audit['teilwerte'] ? (json_decode((string) $audit['teilwerte'], true) ?: []) : [],
         'messwerte' => $audit && $audit['messwerte'] ? (json_decode((string) $audit['messwerte'], true) ?: []) : [],
         'ki' => $audit && $audit['ki'] ? (json_decode((string) $audit['ki'], true) ?: []) : [],
-        'vorlagen' => Db::all('SELECT * FROM akq_vorlagen WHERE firma_id = ? ORDER BY id DESC', [$fid]),
+        'vorlagen' => $vorlagen,
         'versand' => Db::all('SELECT * FROM akq_versand WHERE firma_id = ? ORDER BY id DESC', [$fid]),
         'antworten' => Db::all('SELECT * FROM akq_antworten WHERE firma_id = ? ORDER BY id DESC', [$fid]),
         'protokoll' => Db::all('SELECT * FROM akq_protokoll WHERE firma_id = ? ORDER BY id DESC LIMIT 100', [$fid]),
@@ -296,7 +377,7 @@ if ($teil !== '' && ctype_digit($teil)) {
 }
 
 $filter = array_intersect_key($_GET, array_flip(['land', 'region', 'kreis', 'stadt', 'branche', 'kontakt', 'compliance', 'audit',
-                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte']));
+                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark']));
 ansicht('akquise', [
     'liste' => Akquise::liste($filter, max(1, (int) ($_GET['seite'] ?? 1))),
     'filter' => $filter,
@@ -304,5 +385,7 @@ ansicht('akquise', [
     'kz' => Akquise::kennzahlen(),
     'grenzen' => AkquiseGate::grenzen(),
     'wartend' => (int) Db::wert("SELECT COUNT(*) FROM akq_laeufe WHERE status IN ('wartet','laeuft')"),
+    'suchen' => Db::all("SELECT gebiet, status FROM akq_laeufe WHERE status IN ('wartet','laeuft') ORDER BY id LIMIT 5"),
+    'branchen' => Akquise::branchen(),
 ]);
 exit;
