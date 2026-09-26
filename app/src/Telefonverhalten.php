@@ -41,6 +41,8 @@ final class Telefonverhalten
         'barge_in', 'abschluss', 'termine', 'gedaechtnis', 'beschwerde', 'interesse', 'empfohlen', 'beratung', 'chef',
     ];
 
+    public const ENDE = '### ENDE VECOM-VERHALTEN';
+
     public static function text(): string
     {
         $t = [];
@@ -149,6 +151,9 @@ final class Telefonverhalten
              . '4 Änderung mit Folgen („chef_aendern“) — alter Wert, neuer Wert, Objekt, Folgen vorlesen, Wiederholung abwarten; '
              . 'danach „Liegt zur Freigabe bereit“, nie „erledigt“. Ausgeführt wird Stufe 4 nur in der Verwaltung.';
 
+        /* Das Ende des Blocks, damit die Verwaltung ihn beim Übertragen
+           genau ersetzen kann -- was Uwe darunter schreibt, bleibt stehen. */
+        $t[] = "\n" . self::ENDE;
         return implode("\n", $t) . "\n";
     }
 

@@ -1843,6 +1843,14 @@ if ($post) {
                 zurueck('einstellungen?b=telefon');
                 break;
 
+            case 'strato_verhalten_schreiben':
+                /* Wenn die STRATO-Oberfläche den Text nicht speichert (26.09.2026):
+                   derselbe Weg wie die Werkzeuge, nur ein Feld, danach nachlesen. */
+                require_once __DIR__ . '/src/Strato.php';
+                $erg = Strato::verhaltenSchreiben();
+                $_SESSION[$erg['ok'] ? 'gut' : 'fehler'] = $erg['text'];
+                zurueck('einstellungen?b=telefon#verhalten');
+
             case 'strato_verhalten':
                 /* Nur lesen: steht drüben die Fassung des Verhaltenstexts,
                    die hier gepflegt wird? Geschrieben wird nichts. */

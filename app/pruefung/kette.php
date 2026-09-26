@@ -10432,6 +10432,45 @@ pruefe('Landeseiten: die Startseite verweist auf sie, je Sprache mit eigenem Dat
     str_contains((string) file_get_contents($oben . '/index.html'), 'href="siti-web-ristoranti.html"')
     && str_contains($lsB, 'h.split(`href="${it}"`).join(`href="${ziel}"`)'));
 
+/* ---- Verhaltenstext direkt zu STRATO (Uwe: „lässt sich nicht speichern“) ---- */
+require_once $wurzel . '/src/Telefonverhalten.php';
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('strato_anon','eyJprobe'), ('strato_refresh','r'), ('strato_agent','ag1'), ('strato_zugang', ?)",
+        [json_encode(['token' => 'tok', 'bis' => time() + 600])]);
+$vsDrueben = json_encode(['id' => 'ag1', 'config' => [
+    'voice' => ['name' => 'Manuela', 'extra' => new stdClass()],
+    'personality_config' => ['behavior' => "Uwes eigener Text.\n\n### VECOM-VERHALTEN v1 (alt)\nalte Regeln\n" . Telefonverhalten::ENDE . "\nUwes Nachsatz."],
+    'tools' => [['name' => 'lage', 'parameters' => ['type' => 'object', 'properties' => new stdClass()]]],
+]]);
+$vsPatch = null;
+Strato::$abrufProbe = static function (string $art, string $url, mixed $k) use (&$vsDrueben, &$vsPatch): array {
+    if ($art === 'PATCH') { $vsPatch = json_encode($k, JSON_UNESCAPED_UNICODE); $vsDrueben = json_encode(['id' => 'ag1', 'config' => $k->config]); return ['ok' => true, 'status' => 204, 'daten' => null]; }
+    return ['ok' => true, 'status' => 200, 'daten' => [json_decode($vsDrueben)]];
+};
+$vsR = Strato::verhaltenSchreiben();
+$vsNeu = json_decode((string) $vsPatch);
+$vsFeld = (string) ($vsNeu->config->personality_config->behavior ?? '');
+pruefe('Verhalten direkt: ersetzt genau den alten VECOM-Block, Uwes Text davor und danach bleibt',
+    $vsR['ok'] && str_starts_with($vsFeld, "Uwes eigener Text.") && str_contains($vsFeld, 'VECOM-VERHALTEN v' . Telefonverhalten::VERSION)
+    && !str_contains($vsFeld, 'alte Regeln') && str_ends_with(rtrim($vsFeld), 'Uwes Nachsatz.'), json_encode($vsR));
+pruefe('Verhalten direkt: Werkzeuge, Stimme und leere Objekte bleiben unverändert (kein {} → [])',
+    str_contains((string) $vsPatch, '"extra":{}') && str_contains((string) $vsPatch, '"properties":{}')
+    && ($vsNeu->config->voice->name ?? '') === 'Manuela' && count($vsNeu->config->tools ?? []) === 1);
+$vsDrueben = json_encode(['id' => 'ag1', 'config' => ['a' => ['prompt' => 'x'], 'b' => ['instructions' => 'y']]]);
+$vsPatch = null;
+$vsR2 = Strato::verhaltenSchreiben();
+pruefe('Verhalten direkt: ist nicht eindeutig, welches Feld, wird nichts geschrieben',
+    !$vsR2['ok'] && $vsPatch === null && str_contains($vsR2['text'], 'Kandidaten'), $vsR2['text']);
+$vsDrueben = json_encode(['id' => 'ag1', 'config' => ['behavior' => 'Nur Uwes Text.', 'greeting' => 'Ciao']]);
+$vsR3 = Strato::verhaltenSchreiben();
+$vsF3 = (string) (json_decode((string) $vsPatch)->config->behavior ?? '');
+pruefe('Verhalten direkt: ohne Block wird unten angehängt, Begrüßung unberührt',
+    $vsR3['ok'] && str_starts_with($vsF3, 'Nur Uwes Text.') && str_contains($vsF3, Telefonverhalten::ENDE)
+    && (json_decode((string) $vsPatch)->config->greeting ?? '') === 'Ciao');
+pruefe('Verhalten direkt: nur nach Rückfrage (TRAGWEITE)', isset(Ablauf::TRAGWEITE['strato_verhalten_schreiben']));
+Strato::$abrufProbe = null;
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

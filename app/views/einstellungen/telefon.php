@@ -196,13 +196,19 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
   <p style="color:var(--leise);font-size:13px;line-height:1.6;margin-bottom:10px">
     Die Regeln, nach denen Manuela spricht: Sprache halten, nichts erfinden, nachfragen, zurücklesen,
     sauber abschließen, Chef-Modus nur mit Codewort. Er gehört bei STRATO <b>unter</b> Stimme, Begrüßung und
-    Persönlichkeit ins Verhaltensfeld — die Verwaltung schreibt ihn dort nicht selbst hinein, damit nichts
-    überschrieben wird, was du drüben eingestellt hast. Sie prüft nur lesend, ob die Fassung angekommen ist.</p>
+    Persönlichkeit ins Verhaltensfeld. Entweder kopieren und drüben einfügen — oder, wenn STRATO nicht speichert,
+    „Direkt zu STRATO übertragen“: Dann ersetzt die Verwaltung nur ihren eigenen Block (oder hängt ihn unten an);
+    was du drüben selbst geschrieben hast, bleibt stehen. Danach die STRATO-Seite neu laden, bevor du dort etwas speicherst.</p>
   <div style="display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap">
     <button class="knopf haupt" type="button" data-kopieren="verhalten_text">Kopieren</button>
     <form method="post" action="<?= Fmt::h(url('')) ?>">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_verhalten">
       <button class="knopf">Mit STRATO vergleichen</button></form>
+    <?php /* Wenn die STRATO-Oberfläche nicht speichert: direkt einsetzen.
+             Nur der VECOM-Block wird ersetzt oder unten angehängt. */ ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_verhalten_schreiben">
+      <button class="knopf">Direkt zu STRATO übertragen</button></form>
   </div>
   <textarea id="verhalten_text" readonly rows="14"
     style="width:100%;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45"

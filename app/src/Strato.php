@@ -811,6 +811,90 @@ final class Strato
         }];
     }
 
+    /**
+     * Den Verhaltenstext drüben einsetzen (26.09.2026, Uwe: „lässt sich
+     * nicht speichern“ -- die STRATO-Oberfläche nahm ihn nicht an, auch
+     * nicht zur Hälfte). Derselbe Weg wie die Werkzeuge: frisch lesen, genau
+     * ein Feld ändern, zurückschreiben, nachlesen.
+     *
+     * WELCHES FELD: Wir kennen Stratos Feldnamen nicht und raten nicht.
+     *  1. Ein Textfeld, in dem schon ein VECOM-Block steht → genau diesen
+     *     Block ersetzen (bis „### ENDE VECOM-VERHALTEN“ oder Textende).
+     *  2. Sonst genau EIN Textfeld, dessen Name nach Verhalten/Anweisung
+     *     klingt → Block unten anhängen, Uwes Text bleibt darüber stehen.
+     *  3. Sonst nichts schreiben und die Kandidaten nennen.
+     * Werkzeuge, Stimme, Begrüßung, alles andere bleibt Zeichen für Zeichen.
+     *
+     * @return array{ok:bool,text:string,feld?:string}
+     */
+    public static function verhaltenSchreiben(): array
+    {
+        require_once __DIR__ . '/Telefonverhalten.php';
+        if (!self::eingerichtet()) { return ['ok' => false, 'text' => 'Kein Zugang zu STRATO hinterlegt.']; }
+        $token = self::zugangsToken();
+        if ($token === null) { return ['ok' => false, 'text' => 'Der Zugang wird nicht angenommen: ' . self::fehler()]; }
+        $id = self::wert('strato_agent');
+        $u  = self::PROJEKT . '/rest/v1/agent_configs?select=id,config' . ($id !== '' ? '&id=eq.' . rawurlencode($id) : '&limit=2');
+        $a  = self::abruf('GET', $u, self::wert('strato_anon'), $token, null, true);
+        if (!$a['ok'] || !is_array($a['daten']) || !$a['daten']) {
+            return ['ok' => false, 'text' => 'Die Konfiguration war nicht zu lesen (' . $a['status'] . ').'];
+        }
+        if ($id === '' && count($a['daten']) > 1) { return ['ok' => false, 'text' => 'Es gibt mehrere Assistenten. Sag mir, welcher gemeint ist.']; }
+        $satz = $a['daten'][0];
+        $cfg  = $satz->config ?? null;
+        $agent = (string) ($satz->id ?? $id);
+        if (!$cfg instanceof stdClass || $agent === '') { return ['ok' => false, 'text' => 'Die Konfiguration kam leer zurück.']; }
+
+        // Alle Textfelder außer den Werkzeugen, mit Pfad.
+        $felder = [];
+        $sammeln = static function ($knoten, string $pfad) use (&$sammeln, &$felder): void {
+            foreach ((array) $knoten as $k => $v) {
+                $p = $pfad === '' ? (string) $k : $pfad . '.' . $k;
+                if ($p === 'tools') { continue; }
+                if (is_string($v)) { $felder[$p] = $v; }
+                elseif ($v instanceof stdClass || is_array($v)) { $sammeln($v, $p); }
+            }
+        };
+        $sammeln($cfg, '');
+        $mitBlock = array_keys(array_filter($felder, static fn($v) => str_contains($v, 'VECOM-VERHALTEN v')));
+        $namen = array_keys(array_filter($felder, static fn($v, $k) =>
+            preg_match('~(behaviou?r|verhalten|instruction|prompt|system)~i', (string) preg_replace('~.*\.~', '', $k)) === 1,
+            ARRAY_FILTER_USE_BOTH));
+        $ziel = count($mitBlock) === 1 ? $mitBlock[0] : (count($mitBlock) === 0 && count($namen) === 1 ? $namen[0] : null);
+        if ($ziel === null) {
+            return ['ok' => false, 'text' => 'Nicht eindeutig, wohin der Text gehört — nichts geschrieben. Kandidaten: '
+                . (implode(', ', $mitBlock ?: $namen) ?: 'keine') . '. Bitte schick mir diese Zeile.'];
+        }
+        $alt = $felder[$ziel];
+        $block = rtrim(Telefonverhalten::text());
+        $anf = strpos($alt, '### VECOM-VERHALTEN');
+        if ($anf !== false) {
+            $end = strpos($alt, Telefonverhalten::ENDE, $anf);
+            $neu = substr($alt, 0, $anf) . $block . ($end !== false ? substr($alt, $end + strlen(Telefonverhalten::ENDE)) : '');
+        } else {
+            $neu = rtrim($alt) . "\n\n" . $block;
+        }
+        // Genau dieses eine Feld setzen.
+        $teile = explode('.', $ziel); $z = $cfg;
+        foreach (array_slice($teile, 0, -1) as $t) { $z = is_array($z) ? $z[$t] : $z->$t; }
+        $letzt = end($teile);
+        if ($z instanceof stdClass) { $z->$letzt = $neu; } else { return ['ok' => false, 'text' => 'Das Feld liegt in einer Liste — nichts geschrieben (' . $ziel . ').']; }
+
+        $p = self::abruf('PATCH', self::PROJEKT . '/rest/v1/agent_configs?id=eq.' . rawurlencode($agent),
+                         self::wert('strato_anon'), $token, (object) ['config' => $cfg]);
+        if (!$p['ok']) { return ['ok' => false, 'text' => 'Das Schreiben wurde abgelehnt (' . $p['status'] . ').']; }
+        $stand = self::verhaltenStand();
+        if (($stand['stand'] ?? '') !== 'aktuell') {
+            return ['ok' => false, 'text' => 'Geschrieben, aber beim Nachlesen nicht gefunden: ' . ($stand['text'] ?? '') ];
+        }
+        require_once __DIR__ . '/Events.php';
+        self::still(static fn() => Events::protokoll('telefon_verhalten',
+            'Verhaltenstext v' . Telefonverhalten::VERSION . ' zu STRATO übertragen (Feld ' . $ziel . ')'));
+        return ['ok' => true, 'feld' => $ziel,
+                'text' => 'Verhaltenstext v' . Telefonverhalten::VERSION . ' ist drüben (Feld „' . $ziel . '“). '
+                        . 'Dein eigener Text darüber ist unverändert, Werkzeuge und Stimme auch.'];
+    }
+
     /* ==================================================================== */
     /*  Auswertung                                                          */
     /* ==================================================================== */
