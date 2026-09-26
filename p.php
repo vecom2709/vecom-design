@@ -21,6 +21,17 @@ declare(strict_types=1);
 
 $ziel = '/';
 $konfig = __DIR__ . '/app/config.local.php';
+/* MULTIVIEWS (26.09.2026, gemessen): Auf dem Webspace liefert Apache /p/CODE
+   per Inhaltsaushandlung direkt an p.php aus -- mit CODE als PATH_INFO, OHNE
+   ?c=. Die RewriteRule in .htaccess kommt dann nie zum Zug. /p/ULLI10 führte
+   so auf die Startseite, ohne Klick und ohne Zuordnung, während
+   /p.php?c=ULLI10 ging. „Options -MultiViews“ wäre der saubere Weg, kann
+   auf diesem Tarif aber einen 500er auslösen -- also liest p.php den Code
+   selbst aus der Adresse, wenn ?c fehlt. */
+if (!isset($_GET['c']) && preg_match('~^/p/([A-Za-z0-9]{5,16})(?:/([A-Za-z0-9-]{1,20}))?/?(?:[?#]|$)~', (string) ($_SERVER['REQUEST_URI'] ?? ''), $pfad)) {
+    $_GET['c'] = $pfad[1];
+    if (isset($pfad[2]) && $pfad[2] !== '' && !isset($_GET['k'])) { $_GET['k'] = $pfad[2]; }
+}
 $p = null; $sprache = 'it';
 if (is_file($konfig)) {
     try {

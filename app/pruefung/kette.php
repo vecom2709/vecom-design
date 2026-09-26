@@ -11470,6 +11470,19 @@ pruefe('Wochen-Impuls: jeder Impuls dreisprachig und mit einem Ziel, das es auf 
     count(array_filter(Texte::PARTNER_IMPULSE, static fn($i) => isset($i['titel']['it'], $i['titel']['de'], $i['titel']['en'], $i['text']['en'])
         && in_array($i['anker'], ['werbung', 'medien', 'recherche', 'melden'], true))) === count(Texte::PARTNER_IMPULSE));
 
+/* Partnerlink /p/CODE bei MultiViews (26.09.2026, live gemessen: /p/ULLI10 → 302 auf /,
+   ohne Klick, ohne Keks; /p.php?c=ULLI10 → 200). p.php liest den Code dann aus REQUEST_URI. */
+abschnitt('Partnerlink auch ohne RewriteRule (MultiViews)');
+$plQuelle = (string) file_get_contents($wurzel . '/../p.php');
+$plA = strpos($plQuelle, "preg_match('~^/p/"); $plB = $plA === false ? false : strpos($plQuelle, "', (string) (\$_SERVER['REQUEST_URI']", $plA);
+$plMuster = $plA !== false && $plB !== false ? substr($plQuelle, $plA + 12, $plB - $plA - 12) : '';
+$plFall = static function (string $uri) use ($plMuster): array {
+    return $plMuster !== '' && preg_match($plMuster, $uri, $m) ? [$m[1], $m[2] ?? ''] : ['', ''];
+};
+pruefe('p.php liest Code und Kanal selbst aus der Adresse, wenn ?c fehlt',
+    str_contains($plQuelle, "if (!isset(\$_GET['c']) && preg_match(") && $plFall('/p/ULLI10') === ['ULLI10', ''] && $plFall('/p/ULLI10/instagram?n=1') === ['ULLI10', 'instagram']
+    && $plFall('/p/ULLI10/') === ['ULLI10', ''] && $plFall('/px/ULLI10') === ['', ''] && $plFall('/p/AB/instagram') === ['', ''], $plMuster);
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
