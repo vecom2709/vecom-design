@@ -440,7 +440,17 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     <?php if ($seitenSatz !== ''): ?>
       <p class="seitensatz"><?= Fmt::h($seitenSatz) ?></p>
     <?php endif; ?>
-    <?php require $inhaltsdatei; ?>
+    <?php
+    /* WAS DIE SEITE BEKOMMT, GEWINNT (26.09.2026)
+       Gerüst und Ansicht teilen einen Gültigkeitsbereich. Die Menüschleife
+       setzte $summe und $offen -- und überschrieb damit seit dem 13.09.
+       still, was index.php der Seite mitgab: „Meldungen“ zeigte „0
+       ungelesen“ bei 126 offenen, „Rechnungen“ die Menüzahl statt des
+       offenen Betrags; am 26.09. zerschoss $liste die Seite „Heute“. Die
+       übergebenen Werte hier noch einmal zu setzen, macht jede künftige
+       Namensgleichheit harmlos. */
+    extract($daten);
+    require $inhaltsdatei; ?>
   </main>
 </div>
 <?php

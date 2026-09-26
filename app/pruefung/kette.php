@@ -10296,6 +10296,16 @@ pruefe('Einmalig: „Erste Kundenstimme“ hakt sich selbst ab, sobald eine ver�
 Db::run('DELETE FROM stimmen WHERE id = ?', [$veSt]);
 Db::run("DELETE FROM settings WHERE skey LIKE 'einmalig\\_%'");
 
+/* Gerüst und Ansicht teilen einen Gültigkeitsbereich: Was index.php einer
+   Ansicht mitgibt, darf das Gerüst nicht überschreiben (26.09.2026: $liste,
+   $summe, $offen). Geprüft wird die Mechanik und dass $daten selbst heil bleibt. */
+$veLay = (string) file_get_contents($oben . '/app/views/layout.php');
+$veVor = substr($veLay, 0, (int) strpos($veLay, 'require $inhaltsdatei'));
+pruefe('Gerüst: die übergebenen Werte werden direkt vor der Ansicht wieder gesetzt',
+    preg_match('~extract\(\$daten\);\s*require \$inhaltsdatei;~', $veLay) === 1);
+pruefe('Gerüst: $daten selbst wird im Gerüst nie überschrieben',
+    preg_match('~\$daten\s*=(?!=)|as\s+\$daten\b~', preg_replace('~/\*.*?\*/~s', '', $veVor)) === 0);
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
