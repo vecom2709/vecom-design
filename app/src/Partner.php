@@ -713,7 +713,7 @@ final class Partner
     {
         $konto = (string) ($p['stripe_konto'] ?? '');
         if ($konto === '') {
-            $r = self::stripe('POST', '/v1/accounts', [
+            $felder = [
                 'controller[stripe_dashboard][type]' => 'express',
                 'controller[fees][payer]'            => 'application',
                 'controller[losses][payments]'       => 'application',
@@ -723,9 +723,36 @@ final class Partner
                 'email'                              => (string) $p['email'],
                 'metadata[partner_id]'               => (string) $p['id'],
                 'metadata[partner_code]'             => (string) $p['code'],
-            ], 'partner-konto-' . $p['id']);
+            ];
+            /* Der Schlüssel trägt Variante und Stunde: Stripe merkt sich auch
+               manche Fehlerantworten zu einem Schlüssel. Ohne die Stunde bekäme
+               der Partner nach dem Freischalten von Connect noch einen Tag
+               lang dieselbe alte Absage. */
+            $schluessel = static fn(string $v) => 'partner-konto-' . $p['id'] . '-' . $v . '-' . date('YmdH');
+            $r = self::stripe('POST', '/v1/accounts', $felder, $schluessel('r'));
+            $fehler = (string) ($r['error']['message'] ?? '');
+
+            /* „Empfänger“-Konten gibt es nicht in jedem Land und nicht immer
+               im selben Land wie die Plattform (26.09.2026). Dann das normale
+               Konto — der Partner bekommt trotzdem nur Überweisungen. */
+            if (!isset($r['id']) && preg_match('/recipient|service.?agreement|tos_acceptance/i', $fehler)) {
+                unset($felder['tos_acceptance[service_agreement]']);
+                $r = self::stripe('POST', '/v1/accounts', $felder, $schluessel('f'));
+                $fehler = (string) ($r['error']['message'] ?? '');
+            }
             if (!isset($r['id'])) {
-                return ['ok' => false, 'text' => (string) ($r['error']['message'] ?? 'Stripe hat das Konto nicht angelegt.')];
+                /* Fehlt Connect im Stripe-Konto, kann es kein Partner einrichten:
+                   Stripe wird bis zur Freischaltung nicht mehr angeboten, und
+                   Uwe bekommt die Schritte, nicht nur die Absage. */
+                if (preg_match('/connect|platform|signed up/i', $fehler)) {
+                    Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_stripe_connect', 'fehlt')
+                              ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+                    Events::melden('partner_stripe_connect', 'Stripe Connect ist nicht aktiviert', 'warnung',
+                        'Ein Partner wollte sein Auszahlungskonto einrichten. Stripe: „' . mb_substr($fehler, 0, 200) . '“ — '
+                        . 'Anleitung unter Partner → Auszahlungswege. Bis dahin wird Stripe den Partnern nicht angeboten.', '/partner#wege');
+                    return ['ok' => false, 'grund' => 'connect', 'text' => $fehler];
+                }
+                return ['ok' => false, 'grund' => 'stripe', 'text' => $fehler !== '' ? $fehler : 'Stripe hat das Konto nicht angelegt.'];
             }
             $konto = (string) $r['id'];
             Db::run('UPDATE partner SET stripe_konto = ? WHERE id = ?', [$konto, (int) $p['id']]);
@@ -739,6 +766,22 @@ final class Partner
             return ['ok' => false, 'text' => (string) ($l['error']['message'] ?? 'Stripe gab keinen Einrichtungslink.')];
         }
         return ['ok' => true, 'url' => (string) $l['url']];
+    }
+
+    /**
+     * Ist Stripe Connect im Konto freigeschaltet? Nur lesend: Die Liste der
+     * verbundenen Konten gibt es nur mit Connect.
+     *
+     * @return array{ok:bool,text:string}
+     */
+    public static function connectPruefen(): array
+    {
+        $r = self::stripe('GET', '/v1/accounts', ['limit' => 1]);
+        $ok = isset($r['data']) && is_array($r['data']);
+        Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_stripe_connect', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                [$ok ? 'ok' : 'fehlt']);
+        return ['ok' => $ok, 'text' => $ok ? 'Stripe Connect ist aktiv — Partner können ihr Auszahlungskonto einrichten.'
+            : 'Stripe Connect ist noch nicht aktiv: ' . mb_substr((string) ($r['error']['message'] ?? 'keine Antwort'), 0, 200)];
     }
 
     /** Fragt Stripe, ob das Konto Überweisungen empfangen darf. */

@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'konto' && $p) {
                 $r = Partner::kontoEinrichten($p, $basis . $selbst());
                 if ($r['ok']) { header('Location: ' . $r['url'], true, 303); exit; }
-                $meldung = 'panne';
+                $meldung = 'konto_fehler';
                 Events::melden('partner_stripe_fehler', 'Partner-Konto bei Stripe nicht eingerichtet: ' . $p['name'], 'warnung',
                                (string) ($r['text'] ?? ''), '/partner/' . (int) $p['id']);
             }
@@ -225,7 +225,7 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
   <div class="block pt">
     <h1><?= $h($T('p_titel')) ?></h1>
     <p class="lead"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
-    <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch'], true); ?>
+    <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler'], true); ?>
     <?php if ($meldung !== '' && !$wegFehler): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
     <?php if ($p['status'] === 'pausiert'): ?><div class="hinweis"><?= $h($T('pausiert')) ?></div><?php endif; ?>
 
@@ -288,6 +288,15 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
       <?php endif; ?>
       <button class="knopf<?= empty($p['vereinbarung_am']) ? '' : ' haupt' ?>" type="submit"><?= $h($T('w_speichern')) ?></button>
     </form>
+    <?php $anl = array_values(array_filter(['stripe', 'sepa', 'paypal'], static fn($w) => in_array($w, $wege, true))); if ($anl): ?>
+      <details style="margin-top:14px"<?= $weg !== null && !PartnerWege::bereit($p, $weg) ? ' open' : '' ?>>
+        <summary style="cursor:pointer;color:var(--cyan);font-size:14px"><?= $h($T('anleitung')) ?></summary>
+        <?php foreach ($anl as $w): ?>
+          <p style="margin:12px 0 4px;font-weight:600;font-size:14px"><?= $h($T('w_' . $w)) ?></p>
+          <pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.65;color:var(--dim);margin:0"><?= $h($T('anl_' . $w)) ?></pre>
+        <?php endforeach; ?>
+      </details>
+    <?php endif; ?>
 
     <?php if ($weg === 'stripe'): ?>
       <div style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">

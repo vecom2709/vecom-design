@@ -137,6 +137,22 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <?php endforeach; ?>
     <button class="knopf">Wege speichern</button>
   </form>
+  <?php $connect = Partner::einstellung('partner_stripe_connect'); ?>
+  <div style="border-top:1px solid var(--linie);margin-top:14px;padding-top:12px">
+    <p style="font-size:13.5px;margin:0 0 6px"><b>Stripe Connect</b>
+      <?= $connect === 'ok' ? '<span class="marke2 gut">aktiv</span>' : ($connect === 'fehlt' ? '<span class="marke2 warnung">nicht aktiviert — Stripe wird Partnern nicht angeboten</span>' : '<span class="marke2">noch nicht geprüft</span>') ?></p>
+    <details <?= $connect !== 'ok' ? 'open' : '' ?>><summary style="cursor:pointer;font-size:13px;color:var(--cyan)">So schaltest du Connect frei (einmalig, ca. 10 Minuten)</summary>
+      <ol style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px;margin:8px 0">
+        <li>Im Stripe-Dashboard links auf <b>Connect</b> (bzw. „Verbundene Konten“) → <b>Loslegen</b>.</li>
+        <li>Als Modell <b>Plattform / Marktplatz</b> wählen; Konten verwaltet <b>Stripe</b> (Express), Verluste trägt die Plattform.</li>
+        <li><b>Plattform-Profil</b> ausfüllen: Was du tust („Provisionen an Empfehlungspartner für Webdesign-Aufträge“), Website vecom-design.it.</li>
+        <li>Unter <b>Einstellungen → Connect → Onboarding-Optionen</b>: Italien (und andere EU-Länder, falls Partner dort wohnen) freigeben.</li>
+        <li>Unter <b>Branding</b>: Name „Vecom Design“, Logo, Farbe Gold (#c8963e) — das sieht der Partner beim Einrichten.</li>
+        <li>Hier unten auf <b>„Stripe Connect prüfen“</b> klicken. Steht dort „aktiv“, sehen Partner den Weg „Stripe“ wieder.</li>
+      </ol></details>
+    <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_connect_pruefen">
+      <button class="knopf">Stripe Connect prüfen</button></form>
+  </div>
 </div>
 
 <div class="block" id="bedingungen">

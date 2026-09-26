@@ -59,7 +59,9 @@ final class PartnerWege
     public static function technisch(string $weg): bool
     {
         return match ($weg) {
-            'stripe' => Partner::$stripeProbe !== null || self::stripeBereit(),
+            // Ohne Connect kein Partnerkonto: dann wird Stripe gar nicht erst angeboten.
+            'stripe' => Partner::einstellung('partner_stripe_connect') !== 'fehlt'
+                        && (Partner::$stripeProbe !== null || self::stripeBereit()),
             'paypal' => self::$httpProbe !== null || (self::cfg('paypal', 'client_id') !== '' && self::cfg('paypal', 'secret') !== ''),
             'wise'   => self::$httpProbe !== null || (self::cfg('wise', 'token') !== '' && self::cfg('wise', 'profil') !== ''),
             'sepa', 'gutschrift' => true,

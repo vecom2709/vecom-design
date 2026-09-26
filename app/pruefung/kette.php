@@ -9595,7 +9595,7 @@ $paKonto = $paStripe[0][2] ?? [];
 pruefe('Stripe: Konto nur für Überweisungen (recipient), Stripe prüft, Einrichtungslink kommt zurück',
     $paK['ok'] && ($paKonto['tos_acceptance[service_agreement]'] ?? '') === 'recipient'
     && ($paKonto['capabilities[transfers][requested]'] ?? '') === 'true' && !isset($paKonto['capabilities[card_payments][requested]'])
-    && $paStripe[0][3] === 'partner-konto-' . $paId);
+    && str_starts_with($paStripe[0][3], 'partner-konto-' . $paId . '-'));
 Partner::kontoPruefen(Partner::laden($paId));
 pruefe('Stripe: geprüftes Konto ist bereit', (int) Partner::laden($paId)['stripe_bereit'] === 1);
 Db::run('UPDATE partner SET vereinbarung_am = NULL WHERE id = ?', [$paId]);
@@ -9993,6 +9993,51 @@ $psId = Partner::anlegen(['name' => 'Sprache Test', 'email' => 'sprache@partner.
 Partner::bedingungenSetzen($psId, ['sprache' => 'de', 'monatsmail' => '1']);
 pruefe('Verwaltung: die Sprache eines Partners lässt sich einstellen', Partner::laden($psId)['sprache'] === 'de');
 Db::run('DELETE FROM partner WHERE id = ?', [$psId]);
+
+/* Stripe-Einrichtung scheitert (26.09.2026, Uwe: Fehler beim Klick auf „Konto bei Stripe einrichten“) */
+abschnitt('Partner: Stripe-Einrichtung scheitert');
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
+$scP = Partner::laden(Partner::anlegen(['name' => 'Stripe Fehler', 'email' => 'sf@partner.example', 'status' => 'aktiv']));
+$scAufrufe = [];
+Partner::$stripeProbe = static function (string $m, string $weg, array $f, string $k) use (&$scAufrufe): array {
+    $scAufrufe[] = [$weg, $f];
+    if ($weg === '/v1/accounts' && $m === 'POST') {
+        return isset($f['tos_acceptance[service_agreement]'])
+            ? ['error' => ['message' => 'The recipient service agreement is not supported for accounts in IT.']]
+            : ['id' => 'acct_voll'];
+    }
+    if ($weg === '/v1/account_links') { return ['url' => 'https://connect.stripe.com/x']; }
+    return ['error' => ['message' => '?']];
+};
+$scR = Partner::kontoEinrichten($scP, 'https://pruefung.example/partner.php?t=x');
+pruefe('Stripe: lehnt Stripe „Empfänger“ ab, klappt es mit dem normalen Konto',
+    $scR['ok'] && count(array_filter($scAufrufe, static fn($a) => $a[0] === '/v1/accounts')) === 2
+    && Partner::laden((int) $scP['id'])['stripe_konto'] === 'acct_voll');
+Db::run('UPDATE partner SET stripe_konto = NULL WHERE id = ?', [(int) $scP['id']]);
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array =>
+    $weg === '/v1/accounts' && $m === 'GET' ? ['error' => ['message' => 'You can only create new accounts if you have signed up for Connect']]
+    : ['error' => ['message' => "You can only create new accounts if you've signed up for Connect, which you can learn how to do at https://stripe.com/docs/connect."]];
+require_once $wurzel . '/src/PartnerWege.php';
+pruefe('Stripe: vorher wird Stripe den Partnern angeboten', in_array('stripe', PartnerWege::eingeschaltet(), true));
+Db::run("DELETE FROM notifications WHERE type = 'partner_stripe_connect'");
+$scR = Partner::kontoEinrichten(Partner::laden((int) $scP['id']), 'https://pruefung.example/partner.php?t=x');
+pruefe('Stripe: fehlt Connect → klarer Grund, Meldung mit Anleitung an Uwe, Stripe wird nicht mehr angeboten',
+    !$scR['ok'] && $scR['grund'] === 'connect' && !in_array('stripe', PartnerWege::eingeschaltet(), true)
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_stripe_connect'", [], 0) === 1);
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['data' => []];
+pruefe('Stripe: „Connect prüfen“ gibt den Weg wieder frei, sobald Connect aktiv ist',
+    Partner::connectPruefen()['ok'] && in_array('stripe', PartnerWege::eingeschaltet(), true));
+Partner::$stripeProbe = null;
+$scSeite = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerseite: statt „Etwas hat nicht geklappt“ ein klarer Hinweis, und eine Anleitung Schritt für Schritt',
+    str_contains($scSeite, "\$meldung = 'konto_fehler'") && str_contains($scSeite, "\$T('anl_' . \$w)"));
+foreach (['it', 'de', 'en'] as $scSp) {
+    pruefe('Anleitung (' . $scSp . '): Stripe, SEPA und PayPal beschrieben',
+        substr_count(Texte::PARTNER['anl_stripe'][$scSp], "\n") >= 5 && Texte::PARTNER['anl_sepa'][$scSp] !== '' && Texte::PARTNER['anl_paypal'][$scSp] !== '');
+}
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 
 /* ============================================================================
    Aufräumen und Bilanz
