@@ -5264,7 +5264,7 @@ $mFrueher = ['heute', 'vorgaenge', 'nachrichten', 'werkstatt', 'bedarf', 'angebo
              'rechnungen', 'empfehlungen', 'anfragen', 'standard', 'muster', 'onboarding',
              'zahlungen', 'ausgaben', 'abos', 'finanzamt', 'pakete', 'baukasten',
              'stimmen', 'dateien', 'dashboard', 'monitoring', 'telefon', 'aktivitaeten',
-             'benachrichtigungen', 'einstellungen'];
+             'benachrichtigungen', 'einstellungen', 'kunden', 'partner', 'bereit'];
 
 /* ---------- Jeder Menüpunkt muss auch ankommen --------------------------
    Am 13.09.2026 beim Durchrendern gefunden: „Ausgaben", „Betreuung",
@@ -5294,15 +5294,31 @@ $mOrdner = array_map('basename', array_filter(glob($oben . '/app/*') ?: [], 'is_
 $mKollision = array_values(array_intersect($mZiele, $mOrdner));
 pruefe('kein Menüpunkt heißt wie ein Ordner unter app/', $mKollision === [],
     implode(', ', $mKollision));
-$mWeg = array_values(array_diff($mFrueher, $mZiele));
+/* Seit dem 26.09.2026 stehen manche Seiten als Reiter unter einer
+   Menüzeile ($reiter in layout.php). Erreichbar heißt: im Menü ODER als
+   Reiter einer Menüzeile -- und jede Reitergruppe hängt an einer Zeile,
+   die es im Menü gibt, sonst wären alle ihre Seiten weg. */
+preg_match('~\$reiter = \[(.*?)\n\];~s', $rfLayout, $mRe);
+preg_match_all("~^  '([a-z]+)' => \[~m", $mRe[1] ?? '', $mRg);
+preg_match_all("~\['([a-z]+)', '[^']+', '[a-z]+'\]~", $mRe[1] ?? '', $mRz);
+$mReiterZiele = $mRz[1] ?? [];
+pruefe('jede Reitergruppe hängt an einer Menüzeile, die es gibt',
+    ($mRg[1] ?? []) !== [] && array_diff($mRg[1], $mZiele) === [], implode(', ', array_diff($mRg[1] ?? [], $mZiele)));
+pruefe('jeder Reiter hat einen Fall im Verteiler',
+    array_diff($mReiterZiele, $mRouten) === [], implode(', ', array_diff($mReiterZiele, $mRouten)));
+$mErreichbar = array_values(array_unique(array_merge($mZiele, $mReiterZiele)));
+$mWeg = array_values(array_diff($mFrueher, $mErreichbar));
 pruefe('keine Seite ist beim Umbau verschwunden', $mWeg === [], implode(', ', $mWeg));
 pruefe('und keine steht hinter zwei Türen',
-    count($mZiele) === count(array_unique($mZiele)));
+    count($mZiele) === count(array_unique($mZiele))
+    && count($mReiterZiele) === count(array_unique($mReiterZiele)));
+
 
 /* Die Zahl an einer zugeklappten Tuer ist die Summe dahinter. Ohne das
    sieht man die Null und haelt sie fuer die Wahrheit. */
-pruefe('eine zugeklappte Tür trägt die Summe dessen, was dahinter offen ist',
-    str_contains($rfLayout, '$summe += (int) ($navZahlen[$uSchl] ?? 0);'));
+pruefe('eine zugeklappte Tür trägt die Summe dessen, was dahinter offen ist -- Reiter eingeschlossen',
+    str_contains($rfLayout, '$summe += isset($reiter[$uZiel]) ? $reiterZahl($uZiel) : (int) ($navZahlen[$uSchl] ?? 0);')
+    && str_contains($rfLayout, '$n += (int) ($navZahlen[$rSchl] ?? 0);'));
 pruefe('und klappt auf, wenn man darin arbeitet',
     str_contains($rfLayout, "if (\$aktiv === \$uZiel) { \$offen = true; }"));
 /* Stoerungen gehoeren nicht unter "Einstellungen": Achtzehn offene Warnungen

@@ -110,12 +110,8 @@ $menue = [
        die schon hinterlegten Kunden nicht mehr angezeigt wie Cavaleri."
        Die Liste gab es weiter, nur fuehrte kein Klick mehr hin. */
     ['kunden', 'Alle Kunden', 'kunden'],
-    ['nachrichten', 'Nachrichten', 'nachrichten'],
-    ['anfragen', 'Anfragen', 'anfragen'],
-    ['bedarf', 'Bedarf aus dem Rechner', 'bedarf'],
-    ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
-    ['partner', 'Partner', 'partner'],
-    ['stimmen', 'Kundenstimmen', 'stimmen'],
+    ['nachrichten', 'Posteingang', 'nachrichten'],
+    ['empfehlungen', 'Weiterempfehlung', 'empfehlungen'],
   ]],
 
   ['rechnungen', 'Geld', 'rechnungen', [
@@ -137,11 +133,44 @@ $menue = [
 
   ['einstellungen', 'Einstellungen', 'einstellungen', [
     ['bereit', 'Damit alles läuft', 'bereit'],
-    ['pakete', 'Pakete', 'pakete'],
-    ['baukasten', 'Preisbausteine', 'baukasten'],
+    ['pakete', 'Preise', 'pakete'],
     ['telefon', 'Telefonassistentin', 'telefon'],
   ]],
 ];
+
+/* REITER STATT MENÜZEILEN (26.09.2026, Uwe: „ja“ zu Vorschlag 3)
+   --------------------------------------------------------------------------
+   Drei Menüzeilen für dieselbe Sache -- „Nachrichten“, „Anfragen“, „Bedarf
+   aus dem Rechner“ sind alle „jemand will etwas von dir“ -- sind eine Zeile
+   mit drei Reitern oben auf der Seite. Keine Seite fällt weg: Jede steht als
+   Reiter unter genau einer Menüzeile (die erste ist deren Ziel), und die
+   Menüzeile trägt die Summe aller ihrer Reiter. Die Kette prüft beides. */
+$reiter = [
+  'nachrichten' => [
+    ['nachrichten', 'Nachrichten', 'nachrichten'],
+    ['anfragen', 'Anfragen', 'anfragen'],
+    ['bedarf', 'Bedarf aus dem Rechner', 'bedarf'],
+  ],
+  'empfehlungen' => [
+    ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
+    ['partner', 'Partner', 'partner'],
+    ['stimmen', 'Kundenstimmen', 'stimmen'],
+  ],
+  'pakete' => [
+    ['pakete', 'Pakete', 'pakete'],
+    ['baukasten', 'Preisbausteine', 'baukasten'],
+  ],
+];
+/* Zu welcher Menüzeile gehört die Seite, auf der man steht? */
+$reiterVon = [];
+foreach ($reiter as $gruppe => $liste) { foreach ($liste as [$rZiel]) { $reiterVon[$rZiel] = $gruppe; } }
+$aktivMenue = $reiterVon[$aktiv] ?? $aktiv;
+/* Eine Menüzeile mit Reitern zählt alles, was hinter ihren Reitern offen ist. */
+$reiterZahl = static function (string $gruppe) use ($reiter, $navZahlen): int {
+    $n = 0;
+    foreach ($reiter[$gruppe] ?? [] as [, , $rSchl]) { $n += (int) ($navZahlen[$rSchl] ?? 0); }
+    return $n;
+};
 
 /* NICHTS DARF STILL VERSCHWINDEN
    --------------------------------------------------------------------------
@@ -159,8 +188,9 @@ foreach ($menue as $i => $tuer) {
     $summe = (int) ($navZahlen[$schl] ?? 0);
     $offen = $aktiv === $ziel;
     foreach ($unter as [$uZiel, , $uSchl]) {
-        $summe += (int) ($navZahlen[$uSchl] ?? 0);
+        $summe += isset($reiter[$uZiel]) ? $reiterZahl($uZiel) : (int) ($navZahlen[$uSchl] ?? 0);
         if ($aktiv === $uZiel) { $offen = true; }
+        if ($aktivMenue === $uZiel) { $offen = true; }
     }
     $menue[$i][4] = $summe;
     $menue[$i][5] = $offen;
@@ -223,10 +253,10 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
         if (!$offen || !$unter) { continue; }
         echo '<div class="nav__unter">';
         foreach ($unter as [$uZiel, $uWort, $uSchl]) {
-            $n = (int) ($navZahlen[$uSchl] ?? 0);
+            $n = isset($reiter[$uZiel]) ? $reiterZahl($uZiel) : (int) ($navZahlen[$uSchl] ?? 0);
             printf('<a href="%s" class="%s"><span>%s</span>%s</a>',
                 Fmt::h(url($uZiel)),
-                $aktiv === $uZiel ? 'an' : '',
+                $aktivMenue === $uZiel ? 'an' : '',
                 Fmt::h($uWort),
                 $n > 0 ? '<span class="zahl warn">' . $n . '</span>' : '');
         }
@@ -400,7 +430,14 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
        damit jede Seite ihn an einer Stelle bekommt. Leise, eine Zeile. */
     require_once __DIR__ . '/../src/Hilfe.php';
     $seitenSatz = Hilfe::satz($aktiv);
-    if ($seitenSatz !== ''): ?>
+    if (isset($reiter[$aktivMenue])): ?>
+      <nav class="reiter" aria-label="Bereich">
+        <?php foreach ($reiter[$aktivMenue] as [$rZiel, $rWort, $rSchl]): $rn = (int) ($navZahlen[$rSchl] ?? 0); ?>
+          <a href="<?= Fmt::h(url($rZiel)) ?>" class="<?= $aktiv === $rZiel ? 'an' : '' ?>" <?= $aktiv === $rZiel ? 'aria-current="page"' : '' ?>><?= Fmt::h($rWort) ?><?php if ($rn > 0): ?> <span class="zahl warn"><?= $rn ?></span><?php endif; ?></a>
+        <?php endforeach; ?>
+      </nav>
+    <?php endif; ?>
+    <?php if ($seitenSatz !== ''): ?>
       <p class="seitensatz"><?= Fmt::h($seitenSatz) ?></p>
     <?php endif; ?>
     <?php require $inhaltsdatei; ?>

@@ -690,3 +690,9 @@ dialog.einfuehrung::backdrop{background:rgba(0,0,0,.6)}
    „Zurück“, „Weiter“ und „Los geht's“ gleichzeitig da (Sichtprüfung). */
 .einfuehrung [hidden]{display:none!important}
 dialog.einfuehrung{margin:auto;position:fixed;inset:0;height:fit-content}
+/* Reiter über der Seite (26.09.2026): drei Seiten einer Sache unter einer Menüzeile */
+.reiter{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 12px;border-bottom:1px solid var(--linie)}
+.reiter a{padding:10px 14px;min-height:44px;display:inline-flex;align-items:center;gap:6px;color:var(--dim);text-decoration:none;
+  border-bottom:2px solid transparent;margin-bottom:-1px;font-size:14px}
+.reiter a:hover{color:var(--text)}
+.reiter a.an{color:var(--text);border-bottom-color:var(--blau);font-weight:600}
