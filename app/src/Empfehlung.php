@@ -115,6 +115,18 @@ final class Empfehlung
 
         $empfehlerId = $code !== '' ? self::kundeZuCode($code) : null;
 
+        /* Ein Partnercode im Feld „Wer hat uns empfohlen?“ ist keine
+           Kundenempfehlung -- er gehört dem Partnerprogramm (Partner.php).
+           Und wer schon einem Partner zugeordnet ist, bekommt nicht
+           zusätzlich einen Empfehlungsrabatt: Pro Verkauf zahlt Vecom einmal. */
+        try {
+            require_once __DIR__ . '/Partner.php';
+            if ($code === '' && Partner::ausCode($genanntAls) !== null) { return null; }
+            if ($geworbenerId !== null && Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$geworbenerId], null) !== null) {
+                return null;
+            }
+        } catch (Throwable $e) { /* Tabelle noch nicht da: wie bisher */ }
+
         // Sich selbst zu empfehlen ist keine Empfehlung.
         if ($empfehlerId !== null && $geworbenerId !== null && $empfehlerId === $geworbenerId) {
             return null;
@@ -299,6 +311,9 @@ final class Empfehlung
         $e = Db::one('SELECT * FROM empfehlungen WHERE id = ?', [$empfehlungId]);
         if (!$e || $e['status'] !== 'offen') { return false; }
         if ($e['geworbener_id'] !== null && (int) $e['geworbener_id'] === $empfehlerId) { return false; }
+        // Schon über einen Partner gekommen: kein zweiter Lohn für denselben Kunden.
+        if ($e['geworbener_id'] !== null && self::stillWert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?',
+                                                            [(int) $e['geworbener_id']]) !== null) { return false; }
 
         Db::update('empfehlungen', $empfehlungId, ['empfehler_id' => $empfehlerId]);
 
@@ -315,6 +330,11 @@ final class Empfehlung
     /* ----------------------------------------------------------------------
        Klein
        ---------------------------------------------------------------------- */
+
+    private static function stillWert(string $sql, array $p): mixed
+    {
+        try { return Db::wert($sql, $p, null); } catch (Throwable $e) { return null; }
+    }
 
     /* ----------------------------------------------------------------------
        Aufraeumen

@@ -520,6 +520,19 @@ final class Events
             } catch (Throwable $e) { /* nachtragbar */ }
         }
 
+        // Kam der Kunde über einen Partner, merkt sich das hier die Provision
+        // vor. Gleiches Netz wie oben: Eine fehlende Provision laesst sich
+        // nachtragen, eine zurueckgerollte Zahlung nicht.
+        if (is_array($nachlauf)) {
+            try {
+                require_once __DIR__ . '/Partner.php';
+                Partner::beiZahlung($zahlungId);
+            } catch (Throwable $e) {
+                self::melden('partner_fehler', 'Partner-Provision nicht vorgemerkt', 'warnung',
+                    'Zahlung #' . $zahlungId . ': ' . mb_substr($e->getMessage(), 0, 200), '/partner');
+            }
+        }
+
         // E-Mails erst nach dem Festschreiben. Ein langsamer oder toter
         // Mailserver darf eine bestaetigte Zahlung nicht zurueckrollen — und
         // eine Zahlung ohne Bestaetigungsmail ist immer noch eine Zahlung.

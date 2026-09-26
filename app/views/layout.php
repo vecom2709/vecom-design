@@ -4,6 +4,9 @@ $navZahlen = [
   'bedarf'      => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM bedarf WHERE status = 'abgesendet'", [], 0), 0),
   'angebote'    => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM angebote WHERE status = 'entwurf'", [], 0), 0),
   'empfehlungen'=> (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM empfehlungen WHERE empfehler_id IS NULL AND status = 'offen'", [], 0), 0),
+  /* Was eine Handlung braucht: Bewerbungen, Provisionen zur Freigabe, Rückforderungen. */
+  'partner'     => (int) sicher(fn() => Db::wert("SELECT (SELECT COUNT(*) FROM partner WHERE status = 'bewerbung')
+                     + (SELECT COUNT(*) FROM partner_provisionen WHERE status IN ('freigabe','rueckforderung'))", [], 0), 0),
   'nachrichten' => (int) Db::wert("SELECT COUNT(*) FROM messages WHERE read_at IS NULL AND sender='kunde'"),
   'onboarding'  => (int) Db::wert("SELECT COUNT(*) FROM questionnaires WHERE status='offen'"),
   /* Nur, was wirklich klemmt. Vorher zaehlte hier jede Info-Meldung mit,
@@ -111,6 +114,7 @@ $menue = [
     ['anfragen', 'Anfragen', 'anfragen'],
     ['bedarf', 'Bedarf aus dem Rechner', 'bedarf'],
     ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
+    ['partner', 'Partner', 'partner'],
     ['stimmen', 'Kundenstimmen', 'stimmen'],
   ]],
 

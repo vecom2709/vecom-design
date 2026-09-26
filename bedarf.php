@@ -203,6 +203,15 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'plan'         => $plan,
             ]);
             if ($ok) { unset($_SESSION['bedarf_demo'], $_SESSION['bedarf_plan']); }
+            /* Kam er über einen Partnerlink, oder hat er in „Wer hat uns
+               empfohlen?“ einen Partnercode eingetippt? Dann gehört er ab
+               jetzt zu diesem Partner. Wirft nie -- ein fehlender Vermerk
+               ist nachtragbar, ein verlorener Bedarf nicht. */
+            if ($ok && !$demo) {
+                require_once __DIR__ . '/app/src/Partner.php';
+                $kid = (int) Db::wert('SELECT customer_id FROM bedarf WHERE id = ?', [(int) $b['id']], 0);
+                if ($kid > 0) { Partner::ausBesuch($kid, (int) $b['id'], (string) ($_POST['empfehl_wer'] ?? '')); }
+            }
             /* Die Dankeseite in SEINER Sprache, nicht in der, in der er
                gelesen hat. Wer gerade "Deutsch" angegeben hat und dann eine
                italienische Bestaetigung sieht, glaubt zu Recht, die Angabe

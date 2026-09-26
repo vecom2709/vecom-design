@@ -424,6 +424,100 @@ if ($post) {
                 if ($kid > 0 && $eid > 0) { Empfehlung::zuordnen($eid, $kid); }
                 zurueck('empfehlungen');
 
+            /* ---------- Partnerprogramm (26.09.2026) ---------- */
+            case 'partner_einstellungen':
+                require_once __DIR__ . '/src/Partner.php';
+                $f = Partner::einstellungenSetzen($_POST);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert. Gilt für alle künftigen Provisionen.';
+                zurueck('partner');
+
+            case 'partner_anlegen':
+                require_once __DIR__ . '/src/Partner.php';
+                $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+                if (trim((string) ($_POST['name'] ?? '')) === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $_SESSION['fehler'] = 'Name und gültige E-Mail-Adresse, bitte.';
+                    zurueck('partner');
+                }
+                if (Db::wert("SELECT id FROM partner WHERE email = ? AND status <> 'abgelehnt'", [$email], null) !== null) {
+                    $_SESSION['fehler'] = 'Zu dieser E-Mail gibt es schon einen Partner.';
+                    zurueck('partner');
+                }
+                $pid = Partner::anlegen(['name' => $_POST['name'], 'email' => $email, 'firma' => $_POST['firma'] ?? '',
+                    'steuer_nr' => $_POST['steuer_nr'] ?? '', 'sprache' => $_POST['sprache'] ?? 'it', 'status' => 'aktiv']);
+                Events::pruefspur('partner_angelegt', 'partner', $pid, [], ['email' => $email]);
+                $ok = Partner::schreiben($pid, 'partner_willkommen');
+                $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Partner angelegt, Willkommensmail ist raus. Er bestätigt die Vereinbarung auf seiner Partnerseite.'
+                                                        : 'Partner angelegt — die Willkommensmail ging NICHT raus. Postausgang prüfen.';
+                weiter('partner/' . $pid);
+
+            case 'partner_annehmen':
+            case 'partner_pausieren':
+            case 'partner_aktivieren':
+            case 'partner_ablehnen':
+                require_once __DIR__ . '/src/Partner.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $neu = ['partner_annehmen' => 'aktiv', 'partner_aktivieren' => 'aktiv',
+                        'partner_pausieren' => 'pausiert', 'partner_ablehnen' => 'abgelehnt'][$tat];
+                Partner::statusSetzen($pid, $neu);
+                $_SESSION['gut'] = ['partner_annehmen' => 'Angenommen — die Willkommensmail mit Link und Partnerseite ist raus.',
+                                    'partner_aktivieren' => 'Wieder aktiv.', 'partner_pausieren' => 'Pausiert: neue Klicks und Käufe zählen nicht, Offenes bleibt.',
+                                    'partner_ablehnen' => 'Abgelehnt. Es ging keine Mail raus.'][$tat];
+                weiter('partner/' . $pid);
+
+            case 'partner_bedingungen':
+                require_once __DIR__ . '/src/Partner.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $f = Partner::bedingungenSetzen($pid, $_POST);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert — gilt für künftige Provisionen dieses Partners.';
+                weiter('partner/' . $pid);
+
+            case 'partner_zuordnen':
+                require_once __DIR__ . '/src/Partner.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $r = Partner::zuordnen((int) ($_POST['kunde'] ?? 0), $pid, 'hand');
+                $_SESSION[$r === 'zugeordnet' ? 'gut' : 'fehler'] = [
+                    'zugeordnet' => 'Kunde zugeordnet. Künftige Zahlungen bringen diesem Partner Provision.',
+                    'schon' => 'Der Kunde gehört schon zu einem Partner — es wird nicht umgehängt.',
+                    'selbst' => 'Das ist der Partner selbst — eigene Käufe bringen keine Provision.',
+                    'empfehlung' => 'Der Kunde kam über eine Kundenempfehlung (Rabatt) — nicht zusätzlich einem Partner.',
+                    'kein_partner' => 'Der Partner ist nicht aktiv.'][$r] ?? 'Nicht zugeordnet.';
+                weiter('partner/' . $pid);
+
+            case 'partner_provision_frei':
+                require_once __DIR__ . '/src/Partner.php';
+                Partner::freigeben((int) ($_POST['provision'] ?? 0));
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_provision_streichen':
+                require_once __DIR__ . '/src/Partner.php';
+                Partner::streichen((int) ($_POST['provision'] ?? 0), (string) ($_POST['grund'] ?? ''));
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_auszahlen_stripe':
+                require_once __DIR__ . '/src/Partner.php';
+                $r = Partner::auszahlenStripe((int) ($_POST['id'] ?? 0));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_auszahlen_hand':
+                require_once __DIR__ . '/src/Partner.php';
+                $r = Partner::auszahlenHand((int) ($_POST['id'] ?? 0), (string) ($_POST['referenz'] ?? ''));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_konto_pruefen':
+                require_once __DIR__ . '/src/Partner.php';
+                $pp = Partner::laden((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = $pp && Partner::kontoPruefen($pp) ? 'Stripe: Das Konto kann Überweisungen empfangen.'
+                                                                     : 'Stripe: Das Konto ist noch nicht fertig eingerichtet.';
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_token_neu':
+                require_once __DIR__ . '/src/Partner.php';
+                Partner::tokenNeu((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Neuer Zugang erzeugt — der alte Link zur Partnerseite gilt nicht mehr.';
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
             /* DIE SPERRE FUER DEN BAUKASTEN
                ----------------------------------------------------------
                Ein abgeschaltetes Eingabefeld ist die halbe Sicherung: Es
@@ -2856,6 +2950,53 @@ switch ($route) {
                 'SELECT id, name, company FROM customers ORDER BY name'), []),
             'prozent' => Empfehlung::prozent(),
             'monate'  => Empfehlung::monate(),
+        ]);
+        break;
+
+    case 'partner':
+        require_once __DIR__ . '/src/Partner.php';
+        if ($id !== null && isset($_GET['beleg'])) {
+            $a = Db::one('SELECT id FROM partner_auszahlungen WHERE id = ? AND partner_id = ?', [(int) $_GET['beleg'], $id]);
+            $pdf = $a ? Partner::belegPdf((int) $a['id']) : null;
+            if ($pdf === null) { http_response_code(404); exit('Beleg nicht gefunden.'); }
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="provision-' . (int) $a['id'] . '.pdf"');
+            echo $pdf; exit;
+        }
+        if ($id !== null) {
+            $pa = Partner::laden($id);
+            if (!$pa) { http_response_code(404); exit('Partner nicht gefunden.'); }
+            ansicht('partner_akte', [
+                'p' => $pa,
+                'satz' => Partner::satzFuer($pa),
+                'summen' => Partner::summen($id),
+                'zahlen' => Partner::kennzahlen($id),
+                'provisionen' => sicher(static fn() => Db::all(
+                    'SELECT pp.*, c.name AS kunde FROM partner_provisionen pp LEFT JOIN customers c ON c.id = pp.customer_id
+                      WHERE pp.partner_id = ? ORDER BY pp.id DESC LIMIT 200', [$id]), []),
+                'auszahlungen' => sicher(static fn() => Db::all('SELECT * FROM partner_auszahlungen WHERE partner_id = ? ORDER BY id DESC', [$id]), []),
+                'kunden' => sicher(static fn() => Db::all(
+                    'SELECT z.*, c.name, c.company FROM partner_zuordnungen z JOIN customers c ON c.id = z.customer_id
+                      WHERE z.partner_id = ? ORDER BY z.created_at DESC', [$id]), []),
+                'alleKunden' => sicher(static fn() => Db::all(
+                    'SELECT c.id, c.name, c.company FROM customers c LEFT JOIN partner_zuordnungen z ON z.customer_id = c.id
+                      WHERE z.customer_id IS NULL AND c.anonym_am IS NULL ORDER BY c.name'), []),
+            ]);
+            break;
+        }
+        ansicht('partner', [
+            'liste' => sicher(static fn() => Db::all(
+                "SELECT p.*,
+                        (SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks k WHERE k.partner_id = p.id) AS klicks,
+                        (SELECT COUNT(*) FROM partner_zuordnungen z WHERE z.partner_id = p.id) AS kunden,
+                        (SELECT COALESCE(SUM(provision_cents),0) FROM partner_provisionen pp WHERE pp.partner_id = p.id
+                            AND pp.status IN ('wartet','freigabe','bereit')) AS offen,
+                        (SELECT COALESCE(SUM(provision_cents),0) FROM partner_provisionen pp WHERE pp.partner_id = p.id
+                            AND pp.status = 'ausgezahlt') AS ausgezahlt
+                   FROM partner p ORDER BY FIELD(p.status,'bewerbung','aktiv','pausiert','abgelehnt'), p.created_at DESC"), []),
+            'einbehaltMonat' => (int) sicher(static fn() => Db::wert(
+                "SELECT COALESCE(SUM(einbehalt_cents),0) FROM partner_provisionen WHERE status = 'ausgezahlt'
+                   AND ausgezahlt_am >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01') AND ausgezahlt_am < DATE_FORMAT(NOW(), '%Y-%m-01')", [], 0), 0),
         ]);
         break;
 

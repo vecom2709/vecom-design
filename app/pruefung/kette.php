@@ -9458,6 +9458,241 @@ Db::run("DELETE FROM notifications WHERE type IN ('chef_gesperrt','chef_freigabe
 Db::run("DELETE FROM settings WHERE skey IN ('chef_codewort','chef_pin','chef_gesperrt_bis','chef_zaehler_ab')");
 
 /* ============================================================================
+   Partnerprogramm (26.09.2026)
+   ----------------------------------------------------------------------------
+   Bewerbung → Annahme → Link → Zuordnung (erster gewinnt, nie selbst, nie
+   doppelt mit Empfehlung) → Provision nur aus bezahltem Geld → Wartezeit →
+   Auszahlung über Stripe (Idempotenz, source_transaction, Tageslimit) →
+   Erstattung vor/nach Auszahlung. Stripe wird nie wirklich gerufen.
+   ============================================================================ */
+abschnitt('Partnerprogramm');
+require_once $wurzel . '/src/Partner.php';
+require_once $wurzel . '/src/Empfehlung.php';
+require_once $wurzel . '/src/Abo.php';
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
+$paMails = [];
+$paSenden = static function (string $anlass, string $an, string $betreff, string $text) use (&$paMails): bool {
+    $paMails[] = [$anlass, $an, $betreff, $text]; return true;
+};
+
+// P1 Bewerbung
+$paV = Partner::vereinbarungText('de');
+pruefe('Partner: Vereinbarung nennt die Standardwerte 10 % und 50 €', str_contains($paV, '10 %') && str_contains($paV, '50,00'), mb_substr($paV, 0, 300));
+pruefe('Partner: ohne Zustimmung zur Vereinbarung keine Bewerbung',
+    Partner::bewerben(['name' => 'Rosa Rossi', 'email' => 'rosa@partner.example'], 'it', $paV)['grund'] === 'vereinbarung');
+$paB = Partner::bewerben(['name' => 'Rosa Rossi', 'email' => 'Rosa@Partner.example', 'kanal' => 'Instagram', 'vereinbarung' => '1'], 'it', $paV);
+$paId = (int) $paB['id'];
+$paP = Partner::laden($paId);
+pruefe('Partner: Bewerbung steht als „bewerbung“, Code und Zugang vergeben, Wortlaut gespeichert',
+    $paP['status'] === 'bewerbung' && preg_match('/^ROSA[A-Z2-9]{4}$/', $paP['code']) === 1 && strlen($paP['token']) === 48
+    && $paP['vereinbarung_text'] === $paV && $paP['email'] === 'rosa@partner.example', $paP['code']);
+pruefe('Partner: dieselbe E-Mail bewirbt sich nicht doppelt',
+    !empty(Partner::bewerben(['name' => 'Rosa', 'email' => 'rosa@partner.example', 'vereinbarung' => '1'], 'it', $paV)['schon'])
+    && (int) Db::wert('SELECT COUNT(*) FROM partner', [], 0) === 1);
+pruefe('Partner: ein Bewerbungscode öffnet noch nichts', Partner::ausCode($paP['code']) === null && Partner::ausToken($paP['token']) === null);
+Partner::statusSetzen($paId, 'aktiv', $paSenden);
+pruefe('Partner: Annehmen schickt genau eine Willkommensmail mit Link und Partnerseite',
+    count($paMails) === 1 && $paMails[0][0] === 'partner_willkommen' && str_contains($paMails[0][3], '/p/' . $paP['code'])
+    && str_contains($paMails[0][3], 'partner.php?t=' . $paP['token']));
+$paP = Partner::laden($paId);
+
+// P2 Link und Klicks
+Partner::klick($paId); Partner::klick($paId);
+pruefe('Partner: Klicks je Tag gezählt, ohne IP-Spalte', (int) Db::wert('SELECT anzahl FROM partner_klicks WHERE partner_id = ?', [$paId], 0) === 2
+    && !str_contains(strtolower(json_encode(Db::all('SHOW COLUMNS FROM partner_klicks'))), '"ip'));
+$paP2 = Partner::laden(Partner::anlegen(['name' => 'Luca Bianchi', 'email' => 'luca@partner.example', 'status' => 'aktiv']));
+
+// P3 Zuordnung
+$paK1 = Events::kundeFinden(['name' => 'Kunde über Rosa', 'email' => 'k1@partner-kunde.example']);
+$_COOKIE[Partner::KEKS] = $paP['code'];
+pruefe('Partner: Kunde aus dem Besuch (Keks) wird zugeordnet', Partner::ausBesuch($paK1) === 'zugeordnet');
+pruefe('Partner: der erste gewinnt — kein Umhängen auf einen zweiten Partner', Partner::zuordnen($paK1, (int) $paP2['id'], 'hand') === 'schon');
+unset($_COOKIE[Partner::KEKS]);
+$paK2 = Events::kundeFinden(['name' => 'Rosa selbst', 'email' => 'rosa@partner.example']);
+pruefe('Partner: wer mit der eigenen E-Mail kauft, wird nicht sich selbst zugeordnet', Partner::zuordnen($paK2, $paId) === 'selbst');
+$paK3 = Events::kundeFinden(['name' => 'Getippt', 'email' => 'k3@partner-kunde.example']);
+pruefe('Partner: ein eingetippter Code ordnet zu (Quelle „code“)', Partner::ausBesuch($paK3, null, strtolower($paP2['code'])) === 'zugeordnet'
+    && Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$paK3], '') === 'code');
+$paK4 = Events::kundeFinden(['name' => 'Empfohlen', 'email' => 'k4@partner-kunde.example']);
+Db::insert('empfehlungen', ['empfehler_id' => $kundeId, 'geworbener_id' => $paK4, 'code' => 'XXXX', 'quelle' => 'link', 'status' => 'offen']);
+pruefe('Partner: wer über eine Kundenempfehlung kam, bekommt nicht zusätzlich einen Partner', Partner::zuordnen($paK4, $paId) === 'empfehlung');
+pruefe('Empfehlung: wer schon einem Partner gehört, wird nicht zusätzlich als Empfehlung vorgemerkt',
+    Empfehlung::vormerken(0, null, $paK1, '', 'Anna') === null);
+pruefe('Empfehlung: ein Partnercode im Feld „Wer hat uns empfohlen?“ wird keine Kundenempfehlung',
+    Empfehlung::vormerken(0, null, null, '', $paP['code']) === null);
+
+// P4 Provision aus einer bezahlten Website-Bestellung
+$paBest = Events::bestellungAnlegen($paK1, $paketId, 'Partner-Prüfung', 200000);
+$paRaten = Db::all('SELECT * FROM payments WHERE order_id = ? ORDER BY id', [$paBest]);
+pruefe('Partner: vor der Zahlung keine Provision', (int) Db::wert('SELECT COUNT(*) FROM partner_provisionen', [], 0) === 0);
+Events::zahlungBestaetigen((int) $paRaten[0]['id'], 'pi_kette_partner_1', 'stripe');
+$paPr = Db::one('SELECT * FROM partner_provisionen WHERE payment_id = ?', [(int) $paRaten[0]['id']]);
+pruefe('Partner: nach der Zahlung 10 % vom bezahlten Betrag, wartend, frei nach 14 Tagen',
+    $paPr && (int) $paPr['provision_cents'] === (int) round((int) $paRaten[0]['amount_cents'] * 0.10) && $paPr['status'] === 'wartet'
+    && abs(strtotime($paPr['frei_ab']) - strtotime('+14 days')) < 120 && $paPr['art'] === 'website', json_encode($paPr));
+pruefe('Partner: dieselbe Zahlung bringt nie eine zweite Provision', Partner::beiZahlung((int) $paRaten[0]['id'])['grund'] === 'schon');
+
+// P5 fester Betrag je Verkauf: einmal je Bestellung
+Partner::bedingungenSetzen((int) $paP2['id'], ['provision_art' => 'fest', 'provision_wert' => '25', 'monatsmail' => '1']);
+$paBest3 = Events::bestellungAnlegen($paK3, $paketId, 'Partner-Prüfung fest', 100000);
+$paR3 = Db::all('SELECT * FROM payments WHERE order_id = ? ORDER BY id', [$paBest3]);
+foreach ($paR3 as $r) { Events::zahlungBestaetigen((int) $r['id'], 'pi_kette_fest_' . $r['id'], 'stripe'); }
+pruefe('Partner: fester Betrag (25 €) nur einmal je Bestellung, auch bei 50/50',
+    (int) Db::wert('SELECT COUNT(*) FROM partner_provisionen WHERE order_id = ?', [$paBest3], 0) === 1
+    && (int) Db::wert('SELECT provision_cents FROM partner_provisionen WHERE order_id = ?', [$paBest3], 0) === 2500);
+
+// P6 abgeschaltete Art
+Partner::einstellungenSetzen(['partner_standard_art' => 'prozent', 'partner_standard_wert' => '10', 'partner_mindest_cents' => '50',
+    'partner_sperrtage' => '14', 'partner_zuordnung_monate' => '12', 'partner_wiederkehrend_monate' => '12', 'partner_einbehalt_bp' => '0',
+    'partner_gilt_website' => '1', 'partner_gilt_betreuung' => '1', 'partner_gilt_hosting' => '', 'partner_auto_auszahlen' => '1',
+    'partner_auto_tageslimit_cents' => '10', 'partner_bewerbung_offen' => '1']);
+$paAbo = Abo::anlegen($paK1, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']);
+$paZh = Db::insert('payments', ['order_id' => null, 'abo_id' => $paAbo, 'art' => 'rate', 'bezeichnung' => 'Hosting Probe',
+    'amount_cents' => 990, 'currency' => 'EUR', 'status' => 'ausstehend']);
+Events::zahlungBestaetigen($paZh, 'kette-hosting', 'manuell');
+pruefe('Partner: ist Hosting abgeschaltet, bringt eine Hosting-Rate keine Provision',
+    (int) Db::wert('SELECT COUNT(*) FROM partner_provisionen WHERE payment_id = ?', [$paZh], 0) === 0);
+pruefe('Partner: die Sperrfrist lässt sich nicht unter 14 Tage stellen',
+    Partner::einstellungenSetzen(['partner_standard_wert' => '10', 'partner_mindest_cents' => '50', 'partner_sperrtage' => '3',
+        'partner_auto_tageslimit_cents' => '10', 'partner_gilt_website' => '1', 'partner_gilt_betreuung' => '1', 'partner_auto_auszahlen' => '1', 'partner_bewerbung_offen' => '1']) === null
+    && Partner::zahl('partner_sperrtage') === 14);
+
+// P7 Reifen
+Db::run('UPDATE partner_provisionen SET frei_ab = NOW() - INTERVAL 1 MINUTE');
+Db::run('UPDATE partner SET freigabe_noetig = 1 WHERE id = ?', [(int) $paP2['id']]);
+Partner::reifen();
+pruefe('Partner: nach der Wartezeit „bereit“ — oder „freigabe“, wenn Uwe jede sehen will',
+    Db::wert('SELECT status FROM partner_provisionen WHERE partner_id = ?', [$paId], '') === 'bereit'
+    && Db::wert('SELECT status FROM partner_provisionen WHERE partner_id = ?', [(int) $paP2['id']], '') === 'freigabe');
+
+// P8 Erstattung vor der Auszahlung
+$paProv2 = (int) Db::wert('SELECT id FROM partner_provisionen WHERE partner_id = ?', [(int) $paP2['id']], 0);
+$paZ2 = (int) Db::wert('SELECT payment_id FROM partner_provisionen WHERE id = ?', [$paProv2], 0);
+Partner::beiErstattung($paZ2, 1000, 50000);
+pruefe('Partner: Teilerstattung vor der Auszahlung kürzt anteilig (2 %)',
+    (int) Db::wert('SELECT provision_cents FROM partner_provisionen WHERE id = ?', [$paProv2], 0) === 2450);
+Partner::beiErstattung($paZ2, 50000, 50000);
+pruefe('Partner: volle Erstattung vor der Auszahlung — die Provision entfällt',
+    Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$paProv2], '') === 'storniert');
+
+// P9 Auszahlen über Stripe (Probe)
+$paStripe = [];
+Partner::$stripeProbe = static function (string $m, string $weg, array $f, string $key) use (&$paStripe): array {
+    $paStripe[] = [$m, $weg, $f, $key];
+    if ($weg === '/v1/accounts' && $m === 'POST') { return ['id' => 'acct_kette']; }
+    if ($weg === '/v1/account_links') { return ['url' => 'https://connect.stripe.com/setup/kette']; }
+    if (str_starts_with($weg, '/v1/accounts/')) { return ['id' => 'acct_kette', 'capabilities' => ['transfers' => 'active']]; }
+    if (str_starts_with($weg, '/v1/payment_intents/')) { return ['id' => substr($weg, 20), 'latest_charge' => 'ch_kette_1']; }
+    if ($weg === '/v1/transfers') { return ['id' => 'tr_' . $f['metadata[provision]']]; }
+    if (str_ends_with($weg, '/reversals')) { return $GLOBALS['paRueckGeht'] ? ['id' => 'trr_1'] : ['error' => ['message' => 'insufficient funds']]; }
+    return ['error' => ['message' => 'unbekannt']];
+};
+$paP = Partner::laden($paId);
+pruefe('Partner: ohne Stripe-Konto keine Auszahlung', !Partner::auszahlenStripe($paId)['ok']);
+$paK = Partner::kontoEinrichten($paP, 'https://pruefung.example/partner.php?t=' . $paP['token']);
+$paKonto = $paStripe[0][2] ?? [];
+pruefe('Stripe: Konto nur für Überweisungen (recipient), Stripe prüft, Einrichtungslink kommt zurück',
+    $paK['ok'] && ($paKonto['tos_acceptance[service_agreement]'] ?? '') === 'recipient'
+    && ($paKonto['capabilities[transfers][requested]'] ?? '') === 'true' && !isset($paKonto['capabilities[card_payments][requested]'])
+    && $paStripe[0][3] === 'partner-konto-' . $paId);
+Partner::kontoPruefen(Partner::laden($paId));
+pruefe('Stripe: geprüftes Konto ist bereit', (int) Partner::laden($paId)['stripe_bereit'] === 1);
+Db::run('UPDATE partner SET vereinbarung_am = NULL WHERE id = ?', [$paId]);
+pruefe('Partner: ohne bestätigte Vereinbarung keine Auszahlung', !Partner::auszahlenStripe($paId)['ok']);
+Partner::vereinbarungMerken($paId, $paV);
+$paStripe = [];
+$paBetrag = Partner::auszahlbar($paId);
+$paR = Partner::auszahlenStripe($paId);
+$paT = array_values(array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
+pruefe('Stripe: Überweisung an das Partnerkonto, gebunden an die Kundenzahlung, mit Idempotenz-Schlüssel',
+    $paR['ok'] && count($paT) === 1 && $paT[0][2]['destination'] === 'acct_kette' && $paT[0][2]['source_transaction'] === 'ch_kette_1'
+    && (int) $paT[0][2]['amount'] === $paBetrag && str_starts_with($paT[0][3], 'partner-prov-'), $paR['text']);
+pruefe('Partner: Auszahlung mit fortlaufender Nummer gebucht, Provision „ausgezahlt“',
+    Db::wert('SELECT nummer FROM partner_auszahlungen WHERE partner_id = ?', [$paId], '') === 'PA-' . date('Y') . '-0001'
+    && Db::wert('SELECT status FROM partner_provisionen WHERE partner_id = ?', [$paId], '') === 'ausgezahlt');
+pruefe('Partner: ein zweiter Lauf zahlt nichts doppelt', !Partner::auszahlenStripe($paId)['ok']);
+$paPdf = Partner::belegPdf((int) Db::wert('SELECT id FROM partner_auszahlungen WHERE partner_id = ?', [$paId], 0));
+pruefe('Partner: der Beleg ist ein PDF', is_string($paPdf) && str_starts_with($paPdf, '%PDF'));
+
+// P10 Erstattung nach der Auszahlung
+$GLOBALS['paRueckGeht'] = true;
+Partner::beiErstattung((int) $paRaten[0]['id'], (int) $paRaten[0]['amount_cents'], (int) $paRaten[0]['amount_cents']);
+$paRev = array_values(array_filter($paStripe, static fn($x) => str_ends_with($x[1], '/reversals')));
+pruefe('Stripe: Erstattung nach Auszahlung holt die Provision zurück',
+    count($paRev) === 1 && (int) $paRev[0][2]['amount'] === $paBetrag
+    && Db::wert('SELECT status FROM partner_provisionen WHERE partner_id = ?', [$paId], '') === 'zurueckgeholt');
+
+// P11 Automatik, Tageslimit, Einbehalt, Rückforderung
+$paBest2 = Events::bestellungAnlegen($paK1, $paketId, 'Partner-Prüfung 2', 2000000);
+$paR2 = (int) Db::wert('SELECT id FROM payments WHERE order_id = ? ORDER BY id LIMIT 1', [$paBest2], 0);
+Db::run("UPDATE settings SET svalue = '2000' WHERE skey = 'partner_einbehalt_bp'");
+Events::zahlungBestaetigen($paR2, 'pi_kette_partner_2', 'stripe');
+Db::run('UPDATE partner_provisionen SET frei_ab = NOW() - INTERVAL 1 MINUTE WHERE payment_id = ?', [$paR2]);
+$paPr2 = Db::one('SELECT * FROM partner_provisionen WHERE payment_id = ?', [$paR2]);
+pruefe('Partner: Steuereinbehalt 20 % wird an der Provision festgehalten',
+    (int) $paPr2['einbehalt_cents'] === (int) round((int) $paPr2['provision_cents'] * 0.2));
+$paStripe = [];
+$paL = Partner::lauf();
+pruefe('Automatik: über dem Tageslimit (10 €) geht nichts raus, Uwe bekommt eine Meldung',
+    $paL['ausgezahlt'] === 0 && $paL['wartet_limit'] === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_limit'", [], 0) === 1);
+Db::run("UPDATE settings SET svalue = '10000000' WHERE skey = 'partner_auto_tageslimit_cents'");
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'partner_auto_auszahlen'");
+pruefe('Automatik: ausgeschaltet geht nichts raus', Partner::lauf()['ausgezahlt'] === 0 && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
+Db::run("UPDATE settings SET svalue = '1' WHERE skey = 'partner_auto_auszahlen'");
+Db::run("UPDATE payments SET status = 'rueckerstattet' WHERE id = ?", [$paR2]);
+Partner::lauf();
+pruefe('Automatik: in letzter Sekunde erstattet — nichts ausgezahlt, Provision entfällt',
+    !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
+    && Db::wert('SELECT status FROM partner_provisionen WHERE payment_id = ?', [$paR2], '') === 'storniert');
+Db::run("UPDATE payments SET status = 'bezahlt' WHERE id = ?", [$paR2]);
+Db::run("UPDATE partner_provisionen SET status = 'bereit', grund = '' WHERE payment_id = ?", [$paR2]);
+$paL = Partner::lauf();
+$paT = array_values(array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
+pruefe('Automatik: eingeschaltet, im Limit — ausgezahlt wird Provision minus Einbehalt, als „automatisch“ gebucht',
+    $paL['ausgezahlt'] === 1 && (int) $paT[0][2]['amount'] === (int) $paPr2['provision_cents'] - (int) $paPr2['einbehalt_cents']
+    && (int) Db::wert('SELECT automatisch FROM partner_auszahlungen ORDER BY id DESC LIMIT 1', [], 0) === 1);
+$GLOBALS['paRueckGeht'] = false;
+Partner::beiErstattung($paR2, 2000000, 2000000);
+pruefe('Stripe: lässt sich nicht zurückholen → „zurückfordern“ und eine Meldung an Uwe',
+    Db::wert('SELECT status FROM partner_provisionen WHERE payment_id = ?', [$paR2], '') === 'rueckforderung'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_rueck' AND level = 'warnung'", [], 0) === 1);
+Partner::$stripeProbe = null;
+
+// P12 Monatsbericht und Portal
+Db::run('UPDATE partner_klicks SET tag = ?', [date('Y-m-d', strtotime('first day of last month'))]);
+$paMails = [];
+$paN = Partner::monatsberichte($paSenden);
+pruefe('Monatsbericht: nur an Partner mit Bewegung, genau einmal im Monat',
+    $paN === 1 && $paMails[0][1] === 'rosa@partner.example' && Partner::monatsberichte($paSenden) === 0);
+pruefe('Portal: der Zugang über den Schlüssel funktioniert, ein fremder nicht',
+    (int) (Partner::ausToken($paP['token'])['id'] ?? 0) === $paId && Partner::ausToken(str_repeat('a', 48)) === null);
+$paSeite = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Portal: zeigt keine Kundennamen (keine Abfrage auf customers)', !preg_match('/customers/i', $paSeite));
+$paKeks = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Link: /p/CODE setzt nur einen Sitzungs-Keks (kein Ablaufdatum) und zählt ohne IP',
+    str_contains($paKeks, 'setcookie(Partner::KEKS') && !str_contains($paKeks, "'expires'") && !str_contains($paKeks, 'REMOTE_ADDR')
+    && str_contains((string) file_get_contents($wurzel . '/../.htaccess'), 'RewriteRule ^p/([A-Za-z0-9]{5,16})/?$ p.php?c=$1'));
+foreach (['it', 'de', 'en'] as $paSp) {
+    pruefe('Datenschutz (' . $paSp . '): das Partnerprogramm ist beschrieben',
+        str_contains((string) file_get_contents($wurzel . '/../assets/js/legal-' . $paSp . '.js'), 'p9h:'));
+    pruefe('Texte (' . $paSp . '): alle Partner-Mails da', Texte::mail('partner_willkommen', $paSp, [])[0] !== ''
+        && Texte::mail('partner_auszahlung', $paSp, [])[0] !== '' && Texte::mail('partner_bericht', $paSp, [])[0] !== '');
+}
+/* Gefunden beim Ansehen am 26.09.2026: partner.php lud Auth nicht, und
+   Events::protokoll braucht es -- die erste echte Bewerbung wäre mit einer
+   leeren Seite gestorben. Jeder öffentliche Einstieg, der Events benutzt,
+   lädt Auth. */
+foreach (['partner.php', 'p.php'] as $paDatei) {
+    pruefe('Einstieg ' . $paDatei . ': lädt Auth (Events::protokoll braucht es)',
+        str_contains((string) file_get_contents($wurzel . '/../' . $paDatei), "'Auth'"));
+}
+pruefe('Rückfrage: Auszahlen und Bedingungen fragen nach', Ablauf::wiegt('partner_auszahlen_stripe') === Ablauf::SCHWER
+    && Ablauf::wiegt('partner_einstellungen') === Ablauf::SCHWER && Ablauf::wiegt('partner_annehmen') === Ablauf::RAUS);
+
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

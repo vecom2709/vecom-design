@@ -40,6 +40,10 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 # darum geht es bei einer Empfehlung.
 RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
 
+# Partnerlinks: /p/ROSSK4M2 zaehlt den Klick und fuehrt auf die Startseite
+# (p.php). Getrennt von /e/: Partner bekommen Geld, Kunden Rabatt.
+RewriteRule ^p/([A-Za-z0-9]{5,16})/?$ p.php?c=$1 [L,QSA]
+
 # /pakete.html gibt es nicht mehr.
 #
 # Dort standen Starter 499, Business 899 und Premium 1.499 — drei Pakete, die

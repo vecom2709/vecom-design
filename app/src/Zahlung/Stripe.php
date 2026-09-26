@@ -404,6 +404,17 @@ final class StripeAnbieter implements Anbieter
     /* ------------------------------------------------------------------ */
 
     /** @param array<string,string> $felder */
+    /**
+     * Stripe Connect fürs Partnerprogramm (Konto, Einrichtungslink,
+     * Überweisung, Rückholung). Derselbe Weg wie alles andere hier, nur
+     * nach außen geöffnet -- ein zweiter HTTP-Client wäre eine zweite
+     * Stelle, an der der Schlüssel liegt.
+     */
+    public function aufrufen(string $methode, string $weg, array $felder = [], string $einmalig = ''): array
+    {
+        return $this->anfrage($methode, $weg, $felder, $einmalig);
+    }
+
     private function anfrage(string $methode, string $weg, array $felder, string $einmalig = ''): array
     {
         $basis = rtrim((string) ($this->cfg['api'] ?? 'https://api.stripe.com'), '/');

@@ -148,6 +148,14 @@ try {
                         Empfehlung::beiRueckerstattung((int) $z['order_id'], 'Zahlung erstattet');
                     } catch (Throwable $e) { /* dann eben von Hand */ }
                 }
+                // Und die Provision eines Partners, voll oder anteilig.
+                try {
+                    require_once __DIR__ . '/app/src/Partner.php';
+                    Partner::beiErstattung((int) $z['id'], (int) ($o['amount_refunded'] ?? 0), (int) ($o['amount'] ?? 0));
+                } catch (Throwable $e) {
+                    Events::melden('partner_fehler', 'Partner-Provision bei Erstattung nicht angepasst', 'warnung',
+                        mb_substr($e->getMessage(), 0, 200), '/partner');
+                }
                 Events::protokoll('zahlung_erstattet',
                     ($voll ? 'Rückerstattung' : 'Teilerstattung') . ': ' . Fmt::geld((int) ($o['amount_refunded'] ?? 0)),
                     null, (int) $z['order_id']);

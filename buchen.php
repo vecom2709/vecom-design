@@ -156,6 +156,9 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             // In welcher Sprache er gebucht hat, in der schreiben wir ihm auch.
             Onboarding::spracheMerken($kundeId, $sprache);
+            // Kam er über einen Partnerlink, gehört er ab jetzt zu diesem Partner.
+            require_once __DIR__ . '/app/src/Partner.php';
+            Partner::ausBesuch($kundeId);
             $bestellId = Events::bestellungAnlegen($kundeId, (int) $paket['id'],
                 'Direkt auf der Website gebucht (' . strtoupper($sprache) . ')');
 

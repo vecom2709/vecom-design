@@ -130,6 +130,18 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::berichteSenden();
             },
+            /* Partnerprogramm: Provisionen nach der Widerrufsfrist freigeben,
+               Stripe-Konten nachpruefen, automatisch auszahlen (wenn an),
+               am Monatsersten die Berichte. Halbstuendlich reicht -- Geld,
+               das 14 Tage gewartet hat, wartet auch dreissig Minuten. */
+            'partner'     => static function () {
+                require_once __DIR__ . '/Partner.php';
+                $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_lauf_am'", [], '');
+                if ($zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-30 minutes'))) { return ['uebersprungen' => 1]; }
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_lauf_am', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                        [date('Y-m-d H:i:s')]);
+                return Partner::lauf() + ['berichte' => Partner::monatsberichte()];
+            },
             /* Vier Wochen nach dem Veroeffentlichen: an die Netlify-Vorschau erinnern (nie loeschen). */
             'netlify'     => static function () {
                 require_once __DIR__ . '/Veroeffentlichung.php';

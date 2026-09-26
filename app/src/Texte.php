@@ -1430,6 +1430,31 @@ final class Texte
     ];
 
     public const MAILS = [
+        /* Partnerprogramm (26.09.2026) */
+        'partner_willkommen' => [
+            'it' => ['Benvenuto nel programma partner di Vecom Design',
+                "Buongiorno {name},\n\nla sua candidatura è stata accettata. Da oggi ogni cliente che arriva tramite il suo link e acquista le porta una provvigione.\n\nIl suo link: {link}\nIl suo codice (per chi non clicca): {code}\n\nNella sua pagina partner vede clic, clienti, vendite e provvigioni — e lì imposta una volta il conto per i pagamenti (tramite Stripe, noi non vediamo i suoi dati bancari):\n{portal}\n\nLa pagina è personale: non la inoltri."],
+            'de' => ['Willkommen im Partnerprogramm von Vecom Design',
+                "Guten Tag {name},\n\nIhre Bewerbung ist angenommen. Ab heute bringt Ihnen jeder Kunde, der über Ihren Link kommt und kauft, eine Provision.\n\nIhr Link: {link}\nIhr Code (für alle, die nicht klicken): {code}\n\nAuf Ihrer Partnerseite sehen Sie Klicks, Kunden, Verkäufe und Provisionen — und richten dort einmal Ihr Auszahlungskonto ein (über Stripe, wir sehen Ihre Bankdaten nicht):\n{portal}\n\nDie Seite ist persönlich: Bitte nicht weitergeben."],
+            'en' => ['Welcome to the Vecom Design partner programme',
+                "Hello {name},\n\nyour application has been accepted. From today, every customer who arrives through your link and buys earns you a commission.\n\nYour link: {link}\nYour code (for people who don’t click): {code}\n\nOn your partner page you see clicks, customers, sales and commissions — and you set up your payout account there once (via Stripe; we never see your bank details):\n{portal}\n\nThe page is personal: please don’t forward it."],
+        ],
+        'partner_auszahlung' => [
+            'it' => ['Provvigione pagata: {betrag}',
+                "Buongiorno {name},\n\nabbiamo appena pagato {betrag} di provvigioni. Il dettaglio e il documento sono nella sua pagina partner:\n{portal}\n\nGrazie per le sue raccomandazioni."],
+            'de' => ['Provision ausgezahlt: {betrag}',
+                "Guten Tag {name},\n\nwir haben soeben {betrag} Provision ausgezahlt. Die Aufstellung und den Beleg finden Sie auf Ihrer Partnerseite:\n{portal}\n\nDanke für Ihre Empfehlungen."],
+            'en' => ['Commission paid: {betrag}',
+                "Hello {name},\n\nwe have just paid out {betrag} in commission. The breakdown and the statement are on your partner page:\n{portal}\n\nThank you for your recommendations."],
+        ],
+        'partner_bericht' => [
+            'it' => ['Il suo mese da partner: {monat}',
+                "Buongiorno {name},\n\necco i suoi numeri di {monat}:\nClic sul suo link: {klicks}\nNuovi clienti: {kunden}\nVendite: {verkaeufe}\nProvvigioni: {provision}\n\nIn attesa di pagamento in totale: {offen}\n\nTutti i dettagli: {portal}"],
+            'de' => ['Ihr Partnermonat: {monat}',
+                "Guten Tag {name},\n\nIhre Zahlen für {monat}:\nKlicks auf Ihren Link: {klicks}\nNeue Kunden: {kunden}\nVerkäufe: {verkaeufe}\nProvision: {provision}\n\nNoch nicht ausgezahlt, insgesamt: {offen}\n\nAlle Einzelheiten: {portal}"],
+            'en' => ['Your partner month: {monat}',
+                "Hello {name},\n\nhere are your numbers for {monat}:\nClicks on your link: {klicks}\nNew customers: {kunden}\nSales: {verkaeufe}\nCommission: {provision}\n\nNot yet paid out, in total: {offen}\n\nAll the details: {portal}"],
+        ],
         /* Die neue Domain ist registriert (26.09.2026) */
         'domain_aktiv' => [
             'it' => ['{domain} è registrato',
@@ -2710,4 +2735,119 @@ final class Texte
         $ersetzen = array_values($werte);
         return [str_replace($suchen, $ersetzen, $satz[0]), str_replace($suchen, $ersetzen, $satz[1])];
     }
+
+    /* ======================================================================
+       Partnerprogramm (26.09.2026) — Bewerbung, Partnerseite, Vereinbarung.
+       Platzhalter: {satz} {min} {tage} {zuordnung} {monate}
+       ====================================================================== */
+    public const PARTNER = [
+        'titel'      => ['it' => 'Programma partner', 'de' => 'Partnerprogramm', 'en' => 'Partner programme'],
+        'lead'       => ['it' => 'Consiglia Vecom Design a chi ha bisogno di un sito. Per ogni acquisto che arriva tramite il suo link riceve una provvigione.',
+                         'de' => 'Empfehlen Sie Vecom Design an Betriebe, die eine Website brauchen. Für jeden Kauf, der über Ihren Link kommt, bekommen Sie eine Provision.',
+                         'en' => 'Recommend Vecom Design to businesses that need a website. Every purchase that comes through your link earns you a commission.'],
+        'bedingungen'=> ['it' => 'Oggi: {satz} sull’importo netto effettivamente pagato. Pagamento da {min}, dopo {tage} giorni (periodo di recesso del cliente).',
+                         'de' => 'Derzeit: {satz} vom tatsächlich bezahlten Nettobetrag. Auszahlung ab {min}, nach {tage} Tagen (Widerrufsfrist des Kunden).',
+                         'en' => 'Currently: {satz} of the net amount actually paid. Paid out from {min}, after {tage} days (the customer’s withdrawal period).'],
+        'f_name'     => ['it' => 'Nome e cognome', 'de' => 'Vor- und Nachname', 'en' => 'Full name'],
+        'f_email'    => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+        'f_firma'    => ['it' => 'Azienda (facoltativo)', 'de' => 'Firma (optional)', 'en' => 'Company (optional)'],
+        'f_steuer'   => ['it' => 'Partita IVA o codice fiscale (facoltativo)', 'de' => 'Partita IVA / Steuernummer (optional)', 'en' => 'VAT or tax number (optional)'],
+        'f_kanal'    => ['it' => 'Dove ci consiglierà? (sito, social, clienti, …)', 'de' => 'Wo werden Sie uns empfehlen? (Website, Social Media, Kunden, …)', 'en' => 'Where will you recommend us? (website, social media, clients, …)'],
+        'f_text'     => ['it' => 'Qualcosa da aggiungere? (facoltativo)', 'de' => 'Möchten Sie noch etwas sagen? (optional)', 'en' => 'Anything to add? (optional)'],
+        'lesen'      => ['it' => 'Leggere l’accordo partner', 'de' => 'Partnervereinbarung lesen', 'en' => 'Read the partner agreement'],
+        'ok'         => ['it' => 'Ho letto l’accordo partner e lo accetto.', 'de' => 'Ich habe die Partnervereinbarung gelesen und stimme ihr zu.', 'en' => 'I have read the partner agreement and accept it.'],
+        'knopf'      => ['it' => 'Candidarsi', 'de' => 'Bewerben', 'en' => 'Apply'],
+        'danke'      => ['it' => 'Grazie! Esaminiamo la sua candidatura e le scriviamo entro pochi giorni.',
+                         'de' => 'Danke! Wir sehen uns Ihre Bewerbung an und melden uns in wenigen Tagen.',
+                         'en' => 'Thank you! We’ll review your application and get back to you within a few days.'],
+        'zu'         => ['it' => 'Al momento non accettiamo nuove candidature.', 'de' => 'Im Moment nehmen wir keine neuen Bewerbungen an.', 'en' => 'We are not accepting new applications at the moment.'],
+        'angaben'    => ['it' => 'Servono nome e un indirizzo e-mail valido.', 'de' => 'Es braucht Name und eine gültige E-Mail-Adresse.', 'en' => 'A name and a valid email address are required.'],
+        'vereinbarung'=> ['it' => 'Per candidarsi occorre accettare l’accordo partner.', 'de' => 'Zum Bewerben muss die Partnervereinbarung bestätigt werden.', 'en' => 'Please accept the partner agreement to apply.'],
+        'panne'      => ['it' => 'Qualcosa non ha funzionato. Riprovi tra poco.', 'de' => 'Etwas hat nicht geklappt. Bitte gleich noch einmal.', 'en' => 'Something went wrong. Please try again shortly.'],
+        'p_titel'    => ['it' => 'La sua pagina partner', 'de' => 'Ihre Partnerseite', 'en' => 'Your partner page'],
+        'p_link'     => ['it' => 'Il suo link', 'de' => 'Ihr Link', 'en' => 'Your link'],
+        'p_code'     => ['it' => 'Il suo codice — chi non clicca lo scrive in «Chi ci ha consigliato?»', 'de' => 'Ihr Code — wer nicht klickt, tippt ihn bei „Wer hat uns empfohlen?“ ein', 'en' => 'Your code — people who don’t click type it into “Who recommended us?”'],
+        'kopieren'   => ['it' => 'Copia', 'de' => 'Kopieren', 'en' => 'Copy'],
+        'klicks'     => ['it' => 'Clic', 'de' => 'Klicks', 'en' => 'Clicks'],
+        'kunden'     => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
+        'verkaeufe'  => ['it' => 'Vendite', 'de' => 'Verkäufe', 'en' => 'Sales'],
+        'provision'  => ['it' => 'Provvigioni', 'de' => 'Provision', 'en' => 'Commission'],
+        's_wartet'   => ['it' => 'in attesa (recesso)', 'de' => 'wartet (Widerrufsfrist)', 'en' => 'waiting (withdrawal period)'],
+        's_freigabe' => ['it' => 'in verifica', 'de' => 'in Prüfung', 'en' => 'under review'],
+        's_bereit'   => ['it' => 'pronta per il pagamento', 'de' => 'auszahlungsbereit', 'en' => 'ready to pay'],
+        's_ausgezahlt'=> ['it' => 'pagata', 'de' => 'ausgezahlt', 'en' => 'paid'],
+        's_storniert'=> ['it' => 'annullata (rimborso)', 'de' => 'entfallen (Erstattung)', 'en' => 'cancelled (refund)'],
+        's_zurueckgeholt' => ['it' => 'stornata dopo rimborso', 'de' => 'nach Erstattung zurückgebucht', 'en' => 'reversed after refund'],
+        's_rueckforderung'=> ['it' => 'da restituire (rimborso)', 'de' => 'zurückzuzahlen (Erstattung)', 'en' => 'to be repaid (refund)'],
+        'liste'      => ['it' => 'Le sue provvigioni', 'de' => 'Ihre Provisionen', 'en' => 'Your commissions'],
+        'datum'      => ['it' => 'Data', 'de' => 'Datum', 'en' => 'Date'],
+        'art'        => ['it' => 'Tipo', 'de' => 'Art', 'en' => 'Type'],
+        'betrag'     => ['it' => 'Importo', 'de' => 'Betrag', 'en' => 'Amount'],
+        'stand'      => ['it' => 'Stato', 'de' => 'Stand', 'en' => 'Status'],
+        'a_website'  => ['it' => 'Sito web', 'de' => 'Website', 'en' => 'Website'],
+        'a_betreuung'=> ['it' => 'Assistenza', 'de' => 'Betreuung', 'en' => 'Care plan'],
+        'a_hosting'  => ['it' => 'Hosting', 'de' => 'Hosting', 'en' => 'Hosting'],
+        'keine'      => ['it' => 'Ancora nessuna provvigione.', 'de' => 'Noch keine Provision.', 'en' => 'No commission yet.'],
+        'privat'     => ['it' => 'Per rispetto dei clienti qui non compaiono nomi — solo numeri.', 'de' => 'Aus Rücksicht auf die Kunden stehen hier keine Namen — nur Zahlen.', 'en' => 'Out of respect for customers, no names appear here — only numbers.'],
+        'konto'      => ['it' => 'Conto per i pagamenti', 'de' => 'Auszahlungskonto', 'en' => 'Payout account'],
+        'konto_text' => ['it' => 'Le provvigioni arrivano tramite Stripe. Stripe verifica una volta la sua identità e il suo IBAN — noi non vediamo i suoi dati bancari.',
+                         'de' => 'Provisionen kommen über Stripe. Stripe prüft einmal Ihre Identität und Ihre IBAN — wir sehen Ihre Bankdaten nicht.',
+                         'en' => 'Commissions are paid via Stripe. Stripe verifies your identity and IBAN once — we never see your bank details.'],
+        'konto_knopf'=> ['it' => 'Configura il conto su Stripe', 'de' => 'Konto bei Stripe einrichten', 'en' => 'Set up account with Stripe'],
+        'konto_weiter'=> ['it' => 'Completa la configurazione su Stripe', 'de' => 'Einrichtung bei Stripe fortsetzen', 'en' => 'Continue setup with Stripe'],
+        'konto_bereit'=> ['it' => 'Il conto è pronto: le provvigioni vengono pagate automaticamente.', 'de' => 'Das Konto ist bereit: Provisionen werden automatisch ausgezahlt.', 'en' => 'Your account is ready: commissions are paid out automatically.'],
+        'stripe_agb' => ['it' => 'Configurando il conto accetta il [Stripe Recipient Agreement](https://stripe.com/connect-account/legal/recipient).',
+                         'de' => 'Mit der Einrichtung stimmen Sie dem [Stripe Recipient Agreement](https://stripe.com/connect-account/legal/recipient) zu.',
+                         'en' => 'By setting up the account you agree to the [Stripe Recipient Agreement](https://stripe.com/connect-account/legal/recipient).'],
+        'v_fehlt'    => ['it' => 'Manca ancora la sua conferma dell’accordo partner. Senza, non possiamo pagare.',
+                         'de' => 'Ihre Bestätigung der Partnervereinbarung fehlt noch. Ohne sie können wir nicht auszahlen.',
+                         'en' => 'We still need your acceptance of the partner agreement. Without it we can’t pay out.'],
+        'v_knopf'    => ['it' => 'Accetto', 'de' => 'Zustimmen', 'en' => 'Accept'],
+        'auszahlungen'=> ['it' => 'Pagamenti', 'de' => 'Auszahlungen', 'en' => 'Payouts'],
+        'beleg'      => ['it' => 'Documento (PDF)', 'de' => 'Beleg (PDF)', 'en' => 'Statement (PDF)'],
+        'pausiert'   => ['it' => 'Il suo link è in pausa: i nuovi clic non contano finché non lo riattiviamo.',
+                         'de' => 'Ihr Link ist pausiert: Neue Klicks zählen nicht, bis wir ihn wieder aktivieren.',
+                         'en' => 'Your link is paused: new clicks don’t count until we reactivate it.'],
+        'pdf_titel'  => ['it' => 'Liquidazione provvigioni', 'de' => 'Provisionsabrechnung', 'en' => 'Commission statement'],
+        'pdf_an'     => ['it' => 'Partner', 'de' => 'Partner', 'en' => 'Partner'],
+        'pdf_basis'  => ['it' => 'Base netta', 'de' => 'Netto-Basis', 'en' => 'Net basis'],
+        'pdf_satz'   => ['it' => 'Aliquota', 'de' => 'Satz', 'en' => 'Rate'],
+        'pdf_einbehalt' => ['it' => 'Ritenuta', 'de' => 'Steuereinbehalt', 'en' => 'Tax withheld'],
+        'pdf_summe'  => ['it' => 'Pagato', 'de' => 'Ausgezahlt', 'en' => 'Paid'],
+        'pdf_weg'    => ['it' => 'Pagato tramite', 'de' => 'Gezahlt über', 'en' => 'Paid via'],
+        'pdf_hinweis'=> ['it' => 'Il partner è responsabile della dichiarazione fiscale dei compensi ricevuti.',
+                         'de' => 'Für die Versteuerung der erhaltenen Provisionen ist der Partner selbst verantwortlich.',
+                         'en' => 'The partner is responsible for declaring and paying tax on the commissions received.'],
+    ];
+
+    /** Die Partnervereinbarung — der Wortlaut, dem zugestimmt wird, wird am Partner gespeichert. */
+    public const PARTNER_VEREINBARUNG = [
+        'it' => "ACCORDO PARTNER — VECOM DESIGN\n\n"
+              . "1. Il partner consiglia Vecom Design. Per gli acquisti di clienti arrivati per la prima volta tramite il suo link o il suo codice riceve una provvigione di {satz} sull’importo netto effettivamente pagato. Conta il primo contatto; un cliente già acquisito da un altro partner o già cliente non viene riassegnato. L’assegnazione vale per {zuordnung} mesi; per contratti mensili la provvigione vale per i primi {monate} mesi.\n"
+              . "2. La provvigione nasce solo a pagamento ricevuto e diventa pagabile dopo {tage} giorni (periodo di recesso del cliente). Se il cliente viene rimborsato, la provvigione decade o viene stornata; importi già pagati possono essere trattenuti o richiesti indietro.\n"
+              . "3. Il pagamento avviene tramite Stripe a partire da {min}, sul conto che il partner configura presso Stripe. Vecom Design non vede i dati bancari.\n"
+              . "4. Non spettano provvigioni su acquisti propri. È vietata pubblicità ingannevole, spam e l’acquisto di annunci sul nome «Vecom». Il partner indica chiaramente che si tratta di un link con provvigione (per es. #pubblicità).\n"
+              . "5. Il partner non è dipendente né rappresentante di Vecom Design e non fa promesse a suo nome.\n"
+              . "6. Il partner è responsabile della propria posizione fiscale. Se la legge lo prevede, Vecom Design trattiene le imposte dovute.\n"
+              . "7. Il partner vede solo numeri, mai dati dei clienti.\n"
+              . "8. Entrambi possono recedere in qualsiasi momento. Le provvigioni già maturate vengono pagate. Vecom Design può modificare le condizioni per il futuro, comunicandolo per e-mail.",
+        'de' => "PARTNERVEREINBARUNG — VECOM DESIGN\n\n"
+              . "1. Der Partner empfiehlt Vecom Design. Für Käufe von Kunden, die zum ersten Mal über seinen Link oder Code kommen, erhält er eine Provision von {satz} vom tatsächlich bezahlten Nettobetrag. Es zählt der erste Kontakt; wer bereits Kunde ist oder über einen anderen Partner kam, wird nicht umgehängt. Die Zuordnung gilt {zuordnung} Monate; bei monatlichen Verträgen gilt die Provision für die ersten {monate} Monate.\n"
+              . "2. Die Provision entsteht erst mit dem Zahlungseingang und wird nach {tage} Tagen (Widerrufsfrist des Kunden) auszahlbar. Wird dem Kunden erstattet, entfällt sie oder wird zurückgebucht; bereits ausgezahlte Beträge können verrechnet oder zurückgefordert werden.\n"
+              . "3. Ausgezahlt wird über Stripe ab {min} auf das Konto, das der Partner bei Stripe einrichtet. Vecom Design sieht keine Bankdaten.\n"
+              . "4. Auf eigene Käufe gibt es keine Provision. Irreführende Werbung, Spam und gekaufte Anzeigen auf den Namen „Vecom“ sind nicht erlaubt. Der Partner kennzeichnet seinen Link als Werbung mit Provision (z. B. „Werbung“).\n"
+              . "5. Der Partner ist weder Angestellter noch Vertreter von Vecom Design und macht keine Zusagen in dessen Namen.\n"
+              . "6. Für seine Steuern ist der Partner selbst verantwortlich. Wo das Gesetz es verlangt, behält Vecom Design Steuern ein.\n"
+              . "7. Der Partner sieht nur Zahlen, nie Kundendaten.\n"
+              . "8. Beide Seiten können jederzeit beenden. Bereits verdiente Provisionen werden ausgezahlt. Vecom Design kann die Bedingungen für die Zukunft ändern und teilt das per E-Mail mit.",
+        'en' => "PARTNER AGREEMENT — VECOM DESIGN\n\n"
+              . "1. The partner recommends Vecom Design. For purchases by customers who arrive for the first time through the partner’s link or code, the partner receives a commission of {satz} of the net amount actually paid. The first contact counts; existing customers or customers of another partner are not reassigned. The assignment lasts {zuordnung} months; for monthly contracts the commission applies to the first {monate} months.\n"
+              . "2. Commission arises only once payment is received and becomes payable after {tage} days (the customer’s withdrawal period). If the customer is refunded, the commission lapses or is reversed; amounts already paid may be offset or reclaimed.\n"
+              . "3. Payouts are made via Stripe from {min}, to the account the partner sets up with Stripe. Vecom Design never sees bank details.\n"
+              . "4. No commission on one’s own purchases. Misleading advertising, spam and paid ads on the name “Vecom” are not allowed. The partner clearly discloses that the link earns a commission (e.g. #ad).\n"
+              . "5. The partner is neither an employee nor an agent of Vecom Design and makes no promises on its behalf.\n"
+              . "6. The partner is responsible for their own taxes. Where the law requires it, Vecom Design withholds tax.\n"
+              . "7. The partner sees only numbers, never customer data.\n"
+              . "8. Either side may end the partnership at any time. Commission already earned is paid out. Vecom Design may change the terms for the future and will announce this by email.",
+    ];
 }
