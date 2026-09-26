@@ -316,7 +316,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
            normalen Browserfenster nimmt, gibt dem Server dieselbe Sitzung,
            die der Browser benutzt — und beide tauschen ihn aus. Wer zweiter
            ist, ist draußen. */ ?>
-  <div style="background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.35);
+  <div style="background:rgba(255,159,90,.10);border:1px solid rgba(255,159,90,.35);
               border-radius:8px;padding:12px 14px;margin:0 0 14px">
     <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0">
       <b>Hol den Token aus einem privaten Fenster.</b> Nimmst du ihn aus deinem normalen
@@ -335,7 +335,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
            bringt ihnen bei, sie immer wegzuklicken. Deshalb nimmt das Feld
            unten auch den rohen Cookie-Wert: mit der Maus kopieren, hier
            einfügen, der Server packt ihn aus. */ ?>
-  <div style="background:rgba(93,188,252,.07);border:1px solid var(--linie);
+  <div style="background:rgba(241,211,139,.07);border:1px solid var(--linie);
               border-radius:8px;padding:12px 14px;margin:0 0 14px">
     <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0">
       <b>Du brauchst dafür keinen Code in der Konsole.</b> Kopiere unten einfach den
@@ -483,7 +483,7 @@ $konfigs = Telefonwerkzeuge::json();
            hier eine andere gepflegt wird. Genau das ist im September dreimal
            passiert. */ ?>
   <?php if ($strato['eingerichtet']): ?>
-    <div style="background:rgba(93,188,252,.07);border:1px solid var(--linie);
+    <div style="background:rgba(241,211,139,.07);border:1px solid var(--linie);
                 border-radius:8px;padding:14px 16px;margin:10px 0 18px">
       <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:0 0 12px">
         <b>Du musst hier nichts kopieren.</b> Der Zugang zu STRATO liegt hinterlegt — ein Klick

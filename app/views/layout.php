@@ -262,7 +262,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       </div>
     <?php endif; ?>
     <?php if ($beispielZahl > 0): ?>
-      <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="hinweis" style="background:rgba(255,159,90,.12);border-color:rgba(255,159,90,.35);color:var(--gelb);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="flex:1;min-width:240px">Beispieldaten geladen (<?= $beispielZahl ?> Kunden) — die Zahlen sind noch nicht deine echten.</span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="beispiel_loeschen">
@@ -277,7 +277,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     require_once __DIR__ . '/../src/Einrichtung.php';
     $offeneMigrationen = Einrichtung::offene();
     if ($offeneMigrationen): ?>
-      <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div class="hinweis" style="background:rgba(255,159,90,.12);border-color:rgba(255,159,90,.35);color:var(--gelb);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <span><?= count($offeneMigrationen) ?> Aktualisierung<?= count($offeneMigrationen) === 1 ? '' : 'en' ?> der Datenbank ist nicht durchgelaufen. Ein zweiter Versuch:</span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-left:auto">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="migrieren">

@@ -40,7 +40,8 @@ wären:
   richtig routet. Beide wären fast „repariert" worden.
 
 **3. Ein Ding je Bildschirm.** Wer zwei gleich laute Knöpfe sieht, vergleicht, statt
-zu handeln. Blau heißt genau eine Sache: das, was die Führung gerade meint. Alles
+zu handeln. Die Akzentfarbe (seit dem 26.09.2026 Gold, vorher Blau) heißt genau eine
+Sache: das, was die Führung gerade meint. Alles
 andere bleibt sichtbar und anklickbar und sieht aus wie das, was es ist.
 
 ---

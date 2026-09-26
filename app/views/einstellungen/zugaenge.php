@@ -83,7 +83,7 @@
   </p>
 
   <?php if (!$cockpit['beschreibbar']): ?>
-    <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb)">
+    <div class="hinweis" style="background:rgba(255,159,90,.12);border-color:rgba(255,159,90,.35);color:var(--gelb)">
       In den Ordner <code>cockpit/</code> darf von hier aus nicht geschrieben werden. Im KAS unter
       Dateiverwaltung die Schreibrechte prüfen — dann geht es auf Knopfdruck.
     </div>

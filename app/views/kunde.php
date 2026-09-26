@@ -1002,7 +1002,7 @@ $eing = !empty($eingebettet);
           <input name="bestaetigung" required autocomplete="off" placeholder="ANONYM"
                  aria-label="Zur Bestätigung ANONYM eingeben"
                  style="max-width:150px;text-transform:uppercase;letter-spacing:.06em">
-          <button class="knopf" style="border-color:rgba(251,191,36,.45);color:var(--gelb)">
+          <button class="knopf" style="border-color:rgba(255,159,90,.45);color:var(--gelb)">
             Daten anonymisieren</button>
         </form>
       </details>

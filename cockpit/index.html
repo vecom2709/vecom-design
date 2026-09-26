@@ -7,26 +7,26 @@
 <title>Vecom Design — Cockpit</title>
 <style>
   :root{
-    --grund:#05070d; --flaeche:#0c1119; --flaeche2:#111827;
-    --text:#e9eef8; --dim:#97a5bf; --leise:#7a88a3;
-    --linie:rgba(150,180,230,.16); --linie2:rgba(150,180,230,.3);
-    --cyan:#1fe8ff; --blau:#0648e8; --gruen:#4ade80; --rot:#ff8a8a; --gelb:#fbbf24;
+    --grund:#0a0908; --flaeche:#141311; --flaeche2:#1f1c18;
+    --text:#f7f3ea; --dim:#b4ada2; --leise:#9e978b;
+    --linie:rgba(224,206,156,.13); --linie2:rgba(224,206,156,.26);
+    --cyan:#f1d38b; --blau:#c8963e; --gruen:#4ade80; --rot:#ff8a8a; --gelb:#ff9f5a;
     --e:cubic-bezier(.16,1,.3,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--grund);color:var(--text);
        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
        line-height:1.5;padding:16px 14px 60px;
-       background-image:radial-gradient(60% 40% at 50% 0%,rgba(10,120,245,.14),transparent 70%)}
+       background-image:radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.10),transparent 70%)}
   .wrap{max-width:760px;margin:0 auto}
 
   header{margin-bottom:22px;display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
   header .titel{min-width:0}
   .zurVerwaltung{margin-left:auto;display:inline-flex;align-items:center;gap:8px;
-          background:linear-gradient(135deg,var(--blau),#0a63f0);color:#fff;text-decoration:none;
+          background:linear-gradient(115deg,#b98a31 0%,#f7e6ae 20%,#d6a849 38%,#a67a26 56%,#f3dc98 76%,#c49438 100%);color:#16120b;text-decoration:none;
           border-radius:11px;padding:10px 17px;font-size:14px;font-weight:600;white-space:nowrap;
-          box-shadow:0 6px 20px rgba(6,72,232,.32);transition:.2s var(--e)}
-  .zurVerwaltung:hover{transform:translateY(-1px);box-shadow:0 9px 26px rgba(31,232,255,.3)}
+          box-shadow:0 6px 20px rgba(200,150,62,.32);transition:.2s var(--e)}
+  .zurVerwaltung:hover{transform:translateY(-1px);box-shadow:0 9px 26px rgba(241,211,139,.3)}
   .zurVerwaltung span{opacity:.75;font-weight:400}
   @media(max-width:520px){.zurVerwaltung{margin-left:0;width:100%;justify-content:center}}
   h1{font-size:22px;letter-spacing:-.02em}
@@ -47,7 +47,7 @@
 
   .karte{background:var(--flaeche);border-radius:14px;padding:15px;
          box-shadow:inset 0 0 0 1px var(--linie);margin-bottom:9px}
-  .hinweis{background:rgba(251,191,36,.07);box-shadow:inset 0 0 0 1px rgba(251,191,36,.25);
+  .hinweis{background:rgba(255,159,90,.07);box-shadow:inset 0 0 0 1px rgba(255,159,90,.25);
            border-radius:14px;padding:14px;font-size:14px;color:var(--dim)}
   .hinweis b{color:var(--gelb)}
 
@@ -55,8 +55,8 @@
   .proj b{font-size:16px}
   .proj small{display:block;color:var(--leise);font-size:12px;margin-top:2px}
   .pill{font-size:11px;padding:4px 10px;border-radius:999px;white-space:nowrap;
-        background:rgba(31,232,255,.1);color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(31,232,255,.3)}
-  .pill.warten{background:rgba(251,191,36,.1);color:var(--gelb);box-shadow:inset 0 0 0 1px rgba(251,191,36,.3)}
+        background:rgba(241,211,139,.1);color:var(--cyan);box-shadow:inset 0 0 0 1px rgba(241,211,139,.3)}
+  .pill.warten{background:rgba(255,159,90,.1);color:var(--gelb);box-shadow:inset 0 0 0 1px rgba(255,159,90,.3)}
 
   details.tun{background:var(--flaeche);border-radius:14px;margin-bottom:9px;
               box-shadow:inset 0 0 0 1px var(--linie);overflow:hidden}
@@ -69,17 +69,17 @@
   .meta{font-size:12px;color:var(--leise)}
   .gewinn{font-size:10px;padding:3px 8px;border-radius:999px;white-space:nowrap;
           background:rgba(74,222,128,.12);color:var(--gruen)}
-  .gewinn.mittel{background:rgba(251,191,36,.12);color:var(--gelb)}
-  .gewinn.klein{background:rgba(150,180,230,.12);color:var(--dim)}
+  .gewinn.mittel{background:rgba(255,159,90,.12);color:var(--gelb)}
+  .gewinn.klein{background:rgba(224,206,156,.12);color:var(--dim)}
   .inhalt{padding:0 15px 15px;font-size:14px;color:var(--dim);display:grid;gap:12px}
   .inhalt ol{margin:0;padding-left:20px;display:grid;gap:7px}
   .inhalt li{color:var(--dim)}
   .promptZiel{font-size:11px;color:var(--leise);letter-spacing:.04em}
-  textarea{width:100%;min-height:150px;background:#080c14;color:var(--text);
+  textarea{width:100%;min-height:150px;background:#0f0e0c;color:var(--text);
            border:1px solid var(--linie);border-radius:10px;padding:11px;
            font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.5;resize:vertical}
   .kopf{display:flex;gap:8px;align-items:center;margin-top:-4px}
-  button.kopieren{background:linear-gradient(180deg,#fff,#dde5f3);color:#05070d;border:0;
+  button.kopieren{background:linear-gradient(180deg,#fff,#f3e6c4);color:#16120b;border:0;
           border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer}
   button.kopieren:active{transform:scale(.97)}
   .ok{font-size:12px;color:var(--gruen)}

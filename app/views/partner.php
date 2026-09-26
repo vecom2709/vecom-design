@@ -31,7 +31,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 <?php $sepa = array_values(array_filter($handarbeit, static fn($h) => $h['weg'] === 'sepa'));
       $verr = array_values(array_filter($handarbeit, static fn($h) => $h['weg'] === 'gutschrift'));
       if ($sepa || $verr || $offeneAuszahlungen): ?>
-<div class="block" style="border-color:rgba(251,191,36,.35)">
+<div class="block" style="border-color:rgba(255,159,90,.35)">
   <h2 style="font-size:15px;margin:0 0 8px">Auszahlungen von Hand</h2>
   <?php if ($sepa): ?>
     <p style="font-size:13.5px;margin:0 0 8px"><?= count($sepa) ?> SEPA-Überweisung<?= count($sepa) === 1 ? '' : 'en' ?> fällig:

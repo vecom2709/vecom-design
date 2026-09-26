@@ -1,15 +1,23 @@
 :root{
-  /* Dieselben Gestaltungswerte wie im bestehenden Cockpit — nicht neu erfunden. */
-  --grund:#05070d; --flaeche:#0c1119; --flaeche2:#111827;
-  --text:#e9eef8; --dim:#97a5bf; --leise:#7a88a3;
-  --linie:rgba(150,180,230,.16); --linie2:rgba(150,180,230,.3);
-  --cyan:#1fe8ff; --blau:#0648e8; --gruen:#4ade80; --rot:#ff8a8a; --gelb:#fbbf24;
+  /* GOLD STATT BLAU (Uwe, 26.09.2026: „ganze Verwaltung gold“).
+     Dieselben Werte wie die Website und das Kunden-Dashboard (kunde.css) —
+     nicht neu erfunden. Die Namen --blau/--cyan bleiben, weil ~30 Regeln
+     und etliche Ansichten sie benutzen; sie meinen jetzt „Akzent dunkel“
+     und „Akzent hell“. Die Regel aus CLAUDE.md gilt unverändert für die
+     Akzentfarbe: Sie heißt genau eine Sache — das, was die Führung meint.
+     Warnungen sind deshalb nicht mehr gelb, sondern orange: Gelb neben
+     Gold wäre nicht mehr zu unterscheiden. */
+  --grund:#0a0908; --flaeche:#141311; --flaeche2:#1f1c18;
+  --text:#f7f3ea; --dim:#b4ada2; --leise:#9e978b;
+  --linie:rgba(224,206,156,.13); --linie2:rgba(224,206,156,.26);
+  --cyan:#f1d38b; --blau:#c8963e; --gruen:#4ade80; --rot:#ff8a8a; --gelb:#ff9f5a;
+  --metall:linear-gradient(115deg,#b98a31 0%,#f7e6ae 20%,#d6a849 38%,#a67a26 56%,#f3dc98 76%,#c49438 100%);
   --e:cubic-bezier(.16,1,.3,1);
   --r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--grund);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-  background-image:radial-gradient(60% 40% at 50% 0%,rgba(10,120,245,.13),transparent 70%);min-height:100vh}
+  background-image:radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.10),transparent 70%);min-height:100vh}
 a{color:inherit;text-decoration:none}
 .huelle{display:flex;min-height:100vh}
 
@@ -45,7 +53,7 @@ a{color:inherit;text-decoration:none}
    nicht als graue Kiste des Browsers, und ohne die Seite anzuhalten. */
 .frage{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 0;
   padding:11px 13px;border:1px solid var(--cyan);border-radius:12px;
-  background:rgba(31,232,255,.07);font-size:13.5px;line-height:1.5;color:var(--text)}
+  background:rgba(241,211,139,.07);font-size:13.5px;line-height:1.5;color:var(--text)}
 .frage > span{flex:1 1 260px;min-width:0}
 /* In einer Tabelle sitzt sie in einer eigenen Zeile ueber die volle Breite;
    der Rahmen der Zelle wuerde daneben stoeren. */
@@ -55,7 +63,7 @@ tr.fragezeile .frage{margin:0 0 8px}
 .leiste.nurschmal{display:none}
 @media (max-width:900px){ .leiste.nurschmal{display:flex} .leiste.nurschmal input{width:100%} }
 .zahl{background:var(--flaeche2);border:1px solid var(--linie);border-radius:999px;padding:1px 7px;font-size:11px;color:var(--dim)}
-.zahl.warn{background:rgba(251,191,36,.14);border-color:rgba(251,191,36,.35);color:var(--gelb)}
+.zahl.warn{background:rgba(255,159,90,.14);border-color:rgba(255,159,90,.35);color:var(--gelb)}
 
 /* Inhalt */
 .inhalt{flex:1;min-width:0;padding:22px 26px 60px}
@@ -80,7 +88,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--leise);font-weight:500;padding:0 10px 9px;white-space:nowrap}
 td{padding:10px;border-top:1px solid var(--linie);vertical-align:middle}
 tbody tr{transition:.15s var(--e)}
-tbody tr:hover{background:rgba(150,180,230,.05)}
+tbody tr:hover{background:rgba(224,206,156,.05)}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .leer{padding:26px 10px;color:var(--leise);text-align:center;font-size:14px}
 .tabellenrahmen{overflow-x:auto}
@@ -91,13 +99,16 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .marke2.gut::before{background:var(--gruen)}
 .marke2.schlecht{color:var(--rot);border-color:rgba(255,138,138,.32);background:rgba(255,138,138,.1)}
 .marke2.schlecht::before{background:var(--rot)}
-.marke2.warnung{color:var(--gelb);border-color:rgba(251,191,36,.32);background:rgba(251,191,36,.1)}
+.marke2.warnung{color:var(--gelb);border-color:rgba(255,159,90,.32);background:rgba(255,159,90,.1)}
 .marke2.warnung::before{background:var(--gelb)}
 
 .knopf{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:10px;border:1px solid var(--linie2);
   background:var(--flaeche2);color:var(--text);font-size:13.5px;cursor:pointer;transition:.18s var(--e);font-family:inherit}
 .knopf:hover{border-color:var(--cyan);transform:translateY(-1px)}
-.knopf.haupt{background:linear-gradient(135deg,var(--blau),#0a63f0);border-color:transparent;font-weight:550}
+/* Helles Metall braucht dunkle Schrift — Weiß auf Gold käme auf rund 2:1. */
+.knopf.haupt{background:linear-gradient(180deg,rgba(255,255,255,.45) 0%,rgba(255,255,255,0) 42%,rgba(0,0,0,.10) 100%),var(--metall);
+  border-color:transparent;color:#16120b;font-weight:650;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 4px 10px -4px rgba(0,0,0,.7)}
+.knopf.haupt:hover{border-color:transparent;box-shadow:0 14px 34px -16px rgba(200,150,62,.85)}
 .knopf.stumm{background:transparent;color:var(--dim)}
 
 input,select,textarea{width:100%;padding:9px 11px;border-radius:10px;border:1px solid var(--linie);
@@ -161,7 +172,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 
 /* Der naechste Handgriff — das Erste, was auf einer Vorgangsseite steht. */
 .dran{border:1px solid var(--linie2);border-radius:var(--r);padding:15px 17px;margin-bottom:16px;
-  background:linear-gradient(135deg,rgba(6,72,232,.16),rgba(31,232,255,.05))}
+  background:linear-gradient(135deg,rgba(200,150,62,.16),rgba(241,211,139,.05))}
 .dran h2{font-size:13px;font-weight:600;margin-bottom:7px;display:flex;gap:8px;align-items:center}
 .dran p{color:var(--dim);font-size:13.5px;line-height:1.55;margin:0 0 12px}
 .dran.wartet{background:none;border-color:var(--linie)}
@@ -217,8 +228,8 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .jetzt{
   display:flex; align-items:center; gap:14px; flex-wrap:wrap;
   margin:0 0 18px; padding:12px 16px; border-radius:12px;
-  background:linear-gradient(135deg, rgba(6,72,232,.16), rgba(31,232,255,.07));
-  border:1px solid rgba(31,232,255,.28);
+  background:linear-gradient(135deg, rgba(200,150,62,.16), rgba(241,211,139,.07));
+  border:1px solid rgba(241,211,139,.28);
 }
 .jetzt--leer{
   background:transparent; border-color:var(--linie);
@@ -249,9 +260,9 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
   scroll-margin-top:18px; scroll-margin-bottom:18px;
 }
 @keyframes leuchten{
-  0%,100%{outline-color:rgba(31,232,255,0)}
-  25%   {outline-color:rgba(31,232,255,.9)}
-  60%   {outline-color:rgba(31,232,255,.25)}
+  0%,100%{outline-color:rgba(241,211,139,0)}
+  25%   {outline-color:rgba(241,211,139,.9)}
+  60%   {outline-color:rgba(241,211,139,.25)}
 }
 @media (prefers-reduced-motion:reduce){
   .leuchtet{animation:none; outline-color:var(--cyan)}
@@ -372,7 +383,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 /* Die Großansicht liegt über der Seite. Der Grund ist dunkel genug, dass das
    Bild für sich steht, und hell genug, dass man sieht, wo man ist. */
 .dgross{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
-  background:rgba(3,5,10,.92);padding:64px 18px 24px}
+  background:rgba(10,9,8,.92);padding:64px 18px 24px}
 /* display:flex schlaegt das hidden-Attribut des Browsers. Ohne diese Zeile
    liegt die zugeklappte Großansicht unsichtbar ueber der ganzen Seite und
    faengt jeden Klick ab — die Dateiliste waere unbedienbar gewesen. */
@@ -380,11 +391,11 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .dgross img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;
   background:var(--flaeche2)}
 .dgross__kopf{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
-  padding:14px 18px;background:linear-gradient(180deg,rgba(3,5,10,.85),transparent)}
+  padding:14px 18px;background:linear-gradient(180deg,rgba(10,9,8,.85),transparent)}
 .dgross__name{font-size:14px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dgross__zahl{font-size:12.5px;color:var(--leise);white-space:nowrap;margin-left:auto}
 .dgross__pfeil{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;
-  border-radius:50%;border:1px solid var(--linie2);background:rgba(12,17,25,.8);color:var(--text);
+  border-radius:50%;border:1px solid var(--linie2);background:rgba(20,19,17,.8);color:var(--text);
   font-size:26px;line-height:1;cursor:pointer;transition:.18s var(--e)}
 .dgross__pfeil:hover{background:var(--flaeche2);border-color:var(--cyan)}
 .dgross__pfeil:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
@@ -458,7 +469,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
    Nicht „neu heute" — das wäre nach einer Antwort immer noch wahr und damit
    nach zwei Tagen wertlos. */
 .vl__neu{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--cyan);
-  box-shadow:0 0 0 3px rgba(31,232,255,.15)}
+  box-shadow:0 0 0 3px rgba(241,211,139,.15)}
 
 /* Am Handy ist kein Platz für eine zweite Spalte. Die Leiste wird zum
    Streifen über der Seite und scrollt waagerecht — der aktuelle Vorgang
@@ -634,7 +645,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .bereit__satz.gut b{color:var(--gruen)}
 .bereit__satz.gut{border-color:rgba(74,222,128,.3)}
 .bereit__satz.lau b{color:var(--gelb)}
-.bereit__satz.lau{border-color:rgba(251,191,36,.3)}
+.bereit__satz.lau{border-color:rgba(255,159,90,.3)}
 .bereit__satz.schlimm b{color:var(--rot)}
 .bereit__satz.schlimm{border-color:rgba(255,138,138,.34)}
 

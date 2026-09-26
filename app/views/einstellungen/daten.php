@@ -7,7 +7,7 @@
   </p>
 
   <?php if ($beispiele > 0): ?>
-    <div class="hinweis" style="background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.35);color:var(--gelb)">
+    <div class="hinweis" style="background:rgba(255,159,90,.12);border-color:rgba(255,159,90,.35);color:var(--gelb)">
       Es sind gerade <b><?= (int) $beispiele ?></b> Beispielkunden geladen. Alle Zahlen im Dashboard
       rechnen darüber mit — sie sind also noch nicht deine echten Zahlen.
     </div>
