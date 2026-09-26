@@ -162,14 +162,34 @@ export async function betriebeMitPlz(land: string, plz: string, branchen: string
   return overpass(`[out:json][timeout:180];${landArea(land)}(${teile.join('')});out center tags;`);
 }
 
+/* ==========================================================================
+   Wer ueberhaupt als Lead in Frage kommt.
+
+   GESEHEN BEIM ERSTEN LAUF (Aragona, 26.09.2026, 51 Treffer): ein Betrieb
+   namens "Chiuso", einer namens "info 3403363033", CAF/Patronato/ACLI,
+   ein "Centro sportivo comunale" und zwei Unipol-Agenturen. Geschlossene,
+   oeffentliche und Filialen grosser Ketten (deren Website macht die
+   Zentrale) sind keine Kunden fuer Vecom -- sie kosten nur Audits.
+   ========================================================================== */
+const KEIN_BETRIEB = /\b(chiuso|chiusa|closed|geschlossen|dauerhaft geschlossen|comunale|comune di|municipio|patronato|caf\b|acli\b|parrocchia|chiesa|scuola|istituto comprensivo|asp\b|asl\b|gemeinde|stadtverwaltung|rathaus|kirche|schule|kita)\b/i;
+export function istZielbetrieb(t: Record<string, string>): boolean {
+  const name = (t.name ?? '').trim();
+  if (name.length < 3) return false;
+  if (t['disused:shop'] || t['disused:amenity'] || t.disused === 'yes' || t.abandoned === 'yes' || t['opening_hours'] === 'closed') return false;
+  if (KEIN_BETRIEB.test(name)) return false;
+  if ((name.match(/\d/g) ?? []).length >= 6) return false;              // "info 3403363033"
+  if (t['brand:wikidata'] || t['operator:wikidata']) return false;        // Kettenfiliale
+  if (['public', 'government', 'religious', 'community'].includes(t['operator:type'] ?? '')) return false;
+  return true;
+}
+
 /** Aus einem OSM-Element eine Firma fuer die Verwaltung. Null, wenn es keiner Branche zugeordnet werden kann. */
 export function alsFirma(e: OsmElement, land: 'DE' | 'IT', ort: { region?: string; kreis?: string; stadt?: string }, branchen: string[]): GefundeneFirma | null {
   const t = e.tags ?? {};
   if (!t.name) return null;
   const branche = brancheFuer(t, branchen);
   if (!branche) return null;
-  // Geschlossene Betriebe nicht aufnehmen.
-  if (t['disused:shop'] || t['disused:amenity'] || t.disused === 'yes' || t['abandoned'] === 'yes') return null;
+  if (!istZielbetrieb(t)) return null;
   const strasse = [t['addr:street'] ?? t['addr:place'], t['addr:housenumber']].filter(Boolean).join(' ');
   const url = t.website ?? t['contact:website'] ?? t.url ?? t['brand:website'];
   const art = Object.entries(t).find(([k]) => ['amenity', 'shop', 'tourism', 'craft', 'office', 'leisure', 'healthcare', 'man_made'].includes(k));

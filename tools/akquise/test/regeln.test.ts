@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { regelnAnwenden, spracheErkennen } from '../src/audit/index.js';
 import { pivaGueltig } from '../src/audit/regeln/vertrauen.js';
+import { istZielbetrieb } from '../src/recherche/overpass.js';
 import type { Rohdaten } from '../src/audit/typen.js';
 import type { SeitenSignale } from '../src/audit/browser.js';
 
@@ -134,4 +135,12 @@ test('jeder Befund hat Kategorie, Code, Schwere 1–5, Titel und Status', () => 
     assert.ok(b.schwere >= 1 && b.schwere <= 5);
     assert.ok(b.status === 'VERIFIED' || b.status === 'UNVERIFIED');
   }
+});
+
+test('Recherche: nur echte Zielbetriebe (erster Lauf Aragona)', () => {
+  assert.ok(istZielbetrieb({ name: 'Pizzeria Trattoria Olimpia', amenity: 'restaurant' }));
+  for (const name of ['Chiuso', 'info 3403363033', 'CAF patronato', 'ACLI', 'Centro sportivo comunale']) {
+    assert.ok(!istZielbetrieb({ name }), name);
+  }
+  assert.ok(!istZielbetrieb({ name: 'UnipolSai', 'brand:wikidata': 'Q2037863' }), 'Kettenfiliale');
 });
