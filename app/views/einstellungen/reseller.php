@@ -52,6 +52,21 @@ $rsZahl = static fn(?int $n): string => $n === null ? '—' : ($n < 0 ? 'unbegre
       <?php if (!$rs['kontingente']): ?><tr><td colspan="4" style="color:var(--leise)">Keine Angaben.</td></tr><?php endif; ?>
     </tbody></table></div>
 
+    <?php /* Die gerechte Aufteilung: Vertrag geteilt durch die Kunden-Plaetze.
+             Sie gilt fuer jedes neue Angebot; Zugestimmtes behaelt seinen Wert. */
+          $rsV = Hosting::kontingentAus((array) ($rsStand['ressourcen'] ?? [])); ?>
+    <h3 style="font-size:14px;margin:18px 0 6px">Jeder Kunde bekommt</h3>
+    <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">
+      Der Vertrag geteilt durch <b><?= (int) $rsV['plaetze'] ?> Kunden-Plätze</b>, abgerundet — so ist auch mit dem letzten Platz nichts überbucht.
+      Gilt für jedes neue Angebot; wem ein Kunde schon zugestimmt hat, bleibt, wie vereinbart.</p>
+    <div class="tabellenrahmen"><table><tbody>
+      <?php foreach ($rsV['je_kunde'] as $rsK => $rsW): ?>
+        <tr><td style="width:45%"><?= Fmt::h(Kas::RESSOURCEN[$rsK] ?? $rsK) ?></td>
+          <td><b><?= $rsK === 'max_webspace' ? Fmt::h(Hosting::gb((int) $rsW)) : (int) $rsW ?></b>
+            <?php if (in_array($rsK, $rsV['knapp'], true)): ?><small style="color:var(--rot)"> — der Vertrag gibt geteilt weniger her; das Nötigste gilt trotzdem</small><?php endif; ?></td></tr>
+      <?php endforeach; ?>
+    </tbody></table></div>
+
     <h3 style="font-size:14px;margin:18px 0 6px">Speicher je Kunde — Vecom gegen KAS</h3>
     <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">
       Vereinbart sind zusammen <b><?= Fmt::h(Hosting::gb((int) $rs['summe_vereinbart_mb'])) ?></b><?=

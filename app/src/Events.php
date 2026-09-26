@@ -40,6 +40,14 @@ final class Events
         string $typ, string $titel, ?int $kunde = null, ?int $bestellung = null,
         ?int $projekt = null, array $meta = []
     ): void {
+        /* Die Spalte fasst 255 Zeichen. Ein laengerer Titel (am 26.09.2026:
+           der Probelauf-Plan mit allen Kontingenten) warf eine Ausnahme --
+           und riss den Vorgang mit, den er nur beschreiben sollte. Gekuerzt
+           wird hier, der volle Text geht in meta. */
+        if (mb_strlen($titel) > 255) {
+            $meta += ['titel_voll' => $titel];
+            $titel = mb_substr($titel, 0, 254) . '…';
+        }
         Db::insert('activities', [
             'type' => $typ, 'title' => $titel, 'customer_id' => $kunde,
             'order_id' => $bestellung, 'project_id' => $projekt,

@@ -24,7 +24,7 @@ require_once __DIR__ . '/Domainpruefung.php';
  *
  * 3. ANLEGEN — erst wenn der Bau fertig ist. Bei der finalen Freigabe
  *    (der Kunde hat die Vorschau abgenommen) legt die Verwaltung an:
- *    KAS-Account, Domain im Account, Postfach kontakt@. Jeder Schritt einzeln
+ *    KAS-Account, Domain im Account, Postfach info@. Jeder Schritt einzeln
  *    fehlertolerant; was nicht klappt, steht woertlich in der Aufgabe fuer
  *    Uwe. Die REGISTRIERUNG der Domain bleibt sein Handgriff im
  *    Domainbestellsystem — dafuer gibt es keine Schnittstelle, und All-Inkl
@@ -43,7 +43,10 @@ require_once __DIR__ . '/Domainpruefung.php';
 final class Hosting
 {
     /** Das erste Postfach eines Hosting-Kunden. */
-    public const POSTFACH = 'kontakt';
+    /** Das eine Postfach, das beim Einrichten entsteht. Bis 26.09.2026
+     *  "kontakt" -- die Website versprach aber info@, und fuer italienische
+     *  Kunden ist "kontakt" ein fremdes Wort. Seitdem info@, wie versprochen. */
+    public const POSTFACH = 'info';
 
     /** Fassung des Kastentextes -- wird mit jeder Zustimmung gespeichert. */
     public const FASSUNG = '2026-09-25';
@@ -65,6 +68,115 @@ final class Hosting
 
     /** Obergrenze fuer eine einzelne Vereinbarung: der ganze Reseller-Pool. */
     public const SPEICHER_MAX_MB = 204800;
+
+    /* ------------------------------------------------------------------ */
+    /*  Gerecht geteilt (26.09.2026, Uwe: "gerecht aufgeteilt anhand der  */
+    /*  gesamten Kunden -- auch E-Mails, Subdomains usw.")                */
+    /* ------------------------------------------------------------------ */
+
+    /** Plaetze fuer Kunden, wenn der Vertrag keine Zahl nennt (WEB-L-Reseller, PROJEKT.md 07.09.2026). */
+    public const PLAETZE_ERSATZ = 25;
+
+    /** Was der Reseller "unbegrenzt" hat, bekommt jeder Kunde so oft -- genug fuer
+     *  eine Firma, zu wenig, als dass einer den Server mit Tausenden fuellt. */
+    public const UNBEGRENZT_JE_KUNDE = 10;
+
+    /** Darunter geht es nicht: sonst scheitert das Einrichten selbst (eine Domain,
+     *  ein Postfach, die Weiterleitungen aus dem Fragebogen, Datenbank/FTP auf Wunsch). */
+    public const KONTINGENT_MINDEST = [
+        'max_domain' => 1, 'max_subdomain' => 1, 'max_mail_account' => 1, 'max_mail_forward' => 10,
+        'max_database' => 1, 'max_ftpuser' => 1, 'max_cronjobs' => 1,
+    ];
+
+    /** Was geteilt wird. Unter-Accounts, Netzlaufwerke und Baukaesten nicht: Die braucht ein Kunde nicht. */
+    public const KONTINGENT_TEILEN = ['max_domain', 'max_subdomain', 'max_mail_account', 'max_mail_forward',
+        'max_mailinglist', 'max_database', 'max_ftpuser', 'max_cronjobs'];
+
+    /**
+     * Den Reseller-Vertrag gerecht auf die Kunden-Plaetze teilen.
+     *
+     * GERECHT HEISST: jeder Platz gleich viel, abgerundet. Geteilt wird durch
+     * die Plaetze des Vertrags (max_account), NICHT durch die Kunden von
+     * heute -- sonst schrumpfte jedem Kunden sein Speicher, sobald ein neuer
+     * dazukommt, und aus einer Vereinbarung wuerde eine Schaetzung. So passt
+     * auch der letzte Platz noch hinein, und niemand ist ueberbucht.
+     *
+     * @param array<string,array{max?:mixed}> $ressourcen wie get_accountresources
+     * @return array{je_kunde:array<string,int>, plaetze:int, quelle:string, knapp:list<string>}
+     */
+    public static function kontingentAus(array $ressourcen): array
+    {
+        $max = static fn(string $k): ?int => isset($ressourcen[$k]['max']) && is_numeric($ressourcen[$k]['max']) ? (int) $ressourcen[$k]['max'] : null;
+        $plaetze = ($max('max_account') ?? 0) > 0 ? (int) $max('max_account') : self::PLAETZE_ERSATZ;
+        $je = []; $knapp = [];
+        $ws = $max('max_webspace');
+        if ($ws === null || $ws < 0) {
+            $je['max_webspace'] = self::SPEICHER_MB;
+        } else {
+            $mb = intdiv($ws, $plaetze);
+            $je['max_webspace'] = $mb >= 1024 ? intdiv($mb, 1024) * 1024 : $mb;   // ganze GB, wo es geht
+        }
+        foreach (self::KONTINGENT_TEILEN as $k) {
+            $m = $max($k);
+            $wert = $m === null ? (self::KONTINGENT_MINDEST[$k] ?? 0)
+                : ($m < 0 ? self::UNBEGRENZT_JE_KUNDE : intdiv($m, $plaetze));
+            $mindest = self::KONTINGENT_MINDEST[$k] ?? 0;
+            if ($wert < $mindest) { $knapp[] = $k; $wert = $mindest; }
+            if ($wert > 0) { $je[$k] = $wert; }
+        }
+        return ['je_kunde' => $je, 'plaetze' => $plaetze, 'quelle' => $ressourcen ? 'vertrag' : 'ersatz', 'knapp' => $knapp];
+    }
+
+    /** Die Vorgabe fuer neue Auftraege -- aus dem zuletzt ausgelesenen Reseller-Stand. */
+    public static function vorgabe(): array
+    {
+        $stand = json_decode((string) self::still(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_reseller_stand'", [], ''), ''), true);
+        $res = is_array($stand) && is_array($stand['ressourcen'] ?? null) ? $stand['ressourcen'] : [];
+        return self::kontingentAus($res);
+    }
+
+    public static function speicherVorgabe(): int
+    {
+        return (int) self::vorgabe()['je_kunde']['max_webspace'];
+    }
+
+    /** Was ein neuer Auftrag beim Anlegen festhaelt: Speicher und die uebrigen Kontingente. */
+    public static function vorgabeFelder(): array
+    {
+        $je = self::vorgabe()['je_kunde'];
+        $mb = (int) $je['max_webspace']; unset($je['max_webspace']);
+        return ['speicher_mb' => $mb, 'kontingente' => json_encode($je)];
+    }
+
+    /**
+     * Die Grenzen fuer add_account: das Festgehaltene, sonst die Vorgabe von
+     * heute -- nie unter dem, was das Einrichten selbst braucht.
+     * @return array<string,int>
+     */
+    public static function grenzenVon(array $a): array
+    {
+        $k = json_decode((string) ($a['kontingente'] ?? ''), true);
+        if (!is_array($k) || !$k) { $k = self::vorgabe()['je_kunde']; unset($k['max_webspace']); }
+        $g = ['max_webspace' => self::speicherVon($a)];
+        foreach (self::KONTINGENT_TEILEN as $n) {
+            $w = max((int) ($k[$n] ?? 0), (int) (self::KONTINGENT_MINDEST[$n] ?? 0));
+            if ($w > 0) { $g[$n] = $w; }
+        }
+        $g['max_mail_forward'] = max($g['max_mail_forward'] ?? 0, count(self::weiterleitungen((string) ($a['weiterleitungen'] ?? ''))));
+        return $g;
+    }
+
+    /**
+     * Nach dem Auslesen: Auftraege, denen der Kunde noch NICHT zugestimmt hat,
+     * bekommen die neue Vorgabe. Zugestimmte behalten, was im Zustimmungstext
+     * stand -- eine Vereinbarung wird nicht nachtraeglich kleiner.
+     */
+    public static function vorgabeAnwenden(): int
+    {
+        $f = self::vorgabeFelder();
+        return Db::run("UPDATE hosting_auftraege SET speicher_mb = ?, kontingente = ? WHERE status = 'vorgeschlagen'",
+            [$f['speicher_mb'], $f['kontingente']])->rowCount();
+    }
 
     /** Der vereinbarte Speicher eines Auftrags -- die Quelle, nach der sich der KAS richtet. */
     public static function speicherVon(array $a): int
@@ -116,12 +228,12 @@ final class Hosting
                 return;
             }
 
-            Db::insert('hosting_auftraege', [
+            Db::insert('hosting_auftraege', self::vorgabeFelder() + [
                 'customer_id' => $kundeId,
                 'project_id'  => $projektId ?: null,
                 'domain'      => $frei,
                 'status'      => 'vorgeschlagen',
-                'preis_cents' => self::preisCents(), 'speicher_mb' => self::SPEICHER_MB,
+                'preis_cents' => self::preisCents(),
             ]);
             Events::protokoll('hosting_vorschlag', 'Wunschdomain frei: ' . $frei, $kundeId, null, $projektId ?: null);
         });
@@ -167,11 +279,11 @@ final class Hosting
             return;
         }
 
-        Db::insert('hosting_auftraege', [
+        Db::insert('hosting_auftraege', self::vorgabeFelder() + [
             'customer_id' => $kundeId, 'project_id' => $projektId ?: null,
             'domain' => $domain, 'domain_aktion' => $aktion, 'mail' => $mail,
             'weiterleitungen' => $mail === 'vecom' ? (implode(',', self::weiterleitungen((string) ($antworten['mail_weiter'] ?? ''))) ?: null) : null,
-            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(), 'speicher_mb' => self::SPEICHER_MB,
+            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
         ]);
         Events::protokoll('hosting_vorschlag', 'Hosting bei Vecom gewählt: ' . $domain
             . ' (Domain ' . $aktion . ', E-Mail ' . $mail . ')', $kundeId, null, $projektId ?: null);
@@ -235,6 +347,7 @@ final class Hosting
             '{domain}' => (string) $a['domain'],
             '{preis}'  => Fmt::geld((int) $a['preis_cents'], 'EUR'),
             '{monate}' => (string) self::mindestMonate(),
+            '{gb}'     => self::gb(self::speicherVon($a)),
         ];
         // Der Solo-Kauf (ohne Website) hat seinen eigenen, laengst
         // abgenommenen Text: neue Domain samt Postfach.
@@ -426,9 +539,9 @@ final class Hosting
                     'zahl_url' => self::offeneRateLink($kundeId)];
         }
 
-        $auftragId = (int) Db::insert('hosting_auftraege', [
+        $auftragId = (int) Db::insert('hosting_auftraege', self::vorgabeFelder() + [
             'customer_id' => $kundeId, 'project_id' => null, 'domain' => $domain,
-            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(), 'speicher_mb' => self::SPEICHER_MB,
+            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
         ]);
         // Derselbe verbindliche Abschluss wie der Ja-Knopf: zugestimmt,
         // Vertrag, erste Rate, Zahlungsaufforderung, Vertragsblatt.
@@ -656,7 +769,15 @@ final class Hosting
         }
         if (self::dran($st['account'])) {
             self::schritt($auftragId, 'account', 'laeuft', null, true);
-            $acc = $kas->accountAnlegen($wer . ' — ' . $domain, ['max_webspace' => self::speicherVon($a)]);
+            /* Alle Grenzen, nicht nur der Speicher: add_account setzt jede
+               fehlende auf 0 (Doku) -- ohne sie haette der Account keine
+               Domain und kein Postfach anlegen duerfen. */
+            $grenzen = self::grenzenVon($a);
+            if (empty($a['kontingente'])) {
+                $festhalten = $grenzen; unset($festhalten['max_webspace']);
+                Db::run('UPDATE hosting_auftraege SET kontingente = ? WHERE id = ?', [json_encode($festhalten), $auftragId]);
+            }
+            $acc = $kas->accountAnlegen($wer . ' — ' . $domain, $grenzen);
             if (!$acc['ok']) {
                 $versuche = (int) $st['account']['versuche'] + 1;
                 self::schritt($auftragId, 'account', $versuche >= self::VERSUCHE ? 'hand' : 'fehler', (string) $acc['text']);
@@ -683,8 +804,8 @@ final class Hosting
             ]);
             self::schritt($auftragId, 'account', 'fertig', ($acc['login'] !== '' ? 'Account ' . $acc['login'] : 'Angelegt — Login siehe Accountliste')
                 . ' · Speicher ' . self::speicherVon($a) . ' MB');
-            Events::protokoll('hosting_speicher_gesetzt', 'KAS-Account für ' . $domain . ' mit ' . self::speicherVon($a)
-                . ' MB Speicher angelegt (wie vereinbart)', $kundeId);
+            Events::protokoll('hosting_speicher_gesetzt', 'KAS-Account für ' . $domain . ' angelegt mit ' . self::grenzenText($grenzen)
+                . ' (wie vereinbart)', $kundeId);
             $st = self::schritte($auftragId);
             $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
         }
@@ -722,7 +843,7 @@ final class Hosting
         }
         $st = self::schritte($auftragId);
 
-        /* 2a. WEITERLEITUNGEN -- info@, buchung@ ... auf kontakt@, wie im
+        /* 2a. WEITERLEITUNGEN -- kontakt@, buchung@ ... auf info@, wie im
            Fragebogen gewuenscht. Nur mit Postfach, nur im Unter-Account. */
         if (self::dran($st['weiterleitung'])) {
             $wl = self::weiterleitungen((string) ($a['weiterleitungen'] ?? ''));
@@ -1015,7 +1136,7 @@ final class Hosting
 
     /**
      * "info, Buchung; office@firma.it" -> ['info', 'buchung', 'office'].
-     * Nur gueltige lokale Teile, ohne kontakt (das ist das Postfach selbst),
+     * Nur gueltige lokale Teile, ohne info (das ist das Postfach selbst),
      * hoechstens zehn.
      * @return list<string>
      */
@@ -1120,6 +1241,20 @@ final class Hosting
             $gewarnt++;
         }
         return ['gelesen' => count($r['belegt']), 'gewarnt' => $gewarnt, 'abweichend' => $abweichend];
+    }
+
+    /** "10 GB Speicher, 4 Domains, 20 Subdomains …" -- fuers Protokoll und die Verwaltung. */
+    public static function grenzenText(array $g): string
+    {
+        $namen = ['max_webspace' => null, 'max_domain' => 'Domains', 'max_subdomain' => 'Subdomains', 'max_mail_account' => 'Postfächer',
+            'max_mail_forward' => 'Weiterleitungen', 'max_mailinglist' => 'Mailinglisten', 'max_database' => 'Datenbanken',
+            'max_ftpuser' => 'FTP-Nutzer', 'max_cronjobs' => 'Cronjobs'];
+        $aus = [];
+        foreach ($namen as $k => $n) {
+            if (!isset($g[$k])) { continue; }
+            $aus[] = $n === null ? self::gb((int) $g[$k]) . ' Speicher' : (int) $g[$k] . ' ' . $n;
+        }
+        return implode(', ', $aus);
     }
 
     /** MB als "7,4 GB" -- eine Nachkommastelle, ausser bei glatten Werten. */
@@ -1259,7 +1394,7 @@ final class Hosting
     public static function plan(array $a): array
     {
         $d = (string) $a['domain'];
-        $p = ['add_account (max_webspace ' . self::speicherVon($a) . ' MB = ' . self::gb(self::speicherVon($a)) . ', wie vereinbart)',
+        $p = ['add_account (' . self::grenzenText(self::grenzenVon($a)) . ', wie vereinbart; max_webspace ' . self::speicherVon($a) . ')',
               'add_domain ' . $d];
         if ((string) ($a['mail'] ?? 'vecom') === 'vecom') {
             $p[] = 'add_mailaccount ' . self::POSTFACH . '@' . $d;

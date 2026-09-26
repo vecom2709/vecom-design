@@ -843,9 +843,9 @@ if ($post) {
                     throw new RuntimeException('Die Domain ' . $hd . ' ist nicht als frei bestätigt (Stand: '
                         . Domainpruefung::wort((string) $hp['stand'], 'de') . '). Angeboten wird nur, was frei ist.');
                 }
-                $hid = Db::insert('hosting_auftraege', [
+                $hid = Db::insert('hosting_auftraege', Hosting::vorgabeFelder() + [
                     'customer_id' => $kid, 'project_id' => null, 'domain' => $hd,
-                    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(), 'speicher_mb' => Hosting::SPEICHER_MB,
+                    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(),
                 ]);
                 Events::protokoll('hosting_vorschlag', 'Wunschdomain vorgeschlagen: ' . $hd, $kid);
                 $hMail = false;
@@ -1057,6 +1057,13 @@ if ($post) {
                 Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_reseller_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
                     [json_encode($rs, JSON_UNESCAPED_UNICODE)]);
                 Events::protokoll('integration', 'KAS-Reseller ausgelesen' . ($rs['fehler'] ? ' (mit ' . count($rs['fehler']) . ' Fehler)' : ''));
+                /* Die gerechte Aufteilung folgt dem Vertrag -- fuer alles, dem
+                   noch kein Kunde zugestimmt hat. Zugestimmtes bleibt. */
+                if (!empty($rs['ressourcen'])) {
+                    require_once __DIR__ . '/src/Hosting.php';
+                    $rsN = Hosting::vorgabeAnwenden();
+                    if ($rsN > 0) { Events::protokoll('hosting_vorgabe', $rsN . ' offene(s) Angebot(e) auf die neue Aufteilung gesetzt: ' . Hosting::grenzenText(Hosting::vorgabe()['je_kunde'])); }
+                }
                 $_SESSION[$rs['fehler'] ? 'fehler' : 'gut'] = $rs['fehler'] ? 'Teilweise gelesen: ' . implode(' · ', $rs['fehler']) : 'Ausgelesen.';
                 zurueck('einstellungen?b=reseller');
 

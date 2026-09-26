@@ -171,9 +171,9 @@ $eing = !empty($eingebettet);
       </div>
     <?php endif; ?>
     <?php /* Phase 6b: E-Mail-Umzug -- laeuft von selbst, hier nur Stand und Knoepfe. */ ?>
-    <?php require_once __DIR__ . '/../src/Mailumzug.php';
+    <?php require_once __DIR__ . '/../src/Mailumzug.php'; require_once __DIR__ . '/../src/Hosting.php';
       $mUs = sicher(static fn() => Mailumzug::fuerKunde((int) $k['id']), []);
-      $mZiel = (string) sicher(static fn() => Db::wert("SELECT CONCAT('kontakt@', domain) FROM hosting_auftraege WHERE customer_id = ? AND mail = 'vecom' ORDER BY id DESC LIMIT 1", [(int) $k['id']], ''), ''); ?>
+      $mZiel = (string) sicher(static fn() => Db::wert("SELECT CONCAT('" . Hosting::POSTFACH . "@', domain) FROM hosting_auftraege WHERE customer_id = ? AND mail = 'vecom' ORDER BY id DESC LIMIT 1", [(int) $k['id']], ''), ''); ?>
     <?php foreach ($mUs as $mU): if ((string) $mU['stand'] === 'abgebrochen') { continue; } ?>
       <div style="margin:0 0 10px;padding:10px 14px;border:1px solid var(--linie);border-radius:10px;font-size:13px">
         <b>E-Mail-Umzug</b> <?= Fmt::h((string) $mU['adresse']) ?> → <?= Fmt::h((string) $mU['ziel_adresse']) ?>
@@ -485,7 +485,7 @@ $eing = !empty($eingebettet);
               'behalten' => 'bleibt beim bisherigen Anbieter', 'offen' => 'noch mit dem Kunden klären',
           ][(string) ($hostingA['domain_aktion'] ?? 'neu')] ?? (string) $hostingA['domain_aktion']) ?></small></td></tr>
         <tr><td>E-Mail</td><td><?= Fmt::h([
-              'vecom' => 'Postfach kontakt@' . $hostingA['domain'] . ' über Vecom',
+              'vecom' => 'Postfach ' . Hosting::POSTFACH . '@' . $hostingA['domain'] . ' über Vecom',
               'bisher' => 'bleibt beim bisherigen Anbieter — kein Postfach, MX nicht anfassen',
               'keine' => 'keine', 'offen' => 'noch offen — kein Postfach, bis der Kunde es wählt',
           ][(string) ($hostingA['mail'] ?? 'vecom')] ?? (string) $hostingA['mail']) ?></td></tr>

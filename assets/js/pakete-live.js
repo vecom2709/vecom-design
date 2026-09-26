@@ -22,6 +22,7 @@
   var muster = vorlage.cloneNode(true);
   var letzte = null;                           // zuletzt geladene Pakete
   var kaufText = '';                           // Beschriftung des Kaufknopfs, je Sprache
+  var hostingDaten = null;                     // zuletzt geladene Hosting-Angaben (Preis, Speicher)
 
   /* Dieselbe Reihenfolge wie pickLang() in app.js — sonst holt dieses Skript
      die Texte in einer anderen Sprache, als die Seite gerade zeigt. */
@@ -198,12 +199,19 @@
     fetch('/pakete-daten.php?lang=' + encodeURIComponent(sprache()), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
-        if (!d || !d.pakete || !d.pakete.length) { return; }
-        kaufText = d.kauf_text || '';
-        letzte = d.pakete;
-        var monatsWort = (document.querySelector('[data-betreuung] .plan__price > small') || {}).textContent || '';
-        zeichnen(letzte);
-        betreuungZeichnen(d.betreuung, monatsWort);
+        if (!d) { return; }
+        /* Bis 26.09.2026 stand hier "ohne Website-Pakete: fertig" -- und weil
+           es live keine gibt, kam der Hosting-Preis nie aus der Verwaltung.
+           Pakete und Hosting sind zwei Dinge; das eine darf das andere nicht
+           abschalten. */
+        if (d.pakete && d.pakete.length) {
+          kaufText = d.kauf_text || '';
+          letzte = d.pakete;
+          var monatsWort = (document.querySelector('[data-betreuung] .plan__price > small') || {}).textContent || '';
+          zeichnen(letzte);
+          betreuungZeichnen(d.betreuung, monatsWort);
+        }
+        hostingDaten = d;
 
         /* Domain & Hosting: nur der Preis kommt live aus der Verwaltung.
            Die Karte selbst bleibt die eingebaute — sie traegt die Uebersetzung
@@ -217,6 +225,18 @@
               hPreis.textContent = geld(d.hosting[0].monat, d.hosting[0].waehrung);
             }
           }
+          /* Der Speicher: gerecht aus dem Reseller-Vertrag geteilt. Ersetzt
+             wird nur die Zahl vor "GB" -- der Satz drumherum bleibt die
+             Uebersetzung der Seite. */
+          if (d.hosting_gb) {
+            document.querySelectorAll('[data-hosting] [data-paket="hosting"] li').forEach(function (li) {
+              if (/\d+(?:[.,]\d+)?\s?GB/.test(li.textContent)) {
+                li.childNodes.forEach(function (n) {
+                  if (n.nodeType === 3) { n.textContent = n.textContent.replace(/\d+(?:[.,]\d+)?\s?GB/, d.hosting_gb); }
+                });
+              }
+            });
+          }
         } catch (e) { /* die eingebaute Zahl bleibt */ }
       })
       .catch(function () { /* Website behält ihre eingebauten Karten */ });
@@ -226,7 +246,7 @@
   document.querySelectorAll('[data-lang]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       setTimeout(function () {
-        if (letzte) { holen(); }
+        if (letzte || hostingDaten) { holen(); }
       }, 60);
     });
   });

@@ -56,7 +56,7 @@ $W = [
     'preis'   => '{preis} al mese · 12 mesi di durata minima, poi disdici a fine mese',
     'drin'    => 'Che cosa è compreso',
     'punkte'  => ['Il tuo dominio (.it, .de, .com, .eu …) — registrato e gestito da noi',
-                  '10 GB di spazio web con accesso FTP',
+                  '{gb} di spazio web con accesso FTP',
                   'Certificato SSL incluso — si rinnova da solo',
                   'Casella e-mail info@tuodominio — altre le crei tu',
                   'Account proprio con i TUOI dati di accesso'],
@@ -87,7 +87,7 @@ $W = [
     'preis'   => '{preis} im Monat · 12 Monate Mindestlaufzeit, danach zum Monatsende kündbar',
     'drin'    => 'Was drinsteckt',
     'punkte'  => ['Deine Wunschdomain (.it, .de, .com, .eu …) — von uns registriert und betreut',
-                  '10 GB Speicherplatz mit FTP-Zugang',
+                  '{gb} Speicherplatz mit FTP-Zugang',
                   'SSL-Zertifikat inklusive — verlängert sich von selbst',
                   'E-Mail-Postfach info@deine-domain — weitere legst du selbst an',
                   'Eigener Account mit DEINEN Zugangsdaten'],
@@ -118,7 +118,7 @@ $W = [
     'preis'   => '{preis} per month · 12-month minimum term, then cancel at month’s end',
     'drin'    => 'What’s included',
     'punkte'  => ['Your domain (.it, .de, .com, .eu …) — registered and managed by us',
-                  '10 GB of web space with FTP access',
+                  '{gb} of web space with FTP access',
                   'SSL certificate included — renews itself',
                   'Email mailbox info@yourdomain — create more yourself',
                   'Your own account with YOUR access details'],
@@ -149,6 +149,12 @@ $W = Widerruf::texte($sprache) + $W;   // 'agb'/'wid'/'widText' — echte Werte 
 
 $preisCents = (int) (Db::wert("SELECT monthly_cents FROM packages WHERE slug = 'hosting'", [], 990) ?: 990);
 $preisText  = Fmt::geld($preisCents);
+/* Der Speicher je Kunde ist seit 26.09.2026 gerecht aus dem Reseller-Vertrag
+   geteilt (Hosting::vorgabe) -- die Seite verspricht genau das, was beim
+   Anlegen festgehalten wird, nicht eine eingebaute Zahl. */
+require_once __DIR__ . '/app/src/Hosting.php';
+$gbText = (string) (function () { try { return Hosting::gb(Hosting::speicherVorgabe()); } catch (Throwable) { return Hosting::gb(Hosting::SPEICHER_MB); } })();
+$W['punkte'] = array_map(static fn(string $x): string => strtr($x, ['{gb}' => $gbText]), $W['punkte']);
 $basis      = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 
 /* KANN DER KUNDE ÜBERHAUPT BEZAHLEN?

@@ -102,5 +102,11 @@ foreach ($reihen as $r) {
 echo json_encode([
     'pakete' => $pakete, 'betreuung' => $betreuung, 'zusatz' => $zusatz,
     'hosting' => $hosting,
+    /* Der Speicher je Kunde, gerecht aus dem Reseller-Vertrag (26.09.2026) --
+       die Startseite ersetzt damit ihre eingebaute Zahl. */
+    'hosting_gb' => (static function (): ?string {
+        try { require_once __DIR__ . '/app/src/Hosting.php'; return Hosting::gb(Hosting::speicherVorgabe()); }
+        catch (Throwable) { return null; }
+    })(),
     'sprache' => $sprache, 'kauf_text' => $kaufText,
 ], JSON_UNESCAPED_UNICODE);

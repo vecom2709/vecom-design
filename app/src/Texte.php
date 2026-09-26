@@ -572,17 +572,17 @@ final class Texte
                     'art' => 'eins',
                     'optionen' => [
                         'bisher' => ['it' => 'Resta com’è (per es. dal fornitore, Microsoft 365, Gmail)', 'de' => 'Bleibt, wie sie ist (z. B. beim Anbieter, Microsoft 365, Gmail)', 'en' => 'Stays as it is (e.g. provider, Microsoft 365, Gmail)'],
-                        'vecom'  => ['it' => 'Una casella da Vecom Design (kontakt@il-vostro-dominio)', 'de' => 'Ein Postfach über Vecom Design (kontakt@ihre-domain)', 'en' => 'A mailbox through Vecom Design (kontakt@your-domain)'],
+                        'vecom'  => ['it' => 'Una casella da Vecom Design (info@il-vostro-dominio)', 'de' => 'Ein Postfach über Vecom Design (info@ihre-domain)', 'en' => 'A mailbox through Vecom Design (info@your-domain)'],
                         'keine'  => ['it' => 'Non ci serve', 'de' => 'Brauchen wir nicht', 'en' => 'We don’t need it'],
                     ],
                 ],
 
-                /* Weitere Adressen, die bei kontakt@ ankommen (25.09.2026) --
+                /* Weitere Adressen, die bei info@ ankommen (25.09.2026; bis 26.09. kontakt@) --
                    beim Einrichten per KAS-Schnittstelle als Weiterleitung angelegt. */
                 'mail_weiter' => [
-                    'it' => 'Altri indirizzi che devono arrivare a kontakt@ (per es. info, prenotazioni) — facoltativo',
-                    'de' => 'Weitere Adressen, die bei kontakt@ ankommen sollen (z. B. info, buchung) — freiwillig',
-                    'en' => 'Other addresses that should arrive at kontakt@ (e.g. info, bookings) — optional',
+                    'it' => 'Altri indirizzi che devono arrivare a info@ (per es. contatto, prenotazioni) — facoltativo',
+                    'de' => 'Weitere Adressen, die bei info@ ankommen sollen (z. B. kontakt, buchung) — freiwillig',
+                    'en' => 'Other addresses that should arrive at info@ (e.g. contact, bookings) — optional',
                     'art' => 'text', 'wenn' => ['feld' => 'mail_wahl', 'ist' => ['vecom']],
                 ],
 
@@ -784,14 +784,14 @@ final class Texte
             'en' => 'What happens with your domain {domain} we agree with you first — nothing is transferred without your explicit yes.',
         ],
         'hostingUmfang' => [
-            'it' => 'Incluso: 10 GB di spazio web e il certificato SSL{mail}.',
-            'de' => 'Enthalten: 10 GB Speicherplatz und SSL-Zertifikat{mail}.',
-            'en' => 'Included: 10 GB of web space and an SSL certificate{mail}.',
+            'it' => 'Incluso: {gb} di spazio web e il certificato SSL{mail}.',
+            'de' => 'Enthalten: {gb} Speicherplatz und SSL-Zertifikat{mail}.',
+            'en' => 'Included: {gb} of web space and an SSL certificate{mail}.',
         ],
         'hostingUmfangMail' => [
-            'it' => ', più una casella e-mail kontakt@{domain}',
-            'de' => ', dazu ein E-Mail-Postfach kontakt@{domain}',
-            'en' => ', plus an email mailbox kontakt@{domain}',
+            'it' => ', più una casella e-mail info@{domain}',
+            'de' => ', dazu ein E-Mail-Postfach info@{domain}',
+            'en' => ', plus an email mailbox info@{domain}',
         ],
         'hostingPreisSatz' => [
             'it' => 'Costa {preis} al mese in più ({monate} mesi di durata minima, poi disdetta a fine mese).',
@@ -845,9 +845,9 @@ final class Texte
            deshalb nicht den Fragebogen, und nach der Zustimmung wartet
            nichts auf eine fertige Seite, sondern auf die erste Zahlung. */
         'hostingAngebotSolo' => [
-            'it' => 'Il dominio {domain} è libero — glielo registriamo e gestiamo noi: dominio, 10 GB di spazio web, certificato SSL e una casella e-mail, con i suoi dati di accesso. Costa {preis} al mese (12 mesi di durata minima, poi può disdire a fine mese). Appena arriva il primo pagamento mensile, attiviamo tutto — e i suoi dati di accesso compaiono qui su questa pagina.',
-            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für Sie: Domain, 10 GB Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit Ihren eigenen Zugangsdaten. Das kostet {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Sobald Ihre erste Monatszahlung da ist, schalten wir alles — Ihre Zugangsdaten erscheinen dann hier auf dieser Seite.',
-            'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, 10 GB of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month (12-month minimum term, then cancel at month’s end). As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
+            'it' => 'Il dominio {domain} è libero — glielo registriamo e gestiamo noi: dominio, {gb} di spazio web, certificato SSL e una casella e-mail, con i suoi dati di accesso. Costa {preis} al mese (12 mesi di durata minima, poi può disdire a fine mese). Appena arriva il primo pagamento mensile, attiviamo tutto — e i suoi dati di accesso compaiono qui su questa pagina.',
+            'de' => 'Die Domain {domain} ist frei — wir registrieren und betreuen sie für Sie: Domain, {gb} Speicherplatz, SSL-Zertifikat und ein E-Mail-Postfach, mit Ihren eigenen Zugangsdaten. Das kostet {preis} im Monat (12 Monate Mindestlaufzeit, danach zum Monatsende kündbar). Sobald Ihre erste Monatszahlung da ist, schalten wir alles — Ihre Zugangsdaten erscheinen dann hier auf dieser Seite.',
+            'en' => 'The domain {domain} is available — we’ll register and manage it for you: domain, {gb} of web space, SSL certificate and an email mailbox, with your own access details. It costs {preis} per month (12-month minimum term, then cancel at month’s end). As soon as your first monthly payment arrives, we set everything up — your access details will then appear right here on this page.',
         ],
         /* Phase 3: bezahlt, und es wird gerade eingerichtet -- "wartet auf
            die Zahlung" waere hier falsch. */

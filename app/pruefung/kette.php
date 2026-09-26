@@ -7402,7 +7402,7 @@ foreach (["--exclude '^richtungen/'", "--exclude '^tiktok\\.html$'", "--exclude 
 }
 
 require_once $wurzel . '/src/Hosting.php';
-pruefe('das erste Postfach eines Hosting-Kunden heißt kontakt@ (Uwe, 25.09.2026)', Hosting::POSTFACH === 'kontakt');
+pruefe('das erste Postfach eines Hosting-Kunden heißt info@ -- wie die Website es verspricht (Uwe, 26.09.2026; vorher kontakt@)', Hosting::POSTFACH === 'info');
 pruefe('jedes gesendete Ereignis wird in d.php auch gezählt', $p0Fehlt === [], implode(', ', array_unique($p0Fehlt)));
 
 /* ============================================================================
@@ -7530,7 +7530,7 @@ pruefe('„uebertragen“ + E-Mail „vecom“ stehen am Auftrag',
 $lsText = $lsA ? Hosting::angebotText($lsA, 'de') : '';
 pruefe('der Kasten nennt Auth-Code, Inhaber und das Postfach',
     str_contains($lsText, 'Auth-Code') && str_contains($lsText, 'Inhaber bleiben Sie')
-    && str_contains($lsText, 'kontakt@umzug-kette.it'), $lsText);
+    && str_contains($lsText, 'info@umzug-kette.it'), $lsText);
 Hosting::antwort((int) $lsA['id'], $lsKunde, true);
 pruefe('der Umzug hat seine eigene Zustimmung',
     (int) Db::wert("SELECT COUNT(*) FROM zustimmungen WHERE customer_id = ? AND art = 'domain_transfer'", [$lsKunde], 0) === 1);
@@ -8025,7 +8025,7 @@ pruefe('Phase 3: alles klappt -- jeder Schritt erledigt, Auftrag angelegt',
     && (string) Hosting::schritte($hs1)['dns']['status'] === 'entfaellt');
 pruefe('Phase 3: Domain und Postfach laufen im Unter-Account mit dessen Passwort aus der Ablage',
     in_array('domain:w0199999:Kas-Pw-1!', $hsKas->gerufen, true)
-    && in_array('postfach:kontakt@schritt1-probe.it:pw', $hsKas->gerufen, true));
+    && in_array('postfach:info@schritt1-probe.it:pw', $hsKas->gerufen, true));
 $hsKas->gerufen = [];
 Hosting::anlegen($hs1, $hsKas);
 Hosting::weiter($hs1, $hsKas);
@@ -8627,8 +8627,8 @@ pruefe('Cronjob: der Knopf prüft erst, ob es ihn schon gibt, und der tägliche 
    ============================================================================ */
 abschnitt('78. Weiterleitungen und Sperre nach Vertragsende');
 
-pruefe('Weiterleitungen: aus „info, Buchung; office@firma.it“ werden saubere Namen -- ohne kontakt, ohne Unsinn',
-    Hosting::weiterleitungen('info, Buchung; office@firma.it kontakt ../x info') === ['info', 'buchung', 'office']
+pruefe('Weiterleitungen: aus „kontakt, Buchung; office@firma.it“ werden saubere Namen -- ohne info (das Postfach selbst), ohne Unsinn',
+    Hosting::weiterleitungen('kontakt, Buchung; office@firma.it info ../x kontakt') === ['kontakt', 'buchung', 'office']
     && Hosting::weiterleitungen('') === [] && count(Hosting::weiterleitungen(implode(' ', range('a', 'z')))) === 10);
 
 $wlKas = new class {
@@ -8641,10 +8641,10 @@ $wlKas = new class {
 };
 $wlK = Events::kundeFinden(['name' => 'Weiter Probe', 'email' => 'weiter@pruefung.example']);
 $wlA = (int) Db::insert('hosting_auftraege', ['customer_id' => $wlK, 'domain' => 'weiter-probe.it', 'status' => 'zugestimmt',
-    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'weiterleitungen' => 'info,buchung']);
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'weiterleitungen' => 'kontakt,buchung']);
 Hosting::anlegen($wlA, $wlKas);
-pruefe('Weiterleitungen: beim Einrichten angelegt, im Unter-Account, alle auf kontakt@',
-    $wlKas->wl === ['info@weiter-probe.it>kontakt@weiter-probe.it:w0166666', 'buchung@weiter-probe.it>kontakt@weiter-probe.it:w0166666']
+pruefe('Weiterleitungen: beim Einrichten angelegt, im Unter-Account, alle auf info@',
+    $wlKas->wl === ['kontakt@weiter-probe.it>info@weiter-probe.it:w0166666', 'buchung@weiter-probe.it>info@weiter-probe.it:w0166666']
     && (string) Hosting::schritte($wlA)['weiterleitung']['status'] === 'fertig');
 
 /* Sperre: eigener Hosting-Vertrag beendet */
@@ -8731,8 +8731,8 @@ pruefe('Speicher: die Migration trägt nur Leeres mit 10240 nach, 15 GB bleiben 
     (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$spAlt], 0) === 15360
     && (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$spLeer], 0) === 10240);
 pruefe('Speicher: jeder neue Auftrag trägt seinen Wert selbst -- eine geänderte Vorgabe nimmt keinem etwas',
-    substr_count((string) file_get_contents($wurzel . '/src/Hosting.php'), "'speicher_mb' => self::SPEICHER_MB") === 3
-    && str_contains((string) file_get_contents($wurzel . '/index.php'), "'speicher_mb' => Hosting::SPEICHER_MB"));
+    substr_count((string) file_get_contents($wurzel . '/src/Hosting.php'), "Db::insert('hosting_auftraege', self::vorgabeFelder() +") === 3
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "Db::insert('hosting_auftraege', Hosting::vorgabeFelder() +"));
 
 /* RESOURCE_MISMATCH: Vecom 20 GB, KAS 10 GB */
 $sp20 = $spNeu(20480, ['status' => 'angelegt', 'kas_login' => 'w0133333']);
@@ -8776,7 +8776,7 @@ $spP = $spNeu(15360);
 $spPe = Hosting::anlegen($spP);
 pruefe('Probelauf: mit echtem KAS wird nichts beansprucht -- der Auftrag bleibt zugestimmt, der Plan nennt 15 GB',
     !$spPe['ok'] && !empty($spPe['probelauf']) && (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$spP], '') === 'zugestimmt'
-    && Hosting::schritte($spP) === [] && str_contains($spPe['text'], 'max_webspace 15360'));
+    && Hosting::schritte($spP) === [] && str_contains($spPe['text'], 'max_webspace 15360') && str_contains($spPe['text'], '15 GB Speicher'));
 Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_probelauf', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
 $spKas->gerufen = [];
 Hosting::fortsetzen($spKas);
@@ -8869,6 +8869,83 @@ pruefe('Reseller: alle Vereinbarungen zusammen gegen den Vertrag -- 45 GB von 20
     && Kas::resellerAuswerten($rsStand, ['a' => 215040])['ueberbucht'] === true);
 pruefe('Reseller: der belegte Speicher steht beim richtigen Kunden',
     ($rsA['kunden'][0]['belegt_mb'] ?? null) === 7578 && $rsA['kunden'][1]['belegt_mb'] === null);
+
+/* ============================================================================
+   81. Gerecht geteilt (26.09.2026) -- der Reseller-Vertrag durch die Plätze
+   Anlass: add_account setzt jede nicht übergebene Grenze auf 0 (KAS-Doku).
+   Vorher ging nur max_webspace mit -- der erste echte Kunde hätte keine
+   Domain und kein Postfach anlegen dürfen.
+   ============================================================================ */
+abschnitt('81. Gerecht geteilt');
+$gtVertrag = ['max_account' => ['max' => 25, 'used' => 0, 'free' => 25], 'max_webspace' => ['max' => 204800, 'used' => 0, 'free' => 204800],
+    'max_domain' => ['max' => 101, 'used' => 1, 'free' => 100], 'max_subdomain' => ['max' => 500, 'used' => 0, 'free' => 500],
+    'max_mail_account' => ['max' => 250, 'used' => 0, 'free' => 250], 'max_mail_forward' => ['max' => 1000, 'used' => 0, 'free' => 1000],
+    'max_database' => ['max' => 50, 'used' => 0, 'free' => 50], 'max_ftpuser' => ['max' => -1, 'used' => 0, 'free' => -1],
+    'max_cronjobs' => ['max' => 25, 'used' => 0, 'free' => 25]];
+$gt = Hosting::kontingentAus($gtVertrag);
+pruefe('Gerecht: 200 GB, 101 Domains, 500 Subdomains, 250 Postfächer auf 25 Plätze -- je 8 GB, 4, 20, 10',
+    $gt['plaetze'] === 25 && $gt['je_kunde']['max_webspace'] === 8192 && $gt['je_kunde']['max_domain'] === 4
+    && $gt['je_kunde']['max_subdomain'] === 20 && $gt['je_kunde']['max_mail_account'] === 10 && $gt['je_kunde']['max_database'] === 2,
+    json_encode($gt['je_kunde']));
+pruefe('Gerecht: alle Plätze zusammen passen in den Vertrag -- nichts überbucht',
+    $gt['je_kunde']['max_webspace'] * 25 <= 204800 && $gt['je_kunde']['max_domain'] * 25 <= 101 && $gt['je_kunde']['max_mail_account'] * 25 <= 250);
+pruefe('Gerecht: "unbegrenzt" beim Reseller wird nicht zu "unbegrenzt" je Kunde, sondern zu einer festen Zahl',
+    $gt['je_kunde']['max_ftpuser'] === Hosting::UNBEGRENZT_JE_KUNDE);
+$gtKnapp = Hosting::kontingentAus(['max_account' => ['max' => 25], 'max_mail_account' => ['max' => 10], 'max_webspace' => ['max' => 20000]]);
+pruefe('Gerecht: gibt der Vertrag geteilt nicht einmal ein Postfach her, gilt das Nötigste -- und es wird als knapp gezeigt',
+    $gtKnapp['je_kunde']['max_mail_account'] === 1 && in_array('max_mail_account', $gtKnapp['knapp'], true)
+    && $gtKnapp['je_kunde']['max_webspace'] === 800);
+$gtLeer = Hosting::kontingentAus([]);
+pruefe('Gerecht: ohne ausgelesenen Vertrag bleibt es bei den bisherigen 10 GB -- keine erfundene Zahl',
+    $gtLeer['quelle'] === 'ersatz' && $gtLeer['je_kunde']['max_webspace'] === 10240 && $gtLeer['je_kunde']['max_domain'] === 1 && $gtLeer['plaetze'] === 25);
+
+/* Mit ausgelesenem Vertrag: neue Angebote bekommen die Aufteilung, Zugestimmtes nicht */
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_reseller_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+    [json_encode(['am' => date('Y-m-d H:i:s'), 'ressourcen' => $gtVertrag])]);
+$gtF = Hosting::vorgabeFelder();
+pruefe('Gerecht: ein neues Angebot hält 8 GB und die übrigen Kontingente fest',
+    $gtF['speicher_mb'] === 8192 && (json_decode($gtF['kontingente'], true)['max_mail_account'] ?? 0) === 10);
+$gtK1 = Events::kundeFinden(['name' => 'Gerecht Offen', 'email' => 'gerecht1@pruefung.example']);
+$gtK2 = Events::kundeFinden(['name' => 'Gerecht Zugestimmt', 'email' => 'gerecht2@pruefung.example']);
+$gtOffen = (int) Db::insert('hosting_auftraege', ['customer_id' => $gtK1, 'domain' => 'gerecht-offen.it', 'status' => 'vorgeschlagen', 'preis_cents' => 990, 'speicher_mb' => 10240]);
+$gtZu = (int) Db::insert('hosting_auftraege', ['customer_id' => $gtK2, 'domain' => 'gerecht-zu.it', 'status' => 'zugestimmt', 'preis_cents' => 990,
+    'speicher_mb' => 10240, 'mail' => 'vecom', 'domain_aktion' => 'neu', 'weiterleitungen' => implode(',', ['kontakt', 'buchung', 'office', 'rezeption', 'shop', 'presse', 'jobs', 'rechnung', 'service', 'team'])]);
+Hosting::vorgabeAnwenden();
+pruefe('Gerecht: ein offenes Angebot bekommt die neue Aufteilung, ein zugestimmtes behält seine 10 GB',
+    (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$gtOffen], 0) === 8192
+    && (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$gtZu], 0) === 10240);
+$gtKas = new class {
+    public array $g = [];
+    public function accountAnlegen(string $k, array $g = []): array { $this->g = $g; return ['ok' => true, 'login' => 'w0177770', 'kas_passwort' => 'K-7!', 'ftp_passwort' => 'F-7!', 'text' => 'ok']; }
+    public function domainAnlegen(string $d, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+    public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+    public function passwortNeu(): string { return 'P-7!'; }
+    public function weiterleitungAnlegen(string $l, string $d, string $z, ?array $als = null): array { return ['ok' => true, 'text' => 'ok']; }
+};
+Hosting::anlegen($gtZu, $gtKas);
+pruefe('Gerecht: add_account bekommt ALLE Grenzen -- nicht nur den Speicher (sonst 0 Domains, 0 Postfächer)',
+    ($gtKas->g['max_webspace'] ?? 0) === 10240 && ($gtKas->g['max_domain'] ?? 0) === 4 && ($gtKas->g['max_mail_account'] ?? 0) === 10
+    && ($gtKas->g['max_subdomain'] ?? 0) === 20 && !isset($gtKas->g['max_account']), json_encode($gtKas->g));
+pruefe('Gerecht: die Weiterleitungen aus dem Fragebogen passen immer hinein',
+    ($gtKas->g['max_mail_forward'] ?? 0) >= 10);
+pruefe('Gerecht: was angelegt wurde, ist am Auftrag festgehalten und steht im Protokoll',
+    (json_decode((string) Db::wert('SELECT kontingente FROM hosting_auftraege WHERE id = ?', [$gtZu], ''), true)['max_domain'] ?? 0) === 4
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'hosting_speicher_gesetzt' AND title LIKE '%gerecht-zu.it%4 Domains%'", [], 0) === 1);
+$gtA = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$gtOffen]);
+$gtT = true;
+foreach (['it', 'de', 'en'] as $gtS) {
+    $gtX = Hosting::angebotText($gtA, $gtS) . ' ' . Hosting::angebotText(['project_id' => 5] + $gtA, $gtS);
+    if (str_contains($gtX, '{gb}') || str_contains($gtX, '10 GB') || !str_contains($gtX, '8 GB')) { $gtT = false; }
+}
+pruefe('Gerecht: der Zustimmungstext nennt den festgehaltenen Speicher (8 GB), in allen drei Sprachen', $gtT);
+pruefe('Gerecht: Bestellseite und Datenquelle der Website rechnen live, keine eingebaute 10',
+    !preg_match('~\b10 GB\b~', (string) file_get_contents($wurzel . '/../hosting.php'))
+    && str_contains((string) file_get_contents($wurzel . '/../pakete-daten.php'), "'hosting_gb'"));
+Db::run("DELETE FROM settings WHERE skey = 'kas_reseller_stand'");
+Events::protokoll('kette_lang', str_repeat('Langer Titel ', 40));
+$gtL = Db::one("SELECT title, meta FROM activities WHERE type = 'kette_lang' ORDER BY id DESC LIMIT 1");
+pruefe('Protokoll: ein zu langer Titel wird gekürzt statt den Vorgang abzubrechen -- der volle Text steht in meta',
+    $gtL && mb_strlen((string) $gtL['title']) === 255 && str_contains((string) $gtL['meta'], 'titel_voll'));
 
 /* ============================================================================
    Aufräumen und Bilanz
