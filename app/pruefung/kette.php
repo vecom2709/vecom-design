@@ -11188,6 +11188,9 @@ pruefe('App installierbar: Service Worker mit Fetch-Handler (ohne Abfangen), get
 pruefe('App: Anleitung für iPhone (Teilen → Home-Bildschirm) und Android, Service Worker auch ohne Push registriert',
     str_contains($pnS, "id=\"app_hilfe\"") && isset(Texte::PARTNER['app_ios'], Texte::PARTNER['app_android'])
     && substr_count($pnS, "navigator.serviceWorker.register('/partner-sw.js'") === 2);
+pruefe('App: eigene Anleitung für Samsung Internet und Firefox, Chrome-Absprung für Browser ohne Installation',
+    str_contains($pnS, '/SamsungBrowser/') && str_contains($pnS, 'package=com.android.chrome')
+    && isset(Texte::PARTNER['app_samsung'], Texte::PARTNER['app_firefox'], Texte::PARTNER['app_andere'], Texte::PARTNER['app_chrome']));
 pruefe('Antwort an Partner fragt vorher (TRAGWEITE)', isset(Ablauf::TRAGWEITE['partner_nachricht']));
 pruefe('Logos mit Versionsanhang — kein Browser zeigt mehr das alte blaue V',
     !preg_match('~logo-mark\.webp"~', $pnS . (string) file_get_contents($wurzel . '/../kunde.php') . (string) file_get_contents($wurzel . '/../zugang.php')));

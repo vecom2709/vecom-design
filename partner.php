@@ -634,6 +634,9 @@ if ($p && isset($_GET['karte'])) {
       <button class="knopf" type="button" id="installieren" hidden><?= $h($T('app_installieren')) ?></button>
     </div>
     <p class="klein" id="app_hilfe" style="margin-top:10px"></p>
+    <?php if ($p): /* Chrome-Absprung: dieselbe persönliche Adresse, die schon in der Adresszeile steht. */ ?>
+    <p class="klein" id="app_chrome" hidden><a href="<?= $h('intent://' . preg_replace('~^https?://~', '', $basis) . $selbst() . '#Intent;scheme=https;package=com.android.chrome;end') ?>"><?= $h($T('app_chrome')) ?></a></p>
+    <?php endif; ?>
     <p class="klein" id="push_stand" role="status"></p>
   </div>
   <script>
@@ -648,11 +651,23 @@ if ($p && isset($_GET['karte'])) {
        Zum Home-Bildschirm“, und genau das steht dann hier, statt eines Knopfes,
        der nie erscheint. Als App geöffnet: kurz bestätigen, nichts anbieten. */
     var hilfe = document.getElementById('app_hilfe'), wartend = null;
-    var HW = { ios: <?= json_encode($T('app_ios')) ?>, android: <?= json_encode($T('app_android')) ?>, fertig: <?= json_encode($T('app_fertig')) ?>, laeuft: <?= json_encode($T('app_laeuft')) ?> };
-    var alsApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var HW = { ios: <?= json_encode($T('app_ios')) ?>, android: <?= json_encode($T('app_android')) ?>, samsung: <?= json_encode($T('app_samsung')) ?>, firefox: <?= json_encode($T('app_firefox')) ?>, andere: <?= json_encode($T('app_andere')) ?>, fertig: <?= json_encode($T('app_fertig')) ?>, laeuft: <?= json_encode($T('app_laeuft')) ?> };
+    /* ANDERE ANDROID-BROWSER (26.09.2026, Uwe: „Android, anderer Browser“)
+       Samsung Internet und Firefox haben das Menü an anderer Stelle und nennen
+       den Eintrag anders -- die Chrome-Anleitung („⋮ → App installieren“) führt
+       dort ins Leere. Browser, die nur ein Lesezeichen anlegen können (Mi,
+       Opera Mini, In-App-Browser von Mail/WhatsApp), bekommen zusätzlich den
+       Absprung nach Chrome, das auf jedem Android-Handy vorinstalliert ist. */
+    var ua = navigator.userAgent, alsApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var android = /Android/.test(ua), chrome = document.getElementById('app_chrome');
     if (alsApp) { hilfe.textContent = HW.laeuft; }
     else if (ios) { hilfe.textContent = HW.ios; }
+    else if (/SamsungBrowser/.test(ua)) { hilfe.textContent = HW.samsung; }
+    else if (android && /Firefox\//.test(ua)) { hilfe.textContent = HW.firefox; }
+    else if (android && (/; wv\)|MiuiBrowser|XiaoMi|OPR\/|Opera|FBAN|FBAV|Instagram|Line\//.test(ua) || !/Chrome\//.test(ua))) {
+      hilfe.textContent = HW.andere; if (chrome) { chrome.hidden = false; }
+    }
     else { hilfe.textContent = HW.android; }
     window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); wartend = e; inst.hidden = false; });
     window.addEventListener('appinstalled', function () { inst.hidden = true; hilfe.textContent = HW.fertig; });
