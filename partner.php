@@ -231,6 +231,12 @@ $so = static function () use ($Tp, $T, $h): string {
 };
 $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\((https://[^)\s]+)\)~',
     '<a href="$2" target="_blank" rel="noopener">$1</a>', htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
+/* ---------- Druck-Paket: Visitenkarten, Flyer, Aufsteller, Aufkleber ---------- */
+if ($p && in_array((string) ($_GET['druck'] ?? ''), ['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'], true)) {
+    header('X-Robots-Tag: noindex');
+    require __DIR__ . '/app/views/partner_druck.php';
+    exit;
+}
 /* ---------- Die Karte zum Ausdrucken (QR + Link), A6 ---------- */
 if ($p && isset($_GET['karte'])) {
     $kLink = Partner::link($p) . '/karte';
@@ -703,38 +709,7 @@ if ($p && isset($_GET['karte'])) {
   </script>
 
   <script src="/assets/js/qrcode.js"></script>
-  <script>
-  /* QR als PNG und ein Story-Bild (1080×1920) — im Browser gezeichnet, nichts geht an fremde Server. */
-  (function () {
-    var link = <?= json_encode($link . '/instagram') ?>, qrLink = <?= json_encode($link . '/karte') ?>, name = <?= json_encode(Partner::anzeigeName($p)) ?>;
-    var titel = <?= json_encode($T('karte_titel')) ?>, empf = <?= json_encode(strtr($T('karte_text'), ['{name}' => Partner::anzeigeName($p)])) ?>;
-    function qrMatrix(t) { var q = qrcode(0, 'M'); q.addData(t); q.make(); return q; }
-    function zeichneQr(ctx, q, x, y, groesse) {
-      var n = q.getModuleCount(), z = groesse / n; ctx.fillStyle = '#fff'; ctx.fillRect(x - z * 2, y - z * 2, groesse + z * 4, groesse + z * 4);
-      ctx.fillStyle = '#0a0908';
-      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(x + c * z, y + r * z, Math.ceil(z), Math.ceil(z));
-    }
-    function laden(canvas, datei) { var a = document.createElement('a'); a.download = datei; a.href = canvas.toDataURL('image/png'); a.click(); }
-    document.getElementById('qr_laden').addEventListener('click', function () {
-      var c = document.createElement('canvas'); c.width = c.height = 1000; var x = c.getContext('2d');
-      x.fillStyle = '#fff'; x.fillRect(0, 0, 1000, 1000); zeichneQr(x, qrMatrix(qrLink), 80, 80, 840); laden(c, 'vecom-qr.png');
-    });
-    document.getElementById('story_laden').addEventListener('click', function () {
-      var c = document.createElement('canvas'); c.width = 1080; c.height = 1920; var x = c.getContext('2d');
-      var g = x.createLinearGradient(0, 0, 0, 1920); g.addColorStop(0, '#15120d'); g.addColorStop(1, '#0a0908'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1920);
-      var gold = x.createLinearGradient(0, 0, 1080, 0); gold.addColorStop(0, '#b98a31'); gold.addColorStop(.45, '#f7e6ae'); gold.addColorStop(1, '#c49438');
-      x.textAlign = 'center'; x.fillStyle = gold; x.font = '800 64px Archivo, sans-serif'; x.fillText('VECOM DESIGN', 540, 300);
-      x.fillStyle = '#f7f3ea'; x.font = '700 84px Archivo, sans-serif';
-      var w = titel.split(' '), zeile = '', y = 520;
-      w.forEach(function (t) { var probe = zeile ? zeile + ' ' + t : t; if (x.measureText(probe).width > 900) { x.fillText(zeile, 540, y); y += 100; zeile = t; } else { zeile = probe; } });
-      x.fillText(zeile, 540, y);
-      zeichneQr(x, qrMatrix(link), 290, 820, 500);
-      x.fillStyle = '#b4ada2'; x.font = '400 44px Inter, sans-serif'; x.fillText(empf, 540, 1470);
-      x.fillStyle = gold; x.font = '600 46px Inter, sans-serif'; x.fillText(link.replace(/^https?:\/\//, ''), 540, 1560);
-      laden(c, 'vecom-story.png');
-    });
-  })();
-  </script>
+  <script src="/assets/js/partner-medien.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-medien.js') ?>" defer></script>
 <?php endif; ?>
 
   <div class="sprachen">

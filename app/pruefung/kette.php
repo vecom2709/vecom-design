@@ -10234,7 +10234,7 @@ pruefe('Kanal: auch über den E-Mail-Einstieg', Db::wert('SELECT kanal FROM part
 // 3/4 Werbemittel
 $abS = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Werbemittel: Karte zum Drucken, QR und Story-Bild werden im Browser erzeugt (keine fremden Server)',
-    str_contains($abS, "isset(\$_GET['karte'])") && str_contains($abS, '/assets/js/qrcode.js') && str_contains($abS, "getElementById('story_laden')")
+    str_contains($abS, "isset(\$_GET['karte'])") && str_contains($abS, '/assets/js/qrcode.js') && str_contains($abS, '/assets/js/partner-medien.js') /* Story-Bild seit 26.09. im Bilder-Baukasten */
     && is_file($wurzel . '/../assets/js/qrcode.js') && !preg_match('~https?://[a-z.]*(qrserver|chart\.googleapis|quickchart)~', $abS));
 foreach (['it', 'de', 'en'] as $abSp) {
     pruefe('Werbemittel (' . $abSp . '): drei fertige Texte mit Link, Kennzeichnung als Werbung',
@@ -11315,6 +11315,51 @@ pruefe('Vecom kann Foto und Satz in der Partnerakte entfernen',
     && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_profil_weg':"));
 pruefe('[hidden] gewinnt gegen .knopf (sonst stehen „Zum Startbildschirm“ und leere Teilen-Knöpfe sichtbar da)',
     str_contains((string) file_get_contents($wurzel . '/../assets/css/kunde.css'), '[hidden] { display: none !important; }'));
+
+/* ============================================================================
+   Partner: Bilder, Druck und Kurzvideo (26.09.2026)
+   Gezeichnet wird im Browser des Partners -- geprüft wird hier, dass jede
+   Druckseite den Kanal-Link als QR trägt, dass nur die bekannten Druckarten
+   ausgeliefert werden und dass das Skript nichts an fremde Server schickt.
+   ============================================================================ */
+abschnitt('Partner: Bilder, Druck und Kurzvideo');
+require_once $wurzel . '/src/QrBild.php';
+$pmId = Partner::anlegen(['name' => 'Nino Druck', 'email' => 'nino@partner.example', 'status' => 'aktiv', 'code' => 'NINODRUCK', 'firma' => 'Tipografia Nino', 'sprache' => 'it']);
+$pmP = Db::one('SELECT * FROM partner WHERE id = ?', [$pmId]);
+$pmSeiten = [];
+foreach (['visitenkarten' => 'karte', 'flyer' => 'flyer', 'aufsteller' => 'flyer', 'aufkleber' => 'flyer'] as $pmArt => $pmKanal) {
+    $_GET['druck'] = $pmArt; if ($pmArt === 'aufkleber') { $_GET['hell'] = '1'; }
+    $p = $pmP; $sprache = 'it'; $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $T = static fn(string $k): string => Texte::h(Texte::PARTNER[$k] ?? [], 'it');
+    ob_start(); require $wurzel . '/views/partner_druck.php'; $pmHtml = (string) ob_get_clean();
+    $pmSeiten[$pmArt] = ['html' => $pmHtml, 'kanal' => $pmKanal];
+}
+unset($_GET['druck'], $_GET['hell']);
+$pmZaehl = ['visitenkarten' => 10, 'flyer' => 1, 'aufsteller' => 2, 'aufkleber' => 12];
+$pmFalsch = [];
+foreach ($pmSeiten as $pmArt => $pmS) {
+    if (substr_count($pmS['html'], '<svg') !== $pmZaehl[$pmArt]) { $pmFalsch[] = $pmArt . ': ' . substr_count($pmS['html'], '<svg') . ' QR'; }
+    if (!str_contains($pmS['html'], 'NINODRUCK')) { $pmFalsch[] = $pmArt . ': ohne Code'; }
+}
+pruefe('Druck-Paket: jede Druckart mit der richtigen Zahl QR-Codes und der Adresse des Partners', $pmFalsch === [], implode(', ', $pmFalsch));
+pruefe('Druck-Paket: Visitenkarte zählt als „karte“, Flyer als „flyer“ (QR trägt den Kanal-Link)',
+    QrBild::svg(PartnerWerbung::link($pmP, 'karte')) === QrBild::svg(Partner::link($pmP) . '/karte')
+    && str_contains($pmSeiten['visitenkarten']['html'], QrBild::svg(PartnerWerbung::link($pmP, 'karte'), 200, 1))
+    && str_contains($pmSeiten['flyer']['html'], QrBild::svg(PartnerWerbung::link($pmP, 'flyer'), 200, 1)));
+pruefe('Druck-Paket: helle Fassung schaltet die Farben um, Flyer trägt die Werbekennzeichnung',
+    str_contains($pmSeiten['aufkleber']['html'], '--g:#ffffff') && !str_contains($pmSeiten['flyer']['html'], '--g:#ffffff')
+    && str_contains($pmSeiten['flyer']['html'], 'class="werbung"'));
+$pmPs = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Druck-Paket: nur die vier bekannten Druckarten, nur mit Partner-Schlüssel',
+    str_contains($pmPs, "if (\$p && in_array((string) (\$_GET['druck'] ?? ''), ['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'], true))"));
+$pmJs = (string) file_get_contents($wurzel . '/../assets/js/partner-medien.js');
+pruefe('Bilder und Video: im Browser gezeichnet, kein fetch, keine fremde Adresse im Skript',
+    !preg_match('~fetch\(|XMLHttpRequest|https?://~', $pmJs) && str_contains($pmJs, 'D.links.bild') && str_contains($pmJs, 'D.links.video'));
+pruefe('Kurzvideo: MP4 (H.264) bevorzugt, WebM nur als Rückfall mit Hinweis',
+    strpos($pmJs, "'video/mp4;codecs=avc1.42E01E'") < strpos($pmJs, "'video/webm") && str_contains($pmJs, 'D.t.video_webm'));
+$pmTexte = true;
+foreach (Texte::PARTNER_MEDIEN['motive'] as $pmM) { foreach (['name', 'titel', 'unter'] as $pmF) { foreach (['it', 'de', 'en'] as $pmL) { $pmTexte = $pmTexte && trim((string) ($pmM[$pmF][$pmL] ?? '')) !== ''; } } }
+pruefe('Motive für Bilder und Video in allen drei Sprachen', $pmTexte && count(Texte::PARTNER_MEDIEN['motive']) === 5);
 
 /* ============================================================================
    Aufräumen und Bilanz

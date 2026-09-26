@@ -45,6 +45,17 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .profil-kopf img,.profil-kopf .leer{width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid var(--linie2);flex:0 0 72px}
   .profil-kopf .leer{display:grid;place-items:center;color:var(--leise);font-size:26px}
   .pt input[type=file]{font-size:14px;color:var(--dim)}
+  .md-h{font-size:15px;margin:14px 0 6px}
+  .md-l{font-size:12.5px;color:var(--leise);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chips button{min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid var(--linie2);background:transparent;color:var(--dim);font:inherit;font-size:13.5px;cursor:pointer}
+  .chips button[aria-pressed=true]{border-color:rgba(241,211,139,.7);color:var(--text);background:rgba(241,211,139,.09)}
+  .chips button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .md-buehne{margin:14px 0 4px;display:flex;justify-content:center;background:rgba(255,255,255,.02);border:1px solid var(--linie);border-radius:12px;padding:12px}
+  .md-buehne canvas{max-width:100%;max-height:440px;width:auto;height:auto;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .md-video{display:block;max-width:100%;max-height:440px;margin:10px auto;border-radius:10px;background:#000}
+  .druckliste{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px}
+  .druckliste .knopf{justify-content:flex-start;text-align:left}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 
@@ -83,14 +94,6 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   </section>
   <?php endforeach; ?>
 
-  <h2 style="margin-top:22px"><?= $h($T('w_titel')) ?></h2>
-  <p class="klein" style="margin-top:0"><?= $h($T('w_text')) ?></p>
-  <div class="knoepfe">
-    <a class="knopf" href="<?= $h($selbst(['karte' => 1])) ?>" target="_blank" rel="noopener"><?= $h($T('w_karte')) ?></a>
-    <button class="knopf" type="button" id="qr_laden"><?= $h($T('w_qr')) ?></button>
-    <button class="knopf" type="button" id="story_laden"><?= $h($T('w_bild')) ?></button>
-  </div>
-
   <details style="margin-top:18px">
     <summary style="cursor:pointer;color:var(--cyan);font-size:14.5px"><?= $h($T('pk_werkzeuge')) ?></summary>
     <h3 style="font-size:15px;margin:14px 0 4px"><?= $h($T('sig_titel')) ?></h3>
@@ -122,6 +125,62 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
     </tbody></table>
     <?php if ($aw['bester'] !== null): ?><p class="bester"><?= $h(strtr($T('aw_bester'), ['{kanal}' => $KN($aw['bester'])])) ?></p><?php endif; ?>
   <?php endif; ?>
+</div>
+
+<?php
+  $MT = static fn(string $k): string => strtr(Texte::h(Texte::PARTNER_MEDIEN[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]);
+  $medienDaten = [
+      'code' => (string) $p['code'], 'kurz' => preg_replace('~^https?://~', '', Partner::link($p)),
+      'links' => ['bild' => PartnerWerbung::link($p, 'bild'), 'video' => PartnerWerbung::link($p, 'video'), 'karte' => PartnerWerbung::link($p, 'karte')],
+      'foto' => PartnerWerbung::fotoAdresse($p),
+      'motive' => array_map(static fn(array $m): array => ['titel' => Texte::h($m['titel'], $sprache), 'unter' => Texte::h($m['unter'], $sprache)], Texte::PARTNER_MEDIEN['motive']),
+      'punkte' => array_map(static fn(array $t): string => Texte::h($t, $sprache), Texte::PARTNER_MEDIEN['punkte']),
+      'empf' => $MT('empf'), 'scan' => $MT('scan'), 'hook' => $MT('hook'), 'bio' => $MT('bio'), 'werbung' => $MT('werbung'),
+      't' => ['video_laeuft' => $T('video_laeuft'), 'video_fertig' => $T('video_fertig'), 'video_nein' => $T('video_nein'), 'video_webm' => $T('video_webm')],
+  ];
+?>
+<div class="block pt" id="medien">
+  <h2><?= $h($T('md_titel')) ?></h2>
+  <p class="klein" style="margin-top:0"><?= $h($T('md_text')) ?></p>
+  <script type="application/json" id="medien_daten"><?= json_encode($medienDaten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+
+  <h3 class="md-h"><?= $h($T('bild_titel')) ?></h3>
+  <p class="md-l"><?= $h($T('bild_motiv')) ?></p>
+  <div class="chips">
+    <?php $ersteM = true; foreach (Texte::PARTNER_MEDIEN['motive'] as $mk => $mv): ?>
+      <button type="button" data-motiv="<?= $h($mk) ?>" aria-pressed="<?= $ersteM ? 'true' : 'false' ?>"><?= $h(Texte::h($mv['name'], $sprache)) ?></button>
+    <?php $ersteM = false; endforeach; ?>
+  </div>
+  <p class="md-l"><?= $h($T('bild_format')) ?></p>
+  <div class="chips">
+    <?php foreach (['quadrat', 'hoch', 'story', 'quer', 'banner', 'qr'] as $i => $fk): ?>
+      <button type="button" data-format="<?= $fk ?>" aria-pressed="<?= $i === 0 ? 'true' : 'false' ?>"><?= $h($T('bf_' . $fk)) ?></button>
+    <?php endforeach; ?>
+  </div>
+  <div class="md-buehne"><canvas id="bild_vorschau" width="1080" height="1080" role="img" aria-label="<?= $h($T('bild_titel')) ?>"></canvas></div>
+  <div class="knoepfe">
+    <button class="knopf haupt" type="button" id="bild_laden"><?= $h($T('bild_laden')) ?></button>
+    <button class="knopf" type="button" id="bild_teilen" hidden><?= $h($T('bild_teilen')) ?></button>
+  </div>
+
+  <h3 class="md-h" style="margin-top:22px"><?= $h($T('video_titel')) ?></h3>
+  <p class="klein" style="margin-top:0"><?= $h($T('video_text')) ?></p>
+  <div class="knoepfe"><button class="knopf" type="button" id="video_erzeugen"><?= $h($T('video_erzeugen')) ?></button></div>
+  <p class="klein" id="video_stand" role="status" aria-live="polite"></p>
+  <video id="video_vorschau" class="md-video" controls playsinline muted loop hidden></video>
+  <div class="knoepfe">
+    <button class="knopf" type="button" id="video_laden" hidden><?= $h($T('video_laden')) ?></button>
+    <button class="knopf" type="button" id="video_teilen" hidden><?= $h($T('video_teilen')) ?></button>
+  </div>
+
+  <h3 class="md-h" style="margin-top:22px"><?= $h($T('druck_titel')) ?></h3>
+  <p class="klein" style="margin-top:0"><?= $h($T('druck_text')) ?></p>
+  <div class="druckliste">
+    <?php foreach (['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'] as $dk): ?>
+      <a class="knopf" href="<?= $h($selbst(['druck' => $dk])) ?>" target="_blank" rel="noopener"><?= $h($T('dr_' . $dk)) ?></a>
+    <?php endforeach; ?>
+    <a class="knopf" href="<?= $h($selbst(['karte' => 1])) ?>" target="_blank" rel="noopener"><?= $h($T('dr_karte')) ?></a>
+  </div>
 </div>
 
 <?php $foto = PartnerWerbung::fotoAdresse($p); $pfFehler = in_array($meldung, ['satz_link', 'satz_lang', 'foto_gross', 'foto_art'], true); ?>
