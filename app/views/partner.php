@@ -84,6 +84,10 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <?php endforeach; ?>
   </tbody></table></div>
   <?php endif; ?>
+  <?php if (!empty($geloescht)): ?>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px"><?= count($geloescht) ?> gelöschte<?= count($geloescht) === 1 ? 'r' : '' ?> Partner, deren Belege aufbewahrt werden:
+      <?php foreach ($geloescht as $g): ?><a href="<?= Fmt::h(url('partner/' . (int) $g['id'])) ?>"><?= Fmt::h($g['name']) ?></a> <?php endforeach; ?></p>
+  <?php endif; ?>
   <?php if ($einbehaltMonat > 0): ?>
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Steuereinbehalt im Vormonat: <b><?= Fmt::h(Fmt::geld($einbehaltMonat)) ?></b> — per F24 abführen.</p>
   <?php endif; ?>

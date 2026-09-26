@@ -263,6 +263,55 @@ final class Partner
         return null;
     }
 
+    /**
+     * EINEN PARTNER LÖSCHEN (Uwe, 26.09.2026)
+     *
+     * Solange Geld offen ist (bereit, unterwegs, eine offene Auszahlung),
+     * geht es nicht: Die Vereinbarung sagt „bereits verdiente Provisionen
+     * werden ausgezahlt“ — erst auszahlen oder mit Grund streichen.
+     *
+     * Gab es nie eine Auszahlung, verschwindet der Partner ganz. Gab es
+     * welche, bleiben Name, Steuernummer und die Belege — Auszahlungen sind
+     * Buchungen und müssen aufbewahrt werden; alles andere (E-Mail, IBAN,
+     * PayPal, Notizen, Bewerbungstext, Zugang) wird gelöscht. Sein Link und
+     * seine Partnerseite gelten sofort nicht mehr, seine Kunden sind frei.
+     * Das Stripe-Konto des Partners gehört ihm und bleibt bei Stripe.
+     *
+     * @return array{ok:bool,text:string,ganz?:bool}
+     */
+    public static function loeschen(int $id): array
+    {
+        $p = self::laden($id);
+        if (!$p || $p['status'] === 'geloescht') { return ['ok' => false, 'text' => 'Partner nicht gefunden.']; }
+        $offen = (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen WHERE partner_id = ? AND status IN ('bereit','unterwegs','rueckforderung')", [$id], 0)
+               + (int) self::still(static fn() => Db::wert("SELECT COUNT(*) FROM partner_auszahlungen WHERE partner_id = ? AND status = 'offen'", [$id], 0), 0);
+        if ($offen > 0) {
+            return ['ok' => false, 'text' => 'Es ist noch Geld offen (auszahlungsbereit, unterwegs oder zurückzufordern). Erst auszahlen, abschließen oder streichen — dann löschen.'];
+        }
+        $name = (string) $p['name'];
+        $belege = (int) Db::wert('SELECT COUNT(*) FROM partner_auszahlungen WHERE partner_id = ?', [$id], 0);
+        return Db::transaktion(static function () use ($id, $p, $name, $belege) {
+            Db::run("UPDATE partner_provisionen SET status = 'storniert', grund = 'Partner gelöscht' WHERE partner_id = ? AND status IN ('wartet','freigabe')", [$id]);
+            Db::run('DELETE FROM partner_zuordnungen WHERE partner_id = ?', [$id]);
+            Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [$id]);
+            if ($belege === 0) {
+                Db::run('DELETE FROM partner_provisionen WHERE partner_id = ?', [$id]);
+                Db::run('DELETE FROM partner WHERE id = ?', [$id]);
+                Events::pruefspur('partner_geloescht', 'partner', $id, ['name' => $name, 'email' => $p['email']], ['ganz' => true]);
+                return ['ok' => true, 'ganz' => true, 'text' => $name . ' ist gelöscht.'];
+            }
+            Db::update('partner', $id, [
+                'status' => 'geloescht', 'email' => '', 'token' => bin2hex(random_bytes(24)), 'kanal' => '', 'bewerbung_text' => null,
+                'notiz' => null, 'iban_blob' => null, 'iban_ende' => null, 'kontoinhaber' => null, 'paypal_email' => null,
+                'wise_empfaenger' => null, 'customer_id' => null, 'monatsmail' => 0, 'firma' => $p['firma'],
+            ]);
+            Events::pruefspur('partner_geloescht', 'partner', $id, ['name' => $name, 'email' => $p['email']],
+                              ['ganz' => false, 'grund' => 'Belege müssen aufbewahrt werden']);
+            return ['ok' => true, 'ganz' => false, 'text' => $name . ' ist gelöscht. Name, Steuernummer und ' . $belege
+                . ' Beleg' . ($belege === 1 ? '' : 'e') . ' bleiben für die Buchhaltung; alle übrigen Daten sind weg.'];
+        }, 3);
+    }
+
     public static function laden(int $id): ?array
     {
         $p = self::still(static fn() => Db::one('SELECT * FROM partner WHERE id = ?', [$id]), null);

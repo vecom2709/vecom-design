@@ -554,6 +554,13 @@ if ($post) {
                                                                      : 'Stripe: Das Konto ist noch nicht fertig eingerichtet.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_loeschen':
+                require_once __DIR__ . '/src/Partner.php';
+                $r = Partner::loeschen((int) ($_POST['id'] ?? 0));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                if ($r['ok'] && !empty($r['ganz'])) { weiter('partner'); }
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
             case 'partner_token_neu':
                 require_once __DIR__ . '/src/Partner.php';
                 Partner::tokenNeu((int) ($_POST['id'] ?? 0));
@@ -3048,7 +3055,9 @@ switch ($route) {
                             AND pp.status IN ('wartet','freigabe','bereit')) AS offen,
                         (SELECT COALESCE(SUM(provision_cents),0) FROM partner_provisionen pp WHERE pp.partner_id = p.id
                             AND pp.status = 'ausgezahlt') AS ausgezahlt
-                   FROM partner p ORDER BY FIELD(p.status,'bewerbung','aktiv','pausiert','abgelehnt'), p.created_at DESC"), []),
+                   FROM partner p WHERE p.status <> 'geloescht'
+                  ORDER BY FIELD(p.status,'bewerbung','aktiv','pausiert','abgelehnt'), p.created_at DESC"), []),
+            'geloescht' => sicher(static fn() => Db::all("SELECT id, name FROM partner WHERE status = 'geloescht' ORDER BY id DESC"), []),
             'einbehaltMonat' => (int) sicher(static fn() => Db::wert(
                 "SELECT COALESCE(SUM(einbehalt_cents),0) FROM partner_provisionen WHERE status = 'ausgezahlt'
                    AND ausgezahlt_am >= DATE_FORMAT(NOW() - INTERVAL 1 MONTH, '%Y-%m-01') AND ausgezahlt_am < DATE_FORMAT(NOW(), '%Y-%m-01')", [], 0), 0),

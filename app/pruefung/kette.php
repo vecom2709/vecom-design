@@ -9852,6 +9852,36 @@ $stAnsicht = (string) file_get_contents($wurzel . '/views/einstellungen/telefon.
 pruefe('STRATO: das irreführende Feld „Automatisch neu anmelden“ ist weg, die Anleitung da',
     !str_contains($stAnsicht, 'strato_anmeldung') && str_contains($stAnsicht, 'Wie lange die Sitzungen hielten'));
 
+/* Partner löschen (26.09.2026) */
+abschnitt('Partner löschen');
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+$plK = Events::kundeFinden(['name' => 'Lösch Kunde', 'email' => 'loesch-kunde@pruefung.example']);
+$plA = Partner::anlegen(['name' => 'Ohne Belege', 'email' => 'ohne@partner.example', 'status' => 'aktiv']);
+Partner::zuordnen($plK, $plA);
+$plR = Partner::loeschen($plA);
+pruefe('Löschen: ohne Auszahlung verschwindet der Partner ganz, sein Kunde ist frei',
+    $plR['ok'] && !empty($plR['ganz']) && Partner::laden($plA) === null
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE customer_id = ?', [$plK], 0) === 0);
+$plB = Partner::anlegen(['name' => 'Mit Belegen', 'email' => 'mit@partner.example', 'status' => 'aktiv', 'steuer_nr' => 'IT01234567890']);
+$plZ = Db::insert('payments', ['order_id' => null, 'abo_id' => null, 'art' => 'rate', 'bezeichnung' => 'x', 'amount_cents' => 1000, 'currency' => 'EUR', 'status' => 'bezahlt']);
+$plP = Db::insert('partner_provisionen', ['partner_id' => $plB, 'customer_id' => $plK, 'payment_id' => $plZ, 'art' => 'website',
+    'basis_cents' => 1000, 'provision_cents' => 100, 'status' => 'bereit', 'frei_ab' => date('Y-m-d H:i:s')]);
+pruefe('Löschen: solange Geld offen ist, geht es nicht', Partner::loeschen($plB)['ok'] === false && Partner::laden($plB) !== null);
+Partner::auszahlenHand($plB, 'Bonifico');
+$plBp = Partner::laden($plB); $plToken = $plBp['token'];
+Db::run("UPDATE partner SET iban_ende = '3456', paypal_email = 'x@y.example', notiz = 'geheim' WHERE id = ?", [$plB]);
+$plR = Partner::loeschen($plB);
+$plBp = Partner::laden($plB);
+pruefe('Löschen: mit Belegen bleiben Name, Steuernummer und Beleg — E-Mail, IBAN, PayPal, Notiz und Zugang sind weg',
+    $plR['ok'] && empty($plR['ganz']) && $plBp['status'] === 'geloescht' && $plBp['name'] === 'Mit Belegen'
+    && $plBp['steuer_nr'] === 'IT01234567890' && $plBp['email'] === '' && $plBp['iban_ende'] === null && $plBp['paypal_email'] === null
+    && $plBp['notiz'] === null && Partner::ausToken($plToken) === null
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_auszahlungen WHERE partner_id = ?', [$plB], 0) === 1
+    && str_starts_with((string) Partner::belegPdf((int) Db::wert('SELECT id FROM partner_auszahlungen WHERE partner_id = ?', [$plB], 0)), '%PDF'));
+pruefe('Löschen: sein Link führt nirgends mehr hin', Partner::ausCode((string) $plBp['code']) === null);
+pruefe('Löschen: fragt vorher nach', Ablauf::wiegt('partner_loeschen') === Ablauf::SCHWER);
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

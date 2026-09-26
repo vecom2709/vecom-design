@@ -42,7 +42,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <?php elseif ($p['status'] === 'pausiert'): ?>
       <?= $hin('partner_aktivieren', 'Wieder aktivieren') ?>
     <?php endif; ?>
-    <?php if ($p['status'] !== 'bewerbung' && $p['status'] !== 'abgelehnt'): ?>
+    <?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>
       <a class="knopf" href="<?= Fmt::h(Partner::portalLink($p)) ?>" target="_blank" rel="noopener">Seine Partnerseite ansehen</a>
       <?= $hin('partner_token_neu', 'Zugang neu vergeben') ?>
       <?php if (!empty($p['stripe_konto'])): ?><?= $hin('partner_konto_pruefen', 'Stripe-Konto prüfen') ?><?php endif; ?>
@@ -145,7 +145,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
-<?php if ($p['status'] !== 'bewerbung' && $p['status'] !== 'abgelehnt'): ?>
+<?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Eigene Bedingungen</h2>
   <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">Leer = es gilt der Standard (derzeit <?= Fmt::h(Partner::satzWort(Partner::satzFuer([]))) ?>). Gilt für künftige Provisionen.</p>
@@ -169,5 +169,16 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <div class="feld"><label>Notiz (nur für dich)</label><textarea name="notiz" rows="2"><?= Fmt::h((string) $p['notiz']) ?></textarea></div>
     <button class="knopf">Speichern</button>
   </form>
+</div>
+<?php endif; ?>
+
+<?php if ($p['status'] !== 'geloescht'): ?>
+<div class="block" style="border-color:rgba(255,138,138,.28)">
+  <h2 style="font-size:15px;margin:0 0 6px">Partner löschen</h2>
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
+    Geht nur, wenn kein Geld mehr offen ist. Ohne bisherige Auszahlung verschwindet er ganz; sonst bleiben Name,
+    Steuernummer und Belege (Aufbewahrungspflicht) — E-Mail, IBAN, PayPal, Notizen und Zugang werden gelöscht.
+    Sein Stripe-Konto gehört ihm und bleibt bei Stripe.</p>
+  <?= $hin('partner_loeschen', 'Partner löschen') ?>
 </div>
 <?php endif; ?>
