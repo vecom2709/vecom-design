@@ -82,6 +82,27 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
+<div class="block" id="nachrichten">
+  <h2 style="font-size:15px;margin:0 0 10px">Nachrichten<?php $offenN = count(array_filter($nachrichten ?? [], static fn($n) => $n['von'] === 'partner' && $n['gelesen_am'] === null)); ?></h2>
+  <?php if (empty($nachrichten)): ?>
+    <p style="color:var(--leise);font-size:13px;margin:0 0 10px">Noch keine. Der Partner schreibt über seine Seite; deine Antwort bekommt er per Mail und, wenn er die App hat, aufs Handy.</p>
+  <?php else: ?>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin-bottom:12px">
+      <?php foreach ($nachrichten as $n): $vp = $n['von'] === 'partner'; ?>
+        <div style="max-width:80%;<?= $vp ? 'align-self:flex-start' : 'align-self:flex-end' ?>;padding:9px 12px;border-radius:12px;border:1px solid var(--linie);
+                    background:<?= $vp ? 'var(--flaeche2)' : 'rgba(241,211,139,.08)' ?>;white-space:pre-wrap;font-size:14px;line-height:1.5"><?= Fmt::h((string) $n['text']) ?>
+          <div style="font-size:11.5px;color:var(--leise);margin-top:4px"><?= $vp ? Fmt::h($p['name']) : 'Vecom' ?> · <?= Fmt::h(date('d.m.Y H:i', strtotime((string) $n['created_at']))) ?>
+            <?= !$vp && $n['gelesen_am'] ? ' · gelesen' : '' ?></div></div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;flex-direction:column;gap:8px">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_nachricht"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+    <textarea name="text" rows="3" required maxlength="4000" placeholder="Antwort an <?= Fmt::h($p['name']) ?>"></textarea>
+    <div><button class="knopf">Antworten</button></div>
+  </form>
+</div>
+
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 10px">Provisionen</h2>
   <?php if (!$provisionen): ?><p style="color:var(--leise);font-size:13px">Noch keine.</p><?php else: ?>

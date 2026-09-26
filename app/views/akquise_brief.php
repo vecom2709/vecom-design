@@ -150,7 +150,7 @@ $h = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 <section class="blatt">
   <div class="goldlinie"></div>
   <header class="kopf">
-    <div class="marke"><img src="/assets/img/logo-mark.webp" alt="" width="120" height="94"><div><b>VECOM</b><span>DESIGN</span></div></div>
+    <div class="marke"><img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="120" height="94"><div><b>VECOM</b><span>DESIGN</span></div></div>
     <div class="absender"><?= $h($abs['inhaber']) ?><br><?= nl2br($h(implode("\n", array_filter([Firma::get('strasse'), trim(Firma::get('plz') . ' ' . Firma::get('ort', 'Aragona (AG)'))])))) ?><br>
       <?= $h($abs['email']) ?><?= $abs['telefon'] !== '' ? '<br>' . $h($abs['telefon']) : '' ?><br>www.vecom-design.it</div>
   </header>
@@ -174,7 +174,7 @@ $h = static fn($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 <section class="blatt anlage">
   <div class="goldlinie"></div>
   <header class="kopf">
-    <div class="marke"><img src="/assets/img/logo-mark.webp" alt="" width="120" height="94"><div><b>VECOM</b><span>DESIGN</span></div></div>
+    <div class="marke"><img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="120" height="94"><div><b>VECOM</b><span>DESIGN</span></div></div>
     <div class="absender"><?= $h($W['anlage']) ?><br><?= $h($f['name']) ?></div>
   </header>
   <h2><?= $h($W['heute']) ?><?= $f['domain'] ? ': ' . $h($f['domain']) : '' ?></h2>

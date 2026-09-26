@@ -574,6 +574,16 @@ if ($post) {
                 if ($r['ok'] && !empty($r['ganz'])) { weiter('partner'); }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_nachricht':
+                /* Antwort an einen Partner (26.09.2026): geht per Mail und als
+                   Hinweis aufs Handy, steht danach auf seiner Seite. */
+                require_once __DIR__ . '/src/PartnerPost.php';
+                try {
+                    PartnerPost::schreiben((int) ($_POST['id'] ?? 0), (string) ($_POST['text'] ?? ''), 'vecom', Auth::id());
+                    $_SESSION['gut'] = 'Antwort verschickt.';
+                } catch (InvalidArgumentException $e) { $_SESSION['fehler'] = 'Die Nachricht ist leer.'; }
+                weiter('partner/' . (int) ($_POST['id'] ?? 0) . '#nachrichten');
+
             case 'partner_code':
                 require_once __DIR__ . '/src/Partner.php';
                 $f = Partner::codeSetzen((int) ($_POST['id'] ?? 0), (string) ($_POST['code'] ?? ''));
@@ -3084,8 +3094,11 @@ switch ($route) {
             $pa = Partner::laden($id);
             if (!$pa) { http_response_code(404); exit('Partner nicht gefunden.'); }
             require_once __DIR__ . '/src/PartnerWege.php';
+            require_once __DIR__ . '/src/PartnerPost.php';
+            sicher(static fn() => PartnerPost::gelesen($id, 'vecom'));
             ansicht('partner_akte', [
                 'p' => $pa,
+                'nachrichten' => sicher(static fn() => PartnerPost::verlauf($id, 100), []),
                 'weg' => PartnerWege::weg($pa),
                 'offeneRaten' => (int) ($pa['customer_id'] ?? 0) > 0 ? sicher(static fn() => Db::all(
                     "SELECT z.id, z.bezeichnung, z.amount_cents, z.faellig_am FROM payments z

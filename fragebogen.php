@@ -423,7 +423,7 @@ $gruppenWort = [
 <body>
 <div class="seite">
   <div class="wortmarke">
-    <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
+    <img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
 

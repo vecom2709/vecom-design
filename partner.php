@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -66,6 +66,39 @@ $selbst = static fn(array $extra = []) => '/partner.php?' . http_build_query(arr
     $p ? ['t' => $p['token']] : ['lang' => $sprache], $extra));
 
 $meldung = ''; $gut = false;
+
+/* ---------- Die Partnerseite als App (26.09.2026) ----------
+   Das Manifest traegt die persoenliche Adresse als start_url: Wer die Seite
+   auf den Startbildschirm legt, landet genau hier, ohne Anmeldung. Es wird
+   nur mit gueltigem Schluessel ausgeliefert -- ein fremdes Manifest gibt es nicht. */
+if ($p && isset($_GET['manifest'])) {
+    header('Content-Type: application/manifest+json; charset=utf-8');
+    echo json_encode([
+        'name' => 'Vecom Design — Partner', 'short_name' => 'Vecom Partner',
+        'start_url' => '/partner.php?t=' . $p['token'], 'scope' => '/partner.php', 'id' => '/partner.php?app=' . substr(hash('sha256', (string) $p['token']), 0, 12),
+        'display' => 'standalone', 'background_color' => '#0a0908', 'theme_color' => '#0a0908', 'lang' => $sprache,
+        'icons' => [
+            ['src' => '/assets/img/app-icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
+            ['src' => '/assets/img/app-icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+        ],
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+/* Hinweise ein/aus -- vom Skript der Seite per fetch, mit demselben CSRF-Schluessel. */
+if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['tat'] ?? '', ['push_an', 'push_aus'], true)) {
+    header('Content-Type: application/json; charset=utf-8');
+    if (!hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) { http_response_code(403); echo '{"ok":false}'; exit; }
+    try {
+        if ($_POST['tat'] === 'push_an') {
+            PartnerPost::aboSpeichern((int) $p['id'], (string) ($_POST['endpoint'] ?? ''), (string) ($_POST['p256dh'] ?? ''), (string) ($_POST['auth'] ?? ''));
+        } else {
+            PartnerPost::aboLoeschen((int) $p['id'], (string) ($_POST['endpoint'] ?? ''));
+        }
+        echo '{"ok":true}';
+    } catch (Throwable $e) { http_response_code(400); echo '{"ok":false}'; }
+    exit;
+}
 
 /* ---------- Beleg herunterladen (nur der eigene) ---------- */
 if ($p && isset($_GET['beleg'])) {
@@ -128,6 +161,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $f = PartnerWege::setzen((int) $p['id'], $_POST);
                 if ($f === null) { header('Location: ' . $selbst(['m' => 'w_gut']) . '#wege', true, 303); exit; }
                 $meldung = $f;
+            } elseif ($tat === 'nachricht' && $p) {
+                try {
+                    PartnerPost::schreiben((int) $p['id'], (string) ($_POST['text'] ?? ''), 'partner');
+                    header('Location: ' . $selbst(['m' => 'nachr_danke']) . '#nachrichten', true, 303); exit;
+                } catch (InvalidArgumentException $e) { $meldung = 'nachr_leer'; }
+                  catch (LengthException $e) { $meldung = 'nachr_zuviel'; }
             } elseif ($tat === 'konto' && $p) {
                 $r = Partner::kontoEinrichten($p, $basis . $selbst());
                 if ($r['ok']) { header('Location: ' . $r['url'], true, 303); exit; }
@@ -195,7 +234,7 @@ if ($p && isset($_GET['karte'])) {
   @media print{body{background:#0a0908}.druck{display:none}.karte{margin:0;border-radius:0}}
 </style></head><body>
 <div class="karte">
-  <img class="logo" src="/assets/img/logo-mark.webp" alt="">
+  <img class="logo" src="/assets/img/logo-mark.webp?v=gold2609" alt="">
   <div class="wort"><b>VECOM</b> DESIGN</div>
   <h1><?= $h($T('karte_titel')) ?></h1>
   <div id="qr" data-link="<?= $h($kLink) ?>"></div>
@@ -220,6 +259,13 @@ if ($p && isset($_GET['karte'])) {
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($p ? $T('p_titel') : $T('titel')) ?> — Vecom Design</title>
+<?php if ($p): ?>
+<link rel="manifest" href="<?= $h($selbst(['manifest' => 1])) ?>">
+<meta name="theme-color" content="#0a0908">
+<link rel="apple-touch-icon" href="/assets/img/app-icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vecom Partner">
+<?php endif; ?>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
@@ -263,13 +309,23 @@ if ($p && isset($_GET['karte'])) {
   .kanaele code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
   .stufe{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linie2);border-radius:999px;padding:4px 12px;font-size:13px;margin-top:10px}
   .faq pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.65;color:var(--dim);margin:8px 0 0}
+  .verlauf{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px;max-height:420px;overflow-y:auto}
+  .blase{max-width:86%;padding:9px 12px;border-radius:14px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .blase small{display:block;font-size:11.5px;color:var(--leise);margin-top:4px}
+  .blase.ich{align-self:flex-end;background:rgba(241,211,139,.10);border:1px solid rgba(241,211,139,.28);border-bottom-right-radius:4px}
+  .blase.wir{align-self:flex-start;background:var(--flaeche2,rgba(255,255,255,.04));border:1px solid var(--linie);border-bottom-left-radius:4px}
+  .emp td small{display:block;color:var(--leise);font-size:12px}
+  .emp .st{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--linie);font-size:12.5px;white-space:nowrap}
+  .emp .st.bezahlt,.emp .st.online{border-color:rgba(241,211,139,.5);color:var(--cyan)}
+  .geld{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.07);border-radius:12px;padding:12px 14px;margin:0 0 14px;
+        display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14.5px}
   @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <div class="seite">
   <div class="wortmarke">
-    <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
+    <img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
 
@@ -335,7 +391,13 @@ if ($p && isset($_GET['karte'])) {
                : ($nWeg === null || !PartnerWege::bereit($p, $nWeg) ? 'n_weg'
                : ((int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ?', [(int) $p['id']], 0) === 0 ? 'n_teilen' : 'n_laeuft'));
     ?>
-    <div class="naechst"><b><?= $h($T('n_titel')) ?></b><?= $h($T($naechst)) ?></div>
+    <?php /* Geld liegt bereit, der Weg fehlt -- dann ist DAS der naechste Schritt, mit Betrag (26.09.2026). */
+          $bereitCents = !empty($p['vereinbarung_am']) && $naechst === 'n_weg' ? Partner::auszahlbar((int) $p['id']) : 0; ?>
+    <?php if ($bereitCents <= 0): ?><div class="naechst"><b><?= $h($T('n_titel')) ?></b><?= $h($T($naechst)) ?></div><?php endif; ?>
+    <?php if ($bereitCents > 0): ?>
+      <div class="geld" role="status"><span><?= $h(strtr($T('geld_bereit'), ['{betrag}' => Fmt::geld($bereitCents)])) ?></span>
+        <a class="knopf haupt" href="#wege"><?= $h($T('geld_knopf')) ?></a></div>
+    <?php endif; ?>
 
     <?php if (empty($p['vereinbarung_am'])): ?>
       <div class="hinweis" style="margin-bottom:14px">
@@ -382,6 +444,23 @@ if ($p && isset($_GET['karte'])) {
       <?php endif; endforeach; ?>
     </p>
   </div>
+
+  <?php $emp = PartnerPost::empfehlungen((int) $p['id']); if ($emp): ?>
+  <div class="block pt" id="empfehlungen">
+    <h2><?= $h($T('emp_titel')) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h($T('emp_text')) ?></p>
+    <table class="emp"><tbody>
+    <?php foreach ($emp as $e): ?>
+      <tr><td><b><?= $h(strtr($T('emp_nr'), ['{n}' => (string) $e['nr']])) ?></b>
+            <small><?= $h(($e['ort'] !== '' ? $e['ort'] . ' · ' : '') . strtr($T('emp_seit'), ['{datum}' => Fmt::datum($e['seit'])])) ?></small></td>
+          <td><span class="st <?= $h($e['stufe']) ?>"><?= $h($T('emp_s_' . $e['stufe'])) ?></span></td>
+          <td class="r"><?php if ($e['provision'] > 0): ?><?= $h(Fmt::geld($e['provision'])) ?>
+            <?php if ($e['frei_ab']): ?><small><?= $h(strtr($T('emp_frei'), ['{datum}' => Fmt::datum($e['frei_ab'])])) ?></small><?php endif; ?>
+          <?php else: ?>—<?php endif; ?></td></tr>
+    <?php endforeach; ?>
+    </tbody></table>
+  </div>
+  <?php endif; ?>
 
   <?php $wege = PartnerWege::fuerPartner($p); $weg = PartnerWege::weg($p); ?>
   <div class="block pt" id="wege">
@@ -465,6 +544,29 @@ if ($p && isset($_GET['karte'])) {
     <?php endif; ?>
   </div>
 
+  <?php PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
+  <div class="block pt" id="nachrichten">
+    <h2><?= $h($T('nachr_titel')) ?></h2>
+    <?php if (($_GET['m'] ?? '') === 'nachr_danke'): ?><div class="hinweis gut" role="status"><?= $h($T('nachr_danke')) ?></div><?php endif; ?>
+    <?php if (in_array($meldung, ['nachr_leer', 'nachr_zuviel'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
+    <p class="klein" style="margin-top:0"><?= $h($T('nachr_text')) ?></p>
+    <?php if ($verlauf): ?>
+      <div class="verlauf" id="verlauf">
+        <?php foreach ($verlauf as $n): $ich = $n['von'] === 'partner'; ?>
+          <div class="blase <?= $ich ? 'ich' : 'wir' ?>"><?= $h((string) $n['text']) ?><small><?= $h(($ich ? $T('nachr_sie') : $T('nachr_wir')) . ' · ' . date('d.m.Y H:i', strtotime((string) $n['created_at']))) ?></small></div>
+        <?php endforeach; ?>
+      </div>
+      <script>(function(){var v=document.getElementById('verlauf'); if(v){v.scrollTop=v.scrollHeight;}})();</script>
+    <?php endif; ?>
+    <form method="post" action="<?= $h($selbst()) ?>#nachrichten">
+      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+      <input type="hidden" name="tat" value="nachricht">
+      <label for="n_text"><?= $h($T('nachr_feld')) ?></label>
+      <textarea id="n_text" name="text" rows="3" maxlength="<?= PartnerPost::MAX_LAENGE ?>" required></textarea>
+      <button class="knopf haupt" type="submit"><?= $h($T('nachr_knopf')) ?></button>
+    </form>
+  </div>
+
   <div class="block pt" id="melden">
     <h2><?= $h($T('m_titel')) ?></h2>
     <?php if (($_GET['m'] ?? '') === 'm_danke'): ?><div class="hinweis gut"><?= $h($T('m_danke')) ?></div><?php endif; ?>
@@ -521,6 +623,49 @@ if ($p && isset($_GET['karte'])) {
       <noscript><button class="knopf"><?= $h($T('w_speichern')) ?></button></noscript>
     </form>
   </div>
+
+  <div class="block pt" id="app">
+    <h2><?= $h($T('app_titel')) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h($T('app_text')) ?></p>
+    <div class="knoepfe">
+      <button class="knopf haupt" type="button" id="push_an" hidden><?= $h($T('app_an')) ?></button>
+      <button class="knopf" type="button" id="installieren" hidden><?= $h($T('app_installieren')) ?></button>
+    </div>
+    <p class="klein" id="push_stand" role="status"></p>
+  </div>
+  <script>
+  /* Handy-App (26.09.2026): Service Worker nur fuer Hinweise, kein Seiten-Cache. */
+  (function () {
+    var knopf = document.getElementById('push_an'), stand = document.getElementById('push_stand'), inst = document.getElementById('installieren');
+    var W = { an: <?= json_encode($T('app_ist_an')) ?>, nein: <?= json_encode($T('app_nein')) ?>, verboten: <?= json_encode($T('app_verboten')) ?> };
+    var schluessel = <?= json_encode(PartnerPost::vapid()) ?>, csrf = <?= json_encode($_SESSION['csrf']) ?>, ziel = <?= json_encode($selbst()) ?>;
+    var wartend = null;
+    window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); wartend = e; inst.hidden = false; });
+    inst.addEventListener('click', function () { if (wartend) { wartend.prompt(); wartend = null; inst.hidden = true; } });
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !schluessel) { stand.textContent = W.nein; return; }
+    function b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); var r = atob(s + '==='.slice((s.length + 3) % 4)); var a = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) a[i] = r.charCodeAt(i); return a; }
+    function melden(abo) {
+      var j = abo.toJSON(), f = new FormData();
+      f.append('_csrf', csrf); f.append('tat', 'push_an'); f.append('endpoint', j.endpoint); f.append('p256dh', j.keys.p256dh); f.append('auth', j.keys.auth);
+      return fetch(ziel, { method: 'POST', body: f, credentials: 'same-origin' });
+    }
+    navigator.serviceWorker.register('/partner-sw.js', { scope: '/partner.php' }).then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (abo) {
+        if (Notification.permission === 'denied') { stand.textContent = W.verboten; return; }
+        if (abo) { stand.textContent = W.an; melden(abo); return; }
+        knopf.hidden = false;
+        knopf.addEventListener('click', function () {
+          Notification.requestPermission().then(function (erlaubt) {
+            if (erlaubt !== 'granted') { stand.textContent = W.verboten; return; }
+            return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(schluessel) }).then(function (neu) {
+              return melden(neu).then(function () { knopf.hidden = true; stand.textContent = W.an; });
+            });
+          }).catch(function () { stand.textContent = W.nein; });
+        });
+      });
+    }).catch(function () { stand.textContent = W.nein; });
+  })();
+  </script>
 
   <script src="/assets/js/qrcode.js"></script>
   <script>

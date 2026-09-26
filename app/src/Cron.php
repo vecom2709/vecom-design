@@ -140,7 +140,9 @@ final class Cron
                 if ($zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-30 minutes'))) { return ['uebersprungen' => 1]; }
                 Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_lauf_am', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
                         [date('Y-m-d H:i:s')]);
-                return Partner::lauf() + ['berichte' => Partner::monatsberichte()];
+                require_once __DIR__ . '/PartnerPost.php';
+                // Geld liegt bereit, der Auszahlungsweg fehlt: hoechstens alle 14 Tage erinnern (26.09.2026).
+                return Partner::lauf() + ['berichte' => Partner::monatsberichte(), 'weg_erinnert' => PartnerPost::wegErinnern()];
             },
             /* Meldungen, deren Anlass die Datenbank als vorbei belegt, gelten
                als gelesen (26.09.2026). Nie auf Verdacht -- siehe Meldungen. */

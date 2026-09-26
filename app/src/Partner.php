@@ -658,6 +658,8 @@ final class Partner
         Events::protokoll('partner_provision', 'Provision vorgemerkt: ' . Fmt::geld($prov) . ' für ' . $p['name']
             . ' (' . self::satzWort($s) . ' von ' . Fmt::geld($basis) . ')', $kundeId, $z['order_id'] !== null ? (int) $z['order_id'] : null,
             null, ['partner_id' => (int) $p['id'], 'provision_id' => $id]);
+        // Hinweis aufs Handy, falls der Partner die App mit Hinweisen hat (26.09.2026).
+        try { require_once __DIR__ . '/PartnerPost.php'; PartnerPost::neueProvision((int) $p['id'], $prov); } catch (Throwable $e) { }
         return ['ok' => true, 'grund' => 'vorgemerkt', 'id' => $id];
     }
 

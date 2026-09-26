@@ -11068,6 +11068,120 @@ pruefe('fehlt dem Worker der Browser, meldet er keine Website als gescheitert',
     str_contains((string) file_get_contents($oben . '/tools/akquise/src/cli.ts'), "Executable doesn't exist"));
 
 /* ============================================================================
+   Partner: Nachrichten, Handy-App, Erinnerung, Empfehlungen (26.09.2026)
+   Uwe: „im Partner Dashboard soll es eine Funktion geben, uns Nachrichten zu
+   schreiben“ -- und Ja zu Erinnerung an den Auszahlungsweg, Stand je
+   Empfehlung und Handy-App. Geprueft wird auch die Verschluesselung der
+   Hinweise, von der Gegenseite her: Was hier verschluesselt wird, muss der
+   Testvektor aus RFC 8291 Byte fuer Byte sein.
+   ============================================================================ */
+abschnitt('Partner: Nachrichten, Handy-App, Erinnerung, Empfehlungen');
+require_once $wurzel . '/src/PartnerPost.php';
+require_once $wurzel . '/src/WebPush.php';
+$pnP = Partner::anlegen(['name' => 'Luca Nachricht', 'email' => 'luca@partner.example', 'status' => 'aktiv', 'code' => 'LUCAPOST1', 'firma' => '', 'sprache' => 'de']);
+Partner::vereinbarungMerken($pnP, 'x');
+Db::run("UPDATE partner SET sprache = 'de' WHERE id = ?", [$pnP]);
+$pnMails = static fn(string $anlass, string $an = ''): int => (int) Db::wert('SELECT COUNT(*) FROM mails WHERE anlass = ?' . ($an !== '' ? ' AND empfaenger = ?' : ''),
+    $an !== '' ? [$anlass, $an] : [$anlass], 0);
+
+// Nachrichten
+$pnVorher = $pnMails('partner_nachricht');
+PartnerPost::schreiben($pnP, "Frage zur Auszahlung\n", 'partner');
+pruefe('Partner schreibt: die Nachricht steht da, ohne Leerzeilen am Ende',
+    (string) Db::wert("SELECT text FROM partner_nachrichten WHERE partner_id = ? AND von = 'partner' ORDER BY id DESC LIMIT 1", [$pnP], '') === 'Frage zur Auszahlung');
+pruefe('… Uwe bekommt eine Meldung mit Link zur Partnerakte',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_nachricht' AND link = ?", ['/partner/' . $pnP], 0) === 1);
+pruefe('… und eine Mail (Antworten geht an den Partner)', $pnMails('partner_nachricht') === $pnVorher + 1);
+$pnLeer = false; try { PartnerPost::schreiben($pnP, "  \n ", 'partner'); } catch (InvalidArgumentException $e) { $pnLeer = true; }
+pruefe('Leere Nachricht wird abgewiesen', $pnLeer);
+for ($i = 0; $i < PartnerPost::JE_STUNDE; $i++) { try { PartnerPost::schreiben($pnP, 'Spam ' . $i, 'partner'); } catch (Throwable $e) { } }
+$pnBremse = false; try { PartnerPost::schreiben($pnP, 'eine zu viel', 'partner'); } catch (LengthException $e) { $pnBremse = true; }
+pruefe('Bremse: höchstens ' . PartnerPost::JE_STUNDE . ' Partner-Nachrichten je Stunde', $pnBremse);
+Db::run("DELETE FROM partner_nachrichten WHERE partner_id = ? AND text LIKE 'Spam %'", [$pnP]);
+require_once $wurzel . '/src/Meldungen.php';
+pruefe('Die Meldung ist offen, solange etwas ungelesen ist',
+    !(Meldungen::regeln()['partner_nachricht'])(['created_at' => date('Y-m-d H:i:s')], $pnP));
+PartnerPost::gelesen($pnP, 'vecom');
+pruefe('… und erledigt sich, sobald Uwe die Partnerakte geöffnet hat',
+    (Meldungen::regeln()['partner_nachricht'])(['created_at' => date('Y-m-d H:i:s')], $pnP));
+
+// Antwort: Mail + Hinweis aufs Handy
+[$pnGPem, $pnGPunkt] = WebPush::paar(); $pnGAuth = random_bytes(16);
+PartnerPost::aboSpeichern($pnP, 'https://push.example.org/abo/1', WebPush::b64($pnGPunkt), WebPush::b64($pnGAuth));
+PartnerPost::aboSpeichern($pnP, 'https://push.example.org/abo/1', WebPush::b64($pnGPunkt), WebPush::b64($pnGAuth));
+pruefe('Handy: dasselbe Gerät zweimal gemeldet = ein Abo', (int) Db::wert('SELECT COUNT(*) FROM partner_push WHERE partner_id = ?', [$pnP], 0) === 1);
+$pnFalsch = false; try { PartnerPost::aboSpeichern($pnP, 'http://unsicher.example/x', 'abc', 'def'); } catch (InvalidArgumentException $e) { $pnFalsch = true; }
+pruefe('Handy: unsicherer Endpoint oder falsche Schlüssel werden abgewiesen', $pnFalsch);
+$pnPost = [];
+WebPush::$probe = static function (string $ziel, array $kopf, string $paket) use (&$pnPost): int { $pnPost[] = [$ziel, $kopf, $paket]; return 201; };
+$pnAntwVorher = $pnMails('partner_antwort', 'luca@partner.example');
+PartnerPost::schreiben($pnP, 'Ist ab Montag auszahlbar.', 'vecom');
+pruefe('Antwort: Mail an den Partner', $pnMails('partner_antwort', 'luca@partner.example') === $pnAntwVorher + 1);
+pruefe('Antwort: genau ein Hinweis an sein Gerät', count($pnPost) === 1 && $pnPost[0][0] === 'https://push.example.org/abo/1');
+$pnKlar = count($pnPost) === 1 ? json_decode(WebPush::entschluesseln($pnPost[0][2], $pnGPem, $pnGPunkt, $pnGAuth), true) : null;
+pruefe('Antwort: das Gerät kann den Hinweis entschlüsseln — Titel, Text, Link zur Partnerseite',
+    is_array($pnKlar) && $pnKlar['titel'] === 'Antwort von Vecom Design' && $pnKlar['text'] === 'Ist ab Montag auszahlbar.'
+    && str_contains((string) $pnKlar['link'], '#nachrichten'), json_encode($pnKlar));
+$pnAuthKopf = count($pnPost) === 1 ? (string) array_values(array_filter($pnPost[0][1], static fn($k) => str_starts_with($k, 'Authorization:')))[0] : '';
+preg_match('~t=([^,]+), k=(\S+)~', $pnAuthKopf, $pnM);
+[$pnJh, $pnJb, $pnJs] = array_pad(explode('.', $pnM[1] ?? ''), 3, '');
+pruefe('VAPID: Signatur mit dem öffentlichen Schlüssel prüfbar, Empfänger ist der Ursprung des Endpoints',
+    ($pnM[2] ?? '') === WebPush::schluessel()['oeffentlich']
+    && openssl_verify("$pnJh.$pnJb", WebPush::rohZuDer(WebPush::unb64($pnJs)), WebPush::punktAlsSchluessel(WebPush::unb64($pnM[2] ?? '')), OPENSSL_ALGO_SHA256) === 1
+    && (json_decode(WebPush::unb64($pnJb), true)['aud'] ?? '') === 'https://push.example.org');
+// RFC 8291, Anhang A
+$pnEc = static fn(string $d, string $pub): string => "-----BEGIN EC PRIVATE KEY-----\n" . chunk_split(base64_encode(hex2bin('30770201010420') . $d
+    . hex2bin('a00a06082a8648ce3d030107a144034200') . $pub), 64, "\n") . "-----END EC PRIVATE KEY-----\n";
+$pnAsPub = WebPush::unb64('BP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A8');
+$pnVektor = WebPush::verschluesseln('When I grow up, I want to be a watermelon',
+    WebPush::unb64('BCVxsr7N_eNgVRqvHtD0zTZsEc6-VV-JvLexhqUzORcxaOzi6-AYWXvTBHm4bjyPjs7Vd8pZGH6SRpkNtoIAiw4'), WebPush::unb64('BTBZMqHH6r4Tts7J_aSIgg'),
+    [$pnEc(WebPush::unb64('yfWPiYE-n46HLnH0KqZOF1fJJU3MYrct3AELtAQ-oRw'), $pnAsPub), $pnAsPub], WebPush::unb64('DGv6ra1nlYgDCS1FRnbzlw'));
+pruefe('Verschlüsselung = Testvektor RFC 8291 (Byte für Byte)', WebPush::b64($pnVektor)
+    === 'DGv6ra1nlYgDCS1FRnbzlwAAEABBBP4z9KsN6nGRTbVYI_c7VJSPQTBtkgcy27mlmlMoZIIgDll6e3vCYLocInmYWAmS6TlzAC8wEqKK6PBru3jl7A_yl95bQpu6cVPTpK4Mqgkf1CXztLVBSt2Ks3oZwbuwXPXLWyouBWLVWGNWQexSgSxsj_Qulcy4a-fN');
+WebPush::$probe = static fn(): int => 410;
+PartnerPost::push($pnP, 't', 'x', 'https://vecom-design.it');
+pruefe('Handy: gibt der Browser das Abo auf (410), wird es gelöscht', (int) Db::wert('SELECT COUNT(*) FROM partner_push WHERE partner_id = ?', [$pnP], 0) === 0);
+WebPush::$probe = null;
+pruefe('Der private VAPID-Schlüssel liegt in der Datenbank, nie im Repository',
+    str_contains(WebPush::schluessel()['privat'], 'PRIVATE KEY') && !preg_match('~BEGIN (EC )?PRIVATE KEY~', (string) file_get_contents($wurzel . '/src/WebPush.php') . (string) file_get_contents($wurzel . '/../partner-sw.js')));
+
+// Erinnerung an den Auszahlungsweg
+$pnK = Events::kundeFinden(['name' => 'Empfohlen Eins', 'email' => 'empfohlen-eins@esempio.example']);
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id) VALUES (?, ?)', [$pnK, $pnP]);
+Db::run("INSERT INTO partner_provisionen (partner_id, customer_id, payment_id, art, basis_cents, provision_cents, status, frei_ab)
+         VALUES (?, ?, 990001, 'website', 100000, 10000, 'bereit', NOW())", [$pnP, $pnK]);
+$pnW0 = $pnMails('partner_weg_fehlt', 'luca@partner.example');
+PartnerPost::wegErinnern();
+pruefe('Erinnerung: Geld bereit, kein Auszahlungsweg → Mail mit Betrag', $pnMails('partner_weg_fehlt', 'luca@partner.example') === $pnW0 + 1
+    && str_contains((string) Db::wert("SELECT betreff FROM mails WHERE anlass = 'partner_weg_fehlt' ORDER BY id DESC LIMIT 1", [], ''), '100,00'));
+PartnerPost::wegErinnern();
+pruefe('… aber höchstens alle ' . PartnerPost::ERINNERN_TAGE . ' Tage', $pnMails('partner_weg_fehlt', 'luca@partner.example') === $pnW0 + 1);
+Db::run('UPDATE partner SET weg_erinnert_am = DATE_SUB(NOW(), INTERVAL 20 DAY), auszahlungsweg = ?, paypal_email = ? WHERE id = ?', ['paypal', 'luca@paypal.example', $pnP]);
+PartnerPost::wegErinnern();
+pruefe('… und nicht, wenn der Weg eingerichtet ist', $pnMails('partner_weg_fehlt', 'luca@partner.example') === $pnW0 + 1
+    || !in_array('paypal', PartnerWege::fuerPartner(Partner::laden($pnP)), true));
+pruefe('Erinnerung läuft im Partner-Cron mit', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'PartnerPost::wegErinnern()'));
+
+// Stand je Empfehlung
+$pnE = PartnerPost::empfehlungen($pnP);
+pruefe('Empfehlungen: eine Zeile je Kunde, mit Provision — und ohne Namen oder E-Mail',
+    count($pnE) === 1 && $pnE[0]['provision'] === 10000 && !str_contains(json_encode($pnE), 'Empfohlen') && !str_contains(json_encode($pnE), '@'));
+Db::run("INSERT INTO angebote (nummer, customer_id, sprache, status, titel, summe_cents, token, gesendet_am) VALUES ('A-PN-1', ?, 'de', 'gesendet', 't', 100, ?, NOW())",
+    [$pnK, bin2hex(random_bytes(16))]);
+pruefe('Empfehlungen: mit verschicktem Angebot steht der Kunde auf „Angebot“', PartnerPost::empfehlungen($pnP)[0]['stufe'] === 'angebot');
+
+// Seite
+$pnS = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerseite: Nachrichten, Empfehlungen, App-Block und Manifest nur mit Schlüssel',
+    str_contains($pnS, 'id="nachrichten"') && str_contains($pnS, 'id="empfehlungen"') && str_contains($pnS, 'id="app"')
+    && str_contains($pnS, "if (\$p && isset(\$_GET['manifest']))"));
+pruefe('Service Worker speichert keine Seiten (Geldzahlen nie aus dem Cache)',
+    !preg_match('~caches\.open|cache\.put~', (string) file_get_contents($wurzel . '/../partner-sw.js')));
+pruefe('Antwort an Partner fragt vorher (TRAGWEITE)', isset(Ablauf::TRAGWEITE['partner_nachricht']));
+pruefe('Logos mit Versionsanhang — kein Browser zeigt mehr das alte blaue V',
+    !preg_match('~logo-mark\.webp"~', $pnS . (string) file_get_contents($wurzel . '/../kunde.php') . (string) file_get_contents($wurzel . '/../zugang.php')));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

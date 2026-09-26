@@ -246,7 +246,7 @@ $datum = static function (?string $d): string {
 <body>
 <div class="seite">
   <div class="wortmarke">
-    <img src="/assets/img/logo-mark.webp" alt="" width="58" height="46" fetchpriority="high">
+    <img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
     <?php if (!$panne && $a): ?>
       <span class="sprachwahl" role="group" aria-label="Lingua / Sprache / Language">

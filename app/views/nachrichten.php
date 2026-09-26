@@ -3,6 +3,24 @@
     Alles, was zwischen dir und deinen Kunden hin und her geht. Antworten kannst du im Projekt —
     und bei allem, was noch kein Projekt hat, in der Kundenakte.</p></div></div>
 
+<?php /* Partner schreiben über ihre Partnerseite (26.09.2026) -- hier nur, was
+         noch offen ist oder frisch war; beantwortet wird in der Partnerakte. */
+      require_once dirname(__DIR__) . '/src/PartnerPost.php';
+      $pnListe = array_slice(PartnerPost::offeneFuerVecom(20), 0, 8); ?>
+<?php if ($pnListe): ?>
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 10px">Von Partnern</h2>
+  <table><tbody>
+  <?php foreach ($pnListe as $n): $neu = $n['gelesen_am'] === null; ?>
+    <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $n['partner_id'])) ?>#nachrichten"><?= Fmt::h((string) $n['partner']) ?></a>
+          <?php if ($neu): ?><br><span class="marke2 warnung">ungelesen</span><?php endif; ?></td>
+        <td style="max-width:460px"><span style="white-space:pre-wrap;overflow-wrap:anywhere;<?= $neu ? '' : 'color:var(--dim)' ?>"><?= Fmt::h(mb_substr((string) $n['text'], 0, 300)) ?></span></td>
+        <td style="white-space:nowrap;color:var(--leise);font-size:13px"><?= Fmt::h(date('d.m. H:i', strtotime((string) $n['created_at']))) ?></td></tr>
+  <?php endforeach; ?>
+  </tbody></table>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <?php if (!$liste): ?>
     <div class="leer">Noch keine Nachrichten.</div>
