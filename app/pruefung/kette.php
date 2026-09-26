@@ -9883,6 +9883,58 @@ pruefe('Löschen: fragt vorher nach', Ablauf::wiegt('partner_loeschen') === Abla
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 
 /* ============================================================================
+   Empfehlungsrabatt kommt auf der Betreuungsrate an (26.09.2026)
+   ----------------------------------------------------------------------------
+   Bis heute wurde er nur berechnet. Jetzt: nächste Betreuungsrate um den
+   Prozentsatz reduziert, nach rabatt_bis voll, Hosting nie, alte Raten
+   unverändert, der Beleg zeigt Vollpreis und Abzug.
+   ============================================================================ */
+abschnitt('Empfehlungsrabatt auf der Betreuung');
+require_once $wurzel . '/src/Rechnung.php';
+$erK = Events::kundeFinden(['name' => 'Empfehlerin Rabatt', 'email' => 'rabatt-empf@pruefung.example']);
+$erG = Events::kundeFinden(['name' => 'Geworbener Rabatt', 'email' => 'rabatt-gew@pruefung.example']);
+$erSlug = (string) Db::wert("SELECT slug FROM packages WHERE art = 'betreuung' AND active = 1 ORDER BY id LIMIT 1", [], '');
+$erAbo = Abo::anlegen($erK, ['paket_slug' => $erSlug, 'zahlart' => 'manuell']);
+Db::run("UPDATE abos SET status = 'aktiv' WHERE id = ?", [$erAbo]);
+$erVoll = (int) Db::wert('SELECT betrag_cents FROM abos WHERE id = ?', [$erAbo], 0);
+$erVorher = Abo::abrechnen($erAbo, date('Y-m', strtotime('first day of -1 month')));
+pruefe('Rabatt: ohne verdiente Empfehlung voller Preis', (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$erVorher], 0) === $erVoll);
+
+Db::insert('empfehlungen', ['empfehler_id' => $erK, 'geworbener_id' => $erG, 'code' => 'RABT', 'quelle' => 'link',
+    'status' => 'verdient', 'verdient_am' => date('Y-m-d H:i:s')]);
+Empfehlung::neuBerechnen($erK);
+$erProz = Empfehlung::prozent();
+$erRate = Abo::abrechnen($erAbo, date('Y-m'));
+$erZ = Db::one('SELECT * FROM payments WHERE id = ?', [$erRate]);
+pruefe('Rabatt: die nächste Betreuungsrate ist um ' . $erProz . ' % reduziert, in ganzen Cent',
+    (int) $erZ['amount_cents'] === (int) round($erVoll * (100 - $erProz) / 100) && $erVoll > 0, $erZ['amount_cents'] . ' von ' . $erVoll);
+pruefe('Rabatt: die frühere Rate bleibt, wie sie war', (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$erVorher], 0) === $erVoll);
+
+$erHost = Abo::anlegen($erK, ['paket_slug' => 'hosting', 'zahlart' => 'manuell']);
+Db::run("UPDATE abos SET status = 'aktiv' WHERE id = ?", [$erHost]);
+$erHr = Abo::abrechnen($erHost, date('Y-m'));
+pruefe('Rabatt: Hosting wird nie reduziert',
+    (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$erHr], 0) === (int) Db::wert('SELECT betrag_cents FROM abos WHERE id = ?', [$erHost], 0));
+
+Db::run('UPDATE customers SET rabatt_bis = ? WHERE id = ?', [date('Y-m-t'), $erK]);
+$erNach = Abo::abrechnen($erAbo, date('Y-m', strtotime('first day of +1 month')));
+pruefe('Rabatt: nach rabatt_bis wieder voll', (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$erNach], 0) === $erVoll);
+
+Db::run("UPDATE payments SET status = 'bezahlt', paid_at = NOW() WHERE id = ?", [$erRate]);
+$erBeleg = Rechnung::ausZahlung($erRate);
+$erR = Db::one('SELECT * FROM invoices WHERE id = ?', [(int) $erBeleg]);
+$erPosten = Rechnung::posten($erR, 'de');
+pruefe('Beleg: Vollpreis und Empfehlungsrabatt als eigene Zeile, Summe = bezahlt',
+    count($erPosten) === 2 && $erPosten[0]['brutto'] === $erVoll && $erPosten[1]['brutto'] === -($erVoll - (int) $erZ['amount_cents'])
+    && str_contains($erPosten[1]['text'], 'Empfehlungsrabatt (' . $erProz . ' %)')
+    && array_sum(array_column($erPosten, 'brutto')) === (int) $erR['total_cents']
+    && array_sum(array_column($erPosten, 'netto')) === (int) $erR['net_cents'], json_encode($erPosten, JSON_UNESCAPED_UNICODE));
+pruefe('Beleg: der Abzug ist dreisprachig',
+    str_contains((string) (Rechnung::posten($erR, 'it')[1]['text'] ?? ''), 'Sconto')
+    && str_contains((string) (Rechnung::posten($erR, 'en')[1]['text'] ?? ''), 'Referral'));
+pruefe('Beleg: das PDF entsteht mit Abzugszeile', str_starts_with(Rechnung::pdf($erR), '%PDF'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

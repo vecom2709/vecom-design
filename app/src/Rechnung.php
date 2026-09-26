@@ -305,7 +305,7 @@ final class Rechnung
            Datenbank, und auf dem Beleg eines italienischen Kunden hat ein
            deutscher Monatsname nichts zu suchen. */
         if ((string) $r['art'] === 'betreuung') {
-            $p = Db::one('SELECT abo_id, abrechnungsmonat, bezeichnung FROM payments WHERE id = ?',
+            $p = Db::one('SELECT abo_id, abrechnungsmonat, bezeichnung, detail FROM payments WHERE id = ?',
                 [(int) ($r['payment_id'] ?? 0)]);
             $monat = trim((string) ($p['abrechnungsmonat'] ?? ''));
             if ($monat !== '') {
@@ -316,21 +316,11 @@ final class Rechnung
                       . mb_substr(self::wofuer('betreuung', $s), 1)
                       . ($paketName !== '' ? ' — ' . $paketName : '')
                       . ', ' . Abo::monatswort($monat, $s);
-                return [[
-                    'text'   => $text,
-                    'netto'  => (int) $r['net_cents'],
-                    'steuer' => (int) $r['tax_cents'],
-                    'brutto' => (int) $r['total_cents'],
-                ]];
+                return self::mitRabatt($r, $text, (string) ($p['detail'] ?? ''), $s);
             }
             $bez = trim((string) ($p['bezeichnung'] ?? ''));
             if ($bez !== '') {
-                return [[
-                    'text'   => $bez,
-                    'netto'  => (int) $r['net_cents'],
-                    'steuer' => (int) $r['tax_cents'],
-                    'brutto' => (int) $r['total_cents'],
-                ]];
+                return self::mitRabatt($r, $bez, (string) ($p['detail'] ?? ''), $s);
             }
         }
         $paket = $r['order_id'] !== null
@@ -344,6 +334,33 @@ final class Rechnung
             'steuer' => (int) $r['tax_cents'],
             'brutto' => (int) $r['total_cents'],
         ]];
+    }
+
+    /**
+     * Eine Betreuungsrate mit Empfehlungsrabatt steht als zwei Zeilen da:
+     * der volle Monatspreis und der Rabatt als Abzug. Die Summe bleibt der
+     * bezahlte Betrag; Netto und Steuer werden so geteilt, dass beide
+     * Zeilen zusammen genau den Beleg ergeben (kein Cent Rundungsdrift).
+     *
+     * @return list<array{text:string,netto:int,steuer:int,brutto:int}>
+     */
+    private static function mitRabatt(array $r, string $text, string $detailJson, string $s): array
+    {
+        $eine = [['text' => $text, 'netto' => (int) $r['net_cents'], 'steuer' => (int) $r['tax_cents'], 'brutto' => (int) $r['total_cents']]];
+        $d = json_decode($detailJson, true);
+        $rab = is_array($d) ? ($d['empfehlungsrabatt'] ?? null) : null;
+        if (!is_array($rab) || (int) ($rab['rabatt_cents'] ?? 0) <= 0) { return $eine; }
+        $voll = (int) $rab['voll_cents'];
+        if ($voll - (int) $rab['rabatt_cents'] !== (int) $r['total_cents']) { return $eine; }   // passt nicht zusammen: lieber eine ehrliche Zeile
+        $satz = (float) $r['tax_rate'];
+        $vollNetto = $satz > 0 ? (int) round($voll / (1 + $satz / 100)) : $voll;
+        require_once __DIR__ . '/Texte.php';
+        return [
+            ['text' => $text, 'netto' => $vollNetto, 'steuer' => $voll - $vollNetto, 'brutto' => $voll],
+            ['text' => strtr(Texte::h(Texte::EMPFEHLUNGSRABATT, $s), ['{p}' => (string) (int) $rab['prozent']]),
+             'netto' => (int) $r['net_cents'] - $vollNetto, 'steuer' => (int) $r['tax_cents'] - ($voll - $vollNetto),
+             'brutto' => -(int) $rab['rabatt_cents']],
+        ];
     }
 
     /** Wo das Logo fuer den Briefkopf liegt. */

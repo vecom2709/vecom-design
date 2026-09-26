@@ -2873,4 +2873,11 @@ final class Texte
               . "7. The partner sees only numbers, never customer data.\n"
               . "8. Either side may end the partnership at any time. Commission already earned is paid out. Vecom Design may change the terms for the future and will announce this by email.",
     ];
+
+    /** Die Abzugszeile auf dem Beleg einer Betreuungsrate (26.09.2026). */
+    public const EMPFEHLUNGSRABATT = [
+        'it' => 'Sconto per raccomandazione ({p} %)',
+        'de' => 'Empfehlungsrabatt ({p} %)',
+        'en' => 'Referral discount ({p} %)',
+    ];
 }

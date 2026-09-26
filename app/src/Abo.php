@@ -183,6 +183,27 @@ final class Abo
         $bezeichnung = ($ohneVorwort ? '' : 'Betreuung ')
             . $paketName . ' — ' . self::monatswort($monat);
 
+        /* DER EMPFEHLUNGSRABATT (26.09.2026)
+           Bis heute wurde er berechnet (Empfehlung::neuBerechnen), aber nie
+           angewendet — jede Betreuungsrate ging zum vollen Preis raus, obwohl
+           Kundentexte „zwölf Monate zu fünfzehn Prozent“ versprachen.
+           Jetzt: nur Betreuung, nie Hosting; es zählt der Monat der Rate
+           (gilt der Rabatt am Monatsersten noch, gilt er für den Monat);
+           festgehalten wird er an der Rate, damit der Beleg ihn zeigen kann
+           und spätere Änderungen am Kunden alte Raten nicht umschreiben. */
+        $betrag = (int) $a['betrag_cents'];
+        $detail = null;
+        if ((string) ($a['paket_slug'] ?? '') !== 'hosting') {
+            require_once __DIR__ . '/Empfehlung.php';
+            $rab = Empfehlung::rabattFuer((int) $a['customer_id']);
+            if ($rab['prozent'] > 0 && $rab['bis'] !== null && $rab['bis'] >= $monat . '-01' && $betrag > 0) {
+                $neu = (int) round($betrag * (100 - $rab['prozent']) / 100);
+                $detail = (string) json_encode(['empfehlungsrabatt' => ['prozent' => $rab['prozent'],
+                    'voll_cents' => $betrag, 'rabatt_cents' => $betrag - $neu, 'bis' => $rab['bis']]]);
+                $betrag = $neu;
+            }
+        }
+
         try {
             $id = Db::insert('payments', [
                 'order_id' => null,
@@ -191,9 +212,10 @@ final class Abo
                 'art'      => 'betreuung',
                 'bezeichnung' => mb_substr($bezeichnung, 0, 120),
                 'provider' => 'offen',
-                'amount_cents' => (int) $a['betrag_cents'],
+                'amount_cents' => $betrag,
                 'currency' => (string) $a['currency'],
                 'status'   => 'ausstehend',
+                'detail'   => $detail,
                 // Faellig wird sie erst mit der Aufforderung — siehe oben.
                 'faellig_am' => null,
             ]);
@@ -213,7 +235,8 @@ final class Abo
         self::reiheWeiter($a, $monat);
 
         self::still(fn() => Events::protokoll('abo_abrechnung',
-            $bezeichnung . ': ' . Fmt::geld((int) $a['betrag_cents'], (string) $a['currency']),
+            $bezeichnung . ': ' . Fmt::geld($betrag, (string) $a['currency'])
+                . ($detail !== null ? ' (mit Empfehlungsrabatt, statt ' . Fmt::geld((int) $a['betrag_cents'], (string) $a['currency']) . ')' : ''),
             (int) $a['customer_id'], null,
             $a['project_id'] !== null ? (int) $a['project_id'] : null));
 
