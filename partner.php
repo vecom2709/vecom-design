@@ -78,8 +78,10 @@ if ($p && isset($_GET['manifest'])) {
         'start_url' => '/partner.php?t=' . $p['token'], 'scope' => '/partner.php', 'id' => '/partner.php?app=' . substr(hash('sha256', (string) $p['token']), 0, 12),
         'display' => 'standalone', 'background_color' => '#0a0908', 'theme_color' => '#0a0908', 'lang' => $sprache,
         'icons' => [
-            ['src' => '/assets/img/app-icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any maskable'],
-            ['src' => '/assets/img/app-icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any maskable'],
+            // „any“ und „maskable“ getrennt -- zusammengelegt warnen Chrome und die WebAPK-Erzeugung.
+            ['src' => '/assets/img/app-icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => '/assets/img/app-icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
+            ['src' => '/assets/img/app-icon-512.png', 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
         ],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
@@ -631,6 +633,7 @@ if ($p && isset($_GET['karte'])) {
       <button class="knopf haupt" type="button" id="push_an" hidden><?= $h($T('app_an')) ?></button>
       <button class="knopf" type="button" id="installieren" hidden><?= $h($T('app_installieren')) ?></button>
     </div>
+    <p class="klein" id="app_hilfe" style="margin-top:10px"></p>
     <p class="klein" id="push_stand" role="status"></p>
   </div>
   <script>
@@ -639,10 +642,33 @@ if ($p && isset($_GET['karte'])) {
     var knopf = document.getElementById('push_an'), stand = document.getElementById('push_stand'), inst = document.getElementById('installieren');
     var W = { an: <?= json_encode($T('app_ist_an')) ?>, nein: <?= json_encode($T('app_nein')) ?>, verboten: <?= json_encode($T('app_verboten')) ?> };
     var schluessel = <?= json_encode(PartnerPost::vapid()) ?>, csrf = <?= json_encode($_SESSION['csrf']) ?>, ziel = <?= json_encode($selbst()) ?>;
-    var wartend = null;
+    /* INSTALLIEREN (26.09.2026, Uwe: „wird nicht als App auf dem Handy hinterlegt“)
+       Nur Chrome/Edge/Samsung auf Android bieten den Knopf an (beforeinstallprompt).
+       Safari auf dem iPhone kennt ihn nicht -- dort geht es nur über „Teilen →
+       Zum Home-Bildschirm“, und genau das steht dann hier, statt eines Knopfes,
+       der nie erscheint. Als App geöffnet: kurz bestätigen, nichts anbieten. */
+    var hilfe = document.getElementById('app_hilfe'), wartend = null;
+    var HW = { ios: <?= json_encode($T('app_ios')) ?>, android: <?= json_encode($T('app_android')) ?>, fertig: <?= json_encode($T('app_fertig')) ?>, laeuft: <?= json_encode($T('app_laeuft')) ?> };
+    var alsApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (alsApp) { hilfe.textContent = HW.laeuft; }
+    else if (ios) { hilfe.textContent = HW.ios; }
+    else { hilfe.textContent = HW.android; }
     window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); wartend = e; inst.hidden = false; });
-    inst.addEventListener('click', function () { if (wartend) { wartend.prompt(); wartend = null; inst.hidden = true; } });
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !schluessel) { stand.textContent = W.nein; return; }
+    window.addEventListener('appinstalled', function () { inst.hidden = true; hilfe.textContent = HW.fertig; });
+    inst.addEventListener('click', function () {
+      if (!wartend) { return; }
+      wartend.prompt();
+      wartend.userChoice.then(function (w) { if (w && w.outcome === 'accepted') { hilfe.textContent = HW.fertig; } }).catch(function () {});
+      wartend = null; inst.hidden = true;
+    });
+    /* Der Service Worker wird immer registriert -- auch ohne Push. Manche
+       Browser machen erst damit aus „Zum Startbildschirm“ eine echte App. */
+    if (!('serviceWorker' in navigator)) { stand.textContent = W.nein; return; }
+    if (!('PushManager' in window) || !schluessel) {
+      navigator.serviceWorker.register('/partner-sw.js', { scope: '/partner.php' }).catch(function () {});
+      stand.textContent = W.nein; return;
+    }
     function b64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); var r = atob(s + '==='.slice((s.length + 3) % 4)); var a = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) a[i] = r.charCodeAt(i); return a; }
     function melden(abo) {
       var j = abo.toJSON(), f = new FormData();

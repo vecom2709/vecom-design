@@ -9,6 +9,12 @@
    Bereich /partner.php. */
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+/* Ein Fetch-Handler, der nichts abfaengt: Manche Android-Browser (und aeltere
+   Chrome-Fassungen) bieten „App installieren“ nur an, wenn es einen gibt, und
+   legen sonst nur ein Lesezeichen mit Browser-Symbol ab (Uwe, 26.09.2026:
+   „wird nicht als App auf dem Handy hinterlegt“). Ohne respondWith geht jede
+   Anfrage wie immer ans Netz -- nichts wird zwischengespeichert. */
+self.addEventListener('fetch', () => {});
 
 self.addEventListener('push', (e) => {
   let d = {};

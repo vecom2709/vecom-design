@@ -11181,6 +11181,13 @@ pruefe('Partnerseite: Nachrichten, Empfehlungen, App-Block und Manifest nur mit 
     && str_contains($pnS, "if (\$p && isset(\$_GET['manifest']))"));
 pruefe('Service Worker speichert keine Seiten (Geldzahlen nie aus dem Cache)',
     !preg_match('~caches\.open|cache\.put~', (string) file_get_contents($wurzel . '/../partner-sw.js')));
+$pnSw = (string) file_get_contents($wurzel . '/../partner-sw.js');
+pruefe('App installierbar: Service Worker mit Fetch-Handler (ohne Abfangen), getrennte Icons any/maskable',
+    str_contains($pnSw, "addEventListener('fetch'") && !str_contains($pnSw, '.respondWith(')
+    && str_contains($pnS, "'purpose' => 'maskable'") && !str_contains($pnS, "'any maskable'"));
+pruefe('App: Anleitung für iPhone (Teilen → Home-Bildschirm) und Android, Service Worker auch ohne Push registriert',
+    str_contains($pnS, "id=\"app_hilfe\"") && isset(Texte::PARTNER['app_ios'], Texte::PARTNER['app_android'])
+    && substr_count($pnS, "navigator.serviceWorker.register('/partner-sw.js'") === 2);
 pruefe('Antwort an Partner fragt vorher (TRAGWEITE)', isset(Ablauf::TRAGWEITE['partner_nachricht']));
 pruefe('Logos mit Versionsanhang — kein Browser zeigt mehr das alte blaue V',
     !preg_match('~logo-mark\.webp"~', $pnS . (string) file_get_contents($wurzel . '/../kunde.php') . (string) file_get_contents($wurzel . '/../zugang.php')));
