@@ -12,6 +12,7 @@
    ========================================================================== */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { LANDESEITEN, LANDESEITEN_WORTE, LANDESEITEN_KURZ, LANDESEITEN_STAND } from './seiten/landeseiten.mjs';
 
 const BASE = 'https://vecom-design.it';
 
@@ -509,6 +510,13 @@ function build(lang, seite) {
      und nicht in einem der drei Seitenbloecke: Wer im Quelltext irgendeine
      der drei Schreibweisen verlinkt, bekommt die richtige.
      -------------------------------------------------------------------------- */
+  /* Verweise auf die Landeseiten (26.09.2026): In der Vorlage stehen die
+     italienischen Dateinamen -- die sind in index.html zugleich Ergebnis und
+     bleiben darum stehen. Jede Sprache bekommt ihren eigenen. */
+  for (const ls of LANDESEITEN) {
+    const it = ls.ziele.it, ziel = ls.ziele[lang].split('/').pop();
+    h = h.split(`href="${it}"`).join(`href="${ziel}"`);
+  }
   const preisseite = SEITEN.find((x) => x.quelle === 'prezzi.html');
   if (preisseite) {
     const datei = preisseite.ziele[lang].split('/').pop();
@@ -657,4 +665,122 @@ for (const seite of SEITEN) {
   const vorher = readFileSync('legal.html', 'utf8');
   const nachher = vorher.replace(/(assets\/js\/(i18n|legal)-it\.js)(?:\?v=[A-Za-z0-9]*)?/g, (m, pfad, name) => `${pfad}?v=${gemeinsam(name)}`);
   if (nachher !== vorher) { writeFileSync('legal.html', nachher); console.log('gestempelt: legal.html'); }
+}
+
+
+/* --------------------------------------------------------------------------
+   LANDESEITEN (26.09.2026): Provinz, Branchen, Ratgeber
+
+   Inhalt aus seiten/landeseiten.mjs, Gerüst aus der eben gebauten Preisseite
+   derselben Sprache -- Kopf, Fuß, Sprachwahl, Stil und Zählpixel sind damit
+   dieselben wie überall, ohne zweite Vorlage, die auseinanderläuft. Nur Kopf-
+   daten, Sprachwahl und <main> werden ersetzt. Keine data-i18n im Inhalt:
+   Die Seite ist je Sprache fertig, app.js fasst Titel und Text nicht an
+   (data-title-key="keiner").
+   -------------------------------------------------------------------------- */
+{
+  const preis = SEITEN.find((x) => x.quelle === 'prezzi.html');
+  const HL = { it: 'it_IT', de: 'de_DE', en: 'en_GB' };
+  const sitemapEintraege = [];
+  const rel = (von, zielPfad) => (von === 'it' ? './' : '../') + zielPfad;
+  const gleichesVerz = (zielPfad) => zielPfad.split('/').pop();
+
+  for (const ls of LANDESEITEN) {
+    for (const lang of Object.keys(LANGS)) {
+      const t = ls[lang], W = LANDESEITEN_WORTE[lang];
+      let h = readFileSync(preis.ziele[lang], 'utf8');
+      const url = `${BASE}/${ls.ziele[lang]}`;
+
+      h = h.replace(/<html([^>]*)>/, (m, a) => `<html${a.replace(/\s+data-(?:title|desc)-key="[^"]*"/g, '')} data-title-key="keiner" data-desc-key="keiner">`);
+      h = h.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(t.titel)}</title>`);
+      h = h.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escAttr(t.desc)}">`);
+      h = h.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url}">`);
+      h = h.replace(/\s*<link rel="alternate" hreflang="[^"]*" href="[^"]*">/g, '');
+      h = h.replace(/(<link rel="canonical" href="[^"]*">)/, `$1\n` + ['it', 'de', 'en'].map((l) =>
+        `<link rel="alternate" hreflang="${l}" href="${BASE}/${ls.ziele[l]}">`).join('\n')
+        + `\n<link rel="alternate" hreflang="x-default" href="${BASE}/${ls.ziele.it}">`);
+      h = h.replace(/<meta property="og:url" content="[^"]*">/, `<meta property="og:url" content="${url}">`);
+      h = h.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escAttr(t.titel)}">`);
+      h = h.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escAttr(t.desc)}">`);
+      h = h.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escAttr(t.titel)}">`);
+      h = h.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escAttr(t.desc)}">`);
+      h = h.replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/g, '');
+      h = h.replace(/\s*<script[^>]*preise-live\.js[^>]*><\/script>/g, '');
+
+      const ld = [
+        ls.art === 'Article'
+          ? { '@context': 'https://schema.org', '@type': 'Article', headline: t.h1, description: t.desc, inLanguage: lang, url,
+              author: { '@id': `${BASE}/#uwe-vetter` }, publisher: { '@id': `${BASE}/#studio` }, dateModified: LANDESEITEN_STAND }
+          : { '@context': 'https://schema.org', '@type': 'Service', name: t.h1, description: t.desc, inLanguage: lang, url,
+              provider: { '@id': `${BASE}/#studio` }, areaServed: [{ '@type': 'AdministrativeArea', name: 'Provincia di Agrigento' }, { '@type': 'AdministrativeArea', name: 'Sicilia' }] },
+        { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: lang,
+          mainEntity: t.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+      ];
+      h = h.replace('</head>', ld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join('\n') + '\n</head>');
+
+      // Sprachwahl: auf dieselbe Landeseite in der anderen Sprache
+      h = h.replace(/(<div class="lang lang--links"[\s\S]*?<\/div>)/, (block) =>
+        block.replace(/href="[^"]*"(\s+hreflang="(it|de|en)")/g, (m, rest, l) => `href="${rel(lang, ls.ziele[l])}"${rest}`));
+
+      const blocchi = t.blocchi.map(([kopf, text, liste]) => `
+      <h2>${esc(kopf)}</h2>
+      ${text ? `<p>${esc(text)}</p>` : ''}${liste ? `<ul class="landeseite__liste">${liste.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('\n');
+      const auch = Object.keys(LANDESEITEN_KURZ).filter((k) => k !== ls.schluessel)
+        .map((k) => { const z = LANDESEITEN.find((x) => x.schluessel === k); return `<a href="${gleichesVerz(z.ziele[lang])}">${esc(LANDESEITEN_KURZ[k][lang])}</a>`; }).join('');
+      const verweise = [
+        t.demo ? `<a class="btn" href="./${t.demo}">${esc(W.demo)}</a>` : '',
+        t.guida ? `<a class="btn" href="${gleichesVerz(LANDESEITEN.find((x) => x.schluessel === t.guida).ziele[lang])}">${esc(W.guida)}</a>` : '',
+        t.branche ? `<a class="btn" href="${gleichesVerz(LANDESEITEN.find((x) => x.schluessel === t.branche).ziele[lang])}">${esc(W.branche)}</a>` : '',
+      ].filter(Boolean).join('\n        ');
+
+      const main = `<main id="inhalt" class="preisseite landeseite">
+  <section class="section preis-kopf">
+    <div class="wrap">
+      <p class="eyebrow">${esc(t.kicker)}</p>
+      <h1>${esc(t.h1)}</h1>
+      <p class="preis-lead">${esc(t.lead)}</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="wrap"><div class="landeseite__text">${blocchi}
+      ${verweise ? `<p class="landeseite__verweise">\n        ${verweise}\n      </p>` : ''}
+      <div class="antwort framed landeseite__cta">
+        <p class="antwort__titel">${esc(W.cta_titel)}</p>
+        <p class="antwort__text">${esc(W.cta_text)}</p>
+        <p class="landeseite__knoepfe"><a class="btn btn--primary" href="./#contact">${esc(W.cta_knopf)}</a>
+          <a class="btn" href="${gleichesVerz(preis.ziele[lang])}">${esc(W.preise)}</a></p>
+      </div>
+      <h2>${esc(W.faq)}</h2>
+      ${t.faq.map(([q, a]) => `<details class="landeseite__faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n      ')}
+      <nav class="landeseite__auch" aria-label="${escAttr(W.auch)}"><span>${esc(W.auch)}:</span>${auch}</nav>
+    </div></div>
+  </section>
+</main>`;
+      h = h.replace(/<main[\s\S]*?<\/main>/, main);
+      h = h.replace(/<body class="seite-preise">/, '<body class="seite-preise seite-landeseite">');
+
+      const ziel = ls.ziele[lang];
+      if (lang !== 'it') { mkdirSync(lang, { recursive: true }); }
+      pruefen(h, lang, ziel);
+      writeFileSync(ziel, h);
+      console.log(`geschrieben: ${ziel} (Landeseite)`);
+    }
+    sitemapEintraege.push(ls);
+  }
+
+  /* Sitemap: nur der Abschnitt zwischen den Marken gehört dem Build; der
+     Rest bleibt von Hand gepflegt, wie bisher. */
+  const ANF = '<!-- landeseiten:anfang (build.mjs) -->', END = '<!-- landeseiten:ende -->';
+  let sm = readFileSync('sitemap.xml', 'utf8');
+  if (!sm.includes(ANF)) { sm = sm.replace('</urlset>', `  ${ANF}\n  ${END}\n</urlset>`); }
+  const eintraege = sitemapEintraege.flatMap((ls) => ['it', 'de', 'en'].map((l) => `  <url>
+    <loc>${BASE}/${ls.ziele[l]}</loc>
+${['it', 'de', 'en'].map((x) => `    <xhtml:link rel="alternate" hreflang="${x}" href="${BASE}/${ls.ziele[x]}"/>`).join('\n')}
+    <xhtml:link rel="alternate" hreflang="x-default" href="${BASE}/${ls.ziele.it}"/>
+    <lastmod>${LANDESEITEN_STAND}</lastmod><priority>0.7</priority>
+  </url>`)).join('\n');
+  // Schnitt ohne RegExp: Die Marke enthält Klammern, die ein Muster missverstünde.
+  const vor = sm.slice(0, sm.indexOf(ANF) + ANF.length), nach = sm.slice(sm.indexOf(END));
+  const neu = `${vor}\n${eintraege}\n  ${nach}`;
+  if (neu !== readFileSync('sitemap.xml', 'utf8')) { writeFileSync('sitemap.xml', neu); console.log('geschrieben: sitemap.xml (Landeseiten)'); }
 }

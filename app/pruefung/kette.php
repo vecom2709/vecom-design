@@ -10413,6 +10413,25 @@ pruefe('Website: jede Unterseite trägt ihren eigenen Titel- und Beschreibungssc
 pruefe('Website: kleine Textlinks haben 44 px zum Treffen',
     str_contains((string) file_get_contents($oben . '/assets/css/app.css'), '.betrieb__anfrage::before, .bedarfsweg__mehr::before, .fusspartner::before'));
 
+/* ---- Landeseiten: Provinz, Branchen, Ratgeber (Website-Vorschläge 3/4/9) ---- */
+$lsDaten = (string) file_get_contents($oben . '/seiten/landeseiten.mjs');
+$lsTexte = preg_replace('~/\*.*?\*/~s', '', $lsDaten);
+pruefe('Landeseiten: keine Euro-Beträge im Text -- Preise kommen live von der Preisseite und veralten hier nicht',
+    preg_match('~\d[\d.,]*\s*(€|euro)~iu', $lsTexte) === 0);
+pruefe('Landeseiten: nichts Erfundenes, das es auf der Website nicht gibt (Cavaleri hat kein Vorher/Nachher)',
+    !preg_match('~prima e dopo|Vorher und Nachher|before and after~iu', (string) preg_replace("~'Una galleria[^']*'|'Eine Galerie[^']*'|'A gallery[^']*'~u", '', $lsTexte)));
+$lsSm = (string) file_get_contents($oben . '/sitemap.xml');
+preg_match('~<!-- landeseiten:anfang \(build\.mjs\) -->(.*?)<!-- landeseiten:ende -->~s', $lsSm, $lsM);
+pruefe('Landeseiten: sieben Seiten in drei Sprachen stehen in der Sitemap (vom Build gepflegt)',
+    substr_count($lsM[1] ?? '', '<loc>') === 21, (string) substr_count($lsM[1] ?? '', '<loc>'));
+$lsB = (string) file_get_contents($oben . '/build.mjs');
+pruefe('Landeseiten: im Gerüst der Preisseite, eigener Titel, app.js fasst ihn nicht an',
+    str_contains($lsB, "const preis = SEITEN.find((x) => x.quelle === 'prezzi.html');") && str_contains($lsB, 'data-title-key="keiner"')
+    && str_contains($lsB, "preise-live\\.js"));
+pruefe('Landeseiten: die Startseite verweist auf sie, je Sprache mit eigenem Dateinamen',
+    str_contains((string) file_get_contents($oben . '/index.html'), 'href="siti-web-ristoranti.html"')
+    && str_contains($lsB, 'h.split(`href="${it}"`).join(`href="${ziel}"`)'));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

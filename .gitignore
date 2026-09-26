@@ -105,3 +105,9 @@ demo.csv
 
 # Python-Zwischendateien der Blender-Skripte
 __pycache__/
+
+# Landeseiten (26.09.2026): erzeugt von build.mjs aus seiten/landeseiten.mjs
+# ins Geruest der Preisseite -- keine Vorlage, also nicht versionieren
+# (wie /de/ und /en/). Aendern: seiten/landeseiten.mjs, dann node build.mjs.
+/siti-web-*.html
+/sito-o-booking.html

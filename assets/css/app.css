@@ -4456,3 +4456,23 @@ html.intro-weg .intro { opacity: 0; pointer-events: none; }
 .betrieb__anfrage::before, .bedarfsweg__mehr::before, .fusspartner::before {
   content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%);
 }
+
+/* Landeseiten (26.09.2026): Fließtext mit ruhiger Zeilenlänge im Gerüst der Preisseite */
+.landeseite__text { max-width: 46rem; }
+.landeseite .preis-kopf { padding-bottom: 0; }
+.landeseite .preis-kopf + .section { padding-top: clamp(1.5rem, 4vw, 2.5rem); }
+.landeseite__text h2 { margin: 2.2rem 0 .7rem; font-size: clamp(1.45rem, 3vw, 1.95rem); }
+.landeseite__text > h2:first-child { margin-top: 0; }
+.landeseite__text p { line-height: 1.7; color: var(--c-text-dim); }
+.landeseite__liste { margin: .4rem 0 0; padding-left: 1.2rem; line-height: 1.75; color: var(--c-text-dim); }
+.landeseite__liste li::marker { color: var(--c-accent, #c8963e); }
+.landeseite__verweise, .landeseite__knoepfe { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.4rem; }
+.landeseite__cta { margin-top: 2.4rem; }
+.landeseite__faq { border-top: 1px solid var(--c-line); padding: .2rem 0; }
+.landeseite__faq summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; font-weight: 500; color: var(--c-text); }
+.landeseite__faq p { margin: 0 0 1rem; }
+.landeseite__auch { margin-top: 2rem; font-size: var(--t-sm); display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.1rem; color: var(--c-text-faint); }
+.landeseite__auch a { color: var(--c-text); display: inline-block; padding: .6rem 0; }
+.footer__settori { display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin-top: 1rem; font-size: var(--t-sm); color: var(--c-text-faint); }
+.footer__settori a { color: var(--c-text-dim); text-decoration: none; display: inline-block; padding: .6rem 0; }
+.footer__settori a:hover { color: var(--c-text); }

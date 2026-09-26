@@ -145,4 +145,174 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tecnica.html"/>
     <lastmod>2026-09-24</lastmod><priority>0.4</priority>
   </url>
+  <!-- landeseiten:anfang (build.mjs) -->
+  <url>
+    <loc>https://vecom-design.it/siti-web-agrigento.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-agrigento.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-agrigent.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-agrigento.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-agrigento.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/websites-agrigent.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-agrigento.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-agrigent.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-agrigento.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-agrigento.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/websites-agrigento.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-agrigento.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-agrigent.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-agrigento.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-agrigento.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/siti-web-ristoranti.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-ristoranti.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-restaurants.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-restaurants.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-ristoranti.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/websites-restaurants.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-ristoranti.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-restaurants.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-restaurants.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-ristoranti.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/websites-restaurants.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-ristoranti.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-restaurants.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-restaurants.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-ristoranti.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/siti-web-bed-and-breakfast.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-bed-and-breakfast.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-ferienwohnungen.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-holiday-rentals.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-bed-and-breakfast.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/websites-ferienwohnungen.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-bed-and-breakfast.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-ferienwohnungen.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-holiday-rentals.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-bed-and-breakfast.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/websites-holiday-rentals.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-bed-and-breakfast.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-ferienwohnungen.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-holiday-rentals.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-bed-and-breakfast.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/siti-web-parrucchieri.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-parrucchieri.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-friseure.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-hairdressers.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-parrucchieri.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/websites-friseure.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-parrucchieri.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-friseure.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-hairdressers.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-parrucchieri.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/websites-hairdressers.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-parrucchieri.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-friseure.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-hairdressers.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-parrucchieri.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/siti-web-artigiani.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-artigiani.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-handwerk.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-tradespeople.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-artigiani.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/websites-handwerk.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-artigiani.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-handwerk.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-tradespeople.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-artigiani.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/websites-tradespeople.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-artigiani.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-handwerk.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-tradespeople.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-artigiani.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/siti-web-trasporti.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-trasporti.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-transport.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-transport.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-trasporti.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/websites-transport.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-trasporti.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-transport.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-transport.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-trasporti.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/websites-transport.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/siti-web-trasporti.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/websites-transport.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/websites-transport.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/siti-web-trasporti.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/sito-o-booking.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/sito-o-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/eigene-website-oder-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/own-website-or-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/sito-o-booking.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/eigene-website-oder-booking.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/sito-o-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/eigene-website-oder-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/own-website-or-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/sito-o-booking.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/own-website-or-booking.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/sito-o-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/eigene-website-oder-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/own-website-or-booking.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/sito-o-booking.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <!-- landeseiten:ende -->
 </urlset>

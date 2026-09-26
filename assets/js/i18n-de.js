@@ -521,6 +521,7 @@ window.VECOM_I18N.de = {
       ok: "Danke! Ich rufe Sie im gewählten Zeitraum an.", fehler: "Das hat nicht geklappt. Schreiben Sie per WhatsApp oder E-Mail.",
       angaben: "Es fehlt der Name oder die Telefonnummer.", viel: "Gerade kommen zu viele Anfragen. Bitte in einer Stunde noch einmal."
     },
+    settori: { titel: "Websites für", ristoranti: "Restaurants", bb: "Ferienwohnungen", parrucchieri: "Friseure", artigiani: "Handwerk", trasporti: "Transport", provinz: "Provinz Agrigent", booking: "Website oder Booking?" },
     contact: {
       head: "Sprechen wir darüber. Das Angebot ist kostenlos.",
       lead: "Schreiben Sie mir in wenigen Zeilen, was Sie anbieten und was Sie brauchen. Antwort innerhalb eines Werktags mit einer ersten Einschätzung zu Preis und Zeitrahmen — auf Italienisch, Deutsch oder Englisch.",

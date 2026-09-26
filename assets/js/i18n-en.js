@@ -521,6 +521,7 @@ window.VECOM_I18N.en = {
       ok: "Thank you! I will call you in the time you chose.", fehler: "That didn’t work. Please write on WhatsApp or by e-mail.",
       angaben: "Your name or phone number is missing.", viel: "Too many requests right now. Please try again in an hour."
     },
+    settori: { titel: "Websites for", ristoranti: "Restaurants", bb: "Holiday rentals", parrucchieri: "Hairdressers", artigiani: "Tradespeople", trasporti: "Transport", provinz: "Province of Agrigento", booking: "Website or Booking?" },
     contact: {
       head: "Let’s talk. The quote is free.",
       lead: "Tell me in a few lines what you offer and what you need. I reply within one working day with a first indication of price and timing — in Italian, German or English.",

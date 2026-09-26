@@ -155,6 +155,7 @@ jobs:
               --exclude '^3d-produktion/' \
               --exclude '^cockpit/\.htaccess$' \
               --exclude '^build\.mjs$' \
+              --exclude '^seiten/' \
               --exclude '^app/pruefung/kette\.php$' \
               --exclude '^_to_delete/' \
               --exclude '^_[^/]*$' \

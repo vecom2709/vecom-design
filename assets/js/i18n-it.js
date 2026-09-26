@@ -522,6 +522,7 @@ window.VECOM_I18N.it = {
       ok: "Grazie! La richiamo nella fascia che ha scelto.", fehler: "Non è andato a buon fine. Scriva su WhatsApp o per e-mail.",
       angaben: "Manca il nome o il numero di telefono.", viel: "In questo momento arrivano troppe richieste. Riprovi tra un’ora."
     },
+    settori: { titel: "Siti per", ristoranti: "Ristoranti", bb: "B&B e case vacanza", parrucchieri: "Parrucchieri", artigiani: "Artigiani", trasporti: "Trasporti", provinz: "Provincia di Agrigento", booking: "Sito o Booking?" },
     contact: {
       head: "Parliamone. Il preventivo è gratuito.",
       lead: "Mi racconti in poche righe cosa vende e cosa le serve. Rispondo entro un giorno lavorativo con una prima indicazione di prezzo e tempi — in italiano, tedesco o inglese.",
