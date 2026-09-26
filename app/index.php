@@ -845,7 +845,7 @@ if ($post) {
                 }
                 $hid = Db::insert('hosting_auftraege', [
                     'customer_id' => $kid, 'project_id' => null, 'domain' => $hd,
-                    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(),
+                    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(), 'speicher_mb' => Hosting::SPEICHER_MB,
                 ]);
                 Events::protokoll('hosting_vorschlag', 'Wunschdomain vorgeschlagen: ' . $hd, $kid);
                 $hMail = false;
@@ -1003,6 +1003,61 @@ if ($post) {
                 $hs = Hosting::zugangSperren((int) ($_POST['id'] ?? 0), $tat === 'hosting_sperren');
                 $_SESSION[$hs['ok'] ? 'gut' : 'fehler'] = $hs['text'];
                 zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'hosting_speicher_kas':
+                require_once __DIR__ . '/src/Hosting.php';
+                $hs = Hosting::speicherAufKas((int) ($_POST['id'] ?? 0));
+                $_SESSION[$hs['ok'] ? 'gut' : 'fehler'] = $hs['text'];
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'hosting_speicher_vereinbaren':
+                require_once __DIR__ . '/src/Hosting.php';
+                $gbNeu = (float) str_replace(',', '.', (string) ($_POST['gb'] ?? ''));
+                $hs = Hosting::speicherAendern((int) ($_POST['id'] ?? 0), (int) round($gbNeu * 1024));
+                $_SESSION[$hs['ok'] ? 'gut' : 'fehler'] = $hs['text'];
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'hosting_technik':
+                require_once __DIR__ . '/src/Hosting.php';
+                $hs = Hosting::technikWunsch((int) ($_POST['id'] ?? 0), !empty($_POST['mit_datenbank']), !empty($_POST['mit_ftp']));
+                $_SESSION[$hs['ok'] ? 'gut' : 'fehler'] = $hs['text'];
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'hosting_technik_zeigen':
+                /* Wie die KAS-Passwoerter beim Anlegen: einmal in die Session,
+                   die Ansicht zeigt und loescht sie. Nie in die URL. */
+                require_once __DIR__ . '/src/Hosting.php';
+                $hid = (int) ($_POST['id'] ?? 0);
+                $t = Hosting::technikAbrufen($hid);
+                if ($t === null) { $_SESSION['fehler'] = 'Keine Zugangsdaten für Datenbank oder FTP abgelegt.'; }
+                else { $_SESSION['hosting_technik'] = ['id' => $hid, 'daten' => $t]; }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'hosting_https':
+                require_once __DIR__ . '/src/Hosting.php';
+                $hs = Hosting::httpsPruefen((int) ($_POST['id'] ?? 0));
+                $_SESSION[$hs['status'] === 'ok' ? 'gut' : 'fehler'] = 'HTTPS: ' . $hs['text'];
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'hosting_abgleich':
+                /* "Jetzt abgleichen": Speicher und KAS-Grenzen sofort lesen,
+                   nicht erst beim naechsten Tageslauf. */
+                require_once __DIR__ . '/src/Hosting.php';
+                Db::run("DELETE FROM settings WHERE skey = 'kas_speicher_am'");
+                $hs = Hosting::speicherPruefen();
+                $_SESSION['gut'] = 'Abgeglichen: ' . (int) $hs['gelesen'] . ' Account(s) gelesen'
+                    . ($hs['abweichend'] ? ', ' . (int) $hs['abweichend'] . ' mit abweichendem Speicher' : '') . '.';
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
+            case 'kas_probelauf_an':
+            case 'kas_probelauf_aus':
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_probelauf', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                    [$tat === 'kas_probelauf_an' ? '1' : '0']);
+                Events::protokoll('integration', 'KAS-Probelauf ' . ($tat === 'kas_probelauf_an' ? 'eingeschaltet' : 'ausgeschaltet'));
+                $_SESSION['gut'] = $tat === 'kas_probelauf_an'
+                    ? 'Probelauf an: Beim KAS wird nichts angelegt oder geändert, nur aufgeschrieben, was geschähe.'
+                    : 'Probelauf aus: Die Verwaltung legt beim KAS jetzt wirklich an.';
+                zurueck('einstellungen?b=ueberwachung');
 
             case 'hosting_weiter':
                 /* Phase 3: gescheiterte oder von Hand markierte Schritte
@@ -1248,6 +1303,13 @@ if ($post) {
             case 'projekt_status':
                 $pid = (int) $_POST['id'];
                 $neuerStand = (string) $_POST['status'];
+                /* Keine Seite gilt als veroeffentlicht, bevor HTTPS geprueft
+                   ist -- sofern die Domain bei uns liegt (26.09.2026). */
+                if ($neuerStand === 'online') {
+                    require_once __DIR__ . '/src/Hosting.php';
+                    $sperre = sicher(static fn() => Hosting::httpsSperre($pid), null);
+                    if ($sperre !== null) { $_SESSION['fehler'] = $sperre; zurueck('projekte/' . $pid); }
+                }
                 Events::projektStatus($pid, $neuerStand);
                 // Der Stand sagt "Vorschau", der Kunde hat aber nichts zum
                 // Anklicken: Dann sagen wir es hier, statt ihn auf eine leere

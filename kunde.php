@@ -787,6 +787,35 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
               '{domain}' => (string) $hosting['domain']])) ?></p>
         <?php endif; ?>
 
+        <?php /* MEIN HOSTING (26.09.2026): was der Kunde gebucht hat und wie
+                 es steht. Der Speicher "von" ist der mit IHM vereinbarte
+                 (speicher_mb), nicht eine Paketgroesse. Kein Passwort, kein
+                 Login des Resellers -- nur seine eigenen Zahlen. */ ?>
+        <?php $mhSoll = Hosting::speicherVon($hosting);
+              $mhBelegt = !empty($hosting['kas_login']) ? (sicherLesen(fn() => Hosting::speicher(), [])[(string) $hosting['kas_login']] ?? null) : null;
+              $mhAbo = sicherLesen(fn() => Db::one("SELECT status, naechste_abrechnung, laeuft_bis FROM abos
+                           WHERE customer_id = ? AND paket_slug = 'hosting' ORDER BY id DESC LIMIT 1", [(int) $kunde['id']]), null);
+              $mhSsl = (string) ($hosting['ssl_status'] ?? ''); ?>
+        <div style="margin-top:14px">
+          <div class="mini" style="font-weight:650"><?= $h($T('meinHosting')) ?></div>
+          <?php $mhZeilen = [
+              [$T('mhSpeicher'), ($mhBelegt !== null ? Hosting::gb((int) $mhBelegt) . ' / ' : '') . Hosting::gb($mhSoll)
+                  . ($mhBelegt === null ? ' ' . $T('mhSpeicherGebucht') : '')],
+              [$T('mhHttps'), $mhSsl === 'ok' ? '✓ ' . $T('mhHttpsOk') : ($mhSsl === '' ? $T('mhHttpsNoch') : $T('mhHttpsArbeit'))],
+              [$T('mhMail'), (string) ($hosting['mail'] ?? '') === 'vecom' ? Hosting::POSTFACH . '@' . $hosting['domain'] : $T('mhMailWoanders')],
+          ];
+          if ($mhAbo && (string) $mhAbo['status'] === 'gekuendigt' && !empty($mhAbo['laeuft_bis'])) {
+              $mhZeilen[] = [$T('mhVertrag'), strtr($T('mhLaeuftBis'), ['{datum}' => Fmt::datum((string) $mhAbo['laeuft_bis'])])];
+          } elseif ($mhAbo && !empty($mhAbo['naechste_abrechnung'])) {
+              $mhZeilen[] = [$T('mhVertrag'), strtr($T('mhNaechste'), ['{datum}' => Fmt::datum((string) $mhAbo['naechste_abrechnung'])])];
+          } ?>
+          <?php foreach ($mhZeilen as [$mhN, $mhW]): ?>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;padding:7px 0;border-top:1px solid var(--linie)">
+              <span class="mini" style="min-width:11em"><?= $h($mhN) ?></span><span><?= $h($mhW) ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+
         <?php /* Phase 5: der Umzug der Domain -- was der Kunde tun muss
                  (Sperre loesen, Code eingeben) und wie weit es ist. Den
                  Antrag stellt Uwe; hier wird nur begleitet. */ ?>

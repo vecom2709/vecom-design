@@ -1097,6 +1097,20 @@ final class Texte
         'seitenumzugFertig'  => ['it' => 'Trasferimento concluso. I dati di accesso sono stati cancellati.', 'de' => 'Umzug abgeschlossen. Die Zugangsdaten sind gelöscht.', 'en' => 'Move complete. The access details have been deleted.'],
         /* Phase 5: Domain-Umzug auf der Kundenseite. */
         'umzugTitel'    => ['it' => 'Trasferimento del dominio', 'de' => 'Umzug Ihrer Domain', 'en' => 'Moving your domain'],
+        /* Mein Hosting (26.09.2026) -- der gebuchte Speicher ist der mit
+           diesem Kunden vereinbarte, nie eine Paketgroesse. */
+        'meinHosting'     => ['it' => 'Il suo hosting', 'de' => 'Ihr Hosting', 'en' => 'Your hosting'],
+        'mhSpeicher'      => ['it' => 'Spazio web', 'de' => 'Speicherplatz', 'en' => 'Web space'],
+        'mhSpeicherGebucht' => ['it' => 'prenotati', 'de' => 'gebucht', 'en' => 'booked'],
+        'mhHttps'         => ['it' => 'Connessione sicura (HTTPS)', 'de' => 'Sichere Verbindung (HTTPS)', 'en' => 'Secure connection (HTTPS)'],
+        'mhHttpsOk'       => ['it' => 'attiva', 'de' => 'aktiv', 'en' => 'active'],
+        'mhHttpsNoch'     => ['it' => 'viene verificata a breve', 'de' => 'wird in Kürze geprüft', 'en' => 'will be checked shortly'],
+        'mhHttpsArbeit'   => ['it' => 'ci stiamo lavorando', 'de' => 'wir kümmern uns darum', 'en' => 'we are working on it'],
+        'mhMail'          => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+        'mhMailWoanders'  => ['it' => 'resta presso il suo fornitore attuale', 'de' => 'bleibt bei Ihrem bisherigen Anbieter', 'en' => 'stays with your current provider'],
+        'mhVertrag'       => ['it' => 'Contratto', 'de' => 'Vertrag', 'en' => 'Contract'],
+        'mhNaechste'      => ['it' => 'prossimo addebito il {datum}', 'de' => 'nächste Abbuchung am {datum}', 'en' => 'next charge on {datum}'],
+        'mhLaeuftBis'     => ['it' => 'disdetto, attivo fino al {datum}', 'de' => 'gekündigt, läuft bis {datum}', 'en' => 'cancelled, runs until {datum}'],
         'umzugSperre'   => ['it' => 'Il dominio è ancora bloccato presso il suo fornitore attuale. Nel suo pannello cerchi „blocco trasferimento“ (o „transfer lock“) e lo disattivi — altrimenti il trasferimento non parte.',
                             'de' => 'Die Domain ist bei Ihrem bisherigen Anbieter noch gesperrt. Suchen Sie dort im Kundenbereich nach „Transfersperre“ (oder „Transfer Lock“) und heben Sie sie auf — sonst kann der Umzug nicht starten.',
                             'en' => 'The domain is still locked at your current provider. In their customer area look for “transfer lock” and switch it off — otherwise the transfer cannot start.'],

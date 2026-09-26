@@ -86,9 +86,14 @@
       <td><?= Fmt::h(['vecom' => 'Postfach bei uns', 'bisher' => 'bleibt, wo sie ist', 'keine' => 'keine',
                       'offen' => 'noch offen'][(string) ($h['mail'] ?? 'vecom')] ?? (string) $h['mail']) ?></td>
       <?php $hMb = $hSpeicher[(string) ($h['kas_login'] ?? '')] ?? null; ?>
-      <td><?= $hMb === null ? '<span style="color:var(--leise)">—</span>'
-            : '<span' . ($hMb >= Hosting::SPEICHER_MB * Hosting::SPEICHER_WARNUNG ? ' style="color:var(--rot)"' : '') . '>'
-              . Fmt::h(number_format($hMb / 1024, 1, ',', '.')) . ' / ' . (int) (Hosting::SPEICHER_MB / 1024) . ' GB</span>' ?></td>
+      <?php /* "von" ist der mit DIESEM Kunden vereinbarte Speicher (26.09.2026),
+               und eine Abweichung im KAS steht gleich dabei. */
+            $hSoll = Hosting::speicherVon($h);
+            $hAb = $h['kas_speicher_mb'] !== null && (int) $h['kas_speicher_mb'] !== $hSoll; ?>
+      <td><?= ($hMb === null ? '<span style="color:var(--leise)">— / ' . Fmt::h(Hosting::gb($hSoll)) . '</span>'
+            : '<span' . ($hMb >= $hSoll * Hosting::SPEICHER_WARNUNG ? ' style="color:var(--rot)"' : '') . '>'
+              . Fmt::h(Hosting::gb((int) $hMb) . ' / ' . Hosting::gb($hSoll)) . '</span>')
+            . ($hAb ? ' <span class="marke2 warn" title="Im KAS: ' . Fmt::h(Hosting::gb((int) $h['kas_speicher_mb'])) . '">KAS weicht ab</span>' : '') ?></td>
       <td><?= $h['inklusive'] ? '<span style="color:var(--leise)">in Betreuung</span>' : Fmt::h(Fmt::geld((int) $h['preis_cents'])) ?></td>
       <td><span class="marke2 <?= Fmt::h($hTon) ?>"><?= Fmt::h($hWort) ?></span>
         <?php if ((int) $h['schritte'] > 0 && !in_array((string) $h['status'], ['vorgeschlagen', 'zugestimmt'], true)): ?>

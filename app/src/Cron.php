@@ -118,6 +118,11 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::speicherPruefen();
             },
+            /* HTTPS der angelegten Domains: bis es steht alle 6 h, dann taeglich. */
+            'https'       => static function () {
+                require_once __DIR__ . '/Hosting.php';
+                return Hosting::httpsPruefenAlle();
+            },
             /* Phase 5: beantragte Domain-Umzuege -- zeigen die Nameserver
                schon auf All-Inkl? */
             /* Phase 6a: alte Seiten portionsweise sichern. */

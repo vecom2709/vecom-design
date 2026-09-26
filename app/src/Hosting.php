@@ -55,8 +55,23 @@ final class Hosting
     public const INKLUSIVE_BEI = ['betreuung-plus', 'betreuung-premium'];
 
     /** Speicher je Kunden-Account, in Megabyte (Reseller-Pool: 200 GB auf
-     *  25 Accounts — ohne Grenze koennte EIN Kunde alles belegen). */
+     *  25 Accounts — ohne Grenze koennte EIN Kunde alles belegen).
+     *
+     *  Seit 26.09.2026 nur noch der VORGABEWERT fuer neue Auftraege: Was mit
+     *  einem Kunden vereinbart ist, steht in hosting_auftraege.speicher_mb
+     *  und gilt, auch wenn diese Zahl sich einmal aendert. Eine geaenderte
+     *  Vorgabe darf keinem bestehenden Kunden still seinen Speicher nehmen. */
     public const SPEICHER_MB = 10240;
+
+    /** Obergrenze fuer eine einzelne Vereinbarung: der ganze Reseller-Pool. */
+    public const SPEICHER_MAX_MB = 204800;
+
+    /** Der vereinbarte Speicher eines Auftrags -- die Quelle, nach der sich der KAS richtet. */
+    public static function speicherVon(array $a): int
+    {
+        $mb = (int) ($a['speicher_mb'] ?? 0);
+        return $mb > 0 ? $mb : self::SPEICHER_MB;
+    }
 
     /* ==================================================================== */
     /*  1. Erkennen — nach dem Absenden des Fragebogens                     */
@@ -106,7 +121,7 @@ final class Hosting
                 'project_id'  => $projektId ?: null,
                 'domain'      => $frei,
                 'status'      => 'vorgeschlagen',
-                'preis_cents' => self::preisCents(),
+                'preis_cents' => self::preisCents(), 'speicher_mb' => self::SPEICHER_MB,
             ]);
             Events::protokoll('hosting_vorschlag', 'Wunschdomain frei: ' . $frei, $kundeId, null, $projektId ?: null);
         });
@@ -156,7 +171,7 @@ final class Hosting
             'customer_id' => $kundeId, 'project_id' => $projektId ?: null,
             'domain' => $domain, 'domain_aktion' => $aktion, 'mail' => $mail,
             'weiterleitungen' => $mail === 'vecom' ? (implode(',', self::weiterleitungen((string) ($antworten['mail_weiter'] ?? ''))) ?: null) : null,
-            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
+            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(), 'speicher_mb' => self::SPEICHER_MB,
         ]);
         Events::protokoll('hosting_vorschlag', 'Hosting bei Vecom gewählt: ' . $domain
             . ' (Domain ' . $aktion . ', E-Mail ' . $mail . ')', $kundeId, null, $projektId ?: null);
@@ -413,7 +428,7 @@ final class Hosting
 
         $auftragId = (int) Db::insert('hosting_auftraege', [
             'customer_id' => $kundeId, 'project_id' => null, 'domain' => $domain,
-            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(),
+            'status' => 'vorgeschlagen', 'preis_cents' => self::preisCents(), 'speicher_mb' => self::SPEICHER_MB,
         ]);
         // Derselbe verbindliche Abschluss wie der Ja-Knopf: zugestimmt,
         // Vertrag, erste Rate, Zahlungsaufforderung, Vertragsblatt.
@@ -478,6 +493,8 @@ final class Hosting
         'domain'   => 'Domain im KAS',
         'postfach' => 'Postfach',
         'weiterleitung' => 'Weiterleitungen',
+        'datenbank' => 'Datenbank',
+        'ftp'      => 'FTP-Zugang für Vecom',
         'dns'      => 'DNS vom alten Anbieter',
         'vertrag'  => 'Monatsvertrag',
         'kunde'    => 'Mail an den Kunden',
@@ -509,6 +526,13 @@ final class Hosting
     {
         $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
         if (!$a) { return ['ok' => false, 'text' => 'Auftrag nicht gefunden.']; }
+        /* PROBELAUF (26.09.2026): Mit dem echten KAS und eingeschaltetem
+           Probelauf wird nichts beansprucht und nichts angelegt -- nur
+           aufgeschrieben, was geschehen wuerde. Der Auftrag bleibt
+           "zugestimmt" und laeuft von selbst an, sobald der Probelauf aus
+           ist (fortsetzen). Einen halb angelegten Auftrag mit erfundenem
+           Login darf es nicht geben. */
+        if ($kas === null && Kas::probelauf()) { return self::probelaufMerken($a); }
         if ((string) $a['status'] === 'in_arbeit') { return self::weiter($auftragId, $kas); }
         if ((string) $a['status'] !== 'zugestimmt') {
             return ['ok' => false, 'text' => 'Nur ein zugestimmter Auftrag wird angelegt (Stand: ' . $a['status'] . ').'];
@@ -572,6 +596,9 @@ final class Hosting
             public function weiterleitungAnlegen(string $l, string $d, string $z, ?array $als = null): array { return Kas::weiterleitungAnlegen($l, $d, $z, $als); }
             public function dnsAendern(string $id, string $w, int $aux = 0, ?array $als = null): array { return Kas::dnsAendern($id, $w, $aux, $als); }
             public function bestand(string $d): array { require_once __DIR__ . '/Domainumzug.php'; return Domainumzug::bestandsaufnahme($d); }
+            public function kommentare(string $aktion, ?array $als = null): array { return Kas::kommentare($aktion, $als); }
+            public function datenbankAnlegen(string $k, string $pw, ?array $als = null): array { return Kas::datenbankAnlegen($k, $pw, $als); }
+            public function ftpAnlegen(string $k, string $pw, ?array $als = null): array { return Kas::ftpAnlegen($k, $pw, $als); }
         };
     }
 
@@ -583,6 +610,9 @@ final class Hosting
      */
     public static function weiter(int $auftragId, ?object $kas = null): array
     {
+        if ($kas === null && Kas::probelauf()) {
+            return ['ok' => false, 'text' => 'Probelauf ist an — beim KAS wird nichts angelegt. Unter Einstellungen → Server ausschalten.'];
+        }
         $kas = self::kas($kas);
         $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
         if (!$a || (string) $a['status'] !== 'in_arbeit') { return ['ok' => false, 'text' => 'Nichts in Arbeit.']; }
@@ -606,7 +636,7 @@ final class Hosting
         /* Domain und Postfach, die mitten im Aufruf abbrachen, duerfen einfach
            noch einmal: Ein zweites Anlegen meldet "gibt es schon", und das
            zaehlt als Erfolg (siehe unten). Beim Account gilt das nicht. */
-        foreach (['domain', 'postfach', 'weiterleitung'] as $s) {
+        foreach (['domain', 'postfach', 'weiterleitung', 'datenbank', 'ftp'] as $s) {
             if ((string) ($st[$s]['status'] ?? '') === 'laeuft') {
                 self::schritt($auftragId, $s, 'fehler', 'Abgebrochen mitten im Aufruf — wird wiederholt.');
             }
@@ -626,7 +656,7 @@ final class Hosting
         }
         if (self::dran($st['account'])) {
             self::schritt($auftragId, 'account', 'laeuft', null, true);
-            $acc = $kas->accountAnlegen($wer . ' — ' . $domain, ['max_webspace' => self::SPEICHER_MB]);
+            $acc = $kas->accountAnlegen($wer . ' — ' . $domain, ['max_webspace' => self::speicherVon($a)]);
             if (!$acc['ok']) {
                 $versuche = (int) $st['account']['versuche'] + 1;
                 self::schritt($auftragId, 'account', $versuche >= self::VERSUCHE ? 'hand' : 'fehler', (string) $acc['text']);
@@ -651,7 +681,10 @@ final class Hosting
                 'kas_login' => $acc['login'] ?: null, 'zugang_blob' => $blob,
                 'zugang_bis' => date('Y-m-d H:i:s', strtotime('+' . self::ZUGANG_TAGE . ' days')),
             ]);
-            self::schritt($auftragId, 'account', 'fertig', $acc['login'] !== '' ? 'Account ' . $acc['login'] : 'Angelegt — Login siehe Accountliste');
+            self::schritt($auftragId, 'account', 'fertig', ($acc['login'] !== '' ? 'Account ' . $acc['login'] : 'Angelegt — Login siehe Accountliste')
+                . ' · Speicher ' . self::speicherVon($a) . ' MB');
+            Events::protokoll('hosting_speicher_gesetzt', 'KAS-Account für ' . $domain . ' mit ' . self::speicherVon($a)
+                . ' MB Speicher angelegt (wie vereinbart)', $kundeId);
             $st = self::schritte($auftragId);
             $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
         }
@@ -711,6 +744,48 @@ final class Hosting
             }
             $st = self::schritte($auftragId);
         }
+
+        /* 2a'. DATENBANK UND FTP -- nur, wenn Uwe sie beim Auftrag angekreuzt
+           hat (eine statische Seite braucht beides nicht; ein Postfach auf
+           Vorrat ist genau das, was der Masterprompt verbietet). Idempotent
+           ueber den Kommentar: Steht "vecom-<Auftrag>-db" schon im Account,
+           entsteht keine zweite. Die Passwoerter landen verschluesselt in
+           technik_blob -- fuer Uwe, nie auf der Kundenseite. */
+        foreach (['datenbank' => 'mit_datenbank', 'ftp' => 'mit_ftp'] as $s => $feld) {
+            if (!self::dran($st[$s])) { continue; }
+            if (empty($a[$feld])) { self::schritt($auftragId, $s, 'entfaellt', 'Nicht gewünscht.'); continue; }
+            if ($als === null) { self::schritt($auftragId, $s, 'hand', 'Ohne Login des Unter-Accounts nicht automatisch — im KAS anlegen.'); continue; }
+            $kommentar = 'vecom-' . $auftragId . '-' . ($s === 'datenbank' ? 'db' : 'ftp');
+            self::schritt($auftragId, $s, 'laeuft', null, true);
+            $da = $kas->kommentare($s === 'datenbank' ? 'get_databases' : 'get_ftpusers', $als);
+            if (!$da['ok']) {
+                $versuche = (int) $st[$s]['versuche'] + 1;
+                self::schritt($auftragId, $s, $versuche >= self::VERSUCHE ? 'hand' : 'fehler', (string) $da['text']);
+                continue;
+            }
+            if (in_array($kommentar, $da['kommentare'], true)) {
+                self::schritt($auftragId, $s, 'fertig', 'War schon da (' . $kommentar . ').');
+                continue;
+            }
+            $pw = $kas->passwortNeu();
+            $r = $s === 'datenbank' ? $kas->datenbankAnlegen($kommentar, $pw, $als) : $kas->ftpAnlegen($kommentar, $pw, $als);
+            if (!$r['ok']) {
+                $versuche = (int) $st[$s]['versuche'] + 1;
+                self::schritt($auftragId, $s, $versuche >= self::VERSUCHE ? 'hand' : 'fehler', (string) $r['text']);
+                continue;
+            }
+            $t = !empty($a['technik_blob']) ? (self::entschluesseln((string) $a['technik_blob']) ?? []) : [];
+            $t[$s] = $s === 'datenbank'
+                ? ['name' => (string) ($r['name'] ?? ''), 'passwort' => $pw, 'kommentar' => $kommentar]
+                : ['login' => (string) ($r['login'] ?? ''), 'passwort' => $pw, 'kommentar' => $kommentar];
+            $blobT = self::verschluesseln($t);
+            if ($blobT !== null) { Db::update('hosting_auftraege', $auftragId, ['technik_blob' => $blobT]); $a['technik_blob'] = $blobT; }
+            self::schritt($auftragId, $s, 'fertig', ($s === 'datenbank'
+                ? 'Datenbank ' . ((string) ($r['name'] ?? '') ?: $kommentar) : 'FTP-Nutzer ' . ((string) ($r['login'] ?? '') ?: $kommentar))
+                . ($blobT === null ? ' — Passwort nicht ablegbar (Schlüssel fehlt), im KAS neu setzen.' : ''));
+            Events::protokoll('hosting_' . $s, ($s === 'datenbank' ? 'Datenbank' : 'FTP-Zugang') . ' für ' . $domain . ' angelegt', $kundeId);
+        }
+        $st = self::schritte($auftragId);
 
         /* 2b. DNS VOM ALTEN ANBIETER -- nur beim Umzug, und nur wenn die
            Domain im KAS steht. Was heute beim alten Anbieter eingetragen
@@ -1000,29 +1075,213 @@ final class Hosting
      * @param callable():array|null $lesen austauschbar fuer die Pruefkette (Form wie Kas::speicherUnterkonten)
      * @return array{gelesen:int, gewarnt:int}
      */
-    public static function speicherPruefen(?callable $lesen = null): array
+    public static function speicherPruefen(?callable $lesen = null, ?callable $grenzen = null): array
     {
         $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_speicher_am'", [], '');
-        if ($lesen === null && $zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-20 hours'))) { return ['gelesen' => 0, 'gewarnt' => 0]; }
+        if ($lesen === null && $zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-20 hours'))) { return ['gelesen' => 0, 'gewarnt' => 0, 'abweichend' => 0]; }
         $r = $lesen !== null ? $lesen() : Kas::speicherUnterkonten();
-        if (!$r['ok']) { return ['gelesen' => 0, 'gewarnt' => 0]; }
+        if (!$r['ok']) { return ['gelesen' => 0, 'gewarnt' => 0, 'abweichend' => 0]; }
         Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_speicher', ?), ('kas_speicher_am', ?)
                   ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [json_encode($r['belegt']), date('Y-m-d H:i:s')]);
-        $gewarnt = 0;
+        /* Was im KAS eingerichtet ist (max_webspace je Account). Scheitert das
+           Lesen, bleibt der letzte bekannte Stand -- geraten wird nichts. */
+        $g = $grenzen !== null ? $grenzen() : Kas::accountGrenzen();
+        $gewarnt = 0; $abweichend = 0;
         foreach (Db::all("SELECT h.*, COALESCE(NULLIF(c.company,''), NULLIF(c.name,''), c.email) AS wer
                             FROM hosting_auftraege h JOIN customers c ON c.id = h.customer_id
                            WHERE h.kas_login IS NOT NULL AND h.status IN ('angelegt','aktiv')") as $h) {
-            $mb = $r['belegt'][(string) $h['kas_login']] ?? null;
-            if ($mb === null || $mb < self::SPEICHER_MB * self::SPEICHER_WARNUNG) { continue; }
-            $schluessel = 'speicher_warnung_' . $h['kas_login'] . '_' . date('Y-m');
+            $login = (string) $h['kas_login'];
+            $soll = self::speicherVon($h);
+            if ($g['ok'] && isset($g['grenzen'][$login])) {
+                $ist = (int) $g['grenzen'][$login];
+                Db::run('UPDATE hosting_auftraege SET kas_speicher_mb = ?, kas_gelesen_am = NOW() WHERE id = ?', [$ist, (int) $h['id']]);
+                /* RESOURCE_MISMATCH: Vecom bleibt massgeblich. Gemeldet wird,
+                   geschrieben wird nur auf Uwes Klick (speicherAufKas) -- und
+                   nie andersherum: Ein KAS-Wert ueberschreibt keine Vereinbarung. */
+                if ($ist !== $soll) {
+                    $abweichend++;
+                    $schl = 'speicher_abweichung_' . $login . '_' . $soll . '_' . $ist;
+                    if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schl], '') === '') {
+                        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)', [$schl, date('Y-m-d H:i:s')]);
+                        Events::melden('hosting_abweichung', 'Speicher weicht ab: ' . $h['domain'], 'warnung',
+                            $h['wer'] . ': vereinbart ' . self::gb($soll) . ', im KAS eingerichtet ' . self::gb($ist)
+                            . '. Vecom ist maßgeblich — in der Kundenakte „KAS auf Vecom-Wert setzen“.', '/kunden/' . (int) $h['customer_id']);
+                    }
+                }
+            }
+            $mb = $r['belegt'][$login] ?? null;
+            if ($mb === null || $mb < $soll * self::SPEICHER_WARNUNG) { continue; }
+            $schluessel = 'speicher_warnung_' . $login . '_' . date('Y-m');
             if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '') !== '') { continue; }
             Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)', [$schluessel, (string) $mb]);
             Events::melden('hosting_speicher', 'Speicher fast voll: ' . $h['domain'], 'warnung',
-                $h['wer'] . ' belegt ' . number_format($mb / 1024, 1, ',', '.') . ' von ' . (int) (self::SPEICHER_MB / 1024)
-                . ' GB. Aufräumen (alte Mails, Sicherungen) oder mehr Speicher vereinbaren.', '/kunden/' . (int) $h['customer_id']);
+                $h['wer'] . ' belegt ' . self::gb((int) $mb) . ' von ' . self::gb($soll)
+                . '. Aufräumen (alte Mails, Sicherungen) oder mehr Speicher vereinbaren.', '/kunden/' . (int) $h['customer_id']);
             $gewarnt++;
         }
-        return ['gelesen' => count($r['belegt']), 'gewarnt' => $gewarnt];
+        return ['gelesen' => count($r['belegt']), 'gewarnt' => $gewarnt, 'abweichend' => $abweichend];
+    }
+
+    /** MB als "7,4 GB" -- eine Nachkommastelle, ausser bei glatten Werten. */
+    public static function gb(int $mb): string
+    {
+        $g = $mb / 1024;
+        return (abs($g - round($g)) < 0.05 ? number_format($g, 0, ',', '.') : number_format($g, 1, ',', '.')) . ' GB';
+    }
+
+    /**
+     * Uwe aendert, was mit einem Kunden vereinbart ist. Nur hier -- nie aus
+     * einem KAS-Wert, nie aus einer neuen Vorgabe. Protokolliert alt -> neu.
+     */
+    public static function speicherAendern(int $auftragId, int $mb): array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        if (!$a) { return ['ok' => false, 'text' => 'Auftrag nicht gefunden.']; }
+        if ($mb < 1024 || $mb > self::SPEICHER_MAX_MB) {
+            return ['ok' => false, 'text' => 'Zwischen 1 und ' . (self::SPEICHER_MAX_MB / 1024) . ' GB.'];
+        }
+        $alt = self::speicherVon($a);
+        if ($alt === $mb) { return ['ok' => true, 'text' => 'Unverändert.']; }
+        Db::run('UPDATE hosting_auftraege SET speicher_mb = ? WHERE id = ?', [$mb, $auftragId]);
+        Events::protokoll('hosting_speicher_vereinbart', 'Speicher für ' . $a['domain'] . ': ' . self::gb($alt) . ' → ' . self::gb($mb),
+            (int) $a['customer_id']);
+        return ['ok' => true, 'text' => 'Vereinbart: ' . self::gb($mb) . '.'
+            . (!empty($a['kas_login']) ? ' Im KAS gilt das erst nach „KAS auf Vecom-Wert setzen“.' : '')];
+    }
+
+    /**
+     * Den KAS auf den vereinbarten Wert bringen (update_account max_webspace).
+     * @param callable(string,int):array|null $setzen austauschbar fuer die Pruefkette
+     */
+    public static function speicherAufKas(int $auftragId, ?callable $setzen = null): array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ? AND kas_login IS NOT NULL', [$auftragId]);
+        if (!$a) { return ['ok' => false, 'text' => 'Kein KAS-Account an diesem Auftrag.']; }
+        $soll = self::speicherVon($a);
+        $r = $setzen !== null ? $setzen((string) $a['kas_login'], $soll) : Kas::speicherSetzen((string) $a['kas_login'], $soll);
+        if (!$r['ok']) { return $r; }
+        Db::run('UPDATE hosting_auftraege SET kas_speicher_mb = ?, kas_gelesen_am = NOW() WHERE id = ?', [$soll, $auftragId]);
+        Events::protokoll('hosting_speicher_gesetzt', 'KAS ' . $a['kas_login'] . ' (' . $a['domain'] . '): Speicher auf ' . self::gb($soll)
+            . ' gesetzt (wie vereinbart)', (int) $a['customer_id']);
+        return ['ok' => true, 'text' => 'Im KAS stehen jetzt ' . self::gb($soll) . '.'];
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  HTTPS -- keine Seite gilt als veroeffentlicht, bevor es steht     */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * HTTPS der Domain pruefen: gueltiges Zertifikat (ueber den Abruf des
+     * Monitorings, nicht noch einmal gebaut) und Umleitung von http auf https.
+     *
+     * @param callable(string):array|null $abrufen austauschbar: liefert
+     *        ['https' => Monitoring::abrufen-Ergebnis, 'umleitung' => ?string]
+     * @return array{status:string,text:string}
+     */
+    public static function httpsPruefen(int $auftragId, ?callable $abrufen = null): array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        if (!$a) { return ['status' => 'fehler', 'text' => 'Auftrag nicht gefunden.']; }
+        $domain = strtolower(trim((string) $a['domain']));
+        $e = $abrufen !== null ? $abrufen($domain) : self::httpsAbrufen($domain);
+        $h = $e['https'];
+        if (($h['ssl_gueltig'] ?? null) !== 1) {
+            $st = 'fehler'; $txt = (string) ($h['fehler'] ?? 'Kein gültiges Zertifikat.');
+        } elseif (!$h['ok']) {
+            $st = 'warnung'; $txt = 'Zertifikat gültig, aber die Seite antwortet nicht sauber: ' . (string) ($h['fehler'] ?? '');
+        } elseif (!str_starts_with(strtolower((string) ($e['umleitung'] ?? '')), 'https://')) {
+            $st = 'warnung'; $txt = 'Zertifikat gültig' . (!empty($h['ssl_bis']) ? ' bis ' . $h['ssl_bis'] : '')
+                . ', aber http:// leitet nicht auf https:// um (im KAS: SSL-Schutz → „HTTPS erzwingen“).';
+        } else {
+            $st = 'ok'; $txt = 'Gültig' . (!empty($h['ssl_bis']) ? ' bis ' . $h['ssl_bis'] : '') . ', http leitet auf https um.';
+        }
+        $vorher = (string) ($a['ssl_status'] ?? '');
+        Db::run('UPDATE hosting_auftraege SET ssl_status = ?, ssl_text = ?, ssl_geprueft_am = NOW() WHERE id = ?',
+            [$st, mb_substr($txt, 0, 255), $auftragId]);
+        if ($st !== $vorher) {
+            Events::protokoll('hosting_https', 'HTTPS ' . $domain . ': ' . $st . ' — ' . mb_substr($txt, 0, 200), (int) $a['customer_id']);
+        }
+        return ['status' => $st, 'text' => $txt];
+    }
+
+    /** Warum ein Projekt noch nicht "online" sein darf -- oder null. */
+    public static function httpsSperre(int $projektId): ?string
+    {
+        $p = Db::one('SELECT customer_id FROM projects WHERE id = ?', [$projektId]);
+        if (!$p) { return null; }
+        $h = Db::one("SELECT domain, ssl_status, ssl_text FROM hosting_auftraege WHERE customer_id = ? AND status IN ('angelegt','aktiv')
+                       ORDER BY id DESC LIMIT 1", [(int) $p['customer_id']]);
+        if (!$h || (string) ($h['ssl_status'] ?? '') === 'ok') { return null; }
+        return 'Noch nicht „Online“: HTTPS von ' . $h['domain'] . ' ist nicht bestätigt'
+            . (!empty($h['ssl_text']) ? ' (' . $h['ssl_text'] . ')' : ' (noch nicht geprüft)')
+            . '. In der Kundenakte „HTTPS prüfen“.';
+    }
+
+    /** Der echte Abruf: https:// mit Zertifikatspruefung, http:// ohne Folgen der Umleitung. */
+    private static function httpsAbrufen(string $domain): array
+    {
+        require_once __DIR__ . '/Monitoring.php';
+        if (!preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/', $domain)) {
+            return ['https' => ['ok' => false, 'ssl_gueltig' => null, 'ssl_bis' => null, 'fehler' => 'Keine gültige Domain.'], 'umleitung' => null];
+        }
+        $https = Monitoring::abrufen('https://' . $domain . '/');
+        $ort = null;
+        $ch = curl_init('http://' . $domain . '/');
+        curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_NOBODY => true, CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT => 10, CURLOPT_CONNECTTIMEOUT => 6, CURLOPT_HEADER => true]);
+        $kopf = (string) curl_exec($ch);
+        curl_close($ch);
+        if (preg_match('~^Location:\s*(\S+)~mi', $kopf, $m)) { $ort = $m[1]; }
+        return ['https' => $https, 'umleitung' => $ort];
+    }
+
+    /**
+     * Der Cron: alle angelegten Domains. Solange HTTPS nicht steht alle 6 h,
+     * danach einmal am Tag (Zertifikate laufen ab).
+     */
+    public static function httpsPruefenAlle(?callable $abrufen = null): int
+    {
+        $ids = array_column(Db::all("SELECT id FROM hosting_auftraege
+              WHERE status IN ('angelegt','aktiv') AND gesperrt_am IS NULL
+                AND (ssl_geprueft_am IS NULL
+                     OR (COALESCE(ssl_status,'') <> 'ok' AND ssl_geprueft_am < NOW() - INTERVAL 6 HOUR)
+                     OR ssl_geprueft_am < NOW() - INTERVAL 1 DAY)
+              LIMIT 10"), 'id');
+        foreach ($ids as $id) { self::still(static fn() => self::httpsPruefen((int) $id, $abrufen)); }
+        return count($ids);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Probelauf                                                         */
+    /* ------------------------------------------------------------------ */
+
+    /** Was das Einrichten tun WUERDE -- ohne einen einzigen schreibenden Aufruf. */
+    public static function plan(array $a): array
+    {
+        $d = (string) $a['domain'];
+        $p = ['add_account (max_webspace ' . self::speicherVon($a) . ' MB = ' . self::gb(self::speicherVon($a)) . ', wie vereinbart)',
+              'add_domain ' . $d];
+        if ((string) ($a['mail'] ?? 'vecom') === 'vecom') {
+            $p[] = 'add_mailaccount ' . self::POSTFACH . '@' . $d;
+            foreach (self::weiterleitungen((string) ($a['weiterleitungen'] ?? '')) as $w) { $p[] = 'add_mailforward ' . $w . '@' . $d . ' → ' . self::POSTFACH . '@' . $d; }
+        }
+        if (!empty($a['mit_datenbank'])) { $p[] = 'add_database (vecom-' . (int) $a['id'] . '-db)'; }
+        if (!empty($a['mit_ftp'])) { $p[] = 'add_ftpusers (vecom-' . (int) $a['id'] . '-ftp)'; }
+        if ((string) ($a['domain_aktion'] ?? '') === 'transfer') { $p[] = 'add_dns_settings (Einträge vom alten Anbieter übernehmen)'; }
+        return $p;
+    }
+
+    private static function probelaufMerken(array $a): array
+    {
+        if (!in_array((string) $a['status'], ['zugestimmt', 'in_arbeit'], true)) {
+            return ['ok' => false, 'text' => 'Nur ein zugestimmter Auftrag wird angelegt (Stand: ' . $a['status'] . ').'];
+        }
+        if ((string) $a['status'] === 'zugestimmt') {
+            Db::run('UPDATE hosting_auftraege SET probelauf_am = COALESCE(probelauf_am, NOW()) WHERE id = ?', [(int) $a['id']]);
+        }
+        Events::protokoll('kas_probelauf', 'Probelauf ' . $a['domain'] . ' — würde: ' . implode('; ', self::plan($a)), (int) $a['customer_id']);
+        return ['ok' => false, 'probelauf' => true,
+                'text' => 'Probelauf: nichts angelegt. Würde: ' . implode('; ', self::plan($a)) . '.'];
     }
 
     /** Belegter Speicher in MB je KAS-Login, wie zuletzt gelesen. */
@@ -1053,6 +1312,14 @@ final class Hosting
                 AND s.updated_at < NOW() - INTERVAL " . (int) self::PAUSE_MINUTEN . " MINUTE
               LIMIT 5", [self::VERSUCHE]), 'id');
         foreach ($ids as $id) { self::still(static fn() => self::weiter((int) $id, $kas)); }
+        /* Vom Probelauf angehaltene Auftraege: Sie waren fertig zum Anlegen,
+           nur der Schalter stand. Ist er aus, laufen sie jetzt an. */
+        if ($kas !== null || !Kas::probelauf()) {
+            foreach (array_column(Db::all("SELECT id FROM hosting_auftraege WHERE status = 'zugestimmt' AND probelauf_am IS NOT NULL LIMIT 5"), 'id') as $pid) {
+                Db::run('UPDATE hosting_auftraege SET probelauf_am = NULL WHERE id = ?', [(int) $pid]);
+                self::still(static fn() => self::anlegen((int) $pid, $kas));
+            }
+        }
         return count($ids);
     }
 
@@ -1075,6 +1342,35 @@ final class Hosting
     /* ==================================================================== */
     /*  4. Zugangsdaten — einmal zeigen, dann vergessen                     */
     /* ==================================================================== */
+
+    /**
+     * Datenbank- und FTP-Zugang fuer Uwe (Verwaltung, nie Kundenseite).
+     * Jeder Blick wird protokolliert -- wer, wann, welcher Auftrag.
+     * @return array<string,mixed>|null
+     */
+    public static function technikAbrufen(int $auftragId): ?array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        if (!$a || empty($a['technik_blob'])) { return null; }
+        $t = self::entschluesseln((string) $a['technik_blob']);
+        if ($t !== null) { Events::protokoll('hosting_technik_angesehen', 'DB/FTP-Zugang von ' . $a['domain'] . ' angesehen', (int) $a['customer_id']); }
+        return $t;
+    }
+
+    /** DB/FTP an- oder abwaehlen -- wirkt beim naechsten Einrichten oder "Offene Schritte wiederholen". */
+    public static function technikWunsch(int $auftragId, bool $db, bool $ftp): array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        if (!$a) { return ['ok' => false, 'text' => 'Auftrag nicht gefunden.']; }
+        Db::run('UPDATE hosting_auftraege SET mit_datenbank = ?, mit_ftp = ? WHERE id = ?', [$db ? 1 : 0, $ftp ? 1 : 0, $auftragId]);
+        /* Ein Schritt, der schon "entfaellt" war, bekommt eine neue Chance. */
+        foreach (['datenbank' => $db, 'ftp' => $ftp] as $s => $ja) {
+            if ($ja) { Db::run("UPDATE hosting_schritte SET status = 'fehler', versuche = 0, text = 'Neu gewünscht.'
+                                 WHERE auftrag_id = ? AND schritt = ? AND status = 'entfaellt'", [$auftragId, $s]); }
+        }
+        return ['ok' => true, 'text' => 'Gemerkt' . (in_array((string) $a['status'], ['angelegt', 'aktiv', 'in_arbeit'], true)
+            ? ' — angelegt wird mit „Offene Schritte wiederholen“.' : ' — wird beim Einrichten mit angelegt.')];
+    }
 
     /**
      * Der einmalige Abruf durch den Kunden. Danach ist der Blob weg.

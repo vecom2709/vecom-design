@@ -8,6 +8,44 @@
    und nicht nur beim Monitoring: Wer sie vergisst, verliert nicht eine
    Anzeige, sondern jede Automatik. */
 ?>
+<?php
+  /* DER PROBELAUF (26.09.2026) -- oben, weil er alles darunter entschaerft:
+     Solange er an ist, legt die Verwaltung beim KAS nichts an und aendert
+     nichts, sondern schreibt ins Protokoll, was sie tun wuerde. */
+  require_once __DIR__ . '/../../src/Kas.php';
+  $kasProbe = sicher(static fn() => Kas::probelauf(), true);
+  $kasProbeEnv = getenv('KAS_DRY_RUN') !== false && getenv('KAS_DRY_RUN') !== '';
+  $kasProbeLetzte = $kasProbe ? sicher(static fn() => Db::all("SELECT created_at, title AS message FROM activities WHERE type = 'kas_probelauf'
+                                       ORDER BY id DESC LIMIT 5"), []) : [];
+?>
+<div class="block"><h2>KAS: Probelauf <span class="mehr"><span class="marke2 <?= $kasProbe ? 'warn' : 'gut' ?>"><?= $kasProbe ? 'an' : 'aus' ?></span></span></h2>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
+    <?php if ($kasProbe): ?>
+      Beim KAS wird <b>nichts angelegt und nichts geändert</b> — kein Account, keine Domain, kein Postfach.
+      Aufträge, die eingerichtet werden müssten, bleiben stehen; im Protokoll steht, was geschähe.
+      Lesen (Speicher, Accountliste) geht weiter.
+    <?php else: ?>
+      Die Verwaltung legt beim KAS wirklich an, sobald ein Auftrag bezahlt und zugestimmt ist.
+    <?php endif; ?>
+  </p>
+  <?php if ($kasProbeEnv): ?>
+    <p style="color:var(--leise);font-size:12.5px">Gesteuert über die Server-Variable <code>KAS_DRY_RUN</code> — der Schalter hier wirkt erst, wenn sie entfernt ist.</p>
+  <?php else: ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $kasProbe ? 'kas_probelauf_aus' : 'kas_probelauf_an' ?>">
+      <button class="knopf"><?= $kasProbe ? 'Probelauf ausschalten' : 'Probelauf einschalten' ?></button>
+    </form>
+  <?php endif; ?>
+  <?php if ($kasProbeLetzte): ?>
+    <table class="schlicht"><tbody>
+      <?php foreach ($kasProbeLetzte as $kpl): ?>
+        <tr><td style="width:1%;white-space:nowrap;color:var(--leise)"><?= Fmt::h(Fmt::zeit((string) $kpl['created_at'])) ?></td>
+            <td style="font-size:12.5px"><?= Fmt::h((string) $kpl['message']) ?></td></tr>
+      <?php endforeach; ?>
+    </tbody></table>
+  <?php endif; ?>
+</div>
+
 <div class="block"><h2>Cronjob im KAS</h2>
   <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
     Der Webspace hat keinen eigenen Dienst, der von allein läuft. Der Anstoß kommt vom

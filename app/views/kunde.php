@@ -137,7 +137,7 @@ $eing = !empty($eingebettet);
             Fmt::h((string) $sU['stand'] === 'angefragt' ? 'wartet auf Zustimmung und Zugang' : 'Zugang ist da') ?></span></div>
         <?php if ((string) $sU['stand'] === 'zugang_da'): ?>
           <p style="font-size:12.5px;margin:6px 0 0;color:var(--leise)">Zugang wird gelöscht am <?= Fmt::h(Fmt::datum((string) $sU['loeschen_am'])) ?>.
-            Verbindung: <?= is_array($sT) ? '<b>' . Fmt::h((string) $sT['text']) . '</b>' . (!empty($sT['wordpress']) ? ' · WordPress erkannt' : '') : 'wird im nächsten Cron geprüft' ?></p>
+            Verbindung: <?= is_array($sT) ? '<b>' . Fmt::h((string) ($sT['text'] ?? '')) . '</b>' . (!empty($sT['wordpress']) ? ' · WordPress erkannt' : '') : 'wird im nächsten Cron geprüft' ?></p>
           <?php if (!empty($_SESSION['seitenumzug_zugang'][(int) $sU['id']])): $sZ = $_SESSION['seitenumzug_zugang'][(int) $sU['id']]; unset($_SESSION['seitenumzug_zugang'][(int) $sU['id']]); ?>
             <div class="hinweis gut" style="margin-top:8px;font-size:13px">
               <?php foreach (['ftp_host' => 'FTP-Server', 'ftp_user' => 'FTP-Benutzer', 'ftp_pass' => 'FTP-Passwort', 'db_host' => 'DB-Host',
@@ -502,6 +502,28 @@ $eing = !empty($eingebettet);
         <?php if ($hostingA['kas_login']): ?>
           <tr><td>KAS-Account</td><td><?= Fmt::h((string) $hostingA['kas_login']) ?></td></tr>
         <?php endif; ?>
+        <?php /* 26.09.2026: Vecom ist die Quelle fuer den Speicher, der KAS folgt.
+                 Drei Zahlen, damit eine Abweichung sofort ins Auge faellt. */
+              $hSoll = Hosting::speicherVon($hostingA);
+              $hIst  = $hostingA['kas_speicher_mb'] !== null ? (int) $hostingA['kas_speicher_mb'] : null;
+              $hBelegt = $hostingA['kas_login'] ? (sicher(static fn() => Hosting::speicher(), [])[(string) $hostingA['kas_login']] ?? null) : null; ?>
+        <tr><td>Speicher</td><td>
+          <b><?= Fmt::h(Hosting::gb($hSoll)) ?></b> vereinbart
+          <?php if ($hBelegt !== null): ?> · <?= Fmt::h(Hosting::gb((int) $hBelegt)) ?> belegt<?php endif; ?>
+          <?php if ($hIst !== null): ?>
+            · im KAS <?= Fmt::h(Hosting::gb($hIst)) ?>
+            <?php if ($hIst !== $hSoll): ?> <span class="marke2 warn">weicht ab</span><?php endif; ?>
+          <?php endif; ?>
+          <?php if (!empty($hostingA['kas_gelesen_am'])): ?><br><small style="color:var(--leise)">zuletzt abgeglichen <?= Fmt::h(Fmt::zeit((string) $hostingA['kas_gelesen_am'])) ?></small><?php endif; ?>
+        </td></tr>
+        <?php if (in_array((string) $hostingA['status'], ['angelegt', 'aktiv'], true)): ?>
+          <tr><td>HTTPS</td><td>
+            <?= Fmt::h(['ok' => '✓ in Ordnung', 'warnung' => '⚠ unvollständig', 'fehler' => '✗ fehlt'][(string) ($hostingA['ssl_status'] ?? '')] ?? 'noch nicht geprüft') ?>
+            <?php if (!empty($hostingA['ssl_text'])): ?><br><small style="color:var(--dim)"><?= Fmt::h((string) $hostingA['ssl_text']) ?></small><?php endif; ?>
+            <?php if (!empty($hostingA['ssl_geprueft_am'])): ?><br><small style="color:var(--leise)">geprüft <?= Fmt::h(Fmt::zeit((string) $hostingA['ssl_geprueft_am'])) ?></small><?php endif; ?>
+          </td></tr>
+        <?php endif; ?>
+        <tr><td>Datenbank / FTP</td><td><?= $hostingA['mit_datenbank'] ? 'Datenbank' : 'keine Datenbank' ?> · <?= $hostingA['mit_ftp'] ? 'FTP für Vecom' : 'kein eigener FTP' ?></td></tr>
         <?php if ($hostingA['notiz']): ?>
           <tr><td>Notiz</td><td style="color:var(--dim)"><?= Fmt::h((string) $hostingA['notiz']) ?></td></tr>
         <?php endif; ?>
@@ -541,6 +563,65 @@ $eing = !empty($eingebettet);
             <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
             <input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
             <button class="knopf">Offene Schritte wiederholen</button>
+          </form>
+        <?php endif; ?>
+      <?php endif; ?>
+      <?php /* Die Handgriffe zu Speicher, HTTPS und Technik -- klein, unter der Tabelle.
+               Keiner davon ist die Hauptsache der Seite, deshalb kein Blau. */ ?>
+      <?php $hZ = 'kunden/' . (int) $k['id']; $hId = (int) $hostingA['id']; ?>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center">
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:6px;align-items:center">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_speicher_vereinbaren">
+          <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><input type="hidden" name="id" value="<?= $hId ?>">
+          <input name="gb" inputmode="decimal" value="<?= Fmt::h(rtrim(rtrim(number_format($hSoll / 1024, 2, ',', ''), '0'), ',')) ?>" style="width:70px" aria-label="Vereinbarter Speicher in GB"> GB
+          <button class="knopf klein">Vereinbaren</button>
+        </form>
+        <?php if ($hostingA['kas_login'] && $hIst !== null && $hIst !== $hSoll): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_speicher_kas">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><input type="hidden" name="id" value="<?= $hId ?>">
+            <button class="knopf">KAS auf Vecom-Wert setzen</button>
+          </form>
+        <?php endif; ?>
+        <?php if ($hostingA['kas_login']): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_abgleich">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><button class="knopf klein">Jetzt abgleichen</button>
+          </form>
+        <?php endif; ?>
+        <?php if (in_array((string) $hostingA['status'], ['angelegt', 'aktiv'], true)): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_https">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><input type="hidden" name="id" value="<?= $hId ?>">
+            <button class="knopf klein">HTTPS prüfen</button>
+          </form>
+        <?php endif; ?>
+      </div>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px;font-size:13px;color:var(--dim)">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_technik">
+        <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><input type="hidden" name="id" value="<?= $hId ?>">
+        <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center">
+          <label style="display:inline-flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="mit_datenbank" value="1" style="width:auto;margin:0" <?= $hostingA['mit_datenbank'] ? 'checked' : '' ?>> Datenbank anlegen</label>
+          <label style="display:inline-flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="mit_ftp" value="1" style="width:auto;margin:0" <?= $hostingA['mit_ftp'] ? 'checked' : '' ?>> FTP-Zugang für Vecom</label>
+          <button class="knopf klein">Merken</button>
+        </div>
+      </form>
+      <?php if (!empty($hostingA['technik_blob'])): ?>
+        <?php $hTech = (($_SESSION['hosting_technik']['id'] ?? 0) === $hId) ? $_SESSION['hosting_technik']['daten'] : null;
+              unset($_SESSION['hosting_technik']); ?>
+        <?php if ($hTech): ?>
+          <div class="tabellenrahmen" style="margin-top:8px"><table><tbody>
+            <?php foreach (['datenbank' => 'Datenbank', 'ftp' => 'FTP'] as $hTs => $hTn): if (empty($hTech[$hTs])) { continue; } ?>
+              <tr><td style="width:38%"><?= $hTn ?></td><td><code><?= Fmt::h((string) ($hTech[$hTs]['name'] ?? $hTech[$hTs]['login'] ?? $hTech[$hTs]['kommentar'] ?? '')) ?></code>
+                · Passwort <input type="password" readonly value="<?= Fmt::h((string) ($hTech[$hTs]['passwort'] ?? '')) ?>" style="width:170px"
+                     onfocus="this.type='text';this.select()" onblur="this.type='password'"></td></tr>
+            <?php endforeach; ?>
+          </tbody></table></div>
+        <?php else: ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_technik_zeigen">
+            <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><input type="hidden" name="id" value="<?= $hId ?>">
+            <button class="knopf klein">Zugang Datenbank/FTP zeigen</button>
           </form>
         <?php endif; ?>
       <?php endif; ?>

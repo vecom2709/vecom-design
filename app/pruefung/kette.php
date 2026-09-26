@@ -172,6 +172,10 @@ pruefe('was übersprungen wurde, steht in der Bilanz',
     implode(' | ', (array) ($zweiter['uebersprungen'] ?? [])));
 pruefe('danach ist wieder nichts offen', Einrichtung::offene() === [],
     implode(', ', Einrichtung::offene()));
+/* Der KAS-Probelauf ist ohne Schalter an (Abschnitt 79 prueft genau das).
+   Die Abschnitte davor pruefen das Anlegen, wie es live laeuft, wenn Uwe
+   ihn ausgeschaltet hat -- also hier aus. */
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_probelauf', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
 
 /* ============================================================================
    2. Kunde und Bestellung
@@ -8679,6 +8683,159 @@ pruefe('Sperre: fragt vorher, und die Klasse kann weiterhin nichts löschen',
     && !array_filter(get_class_methods('Kas'), static fn($m) => str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete')));
 pruefe('Fragebogen: die Frage nach Weiterleitungen erscheint nur mit Postfach bei Vecom',
     (Texte::FRAGEBOGEN['formales']['felder']['mail_weiter']['wenn'] ?? null) === ['feld' => 'mail_wahl', 'ist' => ['vecom']]);
+
+/* ============================================================================
+   79. Speicher als Vereinbarung, Abgleich, Probelauf, HTTPS, DB/FTP (26.09.2026)
+   Uwes Masterprompt: Vecom ist die Quelle fuer den Speicher. Ein Kunde mit
+   15 GB behaelt 15 GB -- nicht 10, nicht 20, keine neue Paketgroesse.
+   ============================================================================ */
+abschnitt('79. Speicher, Abgleich, Probelauf, HTTPS, DB/FTP');
+
+$spKas = new class {
+    public array $gerufen = [];
+    public array $grenzen = [];
+    public array $kommentareDa = [];
+    public function accountAnlegen(string $kommentar, array $g = []): array {
+        $this->grenzen = $g; $this->gerufen[] = 'account';
+        return ['ok' => true, 'login' => 'w0144444', 'kas_passwort' => 'Kas-Pw-9!', 'ftp_passwort' => 'Ftp-Pw-9!', 'text' => 'ok'];
+    }
+    public function domainAnlegen(string $d, ?array $als = null): array { $this->gerufen[] = 'domain'; return ['ok' => true, 'text' => 'ok']; }
+    public function postfachAnlegen(string $l, string $d, string $pw, ?array $als = null): array { $this->gerufen[] = 'postfach'; return ['ok' => true, 'text' => 'ok']; }
+    public function passwortNeu(): string { return 'Neu-Pw-' . count($this->gerufen) . '!'; }
+    public function kommentare(string $aktion, ?array $als = null): array { $this->gerufen[] = $aktion; return ['ok' => true, 'text' => '', 'kommentare' => $this->kommentareDa]; }
+    public function datenbankAnlegen(string $k, string $pw, ?array $als = null): array { $this->gerufen[] = 'db:' . $k; $this->kommentareDa[] = $k; return ['ok' => true, 'text' => 'ok', 'name' => 'd0444444']; }
+    public function ftpAnlegen(string $k, string $pw, ?array $als = null): array { $this->gerufen[] = 'ftp:' . $k; $this->kommentareDa[] = $k; return ['ok' => true, 'text' => 'ok', 'login' => 'f0444444']; }
+};
+$spNeu = static function (?int $mb, array $mehr = []): int {
+    static $n = 0; $n++;
+    $k = Events::kundeFinden(['name' => 'Speicher Probe ' . $n, 'email' => 'speicher' . $n . '@pruefung.example']);
+    return (int) Db::insert('hosting_auftraege', $mehr + ['customer_id' => $k, 'domain' => 'speicher' . $n . '-probe.it',
+        'status' => 'zugestimmt', 'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'speicher_mb' => $mb]);
+};
+
+/* Der besonders wichtige Test aus dem Masterprompt */
+$sp15 = $spNeu(15360);
+Hosting::anlegen($sp15, $spKas);
+pruefe('Speicher: ein Kunde mit 15 GB bekommt im KAS genau 15 GB (max_webspace 15360) -- keine Paketgröße',
+    ($spKas->grenzen['max_webspace'] ?? null) === 15360, json_encode($spKas->grenzen));
+$sp0 = $spNeu(null);
+Hosting::anlegen($sp0, $spKas);
+pruefe('Speicher: ohne Vereinbarung gilt der bisherige Wert für alle -- 10 GB, keine andere Zahl',
+    ($spKas->grenzen['max_webspace'] ?? null) === 10240 && Hosting::SPEICHER_MB === 10240);
+
+/* Die Migration darf keinen vereinbarten Wert anfassen -- und ist wiederholbar */
+$spAlt = $spNeu(15360); $spLeer = $spNeu(null);
+$spSql = (string) file_get_contents($wurzel . '/migrations/063_speicher_ssl.sql');
+foreach (array_filter(array_map('trim', explode(';', (string) preg_replace('~^--.*$~m', '', $spSql)))) as $spS) { Db::run($spS); }
+pruefe('Speicher: die Migration trägt nur Leeres mit 10240 nach, 15 GB bleiben 15 GB (auch beim zweiten Lauf)',
+    (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$spAlt], 0) === 15360
+    && (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$spLeer], 0) === 10240);
+pruefe('Speicher: jeder neue Auftrag trägt seinen Wert selbst -- eine geänderte Vorgabe nimmt keinem etwas',
+    substr_count((string) file_get_contents($wurzel . '/src/Hosting.php'), "'speicher_mb' => self::SPEICHER_MB") === 3
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "'speicher_mb' => Hosting::SPEICHER_MB"));
+
+/* RESOURCE_MISMATCH: Vecom 20 GB, KAS 10 GB */
+$sp20 = $spNeu(20480, ['status' => 'angelegt', 'kas_login' => 'w0133333']);
+Db::run("DELETE FROM settings WHERE skey LIKE 'speicher_abweichung_%'");
+$spVor = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'hosting_abweichung'", [], 0);
+$spLesen = static fn(): array => ['ok' => true, 'text' => '', 'belegt' => ['w0133333' => 4000]];
+$spGrenzen = static fn(): array => ['ok' => true, 'text' => '', 'grenzen' => ['w0133333' => 10240]];
+$spE = Hosting::speicherPruefen($spLesen, $spGrenzen);
+Hosting::speicherPruefen($spLesen, $spGrenzen);
+$spRow = Db::one('SELECT speicher_mb, kas_speicher_mb FROM hosting_auftraege WHERE id = ?', [$sp20]);
+pruefe('Abgleich: weicht der KAS ab, gibt es EINE Meldung -- und Vecom bleibt bei 20 GB',
+    $spE['abweichend'] >= 1 && (int) $spRow['speicher_mb'] === 20480 && (int) $spRow['kas_speicher_mb'] === 10240
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'hosting_abweichung'", [], 0) === $spVor + 1);
+$spGesetzt = [];
+$spR = Hosting::speicherAufKas($sp20, static function (string $l, int $mb) use (&$spGesetzt): array { $spGesetzt[] = $l . ':' . $mb; return ['ok' => true, 'text' => 'ok']; });
+pruefe('Abgleich: nur der Knopf schreibt in den KAS -- und nur den Vecom-Wert',
+    $spR['ok'] && $spGesetzt === ['w0133333:20480']
+    && (int) Db::wert('SELECT kas_speicher_mb FROM hosting_auftraege WHERE id = ?', [$sp20], 0) === 20480
+    && Ablauf::wiegt('hosting_speicher_kas') === Ablauf::SCHWER);
+pruefe('Abgleich: grenzenAus liest max_webspace, "unbegrenzt" (-1) zählt nicht als Wert',
+    Kas::grenzenAus([['login' => 'w0111111', 'roh' => ['max_webspace' => '15360']], ['login' => 'w0122222', 'roh' => ['max_webspace' => '-1']]])
+    === ['w0111111' => 15360]);
+$spA1 = Hosting::speicherAendern($sp20, 512);
+$spA2 = Hosting::speicherAendern($sp20, 25600);
+pruefe('Vereinbaren: nur sinnvolle Werte, und die Änderung steht mit alt → neu im Protokoll',
+    !$spA1['ok'] && $spA2['ok'] && (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$sp20], 0) === 25600
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'hosting_speicher_vereinbart' AND title LIKE '%20 GB → 25 GB%'", [], 0) === 1);
+pruefe('Anzeige: 7,4 GB / 10 GB -- eine Nachkommastelle, glatte Werte ohne',
+    Hosting::gb(7578) === '7,4 GB' && Hosting::gb(10240) === '10 GB' && Hosting::gb(15360) === '15 GB');
+
+/* Probelauf */
+Db::run("DELETE FROM settings WHERE skey = 'kas_probelauf'");
+pruefe('Probelauf: ohne Schalter ist er an -- ein vergessener Schalter legt nichts an', Kas::probelauf() === true);
+$spPr = Kas::rufen('add_account', ['account_kas_password' => 'Geheim-123!', 'account_comment' => 'Probe']);
+pruefe('Probelauf: add_/update_ erreichen den KAS nicht, und das Protokoll zeigt kein Passwort',
+    !$spPr['ok'] && !empty($spPr['probelauf']) && !str_contains($spPr['text'], 'Geheim-123!')
+    && str_contains($spPr['text'], 'account_kas_password=***')
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE title LIKE '%Geheim-123!%'", [], 0) === 0);
+pruefe('Probelauf: Lesen ist kein Schreiben', !Kas::schreibt('get_accounts') && Kas::schreibt('update_account') && Kas::schreibt('add_database'));
+$spP = $spNeu(15360);
+$spPe = Hosting::anlegen($spP);
+pruefe('Probelauf: mit echtem KAS wird nichts beansprucht -- der Auftrag bleibt zugestimmt, der Plan nennt 15 GB',
+    !$spPe['ok'] && !empty($spPe['probelauf']) && (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$spP], '') === 'zugestimmt'
+    && Hosting::schritte($spP) === [] && str_contains($spPe['text'], 'max_webspace 15360'));
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_probelauf', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
+$spKas->gerufen = [];
+Hosting::fortsetzen($spKas);
+pruefe('Probelauf aus: der angehaltene Auftrag läuft von selbst an',
+    in_array('account', $spKas->gerufen, true) && (string) Db::wert('SELECT status FROM hosting_auftraege WHERE id = ?', [$spP], '') === 'angelegt');
+Db::run("UPDATE settings SET svalue = '1' WHERE skey = 'kas_probelauf'");
+pruefe('Probelauf: ausschalten fragt vorher', Ablauf::wiegt('kas_probelauf_aus') === Ablauf::SCHWER);
+
+/* Datenbank und FTP -- nur auf Wunsch, nie doppelt */
+$spKas->gerufen = []; $spKas->kommentareDa = [];
+$spD = $spNeu(10240, ['mit_datenbank' => 1, 'mit_ftp' => 1]);
+Hosting::anlegen($spD, $spKas);
+$spDb = Db::one('SELECT technik_blob FROM hosting_auftraege WHERE id = ?', [$spD]);
+pruefe('DB/FTP: angekreuzt wird beides angelegt, das Passwort liegt nur verschlüsselt',
+    in_array('db:vecom-' . $spD . '-db', $spKas->gerufen, true) && in_array('ftp:vecom-' . $spD . '-ftp', $spKas->gerufen, true)
+    && !empty($spDb['technik_blob']) && !str_contains((string) $spDb['technik_blob'], 'Neu-Pw')
+    && (Hosting::technikAbrufen($spD)['datenbank']['name'] ?? '') === 'd0444444');
+$spKas->gerufen = [];
+Hosting::technikWunsch($spD, true, true);
+Db::run("UPDATE hosting_schritte SET status = 'fehler', versuche = 0 WHERE auftrag_id = ? AND schritt IN ('datenbank','ftp')", [$spD]);
+Hosting::wiederholen($spD, $spKas);
+pruefe('DB/FTP: ein zweiter Lauf erkennt die eigenen am Kommentar -- nichts entsteht doppelt',
+    !preg_grep('~^(db|ftp):~', $spKas->gerufen) && (string) (Hosting::schritte($spD)['datenbank']['text'] ?? '') === 'War schon da (vecom-' . $spD . '-db).');
+pruefe('DB/FTP: nicht angekreuzt entfällt beides, ohne Aufruf',
+    (string) (Hosting::schritte($sp15)['datenbank']['status'] ?? '') === 'entfaellt' && (string) (Hosting::schritte($sp15)['ftp']['status'] ?? '') === 'entfaellt');
+
+/* HTTPS vor "online" */
+$spH = $spNeu(10240, ['status' => 'angelegt', 'kas_login' => 'w0122222']);
+$spHk = (int) Db::wert('SELECT customer_id FROM hosting_auftraege WHERE id = ?', [$spH], 0);
+$spProj = (int) Db::insert('projects', ['customer_id' => $spHk, 'name' => 'HTTPS Probe', 'status' => 'finale_freigabe']);
+$spSchlecht = static fn(string $d): array => ['https' => ['ok' => false, 'ssl_gueltig' => 0, 'ssl_bis' => null, 'fehler' => 'Mit dem SSL-Zertifikat stimmt etwas nicht: self-signed'], 'umleitung' => null];
+$spHalb = static fn(string $d): array => ['https' => ['ok' => true, 'ssl_gueltig' => 1, 'ssl_bis' => '2027-01-01', 'fehler' => null], 'umleitung' => 'http://' . $d . '/'];
+$spGut = static fn(string $d): array => ['https' => ['ok' => true, 'ssl_gueltig' => 1, 'ssl_bis' => '2027-01-01', 'fehler' => null], 'umleitung' => 'https://' . $d . '/'];
+pruefe('HTTPS: noch nicht geprüft sperrt "online"', Hosting::httpsSperre($spProj) !== null);
+pruefe('HTTPS: ein selbst signiertes Zertifikat ist ein Fehler, und "online" bleibt gesperrt',
+    Hosting::httpsPruefen($spH, $spSchlecht)['status'] === 'fehler' && Hosting::httpsSperre($spProj) !== null);
+pruefe('HTTPS: gültig, aber ohne Umleitung ist unvollständig',
+    Hosting::httpsPruefen($spH, $spHalb)['status'] === 'warnung' && Hosting::httpsSperre($spProj) !== null);
+pruefe('HTTPS: gültig mit Umleitung gibt "online" frei',
+    Hosting::httpsPruefen($spH, $spGut)['status'] === 'ok' && Hosting::httpsSperre($spProj) === null);
+$spOhne = (int) Db::insert('projects', ['customer_id' => Events::kundeFinden(['name' => 'Ohne Hosting', 'email' => 'ohnehosting@pruefung.example']),
+    'name' => 'Ohne', 'status' => 'finale_freigabe']);
+pruefe('HTTPS: liegt die Domain nicht bei uns, sperrt nichts', Hosting::httpsSperre($spOhne) === null);
+pruefe('HTTPS: der Handler fragt vor "online" -- und der Cron prüft',
+    str_contains((string) file_get_contents($wurzel . '/index.php'), 'Hosting::httpsSperre($pid)')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Hosting::httpsPruefenAlle()'));
+
+/* ENV und Texte */
+putenv('KAS_LOGIN=w0100000'); putenv('KAS_PASSWORD=Env-Pw-1!');
+$spZ = Kas::zugang();
+putenv('KAS_LOGIN'); putenv('KAS_PASSWORD');
+pruefe('Zugang: KAS_LOGIN/KAS_PASSWORD aus der Server-Umgebung gehen vor', $spZ['login'] === 'w0100000' && $spZ['passwort'] === 'Env-Pw-1!');
+$spT = true;
+foreach (['meinHosting', 'mhSpeicher', 'mhSpeicherGebucht', 'mhHttps', 'mhHttpsOk', 'mhHttpsNoch', 'mhHttpsArbeit', 'mhMail', 'mhMailWoanders', 'mhVertrag', 'mhNaechste', 'mhLaeuftBis'] as $spK) {
+    foreach (['it', 'de', 'en'] as $spSp) { if (trim((string) (Texte::KUNDE[$spK][$spSp] ?? '')) === '') { $spT = false; } }
+}
+pruefe('Mein Hosting: alle Texte dreisprachig', $spT);
+pruefe('Kas: auch mit den neuen Aufrufen keine löschende Methode',
+    !array_filter(get_class_methods('Kas'), static fn($m) => str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete')));
 
 /* ============================================================================
    Aufräumen und Bilanz

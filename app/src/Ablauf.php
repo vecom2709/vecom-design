@@ -208,6 +208,20 @@ final class Ablauf
         'hosting_sperren' => [self::SCHWER,
             'Der Kunde kommt nicht mehr in sein KAS. Account, Dateien, Domain und Mails bleiben — gelöscht wird nichts.',
             'Ja, sperren'],
+        'hosting_speicher_kas' => [self::SCHWER,
+            'Im KAS wird der Speicher dieses Kunden auf den bei Vecom vereinbarten Wert gesetzt. Wird er kleiner, '
+            . 'und belegt der Kunde schon mehr, kann er keine neuen Dateien und Mails mehr ablegen.',
+            'Ja, im KAS setzen'],
+        'hosting_speicher_vereinbaren' => [self::SCHWER,
+            'Der vereinbarte Speicher dieses Kunden ändert sich. Im KAS gilt er erst nach „KAS auf Vecom-Wert setzen“.',
+            'Ja, ändern'],
+        'hosting_technik_zeigen' => [self::STILL,
+            'Die Zugangsdaten für Datenbank und FTP erscheinen im Klartext. Der Blick wird protokolliert.',
+            'Ja, anzeigen'],
+        'kas_probelauf_aus' => [self::SCHWER,
+            'Ab jetzt legt die Verwaltung beim KAS wirklich an: Accounts, Domains, Postfächer, Datenbanken. '
+            . 'Aufträge, die der Probelauf angehalten hat, starten beim nächsten Cronlauf.',
+            'Ja, Probelauf aus'],
         'hosting_weiter' => [self::SCHWER,
             'Fehlende Teile werden beim Anbieter angelegt (Domain, Postfach). Stand beim Account „unklar“, '
             . 'kann ein zweiter entstehen — vorher in der KAS-Accountliste nachsehen.',
@@ -445,6 +459,11 @@ final class Ablauf
                     || self::mailGing('restzahlung', 'payment_id', (int) ($rest['id'] ?? 0)), $du);
                 $P('Alles ist bezahlt',
                     $rest === null || (string) $rest['status'] === 'bezahlt', $kunde);
+                /* HTTPS vor "online" (26.09.2026): Liegt die Domain bei uns,
+                   gilt die Seite erst als veroeffentlicht, wenn die Pruefung
+                   ein gueltiges Zertifikat und die Umleitung gesehen hat. */
+                $ssl = self::httpsStand((int) ($v['kunde_id'] ?? 0));
+                if ($ssl !== null) { $P('HTTPS der Domain geprüft', $ssl === 'ok', $du); }
                 $P('Seite ist veröffentlicht', false, $du);
                 break;
 
@@ -469,6 +488,17 @@ final class Ablauf
         }
 
         return $punkte;
+    }
+
+    /** ssl_status des Hosting-Auftrags eines Kunden -- null, wenn die Domain nicht bei uns liegt. */
+    private static function httpsStand(int $kundeId): ?string
+    {
+        if ($kundeId < 1) { return null; }
+        try {
+            $h = Db::one("SELECT ssl_status FROM hosting_auftraege WHERE customer_id = ? AND status IN ('angelegt','aktiv')
+                           ORDER BY id DESC LIMIT 1", [$kundeId]);
+        } catch (Throwable) { return null; }
+        return $h ? (string) ($h['ssl_status'] ?? '') : null;
     }
 
     /** Wie viele Punkte der aktuellen Stufe stehen — fuer die kurze Anzeige. */
