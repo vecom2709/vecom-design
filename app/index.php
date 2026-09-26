@@ -584,6 +584,15 @@ if ($post) {
                 } catch (InvalidArgumentException $e) { $_SESSION['fehler'] = 'Die Nachricht ist leer.'; }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0) . '#nachrichten');
 
+            case 'partner_profil_weg':
+                /* Foto und Satz einer Empfehlungsseite entfernen (26.09.2026):
+                   Beides steht öffentlich auf unserer Domain. */
+                require_once __DIR__ . '/src/Partner.php';
+                Db::run('UPDATE partner SET foto = NULL, foto_am = NULL, profil_satz = NULL WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
+                Events::protokoll('partner_profil_weg', 'Empfehlungsseite eines Partners geleert', null, null, null, ['partner_id' => (int) ($_POST['id'] ?? 0)]);
+                $_SESSION['gut'] = 'Foto und Satz sind entfernt.';
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
             case 'partner_code':
                 require_once __DIR__ . '/src/Partner.php';
                 $f = Partner::codeSetzen((int) ($_POST['id'] ?? 0), (string) ($_POST['code'] ?? ''));

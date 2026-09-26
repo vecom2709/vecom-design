@@ -11228,6 +11228,95 @@ require_once $wurzel . '/src/Meldungen.php';
 pruefe('Rückruf-Mahnung erledigt sich, sobald kein Rückruf mehr überfällig ist', isset(Meldungen::regeln()['telefon_rueckruf_offen']));
 
 /* ============================================================================
+   Partner: Werbe-Paket und Empfehlungsseite (26.09.2026)
+   Uwe: „so, dass der Kunde direkt auf den Partnerlink kommt — egal ob QR,
+   Bild, Link oder Knopf“. Geprüft wird genau das: Jede Vorlage in jeder
+   Sprache trägt den Link ihres Kanals und eine Werbekennzeichnung, jeder
+   Teilen-Knopf trägt den Link weiter. Und: Das Foto kommt ohne EXIF und nur
+   als 256er WebP in die Datenbank.
+   ============================================================================ */
+abschnitt('Partner: Werbe-Paket und Empfehlungsseite');
+require_once $wurzel . '/src/PartnerWerbung.php';
+$pwId = Partner::anlegen(['name' => 'Sara Werbung', 'email' => 'sara@partner.example', 'status' => 'aktiv', 'code' => 'SARAWERB1', 'firma' => '', 'sprache' => 'it']);
+$pwP = Db::one('SELECT * FROM partner WHERE id = ?', [$pwId]);
+$pwOhneLink = []; $pwOhneKennz = []; $pwAnzahl = 0;
+foreach (['it', 'de', 'en'] as $pwS) {
+    foreach (PartnerWerbung::vorlagen($pwP, $pwS) as $pwK => $pwListe) {
+        foreach ($pwListe as $pwV) {
+            $pwAnzahl++;
+            // Das TikTok-Drehbuch zeigt den QR im Video; der Link steht in der Beschreibung daneben.
+            if (!str_contains($pwV['text'], '/p/SARAWERB1/' . $pwK) && $pwV['id'] !== 'tiktok_skript') { $pwOhneLink[] = $pwS . ':' . $pwV['id']; }
+            if (!preg_match('~#(adv|Werbung|ad)\b|partner|collaboro~ui', $pwV['text']) && $pwV['id'] !== 'tiktok_skript') { $pwOhneKennz[] = $pwS . ':' . $pwV['id']; }
+        }
+    }
+}
+pruefe('Werbe-Paket: jede Vorlage in jeder Sprache trägt den Link ihres Kanals', $pwAnzahl >= 39 && $pwOhneLink === [], implode(', ', $pwOhneLink) . " ($pwAnzahl)");
+pruefe('Werbe-Paket: jede Vorlage sagt, dass es Werbung bzw. eine Partnerschaft ist', $pwOhneKennz === [], implode(', ', $pwOhneKennz));
+pruefe('Werbe-Paket: keine Vorlage mit übriggebliebenem Platzhalter', !preg_match('~\{(link|name)\}~', json_encode(PartnerWerbung::vorlagen($pwP, 'de'), JSON_UNESCAPED_UNICODE)));
+$pwWa = PartnerWerbung::vorlagen($pwP, 'de')['whatsapp'][0]['teilen'];
+$pwMail = PartnerWerbung::vorlagen($pwP, 'de')['email'][0]['teilen'];
+pruefe('Teilen-Knöpfe tragen den Kanal-Link weiter (WhatsApp, E-Mail mit Betreff), Instagram teilt das Handy selbst',
+    str_starts_with((string) $pwWa, 'https://wa.me/?text=') && str_contains(rawurldecode((string) $pwWa), '/p/SARAWERB1/whatsapp')
+    && str_starts_with((string) $pwMail, 'mailto:?subject=') && str_contains(rawurldecode((string) $pwMail), '/p/SARAWERB1/email')
+    && PartnerWerbung::vorlagen($pwP, 'de')['instagram'][0]['teilen'] === null);
+foreach (array_merge(PartnerWerbung::KANAELE, PartnerWerbung::WERKZEUGE) as $pwK) {
+    if (Partner::kanal($pwK) !== $pwK) { pruefe('Kanalname passt zu p.php: ' . $pwK, false); }
+}
+pruefe('Alle Kanalnamen gehen durch Partner::kanal() — kein Link, den p.php nicht zählt', true);
+$pwSig = PartnerWerbung::signatur($pwP, 'de'); $pwKn = PartnerWerbung::websiteKnopf($pwP, 'de');
+pruefe('Signatur und Website-Knopf: eigener Kanal-Link, nur Inline-Stil, kein Skript',
+    str_contains($pwSig, '/p/SARAWERB1/signatur') && str_contains($pwKn, '/p/SARAWERB1/website')
+    && !preg_match('~<script|<style|class=~i', $pwSig . $pwKn));
+
+// Auswertung
+Db::run("INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 12)", [$pwId]);
+Db::run("INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, 'instagram', CURDATE(), 8), (?, 'whatsapp', CURDATE(), 3)", [$pwId, $pwId]);
+$pwK1 = Events::kundeFinden(['name' => 'Werbung Eins', 'email' => 'werbung-eins@esempio.example']);
+$pwK2 = Events::kundeFinden(['name' => 'Werbung Zwei', 'email' => 'werbung-zwei@esempio.example']);
+Db::run("INSERT INTO partner_zuordnungen (customer_id, partner_id, kanal) VALUES (?, ?, 'instagram'), (?, ?, 'instagram')", [$pwK1, $pwId, $pwK2, $pwId]);
+Db::run("INSERT INTO partner_provisionen (partner_id, customer_id, payment_id, art, basis_cents, provision_cents, status, frei_ab)
+         VALUES (?, ?, 990101, 'website', 100000, 10000, 'wartet', NOW()), (?, ?, 990102, 'website', 50000, 5000, 'storniert', NOW())", [$pwId, $pwK1, $pwId, $pwK2]);
+$pwA = PartnerWerbung::auswertung($pwId);
+$pwIg = array_values(array_filter($pwA['zeilen'], static fn($z) => $z['kanal'] === 'instagram'))[0] ?? [];
+$pwHaupt = array_values(array_filter($pwA['zeilen'], static fn($z) => $z['kanal'] === ''))[0] ?? [];
+pruefe('Was wirkt: Instagram 8 Klicks, 2 Kunden, 1 Verkauf (stornierte Provision zählt nicht), 100 € Provision',
+    ($pwIg['klicks'] ?? 0) === 8 && ($pwIg['kunden'] ?? 0) === 2 && ($pwIg['verkaeufe'] ?? 0) === 1 && ($pwIg['provision'] ?? 0) === 10000, json_encode($pwIg));
+pruefe('Was wirkt: Klicks ohne Kanal stehen als Hauptlink (12 − 11 = 1), bester Kanal ist Instagram',
+    ($pwHaupt['klicks'] ?? 0) === 1 && $pwA['bester'] === 'instagram', json_encode([$pwHaupt, $pwA['bester']]));
+Db::run("INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, 'tiktok', CURDATE(), 5)", [$pnP]);
+pruefe('Was wirkt: nur Klicks, keine Kunden über einen Kanal → kein „bester Kanal“', PartnerWerbung::auswertung($pnP)['bester'] === null);
+
+// Empfehlungsseite: Satz und Foto
+pruefe('Satz: ohne Adressen, höchstens 200 Zeichen, leer entfernt',
+    PartnerWerbung::satzSpeichern($pwId, 'Mehr auf www.beispiel.it') === 'satz_link'
+    && PartnerWerbung::satzSpeichern($pwId, str_repeat('a', 201)) === 'satz_lang'
+    && PartnerWerbung::satzSpeichern($pwId, "  Seriös <b>und</b>\n schnell.  ") === 'ok'
+    && (string) Db::wert('SELECT profil_satz FROM partner WHERE id = ?', [$pwId], '') === 'Seriös und schnell.');
+$pwDatei = tempnam(sys_get_temp_dir(), 'pwfoto');
+$pwBild = imagecreatetruecolor(900, 600); imagefill($pwBild, 0, 0, imagecolorallocate($pwBild, 200, 120, 60)); imagejpeg($pwBild, $pwDatei, 85); imagedestroy($pwBild);
+$pwErg = PartnerWerbung::fotoSpeichern($pwId, $pwDatei, (int) filesize($pwDatei));
+$pwBlob = (string) Db::wert('SELECT foto FROM partner WHERE id = ?', [$pwId], '');
+$pwMass = $pwBlob !== '' ? getimagesizefromstring($pwBlob) : false;
+pruefe('Foto: quadratisch 256 px als WebP gespeichert, das Original nicht', $pwErg === 'ok' && $pwMass && $pwMass[0] === 256 && $pwMass[1] === 256 && $pwMass['mime'] === 'image/webp');
+file_put_contents($pwDatei, '<?php echo 1;');
+pruefe('Foto: keine Bilddatei → abgelehnt, zu groß → abgelehnt',
+    PartnerWerbung::fotoSpeichern($pwId, $pwDatei, 20) === 'foto_art' && PartnerWerbung::fotoSpeichern($pwId, $pwDatei, PartnerWerbung::FOTO_MAX_BYTE + 1) === 'foto_gross');
+@unlink($pwDatei);
+$pwP = Db::one('SELECT * FROM partner WHERE id = ?', [$pwId]);
+pruefe('Fotoadresse mit Versionsanhang (neues Foto, neue Adresse)', (string) PartnerWerbung::fotoAdresse($pwP) !== '' && str_contains((string) PartnerWerbung::fotoAdresse($pwP), '&v='));
+Partner::loeschen($pwId);
+pruefe('Partner gelöscht (mit Belegen): Foto und Satz gehen mit',
+    (int) Db::wert('SELECT COUNT(*) FROM partner WHERE id = ? AND (foto IS NOT NULL OR profil_satz IS NOT NULL)', [$pwId], 1) === 0);
+$pwPs = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('p.php liefert das Foto nur für aktive Partner und zeigt Foto und Satz auf der Landeseite',
+    str_contains($pwPs, "status = 'aktiv' AND foto IS NOT NULL") && str_contains($pwPs, 'PartnerWerbung::fotoAdresse($p)') && str_contains($pwPs, '<blockquote>'));
+pruefe('Vecom kann Foto und Satz in der Partnerakte entfernen',
+    str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'value="partner_profil_weg"')
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_profil_weg':"));
+pruefe('[hidden] gewinnt gegen .knopf (sonst stehen „Zum Startbildschirm“ und leere Teilen-Knöpfe sichtbar da)',
+    str_contains((string) file_get_contents($wurzel . '/../assets/css/kunde.css'), '[hidden] { display: none !important; }'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -3040,6 +3040,39 @@ final class Texte
         'app_firefox' => ['it' => 'Firefox: menu ⋮ → «Installa» (o «Aggiungi a schermata Home») → confermi. L’icona appare sulla schermata Home.', 'de' => 'Firefox: Menü ⋮ → „Installieren“ (oder „Zum Startbildschirm hinzufügen“) → bestätigen. Das Symbol erscheint auf dem Startbildschirm.', 'en' => 'Firefox: menu ⋮ → “Install” (or “Add to Home screen”) → confirm. The icon appears on your home screen.'],
         'app_andere'  => ['it' => 'Questo browser crea solo un segnalibro, non un’app. Apra la pagina in Chrome (preinstallato su Android) e poi menu ⋮ → «Installa app».', 'de' => 'Dieser Browser legt nur ein Lesezeichen an, keine App. Öffnen Sie die Seite in Chrome (auf Android vorinstalliert) und dann Menü ⋮ → „App installieren“.', 'en' => 'This browser only creates a bookmark, not an app. Open the page in Chrome (pre-installed on Android), then menu ⋮ → “Install app”.'],
         'app_chrome'  => ['it' => 'Apri in Chrome →', 'de' => 'In Chrome öffnen →', 'en' => 'Open in Chrome →'],
+        'pk_titel'    => ['it' => 'Pacchetto promozionale', 'de' => 'Werbe-Paket', 'en' => 'Marketing kit'],
+        'pk_text'     => ['it' => 'Scelga dove vuole condividere. Ogni testo contiene già il suo link per quel canale — più avanti vede cosa funziona.', 'de' => 'Wählen Sie, wo Sie teilen möchten. Jeder Text enthält schon Ihren Link für diesen Kanal — später sehen Sie, was wirkt.', 'en' => 'Choose where you want to share. Every text already contains your link for that channel — later you’ll see what works.'],
+        'pk_teilen'   => ['it' => 'Condividi', 'de' => 'Teilen', 'en' => 'Share'],
+        'pk_senden'   => ['it' => 'Invia', 'de' => 'Senden', 'en' => 'Send'],
+        'pk_link'     => ['it' => 'Il suo link per {kanal}', 'de' => 'Ihr Link für {kanal}', 'en' => 'Your link for {kanal}'],
+        'pk_betreff'  => ['it' => 'Oggetto', 'de' => 'Betreff', 'en' => 'Subject'],
+        'pk_werkzeuge'=> ['it' => 'Firma e-mail e pulsante', 'de' => 'Signatur und Website-Knopf', 'en' => 'Signature and website button'],
+        'sig_titel'   => ['it' => 'Firma e-mail', 'de' => 'E-Mail-Signatur', 'en' => 'Email signature'],
+        'sig_text'    => ['it' => 'Copi e incolli. Gmail: Impostazioni → Firma. Outlook: File → Opzioni → Posta → Firme.', 'de' => 'Kopieren und einfügen. Gmail: Einstellungen → Signatur. Outlook: Datei → Optionen → E-Mail → Signaturen.', 'en' => 'Copy and paste. Gmail: Settings → Signature. Outlook: File → Options → Mail → Signatures.'],
+        'sig_kopieren'=> ['it' => 'Copia firma', 'de' => 'Signatur kopieren', 'en' => 'Copy signature'],
+        'web_titel'   => ['it' => 'Pulsante per il suo sito', 'de' => 'Knopf für Ihre Website', 'en' => 'Button for your website'],
+        'web_text'    => ['it' => 'Incolli questo codice dove vuole il pulsante (per es. in fondo alla pagina). Non carica nulla da noi.', 'de' => 'Diesen Code dort einfügen, wo der Knopf erscheinen soll (z. B. im Fußbereich). Er lädt nichts von uns nach.', 'en' => 'Paste this code where the button should appear (e.g. in the footer). It loads nothing from us.'],
+        'code_kopieren'=> ['it' => 'Copia codice', 'de' => 'Code kopieren', 'en' => 'Copy code'],
+        'aw_titel'    => ['it' => 'Cosa funziona', 'de' => 'Was wirkt', 'en' => 'What works'],
+        'aw_leer'     => ['it' => 'Ancora nessun clic. Appena qualcuno apre uno dei suoi link, lo vede qui.', 'de' => 'Noch keine Klicks. Sobald jemand einen Ihrer Links öffnet, steht es hier.', 'en' => 'No clicks yet. As soon as someone opens one of your links, it shows here.'],
+        'aw_kanal'    => ['it' => 'Canale', 'de' => 'Kanal', 'en' => 'Channel'],
+        'aw_klicks'   => ['it' => 'Clic', 'de' => 'Klicks', 'en' => 'Clicks'],
+        'aw_kunden'   => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
+        'aw_verkaeufe'=> ['it' => 'Vendite', 'de' => 'Verkäufe', 'en' => 'Sales'],
+        'aw_bester'   => ['it' => 'Il suo canale migliore finora: {kanal}. Lì conviene insistere.', 'de' => 'Ihr bester Kanal bisher: {kanal}. Dort lohnt sich mehr.', 'en' => 'Your best channel so far: {kanal}. It’s worth doing more there.'],
+        'pf_titel'    => ['it' => 'La sua pagina di consiglio', 'de' => 'Ihre Empfehlungsseite', 'en' => 'Your recommendation page'],
+        'pf_text'     => ['it' => 'Chi apre il suo link vede prima questa pagina. Con la sua foto e una sua frase il consiglio è più personale — e porta più richieste.', 'de' => 'Wer Ihrem Link folgt, sieht zuerst diese Seite. Mit Ihrem Foto und einem Satz von Ihnen wirkt die Empfehlung persönlicher — und bringt mehr Anfragen.', 'en' => 'Anyone who follows your link sees this page first. With your photo and a sentence from you the recommendation feels personal — and brings more enquiries.'],
+        'pf_foto'     => ['it' => 'Foto (viene ritagliata quadrata da sola)', 'de' => 'Foto (wird von selbst quadratisch zugeschnitten)', 'en' => 'Photo (cropped square automatically)'],
+        'pf_satz'     => ['it' => 'La sua frase (max. 200 caratteri, senza link)', 'de' => 'Ihr Satz (höchstens 200 Zeichen, ohne Links)', 'en' => 'Your sentence (max. 200 characters, no links)'],
+        'pf_satz_ph'  => ['it' => 'Perché consiglia Vecom Design?', 'de' => 'Warum empfehlen Sie Vecom Design?', 'en' => 'Why do you recommend Vecom Design?'],
+        'pf_speichern'=> ['it' => 'Salva', 'de' => 'Speichern', 'en' => 'Save'],
+        'pf_foto_weg' => ['it' => 'Rimuovi foto', 'de' => 'Foto entfernen', 'en' => 'Remove photo'],
+        'pf_vorschau' => ['it' => 'Vedi la mia pagina →', 'de' => 'Meine Seite ansehen →', 'en' => 'View my page →'],
+        'pf_gut'      => ['it' => 'Salvato.', 'de' => 'Gespeichert.', 'en' => 'Saved.'],
+        'satz_link'   => ['it' => 'Per favore senza indirizzi o link.', 'de' => 'Bitte ohne Adressen oder Links.', 'en' => 'Please no addresses or links.'],
+        'satz_lang'   => ['it' => 'Al massimo 200 caratteri.', 'de' => 'Höchstens 200 Zeichen.', 'en' => '200 characters at most.'],
+        'foto_gross'  => ['it' => 'La foto è troppo grande (max. 8 MB).', 'de' => 'Das Foto ist zu groß (höchstens 8 MB).', 'en' => 'The photo is too large (max. 8 MB).'],
+        'foto_art'    => ['it' => 'Per favore una foto JPG, PNG o WebP.', 'de' => 'Bitte ein Foto als JPG, PNG oder WebP.', 'en' => 'Please use a JPG, PNG or WebP photo.'],
         'app_fertig'  => ['it' => 'Installata. L’icona «Vecom Partner» è sulla schermata Home o nell’elenco delle app.', 'de' => 'Installiert. Das Symbol „Vecom Partner“ liegt auf dem Startbildschirm oder in der App-Übersicht.', 'en' => 'Installed. The “Vecom Partner” icon is on your home screen or in the app drawer.'],
         'app_laeuft'  => ['it' => 'Aperta come app ✓', 'de' => 'Als App geöffnet ✓', 'en' => 'Opened as an app ✓'],
         'app_installieren' => ['it' => 'Aggiungi alla schermata Home', 'de' => 'Zum Startbildschirm', 'en' => 'Add to home screen'],
@@ -3113,6 +3146,149 @@ final class Texte
         'feld'   => ['it' => 'La sua e-mail', 'de' => 'Ihre E-Mail-Adresse', 'en' => 'Your email address'],
         'knopf'  => ['it' => 'Iniziare', 'de' => 'Loslegen', 'en' => 'Get started'],
         'klein'  => ['it' => 'Riceve il link alla sua area personale. Gratis e senza impegno.', 'de' => 'Sie bekommen den Link zu Ihrem persönlichen Bereich. Kostenlos und unverbindlich.', 'en' => 'You’ll get the link to your personal area. Free and without obligation.'],
+        'foto_alt' => ['it' => 'Foto di {name}', 'de' => 'Foto von {name}', 'en' => 'Photo of {name}'],
         'weiter' => ['it' => 'Prima guardare il sito →', 'de' => 'Erst die Website ansehen →', 'en' => 'See the website first →'],
+    ];
+
+    /* ------------------------------------------------------------------------
+       Werbe-Paket der Partner (26.09.2026). Jede Vorlage trägt {link} -- den
+       Link DES Kanals -- und, wo sie öffentlich ist, die Werbekennzeichnung.
+       {name} = Anzeigename des Partners. [Name] füllt der Partner selbst aus.
+       Keine Versprechen, die Vecom nicht hält: nur, was auf der Website steht
+       (Preis vorher, persönlicher Bereich, Begleitung bis online).
+       ------------------------------------------------------------------------ */
+    public const PARTNER_WERBUNG = [
+        'namen' => [
+            '_haupt' => ['it' => 'Link principale', 'de' => 'Hauptlink', 'en' => 'Main link'],
+            'whatsapp' => 'WhatsApp', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok',
+            'email' => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'], 'linkedin' => 'LinkedIn', 'sms' => 'SMS',
+            'signatur' => ['it' => 'Firma e-mail', 'de' => 'E-Mail-Signatur', 'en' => 'Email signature'],
+            'website' => ['it' => 'Pulsante sito', 'de' => 'Website-Knopf', 'en' => 'Website button'],
+            'karte' => ['it' => 'Cartolina', 'de' => 'Karte', 'en' => 'Card'], 'flyer' => 'Flyer',
+            'bild' => ['it' => 'Immagini', 'de' => 'Bilder', 'en' => 'Images'], 'video' => 'Video',
+        ],
+        'tipps' => [
+            'whatsapp'  => ['it' => 'Il messaggio personale funziona meglio del testo generico: scriva a chi le ha detto di recente che gli serve un sito.', 'de' => 'Die persönliche Nachricht wirkt stärker als der allgemeine Text: Schreiben Sie denen, die kürzlich erwähnt haben, dass sie eine Website brauchen.', 'en' => 'The personal message works better than the general text: write to people who recently mentioned they need a website.'],
+            'instagram' => ['it' => 'Metta questo link nella bio. Nelle storie usi lo sticker «Link» con lo stesso link.', 'de' => 'Diesen Link in die Bio setzen. In Stories den Sticker „Link“ mit demselben Link verwenden.', 'en' => 'Put this link in your bio. In stories, use the “Link” sticker with the same link.'],
+            'facebook'  => ['it' => 'Nei gruppi locali legga prima le regole del gruppo: molti permettono consigli, non pubblicità continua.', 'de' => 'In lokalen Gruppen vorher die Gruppenregeln lesen: Viele erlauben Empfehlungen, aber keine Dauerwerbung.', 'en' => 'In local groups, read the group rules first: many allow recommendations, not constant advertising.'],
+            'tiktok'    => ['it' => 'Non tutti gli account TikTok possono mettere un link nella bio (di solito solo gli account Business). In quel caso mostri il codice QR nel video.', 'de' => 'Nicht jedes TikTok-Konto darf einen Link in die Bio setzen (meist nur Business-Konten). Dann den QR-Code im Video zeigen.', 'en' => 'Not every TikTok account can put a link in the bio (usually only Business accounts). Then show the QR code in the video.'],
+            'email'     => ['it' => '«Invia» apre il suo programma di posta con oggetto e testo già pronti. Sostituisca [Nome].', 'de' => '„Senden“ öffnet Ihr Mailprogramm mit Betreff und Text. [Name] ersetzen.', 'en' => '“Send” opens your mail app with subject and text filled in. Replace [Name].'],
+            'linkedin'  => ['it' => 'Su LinkedIn funzionano i post in prima persona. Aggiunga una frase sua all’inizio.', 'de' => 'Auf LinkedIn wirken Beiträge in der Ich-Form. Setzen Sie einen eigenen Satz an den Anfang.', 'en' => 'First-person posts work on LinkedIn. Add a sentence of your own at the start.'],
+            'sms'       => ['it' => 'Breve e personale — solo a persone che conosce.', 'de' => 'Kurz und persönlich — nur an Menschen, die Sie kennen.', 'en' => 'Short and personal — only to people you know.'],
+        ],
+        'vorlagen' => [
+            'whatsapp' => [
+                'persoenlich' => [
+                    'titel' => ['it' => 'Messaggio personale', 'de' => 'Persönliche Nachricht', 'en' => 'Personal message'],
+                    'text' => [
+                        'it' => "Ciao! Mi avevi detto che ti serve un sito nuovo. Ti consiglio Vecom Design: dici cosa ti serve e sai il prezzo prima. Poi segui ogni passo nella tua area personale, finché il sito è online.\n\nDai un’occhiata qui: {link}\n\n(PS: collaboro con Vecom Design.)",
+                        'de' => "Hey! Du hattest doch erwähnt, dass du eine neue Website brauchst. Ich kann dir Vecom Design empfehlen: Du sagst, was du brauchst, und kennst den Preis vorher. Danach siehst du jeden Schritt in deinem eigenen Bereich, bis die Seite online ist.\n\nSchau es dir hier an: {link}\n\n(PS: Ich bin Partner von Vecom Design.)",
+                        'en' => "Hi! You mentioned you need a new website. I can recommend Vecom Design: you tell them what you need and know the price upfront. Then you follow every step in your own area until the site is live.\n\nHave a look here: {link}\n\n(PS: I’m a Vecom Design partner.)"],
+                ],
+                'status' => [
+                    'titel' => ['it' => 'Stato / gruppo', 'de' => 'Status / Gruppe', 'en' => 'Status / group'],
+                    'text' => [
+                        'it' => "Conosci qualcuno a cui serve un sito web? 🌐\nVecom Design lo realizza: prezzo chiaro prima, seguito di persona.\n👉 {link}\n#adv",
+                        'de' => "Kennst du jemanden, der eine Website braucht? 🌐\nVecom Design baut sie: klarer Preis vorher, persönlich begleitet.\n👉 {link}\n#Werbung",
+                        'en' => "Know someone who needs a website? 🌐\nVecom Design builds it: clear price upfront, personal guidance.\n👉 {link}\n#ad"],
+                ],
+            ],
+            'instagram' => [
+                'post' => [
+                    'titel' => ['it' => 'Post (didascalia)', 'de' => 'Beitrag (Bildtext)', 'en' => 'Post (caption)'],
+                    'text' => [
+                        'it' => "Oggi un buon sito è la vetrina di ogni attività. 🪟\n\nSe te ne serve uno: Vecom Design lo realizza per te. Dici cosa ti serve e sai il prezzo prima, poi vedi ogni passo nella tua area personale.\n\n🔗 Link nella mia bio: {link}\n\n#adv #sitoweb #webdesign #sicilia #piccoleimprese #partitaiva",
+                        'de' => "Eine gute Website ist heute das Schaufenster jedes Betriebs. 🪟\n\nWenn du eine brauchst: Vecom Design baut sie für dich. Du sagst, was du brauchst, kennst den Preis vorher und siehst jeden Schritt in deinem persönlichen Bereich.\n\n🔗 Link in meiner Bio: {link}\n\n#Werbung #website #webdesign #sizilien #selbstständig #kleinunternehmen",
+                        'en' => "A good website is every business’s shop window today. 🪟\n\nIf you need one: Vecom Design builds it for you. You say what you need, know the price upfront and follow every step in your personal area.\n\n🔗 Link in my bio: {link}\n\n#ad #website #webdesign #sicily #smallbusiness #entrepreneur"],
+                ],
+                'story' => [
+                    'titel' => ['it' => 'Storia (testo + sticker)', 'de' => 'Story (Text + Sticker)', 'en' => 'Story (text + sticker)'],
+                    'text' => [
+                        'it' => "Testo sull’immagine:\nTi serve un sito web?\nTi consiglio Vecom Design.\n\nSticker «Link»: {link}\nIndicazione: #adv",
+                        'de' => "Text aufs Bild:\nDu brauchst eine Website?\nIch empfehle Vecom Design.\n\nSticker „Link“: {link}\nKennzeichnung: #Werbung",
+                        'en' => "Text on the image:\nNeed a website?\nI recommend Vecom Design.\n\n“Link” sticker: {link}\nLabel: #ad"],
+                ],
+                'reel' => [
+                    'titel' => ['it' => 'Reel: copione 15 secondi', 'de' => 'Reel: Drehbuch 15 Sekunden', 'en' => 'Reel: 15-second script'],
+                    'text' => [
+                        'it' => "🎬 0–3 s, lei in camera: «La tua attività non ha un sito? Per tanti clienti allora non esisti.»\n🎬 3–10 s, mostri il telefono e scorri: «Io consiglio Vecom Design: dici cosa ti serve e sai il prezzo prima.»\n🎬 10–15 s, codice QR o cartolina finale: «Link nella mia bio.»\n\nDidascalia:\nIl tuo sito, con il prezzo chiaro prima. 🔗 Link in bio: {link}\n#adv #sitoweb #webdesign #sicilia",
+                        'de' => "🎬 0–3 s, Sie in die Kamera: „Dein Betrieb hat keine Website? Dann gibt es dich für viele Kunden nicht.“\n🎬 3–10 s, Handy zeigen und scrollen: „Ich empfehle Vecom Design: Du sagst, was du brauchst, und kennst den Preis vorher.“\n🎬 10–15 s, QR-Code oder Endkarte: „Link in meiner Bio.“\n\nBildtext:\nDeine Website, mit klarem Preis vorher. 🔗 Link in Bio: {link}\n#Werbung #website #webdesign #sizilien",
+                        'en' => "🎬 0–3 s, you to camera: “Your business has no website? Then for many customers you don’t exist.”\n🎬 3–10 s, show your phone and scroll: “I recommend Vecom Design: you say what you need and know the price upfront.”\n🎬 10–15 s, QR code or end card: “Link in my bio.”\n\nCaption:\nYour website, with a clear price upfront. 🔗 Link in bio: {link}\n#ad #website #webdesign #sicily"],
+                ],
+            ],
+            'facebook' => [
+                'post' => [
+                    'titel' => ['it' => 'Post sul profilo', 'de' => 'Beitrag im Profil', 'en' => 'Profile post'],
+                    'text' => [
+                        'it' => "Un consiglio per chi lavora in proprio o ha un’attività: 💡\n\nSe vi serve un sito nuovo o volete rinnovare quello vecchio, vi consiglio Vecom Design. Dite cosa vi serve, sapete il prezzo prima e vedete ogni passo nella vostra area personale.\n\nEcco il link: {link}\n\n#adv, collaboro con Vecom Design.",
+                        'de' => "Kurzer Tipp für alle Selbstständigen und Betriebe in meinem Umfeld: 💡\n\nWer eine neue Website braucht oder die alte erneuern will, dem empfehle ich Vecom Design. Man sagt, was man braucht, kennt den Preis vorher und sieht jeden Schritt im eigenen Bereich.\n\nHier geht es direkt hin: {link}\n\n#Werbung, ich bin Partner von Vecom Design.",
+                        'en' => "A quick tip for everyone self-employed or running a business: 💡\n\nIf you need a new website or want to refresh your old one, I recommend Vecom Design. You say what you need, know the price upfront and follow every step in your own area.\n\nHere’s the link: {link}\n\n#ad, I’m a Vecom Design partner."],
+                ],
+                'gruppe' => [
+                    'titel' => ['it' => 'Risposta in un gruppo locale', 'de' => 'Antwort in einer lokalen Gruppe', 'en' => 'Reply in a local group'],
+                    'text' => [
+                        'it' => "Ciao a tutti! Visto che qui si chiede spesso di siti web: vi consiglio Vecom Design. Prezzo chiaro prima, seguiti di persona, a richiesta anche in più lingue.\n👉 {link}\n(Per trasparenza: collaboro con Vecom Design.)",
+                        'de' => "Hallo zusammen! Weil hier öfter nach Webdesign gefragt wird: Ich kann Vecom Design empfehlen. Klarer Preis vorher, persönlich begleitet, auf Wunsch auch mehrsprachig.\n👉 {link}\n(Zur Transparenz: Ich bin Partner von Vecom Design.)",
+                        'en' => "Hi all! Since people here often ask about web design: I can recommend Vecom Design. Clear price upfront, personal guidance, multilingual on request.\n👉 {link}\n(For transparency: I’m a Vecom Design partner.)"],
+                ],
+            ],
+            'tiktok' => [
+                'skript' => [
+                    'titel' => ['it' => 'Video: copione 3 motivi', 'de' => 'Video: Drehbuch „3 Gründe“', 'en' => 'Video: “3 reasons” script'],
+                    'text' => [
+                        'it' => "Testo a schermo, 0–2 s: «3 motivi per cui la tua attività ha bisogno di un sito»\n1) «I clienti ti cercano prima su Google.»\n2) «Senza sito scelgono la concorrenza.»\n3) «Con Vecom Design sai il prezzo prima.»\nFinale: mostri il codice QR + «Link in bio»\n\nVoce o suono di tendenza, sottotitoli accesi.",
+                        'de' => "Text im Bild, 0–2 s: „3 Gründe, warum dein Betrieb eine Website braucht“\n1) „Kunden suchen dich zuerst bei Google.“\n2) „Ohne Website entscheiden sie sich für die Konkurrenz.“\n3) „Mit Vecom Design kennst du den Preis vorher.“\nSchluss: QR-Code zeigen + „Link in Bio“\n\nGesprochen oder Trend-Sound, Untertitel an.",
+                        'en' => "On-screen text, 0–2 s: “3 reasons your business needs a website”\n1) “Customers look you up on Google first.”\n2) “Without a website they choose the competition.”\n3) “With Vecom Design you know the price upfront.”\nEnd: show the QR code + “Link in bio”\n\nVoiceover or trending sound, captions on."],
+                ],
+                'text' => [
+                    'titel' => ['it' => 'Descrizione del video', 'de' => 'Beschreibung zum Video', 'en' => 'Video caption'],
+                    'text' => [
+                        'it' => "Il tuo sito senza sorprese sul prezzo 👇 Link in bio: {link}\n#adv #webdesign #sitoweb #sicilia #piccoleimprese",
+                        'de' => "Deine Website ohne Überraschungen beim Preis 👇 Link in Bio: {link}\n#Werbung #webdesign #website #selbstständig #sizilien",
+                        'en' => "Your website with no surprises on price 👇 Link in bio: {link}\n#ad #webdesign #website #smallbusiness #sicily"],
+                ],
+            ],
+            'email' => [
+                'kontakt' => [
+                    'titel' => ['it' => 'A un contatto di lavoro (Lei)', 'de' => 'An einen Geschäftskontakt (Sie)', 'en' => 'To a business contact'],
+                    'betreff' => ['it' => 'Un consiglio per il suo sito web', 'de' => 'Eine Empfehlung für Ihre Website', 'en' => 'A recommendation for your website'],
+                    'text' => [
+                        'it' => "Gentile [Nome],\n\ndi recente abbiamo parlato del suo sito. Le consiglio Vecom Design: lei dice cosa le serve e conosce il prezzo prima di iniziare. Poi segue ogni passo nella sua area personale, finché il sito è online.\n\nPuò dare un’occhiata qui, senza impegno:\n{link}\n\nCordiali saluti\n{name}\n\nPS: collaboro con Vecom Design e ricevo una provvigione in caso di incarico.",
+                        'de' => "Guten Tag [Name],\n\nwir hatten kürzlich über Ihren Internetauftritt gesprochen. Ich möchte Ihnen Vecom Design empfehlen: Sie sagen, was Sie brauchen, und kennen den Preis, bevor es losgeht. Danach sehen Sie jeden Schritt in Ihrem persönlichen Bereich, bis die Seite online ist.\n\nHier können Sie sich unverbindlich umsehen:\n{link}\n\nViele Grüße\n{name}\n\nPS: Ich bin Partner von Vecom Design und erhalte bei einem Auftrag eine Provision.",
+                        'en' => "Dear [Name],\n\nwe recently talked about your website. I’d like to recommend Vecom Design: you say what you need and know the price before anything starts. Then you follow every step in your personal area until the site is live.\n\nYou can take a look here, without obligation:\n{link}\n\nBest regards\n{name}\n\nPS: I’m a Vecom Design partner and receive a commission if you place an order."],
+                ],
+                'kurz' => [
+                    'titel' => ['it' => 'Breve, tra conoscenti (tu)', 'de' => 'Kurz, unter Bekannten (du)', 'en' => 'Short, between friends'],
+                    'betreff' => ['it' => 'Sito web: il mio consiglio', 'de' => 'Website: mein Tipp', 'en' => 'Website: my tip'],
+                    'text' => [
+                        'it' => "Ciao [Nome],\n\ncome promesso, ecco il mio consiglio per il sito: Vecom Design. Prezzo chiaro prima, e ti seguono passo passo.\n\n{link}\n\nA presto\n{name}\n\n(PS: collaboro con loro.)",
+                        'de' => "Hallo [Name],\n\nwie versprochen mein Tipp für deine Website: Vecom Design. Klarer Preis vorher, und sie begleiten dich Schritt für Schritt.\n\n{link}\n\nBis bald\n{name}\n\n(PS: Ich bin dort Partner.)",
+                        'en' => "Hi [Name],\n\nas promised, here’s my tip for your website: Vecom Design. Clear price upfront, and they guide you step by step.\n\n{link}\n\nSee you soon\n{name}\n\n(PS: I’m a partner of theirs.)"],
+                ],
+            ],
+            'linkedin' => [
+                'post' => [
+                    'titel' => ['it' => 'Post professionale', 'de' => 'Fachbeitrag', 'en' => 'Professional post'],
+                    'text' => [
+                        'it' => "Un pensiero da tante chiacchierate con imprenditori: il sito web viene spesso rimandato, perché nessuno sa quanto costerà alla fine.\n\nPer questo consiglio Vecom Design: si descrive cosa serve, si riceve il prezzo prima e si segue ogni passo nella propria area.\n\nSe ci state pensando: {link}\n\n#adv #webdesign #PMI #digitalizzazione",
+                        'de' => "Ein Gedanke aus vielen Gesprächen mit Selbstständigen: Die Website wird oft aufgeschoben, weil niemand weiß, was sie am Ende kostet.\n\nDeshalb empfehle ich Vecom Design: Man beschreibt, was man braucht, bekommt den Preis vorher und verfolgt jeden Schritt im eigenen Bereich.\n\nWer gerade darüber nachdenkt: {link}\n\n#Werbung #Webdesign #KMU #Digitalisierung",
+                        'en' => "A thought from many conversations with business owners: the website gets postponed because nobody knows what it will cost in the end.\n\nThat’s why I recommend Vecom Design: you describe what you need, get the price upfront and follow every step in your own area.\n\nIf you’re thinking about it: {link}\n\n#ad #webdesign #SMB #digitalisation"],
+                ],
+            ],
+            'sms' => [
+                'kurz' => [
+                    'titel' => ['it' => 'SMS breve', 'de' => 'Kurze SMS', 'en' => 'Short text'],
+                    'text' => [
+                        'it' => "Ciao, sono {name}. Il mio consiglio per il tuo sito: Vecom Design, prezzo chiaro prima e seguito di persona. {link} (Collaboro con loro.)",
+                        'de' => "Hi, hier ist {name}. Mein Tipp für deine Website: Vecom Design, klarer Preis vorher und persönlich begleitet. {link} (Ich bin dort Partner.)",
+                        'en' => "Hi, it’s {name}. My tip for your website: Vecom Design, clear price upfront and personal guidance. {link} (I’m a partner of theirs.)"],
+                ],
+            ],
+        ],
+        'sig' => [
+            'zeile'   => ['it' => 'Ti serve un sito web? Te lo consiglio: Vecom Design.', 'de' => 'Sie brauchen eine Website? Meine Empfehlung: Vecom Design.', 'en' => 'Need a website? My recommendation: Vecom Design.'],
+            'knopf'   => ['it' => 'Il tuo sito con Vecom Design', 'de' => 'Ihre Website mit Vecom Design', 'en' => 'Your website with Vecom Design'],
+            'website' => ['it' => 'Sito web? Consigliato: Vecom Design', 'de' => 'Website gesucht? Empfohlen: Vecom Design', 'en' => 'Need a website? Recommended: Vecom Design'],
+        ],
     ];
 }

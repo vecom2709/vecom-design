@@ -24,7 +24,18 @@ $konfig = __DIR__ . '/app/config.local.php';
 $p = null; $sprache = 'it';
 if (is_file($konfig)) {
     try {
-        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        /* Das Foto der Empfehlungsseite (siehe PartnerWerbung). Nur aktive
+           Partner; die Adresse trägt einen Versionsanhang, also darf lange
+           zwischengespeichert werden. */
+        if (isset($_GET['foto'])) {
+            $f = Db::wert("SELECT foto FROM partner WHERE code = ? AND status = 'aktiv' AND foto IS NOT NULL", [strtoupper((string) $_GET['foto'])], null);
+            if (!is_string($f) || $f === '') { http_response_code(404); exit; }
+            header('Content-Type: image/webp');
+            header('Cache-Control: public, max-age=31536000, immutable');
+            header('X-Content-Type-Options: nosniff');
+            echo $f; exit;
+        }
         $sprache = Sprache::ausAnfrage();
         $ziel = $sprache === 'it' ? '/' : '/' . $sprache . '/';
         $p = Partner::ausCode((string) ($_GET['c'] ?? ''));
@@ -70,6 +81,10 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
   .ld .knopf{min-height:54px;font-size:16px}
   .ld .klein{color:var(--leise);font-size:13px;margin:10px 0 0}
   .ld .weiter{display:inline-block;margin-top:18px;color:var(--cyan);font-size:14.5px}
+  .ld .empf{display:flex;gap:14px;align-items:center;margin:0 0 18px}
+  .ld .empf img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid var(--linie2);flex:0 0 64px}
+  .ld blockquote{margin:0 0 20px;padding:12px 16px;border-left:2px solid rgba(241,211,139,.6);font-size:16px;line-height:1.6;color:var(--text)}
+  .ld blockquote cite{display:block;margin-top:6px;font-style:normal;font-size:13.5px;color:var(--dim)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </head>
@@ -80,9 +95,17 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
   <div class="block ld">
-    <span class="marke">★ <?= $h($L('marke')) ?></span>
+    <?php $foto = PartnerWerbung::fotoAdresse($p); $satz = trim((string) ($p['profil_satz'] ?? '')); ?>
+    <?php if ($foto): ?>
+      <div class="empf"><img src="<?= $h($foto) ?>" alt="<?= $h($L('foto_alt')) ?>" width="64" height="64"><span class="marke" style="margin:0">★ <?= $h($L('marke')) ?></span></div>
+    <?php else: ?>
+      <span class="marke">★ <?= $h($L('marke')) ?></span>
+    <?php endif; ?>
     <h1><?= $h($L('titel')) ?></h1>
     <p class="lead"><?= $h($L('lead')) ?></p>
+    <?php if ($satz !== ''): ?>
+      <blockquote><?= $h(['it' => '«', 'en' => '“'][$sprache] ?? '„') . $h($satz) . $h(['it' => '»', 'en' => '”'][$sprache] ?? '“') ?><cite>— <?= $h(Partner::anzeigeName($p)) ?></cite></blockquote>
+    <?php endif; ?>
     <ul><li><?= $h($L('p1')) ?></li><li><?= $h($L('p2')) ?></li><li><?= $h($L('p3')) ?></li></ul>
     <form method="post" action="/zugang.php?lang=<?= $h($sprache) ?>">
       <input type="hidden" name="quelle" value="seite">

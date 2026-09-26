@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -169,6 +169,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $selbst(['m' => 'nachr_danke']) . '#nachrichten', true, 303); exit;
                 } catch (InvalidArgumentException $e) { $meldung = 'nachr_leer'; }
                   catch (LengthException $e) { $meldung = 'nachr_zuviel'; }
+            } elseif ($tat === 'profil' && $p) {
+                /* Empfehlungsseite: Satz und (wenn mitgeschickt) Foto. Beides
+                   steht öffentlich auf vecom-design.it -- Vecom bekommt eine
+                   Meldung und kann es in der Partnerakte wieder entfernen. */
+                $f = PartnerWerbung::satzSpeichern((int) $p['id'], (string) ($_POST['satz'] ?? ''));
+                $datei = $_FILES['foto'] ?? null;
+                if ($f === 'ok' && is_array($datei) && ($datei['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                    $f = ($datei['error'] === UPLOAD_ERR_INI_SIZE || $datei['error'] === UPLOAD_ERR_FORM_SIZE) ? 'foto_gross'
+                       : ($datei['error'] === UPLOAD_ERR_OK && is_uploaded_file((string) $datei['tmp_name'])
+                          ? PartnerWerbung::fotoSpeichern((int) $p['id'], (string) $datei['tmp_name'], (int) $datei['size']) : 'foto_art');
+                }
+                if ($f === 'ok') {
+                    Events::melden('partner_profil', 'Partner hat seine Empfehlungsseite geändert: ' . $p['name'], 'info', null, '/partner/' . (int) $p['id']);
+                    header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;
+                }
+                $meldung = $f;
+            } elseif ($tat === 'foto_weg' && $p) {
+                PartnerWerbung::fotoLoeschen((int) $p['id']);
+                header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;
             } elseif ($tat === 'konto' && $p) {
                 $r = Partner::kontoEinrichten($p, $basis . $selbst());
                 if ($r['ok']) { header('Location: ' . $r['url'], true, 303); exit; }
@@ -321,7 +340,8 @@ if ($p && isset($_GET['karte'])) {
   .emp .st.bezahlt,.emp .st.online{border-color:rgba(241,211,139,.5);color:var(--cyan)}
   .geld{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.07);border-radius:12px;padding:12px 14px;margin:0 0 14px;
         display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14.5px}
-  @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}}
+  /* Schmale Handys: „auszahlungsbereit“ schob die Provisionstabelle 3 px über den Rand. */
+  @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}.pt table{font-size:13px}.pt td,.pt th{padding:8px 4px;word-break:break-word}}
 </style>
 </head>
 <body>
@@ -518,33 +538,7 @@ if ($p && isset($_GET['karte'])) {
     <?php endif; ?>
   </div>
 
-  <div class="block pt" id="werbung">
-    <h2><?= $h($T('w_titel')) ?></h2>
-    <p class="klein" style="margin-top:0"><?= $h($T('w_text')) ?></p>
-    <?php foreach (['w_post1', 'w_post2', 'w_post3'] as $i => $wp): $txt = strtr($T($wp), ['{link}' => $link]); ?>
-      <div class="text-kopie"><textarea id="post<?= $i ?>" readonly><?= $h($txt) ?></textarea>
-        <button class="knopf" type="button" onclick="var f=document.getElementById('post<?= $i ?>');f.select();navigator.clipboard&&navigator.clipboard.writeText(f.value);this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
-    <?php endforeach; ?>
-    <p class="klein"><?= $h($T('w_hinweis')) ?></p>
-    <div class="knoepfe">
-      <a class="knopf" href="<?= $h($selbst(['karte' => 1])) ?>" target="_blank" rel="noopener"><?= $h($T('w_karte')) ?></a>
-      <button class="knopf" type="button" id="qr_laden"><?= $h($T('w_qr')) ?></button>
-      <button class="knopf" type="button" id="story_laden"><?= $h($T('w_bild')) ?></button>
-    </div>
-    <h2 style="margin-top:20px"><?= $h($T('k_titel')) ?></h2>
-    <p class="klein" style="margin-top:0"><?= $h($T('k_text')) ?></p>
-    <?php $kanalName = static fn(string $k): string => ['whatsapp' => 'WhatsApp', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'karte' => $T('karte_titel_kurz')][$k] ?? ucfirst($k); ?>
-    <div class="kanaele">
-      <?php foreach (['whatsapp', 'instagram', 'facebook', 'karte'] as $kn): $kl = $link . '/' . $kn; ?>
-        <div><b><?= $h($kanalName($kn)) ?></b><code><?= $h($kl) ?></code>
-          <button class="knopf" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('<?= $h($kl) ?>');this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
-      <?php endforeach; ?>
-    </div>
-    <?php $kz = Db::all('SELECT kanal, SUM(anzahl) AS n FROM partner_kanal_klicks WHERE partner_id = ? GROUP BY kanal ORDER BY n DESC', [(int) $p['id']]);
-      if ($kz): ?>
-      <p class="klein"><?= $h($T('k_kanal')) ?>: <?= $h(implode(' · ', array_map(static fn($z) => $kanalName((string) $z['kanal']) . ' ' . $z['n'], $kz))) ?></p>
-    <?php endif; ?>
-  </div>
+  <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
 
   <?php PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
   <div class="block pt" id="nachrichten">

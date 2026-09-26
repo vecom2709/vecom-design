@@ -326,4 +326,9 @@ tr.fragezeile .frage{margin:0 0 8px}
 .skizze .vorschau__buehne { margin-top: 12px; border-radius: 10px; }
 
 /* Nur fuer Vorleseprogramme -- das Feld hat einen sichtbaren Platzhalter. */
+/* [hidden] muss gewinnen (26.09.2026): .knopf setzt display:inline-flex und
+   hob damit das hidden-Attribut auf. Die Partnerseite zeigte so „Zum
+   Startbildschirm“ auch dort, wo kein Browser-Angebot kam -- der Knopf tat
+   beim Tippen nichts, und Uwe dachte, die App ließe sich nicht installieren. */
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -167,6 +167,20 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
+<?php if ($p['status'] !== 'geloescht' && (!empty($p['foto_am']) || (string) ($p['profil_satz'] ?? '') !== '')): require_once dirname(__DIR__) . '/src/PartnerWerbung.php'; $pf = PartnerWerbung::fotoAdresse($p); ?>
+<div class="block" id="profil">
+  <h2 style="font-size:15px;margin:0 0 6px">Empfehlungsseite</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Steht öffentlich auf <code><?= Fmt::h(Partner::link($p)) ?></code>. Unpassendes hier entfernen — Besucher sehen danach die Seite ohne Foto und Satz.</p>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <?php if ($pf): ?><img src="<?= Fmt::h($pf) ?>" alt="" width="64" height="64" style="border-radius:50%;object-fit:cover"><?php endif; ?>
+    <?php if ((string) ($p['profil_satz'] ?? '') !== ''): ?><blockquote style="margin:0;flex:1;min-width:200px">„<?= Fmt::h((string) $p['profil_satz']) ?>“</blockquote><?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_profil_weg"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <button class="knopf">Foto und Satz entfernen</button></form>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php if ($p['status'] !== 'geloescht'): ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Code und Link</h2>
