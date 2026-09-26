@@ -12,7 +12,7 @@ declare(strict_types=1);
    einer Weiterleitung (POST → Redirect → GET), nie mit einer Seite.
    ========================================================================== */
 
-foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseWorker', 'AkquiseAnalyse', 'Ablauf'] as $k) {
+foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseWorker', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablauf'] as $k) {
     require_once __DIR__ . "/src/$k.php";
 }
 
@@ -186,6 +186,12 @@ if ($post) {
                 Akquise::protokoll($fid, 'audit', 'Neue Prüfung angefordert');
                 $_SESSION['gut'] = 'Vorgemerkt. Der Worker prüft die Seite beim nächsten Lauf.';
                 weiter('akquise/' . $fid);
+
+            case 'akq_einwilligung_link':
+                $e = AkquiseEinwilligung::link($fid, 'link');
+                $_SESSION['akq_einw_link'][$fid] = AkquiseEinwilligung::adresse($e);
+                Akquise::protokoll($fid, 'einwilligung', 'Einwilligungs-Link erzeugt');
+                weiter('akquise/' . $fid . '#einwilligung');
 
             case 'akq_analyse_anlegen':
                 AkquiseAnalyse::anlegen($fid);

@@ -243,6 +243,37 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
       </details>
     </div>
 
+    <?php /* Einwilligung per Link (26.09.2026): nach einem Gespräch, in dem der
+             Betrieb „schicken Sie es mir per Mail“ gesagt hat. Erst sein Klick
+             in der Bestätigungsmail macht die E-Mail erlaubt. */
+      $einw = sicher(static fn() => Db::all('SELECT * FROM akq_einwilligungen WHERE firma_id = ? ORDER BY id DESC LIMIT 5', [$fid]), []);
+      $einwLink = $_SESSION['akq_einw_link'][$fid] ?? null; ?>
+    <div class="block" id="einwilligung">
+      <h2>Einwilligung für E-Mails</h2>
+      <?php if (trim((string) ($f['einwilligung'] ?? '')) !== ''): ?>
+        <p class="akq-klein" style="color:var(--gut)">✓ <?= Fmt::h((string) $f['einwilligung']) ?></p>
+      <?php elseif (!$gesperrt): ?>
+        <p class="akq-klein" style="margin-bottom:8px">Hat der Betrieb gesagt „schicken Sie mir das per Mail“? Dann schick ihm diesen Link (per SMS, WhatsApp oder vor Ort als QR). Er trägt seine Adresse ein und bestätigt per Klick — danach ist die E-Mail erlaubt, mit Beleg.</p>
+        <?php if ($einwLink): ?>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= Fmt::h($einwLink) ?></code>
+            <button class="knopf" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(<?= Fmt::h(json_encode($einwLink)) ?>);this.textContent='✓'">Kopieren</button></div>
+          <?php require_once dirname(__DIR__) . '/src/QrBild.php'; ?>
+          <div style="width:140px;margin-top:10px" title="Zum Scannen vor Ort"><?= QrBild::svg($einwLink, 140, 2) ?></div>
+        <?php else: ?>
+          <?= $post('akq_einwilligung_link', '<button class="knopf">Einwilligungs-Link erzeugen</button>') ?>
+        <?php endif; ?>
+      <?php endif; ?>
+      <?php if ($einw): ?>
+        <table style="margin-top:10px"><tbody>
+          <?php foreach ($einw as $e): ?>
+            <tr><td class="akq-klein" style="width:110px"><?= Fmt::h(date('d.m.Y', strtotime((string) ($e['bestaetigt_am'] ?? $e['angefragt_am'] ?? $e['created_at'])))) ?></td>
+              <td class="akq-klein"><?= Fmt::h(['offen' => 'Link erzeugt, noch nicht benutzt', 'angefragt' => 'Bestätigungsmail an ' . $e['email'] . ' — wartet auf Klick', 'bestaetigt' => 'Bestätigt: ' . $e['email'], 'widerrufen' => 'Widerrufen', 'abgelaufen' => 'Nicht bestätigt (abgelaufen)'][$e['status']] ?? $e['status']) ?>
+                · <?= $e['quelle'] === 'analyse' ? 'über die Analyse-Seite' : 'über den Link' ?></td></tr>
+          <?php endforeach; ?>
+        </tbody></table>
+      <?php endif; ?>
+    </div>
+
     <div class="block">
       <h2>Betrieb</h2>
       <table><tbody>

@@ -11484,6 +11484,62 @@ pruefe('p.php liest Code und Kanal selbst aus der Adresse, wenn ?c fehlt',
     && $plFall('/p/ULLI10/') === ['ULLI10', ''] && $plFall('/px/ULLI10') === ['', ''] && $plFall('/p/AB/instagram') === ['', ''], $plMuster);
 
 /* ============================================================================
+   Akquise: Einwilligung mit Double-Opt-in, Kasten und Skizze auf der
+   Analyse-Seite (26.09.2026, Uwe: „Einwilligung, dann E-Mail“, „Vorschau-
+   Seite je Firma“). Geprüft wird der Beleg: Erst der Klick in der Mail an
+   genau diese Adresse macht die E-Mail erlaubt -- das Kästchen allein nicht.
+   ============================================================================ */
+abschnitt('Akquise: Einwilligung (Double-Opt-in) und Analyse-Seite');
+require_once $wurzel . '/src/AkquiseEinwilligung.php';
+$ewA = Akquise::firmaMelden(['name' => 'Albergo Consenso', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Sciacca',
+    'plz' => '92019', 'adresse' => 'Via Mare 2', 'url' => 'https://albergo-consenso.example/', 'branche' => 'hotel', 'quelle' => 'osm:node/9901', 'quelle_lizenz' => 'ODbL']);
+$ewF = (int) $ewA['id'];
+$ewL = AkquiseEinwilligung::link($ewF, 'link');
+pruefe('Einwilligungs-Link: derselbe offene Link wird wiederverwendet', AkquiseEinwilligung::link($ewF, 'link')['id'] === $ewL['id']
+    && str_contains(AkquiseEinwilligung::adresse($ewL), '/einwilligung.php?t=' . $ewL['link_token']));
+pruefe('Einwilligung: ohne Häkchen oder mit kaputter Adresse passiert nichts',
+    AkquiseEinwilligung::anfragen($ewL['link_token'], 'inhaber@albergo-consenso.example', false, 'it') === 'email'
+    && AkquiseEinwilligung::anfragen($ewL['link_token'], 'keine-adresse', true, 'it') === 'email'
+    && (string) Db::wert('SELECT status FROM akq_einwilligungen WHERE id = ?', [$ewL['id']], '') === 'offen');
+$ewMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0);
+pruefe('Einwilligung angefragt: nur eine Bestätigungsmail, noch KEINE Erlaubnis',
+    AkquiseEinwilligung::anfragen($ewL['link_token'], 'Inhaber@Albergo-Consenso.example', true, 'it', '203.0.113.9') === 'ok'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0) === $ewMails + 1
+    && trim((string) Db::wert('SELECT COALESCE(einwilligung, \'\') FROM akq_firmen WHERE id = ?', [$ewF], 'x')) === '');
+$ewZ = Db::one('SELECT * FROM akq_einwilligungen WHERE firma_id = ? AND status = ? ORDER BY id DESC LIMIT 1', [$ewF, 'angefragt']);
+pruefe('Einwilligung: Wortlaut, Fassung, Adresse (klein) und nur ein Hash der IP gespeichert',
+    $ewZ && $ewZ['email'] === 'inhaber@albergo-consenso.example' && $ewZ['wortlaut_version'] === AkquiseEinwilligung::VERSION
+    && str_contains((string) $ewZ['wortlaut'], 'Vecom') && strlen((string) $ewZ['ip_hash']) === 64 && !str_contains((string) $ewZ['ip_hash'], '203.0'));
+pruefe('Einwilligung: höchstens ' . AkquiseEinwilligung::JE_TAG . ' Bestätigungsmails je Firma und Tag',
+    AkquiseEinwilligung::anfragen($ewL['link_token'], 'a@albergo-consenso.example', true, 'it') === 'ok'
+    && AkquiseEinwilligung::anfragen($ewL['link_token'], 'b@albergo-consenso.example', true, 'it') === 'ok'
+    && AkquiseEinwilligung::anfragen($ewL['link_token'], 'c@albergo-consenso.example', true, 'it') === 'zuviel');
+$ewB = AkquiseEinwilligung::bestaetigen((string) $ewZ['doi_token']);
+$ewF2 = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$ewF]);
+pruefe('Klick in der Mail: Beleg an der Firma, Adresse übernommen, Gate rechnet mit „Einwilligung“',
+    $ewB['ok'] && str_starts_with((string) $ewF2['einwilligung'], 'Double-Opt-in') && $ewF2['email'] === 'inhaber@albergo-consenso.example'
+    && AkquiseGate::pruefen($ewF2, 'email')['bedingung'] === 'einwilligung', (string) $ewF2['einwilligung']);
+pruefe('Klick zweimal: bleibt bestätigt, kein zweiter Beleg', AkquiseEinwilligung::bestaetigen((string) $ewZ['doi_token'])['ok']
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND text LIKE 'Einwilligung bestätigt%'", [$ewF], 0) === 1);
+$ewAlt = Db::one("SELECT * FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt' ORDER BY id LIMIT 1", [$ewF]);
+if ($ewAlt) { Db::run('UPDATE akq_einwilligungen SET angefragt_am = DATE_SUB(NOW(), INTERVAL 8 DAY) WHERE id = ?', [(int) $ewAlt['id']]); }
+pruefe('Bestätigungslink nach ' . AkquiseEinwilligung::DOI_TAGE . ' Tagen abgelaufen', $ewAlt && AkquiseEinwilligung::bestaetigen((string) $ewAlt['doi_token'])['grund'] === 'abgelaufen');
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id = ?', [$ewF]);
+$ewGesperrt = false; try { AkquiseEinwilligung::link($ewF, 'analyse'); } catch (RuntimeException $e) { $ewGesperrt = true; }
+pruefe('Gesperrte Firma: kein Einwilligungs-Link, Formular-Link tot', $ewGesperrt && AkquiseEinwilligung::ausLink($ewL['link_token']) === null);
+$ewAn = (string) file_get_contents($wurzel . '/../analyse.php');
+$ewEw = (string) file_get_contents($wurzel . '/../einwilligung.php');
+pruefe('Analyse-Seite: Kasten schickt nur an uns (form-action self), Skizze ohne fremde Server, nur mit passendem Branchenbild',
+    str_contains($ewAn, 'action="/einwilligung.php"') && str_contains($ewAn, "form-action 'self'") && str_contains($ewAn, "script-src 'self'")
+    && !preg_match('~https?://(?!vecom-design\.it)[a-z0-9.-]+\.[a-z]{2,}/[^"\']*\.(js|css)~i', $ewAn) && str_contains($ewAn, "'hotel' => 'beherbergung'"));
+pruefe('Einwilligungsseite: Bestätigung erst per Knopf (POST), Datenschutz über Sprache::legal',
+    str_contains($ewEw, 'AkquiseEinwilligung::bestaetigen($b)') && str_contains($ewEw, 'if ($post) {') && str_contains($ewEw, "Sprache::legal(\$sprache, 'privacy')"));
+$ewAq = (string) file_get_contents($wurzel . '/src/AkquiseAnalyse.php');
+pruefe('Einwilligung vom Kasten zählt nicht als zweiter Besuch der Analyse-Seite', str_contains($ewAq, 'bool $zaehlen = true') && str_contains($ewAn . $ewEw, 'oeffentlich($a, false)'));
+pruefe('Verwaltung: Einwilligungs-Link mit QR in der Firmenansicht', str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "akq_einwilligung_link")
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_einwilligung_link':"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

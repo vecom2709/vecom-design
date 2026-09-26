@@ -57,8 +57,12 @@ final class AkquiseAnalyse
         return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/analyse.php?t=' . $x['token'];
     }
 
-    /** Liefert alles fuer die oeffentliche Seite -- oder null. Zaehlt den Aufruf. */
-    public static function oeffentlich(string $token): ?array
+    /**
+     * Liefert alles fuer die oeffentliche Seite -- oder null. Zaehlt den
+     * Aufruf, ausser $zaehlen = false (die Einwilligung vom Kasten der Seite
+     * ist kein zweiter Besuch).
+     */
+    public static function oeffentlich(string $token, bool $zaehlen = true): ?array
     {
         if (!preg_match('~^[a-f0-9]{40}$~', $token)) { return null; }
         $x = Db::one('SELECT * FROM akq_analysen WHERE token = ?', [$token]);
@@ -70,6 +74,7 @@ final class AkquiseAnalyse
         if (!$a) { return null; }
         $befunde = array_values(array_filter(AkquiseScore::topBefunde(Akquise::befunde((int) $a['id'])),
             static fn($b) => $b['status'] === 'VERIFIED'));
+        if (!$zaehlen) { return ['analyse' => $x, 'firma' => $f, 'audit' => $a, 'befunde' => array_slice($befunde, 0, 3)]; }
         Db::run('UPDATE akq_analysen SET aufrufe = aufrufe + 1, zuletzt_am = NOW() WHERE id = ?', [(int) $x['id']]);
         if ((int) $x['aufrufe'] === 0) {
             Akquise::protokoll((int) $f['id'], 'analyse', 'Analyse-Seite zum ersten Mal geöffnet');
