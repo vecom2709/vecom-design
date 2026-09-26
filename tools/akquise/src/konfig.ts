@@ -39,7 +39,7 @@ export const konfig = {
   auditsProLauf: zahl('AKQUISE_AUDITS_PRO_LAUF', 20),
   texteProLauf: zahl('AKQUISE_TEXTE_PRO_LAUF', 5),
   scoreMinText: zahl('AKQUISE_SCORE_MIN_TEXT', 51),
-  overpass: wert('AKQUISE_OVERPASS', 'https://overpass-api.de/api/interpreter'),
+  overpass: wert('AKQUISE_OVERPASS', 'https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter,https://overpass.kumi.systems/api/interpreter'),
   overpassPauseMs: zahl('AKQUISE_OVERPASS_PAUSE_S', 12) * 1000,
   trocken: wert('AKQUISE_TROCKEN', '0') === '1',
   /* Wer wir sind -- offen, mit Adresse. Ein Pruefprogramm, das sich als
