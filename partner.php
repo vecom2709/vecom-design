@@ -656,11 +656,11 @@ if ($p && isset($_GET['karte'])) {
         knopf.hidden = false;
         knopf.addEventListener('click', function () {
           Notification.requestPermission().then(function (erlaubt) {
-            if (erlaubt !== 'granted') { stand.textContent = W.verboten; return; }
+            if (erlaubt !== 'granted') { knopf.hidden = true; stand.textContent = W.verboten; return; }
             return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(schluessel) }).then(function (neu) {
               return melden(neu).then(function () { knopf.hidden = true; stand.textContent = W.an; });
             });
-          }).catch(function () { stand.textContent = W.nein; });
+          }).catch(function () { knopf.hidden = true; stand.textContent = W.nein; });
         });
       });
     }).catch(function () { stand.textContent = W.nein; });
