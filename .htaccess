@@ -1,10 +1,39 @@
 # Eigene Fehlerseite statt der Standardmeldung des Servers
 ErrorDocument 404 /404.html
 
-# Immer über https ausliefern
+# Immer über https ausliefern -- und immer ohne www.
+#
+# www.vecom-design.it lieferte bis 26.09.2026 dieselben Seiten ein zweites
+# Mal aus (200 statt Weiterleitung). Fuer Google sind das zwei Adressen mit
+# gleichem Inhalt; die canonical-Angaben zeigen laengst auf die Adresse ohne
+# www. Die www-Regel steht VOR der https-Regel, damit http://www in EINEM
+# Sprung ankommt statt ueber https://www.
 RewriteEngine On
+RewriteCond %{HTTP_HOST} ^www\.vecom-design\.it$ [NC]
+RewriteRule ^ https://vecom-design.it%{REQUEST_URI} [R=301,L]
 RewriteCond %{HTTPS} !=on
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Sicherheits-Header (26.09.2026). "always", damit sie auch auf Fehlerseiten
+# und Weiterleitungen stehen. Keine davon heisst Cache-Control -- die
+# <FilesMatch>-Falle (weiter unten) betrifft nur gleichnamige Header.
+#  - HSTS: ein Jahr, OHNE includeSubDomains -- ob jede Subdomain https kann,
+#    ist nicht geprueft, und ein falsches HSTS laesst sich nicht zuruecknehmen.
+#  - SAMEORIGIN statt DENY: eigene Seiten duerfen sich selbst einbetten
+#    (Vorschau, Showroom); fremde nicht.
+#  - Keine Permissions-Policy: Diktat im Fragebogen (Mikrofon) und AR im
+#    Showroom brauchen Rechte, die man sonst versehentlich abschaltet.
+<IfModule mod_headers.c>
+    Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # "always setifempty": Wo PHP schon eine strengere Angabe macht
+    # (hosting.php: Referrer-Policy no-referrer), bleibt die stehen. Gemessen
+    # am 26.09.2026 mit echtem Apache: Header aus Skripten landen in der
+    # "always"-Tabelle -- ein einfaches "setifempty" sah sie nicht, und die
+    # Antwort trug ZWEI Referrer-Policy, die strenge und die lockere.
+    Header always setifempty X-Content-Type-Options "nosniff"
+    Header always setifempty Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
 
 # Empfehlungslinks kurz halten: /e/ANNA3CU fuehrt in den Konfigurator.
 # Kurz genug, um ihn am Telefon durchzugeben oder auf eine Karte zu drucken —

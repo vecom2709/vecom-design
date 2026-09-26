@@ -1050,22 +1050,25 @@ if ($post) {
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
             case 'kas_reseller_lesen':
-                /* Nur lesende Aufrufe. Gemerkt wird der Stand ohne Passwort --
-                   die Seite zeigt ihn, bis jemand wieder auf "Auslesen" drueckt. */
+                /* Nur lesende Aufrufe; der Stand wird ohne Passwort gemerkt, und
+                   offene Angebote folgen der Aufteilung (Hosting::resellerAktualisieren,
+                   dieselbe Funktion wie im taeglichen Lauf). */
                 require_once __DIR__ . '/src/Kas.php';
-                $rs = Kas::resellerLesen();
-                Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_reseller_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
-                    [json_encode($rs, JSON_UNESCAPED_UNICODE)]);
+                require_once __DIR__ . '/src/Hosting.php';
+                $rs = Hosting::resellerAktualisieren();
                 Events::protokoll('integration', 'KAS-Reseller ausgelesen' . ($rs['fehler'] ? ' (mit ' . count($rs['fehler']) . ' Fehler)' : ''));
-                /* Die gerechte Aufteilung folgt dem Vertrag -- fuer alles, dem
-                   noch kein Kunde zugestimmt hat. Zugestimmtes bleibt. */
-                if (!empty($rs['ressourcen'])) {
-                    require_once __DIR__ . '/src/Hosting.php';
-                    $rsN = Hosting::vorgabeAnwenden();
-                    if ($rsN > 0) { Events::protokoll('hosting_vorgabe', $rsN . ' offene(s) Angebot(e) auf die neue Aufteilung gesetzt: ' . Hosting::grenzenText(Hosting::vorgabe()['je_kunde'])); }
-                }
-                $_SESSION[$rs['fehler'] ? 'fehler' : 'gut'] = $rs['fehler'] ? 'Teilweise gelesen: ' . implode(' · ', $rs['fehler']) : 'Ausgelesen.';
+                $_SESSION[$rs['fehler'] ? 'fehler' : 'gut'] = $rs['fehler']
+                    ? ($rs['gelesen'] ? 'Teilweise gelesen: ' : 'Nicht übernommen, der letzte Stand bleibt: ') . implode(' · ', $rs['fehler'])
+                    : 'Ausgelesen.' . ($rs['angepasst'] ? ' ' . $rs['angepasst'] . ' offene(s) Angebot(e) folgen der neuen Aufteilung.' : '');
                 zurueck('einstellungen?b=reseller');
+
+            case 'hosting_bericht_an':
+            case 'hosting_bericht_aus':
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('hosting_bericht', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                    [$tat === 'hosting_bericht_an' ? '1' : '0']);
+                Events::protokoll('integration', 'Monatsbericht an Hosting-Kunden ' . ($tat === 'hosting_bericht_an' ? 'eingeschaltet' : 'ausgeschaltet'));
+                $_SESSION['gut'] = $tat === 'hosting_bericht_an' ? 'Monatsbericht an.' : 'Monatsbericht aus — es geht keiner mehr raus.';
+                zurueck('einstellungen?b=ueberwachung');
 
             case 'kas_probelauf_an':
             case 'kas_probelauf_aus':
@@ -3086,7 +3089,10 @@ switch ($route) {
         foreach ($jahre as $j) {
             $j = (int) $j;
             $uebersicht[$j] = sicher(static fn() => Steuerakte::zusammenfassung($j), []);
-            $ausgabenJ[$j]  = sicher(static fn() => Steuerakte::ausgaben($j),
+            /* Die Summe, nicht die Liste: Die Ansicht liest anzahl, brutto,
+               rc_netto -- mit der Liste der Belege fehlten "Ausgaben" und
+               "Reverse Charge" (gefunden bei der Durchsicht am 26.09.2026). */
+            $ausgabenJ[$j]  = sicher(static fn() => Ausgabe::summe($j),
                 ['anzahl' => 0, 'brutto' => 0, 'rc_netto' => 0, 'rc_iva' => 0]);
             $grenzen[$j]    = sicher(static fn() => Steuerakte::grenzen($j),
                 ['summe' => 0, 'waehrung' => 'EUR', 'anteil' => 0.0, 'warnung' => null]);

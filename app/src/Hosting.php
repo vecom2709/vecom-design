@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Events.php';
+require_once __DIR__ . '/Fmt.php';
 require_once __DIR__ . '/Kas.php';
 require_once __DIR__ . '/Domainpruefung.php';
 
@@ -176,6 +177,41 @@ final class Hosting
         $f = self::vorgabeFelder();
         return Db::run("UPDATE hosting_auftraege SET speicher_mb = ?, kontingente = ? WHERE status = 'vorgeschlagen'",
             [$f['speicher_mb'], $f['kontingente']])->rowCount();
+    }
+
+    /**
+     * Den Reseller auslesen, den Stand merken und offene Angebote auf die
+     * Aufteilung bringen -- fuer den Knopf und fuer den taeglichen Lauf.
+     * Nur lesende KAS-Aufrufe (Kas::resellerLesen).
+     *
+     * @param callable():array|null $lesen austauschbar fuer die Pruefkette
+     * @param bool $nurWennAlt der Cron liest hoechstens einmal in 20 Stunden
+     * @return array{gelesen:bool, fehler:list<string>, angepasst:int}
+     */
+    public static function resellerAktualisieren(?callable $lesen = null, bool $nurWennAlt = false): array
+    {
+        if ($nurWennAlt) {
+            $alt = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_reseller_stand'", [], ''), true);
+            if (is_array($alt) && (string) ($alt['am'] ?? '') > date('Y-m-d H:i:s', strtotime('-20 hours'))) {
+                return ['gelesen' => false, 'fehler' => [], 'angepasst' => 0];
+            }
+            if ($lesen === null && !Kas::bereit()) { return ['gelesen' => false, 'fehler' => [], 'angepasst' => 0]; }
+        }
+        $rs = $lesen !== null ? $lesen() : Kas::resellerLesen();
+        /* Einen guten Stand nicht durch einen kaputten ersetzen: Kamen die
+           Kontingente nicht, bleibt der alte -- sonst fiele die Aufteilung
+           still auf den Ersatzwert zurueck. */
+        if (empty($rs['ressourcen'])) {
+            $alt = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_reseller_stand'", [], ''), true);
+            if (is_array($alt) && !empty($alt['ressourcen'])) {
+                return ['gelesen' => false, 'fehler' => (array) ($rs['fehler'] ?? ['Keine Kontingente gelesen.']), 'angepasst' => 0];
+            }
+        }
+        Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_reseller_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+            [json_encode($rs, JSON_UNESCAPED_UNICODE)]);
+        $n = !empty($rs['ressourcen']) ? self::vorgabeAnwenden() : 0;
+        if ($n > 0) { Events::protokoll('hosting_vorgabe', $n . ' offene(s) Angebot(e) auf die neue Aufteilung gesetzt: ' . self::grenzenText(self::vorgabe()['je_kunde'])); }
+        return ['gelesen' => true, 'fehler' => (array) ($rs['fehler'] ?? []), 'angepasst' => $n];
     }
 
     /** Der vereinbarte Speicher eines Auftrags -- die Quelle, nach der sich der KAS richtet. */
@@ -1196,7 +1232,7 @@ final class Hosting
      * @param callable():array|null $lesen austauschbar fuer die Pruefkette (Form wie Kas::speicherUnterkonten)
      * @return array{gelesen:int, gewarnt:int}
      */
-    public static function speicherPruefen(?callable $lesen = null, ?callable $grenzen = null): array
+    public static function speicherPruefen(?callable $lesen = null, ?callable $grenzen = null, ?callable $senden = null): array
     {
         $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'kas_speicher_am'", [], '');
         if ($lesen === null && $zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-20 hours'))) { return ['gelesen' => 0, 'gewarnt' => 0, 'abweichend' => 0]; }
@@ -1238,6 +1274,10 @@ final class Hosting
             Events::melden('hosting_speicher', 'Speicher fast voll: ' . $h['domain'], 'warnung',
                 $h['wer'] . ' belegt ' . self::gb((int) $mb) . ' von ' . self::gb($soll)
                 . '. Aufräumen (alte Mails, Sicherungen) oder mehr Speicher vereinbaren.', '/kunden/' . (int) $h['customer_id']);
+            /* Und der Kunde selbst (26.09.2026, Uwe: ja) -- er ist es, der
+               aufraeumen kann. Dieselbe Sperre: einmal im Monat. */
+            self::still(static fn() => self::kundeSchreiben((int) $h['customer_id'], 'hosting_speicher_voll', [
+                'domain' => (string) $h['domain'], 'belegt' => self::gb((int) $mb), 'gebucht' => self::gb($soll)], $senden));
             $gewarnt++;
         }
         return ['gelesen' => count($r['belegt']), 'gewarnt' => $gewarnt, 'abweichend' => $abweichend];
@@ -1255,6 +1295,89 @@ final class Hosting
             $aus[] = $n === null ? self::gb((int) $g[$k]) . ' Speicher' : (int) $g[$k] . ' ' . $n;
         }
         return implode(', ', $aus);
+    }
+
+    /**
+     * Eine Mail an den Kunden eines Hosting-Auftrags, in seiner Sprache.
+     * @param callable|null $senden wie Mail::senden -- austauschbar fuer die Pruefkette
+     */
+    private static function kundeSchreiben(int $kundeId, string $anlass, array $werte, ?callable $senden = null): bool
+    {
+        require_once __DIR__ . '/Texte.php';
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Kundenzugang.php';
+        $k = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
+        if (!$k || trim((string) $k['email']) === '' || !empty($k['anonym_am'])) { return false; }
+        $sp = in_array((string) $k['sprache'], ['it', 'de', 'en'], true) ? (string) $k['sprache'] : 'it';
+        $werte += ['name' => (string) $k['name'], 'seite' => (string) Kundenzugang::linkFuer($kundeId)];
+        if (isset($werte['zeilen']) && is_array($werte['zeilen'])) {
+            $werte['zeilen'] = implode("\n", array_map(static fn(array $z): string => strtr((string) (Texte::BERICHT[$z[0]][$sp] ?? ''), $z[1]), $werte['zeilen']));
+        }
+        if (isset($werte['monat']) && preg_match('/^\d{4}-\d{2}$/', (string) $werte['monat'])) {
+            require_once __DIR__ . '/Abo.php';
+            $werte['monat'] = Abo::monatswort((string) $werte['monat'], $sp);
+        }
+        [$betreff, $text] = Texte::mail($anlass, $sp, $werte);
+        $senden ??= [Mail::class, 'senden'];
+        return (bool) $senden($anlass, (string) $k['email'], $betreff, $text, ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Monatsbericht (26.09.2026, Uwe: ja)                               */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Die gemessenen Zeilen eines Auftrags -- nur, was wirklich geprueft ist.
+     * @return list<array{0:string,1:array<string,string>}>
+     */
+    public static function berichtZeilen(array $a): array
+    {
+        $z = [];
+        $w = self::still(static fn() => Db::one("SELECT * FROM websites WHERE customer_id = ? AND monitoring = 1
+                  ORDER BY (domain = ?) DESC, id DESC LIMIT 1", [(int) $a['customer_id'], (string) $a['domain']]), null);
+        if ($w && !empty($w['last_ok_at']) && (string) $w['status'] === 'online'
+            && strtotime((string) $w['last_ok_at']) > time() - 3 * 86400) {
+            $z[] = ['online', ['{datum}' => Fmt::datum((string) $w['last_ok_at'])]];
+        } elseif ($w && in_array((string) $w['status'], ['offline', 'fehler', 'ssl_problem', 'domain_problem'], true)) {
+            $z[] = ['stoerung', []];
+        }
+        if ((string) ($a['ssl_status'] ?? '') === 'ok') {
+            $bis = $w && !empty($w['ssl_expires_at']) ? (string) $w['ssl_expires_at']
+                 : (preg_match('/bis (\d{4}-\d{2}-\d{2})/', (string) ($a['ssl_text'] ?? ''), $m) ? $m[1] : '');
+            $z[] = $bis !== '' ? ['https_bis', ['{datum}' => Fmt::datum($bis)]]
+                               : ['https', ['{datum}' => Fmt::datum((string) $a['ssl_geprueft_am'])]];
+        }
+        $mb = !empty($a['kas_login']) ? (self::speicher()[(string) $a['kas_login']] ?? null) : null;
+        if ($mb !== null) { $z[] = ['speicher', ['{belegt}' => self::gb((int) $mb), '{gebucht}' => self::gb(self::speicherVon($a))]]; }
+        return $z;
+    }
+
+    /**
+     * Einmal im Monat an jeden laufenden Hosting-Kunden -- ab dem Ersten, fruehestens
+     * 20 Tage nach dem Einrichten, nie an Gesperrte, und nur mit mindestens einer
+     * gemessenen Zeile. Abschaltbar (Einstellung hosting_bericht = 0).
+     * @param callable|null $senden wie Mail::senden
+     */
+    public static function berichteSenden(?callable $senden = null, ?string $monat = null): int
+    {
+        if ((string) self::still(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'hosting_bericht'", [], '1'), '1') === '0') { return 0; }
+        $monat ??= date('Y-m');
+        $n = 0;
+        foreach (Db::all("SELECT * FROM hosting_auftraege WHERE status IN ('angelegt','aktiv') AND gesperrt_am IS NULL
+                           AND (angelegt_am IS NULL OR angelegt_am < NOW() - INTERVAL 20 DAY) ORDER BY id") as $a) {
+            if ($n >= 10) { break; }   // je Lauf hoechstens zehn -- der naechste Lauf macht weiter
+            $schl = 'hosting_bericht_' . (int) $a['id'] . '_' . $monat;
+            if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schl], '') !== '') { continue; }
+            $zeilen = self::berichtZeilen($a);
+            if (!$zeilen) { continue; }
+            $ok = self::still(static fn() => self::kundeSchreiben((int) $a['customer_id'], 'hosting_bericht',
+                ['domain' => (string) $a['domain'], 'monat' => $monat, 'zeilen' => $zeilen], $senden), false);
+            if ($ok) {
+                Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schl, date('Y-m-d H:i:s')]);
+                $n++;
+            }
+        }
+        return $n;
     }
 
     /** MB als "7,4 GB" -- eine Nachkommastelle, ausser bei glatten Werten. */

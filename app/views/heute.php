@@ -81,6 +81,23 @@ $zeile = static function (array $v) {
   </div>
 </div>
 
+<?php /* STEHT DER TAKTGEBER? (26.09.2026)
+   Alles, was von allein passiert -- Hosting einrichten, Abbuchungen,
+   Mahnungen, HTTPS, Speicher, Mail-Umzug --, haengt am Cronjob im KAS. Ob er
+   lief, stand bisher nur unter Monitoring; wer dort nicht hinsah, merkte
+   tagelang nicht, dass nichts mehr von allein geschah. Er laeuft alle zehn
+   Minuten; nach 30 ohne Lauf ist etwas faul. */
+require_once __DIR__ . '/../src/Cron.php';
+$cronZuletzt = sicher(static fn() => Cron::zuletzt(), null);
+$cronSteht = $cronZuletzt === null || strtotime((string) $cronZuletzt) < time() - 30 * 60; ?>
+<?php if ($cronSteht): ?>
+  <div class="hinweis schlecht" style="margin-bottom:16px">
+    <b>Der Cronjob <?= $cronZuletzt === null ? 'ist noch nie gelaufen' : 'läuft nicht mehr — zuletzt ' . Fmt::h(Fmt::seit((string) $cronZuletzt)) ?>.</b>
+    Solange er steht, passiert nichts von allein: kein Einrichten, keine Abbuchung, keine Mahnung, keine Prüfung.
+    <a href="<?= Fmt::h(url('einstellungen?b=ueberwachung')) ?>" style="color:inherit;text-decoration:underline;font-weight:600">Im KAS eintragen</a>
+  </div>
+<?php endif; ?>
+
 <?php /* MEHRERE, DIE AUF DIE ERSTE ANTWORT WARTEN
          ------------------------------------------------------------------
          Kommen an einem Tag fuenf Anfragen, sagt die Liste das nicht von

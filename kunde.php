@@ -859,7 +859,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php if ($stimme): ?>
         <p class="mini" style="margin-top:10px"><?= $h($T('stimmeSchon')) ?></p>
         <div style="padding:11px 13px;border:1px solid var(--linie);border-radius:12px;margin-top:9px;
-                    white-space:pre-wrap;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $stimme['text']) ?></div>
+                    white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $stimme['text']) ?></div>
       <?php else: ?>
         <p class="mini" style="margin-top:10px"><?= $h($T('stimmeHilfe')) ?></p>
         <form method="post" action="<?= $h($hier) ?>" style="margin-top:12px">
@@ -1259,7 +1259,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <?php if (!empty($m['betreff'])): ?>
           <div style="font-size:13px;color:var(--cyan);margin-bottom:5px"><?= $h((string) $m['betreff']) ?></div>
         <?php endif; ?>
-        <div style="white-space:pre-wrap;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $m['body']) ?></div>
+        <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $m['body']) ?></div>
       </div>
     <?php endforeach; ?>
     <form method="post" action="<?= $h($hier) ?>" style="margin-top:12px">

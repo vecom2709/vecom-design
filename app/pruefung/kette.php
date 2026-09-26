@@ -8948,6 +8948,94 @@ pruefe('Protokoll: ein zu langer Titel wird gekürzt statt den Vorgang abzubrech
     $gtL && mb_strlen((string) $gtL['title']) === 255 && str_contains((string) $gtL['meta'], 'titel_voll'));
 
 /* ============================================================================
+   82. Durchsicht 26.09.2026 -- Fehler 1-2, Website 3-4, Automatik 5, 6, 8, 9
+   ============================================================================ */
+abschnitt('82. Durchsicht: Steuerakte, Umbruch, Header, Reseller, Cron, Bericht');
+require_once $wurzel . '/src/Ausgabe.php';
+$dsQ = (string) file_get_contents($wurzel . '/index.php');
+pruefe('1: die Steuerakte bekommt die Summe der Ausgaben, nicht die Liste',
+    str_contains($dsQ, '$ausgabenJ[$j]  = sicher(static fn() => Ausgabe::summe($j),') && !str_contains($dsQ, 'Steuerakte::ausgaben($j),')
+    && array_keys(Ausgabe::summe(2026)) === ['anzahl', 'brutto', 'rc_netto', 'rc_iva']);
+$dsK = (string) file_get_contents($wurzel . '/../kunde.php');
+pruefe('2: Nachrichten brechen lange Wörter um -- keine seitlich verschiebbare Kundenseite',
+    substr_count($dsK, 'white-space:pre-wrap;overflow-wrap:anywhere') >= 2
+    && !preg_match('~white-space:pre-wrap;(?!overflow-wrap)font-size:14\.5px~', $dsK));
+$dsH = (string) file_get_contents($wurzel . '/../.htaccess');
+pruefe('3: www leitet in einem Sprung auf die Adresse ohne www -- vor der https-Regel',
+    (int) strpos($dsH, '^www\\.vecom-design\\.it$') > 0 && strpos($dsH, '^www\\.vecom-design\\.it$') < strpos($dsH, 'RewriteCond %{HTTPS} !=on'));
+pruefe('4: Sicherheits-Header gesetzt, HSTS ohne includeSubDomains, strengere PHP-Angaben bleiben (always setifempty)',
+    str_contains($dsH, 'Strict-Transport-Security "max-age=31536000"') && !preg_match('~^\s*Header[^\n]*includeSubDomains~m', $dsH)
+    && str_contains($dsH, 'Header always setifempty Referrer-Policy') && str_contains($dsH, 'Header always set X-Frame-Options "SAMEORIGIN"'));
+
+/* 5: Reseller taeglich */
+Db::run("DELETE FROM settings WHERE skey = 'kas_reseller_stand'");
+$dsLes = 0;
+$dsGut = static function () use (&$dsLes): array { $dsLes++; return ['am' => date('Y-m-d H:i:s'), 'fehler' => [],
+    'ressourcen' => ['max_account' => ['max' => 25], 'max_webspace' => ['max' => 204800], 'max_domain' => ['max' => 101]]]; };
+$dsR1 = Hosting::resellerAktualisieren($dsGut, true);
+$dsR2 = Hosting::resellerAktualisieren($dsGut, true);
+pruefe('5: der tägliche Lauf liest einmal -- und am selben Tag nicht noch einmal',
+    $dsR1['gelesen'] && !$dsR2['gelesen'] && $dsLes === 1 && Hosting::speicherVorgabe() === 8192);
+$dsR3 = Hosting::resellerAktualisieren(static fn(): array => ['am' => date('Y-m-d H:i:s'), 'fehler' => ['Kontingente: flood_protection'], 'ressourcen' => []]);
+pruefe('5: ein gescheitertes Lesen ersetzt keinen guten Stand -- die Aufteilung fällt nicht still auf 10 GB zurück',
+    !$dsR3['gelesen'] && $dsR3['fehler'] !== [] && Hosting::speicherVorgabe() === 8192);
+pruefe('5: der Cron kennt den Lauf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Hosting::resellerAktualisieren(null, true)'));
+Db::run("DELETE FROM settings WHERE skey = 'kas_reseller_stand'");
+
+/* 6: Cron-Warnung */
+pruefe('6: "Heute" warnt, wenn der Cron seit 30 Minuten nicht lief',
+    str_contains((string) file_get_contents($wurzel . '/views/heute.php'), 'time() - 30 * 60'));
+
+/* 8 + 9: Mails an den Kunden */
+$dsPost = [];
+$dsSend = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$dsPost): bool {
+    $dsPost[] = compact('anlass', 'an', 'betreff', 'text'); return true; };
+$dsKid = Events::kundeFinden(['name' => 'Bericht Probe', 'email' => 'bericht@pruefung.example']);
+Db::run("UPDATE customers SET sprache = 'de' WHERE id = ?", [$dsKid]);
+$dsA = (int) Db::insert('hosting_auftraege', ['customer_id' => $dsKid, 'domain' => 'bericht-probe.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'mail' => 'vecom', 'domain_aktion' => 'neu', 'kas_login' => 'w0155500', 'speicher_mb' => 8192,
+    'ssl_status' => 'ok', 'ssl_text' => 'Gültig bis 2027-01-01, http leitet auf https um.', 'ssl_geprueft_am' => date('Y-m-d H:i:s'),
+    'angelegt_am' => date('Y-m-d H:i:s', strtotime('-40 days'))]);
+$dsJung = (int) Db::insert('hosting_auftraege', ['customer_id' => $dsKid, 'domain' => 'jung-probe.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'ssl_status' => 'ok', 'ssl_geprueft_am' => date('Y-m-d H:i:s'), 'angelegt_am' => date('Y-m-d H:i:s', strtotime('-3 days'))]);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_speicher', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [json_encode(['w0155500' => 3174])]);
+Db::run("DELETE FROM settings WHERE skey = 'hosting_bericht'");
+$dsN1 = Hosting::berichteSenden($dsSend, '2026-10');
+$dsN2 = Hosting::berichteSenden($dsSend, '2026-10');
+$dsMeine = array_values(array_filter($dsPost, static fn($m) => $m['an'] === 'bericht@pruefung.example' && $m['anlass'] === 'hosting_bericht'));
+pruefe('8: der Monatsbericht geht einmal im Monat -- nicht an einen erst vor 3 Tagen eingerichteten Auftrag',
+    count($dsMeine) === 1 && str_contains($dsMeine[0]['betreff'], 'bericht-probe.it') && !str_contains(implode(' ', array_column($dsPost, 'betreff')), 'jung-probe.it'),
+    json_encode(array_column($dsPost, 'betreff')));
+pruefe('8: er nennt nur Gemessenes, auf Deutsch, ohne offene Platzhalter: HTTPS bis 01.01.2027, 3,1 GB von 8 GB',
+    str_contains($dsMeine[0]['text'] ?? '', '3,1 GB von 8 GB') && str_contains($dsMeine[0]['text'] ?? '', 'Zertifikat gültig bis')
+    && !preg_match('~\{[a-z]+\}~', ($dsMeine[0]['betreff'] ?? '') . ($dsMeine[0]['text'] ?? '')) && !str_contains($dsMeine[0]['text'] ?? '', 'erreichbar'),
+    $dsMeine[0]['text'] ?? '');
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('hosting_bericht', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
+$dsPost = [];
+pruefe('8: ausgeschaltet geht keiner raus', Hosting::berichteSenden($dsSend, '2026-11') === 0 && $dsPost === []);
+Db::run("DELETE FROM settings WHERE skey = 'hosting_bericht'");
+Db::run("UPDATE hosting_auftraege SET ssl_status = NULL WHERE id = ?", [$dsA]);
+Db::run("DELETE FROM settings WHERE skey = 'kas_speicher'");
+$dsPost = [];
+Hosting::berichteSenden($dsSend, '2026-12');
+pruefe('8: ohne eine einzige Messung geht keine Mail', !array_filter($dsPost, static fn($m) => str_contains($m['betreff'], 'bericht-probe.it')));
+$dsT = true;
+foreach (['it', 'de', 'en'] as $dsS) {
+    foreach (['hosting_bericht', 'hosting_speicher_voll'] as $dsM) { if (trim((string) (Texte::MAILS[$dsM][$dsS][1] ?? '')) === '') { $dsT = false; } }
+    foreach (Texte::BERICHT as $dsZ) { if (trim((string) ($dsZ[$dsS] ?? '')) === '') { $dsT = false; } }
+}
+pruefe('8/9: Bericht und Speicher-Mail dreisprachig', $dsT);
+$dsPost = [];
+Db::run("DELETE FROM settings WHERE skey LIKE 'speicher_warnung_w0155500%'");
+Hosting::speicherPruefen(static fn(): array => ['ok' => true, 'text' => '', 'belegt' => ['w0155500' => 7800]],
+    static fn(): array => ['ok' => true, 'text' => '', 'grenzen' => []], $dsSend);
+Hosting::speicherPruefen(static fn(): array => ['ok' => true, 'text' => '', 'belegt' => ['w0155500' => 7900]],
+    static fn(): array => ['ok' => true, 'text' => '', 'grenzen' => []], $dsSend);
+$dsVoll = array_values(array_filter($dsPost, static fn($m) => $m['anlass'] === 'hosting_speicher_voll'));
+pruefe('9: ab 90 % bekommt auch der Kunde eine Mail -- einmal im Monat, mit seinen Zahlen',
+    count($dsVoll) === 1 && str_contains($dsVoll[0]['text'], '7,6 GB der vereinbarten 8 GB'), $dsVoll[0]['text'] ?? json_encode($dsPost));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

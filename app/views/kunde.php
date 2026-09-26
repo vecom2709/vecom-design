@@ -73,7 +73,7 @@ $eing = !empty($eingebettet);
           <?php if (!empty($m['betreff'])): ?>
             <div style="font-size:12.5px;color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
           <?php endif; ?>
-          <div style="white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
+          <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
         </div>
       <?php endforeach; ?></div>
     <?php endif; ?>

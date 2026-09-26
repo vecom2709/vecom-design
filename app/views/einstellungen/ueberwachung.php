@@ -46,6 +46,19 @@
   <?php endif; ?>
 </div>
 
+<?php $berichtAn = (string) sicher(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'hosting_bericht'", [], '1'), '1') !== '0'; ?>
+<div class="block"><h2>Monatsbericht an Hosting-Kunden <span class="mehr"><span class="marke2 <?= $berichtAn ? 'gut' : '' ?>"><?= $berichtAn ? 'an' : 'aus' ?></span></span></h2>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
+    Ab dem Ersten jedes Monats bekommt jeder laufende Hosting-Kunde eine kurze Mail in seiner Sprache:
+    Website erreichbar, HTTPS gültig bis …, Speicher belegt von vereinbart. Es steht nur drin, was gemessen ist —
+    fehlt jede Messung, geht keine Mail. Frühestens 20 Tage nach dem Einrichten, nie an gesperrte Kunden.
+  </p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $berichtAn ? 'hosting_bericht_aus' : 'hosting_bericht_an' ?>">
+    <button class="knopf"><?= $berichtAn ? 'Monatsbericht ausschalten' : 'Monatsbericht einschalten' ?></button>
+  </form>
+</div>
+
 <div class="block"><h2>Cronjob im KAS</h2>
   <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
     Der Webspace hat keinen eigenen Dienst, der von allein läuft. Der Anstoß kommt vom

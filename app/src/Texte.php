@@ -1405,7 +1405,55 @@ final class Texte
                          'en' => 'Not reachable right now. Please try again shortly.'],
     ];
 
+    /* Die Zeilen des Monatsberichts (26.09.2026) -- jede nur, wenn ihr Wert
+       gemessen ist. Ein Bericht, der etwas behauptet, das niemand geprueft
+       hat, waere schlimmer als keiner. */
+    public const BERICHT = [
+        'online'   => ['it' => '✓ Il suo sito è raggiungibile — ultimo controllo il {datum}.',
+                       'de' => '✓ Ihre Website ist erreichbar — zuletzt geprüft am {datum}.',
+                       'en' => '✓ Your website is reachable — last checked on {datum}.'],
+        'stoerung' => ['it' => '⚠ All’ultimo controllo il sito non rispondeva correttamente. Ce ne stiamo occupando.',
+                       'de' => '⚠ Bei der letzten Prüfung antwortete die Website nicht richtig. Wir kümmern uns darum.',
+                       'en' => '⚠ At the last check your website did not respond properly. We are on it.'],
+        'https_bis'=> ['it' => '✓ Connessione sicura (HTTPS) attiva, certificato valido fino al {datum} — si rinnova da solo.',
+                       'de' => '✓ Sichere Verbindung (HTTPS) aktiv, Zertifikat gültig bis {datum} — es verlängert sich von selbst.',
+                       'en' => '✓ Secure connection (HTTPS) active, certificate valid until {datum} — it renews itself.'],
+        'https'    => ['it' => '✓ Connessione sicura (HTTPS) attiva — verificata il {datum}.',
+                       'de' => '✓ Sichere Verbindung (HTTPS) aktiv — geprüft am {datum}.',
+                       'en' => '✓ Secure connection (HTTPS) active — checked on {datum}.'],
+        'speicher' => ['it' => '✓ Spazio web: {belegt} di {gebucht} occupati.',
+                       'de' => '✓ Speicherplatz: {belegt} von {gebucht} belegt.',
+                       'en' => '✓ Web space: {belegt} of {gebucht} used.'],
+    ];
+
     public const MAILS = [
+        /* Monatsbericht an Hosting-Kunden (26.09.2026, Uwe: ja) */
+        'hosting_bericht' => [
+            'it' => ['{domain}: il suo mese di {monat}',
+                "Buongiorno {name},\n\necco come sta {domain} a {monat}:\n\n{zeilen}\n\n"
+                . "Non deve fare nulla. Se le serve qualcosa, mi risponda pure a questa e-mail.\n\nLa sua pagina: {seite}"],
+            'de' => ['{domain}: Ihr {monat} im Überblick',
+                "Guten Tag {name},\n\nso steht {domain} im {monat}:\n\n{zeilen}\n\n"
+                . "Sie müssen nichts tun. Wenn Sie etwas brauchen, antworten Sie einfach auf diese Mail.\n\nIhre Seite: {seite}"],
+            'en' => ['{domain}: your {monat} at a glance',
+                "Hello {name},\n\nhere is how {domain} is doing in {monat}:\n\n{zeilen}\n\n"
+                . "You don’t need to do anything. If you need something, just reply to this email.\n\nYour page: {seite}"],
+        ],
+        /* Speicher fast voll -- an den Kunden, mit einfachen Tipps (26.09.2026, Uwe: ja) */
+        'hosting_speicher_voll' => [
+            'it' => ['{domain}: lo spazio web è quasi pieno',
+                "Buongiorno {name},\n\n{domain} occupa {belegt} dei {gebucht} previsti.\n\n"
+                . "Cosa aiuta di solito:\n– svuotare il cestino e le e-mail vecchie con allegati grandi\n– cancellare copie e backup vecchi dallo spazio web\n\n"
+                . "Se le serve più spazio, mi risponda: troviamo una soluzione.\n\nLa sua pagina: {seite}"],
+            'de' => ['{domain}: Der Speicherplatz ist fast voll',
+                "Guten Tag {name},\n\n{domain} belegt {belegt} der vereinbarten {gebucht}.\n\n"
+                . "Was meistens hilft:\n– Papierkorb und alte Mails mit großen Anhängen leeren\n– alte Kopien und Sicherungen vom Webspace löschen\n\n"
+                . "Brauchen Sie mehr Platz, antworten Sie einfach — wir finden eine Lösung.\n\nIhre Seite: {seite}"],
+            'en' => ['{domain}: your web space is almost full',
+                "Hello {name},\n\n{domain} uses {belegt} of the agreed {gebucht}.\n\n"
+                . "What usually helps:\n– empty the trash and old emails with large attachments\n– delete old copies and backups from the web space\n\n"
+                . "If you need more space, just reply — we’ll find a solution.\n\nYour page: {seite}"],
+        ],
         /* Die monatliche Betreuung. Kein Verkaufstext: Wer sie hat, hat sie
            bestellt — er will wissen, welcher Monat, wieviel, und wo er zahlt. */
         /* Phase 2: die Vorabinformation vor jeder Abbuchung. Bei SEPA ist

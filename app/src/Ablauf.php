@@ -218,6 +218,9 @@ final class Ablauf
         'hosting_technik_zeigen' => [self::STILL,
             'Die Zugangsdaten für Datenbank und FTP erscheinen im Klartext. Der Blick wird protokolliert.',
             'Ja, anzeigen'],
+        'hosting_bericht_an' => [self::RAUS,
+            'Ab dem nächsten Ersten bekommt jeder laufende Hosting-Kunde einmal im Monat eine Mail mit seinen gemessenen Werten.',
+            'Ja, einschalten'],
         'kas_probelauf_aus' => [self::SCHWER,
             'Ab jetzt legt die Verwaltung beim KAS wirklich an: Accounts, Domains, Postfächer, Datenbanken. '
             . 'Aufträge, die der Probelauf angehalten hat, starten beim nächsten Cronlauf.',

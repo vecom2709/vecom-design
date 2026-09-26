@@ -15,7 +15,7 @@
               ? '<a href="' . Fmt::h(url('kunden/' . (int) $m['customer_id'])) . '">' . Fmt::h(Fmt::name($m['firma'], $m['kunde'])) . '</a>'
               : '<span style="color:var(--leise)">du</span>' ?>
           <?php if ($neu): ?><br><span class="marke2 warnung">ungelesen</span><?php endif; ?></td>
-        <td style="max-width:460px"><span style="white-space:pre-wrap;<?= $neu ? '' : 'color:var(--dim)' ?>"><?= Fmt::h(mb_substr((string) $m['body'], 0, 400)) ?><?= mb_strlen((string) $m['body']) > 400 ? '…' : '' ?></span></td>
+        <td style="max-width:460px"><span style="white-space:pre-wrap;overflow-wrap:anywhere;<?= $neu ? '' : 'color:var(--dim)' ?>"><?= Fmt::h(mb_substr((string) $m['body'], 0, 400)) ?><?= mb_strlen((string) $m['body']) > 400 ? '…' : '' ?></span></td>
         <td><?= $m['project_id']
               ? '<a href="' . Fmt::h(url('projekte/' . (int) $m['project_id'])) . '">' . Fmt::h((string) $m['projekt']) . '</a>'
               // Noch kein Projekt: dann fuehrt der Weg zur Akte. Ein Strich

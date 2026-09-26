@@ -118,6 +118,18 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::speicherPruefen();
             },
+            /* Einmal am Tag: den Reseller-Vertrag lesen (nur lesen), damit die
+               gerechte Aufteilung und die Uebersicht nie veralten. */
+            'reseller'    => static function () {
+                require_once __DIR__ . '/Kas.php';
+                require_once __DIR__ . '/Hosting.php';
+                return Hosting::resellerAktualisieren(null, true)['gelesen'] ? 1 : 0;
+            },
+            /* Monatsbericht an die Hosting-Kunden -- ab dem Ersten, einmal im Monat. */
+            'bericht'     => static function () {
+                require_once __DIR__ . '/Hosting.php';
+                return Hosting::berichteSenden();
+            },
             /* HTTPS der angelegten Domains: bis es steht alle 6 h, dann taeglich. */
             'https'       => static function () {
                 require_once __DIR__ . '/Hosting.php';

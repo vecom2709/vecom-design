@@ -447,7 +447,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
       <div style="border:1px solid var(--linie);border-left:3px solid var(--cyan);border-radius:10px;
                   padding:11px 13px;margin-bottom:12px">
         <div style="font-size:12px;color:var(--leise);margin-bottom:5px">Aus dem Anfrageformular</div>
-        <div style="white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h($v['anfrage_text']) ?></div>
+        <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h($v['anfrage_text']) ?></div>
       </div>
     <?php endif; ?>
 
@@ -460,7 +460,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
         <?php if (!empty($m['betreff'])): ?>
           <div style="font-size:12.5px;color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
         <?php endif; ?>
-        <div style="white-space:pre-wrap;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
+        <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
       </div>
     <?php endforeach; ?>
 
@@ -512,7 +512,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
           <table><tbody>
           <?php foreach ($hat as $name => $feld): ?>
             <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
-                <td style="white-space:pre-wrap"><?= Fmt::h(($feld['art'] ?? '') === 'wahl'
+                <td style="white-space:pre-wrap;overflow-wrap:anywhere"><?= Fmt::h(($feld['art'] ?? '') === 'wahl'
                       ? Umfang::worte((string) $fbDaten[$name], 'de')
                       : (string) $fbDaten[$name]) ?></td></tr>
           <?php endforeach; ?>
