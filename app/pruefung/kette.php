@@ -10281,6 +10281,21 @@ pruefe('Meldungen: „Heute“ und der Cronlauf räumen auf',
 Db::run("DELETE FROM notifications WHERE type IN ('anfrage_neu','partner_stripe_connect','nachricht_rein','strato_zugang')");
 Db::run("DELETE FROM settings WHERE skey = 'partner_stripe_connect'");
 
+require_once $wurzel . '/src/Einmalig.php';
+Db::run("DELETE FROM settings WHERE skey LIKE 'einmalig\\_%'");
+$veSchl = static fn(): array => array_column(Einmalig::offen(), 'schluessel');
+pruefe('Einmalig: die Cockpit-Aufgaben stehen unter „Heute“, von Hand abzuhaken',
+    in_array('angebote_bestand', $veSchl(), true) && Einmalig::erledigt('angebote_bestand') && !in_array('angebote_bestand', $veSchl(), true));
+pruefe('Einmalig: ein unbekannter Schlüssel hakt nichts ab', !Einmalig::erledigt('gibt_es_nicht')
+    && (int) Db::wert("SELECT COUNT(*) FROM settings WHERE skey = 'einmalig_gibt_es_nicht'", [], 0) === 0);
+Db::run('UPDATE stimmen SET veroeffentlicht_am = NULL WHERE demo = 0');
+$veStimmeVorher = in_array('kundenstimme', $veSchl(), true);
+$veSt = (int) Db::insert('stimmen', ['customer_id' => $veK, 'name' => 'Probe', 'text' => 'Gut.', 'sterne' => 5, 'sprache' => 'it', 'erlaubnis' => 1, 'status' => 'veroeffentlicht', 'veroeffentlicht_am' => date('Y-m-d H:i:s')]);
+pruefe('Einmalig: „Erste Kundenstimme“ hakt sich selbst ab, sobald eine veröffentlicht ist',
+    $veStimmeVorher && !in_array('kundenstimme', $veSchl(), true));
+Db::run('DELETE FROM stimmen WHERE id = ?', [$veSt]);
+Db::run("DELETE FROM settings WHERE skey LIKE 'einmalig\\_%'");
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

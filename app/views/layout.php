@@ -163,7 +163,7 @@ $reiter = [
 ];
 /* Zu welcher Menüzeile gehört die Seite, auf der man steht? */
 $reiterVon = [];
-foreach ($reiter as $gruppe => $liste) { foreach ($liste as [$rZiel]) { $reiterVon[$rZiel] = $gruppe; } }
+foreach ($reiter as $rGruppe => $rListe) { foreach ($rListe as [$rZiel]) { $reiterVon[$rZiel] = $rGruppe; } }
 $aktivMenue = $reiterVon[$aktiv] ?? $aktiv;
 /* Eine Menüzeile mit Reitern zählt alles, was hinter ihren Reitern offen ist. */
 $reiterZahl = static function (string $gruppe) use ($reiter, $navZahlen): int {

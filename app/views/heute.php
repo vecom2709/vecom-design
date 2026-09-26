@@ -213,6 +213,31 @@ $duSpaeter = array_slice($liste['du'], 5); ?>
   <?php endif; ?>
 </div>
 
+<?php /* EINMAL ZU ERLEDIGEN (26.09.2026) -- die Aufgaben aus dem Cockpit.
+         Eingeklappt und leise: Sie haben keine Frist, und golden ist hier
+         nur der eine Handgriff oben. */
+require_once __DIR__ . '/../src/Einmalig.php';
+$einmal = sicher(static fn() => Einmalig::offen(), []); ?>
+<?php if ($einmal): ?>
+  <details class="block klapp">
+    <summary><h2>Einmal zu erledigen<span class="mehr"><?= count($einmal) ?></span></h2></summary>
+    <?php foreach ($einmal as $e): ?>
+      <div class="vg">
+        <div class="vg__wer"><b><?= Fmt::h($e['titel']) ?></b></div>
+        <div class="vg__warum"><?= Fmt::h($e['warum']) ?><?php if ($e['selbst']): ?> <i style="color:var(--leise)">Hakt sich selbst ab, sobald es erledigt ist.</i><?php endif; ?></div>
+        <div class="vg__tun">
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="einmalig_erledigt">
+            <input type="hidden" name="schluessel" value="<?= Fmt::h($e['schluessel']) ?>">
+            <input type="hidden" name="zurueck" value="heute">
+            <button class="knopf">Erledigt</button>
+          </form>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </details>
+<?php endif; ?>
+
 <?php /* ---------- Was nicht bei dir liegt ----------
          Beides stand vorher offen und in voller Laenge da. Bei zwoelf
          Vorgaengen hiess das: Man scrollte an zwanzig Zeilen vorbei, in
