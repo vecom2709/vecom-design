@@ -102,3 +102,6 @@ _to_delete/
 
 # Zaehldatei der Demos (d.php) -- entsteht auf dem Server
 demo.csv
+
+# Python-Zwischendateien der Blender-Skripte
+__pycache__/
