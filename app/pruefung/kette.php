@@ -9934,6 +9934,28 @@ pruefe('Beleg: der Abzug ist dreisprachig',
     && str_contains((string) (Rechnung::posten($erR, 'en')[1]['text'] ?? ''), 'Referral'));
 pruefe('Beleg: das PDF entsteht mit Abzugszeile', str_starts_with(Rechnung::pdf($erR), '%PDF'));
 
+/* Eigener Partnercode (26.09.2026, Uwe: „selbst schreiben oder geben lassen“) */
+abschnitt('Partner: eigener Code');
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+$pcA = Partner::anlegen(['name' => 'Code Wunsch', 'email' => 'code@partner.example', 'status' => 'aktiv', 'code' => 'ROSSI2026']);
+pruefe('Code: ein selbst gewählter Code wird übernommen und der Link führt hin',
+    Partner::laden($pcA)['code'] === 'ROSSI2026' && (int) (Partner::ausCode('rossi2026')['id'] ?? 0) === $pcA);
+pruefe('Code: leer = vergeben lassen', preg_match('/^[A-Z2-9]{8}$/', (string) Partner::laden(Partner::anlegen(['name' => 'Ohne Wunsch', 'email' => 'ow@partner.example', 'status' => 'aktiv']))['code']) === 1);
+pruefe('Code: Leerzeichen und Striche werden entfernt, klein wird groß', Partner::codePruefen('bar-centrale 7')['code'] === 'BARCENTRALE7');
+pruefe('Code: zu kurz, zu lang oder mit Umlaut wird abgelehnt',
+    Partner::codePruefen('ABC')['fehler'] !== null && Partner::codePruefen(str_repeat('A', 17))['fehler'] !== null
+    && Partner::codePruefen('MÜLLER1')['fehler'] !== null);
+pruefe('Code: ein vergebener Code wird abgelehnt — auch ein Kunden-Empfehlungscode',
+    Partner::codePruefen('rossi2026')['fehler'] !== null
+    && Partner::codePruefen((string) Empfehlung::codeFuer($kundeId))['fehler'] !== null);
+pruefe('Code: der eigene Code gilt beim Ändern nicht als vergeben', Partner::codeSetzen($pcA, 'Rossi2026') === null);
+Partner::codeSetzen($pcA, 'ROSSINEU');
+pruefe('Code: nach dem Ändern führt der neue Link hin, der alte nicht mehr',
+    Partner::ausCode('ROSSINEU') !== null && Partner::ausCode('ROSSI2026') === null
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'partner_code'", [], 0) >= 1);
+pruefe('Code: Ändern fragt vorher nach', Ablauf::wiegt('partner_code') === Ablauf::SCHWER);
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

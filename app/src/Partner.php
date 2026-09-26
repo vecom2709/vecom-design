@@ -199,7 +199,7 @@ final class Partner
         $sprache = in_array((string) ($d['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : 'it';
         return (int) Db::nochmal(static function () use ($d, $sprache) {
             return Db::insert('partner', [
-                'code'   => self::neuerCode((string) $d['name']),
+                'code'   => ($d['code'] ?? '') !== '' ? (string) $d['code'] : self::neuerCode((string) $d['name']),
                 'token'  => bin2hex(random_bytes(24)),
                 'name'   => mb_substr(trim((string) $d['name']), 0, 160),
                 'email'  => mb_strtolower(trim((string) $d['email'])),
@@ -310,6 +310,41 @@ final class Partner
             return ['ok' => true, 'ganz' => false, 'text' => $name . ' ist gelöscht. Name, Steuernummer und ' . $belege
                 . ' Beleg' . ($belege === 1 ? '' : 'e') . ' bleiben für die Buchhaltung; alle übrigen Daten sind weg.'];
         }, 3);
+    }
+
+    /**
+     * EIGENER CODE (Uwe, 26.09.2026: „den Link kann ich selbst schreiben
+     * oder geben lassen“). Erlaubt ist, was die Adresse /p/… trägt:
+     * 5–16 Buchstaben oder Ziffern, ohne Umlaute. Groß/klein ist egal
+     * (/p/rossi2026 = /p/ROSSI2026). Er darf weder einem anderen Partner
+     * noch einem Kunden-Empfehlungscode gleichen — ein eingetippter Code
+     * muss eindeutig bleiben.
+     *
+     * @return array{code:?string,fehler:?string}
+     */
+    public static function codePruefen(string $wunsch, ?int $ausser = null): array
+    {
+        $code = strtoupper((string) preg_replace('/[\s\-_.]/', '', trim($wunsch)));
+        if (!preg_match('/^[A-Z0-9]{5,16}$/', $code)) {
+            return ['code' => null, 'fehler' => 'Der Code braucht 5 bis 16 Buchstaben (A–Z) oder Ziffern — ohne Umlaute und Sonderzeichen.'];
+        }
+        $belegt = (int) Db::wert('SELECT COUNT(*) FROM partner WHERE code = ? AND id <> ?', [$code, $ausser ?? 0], 0)
+                + (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM customers WHERE empfehl_code = ?', [$code], 0), 0);
+        if ($belegt > 0) { return ['code' => null, 'fehler' => 'Den Code „' . $code . '“ gibt es schon. Bitte einen anderen.']; }
+        return ['code' => $code, 'fehler' => null];
+    }
+
+    /** Den Code eines Partners ändern. Der alte Link gilt danach nicht mehr. @return ?string Fehler */
+    public static function codeSetzen(int $id, string $wunsch): ?string
+    {
+        $p = self::laden($id);
+        if (!$p) { return 'Partner nicht gefunden.'; }
+        $c = self::codePruefen($wunsch, $id);
+        if ($c['fehler'] !== null) { return $c['fehler']; }
+        if ($c['code'] === $p['code']) { return null; }
+        Db::run('UPDATE partner SET code = ? WHERE id = ?', [$c['code'], $id]);
+        Events::pruefspur('partner_code', 'partner', $id, ['code' => $p['code']], ['code' => $c['code']]);
+        return null;
     }
 
     public static function laden(int $id): ?array

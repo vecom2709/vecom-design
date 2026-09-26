@@ -145,6 +145,19 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
+<?php if ($p['status'] !== 'geloescht'): ?>
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 6px">Code und Link</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Jetzt: <code><?= Fmt::h(Partner::link($p)) ?></code>.
+    5–16 Buchstaben oder Ziffern. Ändern heißt: Der alte Link funktioniert nicht mehr.</p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_code"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+    <div class="feld" style="margin:0"><label>Neuer Code</label>
+      <input name="code" value="<?= Fmt::h($p['code']) ?>" maxlength="16" required style="text-transform:uppercase"></div>
+    <button class="knopf">Code ändern</button></form>
+</div>
+<?php endif; ?>
+
 <?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Eigene Bedingungen</h2>

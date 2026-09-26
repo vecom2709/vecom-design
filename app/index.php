@@ -442,7 +442,10 @@ if ($post) {
                     $_SESSION['fehler'] = 'Zu dieser E-Mail gibt es schon einen Partner.';
                     zurueck('partner');
                 }
-                $pid = Partner::anlegen(['name' => $_POST['name'], 'email' => $email, 'firma' => $_POST['firma'] ?? '',
+                $wunsch = trim((string) ($_POST['code'] ?? ''));
+                $pc = $wunsch !== '' ? Partner::codePruefen($wunsch) : ['code' => '', 'fehler' => null];
+                if ($pc['fehler'] !== null) { $_SESSION['fehler'] = $pc['fehler']; zurueck('partner'); }
+                $pid = Partner::anlegen(['name' => $_POST['name'], 'email' => $email, 'firma' => $_POST['firma'] ?? '', 'code' => $pc['code'],
                     'steuer_nr' => $_POST['steuer_nr'] ?? '', 'sprache' => $_POST['sprache'] ?? 'it', 'status' => 'aktiv']);
                 Events::pruefspur('partner_angelegt', 'partner', $pid, [], ['email' => $email]);
                 $ok = Partner::schreiben($pid, 'partner_willkommen');
@@ -559,6 +562,12 @@ if ($post) {
                 $r = Partner::loeschen((int) ($_POST['id'] ?? 0));
                 $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
                 if ($r['ok'] && !empty($r['ganz'])) { weiter('partner'); }
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_code':
+                require_once __DIR__ . '/src/Partner.php';
+                $f = Partner::codeSetzen((int) ($_POST['id'] ?? 0), (string) ($_POST['code'] ?? ''));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Neuer Code gespeichert. Der alte Link führt ab jetzt nirgends mehr hin.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
             case 'partner_token_neu':

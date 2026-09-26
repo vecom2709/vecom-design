@@ -96,7 +96,8 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Partner einladen</h2>
   <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
-    Er bekommt sofort eine E-Mail mit Link, Code und seiner Partnerseite. Die Vereinbarung bestätigt er dort —
+    Er bekommt sofort eine E-Mail mit Link, Code und seiner Partnerseite. Den Code (und damit den Link
+    <code>/p/CODE</code>) kannst du selbst wählen oder vergeben lassen. Die Vereinbarung bestätigt er dort —
     vorher wird nichts ausgezahlt.</p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_anlegen">
@@ -104,6 +105,8 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <div class="feld" style="flex:1 1 200px"><label>E-Mail</label><input name="email" type="email" required></div>
     <div class="feld" style="flex:1 1 160px"><label>Firma</label><input name="firma"></div>
     <div class="feld" style="flex:0 1 140px"><label>P. IVA / CF</label><input name="steuer_nr"></div>
+    <div class="feld" style="flex:0 1 170px"><label>Code (leer = vergeben lassen)</label>
+      <input name="code" maxlength="16" pattern="[A-Za-z0-9 \-]{5,20}" placeholder="z. B. ROSSI2026" style="text-transform:uppercase"></div>
     <div class="feld" style="flex:0 0 110px"><label>Sprache</label>
       <select name="sprache"><option value="it">Italiano</option><option value="de">Deutsch</option><option value="en">English</option></select></div>
     <button class="knopf">Anlegen und einladen</button>
