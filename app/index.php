@@ -1049,6 +1049,17 @@ if ($post) {
                     . ($hs['abweichend'] ? ', ' . (int) $hs['abweichend'] . ' mit abweichendem Speicher' : '') . '.';
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'kas_reseller_lesen':
+                /* Nur lesende Aufrufe. Gemerkt wird der Stand ohne Passwort --
+                   die Seite zeigt ihn, bis jemand wieder auf "Auslesen" drueckt. */
+                require_once __DIR__ . '/src/Kas.php';
+                $rs = Kas::resellerLesen();
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_reseller_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                    [json_encode($rs, JSON_UNESCAPED_UNICODE)]);
+                Events::protokoll('integration', 'KAS-Reseller ausgelesen' . ($rs['fehler'] ? ' (mit ' . count($rs['fehler']) . ' Fehler)' : ''));
+                $_SESSION[$rs['fehler'] ? 'fehler' : 'gut'] = $rs['fehler'] ? 'Teilweise gelesen: ' . implode(' · ', $rs['fehler']) : 'Ausgelesen.';
+                zurueck('einstellungen?b=reseller');
+
             case 'kas_probelauf_an':
             case 'kas_probelauf_aus':
                 Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_probelauf', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",

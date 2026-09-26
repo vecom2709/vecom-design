@@ -8838,6 +8838,39 @@ pruefe('Kas: auch mit den neuen Aufrufen keine löschende Methode',
     !array_filter(get_class_methods('Kas'), static fn($m) => str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete')));
 
 /* ============================================================================
+   80. Reseller-Übersicht (26.09.2026) -- nur lesen, Vecom gegen KAS
+   Die Kontingente haben die Form, die der echte Reseller-Zugang am
+   25.09.2026 lieferte (get_accountresources: resource => {max, used, free}).
+   ============================================================================ */
+abschnitt('80. Reseller-Übersicht');
+$rsQ = (string) file_get_contents($wurzel . '/src/Kas.php');
+$rsF = substr($rsQ, strpos($rsQ, 'public static function resellerLesen'), 2400);
+$rsF = substr($rsF, 0, (int) strpos($rsF, 'public static function resellerAuswerten'));
+pruefe('Reseller: das Auslesen ruft nur get_ auf -- nichts, was schreibt',
+    !preg_match("~'(add|update|delete)_~", $rsF) && preg_match_all("~'get_[a-z]+'~", $rsF) >= 4);
+$rsStand = ['am' => '2026-09-26 10:00:00', 'fehler' => [],
+    'ressourcen' => ['max_domain' => ['max' => 101, 'used' => 1, 'free' => 100], 'max_subdomain' => ['max' => 500, 'used' => 0, 'free' => 500],
+                     'max_webspace' => ['max' => 204800, 'used' => 25600, 'free' => 179200], 'max_ftpuser' => ['max' => -1, 'used' => 0, 'free' => -1]],
+    'accounts' => [['account_login' => 'w0111111', 'account_comment' => 'Hotel — hotel.it', 'max_webspace' => '15360', 'max_domain' => '5'],
+                   ['account_login' => 'w0122222', 'account_comment' => 'Bar — bar.it', 'max_webspace' => '10240'],
+                   ['account_login' => 'w0133333', 'account_comment' => 'Fremd', 'max_webspace' => '-1']],
+    'belegt' => ['w0111111' => 7578], 'domains' => [['domain_name' => 'reseller6404.res']], 'subdomains' => [], 'postfaecher' => []];
+$rsA = Kas::resellerAuswerten($rsStand, ['w0111111' => 15360, 'w0122222' => 20480, 'w0199999' => 10240]);
+$rsZ = array_column($rsA['kunden'], 'zustand', 'login');
+pruefe('Reseller: 15 GB vereinbart und 15 GB im KAS passt; 20 gegen 10 weicht ab; ein fremder Account ist "bei Vecom unbekannt"',
+    $rsZ === ['w0111111' => 'passt', 'w0122222' => 'weicht_ab', 'w0133333' => 'nicht_in_vecom'] && $rsA['abweichend'] === 1,
+    json_encode($rsZ));
+pruefe('Reseller: ein Vecom-Auftrag ohne Account im KAS fällt auf', $rsA['vecom_ohne_kas'] === ['w0199999']);
+pruefe('Reseller: Kontingente mit Namen, -1 bleibt "unbegrenzt" (keine Zahl erfunden)',
+    array_column($rsA['kontingente'], 'name', 'schluessel')['max_domain'] === 'Domains'
+    && array_column($rsA['kontingente'], 'max', 'schluessel')['max_ftpuser'] === -1 && $rsA['domains'] === 1);
+pruefe('Reseller: alle Vereinbarungen zusammen gegen den Vertrag -- 45 GB von 200 GB ist nicht überbucht, 210 GB schon',
+    $rsA['summe_vereinbart_mb'] === 46080 && $rsA['pool_mb'] === 204800 && !$rsA['ueberbucht']
+    && Kas::resellerAuswerten($rsStand, ['a' => 215040])['ueberbucht'] === true);
+pruefe('Reseller: der belegte Speicher steht beim richtigen Kunden',
+    ($rsA['kunden'][0]['belegt_mb'] ?? null) === 7578 && $rsA['kunden'][1]['belegt_mb'] === null);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

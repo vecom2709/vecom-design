@@ -607,6 +607,101 @@ final class Kas
         return ['ok' => $erg['ok'], 'text' => $erg['ok'] ? 'FTP-Nutzer angelegt.' : $erg['text'], 'login' => $login];
     }
 
+    /* ==================================================================== */
+    /*  Reseller-Uebersicht (26.09.2026) -- nur lesen                        */
+    /* ==================================================================== */
+
+    /** Die Namen der Kontingente, wie Uwe sie aus dem KAS kennt. */
+    public const RESSOURCEN = [
+        'max_account'      => 'Kunden-Accounts',
+        'max_domain'       => 'Domains',
+        'max_subdomain'    => 'Subdomains',
+        'max_webspace'     => 'Speicher',
+        'max_mail_account' => 'E-Mail-Postfächer',
+        'max_mail_forward' => 'Weiterleitungen',
+        'max_mailinglist'  => 'Mailinglisten',
+        'max_database'     => 'Datenbanken',
+        'max_ftpuser'      => 'FTP-Nutzer',
+        'max_sambauser'    => 'Netzlaufwerke',
+        'max_cronjobs'     => 'Cronjobs',
+        'max_wbk'          => 'Website-Baukästen',
+    ];
+
+    /**
+     * Alles, was der Reseller-Zugang ueber sich verraet -- fuenf lesende
+     * Aufrufe, kein einziger schreibender. Das Ergebnis enthaelt kein
+     * Passwort und wird als Stand gemerkt, damit die Seite nicht bei jedem
+     * Oeffnen zehn Sekunden auf die Flutbremse wartet.
+     */
+    public static function resellerLesen(): array
+    {
+        $stand = ['am' => date('Y-m-d H:i:s'), 'fehler' => []];
+        $r = self::rufen('get_accountresources');
+        $stand['ressourcen'] = $r['ok'] && is_array($r['daten']) ? $r['daten'] : [];
+        if (!$r['ok']) { $stand['fehler'][] = 'Kontingente: ' . $r['text']; }
+        $a = self::accounts();
+        $stand['accounts'] = array_map(static fn($x) => $x['roh'], $a['accounts']);
+        if (!$a['ok']) { $stand['fehler'][] = 'Accounts: ' . $a['text']; }
+        $sp = self::speicherUnterkonten();
+        $stand['belegt'] = $sp['belegt'];
+        if (!$sp['ok']) { $stand['fehler'][] = 'Speicher: ' . $sp['text']; }
+        elseif ($sp['text'] !== '') { $stand['hinweise'][] = $sp['text']; }
+        foreach (['get_domains' => 'domains', 'get_subdomains' => 'subdomains', 'get_mailaccounts' => 'postfaecher'] as $aktion => $feld) {
+            $e = self::rufen($aktion);
+            $d = $e['ok'] ? $e['daten'] : [];
+            if (is_array($d) && (isset($d['domain_name']) || isset($d['subdomain_name']) || isset($d['mail_login']))) { $d = [$d]; }
+            $stand[$feld] = is_array($d) ? array_values(array_filter($d, 'is_array')) : [];
+            if (!$e['ok']) { $stand['fehler'][] = $aktion . ': ' . $e['text']; }
+        }
+        return $stand;
+    }
+
+    /**
+     * Den Stand auswerten -- ohne Netz, damit die Pruefkette ihn pruefen kann.
+     *
+     * "Gerecht" heisst hier: Jeder Kunden-Account hat im KAS genau den
+     * Speicher, der mit ihm bei Vecom vereinbart ist, und alle Vereinbarungen
+     * zusammen passen in den Speicher des Reseller-Vertrags.
+     *
+     * @param array<string,int> $vecom kas_login => vereinbarte MB (aus hosting_auftraege)
+     */
+    public static function resellerAuswerten(array $stand, array $vecom): array
+    {
+        $zahl = static fn($v): ?int => is_numeric($v) ? (int) $v : null;
+        $kontingente = [];
+        foreach ((array) ($stand['ressourcen'] ?? []) as $k => $v) {
+            if (!is_array($v)) { continue; }
+            $kontingente[] = ['schluessel' => (string) $k, 'name' => self::RESSOURCEN[$k] ?? (string) $k,
+                'max' => $zahl($v['max'] ?? null), 'belegt' => $zahl($v['used'] ?? null), 'frei' => $zahl($v['free'] ?? null)];
+        }
+        $kunden = []; $gesehen = [];
+        foreach ((array) ($stand['accounts'] ?? []) as $a) {
+            $login = (string) ($a['account_login'] ?? '');
+            if ($login === '') { continue; }
+            $gesehen[$login] = true;
+            $kas = $zahl($a['max_webspace'] ?? null);
+            $soll = $vecom[$login] ?? null;
+            $zustand = $soll === null ? 'nicht_in_vecom'
+                : ($kas === null || $kas < 0 ? 'unbegrenzt' : ($kas === $soll ? 'passt' : 'weicht_ab'));
+            $grenzen = [];
+            foreach ($a as $k => $v) {
+                if (str_starts_with((string) $k, 'max_') && $k !== 'max_webspace' && is_numeric($v)) { $grenzen[(string) $k] = (int) $v; }
+            }
+            $kunden[] = ['login' => $login, 'kommentar' => (string) ($a['account_comment'] ?? ''),
+                'kas_mb' => $kas, 'vecom_mb' => $soll, 'belegt_mb' => isset($stand['belegt'][$login]) ? (int) $stand['belegt'][$login] : null,
+                'zustand' => $zustand, 'grenzen' => $grenzen];
+        }
+        $ohneKas = array_keys(array_diff_key($vecom, $gesehen));
+        $pool = null;
+        foreach ($kontingente as $k) { if ($k['schluessel'] === 'max_webspace' && $k['max'] !== null && $k['max'] > 0) { $pool = $k['max']; } }
+        $summe = array_sum($vecom);
+        return ['kontingente' => $kontingente, 'kunden' => $kunden, 'vecom_ohne_kas' => $ohneKas,
+            'summe_vereinbart_mb' => $summe, 'pool_mb' => $pool, 'ueberbucht' => $pool !== null && $summe > $pool,
+            'domains' => count((array) ($stand['domains'] ?? [])), 'subdomains' => count((array) ($stand['subdomains'] ?? [])),
+            'postfaecher' => count((array) ($stand['postfaecher'] ?? [])),
+            'abweichend' => count(array_filter($kunden, static fn($k) => $k['zustand'] === 'weicht_ab'))];
+    }
+
     /** @return array{ok:bool,text:string,urls:list<string>} */
     public static function cronjobs(): array
     {
