@@ -9086,6 +9086,113 @@ pruefe('Neue Domain: eine Domain, die beim alten Anbieter bleibt, wartet auf kei
     !Hosting::wartetAufBestellung(Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$rgUm])));
 
 /* ============================================================================
+   84. Seite veröffentlichen (26.09.2026) -- Paket per FTPS auf die Kundendomain
+   Mit nachgebautem FTP-Server: ein Dateisystem im Speicher.
+   ============================================================================ */
+abschnitt('84. Seite veröffentlichen');
+require_once $wurzel . '/src/Veroeffentlichung.php';
+final class KetteFtp {
+    public array $fs = [];          // Pfad => Inhalt (Datei) oder true (Ordner)
+    public array $log = [];
+    public bool $holenScheitert = false;
+    public function verbinden(string $h, string $l, string $p): void { $this->log[] = 'verbinden:' . $h . ':' . $l; }
+    public function liste(string $pfad): array {
+        $pfad = rtrim($pfad, '/'); $aus = [];
+        foreach ($this->fs as $k => $v) {
+            if (dirname($k) === $pfad) { $aus[] = ['name' => basename($k), 'ordner' => $v === true]; }
+        }
+        return $aus;
+    }
+    public function holen(string $r, string $l): void { if ($this->holenScheitert) { throw new RuntimeException('550'); } file_put_contents($l, (string) $this->fs[$r]); }
+    public function ordner(string $r): void { $this->fs[rtrim($r, '/')] = true; }
+    public function senden(string $l, string $r): void { $this->log[] = 'senden:' . $r; $this->fs[$r] = (string) file_get_contents($l); }
+    public function schliessen(): void {}
+}
+$vpZip = static function (array $dateien): string {
+    $pfad = sys_get_temp_dir() . '/kette-paket-' . bin2hex(random_bytes(4)) . '.zip';
+    $z = new ZipArchive(); $z->open($pfad, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+    foreach ($dateien as $n => $i) { $z->addFromString($n, $i); }
+    $z->close(); return $pfad;
+};
+$vpHttps = static fn(string $d): array => ['https' => ['ok' => true, 'ssl_gueltig' => 1, 'ssl_bis' => '2027-01-01', 'fehler' => null], 'umleitung' => 'https://' . $d . '/'];
+$vpK = Events::kundeFinden(['name' => 'Veröffentlichen Probe', 'email' => 'veroeff@pruefung.example']);
+$vpP = (int) Db::insert('projects', ['customer_id' => $vpK, 'name' => 'Seite Veröffentlichen', 'status' => 'entwicklung',
+    'preview_url' => 'https://veroeff-probe.netlify.app']);
+pruefe('Veröffentlichen: ohne Hosting bei uns gibt es den Knopf nicht -- mit Grund',
+    !Veroeffentlichung::stand($vpP)['bereit'] && Veroeffentlichung::stand($vpP)['auftrag'] === null);
+$vpA = (int) Db::insert('hosting_auftraege', ['customer_id' => $vpK, 'project_id' => $vpP, 'domain' => 'veroeff-probe.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'kas_login' => 'w0133300']);
+$vpSt = Veroeffentlichung::stand($vpP);
+pruefe('Veröffentlichen: nennt, was fehlt -- FTP-Zugang, Paket, Abnahme',
+    !$vpSt['bereit'] && count($vpSt['gruende']) === 3, implode(' | ', $vpSt['gruende']));
+/* FTP-Zugang so ablegen, wie der Schritt "ftp" es tut */
+$vpRef = new ReflectionMethod('Hosting', 'verschluesseln'); $vpRef->setAccessible(true);
+Db::run('UPDATE hosting_auftraege SET technik_blob = ? WHERE id = ?',
+    [$vpRef->invoke(null, ['ftp' => ['login' => 'f0133300', 'passwort' => 'Ftp-Geheim-1!', 'server' => 'w0133300.kasserver.com']]), $vpA]);
+$vpZipPfad = $vpZip(['seite/index.html' => '<h1>Neu</h1>', 'seite/css/stil.css' => 'body{}', 'seite/bilder/logo.png' => 'PNG']);
+$vpPaket = Ablage::ausDatei($vpZipPfad, 'seite.zip', $vpP, $vpK, 'werkstatt');
+Db::run("UPDATE files SET rolle = 'paket' WHERE id = ?", [$vpPaket]);
+pruefe('Veröffentlichen: vor der Abnahme nicht -- nur dieser Grund bleibt',
+    Veroeffentlichung::stand($vpP)['gruende'] === ['Der Kunde hat noch nicht abgenommen (Stand: entwicklung).']);
+Db::run("UPDATE projects SET status = 'finale_freigabe' WHERE id = ?", [$vpP]);
+pruefe('Veröffentlichen: nach der Abnahme bereit', Veroeffentlichung::stand($vpP)['bereit']);
+
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('kas_probelauf', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+$vpPr = Veroeffentlichung::veroeffentlichen($vpP);
+pruefe('Veröffentlichen: im Probelauf wird nichts verbunden, nur gezählt',
+    !$vpPr['ok'] && !empty($vpPr['probelauf']) && str_contains($vpPr['text'], '3 Dateien') && !str_contains($vpPr['text'], 'Ftp-Geheim'));
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'kas_probelauf'");
+
+$vpFtp = new KetteFtp();
+$vpFtp->fs = ['/web' => true, '/web/alt.html' => 'ALT', '/web/bilder' => true, '/web/bilder/alt.jpg' => 'JPG'];
+$vpFtp->holenScheitert = true;
+$vpE0 = Veroeffentlichung::veroeffentlichen($vpP, $vpFtp, $vpHttps);
+pruefe('Veröffentlichen: scheitert die Sicherung, wird nichts hochgeladen',
+    !$vpE0['ok'] && str_contains($vpE0['text'], 'Sicherung') && !preg_grep('~^senden:~', $vpFtp->log));
+$vpFtp->holenScheitert = false;
+$vpE = Veroeffentlichung::veroeffentlichen($vpP, $vpFtp, $vpHttps);
+pruefe('Veröffentlichen: gemeinsamer Oberordner fällt weg, alles landet in /web',
+    $vpE['ok'] && ($vpFtp->fs['/web/index.html'] ?? '') === '<h1>Neu</h1>' && ($vpFtp->fs['/web/css/stil.css'] ?? '') === 'body{}'
+    && isset($vpFtp->fs['/web/bilder/logo.png']) && $vpE['dateien'] === 3, json_encode(array_keys($vpFtp->fs)));
+pruefe('Veröffentlichen: gelöscht wird nichts -- alte Dateien bleiben liegen',
+    ($vpFtp->fs['/web/alt.html'] ?? '') === 'ALT' && ($vpFtp->fs['/web/bilder/alt.jpg'] ?? '') === 'JPG');
+$vpSich = Db::one("SELECT * FROM files WHERE id = ?", [(int) $vpE['sicherung']]);
+$vpZ = new ZipArchive(); $vpZ->open(Ablage::ordner() . '/' . $vpSich['stored_name']);
+pruefe('Veröffentlichen: vorher gesichert -- das ZIP enthält die alten Dateien, als Sicherung, nicht als Material',
+    (string) $vpSich['rolle'] === 'sicherung' && $vpZ->getFromName('alt.html') === 'ALT' && $vpZ->getFromName('bilder/alt.jpg') === 'JPG');
+$vpZ->close();
+$vpW = Db::one('SELECT * FROM websites WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$vpK]);
+pruefe('Veröffentlichen: die Domain wird beobachtet, das Projekt trägt Datum und Domain, HTTPS ist geprüft',
+    $vpW && (string) $vpW['url'] === 'https://veroeff-probe.it' && (int) $vpW['monitoring'] === 1
+    && (string) Db::wert('SELECT veroeffentlicht_domain FROM projects WHERE id = ?', [$vpP], '') === 'veroeff-probe.it'
+    && (string) Db::wert('SELECT ssl_status FROM hosting_auftraege WHERE id = ?', [$vpA], '') === 'ok');
+pruefe('Veröffentlichen: das FTP-Passwort steht in keinem Protokoll',
+    (int) Db::wert("SELECT COUNT(*) FROM activities WHERE title LIKE '%Ftp-Geheim%' OR meta LIKE '%Ftp-Geheim%'", [], 0) === 0);
+$vpKQ = (string) file_get_contents($wurzel . '/../kunde.php');
+pruefe('Veröffentlichen: Sicherungen erscheinen nie auf der Kundenseite -- weder in der Liste noch zum Herunterladen',
+    substr_count($vpKQ, "rolle <> 'sicherung'") >= 2);
+
+/* Unsinnige Pakete */
+$vpT = sys_get_temp_dir() . '/kette-ent-' . bin2hex(random_bytes(3));
+$vpFehler = static function (array $d) use ($vpZip, $vpT): string {
+    try { Veroeffentlichung::entpacken($vpZip($d), $vpT . bin2hex(random_bytes(2))); return 'ok'; } catch (Throwable $e) { return $e->getMessage(); }
+};
+pruefe('Veröffentlichen: ein Paket mit „../“ wird abgelehnt', str_contains($vpFehler(['index.html' => 'x', '../boese.php' => 'x']), 'unzulässigen Pfad'));
+pruefe('Veröffentlichen: ohne index.html ganz oben wird abgelehnt', str_contains($vpFehler(['seite/unterseite.html' => 'x', 'andere/x.html' => 'y']), 'index.html'));
+pruefe('Veröffentlichen: __MACOSX und .DS_Store fliegen raus',
+    Veroeffentlichung::entpacken($vpZip(['index.html' => 'x', '__MACOSX/._index.html' => 'm', '.DS_Store' => 'd']), $vpT . 'm') === ['index.html']);
+
+/* Netlify: erinnern nach vier Wochen, einmal */
+Db::run('UPDATE projects SET veroeffentlicht_am = NOW() - INTERVAL 30 DAY WHERE id = ?', [$vpP]);
+$vpN1 = Veroeffentlichung::netlifyErinnern(); $vpN2 = Veroeffentlichung::netlifyErinnern();
+pruefe('Netlify: nach vier Wochen EINE Aufgabe mit Umleitungs-Hinweis -- gelöscht wird nichts',
+    $vpN1 >= 1 && $vpN2 === 0 && str_contains((string) Db::wert("SELECT body FROM notifications WHERE type = 'netlify_aufraeumen' ORDER BY id DESC LIMIT 1", [], ''), '301'));
+pruefe('Veröffentlichen: fragt vorher, und Website-Aufträge bekommen den FTP-Zugang gleich mit',
+    Ablauf::wiegt('veroeffentlichen') === Ablauf::RAUS
+    && substr_count((string) file_get_contents($wurzel . '/src/Hosting.php'), "'mit_ftp' => \$projektId ? 1 : 0") >= 1
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Veroeffentlichung::netlifyErinnern()'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

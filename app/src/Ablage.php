@@ -92,7 +92,8 @@ final class Ablage
      * eigener Groessengrenze: Es ist unser Material, nicht seins.
      */
     public static function ausDatei(string $pfad, string $name, ?int $projektId, int $kundeId,
-                                    string $wer = 'werkstatt', int $hoechstens = 200 * 1024 * 1024): int
+                                    string $wer = 'werkstatt', int $hoechstens = 200 * 1024 * 1024,
+                                    string $rolle = 'material'): int
     {
         if (!is_file($pfad)) { throw new RuntimeException('Die Datei gibt es nicht.'); }
         $groesse = (int) filesize($pfad);
@@ -114,7 +115,9 @@ final class Ablage
             'stored_name' => $abgelegt, 'orig_name' => self::namenSaeubern($name),
             'mime' => $typ, 'size_bytes' => $groesse,
             'uploaded_by' => in_array($wer, ['admin', 'werkstatt'], true) ? $wer : 'werkstatt',
-            'rolle' => 'material',
+            /* 'sicherung' (26.09.2026): was vor einer Veroeffentlichung auf dem
+               Webspace lag -- nur fuer die Verwaltung, siehe kunde.php. */
+            'rolle' => $rolle === 'sicherung' ? 'sicherung' : 'material',
         ]);
     }
 

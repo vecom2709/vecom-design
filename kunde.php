@@ -90,7 +90,9 @@ $hostingZugang = null;   // die einmal angezeigten Zugangsdaten — nur direkt n
    allein — sonst zoege jemand mit einer geratenen Zahl fremde Unterlagen.
    ------------------------------------------------------------------------- */
 if ($kunde && isset($_GET['datei'])) {
-    $d = sicherLesen(fn() => Db::one('SELECT * FROM files WHERE id = ? AND customer_id = ?',
+    /* Sicherungen des Webspace nie: Darin koennen Zugangsdaten alter
+       Systeme stehen (wp-config.php). Die sind fuer die Verwaltung. */
+    $d = sicherLesen(fn() => Db::one("SELECT * FROM files WHERE id = ? AND customer_id = ? AND rolle <> 'sicherung'",
         [(int) $_GET['datei'], (int) $kunde['id']]), null);
     if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
     Ablage::ausliefern($d);
@@ -391,7 +393,7 @@ $pid   = $v['projekt_id'] ?? null;
 $nachrichten = $kunde ? (array) sicherLesen(fn() => Db::all(
     'SELECT * FROM messages WHERE customer_id = ? ORDER BY created_at, id LIMIT 100', [(int) $kunde['id']])) : [];
 $dateien = $kunde ? (array) sicherLesen(fn() => Db::all(
-    'SELECT * FROM files WHERE customer_id = ? ORDER BY id DESC LIMIT 30', [(int) $kunde['id']])) : [];
+    "SELECT * FROM files WHERE customer_id = ? AND rolle <> 'sicherung' ORDER BY id DESC LIMIT 30", [(int) $kunde['id']])) : [];
 $belege = $kunde ? (array) sicherLesen(fn() => Db::all(
     "SELECT * FROM invoices WHERE customer_id = ? AND (issued_at IS NOT NULL OR status <> 'entwurf')
       ORDER BY id DESC", [(int) $kunde['id']])) : [];

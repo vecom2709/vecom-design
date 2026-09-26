@@ -265,6 +265,9 @@ final class Hosting
             }
 
             Db::insert('hosting_auftraege', self::vorgabeFelder() + [
+                /* Mit Website: der FTP-Zugang fuer Vecom kommt gleich mit --
+                   ueber ihn wird die fertige Seite veroeffentlicht. */
+                'mit_ftp'     => $projektId ? 1 : 0,
                 'customer_id' => $kundeId,
                 'project_id'  => $projektId ?: null,
                 'domain'      => $frei,
@@ -316,6 +319,7 @@ final class Hosting
         }
 
         Db::insert('hosting_auftraege', self::vorgabeFelder() + [
+            'mit_ftp' => $projektId ? 1 : 0,   // fuer die Veroeffentlichung, siehe oben
             'customer_id' => $kundeId, 'project_id' => $projektId ?: null,
             'domain' => $domain, 'domain_aktion' => $aktion, 'mail' => $mail,
             'weiterleitungen' => $mail === 'vecom' ? (implode(',', self::weiterleitungen((string) ($antworten['mail_weiter'] ?? ''))) ?: null) : null,
@@ -934,7 +938,9 @@ final class Hosting
             $t = !empty($a['technik_blob']) ? (self::entschluesseln((string) $a['technik_blob']) ?? []) : [];
             $t[$s] = $s === 'datenbank'
                 ? ['name' => (string) ($r['name'] ?? ''), 'passwort' => $pw, 'kommentar' => $kommentar]
-                : ['login' => (string) ($r['login'] ?? ''), 'passwort' => $pw, 'kommentar' => $kommentar];
+                : ['login' => (string) ($r['login'] ?? ''), 'passwort' => $pw, 'kommentar' => $kommentar,
+                   /* Zusaetzliche FTP-Nutzer melden sich am Server des Accounts an. */
+                   'server' => (string) ($a['kas_login'] ?: ($als['login'] ?? '')) . '.kasserver.com'];
             $blobT = self::verschluesseln($t);
             if ($blobT !== null) { Db::update('hosting_auftraege', $auftragId, ['technik_blob' => $blobT]); $a['technik_blob'] = $blobT; }
             self::schritt($auftragId, $s, 'fertig', ($s === 'datenbank'
@@ -1667,6 +1673,13 @@ final class Hosting
         $t = self::entschluesseln((string) $a['technik_blob']);
         if ($t !== null) { Events::protokoll('hosting_technik_angesehen', 'DB/FTP-Zugang von ' . $a['domain'] . ' angesehen', (int) $a['customer_id']); }
         return $t;
+    }
+
+    /** Dasselbe ohne Protokolleintrag -- fuer die Veroeffentlichung, die den Zugang nur benutzt, nie zeigt. */
+    public static function technikAbrufenStill(int $auftragId): ?array
+    {
+        $a = Db::one('SELECT technik_blob FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        return $a && !empty($a['technik_blob']) ? self::entschluesseln((string) $a['technik_blob']) : null;
     }
 
     /** DB/FTP an- oder abwaehlen -- wirkt beim naechsten Einrichten oder "Offene Schritte wiederholen". */

@@ -508,6 +508,38 @@
       </div>
     <?php endif; ?>
 
+    <?php /* AUF DIE DOMAIN (26.09.2026): das Paket per FTPS in den Web-Ordner des
+             Kunden-Accounts. Steht nur da, wenn die Domain bei uns liegt; sonst
+             bleibt es beim Herunterladen und Schicken wie bisher. */
+          require_once __DIR__ . '/../src/Veroeffentlichung.php';
+          $vs = sicher(static fn() => Veroeffentlichung::stand((int) $p['id']), null); ?>
+    <?php if ($vs && $vs['auftrag']): ?>
+      <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
+        <b>Auf <?= Fmt::h((string) $vs['auftrag']['domain']) ?> veröffentlichen</b>
+        <?php if (!empty($p['veroeffentlicht_am'])): ?>
+          <span style="color:var(--leise);font-size:12.5px"> — zuletzt <?= Fmt::h(Fmt::zeit((string) $p['veroeffentlicht_am'])) ?></span>
+        <?php endif; ?>
+        <?php if ($vs['bereit']): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="veroeffentlichen">
+            <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+            <?php /* Kein zweites Blau: "Herunterladen" steht schon als Hauptknopf daneben. */ ?>
+            <button class="knopf"><?= empty($p['veroeffentlicht_am']) ? 'Seite veröffentlichen' : 'Neue Fassung veröffentlichen' ?></button>
+            <span style="color:var(--leise);font-size:12.5px;margin-left:8px">„<?= Fmt::h((string) $vs['paket']['orig_name']) ?>“ — was dort liegt, wird vorher gesichert, gelöscht wird nichts.</span>
+          </form>
+        <?php else: ?>
+          <ul style="margin:6px 0 0;padding-left:18px;color:var(--dim);font-size:13px">
+            <?php foreach ($vs['gruende'] as $vg): ?><li><?= Fmt::h($vg) ?></li><?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+        <?php $vSich = sicher(static fn() => Db::all("SELECT * FROM files WHERE project_id = ? AND rolle = 'sicherung' ORDER BY id DESC LIMIT 3", [(int) $p['id']]), []); ?>
+        <?php if ($vSich): ?>
+          <div style="margin-top:8px;font-size:12.5px;color:var(--leise)">Sicherungen:
+            <?php foreach ($vSich as $vS): ?><a href="<?= Fmt::h(url('dateien/' . (int) $vS['id'])) ?>"><?= Fmt::h((string) $vS['orig_name']) ?></a> <?php endforeach; ?></div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
+
     <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data" style="margin-top:14px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_hoch">
       <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">

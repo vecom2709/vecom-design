@@ -1033,6 +1033,15 @@ if ($post) {
                 else { $_SESSION['hosting_technik'] = ['id' => $hid, 'daten' => $t]; }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'veroeffentlichen':
+                /* Die fertige Seite per FTPS auf die Kundendomain -- nur auf
+                   diesen Klick, mit Sicherung vorher (Veroeffentlichung). */
+                require_once __DIR__ . '/src/Veroeffentlichung.php';
+                $vpid = (int) ($_POST['id'] ?? 0);
+                $ve = sicher(static fn() => Veroeffentlichung::veroeffentlichen($vpid), ['ok' => false, 'text' => 'Unerwarteter Fehler beim Veröffentlichen.']);
+                $_SESSION[$ve['ok'] ? 'gut' : 'fehler'] = $ve['text'];
+                zurueck('projekte/' . $vpid);
+
             case 'hosting_registrierung':
                 require_once __DIR__ . '/src/Hosting.php';
                 $hr = Hosting::registrierungNachsehen(null, null, null, (int) ($_POST['id'] ?? 0));

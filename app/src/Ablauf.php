@@ -225,6 +225,10 @@ final class Ablauf
             'Ab jetzt legt die Verwaltung beim KAS wirklich an: Accounts, Domains, Postfächer, Datenbanken. '
             . 'Aufträge, die der Probelauf angehalten hat, starten beim nächsten Cronlauf.',
             'Ja, Probelauf aus'],
+        'veroeffentlichen' => [self::RAUS,
+            'Die fertige Seite geht auf die Domain des Kunden — öffentlich, für jeden sichtbar. '
+            . 'Was dort bisher liegt, wird vorher gesichert; gelöscht wird nichts.',
+            'Ja, veröffentlichen'],
         'hosting_weiter' => [self::SCHWER,
             'Fehlende Teile werden beim Anbieter angelegt (Domain, Postfach). Stand beim Account „unklar“, '
             . 'kann ein zweiter entstehen — vorher in der KAS-Accountliste nachsehen.',

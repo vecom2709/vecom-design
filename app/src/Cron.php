@@ -130,6 +130,11 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::berichteSenden();
             },
+            /* Vier Wochen nach dem Veroeffentlichen: an die Netlify-Vorschau erinnern (nie loeschen). */
+            'netlify'     => static function () {
+                require_once __DIR__ . '/Veroeffentlichung.php';
+                return Veroeffentlichung::netlifyErinnern();
+            },
             /* Neue Domains: Uwe bestellt, dieser Lauf merkt, wenn sie da ist. */
             'registriert' => static function () {
                 require_once __DIR__ . '/Hosting.php';
