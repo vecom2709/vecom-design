@@ -11540,6 +11540,53 @@ pruefe('Verwaltung: Einwilligungs-Link mit QR in der Firmenansicht', str_contain
     && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_einwilligung_link':"));
 
 /* ============================================================================
+   Akquise: Signal-Wecker und Wiedervorlage (26.09.2026)
+   Gemeldet wird eine Veränderung, nie ein Dauerzustand; nichts davon löst
+   einen Versand aus.
+   ============================================================================ */
+abschnitt('Akquise: Signal-Wecker und Wiedervorlage');
+require_once $wurzel . '/src/AkquiseSignal.php';
+$sgA = Akquise::firmaMelden(['name' => 'Pizzeria Segnale', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Favara',
+    'plz' => '92026', 'adresse' => 'Via Signal 3', 'url' => 'https://pizzeria-segnale.example/', 'branche' => 'restaurant', 'quelle' => 'osm:node/9902', 'quelle_lizenz' => 'ODbL']);
+$sgF = (int) $sgA['id'];
+$sgLaden = static fn(): array => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$sgF]);
+$sgZahl = static fn(string $art): int => (int) Db::wert('SELECT COUNT(*) FROM akq_signale WHERE firma_id = ? AND art = ?', [$sgF, $art], 0);
+AkquiseSignal::$holer = static fn(string $u): array => ['ok' => true, 'status' => 200, 'ms' => 300, 'url' => $u, 'ssl_tage' => 60, 'fehler' => '', 'inhalt' => ''];
+pruefe('Signal-Wecker: erster Blick legt nur die Grundlage (kein Signal)', AkquiseSignal::pruefen($sgLaden()) === 0 && (int) $sgLaden()['web_status'] === 200);
+AkquiseSignal::$holer = static fn(string $u): array => ['ok' => false, 'status' => 0, 'ms' => 0, 'url' => $u, 'ssl_tage' => null, 'fehler' => 'netz', 'inhalt' => ''];
+$sgM = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_signal'", [], 0);
+pruefe('Signal-Wecker: war erreichbar, ist es nicht mehr → ein Signal und eine Meldung',
+    AkquiseSignal::pruefen($sgLaden()) === 1 && $sgZahl('offline') === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_signal'", [], 0) === $sgM + 1);
+Db::run('UPDATE akq_firmen SET web_status = 200 WHERE id = ?', [$sgF]);
+pruefe('Signal-Wecker: dasselbe Signal höchstens alle 30 Tage', AkquiseSignal::pruefen($sgLaden()) === 0 && $sgZahl('offline') === 1);
+AkquiseSignal::$holer = static fn(string $u): array => ['ok' => true, 'status' => 200, 'ms' => 300, 'url' => $u, 'ssl_tage' => 9, 'fehler' => '', 'inhalt' => ''];
+pruefe('Signal-Wecker: wieder online wird still vermerkt, Zertifikat in 9 Tagen wird gemeldet',
+    AkquiseSignal::pruefen($sgLaden()) === 1 && $sgZahl('ssl_bald') === 1 && (int) Db::wert("SELECT erledigt FROM akq_signale WHERE firma_id = ? AND art = 'wieder_online'", [$sgF], 0) === 1
+    && (string) $sgLaden()['ssl_bis'] === date('Y-m-d', strtotime('+9 days')));
+Db::run('UPDATE akq_firmen SET signal_geprueft_am = NOW() WHERE id = ?', [$sgF]);
+$sgGeprueft = [];
+AkquiseSignal::$holer = static function (string $u) use (&$sgGeprueft): array { $sgGeprueft[] = $u; return ['ok' => true, 'status' => 200, 'ms' => 1, 'url' => $u, 'ssl_tage' => 90, 'fehler' => '', 'inhalt' => '']; };
+AkquiseSignal::lauf();
+pruefe('Signal-Wecker: je Betrieb höchstens einmal die Woche, je Lauf höchstens ' . AkquiseSignal::JE_LAUF, !in_array('https://pizzeria-segnale.example/', $sgGeprueft, true) && count($sgGeprueft) <= AkquiseSignal::JE_LAUF);
+AkquiseSignal::$holer = null;
+pruefe('Signal erledigen nimmt es aus der Liste', (static function () use ($sgF): bool {
+    $id = (int) Db::wert("SELECT id FROM akq_signale WHERE firma_id = ? AND art = 'ssl_bald'", [$sgF], 0);
+    AkquiseSignal::erledigen($id);
+    return !in_array($id, array_map('intval', array_column(AkquiseSignal::offen(100), 'id')), true);
+})());
+Db::run("UPDATE akq_regeln SET ergebnis = 'REVIEW_REQUIRED' WHERE land = 'IT' AND kanal = 'brief' AND bedingung = 'ohne'");
+AkquiseVersand::vonHand($sgF, 'brief', 'Brief per Post, kein Werbewiderspruch bekannt (Kette)');
+pruefe('Wiedervorlage: nach dem Brief in 5 Tagen vorgemerkt', (string) $sgLaden()['wiedervorlage_am'] === date('Y-m-d', strtotime('+5 days')));
+Db::run('UPDATE akq_firmen SET wiedervorlage_am = ? WHERE id = ?', [date('Y-m-d'), $sgF]);
+$sgW = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_wiedervorlage'", [], 0);
+pruefe('Wiedervorlage: fällig → eine Meldung mit dem Stand, danach abgehakt, kein Versand',
+    AkquiseSignal::wiedervorlagen() >= 1 && $sgLaden()['wiedervorlage_am'] === null
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_wiedervorlage'", [], 0) === $sgW + 1
+    && str_contains(AkquiseSignal::stand($sgLaden()), 'Brief vom') && str_contains(AkquiseSignal::stand($sgLaden()), 'noch nicht geöffnet')
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?", [$sgF], 0) === 1);
+pruefe('Cron: Signal-Wecker und Wiedervorlage laufen mit', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_signale' => static function ()"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

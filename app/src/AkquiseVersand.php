@@ -208,6 +208,8 @@ final class AkquiseVersand
         Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'gesendet', 'kontakt_status' => 'kontaktiert']);
         Akquise::protokoll((int) $f['id'], 'versand', 'Kontakt per E-Mail versendet an ' . $f['email'], ['versand' => $versandId]);
         Events::pruefspur('akquise_versand', 'akq_versand', $versandId, [], ['an' => $f['email'], 'compliance' => $gate['status']]);
+        require_once __DIR__ . '/AkquiseSignal.php';
+        AkquiseSignal::vormerken((int) $f['id'], 'email');
         return $versandId;
     }
 
@@ -239,6 +241,8 @@ final class AkquiseVersand
         Db::update('akq_firmen', $firmaId, ['versand_status' => 'gesendet', 'kontakt_status' => 'kontaktiert']);
         Akquise::protokoll($firmaId, 'versand', 'Von Hand kontaktiert (' . AkquiseGate::KANAELE[$kanal] . ')', ['versand' => $id]);
         Events::pruefspur('akquise_von_hand', 'akq_versand', $id, [], ['kanal' => $kanal, 'begruendung' => $begruendung]);
+        require_once __DIR__ . '/AkquiseSignal.php';
+        AkquiseSignal::vormerken($firmaId, $kanal);
         return $id;
     }
 

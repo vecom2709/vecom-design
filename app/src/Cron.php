@@ -240,6 +240,13 @@ final class Cron
             },
             /* Montags frueh: was die Akquise in der Woche gefunden und bewegt
                hat, als Zuruf aufs Handy (ersetzt den alten Lead-Scout). */
+            /* Signal-Wecker und Wiedervorlage (26.09.2026): je Lauf drei
+               Websites nachsehen (jede höchstens einmal die Woche), fällige
+               Wiedervorlagen als Meldung -- beides löst nie einen Versand aus. */
+            'akquise_signale' => static function () {
+                require_once __DIR__ . '/AkquiseSignal.php';
+                return AkquiseSignal::lauf() + ['wiedervorlagen' => AkquiseSignal::wiedervorlagen()];
+            },
             'akquise_woche' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return Akquise::wochenbericht();

@@ -59,6 +59,13 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
     <span class="akq-ampel <?= Fmt::h($ampel['farbe']) ?>"><i></i><?= Fmt::h($ampel['wort']) ?></span>
     <span class="akq-klein"><?= Fmt::h(implode(' · ', array_filter([(string) $f['stadt'], Akquise::branchenName($f['branche'])]))) ?></span>
   </div>
+  <?php if (!empty($f['wiedervorlage_am'])): ?>
+    <p class="akq-klein" style="margin:8px 0 0">⏰ Wiedervorlage am <?= Fmt::h(date('d.m.Y', strtotime((string) $f['wiedervorlage_am']))) ?> — dann meldet sich der Betrieb mit dem Stand (Analyse-Seite geöffnet? Antwort?).</p>
+  <?php endif; ?>
+  <?php $akqSig = sicher(static fn() => Db::all('SELECT * FROM akq_signale WHERE firma_id = ? AND erledigt = 0 ORDER BY id DESC LIMIT 3', [$fid]), []);
+    foreach ($akqSig as $sg): ?>
+    <div class="hinweis" style="margin:8px 0">⚡ <?= Fmt::h((string) $sg['text']) ?> <span class="akq-klein">(<?= Fmt::h(date('d.m.Y', strtotime((string) $sg['created_at']))) ?>)</span></div>
+  <?php endforeach; ?>
   <?php require_once dirname(__DIR__) . '/src/PartnerRecherche.php'; $akqRes = PartnerRecherche::reserviertVon((int) $f['id']); if ($akqRes): ?>
     <div class="hinweis" style="margin:10px 0">★ Partner <b><?= Fmt::h((string) $akqRes['name']) ?></b> kümmert sich um diesen Betrieb (reserviert bis <?= Fmt::h(date('d.m.Y', strtotime((string) $akqRes['bis']))) ?>). Bis dahin nicht selbst ansprechen — die Versandsperre greift ohnehin.</div>
   <?php endif; ?>

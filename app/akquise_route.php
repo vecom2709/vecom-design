@@ -187,6 +187,11 @@ if ($post) {
                 $_SESSION['gut'] = 'Vorgemerkt. Der Worker prüft die Seite beim nächsten Lauf.';
                 weiter('akquise/' . $fid);
 
+            case 'akq_signal_erledigt':
+                require_once __DIR__ . '/src/AkquiseSignal.php';
+                AkquiseSignal::erledigen((int) ($_POST['signal'] ?? 0));
+                weiter('akquise#signale');
+
             case 'akq_einwilligung_link':
                 $e = AkquiseEinwilligung::link($fid, 'link');
                 $_SESSION['akq_einw_link'][$fid] = AkquiseEinwilligung::adresse($e);
@@ -393,5 +398,6 @@ ansicht('akquise', [
     'wartend' => (int) Db::wert("SELECT COUNT(*) FROM akq_laeufe WHERE status IN ('wartet','laeuft')"),
     'suchen' => Db::all("SELECT gebiet, status FROM akq_laeufe WHERE status IN ('wartet','laeuft') ORDER BY id LIMIT 5"),
     'branchen' => Akquise::branchen(),
+    'signale' => sicher(static function () { require_once __DIR__ . '/src/AkquiseSignal.php'; return AkquiseSignal::offen(); }, []),
 ]);
 exit;

@@ -1,6 +1,6 @@
 <?php
 /** @var array $liste @var array $filter @var array $werte @var array $kz @var array $grenzen @var int $wartend
- *  @var array $suchen @var array $branchen */
+ *  @var array $suchen @var array $branchen @var array $signale */
 /* DIE LISTE (26.09.2026, einfacher gemacht)
    Fuenf Spalten statt sieben, vier Filter sichtbar statt vierzehn, und in
    jeder Zeile genau ein naechster Schritt. Alles andere ist noch da --
@@ -58,6 +58,23 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   <a class="karte" href="<?= Fmt::h($kachel('kontakt', 'antwort')) ?>"><h3>Antworten</h3><div class="wert"><?= (int) ($kz['antworten'] ?? 0) ?></div>
     <div class="neben"><?= (int) ($kz['wartend'] ?? 0) ?> Websites noch ungeprüft</div></a>
 </div>
+
+<?php if (!empty($signale)): /* Signal-Wecker (26.09.2026): gute Anlässe, keine Aufträge -- das Gate gilt weiter. */ ?>
+<div class="block" id="signale">
+  <h2 style="font-size:15px;margin:0 0 8px">Signale — ein guter Anlass</h2>
+  <p class="akq-klein" style="margin:0 0 8px">Websites, die gerade ausgefallen sind oder deren Zertifikat bald abläuft. Ob und wie du den Betrieb ansprechen darfst, zeigt die Firmenseite.</p>
+  <table><tbody>
+    <?php foreach ($signale as $sg): ?>
+      <tr><td style="width:170px"><a href="<?= Fmt::h(url('akquise/' . (int) $sg['firma_id'])) ?>" style="color:var(--cyan)"><?= Fmt::h((string) $sg['name']) ?></a>
+            <div class="akq-klein"><?= Fmt::h((string) ($sg['stadt'] ?? '')) ?></div></td>
+          <td><?= Fmt::h((string) $sg['text']) ?><div class="akq-klein"><?= Fmt::h(date('d.m.Y', strtotime((string) $sg['created_at']))) ?><?= in_array((string) $sg['kontakt_status'], ['kontaktiert', 'geantwortet'], true) ? ' · schon kontaktiert' : '' ?></div></td>
+          <td style="width:90px;text-align:right"><form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="akq_signal_erledigt"><input type="hidden" name="signal" value="<?= (int) $sg['id'] ?>">
+            <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Erledigt</button></form></td></tr>
+    <?php endforeach; ?>
+  </tbody></table>
+</div>
+<?php endif; ?>
 
 <div class="block">
   <form method="get" action="<?= Fmt::h(url('akquise')) ?>">
