@@ -187,6 +187,12 @@ if ($post) {
                 $_SESSION['gut'] = 'Vorgemerkt. Der Worker prüft die Seite beim nächsten Lauf.';
                 weiter('akquise/' . $fid);
 
+            case 'akq_wochenziel':
+                require_once __DIR__ . '/src/AkquiseAuswertung.php';
+                AkquiseAuswertung::wochenzielSetzen((int) ($_POST['ziel'] ?? 0));
+                $_SESSION['gut'] = 'Wochenziel gespeichert.';
+                weiter('akquise/auswertung');
+
             case 'akq_signal_erledigt':
                 require_once __DIR__ . '/src/AkquiseSignal.php';
                 AkquiseSignal::erledigen((int) ($_POST['signal'] ?? 0));
@@ -322,6 +328,15 @@ if ($teil === 'regeln') {
         'heute' => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'gesendet' AND created_at >= CURDATE()"),
         'blockiert' => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'blockiert' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"),
     ]);
+    exit;
+}
+
+if ($teil === 'auswertung' || $teil === 'karte') {
+    require_once __DIR__ . '/src/AkquiseAuswertung.php';
+    if ($teil === 'karte') { ansicht('akquise_karte', ['punkte' => AkquiseAuswertung::kartenpunkte()]); exit; }
+    $nach = in_array($_GET['nach'] ?? '', ['branche', 'kanal', 'variante'], true) ? (string) $_GET['nach'] : 'branche';
+    $tage = in_array((int) ($_GET['tage'] ?? 90), [30, 90, 365], true) ? (int) ($_GET['tage'] ?? 90) : 90;
+    ansicht('akquise_auswertung', ['trichter' => AkquiseAuswertung::trichter($nach, $tage), 'nach' => $nach, 'tage' => $tage, 'woche' => AkquiseAuswertung::woche()]);
     exit;
 }
 

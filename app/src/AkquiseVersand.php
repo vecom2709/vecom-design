@@ -36,7 +36,7 @@ final class AkquiseVersand
      * werden gespeichert (damit man sie bearbeiten kann), aber nie freigegeben.
      */
     public static function vorlageSpeichern(int $firmaId, ?int $auditId, string $sprache, string $kanal,
-                                            string $betreff, string $text, string $von = 'hand', ?int $ersetzt = null): int
+                                            string $betreff, string $text, string $von = 'hand', ?int $ersetzt = null, ?string $variante = null): int
     {
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
         if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
@@ -66,6 +66,8 @@ final class AkquiseVersand
             'pruefhinweise' => $hinweise ? json_encode($hinweise, JSON_UNESCAPED_UNICODE) : null,
             'freigegeben_von' => null, 'freigegeben_am' => null,
         ];
+        // Die Variante gilt für den erzeugten Text; eine Bearbeitung von Hand behält sie.
+        if (in_array($variante, ['A', 'B'], true)) { $daten['variante'] = $variante; }
         if ($ersetzt !== null) {
             $alt = Db::one('SELECT * FROM akq_vorlagen WHERE id = ? AND firma_id = ?', [$ersetzt, $firmaId]);
             if (!$alt) { throw new RuntimeException('Vorlage nicht gefunden.'); }
@@ -101,7 +103,7 @@ final class AkquiseVersand
         if (!$audit || $audit['status'] !== 'fertig') { throw new RuntimeException('Es gibt noch kein fertiges Audit — ohne Befunde kein Text.'); }
         $sprache = $sprache && isset(AkquiseText::SPRACHEN[$sprache]) ? $sprache : AkquiseText::spracheFuer($f);
         $e = AkquiseText::erzeugen($f, $audit, Akquise::befunde((int) $audit['id']), $sprache, $kanal);
-        return self::vorlageSpeichern($firmaId, (int) $audit['id'], $sprache, $kanal, $e['betreff'], $e['text'], 'regel');
+        return self::vorlageSpeichern($firmaId, (int) $audit['id'], $sprache, $kanal, $e['betreff'], $e['text'], 'regel', null, $e['variante'] ?? 'A');
     }
 
     public static function freigeben(int $vorlageId): void

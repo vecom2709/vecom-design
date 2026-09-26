@@ -11531,7 +11531,7 @@ $ewAn = (string) file_get_contents($wurzel . '/../analyse.php');
 $ewEw = (string) file_get_contents($wurzel . '/../einwilligung.php');
 pruefe('Analyse-Seite: Kasten schickt nur an uns (form-action self), Skizze ohne fremde Server, nur mit passendem Branchenbild',
     str_contains($ewAn, 'action="/einwilligung.php"') && str_contains($ewAn, "form-action 'self'") && str_contains($ewAn, "script-src 'self'")
-    && !preg_match('~https?://(?!vecom-design\.it)[a-z0-9.-]+\.[a-z]{2,}/[^"\']*\.(js|css)~i', $ewAn) && str_contains($ewAn, "'hotel' => 'beherbergung'"));
+    && !preg_match('~https?://(?!vecom-design\.it)[a-z0-9.-]+\.[a-z]{2,}/[^"\']*\.(js|css)~i', $ewAn) && str_contains($ewAn, 'AkquiseAnalyse::skizze(') && AkquiseAnalyse::skizze('hotel') === 'beherbergung' && AkquiseAnalyse::skizze('kanzlei') === null);
 pruefe('Einwilligungsseite: Bestätigung erst per Knopf (POST), Datenschutz über Sprache::legal',
     str_contains($ewEw, 'AkquiseEinwilligung::bestaetigen($b)') && str_contains($ewEw, 'if ($post) {') && str_contains($ewEw, "Sprache::legal(\$sprache, 'privacy')"));
 $ewAq = (string) file_get_contents($wurzel . '/src/AkquiseAnalyse.php');
@@ -11585,6 +11585,53 @@ pruefe('Wiedervorlage: fällig → eine Meldung mit dem Stand, danach abgehakt, 
     && str_contains(AkquiseSignal::stand($sgLaden()), 'Brief vom') && str_contains(AkquiseSignal::stand($sgLaden()), 'noch nicht geöffnet')
     && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?", [$sgF], 0) === 1);
 pruefe('Cron: Signal-Wecker und Wiedervorlage laufen mit', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_signale' => static function ()"));
+
+/* ============================================================================
+   Akquise: Text A/B, Trichter & Wochenziel, Karte (26.09.2026)
+   ============================================================================ */
+abschnitt('Akquise: Text A/B, Trichter und Wochenziel, Karte');
+require_once $wurzel . '/src/AkquiseAuswertung.php';
+$abB = null; $abA = null;
+for ($i = 0; $i < 40 && ($abB === null || $abA === null); $i++) {
+    $abF = ['kennung' => 'L-ABTEST' . $i, 'branche' => 'restaurant'] + $akF;
+    $abT = AkquiseText::erzeugen($abF, $akAud, $akBef, 'de', 'brief');
+    if ($abT['variante'] === 'B') { $abB ??= [$abF, $abT]; } else { $abA ??= [$abF, $abT]; }
+}
+pruefe('A/B: Briefe an Branchen mit Skizze werden auf beide Varianten verteilt', $abA !== null && $abB !== null);
+pruefe('A/B: Variante B führt mit der Skizze, nennt genau zwei Befunde, kein doppelter QR-Satz',
+    $abB && str_contains($abB[1]['text'], 'Skizze') && str_contains($abB[1]['text'], "\n1. ") && str_contains($abB[1]['text'], "\n2. ") && !str_contains($abB[1]['text'], "\n3. ")
+    && !str_contains($abB[1]['text'], 'Ihre persönliche Auswertung mit Bildschirmfoto') && count($abB[1]['verwendet']) === 2);
+pruefe('A/B: Variante B besteht die Textprüfung (keine Zahl ohne Beleg, Widerspruchshinweis da)',
+    $abB && AkquiseText::pruefen($abB[1]['betreff'], $abB[1]['text'], 'de', $akBef, 'brief', $abB[0]) === [],
+    $abB ? json_encode(AkquiseText::pruefen($abB[1]['betreff'], $abB[1]['text'], 'de', $akBef, 'brief', $abB[0]), JSON_UNESCAPED_UNICODE) : '');
+pruefe('A/B: dieselbe Firma bekommt immer dieselbe Variante; E-Mail und Branchen ohne Bild immer A',
+    $abB && AkquiseText::erzeugen($abB[0], $akAud, $akBef, 'it', 'brief')['variante'] === 'B'
+    && AkquiseText::erzeugen($abB[0], $akAud, $akBef, 'de', 'email')['variante'] === 'A'
+    && AkquiseText::erzeugen(['branche' => 'kanzlei'] + $abB[0], $akAud, $akBef, 'de', 'brief')['variante'] === 'A');
+foreach (['it', 'en'] as $abL) {
+    $abX = AkquiseText::erzeugen($abB[0], $akAud, $akBef, $abL, 'brief');
+    pruefe('A/B: Variante B auch auf ' . strtoupper($abL) . ' ohne Beanstandung', AkquiseText::pruefen($abX['betreff'], $abX['text'], $abL, $akBef, 'brief', $abB[0]) === []);
+}
+pruefe('A/B: die Variante wird an der Vorlage gespeichert', str_contains((string) file_get_contents($wurzel . '/src/AkquiseVersand.php'), "\$daten['variante'] = \$variante"));
+$abTr = AkquiseAuswertung::trichter('branche', 365);
+$abSum = AkquiseAuswertung::summe($abTr);
+pruefe('Trichter: jede Stufe höchstens so groß wie die davor (je Betrieb gezählt)',
+    $abSum['gefunden'] >= $abSum['geprueft'] && $abSum['geprueft'] >= $abSum['angesprochen'] && $abSum['angesprochen'] >= $abSum['geoeffnet']
+    && $abSum['angesprochen'] >= $abSum['antwort'] && $abSum['antwort'] >= $abSum['interesse'] && $abSum['angesprochen'] > 0, json_encode($abSum));
+$abKanal = AkquiseAuswertung::summe(AkquiseAuswertung::trichter('kanal', 365));
+pruefe('Trichter nach Kanal zählt nur Angesprochene', $abKanal['gefunden'] === $abKanal['angesprochen'] && $abKanal['angesprochen'] === $abSum['angesprochen'], json_encode($abKanal));
+AkquiseAuswertung::wochenzielSetzen(0);
+$abW = AkquiseAuswertung::woche();
+pruefe('Wochenziel: mindestens 1, Woche beginnt montags, zählt Betriebe je Tag',
+    AkquiseAuswertung::wochenziel() === 1 && count($abW['tage']) === 7 && date('N', strtotime($abW['montag'])) === '1' && $abW['erreicht'] >= 1);
+AkquiseAuswertung::wochenzielSetzen(15);
+Db::run('UPDATE akq_firmen SET lat = 37.31, lon = 13.58 WHERE id = ?', [(int) $akA['id']]);
+$abK = AkquiseAuswertung::kartenpunkte();
+pruefe('Karte: Punkte ohne Telefon/E-Mail, mit Farbe und Link-Kennung',
+    $abK && !preg_match('~0922|@~', json_encode($abK)) && in_array($abK[0]['f'], ['gruen', 'gelb', 'grau', 'rot', 'blau'], true) && isset($abK[0]['id'], $abK[0]['la']));
+pruefe('Karte: Leaflet liegt bei uns (BSD-2 mitgeliefert), nur die Kacheln von OpenStreetMap',
+    is_file($wurzel . '/../assets/vendor/leaflet/leaflet.js') && is_file($wurzel . '/../assets/vendor/leaflet/LICENSE')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_karte.php'), 'src="/assets/vendor/leaflet/leaflet.js"'));
 
 /* ============================================================================
    Aufräumen und Bilanz

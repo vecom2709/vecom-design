@@ -72,15 +72,7 @@ $T = [
              'cta1' => 'Request a free project call', 'cta2' => 'Work out your needs in 2 minutes', 'foto' => 'This is how your home page looks on a smartphone (at the time of the check).',
              'hinweis' => 'This page is only reachable via your personal link and is not listed in search engines.'],
 ][$s] ?? [];
-/* Branche aus der Recherche → Skizze der Startseite (vorschau.js). Ohne
-   passendes Bild keine Skizze: Ein Restaurantfoto über einer Kanzlei wäre
-   schlechter als gar keins. */
-$skizzeBranche = [
-    'restaurant' => 'restaurant', 'bar_cafe' => 'restaurant', 'baeckerei' => 'restaurant',
-    'hotel' => 'beherbergung', 'ferienwohnung' => 'beherbergung', 'agriturismo' => 'beherbergung', 'tourismus' => 'beherbergung',
-    'bau' => 'immobilien', 'immobilien' => 'immobilien', 'autohaus' => 'autohaus', 'werkstatt' => 'autohaus',
-    'friseur' => 'friseur', 'beauty' => 'friseur', 'einzelhandel' => 'mode',
-][(string) ($f['branche'] ?? '')] ?? null;
+$skizzeBranche = AkquiseAnalyse::skizze((string) ($f['branche'] ?? ''));
 $einwilligungDa = trim((string) ($f['einwilligung'] ?? '')) !== '';
 $einwWortlaut = AkquiseEinwilligung::wortlaut($s);
 $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' — ' . $f['name']);

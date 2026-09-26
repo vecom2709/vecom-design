@@ -52,6 +52,23 @@ final class AkquiseAnalyse
         Events::pruefspur($an ? 'akquise_analyse_an' : 'akquise_analyse_aus', 'akq_analysen', $analyseId);
     }
 
+    /**
+     * Branche aus der Recherche → Skizze der Startseite (vorschau.js). Ohne
+     * passendes Bild keine Skizze: Ein Restaurantfoto über einer Kanzlei wäre
+     * schlechter als gar keins. Eine Stelle für Analyse-Seite und Text B.
+     */
+    public const SKIZZE = [
+        'restaurant' => 'restaurant', 'bar_cafe' => 'restaurant', 'baeckerei' => 'restaurant',
+        'hotel' => 'beherbergung', 'ferienwohnung' => 'beherbergung', 'agriturismo' => 'beherbergung', 'tourismus' => 'beherbergung',
+        'bau' => 'immobilien', 'immobilien' => 'immobilien', 'autohaus' => 'autohaus', 'werkstatt' => 'autohaus',
+        'friseur' => 'friseur', 'beauty' => 'friseur', 'einzelhandel' => 'mode',
+    ];
+
+    public static function skizze(?string $branche): ?string
+    {
+        return self::SKIZZE[(string) $branche] ?? null;
+    }
+
     public static function adresse(array $x): string
     {
         return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/analyse.php?t=' . $x['token'];

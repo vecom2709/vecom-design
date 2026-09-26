@@ -282,7 +282,16 @@ final class AkquiseText
             $hb = in_array((string) $b['code'], self::HART, true) ? 1 : 0;
             return $ha !== $hb ? $hb <=> $ha : ((int) $b['schwere'] <=> (int) $a['schwere']);
         });
-        $wahl = array_slice($belegt, 0, 3);
+        /* A/B (26.09.2026, Uwe: Ja): Variante B führt mit der Skizze der neuen
+           Startseite statt mit der Mängelliste -- nur im Brief (der QR-Code
+           führt zur Analyse-Seite mit der Skizze) und nur, wenn es für die
+           Branche ein passendes Bild gibt. Hälftig nach Kennung verteilt,
+           damit dieselbe Firma immer dieselbe Variante bekommt. */
+        require_once __DIR__ . '/AkquiseAnalyse.php';
+        $variante = ($kanal === 'brief' && AkquiseAnalyse::skizze((string) ($f['branche'] ?? '')) !== null
+                     && crc32('ab|' . (string) ($f['kennung'] ?? $f['id'] ?? '')) % 2 === 1) ? 'B' : 'A';
+        if ($variante === 'B' && count($belegt) < 2) { $variante = 'A'; }   // „Zwei Dinge …“ braucht zwei Befunde
+        $wahl = array_slice($belegt, 0, $variante === 'B' ? 2 : 3);
         if (!$wahl) {
             throw new RuntimeException('Es gibt keinen belegten Befund, zu dem sich ein ehrlicher Satz schreiben lässt. '
                 . 'Ohne konkrete Beobachtung keine Ansprache.');
@@ -329,6 +338,7 @@ final class AkquiseText
                 "ich bin {$abs['inhaber']} von {$abs['firma']}. Beim Durchsehen von Websites " . ($stadt !== '' ? "aus {$stadt} " : '') . "bin ich auf {$domain} gestoßen – und ein paar Dinge sind mir konkret aufgefallen.",
                 "ich schreibe Ihnen, weil mir bei einem Blick auf {$domain} " . ($n === 1 ? 'etwas aufgefallen ist, das sich' : 'einige Punkte aufgefallen sind, die sich') . " mit überschaubarem Aufwand verbessern ließen. Kurz zu mir: {$abs['inhaber']}, {$abs['firma']}.",
             ]) . "\n\n";
+            if ($variante === 'B') { $betreff = "Eine Skizze für {$name}"; $t .= "Statt nur aufzuzählen, was fehlt, habe ich etwas vorbereitet: eine Skizze, wie die Startseite von {$name} aussehen könnte – mit Ihrem Namen, auf Laptop und Handy. Sie finden sie zusammen mit Ihrer Auswertung über den QR-Code unten, ohne Anmeldung.\n\nZwei Dinge sind mir auf Ihrer jetzigen Seite aufgefallen:\n\n"; }
             foreach ($zeilen as $i => $z) {
                 $t .= ($n > 1 ? ($i + 1) . '. ' : '') . $z['beob'] . ' ' . $z['wirk'] . "\n\n";
             }
@@ -336,7 +346,7 @@ final class AkquiseText
             if ($expIdee !== '') { $t .= "Und falls Sie Lust auf mehr haben: {$expIdee}\n\n"; }
             $t .= "Solche Lösungen entwickeln wir bei {$abs['firma']}. Was wir für Unternehmenswebsites umsetzen, sehen Sie unter {$link}";
             $t .= $mitKonfigurator ? "\nWenn Sie mögen, zeigt Ihnen unser Bedarfsrechner in zwei Minuten und unverbindlich, was für Sie sinnvoll wäre: {$bedarf}\n\n" : "\n\n";
-            if ($brief) { $t .= "Ihre persönliche Auswertung mit Bildschirmfoto finden Sie über den QR-Code unten – ohne Anmeldung, nur für Sie.\n\n"; }
+            if ($brief && $variante === 'A') { $t .= "Ihre persönliche Auswertung mit Bildschirmfoto finden Sie über den QR-Code unten – ohne Anmeldung, nur für Sie.\n\n"; }
             $t .= $v(['Gern schicke ich Ihnen die Beobachtungen auch ausführlicher, mit Screenshots.', 'Wenn es Sie interessiert, gehe ich die Punkte gern in einem kurzen Gespräch mit Ihnen durch.']) . "\n\n";
             $t .= "Viele Grüße\n{$abs['inhaber']}\n{$abs['firma']} · {$abs['ort']}\n{$abs['email']}" . ($abs['telefon'] !== '' ? " · {$abs['telefon']}" : '') . "\n{$link}\n\n";
             $t .= '— Ihre Kontaktdaten stammen aus öffentlich zugänglichen Quellen (Ihre Website bzw. OpenStreetMap). '
@@ -351,6 +361,7 @@ final class AkquiseText
                 "sono {$abs['inhaber']} di {$abs['firma']}. Guardando alcuni siti " . ($stadt !== '' ? "di {$stadt} " : '') . "sono arrivato a {$domain} e ho notato alcune cose concrete.",
                 "vi scrivo perché, guardando {$domain}, " . ($n === 1 ? 'ho notato un aspetto che si potrebbe migliorare' : 'ho notato alcuni aspetti che si potrebbero migliorare') . " senza grandi interventi. Mi presento: {$abs['inhaber']}, {$abs['firma']}.",
             ]) . "\n\n";
+            if ($variante === 'B') { $betreff = "Una bozza per {$name}"; $t .= "Invece di elencare solo cosa manca, ho preparato qualcosa: una bozza di come potrebbe apparire la home page di {$name} – con il vostro nome, su computer e telefono. La trovate insieme alla vostra analisi tramite il codice QR qui sotto, senza registrazione.\n\nSul sito attuale ho notato due cose:\n\n"; }
             foreach ($zeilen as $i => $z) {
                 $t .= ($n > 1 ? ($i + 1) . '. ' : '') . $z['beob'] . ' ' . $z['wirk'] . "\n\n";
             }
@@ -358,7 +369,7 @@ final class AkquiseText
             if ($expIdee !== '') { $t .= "E se aveste voglia di qualcosa in più: {$expIdee}\n\n"; }
             $t .= "Sono soluzioni che sviluppiamo in {$abs['firma']}. Cosa realizziamo per i siti aziendali lo trovate su {$link}";
             $t .= $mitKonfigurator ? "\nSe vi va, il nostro calcolatore vi mostra in due minuti, senza impegno, cosa avrebbe senso per voi: {$bedarf}\n\n" : "\n\n";
-            if ($brief) { $t .= "La vostra analisi personale, con lo screenshot del sito, è raggiungibile dal codice QR qui sotto: senza registrazione, solo per voi.\n\n"; }
+            if ($brief && $variante === 'A') { $t .= "La vostra analisi personale, con lo screenshot del sito, è raggiungibile dal codice QR qui sotto: senza registrazione, solo per voi.\n\n"; }
             $t .= $v(['Se vi interessa, vi mando volentieri le osservazioni in modo più dettagliato, con gli screenshot.', 'Se vi fa piacere, possiamo vedere insieme questi punti in una breve telefonata.']) . "\n\n";
             $t .= "Cordiali saluti\n{$abs['inhaber']}\n{$abs['firma']} · {$abs['ort']}\n{$abs['email']}" . ($abs['telefon'] !== '' ? " · {$abs['telefon']}" : '') . "\n{$link}\n\n";
             $t .= '— I vostri recapiti provengono da fonti pubblicamente accessibili (il vostro sito o OpenStreetMap). '
@@ -373,6 +384,7 @@ final class AkquiseText
                 "I am {$abs['inhaber']} from {$abs['firma']}. While looking at websites " . ($stadt !== '' ? "in {$stadt} " : '') . "I came across {$domain} and noticed a few concrete things.",
                 "I am writing because, looking at {$domain}, I noticed " . ($n === 1 ? 'something that could be improved' : 'a few points that could be improved') . " without much effort. About me: {$abs['inhaber']}, {$abs['firma']}.",
             ]) . "\n\n";
+            if ($variante === 'B') { $betreff = "A sketch for {$name}"; $t .= "Rather than just listing what is missing, I have prepared something: a sketch of how the {$name} home page could look – with your name, on laptop and phone. You will find it together with your analysis via the QR code below, no sign-up needed.\n\nTwo things stood out on your current site:\n\n"; }
             foreach ($zeilen as $i => $z) {
                 $t .= ($n > 1 ? ($i + 1) . '. ' : '') . $z['beob'] . ' ' . $z['wirk'] . "\n\n";
             }
@@ -380,14 +392,14 @@ final class AkquiseText
             if ($expIdee !== '') { $t .= "And if you fancy something more: {$expIdee}\n\n"; }
             $t .= "These are the kind of solutions we build at {$abs['firma']}. You can see what we do for business websites at {$link}";
             $t .= $mitKonfigurator ? "\nIf you like, our needs calculator shows you in two minutes, with no obligation, what would make sense for you: {$bedarf}\n\n" : "\n\n";
-            if ($brief) { $t .= "Your personal analysis with a screenshot of your site is available via the QR code below – no sign-up, just for you.\n\n"; }
+            if ($brief && $variante === 'A') { $t .= "Your personal analysis with a screenshot of your site is available via the QR code below – no sign-up, just for you.\n\n"; }
             $t .= $v(['I am happy to send you the observations in more detail, with screenshots.', 'If you are interested, I would be glad to walk you through the points in a short call.']) . "\n\n";
             $t .= "Kind regards\n{$abs['inhaber']}\n{$abs['firma']} · {$abs['ort']}\n{$abs['email']}" . ($abs['telefon'] !== '' ? " · {$abs['telefon']}" : '') . "\n{$link}\n\n";
             $t .= '— Your contact details come from publicly accessible sources (your website or OpenStreetMap). '
                 . ($brief ? 'If you would rather not hear from us again, a short message to ' . $abs['email'] . ' is enough and we will not write again.'
                           : 'If you would rather not hear from us again, a short reply is enough and we will not write again.');
         }
-        return ['betreff' => $betreff, 'text' => $t, 'verwendet' => array_map(static fn($b) => (string) $b['code'], $wahl)];
+        return ['betreff' => $betreff, 'text' => $t, 'verwendet' => array_map(static fn($b) => (string) $b['code'], $wahl), 'variante' => $variante];
     }
 
     /**
