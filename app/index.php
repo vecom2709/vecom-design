@@ -481,6 +481,7 @@ if ($post) {
                 $_SESSION[$r === 'zugeordnet' ? 'gut' : 'fehler'] = [
                     'zugeordnet' => 'Kunde zugeordnet. Künftige Zahlungen bringen diesem Partner Provision.',
                     'schon' => 'Der Kunde gehört schon zu einem Partner — es wird nicht umgehängt.',
+                    'schon_kunde' => 'Der Kunde hat schon vorher gekauft.',
                     'selbst' => 'Das ist der Partner selbst — eigene Käufe bringen keine Provision.',
                     'empfehlung' => 'Der Kunde kam über eine Kundenempfehlung (Rabatt) — nicht zusätzlich einem Partner.',
                     'kein_partner' => 'Der Partner ist nicht aktiv.'][$r] ?? 'Nicht zugeordnet.';

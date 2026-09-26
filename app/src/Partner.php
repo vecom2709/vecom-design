@@ -416,6 +416,14 @@ final class Partner
             Events::protokoll('partner_selbst', 'Partnercode beim eigenen Kauf — nicht zugeordnet', $kundeId, null, null, ['partner_id' => $partnerId]);
             return 'selbst';
         }
+        /* „Wer bereits Kunde ist … wird nicht umgehängt“ (Vereinbarung, Punkt 1):
+           Hat er schon etwas gekauft, bevor er über den Link kam, verdient der
+           Partner an ihm nichts. Von Hand (Uwe) geht es trotzdem. */
+        if ($quelle !== 'hand') {
+            $schonKunde = (int) Db::wert("SELECT (SELECT COUNT(*) FROM orders WHERE customer_id = ? AND status NOT IN ('storniert','abgebrochen'))
+                                             + (SELECT COUNT(*) FROM abos WHERE customer_id = ?)", [$kundeId, $kundeId], 0);
+            if ($schonKunde > 0) { return 'schon_kunde'; }
+        }
         $empf = (int) self::still(static fn() => Db::wert(
             'SELECT COUNT(*) FROM empfehlungen WHERE geworbener_id = ? AND empfehler_id IS NOT NULL
                 AND status <> \'verfallen\'', [$kundeId], 0), 0);

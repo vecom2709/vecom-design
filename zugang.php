@@ -72,7 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ergebnis = 'gesendet';
     try {
         Einrichtung_sicher();
-        $r = Zugang::anfordern($email, $sprache, ['quelle' => Zugang::quelle((string) ($_POST['quelle'] ?? 'seite')), 'empfehl_code' => $code]);
+        /* Der Partnercode aus dem Besuchs-Keks (/p/CODE) reist mit dem Zugang,
+           damit er auch zählt, wenn der Link auf einem anderen Gerät geöffnet wird. */
+        $r = Zugang::anfordern($email, $sprache, ['quelle' => Zugang::quelle((string) ($_POST['quelle'] ?? 'seite')), 'empfehl_code' => $code,
+            'partner_code' => (string) ($_COOKIE['vecompartner'] ?? '')]);
         if (!$r['ok']) { $ergebnis = 'ungueltig'; }
         /* Ob die Mail wirklich rausging, steht in der Verwaltung (Mails,
            Meldungen). Hier NICHT: Ein anderer Satz bei einer Bestandsadresse

@@ -9956,6 +9956,34 @@ pruefe('Code: nach dem Ändern führt der neue Link hin, der alte nicht mehr',
 pruefe('Code: Ändern fragt vorher nach', Ablauf::wiegt('partner_code') === Ablauf::SCHWER);
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 
+/* Wirklich getrackt? (26.09.2026, Uwe: „prüfe, ob wirklich ein Kauf getrackt wird“)
+   Der Hauptweg der Startseite ist E-Mail → Link → Dashboard, dazu das
+   Anfrageformular. Auf beiden ging der Partner bis heute verloren. */
+abschnitt('Partner: auch über E-Mail-Einstieg und Formular');
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+require_once $wurzel . '/src/Zugang.php';
+$ztP = Partner::anlegen(['name' => 'Zugang Partner', 'email' => 'zp@partner.example', 'status' => 'aktiv', 'code' => 'ZUGANGP']);
+Zugang::anfordern('zugang-partner@esempio.example', 'it', ['quelle' => 'seite', 'partner_code' => 'zugangp']);
+pruefe('E-Mail-Einstieg: der Partnercode steht am Zugang',
+    Db::wert("SELECT partner_code FROM zugaenge WHERE email = 'zugang-partner@esempio.example'", [], '') === 'ZUGANGP');
+unset($_COOKIE[Partner::KEKS]);                      // anderes Gerät: kein Keks
+$ztO = Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'zugang-partner@esempio.example'", [], ''));
+pruefe('E-Mail-Einstieg: beim Öffnen auf einem anderen Gerät wird der Partner zugeordnet',
+    !empty($ztO['ok']) && (int) Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [(int) $ztO['kunde_id']], 0) === $ztP);
+Zugang::anfordern('ohne-partner@esempio.example', 'it', ['quelle' => 'seite']);
+$ztO2 = Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'ohne-partner@esempio.example'", [], ''));
+pruefe('E-Mail-Einstieg: ohne Partnerlink keine Zuordnung',
+    (int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE customer_id = ?', [(int) $ztO2['kunde_id']], 0) === 0);
+$ztForm = (string) file_get_contents($wurzel . '/../formular.php');
+pruefe('Anfrageformular: ordnet über den Besuch zu', str_contains($ztForm, 'Partner::ausBesuch($kundeId)'));
+$ztZug = (string) file_get_contents($wurzel . '/../zugang.php');
+pruefe('E-Mail-Einstieg: zugang.php gibt den Code aus dem Keks weiter', str_contains($ztZug, "'partner_code' => (string) (\$_COOKIE['vecompartner']"));
+$ztAlt = Events::kundeFinden(['name' => 'Schon Kunde', 'email' => 'schon-kunde@esempio.example']);
+Events::bestellungAnlegen($ztAlt, Angebot::internesPaket(), 'früher gekauft', 50000);
+pruefe('Wer schon gekauft hat, wird über den Link nicht mehr zugeordnet (Vereinbarung Punkt 1)', Partner::zuordnen($ztAlt, $ztP, 'link') === 'schon_kunde');
+pruefe('… von Hand durch Uwe aber schon', Partner::zuordnen($ztAlt, $ztP, 'hand') === 'zugeordnet');
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

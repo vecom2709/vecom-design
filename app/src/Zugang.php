@@ -118,11 +118,16 @@ final class Zugang
                 'quelle'       => self::quelle($extra['quelle'] ?? 'seite'),
                 'bedarf_id'    => isset($extra['bedarf_id']) ? (int) $extra['bedarf_id'] : null,
                 'empfehl_code' => preg_match('/^[A-Z0-9]{5,16}$/', $code) ? $code : null,
+                'partner_code' => self::partnerCode($extra),
             ]);
             $z = (array) Db::one('SELECT * FROM zugaenge WHERE id = ?', [$id]);
-        } elseif ((string) $z['sprache'] !== $sprache) {
+        } else {
+            $aend = [];
             // Die Sprache der letzten Anforderung gilt: Er liest gerade in ihr.
-            Db::update('zugaenge', (int) $z['id'], ['sprache' => $sprache]);
+            if ((string) $z['sprache'] !== $sprache) { $aend['sprache'] = $sprache; }
+            // Kam er beim zweiten Mal über einen Partner, und beim ersten nicht: jetzt merken.
+            if (($z['partner_code'] ?? null) === null && ($pc = self::partnerCode($extra)) !== null) { $aend['partner_code'] = $pc; }
+            if ($aend) { Db::update('zugaenge', (int) $z['id'], $aend); }
         }
 
         $ok = self::willkommenSenden($z, $sprache);
@@ -141,6 +146,13 @@ final class Zugang
     }
 
     /** Die Adresse, die in der Mail steht. */
+    /** Ein gültiger Partnercode aus dem Aufruf — sonst null. */
+    private static function partnerCode(array $extra): ?string
+    {
+        $pc = strtoupper(trim((string) ($extra['partner_code'] ?? '')));
+        return preg_match('/^[A-Z0-9]{5,16}$/', $pc) ? $pc : null;
+    }
+
     public static function link(string $token, string $sprache): string
     {
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
@@ -203,6 +215,15 @@ final class Zugang
                 [$kid, (string) $z['email'], (int) $z['bedarf_id']]);
         }
         self::bedarfFuerKunde($kid, $sprache, (string) ($z['empfehl_code'] ?? ''));
+
+        /* Der Partner, über den er die Adresse eingetragen hat (Code am Zugang)
+           — oder, wenn er im selben Browser öffnet, der aus dem Besuch. */
+        try {
+            require_once __DIR__ . '/Partner.php';
+            $pz = ($z['partner_code'] ?? '') !== '' ? Partner::ausCode((string) $z['partner_code']) : null;
+            if ($pz !== null) { Partner::zuordnen($kid, (int) $pz['id'], 'link'); }
+            else { Partner::ausBesuch($kid); }
+        } catch (Throwable $e) { /* nachtragbar: von Hand zuordnen */ }
 
         Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
         Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',

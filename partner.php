@@ -148,7 +148,7 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
   .pt .kopie input{flex:1;min-width:0}
   .pt table{width:100%;border-collapse:collapse;font-size:14px}
   .pt td,.pt th{padding:8px 6px;border-bottom:1px solid var(--linie);text-align:left}
-  .pt td.r,.pt th.r{text-align:right}
+  .pt td.r,.pt th.r{text-align:right;white-space:nowrap}
   .pt pre{white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.6;color:var(--dim);margin:8px 0 0}
   .pt .wabe{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
   @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}}

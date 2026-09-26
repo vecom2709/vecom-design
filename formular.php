@@ -121,6 +121,11 @@ if (!is_file(__DIR__ . '/app/config.local.php')) {
         if ($gespeichert) {
             $kundeId = Db::wert('SELECT customer_id FROM anfragen WHERE id = ?', [$anfrageId], null);
             $kundeId = $kundeId !== null ? (int) $kundeId : null;
+            // Kam er über einen Partnerlink? Dann gehört er ab jetzt zu diesem Partner (wirft nie).
+            if ($kundeId !== null) {
+                require_once __DIR__ . '/app/src/Partner.php';
+                Partner::ausBesuch($kundeId);
+            }
         }
     } catch (Throwable $e) {
         $pannen[] = 'verwaltung: ' . $e->getMessage();
