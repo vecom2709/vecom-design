@@ -9193,6 +9193,45 @@ pruefe('Veröffentlichen: fragt vorher, und Website-Aufträge bekommen den FTP-Z
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Veroeffentlichung::netlifyErinnern()'));
 
 /* ============================================================================
+   85. Uwes Fund vom 26.09.2026 -- Umzug ohne Hosting, rote Passwortmeldung,
+   Domain anbieten bei .it
+   ============================================================================ */
+abschnitt('85. E-Mail-Umzug nur mit Hosting, Domain anbieten');
+require_once $wurzel . '/src/Mailumzug.php';
+$fuK = Events::kundeFinden(['name' => 'Manuel Probe', 'email' => 'manuel@pruefung.example']);
+$fuFehler = '';
+try { Mailumzug::anfragen($fuK, 'manuel.alt@gmail.com', 'info@brandy-probe.com'); } catch (Throwable $e) { $fuFehler = $e->getMessage(); }
+pruefe('Umzug: ohne zugestimmtes Hosting lässt er sich nicht anfragen -- der Kunde sieht keine Aufforderung zu einem Vertrag, den er nie schloss',
+    str_contains($fuFehler, 'zugestimmt') && (int) Db::wert('SELECT COUNT(*) FROM mailumzuege WHERE customer_id = ?', [$fuK], 0) === 0);
+$fuH = (int) Db::insert('hosting_auftraege', ['customer_id' => $fuK, 'domain' => 'brandy-probe.com', 'status' => 'vorgeschlagen',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom']);
+$fuFehler = '';
+try { Mailumzug::anfragen($fuK, 'manuel.alt@gmail.com', 'info@brandy-probe.com'); } catch (Throwable $e) { $fuFehler = $e->getMessage(); }
+pruefe('Umzug: ein nur VORGESCHLAGENES Hosting reicht nicht', $fuFehler !== '');
+Db::run("UPDATE hosting_auftraege SET status = 'zugestimmt' WHERE id = ?", [$fuH]);
+$fuU = Mailumzug::anfragen($fuK, 'manuel.alt@gmail.com', 'info@brandy-probe.com');
+pruefe('Umzug: nach der Zustimmung lässt er sich anfragen', $fuU > 0);
+$fuW = Mailumzug::zugangSpeichern($fuU, $fuK, ['alt_pass' => 'Alt-1', 'neu_pass' => 'Neu-2', 'alt_server' => '93.184.216.34'], 'de');
+pruefe('Umzug: gibt es das neue Postfach noch nicht, heißt es das -- nicht "Es braucht die Passwörter beider Postfächer"',
+    $fuW === 'ziel_fehlt' && trim((string) (Texte::KUNDE['mailumzugWartet']['de'] ?? '')) !== '');
+Db::run("UPDATE hosting_auftraege SET status = 'angelegt', kas_login = 'w0177711' WHERE id = ?", [$fuH]);
+$fuRef = new ReflectionMethod('Hosting', 'verschluesseln'); $fuRef->setAccessible(true);
+Db::run('UPDATE hosting_auftraege SET zugang_blob = ? WHERE id = ?',
+    [$fuRef->invoke(null, ['postfach' => 'info@brandy-probe.com', 'postfach_passwort' => 'Vecom-kennt-es-1!']), $fuH]);
+$fuZ = Mailumzug::ziel($fuK, 'info@brandy-probe.com');
+pruefe('Umzug: kennt Vecom das Passwort des neuen Postfachs, wird der Kunde nicht danach gefragt',
+    $fuZ['bereit'] && $fuZ['passwort'] === 'Vecom-kennt-es-1!' && $fuZ['server'] === 'w0177711.kasserver.com');
+Mailumzug::$hostErlaubt = static fn(string $h): bool => true;
+$fuW2 = Mailumzug::zugangSpeichern($fuU, $fuK, ['alt_pass' => 'Alt-1'], 'de');
+pruefe('Umzug: dann genügt das alte Passwort', $fuW2 === 'ok', $fuW2);
+Mailumzug::$hostErlaubt = null;
+$fuQ = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Domain anbieten: vergeben nie, unklar nur mit "Selbst geprüft", ein offenes Angebot lässt sich ersetzen',
+    str_contains($fuQ, "if ((string) \$hp['stand'] === 'vergeben')") && str_contains($fuQ, "!empty(\$_POST['selbst_geprueft'])")
+    && str_contains($fuQ, "(string) \$hAlt['status'] !== 'vorgeschlagen'"));
+pruefe('Domainprüfung: der Test läuft Stufe für Stufe und nennt jede', method_exists('Domainpruefung', 'diagnose'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

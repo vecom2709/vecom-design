@@ -1077,6 +1077,9 @@ final class Texte
         'mailumzugFertig'  => ['it' => 'Fatto: {kopiert} e-mail sono nella nuova casella. Fino al {datum} riprendiamo anche quelle nuove.', 'de' => 'Fertig: {kopiert} E-Mails sind im neuen Postfach. Bis zum {datum} holen wir auch neu eingehende nach.', 'en' => 'Done: {kopiert} emails are in the new mailbox. Until {datum} we also pick up newly arriving ones.'],
         'mailumzugFehler'  => ['it' => 'Non ha funzionato: {fehler} Controlli i dati e riprovi.', 'de' => 'Das hat nicht geklappt: {fehler} Bitte die Angaben prüfen und noch einmal.', 'en' => 'That did not work: {fehler} Please check the details and try again.'],
         'mailumzugFehlt'   => ['it' => 'Servono le password di entrambe le caselle.', 'de' => 'Es braucht die Passwörter beider Postfächer.', 'en' => 'Both mailbox passwords are needed.'],
+        /* 26.09.2026: Das neue Postfach gibt es noch nicht -- dann keine Passwortabfrage. */
+        'mailumzugWartet'  => ['it' => 'La nuova casella non esiste ancora — il trasferimento parte appena è attiva.', 'de' => 'Das neue Postfach gibt es noch nicht — der Umzug startet, sobald es eingerichtet ist.', 'en' => 'The new mailbox doesn’t exist yet — the move starts as soon as it is set up.'],
+        'mailumzugWartetText' => ['it' => 'Appena la casella {neu} è pronta, qui potrà avviare il trasferimento. Le scriviamo noi.', 'de' => 'Sobald das Postfach {neu} eingerichtet ist, können Sie hier den Umzug starten. Wir sagen Ihnen Bescheid.', 'en' => 'As soon as the mailbox {neu} is set up, you can start the move here. We’ll let you know.'],
         'mailumzugDa'      => ['it' => 'Grazie — il trasferimento parte a minuti.', 'de' => 'Danke — der Umzug startet in den nächsten Minuten.', 'en' => 'Thank you — the move starts within minutes.'],
         /* Phase 6c: 1:1-Umzug der Website auf der Kundenseite. seitenumzugZustimmung
            ist der Wortlaut, der gespeichert wird -- aendern heisst FASSUNG hochzaehlen. */

@@ -107,6 +107,27 @@
       ['imap', extension_loaded('imap'), 'nicht nötig — der E-Mail-Umzug spricht IMAP selbst'],
   ];
 ?>
+<?php $ddiag = $_SESSION['domain_diagnose'] ?? null; unset($_SESSION['domain_diagnose']); ?>
+<div class="block"><h2>Domainprüfung testen</h2>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:10px">
+    Prüft auf diesem Server je eine vergebene und eine sicher freie Domain (.it und .com), Stufe für Stufe.
+    .it hat keinen RDAP-Dienst — ohne WHOIS (Port 43) lässt sich eine freie .it-Domain hier nie bestätigen.</p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="domainpruefung_testen">
+    <button class="knopf">Jetzt testen</button></form>
+  <?php if (is_array($ddiag)): ?>
+    <table class="schlicht" style="margin-top:10px"><thead><tr><th>Domain</th><th>RDAP</th><th>WHOIS</th><th>DNS</th><th>Zeit</th></tr></thead><tbody>
+      <?php foreach ($ddiag as $dz): ?>
+        <tr><td><code><?= Fmt::h($dz['domain']) ?></code></td><td><?= Fmt::h($dz['rdap']) ?></td><td><?= Fmt::h($dz['whois']) ?></td>
+          <td><?= Fmt::h($dz['dns']) ?></td><td><?= Fmt::h((string) $dz['sekunden']) ?> s</td></tr>
+      <?php endforeach; ?>
+    </tbody></table>
+    <?php $dWhois = array_filter($ddiag, static fn($x) => str_ends_with($x['domain'], '.it') && $x['whois'] !== 'unklar'); ?>
+    <p style="font-size:13px;margin-top:8px;color:<?= $dWhois ? 'var(--gruen,#6fcf97)' : 'var(--rot)' ?>">
+      <?= $dWhois ? 'WHOIS kommt durch — .it wird automatisch geprüft.'
+                  : 'WHOIS kommt von diesem Server nicht durch — .it bitte selbst prüfen und beim Anbieten „Selbst geprüft“ anhaken.' ?></p>
+  <?php endif; ?>
+</div>
+
 <div class="block"><h2>Was dieser Server kann</h2>
   <table class="schlicht"><tbody>
     <?php foreach ($sysPunkte as [$sysName, $sysDa, $sysWozu]): ?>

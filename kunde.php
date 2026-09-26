@@ -310,6 +310,7 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                 $wie = Mailumzug::zugangSpeichern((int) ($_POST['umzug'] ?? 0), (int) $kunde['id'], $_POST, $sprache);
                 if ($wie === 'ok') { $meldung = $T('mailumzugDa'); }
                 elseif ($wie === 'unvollstaendig') { $fehler[] = $T('mailumzugFehlt'); }
+                elseif ($wie === 'ziel_fehlt') { $fehler[] = $T('mailumzugWartet'); }
                 elseif ($wie === 'host') { $fehler[] = $T('seitenumzugHost'); }
 
             } elseif ($tat === 'seitenumzug_zugang') {
@@ -1093,6 +1094,13 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         <p class="mini" style="margin:8px 0 0"><?= $h((string) $mU['stand'] === 'zugang_da' ? $T('mailumzugDa')
             : strtr($T('mailumzugLaeuft'), ['{kopiert}' => (string) (int) $mU['kopiert'], '{gesamt}' => (string) (int) $mU['gesamt']])) ?></p>
       <?php else: ?>
+        <?php /* Erst wenn das neue Postfach existiert, ergibt die Abfrage Sinn
+                 (26.09.2026: vorher hiess es beim Absenden "Es braucht die
+                 Passwoerter beider Postfaecher", obwohl beide dastanden). */
+              $mZ = sicherLesen(fn() => Mailumzug::ziel((int) $kunde['id'], (string) $mU['ziel_adresse']), ['bereit' => false, 'passwort' => null]); ?>
+        <?php if (!$mZ['bereit']): ?>
+          <p class="mini" style="margin:8px 0 0"><?= $h(strtr($T('mailumzugWartetText'), ['{neu}' => (string) $mU['ziel_adresse']])) ?></p>
+        <?php else: ?>
         <?php if ((string) $mU['stand'] === 'fehler'): ?>
           <div class="hinweis schlecht" style="margin:8px 0"><?= $h(strtr($T('mailumzugFehler'), ['{fehler}' => (string) $mU['fehler']])) ?></div>
         <?php endif; ?>
@@ -1103,7 +1111,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           <input type="hidden" name="umzug" value="<?= (int) $mU['id'] ?>">
           <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
             <input name="alt_pass" type="password" required placeholder="<?= $h($T('mailumzugAltPass')) ?>" aria-label="<?= $h($T('mailumzugAltPass')) ?>" autocomplete="new-password">
+            <?php if ($mZ['passwort'] === null): ?>
             <input name="neu_pass" type="password" required placeholder="<?= $h($T('mailumzugNeuPass')) ?>" aria-label="<?= $h($T('mailumzugNeuPass')) ?>" autocomplete="new-password">
+            <?php endif; ?>
           </div>
           <details style="margin-top:8px"><summary class="mini"><?= $h($T('mailumzugServer')) ?></summary>
             <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:8px">
@@ -1112,6 +1122,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
             </div></details>
           <button class="knopf haupt" style="margin-top:10px"><?= $h($T('mailumzugKnopf')) ?></button>
         </form>
+        <?php endif; ?>
       <?php endif; ?>
     </div>
   <?php endforeach; ?>

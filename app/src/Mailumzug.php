@@ -69,6 +69,15 @@ final class Mailumzug
     {
         $adresse = mb_strtolower(trim($adresse));
         if (!filter_var($adresse, FILTER_VALIDATE_EMAIL)) { throw new RuntimeException('Das ist keine E-Mail-Adresse: ' . $adresse); }
+        /* NUR MIT ZUGESTIMMTEM HOSTING (26.09.2026, Uwe: "ohne dass der Kunde
+           vorher zugestimmt hatte"). Ein Umzug in ein Postfach bei uns setzt
+           voraus, dass es das Postfach geben wird -- sonst sieht der Kunde
+           eine Aufforderung zu einem Vertrag, den er nie geschlossen hat. */
+        $h = Db::one("SELECT * FROM hosting_auftraege WHERE customer_id = ? AND status IN ('zugestimmt','in_arbeit','angelegt','aktiv')
+                       AND mail = 'vecom' ORDER BY id DESC LIMIT 1", [$kundeId]);
+        if (!$h) {
+            throw new RuntimeException('Erst muss der Kunde Domain & Hosting mit Postfach bei uns zugestimmt haben — vorher gibt es kein Ziel für den Umzug.');
+        }
         $da = (int) Db::wert("SELECT id FROM mailumzuege WHERE customer_id = ? AND adresse = ? AND stand IN ('angefragt','zugang_da','laeuft','fehler')",
             [$kundeId, $adresse], 0);
         if ($da > 0) { return $da; }
@@ -85,6 +94,29 @@ final class Mailumzug
             ['{alt}' => $alt, '{neu}' => $neu, '{tage}' => (string) self::NACHLAUF_TAGE]);
     }
 
+    /**
+     * Ist das neue Postfach schon da? Erst dann ergibt die Passwortabfrage
+     * einen Sinn -- vorher zeigte sie beim Absenden "Es braucht die
+     * Passwoerter beider Postfaecher", obwohl beide ausgefuellt waren
+     * (Uwe, 26.09.2026): Es fehlte nicht das Passwort, sondern der Server.
+     * Kennt Vecom das Passwort des neuen Postfachs noch (Zugangsdaten nicht
+     * abgerufen), wird der Kunde nicht danach gefragt.
+     * @return array{bereit:bool, server:string, passwort:?string}
+     */
+    public static function ziel(int $kundeId, string $zielAdresse): array
+    {
+        $server = self::zielServer($kundeId);
+        $h = Db::one("SELECT zugang_blob, status FROM hosting_auftraege WHERE customer_id = ? AND kas_login IS NOT NULL
+                       AND status IN ('angelegt','aktiv') ORDER BY id DESC LIMIT 1", [$kundeId]);
+        $pw = null;
+        if ($h && !empty($h['zugang_blob'])) {
+            $z = Hosting::entsiegeln((string) $h['zugang_blob']);
+            if (is_array($z) && mb_strtolower((string) ($z['postfach'] ?? '')) === mb_strtolower($zielAdresse)
+                && (string) ($z['postfach_passwort'] ?? '') !== '') { $pw = (string) $z['postfach_passwort']; }
+        }
+        return ['bereit' => $server !== '' && $h !== null, 'server' => $server, 'passwort' => $pw];
+    }
+
     /** Der neue Server: der KAS-Account aus dem Hosting-Auftrag, wenn es einen gibt. */
     public static function zielServer(int $kundeId): string
     {
@@ -95,12 +127,15 @@ final class Mailumzug
 
     /**
      * Der Kunde stimmt zu und gibt die Passwoerter ein.
-     * @return string ok | unvollstaendig | host | nicht_dran
+     * @return string ok | unvollstaendig | ziel_fehlt | host | nicht_dran
      */
     public static function zugangSpeichern(int $id, int $kundeId, array $e, string $sprache): string
     {
         $u = Db::one("SELECT * FROM mailumzuege WHERE id = ? AND customer_id = ? AND stand IN ('angefragt','fehler')", [$id, $kundeId]);
         if (!$u) { return 'nicht_dran'; }
+        $ziel = self::ziel($kundeId, (string) $u['ziel_adresse']);
+        if (!$ziel['bereit'] && trim((string) ($e['neu_server'] ?? '')) === '') { return 'ziel_fehlt'; }
+        if (($e['neu_pass'] ?? '') === '' && $ziel['passwort'] !== null) { $e['neu_pass'] = $ziel['passwort']; }
         $z = [
             'alt_server' => trim((string) ($e['alt_server'] ?? '')) ?: self::serverFuer((string) $u['adresse']),
             'alt_user'   => trim((string) ($e['alt_user'] ?? '')) ?: (string) $u['adresse'],

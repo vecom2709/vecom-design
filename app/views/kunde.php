@@ -195,7 +195,15 @@ $eing = !empty($eingebettet);
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
+    <?php /* Nur mit zugestimmtem Hosting samt Postfach bei uns (26.09.2026):
+             vorher sah der Kunde eine Umzugs-Aufforderung fuer einen Vertrag,
+             den er nie geschlossen hatte. */
+          $mDarf = (bool) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM hosting_auftraege WHERE customer_id = ?
+                       AND status IN ('zugestimmt','in_arbeit','angelegt','aktiv') AND mail = 'vecom'", [(int) $k['id']], 0), false); ?>
     <details style="margin:0 0 10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">E-Mails aus dem alten Postfach umziehen …</summary>
+      <?php if (!$mDarf): ?>
+        <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Geht erst, wenn der Kunde Domain &amp; Hosting mit Postfach bei uns zugestimmt hat — vorher gibt es kein Ziel.</p>
+      <?php else: ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="mailumzug_anfragen">
         <input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
@@ -203,8 +211,9 @@ $eing = !empty($eingebettet);
         <span>→</span>
         <input name="ziel" type="email" value="<?= Fmt::h($mZiel) ?>" placeholder="neue Adresse" style="max-width:230px" aria-label="Neues Postfach">
         <button class="knopf">Umzug anfragen</button>
-        <span style="color:var(--leise);font-size:12.5px">Der Kunde stimmt zu und gibt beide Passwörter auf seiner Seite ein. Danach läuft alles von selbst.</span>
-      </form></details>
+        <span style="color:var(--leise);font-size:12.5px">Der Kunde stimmt zu und gibt sein altes Passwort ein — sobald das neue Postfach eingerichtet ist. Danach läuft alles von selbst.</span>
+      </form>
+      <?php endif; ?></details>
     <?php if (!$dateien): ?><div class="leer">Noch nichts.</div><?php else: ?>
       <?php foreach ($dateien as $d): ?>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--linie)">
@@ -760,6 +769,19 @@ $eing = !empty($eingebettet);
             Nur wenn du nicht auf die Automatik warten willst.</span>
         </form>
       <?php endif; ?>
+      <?php if ((string) $hostingA['status'] === 'vorgeschlagen'): ?>
+        <?php /* Noch nicht beantwortet: Das Angebot darf sich aendern (26.09.2026). */ ?>
+        <details style="margin-top:10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">Andere Domain anbieten …</summary>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_vorschlag">
+            <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
+            <div class="feld"><label>Neue Wunschdomain</label><input name="domain" placeholder="z. B. trattoria-rossi.it" required></div>
+            <label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--dim);margin:0 0 8px">
+              <input type="checkbox" name="selbst_geprueft" value="1" style="width:auto;margin:0">
+              Selbst geprüft, sie ist frei (<a href="https://web-whois.nic.it/" target="_blank" rel="noopener">.it bei NIC.it</a>)</label><br>
+            <button class="knopf">Prüfen und neu anbieten</button>
+          </form></details>
+      <?php endif; ?>
 
     <?php else: ?>
       <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
@@ -788,9 +810,12 @@ $eing = !empty($eingebettet);
         <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
         <div class="feld"><label>Wunschdomain</label>
           <input name="domain" placeholder="z. B. trattoria-rossi.it" required></div>
+        <label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--dim);margin:0 0 8px">
+          <input type="checkbox" name="selbst_geprueft" value="1" style="width:auto;margin:0">
+          Selbst geprüft, sie ist frei (<a href="https://web-whois.nic.it/" target="_blank" rel="noopener">.it bei NIC.it</a> oder im Domainbestellsystem)</label><br>
         <button class="knopf">Prüfen und dem Kunden anbieten</button>
         <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
-          Nur eine freie Domain wird angeboten — ist sie vergeben, sagt es dir die Meldung.</span>
+          Vergebene Domains werden nie angeboten. Lässt sich „frei“ nicht automatisch bestätigen (bei .it häufig), zählt dein Haken.</span>
       </form>
     <?php endif; ?>
   </div>

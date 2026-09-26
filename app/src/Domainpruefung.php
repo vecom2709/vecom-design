@@ -100,6 +100,25 @@ final class Domainpruefung
     }
 
     /**
+     * Die Leiter Stufe fuer Stufe -- fuer den Knopf "Domainpruefung testen"
+     * (26.09.2026). Misst auf DEM Server, auf dem es laeuft, ob RDAP, WHOIS
+     * (Port 43) und DNS durchkommen. Bei .it gibt es kein RDAP; ohne WHOIS
+     * bleibt eine freie .it-Domain dann immer "unklar".
+     * @return list<array{domain:string, rdap:string, whois:string, dns:string, sekunden:float}>
+     */
+    public static function diagnose(): array
+    {
+        $zufall = 'vecom-probe-' . bin2hex(random_bytes(3));
+        $aus = [];
+        foreach (['google.it', $zufall . '.it', 'google.com', $zufall . '.com'] as $d) {
+            $t = microtime(true);
+            $aus[] = ['domain' => $d, 'rdap' => self::ueberRdap($d), 'whois' => self::ueberWhois($d),
+                      'dns' => self::ueberDns($d), 'sekunden' => round(microtime(true) - $t, 1)];
+        }
+        return $aus;
+    }
+
+    /**
      * Klein schreiben, Beiwerk abschneiden, das Offensichtliche abweisen.
      *
      * Kunden schreiben "www.trattoria.it", "https://trattoria.it" und

@@ -833,21 +833,42 @@ if ($post) {
                 require_once __DIR__ . '/src/Domainpruefung.php';
                 $kid = (int) ($_POST['id'] ?? 0);
                 if ($kid <= 0) { throw new RuntimeException('Kein Kunde angegeben.'); }
-                if (Hosting::fuerKunde($kid)) {
-                    throw new RuntimeException('Dieser Kunde hat schon einen Hosting-Vorgang.');
+                /* Ein Angebot, auf das der Kunde noch nicht geantwortet hat,
+                   darf geaendert werden (26.09.2026: vorher brach jeder zweite
+                   Versuch mit "hat schon einen Hosting-Vorgang" ab, und der
+                   Kunde sah nichts Neues). Zugestimmtes bleibt unberuehrt. */
+                $hAlt = Hosting::fuerKunde($kid);
+                if ($hAlt && (string) $hAlt['status'] !== 'vorgeschlagen') {
+                    throw new RuntimeException('Dieser Kunde hat schon zugestimmt (' . $hAlt['domain'] . ') — ein neues Angebot ersetzt keine Vereinbarung.');
                 }
                 $hd = Domainpruefung::normalisieren((string) ($_POST['domain'] ?? ''));
                 if ($hd === null) { throw new RuntimeException('Das ist keine gültige Domain.'); }
                 $hp = Domainpruefung::pruefen($hd);
-                if ((string) $hp['stand'] !== 'frei') {
-                    throw new RuntimeException('Die Domain ' . $hd . ' ist nicht als frei bestätigt (Stand: '
-                        . Domainpruefung::wort((string) $hp['stand'], 'de') . '). Angeboten wird nur, was frei ist.');
+                $hSelbst = !empty($_POST['selbst_geprueft']);
+                /* "unklar" ist bei .it die Regel, wenn der Server kein WHOIS
+                   (Port 43) nach aussen darf -- .it hat keinen RDAP-Dienst
+                   (rdap.nic.it gibt es nicht, gemessen 26.09.). Dann zaehlt
+                   Uwes eigene Pruefung, ausdruecklich angehakt. "vergeben"
+                   wird nie angeboten. */
+                if ((string) $hp['stand'] === 'vergeben') {
+                    throw new RuntimeException('Die Domain ' . $hd . ' ist vergeben — angeboten wird nur, was frei ist.');
                 }
-                $hid = Db::insert('hosting_auftraege', Hosting::vorgabeFelder() + [
-                    'customer_id' => $kid, 'project_id' => null, 'domain' => $hd,
-                    'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(),
-                ]);
-                Events::protokoll('hosting_vorschlag', 'Wunschdomain vorgeschlagen: ' . $hd, $kid);
+                if ((string) $hp['stand'] !== 'frei' && !$hSelbst) {
+                    throw new RuntimeException('Die Domain ' . $hd . ' ließ sich nicht automatisch als frei bestätigen (Stand: '
+                        . Domainpruefung::wort((string) $hp['stand'], 'de') . '). Selbst prüfen (Domainbestellsystem oder web-whois.nic.it) und „Selbst geprüft“ anhaken.');
+                }
+                if ($hAlt) {
+                    Db::run('UPDATE hosting_auftraege SET domain = ?, domain_aktion = ? WHERE id = ?', [$hd, 'neu', (int) $hAlt['id']]);
+                    $hid = (int) $hAlt['id'];
+                } else {
+                    $hid = Db::insert('hosting_auftraege', Hosting::vorgabeFelder() + [
+                        'customer_id' => $kid, 'project_id' => null, 'domain' => $hd,
+                        'status' => 'vorgeschlagen', 'preis_cents' => Hosting::preisCents(),
+                    ]);
+                }
+                Events::protokoll('hosting_vorschlag', 'Wunschdomain vorgeschlagen: ' . $hd
+                    . ((string) $hp['stand'] !== 'frei' ? ' (Verfügbarkeit von Hand geprüft)' : '')
+                    . ($hAlt ? ' — ersetzt ' . $hAlt['domain'] : ''), $kid);
                 $hMail = false;
                 try {
                     require_once __DIR__ . '/src/Mail.php';
@@ -866,7 +887,7 @@ if ($post) {
                             ['customer_id' => $kid, 'antwortAn' => Mail::eigeneAdresse()]);
                     }
                 } catch (Throwable $e) { $hMail = false; }
-                $_SESSION['gut'] = 'Die Domain ' . $hd . ' ist frei und dem Kunden angeboten ('
+                $_SESSION['gut'] = 'Die Domain ' . $hd . ' ist dem Kunden angeboten ('
                     . Fmt::geld(Hosting::preisCents()) . ' im Monat). '
                     . ($hMail ? 'Die Angebots-Mail ist raus — entscheiden tut er auf seiner Seite.'
                               : 'Die Mail ging nicht raus — schick ihm seinen Zugangslink von Hand.');
@@ -1041,6 +1062,13 @@ if ($post) {
                 $ve = sicher(static fn() => Veroeffentlichung::veroeffentlichen($vpid), ['ok' => false, 'text' => 'Unerwarteter Fehler beim Veröffentlichen.']);
                 $_SESSION[$ve['ok'] ? 'gut' : 'fehler'] = $ve['text'];
                 zurueck('projekte/' . $vpid);
+
+            case 'domainpruefung_testen':
+                /* Misst auf diesem Server, welche Stufe der Domainpruefung
+                   durchkommt -- statt zu raten, ob der Hoster Port 43 sperrt. */
+                require_once __DIR__ . '/src/Domainpruefung.php';
+                $_SESSION['domain_diagnose'] = Domainpruefung::diagnose();
+                zurueck('einstellungen?b=ueberwachung');
 
             case 'hosting_registrierung':
                 require_once __DIR__ . '/src/Hosting.php';
