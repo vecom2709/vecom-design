@@ -55,13 +55,120 @@ final class Strato
 
     public const ZEITGRENZE = 20;
 
+    /** Nur für die Prüfkette: ersetzt den HTTP-Abruf. @var (Closure(string,string,mixed):array)|null */
+    public static ?Closure $abrufProbe = null;
+
     /* ==================================================================== */
     /*  Zugang                                                              */
     /* ==================================================================== */
 
     public static function eingerichtet(): bool
     {
-        return self::wert('strato_refresh') !== '' && self::wert('strato_anon') !== '';
+        return self::wert('strato_anon') !== ''
+            && (self::wert('strato_refresh') !== '' || self::wert('strato_anmeldung') !== '');
+    }
+
+    /* ==================================================================== */
+    /*  Die Anmeldung — damit der Zugang sich selbst wieder aufrichtet      */
+    /* ==================================================================== */
+
+    /**
+     * STRATO BEENDET SITZUNGEN VON SICH AUS
+     * ---------------------------------------------------------------------
+     * „Invalid Refresh Token: Session Expired“ kam wieder und wieder (Uwe,
+     * 26.09.2026). Der Token-Tausch hier war nie das Problem: Supabase hat
+     * eine Höchstdauer je Sitzung, und danach hilft kein Auffrischen mehr.
+     * Mit einem kopierten Token allein heißt das: alle paar Tage von Hand
+     * neu hinterlegen.
+     *
+     * Deshalb kann Uwe seine STRATO-Anmeldung (E-Mail, Passwort) hinterlegen.
+     * Sie wird NUR benutzt, wenn der Token abgelehnt wird — dann meldet sich
+     * der Server selbst an und hat eine eigene, frische Sitzung (nicht die
+     * des Browsers; die beiden können sich also nicht aussperren).
+     *
+     * Das Passwort liegt versiegelt (AES-256-GCM, Schlüssel nur in
+     * config.local.php) wie die Hosting-Zugänge. Es wird nie angezeigt,
+     * steht in keinem Protokoll und in keiner Fehlermeldung.
+     */
+    public static function anmeldungSetzen(string $email, string $passwort): array
+    {
+        require_once __DIR__ . '/Hosting.php';
+        $email = mb_strtolower(trim($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { return ['ok' => false, 'text' => 'Das ist keine gültige E-Mail-Adresse.']; }
+        if ($passwort === '') { return ['ok' => false, 'text' => 'Das Passwort fehlt.']; }
+        if (self::wert('strato_anon') === '') {
+            return ['ok' => false, 'text' => 'Zuerst einmal den öffentlichen Schlüssel hinterlegen (Feld oben).'];
+        }
+        $blob = Hosting::versiegeln(['email' => $email, 'passwort' => $passwort]);
+        if ($blob === null) {
+            return ['ok' => false, 'text' => 'Zum Versiegeln fehlt der Schlüssel hosting_geheim in config.local.php — nichts gespeichert.'];
+        }
+        $vorher = self::wert('strato_anmeldung');
+        self::merken('strato_anmeldung', $blob);
+
+        /* Sofort ausprobieren. Eine hinterlegte Anmeldung, die erst beim
+           nächsten Ablauf versagt, wäre eine Vermutung. */
+        $t = self::anmelden();
+        if ($t === null) {
+            self::merken('strato_anmeldung', $vorher);
+            return ['ok' => false, 'text' => 'STRATO nimmt die Anmeldung nicht an: ' . self::wert('strato_fehler')
+                . ' Meldest du dich dort mit Google, einem Link oder einem Code an, geht dieser Weg leider nicht.'];
+        }
+        require_once __DIR__ . '/Events.php';
+        self::still(static fn() => Events::protokoll('strato_anmeldung', 'STRATO-Anmeldung hinterlegt (' . $email . ')'));
+        return ['ok' => true, 'text' => 'Anmeldung hinterlegt und geprüft. Läuft die Sitzung ab, meldet sich die Verwaltung selbst neu an.'];
+    }
+
+    public static function anmeldungLoeschen(): void
+    {
+        self::merken('strato_anmeldung', '');
+        require_once __DIR__ . '/Events.php';
+        self::still(static fn() => Events::protokoll('strato_anmeldung', 'STRATO-Anmeldung entfernt'));
+    }
+
+    /** Die hinterlegte E-Mail (ohne Passwort) oder ''. */
+    public static function anmeldungEmail(): string
+    {
+        require_once __DIR__ . '/Hosting.php';
+        $blob = self::wert('strato_anmeldung');
+        if ($blob === '') { return ''; }
+        return (string) (Hosting::entsiegeln($blob)['email'] ?? '');
+    }
+
+    /**
+     * Mit E-Mail und Passwort eine neue Sitzung holen. Setzt Token und
+     * Zwischenspeicher wie ein Auffrischen. Nur innerhalb der Sperre oder
+     * beim Hinterlegen aufrufen.
+     */
+    private static function anmelden(): ?string
+    {
+        require_once __DIR__ . '/Hosting.php';
+        $blob = self::wert('strato_anmeldung');
+        $a = $blob !== '' ? Hosting::entsiegeln($blob) : null;
+        if (!$a || ($a['email'] ?? '') === '' || ($a['passwort'] ?? '') === '') { return null; }
+
+        $r = self::abruf('POST', self::PROJEKT . '/auth/v1/token?grant_type=password',
+                         self::wert('strato_anon'), null,
+                         ['email' => (string) $a['email'], 'password' => (string) $a['passwort']]);
+        if (!$r['ok'] || !is_array($r['daten']) || ($r['daten']['access_token'] ?? '') === '') {
+            /* Der Grund von Supabase, nie das Passwort. */
+            $grund = is_array($r['daten'])
+                ? (string) ($r['daten']['error_description'] ?? $r['daten']['msg'] ?? $r['daten']['error'] ?? '') : '';
+            self::merken('strato_fehler', 'Neuanmeldung abgelehnt: ' . ($grund !== '' ? $grund : 'Status ' . $r['status']) . '.');
+            return null;
+        }
+        return self::sitzungMerken($r['daten']);
+    }
+
+    /** Token aus einer Supabase-Antwort sichern: zuerst den Auffrischungs-Token. */
+    private static function sitzungMerken(array $d): string
+    {
+        if (($d['refresh_token'] ?? '') !== '') { self::merken('strato_refresh', (string) $d['refresh_token']); }
+        $token = (string) $d['access_token'];
+        $gilt  = min((int) ($d['expires_in'] ?? 3600), self::TOKEN_SEKUNDEN);
+        self::merken('strato_zugang', (string) json_encode(['token' => $token, 'bis' => time() + $gilt - 60]));
+        self::merken('strato_fehler', '');
+        return $token;
     }
 
     /**
@@ -163,7 +270,7 @@ final class Strato
 
     public static function zugangLoeschen(): void
     {
-        foreach (['strato_anon', 'strato_refresh', 'strato_zugang', 'strato_fehler'] as $k) {
+        foreach (['strato_anon', 'strato_refresh', 'strato_zugang', 'strato_fehler', 'strato_anmeldung'] as $k) {
             self::merken($k, '');
         }
     }
@@ -181,7 +288,7 @@ final class Strato
         if ($da !== null) { return $da; }
 
         $anon = self::wert('strato_anon');
-        if ($anon === '' || self::wert('strato_refresh') === '') {
+        if ($anon === '' || !self::eingerichtet()) {
             self::merken('strato_fehler', 'Kein Zugang hinterlegt.');
             return null;
         }
@@ -212,13 +319,10 @@ final class Strato
             if ($da !== null) { return $da; }
 
             $refresh = self::wert('strato_refresh');
-            if ($refresh === '') {
-                self::merken('strato_fehler', 'Kein Zugang hinterlegt.');
-                return null;
-            }
-
-            $a = self::abruf('POST', self::PROJEKT . '/auth/v1/token?grant_type=refresh_token',
-                             $anon, null, ['refresh_token' => $refresh]);
+            $a = $refresh !== ''
+                ? self::abruf('POST', self::PROJEKT . '/auth/v1/token?grant_type=refresh_token',
+                              $anon, null, ['refresh_token' => $refresh])
+                : ['ok' => false, 'status' => 0, 'daten' => ['error' => 'kein Token']];
 
             if (!$a['ok'] || !is_array($a['daten']) || ($a['daten']['access_token'] ?? '') === '') {
                 /* Letzter Blick, bevor gemeldet wird: Bekam die Sperre jemand
@@ -226,6 +330,22 @@ final class Strato
                    eine Fehlermeldung wäre schlicht falsch. */
                 $da = self::zwischengespeicherter();
                 if ($da !== null) { return $da; }
+
+                /* Die Sitzung ist weg (abgelaufen, abgemeldet, widerrufen).
+                   Ist eine Anmeldung hinterlegt, holt sich der Server eine
+                   neue -- das ist der ganze Sinn der Anmeldung. */
+                if (self::wert('strato_anmeldung') !== '') {
+                    $neu = self::anmelden();
+                    if ($neu !== null) {
+                        require_once __DIR__ . '/Events.php';
+                        self::still(static fn() => Events::protokoll('strato_neu_angemeldet',
+                            'STRATO-Sitzung war abgelaufen — automatisch neu angemeldet'));
+                        self::merken('strato_gemeldet_am', '');
+                        return $neu;
+                    }
+                    self::einmalMelden();
+                    return null;
+                }
 
                 $grund = is_array($a['daten'])
                     ? (string) ($a['daten']['error_description'] ?? $a['daten']['msg']
@@ -238,20 +358,27 @@ final class Strato
             }
 
             /* Zuerst den neuen Auffrischungs-Token sichern, dann alles andere. */
-            if (($a['daten']['refresh_token'] ?? '') !== '') {
-                self::merken('strato_refresh', (string) $a['daten']['refresh_token']);
-            }
-            $token = (string) $a['daten']['access_token'];
-            $gilt  = min((int) ($a['daten']['expires_in'] ?? 3600), self::TOKEN_SEKUNDEN);
-            self::merken('strato_zugang',
-                (string) json_encode(['token' => $token, 'bis' => time() + $gilt - 60]));
-            self::merken('strato_fehler', '');
-            return $token;
+            return self::sitzungMerken($a['daten']);
         } finally {
             if ($sperre === 1) {
                 self::still(static fn() => Db::wert("SELECT RELEASE_LOCK('vd_strato_token')", [], 0));
             }
         }
+    }
+
+    /**
+     * Versagt auch die Neuanmeldung (Passwort geändert, Konto gesperrt),
+     * meldet das EINMAL am Tag -- nicht bei jedem stündlichen Lauf.
+     */
+    private static function einmalMelden(): void
+    {
+        $am = self::wert('strato_gemeldet_am');
+        if ($am !== '' && $am > date('Y-m-d H:i:s', strtotime('-24 hours'))) { return; }
+        self::merken('strato_gemeldet_am', date('Y-m-d H:i:s'));
+        require_once __DIR__ . '/Events.php';
+        self::still(static fn() => Events::melden('strato_zugang', 'STRATO: automatische Neuanmeldung gescheitert',
+            'warnung', self::wert('strato_fehler') . ' Hast du das Passwort bei STRATO geändert? Dann unter '
+            . 'Einstellungen → Telefon neu hinterlegen.', '/einstellungen?b=telefon'));
     }
 
     /** Der noch gültige Token aus dem Zwischenspeicher -- oder null. */
@@ -1075,6 +1202,9 @@ final class Strato
     private static function abruf(string $art, string $url, string $anon, ?string $token,
                                   mixed $koerper = null, bool $alsObjekte = false): array
     {
+        /* Die Prüfkette ruft nie das echte STRATO. */
+        if (self::$abrufProbe !== null) { return (self::$abrufProbe)($art, $url, $koerper); }
+
         $kopf = ['apikey: ' . $anon, 'Accept: application/json'];
         if ($token !== null) { $kopf[] = 'Authorization: Bearer ' . $token; }
         if ($koerper !== null) { $kopf[] = 'Content-Type: application/json'; }

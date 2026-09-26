@@ -298,8 +298,9 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
         Sitzung. Seit dem 7.9. verhindert eine Sperre das; ein einmal widerrufener Zugang
         lässt sich aber nicht wiederbeleben. Bitte hier neu hinterlegen.
       <?php else: ?>
-        Ein Abmelden bei STRATO genügt, damit der Token abläuft.
-        Dann hier neu hinterlegen — es ist dieselbe Handvoll Klicks wie beim ersten Mal.
+        STRATO hat die Sitzung beendet. Damit das nicht mehr von Hand nötig ist:
+        unten unter <a href="#strato-anmeldung">„Automatisch neu anmelden“</a> einmal E-Mail und
+        Passwort hinterlegen — danach richtet sich der Zugang selbst wieder auf.
       <?php endif; ?>
       </span></div>
   <?php elseif ($strato['eingerichtet']): ?>
@@ -380,6 +381,35 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
         Server packt ihn aus und behält nur den Auffrischungs-Token.</small></div>
     <button class="knopf haupt">Zugang hinterlegen und prüfen</button>
   </form>
+
+  <?php $anmeldung = Strato::anmeldungEmail(); ?>
+  <div id="strato-anmeldung" style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
+    <h3 style="font-size:15px;margin:0 0 6px">Automatisch neu anmelden
+      <?php if ($anmeldung !== ''): ?><span class="marke2 gut" style="margin-left:8px">aktiv</span><?php endif; ?></h3>
+    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0 0 10px">
+      STRATO beendet Sitzungen nach einer Weile von selbst („Session Expired“). Mit deiner
+      STRATO-Anmeldung holt sich die Verwaltung dann selbst eine neue Sitzung — du musst keinen
+      Token mehr kopieren. Das Passwort wird verschlüsselt gespeichert, nie angezeigt und nur
+      benutzt, wenn der Token abgelehnt wird. Geht nur mit E-Mail und Passwort, nicht mit
+      Google-Login oder Bestätigungscode.</p>
+    <?php if ($anmeldung !== ''): ?>
+      <p style="font-size:13px;margin:0 0 10px">Hinterlegt für <b><?= Fmt::h($anmeldung) ?></b>.
+        Hast du das Passwort bei STRATO geändert, hier neu eintragen.</p>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_anmeldung">
+      <div class="feld" style="flex:1;min-width:200px"><label>E-Mail bei STRATO</label>
+        <input type="email" name="email" autocomplete="off" value="<?= Fmt::h($anmeldung) ?>" required></div>
+      <div class="feld" style="flex:1;min-width:200px"><label>Passwort bei STRATO</label>
+        <input type="password" name="passwort" autocomplete="new-password" required></div>
+      <button class="knopf haupt">Anmeldung hinterlegen und prüfen</button>
+    </form>
+    <?php if ($anmeldung !== ''): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_anmeldung_weg">
+        <button class="knopf">Anmeldung entfernen</button></form>
+    <?php endif; ?>
+  </div>
 
   <?php if ($strato['eingerichtet']): ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">

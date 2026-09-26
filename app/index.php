@@ -1629,6 +1629,22 @@ if ($post) {
                 zurueck('einstellungen?b=telefon');
                 break;
 
+            case 'strato_anmeldung':
+                /* E-Mail und Passwort nur ueber dieses Feld, nie ueber einen
+                   Chat. Das Passwort wird versiegelt und sofort ausprobiert. */
+                require_once __DIR__ . '/src/Strato.php';
+                $erg = Strato::anmeldungSetzen((string) ($_POST['email'] ?? ''), (string) ($_POST['passwort'] ?? ''));
+                $_SESSION[$erg['ok'] ? 'gut' : 'fehler'] = $erg['text'];
+                zurueck('einstellungen?b=telefon');
+                break;
+
+            case 'strato_anmeldung_weg':
+                require_once __DIR__ . '/src/Strato.php';
+                Strato::anmeldungLoeschen();
+                $_SESSION['gut'] = 'Anmeldung entfernt. Läuft die Sitzung ab, musst du den Token wieder von Hand hinterlegen.';
+                zurueck('einstellungen?b=telefon');
+                break;
+
             case 'strato_werkzeuge':
                 /* Vierzehn Blöcke von Hand kopieren macht niemand viermal.
                    Geschrieben wird ausschliesslich config.tools -- Stimme,

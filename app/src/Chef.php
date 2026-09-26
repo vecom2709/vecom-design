@@ -227,10 +227,13 @@ final class Chef
     public static function sperreAufheben(): void
     {
         /* Der Zähler beginnt neu, ohne die Geschichte zu löschen: Die alten
-           Fehlversuche bleiben lesbar, sie zählen nur nicht mehr mit. */
+           Fehlversuche bleiben lesbar, sie zählen nur nicht mehr mit.
+           Die Zeit kommt aus der Datenbank, nicht aus PHP: Verglichen wird mit
+           created_at, und PHP rechnet in Rom, die Datenbank womöglich in UTC —
+           zwei Stunden Versatz, und keine Sperre griff mehr (Kette, 26.09.2026). */
         self::still(static fn() => Db::run("INSERT INTO settings (skey, svalue) VALUES
-            ('chef_gesperrt_bis', ''), ('chef_zaehler_ab', ?)
-            ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [date('Y-m-d H:i:s')]), null);
+            ('chef_gesperrt_bis', ''), ('chef_zaehler_ab', DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s'))
+            ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)"), null);
     }
 
     /* ==================================================================== */

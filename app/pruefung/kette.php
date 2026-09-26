@@ -9232,6 +9232,232 @@ pruefe('Domain anbieten: vergeben nie, unklar nur mit "Selbst geprüft", ein off
 pruefe('Domainprüfung: der Test läuft Stufe für Stufe und nennt jede', method_exists('Domainpruefung', 'diagnose'));
 
 /* ============================================================================
+   Manuela: Chef-Modus nach dem Masterprompt (26.09.2026)
+   ----------------------------------------------------------------------------
+   Sicherheit der Tür (Hash, Sperre, PIN), Tageslage nach Priorität ohne
+   Alarmflut, 360-Grad-Akte, Gedächtnis mit Widerspruch, Stufe 4 nur
+   vorbereitet, Änderungssuche, die Werkzeuge für STRATO und der
+   Verhaltenstext. Was nur das Sprachmodell bei STRATO tun kann (Sprache
+   halten, unterbrechen lassen, Tonfall), lässt sich hier nicht prüfen —
+   geprüft wird, dass die Regel dasteht und der Server das Wichtige selbst
+   sichert.
+   ============================================================================ */
+abschnitt('Manuela: Chef-Modus und Verhalten');
+require_once $wurzel . '/src/Chef.php';
+require_once $wurzel . '/src/Telefonwerkzeuge.php';
+require_once $wurzel . '/src/Telefonverhalten.php';
+require_once $wurzel . '/src/Hosting.php';
+Db::run("DELETE FROM settings WHERE skey IN ('chef_codewort','chef_pin','chef_gesperrt_bis','chef_zaehler_ab')");
+Db::run('DELETE FROM chef_versuche');
+Db::run('DELETE FROM chef_gedaechtnis');
+
+// T1 Sicherheit: nur ein Hash, Altbestand wird umgeschrieben, kurze Wörter abgelehnt
+Chef::codewortSetzen('Morgenstern 77');
+$mnRoh = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'chef_codewort'", [], '');
+pruefe('Chef: das Codewort steht nur als Hash in der Datenbank',
+    str_starts_with($mnRoh, '$') && stripos($mnRoh, 'morgenstern') === false);
+Db::run("UPDATE settings SET svalue = 'Altes Wort 12' WHERE skey = 'chef_codewort'");
+pruefe('Chef: ein Klartext-Altbestand öffnet weiter …', Chef::pruefen('altes wort 12') === 'offen');
+pruefe('… und ist danach umgeschrieben', str_starts_with((string) Db::wert(
+    "SELECT svalue FROM settings WHERE skey = 'chef_codewort'", [], ''), '$'));
+pruefe('Chef: ein kurzes Codewort wird abgelehnt', Chef::codewortMangel('Rose') !== null
+    && Chef::codewortMangel('Morgenstern 77') === null);
+Chef::codewortSetzen('Morgenstern 77');
+pruefe('Chef: „Ich bin Uwe“ öffnet nichts', Chef::pruefen('Ich bin Uwe') === 'falsch');
+pruefe('Chef: das richtige Wort öffnet, tolerant geschrieben', Chef::pruefen('morgen-stern, 77!') === 'offen');
+
+// T2 Sperre
+Db::run("DELETE FROM notifications WHERE type = 'chef_gesperrt'");
+for ($i = 0; $i < Chef::SPERRE_VERSUCHE; $i++) { $mnTuer = Chef::pruefen('Rateversuch ' . $i); }
+pruefe('Chef: nach ' . Chef::SPERRE_VERSUCHE . ' falschen Wörtern ist gesperrt', $mnTuer === 'gesperrt', $mnTuer);
+pruefe('Chef: in der Sperre öffnet auch das richtige Wort nicht', Chef::pruefen('Morgenstern 77') === 'gesperrt');
+pruefe('Chef: Uwe bekommt genau eine Meldung', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'chef_gesperrt'", [], 0) === 1);
+Chef::sperreAufheben();
+pruefe('Chef: nach dem Aufheben öffnet das richtige Wort wieder', Chef::pruefen('Morgenstern 77') === 'offen');
+pruefe('Chef: ein einzelner Fehlversuch danach sperrt nicht sofort wieder', Chef::pruefen('falsch') === 'falsch');
+
+// T3 PIN als zweites Wort
+pruefe('Chef: eine PIN mit drei Ziffern wird abgelehnt', Chef::pinSetzen('123') !== null);
+Chef::pinSetzen('4711');
+pruefe('Chef: mit PIN genügt das Wort allein nicht', Chef::pruefen('Morgenstern 77') === 'falsch');
+pruefe('Chef: Wort und PIN zusammen öffnen', Chef::pruefen('Morgenstern 77', 'vier sieben 4711') === 'offen');
+Chef::pinSetzen('');
+Chef::sperreAufheben();
+$mnEnd = (string) file_get_contents($wurzel . '/../chef.php');
+pruefe('Chef: der Endpunkt prüft jeden Aufruf mit Zählwerk und PIN',
+    str_contains($mnEnd, 'Chef::pruefen($codewort, $pin)') && !str_contains($mnEnd, 'Chef::frei('));
+
+// T4 Nichts erfinden: Preis ausserhalb ohne Zahl (Server), Regel im Text
+$mnText = Telefonverhalten::text();
+foreach (Telefonverhalten::REGELN as $mnR) {
+    pruefe('Verhalten: Regel [' . $mnR . '] steht im Text', str_contains($mnText, '[' . $mnR . ']'));
+}
+pruefe('Verhalten: der Text trägt die Kennzeile', str_contains($mnText, Telefonverhalten::kennung()));
+pruefe('Verhalten: Vergleich erkennt aktuell, älter und fehlend',
+    Telefonverhalten::vergleichen('xx ' . Telefonverhalten::kennung())['stand'] === 'aktuell'
+    && Telefonverhalten::vergleichen('VECOM-VERHALTEN v0')['stand'] === 'aelter'
+    && Telefonverhalten::vergleichen('nichts')['stand'] === 'fehlt');
+
+// T5 Termine nur aus freien Plätzen
+$mnT = Telefon::termin(['wann' => 'Sonntag um 3 Uhr nachts', 'sprache' => 'de']);
+pruefe('Termin: ein erfundener Platz wird abgelehnt', ($mnT['ok'] ?? true) === false && ($mnT['grund'] ?? '') === 'nicht_frei');
+
+// T6 Präzision: E-Mail ohne Bestätigung geht nicht raus
+pruefe('Präzision: eine nicht zurückgelesene E-Mail wird aufgehalten',
+    (Telefon::adresseBestaetigt(['email' => 'rossi@esempio.it'])['grund'] ?? '') === 'adresse_unbestaetigt'
+    && Telefon::adresseBestaetigt(['email' => 'rossi@esempio.it', 'email_bestaetigt' => true]) === null);
+
+// T10 Tageslage: Prioritäten und keine Alarmflut
+Db::run("DELETE FROM notifications WHERE type IN ('mn_probe')");
+for ($i = 0; $i < 18; $i++) { Events::melden('mn_probe', 'Zustellung gescheitert', 'schlecht', 'x'); }
+Events::melden('mn_probe', 'Zertifikat läuft ab', 'warnung', 'y');
+$mnL = Chef::lage();
+$mnStufen = array_column($mnL['prioritaeten'], 'stufe');
+$mnOrd = array_map(static fn($s) => array_search($s, Chef::PRIORITAETEN, true), $mnStufen);
+$mnSort = $mnOrd; sort($mnSort);
+pruefe('Lage: nach Priorität sortiert, KRITISCH zuerst', $mnOrd === $mnSort && ($mnStufen[0] ?? '') === 'KRITISCH', implode(',', $mnStufen));
+pruefe('Lage: 18 gleiche Meldungen sind EIN Punkt mit Anzahl',
+    count(array_filter($mnL['prioritaeten'], static fn($p) => str_starts_with($p['text'], 'Zustellung gescheitert'))) === 1
+    && str_contains(json_encode($mnL['prioritaeten'], JSON_UNESCAPED_UNICODE), '(18-mal)'));
+pruefe('Lage: gegliedert in Fakten, offene Punkte, Entscheidung, nächster Schritt',
+    isset($mnL['FAKTEN'], $mnL['OFFENE_PUNKTE'], $mnL['ENTSCHEIDUNG_NOETIG'], $mnL['NAECHSTER_SCHRITT']));
+pruefe('Lage: die alten Felder bleiben', isset($mnL['neue_anfragen'], $mnL['mail_fehler'], $mnL['offene_meldungen']));
+Db::run("DELETE FROM notifications WHERE type = 'mn_probe'");
+
+// T11 360-Grad-Akte: VECOM-Wert zählt, KAS-Abweichung wird gesagt, nicht übernommen
+$mnK = Events::kundeFinden(['name' => 'Manuela Probe', 'email' => 'mn-probe@pruefung.example']);
+$mnH = Db::insert('hosting_auftraege', ['customer_id' => $mnK, 'domain' => 'mn-probe.it', 'status' => 'aktiv',
+    'preis_cents' => 990, 'speicher_mb' => 20480, 'kas_speicher_mb' => 10240]);
+$mnA = Chef::kunde(['name' => 'mn-probe@pruefung.example']);
+pruefe('Akte: vereinbart 20 GB, KAS 10 GB, Abweichung erkannt',
+    ($mnA['hosting']['vereinbart'] ?? '') === '20 GB' && ($mnA['hosting']['kas_limit'] ?? '') === '10 GB'
+    && ($mnA['hosting']['abweichung'] ?? false) === true, json_encode($mnA['hosting'] ?? null));
+pruefe('Akte: und der VECOM-Wert bleibt 20 GB', (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$mnH], 0) === 20480);
+
+// T12 Gedächtnis: Bestätigung, Widerspruch, Konflikt
+$mnM = Chef::merken(['kategorie' => 'WAITING_FOR_CUSTOMER', 'text' => 'Schickt das Logo', 'kunde' => 'mn-probe@pruefung.example',
+                     'bedingung' => 'unterlagen']);
+pruefe('Gedächtnis: ohne ja nichts gespeichert', !empty($mnM['bestaetigung_noetig'])
+    && (int) Db::wert('SELECT COUNT(*) FROM chef_gedaechtnis', [], 0) === 0);
+Chef::merken(['kategorie' => 'WAITING_FOR_CUSTOMER', 'text' => 'Schickt das Logo', 'kunde' => 'mn-probe@pruefung.example',
+              'bedingung' => 'unterlagen', 'bestaetigt' => 'ja']);
+pruefe('Gedächtnis: noch nichts eingetroffen, kein Widerspruch', Chef::kunde(['name' => 'mn-probe@pruefung.example'])['widersprueche'] === []);
+Db::run("UPDATE chef_gedaechtnis SET created_at = NOW() - INTERVAL 1 HOUR");
+Db::insert('files', ['customer_id' => $mnK, 'stored_name' => 'mn-' . bin2hex(random_bytes(6)), 'orig_name' => 'logo.png',
+                     'uploaded_by' => 'kunde']);
+$mnA = Chef::kunde(['name' => 'mn-probe@pruefung.example']);
+pruefe('Gedächtnis: das Logo ist da — der alte Vermerk wird als Widerspruch gemeldet',
+    count($mnA['widersprueche']) === 1 && str_contains($mnA['hinweis'], 'Achtung'), $mnA['hinweis']);
+Chef::merken(['kategorie' => 'CHEF_DECISION', 'text' => 'Zahlt in zwei Raten', 'kunde' => 'mn-probe@pruefung.example', 'bestaetigt' => 'ja']);
+$mnKf = Chef::merken(['kategorie' => 'CHEF_DECISION', 'text' => 'Zahlt alles im Oktober', 'kunde' => 'mn-probe@pruefung.example', 'bestaetigt' => 'ja']);
+pruefe('Gedächtnis: eine zweite Entscheidung ist ein Konflikt und wird nicht still daneben gelegt',
+    !empty($mnKf['konflikt']) && (int) Db::wert("SELECT COUNT(*) FROM chef_gedaechtnis WHERE kategorie = 'CHEF_DECISION' AND status = 'offen'", [], 0) === 1);
+Chef::merken(['kategorie' => 'CHEF_DECISION', 'text' => 'Zahlt alles im Oktober', 'kunde' => 'mn-probe@pruefung.example',
+              'bestaetigt' => 'ja', 'ersetzt' => 'ja']);
+pruefe('Gedächtnis: mit „ersetzt ja“ gilt die neue, die alte bleibt als ersetzt lesbar',
+    (string) Db::wert("SELECT text FROM chef_gedaechtnis WHERE kategorie = 'CHEF_DECISION' AND status = 'offen'", [], '') === 'Zahlt alles im Oktober'
+    && (int) Db::wert("SELECT COUNT(*) FROM chef_gedaechtnis WHERE status = 'ersetzt'", [], 0) === 1);
+
+// T13 Stufe 4: vorbereiten, Wiederholung, Freigabe nur in der Verwaltung
+$mn4 = Chef::aendern(['art' => 'hosting_speicher', 'kunde' => 'mn-probe@pruefung.example', 'neu' => '30']);
+pruefe('Stufe 4: zeigt alt, neu, Objekt und Folgen', !empty($mn4['bestaetigung_noetig'])
+    && $mn4['alt'] === '20 GB' && $mn4['neu'] === '30 GB' && str_contains($mn4['objekt'], 'mn-probe.it') && $mn4['folgen'] !== '');
+$mn4 = Chef::aendern(['art' => 'hosting_speicher', 'kunde' => 'mn-probe@pruefung.example', 'neu' => '30',
+                      'bestaetigt' => 'ja', 'wert_wiederholt' => 'dreizehn']);
+pruefe('Stufe 4: eine falsche Wiederholung legt nichts hin', ($mn4['ok'] ?? true) === false
+    && (int) Db::wert("SELECT COUNT(*) FROM chef_gedaechtnis WHERE kategorie = 'WAITING_FOR_APPROVAL'", [], 0) === 0);
+$mn4 = Chef::aendern(['art' => 'hosting_speicher', 'kunde' => 'mn-probe@pruefung.example', 'neu' => '30',
+                      'bestaetigt' => 'ja', 'wert_wiederholt' => 'dreißig Gigabyte']);
+pruefe('Stufe 4: richtig wiederholt liegt es zur Freigabe bereit …', !empty($mn4['vorbereitet']));
+pruefe('… und am Telefon ist NICHTS geändert', (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$mnH], 0) === 20480);
+$mnF = Chef::freigeben((int) $mn4['id']);
+pruefe('Stufe 4: die Freigabe in der Verwaltung führt aus und steht in der Prüfspur',
+    $mnF['ok'] && (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$mnH], 0) === 30720
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'chef_vorhaben_freigegeben' AND entity_id = ?", [$mnH], 0) === 1, $mnF['text']);
+$mn4b = Chef::aendern(['art' => 'hosting_speicher', 'kunde' => 'mn-probe@pruefung.example', 'neu' => '40',
+                       'bestaetigt' => 'ja', 'wert_wiederholt' => '40']);
+Db::run('UPDATE hosting_auftraege SET speicher_mb = 25600 WHERE id = ?', [$mnH]);
+$mnF = Chef::freigeben((int) $mn4b['id']);
+pruefe('Stufe 4: hat sich der alte Wert inzwischen geändert, wird nichts überschrieben',
+    !$mnF['ok'] && (int) Db::wert('SELECT speicher_mb FROM hosting_auftraege WHERE id = ?', [$mnH], 0) === 25600);
+pruefe('Stufe 4: in der Verwaltung fragt die Freigabe nach', Ablauf::wiegt('chef_freigeben') === Ablauf::SCHWER);
+
+// T14 Änderungen durchsuchen
+$mnAe = Chef::aenderungen(['kunde' => 'mn-probe@pruefung.example', 'suche' => 'Chef-Gedächtnis']);
+pruefe('Änderungen: das Gedächtnis ist im Protokoll auffindbar', count($mnAe['treffer']) >= 2, $mnAe['hinweis']);
+pruefe('Änderungen: auch die Prüfspur wird durchsucht', count(Chef::aenderungen(['suche' => 'chef_vorhaben_freigegeben'])['treffer']) >= 1);
+
+// Werkzeuge für STRATO
+$mnW = Telefonwerkzeuge::json();
+pruefe('Werkzeuge: mit Codewort gehen die Chef-Werkzeuge mit',
+    count($mnW) === count(Telefonwerkzeuge::namen()) && isset($mnW['chef_lage'], $mnW['chef_aendern']));
+$mnGut = true;
+foreach (Telefonwerkzeuge::CHEF_REIHE as $mnN) {
+    $mnJ = json_decode($mnW[$mnN], true);
+    $mnGut = $mnGut && str_ends_with((string) $mnJ['request']['url'], '/chef.php')
+        && str_contains((string) $mnJ['request']['postData']['text'], '{{ codewort }}')
+        && in_array('codewort', $mnJ['parameters']['required'], true);
+}
+pruefe('Werkzeuge: jedes Chef-Werkzeug geht an chef.php und trägt das Codewort', $mnGut);
+pruefe('Werkzeuge: das Codewort selbst steht in keiner Beschreibung', stripos(implode('', $mnW), 'morgenstern') === false);
+pruefe('Werkzeuge: Kundenwerkzeuge gehen weiter an telefon.php',
+    str_ends_with((string) json_decode($mnW['termin'], true)['request']['url'], '/telefon.php'));
+Chef::codewortSetzen('');
+pruefe('Werkzeuge: ohne Codewort keine Chef-Werkzeuge', !isset(Telefonwerkzeuge::json()['chef_lage']));
+
+// STRATO: Sitzung abgelaufen -> automatisch neu anmelden
+require_once $wurzel . '/src/Strato.php';
+$mnAbrufe = [];
+Strato::$abrufProbe = static function (string $art, string $url, mixed $k) use (&$mnAbrufe): array {
+    $mnAbrufe[] = $url;
+    if (str_contains($url, 'grant_type=refresh_token')) {
+        return ['ok' => false, 'status' => 400, 'daten' => ['error_description' => 'Invalid Refresh Token: Session Expired']];
+    }
+    if (str_contains($url, 'grant_type=password')) {
+        return ($k['password'] ?? '') === 'Richtig-1'
+            ? ['ok' => true, 'status' => 200, 'daten' => ['access_token' => 'neu-a', 'refresh_token' => 'neu-r', 'expires_in' => 3600]]
+            : ['ok' => false, 'status' => 400, 'daten' => ['error_description' => 'Invalid login credentials']];
+    }
+    return ['ok' => false, 'status' => 500, 'daten' => null];
+};
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('strato_anon', 'eyJprobe'), ('strato_refresh', 'alt-r')");
+pruefe('STRATO: ohne Anmeldung bleibt es beim alten Verhalten (null, Fehler steht da)',
+    Strato::zugangsToken() === null && str_contains(Strato::fehler(), 'Session Expired'));
+$mnS = Strato::anmeldungSetzen('uwe@esempio.it', 'Falsch-1');
+pruefe('STRATO: eine falsche Anmeldung wird geprüft und nicht gespeichert', !$mnS['ok'] && Strato::anmeldungEmail() === '');
+$mnS = Strato::anmeldungSetzen('uwe@esempio.it', 'Richtig-1');
+pruefe('STRATO: die richtige Anmeldung wird geprüft und gespeichert', $mnS['ok'] && Strato::anmeldungEmail() === 'uwe@esempio.it');
+pruefe('STRATO: das Passwort steht nirgends im Klartext', (int) Db::wert(
+    "SELECT COUNT(*) FROM settings WHERE svalue LIKE '%Richtig-1%'", [], 0) === 0);
+Db::run("UPDATE settings SET svalue = '' WHERE skey = 'strato_zugang'");
+Db::run("UPDATE settings SET svalue = 'wieder-abgelaufen' WHERE skey = 'strato_refresh'");
+pruefe('STRATO: abgelaufene Sitzung → selbst neu angemeldet', Strato::zugangsToken() === 'neu-a' && Strato::fehler() === '');
+pruefe('STRATO: und der neue Auffrischungs-Token ist gesichert', Strato::wert('strato_refresh') === 'neu-r');
+pruefe('STRATO: steht im Protokoll', (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'strato_neu_angemeldet'", [], 0) >= 1);
+// Passwort drüben geändert: Meldung genau einmal, nicht stündlich
+$mnBlob = Hosting::versiegeln(['email' => 'uwe@esempio.it', 'passwort' => 'Veraltet-1']);
+Db::run("UPDATE settings SET svalue = ? WHERE skey = 'strato_anmeldung'", [$mnBlob]);
+Db::run("DELETE FROM notifications WHERE type = 'strato_zugang'");
+for ($i = 0; $i < 3; $i++) {
+    Db::run("UPDATE settings SET svalue = '' WHERE skey = 'strato_zugang'");
+    Strato::zugangsToken();
+}
+pruefe('STRATO: scheitert auch die Neuanmeldung, kommt genau EINE Meldung', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'strato_zugang'", [], 0) === 1);
+pruefe('STRATO: der Fehler nennt nie das Passwort', !str_contains(Strato::fehler(), 'Veraltet'));
+Strato::$abrufProbe = null;
+Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
+
+// Aufräumen
+Db::run('DELETE FROM files WHERE customer_id = ?', [$mnK]);
+Db::run('DELETE FROM hosting_auftraege WHERE id = ?', [$mnH]);
+Db::run('DELETE FROM chef_gedaechtnis');
+Db::run("DELETE FROM notifications WHERE type IN ('chef_gesperrt','chef_freigabe','strato_zugang')");
+Db::run("DELETE FROM settings WHERE skey IN ('chef_codewort','chef_pin','chef_gesperrt_bis','chef_zaehler_ab')");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
