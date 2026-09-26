@@ -104,11 +104,11 @@ async function einzel(): Promise<void> {
 async function osm(): Promise<void> {
   const [land, ebene, gebiet, branchenRoh] = process.argv.slice(3);
   if (!land || !ebene || !gebiet) { console.log('Aufruf: npm run osm -- IT stadt Aragona restaurant,hotel'); return; }
-  const { gebieteFinden, betriebeIn, alsFirma, einordnen } = await import('./recherche/overpass.js');
+  const { gebieteFinden, betriebeIn, alsFirma } = await import('./recherche/overpass.js');
   const branchen = branchenRoh ? branchenRoh.split(',') : [];
   const g = (await gebieteFinden(land, ebene as 'stadt', gebiet))[0];
   if (!g) { console.log('Kein Gebiet gefunden.'); return; }
-  const ort = g.lat !== undefined && g.lon !== undefined ? await einordnen(g.lat, g.lon) : {};
+  const ort = { region: g.region, kreis: g.kreis };
   const els = await betriebeIn(g, branchen);
   const firmen = els.map((e) => alsFirma(e, land as 'IT', { ...ort, stadt: g.name }, branchen)).filter((f) => f !== null);
   for (const f of firmen) console.log(`${f!.url ? '🌐' : '  '} ${f!.branche.padEnd(14)} ${f!.name}${f!.url ? '  ' + f!.url : ''}`);

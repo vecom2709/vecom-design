@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { api } from '../api.js';
 import { datenOrdner } from '../konfig.js';
 import { log } from '../log.js';
-import { alsFirma, betriebeIn, betriebeMitPlz, einordnen, gebieteFinden, untergebiete, type Gebiet, type GefundeneFirma } from './overpass.js';
+import { alsFirma, betriebeIn, betriebeMitPlz, gebieteFinden, untergebiete, type Gebiet, type GefundeneFirma } from './overpass.js';
 
 interface Lauf { id: number; land: 'DE' | 'IT'; ebene: 'region' | 'kreis' | 'stadt' | 'plz'; gebiet: string; branchen: string[] }
 interface Stand { erledigt: number[]; gemeinden?: (Gebiet & { region?: string; kreis?: string })[] }
@@ -42,12 +42,8 @@ async function gemeindenFuer(lauf: Lauf): Promise<(Gebiet & { region?: string; k
   let kandidaten = await gebieteFinden(lauf.land, ebene, name);
   if (!kandidaten.length) throw new Error(`Kein Gebiet „${name}" auf Ebene ${ebene} in ${lauf.land} gefunden.`);
 
-  if (kandidaten.length > 1 || ebene === 'stadt') {
-    const mitOrt = [];
-    for (const k of kandidaten) {
-      const o = k.lat !== undefined && k.lon !== undefined ? await einordnen(k.lat, k.lon) : {};
-      mitOrt.push({ ...k, ...o });
-    }
+  if (kandidaten.length > 1 || oberhalb) {
+    const mitOrt = kandidaten;   // Region und Kreis liefert Nominatim schon mit
     if (oberhalb) {
       const n = oberhalb.toLowerCase();
       kandidaten = mitOrt.filter((k) => (k.kreis ?? '').toLowerCase().includes(n) || (k.region ?? '').toLowerCase().includes(n));
@@ -62,12 +58,11 @@ async function gemeindenFuer(lauf: Lauf): Promise<(Gebiet & { region?: string; k
   }
   const g = kandidaten[0];
 
-  if (ebene === 'stadt') return [{ ...g, region: (g as any).region, kreis: (g as any).kreis }];
+  if (ebene === 'stadt') return [g];
   if (ebene === 'kreis') {
-    const o = g.lat !== undefined && g.lon !== undefined ? await einordnen(g.lat, g.lon) : {};
     const gem = await untergebiete(g, 'stadt');
     // Kreisfreie Stadt: keine Gemeinden darunter -- dann ist der Kreis selbst die Gemeinde.
-    return (gem.length ? gem : [g]).map((x) => ({ ...x, region: o.region, kreis: g.name }));
+    return (gem.length ? gem : [g]).map((x) => ({ ...x, region: g.region, kreis: g.name }));
   }
   // Region: erst die Kreise/Provinzen, dann deren Gemeinden.
   const kreise = await untergebiete(g, 'kreis');

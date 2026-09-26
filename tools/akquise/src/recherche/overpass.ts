@@ -84,19 +84,56 @@ export async function overpass(abfrage: string): Promise<OsmElement[]> {
 const landArea = (land: string) => `area["ISO3166-1"="${land}"]["admin_level"="2"]->.land;`;
 const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
-/** Sucht Verwaltungsgebiete einer Ebene mit diesem Namen. Erst exakt, dann tolerant (z. B. "Libero consorzio … di Agrigento"). */
+/* ==========================================================================
+   Gebiete finden: ueber Nominatim, nicht ueber Overpass.
+
+   GEMESSEN AM 26.09.2026 auf Uwes Rechner: Die Overpass-Abfrage "alle
+   Verwaltungsgrenzen Italiens mit diesem Namen" lief auf drei Servern
+   jeweils in den 504 -- nicht weil die Server voll waren, sondern weil die
+   Abfrage fuer ganz Italien zu schwer ist. Nominatim ist genau fuer diese
+   Frage gebaut, antwortet in unter einer Sekunde und liefert Region und
+   Kreis gleich mit. Nutzungsregel: hoechstens eine Anfrage je Sekunde,
+   mit erkennbarem Absender -- beides eingehalten.
+   ========================================================================== */
+const NOMINATIM = 'https://nominatim.openstreetmap.org';
+let letzteNominatim = 0;
+async function nominatim(pfad: string, sprache = 'it'): Promise<any> {
+  const noch = letzteNominatim + 1100 - Date.now();
+  if (noch > 0) await warten(noch);
+  letzteNominatim = Date.now();
+  const r = await fetch(NOMINATIM + pfad, { headers: { 'User-Agent': konfig.botKennung, 'Accept-Language': sprache }, signal: AbortSignal.timeout(30_000) });
+  if (!r.ok) throw new Error(`Nominatim ${r.status}`);
+  return r.json();
+}
+
+const TYPEN: Record<string, string[]> = {
+  region: ['state', 'region'],
+  kreis: ['county', 'province', 'state_district'],
+  stadt: ['city', 'town', 'village', 'municipality', 'hamlet'],
+};
+
+/** Verwaltungsgebiete einer Ebene mit diesem Namen, mit Region und Kreis. */
 export async function gebieteFinden(land: string, ebene: 'region' | 'kreis' | 'stadt', name: string): Promise<Gebiet[]> {
-  const lvl = EBENE[ebene];
-  const lvls = land === 'DE' && ebene === 'stadt' ? '^(8|6)$' : `^${lvl}$`;   // kreisfreie Staedte liegen in DE auf Ebene 6
-  for (const filter of [`["name"="${esc(name)}"]`, `["name"~"(^|[ '])${esc(name)}$",i]`]) {
-    const els = await overpass(`[out:json][timeout:90];${landArea(land)}
-      rel(area.land)["boundary"="administrative"]["admin_level"~"${lvls}"]${filter};
-      out tags center;`);
-    if (els.length) {
-      return els.map((e) => ({ name: e.tags?.name ?? name, osmId: e.id, lat: e.center?.lat, lon: e.center?.lon }));
-    }
-  }
-  return [];
+  const q = new URLSearchParams({ format: 'jsonv2', addressdetails: '1', limit: '15', countrycodes: land.toLowerCase(), q: name });
+  const liste: any[] = await nominatim('/search?' + q, land === 'DE' ? 'de' : 'it');
+  const n = name.toLowerCase().trim();
+  const grenzen = liste.filter((r) => r.osm_type === 'relation' && r.category === 'boundary' && TYPEN[ebene].includes(r.addresstype));
+  // Genau dieser Name -- sonst alle, die so anfangen ("Neustadt" → "Neustadt in Holstein" …), damit
+  // die Mehrdeutigkeit mit Auswahl gemeldet wird statt "nichts gefunden".
+  let passend = grenzen.filter((r) => String(r.name ?? '').toLowerCase().trim() === n);
+  if (!passend.length) passend = grenzen.filter((r) => String(r.name ?? '').toLowerCase().startsWith(n));
+  const gesehen = new Set<number>();
+  return passend.filter((r) => !gesehen.has(r.osm_id) && gesehen.add(r.osm_id)).map((r) => ({
+    name: r.name, osmId: Number(r.osm_id), lat: Number(r.lat), lon: Number(r.lon),
+    region: r.address?.state ?? r.address?.region,
+    kreis: ebene === 'stadt' ? (r.address?.county ?? r.address?.province ?? r.address?.state_district) : undefined,
+  }));
+}
+
+/** In welcher Region und welchem Kreis liegt ein Punkt? */
+export async function einordnen(lat: number, lon: number): Promise<{ region?: string; kreis?: string }> {
+  const r = await nominatim(`/reverse?format=jsonv2&addressdetails=1&zoom=10&lat=${lat}&lon=${lon}`, 'de,it');
+  return { region: r?.address?.state ?? r?.address?.region, kreis: r?.address?.county ?? r?.address?.province ?? r?.address?.state_district };
 }
 
 /** Unter-Gebiete (Provinzen einer Region, Gemeinden einer Provinz). */
@@ -109,18 +146,6 @@ export async function untergebiete(gebiet: Gebiet, ebene: 'kreis' | 'stadt'): Pr
   return els.filter((e) => !gesehen.has(e.id) && gesehen.add(e.id))
     .map((e) => ({ name: e.tags!.name, osmId: e.id, lat: e.center?.lat, lon: e.center?.lon }))
     .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-/** In welcher Region und welchem Kreis liegt ein Punkt? */
-export async function einordnen(lat: number, lon: number): Promise<{ region?: string; kreis?: string }> {
-  const els = await overpass(`[out:json][timeout:60];is_in(${lat},${lon})->.a;
-    area.a["boundary"="administrative"]["admin_level"~"^(4|6)$"];out tags;`);
-  const out: { region?: string; kreis?: string } = {};
-  for (const e of els) {
-    if (e.tags?.admin_level === '4') out.region = e.tags.name;
-    if (e.tags?.admin_level === '6') out.kreis = e.tags.name;
-  }
-  return out;
 }
 
 /** Alle Betriebe der gewuenschten Branchen in einem Gebiet. */
