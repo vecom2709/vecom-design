@@ -38,6 +38,15 @@ $knopf = static function (string $tat, int $id, string $text, string $stil = '')
         <button class="knopf" style="border-color:rgba(255,138,138,.4);color:var(--rot)">
           Gelesene löschen (<?= (int) $gelesen ?>)</button></form>
     <?php endif; ?>
+    <?php /* Alles löschen, auch Ungelesenes (26.09.2026, Uwe: „alle Meldungen sollen
+             löschbar sein“) -- mit Rückfrage, die sagt, dass Ungelesenes dabei ist. */ ?>
+    <?php if ($offen > 0): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>"
+            data-frage="<?= (int) ($offen + $gelesen) ?> Meldungen löschen — auch die <?= (int) $offen ?> ungelesenen? Der Verlauf und die Prüfspur bleiben davon unberührt." data-ja="Ja, alle löschen">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="meldungen_alle_weg">
+        <input type="hidden" name="zurueck" value="benachrichtigungen">
+        <button class="knopf" style="border-color:rgba(255,138,138,.4);color:var(--rot)">Alle löschen (<?= (int) ($offen + $gelesen) ?>)</button></form>
+    <?php endif; ?>
   </div>
 </div>
 

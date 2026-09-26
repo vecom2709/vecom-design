@@ -9440,7 +9440,10 @@ pruefe('Präzision: eine nicht zurückgelesene E-Mail wird aufgehalten',
 
 // T10 Tageslage: Prioritäten und keine Alarmflut
 Db::run("DELETE FROM notifications WHERE type IN ('mn_probe')");
-for ($i = 0; $i < 18; $i++) { Events::melden('mn_probe', 'Zustellung gescheitert', 'schlecht', 'x'); }
+/* Seit 26.09.2026 laesst Events::melden wortgleiche Meldungen gar nicht erst
+   doppelt entstehen. Die Zusammenfassung in der Lage bleibt fuer Altbestand
+   und leicht abweichende Wiederholungen -- deshalb hier direkt eingetragen. */
+for ($i = 0; $i < 18; $i++) { Db::insert('notifications', ['type' => 'mn_probe', 'level' => 'schlecht', 'title' => 'Zustellung gescheitert', 'body' => 'x']); }
 Events::melden('mn_probe', 'Zertifikat läuft ab', 'warnung', 'y');
 $mnL = Chef::lage();
 $mnStufen = array_column($mnL['prioritaeten'], 'stufe');
@@ -9960,6 +9963,7 @@ $stAntwort = ['ok' => false, 'status' => 500, 'daten' => ['error' => 'Bad gatewa
 Strato::$abrufProbe = static function (string $art, string $url, mixed $k) use (&$stAntwort): array { return $stAntwort; };
 Db::run("DELETE FROM settings WHERE skey LIKE 'strato\\_%'");
 Db::run("DELETE FROM notifications WHERE type = 'strato_zugang'");
+Db::run("DELETE FROM settings WHERE skey LIKE 'meldung\\_zuletzt\\_%'");   // Gedaechtnis gegen Doppelmeldungen (Events::melden) zuruecksetzen
 Db::run("INSERT INTO settings (skey, svalue) VALUES ('strato_anon', 'eyJprobe'), ('strato_refresh', 'r1'), ('strato_sitzung_seit', ?)",
         [date('Y-m-d H:i:s', strtotime('-50 hours'))]);
 Strato::zugangsToken();
@@ -11180,6 +11184,38 @@ pruefe('Service Worker speichert keine Seiten (Geldzahlen nie aus dem Cache)',
 pruefe('Antwort an Partner fragt vorher (TRAGWEITE)', isset(Ablauf::TRAGWEITE['partner_nachricht']));
 pruefe('Logos mit Versionsanhang — kein Browser zeigt mehr das alte blaue V',
     !preg_match('~logo-mark\.webp"~', $pnS . (string) file_get_contents($wurzel . '/../kunde.php') . (string) file_get_contents($wurzel . '/../zugang.php')));
+
+/* ============================================================================
+   Meldungen: keine Endlosschleife, alles löschbar (26.09.2026)
+   Uwe: „alle Meldungen in der Verwaltung sollen löschbar sein, vieles liegt
+   seit geraumer Zeit, aber nicht löschbar“. Gemessen: „2 Rückrufe warten“
+   stand achtmal da -- der Cronlauf meldete alle zehn Minuten neu, und jede
+   gelöschte Meldung war zehn Minuten später wieder da.
+   ============================================================================ */
+abschnitt('Meldungen: keine Endlosschleife, alles löschbar');
+Db::run("DELETE FROM notifications WHERE type = 'kette_wiederholung'");
+Events::melden('kette_wiederholung', '2 Rückrufe warten', 'warnung', 'a, b', '/telefon');
+Events::melden('kette_wiederholung', '2 Rückrufe warten', 'warnung', 'a, b', '/telefon');
+pruefe('Wortgleiche Meldung zweimal hintereinander = eine Zeile',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'kette_wiederholung'", [], 0) === 1);
+Db::run("DELETE FROM notifications WHERE type = 'kette_wiederholung'");
+Events::melden('kette_wiederholung', '2 Rückrufe warten', 'warnung', 'a, b', '/telefon');
+pruefe('… gelöscht bleibt gelöscht (kommt nicht beim nächsten Cronlauf zurück)',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'kette_wiederholung'", [], 0) === 0);
+Events::melden('kette_wiederholung', '3 Rückrufe warten', 'warnung', 'a, b, c', '/telefon');
+pruefe('… eine geänderte Lage ist eine neue Meldung', (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'kette_wiederholung'", [], 0) === 1);
+Db::run("UPDATE settings SET svalue = ? WHERE skey LIKE 'meldung\\_zuletzt\\_%'", [date('Y-m-d H:i:s', strtotime('-21 hours'))]);
+Events::melden('kette_wiederholung', '3 Rückrufe warten', 'warnung', 'a, b, c', '/telefon');
+pruefe('… und nach der Sperrzeit (20 Stunden) meldet sich dieselbe Lage wieder',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'kette_wiederholung'", [], 0) === 2);
+Db::run("DELETE FROM notifications WHERE type = 'kette_wiederholung'");
+$mlIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Alle löschen, auch Ungelesenes: Tat vorhanden, Knopf mit Rückfrage',
+    str_contains($mlIdx, "case 'meldungen_alle_weg':")
+    && str_contains((string) file_get_contents($wurzel . '/views/benachrichtigungen.php'), 'name="tat" value="meldungen_alle_weg"')
+    && str_contains((string) file_get_contents($wurzel . '/views/benachrichtigungen.php'), 'auch die <?= (int) $offen ?> ungelesenen'));
+require_once $wurzel . '/src/Meldungen.php';
+pruefe('Rückruf-Mahnung erledigt sich, sobald kein Rückruf mehr überfällig ist', isset(Meldungen::regeln()['telefon_rueckruf_offen']));
 
 /* ============================================================================
    Aufräumen und Bilanz

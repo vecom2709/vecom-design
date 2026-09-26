@@ -30,6 +30,11 @@ final class Meldungen
             // Connect läuft wieder, sobald „Stripe Connect prüfen“ ok gesagt hat.
             'partner_stripe_connect' => static fn(array $m, ?int $id): bool =>
                 (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_stripe_connect'", [], '') === 'ok',
+            // Kein überfälliger Rückruf mehr (alle erledigt) -- dann ist auch die Mahnung vorbei.
+            'telefon_rueckruf_offen' => static function (array $m, ?int $id): bool {
+                require_once __DIR__ . '/Telefon.php';
+                return array_filter(Telefon::rueckrufe(30), static fn(array $r): bool => !empty($r['ueberfaellig'])) === [];
+            },
             // Partner-Nachricht gelesen (Partnerakte geöffnet) -- keine ungelesene dieses Partners mehr.
             'partner_nachricht' => static fn(array $m, ?int $id): bool => $id !== null
                 && (int) Db::wert("SELECT COUNT(*) FROM partner_nachrichten WHERE partner_id = ? AND von = 'partner' AND gelesen_am IS NULL", [$id], 1) === 0,

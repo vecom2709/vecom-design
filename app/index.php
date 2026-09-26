@@ -2749,6 +2749,12 @@ if ($post) {
                 Db::run('DELETE FROM notifications WHERE id = ?', [(int) ($_POST['id'] ?? 0)]);
                 zurueck('benachrichtigungen');
 
+            case 'meldungen_alle_weg':
+                // Auf Uwes Wunsch (26.09.2026) auch Ungelesenes -- nur mit der Rückfrage im Formular.
+                $anzahl = Db::run('DELETE FROM notifications')->rowCount();
+                $_SESSION['gut'] = $anzahl . ' Meldung(en) gelöscht. Was davon noch zutrifft, meldet sich frühestens morgen wieder.';
+                zurueck('benachrichtigungen');
+
             case 'meldungen_weg':
                 // Nur Gelesenes. Eine Warnung, die noch niemand gesehen hat,
                 // raeumt dieser Knopf nicht weg — das waere genau der stille

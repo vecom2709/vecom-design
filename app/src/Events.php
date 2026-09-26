@@ -83,6 +83,25 @@ final class Events
            Eine Meldung darf nie den Vorgang abbrechen, den sie meldet. */
         if (mb_strlen($titel) > 255) { $titel = mb_substr($titel, 0, 254) . '…'; }
         if ($text !== null && mb_strlen($text) > 500) { $text = mb_substr($text, 0, 499) . '…'; }
+
+        /* DIESELBE MELDUNG NICHT IMMER WIEDER (26.09.2026, Uwe: „vieles liegt
+           seit geraumer Zeit, aber nicht löschbar“). Gemessen: „2 Rückrufe
+           warten“ stand achtmal da -- der Cronlauf meldete alle zehn Minuten
+           neu, und jede gelöschte Meldung war zehn Minuten später wieder da.
+           Wortgleiche Meldung (Art, Titel, Text, Link) innerhalb der Sperrzeit:
+           nicht noch einmal -- auch dann nicht, wenn sie inzwischen gelöscht
+           wurde. Das Gedächtnis steht deshalb in settings, nicht in
+           notifications. Störungen („schlecht“) melden sich nach 2 Stunden
+           wieder, alles andere nach 20. Ändert sich der Wortlaut (eine Zahl,
+           ein Name), ist es eine neue Meldung. */
+        $schluessel = 'meldung_zuletzt_' . substr(hash('sha256', $typ . "\0" . $titel . "\0" . (string) $text . "\0" . (string) $link), 0, 32);
+        $sperre = $stufe === 'schlecht' ? 2 * 3600 : 20 * 3600;
+        try {
+            $zuletzt = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '');
+            if ($zuletzt !== '' && time() - (int) strtotime($zuletzt) < $sperre) { return; }
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schluessel, date('Y-m-d H:i:s')]);
+        } catch (Throwable $e) { /* ohne Gedächtnis lieber doppelt als gar nicht */ }
+
         Db::insert('notifications', [
             'type' => $typ, 'level' => $stufe, 'title' => $titel,
             'body' => $text, 'link' => $link,
@@ -149,6 +168,8 @@ final class Events
                     'DELETE FROM notifications WHERE read_at IS NOT NULL AND id <= ?',
                     [(int) $grenze])->rowCount();
             }
+            // Das Gedaechtnis gegen Doppelmeldungen (melden()) braucht nur einen Tag.
+            Db::run("DELETE FROM settings WHERE skey LIKE 'meldung\\_zuletzt\\_%' AND svalue < ?", [date('Y-m-d H:i:s', strtotime('-3 days'))]);
         } catch (Throwable $e) {
             // Aufraeumen ist Kuer. Es darf nie einen Cron-Lauf umwerfen.
         }
