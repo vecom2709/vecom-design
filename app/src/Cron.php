@@ -130,6 +130,11 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::berichteSenden();
             },
+            /* Neue Domains: Uwe bestellt, dieser Lauf merkt, wenn sie da ist. */
+            'registriert' => static function () {
+                require_once __DIR__ . '/Hosting.php';
+                return Hosting::registrierungNachsehen();
+            },
             /* HTTPS der angelegten Domains: bis es steht alle 6 h, dann taeglich. */
             'https'       => static function () {
                 require_once __DIR__ . '/Hosting.php';

@@ -1033,6 +1033,14 @@ if ($post) {
                 else { $_SESSION['hosting_technik'] = ['id' => $hid, 'daten' => $t]; }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            case 'hosting_registrierung':
+                require_once __DIR__ . '/src/Hosting.php';
+                $hr = Hosting::registrierungNachsehen(null, null, null, (int) ($_POST['id'] ?? 0));
+                $_SESSION[$hr > 0 ? 'gut' : 'fehler'] = $hr > 0
+                    ? 'Die Domain ist registriert und zeigt auf All-Inkl — HTTPS ist geprüft, der Kunde hat Bescheid.'
+                    : 'Noch nicht: Die Nameserver zeigen (noch) nicht auf All-Inkl. Nach der Bestellung dauert es meist Minuten bis wenige Stunden.';
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'hosting_https':
                 require_once __DIR__ . '/src/Hosting.php';
                 $hs = Hosting::httpsPruefen((int) ($_POST['id'] ?? 0));

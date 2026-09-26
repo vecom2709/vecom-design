@@ -1427,6 +1427,18 @@ final class Texte
     ];
 
     public const MAILS = [
+        /* Die neue Domain ist registriert (26.09.2026) */
+        'domain_aktiv' => [
+            'it' => ['{domain} è registrato',
+                "Buongiorno {name},\n\nbuone notizie: il dominio {domain} è registrato a suo nome e punta già al suo spazio web.\n\n"
+                . "Nelle prossime ore attiviamo il certificato di sicurezza (HTTPS); le scriveremo appena il sito è online.\n\nLa sua pagina: {seite}"],
+            'de' => ['{domain} ist registriert',
+                "Guten Tag {name},\n\ngute Nachricht: Die Domain {domain} ist auf Sie registriert und zeigt bereits auf Ihren Webspace.\n\n"
+                . "In den nächsten Stunden schalten wir das Sicherheitszertifikat (HTTPS) ein; wir melden uns, sobald die Seite online ist.\n\nIhre Seite: {seite}"],
+            'en' => ['{domain} is registered',
+                "Hello {name},\n\ngood news: the domain {domain} is registered in your name and already points to your web space.\n\n"
+                . "Over the next hours we will switch on the security certificate (HTTPS); we’ll let you know as soon as the site is online.\n\nYour page: {seite}"],
+        ],
         /* Monatsbericht an Hosting-Kunden (26.09.2026, Uwe: ja) */
         'hosting_bericht' => [
             'it' => ['{domain}: il suo mese di {monat}',

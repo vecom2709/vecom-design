@@ -77,6 +77,12 @@ final class Events
      */
     public static function melden(string $typ, string $titel, string $stufe = 'info', ?string $text = null, ?string $link = null): void
     {
+        /* Titel 255, Text 500 Zeichen -- mehr fassen die Spalten nicht. Am
+           26.09.2026 wurde die Aufgabe "Domain bestellen" laenger als 500 und
+           riss den letzten Einrichtungsschritt mit (die Kette fand es).
+           Eine Meldung darf nie den Vorgang abbrechen, den sie meldet. */
+        if (mb_strlen($titel) > 255) { $titel = mb_substr($titel, 0, 254) . '…'; }
+        if ($text !== null && mb_strlen($text) > 500) { $text = mb_substr($text, 0, 499) . '…'; }
         Db::insert('notifications', [
             'type' => $typ, 'level' => $stufe, 'title' => $titel,
             'body' => $text, 'link' => $link,

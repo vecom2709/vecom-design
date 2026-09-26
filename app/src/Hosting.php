@@ -1048,8 +1048,8 @@ final class Hosting
         if (self::dran($st['aufgabe'])) {
             $aktion = (string) ($a['domain_aktion'] ?? 'neu');
             $was = [
-                'neu'      => 'Jetzt im Domainbestellsystem (domain-bestellsystem.de) die Domain ' . $domain
-                            . ' auf den Kunden als Inhaber bestellen — Nameserver ns5.kasserver.com. ',
+                'neu'      => 'Jetzt ' . $domain . ' im Domainbestellsystem auf den Kunden bestellen — alles zum Kopieren '
+                            . '(Inhaber, Nameserver) steht in der Kundenakte; dass sie da ist, merkt das System selbst. ',
                 'transfer' => 'Umzug (KK) von ' . $domain . ': Der Kunde gibt den Auth-Code auf seiner Seite ein (du bekommst '
                             . 'Bescheid). In der Kundenakte steht die DNS-Bestandsaufnahme — MX, SPF, DKIM, DMARC und TXT '
                             . 'VOR dem Antrag im KAS-DNS eintragen, dann den KK-Antrag im Domainbestellsystem stellen und '
@@ -1376,6 +1376,60 @@ final class Hosting
                 Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schl, date('Y-m-d H:i:s')]);
                 $n++;
             }
+        }
+        return $n;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Neue Domain: Uwe bestellt, das System erkennt (26.09.2026, Weg B) */
+    /* ------------------------------------------------------------------ */
+
+    /** Die Nameserver von All-Inkl -- gemessen an vecom-design.it am 26.09.2026. */
+    public const NAMESERVER = ['ns5.kasserver.com', 'ns6.kasserver.com'];
+
+    /** Wartet dieser Auftrag darauf, dass Uwe die Domain bestellt? */
+    public static function wartetAufBestellung(array $a): bool
+    {
+        return (string) ($a['domain_aktion'] ?? 'neu') === 'neu' && in_array((string) $a['status'], ['angelegt', 'aktiv'], true)
+            && empty($a['domain_registriert_am']) && empty($a['gesperrt_am']);
+    }
+
+    /**
+     * Ist die neue Domain registriert und zeigt auf All-Inkl? Dann: eintragen,
+     * Uwe melden, HTTPS gleich pruefen, den Kunden benachrichtigen -- genau
+     * einmal (der Eintrag wird beansprucht, bevor irgendetwas hinausgeht).
+     *
+     * Erkannt wird an den Nameservern, wie beim Umzug (Domainumzug::nachsehenAlle):
+     * Solange die Domain frei ist, gibt es keine; zeigen alle auf kasserver.com,
+     * ist sie registriert UND richtig eingerichtet.
+     *
+     * @param callable(string,int):array|null $dns wie dns_get_record
+     * @param callable|null $senden wie Mail::senden
+     * @param callable(string):array|null $https wie in httpsPruefen
+     */
+    public static function registrierungNachsehen(?callable $dns = null, ?callable $senden = null, ?callable $https = null, ?int $nur = null): int
+    {
+        $dns ??= static fn(string $h, int $t): array => (array) (@dns_get_record($h, $t) ?: []);
+        $n = 0;
+        $zeilen = $nur !== null ? Db::all('SELECT * FROM hosting_auftraege WHERE id = ?', [$nur])
+            : Db::all("SELECT * FROM hosting_auftraege WHERE domain_aktion = 'neu' AND status IN ('angelegt','aktiv')
+                        AND domain_registriert_am IS NULL AND gesperrt_am IS NULL ORDER BY id LIMIT 20");
+        foreach ($zeilen as $a) {
+            if (!self::wartetAufBestellung($a)) { continue; }
+            $ns = array_map(static fn($r) => mb_strtolower(rtrim((string) ($r['target'] ?? ''), '.')), $dns((string) $a['domain'], DNS_NS));
+            if (!$ns || array_filter($ns, static fn($x) => !str_ends_with($x, 'kasserver.com'))) { continue; }
+            $meins = Db::run('UPDATE hosting_auftraege SET domain_registriert_am = NOW() WHERE id = ? AND domain_registriert_am IS NULL',
+                [(int) $a['id']])->rowCount();
+            if ($meins === 0) { continue; }
+            $n++;
+            Events::protokoll('domain_registriert', 'Domain ' . $a['domain'] . ' registriert — Nameserver zeigen auf All-Inkl', (int) $a['customer_id']);
+            $h = self::still(static fn() => self::httpsPruefen((int) $a['id'], $https), ['status' => 'fehler', 'text' => '']);
+            Events::melden('domain_fertig', 'Registriert: ' . $a['domain'], 'gut',
+                'Die Domain ist da und zeigt auf All-Inkl. '
+                . ((string) ($h['status'] ?? '') === 'ok' ? 'HTTPS steht bereits.'
+                    : 'Jetzt im KAS den SSL-Schutz (Let\'s Encrypt) einschalten — die HTTPS-Prüfung läuft von selbst weiter und gibt „Online“ frei, sobald er greift.'),
+                '/kunden/' . (int) $a['customer_id']);
+            self::still(static fn() => self::kundeSchreiben((int) $a['customer_id'], 'domain_aktiv', ['domain' => (string) $a['domain']], $senden));
         }
         return $n;
     }

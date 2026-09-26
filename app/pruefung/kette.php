@@ -9036,6 +9036,56 @@ pruefe('9: ab 90 % bekommt auch der Kunde eine Mail -- einmal im Monat, mit sein
     count($dsVoll) === 1 && str_contains($dsVoll[0]['text'], '7,6 GB der vereinbarten 8 GB'), $dsVoll[0]['text'] ?? json_encode($dsPost));
 
 /* ============================================================================
+   83. Neue Domain: Uwe bestellt, das System erkennt (26.09.2026, Weg B)
+   ============================================================================ */
+abschnitt('83. Neue Domain erkennen');
+$rgPost = [];
+$rgSend = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$rgPost): bool {
+    $rgPost[] = compact('anlass', 'an', 'betreff', 'text'); return true; };
+$rgHttps = static fn(string $d): array => ['https' => ['ok' => true, 'ssl_gueltig' => 1, 'ssl_bis' => '2027-01-01', 'fehler' => null], 'umleitung' => 'https://' . $d . '/'];
+$rgNs = [];
+$rgDns = static function (string $h, int $t) use (&$rgNs): array { return $t === DNS_NS ? array_map(static fn($x) => ['target' => $x], $rgNs[$h] ?? []) : []; };
+$rgK = Events::kundeFinden(['name' => 'Neu Domain', 'email' => 'neudomain@pruefung.example']);
+Db::run("UPDATE customers SET sprache = 'it' WHERE id = ?", [$rgK]);
+$rgA = (int) Db::insert('hosting_auftraege', ['customer_id' => $rgK, 'domain' => 'neu-registriert.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom', 'kas_login' => 'w0144400']);
+$rgZeile = static fn(): array => Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$rgA]);
+pruefe('Neue Domain: wartet auf Uwes Bestellung, solange nichts registriert ist', Hosting::wartetAufBestellung($rgZeile()));
+pruefe('Neue Domain: ohne Nameserver (noch frei) passiert nichts',
+    Hosting::registrierungNachsehen($rgDns, $rgSend, $rgHttps, $rgA) === 0 && $rgPost === [] && $rgZeile()['domain_registriert_am'] === null);
+$rgNs['neu-registriert.it'] = ['ns1.fremdanbieter.net', 'ns6.kasserver.com'];
+pruefe('Neue Domain: zeigt nur einer auf All-Inkl, ist sie noch nicht fertig',
+    Hosting::registrierungNachsehen($rgDns, $rgSend, $rgHttps, $rgA) === 0);
+$rgNs['neu-registriert.it'] = ['ns5.kasserver.com.', 'NS6.kasserver.com'];
+$rgN1 = Hosting::registrierungNachsehen($rgDns, $rgSend, $rgHttps);
+$rgN2 = Hosting::registrierungNachsehen($rgDns, $rgSend, $rgHttps);
+$rgZ = $rgZeile();
+pruefe('Neue Domain: zeigen beide auf All-Inkl, geht es von selbst weiter -- genau einmal',
+    $rgN1 === 1 && $rgN2 === 0 && $rgZ['domain_registriert_am'] !== null && !Hosting::wartetAufBestellung($rgZ));
+pruefe('Neue Domain: HTTPS wird gleich mitgeprüft -- "Online" ist damit frei', (string) $rgZ['ssl_status'] === 'ok');
+$rgMail = array_values(array_filter($rgPost, static fn($m) => $m['anlass'] === 'domain_aktiv'));
+pruefe('Neue Domain: der Kunde bekommt eine Mail in seiner Sprache, ohne offene Platzhalter',
+    count($rgMail) === 1 && str_contains($rgMail[0]['betreff'], 'neu-registriert.it') && str_contains($rgMail[0]['text'], 'Buongiorno')
+    && !preg_match('~\{[a-z]+\}~', $rgMail[0]['betreff'] . $rgMail[0]['text']));
+pruefe('Neue Domain: Uwe bekommt eine Meldung', (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'domain_fertig' AND title LIKE '%neu-registriert.it%'", [], 0) === 1);
+$rgT = true;
+foreach (['it', 'de', 'en'] as $rgS) { if (trim((string) (Texte::MAILS['domain_aktiv'][$rgS][1] ?? '')) === '') { $rgT = false; } }
+pruefe('Neue Domain: Mail dreisprachig, beide Nameserver in der Kundenakte, der Cron sieht nach',
+    $rgT && Hosting::NAMESERVER === ['ns5.kasserver.com', 'ns6.kasserver.com']
+    && str_contains((string) file_get_contents($wurzel . '/views/kunde.php'), "implode(' · ', Hosting::NAMESERVER)")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Hosting::registrierungNachsehen()'));
+$rgLang = (string) Db::wert("SELECT body FROM notifications WHERE type = 'hosting_bestellen' ORDER BY id DESC LIMIT 1", [], '');
+pruefe('Neue Domain: die Aufgabe "Domain bestellen" passt ganz in die Meldung -- nichts wird abgeschnitten',
+    $rgLang !== '' && !str_ends_with($rgLang, '…') && mb_strlen($rgLang) <= 500, (string) mb_strlen($rgLang));
+Events::melden('kette_lang', str_repeat('T', 300), 'info', str_repeat('x', 700));
+pruefe('Meldung: zu lang wird gekürzt statt den Vorgang abzubrechen',
+    mb_strlen((string) Db::wert("SELECT body FROM notifications WHERE type = 'kette_lang' ORDER BY id DESC LIMIT 1", [], '')) === 500);
+$rgUm = (int) Db::insert('hosting_auftraege', ['customer_id' => $rgK, 'domain' => 'bleibt-woanders.it', 'status' => 'angelegt',
+    'preis_cents' => 990, 'domain_aktion' => 'behalten', 'mail' => 'bisher']);
+pruefe('Neue Domain: eine Domain, die beim alten Anbieter bleibt, wartet auf keine Bestellung',
+    !Hosting::wartetAufBestellung(Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$rgUm])));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

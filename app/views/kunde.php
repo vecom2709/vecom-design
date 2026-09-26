@@ -566,6 +566,52 @@ $eing = !empty($eingebettet);
           </form>
         <?php endif; ?>
       <?php endif; ?>
+      <?php /* DOMAIN BESTELLEN (26.09.2026, Weg B): Uwe bestellt im Domainbestellsystem
+               von All-Inkl -- dafuer gibt es keine Schnittstelle. Hier steht alles zum
+               Kopieren; dass die Domain da ist, merkt der Cron an den Nameservern
+               (Hosting::registrierungNachsehen) und macht von allein weiter. */ ?>
+      <?php if (Hosting::wartetAufBestellung($hostingA)): ?>
+        <?php $dbFelder = array_filter([
+            'Domain'        => (string) $hostingA['domain'],
+            'Inhaber'       => trim((string) ($k['company'] ?: $k['name'])),
+            'Ansprechpartner' => $k['company'] ? trim((string) $k['name']) : '',
+            'E-Mail'        => trim((string) $k['email']),
+            'Telefon'       => trim((string) ($k['phone'] ?? '')),
+            'Adresse'       => trim(implode(', ', array_filter([(string) ($k['street'] ?? ''), trim(($k['zip'] ?? '') . ' ' . ($k['city'] ?? '')), (string) ($k['country'] ?? '')]))),
+            'Steuernummer / Codice fiscale' => trim((string) ($k['tax_code'] ?? '')),
+            'USt-IdNr / P. IVA' => trim((string) ($k['vat_id'] ?? '')),
+            'Nameserver'    => implode(' · ', Hosting::NAMESERVER),
+          ], static fn($x) => $x !== ''); ?>
+        <div style="margin-top:12px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
+            <b>Domain bestellen</b>
+            <?php /* Das vorhandene Kopieren aus dem Layout: erst in die Zwischenablage,
+                     dann das Bestellsystem in einem neuen Tab (data-oeffnen). */ ?>
+            <button type="button" class="knopf klein" data-kopieren="db-daten-<?= (int) $hostingA['id'] ?>"
+                    data-oeffnen="https://www.domain-bestellsystem.de/">Kopieren und Bestellsystem öffnen ↗</button>
+          </div>
+          <textarea id="db-daten-<?= (int) $hostingA['id'] ?>" readonly aria-hidden="true" tabindex="-1"
+                    style="position:absolute;left:-9999px;width:1px;height:1px"><?= Fmt::h(implode("\n", array_map(static fn($n, $w) => $n . ': ' . $w, array_keys($dbFelder), $dbFelder))) ?></textarea>
+          <table class="schlicht" style="margin-top:8px"><tbody>
+            <?php foreach ($dbFelder as $dbN => $dbW): ?>
+              <tr><td style="width:38%;color:var(--leise)"><?= Fmt::h($dbN) ?></td>
+                <td><code style="user-select:all;overflow-wrap:anywhere"><?= Fmt::h($dbW) ?></code></td></tr>
+            <?php endforeach; ?>
+          </tbody></table>
+          <?php foreach (['Adresse' => 'Die Adresse fehlt', 'Telefon' => 'Die Telefonnummer fehlt'] as $dbP => $dbS): if (!isset($dbFelder[$dbP])): ?>
+            <p style="color:var(--rot);font-size:12.5px;margin:6px 0 0"><?= Fmt::h($dbS) ?> — das Bestellsystem verlangt sie für den Inhaber. Unter „Bearbeiten“ ergänzen.</p>
+          <?php endif; endforeach; ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_registrierung">
+            <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
+            <button class="knopf klein">Jetzt nachsehen</button>
+            <span style="color:var(--leise);font-size:12.5px">Das System sieht auch von selbst alle zehn Minuten nach: Sobald die Nameserver auf All-Inkl zeigen,
+              prüft es HTTPS, meldet sich bei dir und schreibt dem Kunden.</span>
+          </form>
+        </div>
+      <?php elseif ((string) ($hostingA['domain_aktion'] ?? '') === 'neu' && !empty($hostingA['domain_registriert_am'])): ?>
+        <p style="color:var(--leise);font-size:12.5px;margin:10px 0 0">Domain registriert erkannt am <?= Fmt::h(Fmt::zeit((string) $hostingA['domain_registriert_am'])) ?>.</p>
+      <?php endif; ?>
       <?php /* Die Handgriffe zu Speicher, HTTPS und Technik -- klein, unter der Tabelle.
                Keiner davon ist die Hauptsache der Seite, deshalb kein Blau. */ ?>
       <?php $hZ = 'kunden/' . (int) $k['id']; $hId = (int) $hostingA['id']; ?>
