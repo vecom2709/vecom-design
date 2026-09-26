@@ -102,6 +102,23 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <?php endif; ?>
 </div>
 
+<?php $ausw = array_values(array_filter($auswertung ?? [], static fn($z) => (int) $z['klicks'] + (int) $z['kunden'] > 0)); if ($ausw): ?>
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 6px">Lohnt es sich? <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate, beste zuerst</span></h2>
+  <div class="tabellenrahmen"><table>
+    <thead><tr><th>Partner</th><th style="text-align:right">Klicks</th><th style="text-align:right">Kunden</th><th style="text-align:right">Umsatz (netto)</th>
+               <th style="text-align:right">Provision</th><th style="text-align:right">je Kunde</th><th>Kanäle</th></tr></thead><tbody>
+    <?php foreach ($ausw as $z): ?>
+      <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $z['id'])) ?>"><?= Fmt::h($z['name']) ?></a></td>
+          <td style="text-align:right"><?= (int) $z['klicks'] ?></td><td style="text-align:right"><?= (int) $z['kunden'] ?></td>
+          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['umsatz'])) ?></td><td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['provision'])) ?></td>
+          <td style="text-align:right"><?= (int) $z['kunden'] > 0 ? Fmt::h(Fmt::geld((int) $z['je_kunde'])) : '—' ?></td>
+          <td style="font-size:12px;color:var(--dim)"><?= Fmt::h(implode(' · ', array_map(static fn($k) => $k['kanal'] . ' ' . $k['klicks'] . '/' . $k['kunden'], $z['kanaele']))) ?: '—' ?></td></tr>
+    <?php endforeach; ?></tbody></table></div>
+  <p style="color:var(--leise);font-size:12px;margin-top:6px">Kanäle: Klicks/Kunden. Umsatz = bezahlte Beträge der Kunden dieses Partners (netto), ohne Erstattetes.</p>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Partner einladen</h2>
   <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
@@ -192,6 +209,16 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
       <label style="display:inline-flex;align-items:center"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="partner_gilt_hosting" value="1" <?= $e('partner_gilt_hosting') === '1' ? 'checked' : '' ?>> Hosting</label>
       <label style="display:inline-flex;align-items:center"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="partner_freigabe_noetig" value="1" <?= $e('partner_freigabe_noetig') === '1' ? 'checked' : '' ?>> Jede Provision erst von mir freigeben</label>
       <label style="display:inline-flex;align-items:center"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="partner_bewerbung_offen" value="1" <?= $e('partner_bewerbung_offen') === '1' ? 'checked' : '' ?>> Bewerbungsformular offen</label>
+    </div>
+    <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+      <label style="font-size:13.5px;display:inline-flex;align-items:center"><input type="checkbox" name="partner_stufen_an" value="1" <?= $e('partner_stufen_an') === '1' ? 'checked' : '' ?> style="width:auto;margin:0 6px 0 0">
+        <b>Stufen</b>&nbsp;— wer im letzten Jahr viel gebracht hat, bekommt automatisch mehr (nur bei Prozent und ohne eigene Bedingungen)</label>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-top:10px">
+        <div class="feld" style="flex:0 0 150px"><label>Silber ab (Verkäufe)</label><input name="partner_silber_ab" type="number" min="1" value="<?= (int) $e('partner_silber_ab') ?>"></div>
+        <div class="feld" style="flex:0 0 120px"><label>Silber (%)</label><input name="partner_silber_bp" value="<?= Fmt::h($pz((int) $e('partner_silber_bp'))) ?>"></div>
+        <div class="feld" style="flex:0 0 150px"><label>Gold ab (Verkäufe)</label><input name="partner_gold_ab" type="number" min="2" value="<?= (int) $e('partner_gold_ab') ?>"></div>
+        <div class="feld" style="flex:0 0 120px"><label>Gold (%)</label><input name="partner_gold_bp" value="<?= Fmt::h($pz((int) $e('partner_gold_bp'))) ?>"></div>
+      </div>
     </div>
     <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin-bottom:12px">
       <label style="font-size:13.5px;display:inline-flex;align-items:center"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="partner_auto_auszahlen" value="1" <?= $e('partner_auto_auszahlen') === '1' ? 'checked' : '' ?>>

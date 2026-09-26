@@ -132,7 +132,8 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <ul style="font-size:13.5px;line-height:1.8;margin:0 0 12px;padding-left:18px">
     <?php foreach ($kunden as $k): ?>
       <li><a href="<?= Fmt::h(url('kunden/' . (int) $k['customer_id'])) ?>"><?= Fmt::h(Fmt::name($k['name'], $k['company'])) ?></a>
-        <span style="color:var(--leise);font-size:12px"><?= Fmt::h(['link' => 'über den Link', 'code' => 'Code eingetippt', 'hand' => 'von Hand'][$k['quelle']] ?? $k['quelle']) ?>, <?= Fmt::h(Fmt::datum((string) $k['created_at'])) ?></span></li>
+        <span style="color:var(--leise);font-size:12px"><?= Fmt::h(['link' => 'über den Link', 'code' => 'Code eingetippt', 'hand' => 'von Hand', 'partner' => 'vom Partner gemeldet',
+                 'telefon' => 'am Telefon genannt'][$k['quelle']] ?? $k['quelle']) ?><?= !empty($k['kanal']) ? ' · Kanal ' . Fmt::h($k['kanal']) : '' ?>, <?= Fmt::h(Fmt::datum((string) $k['created_at'])) ?></span></li>
     <?php endforeach; ?></ul>
   <?php endif; ?>
   <?php if ($p['status'] === 'aktiv' && $alleKunden): ?>

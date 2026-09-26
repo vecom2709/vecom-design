@@ -119,6 +119,7 @@ try {
         'wissen'             => Telefon::wissen($d),
         'termin'             => Telefon::termin($d),
         'fragebogen'         => Telefon::fragebogen($d),
+        'empfohlen'          => Telefon::empfohlen($d),
     };
     antwort($ergebnis);
 } catch (Throwable $e) {

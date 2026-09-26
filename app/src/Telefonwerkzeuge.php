@@ -35,7 +35,7 @@ final class Telefonwerkzeuge
      */
     public const REIHE = ['kunde_nachschlagen', 'wissen', 'beratung', 'seite_ansehen', 'beleg',
                           'preis_auskunft', 'lage', 'angebot_link', 'fragebogen', 'termin',
-                          'uebergabe', 'melde', 'zusammenfassung', 'wissensluecke', 'hilfe'];
+                          'uebergabe', 'melde', 'zusammenfassung', 'wissensluecke', 'hilfe', 'empfohlen'];
 
     /**
      * Alle Beschreibungen, wie sie diese Sekunde gelten.
@@ -206,6 +206,19 @@ final class Telefonwerkzeuge
           ],
           'pflicht' => ['frage'],
           'rumpf' => '{"aktion":"wissensluecke","frage":"{{ frage }}","kunde_id":"{{ kunde_id }}"}',
+        ];
+
+        $konfigs['empfohlen'] = [
+          'zweck' => 'Frag NEUE Interessenten einmal, beiläufig und erst wenn das Gespräch läuft: „Wie sind Sie auf uns gekommen?“ '
+                   . 'Nennt er eine Person, eine Firma oder einen Code, der ihn geschickt hat, rufe dieses Werkzeug mit dem '
+                   . 'Gesagten auf. Nie nachbohren, nie nach einem Code fragen, nie über Provisionen sprechen. '
+                   . 'Die kunde_id aus „kunde_nachschlagen“ mitgeben.',
+          'eig' => [
+            'wer' => ['type' => 'string', 'maxLength' => 120, 'description' => 'Name, Firma oder Code — wörtlich wie genannt'],
+            'kunde_id' => ['type' => 'integer', 'description' => 'Nur wenn vorher gefunden'],
+          ],
+          'pflicht' => ['wer'],
+          'rumpf' => '{"aktion":"empfohlen","wer":"{{ wer }}","kunde_id":"{{ kunde_id }}"}',
         ];
 
         $konfigs['hilfe'] = [

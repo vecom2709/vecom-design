@@ -3017,7 +3017,7 @@ abschnitt('37. Die Werkzeuge');
 require_once $wurzel . '/src/Telefonwerkzeuge.php';
 
 $w = Telefonwerkzeuge::alle();
-pruefe('es sind fünfzehn', count($w) === 15, (string) count($w));
+pruefe('es sind sechzehn', count($w) === 16, (string) count($w));
 pruefe('und genau die aus Telefon::AKTIONEN',
     array_diff(Telefon::AKTIONEN, array_keys($w)) === []
     && array_diff(array_keys($w), Telefon::AKTIONEN) === [],
@@ -3026,7 +3026,7 @@ pruefe('in der Reihenfolge des Gesprächs, nicht alphabetisch',
     array_keys($w) === Telefonwerkzeuge::REIHE, implode(', ', array_keys($w)));
 
 $o = Telefonwerkzeuge::objekte();
-pruefe('jedes wird zu gültigem JSON', count($o) === 15, (string) count($o));
+pruefe('jedes wird zu gültigem JSON', count($o) === 16, (string) count($o));
 pruefe('und behält seinen Namen',
     array_map(static fn($x) => (string) $x->name, $o) === array_keys($w));
 
@@ -3038,7 +3038,7 @@ foreach ($o as $x) {
         if (($h->name ?? '') === 'X-Vecom-Telefon') { $schluessel[(string) $h->value] = true; }
     }
 }
-pruefe('alle fünfzehn tragen denselben Schlüssel', count($schluessel) === 1, (string) count($schluessel));
+pruefe('alle sechzehn tragen denselben Schlüssel', count($schluessel) === 1, (string) count($schluessel));
 pruefe('und er ist der aktuelle', isset($schluessel[Telefon::schluessel()]));
 
 /* Stratos Platzhalter müssen WÖRTLICH stehen bleiben -- durch json_encode
@@ -10038,6 +10038,140 @@ foreach (['it', 'de', 'en'] as $scSp) {
 }
 Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+
+/* ============================================================================
+   Partnerprogramm, Ausbau (26.09.2026, Uwe: „Ja alles außer 2“)
+   ============================================================================ */
+abschnitt('Partner-Ausbau');
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner_kanal_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
+$abMails = [];
+$abSenden = static function (string $anlass, string $an, string $betreff, string $text) use (&$abMails): bool { $abMails[] = [$anlass, $an, $text]; return true; };
+$abP = Partner::anlegen(['name' => 'Giulia Verdi', 'email' => 'giulia@partner.example', 'status' => 'aktiv', 'code' => 'GIULIA2026', 'firma' => '']);
+Partner::vereinbarungMerken($abP, 'x');
+$abKurz = false;
+try { Partner::anlegen(['name' => 'Kurz', 'email' => 'kurz@partner.example', 'code' => 'ROSA']); } catch (InvalidArgumentException $e) { $abKurz = true; }
+pruefe('Anlegen: ein Code, den der Link nie fände („ROSA“, 4 Zeichen), wird abgewiesen',
+    $abKurz && (int) Db::wert("SELECT COUNT(*) FROM partner WHERE email = 'kurz@partner.example'", [], 0) === 0);
+
+// 1 Landeseite / 9 Kanal
+$abL = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Landeseite: „Empfohlen von …“ mit Einstieg statt nackter Startseite', str_contains($abL, "\$L('marke')") && str_contains($abL, 'action="/zugang.php'));
+pruefe('Landeseite: zeigt den Vornamen (oder die Firma), nie den vollen Namen', Partner::anzeigeName(Partner::laden($abP)) === 'Giulia');
+pruefe('Landeseite: der Sprachwechsel zählt keinen zweiten Klick', str_contains($abL, "if (!isset(\$_GET['n']))"));
+Partner::klick($abP, 'Instagram'); Partner::klick($abP, 'instagram'); Partner::klick($abP, '../böse');
+pruefe('Kanal: Klicks je Kanal, klein geschrieben, Unsinn wird nicht gezählt',
+    (int) Db::wert("SELECT SUM(anzahl) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal = 'instagram'", [$abP], 0) === 2
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_kanal_klicks WHERE partner_id = ?', [$abP], 0) === 1
+    && (int) Db::wert('SELECT SUM(anzahl) FROM partner_klicks WHERE partner_id = ?', [$abP], 0) === 3);
+pruefe('Kanal: die Adresse /p/CODE/kanal führt auf p.php', str_contains((string) file_get_contents($wurzel . '/../.htaccess'), 'p.php?c=$1&k=$2'));
+$abK1 = Events::kundeFinden(['name' => 'Kanal Kunde', 'email' => 'kanal-kunde@esempio.example']);
+$_COOKIE[Partner::KEKS] = 'GIULIA2026:instagram';
+Partner::ausBesuch($abK1);
+unset($_COOKIE[Partner::KEKS]);
+pruefe('Kanal: der Kunde behält seinen Kanal', Db::wert('SELECT kanal FROM partner_zuordnungen WHERE customer_id = ?', [$abK1], '') === 'instagram');
+require_once $wurzel . '/src/Zugang.php';
+Zugang::anfordern('kanal-mail@esempio.example', 'it', ['partner_code' => 'GIULIA2026:whatsapp']);
+$abZO = Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'kanal-mail@esempio.example'", [], ''));
+pruefe('Kanal: auch über den E-Mail-Einstieg', Db::wert('SELECT kanal FROM partner_zuordnungen WHERE customer_id = ?', [(int) $abZO['kunde_id']], '') === 'whatsapp');
+
+// 3/4 Werbemittel
+$abS = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Werbemittel: Karte zum Drucken, QR und Story-Bild werden im Browser erzeugt (keine fremden Server)',
+    str_contains($abS, "isset(\$_GET['karte'])") && str_contains($abS, '/assets/js/qrcode.js') && str_contains($abS, "getElementById('story_laden')")
+    && is_file($wurzel . '/../assets/js/qrcode.js') && !preg_match('~https?://[a-z.]*(qrserver|chart\.googleapis|quickchart)~', $abS));
+foreach (['it', 'de', 'en'] as $abSp) {
+    pruefe('Werbemittel (' . $abSp . '): drei fertige Texte mit Link, Kennzeichnung als Werbung',
+        str_contains(Texte::PARTNER['w_post1'][$abSp], '{link}') && str_contains(Texte::PARTNER['w_post2'][$abSp], '#')
+        && Texte::PARTNER['w_hinweis'][$abSp] !== '');
+}
+
+// 5 Kunde melden
+pruefe('Melden: ohne Einverständnis des Kunden nicht', Partner::kundeMelden($abP, ['name' => 'X', 'email' => 'x@esempio.example'], 'it')['grund'] === 'm_einverstanden');
+$abM = Partner::kundeMelden($abP, ['name' => 'Bar Sole', 'email' => 'bar-sole@esempio.example', 'telefon' => '333', 'anliegen' => 'Sito nuovo', 'einverstanden' => '1'], 'it');
+$abMk = (int) Db::wert("SELECT id FROM customers WHERE email = 'bar-sole@esempio.example'", [], 0);
+pruefe('Melden: Anfrage entsteht, Kunde gehört dem Partner (Quelle „partner“), Uwe bekommt eine Meldung',
+    $abM['ok'] && $abMk > 0 && Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$abMk], '') === 'partner'
+    && (int) Db::wert("SELECT COUNT(*) FROM anfragen WHERE customer_id = ?", [$abMk], 0) >= 1
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_meldet'", [], 0) >= 1);
+pruefe('Melden: sich selbst melden zählt still nicht', Partner::kundeMelden($abP, ['name' => 'Ich', 'email' => 'giulia@partner.example', 'einverstanden' => '1'], 'it')['ok']
+    && (int) Db::wert("SELECT COUNT(*) FROM customers WHERE email = 'giulia@partner.example'", [], 0) === 0);
+
+// 6 Manuela
+$abT = Events::kundeFinden(['name' => 'Anrufer', 'email' => 'anrufer@esempio.example']);
+pruefe('Telefon: ein genannter Code ordnet zu (Quelle „telefon“)', Telefon::empfohlen(['kunde_id' => $abT, 'wer' => 'giulia 2026'])['ergebnis'] === 'zugeordnet'
+    && Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$abT], '') === 'telefon');
+$abT2 = Events::kundeFinden(['name' => 'Anrufer 2', 'email' => 'anrufer2@esempio.example']);
+Partner::anlegen(['name' => 'Giulia Rossi', 'email' => 'gr@partner.example', 'status' => 'aktiv']);
+pruefe('Telefon: ein mehrdeutiger Name wird NICHT geraten, sondern Uwe gemeldet',
+    Telefon::empfohlen(['kunde_id' => $abT2, 'wer' => 'Giulia'])['ergebnis'] === 'unklar'
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE customer_id = ?', [$abT2], 0) === 0);
+pruefe('Telefon: das Werkzeug geht mit zu STRATO und steht im Verhaltenstext',
+    isset(Telefonwerkzeuge::alle()['empfohlen']) && str_contains(Telefonverhalten::text(), '[empfohlen]'));
+
+// 7 Stufen
+$abSt = static function (int $n) use ($abP, $abK1): void {
+    for ($i = 0; $i < $n; $i++) {
+        $b = Events::bestellungAnlegen($abK1, Angebot::internesPaket(), 'Stufe', 10000);
+        $z = (int) Db::wert('SELECT id FROM payments WHERE order_id = ? ORDER BY id LIMIT 1', [$b], 0);
+        Db::run("UPDATE payments SET status = 'bezahlt', paid_at = NOW() WHERE id = ?", [$z]);
+        Db::insert('partner_provisionen', ['partner_id' => $abP, 'customer_id' => $abK1, 'payment_id' => $z, 'order_id' => $b, 'art' => 'website',
+            'basis_cents' => 5000, 'provision_cents' => 500, 'status' => 'wartet', 'frei_ab' => date('Y-m-d H:i:s', strtotime('+14 days'))]);
+    }
+};
+pruefe('Stufen: am Anfang Bronze = Standard 10 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'bronze' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1000);
+$abSt(5);
+pruefe('Stufen: ab 5 Verkäufen Silber 12 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'silber' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1200);
+$abSt(5);
+pruefe('Stufen: ab 10 Verkäufen Gold 15 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'gold' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1500);
+Db::run("UPDATE partner SET provision_art = 'prozent', provision_wert = 1100 WHERE id = ?", [$abP]);
+pruefe('Stufen: eigene Bedingungen gehen vor', Partner::satzFuer(Partner::laden($abP))['wert'] === 1100 && Partner::satzFuer(Partner::laden($abP))['stufe'] === null);
+Db::run('UPDATE partner SET provision_art = NULL, provision_wert = NULL WHERE id = ?', [$abP]);
+pruefe('Stufen: Gold muss über Silber liegen', Partner::einstellungenSetzen(['partner_standard_wert' => '10', 'partner_mindest_cents' => '50',
+    'partner_auto_tageslimit_cents' => '100', 'partner_silber_ab' => '8', 'partner_silber_bp' => '12', 'partner_gold_ab' => '5', 'partner_gold_bp' => '15']) !== null);
+
+// 8 Sofort-Nachrichten
+$abSend = new ReflectionMethod('Partner', 'schreiben');
+pruefe('Sofort: Texte für neuen Kontakt und verdiente Provision, ohne Kundennamen',
+    str_contains(Texte::mail('partner_neukunde', 'de', ['name' => 'G'])[1], 'sagen wir nicht, wer')
+    && str_contains(Texte::mail('partner_verdient', 'it', ['betrag' => '5 €'])[0], '5 €'));
+$abQ = (string) file_get_contents($wurzel . '/src/Partner.php');
+pruefe('Sofort: wird beim Zuordnen und beim Verdienen geschickt, abschaltbar', str_contains($abQ, "self::schreiben(\$partnerId, 'partner_neukunde')")
+    && str_contains($abQ, "'partner_verdient'") && substr_count($abQ, "!empty(\$p['sofortmail'])") >= 2);
+
+// 10 ruhend
+$abR = Partner::anlegen(['name' => 'Ruhig', 'email' => 'ruhig@partner.example', 'status' => 'aktiv']);
+Db::run('UPDATE partner SET created_at = NOW() - INTERVAL 90 DAY WHERE id = ?', [$abR]);
+$abMails = [];
+$abN = Partner::ruhendeErinnern($abSenden);
+pruefe('Ruhend: nach 60 Tagen ohne Klick eine Mail mit Tipps — genau einmal',
+    $abN >= 1 && in_array('ruhig@partner.example', array_column($abMails, 1), true) && Partner::ruhendeErinnern($abSenden) === 0);
+
+// 11 Auswertung
+$abA = Partner::auswertung(12);
+pruefe('Auswertung: beste zuerst, mit Umsatz, Provision und Kanälen',
+    (int) $abA[0]['id'] === $abP && (int) $abA[0]['umsatz'] === 50000 && isset($abA[0]['kanaele'][0]['kanal']));
+
+// 12 Missbrauch
+Db::run('INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 150) ON DUPLICATE KEY UPDATE anzahl = 150', [$abR]);
+Db::run("DELETE FROM notifications WHERE type = 'partner_auffaellig'");
+pruefe('Missbrauch: 150 Klicks ohne Kunden werden gemeldet — einmal, nichts gesperrt',
+    Partner::missbrauchPruefen() >= 1 && Partner::missbrauchPruefen() === 0 && Partner::laden($abR)['status'] === 'aktiv'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_auffaellig'", [], 0) === 1);
+
+// 13 Jahresübersicht
+Db::run("UPDATE partner_provisionen SET status = 'bereit' WHERE partner_id = ?", [$abP]);
+Partner::auszahlenHand($abP, 'Bonifico');
+pruefe('Jahresübersicht: PDF mit allen Auszahlungen des Jahres', Partner::jahre($abP) === [(int) date('Y')]
+    && str_starts_with((string) Partner::jahresPdf($abP, (int) date('Y')), '%PDF') && Partner::jahresPdf($abP, 1999) === null);
+pruefe('Jahresübersicht: Mail nur im Januar', (int) date('n') === 1 || Partner::jahresmails($abSenden) === 0);
+foreach (['it', 'de', 'en'] as $abSp) {
+    pruefe('Texte (' . $abSp . '): Landeseite, Stufen, Melden, Karte, Jahr', Texte::PARTNER_LANDE['marke'][$abSp] !== ''
+        && Texte::PARTNER['st_gold'][$abSp] !== '' && Texte::PARTNER['m_einverstanden'][$abSp] !== '' && Texte::PARTNER['karte_titel'][$abSp] !== ''
+        && Texte::mail('partner_jahr', $abSp, ['jahr' => '2026'])[0] !== '' && Texte::mail('partner_ruhend', $abSp, [])[0] !== '');
+}
+foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner_kanal_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
 
 /* ============================================================================
    Aufräumen und Bilanz

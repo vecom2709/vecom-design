@@ -52,7 +52,7 @@ final class Telefon
     public const AKTIONEN = ['kunde_nachschlagen', 'preis_auskunft', 'lage',
                              'angebot_link', 'melde', 'zusammenfassung', 'wissensluecke',
                              'hilfe', 'seite_ansehen', 'beratung', 'beleg',
-                             'uebergabe', 'wissen', 'termin', 'fragebogen'];
+                             'uebergabe', 'wissen', 'termin', 'fragebogen', 'empfohlen'];
 
     /**
      * Woran jemand haengen bleibt.
@@ -3950,6 +3950,28 @@ final class Telefon
      * wurde. Ein Anrufer, der nie gefunden wurde, wird auch hier nicht
      * gefunden -- eine Stimme ist kein Ausweis.
      */
+    /**
+     * „Wie sind Sie auf uns gekommen?“ — nennt der Anrufer einen Partner
+     * (Code oder Name), wird er ihm zugeordnet, aber nur bei eindeutigem
+     * Treffer (Partner::amTelefon). Ohne gefundenen Kunden passiert nichts:
+     * Zuordnen geht nur an eine Akte.
+     *
+     * @return array<string,mixed>
+     */
+    public static function empfohlen(array $d): array
+    {
+        $kid = self::kundeImGespraech($d);
+        $wer = mb_substr(trim((string) ($d['wer'] ?? '')), 0, 120);
+        if ($wer === '') { return ['ok' => true, 'hinweis' => 'Nichts genannt — einfach weitermachen.']; }
+        if ($kid <= 0) {
+            self::still(static fn() => Events::melden('partner_telefon', 'Am Telefon als Empfehlung genannt: „' . $wer . '“', 'hinweis',
+                'Der Anrufer ist (noch) keinem Kunden zugeordnet. Bei Bedarf in der Partnerakte von Hand zuordnen.', '/partner'), null);
+            return ['ok' => true, 'hinweis' => 'Danke fürs Nennen. Nichts weiter dazu sagen, mit dem Gespräch weitermachen.'];
+        }
+        require_once __DIR__ . '/Partner.php';
+        return Partner::amTelefon($kid, $wer);
+    }
+
     public static function kundeImGespraech(array $d): int
     {
         $mit = (int) ($d['kunde_id'] ?? 0);

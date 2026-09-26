@@ -68,6 +68,8 @@ final class Partner
         'partner_wiederkehrend_monate' => '12', 'partner_freigabe_noetig' => '0',
         'partner_auto_auszahlen' => '1', 'partner_auto_tageslimit_cents' => '100000',
         'partner_bewerbung_offen' => '1', 'partner_einbehalt_bp' => '0',
+        'partner_stufen_an' => '1', 'partner_silber_ab' => '5', 'partner_silber_bp' => '1200',
+        'partner_gold_ab' => '10', 'partner_gold_bp' => '1500',
     ];
 
     public static function einstellung(string $k): string
@@ -101,6 +103,17 @@ final class Partner
         $ebWert = $eb === '' || $eb === '0' ? 0 : self::wertAusEingabe($eb, 'prozent');
         if ($ebWert === null) { return 'Der Steuereinbehalt ist keine gültige Prozentzahl.'; }
         $neu['partner_einbehalt_bp'] = (string) $ebWert;
+        $neu['partner_stufen_an'] = array_key_exists('partner_silber_ab', $d)
+            ? (!empty($d['partner_stufen_an']) ? '1' : '0') : self::einstellung('partner_stufen_an');
+        foreach (['silber', 'gold'] as $st) {
+            $ab = (int) ($d['partner_' . $st . '_ab'] ?? self::zahl('partner_' . $st . '_ab'));
+            $roh = $d['partner_' . $st . '_bp'] ?? null;          // fehlt im Aufruf = unverändert
+            $bp = $roh === null ? self::zahl('partner_' . $st . '_bp') : self::wertAusEingabe((string) $roh, 'prozent');
+            if ($ab < 1 || $bp === null) { return 'Die Stufen brauchen eine Anzahl ab 1 und einen Prozentsatz.'; }
+            $neu['partner_' . $st . '_ab'] = (string) $ab;
+            $neu['partner_' . $st . '_bp'] = (string) $bp;
+        }
+        if ((int) $neu['partner_gold_ab'] <= (int) $neu['partner_silber_ab']) { return 'Gold muss bei mehr Verkäufen beginnen als Silber.'; }
         $lim = self::centsAusEingabe((string) ($d['partner_auto_tageslimit_cents'] ?? ''));
         if ($lim === null) { return 'Das Tageslimit ist keine gültige Zahl.'; }
         $neu['partner_auto_tageslimit_cents'] = (string) $lim;
@@ -139,7 +152,7 @@ final class Partner
     public static function satzFuer(array $p): array
     {
         $eigen = ($p['provision_art'] ?? null) !== null && (string) $p['provision_art'] !== '';
-        return [
+        $s = [
             'art'       => $eigen ? (string) $p['provision_art'] : self::einstellung('partner_standard_art'),
             'wert'      => $eigen ? (int) $p['provision_wert'] : self::zahl('partner_standard_wert'),
             'website'   => (bool) ($p['gilt_website'] ?? self::zahl('partner_gilt_website')),
@@ -147,11 +160,42 @@ final class Partner
             'hosting'   => (bool) ($p['gilt_hosting'] ?? self::zahl('partner_gilt_hosting')),
             'monate'    => (int) ($p['wiederkehrend_monate'] ?? self::zahl('partner_wiederkehrend_monate')),
             'freigabe'  => (bool) ($p['freigabe_noetig'] ?? self::zahl('partner_freigabe_noetig')),
+            'stufe'     => null,
         ];
+        /* STUFEN (Uwe, 26.09.2026: ja). Nur für Partner ohne eigene Bedingungen
+           und nur bei Prozent: Wer im letzten Jahr viel gebracht hat, bekommt
+           automatisch mehr. Gezählt werden Verkäufe (Bestellungen/Verträge),
+           nicht Raten -- eine 50/50-Bestellung ist ein Verkauf. Nie weniger
+           als der Standard. */
+        if (!$eigen && $s['art'] === 'prozent' && self::einstellung('partner_stufen_an') === '1' && (int) ($p['id'] ?? 0) > 0) {
+            $n = self::verkaeufeJahr((int) $p['id']);
+            if ($n >= self::zahl('partner_gold_ab'))       { $s['wert'] = max($s['wert'], self::zahl('partner_gold_bp'));   $s['stufe'] = 'gold'; }
+            elseif ($n >= self::zahl('partner_silber_ab')) { $s['wert'] = max($s['wert'], self::zahl('partner_silber_bp')); $s['stufe'] = 'silber'; }
+            else { $s['stufe'] = 'bronze'; }
+        }
+        return $s;
     }
 
-    /** $kurz: ohne „je Verkauf“ -- so steht es an der Provision und auf dem
-        Beleg, der auch italienisch oder englisch sein kann. */
+    /** Verkäufe der letzten 12 Monate: je Bestellung bzw. Vertrag einmal. */
+    public static function verkaeufeJahr(int $partnerId): int
+    {
+        return (int) self::still(static fn() => Db::wert(
+            "SELECT COUNT(DISTINCT COALESCE(CONCAT('o', pp.order_id), CONCAT('a', z.abo_id)))
+               FROM partner_provisionen pp JOIN payments z ON z.id = pp.payment_id
+              WHERE pp.partner_id = ? AND pp.status NOT IN ('storniert','zurueckgeholt','rueckforderung')
+                AND pp.created_at >= NOW() - INTERVAL 12 MONTH", [$partnerId], 0), 0);
+    }
+
+    /** Stufe und was bis zur nächsten fehlt. @return array{stufe:?string,verkaeufe:int,naechste:?string,fehlen:int} */
+    public static function stufeStand(array $p): array
+    {
+        $s = self::satzFuer($p);
+        $n = (int) ($p['id'] ?? 0) > 0 ? self::verkaeufeJahr((int) $p['id']) : 0;
+        $naechste = match ($s['stufe']) { 'bronze' => 'silber', 'silber' => 'gold', default => null };
+        $fehlen = $naechste !== null ? max(0, self::zahl('partner_' . $naechste . '_ab') - $n) : 0;
+        return ['stufe' => $s['stufe'], 'verkaeufe' => $n, 'naechste' => $naechste, 'fehlen' => $fehlen];
+    }
+
     public static function satzWort(array $s, bool $kurz = false): string
     {
         require_once __DIR__ . '/Fmt.php';
@@ -197,6 +241,13 @@ final class Partner
     public static function anlegen(array $d): int
     {
         $sprache = in_array((string) ($d['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : 'it';
+        /* Ein Code, den ausCode() nie findet, ergäbe einen Link, der still auf
+           die Startseite führt -- der Partner wirbt, und nichts wird gezählt.
+           Die Verwaltung prüft vorher mit codePruefen(); hier fängt es jeden
+           anderen Weg ab (bei der Sichtprüfung fiel „ROSA“ genau so durch). */
+        if (($d['code'] ?? '') !== '' && !preg_match('/^[A-Z0-9]{5,16}$/', (string) $d['code'])) {
+            throw new InvalidArgumentException('Partnercode ungültig: 5 bis 16 Zeichen A–Z/0–9.');
+        }
         return (int) Db::nochmal(static function () use ($d, $sprache) {
             return Db::insert('partner', [
                 'code'   => ($d['code'] ?? '') !== '' ? (string) $d['code'] : self::neuerCode((string) $d['name']),
@@ -370,6 +421,14 @@ final class Partner
         return $p ?: null;
     }
 
+    /** Wie der Partner auf der Landeseite heißt: seine Firma, sonst sein Vorname. */
+    public static function anzeigeName(array $p): string
+    {
+        $f = trim((string) ($p['firma'] ?? ''));
+        if ($f !== '') { return $f; }
+        return (string) (preg_split('/\s+/', trim((string) $p['name']))[0] ?? $p['name']);
+    }
+
     public static function link(array $p): string
     {
         return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/p/' . $p['code'];
@@ -388,11 +447,31 @@ final class Partner
     }
 
     /** Ein Klick auf den Link, gezählt je Tag — ohne IP, ohne Cookie. */
-    public static function klick(int $partnerId): void
+    public static function klick(int $partnerId, ?string $kanal = null): void
     {
         self::still(static fn() => Db::run(
             'INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 1)
              ON DUPLICATE KEY UPDATE anzahl = anzahl + 1', [$partnerId]), null);
+        $kanal = self::kanal((string) $kanal);
+        if ($kanal !== null) {
+            self::still(static fn() => Db::run(
+                'INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, ?, CURDATE(), 1)
+                 ON DUPLICATE KEY UPDATE anzahl = anzahl + 1', [$partnerId, $kanal]), null);
+        }
+    }
+
+    /** Ein Kanalname aus der Adresse (/p/CODE/instagram) — klein, kurz, harmlos — oder null. */
+    public static function kanal(string $roh): ?string
+    {
+        $k = strtolower(trim($roh));
+        return preg_match('/^[a-z0-9-]{1,20}$/', $k) ? $k : null;
+    }
+
+    /** „CODE“ oder „CODE:kanal“ (Keks, Zugang) auseinandernehmen. @return array{0:string,1:?string} */
+    public static function teilen(string $wert): array
+    {
+        [$c, $k] = array_pad(explode(':', trim($wert), 2), 2, '');
+        return [strtoupper($c), self::kanal($k)];
     }
 
     /* ==================================================================== */
@@ -408,7 +487,7 @@ final class Partner
      *
      * @return string zugeordnet | schon | selbst | empfehlung | kein_partner
      */
-    public static function zuordnen(int $kundeId, int $partnerId, string $quelle = 'link', ?int $bedarfId = null): string
+    public static function zuordnen(int $kundeId, int $partnerId, string $quelle = 'link', ?int $bedarfId = null, ?string $kanal = null): string
     {
         $p = self::laden($partnerId);
         if (!$p || $p['status'] !== 'aktiv') { return 'kein_partner'; }
@@ -432,13 +511,16 @@ final class Partner
 
         try {
             Db::insert('partner_zuordnungen', ['customer_id' => $kundeId, 'partner_id' => $partnerId,
-                'quelle' => in_array($quelle, ['link', 'code', 'hand'], true) ? $quelle : 'link', 'bedarf_id' => $bedarfId]);
+                'quelle' => in_array($quelle, ['link', 'code', 'hand', 'partner', 'telefon'], true) ? $quelle : 'link',
+                'bedarf_id' => $bedarfId, 'kanal' => self::kanal((string) $kanal)]);
         } catch (Throwable $e) {
             if (Db::andrang($e)) { return 'schon'; }        // zwei Anfragen gleichzeitig: die erste gewinnt
             throw $e;
         }
         Events::protokoll('partner_zuordnung', 'Kunde über Partner ' . $p['name'] . ' (' . $p['code'] . ') gekommen', $kundeId,
-                          null, null, ['partner_id' => $partnerId, 'quelle' => $quelle]);
+                          null, null, ['partner_id' => $partnerId, 'quelle' => $quelle, 'kanal' => $kanal]);
+        /* Sofort-Nachricht an den Partner (Uwe: ja) — ohne Namen des Kunden. */
+        if ($quelle !== 'hand' && !empty($p['sofortmail'])) { self::schreiben($partnerId, 'partner_neukunde'); }
         return 'zugeordnet';
     }
 
@@ -454,14 +536,14 @@ final class Partner
     public static function ausBesuch(int $kundeId, ?int $bedarfId = null, string $getippt = ''): string
     {
         try {
-            $getippt = strtoupper(trim($getippt));
-            $p = $getippt !== '' ? self::ausCode($getippt) : null;
-            $quelle = 'code';
+            $p = null; $kanal = null; $quelle = 'code';
+            if (trim($getippt) !== '') { [$c] = self::teilen($getippt); $p = self::ausCode($c); }
             if ($p === null) {
-                $p = self::ausCode((string) ($_COOKIE[self::KEKS] ?? ''));
+                [$c, $kanal] = self::teilen((string) ($_COOKIE[self::KEKS] ?? ''));
+                $p = $c !== '' ? self::ausCode($c) : null;
                 $quelle = 'link';
             }
-            return $p !== null ? self::zuordnen($kundeId, (int) $p['id'], $quelle, $bedarfId) : 'kein_partner';
+            return $p !== null ? self::zuordnen($kundeId, (int) $p['id'], $quelle, $bedarfId, $kanal) : 'kein_partner';
         } catch (Throwable $e) {
             return 'fehler';
         }
@@ -569,6 +651,10 @@ final class Partner
             throw $e;
         }
         require_once __DIR__ . '/Fmt.php';
+        if (!empty($p['sofortmail'])) {
+            self::schreiben((int) $p['id'], 'partner_verdient', ['betrag' => Fmt::geld($prov),
+                'datum' => Fmt::datum($frei)]);
+        }
         Events::protokoll('partner_provision', 'Provision vorgemerkt: ' . Fmt::geld($prov) . ' für ' . $p['name']
             . ' (' . self::satzWort($s) . ' von ' . Fmt::geld($basis) . ')', $kundeId, $z['order_id'] !== null ? (int) $z['order_id'] : null,
             null, ['partner_id' => (int) $p['id'], 'provision_id' => $id]);
@@ -925,6 +1011,16 @@ final class Partner
             self::still(static fn() => self::kontoPruefen($p), false);
         }
 
+        /* Einmal am Tag: ruhende Partner, Auffälliges, im Januar die Jahresübersicht. */
+        $tagSchluessel = 'partner_tageslauf_' . date('Y-m-d');
+        if (Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$tagSchluessel], null) === null) {
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$tagSchluessel, '1']);
+            Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_tageslauf\\_%' AND skey <> ?", [$tagSchluessel]);
+            $r['ruhend'] = self::still(static fn() => self::ruhendeErinnern(), 0);
+            $r['auffaellig'] = self::still(static fn() => self::missbrauchPruefen(), 0);
+            $r['jahr'] = self::still(static fn() => self::jahresmails(), 0);
+        }
+
         require_once __DIR__ . '/PartnerWege.php';
 
         /* Was nie von allein geht (SEPA, Verrechnung): einmal am Tag sagen, dass es fällig ist. */
@@ -1005,6 +1101,237 @@ final class Partner
                 Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schluessel, date('Y-m-d H:i:s')]);
                 $n++;
             }
+        }
+        return $n;
+    }
+
+    /* ==================================================================== */
+    /*  Der Partner meldet einen Kunden (Uwe, 26.09.2026: ja)               */
+    /* ==================================================================== */
+
+    /**
+     * „Ich habe einen Kunden für euch“: Der Partner trägt ihn im Portal ein.
+     * Es entsteht eine ganz normale Anfrage (der Kunde bekommt die
+     * Eingangsbestätigung — er erfährt also, dass es uns gibt und warum wir
+     * uns melden), und der Kunde gehört ab jetzt diesem Partner.
+     *
+     * Datenschutz: nur mit bestätigtem Einverständnis des Kunden. Und der
+     * Partner erfährt nie, ob der Kunde schon bei uns war — die Antwort ist
+     * immer dieselbe; ob es zählt, sieht nur Uwe.
+     *
+     * @return array{ok:bool,grund?:string}
+     */
+    public static function kundeMelden(int $partnerId, array $d, string $sprache): array
+    {
+        $p = self::laden($partnerId);
+        if (!$p || $p['status'] !== 'aktiv') { return ['ok' => false, 'grund' => 'panne']; }
+        if (empty($d['einverstanden'])) { return ['ok' => false, 'grund' => 'm_einverstanden']; }
+        $name = mb_substr(trim((string) ($d['name'] ?? '')), 0, 120);
+        $email = mb_strtolower(trim((string) ($d['email'] ?? '')));
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { return ['ok' => false, 'grund' => 'angaben']; }
+        $heute = (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'partner_meldet' AND created_at >= CURDATE()
+                                   AND JSON_EXTRACT(meta, '$.partner_id') = ?", [$partnerId], 0);
+        if ($heute >= 10) { return ['ok' => false, 'grund' => 'm_genug']; }
+        if (mb_strtolower((string) $p['email']) === $email) { return ['ok' => true]; }   // sich selbst melden zählt nie — still
+
+        require_once __DIR__ . '/Anfrage.php';
+        $anfrage = Anfrage::annehmen([
+            'name' => $name, 'email' => $email, 'telefon' => (string) ($d['telefon'] ?? ''),
+            'firma' => (string) ($d['firma'] ?? ''),
+            'nachricht' => mb_substr(trim((string) ($d['anliegen'] ?? '')), 0, 2000) ?: '(Vom Partner gemeldet, ohne Beschreibung)',
+            'sprache' => in_array((string) ($d['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache'] : $sprache,
+        ]);
+        if ($anfrage === null) { return ['ok' => false, 'grund' => 'angaben']; }
+        $kid = (int) Db::wert('SELECT customer_id FROM anfragen WHERE id = ?', [$anfrage], 0);
+        $r = $kid > 0 ? self::zuordnen($kid, $partnerId, 'partner') : 'fehler';
+        Events::protokoll('partner_meldet', 'Partner ' . $p['name'] . ' meldet einen Kunden (' . $r . ')', $kid ?: null, null, null,
+                          ['partner_id' => $partnerId, 'ergebnis' => $r, 'einverstanden' => true]);
+        Events::melden('partner_meldet', 'Kunde vom Partner gemeldet: ' . $name, 'gut',
+            $p['name'] . ' hat ihn eingetragen' . ($r === 'zugeordnet' ? ' — dem Partner zugeordnet.' : ' — NICHT zugeordnet (' . $r . ').'),
+            $kid > 0 ? '/kunden/' . $kid : '/anfragen');
+        return ['ok' => true];
+    }
+
+    /**
+     * Manuela hört am Telefon „Rosa Rossi hat Sie empfohlen“ oder einen Code.
+     * Zugeordnet wird nur bei EINDEUTIGEM Treffer: genauer Code, oder genau
+     * ein aktiver Partner mit diesem Namen. Sonst wird es Uwe gemeldet —
+     * raten wäre der teuerste Fehler (Geld an den Falschen).
+     *
+     * @return array{ok:bool,ergebnis:string,hinweis:string}
+     */
+    public static function amTelefon(int $kundeId, string $gesagt): array
+    {
+        $gesagt = trim($gesagt);
+        if ($kundeId <= 0 || $gesagt === '') { return ['ok' => false, 'ergebnis' => 'leer', 'hinweis' => 'Nichts zu tun.']; }
+        [$c] = self::teilen((string) preg_replace('/[\s\-_.]/', '', $gesagt));
+        $p = self::ausCode($c);
+        if ($p === null) {
+            $treffer = Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND (name LIKE ? OR firma LIKE ?) LIMIT 3",
+                               ['%' . $gesagt . '%', '%' . $gesagt . '%']);
+            $p = count($treffer) === 1 ? $treffer[0] : null;
+        }
+        if ($p === null) {
+            Events::melden('partner_telefon', 'Am Telefon genannt: „' . mb_substr($gesagt, 0, 80) . '“', 'hinweis',
+                'Ein Anrufer nannte das als Empfehlung — kein eindeutiger Partner. Bei Bedarf in der Partnerakte von Hand zuordnen.',
+                '/kunden/' . $kundeId);
+            return ['ok' => true, 'ergebnis' => 'unklar', 'hinweis' => 'Danke dir fürs Nennen — wir ordnen das intern zu. Nichts weiter sagen.'];
+        }
+        $r = self::zuordnen($kundeId, (int) $p['id'], 'telefon');
+        return ['ok' => true, 'ergebnis' => $r, 'hinweis' => 'Vermerkt. Bedanke dich kurz und mach mit dem Gespräch weiter — nenne keine Provision und keinen Partnernamen.'];
+    }
+
+    /* ==================================================================== */
+    /*  Ruhende Partner, Missbrauch, Auswertung, Jahresübersicht            */
+    /* ==================================================================== */
+
+    /** Einmal: nach 60 Tagen ohne Klick eine freundliche Mail mit Tipps (höchstens alle 90 Tage). */
+    public static function ruhendeErinnern(?callable $senden = null): int
+    {
+        $n = 0;
+        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND created_at < NOW() - INTERVAL 60 DAY
+                            AND (erinnert_am IS NULL OR erinnert_am < NOW() - INTERVAL 90 DAY)") as $p) {
+            $klicks = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ? AND tag >= CURDATE() - INTERVAL 60 DAY', [(int) $p['id']], 0);
+            if ($klicks > 0) { continue; }
+            Db::run('UPDATE partner SET erinnert_am = NOW() WHERE id = ?', [(int) $p['id']]);
+            if (self::schreiben((int) $p['id'], 'partner_ruhend', [], $senden)) { $n++; }
+        }
+        return $n;
+    }
+
+    /**
+     * Auffälliges an Uwe melden — höchstens alle 30 Tage je Partner:
+     * viele Klicks ohne einen einzigen Kunden, wiederholte Eigenkauf-Versuche,
+     * viele Erstattungen. Es wird nichts gesperrt; Uwe entscheidet.
+     *
+     * @return int gemeldete Partner
+     */
+    public static function missbrauchPruefen(): int
+    {
+        $n = 0;
+        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND (warnung_am IS NULL OR warnung_am < NOW() - INTERVAL 30 DAY)") as $p) {
+            $id = (int) $p['id'];
+            $gruende = [];
+            $klicks = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ? AND tag >= CURDATE() - INTERVAL 30 DAY', [$id], 0);
+            $kunden = (int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 30 DAY', [$id], 0);
+            if ($klicks >= 100 && $kunden === 0) { $gruende[] = $klicks . ' Klicks in 30 Tagen, aber kein einziger Kunde'; }
+            $selbst = (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'partner_selbst' AND JSON_EXTRACT(meta, '$.partner_id') = ?
+                                        AND created_at >= NOW() - INTERVAL 90 DAY", [$id], 0);
+            if ($selbst >= 2) { $gruende[] = $selbst . '-mal versucht, über den eigenen Link zu kaufen'; }
+            $alle = (int) Db::wert('SELECT COUNT(*) FROM partner_provisionen WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 12 MONTH', [$id], 0);
+            $erst = (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 12 MONTH
+                                      AND status IN ('storniert','zurueckgeholt','rueckforderung') AND grund LIKE '%rstatt%'", [$id], 0);
+            if ($alle >= 3 && $erst / $alle > 0.3) { $gruende[] = $erst . ' von ' . $alle . ' Verkäufen wurden erstattet'; }
+            if (!$gruende) { continue; }
+            Db::run('UPDATE partner SET warnung_am = NOW() WHERE id = ?', [$id]);
+            Events::melden('partner_auffaellig', 'Partner auffällig: ' . $p['name'], 'warnung', implode('; ', $gruende)
+                . '. Nichts gesperrt — sieh es dir an und pausiere ihn bei Bedarf.', '/partner/' . $id);
+            $n++;
+        }
+        return $n;
+    }
+
+    /**
+     * Lohnt es sich? Je Partner: Kunden, Umsatz über ihn (bezahlt, netto),
+     * Provision, Kosten je Kunde — beste zuerst. Und die Kanäle.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public static function auswertung(int $monate = 12): array
+    {
+        $monate = max(1, min(60, $monate));
+        $zeilen = Db::all("SELECT p.id, p.name, p.code, p.status,
+                (SELECT COUNT(*) FROM partner_zuordnungen z WHERE z.partner_id = p.id AND z.created_at >= NOW() - INTERVAL $monate MONTH) AS kunden,
+                (SELECT COALESCE(SUM(basis_cents),0) FROM partner_provisionen pp WHERE pp.partner_id = p.id
+                    AND pp.status NOT IN ('storniert','zurueckgeholt') AND pp.created_at >= NOW() - INTERVAL $monate MONTH) AS umsatz,
+                (SELECT COALESCE(SUM(provision_cents),0) FROM partner_provisionen pp WHERE pp.partner_id = p.id
+                    AND pp.status NOT IN ('storniert','zurueckgeholt') AND pp.created_at >= NOW() - INTERVAL $monate MONTH) AS provision,
+                (SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks k WHERE k.partner_id = p.id AND k.tag >= CURDATE() - INTERVAL $monate MONTH) AS klicks
+              FROM partner p WHERE p.status <> 'geloescht'");
+        foreach ($zeilen as &$z) {
+            $z['je_kunde'] = (int) $z['kunden'] > 0 ? (int) round((int) $z['provision'] / (int) $z['kunden']) : 0;
+            $z['kanaele'] = Db::all("SELECT kanal, SUM(anzahl) AS klicks,
+                    (SELECT COUNT(*) FROM partner_zuordnungen z WHERE z.partner_id = k.partner_id AND z.kanal = k.kanal) AS kunden
+                  FROM partner_kanal_klicks k WHERE partner_id = ? AND tag >= CURDATE() - INTERVAL $monate MONTH
+                  GROUP BY kanal ORDER BY klicks DESC", [(int) $z['id']]);
+        }
+        unset($z);
+        usort($zeilen, static fn($a, $b) => (int) $b['umsatz'] <=> (int) $a['umsatz']);
+        return $zeilen;
+    }
+
+    /** Jahre mit Auszahlungen (für die Jahresübersicht). @return list<int> */
+    public static function jahre(int $partnerId): array
+    {
+        return array_map('intval', array_column(Db::all(
+            "SELECT DISTINCT YEAR(created_at) AS j FROM partner_auszahlungen WHERE partner_id = ? AND status = 'erledigt' ORDER BY j DESC",
+            [$partnerId]), 'j'));
+    }
+
+    /** Die Jahresübersicht als PDF — alle erledigten Auszahlungen eines Jahres, für die Steuererklärung. */
+    public static function jahresPdf(int $partnerId, int $jahr): ?string
+    {
+        require_once __DIR__ . '/Pdf.php';
+        require_once __DIR__ . '/Firma.php';
+        require_once __DIR__ . '/Fmt.php';
+        require_once __DIR__ . '/Texte.php';
+        $p = self::laden($partnerId);
+        if (!$p) { return null; }
+        $liste = Db::all("SELECT a.*, (SELECT COALESCE(SUM(einbehalt_cents),0) FROM partner_provisionen pp WHERE pp.auszahlung_id = a.id) AS einbehalt,
+                                 (SELECT COALESCE(SUM(provision_cents),0) FROM partner_provisionen pp WHERE pp.auszahlung_id = a.id) AS brutto
+                            FROM partner_auszahlungen a WHERE a.partner_id = ? AND a.status = 'erledigt' AND YEAR(a.created_at) = ? ORDER BY a.id",
+                         [$partnerId, $jahr]);
+        if (!$liste) { return null; }
+        $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
+        $T = static fn(string $k): string => Texte::h(Texte::PARTNER[$k] ?? [], $sp);
+        $tinte = [0.051, 0.106, 0.165]; $grau = [0.42, 0.46, 0.53]; $gold = [0.784, 0.588, 0.243]; $linie = [0.80, 0.83, 0.87];
+        $pdf = new Pdf();
+        $rand = 56.0; $rechts = Pdf::A4_BREIT - $rand;
+        $bv = $pdf->text($rand, 62, 'VECOM', 17, true, 'links', $gold);
+        $pdf->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+        $y = 46;
+        foreach (Firma::anschrift() as $i => $z) { $pdf->text($rechts, $y, $z, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau); $y += 11.5; }
+        $pdf->flaeche($rand, 124, $rechts - $rand, 1.6, $gold);
+        $pdf->text($rand, 164, $T('jahr_titel') . ' ' . $jahr, 18, true, 'links', $tinte);
+        $y = 196;
+        foreach (array_filter([(string) $p['name'], (string) $p['firma'], (string) $p['steuer_nr']]) as $z) { $pdf->text($rand, $y, $z, 10.5, false, 'links', $tinte); $y += 14; }
+        $y += 16;
+        foreach ([[$rand, $T('datum'), 'links'], [$rand + 90, $T('beleg'), 'links'], [$rand + 300, $T('provision'), 'rechts'],
+                  [$rand + 380, $T('pdf_einbehalt'), 'rechts'], [$rechts, $T('pdf_summe'), 'rechts']] as [$x, $w, $r]) {
+            $pdf->text($x, $y, $w, 8.5, true, $r, $grau);
+        }
+        $pdf->linie($rand, $y + 6, $rechts, $y + 6, 0.6, $linie);
+        $y += 22; $sb = 0; $se = 0; $sa = 0;
+        foreach ($liste as $a) {
+            $pdf->text($rand, $y, Fmt::datum((string) $a['created_at']), 9.5, false, 'links', $tinte);
+            $pdf->text($rand + 90, $y, (string) $a['nummer'], 9.5, false, 'links', $tinte);
+            $pdf->text($rand + 300, $y, Fmt::geld((int) $a['brutto']), 9.5, false, 'rechts', $tinte);
+            $pdf->text($rand + 380, $y, (int) $a['einbehalt'] > 0 ? Fmt::geld((int) $a['einbehalt']) : '—', 9.5, false, 'rechts', $tinte);
+            $pdf->text($rechts, $y, Fmt::geld((int) $a['betrag_cents']), 9.5, false, 'rechts', $tinte);
+            $sb += (int) $a['brutto']; $se += (int) $a['einbehalt']; $sa += (int) $a['betrag_cents'];
+            $y += 16;
+            if ($y > 740) { break; }
+        }
+        $pdf->linie($rand, $y, $rechts, $y, 0.6, $linie);
+        $y += 20;
+        $pdf->text($rand + 300, $y, Fmt::geld($sb), 10.5, true, 'rechts', $tinte);
+        $pdf->text($rand + 380, $y, $se > 0 ? Fmt::geld($se) : '—', 10.5, true, 'rechts', $tinte);
+        $pdf->text($rechts, $y, Fmt::geld($sa), 10.5, true, 'rechts', $tinte);
+        $y += 34;
+        foreach ($pdf->umbrechen($T('pdf_hinweis'), $rechts - $rand, 9) as $z) { $pdf->text($rand, $y, $z, 9, false, 'links', $grau); $y += 13; }
+        return $pdf->fertig();
+    }
+
+    /** Im Januar: jedem Partner mit Auszahlungen im Vorjahr einmal sagen, dass die Übersicht bereitliegt. */
+    public static function jahresmails(?callable $senden = null): int
+    {
+        if ((int) date('n') !== 1) { return 0; }
+        $vorjahr = (int) date('Y') - 1; $n = 0;
+        foreach (Db::all("SELECT DISTINCT p.* FROM partner p JOIN partner_auszahlungen a ON a.partner_id = p.id
+                           WHERE p.status IN ('aktiv','pausiert') AND a.status = 'erledigt' AND YEAR(a.created_at) = ?
+                             AND (p.jahresmail IS NULL OR p.jahresmail < ?)", [$vorjahr, $vorjahr]) as $p) {
+            Db::run('UPDATE partner SET jahresmail = ? WHERE id = ?', [$vorjahr, (int) $p['id']]);
+            if (self::schreiben((int) $p['id'], 'partner_jahr', ['jahr' => (string) $vorjahr], $senden)) { $n++; }
         }
         return $n;
     }

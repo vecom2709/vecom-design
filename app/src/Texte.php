@@ -1430,6 +1430,26 @@ final class Texte
     ];
 
     public const MAILS = [
+        'partner_neukunde' => [
+            'it' => ['Un nuovo contatto tramite il suo link', "Buongiorno {name},\n\nqualcuno è arrivato tramite il suo link e ci ha contattati. Da ora questa persona è assegnata a lei: se acquista, riceve la sua provvigione.\n\n(Per rispetto non le diciamo chi è.)\n\nLa sua pagina: {portal}"],
+            'de' => ['Ein neuer Kontakt über Ihren Link', "Guten Tag {name},\n\njemand ist über Ihren Link gekommen und hat uns kontaktiert. Diese Person ist ab jetzt Ihnen zugeordnet: Kauft sie, bekommen Sie Ihre Provision.\n\n(Aus Rücksicht sagen wir nicht, wer es ist.)\n\nIhre Seite: {portal}"],
+            'en' => ['A new contact through your link', "Hello {name},\n\nsomeone came through your link and contacted us. From now on they are assigned to you: if they buy, you earn your commission.\n\n(Out of respect, we don’t say who it is.)\n\nYour page: {portal}"],
+        ],
+        'partner_verdient' => [
+            'it' => ['Ha guadagnato {betrag}', "Buongiorno {name},\n\nun cliente arrivato da lei ha pagato: ha guadagnato {betrag} di provvigione. Sarà pagabile dal {datum} (fino ad allora il cliente può recedere).\n\nGrazie! La sua pagina: {portal}"],
+            'de' => ['Sie haben {betrag} verdient', "Guten Tag {name},\n\nein Kunde, der über Sie kam, hat bezahlt: Sie haben {betrag} Provision verdient. Auszahlbar ab {datum} (bis dahin kann der Kunde widerrufen).\n\nDanke! Ihre Seite: {portal}"],
+            'en' => ['You earned {betrag}', "Hello {name},\n\na customer who came through you has paid: you earned {betrag} in commission. Payable from {datum} (until then the customer can still withdraw).\n\nThank you! Your page: {portal}"],
+        ],
+        'partner_ruhend' => [
+            'it' => ['Tre idee per il suo link', "Buongiorno {name},\n\nil suo link non è stato aperto da un po’. Tre idee che funzionano:\n\n1. Lo mandi su WhatsApp a chi le ha parlato di un sito (c’è il pulsante pronto).\n2. Stampi la cartolina con il codice QR e la lasci sul bancone o in vetrina.\n3. Usi un testo pronto per Instagram o Facebook — li trova nella sua pagina.\n\n{portal}"],
+            'de' => ['Drei Ideen für Ihren Link', "Guten Tag {name},\n\nIhr Link wurde eine Weile nicht geöffnet. Drei Ideen, die funktionieren:\n\n1. Per WhatsApp an jemanden schicken, der von einer Website gesprochen hat (der Knopf ist fertig).\n2. Die Karte mit QR-Code ausdrucken und auf den Tresen oder ins Schaufenster legen.\n3. Einen fertigen Text für Instagram oder Facebook nehmen — sie stehen auf Ihrer Seite.\n\n{portal}"],
+            'en' => ['Three ideas for your link', "Hello {name},\n\nyour link hasn’t been opened for a while. Three ideas that work:\n\n1. Send it on WhatsApp to someone who mentioned needing a website (the button is ready).\n2. Print the card with the QR code and leave it on the counter or in the window.\n3. Use a ready-made text for Instagram or Facebook — you’ll find them on your page.\n\n{portal}"],
+        ],
+        'partner_jahr' => [
+            'it' => ['Il riepilogo {jahr} per la dichiarazione', "Buongiorno {name},\n\nil riepilogo di tutte le provvigioni pagate nel {jahr} è pronto come PDF nella sua pagina partner — utile per la dichiarazione dei redditi:\n{portal}"],
+            'de' => ['Ihre Jahresübersicht {jahr} für die Steuer', "Guten Tag {name},\n\ndie Übersicht aller {jahr} ausgezahlten Provisionen liegt als PDF auf Ihrer Partnerseite — für Ihre Steuererklärung:\n{portal}"],
+            'en' => ['Your {jahr} summary for your tax return', "Hello {name},\n\nthe summary of all commissions paid in {jahr} is ready as a PDF on your partner page — for your tax return:\n{portal}"],
+        ],
         /* Partnerprogramm (26.09.2026) */
         'partner_willkommen' => [
             'it' => ['Benvenuto nel programma partner di Vecom Design',
@@ -2851,6 +2871,39 @@ final class Texte
         'anl_paypal' => ['it' => "1. Scelga «PayPal».\n2. Inserisca l’indirizzo e-mail del suo conto PayPal.\n3. Tocchi «Salva». Le provvigioni arrivano automaticamente su PayPal.",
                          'de' => "1. „PayPal“ wählen.\n2. Die E-Mail-Adresse Ihres PayPal-Kontos eintragen.\n3. „Speichern“ tippen. Provisionen kommen dann automatisch auf PayPal.",
                          'en' => "1. Choose “PayPal”.\n2. Enter the email address of your PayPal account.\n3. Tap “Save”. Commissions then arrive in PayPal automatically."],
+        'st_bronze'  => ['it' => 'Bronzo', 'de' => 'Bronze', 'en' => 'Bronze'],
+        'st_silber'  => ['it' => 'Argento', 'de' => 'Silber', 'en' => 'Silver'],
+        'st_gold'    => ['it' => 'Oro', 'de' => 'Gold', 'en' => 'Gold'],
+        'st_text'    => ['it' => 'Il suo livello: {stufe} — {satz}. Negli ultimi 12 mesi: {n} vendite.', 'de' => 'Ihre Stufe: {stufe} — {satz}. In den letzten 12 Monaten: {n} Verkäufe.', 'en' => 'Your level: {stufe} — {satz}. Last 12 months: {n} sales.'],
+        'st_naechst' => ['it' => 'Ancora {fehlen} vendite e passa a {naechste}.', 'de' => 'Noch {fehlen} Verkäufe bis {naechste}.', 'en' => '{fehlen} more sales to reach {naechste}.'],
+        'st_top'     => ['it' => 'Ha raggiunto il livello più alto. Grazie!', 'de' => 'Sie haben die höchste Stufe erreicht. Danke!', 'en' => 'You’ve reached the top level. Thank you!'],
+        'm_titel'    => ['it' => 'Ho un cliente per voi', 'de' => 'Ich habe einen Kunden für euch', 'en' => 'I have a customer for you'],
+        'm_text'     => ['it' => 'Conosce qualcuno che ha bisogno di un sito? Lo inserisca qui: lo contattiamo noi e da subito conta per lei.', 'de' => 'Sie kennen jemanden, der eine Website braucht? Tragen Sie ihn hier ein: Wir melden uns, und er zählt ab sofort für Sie.', 'en' => 'Know someone who needs a website? Enter them here: we’ll get in touch, and they count for you straight away.'],
+        'm_telefon'  => ['it' => 'Telefono (facoltativo)', 'de' => 'Telefon (optional)', 'en' => 'Phone (optional)'],
+        'm_anliegen' => ['it' => 'Di cosa ha bisogno? (facoltativo)', 'de' => 'Was braucht er? (optional)', 'en' => 'What do they need? (optional)'],
+        'm_einverstanden' => ['it' => 'Il cliente è d’accordo che Vecom Design lo contatti.', 'de' => 'Der Kunde ist einverstanden, dass Vecom Design ihn kontaktiert.', 'en' => 'The customer agrees to be contacted by Vecom Design.'],
+        'm_knopf'    => ['it' => 'Inviare', 'de' => 'Absenden', 'en' => 'Send'],
+        'm_danke'    => ['it' => 'Grazie! Lo contattiamo a breve. Il cliente riceve subito una e-mail di conferma da noi.', 'de' => 'Danke! Wir melden uns in Kürze. Der Kunde bekommt gleich eine Bestätigung von uns per E-Mail.', 'en' => 'Thank you! We’ll be in touch shortly. The customer gets a confirmation email from us right away.'],
+        'm_genug'    => ['it' => 'Per oggi ha già segnalato molti clienti. Riprovi domani.', 'de' => 'Für heute haben Sie schon viele Kunden gemeldet. Bitte morgen weiter.', 'en' => 'You’ve already sent many customers today. Please continue tomorrow.'],
+        'w_titel'    => ['it' => 'Materiale pronto', 'de' => 'Fertige Werbemittel', 'en' => 'Ready-made material'],
+        'w_text'     => ['it' => 'Copi un testo, scarichi l’immagine per le storie o stampi la cartolina con il codice QR. Il suo link è già dentro.', 'de' => 'Text kopieren, Bild für Stories laden oder Karte mit QR-Code drucken. Ihr Link ist schon drin.', 'en' => 'Copy a text, download the story image or print the card with the QR code. Your link is already in it.'],
+        'w_post1'    => ['it' => "Ti serve un sito web per la tua attività? Con Vecom Design ti trovi bene: prezzo chiaro prima, lavoro seguito passo passo. 👉 {link}", 'de' => "Du brauchst eine Website für deinen Betrieb? Bei Vecom Design bist du gut aufgehoben: klarer Preis vorher, Schritt für Schritt begleitet. 👉 {link}", 'en' => "Need a website for your business? Vecom Design takes good care of you: clear price upfront, guided step by step. 👉 {link}"],
+        'w_post2'    => ['it' => "Il tuo sito è vecchio o non ce l’hai? Ti consiglio Vecom Design — dalla prima chiacchierata al sito online. {link} #pubblicità", 'de' => "Deine Website ist alt oder du hast keine? Ich empfehle Vecom Design — vom ersten Gespräch bis die Seite online ist. {link} #Werbung", 'en' => "Old website or none at all? I recommend Vecom Design — from the first chat to your site going live. {link} #ad"],
+        'w_post3'    => ['it' => "Per chi ha un negozio, un ristorante o un laboratorio in Sicilia: siti web fatti bene, con assistenza. Dai un’occhiata: {link} #pubblicità", 'de' => "Für alle mit Laden, Restaurant oder Werkstatt: Websites, die gut gemacht sind, mit Betreuung. Schau mal: {link} #Werbung", 'en' => "For anyone with a shop, restaurant or workshop: well-made websites, with ongoing care. Take a look: {link} #ad"],
+        'w_hinweis'  => ['it' => 'Se pubblica sui social, indichi che è un link con provvigione (per es. #pubblicità).', 'de' => 'Wenn Sie in sozialen Netzen posten, kennzeichnen Sie den Link als Werbung (z. B. #Werbung).', 'en' => 'When posting on social media, mark the link as an ad (e.g. #ad).'],
+        'w_bild'     => ['it' => 'Scarica immagine per storie', 'de' => 'Bild für Stories laden', 'en' => 'Download story image'],
+        'w_karte'    => ['it' => 'Stampa cartolina con QR', 'de' => 'Karte mit QR drucken', 'en' => 'Print card with QR'],
+        'w_qr'       => ['it' => 'Scarica codice QR', 'de' => 'QR-Code laden', 'en' => 'Download QR code'],
+        'karte_titel'=> ['it' => 'Il tuo sito web, fatto bene.', 'de' => 'Ihre Website, gut gemacht.', 'en' => 'Your website, done right.'],
+        'karte_text' => ['it' => 'Inquadra il codice — consigliato da {name}.', 'de' => 'Code scannen — empfohlen von {name}.', 'en' => 'Scan the code — recommended by {name}.'],
+        'karte_titel_kurz' => ['it' => 'Biglietto', 'de' => 'Karte', 'en' => 'Card'],
+        'karte_druck'=> ['it' => 'Stampa (o «Salva come PDF»)', 'de' => 'Drucken (oder „Als PDF speichern“)', 'en' => 'Print (or “Save as PDF”)'],
+        'k_titel'    => ['it' => 'Link per canale', 'de' => 'Links je Kanal', 'en' => 'Links per channel'],
+        'k_text'     => ['it' => 'Stesso link, con il canale in fondo — così vede dove funziona meglio.', 'de' => 'Derselbe Link mit dem Kanal hinten dran — so sehen Sie, wo es am besten wirkt.', 'en' => 'The same link with the channel at the end — so you see where it works best.'],
+        'k_kanal'    => ['it' => 'Canale', 'de' => 'Kanal', 'en' => 'Channel'],
+        'jahr_titel' => ['it' => 'Riepilogo provvigioni', 'de' => 'Jahresübersicht Provisionen', 'en' => 'Annual commission summary'],
+        'jahr_link'  => ['it' => 'Riepilogo {jahr} (PDF)', 'de' => 'Jahresübersicht {jahr} (PDF)', 'en' => '{jahr} summary (PDF)'],
+        'sofort'     => ['it' => 'Avvisami per e-mail quando arriva un contatto o guadagno una provvigione', 'de' => 'Mich per E-Mail benachrichtigen, wenn ein Kontakt kommt oder ich Provision verdiene', 'en' => 'Email me when a contact arrives or I earn commission'],
         's_unterwegs'=> ['it' => 'in pagamento', 'de' => 'unterwegs', 'en' => 'on its way'],
         'wege'       => ['it' => 'Come ricevere i pagamenti', 'de' => 'Wie Sie Ihr Geld bekommen', 'en' => 'How you get paid'],
         'w_stripe'   => ['it' => 'Stripe (automatico)', 'de' => 'Stripe (automatisch)', 'en' => 'Stripe (automatic)'],
@@ -2922,5 +2975,21 @@ final class Texte
         'it' => 'Sconto per raccomandazione ({p} %)',
         'de' => 'Empfehlungsrabatt ({p} %)',
         'en' => 'Referral discount ({p} %)',
+    ];
+
+    /** Die Landeseite hinter /p/CODE (26.09.2026). {name} = wie der Partner genannt werden will. */
+    public const PARTNER_LANDE = [
+        'titel'  => ['it' => 'Siti web per chi lavora in Sicilia', 'de' => 'Websites für Betriebe in Sizilien', 'en' => 'Websites for businesses in Sicily'],
+        'marke'  => ['it' => 'Consigliato da {name}', 'de' => 'Empfohlen von {name}', 'en' => 'Recommended by {name}'],
+        'lead'   => ['it' => '{name} ci consiglia. Realizziamo il suo sito web — dalla prima chiacchierata al sito online, con un prezzo chiaro prima e una persona che la segue.',
+                     'de' => '{name} empfiehlt uns. Wir bauen Ihre Website — vom ersten Gespräch bis sie online ist, mit klarem Preis vorher und einem Menschen, der Sie begleitet.',
+                     'en' => '{name} recommends us. We build your website — from the first chat until it’s live, with a clear price upfront and a real person guiding you.'],
+        'p1'     => ['it' => 'Lei dice cosa le serve — il prezzo lo sa prima.', 'de' => 'Sie sagen, was Sie brauchen — den Preis kennen Sie vorher.', 'en' => 'You say what you need — you know the price upfront.'],
+        'p2'     => ['it' => 'Costruiamo noi, lei vede ogni passo nella sua area personale.', 'de' => 'Wir bauen, Sie sehen jeden Schritt in Ihrem persönlichen Bereich.', 'en' => 'We build it; you see every step in your personal area.'],
+        'p3'     => ['it' => 'Il sito va online — se vuole con dominio, e-mail e assistenza.', 'de' => 'Die Seite geht online — auf Wunsch mit Domain, E-Mail und Betreuung.', 'en' => 'Your site goes live — with domain, email and care if you like.'],
+        'feld'   => ['it' => 'La sua e-mail', 'de' => 'Ihre E-Mail-Adresse', 'en' => 'Your email address'],
+        'knopf'  => ['it' => 'Iniziare', 'de' => 'Loslegen', 'en' => 'Get started'],
+        'klein'  => ['it' => 'Riceve il link alla sua area personale. Gratis e senza impegno.', 'de' => 'Sie bekommen den Link zu Ihrem persönlichen Bereich. Kostenlos und unverbindlich.', 'en' => 'You’ll get the link to your personal area. Free and without obligation.'],
+        'weiter' => ['it' => 'Prima guardare il sito →', 'de' => 'Erst die Website ansehen →', 'en' => 'See the website first →'],
     ];
 }

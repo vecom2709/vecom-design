@@ -43,6 +43,8 @@ RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
 # Partnerlinks: /p/ROSSK4M2 zaehlt den Klick und fuehrt auf die Startseite
 # (p.php). Getrennt von /e/: Partner bekommen Geld, Kunden Rabatt.
 RewriteRule ^p/([A-Za-z0-9]{5,16})/?$ p.php?c=$1 [L,QSA]
+# Kanal-Links: /p/ROSSK4M2/instagram -- derselbe Partner, der Kanal wird mitgezaehlt.
+RewriteRule ^p/([A-Za-z0-9]{5,16})/([A-Za-z0-9-]{1,20})/?$ p.php?c=$1&k=$2 [L,QSA]
 
 # /pakete.html gibt es nicht mehr.
 #

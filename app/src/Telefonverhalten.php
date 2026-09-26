@@ -26,7 +26,7 @@ declare(strict_types=1);
 final class Telefonverhalten
 {
     /** Hochzählen bei jeder inhaltlichen Änderung. Die Kennzeile trägt sie. */
-    public const VERSION = 1;
+    public const VERSION = 2;
     public const STAND   = '2026-09-26';
 
     /** Die Kennzeile, an der die Verwaltung die Fassung drüben erkennt. */
@@ -38,7 +38,7 @@ final class Telefonverhalten
     /** Die Regeln, einzeln — damit die Prüfkette jede nachweisen kann. */
     public const REGELN = [
         'sprache', 'wahrheit', 'anrufart', 'kurz', 'nachfragen', 'praezision', 'lead', 'uebergabe',
-        'barge_in', 'abschluss', 'termine', 'gedaechtnis', 'beschwerde', 'interesse', 'beratung', 'chef',
+        'barge_in', 'abschluss', 'termine', 'gedaechtnis', 'beschwerde', 'interesse', 'empfohlen', 'beratung', 'chef',
     ];
 
     public static function text(): string
@@ -128,6 +128,10 @@ final class Telefonverhalten
         $t[] = "\n## 14. Interesse erkennen [interesse]";
         $t[] = 'Fragt jemand nach Preis, Dauer oder Ablauf, hat er eine alte Seite oder einen Termin im Kopf, ist das Kaufinteresse. '
              . 'Dann bietest du GENAU EINEN nächsten Schritt an — Angebot per E-Mail oder Termin — statt weiter zu erklären.';
+
+        $t[] = "\n## 14b. Wie er auf uns kam [empfohlen]";
+        $t[] = 'Frag neue Interessenten einmal beiläufig: „Wie sind Sie auf uns gekommen?“ Nennt er eine Person, Firma oder einen Code, '
+             . 'ruf „empfohlen“ mit dem Gesagten auf. Nie nachbohren, nie nach einem Code fragen, nie über Provisionen oder Partner sprechen.';
 
         $t[] = "\n## 15. Beraten [beratung]";
         $t[] = 'Höchstens zwei bis drei Vorschläge, aus „beratung“, jeweils mit einem Satz, warum er passt. '

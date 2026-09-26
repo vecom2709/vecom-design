@@ -149,8 +149,10 @@ final class Zugang
     /** Ein gültiger Partnercode aus dem Aufruf — sonst null. */
     private static function partnerCode(array $extra): ?string
     {
-        $pc = strtoupper(trim((string) ($extra['partner_code'] ?? '')));
-        return preg_match('/^[A-Z0-9]{5,16}$/', $pc) ? $pc : null;
+        /* „CODE“ oder „CODE:kanal“ (Kanal-Link /p/CODE/instagram) */
+        $pc = trim((string) ($extra['partner_code'] ?? ''));
+        if (!preg_match('/^([A-Za-z0-9]{5,16})(?::([a-z0-9-]{1,20}))?$/', $pc, $m)) { return null; }
+        return strtoupper($m[1]) . (isset($m[2]) && $m[2] !== '' ? ':' . $m[2] : '');
     }
 
     public static function link(string $token, string $sprache): string
@@ -220,8 +222,9 @@ final class Zugang
            — oder, wenn er im selben Browser öffnet, der aus dem Besuch. */
         try {
             require_once __DIR__ . '/Partner.php';
-            $pz = ($z['partner_code'] ?? '') !== '' ? Partner::ausCode((string) $z['partner_code']) : null;
-            if ($pz !== null) { Partner::zuordnen($kid, (int) $pz['id'], 'link'); }
+            [$pzCode, $pzKanal] = Partner::teilen((string) ($z['partner_code'] ?? ''));
+            $pz = $pzCode !== '' ? Partner::ausCode($pzCode) : null;
+            if ($pz !== null) { Partner::zuordnen($kid, (int) $pz['id'], 'link', null, $pzKanal); }
             else { Partner::ausBesuch($kid); }
         } catch (Throwable $e) { /* nachtragbar: von Hand zuordnen */ }
 

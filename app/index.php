@@ -3063,6 +3063,7 @@ switch ($route) {
                 "SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
                   WHERE a.status = 'offen' ORDER BY a.id"), []),
             'handarbeit' => sicher(static fn() => PartnerWege::handarbeit(), []),
+            'auswertung' => sicher(static fn() => Partner::auswertung(12), []),
             'liste' => sicher(static fn() => Db::all(
                 "SELECT p.*,
                         (SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks k WHERE k.partner_id = p.id) AS klicks,

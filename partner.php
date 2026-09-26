@@ -77,6 +77,15 @@ if ($p && isset($_GET['beleg'])) {
     echo $pdf; exit;
 }
 
+/* ---------- Jahresübersicht (PDF) ---------- */
+if ($p && isset($_GET['jahr'])) {
+    $pdf = Partner::jahresPdf((int) $p['id'], (int) $_GET['jahr']);
+    if ($pdf === null) { http_response_code(404); exit; }
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: inline; filename="vecom-provisionen-' . (int) $_GET['jahr'] . '.pdf"');
+    echo $pdf; exit;
+}
+
 /* ---------- Zurück von Stripe: nachsehen, ob das Konto bereit ist ---------- */
 if ($p && isset($_GET['stripe'])) {
     try { Partner::kontoPruefen($p); $p = Partner::ausToken($token); } catch (Throwable $e) { }
@@ -108,6 +117,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Partner::vereinbarungMerken((int) $p['id'], Partner::vereinbarungText($sprache, $p));
                 }
                 header('Location: ' . $selbst(), true, 303); exit;
+            } elseif ($tat === 'melden' && $p) {
+                $r = Partner::kundeMelden((int) $p['id'], $_POST, $sprache);
+                if ($r['ok']) { header('Location: ' . $selbst(['m' => 'm_danke']) . '#melden', true, 303); exit; }
+                $meldung = (string) ($r['grund'] ?? 'panne');
+            } elseif ($tat === 'sofort' && $p) {
+                Db::run('UPDATE partner SET sofortmail = ? WHERE id = ?', [!empty($_POST['an']) ? 1 : 0, (int) $p['id']]);
+                header('Location: ' . $selbst() . '#sofort', true, 303); exit;
             } elseif ($tat === 'weg' && $p) {
                 $f = PartnerWege::setzen((int) $p['id'], $_POST);
                 if ($f === null) { header('Location: ' . $selbst(['m' => 'w_gut']) . '#wege', true, 303); exit; }
@@ -155,6 +171,47 @@ $so = static function () use ($Tp, $T, $h): string {
 };
 $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\((https://[^)\s]+)\)~',
     '<a href="$2" target="_blank" rel="noopener">$1</a>', htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
+/* ---------- Die Karte zum Ausdrucken (QR + Link), A6 ---------- */
+if ($p && isset($_GET['karte'])) {
+    $kLink = Partner::link($p) . '/karte';
+    ?><!doctype html><html lang="<?= $h($sprache) ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Vecom Design — <?= $h($p['code']) ?></title>
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<style>
+  @page{size:A6;margin:0}
+  body{margin:0;background:#e9e5dc;font-family:'Inter',system-ui,sans-serif}
+  .karte{width:105mm;height:148mm;margin:10mm auto;background:#0a0908;color:#f7f3ea;box-sizing:border-box;padding:12mm 9mm;
+         display:flex;flex-direction:column;align-items:center;text-align:center;border-radius:3mm}
+  .karte img.logo{width:22mm;height:auto;margin-bottom:4mm}
+  .karte .wort{font-family:'Archivo',sans-serif;font-weight:800;letter-spacing:.08em;font-size:13pt;margin-bottom:6mm}
+  .karte .wort b{color:#d6a849}
+  .karte h1{font-family:'Archivo',sans-serif;font-size:17pt;line-height:1.15;margin:0 0 5mm}
+  .karte #qr{background:#fff;padding:3mm;border-radius:2mm;width:42mm;height:42mm}
+  .karte #qr svg{width:100%;height:100%;display:block}
+  .karte p{font-size:10pt;color:#b4ada2;margin:5mm 0 2mm;line-height:1.4}
+  .karte .url{font-size:10.5pt;color:#f1d38b;font-weight:600;word-break:break-all}
+  .druck{display:block;margin:0 auto 10mm;padding:12px 22px;font-size:15px;border-radius:10px;border:0;cursor:pointer;
+         background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);color:#16120b;font-weight:700}
+  @media print{body{background:#0a0908}.druck{display:none}.karte{margin:0;border-radius:0}}
+</style></head><body>
+<div class="karte">
+  <img class="logo" src="/assets/img/logo-mark.webp" alt="">
+  <div class="wort"><b>VECOM</b> DESIGN</div>
+  <h1><?= $h($T('karte_titel')) ?></h1>
+  <div id="qr" data-link="<?= $h($kLink) ?>"></div>
+  <p><?= $h(strtr($T('karte_text'), ['{name}' => Partner::anzeigeName($p)])) ?></p>
+  <div class="url"><?= $h(preg_replace('~^https?://~', '', Partner::link($p))) ?></div>
+</div>
+<button class="druck" onclick="window.print()"><?= $h($T('karte_druck')) ?></button>
+<script src="/assets/js/qrcode.js"></script>
+<script>
+  (function () { var el = document.getElementById('qr'); var q = qrcode(0, 'M'); q.addData(el.dataset.link); q.make();
+    el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); })();
+</script>
+</body></html><?php
+    exit;
+}
+
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>">
 <head>
@@ -193,6 +250,18 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
           background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438)}
   .naechst{border:1px solid var(--linie2);border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:14.5px;line-height:1.5}
   .naechst b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan);margin-bottom:3px}
+  .text-kopie{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
+  .text-kopie textarea{flex:1;min-height:74px;font-size:13.5px;line-height:1.5;padding:10px 12px}
+  .knoepfe{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  /* minmax(0,1fr): Ein Grid-Eintrag ist sonst mindestens so breit wie sein
+     Inhalt -- die lange Adresse schob die Seite auf 519 px, das Abschneiden
+     im code griff nie. */
+  .kanaele{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin-top:8px}
+  .kanaele div{display:flex;gap:8px;align-items:center;font-size:13px;min-width:0}
+  .kanaele b{flex:0 0 78px}
+  .kanaele .knopf{min-height:34px;padding:6px 12px}
+  .kanaele code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+  .stufe{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linie2);border-radius:999px;padding:4px 12px;font-size:13px;margin-top:10px}
   .faq pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.65;color:var(--dim);margin:8px 0 0}
   @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -301,6 +370,12 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
       <div class="zahl"><b><?= (int) $k['verkaeufe'] ?></b><span><?= $h($T('verkaeufe')) ?></span><small><?= $h($T('z_verkaeufe')) ?></small></div>
       <div class="zahl"><b><?= $h(Fmt::geld((int) $k['provision'])) ?></b><span><?= $h($T('provision')) ?></span><small><?= $h($T('z_provision')) ?></small></div>
     </div>
+    <?php $stand = Partner::stufeStand($p); if ($stand['stufe'] !== null): ?>
+      <div class="stufe">★ <?= $h(strtr($T('st_text'), ['{stufe}' => $T('st_' . $stand['stufe']), '{satz}' => Partner::satzWort(Partner::satzFuer($p), true), '{n}' => (string) $stand['verkaeufe']])) ?></div>
+      <p class="klein" style="margin-top:6px"><?= $h($stand['naechste'] !== null
+          ? strtr($T('st_naechst'), ['{fehlen}' => (string) $stand['fehlen'], '{naechste}' => $T('st_' . $stand['naechste'])])
+          : $T('st_top')) ?></p>
+    <?php endif; ?>
     <p class="klein">
       <?php foreach (['wartet', 'freigabe', 'bereit', 'unterwegs', 'ausgezahlt'] as $st): if ($sum[$st] > 0): ?>
         <?= $h($T('s_' . $st)) ?>: <b><?= $h(Fmt::geld($sum[$st])) ?></b> &nbsp;
@@ -362,6 +437,52 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     <?php endif; ?>
   </div>
 
+  <div class="block pt" id="werbung">
+    <h2><?= $h($T('w_titel')) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h($T('w_text')) ?></p>
+    <?php foreach (['w_post1', 'w_post2', 'w_post3'] as $i => $wp): $txt = strtr($T($wp), ['{link}' => $link]); ?>
+      <div class="text-kopie"><textarea id="post<?= $i ?>" readonly><?= $h($txt) ?></textarea>
+        <button class="knopf" type="button" onclick="var f=document.getElementById('post<?= $i ?>');f.select();navigator.clipboard&&navigator.clipboard.writeText(f.value);this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
+    <?php endforeach; ?>
+    <p class="klein"><?= $h($T('w_hinweis')) ?></p>
+    <div class="knoepfe">
+      <a class="knopf" href="<?= $h($selbst(['karte' => 1])) ?>" target="_blank" rel="noopener"><?= $h($T('w_karte')) ?></a>
+      <button class="knopf" type="button" id="qr_laden"><?= $h($T('w_qr')) ?></button>
+      <button class="knopf" type="button" id="story_laden"><?= $h($T('w_bild')) ?></button>
+    </div>
+    <h2 style="margin-top:20px"><?= $h($T('k_titel')) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h($T('k_text')) ?></p>
+    <?php $kanalName = static fn(string $k): string => ['whatsapp' => 'WhatsApp', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'karte' => $T('karte_titel_kurz')][$k] ?? ucfirst($k); ?>
+    <div class="kanaele">
+      <?php foreach (['whatsapp', 'instagram', 'facebook', 'karte'] as $kn): $kl = $link . '/' . $kn; ?>
+        <div><b><?= $h($kanalName($kn)) ?></b><code><?= $h($kl) ?></code>
+          <button class="knopf" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText('<?= $h($kl) ?>');this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
+      <?php endforeach; ?>
+    </div>
+    <?php $kz = Db::all('SELECT kanal, SUM(anzahl) AS n FROM partner_kanal_klicks WHERE partner_id = ? GROUP BY kanal ORDER BY n DESC', [(int) $p['id']]);
+      if ($kz): ?>
+      <p class="klein"><?= $h($T('k_kanal')) ?>: <?= $h(implode(' · ', array_map(static fn($z) => $kanalName((string) $z['kanal']) . ' ' . $z['n'], $kz))) ?></p>
+    <?php endif; ?>
+  </div>
+
+  <div class="block pt" id="melden">
+    <h2><?= $h($T('m_titel')) ?></h2>
+    <?php if (($_GET['m'] ?? '') === 'm_danke'): ?><div class="hinweis gut"><?= $h($T('m_danke')) ?></div><?php endif; ?>
+    <?php if (in_array($meldung, ['m_einverstanden', 'm_genug', 'angaben'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
+    <p class="klein" style="margin-top:0"><?= $h($T('m_text')) ?></p>
+    <form method="post" action="<?= $h($selbst()) ?>#melden">
+      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+      <input type="hidden" name="tat" value="melden">
+      <label for="m_name"><?= $h($T('f_name')) ?></label><input id="m_name" type="text" name="name" required maxlength="120">
+      <label for="m_mail"><?= $h($T('f_email')) ?></label><input id="m_mail" type="email" name="email" required>
+      <label for="m_tel"><?= $h($T('m_telefon')) ?></label><input id="m_tel" type="text" name="telefon" maxlength="60">
+      <label for="m_was"><?= $h($T('m_anliegen')) ?></label><textarea id="m_was" name="anliegen" rows="2" maxlength="2000"></textarea>
+      <label style="display:flex;gap:8px;align-items:flex-start;color:var(--text)">
+        <input type="checkbox" name="einverstanden" value="1" required style="margin-top:3px;width:auto"> <?= $h($T('m_einverstanden')) ?></label>
+      <button class="knopf" type="submit"><?= $h($T('m_knopf')) ?></button>
+    </form>
+  </div>
+
   <div class="block pt">
     <h2><?= $h($T('liste')) ?></h2>
     <?php if (!$liste): ?><p class="klein"><?= $h($T('keine')) ?></p><?php else: ?>
@@ -387,6 +508,53 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     </tbody></table>
   </div>
   <?php endif; ?>
+  <?php $jahre = Partner::jahre((int) $p['id']); ?>
+  <div class="block pt" id="sofort">
+    <?php if ($jahre): ?>
+      <h2><?= $h($T('jahr_titel')) ?></h2>
+      <p class="klein" style="margin-top:0"><?php foreach ($jahre as $j): ?><a href="<?= $h($selbst(['jahr' => $j])) ?>"><?= $h(strtr($T('jahr_link'), ['{jahr}' => (string) $j])) ?></a> &nbsp; <?php endforeach; ?></p>
+    <?php endif; ?>
+    <form method="post" action="<?= $h($selbst()) ?>#sofort" style="flex-direction:row;align-items:center;gap:10px">
+      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="sofort">
+      <label style="display:flex;gap:8px;align-items:center;color:var(--text);font-size:14px">
+        <input type="checkbox" name="an" value="1" <?= !empty($p['sofortmail']) ? 'checked' : '' ?> onchange="this.form.submit()" style="width:auto"> <?= $h($T('sofort')) ?></label>
+      <noscript><button class="knopf"><?= $h($T('w_speichern')) ?></button></noscript>
+    </form>
+  </div>
+
+  <script src="/assets/js/qrcode.js"></script>
+  <script>
+  /* QR als PNG und ein Story-Bild (1080×1920) — im Browser gezeichnet, nichts geht an fremde Server. */
+  (function () {
+    var link = <?= json_encode($link . '/instagram') ?>, qrLink = <?= json_encode($link . '/karte') ?>, name = <?= json_encode(Partner::anzeigeName($p)) ?>;
+    var titel = <?= json_encode($T('karte_titel')) ?>, empf = <?= json_encode(strtr($T('karte_text'), ['{name}' => Partner::anzeigeName($p)])) ?>;
+    function qrMatrix(t) { var q = qrcode(0, 'M'); q.addData(t); q.make(); return q; }
+    function zeichneQr(ctx, q, x, y, groesse) {
+      var n = q.getModuleCount(), z = groesse / n; ctx.fillStyle = '#fff'; ctx.fillRect(x - z * 2, y - z * 2, groesse + z * 4, groesse + z * 4);
+      ctx.fillStyle = '#0a0908';
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) ctx.fillRect(x + c * z, y + r * z, Math.ceil(z), Math.ceil(z));
+    }
+    function laden(canvas, datei) { var a = document.createElement('a'); a.download = datei; a.href = canvas.toDataURL('image/png'); a.click(); }
+    document.getElementById('qr_laden').addEventListener('click', function () {
+      var c = document.createElement('canvas'); c.width = c.height = 1000; var x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, 1000, 1000); zeichneQr(x, qrMatrix(qrLink), 80, 80, 840); laden(c, 'vecom-qr.png');
+    });
+    document.getElementById('story_laden').addEventListener('click', function () {
+      var c = document.createElement('canvas'); c.width = 1080; c.height = 1920; var x = c.getContext('2d');
+      var g = x.createLinearGradient(0, 0, 0, 1920); g.addColorStop(0, '#15120d'); g.addColorStop(1, '#0a0908'); x.fillStyle = g; x.fillRect(0, 0, 1080, 1920);
+      var gold = x.createLinearGradient(0, 0, 1080, 0); gold.addColorStop(0, '#b98a31'); gold.addColorStop(.45, '#f7e6ae'); gold.addColorStop(1, '#c49438');
+      x.textAlign = 'center'; x.fillStyle = gold; x.font = '800 64px Archivo, sans-serif'; x.fillText('VECOM DESIGN', 540, 300);
+      x.fillStyle = '#f7f3ea'; x.font = '700 84px Archivo, sans-serif';
+      var w = titel.split(' '), zeile = '', y = 520;
+      w.forEach(function (t) { var probe = zeile ? zeile + ' ' + t : t; if (x.measureText(probe).width > 900) { x.fillText(zeile, 540, y); y += 100; zeile = t; } else { zeile = probe; } });
+      x.fillText(zeile, 540, y);
+      zeichneQr(x, qrMatrix(link), 290, 820, 500);
+      x.fillStyle = '#b4ada2'; x.font = '400 44px Inter, sans-serif'; x.fillText(empf, 540, 1470);
+      x.fillStyle = gold; x.font = '600 46px Inter, sans-serif'; x.fillText(link.replace(/^https?:\/\//, ''), 540, 1560);
+      laden(c, 'vecom-story.png');
+    });
+  })();
+  </script>
 <?php endif; ?>
 
   <div class="sprachen">
