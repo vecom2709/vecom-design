@@ -53,6 +53,12 @@ final class StripeAnbieter implements Anbieter
         return ($this->cfg['modus'] ?? 'test') === 'live' ? 'live' : 'test';
     }
 
+    /** Nur die Art des Schlüssels (sk_live, rk_test …), nie der Schlüssel selbst. */
+    public function schluesselArt(): string
+    {
+        return preg_match('/^(sk|rk)_(live|test)_/', trim((string) ($this->cfg['geheim'] ?? '')), $t) ? $t[1] . '_' . $t[2] : '';
+    }
+
     public function bereit(): bool
     {
         return trim((string) ($this->cfg['geheim'] ?? '')) !== '';

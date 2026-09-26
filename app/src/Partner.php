@@ -830,12 +830,12 @@ final class Partner
                 /* Fehlt Connect im Stripe-Konto, kann es kein Partner einrichten:
                    Stripe wird bis zur Freischaltung nicht mehr angeboten, und
                    Uwe bekommt die Schritte, nicht nur die Absage. */
-                if (preg_match('/connect|platform|signed up/i', $fehler)) {
-                    Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_stripe_connect', 'fehlt')
-                              ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
-                    Events::melden('partner_stripe_connect', 'Stripe Connect ist nicht aktiviert', 'warnung',
-                        'Ein Partner wollte sein Auszahlungskonto einrichten. Stripe: „' . mb_substr($fehler, 0, 200) . '“ — '
-                        . 'Anleitung unter Partner → Auszahlungswege. Bis dahin wird Stripe den Partnern nicht angeboten.', '/partner#wege');
+                $g = self::connectGrund($fehler);
+                if (in_array($g['art'], ['connect', 'rechte'], true)) {
+                    self::connectMerken('fehlt', $g['text']);
+                    Events::melden('partner_stripe_connect', $g['art'] === 'rechte' ? 'Stripe-Schlüssel darf keine Partnerkonten anlegen' : 'Stripe Connect ist nicht aktiviert', 'warnung',
+                        'Ein Partner wollte sein Auszahlungskonto einrichten. ' . $g['text'] . ' — '
+                        . 'Details unter Partner → Auszahlungswege. Bis dahin wird Stripe den Partnern nicht angeboten.', '/partner#wege');
                     return ['ok' => false, 'grund' => 'connect', 'text' => $fehler];
                 }
                 return ['ok' => false, 'grund' => 'stripe', 'text' => $fehler !== '' ? $fehler : 'Stripe hat das Konto nicht angelegt.'];
@@ -863,11 +863,58 @@ final class Partner
     public static function connectPruefen(): array
     {
         $r = self::stripe('GET', '/v1/accounts', ['limit' => 1]);
-        $ok = isset($r['data']) && is_array($r['data']);
-        Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_stripe_connect', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
-                [$ok ? 'ok' : 'fehlt']);
-        return ['ok' => $ok, 'text' => $ok ? 'Stripe Connect ist aktiv — Partner können ihr Auszahlungskonto einrichten.'
-            : 'Stripe Connect ist noch nicht aktiv: ' . mb_substr((string) ($r['error']['message'] ?? 'keine Antwort'), 0, 200)];
+        if (isset($r['data']) && is_array($r['data'])) {
+            $text = 'Stripe Connect ist aktiv — Partner können ihr Auszahlungskonto einrichten.';
+            self::connectMerken('ok', $text);
+            return ['ok' => true, 'text' => $text];
+        }
+        $g = self::connectGrund((string) ($r['error']['message'] ?? ''));
+        /* Ein Netzfehler sagt nichts über Connect -- der alte Stand bleibt,
+           sonst verschwände Stripe bei jedem Wackler für alle Partner. */
+        self::connectMerken($g['art'] === 'netz' ? self::einstellung('partner_stripe_connect') : 'fehlt', $g['text']);
+        return ['ok' => false, 'text' => $g['text']];
+    }
+
+    /**
+     * Was Stripes Absage wirklich heißt. Bis 26.09.2026 galt jeder Fehler als
+     * „Connect nicht aktiviert“ -- auch ein eingeschränkter Schlüssel, dessen
+     * Absage „…'rak_connected_account_write' permission…“ lautet und damit
+     * das Wort „connect“ enthält. Uwe sah „nicht aktiviert“, obwohl sein
+     * Konto die Abfrage (gemessen über das Stripe-Dashboard) ohne Fehler beantwortet.
+     *
+     * @return array{art:string,text:string}  art: connect|rechte|schluessel|netz|stripe
+     */
+    public static function connectGrund(string $fehler): array
+    {
+        require_once __DIR__ . '/Zahlung/Anbieter.php';
+        require_once __DIR__ . '/Zahlung/Stripe.php';
+        $schl = (new StripeAnbieter())->schluesselArt();
+        // Stripe nennt Schlüssel teils ausgeschrieben -- nie weitertragen.
+        $roh = mb_substr((string) preg_replace('/\b(sk|rk|pk)_(live|test)_[A-Za-z0-9*]+/', '$1_$2_…', $fehler), 0, 240);
+        $wie = ['sk_live' => 'geheimer Live-Schlüssel', 'sk_test' => 'geheimer Test-Schlüssel',
+                'rk_live' => 'eingeschränkter Live-Schlüssel', 'rk_test' => 'eingeschränkter Test-Schlüssel'][$schl] ?? 'kein gültiger Schlüssel';
+        if ($fehler === '' || stripos($fehler, 'nicht erreichbar') !== false) {
+            return ['art' => 'netz', 'text' => 'Stripe hat nicht geantwortet — bitte später noch einmal prüfen.'];
+        }
+        if (stripos($fehler, 'nicht eingerichtet') !== false) {
+            return ['art' => 'schluessel', 'text' => 'Auf dem Server ist kein Stripe-Schlüssel eingetragen (config.local.php → stripe → geheim).'];
+        }
+        if (preg_match('/permission|rak_/i', $fehler)) {
+            return ['art' => 'rechte', 'text' => 'Schlüssel auf dem Server: ' . $wie . ' — er darf keine Partnerkonten lesen oder anlegen. '
+                . 'Lösung: In Stripe → Entwickler → API-Schlüssel diesem Schlüssel „Connect“ (Konten) und „Transfers“ auf Schreiben geben — '
+                . 'oder den geheimen Standardschlüssel (sk_live_…) in config.local.php eintragen. Stripe: „' . $roh . '“'];
+        }
+        if (preg_match('/connect|platform/i', $fehler)) {
+            return ['art' => 'connect', 'text' => 'Stripe meldet: Connect ist in diesem Konto (' . $wie . ') nicht freigeschaltet. Stripe: „' . $roh . '“'];
+        }
+        return ['art' => 'stripe', 'text' => 'Stripe lehnt ab (' . $wie . '): „' . $roh . '“'];
+    }
+
+    private static function connectMerken(string $stand, string $grund): void
+    {
+        foreach (['partner_stripe_connect' => $stand, 'partner_stripe_connect_grund' => $grund, 'partner_stripe_connect_am' => date('Y-m-d H:i')] as $k => $v) {
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, $v]);
+        }
     }
 
     /** Fragt Stripe, ob das Konto Überweisungen empfangen darf. */

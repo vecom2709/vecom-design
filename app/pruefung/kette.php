@@ -10028,6 +10028,28 @@ pruefe('Stripe: fehlt Connect → klarer Grund, Meldung mit Anleitung an Uwe, St
 Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['data' => []];
 pruefe('Stripe: „Connect prüfen“ gibt den Weg wieder frei, sobald Connect aktiv ist',
     Partner::connectPruefen()['ok'] && in_array('stripe', PartnerWege::eingeschaltet(), true));
+/* Uwe, 26.09.2026: „Connect prüfen“ zeigte „nicht aktiviert“, obwohl sein
+   Konto die Abfrage ohne Fehler beantwortet. Die Absage eines
+   eingeschränkten Schlüssels enthält „rak_connected_account“ -- das alte
+   Muster /connect/ hielt sie für „Connect fehlt“. */
+$scRak = "The provided key '" . 'rk' . '_live_' . '51AbCdEf' . str_repeat('x', 20) . "' does not have the required permissions for this endpoint on account 'acct_1X'. Having the 'rak_connected_account_read' permission would allow this request to continue.";
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['error' => ['message' => $scRak]];
+$scC = Partner::connectPruefen();
+$scG = Partner::einstellung('partner_stripe_connect_grund');
+pruefe('Connect prüfen: fehlende Schlüsselrechte heißen „Rechte“, nicht „Connect nicht aktiviert“',
+    !$scC['ok'] && Partner::connectGrund($scRak)['art'] === 'rechte' && str_contains($scG, 'Transfers') && !str_contains($scG, 'nicht freigeschaltet'), $scG);
+pruefe('Connect prüfen: der Schlüssel aus Stripes Absage wird nie weitergetragen',
+    !str_contains($scG, '51AbCdEf') && !str_contains($scC['text'], '51AbCdEf'));
+pruefe('Connect prüfen: Stripe wird trotzdem nicht angeboten, solange die Rechte fehlen', !in_array('stripe', PartnerWege::eingeschaltet(), true));
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['data' => []];
+Partner::connectPruefen();
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['error' => ['message' => 'Stripe war nicht erreichbar: timeout']];
+pruefe('Connect prüfen: ein Netzfehler nimmt Stripe den Partnern nicht weg',
+    !Partner::connectPruefen()['ok'] && Partner::einstellung('partner_stripe_connect') === 'ok' && in_array('stripe', PartnerWege::eingeschaltet(), true));
+pruefe('Connect prüfen: „signed up for Connect“ bleibt „Connect fehlt“',
+    Partner::connectGrund("You can only create new accounts if you've signed up for Connect")['art'] === 'connect');
+pruefe('Connect prüfen: der Grund steht in der Verwaltung beim Schild, nicht nur als Meldung oben',
+    str_contains((string) file_get_contents($wurzel . '/views/partner.php'), "einstellung('partner_stripe_connect_grund')"));
 Partner::$stripeProbe = null;
 $scSeite = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Partnerseite: statt „Etwas hat nicht geklappt“ ein klarer Hinweis, und eine Anleitung Schritt für Schritt',

@@ -166,7 +166,14 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <?php $connect = Partner::einstellung('partner_stripe_connect'); ?>
   <div style="border-top:1px solid var(--linie);margin-top:14px;padding-top:12px">
     <p style="font-size:13.5px;margin:0 0 6px"><b>Stripe Connect</b>
-      <?= $connect === 'ok' ? '<span class="marke2 gut">aktiv</span>' : ($connect === 'fehlt' ? '<span class="marke2 warnung">nicht aktiviert — Stripe wird Partnern nicht angeboten</span>' : '<span class="marke2">noch nicht geprüft</span>') ?></p>
+      <?= $connect === 'ok' ? '<span class="marke2 gut">aktiv</span>' : ($connect === 'fehlt' ? '<span class="marke2 warnung">nicht bereit — Stripe wird Partnern nicht angeboten</span>' : '<span class="marke2">noch nicht geprüft</span>') ?></p>
+    <?php /* Der Grund steht HIER, nicht nur als Meldung oben: Nach dem Klick
+             springt die Seite zu #wege, die Meldung lag außerhalb des Bildes,
+             und Uwe sah nur das Schild (26.09.2026). */
+      $cGrund = Partner::einstellung('partner_stripe_connect_grund'); if ($cGrund !== ''): ?>
+      <p class="<?= $connect === 'ok' ? '' : 'hinweis schlecht' ?>" style="font-size:13px;line-height:1.6;margin:6px 0 8px"><?= Fmt::h($cGrund) ?>
+        <span style="color:var(--leise)"> · geprüft <?= Fmt::h(Partner::einstellung('partner_stripe_connect_am')) ?></span></p>
+    <?php endif; ?>
     <details <?= $connect !== 'ok' ? 'open' : '' ?>><summary style="cursor:pointer;font-size:13px;color:var(--cyan)">So schaltest du Connect frei (einmalig, ca. 10 Minuten)</summary>
       <ol style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px;margin:8px 0">
         <li>Im Stripe-Dashboard links auf <b>Connect</b> (bzw. „Verbundene Konten“) → <b>Loslegen</b>.</li>
