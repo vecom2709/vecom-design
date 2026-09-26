@@ -466,13 +466,23 @@ function build(lang, seite) {
      Pruefung. Sobald sie geschaltet ist und auf die deutsche weiterleitet,
      hier eintragen — mehr ist nicht noetig.
      -------------------------------------------------------------------------- */
+  /* 26.09.2026, Uwe: die deutsche Nummer auf allen drei Sprachen. Sie
+     klingelt wirklich (Manuela nimmt ab) -- eine Auslandsnummer ist eine
+     Huerde, aber keine Nummer war auf der italienischen Seite die groessere:
+     Gemessen gab es dort gar keinen Anruf-Link. Kommt die italienische
+     (+39 0922 1795963, Sonetel), wird sie hier bei it/en eingetragen. */
   const TELEFON = {
-    it: null,                    // +39 0922 1795963 — sobald bei Sonetel freigeschaltet
+    it: '+49 30 4397926082',
     de: '+49 30 4397926082',
-    en: null,                    // dann dieselbe wie it: die Nummer des Betriebs
+    en: '+49 30 4397926082',
   };
-  h = h.replace(/\s*<div class="kontakt-telzeile">[\s\S]*?<\/div>\s*<\/div>/g, '');
-  h = h.replace(/\s*<div class="kontakt-telzeile">[\s\S]*?<\/div>/g, '');
+  /* Genau EINE Zeile, bis zu ihrem eigenen </div> -- sie enthaelt kein
+     weiteres div. Die fruehere erste Regel („…</div>\s*</div>“) lief ueber
+     die Zeile hinaus bis zum naechsten Doppel-Schluss und loeschte auf der
+     italienischen Vorlage den ganzen Kontaktblock samt E-Mail-Formular.
+     Aufgefallen erst am 26.09.2026, als Italien eine Nummer bekam: Solange
+     die Vorlage keine Zeile trug, fand die Regel nie etwas. */
+  h = h.replace(/\s*<div class="kontakt-telzeile">(?:(?!<\/div>)[\s\S])*<\/div>/g, '');
   const telNr = TELEFON[lang] ?? null;
   if (telNr) {
     const wort = get(lang, 'contact.dt5') || 'Telefon';
@@ -592,10 +602,24 @@ function pruefen(h, lang, ziel) {
   }
 }
 
+/* Was die Umschreibregeln nie verlieren duerfen: Formulare, Ueberschriften,
+   Abschnitte. Am 26.09.2026 loeschte eine zu gierige Regel den Kontaktblock
+   samt E-Mail-Formular -- still, weil jede Pfadpruefung gruen blieb. Weniger
+   davon im Ergebnis als in der Quelle heisst: eine Regel frisst Inhalt. */
+const TRAGEND = [/<form\b/g, /<section\b/g, /<h[1-3]\b/g, /data-zugang="/g];
+function tragendZaehlen(html) { return TRAGEND.map((r) => (html.match(r) || []).length); }
+
 for (const seite of SEITEN) {
+  const quelleZahl = tragendZaehlen(readFileSync(seite.quelle, 'utf8'));
   for (const lang of Object.keys(LANGS)) {
     const out = build(lang, seite);
     const ziel = seite.ziele[lang];
+    const ist = tragendZaehlen(out);
+    if (ist.some((n, i) => n < quelleZahl[i])) {
+      console.error(`\nFEHLER in ${ziel}: Inhalt verloren (Formulare/Abschnitte/Ueberschriften/Zugaenge ${quelleZahl.join('/')} → ${ist.join('/')}).`);
+      console.error('Eine Umschreibregel frisst Inhalt. Nichts wurde hochgeladen.');
+      process.exit(1);
+    }
     pruefen(out, lang, ziel);
     if (lang !== 'it') { mkdirSync(lang, { recursive: true }); }
     writeFileSync(ziel, out);

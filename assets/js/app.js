@@ -592,3 +592,12 @@
 /* Hier stand der Ueberspringen-Knopf des Auftaktfilms. Der Film ist weg —
    die Szene macht ihre Eroeffnung selbst, und 1,16 MB sind es nicht wert,
    dass jemand sie ueberspringen darf. */
+
+/* Anrufe zaehlen (26.09.2026). Ein Klick auf eine Rufnummer verlaesst die
+   Seite nicht, und ob danach wirklich gewaehlt wurde, weiss nur das Telefon
+   -- gezaehlt wird also die Absicht, ohne IP und ohne Keks (wie d.php). */
+document.addEventListener('click', (ev) => {
+  const a = ev.target.closest && ev.target.closest('a[href^="tel:"]');
+  if (!a) return;
+  try { navigator.sendBeacon && navigator.sendBeacon('/d.php?e=anruf'); } catch (e) { /* egal */ }
+});

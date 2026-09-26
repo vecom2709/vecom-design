@@ -33,6 +33,8 @@ const EREIGNISSE = [
     'kleinwagen-stufe-1', 'kleinwagen-stufe-2', 'kleinwagen-stufe-3', 'kleinwagen-stufe-4',
     'mittelklasse-stufe-1', 'mittelklasse-stufe-2', 'mittelklasse-stufe-3', 'mittelklasse-stufe-4',
     'whatsapp',
+    // Anruf-Knopf und Rückruf-Wunsch (26.09.2026): wie oft wurde angerufen, wie oft ein Rückruf bestellt
+    'anruf', 'rueckruf-offen', 'rueckruf-gesendet',
     // AR-Ansicht (25.09.2026): gesendet seit dem Kuechenplaner und den Produkt-
     // demos, aber nie in dieser Liste -- jede Zaehlung wurde still verworfen.
     'ar-wein', 'ar-schmuck', 'ar-gastro', 'ar-kueche',
