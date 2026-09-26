@@ -135,6 +135,24 @@ $bedingungen = strtr($T('bedingungen'), [
     '{min}' => Fmt::geld(Partner::zahl('partner_mindest_cents')),
     '{tage}' => (string) max(14, Partner::zahl('partner_sperrtage')),
 ]);
+/* Die Platzhalter aller erklärenden Texte — dieselben Zahlen wie in der Vereinbarung. */
+$platz = [
+    '{satz}' => $satz['art'] === 'fest' ? Fmt::geld($satz['wert']) . ($sprache === 'it' ? ' per vendita' : ($sprache === 'en' ? ' per sale' : ' je Verkauf'))
+                                        : Partner::satzWort($satz),
+    '{min}' => Fmt::geld(Partner::zahl('partner_mindest_cents')),
+    '{tage}' => (string) max(14, Partner::zahl('partner_sperrtage')),
+    '{zuordnung}' => (string) Partner::zahl('partner_zuordnung_monate'),
+];
+$Tp = static fn(string $k): string => strtr($T($k), $platz);
+/* „So funktioniert's“ in drei Schritten — dieselbe Erklärung auf Bewerbung und Partnerseite. */
+$so = static function () use ($Tp, $T, $h): string {
+    $o = '<div class="so">';
+    foreach ([1, 2, 3] as $i) {
+        $o .= '<div class="so__schritt"><span class="so__nr">' . $i . '</span><div><b>' . $h($T('so_' . $i . '_t')) . '</b><br>'
+            . '<span>' . $h($Tp('so_' . $i)) . '</span></div></div>';
+    }
+    return $o . '</div>';
+};
 $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\((https://[^)\s]+)\)~',
     '<a href="$2" target="_blank" rel="noopener">$1</a>', htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
 ?><!doctype html>
@@ -167,6 +185,15 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
   .pt td.r,.pt th.r{text-align:right;white-space:nowrap}
   .pt pre{white-space:pre-wrap;font-family:inherit;font-size:13.5px;line-height:1.6;color:var(--dim);margin:8px 0 0}
   .pt .wabe{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .pt .zahl small{display:block;font-size:11px;color:var(--leise);margin-top:3px;line-height:1.35}
+  .so{display:grid;gap:12px;margin:6px 0 4px}
+  .so__schritt{display:flex;gap:12px;align-items:flex-start;font-size:14px;line-height:1.55}
+  .so__schritt span{color:var(--dim)}
+  .so__nr{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#16120b !important;
+          background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438)}
+  .naechst{border:1px solid var(--linie2);border-radius:12px;padding:12px 14px;margin:0 0 14px;font-size:14.5px;line-height:1.5}
+  .naechst b{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan);margin-bottom:3px}
+  .faq pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.65;color:var(--dim);margin:8px 0 0}
   @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
@@ -186,6 +213,10 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     <?php if (!$gut): ?>
       <p class="lead"><?= $h($T('lead')) ?></p>
       <p class="lead"><?= $h($bedingungen) ?></p>
+      <h2><?= $h($T('so_titel')) ?></h2>
+      <?= $so() ?>
+      <details class="faq" style="margin:14px 0"><summary style="cursor:pointer;color:var(--cyan)"><?= $h($T('faq_titel')) ?></summary>
+        <pre><?= $h($Tp('faq')) ?></pre></details>
       <?php if (!$offen): ?>
         <div class="hinweis"><?= $h($T('zu')) ?></div>
       <?php else: ?>
@@ -218,7 +249,7 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
 <?php else:
   $k = Partner::kennzahlen((int) $p['id']);
   $sum = Partner::summen((int) $p['id']);
-  $liste = Db::all('SELECT created_at, art, provision_cents, einbehalt_cents, status FROM partner_provisionen WHERE partner_id = ? ORDER BY id DESC LIMIT 100', [(int) $p['id']]);
+  $liste = Db::all('SELECT created_at, art, provision_cents, einbehalt_cents, status, frei_ab FROM partner_provisionen WHERE partner_id = ? ORDER BY id DESC LIMIT 100', [(int) $p['id']]);
   $auszahl = Db::all('SELECT * FROM partner_auszahlungen WHERE partner_id = ? ORDER BY id DESC LIMIT 50', [(int) $p['id']]);
   $link = Partner::link($p);
 ?>
@@ -228,6 +259,14 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler'], true); ?>
     <?php if ($meldung !== '' && !$wegFehler): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
     <?php if ($p['status'] === 'pausiert'): ?><div class="hinweis"><?= $h($T('pausiert')) ?></div><?php endif; ?>
+    <?php
+      /* Der eine nächste Schritt — was der Partner jetzt tun muss, nicht alles auf einmal. */
+      $nWeg = PartnerWege::weg($p);
+      $naechst = empty($p['vereinbarung_am']) ? 'n_vereinbarung'
+               : ($nWeg === null || !PartnerWege::bereit($p, $nWeg) ? 'n_weg'
+               : ((int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ?', [(int) $p['id']], 0) === 0 ? 'n_teilen' : 'n_laeuft'));
+    ?>
+    <div class="naechst"><b><?= $h($T('n_titel')) ?></b><?= $h($T($naechst)) ?></div>
 
     <?php if (empty($p['vereinbarung_am'])): ?>
       <div class="hinweis" style="margin-bottom:14px">
@@ -246,14 +285,21 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     <div class="kopie"><input id="p_link" type="text" readonly value="<?= $h($link) ?>">
       <button class="knopf" type="button" onclick="var f=document.getElementById('p_link');f.select();navigator.clipboard&&navigator.clipboard.writeText(f.value);this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
     <p class="klein" style="margin-top:6px"><?= $h($T('p_code')) ?>: <b><?= $h($p['code']) ?></b></p>
+    <a class="knopf" style="margin-top:10px;display:inline-flex" target="_blank" rel="noopener"
+       href="https://wa.me/?text=<?= rawurlencode($T('teilen_text') . $link) ?>"><?= $h($T('teilen_wa')) ?></a>
+    <details style="margin-top:14px"<?= $naechst === 'n_teilen' ? ' open' : '' ?>><summary style="cursor:pointer;color:var(--cyan);font-size:14px"><?= $h($T('so_titel')) ?></summary>
+      <?= $so() ?>
+      <details class="faq" style="margin-top:10px"><summary style="cursor:pointer;color:var(--cyan);font-size:13.5px"><?= $h($T('faq_titel')) ?></summary>
+        <pre><?= $h($Tp('faq')) ?></pre></details>
+    </details>
   </div>
 
   <div class="block pt">
     <div class="zahlen">
-      <div class="zahl"><b><?= (int) $k['klicks'] ?></b><span><?= $h($T('klicks')) ?></span></div>
-      <div class="zahl"><b><?= (int) $k['kunden'] ?></b><span><?= $h($T('kunden')) ?></span></div>
-      <div class="zahl"><b><?= (int) $k['verkaeufe'] ?></b><span><?= $h($T('verkaeufe')) ?></span></div>
-      <div class="zahl"><b><?= $h(Fmt::geld((int) $k['provision'])) ?></b><span><?= $h($T('provision')) ?></span></div>
+      <div class="zahl"><b><?= (int) $k['klicks'] ?></b><span><?= $h($T('klicks')) ?></span><small><?= $h($T('z_klicks')) ?></small></div>
+      <div class="zahl"><b><?= (int) $k['kunden'] ?></b><span><?= $h($T('kunden')) ?></span><small><?= $h($T('z_kunden')) ?></small></div>
+      <div class="zahl"><b><?= (int) $k['verkaeufe'] ?></b><span><?= $h($T('verkaeufe')) ?></span><small><?= $h($T('z_verkaeufe')) ?></small></div>
+      <div class="zahl"><b><?= $h(Fmt::geld((int) $k['provision'])) ?></b><span><?= $h($T('provision')) ?></span><small><?= $h($T('z_provision')) ?></small></div>
     </div>
     <p class="klein">
       <?php foreach (['wartet', 'freigabe', 'bereit', 'unterwegs', 'ausgezahlt'] as $st): if ($sum[$st] > 0): ?>
@@ -322,7 +368,7 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     <table><thead><tr><th><?= $h($T('datum')) ?></th><th><?= $h($T('art')) ?></th><th class="r"><?= $h($T('betrag')) ?></th><th><?= $h($T('stand')) ?></th></tr></thead><tbody>
     <?php foreach ($liste as $z): ?>
       <tr><td><?= $h(Fmt::datum((string) $z['created_at'])) ?></td><td><?= $h($T('a_' . $z['art'])) ?></td>
-          <td class="r"><?= $h(Fmt::geld((int) $z['provision_cents'])) ?></td><td><?= $h($T('s_' . $z['status'])) ?></td></tr>
+          <td class="r"><?= $h(Fmt::geld((int) $z['provision_cents'])) ?></td><td><?= $h($T('s_' . $z['status'])) ?><?php if ($z['status'] === 'wartet'): ?><br><small style="color:var(--leise)"><?= $h(strtr($T('frei_ab'), ['{datum}' => Fmt::datum((string) $z['frei_ab'])])) ?></small><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table>
     <?php endif; ?>

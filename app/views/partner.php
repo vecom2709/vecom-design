@@ -12,6 +12,15 @@ $marke = ['aktiv' => 'gut', 'pausiert' => 'warnung', 'abgelehnt' => '', 'bewerbu
 $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 ?>
 <div class="kopf"><h1>Partner</h1></div>
+<div class="block" style="padding:14px 18px">
+  <p style="font-size:13.5px;line-height:1.7;margin:0;color:var(--dim)">
+    <b style="color:var(--text)">So läuft es:</b>
+    ① Partner teilen ihren Link <code>/p/CODE</code> →
+    ② wer darüber kommt, gehört ab dem ersten Kontakt <?= (int) Partner::zahl('partner_zuordnung_monate') ?> Monate diesem Partner →
+    ③ bezahlt der Kunde, entsteht die Provision (<?= Fmt::h(Partner::satzWort(Partner::satzFuer([]))) ?>) →
+    ④ nach <?= max(14, Partner::zahl('partner_sperrtage')) ?> Tagen wird sie ausgezahlt — automatisch (Stripe/PayPal/Wise) oder von Hand (SEPA/Verrechnung).
+    Erstattet der Kunde, entfällt sie.</p>
+</div>
 
 <?php if ($bewerbungen): ?>
 <div class="block">
