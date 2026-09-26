@@ -84,6 +84,24 @@ $klasse = static fn(string $s): string => ['CONTACT_ALLOWED' => 'gut', 'REVIEW_R
       <button class="knopf"><?= $schluesselDa ? 'Neuen Schlüssel erzeugen' : 'Schlüssel erzeugen' ?></button></form>
     <p class="akq-klein" style="margin-top:10px">Der Worker darf mit diesem Schlüssel Firmen, Befunde und Textvorschläge melden — nie senden, freigeben oder sperren.</p>
   </div>
+
+  <?php require_once dirname(__DIR__) . '/src/AkquiseBriefdienst.php'; $bdDa = AkquiseBriefdienst::bereit(); $bdTest = AkquiseBriefdienst::test(); ?>
+  <div class="block" id="briefdienst">
+    <h2>Briefdienst (Poste Italiane)</h2>
+    <p class="akq-klein" style="margin-bottom:10px">Freigegebene Briefe druckt, kuvertiert und frankiert ufficiopostale.com (Openapi) — nur innerhalb Italiens.
+      Jeder Brief zeigt vorher Preis und gedrucktes Blatt; verschickt wird erst mit deinem Klick.
+      Den Schlüssel gibt es unter console.openapi.com (Bereich „Ufficio Postale“, Berechtigung <code>POST/GET/PATCH ws.ufficiopostale.com/ordinarie</code>).</p>
+    <p class="akq-klein" style="margin-bottom:10px"><?= $bdDa ? '✓ Schlüssel hinterlegt (verschlüsselt, wird nie angezeigt).' : 'Noch kein Schlüssel.' ?>
+      · Modus: <b><?= $bdTest ? 'TEST (Sandbox — nichts wird gedruckt, nichts kostet)' : 'ECHT (Briefe gehen raus und kosten)' ?></b></p>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:grid;gap:8px"
+          <?= $bdTest ? '' : 'data-frage="Briefdienst-Einstellungen speichern? Im Echtbetrieb gehen bestätigte Briefe wirklich raus und kosten." data-ja="Ja, speichern"' ?>>
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_briefdienst_speichern">
+      <div class="feld" style="margin:0"><label>Schlüssel (Bearer-Token)</label>
+        <input type="password" name="token" autocomplete="off" placeholder="<?= $bdDa ? 'leer lassen = bleibt wie er ist' : 'Token einfügen' ?>"></div>
+      <label class="akq-haken"><input type="checkbox" name="test" value="1" <?= $bdTest ? 'checked' : '' ?>> Testbetrieb (Sandbox)</label>
+      <?php if ($bdDa): ?><label class="akq-haken"><input type="checkbox" name="loeschen" value="1"> Schlüssel entfernen</label><?php endif; ?>
+      <button class="knopf" style="justify-self:start">Speichern</button></form>
+  </div>
 </div>
 
 <div class="block" id="sperrliste">

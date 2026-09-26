@@ -187,6 +187,33 @@ if ($post) {
                 $_SESSION['gut'] = 'Vorgemerkt. Der Worker prüft die Seite beim nächsten Lauf.';
                 weiter('akquise/' . $fid);
 
+            case 'akq_briefdienst_speichern':
+                require_once __DIR__ . '/src/AkquiseBriefdienst.php';
+                if (!empty($_POST['loeschen'])) { AkquiseBriefdienst::tokenSetzen(''); }
+                elseif (trim((string) ($_POST['token'] ?? '')) !== '') { AkquiseBriefdienst::tokenSetzen((string) $_POST['token']); }
+                AkquiseBriefdienst::testSetzen(!empty($_POST['test']));
+                Events::pruefspur('akquise_briefdienst', 'settings', 0, [], ['test' => !empty($_POST['test']), 'token_neu' => trim((string) ($_POST['token'] ?? '')) !== '', 'geloescht' => !empty($_POST['loeschen'])]);
+                $_SESSION['gut'] = 'Briefdienst gespeichert' . (!empty($_POST['test']) ? ' (Testbetrieb).' : ' — ECHTBETRIEB.');
+                $zu('regeln#briefdienst');
+
+            case 'akq_brief_vorschau':
+                require_once __DIR__ . '/src/AkquiseBriefdienst.php';
+                if (empty($_POST['bestaetigt'])) { throw new RuntimeException('Bitte bestätigen, dass kein Werbewiderspruch bekannt ist.'); }
+                AkquiseBriefdienst::vorschau($fid);
+                $_SESSION['gut'] = 'Vorschau vom Briefdienst ist da — Preis und Blatt prüfen, dann verschicken.';
+                weiter('akquise/' . $fid . '#kontakt');
+
+            case 'akq_brief_senden':
+                require_once __DIR__ . '/src/AkquiseBriefdienst.php';
+                AkquiseBriefdienst::senden((int) ($_POST['brief'] ?? 0), 'kein Werbewiderspruch bekannt, Widerspruchshinweis im Brief');
+                $_SESSION['gut'] = AkquiseBriefdienst::test() ? 'Test-Brief bestätigt (Sandbox — nichts verschickt).' : 'Brief ist beauftragt — Poste Italiane druckt und verschickt ihn.';
+                weiter('akquise/' . $fid . '#kontakt');
+
+            case 'akq_brief_verwerfen':
+                require_once __DIR__ . '/src/AkquiseBriefdienst.php';
+                AkquiseBriefdienst::verwerfen((int) ($_POST['brief'] ?? 0));
+                weiter('akquise/' . $fid . '#kontakt');
+
             case 'akq_wochenziel':
                 require_once __DIR__ . '/src/AkquiseAuswertung.php';
                 AkquiseAuswertung::wochenzielSetzen((int) ($_POST['ziel'] ?? 0));

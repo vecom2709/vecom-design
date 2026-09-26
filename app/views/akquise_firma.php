@@ -209,6 +209,33 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
               <a class="knopf akq-los" href="<?= Fmt::h(url('akquise/' . $fid . '/brief')) ?>" target="_blank" rel="noopener">Brief drucken</a>
               <span class="akq-klein">Öffnet den Brief auf Vecom-Briefbogen mit Bildschirmfoto und QR-Code — drucken oder als PDF speichern.</span>
             </div>
+            <?php /* Brief per Klick (26.09.2026): über den Briefdienst statt selbst drucken. */
+              require_once dirname(__DIR__) . '/src/AkquiseBriefdienst.php';
+              $bd = sicher(static fn() => Db::one('SELECT * FROM akq_briefe WHERE firma_id = ? AND vorlage_id = ? ORDER BY id DESC LIMIT 1', [$fid, (int) $v['id']]), null);
+              $bdBereit = AkquiseBriefdienst::bereit(); $bdAn = AkquiseBriefdienst::empfaenger($f); ?>
+            <div class="akq-weg" style="margin-top:12px;border-top:1px solid var(--linie);padding-top:12px;display:block">
+              <p style="margin:0 0 6px"><b>Oder per Post verschicken lassen</b> <?= AkquiseBriefdienst::test() ? '<span class="marke2">TEST</span>' : '' ?></p>
+              <?php if ($bd && $bd['status'] === 'verschickt'): ?>
+                <p class="akq-klein">✓ <?= (int) $bd['test'] ? 'Test-Brief bestätigt' : 'Beauftragt' ?> am <?= Fmt::h(date('d.m.Y H:i', strtotime((string) $bd['verschickt_am']))) ?> · <?= Fmt::h(Fmt::geld((int) $bd['kosten_cents'])) ?></p>
+              <?php elseif (!$bdBereit): ?>
+                <p class="akq-klein">Dafür fehlt noch der Schlüssel des Briefdienstes — <a href="<?= Fmt::h(url('akquise/regeln#briefdienst')) ?>" style="text-decoration:underline">einrichten</a>.</p>
+              <?php elseif (!$bdAn['ok']): ?>
+                <p class="akq-klein" style="color:var(--gelb)"><?= Fmt::h($bdAn['grund']) ?></p>
+              <?php elseif ($bd && $bd['status'] === 'vorschau'): ?>
+                <p class="akq-klein" style="margin-bottom:8px">Vorschau vom Briefdienst: <b><?= Fmt::h(Fmt::geld((int) $bd['kosten_cents'])) ?></b><?= $bd['seiten'] ? ' · ' . (int) $bd['seiten'] . ' Seite(n)' : '' ?>
+                  <?php if ($bd['pdf_url']): ?> · <a href="<?= Fmt::h((string) $bd['pdf_url']) ?>" target="_blank" rel="noopener noreferrer" style="text-decoration:underline">gedrucktes Blatt ansehen</a><?php endif; ?></p>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <?= $post('akq_brief_senden', '<input type="hidden" name="brief" value="' . (int) $bd['id'] . '"><button class="knopf akq-los">' . (AkquiseBriefdienst::test() ? 'Test-Brief bestätigen' : 'Jetzt verschicken (' . Fmt::h(Fmt::geld((int) $bd['kosten_cents'])) . ')') . '</button>') ?>
+                  <?= $post('akq_brief_verwerfen', '<input type="hidden" name="brief" value="' . (int) $bd['id'] . '"><button class="knopf">Verwerfen</button>') ?>
+                </div>
+              <?php else: ?>
+                <?php if ($bd && $bd['status'] === 'fehler'): ?><p class="akq-klein" style="color:var(--gelb)">Letzter Versuch: <?= Fmt::h((string) $bd['fehler']) ?></p><?php endif; ?>
+                <?= $post('akq_brief_vorschau', '<label class="akq-haken"><input type="checkbox" name="bestaetigt" value="1" required>
+                  Mir ist kein Werbewiderspruch dieses Betriebs bekannt, und der Hinweis „keine Nachricht mehr gewünscht“ steht im Brief.</label>
+                  <button class="knopf">Preis und Blatt vom Briefdienst holen</button>') ?>
+                <p class="akq-klein" style="margin-top:6px">Kostet noch nichts. Adresse: <?= Fmt::h($bdAn['daten']['dug'] . ' ' . $bdAn['daten']['indirizzo'] . ' ' . $bdAn['daten']['civico'] . ', ' . $bdAn['daten']['cap'] . ' ' . $bdAn['daten']['comune'] . ' (' . $bdAn['daten']['provincia'] . ')') ?></p>
+              <?php endif; ?>
+            </div>
             <?= $post('akq_brief_verschickt', '<input type="hidden" name="vorlage" value="' . (int) $v['id'] . '">
               <label class="akq-haken"><input type="checkbox" name="bestaetigt" value="1" required>
                 Brief ist eingeworfen. Mir ist kein Werbewiderspruch dieses Betriebs bekannt, und der Hinweis „keine Nachricht mehr gewünscht“ steht im Brief.</label>

@@ -69,6 +69,17 @@ eingeschaltetem Versand **und** nicht gezogener Notbremse **und** eingehaltenen 
 
 Ampel: grün = E-Mail erlaubt (Einwilligung), gelb = Brief (oder Anruf), rot = nicht ansprechen, grau = schon kontaktiert oder unklar.
 
+### Seit 26.09.2026 dazu
+
+- **Einwilligung per Link:** Kasten auf der Analyse-Seite oder Link/QR aus der Firmenansicht → Bestätigungsmail → erst der Klick setzt die Einwilligung (Beleg mit Wortlaut, Zeit, Adresse; IP nur als Hash). Danach ist die E-Mail erlaubt.
+- **Brief per Klick:** freigegebener Brief → „Preis und Blatt vom Briefdienst holen“ (ufficiopostale.com, kostet nichts) → „Jetzt verschicken“ (Rückfrage). Nur Italien. Testbetrieb (Sandbox) ist ab Werk an; Schlüssel und Umschalter unter Regeln & Versand → Briefdienst. Absender aus Einstellungen → Firma (Straße, PLZ, Ort mit Provinz).
+- **Analyse-Seite** jetzt in Gold, mit Skizze der neuen Startseite (nur Branchen mit passendem Bild, `AkquiseAnalyse::SKIZZE`).
+- **Signal-Wecker:** Website ausgefallen, Zertifikat ungültig oder bald fällig → Meldung und Kasten „Signale“ auf der Betriebe-Seite. Kein Versand.
+- **Wiedervorlage:** 5 Tage nach dem Brief (3 nach der E-Mail) Meldung mit Stand (Analyse-Seite geöffnet? Antwort?). Keine zweite Ansprache — das Gate bleibt.
+- **Karte** (Reiter) und **Auswertung** (Trichter nach Branche/Kanal/Text, Wochenziel).
+- **Text A/B:** B = „Skizze zuerst“, nur Briefe an Branchen mit Skizze, hälftig nach Kennung; Vergleich unter Auswertung → nach Text A/B.
+- **Partner:** Firmen, die ein Partner reserviert hat (Firmen-Finder, 60 Tage), sperrt das Gate für die eigene Akquise.
+
 ## Phasen
 
 | Phase | Stand |

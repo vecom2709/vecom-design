@@ -11634,6 +11634,85 @@ pruefe('Karte: Leaflet liegt bei uns (BSD-2 mitgeliefert), nur die Kacheln von O
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_karte.php'), 'src="/assets/vendor/leaflet/leaflet.js"'));
 
 /* ============================================================================
+   Akquise: Brief per Klick über den Briefdienst (26.09.2026)
+   Zwei Schritte: Vorschau kostet nichts; erst die Bestätigung verschickt und
+   zählt als Ansprache. Im Testbetrieb zählt nichts.
+   ============================================================================ */
+abschnitt('Akquise: Brief per Klick (Briefdienst)');
+require_once $wurzel . '/src/AkquiseBriefdienst.php';
+pruefe('Straße zerlegen: „Via Roma, 12“, „Piazza Duomo 3/A“, „Contrada Fico“ (ohne Nummer → snc)',
+    AkquiseBriefdienst::strasse('Via Roma, 12') === ['dug' => 'via', 'indirizzo' => 'Roma', 'civico' => '12']
+    && AkquiseBriefdienst::strasse('Piazza Duomo 3/A')['civico'] === '3/a' && AkquiseBriefdienst::strasse('Piazza Duomo 3/A')['dug'] === 'piazza'
+    && AkquiseBriefdienst::strasse('Contrada Fico') === ['dug' => 'contrada', 'indirizzo' => 'Fico', 'civico' => 'snc']);
+pruefe('Provinz: aus „Libero consorzio comunale di Agrigento“, „Città metropolitana di Palermo“, „Aragona (AG)“ oder der PLZ',
+    AkquiseBriefdienst::provinz(['kreis' => 'Libero consorzio comunale di Agrigento']) === 'AG'
+    && AkquiseBriefdienst::provinz(['kreis' => 'Città metropolitana di Palermo']) === 'PA'
+    && AkquiseBriefdienst::provinz(['stadt' => 'Aragona (AG)']) === 'AG' && AkquiseBriefdienst::provinz(['plz' => '98100']) === 'ME'
+    && AkquiseBriefdienst::provinz(['plz' => '10100']) === null && count(array_unique(AkquiseBriefdienst::PROVINZEN)) === 107);
+pruefe('Nur Italien: Deutschland wird abgewiesen', AkquiseBriefdienst::empfaenger(['land' => 'DE'] + $akF)['ok'] === false);
+Firma::speichern(['firma_strasse' => 'Via Garibaldi 5', 'firma_plz' => '92021', 'firma_ort' => 'Aragona (AG)']);
+$bdA = Akquise::firmaMelden(['name' => 'Ristorante Lettera', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Licata',
+    'plz' => '92027', 'adresse' => 'Corso Umberto 44', 'url' => 'https://ristorante-lettera.example/', 'branche' => 'restaurant', 'quelle' => 'osm:node/9903', 'quelle_lizenz' => 'ODbL']);
+$bdF = (int) $bdA['id'];
+Akquise::auditMelden($bdF, ['status' => 'fertig', 'befunde' => $akBefunde, 'sprache' => 'it']);
+$bdV = AkquiseVersand::regelVorlage($bdF, 'it', 'brief');
+AkquiseVersand::freigeben($bdV);
+$bdAn = AkquiseBriefdienst::empfaenger(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$bdF]));
+pruefe('Empfänger: Betrieb als Ragione sociale, „Titolare“ ohne Ansprechpartner, Provinz AG',
+    $bdAn['ok'] && $bdAn['daten']['ragione_sociale'] === 'Ristorante Lettera' && $bdAn['daten']['nome'] === 'Titolare' && $bdAn['daten']['provincia'] === 'AG'
+    && $bdAn['daten']['dug'] === 'corso' && $bdAn['daten']['civico'] === '44' && AkquiseBriefdienst::absender()['ok']);
+$bdPdf = AkquiseBriefdienst::pdf(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$bdF]), Db::one('SELECT * FROM akq_vorlagen WHERE id = ?', [$bdV]), 'https://vecom-design.it/analyse.php?t=' . str_repeat('a', 40));
+pruefe('Das Blatt: ein PDF, eine Seite, mit QR-Code als Fläche', str_starts_with($bdPdf, '%PDF') && substr_count($bdPdf, '/Type /Page') - substr_count($bdPdf, '/Type /Pages') === 1 && substr_count($bdPdf, ' re f') > 200);
+$bdAufrufe = [];
+AkquiseBriefdienst::$tokenFest = 'kette-token';
+AkquiseBriefdienst::$netz = static function (string $m, string $u, ?array $b) use (&$bdAufrufe): array {
+    $bdAufrufe[] = [$m, $u, $b];
+    if ($m === 'POST') {
+        return ['status' => 201, 'json' => ['success' => true, 'data' => [['id' => 'ord-4711', 'state' => 'NEW', 'confirmed' => false,
+            'documento_validato' => ['pdf' => 'https://test.ws.ufficiopostale.com/Up/pdf/x.pdf', 'pagine' => 1],
+            'pricing' => ['totale' => ['importo_totale_netto' => 1.28, 'importo_totale_iva' => 0.0946, 'importo_totale' => 1.3746]]]]]];
+    }
+    return ['status' => 200, 'json' => ['success' => true, 'data' => [['id' => 'ord-4711', 'confirmed' => true, 'state' => 'CONFIRMED']]]];
+};
+AkquiseBriefdienst::testSetzen(true);
+$bdB = AkquiseBriefdienst::vorschau($bdF);
+$bdZ = Db::one('SELECT * FROM akq_briefe WHERE id = ?', [$bdB]);
+pruefe('Vorschau: an die Sandbox, autoconfirm aus, PDF als data-URL, Preis 1,37 € gespeichert, noch kein Versand',
+    $bdAufrufe[0][0] === 'POST' && str_starts_with($bdAufrufe[0][1], AkquiseBriefdienst::TEST . '/ordinarie/') && $bdAufrufe[0][2]['opzioni']['autoconfirm'] === false
+    && str_starts_with($bdAufrufe[0][2]['documento'][0], 'data:application/pdf;base64,') && (int) $bdZ['kosten_cents'] === 137 && $bdZ['status'] === 'vorschau'
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$bdF], 0) === 0);
+AkquiseBriefdienst::senden($bdB, 'Kette');
+pruefe('Test-Brief bestätigt: PATCH confirmed=true, aber der Betrieb gilt NICHT als angeschrieben',
+    $bdAufrufe[1][0] === 'PATCH' && str_ends_with($bdAufrufe[1][1], '/ordinarie/ord-4711') && $bdAufrufe[1][2] === ['confirmed' => true]
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$bdF], 0) === 0);
+AkquiseBriefdienst::testSetzen(false);
+$bdB2 = AkquiseBriefdienst::vorschau($bdF);
+pruefe('Echtbetrieb geht an ws.ufficiopostale.com', str_starts_with($bdAufrufe[2][1], AkquiseBriefdienst::PROD . '/ordinarie/'));
+AkquiseBriefdienst::testSetzen(true);
+$bdUm = false; try { AkquiseBriefdienst::senden($bdB2, 'Kette'); } catch (RuntimeException $e) { $bdUm = true; }
+AkquiseBriefdienst::testSetzen(false);
+pruefe('Test/Echt umgestellt zwischen Vorschau und Senden → neue Vorschau nötig', $bdUm);
+AkquiseBriefdienst::senden($bdB2, 'kein Werbewiderspruch bekannt');
+$bdVs = Db::one('SELECT * FROM akq_versand WHERE firma_id = ? ORDER BY id DESC LIMIT 1', [$bdF]);
+pruefe('Echter Brief: als Ansprache vermerkt (Kanal Brief, Auftrag und Preis im Grund), Wiedervorlage in 5 Tagen',
+    $bdVs && $bdVs['kanal'] === 'brief' && str_contains((string) $bdVs['grund'], 'ord-4711') && str_contains((string) $bdVs['grund'], '1,37')
+    && (string) Db::wert('SELECT wiedervorlage_am FROM akq_firmen WHERE id = ?', [$bdF], '') === date('Y-m-d', strtotime('+5 days')));
+$bdNein = '';
+try { AkquiseBriefdienst::vorschau($bdF); } catch (RuntimeException $e) { $bdNein = $e->getMessage(); }
+pruefe('Danach kein zweiter Brief: das Gate sperrt die Zweitansprache', str_contains($bdNein, 'nicht erlaubt'), $bdNein);
+AkquiseBriefdienst::$netz = static fn(string $m, string $u, ?array $b): array => ['status' => 422, 'json' => ['success' => false, 'message' => 'provincia non valida', 'error' => 'E4']];
+$bdG = Akquise::firmaMelden(['name' => 'Bar Rifiuto', 'land' => 'IT', 'kreis' => 'Agrigento', 'stadt' => 'Licata', 'plz' => '92027', 'adresse' => 'Via Mare 1',
+    'url' => 'https://bar-rifiuto.example/', 'branche' => 'bar_cafe', 'quelle' => 'osm:node/9904', 'quelle_lizenz' => 'ODbL']);
+Akquise::auditMelden((int) $bdG['id'], ['status' => 'fertig', 'befunde' => $akBefunde, 'sprache' => 'it']);
+AkquiseVersand::freigeben(AkquiseVersand::regelVorlage((int) $bdG['id'], 'it', 'brief'));
+$bdFehl = ''; try { AkquiseBriefdienst::vorschau((int) $bdG['id']); } catch (RuntimeException $e) { $bdFehl = $e->getMessage(); }
+pruefe('Lehnt der Dienst ab, steht sein Grund da und nichts ist verschickt',
+    str_contains($bdFehl, 'provincia non valida') && (string) Db::wert('SELECT status FROM akq_briefe WHERE firma_id = ? ORDER BY id DESC LIMIT 1', [(int) $bdG['id']], '') === 'fehler');
+AkquiseBriefdienst::$netz = null; AkquiseBriefdienst::$tokenFest = null;
+pruefe('Senden fragt vorher (TRAGWEITE), Schlüssel liegt verschlüsselt in settings, nie im Repository',
+    isset(Ablauf::TRAGWEITE['akq_brief_senden']) && str_contains((string) file_get_contents($wurzel . '/src/AkquiseBriefdienst.php'), 'Hosting::versiegeln'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
