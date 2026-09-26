@@ -63,7 +63,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
           <td style="white-space:nowrap">
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
               <input type="hidden" name="tat" value="partner_auszahlung_bestaetigen"><input type="hidden" name="auszahlung" value="<?= (int) $a['id'] ?>">
-              <button class="knopf">Ausgeführt</button></form>
+              <button class="knopf">Überweisung ist raus</button></form>
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
               <input type="hidden" name="tat" value="partner_auszahlung_abbrechen"><input type="hidden" name="auszahlung" value="<?= (int) $a['id'] ?>">
               <button class="knopf">Abbrechen</button></form></td></tr>

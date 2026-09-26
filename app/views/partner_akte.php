@@ -104,7 +104,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
                 <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_provision_streichen">
                 <input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="provision" value="<?= (int) $z['id'] ?>">
                 <input name="grund" placeholder="Grund" style="width:110px;font-size:12px" required>
-                <button class="knopf" style="font-size:12px">Streichen</button></form>
+                <button class="knopf" style="font-size:12px">Provision streichen</button></form>
             <?php endif; ?></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
@@ -141,7 +141,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_zuordnen"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
       <div class="feld" style="margin:0;min-width:240px"><label>Kunde von Hand zuordnen (z. B. hat am Telefon den Partner genannt)</label>
         <select name="kunde"><?php foreach ($alleKunden as $k): ?><option value="<?= (int) $k['id'] ?>"><?= Fmt::h(Fmt::name($k['name'], $k['company']) . ($k['company'] && trim((string) $k['name']) !== '' ? ' — ' . $k['company'] : '')) ?></option><?php endforeach; ?></select></div>
-      <button class="knopf">Zuordnen</button></form>
+      <button class="knopf">Kunden zuordnen</button></form>
     <p style="color:var(--leise);font-size:12px;margin-top:6px">Nur Kunden ohne Partner stehen in der Liste. Eine Zuordnung wird nie umgehängt; Käufe vor der Zuordnung zählen nicht.</p>
   <?php endif; ?>
 </div>

@@ -238,5 +238,5 @@
       <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
       <select name="status"><?php foreach (Status::BESTELLUNG as $w => $t): ?>
         <option value="<?= $w ?>" <?= $b['status'] === $w ? 'selected' : '' ?>><?= Fmt::h($t) ?></option><?php endforeach; ?></select>
-      <button class="knopf">Setzen</button></form></div>
+      <button class="knopf">Stand ändern</button></form></div>
 </div></div>

@@ -10306,6 +10306,21 @@ pruefe('Gerüst: die übergebenen Werte werden direkt vor der Ansicht wieder ges
 pruefe('Gerüst: $daten selbst wird im Gerüst nie überschrieben',
     preg_match('~\$daten\s*=(?!=)|as\s+\$daten\b~', preg_replace('~/\*.*?\*/~s', '', $veVor)) === 0);
 
+/* Knöpfe sagen, was passiert (Vorschlag 9). Ein nacktes „Senden“ ließ
+   offen, an wen -- bei einer Nachricht an den Kunden ist genau das die Frage. */
+$veVage = [];
+foreach (array_merge(glob($oben . '/app/views/*.php') ?: [], glob($oben . '/app/views/einstellungen/*.php') ?: []) as $veF) {
+    if (preg_match_all('~<button[^>]*>\s*(Senden|Setzen|Status setzen|Ausgeführt|OK|Absenden|Los)\s*</button>~u', (string) file_get_contents($veF), $veM)) {
+        foreach ($veM[1] as $veW) { $veVage[] = basename($veF) . ': ' . $veW; }
+    }
+}
+pruefe('Knöpfe: kein nacktes „Senden“, „Setzen“, „Ausgeführt“ -- jeder sagt, was passiert', $veVage === [], implode(', ', $veVage));
+pruefe('Handy: Leiste unten mit Heute, Kunden, Geld, Telefon -- und „Menü“ öffnet das ganze Menü',
+    str_contains($veLay, "['heute', 'Heute', \$untenZahl('heute')]") && str_contains($veLay, "['telefon', 'Telefon'")
+    && str_contains($veLay, "classList.toggle('menue-auf')") && str_contains($veLay, 'id="hauptmenue"'));
+pruefe('Handy: die Leiste trägt dieselben Summen wie die Türen im Menü',
+    str_contains($veLay, 'if ($t[0] === $ziel) { return (int) $t[4]; }'));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

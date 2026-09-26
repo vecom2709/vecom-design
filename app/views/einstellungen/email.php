@@ -121,7 +121,7 @@
             data-frage="Nummer und Schlüssel löschen und den Zuruf abschalten?" data-ja="Ja, abschalten">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="zuruf_weg">
         <input type="hidden" name="zurueck" value="einstellungen?b=email">
-        <button class="knopf">Entfernen</button></form>
+        <button class="knopf">Handy-Zuruf entfernen</button></form>
     <?php endif; ?>
     <?php if ($zuruf['zuletzt'] !== ''): ?>
       <span style="color:var(--leise);font-size:12.5px">Zuletzt: <?= Fmt::h($zuruf['zuletzt']) ?></span>

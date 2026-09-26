@@ -38,7 +38,7 @@
       <?php /* Nicht blau: Das ist die Handschaltung, nicht der gefuehrte Weg.
                Wer hier den Stand von Hand setzt, weiss, was er tut -- der
                blaue Knopf gehoert dem Schritt, den die Fuehrung meint. */ ?>
-      <button class="knopf">Status setzen</button></form>
+      <button class="knopf">Stand ändern</button></form>
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Der Projektstatus zieht die Bestellung sinngemäß mit.
     Der technische Website-Status bleibt davon unberührt — er wird nur vom Monitoring gesetzt.</p></div>
 
@@ -405,7 +405,7 @@
               <?= Csrf::feld() ?><input type="hidden" name="tat" value="aufgabe_weg">
               <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>">
               <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
-              <button class="knopf" style="padding:2px 8px;min-width:0;color:var(--leise)" title="Löschen">×</button></form></td>
+              <button aria-label="Aufgabe löschen" title="Aufgabe löschen" class="knopf" style="padding:2px 8px;min-width:0;color:var(--leise)" title="Löschen">×</button></form></td>
         </tr>
       <?php endforeach; ?>
       </tbody></table>
@@ -417,7 +417,7 @@
       <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
       <input name="titel" placeholder="Neue Aufgabe" style="flex:1;min-width:180px" required>
       <input type="date" name="due_date" style="width:auto;flex:0 0 150px" title="Bis wann">
-      <button class="knopf">Hinzufügen</button>
+      <button class="knopf">Aufgabe hinzufügen</button>
     </form>
   </div>
 
@@ -454,7 +454,7 @@
       <div class="feld"><label>Antworten</label>
         <textarea name="text" rows="4" maxlength="5000" style="min-height:90px"
                   placeholder="Der Kunde bekommt den Text auch per E-Mail."></textarea></div>
-      <button class="knopf">Absenden</button></form>
+      <button class="knopf">An den Kunden senden</button></form>
     <?php if ($kundenlink): ?>
       <div class="feld" style="margin-top:14px"><label>Seine Projektseite</label>
         <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>"></div>

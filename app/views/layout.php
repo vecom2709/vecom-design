@@ -224,7 +224,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
 </head>
 <body>
 <div class="huelle">
-  <nav class="nav">
+  <nav class="nav" id="hauptmenue">
     <div class="marke"><b>VECOM</b> Verwaltung</div>
     <?php /* DIE SUCHE STAND NIE IM MENUE
              ------------------------------------------------------------
@@ -268,6 +268,36 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     <a href="?einfuehrung=1">Einführung ansehen</a>
     <a href="/cockpit/">Zum Cockpit</a>
     <a href="<?= Fmt::h(url('abmelden')) ?>">Abmelden</a>
+  </nav>
+  <?php
+  /* DIE LEISTE UNTEN AM HANDY (26.09.2026, Uwe: „ja“ zu Vorschlag 7)
+     Gemessen: Das Menü stand am Handy als 275–312 px hoher Block über jeder
+     Seite -- ein Drittel des Bildschirms, bevor der Inhalt anfing. Jetzt
+     vier Ziele unten in Daumenreichweite, jedes mit seiner Zahl, und
+     „Menü“ öffnet das ganze Menü: Nichts ist weg, es liegt nur nicht mehr
+     im Weg. Am Rechner bleibt alles, wie es war. */
+  $untenZahl = static function (string $ziel) use ($menue): int {
+      foreach ($menue as $t) { if ($t[0] === $ziel) { return (int) $t[4]; } }
+      return 0;
+  };
+  $unten = [
+      ['heute', 'Heute', $untenZahl('heute')],
+      ['vorgaenge', 'Kunden', $untenZahl('vorgaenge')],
+      ['rechnungen', 'Geld', $untenZahl('rechnungen')],
+      ['telefon', 'Telefon', (int) ($navZahlen['telefon'] ?? 0)],
+  ]; ?>
+  <nav class="unten" aria-label="Schnellwahl">
+    <?php /* Hervorgehoben wird die Tür, in der man steht -- „Anfragen“ liegt
+             unter „Kunden“. Telefon ist eigene Taste, auch wenn es im Menü
+             unter „Einstellungen“ hängt. */
+      $tuerAktiv = $aktiv === 'telefon' ? 'telefon' : '';
+      if ($tuerAktiv === '') { foreach ($menue as $t) { if ($t[5] || $t[0] === $aktiv) { $tuerAktiv = $t[0]; break; } } } ?>
+    <?php foreach ($unten as [$uZ, $uW, $uN]): $uAn = $uZ === $tuerAktiv; ?>
+      <a href="<?= Fmt::h(url($uZ)) ?>" class="<?= $uAn ? 'an' : '' ?>" <?= $uAn ? 'aria-current="page"' : '' ?>>
+        <span><?= Fmt::h($uW) ?></span><?php if ($uN > 0): ?><i class="zahl warn"><?= $uN ?></i><?php endif; ?></a>
+    <?php endforeach; ?>
+    <button type="button" class="unten__menue" aria-expanded="false" aria-controls="hauptmenue"
+            onclick="var b=document.body.classList.toggle('menue-auf');this.setAttribute('aria-expanded',b);if(b){window.scrollTo(0,0);}"><span>Menü</span></button>
   </nav>
   <main class="inhalt">
     <?php if ($fehler): ?><div class="hinweis schlecht"><?= Fmt::h($fehler) ?></div><?php endif; ?>

@@ -23,7 +23,7 @@
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="claude_projekt">
     <input name="url" placeholder="https://claude.ai/project/…" style="flex:1;min-width:260px"
            value="<?= Fmt::h((string) $projekt) ?>">
-    <button class="knopf haupt">Eintragen</button>
+    <button class="knopf haupt">Adresse eintragen</button>
   </form>
   <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:10px 0 0">
     <?php if (trim((string) $projekt) === ''): ?>

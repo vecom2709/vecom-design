@@ -658,7 +658,7 @@ $eing = !empty($eingebettet);
         <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center">
           <label style="display:inline-flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="mit_datenbank" value="1" style="width:auto;margin:0" <?= $hostingA['mit_datenbank'] ? 'checked' : '' ?>> Datenbank anlegen</label>
           <label style="display:inline-flex;gap:6px;align-items:center;margin:0"><input type="checkbox" name="mit_ftp" value="1" style="width:auto;margin:0" <?= $hostingA['mit_ftp'] ? 'checked' : '' ?>> FTP-Zugang für Vecom</label>
-          <button class="knopf klein">Merken</button>
+          <button class="knopf klein">Angaben merken</button>
         </div>
       </form>
       <?php if (!empty($hostingA['technik_blob'])): ?>
