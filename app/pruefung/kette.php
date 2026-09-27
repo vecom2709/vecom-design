@@ -11664,7 +11664,10 @@ pruefe('Trichter: jede Stufe höchstens so groß wie die davor (je Betrieb gezä
 $abKanal = AkquiseAuswertung::summe(AkquiseAuswertung::trichter('kanal', 365));
 pruefe('Trichter nach Kanal zählt nur Angesprochene', $abKanal['gefunden'] === $abKanal['angesprochen'] && $abKanal['angesprochen'] === $abSum['angesprochen'], json_encode($abKanal));
 AkquiseAuswertung::wochenzielSetzen(0);
-$abW = AkquiseAuswertung::woche();
+/* Die Woche aus der Uhr der Datenbank (28.09.2026): Die Datenbank läuft in UTC,
+   PHP in Rom -- zwischen 0 und 2 Uhr nachts am Montag lagen die eben
+   geschriebenen Ansprachen sonst „letzte Woche“, und der Deploy blieb stehen. */
+$abW = AkquiseAuswertung::woche((int) strtotime((string) Db::wert('SELECT NOW()', [], date('Y-m-d H:i:s'))));
 pruefe('Wochenziel: mindestens 1, Woche beginnt montags, zählt Betriebe je Tag',
     AkquiseAuswertung::wochenziel() === 1 && count($abW['tage']) === 7 && date('N', strtotime($abW['montag'])) === '1' && $abW['erreicht'] >= 1);
 AkquiseAuswertung::wochenzielSetzen(15);
@@ -12089,7 +12092,7 @@ $stZ = static fn(int $id) => array_values(array_filter($stR, static fn($z) => (i
 pruefe('Rangliste: alle aktiven, auch ohne Klicks und Kunden', $stZ($stA) !== null && $stZ($stB) !== null && $stZ($stC) !== null);
 pruefe('… „still“ = älter als 30 Tage und 30 Tage kein Klick (neue Partner nicht)', $stZ($stB)['still'] && !$stZ($stA)['still'] && !$stZ($stC)['still']
     && $stZ($stA)['klicks30'] === 12 && $stZ($stB)['klicks30'] === 0);
-pruefe('… letzte Aktivität aus den Spuren (hier: der letzte Klicktag)', substr((string) $stZ($stB)['letzte'], 0, 10) === date('Y-m-d', strtotime('-50 days')));
+pruefe('… letzte Aktivität aus den Spuren (hier: der letzte Klicktag)', substr((string) $stZ($stB)['letzte'], 0, 10) === (string) Db::wert('SELECT CURDATE() - INTERVAL 50 DAY'));
 $stNamen = array_column(PartnerSteuerung::rangliste('name'), 'name');
 $stSortiert = $stNamen; sort($stSortiert, SORT_FLAG_CASE | SORT_STRING);
 pruefe('… sortierbar (Name, Klicks, Kunden, Umsatz, letzte Aktivität); Unbekanntes fällt auf Umsatz', $stNamen === $stSortiert
