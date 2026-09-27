@@ -295,8 +295,8 @@ if ($post) {
                 foreach (Db::all('SELECT id FROM akq_firmen WHERE land = ? OR ? = \'*\'', [$alt['land'], $alt['land']]) as $z) {
                     AkquiseGate::statusSpeichern((int) $z['id']);
                 }
-                $_SESSION['gut'] = 'Regel gespeichert, Firmen neu eingestuft.';
-                $zu('regeln');
+                $_SESSION['gut'] = 'Regel gespeichert, Betriebe neu eingestuft.';
+                $zu('regeln#regeln');
 
             case 'akq_grenzen_speichern':
                 $vorher = AkquiseGate::grenzen();
@@ -308,8 +308,8 @@ if ($post) {
                 AkquiseGate::setzen('akq_konfigurator_link', !empty($_POST['akq_konfigurator_link']) ? '1' : '0');
                 AkquiseGate::setzen('akq_absender_telefon', mb_substr(trim((string) ($_POST['akq_absender_telefon'] ?? '')), 0, 40));
                 Events::pruefspur('akquise_grenzen', 'settings', null, $vorher, AkquiseGate::grenzen());
-                $_SESSION['gut'] = 'Versandregeln gespeichert.';
-                $zu('regeln');
+                $_SESSION['gut'] = 'Versand-Einstellungen gespeichert.';
+                $zu('regeln#versand');
 
             case 'akq_notbremse':
                 AkquiseGate::notbremse(!empty($_POST['ziehen']));
@@ -318,8 +318,8 @@ if ($post) {
 
             case 'akq_schluessel_neu':
                 $_SESSION['akq_schluessel_einmal'] = AkquiseWorker::neuerSchluessel();
-                $_SESSION['gut'] = 'Neuer Worker-Schlüssel erzeugt. Er wird genau einmal angezeigt — der alte gilt nicht mehr.';
-                $zu('regeln');
+                $_SESSION['gut'] = 'Neuer Schlüssel für die PC-Verbindung erzeugt. Er wird genau einmal angezeigt — ein alter gilt nicht mehr.';
+                $zu('regeln#rechner');
 
             case 'akq_sperre_eintragen':
                 AkquiseGate::eintragen((string) ($_POST['art'] ?? ''), (string) ($_POST['wert'] ?? ''), (string) ($_POST['grund'] ?? ''));

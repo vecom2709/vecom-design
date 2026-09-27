@@ -12480,6 +12480,27 @@ pruefe('Kontakt: Kontaktfeld nur bei eigenen Reservierungen, Regeln stehen dabei
 Db::run("UPDATE partner SET status = 'beendet' WHERE id IN (?, ?)", [(int) $akP['id'], (int) $akP2['id']]);
 
 /* ============================================================================
+   Regeln & Versand in Alltagssprache
+   Die Seite wurde am 27.09.2026 neu geordnet: Überblick oben, Fachwörter
+   raus, Seltenes eingeklappt. Das Backend blieb unverändert -- deshalb wird
+   hier geprüft, dass jedes Formular noch dieselbe Tat und dieselben Felder
+   schickt und dass keine Gate-Codes mehr als Text auf der Seite stehen.
+   ============================================================================ */
+abschnitt('Regeln & Versand verständlich');
+$rgV = (string) file_get_contents($wurzel . '/views/akquise_regeln.php');
+$rgTaten = ['akq_regel_speichern', 'akq_grenzen_speichern', 'akq_schluessel_neu', 'akq_briefdienst_speichern', 'akq_postfach_speichern', 'akq_postfach_jetzt', 'akq_sperre_eintragen', 'akq_sperre_loeschen'];
+$rgFelder = ['ergebnis', 'geprueft_am', 'begruendung', 'quelle', 'aktiv', 'akq_versand_an', 'akq_limit_tag', 'akq_limit_stunde', 'akq_pause_sekunden', 'akq_limit_domain_tage',
+    'akq_fehler_grenze', 'akq_bounce_grenze', 'akq_absender_telefon', 'akq_konfigurator_link', 'token', 'test', 'loeschen', 'host', 'port', 'nutzer', 'passwort', 'ordner', 'art', 'wert', 'grund'];
+$rgFehlt = array_merge(array_filter($rgTaten, static fn($t) => !str_contains($rgV, 'value="' . $t . '"')), array_filter($rgFelder, static fn($f) => !str_contains($rgV, 'name="' . $f . '"')));
+pruefe('Regeln & Versand: alle acht Taten und alle Felder sind noch da', $rgFehlt === [], implode(', ', $rgFehlt));
+pruefe('Regeln & Versand: Sprungziele der anderen Seiten existieren (regeln, versand, sperrliste, briefdienst, postfach, rechner)',
+    array_filter(['regeln', 'versand', 'sperrliste', 'briefdienst', 'postfach', 'rechner'], static fn($a) => !str_contains($rgV, 'id="' . $a . '"')) === []);
+pruefe('Regeln & Versand: keine Gate-Codes, kein „Worker“ und kein „Bearer“ als sichtbarer Text',
+    !preg_match('~>[^<]*(CONTACT_ALLOWED|REVIEW_REQUIRED|DO_NOT_EMAIL|UNKNOWN|DO NOT CONTACT|Worker|Bearer)[^<]*<~', $rgV));
+pruefe('Regeln & Versand: jeder Gate-Status hat ein kurzes Wort und eine Farbe', array_diff(array_keys(AkquiseGate::STATUS), ['CONTACT_ALLOWED', 'REVIEW_REQUIRED', 'DO_NOT_EMAIL', 'UNKNOWN']) === []
+    && str_contains($rgV, "AkquiseGate::UNKLAR => 'Lieber nicht'") && str_contains($rgV, "AkquiseGate::PRUEFEN => 'warnung'"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

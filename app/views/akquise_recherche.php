@@ -40,7 +40,7 @@ $akqTeil = 'recherche';
   <div class="block">
     <h2>So läuft der Worker</h2>
     <ol style="padding-left:18px;font-size:14px;color:var(--dim)">
-      <li>Einmal: Schlüssel unter <a href="<?= Fmt::h(url('akquise/regeln')) ?>" style="text-decoration:underline">Compliance &amp; Versand</a> erzeugen und in <code>tools/akquise/.env</code> eintragen.</li>
+      <li>Einmal: Schlüssel unter <a href="<?= Fmt::h(url('akquise/regeln')) ?>" style="text-decoration:underline">Regeln &amp; Versand → Verbindung zu deinem PC</a> erzeugen und in <code>tools/akquise/.env</code> eintragen.</li>
       <li><code>npm run recherche</code> — holt Aufträge, meldet Firmen.</li>
       <li><code>npm run audit</code> — prüft Websites (Playwright, Lighthouse, eigene Prüfungen).</li>
       <li><code>npm run texte</code> — Claude deutet Befunde und schreibt Vorlagen (nur Score ≥ 51).</li>
