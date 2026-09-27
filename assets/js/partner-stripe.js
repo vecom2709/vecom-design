@@ -111,6 +111,8 @@
         }
       });
       var einrichtung = sc.create('account-onboarding');
+      // Alles abfragen, was Stripe irgendwann will (z. B. den Ausweis), nicht nur das sofort Fällige.
+      if (einrichtung.setCollectionOptions) { einrichtung.setCollectionOptions({ fields: 'eventually_due', futureRequirements: 'include' }); }
       einrichtung.setOnExit(function () {
         // Zurück auf die Seite: sie fragt bei Stripe nach, ob das Konto bereit ist.
         window.location.href = form.dataset.zurueck;

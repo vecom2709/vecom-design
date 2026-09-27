@@ -2892,6 +2892,7 @@ final class Texte
         'SE' => ['it' => 'Svezia', 'de' => 'Schweden', 'en' => 'Sweden', 'adj' => 'schwedisches'],
         'US' => ['it' => 'Stati Uniti', 'de' => 'Vereinigte Staaten', 'en' => 'United States', 'adj' => 'US-amerikanisches'],
         'CA' => ['it' => 'Canada', 'de' => 'Kanada', 'en' => 'Canada', 'adj' => 'kanadisches'],
+        'GI' => ['it' => 'Gibilterra', 'de' => 'Gibraltar', 'en' => 'Gibraltar', 'adj' => 'gibraltarisches'],
     ];
 
     public const PARTNER = [

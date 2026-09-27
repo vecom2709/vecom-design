@@ -13536,6 +13536,21 @@ pruefe('… und der Partner kann die Verifizierung fortsetzen (Link für das bes
     $slRaz['ok'] && Partner::stripeFortsetzbar($slAzN) && !array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts')
     && ($slAuf[0][2]['account'] ?? '') === 'acct_anika');
 
+/* Gemessen in Stripe (28.09.2026): Bei Anika und Ulli steht der Ausweis NUR in eventually_due. */
+Db::run("UPDATE partner SET stripe_fehlt = 0, stripe_faellig = NULL, stripe_frist = NULL WHERE id = ?", [(int) $slAz['id']]);
+Partner::stripeKontoGeaendert(['id' => 'acct_anika', 'country' => 'IT', 'details_submitted' => true, 'charges_enabled' => true, 'payouts_enabled' => true,
+    'capabilities' => ['transfers' => 'active'], 'requirements' => ['currently_due' => [], 'past_due' => [], 'pending_verification' => [], 'current_deadline' => null,
+    'eventually_due' => ['individual.verification.document']], 'future_requirements' => ['currently_due' => [], 'eventually_due' => []]]);
+$slAzN = Partner::laden((int) $slAz['id']);
+pruefe('Ausweis nur in eventually_due (wie im echten Stripe-Konto): trotzdem „Angaben fällig“, Identität nicht grün, fortsetzbar',
+    (int) $slAzN['stripe_fehlt'] === 1 && !Partner::kontoStand($slAzN, false)['identitaet'] && Partner::stripeFortsetzbar($slAzN)
+    && Partner::stripeAmpel($slAzN)['farbe'] === 'warnung');
+pruefe('Einrichtungslink und eingebettete Einrichtung fragen gleich alles ab, was Stripe irgendwann will',
+    ($slAuf[0][2]['collection_options[fields]'] ?? '') === 'eventually_due' && ($slAuf[0][2]['collection_options[future_requirements]'] ?? '') === 'include'
+    && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-stripe.js'), "setCollectionOptions({ fields: 'eventually_due'"));
+pruefe('Länderliste = im Stripe-Konto freigeschaltete Länder (EWR, CH, GB, GI; nicht US/CA)',
+    in_array('GI', Partner::STRIPE_LAENDER, true) && !in_array('US', Partner::STRIPE_LAENDER, true) && !in_array('CA', Partner::STRIPE_LAENDER, true));
+
 /* Land nachträglich ändern -- durch den Partner selbst (28.09.2026, Uwe: „soll nachträglich änderbar sein“) */
 $slAuf = [];
 $slWx = Partner::landWechseln(Partner::laden((int) $slAz['id']), 'DE', 'https://pruefung.example/partner.php?t=az');

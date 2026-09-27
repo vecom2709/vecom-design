@@ -952,13 +952,17 @@ final class Partner
     /**
      * Länder, in denen ein Partner sein Auszahlungskonto haben kann: Stripe
      * Connect (Express, nur Überweisungen) und von einer Plattform in Italien
-     * aus erreichbar -- EWR, Schweiz, Vereinigtes Königreich, USA, Kanada
+     * aus erreichbar -- EWR, Schweiz, Vereinigtes Königreich (USA und Kanada gingen technisch auch, sind im Stripe-Konto aber nicht freigeschaltet)
      * (Stripe: „Platforms based in the US, UK, EEA, Canada, or Switzerland can
      * transfer funds to connected accounts in any of those regions“).
      * Namen in Texte::STRIPE_LAENDER.
      */
     public const STRIPE_LAENDER = ['IT', 'DE', 'AT', 'CH', 'FR', 'ES', 'NL', 'BE', 'LU', 'PT', 'IE', 'PL', 'GB',
-        'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'GR', 'HU', 'LV', 'LI', 'LT', 'MT', 'NO', 'RO', 'SK', 'SI', 'SE', 'US', 'CA'];
+        'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'GR', 'HU', 'LV', 'LI', 'LT', 'MT', 'NO', 'RO', 'SK', 'SI', 'SE', 'GI'];
+    /* Genau die Länder, die im Stripe-Konto unter Einstellungen → Connect →
+       Onboarding-Optionen → Länder freigeschaltet sind (nachgesehen 28.09.2026:
+       EWR, Schweiz, Vereinigtes Königreich, Gibraltar -- USA und Kanada NICHT).
+       Wird dort ein Land ergänzt, hier ebenfalls (Namen in Texte::STRIPE_LAENDER). */
     /** Land der Plattform. Nur hier ein reines „Empfänger“-Konto: Stripe zahlt über Grenzen nicht an Empfänger-Konten. */
     public const STRIPE_LAND_PLATTFORM = 'IT';
 
@@ -1116,6 +1120,9 @@ final class Partner
         $l = self::stripe('POST', '/v1/account_links', [
             'account' => $k['konto'], 'type' => 'account_onboarding',
             'refresh_url' => $zurueck . '&stripe=neu', 'return_url' => $zurueck . '&stripe=zurueck',
+            /* Gleich alles abfragen, was Stripe irgendwann will (Ausweis …), statt
+               nur das sofort Fällige -- sonst stünde der Partner später wieder da. */
+            'collection_options[fields]' => 'eventually_due', 'collection_options[future_requirements]' => 'include',
         ]);
         if (!isset($l['url'])) {
             return ['ok' => false, 'grund' => 'stripe', 'text' => (string) ($l['error']['message'] ?? 'Stripe gab keinen Einrichtungslink.')];
@@ -1246,8 +1253,12 @@ final class Partner
            („Bald fällig“) und aus den künftigen Anforderungen. Ein Konto kann
            Überweisungen empfangen und trotzdem einen Ausweis schulden; ohne
            ihn setzt Stripe die Auszahlungen zur Frist aus (28.09.2026). */
+        /* Auch eventually_due: Gemessen an Anikas und Ullis Konto (Stripe-API,
+           28.09.2026) steht der Ausweis dort -- currently_due ist leer, und das
+           Stripe-Dashboard zeigt trotzdem „Bald fällig — Auszahlungen werden in
+           Kürze ausgesetzt“. */
         $faellig = array_values(array_unique(array_map('strval', array_merge((array) ($r['currently_due'] ?? []), (array) ($r['past_due'] ?? []),
-            (array) ($z['currently_due'] ?? []), (array) ($z['past_due'] ?? [])))));
+            (array) ($r['eventually_due'] ?? []), (array) ($z['currently_due'] ?? []), (array) ($z['past_due'] ?? []), (array) ($z['eventually_due'] ?? [])))));
         $fehlt = count($faellig);
         $fristen = array_filter([(int) ($r['current_deadline'] ?? 0), (int) ($z['current_deadline'] ?? 0)]);
         $frist = $fehlt > 0 && $fristen ? min($fristen) : null;
