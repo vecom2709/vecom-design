@@ -85,14 +85,26 @@
     ja.className = 'sprachhinweis__ja';
     ja.href = z.pfad;
     ja.textContent = z.ja;
-    ja.addEventListener('click', function () { schreiben(STORE, sprache); });
+    ja.addEventListener('click', function () {
+      /* Ab jetzt ist es eine Entscheidung und keine Vermutung mehr: Sprache
+         merken (auch als Keks, damit die PHP-Seiten folgen) und die Marke
+         der automatischen Wahl loeschen. */
+      schreiben(STORE, sprache);
+      try { localStorage.removeItem('vecom-lang-auto'); } catch (e) {}
+      try {
+        document.cookie = 'vecomlang=' + sprache + ';path=/;max-age=31536000;SameSite=Lax';
+      } catch (e) {}
+    });
 
     var nein = document.createElement('button');
     nein.type = 'button';
     nein.className = 'sprachhinweis__nein';
     nein.textContent = z.nein;
     nein.addEventListener('click', function () {
+      /* "Nein danke" ist ebenfalls eine Entscheidung: fuer die Fassung, die
+         gerade dasteht. */
       schreiben(WEG, '1');
+      try { localStorage.removeItem('vecom-lang-auto'); } catch (e) {}
       leiste.parentNode && leiste.parentNode.removeChild(leiste);
       hoeheMelden(null);
     });
@@ -132,7 +144,13 @@
     var will = wunschsprache();
     if (!will || will === hier) { return; }
 
-    // Eine gespeicherte Wahl ist eine Entscheidung — auch dann nicht fragen.
+    /* Eine gespeicherte WAHL ist eine Entscheidung — dann nicht fragen. Eine
+       gespeicherte VERMUTUNG ist keine: Seit dem 27.09.2026 stellt die Seite
+       beim ersten Besuch die Sprache nach dem Land ein (Zeitzone). Ein
+       Deutscher in Sizilien bekommt dadurch Italienisch — und genau ihm
+       gehoert dieser Hinweis. Die Marke sagt, welches von beidem es war. */
+    if (lesen('vecom-lang-auto') === '1') { zeigen(will); return; }
+
     // Der Keks zuerst: Wahlen auf den PHP-Seiten (Kundenseite, Angebot,
     // Konfigurator) stehen nur dort (23.09.2026).
     var keks = /(?:^|;)\s*vecomlang=([a-z]{2})/.exec(document.cookie || '');

@@ -13076,6 +13076,68 @@ pruefe('{anrede} ist ein erlaubter Platzhalter beim Speichern', $anFehler === nu
 Db::run('UPDATE akq_folge_vorlagen SET text = ?, status = ?, fassung = ?, freigegeben_von = NULL WHERE id = ?', [$anAltText, $anAltStatus, $anAltFass, (int) $anV['id']]);
 
 /* ============================================================================
+   62. Der erste Besuch: das Land stellt die Sprache   (27.09.2026)
+
+   Uwe: "Stelle die Sprache automatisch ein, aus welchem Land er gerade in
+   den Browser geht."
+
+   Beim ersten Besuch entscheidet jetzt die Zeitzone des Geraets -- kein
+   Geodienst, keine IP an Dritte, nichts, was die Datenschutzerklaerung
+   Luegen straft. Danach nie wieder: Jede Wahl schlaegt die Vermutung, und
+   wer einmal gewaehlt hat, wird nicht mehr umgeleitet.
+   ============================================================================ */
+abschnitt('62. Der erste Besuch: das Land stellt die Sprache');
+
+$lbWurzel = dirname(__DIR__, 2);
+$lbApp = (string) file_get_contents($lbWurzel . '/assets/js/app.js');
+
+pruefe('die Zeitzone entscheidet, nicht ein fremder Geodienst',
+    str_contains($lbApp, 'Intl.DateTimeFormat().resolvedOptions().timeZone')
+    && !preg_match('~https?://[^"\']*(ipapi|ip-api|geoip|ipinfo|cloudflare\.com/cdn-cgi/trace)~i', $lbApp));
+foreach (['europe/rome' => 'it', 'europe/berlin' => 'de', 'europe/vienna' => 'de',
+          'europe/zurich' => 'de', 'europe/london' => 'en'] as $lbZone => $lbSpr) {
+    pruefe('Zeitzone ' . $lbZone . ' fuehrt zu ' . $lbSpr,
+        (bool) preg_match('~\'' . preg_quote($lbZone, '~') . '\':\s*\'' . $lbSpr . '\'~', $lbApp));
+}
+pruefe('ganze Erdteile ueber das Praefix (Amerika, Australien) fuehren zu Englisch',
+    str_contains($lbApp, "'america/': 'en'") && str_contains($lbApp, "'australia/': 'en'"));
+pruefe('eine unbekannte Zone leitet nicht um — auch UTC nicht, wie Suchroboter sie melden',
+    str_contains($lbApp, 'return null;'));
+pruefe('die Vermutung gilt nur, solange nichts gewaehlt wurde',
+    str_contains($lbApp, 'if (!wunsch) {') && str_contains($lbApp, 'wunsch = landessprache();'));
+pruefe('ein Klick auf den Umschalter macht daraus eine Entscheidung',
+    str_contains($lbApp, 'autoLoeschen();   // ein Klick ist eine Entscheidung, keine Vermutung'));
+pruefe('und der Sprachhinweis fragt bei einer Vermutung trotzdem noch',
+    str_contains((string) file_get_contents($lbWurzel . '/assets/js/sprachhinweis.js'),
+        "lesen('vecom-lang-auto') === '1'"));
+
+/* ---------- Der Server hat keine Zeitzone, aber einen Sprachkopf -------- */
+$lbAlt = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? null;
+$lbKeks = $_COOKIE[Sprache::KEKS] ?? null;
+unset($_COOKIE[Sprache::KEKS], $_REQUEST['lang']);
+
+$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'de-AT,de;q=0.9,en;q=0.8';
+pruefe('der Browserkopf wird gelesen (de-AT -> de)', Sprache::ausBrowser() === 'de');
+$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'en;q=0.5,it;q=0.9';
+pruefe('und die Gewichte werden geachtet (it vor en)', Sprache::ausBrowser() === 'it');
+$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'ja,ko;q=0.8';
+pruefe('was wir nicht sprechen, zaehlt nicht', Sprache::ausBrowser() === null);
+$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'fr-FR,fr;q=0.9,en-GB;q=0.7';
+pruefe('aus einer fremden Sprache mit englischem Zweitwunsch wird Englisch',
+    Sprache::ausBrowser() === 'en');
+
+$_SERVER['HTTP_ACCEPT_LANGUAGE'] = 'de-DE,de;q=0.9';
+pruefe('ohne alles greift der Browserkopf', Sprache::ausAnfrage() === 'de');
+pruefe('aber was an der Sache haengt, steht davor', Sprache::ausAnfrage('en') === 'en');
+$_COOKIE[Sprache::KEKS] = 'it';
+pruefe('und der Keks steht ueber beidem', Sprache::ausAnfrage('en') === 'it');
+unset($_COOKIE[Sprache::KEKS]);
+unset($_SERVER['HTTP_ACCEPT_LANGUAGE']);
+pruefe('ganz ohne Hinweis bleibt es Italienisch', Sprache::ausAnfrage() === 'it');
+if ($lbAlt !== null) { $_SERVER['HTTP_ACCEPT_LANGUAGE'] = $lbAlt; }
+if ($lbKeks !== null) { $_COOKIE[Sprache::KEKS] = $lbKeks; }
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

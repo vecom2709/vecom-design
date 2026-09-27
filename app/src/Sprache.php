@@ -61,7 +61,47 @@ final class Sprache
     public static function ausAnfrage(?string ...$vorgaben): string
     {
         $keks = isset($_COOKIE[self::KEKS]) ? (string) $_COOKIE[self::KEKS] : null;
-        return self::waehlen((string) ($_REQUEST['lang'] ?? ''), ...array_merge([$keks], $vorgaben));
+        return self::waehlen(
+            (string) ($_REQUEST['lang'] ?? ''),
+            ...array_merge([$keks], $vorgaben, [self::ausBrowser()]));
+    }
+
+    /**
+     * Die Sprache, die der Browser mitschickt -- der letzte Anhaltspunkt vor
+     * der Vorgabe (27.09.2026).
+     *
+     * Auf den statischen Seiten entscheidet beim ersten Besuch das Land
+     * (Zeitzone, siehe assets/js/app.js). Hier geht das nicht: Ein Server
+     * kennt das Land nur ueber die IP-Adresse, und die an einen Geodienst
+     * zu schicken waere ein fremder Dienst mehr und ein Widerspruch zur
+     * eigenen Datenschutzerklaerung. Was der Browser von sich aus sendet,
+     * genuegt: Wer direkt auf hosting.php kommt, ohne je auf der Seite
+     * gewesen zu sein, liest lieber Deutsch als Italienisch, wenn sein
+     * Browser Deutsch verlangt.
+     *
+     * "de-AT,de;q=0.9,en;q=0.8" -> de. Reihenfolge und q-Werte werden
+     * geachtet; was wir nicht sprechen, wird uebergangen.
+     */
+    public static function ausBrowser(): ?string
+    {
+        $kopf = trim((string) ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''));
+        if ($kopf === '') { return null; }
+
+        $gewicht = [];
+        foreach (explode(',', $kopf) as $teil) {
+            $stueck = explode(';', trim($teil));
+            $code = strtolower(substr(trim($stueck[0]), 0, 2));
+            if (!in_array($code, self::ALLE, true)) { continue; }
+            $q = 1.0;
+            if (isset($stueck[1]) && preg_match('~q=([0-9.]+)~', $stueck[1], $t)) {
+                $q = (float) $t[1];
+            }
+            // Die erste Nennung gewinnt bei gleichem Gewicht.
+            if (!isset($gewicht[$code]) || $q > $gewicht[$code]) { $gewicht[$code] = $q; }
+        }
+        if (!$gewicht) { return null; }
+        arsort($gewicht);
+        return (string) array_key_first($gewicht);
     }
 
     /** Hat der Besucher die Sprache gerade ausdruecklich gewaehlt? */

@@ -48,12 +48,81 @@
     return null;
   }
 
+  /* ======================================================================
+     DER ERSTE BESUCH: DAS LAND ENTSCHEIDET   (27.09.2026)
+
+     Uwe: "Stelle die Sprache automatisch ein, aus welchem Land er gerade
+     in den Browser geht."
+
+     Bisher entschied beim ersten Besuch die Adresse: Wer / aufrief, bekam
+     Italienisch, auch wenn er in Deutschland sass. Erst die Browsersprache
+     wurde befragt -- und die sagt, was jemand liest, nicht wo er ist. Wer
+     in Agrigent einen englischen Rechner benutzt, bekam Englisch; wer in
+     Berlin einen italienischen, Italienisch.
+
+     WOHER DAS LAND KOMMT
+
+     Aus der Zeitzone des Geraets (Intl), nicht aus einem Geodienst. Ein
+     fremder Dienst hiesse: die IP-Adresse jedes Besuchers an einen Dritten,
+     eine Anfrage mehr vor dem ersten Bild -- und ein Widerspruch zur
+     eigenen Datenschutzerklaerung ("laedt nichts von fremden Servern").
+     Die Zeitzone steht im Browser bereit, kostet nichts und verlaesst das
+     Geraet nie.
+
+     WAS SIE NICHT IST
+
+     Sie ist keine Ortung: Wer die Zeitzone von Hand umstellt, bekommt die
+     dazu passende Sprache. Das ist in Ordnung -- sie ist ein Vorschlag fuer
+     den ersten Augenblick. Jede spaetere Wahl schlaegt sie, und wer einmal
+     gewaehlt hat, wird nie wieder umgeleitet. */
+  var ZONEN = {
+    /* Italien -- der Heimatmarkt. */
+    'europe/rome': 'it', 'europe/vatican': 'it', 'europe/san_marino': 'it',
+    'europe/malta': 'it',
+    /* Deutschsprachiger Raum. */
+    'europe/berlin': 'de', 'europe/vienna': 'de', 'europe/zurich': 'de',
+    'europe/busingen': 'de', 'europe/vaduz': 'de', 'europe/luxembourg': 'de',
+    /* Englischsprachiger Raum -- grob, aber besser als Italienisch fuer
+       jemanden in Chicago. Ganze Erdteile ueber das Praefix unten. */
+    'europe/london': 'en', 'europe/dublin': 'en', 'europe/gibraltar': 'en',
+  };
+  var ZONEN_PRAEFIX = { 'america/': 'en', 'australia/': 'en', 'pacific/auckland': 'en',
+                        'canada/': 'en', 'us/': 'en' };
+
+  /** Die Sprache des Landes, in dem das Geraet steht -- oder null. */
+  function landessprache() {
+    var zone = '';
+    try {
+      zone = String(Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
+    } catch (e) { return null; }
+    if (!zone) { return null; }
+    if (ZONEN[zone]) { return ZONEN[zone]; }
+    for (var p in ZONEN_PRAEFIX) {
+      if (zone.indexOf(p) === 0) { return ZONEN_PRAEFIX[p]; }
+    }
+    /* Unbekannte Zone (auch UTC, wie sie Suchroboter melden): nicht raten
+       und vor allem nicht umleiten. Die Seite bleibt, wie sie aufgerufen
+       wurde. */
+    return null;
+  }
+
+  /* Ein Merkzettel neben dem Merkzettel: Kam die Sprache aus dem Land
+     (Zeitzone) und nicht aus einem Klick, steht hier eine 1. Der
+     Sprachhinweis unten rechts darf dann trotzdem noch fragen -- ein
+     Deutscher in Sizilien bekommt Italienisch, aber auch den Satz "Diese
+     Seite gibt es auch auf Deutsch". Nach einem echten Klick verschwindet
+     die Marke, und danach fragt niemand mehr. */
+  var AUTO = 'vecom-lang-auto';
+
   function merken(lang) {
     try { localStorage.setItem(STORE, lang); } catch (e) {}
     try {
       document.cookie = 'vecomlang=' + lang + ';path=/;max-age=31536000;SameSite=Lax';
     } catch (e) {}
   }
+
+  function autoMerken() { try { localStorage.setItem(AUTO, '1'); } catch (e) {} }
+  function autoLoeschen() { try { localStorage.removeItem(AUTO); } catch (e) {} }
 
   /* Welche Rolle spielt dieser Pfad — und in welcher Sprache liegt er? */
   function seiteVon(pfad) {
@@ -66,11 +135,28 @@
     return null;
   }
 
+  /* Auch der Weg ueber einen Link in die andere Fassung ist eine
+     Entscheidung -- auf den festen Seiten ist der Umschalter oben rechts
+     genau das. */
+  document.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) { return; }
+    var roh = a.getAttribute('href') || '';
+    if (/^(\/(de|en)\/|\/$|\/index\.html$)/.test(roh) || /[?&]lang=/.test(roh)) { autoLoeschen(); }
+  }, true);
+
   (function sprachweiche() {
     var fest = document.documentElement.getAttribute('data-lang-fixed');
     if (!fest || LANGS.indexOf(fest) < 0) { return; }
     var hier = seiteVon(location.pathname);
     var wunsch = gemerkt();
+    /* Beim allerersten Besuch gibt es keine Wahl, die man achten koennte --
+       dann entscheidet das Land (27.09.2026). Danach nie wieder: gemerkt()
+       steht ab dem naechsten Bildaufbau. */
+    if (!wunsch) {
+      wunsch = landessprache();
+      if (wunsch) { autoMerken(); }
+    }
     var vonInnen = document.referrer.indexOf(location.origin + '/') === 0
         || document.referrer === location.origin;
     if (hier && !vonInnen && wunsch && LANGS.indexOf(wunsch) > -1 && wunsch !== fest) {
@@ -91,9 +177,14 @@
     var fixed = document.documentElement.getAttribute('data-lang-fixed');
     if (fixed && LANGS.indexOf(fixed) > -1) return fixed;
     var url = new URLSearchParams(location.search).get('lang');
-    if (LANGS.indexOf(url) > -1) return url;
+    if (LANGS.indexOf(url) > -1) { autoLoeschen(); return url; }
     var wahl = gemerkt();
     if (wahl) { return wahl; }
+    /* Erster Besuch: erst das Land, dann die Browsersprache. Das Land sagt,
+       wo jemand ist; die Browsersprache, was er liest. Beides ist besser
+       als die Vorgabe, und in dieser Reihenfolge. */
+    var land = landessprache();
+    if (land) { return land; }
     var nav = (navigator.languages || [navigator.language || ''])
       .map(function (l) { return String(l).slice(0, 2).toLowerCase(); });
     for (var i = 0; i < nav.length; i++) if (LANGS.indexOf(nav[i]) > -1) return nav[i];
@@ -273,6 +364,7 @@
   document.querySelectorAll('[data-lang]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var ziel = btn.getAttribute('data-lang');
+      autoLoeschen();   // ein Klick ist eine Entscheidung, keine Vermutung
       document.body.classList.remove('nav-open');
       if (DICT[ziel]) { apply(ziel); return; }
       btn.setAttribute('aria-busy', 'true');
