@@ -12421,6 +12421,8 @@ pruefe('Kacheln: nur freigegebene Erfolge und veröffentlichte Stimmen mit Erlau
     str_contains($mkWv, "if (!\$kE['zeigen']) { continue; }") && str_contains($mkWv, 'PartnerSeite::stimmen(') && str_contains($mkWv, "'kachel' => PartnerWerbung::link(\$p, 'kachel')")
     && str_contains($mkJs, 'function zeichneKachel') && str_contains($mkJs, 'D.links.kachel')
     && str_contains((string) file_get_contents($wurzel . '/src/PartnerSeite.php'), "s.status = 'veroeffentlicht' AND s.erlaubnis = 1 AND s.demo = 0"));
+pruefe('Partnerseite zieht offene Migrationen selbst nach (eine neue Spalte fehlte sonst bis zum nächsten Cronjob) und überlebt eine fehlende Rangliste',
+    str_contains($mkSeite, 'Einrichtung::selbsttaetig(false)') && str_contains((string) file_get_contents($wurzel . '/views/partner_wettbewerb.php'), 'catch (Throwable $e) { return; }'));
 $mkT = ['PARTNER_MARKETING'];
 $mkLeer = [];
 foreach (Texte::PARTNER_MARKETING as $mkK => $mkV) { foreach (['it', 'de', 'en'] as $mkL) { if (empty($mkV[$mkL])) { $mkLeer[] = "$mkK.$mkL"; } } }

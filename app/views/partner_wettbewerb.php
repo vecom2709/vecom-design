@@ -3,7 +3,8 @@
    Gesetzt: $p, $sprache, $h, $selbst. Namen anderer Partner nur mit deren
    Zustimmung; ohne sie steht dort „Partner“. */
 $MK = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache);
-$wb = PartnerWettbewerb::monat((int) $p['id']);
+try { $wb = PartnerWettbewerb::monat((int) $p['id']); }
+catch (Throwable $e) { return; }   // lieber ohne Rangliste als eine kaputte Partnerseite
 $wbMonat = (Texte::PARTNER_MARKETING['monate'][$sprache] ?? Texte::PARTNER_MARKETING['monate']['it'])[(int) substr($wb['monat'], 5, 2) - 1];
 $wbZeile = static function (array $z) use ($h, $MK): string {
     $wer = $z['ich'] ? $MK('wb_sie') : ($z['name'] ?? $MK('wb_partner'));

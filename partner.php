@@ -32,12 +32,12 @@ header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 header('X-Robots-Tag: noindex, nofollow');
 
-/* Die Tabellen entstehen mit Migration 068. Läuft die Verwaltung nach dem
-   Deploy erst später, zieht diese Seite sie nach (wie zugang.php). */
-try { Db::wert('SELECT 1 FROM partner LIMIT 1', [], null); }
-catch (Throwable $e) {
-    try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::migrieren(); } catch (Throwable $e2) { }
-}
+/* Offene Migrationen zieht diese Seite selbst nach (27.09.2026). Bis dahin
+   nur, wenn die Tabelle partner ganz fehlte -- eine neue SPALTE (083) fehlte
+   nach dem Deploy, bis der Cronjob oder die Verwaltung lief, und die Seite
+   wäre so lange mit „Unknown column“ ausgefallen. Der Blick kostet einen
+   glob und eine Abfrage; die Sperre in selbsttaetig() verhindert doppelte Läufe. */
+try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaetig(false); } catch (Throwable $e) { }
 
 $token = (string) ($_GET['t'] ?? $_POST['t'] ?? '');
 $p = $token !== '' ? Partner::ausToken($token) : null;
