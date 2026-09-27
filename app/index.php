@@ -570,7 +570,9 @@ if ($post) {
             case 'partner_stripe_neu':
                 /* Bewusste Tat in der Akte (28.09.2026): nie automatisch. */
                 require_once __DIR__ . '/src/Partner.php';
-                $r = Partner::stripeNeuEinrichten((int) ($_POST['id'] ?? 0), Auth::name() ?: 'Vecom');
+                $r = trim((string) ($_POST['land'] ?? '')) !== ''
+                    ? Partner::stripeLandUmstellen((int) ($_POST['id'] ?? 0), (string) $_POST['land'], Auth::name() ?: 'Vecom')
+                    : Partner::stripeNeuEinrichten((int) ($_POST['id'] ?? 0), Auth::name() ?: 'Vecom');
                 $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 

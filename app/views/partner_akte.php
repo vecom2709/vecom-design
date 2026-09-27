@@ -74,9 +74,19 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <?php if (Partner::landAbweichend($p)): ?>
         <div class="hinweis" role="status" style="margin-top:12px;background:rgba(255,159,90,.12);border-color:rgba(255,159,90,.35);color:var(--gelb)"><?= Fmt::h(Partner::landHinweis($p)) ?></div>
       <?php endif; ?>
-      <?php if (!empty($p['stripe_konto']) && (Partner::landAbweichend($p) || empty($p['stripe_bereit']))): ?>
-        <div style="margin-top:10px"><?= $hin('partner_stripe_neu', 'Stripe-Verifizierung neu einrichten') ?>
-          <span style="color:var(--leise);font-size:12px;margin-left:6px">Nur bewusst: löst die Verknüpfung, der Partner legt danach mit seinem Land neu an.</span></div>
+      <?php if (!empty($p['stripe_konto'])): /* bewusst: Land umstellen bzw. neu einrichten (28.09.2026) */
+        $slVor = (string) ($p['land'] ?: $p['stripe_land']); ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><?= Csrf::feld() ?>
+          <input type="hidden" name="tat" value="partner_stripe_neu"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+          <label for="sl_land" style="margin:0;font-size:12.5px;color:var(--leise)">Neues Konto im Land</label>
+          <select id="sl_land" name="land" style="width:auto;min-width:200px">
+            <?php foreach (Partner::getSupportedStripeCountries('de') as $slC => $slN): ?>
+              <option value="<?= Fmt::h($slC) ?>"<?= $slC === $slVor ? ' selected' : '' ?>><?= Fmt::h($slN . ' (' . $slC . ')') ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button class="knopf">Stripe-Verifizierung neu einrichten</button>
+        </form>
+        <p style="color:var(--leise);font-size:12px;margin:6px 0 0">Nur bewusst: löst die Verknüpfung (das alte Konto wird bei Stripe nur gelöscht, wenn es nie Geld empfangen konnte) und legt gleich ein neues Konto im gewählten Land an. Den Ausweis und die IBAN gibt der Partner danach selbst bei Stripe an.</p>
       <?php endif; ?>
     </div>
   <?php endif; ?>

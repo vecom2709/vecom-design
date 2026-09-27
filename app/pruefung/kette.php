@@ -13571,6 +13571,16 @@ $slWg = Partner::landWechseln(Partner::laden((int) $slF2['id']), 'DE', 'x');
 pruefe('… gleiches Land, Konto vollständig → „Das ist bereits das Land Ihres Stripe-Kontos.“, kein Stripe-Aufruf',
     !$slWg['ok'] && Partner::stripeGrundOeffentlich($slWg) === 'konto_land_gleich' && $slAuf === []
     && Texte::PARTNER['konto_land_gleich']['de'] === 'Das ist bereits das Land Ihres Stripe-Kontos.');
+/* Vecom stellt bewusst um (Akte, 28.09.2026, Uwe: „mache jetzt automatisch“) */
+$slUm = $slNeu('Ulli Umstellen', 'de');
+Db::run("UPDATE partner SET land = NULL, stripe_konto = 'acct_ulli', stripe_land = 'IT', stripe_bereit = 1, stripe_status_am = NOW() WHERE id = ?", [(int) $slUm['id']]);
+$slAuf = [];
+$slRu = Partner::stripeLandUmstellen((int) $slUm['id'], 'DE', 'Kette');
+$slUmN = Partner::laden((int) $slUm['id']);
+pruefe('Akte „neu einrichten“ mit Land DE: altes (bereites) Konto nur abgehängt, neues DE-Konto gleich angelegt, Land gespeichert',
+    $slRu['ok'] && $slUmN['land'] === 'DE' && $slUmN['stripe_land'] === 'DE' && $slUmN['stripe_konto_alt'] === 'acct_ulli' && (string) $slUmN['stripe_konto'] !== ''
+    && !array_filter($slAuf, static fn($a) => $a[0] === 'DELETE') && Partner::stripeFortsetzbar($slUmN), $slRu['text']);
+pruefe('… ein Land außerhalb der Liste wird abgewiesen', !Partner::stripeLandUmstellen((int) $slUm['id'], 'US')['ok']);
 $slPa2 = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Partnerbereich: „Land ändern“ mit Pflicht-Bestätigung, wenn ein neues Konto entsteht; die Bestätigung prüft auch der Server',
     str_contains($slPa2, "name=\"tat\" value=\"konto_land_wechsel\"") && str_contains($slPa2, "(\$_POST['bestaetigt'] ?? '') !== '1' ? ['ok' => false, 'grund' => 'bestaetigen']")
@@ -13618,7 +13628,7 @@ pruefe('Die Stripe-Absage erreicht den Browser nie im Wortlaut (nur der Schlüss
     str_contains($slPa, "json_encode(['ok' => false, 'grund' => Partner::stripeGrundOeffentlich(\$r)])") && !str_contains($slPa, "\$r['text']) ?>"));
 pruefe('Verwaltung: Liste mit Land und Ampel, Akte mit Account-ID, Verifizierung, Auszahlungen, letztem Stand und bewusstem Neueinrichten',
     str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'Partner::stripeAmpel($p)')
-    && str_contains($slAk = (string) file_get_contents($wurzel . '/views/partner_akte.php'), "'partner_stripe_neu'") && str_contains($slAk, 'Letzter Stripe-Status')
+    && str_contains($slAk = (string) file_get_contents($wurzel . '/views/partner_akte.php'), 'value="partner_stripe_neu"') && str_contains($slAk, 'Letzter Stripe-Status')
     && str_contains($slAk, 'Partner::landHinweis($p)') && isset(Ablauf::TRAGWEITE['partner_stripe_neu'])
     && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_stripe_neu':"));
 pruefe('Migration 093: neue Spalten, bestehende bleiben (nur ADD COLUMN)',

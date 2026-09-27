@@ -1334,6 +1334,38 @@ final class Partner
     }
 
     /**
+     * Vecom stellt ein Partnerkonto bewusst auf ein anderes Land um (Akte,
+     * 28.09.2026, Uwe: „mache jetzt automatisch“ für Anika und Ulli): Land
+     * speichern, altes Konto abhängen (stripeNeuEinrichten -- gelöscht nur,
+     * wenn es nie Geld empfangen konnte), neues Konto mit diesem Land gleich
+     * anlegen. Die Verifizierung selbst macht der Partner (Ausweis, IBAN) --
+     * er sieht danach „Stripe-Konto in: …“ und „Stripe-Verifizierung fortsetzen“.
+     * @return array{ok:bool, text:string}
+     */
+    public static function stripeLandUmstellen(int $partnerId, string $land, string $wer = 'Uwe'): array
+    {
+        $land = strtoupper(trim($land));
+        if (!in_array($land, self::STRIPE_LAENDER, true)) { return ['ok' => false, 'text' => 'Dieses Land steht nicht in der Liste.']; }
+        $p = self::laden($partnerId);
+        if (!$p) { return ['ok' => false, 'text' => 'Partner nicht gefunden.']; }
+        $text = '';
+        if ((string) ($p['stripe_konto'] ?? '') !== '' && strtoupper((string) ($p['stripe_land'] ?? '')) !== $land) {
+            $ab = self::stripeNeuEinrichten($partnerId, $wer);
+            if (!$ab['ok']) { return $ab; }
+            $text = $ab['text'] . ' ';
+        }
+        Db::run('UPDATE partner SET land = ? WHERE id = ?', [$land, $partnerId]);
+        $p = self::laden($partnerId) ?? $p;
+        if ((string) ($p['stripe_konto'] ?? '') !== '') { return ['ok' => true, 'text' => 'Land gespeichert: ' . $land . '. Das Stripe-Konto hat schon dieses Land.']; }
+        $k = self::createStripeConnectedAccount($p);
+        if (!$k['ok']) {
+            return ['ok' => true, 'text' => $text . 'Land ' . $land . ' gespeichert; das neue Stripe-Konto legt der Partner beim nächsten Klick selbst an (Stripe: '
+                . mb_substr((string) preg_replace('/\b(sk|rk|pk)_(live|test)_[A-Za-z0-9*]+/', '$1_$2_…', (string) ($k['text'] ?? $k['grund'] ?? '')), 0, 160) . ').'];
+        }
+        return ['ok' => true, 'text' => $text . 'Neues Stripe-Konto in ' . $land . ' angelegt (' . $k['konto'] . '). Der Partner sieht jetzt „Stripe-Verifizierung fortsetzen“ und verifiziert sich dort.'];
+    }
+
+    /**
      * Stand für die Anzeige (Partnerbereich, Akte). Frischt bei einem noch
      * nicht bereiten Konto bei Stripe auf.
      * @return array{stand:string, fehlt:int, land:?string, identitaet:bool, auszahlung:bool, vollstaendig:bool}
