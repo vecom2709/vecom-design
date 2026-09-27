@@ -11857,6 +11857,90 @@ pruefe('QR mit Foto: eigenes Format mit Fehlerkorrektur H; Motiv- und Formatwahl
     && str_contains($esJs, 'wahl[schluessel] = b.dataset[schluessel]') && !str_contains($esJs, 'dataset.wert'));
 
 /* ============================================================================
+   Firmen-Finder sucht bei OpenStreetMap nach (27.09.2026)
+   Uwe: „Betriebe in der Nähe: keine Ergebnisse — sollte im Web suchen“.
+   Geprüft ohne Netz (PartnerWebsuche::$netz): Gebiet, Filter, Auslese,
+   Übernahme in die Akquise-Liste, Zurückhaltung gegenüber den Diensten.
+   ============================================================================ */
+abschnitt('Partner: Firmen-Finder mit Websuche (OpenStreetMap)');
+require_once $wurzel . '/src/PartnerWebsuche.php';
+$wsAlle = PartnerWebsuche::filter('');
+pruefe('Filter: alle Branchen zu gut einem Dutzend Overpass-Zeilen zusammengefasst (statt 95), jede mit ["name"]',
+    count($wsAlle) <= 15 && count(array_filter($wsAlle, static fn($f) => str_ends_with($f, '["name"]'))) === count($wsAlle)
+    && in_array('["amenity"~"^(restaurant|fast_food|cafe|bar|pub|ice_cream|spa|dentist|doctors|clinic|veterinary|driving_school)$"]["name"]', $wsAlle, true), json_encode($wsAlle));
+pruefe('Filter: eine Branche → nur ihre Selektoren', PartnerWebsuche::filter('restaurant') === ['["amenity"~"^(restaurant|fast_food)$"]["name"]']);
+$wsGeb = ['name' => 'Favara', 'land' => 'IT', 'kreis' => 'Agrigento', 'region' => 'Sicilia', 'plz' => '92026', 'rel' => 39222, 'lat' => 37.31, 'lon' => 13.66];
+$wsEl = static fn(int $id, array $t): array => ['type' => 'node', 'id' => $id, 'lat' => 37.312, 'lon' => 13.661, 'tags' => $t];
+$wsOk = PartnerWebsuche::alsFirma($wsEl(901, ['amenity' => 'restaurant', 'name' => 'Trattoria del Castello', 'addr:street' => 'Via Roma', 'addr:housenumber' => '5', 'phone' => '+39 0922 111111']), $wsGeb, '');
+pruefe('Auslese: echter Betrieb → Firma mit Branche, Ort der Gemeinde, Quelle osm:node/901 und Lizenz',
+    $wsOk !== null && $wsOk['branche'] === 'restaurant' && $wsOk['stadt'] === 'Favara' && $wsOk['plz'] === '92026' && $wsOk['adresse'] === 'Via Roma 5'
+    && $wsOk['quelle'] === 'osm:node/901' && str_contains($wsOk['quelle_lizenz'], 'OpenStreetMap') && $wsOk['land'] === 'IT', json_encode($wsOk));
+pruefe('Auslese: Kettenfiliale, „Chiuso“, Telefonnummer als Name, Gemeindeeinrichtung, fremde Branche → keine Firma',
+    PartnerWebsuche::alsFirma($wsEl(902, ['amenity' => 'fast_food', 'name' => "McDonald's", 'brand:wikidata' => 'Q38076']), $wsGeb, '') === null
+    && PartnerWebsuche::alsFirma($wsEl(903, ['amenity' => 'bar', 'name' => 'Chiuso']), $wsGeb, '') === null
+    && PartnerWebsuche::alsFirma($wsEl(904, ['shop' => 'bakery', 'name' => 'info 3403363033']), $wsGeb, '') === null
+    && PartnerWebsuche::alsFirma($wsEl(905, ['amenity' => 'cafe', 'name' => 'Bar Comunale']), $wsGeb, '') === null
+    && PartnerWebsuche::alsFirma($wsEl(906, ['amenity' => 'restaurant', 'name' => 'Da Nino']), $wsGeb, 'hotel') === null);
+pruefe('Branche: Agriturismo (Namensmuster) vor Gästehaus, wie im Worker',
+    PartnerWebsuche::brancheFuer(['tourism' => 'guest_house', 'name' => 'Agriturismo Sole']) === 'agriturismo');
+pruefe('Ohne Nominatim: Land aus der Lage (Sizilien → IT, Bayern → DE)',
+    (PartnerWebsuche::alsFirma($wsEl(907, ['amenity' => 'restaurant', 'name' => 'Osteria Mare']), ['land' => null] + $wsGeb, '')['land'] ?? '') === 'IT'
+    && (PartnerWebsuche::alsFirma(['type' => 'node', 'id' => 908, 'lat' => 48.13, 'lon' => 11.57, 'tags' => ['amenity' => 'restaurant', 'name' => 'Wirtshaus Anger']], ['land' => null] + $wsGeb, '')['land'] ?? '') === 'DE');
+
+$wsAufrufe = [];
+PartnerWebsuche::$netz = static function (string $m, string $u, ?string $b) use (&$wsAufrufe): array {
+    $wsAufrufe[] = [$m, $u, $b];
+    if (str_contains($u, 'nominatim')) {
+        return ['status' => 200, 'json' => [['osm_type' => 'relation', 'osm_id' => 39222, 'category' => 'boundary', 'addresstype' => 'town', 'name' => 'Favara',
+            'lat' => '37.316', 'lon' => '13.662', 'address' => ['town' => 'Favara', 'county' => 'Agrigento', 'state' => 'Sicilia', 'postcode' => '92026', 'country_code' => 'it']]]];
+    }
+    return ['status' => 200, 'json' => ['elements' => [
+        ['type' => 'node', 'id' => 911, 'lat' => 37.31, 'lon' => 13.66, 'tags' => ['amenity' => 'restaurant', 'name' => 'Ristorante Belvedere Favara']],
+        ['type' => 'way', 'id' => 912, 'center' => ['lat' => 37.32, 'lon' => 13.67], 'tags' => ['shop' => 'hairdresser', 'name' => 'Salone Rosa', 'website' => 'salonerosa.example']],
+        ['type' => 'node', 'id' => 913, 'lat' => 37.31, 'lon' => 13.66, 'tags' => ['amenity' => 'fast_food', 'name' => 'Burger Kette', 'brand:wikidata' => 'Q1']],
+    ]]];
+};
+$wsPid = Partner::anlegen(['name' => 'Walter Websuche', 'email' => 'walter@partner.example', 'status' => 'aktiv', 'code' => 'WALTERWS1', 'firma' => '', 'sprache' => 'de']);
+$wsS = PartnerRecherche::suchen($wsPid, 'Favara', '', 'de', false, true);
+$wsNamen = array_column($wsS['treffer'], 'name');
+pruefe('Unbekannter Ort: Websuche ergänzt die Liste, der Finder zeigt die neuen Betriebe (Kette nicht)',
+    $wsS['ok'] && ($wsS['web']['neu'] ?? 0) === 2 && in_array('Ristorante Belvedere Favara', $wsNamen, true) && in_array('Salone Rosa', $wsNamen, true)
+    && !in_array('Burger Kette', $wsNamen, true), json_encode([$wsS['web'], $wsNamen]));
+pruefe('… eine Nominatim- und eine Overpass-Anfrage, Gemeinde als Fläche, mit erkennbarem Absender',
+    count($wsAufrufe) === 2 && str_contains($wsAufrufe[1][2] ?? '', rawurlencode('rel(39222);map_to_area->.g;')) && str_contains(PartnerWebsuche::ABSENDER, 'vecom-design.it'));
+pruefe('… an den Partner weiterhin ohne Telefon und E-Mail, aber mit Chance (ohne Website = hoch)',
+    !array_key_exists('telefon', $wsS['treffer'][0]) && !array_key_exists('email', $wsS['treffer'][0])
+    && ($wsS['treffer'][array_search('Ristorante Belvedere Favara', $wsNamen, true)]['chance'] ?? '') === 'hoch');
+pruefe('… in der Akquise-Liste mit Quelle und Lizenz, Website erkannt',
+    (string) Db::wert("SELECT quelle_lizenz FROM akq_firmen WHERE quelle = 'osm:way/912'", [], '') === PartnerWebsuche::LIZENZ
+    && (string) Db::wert("SELECT domain FROM akq_firmen WHERE quelle = 'osm:way/912'", [], '') === 'salonerosa.example');
+PartnerRecherche::suchen($wsPid, 'favara', '', 'de', false, true);
+pruefe('Derselbe Ort noch einmal (auch klein geschrieben): keine neue Anfrage an OpenStreetMap (14 Tage frisch)', count($wsAufrufe) === 2);
+$wsAufrufe = [];
+PartnerWebsuche::$netz = static function (string $m, string $u, ?string $b) use (&$wsAufrufe): array {
+    $wsAufrufe[] = [$m, $u, $b];
+    return str_contains($u, 'nominatim') ? ['status' => 429, 'json' => null] : ['status' => 200, 'json' => ['elements' => []]];
+};
+PartnerRecherche::suchen($wsPid, 'Licata', 'restaurant', 'de', false, true);
+pruefe('Nominatim sperrt (429): Overpass sucht die Gemeinde selbst über den Namen',
+    count($wsAufrufe) === 2 && str_contains(rawurldecode($wsAufrufe[1][2] ?? ''), '["admin_level"="8"]["name"~"^Licata$",i]'));
+$wsAufrufe = [];
+PartnerWebsuche::$netz = static function (string $m, string $u, ?string $b) use (&$wsAufrufe): array {
+    $wsAufrufe[] = [$m, $u, $b];
+    return str_contains($u, 'nominatim') ? ['status' => 200, 'json' => [['osm_type' => 'relation', 'osm_id' => 1, 'category' => 'boundary', 'addresstype' => 'town', 'name' => 'Sciacca', 'lat' => '37.5', 'lon' => '13.08', 'address' => ['town' => 'Sciacca', 'country_code' => 'it']]]]
+        : ['status' => 504, 'json' => null];
+};
+$wsF = PartnerRecherche::suchen($wsPid, 'Sciacca', '', 'de', false, true);
+pruefe('Alle Overpass-Server voll: Hinweis statt Fehler, die Suche bleibt nutzbar', $wsF['ok'] && is_string($wsF['web']['fehler'] ?? null) && ($wsF['web']['neu'] ?? -1) === 0);
+$wsN = count($wsAufrufe);
+PartnerRecherche::suchen($wsPid, 'Sciacca', '', 'de', false, true);
+pruefe('… und in der nächsten Stunde keine neue Anfrage (Pause nach Fehler)', count($wsAufrufe) === $wsN);
+PartnerWebsuche::$netz = null;
+pruefe('Partnerseite sucht mit Websuche und nennt OpenStreetMap als Quelle',
+    str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), "!isset(\$_GET['fi_nz']), true)")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), "\$T('fi_osm')"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

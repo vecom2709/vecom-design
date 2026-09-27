@@ -36,14 +36,24 @@ final class PartnerRecherche
     }
 
     /**
-     * @return array{ok:bool, grund?:string, treffer:list<array<string,mixed>>}
+     * $web: Kennt die Liste den Ort noch nicht (oder nur alt), erst bei
+     * OpenStreetMap nachsuchen (PartnerWebsuche, 27.09.2026). Aus der
+     * Partnerseite immer an; die Kette schaltet es gezielt.
+     *
+     * @return array{ok:bool, grund?:string, treffer:list<array<string,mixed>>, web?:array}
      */
-    public static function suchen(int $partnerId, string $ort, string $branche, string $sprache, bool $zaehlen = true): array
+    public static function suchen(int $partnerId, string $ort, string $branche, string $sprache, bool $zaehlen = true, bool $web = false): array
     {
         $ort = trim(mb_substr($ort, 0, 80));
         if (mb_strlen($ort) < 2) { return ['ok' => false, 'grund' => 'fi_ort', 'treffer' => []]; }
         if ($branche !== '' && !isset(Akquise::branchen()[$branche])) { $branche = ''; }
         if ($zaehlen && !self::zaehlen($partnerId, 'suche', self::SUCHEN_JE_TAG)) { return ['ok' => false, 'grund' => 'fi_genug', 'treffer' => []]; }
+        $webErg = null; $gebietName = '';
+        if ($web) {
+            require_once __DIR__ . '/PartnerWebsuche.php';
+            $webErg = PartnerWebsuche::ergaenzen($ort, $branche);
+            $gebietName = (string) ($webErg['gebiet'] ?? '');
+        }
         $wie = '%' . addcslashes($ort, '%_\\') . '%';
         $zeilen = Db::all("SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score,
                                   r.partner_id AS res_partner, r.bis AS res_bis,
@@ -52,10 +62,10 @@ final class PartnerRecherche
                         LEFT JOIN partner_reservierungen r ON r.firma_id = f.id AND r.bis >= CURDATE()
                             WHERE f.gesperrt = 0 AND f.bestandskunde = 0
                               AND f.kontakt_status NOT IN ('abgelehnt','gesperrt','kunde','geantwortet')
-                              AND (f.stadt LIKE ? OR f.plz = ? OR f.kreis LIKE ?)
+                              AND (f.stadt LIKE ? OR f.plz = ? OR f.kreis LIKE ? OR (? <> '' AND f.stadt = ?))
                               AND (? = '' OR f.branche = ?)
                          ORDER BY (f.url IS NULL OR f.url = '') DESC, COALESCE(f.score, 0) DESC, f.name
-                            LIMIT " . self::TREFFER, [$wie, $ort, $wie, $branche, $branche]);
+                            LIMIT " . self::TREFFER, [$wie, $ort, $wie, $gebietName, $gebietName, $branche, $branche]);
         $treffer = [];
         foreach ($zeilen as $z) {
             $stand = $z['res_partner'] !== null
@@ -73,7 +83,7 @@ final class PartnerRecherche
                 'stand' => $stand, 'bis' => $z['res_bis'],
             ];
         }
-        return ['ok' => true, 'treffer' => $treffer];
+        return ['ok' => true, 'treffer' => $treffer, 'web' => $webErg];
     }
 
     /** hoch = keine Website, mittel = Website mit deutlichen Mängeln, gering = ordentliche Website. */

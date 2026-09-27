@@ -6,7 +6,7 @@
    ========================================================================== */
 $fiOrt = trim((string) ($_GET['fi_ort'] ?? ''));
 $fiBranche = (string) ($_GET['fi_branche'] ?? '');
-$fiErg = $fiOrt !== '' ? PartnerRecherche::suchen((int) $p['id'], $fiOrt, $fiBranche, $sprache, !isset($_GET['fi_nz'])) : null;
+$fiErg = $fiOrt !== '' ? PartnerRecherche::suchen((int) $p['id'], $fiOrt, $fiBranche, $sprache, !isset($_GET['fi_nz']), true) : null;
 $fiMeine = PartnerRecherche::meine((int) $p['id'], $sprache);
 $branchenListe = Akquise::branchen();
 $fiMeldung = in_array($meldung, ['fi_weg', 'fi_vecom', 'fi_voll'], true) ? $meldung : '';
@@ -97,7 +97,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   <h3 class="md-h" style="margin-top:24px"><?= $h($T('fi_titel')) ?></h3>
   <p class="klein" style="margin-top:0"><?= $h($T('fi_text')) ?></p>
   <?php if ($fiMeldung): ?><div class="hinweis schlecht" role="alert"><?= $h($T($fiMeldung)) ?></div><?php endif; ?>
-  <form method="get" action="/partner.php#recherche">
+  <form method="get" action="/partner.php#recherche" data-warten="<?= $h($T('fi_laeuft')) ?>">
     <input type="hidden" name="t" value="<?= $h((string) $p['token']) ?>">
     <div class="reihe">
       <div><label for="fi_ort"><?= $h($T('fi_ort')) ?></label><input id="fi_ort" type="text" name="fi_ort" maxlength="80" required value="<?= $h($fiOrt) ?>" autocomplete="address-level2"></div>
@@ -109,11 +109,15 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
     </div>
   </form>
   <?php if ($fiErg !== null): ?>
+    <?php $fiWeb = $fiErg['web'] ?? null; ?>
+    <?php if ($fiWeb && $fiWeb['fehler'] !== null && $fiWeb['fehler'] !== 'läuft'): ?><div class="hinweis" style="margin-top:10px"><?= $h($T('fi_web_fehler')) ?></div>
+    <?php elseif ($fiWeb && $fiWeb['gefragt'] && $fiWeb['neu'] > 0): ?><p class="klein" role="status"><?= $h(strtr($T('fi_web_neu'), ['{n}' => (string) $fiWeb['neu']])) ?></p><?php endif; ?>
     <?php if (!$fiErg['ok']): ?><div class="hinweis" style="margin-top:10px"><?= $h($T($fiErg['grund'] === 'fi_ort' ? 'fi_keine' : $fiErg['grund'])) ?></div>
     <?php elseif (!$fiErg['treffer']): ?><p class="klein"><?= $h($T('fi_keine')) ?></p>
     <?php else: ?>
       <ul class="firmen"><?php foreach ($fiErg['treffer'] as $f) { echo $firmaZeile($f, false); } ?></ul>
       <p class="klein"><?= $h($T('fi_hinweis')) ?></p>
+      <p class="klein" style="margin-top:4px;font-size:11.5px"><?= $h($T('fi_osm')) ?></p>
     <?php endif; ?>
   <?php endif; ?>
   <?php if ($fiMeine): ?>
@@ -129,9 +133,10 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   </div>
 </div>
 <script>
-/* Der Schnellcheck dauert ein paar Sekunden: Knopf sperren und sagen, was passiert. */
+/* Schnellcheck und Websuche dauern ein paar Sekunden: Knopf sperren und sagen, was passiert. */
 (function () {
-  var f = document.querySelector('#recherche form[data-warten]'); if (!f) { return; }
-  f.addEventListener('submit', function () { var b = f.querySelector('button[type=submit]'); b.disabled = true; b.textContent = f.dataset.warten; });
+  [].forEach.call(document.querySelectorAll('#recherche form[data-warten]'), function (f) {
+    f.addEventListener('submit', function () { var b = f.querySelector('button[type=submit]'); b.disabled = true; b.textContent = f.dataset.warten; });
+  });
 })();
 </script>
