@@ -12501,6 +12501,46 @@ pruefe('Regeln & Versand: jeder Gate-Status hat ein kurzes Wort und eine Farbe',
     && str_contains($rgV, "AkquiseGate::UNKLAR => 'Lieber nicht'") && str_contains($rgV, "AkquiseGate::PRUEFEN => 'warnung'"));
 
 /* ============================================================================
+   61. Eine Nummer, ueberall dieselbe   (27.09.2026)
+
+   Die Telefonnummer steht an vier Stellen: in build.mjs (je Sprache), als
+   Anruf-Link in der Vorlage, in den strukturierten Daten der Startseite und
+   in denen der Technikseite. Beim letzten Wechsel blieb eine davon stehen --
+   Google zeigte danach eine andere Nummer als die Seite. Diese Pruefung
+   vergleicht sie miteinander, statt sich auf die Sorgfalt zu verlassen.
+   ============================================================================ */
+abschnitt('61. Eine Nummer, ueberall dieselbe');
+
+$nrWurzel = dirname(__DIR__, 2);
+$nrBau = (string) file_get_contents($nrWurzel . '/build.mjs');
+preg_match_all("~^\s*(it|de|en):\s*'([^']+)',~m", substr($nrBau, (int) strpos($nrBau, 'const TELEFON')), $nrTreffer);
+$nrNummern = array_values(array_unique($nrTreffer[2] ?? []));
+pruefe('build.mjs traegt fuer alle drei Sprachen dieselbe Nummer',
+    count($nrTreffer[2] ?? []) === 3 && count($nrNummern) === 1, implode(' / ', $nrNummern));
+
+$nrNummer = $nrNummern[0] ?? '';
+$nrKompakt = preg_replace('~[^0-9+]~', '', $nrNummer);
+pruefe('es ist eine internationale Nummer', (bool) preg_match('~^\+[0-9]{8,}$~', (string) $nrKompakt), (string) $nrKompakt);
+
+$nrStart = (string) file_get_contents($nrWurzel . '/index.html');
+pruefe('die Startseite ruft genau diese Nummer an',
+    str_contains($nrStart, 'href="tel:' . $nrKompakt . '">' . $nrNummer . '<'));
+foreach (['index.html' => 'die Startseite', 'tecnica.html' => 'die Technikseite'] as $nrDatei => $nrWas) {
+    pruefe($nrWas . ' nennt sie auch in den strukturierten Daten',
+        str_contains((string) file_get_contents($nrWurzel . '/' . $nrDatei), '"telephone": "' . $nrNummer . '"'));
+}
+pruefe('und keine Seite traegt noch die alte Nummer',
+    !str_contains($nrStart, '4397926082')
+    && !str_contains((string) file_get_contents($nrWurzel . '/tecnica.html'), '4397926082'));
+
+/* WhatsApp: nur schreiben, mit dem Namen, unter dem man schreibt. */
+foreach (['it', 'de', 'en'] as $nrSpr) {
+    pruefe('die WhatsApp-Zeile nennt den Namen (' . $nrSpr . ')',
+        str_contains((string) file_get_contents($nrWurzel . '/assets/js/i18n-' . $nrSpr . '.js'),
+            '@vecomdesign'));
+}
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -20,7 +20,7 @@ plus die Bestätigung durch Google (Postkarte, Anruf oder Video, je nachdem, was
 | Anschrift | Via d’Ascoli 25, 92021 Aragona (AG), Italien |
 | Anschrift anzeigen? | **Nein**, wenn keine Kunden vorbeikommen — dann „Liefer-/Servicegebiet“ wählen |
 | Servicegebiet | Provincia di Agrigento · Sicilia (dazu gern: Italien) |
-| Telefon | **+49 30 4397926082** — wie auf der Website. Kommt die italienische Nummer, hier *und* in `build.mjs` gleichzeitig ändern |
+| Telefon | **+39 380 190 7017** — wie auf der Website (27.09.2026). Ändert sie sich, hier *und* in `build.mjs` gleichzeitig ändern |
 | Website | `https://vecom-design.it/?utm_source=google&utm_medium=profil` |
 | Öffnungszeiten | Mo–Fr 9–18 Uhr (so steht es in Manuelas Lagebild); sonst „Nur nach Vereinbarung“ |
 

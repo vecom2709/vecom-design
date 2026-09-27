@@ -477,15 +477,14 @@ function build(lang, seite) {
      Pruefung. Sobald sie geschaltet ist und auf die deutsche weiterleitet,
      hier eintragen — mehr ist nicht noetig.
      -------------------------------------------------------------------------- */
-  /* 26.09.2026, Uwe: die deutsche Nummer auf allen drei Sprachen. Sie
-     klingelt wirklich (Manuela nimmt ab) -- eine Auslandsnummer ist eine
-     Huerde, aber keine Nummer war auf der italienischen Seite die groessere:
-     Gemessen gab es dort gar keinen Anruf-Link. Kommt die italienische
-     (+39 0922 1795963, Sonetel), wird sie hier bei it/en eingetragen. */
+  /* 27.09.2026, Uwe: die italienische Mobilnummer auf allen drei Sprachen.
+     Davor stand dort die deutsche (26.09.2026) -- eine Auslandsnummer ist
+     auf einer sizilianischen Seite eine Huerde, und wer anruft, will nicht
+     ins Ausland telefonieren. Dieselbe Nummer traegt auch WhatsApp. */
   const TELEFON = {
-    it: '+49 30 4397926082',
-    de: '+49 30 4397926082',
-    en: '+49 30 4397926082',
+    it: '+39 380 190 7017',
+    de: '+39 380 190 7017',
+    en: '+39 380 190 7017',
   };
   /* Genau EINE Zeile, bis zu ihrem eigenen </div> -- sie enthaelt kein
      weiteres div. Die fruehere erste Regel („…</div>\s*</div>“) lief ueber

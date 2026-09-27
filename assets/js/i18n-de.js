@@ -529,7 +529,7 @@ window.VECOM_I18N.de = {
       dt2: "Sitz", dd2: "Aragona (AG), Sizilien",
       dt3: "Anschrift", dd3: "Via d’Ascoli 25, 92021 Aragona (AG)",
       dt4: "Codice Fiscale", dd4: "VTTWUE66P27Z112D",
-      dt5: "Telefon", dt6: "WhatsApp", dd6: "Nur Nachrichten, keine Anrufe",
+      dt5: "Telefon", dt6: "WhatsApp", dd6: "Nur schreiben · @vecomdesign",
       fname: "Name", fmail: "E-Mail", ftype: "Worum geht es", fmsg: "Das Vorhaben in Kürze",
       phName: "Wie heißen Sie", phMail: "wohin ich antworten darf", phMsg: "Was Sie anbieten, was Sie erreichen möchten und bis wann.",
       o1: "Maßgeschneiderte Website", o2: "Logo & Markenauftritt", o3: "Online-Shop", o4: "Überarbeitung einer bestehenden Seite", o5: "Anderes",
