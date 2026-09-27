@@ -1654,17 +1654,26 @@ if ($post) {
                 $modus  = ($_POST['modus'] ?? 'test') === 'live' ? 'live' : 'test';
                 $geheim = trim((string) ($_POST['geheim'] ?? ''));
                 $whsec  = trim((string) ($_POST['webhook_geheim'] ?? ''));
+                $pk     = trim((string) ($_POST['oeffentlich'] ?? ''));
 
                 // Leer gelassene Felder behalten ihren bisherigen Wert — so laesst
                 // sich der Modus umstellen, ohne die Schluessel neu einzutippen.
                 if ($geheim === '') { $geheim = (string) ($bisher['geheim'] ?? ''); }
                 if ($whsec === '')  { $whsec  = (string) ($bisher['webhook_geheim'] ?? ''); }
+                if ($pk === '')     { $pk     = (string) ($bisher['oeffentlich'] ?? ''); }
+                if ($pk === '-')    { $pk     = ''; }
 
                 if ($geheim !== '' && !preg_match('~^(sk|rk)_(test|live)_~', $geheim)) {
                     throw new RuntimeException('Das sieht nicht nach einem geheimen Stripe-Schlüssel aus (er beginnt mit sk_test_ oder sk_live_).');
                 }
                 if ($whsec !== '' && !str_starts_with($whsec, 'whsec_')) {
                     throw new RuntimeException('Das Webhook-Geheimnis beginnt mit whsec_.');
+                }
+                if ($pk !== '' && !preg_match('~^pk_(test|live)_[A-Za-z0-9]+$~', $pk)) {
+                    throw new RuntimeException('Der öffentliche Schlüssel beginnt mit pk_test_ oder pk_live_.');
+                }
+                if ($pk !== '' && !str_contains($pk, '_' . $modus . '_')) {
+                    throw new RuntimeException('Der öffentliche Schlüssel passt nicht zum Modus (' . ($modus === 'live' ? 'Livemodus braucht pk_live_' : 'Testmodus braucht pk_test_') . ').');
                 }
                 if ($geheim !== '' && $modus === 'live' && str_contains($geheim, '_test_')) {
                     throw new RuntimeException('Livemodus gewählt, aber der Schlüssel ist ein Testschlüssel.');
@@ -1673,8 +1682,8 @@ if ($post) {
                     throw new RuntimeException('Testmodus gewählt, aber der Schlüssel ist ein Liveschlüssel. Im Testmodus fließt kein echtes Geld — das ist Absicht.');
                 }
 
-                $alt['stripe'] = ['modus' => $modus, 'geheim' => $geheim, 'webhook_geheim' => $whsec]
-                    + array_diff_key($bisher, array_flip(['modus', 'geheim', 'webhook_geheim']));
+                $alt['stripe'] = ['modus' => $modus, 'geheim' => $geheim, 'webhook_geheim' => $whsec, 'oeffentlich' => $pk]
+                    + array_diff_key($bisher, array_flip(['modus', 'geheim', 'webhook_geheim', 'oeffentlich']));
                 if (!Einrichtung::konfigSchreiben(dirname(__DIR__) . '/app/config.local.php', $alt)) {
                     throw new RuntimeException('app/config.local.php konnte nicht geschrieben werden.');
                 }

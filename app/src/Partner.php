@@ -801,6 +801,55 @@ final class Partner
      */
     public static function kontoEinrichten(array $p, string $zurueck): array
     {
+        $k = self::kontoSicherstellen($p);
+        if (!$k['ok']) { return $k; }
+        $konto = $k['konto'];
+        $l = self::stripe('POST', '/v1/account_links', [
+            'account' => $konto, 'type' => 'account_onboarding',
+            'refresh_url' => $zurueck . '&stripe=neu', 'return_url' => $zurueck . '&stripe=zurueck',
+        ]);
+        if (!isset($l['url'])) {
+            return ['ok' => false, 'text' => (string) ($l['error']['message'] ?? 'Stripe gab keinen Einrichtungslink.')];
+        }
+        return ['ok' => true, 'url' => (string) $l['url']];
+    }
+
+    /** Stripe-Sprachen für die eingebettete Einrichtung, je Sprache der Partnerseite. */
+    public const STRIPE_SPRACHE = ['it' => 'it-IT', 'de' => 'de-DE', 'en' => 'en-GB'];
+
+    /**
+     * Sitzung für die EINGEBETTETE Einrichtung (27.09.2026, Uwe: „Ja, einbetten“).
+     *
+     * Warum: Der gehostete Einrichtungslink kennt keine Sprachangabe -- Stripe
+     * nimmt die Sprache des Browsers. Ein deutscher Partner mit italienischem
+     * Handy sah deshalb „Unternehmensabfrage“ neben italienischen Feldern.
+     * Eingebettet bekommt die Einrichtung die Sprache der Partnerseite fest
+     * mitgegeben. Die Sitzung (client_secret) läuft nach kurzer Zeit ab und
+     * wird für jeden Aufruf neu angelegt -- Stripe verlangt das so.
+     *
+     * @return array{ok:bool, secret?:string, grund?:string, text?:string}
+     */
+    public static function kontoSitzung(array $p): array
+    {
+        $k = self::kontoSicherstellen($p);
+        if (!$k['ok']) { return $k; }
+        $r = self::stripe('POST', '/v1/account_sessions', [
+            'account' => $k['konto'],
+            'components[account_onboarding][enabled]' => 'true',
+            'components[account_onboarding][features][external_account_collection]' => 'true',
+        ]);
+        if (!isset($r['client_secret'])) {
+            return ['ok' => false, 'grund' => 'stripe', 'text' => (string) ($r['error']['message'] ?? 'Stripe gab keine Einrichtungssitzung.')];
+        }
+        return ['ok' => true, 'secret' => (string) $r['client_secret']];
+    }
+
+    /**
+     * Legt das Auszahlungskonto bei Stripe an, falls es noch keins gibt.
+     * @return array{ok:bool, konto?:string, grund?:string, text?:string}
+     */
+    private static function kontoSicherstellen(array $p): array
+    {
         $konto = (string) ($p['stripe_konto'] ?? '');
         if ($konto === '') {
             $felder = [
@@ -848,14 +897,16 @@ final class Partner
             Db::run('UPDATE partner SET stripe_konto = ? WHERE id = ?', [$konto, (int) $p['id']]);
             Events::protokoll('partner_stripe', 'Stripe-Auszahlungskonto angelegt für ' . $p['name'], null, null, null, ['partner_id' => (int) $p['id']]);
         }
-        $l = self::stripe('POST', '/v1/account_links', [
-            'account' => $konto, 'type' => 'account_onboarding',
-            'refresh_url' => $zurueck . '&stripe=neu', 'return_url' => $zurueck . '&stripe=zurueck',
-        ]);
-        if (!isset($l['url'])) {
-            return ['ok' => false, 'text' => (string) ($l['error']['message'] ?? 'Stripe gab keinen Einrichtungslink.')];
-        }
-        return ['ok' => true, 'url' => (string) $l['url']];
+        return ['ok' => true, 'konto' => $konto];
+    }
+
+    /** Der öffentliche Stripe-Schlüssel, wenn die eingebettete Einrichtung möglich ist -- sonst ''. */
+    public static function stripeOeffentlich(): string
+    {
+        require_once __DIR__ . '/Zahlung/Anbieter.php';
+        require_once __DIR__ . '/Zahlung/Stripe.php';
+        $s = new StripeAnbieter();
+        return $s->bereit() ? $s->oeffentlich() : '';
     }
 
     /**

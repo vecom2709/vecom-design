@@ -25,6 +25,7 @@ declare(strict_types=1);
  *       'modus'          => 'test',            // oder 'live'
  *       'geheim'         => 'sk_test_…',       // Geheimer Schluessel
  *       'webhook_geheim' => 'whsec_…',         // Signaturgeheimnis des Webhooks
+ *       'oeffentlich'    => 'pk_test_…',       // nur für die eingebettete Partner-Einrichtung
  *   ],
  */
 final class StripeAnbieter implements Anbieter
@@ -62,6 +63,21 @@ final class StripeAnbieter implements Anbieter
     public function bereit(): bool
     {
         return trim((string) ($this->cfg['geheim'] ?? '')) !== '';
+    }
+
+    /**
+     * Der öffentliche Schlüssel (pk_…) für die eingebettete Einrichtung der
+     * Partnerkonten (27.09.2026). Er ist nicht geheim -- er steht ohnehin im
+     * Browser --, muss aber zum Modus passen: Ein pk_test neben einem sk_live
+     * lädt die Einrichtung nie, und der Partner sähe nur ein leeres Feld.
+     * Passt er nicht, gibt es ihn nicht; die Partnerseite nimmt dann den
+     * gehosteten Link wie bisher.
+     */
+    public function oeffentlich(): string
+    {
+        $k = trim((string) ($this->cfg['oeffentlich'] ?? ''));
+        if (!preg_match('/^pk_(live|test)_[A-Za-z0-9]+$/', $k, $t) || $t[1] !== $this->modus()) { return ''; }
+        return $k;
     }
 
     public function webhookBereit(): bool

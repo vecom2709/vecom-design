@@ -10,6 +10,7 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
   <table><tbody>
     <tr><td>Geheimer Schlüssel</td><td><?= Fmt::h($stripe->schluesselHinweis()) ?></td></tr>
     <tr><td>Webhook-Geheimnis</td><td><?= $stripe->webhookBereit() ? 'hinterlegt' : '— fehlt' ?></td></tr>
+    <tr><td>Öffentlicher Schlüssel</td><td><?= $stripe->oeffentlich() !== '' ? Fmt::h(substr($stripe->oeffentlich(), 0, 12) . '…' . substr($stripe->oeffentlich(), -4)) . ' — Partner richten ihr Konto in ihrer Sprache ein' : '— fehlt · Partner landen auf der Stripe-Seite, deren Sprache der Browser bestimmt' ?></td></tr>
     <tr><td>Adresse für Stripe</td><td><code>https://vecom-design.it/stripe-webhook.php</code></td></tr>
     <tr><td>Fehlgeschlagene Ereignisse</td><td><?= $offen ?></td></tr>
   </tbody></table>
@@ -28,11 +29,15 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
       <div class="feld"><label>Webhook-Geheimnis<?= $stripe->webhookBereit() ? ' (leer lassen = unverändert)' : '' ?></label>
         <input type="password" name="webhook_geheim" autocomplete="off" placeholder="whsec_…"></div>
     </div>
+    <div class="feld"><label>Öffentlicher Schlüssel<?= $stripe->oeffentlich() !== '' ? ' (leer lassen = unverändert, „-“ = entfernen)' : '' ?></label>
+      <input type="text" name="oeffentlich" autocomplete="off" spellcheck="false" placeholder="pk_test_… bzw. pk_live_…"></div>
     <button class="knopf haupt">Speichern</button>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Beides findest du im Stripe-Konto:
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Alles findest du im Stripe-Konto:
       der geheime Schlüssel unter <em>Entwickler → API-Schlüssel</em>, das Webhook-Geheimnis unter
       <em>Entwickler → Webhooks</em> beim Eintrag für
-      <code>https://vecom-design.it/stripe-webhook.php</code>.
+      <code>https://vecom-design.it/stripe-webhook.php</code>. Der öffentliche Schlüssel steht direkt über dem
+      geheimen (<em>Veröffentlichbarer Schlüssel</em>, pk_…) — mit ihm öffnet sich die Einrichtung des
+      Partnerkontos direkt auf der Partnerseite und in der Sprache des Partners.
       Gespeichert wird ausschließlich in <code>app/config.local.php</code> auf deinem Webspace — nie im
       Repository, und angezeigt wird hier nie mehr als der Anfang und die letzten vier Zeichen.</p>
   </form>

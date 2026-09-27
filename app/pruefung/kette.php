@@ -9715,6 +9715,7 @@ Partner::$stripeProbe = static function (string $m, string $weg, array $f, strin
     $paStripe[] = [$m, $weg, $f, $key];
     if ($weg === '/v1/accounts' && $m === 'POST') { return ['id' => 'acct_kette']; }
     if ($weg === '/v1/account_links') { return ['url' => 'https://connect.stripe.com/setup/kette']; }
+    if ($weg === '/v1/account_sessions') { return ['client_secret' => 'accs_secret_kette_' . count($GLOBALS['paStripe'] ?? [])]; }
     if (str_starts_with($weg, '/v1/accounts/')) { return ['id' => 'acct_kette', 'capabilities' => ['transfers' => 'active']]; }
     if (str_starts_with($weg, '/v1/payment_intents/')) { return ['id' => substr($weg, 20), 'latest_charge' => 'ch_kette_1']; }
     if ($weg === '/v1/transfers') { return ['id' => 'tr_' . $f['metadata[provision]']]; }
@@ -9731,6 +9732,34 @@ pruefe('Stripe: Konto nur für Überweisungen (recipient), Stripe prüft, Einric
     && str_starts_with($paStripe[0][3], 'partner-konto-' . $paId . '-'));
 Partner::kontoPruefen(Partner::laden($paId));
 pruefe('Stripe: geprüftes Konto ist bereit', (int) Partner::laden($paId)['stripe_bereit'] === 1);
+
+// Eingebettete Einrichtung in der Sprache des Partners (27.09.2026, Uwe: „Ja, einbetten“)
+$paVorher = count($paStripe);
+$paS = Partner::kontoSitzung(Partner::laden($paId));
+$paSf = $paStripe[$paVorher] ?? ['', '', [], ''];
+pruefe('Stripe eingebettet: Sitzung für das vorhandene Konto, kein zweites Konto, Einrichtung eingeschaltet',
+    $paS['ok'] && str_starts_with((string) ($paS['secret'] ?? ''), 'accs_secret_') && count($paStripe) === $paVorher + 1
+    && $paSf[1] === '/v1/account_sessions' && ($paSf[2]['account'] ?? '') === 'acct_kette'
+    && ($paSf[2]['components[account_onboarding][enabled]'] ?? '') === 'true');
+$paS2 = Partner::kontoSitzung(Partner::laden($paId));
+pruefe('Stripe eingebettet: jede Anfrage bekommt eine neue Sitzung (Stripe verlangt das)', $paS2['ok'] && $paS2['secret'] !== $paS['secret']);
+require_once $wurzel . '/src/Zahlung/Anbieter.php';
+require_once $wurzel . '/src/Zahlung/Stripe.php';
+pruefe('Stripe eingebettet: öffentlicher Schlüssel nur, wenn er zum Modus passt',
+    (new StripeAnbieter(['modus' => 'live', 'geheim' => 'sk_live_x', 'oeffentlich' => 'pk_live_Ab12']))->oeffentlich() === 'pk_live_Ab12'
+    && (new StripeAnbieter(['modus' => 'live', 'geheim' => 'sk_live_x', 'oeffentlich' => 'pk_test_Ab12']))->oeffentlich() === ''
+    && (new StripeAnbieter(['modus' => 'test', 'geheim' => 'sk_test_x', 'oeffentlich' => 'sk_test_Ab12']))->oeffentlich() === ''
+    && (new StripeAnbieter(['modus' => 'test', 'geheim' => 'sk_test_x', 'oeffentlich' => 'pk_test_a"b']))->oeffentlich() === ''
+    && (new StripeAnbieter(['modus' => 'test', 'geheim' => 'sk_test_x']))->oeffentlich() === '');
+pruefe('Stripe eingebettet: jede Sprache der Partnerseite hat eine feste Stripe-Sprache',
+    array_keys(Partner::STRIPE_SPRACHE) === ['it', 'de', 'en'] && !in_array('', Partner::STRIPE_SPRACHE, true));
+$paSeite = (string) file_get_contents($wurzel . '/../partner.php');
+$paJs = (string) @file_get_contents($wurzel . '/../assets/js/partner-stripe.js');
+pruefe('Stripe eingebettet: Partnerseite lädt connect.js erst beim Klick und behält den gehosteten Link als Rückfall',
+    str_contains($paJs, 'https://connect-js.stripe.com/v1.0/connect.js') && str_contains($paJs, 'account-onboarding')
+    && str_contains($paJs, 'setOnExit') && str_contains($paJs, 'form.submit()')
+    && !str_contains($paSeite, 'connect-js.stripe.com') && str_contains($paSeite, "'stripe_sitzung'")
+    && str_contains($paSeite, 'name="tat" value="konto"') && str_contains($paSeite, 'Partner::STRIPE_SPRACHE'));
 Db::run('UPDATE partner SET vereinbarung_am = NULL WHERE id = ?', [$paId]);
 pruefe('Partner: ohne bestätigte Vereinbarung keine Auszahlung', !Partner::auszahlenStripe($paId)['ok']);
 Partner::vereinbarungMerken($paId, $paV);

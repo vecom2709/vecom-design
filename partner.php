@@ -102,6 +102,23 @@ if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['tat'] ?? '',
     exit;
 }
 
+/* Eingebettete Stripe-Einrichtung (27.09.2026): Das Skript der Seite holt
+   sich hier die kurzlebige Sitzung. Jede Anfrage legt eine neue an -- Stripe
+   verlangt das, und eine abgelaufene würde die Einrichtung mitten im Formular
+   abbrechen. Ein bereites Konto bekommt keine Sitzung mehr. */
+if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'stripe_sitzung') {
+    header('Content-Type: application/json; charset=utf-8');
+    if (!hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) { http_response_code(403); echo '{"ok":false}'; exit; }
+    if (!empty($p['stripe_bereit'])) { echo '{"ok":false,"grund":"bereit"}'; exit; }
+    try { $r = Partner::kontoSitzung($p); } catch (Throwable $e) { $r = ['ok' => false, 'text' => $e->getMessage()]; }
+    if (!$r['ok']) {
+        try { Events::melden('partner_stripe_fehler', 'Eingebettete Stripe-Einrichtung nicht gestartet: ' . $p['name'], 'warnung',
+                             (string) ($r['text'] ?? ''), '/partner/' . (int) $p['id']); } catch (Throwable $e) { }
+        echo '{"ok":false}'; exit;
+    }
+    echo json_encode(['ok' => true, 'secret' => $r['secret']]); exit;
+}
+
 /* ---------- Beleg herunterladen (nur der eigene) ---------- */
 if ($p && isset($_GET['beleg'])) {
     $a = Db::one('SELECT id FROM partner_auszahlungen WHERE id = ? AND partner_id = ?', [(int) $_GET['beleg'], (int) $p['id']]);
@@ -385,6 +402,8 @@ if ($p && isset($_GET['karte'])) {
   .blase small{display:block;font-size:11.5px;color:var(--leise);margin-top:4px}
   .blase.ich{align-self:flex-end;background:rgba(241,211,139,.10);border:1px solid rgba(241,211,139,.28);border-bottom-right-radius:4px}
   .blase.wir{align-self:flex-start;background:var(--flaeche2,rgba(255,255,255,.04));border:1px solid var(--linie);border-bottom-left-radius:4px}
+  .stripe-einrichtung{margin-top:14px;border:1px solid var(--linie);border-radius:14px;padding:18px;background:var(--flaeche);min-height:120px}
+  .stripe-einrichtung .laedt{color:var(--dim);font-size:14px;margin:0}
   .emp td small{display:block;color:var(--leise);font-size:12px}
   .emp .st{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--linie);font-size:12.5px;white-space:nowrap}
   .emp .st.bezahlt,.emp .st.online{border-color:rgba(241,211,139,.5);color:var(--cyan)}
@@ -671,12 +690,21 @@ if ($p && isset($_GET['karte'])) {
         <div class="hinweis gut"><?= $h($T('konto_bereit')) ?></div>
       <?php else: ?>
         <p class="lead" style="font-size:14.5px"><?= $h($T('konto_text')) ?></p>
-        <form method="post" action="<?= $h($selbst()) ?>">
+        <?php /* Mit öffentlichem Schlüssel öffnet das Skript die Einrichtung hier
+                 auf der Seite, in der Sprache des Partners. Ohne Schlüssel, ohne
+                 Skript oder wenn Stripe nicht lädt, schickt dasselbe Formular wie
+                 bisher auf die gehostete Stripe-Seite. */
+          $stripePk = Partner::stripeOeffentlich(); ?>
+        <form method="post" action="<?= $h($selbst()) ?>" id="stripe-form"<?php if ($stripePk !== ''): ?>
+              data-pk="<?= $h($stripePk) ?>" data-sprache="<?= $h(Partner::STRIPE_SPRACHE[$sprache] ?? 'en-GB') ?>"
+              data-zurueck="<?= $h($selbst(['stripe' => 'zurueck'])) ?>#wege" data-laden="<?= $h($T('konto_laden')) ?>"<?php endif; ?>>
           <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
           <input type="hidden" name="tat" value="konto">
           <button class="knopf"><?= $h($T(empty($p['stripe_konto']) ? 'konto_knopf' : 'konto_weiter')) ?></button>
         </form>
+        <div id="stripe-einrichtung" class="stripe-einrichtung" hidden></div>
         <p class="klein"><?= $linkMd($T('stripe_agb')) ?></p>
+        <?php if ($stripePk !== ''): ?><script src="/assets/js/partner-stripe.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-stripe.js') ?>" defer></script><?php endif; ?>
       <?php endif; ?>
       </div>
     <?php endif; ?>

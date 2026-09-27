@@ -23,5 +23,6 @@ return [
         'modus'          => 'test',          // 'test' oder 'live'
         'geheim'         => '',              // sk_test_… bzw. sk_live_…
         'webhook_geheim' => '',              // whsec_… aus "Entwickler → Webhooks"
+        'oeffentlich'    => '',              // pk_test_… bzw. pk_live_… — Partnerkonto in der Sprache des Partners einrichten
     ],
 ];

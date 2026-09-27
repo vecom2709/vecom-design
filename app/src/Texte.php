@@ -2908,6 +2908,7 @@ final class Texte
                          'en' => 'Commissions are paid via Stripe. Stripe verifies your identity and IBAN once — we never see your bank details.'],
         'konto_knopf'=> ['it' => 'Configura il conto su Stripe', 'de' => 'Konto bei Stripe einrichten', 'en' => 'Set up account with Stripe'],
         'konto_weiter'=> ['it' => 'Completa la configurazione su Stripe', 'de' => 'Einrichtung bei Stripe fortsetzen', 'en' => 'Continue setup with Stripe'],
+        'konto_laden' => ['it' => 'Stripe si sta aprendo…', 'de' => 'Stripe wird geöffnet …', 'en' => 'Opening Stripe…'],
         'konto_bereit'=> ['it' => 'Il conto è pronto: le provvigioni vengono pagate automaticamente.', 'de' => 'Das Konto ist bereit: Provisionen werden automatisch ausgezahlt.', 'en' => 'Your account is ready: commissions are paid out automatically.'],
         'stripe_agb' => ['it' => 'Configurando il conto accetta il [Stripe Recipient Agreement](https://stripe.com/connect-account/legal/recipient).',
                          'de' => 'Mit der Einrichtung stimmen Sie dem [Stripe Recipient Agreement](https://stripe.com/connect-account/legal/recipient) zu.',
