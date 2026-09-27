@@ -95,7 +95,8 @@ $sprachLinks = array_map(static fn($l) => ['l' => $l, 'href' => 'website-check.p
 <meta name="description" content="<?= $h($T('meta_beschr')) ?>">
 <link rel="canonical" href="https://vecom-design.it/website-check.php<?= $sprache !== 'it' ? '?lang=' . $h($sprache) : '' ?>">
 <?php foreach (['it', 'de', 'en'] as $l): ?><link rel="alternate" hreflang="<?= $l ?>" href="https://vecom-design.it/website-check.php<?= $l !== 'it' ? '?lang=' . $l : '' ?>">
-<?php endforeach; endif; ?>
+<?php endforeach; ?><link rel="alternate" hreflang="x-default" href="https://vecom-design.it/website-check.php">
+<?php endif; ?>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <style>
   :root{--g:#0a0908;--f:#14110d;--f2:#1b1712;--t:#f7f3ea;--d:#b4ada2;--l:#8b847a;--a:#f1d38b;--li:rgba(255,255,255,.09);--li2:rgba(255,255,255,.16);--rot:#ef6b5b}

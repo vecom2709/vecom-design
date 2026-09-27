@@ -24,7 +24,7 @@ window.VECOM_I18N.en = {
       desc: "Custom websites and online stores from Aragona, Sicily. Trilingual IT/DE/EN, built to rank on Google. Prices in the open, quote in 90 seconds.",
       locale: "en_GB"
     },
-    nav: { betrieb: "Examples", services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", erlebnis: "Experience",  cta: "Get my dashboard" },
+    nav: { betrieb: "Examples", services: "Services", work: "Work", process: "Process", plans: "Pricing", faq: "FAQ", contact: "Contact", erlebnis: "Experience",  check: "Website check", cta: "Get my dashboard" },
     buehne: { echt: "Captures of the live site" },
     hero: {
       eyebrow: "Web design from Sicily",
@@ -34,6 +34,7 @@ window.VECOM_I18N.en = {
       lead: "For businesses with standards — restaurant, salon, car dealer, workshop. Your customers experience what you offer right on the website. Made to measure, at a fixed price you approve first.",
       cta1: "Send an enquiry",
       cta2: "or see the examples first",
+      cta_check: "or check your website for free",
       cta3: "Enter the 3D experience",
       m1t: "Timeline", m1d: "set by the work, not by a calendar",
       m2t: "Pricing", m2d: "to fit, not off the shelf",
@@ -651,6 +652,7 @@ masz: {
       l1: "Services", l2: "Work", l3: "Process", l4: "Contact",
       g1: "Legal notice", g2: "Privacy", g3: "Terms", g4: "Withdrawal",
       l5: "Prices",
+      l6: "Free website check",
       rights: "All rights reserved.",
       made: "Designed and built in Aragona. By me."
     },

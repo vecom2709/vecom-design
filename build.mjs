@@ -448,6 +448,8 @@ function build(lang, seite) {
      Kontaktbereich. Ohne diese Regel ginge die deutsche Willkommensmail
      italienisch raus. */
   h = h.replace(/(href|action)="(?:\/|\.\.\/)?zugang\.php(?:\?lang=[a-z]{2})?"/g, (_, attr) => `${attr}="/zugang.php?lang=${lang}"`);
+  /* Der Website-Check (27.09.2026) spricht die Sprache ebenfalls nur ueber ?lang=. */
+  h = h.replace(/href="(?:\/|\.\.\/)?website-check\.php(?:\?lang=[a-z]{2})?"/g, `href="/website-check.php?lang=${lang}"`);
   // Dieselbe Regel fuer die Solo-Hosting-Seite: Auch sie kennt die Sprache
   // nur ueber ?lang= — ohne die Drehung zeigte der deutsche Hosting-Knopf
   // auf die italienische Fassung (so gefunden am 08.09., live).

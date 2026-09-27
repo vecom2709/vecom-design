@@ -24,7 +24,7 @@ window.VECOM_I18N.it = {
       desc: "Siti su misura, e-commerce e loghi da Aragona (AG). Trilingue IT/DE/EN, veloci e costruiti per Google. Prezzi allo scoperto, preventivo in 90 secondi.",
       locale: "it_IT"
     },
-    nav: { betrieb: "Esempi", services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", erlebnis: "Esperienza",  cta: "La mia dashboard" },
+    nav: { betrieb: "Esempi", services: "Servizi", work: "Lavori", process: "Metodo", plans: "Prezzi", faq: "FAQ", contact: "Contatti", erlebnis: "Esperienza",  check: "Check gratuito", cta: "La mia dashboard" },
     buehne: { echt: "Riprese del sito online" },
     hero: {
       eyebrow: "Webdesign dalla Sicilia",
@@ -34,6 +34,7 @@ window.VECOM_I18N.it = {
       lead: "Per attività con ambizione — ristorante, salone, concessionaria, manifattura. I suoi clienti vivono la sua offerta già sul sito. Su misura, a un prezzo fisso che approva Lei, prima.",
       cta1: "Richieda un preventivo",
       cta2: "oppure guardi prima gli esempi",
+      cta_check: "o verifichi gratis il suo sito",
       cta3: "Entri nell’esperienza 3D",
       m1t: "Tempi", m1d: "secondo il lavoro, non a calendario",
       m2t: "Prezzi", m2d: "su misura, non a pacchetto",
@@ -652,6 +653,7 @@ masz: {
       l1: "Servizi", l2: "Lavori", l3: "Metodo", l4: "Contatti",
       g1: "Note legali", g2: "Privacy", g3: "Condizioni", g4: "Recesso",
       l5: "Prezzi",
+      l6: "Check gratuito del sito",
       rights: "Tutti i diritti riservati.",
       made: "Progettato e sviluppato ad Aragona. Da me."
     },

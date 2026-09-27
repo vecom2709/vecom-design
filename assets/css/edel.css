@@ -65,6 +65,9 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
   transition: border-color var(--d-ui, .18s) ease, color var(--d-ui, .18s) ease;
 }
 .hero__leise:hover { color: #fff; border-color: var(--c-cyan); }
+.hero__leise-zeile { display: flex; flex-wrap: wrap; gap: .6rem 1.6rem; align-items: baseline; }
+/* Der Website-Check im Menü nur, wenn das Menü eine Liste ist (Handy). */
+@media (min-width: 901px) { .nav a.nav__mobil { display: none; } }
 
 /* ---------- Mein Betrieb ist … (K3) ------------------------------------- */
 .betrieb__raster {

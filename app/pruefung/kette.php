@@ -12633,6 +12633,16 @@ pruefe('Verwaltung: Anfragen-Liste auf „Betriebe“, Schalter unter Regeln & V
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'value="akq_check_schalten"')
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_checks' =>")
     && str_contains((string) file_get_contents($wurzel . '/src/Akquise.php'), 'FROM akq_checks c WHERE c.firma_id = akq_firmen.id AND c.ausfuehrlich = 1'));
+$wcStart = (string) file_get_contents($wurzel . '/../index.html');
+$wcCss = (string) file_get_contents($wurzel . '/../assets/css/edel.css');
+pruefe('Startseite: Website-Check als leiser Weg im Aufmacher, im Menü nur auf dem Handy, in der Fußzeile, in der Sitemap, ?lang= je Sprache',
+    str_contains($wcStart, 'data-i18n="hero.cta_check"') && str_contains($wcStart, 'class="nav__mobil"') && str_contains($wcStart, 'data-i18n="footer.l6"')
+    && str_contains($wcCss, '.nav a.nav__mobil { display: none; }') && substr_count((string) file_get_contents($wurzel . '/../sitemap.xml'), '<loc>https://vecom-design.it/website-check.php') === 3
+    && str_contains((string) file_get_contents($wurzel . '/../build.mjs'), 'website-check\\.php(?:\\?lang=[a-z]{2})?"/g'));
+$wcI18n = [];
+foreach (['it', 'de', 'en'] as $wcSp) { $wcJs = (string) file_get_contents($wurzel . "/../assets/js/i18n-$wcSp.js");
+    foreach (['cta_check: "', ' check: "', 'l6: "'] as $wcKey) { if (substr_count($wcJs, $wcKey) !== 1) { $wcI18n[] = "$wcSp:$wcKey"; } } }
+pruefe('Startseite: die drei neuen Texte je Sprache genau einmal (kein doppelter Schlüssel)', $wcI18n === [], implode(', ', $wcI18n));
 
 /* ============================================================================
    Aufräumen und Bilanz

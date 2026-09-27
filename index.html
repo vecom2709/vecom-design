@@ -53,7 +53,7 @@
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
 <link rel="stylesheet" href="assets/css/app.css?v=a7e6f7d5">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
-<link rel="stylesheet" href="assets/css/edel.css?v=1424a7dc">
+<link rel="stylesheet" href="assets/css/edel.css?v=e7e0f5af">
 <link rel="stylesheet" href="assets/css/vorschau.css?v=d4f9bf8a">
 
 
@@ -361,6 +361,7 @@
       <a href="#plans" data-i18n="nav.plans">Prezzi</a>
       <a href="#process" data-i18n="nav.process">Metodo</a>
       <a href="#about" data-i18n="about.nav">Chi sono</a>
+      <a class="nav__mobil" href="/website-check.php?lang=it" data-i18n="nav.check">Check gratuito</a>
       <a href="#contact" data-i18n="nav.contact">Contatti</a>
     </nav>
 
@@ -423,7 +424,13 @@
         <p class="zugangsfeld__note" data-i18n="zugang.note">Le mando il link alla sua dashboard personale: da lì passa tutto, fino alla consegna del sito. Nessun account, nessuna password.</p>
         <p class="zugangsfeld__ok" role="status" aria-live="polite" hidden></p>
       </form>
-      <a class="hero__leise" href="#betrieb" data-i18n="hero.cta2">oppure guardi prima gli esempi</a>
+      <!-- Zwei leise Wege neben dem Feld (27.09.2026): Beispiele oder der
+           kostenlose Website-Check. Im Menü steht der Check nur auf dem Handy --
+           auf dem Rechner hat die Leiste für einen achten Punkt keinen Platz. -->
+      <div class="hero__leise-zeile">
+        <a class="hero__leise" href="#betrieb" data-i18n="hero.cta2">oppure guardi prima gli esempi</a>
+        <a class="hero__leise" href="/website-check.php?lang=it" data-i18n="hero.cta_check">o verifichi gratis il suo sito</a>
+      </div>
     </div>
   </div>
 
@@ -1560,6 +1567,7 @@
         <a href="#work" data-i18n="footer.l2">Lavori</a>
         <a href="#process" data-i18n="footer.l3">Metodo</a>
         <a href="prezzi.html" data-i18n="footer.l5">Prezzi</a>
+        <a href="/website-check.php?lang=it" data-i18n="footer.l6">Check gratuito del sito</a>
         <a href="tecnica.html" data-i18n="edel.tk_fuss">Tecnica</a>
         <a href="#contact" data-i18n="footer.l4">Contatti</a>
         <span class="footer__sep" aria-hidden="true"></span>
@@ -1626,7 +1634,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=f2813864" defer></script>
+<script src="assets/js/i18n-it.js?v=6426dc54" defer></script>
 <script src="assets/js/app.js?v=86a56c04" defer></script>
 <script src="assets/js/sprachhinweis.js?v=c3e9c14b" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>

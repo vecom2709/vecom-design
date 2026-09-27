@@ -145,6 +145,30 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/tecnica.html"/>
     <lastmod>2026-09-24</lastmod><priority>0.4</priority>
   </url>
+  <url>
+    <loc>https://vecom-design.it/website-check.php</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/website-check.php"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/website-check.php?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/website-check.php?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/website-check.php"/>
+    <lastmod>2026-09-27</lastmod><priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/website-check.php?lang=de</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/website-check.php"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/website-check.php?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/website-check.php?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/website-check.php"/>
+    <lastmod>2026-09-27</lastmod><priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/website-check.php?lang=en</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/website-check.php"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/website-check.php?lang=de"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/website-check.php?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/website-check.php"/>
+    <lastmod>2026-09-27</lastmod><priority>0.8</priority>
+  </url>
   <!-- landeseiten:anfang (build.mjs) -->
   <url>
     <loc>https://vecom-design.it/siti-web-agrigento.html</loc>
