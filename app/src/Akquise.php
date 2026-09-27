@@ -478,7 +478,10 @@ final class Akquise
                      OR (audit_status = 'fehler' AND updated_at < DATE_SUB(NOW(), INTERVAL 3 HOUR)
                          AND (SELECT COUNT(*) FROM akq_audits a WHERE a.firma_id = akq_firmen.id AND a.status = 'fehler'
                                 AND a.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)) < 3))
-              ORDER BY (audit_status = 'offen') DESC, recherchiert_am ASC, id ASC
+              ORDER BY (audit_status = 'offen') DESC,
+                       -- Wer über den Website-Check die ausführliche Analyse will, wartet nicht hinter der Recherche.
+                       EXISTS (SELECT 1 FROM akq_checks c WHERE c.firma_id = akq_firmen.id AND c.ausfuehrlich = 1 AND c.status = 'neu') DESC,
+                       recherchiert_am ASC, id ASC
               LIMIT $anzahl");
         foreach ($zeilen as $z) {
             Db::update('akq_firmen', (int) $z['id'], ['audit_status' => 'laeuft']);

@@ -32,6 +32,8 @@ foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'AkquiseWor
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
+/* Neue Tabellen (z. B. akq_checks, 27.09.2026) sollen den Worker nicht treffen, bevor jemand die Verwaltung öffnet. */
+try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaetig(false); } catch (Throwable $e) { }
 
 $kopf = (string) ($_SERVER['HTTP_X_VECOM_AKQUISE'] ?? '');
 if ($kopf === '' && preg_match('/Bearer\s+(\S+)/i', (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''), $m)) {

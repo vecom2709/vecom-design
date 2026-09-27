@@ -259,6 +259,18 @@ if ($post) {
                 $_SESSION['gut'] = 'Wochenziel gespeichert.';
                 weiter('akquise/auswertung');
 
+            case 'akq_check_erledigt':
+                require_once __DIR__ . '/src/AkquiseCheck.php';
+                AkquiseCheck::erledigen((int) ($_POST['check'] ?? 0));
+                weiter('akquise#checks');
+
+            case 'akq_check_schalten':
+                require_once __DIR__ . '/src/AkquiseCheck.php';
+                AkquiseCheck::schalten(!empty($_POST['an']));
+                Events::pruefspur('akquise_check_schalter', 'settings', null, [], ['akq_check_an' => !empty($_POST['an']) ? '1' : '0']);
+                $_SESSION['gut'] = !empty($_POST['an']) ? 'Website-Check ist eingeschaltet.' : 'Website-Check ist ausgeschaltet — die Seite nimmt keine Anfragen an.';
+                $zu('regeln#check');
+
             case 'akq_signal_erledigt':
                 require_once __DIR__ . '/src/AkquiseSignal.php';
                 AkquiseSignal::erledigen((int) ($_POST['signal'] ?? 0));
@@ -486,5 +498,6 @@ ansicht('akquise', [
     'suchen' => Db::all("SELECT gebiet, status FROM akq_laeufe WHERE status IN ('wartet','laeuft') ORDER BY id LIMIT 5"),
     'branchen' => Akquise::branchen(),
     'signale' => sicher(static function () { require_once __DIR__ . '/src/AkquiseSignal.php'; return AkquiseSignal::offen(); }, []),
+    'checks' => sicher(static function () { require_once __DIR__ . '/src/AkquiseCheck.php'; return AkquiseCheck::liste(10); }, []),
 ]);
 exit;

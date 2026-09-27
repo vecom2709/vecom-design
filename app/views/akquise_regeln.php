@@ -8,6 +8,10 @@
 $akqTeil = 'regeln';
 require_once dirname(__DIR__) . '/src/AkquiseBriefdienst.php';
 require_once dirname(__DIR__) . '/src/AkquisePostfach.php';
+require_once dirname(__DIR__) . '/src/AkquiseCheck.php';
+$ckAn = AkquiseCheck::an();
+$ckZahl = (int) Db::wert('SELECT COUNT(*) FROM akq_checks WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)', [], 0);
+$ckOffen = AkquiseCheck::offen();
 $bdDa = AkquiseBriefdienst::bereit(); $bdTest = AkquiseBriefdienst::test();
 $pfZ = AkquisePostfach::zugang(); $pfDa = AkquisePostfach::bereit();
 $pfStand = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_postfach_stand'", [], ''), true) ?: [];
@@ -44,6 +48,7 @@ $blick = [
         $pfFehler !== '' ? 'Verbindung klappt nicht — bitte prüfen.' : ($pfDa ? 'Verbunden · liest alle 10 Minuten.' : 'Noch nicht eingerichtet.'), '#postfach'],
     ['Nie kontaktieren', 'gruen', count($sperrliste) . ' Einträge — werden immer übersprungen.', '#sperrliste'],
     ['Heute', '', $heute . ' Mails verschickt · ' . $blockiert . ' in 30 Tagen zurückgehalten.', '#versand'],
+    ['Website-Check', $ckAn ? 'gruen' : '', $ckAn ? $ckZahl . ' Checks in 30 Tagen' . ($ckOffen ? ' · ' . $ckOffen . ' offen' : '') . '.' : 'Aus · die Seite nimmt nichts an.', '#check'],
     ['Verbindung zum PC', $schluesselDa ? 'gruen' : '', $schluesselDa ? 'Eingerichtet.' : 'Nicht eingerichtet (nur für die Suche am PC nötig).', '#rechner'],
 ];
 ?>
@@ -217,6 +222,18 @@ $blick = [
 
 <h2 class="rg-abschnitt">Einmal einrichten</h2>
 <div class="rg-drei">
+  <div class="block" id="check">
+    <h2>Website-Check auf deiner Seite</h2>
+    <p class="rg-erkl">Betriebe prüfen ihre Website selbst unter <a href="/website-check.php" target="_blank" rel="noopener" style="text-decoration:underline">vecom-design.it/website-check.php</a>.
+      Sie sehen sofort sechs Punkte und wählen getrennt: ausführliche Analyse (dann darfst du antworten) und Werbe-Einwilligung (erst nach Bestätigung per Mail).</p>
+    <p class="rg-stand"><span class="akq-ampel <?= $ckAn ? 'gruen' : '' ?>"><i aria-hidden="true"></i>
+      <?= $ckAn ? 'An · ' . $ckZahl . ' Checks in 30 Tagen' . ($ckOffen ? ', ' . $ckOffen . ' offen' : '') : 'Aus' ?></span></p>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_check_schalten">
+      <input type="hidden" name="an" value="<?= $ckAn ? '' : '1' ?>">
+      <button class="knopf"><?= $ckAn ? 'Ausschalten' : 'Einschalten' ?></button></form>
+    <p class="akq-klein" style="margin-top:10px">Name, E-Mail und Telefon werden nach <?= AkquiseCheck::FRIST_TAGE ?> Tagen gelöscht, wenn daraus weder Einwilligung noch Auftrag wurde.</p>
+  </div>
+
   <div class="block" id="briefdienst">
     <h2>Briefe per Post <span class="akq-klein" style="font-weight:400">· nur Italien</span></h2>
     <p class="rg-erkl">Freigegebene Briefe druckt, kuvertiert und frankiert ufficiopostale.com. Vor jedem Brief siehst du Preis und Blatt — raus geht er erst mit deinem Klick.</p>

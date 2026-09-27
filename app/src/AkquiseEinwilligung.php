@@ -19,9 +19,10 @@ require_once __DIR__ . '/AkquiseText.php';
  * Bestaetigungsmail an genau diese Adresse tut das. Keine Rechtsberatung --
  * das Verfahren ist das uebliche, der Wortlaut steht je Zeile gespeichert.
  *
- * ZWEI WEGE HINEIN
+ * DREI WEGE HINEIN
  *   analyse -- Kasten auf der Analyse-Seite (der QR-Code im Brief fuehrt dorthin)
  *   link    -- Uwe schickt nach einem Gespraech einen Link (einwilligung.php?t=…)
+ *   check   -- Haekchen im oeffentlichen Website-Check (AkquiseCheck, 27.09.2026)
  * Beide enden gleich: Bestaetigung → akq_firmen.einwilligung + E-Mail-Adresse,
  * Protokoll, Pruefspur, Meldung. Danach zeigt die Ampel gruen, und die
  * Sperre der Zweitansprache ist fuer die E-Mail aufgehoben (AkquiseGate).
@@ -159,7 +160,7 @@ final class AkquiseEinwilligung
         $jetzt = date('Y-m-d H:i:s');
         Db::update('akq_einwilligungen', (int) $e['id'], ['status' => 'bestaetigt', 'bestaetigt_am' => $jetzt]);
         $beleg = mb_substr('Double-Opt-in ' . date('d.m.Y H:i', strtotime($jetzt)) . ' für ' . $e['email']
-            . ' über ' . ($e['quelle'] === 'analyse' ? 'Analyse-Seite' : 'Einwilligungs-Link') . ', Wortlaut ' . $e['wortlaut_version']
+            . ' über ' . (['analyse' => 'Analyse-Seite', 'check' => 'Website-Check'][$e['quelle']] ?? 'Einwilligungs-Link') . ', Wortlaut ' . $e['wortlaut_version']
             . ' (Nachweis #' . $e['id'] . ')', 0, 255);
         $alt = ['einwilligung' => $f['einwilligung'], 'email' => $f['email']];
         Db::update('akq_firmen', (int) $f['id'], ['einwilligung' => $beleg, 'email' => $e['email']]);

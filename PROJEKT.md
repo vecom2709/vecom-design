@@ -5043,3 +5043,4 @@ Uwe: „alle Meldungen in der Verwaltung sollen löschbar sein, vieles liegt sei
 ### 27.09.2026 — Telefonnummer und WhatsApp-Zeile
 Uwe: Nummer auf +39 380 190 7017, WhatsApp auf „Nur schreiben · @vecomdesign“. Geändert in build.mjs (alle drei Sprachen), im Anruf-Link der Vorlage, in den strukturierten Daten von Startseite und Technikseite und in den drei Sprachdateien; der Merkzettel fürs Google-Profil zieht mit.
 Kettenabschnitt 61 vergleicht die vier Stellen miteinander und reißt, wenn eine zurückbleibt — genau das war beim letzten Wechsel passiert.
+- 27.09.2026 · Öffentlicher Website-Check (website-check.php) als Lead-Magnet: Anfrage („ausführliche Analyse“) und Werbe-Einwilligung getrennt, Einwilligung erst per Double-Opt-in (Quelle check). Name/E-Mail/Telefon nur in akq_checks, nie an der Firma; nach 180 Tagen ohne Einwilligung/Auftrag anonymisiert. Bestand und Lücken des Gesamtauftrags in AKQUISE.md.

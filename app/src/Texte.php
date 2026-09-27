@@ -3508,6 +3508,51 @@ final class Texte
         'weg'     => ['it' => 'Questo rapporto non è più disponibile.', 'de' => 'Dieser Bericht ist nicht mehr verfügbar.', 'en' => 'This report is no longer available.'],
     ];
 
+    /* Öffentlicher Website-Check (27.09.2026): website-check.php. Zwei
+       Häkchen, die nichts miteinander zu tun haben -- die Anfrage und die
+       Werbeeinwilligung. Die Punkte selbst kommen aus PARTNER_CHECK. */
+    public const AKQ_CHECK = [
+        'meta_titel' => ['it' => 'Verifica gratuita del sito web · Vecom Design', 'de' => 'Kostenloser Website-Check · Vecom Design', 'en' => 'Free website check · Vecom Design'],
+        'meta_beschr' => ['it' => 'In pochi secondi: velocità, sicurezza, telefono, Google e aggiornamento del suo sito. Gratis e senza impegno.', 'de' => 'In wenigen Sekunden: Ladezeit, Sicherheit, Handy, Google und Aktualität Ihrer Website. Kostenlos und unverbindlich.', 'en' => 'In a few seconds: speed, security, mobile, Google and freshness of your website. Free, no strings attached.'],
+        'marke_zeile' => ['it' => 'Verifica gratuita', 'de' => 'Kostenloser Check', 'en' => 'Free check'],
+        'h1' => ['it' => 'Il suo sito le porta clienti o li fa scappare?', 'de' => 'Bringt Ihre Website Kunden – oder vertreibt sie?', 'en' => 'Is your website winning customers – or losing them?'],
+        'lead' => ['it' => 'Inserisca l’indirizzo: in pochi secondi vede sei punti che visitatori e Google notano subito. Gratis, senza impegno.', 'de' => 'Adresse eingeben: In wenigen Sekunden sehen Sie sechs Punkte, die Besucher und Google sofort merken. Kostenlos und unverbindlich.', 'en' => 'Enter the address: in a few seconds you’ll see six points visitors and Google notice at once. Free, no strings attached.'],
+        'was' => ['it' => 'Velocità · Sicurezza · Telefono · Google · Aggiornamento · Condivisione', 'de' => 'Ladezeit · Sicherheit · Handy · Google · Aktualität · Teilen', 'en' => 'Speed · Security · Mobile · Google · Freshness · Sharing'],
+        'f_url' => ['it' => 'Indirizzo del sito', 'de' => 'Adresse der Website', 'en' => 'Website address'],
+        'f_url_bsp' => ['it' => 'es. trattoria-rossi.it', 'de' => 'z. B. baeckerei-mueller.de', 'en' => 'e.g. my-business.com'],
+        'f_firma' => ['it' => 'Nome dell’attività', 'de' => 'Name des Betriebs', 'en' => 'Business name'],
+        'f_name' => ['it' => 'Il suo nome', 'de' => 'Ihr Name', 'en' => 'Your name'],
+        'f_email' => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+        'f_telefon' => ['it' => 'Telefono', 'de' => 'Telefon', 'en' => 'Phone'],
+        'f_optional' => ['it' => 'facoltativo', 'de' => 'freiwillig', 'en' => 'optional'],
+        'f_land' => ['it' => 'Paese', 'de' => 'Land', 'en' => 'Country'],
+        'land_IT' => ['it' => 'Italia', 'de' => 'Italien', 'en' => 'Italy'],
+        'land_DE' => ['it' => 'Germania', 'de' => 'Deutschland', 'en' => 'Germany'],
+        'f_sprache' => ['it' => 'Lingua per la risposta', 'de' => 'Sprache für die Antwort', 'en' => 'Language for our reply'],
+        'ausf' => ['it' => 'Mi contatti con l’analisi completa del mio sito.', 'de' => 'Bitte melden Sie sich mit der ausführlichen Analyse meiner Website.', 'en' => 'Please get in touch with the full analysis of my website.'],
+        'ausf_hilfe' => ['it' => 'Una sola risposta a questa richiesta, nient’altro.', 'de' => 'Eine Antwort auf genau diese Anfrage, sonst nichts.', 'en' => 'One reply to exactly this request, nothing else.'],
+        'mkt_vor' => ['it' => 'Inoltre acconsento:', 'de' => 'Außerdem bin ich einverstanden:', 'en' => 'I also agree:'],
+        'mkt_hilfe' => ['it' => 'Facoltativo. Le mandiamo un’e-mail di conferma: conta solo il suo clic lì dentro.', 'de' => 'Freiwillig. Sie bekommen eine Bestätigungsmail – erst Ihr Klick darin zählt.', 'en' => 'Optional. You’ll get a confirmation email – only your click in it counts.'],
+        'knopf' => ['it' => 'Verificare il sito ora', 'de' => 'Website jetzt prüfen', 'en' => 'Check website now'],
+        'datenschutz' => ['it' => 'Usiamo i suoi dati solo per questa verifica e, se lo desidera, per la sua richiesta. Nome, e-mail e telefono vengono cancellati dopo 180 giorni, se non ne nasce nulla.', 'de' => 'Wir verwenden Ihre Angaben nur für diesen Check und – falls gewünscht – für Ihre Anfrage. Name, E-Mail und Telefon löschen wir nach 180 Tagen, wenn daraus nichts entsteht.', 'en' => 'We use your details only for this check and, if you wish, for your request. Name, email and phone are deleted after 180 days if nothing comes of it.'],
+        'datenschutz_link' => ['it' => 'Privacy', 'de' => 'Datenschutz', 'en' => 'Privacy'],
+        'fehler_angaben' => ['it' => 'Per favore inserisca il suo nome e il nome dell’attività.', 'de' => 'Bitte Ihren Namen und den Namen des Betriebs eintragen.', 'en' => 'Please enter your name and the business name.'],
+        'fehler_email' => ['it' => 'Questo indirizzo e-mail non sembra corretto.', 'de' => 'Diese E-Mail-Adresse scheint nicht zu stimmen.', 'en' => 'This email address doesn’t look right.'],
+        'fehler_adresse' => ['it' => 'Questo indirizzo non si può verificare. Controlli che sia scritto bene, es. trattoria-rossi.it', 'de' => 'Diese Adresse lässt sich nicht prüfen. Bitte die Schreibweise prüfen, z. B. baeckerei-mueller.de', 'en' => 'This address can’t be checked. Please check the spelling, e.g. my-business.com'],
+        'fehler_zuviel' => ['it' => 'Oggi ci sono già state molte verifiche. Riprovi domani.', 'de' => 'Heute gab es schon viele Prüfungen. Bitte morgen wieder versuchen.', 'en' => 'There have been many checks today. Please try again tomorrow.'],
+        'fehler_warten' => ['it' => 'Un momento, per favore: riprovi tra qualche secondo.', 'de' => 'Einen Moment bitte – in ein paar Sekunden noch einmal absenden.', 'en' => 'One moment, please – send again in a few seconds.'],
+        'fehler_aus' => ['it' => 'La verifica è momentaneamente disattivata.', 'de' => 'Der Check ist gerade ausgeschaltet.', 'en' => 'The check is switched off at the moment.'],
+        'fehler_zeit' => ['it' => 'Per favore invii di nuovo il modulo.', 'de' => 'Bitte das Formular noch einmal absenden.', 'en' => 'Please send the form again.'],
+        'r_lead' => ['it' => 'Verificato automaticamente il {datum}. Sei punti che visitatori e Google notano subito.', 'de' => 'Automatisch geprüft am {datum}. Sechs Punkte, die Besucher und Google sofort merken.', 'en' => 'Checked automatically on {datum}. Six points visitors and Google notice right away.'],
+        'n_ausf' => ['it' => 'Grazie! Le scriviamo con l’analisi completa.', 'de' => 'Danke! Wir melden uns mit der ausführlichen Analyse.', 'en' => 'Thank you! We’ll get back to you with the full analysis.'],
+        'n_mkt' => ['it' => 'Per favore confermi l’e-mail che le abbiamo appena mandato. Senza il suo clic non le scriviamo.', 'de' => 'Bitte bestätigen Sie die E-Mail, die wir Ihnen gerade geschickt haben. Ohne Ihren Klick schreiben wir Ihnen nicht.', 'en' => 'Please confirm the email we just sent you. Without your click we won’t write to you.'],
+        'n_mkt_zuviel' => ['it' => 'Per questo indirizzo oggi è già partita una conferma: controlli la posta.', 'de' => 'Für diese Adresse ging heute schon eine Bestätigung raus – bitte im Postfach nachsehen.', 'en' => 'A confirmation was already sent to this address today – please check your inbox.'],
+        'weiter_titel' => ['it' => 'Quanto costerebbe un sito nuovo?', 'de' => 'Was würde eine neue Seite kosten?', 'en' => 'What would a new site cost?'],
+        'weiter_text' => ['it' => 'In due minuti vede cosa serve alla sua attività, e il prezzo prima di decidere.', 'de' => 'In zwei Minuten sehen Sie, was Ihr Betrieb braucht – und den Preis, bevor Sie entscheiden.', 'en' => 'In two minutes you’ll see what your business needs – and the price before you decide.'],
+        'weiter_knopf' => ['it' => 'Vedere esigenze e prezzo', 'de' => 'Bedarf und Preis ansehen', 'en' => 'See needs and price'],
+        'nochmal' => ['it' => 'Verificare un altro sito', 'de' => 'Andere Website prüfen', 'en' => 'Check another website'],
+    ];
+
     /* Gesprächsleitfaden für Partner: kurz, auf dem Handy lesbar. */
     public const PARTNER_LEITFADEN = [
         ['titel' => ['it' => 'Come iniziare', 'de' => 'So fangen Sie an', 'en' => 'How to start'],

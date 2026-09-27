@@ -12541,6 +12541,100 @@ foreach (['it', 'de', 'en'] as $nrSpr) {
 }
 
 /* ============================================================================
+   Öffentlicher Website-Check (27.09.2026)
+   Zwei Häkchen, zwei Bedeutungen: Die Anfrage erlaubt eine Antwort, das
+   Marketing-Häkchen nur eine Bestätigungsmail -- Werbung erst nach dem Klick
+   darin. Name, E-Mail und Telefon bleiben im Check, nie an der Firma.
+   ============================================================================ */
+abschnitt('Website-Check (öffentlich, mit Double-Opt-in)');
+require_once $wurzel . '/src/AkquiseCheck.php';
+require_once $wurzel . '/src/AkquiseEinwilligung.php';
+$wcJetzt = time();
+pruefe('Website-Check: Zeitstempel -- zu schnell, zu alt oder verändert zählt nicht',
+    AkquiseCheck::stempelGut(AkquiseCheck::stempel($wcJetzt - 10), $wcJetzt) && !AkquiseCheck::stempelGut(AkquiseCheck::stempel($wcJetzt), $wcJetzt)
+    && !AkquiseCheck::stempelGut(AkquiseCheck::stempel($wcJetzt - 8000), $wcJetzt) && !AkquiseCheck::stempelGut(($wcJetzt - 10) . '.000000000000000000000000', $wcJetzt));
+PartnerCheck::$aufloeser = static fn(string $host): array => $host === 'intern.example' ? ['10.0.0.7'] : ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 4200, 'url' => $url, 'ssl_tage' => null, 'fehler' => '',
+    'inhalt' => '<html><head><title>Pizzeria</title></head><body><p>&copy; 2017</p></body></html>'];
+$wcBasis = ['name' => 'Maria Rossi', 'firma' => 'Pizzeria Check', 'url' => 'pizzeria-check.example', 'email' => 'Maria@Pizzeria-Check.example',
+            'telefon' => '333 1234567', 'land' => 'IT', 'sprache' => 'it', 'ausfuehrlich' => true, 'marketing' => false];
+$wcHoler = PartnerCheck::$holer; PartnerCheck::$holer = null;   // echter Abruf: die IP-Prüfung muss vorher greifen
+pruefe('Website-Check: ein Name, der auf eine private Adresse zeigt, wird nicht abgerufen',
+    (AkquiseCheck::anlegen(['url' => 'intern.example'] + $wcBasis, '198.51.100.2')['grund'] ?? '') === 'adresse');
+PartnerCheck::$holer = $wcHoler;
+AkquiseCheck::schalten(false);
+pruefe('Website-Check: ausgeschaltet nimmt er nichts an', AkquiseCheck::anlegen($wcBasis, '198.51.100.1') === ['ok' => false, 'grund' => 'aus']);
+AkquiseCheck::schalten(true);
+pruefe('Website-Check: kaputte Eingaben -- Adresse, private Adresse, E-Mail, Name',
+    AkquiseCheck::anlegen(['url' => 'localhost'] + $wcBasis, '198.51.100.2')['grund'] === 'adresse'
+    && AkquiseCheck::anlegen(['email' => 'keine'] + $wcBasis, '198.51.100.2')['grund'] === 'email'
+    && AkquiseCheck::anlegen(['name' => ''] + $wcBasis, '198.51.100.2')['grund'] === 'angaben'
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_checks', [], 0) === 0);
+$wcMeld = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_check'", [], 0);
+$wcMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0);
+$wcA = AkquiseCheck::anlegen($wcBasis, '198.51.100.3');
+$wcZ = Db::one('SELECT * FROM akq_checks WHERE token = ?', [(string) ($wcA['token'] ?? '')]);
+$wcF = $wcZ ? Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $wcZ['firma_id']]) : null;
+pruefe('Website-Check: Ergebnis mit Schlüssel, Betrieb angelegt (Quelle website-check), OHNE E-Mail und Telefon an der Firma',
+    $wcA['ok'] && $wcZ && $wcF && str_starts_with((string) $wcF['quelle'], 'website-check:') && $wcF['email'] === null && $wcF['telefon'] === null
+    && $wcZ['email'] === 'maria@pizzeria-check.example' && strlen((string) $wcZ['ip_hash']) === 64 && (int) $wcZ['schlecht'] >= 3);
+pruefe('Website-Check: nur die Anfrage -- keine Bestätigungsmail, keine Einwilligung, E-Mail bleibt gesperrt, Meldung an Uwe',
+    (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0) === $wcMails && $wcZ['einwilligung_stand'] === null
+    && trim((string) ($wcF['einwilligung'] ?? '')) === '' && AkquiseGate::pruefen($wcF, 'email')['status'] !== AkquiseGate::ERLAUBT
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_check'", [], 0) === $wcMeld + 1
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND schritt = 'anfrage'", [(int) $wcF['id']], 0) === 1);
+$wcL = AkquiseCheck::laden((string) $wcA['token']);
+pruefe('Website-Check: die Ergebnis-Adresse zeigt weder Name noch E-Mail noch Telefon', $wcL && !isset($wcL['email']) && !isset($wcL['name']) && !isset($wcL['telefon'])
+    && count($wcL['ergebnis']['punkte']) === 6 && str_contains(AkquiseCheck::link((string) $wcA['token']), '/website-check.php?t='));
+$wcB = AkquiseCheck::anlegen(['marketing' => true, 'email' => 'inhaber@pizzeria-check.example', 'sprache_seite' => 'de'] + $wcBasis, '198.51.100.4');
+$wcZ2 = Db::one('SELECT * FROM akq_checks WHERE token = ?', [(string) $wcB['token']]);
+$wcE = $wcZ2 && $wcZ2['einwilligung_id'] ? Db::one('SELECT * FROM akq_einwilligungen WHERE id = ?', [(int) $wcZ2['einwilligung_id']]) : null;
+pruefe('Website-Check mit Marketing-Häkchen: dieselbe Firma (Dublette), eine Bestätigungsmail, Wortlaut in der Sprache der Seite, noch KEINE Erlaubnis',
+    $wcB['ok'] && (int) $wcZ2['firma_id'] === (int) $wcF['id'] && $wcZ2['einwilligung_stand'] === 'ok' && $wcE && $wcE['quelle'] === 'check' && $wcE['status'] === 'angefragt'
+    && $wcE['sprache'] === 'de' && str_contains((string) $wcE['wortlaut'], 'darf mir')
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0) === $wcMails + 1
+    && trim((string) Db::wert('SELECT COALESCE(einwilligung, \'\') FROM akq_firmen WHERE id = ?', [(int) $wcF['id']], 'x')) === '');
+$wcOk = $wcE ? AkquiseEinwilligung::bestaetigen((string) $wcE['doi_token']) : ['ok' => false];
+$wcF2 = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $wcF['id']]);
+pruefe('Website-Check: erst der Klick in der Mail erlaubt die E-Mail -- Beleg nennt den Website-Check',
+    $wcOk['ok'] && str_contains((string) $wcF2['einwilligung'], 'über Website-Check') && $wcF2['email'] === 'inhaber@pizzeria-check.example'
+    && AkquiseGate::pruefen($wcF2, 'email')['bedingung'] === 'einwilligung', (string) $wcF2['einwilligung']);
+pruefe('Website-Check: höchstens ' . AkquiseCheck::JE_DOMAIN . ' je Domain und Tag',
+    AkquiseCheck::anlegen($wcBasis, '198.51.100.5')['ok'] && AkquiseCheck::anlegen($wcBasis, '198.51.100.6')['grund'] === 'zuviel');
+for ($i = 1; $i <= AkquiseCheck::JE_ADRESSE; $i++) { AkquiseCheck::anlegen(['url' => "laden-$i.example", 'firma' => "Laden $i"] + $wcBasis, '198.51.100.7'); }
+pruefe('Website-Check: höchstens ' . AkquiseCheck::JE_ADRESSE . ' je Absender und Tag',
+    (int) Db::wert("SELECT COUNT(*) FROM akq_checks WHERE host LIKE 'laden-%'", [], 0) === AkquiseCheck::JE_ADRESSE
+    && AkquiseCheck::anlegen(['url' => 'laden-9.example', 'firma' => 'Laden 9'] + $wcBasis, '198.51.100.7')['grund'] === 'zuviel');
+AkquiseGate::eintragen('email', 'nein@sperre-check.example', 'Test');
+$wcS = AkquiseCheck::anlegen(['url' => 'sperre-check.example', 'firma' => 'Bar Sperre', 'email' => 'nein@sperre-check.example', 'marketing' => true] + $wcBasis, '198.51.100.8');
+pruefe('Website-Check: Adresse auf „Nie kontaktieren“ -- Ergebnis ja, Bestätigungsmail nein',
+    $wcS['ok'] && (string) Db::wert('SELECT einwilligung_stand FROM akq_checks WHERE token = ?', [(string) $wcS['token']], '') === 'gesperrt'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung' AND empfaenger = 'nein@sperre-check.example'", [], 0) === 0);
+Db::run('UPDATE akq_checks SET created_at = DATE_SUB(NOW(), INTERVAL ' . (AkquiseCheck::FRIST_TAGE + 1) . ' DAY)');
+$wcN = AkquiseCheck::aufraeumen(true);
+$wcMitEw = Db::one('SELECT * FROM akq_checks WHERE id = ?', [(int) $wcZ2['id']]);
+$wcOhne = Db::one('SELECT * FROM akq_checks WHERE id = ?', [(int) $wcZ['id']]);
+pruefe('Website-Check: nach ' . AkquiseCheck::FRIST_TAGE . ' Tagen ohne Einwilligung anonymisiert, mit bestätigter Einwilligung bleibt der Beleg',
+    $wcN > 0 && $wcOhne['email'] === null && $wcOhne['name'] === null && $wcOhne['ip_hash'] === null && $wcOhne['status'] === 'anonymisiert'
+    && $wcMitEw['email'] === 'inhaber@pizzeria-check.example' && AkquiseCheck::aufraeumen() === 0);
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+$wcSeite = (string) file_get_contents($wurzel . '/../website-check.php');
+pruefe('Website-Check-Seite: ohne Skript, Formular nur an uns, Ergebnis nie im Index, beide Häkchen ab Werk leer, Lockfeld und Zeitstempel',
+    !str_contains($wcSeite, '<script') && str_contains($wcSeite, "default-src 'none'") && str_contains($wcSeite, "form-action 'self'")
+    && str_contains($wcSeite, '<meta name="robots" content="noindex, nofollow">') && str_contains($wcSeite, "'ausfuehrlich' => false, 'marketing' => false")
+    && str_contains($wcSeite, 'name="homepage"') && str_contains($wcSeite, 'AkquiseCheck::stempelGut(') && str_contains($wcSeite, "Sprache::legal(\$sprache, 'privacy')"));
+$wcOhneT = [];
+foreach (Texte::AKQ_CHECK as $wcK => $wcT) { foreach (['it', 'de', 'en'] as $wcSp) { if (trim((string) ($wcT[$wcSp] ?? '')) === '') { $wcOhneT[] = "$wcK.$wcSp"; } } }
+pruefe('Website-Check: jeder Text in allen drei Sprachen', $wcOhneT === [], implode(', ', $wcOhneT));
+$wcRoute = (string) file_get_contents($wurzel . '/akquise_route.php');
+pruefe('Verwaltung: Anfragen-Liste auf „Betriebe“, Schalter unter Regeln & Versand, Frist-Lauf im Cron, Vorrang im Audit',
+    str_contains($wcRoute, "case 'akq_check_erledigt':") && str_contains($wcRoute, "case 'akq_check_schalten':")
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), 'id="checks"')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'value="akq_check_schalten"')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_checks' =>")
+    && str_contains((string) file_get_contents($wurzel . '/src/Akquise.php'), 'FROM akq_checks c WHERE c.firma_id = akq_firmen.id AND c.ausfuehrlich = 1'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

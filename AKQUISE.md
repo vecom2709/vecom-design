@@ -94,6 +94,61 @@ Ampel: grün = E-Mail erlaubt (Einwilligung), gelb = Brief (oder Anruf), rot = n
 | 8 Compliance-Gate | fertig |
 | 9 Manuelle Freigabe | fertig |
 | 10 E-Mail-Integration | fertig über Brevo, **ab Werk aus** |
-| 11 Antworttracking | fertig (von Hand eintragen + Einordnung); Postfach-Anbindung offen |
+| 11 Antworttracking | fertig (von Hand + Postfach alle 10 Minuten, seit 27.09.2026) |
 | 12 Audit-Landingpages | fertig (`analyse.php`) |
-| 13 Optimierung/Skalierung | offen: Postfach (IMAP), PSI-Schlüssel, Überwachung der Recherche im Cockpit |
+| 13 Optimierung/Skalierung | offen: PSI-Schlüssel, Überwachung der Recherche im Cockpit |
+
+## Abgleich mit dem Gesamtauftrag vom 27.09.2026
+
+Am 27.09.2026 kam der Auftrag für ein „weitgehend automatisiertes Akquise-,
+Lead- und Follow-up-System“ mit 32 Punkten. Das Ergebnis der
+Bestandsaufnahme: Etwa drei Viertel davon stehen oben schon, oft genauer als
+verlangt. Die folgenden Punkte sind ebenfalls vorhanden:
+
+- Dubletten (19)
+- Abmeldung per Knopf und RFC 8058 (20)
+- Sperrliste (21)
+- Grenzen mit Stopp bei Bounces (22)
+- Protokoll und Prüfspur (23)
+- Notbremse (28)
+- Briefdienst-Sandbox (29, für Briefe)
+- Trichter nach Branche, Kanal und Text als lernender Teil (18)
+- Angebote nur mit Freigabe (16)
+- Rückruf von der Website
+
+### Lücken
+
+| # | Fehlt | Einschätzung |
+|---|---|---|
+| A | **Öffentlicher Website-Check** (7+8): Anfrage und Marketing-Einwilligung getrennt, Ergebnis sofort, Double-Opt-in | Der einzige Weg, auf dem Betriebe von selbst kommen und eine Einwilligung entsteht. **Zuerst gebaut.** |
+| B | **Folgesequenz** Tag 0/3/7/14/30 für Betriebe mit bestätigter Einwilligung, pausiert bei Antwort, endet bei Abmeldung/Kunde (10) | Technisch klar. Offen: Dürfen Folgemails ohne Einzelfreigabe hinaus? Heute gibt Uwe jede Mail frei. **Entscheidung Uwe.** |
+| C | **Terminbuchung** mit freien Zeiten, Sprache, Thema, Erinnerung (15) | Rückruf gibt es, ein Kalender fehlt. **Entscheidung Uwe:** eigener Kalender oder vorhandener Dienst. |
+| D | **Assistent in der Verwaltung** (14) | Braucht einen Claude-Schlüssel auf dem Server (Kosten je Frage). Ohne Schlüssel: feste Fragen als Filter. **Entscheidung Uwe.** |
+| E | **Einzelschalter** Recherche/Audit/KI/Follow-up/Automatik und allgemeiner Sandbox-Modus (28, 29) | Heute: E-Mail an/aus, Notbremse, Briefdienst-Sandbox. Klein, sobald B steht. |
+| F | **Frist-Löschung** für Anfragen (24) | Kommt mit A: 180 Tage ohne Einwilligung oder Auftrag, danach anonymisiert. |
+| G | **Pipeline-Stufen** Termin/Angebot/Verhandlung/Verloren in der Akquise-Anzeige (17) | Heute endet die Akquise bei „Kunde“ und geht an Vorgang/Angebot über. Wird nur als Anzeige ergänzt. |
+
+Bewusst nicht gebaut werden: Scraping von Google Maps oder Indeed (Uwe: nie),
+automatisch versandte rechtsverbindliche Angebote und Werbemails ohne
+Rechtsgrundlage. Neue Technik kommt nicht dazu. Jeder Weg nach draußen läuft
+weiter über `AkquiseGate::pruefen` und `versandSperre`.
+
+### Reihenfolge
+
+A (fertig, 27.09.2026) → B nach Entscheidung → E → C nach Entscheidung → D nach Entscheidung → G.
+Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
+
+### Modul A: Website-Check (27.09.2026)
+
+- `website-check.php`: öffentlich, dreisprachig, ohne Skript.
+- Zwei getrennte Häkchen:
+  1. Nur wer die **ausführliche Analyse** anfragt, bekommt eine Antwort von Uwe. Das ist eine Anfrage, keine Werbung.
+  2. **Marketing-Einwilligung:** nie vorausgewählt, der Wortlaut steht daneben, danach folgt der Double-Opt-in über `AkquiseEinwilligung` (Quelle `check`).
+- Das Ergebnis (die 6 Punkte aus `PartnerCheck`) erscheint sofort. Unter `website-check.php?t=…` bleibt es abrufbar, ohne Name und ohne E-Mail.
+- Der Betrieb wird über die Dublettenprüfung angelegt oder ergänzt (Quelle `website-check:<domain>`). Das tiefe Audit merkt der Worker vor.
+- Bremsen:
+  - Honeypot und 20 Sekunden Sperre je Adresse
+  - 5 Checks je Adresse und Tag, 3 je Domain, 200 insgesamt
+  - Die Bestätigungsmails sind zusätzlich begrenzt.
+- Aufbewahrung: Name, E-Mail, Telefon und IP-Hash werden nach 180 Tagen geleert, wenn keine Einwilligung und kein Auftrag daraus wurde (Cron `akquise_checks`).
+- Schalter „Website-Check an/aus“ unter Regeln & Versand.

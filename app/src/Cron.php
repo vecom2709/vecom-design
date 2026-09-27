@@ -255,6 +255,11 @@ final class Cron
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquisePostfach'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return AkquisePostfach::lauf();
             },
+            /* Website-Checks: persönliche Felder nach der Frist leeren (einmal am Tag). */
+            'akquise_checks' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseCheck'] as $k) { require_once __DIR__ . "/$k.php"; }
+                return ['anonymisiert' => AkquiseCheck::aufraeumen()];
+            },
             'akquise_woche' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return Akquise::wochenbericht();

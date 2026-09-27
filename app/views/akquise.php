@@ -1,6 +1,6 @@
 <?php
 /** @var array $liste @var array $filter @var array $werte @var array $kz @var array $grenzen @var int $wartend
- *  @var array $suchen @var array $branchen @var array $signale */
+ *  @var array $suchen @var array $branchen @var array $signale @var array $checks */
 /* DIE LISTE (26.09.2026, einfacher gemacht)
    Fuenf Spalten statt sieben, vier Filter sichtbar statt vierzehn, und in
    jeder Zeile genau ein naechster Schritt. Alles andere ist noch da --
@@ -58,6 +58,31 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   <a class="karte" href="<?= Fmt::h($kachel('kontakt', 'antwort')) ?>"><h3>Antworten</h3><div class="wert"><?= (int) ($kz['antworten'] ?? 0) ?></div>
     <div class="neben"><?= (int) ($kz['wartend'] ?? 0) ?> Websites noch ungeprüft</div></a>
 </div>
+
+<?php if (!empty($checks)): /* Website-Check (27.09.2026): Betriebe, die selbst gefragt haben. Antworten darf Uwe auf die Anfrage -- Werbung erst mit bestätigter Einwilligung. */ ?>
+<div class="block akq-fokus" id="checks">
+  <h2 style="font-size:15px;margin:0 0 4px">Anfragen über den Website-Check <span class="akq-klein" style="font-weight:400">· <?= count($checks) ?> offen</span></h2>
+  <p class="akq-klein" style="margin:0 0 10px">Diese Betriebe haben ihre Seite selbst auf vecom-design.it geprüft. „Analyse gewünscht“ heißt: Du darfst genau darauf antworten.
+    Werbung erst, wenn die Einwilligung bestätigt ist.</p>
+  <div class="tabellenrahmen"><table><tbody>
+    <?php foreach ($checks as $c):
+      $ew = $c['marketing'] ? ((string) $c['einwilligung'] === 'bestaetigt' ? ['gut', 'Einwilligung bestätigt'] : ['warnung', 'Einwilligung angefragt, noch nicht bestätigt']) : null; ?>
+      <tr><td style="min-width:180px"><?php if ($c['firma_id']): ?><a href="<?= Fmt::h(url('akquise/' . (int) $c['firma_id'])) ?>" style="color:var(--cyan)"><?= Fmt::h((string) $c['firma']) ?></a><?php else: ?><?= Fmt::h((string) $c['firma']) ?><?php endif; ?>
+            <div class="akq-klein"><?= Fmt::h((string) $c['host']) ?> · <?= Fmt::h(date('d.m.Y H:i', strtotime((string) $c['created_at']))) ?></div></td>
+          <td><?= Fmt::h((string) $c['name']) ?> · <a href="mailto:<?= Fmt::h((string) $c['email']) ?>" style="text-decoration:underline"><?= Fmt::h((string) $c['email']) ?></a>
+            <?= $c['telefon'] ? ' · ' . Fmt::h((string) $c['telefon']) : '' ?> · <?= Fmt::h(strtoupper((string) $c['sprache'])) ?>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
+              <?php if ((int) $c['ausfuehrlich'] === 1): ?><span class="marke2 gut">Analyse gewünscht</span><?php else: ?><span class="marke2">nur Kurz-Check</span><?php endif; ?>
+              <?php if ($ew): ?><span class="marke2 <?= $ew[0] ?>"><?= Fmt::h($ew[1]) ?></span><?php endif; ?>
+              <span class="marke2"><?= (int) $c['schlecht'] ?> von 6 schlecht</span>
+              <a class="marke2" href="<?= Fmt::h(AkquiseCheck::link((string) $c['token'])) ?>" target="_blank" rel="noopener">Ergebnis ansehen</a></div></td>
+          <td style="width:100px;text-align:right"><form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="akq_check_erledigt"><input type="hidden" name="check" value="<?= (int) $c['id'] ?>">
+            <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Erledigt</button></form></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+</div>
+<?php endif; ?>
 
 <?php if (!empty($signale)): /* Signal-Wecker (26.09.2026): gute Anlässe, keine Aufträge -- das Gate gilt weiter. */ ?>
 <div class="block" id="signale">
