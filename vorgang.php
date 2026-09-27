@@ -119,9 +119,10 @@ $dateien = $a ? Db::all(
     'SELECT * FROM files WHERE customer_id = ? AND project_id IS NULL ORDER BY id DESC LIMIT 60',
     [(int) $a['customer_id']]) : [];
 ?><!doctype html>
-<html lang="<?= $h($sprache) ?>">
+<html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
 <meta charset="utf-8">
+<?= Sprache::skript() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">

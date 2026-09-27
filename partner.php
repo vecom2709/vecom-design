@@ -316,7 +316,8 @@ if ($p && in_array((string) ($_GET['druck'] ?? ''), ['visitenkarten', 'flyer', '
 /* ---------- Die Karte zum Ausdrucken (QR + Link), A6 ---------- */
 if ($p && isset($_GET['karte'])) {
     $kLink = Partner::link($p) . '/karte';
-    ?><!doctype html><html lang="<?= $h($sprache) ?>"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    ?><!doctype html><html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>><head><meta charset="utf-8">
+<?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex"><title>Vecom Design — <?= $h($p['code']) ?></title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <style>
@@ -355,7 +356,7 @@ if ($p && isset($_GET['karte'])) {
 }
 
 ?><!doctype html>
-<html lang="<?= $h($sprache) ?>">
+<html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

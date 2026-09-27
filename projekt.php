@@ -233,9 +233,10 @@ if ($f) {
 $stufen = array_keys(Texte::PROJEKT_STAND);
 $jetzt  = $f ? array_search((string) $f['projekt_status'], $stufen, true) : false;
 ?><!doctype html>
-<html lang="<?= $h($sprache) ?>">
+<html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
 <meta charset="utf-8">
+<?= Sprache::skript() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">

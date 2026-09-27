@@ -13138,6 +13138,95 @@ if ($lbAlt !== null) { $_SERVER['HTTP_ACCEPT_LANGUAGE'] = $lbAlt; }
 if ($lbKeks !== null) { $_COOKIE[Sprache::KEKS] = $lbKeks; }
 
 /* ============================================================================
+   63. Jede Seite folgt dem Land -- auch die, an die keiner denkt (27.09.2026)
+
+   Uwe: "Wichtig, dass jede Unterseite alles in der jeweiligen Sprache
+   ausgibt, anhand des Geraetestandortes."
+
+   Die Weiche lag in app.js -- und die laedt nicht jede Seite. Showroom,
+   Tischkonfigurator und die sieben Landeseiten blieben deshalb italienisch,
+   egal woher jemand kam. Jetzt steht sie in assets/js/sprache.js, die jede
+   gebaute Seite im Kopf traegt, und die Karte der Fassungen erzeugt
+   build.mjs aus derselben Liste, aus der die Seiten entstehen.
+
+   Diese Pruefung faellt auf, wenn eine neue Seite dazukommt und die Weiche
+   vergessen wird -- der haeufigste Weg, wie so etwas zurueckkehrt.
+   ============================================================================ */
+abschnitt('63. Jede Seite folgt dem Land');
+
+$jsWurzel = dirname(__DIR__, 2);
+
+/* ---------- Die Karte kennt jede Seite in drei Sprachen ---------------- */
+$jsKarte = $jsWurzel . '/assets/js/seiten.js';
+pruefe('build.mjs hat die Seitenkarte geschrieben', is_file($jsKarte));
+if (is_file($jsKarte)) {
+    $jsRoh = (string) file_get_contents($jsKarte);
+    $jsJson = trim(substr($jsRoh, (int) strpos($jsRoh, '{')));
+    $jsJson = rtrim(rtrim($jsJson), ';');
+    $jsSeiten = json_decode($jsJson, true);
+    pruefe('sie ist lesbar und nicht leer', is_array($jsSeiten) && count($jsSeiten) >= 10,
+        is_array($jsSeiten) ? (string) count($jsSeiten) : 'unlesbar');
+    if (is_array($jsSeiten)) {
+        $jsLuecken = [];
+        foreach ($jsSeiten as $jsRolle => $jsFassungen) {
+            foreach (['it', 'de', 'en'] as $jsSpr) {
+                if (empty($jsFassungen[$jsSpr])) { $jsLuecken[] = $jsRolle . '/' . $jsSpr; }
+            }
+        }
+        pruefe('jede Seite steht in allen drei Sprachen in der Karte',
+            $jsLuecken === [], implode(' ', array_slice($jsLuecken, 0, 5)));
+        pruefe('auch die Landeseiten stehen darin',
+            isset($jsSeiten['siti-web-ristoranti']) && isset($jsSeiten['sito-o-booking']));
+    }
+}
+
+/* ---------- Jede gebaute Seite laedt die Weiche ------------------------- */
+$jsOhne = [];
+foreach (['index.html', 'prezzi.html', 'assistenza.html', 'showroom.html', 'tecnica.html', 'tavolo.html',
+          'siti-web-ristoranti.html', 'sito-o-booking.html',
+          'de/index.html', 'de/preise.html', 'de/showroom.html', 'de/tisch.html', 'de/websites-restaurants.html',
+          'en/index.html', 'en/showroom.html', 'en/table.html'] as $jsDatei) {
+    $jsPfad = $jsWurzel . '/' . $jsDatei;
+    if (!is_file($jsPfad)) { continue; }   // /de/ und /en/ entstehen erst beim Bauen
+    $jsInhalt = (string) file_get_contents($jsPfad);
+    if (!str_contains($jsInhalt, 'assets/js/sprache.js') || !str_contains($jsInhalt, 'assets/js/seiten.js')) {
+        $jsOhne[] = $jsDatei;
+    }
+}
+pruefe('jede gebaute Seite traegt die Weiche im Kopf', $jsOhne === [], implode(' ', $jsOhne));
+
+/* ---------- Und jede Serverseite, auf der ein Fremder landen kann ------- */
+/* Wer eine neue oeffentliche Seite baut, vergisst die zwei Zeilen leicht.
+   Deshalb zaehlt hier nicht eine gepflegte Liste, sondern was im Ordner
+   liegt: Jede PHP-Datei, die eine ganze Seite ausgibt, braucht beides. */
+$jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', 'telefon.php',
+                'formular.php', 'rueckruf.php', 'zahl.php', 'z.php', 'd.php', 'bezahlen.php',
+                'domain-pruefung.php', 'pakete-daten.php', 'preise-daten.php', 'stimmen-daten.php',
+                'akquise.php', 'config.local.example.php'];
+$jsFehlt = [];
+foreach (glob($jsWurzel . '/*.php') ?: [] as $jsPhp) {
+    $jsName = basename($jsPhp);
+    if (in_array($jsName, $jsAusnahmen, true)) { continue; }
+    $jsInhalt = (string) file_get_contents($jsPhp);
+    if (!preg_match('~<html\s+lang=~i', $jsInhalt)) { continue; }   // keine ganze Seite
+    if (!str_contains($jsInhalt, 'Sprache::marken(') || !str_contains($jsInhalt, 'Sprache::skript()')) {
+        $jsFehlt[] = $jsName;
+    }
+}
+pruefe('jede oeffentliche Serverseite traegt Marke und Weiche',
+    $jsFehlt === [], implode(' ', $jsFehlt));
+
+/* ---------- Zwei Weichen waeren zwei Wahrheiten ------------------------- */
+pruefe('app.js entscheidet nicht mehr selbst, wenn sprache.js da ist',
+    str_contains((string) file_get_contents($jsWurzel . '/assets/js/app.js'),
+        'if (VS) { return; }   // sprache.js hat das schon entschieden'));
+pruefe('die Weiche leitet nur beim Einstieg von aussen um',
+    str_contains((string) file_get_contents($jsWurzel . '/assets/js/sprache.js'), '!vonInnen()'));
+pruefe('und auf Serverseiten nur bei einem gewoehnlichen Aufruf',
+    str_contains((string) file_get_contents($jsWurzel . '/assets/js/sprache.js'), "data-lang-neu') === '1'")
+    && str_contains((string) file_get_contents($jsWurzel . '/app/src/Sprache.php'), "=== 'GET'"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

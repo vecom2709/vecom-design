@@ -30,7 +30,7 @@ $erledigt = false;
 $ungueltig = !preg_match('~^[a-f0-9]{40}$~', $token);
 
 if (!$ungueltig && is_file(__DIR__ . '/app/config.local.php')) {
-    foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'AkquiseVersand'] as $k) {
+    foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Sprache', 'AkquiseVersand'] as $k) {
         require_once __DIR__ . "/app/src/$k.php";
     }
     date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -62,9 +62,10 @@ $T = [
 ][$sprache];
 if ($ungueltig) { http_response_code(404); }
 ?><!doctype html>
-<html lang="<?= htmlspecialchars($sprache) ?>">
+<html lang="<?= htmlspecialchars($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
 <meta charset="utf-8">
+<?= Sprache::skript() ?>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title><?= htmlspecialchars($T['titel']) ?> — Vecom Design</title>

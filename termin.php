@@ -68,9 +68,10 @@ try {
 $T = static fn(string $k) => Texte::h(Texte::AKQ_TERMIN[$k] ?? [], $sprache);
 $tage = explode(',', $T('tage'));
 ?><!doctype html>
-<html lang="<?= $h($sprache) ?>">
+<html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= $h($T('meta_titel')) ?></title>
 <?php if ($termin || $fehler === 'weg'): ?><meta name="robots" content="noindex, nofollow"><?php else: ?><meta name="description" content="<?= $h($T('lead')) ?>"><?php endif; ?>
 <link rel="stylesheet" href="/assets/css/fonts.css">

@@ -149,6 +149,34 @@ final class Sprache
         return $adresse . (str_contains($adresse, '?') ? '&' : '?') . 'lang=' . $s . $anker;
     }
 
+    /**
+     * Die Marken fuer das <html>-Element einer Serverseite (27.09.2026).
+     *
+     * data-lang-fixed sagt, in welcher Sprache diese Seite gerade
+     * ausgeliefert wurde. data-lang-neu sagt der Weiche in
+     * assets/js/sprache.js: "Hier wurde noch nichts gewaehlt, und du darfst
+     * die Sprache des Landes nachreichen." Sie steht nur bei einem
+     * gewoehnlichen Aufruf -- nach einem abgeschickten Formular wuerde ein
+     * Nachladen dessen Ergebnis wegwerfen.
+     */
+    public static function marken(string $sprache): string
+    {
+        $s = self::waehlen($sprache);
+        $marken = 'data-lang-fixed="' . $s . '"';
+        $frisch = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+            && !isset($_COOKIE[self::KEKS])
+            && !self::gewaehlt();
+        return $frisch ? $marken . ' data-lang-neu="1"' : $marken;
+    }
+
+    /** Das Skript der Sprachweiche -- dieselbe Datei wie auf den festen Seiten. */
+    public static function skript(): string
+    {
+        $datei = dirname(__DIR__, 2) . '/assets/js/sprache.js';
+        $stempel = is_file($datei) ? substr(sha1_file($datei) ?: '', 0, 8) : '';
+        return '<script src="/assets/js/sprache.js' . ($stempel !== '' ? '?v=' . $stempel : '') . '"></script>';
+    }
+
     /** Die Rechtsseite in der richtigen Sprache, mit Anker. */
     public static function legal(string $sprache, string $anker = ''): string
     {

@@ -577,6 +577,10 @@ function build(lang, seite) {
   // Lauf die Sprachwahl des ersten (index.html ist zugleich Quelle und Ziel).
   h = h.replace(/<div class="lang[^"]*" role="group"[\s\S]*?<\/div>/, langLinks(lang, up, seite));
 
+  // Die Sprachweiche in den Kopf -- auf jede Seite, auch auf die, die kein
+  // app.js laden (Showroom, Tischkonfigurator, Landeseiten).
+  h = sprachweicheEinbauen(h, up);
+
   // Zum Schluss, damit die Pfade schon eine Ebene hoeher zeigen.
   h = fingerabdruecke(h);
 
@@ -627,6 +631,49 @@ function pruefen(h, lang, ziel) {
    davon im Ergebnis als in der Quelle heisst: eine Regel frisst Inhalt. */
 const TRAGEND = [/<form\b/g, /<section\b/g, /<h[1-3]\b/g, /data-zugang="/g];
 function tragendZaehlen(html) { return TRAGEND.map((r) => (html.match(r) || []).length); }
+
+/* --------------------------------------------------------------------------
+   DIE SEITENKARTE (27.09.2026)
+
+   Welche Seite gibt es in welcher Sprache — als Datei, die jede gebaute
+   Seite laedt. assets/js/sprache.js liest sie und schickt einen Besucher
+   beim ersten Aufruf in die Fassung seines Landes, egal auf welcher
+   Unterseite er anfaengt.
+
+   Erzeugt aus SEITEN und LANDESEITEN: dieselbe Liste, aus der die Seiten
+   selbst entstehen. Eine zweite, von Hand gepflegte Karte waere eine
+   zweite Wahrheit, und die faellt genau dann auf, wenn eine Seite
+   dazukommt und niemand daran denkt.
+   -------------------------------------------------------------------------- */
+{
+  const karte = {};
+  const rolleVon = (quelle) => quelle.replace(/\.html$/, '');
+  for (const s of SEITEN) {
+    karte[rolleVon(s.quelle)] = Object.fromEntries(
+      Object.keys(LANGS).map((l) => [l, '/' + (s.adressen[l] ?? s.ziele[l]).replace(/index\.html$/, '')]));
+  }
+  for (const ls of LANDESEITEN) {
+    karte[rolleVon(ls.ziele.it)] = Object.fromEntries(
+      Object.keys(LANGS).map((l) => [l, '/' + ls.ziele[l]]));
+  }
+  const inhalt = '/* Erzeugt von build.mjs — nicht von Hand aendern. */\n'
+    + 'window.VECOM_SEITEN = ' + JSON.stringify(karte, null, 2) + ';\n';
+  if (!existsSync('assets/js/seiten.js') || readFileSync('assets/js/seiten.js', 'utf8') !== inhalt) {
+    writeFileSync('assets/js/seiten.js', inhalt);
+    console.log('geschrieben: assets/js/seiten.js (' + Object.keys(karte).length + ' Seiten)');
+  }
+}
+
+/* Die beiden Skripte der Sprachweiche in den Kopf JEDER gebauten Seite --
+   vor allem anderen, damit nichts gezeichnet wird, was gleich durch eine
+   andere Fassung ersetzt wird. Idempotent: Ein vorhandenes Paar wird
+   ersetzt, nicht verdoppelt (index.html ist Quelle und Ziel zugleich). */
+function sprachweicheEinbauen(h, up) {
+  const tags = '<script src="' + up + 'assets/js/seiten.js?v=' + stempel('assets/js/seiten.js') + '"></script>\n'
+             + '<script src="' + up + 'assets/js/sprache.js?v=' + stempel('assets/js/sprache.js') + '"></script>';
+  h = h.replace(/\s*<script src="[^"]*assets\/js\/(?:seiten|sprache)\.js[^"]*"><\/script>/g, '');
+  return h.replace(/<meta charset="utf-8">/i, '<meta charset="utf-8">\n' + tags);
+}
 
 for (const seite of SEITEN) {
   const quelleZahl = tragendZaehlen(readFileSync(seite.quelle, 'utf8'));

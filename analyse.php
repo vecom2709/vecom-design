@@ -18,7 +18,7 @@ header('Referrer-Policy: no-referrer');
 $token = (string) ($_GET['t'] ?? '');
 $daten = null;
 if (preg_match('~^[a-f0-9]{40}$~', $token) && is_file(__DIR__ . '/app/config.local.php')) {
-    foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablage'] as $k) {
+    foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Sprache', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablage'] as $k) {
         require_once __DIR__ . "/app/src/$k.php";
     }
     date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -42,7 +42,8 @@ if ($daten !== null && isset($_GET['bild'])) {
 header("Content-Security-Policy: default-src 'none'; img-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'");
 if ($daten === null) {
     http_response_code(404);
-    ?><!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    ?><!doctype html><html lang="it"><head><meta charset="utf-8">
+<?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow"><title>Vecom Design</title>
     <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0908;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center}</style></head>
     <body><p>Questa pagina non è (più) disponibile. · Diese Seite ist nicht (mehr) verfügbar.<br><a style="color:#f1d38b" href="https://vecom-design.it">vecom-design.it</a></p></body></html><?php
@@ -77,7 +78,7 @@ $einwilligungDa = trim((string) ($f['einwilligung'] ?? '')) !== '';
 $einwWortlaut = AkquiseEinwilligung::wortlaut($s);
 $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' — ' . $f['name']);
 ?><!doctype html>
-<html lang="<?= $h($s) ?>">
+<html lang="<?= $h($s) ?>" <?= Sprache::marken($s) ?>>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

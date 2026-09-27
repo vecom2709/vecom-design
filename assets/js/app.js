@@ -39,6 +39,7 @@
      gesetzt. Wer zuletzt auf der Kundenseite umgeschaltet hat, soll nicht
      an einer aelteren Wahl im Speicher haengen bleiben. */
   function gemerkt() {
+    if (VS) { return VS.gemerkt(); }
     var keks = /(?:^|;)\s*vecomlang=([a-z]{2})/.exec(document.cookie || '');
     if (keks && LANGS.indexOf(keks[1]) > -1) { return keks[1]; }
     try {
@@ -75,6 +76,12 @@
      dazu passende Sprache. Das ist in Ordnung -- sie ist ein Vorschlag fuer
      den ersten Augenblick. Jede spaetere Wahl schlaegt sie, und wer einmal
      gewaehlt hat, wird nie wieder umgeleitet. */
+  /* Seit dem 27.09.2026 steht die Weiche in assets/js/sprache.js -- einer
+     kleinen Datei, die JEDE gebaute Seite laedt, auch die ohne app.js.
+     Liegt sie vor, entscheidet sie; app.js fragt sie nur noch. Zwei
+     Weichen waeren zwei Wahrheiten. */
+  var VS = window.VecomSprache || null;
+
   var ZONEN = {
     /* Italien -- der Heimatmarkt. */
     'europe/rome': 'it', 'europe/vatican': 'it', 'europe/san_marino': 'it',
@@ -91,6 +98,7 @@
 
   /** Die Sprache des Landes, in dem das Geraet steht -- oder null. */
   function landessprache() {
+    if (VS) { return VS.landessprache(); }
     var zone = '';
     try {
       zone = String(Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
@@ -115,14 +123,21 @@
   var AUTO = 'vecom-lang-auto';
 
   function merken(lang) {
+    if (VS) { VS.merken(lang); return; }
     try { localStorage.setItem(STORE, lang); } catch (e) {}
     try {
       document.cookie = 'vecomlang=' + lang + ';path=/;max-age=31536000;SameSite=Lax';
     } catch (e) {}
   }
 
-  function autoMerken() { try { localStorage.setItem(AUTO, '1'); } catch (e) {} }
-  function autoLoeschen() { try { localStorage.removeItem(AUTO); } catch (e) {} }
+  function autoMerken() {
+    if (VS) { VS.autoMerken(); return; }
+    try { localStorage.setItem(AUTO, '1'); } catch (e) {}
+  }
+  function autoLoeschen() {
+    if (VS) { VS.autoLoeschen(); return; }
+    try { localStorage.removeItem(AUTO); } catch (e) {}
+  }
 
   /* Welche Rolle spielt dieser Pfad — und in welcher Sprache liegt er? */
   function seiteVon(pfad) {
@@ -146,6 +161,7 @@
   }, true);
 
   (function sprachweiche() {
+    if (VS) { return; }   // sprache.js hat das schon entschieden
     var fest = document.documentElement.getAttribute('data-lang-fixed');
     if (!fest || LANGS.indexOf(fest) < 0) { return; }
     var hier = seiteVon(location.pathname);

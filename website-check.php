@@ -90,9 +90,10 @@ $neu = !empty($_GET['n']);
 $titel = $check ? strtr($C('titel'), ['{host}' => (string) $check['host']]) : $T('meta_titel');
 $sprachLinks = array_map(static fn($l) => ['l' => $l, 'href' => 'website-check.php?' . http_build_query(array_filter(['t' => $check['token'] ?? null, 'lang' => $l]))], ['it', 'de', 'en']);
 ?><!doctype html>
-<html lang="<?= $h($sprache) ?>">
+<html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= $h($titel) ?></title>
 <?php if ($check || $fehler === 'weg'): ?>
 <meta name="robots" content="noindex, nofollow">
