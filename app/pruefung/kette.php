@@ -12764,6 +12764,40 @@ pruefe('Verwaltung: Reiter „Folge-Mails“, Freigabe je Text mit Rückfrage, S
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_folgen' =>"));
 
 /* ============================================================================
+   Assistent ohne KI-Kosten (27.09.2026)
+   Sätze → feste Fragen; „Wer darf per Mail?“ zeigt nur Betriebe mit
+   Einwilligung und Gate „Ja, erlaubt“.
+   ============================================================================ */
+abschnitt('Assistent (feste Fragen)');
+require_once $wurzel . '/src/AkquiseAssistent.php';
+$asFaelle = [
+    'Zeig mir die besten Leads aus Sizilien' => ['beste', 'region', 'Sicilia'],
+    'Welche Restaurants haben Webseiten mit starken Problemen?' => ['probleme', 'branche', 'restaurant'],
+    'Welche 20 Unternehmen haben das höchste Potenzial?' => ['beste', 'anzahl', 20],
+    'Bereite Audits für die besten Leads vor.' => ['ohnetext', null, null],
+    'Welche Leads warten auf eine Antwort?' => ['warten', null, null],
+    'Welche Kunden interessieren sich wahrscheinlich für 3D?' => ['dreid', null, null],
+    'Welche Leads dürfen rechtlich per Marketingmail kontaktiert werden?' => ['mail', null, null],
+    'Wen habe ich angeschrieben, der noch nicht geantwortet hat?' => ['still', null, null],
+];
+$asFalsch = [];
+foreach ($asFaelle as $asSatz => [$asF, $asK, $asW]) {
+    $asV = AkquiseAssistent::verstehen($asSatz);
+    if ($asV['frage'] !== $asF || ($asK !== null && ($asV['filter'][$asK] ?? null) !== $asW)) { $asFalsch[] = $asSatz . ' → ' . json_encode($asV, JSON_UNESCAPED_UNICODE); }
+}
+pruefe('Assistent: die Beispielsätze aus dem Auftrag landen bei der richtigen Frage mit Filter', $asFalsch === [], implode(' | ', $asFalsch));
+$asKaputt = [];
+foreach (array_keys(AkquiseAssistent::FRAGEN) as $asF) { try { AkquiseAssistent::antwort($asF, ['land' => 'IT', 'region' => 'Sicilia', 'branche' => 'restaurant', 'anzahl' => 5]); } catch (Throwable $e) { $asKaputt[] = "$asF: " . $e->getMessage(); } }
+pruefe('Assistent: jede feste Frage läuft mit allen Filtern', $asKaputt === [], implode(' | ', $asKaputt));
+$asMail = AkquiseAssistent::antwort('mail', ['anzahl' => 200])['zeilen'];
+pruefe('Assistent: „Wer darf per Mail?“ zeigt nur Betriebe mit Einwilligung, Adresse und Gate „Ja, erlaubt“, nie gesperrte',
+    $asMail !== [] && array_filter($asMail, static fn($z) => trim((string) $z['einwilligung']) === '' || empty($z['email']) || (int) $z['gesperrt'] === 1
+        || AkquiseGate::pruefen($z, 'email')['status'] !== AkquiseGate::ERLAUBT) === [], (string) count($asMail));
+pruefe('Assistent: Reiter und Ampel „Darf ich?“ in jeder Zeile',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_reiter.php'), "'assistent' => 'Assistent'")
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_assistent.php'), 'AkquiseGate::ampel($z)'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -460,6 +460,26 @@ if ($teil === 'briefe') {
     exit;
 }
 
+if ($teil === 'assistent') {
+    require_once __DIR__ . '/src/AkquiseAssistent.php';
+    $q = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 200);
+    $verstanden = [];
+    $filter = array_filter([
+        'land' => in_array($_GET['land'] ?? '', ['DE', 'IT'], true) ? (string) $_GET['land'] : '',
+        'region' => mb_substr(trim((string) ($_GET['region'] ?? '')), 0, 120),
+        'stadt' => mb_substr(trim((string) ($_GET['stadt'] ?? '')), 0, 120),
+        'branche' => isset(Akquise::branchen()[(string) ($_GET['branche'] ?? '')]) ? (string) $_GET['branche'] : '',
+    ], static fn($v) => $v !== '');
+    $frage = (string) ($_GET['f'] ?? 'beste');
+    if ($q !== '') {
+        $v = AkquiseAssistent::verstehen($q);
+        $frage = $v['frage']; $filter = $v['filter'] + $filter; $verstanden = $v['erkannt'];
+    }
+    ansicht('akquise_assistent', ['antwort' => AkquiseAssistent::antwort($frage, $filter), 'verstanden' => $verstanden, 'q' => $q,
+        'filter' => array_diff_key($filter, ['anzahl' => 1]), 'werte' => Akquise::filterWerte()]);
+    exit;
+}
+
 if ($teil === 'folgen') {
     require_once __DIR__ . '/src/AkquiseFolge.php';
     ansicht('akquise_folgen', [

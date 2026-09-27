@@ -163,3 +163,8 @@ Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
   - Start mit dem Klick in der Bestätigungsmail.
   - Vor jeder Mail wird neu geprüft: Gate „Ja, erlaubt“, `versandSperre` (ohne Domain-Abstand, weil der Betrieb eingewilligt hat) und Hindernisse (Antwort pausiert; Abmeldung, Sperre, Kunde oder fehlende Einwilligung beenden).
   - Der Testbetrieb schiebt die echte Folge nie weiter.
+
+### Modul D: Assistent ohne KI-Kosten (27.09.2026)
+
+- Reiter „Assistent“ (`AkquiseAssistent`): neun feste Fragen als Knöpfe, dazu ein Eingabefeld. Sätze wie „Zeig mir die besten Leads aus Sizilien“ werden über Schlüsselwörter, Branchen- und Ortsnamen einer Frage mit Filter zugeordnet, und die Seite zeigt, was verstanden wurde.
+- Jede Zeile trägt die Ampel des Gates („Darf ich?“). E-Mail-Adressen zeigt nur „Wer darf per E-Mail?“, und nur bei bestätigter Einwilligung mit Gate „Ja, erlaubt“.
