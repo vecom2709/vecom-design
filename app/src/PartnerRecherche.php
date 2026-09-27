@@ -141,4 +141,63 @@ final class PartnerRecherche
             return $r ?: null;
         } catch (Throwable $e) { return null; }   // Tabelle noch nicht da (Migration läuft gleich)
     }
+
+    /* ==================================================================
+       Weitere Quellen (27.09.2026, Uwe: Ja zu Suchknöpfen und „Betrieb
+       selbst eintragen“). Google Maps, Indeed & Co. dürfen wir nicht
+       automatisch auslesen -- ihre Bedingungen verbieten es. Der Partner
+       darf dort aber selbst suchen: Die Knöpfe öffnen die Suche mit
+       Branche und Ort in SEINEM Browser. Was er findet, trägt er ein.
+       ================================================================== */
+
+    /** @return list<array{art:string, url:string}> */
+    public static function suchlinks(string $ort, string $branche): array
+    {
+        $ort = trim(mb_substr($ort, 0, 80));
+        if (mb_strlen($ort) < 2) { return []; }
+        $was = $branche !== '' && isset(Akquise::branchen()[$branche]) ? Akquise::branchenName($branche, 'it') : 'attività';
+        $q = static fn(string $s): string => rawurlencode($s);
+        $gastro = in_array($branche, ['restaurant', 'bar_cafe', 'hotel', 'ferienwohnung', 'agriturismo', 'tourismus', ''], true);
+        $aus = [
+            ['art' => 'maps', 'url' => 'https://www.google.com/maps/search/?api=1&query=' . $q($was . ' ' . $ort)],
+            ['art' => 'pagine', 'url' => 'https://www.paginegialle.it/ricerca/' . $q($was) . '/' . $q($ort)],
+            ['art' => 'facebook', 'url' => 'https://www.facebook.com/search/pages/?q=' . $q($was . ' ' . $ort)],
+            ['art' => 'indeed', 'url' => 'https://it.indeed.com/offerte-lavoro?q=' . $q($was) . '&l=' . $q($ort)],
+        ];
+        if ($gastro) { $aus[] = ['art' => 'tripadvisor', 'url' => 'https://www.tripadvisor.it/Search?q=' . $q($was . ' ' . $ort)]; }
+        return $aus;
+    }
+
+    public const EINTRAEGE_JE_TAG = 20;
+
+    /**
+     * Der Partner trägt einen Betrieb ein, den er selbst gefunden hat --
+     * er landet in der Akquise-Liste (Quelle partner:ID) und ist sofort für
+     * ihn reserviert. Gibt es ihn schon, gilt die normale Reservierung.
+     *
+     * @return array{ok:bool, grund?:string, firma?:int, neu?:bool}
+     */
+    public static function eintragen(int $partnerId, array $d): array
+    {
+        $name = trim(mb_substr(preg_replace('/\s+/u', ' ', strip_tags((string) ($d['name'] ?? ''))) ?? '', 0, 160));
+        $ort = trim(mb_substr(strip_tags((string) ($d['ort'] ?? '')), 0, 80));
+        $branche = (string) ($d['branche'] ?? '');
+        $land = in_array($d['land'] ?? 'IT', ['IT', 'DE'], true) ? (string) ($d['land'] ?? 'IT') : 'IT';
+        $url = trim((string) ($d['website'] ?? ''));
+        if (mb_strlen($name) < 3) { return ['ok' => false, 'grund' => 'fe_name']; }
+        if (mb_strlen($ort) < 2) { return ['ok' => false, 'grund' => 'fe_ort']; }
+        if (!isset(Akquise::branchen()[$branche])) { return ['ok' => false, 'grund' => 'fe_branche']; }
+        if ($url !== '') {
+            if (!preg_match('~^https?://~i', $url)) { $url = 'https://' . $url; }
+            if (!filter_var($url, FILTER_VALIDATE_URL) || !preg_match('~^https?://[^/\s]+\.[a-z]{2,}~i', $url)) { return ['ok' => false, 'grund' => 'fe_website']; }
+        }
+        if (!self::zaehlen($partnerId, 'eintrag', self::EINTRAEGE_JE_TAG)) { return ['ok' => false, 'grund' => 'fi_genug'];  }
+        $r = Akquise::firmaMelden(['name' => $name, 'land' => $land, 'stadt' => $ort, 'adresse' => trim(mb_substr(strip_tags((string) ($d['adresse'] ?? '')), 0, 200)) ?: null,
+            'url' => $url !== '' ? $url : null, 'branche' => $branche, 'quelle' => 'partner:' . $partnerId . ':' . substr(sha1(mb_strtolower($name . '|' . $ort)), 0, 12)]);
+        if (!empty($r['gesperrt'])) { return ['ok' => false, 'grund' => 'fe_gesperrt']; }
+        $res = self::reservieren($partnerId, (int) $r['id']);
+        if ($res !== 'ok') { return ['ok' => false, 'grund' => $res, 'firma' => (int) $r['id']]; }
+        Akquise::protokoll((int) $r['id'], 'partner', 'Vom Partner eingetragen und reserviert', ['partner_id' => $partnerId]);
+        return ['ok' => true, 'firma' => (int) $r['id'], 'neu' => (bool) $r['neu']];
+    }
 }

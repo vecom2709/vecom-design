@@ -13,6 +13,8 @@ export interface Branche {
   experience_idee?: string;
   name_muster?: string;
   berufsrecht?: boolean;
+  /** Begriffe der Overture-Taxonomie (taxonomy.hierarchy, jede Ebene) -- siehe recherche/overture.ts */
+  overture?: string[];
 }
 
 const roh = JSON.parse(readFileSync(join(WURZEL, '..', '..', 'app', 'src', 'akquise_branchen.json'), 'utf8'));

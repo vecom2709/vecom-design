@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Eine Quelle fuer Verwaltung (Akquise.php) und Worker (tools/akquise). osm = Overpass-Selektoren; pflicht = was ein Besucher dieser Branche auf der Seite finden muss (Codes aus dem Worker); experience = Grundeignung 0-10 fuer 3D/Animation/Scrollytelling, gewichtet mit dem tatsaechlichen Befund.",
+  "_hinweis": "Eine Quelle fuer Verwaltung (Akquise.php) und Worker (tools/akquise). osm = Overpass-Selektoren; pflicht = was ein Besucher dieser Branche auf der Seite finden muss (Codes aus dem Worker); experience = Grundeignung 0-10 fuer 3D/Animation/Scrollytelling, gewichtet mit dem tatsaechlichen Befund; overture = Begriffe der Overture-Taxonomie (taxonomy.hierarchy, jede Ebene), der tiefste Treffer gewinnt.",
   "restaurant": {
     "de": "Restaurant",
     "it": "Ristorante",
@@ -17,7 +17,11 @@
       "tel_klickbar",
       "anfahrt"
     ],
-    "experience_idee": "Cinematic Hero mit Gerichten und Raum, Speisekarte als schnelles, handytaugliches Kapitel statt PDF"
+    "experience_idee": "Cinematic Hero mit Gerichten und Raum, Speisekarte als schnelles, handytaugliches Kapitel statt PDF",
+    "overture": [
+      "restaurant",
+      "casual_eatery"
+    ]
   },
   "hotel": {
     "de": "Hotel",
@@ -38,7 +42,15 @@
       "sprachen",
       "anfahrt"
     ],
-    "experience_idee": "360°-Zimmerrundgang und Scrollytelling ueber Lage und Umgebung, direkte Buchung im ersten Bildschirm"
+    "experience_idee": "360°-Zimmerrundgang und Scrollytelling ueber Lage und Umgebung, direkte Buchung im ersten Bildschirm",
+    "overture": [
+      "hotel",
+      "resort",
+      "inn",
+      "hostel",
+      "lodge",
+      "motel"
+    ]
   },
   "ferienwohnung": {
     "de": "Ferienwohnung / B&B",
@@ -59,7 +71,18 @@
       "sprachen",
       "anfahrt"
     ],
-    "experience_idee": "Interaktive Karte mit Strand, Orten und Wegen; 360°-Ansicht der Wohnung"
+    "experience_idee": "Interaktive Karte mit Strand, Orten und Wegen; 360°-Ansicht der Wohnung",
+    "overture": [
+      "bed_and_breakfast",
+      "private_lodging",
+      "holiday_rental_home",
+      "service_apartment",
+      "cottage",
+      "country_house",
+      "cabin",
+      "self_catering_accommodation",
+      "lodging"
+    ]
   },
   "agriturismo": {
     "de": "Agriturismo",
@@ -81,7 +104,11 @@
       "sprachen",
       "anfahrt"
     ],
-    "experience_idee": "Cinematic Landschaftsflug ueber Hof und Felder, Hofprodukte als interaktive Vitrine"
+    "experience_idee": "Cinematic Landschaftsflug ueber Hof und Felder, Hofprodukte als interaktive Vitrine",
+    "overture": [
+      "agriturismo",
+      "farm_stay"
+    ]
   },
   "bar_cafe": {
     "de": "Bar / Café",
@@ -101,7 +128,17 @@
       "anfahrt",
       "galerie"
     ],
-    "experience_idee": "Kurze Bewegtbild-Sequenz statt Bildergalerie"
+    "experience_idee": "Kurze Bewegtbild-Sequenz statt Bildergalerie",
+    "overture": [
+      "alcoholic_beverage_venue",
+      "non_alcoholic_beverage_venue",
+      "cafe",
+      "coffee_shop",
+      "ice_cream_shop",
+      "bar",
+      "pub",
+      "wine_bar"
+    ]
   },
   "baeckerei": {
     "de": "Bäckerei / Konditorei",
@@ -121,7 +158,14 @@
       "produkte",
       "bestellung"
     ],
-    "experience_idee": "Produktvisualisierung der Spezialitaeten, Vorbestellung fuer Feiertage"
+    "experience_idee": "Produktvisualisierung der Spezialitaeten, Vorbestellung fuer Feiertage",
+    "overture": [
+      "bakery",
+      "patisserie",
+      "pastry_shop",
+      "confectionery_store",
+      "dessert_shop"
+    ]
   },
   "handwerk": {
     "de": "Handwerksbetrieb",
@@ -152,7 +196,19 @@
       "tel_klickbar",
       "einsatzgebiet"
     ],
-    "experience_idee": "Vorher-/Nachher-Regler fuer Projekte; nur wenn echtes Bildmaterial vorliegt"
+    "experience_idee": "Vorher-/Nachher-Regler fuer Projekte; nur wenn echtes Bildmaterial vorliegt",
+    "overture": [
+      "home_service",
+      "electrician",
+      "plumbing",
+      "carpenter",
+      "painter",
+      "roofing",
+      "locksmith",
+      "hvac_services",
+      "masonry_concrete",
+      "landscaping"
+    ]
   },
   "bau": {
     "de": "Bauunternehmen / Architektur",
@@ -173,7 +229,13 @@
       "tel_klickbar",
       "zertifikate"
     ],
-    "experience_idee": "Architekturvisualisierung (Blender/Unreal) laufender und fertiger Projekte, interaktive Projektkarte"
+    "experience_idee": "Architekturvisualisierung (Blender/Unreal) laufender und fertiger Projekte, interaktive Projektkarte",
+    "overture": [
+      "building_or_construction_service",
+      "contractor",
+      "architect",
+      "engineering_service"
+    ]
   },
   "immobilien": {
     "de": "Immobilienmakler",
@@ -191,7 +253,12 @@
       "tel_klickbar",
       "suche"
     ],
-    "experience_idee": "Virtuelle 360°-Besichtigungen und 3D-Grundrisse; Objektsuche mit Karte"
+    "experience_idee": "Virtuelle 360°-Besichtigungen und 3D-Grundrisse; Objektsuche mit Karte",
+    "overture": [
+      "real_estate_service",
+      "real_estate_agent",
+      "housing_or_property_service"
+    ]
   },
   "autohaus": {
     "de": "Autohaus",
@@ -210,7 +277,12 @@
       "tel_klickbar",
       "oeffnungszeiten"
     ],
-    "experience_idee": "Interaktive 3D-Fahrzeugansicht bzw. Konfigurator fuer Bestandsfahrzeuge"
+    "experience_idee": "Interaktive 3D-Fahrzeugansicht bzw. Konfigurator fuer Bestandsfahrzeuge",
+    "overture": [
+      "vehicle_dealer",
+      "auto_dealer",
+      "motorcycle_dealer"
+    ]
   },
   "werkstatt": {
     "de": "Kfz-Werkstatt",
@@ -230,7 +302,14 @@
       "oeffnungszeiten",
       "anfahrt"
     ],
-    "experience_idee": "Online-Terminwunsch statt Animation — hier zaehlt Tempo"
+    "experience_idee": "Online-Terminwunsch statt Animation — hier zaehlt Tempo",
+    "overture": [
+      "vehicle_service",
+      "automotive_repair",
+      "auto_body_shop",
+      "tire_shop",
+      "car_wash"
+    ]
   },
   "friseur": {
     "de": "Friseur",
@@ -249,7 +328,11 @@
       "tel_klickbar",
       "galerie"
     ],
-    "experience_idee": "Vorher-/Nachher-Galerie mit Bewegung, Online-Termin im ersten Bildschirm"
+    "experience_idee": "Vorher-/Nachher-Galerie mit Bewegung, Online-Termin im ersten Bildschirm",
+    "overture": [
+      "hair_salon",
+      "barber"
+    ]
   },
   "beauty": {
     "de": "Kosmetik / Beauty",
@@ -271,7 +354,15 @@
       "tel_klickbar",
       "galerie"
     ],
-    "experience_idee": "Ruhige Premium-Animation, Behandlungen als Szenen statt Listen"
+    "experience_idee": "Ruhige Premium-Animation, Behandlungen als Szenen statt Listen",
+    "overture": [
+      "personal_or_beauty_service",
+      "wellness_service",
+      "beauty_salon",
+      "spa",
+      "nail_salon",
+      "massage"
+    ]
   },
   "fitness": {
     "de": "Fitnessstudio",
@@ -290,7 +381,12 @@
       "tel_klickbar",
       "oeffnungszeiten"
     ],
-    "experience_idee": "Studio-Rundgang in 360°, Kursplan interaktiv"
+    "experience_idee": "Studio-Rundgang in 360°, Kursplan interaktiv",
+    "overture": [
+      "sport_or_fitness_facility",
+      "gym",
+      "fitness_center"
+    ]
   },
   "tourismus": {
     "de": "Tourismus / Reiseveranstalter",
@@ -310,7 +406,12 @@
       "sprachen",
       "tel_klickbar"
     ],
-    "experience_idee": "Interaktive Routenkarte mit Scrollytelling, Touren als filmische Kapitel"
+    "experience_idee": "Interaktive Routenkarte mit Scrollytelling, Touren als filmische Kapitel",
+    "overture": [
+      "travel_service",
+      "travel_agency",
+      "tour_operator"
+    ]
   },
   "einzelhandel": {
     "de": "Einzelhandel",
@@ -340,7 +441,15 @@
       "tel_klickbar",
       "shop"
     ],
-    "experience_idee": "Dynamische Produktdarstellung, ggf. 3D-Ansicht fuer Hochwertiges"
+    "experience_idee": "Dynamische Produktdarstellung, ggf. 3D-Ansicht fuer Hochwertiges",
+    "overture": [
+      "specialty_store",
+      "fashion_and_apparel_store",
+      "food_and_beverage_store",
+      "second_hand_store",
+      "convenience_store",
+      "shopping"
+    ]
   },
   "produzent": {
     "de": "Produzent (Wein, Öl, Lebensmittel)",
@@ -363,7 +472,17 @@
       "sprachen",
       "tel_klickbar"
     ],
-    "experience_idee": "Produktvisualisierung (Flasche/Dose in 3D), Herkunft als Scrollytelling"
+    "experience_idee": "Produktvisualisierung (Flasche/Dose in 3D), Herkunft als Scrollytelling",
+    "overture": [
+      "winery",
+      "farm",
+      "agriculture",
+      "agricultural_cooperative",
+      "agricultural_service",
+      "brewery",
+      "distillery",
+      "olive_oil_mill"
+    ]
   },
   "industrie": {
     "de": "Hersteller / Industrie",
@@ -382,7 +501,12 @@
       "angebot_cta",
       "sprachen"
     ],
-    "experience_idee": "Interaktive 3D-Produkt- und Anlagenvisualisierung, virtueller Showroom"
+    "experience_idee": "Interaktive 3D-Produkt- und Anlagenvisualisierung, virtueller Showroom",
+    "overture": [
+      "manufacturer",
+      "industrial_equipment_manufacturer",
+      "wholesaler"
+    ]
   },
   "kanzlei": {
     "de": "Kanzlei / Steuerberatung",
@@ -404,7 +528,14 @@
       "anfahrt"
     ],
     "experience_idee": "Keine Effekte — Klarheit, Vertrauen, schneller Terminweg",
-    "berufsrecht": true
+    "berufsrecht": true,
+    "overture": [
+      "legal_service",
+      "attorney_or_law_firm",
+      "accountant",
+      "notary",
+      "tax_service"
+    ]
   },
   "beratung": {
     "de": "Beratung / Dienstleistung B2B",
@@ -426,7 +557,18 @@
       "angebot_cta",
       "tel_klickbar"
     ],
-    "experience_idee": "Ruhige Datenvisualisierung statt 3D"
+    "experience_idee": "Ruhige Datenvisualisierung statt 3D",
+    "overture": [
+      "financial_service",
+      "professional_service",
+      "insurance_agency",
+      "media_service",
+      "technical_service",
+      "advertising_agency",
+      "b2b_service",
+      "corporate_or_business_office",
+      "it_service_and_computer_repair"
+    ]
   },
   "medizin": {
     "de": "Praxis / Gesundheit",
@@ -449,7 +591,17 @@
       "anfahrt"
     ],
     "experience_idee": "Keine Effekte — Barrierefreiheit und Terminweg zuerst",
-    "berufsrecht": true
+    "berufsrecht": true,
+    "overture": [
+      "outpatient_care_facility",
+      "dental_clinic",
+      "doctors_office",
+      "physical_therapy",
+      "psychology",
+      "veterinarian",
+      "medical_service",
+      "specialized_medical_facility"
+    ]
   },
   "dienstleister": {
     "de": "Lokaler Dienstleister",
@@ -472,6 +624,18 @@
       "oeffnungszeiten",
       "anfahrt"
     ],
-    "experience_idee": "Schneller Anfrageweg statt Effekte"
+    "experience_idee": "Schneller Anfrageweg statt Effekte",
+    "overture": [
+      "laundry_service",
+      "printing_service",
+      "event_or_party_service",
+      "party_and_event_planning",
+      "animal_or_pet_service",
+      "design_service",
+      "rental_service",
+      "shipping_or_delivery_service",
+      "driving_school",
+      "photographer"
+    ]
   }
 }

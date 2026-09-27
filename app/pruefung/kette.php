@@ -12191,6 +12191,37 @@ pruefe('Wochenbericht: Wochenziel, Trichter (30 Tage) und automatisch eingeordne
     && (bool) array_filter($wbZ, static fn($z) => str_contains($z, 'automatisch aus dem Postfach')), json_encode($wbZ, JSON_UNESCAPED_UNICODE));
 
 /* ============================================================================
+   Firmen-Finder: Suchknöpfe, selbst eintragen, Overture (27.09.2026, Uwe: Ja)
+   ============================================================================ */
+abschnitt('Firmen-Finder: Suchknöpfe, selbst eintragen, Overture-Zuordnung');
+$feP = Partner::anlegen(['name' => 'Fabio Finder', 'email' => 'fabio@partner.example', 'status' => 'aktiv', 'code' => 'FABIOFE1', 'firma' => '', 'sprache' => 'it']);
+$feL = PartnerRecherche::suchlinks('Favara', 'friseur');
+pruefe('Suchknöpfe: Google Maps (offizielle Such-URL), Pagine Gialle, Facebook, Indeed — mit Branche auf Italienisch und Ort; ohne Ort keine',
+    count($feL) === 4 && str_starts_with($feL[0]['url'], 'https://www.google.com/maps/search/?api=1&query=') && str_contains($feL[0]['url'], rawurlencode('Parrucchiere Favara'))
+    && str_contains($feL[1]['url'], 'paginegialle.it/ricerca/') && str_contains($feL[3]['url'], 'it.indeed.com') && PartnerRecherche::suchlinks('', '') === []
+    && count(PartnerRecherche::suchlinks('Favara', 'restaurant')) === 5);
+pruefe('Selbst eintragen: Pflichtfelder und Website werden geprüft',
+    PartnerRecherche::eintragen($feP, ['name' => 'X', 'ort' => 'Favara', 'branche' => 'friseur'])['grund'] === 'fe_name'
+    && PartnerRecherche::eintragen($feP, ['name' => 'Salone Uno', 'ort' => '', 'branche' => 'friseur'])['grund'] === 'fe_ort'
+    && PartnerRecherche::eintragen($feP, ['name' => 'Salone Uno', 'ort' => 'Favara', 'branche' => 'erfunden'])['grund'] === 'fe_branche'
+    && PartnerRecherche::eintragen($feP, ['name' => 'Salone Uno', 'ort' => 'Favara', 'branche' => 'friseur', 'website' => 'kein url'])['grund'] === 'fe_website');
+$feR = PartnerRecherche::eintragen($feP, ['name' => 'Salone Uno Favara', 'ort' => 'Favara', 'branche' => 'friseur', 'website' => 'salone-uno.example', 'adresse' => 'Via Roma 1']);
+pruefe('… eingetragen: in der Akquise-Liste (Quelle partner:ID), Website mit https, sofort für ihn reserviert',
+    $feR['ok'] && (string) Db::wert('SELECT quelle FROM akq_firmen WHERE id = ?', [$feR['firma']], '') !== '' && str_starts_with((string) Db::wert('SELECT quelle FROM akq_firmen WHERE id = ?', [$feR['firma']], ''), 'partner:' . $feP . ':')
+    && (string) Db::wert('SELECT url FROM akq_firmen WHERE id = ?', [$feR['firma']], '') === 'https://salone-uno.example'
+    && (int) Db::wert('SELECT partner_id FROM partner_reservierungen WHERE firma_id = ?', [$feR['firma']], 0) === $feP);
+$feP2 = Partner::anlegen(['name' => 'Gina Zweite', 'email' => 'gina@partner.example', 'status' => 'aktiv', 'code' => 'GINAFE01', 'firma' => '', 'sprache' => 'it']);
+pruefe('… derselbe Betrieb von einem zweiten Partner: vergeben (Dublette erkannt, keine zweite Firma)',
+    PartnerRecherche::eintragen($feP2, ['name' => 'Salone Uno Favara', 'ort' => 'Favara', 'branche' => 'friseur', 'website' => 'https://salone-uno.example/'])['grund'] === 'fi_weg'
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_firmen WHERE domain = 'salone-uno.example'", [], 0) === 1);
+$feJ = json_decode((string) file_get_contents($wurzel . '/src/akquise_branchen.json'), true);
+unset($feJ['_hinweis']);
+pruefe('Overture: jede Branche hat Taxonomie-Begriffe (für den Worker), keine doppelt vergeben',
+    count(array_filter($feJ, static fn($b) => !empty($b['overture']))) === count($feJ)
+    && count(array_merge(...array_values(array_map(static fn($b) => $b['overture'], $feJ)))) === count(array_unique(array_merge(...array_values(array_map(static fn($b) => $b['overture'], $feJ))))));
+pruefe('Finder nennt Overture als Quelle (Lizenz CDLA-Permissive-2.0)', str_contains(Texte::h(Texte::PARTNER['fi_osm'], 'de'), 'Overture Maps Foundation (CDLA-Permissive-2.0)'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

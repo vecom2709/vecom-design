@@ -18,14 +18,16 @@
     "einzel": "tsx src/cli.ts einzel",
     "test": "tsx --test test/*.test.ts",
     "typen": "tsc --noEmit",
-    "osm": "tsx src/cli.ts osm"
+    "osm": "tsx src/cli.ts osm",
+    "overture": "tsx src/cli.ts overture"
   },
   "dependencies": {
+    "@duckdb/node-api": "1.5.5-r.5",
+    "chrome-launcher": "1.2.1",
     "lighthouse": "13.5.0",
     "playwright": "1.56.1",
     "robots-parser": "3.0.1",
-    "tsx": "4.23.15",
-    "chrome-launcher": "1.2.1"
+    "tsx": "4.23.15"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

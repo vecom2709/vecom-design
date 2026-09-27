@@ -1,6 +1,6 @@
 # VECOM Akquise-Worker
 
-Findet Betriebe (OpenStreetMap), prüft ihre Websites (Playwright, Lighthouse, eigene
+Findet Betriebe (OpenStreetMap, Overture Maps), prüft ihre Websites (Playwright, Lighthouse, eigene
 Prüfungen), lässt starke Leads von Claude deuten und schreibt Textvorschläge — und meldet
 alles an die Verwaltung (`/app/akquise`). **Er versendet nie etwas.** Freigabe und Versand
 passieren nur in der Verwaltung, von einem Menschen, hinter dem Compliance-Gate.
@@ -34,6 +34,7 @@ Die `.env` und der Ordner `daten/` kommen nie ins Repository.
 | `npm run alles` | alle drei nacheinander |
 | `npm run einzel -- https://beispiel.it restaurant IT Aragona` | eine Seite prüfen, nichts melden |
 | `npm run osm -- IT stadt Aragona restaurant,hotel` | zeigen, was OSM liefern würde, nichts melden |
+| `npm run overture -- IT Agrigento` | Overture Maps: alle Betriebe einer Provinz in die Verwaltung (DuckDB liest direkt aus dem öffentlichen S3, ohne Konto; `stadt`/`region` als dritter Wert, Branchen als vierter, `probe` als fünfter = nur zählen) |
 | `npm test` | Regeln gegen feste Rohdaten prüfen |
 
 Nachts automatisch: `planen.ps1` registriert die Windows-Aufgabe „VECOM Akquise“ (täglich 02:30, `npm run alles`).

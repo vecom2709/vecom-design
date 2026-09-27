@@ -10,6 +10,8 @@ $fiErg = $fiOrt !== '' ? PartnerRecherche::suchen((int) $p['id'], $fiOrt, $fiBra
 $fiMeine = PartnerRecherche::meine((int) $p['id'], $sprache);
 $branchenListe = Akquise::branchen();
 $fiMeldung = in_array($meldung, ['fi_weg', 'fi_vecom', 'fi_voll'], true) ? $meldung : '';
+$feFehler = Texte::PARTNER['fe_fehler'][$meldung] ?? null;
+$feWahl = $feFehler ? $_POST : [];
 $ckMeldung = in_array($meldung, ['ck_adresse', 'ck_genug'], true) ? $meldung : '';
 $ckLetzte = PartnerCheck::letzte((int) $p['id']);
 $datum = static fn(string $d): string => date('d.m.Y', strtotime($d));
@@ -69,7 +71,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
     <input type="hidden" name="tat" value="check">
     <label for="ck_url"><?= $h($T('ck_feld')) ?></label>
     <div class="kopie"><input id="ck_url" type="text" name="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="300" required
-        value="<?= $h((string) ($_POST['url'] ?? '')) ?>"><button class="knopf haupt" type="submit"><?= $h($T('ck_pruefen')) ?></button></div>
+        value="<?= $h((string) ($_POST['url'] ?? $_GET['ck_url'] ?? '')) ?>"><button class="knopf haupt" type="submit"><?= $h($T('ck_pruefen')) ?></button></div>
   </form>
   <?php if ($checkNeu): $ckE = $checkNeu['ergebnis']; $ckL = PartnerCheck::link($checkNeu['token']); ?>
     <div class="ck-ergebnis" role="status">
@@ -132,6 +134,35 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
       <p class="klein" style="margin-top:4px;font-size:11.5px"><?= $h($T('fi_osm')) ?></p>
     <?php endif; ?>
   <?php endif; ?>
+  <?php if ($fiOrt !== ''): $fiLinks = PartnerRecherche::suchlinks($fiOrt, $fiBranche); if ($fiLinks): ?>
+    <p class="md-l" style="margin-top:16px"><?= $h($T('fi_quellen')) ?></p>
+    <p class="klein" style="margin-top:0"><?= $h($T('fi_quellen_text')) ?></p>
+    <div class="ck-knoepfe" style="margin-top:6px">
+      <?php foreach ($fiLinks as $fl): ?><a class="knopf klein-knopf" href="<?= $h($fl['url']) ?>" target="_blank" rel="noopener noreferrer"><?= $h(Texte::h(Texte::PARTNER['fi_q'][$fl['art']], $sprache)) ?> ↗</a><?php endforeach; ?>
+    </div>
+  <?php endif; endif; ?>
+
+  <details id="eintragen" style="margin-top:16px"<?= $feFehler || ($_GET['m'] ?? '') === 'fe_gut' ? ' open' : '' ?>>
+    <summary style="cursor:pointer;color:var(--cyan);font-size:14.5px"><?= $h($T('fe_titel')) ?></summary>
+    <?php if (($_GET['m'] ?? '') === 'fe_gut'): ?><div class="hinweis gut" role="status" style="margin-top:8px"><?= $h($T('fe_gut')) ?></div><?php endif; ?>
+    <?php if ($feFehler): ?><div class="hinweis schlecht" role="alert" style="margin-top:8px"><?= $h(Texte::h($feFehler, $sprache)) ?></div><?php endif; ?>
+    <form method="post" action="<?= $h($selbst()) ?>#eintragen" style="margin-top:10px">
+      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="fe_eintragen">
+      <label for="fe_name"><?= $h($T('fe_name')) ?></label><input id="fe_name" type="text" name="name" required maxlength="160" value="<?= $h((string) ($feWahl['name'] ?? '')) ?>">
+      <div class="reihe">
+        <div><label for="fe_ort"><?= $h($T('fe_ort')) ?></label><input id="fe_ort" type="text" name="ort" required maxlength="80" value="<?= $h((string) ($feWahl['ort'] ?? $fiOrt)) ?>"></div>
+        <div><label for="fe_branche"><?= $h($T('fe_branche')) ?></label>
+          <select id="fe_branche" name="branche" required><option value=""></option>
+            <?php foreach ($branchenListe as $bk => $bv): ?><option value="<?= $h($bk) ?>"<?= $bk === (string) ($feWahl['branche'] ?? $fiBranche) ? ' selected' : '' ?>><?= $h(Akquise::branchenName($bk, $sprache)) ?></option><?php endforeach; ?>
+          </select></div>
+        <div style="flex:0 1 90px"><label for="fe_land">Land</label><select id="fe_land" name="land"><option value="IT">IT</option><option value="DE"<?= ($feWahl['land'] ?? '') === 'DE' ? ' selected' : '' ?>>DE</option></select></div>
+      </div>
+      <label for="fe_adresse"><?= $h($T('fe_adresse')) ?></label><input id="fe_adresse" type="text" name="adresse" maxlength="200" value="<?= $h((string) ($feWahl['adresse'] ?? '')) ?>" autocomplete="off">
+      <label for="fe_website"><?= $h($T('fe_website')) ?></label><input id="fe_website" type="text" name="website" maxlength="300" inputmode="url" autocapitalize="off" spellcheck="false" value="<?= $h((string) ($feWahl['website'] ?? '')) ?>" placeholder="www…">
+      <button class="knopf" type="submit"><?= $h($T('fe_knopf')) ?></button>
+    </form>
+  </details>
+
   <?php if ($fiMeine): ?>
     <p class="md-l" style="margin-top:16px"><?= $h($T('fi_meine')) ?> (<?= count($fiMeine) ?>)</p>
     <ul class="firmen"><?php foreach ($fiMeine as $f) { echo $firmaZeile($f, true); } ?></ul>

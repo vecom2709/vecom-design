@@ -113,6 +113,40 @@ async function einzel(): Promise<void> {
   console.log(`\n${e.befunde.length} Befunde · Sprache ${e.sprache ?? '?'} · ${e.seiten} Seiten · Bericht: ${datei}`);
 }
 
+/**
+ * Overture Maps (27.09.2026): ein Gebiet auf einmal in die Verwaltung.
+ *   npm run overture -- IT Agrigento                 Provinz, alle Branchen, melden
+ *   npm run overture -- IT Favara stadt friseur      Gemeinde, eine Branche
+ *   npm run overture -- IT Agrigento kreis "" probe  nur zählen, nichts melden
+ */
+async function overture(): Promise<void> {
+  const [land = 'IT', name, ebene = 'kreis', branchenRoh = '', modus = ''] = process.argv.slice(3);
+  if (!name) { console.log('Aufruf: npm run overture -- IT Agrigento [kreis|stadt|region] [branchen] [probe]'); return; }
+  const o = await import('./recherche/overture.js');
+  const branchen = branchenRoh ? branchenRoh.split(',').filter(Boolean) : [];
+  const g = await o.gebiet(land as 'IT', name, ebene as 'kreis');
+  log.info('overture', `Gebiet ${g.name} (${g.region ?? '?'}), Rechteck ${g.bbox.map((n) => n.toFixed(3)).join(', ')}, ${g.polygone.length} Fläche(n)`);
+  const zeilen = await o.orteIn(g);
+  const firmen = zeilen.map((z) => o.alsFirma(z, g, branchen)).filter((f): f is NonNullable<typeof f> => f !== null);
+  const jeBranche: Record<string, number> = {};
+  for (const f of firmen) jeBranche[f.branche] = (jeBranche[f.branche] ?? 0) + 1;
+  log.info('overture', `${firmen.length} Betriebe innerhalb der Grenze, ${firmen.filter((f) => f.url).length} mit Website · ` +
+    Object.entries(jeBranche).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', '));
+  if (modus === 'probe') { log.info('overture', 'Probe — nichts gemeldet.'); return; }
+  if (!sperren()) { log.warn('overture', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
+  try {
+    if (!(await pruefen())) { log.warn('overture', 'Notbremse gezogen — es wird nichts gemeldet.'); return; }
+    let neu = 0, dubletten = 0, fehler = 0;
+    for (let i = 0; i < firmen.length; i += 100) {
+      if (i > 0 && i % 2000 === 0 && (await api('hallo')).stop) { log.warn('overture', 'Notbremse gezogen — angehalten.'); break; }
+      const r = await api('firmen_melden', { firmen: firmen.slice(i, i + 100) });
+      neu += r.neu ?? 0; dubletten += r.dubletten ?? 0; fehler += r.fehler ?? 0;
+      if ((i / 100) % 10 === 0) log.info('overture', `${Math.min(i + 100, firmen.length)}/${firmen.length} gemeldet · ${neu} neu`);
+    }
+    log.info('overture', `Fertig: ${neu} neu, ${dubletten} schon bekannt (ergänzt), ${fehler} Fehler.`);
+  } finally { freigeben(); }
+}
+
 /** OSM-Abfrage ohne Verwaltung: zeigt, was eine Recherche finden wuerde. */
 async function osm(): Promise<void> {
   const [land, ebene, gebiet, branchenRoh] = process.argv.slice(3);
@@ -130,11 +164,12 @@ async function osm(): Promise<void> {
 
 async function main(): Promise<void> {
   if (befehl === 'hilfe') {
-    console.log('Befehle: verbinden · import <datei> · pruefen · recherche · audit · texte · alles · einzel <url> [branche] [IT|DE] [stadt] · osm <IT|DE> <stadt|kreis|region> <Name> [branchen]');
+    console.log('Befehle: verbinden · import <datei> · pruefen · recherche · audit · texte · alles · einzel <url> [branche] [IT|DE] [stadt] · osm <IT|DE> <stadt|kreis|region> <Name> [branchen] · overture <IT|DE> <Name> [kreis|stadt|region] [branchen] [probe]');
     return;
   }
   if (befehl === 'einzel') return einzel();
   if (befehl === 'osm') return osm();
+  if (befehl === 'overture') return overture();
   if (befehl === 'verbinden') return verbinden();
   if (befehl === 'import') return importieren(process.argv[3]);
   if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }

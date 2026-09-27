@@ -189,6 +189,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $r = PartnerCheck::anlegen((int) $p['id'], (string) ($_POST['url'] ?? ''));
                 if ($r['ok']) { header('Location: ' . $selbst(['ck' => $r['token']]) . '#recherche', true, 303); exit; }
                 $meldung = (string) $r['grund'];
+            } elseif ($tat === 'fe_eintragen' && $p) {
+                /* Selbst gefundener Betrieb (27.09.2026): eintragen, reservieren, Schnellcheck vorbereiten. */
+                $fe = PartnerRecherche::eintragen((int) $p['id'], $_POST);
+                if ($fe['ok']) {
+                    header('Location: ' . $selbst(array_filter(['m' => 'fe_gut', 'ck_url' => (string) ($_POST['website'] ?? '')])) . '#recherche', true, 303); exit;
+                }
+                $meldung = (string) $fe['grund'];
             } elseif ($tat === 'ck_weg' && $p) {
                 PartnerCheck::loeschen((int) $p['id'], (string) ($_POST['token'] ?? ''));
                 header('Location: ' . $selbst(['m' => 'ck_weg_gut']) . '#recherche', true, 303); exit;
@@ -480,7 +487,7 @@ if ($p && isset($_GET['karte'])) {
     <h1><?= $h($T('p_titel')) ?></h1>
     <p class="lead"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
     <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler'], true); ?>
-    <?php if ($meldung !== '' && !$wegFehler): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
+    <?php if ($meldung !== '' && !$wegFehler && !str_starts_with($meldung, 'fe_')): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
     <?php if ($p['status'] === 'pausiert'): ?><div class="hinweis"><?= $h($T('pausiert')) ?></div><?php endif; ?>
     <?php
       /* Der eine nächste Schritt — was der Partner jetzt tun muss, nicht alles auf einmal. */
