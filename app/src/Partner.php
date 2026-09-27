@@ -186,14 +186,21 @@ final class Partner
                 AND pp.created_at >= NOW() - INTERVAL 12 MONTH", [$partnerId], 0), 0);
     }
 
-    /** Stufe und was bis zur nächsten fehlt. @return array{stufe:?string,verkaeufe:int,naechste:?string,fehlen:int} */
+    /** Stufe und was bis zur nächsten fehlt. @return array{stufe:?string,verkaeufe:int,naechste:?string,fehlen:int,anteil:int,naechster_satz:?array} */
     public static function stufeStand(array $p): array
     {
         $s = self::satzFuer($p);
         $n = (int) ($p['id'] ?? 0) > 0 ? self::verkaeufeJahr((int) $p['id']) : 0;
         $naechste = match ($s['stufe']) { 'bronze' => 'silber', 'silber' => 'gold', default => null };
         $fehlen = $naechste !== null ? max(0, self::zahl('partner_' . $naechste . '_ab') - $n) : 0;
-        return ['stufe' => $s['stufe'], 'verkaeufe' => $n, 'naechste' => $naechste, 'fehlen' => $fehlen];
+        /* Für den Fortschrittsbalken (27.09.2026): von der Schwelle der
+           eigenen Stufe bis zur nächsten, und was die nächste bringt. */
+        $von = match ($s['stufe']) { 'silber' => self::zahl('partner_silber_ab'), 'gold' => self::zahl('partner_gold_ab'), default => 0 };
+        $bis = $naechste !== null ? self::zahl('partner_' . $naechste . '_ab') : $von;
+        $anteil = $naechste === null ? 100 : (int) round(100 * max(0, min(1, ($n - $von) / max(1, $bis - $von))));
+        $naechsterSatz = $naechste !== null ? ['art' => 'prozent', 'wert' => max((int) $s['wert'], self::zahl('partner_' . $naechste . '_bp'))] : null;
+        return ['stufe' => $s['stufe'], 'verkaeufe' => $n, 'naechste' => $naechste, 'fehlen' => $fehlen,
+                'anteil' => $anteil, 'naechster_satz' => $naechsterSatz];
     }
 
     public static function satzWort(array $s, bool $kurz = false): string

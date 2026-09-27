@@ -12312,6 +12312,121 @@ pruefe('Reiter: ohne Skript bleibt alles sichtbar (die Leiste entsteht erst im S
     && str_contains($prJs, 'hashchange') && str_contains($prJs, "closest('[data-reiter]')"));
 
 /* ============================================================================
+   Marketing im Partner-Dashboard (27.09.2026, Uwe: Ja zu Posting-Kalender,
+   Mappe zum Vorbeibringen, Stufen & Monatswettbewerb, Erfolge als Kacheln)
+   ========================================================================== */
+abschnitt('Partner-Marketing');
+require_once $wurzel . '/src/PartnerKalender.php';
+require_once $wurzel . '/src/PartnerWettbewerb.php';
+require_once $wurzel . '/src/PartnerMappe.php';
+
+// Posting-Kalender
+pruefe('Kalender: Ostern richtig gerechnet (2026, 2027, 2028), ohne calendar-Erweiterung',
+    date('Y-m-d', PartnerKalender::ostern(2026)) === '2026-04-05' && date('Y-m-d', PartnerKalender::ostern(2027)) === '2027-03-28'
+    && date('Y-m-d', PartnerKalender::ostern(2028)) === '2028-04-16');
+$mkA = PartnerKalender::anlaesse(2026);
+pruefe('Kalender: Muttertag zweiter Sonntag im Mai, Black Friday nach dem vierten Donnerstag, Ferragosto am 15.8.',
+    ($mkA['2026-05-10'] ?? '') === 'mamma' && ($mkA['2026-11-27'] ?? '') === 'black_friday' && ($mkA['2026-08-15'] ?? '') === 'ferragosto'
+    && count($mkA) === count(Texte::PARTNER_KALENDER['anlaesse']));
+$mkFehlt = [];
+foreach (['anlaesse', 'themen'] as $mkG) {
+    foreach (Texte::PARTNER_KALENDER[$mkG] as $mkK => $mkE) {
+        foreach (['it' => '#adv', 'de' => '#Werbung', 'en' => '#ad'] as $mkL => $mkTag) {
+            $mkT = (string) ($mkE['text'][$mkL] ?? '');
+            if (trim((string) ($mkE['titel'][$mkL] ?? '')) === '' || !str_contains($mkT, '{link}') || !str_contains($mkT, $mkTag) || mb_strlen($mkT) > 600) { $mkFehlt[] = "$mkG.$mkK.$mkL"; }
+            if (preg_match('/\d+\s?%|\d+\s+(von|su|of|di)\s+\d+/u', $mkT)) { $mkFehlt[] = "$mkG.$mkK.$mkL: Zahl"; }
+        }
+    }
+}
+pruefe('Kalender: jeder Beitrag dreisprachig, mit Link, als Werbung gekennzeichnet, ohne erfundene Zahlen', $mkFehlt === [], implode(', ', $mkFehlt));
+$mkP = ['id' => 1, 'code' => 'KALE1234', 'name' => 'Kai Kalender', 'token' => 'x'];
+$mkF = PartnerKalender::tag($mkP, 'de', strtotime('2026-08-15 09:00:00'));
+$mkT1 = PartnerKalender::tag($mkP, 'de', strtotime('2026-09-28 09:00:00'));
+$mkT2 = PartnerKalender::tag($mkP, 'de', strtotime('2026-09-29 09:00:00'));
+pruefe('Kalender: am Anlass der Anlass-Beitrag, sonst jeden Tag ein anderes Thema; der Link trägt den Kanal „kalender“',
+    $mkF['anlass'] && $mkF['schluessel'] === 'ferragosto' && str_contains($mkF['text'], Partner::link($mkP) . '/kalender')
+    && !$mkT1['anlass'] && !$mkT2['anlass'] && $mkT1['schluessel'] !== $mkT2['schluessel'] && !str_contains($mkT1['text'], '{link}')
+    && count(PartnerKalender::tage($mkP, 'it', strtotime('2026-09-28'), 7)) === 7);
+$mkB = PartnerKalender::bald(strtotime('2026-11-20 10:00:00'));
+$mkB2 = PartnerKalender::bald(strtotime('2026-12-28 10:00:00'));
+pruefe('Kalender: „bald“ kündigt den nächsten Anlass an, auch über den Jahreswechsel',
+    ($mkB['schluessel'] ?? '') === 'black_friday' && ($mkB['in'] ?? 0) === 7 && ($mkB2['schluessel'] ?? '') === 'capodanno' && ($mkB2['in'] ?? 0) === 4);
+pruefe('Kalender, Mappe, Kachel haben je einen eigenen Kanal für „Was wirkt“',
+    !array_diff(['kalender', 'mappe', 'kachel'], PartnerWerbung::WERKZEUGE)
+    && isset(Texte::PARTNER_WERBUNG['namen']['kalender'], Texte::PARTNER_WERBUNG['namen']['mappe'], Texte::PARTNER_WERBUNG['namen']['kachel']));
+
+// Monatswettbewerb
+$mkAlt = Db::all('SELECT id, status FROM partner');
+Db::run("UPDATE partner SET status = 'pausiert'");
+$mkW1 = Partner::anlegen(['name' => 'Maria Grazia Rossi', 'email' => 'maria-wb@partner.example', 'status' => 'aktiv']);
+$mkW2 = Partner::anlegen(['name' => 'Enzo Ferri', 'email' => 'enzo-wb@partner.example', 'status' => 'aktiv']);
+$mkW3 = Partner::anlegen(['name' => 'Ida Leer', 'email' => 'ida-wb@partner.example', 'status' => 'aktiv']);
+$mkW4 = Partner::anlegen(['name' => 'Olga Ohne', 'email' => 'olga-wb@partner.example', 'status' => 'aktiv']);
+$mkKunde = static fn(string $e): int => (int) Events::kundeFinden(['name' => 'WB ' . $e, 'email' => $e . '@kunde-wb.example']);
+foreach (['a1', 'a2'] as $mkE) { Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, created_at) VALUES (?, ?, ?)', [$mkKunde($mkE), $mkW1, date('Y-m-d H:i:s')]); }
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, created_at) VALUES (?, ?, ?)', [$mkKunde('b1'), $mkW2, date('Y-m-d H:i:s')]);
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, created_at) VALUES (?, ?, ?)', [$mkKunde('d1'), $mkW4, date('Y-m-d H:i:s')]);
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, created_at) VALUES (?, ?, ?)', [$mkKunde('alt'), $mkW3, date('Y-m-d H:i:s', strtotime('first day of last month'))]);
+PartnerWettbewerb::nameErlauben($mkW1, true);
+$mkR = PartnerWettbewerb::monat($mkW2);
+$mkNamen = array_map(static fn($z) => $z['ich'] ? 'ICH' : ($z['name'] ?? '-'), $mkR['liste']);
+pruefe('Wettbewerb: Reihenfolge nach Verkäufen, dann Kunden; Gleichstand = gleicher Platz',
+    $mkNamen === ['Maria', 'ICH', '-'] && array_column($mkR['liste'], 'rang') === [1, 2, 2] && $mkR['teilnehmer'] === 3, json_encode($mkR['liste']));
+pruefe('Wettbewerb: Vorname nur mit Zustimmung und nur der erste („Maria Grazia Rossi“ → „Maria“), sonst „Partner“; keine Beträge, keine Kunden',
+    PartnerWettbewerb::vorname('Maria Grazia Rossi') === 'Maria' && !str_contains(json_encode($mkR, JSON_UNESCAPED_UNICODE), 'Olga')
+    && !preg_match('/cents|betrag|email|WB /i', json_encode($mkR, JSON_UNESCAPED_UNICODE)));
+$mkR3 = PartnerWettbewerb::monat($mkW3);
+pruefe('Wettbewerb: Kunden aus dem Vormonat zählen nicht; wer nichts hat, steht nicht in der Liste, sieht aber sich selbst mit Platz 0',
+    $mkR3['ich'] !== null && $mkR3['ich']['rang'] === 0 && count($mkR3['liste']) === 3 && !in_array(true, array_column($mkR3['liste'], 'ich'), true));
+foreach ($mkAlt as $mkZ) { Db::run('UPDATE partner SET status = ? WHERE id = ?', [$mkZ['status'], (int) $mkZ['id']]); }
+Db::run("UPDATE partner SET status = 'beendet' WHERE id IN (?, ?, ?, ?)", [$mkW1, $mkW2, $mkW3, $mkW4]);
+$mkSeite = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Wettbewerb: Zustimmung per Häkchen auf der Partnerseite, Standard aus (Migration 083)',
+    str_contains($mkSeite, "\$tat === 'wettbewerb_name'") && str_contains((string) file_get_contents($wurzel . '/migrations/083_partner_wettbewerb.sql'), 'wettbewerb_name TINYINT(1) NOT NULL DEFAULT 0'));
+
+// Stufen: Fortschritt bis zur nächsten
+$mkSt = Partner::stufeStand(Partner::laden($mkW2));
+pruefe('Stufe: Balken von der eigenen Schwelle zur nächsten, mit dem Satz der nächsten Stufe',
+    Partner::einstellung('partner_stufen_an') !== '1' || ($mkSt['stufe'] === 'bronze' && $mkSt['naechste'] === 'silber' && $mkSt['anteil'] === 0
+    && ($mkSt['naechster_satz']['wert'] ?? 0) >= Partner::zahl('partner_silber_bp')), json_encode($mkSt));
+
+// Mappe zum Vorbeibringen
+$mkM = Partner::laden($mkW1); $mkM2 = Partner::laden($mkW2);
+$mkTok = bin2hex(random_bytes(16));
+Db::insert('partner_checks', ['partner_id' => $mkW1, 'token' => $mkTok, 'host' => 'mappe.example', 'url' => 'https://mappe.example/',
+    'ergebnis' => '{"host":"mappe.example","punkte":[{"was":"tempo","stand":"schlecht","wert":"6,1 s"}]}']);
+$mkFirma = (int) Db::insert('akq_firmen', ['kennung' => 'MP00000001', 'name' => 'Panificio Mappe', 'name_norm' => 'panificio mappe', 'land' => 'IT',
+    'stadt' => 'Favara', 'plz' => '92026', 'branche' => 'baeckerei', 'url' => null]);
+PartnerRecherche::reservieren($mkW1, $mkFirma);
+$mkL1 = PartnerMappe::laden($mkM, ['ck' => $mkTok], 'it');
+$mkL2 = PartnerMappe::laden($mkM, ['firma' => $mkFirma], 'it');
+pruefe('Mappe: eigener Check mit seinen Punkten, eigener reservierter Betrieb ohne Website',
+    ($mkL1['art'] ?? '') === 'check' && ($mkL1['punkte'][0]['was'] ?? '') === 'tempo'
+    && ($mkL2['art'] ?? '') === 'firma' && ($mkL2['ohne_website'] ?? false) === true && ($mkL2['stadt'] ?? '') === 'Favara');
+pruefe('Mappe: fremder Check, fremder Betrieb oder Unsinn → nichts',
+    PartnerMappe::laden($mkM2, ['ck' => $mkTok], 'it') === null && PartnerMappe::laden($mkM2, ['firma' => $mkFirma], 'it') === null
+    && PartnerMappe::laden($mkM, ['ck' => 'nix'], 'it') === null && PartnerMappe::laden($mkM, [], 'it') === null);
+$mkMv = (string) file_get_contents($wurzel . '/views/partner_mappe.php');
+pruefe('Mappe: ein A4-Blatt, hell, QR auf den Kanal „mappe“, Sprache des Betriebs (Standard Italienisch); nur gemessene Aussagen',
+    str_contains($mkMv, '@page{size:A4') && str_contains($mkMv, "PartnerWerbung::link(\$p, 'mappe')") && str_contains($mkMv, ": 'it';")
+    && str_contains($mkMv, "height:297mm;min-height:0;overflow:hidden") && str_contains($mkSeite, "(\$_GET['druck'] ?? '') === 'mappe'")
+    && str_contains($mkSeite, 'http_response_code(404)'));
+$mkRv = (string) file_get_contents($wurzel . '/views/partner_recherche.php');
+pruefe('Mappe: Knopf an jedem Schnellcheck und an jeder eigenen Reservierung', substr_count($mkRv, 'PartnerMappe::link(') >= 3);
+
+// Erfolge als Kacheln
+$mkWv = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+$mkJs = (string) file_get_contents($wurzel . '/../assets/js/partner-medien.js');
+pruefe('Kacheln: nur freigegebene Erfolge und veröffentlichte Stimmen mit Erlaubnis, gezeichnet im Browser, QR auf „kachel“',
+    str_contains($mkWv, "if (!\$kE['zeigen']) { continue; }") && str_contains($mkWv, 'PartnerSeite::stimmen(') && str_contains($mkWv, "'kachel' => PartnerWerbung::link(\$p, 'kachel')")
+    && str_contains($mkJs, 'function zeichneKachel') && str_contains($mkJs, 'D.links.kachel')
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerSeite.php'), "s.status = 'veroeffentlicht' AND s.erlaubnis = 1 AND s.demo = 0"));
+$mkT = ['PARTNER_MARKETING'];
+$mkLeer = [];
+foreach (Texte::PARTNER_MARKETING as $mkK => $mkV) { foreach (['it', 'de', 'en'] as $mkL) { if (empty($mkV[$mkL])) { $mkLeer[] = "$mkK.$mkL"; } } }
+pruefe('Marketing-Texte vollständig dreisprachig', $mkLeer === [], implode(', ', $mkLeer));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

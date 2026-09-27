@@ -129,9 +129,25 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
 
 <?php
   $MT = static fn(string $k): string => strtr(Texte::h(Texte::PARTNER_MEDIEN[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]);
+  /* Erfolge als Kacheln (27.09.2026): fertige Seiten, deren Kunde das Zeigen
+     erlaubt hat, und veröffentlichte Kundenstimmen mit Erlaubnis. Nichts
+     anderes -- eine Kachel ist öffentlich. */
+  $MKw = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache);
+  $kacheln = [];
+  foreach (PartnerErfolg::liste((int) $p['id']) as $kE) {
+      if (!$kE['zeigen']) { continue; }
+      $kacheln[] = ['art' => 'erfolg', 'name' => (string) $kE['firma'], 'titel' => strtr($MKw('kc_online'), ['{firma}' => (string) $kE['firma']]),
+                    'unter' => $MKw('kc_neu'), 'host' => (string) (parse_url((string) $kE['url'], PHP_URL_HOST) ?: '')];
+  }
+  foreach (PartnerSeite::stimmen($p, $sprache, 3) as $kS) {
+      $kacheln[] = ['art' => 'stimme', 'name' => (string) $kS['name'], 'text' => (string) $kS['text'],
+                    'wer' => trim($kS['name'] . ($kS['firma'] !== '' ? ', ' . $kS['firma'] : '') . ($kS['ort'] !== '' ? ' · ' . $kS['ort'] : '')),
+                    'sterne' => $kS['sterne'], 'marke' => $MKw('kc_stimme')];
+  }
   $medienDaten = [
       'code' => (string) $p['code'], 'kurz' => preg_replace('~^https?://~', '', Partner::link($p)),
-      'links' => ['bild' => PartnerWerbung::link($p, 'bild'), 'video' => PartnerWerbung::link($p, 'video'), 'karte' => PartnerWerbung::link($p, 'karte')],
+      'links' => ['bild' => PartnerWerbung::link($p, 'bild'), 'video' => PartnerWerbung::link($p, 'video'), 'karte' => PartnerWerbung::link($p, 'karte'), 'kachel' => PartnerWerbung::link($p, 'kachel')],
+      'kacheln' => $kacheln,
       'foto' => PartnerWerbung::fotoAdresse($p),
       'motive' => array_map(static fn(array $m): array => ['titel' => Texte::h($m['titel'], $sprache), 'unter' => Texte::h($m['unter'], $sprache)], Texte::PARTNER_MEDIEN['motive']),
       'punkte' => array_map(static fn(array $t): string => Texte::h($t, $sprache), Texte::PARTNER_MEDIEN['punkte']),

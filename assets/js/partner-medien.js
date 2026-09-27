@@ -303,5 +303,80 @@
     vl.addEventListener('click', function () { if (vDatei) { laden(vDatei, vDatei.name); } });
     vt.addEventListener('click', function () { if (vDatei) { navigator.share({ files: [vDatei] }).catch(function () {}); } });
   }
-  window.__vecomMedien = { zeichne: zeichne, bild: bild, FORMATE: FORMATE, bereit: alles };
+  /* ---------- Erfolge als Kacheln (27.09.2026) ----------
+     Eine fertige Seite („… ist online“) oder eine Kundenstimme als
+     quadratisches Bild mit QR-Code. Nur, was der Server in D.kacheln
+     mitgibt -- also nur Freigegebenes. Der Link trägt den Kanal „kachel“. */
+  function stern(x, cx, cy, r) {
+    x.beginPath();
+    for (var i = 0; i < 10; i++) {
+      var w = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r;
+      x.lineTo(cx + Math.cos(w) * rr, cy + Math.sin(w) * rr);
+    }
+    x.closePath(); x.fill();
+  }
+  function zeichneKachel(k, canvas) {
+    var b = 1080, h = 1080, rand = 84, x = canvas.getContext('2d');
+    canvas.width = b; canvas.height = h;
+    grund(x, b, h, 0.3);
+    marke(x, rand, rand, 60, false); hinweis(x, b, 22);
+    var qg = 270, qy = h - rand - qg - 56, textBreite = b - 2 * rand;
+    if (k.art === 'stimme') {
+      x.fillStyle = gold(x, rand, rand + 160); x.font = '800 230px Archivo, sans-serif'; x.textAlign = 'left';
+      x.fillText('“', rand - 10, 350);
+      var t = passend(x, k.text, textBreite, 58, 32, 6, '600', 'Inter, sans-serif');
+      x.fillStyle = FARBE.text;
+      var y = schreibe(x, t, rand, 425, t.groesse * 1.32);
+      if (k.sterne) {
+        x.fillStyle = FARBE.gold;
+        for (var i = 0; i < Math.min(5, k.sterne); i++) { stern(x, rand + 18 + i * 46, y + 20, 18); }
+        y += 56;
+      }
+      x.fillStyle = FARBE.leise; x.font = '600 32px Inter, sans-serif';
+      schreibe(x, { zeilen: zeilen(x, '— ' + k.wer, textBreite - qg - 40).slice(0, 2) }, rand, y + 34, 42);
+    } else {
+      x.textAlign = 'left'; x.font = '700 28px Inter, sans-serif'; x.fillStyle = gold(x, rand, rand + 520);
+      x.fillText(String(k.unter).toUpperCase(), rand, 290);
+      x.fillStyle = FARBE.text;
+      var t2 = passend(x, k.titel, textBreite, 96, 56, 3, '800', 'Archivo, sans-serif');
+      var y2 = schreibe(x, t2, rand, 290 + t2.groesse * 1.25, t2.groesse * 1.08);
+      if (k.host) {
+        // Schlichtes Browserfenster mit der echten Adresse -- kein erfundenes Bildschirmfoto.
+        var fy = y2 + 30, fb = textBreite - qg - 40, fh = 96;
+        x.fillStyle = 'rgba(255,255,255,.05)'; rund(x, rand, fy, fb, fh, 20); x.fill();
+        x.strokeStyle = 'rgba(241,211,139,.35)'; x.lineWidth = 2; rund(x, rand, fy, fb, fh, 20); x.stroke();
+        ['#ef6b5b', '#e8b64c', '#34d39b'].forEach(function (f, i) { x.fillStyle = f; x.beginPath(); x.arc(rand + 34 + i * 30, fy + fh / 2, 9, 0, Math.PI * 2); x.fill(); });
+        x.fillStyle = FARBE.text; x.font = '600 34px Inter, sans-serif';
+        var host = k.host; while (x.measureText(host).width > fb - 160 && host.length > 6) { host = host.slice(0, -2); }
+        x.fillText(host === k.host ? host : host + '…', rand + 136, fy + fh / 2 + 12);
+      }
+    }
+    qrFeld(x, D.links.kachel, b - rand - qg, qy, qg);
+    x.textAlign = 'center'; x.fillStyle = gold(x, b - rand - qg, b - rand); x.font = '700 28px Inter, sans-serif'; x.fillText(D.scan, b - rand - qg / 2, qy + qg + 44);
+    x.textAlign = 'left'; x.fillStyle = FARBE.text; x.font = '600 30px Inter, sans-serif'; x.fillText(D.kurz, rand, h - rand - 10);
+    empfehlung(x, rand, h - rand - 92, 30, false, FARBE.leise);
+  }
+  var kv = document.getElementById('kachel_vorschau');
+  if (kv && D.kacheln && D.kacheln.length) {
+    var kWahl = 0;
+    var kNeu = function () { alles.then(function () { zeichneKachel(D.kacheln[kWahl], kv); }); };
+    [].forEach.call(document.querySelectorAll('[data-kachel]'), function (b) {
+      b.addEventListener('click', function () {
+        kWahl = Number(b.dataset.kachel) || 0;
+        [].forEach.call(document.querySelectorAll('[data-kachel]'), function (a) { a.setAttribute('aria-pressed', a === b ? 'true' : 'false'); });
+        kNeu();
+      });
+    });
+    var kDatei = function () {
+      return new Promise(function (ok) { kv.toBlob(function (bl) { ok(new File([bl], 'vecom-' + D.code.toLowerCase() + '-kachel-' + (kWahl + 1) + '.png', { type: 'image/png' })); }, 'image/png'); });
+    };
+    var kl = document.getElementById('kachel_laden'), kt = document.getElementById('kachel_teilen');
+    if (kl) { kl.addEventListener('click', function () { alles.then(function () { zeichneKachel(D.kacheln[kWahl], kv); return kDatei(); }).then(function (d) { laden(d, d.name); }); }); }
+    if (kt) {
+      if (teilenMoeglich(new File([new Blob(['x'], { type: 'image/png' })], 'probe.png', { type: 'image/png' }))) { kt.hidden = false; }
+      kt.addEventListener('click', function () { kDatei().then(function (d) { return navigator.share({ files: [d], text: D.kurz }); }).catch(function () {}); });
+    }
+    kNeu();
+  }
+  window.__vecomMedien = { zeichne: zeichne, bild: bild, FORMATE: FORMATE, bereit: alles, zeichneKachel: zeichneKachel };
 })();

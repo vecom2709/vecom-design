@@ -26,7 +26,7 @@ final class PartnerWerbung
     public const KANAELE = ['whatsapp', 'instagram', 'facebook', 'tiktok', 'email', 'linkedin', 'sms'];
 
     /** Kanäle ohne Texte, aber mit eigenem Link (Werkzeuge, Druck, Bilder). */
-    public const WERKZEUGE = ['signatur', 'website', 'karte', 'flyer', 'bild', 'video', 'check', 'erfolg', 'weiter'];
+    public const WERKZEUGE = ['signatur', 'website', 'karte', 'flyer', 'bild', 'video', 'check', 'erfolg', 'weiter', 'kalender', 'mappe', 'kachel'];
 
     /** Anzeigename eines Kanals. Unbekannte (alte Links) mit großem Anfang. */
     public static function name(string $kanal, string $sprache): string

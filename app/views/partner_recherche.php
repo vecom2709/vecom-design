@@ -15,15 +15,17 @@ $feWahl = $feFehler ? $_POST : [];
 $ckMeldung = in_array($meldung, ['ck_adresse', 'ck_genug'], true) ? $meldung : '';
 $ckLetzte = PartnerCheck::letzte((int) $p['id']);
 $datum = static fn(string $d): string => date('d.m.Y', strtotime($d));
-$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche): string {
+$mpKnopf = Texte::h(Texte::PARTNER_MARKETING['mp_knopf'], $sprache);
+$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf): string {
     $o = '<li class="firma"><div class="firma__kopf"><b>' . $h($f['name']) . '</b><span class="chance ' . $h($f['chance']) . '">' . $h($T('fi_chance_' . $f['chance'])) . '</span></div>'
        . '<small>' . $h($f['branche']) . ' · ' . $h(trim($f['adresse'] !== '' ? $f['adresse'] . ', ' . $f['ort'] : $f['ort'], ', ')) . ($f['domain'] !== '' ? ' · ' . $h($f['domain']) : '') . '</small>';
     $o .= '<div class="firma__tat">';
     if ($meine || ($f['stand'] ?? '') === 'meine') {
         $o .= '<span class="klein" style="margin:0">' . $h(strtr($T('fi_bis'), ['{datum}' => $datum((string) $f['bis'])])) . '</span>'
+            . '<span class="ck-knoepfe"><a class="knopf klein-knopf" target="_blank" rel="noopener" href="' . $h(PartnerMappe::link($p, ['firma' => (int) $f['id']])) . '">' . $h($mpKnopf) . '</a>'
             . '<form method="post" action="' . $h($selbst(['fi_ort' => $fiOrt, 'fi_branche' => $fiBranche, 'fi_nz' => 1])) . '#recherche">'
             . '<input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tat" value="fi_frei">'
-            . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_frei')) . '</button></form>';
+            . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_frei')) . '</button></form></span>';
     } elseif (($f['stand'] ?? '') === 'vecom') {
         $o .= '<span class="klein" style="margin:0">' . $h($T('fi_vecom')) . '</span>';
     } else {
@@ -85,7 +87,9 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
         <a class="knopf haupt" href="https://wa.me/?text=<?= rawurlencode($T('ck_wa_text') . $ckL) ?>" target="_blank" rel="noopener"><?= $h($T('ck_wa')) ?></a>
         <a class="knopf" href="<?= $h($ckL) ?>" target="_blank" rel="noopener"><?= $h($T('ck_oeffnen')) ?></a>
         <button class="knopf" type="button" data-kopie-text="<?= $h($ckL) ?>"><?= $h($T('kopieren')) ?></button>
+        <a class="knopf" target="_blank" rel="noopener" href="<?= $h(PartnerMappe::link($p, ['ck' => $checkNeu['token']])) ?>"><?= $h($mpKnopf) ?></a>
       </div>
+      <p class="klein" style="margin:8px 0 0"><?= $h(Texte::h(Texte::PARTNER_MARKETING['mp_erklaer'], $sprache)) ?></p>
     </div>
   <?php endif; ?>
   <?php if ($ckLetzte && !$checkNeu): ?>
@@ -100,6 +104,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
               <a class="knopf klein-knopf" href="https://wa.me/?text=<?= rawurlencode($T('ck_wa_text') . $ckL2) ?>" target="_blank" rel="noopener">WhatsApp</a>
               <button class="knopf klein-knopf" type="button" data-kopie-text="<?= $h($ckL2) ?>"><?= $h($T('kopieren')) ?></button>
               <button class="knopf klein-knopf" type="button" data-teilen-text="<?= $h($T('ck_wa_text') . $ckL2) ?>" hidden><?= $h($T('teilen_mehr')) ?></button>
+              <a class="knopf klein-knopf" target="_blank" rel="noopener" href="<?= $h(PartnerMappe::link($p, ['ck' => $c['token']])) ?>"><?= $h($mpKnopf) ?></a>
               <form method="post" action="<?= $h($selbst()) ?>#recherche" onsubmit="return confirm(this.dataset.frage)" data-frage="<?= $h($T('ck_loeschen_frage')) ?>">
                 <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="ck_weg"><input type="hidden" name="token" value="<?= $h($c['token']) ?>">
                 <button class="knopf klein-knopf ck-weg" type="submit"><?= $h($T('ck_loeschen')) ?></button></form>

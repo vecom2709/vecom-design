@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -173,6 +173,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $r = Partner::kundeMelden((int) $p['id'], $_POST, $sprache);
                 if ($r['ok']) { header('Location: ' . $selbst(['m' => 'm_danke']) . '#melden', true, 303); exit; }
                 $meldung = (string) ($r['grund'] ?? 'panne');
+            } elseif ($tat === 'wettbewerb_name' && $p) {
+                PartnerWettbewerb::nameErlauben((int) $p['id'], !empty($_POST['an']));
+                header('Location: ' . $selbst() . '#wettbewerb', true, 303); exit;
             } elseif ($tat === 'sofort' && $p) {
                 Db::run('UPDATE partner SET sofortmail = ? WHERE id = ?', [!empty($_POST['an']) ? 1 : 0, (int) $p['id']]);
                 header('Location: ' . $selbst() . '#sofort', true, 303); exit;
@@ -292,6 +295,14 @@ $so = static function () use ($Tp, $T, $h): string {
 };
 $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\((https://[^)\s]+)\)~',
     '<a href="$2" target="_blank" rel="noopener">$1</a>', htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
+/* ---------- Mappe zum Vorbeibringen (27.09.2026): nur eigener Check oder eigene Reservierung ---------- */
+if ($p && ($_GET['druck'] ?? '') === 'mappe') {
+    $mappe = PartnerMappe::laden($p, $_GET, in_array((string) ($_GET['sp'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['sp'] : 'it');
+    if ($mappe === null) { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex');
+    require __DIR__ . '/app/views/partner_mappe.php';
+    exit;
+}
 /* ---------- Druck-Paket: Visitenkarten, Flyer, Aufsteller, Aufkleber ---------- */
 if ($p && in_array((string) ($_GET['druck'] ?? ''), ['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'], true)) {
     header('X-Robots-Tag: noindex');
@@ -396,6 +407,34 @@ if ($p && isset($_GET['karte'])) {
   .kanaele .knopf{min-height:34px;padding:6px 12px}
   .kanaele code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
   .stufe{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linie2);border-radius:999px;padding:4px 12px;font-size:13px;margin-top:10px}
+  .stufe-balken{height:8px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:10px;overflow:hidden;max-width:420px}
+  .stufe-balken i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b98a31,#f1d38b)}
+  /* Posting-Kalender */
+  .ka-heute{border:1px solid rgba(241,211,139,.35);border-radius:14px;padding:14px;background:linear-gradient(160deg,rgba(241,211,139,.07),rgba(241,211,139,0) 60%)}
+  .ka-kopf{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;margin-bottom:8px;font-size:15.5px}
+  .ka-tag{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
+  .ka-marke{font-size:11.5px;font-weight:700;letter-spacing:.04em;color:#16120b;background:#f1d38b;border-radius:99px;padding:2px 9px}
+  .ka-heute textarea,.ka-tagfeld textarea{width:100%;box-sizing:border-box;font-size:14px;line-height:1.55;padding:10px 12px}
+  .ka-bald{margin:12px 0 0;color:var(--dim)}
+  .ka-woche{margin-top:12px}
+  .ka-woche>summary,.ka-tagfeld>summary{cursor:pointer;color:var(--cyan);font-size:14px;padding:6px 0}
+  .ka-tagfeld{border-top:1px solid var(--linie);padding:4px 0}
+  .ka-tagfeld>summary{color:var(--text)}
+  .ka-tagfeld .ka-tag{display:inline-block;min-width:74px}
+  /* Monatsrangliste */
+  .wb-liste{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:6px}
+  .wb-liste li{display:flex;align-items:center;gap:12px;border:1px solid var(--linie);border-radius:12px;padding:9px 12px;font-size:14.5px}
+  .wb-liste li.ich{border-color:rgba(241,211,139,.55);background:rgba(241,211,139,.07)}
+  .wb-liste li.wb-luecke{border:0;padding:0 12px;color:var(--leise)}
+  .wb-rang{flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;border:1px solid var(--linie2)}
+  .wb-liste li:first-child .wb-rang{background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);color:#16120b;border:0}
+  .wb-wer{flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wb-zahl{color:var(--dim);font-size:13px;white-space:nowrap}
+  .wb-leer{border:1px dashed var(--linie2);border-radius:12px;padding:12px 14px;color:var(--dim);font-size:14.5px}
+  .wb-name{margin-top:14px}
+  .wb-name label{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:14px;line-height:1.45}
+  .wb-name small{display:block;color:var(--leise);font-size:12.5px}
+  @media (max-width:420px){.wb-liste li{flex-wrap:wrap}.wb-zahl{flex-basis:100%;padding-left:40px;margin-top:-4px}}
   .faq pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.65;color:var(--dim);margin:8px 0 0}
   .verlauf{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px;max-height:420px;overflow-y:auto}
   .blase{max-width:86%;padding:9px 12px;border-radius:14px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
@@ -630,9 +669,15 @@ if ($p && isset($_GET['karte'])) {
       <?php endif; ?>
     </div>
     <?php $stand = Partner::stufeStand($p); if ($stand['stufe'] !== null): ?>
+      <?php $MKs = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache); ?>
       <div class="stufe">★ <?= $h(strtr($T('st_text'), ['{stufe}' => $T('st_' . $stand['stufe']), '{satz}' => Partner::satzWort(Partner::satzFuer($p), true), '{n}' => (string) $stand['verkaeufe']])) ?></div>
+      <?php if ($stand['naechste'] !== null): /* Fortschritt bis zur nächsten Stufe (27.09.2026) */ ?>
+        <div class="stufe-balken" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?= (int) $stand['anteil'] ?>"
+             aria-label="<?= $h(strtr($MKs('st_balken'), ['{naechste}' => $T('st_' . $stand['naechste'])])) ?>"><i style="width:<?= max(3, (int) $stand['anteil']) ?>%"></i></div>
+      <?php endif; ?>
       <p class="klein" style="margin-top:6px"><?= $h($stand['naechste'] !== null
-          ? strtr($T('st_naechst'), ['{fehlen}' => (string) $stand['fehlen'], '{naechste}' => $T('st_' . $stand['naechste'])])
+          ? strtr($stand['naechster_satz'] !== null ? $MKs('st_naechst2') : $T('st_naechst'), ['{fehlen}' => (string) $stand['fehlen'], '{naechste}' => $T('st_' . $stand['naechste']),
+                  '{satz}' => $stand['naechster_satz'] !== null ? Partner::satzWort($stand['naechster_satz'], true) : ''])
           : $T('st_top')) ?></p>
     <?php endif; ?>
     <p class="klein">
@@ -641,6 +686,8 @@ if ($p && isset($_GET['karte'])) {
       <?php endif; endforeach; ?>
     </p>
   </div>
+
+  <?php require __DIR__ . '/app/views/partner_wettbewerb.php'; ?>
 
   <?php $emp = PartnerPost::empfehlungen((int) $p['id']); if ($emp): ?>
   <div class="block pt" id="empfehlungen" data-reiter="start">
@@ -722,12 +769,14 @@ if ($p && isset($_GET['karte'])) {
     <?php endif; ?>
   </div>
 
+  <?php require __DIR__ . '/app/views/partner_kalender.php'; ?>
+
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
 
-  <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge): $PE = Texte::PARTNER_ERFOLG; ?>
+  <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge || $kacheln): $PE = Texte::PARTNER_ERFOLG; $MKe = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache); ?>
   <div class="block pt" id="erfolge" data-reiter="werben">
     <h2><?= $h($ST($PE['e_titel'])) ?></h2>
-    <p class="klein" style="margin-top:0"><?= $h($ST($PE['e_text'])) ?></p>
+    <?php if ($erfolge): ?><p class="klein" style="margin-top:0"><?= $h($ST($PE['e_text'])) ?></p><?php endif; ?>
     <?php foreach ($erfolge as $i => $e): $datum = $e['seit'] !== '' ? Fmt::datum($e['seit']) : ''; ?>
       <?php if (!$e['zeigen']): ?>
         <div class="erfolg"><p class="klein" style="margin:0"><?= $h(strtr($ST($PE['e_wartet']), ['{datum}' => $datum])) ?></p></div>
@@ -744,6 +793,20 @@ if ($p && isset($_GET['karte'])) {
         </div>
       <?php endif; ?>
     <?php endforeach; ?>
+    <?php if ($kacheln): /* Erfolge als Social-Kacheln (27.09.2026) -- gezeichnet von partner-medien.js */ ?>
+      <h3 class="md-h" style="margin-top:<?= $erfolge ? '22px' : '4px' ?>"><?= $h($MKe('kc_titel')) ?></h3>
+      <p class="klein" style="margin-top:0"><?= $h($MKe('kc_text')) ?></p>
+      <div class="chips">
+        <?php foreach ($kacheln as $ki => $kk): ?>
+          <button type="button" data-kachel="<?= $ki ?>" aria-pressed="<?= $ki === 0 ? 'true' : 'false' ?>"><?= $h(($kk['art'] === 'stimme' ? $kk['marke'] . ': ' : '') . $kk['name']) ?></button>
+        <?php endforeach; ?>
+      </div>
+      <div class="md-buehne"><canvas id="kachel_vorschau" width="1080" height="1080" role="img" aria-label="<?= $h($MKe('kc_titel')) ?>"></canvas></div>
+      <div class="knoepfe">
+        <button class="knopf haupt" type="button" id="kachel_laden"><?= $h($MKe('kc_laden')) ?></button>
+        <button class="knopf" type="button" id="kachel_teilen" hidden><?= $h($MKe('kc_teilen')) ?></button>
+      </div>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
