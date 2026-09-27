@@ -73,14 +73,20 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 <?php endif; ?>
 
 <div class="block">
-  <h2 style="font-size:15px;margin:0 0 10px">Alle Partner</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px">
+    <h2 style="font-size:15px;margin:0">Alle Partner</h2>
+    <?php if (array_filter($uebrige, static fn($p) => !empty($p['stripe_konto']) && (empty($p['stripe_bereit']) || $p['stripe_status_am'] === null))): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_stripe_alle_pruefen">
+        <button class="knopf" title="Holt den Stand aller angefangenen Partnerkonten bei Stripe ab. Nur lesen — es wird nichts geändert.">Stripe-Stand aller Konten abholen</button></form>
+    <?php endif; ?>
+  </div>
   <?php if (!$uebrige): ?>
     <p style="color:var(--leise);font-size:13px">Noch keine. Bewerbungen kommen über
       <a href="<?= Fmt::h($website) ?>/partner.php" target="_blank" rel="noopener"><?= Fmt::h($website) ?>/partner.php</a>; einladen kannst du unten.</p>
   <?php else: ?>
   <div class="tabellenrahmen"><table>
     <thead><tr><th>Partner</th><th>Code</th><th style="text-align:right">Klicks</th><th style="text-align:right">Kunden</th>
-               <th style="text-align:right">Offen</th><th style="text-align:right">Ausgezahlt</th><th>Stripe</th></tr></thead><tbody>
+               <th style="text-align:right">Offen</th><th style="text-align:right">Ausgezahlt</th><th>Land</th><th>Stripe</th></tr></thead><tbody>
     <?php foreach ($uebrige as $p): ?>
       <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $p['id'])) ?>"><strong><?= Fmt::h($p['name']) ?></strong></a>
             <span class="marke2 <?= $marke[$p['status']] ?? '' ?>" style="margin-left:6px"><?= Fmt::h($p['status']) ?></span></td>
@@ -89,7 +95,10 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
           <td style="text-align:right"><?= (int) $p['kunden'] ?></td>
           <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $p['offen'])) ?></td>
           <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $p['ausgezahlt'])) ?></td>
-          <td><?= !empty($p['stripe_bereit']) ? '<span class="marke2 gut">bereit</span>' : (empty($p['stripe_konto']) ? '—' : '<span class="marke2">angefangen</span>') ?></td></tr>
+          <?php /* Land und Stripe (28.09.2026): Ampel aus der Datenbank, ohne Stripe zu fragen. */ $amp = Partner::stripeAmpel($p); ?>
+          <td><?= !empty($p['land']) ? Fmt::h((string) $p['land']) : '<span style="color:var(--leise)">—</span>' ?></td>
+          <td><?php if (empty($p['stripe_konto'])): ?>—<?php else: ?><span class="marke2 <?= Fmt::h($amp['farbe']) ?>"><?= Fmt::h($amp['wort']) ?></span>
+            <span style="color:var(--leise);font-size:12px"><?= Fmt::h((string) ($p['stripe_land'] ?: '?')) ?>-Konto</span><?php endif; ?></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
   <?php endif; ?>

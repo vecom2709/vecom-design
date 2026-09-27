@@ -28,11 +28,25 @@
     if (land) { d.append('land', land.value); }
     return fetch(form.action, { method: 'POST', body: d, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (!j || !j.ok || !j.secret) { throw new Error('keine Sitzung'); } return j.secret; });
+      .then(function (j) {
+        if (j && !j.ok && j.grund) { var f = new Error('absage'); f.grund = j.grund; throw f; }
+        if (!j || !j.ok || !j.secret) { throw new Error('keine Sitzung'); }
+        return j.secret;
+      });
   }
 
-  function rueckfall() {
-    // Dasselbe Formular, derselbe Weg wie ohne Skript.
+  function rueckfall(fehler) {
+    // Eine Absage wegen des Landes (keins gewählt, nicht unterstützt, Konto im
+    // anderen Land): Die gehostete Seite hülfe da auch nicht -- also gleich
+    // die Seite mit dem freundlichen Hinweis zeigen. Stripes Wortlaut kommt
+    // nie hier an, nur der Schlüssel des Hinweises. Jede andere Absage geht
+    // wie bisher den gehosteten Weg (dort meldet der Server sie ebenso).
+    if (fehler && /^(konto_land_fehlt|konto_land_nicht|konto_abweichend)$/.test(fehler.grund || '')) {
+      window.location.href = (form.dataset.fehler || window.location.pathname) + '&m=' + encodeURIComponent(fehler.grund) + '#wege';
+      return;
+    }
+    if (fehler && fehler.grund === 'konto_bereit') { window.location.href = form.dataset.zurueck; return; }
+    // Sonst dasselbe Formular, derselbe Weg wie ohne Skript.
     feld.hidden = true;
     form.hidden = false;
     form.submit();

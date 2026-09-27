@@ -111,6 +111,15 @@ try {
                 (int) ($o['amount_total'] ?? -1), (string) ($o['currency'] ?? ''));
             break;
 
+        case 'account.updated':
+            /* Partnerkonto (Stripe Connect) hat sich geändert (28.09.2026):
+               Stand der Verifizierung am Partner speichern. Konten, die keinem
+               Partner gehören, werden still übergangen. Nichts wird angelegt,
+               gelöscht oder bei Stripe geändert -- nur gelesen und gemerkt. */
+            require_once __DIR__ . '/app/src/Partner.php';
+            Partner::stripeKontoGeaendert(is_array($o) ? $o : []);
+            break;
+
         case 'payment_intent.succeeded':
             /* Nur unsere Abbuchungen: Bezahlseiten buchen ueber
                checkout.session.completed, sonst stuende alles doppelt an. */

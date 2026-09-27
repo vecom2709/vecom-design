@@ -85,6 +85,12 @@ final class StripeAnbieter implements Anbieter
         return trim((string) ($this->cfg['webhook_geheim'] ?? '')) !== '';
     }
 
+    /** Zweiter Endpunkt für Ereignisse aus verbundenen Konten (Partnerkonten, account.updated) eingetragen? */
+    public function webhookConnectBereit(): bool
+    {
+        return trim((string) ($this->cfg['webhook_geheim_connect'] ?? '')) !== '';
+    }
+
     /** Nur zur Anzeige: die letzten vier Zeichen, damit man den Schluessel wiedererkennt. */
     public function schluesselHinweis(): string
     {
@@ -388,8 +394,13 @@ final class StripeAnbieter implements Anbieter
      */
     public function ereignisPruefen(string $rohtext, array $kopfzeilen): ?array
     {
-        $geheim = (string) ($this->cfg['webhook_geheim'] ?? '');
-        if ($geheim === '') { return null; }
+        /* Zwei mögliche Geheimnisse (28.09.2026): das des Konto-Endpunkts und --
+           wahlweise -- das eines eigenen Connect-Endpunkts („Ereignisse aus
+           verbundenen Konten“, z. B. account.updated der Partnerkonten). Stripe
+           unterschreibt je Endpunkt mit dessen eigenem Geheimnis. */
+        $geheimnisse = array_values(array_filter([(string) ($this->cfg['webhook_geheim'] ?? ''), (string) ($this->cfg['webhook_geheim_connect'] ?? '')],
+            static fn(string $g) => $g !== ''));
+        if (!$geheimnisse) { return null; }
 
         $kopf = '';
         foreach ($kopfzeilen as $name => $wert) {
@@ -410,10 +421,12 @@ final class StripeAnbieter implements Anbieter
         // mitgeschnittener Aufruf spaeter wiederholen.
         if (abs(time() - $zeit) > 300) { return null; }
 
-        $erwartet = hash_hmac('sha256', $zeit . '.' . $rohtext, $geheim);
         $passt = false;
-        foreach ($unterschriften as $u) {
-            if (hash_equals($erwartet, $u)) { $passt = true; break; }
+        foreach ($geheimnisse as $geheim) {
+            $erwartet = hash_hmac('sha256', $zeit . '.' . $rohtext, $geheim);
+            foreach ($unterschriften as $u) {
+                if (hash_equals($erwartet, $u)) { $passt = true; break 2; }
+            }
         }
         if (!$passt) { return null; }
 

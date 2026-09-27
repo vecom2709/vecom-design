@@ -9722,6 +9722,7 @@ Partner::$stripeProbe = static function (string $m, string $weg, array $f, strin
     if (str_ends_with($weg, '/reversals')) { return $GLOBALS['paRueckGeht'] ? ['id' => 'trr_1'] : ['error' => ['message' => 'insufficient funds']]; }
     return ['error' => ['message' => 'unbekannt']];
 };
+Db::run("UPDATE partner SET land = 'IT' WHERE id = ?", [$paId]);   // seit 28.09.2026: ohne gewähltes Land kein Stripe-Konto
 $paP = Partner::laden($paId);
 pruefe('Partner: ohne Stripe-Konto keine Auszahlung', !Partner::auszahlenStripe($paId)['ok']);
 $paK = Partner::kontoEinrichten($paP, 'https://pruefung.example/partner.php?t=' . $paP['token']);
@@ -10162,6 +10163,7 @@ abschnitt('Partner: Stripe-Einrichtung scheitert');
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
 $scP = Partner::laden(Partner::anlegen(['name' => 'Stripe Fehler', 'email' => 'sf@partner.example', 'status' => 'aktiv']));
+Db::run("UPDATE partner SET land = 'IT' WHERE id = ?", [(int) $scP['id']]); $scP['land'] = 'IT';   // Land vorher gewählt (28.09.2026)
 $scAufrufe = [];
 Partner::$stripeProbe = static function (string $m, string $weg, array $f, string $k) use (&$scAufrufe): array {
     $scAufrufe[] = [$weg, $f];
@@ -10216,7 +10218,7 @@ pruefe('Connect prüfen: der Grund steht in der Verwaltung beim Schild, nicht nu
 Partner::$stripeProbe = null;
 $scSeite = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Partnerseite: statt „Etwas hat nicht geklappt“ ein klarer Hinweis, und eine Anleitung Schritt für Schritt',
-    str_contains($scSeite, "\$meldung = 'konto_fehler'") && str_contains($scSeite, "\$T('anl_' . \$w)"));
+    str_contains($scSeite, "\$meldung = Partner::stripeGrundOeffentlich(\$r)") && str_contains($scSeite, "\$T('anl_' . \$w)"));
 foreach (['it', 'de', 'en'] as $scSp) {
     pruefe('Anleitung (' . $scSp . '): Stripe, SEPA und PayPal beschrieben',
         substr_count(Texte::PARTNER['anl_stripe'][$scSp], "\n") >= 5 && Texte::PARTNER['anl_sepa'][$scSp] !== '' && Texte::PARTNER['anl_paypal'][$scSp] !== '');
@@ -13349,58 +13351,218 @@ pruefe('und auf Serverseiten nur bei einem gewoehnlichen Aufruf',
     str_contains((string) file_get_contents($jsWurzel . '/assets/js/sprache.js'), "data-lang-neu') === '1'")
     && str_contains((string) file_get_contents($jsWurzel . '/app/src/Sprache.php'), "=== 'GET'"));
 
-abschnitt('Partner: Land des Stripe-Kontos und Stand der Prüfung');
-/* 28.09.2026, Uwe: „Die Partner können in Stripe ihr Land nur Italien, obwohl sie deutsch sind“. */
-$slDe = Partner::laden(Partner::anlegen(['name' => 'Dieter Deutsch', 'email' => 'dieter@partner-sl.example', 'status' => 'aktiv', 'sprache' => 'de']));
-$slIt = Partner::laden(Partner::anlegen(['name' => 'Ida Italia', 'email' => 'ida@partner-sl.example', 'status' => 'aktiv', 'sprache' => 'it']));
-pruefe('Land ab Werk aus der Sprache (de → Deutschland, sonst Italien), gewähltes Land geht vor',
-    Partner::landFuer($slDe) === 'DE' && Partner::landFuer($slIt) === 'IT' && Partner::landFuer(['land' => 'at', 'sprache' => 'it']) === 'AT' && Partner::landFuer(['land' => 'XX', 'sprache' => 'en']) === 'IT');
+abschnitt('Partner: Stripe-Konto im Land des Partners, Stand der Verifizierung');
+/* 28.09.2026, Uwes Vorgabe: Land VOR dem Anlegen, als Stripe-„country“; Sprache
+   bestimmt es nie; bestehende Konten werden nie automatisch verändert oder
+   gelöscht; Stand über Abruf und Webhook account.updated. */
+require_once $wurzel . '/src/Zahlung/Anbieter.php';
+require_once $wurzel . '/src/Zahlung/Stripe.php';
+$slNeu = static fn(string $n, string $sprache): array => Partner::laden(Partner::anlegen(['name' => $n, 'email' => strtolower(strtok($n, ' ')) . '@partner-sl.example', 'status' => 'aktiv', 'sprache' => $sprache]));
+$slDe = $slNeu('Dieter Deutsch', 'de');
+$slIt = $slNeu('Ida Italia', 'de');       // deutsche Oberfläche, lebt aber in Italien
+$slAt = $slNeu('Anton Austria', 'it');    // italienische Oberfläche, lebt in Österreich
+$slOhne = $slNeu('Olga Ohneland', 'de');
 $slAuf = [];
-Partner::$stripeProbe = static function (string $m, string $weg, array $f, string $k) use (&$slAuf): array {
+$slKonto = static fn(string $weg, string $land, array $mehr = []): array => $mehr + ['id' => substr($weg, 13), 'country' => $land, 'details_submitted' => false,
+    'charges_enabled' => false, 'payouts_enabled' => false, 'capabilities' => ['transfers' => 'inactive'],
+    'requirements' => ['currently_due' => ['individual.verification.document', 'external_account'], 'past_due' => [], 'pending_verification' => []]];
+$slStripeLand = [];          // acct → Land, wie Stripe es kennt
+Partner::$stripeProbe = static function (string $m, string $weg, array $f, string $k) use (&$slAuf, &$slStripeLand, $slKonto): array {
     $slAuf[] = [$m, $weg, $f];
-    if ($weg === '/v1/accounts' && $m === 'POST') { return ['id' => 'acct_' . strtolower($f['country'] ?? 'xx') . count($slAuf), 'country' => $f['country'] ?? 'IT']; }
-    if ($weg === '/v1/account_links') { return ['url' => 'https://connect.stripe.com/x']; }
+    if ($weg === '/v1/accounts' && $m === 'POST') {
+        if (($f['country'] ?? '') === 'LI') { return ['error' => ['code' => 'country_unsupported', 'param' => 'country', 'message' => 'Country LI is not supported for this platform.']]; }
+        if (($f['email'] ?? '') === 'panne@partner-sl.example') { return ['error' => ['message' => 'Internal error sk_live_ABCDEF123 req_1']]; }
+        $id = 'acct_' . strtolower($f['country'] ?? 'xx') . count($slAuf); $slStripeLand[$id] = $f['country'] ?? 'IT';
+        return ['id' => $id, 'country' => $slStripeLand[$id]];
+    }
+    if ($weg === '/v1/account_links') { return ['url' => 'https://connect.stripe.com/setup/x']; }
+    if ($weg === '/v1/account_sessions') { return ['client_secret' => 'accs_secret_x']; }
     if ($m === 'DELETE') { return ['id' => substr($weg, 13), 'deleted' => true]; }
-    if ($m === 'GET' && str_starts_with($weg, '/v1/accounts/')) { return ['id' => substr($weg, 13), 'country' => 'IT', 'capabilities' => ['transfers' => 'inactive'],
-        'requirements' => ['currently_due' => ['individual.verification.document', 'external_account'], 'past_due' => [], 'pending_verification' => []], 'details_submitted' => false]; }
+    if ($m === 'GET' && str_starts_with($weg, '/v1/accounts/')) { return $slKonto($weg, $slStripeLand[substr($weg, 13)] ?? 'IT'); }
     return ['error' => ['message' => '?']];
 };
-$slR = Partner::kontoEinrichten($slDe, 'https://pruefung.example/partner.php?t=x');
+
+pruefe('Sprache bestimmt das Land nie: ohne Wahl kein Land (auch nicht bei deutscher Oberfläche)',
+    Partner::landFuer($slDe) === '' && Partner::landFuer(['sprache' => 'de']) === '' && Partner::landFuer(['land' => 'at', 'sprache' => 'it']) === 'AT'
+    && Partner::landFuer(['land' => 'XX', 'sprache' => 'en']) === '');
+$slAuf = [];
+$slR0 = Partner::stripeStarten($slOhne, null, 'link', 'https://pruefung.example/partner.php?t=o');
+pruefe('Ohne gewähltes Land entsteht kein Stripe-Konto -- Stripe wird nicht einmal gefragt',
+    !$slR0['ok'] && $slR0['grund'] === 'land' && $slAuf === [] && Partner::stripeGrundOeffentlich($slR0) === 'konto_land_fehlt'
+    && Partner::createStripeConnectedAccount($slOhne)['grund'] === 'land');
+
+$slAuf = [];
+$slR = Partner::stripeStarten($slDe, 'DE', 'link', 'https://pruefung.example/partner.php?t=d');
 $slPost = array_values(array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts'));
-pruefe('Stripe: das Konto entsteht mit dem Land des Partners (Deutschland) und als normales Konto -- nicht als „Empfänger“',
-    $slR['ok'] && ($slPost[0][2]['country'] ?? '') === 'DE' && !isset($slPost[0][2]['tos_acceptance[service_agreement]'])
-    && Partner::laden((int) $slDe['id'])['stripe_land'] === 'DE');
+$slLink = array_values(array_filter($slAuf, static fn($a) => $a[1] === '/v1/account_links'));
+$slDeN = Partner::laden((int) $slDe['id']);
+pruefe('Neuer deutscher Partner: Konto mit country=DE, normales Konto (nicht „Empfänger“), Land und Stripe-Land gespeichert',
+    $slR['ok'] && count($slPost) === 1 && ($slPost[0][2]['country'] ?? '') === 'DE' && !isset($slPost[0][2]['tos_acceptance[service_agreement]'])
+    && $slDeN['land'] === 'DE' && $slDeN['stripe_land'] === 'DE' && $slDeN['stripe_onboarding_status'] === 'angelegt' && ($slPost[0][2]['metadata[partner_land]'] ?? '') === 'DE',
+    json_encode($slPost[0][2] ?? []));
+pruefe('Einrichtungslink: die bisherigen Rückwege bleiben (…&stripe=neu / …&stripe=zurueck)',
+    ($slLink[0][2]['refresh_url'] ?? '') === 'https://pruefung.example/partner.php?t=d&stripe=neu'
+    && ($slLink[0][2]['return_url'] ?? '') === 'https://pruefung.example/partner.php?t=d&stripe=zurueck');
 $slAuf = [];
-Partner::kontoEinrichten($slIt, 'https://pruefung.example/partner.php?t=y');
-pruefe('Stripe: in Italien (Land der Plattform) bleibt es beim „Empfänger“-Konto', ($slAuf[0][2]['country'] ?? '') === 'IT' && ($slAuf[0][2]['tos_acceptance[service_agreement]'] ?? '') === 'recipient');
-/* Altes Konto im falschen Land (vor dem 28.09. angelegt) */
-Db::run("UPDATE partner SET stripe_konto = 'acct_altit', stripe_land = NULL, stripe_bereit = 0, land = NULL WHERE id = ?", [(int) $slDe['id']]);
+$slRi = Partner::stripeStarten($slIt, 'IT', 'sitzung');
+pruefe('Neuer italienischer Partner (mit deutscher Oberfläche): country=IT und „Empfänger“-Konto, eingebettete Sitzung',
+    $slRi['ok'] && ($slRi['secret'] ?? '') === 'accs_secret_x' && ($slAuf[0][2]['country'] ?? '') === 'IT'
+    && ($slAuf[0][2]['tos_acceptance[service_agreement]'] ?? '') === 'recipient' && Partner::laden((int) $slIt['id'])['stripe_land'] === 'IT');
 $slAuf = [];
-$slW = Partner::landSetzen(Partner::laden((int) $slDe['id']), 'DE');
-$slNach = Partner::laden((int) $slDe['id']);
-pruefe('Land wechseln: ungeprüftes Konto in Italien wird bei Stripe gelöscht und abgehängt, das Land gemerkt',
-    $slW === 'ok' && $slNach['land'] === 'DE' && $slNach['stripe_konto'] === null
+Partner::stripeStarten($slAt, 'AT', 'link', 'https://pruefung.example/partner.php?t=a');
+pruefe('Neuer österreichischer Partner (mit italienischer Oberfläche): country=AT',
+    ($slAuf[0][2]['country'] ?? '') === 'AT' && Partner::laden((int) $slAt['id'])['stripe_land'] === 'AT');
+$slAuf = [];
+Partner::stripeStarten(Partner::laden((int) $slDe['id']), 'DE', 'link', 'https://pruefung.example/partner.php?t=d');
+pruefe('Ein zweiter Klick legt kein zweites Konto an', !array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts'));
+
+/* Bestehende Konten (vor dem 28.09.2026 ohne Land angelegt, also italienisch) */
+$slAlt = $slNeu('Bernd Bestand', 'de');
+Db::run("UPDATE partner SET stripe_konto = 'acct_altit', stripe_land = NULL, stripe_bereit = 0, land = NULL WHERE id = ?", [(int) $slAlt['id']]);
+$slStripeLand['acct_altit'] = 'IT';
+Db::run("DELETE FROM notifications WHERE type = 'partner_stripe_land'");
+$slAuf = [];
+$slW = Partner::landSetzen(Partner::laden((int) $slAlt['id']), 'DE');
+$slAltN = Partner::laden((int) $slAlt['id']);
+pruefe('Bestehendes Konto im anderen Land: wird NICHT gelöscht, nicht neu angelegt, nicht verändert -- nur gelesen',
+    $slW === 'abweichend' && $slAltN['stripe_konto'] === 'acct_altit' && $slAltN['stripe_land'] === 'IT' && $slAltN['land'] === 'DE'
+    && !array_filter($slAuf, static fn($a) => $a[0] !== 'GET'), json_encode($slAuf));
+pruefe('… Vecom bekommt den Hinweis im vorgegebenen Wortlaut',
+    Partner::landHinweis($slAltN) === 'Dieses Stripe-Konto wurde als italienisches Konto erstellt. Der Partner hat Deutschland als Land angegeben. Eine neue Stripe-Verknüpfung könnte erforderlich sein.'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_stripe_land' AND body LIKE 'Dieses Stripe-Konto wurde als italienisches Konto erstellt.%'", [], 0) === 1,
+    Partner::landHinweis($slAltN));
+$slAuf = [];
+$slRa = Partner::stripeStarten($slAltN, null, 'link', 'https://pruefung.example/partner.php?t=b');
+pruefe('… und der Partner kann dieses Konto nicht einfach weiter einrichten (freundlicher Hinweis statt Stripe)',
+    !$slRa['ok'] && $slRa['grund'] === 'abweichend' && Partner::stripeGrundOeffentlich($slRa) === 'konto_abweichend' && $slAuf === []
+    && Partner::kontoSitzung($slAltN)['grund'] === 'abweichend' && Partner::stripeAmpel($slAltN)['farbe'] === 'schlecht');
+$slPasst = $slNeu('Paula Passend', 'it');
+Db::run("UPDATE partner SET stripe_konto = 'acct_passt', stripe_land = NULL, land = NULL WHERE id = ?", [(int) $slPasst['id']]);
+$slStripeLand['acct_passt'] = 'IT';
+$slAuf = [];
+$slRp = Partner::stripeStarten(Partner::laden((int) $slPasst['id']), 'IT', 'link', 'https://pruefung.example/partner.php?t=p');
+pruefe('Bestehendes Konto im richtigen Land: läuft weiter wie bisher (kein neues Konto, nur ein neuer Einrichtungslink)',
+    $slRp['ok'] && !array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts') && Partner::laden((int) $slPasst['id'])['stripe_konto'] === 'acct_passt');
+$slFertig = $slNeu('Franz Fertig', 'de');
+Db::run("UPDATE partner SET stripe_konto = 'acct_fertig', stripe_land = 'IT', stripe_bereit = 1, land = 'IT' WHERE id = ?", [(int) $slFertig['id']]);
+$slAuf = [];
+$slRf = Partner::stripeStarten(Partner::laden((int) $slFertig['id']), 'DE', 'link', 'x');
+pruefe('Ein geprüftes Konto: kein Stripe-Aufruf, das Land wird nicht überschrieben',
+    !$slRf['ok'] && $slRf['grund'] === 'bereit' && $slAuf === [] && Partner::laden((int) $slFertig['id'])['land'] === 'IT');
+
+/* Fehler: freundlich für den Partner, Stripes Wortlaut nur für Vecom */
+$slLi = $slNeu('Lars Liechtenstein', 'de');
+$slRl = Partner::stripeStarten($slLi, 'LI', 'link', 'x');
+pruefe('Stripe lehnt das Land ab → „Dieses Land wird von Stripe Connect aktuell nicht unterstützt.“',
+    !$slRl['ok'] && $slRl['grund'] === 'land_nicht' && Texte::h(Texte::PARTNER[Partner::stripeGrundOeffentlich($slRl)], 'de') === 'Dieses Land wird von Stripe Connect aktuell nicht unterstützt.');
+pruefe('Ein Land außerhalb der Liste wird gar nicht erst gespeichert',
+    Partner::stripeStarten($slOhne, 'ZZ', 'link', 'x')['grund'] === 'land_nicht' && Partner::laden((int) $slOhne['id'])['land'] === null);
+$slPanne = Partner::laden(Partner::anlegen(['name' => 'Peter Panne', 'email' => 'panne@partner-sl.example', 'status' => 'aktiv', 'sprache' => 'de']));
+Db::run("DELETE FROM notifications WHERE type = 'partner_stripe_fehler'");
+$slRx = Partner::stripeStarten($slPanne, 'DE', 'link', 'x');
+Partner::stripeFehlerMelden($slPanne, $slRx, 'Partner-Konto bei Stripe nicht eingerichtet');
+$slMeld = (string) Db::wert("SELECT body FROM notifications WHERE type = 'partner_stripe_fehler' ORDER BY id DESC LIMIT 1", [], '');
+pruefe('Technischer Fehler: der Partner liest nur „… konnte nicht gestartet werden …“, Vecom den Grund -- ohne Schlüssel',
+    !$slRx['ok'] && Partner::stripeGrundOeffentlich($slRx) === 'konto_start_fehler'
+    && Texte::h(Texte::PARTNER['konto_start_fehler'], 'de') === 'Die Stripe-Verifizierung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.'
+    && str_contains($slMeld, 'Internal error') && !str_contains($slMeld, 'ABCDEF123'), $slMeld);
+
+/* Stand der Verifizierung: Abruf und Webhook */
+$slStDe = Partner::kontoStand(Partner::laden((int) $slDe['id']));
+$slDeN = Partner::laden((int) $slDe['id']);
+pruefe('Stand beim Abruf: zwei Angaben fehlen → offen, gespeichert (details/charges/payouts/fehlt/Zeitpunkt)',
+    $slStDe['stand'] === 'offen' && $slStDe['fehlt'] === 2 && !$slStDe['identitaet'] && !$slStDe['auszahlung']
+    && (int) $slDeN['stripe_details_submitted'] === 0 && (int) $slDeN['stripe_payouts_enabled'] === 0 && (int) $slDeN['stripe_fehlt'] === 2
+    && $slDeN['stripe_status_am'] !== null && Partner::stripeAmpel($slDeN)['farbe'] === 'warnung', json_encode($slStDe));
+$slKontoDe = (string) $slDeN['stripe_konto'];
+pruefe('Webhook account.updated: fremdes oder unbekanntes Konto wird still übergangen',
+    Partner::stripeKontoGeaendert(['id' => 'acct_niemand', 'country' => 'DE']) === false && Partner::stripeKontoGeaendert(['id' => 'kaputt']) === false);
+pruefe('Webhook account.updated: alles abgegeben, Stripe prüft noch → in Prüfung, Identität bestätigt',
+    Partner::stripeKontoGeaendert($slKonto('/v1/accounts/' . $slKontoDe, 'DE', ['details_submitted' => true, 'capabilities' => ['transfers' => 'pending'],
+        'requirements' => ['currently_due' => [], 'past_due' => [], 'pending_verification' => ['individual.verification.document']]]))
+    && Partner::kontoStand(Partner::laden((int) $slDe['id']), false)['stand'] === 'pruefung'
+    && Partner::kontoStand(Partner::laden((int) $slDe['id']), false)['identitaet'] === true);
+Db::run("DELETE FROM notifications WHERE type = 'partner_stripe' AND title LIKE 'Auszahlungskonto bereit: Dieter%'");
+Partner::stripeKontoGeaendert($slKonto('/v1/accounts/' . $slKontoDe, 'DE', ['details_submitted' => true, 'charges_enabled' => false, 'payouts_enabled' => true,
+    'capabilities' => ['transfers' => 'active'], 'requirements' => ['currently_due' => [], 'past_due' => [], 'pending_verification' => []]]));
+$slDeN = Partner::laden((int) $slDe['id']); $slStDe = Partner::kontoStand($slDeN, false);
+pruefe('Webhook account.updated: Überweisungen aktiv, Auszahlungen an → vollständig, bereit, grün, Vecom benachrichtigt',
+    $slStDe['vollstaendig'] && $slStDe['auszahlung'] && (int) $slDeN['stripe_bereit'] === 1 && $slDeN['stripe_onboarding_status'] === 'vollstaendig'
+    && (int) $slDeN['stripe_charges_enabled'] === 0 && Partner::stripeAmpel($slDeN)['farbe'] === 'gut'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_stripe' AND title LIKE 'Auszahlungskonto bereit: Dieter%'", [], 0) === 1);
+Partner::stripeKontoGeaendert($slKonto('/v1/accounts/' . $slKontoDe, 'DE', ['details_submitted' => true, 'capabilities' => ['transfers' => 'inactive'],
+    'requirements' => ['disabled_reason' => 'rejected.fraud', 'currently_due' => [], 'past_due' => [], 'pending_verification' => []]]));
+pruefe('Webhook account.updated: Stripe lehnt ab → abgelehnt, nicht mehr bereit, rot',
+    Partner::kontoStand(Partner::laden((int) $slDe['id']), false)['stand'] === 'abgelehnt' && (int) Partner::laden((int) $slDe['id'])['stripe_bereit'] === 0
+    && Partner::stripeAmpel(Partner::laden((int) $slDe['id']))['farbe'] === 'schlecht');
+$slFN = Partner::laden((int) $slFertig['id']);
+pruefe('Altes, schon bereites Konto ohne gespeicherten Stand: gilt als geprüft (nichts springt auf „offen“)',
+    Partner::kontoStand($slFN, false)['vollstaendig'] && Partner::kontoStand($slFN, false)['identitaet'] && Partner::stripeAmpel($slFN)['farbe'] === 'gut');
+
+/* Bewusst neu einrichten (nur in der Akte) */
+$slAuf = [];
+$slNe = Partner::stripeNeuEinrichten((int) $slAlt['id'], 'Kette');
+$slAltN = Partner::laden((int) $slAlt['id']);
+pruefe('„Stripe-Verifizierung neu einrichten“: ungeprüftes Konto wird gelöscht und gemerkt, danach neu mit dem Land des Partners',
+    $slNe['ok'] && $slAltN['stripe_konto'] === null && $slAltN['stripe_konto_alt'] === 'acct_altit' && $slAltN['land'] === 'DE'
     && count(array_filter($slAuf, static fn($a) => $a[0] === 'DELETE' && $a[1] === '/v1/accounts/acct_altit')) === 1);
-Partner::kontoEinrichten($slNach, 'https://pruefung.example/partner.php?t=x');
-pruefe('… und beim nächsten Schritt mit Deutschland neu angelegt', Partner::laden((int) $slDe['id'])['stripe_land'] === 'DE');
-Db::run("UPDATE partner SET stripe_konto = 'acct_fertig', stripe_land = 'IT', stripe_bereit = 1 WHERE id = ?", [(int) $slIt['id']]);
 $slAuf = [];
-pruefe('Ein geprüftes Konto wird nie gelöscht; unbekanntes Land wird abgewiesen',
-    Partner::landSetzen(Partner::laden((int) $slIt['id']), 'DE') === 'bereit' && Partner::laden((int) $slIt['id'])['stripe_konto'] === 'acct_fertig'
-    && !array_filter($slAuf, static fn($a) => $a[0] === 'DELETE') && Partner::landSetzen($slDe, 'ZZ') === 'land');
-$slSt = Partner::kontoStand(Partner::laden((int) $slDe['id']));
-pruefe('Stand der Prüfung: fehlende Angaben werden gezählt', $slSt['stand'] === 'fehlt' && $slSt['fehlt'] === 2, json_encode($slSt));
-Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['id' => 'acct_x', 'country' => 'DE', 'capabilities' => ['transfers' => 'pending'],
-    'requirements' => ['currently_due' => [], 'past_due' => [], 'pending_verification' => ['individual.verification.document']], 'details_submitted' => true];
-pruefe('Stand der Prüfung: alles abgegeben, Stripe prüft noch', Partner::kontoStand(Partner::laden((int) $slDe['id']))['stand'] === 'pruefung');
-Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['id' => 'acct_x', 'country' => 'DE', 'capabilities' => ['transfers' => 'active'], 'requirements' => []];
-pruefe('Stand der Prüfung: Überweisungen aktiv → bereit, und am Partner vermerkt', Partner::kontoStand(Partner::laden((int) $slDe['id']))['stand'] === 'bereit'
-    && (int) Partner::laden((int) $slDe['id'])['stripe_bereit'] === 1 && Partner::kontoStand(Partner::laden((int) $slDe['id']))['stand'] === 'bereit');
+Partner::stripeStarten($slAltN, null, 'link', 'x');
+pruefe('… und das neue Konto entsteht mit country=DE', ($slAuf[0][2]['country'] ?? '') === 'DE' && Partner::laden((int) $slAlt['id'])['stripe_land'] === 'DE');
+$slAuf = [];
+Partner::stripeNeuEinrichten((int) $slFertig['id'], 'Kette');
+pruefe('… ein geprüftes Konto (kann Geld halten) wird bei Stripe NIE gelöscht, nur abgehängt',
+    !array_filter($slAuf, static fn($a) => $a[0] === 'DELETE') && Partner::laden((int) $slFertig['id'])['stripe_konto_alt'] === 'acct_fertig');
 Partner::$stripeProbe = null;
+
+/* Webhook-Unterschrift: auch mit dem Geheimnis eines Connect-Endpunkts */
+$slRoh = json_encode(['id' => 'evt_sl1', 'type' => 'account.updated', 'data' => ['object' => ['id' => 'acct_x']]]);
+$slT = time();
+$slSig = static fn(string $g): array => ['Stripe-Signature' => 't=' . $slT . ',v1=' . hash_hmac('sha256', $slT . '.' . $slRoh, $g)];
+$slSa = new StripeAnbieter(['webhook_geheim' => 'whsec_konto', 'webhook_geheim_connect' => 'whsec_connect']);
+pruefe('Webhook: Unterschrift des Konto- UND des Connect-Endpunkts gilt, eine fremde nicht',
+    ($slSa->ereignisPruefen($slRoh, $slSig('whsec_konto'))['typ'] ?? '') === 'account.updated'
+    && ($slSa->ereignisPruefen($slRoh, $slSig('whsec_connect'))['typ'] ?? '') === 'account.updated'
+    && $slSa->ereignisPruefen($slRoh, $slSig('whsec_fremd')) === null
+    && (new StripeAnbieter(['webhook_geheim' => 'whsec_konto']))->ereignisPruefen($slRoh, $slSig('whsec_connect')) === null);
+$slWh = (string) file_get_contents($wurzel . '/../stripe-webhook.php');
+pruefe('stripe-webhook.php leitet account.updated an Partner::stripeKontoGeaendert',
+    str_contains($slWh, "case 'account.updated':") && str_contains($slWh, 'Partner::stripeKontoGeaendert('));
+
+/* Auswahl, Texte, Oberfläche, Sicherheit */
+$slL = Partner::getSupportedStripeCountries('de');
+$slTexteFehlt = array_filter(Partner::STRIPE_LAENDER, static fn($c) => !isset(Texte::STRIPE_LAENDER[$c]['it'], Texte::STRIPE_LAENDER[$c]['de'], Texte::STRIPE_LAENDER[$c]['en'], Texte::STRIPE_LAENDER[$c]['adj']));
+pruefe('Länderauswahl: alle ' . count(Partner::STRIPE_LAENDER) . ' Länder dreisprachig benannt, die häufigen oben (DE IT AT CH FR ES), Flaggen',
+    count($slL) === count(Partner::STRIPE_LAENDER) && array_slice(array_keys($slL), 0, 6) === ['DE', 'IT', 'AT', 'CH', 'FR', 'ES'] && $slTexteFehlt === []
+    && $slL['DE'] === 'Deutschland' && Partner::getSupportedStripeCountries('it')['DE'] === 'Germania' && Partner::flagge('DE') === "\u{1F1E9}\u{1F1EA}",
+    implode(',', $slTexteFehlt));
+$slNeuT = ['konto_land_wahl', 'konto_land_suche', 'konto_land_fehlt', 'konto_land_nicht', 'konto_start_fehler', 'konto_abweichend', 'konto_ck_identitaet',
+           'konto_ck_auszahlung', 'konto_ck_voll', 'konto_nicht_fertig', 'konto_fortsetzen', 'konto_abgelehnt'];
+pruefe('Partnertexte dreisprachig, Wortlaut der Vorgabe',
+    !array_filter($slNeuT, static fn($k) => !isset(Texte::PARTNER[$k]['it'], Texte::PARTNER[$k]['de'], Texte::PARTNER[$k]['en']))
+    && Texte::PARTNER['konto_ck_identitaet']['de'] === 'Identität bestätigt' && Texte::PARTNER['konto_ck_auszahlung']['de'] === 'Auszahlungen aktiviert'
+    && Texte::PARTNER['konto_ck_voll']['de'] === 'Konto vollständig eingerichtet' && Texte::PARTNER['konto_nicht_fertig']['de'] === 'Verifizierung noch nicht abgeschlossen'
+    && Texte::PARTNER['konto_fortsetzen']['de'] === 'Stripe-Verifizierung fortsetzen');
 $slPa = (string) file_get_contents($wurzel . '/../partner.php');
-pruefe('Partnerbereich: Landwahl vor der Einrichtung, Anleitung zur Prüfung, beide Wege (eingebettet und Link) setzen das Land',
-    str_contains($slPa, 'name="land"') && str_contains($slPa, "Texte::PARTNER['konto_wie']") && substr_count($slPa, 'Partner::landSetzen($p') === 2
-    && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-stripe.js'), "d.append('land', land.value)"));
+pruefe('Partnerbereich: Pflichtauswahl des Landes mit Platzhalter, beide Wege über stripeStarten, Checkliste, keine Emoji-Symbole',
+    str_contains($slPa, 'name="land" class="konto-land" required') && str_contains($slPa, "\$T('konto_land_wahl')") && substr_count($slPa, 'Partner::stripeStarten($p') === 2
+    && str_contains($slPa, "konto_ck_identitaet") && str_contains($slPa, "\$T(\$kHat ? 'konto_fortsetzen' : 'konto_knopf')") && !str_contains($slPa, "Texte::PARTNER['laender']")
+    && is_file($wurzel . '/../assets/js/partner-land.js'));
+pruefe('Sicherheit: der Partnerbereich verwaltet nur das Konto aus seinem eigenen Zugang, kein geheimer Schlüssel im Frontend',
+    !preg_match('/stripe[A-Za-z]*\([^)]*\$_(POST|GET)\[.(id|partner|konto|acct)/i', $slPa) && !str_contains($slPa, "'geheim'")
+    && !str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-stripe.js'), 'sk_')
+    && str_contains($slPa, 'Partner::stripeOeffentlich()'));
+pruefe('Die Stripe-Absage erreicht den Browser nie im Wortlaut (nur der Schlüssel des Hinweises)',
+    str_contains($slPa, "json_encode(['ok' => false, 'grund' => Partner::stripeGrundOeffentlich(\$r)])") && !str_contains($slPa, "\$r['text']) ?>"));
+pruefe('Verwaltung: Liste mit Land und Ampel, Akte mit Account-ID, Verifizierung, Auszahlungen, letztem Stand und bewusstem Neueinrichten',
+    str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'Partner::stripeAmpel($p)')
+    && str_contains($slAk = (string) file_get_contents($wurzel . '/views/partner_akte.php'), "'partner_stripe_neu'") && str_contains($slAk, 'Letzter Stripe-Status')
+    && str_contains($slAk, 'Partner::landHinweis($p)') && isset(Ablauf::TRAGWEITE['partner_stripe_neu'])
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_stripe_neu':"));
+pruefe('Migration 093: neue Spalten, bestehende bleiben (nur ADD COLUMN)',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'partner'
+                    AND COLUMN_NAME IN ('stripe_details_submitted','stripe_charges_enabled','stripe_payouts_enabled','stripe_onboarding_status','stripe_fehlt','stripe_status_am','stripe_status_fehler','stripe_konto_alt')", [], 0) === 8
+    && !preg_match('/\b(DROP|MODIFY|CHANGE|UPDATE)\b/i', preg_replace('/--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/093_partner_stripe_status.sql'))));
 
 /* ============================================================================
    Aufräumen und Bilanz

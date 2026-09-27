@@ -48,10 +48,33 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <?php if (!empty($p['stripe_konto'])): ?><?= $hin('partner_konto_pruefen', 'Stripe-Konto prüfen') ?><?php endif; ?>
     <?php endif; ?>
   </div>
-  <?php if (!empty($p['stripe_konto']) || !empty($p['land'])): /* Land für Stripe (28.09.2026) */ ?>
-    <p class="klein" style="margin-top:8px">Land (vom Partner gewählt): <b><?= Fmt::h((string) ($p['land'] ?: '—')) ?></b>
-      <?php if (!empty($p['stripe_konto'])): ?> · Stripe-Konto angelegt in: <b><?= Fmt::h((string) ($p['stripe_land'] ?: 'noch nicht abgefragt')) ?></b>
-        · <?= !empty($p['stripe_bereit']) ? 'geprüft, Auszahlung möglich' : 'noch nicht geprüft' ?><?php endif; ?></p>
+  <?php if (!empty($p['stripe_konto']) || !empty($p['land'])): /* Land und Stripe-Verifizierung (28.09.2026) */
+    $amp = Partner::stripeAmpel($p);
+    $kst = Partner::kontoStand($p, false);
+    $lname = static fn(?string $c): string => $c ? Partner::flagge($c) . ' ' . Texte::h(Texte::STRIPE_LAENDER[$c] ?? [], 'de', $c) . ' (' . $c . ')' : '—';
+    $ja = static fn(bool $b, string $w1, string $w0): string => '<span class="marke2 ' . ($b ? 'gut' : 'warnung') . '">' . Fmt::h($b ? $w1 : $w0) . '</span>'; ?>
+    <div class="stripe-akte" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--linie)">
+      <h3 style="font-size:13.5px;margin:0 0 8px">Stripe-Auszahlungskonto <?php if (!empty($p['stripe_konto'])): ?><span class="marke2 <?= Fmt::h($amp['farbe']) ?>" style="margin-left:6px"><?= Fmt::h($amp['wort']) ?></span><?php endif; ?></h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 20px;font-size:13px;line-height:1.55">
+        <div><span style="color:var(--leise)">Land (vom Partner)</span><br><?= Fmt::h($lname($p['land'] ?? null)) ?></div>
+        <div><span style="color:var(--leise)">Stripe-Land</span><br><?= !empty($p['stripe_konto']) ? Fmt::h($p['stripe_land'] ? $lname((string) $p['stripe_land']) : 'noch nicht abgefragt') : '—' ?></div>
+        <div><span style="color:var(--leise)">Account-ID</span><br><?php if (!empty($p['stripe_konto'])): ?><a href="https://dashboard.stripe.com/connect/accounts/<?= Fmt::h(rawurlencode((string) $p['stripe_konto'])) ?>" target="_blank" rel="noopener"><code><?= Fmt::h((string) $p['stripe_konto']) ?></code></a><?php else: ?>—<?php endif; ?></div>
+        <?php if (!empty($p['stripe_konto'])): ?>
+        <div><span style="color:var(--leise)">Verifizierung</span><br><?= $ja($kst['identitaet'], 'Identität bestätigt', $kst['stand'] === 'abgelehnt' ? 'abgelehnt' : 'nicht abgeschlossen') ?><?= $kst['fehlt'] > 0 ? ' <span style="color:var(--leise)">' . (int) $kst['fehlt'] . ' Angabe' . ($kst['fehlt'] === 1 ? '' : 'n') . ' fehlen</span>' : '' ?></div>
+        <div><span style="color:var(--leise)">Auszahlungen</span><br><?= $ja($kst['auszahlung'], 'aktiviert', 'noch nicht') ?></div>
+        <div><span style="color:var(--leise)">Letzter Stripe-Status</span><br><?= $p['stripe_status_am'] ? Fmt::h(Fmt::datum((string) $p['stripe_status_am'])) . ' · ' . Fmt::h(['vollstaendig' => 'vollständig', 'pruefung' => 'in Prüfung', 'offen' => 'Angaben fehlen', 'abgelehnt' => 'abgelehnt', 'angelegt' => 'angelegt', 'unbekannt' => 'unbekannt'][$kst['stand']] ?? $kst['stand']) : 'noch nie abgefragt' ?>
+          <?php if ((string) ($p['stripe_status_fehler'] ?? '') !== ''): ?><br><span style="color:var(--rot);font-size:12px">Stripe: <?= Fmt::h((string) $p['stripe_status_fehler']) ?></span><?php endif; ?></div>
+        <?php endif; ?>
+        <?php if (!empty($p['stripe_konto_alt'])): ?><div><span style="color:var(--leise)">Früheres Konto</span><br><code><?= Fmt::h((string) $p['stripe_konto_alt']) ?></code></div><?php endif; ?>
+      </div>
+      <?php if (Partner::landAbweichend($p)): ?>
+        <div class="hinweis" role="status" style="margin-top:12px;background:rgba(255,159,90,.12);border-color:rgba(255,159,90,.35);color:var(--gelb)"><?= Fmt::h(Partner::landHinweis($p)) ?></div>
+      <?php endif; ?>
+      <?php if (!empty($p['stripe_konto']) && (Partner::landAbweichend($p) || empty($p['stripe_bereit']))): ?>
+        <div style="margin-top:10px"><?= $hin('partner_stripe_neu', 'Stripe-Verifizierung neu einrichten') ?>
+          <span style="color:var(--leise);font-size:12px;margin-left:6px">Nur bewusst: löst die Verknüpfung, der Partner legt danach mit seinem Land neu an.</span></div>
+      <?php endif; ?>
+    </div>
   <?php endif; ?>
 </div>
 

@@ -2853,6 +2853,47 @@ final class Texte
        Partnerprogramm (26.09.2026) — Bewerbung, Partnerseite, Vereinbarung.
        Platzhalter: {satz} {min} {tage} {zuordnung} {monate}
        ====================================================================== */
+    /**
+     * Länder für das Stripe-Auszahlungskonto (Partner::STRIPE_LAENDER), dreisprachig.
+     * Auch für die Admin-Anzeige. Adjektiv 'adj' (deutsch, sächlich) für den
+     * Hinweis „als deutsches Konto erstellt“.
+     */
+    public const STRIPE_LAENDER = [
+        'IT' => ['it' => 'Italia', 'de' => 'Italien', 'en' => 'Italy', 'adj' => 'italienisches'],
+        'DE' => ['it' => 'Germania', 'de' => 'Deutschland', 'en' => 'Germany', 'adj' => 'deutsches'],
+        'AT' => ['it' => 'Austria', 'de' => 'Österreich', 'en' => 'Austria', 'adj' => 'österreichisches'],
+        'CH' => ['it' => 'Svizzera', 'de' => 'Schweiz', 'en' => 'Switzerland', 'adj' => 'schweizerisches'],
+        'FR' => ['it' => 'Francia', 'de' => 'Frankreich', 'en' => 'France', 'adj' => 'französisches'],
+        'ES' => ['it' => 'Spagna', 'de' => 'Spanien', 'en' => 'Spain', 'adj' => 'spanisches'],
+        'NL' => ['it' => 'Paesi Bassi', 'de' => 'Niederlande', 'en' => 'Netherlands', 'adj' => 'niederländisches'],
+        'BE' => ['it' => 'Belgio', 'de' => 'Belgien', 'en' => 'Belgium', 'adj' => 'belgisches'],
+        'LU' => ['it' => 'Lussemburgo', 'de' => 'Luxemburg', 'en' => 'Luxembourg', 'adj' => 'luxemburgisches'],
+        'PT' => ['it' => 'Portogallo', 'de' => 'Portugal', 'en' => 'Portugal', 'adj' => 'portugiesisches'],
+        'IE' => ['it' => 'Irlanda', 'de' => 'Irland', 'en' => 'Ireland', 'adj' => 'irisches'],
+        'PL' => ['it' => 'Polonia', 'de' => 'Polen', 'en' => 'Poland', 'adj' => 'polnisches'],
+        'GB' => ['it' => 'Regno Unito', 'de' => 'Vereinigtes Königreich', 'en' => 'United Kingdom', 'adj' => 'britisches'],
+        'BG' => ['it' => 'Bulgaria', 'de' => 'Bulgarien', 'en' => 'Bulgaria', 'adj' => 'bulgarisches'],
+        'HR' => ['it' => 'Croazia', 'de' => 'Kroatien', 'en' => 'Croatia', 'adj' => 'kroatisches'],
+        'CY' => ['it' => 'Cipro', 'de' => 'Zypern', 'en' => 'Cyprus', 'adj' => 'zyprisches'],
+        'CZ' => ['it' => 'Repubblica Ceca', 'de' => 'Tschechien', 'en' => 'Czechia', 'adj' => 'tschechisches'],
+        'DK' => ['it' => 'Danimarca', 'de' => 'Dänemark', 'en' => 'Denmark', 'adj' => 'dänisches'],
+        'EE' => ['it' => 'Estonia', 'de' => 'Estland', 'en' => 'Estonia', 'adj' => 'estnisches'],
+        'FI' => ['it' => 'Finlandia', 'de' => 'Finnland', 'en' => 'Finland', 'adj' => 'finnisches'],
+        'GR' => ['it' => 'Grecia', 'de' => 'Griechenland', 'en' => 'Greece', 'adj' => 'griechisches'],
+        'HU' => ['it' => 'Ungheria', 'de' => 'Ungarn', 'en' => 'Hungary', 'adj' => 'ungarisches'],
+        'LV' => ['it' => 'Lettonia', 'de' => 'Lettland', 'en' => 'Latvia', 'adj' => 'lettisches'],
+        'LI' => ['it' => 'Liechtenstein', 'de' => 'Liechtenstein', 'en' => 'Liechtenstein', 'adj' => 'liechtensteinisches'],
+        'LT' => ['it' => 'Lituania', 'de' => 'Litauen', 'en' => 'Lithuania', 'adj' => 'litauisches'],
+        'MT' => ['it' => 'Malta', 'de' => 'Malta', 'en' => 'Malta', 'adj' => 'maltesisches'],
+        'NO' => ['it' => 'Norvegia', 'de' => 'Norwegen', 'en' => 'Norway', 'adj' => 'norwegisches'],
+        'RO' => ['it' => 'Romania', 'de' => 'Rumänien', 'en' => 'Romania', 'adj' => 'rumänisches'],
+        'SK' => ['it' => 'Slovacchia', 'de' => 'Slowakei', 'en' => 'Slovakia', 'adj' => 'slowakisches'],
+        'SI' => ['it' => 'Slovenia', 'de' => 'Slowenien', 'en' => 'Slovenia', 'adj' => 'slowenisches'],
+        'SE' => ['it' => 'Svezia', 'de' => 'Schweden', 'en' => 'Sweden', 'adj' => 'schwedisches'],
+        'US' => ['it' => 'Stati Uniti', 'de' => 'Vereinigte Staaten', 'en' => 'United States', 'adj' => 'US-amerikanisches'],
+        'CA' => ['it' => 'Canada', 'de' => 'Kanada', 'en' => 'Canada', 'adj' => 'kanadisches'],
+    ];
+
     public const PARTNER = [
         'titel'      => ['it' => 'Programma partner', 'de' => 'Partnerprogramm', 'en' => 'Partner programme'],
         'lead'       => ['it' => 'Consiglia Vecom Design a chi ha bisogno di un sito. Per ogni acquisto che arriva tramite il suo link riceve una provvigione.',
@@ -2919,15 +2960,21 @@ final class Texte
                                'de' => 'Stripe prüft Ihre Angaben nach den Regeln dieses Landes. Nach der Prüfung lässt sich das Land nicht mehr ändern.',
                                'en' => 'Stripe checks your details under this country’s rules. After verification the country can no longer be changed.'],
         'konto_land_bereit' => ['it' => 'Il conto è già verificato: per cambiare paese ci scriva.', 'de' => 'Das Konto ist schon geprüft: Für ein anderes Land schreiben Sie uns bitte.', 'en' => 'The account is already verified: to change the country, please write to us.'],
-        'laender' => [
-            'IT' => ['it' => 'Italia', 'de' => 'Italien', 'en' => 'Italy'], 'DE' => ['it' => 'Germania', 'de' => 'Deutschland', 'en' => 'Germany'],
-            'AT' => ['it' => 'Austria', 'de' => 'Österreich', 'en' => 'Austria'], 'CH' => ['it' => 'Svizzera', 'de' => 'Schweiz', 'en' => 'Switzerland'],
-            'FR' => ['it' => 'Francia', 'de' => 'Frankreich', 'en' => 'France'], 'ES' => ['it' => 'Spagna', 'de' => 'Spanien', 'en' => 'Spain'],
-            'NL' => ['it' => 'Paesi Bassi', 'de' => 'Niederlande', 'en' => 'Netherlands'], 'BE' => ['it' => 'Belgio', 'de' => 'Belgien', 'en' => 'Belgium'],
-            'LU' => ['it' => 'Lussemburgo', 'de' => 'Luxemburg', 'en' => 'Luxembourg'], 'PT' => ['it' => 'Portogallo', 'de' => 'Portugal', 'en' => 'Portugal'],
-            'IE' => ['it' => 'Irlanda', 'de' => 'Irland', 'en' => 'Ireland'], 'PL' => ['it' => 'Polonia', 'de' => 'Polen', 'en' => 'Poland'],
-            'GB' => ['it' => 'Regno Unito', 'de' => 'Vereinigtes Königreich', 'en' => 'United Kingdom'],
-        ],
+        'konto_land_wahl'  => ['it' => 'Scelga il paese', 'de' => 'Bitte Land wählen', 'en' => 'Please choose a country'],
+        'konto_land_suche' => ['it' => 'Cerca paese…', 'de' => 'Land suchen …', 'en' => 'Search country…'],
+        'konto_land_keins' => ['it' => 'Nessun paese trovato.', 'de' => 'Kein Land gefunden.', 'en' => 'No country found.'],
+        'konto_land_gewaehlt' => ['it' => 'Paese scelto: {land}', 'de' => 'Gewähltes Land: {land}', 'en' => 'Selected country: {land}'],
+        'konto_land_fehlt' => ['it' => 'Scelga prima il paese in cui vive.', 'de' => 'Bitte wählen Sie zuerst Ihr Land.', 'en' => 'Please choose your country first.'],
+        'konto_land_nicht' => ['it' => 'Questo paese al momento non è supportato da Stripe Connect.', 'de' => 'Dieses Land wird von Stripe Connect aktuell nicht unterstützt.', 'en' => 'This country is currently not supported by Stripe Connect.'],
+        'konto_start_fehler' => ['it' => 'Non è stato possibile avviare la verifica Stripe. Riprovi, per favore.', 'de' => 'Die Stripe-Verifizierung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.', 'en' => 'The Stripe verification could not be started. Please try again.'],
+        'konto_abweichend' => ['it' => 'Il suo conto Stripe è stato creato per un altro paese. Ce ne occupiamo noi e la contattiamo — non deve fare nulla.', 'de' => 'Ihr Stripe-Konto wurde für ein anderes Land angelegt. Wir kümmern uns darum und melden uns — Sie müssen nichts tun.', 'en' => 'Your Stripe account was created for a different country. We’ll sort it out and get in touch — nothing to do on your side.'],
+        'konto_ck_titel'   => ['it' => 'Stato della verifica', 'de' => 'Stand der Verifizierung', 'en' => 'Verification status'],
+        'konto_ck_identitaet' => ['it' => 'Identità confermata', 'de' => 'Identität bestätigt', 'en' => 'Identity confirmed'],
+        'konto_ck_auszahlung' => ['it' => 'Pagamenti attivati', 'de' => 'Auszahlungen aktiviert', 'en' => 'Payouts enabled'],
+        'konto_ck_voll'    => ['it' => 'Conto configurato completamente', 'de' => 'Konto vollständig eingerichtet', 'en' => 'Account fully set up'],
+        'konto_nicht_fertig' => ['it' => 'Verifica non ancora completata', 'de' => 'Verifizierung noch nicht abgeschlossen', 'en' => 'Verification not yet completed'],
+        'konto_fortsetzen' => ['it' => 'Continua la verifica Stripe', 'de' => 'Stripe-Verifizierung fortsetzen', 'en' => 'Continue Stripe verification'],
+        'konto_abgelehnt'  => ['it' => 'Stripe non ha potuto verificare il conto. Ci scriva: troviamo una soluzione insieme.', 'de' => 'Stripe konnte das Konto nicht bestätigen. Schreiben Sie uns bitte — wir finden gemeinsam eine Lösung.', 'en' => 'Stripe could not verify the account. Please write to us — we’ll find a solution together.'],
         'konto_wie_titel' => ['it' => 'Come funziona la verifica', 'de' => 'So läuft die Prüfung', 'en' => 'How verification works'],
         'konto_wie' => [
             ['it' => 'Scelga il paese e clicchi su «Configura il conto su Stripe».', 'de' => 'Land wählen und auf „Konto bei Stripe einrichten“ tippen.', 'en' => 'Choose your country and tap “Set up account with Stripe”.'],

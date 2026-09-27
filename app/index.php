@@ -567,6 +567,21 @@ if ($post) {
                                                                      : 'Stripe: Das Konto ist noch nicht fertig eingerichtet.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_stripe_neu':
+                /* Bewusste Tat in der Akte (28.09.2026): nie automatisch. */
+                require_once __DIR__ . '/src/Partner.php';
+                $r = Partner::stripeNeuEinrichten((int) ($_POST['id'] ?? 0), Auth::name() ?: 'Vecom');
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
+                weiter('partner/' . (int) ($_POST['id'] ?? 0));
+
+            case 'partner_stripe_alle_pruefen':
+                /* Den Stand aller angefangenen Partnerkonten bei Stripe abholen -- nur lesen. */
+                require_once __DIR__ . '/src/Partner.php';
+                $n = Partner::stripeAlleAuffrischen();
+                $_SESSION['gut'] = 'Stripe: Stand von ' . $n['geprueft'] . ' Partnerkonto' . ($n['geprueft'] === 1 ? '' : 'en') . ' abgeholt'
+                    . ($n['fehler'] > 0 ? ' — ' . $n['fehler'] . ' ohne Antwort.' : '.');
+                weiter('partner');
+
             case 'partner_loeschen':
                 require_once __DIR__ . '/src/Partner.php';
                 $r = Partner::loeschen((int) ($_POST['id'] ?? 0));
@@ -1655,6 +1670,7 @@ if ($post) {
                 $geheim = trim((string) ($_POST['geheim'] ?? ''));
                 $whsec  = trim((string) ($_POST['webhook_geheim'] ?? ''));
                 $pk     = trim((string) ($_POST['oeffentlich'] ?? ''));
+                $whcon  = trim((string) ($_POST['webhook_geheim_connect'] ?? ''));   // Connect-Endpunkt (Partnerkonten), wahlweise
 
                 // Leer gelassene Felder behalten ihren bisherigen Wert — so laesst
                 // sich der Modus umstellen, ohne die Schluessel neu einzutippen.
@@ -1662,6 +1678,11 @@ if ($post) {
                 if ($whsec === '')  { $whsec  = (string) ($bisher['webhook_geheim'] ?? ''); }
                 if ($pk === '')     { $pk     = (string) ($bisher['oeffentlich'] ?? ''); }
                 if ($pk === '-')    { $pk     = ''; }
+                if ($whcon === '')  { $whcon  = (string) ($bisher['webhook_geheim_connect'] ?? ''); }
+                if ($whcon === '-') { $whcon  = ''; }
+                if ($whcon !== '' && !str_starts_with($whcon, 'whsec_')) {
+                    throw new RuntimeException('Das Connect-Webhook-Geheimnis beginnt mit whsec_.');
+                }
 
                 if ($geheim !== '' && !preg_match('~^(sk|rk)_(test|live)_~', $geheim)) {
                     throw new RuntimeException('Das sieht nicht nach einem geheimen Stripe-Schlüssel aus (er beginnt mit sk_test_ oder sk_live_).');
@@ -1682,8 +1703,8 @@ if ($post) {
                     throw new RuntimeException('Testmodus gewählt, aber der Schlüssel ist ein Liveschlüssel. Im Testmodus fließt kein echtes Geld — das ist Absicht.');
                 }
 
-                $alt['stripe'] = ['modus' => $modus, 'geheim' => $geheim, 'webhook_geheim' => $whsec, 'oeffentlich' => $pk]
-                    + array_diff_key($bisher, array_flip(['modus', 'geheim', 'webhook_geheim', 'oeffentlich']));
+                $alt['stripe'] = ['modus' => $modus, 'geheim' => $geheim, 'webhook_geheim' => $whsec, 'webhook_geheim_connect' => $whcon, 'oeffentlich' => $pk]
+                    + array_diff_key($bisher, array_flip(['modus', 'geheim', 'webhook_geheim', 'webhook_geheim_connect', 'oeffentlich']));
                 if (!Einrichtung::konfigSchreiben(dirname(__DIR__) . '/app/config.local.php', $alt)) {
                     throw new RuntimeException('app/config.local.php konnte nicht geschrieben werden.');
                 }
