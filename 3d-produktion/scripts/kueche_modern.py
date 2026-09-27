@@ -939,13 +939,42 @@ def unreal_export(kam_name, sonne_obj, sky):
     bpy.ops.export_scene.gltf(filepath=glb, export_format='GLB', use_selection=True, export_apply=True,
                               export_image_format='AUTO', export_materials='EXPORT', export_yup=True,
                               export_lights=False, export_cameras=False)
-    ort, ziel, f, blende = KAMERAS[kam_name]
-    k = bpy.data.objects['Kam_' + kam_name]
+    def kam_daten(name):
+        ort, ziel, f, blende = KAMERAS[name]
+        k = bpy.data.objects['Kam_' + name]
+        return {'ort': list(ort), 'ziel': list(ziel), 'rotation_euler_rad': list(k.rotation_euler),
+                'brennweite_mm': f, 'sensor_mm': 36.0, 'blende': blende,
+                'fokus_m': (Vector(ziel) - Vector(ort)).length, 'shift_y': k.data.shift_y}
+
+    # LEUCHTFLAECHEN (27.09.2026): Unreal liest die Emission aus dem GLB nur
+    # als Farbe 0..1 -- neben einer Sonne mit 120.000 lx ist das schwarz.
+    # Gemessen am ersten Unreal-Probebild: Pendel, Nische und Regal ohne
+    # Licht. Deshalb jede Leuchtflaeche als Rechteck mit Mitte, Groesse,
+    # Staerke und Farbtemperatur; ue-a01_szene.py setzt dort ein Rechtecklicht.
+    leuchten = []
+    for o in bpy.data.objects:
+        if o.type != 'MESH' or not o.data.materials:
+            continue
+        m = o.data.materials[0]
+        if not m or not m.use_nodes or 'Principled BSDF' not in m.node_tree.nodes:
+            continue
+        b = m.node_tree.nodes['Principled BSDF']
+        staerke = b.inputs['Emission Strength'].default_value
+        if staerke < 3.0:                       # Anzeigen (1,2) bleiben Material
+            continue
+        ecken = [o.matrix_world @ Vector(c) for c in o.bound_box]
+        lo = [min(e[i] for e in ecken) for i in range(3)]
+        hi = [max(e[i] for e in ecken) for i in range(3)]
+        mass = [hi[i] - lo[i] for i in range(3)]
+        if mass[2] > min(mass[0], mass[1]):     # nur flache, nach unten strahlende Streifen
+            continue
+        leuchten.append({'name': o.name, 'mitte': [(lo[i] + hi[i]) / 2 for i in range(3)], 'unterseite_z': lo[2],
+                         'x_m': mass[0], 'y_m': mass[1], 'staerke': staerke, 'kelvin': 2700})
     sz = {
         'projekt': 'kueche-modern', 'einheit': 'Meter, Blender Z-oben', 'breite': 2560, 'hoehe': 1440,
-        'kamera': {'ort': list(ort), 'ziel': list(ziel), 'rotation_euler_rad': list(k.rotation_euler),
-                   'brennweite_mm': f, 'sensor_mm': 36.0, 'blende': blende,
-                   'fokus_m': (Vector(ziel) - Vector(ort)).length, 'shift_y': k.data.shift_y},
+        'kamera': kam_daten(kam_name),
+        'kameras': {n: kam_daten(n) for n in KAMERAS},
+        'leuchten': leuchten,
         'sonne': {'rotation_euler_rad': list(sonne_obj.rotation_euler), 'staerke_w_m2': sonne_obj.data.energy,
                   'farbe': list(sonne_obj.data.color), 'winkel_grad': math.degrees(sonne_obj.data.angle)},
         'himmel': {'art': sky.sky_type, 'hoehe_grad': SONNE['hoehe'], 'drehung_grad': math.degrees(sky.sun_rotation),
