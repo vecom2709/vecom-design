@@ -59,7 +59,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .leitfaden pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.65;color:var(--dim);margin:8px 0 0}
 </style>
 
-<div class="block pt" id="recherche">
+<div class="block pt" id="recherche" data-reiter="finden">
   <h2><?= $h($T('re_titel')) ?></h2>
 
   <h3 class="md-h" style="margin-top:4px"><?= $h($T('ck_titel')) ?></h3>

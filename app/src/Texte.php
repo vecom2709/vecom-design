@@ -3641,6 +3641,39 @@ final class Texte
         'bild_art' => ['it' => 'Per favore una foto JPG, PNG o WebP di almeno 400 px di larghezza.', 'de' => 'Bitte ein Foto als JPG, PNG oder WebP, mindestens 400 px breit.', 'en' => 'Please a JPG, PNG or WebP photo at least 400 px wide.'],
     ];
 
+    /** Reiter der Partnerseite wie in einer App (27.09.2026, Uwe: „Reiter wie eine App“).
+        kurz = untere Leiste am Handy, titel = Leiste am Rechner und Kopf des Reiters. */
+    public const PARTNER_REITER = [
+        'aria' => ['it' => 'Sezioni della pagina partner', 'de' => 'Bereiche der Partnerseite', 'en' => 'Partner page sections'],
+        'reiter' => [
+            'start' => [
+                'kurz'  => ['it' => 'Inizio', 'de' => 'Start', 'en' => 'Home'],
+                'titel' => ['it' => 'Inizio', 'de' => 'Start', 'en' => 'Home'],
+                'satz'  => ['it' => 'Il suo link, i suoi numeri e il prossimo passo.', 'de' => 'Ihr Link, Ihre Zahlen und der nächste Schritt.', 'en' => 'Your link, your numbers and the next step.'],
+            ],
+            'werben' => [
+                'kurz'  => ['it' => 'Promuovi', 'de' => 'Werben', 'en' => 'Promote'],
+                'titel' => ['it' => 'Promuovere', 'de' => 'Werben', 'en' => 'Promote'],
+                'satz'  => ['it' => 'Testi, immagini e video pronti da condividere.', 'de' => 'Fertige Texte, Bilder und Videos zum Teilen.', 'en' => 'Ready-made texts, images and videos to share.'],
+            ],
+            'finden' => [
+                'kurz'  => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
+                'titel' => ['it' => 'Trovare clienti', 'de' => 'Kunden finden', 'en' => 'Find customers'],
+                'satz'  => ['it' => 'Attività vicine, il check del sito da mostrare e clienti da segnalare.', 'de' => 'Betriebe in der Nähe, der Website-Check zum Vorzeigen und Kunden direkt melden.', 'en' => 'Businesses nearby, the website check to show and customers to report.'],
+            ],
+            'geld' => [
+                'kurz'  => ['it' => 'Guadagni', 'de' => 'Geld', 'en' => 'Money'],
+                'titel' => ['it' => 'Guadagni', 'de' => 'Geld', 'en' => 'Money'],
+                'satz'  => ['it' => 'Provvigioni, pagamenti e come arrivano i soldi.', 'de' => 'Provisionen, Auszahlungen und wie das Geld zu Ihnen kommt.', 'en' => 'Commissions, payouts and how the money reaches you.'],
+            ],
+            'profil' => [
+                'kurz'  => ['it' => 'Profilo', 'de' => 'Profil', 'en' => 'Profile'],
+                'titel' => ['it' => 'Profilo', 'de' => 'Profil', 'en' => 'Profile'],
+                'satz'  => ['it' => 'La sua foto, la sua pagina, i messaggi e l’app sul telefono.', 'de' => 'Ihr Foto, Ihre eigene Seite, Nachrichten und die App aufs Handy.', 'en' => 'Your photo, your own page, messages and the app on your phone.'],
+            ],
+        ],
+    ];
+
     /** Erste Schritte und Wochenverlauf im Partner-Dashboard (27.09.2026). */
     public const PARTNER_START = [
         's_titel' => ['it' => 'Primi passi', 'de' => 'Erste Schritte', 'en' => 'First steps'],

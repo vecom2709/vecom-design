@@ -59,7 +59,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 
-<div class="block pt" id="werbung">
+<div class="block pt" id="werbung" data-reiter="werben">
   <h2><?= $h($T('pk_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($T('pk_text')) ?></p>
 
@@ -139,7 +139,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       't' => ['video_laeuft' => $T('video_laeuft'), 'video_fertig' => $T('video_fertig'), 'video_nein' => $T('video_nein'), 'video_webm' => $T('video_webm')],
   ];
 ?>
-<div class="block pt" id="medien">
+<div class="block pt" id="medien" data-reiter="werben">
   <h2><?= $h($T('md_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($T('md_text')) ?></p>
   <script type="application/json" id="medien_daten"><?= json_encode($medienDaten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
@@ -184,7 +184,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
 </div>
 
 <?php $foto = PartnerWerbung::fotoAdresse($p); $pfFehler = in_array($meldung, ['satz_link', 'satz_lang', 'foto_gross', 'foto_art'], true); ?>
-<div class="block pt" id="profil">
+<div class="block pt" id="profil" data-reiter="profil">
   <h2><?= $h($T('pf_titel')) ?></h2>
   <?php if (($_GET['m'] ?? '') === 'pf_gut'): ?><div class="hinweis gut" role="status"><?= $h($T('pf_gut')) ?></div><?php endif; ?>
   <?php if ($pfFehler): ?><div class="hinweis schlecht" role="alert"><?= $h($T($meldung)) ?></div><?php endif; ?>

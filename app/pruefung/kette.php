@@ -12277,6 +12277,41 @@ pruefe('Worker holt Overture-Aufträge ab (Quelle im Auftrag), Verwaltung kann s
     && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "(\$_POST['quelle'] ?? 'osm') === 'overture'"));
 
 /* ============================================================================
+   Partnerseite in Reitern wie eine App (27.09.2026, Uwe: „Reiter wie eine App“)
+   ========================================================================== */
+abschnitt('Partnerseite: Reiter');
+$prQuellen = ['partner.php', 'app/views/partner_werbung.php', 'app/views/partner_seite.php', 'app/views/partner_recherche.php'];
+$prOhne = []; $prFalsch = []; $prIds = [];
+foreach ($prQuellen as $prDatei) {
+    $prText = (string) file_get_contents($wurzel . '/../' . $prDatei);
+    preg_match_all('/<div class="block pt"([^>]*)>/', $prText, $prT);
+    foreach ($prT[1] as $prAttr) {
+        if (!preg_match('/id="([a-z]+)"/', $prAttr, $prId)) { continue; }   // die Bewerbung (ohne Schlüssel) hat keine Reiter
+        $prIds[] = $prId[1];
+        if (!preg_match('/data-reiter="([a-z]+)"/', $prAttr, $prR)) { $prOhne[] = $prId[1]; continue; }
+        if (!isset(Texte::PARTNER_REITER['reiter'][$prR[1]])) { $prFalsch[] = $prId[1] . '→' . $prR[1]; }
+    }
+}
+pruefe('Reiter: jeder Block der Partnerseite gehört zu genau einem Reiter', $prOhne === [] && $prFalsch === [] && count($prIds) >= 15,
+    implode(', ', array_merge($prOhne, $prFalsch)) . ' (' . count($prIds) . ' Blöcke)');
+pruefe('Reiter: die Sprungmarken der ersten Schritte zeigen auf vorhandene Blöcke',
+    array_diff(array_values(PartnerStart::ANKER), $prIds) === [], implode(', ', array_diff(array_values(PartnerStart::ANKER), $prIds)));
+$prFehlt = [];
+foreach (Texte::PARTNER_REITER['reiter'] as $prK => $prR) {
+    foreach (['kurz', 'titel', 'satz'] as $prF) { foreach (['it', 'de', 'en'] as $prL) { if (trim((string) ($prR[$prF][$prL] ?? '')) === '') { $prFehlt[] = "$prK.$prF.$prL"; } } }
+    if (mb_strlen((string) $prR['kurz']['it']) > 9 || mb_strlen((string) $prR['kurz']['de']) > 9 || mb_strlen((string) $prR['kurz']['en']) > 9) { $prFehlt[] = "$prK.kurz zu lang fürs Handy"; }
+}
+pruefe('Reiter: Start · Werben · Kunden finden · Geld · Profil, dreisprachig, kurze Namen passen in die Handyleiste',
+    array_keys(Texte::PARTNER_REITER['reiter']) === ['start', 'werben', 'finden', 'geld', 'profil'] && $prFehlt === [], implode(', ', $prFehlt));
+$prJs = (string) @file_get_contents($wurzel . '/../assets/js/partner-reiter.js');
+$prSeite = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Reiter: ohne Skript bleibt alles sichtbar (die Leiste entsteht erst im Skript), eigene Klasse ohne Zusammenstoß mit dem Werbe-Paket',
+    str_contains($prSeite, 'id="reiter_daten"') && str_contains($prSeite, 'partner-reiter.js')
+    && !preg_match('/<div class="block pt"[^>]*\shidden/', $prSeite)
+    && str_contains($prJs, "'app-reiter'") && !str_contains($prJs, "className = 'reiter'")
+    && str_contains($prJs, 'hashchange') && str_contains($prJs, "closest('[data-reiter]')"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

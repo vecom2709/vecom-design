@@ -444,6 +444,34 @@ if ($p && isset($_GET['karte'])) {
   .erfolg textarea{width:100%;box-sizing:border-box;font-size:14px;line-height:1.5;padding:10px 12px;margin-top:8px}
   /* Schmale Handys: „auszahlungsbereit“ schob die Provisionstabelle 3 px über den Rand. */
   @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}.pt table{font-size:13px}.pt td,.pt th{padding:8px 4px;word-break:break-word}}
+  /* Reiter wie eine App (27.09.2026). Ohne Skript gibt es sie nicht -- dann steht alles untereinander. */
+  .sr-nur{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .app-reiter{display:none}
+  .mit-reitern .app-reiter{display:flex;position:sticky;top:8px;z-index:30;gap:3px;max-width:640px;margin:0 auto 18px;box-sizing:border-box;padding:5px;background:rgba(20,19,17,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--linie);border-radius:16px;box-shadow:0 10px 30px -18px rgba(0,0,0,.8)}
+  .app-reiter a{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 6px;border-radius:11px;color:var(--dim);text-decoration:none;font-size:13.5px;font-weight:600;position:relative;transition:color .18s cubic-bezier(.16,1,.3,1),background-color .18s cubic-bezier(.16,1,.3,1);white-space:nowrap}
+  .app-reiter a svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .app-reiter a .k{display:none}
+  .app-reiter a .l{overflow:hidden;text-overflow:ellipsis}
+  .app-reiter a:hover{color:var(--text);background:rgba(255,255,255,.035)}
+  .app-reiter a:focus-visible{outline:2px solid #f1d38b;outline-offset:1px}
+  .app-reiter a[aria-current]{color:#f1d38b;background:rgba(241,211,139,.1);box-shadow:inset 0 0 0 1px rgba(241,211,139,.32)}
+  .app-reiter a.punkt::after{content:'';position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:#ff8a7a;box-shadow:0 0 0 2px #141311}
+  .app-kopf{max-width:640px;margin:6px auto 14px;padding:0 4px;box-sizing:border-box}
+  .app-kopf h2{font-size:clamp(23px,4.2vw,30px);line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+  .app-kopf h2:focus,.pt h1:focus{outline:none}
+  .app-kopf p{margin:0;color:var(--dim);font-size:14.5px;line-height:1.5;max-width:56ch}
+  .app-kopf[hidden],.mit-reitern [data-reiter][hidden]{display:none!important}
+  @media (max-width:760px){
+    .mit-reitern .app-reiter{position:fixed;top:auto;bottom:0;left:0;right:0;max-width:none;margin:0;gap:0;border-radius:18px 18px 0 0;border-width:1px 0 0;padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(12,11,10,.95)}
+    .app-reiter a{flex-direction:column;gap:3px;font-size:11.5px;font-weight:600;min-height:54px;padding:6px 2px;border-radius:12px}
+    .app-reiter a svg{width:22px;height:22px}
+    .app-reiter a .k{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .app-reiter a .l{display:none}
+    .app-reiter a[aria-current]{box-shadow:none}
+    .app-reiter a.punkt::after{right:calc(50% - 19px);top:6px}
+    body.mit-reitern{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
+  }
+  @media (prefers-reduced-motion:reduce){.app-reiter a{transition:none}}
 </style>
 </head>
 <body>
@@ -502,7 +530,14 @@ if ($p && isset($_GET['karte'])) {
   $auszahl = Db::all('SELECT * FROM partner_auszahlungen WHERE partner_id = ? ORDER BY id DESC LIMIT 50', [(int) $p['id']]);
   $link = Partner::link($p);
 ?>
-  <div class="block pt" id="start">
+  <script type="application/json" id="reiter_daten"><?= json_encode([
+      'aria' => Texte::h(Texte::PARTNER_REITER['aria'], $sprache),
+      'neu' => ['it' => 'novità', 'de' => 'neu', 'en' => 'new'][$sprache] ?? 'new',
+      'reihe' => array_keys(Texte::PARTNER_REITER['reiter']),
+      'reiter' => array_map(static fn(array $r) => array_map(static fn(array $t) => Texte::h($t, $sprache), $r), Texte::PARTNER_REITER['reiter']),
+    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+  <script src="/assets/js/partner-reiter.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-reiter.js') ?>" defer></script>
+  <div class="block pt" id="start" data-reiter="start">
     <h1><?= $h($T('p_titel')) ?></h1>
     <p class="lead"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
     <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler'], true); ?>
@@ -572,7 +607,7 @@ if ($p && isset($_GET['karte'])) {
     </details>
   </div>
 
-  <div class="block pt">
+  <div class="block pt" id="zahlen" data-reiter="start">
     <div class="zahlen">
       <div class="zahl"><b><?= (int) $k['klicks'] ?></b><span><?= $h($T('klicks')) ?></span><small><?= $h($T('z_klicks')) ?></small></div>
       <div class="zahl"><b><?= (int) $k['kunden'] ?></b><span><?= $h($T('kunden')) ?></span><small><?= $h($T('z_kunden')) ?></small></div>
@@ -608,7 +643,7 @@ if ($p && isset($_GET['karte'])) {
   </div>
 
   <?php $emp = PartnerPost::empfehlungen((int) $p['id']); if ($emp): ?>
-  <div class="block pt" id="empfehlungen">
+  <div class="block pt" id="empfehlungen" data-reiter="start">
     <h2><?= $h($T('emp_titel')) ?></h2>
     <p class="klein" style="margin-top:0"><?= $h($T('emp_text')) ?></p>
     <table class="emp"><tbody>
@@ -624,31 +659,8 @@ if ($p && isset($_GET['karte'])) {
   </div>
   <?php endif; ?>
 
-  <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge): $PE = Texte::PARTNER_ERFOLG; ?>
-  <div class="block pt" id="erfolge">
-    <h2><?= $h($ST($PE['e_titel'])) ?></h2>
-    <p class="klein" style="margin-top:0"><?= $h($ST($PE['e_text'])) ?></p>
-    <?php foreach ($erfolge as $i => $e): $datum = $e['seit'] !== '' ? Fmt::datum($e['seit']) : ''; ?>
-      <?php if (!$e['zeigen']): ?>
-        <div class="erfolg"><p class="klein" style="margin:0"><?= $h(strtr($ST($PE['e_wartet']), ['{datum}' => $datum])) ?></p></div>
-      <?php else: $post = PartnerErfolg::beitrag($p, $e['firma'], $e['url'], $sprache); ?>
-        <div class="erfolg frei">
-          <h3><?= $h($e['firma']) ?> <small style="color:var(--leise);font-weight:400;font-size:12.5px">· <?= $h(strtr($ST($PE['e_seit']), ['{datum}' => $datum])) ?></small></h3>
-          <textarea id="erfolg_<?= $i ?>" readonly rows="5" data-wachsen><?= $h($post) ?></textarea>
-          <div class="knoepfe">
-            <button class="knopf haupt" type="button" data-kopie="erfolg_<?= $i ?>"><?= $h($ST($PE['e_kopieren'])) ?></button>
-            <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($post) ?>"><?= $h($ST($PE['e_wa'])) ?></a>
-            <button class="knopf" type="button" data-teilen="erfolg_<?= $i ?>" hidden><?= $h($ST($PE['e_teilen'])) ?></button>
-            <?php if ($e['url'] !== ''): ?><a class="knopf" target="_blank" rel="noopener" href="<?= $h($e['url']) ?>"><?= $h($ST($PE['e_ansehen'])) ?></a><?php endif; ?>
-          </div>
-        </div>
-      <?php endif; ?>
-    <?php endforeach; ?>
-  </div>
-  <?php endif; ?>
-
   <?php $wege = PartnerWege::fuerPartner($p); $weg = PartnerWege::weg($p); ?>
-  <div class="block pt" id="wege">
+  <div class="block pt" id="wege" data-reiter="geld"<?= $bereitCents > 0 || $weg === null || !PartnerWege::bereit($p, $weg) ? ' data-punkt="1"' : '' ?>>
     <h2><?= $h($T('wege')) ?></h2>
     <?php if (($_GET['m'] ?? '') === 'w_gut'): ?><div class="hinweis gut"><?= $h($T('w_gut')) ?></div><?php endif; ?>
     <?php if ($wegFehler): ?><div class="hinweis schlecht" role="alert"><?= $h($T($meldung)) ?></div>
@@ -712,6 +724,29 @@ if ($p && isset($_GET['karte'])) {
 
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
 
+  <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge): $PE = Texte::PARTNER_ERFOLG; ?>
+  <div class="block pt" id="erfolge" data-reiter="werben">
+    <h2><?= $h($ST($PE['e_titel'])) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h($ST($PE['e_text'])) ?></p>
+    <?php foreach ($erfolge as $i => $e): $datum = $e['seit'] !== '' ? Fmt::datum($e['seit']) : ''; ?>
+      <?php if (!$e['zeigen']): ?>
+        <div class="erfolg"><p class="klein" style="margin:0"><?= $h(strtr($ST($PE['e_wartet']), ['{datum}' => $datum])) ?></p></div>
+      <?php else: $post = PartnerErfolg::beitrag($p, $e['firma'], $e['url'], $sprache); ?>
+        <div class="erfolg frei">
+          <h3><?= $h($e['firma']) ?> <small style="color:var(--leise);font-weight:400;font-size:12.5px">· <?= $h(strtr($ST($PE['e_seit']), ['{datum}' => $datum])) ?></small></h3>
+          <textarea id="erfolg_<?= $i ?>" readonly rows="5" data-wachsen><?= $h($post) ?></textarea>
+          <div class="knoepfe">
+            <button class="knopf haupt" type="button" data-kopie="erfolg_<?= $i ?>"><?= $h($ST($PE['e_kopieren'])) ?></button>
+            <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($post) ?>"><?= $h($ST($PE['e_wa'])) ?></a>
+            <button class="knopf" type="button" data-teilen="erfolg_<?= $i ?>" hidden><?= $h($ST($PE['e_teilen'])) ?></button>
+            <?php if ($e['url'] !== ''): ?><a class="knopf" target="_blank" rel="noopener" href="<?= $h($e['url']) ?>"><?= $h($ST($PE['e_ansehen'])) ?></a><?php endif; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+
   <?php require __DIR__ . '/app/views/partner_seite.php'; ?>
 
   <?php $checkNeu = null;
@@ -721,8 +756,8 @@ if ($p && isset($_GET['karte'])) {
     }
     require __DIR__ . '/app/views/partner_recherche.php'; ?>
 
-  <?php PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
-  <div class="block pt" id="nachrichten">
+  <?php $neuNachr = PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
+  <div class="block pt" id="nachrichten" data-reiter="profil"<?= $neuNachr > 0 ? ' data-punkt="1"' : '' ?>>
     <h2><?= $h($T('nachr_titel')) ?></h2>
     <?php if (($_GET['m'] ?? '') === 'nachr_danke'): ?><div class="hinweis gut" role="status"><?= $h($T('nachr_danke')) ?></div><?php endif; ?>
     <?php if (in_array($meldung, ['nachr_leer', 'nachr_zuviel'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
@@ -744,7 +779,7 @@ if ($p && isset($_GET['karte'])) {
     </form>
   </div>
 
-  <div class="block pt" id="melden">
+  <div class="block pt" id="melden" data-reiter="finden">
     <h2><?= $h($T('m_titel')) ?></h2>
     <?php if (($_GET['m'] ?? '') === 'm_danke'): ?><div class="hinweis gut"><?= $h($T('m_danke')) ?></div><?php endif; ?>
     <?php if (in_array($meldung, ['m_einverstanden', 'm_genug', 'angaben'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
@@ -762,7 +797,7 @@ if ($p && isset($_GET['karte'])) {
     </form>
   </div>
 
-  <div class="block pt">
+  <div class="block pt" id="provisionen" data-reiter="geld">
     <h2><?= $h($T('liste')) ?></h2>
     <?php if (!$liste): ?><p class="klein"><?= $h($T('keine')) ?></p><?php else: ?>
     <table><thead><tr><th><?= $h($T('datum')) ?></th><th><?= $h($T('art')) ?></th><th class="r"><?= $h($T('betrag')) ?></th><th><?= $h($T('stand')) ?></th></tr></thead><tbody>
@@ -776,7 +811,7 @@ if ($p && isset($_GET['karte'])) {
   </div>
 
   <?php if ($auszahl): ?>
-  <div class="block pt">
+  <div class="block pt" id="auszahlungen" data-reiter="geld">
     <h2><?= $h($T('auszahlungen')) ?></h2>
     <table><tbody>
     <?php foreach ($auszahl as $a): ?>
@@ -788,7 +823,7 @@ if ($p && isset($_GET['karte'])) {
   </div>
   <?php endif; ?>
   <?php $jahre = Partner::jahre((int) $p['id']); ?>
-  <div class="block pt" id="sofort">
+  <div class="block pt" id="sofort" data-reiter="geld">
     <?php if ($jahre): ?>
       <h2><?= $h($T('jahr_titel')) ?></h2>
       <p class="klein" style="margin-top:0"><?php foreach ($jahre as $j): ?><a href="<?= $h($selbst(['jahr' => $j])) ?>"><?= $h(strtr($T('jahr_link'), ['{jahr}' => (string) $j])) ?></a> &nbsp; <?php endforeach; ?></p>
@@ -801,7 +836,7 @@ if ($p && isset($_GET['karte'])) {
     </form>
   </div>
 
-  <div class="block pt" id="app">
+  <div class="block pt" id="app" data-reiter="profil">
     <h2><?= $h($T('app_titel')) ?></h2>
     <p class="klein" style="margin-top:0"><?= $h($T('app_text')) ?></p>
     <div class="knoepfe">

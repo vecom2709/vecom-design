@@ -34,7 +34,7 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
   @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}
 </style>
-<div class="block pt" id="seite">
+<div class="block pt" id="seite" data-reiter="profil">
   <h2><?= $h($W($PS['g_titel'])) ?></h2>
   <?php if (($_GET['m'] ?? '') === 'g_gut'): ?><div class="hinweis gut" role="status"><?= $h($W($PS['g_gut'])) ?></div><?php endif; ?>
   <?php if ($gFehler): ?><div class="hinweis schlecht" role="alert"><?= $h($W($PS[$gFehler])) ?></div><?php endif; ?>
