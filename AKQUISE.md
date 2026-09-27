@@ -168,3 +168,11 @@ Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
 
 - Reiter „Assistent“ (`AkquiseAssistent`): neun feste Fragen als Knöpfe, dazu ein Eingabefeld. Sätze wie „Zeig mir die besten Leads aus Sizilien“ werden über Schlüsselwörter, Branchen- und Ortsnamen einer Frage mit Filter zugeordnet, und die Seite zeigt, was verstanden wurde.
 - Jede Zeile trägt die Ampel des Gates („Darf ich?“). E-Mail-Adressen zeigt nur „Wer darf per E-Mail?“, und nur bei bestätigter Einwilligung mit Gate „Ja, erlaubt“.
+
+### Modul C: Terminbuchung (27.09.2026)
+
+- `termin.php` (öffentlich, dreisprachig, ohne Skript) und der Reiter „Termine“ (`AkquiseTermin`). Freie Zeiten ergeben sich aus dem Wochenplan, der Dauer, dem Vorlauf, dem Horizont und den gesperrten Tagen.
+- Eine Zeit lässt sich nicht doppelt vergeben: Der eindeutige Schlüssel `(beginn, belegt)` in der Datenbank verhindert es, eine Absage setzt `belegt` auf NULL.
+- Nach dem Buchen gehen eine Bestätigung mit Absagelink und eine Kalenderdatei (.ics) an den Buchenden, Uwe bekommt eine Meldung. Am Vortag folgt eine Erinnerung (Cron `akquise_termine`, genau einmal). Sagt Vecom ab, bekommt der Kunde eine Mail mit dem Link zu einer neuen Zeit.
+- Die Folge-Mail „Gespräch“ bekommt über `{termin}` den Buchungslink, sobald es freie Zeiten gibt.
+- Offen: G (Pipeline-Anzeige Termin/Angebot/Verloren an der Firma).

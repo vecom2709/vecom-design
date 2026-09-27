@@ -12798,6 +12798,59 @@ pruefe('Assistent: Reiter und Ampel „Darf ich?“ in jeder Zeile',
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_assistent.php'), 'AkquiseGate::ampel($z)'));
 
 /* ============================================================================
+   Terminbuchung (27.09.2026)
+   Freie Zeiten aus dem Wochenplan; doppelt vergeben verhindert die
+   Datenbank; Bestätigung, Erinnerung genau einmal, Absage gibt die Zeit frei.
+   ============================================================================ */
+abschnitt('Terminbuchung');
+require_once $wurzel . '/src/AkquiseTermin.php';
+pruefe('Termine: ohne Sprechzeiten keine freie Zeit, und die Folge-Mail bekommt keinen Buchungssatz',
+    AkquiseTermin::freie() === [] && AkquiseTermin::satzFuerMail('de') === '');
+pruefe('Termine: Zeitfenster lesen — „10-12, 15:30-17“, Unlesbares fällt heraus',
+    AkquiseTermin::fenster('10-12, 15:30-17, quatsch, 18:00-17:00') === [[600, 720], [930, 1020]]);
+$tmPlan = array_fill(1, 7, '10:00-12:00');
+AkquiseTermin::einstellungenSetzen($tmPlan, 30, 0, 14, '', true);
+$tmJetzt = strtotime(date('Y-m-d') . ' 09:00');
+$tmFrei = AkquiseTermin::freie($tmJetzt);
+$tmMorgen = date('Y-m-d', strtotime('+1 day', $tmJetzt));
+pruefe('Termine: jeden Tag 10–12 bei 30 Minuten = vier Zeiten, 15 Tage', count($tmFrei) === 15 && ($tmFrei[$tmMorgen] ?? []) === ['10:00', '10:30', '11:00', '11:30'], json_encode(array_slice($tmFrei, 0, 2)));
+AkquiseTermin::einstellungenSetzen($tmPlan, 30, 24, 14, date('d.m.Y', strtotime('+2 days', $tmJetzt)), true);
+$tmFrei = AkquiseTermin::freie($tmJetzt);
+pruefe('Termine: Vorlauf 24 Stunden und gesperrter Tag fallen heraus', !isset($tmFrei[date('Y-m-d', $tmJetzt)]) && !isset($tmFrei[date('Y-m-d', strtotime('+2 days', $tmJetzt))]));
+$tmSlot = array_key_first(AkquiseTermin::freie()) . ' ' . AkquiseTermin::freie()[array_key_first(AkquiseTermin::freie())][0];
+$tmMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'termin_bestaetigung'", [], 0);
+$tmMeld = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'termin'", [], 0);
+$tmA = AkquiseTermin::buchen(['slot' => $tmSlot, 'name' => 'Giulia Termine', 'email' => 'giulia@termin.example', 'thema' => 'analyse', 'art' => 'video', 'sprache' => 'it'], '198.51.100.20');
+$tmT = $tmA['ok'] ? AkquiseTermin::laden((string) $tmA['token']) : null;
+pruefe('Termine: gebucht — Bestätigungsmail, Meldung an Uwe, Zeit ist danach nicht mehr frei',
+    $tmA['ok'] && $tmT && $tmT['status'] === 'gebucht' && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'termin_bestaetigung'", [], 0) === $tmMails + 1
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'termin'", [], 0) === $tmMeld + 1
+    && !in_array(substr($tmSlot, 11), AkquiseTermin::freie()[substr($tmSlot, 0, 10)] ?? [], true));
+pruefe('Termine: dieselbe Zeit ein zweites Mal — „gerade vergeben“', (AkquiseTermin::buchen(['slot' => $tmSlot, 'name' => 'Otto Zweit', 'email' => 'otto@termin.example'], '198.51.100.21')['grund'] ?? '') === 'belegt');
+$tmDoppelt = false; try { Db::insert('akq_termine', ['token' => bin2hex(random_bytes(16)), 'beginn' => $tmT['beginn'], 'ende' => $tmT['ende'], 'belegt' => 1, 'thema' => 'sonst', 'created_at' => date('Y-m-d H:i:s')]); } catch (Throwable $e) { $tmDoppelt = Db::doppelt($e, 'uq_akq_termin_slot'); }
+pruefe('Termine: auch ohne die Prüfung davor lässt die Datenbank keine zweite Buchung derselben Zeit zu', $tmDoppelt);
+pruefe('Termine: erfundene Uhrzeit, fehlender Name, zweiter Termin derselben Adresse — abgelehnt',
+    (AkquiseTermin::buchen(['slot' => $tmMorgen . ' 03:00', 'name' => 'X Y', 'email' => 'x@termin.example'])['grund'] ?? '') === 'zeit'
+    && (AkquiseTermin::buchen(['slot' => $tmSlot, 'name' => '', 'email' => 'x@termin.example'])['grund'] ?? '') === 'angaben'
+    && (AkquiseTermin::buchen(['slot' => substr($tmSlot, 0, 11) . AkquiseTermin::freie()[substr($tmSlot, 0, 10)][0], 'name' => 'Giulia', 'email' => 'giulia@termin.example'])['grund'] ?? '') === 'zuviel');
+$tmIcs = AkquiseTermin::ics($tmT);
+pruefe('Termine: Kalenderdatei mit Beginn in UTC, Absagelink und CRLF', str_contains($tmIcs, "BEGIN:VEVENT\r\n") && str_contains($tmIcs, 'DTSTART:' . gmdate('Ymd\THis\Z', strtotime((string) $tmT['beginn'])))
+    && str_contains($tmIcs, 'termin.php?t=' . $tmT['token']));
+Db::run('UPDATE akq_termine SET beginn = ?, ende = ? WHERE id = ?', [date('Y-m-d H:i:s', time() + 20 * 3600), date('Y-m-d H:i:s', time() + 20 * 3600 + 1800), (int) $tmT['id']]);
+pruefe('Termine: Erinnerung am Vortag genau einmal', AkquiseTermin::erinnern() === 1 && AkquiseTermin::erinnern() === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'termin_erinnerung' AND empfaenger = 'giulia@termin.example'", [], 0) === 1);
+pruefe('Termine: Absage gibt die Zeit frei (belegt leer), zweite Absage tut nichts', AkquiseTermin::absagen((int) $tmT['id'], 'kunde') && !AkquiseTermin::absagen((int) $tmT['id'], 'kunde')
+    && Db::one('SELECT status, belegt FROM akq_termine WHERE id = ?', [(int) $tmT['id']]) === ['status' => 'abgesagt', 'belegt' => null]);
+pruefe('Termine: die Folge-Mail „Gespräch“ bekommt den Buchungslink, sobald es freie Zeiten gibt', str_contains(AkquiseTermin::satzFuerMail('de'), '/termin.php?lang=de')
+    && str_contains(AkquiseFolge::fuellen('{termin}', ['id' => 0, 'name' => 'X', 'domain' => 'x.example', 'url' => null], 'it'), '/termin.php'));
+$tmOhne = [];
+foreach (Texte::AKQ_TERMIN as $tmK => $tmX) { foreach (['it', 'de', 'en'] as $tmSp) { if (trim((string) ($tmX[$tmSp] ?? '')) === '') { $tmOhne[] = "$tmK.$tmSp"; } } }
+$tmSeite = (string) file_get_contents($wurzel . '/../termin.php');
+pruefe('Termine: jeder Text dreisprachig; Seite ohne Skript, Absagen nur per Knopf, Ansicht nie im Index', $tmOhne === [] && !str_contains($tmSeite, '<script')
+    && str_contains($tmSeite, "(\$_POST['a'] ?? '') === 'absagen'") && str_contains($tmSeite, 'noindex') && str_contains($tmSeite, 'AkquiseCheck::stempelGut('), implode(', ', $tmOhne));
+AkquiseTermin::einstellungenSetzen(array_fill(1, 7, ''), 30, 18, 21, '', true);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

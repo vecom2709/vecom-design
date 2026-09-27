@@ -295,6 +295,20 @@ if ($post) {
                 };
                 weiter('akquise/folgen#laufend');
 
+            case 'akq_termin_einstellungen':
+                require_once __DIR__ . '/src/AkquiseTermin.php';
+                AkquiseTermin::einstellungenSetzen((array) ($_POST['plan'] ?? []), (int) ($_POST['dauer'] ?? 30), (int) ($_POST['vorlauf'] ?? 18),
+                    (int) ($_POST['tage'] ?? 21), (string) ($_POST['gesperrt'] ?? ''), !empty($_POST['an']));
+                $_SESSION['gut'] = 'Sprechzeiten gespeichert — ' . array_sum(array_map('count', AkquiseTermin::freie())) . ' freie Zeiten sind jetzt buchbar.';
+                weiter('akquise/termine#zeiten');
+
+            case 'akq_termin_absagen':
+            case 'akq_termin_erledigt':
+                require_once __DIR__ . '/src/AkquiseTermin.php';
+                if ($tat === 'akq_termin_absagen') { AkquiseTermin::absagen((int) ($_POST['termin'] ?? 0), 'vecom'); $_SESSION['gut'] = 'Termin abgesagt — die Nachricht ist raus.'; }
+                else { AkquiseTermin::erledigt((int) ($_POST['termin'] ?? 0)); }
+                weiter('akquise/termine#kommend');
+
             case 'akq_check_erledigt':
                 require_once __DIR__ . '/src/AkquiseCheck.php';
                 AkquiseCheck::erledigen((int) ($_POST['check'] ?? 0));
@@ -477,6 +491,13 @@ if ($teil === 'assistent') {
     }
     ansicht('akquise_assistent', ['antwort' => AkquiseAssistent::antwort($frage, $filter), 'verstanden' => $verstanden, 'q' => $q,
         'filter' => array_diff_key($filter, ['anzahl' => 1]), 'werte' => Akquise::filterWerte()]);
+    exit;
+}
+
+if ($teil === 'termine') {
+    require_once __DIR__ . '/src/AkquiseTermin.php';
+    ansicht('akquise_termine', ['kommend' => AkquiseTermin::liste(true), 'vorbei' => AkquiseTermin::liste(false, 30), 'plan' => AkquiseTermin::planText(),
+        'e' => AkquiseTermin::einstellungen(), 'an' => AkquiseTermin::an(), 'freiZahl' => array_sum(array_map('count', AkquiseTermin::freie()))]);
     exit;
 }
 

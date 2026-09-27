@@ -260,6 +260,11 @@ final class Cron
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseFolge'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return AkquiseFolge::lauf();
             },
+            /* Termine (27.09.2026): Erinnerung am Vortag, genau einmal. */
+            'akquise_termine' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }
+                return ['erinnert' => AkquiseTermin::erinnern()];
+            },
             /* Website-Checks: persönliche Felder nach der Frist leeren (einmal am Tag). */
             'akquise_checks' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseCheck'] as $k) { require_once __DIR__ . "/$k.php"; }

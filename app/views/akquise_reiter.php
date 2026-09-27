@@ -4,7 +4,7 @@
    merkt, dass etwas schieflaeuft, soll nicht erst suchen muessen. */
 $akqTeil = $akqTeil ?? '';
 $akqG = AkquiseGate::grenzen();
-$reiter = ['' => 'Betriebe', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
+$reiter = ['' => 'Betriebe', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'termine' => 'Termine', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
 ?>
 <style>
   .akq-reiter{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
