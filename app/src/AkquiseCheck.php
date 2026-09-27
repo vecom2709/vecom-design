@@ -161,6 +161,16 @@ final class AkquiseCheck
             'schlecht' => $schlecht, 'ip_hash' => $ipHash, 'created_at' => date('Y-m-d H:i:s'),
         ]);
 
+        /* Über eine Partnerseite gekommen (Besuchs-Keks, 27.09.2026)? Dann
+           zählt der Check für den Partner, und E-Mail/Telefon werden ihm
+           vorgemerkt -- wird daraus ein Kunde, gehört er ihm. */
+        $partner = self::partnerAusBesuch();
+        if ($partner !== null) {
+            Db::update('akq_checks', $id, ['partner_id' => (int) $partner[0]['id']]);
+            Partner::ereignis((int) $partner[0]['id'], 'check');
+            Partner::vormerken((int) $partner[0]['id'], $email, $telefon, 'check', 'link', $partner[1]);
+        }
+
         /* Marketing-Häkchen: nur die Bestätigungsmail. Einwilligung erst mit dem Klick darin. */
         $stand = null;
         if (!empty($e['marketing']) && $firmaId !== null) {
@@ -183,7 +193,8 @@ final class AkquiseCheck
         if ($firmaId !== null) {
             Akquise::protokoll($firmaId, 'anfrage', 'Website-Check über vecom-design.it: ' . $hostNorm . ' · '
                 . (!empty($e['ausfuehrlich']) ? 'ausführliche Analyse gewünscht' : 'nur Kurz-Check')
-                . (!empty($e['marketing']) ? ' · Einwilligung angefragt' . ($wa !== null ? ' (E-Mail + WhatsApp ' . $wa . ')' : '') . ' (' . ($stand ?? '—') . ')' : ''), ['check' => $id]);
+                . (!empty($e['marketing']) ? ' · Einwilligung angefragt' . ($wa !== null ? ' (E-Mail + WhatsApp ' . $wa . ')' : '') . ' (' . ($stand ?? '—') . ')' : '')
+                . ($partner !== null ? ' · über die Empfehlungsseite von ' . $partner[0]['name'] . ' (' . $partner[0]['code'] . ')' : ''), ['check' => $id]);
         }
         try {
             Events::melden('akquise_check', 'Website-Check: ' . mb_substr($firma, 0, 80) . ' (' . $hostNorm . ')',
@@ -194,6 +205,16 @@ final class AkquiseCheck
                 $firmaId !== null ? 'akquise/' . $firmaId : 'akquise');
         } catch (Throwable $x) { }
         return ['ok' => true, 'token' => $token];
+    }
+
+    /** Der Partner aus dem Besuchs-Keks -- oder null. @return null|array{0:array,1:?string} */
+    public static function partnerAusBesuch(): ?array
+    {
+        try {
+            require_once __DIR__ . '/Partner.php';
+            [$p, $k] = Partner::ausKeks();
+            return $p !== null ? [$p, $k] : null;
+        } catch (Throwable $e) { return null; }
     }
 
     /** Ergebnis zur Adresse -- ohne die persönlichen Felder. */

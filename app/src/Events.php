@@ -302,6 +302,15 @@ final class Events
             Kunde::nummerVergeben($id);
         } catch (Throwable $e) { /* nummer() holt es nach */ }
         self::protokoll('kunde_neu', 'Neuer Kunde: ' . $daten['name'], $id);
+        /* Vorgemerkt über eine Partnerseite (Rückruf, Website-Check, Termin;
+           27.09.2026)? Dann gehört der Kunde dem Partner -- ohne dass Uwe
+           von Hand zuordnen muss. Wirft nie. */
+        if (empty($neu['demo'])) {
+            try {
+                require_once __DIR__ . '/Partner.php';
+                Partner::vormerkungEinloesen($id, $email, isset($neu['phone']) ? (string) $neu['phone'] : null);
+            } catch (Throwable $e) { /* Zuordnung ist Beiwerk der Kundenanlage */ }
+        }
         // Keine Meldung: Entsteht der Kunde aus einer Anfrage, meldet die
         // Anfrage schon; legt Uwe ihn selbst an, weiss er es ohnehin.
         return $id;

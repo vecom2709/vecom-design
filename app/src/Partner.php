@@ -469,6 +469,141 @@ final class Partner
         }
     }
 
+    /* ==================================================================== */
+    /*  Empfehlungsseite: echte Besucher, Ereignisse, Vormerkungen          */
+    /*  (27.09.2026, Uwe: Ja zu „Echte Besucher“, „Trichter“ und            */
+    /*  „Rückruf automatisch zuordnen“)                                     */
+    /* ==================================================================== */
+
+    /** Arten, die auf der Seite gezählt werden (partner_ereignisse). */
+    public const EREIGNISSE = ['email', 'rueckruf', 'wa', 'check', 'termin', 'preis'];
+    /** Wie lange eine Vormerkung gilt, bis daraus ein Kunde werden muss. */
+    public const VORMERKUNG_TAGE = 90;
+    /** Keks im Browser des Partners: seine eigenen Aufrufe zählen nicht. */
+    public const KEKS_SELBST = 'vecompartnerselbst';
+
+    /**
+     * Ist der Aufruf ein Programm statt eines Menschen? Vorschau-Abrufe von
+     * WhatsApp, Facebook, Telegram & Co. holen die Seite, sobald jemand den
+     * Link einfügt -- das waren „Klicks“, die niemand gemacht hat.
+     */
+    public static function istRoboter(string $ua): bool
+    {
+        if (trim($ua) === '') { return true; }
+        return (bool) preg_match('~bot\b|bot/|crawl|spider|slurp|facebookexternalhit|facebookcatalog|meta-externalagent|whatsapp|telegram|twitter|linkedin|slack|discord|skype|'
+            . 'preview|embedly|vkshare|pinterest|headless|lighthouse|curl/|wget|python|go-http|java/|okhttp|axios|node-fetch|libwww|httpclient~i', $ua);
+    }
+
+    /**
+     * Zählt dieser Aufruf als Besuch? Nein bei Programmen, beim Partner selbst
+     * (Keks aus seinem Partnerbereich) und wenn derselbe Browser schon in
+     * diesem Besuch über denselben Code kam (der Besuchs-Keks trägt ihn).
+     */
+    public static function echterBesuch(array $p, string $ua, array $kekse): bool
+    {
+        if (self::istRoboter($ua)) { return false; }
+        if (strtoupper((string) ($kekse[self::KEKS_SELBST] ?? '')) === strtoupper((string) $p['code'])) { return false; }
+        [$c] = self::teilen((string) ($kekse[self::KEKS] ?? ''));
+        return $c !== strtoupper((string) $p['code']);
+    }
+
+    /** Ein Ereignis auf der Seite eines Partners zählen (nur Zahl je Tag). */
+    public static function ereignis(int $partnerId, string $art): void
+    {
+        if (!in_array($art, self::EREIGNISSE, true) || $partnerId <= 0) { return; }
+        self::still(static fn() => Db::run('INSERT INTO partner_ereignisse (partner_id, art, tag, anzahl) VALUES (?, ?, CURDATE(), 1)
+                                            ON DUPLICATE KEY UPDATE anzahl = anzahl + 1', [$partnerId, $art]), null);
+    }
+
+    /** Der Partner aus dem laufenden Besuch (Keks) -- oder null. @return array{0:?array,1:?string} [Partner, Kanal] */
+    public static function ausKeks(?array $kekse = null): array
+    {
+        [$c, $k] = self::teilen((string) (($kekse ?? $_COOKIE)[self::KEKS] ?? ''));
+        return [$c !== '' ? self::ausCode($c) : null, $k];
+    }
+
+    /** Nur die Ziffern der letzten neun Stellen -- so passen +39 333…, 0039 333… und 333… zusammen. */
+    public static function telefonSchluessel(?string $t): ?string
+    {
+        $z = preg_replace('~\D~', '', (string) $t) ?? '';
+        return strlen($z) >= 6 ? substr($z, -9) : null;
+    }
+
+    /**
+     * Vormerken: E-Mail und/oder Telefon gehören zu diesem Partner, sobald
+     * daraus ein Kunde wird. Gibt es den Kunden schon, wird sofort zugeordnet
+     * (nur beim ersten Mal, wie immer). Wirft nie.
+     * @return string vorgemerkt | zugeordnet | schon | … (Rückgabe von zuordnen) | leer | fehler
+     */
+    public static function vormerken(int $partnerId, ?string $email, ?string $telefon, string $art, string $quelle = 'link', ?string $kanal = null): string
+    {
+        try {
+            $email = $email !== null ? mb_strtolower(trim($email)) : null;
+            if ($email === '' || ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL))) { $email = null; }
+            $tel = self::telefonSchluessel($telefon);
+            if ($email === null && $tel === null) { return 'leer'; }
+            $kunde = self::kundeZu($email, $tel);
+            if ($kunde !== null) { return self::zuordnen($kunde, $partnerId, $quelle, null, $kanal); }
+            Db::insert('partner_vormerkungen', ['partner_id' => $partnerId, 'email' => $email, 'telefon' => $tel, 'quelle' => $quelle,
+                'art' => mb_substr($art, 0, 12), 'kanal' => self::kanal((string) $kanal), 'created_at' => date('Y-m-d H:i:s')]);
+            return 'vorgemerkt';
+        } catch (Throwable $e) { return 'fehler'; }
+    }
+
+    /** Der Kunde mit dieser E-Mail oder Telefonnummer -- oder null. */
+    private static function kundeZu(?string $email, ?string $tel): ?int
+    {
+        if ($email !== null) {
+            $id = Db::wert('SELECT id FROM customers WHERE email = ? AND demo = 0 LIMIT 1', [$email], null);
+            if ($id !== null) { return (int) $id; }
+        }
+        if ($tel !== null) {
+            foreach (Db::all('SELECT id, phone FROM customers WHERE phone LIKE ? AND demo = 0 LIMIT 20', ['%' . substr($tel, -6)]) as $k) {
+                if (self::telefonSchluessel((string) $k['phone']) === $tel) { return (int) $k['id']; }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Ein neuer Kunde ist entstanden (Events): gibt es eine offene Vormerkung
+     * für seine E-Mail oder Nummer? Dann zuordnen -- die älteste gewinnt,
+     * wie beim Link. Wirft nie.
+     */
+    public static function vormerkungEinloesen(int $kundeId, ?string $email, ?string $telefon): string
+    {
+        try {
+            $email = $email !== null ? mb_strtolower(trim($email)) : '';
+            $tel = self::telefonSchluessel($telefon) ?? '';
+            if ($email === '' && $tel === '') { return 'leer'; }
+            $v = Db::one('SELECT * FROM partner_vormerkungen WHERE eingeloest_am IS NULL AND created_at >= ?
+                            AND ((email IS NOT NULL AND email = ?) OR (telefon IS NOT NULL AND telefon = ?)) ORDER BY id LIMIT 1',
+                [date('Y-m-d H:i:s', strtotime('-' . self::VORMERKUNG_TAGE . ' days')), $email, $tel]);
+            if (!$v) { return 'keine'; }
+            $r = self::zuordnen($kundeId, (int) $v['partner_id'], (string) $v['quelle'], null, $v['kanal'] !== null ? (string) $v['kanal'] : null);
+            Db::run('UPDATE partner_vormerkungen SET eingeloest_am = NOW(), customer_id = ? WHERE id = ?', [$kundeId, (int) $v['id']]);
+            return $r;
+        } catch (Throwable $e) { return 'fehler'; }
+    }
+
+    /**
+     * Der Trichter für den Partnerbereich: Besuche → Anfragen (je Weg) →
+     * Kunden → Verkäufe → Provision, für die letzten $tage Tage.
+     * @return array{tage:int, besuche:int, wege:array<string,int>, anfragen:int, kunden:int, verkaeufe:int, provision:int}
+     */
+    public static function trichter(int $partnerId, int $tage = 30): array
+    {
+        $tage = in_array($tage, [7, 30, 90, 365], true) ? $tage : 30;
+        $von = date('Y-m-d', strtotime('-' . ($tage - 1) . ' days'));
+        $k = self::kennzahlen($partnerId, $von, date('Y-m-d'));
+        $wege = array_fill_keys(self::EREIGNISSE, 0);
+        foreach ((array) self::still(static fn() => Db::all('SELECT art, SUM(anzahl) AS n FROM partner_ereignisse WHERE partner_id = ? AND tag >= ? GROUP BY art', [$partnerId, $von]), []) as $z) {
+            if (isset($wege[$z['art']])) { $wege[$z['art']] = (int) $z['n']; }
+        }
+        return ['tage' => $tage, 'besuche' => $k['klicks'], 'wege' => $wege, 'anfragen' => array_sum($wege) - $wege['preis'],
+                'kunden' => $k['kunden'], 'verkaeufe' => $k['verkaeufe'], 'provision' => $k['provision']];
+    }
+
     /** Ein Kanalname aus der Adresse (/p/CODE/instagram) — klein, kurz, harmlos — oder null. */
     public static function kanal(string $roh): ?string
     {

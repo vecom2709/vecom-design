@@ -10243,7 +10243,7 @@ pruefe('Anlegen: ein Code, den der Link nie fände („ROSA“, 4 Zeichen), wird
 $abL = (string) file_get_contents($wurzel . '/../p.php');
 pruefe('Landeseite: „Empfohlen von …“ mit Einstieg statt nackter Startseite', str_contains($abL, "\$L('marke')") && str_contains($abL, 'action="/zugang.php'));
 pruefe('Landeseite: zeigt den Vornamen (oder die Firma), nie den vollen Namen', Partner::anzeigeName(Partner::laden($abP)) === 'Giulia');
-pruefe('Landeseite: der Sprachwechsel zählt keinen zweiten Klick', str_contains($abL, "if (!isset(\$_GET['n']))"));
+pruefe('Landeseite: der Sprachwechsel zählt keinen zweiten Klick', str_contains($abL, "\$zaehlen = !isset(\$_GET['n'])"));
 Partner::klick($abP, 'Instagram'); Partner::klick($abP, 'instagram'); Partner::klick($abP, '../böse');
 pruefe('Kanal: Klicks je Kanal, klein geschrieben, Unsinn wird nicht gezählt',
     (int) Db::wert("SELECT SUM(anzahl) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal = 'instagram'", [$abP], 0) === 2
@@ -12004,7 +12004,7 @@ $tlCk = (string) file_get_contents($wurzel . '/../check.php');
 $tlPa = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Landeseite: Besucher leiten sie weiter (WhatsApp, E-Mail, Kopieren, Teilen) über den Kanal-Link „weiter“',
     str_contains($tlLp, "PartnerWerbung::link(\$p, 'weiter')") && str_contains($tlLp, 'https://wa.me/?text=') && str_contains($tlLp, 'mailto:?subject=')
-    && str_contains($tlLp, 'navigator.share') && in_array('weiter', PartnerWerbung::WERKZEUGE, true));
+    && str_contains((string) file_get_contents($wurzel . '/../assets/js/partnerseite.js'), 'navigator.share') && in_array('weiter', PartnerWerbung::WERKZEUGE, true));
 pruefe('Schnellcheck-Bericht: weiterleitbar ohne Skript (nur Links, CSP bleibt)', str_contains($tlCk, 'https://wa.me/?text=') && str_contains($tlCk, "default-src 'none'") && !preg_match('~<script~i', $tlCk));
 pruefe('Dashboard: Link, eigene Seite und Berichte je mit WhatsApp, E-Mail/Kopieren und Teilen-Menü; Löschen fragt vorher',
     substr_count($tlPa . (string) file_get_contents($wurzel . '/views/partner_seite.php') . (string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'data-teilen-text=') >= 3
@@ -13074,6 +13074,126 @@ $anFehler = null;
 try { AkquiseFolge::vorlageSpeichern((int) $anV['id'], (string) $anV['betreff'], "{anrede}\n\nkurzer Testtext mit Anrede."); } catch (Throwable $e) { $anFehler = $e->getMessage(); }
 pruefe('{anrede} ist ein erlaubter Platzhalter beim Speichern', $anFehler === null, (string) $anFehler);
 Db::run('UPDATE akq_folge_vorlagen SET text = ?, status = ?, fassung = ?, freigegeben_von = NULL WHERE id = ?', [$anAltText, $anAltStatus, $anAltFass, (int) $anV['id']]);
+
+abschnitt('Empfehlungsseite: Ausbau (Wege, Zuordnung, Trichter, Vorschau)');
+/* 27.09.2026, Uwe: Ja zu 15 Vorschlägen für die Partner-Landingpage. */
+require_once $wurzel . '/src/PartnerRueckruf.php';
+require_once $wurzel . '/src/AkquiseCheck.php';
+$lsP = Partner::anlegen(['name' => 'Lara Landing', 'email' => 'lara@partner.example', 'status' => 'aktiv', 'code' => 'LARALS01', 'firma' => 'Studio Lara', 'sprache' => 'de']);
+$lsPa = Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]);
+pruefe('Echte Besucher: Vorschau-Programme sind keine Besucher, Browser schon',
+    Partner::istRoboter('WhatsApp/2.23.20.0') && Partner::istRoboter('facebookexternalhit/1.1') && Partner::istRoboter('TelegramBot (like TwitterBot)')
+    && Partner::istRoboter('') && !Partner::istRoboter('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1'));
+$lsUa = 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/128 Safari/537.36';
+pruefe('Echte Besucher: der Partner selbst und derselbe Browser im selben Besuch zählen nicht',
+    Partner::echterBesuch($lsPa, $lsUa, []) && !Partner::echterBesuch($lsPa, $lsUa, [Partner::KEKS_SELBST => 'LARALS01'])
+    && !Partner::echterBesuch($lsPa, $lsUa, [Partner::KEKS => 'LARALS01:instagram']) && Partner::echterBesuch($lsPa, $lsUa, [Partner::KEKS => 'ANDERER1']));
+Partner::ereignis($lsP, 'email'); Partner::ereignis($lsP, 'email'); Partner::ereignis($lsP, 'unsinn');
+pruefe('Ereignisse: gezählt je Tag, unbekannte Arten nicht', (int) Db::wert('SELECT SUM(anzahl) FROM partner_ereignisse WHERE partner_id = ?', [$lsP], 0) === 2);
+
+/* Rückruf: heute nur offene Zeitfenster */
+pruefe('Rückruf: abends kein „Heute“ mehr, heute nur noch offene Fenster',
+    !array_key_exists('2026-09-24', PartnerRueckruf::tage(strtotime('2026-09-24 19:45')))
+    && PartnerRueckruf::offeneFenster(strtotime('2026-09-24 14:40')) === ['nachmittag', 'abend']
+    && PartnerRueckruf::offeneFenster(strtotime('2026-09-24 08:00')) === ['vormittag', 'mittag', 'nachmittag', 'abend']);
+$lsJetzt = strtotime('2026-09-24 14:40');
+$lsRr = ['name' => 'Paola Prova', 'telefon' => '+39 333 777 8899', 'tag' => '2026-09-24', 'fenster' => 'vormittag', 'ok' => '1', 'website' => '', 'st' => PartnerRueckruf::stempel('LARALS01', $lsJetzt - 30)];
+pruefe('Rückruf: ein heute schon vergangenes Fenster wird abgewiesen', PartnerRueckruf::anlegen($lsPa, $lsRr, 'de', $lsJetzt) === 'rr_wann');
+WebPush::$probe = static fn(string $z, array $k, string $paket): int => 201;
+pruefe('Rückruf mit offenem Fenster angelegt', PartnerRueckruf::anlegen($lsPa, ['fenster' => 'abend'] + $lsRr, 'de', $lsJetzt) === 'ok');
+WebPush::$probe = null;
+pruefe('Rückruf: zählt für den Trichter und merkt die Nummer für den Partner vor',
+    (int) Db::wert("SELECT SUM(anzahl) FROM partner_ereignisse WHERE partner_id = ? AND art = 'rueckruf'", [$lsP], 0) === 1
+    && Db::wert("SELECT telefon FROM partner_vormerkungen WHERE partner_id = ? AND art = 'rueckruf' AND eingeloest_am IS NULL", [$lsP], null) === '337778899');
+$lsK = Events::kundeFinden(['name' => 'Paola Prova', 'email' => 'paola@prova-ls.example', 'phone' => '0039 333 7778899']);
+pruefe('Rückruf automatisch zugeordnet: entsteht der Kunde mit dieser Nummer, gehört er dem Partner (Quelle „telefon“)',
+    (int) Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$lsK], 0) === $lsP
+    && Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$lsK], '') === 'telefon'
+    && (int) Db::wert("SELECT customer_id FROM partner_vormerkungen WHERE partner_id = ? AND art = 'rueckruf'", [$lsP], 0) === $lsK);
+$lsK2 = Events::kundeFinden(['name' => 'Gino Gia', 'email' => 'gino@gia-ls.example', 'phone' => '+39 320 1112233']);
+pruefe('Gibt es den Kunden schon, wird sofort zugeordnet; ohne Nummer und Adresse passiert nichts',
+    Partner::vormerken($lsP, null, '3201112233', 'rueckruf', 'telefon') === 'zugeordnet' && Partner::vormerken($lsP, '', ' ', 'check') === 'leer');
+$lsAlt = Partner::vormerken($lsP, 'alt@vormerk-ls.example', null, 'check');
+Db::run("UPDATE partner_vormerkungen SET created_at = NOW() - INTERVAL 120 DAY WHERE email = 'alt@vormerk-ls.example'");
+$lsK3 = Events::kundeFinden(['name' => 'Alt Vormerk', 'email' => 'alt@vormerk-ls.example']);
+pruefe('Vormerkungen verfallen nach ' . Partner::VORMERKUNG_TAGE . ' Tagen', $lsAlt === 'vorgemerkt' && Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$lsK3], null) === null);
+
+/* Website-Check über die Partnerseite */
+$lsHoler = PartnerCheck::$holer; $lsAufl = PartnerCheck::$aufloeser;
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 800, 'url' => $url, 'ssl_tage' => null, 'fehler' => '',
+    'inhalt' => '<html><head><title>Forno</title></head><body><p>&copy; 2018</p></body></html>'];
+$_COOKIE[Partner::KEKS] = 'LARALS01:instagram';
+$lsC = AkquiseCheck::anlegen(['name' => 'Fabio Forno', 'firma' => 'Forno Lara', 'url' => 'forno-lara.example', 'email' => 'fabio@forno-lara.example',
+    'telefon' => '', 'land' => 'IT', 'sprache' => 'it', 'ausfuehrlich' => false, 'marketing' => false], '198.51.100.60');
+unset($_COOKIE[Partner::KEKS]);
+PartnerCheck::$holer = $lsHoler; PartnerCheck::$aufloeser = $lsAufl;
+$lsCZ = Db::one('SELECT * FROM akq_checks WHERE token = ?', [(string) ($lsC['token'] ?? '')]);
+pruefe('Website-Check über die Partnerseite: am Check steht der Partner, er zählt, die Adresse ist vorgemerkt, das Protokoll nennt ihn',
+    $lsC['ok'] && (int) $lsCZ['partner_id'] === $lsP
+    && (int) Db::wert("SELECT SUM(anzahl) FROM partner_ereignisse WHERE partner_id = ? AND art = 'check'", [$lsP], 0) === 1
+    && Db::wert("SELECT kanal FROM partner_vormerkungen WHERE email = 'fabio@forno-lara.example'", [], '') === 'instagram'
+    && str_contains((string) Db::wert("SELECT text FROM akq_protokoll WHERE firma_id = ? ORDER BY id DESC LIMIT 1", [(int) $lsCZ['firma_id']], ''), 'Empfehlungsseite von Lara Landing'));
+
+/* Gestaltung: Reihenfolge, Arbeiten, Knopftext */
+$lsG = PartnerSeite::gestaltung($lsPa);
+pruefe('Gestaltung ab Werk: Werksreihenfolge, drei Arbeiten, Knopf „Loslegen“, die drei Wege an',
+    $lsG['reihenfolge'] === PartnerSeite::REIHENFOLGE && $lsG['arbeiten'] === ['cavaleri', 'jonika', 'mensaena'] && $lsG['knopf'] === 'loslegen' && $lsG['bausteine']['wege']);
+PartnerSeite::speichern($lsP, ['bausteine' => ['wege' => '1', 'rueckruf' => '1', 'arbeiten' => '1'], 'pos' => ['rueckruf' => 1, 'wege' => 2, 'stimmen' => 7],
+    'arbeiten' => ['trendonix' => '1', 'cavaleri' => '1'], 'knopf' => 'preis']);
+$lsG = PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]));
+pruefe('Gestaltung gespeichert: Rückruf nach oben, eigene Arbeiten (auch Trendonix), eigener Knopftext',
+    array_slice($lsG['reihenfolge'], 0, 2) === ['rueckruf', 'wege'] && array_search('stimmen', $lsG['reihenfolge'], true) > array_search('faq', $lsG['reihenfolge'], true)
+    && count($lsG['reihenfolge']) === count(PartnerSeite::BAUSTEINE)
+    && $lsG['arbeiten'] === ['cavaleri', 'trendonix'] && $lsG['knopf'] === 'preis', json_encode($lsG['reihenfolge']));
+Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode(['reihenfolge' => ['<script>', 'faq', 'faq'], 'arbeiten' => ['../x', 'jonika', 'mensaena', 'cavaleri', 'trendonix'], 'knopf' => 'boese']), $lsP]);
+$lsG2 = PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]));
+pruefe('Gestaltung: Unbekanntes fällt weg, jeder Abschnitt genau einmal, höchstens drei Arbeiten',
+    $lsG2['reihenfolge'][0] === 'faq' && count($lsG2['reihenfolge']) === count(array_unique($lsG2['reihenfolge'])) && count($lsG2['reihenfolge']) === count(PartnerSeite::BAUSTEINE)
+    && $lsG2['arbeiten'] === ['jonika', 'mensaena', 'cavaleri'] && $lsG2['knopf'] === 'loslegen');
+pruefe('Die drei Wege führen in die Sprache der Seite; unbekannt führt nirgends hin',
+    PartnerSeite::wegZiel('check', 'de') === '/website-check.php?lang=de' && PartnerSeite::wegZiel('preis', 'en') === '/bedarf.php?lang=en'
+    && PartnerSeite::wegZiel('termin', 'it') === '/termin.php?lang=it' && PartnerSeite::wegZiel('//boese.example', 'it') === null
+    && in_array('check', PartnerSeite::wege(), true) && in_array('preis', PartnerSeite::wege(), true));
+
+/* Trichter */
+Partner::klick($lsP); Partner::klick($lsP); Partner::klick($lsP); Partner::klick($lsP);
+Partner::ereignis($lsP, 'preis'); Partner::ereignis($lsP, 'wa');
+$lsT = Partner::trichter($lsP, 7);
+pruefe('Trichter: Besuche, Anfragen je Weg (Preisrechner zählt nicht als Anfrage), Kunden',
+    $lsT['besuche'] === 4 && $lsT['wege']['email'] === 2 && $lsT['wege']['rueckruf'] === 1 && $lsT['wege']['check'] === 1 && $lsT['wege']['wa'] === 1
+    && $lsT['wege']['preis'] === 1 && $lsT['anfragen'] === 5 && $lsT['kunden'] >= 2 && Partner::trichter($lsP, 12345)['tage'] === 30, json_encode($lsT));
+
+/* Werbe-Einwilligung vom Formular der Seite */
+$lsPa = Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]);
+$lsMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0);
+pruefe('Werbe-Häkchen ohne Betriebsnamen: keine Bestätigungsmail', PartnerSeite::werbungAnfragen($lsPa, 'ohne@betrieb-ls.example', ' ', '', 'de') === 'betrieb'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0) === $lsMails);
+pruefe('Werbe-Häkchen: Betrieb in der Akquise (Quelle partnerseite:CODE), nur die Bestätigungsmail, noch KEINE Erlaubnis',
+    PartnerSeite::werbungAnfragen($lsPa, 'titolare@bar-ls.example', 'Bar Lara', 'bar-lara.example', 'it') === 'ok'
+    && ($lsWf = Db::one("SELECT * FROM akq_firmen WHERE quelle = 'partnerseite:LARALS01'")) !== null
+    && Db::wert("SELECT quelle FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt'", [(int) $lsWf['id']], '') === 'partner'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0) === $lsMails + 1
+    && trim((string) ($lsWf['einwilligung'] ?? '')) === '' && AkquiseGate::pruefen($lsWf, 'email')['status'] !== AkquiseGate::ERLAUBT);
+
+/* Vorschaubild */
+$lsOg = PartnerSeite::ogBild($lsPa, PartnerSeite::gestaltung($lsPa), 'de', 'Websites für Betriebe in Sizilien', 'Empfohlen von Studio Lara');
+$lsOgI = $lsOg !== null ? getimagesizefromstring($lsOg) : false;
+pruefe('Link-Vorschau: JPEG 1200×630 (auch ohne Foto und Titelbild)', $lsOgI !== false && $lsOgI[0] === 1200 && $lsOgI[1] === 630 && $lsOgI[2] === IMAGETYPE_JPEG);
+pruefe('Link-Vorschau: die Adresse ändert sich, wenn sich die Seite ändert', PartnerSeite::ogAdresse($lsPa, PartnerSeite::gestaltung($lsPa), 'de')
+    !== PartnerSeite::ogAdresse(['seite_am' => '2030-01-01 00:00:00'] + $lsPa, PartnerSeite::gestaltung($lsPa), 'de'));
+
+/* Die Seite selbst */
+$lsLp = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Landeseite: Vorschau-Tags, Sicherheits-Header, Skript nur aus eigener Datei, kein oninput mehr',
+    str_contains($lsLp, 'property="og:image"') && str_contains($lsLp, "script-src 'self'") && str_contains($lsLp, "frame-ancestors 'self'")
+    && !preg_match('~<script>~', $lsLp) && !str_contains($lsLp, 'oninput=') && is_file($wurzel . '/../assets/js/partnerseite.js'));
+pruefe('Landeseite: Datenschutz an beiden Formularen, Werbe-Häkchen freiwillig, Zählen des Formulars, mitlaufender Knopf, Sprache aus dem Browser',
+    substr_count($lsLp, '$datenschutz') >= 3 && str_contains($lsLp, 'name="werbung"') && !preg_match('~name="werbung"[^>]*required~', $lsLp)
+    && str_contains($lsLp, 'name="von_partner"') && str_contains($lsLp, 'id="lp_leiste"') && str_contains($lsLp, 'Sprache::ausAnfrage(Sprache::ausBrowser(), $p[\'sprache\'] ?? null)')
+    && str_contains((string) file_get_contents($wurzel . '/../zugang.php'), "Partner::ereignis((int) \$vp['id'], 'email')"));
+pruefe('Partnerbereich: eigener Keks gegen eigene Aufrufe, Trichter mit Zeitraum',
+    str_contains($tlPa = (string) file_get_contents($wurzel . '/../partner.php'), 'Partner::KEKS_SELBST') && str_contains($tlPa, 'Partner::trichter((int) $p[\'id\'], $zr)'));
 
 /* ============================================================================
    62. Der erste Besuch: das Land stellt die Sprache   (27.09.2026)

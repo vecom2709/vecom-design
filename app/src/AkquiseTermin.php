@@ -164,12 +164,22 @@ final class AkquiseTermin
             if (Db::doppelt($x, 'uq_akq_termin_slot')) { return ['ok' => false, 'grund' => 'belegt']; }
             throw $x;
         }
+        /* Über eine Partnerseite gekommen (27.09.2026)? Zählen und vormerken. */
+        require_once __DIR__ . '/AkquiseCheck.php';
+        $partner = AkquiseCheck::partnerAusBesuch();
+        if ($partner !== null) {
+            Db::update('akq_termine', $id, ['partner_id' => (int) $partner[0]['id']]);
+            Partner::ereignis((int) $partner[0]['id'], 'termin');
+            Partner::vormerken((int) $partner[0]['id'], $email, $telefon !== '' ? $telefon : null, 'termin', 'link', $partner[1]);
+        }
         $t = Db::one('SELECT * FROM akq_termine WHERE id = ?', [$id]) ?? [];
         self::mail($t, 'mail_betreff', 'mail_text', 'termin_bestaetigung');
-        if ($firmaId !== null) { Akquise::protokoll((int) $firmaId, 'termin', 'Termin gebucht: ' . date('d.m.Y H:i', $beginn) . ' (' . $t['art'] . ', ' . $thema . ')'); }
+        if ($firmaId !== null) { Akquise::protokoll((int) $firmaId, 'termin', 'Termin gebucht: ' . date('d.m.Y H:i', $beginn) . ' (' . $t['art'] . ', ' . $thema . ')'
+            . ($partner !== null ? ' · über die Empfehlungsseite von ' . $partner[0]['name'] : '')); }
         try {
             Events::melden('termin', 'Neuer Termin: ' . date('d.m. H:i', $beginn) . ' — ' . $name . ($t['firma'] ? ' (' . $t['firma'] . ')' : ''), 'gut',
-                ($t['art'] === 'video' ? 'Video' : 'Telefon') . ' · ' . strtoupper($sprache) . ' · ' . $email . ($telefon !== '' ? ' · ' . $telefon : ''), 'akquise/termine');
+                ($t['art'] === 'video' ? 'Video' : 'Telefon') . ' · ' . strtoupper($sprache) . ' · ' . $email . ($telefon !== '' ? ' · ' . $telefon : '')
+                . ($partner !== null ? ' · über Partner ' . $partner[0]['name'] . ' (' . $partner[0]['code'] . ')' : ''), 'akquise/termine');
         } catch (Throwable $x) { }
         return ['ok' => true, 'token' => $token];
     }

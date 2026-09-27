@@ -77,6 +77,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $r = Zugang::anfordern($email, $sprache, ['quelle' => Zugang::quelle((string) ($_POST['quelle'] ?? 'seite')), 'empfehl_code' => $code,
             'partner_code' => (string) ($_COOKIE['vecompartner'] ?? '')]);
         if (!$r['ok']) { $ergebnis = 'ungueltig'; }
+        /* Von einer Empfehlungsseite (27.09.2026): für den Trichter des
+           Partners zählen, und das freiwillige Werbe-Häkchen beantworten --
+           nur eine Bestätigungsmail, die Einwilligung entsteht erst mit dem
+           Klick darin (wie beim Website-Check). */
+        if ($r['ok'] && !empty($_POST['von_partner'])) {
+            try {
+                foreach (['Partner', 'PartnerSeite'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+                [$vp] = Partner::ausKeks();
+                if ($vp !== null) {
+                    Partner::ereignis((int) $vp['id'], 'email');
+                    if (!empty($_POST['werbung'])) {
+                        PartnerSeite::werbungAnfragen($vp, $email, (string) ($_POST['betrieb'] ?? ''), (string) ($_POST['webseite'] ?? ''), $sprache,
+                            (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+                    }
+                }
+            } catch (Throwable $e) { /* Zählen und Werbe-Häkchen sind Beiwerk des Zugangs */ }
+        }
         /* Ob die Mail wirklich rausging, steht in der Verwaltung (Mails,
            Meldungen). Hier NICHT: Ein anderer Satz bei einer Bestandsadresse
            oder bei einem Versandfehler verriete, welche Adressen es gibt. */

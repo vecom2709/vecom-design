@@ -51,11 +51,19 @@ final class PartnerSeite
         'transport' => 'erlebnis/branchen/lkw-rot.webp',
     ];
 
-    public const BAUSTEINE = ['arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
+    /* „wege“ (27.09.2026): Website prüfen · Preis in 2 Minuten · Gespräch buchen. */
+    public const BAUSTEINE = ['wege', 'arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
+    /** Reihenfolge ab Werk (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“). */
+    public const REIHENFOLGE = ['wege', 'stimmen', 'ablauf', 'arbeiten', 'faq', 'rueckruf', 'whatsapp'];
+    /** Arbeiten, aus denen der Partner wählt (Texte in Texte::PARTNER_SEITE['arbeiten']); höchstens drei. */
+    public const ARBEITEN = ['cavaleri', 'jonika', 'mensaena', 'trendonix'];
+    public const ARBEITEN_MAX = 3;
+    /** Knopftext des Anfrageformulars: fertige Varianten (Texte::PARTNER_SEITE['knoepfe']). */
+    public const KNOEPFE = ['loslegen', 'angebot', 'preis', 'beratung'];
     /* Kundenstimmen und Rückruf (27.09.2026) sind an, bis der Partner sie
        ausschaltet: Beide zeigen nur, was es gibt (freigegebene Stimmen,
        Vecoms Rückruf) -- und die meisten Partner öffnen den Gestalter nie. */
-    public const STANDARD_AN = ['stimmen', 'rueckruf'];
+    public const STANDARD_AN = ['stimmen', 'rueckruf', 'wege'];
     public const TEXT_MAX = ['titel' => 80, 'lead' => 320, 'p1' => 100, 'p2' => 100, 'p3' => 100];
     public const BILD_MAX_BYTE = 10 * 1024 * 1024;
 
@@ -83,7 +91,14 @@ final class PartnerSeite
         }
         $wa = preg_match('~^\+[1-9]\d{7,14}$~', (string) ($roh['whatsapp'] ?? '')) ? (string) $roh['whatsapp'] : '';
         if ($wa === '') { $bausteine['whatsapp'] = false; }
-        return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa];
+        /* Reihenfolge: gespeicherte zuerst (nur bekannte, jeder einmal), was fehlt, in der Werksreihenfolge dahinter. */
+        $reihe = array_values(array_unique(array_filter(array_map('strval', (array) ($roh['reihenfolge'] ?? [])), static fn($b) => in_array($b, self::BAUSTEINE, true))));
+        foreach (self::REIHENFOLGE as $b) { if (!in_array($b, $reihe, true)) { $reihe[] = $b; } }
+        $arbeiten = array_slice(array_values(array_unique(array_filter(array_map('strval', (array) ($roh['arbeiten'] ?? [])), static fn($a) => in_array($a, self::ARBEITEN, true)))), 0, self::ARBEITEN_MAX);
+        if ($arbeiten === []) { $arbeiten = array_slice(self::ARBEITEN, 0, self::ARBEITEN_MAX); }
+        $knopf = in_array($roh['knopf'] ?? '', self::KNOEPFE, true) ? (string) $roh['knopf'] : 'loslegen';
+        return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
+                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf];
     }
 
     /** Gibt es überhaupt eine eigene Gestaltung? */
@@ -116,10 +131,17 @@ final class PartnerSeite
         foreach (self::BAUSTEINE as $b) { $bausteine[$b] = !empty($d['bausteine'][$b]); }
         $bild = (string) ($d['bild'] ?? '');
         if ($bild !== 'eigen' && !isset(self::BILDER[$bild])) { $bild = ''; }
+        /* Reihenfolge aus den Positionsfeldern (1 = oben); gleiche Zahl: Werksreihenfolge entscheidet. */
+        $pos = [];
+        foreach (self::REIHENFOLGE as $i => $b) { $pos[$b] = [max(1, min(count(self::BAUSTEINE), (int) ($d['pos'][$b] ?? ($i + 1)))), $i]; }
+        uasort($pos, static fn($x, $y) => $x <=> $y);
+        $arbeiten = array_slice(array_values(array_filter(self::ARBEITEN, static fn($a) => !empty($d['arbeiten'][$a]))), 0, self::ARBEITEN_MAX);
         $neu = [
             'vorlage' => isset(self::VORLAGEN[$d['vorlage'] ?? '']) ? (string) $d['vorlage'] : $alt['vorlage'],
             'akzent' => isset(self::AKZENTE[$d['akzent'] ?? '']) ? (string) $d['akzent'] : $alt['akzent'],
             'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
+            'reihenfolge' => array_keys($pos), 'arbeiten' => $arbeiten ?: $alt['arbeiten'],
+            'knopf' => in_array($d['knopf'] ?? '', self::KNOEPFE, true) ? (string) $d['knopf'] : $alt['knopf'],
         ];
         Db::run('UPDATE partner SET seite_json = ?, seite_am = NOW() WHERE id = ?', [json_encode($neu, JSON_UNESCAPED_UNICODE), $partnerId]);
         return 'ok';
@@ -216,6 +238,150 @@ final class PartnerSeite
         } catch (Throwable $e) { return []; }
         return array_map(static fn(array $z): array => ['name' => (string) $z['name'], 'firma' => (string) ($z['firma'] ?? ''), 'ort' => (string) ($z['ort'] ?? ''),
             'text' => (string) $z['text'], 'sterne' => $z['sterne'] === null ? null : (int) $z['sterne']], $zeilen);
+    }
+
+    /**
+     * Die drei Wege unter dem Formular (27.09.2026): Website prüfen, Preis in
+     * zwei Minuten, Gespräch buchen. Jeder Weg läuft über /p.php?…&weg=…,
+     * damit er für den Partner zählt; der Besuchs-Keks reist mit. Den
+     * Termin gibt es nur, wenn der Kalender freie Zeiten hat -- ein Knopf zu
+     * „keine Zeiten frei“ wäre schlimmer als keiner.
+     * @return list<string> check | preis | termin
+     */
+    public static function wege(): array
+    {
+        $w = ['check', 'preis'];
+        try {
+            foreach (['Akquise', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }
+            if (AkquiseTermin::freie() !== []) { $w[] = 'termin'; }
+        } catch (Throwable $e) { }
+        return $w;
+    }
+
+    /** Ziel eines Weges in der Sprache der Seite. */
+    public static function wegZiel(string $weg, string $sprache): ?string
+    {
+        return match ($weg) {
+            'check' => '/website-check.php?lang=' . $sprache,
+            'preis' => '/bedarf.php?lang=' . $sprache,
+            'termin' => '/termin.php?lang=' . $sprache,
+            default => null,
+        };
+    }
+
+    /**
+     * Das freiwillige Werbe-Häkchen am Formular der Empfehlungsseite
+     * (27.09.2026, Uwe: Ja). Wie beim Website-Check: Der Betrieb kommt in
+     * die Akquise (Quelle „partnerseite:CODE“), es geht NUR die
+     * Bestätigungsmail raus; erlaubt ist erst nach dem Klick darin -- dann
+     * laufen die Folge-Mails wie bei jeder Einwilligung.
+     * @return string ok | betrieb | email | zuviel | gesperrt | fehler
+     */
+    public static function werbungAnfragen(array $p, string $email, string $betrieb, string $webseite, string $sprache, string $ip = ''): string
+    {
+        try {
+            foreach (['Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseEinwilligung', 'PartnerCheck'] as $k) { require_once __DIR__ . "/$k.php"; }
+            $betrieb = trim(mb_substr((string) preg_replace('/\s+/u', ' ', strip_tags($betrieb)), 0, 190));
+            if (mb_strlen($betrieb) < 2) {
+                Events::melden('akquise_check', 'Werbe-Häkchen auf der Seite von ' . $p['name'] . ' ohne Betriebsnamen — keine Bestätigungsmail', 'info', $email, 'akquise');
+                return 'betrieb';
+            }
+            $url = trim($webseite) !== '' ? (PartnerCheck::adresse($webseite) ?? '') : '';
+            $m = Akquise::firmaMelden(['name' => $betrieb, 'land' => $sprache === 'de' ? 'DE' : 'IT', 'url' => $url,
+                                       'quelle' => mb_substr('partnerseite:' . $p['code'], 0, 80)]);
+            $fid = (int) $m['id'];
+            if (empty(Db::wert('SELECT sprache FROM akq_firmen WHERE id = ?', [$fid], null))) { Db::update('akq_firmen', $fid, ['sprache' => $sprache]); }
+            $l = AkquiseEinwilligung::link($fid, 'partner');
+            $r = AkquiseEinwilligung::anfragen((string) $l['link_token'], $email, true, $sprache, $ip);
+            Akquise::protokoll($fid, 'anfrage', 'Über die Empfehlungsseite von ' . $p['name'] . ' (' . $p['code'] . '): Werbe-Einwilligung angefragt (' . $r . ')');
+            return $r;
+        } catch (Throwable $e) { return 'fehler'; }
+    }
+
+    /** Adresse des Vorschaubilds für geteilte Links (mit Version, damit WhatsApp & Co. ein neues holen). */
+    public static function ogAdresse(array $p, array $g, string $sprache): string
+    {
+        $v = substr(md5(json_encode([$p['seite_am'] ?? '', $p['foto_am'] ?? '', $p['name'], $p['firma'] ?? '', $g['bild'], $g['vorlage'], $g['akzent'], $g['texte'][$sprache]['titel'] ?? ''])), 0, 8);
+        return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/p.php?og=' . rawurlencode((string) $p['code']) . '&lang=' . $sprache . '&v=' . $v;
+    }
+
+    /**
+     * Das Vorschaubild (1200×630 JPEG) für WhatsApp, Facebook & Co.
+     * (27.09.2026, Uwe: Ja zu „Link-Vorschau beim Teilen“). Titelbild des
+     * Partners (sonst die Vorlage als Fläche), abgedunkelt; darauf Foto,
+     * „Empfohlen von …“, die Überschrift und die Vecom-Marke. JPEG, weil
+     * nicht jede App WebP-Vorschauen zeigt. Null, wenn GD fehlt.
+     */
+    public static function ogBild(array $p, array $g, string $sprache, string $titel, string $marke): ?string
+    {
+        if (!function_exists('imagecreatetruecolor') || !function_exists('imagettftext')) { return null; }
+        $schrift = dirname(__DIR__) . '/schrift/archivo-semibold.ttf';
+        if (!is_file($schrift)) { return null; }
+        $B = 1200; $H = 630;
+        $bild = imagecreatetruecolor($B, $H);
+        $v = self::VORLAGEN[$g['vorlage']];
+        $hex = static function ($im, string $h, int $alpha = 0) {
+            $h = ltrim($h, '#');
+            return imagecolorallocatealpha($im, hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2)), $alpha);
+        };
+        imagefill($bild, 0, 0, $hex($bild, '#0f0e0c'));
+        /* Titelbild einpassen (Cover) */
+        $quelle = null;
+        if ($g['bild'] === 'eigen') {
+            $roh = Db::wert('SELECT seite_bild FROM partner WHERE id = ?', [(int) $p['id']], null);
+            if (is_string($roh) && $roh !== '') { $quelle = @imagecreatefromstring($roh) ?: null; }
+        } elseif (isset(self::BILDER[$g['bild']])) {
+            $datei = dirname(__DIR__, 2) . '/assets/img/' . self::BILDER[$g['bild']];
+            if (is_file($datei)) { $quelle = @imagecreatefromwebp($datei) ?: null; }
+        }
+        if ($quelle) {
+            $sb = imagesx($quelle); $sh = imagesy($quelle);
+            $f = max($B / $sb, $H / $sh); $cw = (int) round($B / $f); $ch = (int) round($H / $f);
+            imagecopyresampled($bild, $quelle, 0, 0, intdiv($sb - $cw, 2), intdiv($sh - $ch, 2), $B, $H, $cw, $ch);
+            imagedestroy($quelle);
+        }
+        /* Abdunkeln von links -- Text muss auf jedem Bild lesbar sein. */
+        for ($x = 0; $x < $B; $x += 4) {
+            $a = (int) round(20 + 90 * ($x / $B));   // 0 = deckend … 127 = durchsichtig
+            imagefilledrectangle($bild, $x, 0, $x + 3, $H, imagecolorallocatealpha($bild, 10, 9, 8, min(127, $a)));
+        }
+        $akzent = self::AKZENTE[$g['akzent']]['dunkel'];
+        $weiss = $hex($bild, '#f7f3ea'); $gold = $hex($bild, $akzent); $grau = $hex($bild, '#c9c1b3');
+        $x0 = 72;
+        /* Foto rund */
+        $y = 86;
+        $foto = Db::wert('SELECT foto FROM partner WHERE id = ?', [(int) $p['id']], null);
+        if (is_string($foto) && $foto !== '' && ($fi = @imagecreatefromstring($foto))) {
+            $d = 132;
+            $rund = imagecreatetruecolor($d, $d);
+            imagealphablending($rund, false); imagesavealpha($rund, true);
+            imagefill($rund, 0, 0, imagecolorallocatealpha($rund, 0, 0, 0, 127));
+            imagecopyresampled($rund, $fi, 0, 0, 0, 0, $d, $d, imagesx($fi), imagesy($fi));
+            for ($i = 0; $i < $d; $i++) { for ($j = 0; $j < $d; $j++) {
+                if ((($i - $d / 2 + .5) ** 2 + ($j - $d / 2 + .5) ** 2) > ($d / 2) ** 2) { imagesetpixel($rund, $i, $j, imagecolorallocatealpha($rund, 0, 0, 0, 127)); }
+            } }
+            imagefilledellipse($bild, $x0 + $d / 2, $y + $d / 2, $d + 8, $d + 8, $gold);
+            imagecopy($bild, $rund, $x0, $y, 0, 0, $d, $d);
+            imagedestroy($fi); imagedestroy($rund);
+            $y += $d + 34;
+        }
+        /* „Empfohlen von …“ (ohne Stern: die Schrift hat ihn nicht) */
+        imagettftext($bild, 24, 0, $x0, $y + 26, $gold, $schrift, $marke);
+        $y += 64;
+        /* Überschrift, umbrochen auf höchstens drei Zeilen */
+        $zeilen = []; $zeile = '';
+        foreach (preg_split('/\s+/u', trim($titel)) ?: [] as $wort) {
+            $probe = trim($zeile . ' ' . $wort);
+            $bb = imagettfbbox(52, 0, $schrift, $probe);
+            if ($bb[2] - $bb[0] > $B - $x0 - 120 && $zeile !== '') { $zeilen[] = $zeile; $zeile = $wort; } else { $zeile = $probe; }
+        }
+        if ($zeile !== '') { $zeilen[] = $zeile; }
+        foreach (array_slice($zeilen, 0, 3) as $z) { imagettftext($bild, 52, 0, $x0, $y + 52, $weiss, $schrift, $z); $y += 68; }
+        /* Marke unten */
+        imagettftext($bild, 22, 0, $x0, $H - 58, $grau, $schrift, 'VECOM DESIGN · vecom-design.it');
+        ob_start(); imagejpeg($bild, null, 84); $jpg = (string) ob_get_clean();
+        imagedestroy($bild);
+        return $jpg !== '' ? $jpg : null;
     }
 
     /** Arbeiten mit echtem Vorher-Bild (assets/img/arbeiten/ID/vorher.webp). Ohne echtes Bild kein Vergleich -- ein nachgestelltes Vorher wäre erfunden. */

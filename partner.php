@@ -48,6 +48,13 @@ $p = $token !== '' ? Partner::ausToken($token) : null;
    Nur ein Klick auf die Sprachwahl unten ändert sie — und dann für immer,
    auch für seine Mails. */
 if ($p) {
+    /* Die eigenen Aufrufe der Empfehlungsseite zählen nicht als Besuch
+       (27.09.2026, Uwe: Ja zu „Echte Besucher zählen“): Ein Keks in dem
+       Browser, in dem der Partner seinen Bereich öffnet. Nur der Code. */
+    if (($_COOKIE[Partner::KEKS_SELBST] ?? '') !== (string) $p['code']) {
+        @setcookie(Partner::KEKS_SELBST, (string) $p['code'], ['expires' => time() + 31536000, 'path' => '/',
+            'secure' => ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off', 'httponly' => true, 'samesite' => 'Lax']);
+    }
     $sprache = Sprache::gewaehlt() ? Sprache::ausAnfrage() : Sprache::waehlen((string) $p['sprache']);
     if (Sprache::gewaehlt() && $sprache !== (string) $p['sprache']) {
         Db::run('UPDATE partner SET sprache = ? WHERE id = ?', [$sprache, (int) $p['id']]);
@@ -480,6 +487,17 @@ if ($p && isset($_GET['karte'])) {
   .ws-v{font-size:11px;fill:#f1d38b;font-weight:700}
   .ws-d{font-size:10px;fill:var(--leise)}
   .ws-legende{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--leise);margin-top:4px}
+  .tr-zeit{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
+  .tr-zeit a{font-size:13px;padding:5px 11px;border:1px solid var(--linie2);border-radius:999px;color:var(--dim);text-decoration:none}
+  .tr-zeit a[aria-current]{border-color:var(--cyan);color:var(--cyan)}
+  .tr{display:grid;gap:8px}
+  .tr-z{display:grid;grid-template-columns:96px 1fr auto;gap:10px;align-items:center;font-size:14px}
+  .tr-z span{color:var(--dim)}
+  .tr-z i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#b98a31,#f1d38b);min-width:0}
+  .tr-z b{min-width:44px;text-align:right}
+  .tr-wege{list-style:none;padding:0;margin:10px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 16px}
+  .tr-wege li{display:flex;justify-content:space-between;font-size:13.5px;color:var(--dim);border-bottom:1px solid var(--linie);padding:4px 0}
+  .tr-wege b{color:var(--text)}
   .ws-legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
   /* Erfolge */
   .erfolg{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;margin-top:10px}
@@ -672,6 +690,27 @@ if ($p && isset($_GET['karte'])) {
           <?php foreach (array_reverse($wo) as $w): ?><tr><td><?= $h(Fmt::datum($w['montag'])) ?></td><td class="r"><?= $w['besuche'] ?></td><td class="r"><?= $w['kunden'] ?></td><td class="r"><?= $w['verkaeufe'] ?></td></tr><?php endforeach; ?>
           </tbody></table></details>
       <?php endif; ?>
+    </div>
+    <?php /* Trichter (27.09.2026, Uwe: Ja): was auf der Seite passiert, echte Besucher, mit Zeitraum. */
+      $zr = in_array((int) ($_GET['zr'] ?? 30), [7, 30, 90], true) ? (int) ($_GET['zr'] ?? 30) : 30;
+      $tr = Partner::trichter((int) $p['id'], $zr); $TP = Texte::PARTNER_SEITE; $TW = static fn(array $t): string => Texte::h($t, $sprache);
+      $trMax = max(1, $tr['besuche'], $tr['anfragen']); ?>
+    <div class="ws" id="trichter">
+      <h2 style="margin-bottom:4px"><?= $h($TW($TP['t_titel'])) ?></h2>
+      <p class="klein" style="margin-top:0"><?= $h($TW($TP['t_text'])) ?></p>
+      <div class="tr-zeit" role="group">
+        <?php foreach ([7, 30, 90] as $n): ?><a href="<?= $h($selbst(['zr' => $n]) . '#trichter') ?>"<?= $n === $zr ? ' aria-current="true"' : '' ?>><?= $h(strtr($TW($TP['t_zeit']), ['{n}' => (string) $n])) ?></a><?php endforeach; ?>
+      </div>
+      <div class="tr">
+        <?php foreach ([['t_besuche', $tr['besuche']], ['t_anfragen', $tr['anfragen']], ['t_kunden', $tr['kunden']], ['t_verkaeufe', $tr['verkaeufe']]] as [$tk, $tn]): ?>
+          <div class="tr-z"><span><?= $h($TW($TP[$tk])) ?></span><i style="width:<?= max(2, (int) round(100 * $tn / $trMax)) ?>%"></i><b><?= (int) $tn ?></b></div>
+        <?php endforeach; ?>
+        <div class="tr-z"><span><?= $h($TW($TP['t_provision'])) ?></span><i style="width:0"></i><b><?= $h(Fmt::geld((int) $tr['provision'])) ?></b></div>
+      </div>
+      <?php if ($tr['besuche'] > 0): ?><p class="klein"><?= $h(strtr($TW($TP['t_quote']), ['{p}' => (string) round(100 * $tr['anfragen'] / $tr['besuche'])])) ?></p><?php endif; ?>
+      <ul class="tr-wege">
+        <?php foreach ($tr['wege'] as $wk => $wn): ?><li><span><?= $h($TW($TP['t_wege'][$wk])) ?></span><b><?= (int) $wn ?></b></li><?php endforeach; ?>
+      </ul>
     </div>
     <?php $stand = Partner::stufeStand($p); if ($stand['stufe'] !== null): ?>
       <?php $MKs = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache); ?>

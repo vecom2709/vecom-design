@@ -10,8 +10,8 @@ declare(strict_types=1);
  * mit art = 'rueckruf'). Keine zweite Liste, keine zweite Wahrheit.
  *
  * DER PARTNER: steht mit Name und Code im Anliegen, damit Uwe beim Anruf
- * weiß, wer empfohlen hat, und die Zuordnung setzen kann, sobald daraus ein
- * Kunde wird. Der Partner selbst erfährt nur, DASS jemand über seine Seite
+ * weiß, wer empfohlen hat. Zugeordnet wird seit 27.09.2026 automatisch über
+ * die Nummer (Partner::vormerken), sobald daraus ein Kunde wird. Der Partner selbst erfährt nur, DASS jemand über seine Seite
  * zurückgerufen werden will -- nie wer.
  *
  * GEGEN MISSBRAUCH: ein verstecktes Feld, das nur Maschinen füllen; ein
@@ -24,20 +24,35 @@ final class PartnerRueckruf
 {
     public const JE_TAG = 10;
     public const FENSTER = ['vormittag' => '9–12', 'mittag' => '12–15', 'nachmittag' => '15–18', 'abend' => '18–20'];
+    /** Bis wann das Fenster geht (volle Stunde). Heute zählt ein Fenster nur, wenn noch mindestens 30 Minuten bleiben. */
+    public const FENSTER_ENDE = ['vormittag' => 12, 'mittag' => 15, 'nachmittag' => 18, 'abend' => 20];
     public const MIN_SEKUNDEN = 3;
     public const MAX_SEKUNDEN = 7200;
 
-    /** Die drei wählbaren Tage ab heute, ohne Sonntag. @return array<string,string> Datum → Wochentag-Schlüssel */
+    /**
+     * Die drei wählbaren Tage ab heute, ohne Sonntag. „Heute“ nur, solange
+     * noch ein Fenster offen ist (27.09.2026: abends waren heutige, längst
+     * vergangene Zeiten wählbar). @return array<string,string> Datum → Wochentag-Schlüssel
+     */
     public static function tage(?int $jetzt = null): array
     {
         $jetzt ??= time();
         $aus = [];
-        for ($i = 0; count($aus) < 3 && $i < 5; $i++) {
+        for ($i = 0; count($aus) < 3 && $i < 6; $i++) {
             $t = strtotime('+' . $i . ' days', $jetzt);
             if ((int) date('N', $t) === 7) { continue; }
+            if ($i === 0 && self::offeneFenster($jetzt) === []) { continue; }
             $aus[date('Y-m-d', $t)] = $i === 0 ? 'heute' : ($i === 1 ? 'morgen' : 'tag' . date('N', $t));
         }
         return $aus;
+    }
+
+    /** Die heute noch offenen Fenster (Schlüssel). @return list<string> */
+    public static function offeneFenster(?int $jetzt = null): array
+    {
+        $jetzt ??= time();
+        $tag = strtotime(date('Y-m-d', $jetzt));
+        return array_values(array_filter(array_keys(self::FENSTER), static fn(string $f): bool => $tag + self::FENSTER_ENDE[$f] * 3600 - 1800 > $jetzt));
     }
 
     /** Signierter Zeitstempel fürs Formular. */
@@ -67,6 +82,7 @@ final class PartnerRueckruf
         $tage = self::tage($jetzt);
         $tag = (string) ($d['tag'] ?? ''); $fenster = (string) ($d['fenster'] ?? '');
         if (!isset($tage[$tag]) || !isset(self::FENSTER[$fenster])) { return 'rr_wann'; }
+        if ($tag === date('Y-m-d', $jetzt) && !in_array($fenster, self::offeneFenster($jetzt), true)) { return 'rr_wann'; }
         if (empty($d['ok'])) { return 'rr_ok'; }
         if (!PartnerRecherche::zaehlen((int) $p['id'], 'rueckruf', self::JE_TAG)) { return 'rr_genug'; }
 
@@ -76,6 +92,11 @@ final class PartnerRueckruf
             'art' => 'rueckruf', 'name' => $name, 'nummer' => $tel, 'erreichbar' => $erreichbar, 'anliegen' => $anliegen,
             'quelle' => 'partnerseite', 'partner_id' => (int) $p['id'], 'partner_code' => (string) $p['code'], 'sprache' => $sprache,
         ]);
+        /* Automatisch zuordnen (27.09.2026, Uwe: Ja): Gibt es den Kunden mit
+           dieser Nummer schon, jetzt; sonst, sobald er entsteht. Und zählen
+           für den Trichter des Partners. */
+        Partner::vormerken((int) $p['id'], null, $tel, 'rueckruf', 'telefon');
+        Partner::ereignis((int) $p['id'], 'rueckruf');
         Events::melden('telefon_rueckruf', 'Rückrufwunsch: ' . $name . ' (über ' . $p['name'] . ')', 'warnung',
             'Nummer ' . $tel . ' · erreichbar ' . $erreichbar . ' · Sprache ' . strtoupper($sprache) . ' · empfohlen von ' . $p['name'] . ' (' . $p['code'] . ')', '/heute');
         $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';

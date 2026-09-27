@@ -30,6 +30,10 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   .gs-sprachen input,.gs-sprachen textarea{width:100%;font-size:15px;padding:10px 12px;box-sizing:border-box}
   .gs-haken{display:flex;gap:10px;align-items:center;font-size:14.5px;color:var(--text);margin:6px 0}
   .gs-haken input{width:auto;margin:0}
+  .gs-zeile{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--linie);padding:2px 0}
+  .gs-zeile select{width:auto;font-size:14px;padding:6px 10px}
+  .gs-marke{font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--linie2);color:var(--leise);margin-left:6px}
+  .gs-marke.an{border-color:var(--cyan);color:var(--cyan)}
   .gs-vorschau{margin-top:16px;border:1px solid var(--linie);border-radius:16px;overflow:hidden;background:var(--flaeche2);height:560px;position:relative}
   .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
   @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}
@@ -75,9 +79,10 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
     <input id="gs_bild" type="file" name="titelbild" accept="image/jpeg,image/png,image/webp">
 
     <p class="gs-h"><?= $h($W($PS['g_texte'])) ?></p>
+    <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['g_sprache_hinweis'])) ?></p>
     <div class="gs-sprachen">
-      <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
-        <details <?= $l === $sprache ? 'open' : '' ?>><summary><?= $h($wie) ?></summary>
+      <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): $eigenT = !empty($gs['texte'][$l]); ?>
+        <details <?= $l === $sprache ? 'open' : '' ?>><summary><?= $h($wie) ?> <span class="gs-marke<?= $eigenT ? ' an' : '' ?>"><?= $h($W($PS[$eigenT ? 'g_eigen' : 'g_std'])) ?></span></summary>
           <?php foreach (PartnerSeite::TEXT_MAX as $tk => $max):
             $std = strtr(Texte::h(Texte::PARTNER_LANDE[$tk], $l), ['{name}' => Partner::anzeigeName($p)]);
             $wort = $tk === 'titel' ? $W($PS['g_t_titel']) : ($tk === 'lead' ? $W($PS['g_t_lead']) : strtr($W($PS['g_t_p']), ['{n}' => substr($tk, 1)])); ?>
@@ -92,9 +97,25 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       <?php endforeach; ?>
     </div>
 
-    <p class="gs-h"><?= $h($W($PS['g_bausteine'])) ?></p>
-    <?php foreach (PartnerSeite::BAUSTEINE as $bs): ?>
-      <label class="gs-haken"><input type="checkbox" name="bausteine[<?= $bs ?>]" value="1" <?= $gs['bausteine'][$bs] ? 'checked' : '' ?>> <?= $h($W($PS['g_b_' . $bs])) ?></label>
+    <p class="gs-h"><?= $h($W($PS['g_knopf'])) ?></p>
+    <div class="gs-knoepfe">
+      <?php foreach (PartnerSeite::KNOEPFE as $kk): ?>
+        <label class="gs-haken"><input type="radio" name="knopf" value="<?= $h($kk) ?>" <?= $gs['knopf'] === $kk ? 'checked' : '' ?>> <?= $h($W($PS['knoepfe'][$kk])) ?></label>
+      <?php endforeach; ?>
+    </div>
+
+    <?php /* An/aus und Reihenfolge (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“) -- ohne Ziehen, mit Positionsnummer. */ ?>
+    <p class="gs-h"><?= $h($W($PS['g_reihenfolge'])) ?></p>
+    <?php $nB = count(PartnerSeite::BAUSTEINE); foreach ($gs['reihenfolge'] as $i => $bs): ?>
+      <div class="gs-zeile">
+        <label class="gs-haken"><input type="checkbox" name="bausteine[<?= $bs ?>]" value="1" <?= $gs['bausteine'][$bs] ? 'checked' : '' ?>> <?= $h($W($PS['g_b_' . $bs])) ?></label>
+        <select name="pos[<?= $bs ?>]" aria-label="<?= $h($W($PS['g_reihenfolge']) . ' — ' . $W($PS['g_b_' . $bs])) ?>"><?php for ($n = 1; $n <= $nB; $n++): ?><option value="<?= $n ?>"<?= $n === $i + 1 ? ' selected' : '' ?>><?= $n ?></option><?php endfor; ?></select>
+      </div>
+    <?php endforeach; ?>
+
+    <p class="gs-h"><?= $h($W($PS['g_arbeiten'])) ?></p>
+    <?php foreach (PartnerSeite::ARBEITEN as $ak): $ar = $PS['arbeiten'][$ak]; ?>
+      <label class="gs-haken"><input type="checkbox" name="arbeiten[<?= $h($ak) ?>]" value="1" <?= in_array($ak, $gs['arbeiten'], true) ? 'checked' : '' ?>> <span><b><?= $h($ar['name']) ?></b> <span style="color:var(--leise)">· <?= $h(Texte::h($ar, $sprache)) ?></span></span></label>
     <?php endforeach; ?>
     <label for="gs_wa"><?= $h($W($PS['g_wa'])) ?></label>
     <input id="gs_wa" type="text" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20" value="<?= $h($gs['whatsapp']) ?>" placeholder="+39 …">
