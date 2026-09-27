@@ -179,6 +179,25 @@ final class Imap
     }
 
     /**
+     * UIDs der Nachrichten seit einem Tag (IMAP SINCE, nur Datum) -- für den
+     * ersten Lauf eines Postfachs, das schon Tausende Mails enthält (27.09.2026).
+     * @return list<int>
+     */
+    public function uidsSeit(int $zeitpunkt): array
+    {
+        $r = $this->befehl('UID SEARCH SINCE ' . date('j-M-Y', $zeitpunkt));
+        if (!$r['ok']) { throw new RuntimeException('Suche fehlgeschlagen: ' . $r['schluss']); }
+        $aus = [];
+        foreach ($r['antworten'] as $a) {
+            if (str_starts_with($a['zeile'], '* SEARCH')) {
+                foreach (preg_split('~\s+~', trim(substr($a['zeile'], 8))) ?: [] as $u) { if ($u !== '') { $aus[] = (int) $u; } }
+            }
+        }
+        sort($aus);
+        return $aus;
+    }
+
+    /**
      * Eine Nachricht holen -- mit PEEK, damit sie beim alten Anbieter ungelesen bleibt.
      * @return array{flags:list<string>, datum:string, inhalt:string}|null
      */

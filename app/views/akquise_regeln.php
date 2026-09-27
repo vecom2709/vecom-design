@@ -104,6 +104,34 @@ $klasse = static fn(string $s): string => ['CONTACT_ALLOWED' => 'gut', 'REVIEW_R
   </div>
 </div>
 
+<?php require_once dirname(__DIR__) . '/src/AkquisePostfach.php'; $pfZ = AkquisePostfach::zugang(); $pfDa = AkquisePostfach::bereit();
+      $pfStand = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_postfach_stand'", [], ''), true) ?: [];
+      $pfFehler = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_postfach_fehler'", [], '');
+      $pfZahl = (int) Db::wert("SELECT COUNT(*) FROM akq_antworten WHERE nachricht_id IS NOT NULL AND eingang_am >= DATE_SUB(NOW(), INTERVAL 30 DAY)", [], 0); ?>
+<div class="block" id="postfach">
+  <h2>Antworten automatisch (Postfach)</h2>
+  <p class="akq-klein" style="margin-bottom:10px">Der Lauf liest alle 10 Minuten neue Mails im Postfach, in dem die Antworten auf Akquise-Mails ankommen, und ordnet sie dem angeschriebenen Betrieb zu
+    (Absender, Domain oder Unzustellbar-Meldung). „Kein Interesse“ und „nicht mehr kontaktieren“ sperren sofort, Interesse meldet sich bei dir. Nichts wird beantwortet,
+    nichts als gelesen markiert, verschoben oder gelöscht; fremde Mails werden nicht gespeichert. Beim ersten Lauf: die letzten <?= AkquisePostfach::ERSTER_LAUF_TAGE ?> Tage.</p>
+  <p class="akq-klein" style="margin-bottom:10px"><?= $pfDa ? '✓ Zugang hinterlegt (' . Fmt::h($pfZ['nutzer']) . ' @ ' . Fmt::h($pfZ['host']) . ', Passwort verschlüsselt)' : 'Noch kein Zugang.' ?>
+    <?= !empty($pfStand['am']) ? ' · zuletzt gelesen ' . Fmt::h(Fmt::datum((string) $pfStand['am'])) . ' ' . Fmt::h(substr((string) $pfStand['am'], 11, 5)) : '' ?>
+    <?= $pfZahl ? ' · ' . $pfZahl . ' Antworten in 30 Tagen automatisch eingetragen' : '' ?></p>
+  <?php if ($pfFehler !== ''): ?><p class="akq-klein" style="color:var(--rot,#ef6b5b);margin-bottom:10px">Letzter Fehler: <?= Fmt::h($pfFehler) ?></p><?php endif; ?>
+  <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:end">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_postfach_speichern">
+    <div class="feld" style="margin:0"><label>IMAP-Server</label><input name="host" value="<?= Fmt::h($pfZ['host']) ?>" placeholder="w0123456.kasserver.com" autocomplete="off"></div>
+    <div class="feld" style="margin:0"><label>Port</label><input name="port" inputmode="numeric" value="<?= (int) ($pfZ['port'] ?: 993) ?>"></div>
+    <div class="feld" style="margin:0"><label>Benutzer (Postfach)</label><input name="nutzer" value="<?= Fmt::h($pfZ['nutzer']) ?>" autocomplete="off" placeholder="m0123456 oder kontakt@vecom-design.it"></div>
+    <div class="feld" style="margin:0"><label>Passwort</label><input type="password" name="passwort" autocomplete="new-password" placeholder="<?= $pfDa ? 'leer lassen = bleibt' : 'Passwort' ?>"></div>
+    <div class="feld" style="margin:0"><label>Ordner</label><input name="ordner" value="<?= Fmt::h($pfZ['ordner']) ?>"></div>
+    <button class="knopf" style="justify-self:start">Speichern</button>
+  </form>
+  <?php if ($pfDa): ?>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin-top:8px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_postfach_jetzt">
+      <button class="knopf">Jetzt prüfen</button> <span class="akq-klein">Leeres Server-Feld + Speichern = Zugang entfernen.</span></form>
+  <?php endif; ?>
+</div>
+
 <div class="block" id="sperrliste">
   <h2>Sperrliste (DO NOT CONTACT) <span class="akq-klein" style="font-weight:400">· <?= count($sperrliste) ?> Einträge</span></h2>
   <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">

@@ -12087,6 +12087,110 @@ pruefe('Admin: Seite /partner/vorlagen und Tat partner_vorlage', str_contains((s
     && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_vorlage':") && is_file($wurzel . '/views/partner_vorlagen.php'));
 
 /* ============================================================================
+   Akquise: Antworten aus dem Postfach, Brief-Serie, Wochenbericht (27.09.2026, Uwe: Ja)
+   ============================================================================ */
+abschnitt('Akquise: Antworten automatisch, Brief-Serie, Wochenbericht');
+require_once $wurzel . '/src/AkquisePostfach.php';
+require_once $wurzel . '/src/AkquiseBriefserie.php';
+$pfFirma = static function (string $name, string $mail, string $url) use ($akBefunde): int {
+    $r = Akquise::firmaMelden(['name' => $name, 'land' => 'IT', 'kreis' => 'Agrigento', 'stadt' => 'Sciacca', 'plz' => '92019', 'adresse' => 'Via Mare 9',
+        'url' => $url, 'email' => $mail, 'branche' => 'restaurant', 'quelle' => 'osm:node/' . random_int(100000, 999999), 'quelle_lizenz' => 'ODbL']);
+    Db::insert('akq_versand', ['firma_id' => (int) $r['id'], 'kanal' => 'email', 'an' => $mail, 'status' => 'gesendet', 'compliance' => 'ALLOWED', 'actor' => 'kette']);
+    Db::update('akq_firmen', (int) $r['id'], ['kontakt_status' => 'kontaktiert']);
+    return (int) $r['id'];
+};
+$pfA = $pfFirma('Trattoria Postino', 'info@trattoria-postino.example', 'https://trattoria-postino.example/');
+$pfB = $pfFirma('Bar Dominio', 'bar@bar-dominio.example', 'https://bar-dominio.example/');
+$pfC = $pfFirma('Pizzeria Rimbalzo', 'ordini@rimbalzo.example', 'https://rimbalzo.example/');
+$pfMail = static fn(string $von, string $betreff, string $text, string $id, string $extra = ''): string =>
+    "From: $von\r\nTo: kontakt@vecom-design.it\r\nSubject: $betreff\r\nMessage-ID: <$id>\r\nDate: Thu, 24 Sep 2026 10:15:00 +0200\r\n$extra" . "MIME-Version: 1.0\r\n"
+    . "Content-Type: multipart/alternative; boundary=\"XYZ\"\r\n\r\n--XYZ\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n"
+    . quoted_printable_encode($text) . "\r\n--XYZ\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<p>html</p>\r\n--XYZ--\r\n";
+// Die typische Antwort: oben „nein danke“, unten unser eigener Text mit „preventivo“ und „prezzo“.
+$pfNein = $pfMail('"Mario Postino" <info@trattoria-postino.example>', '=?UTF-8?Q?Re:_Il_vostro_sito_=E2=80=94_una_proposta?=',
+    "Buongiorno,\nno grazie, non ci interessa.\nSaluti\n\nIl giorno mer 23 set 2026 alle 09:00 Vecom Design <kontakt@vecom-design.it> ha scritto:\n> Le preparo volentieri un preventivo, il prezzo lo sa prima.\n> Siamo interessati a sentirla.", 'a1@postino.example');
+$pfL = AkquisePostfach::lesen($pfNein);
+pruefe('Mail lesen: Absender, dekodierter Betreff, Datum, Text aus dem text/plain-Teil (quoted-printable)',
+    $pfL['von_adresse'] === 'info@trattoria-postino.example' && $pfL['betreff'] === 'Re: Il vostro sito — una proposta' && $pfL['datum'] === '2026-09-24 10:15:00'
+    && str_contains($pfL['text'], 'no grazie') && $pfL['id'] === 'a1@postino.example', json_encode($pfL, JSON_UNESCAPED_UNICODE));
+pruefe('Zitat weg: unsere eigene Mail (mit „preventivo“, „prezzo“, „interessati“) wird nicht mitklassifiziert',
+    !str_contains(AkquisePostfach::zitatWeg($pfL['text']), 'preventivo') && AkquiseText::klassifizieren($pfL['betreff'], AkquisePostfach::zitatWeg($pfL['text'])) === 'NOT_INTERESTED'
+    && AkquisePostfach::zitatWeg("Gerne, rufen Sie an.\n\nAm 23.09.2026 um 09:00 schrieb Vecom Design:\n> Preis vorher") === 'Gerne, rufen Sie an.');
+$pfMails = [
+    ['uid' => 11, 'inhalt' => $pfNein],
+    ['uid' => 12, 'inhalt' => $pfMail('Chef <chef@bar-dominio.example>', 'Re: Sito', "Quanto costa un sito come dite voi?\n\nOn Wed, Sep 23 Vecom wrote:\n> no grazie", 'b2@dominio.example')],
+    ['uid' => 13, 'inhalt' => $pfMail('Mail Delivery System <MAILER-DAEMON@mx.example>', 'Undelivered Mail Returned to Sender', "This is the mail system.\n<ordini@rimbalzo.example>: host said: 550 user unknown", 'c3@mx.example')],
+    ['uid' => 14, 'inhalt' => $pfMail('Zufall <irgendwer@gmail.com>', 'Rechnung', 'Hallo, anbei die Rechnung.', 'd4@gmail.example')],
+    ['uid' => 15, 'inhalt' => $pfMail('Anderer <x@trattoria-postino.example>', 'Re: Sito', 'Kein Interesse.', 'a1@postino.example')],
+];
+AkquisePostfach::$holer = static function (int $ab, int $seit) use (&$pfMails): array { return array_values(array_filter($pfMails, static fn($m) => $m['uid'] > $ab)); };
+$pfR = AkquisePostfach::lauf(true);
+pruefe('Lauf: 5 gelesen, 3 zugeordnet, die fremde Rechnung übergangen, die doppelte Message-ID erkannt',
+    ($pfR['gelesen'] ?? 0) === 5 && ($pfR['zugeordnet'] ?? 0) === 3 && ($pfR['doppelt'] ?? 0) === 1, json_encode($pfR));
+pruefe('„No grazie“ → kein Interesse → sofort gesperrt', (string) Db::wert('SELECT klasse FROM akq_antworten WHERE firma_id = ?', [$pfA], '') === 'NOT_INTERESTED'
+    && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$pfA], 0) === 1);
+pruefe('Absender von der Domain des Betriebs → Preisanfrage, Meldung an Uwe, nicht gesperrt',
+    (string) Db::wert('SELECT klasse FROM akq_antworten WHERE firma_id = ?', [$pfB], '') === 'PRICE_REQUEST' && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$pfB], 0) === 0);
+pruefe('Unzustellbar → dem angeschriebenen Betrieb zugeordnet, Versand als bounce', (string) Db::wert('SELECT klasse FROM akq_antworten WHERE firma_id = ?', [$pfC], '') === 'INVALID_ADDRESS'
+    && (string) Db::wert("SELECT status FROM akq_versand WHERE firma_id = ? ORDER BY id DESC LIMIT 1", [$pfC], '') === 'bounce');
+pruefe('Fremde Mails werden nicht gespeichert; Eingang = Datum der Mail; Quelle erkennbar',
+    (int) Db::wert("SELECT COUNT(*) FROM akq_antworten WHERE betreff = 'Rechnung'", [], 0) === 0
+    && (string) Db::wert('SELECT eingang_am FROM akq_antworten WHERE firma_id = ?', [$pfA], '') === '2026-09-24 10:15:00');
+$pfMails[] = ['uid' => 16, 'inhalt' => $pfMail('Chef <chef@bar-dominio.example>', 'Re: Sito', 'Mi chiami domani.', 'e5@dominio.example')];
+$pfR2 = AkquisePostfach::lauf(true);
+pruefe('Nächster Lauf liest nur Neues (ab UID 16)', ($pfR2['gelesen'] ?? 0) === 1 && ($pfR2['zugeordnet'] ?? 0) === 1);
+pruefe('Ohne sofort: gedrosselt auf ' . AkquisePostfach::TAKT_MINUTEN . ' Minuten', isset(AkquisePostfach::lauf(false)['uebersprungen']));
+AkquisePostfach::$holer = null;
+pruefe('Ohne Zugang: aus, kein Fehler', (AkquisePostfach::lauf(true)['aus'] ?? 0) === 1);
+pruefe('Postfach: Passwort nur verschlüsselt in settings, Speichern fragt vorher, Cron-Job vorhanden',
+    str_contains((string) file_get_contents($wurzel . '/src/AkquisePostfach.php'), 'Hosting::versiegeln') && isset(Ablauf::TRAGWEITE['akq_postfach_speichern'])
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_postfach'"));
+
+// Brief-Serie
+AkquiseBriefdienst::$tokenFest = 'kette-token';
+$bsAufrufe = [];
+AkquiseBriefdienst::$netz = static function (string $m, string $u, ?array $b) use (&$bsAufrufe): array {
+    $bsAufrufe[] = [$m, $u];
+    if ($m === 'POST') {
+        return ['status' => 201, 'json' => ['success' => true, 'data' => [['id' => 'ord-s' . count($bsAufrufe), 'documento_validato' => ['pdf' => 'https://x/p.pdf', 'pagine' => 1],
+            'pricing' => ['totale' => ['importo_totale' => 1.37]]]]]];
+    }
+    return ['status' => 200, 'json' => ['success' => true, 'data' => [['confirmed' => true]]]];
+};
+AkquiseBriefdienst::testSetzen(false);
+$bsF = [];
+foreach (['Osteria Serie Uno', 'Osteria Serie Due'] as $i => $bsN) {
+    $r = Akquise::firmaMelden(['name' => $bsN, 'land' => 'IT', 'kreis' => 'Agrigento', 'stadt' => 'Ribera', 'plz' => '92016', 'adresse' => 'Via Serie ' . ($i + 1),
+        'url' => 'https://serie' . $i . '.example/', 'branche' => 'restaurant', 'quelle' => 'osm:node/77' . $i, 'quelle_lizenz' => 'ODbL']);
+    Akquise::auditMelden((int) $r['id'], ['status' => 'fertig', 'befunde' => $akBefunde, 'sprache' => 'it']);
+    AkquiseVersand::freigeben(AkquiseVersand::regelVorlage((int) $r['id'], 'it', 'brief'));
+    $bsF[] = (int) $r['id'];
+}
+$bsK = array_column(AkquiseBriefserie::kandidaten(), 'id');
+pruefe('Brief-Serie: freigegebene Briefe ohne Versand stehen zur Wahl', in_array($bsF[0], $bsK, true) && in_array($bsF[1], $bsK, true));
+$bsV = AkquiseBriefserie::vorbereiten($bsF);
+$bsO = AkquiseBriefserie::offen();
+$bsIds = array_map(static fn($b) => (int) $b['id'], array_values(array_filter($bsO['briefe'], static fn($b) => in_array((int) $b['firma_id'], $bsF, true))));
+pruefe('… Vorschauen für alle, Gesamtpreis 2 × 1,37 €, noch nichts verschickt', $bsV['ok'] === 2 && count($bsIds) === 2
+    && array_sum(array_map(static fn($b) => in_array((int) $b['firma_id'], $bsF, true) ? (int) $b['kosten_cents'] : 0, $bsO['briefe'])) === 274
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id IN (?, ?)', $bsF, 0) === 0);
+pruefe('… danach nicht mehr in der Auswahl (kein zweiter Brief)', !in_array($bsF[0], array_column(AkquiseBriefserie::kandidaten(), 'id'), true));
+$bsS = AkquiseBriefserie::senden($bsIds, 'Kette Serie');
+pruefe('… eine Bestätigung verschickt alle: je ein PATCH, beide als angeschrieben vermerkt, Summe stimmt',
+    $bsS['verschickt'] === 2 && $bsS['summe'] === 274 && count(array_filter($bsAufrufe, static fn($a) => $a[0] === 'PATCH')) === 2
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id IN (?, ?) AND kanal = 'brief'", $bsF, 0) === 2);
+AkquiseBriefdienst::$netz = null; AkquiseBriefdienst::$tokenFest = null;
+pruefe('Brief-Serie: Senden fragt einmal vorher (TRAGWEITE), höchstens ' . AkquiseBriefserie::HOECHSTENS . ' auf einmal',
+    isset(Ablauf::TRAGWEITE['akq_briefserie_senden']) && str_contains((string) file_get_contents($wurzel . '/views/akquise_briefe.php'), 'data-frage='));
+
+// Wochenbericht erweitert
+Db::run("DELETE FROM settings WHERE skey = 'akq_wochenbericht'");
+$wbZ = Akquise::wochenberichtZusatz(time());
+pruefe('Wochenbericht: Wochenziel, Trichter (30 Tage) und automatisch eingeordnete Antworten stehen drin',
+    (bool) array_filter($wbZ, static fn($z) => str_starts_with($z, '• Wochenziel letzte Woche:')) && (bool) array_filter($wbZ, static fn($z) => str_contains($z, 'angesprochen →'))
+    && (bool) array_filter($wbZ, static fn($z) => str_contains($z, 'automatisch aus dem Postfach')), json_encode($wbZ, JSON_UNESCAPED_UNICODE));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

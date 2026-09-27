@@ -214,6 +214,43 @@ if ($post) {
                 AkquiseBriefdienst::verwerfen((int) ($_POST['brief'] ?? 0));
                 weiter('akquise/' . $fid . '#kontakt');
 
+            case 'akq_briefserie_vorbereiten':
+                require_once __DIR__ . '/src/AkquiseBriefserie.php';
+                if (empty($_POST['bestaetigt'])) { throw new RuntimeException('Bitte bestätigen, dass bei keinem der Betriebe ein Werbewiderspruch bekannt ist.'); }
+                $bsR = AkquiseBriefserie::vorbereiten(array_map('intval', (array) ($_POST['firmen'] ?? [])));
+                $_SESSION['gut'] = $bsR['ok'] . ' Vorschau' . ($bsR['ok'] === 1 ? '' : 'en') . ' vom Briefdienst da — Preise und Blätter prüfen, dann alle zusammen verschicken.';
+                if ($bsR['fehler']) { $_SESSION['fehler'] = count($bsR['fehler']) . ' nicht vorbereitet: ' . mb_substr(implode(' · ', array_map(static fn($id, $g) => '#' . $id . ' ' . $g, array_keys($bsR['fehler']), $bsR['fehler'])), 0, 600); }
+                $zu('briefe');
+
+            case 'akq_briefserie_senden':
+                require_once __DIR__ . '/src/AkquiseBriefserie.php';
+                $bsS = AkquiseBriefserie::senden(array_map('intval', (array) ($_POST['briefe'] ?? [])), 'Serie: kein Werbewiderspruch bekannt, Widerspruchshinweis im Brief');
+                $_SESSION['gut'] = $bsS['verschickt'] . ' Brief' . ($bsS['verschickt'] === 1 ? '' : 'e') . (AkquiseBriefdienst::test() ? ' bestätigt (TEST — nichts verschickt)' : ' beauftragt')
+                    . ' · zusammen ' . number_format($bsS['summe'] / 100, 2, ',', '.') . ' €.';
+                if ($bsS['fehler']) { $_SESSION['fehler'] = count($bsS['fehler']) . ' nicht verschickt: ' . mb_substr(implode(' · ', $bsS['fehler']), 0, 600); }
+                $zu('briefe');
+
+            case 'akq_briefserie_verwerfen':
+                require_once __DIR__ . '/src/AkquiseBriefserie.php';
+                AkquiseBriefserie::verwerfen(array_map('intval', (array) ($_POST['briefe'] ?? [])));
+                $_SESSION['gut'] = 'Vorschauen verworfen — nichts wurde verschickt.';
+                $zu('briefe');
+
+            case 'akq_postfach_speichern':
+                require_once __DIR__ . '/src/AkquisePostfach.php';
+                AkquisePostfach::zugangSetzen((string) ($_POST['host'] ?? ''), (int) ($_POST['port'] ?? 993), (string) ($_POST['nutzer'] ?? ''),
+                    (string) ($_POST['passwort'] ?? ''), (string) ($_POST['ordner'] ?? 'INBOX'));
+                Events::pruefspur('akquise_postfach', 'settings', 0, [], ['host' => (string) ($_POST['host'] ?? ''), 'passwort_neu' => (string) ($_POST['passwort'] ?? '') !== '']);
+                $_SESSION['gut'] = trim((string) ($_POST['host'] ?? '')) === '' ? 'Postfach-Zugang entfernt.' : 'Postfach gespeichert. Mit „Jetzt prüfen“ siehst du sofort, ob die Anmeldung klappt.';
+                $zu('regeln#postfach');
+
+            case 'akq_postfach_jetzt':
+                require_once __DIR__ . '/src/AkquisePostfach.php';
+                $pfR = AkquisePostfach::lauf(true);
+                if (isset($pfR['fehler'])) { $_SESSION['fehler'] = 'Postfach: ' . $pfR['fehler']; }
+                else { $_SESSION['gut'] = 'Postfach gelesen: ' . (int) ($pfR['gelesen'] ?? 0) . ' neue Mails, davon ' . (int) ($pfR['zugeordnet'] ?? 0) . ' Antworten von angeschriebenen Betrieben.'; }
+                $zu('regeln#postfach');
+
             case 'akq_wochenziel':
                 require_once __DIR__ . '/src/AkquiseAuswertung.php';
                 AkquiseAuswertung::wochenzielSetzen((int) ($_POST['ziel'] ?? 0));
@@ -364,6 +401,12 @@ if ($teil === 'auswertung' || $teil === 'karte') {
     $nach = in_array($_GET['nach'] ?? '', ['branche', 'kanal', 'variante'], true) ? (string) $_GET['nach'] : 'branche';
     $tage = in_array((int) ($_GET['tage'] ?? 90), [30, 90, 365], true) ? (int) ($_GET['tage'] ?? 90) : 90;
     ansicht('akquise_auswertung', ['trichter' => AkquiseAuswertung::trichter($nach, $tage), 'nach' => $nach, 'tage' => $tage, 'woche' => AkquiseAuswertung::woche()]);
+    exit;
+}
+
+if ($teil === 'briefe') {
+    require_once __DIR__ . '/src/AkquiseBriefserie.php';
+    ansicht('akquise_briefe', ['kandidaten' => AkquiseBriefserie::kandidaten(), 'offen' => AkquiseBriefserie::offen(), 'bereit' => AkquiseBriefdienst::bereit()]);
     exit;
 }
 

@@ -760,10 +760,43 @@ final class Akquise
         if ($z['kontaktiert'])   { $zeilen[] = '• ' . $z['kontaktiert'] . ' angeschrieben oder angerufen'; }
         if ($z['antworten'])     { $zeilen[] = '• ' . $z['antworten'] . ' Antworten' . ($z['positiv'] ? ', davon ' . $z['positiv'] . ' mit Interesse' : ''); }
         if ($z['analyse_offen']) { $zeilen[] = '• ' . $z['analyse_offen'] . '× wurde eine Analyse-Seite geöffnet'; }
+        /* Erweitert (27.09.2026, Uwe: Ja): Wochenziel, Trichter der letzten 30
+           Tage und die drei Betriebe, bei denen sich gerade etwas tut. Jeder
+           Teil still -- ein fehlender Baustein kostet eine Zeile, nicht den Bericht. */
+        foreach (self::wochenberichtZusatz($jetzt) as $zeile) { $zeilen[] = $zeile; }
         $zeilen[] = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/app/akquise';
         require_once __DIR__ . '/Zuruf.php';
         Zuruf::vormerken('akquise_woche', implode("\n", $zeilen), 60 * 24 * 6);
         return ['gemeldet' => true] + $z;
+    }
+
+    /** @return list<string> Zusatzzeilen für den Wochenbericht */
+    public static function wochenberichtZusatz(int $jetzt): array
+    {
+        $aus = [];
+        try {
+            require_once __DIR__ . '/AkquiseAuswertung.php';
+            $w = AkquiseAuswertung::woche($jetzt - 7 * 86400);
+            $aus[] = '• Wochenziel letzte Woche: ' . $w['erreicht'] . ' von ' . $w['ziel'] . ($w['erreicht'] >= $w['ziel'] ? ' ✓' : '');
+            $t = AkquiseAuswertung::summe(AkquiseAuswertung::trichter('branche', 30));
+            if ($t['angesprochen'] > 0) {
+                $p = static fn(int $a, int $b): string => $b > 0 ? ' (' . round($a / $b * 100) . ' %)' : '';
+                $aus[] = '• 30 Tage: ' . $t['angesprochen'] . ' angesprochen → ' . $t['geoeffnet'] . ' Analyse geöffnet' . $p($t['geoeffnet'], $t['angesprochen'])
+                    . ' → ' . $t['antwort'] . ' Antwort → ' . $t['interesse'] . ' Interesse → ' . $t['kunde'] . ' Kunde';
+            }
+        } catch (Throwable $e) { }
+        try {
+            $ab = date('Y-m-d H:i:s', $jetzt - 7 * 86400);
+            $heiss = Db::all("SELECT f.name, MAX(a.aufrufe) AS n FROM akq_analysen a JOIN akq_firmen f ON f.id = a.firma_id
+                               WHERE a.zuletzt_am >= ? AND f.gesperrt = 0 AND f.kontakt_status NOT IN ('kunde','abgelehnt','geantwortet')
+                            GROUP BY f.id, f.name ORDER BY n DESC LIMIT 3", [$ab]);
+            if ($heiss) { $aus[] = '• Jetzt anrufen: ' . implode(', ', array_map(static fn($z) => $z['name'] . ' (Analyse ' . (int) $z['n'] . '× geöffnet)', $heiss)); }
+            $sig = Db::all('SELECT f.name, s.text FROM akq_signale s JOIN akq_firmen f ON f.id = s.firma_id WHERE s.erledigt = 0 ORDER BY s.id DESC LIMIT 3');
+            if ($sig) { $aus[] = '• Signale: ' . implode(' · ', array_map(static fn($z) => $z['name'] . ': ' . $z['text'], $sig)); }
+            $auto = (int) Db::wert('SELECT COUNT(*) FROM akq_antworten WHERE nachricht_id IS NOT NULL AND eingang_am >= ?', [$ab], 0);
+            if ($auto) { $aus[] = '• ' . $auto . ' Antworten automatisch aus dem Postfach eingeordnet'; }
+        } catch (Throwable $e) { }
+        return $aus;
     }
 
     /**

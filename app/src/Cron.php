@@ -250,6 +250,11 @@ final class Cron
                 require_once __DIR__ . '/AkquiseSignal.php';
                 return AkquiseSignal::lauf() + ['wiedervorlagen' => AkquiseSignal::wiedervorlagen()];
             },
+            /* Antworten aus dem Postfach (27.09.2026) -- drosselt sich selbst auf 10 Minuten, aus ohne Zugang. */
+            'akquise_postfach' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquisePostfach'] as $k) { require_once __DIR__ . "/$k.php"; }
+                return AkquisePostfach::lauf();
+            },
             'akquise_woche' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return Akquise::wochenbericht();
