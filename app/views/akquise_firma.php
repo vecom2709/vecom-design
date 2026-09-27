@@ -183,7 +183,11 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
       <?php elseif ($kontaktiert && !$aktiv): ?>
         <p class="akq-klein">Schon kontaktiert. Was verschickt wurde, steht im <a href="<?= Fmt::h($reiterUrl('verlauf')) ?>" style="text-decoration:underline">Verlauf</a>.</p>
       <?php elseif (!$aktiv): ?>
-        <?php if ($audit && $audit['status'] === 'fertig'): ?>
+        <?php if ($audit && $audit['status'] === 'fertig' && !AkquiseGate::briefAn() && $ampel['farbe'] !== 'gruen'): ?>
+          <p class="akq-klein">Briefe sind ausgeschaltet, und eine E-Mail geht hier nur mit Einwilligung. Die entsteht über den
+            <a href="/website-check.php" target="_blank" rel="noopener" style="text-decoration:underline">Website-Check</a> oder einen Einwilligungs-Link nach einem Gespräch (unten bei „Einwilligung“).
+            <?= $telefonGeht ? 'Ein Anruf ist nach Prüfung möglich — siehe Anrufzettel.' : '' ?></p>
+        <?php elseif ($audit && $audit['status'] === 'fertig'): ?>
           <p class="akq-klein" style="margin-bottom:10px">
             <?= $ampel['farbe'] === 'gruen' ? 'E-Mail ist hier erlaubt.' : 'E-Mail ohne Einwilligung ist nicht erlaubt — der Brief ist der Weg.' ?>
             Der Text entsteht aus den geprüften Befunden; du liest ihn, bevor irgendetwas passiert.</p>
@@ -191,7 +195,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
             <button class="knopf akq-los">' . ($ampel['farbe'] === 'gruen' ? 'E-Mail schreiben' : 'Brief schreiben') . '</button>
             <details><summary class="akq-klein" style="cursor:pointer">anders …</summary><div style="display:flex;gap:8px;margin-top:8px">
               <select name="sprache" style="width:auto">' . implode('', array_map(static fn($k, $w) => '<option value="' . $k . '"' . ($k === $spracheText ? ' selected' : '') . '>' . $w . '</option>', array_keys(AkquiseText::SPRACHEN), AkquiseText::SPRACHEN)) . '</select>
-              <select name="kanal" style="width:auto"><option value="">passend</option><option value="brief">Brief</option><option value="email">E-Mail</option></select>
+              <select name="kanal" style="width:auto"><option value="">passend</option>' . (AkquiseGate::briefAn() ? '<option value="brief">Brief</option>' : '') . '<option value="email">E-Mail</option></select>
             </div></details></div>') ?>
         <?php else: ?>
           <p class="akq-klein">Erst nach der Prüfung der Website entsteht ein Text.</p>
@@ -218,7 +222,10 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
           <details><summary class="akq-klein" style="cursor:pointer">Text ansehen</summary>
             <div class="beleg" style="font-family:inherit;font-size:13.5px;color:var(--text);white-space:pre-wrap;margin-top:8px"><?= Fmt::h((string) $v['text']) ?></div></details>
 
-          <?php if ($v['kanal'] === 'brief'): ?>
+          <?php if ($v['kanal'] === 'brief' && !AkquiseGate::briefAn()): ?>
+            <p class="akq-klein" style="margin-top:10px">Briefe sind ausgeschaltet (Regeln & Versand). Der Text bleibt gespeichert — verschickt wird er erst, wenn du Briefe wieder einschaltest.</p>
+            <?= $post('akq_vorlage_verwerfen', '<input type="hidden" name="vorlage" value="' . (int) $v['id'] . '"><button class="knopf">Brieftext verwerfen</button>') ?>
+          <?php elseif ($v['kanal'] === 'brief'): ?>
             <div class="akq-weg">
               <a class="knopf akq-los" href="<?= Fmt::h(url('akquise/' . $fid . '/brief')) ?>" target="_blank" rel="noopener">Brief drucken</a>
               <span class="akq-klein">Öffnet den Brief auf Vecom-Briefbogen mit Bildschirmfoto und QR-Code — drucken oder als PDF speichern.</span>
@@ -476,7 +483,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
     <?php if (!$gesperrt && $aktiv === null && !$kontaktiert): ?>
     <div class="block">
       <h2>Schon selbst Kontakt gehabt?</h2>
-      <?= $post('akq_von_hand', '<div class="reihe"><div class="feld"><label>Wie</label><select name="kanal"><option value="telefon">Anruf</option><option value="brief">Brief</option></select></div>
+      <?= $post('akq_von_hand', '<div class="reihe"><div class="feld"><label>Wie</label><select name="kanal"><option value="telefon">Anruf</option>' . (AkquiseGate::briefAn() ? '<option value="brief">Brief</option>' : '') . '</select></div>
           <div class="feld"><label>Wann und was</label><input name="begruendung" placeholder="z. B. 25.09. angerufen, Inhaber war da"></div></div>
           <button class="knopf">Vermerken</button>') ?>
     </div>

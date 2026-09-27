@@ -211,13 +211,19 @@ final class Akquise
         }
         $vs = (string) ($f['vorlage_status'] ?? '');
         $vk = (string) ($f['vorlage_kanal'] ?? 'brief');
+        require_once __DIR__ . '/AkquiseGate.php';
+        $briefAn = AkquiseGate::briefAn();
         if ($vs === 'freigegeben') {
-            return $vk === 'email'
-                ? ['wort' => 'E-Mail senden', 'ziel' => $seite . '#kontakt', 'art' => 'link']
-                : ['wort' => 'Brief drucken', 'ziel' => $seite . '/brief', 'art' => 'link'];
+            if ($vk === 'email') { return ['wort' => 'E-Mail senden', 'ziel' => $seite . '#kontakt', 'art' => 'link']; }
+            if ($briefAn) { return ['wort' => 'Brief drucken', 'ziel' => $seite . '/brief', 'art' => 'link']; }
         }
-        if ($vs === 'entwurf') { return ['wort' => 'Text prüfen', 'ziel' => $seite . '#kontakt', 'art' => 'link']; }
-        if ($as === 'fertig' && (int) ($f['score'] ?? 0) >= 31) { return ['wort' => 'Brief schreiben', 'ziel' => 'akq_vorlage_regel', 'art' => 'post']; }
+        if ($vs === 'entwurf' && ($vk === 'email' || $briefAn)) { return ['wort' => 'Text prüfen', 'ziel' => $seite . '#kontakt', 'art' => 'link']; }
+        if ($as === 'fertig' && (int) ($f['score'] ?? 0) >= 31) {
+            /* Ohne Briefe (27.09.2026): E-Mail nur mit Einwilligung, sonst der Anruf -- oder nichts. */
+            if (trim((string) ($f['einwilligung'] ?? '')) !== '' && !empty($f['email'])) { return ['wort' => 'E-Mail schreiben', 'ziel' => 'akq_vorlage_regel', 'art' => 'post']; }
+            if ($briefAn) { return ['wort' => 'Brief schreiben', 'ziel' => 'akq_vorlage_regel', 'art' => 'post']; }
+            if (self::deutschsprachig($f) && !empty($f['telefon'])) { return ['wort' => 'Anrufzettel', 'ziel' => $seite . '/anruf', 'art' => 'link']; }
+        }
         return ['wort' => 'Ansehen', 'ziel' => $seite, 'art' => 'link'];
     }
 

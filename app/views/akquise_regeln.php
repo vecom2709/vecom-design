@@ -44,8 +44,9 @@ $blick = [
     ['Testbetrieb', $testAn ? 'gelb' : 'gruen', $testAn ? 'An · Akquise-Mails werden nur simuliert.' : 'Aus · freigegebene Mails gehen wirklich raus.', '#schalter'],
     ['E-Mail-Versand', $grenzen['stop'] ? 'rot' : ($grenzen['versand_an'] ? 'gruen' : 'gelb'),
         $grenzen['stop'] ? 'Notbremse gezogen — es geht nichts raus.' : ($grenzen['versand_an'] ? 'An · höchstens ' . (int) $grenzen['tag'] . ' Mails am Tag.' : 'Aus · keine Mail geht automatisch raus.'), '#versand'],
-    ['Briefe per Post', $bdDa ? ($bdTest ? 'gelb' : 'gruen') : '',
-        $bdDa ? ($bdTest ? 'Testbetrieb · nichts wird gedruckt.' : 'Eingerichtet · Briefe gehen wirklich raus.') : 'Noch nicht eingerichtet.', '#briefdienst'],
+    AkquiseGate::briefAn()
+        ? ['Briefe per Post', $bdDa ? ($bdTest ? 'gelb' : 'gruen') : '', $bdDa ? ($bdTest ? 'Testbetrieb · nichts wird gedruckt.' : 'Eingerichtet · Briefe gehen wirklich raus.') : 'Noch nicht eingerichtet.', '#briefdienst']
+        : ['Briefe per Post', '', 'Ausgeschaltet · es gibt nur E-Mail mit Einwilligung.', '#briefdienst'],
     ['Antworten einlesen', $pfFehler !== '' ? 'rot' : ($pfDa ? 'gruen' : ''),
         $pfFehler !== '' ? 'Verbindung klappt nicht — bitte prüfen.' : ($pfDa ? 'Verbunden · liest alle 10 Minuten.' : 'Noch nicht eingerichtet.'), '#postfach'],
     ['Nie kontaktieren', 'gruen', count($sperrliste) . ' Einträge — werden immer übersprungen.', '#sperrliste'],
@@ -138,7 +139,7 @@ $blick = [
   <div class="tabellenrahmen"><table class="rg-raster"><thead><tr><th>Weg</th>
     <?php foreach (array_keys($laender) as $l): ?><th><?= Fmt::h($landName[$l] ?? $l) ?></th><?php endforeach; ?></tr></thead><tbody>
     <?php foreach (AkquiseGate::KANAELE as $kanal => $kanalName): if (empty($raster[$kanal])) { continue; } ?>
-      <tr><th><?= Fmt::h($kanalName) ?></th>
+      <tr><th><?= Fmt::h($kanalName) ?><?= $kanal === 'brief' && !AkquiseGate::briefAn() ? ' <span class="marke2">ausgeschaltet</span>' : '' ?></th>
         <?php foreach (array_keys($laender) as $l): $zelle = $raster[$kanal][$l] ?? []; ?>
           <td data-land="<?= Fmt::h($landName[$l] ?? $l) ?>"><?php if (!$zelle): ?><span class="marke2">Lieber nicht</span>
             <?php else: foreach ($zelle as $bed => $erg): ?>
@@ -257,8 +258,21 @@ $blick = [
     <p class="akq-klein" style="margin-top:10px">Name, E-Mail und Telefon werden nach <?= AkquiseCheck::FRIST_TAGE ?> Tagen gelöscht, wenn daraus weder Einwilligung noch Auftrag wurde.</p>
   </div>
 
+  <?php if (!AkquiseGate::briefAn()): /* Briefe ausgeschaltet (27.09.2026): kein Brief, keine Brief-Serie, kein „Vecom soll anschreiben“. */ ?>
+  <div class="block" id="briefdienst">
+    <h2>Briefe per Post</h2>
+    <p class="rg-stand"><span class="akq-ampel"><i aria-hidden="true"></i>Ausgeschaltet</span></p>
+    <p class="rg-erkl">Kein Brief, keine Brief-Serie, kein Druckblatt, und Partner sehen „Vecom soll anschreiben“ nicht.
+      Kontakt gibt es nur per E-Mail — und die nur mit Einwilligung. Schlüssel und Einstellungen des Briefdienstes bleiben gespeichert.</p>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" data-frage="Briefe wieder einschalten? Dann schlägt die Verwaltung wieder Briefe vor, und die Brief-Serie ist zurück." data-ja="Ja, einschalten">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_brief_schalten"><input type="hidden" name="an" value="1">
+      <button class="knopf">Briefe wieder einschalten</button></form>
+  </div>
+  <?php else: ?>
   <div class="block" id="briefdienst">
     <h2>Briefe per Post <span class="akq-klein" style="font-weight:400">· nur Italien</span></h2>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0 0 10px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_brief_schalten">
+      <input type="hidden" name="an" value=""><button class="knopf klein">Briefe ganz ausschalten</button></form>
     <p class="rg-erkl">Freigegebene Briefe druckt, kuvertiert und frankiert ufficiopostale.com. Vor jedem Brief siehst du Preis und Blatt — raus geht er erst mit deinem Klick.</p>
     <p class="rg-stand"><span class="akq-ampel <?= $bdDa ? ($bdTest ? 'gelb' : 'gruen') : '' ?>"><i aria-hidden="true"></i>
       <?= $bdDa ? ($bdTest ? 'Eingerichtet · Testbetrieb (nichts wird gedruckt, nichts kostet)' : 'Eingerichtet · echter Betrieb (Briefe kosten)') : 'Noch nicht eingerichtet' ?></span></p>
@@ -278,6 +292,7 @@ $blick = [
       <?php if ($bdDa): ?><label class="akq-haken"><input type="checkbox" name="loeschen" value="1"> Schlüssel entfernen</label><?php endif; ?>
       <button class="knopf" style="justify-self:start">Speichern</button></form>
   </div>
+  <?php endif; ?>
 
   <div class="block" id="postfach">
     <h2>Antworten automatisch einlesen</h2>

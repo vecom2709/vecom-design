@@ -10653,6 +10653,10 @@ abschnitt('Akquise: finden, prüfen, ansprechen — und das Gate davor');
 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseWorker', 'AkquiseAnalyse'] as $k) {
     require_once $wurzel . "/src/$k.php";
 }
+pruefe('Briefe sind ab Werk ausgeschaltet (Uwe, 27.09.2026: nur E-Mail) — das Gate sagt „Nein“ zum Brief',
+    !AkquiseGate::briefAn() && AkquiseGate::pruefen(['land' => 'IT', 'kontakt_status' => 'neu', 'gesperrt' => 0], 'brief')['status'] === AkquiseGate::NICHT);
+/* Die Abschnitte bis zur Prüfung „Briefe ausgeschaltet“ prüfen den Brief-Weg selbst -- dafür eingeschaltet. */
+AkquiseGate::briefSchalten(true);
 
 /* ---------- Fundament ---------------------------------------------------- */
 pruefe('die Regeln des Gates sind angelegt (DE und IT, fünf Kanäle)',
@@ -12913,6 +12917,39 @@ pruefe('Posta Massiva: Auftrag an /posta_massiva/, Bestätigung an dieselbe Stel
 $pmFalsch = false; try { AkquiseBriefdienst::produktSetzen('taube'); } catch (InvalidArgumentException $e) { $pmFalsch = true; }
 pruefe('Versandart: nur die zwei bekannten Produkte', $pmFalsch);
 AkquiseBriefdienst::$netz = null; AkquiseBriefdienst::$tokenFest = null;
+
+/* ============================================================================
+   Briefe ausgeschaltet (27.09.2026, Uwe: „bis ich entscheide – nur E-Mail“)
+   Eine Stelle (das Gate) sperrt alles, was Papier wäre.
+   ============================================================================ */
+abschnitt('Briefe ausgeschaltet');
+AkquiseGate::briefSchalten(false);
+$baA = Akquise::firmaMelden(['name' => 'Bottega Ohne Brief', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Licata',
+    'plz' => '92027', 'adresse' => 'Via Roma 9', 'url' => 'https://bottega-ohne-brief.example/', 'branche' => 'restaurant', 'quelle' => 'test:ohnebrief1']);
+$baF = (int) $baA['id'];
+Akquise::auditMelden($baF, ['status' => 'fertig', 'befunde' => $akBefunde, 'sprache' => 'it']);
+$baZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$baF]);
+$baFehler = null; try { AkquiseVersand::regelVorlage($baF); } catch (RuntimeException $e) { $baFehler = $e->getMessage(); }
+pruefe('Briefe aus: kein Brieftext, die Ampel sagt „Nur mit Einwilligung“, der nächste Schritt schlägt keinen Brief vor',
+    $baFehler !== null && str_contains($baFehler, 'Briefe sind ausgeschaltet') && AkquiseGate::ampel($baZ)['wort'] === 'Nur mit Einwilligung'
+    && !str_contains((string) (Akquise::naechsterSchritt($baZ + ['vorlage_status' => '', 'vorlage_kanal' => ''])['wort'] ?? ''), 'Brief'));
+$baVon = null; try { AkquiseVersand::vonHand($baF, 'brief', 'Test: Brief von Hand eingeworfen'); } catch (Throwable $e) { $baVon = $e->getMessage(); }
+pruefe('Briefe aus: auch „von Hand eingeworfen“ und der Briefdienst sind zu', $baVon !== null && str_contains($baVon, 'Briefversand ist ausgeschaltet')
+    && str_contains((function () use ($baF) { try { AkquiseBriefdienst::$tokenFest = 'x'; AkquiseBriefdienst::vorschau($baF); return ''; } catch (Throwable $e) { return $e->getMessage(); } finally { AkquiseBriefdienst::$tokenFest = null; } })(), 'nicht erlaubt'));
+$baP = Partner::laden(Partner::anlegen(['name' => 'Paola Ohnebrief', 'email' => 'paola-ob@partner.example', 'status' => 'aktiv']));
+PartnerRecherche::reservieren((int) $baP['id'], $baF);
+pruefe('Briefe aus: „Vecom soll anschreiben“ nimmt keinen Wunsch an', PartnerAnschreiben::briefWuenschen($baP, $baF) === 'ak_aus'
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_briefwunsch WHERE firma_id = ?', [$baF], 0) === 0);
+Db::run("UPDATE akq_firmen SET einwilligung = 'Test-Beleg', email = 'titolare@bottega-ohne-brief.example' WHERE id = ?", [$baF]);
+Db::run('DELETE FROM partner_reservierungen WHERE firma_id = ?', [$baF]);
+AkquiseGate::statusSpeichern($baF);
+$baZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$baF]);
+pruefe('Briefe aus: mit Einwilligung bleibt die E-Mail erlaubt — Text entsteht als E-Mail', AkquiseGate::pruefen($baZ, 'email')['status'] === AkquiseGate::ERLAUBT
+    && Db::wert('SELECT kanal FROM akq_vorlagen WHERE id = ?', [AkquiseVersand::regelVorlage($baF)], '') === 'email');
+$baReiter = (string) file_get_contents($wurzel . '/views/akquise_reiter.php');
+pruefe('Briefe aus: Reiter Brief-Serie weg, Schalter unter Regeln & Versand, Partner-Knopf versteckt',
+    str_contains($baReiter, "if (!AkquiseGate::briefAn()) { unset(\$reiter['briefe']); }") && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'value="akq_brief_schalten"')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'if (!AkquiseGate::briefAn() && ($w === null'));
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -99,6 +99,9 @@ final class AkquiseVersand
         if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
         $kanal = in_array($kanal, ['email', 'brief'], true) ? $kanal
             : (AkquiseGate::ampel($f)['farbe'] === 'gruen' ? 'email' : 'brief');
+        if ($kanal === 'brief' && !AkquiseGate::briefAn()) {
+            throw new RuntimeException('Briefe sind ausgeschaltet. Eine E-Mail geht nur mit Einwilligung — die entsteht über den Website-Check oder einen Einwilligungs-Link nach einem Gespräch.');
+        }
         $audit = Akquise::letzterAudit($firmaId);
         if (!$audit || $audit['status'] !== 'fertig') { throw new RuntimeException('Es gibt noch kein fertiges Audit — ohne Befunde kein Text.'); }
         $sprache = $sprache && isset(AkquiseText::SPRACHEN[$sprache]) ? $sprache : AkquiseText::spracheFuer($f);
@@ -111,6 +114,7 @@ final class AkquiseVersand
         $v = Db::one('SELECT * FROM akq_vorlagen WHERE id = ?', [$vorlageId]);
         if (!$v) { throw new RuntimeException('Vorlage nicht gefunden.'); }
         if ($v['status'] !== 'entwurf') { throw new RuntimeException('Nur Entwürfe lassen sich freigeben.'); }
+        if ($v['kanal'] === 'brief' && !AkquiseGate::briefAn()) { throw new RuntimeException('Briefe sind ausgeschaltet — dieser Brieftext bleibt gespeichert, lässt sich aber nicht freigeben.'); }
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $v['firma_id']]) ?? [];
         $befunde = $v['audit_id'] ? Akquise::befunde((int) $v['audit_id']) : [];
         $hinweise = AkquiseText::pruefen((string) $v['betreff'], (string) $v['text'], (string) $v['sprache'], $befunde, (string) $v['kanal'], $f);

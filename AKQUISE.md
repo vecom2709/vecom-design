@@ -181,3 +181,13 @@ Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
 - An der Firma steht eine Leiste: Neu → Analysiert → Qualifiziert → Kontaktweg → Kontaktiert → Interesse → Termin → Angebot → Verhandlung → Gewonnen, dazu Verloren. Sie wird aus Audit, Score, Gate, Versand, Antworten, Website-Check und Terminen gerechnet (`Akquise::pipeline`). Übersprungene Stufen sind durchgestrichen, und jede Stufe nennt ihren Grund.
 - Nur Angebot, Verhandlung, Gewonnen und Verloren setzt Uwe selbst (Spalte `pipeline`). „Gewonnen“ macht den Betrieb zum Kunden, „Verloren“ sperrt nicht. Beide beenden die Folge-Mails.
 - Briefdienst mit zweiter Versandart: Posta Massiva über dieselbe Openapi-Schnittstelle (`/posta_massiva/`), laut Anbieter ab ca. 0,77 € + IVA statt ca. 1,38 € + IVA. Ab Werk bleibt es bei Posta Ordinaria. Jeder Auftrag merkt sich sein Produkt.
+
+### Briefe ausgeschaltet (27.09.2026)
+
+Uwe: „Briefversand komplett deaktivieren, bis ich entscheide – jetzt nur E-Mail, WhatsApp.“ Ab Werk gilt `akq_brief_an = 0`, und das Gate sagt für den Kanal Brief „Nein“. Damit sind Briefdienst, Brief-Serie, Druckblatt, „Brief schreiben“, „von Hand eingeworfen“ und „Vecom soll anschreiben“ an einer einzigen Stelle zu.
+
+- Ampel und nächster Schritt schlagen keinen Brief mehr vor. Möglich sind nur noch E-Mail mit Einwilligung oder Anruf nach Prüfung.
+- Claude schreibt nur noch Texte, wo eine E-Mail erlaubt ist.
+- Schlüssel, Versandart und die Regeln für Briefe bleiben gespeichert. Wieder einschalten geht unter Regeln & Versand → Briefe per Post.
+
+WhatsApp bleibt im Gate ohne Einwilligung auf „Nein“ (DE und IT). Die bestehende Einwilligung gilt nur für E-Mail.

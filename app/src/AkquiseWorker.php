@@ -192,10 +192,12 @@ final class AkquiseWorker
     private static function texteHolen(array $d): array
     {
         if (!AkquiseGate::schalter('ki')) { return ['ok' => true, 'firmen' => [], 'hinweis' => 'Texte von Claude sind ausgeschaltet.']; }
+        /* Ohne Briefe braucht es Texte nur dort, wo eine E-Mail erlaubt ist -- sonst zahlt Claude für Papier, das nie gedruckt wird. */
+        $nurMail = AkquiseGate::briefAn() ? '' : " AND f.compliance_status = 'CONTACT_ALLOWED'";
         $min = max(0, min(100, (int) ($d['score_min'] ?? 51)));
         $anzahl = max(1, min(20, (int) ($d['anzahl'] ?? 5)));
         $firmen = Db::all("SELECT f.* FROM akq_firmen f
-                            WHERE f.gesperrt = 0 AND f.audit_status = 'fertig' AND f.score >= ?
+                            WHERE f.gesperrt = 0 AND f.audit_status = 'fertig' AND f.score >= ?$nurMail
                               AND f.kontakt_status IN ('neu','qualifiziert')
                               AND NOT EXISTS (SELECT 1 FROM akq_vorlagen v WHERE v.firma_id = f.id AND v.status IN ('entwurf','freigegeben','gesendet'))
                               AND NOT EXISTS (SELECT 1 FROM akq_versand s WHERE s.firma_id = f.id AND s.status IN ('gesendet','von_hand'))

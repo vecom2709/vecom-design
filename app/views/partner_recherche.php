@@ -56,6 +56,9 @@ $kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $
             . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_mail">' . $h($AK('kopieren')) . '</button></div></div>';
     }
     $w = PartnerAnschreiben::wunsch($id);
+    /* Briefversand ausgeschaltet (27.09.2026): „Vecom soll anschreiben“ gibt es dann nicht -- außer ein früherer Wunsch hat einen Stand zu zeigen. */
+    require_once dirname(__DIR__) . '/src/AkquiseGate.php';
+    if (!AkquiseGate::briefAn() && ($w === null || $w['partner_id'] !== (int) $p['id'])) { return $o . '</details>'; }
     $o .= '<div class="ak-vecom"><b>' . $h($AK('vecom')) . '</b><p class="klein" style="margin:4px 0 8px">' . $h($AK('vecom_text')) . '</p>';
     if ($w !== null && $w['partner_id'] === (int) $p['id']) {
         $o .= '<p class="klein ak-stand">' . $h(strtr($AK($w['status'] === 'verschickt' ? 'vecom_raus' : 'vecom_offen'), ['{datum}' => date('d.m.Y', strtotime((string) ($w['erledigt_am'] ?: $w['created_at'])))])) . '</p>';

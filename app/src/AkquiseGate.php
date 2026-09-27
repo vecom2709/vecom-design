@@ -175,6 +175,9 @@ final class AkquiseGate
         if (in_array((string) ($f['kontakt_status'] ?? ''), ['abgelehnt', 'gesperrt'], true)) {
             return ['status' => self::NICHT, 'gruende' => ['Die Firma hat abgelehnt.'], 'regel' => null, 'bedingung' => ''];
         }
+        if ($kanal === 'brief' && !self::briefAn()) {
+            return ['status' => self::NICHT, 'gruende' => ['Briefversand ist ausgeschaltet (Regeln & Versand).'], 'regel' => null, 'bedingung' => ''];
+        }
 
         // 1b. Ein Partner kümmert sich (26.09.2026): Solange er die Firma
         //     reserviert hat, schreibt Vecom sie nicht selbst an -- zwei
@@ -275,8 +278,12 @@ final class AkquiseGate
         if (in_array((string) ($f['kontakt_status'] ?? ''), ['kontaktiert', 'geantwortet', 'kunde'], true)) {
             return ['farbe' => 'grau', 'wort' => 'Schon kontaktiert'];
         }
-        $brief = self::regelErgebnis($land, 'brief', 'ohne');   // Post braucht keine Einwilligung -- die Regel "ohne" gilt fuer alle
+        $brief = self::briefAn() ? self::regelErgebnis($land, 'brief', 'ohne') : self::NICHT;   // Post braucht keine Einwilligung -- die Regel "ohne" gilt fuer alle
         $tel = self::regelErgebnis($land, 'telefon', 'ohne');
+        if (!self::briefAn() && in_array($tel, [self::ERLAUBT, self::PRUEFEN], true) && Akquise::deutschsprachig($f)) {
+            return ['farbe' => 'gelb', 'wort' => 'Per Anruf'];
+        }
+        if (!self::briefAn()) { return ['farbe' => 'grau', 'wort' => 'Nur mit Einwilligung']; }
         if (in_array($brief, [self::ERLAUBT, self::PRUEFEN], true)) {
             return ['farbe' => 'gelb', 'wort' => in_array($tel, [self::ERLAUBT, self::PRUEFEN], true) && Akquise::deutschsprachig($f)
                 ? 'Brief oder Anruf' : 'Per Brief'];
@@ -369,6 +376,26 @@ final class AkquiseGate
     {
         if (!isset(self::SCHALTER[$k])) { throw new InvalidArgumentException('Unbekannter Schalter.'); }
         self::setzen(self::SCHALTER[$k][0], $an ? '1' : '0');
+    }
+
+    /**
+     * Briefe (27.09.2026, Uwe: „Briefversand komplett deaktivieren, bis ich
+     * entscheide – jetzt nur E-Mail, WhatsApp“). Ab Werk AUS. Aus heißt: Das
+     * Gate sagt für den Kanal Brief „Nein“ -- damit sind Briefdienst, Brief-
+     * Serie, Druckblatt, „Brief schreiben“ und „Vecom soll anschreiben“ an
+     * genau einer Stelle zu, und nichts davon muss einzeln abgesichert werden.
+     * Die gespeicherten Regeln für Briefe bleiben stehen, damit das Wieder-
+     * einschalten nichts neu erfinden muss.
+     */
+    public static function briefAn(): bool
+    {
+        return self::einstellung('akq_brief_an', '0') === '1';
+    }
+
+    public static function briefSchalten(bool $an): void
+    {
+        self::setzen('akq_brief_an', $an ? '1' : '0');
+        Akquise::protokoll(null, 'brief', $an ? 'Briefversand eingeschaltet' : 'Briefversand ausgeschaltet — nur E-Mail (mit Einwilligung)');
     }
 
     public static function testbetrieb(): bool

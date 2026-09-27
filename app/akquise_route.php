@@ -316,6 +316,12 @@ if ($post) {
                 $_SESSION['gut'] = ($_POST['wert'] ?? '') !== '' ? 'Stand gesetzt: ' . Akquise::PIPELINE_HAND[(string) $_POST['wert']] . '.' : 'Stand zurückgesetzt.';
                 weiter('akquise/' . $pfId);
 
+            case 'akq_brief_schalten':
+                AkquiseGate::briefSchalten(!empty($_POST['an']));
+                Events::pruefspur('akquise_brief_schalter', 'settings', null, [], ['akq_brief_an' => !empty($_POST['an']) ? '1' : '0']);
+                $_SESSION['gut'] = !empty($_POST['an']) ? 'Briefe sind wieder eingeschaltet.' : 'Briefe sind ausgeschaltet — es bleibt bei E-Mail mit Einwilligung.';
+                $zu('regeln#briefdienst');
+
             case 'akq_check_erledigt':
                 require_once __DIR__ . '/src/AkquiseCheck.php';
                 AkquiseCheck::erledigen((int) ($_POST['check'] ?? 0));
@@ -475,6 +481,10 @@ if ($teil === 'auswertung' || $teil === 'karte') {
     exit;
 }
 
+if ($teil === 'briefe' && !AkquiseGate::briefAn()) {
+    $_SESSION['fehler'] = 'Briefe sind ausgeschaltet — einschalten unter Regeln & Versand.';
+    weiter('akquise/regeln#briefdienst');
+}
 if ($teil === 'briefe') {
     require_once __DIR__ . '/src/AkquiseBriefserie.php';
     ansicht('akquise_briefe', ['kandidaten' => AkquiseBriefserie::kandidaten(), 'offen' => AkquiseBriefserie::offen(), 'bereit' => AkquiseBriefdienst::bereit()]);
@@ -532,6 +542,7 @@ if ($teil !== '' && ctype_digit($teil)) {
     $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
     if (!$f) { $_SESSION['fehler'] = 'Diese Firma gibt es nicht.'; weiter('akquise'); }
     $zusatz = (string) ($teile[2] ?? '');
+    if ($zusatz === 'brief' && !AkquiseGate::briefAn()) { $_SESSION['fehler'] = 'Briefe sind ausgeschaltet.'; weiter('akquise/' . $fid); }
     if ($zusatz === 'brief') {
         /* Druckblatt: eigenes A4 ohne Menue. */
         $audit = Akquise::letzterAudit($fid);

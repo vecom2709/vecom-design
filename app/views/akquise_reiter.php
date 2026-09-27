@@ -5,6 +5,7 @@
 $akqTeil = $akqTeil ?? '';
 $akqG = AkquiseGate::grenzen();
 $reiter = ['' => 'Betriebe', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'termine' => 'Termine', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
+if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgeschaltet (27.09.2026)
 ?>
 <style>
   .akq-reiter{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 16px}

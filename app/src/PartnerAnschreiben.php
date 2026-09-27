@@ -81,6 +81,8 @@ final class PartnerAnschreiben
     public static function briefWuenschen(array $p, int $firmaId): string
     {
         $pid = (int) $p['id'];
+        require_once __DIR__ . '/AkquiseGate.php';
+        if (!AkquiseGate::briefAn()) { return 'ak_aus'; }   // Briefversand ausgeschaltet (27.09.2026) -- der Knopf ist dann gar nicht zu sehen
         $res = Db::one('SELECT r.firma_id, f.name FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                          WHERE r.partner_id = ? AND r.firma_id = ? AND r.bis >= CURDATE()', [$pid, $firmaId]);
         if (!$res) { return 'ak_nicht_deins'; }
