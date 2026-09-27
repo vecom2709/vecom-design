@@ -956,6 +956,84 @@ final class Partner
         return ['ok' => true, 'url' => (string) $l['url']];
     }
 
+    /**
+     * Länder für das Auszahlungskonto (28.09.2026, Uwe: „Die Partner können in
+     * Stripe ihr Land nur Italien, obwohl sie deutsch sind“). Stripe legt das
+     * Land beim Anlegen des Kontos fest; ohne Angabe gilt das Land der
+     * Plattform -- Italien -- und danach ist es nicht mehr änderbar. Deshalb
+     * wählt der Partner das Land VOR dem Anlegen.
+     * „Empfänger“-Konten nur in Italien (Land der Plattform): Stripe zahlt
+     * über Landesgrenzen nicht an Empfänger-Konten („You can't make
+     * cross-border payouts to connected accounts under a recipient service
+     * agreement“). Jedes andere Land bekommt das normale Konto -- auch dann
+     * empfängt es nur Überweisungen.
+     */
+    public const STRIPE_LAENDER = ['IT', 'DE', 'AT', 'CH', 'FR', 'ES', 'NL', 'BE', 'LU', 'PT', 'IE', 'PL', 'GB'];
+    public const STRIPE_LAND_PLATTFORM = 'IT';
+
+    /** Das Land für das Stripe-Konto: gewählt, sonst aus der Sprache (de → Deutschland, sonst Italien). */
+    public static function landFuer(array $p): string
+    {
+        $l = strtoupper((string) ($p['land'] ?? ''));
+        if (in_array($l, self::STRIPE_LAENDER, true)) { return $l; }
+        return ($p['sprache'] ?? '') === 'de' ? 'DE' : 'IT';
+    }
+
+    /**
+     * Das Land setzen. Gibt es schon ein Stripe-Konto in einem anderen Land,
+     * das Stripe noch nicht geprüft hat, wird es gelöscht und beim nächsten
+     * Schritt neu angelegt -- Stripe erlaubt das bei leeren Express-Konten.
+     * Ein geprüftes Konto bleibt, wie es ist (dann entscheidet Vecom).
+     * @return string ok | gleich | bereit | land
+     */
+    public static function landSetzen(array $p, string $land): string
+    {
+        $land = strtoupper(trim($land));
+        if (!in_array($land, self::STRIPE_LAENDER, true)) { return 'land'; }
+        $konto = (string) ($p['stripe_konto'] ?? '');
+        $stripeLand = strtoupper((string) ($p['stripe_land'] ?? ''));
+        if ($konto !== '' && $stripeLand === '') {
+            $a = self::stripe('GET', '/v1/accounts/' . rawurlencode($konto), []);
+            $stripeLand = strtoupper((string) ($a['country'] ?? ''));
+            if ($stripeLand !== '') { Db::run('UPDATE partner SET stripe_land = ? WHERE id = ?', [$stripeLand, (int) $p['id']]); }
+        }
+        if ($konto !== '' && $stripeLand !== '' && $stripeLand !== $land) {
+            if (!empty($p['stripe_bereit'])) { return 'bereit'; }
+            $weg = self::stripe('DELETE', '/v1/accounts/' . rawurlencode($konto), []);
+            Db::run('UPDATE partner SET stripe_konto = NULL, stripe_land = NULL, stripe_bereit = 0 WHERE id = ?', [(int) $p['id']]);
+            Events::protokoll('partner_stripe', 'Stripe-Konto im falschen Land (' . $stripeLand . ') ' . (!empty($weg['deleted']) ? 'gelöscht' : 'abgehängt')
+                . ' — wird mit ' . $land . ' neu angelegt: ' . $p['name'], null, null, null, ['partner_id' => (int) $p['id'], 'konto' => $konto]);
+            if (empty($weg['deleted'])) {
+                Events::melden('partner_stripe', 'Altes Stripe-Konto von ' . $p['name'] . ' bitte im Stripe-Dashboard entfernen', 'info',
+                    'Das Konto ' . $konto . ' war mit ' . $stripeLand . ' angelegt, der Partner wohnt in ' . $land . '. Stripe hat das Löschen abgelehnt: '
+                    . mb_substr((string) ($weg['error']['message'] ?? '?'), 0, 160) . ' — es ist abgehängt; ein neues wird angelegt.', '/partner/' . (int) $p['id']);
+            }
+        }
+        $gleich = strtoupper((string) ($p['land'] ?? '')) === $land;
+        Db::run('UPDATE partner SET land = ? WHERE id = ?', [$land, (int) $p['id']]);
+        return $gleich ? 'gleich' : 'ok';
+    }
+
+    /**
+     * Wo steht die Prüfung bei Stripe? Für die Anzeige im Partnerbereich:
+     * „bereit“, „Stripe prüft noch“ oder „es fehlen Angaben“.
+     * @return array{stand:string, fehlt:int, land:?string}  stand: bereit|pruefung|fehlt|neu|unbekannt
+     */
+    public static function kontoStand(array $p): array
+    {
+        if ((string) ($p['stripe_konto'] ?? '') === '') { return ['stand' => 'neu', 'fehlt' => 0, 'land' => null]; }
+        if (!empty($p['stripe_bereit'])) { return ['stand' => 'bereit', 'fehlt' => 0, 'land' => $p['stripe_land'] ?? null]; }
+        $a = self::stripe('GET', '/v1/accounts/' . rawurlencode((string) $p['stripe_konto']), []);
+        if (!isset($a['id'])) { return ['stand' => 'unbekannt', 'fehlt' => 0, 'land' => $p['stripe_land'] ?? null]; }
+        $land = strtoupper((string) ($a['country'] ?? ''));
+        if ($land !== '' && $land !== (string) ($p['stripe_land'] ?? '')) { Db::run('UPDATE partner SET stripe_land = ? WHERE id = ?', [$land, (int) $p['id']]); }
+        if (($a['capabilities']['transfers'] ?? '') === 'active') { self::kontoPruefen($p); return ['stand' => 'bereit', 'fehlt' => 0, 'land' => $land]; }
+        $r = (array) ($a['requirements'] ?? []);
+        $fehlt = count(array_unique(array_merge((array) ($r['currently_due'] ?? []), (array) ($r['past_due'] ?? []))));
+        $pruefung = count((array) ($r['pending_verification'] ?? []));
+        return ['stand' => $fehlt > 0 ? 'fehlt' : ($pruefung > 0 || !empty($a['details_submitted']) ? 'pruefung' : 'fehlt'), 'fehlt' => $fehlt, 'land' => $land ?: null];
+    }
+
     /** Stripe-Sprachen für die eingebettete Einrichtung, je Sprache der Partnerseite. */
     public const STRIPE_SPRACHE = ['it' => 'it-IT', 'de' => 'de-DE', 'en' => 'en-GB'];
 
@@ -994,7 +1072,9 @@ final class Partner
     {
         $konto = (string) ($p['stripe_konto'] ?? '');
         if ($konto === '') {
+            $land = self::landFuer($p);
             $felder = [
+                'country'                            => $land,
                 'controller[stripe_dashboard][type]' => 'express',
                 'controller[fees][payer]'            => 'application',
                 'controller[losses][payments]'       => 'application',
@@ -1009,7 +1089,9 @@ final class Partner
                manche Fehlerantworten zu einem Schlüssel. Ohne die Stunde bekäme
                der Partner nach dem Freischalten von Connect noch einen Tag
                lang dieselbe alte Absage. */
-            $schluessel = static fn(string $v) => 'partner-konto-' . $p['id'] . '-' . $v . '-' . date('YmdH');
+            $schluessel = static fn(string $v) => 'partner-konto-' . $p['id'] . '-' . $land . '-' . $v . '-' . date('YmdH');
+            /* Außerhalb Italiens gleich das normale Konto (siehe STRIPE_LAENDER). */
+            if ($land !== self::STRIPE_LAND_PLATTFORM) { unset($felder['tos_acceptance[service_agreement]']); }
             $r = self::stripe('POST', '/v1/accounts', $felder, $schluessel('r'));
             $fehler = (string) ($r['error']['message'] ?? '');
 
@@ -1036,7 +1118,7 @@ final class Partner
                 return ['ok' => false, 'grund' => 'stripe', 'text' => $fehler !== '' ? $fehler : 'Stripe hat das Konto nicht angelegt.'];
             }
             $konto = (string) $r['id'];
-            Db::run('UPDATE partner SET stripe_konto = ? WHERE id = ?', [$konto, (int) $p['id']]);
+            Db::run('UPDATE partner SET stripe_konto = ?, stripe_land = ? WHERE id = ?', [$konto, strtoupper((string) ($r['country'] ?? $land)), (int) $p['id']]);
             Events::protokoll('partner_stripe', 'Stripe-Auszahlungskonto angelegt für ' . $p['name'], null, null, null, ['partner_id' => (int) $p['id']]);
         }
         return ['ok' => true, 'konto' => $konto];

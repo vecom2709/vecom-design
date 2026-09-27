@@ -48,6 +48,11 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <?php if (!empty($p['stripe_konto'])): ?><?= $hin('partner_konto_pruefen', 'Stripe-Konto prüfen') ?><?php endif; ?>
     <?php endif; ?>
   </div>
+  <?php if (!empty($p['stripe_konto']) || !empty($p['land'])): /* Land für Stripe (28.09.2026) */ ?>
+    <p class="klein" style="margin-top:8px">Land (vom Partner gewählt): <b><?= Fmt::h((string) ($p['land'] ?: '—')) ?></b>
+      <?php if (!empty($p['stripe_konto'])): ?> · Stripe-Konto angelegt in: <b><?= Fmt::h((string) ($p['stripe_land'] ?: 'noch nicht abgefragt')) ?></b>
+        · <?= !empty($p['stripe_bereit']) ? 'geprüft, Auszahlung möglich' : 'noch nicht geprüft' ?><?php endif; ?></p>
+  <?php endif; ?>
 </div>
 
 <div class="block">

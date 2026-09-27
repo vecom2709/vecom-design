@@ -24,6 +24,8 @@
     var d = new FormData();
     d.append('tat', 'stripe_sitzung');
     d.append('_csrf', form.querySelector('[name=_csrf]').value);
+    var land = form.querySelector('[name=land]');   // 28.09.2026: Stripe legt das Land beim Anlegen fest
+    if (land) { d.append('land', land.value); }
     return fetch(form.action, { method: 'POST', body: d, credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) { if (!j || !j.ok || !j.secret) { throw new Error('keine Sitzung'); } return j.secret; });

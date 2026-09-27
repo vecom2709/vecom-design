@@ -13346,6 +13346,59 @@ pruefe('und auf Serverseiten nur bei einem gewoehnlichen Aufruf',
     str_contains((string) file_get_contents($jsWurzel . '/assets/js/sprache.js'), "data-lang-neu') === '1'")
     && str_contains((string) file_get_contents($jsWurzel . '/app/src/Sprache.php'), "=== 'GET'"));
 
+abschnitt('Partner: Land des Stripe-Kontos und Stand der Prüfung');
+/* 28.09.2026, Uwe: „Die Partner können in Stripe ihr Land nur Italien, obwohl sie deutsch sind“. */
+$slDe = Partner::laden(Partner::anlegen(['name' => 'Dieter Deutsch', 'email' => 'dieter@partner-sl.example', 'status' => 'aktiv', 'sprache' => 'de']));
+$slIt = Partner::laden(Partner::anlegen(['name' => 'Ida Italia', 'email' => 'ida@partner-sl.example', 'status' => 'aktiv', 'sprache' => 'it']));
+pruefe('Land ab Werk aus der Sprache (de → Deutschland, sonst Italien), gewähltes Land geht vor',
+    Partner::landFuer($slDe) === 'DE' && Partner::landFuer($slIt) === 'IT' && Partner::landFuer(['land' => 'at', 'sprache' => 'it']) === 'AT' && Partner::landFuer(['land' => 'XX', 'sprache' => 'en']) === 'IT');
+$slAuf = [];
+Partner::$stripeProbe = static function (string $m, string $weg, array $f, string $k) use (&$slAuf): array {
+    $slAuf[] = [$m, $weg, $f];
+    if ($weg === '/v1/accounts' && $m === 'POST') { return ['id' => 'acct_' . strtolower($f['country'] ?? 'xx') . count($slAuf), 'country' => $f['country'] ?? 'IT']; }
+    if ($weg === '/v1/account_links') { return ['url' => 'https://connect.stripe.com/x']; }
+    if ($m === 'DELETE') { return ['id' => substr($weg, 13), 'deleted' => true]; }
+    if ($m === 'GET' && str_starts_with($weg, '/v1/accounts/')) { return ['id' => substr($weg, 13), 'country' => 'IT', 'capabilities' => ['transfers' => 'inactive'],
+        'requirements' => ['currently_due' => ['individual.verification.document', 'external_account'], 'past_due' => [], 'pending_verification' => []], 'details_submitted' => false]; }
+    return ['error' => ['message' => '?']];
+};
+$slR = Partner::kontoEinrichten($slDe, 'https://pruefung.example/partner.php?t=x');
+$slPost = array_values(array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts'));
+pruefe('Stripe: das Konto entsteht mit dem Land des Partners (Deutschland) und als normales Konto -- nicht als „Empfänger“',
+    $slR['ok'] && ($slPost[0][2]['country'] ?? '') === 'DE' && !isset($slPost[0][2]['tos_acceptance[service_agreement]'])
+    && Partner::laden((int) $slDe['id'])['stripe_land'] === 'DE');
+$slAuf = [];
+Partner::kontoEinrichten($slIt, 'https://pruefung.example/partner.php?t=y');
+pruefe('Stripe: in Italien (Land der Plattform) bleibt es beim „Empfänger“-Konto', ($slAuf[0][2]['country'] ?? '') === 'IT' && ($slAuf[0][2]['tos_acceptance[service_agreement]'] ?? '') === 'recipient');
+/* Altes Konto im falschen Land (vor dem 28.09. angelegt) */
+Db::run("UPDATE partner SET stripe_konto = 'acct_altit', stripe_land = NULL, stripe_bereit = 0, land = NULL WHERE id = ?", [(int) $slDe['id']]);
+$slAuf = [];
+$slW = Partner::landSetzen(Partner::laden((int) $slDe['id']), 'DE');
+$slNach = Partner::laden((int) $slDe['id']);
+pruefe('Land wechseln: ungeprüftes Konto in Italien wird bei Stripe gelöscht und abgehängt, das Land gemerkt',
+    $slW === 'ok' && $slNach['land'] === 'DE' && $slNach['stripe_konto'] === null
+    && count(array_filter($slAuf, static fn($a) => $a[0] === 'DELETE' && $a[1] === '/v1/accounts/acct_altit')) === 1);
+Partner::kontoEinrichten($slNach, 'https://pruefung.example/partner.php?t=x');
+pruefe('… und beim nächsten Schritt mit Deutschland neu angelegt', Partner::laden((int) $slDe['id'])['stripe_land'] === 'DE');
+Db::run("UPDATE partner SET stripe_konto = 'acct_fertig', stripe_land = 'IT', stripe_bereit = 1 WHERE id = ?", [(int) $slIt['id']]);
+$slAuf = [];
+pruefe('Ein geprüftes Konto wird nie gelöscht; unbekanntes Land wird abgewiesen',
+    Partner::landSetzen(Partner::laden((int) $slIt['id']), 'DE') === 'bereit' && Partner::laden((int) $slIt['id'])['stripe_konto'] === 'acct_fertig'
+    && !array_filter($slAuf, static fn($a) => $a[0] === 'DELETE') && Partner::landSetzen($slDe, 'ZZ') === 'land');
+$slSt = Partner::kontoStand(Partner::laden((int) $slDe['id']));
+pruefe('Stand der Prüfung: fehlende Angaben werden gezählt', $slSt['stand'] === 'fehlt' && $slSt['fehlt'] === 2, json_encode($slSt));
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['id' => 'acct_x', 'country' => 'DE', 'capabilities' => ['transfers' => 'pending'],
+    'requirements' => ['currently_due' => [], 'past_due' => [], 'pending_verification' => ['individual.verification.document']], 'details_submitted' => true];
+pruefe('Stand der Prüfung: alles abgegeben, Stripe prüft noch', Partner::kontoStand(Partner::laden((int) $slDe['id']))['stand'] === 'pruefung');
+Partner::$stripeProbe = static fn(string $m, string $weg, array $f, string $k): array => ['id' => 'acct_x', 'country' => 'DE', 'capabilities' => ['transfers' => 'active'], 'requirements' => []];
+pruefe('Stand der Prüfung: Überweisungen aktiv → bereit, und am Partner vermerkt', Partner::kontoStand(Partner::laden((int) $slDe['id']))['stand'] === 'bereit'
+    && (int) Partner::laden((int) $slDe['id'])['stripe_bereit'] === 1 && Partner::kontoStand(Partner::laden((int) $slDe['id']))['stand'] === 'bereit');
+Partner::$stripeProbe = null;
+$slPa = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerbereich: Landwahl vor der Einrichtung, Anleitung zur Prüfung, beide Wege (eingebettet und Link) setzen das Land',
+    str_contains($slPa, 'name="land"') && str_contains($slPa, "Texte::PARTNER['konto_wie']") && substr_count($slPa, 'Partner::landSetzen($p') === 2
+    && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-stripe.js'), "d.append('land', land.value)"));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
