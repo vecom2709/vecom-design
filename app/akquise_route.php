@@ -194,6 +194,7 @@ if ($post) {
                 if (!empty($_POST['loeschen'])) { AkquiseBriefdienst::tokenSetzen(''); }
                 elseif (trim((string) ($_POST['token'] ?? '')) !== '') { AkquiseBriefdienst::tokenSetzen((string) $_POST['token']); }
                 AkquiseBriefdienst::testSetzen(!empty($_POST['test']));
+                if (isset(AkquiseBriefdienst::PRODUKTE[(string) ($_POST['produkt'] ?? '')])) { AkquiseBriefdienst::produktSetzen((string) $_POST['produkt']); }
                 Events::pruefspur('akquise_briefdienst', 'settings', 0, [], ['test' => !empty($_POST['test']), 'token_neu' => trim((string) ($_POST['token'] ?? '')) !== '', 'geloescht' => !empty($_POST['loeschen'])]);
                 $_SESSION['gut'] = 'Briefdienst gespeichert' . (!empty($_POST['test']) ? ' (Testbetrieb).' : ' — ECHTBETRIEB.');
                 $zu('regeln#briefdienst');
@@ -308,6 +309,12 @@ if ($post) {
                 if ($tat === 'akq_termin_absagen') { AkquiseTermin::absagen((int) ($_POST['termin'] ?? 0), 'vecom'); $_SESSION['gut'] = 'Termin abgesagt — die Nachricht ist raus.'; }
                 else { AkquiseTermin::erledigt((int) ($_POST['termin'] ?? 0)); }
                 weiter('akquise/termine#kommend');
+
+            case 'akq_pipeline':
+                $pfId = (int) ($_POST['firma'] ?? 0);
+                Akquise::pipelineSetzen($pfId, (string) ($_POST['wert'] ?? ''));
+                $_SESSION['gut'] = ($_POST['wert'] ?? '') !== '' ? 'Stand gesetzt: ' . Akquise::PIPELINE_HAND[(string) $_POST['wert']] . '.' : 'Stand zurückgesetzt.';
+                weiter('akquise/' . $pfId);
 
             case 'akq_check_erledigt':
                 require_once __DIR__ . '/src/AkquiseCheck.php';

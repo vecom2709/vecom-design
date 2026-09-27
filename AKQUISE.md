@@ -175,4 +175,9 @@ Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
 - Eine Zeit lässt sich nicht doppelt vergeben: Der eindeutige Schlüssel `(beginn, belegt)` in der Datenbank verhindert es, eine Absage setzt `belegt` auf NULL.
 - Nach dem Buchen gehen eine Bestätigung mit Absagelink und eine Kalenderdatei (.ics) an den Buchenden, Uwe bekommt eine Meldung. Am Vortag folgt eine Erinnerung (Cron `akquise_termine`, genau einmal). Sagt Vecom ab, bekommt der Kunde eine Mail mit dem Link zu einer neuen Zeit.
 - Die Folge-Mail „Gespräch“ bekommt über `{termin}` den Buchungslink, sobald es freie Zeiten gibt.
-- Offen: G (Pipeline-Anzeige Termin/Angebot/Verloren an der Firma).
+
+### G: Pipeline an der Firma und günstigerer Brief (27.09.2026)
+
+- An der Firma steht eine Leiste: Neu → Analysiert → Qualifiziert → Kontaktweg → Kontaktiert → Interesse → Termin → Angebot → Verhandlung → Gewonnen, dazu Verloren. Sie wird aus Audit, Score, Gate, Versand, Antworten, Website-Check und Terminen gerechnet (`Akquise::pipeline`). Übersprungene Stufen sind durchgestrichen, und jede Stufe nennt ihren Grund.
+- Nur Angebot, Verhandlung, Gewonnen und Verloren setzt Uwe selbst (Spalte `pipeline`). „Gewonnen“ macht den Betrieb zum Kunden, „Verloren“ sperrt nicht. Beide beenden die Folge-Mails.
+- Briefdienst mit zweiter Versandart: Posta Massiva über dieselbe Openapi-Schnittstelle (`/posta_massiva/`), laut Anbieter ab ca. 0,77 € + IVA statt ca. 1,38 € + IVA. Ab Werk bleibt es bei Posta Ordinaria. Jeder Auftrag merkt sich sein Produkt.

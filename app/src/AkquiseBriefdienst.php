@@ -72,6 +72,44 @@ final class AkquiseBriefdienst
 
     public static function bereit(): bool { return self::token() !== ''; }
 
+    /* ==================================================================
+       VERSANDART (27.09.2026, Uwe: „günstigere Alternative für den Brief“)
+
+       Derselbe Anbieter, dieselbe Schnittstelle, zwei Produkte:
+         ordinarie      Posta Ordinaria (Posta 4) -- laut Openapi ab 1,38 € + IVA
+         posta_massiva  Posta Massiva -- laut Openapi ab 0,77 € + IVA inkl.
+                        Druck, Deckblatt und Porto; Preis je nach PLZ-Zone
+       Beide: Auftrag anlegen (Preis kommt zurück), dann erst bestätigen. Der
+       Preis in der Vorschau ist immer der echte aus der Antwort -- die Zahlen
+       hier sind nur die Angaben des Anbieters (Stand 27.09.2026).
+       Der Schlüssel braucht für Posta Massiva die Berechtigung
+       ws.ufficiopostale.com/posta_massiva. Jeder Auftrag merkt sich, mit
+       welchem Produkt er angelegt wurde (akq_briefe.dienst), damit die
+       Bestätigung an dieselbe Stelle geht.
+       ================================================================== */
+    public const PRODUKTE = [
+        'ordinarie' => ['Posta Ordinaria (Posta 4)', 'ab ca. 1,38 € + IVA je Brief'],
+        'posta_massiva' => ['Posta Massiva', 'ab ca. 0,77 € + IVA je Brief, Preis nach PLZ-Zone'],
+    ];
+
+    public static function produkt(): string
+    {
+        $p = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_brief_produkt'", [], 'ordinarie');
+        return isset(self::PRODUKTE[$p]) ? $p : 'ordinarie';
+    }
+
+    public static function produktSetzen(string $p): void
+    {
+        if (!isset(self::PRODUKTE[$p])) { throw new InvalidArgumentException('Unbekannte Versandart.'); }
+        Db::run("INSERT INTO settings (skey, svalue) VALUES ('akq_brief_produkt', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$p]);
+    }
+
+    /** Pfad beim Anbieter für einen Auftrag -- alte Aufträge (dienst = ufficiopostale) liefen über ordinarie. */
+    private static function pfad(string $dienst): string
+    {
+        return $dienst === 'posta_massiva' ? '/posta_massiva/' : '/ordinarie/';
+    }
+
     /* ------------------------------ Adressen ----------------------------- */
 
     public const DUG = ['via', 'viale', 'piazza', 'piazzale', 'corso', 'largo', 'vicolo', 'contrada', 'c.da', 'strada', 'lungomare', 'salita',
@@ -294,7 +332,8 @@ final class AkquiseBriefdienst
         if (!$von['ok']) { throw new RuntimeException($von['grund']); }
         $analyse = Db::one('SELECT * FROM akq_analysen WHERE firma_id = ? AND aktiv = 1 ORDER BY id DESC LIMIT 1', [$firmaId]);
         $pdf = self::pdf($f, $v, $analyse ? AkquiseAnalyse::adresse($analyse) : '', self::partnerFuerBrief($firmaId));
-        $a = self::anfrage('POST', '/ordinarie/', [
+        $produkt = self::produkt();
+        $a = self::anfrage('POST', self::pfad($produkt), [
             'mittente' => $von['daten'], 'destinatari' => [$an['daten']],
             'documento' => ['data:application/pdf;base64,' . base64_encode($pdf)],
             'opzioni' => ['fronteretro' => false, 'colori' => true, 'autoconfirm' => false],
@@ -308,12 +347,12 @@ final class AkquiseBriefdienst
         }
         $euro = (float) ($d['pricing']['totale']['importo_totale'] ?? 0);
         $id = (int) Db::insert('akq_briefe', [
-            'firma_id' => $firmaId, 'vorlage_id' => (int) $v['id'], 'test' => $test, 'auftrag' => mb_substr((string) $d['id'], 0, 80),
+            'firma_id' => $firmaId, 'vorlage_id' => (int) $v['id'], 'test' => $test, 'dienst' => $produkt, 'auftrag' => mb_substr((string) $d['id'], 0, 80),
             'status' => 'vorschau', 'kosten_cents' => (int) round($euro * 100), 'seiten' => (int) ($d['documento_validato']['pagine'] ?? 0) ?: null,
             'pdf_url' => mb_substr((string) ($d['documento_validato']['pdf'] ?? ''), 0, 500) ?: null,
             'actor' => Auth::angemeldet() ? Auth::name() : 'System',
         ]);
-        Akquise::protokoll($firmaId, 'brief', 'Brief beim Briefdienst vorbereitet' . ($test ? ' (TEST)' : '') . ' — ' . number_format($euro, 2, ',', '.') . ' €, noch nicht verschickt');
+        Akquise::protokoll($firmaId, 'brief', 'Brief beim Briefdienst vorbereitet (' . self::PRODUKTE[$produkt][0] . ')' . ($test ? ' (TEST)' : '') . ' — ' . number_format($euro, 2, ',', '.') . ' €, noch nicht verschickt');
         return $id;
     }
 
@@ -329,7 +368,7 @@ final class AkquiseBriefdienst
             Db::update('akq_briefe', $briefId, ['status' => 'verworfen', 'fehler' => 'Gate: ' . mb_substr((string) ($gate['gruende'][0] ?? ''), 0, 200)]);
             throw new RuntimeException('Inzwischen nicht mehr erlaubt: ' . ($gate['gruende'][0] ?? ''));
         }
-        $a = self::anfrage('PATCH', '/ordinarie/' . rawurlencode((string) $b['auftrag']), ['confirmed' => true]);
+        $a = self::anfrage('PATCH', self::pfad((string) $b['dienst']) . rawurlencode((string) $b['auftrag']), ['confirmed' => true]);
         if ($a['status'] < 200 || $a['status'] >= 300) {
             Db::update('akq_briefe', $briefId, ['fehler' => self::fehlertext($a)]);
             throw new RuntimeException('Der Briefdienst hat die Bestätigung nicht angenommen (' . self::fehlertext($a) . '). Nichts wurde verschickt.');

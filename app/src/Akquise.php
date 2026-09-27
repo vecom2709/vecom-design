@@ -79,6 +79,90 @@ final class Akquise
         return 'neu';
     }
 
+    /* ==================================================================
+       PIPELINE (27.09.2026, Uwe: „Pipeline-Anzeige an der Firma“)
+
+       Die fünf Stufen oben bleiben für Listen und Filter. An der Firma
+       steht der ganze Weg bis zum Auftrag. Die Stufen werden aus dem
+       gerechnet, was schon da ist -- nur Angebot, Verhandlung, Gewonnen und
+       Verloren setzt Uwe selbst (Spalte pipeline). Eine zweite, von Hand
+       gepflegte Wahrheit über „kontaktiert“ oder „Termin“ gibt es nicht.
+       ================================================================== */
+    public const PIPELINE = [
+        'neu' => 'Neu', 'analysiert' => 'Analysiert', 'qualifiziert' => 'Qualifiziert', 'kontaktweg' => 'Kontaktweg',
+        'kontaktiert' => 'Kontaktiert', 'interesse' => 'Interesse', 'termin' => 'Termin', 'angebot' => 'Angebot',
+        'verhandlung' => 'Verhandlung', 'gewonnen' => 'Gewonnen',
+    ];
+    /** Was Uwe selbst setzen darf. */
+    public const PIPELINE_HAND = ['angebot' => 'Angebot geschickt', 'verhandlung' => 'In Verhandlung', 'gewonnen' => 'Gewonnen', 'verloren' => 'Verloren'];
+
+    /**
+     * @return array{jetzt:string, verloren:bool, erreicht:array<string,string>}  erreicht: Stufe => woran man es sieht
+     */
+    public static function pipeline(array $f): array
+    {
+        $id = (int) $f['id'];
+        $wert = static function (string $sql, array $p = []) { try { return Db::wert($sql, $p, 0); } catch (Throwable $e) { return 0; } };
+        $e = ['neu' => 'gefunden am ' . date('d.m.Y', strtotime((string) ($f['recherchiert_am'] ?? $f['created_at'] ?? 'now')))];
+        if (in_array((string) $f['audit_status'], ['fertig', 'keine_website'], true)) {
+            $e['analysiert'] = $f['audit_status'] === 'fertig' ? 'Website geprüft' : 'keine eigene Website';
+        }
+        $check = (int) $wert('SELECT COUNT(*) FROM akq_checks WHERE firma_id = ?', [$id]);
+        if (((int) ($f['score'] ?? 0)) >= 51 || in_array((string) $f['kontakt_status'], ['qualifiziert', 'vorlage', 'freigegeben'], true) || $check > 0) {
+            $e['qualifiziert'] = $check > 0 ? 'hat selbst den Website-Check gemacht' : 'Chance ' . (int) ($f['score'] ?? 0);
+        }
+        require_once __DIR__ . '/AkquiseGate.php';
+        $amp = AkquiseGate::ampel($f);
+        /* Ein Weg (Brief, Anruf) gibt es für fast jeden Betrieb -- als Stufe zählt er erst, wenn der Betrieb auch in Frage kommt. */
+        if (trim((string) ($f['einwilligung'] ?? '')) !== '' || (isset($e['qualifiziert']) && in_array($amp['farbe'], ['gruen', 'gelb'], true))) {
+            $e['kontaktweg'] = trim((string) ($f['einwilligung'] ?? '')) !== '' ? 'Einwilligung liegt vor' : $amp['wort'];
+        }
+        $gesendet = (int) $wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status IN ('gesendet','von_hand')", [$id]);
+        if ($gesendet > 0 || in_array((string) $f['kontakt_status'], ['kontaktiert', 'geantwortet', 'kunde'], true)) {
+            $e['kontaktiert'] = $gesendet . ' ' . ($gesendet === 1 ? 'Kontakt' : 'Kontakte');
+        }
+        $positiv = (int) $wert("SELECT COUNT(*) FROM akq_antworten WHERE firma_id = ? AND klasse IN ('INTERESTED','MORE_INFO','CALL_REQUEST','PRICE_REQUEST')", [$id]);
+        $wunsch = (int) $wert('SELECT COUNT(*) FROM akq_checks WHERE firma_id = ? AND ausfuehrlich = 1', [$id]);
+        $termine = (int) $wert("SELECT COUNT(*) FROM akq_termine WHERE firma_id = ? AND status IN ('gebucht','erledigt')", [$id]);
+        if ($positiv > 0 || $wunsch > 0 || $termine > 0) {
+            $e['interesse'] = $positiv > 0 ? 'positive Antwort' : ($wunsch > 0 ? 'will die ausführliche Analyse' : 'hat einen Termin gebucht');
+        }
+        if ($termine > 0) { $e['termin'] = $termine === 1 ? 'Termin gebucht' : $termine . ' Termine'; }
+        $hand = (string) ($f['pipeline'] ?? '');
+        $am = !empty($f['pipeline_am']) ? ' am ' . date('d.m.Y', strtotime((string) $f['pipeline_am'])) : '';
+        foreach (['angebot', 'verhandlung', 'gewonnen'] as $k) {
+            if (array_search($hand, array_keys(self::PIPELINE), true) >= array_search($k, array_keys(self::PIPELINE), true) && isset(self::PIPELINE[$hand])) {
+                $e[$k] = $k === $hand ? 'von dir gesetzt' . $am : 'erledigt';
+            }
+        }
+        if ((string) $f['kontakt_status'] === 'kunde' || (int) ($f['bestandskunde'] ?? 0) === 1) { $e['gewonnen'] = $e['gewonnen'] ?? 'Kunde geworden'; }
+        $jetzt = 'neu';
+        foreach (array_keys(self::PIPELINE) as $k) { if (isset($e[$k])) { $jetzt = $k; } }
+        $verloren = $hand === 'verloren' || ((string) $f['kontakt_status'] === 'abgelehnt' && $jetzt !== 'gewonnen');
+        return ['jetzt' => $jetzt, 'verloren' => $verloren, 'erreicht' => $e];
+    }
+
+    /** Angebot / Verhandlung / Gewonnen / Verloren von Hand setzen ('' = zurück auf das Gerechnete). */
+    public static function pipelineSetzen(int $id, string $wert): void
+    {
+        if ($wert !== '' && !isset(self::PIPELINE_HAND[$wert])) { throw new InvalidArgumentException('Unbekannte Stufe.'); }
+        $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$id]);
+        if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
+        $neu = ['pipeline' => $wert !== '' ? $wert : null, 'pipeline_am' => $wert !== '' ? date('Y-m-d H:i:s') : null];
+        if ($wert === 'gewonnen' && !in_array((string) $f['kontakt_status'], ['kunde'], true)) { $neu['kontakt_status'] = 'kunde'; }
+        Db::update('akq_firmen', $id, $neu);
+        Events::pruefspur('akquise_pipeline', 'akq_firmen', $id, ['pipeline' => $f['pipeline'] ?? null, 'kontakt_status' => $f['kontakt_status']], $neu);
+        self::protokoll($id, 'pipeline', $wert !== '' ? 'Stand gesetzt: ' . self::PIPELINE_HAND[$wert] : 'Stand zurückgesetzt (wieder aus den Daten gerechnet)');
+        /* Gewonnen oder verloren: keine Folge-Mails mehr. */
+        if (in_array($wert, ['gewonnen', 'verloren'], true)) {
+            try {
+                require_once __DIR__ . '/AkquiseFolge.php';
+                $fo = Db::wert("SELECT id FROM akq_folgen WHERE firma_id = ? AND status <> 'beendet'", [$id], null);
+                if ($fo !== null) { AkquiseFolge::beenden((int) $fo, $wert === 'gewonnen' ? 'Gewonnen — der Kundenweg übernimmt' : 'Als verloren markiert'); }
+            } catch (Throwable $e) { }
+        }
+    }
+
     /** "Chance" statt "Score": Zahl plus ein Wort, das man ohne Legende versteht. */
     public static function chanceWort(?int $score): string
     {

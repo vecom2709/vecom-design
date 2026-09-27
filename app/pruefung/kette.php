@@ -12851,6 +12851,70 @@ pruefe('Termine: jeder Text dreisprachig; Seite ohne Skript, Absagen nur per Kno
 AkquiseTermin::einstellungenSetzen(array_fill(1, 7, ''), 30, 18, 21, '', true);
 
 /* ============================================================================
+   Pipeline an der Firma (27.09.2026)
+   Gerechnet aus den Daten; nur Angebot bis Verloren von Hand.
+   ============================================================================ */
+abschnitt('Pipeline an der Firma');
+$plA = Akquise::firmaMelden(['name' => 'Trattoria Pipeline', 'land' => 'IT', 'stadt' => 'Sciacca', 'url' => 'https://trattoria-pipeline.example/', 'quelle' => 'test:pipeline1']);
+$plF = (int) $plA['id'];
+$plStand = static fn() => Akquise::pipeline(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$plF]) ?? []);
+pruefe('Pipeline: frisch gefunden steht auf „Neu“', $plStand()['jetzt'] === 'neu' && !$plStand()['verloren']);
+Db::run("UPDATE akq_firmen SET audit_status = 'fertig', score = 74 WHERE id = ?", [$plF]);
+pruefe('Pipeline: geprüft und Chance 74 → „Qualifiziert“ oder schon „Kontaktweg“ (Brief möglich), jeweils mit Grund', in_array($plStand()['jetzt'], ['qualifiziert', 'kontaktweg'], true) && isset($plStand()['erreicht']['analysiert']) && str_contains($plStand()['erreicht']['qualifiziert'] ?? '', '74'));
+Db::insert('akq_versand', ['firma_id' => $plF, 'kanal' => 'brief', 'status' => 'von_hand', 'compliance' => 'REVIEW_REQUIRED']);
+Db::insert('akq_antworten', ['firma_id' => $plF, 'eingang_am' => date('Y-m-d H:i:s'), 'klasse' => 'INTERESTED', 'klasse_quelle' => 'hand']);
+$plS = $plStand();
+pruefe('Pipeline: Brief von Hand + positive Antwort → „Interesse“, „Kontaktiert“ erreicht', $plS['jetzt'] === 'interesse' && isset($plS['erreicht']['kontaktiert']), json_encode($plS));
+Db::insert('akq_termine', ['token' => bin2hex(random_bytes(16)), 'beginn' => date('Y-m-d H:i:s', time() + 86400 * 3), 'ende' => date('Y-m-d H:i:s', time() + 86400 * 3 + 1800),
+    'belegt' => 1, 'thema' => 'neu', 'firma_id' => $plF, 'created_at' => date('Y-m-d H:i:s')]);
+pruefe('Pipeline: gebuchter Termin → „Termin“', $plStand()['jetzt'] === 'termin');
+Akquise::pipelineSetzen($plF, 'verhandlung');
+$plS = $plStand();
+pruefe('Pipeline: von Hand „In Verhandlung“ — Angebot gilt als erledigt, steht im Protokoll', $plS['jetzt'] === 'verhandlung' && isset($plS['erreicht']['angebot'])
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND schritt = 'pipeline'", [$plF], 0) === 1);
+Db::run("UPDATE akq_firmen SET einwilligung = 'Test', email = 'wirt@trattoria-pipeline.example' WHERE id = ?", [$plF]);
+AkquiseFolge::starten($plF);
+Akquise::pipelineSetzen($plF, 'gewonnen');
+pruefe('Pipeline: „Gewonnen“ macht den Betrieb zum Kunden und beendet die Folge-Mails',
+    Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [$plF], '') === 'kunde' && $plStand()['jetzt'] === 'gewonnen'
+    && Db::wert('SELECT status FROM akq_folgen WHERE firma_id = ?', [$plF], '') === 'beendet');
+Akquise::pipelineSetzen($plF, 'verloren');
+pruefe('Pipeline: „Verloren“ wird angezeigt, gesperrt wird dadurch nicht', $plStand()['verloren'] && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$plF], 1) === 0);
+$plFehler = false; try { Akquise::pipelineSetzen($plF, 'kontaktiert'); } catch (InvalidArgumentException $e) { $plFehler = true; }
+pruefe('Pipeline: gerechnete Stufen lassen sich nicht von Hand setzen', $plFehler);
+pruefe('Pipeline: Leiste an der Firma mit Grund je Stufe, Rückfrage bei Gewonnen/Verloren',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), 'Akquise::pipeline($f)') && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "'gewonnen' => 'Als gewonnen markieren?")
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_pipeline':"));
+
+/* Posta Massiva als günstigere Versandart (27.09.2026) */
+abschnitt('Briefdienst: Versandart Posta Massiva');
+require_once $wurzel . '/src/AkquiseBriefdienst.php';
+$pmA = Akquise::firmaMelden(['name' => 'Pasticceria Massiva', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Licata',
+    'plz' => '92027', 'adresse' => 'Via Roma 8', 'url' => 'https://pasticceria-massiva.example/', 'branche' => 'restaurant', 'quelle' => 'test:massiva1']);
+Akquise::auditMelden((int) $pmA['id'], ['status' => 'fertig', 'befunde' => $akBefunde, 'sprache' => 'it']);
+AkquiseVersand::freigeben(AkquiseVersand::regelVorlage((int) $pmA['id'], 'it', 'brief'));
+$pmAufrufe = [];
+AkquiseBriefdienst::$tokenFest = 'kette-token';
+AkquiseBriefdienst::$netz = static function (string $m, string $u, ?array $b) use (&$pmAufrufe): array {
+    $pmAufrufe[] = [$m, $u];
+    return $m === 'POST'
+        ? ['status' => 201, 'json' => ['success' => true, 'data' => [['id' => 'pm-1', 'documento_validato' => ['pagine' => 2], 'pricing' => ['totale' => ['importo_totale' => 0.94]]]]]]
+        : ['status' => 200, 'json' => ['success' => true, 'data' => [['id' => 'pm-1', 'confirmed' => true]]]];
+};
+pruefe('Versandart ab Werk: Posta Ordinaria (nichts ändert sich ohne Entscheidung)', AkquiseBriefdienst::produkt() === 'ordinarie');
+AkquiseBriefdienst::produktSetzen('posta_massiva');
+AkquiseBriefdienst::testSetzen(true);
+$pmB = AkquiseBriefdienst::vorschau((int) $pmA['id']);
+AkquiseBriefdienst::produktSetzen('ordinarie');   // umgestellt zwischen Vorschau und Senden: der Auftrag bleibt bei seinem Produkt
+AkquiseBriefdienst::senden($pmB, 'Kette');
+pruefe('Posta Massiva: Auftrag an /posta_massiva/, Bestätigung an dieselbe Stelle, Preis aus der Antwort (0,94 €)',
+    str_ends_with($pmAufrufe[0][1], '/posta_massiva/') && $pmAufrufe[1][0] === 'PATCH' && str_ends_with($pmAufrufe[1][1], '/posta_massiva/pm-1')
+    && (int) Db::wert('SELECT kosten_cents FROM akq_briefe WHERE id = ?', [$pmB], 0) === 94 && Db::wert('SELECT dienst FROM akq_briefe WHERE id = ?', [$pmB], '') === 'posta_massiva', json_encode($pmAufrufe));
+$pmFalsch = false; try { AkquiseBriefdienst::produktSetzen('taube'); } catch (InvalidArgumentException $e) { $pmFalsch = true; }
+pruefe('Versandart: nur die zwei bekannten Produkte', $pmFalsch);
+AkquiseBriefdienst::$netz = null; AkquiseBriefdienst::$tokenFest = null;
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

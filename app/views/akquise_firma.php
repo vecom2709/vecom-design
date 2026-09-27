@@ -69,11 +69,25 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
   <?php require_once dirname(__DIR__) . '/src/PartnerRecherche.php'; $akqRes = PartnerRecherche::reserviertVon((int) $f['id']); if ($akqRes): ?>
     <div class="hinweis" style="margin:10px 0">★ Partner <b><?= Fmt::h((string) $akqRes['name']) ?></b> kümmert sich um diesen Betrieb (reserviert bis <?= Fmt::h(date('d.m.Y', strtotime((string) $akqRes['bis']))) ?>). Bis dahin nicht selbst ansprechen — die Versandsperre greift ohnehin.</div>
   <?php endif; ?>
-  <ol class="akq-stufen5" aria-label="Wo steht dieser Betrieb?">
-    <?php foreach (Akquise::STUFEN5 as $k => [$wort]): $nr = (int) array_search($k, $stufenReihe, true); ?>
-      <li class="<?= $nr < $stufeNr ? 'st-fertig' : ($nr === $stufeNr ? 'st-jetzt' : '') ?>"<?= $nr === $stufeNr ? ' aria-current="step"' : '' ?>><?= Fmt::h($wort) ?></li>
+  <?php /* Pipeline (27.09.2026): der ganze Weg bis zum Auftrag, aus den Daten gerechnet; Angebot bis Verloren setzt Uwe. */
+    $pl = Akquise::pipeline($f); $plReihe = array_keys(Akquise::PIPELINE); $plNr = (int) array_search($pl['jetzt'], $plReihe, true); ?>
+  <ol class="akq-stufen5 akq-pipeline" aria-label="Wo steht dieser Betrieb?">
+    <?php foreach (Akquise::PIPELINE as $k => $wort): $nr = (int) array_search($k, $plReihe, true);
+      $grund = $pl['erreicht'][$k] ?? ($nr > $plNr ? 'noch nicht' : 'übersprungen'); ?>
+      <li class="<?= !$pl['verloren'] && $nr === $plNr ? 'st-jetzt' : ($nr <= $plNr ? (isset($pl['erreicht'][$k]) ? 'st-fertig' : 'st-ueber') : '') ?>"
+          title="<?= Fmt::h($wort . ': ' . $grund) ?>"<?= !$pl['verloren'] && $nr === $plNr ? ' aria-current="step"' : '' ?>><?= Fmt::h($wort) ?></li>
     <?php endforeach; ?>
+    <?php if ($pl['verloren']): ?><li class="st-verloren" aria-current="step">Verloren</li><?php endif; ?>
   </ol>
+  <div class="akq-pipeline-hand">
+    <span class="akq-klein"><?= Fmt::h(Akquise::PIPELINE[$pl['jetzt']] ?? '') ?>: <?= Fmt::h($pl['erreicht'][$pl['jetzt']] ?? '') ?> · Stand setzen:</span>
+    <?php $plFragen = ['gewonnen' => 'Als gewonnen markieren? Der Betrieb gilt dann als Kunde, Folge-Mails enden.', 'verloren' => 'Als verloren markieren? Folge-Mails enden. Gesperrt wird der Betrieb dadurch nicht.'];
+      foreach (Akquise::PIPELINE_HAND + (!empty($f['pipeline']) ? ['' => 'zurücksetzen'] : []) as $k => $w): ?>
+      <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:inline"<?= isset($plFragen[$k]) ? ' data-frage="' . Fmt::h($plFragen[$k]) . '" data-ja="Ja"' : '' ?>><?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="akq_pipeline"><input type="hidden" name="firma" value="<?= $fid ?>"><input type="hidden" name="wert" value="<?= $k ?>">
+        <button class="knopf klein<?= ($f['pipeline'] ?? '') === $k && $k !== '' ? ' akq-los' : '' ?>"><?= Fmt::h($w) ?></button></form>
+    <?php endforeach; ?>
+  </div>
 </div>
 <?php if ($schritt !== null): ?>
   <div class="akq-schritt">

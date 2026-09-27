@@ -61,6 +61,10 @@ $reiter = ['' => 'Betriebe', 'assistent' => 'Assistent', 'karte' => 'Karte', 'au
   .akq-stufen5 li{display:block;font-size:12.5px;line-height:1.4;padding:5px 12px;color:var(--leise);border:1px solid var(--linie);margin-left:-1px}
   .akq-stufen5 li:first-child{border-radius:999px 0 0 999px;margin-left:0} .akq-stufen5 li:last-child{border-radius:0 999px 999px 0}
   .akq-stufen5 li.st-fertig{color:var(--dim);background:rgba(241,211,139,.05)}
+  .akq-pipeline li{padding:5px 10px;font-size:12px}
+  .akq-stufen5 li.st-ueber{color:var(--leise);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.25);opacity:.75}
+  .akq-stufen5 li.st-verloren{color:#fff;background:var(--rot);border-color:var(--rot);font-weight:650;border-radius:0 999px 999px 0}
+  .akq-pipeline-hand{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 0}
   .akq-stufen5 li.st-jetzt{color:var(--grund);background:var(--cyan);border-color:var(--cyan);font-weight:650}
   .akq-kopf{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
   .akq-zeile{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px}

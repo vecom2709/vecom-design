@@ -270,6 +270,10 @@ $blick = [
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_briefdienst_speichern">
       <div class="feld" style="margin:0"><label>Schlüssel</label>
         <input type="password" name="token" autocomplete="off" placeholder="<?= $bdDa ? 'leer lassen = bleibt wie er ist' : 'Schlüssel einfügen' ?>"></div>
+      <div class="feld" style="margin:0"><label>Versandart</label><select name="produkt">
+        <?php $bdProdukt = AkquiseBriefdienst::produkt(); foreach (AkquiseBriefdienst::PRODUKTE as $pk => [$pName, $pPreis]): ?>
+          <option value="<?= $pk ?>"<?= $bdProdukt === $pk ? ' selected' : '' ?>><?= Fmt::h($pName . ' — ' . $pPreis) ?></option><?php endforeach; ?></select>
+        <span class="akq-klein">Den echten Preis zeigt jede Vorschau vor dem Versand. Posta Massiva braucht beim Schlüssel zusätzlich die Berechtigung <code>ws.ufficiopostale.com/posta_massiva</code> — erst im Testbetrieb ausprobieren.</span></div>
       <label class="akq-haken"><input type="checkbox" name="test" value="1" <?= $bdTest ? 'checked' : '' ?>> Testbetrieb — nichts wird gedruckt, nichts kostet</label>
       <?php if ($bdDa): ?><label class="akq-haken"><input type="checkbox" name="loeschen" value="1"> Schlüssel entfernen</label><?php endif; ?>
       <button class="knopf" style="justify-self:start">Speichern</button></form>
