@@ -1346,7 +1346,11 @@ final class Partner
         /* Aufgefrischt wird ein noch nicht vollständiges Konto -- und ein bereites,
            das noch nie einen gespeicherten Stand hatte (Konten von vor dem 28.09.2026)
            oder noch Angaben schuldet. */
-        if ($auffrischen && (empty($p['stripe_bereit']) || ($p['stripe_status_am'] ?? null) === null || (int) ($p['stripe_fehlt'] ?? 0) > 0)) {
+        /* … und jedes Konto einmal am Tag: Stripe kann jederzeit Neues verlangen (Ausweis),
+           ohne dass ein Webhook eingerichtet ist. Verglichen wird in der Datenbank (ihre Uhr). */
+        $alt = ($p['stripe_status_am'] ?? null) !== null
+            && (int) Db::wert('SELECT stripe_status_am < NOW() - INTERVAL 1 DAY FROM partner WHERE id = ?', [(int) ($p['id'] ?? 0)], 0) === 1;
+        if ($auffrischen && (empty($p['stripe_bereit']) || ($p['stripe_status_am'] ?? null) === null || (int) ($p['stripe_fehlt'] ?? 0) > 0 || $alt)) {
             $p = self::refreshStripeAccountStatus($p) ?? $p;
         }
         $bereit = !empty($p['stripe_bereit']);
@@ -1392,7 +1396,7 @@ final class Partner
     }
 
     /**
-     * Den Stand aller noch nicht bereiten Partnerkonten abholen (Knopf in der
+     * Den Stand aller Partnerkonten abholen (Knopf in der
      * Verwaltung). Nur lesen: Kein Konto wird angelegt, geändert oder gelöscht.
      * @return array{geprueft:int, fehler:int}
      */
@@ -1400,7 +1404,7 @@ final class Partner
     {
         $n = ['geprueft' => 0, 'fehler' => 0];
         foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND stripe_konto <> '' AND status <> 'geloescht'
-                          AND (stripe_bereit = 0 OR stripe_status_am IS NULL OR stripe_fehlt > 0) ORDER BY id LIMIT 200") as $p) {
+                          ORDER BY id LIMIT 200") as $p) {
             self::refreshStripeAccountStatus($p) === null ? $n['fehler']++ : $n['geprueft']++;
         }
         return $n;
@@ -1641,7 +1645,7 @@ final class Partner
         $r['ausgezahlt'] = 0; $r['wartet_limit'] = 0;
 
         /* Auch bereite Konten, die Stripe noch Angaben schulden (Frist!) -- 28.09.2026. */
-        foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND (stripe_bereit = 0 OR stripe_fehlt > 0 OR stripe_status_am IS NULL) AND status = 'aktiv'
+        foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND (stripe_bereit = 0 OR stripe_fehlt > 0 OR stripe_status_am IS NULL OR stripe_status_am < NOW() - INTERVAL 1 DAY) AND status = 'aktiv'
                             AND (stripe_geprueft_am IS NULL OR stripe_geprueft_am < NOW() - INTERVAL 6 HOUR)") as $p) {
             self::still(static fn() => self::kontoPruefen($p), false);
         }

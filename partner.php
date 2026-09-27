@@ -888,7 +888,7 @@ if ($p && isset($_GET['karte'])) {
                  Skript oder wenn Stripe nicht lädt, schickt dasselbe Formular wie
                  bisher auf die gehostete Stripe-Seite. */
           $stripePk = Partner::stripeOeffentlich();
-          $kWahl = !$kHat || $kLand === '';      // neues Konto -- oder altes ohne Landangabe: Land angeben
+          $kWahl = !$kHat;      // Land wählen nur vor dem ersten Konto; danach über „Land ändern“ (auch bei alten Konten ohne Landangabe)
           $kTrenner = (string) (array_values(array_diff(array_keys($kLaender), Partner::STRIPE_HAEUFIG))[0] ?? ''); // Linie unter den häufigen ?>
         <form method="post" action="<?= $h($selbst()) ?>" id="stripe-form"<?php if ($stripePk !== ''): ?>
               data-pk="<?= $h($stripePk) ?>" data-sprache="<?= $h(Partner::STRIPE_SPRACHE[$sprache] ?? 'en-GB') ?>"
@@ -921,7 +921,9 @@ if ($p && isset($_GET['karte'])) {
         <?php if ($stripePk !== ''): ?><script src="/assets/js/partner-stripe.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-stripe.js') ?>" defer></script><?php endif; ?>
       <?php endif; ?>
 
-      <?php if ($kHat && $kLand !== ''): /* Land nachträglich ändern (28.09.2026): bewusst, mit Bestätigung */ ?>
+      <?php if ($kHat): /* Land nachträglich ändern (28.09.2026): bewusst, mit Bestätigung -- für JEDES Konto,
+                         auch ein bereites ohne gespeicherte Landangabe (Anika, Ulli: Konten von vor der Landwahl) */
+        $kLandW = $kLand !== '' ? $kLand : $kStripeLand; ?>
         <details class="konto-wie konto-wechsel"<?= $kAbw || in_array($kMeldung, ['konto_land_bestaetigen', 'konto_land_gleich'], true) ? ' open' : '' ?>>
           <summary><?= $h($T('konto_wechsel_titel')) ?></summary>
           <form method="post" action="<?= $h($selbst()) ?>#wege" class="konto-land-box" data-land-wahl data-stripe-land="<?= $h($kStripeLand) ?>" style="margin-top:10px">
@@ -933,10 +935,10 @@ if ($p && isset($_GET['karte'])) {
             <select id="konto_land_neu" name="land" class="konto-land" required>
               <?php foreach ($kLaender as $lc => $ln): ?>
                 <?php if ($lc === $kTrennerW): ?><option disabled value="-">──────────</option><?php endif; ?>
-                <option value="<?= $h($lc) ?>" data-name="<?= $h($ln) ?>"<?= $lc === $kLand ? ' selected' : '' ?>><?= $h($kName($lc)) ?></option>
+                <option value="<?= $h($lc) ?>" data-name="<?= $h($ln) ?>"<?= $lc === $kLandW ? ' selected' : '' ?>><?= $h($kName($lc)) ?></option>
               <?php endforeach; ?>
             </select>
-            <p class="konto-land-gew" data-land-gewaehlt data-muster="<?= $h($T('konto_land_gewaehlt')) ?>" aria-live="polite"><?= $h(strtr($T('konto_land_gewaehlt'), ['{land}' => $kName($kLand)])) ?></p>
+            <p class="konto-land-gew" data-land-gewaehlt data-muster="<?= $h($T('konto_land_gewaehlt')) ?>" aria-live="polite"><?= $h(strtr($T('konto_land_gewaehlt'), ['{land}' => $kName($kLandW)])) ?></p>
             <p class="konto-land-keins" data-land-keins hidden><?= $h($T('konto_land_keins')) ?></p>
             <p class="klein" style="margin:6px 0 10px"><?= $h($T('konto_wechsel_hilfe')) ?></p>
             <label class="konto-wechsel-ok" data-land-bestaetigung><input type="checkbox" name="bestaetigt" value="1"> <span><?= $h($T('konto_wechsel_ok')) ?></span></label>

@@ -13574,7 +13574,7 @@ pruefe('… gleiches Land, Konto vollständig → „Das ist bereits das Land Ih
 $slPa2 = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Partnerbereich: „Land ändern“ mit Pflicht-Bestätigung, wenn ein neues Konto entsteht; die Bestätigung prüft auch der Server',
     str_contains($slPa2, "name=\"tat\" value=\"konto_land_wechsel\"") && str_contains($slPa2, "(\$_POST['bestaetigt'] ?? '') !== '1' ? ['ok' => false, 'grund' => 'bestaetigen']")
-    && str_contains($slPa2, 'Partner::landWechseln($p') && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-land.js'), 'cb.required = neu'));
+    && str_contains($slPa2, 'Partner::landWechseln($p') && str_contains($slPa2, "<?php if (\$kHat): /* Land nachträglich ändern") && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-land.js'), 'cb.required = neu'));
 Partner::$stripeProbe = null;
 
 /* Webhook-Unterschrift: auch mit dem Geheimnis eines Connect-Endpunkts */

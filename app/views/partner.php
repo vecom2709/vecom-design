@@ -75,9 +75,9 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 <div class="block">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px">
     <h2 style="font-size:15px;margin:0">Alle Partner</h2>
-    <?php if (array_filter($uebrige, static fn($p) => !empty($p['stripe_konto']) && (empty($p['stripe_bereit']) || $p['stripe_status_am'] === null))): ?>
+    <?php if (array_filter($uebrige, static fn($p) => !empty($p['stripe_konto']))): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_stripe_alle_pruefen">
-        <button class="knopf" title="Holt den Stand aller angefangenen Partnerkonten bei Stripe ab. Nur lesen — es wird nichts geändert.">Stripe-Stand aller Konten abholen</button></form>
+        <button class="knopf" title="Holt den Stand aller Partnerkonten bei Stripe ab. Nur lesen — es wird nichts geändert.">Stripe-Stand aller Konten abholen</button></form>
     <?php endif; ?>
   </div>
   <?php if (!$uebrige): ?>
