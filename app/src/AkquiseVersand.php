@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/Events.php';
+require_once __DIR__ . '/Texte.php';
 require_once __DIR__ . '/Akquise.php';
 require_once __DIR__ . '/AkquiseGate.php';
 require_once __DIR__ . '/AkquiseText.php';
@@ -270,7 +271,8 @@ final class AkquiseVersand
             throw new RuntimeException('Bitte kurz begründen, warum die Kontaktaufnahme hier zulässig ist (mind. 15 Zeichen).');
         }
         $id = Db::insert('akq_versand', [
-            'firma_id' => $firmaId, 'vorlage_id' => $vorlageId, 'kanal' => $kanal, 'an' => $kanal === 'telefon' ? $f['telefon'] : ($f['adresse'] ?? null),
+            'firma_id' => $firmaId, 'vorlage_id' => $vorlageId, 'kanal' => $kanal,
+            'an' => match ($kanal) { 'telefon' => $f['telefon'], 'whatsapp' => $f['whatsapp'] ?? $f['telefon'], 'email' => $f['email'], default => $f['adresse'] ?? null },
             'status' => 'von_hand', 'compliance' => $gate['status'], 'grund' => mb_substr(trim($begruendung), 0, 255),
             'actor' => Auth::angemeldet() ? Auth::name() : 'System',
         ]);
@@ -281,6 +283,24 @@ final class AkquiseVersand
         require_once __DIR__ . '/AkquiseSignal.php';
         AkquiseSignal::vormerken($firmaId, $kanal);
         return $id;
+    }
+
+    /**
+     * WhatsApp-Link mit vorgefülltem Text (27.09.2026). Nur wenn das Gate für
+     * WhatsApp „erlaubt“ sagt -- also nach bestätigter Einwilligung mit genau
+     * dieser Nummer. Das System schickt selbst nichts per WhatsApp: Der Link
+     * öffnet WhatsApp, Uwe liest und drückt selbst auf Senden.
+     */
+    public static function whatsappLink(array $f, string $sprache, string $analyse = ''): ?string
+    {
+        if (AkquiseGate::pruefen($f, 'whatsapp')['status'] !== AkquiseGate::ERLAUBT) { return null; }
+        $ziffern = preg_replace('~\D~', '', (string) ($f['whatsapp'] ?? ''));
+        if (strlen((string) $ziffern) < 8) { return null; }
+        $abs = AkquiseText::absender();
+        $w = ['{inhaber}' => $abs['inhaber'], '{absender}' => $abs['firma'], '{firma}' => (string) $f['name'], '{link}' => $analyse];
+        $t = static fn(string $k) => strtr(Texte::h(Texte::AKQ_WHATSAPP[$k], $sprache), $w);
+        $text = $t('hallo') . "\n\n" . ($analyse !== '' ? $t('analyse') : $t('ohne')) . "\n\n" . $t('stopp');
+        return 'https://wa.me/' . $ziffern . '?text=' . rawurlencode($text);
     }
 
     /**

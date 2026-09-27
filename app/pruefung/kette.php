@@ -12951,6 +12951,99 @@ pruefe('Briefe aus: Reiter Brief-Serie weg, Schalter unter Regeln & Versand, Par
     str_contains($baReiter, "if (!AkquiseGate::briefAn()) { unset(\$reiter['briefe']); }") && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'value="akq_brief_schalten"')
     && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'if (!AkquiseGate::briefAn() && ($w === null'));
 
+abschnitt('Einwilligung E-Mail oder WhatsApp');
+/* 27.09.2026, Uwe: „ja, erweitere auf E-Mail oder WhatsApp“. Eine Einwilligung
+   deckt nur die Wege in ihrem Wortlaut; WhatsApp nur mit bestätigter Nummer. */
+$waA = Akquise::firmaMelden(['name' => 'Trattoria Whatsapp', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Favara',
+    'plz' => '92026', 'adresse' => 'Via Porto 4', 'url' => 'https://trattoria-whatsapp.example/', 'branche' => 'restaurant', 'quelle' => 'test:wa1', 'telefon' => '0922 111222']);
+$waF = (int) $waA['id'];
+$waL = AkquiseEinwilligung::link($waF, 'link');
+pruefe('WhatsApp gewünscht, aber Nummer leer oder unlesbar: Fehler „whatsapp“, keine stille reine E-Mail-Einwilligung',
+    AkquiseEinwilligung::anfragen($waL['link_token'], 'titolare@trattoria-whatsapp.example', true, 'it', '', '') === 'whatsapp'
+    && AkquiseEinwilligung::anfragen($waL['link_token'], 'titolare@trattoria-whatsapp.example', true, 'it', '', 'abc 12') === 'whatsapp'
+    && (string) Db::wert('SELECT status FROM akq_einwilligungen WHERE id = ?', [$waL['id']], '') === 'offen');
+AkquiseGate::eintragen('telefon', '+39 333 999 8888', 'Test: will keine Nachrichten');
+pruefe('WhatsApp-Nummer auf der Sperrliste: keine Bestätigungsmail',
+    AkquiseEinwilligung::anfragen($waL['link_token'], 'titolare@trattoria-whatsapp.example', true, 'it', '', '333 999 8888') === 'gesperrt');
+$waMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0);
+pruefe('E-Mail + WhatsApp angefragt: eine Bestätigungsmail, noch keine Erlaubnis',
+    AkquiseEinwilligung::anfragen($waL['link_token'], 'titolare@trattoria-whatsapp.example', true, 'it', '', '333 765 4321') === 'ok'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise_einwilligung'", [], 0) === $waMails + 1
+    && AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$waF]), 'whatsapp')['status'] !== AkquiseGate::ERLAUBT);
+$waE = Db::one("SELECT * FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt' ORDER BY id DESC LIMIT 1", [$waF]);
+pruefe('Die Nummer steht im gespeicherten Wortlaut (eigene Fassung) -- der Klick bestätigt genau sie',
+    $waE && $waE['whatsapp'] === '+393337654321' && $waE['wortlaut_version'] === AkquiseEinwilligung::VERSION_WA
+    && str_contains((string) $waE['wortlaut'], 'WhatsApp') && str_contains((string) $waE['wortlaut'], '+393337654321'), (string) ($waE['wortlaut'] ?? ''));
+$waOk = $waE ? AkquiseEinwilligung::bestaetigen((string) $waE['doi_token']) : ['ok' => false];
+$waZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$waF]);
+pruefe('Nach dem Klick: E-Mail UND WhatsApp erlaubt, Beleg nennt die Nummer, Ampel sagt beides',
+    $waOk['ok'] && $waZ['einwilligung_kanaele'] === 'email,whatsapp' && $waZ['whatsapp'] === '+393337654321'
+    && str_contains((string) $waZ['einwilligung'], 'WhatsApp +393337654321')
+    && AkquiseGate::pruefen($waZ, 'whatsapp')['status'] === AkquiseGate::ERLAUBT && AkquiseGate::pruefen($waZ, 'email')['status'] === AkquiseGate::ERLAUBT
+    && AkquiseGate::ampel($waZ)['wort'] === 'E-Mail + WhatsApp erlaubt', json_encode(AkquiseGate::pruefen($waZ, 'whatsapp'), JSON_UNESCAPED_UNICODE));
+pruefe('Die Einwilligung zählt nicht für Brief, Anruf und Kontaktformular', !AkquiseGate::einwilligungDeckt($waZ, 'brief')
+    && !AkquiseGate::einwilligungDeckt($waZ, 'telefon') && !AkquiseGate::einwilligungDeckt($waZ, 'kontaktformular'));
+$waLink = (string) AkquiseVersand::whatsappLink($waZ, 'it', 'https://vecom-design.it/analisi/x');
+pruefe('WhatsApp-Link: richtige Nummer, Analyse-Link und STOP-Hinweis vorgefüllt',
+    str_starts_with($waLink, 'https://wa.me/393337654321?text=') && str_contains(rawurldecode($waLink), 'https://vecom-design.it/analisi/x')
+    && str_contains(rawurldecode($waLink), 'STOP') && str_contains(rawurldecode($waLink), 'Trattoria Whatsapp'));
+$waV = AkquiseVersand::vonHand($waF, 'whatsapp', 'Per WhatsApp geschrieben (Einwilligung liegt vor)');
+pruefe('„Als geschrieben vermerken“: steht im Versandprotokoll mit der WhatsApp-Nummer',
+    (string) Db::wert('SELECT an FROM akq_versand WHERE id = ?', [$waV], '') === '+393337654321'
+    && (string) Db::wert('SELECT status FROM akq_versand WHERE id = ?', [$waV], '') === 'von_hand');
+/* Eine spätere reine E-Mail-Einwilligung nimmt WhatsApp nicht weg. */
+AkquiseEinwilligung::anfragen($waL['link_token'], 'nuovo@trattoria-whatsapp.example', true, 'it');
+$waE2 = Db::one("SELECT * FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt' ORDER BY id DESC LIMIT 1", [$waF]);
+if ($waE2) { AkquiseEinwilligung::bestaetigen((string) $waE2['doi_token']); }
+$waZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$waF]);
+pruefe('Neue reine E-Mail-Einwilligung: WhatsApp bleibt gedeckt (keine Rückstufung)', $waE2 && $waE2['wortlaut_version'] === AkquiseEinwilligung::VERSION
+    && $waZ['email'] === 'nuovo@trattoria-whatsapp.example' && AkquiseGate::einwilligungDeckt($waZ, 'whatsapp'));
+/* Nur E-Mail eingewilligt: WhatsApp bleibt zu, auch wenn eine Nummer da ist. */
+$waB = Akquise::firmaMelden(['name' => 'Panificio Solo Mail', 'land' => 'IT', 'region' => 'Sicilia', 'kreis' => 'Agrigento', 'stadt' => 'Favara',
+    'plz' => '92026', 'adresse' => 'Via Forno 1', 'url' => 'https://panificio-solo-mail.example/', 'branche' => 'restaurant', 'quelle' => 'test:wa2']);
+$waBL = AkquiseEinwilligung::link((int) $waB['id'], 'link');
+AkquiseEinwilligung::anfragen($waBL['link_token'], 'forno@panificio-solo-mail.example', true, 'it');
+$waBE = Db::one("SELECT * FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt' ORDER BY id DESC LIMIT 1", [(int) $waB['id']]);
+AkquiseEinwilligung::bestaetigen((string) $waBE['doi_token']);
+Db::run("UPDATE akq_firmen SET whatsapp = '+393330000001' WHERE id = ?", [(int) $waB['id']]);
+$waBZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $waB['id']]);
+pruefe('Nur E-Mail eingewilligt: WhatsApp nicht erlaubt, kein WhatsApp-Link, Ampel sagt nur E-Mail',
+    AkquiseGate::pruefen($waBZ, 'email')['status'] === AkquiseGate::ERLAUBT && AkquiseGate::pruefen($waBZ, 'whatsapp')['status'] !== AkquiseGate::ERLAUBT
+    && AkquiseVersand::whatsappLink($waBZ, 'it') === null && AkquiseGate::ampel($waBZ)['wort'] === 'E-Mail erlaubt');
+/* Sperren: die WhatsApp-Nummer landet mit auf der Sperrliste. */
+AkquiseGate::sperren($waF, 'Test: STOPP per WhatsApp');
+$waZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$waF]);
+pruefe('„STOPP“ → Sperren: WhatsApp zu, Nummer auf der Sperrliste',
+    AkquiseGate::pruefen($waZ, 'whatsapp')['status'] === AkquiseGate::NICHT && AkquiseVersand::whatsappLink($waZ, 'it') === null
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_sperrliste WHERE art = 'telefon' AND wert = '+393337654321'", [], 0) === 1);
+/* Website-Check mit WhatsApp-Häkchen. */
+$waHoler = PartnerCheck::$holer; $waAufl = PartnerCheck::$aufloeser;
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 900, 'url' => $url, 'ssl_tage' => null, 'fehler' => '',
+    'inhalt' => '<html><head><title>Gelateria</title></head><body><p>&copy; 2019</p></body></html>'];
+$waC = ['name' => 'Luca Bianchi', 'firma' => 'Gelateria Wa', 'url' => 'gelateria-wa.example', 'email' => 'luca@gelateria-wa.example',
+        'telefon' => '', 'land' => 'IT', 'sprache' => 'it', 'ausfuehrlich' => false, 'marketing' => true];
+$waChecks = (int) Db::wert('SELECT COUNT(*) FROM akq_checks', [], 0);
+pruefe('Website-Check: unlesbare WhatsApp-Nummer → Fehler vor jeder Arbeit, kein Check angelegt',
+    (AkquiseCheck::anlegen(['whatsapp' => '12'] + $waC, '198.51.100.40')['grund'] ?? '') === 'whatsapp'
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_checks', [], 0) === $waChecks);
+$waCA = AkquiseCheck::anlegen(['whatsapp' => '347 222 3333'] + $waC, '198.51.100.41');
+$waCZ = Db::one('SELECT * FROM akq_checks WHERE token = ?', [(string) ($waCA['token'] ?? '')]);
+$waCE = $waCZ && $waCZ['einwilligung_id'] ? Db::one('SELECT * FROM akq_einwilligungen WHERE id = ?', [(int) $waCZ['einwilligung_id']]) : null;
+pruefe('Website-Check mit WhatsApp: Bestätigungsmail mit Nummer im Wortlaut, noch keine Erlaubnis',
+    $waCA['ok'] && $waCZ['einwilligung_stand'] === 'ok' && $waCE && $waCE['whatsapp'] === '+393472223333' && $waCE['wortlaut_version'] === AkquiseEinwilligung::VERSION_WA
+    && trim((string) Db::wert('SELECT COALESCE(einwilligung, \'\') FROM akq_firmen WHERE id = ?', [(int) $waCZ['firma_id']], 'x')) === '');
+PartnerCheck::$holer = $waHoler; PartnerCheck::$aufloeser = $waAufl;
+$waAs = AkquiseAssistent::antwort('mail');
+$waAsZeile = array_values(array_filter($waAs['zeilen'], static fn($z) => (int) $z['id'] === (int) $waB['id']))[0] ?? null;
+pruefe('Assistent: „WhatsApp“ führt zur Frage „E-Mail oder WhatsApp“, die Spalte zeigt, wo nur E-Mail gilt',
+    AkquiseAssistent::verstehen('Wen darf ich per WhatsApp anschreiben?')['frage'] === 'mail' && $waAs['spalte'] === 'WhatsApp'
+    && $waAsZeile !== null && $waAsZeile['zusatz'] === null);
+$waSeiten = (string) file_get_contents(dirname($wurzel) . '/website-check.php') . (string) file_get_contents(dirname($wurzel) . '/einwilligung.php');
+pruefe('Formulare: WhatsApp-Häkchen und Nummernfeld im Website-Check und auf der Einwilligungsseite',
+    substr_count($waSeiten, 'name="wa"') === 2 && substr_count($waSeiten, 'name="whatsapp"') === 2
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), 'WhatsApp-Nachricht öffnen'));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

@@ -190,4 +190,16 @@ Uwe: „Briefversand komplett deaktivieren, bis ich entscheide – jetzt nur E-M
 - Claude schreibt nur noch Texte, wo eine E-Mail erlaubt ist.
 - Schlüssel, Versandart und die Regeln für Briefe bleiben gespeichert. Wieder einschalten geht unter Regeln & Versand → Briefe per Post.
 
-WhatsApp bleibt im Gate ohne Einwilligung auf „Nein“ (DE und IT). Die bestehende Einwilligung gilt nur für E-Mail.
+WhatsApp bleibt im Gate ohne Einwilligung auf „Nein“ (DE und IT). Bis zum 27.09.2026 galt jede Einwilligung nur für E-Mail; seitdem siehe unten.
+
+### Einwilligung für E-Mail oder WhatsApp (27.09.2026)
+
+Uwe: „ja, erweitere auf E-Mail oder WhatsApp“. Eine Einwilligung deckt nur die Wege, die in ihrem Wortlaut stehen (`AkquiseGate::einwilligungDeckt`).
+
+- Website-Check und Einwilligungsseite haben ein zweites, freiwilliges Häkchen „Oder auch per WhatsApp“ mit Nummernfeld. Im Website-Check gilt: leer heißt die Telefonnummer von oben. Der Wortlaut hat eine eigene Fassung (`v2wa-2609`) und nennt die Nummer. Die Bestätigungsmail zeigt ihn, der Klick darin bestätigt beides.
+- Eine unlesbare oder leere Nummer ist ein Fehler. Es gibt dann keine stille reine E-Mail-Einwilligung. Eine Nummer auf der Sperrliste führt zu keiner Mail.
+- Nach dem Klick stehen an der Firma `einwilligung_kanaele = email,whatsapp` und `whatsapp`. Eine spätere reine E-Mail-Einwilligung nimmt WhatsApp nicht weg.
+- Die Regeln (Migration 089) lauten: WhatsApp mit Einwilligung ist in DE und IT „Ja, erlaubt“. Für Brief, Anruf und Kontaktformular zählt die Einwilligung nicht; dort gilt die Regel „ohne“.
+- An der Firma öffnet „WhatsApp-Nachricht öffnen“ WhatsApp mit einem vorgefüllten Text: Gruß, Analyse-Link falls vorhanden und der Hinweis „STOPP“. Das System schickt selbst nichts per WhatsApp; Uwe liest und sendet. „Als geschrieben vermerken“ trägt es ins Versandprotokoll ein.
+- Beim Sperren kommt die WhatsApp-Nummer mit auf die Sperrliste.
+- Der Assistent fragt jetzt „Wer darf per E-Mail oder WhatsApp?“, und die Spalte zeigt die Nummer oder „nur E-Mail“.

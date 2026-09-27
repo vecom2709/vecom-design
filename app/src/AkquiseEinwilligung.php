@@ -41,10 +41,22 @@ final class AkquiseEinwilligung
         'en' => '{firma} ({inhaber}) may send me messages about my website and suitable offers at this email address. I can withdraw this at any time with one click or a short reply.',
     ];
 
-    public static function wortlaut(string $sprache): string
+    /* E-Mail UND WhatsApp (27.09.2026, Uwe: „erweitere auf E-Mail oder WhatsApp“).
+       Eigener Wortlaut mit der Nummer darin -- die Bestätigungsmail zeigt ihn,
+       der Klick bestätigt also auch die Nummer. Die reine E-Mail-Fassung bleibt
+       unverändert (v1), damit alte Belege lesbar bleiben. */
+    public const VERSION_WA = 'v2wa-2609';
+    public const WORTLAUT_WA = [
+        'de' => '{firma} ({inhaber}) darf mir an diese E-Mail-Adresse und per WhatsApp unter {nummer} Nachrichten zu meiner Website und zu passenden Angeboten schicken. Ich kann das jederzeit mit einem Klick oder einer kurzen Antwort widerrufen.',
+        'it' => '{firma} ({inhaber}) può inviarmi a questo indirizzo e-mail e su WhatsApp al numero {nummer} messaggi sul mio sito e su offerte adatte. Posso revocare il consenso in qualsiasi momento con un clic o una breve risposta.',
+        'en' => '{firma} ({inhaber}) may send me messages about my website and suitable offers at this email address and on WhatsApp at {nummer}. I can withdraw this at any time with one click or a short reply.',
+    ];
+
+    public static function wortlaut(string $sprache, ?string $whatsapp = null): string
     {
         $abs = AkquiseText::absender();
-        return strtr(self::WORTLAUT[$sprache] ?? self::WORTLAUT['it'], ['{firma}' => $abs['firma'], '{inhaber}' => $abs['inhaber']]);
+        $vorlage = $whatsapp !== null && $whatsapp !== '' ? (self::WORTLAUT_WA[$sprache] ?? self::WORTLAUT_WA['it']) : (self::WORTLAUT[$sprache] ?? self::WORTLAUT['it']);
+        return strtr($vorlage, ['{firma}' => $abs['firma'], '{inhaber}' => $abs['inhaber'], '{nummer}' => (string) $whatsapp]);
     }
 
     /** Ein neuer Link fuer eine Firma (Verwaltung → „Einwilligungs-Link“). Gleicher offener Link wird wiederverwendet. */
@@ -85,9 +97,9 @@ final class AkquiseEinwilligung
      * Die Firma hat ihre Adresse eingetragen und das Kaestchen gesetzt.
      * Geht nur eine Bestaetigungsmail raus -- keine Werbung, keine Einwilligung.
      *
-     * @return string ok | email | zuviel | gesperrt
+     * @return string ok | email | whatsapp | zuviel | gesperrt
      */
-    public static function anfragen(string $linkToken, string $email, bool $haken, string $sprache, string $ip = ''): string
+    public static function anfragen(string $linkToken, string $email, bool $haken, string $sprache, string $ip = '', ?string $whatsapp = null): string
     {
         $x = self::ausLink($linkToken);
         if ($x === null) { return 'gesperrt'; }
@@ -95,7 +107,15 @@ final class AkquiseEinwilligung
         if ($email === null || !$haken) { return 'email'; }
         $sprache = isset(AkquiseText::SPRACHEN[$sprache]) ? $sprache : (string) $x['e']['sprache'];
         $f = $x['f'];
+        /* WhatsApp-Nummer (freiwillig): null = nicht gewünscht. Gewünscht, aber leer
+           oder unlesbar ist ein Fehler, keine stille reine E-Mail-Einwilligung. */
+        $wa = null;
+        if ($whatsapp !== null) {
+            $wa = Akquise::normTelefon($whatsapp, (string) ($f['land'] ?? 'IT'));
+            if ($wa === null || strlen(preg_replace('~\D~', '', $wa)) < 8) { return 'whatsapp'; }
+        }
         if (AkquiseGate::trifftSperrliste(['email' => $email] + $f) !== null) { return 'gesperrt'; }
+        if ($wa !== null && AkquiseGate::trifftSperrliste(['telefon' => $wa] + $f) !== null) { return 'gesperrt'; }
         $heute = (int) Db::wert("SELECT COUNT(*) FROM akq_einwilligungen WHERE firma_id = ? AND angefragt_am >= CURDATE()", [(int) $f['id']], 0);
         if ($heute >= self::JE_TAG) { return 'zuviel'; }
 
@@ -111,14 +131,14 @@ final class AkquiseEinwilligung
             }
         }
         Db::update('akq_einwilligungen', (int) $e['id'], [
-            'email' => $email, 'doi_token' => $doi, 'sprache' => $sprache, 'status' => 'angefragt',
-            'wortlaut' => self::wortlaut($sprache), 'wortlaut_version' => self::VERSION,
+            'email' => $email, 'doi_token' => $doi, 'sprache' => $sprache, 'status' => 'angefragt', 'whatsapp' => $wa,
+            'wortlaut' => self::wortlaut($sprache, $wa), 'wortlaut_version' => $wa !== null ? self::VERSION_WA : self::VERSION,
             'angefragt_am' => date('Y-m-d H:i:s'), 'ip_hash' => $ip !== '' ? hash('sha256', $ip . '|' . Config::get('app_geheim', 'vecom')) : null,
         ]);
         require_once __DIR__ . '/Mail.php';
         $link = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/einwilligung.php?b=' . $doi;
         $abs = AkquiseText::absender();
-        [$betreff, $text] = self::mail($sprache, (string) $f['name'], $link, self::wortlaut($sprache), $abs);
+        [$betreff, $text] = self::mail($sprache, (string) $f['name'], $link, self::wortlaut($sprache, $wa), $abs);
         Mail::senden('akquise_einwilligung', $email, $betreff, $text, ['nurText' => true, 'sprache' => $sprache]);
         Akquise::protokoll((int) $f['id'], 'einwilligung', 'Einwilligung angefragt (Bestätigungsmail an ' . $email . ', Quelle ' . $e['quelle'] . ')');
         return 'ok';
@@ -159,17 +179,23 @@ final class AkquiseEinwilligung
         }
         $jetzt = date('Y-m-d H:i:s');
         Db::update('akq_einwilligungen', (int) $e['id'], ['status' => 'bestaetigt', 'bestaetigt_am' => $jetzt]);
-        $beleg = mb_substr('Double-Opt-in ' . date('d.m.Y H:i', strtotime($jetzt)) . ' für ' . $e['email']
+        $beleg = mb_substr('Double-Opt-in ' . date('d.m.Y H:i', strtotime($jetzt)) . ' für ' . $e['email'] . (!empty($e['whatsapp']) ? ' + WhatsApp ' . $e['whatsapp'] : '')
             . ' über ' . (['analyse' => 'Analyse-Seite', 'check' => 'Website-Check'][$e['quelle']] ?? 'Einwilligungs-Link') . ', Wortlaut ' . $e['wortlaut_version']
             . ' (Nachweis #' . $e['id'] . ')', 0, 255);
-        $alt = ['einwilligung' => $f['einwilligung'], 'email' => $f['email']];
-        Db::update('akq_firmen', (int) $f['id'], ['einwilligung' => $beleg, 'email' => $e['email']]);
-        Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', (int) $f['id'], $alt, ['einwilligung' => $beleg, 'email' => $e['email']]);
-        Akquise::protokoll((int) $f['id'], 'einwilligung', 'Einwilligung bestätigt: ' . $e['email']);
+        $alt = ['einwilligung' => $f['einwilligung'], 'email' => $f['email'], 'einwilligung_kanaele' => $f['einwilligung_kanaele'] ?? null, 'whatsapp' => $f['whatsapp'] ?? null];
+        /* Wege zusammenführen: eine neue reine E-Mail-Einwilligung nimmt eine frühere WhatsApp-Einwilligung nicht weg. */
+        $kanaele = array_filter(array_map('trim', explode(',', (string) (($f['einwilligung_kanaele'] ?? '') ?: 'email'))));
+        $kanaele[] = 'email';
+        if (!empty($e['whatsapp'])) { $kanaele[] = 'whatsapp'; }
+        $neu = ['einwilligung' => $beleg, 'email' => $e['email'], 'einwilligung_kanaele' => implode(',', array_values(array_unique($kanaele))),
+                'whatsapp' => !empty($e['whatsapp']) ? $e['whatsapp'] : ($f['whatsapp'] ?? null)];
+        Db::update('akq_firmen', (int) $f['id'], $neu);
+        Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', (int) $f['id'], $alt, $neu);
+        Akquise::protokoll((int) $f['id'], 'einwilligung', 'Einwilligung bestätigt: ' . $e['email'] . (!empty($e['whatsapp']) ? ' und WhatsApp ' . $e['whatsapp'] : ''));
         AkquiseGate::statusSpeichern((int) $f['id']);
         /* Folge-Mails vormerken (27.09.2026). Ob und wann sie rausgehen, entscheiden Schalter, freigegebene Texte und das Gate. */
         try { require_once __DIR__ . '/AkquiseFolge.php'; AkquiseFolge::starten((int) $f['id']); } catch (Throwable $x) { }
-        try { Events::melden('akquise_einwilligung', 'Akquise: ' . $f['name'] . ' hat eingewilligt — E-Mail erlaubt', 'gut', $e['email'], 'akquise/' . $f['id']); }
+        try { Events::melden('akquise_einwilligung', 'Akquise: ' . $f['name'] . ' hat eingewilligt — E-Mail' . (!empty($e['whatsapp']) ? ' und WhatsApp' : '') . ' erlaubt', 'gut', $e['email'], 'akquise/' . $f['id']); }
         catch (Throwable $x) { }
         return ['ok' => true, 'firma' => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $f['id']]) ?? $f, 'sprache' => (string) $e['sprache']];
     }

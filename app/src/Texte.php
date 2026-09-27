@@ -3511,6 +3511,16 @@ final class Texte
     /* Öffentlicher Website-Check (27.09.2026): website-check.php. Zwei
        Häkchen, die nichts miteinander zu tun haben -- die Anfrage und die
        Werbeeinwilligung. Die Punkte selbst kommen aus PARTNER_CHECK. */
+    /* Erste WhatsApp-Nachricht an einen Betrieb, der für WhatsApp eingewilligt
+       hat (27.09.2026). Uwe schickt sie selbst aus seinem WhatsApp; die Seite
+       füllt sie nur vor. Der Widerspruchs-Hinweis steht immer darin. */
+    public const AKQ_WHATSAPP = [
+        'hallo' => ['it' => 'Buongiorno, sono {inhaber} di {absender} – grazie per il consenso.', 'de' => 'Guten Tag, hier ist {inhaber} von {absender} – danke für Ihre Einwilligung.', 'en' => 'Hello, this is {inhaber} from {absender} – thank you for your consent.'],
+        'analyse' => ['it' => 'Ecco l’analisi del sito di {firma}: {link}', 'de' => 'Hier ist die Analyse der Website von {firma}: {link}', 'en' => 'Here is the website analysis for {firma}: {link}'],
+        'ohne' => ['it' => 'Le scrivo volentieri qui due o tre spunti per il sito di {firma}.', 'de' => 'Gern schicke ich Ihnen hier zwei, drei Hinweise zur Website von {firma}.', 'en' => 'Happy to send you two or three pointers on the {firma} website here.'],
+        'stopp' => ['it' => 'Se non desidera più messaggi, risponda semplicemente «STOP».', 'de' => 'Wenn Sie keine Nachrichten mehr möchten, antworten Sie einfach „STOPP“.', 'en' => 'If you’d rather not get messages, just reply “STOP”.'],
+    ];
+
     public const AKQ_CHECK = [
         'meta_titel' => ['it' => 'Verifica gratuita del sito web · Vecom Design', 'de' => 'Kostenloser Website-Check · Vecom Design', 'en' => 'Free website check · Vecom Design'],
         'meta_beschr' => ['it' => 'In pochi secondi: velocità, sicurezza, telefono, Google e aggiornamento del suo sito. Gratis e senza impegno.', 'de' => 'In wenigen Sekunden: Ladezeit, Sicherheit, Handy, Google und Aktualität Ihrer Website. Kostenlos und unverbindlich.', 'en' => 'In a few seconds: speed, security, mobile, Google and freshness of your website. Free, no strings attached.'],
@@ -3533,12 +3543,18 @@ final class Texte
         'ausf_hilfe' => ['it' => 'Una sola risposta a questa richiesta, nient’altro.', 'de' => 'Eine Antwort auf genau diese Anfrage, sonst nichts.', 'en' => 'One reply to exactly this request, nothing else.'],
         'mkt_vor' => ['it' => 'Inoltre acconsento:', 'de' => 'Außerdem bin ich einverstanden:', 'en' => 'I also agree:'],
         'mkt_hilfe' => ['it' => 'Facoltativo. Le mandiamo un’e-mail di conferma: conta solo il suo clic lì dentro.', 'de' => 'Freiwillig. Sie bekommen eine Bestätigungsmail – erst Ihr Klick darin zählt.', 'en' => 'Optional. You’ll get a confirmation email – only your click in it counts.'],
+        'wa_vor' => ['it' => 'Oppure anche su WhatsApp:', 'de' => 'Oder auch per WhatsApp:', 'en' => 'Or also on WhatsApp:'],
+        'wa_nummer' => ['it' => 'indicato', 'de' => 'der angegebenen Nummer', 'en' => 'the number given'],
+        'wa_hilfe' => ['it' => 'Facoltativo. Il numero compare nell’e-mail di conferma: il suo clic vale per entrambi.', 'de' => 'Freiwillig. Die Nummer steht in der Bestätigungsmail – Ihr Klick gilt für beides.', 'en' => 'Optional. The number appears in the confirmation email – your click covers both.'],
+        'f_whatsapp' => ['it' => 'Numero WhatsApp', 'de' => 'WhatsApp-Nummer', 'en' => 'WhatsApp number'],
+        'wa_leer' => ['it' => 'vuoto = il telefono sopra', 'de' => 'leer = Telefon von oben', 'en' => 'empty = phone above'],
         'knopf' => ['it' => 'Verificare il sito ora', 'de' => 'Website jetzt prüfen', 'en' => 'Check website now'],
         'datenschutz' => ['it' => 'Usiamo i suoi dati solo per questa verifica e, se lo desidera, per la sua richiesta. Nome, e-mail e telefono vengono cancellati dopo 180 giorni, se non ne nasce nulla.', 'de' => 'Wir verwenden Ihre Angaben nur für diesen Check und – falls gewünscht – für Ihre Anfrage. Name, E-Mail und Telefon löschen wir nach 180 Tagen, wenn daraus nichts entsteht.', 'en' => 'We use your details only for this check and, if you wish, for your request. Name, email and phone are deleted after 180 days if nothing comes of it.'],
         'datenschutz_link' => ['it' => 'Privacy', 'de' => 'Datenschutz', 'en' => 'Privacy'],
         'fehler_angaben' => ['it' => 'Per favore inserisca il suo nome e il nome dell’attività.', 'de' => 'Bitte Ihren Namen und den Namen des Betriebs eintragen.', 'en' => 'Please enter your name and the business name.'],
         'fehler_email' => ['it' => 'Questo indirizzo e-mail non sembra corretto.', 'de' => 'Diese E-Mail-Adresse scheint nicht zu stimmen.', 'en' => 'This email address doesn’t look right.'],
         'fehler_adresse' => ['it' => 'Questo indirizzo non si può verificare. Controlli che sia scritto bene, es. trattoria-rossi.it', 'de' => 'Diese Adresse lässt sich nicht prüfen. Bitte die Schreibweise prüfen, z. B. baeckerei-mueller.de', 'en' => 'This address can’t be checked. Please check the spelling, e.g. my-business.com'],
+        'fehler_whatsapp' => ['it' => 'Il numero WhatsApp non è leggibile. Lo inserisca con prefisso, es. +39 333 1234567.', 'de' => 'Die WhatsApp-Nummer ist nicht lesbar. Bitte mit Vorwahl eintragen, z. B. +49 171 1234567.', 'en' => 'The WhatsApp number can’t be read. Please include the country code, e.g. +39 333 1234567.'],
         'fehler_zuviel' => ['it' => 'Oggi ci sono già state molte verifiche. Riprovi domani.', 'de' => 'Heute gab es schon viele Prüfungen. Bitte morgen wieder versuchen.', 'en' => 'There have been many checks today. Please try again tomorrow.'],
         'fehler_warten' => ['it' => 'Un momento, per favore: riprovi tra qualche secondo.', 'de' => 'Einen Moment bitte – in ein paar Sekunden noch einmal absenden.', 'en' => 'One moment, please – send again in a few seconds.'],
         'fehler_aus' => ['it' => 'La verifica è momentaneamente disattivata.', 'de' => 'Der Check ist gerade ausgeschaltet.', 'en' => 'The check is switched off at the moment.'],

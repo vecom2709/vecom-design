@@ -76,6 +76,7 @@ final class AkquiseGate
             if ($d !== '' && !self::istFreemail($d)) { $pruefen[] = ['domain', $d]; }
         }
         if (!empty($f['telefon']))   { $pruefen[] = ['telefon', (string) $f['telefon']]; }
+        if (!empty($f['whatsapp']))  { $pruefen[] = ['telefon', (string) $f['whatsapp']]; }
         if (!empty($f['name_norm'])) {
             $pruefen[] = ['firma', self::firmaSchluessel($f)];
         }
@@ -115,6 +116,7 @@ final class AkquiseGate
         if (!empty($f['domain']))  { $eintraege[] = ['domain', (string) $f['domain']]; }
         if (!empty($f['email']))   { $eintraege[] = ['email', mb_strtolower((string) $f['email'])]; }
         if (!empty($f['telefon'])) { $eintraege[] = ['telefon', (string) $f['telefon']]; }
+        if (!empty($f['whatsapp']) && ($f['whatsapp'] ?? '') !== ($f['telefon'] ?? '')) { $eintraege[] = ['telefon', (string) $f['whatsapp']]; }
         foreach ($eintraege as [$art, $wert]) {
             Db::run('INSERT IGNORE INTO akq_sperrliste (art, wert, grund, quelle, firma_id, actor) VALUES (?,?,?,?,?,?)',
                 [$art, $wert, $grund, $quelle, $firmaId, $actor]);
@@ -204,7 +206,7 @@ final class AkquiseGate
         // 2. Keine Zweitansprache -- ausser die Firma hat selbst darum gebeten
         //    (Einwilligung festgehalten oder positive Antwort). Wer am Telefon
         //    sagt "schicken Sie mir das per Mail", soll die Mail bekommen.
-        $gebeten = trim((string) ($f['einwilligung'] ?? '')) !== ''
+        $gebeten = self::einwilligungDeckt($f, $kanal)
             || in_array((string) ($f['antwort_status'] ?? ''), ['INTERESTED', 'MORE_INFO', 'CALL_REQUEST', 'PRICE_REQUEST'], true);
         if (!empty($f['id']) && !$gebeten) {
             $schon = Db::one("SELECT kanal, created_at FROM akq_versand
@@ -224,7 +226,7 @@ final class AkquiseGate
         }
 
         // 4. Regel
-        $bedingung = trim((string) ($f['einwilligung'] ?? '')) !== '' ? 'einwilligung'
+        $bedingung = self::einwilligungDeckt($f, $kanal) ? 'einwilligung'
                    : ((int) ($f['bestandskunde'] ?? 0) === 1 ? 'bestandskunde' : 'ohne');
         $regel = null;
         foreach ([[$land, $kanal], [$land, '*'], ['*', $kanal], ['*', '*']] as [$l, $k]) {
@@ -242,6 +244,9 @@ final class AkquiseGate
         // Zusaetze, die nur verschaerfen, nie lockern.
         if ($kanal === 'email' && empty($f['email'])) {
             $gruende[] = 'Keine E-Mail-Adresse bekannt.';
+        }
+        if ($kanal === 'whatsapp' && empty($f['whatsapp'])) {
+            $gruende[] = 'Keine bestätigte WhatsApp-Nummer.';
         }
         $b = Akquise::branchen()[(string) ($f['branche'] ?? '')] ?? [];
         if (!empty($b['berufsrecht']) && $status === self::ERLAUBT) {
@@ -272,9 +277,11 @@ final class AkquiseGate
             return ['farbe' => 'rot', 'wort' => 'Nicht ansprechen'];
         }
         $land = strtoupper((string) ($f['land'] ?? ''));
-        $bed = trim((string) ($f['einwilligung'] ?? '')) !== '' ? 'einwilligung' : ((int) ($f['bestandskunde'] ?? 0) === 1 ? 'bestandskunde' : 'ohne');
-        $r = static fn(string $kanal) => self::regelErgebnis($land, $kanal, $bed);
-        if ($r('email') === self::ERLAUBT && !empty($f['email'])) { return ['farbe' => 'gruen', 'wort' => 'E-Mail erlaubt']; }
+        $bed = static fn(string $kanal) => self::einwilligungDeckt($f, $kanal) ? 'einwilligung' : ((int) ($f['bestandskunde'] ?? 0) === 1 ? 'bestandskunde' : 'ohne');
+        $r = static fn(string $kanal) => self::regelErgebnis($land, $kanal, $bed($kanal));
+        $mail = $r('email') === self::ERLAUBT && !empty($f['email']);
+        $wa = $r('whatsapp') === self::ERLAUBT && !empty($f['whatsapp']);
+        if ($mail || $wa) { return ['farbe' => 'gruen', 'wort' => $mail && $wa ? 'E-Mail + WhatsApp erlaubt' : ($mail ? 'E-Mail erlaubt' : 'WhatsApp erlaubt')]; }
         if (in_array((string) ($f['kontakt_status'] ?? ''), ['kontaktiert', 'geantwortet', 'kunde'], true)) {
             return ['farbe' => 'grau', 'wort' => 'Schon kontaktiert'];
         }
@@ -376,6 +383,21 @@ final class AkquiseGate
     {
         if (!isset(self::SCHALTER[$k])) { throw new InvalidArgumentException('Unbekannter Schalter.'); }
         self::setzen(self::SCHALTER[$k][0], $an ? '1' : '0');
+    }
+
+    /**
+     * Deckt die Einwilligung dieses Betriebs den Kanal? (27.09.2026)
+     * Eine Einwilligung gilt nur für die Wege in ihrem Wortlaut: E-Mail immer
+     * (so hießen alle bis heute), WhatsApp nur, wenn sie ausdrücklich dabei
+     * stand UND die Nummer bekannt ist. Für Brief, Anruf und Kontaktformular
+     * zählt sie nicht -- dort gilt die Regel „ohne“, wie für jeden Betrieb.
+     */
+    public static function einwilligungDeckt(array $f, string $kanal): bool
+    {
+        if (trim((string) ($f['einwilligung'] ?? '')) === '') { return false; }
+        $kanaele = array_filter(array_map('trim', explode(',', (string) (($f['einwilligung_kanaele'] ?? '') ?: 'email'))));
+        if (!in_array($kanal, $kanaele, true)) { return false; }
+        return $kanal !== 'whatsapp' || trim((string) ($f['whatsapp'] ?? '')) !== '';
     }
 
     /**

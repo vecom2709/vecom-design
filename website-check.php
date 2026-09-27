@@ -34,20 +34,24 @@ $sprache = Sprache::ausAnfrage();
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 $T = static fn(string $k) => Texte::h(Texte::AKQ_CHECK[$k] ?? [], $sprache);
 $C = static fn(string $k) => Texte::h(Texte::PARTNER_CHECK[$k] ?? [], $sprache);
+$zitat = static fn(string $t) => ['it' => '«', 'de' => '„', 'en' => '“'][$sprache] . $t . ['it' => '»', 'de' => '“', 'en' => '”'][$sprache];
 
 $fehler = '';
 $werte = ['url' => '', 'firma' => '', 'name' => '', 'email' => '', 'telefon' => '', 'land' => $sprache === 'de' ? 'DE' : 'IT',
-          'antwort' => $sprache, 'ausfuehrlich' => false, 'marketing' => false];
+          'antwort' => $sprache, 'ausfuehrlich' => false, 'marketing' => false, 'wa' => false, 'whatsapp' => ''];
 $check = null;
 $an = true;
 try {
     $an = AkquiseCheck::an();
     if ($post) {
-        foreach (['url', 'firma', 'name', 'email', 'telefon'] as $f) { $werte[$f] = mb_substr(trim((string) ($_POST[$f] ?? '')), 0, 500); }
+        foreach (['url', 'firma', 'name', 'email', 'telefon', 'whatsapp'] as $f) { $werte[$f] = mb_substr(trim((string) ($_POST[$f] ?? '')), 0, 500); }
         $werte['land'] = in_array($_POST['land'] ?? '', ['IT', 'DE'], true) ? (string) $_POST['land'] : $werte['land'];
         $werte['antwort'] = in_array($_POST['antwort'] ?? '', ['it', 'de', 'en'], true) ? (string) $_POST['antwort'] : $sprache;
         $werte['ausfuehrlich'] = !empty($_POST['ausfuehrlich']);
-        $werte['marketing'] = !empty($_POST['marketing']);
+        /* WhatsApp (27.09.2026): Der WA-Wortlaut schließt die E-Mail ein -- wer nur
+           dieses Häkchen setzt, hat beidem zugestimmt. Leere Nummer: die Telefonnummer. */
+        $werte['wa'] = !empty($_POST['wa']);
+        $werte['marketing'] = !empty($_POST['marketing']) || $werte['wa'];
         if (trim((string) ($_POST['homepage'] ?? '')) !== '') {
             $fehler = 'zeit';           // Lockfeld ausgefüllt: nichts verraten, nichts tun
         } elseif (!AkquiseCheck::stempelGut((string) ($_POST['z'] ?? ''))) {
@@ -63,6 +67,7 @@ try {
                     'url' => $werte['url'], 'firma' => $werte['firma'], 'name' => $werte['name'], 'email' => $werte['email'],
                     'telefon' => $werte['telefon'], 'land' => $werte['land'], 'sprache' => $werte['antwort'], 'sprache_seite' => $sprache,
                     'ausfuehrlich' => $werte['ausfuehrlich'], 'marketing' => $werte['marketing'],
+                    'whatsapp' => $werte['wa'] ? ($werte['whatsapp'] !== '' ? $werte['whatsapp'] : $werte['telefon']) : null,
                 ], (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
                 if ($r['ok']) {
                     header('Location: website-check.php?t=' . $r['token'] . '&n=1&lang=' . $sprache, true, 303);
@@ -124,6 +129,8 @@ $sprachLinks = array_map(static fn($l) => ['l' => $l, 'href' => 'website-check.p
   .haken{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border:1px solid var(--li);border-radius:12px;margin:0 0 10px;cursor:pointer;background:rgba(255,255,255,.015)}
   .haken input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:#d9b25e}
   .haken span{font-size:14.5px}.haken small{display:block;color:var(--l);font-size:12.5px;margin-top:3px}
+  .wa-nr{margin:-4px 0 12px 44px}
+  .haken:has(input[name=wa]:not(:checked)) + .wa-nr{display:none}
   .knopf{display:inline-flex;align-items:center;justify-content:center;width:100%;min-height:54px;padding:12px 22px;border:0;border-radius:12px;font:700 16.5px/1.2 'Inter',system-ui,sans-serif;cursor:pointer;text-decoration:none;
          color:#16120b;background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);margin-top:6px}
   .knopf:focus-visible,.leise:focus-visible{outline:2px solid var(--a);outline-offset:3px}
@@ -219,7 +226,11 @@ $sprachLinks = array_map(static fn($l) => ['l' => $l, 'href' => 'website-check.p
     <label class="haken"><input type="checkbox" name="ausfuehrlich" value="1"<?= $werte['ausfuehrlich'] ? ' checked' : '' ?>>
       <span><?= $h($T('ausf')) ?><small><?= $h($T('ausf_hilfe')) ?></small></span></label>
     <label class="haken"><input type="checkbox" name="marketing" value="1"<?= $werte['marketing'] ? ' checked' : '' ?>>
-      <span><?= $h($T('mkt_vor')) ?> <?= $h(strtr('„%s“', ['„' => ['it' => '«', 'de' => '„', 'en' => '“'][$sprache], '“' => ['it' => '»', 'de' => '“', 'en' => '”'][$sprache], '%s' => AkquiseEinwilligung::wortlaut($sprache)])) ?><small><?= $h($T('mkt_hilfe')) ?></small></span></label>
+      <span><?= $h($T('mkt_vor')) ?> <?= $h($zitat(AkquiseEinwilligung::wortlaut($sprache))) ?><small><?= $h($T('mkt_hilfe')) ?></small></span></label>
+    <label class="haken"><input type="checkbox" name="wa" value="1"<?= $werte['wa'] ? ' checked' : '' ?>>
+      <span><?= $h($T('wa_vor')) ?> <?= $h($zitat(AkquiseEinwilligung::wortlaut($sprache, $T('wa_nummer')))) ?><small><?= $h($T('wa_hilfe')) ?></small></span></label>
+    <div class="feld wa-nr"><label class="t" for="c-wa"><?= $h($T('f_whatsapp')) ?> <small>(<?= $h($T('wa_leer')) ?>)</small></label>
+      <input id="c-wa" type="tel" name="whatsapp" autocomplete="tel" inputmode="tel" maxlength="40" value="<?= $h($werte['whatsapp']) ?>" placeholder="<?= $werte['land'] === 'DE' ? '+49 171 1234567' : '+39 333 1234567' ?>"<?= $fehler === 'whatsapp' ? ' aria-invalid="true" autofocus' : '' ?>></div>
     <button class="knopf" type="submit"><?= $h($T('knopf')) ?> →</button>
     <p class="klein"><?= $h($T('datenschutz')) ?> <a href="<?= $h(Sprache::legal($sprache, 'privacy')) ?>"><?= $h($T('datenschutz_link')) ?></a></p>
   </form>

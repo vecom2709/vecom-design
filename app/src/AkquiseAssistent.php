@@ -25,7 +25,7 @@ final class AkquiseAssistent
     public const FRAGEN = [
         'beste'      => ['Die besten Betriebe', 'Höchste Chance, noch nicht angesprochen.'],
         'probleme'   => ['Websites mit starken Problemen', 'Chance 71 oder mehr — viele belegte Befunde.'],
-        'mail'       => ['Wer darf per E-Mail angeschrieben werden?', 'Nur Betriebe mit bestätigter Einwilligung (Gate: Ja, erlaubt).'],
+        'mail'       => ['Wer darf per E-Mail oder WhatsApp angeschrieben werden?', 'Nur Betriebe mit bestätigter Einwilligung (Gate: Ja, erlaubt). WhatsApp nur, wenn die Nummer mit eingewilligt wurde.'],
         'warten'     => ['Wer wartet auf eine Antwort von mir?', 'Betriebe, die geantwortet haben.'],
         'still'      => ['Wen habe ich angeschrieben, ohne Antwort?', 'Kontaktiert, noch keine Antwort — die ältesten zuerst.'],
         'dreid'      => ['Wer passt wahrscheinlich zu 3D und Animation?', 'Branche mit hoher Eignung oder ein belegter Befund „Experience-Potenzial“.'],
@@ -44,7 +44,7 @@ final class AkquiseAssistent
 
     /** Reihenfolge zählt: das Genauere zuerst („nicht geantwortet“ vor „geantwortet“). */
     private const WOERTER = [
-        'mail' => ['mail', 'e-mail', 'email', 'dürfen', 'darf', 'erlaubt', 'rechtlich', 'einwilligung', 'marketing'],
+        'mail' => ['mail', 'e-mail', 'email', 'whatsapp', 'dürfen', 'darf', 'erlaubt', 'rechtlich', 'einwilligung', 'marketing'],
         'still' => ['keine antwort', 'ohne antwort', 'nachfassen', 'nicht geantwortet', 'noch nicht geantwortet'],
         'warten' => ['warten auf eine antwort', 'wartet auf eine antwort', 'antwort von mir', 'geantwortet', 'antworten', 'antwort'],
         'dreid' => ['3d', 'animation', 'webgl', 'erlebnis', 'rundgang'],
@@ -114,7 +114,7 @@ final class AkquiseAssistent
         $sql = match ($frage) {
             'beste' => "SELECT f.* FROM akq_firmen f WHERE $w AND f.gesperrt = 0 AND f.score IS NOT NULL AND f.kontakt_status IN ('neu','qualifiziert','vorlage','freigegeben') ORDER BY f.score DESC, f.id LIMIT $n",
             'probleme' => "SELECT f.*, (SELECT COUNT(*) FROM akq_befunde b WHERE b.firma_id = f.id AND b.status = 'VERIFIED' AND b.schwere >= 3) AS zusatz FROM akq_firmen f WHERE $w AND f.gesperrt = 0 AND f.score >= 71 ORDER BY zusatz DESC, f.score DESC LIMIT $n",
-            'mail' => "SELECT f.* FROM akq_firmen f WHERE $w AND f.gesperrt = 0 AND f.compliance_status = 'CONTACT_ALLOWED' AND f.email IS NOT NULL AND COALESCE(f.einwilligung, '') <> '' ORDER BY f.score DESC, f.id LIMIT $n",
+            'mail' => "SELECT f.*, IF(FIND_IN_SET('whatsapp', COALESCE(f.einwilligung_kanaele, '')) > 0 AND COALESCE(f.whatsapp, '') <> '', f.whatsapp, NULL) AS zusatz FROM akq_firmen f WHERE $w AND f.gesperrt = 0 AND f.compliance_status = 'CONTACT_ALLOWED' AND f.email IS NOT NULL AND COALESCE(f.einwilligung, '') <> '' ORDER BY f.score DESC, f.id LIMIT $n",
             'warten' => "SELECT f.*, (SELECT MAX(r.eingang_am) FROM akq_antworten r WHERE r.firma_id = f.id) AS zusatz FROM akq_firmen f WHERE $w AND f.kontakt_status = 'geantwortet' AND f.gesperrt = 0 ORDER BY zusatz DESC LIMIT $n",
             'still' => "SELECT f.*, (SELECT MAX(v.created_at) FROM akq_versand v WHERE v.firma_id = f.id AND v.status IN ('gesendet','von_hand')) AS zusatz FROM akq_firmen f WHERE $w AND f.kontakt_status = 'kontaktiert' AND f.gesperrt = 0 ORDER BY zusatz ASC LIMIT $n",
             'dreid' => "SELECT f.*, (SELECT COUNT(*) FROM akq_befunde b WHERE b.firma_id = f.id AND b.kategorie = 'experience' AND b.status = 'VERIFIED') AS zusatz FROM akq_firmen f WHERE $w AND f.gesperrt = 0 AND (f.branche IN ('" . implode("','", self::dreidBranchen()) . "') OR EXISTS (SELECT 1 FROM akq_befunde b WHERE b.firma_id = f.id AND b.kategorie = 'experience' AND b.status = 'VERIFIED')) ORDER BY zusatz DESC, f.score DESC LIMIT $n",
@@ -122,7 +122,7 @@ final class AkquiseAssistent
             'checks' => "SELECT f.*, c.created_at AS zusatz FROM akq_checks c JOIN akq_firmen f ON f.id = c.firma_id WHERE $w AND c.status = 'neu' ORDER BY c.id DESC LIMIT $n",
             'folgen' => "SELECT f.*, fo.grund AS zusatz FROM akq_folgen fo JOIN akq_firmen f ON f.id = fo.firma_id WHERE $w AND fo.status = 'laeuft' AND fo.grund LIKE 'Wartet%' ORDER BY fo.naechst_am LIMIT $n",
         };
-        $spalte = match ($frage) { 'probleme' => 'Belegte Befunde', 'warten' => 'Antwort vom', 'still' => 'Angeschrieben am', 'dreid' => 'Experience-Befunde', 'checks' => 'Anfrage vom', 'folgen' => 'Warum', default => 'Chance' };
+        $spalte = match ($frage) { 'probleme' => 'Belegte Befunde', 'warten' => 'Antwort vom', 'still' => 'Angeschrieben am', 'dreid' => 'Experience-Befunde', 'checks' => 'Anfrage vom', 'folgen' => 'Warum', 'mail' => 'WhatsApp', default => 'Chance' };
         $zeilen = Db::all($sql, $p);
         $zahl = count($zeilen);
         $ort = trim(implode(' · ', array_filter([$filter['branche'] ?? null ? (Akquise::branchen()[$filter['branche']]['de'] ?? $filter['branche']) : null, $filter['region'] ?? null, $filter['stadt'] ?? null,

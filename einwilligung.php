@@ -46,9 +46,10 @@ if (is_file(__DIR__ . '/app/config.local.php')) {
             }
         }
         if ($b !== '') {
-            $e = preg_match('~^[a-f0-9]{40}$~', $b) ? Db::one('SELECT sprache, status FROM akq_einwilligungen WHERE doi_token = ?', [$b]) : null;
+            $e = preg_match('~^[a-f0-9]{40}$~', $b) ? Db::one('SELECT sprache, status, wortlaut FROM akq_einwilligungen WHERE doi_token = ?', [$b]) : null;
             if ($e) {
                 $sprache = (string) $e['sprache'];
+                $wortlautFest = (string) ($e['wortlaut'] ?? '');   // genau der Text, der angefragt wurde (auch mit WhatsApp-Nummer)
                 if ($post) {
                     $r = AkquiseEinwilligung::bestaetigen($b);
                     $zustand = $r['ok'] ? 'bestaetigt' : ($r['grund'] === 'abgelaufen' ? 'abgelaufen' : 'falsch');
@@ -71,15 +72,16 @@ if (is_file(__DIR__ . '/app/config.local.php')) {
                     } else {
                         touch($sperre);
                         $r = AkquiseEinwilligung::anfragen($t, (string) ($_POST['email'] ?? ''), !empty($_POST['ja']), $sprache,
-                            (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-                        $zustand = ['ok' => 'gesendet', 'email' => 'email', 'zuviel' => 'zuviel', 'gesperrt' => 'falsch'][$r] ?? 'falsch';
+                            (string) ($_SERVER['REMOTE_ADDR'] ?? ''), !empty($_POST['wa']) ? (string) ($_POST['whatsapp'] ?? '') : null);
+                        $zustand = ['ok' => 'gesendet', 'email' => 'email', 'zuviel' => 'zuviel', 'gesperrt' => 'falsch', 'whatsapp' => 'whatsapp'][$r] ?? 'falsch';
                     }
                 } elseif ($post) {
                     $zustand = 'gesendet';   // Formular-Roboter: nichts verraten, nichts tun
                 }
             }
         }
-        $wortlaut = AkquiseEinwilligung::wortlaut($sprache);
+        $wortlaut = ($wortlautFest ?? '') !== '' ? $wortlautFest : AkquiseEinwilligung::wortlaut($sprache);
+        $wortlautWa = AkquiseEinwilligung::wortlaut($sprache, ['de' => 'der hier angegebenen Nummer', 'it' => 'indicato qui', 'en' => 'the number given here'][$sprache] ?? 'indicato qui');
     } catch (Throwable $e) {
         $zustand = 'falsch';
     }
@@ -94,7 +96,7 @@ $T = [
              'bestaetigen' => 'Bitte bestätigen Sie mit einem Klick, dass wir Ihnen schreiben dürfen.', 'bknopf' => 'Ja, ich bin einverstanden',
              'bestaetigt' => 'Danke — bestätigt. Sie hören bald von uns. Sie können jederzeit mit einer kurzen Antwort widerrufen.',
              'abgelaufen' => 'Dieser Link ist abgelaufen. Tragen Sie Ihre Adresse einfach noch einmal ein.',
-             'falsch' => 'Dieser Link ist nicht (mehr) gültig.', 'privacy' => 'Datenschutz'],
+             'falsch' => 'Dieser Link ist nicht (mehr) gültig.', 'privacy' => 'Datenschutz', 'wa' => 'Auch per WhatsApp — dann gilt:', 'waFehler' => 'Diese WhatsApp-Nummer ist nicht lesbar. Bitte mit Vorwahl eintragen, z. B. +49 171 1234567.', 'waNummer' => 'WhatsApp-Nummer'],
     'it' => ['titel' => 'Messaggi da Vecom Design', 'lead' => 'Inserisca il suo indirizzo se possiamo inviarle via e-mail l’analisi e le proposte per {firma}.',
              'email' => 'Il suo indirizzo e-mail', 'knopf' => 'Ricevere l’e-mail di conferma',
              'gesendet' => 'Quasi fatto: le abbiamo inviato un’e-mail. Clicchi sul link che contiene — solo allora le scriveremo.',
@@ -102,7 +104,7 @@ $T = [
              'bestaetigen' => 'Confermi con un clic che possiamo scriverle.', 'bknopf' => 'Sì, sono d’accordo',
              'bestaetigt' => 'Grazie — confermato. A presto. Può revocare in qualsiasi momento con una breve risposta.',
              'abgelaufen' => 'Questo link è scaduto. Inserisca di nuovo il suo indirizzo.',
-             'falsch' => 'Questo link non è (più) valido.', 'privacy' => 'Privacy'],
+             'falsch' => 'Questo link non è (più) valido.', 'privacy' => 'Privacy', 'wa' => 'Anche su WhatsApp — allora vale:', 'waFehler' => 'Questo numero WhatsApp non è leggibile. Lo inserisca con prefisso, es. +39 333 1234567.', 'waNummer' => 'Numero WhatsApp'],
     'en' => ['titel' => 'Messages from Vecom Design', 'lead' => 'Enter your address if we may email you the analysis and suggestions for {firma}.',
              'email' => 'Your email address', 'knopf' => 'Request confirmation email',
              'gesendet' => 'Almost done: we have sent you an email. Please click the link in it — only then will we write to you.',
@@ -110,7 +112,7 @@ $T = [
              'bestaetigen' => 'Please confirm with one click that we may write to you.', 'bknopf' => 'Yes, I agree',
              'bestaetigt' => 'Thank you — confirmed. You’ll hear from us soon. You can withdraw at any time with a short reply.',
              'abgelaufen' => 'This link has expired. Simply enter your address again.',
-             'falsch' => 'This link is not (or no longer) valid.', 'privacy' => 'Privacy'],
+             'falsch' => 'This link is not (or no longer) valid.', 'privacy' => 'Privacy', 'wa' => 'Also on WhatsApp — then this applies:', 'waFehler' => 'This WhatsApp number can’t be read. Please include the country code, e.g. +39 333 1234567.', 'waNummer' => 'WhatsApp number'],
 ][$sprache];
 if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zustand === 'falsch' ? 404 : 410); }
 ?><!doctype html>
@@ -129,7 +131,7 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
   h1 { font-size: 24px; line-height: 1.25; margin: 10px 0 12px; }
   p { color: #c9c1b3; margin: 0 0 14px; }
   label { display: block; font-size: 14px; color: #c9c1b3; margin: 12px 0 6px; }
-  input[type=email] { width: 100%; box-sizing: border-box; font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(241,211,139,.3);
+  input[type=email], input[type=tel] { width: 100%; box-sizing: border-box; font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(241,211,139,.3);
          background: #0d0c0b; color: #f3eee4; }
   .haken { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; color: #e9e2d5; margin: 14px 0; }
   .haken input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
@@ -156,8 +158,8 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
     <p style="font-size:14.5px;color:#e9e2d5">„<?= $h($wortlaut) ?>“</p>
     <form method="post" action="/einwilligung.php"><input type="hidden" name="b" value="<?= $h($b) ?>">
       <button type="submit"><?= $h($T['bknopf']) ?></button></form>
-  <?php elseif (in_array($zustand, ['formular', 'email', 'zuviel'], true)): ?>
-    <?php if ($zustand !== 'formular'): ?><div class="hinweis schlecht" role="alert"><?= $h($T[$zustand === 'email' ? 'emailFehler' : 'zuviel']) ?></div><?php endif; ?>
+  <?php elseif (in_array($zustand, ['formular', 'email', 'zuviel', 'whatsapp'], true)): ?>
+    <?php if ($zustand !== 'formular'): ?><div class="hinweis schlecht" role="alert"><?= $h($T[['email' => 'emailFehler', 'whatsapp' => 'waFehler'][$zustand] ?? 'zuviel']) ?></div><?php endif; ?>
     <p><?= $h(strtr($T['lead'], ['{firma}' => $firma])) ?></p>
     <form method="post" action="/einwilligung.php">
       <input type="hidden" name="t" value="<?= $h($t) ?>"><input type="hidden" name="l" value="<?= $h($sprache) ?>">
@@ -165,6 +167,10 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
       <label for="e_mail"><?= $h($T['email']) ?></label>
       <input id="e_mail" type="email" name="email" required autocomplete="email" inputmode="email">
       <label class="haken"><input type="checkbox" name="ja" value="1" required> <span><?= $h($wortlaut) ?></span></label>
+      <?php /* WhatsApp (27.09.2026): freiwillig, eigener Wortlaut; die Nummer steht dann in der Bestätigungsmail. */ ?>
+      <label class="haken"><input type="checkbox" name="wa" value="1"> <span><?= $h($T['wa']) ?> „<?= $h($wortlautWa) ?>“</span></label>
+      <label for="e_wa"><?= $h($T['waNummer']) ?></label>
+      <input id="e_wa" type="tel" name="whatsapp" autocomplete="tel" inputmode="tel" placeholder="+39 …">
       <button type="submit"><?= $h($T['knopf']) ?></button>
     </form>
   <?php else: ?>

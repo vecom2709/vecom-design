@@ -88,9 +88,9 @@ final class AkquiseCheck
     /**
      * Ein Check aus dem Formular.
      *
-     * @param array{name?:string,firma?:string,url?:string,email?:string,telefon?:string,sprache?:string,sprache_seite?:string,land?:string,ausfuehrlich?:bool,marketing?:bool} $e
+     * @param array{name?:string,firma?:string,url?:string,email?:string,telefon?:string,sprache?:string,sprache_seite?:string,land?:string,ausfuehrlich?:bool,marketing?:bool,whatsapp?:?string} $e
      * @return array{ok:bool, grund?:string, token?:string}
-     *         grund: aus | angaben | adresse | email | zuviel
+     *         grund: aus | angaben | adresse | email | whatsapp | zuviel
      */
     public static function anlegen(array $e, string $ip = ''): array
     {
@@ -104,6 +104,12 @@ final class AkquiseCheck
         $telefon = $telefonRoh !== '' ? Akquise::normTelefon($telefonRoh, $land) : null;
         if (mb_strlen($name) < 2 || mb_strlen($firma) < 2 || mb_strlen($name) > 120 || mb_strlen($firma) > 190) { return ['ok' => false, 'grund' => 'angaben']; }
         if ($email === null) { return ['ok' => false, 'grund' => 'email']; }
+        /* WhatsApp gewünscht (27.09.2026): Nummer vor jeder Arbeit prüfen -- sonst läuft die Analyse, und die Einwilligung scheitert still. */
+        $wa = null;
+        if (array_key_exists('whatsapp', $e) && $e['whatsapp'] !== null) {
+            $wa = Akquise::normTelefon((string) $e['whatsapp'], $land);
+            if ($wa === null || strlen((string) preg_replace('~\D~', '', $wa)) < 8) { return ['ok' => false, 'grund' => 'whatsapp']; }
+        }
         $url = PartnerCheck::adresse((string) ($e['url'] ?? ''));
         if ($url === null) { return ['ok' => false, 'grund' => 'adresse']; }
         $host = (string) parse_url($url, PHP_URL_HOST);
@@ -166,7 +172,7 @@ final class AkquiseCheck
                     $l = AkquiseEinwilligung::link($firmaId, 'check');
                     /* Der Wortlaut in der Sprache, in der er auf der Seite stand -- belegt wird, was der Mensch gelesen hat. */
                     $seite = in_array($e['sprache_seite'] ?? '', ['de', 'it', 'en'], true) ? (string) $e['sprache_seite'] : $sprache;
-                    $stand = AkquiseEinwilligung::anfragen((string) $l['link_token'], $email, true, $seite, $ip);
+                    $stand = AkquiseEinwilligung::anfragen((string) $l['link_token'], $email, true, $seite, $ip, $wa);
                     $ew = Db::wert("SELECT id FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'check' AND email = ? ORDER BY id DESC LIMIT 1", [$firmaId, $email], null);
                     Db::update('akq_checks', $id, ['einwilligung_id' => $ew !== null ? (int) $ew : null]);
                 } catch (Throwable $x) { $stand = 'gesperrt'; }
@@ -177,7 +183,7 @@ final class AkquiseCheck
         if ($firmaId !== null) {
             Akquise::protokoll($firmaId, 'anfrage', 'Website-Check über vecom-design.it: ' . $hostNorm . ' · '
                 . (!empty($e['ausfuehrlich']) ? 'ausführliche Analyse gewünscht' : 'nur Kurz-Check')
-                . (!empty($e['marketing']) ? ' · Einwilligung angefragt (' . ($stand ?? '—') . ')' : ''), ['check' => $id]);
+                . (!empty($e['marketing']) ? ' · Einwilligung angefragt' . ($wa !== null ? ' (E-Mail + WhatsApp ' . $wa . ')' : '') . ' (' . ($stand ?? '—') . ')' : ''), ['check' => $id]);
         }
         try {
             Events::melden('akquise_check', 'Website-Check: ' . mb_substr($firma, 0, 80) . ' (' . $hostNorm . ')',

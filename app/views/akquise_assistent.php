@@ -56,6 +56,7 @@ $branchen = Akquise::branchen();
           'warten', 'still', 'checks' => !empty($z['zusatz']) ? date('d.m.Y', strtotime((string) $z['zusatz'])) : '—',
           'probleme', 'dreid' => (string) (int) ($z['zusatz'] ?? 0),
           'folgen' => (string) ($z['zusatz'] ?? ''),
+          'mail' => !empty($z['zusatz']) ? (string) $z['zusatz'] : 'nur E-Mail',
           default => $z['score'] !== null ? (int) $z['score'] . ' · ' . Akquise::chanceWort((int) $z['score']) : '—',
       }; ?>
       <tr><td><a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>" style="color:var(--cyan)"><?= Fmt::h((string) $z['name']) ?></a>

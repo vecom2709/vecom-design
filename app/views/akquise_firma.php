@@ -280,6 +280,24 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
           Lieber anrufen? <a href="<?= Fmt::h(url('akquise/' . $fid . '/anruf')) ?>" target="_blank" rel="noopener" style="text-decoration:underline">Anrufzettel öffnen</a>
           <?= $f['telefon'] ? '· ' . Fmt::h((string) $f['telefon']) : '' ?></p>
       <?php endif; ?>
+
+      <?php /* WhatsApp (27.09.2026): nur mit bestätigter Einwilligung für genau
+               diese Nummer. Die Seite füllt den Text vor, Uwe schickt selbst. */
+        $analyseAdr = '';
+        foreach ($analysen as $x) { if ((int) $x['aktiv'] === 1) { $analyseAdr = AkquiseAnalyse::adresse($x); break; } }
+        $waLink = !$gesperrt ? sicher(static fn() => AkquiseVersand::whatsappLink($f, $spracheText, $analyseAdr), null) : null; ?>
+      <?php if ($waLink): ?>
+        <div class="akq-weg" style="margin-top:14px;border-top:1px solid var(--linie);padding-top:12px;display:block">
+          <p style="margin:0 0 8px"><b>WhatsApp</b> <span class="akq-klein">· eingewilligt für <?= Fmt::h((string) $f['whatsapp']) ?></span></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <a class="knopf akq-los" href="<?= Fmt::h($waLink) ?>" target="_blank" rel="noopener noreferrer">WhatsApp-Nachricht öffnen</a>
+            <?= $post('akq_von_hand', '<input type="hidden" name="kanal" value="whatsapp"><input type="hidden" name="begruendung" value="Per WhatsApp geschrieben (Einwilligung liegt vor)">
+              <button class="knopf">Als geschrieben vermerken</button>', ' style="display:inline"') ?>
+          </div>
+          <p class="akq-klein" style="margin-top:8px">Der Text ist vorgefüllt (mit dem Hinweis „STOPP“<?= $analyseAdr !== '' ? ' und dem Link zur Analyse-Seite' : '' ?>). Du liest ihn in WhatsApp und schickst selbst.
+            Antwortet jemand „STOPP“: unten bei „Nie mehr ansprechen“ sperren — dann geht nichts mehr raus.</p>
+        </div>
+      <?php endif; ?>
     </div>
 
     <div class="block">
@@ -304,11 +322,12 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
       $einw = sicher(static fn() => Db::all('SELECT * FROM akq_einwilligungen WHERE firma_id = ? ORDER BY id DESC LIMIT 5', [$fid]), []);
       $einwLink = $_SESSION['akq_einw_link'][$fid] ?? null; ?>
     <div class="block" id="einwilligung">
-      <h2>Einwilligung für E-Mails</h2>
+      <h2>Einwilligung für E-Mail und WhatsApp</h2>
       <?php if (trim((string) ($f['einwilligung'] ?? '')) !== ''): ?>
         <p class="akq-klein" style="color:var(--gut)">✓ <?= Fmt::h((string) $f['einwilligung']) ?></p>
+        <p class="akq-klein">Gilt für: <?= AkquiseGate::einwilligungDeckt($f, 'whatsapp') ? 'E-Mail und WhatsApp (' . Fmt::h((string) $f['whatsapp']) . ')' : 'E-Mail' ?>.</p>
       <?php elseif (!$gesperrt): ?>
-        <p class="akq-klein" style="margin-bottom:8px">Hat der Betrieb gesagt „schicken Sie mir das per Mail“? Dann schick ihm diesen Link (per SMS, WhatsApp oder vor Ort als QR). Er trägt seine Adresse ein und bestätigt per Klick — danach ist die E-Mail erlaubt, mit Beleg.</p>
+        <p class="akq-klein" style="margin-bottom:8px">Hat der Betrieb gesagt „schicken Sie mir das per Mail“? Dann schick ihm diesen Link (per SMS, WhatsApp oder vor Ort als QR). Er trägt seine Adresse ein, auf Wunsch auch seine WhatsApp-Nummer, und bestätigt per Klick — danach ist die E-Mail erlaubt (und WhatsApp, wenn er es angekreuzt hat), mit Beleg.</p>
         <?php if ($einwLink): ?>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= Fmt::h($einwLink) ?></code>
             <button class="knopf" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(<?= Fmt::h(json_encode($einwLink)) ?>);this.textContent='✓'">Kopieren</button></div>
@@ -322,7 +341,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
         <table style="margin-top:10px"><tbody>
           <?php foreach ($einw as $e): ?>
             <tr><td class="akq-klein" style="width:110px"><?= Fmt::h(date('d.m.Y', strtotime((string) ($e['bestaetigt_am'] ?? $e['angefragt_am'] ?? $e['created_at'])))) ?></td>
-              <td class="akq-klein"><?= Fmt::h(['offen' => 'Link erzeugt, noch nicht benutzt', 'angefragt' => 'Bestätigungsmail an ' . $e['email'] . ' — wartet auf Klick', 'bestaetigt' => 'Bestätigt: ' . $e['email'], 'widerrufen' => 'Widerrufen', 'abgelaufen' => 'Nicht bestätigt (abgelaufen)'][$e['status']] ?? $e['status']) ?>
+              <td class="akq-klein"><?= Fmt::h(['offen' => 'Link erzeugt, noch nicht benutzt', 'angefragt' => 'Bestätigungsmail an ' . $e['email'] . (!empty($e['whatsapp']) ? ' (+ WhatsApp ' . $e['whatsapp'] . ')' : '') . ' — wartet auf Klick', 'bestaetigt' => 'Bestätigt: ' . $e['email'] . (!empty($e['whatsapp']) ? ' + WhatsApp ' . $e['whatsapp'] : ''), 'widerrufen' => 'Widerrufen', 'abgelaufen' => 'Nicht bestätigt (abgelaufen)'][$e['status']] ?? $e['status']) ?>
                 · <?= $e['quelle'] === 'analyse' ? 'über die Analyse-Seite' : 'über den Link' ?></td></tr>
           <?php endforeach; ?>
         </tbody></table>
