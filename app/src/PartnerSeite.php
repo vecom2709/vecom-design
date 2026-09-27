@@ -51,7 +51,11 @@ final class PartnerSeite
         'transport' => 'erlebnis/branchen/lkw-rot.webp',
     ];
 
-    public const BAUSTEINE = ['arbeiten', 'ablauf', 'faq', 'whatsapp'];
+    public const BAUSTEINE = ['arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
+    /* Kundenstimmen und Rückruf (27.09.2026) sind an, bis der Partner sie
+       ausschaltet: Beide zeigen nur, was es gibt (freigegebene Stimmen,
+       Vecoms Rückruf) -- und die meisten Partner öffnen den Gestalter nie. */
+    public const STANDARD_AN = ['stimmen', 'rueckruf'];
     public const TEXT_MAX = ['titel' => 80, 'lead' => 320, 'p1' => 100, 'p2' => 100, 'p3' => 100];
     public const BILD_MAX_BYTE = 10 * 1024 * 1024;
 
@@ -73,7 +77,10 @@ final class PartnerSeite
             }
         }
         $bausteine = [];
-        foreach (self::BAUSTEINE as $b) { $bausteine[$b] = !empty($roh['bausteine'][$b]); }
+        foreach (self::BAUSTEINE as $b) {
+            $bausteine[$b] = is_array($roh['bausteine'] ?? null) && array_key_exists($b, $roh['bausteine'])
+                ? !empty($roh['bausteine'][$b]) : in_array($b, self::STANDARD_AN, true);
+        }
         $wa = preg_match('~^\+[1-9]\d{7,14}$~', (string) ($roh['whatsapp'] ?? '')) ? (string) $roh['whatsapp'] : '';
         if ($wa === '') { $bausteine['whatsapp'] = false; }
         return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa];
@@ -189,5 +196,32 @@ final class PartnerSeite
     public static function text(array $g, string $sprache, string $k, string $standard): string
     {
         return (string) ($g['texte'][$sprache][$k] ?? $standard);
+    }
+
+    /**
+     * Kundenstimmen für die Empfehlungsseite (27.09.2026). Nur, was Vecom
+     * freigegeben hat UND wofür der Kunde seinen Namen erlaubt hat (Stimme).
+     * Stimmen der Kunden dieses Partners zuerst -- „Maria aus Favara, auch
+     * von Ulli empfohlen“ überzeugt seine Bekannten mehr als eine fremde.
+     *
+     * @return list<array{name:string, firma:string, ort:string, text:string, sterne:?int}>
+     */
+    public static function stimmen(array $p, string $sprache, int $n = 3): array
+    {
+        try {
+            $zeilen = Db::all("SELECT s.name, s.firma, s.ort, s.text, s.sterne FROM stimmen s
+                                WHERE s.status = 'veroeffentlicht' AND s.erlaubnis = 1 AND s.demo = 0
+                             ORDER BY (s.customer_id IS NOT NULL AND s.customer_id IN (SELECT customer_id FROM partner_zuordnungen WHERE partner_id = ?)) DESC,
+                                      (s.sprache = ?) DESC, s.sort, s.veroeffentlicht_am DESC, s.id DESC LIMIT " . max(1, min(6, $n)), [(int) $p['id'], $sprache]);
+        } catch (Throwable $e) { return []; }
+        return array_map(static fn(array $z): array => ['name' => (string) $z['name'], 'firma' => (string) ($z['firma'] ?? ''), 'ort' => (string) ($z['ort'] ?? ''),
+            'text' => (string) $z['text'], 'sterne' => $z['sterne'] === null ? null : (int) $z['sterne']], $zeilen);
+    }
+
+    /** Arbeiten mit echtem Vorher-Bild (assets/img/arbeiten/ID/vorher.webp). Ohne echtes Bild kein Vergleich -- ein nachgestelltes Vorher wäre erfunden. */
+    public static function vorher(string $arbeit): ?string
+    {
+        if (!preg_match('~^[a-z0-9-]+$~', $arbeit)) { return null; }
+        return is_file(dirname(__DIR__, 2) . '/assets/img/arbeiten/' . $arbeit . '/vorher.webp') ? '/assets/img/arbeiten/' . $arbeit . '/vorher.webp' : null;
     }
 }

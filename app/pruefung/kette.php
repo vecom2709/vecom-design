@@ -11723,7 +11723,8 @@ require_once $wurzel . '/src/PartnerSeite.php';
 $psId = Partner::anlegen(['name' => 'Gianni Gestalter', 'email' => 'gianni@partner.example', 'status' => 'aktiv', 'code' => 'GIANNIPS1', 'firma' => '', 'sprache' => 'it']);
 $psP = static fn(): array => Db::one('SELECT * FROM partner WHERE id = ?', [$psId]);
 $psG = PartnerSeite::gestaltung($psP());
-pruefe('Ohne Gestaltung: Standard (Gold dunkel, kein Bild, keine Bausteine)', $psG['vorlage'] === 'gold' && $psG['akzent'] === 'gold' && $psG['bild'] === '' && !in_array(true, $psG['bausteine'], true));
+pruefe('Ohne Gestaltung: Standard (Gold dunkel, kein Bild, keine Zusatz-Bausteine außer Kundenstimmen und Rückruf)', $psG['vorlage'] === 'gold' && $psG['akzent'] === 'gold' && $psG['bild'] === ''
+    && !in_array(true, array_intersect_key($psG['bausteine'], array_flip(['arbeiten', 'ablauf', 'faq', 'whatsapp'])), true) && $psG['bausteine']['stimmen'] && $psG['bausteine']['rueckruf']);
 pruefe('Texte mit Adressen werden abgewiesen, WhatsApp nur international',
     PartnerSeite::speichern($psId, ['texte' => ['de' => ['lead' => 'Mehr auf meinseite.de']]]) === 'text_link'
     && PartnerSeite::speichern($psId, ['texte' => ['it' => ['titel' => 'Scrivimi a me@x.it']]]) === 'text_link'
@@ -11965,6 +11966,68 @@ pruefe('Schnellcheck-Bericht: weiterleitbar ohne Skript (nur Links, CSP bleibt)'
 pruefe('Dashboard: Link, eigene Seite und Berichte je mit WhatsApp, E-Mail/Kopieren und Teilen-Menü; Löschen fragt vorher',
     substr_count($tlPa . (string) file_get_contents($wurzel . '/views/partner_seite.php') . (string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'data-teilen-text=') >= 3
     && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), "return confirm(this.dataset.frage)") && str_contains($tlPa, "\$tat === 'ck_weg'"));
+
+/* ============================================================================
+   Empfehlungsseite: Kundenstimmen, Rückruf, Vorher/Nachher (27.09.2026, Uwe: Ja)
+   ============================================================================ */
+abschnitt('Empfehlungsseite: Kundenstimmen, Rückruf, Vorher/Nachher');
+require_once $wurzel . '/src/PartnerRueckruf.php';
+$rrP = Partner::anlegen(['name' => 'Rita Rueckruf', 'email' => 'rita@partner.example', 'status' => 'aktiv', 'code' => 'RITARR01', 'firma' => '', 'sprache' => 'de']);
+$rrPa = Db::one('SELECT * FROM partner WHERE id = ?', [$rrP]);
+$rrK = Events::kundeFinden(['name' => 'Kurt Kunde', 'email' => 'kurt@kunde-rr.example']);
+Partner::zuordnen($rrK, $rrP, 'link');
+$rrSt = static fn(?int $k, string $n, string $sp, string $status, int $erl): int => (int) Db::insert('stimmen', ['customer_id' => $k, 'name' => $n, 'text' => 'Satz von ' . $n,
+    'sprache' => $sp, 'erlaubnis' => $erl, 'status' => $status, 'veroeffentlicht_am' => date('Y-m-d H:i:s')]);
+$rrSt(null, 'Fremd Italienisch', 'it', 'veroeffentlicht', 1);
+$rrSt(null, 'Fremd Deutsch', 'de', 'veroeffentlicht', 1);
+$rrSt($rrK, 'Kurt Kunde', 'it', 'veroeffentlicht', 1);
+$rrSt(null, 'Nicht freigegeben', 'de', 'neu', 1);
+$rrSt(null, 'Ohne Erlaubnis', 'de', 'veroeffentlicht', 0);
+$rrStim = array_column(PartnerSeite::stimmen($rrPa, 'de', 6), 'name');
+pruefe('Kundenstimmen: nur freigegeben und mit Erlaubnis; Kunden dieses Partners zuerst, dann die Sprache',
+    ($rrStim[0] ?? '') === 'Kurt Kunde' && array_search('Fremd Deutsch', $rrStim, true) < array_search('Fremd Italienisch', $rrStim, true)
+    && !in_array('Nicht freigegeben', $rrStim, true) && !in_array('Ohne Erlaubnis', $rrStim, true), json_encode($rrStim));
+pruefe('Kundenstimmen und Rückruf sind an, bis der Partner sie ausschaltet', PartnerSeite::gestaltung($rrPa)['bausteine']['stimmen'] && PartnerSeite::gestaltung($rrPa)['bausteine']['rueckruf']);
+PartnerSeite::speichern($rrP, ['bausteine' => ['faq' => '1']]);
+pruefe('… ausgeschaltet bleibt ausgeschaltet', !PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$rrP]))['bausteine']['rueckruf']);
+pruefe('Vorher/Nachher nur mit echtem Vorher-Bild; kein Pfad aus der Adresse', PartnerSeite::vorher('cavaleri') === (is_file($wurzel . '/../assets/img/arbeiten/cavaleri/vorher.webp') ? '/assets/img/arbeiten/cavaleri/vorher.webp' : null)
+    && PartnerSeite::vorher('../../app') === null && PartnerSeite::vorher('gibtesnicht') === null);
+
+$rrJetzt = strtotime('2026-09-24 10:00');   // Donnerstag
+$rrTage = PartnerRueckruf::tage($rrJetzt);
+pruefe('Rückruf: drei Tage ab heute, Sonntag fällt aus', array_keys($rrTage) === ['2026-09-24', '2026-09-25', '2026-09-26'] && array_values(PartnerRueckruf::tage(strtotime('2026-09-26 10:00'))) === ['heute', 'tag1', 'tag2']);
+$rrGut = ['name' => 'Mario Rossi', 'telefon' => '0039 333 123 4567', 'tag' => '2026-09-25', 'fenster' => 'mittag', 'ok' => '1', 'website' => '', 'st' => PartnerRueckruf::stempel('RITARR01', $rrJetzt - 30)];
+pruefe('Rückruf: Honigtopf, zu schnell, abgelaufen, fremde Signatur → abgewiesen',
+    PartnerRueckruf::anlegen($rrPa, ['website' => 'x'] + $rrGut, 'it', $rrJetzt) === 'rr_falle'
+    && PartnerRueckruf::anlegen($rrPa, ['st' => PartnerRueckruf::stempel('RITARR01', $rrJetzt - 1)] + $rrGut, 'it', $rrJetzt) === 'rr_zeit'
+    && PartnerRueckruf::anlegen($rrPa, ['st' => PartnerRueckruf::stempel('RITARR01', $rrJetzt - 9000)] + $rrGut, 'it', $rrJetzt) === 'rr_zeit'
+    && PartnerRueckruf::anlegen($rrPa, ['st' => PartnerRueckruf::stempel('ANDERER1', $rrJetzt - 30)] + $rrGut, 'it', $rrJetzt) === 'rr_zeit');
+pruefe('Rückruf: Name, Nummer, Zeitpunkt und Einverständnis werden geprüft',
+    PartnerRueckruf::anlegen($rrPa, ['name' => 'M'] + $rrGut, 'it', $rrJetzt) === 'rr_name'
+    && PartnerRueckruf::anlegen($rrPa, ['telefon' => '12 34'] + $rrGut, 'it', $rrJetzt) === 'rr_telefon'
+    && PartnerRueckruf::anlegen($rrPa, ['telefon' => '333+123456'] + $rrGut, 'it', $rrJetzt) === 'rr_telefon'
+    && PartnerRueckruf::anlegen($rrPa, ['tag' => '2026-09-27'] + $rrGut, 'it', $rrJetzt) === 'rr_wann'
+    && PartnerRueckruf::anlegen($rrPa, ['fenster' => 'nachts'] + $rrGut, 'it', $rrJetzt) === 'rr_wann'
+    && PartnerRueckruf::anlegen($rrPa, ['ok' => ''] + $rrGut, 'it', $rrJetzt) === 'rr_ok');
+[$rrPem, $rrPunkt] = WebPush::paar(); $rrAuth = random_bytes(16);
+PartnerPost::aboSpeichern($rrP, 'https://push.example.org/rita', WebPush::b64($rrPunkt), WebPush::b64($rrAuth));
+$rrPost = [];
+WebPush::$probe = static function (string $z, array $k, string $paket) use (&$rrPost): int { $rrPost[] = $paket; return 201; };
+pruefe('Rückruf angelegt', PartnerRueckruf::anlegen($rrPa, $rrGut, 'it', $rrJetzt) === 'ok');
+WebPush::$probe = null;
+require_once $wurzel . '/src/Telefon.php';
+$rrListe = array_values(array_filter(Telefon::rueckrufe(30), static fn($r) => $r['nummer'] === '+393331234567'));
+pruefe('… steht in der Rückrufliste mit Nummer, Zeitfenster und dem empfehlenden Partner',
+    count($rrListe) === 1 && $rrListe[0]['wer'] === 'Mario Rossi' && str_contains($rrListe[0]['erreichbar'], '25.09.') && str_contains($rrListe[0]['erreichbar'], '12–15')
+    && str_contains($rrListe[0]['anliegen'], 'Rita Rueckruf') && str_contains($rrListe[0]['anliegen'], 'RITARR01'), json_encode($rrListe));
+$rrKlar = $rrPost ? json_decode(WebPush::entschluesseln($rrPost[0], $rrPem, $rrPunkt, $rrAuth), true) : null;
+pruefe('… der Partner bekommt einen Hinweis OHNE Namen und Nummer', is_array($rrKlar) && !str_contains(json_encode($rrKlar), 'Mario') && !str_contains(json_encode($rrKlar), '333'));
+for ($i = 1; $i < PartnerRueckruf::JE_TAG; $i++) { PartnerRueckruf::anlegen($rrPa, $rrGut, 'it', $rrJetzt); }
+pruefe('… höchstens ' . PartnerRueckruf::JE_TAG . ' Wünsche je Partner und Tag', PartnerRueckruf::anlegen($rrPa, $rrGut, 'it', $rrJetzt) === 'rr_genug');
+$rrLp = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Landeseite: Stimmen, Rückruf (nur wenn eingeschaltet, zurück mit n=1) und Vorher/Nachher-Regler mit Beschriftung',
+    str_contains($rrLp, 'PartnerSeite::stimmen($p, $sprache, 3)') && str_contains($rrLp, "(\$_POST['tat'] ?? '') === 'rueckruf' && \$g['bausteine']['rueckruf']")
+    && str_contains($rrLp, "'n' => 1] + \$extra") && str_contains($rrLp, 'type="range"') && str_contains($rrLp, "\$PS['vn_regler']"));
 
 /* ============================================================================
    Aufräumen und Bilanz

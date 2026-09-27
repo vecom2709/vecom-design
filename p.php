@@ -76,6 +76,16 @@ header('X-Robots-Tag: noindex, nofollow');
 if ($p === null) { header('Location: ' . $ziel, true, 302); exit; }
 
 $g = PartnerSeite::gestaltung($p);
+$hier = static fn(array $extra = []): string => '/p.php?' . http_build_query(array_filter(['c' => $p['code'], 'k' => $_GET['k'] ?? null, 'lang' => $sprache, 'n' => 1] + $extra));
+/* Rückrufwunsch (27.09.2026): danach zurück auf dieselbe Seite (n=1: kein neuer Klick). */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'rueckruf' && $g['bausteine']['rueckruf']) {
+    $rr = 'rr_falle';
+    try {
+        foreach (['Akquise', 'PartnerRecherche', 'PartnerPost', 'WebPush', 'PartnerRueckruf'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        $rr = PartnerRueckruf::anlegen($p, $_POST, $sprache);
+    } catch (Throwable $e) { $rr = 'rr_falle'; }
+    header('Location: ' . $hier(['rr' => $rr]) . '#rueckruf', true, 303); exit;
+}
 /* Eigene Texte des Partners gehen vor, sonst der Standard (Texte::PARTNER_LANDE). */
 $L = static fn(string $k): string => in_array($k, ['titel', 'lead', 'p1', 'p2', 'p3'], true)
     ? PartnerSeite::text($g, $sprache, $k, strtr(Texte::h(Texte::PARTNER_LANDE[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]))
@@ -150,6 +160,28 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
   .lp-wa{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;border-radius:12px;font-weight:650;text-decoration:none;padding:12px 18px;
          border:1px solid var(--linie2);color:var(--text)}
   .lp .weiter2{display:inline-block;margin-top:12px;color:var(--cyan);font-size:14.5px}
+  .lp-stimmen{display:grid;gap:12px}
+  .lp-stimmen figure{margin:0;padding:14px 16px;border:1px solid var(--linie);border-radius:14px;background:var(--flaeche2)}
+  .lp-stimmen blockquote{margin:0 0 8px;padding:0;border:0;font-size:15.5px;line-height:1.6;color:var(--text)}
+  .lp-stimmen figcaption{font-size:13.5px;color:var(--dim)}
+  .lp-stimmen .sterne{color:var(--akzent);letter-spacing:2px;font-size:14px;margin-bottom:6px}
+  .lp-rr form{display:grid;gap:10px}
+  .lp-rr label{font-size:13px;color:var(--dim)}
+  .lp-rr input[type=text],.lp-rr input[type=tel],.lp-rr select{font-size:16px;padding:13px 14px;border-radius:12px;width:100%;box-sizing:border-box}
+  .lp-rr .zwei{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .lp-rr .ja{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--dim);line-height:1.5}
+  .lp-rr .ja input{width:auto;margin-top:3px}
+  .lp-rr .falle{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+  .lp-rr .gut{border:1px solid var(--akzent);border-radius:12px;padding:12px 14px;font-weight:600}
+  .lp-rr .schlecht{border:1px solid #ef6b5b;border-radius:12px;padding:10px 14px;color:var(--text)}
+  .vn{position:relative;overflow:hidden;aspect-ratio:16/9;--pos:50%}
+  .vn img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .vn .vn-vor{clip-path:inset(0 calc(100% - var(--pos)) 0 0)}
+  .vn .vn-linie{position:absolute;top:0;bottom:0;left:var(--pos);width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25);pointer-events:none}
+  .vn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+  .vn .vn-tag{position:absolute;top:8px;font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;pointer-events:none}
+  .vn .vn-tag.l{left:8px}.vn .vn-tag.r{right:8px}
+  .vn:focus-within{outline:2px solid var(--akzent);outline-offset:2px}
   .wl-knoepfe{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
   .wl-knoepfe .lp-wa{background:transparent;color:var(--text);border:1px solid var(--linie2);font:inherit;font-weight:650;cursor:pointer}
 </style>
@@ -184,7 +216,16 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
     <a class="weiter" href="<?= $h($ziel) ?>"><?= $h($L('weiter')) ?></a>
   </div>
 
-  <?php $PS = Texte::PARTNER_SEITE; ?>
+  <?php $PS = Texte::PARTNER_SEITE; $stimmen = $g['bausteine']['stimmen'] ? PartnerSeite::stimmen($p, $sprache, 3) : []; ?>
+  <?php if ($stimmen): ?>
+    <section class="block ld lp"><h2><?= $h($S($PS['stimmen_titel'])) ?></h2>
+      <div class="lp-stimmen"><?php foreach ($stimmen as $st): ?>
+        <figure><?php if ($st['sterne']): ?><div class="sterne" aria-label="<?= (int) $st['sterne'] ?>/5"><?= str_repeat('★', (int) $st['sterne']) ?></div><?php endif; ?>
+          <blockquote><?= $h($st['text']) ?></blockquote>
+          <figcaption>— <?= $h($st['name']) ?><?= $st['firma'] !== '' ? ', ' . $h($st['firma']) : '' ?><?= $st['ort'] !== '' ? ' · ' . $h($st['ort']) : '' ?></figcaption></figure>
+      <?php endforeach; ?></div>
+    </section>
+  <?php endif; ?>
   <?php if ($g['bausteine']['ablauf']): ?>
     <section class="block ld lp"><h2><?= $h($S($PS['ablauf_titel'])) ?></h2>
       <ol class="lp-schritte"><?php foreach ($PS['ablauf'] as [$t, $u]): ?><li><div><b><?= $h($S($t)) ?></b><span><?= $h($S($u)) ?></span></div></li><?php endforeach; ?></ol>
@@ -193,7 +234,13 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
   <?php if ($g['bausteine']['arbeiten']): ?>
     <section class="block ld lp"><h2><?= $h($S($PS['arbeiten_titel'])) ?></h2>
       <div class="lp-arbeiten"><?php foreach ($PS['arbeiten'] as $aid => $a): ?>
-        <figure><img src="/assets/img/arbeiten/<?= $h($aid) ?>/an.webp" alt="<?= $h($a['name']) ?>" width="2400" height="1350" loading="lazy" decoding="async">
+        <?php $vor = PartnerSeite::vorher($aid); ?>
+        <figure><?php if ($vor): ?>
+          <div class="vn"><img src="/assets/img/arbeiten/<?= $h($aid) ?>/an.webp" alt="<?= $h($a['name'] . ' — ' . $S($PS['vn_nachher'])) ?>" width="2400" height="1350" loading="lazy" decoding="async">
+            <img class="vn-vor" src="<?= $h($vor) ?>" alt="<?= $h($a['name'] . ' — ' . $S($PS['vn_vorher'])) ?>" loading="lazy" decoding="async">
+            <span class="vn-linie" aria-hidden="true"></span><span class="vn-tag l"><?= $h($S($PS['vn_vorher'])) ?></span><span class="vn-tag r"><?= $h($S($PS['vn_nachher'])) ?></span>
+            <input type="range" min="0" max="100" value="50" aria-label="<?= $h($S($PS['vn_regler']) . ' — ' . $a['name']) ?>" oninput="this.parentNode.style.setProperty('--pos',this.value+'%')"></div>
+        <?php else: ?><img src="/assets/img/arbeiten/<?= $h($aid) ?>/an.webp" alt="<?= $h($a['name']) ?>" width="2400" height="1350" loading="lazy" decoding="async"><?php endif; ?>
           <figcaption><b><?= $h($a['name']) ?></b><span><?= $h(Texte::h($a, $sprache)) ?></span></figcaption></figure>
       <?php endforeach; ?></div>
       <a class="weiter2" href="<?= $h($ziel . '#work') ?>"><?= $h($S($PS['arbeiten_mehr'])) ?></a>
@@ -202,6 +249,29 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
   <?php if ($g['bausteine']['faq']): ?>
     <section class="block ld lp"><h2><?= $h($S($PS['faq_titel'])) ?></h2>
       <?php foreach ($PS['faq'] as [$q, $a]): ?><details><summary><?= $h($S($q)) ?></summary><p><?= $h($S($a)) ?></p></details><?php endforeach; ?>
+    </section>
+  <?php endif; ?>
+  <?php if ($g['bausteine']['rueckruf']):
+    require_once __DIR__ . '/app/src/PartnerRueckruf.php';
+    $rrStand = (string) ($_GET['rr'] ?? ''); $rrFehler = $PS['rr_fehler'][$rrStand] ?? null; ?>
+    <section class="block ld lp lp-rr" id="rueckruf"><h2><?= $h($S($PS['rr_titel'])) ?></h2>
+      <?php if ($rrStand === 'ok'): ?><p class="gut" role="status"><?= $h($S($PS['rr_danke'])) ?></p>
+      <?php else: ?>
+        <p class="klein" style="margin:0 0 12px"><?= $h($S($PS['rr_text'])) ?></p>
+        <?php if ($rrFehler): ?><p class="schlecht" role="alert"><?= $h($S($rrFehler)) ?></p><?php endif; ?>
+        <form method="post" action="<?= $h($hier()) ?>#rueckruf">
+          <input type="hidden" name="tat" value="rueckruf"><input type="hidden" name="st" value="<?= $h(PartnerRueckruf::stempel((string) $p['code'])) ?>">
+          <span class="falle" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></span>
+          <div><label for="rr_name"><?= $h($S($PS['rr_name'])) ?></label><input id="rr_name" type="text" name="name" required maxlength="80" autocomplete="name"></div>
+          <div><label for="rr_tel"><?= $h($S($PS['rr_telefon'])) ?></label><input id="rr_tel" type="tel" name="telefon" required maxlength="24" autocomplete="tel" inputmode="tel" placeholder="+39 …"></div>
+          <div class="zwei">
+            <div><label for="rr_tag"><?= $h($S($PS['rr_tag'])) ?></label><select id="rr_tag" name="tag"><?php foreach (PartnerRueckruf::tage() as $dt => $wk): ?><option value="<?= $h($dt) ?>"><?= $h($S($PS['rr_tage'][$wk])) ?></option><?php endforeach; ?></select></div>
+            <div><label for="rr_fenster"><?= $h($S($PS['rr_fenster'])) ?></label><select id="rr_fenster" name="fenster"><?php foreach (PartnerRueckruf::FENSTER as $fk => $fw): ?><option value="<?= $h($fk) ?>"><?= $h($fw) ?></option><?php endforeach; ?></select></div>
+          </div>
+          <label class="ja"><input type="checkbox" name="ok" value="1" required> <?= $h($S($PS['rr_ok'])) ?></label>
+          <button class="knopf" type="submit"><?= $h($S($PS['rr_knopf'])) ?></button>
+        </form>
+      <?php endif; ?>
     </section>
   <?php endif; ?>
   <?php if ($g['bausteine']['whatsapp'] && $g['whatsapp'] !== ''): ?>
