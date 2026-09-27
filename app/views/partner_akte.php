@@ -62,6 +62,10 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
         <?php if (!empty($p['stripe_konto'])): ?>
         <div><span style="color:var(--leise)">Verifizierung</span><br><?= $ja($kst['identitaet'], 'Identität bestätigt', $kst['stand'] === 'abgelehnt' ? 'abgelehnt' : 'nicht abgeschlossen') ?><?= $kst['fehlt'] > 0 ? ' <span style="color:var(--leise)">' . (int) $kst['fehlt'] . ' Angabe' . ($kst['fehlt'] === 1 ? '' : 'n') . ' fehlen</span>' : '' ?></div>
         <div><span style="color:var(--leise)">Auszahlungen</span><br><?= $ja($kst['auszahlung'], 'aktiviert', 'noch nicht') ?></div>
+        <?php if ((string) ($p['stripe_faellig'] ?? '') !== ''): ?>
+        <div style="grid-column:1/-1"><span style="color:var(--leise)">Stripe verlangt noch<?= $p['stripe_frist'] ? ' — bis ' . Fmt::h(date('d.m.Y', strtotime((string) $p['stripe_frist']))) . ', sonst setzt Stripe die Auszahlungen aus' : '' ?></span><br>
+          <code style="font-size:12px;white-space:normal;word-break:break-word"><?= Fmt::h(str_replace(',', ', ', (string) $p['stripe_faellig'])) ?></code></div>
+        <?php endif; ?>
         <div><span style="color:var(--leise)">Letzter Stripe-Status</span><br><?= $p['stripe_status_am'] ? Fmt::h(Fmt::datum((string) $p['stripe_status_am'])) . ' · ' . Fmt::h(['vollstaendig' => 'vollständig', 'pruefung' => 'in Prüfung', 'offen' => 'Angaben fehlen', 'abgelehnt' => 'abgelehnt', 'angelegt' => 'angelegt', 'unbekannt' => 'unbekannt'][$kst['stand']] ?? $kst['stand']) : 'noch nie abgefragt' ?>
           <?php if ((string) ($p['stripe_status_fehler'] ?? '') !== ''): ?><br><span style="color:var(--rot);font-size:12px">Stripe: <?= Fmt::h((string) $p['stripe_status_fehler']) ?></span><?php endif; ?></div>
         <?php endif; ?>

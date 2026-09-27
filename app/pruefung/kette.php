@@ -13513,6 +13513,53 @@ $slAuf = [];
 Partner::stripeNeuEinrichten((int) $slFertig['id'], 'Kette');
 pruefe('… ein geprüftes Konto (kann Geld halten) wird bei Stripe NIE gelöscht, nur abgehängt',
     !array_filter($slAuf, static fn($a) => $a[0] === 'DELETE') && Partner::laden((int) $slFertig['id'])['stripe_konto_alt'] === 'acct_fertig');
+
+/* Bereit, aber Stripe will bis zu einer Frist noch einen Ausweis (28.09.2026, Uwes Bildschirmfoto:
+   Stripe „Bald fällig — Auszahlungen werden in Kürze ausgesetzt“, Partnerseite zeigte alles grün). */
+$slAz = $slNeu('Anika Ausweis', 'de');
+Db::run("UPDATE partner SET land = 'IT', stripe_konto = 'acct_anika', stripe_land = 'IT', stripe_bereit = 1, stripe_status_am = NULL WHERE id = ?", [(int) $slAz['id']]);
+$slStripeLand['acct_anika'] = 'IT';
+$slFrist = time() + 10 * 86400;
+Db::run("DELETE FROM notifications WHERE type = 'partner_stripe_faellig'");
+Partner::stripeKontoGeaendert(['id' => 'acct_anika', 'country' => 'IT', 'details_submitted' => true, 'charges_enabled' => true, 'payouts_enabled' => true,
+    'capabilities' => ['transfers' => 'active'], 'requirements' => ['currently_due' => ['individual.verification.document'], 'past_due' => [], 'pending_verification' => [],
+    'current_deadline' => $slFrist]]);
+$slAzN = Partner::laden((int) $slAz['id']); $slAzSt = Partner::kontoStand($slAzN, false);
+pruefe('Bereites Konto mit fälligem Ausweis: nicht mehr „vollständig“, Identität NICHT bestätigt, Frist gespeichert, Ampel gelb, Vecom benachrichtigt',
+    !$slAzSt['vollstaendig'] && !$slAzSt['identitaet'] && $slAzSt['auszahlung'] && $slAzSt['fehlt'] === 1 && $slAzSt['frist'] !== null
+    && (int) $slAzN['stripe_bereit'] === 1 && $slAzN['stripe_faellig'] === 'individual.verification.document'
+    && Partner::stripeAmpel($slAzN)['farbe'] === 'warnung' && str_starts_with(Partner::stripeAmpel($slAzN)['wort'], 'Angaben fällig bis ')
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_stripe_faellig'", [], 0) === 1, json_encode($slAzSt));
+$slAuf = [];
+$slRaz = Partner::stripeStarten($slAzN, null, 'link', 'https://pruefung.example/partner.php?t=az');
+pruefe('… und der Partner kann die Verifizierung fortsetzen (Link für das bestehende Konto, kein neues)',
+    $slRaz['ok'] && Partner::stripeFortsetzbar($slAzN) && !array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts')
+    && ($slAuf[0][2]['account'] ?? '') === 'acct_anika');
+
+/* Land nachträglich ändern -- durch den Partner selbst (28.09.2026, Uwe: „soll nachträglich änderbar sein“) */
+$slAuf = [];
+$slWx = Partner::landWechseln(Partner::laden((int) $slAz['id']), 'DE', 'https://pruefung.example/partner.php?t=az');
+$slAzN = Partner::laden((int) $slAz['id']);
+$slPostW = array_values(array_filter($slAuf, static fn($a) => $a[0] === 'POST' && $a[1] === '/v1/accounts'));
+pruefe('Land ändern IT → DE: neues Konto mit country=DE, Einrichtungslink, das alte (geprüfte) wird nur abgehängt, nie gelöscht',
+    $slWx['ok'] && str_starts_with((string) ($slWx['url'] ?? ''), 'https://connect.stripe.com/') && ($slPostW[0][2]['country'] ?? '') === 'DE'
+    && $slAzN['land'] === 'DE' && $slAzN['stripe_land'] === 'DE' && $slAzN['stripe_konto_alt'] === 'acct_anika' && (int) $slAzN['stripe_bereit'] === 0
+    && $slAzN['stripe_faellig'] === null && !array_filter($slAuf, static fn($a) => $a[0] === 'DELETE'), json_encode($slAuf));
+$slAuf = [];
+$slWy = Partner::landWechseln(Partner::laden((int) $slAz['id']), 'AT', 'x');
+pruefe('Land nochmal ändern (Konto noch ungeprüft): das ungeprüfte Konto wird bei Stripe gelöscht, das neue entsteht mit AT',
+    $slWy['ok'] && count(array_filter($slAuf, static fn($a) => $a[0] === 'DELETE')) === 1 && Partner::laden((int) $slAz['id'])['stripe_land'] === 'AT');
+$slF2 = $slNeu('Greta Gleich', 'de');
+Db::run("UPDATE partner SET land = 'DE', stripe_konto = 'acct_greta', stripe_land = 'DE', stripe_bereit = 1, stripe_fehlt = 0, stripe_status_am = NOW() WHERE id = ?", [(int) $slF2['id']]);
+$slAuf = [];
+$slWg = Partner::landWechseln(Partner::laden((int) $slF2['id']), 'DE', 'x');
+pruefe('… gleiches Land, Konto vollständig → „Das ist bereits das Land Ihres Stripe-Kontos.“, kein Stripe-Aufruf',
+    !$slWg['ok'] && Partner::stripeGrundOeffentlich($slWg) === 'konto_land_gleich' && $slAuf === []
+    && Texte::PARTNER['konto_land_gleich']['de'] === 'Das ist bereits das Land Ihres Stripe-Kontos.');
+$slPa2 = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerbereich: „Land ändern“ mit Pflicht-Bestätigung, wenn ein neues Konto entsteht; die Bestätigung prüft auch der Server',
+    str_contains($slPa2, "name=\"tat\" value=\"konto_land_wechsel\"") && str_contains($slPa2, "(\$_POST['bestaetigt'] ?? '') !== '1' ? ['ok' => false, 'grund' => 'bestaetigen']")
+    && str_contains($slPa2, 'Partner::landWechseln($p') && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-land.js'), 'cb.required = neu'));
 Partner::$stripeProbe = null;
 
 /* Webhook-Unterschrift: auch mit dem Geheimnis eines Connect-Endpunkts */

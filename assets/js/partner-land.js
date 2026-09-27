@@ -34,10 +34,23 @@
       if (ok) { gew.textContent = (gew.getAttribute('data-muster') || '{land}').replace('{land}', o.textContent.trim()); }
     }
     // Die passende Stripe-Vereinbarung: Italien = Empfänger, sonst die volle.
+    // (Nur die Wahl vor dem ersten Anlegen -- nicht das Feld „Land ändern“.)
     var it = document.querySelector('[data-agb="it"]');
     var voll = document.querySelector('[data-agb="voll"]');
-    if (it) { it.hidden = !ok || o.value !== 'IT'; }
-    if (voll) { voll.hidden = !ok || o.value === 'IT'; }
+    if (!box.hasAttribute('data-stripe-land')) {
+      if (it) { it.hidden = !ok || o.value !== 'IT'; }
+      if (voll) { voll.hidden = !ok || o.value === 'IT'; }
+    }
+    // Land nachträglich ändern: Die Bestätigung braucht es nur, wenn dadurch
+    // ein neues Stripe-Konto entsteht (anderes Land als das des Kontos).
+    var best = box.querySelector('[data-land-bestaetigung]');
+    var stripeLand = box.getAttribute('data-stripe-land') || '';
+    if (best) {
+      var neu = ok && stripeLand !== '' && o.value !== stripeLand;
+      best.hidden = !neu;
+      var cb = best.querySelector('input');
+      if (cb) { cb.required = neu; }
+    }
   }
 
   function filtern() {

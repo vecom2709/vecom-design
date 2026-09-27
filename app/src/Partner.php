@@ -1132,7 +1132,7 @@ final class Partner
      */
     public static function stripeStarten(array $p, ?string $land, string $art, string $zurueck = ''): array
     {
-        if (!empty($p['stripe_bereit'])) { return ['ok' => false, 'grund' => 'bereit']; }
+        if (!self::stripeFortsetzbar($p)) { return ['ok' => false, 'grund' => 'bereit']; }
         if ($land !== null && trim($land) !== '') {
             if (self::landSetzen($p, $land) === 'land') {
                 return ['ok' => false, 'grund' => 'land_nicht', 'text' => 'Land nicht in der Liste: ' . mb_substr(preg_replace('/[^A-Za-z]/', '', $land), 0, 8)];
@@ -1152,7 +1152,8 @@ final class Partner
      */
     public static function stripeGrundOeffentlich(array $r): string
     {
-        return ['land' => 'konto_land_fehlt', 'land_nicht' => 'konto_land_nicht', 'abweichend' => 'konto_abweichend', 'bereit' => 'konto_bereit'][(string) ($r['grund'] ?? '')]
+        return ['land' => 'konto_land_fehlt', 'land_nicht' => 'konto_land_nicht', 'abweichend' => 'konto_abweichend', 'bereit' => 'konto_bereit',
+                'gleich' => 'konto_land_gleich', 'bestaetigen' => 'konto_land_bestaetigen'][(string) ($r['grund'] ?? '')]
             ?? 'konto_start_fehler';
     }
 
@@ -1160,7 +1161,7 @@ final class Partner
     public static function stripeFehlerMelden(array $p, array $r, string $titel): void
     {
         $grund = (string) ($r['grund'] ?? 'stripe');
-        if (in_array($grund, ['land', 'bereit'], true)) { return; }
+        if (in_array($grund, ['land', 'bereit', 'gleich', 'bestaetigen'], true)) { return; }
         $text = mb_substr((string) preg_replace('/\b(sk|rk|pk)_(live|test)_[A-Za-z0-9*]+/', '$1_$2_…', (string) ($r['text'] ?? '')), 0, 400);
         error_log('Partner ' . (int) $p['id'] . ' Stripe (' . $grund . '): ' . $text);
         if ($grund === 'connect') { return; }        // schon gemeldet (createStripeConnectedAccount)
@@ -1169,6 +1170,39 @@ final class Partner
                 $grund === 'abweichend' ? self::landHinweis(self::laden((int) $p['id']) ?? $p) : ($grund === 'land_nicht' ? 'Stripe lehnt das Land ab. ' : '') . $text,
                 '/partner/' . (int) $p['id']);
         } catch (Throwable $e) { }
+    }
+
+    /**
+     * Der Partner ändert sein Land SELBST -- bewusst, mit Bestätigung
+     * (28.09.2026, Uwe: „soll nachträglich änderbar sein“). Stripe kann das
+     * Land eines Kontos nie ändern; ein anderes Land heißt deshalb: neues
+     * Konto mit diesem Land, neue Verifizierung. Das alte wird abgehängt und
+     * gemerkt (stripe_konto_alt) und bei Stripe nur gelöscht, wenn es nie
+     * Geld empfangen konnte (stripeNeuEinrichten). Nie ohne diesen Klick.
+     * @return array{ok:bool, url?:string, grund?:string, text?:string}
+     */
+    public static function landWechseln(array $p, string $land, string $zurueck): array
+    {
+        $id = (int) $p['id'];
+        $land = strtoupper(trim($land));
+        if (!in_array($land, self::STRIPE_LAENDER, true)) { return ['ok' => false, 'grund' => 'land_nicht']; }
+        $konto = (string) ($p['stripe_konto'] ?? '');
+        if ($konto !== '' && (string) ($p['stripe_land'] ?? '') === '') { $p = self::refreshStripeAccountStatus($p) ?? $p; }
+        $stripeLand = strtoupper((string) ($p['stripe_land'] ?? ''));
+        if ($konto === '' || $stripeLand === $land) {
+            /* Kein Konto -- oder das Konto hat schon dieses Land: nur das Land merken. */
+            Db::run('UPDATE partner SET land = ? WHERE id = ?', [$land, $id]);
+            $p = self::laden($id) ?? $p;
+            if ($konto !== '' && !self::stripeFortsetzbar($p)) { return ['ok' => false, 'grund' => 'gleich']; }
+            return self::createStripeOnboardingLink($p, $zurueck);
+        }
+        $ab = self::stripeNeuEinrichten($id, 'Partner selbst');
+        if (!$ab['ok']) { return ['ok' => false, 'grund' => 'stripe', 'text' => $ab['text']]; }
+        Db::run('UPDATE partner SET land = ? WHERE id = ?', [$land, $id]);
+        Events::melden('partner_stripe_land', $p['name'] . ' hat das Land für Stripe geändert', 'info',
+            'Von ' . ($stripeLand ?: '?') . ' zu ' . $land . '. Altes Konto ' . $konto . ': ' . $ab['text'] . ' Bis das neue Konto bestätigt ist, geht über Stripe keine Auszahlung.',
+            '/partner/' . $id);
+        return self::createStripeOnboardingLink(self::laden($id) ?? $p, $zurueck);
     }
 
     /** Früherer Name -- bleibt, damit nichts bricht. */
@@ -1207,22 +1241,47 @@ final class Partner
         $vorher = self::laden($partnerId);
         if (!$vorher || (string) ($vorher['stripe_konto'] ?? '') !== (string) ($a['id'] ?? '')) { return; }
         $r = (array) ($a['requirements'] ?? []);
-        $fehlt = count(array_unique(array_merge((array) ($r['currently_due'] ?? []), (array) ($r['past_due'] ?? []))));
+        $z = (array) ($a['future_requirements'] ?? []);
+        /* Fällig ist, was Stripe JETZT will -- auch mit Frist in der Zukunft
+           („Bald fällig“) und aus den künftigen Anforderungen. Ein Konto kann
+           Überweisungen empfangen und trotzdem einen Ausweis schulden; ohne
+           ihn setzt Stripe die Auszahlungen zur Frist aus (28.09.2026). */
+        $faellig = array_values(array_unique(array_map('strval', array_merge((array) ($r['currently_due'] ?? []), (array) ($r['past_due'] ?? []),
+            (array) ($z['currently_due'] ?? []), (array) ($z['past_due'] ?? [])))));
+        $fehlt = count($faellig);
+        $fristen = array_filter([(int) ($r['current_deadline'] ?? 0), (int) ($z['current_deadline'] ?? 0)]);
+        $frist = $fehlt > 0 && $fristen ? min($fristen) : null;
         $pruefung = count((array) ($r['pending_verification'] ?? []));
         $transfers = (string) ($a['capabilities']['transfers'] ?? '');
         $bereit = $transfers === 'active';
         $grund = (string) ($r['disabled_reason'] ?? '');
-        $stand = $bereit && !empty($a['payouts_enabled']) ? 'vollstaendig'
-               : ($grund !== '' && str_starts_with($grund, 'rejected') ? 'abgelehnt'
-               : ($fehlt > 0 ? 'offen' : ($pruefung > 0 || !empty($a['details_submitted']) ? 'pruefung' : 'offen')));
+        $stand = $grund !== '' && str_starts_with($grund, 'rejected') ? 'abgelehnt'
+               : ($fehlt > 0 ? 'offen'
+               : ($bereit && !empty($a['payouts_enabled']) ? 'vollstaendig'
+               : ($pruefung > 0 || !empty($a['details_submitted']) ? 'pruefung' : 'offen')));
         Db::run('UPDATE partner SET stripe_land = ?, stripe_details_submitted = ?, stripe_charges_enabled = ?, stripe_payouts_enabled = ?,
-                        stripe_onboarding_status = ?, stripe_fehlt = ?, stripe_bereit = ?, stripe_geprueft_am = NOW(), stripe_status_am = NOW(), stripe_status_fehler = NULL
+                        stripe_onboarding_status = ?, stripe_fehlt = ?, stripe_faellig = ?, stripe_frist = ' . ($frist ? 'FROM_UNIXTIME(?)' : '?') . ',
+                        stripe_bereit = ?, stripe_geprueft_am = NOW(), stripe_status_am = NOW(), stripe_status_fehler = NULL
                   WHERE id = ?', [strtoupper((string) ($a['country'] ?? '')) ?: null, empty($a['details_submitted']) ? 0 : 1, empty($a['charges_enabled']) ? 0 : 1,
-                  empty($a['payouts_enabled']) ? 0 : 1, $stand, $fehlt, $bereit ? 1 : 0, $partnerId]);
+                  empty($a['payouts_enabled']) ? 0 : 1, $stand, $fehlt, $faellig ? mb_substr(implode(',', $faellig), 0, 600) : null, $frist,
+                  $bereit ? 1 : 0, $partnerId]);
         if ($bereit && empty($vorher['stripe_bereit'])) {
             Events::melden('partner_stripe', 'Auszahlungskonto bereit: ' . $vorher['name'], 'gut',
                 'Stripe hat das Konto geprüft. Provisionen können jetzt ausgezahlt werden.', '/partner/' . $partnerId);
         }
+        /* Schuldet ein bereites Konto neu Angaben, erfährt Vecom es einmal. */
+        if ($bereit && $fehlt > 0 && (int) ($vorher['stripe_fehlt'] ?? 0) === 0) {
+            Events::melden('partner_stripe_faellig', 'Stripe braucht Angaben von ' . $vorher['name'], 'warnung',
+                'Stripe verlangt: ' . implode(', ', array_slice($faellig, 0, 5)) . ($frist ? ' — bis ' . date('d.m.Y', $frist) . ', sonst setzt Stripe die Auszahlungen aus' : '')
+                . '. Der Partner sieht in seinem Bereich „Stripe-Verifizierung fortsetzen“.', '/partner/' . $partnerId);
+        }
+    }
+
+    /** Verlangt Stripe etwas zur Identität (Ausweis, Geburtsdatum, Steuer-/ID-Nummer …)? */
+    public static function identitaetFaellig(array $p): bool
+    {
+        return (bool) preg_match('/(^|,)(individual|representative|person_[^.,]+|owners?|directors?|executives?)\.(verification|id_number|dob|first_name|last_name|ssn_last_4)/',
+            (string) ($p['stripe_faellig'] ?? ''));
     }
 
     /** Webhook account.updated: das Konto gehört einem Partner? Dann dessen Stand speichern. */
@@ -1254,7 +1313,7 @@ final class Partner
             $geloescht = !empty($w['deleted']);
         }
         Db::run("UPDATE partner SET stripe_konto_alt = ?, stripe_konto = NULL, stripe_land = NULL, stripe_bereit = 0, stripe_details_submitted = NULL,
-                        stripe_charges_enabled = NULL, stripe_payouts_enabled = NULL, stripe_onboarding_status = NULL, stripe_fehlt = NULL, stripe_status_fehler = NULL,
+                        stripe_charges_enabled = NULL, stripe_payouts_enabled = NULL, stripe_onboarding_status = NULL, stripe_fehlt = NULL, stripe_faellig = NULL, stripe_frist = NULL, stripe_status_fehler = NULL,
                         stripe_status_am = NOW() WHERE id = ?", [$alt, $partnerId]);
         Events::protokoll('partner_stripe', 'Stripe-Verifizierung neu eingerichtet für ' . $p['name'] . ' (altes Konto ' . $alt . ($geloescht ? ' gelöscht' : ' abgehängt') . ')',
             null, null, null, ['partner_id' => $partnerId, 'alt' => $alt, 'wer' => $wer]);
@@ -1271,22 +1330,34 @@ final class Partner
      */
     public static function kontoStand(array $p, bool $auffrischen = true): array
     {
-        if ((string) ($p['stripe_konto'] ?? '') === '') { return ['stand' => 'neu', 'fehlt' => 0, 'land' => null, 'identitaet' => false, 'auszahlung' => false, 'vollstaendig' => false]; }
-        /* Aufgefrischt wird ein noch nicht bereites Konto -- und ein bereites, das
-           noch nie einen gespeicherten Stand hatte (Konten von vor dem 28.09.2026). */
-        if ($auffrischen && (empty($p['stripe_bereit']) || ($p['stripe_status_am'] ?? null) === null)) { $p = self::refreshStripeAccountStatus($p) ?? $p; }
+        $leer = ['stand' => 'neu', 'fehlt' => 0, 'frist' => null, 'land' => null, 'identitaet' => false, 'auszahlung' => false, 'vollstaendig' => false];
+        if ((string) ($p['stripe_konto'] ?? '') === '') { return $leer; }
+        /* Aufgefrischt wird ein noch nicht vollständiges Konto -- und ein bereites,
+           das noch nie einen gespeicherten Stand hatte (Konten von vor dem 28.09.2026)
+           oder noch Angaben schuldet. */
+        if ($auffrischen && (empty($p['stripe_bereit']) || ($p['stripe_status_am'] ?? null) === null || (int) ($p['stripe_fehlt'] ?? 0) > 0)) {
+            $p = self::refreshStripeAccountStatus($p) ?? $p;
+        }
         $bereit = !empty($p['stripe_bereit']);
+        $fehlt = (int) ($p['stripe_fehlt'] ?? 0);
         /* Kennt die Datenbank ein Feld noch nicht (NULL), gilt bei einem bereiten
            Konto: Stripe hat Überweisungen freigegeben, also auch geprüft. */
         $ja = static fn(string $k) => ($p[$k] ?? null) === null ? $bereit : (bool) $p[$k];
-        $identitaet = $ja('stripe_details_submitted');
+        $identitaet = $ja('stripe_details_submitted') && !self::identitaetFaellig($p);
         $auszahlung = $bereit && $ja('stripe_payouts_enabled');
         $stand = (string) ($p['stripe_onboarding_status'] ?? '');
-        if ($bereit && $auszahlung) { $stand = 'vollstaendig'; }
+        if ($fehlt > 0 && $stand !== 'abgelehnt') { $stand = 'offen'; }
+        elseif ($bereit && $auszahlung && $stand !== 'abgelehnt') { $stand = 'vollstaendig'; }
         elseif ($stand === 'vollstaendig' && !$auszahlung) { $stand = 'pruefung'; }
         elseif ($stand === '' || $stand === 'angelegt') { $stand = ($p['stripe_status_fehler'] ?? null) ? 'unbekannt' : 'offen'; }
-        return ['stand' => $stand, 'fehlt' => (int) ($p['stripe_fehlt'] ?? 0), 'land' => $p['stripe_land'] ?? null,
+        return ['stand' => $stand, 'fehlt' => $fehlt, 'frist' => $p['stripe_frist'] ?? null, 'land' => $p['stripe_land'] ?? null,
                 'identitaet' => $identitaet, 'auszahlung' => $auszahlung, 'vollstaendig' => $stand === 'vollstaendig'];
+    }
+
+    /** Darf der Partner die Einrichtung (noch) fortsetzen? Ja, solange Stripe etwas will. */
+    public static function stripeFortsetzbar(array $p): bool
+    {
+        return empty($p['stripe_bereit']) || (int) ($p['stripe_fehlt'] ?? 0) > 0;
     }
 
     /**
@@ -1303,6 +1374,7 @@ final class Partner
         if (self::landAbweichend($p)) { return ['farbe' => 'schlecht', 'wort' => 'Land passt nicht']; }
         $st = self::kontoStand($p, false);
         if ($st['stand'] === 'abgelehnt') { return ['farbe' => 'schlecht', 'wort' => 'abgelehnt']; }
+        if ($st['fehlt'] > 0 && !empty($p['stripe_bereit'])) { return ['farbe' => 'warnung', 'wort' => 'Angaben fällig' . ($st['frist'] ? ' bis ' . date('d.m.', strtotime((string) $st['frist'])) : '')]; }
         if (!empty($p['stripe_bereit']) && $st['auszahlung']) { return ['farbe' => 'gut', 'wort' => 'vollständig']; }
         if ((string) ($p['stripe_status_fehler'] ?? '') !== '') { return ['farbe' => 'schlecht', 'wort' => 'Stripe antwortet nicht']; }
         return ['farbe' => 'warnung', 'wort' => ['pruefung' => 'in Prüfung', 'offen' => 'Angaben fehlen'][$st['stand']] ?? 'angefangen'];
@@ -1317,14 +1389,14 @@ final class Partner
     {
         $n = ['geprueft' => 0, 'fehler' => 0];
         foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND stripe_konto <> '' AND status <> 'geloescht'
-                          AND (stripe_bereit = 0 OR stripe_status_am IS NULL) ORDER BY id LIMIT 200") as $p) {
+                          AND (stripe_bereit = 0 OR stripe_status_am IS NULL OR stripe_fehlt > 0) ORDER BY id LIMIT 200") as $p) {
             self::refreshStripeAccountStatus($p) === null ? $n['fehler']++ : $n['geprueft']++;
         }
         return $n;
     }
 
     /** Absagen, die der Partner im Stripe-Kasten liest (Schlüssel in Texte::PARTNER). */
-    public const STRIPE_MELDUNGEN = ['konto_land_fehlt', 'konto_land_nicht', 'konto_abweichend', 'konto_start_fehler'];
+    public const STRIPE_MELDUNGEN = ['konto_land_fehlt', 'konto_land_nicht', 'konto_abweichend', 'konto_start_fehler', 'konto_land_gleich', 'konto_land_bestaetigen'];
 
     /** Stripe-Sprachen für die eingebettete Einrichtung, je Sprache der Partnerseite. */
     public const STRIPE_SPRACHE = ['it' => 'it-IT', 'de' => 'de-DE', 'en' => 'en-GB'];
@@ -1557,7 +1629,8 @@ final class Partner
         $r = self::reifen();
         $r['ausgezahlt'] = 0; $r['wartet_limit'] = 0;
 
-        foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND stripe_bereit = 0 AND status = 'aktiv'
+        /* Auch bereite Konten, die Stripe noch Angaben schulden (Frist!) -- 28.09.2026. */
+        foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND (stripe_bereit = 0 OR stripe_fehlt > 0 OR stripe_status_am IS NULL) AND status = 'aktiv'
                             AND (stripe_geprueft_am IS NULL OR stripe_geprueft_am < NOW() - INTERVAL 6 HOUR)") as $p) {
             self::still(static fn() => self::kontoPruefen($p), false);
         }

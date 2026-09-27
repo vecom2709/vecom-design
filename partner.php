@@ -116,7 +116,7 @@ if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['tat'] ?? '',
 if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'stripe_sitzung') {
     header('Content-Type: application/json; charset=utf-8');
     if (!hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) { http_response_code(403); echo '{"ok":false}'; exit; }
-    if (!empty($p['stripe_bereit'])) { echo '{"ok":false,"grund":"bereit"}'; exit; }
+    if (!Partner::stripeFortsetzbar($p)) { echo '{"ok":false,"grund":"bereit"}'; exit; }
     /* Erst das Land (28.09.2026): Stripe legt es beim Anlegen fest und es
        lässt sich danach nie ändern. Ohne gewähltes Land kein Konto. */
     try { $r = Partner::stripeStarten($p, isset($_POST['land']) ? (string) $_POST['land'] : null, 'sitzung'); }
@@ -155,7 +155,7 @@ if ($p && isset($_GET['stripe'])) {
     try {
         Partner::refreshStripeAccountStatus($p);
         $p = Partner::ausToken($token) ?? $p;
-        if ($_GET['stripe'] === 'neu' && empty($p['stripe_bereit']) && (string) ($p['stripe_konto'] ?? '') !== '' && !Partner::landAbweichend($p)) {
+        if ($_GET['stripe'] === 'neu' && Partner::stripeFortsetzbar($p) && (string) ($p['stripe_konto'] ?? '') !== '' && !Partner::landAbweichend($p)) {
             $r = Partner::createStripeOnboardingLink($p, $basis . $selbst());
             if ($r['ok']) { header('Location: ' . $r['url'], true, 303); exit; }
         }
@@ -275,6 +275,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'foto_weg' && $p) {
                 PartnerWerbung::fotoLoeschen((int) $p['id']);
                 header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;
+            } elseif ($tat === 'konto_land_wechsel' && $p) {
+                /* Land nachträglich ändern (28.09.2026, Uwe): nur mit ausdrücklicher Bestätigung,
+                   wenn dadurch ein neues Stripe-Konto entsteht. */
+                $wLand = strtoupper(trim((string) ($_POST['land'] ?? '')));
+                $wNeu = (string) ($p['stripe_konto'] ?? '') !== '' && $wLand !== strtoupper((string) ($p['stripe_land'] ?? ''));
+                $r = $wNeu && ($_POST['bestaetigt'] ?? '') !== '1' ? ['ok' => false, 'grund' => 'bestaetigen']
+                   : Partner::landWechseln($p, $wLand, $basis . $selbst());
+                if ($r['ok']) { header('Location: ' . $r['url'], true, 303); exit; }
+                Partner::stripeFehlerMelden($p, $r, 'Stripe-Land nicht geändert');
+                $meldung = Partner::stripeGrundOeffentlich($r);
+                $p = Partner::ausToken($token) ?? $p;
             } elseif ($tat === 'konto' && $p) {
                 /* Gehosteter Weg (ohne Skript oder als Rückfall): Land speichern,
                    Konto mit diesem Land anlegen, weiter zu Stripe. */
@@ -474,9 +485,13 @@ if ($p && isset($_GET['karte'])) {
   .konto-wie ol{margin:10px 0 0;padding-left:20px;display:grid;gap:6px;font-size:14px;color:var(--dim);line-height:1.5}
   .konto-land-l{display:block;font-size:13px;color:var(--dim);margin:0 0 6px}
   .konto-land{max-width:360px;width:100%;font-size:16px}
-  .konto-land-suche{max-width:360px;width:100%;margin:0 0 8px;font-size:16px}
+  .konto-land-suche{max-width:360px;width:100%;margin:0 0 8px;padding:12px 14px;min-height:46px;background:rgba(255,255,255,.03);color:var(--text);border:1px solid var(--linie2);border-radius:10px;font:400 16px/1.5 var(--f-text);-webkit-appearance:none;appearance:none}
+  .konto-land-suche:focus{outline:none;border-color:var(--cyan)}
   .konto-land-gew{margin:8px 0 0;font-size:14.5px;color:var(--text);font-weight:600}
   #stripe-form{margin-top:12px}
+  .konto-wechsel-ok{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text);margin:0}
+  .konto-wechsel-ok[hidden]{display:none}
+  .konto-wechsel-ok input{width:auto;margin-top:3px}
   .konto-land-keins{margin:6px 0 0;font-size:13px;color:var(--schlecht)}
   .konto-ck{margin:12px 0 14px;border:1px solid var(--linie);border-radius:12px;padding:12px 14px;background:var(--flaeche)}
   .konto-ck-t{margin:0 0 8px;font-size:13px;color:var(--dim);display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between}
@@ -838,7 +853,7 @@ if ($p && isset($_GET['karte'])) {
         $kHaken = static fn(bool $ja): string => '<svg class="ck-i" viewBox="0 0 20 20" aria-hidden="true">'
             . ($ja ? '<circle cx="10" cy="10" r="9"/><path d="M6 10.4l2.6 2.6L14 7.6"/>' : '<circle cx="10" cy="10" r="8.5"/>') . '</svg>'; ?>
       <?php if ($kMeldung !== ''): ?><div class="hinweis schlecht" role="alert"><?= $h($T($kMeldung)) ?></div><?php endif; ?>
-      <?php if (!empty($p['stripe_bereit'])): ?>
+      <?php if (!empty($p['stripe_bereit']) && $kStand['fehlt'] === 0): ?>
         <div class="hinweis gut"><?= $h($T('konto_bereit')) ?></div>
       <?php else: ?>
         <p class="lead" style="font-size:14.5px"><?= $h($T('konto_text')) ?></p>
@@ -852,15 +867,18 @@ if ($p && isset($_GET['karte'])) {
             <li class="<?= $kStand['auszahlung'] ? 'ja' : 'nein' ?>"><?= $kHaken($kStand['auszahlung']) ?><span><?= $h($T('konto_ck_auszahlung')) ?></span></li>
             <li class="<?= $kStand['vollstaendig'] ? 'ja' : 'nein' ?>"><?= $kHaken($kStand['vollstaendig']) ?><span><?= $h($T('konto_ck_voll')) ?></span></li>
           </ul>
-          <?php if (!$kStand['vollstaendig'] && empty($p['stripe_bereit'])): ?><p class="konto-ck-offen"><?= $h($T('konto_nicht_fertig')) ?></p><?php endif; ?>
+          <?php if (!$kStand['vollstaendig']): ?><p class="konto-ck-offen"><?= $h($T('konto_nicht_fertig')) ?></p><?php endif; ?>
         </div>
         <?php if ($kAbw): ?><div class="hinweis schlecht" role="status"><?= $h($T('konto_abweichend')) ?></div>
         <?php elseif ($kStand['stand'] === 'abgelehnt'): ?><div class="hinweis schlecht" role="status"><?= $h($T('konto_abgelehnt')) ?></div>
+        <?php elseif ($kStand['fehlt'] > 0 && (!empty($p['stripe_bereit']) || $kStand['frist'])): /* bereit, aber Stripe will bis zu einer Frist noch etwas */ ?>
+          <div class="hinweis schlecht" role="status"><?= $h(strtr($T('konto_st_frist'), ['{n}' => (string) $kStand['fehlt'],
+              '{frist}' => $kStand['frist'] ? strtr($T('konto_frist'), ['{datum}' => date('d.m.Y', strtotime((string) $kStand['frist']))]) : ''])) ?></div>
         <?php elseif (empty($p['stripe_bereit']) && $kStand['stand'] === 'pruefung'): ?><div class="hinweis" role="status"><?= $h($T('konto_st_pruefung')) ?></div>
         <?php elseif (empty($p['stripe_bereit']) && $kStand['fehlt'] > 0): ?><div class="hinweis" role="status"><?= $h(strtr($T('konto_st_fehlt'), ['{n}' => (string) $kStand['fehlt']])) ?></div><?php endif; ?>
       <?php endif; ?>
 
-      <?php if (empty($p['stripe_bereit']) && !$kAbw && $kStand['stand'] !== 'abgelehnt'): ?>
+      <?php if (Partner::stripeFortsetzbar($p) && !$kAbw && $kStand['stand'] !== 'abgelehnt'): ?>
         <?php if (!$kHat): ?>
         <details class="konto-wie" open><summary><?= $h($T('konto_wie_titel')) ?></summary>
           <ol><?php foreach (Texte::PARTNER['konto_wie'] as $kw): ?><li><?= $h(Texte::h($kw, $sprache)) ?></li><?php endforeach; ?></ol></details>
@@ -901,6 +919,31 @@ if ($p && isset($_GET['karte'])) {
         <p class="klein" data-agb="voll"<?= $kAgbLand === '' || $kAgbLand === Partner::STRIPE_LAND_PLATTFORM ? ' hidden' : '' ?>><?= $linkMd($T('stripe_agb_voll')) ?></p>
         <?php if ($kWahl): ?><script src="/assets/js/partner-land.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-land.js') ?>" defer></script><?php endif; ?>
         <?php if ($stripePk !== ''): ?><script src="/assets/js/partner-stripe.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-stripe.js') ?>" defer></script><?php endif; ?>
+      <?php endif; ?>
+
+      <?php if ($kHat && $kLand !== ''): /* Land nachträglich ändern (28.09.2026): bewusst, mit Bestätigung */ ?>
+        <details class="konto-wie konto-wechsel"<?= $kAbw || in_array($kMeldung, ['konto_land_bestaetigen', 'konto_land_gleich'], true) ? ' open' : '' ?>>
+          <summary><?= $h($T('konto_wechsel_titel')) ?></summary>
+          <form method="post" action="<?= $h($selbst()) ?>#wege" class="konto-land-box" data-land-wahl data-stripe-land="<?= $h($kStripeLand) ?>" style="margin-top:10px">
+            <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+            <input type="hidden" name="tat" value="konto_land_wechsel">
+            <label for="konto_land_neu" class="konto-land-l"><?= $h($T('konto_land')) ?></label>
+            <input type="search" class="konto-land-suche" data-land-suche placeholder="<?= $h($T('konto_land_suche')) ?>" aria-label="<?= $h($T('konto_land_suche')) ?>" aria-controls="konto_land_neu" autocomplete="off" hidden>
+            <?php $kTrennerW = (string) (array_values(array_diff(array_keys($kLaender), Partner::STRIPE_HAEUFIG))[0] ?? ''); ?>
+            <select id="konto_land_neu" name="land" class="konto-land" required>
+              <?php foreach ($kLaender as $lc => $ln): ?>
+                <?php if ($lc === $kTrennerW): ?><option disabled value="-">──────────</option><?php endif; ?>
+                <option value="<?= $h($lc) ?>" data-name="<?= $h($ln) ?>"<?= $lc === $kLand ? ' selected' : '' ?>><?= $h($kName($lc)) ?></option>
+              <?php endforeach; ?>
+            </select>
+            <p class="konto-land-gew" data-land-gewaehlt data-muster="<?= $h($T('konto_land_gewaehlt')) ?>" aria-live="polite"><?= $h(strtr($T('konto_land_gewaehlt'), ['{land}' => $kName($kLand)])) ?></p>
+            <p class="konto-land-keins" data-land-keins hidden><?= $h($T('konto_land_keins')) ?></p>
+            <p class="klein" style="margin:6px 0 10px"><?= $h($T('konto_wechsel_hilfe')) ?></p>
+            <label class="konto-wechsel-ok" data-land-bestaetigung><input type="checkbox" name="bestaetigt" value="1"> <span><?= $h($T('konto_wechsel_ok')) ?></span></label>
+            <button class="knopf" style="margin-top:10px"><?= $h($T('konto_wechsel_knopf')) ?></button>
+          </form>
+        </details>
+        <script src="/assets/js/partner-land.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-land.js') ?>" defer></script>
       <?php endif; ?>
       </div>
     <?php endif; ?>
