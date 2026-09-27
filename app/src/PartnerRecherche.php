@@ -160,6 +160,8 @@ final class PartnerRecherche
         $gastro = in_array($branche, ['restaurant', 'bar_cafe', 'hotel', 'ferienwohnung', 'agriturismo', 'tourismus', ''], true);
         $aus = [
             ['art' => 'maps', 'url' => 'https://www.google.com/maps/search/?api=1&query=' . $q($was . ' ' . $ort)],
+            // Google-Suche (27.09.2026, Uwe): findet auch Betriebe ohne Maps-Eintrag, etwa über Facebook- oder Branchenbuchseiten.
+            ['art' => 'google', 'url' => 'https://www.google.com/search?q=' . $q($was . ' ' . $ort)],
             ['art' => 'pagine', 'url' => 'https://www.paginegialle.it/ricerca/' . $q($was) . '/' . $q($ort)],
             ['art' => 'facebook', 'url' => 'https://www.facebook.com/search/pages/?q=' . $q($was . ' ' . $ort)],
             ['art' => 'indeed', 'url' => 'https://it.indeed.com/offerte-lavoro?q=' . $q($was) . '&l=' . $q($ort)],

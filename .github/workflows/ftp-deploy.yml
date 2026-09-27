@@ -113,6 +113,10 @@ jobs:
           H="$FTPHOST"
           # DIE ABRISSLISTE
           #
+          # ERST DIE BAUSTEINE (27.09.2026): Der Upload dauert ~10 Minuten. Kam
+          # partner.php vor einer neuen Klasse an (PartnerStart), brach die Seite
+          # bis zum Ende des Uploads mit „Class not found“ ab -- Uwe sah eine
+          # leere Partnerseite. Deshalb zuerst app/src, app/lib, app/migrations.
           # mirror --reverse laedt hoch und loescht nie. Wer eine Datei aus dem
           # Repository nimmt, nimmt sie damit nicht vom Webspace — sie bleibt
           # liegen, wird weiter ausgeliefert und faellt niemandem auf.
@@ -146,6 +150,9 @@ jobs:
             set mirror:parallel-transfer-count 3;
             open -u '$U,$PW' $H;
             rm -rf $DIR.git;
+            mirror --reverse --continue --verbose=1 app/src $DIR/app/src;
+            mirror --reverse --continue --verbose=1 app/lib $DIR/app/lib;
+            mirror --reverse --continue --verbose=1 app/migrations $DIR/app/migrations;
             mirror --reverse --continue --verbose=1 \
               --exclude '^\.git' \
               --exclude '^\.github/' \

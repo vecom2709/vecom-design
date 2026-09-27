@@ -12196,10 +12196,11 @@ pruefe('Wochenbericht: Wochenziel, Trichter (30 Tage) und automatisch eingeordne
 abschnitt('Firmen-Finder: Suchknöpfe, selbst eintragen, Overture-Zuordnung');
 $feP = Partner::anlegen(['name' => 'Fabio Finder', 'email' => 'fabio@partner.example', 'status' => 'aktiv', 'code' => 'FABIOFE1', 'firma' => '', 'sprache' => 'it']);
 $feL = PartnerRecherche::suchlinks('Favara', 'friseur');
-pruefe('Suchknöpfe: Google Maps (offizielle Such-URL), Pagine Gialle, Facebook, Indeed — mit Branche auf Italienisch und Ort; ohne Ort keine',
-    count($feL) === 4 && str_starts_with($feL[0]['url'], 'https://www.google.com/maps/search/?api=1&query=') && str_contains($feL[0]['url'], rawurlencode('Parrucchiere Favara'))
-    && str_contains($feL[1]['url'], 'paginegialle.it/ricerca/') && str_contains($feL[3]['url'], 'it.indeed.com') && PartnerRecherche::suchlinks('', '') === []
-    && count(PartnerRecherche::suchlinks('Favara', 'restaurant')) === 5);
+pruefe('Suchknöpfe: Google Maps (offizielle Such-URL), Google-Suche, Pagine Gialle, Facebook, Indeed — mit Branche auf Italienisch und Ort; ohne Ort keine',
+    count($feL) === 5 && str_starts_with($feL[0]['url'], 'https://www.google.com/maps/search/?api=1&query=') && str_contains($feL[0]['url'], rawurlencode('Parrucchiere Favara'))
+    && $feL[1]['url'] === 'https://www.google.com/search?q=' . rawurlencode('Parrucchiere Favara')
+    && str_contains($feL[2]['url'], 'paginegialle.it/ricerca/') && str_contains($feL[4]['url'], 'it.indeed.com') && PartnerRecherche::suchlinks('', '') === []
+    && count(PartnerRecherche::suchlinks('Favara', 'restaurant')) === 6);
 pruefe('Selbst eintragen: Pflichtfelder und Website werden geprüft',
     PartnerRecherche::eintragen($feP, ['name' => 'X', 'ort' => 'Favara', 'branche' => 'friseur'])['grund'] === 'fe_name'
     && PartnerRecherche::eintragen($feP, ['name' => 'Salone Uno', 'ort' => '', 'branche' => 'friseur'])['grund'] === 'fe_ort'
