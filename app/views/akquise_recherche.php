@@ -20,6 +20,9 @@ $akqTeil = 'recherche';
           <option value="stadt">Stadt / Comune</option><option value="kreis">Landkreis / Provincia</option>
           <option value="region">Bundesland / Regione</option><option value="plz">PLZ / CAP</option></select></div>
       </div>
+      <div class="feld"><label>Quelle</label><select name="quelle">
+        <option value="overture">Overture Maps — viel mehr Betriebe, ganzes Gebiet auf einmal (Gemeinde, Provinz, Region)</option>
+        <option value="osm">OpenStreetMap — Gemeinde für Gemeinde, auch PLZ</option></select></div>
       <div class="feld"><label>Gebiet (amtlicher Name, z. B. „Agrigento“, „Bad Kreuznach“, „Sicilia“, „92021“)</label>
         <input name="gebiet" required maxlength="120"></div>
       <div class="feld"><label>Branchen (keine Auswahl = alle)</label>
@@ -53,7 +56,9 @@ $akqTeil = 'recherche';
   <div class="tabellenrahmen"><table><thead><tr><th>#</th><th>Gebiet</th><th>Branchen</th><th>Status</th><th>Gefunden</th><th>Neu</th><th>Dubletten</th><th>Zeit</th><th></th></tr></thead><tbody>
     <?php foreach ($laeufe as $l): $br = $l['branchen'] ? (json_decode((string) $l['branchen'], true) ?: []) : []; ?>
       <tr><td class="akq-klein"><?= (int) $l['id'] ?></td>
-        <td><?= Fmt::h((string) $l['land']) ?> · <?= Fmt::h((string) $l['ebene']) ?> <b><?= Fmt::h((string) $l['gebiet']) ?></b></td>
+        <td><?= Fmt::h((string) $l['land']) ?> · <?= Fmt::h((string) $l['ebene']) ?> <b><?= Fmt::h((string) $l['gebiet']) ?></b>
+          <span class="marke2" style="margin-left:4px"><?= ($l['quelle'] ?? 'osm') === 'overture' ? 'Overture' : 'OSM' ?></span>
+          <?= $l['angelegt_von'] === 'Partner-Finder' ? '<span class="akq-klein"> · auf Abruf</span>' : '' ?></td>
         <td class="akq-klein"><?= $br ? Fmt::h(implode(', ', array_map(static fn($x) => Akquise::branchenName((string) $x), $br))) : 'alle' ?></td>
         <td><span class="marke2 <?= ['fertig' => 'gut', 'fehler' => 'schlecht', 'laeuft' => 'warnung'][$l['status']] ?? '' ?>"><?= Fmt::h((string) $l['status']) ?></span>
           <?php if ($l['fehler']): ?><div class="akq-klein" style="color:var(--rot)"><?= Fmt::h(mb_strimwidth((string) $l['fehler'], 0, 160, '…')) ?></div><?php endif; ?></td>

@@ -37,7 +37,10 @@ Die `.env` und der Ordner `daten/` kommen nie ins Repository.
 | `npm run overture -- IT Agrigento` | Overture Maps: alle Betriebe einer Provinz in die Verwaltung (DuckDB liest direkt aus dem öffentlichen S3, ohne Konto; `stadt`/`region` als dritter Wert, Branchen als vierter, `probe` als fünfter = nur zählen) |
 | `npm test` | Regeln gegen feste Rohdaten prüfen |
 
-Nachts automatisch: `planen.ps1` registriert die Windows-Aufgabe „VECOM Akquise“ (täglich 02:30, `npm run alles`).
+Nachts automatisch: `planen.ps1` registriert die Windows-Aufgabe „VECOM Akquise“ (täglich 02:30, `npm run alles`)
+und „VECOM Akquise Abruf“ (stündlich `npm run recherche`): Sucht ein Partner einen Ort, den die Liste nicht kennt,
+legt die Verwaltung einen Overture-Auftrag für dessen Provinz/Landkreis an — so wächst die Liste nur dort, wo gesucht wird
+(Uwe, 27.09.2026: „Deutschland und ganz Italien — auf Abruf“ statt Millionen Zeilen auf Vorrat).
 
 ## Grundsätze
 

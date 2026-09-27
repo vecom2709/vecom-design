@@ -12221,6 +12221,31 @@ pruefe('Overture: jede Branche hat Taxonomie-Begriffe (für den Worker), keine d
     && count(array_merge(...array_values(array_map(static fn($b) => $b['overture'], $feJ)))) === count(array_unique(array_merge(...array_values(array_map(static fn($b) => $b['overture'], $feJ))))));
 pruefe('Finder nennt Overture als Quelle (Lizenz CDLA-Permissive-2.0)', str_contains(Texte::h(Texte::PARTNER['fi_osm'], 'de'), 'Overture Maps Foundation (CDLA-Permissive-2.0)'));
 
+/* Overture auf Abruf (27.09.2026): unbekannter Ort → Auftrag für die Provinz, höchstens alle 90 Tage. */
+abschnitt('Overture auf Abruf');
+Db::run("DELETE FROM partner_websuche"); Db::run("DELETE FROM akq_laeufe WHERE quelle = 'overture'");
+PartnerWebsuche::$netz = static function (string $m, string $u, ?string $b): array {
+    if (str_contains($u, 'nominatim')) {
+        return ['status' => 200, 'json' => [['osm_type' => 'relation', 'osm_id' => 39341, 'category' => 'boundary', 'addresstype' => 'town', 'name' => 'Canicattì',
+            'lat' => '37.36', 'lon' => '13.85', 'address' => ['town' => 'Canicattì', 'county' => 'Agrigento', 'state' => 'Sicilia', 'country_code' => 'it']]]];
+    }
+    return ['status' => 200, 'json' => ['elements' => []]];
+};
+PartnerRecherche::suchen($wsPid, 'Canicattì', '', 'de', false, true);
+$oaL = Db::all("SELECT * FROM akq_laeufe WHERE quelle = 'overture'");
+pruefe('Unbekannter Ort → ein Overture-Auftrag für die ganze Provinz (Ebene kreis, angelegt vom Partner-Finder)',
+    count($oaL) === 1 && $oaL[0]['gebiet'] === 'Agrigento' && $oaL[0]['ebene'] === 'kreis' && $oaL[0]['land'] === 'IT' && $oaL[0]['angelegt_von'] === 'Partner-Finder' && $oaL[0]['status'] === 'wartet');
+Db::run("DELETE FROM partner_websuche");
+PartnerRecherche::suchen($wsPid, 'Canicattì', 'restaurant', 'de', false, true);
+Db::run("UPDATE akq_laeufe SET status = 'fertig' WHERE quelle = 'overture'");
+pruefe('… ein zweiter Ort derselben Provinz: kein zweiter Auftrag (auch nach „fertig“, 90 Tage Ruhe)', PartnerWebsuche::overtureVormerken('IT', 'Agrigento') === null
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_laeufe WHERE quelle = 'overture'", [], 0) === 1);
+pruefe('… andere Provinz: neuer Auftrag; unbekanntes Land: keiner', PartnerWebsuche::overtureVormerken('IT', 'Caltanissetta') !== null && PartnerWebsuche::overtureVormerken('FR', 'Nice') === null);
+PartnerWebsuche::$netz = null;
+pruefe('Worker holt Overture-Aufträge ab (Quelle im Auftrag), Verwaltung kann sie von Hand anlegen',
+    str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "r.lauf.quelle === 'overture'")
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "(\$_POST['quelle'] ?? 'osm') === 'overture'"));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

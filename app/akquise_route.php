@@ -40,10 +40,12 @@ if ($post) {
                 if (!in_array($ebene, ['auto', 'region', 'kreis', 'stadt', 'plz'], true)) { throw new RuntimeException('Unbekannte Ebene.'); }
                 if ($gebiet === '' || mb_strlen($gebiet) > 120) { throw new RuntimeException('Bitte ein Gebiet angeben.'); }
                 $branchen = array_values(array_intersect((array) ($_POST['branchen'] ?? []), array_keys(Akquise::branchen())));
-                $doppelt = Db::wert("SELECT id FROM akq_laeufe WHERE land = ? AND ebene = ? AND gebiet = ? AND status IN ('wartet','laeuft')",
-                    [$land, $ebene, $gebiet], null);
+                $quelle = ($_POST['quelle'] ?? 'osm') === 'overture' ? 'overture' : 'osm';
+                if ($quelle === 'overture' && in_array($ebene, ['auto', 'plz'], true)) { $ebene = 'kreis'; }   // Overture lädt Flächen: Gemeinde, Provinz, Region
+                $doppelt = Db::wert("SELECT id FROM akq_laeufe WHERE land = ? AND ebene = ? AND gebiet = ? AND quelle = ? AND status IN ('wartet','laeuft')",
+                    [$land, $ebene, $gebiet, $quelle], null);
                 if ($doppelt !== null) { throw new RuntimeException('Für dieses Gebiet wartet schon ein Auftrag.'); }
-                $lid = Db::insert('akq_laeufe', ['land' => $land, 'ebene' => $ebene, 'gebiet' => $gebiet,
+                $lid = Db::insert('akq_laeufe', ['land' => $land, 'ebene' => $ebene, 'gebiet' => $gebiet, 'quelle' => $quelle,
                     'branchen' => $branchen ? json_encode($branchen) : null, 'angelegt_von' => Auth::name()]);
                 Akquise::protokoll(null, 'lauf', 'Rechercheauftrag angelegt: ' . $land . ' / ' . $gebiet, ['branchen' => $branchen], $lid);
                 $_SESSION['gut'] = 'Auftrag angelegt. Der Worker holt ihn beim nächsten Lauf ab.';

@@ -59,6 +59,7 @@ async function recherche(): Promise<void> {
   for (let i = 0; i < 20; i++) {
     const r = await api('lauf_holen');
     if (!r.lauf) { if (i === 0) log.info('recherche', 'Kein wartender Auftrag.'); return; }
+    if (r.lauf.quelle === 'overture') { await (await import('./recherche/overture.js')).overtureLauf(r.lauf); continue; }
     await laufAbarbeiten(r.lauf);
   }
 }

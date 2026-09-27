@@ -21,6 +21,7 @@
    SEIT SEPTEMBER 2026 gibt es `categories` nicht mehr -- die Branche kommt
    aus `taxonomy.hierarchy` (jede Ebene), der tiefste Treffer gewinnt.
    ========================================================================== */
+import { api } from '../api.js';
 import { konfig } from '../konfig.js';
 import { log } from '../log.js';
 import { BRANCHEN } from '../branchen.js';
@@ -146,4 +147,28 @@ export async function orteIn(g: OvertureGebiet, version?: string): Promise<Overt
   log.info('overture', `${g.name}: ${zeilen.length} Orte im Rechteck (Version ${v}, ${Math.round((Date.now() - t0) / 1000)} s)`);
   con.closeSync?.();
   return zeilen.map((z) => ({ ...z, lon: Number(z.lon), lat: Number(z.lat), confidence: z.confidence === null ? null : Number(z.confidence) }));
+}
+
+/**
+ * Ein Suchauftrag mit Quelle „overture“ aus der Verwaltung -- angelegt von
+ * Hand oder auf Abruf vom Partner-Finder (unbekannter Ort → dessen Provinz).
+ */
+export async function overtureLauf(lauf: { id: number; land: 'IT' | 'DE'; ebene: string; gebiet: string; branchen: string[] }): Promise<void> {
+  const ebene = (['stadt', 'kreis', 'region'].includes(lauf.ebene) ? lauf.ebene : 'kreis') as 'stadt' | 'kreis' | 'region';
+  log.info('overture', `Auftrag #${lauf.id}: ${lauf.land} / ${ebene} „${lauf.gebiet}“ / ${lauf.branchen.length ? lauf.branchen.join(', ') : 'alle Branchen'}`);
+  try {
+    const g = await gebiet(lauf.land, lauf.gebiet, ebene);
+    const firmen = (await orteIn(g)).map((z) => alsFirma(z, g, lauf.branchen)).filter((f): f is GefundeneFirma => f !== null);
+    let neu = 0;
+    for (let i = 0; i < firmen.length; i += 100) {
+      if (i > 0 && i % 2000 === 0 && (await api('hallo')).stop) { log.warn('overture', 'Notbremse gezogen — angehalten.'); break; }
+      const r = await api('firmen_melden', { lauf_id: lauf.id, firmen: firmen.slice(i, i + 100) });
+      neu += r.neu ?? 0;
+    }
+    await api('lauf_melden', { lauf_id: lauf.id, status: 'fertig' });
+    log.info('overture', `Auftrag #${lauf.id}: ${firmen.length} Betriebe, ${neu} neu`);
+  } catch (e) {
+    log.fehler('overture', `Auftrag #${lauf.id} gescheitert: ${(e as Error).message}`);
+    await api('lauf_melden', { lauf_id: lauf.id, status: 'fehler', fehler: (e as Error).message }).catch(() => {});
+  }
 }

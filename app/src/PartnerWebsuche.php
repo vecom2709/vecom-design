@@ -78,6 +78,8 @@ final class PartnerWebsuche
         try {
             $gebiet = self::gebiet($ort);
             if ($gebiet === null) { self::merken($schluessel, $ort, $branche, null, 0, 0, null); return ['gefragt' => true, 'gefunden' => 0, 'neu' => 0, 'fehler' => null, 'gebiet' => null]; }
+            // Auf Abruf (27.09.2026): die ganze Provinz / den Landkreis aus Overture nachladen lassen.
+            if (!empty($gebiet['kreis']) && !empty($gebiet['land'])) { self::overtureVormerken((string) $gebiet['land'], (string) $gebiet['kreis']); }
             $elemente = self::betriebe($gebiet, $branche);
             $gefunden = 0; $neu = 0;
             foreach (array_slice($elemente, 0, self::HOECHSTENS) as $e) {
@@ -93,6 +95,28 @@ final class PartnerWebsuche
             self::merken($schluessel, $ort, $branche, null, 0, 0, $grund);
             return ['gefragt' => true, 'gefunden' => 0, 'neu' => 0, 'fehler' => $grund, 'gebiet' => null];
         }
+    }
+
+    public const OVERTURE_RUHE_TAGE = 90;
+
+    /**
+     * Legt einen Overture-Suchauftrag für ein Gebiet an -- nur, wenn es in
+     * den letzten 90 Tagen keinen gab (wartend, laufend oder fertig). Der
+     * Worker auf Uwes Rechner holt ihn ab (stündlich bzw. nachts).
+     * @return int|null ID des neuen Auftrags
+     */
+    public static function overtureVormerken(string $land, string $kreis): ?int
+    {
+        $land = strtoupper($land); $kreis = trim(mb_substr($kreis, 0, 120));
+        if (!in_array($land, ['IT', 'DE'], true) || $kreis === '') { return null; }
+        return self::still(static function () use ($land, $kreis): ?int {
+            $schon = Db::wert("SELECT id FROM akq_laeufe WHERE quelle = 'overture' AND land = ? AND gebiet = ?
+                                AND (status IN ('wartet','laeuft') OR created_at >= ?)", [$land, $kreis, date('Y-m-d H:i:s', strtotime('-' . self::OVERTURE_RUHE_TAGE . ' days'))], null);
+            if ($schon !== null) { return null; }
+            $id = (int) Db::insert('akq_laeufe', ['land' => $land, 'ebene' => 'kreis', 'gebiet' => $kreis, 'quelle' => 'overture', 'angelegt_von' => 'Partner-Finder']);
+            Akquise::protokoll(null, 'lauf', 'Overture-Auftrag auf Abruf: ' . $land . ' / ' . $kreis, [], $id);
+            return $id;
+        }, null);
     }
 
     /**

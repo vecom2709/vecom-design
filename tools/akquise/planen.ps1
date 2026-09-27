@@ -11,3 +11,13 @@ $ausloeser = New-ScheduledTaskTrigger -Daily -At 2:30am
 $einst = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 5) -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName 'VECOM Akquise' -Action $aktion -Trigger $ausloeser -Settings $einst -Description 'Recherche, Website-Audit und Textvorschlaege fuer vecom-design.it/app/akquise. Versendet nie selbst.' -Force | Out-Null
 Write-Output "Aufgabe 'VECOM Akquise' eingerichtet (taeglich 02:30). Protokoll: $log"
+
+# Auf Abruf (27.09.2026): stündlich nur die wartenden Suchaufträge -- der
+# Partner-Finder legt für unbekannte Orte einen Overture-Auftrag für die
+# ganze Provinz an. Ohne Auftrag endet der Lauf nach einer Anfrage. Die
+# Sperrdatei verhindert, dass er dem Nachtlauf in die Quere kommt.
+$aktion2 = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c cd /d `"$ordner`" && `"$npm`" run recherche >> `"$log`" 2>&1"
+$ausloeser2 = New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddMinutes(5) -RepetitionInterval (New-TimeSpan -Hours 1)
+$einst2 = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 2) -MultipleInstances IgnoreNew
+Register-ScheduledTask -TaskName 'VECOM Akquise Abruf' -Action $aktion2 -Trigger $ausloeser2 -Settings $einst2 -Description 'Stuendlich: wartende Suchauftraege (Overture auf Abruf) fuer vecom-design.it. Versendet nie selbst.' -Force | Out-Null
+Write-Output "Aufgabe 'VECOM Akquise Abruf' eingerichtet (stuendlich). Protokoll: $log"
