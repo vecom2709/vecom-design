@@ -177,4 +177,15 @@ final class PartnerCheck
                     'schlecht' => count(array_filter($e['punkte'] ?? [], static fn($p) => $p['stand'] === 'schlecht'))];
         }, Db::all('SELECT token, host, ergebnis, aufrufe, created_at FROM partner_checks WHERE partner_id = ? ORDER BY id DESC LIMIT ' . max(1, $n), [$partnerId]));
     }
+
+    /**
+     * Ein eigener Bericht wird gelöscht (27.09.2026, Uwe: „letzte Prüfungen
+     * soll man löschen können“). Nur der eigene -- der Schlüssel allein reicht
+     * nicht. Wer den Link danach öffnet, sieht „nicht mehr verfügbar“.
+     */
+    public static function loeschen(int $partnerId, string $token): bool
+    {
+        if (!preg_match('~^[a-f0-9]{32}$~', $token)) { return false; }
+        return Db::run('DELETE FROM partner_checks WHERE partner_id = ? AND token = ?', [$partnerId, $token])->rowCount() > 0;
+    }
 }

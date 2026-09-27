@@ -189,6 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $r = PartnerCheck::anlegen((int) $p['id'], (string) ($_POST['url'] ?? ''));
                 if ($r['ok']) { header('Location: ' . $selbst(['ck' => $r['token']]) . '#recherche', true, 303); exit; }
                 $meldung = (string) $r['grund'];
+            } elseif ($tat === 'ck_weg' && $p) {
+                PartnerCheck::loeschen((int) $p['id'], (string) ($_POST['token'] ?? ''));
+                header('Location: ' . $selbst(['m' => 'ck_weg_gut']) . '#recherche', true, 303); exit;
             } elseif (($tat === 'fi_reserv' || $tat === 'fi_frei') && $p) {
                 $fid = (int) ($_POST['firma'] ?? 0);
                 $f = 'ok';
@@ -529,8 +532,13 @@ if ($p && isset($_GET['karte'])) {
     <div class="kopie"><input id="p_link" type="text" readonly value="<?= $h($link) ?>">
       <button class="knopf" type="button" onclick="var f=document.getElementById('p_link');f.select();navigator.clipboard&&navigator.clipboard.writeText(f.value);this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
     <p class="klein" style="margin-top:6px"><?= $h($T('p_code')) ?>: <b><?= $h($p['code']) ?></b></p>
-    <a class="knopf" style="margin-top:10px;display:inline-flex" target="_blank" rel="noopener"
-       href="https://wa.me/?text=<?= rawurlencode($T('teilen_text') . $link) ?>"><?= $h($T('teilen_wa')) ?></a>
+    <?php /* Alles teilbar (27.09.2026): WhatsApp, E-Mail, das Teilen-Menü des Handys, ansehen. */ ?>
+    <div class="knoepfe">
+      <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($T('teilen_text') . $link) ?>"><?= $h($T('teilen_wa')) ?></a>
+      <a class="knopf" href="mailto:?subject=<?= rawurlencode($T('teilen_betreff')) ?>&amp;body=<?= rawurlencode($T('teilen_text') . $link) ?>"><?= $h($T('teilen_mail')) ?></a>
+      <button class="knopf" type="button" data-teilen-text="<?= $h($T('teilen_text') . $link) ?>" hidden><?= $h($T('teilen_mehr')) ?></button>
+      <a class="knopf" target="_blank" rel="noopener" href="<?= $h('/p.php?' . http_build_query(['c' => $p['code'], 'lang' => $sprache, 'n' => 1])) ?>"><?= $h($T('teilen_ansehen')) ?></a>
+    </div>
     <details style="margin-top:14px"<?= $naechst === 'n_teilen' ? ' open' : '' ?>><summary style="cursor:pointer;color:var(--cyan);font-size:14px"><?= $h($T('so_titel')) ?></summary>
       <?= $so() ?>
       <details class="faq" style="margin-top:10px"><summary style="cursor:pointer;color:var(--cyan);font-size:13.5px"><?= $h($T('faq_titel')) ?></summary>
@@ -850,6 +858,19 @@ if ($p && isset($_GET['karte'])) {
     <?php endforeach; ?>
   </div>
 </div>
+<script>
+/* Teilen-Menü des Handys für jeden Knopf mit data-teilen-text (27.09.2026).
+   Über die ganze Seite delegiert -- die Knöpfe stehen in verschiedenen Blöcken.
+   Ohne navigator.share bleiben sie versteckt; WhatsApp, E-Mail und Kopieren gehen immer. */
+(function () {
+  if (!navigator.share) { return; }
+  [].forEach.call(document.querySelectorAll('[data-teilen-text]'), function (b) { b.hidden = false; });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-teilen-text]'); if (!b) { return; }
+    navigator.share({ text: b.dataset.teilenText }).catch(function () {});
+  });
+})();
+</script>
 <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
 </body>
 </html>

@@ -2940,6 +2940,14 @@ final class Texte
         'n_weg'      => ['it' => 'Indichi come vuole ricevere il denaro (sezione «Come ricevere i pagamenti»).', 'de' => 'Legen Sie fest, wie Sie Ihr Geld bekommen (Abschnitt „Wie Sie Ihr Geld bekommen“).', 'en' => 'Choose how you want to be paid (section “How you get paid”).'],
         'n_teilen'   => ['it' => 'Tutto pronto. Ora condivida il suo link — per esempio via WhatsApp.', 'de' => 'Alles eingerichtet. Jetzt Ihren Link teilen — zum Beispiel per WhatsApp.', 'en' => 'All set. Now share your link — for example on WhatsApp.'],
         'n_laeuft'   => ['it' => 'Tutto a posto. Le provvigioni arrivano da sole appena pronte.', 'de' => 'Alles läuft. Provisionen kommen von selbst, sobald sie fällig sind.', 'en' => 'All good. Commissions arrive by themselves as soon as they’re due.'],
+        'teilen_mehr' => ['it' => 'Condividere …', 'de' => 'Teilen …', 'en' => 'Share …'],
+        'teilen_mail' => ['it' => 'Per e-mail', 'de' => 'Per E-Mail', 'en' => 'By email'],
+        'teilen_ansehen' => ['it' => 'Vedere la pagina', 'de' => 'Seite ansehen', 'en' => 'View the page'],
+        'teilen_betreff' => ['it' => 'Un sito web per la sua attività', 'de' => 'Eine Website für Ihren Betrieb', 'en' => 'A website for your business'],
+        'teilen_seite' => ['it' => 'Condividere la sua pagina', 'de' => 'Ihre Seite teilen', 'en' => 'Share your page'],
+        'ck_loeschen' => ['it' => 'Elimina', 'de' => 'Löschen', 'en' => 'Delete'],
+        'ck_loeschen_frage' => ['it' => 'Eliminare il rapporto? Il link smette di funzionare.', 'de' => 'Bericht löschen? Der Link funktioniert danach nicht mehr.', 'en' => 'Delete the report? The link will stop working.'],
+        'ck_weg_gut' => ['it' => 'Rapporto eliminato.', 'de' => 'Bericht gelöscht.', 'en' => 'Report deleted.'],
         'teilen_wa'  => ['it' => 'Invia su WhatsApp', 'de' => 'Per WhatsApp senden', 'en' => 'Send on WhatsApp'],
         'teilen_text'=> ['it' => 'Ti serve un sito web? Ti consiglio Vecom Design: ', 'de' => 'Du brauchst eine Website? Ich kann Vecom Design empfehlen: ', 'en' => 'Need a website? I can recommend Vecom Design: '],
         'z_klicks'   => ['it' => 'volte che il link è stato aperto', 'de' => 'so oft wurde Ihr Link geöffnet', 'en' => 'times your link was opened'],
@@ -3231,6 +3239,16 @@ final class Texte
         'klein'  => ['it' => 'Riceve il link alla sua area personale. Gratis e senza impegno.', 'de' => 'Sie bekommen den Link zu Ihrem persönlichen Bereich. Kostenlos und unverbindlich.', 'en' => 'You’ll get the link to your personal area. Free and without obligation.'],
         'foto_alt' => ['it' => 'Foto di {name}', 'de' => 'Foto von {name}', 'en' => 'Photo of {name}'],
         'weiter' => ['it' => 'Prima guardare il sito →', 'de' => 'Erst die Website ansehen →', 'en' => 'See the website first →'],
+        // Weiterleiten (27.09.2026, Uwe: „alles muss für Kunden mit Kunden teilbar sein“)
+        'wl_titel' => ['it' => 'Conosce qualcuno a cui serve un sito?', 'de' => 'Kennen Sie jemanden, der eine Website braucht?', 'en' => 'Know someone who needs a website?'],
+        'wl_text' => ['it' => 'Inoltri questa pagina — con WhatsApp, e-mail o link.', 'de' => 'Leiten Sie diese Seite weiter — per WhatsApp, E-Mail oder Link.', 'en' => 'Forward this page — via WhatsApp, email or link.'],
+        'wl_wa' => ['it' => 'Inoltrare su WhatsApp', 'de' => 'Per WhatsApp weiterleiten', 'en' => 'Forward on WhatsApp'],
+        'wl_mail' => ['it' => 'Per e-mail', 'de' => 'Per E-Mail', 'en' => 'By email'],
+        'wl_kopieren' => ['it' => 'Copiare il link', 'de' => 'Link kopieren', 'en' => 'Copy link'],
+        'wl_teilen' => ['it' => 'Condividere …', 'de' => 'Teilen …', 'en' => 'Share …'],
+        'wl_kopiert' => ['it' => 'Copiato ✓', 'de' => 'Kopiert ✓', 'en' => 'Copied ✓'],
+        'wl_nachricht' => ['it' => 'Guarda: siti web di Vecom Design, consigliati da {name}: ', 'de' => 'Schau mal: Websites von Vecom Design, empfohlen von {name}: ', 'en' => 'Have a look: websites by Vecom Design, recommended by {name}: '],
+        'wl_betreff' => ['it' => 'Siti web — Vecom Design', 'de' => 'Websites — Vecom Design', 'en' => 'Websites — Vecom Design'],
     ];
 
     /* ------------------------------------------------------------------------
@@ -3251,6 +3269,7 @@ final class Texte
             'bild' => ['it' => 'Immagini', 'de' => 'Bilder', 'en' => 'Images'], 'video' => 'Video',
             'check' => ['it' => 'Verifica veloce', 'de' => 'Schnellcheck', 'en' => 'Quick check'],
             'erfolg' => ['it' => 'Post «È online»', 'de' => 'Beitrag „Ist online“', 'en' => '“It’s live” post'],
+            'weiter' => ['it' => 'Inoltrata da clienti', 'de' => 'Von Kunden weitergeleitet', 'en' => 'Forwarded by customers'],
         ],
         'tipps' => [
             'whatsapp'  => ['it' => 'Il messaggio personale funziona meglio del testo generico: scriva a chi le ha detto di recente che gli serve un sito.', 'de' => 'Die persönliche Nachricht wirkt stärker als der allgemeine Text: Schreiben Sie denen, die kürzlich erwähnt haben, dass sie eine Website brauchen.', 'en' => 'The personal message works better than the general text: write to people who recently mentioned they need a website.'],
@@ -3419,6 +3438,10 @@ final class Texte
        versteht. {wert} = Messwert (Sekunden, Tage, Jahr).
        ------------------------------------------------------------------------ */
     public const PARTNER_CHECK = [
+        'wl_titel' => ['it' => 'Inoltrare il rapporto', 'de' => 'Bericht weiterleiten', 'en' => 'Forward this report'],
+        'wl_wa' => ['it' => 'Su WhatsApp', 'de' => 'Per WhatsApp', 'en' => 'On WhatsApp'],
+        'wl_mail' => ['it' => 'Per e-mail', 'de' => 'Per E-Mail', 'en' => 'By email'],
+        'wl_nachricht' => ['it' => 'Ecco la verifica veloce del sito {host}: ', 'de' => 'Hier der Schnellcheck der Website {host}: ', 'en' => 'Here’s the quick check of the website {host}: '],
         'punkte' => [
             'erreichbar' => ['titel' => ['it' => 'Raggiungibile', 'de' => 'Erreichbar', 'en' => 'Reachable'],
                 'schlecht' => ['it' => 'Il sito non era raggiungibile durante la verifica.', 'de' => 'Die Seite war bei der Prüfung nicht erreichbar.', 'en' => 'The site could not be reached during the check.']],

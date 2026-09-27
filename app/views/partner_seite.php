@@ -113,6 +113,14 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
     <?php endif; ?>
   </div>
 
+  <?php $gsLink = Partner::link($p); $gsText = $T('teilen_text') . $gsLink; ?>
+  <p class="gs-h"><?= $h($T('teilen_seite')) ?></p>
+  <div class="knoepfe" style="margin-top:0">
+    <button class="knopf" type="button" data-kopie-text="<?= $h($gsLink) ?>"><?= $h($T('kopieren')) ?></button>
+    <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($gsText) ?>"><?= $h($T('teilen_wa')) ?></a>
+    <a class="knopf" href="mailto:?subject=<?= rawurlencode($T('teilen_betreff')) ?>&amp;body=<?= rawurlencode($gsText) ?>"><?= $h($T('teilen_mail')) ?></a>
+    <button class="knopf" type="button" data-teilen-text="<?= $h($gsText) ?>" hidden><?= $h($T('teilen_mehr')) ?></button>
+  </div>
   <p class="gs-h"><?= $h($W($PS['g_vorschau'])) ?></p>
   <div class="gs-vorschau"><iframe src="<?= $h($vorschau) ?>" title="<?= $h($W($PS['g_vorschau'])) ?>" loading="lazy"></iframe></div>
 </div>

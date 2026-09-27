@@ -11941,6 +11941,32 @@ pruefe('Partnerseite sucht mit Websuche und nennt OpenStreetMap als Quelle',
     && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), "\$T('fi_osm')"));
 
 /* ============================================================================
+   Alles teilbar, Berichte löschbar (27.09.2026)
+   Uwe: „letzte Prüfungen soll man löschen können … alles muss für Kunden mit
+   Kunden teilbar sein wie z. B. Landingpage“.
+   ============================================================================ */
+abschnitt('Partner: teilen und Berichte löschen');
+$tlP1 = Partner::anlegen(['name' => 'Tina Teilen', 'email' => 'tina@partner.example', 'status' => 'aktiv', 'code' => 'TINATL01', 'firma' => '', 'sprache' => 'de']);
+$tlP2 = Partner::anlegen(['name' => 'Otto Anders', 'email' => 'otto@partner.example', 'status' => 'aktiv', 'code' => 'OTTOTL01', 'firma' => '', 'sprache' => 'de']);
+$tlTok = bin2hex(random_bytes(16));
+Db::insert('partner_checks', ['partner_id' => $tlP1, 'token' => $tlTok, 'host' => 'tina.example', 'url' => 'https://tina.example/', 'ergebnis' => '{"punkte":[]}']);
+pruefe('Bericht löschen: ein fremder Partner kann es nicht, auch nicht mit dem Schlüssel', !PartnerCheck::loeschen($tlP2, $tlTok)
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_checks WHERE token = ?', [$tlTok], 0) === 1);
+pruefe('… der eigene schon, danach ist er weg (check.php sagt „nicht mehr verfügbar“)', PartnerCheck::loeschen($tlP1, $tlTok)
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_checks WHERE token = ?', [$tlTok], 0) === 0
+    && str_contains((string) file_get_contents($wurzel . '/../check.php'), 'nicht mehr verfügbar') && !PartnerCheck::loeschen($tlP1, 'kein-token'));
+$tlLp = (string) file_get_contents($wurzel . '/../p.php');
+$tlCk = (string) file_get_contents($wurzel . '/../check.php');
+$tlPa = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Landeseite: Besucher leiten sie weiter (WhatsApp, E-Mail, Kopieren, Teilen) über den Kanal-Link „weiter“',
+    str_contains($tlLp, "PartnerWerbung::link(\$p, 'weiter')") && str_contains($tlLp, 'https://wa.me/?text=') && str_contains($tlLp, 'mailto:?subject=')
+    && str_contains($tlLp, 'navigator.share') && in_array('weiter', PartnerWerbung::WERKZEUGE, true));
+pruefe('Schnellcheck-Bericht: weiterleitbar ohne Skript (nur Links, CSP bleibt)', str_contains($tlCk, 'https://wa.me/?text=') && str_contains($tlCk, "default-src 'none'") && !preg_match('~<script~i', $tlCk));
+pruefe('Dashboard: Link, eigene Seite und Berichte je mit WhatsApp, E-Mail/Kopieren und Teilen-Menü; Löschen fragt vorher',
+    substr_count($tlPa . (string) file_get_contents($wurzel . '/views/partner_seite.php') . (string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'data-teilen-text=') >= 3
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), "return confirm(this.dataset.frage)") && str_contains($tlPa, "\$tat === 'ck_weg'"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

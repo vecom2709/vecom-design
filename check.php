@@ -18,7 +18,7 @@ header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src '
 $token = (string) ($_GET['t'] ?? '');
 $z = null; $p = null; $sprache = 'it';
 if (preg_match('~^[a-f0-9]{32}$~', $token) && is_file(__DIR__ . '/app/config.local.php')) {
-    foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+    foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerCheck'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
     date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
     try {
         $z = Db::one('SELECT * FROM partner_checks WHERE token = ?', [$token]) ?: null;
@@ -77,6 +77,9 @@ $foto = $p ? PartnerWerbung::fotoAdresse($p) : null;
          color:#16120b;background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438)}
   .knopf:focus-visible{outline:2px solid var(--a);outline-offset:3px}
   .klein{color:var(--l);font-size:12.5px;margin:22px 0 0}
+  .wl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;font-size:14.5px}
+  .wl a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:1px solid var(--li);border-radius:10px;color:var(--t);text-decoration:none}
+  .wl a:focus-visible{outline:2px solid var(--a);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -99,6 +102,11 @@ $foto = $p ? PartnerWerbung::fotoAdresse($p) : null;
     <p><?= $h($C('empf_text')) ?></p>
     <a class="knopf" href="<?= $h($ziel) ?>"><?= $h($C('knopf')) ?> →</a>
   </div>
+  <?php /* Weiterleiten ohne Skript (CSP default-src 'none'): nur Links. */
+        $wlBericht = PartnerCheck::link((string) $z['token']); $wlT = strtr($C('wl_nachricht'), ['{host}' => (string) $z['host']]) . $wlBericht; ?>
+  <div class="wl"><b><?= $h($C('wl_titel')) ?></b>
+    <a href="https://wa.me/?text=<?= rawurlencode($wlT) ?>" rel="noopener"><?= $h($C('wl_wa')) ?></a>
+    <a href="mailto:?subject=<?= rawurlencode(strtr($C('titel'), ['{host}' => (string) $z['host']])) ?>&amp;body=<?= rawurlencode($wlT) ?>"><?= $h($C('wl_mail')) ?></a></div>
   <p class="klein"><?= $h($C('klein')) ?></p>
 </main>
 </body>

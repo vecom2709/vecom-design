@@ -41,6 +41,9 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .firma__tat form{display:block}
   .chance{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--linie);white-space:nowrap;color:var(--dim)}
   .chance.hoch{border-color:rgba(241,211,139,.6);color:var(--cyan)}
+  .ck-knoepfe{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .ck-knoepfe form{display:inline}
+  .ck-weg{color:var(--dim) !important}
   .klein-knopf{min-height:34px !important;padding:6px 12px !important;font-size:13px !important}
   .reihe{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
   .reihe > div{flex:1 1 160px;display:flex;flex-direction:column;gap:4px}
@@ -59,6 +62,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
 
   <h3 class="md-h" style="margin-top:4px"><?= $h($T('ck_titel')) ?></h3>
   <p class="klein" style="margin-top:0"><?= $h($T('ck_text')) ?></p>
+  <?php if (($_GET['m'] ?? '') === 'ck_weg_gut'): ?><div class="hinweis gut" role="status"><?= $h($T('ck_weg_gut')) ?></div><?php endif; ?>
   <?php if ($ckMeldung): ?><div class="hinweis schlecht" role="alert"><?= $h($T($ckMeldung)) ?></div><?php endif; ?>
   <form method="post" action="<?= $h($selbst()) ?>#recherche" data-warten="<?= $h($T('ck_laeuft')) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
@@ -88,8 +92,16 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
       <?php foreach ($ckLetzte as $c): ?>
         <li class="firma"><div class="firma__kopf"><b><?= $h($c['host']) ?></b><small><?= $h($datum($c['created_at'])) ?></small></div>
           <small><?= $h(strtr($T('ck_punkte'), ['{n}' => (string) $c['schlecht']])) ?> · <?= $h(strtr($T('ck_aufrufe'), ['{n}' => (string) $c['aufrufe']])) ?></small>
-          <div class="firma__tat"><a href="<?= $h(PartnerCheck::link($c['token'])) ?>" target="_blank" rel="noopener" style="color:var(--cyan);font-size:13.5px"><?= $h($T('ck_oeffnen')) ?> →</a>
-            <button class="knopf klein-knopf" type="button" data-kopie-text="<?= $h(PartnerCheck::link($c['token'])) ?>"><?= $h($T('kopieren')) ?></button></div></li>
+          <?php $ckL2 = PartnerCheck::link($c['token']); ?>
+          <div class="firma__tat"><a href="<?= $h($ckL2) ?>" target="_blank" rel="noopener" style="color:var(--cyan);font-size:13.5px"><?= $h($T('ck_oeffnen')) ?> →</a>
+            <span class="ck-knoepfe">
+              <a class="knopf klein-knopf" href="https://wa.me/?text=<?= rawurlencode($T('ck_wa_text') . $ckL2) ?>" target="_blank" rel="noopener">WhatsApp</a>
+              <button class="knopf klein-knopf" type="button" data-kopie-text="<?= $h($ckL2) ?>"><?= $h($T('kopieren')) ?></button>
+              <button class="knopf klein-knopf" type="button" data-teilen-text="<?= $h($T('ck_wa_text') . $ckL2) ?>" hidden><?= $h($T('teilen_mehr')) ?></button>
+              <form method="post" action="<?= $h($selbst()) ?>#recherche" onsubmit="return confirm(this.dataset.frage)" data-frage="<?= $h($T('ck_loeschen_frage')) ?>">
+                <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="ck_weg"><input type="hidden" name="token" value="<?= $h($c['token']) ?>">
+                <button class="knopf klein-knopf ck-weg" type="submit"><?= $h($T('ck_loeschen')) ?></button></form>
+            </span></div></li>
       <?php endforeach; ?>
     </ul>
   <?php endif; ?>

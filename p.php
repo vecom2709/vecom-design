@@ -150,6 +150,8 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
   .lp-wa{display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;border-radius:12px;font-weight:650;text-decoration:none;padding:12px 18px;
          border:1px solid var(--linie2);color:var(--text)}
   .lp .weiter2{display:inline-block;margin-top:12px;color:var(--cyan);font-size:14.5px}
+  .wl-knoepfe{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+  .wl-knoepfe .lp-wa{background:transparent;color:var(--text);border:1px solid var(--linie2);font:inherit;font-weight:650;cursor:pointer}
 </style>
 </head>
 <body>
@@ -207,6 +209,27 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
       <a class="lp-wa" href="https://wa.me/<?= $h(ltrim($g['whatsapp'], '+')) ?>?text=<?= rawurlencode($S($PS['wa_text'])) ?>" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg><?= $h($S($PS['wa_knopf'])) ?></a>
     </section>
   <?php endif; ?>
+  <?php /* Weiterleiten (27.09.2026, Uwe: „alles muss für Kunden mit Kunden teilbar sein“):
+           Wer die Seite gut findet, gibt sie weiter. Der Link trägt den Kanal
+           „weiter“ -- so sieht der Partner, dass seine Kunden für ihn werben. */
+        $wlLink = PartnerWerbung::link($p, 'weiter'); $wlText = $L('wl_nachricht') . $wlLink; ?>
+  <section class="block ld lp wl">
+    <h2><?= $h($L('wl_titel')) ?></h2>
+    <p class="klein" style="margin:0 0 12px"><?= $h($L('wl_text')) ?></p>
+    <div class="wl-knoepfe">
+      <a class="lp-wa" href="https://wa.me/?text=<?= rawurlencode($wlText) ?>" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20z"/></svg><?= $h($L('wl_wa')) ?></a>
+      <a class="lp-wa" href="mailto:?subject=<?= rawurlencode($L('wl_betreff')) ?>&amp;body=<?= rawurlencode($wlText) ?>"><?= $h($L('wl_mail')) ?></a>
+      <button class="lp-wa" type="button" id="wl_kopieren" data-link="<?= $h($wlLink) ?>" data-fertig="<?= $h($L('wl_kopiert')) ?>" hidden><?= $h($L('wl_kopieren')) ?></button>
+      <button class="lp-wa" type="button" id="wl_teilen" data-text="<?= $h($wlText) ?>" hidden><?= $h($L('wl_teilen')) ?></button>
+    </div>
+    <script>
+    (function () {
+      var k = document.getElementById('wl_kopieren'), t = document.getElementById('wl_teilen');
+      if (navigator.clipboard) { k.hidden = false; k.addEventListener('click', function () { navigator.clipboard.writeText(k.dataset.link).then(function () { k.textContent = k.dataset.fertig; }); }); }
+      if (navigator.share) { t.hidden = false; t.addEventListener('click', function () { navigator.share({ text: t.dataset.text }).catch(function () {}); }); }
+    })();
+    </script>
+  </section>
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
       <a class="<?= $l === $sprache ? 'jetzt' : '' ?>" href="<?= $h('/p.php?' . http_build_query(array_filter(['c' => $p['code'], 'k' => $_GET['k'] ?? null, 'lang' => $l, 'n' => 1]))) ?>"><?= $h($wie) ?></a>
