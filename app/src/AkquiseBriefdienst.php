@@ -170,8 +170,26 @@ final class AkquiseBriefdienst
     /* ------------------------------ Das Blatt ---------------------------- */
 
     /** Der Brief als PDF: Briefkopf, Text, QR-Code zur Analyse-Seite. Eine Seite. */
-    public static function pdf(array $f, array $v, string $qrAdresse): string
+    /**
+     * Partner, der um diesen Brief gebeten hat (27.09.2026) -- dann trägt der
+     * Brief unten seinen Namen, sein Foto und seinen QR statt der Auswertung.
+     */
+    public static function partnerFuerBrief(int $firmaId): ?array
     {
+        require_once __DIR__ . '/PartnerAnschreiben.php';
+        $w = PartnerAnschreiben::wunsch($firmaId);
+        if ($w === null || $w['status'] !== 'offen') { return null; }
+        require_once __DIR__ . '/Partner.php';
+        return Partner::laden($w['partner_id']) ?: null;
+    }
+
+    public static function pdf(array $f, array $v, string $qrAdresse, ?array $partner = null): string
+    {
+        if ($partner !== null) {
+            require_once __DIR__ . '/PartnerWerbung.php';
+            require_once __DIR__ . '/Texte.php';
+            $qrAdresse = PartnerWerbung::link($partner, 'brief');
+        }
         $abs = AkquiseText::absender();
         $sp = (string) $v['sprache'];
         $pdf = new Pdf();
@@ -214,8 +232,16 @@ final class AkquiseBriefdienst
             $t = ['it' => ['La vostra analisi personale', 'Inquadrate il codice con lo smartphone: senza registrazione, solo per voi.'],
                   'de' => ['Ihre persönliche Auswertung', 'Mit dem Handy scannen — ohne Anmeldung, nur für Sie.'],
                   'en' => ['Your personal analysis', 'Scan with your phone — no sign-up, just for you.']][$sp] ?? ['', ''];
-            $pdf->text($qx + $masse + 16, $qy + 34, $t[0], 11, true, 'links', $gold);
-            $pdf->text($qx + $masse + 16, $qy + 52, $t[1], 9, false, 'links', $grau);
+            $tx = $qx + $masse + 16;
+            if ($partner !== null) {
+                // Brief auf Wunsch eines Partners: sein Foto, sein Name, sein Link.
+                $B = Texte::PARTNER_ANSCHREIBEN['brief'];
+                $t = [strtr(Texte::h($B['empf'], $sp), ['{name}' => Partner::anzeigeName($partner)]), Texte::h($B['scan'], $sp)];
+                $foto = PartnerAnschreiben::fotoJpeg((int) $partner['id']);
+                if ($foto !== null && $pdf->bild($foto, $tx, $qy + 16, 56, 56)) { $tx += 70; }
+            }
+            $pdf->text($tx, $qy + 34, $t[0], 11, true, 'links', $gold);
+            $pdf->text($tx, $qy + 52, $t[1], 9, false, 'links', $grau);
         }
         return $pdf->fertig();
     }
@@ -267,7 +293,7 @@ final class AkquiseBriefdienst
         $von = self::absender();
         if (!$von['ok']) { throw new RuntimeException($von['grund']); }
         $analyse = Db::one('SELECT * FROM akq_analysen WHERE firma_id = ? AND aktiv = 1 ORDER BY id DESC LIMIT 1', [$firmaId]);
-        $pdf = self::pdf($f, $v, $analyse ? AkquiseAnalyse::adresse($analyse) : '');
+        $pdf = self::pdf($f, $v, $analyse ? AkquiseAnalyse::adresse($analyse) : '', self::partnerFuerBrief($firmaId));
         $a = self::anfrage('POST', '/ordinarie/', [
             'mittente' => $von['daten'], 'destinatari' => [$an['daten']],
             'documento' => ['data:application/pdf;base64,' . base64_encode($pdf)],
@@ -309,6 +335,10 @@ final class AkquiseBriefdienst
             throw new RuntimeException('Der Briefdienst hat die Bestätigung nicht angenommen (' . self::fehlertext($a) . '). Nichts wurde verschickt.');
         }
         Db::update('akq_briefe', $briefId, ['status' => 'verschickt', 'verschickt_am' => date('Y-m-d H:i:s')]);
+        if ((int) $b['test'] !== 1) {
+            require_once __DIR__ . '/PartnerAnschreiben.php';
+            PartnerAnschreiben::verschickt((int) $b['firma_id']);
+        }
         if ((int) $b['test'] === 1) {
             Akquise::protokoll((int) $b['firma_id'], 'brief', 'TEST-Brief bestätigt (Sandbox, nichts verschickt)');
             return;

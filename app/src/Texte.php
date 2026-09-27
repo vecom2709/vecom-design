@@ -3295,6 +3295,8 @@ final class Texte
             'kalender' => ['it' => 'Post del calendario', 'de' => 'Beitrag aus dem Kalender', 'en' => 'Calendar post'],
             'mappe' => ['it' => 'Cartella stampata', 'de' => 'Gedruckte Mappe', 'en' => 'Printed folder'],
             'kachel' => ['it' => 'Immagine recensione/sito', 'de' => 'Bild Kundenstimme/Seite', 'en' => 'Review/site image'],
+            'anschreiben' => ['it' => 'Messaggio personale ad attività', 'de' => 'Persönliche Nachricht an Betrieb', 'en' => 'Personal message to business'],
+            'brief' => ['it' => 'Lettera di Vecom per il partner', 'de' => 'Brief von Vecom für den Partner', 'en' => 'Letter from Vecom for the partner'],
         ],
         'tipps' => [
             'whatsapp'  => ['it' => 'Il messaggio personale funziona meglio del testo generico: scriva a chi le ha detto di recente che gli serve un sito.', 'de' => 'Die persönliche Nachricht wirkt stärker als der allgemeine Text: Schreiben Sie denen, die kürzlich erwähnt haben, dass sie eine Website brauchen.', 'en' => 'The personal message works better than the general text: write to people who recently mentioned they need a website.'],
@@ -3642,6 +3644,53 @@ final class Texte
         'wa_nummer' => ['it' => 'Il numero WhatsApp deve iniziare con + e il prefisso del paese.', 'de' => 'Die WhatsApp-Nummer muss mit + und Ländervorwahl beginnen.', 'en' => 'The WhatsApp number must start with + and the country code.'],
         'bild_gross' => ['it' => 'L’immagine è troppo grande (max. 10 MB).', 'de' => 'Das Bild ist zu groß (höchstens 10 MB).', 'en' => 'The image is too large (max. 10 MB).'],
         'bild_art' => ['it' => 'Per favore una foto JPG, PNG o WebP di almeno 400 px di larghezza.', 'de' => 'Bitte ein Foto als JPG, PNG oder WebP, mindestens 400 px breit.', 'en' => 'Please a JPG, PNG or WebP photo at least 400 px wide.'],
+    ];
+
+    /** Betriebe kontaktieren (27.09.2026, Uwe: Ja zu Vorlagen, „Vecom schreibt für ihn“ und Nummer/Mail bei eigenen Reservierungen).
+        'nachricht' in der Sprache des BETRIEBS (Sie/Lei), 'ui' in der Sprache des Partners. */
+    public const PARTNER_ANSCHREIBEN = [
+        'nachricht' => [
+            'wa' => [
+                'it' => "Buongiorno, sono {name}. {aufhaenger}Collaboro con Vecom Design, che realizza siti per attività come la vostra: dite cosa vi serve e conoscete il prezzo prima, poi seguite ogni passo fino alla messa online.\n\nQui trovate tutto, senza impegno: {link}\n\nSe preferite, passo volentieri di persona. Buona giornata!",
+                'de' => "Guten Tag, hier ist {name}. {aufhaenger}Ich arbeite mit Vecom Design zusammen, die Websites für Betriebe wie Ihren bauen: Sie sagen, was Sie brauchen, kennen den Preis vorher und sehen jeden Schritt bis die Seite online ist.\n\nHier finden Sie alles, unverbindlich: {link}\n\nWenn Ihnen das lieber ist, komme ich gern persönlich vorbei. Einen schönen Tag!",
+                'en' => "Hello, this is {name}. {aufhaenger}I work with Vecom Design, who build websites for businesses like yours: you say what you need, know the price upfront and follow every step until the site is live.\n\nEverything is here, no obligation: {link}\n\nIf you prefer, I’m happy to drop by in person. Have a good day!",
+            ],
+            'betreff' => ['it' => 'Un’idea per {firma}', 'de' => 'Eine Idee für {firma}', 'en' => 'An idea for {firma}'],
+            'mail' => [
+                'it' => "Buongiorno,\n\nmi chiamo {name} e vi scrivo personalmente. {aufhaenger}\n\nCollaboro con Vecom Design: realizzano siti per attività come {firma}. Dite in due minuti cosa vi serve e conoscete il prezzo prima di iniziare; poi seguite ogni passo nella vostra area personale, finché il sito è online.\n\nSe vi interessa, qui trovate tutto senza impegno: {link}\n\nSe preferite, passo volentieri da voi.\n\nCordiali saluti\n{name}",
+                'de' => "Guten Tag,\n\nmein Name ist {name}, und ich schreibe Ihnen persönlich. {aufhaenger}\n\nIch arbeite mit Vecom Design zusammen: Sie bauen Websites für Betriebe wie {firma}. Sie sagen in zwei Minuten, was Sie brauchen, und kennen den Preis, bevor es losgeht; danach sehen Sie jeden Schritt in Ihrem persönlichen Bereich, bis die Seite online ist.\n\nWenn Sie das interessiert, finden Sie hier alles, unverbindlich: {link}\n\nGern komme ich auch persönlich vorbei.\n\nFreundliche Grüße\n{name}",
+                'en' => "Hello,\n\nmy name is {name} and I’m writing to you personally. {aufhaenger}\n\nI work with Vecom Design: they build websites for businesses like {firma}. You say what you need in two minutes and know the price before anything starts; then you follow every step in your personal area until the site is live.\n\nIf you’re interested, everything is here, no obligation: {link}\n\nI’m also happy to drop by in person.\n\nKind regards\n{name}",
+            ],
+            'mit_check' => ['it' => 'Ho fatto una verifica veloce gratuita del vostro sito, eccola: {check} ', 'de' => 'Ich habe einen kostenlosen Kurz-Check Ihrer Website gemacht, hier ist er: {check} ', 'en' => 'I ran a free quick check of your website, here it is: {check} '],
+            'ohne_web' => ['it' => 'Ho visto che {firma} non ha ancora un sito tutto suo. ', 'de' => 'Mir ist aufgefallen, dass {firma} noch keine eigene Website hat. ', 'en' => 'I noticed that {firma} doesn’t have its own website yet. '],
+            'mit_web' => ['it' => 'Ho dato un’occhiata al sito di {firma}. ', 'de' => 'Ich habe mir die Website von {firma} angesehen. ', 'en' => 'I had a look at the {firma} website. '],
+        ],
+        'ui' => [
+            'titel'     => ['it' => 'Contattare', 'de' => 'Kontaktieren', 'en' => 'Get in touch'],
+            'regel'     => ['it' => 'Di persona e uno alla volta: un messaggio a questa attività, niente invii in serie. In Italia e-mail e telefonate pubblicitarie sono permesse solo in parte (consenso, Registro delle opposizioni) — nel dubbio passi di persona con la cartella.', 'de' => 'Persönlich und einzeln: eine Nachricht an genau diesen Betrieb, keine Serien. Werbe-E-Mails und -Anrufe sind in Italien nur eingeschränkt erlaubt (Einwilligung, Registro delle opposizioni) — im Zweifel vorbeigehen und die Mappe mitbringen.', 'en' => 'Personal and one at a time: one message to this business, no mass sending. In Italy, promotional emails and calls are only partly allowed (consent, Registro delle opposizioni) — when in doubt, drop by with the printed folder.'],
+            'tel'       => ['it' => 'Telefono', 'de' => 'Telefon', 'en' => 'Phone'],
+            'mail'      => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+            'keine'     => ['it' => 'Non conosciamo né telefono né e-mail.', 'de' => 'Keine Nummer und keine E-Mail bekannt.', 'en' => 'No phone or email on file.'],
+            'anrufen'   => ['it' => 'Chiama', 'de' => 'Anrufen', 'en' => 'Call'],
+            'web'       => ['it' => 'Apri il sito', 'de' => 'Website öffnen', 'en' => 'Open website'],
+            'route'     => ['it' => 'Percorso', 'de' => 'Route', 'en' => 'Directions'],
+            'suche'     => ['it' => 'Cerca il numero su Google', 'de' => 'Nummer bei Google suchen', 'en' => 'Search number on Google'],
+            'wa'        => ['it' => 'Invia su WhatsApp', 'de' => 'Per WhatsApp senden', 'en' => 'Send on WhatsApp'],
+            'mail_neu'  => ['it' => 'Scrivi l’e-mail', 'de' => 'E-Mail schreiben', 'en' => 'Write email'],
+            'kopieren'  => ['it' => 'Copia', 'de' => 'Kopieren', 'en' => 'Copy'],
+            'sprache'   => ['it' => 'Lingua del messaggio', 'de' => 'Sprache der Nachricht', 'en' => 'Message language'],
+            'vecom'     => ['it' => 'Vecom scriva per me', 'de' => 'Vecom soll anschreiben', 'en' => 'Ask Vecom to write'],
+            'vecom_text' => ['it' => 'Vecom invia una lettera con il suo nome, la sua foto e il suo codice QR. Uwe la controlla e la spedisce; il francobollo lo paga Vecom.', 'de' => 'Vecom schickt einen Brief mit Ihrem Namen, Foto und QR-Code. Uwe prüft und verschickt ihn; das Porto zahlt Vecom.', 'en' => 'Vecom sends a letter with your name, photo and QR code. Uwe checks and sends it; Vecom pays the postage.'],
+            'vecom_gut' => ['it' => 'Richiesta inviata: le diremo quando la lettera è partita.', 'de' => 'Angefragt — Sie erfahren es, sobald der Brief unterwegs ist.', 'en' => 'Requested — you’ll hear when the letter is on its way.'],
+            'vecom_offen' => ['it' => 'Lettera richiesta il {datum}', 'de' => 'Brief angefragt am {datum}', 'en' => 'Letter requested on {datum}'],
+            'vecom_raus' => ['it' => 'Lettera spedita il {datum}', 'de' => 'Brief verschickt am {datum}', 'en' => 'Letter sent on {datum}'],
+            'vecom_nein' => ['it' => 'Vecom ha già scritto a questa attività.', 'de' => 'Vecom hat diesen Betrieb schon angeschrieben.', 'en' => 'Vecom has already written to this business.'],
+        ],
+        // Auf dem Brief von Vecom, in der Sprache des Briefs
+        'brief' => [
+            'empf' => ['it' => 'Vi è stato segnalato da {name}', 'de' => 'Empfohlen von {name}', 'en' => 'Recommended by {name}'],
+            'scan' => ['it' => 'Inquadrate il codice: richiesta gratuita, senza impegno.', 'de' => 'Code scannen: kostenlos und unverbindlich anfragen.', 'en' => 'Scan the code: free enquiry, no obligation.'],
+        ],
     ];
 
     /** Marketing im Partner-Dashboard (27.09.2026, Uwe: Ja zu Posting-Kalender, Mappe, Stufen & Monatswettbewerb, Erfolge als Kacheln). */

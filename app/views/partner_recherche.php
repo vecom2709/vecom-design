@@ -16,7 +16,57 @@ $ckMeldung = in_array($meldung, ['ck_adresse', 'ck_genug'], true) ? $meldung : '
 $ckLetzte = PartnerCheck::letzte((int) $p['id']);
 $datum = static fn(string $d): string => date('d.m.Y', strtotime($d));
 $mpKnopf = Texte::h(Texte::PARTNER_MARKETING['mp_knopf'], $sprache);
-$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf): string {
+/* Kontaktieren (27.09.2026): Vorlagen in der Sprache des Betriebs, Telefon/E-Mail
+   nur bei eigenen Reservierungen, „Vecom soll anschreiben“. */
+$AK = static fn(string $k): string => Texte::h(Texte::PARTNER_ANSCHREIBEN['ui'][$k] ?? [], $sprache);
+$akMeldung = (string) ($_GET['m'] ?? '');
+$kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $akMeldung): string {
+    $id = (int) $f['id'];
+    $spB = PartnerAnschreiben::sprache($f, $sprache);
+    $check = PartnerAnschreiben::check((int) $p['id'], (string) $f['domain']);
+    $links = PartnerAnschreiben::links($f);
+    $wa = PartnerAnschreiben::waNummer((string) $f['telefon'], (string) $f['land']);
+    $offen = (int) ($_GET['ak'] ?? 0) === $id;
+    $o = '<details class="ak" id="ak_' . $id . '"' . ($offen ? ' open' : '') . '><summary>' . $h($AK('titel')) . '</summary>';
+    if ($offen && $akMeldung === 'ak_gut') { $o .= '<div class="hinweis gut" role="status">' . $h($AK('vecom_gut')) . '</div>'; }
+    if ($offen && $akMeldung === 'ak_vecom') { $o .= '<div class="hinweis">' . $h($AK('vecom_nein')) . '</div>'; }
+    $o .= '<p class="klein ak-regel">' . $h($AK('regel')) . '</p><div class="ak-daten">';
+    if ($f['telefon'] === '' && $f['email'] === '') { $o .= '<span class="klein">' . $h($AK('keine')) . '</span>'; }
+    if ($f['telefon'] !== '') { $o .= '<span>' . $h($AK('tel')) . ': <a href="tel:' . $h(preg_replace('/[^\d+]/', '', $f['telefon'])) . '">' . $h($f['telefon']) . '</a></span>'; }
+    if ($f['email'] !== '') { $o .= '<span>' . $h($AK('mail')) . ': <a href="mailto:' . $h($f['email']) . '">' . $h($f['email']) . '</a></span>'; }
+    $o .= '</div><div class="ck-knoepfe ak-links">';
+    if (isset($links['web'])) { $o .= '<a class="knopf klein-knopf" target="_blank" rel="noopener" href="' . $h($links['web']) . '">' . $h($AK('web')) . '</a>'; }
+    $o .= '<a class="knopf klein-knopf" target="_blank" rel="noopener" href="' . $h($links['route']) . '">' . $h($AK('route')) . '</a>';
+    if ($f['telefon'] === '') { $o .= '<a class="knopf klein-knopf" target="_blank" rel="noopener" href="' . $h($links['suche']) . '">' . $h($AK('suche')) . '</a>'; }
+    $o .= '</div><p class="md-l" style="margin:12px 0 6px">' . $h($AK('sprache')) . '</p><div class="chips ak-sp">';
+    foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie) {
+        $o .= '<button type="button" data-ak-sp="' . $l . '" data-ak="' . $id . '" aria-pressed="' . ($l === $spB ? 'true' : 'false') . '">' . $wie . '</button>';
+    }
+    $o .= '</div>';
+    foreach (['it', 'de', 'en'] as $l) {
+        $t = PartnerAnschreiben::texte($p, $f, $l, $check);
+        $waLink = 'https://wa.me/' . $wa . '?text=' . rawurlencode($t['wa']);
+        $mailLink = 'mailto:' . rawurlencode($f['email']) . '?subject=' . rawurlencode($t['betreff']) . '&body=' . rawurlencode($t['mail']);
+        $o .= '<div class="ak-text" data-ak-text="' . $id . '-' . $l . '"' . ($l === $spB ? '' : ' hidden') . '>'
+            . '<textarea id="ak_' . $id . '_' . $l . '_wa" readonly rows="6">' . $h($t['wa']) . '</textarea>'
+            . '<div class="ck-knoepfe"><a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="' . $h($waLink) . '">' . $h($AK('wa')) . '</a>'
+            . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_wa">' . $h($AK('kopieren')) . '</button></div>'
+            . '<textarea id="ak_' . $id . '_' . $l . '_mail" readonly rows="7" style="margin-top:10px">' . $h($t['betreff'] . "\n\n" . $t['mail']) . '</textarea>'
+            . '<div class="ck-knoepfe"><a class="knopf klein-knopf" href="' . $h($mailLink) . '">' . $h($AK('mail_neu')) . '</a>'
+            . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_mail">' . $h($AK('kopieren')) . '</button></div></div>';
+    }
+    $w = PartnerAnschreiben::wunsch($id);
+    $o .= '<div class="ak-vecom"><b>' . $h($AK('vecom')) . '</b><p class="klein" style="margin:4px 0 8px">' . $h($AK('vecom_text')) . '</p>';
+    if ($w !== null && $w['partner_id'] === (int) $p['id']) {
+        $o .= '<p class="klein ak-stand">' . $h(strtr($AK($w['status'] === 'verschickt' ? 'vecom_raus' : 'vecom_offen'), ['{datum}' => date('d.m.Y', strtotime((string) ($w['erledigt_am'] ?: $w['created_at'])))])) . '</p>';
+    } else {
+        $o .= '<form method="post" action="' . $h($selbst()) . '#ak_' . $id . '"><input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '">'
+            . '<input type="hidden" name="tat" value="ak_vecom"><input type="hidden" name="firma" value="' . $id . '">'
+            . '<button class="knopf klein-knopf" type="submit">' . $h($AK('vecom')) . '</button></form>';
+    }
+    return $o . '</div></details>';
+};
+$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf, $kontaktFeld): string {
     $o = '<li class="firma"><div class="firma__kopf"><b>' . $h($f['name']) . '</b><span class="chance ' . $h($f['chance']) . '">' . $h($T('fi_chance_' . $f['chance'])) . '</span></div>'
        . '<small>' . $h($f['branche']) . ' · ' . $h(trim($f['adresse'] !== '' ? $f['adresse'] . ', ' . $f['ort'] : $f['ort'], ', ')) . ($f['domain'] !== '' ? ' · ' . $h($f['domain']) : '') . '</small>';
     $o .= '<div class="firma__tat">';
@@ -33,7 +83,9 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             . '<input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tat" value="fi_reserv">'
             . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_reserv')) . '</button></form>';
     }
-    return $o . '</div></li>';
+    $o .= '</div>';
+    if ($meine) { $o .= $kontaktFeld($f); }
+    return $o . '</li>';
 };
 ?>
 <style>
@@ -45,6 +97,15 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .firma__tat form{display:block}
   .chance{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--linie);white-space:nowrap;color:var(--dim)}
   .chance.hoch{border-color:rgba(241,211,139,.6);color:var(--cyan)}
+  .ak{margin-top:8px;border-top:1px solid var(--linie);padding-top:6px}
+  .ak>summary{cursor:pointer;color:var(--cyan);font-size:14px;padding:4px 0}
+  .ak-regel{margin:6px 0 8px;color:var(--leise)}
+  .ak-daten{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;margin-bottom:8px}
+  .ak-daten a{color:var(--text)}
+  .ak textarea{width:100%;box-sizing:border-box;font-size:13.5px;line-height:1.5;padding:9px 11px;margin-top:8px}
+  .ak .ck-knoepfe{margin-top:6px}
+  .ak-vecom{margin-top:14px;border:1px dashed var(--linie2);border-radius:12px;padding:10px 12px}
+  .ak-stand{margin:0;color:var(--cyan)}
   .ck-knoepfe{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .ck-knoepfe form{display:inline}
   .ck-weg{color:var(--dim) !important}
@@ -181,6 +242,13 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   </div>
 </div>
 <script>
+/* Sprache der Nachricht umschalten (Kontaktieren). */
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-ak-sp]'); if (!b) { return; }
+  var id = b.dataset.ak;
+  [].forEach.call(document.querySelectorAll('[data-ak="' + id + '"]'), function (a) { a.setAttribute('aria-pressed', a === b ? 'true' : 'false'); });
+  [].forEach.call(document.querySelectorAll('[data-ak-text^="' + id + '-"]'), function (t) { t.hidden = t.dataset.akText !== id + '-' + b.dataset.akSp; });
+});
 /* Schnellcheck und Websuche dauern ein paar Sekunden: Knopf sperren und sagen, was passiert. */
 (function () {
   [].forEach.call(document.querySelectorAll('#recherche form[data-warten]'), function (f) {

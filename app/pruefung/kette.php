@@ -12429,6 +12429,57 @@ foreach (Texte::PARTNER_MARKETING as $mkK => $mkV) { foreach (['it', 'de', 'en']
 pruefe('Marketing-Texte vollständig dreisprachig', $mkLeer === [], implode(', ', $mkLeer));
 
 /* ============================================================================
+   Betriebe kontaktieren (27.09.2026, Uwe: Ja zu Vorlagen, „Vecom schreibt
+   für ihn“ und Telefon/E-Mail bei eigenen Reservierungen)
+   ========================================================================== */
+abschnitt('Partner kontaktieren Betriebe');
+require_once $wurzel . '/src/PartnerAnschreiben.php';
+require_once $wurzel . '/src/AkquiseBriefdienst.php';
+$akP = Partner::laden(Partner::anlegen(['name' => 'Rita Kontakt', 'email' => 'rita-ak@partner.example', 'status' => 'aktiv']));
+$akP2 = Partner::laden(Partner::anlegen(['name' => 'Otto Fremd', 'email' => 'otto-ak@partner.example', 'status' => 'aktiv']));
+$akF = (int) Db::insert('akq_firmen', ['kennung' => 'AK00000001', 'name' => 'Bar Kontakt', 'name_norm' => 'bar kontakt', 'land' => 'IT',
+    'stadt' => 'Favara', 'plz' => '92026', 'adresse' => 'Via Roma 3', 'branche' => 'bar', 'url' => null, 'telefon' => '0922 123456', 'email' => 'info@bar-kontakt.example']);
+PartnerRecherche::reservieren((int) $akP['id'], $akF);
+$akM = PartnerRecherche::meine((int) $akP['id'], 'de');
+pruefe('Kontakt: Telefon und E-Mail stehen bei der EIGENEN Reservierung, die Suche zeigt sie weiter nicht',
+    ($akM[0]['telefon'] ?? '') === '0922 123456' && ($akM[0]['email'] ?? '') === 'info@bar-kontakt.example'
+    && PartnerRecherche::meine((int) $akP2['id'], 'de') === []
+    && !str_contains((string) file_get_contents($wurzel . '/src/PartnerRecherche.php'), "'telefon' => \$z['telefon']") );
+pruefe('Kontakt: WhatsApp-Nummern mit Landesvorwahl, Sprache des Betriebs',
+    PartnerAnschreiben::waNummer('0922 123456') === '390922123456' && PartnerAnschreiben::waNummer('+39 333 123 4567') === '393331234567'
+    && PartnerAnschreiben::waNummer('0171 1234567', 'DE') === '491711234567' && PartnerAnschreiben::waNummer('') === ''
+    && PartnerAnschreiben::sprache(['land' => 'IT'], 'de') === 'it' && PartnerAnschreiben::sprache(['land' => 'FR'], 'en') === 'en');
+$akT = PartnerAnschreiben::texte($akP, ['name' => 'Bar Kontakt', 'url' => ''], 'it', null);
+$akT2 = PartnerAnschreiben::texte($akP, ['name' => 'Bar Kontakt', 'url' => 'https://x.example'], 'de', 'https://vecom-design.it/check.php?t=abc');
+pruefe('Kontakt: Vorlagen nennen den Betrieb, siezen, tragen den Link mit Kanal „anschreiben“ und den Schnellcheck, wenn es ihn gibt',
+    str_contains($akT['wa'], 'Bar Kontakt') && str_contains($akT['wa'], Partner::link($akP) . '/anschreiben') && str_contains($akT['betreff'], 'Bar Kontakt')
+    && str_contains($akT2['mail'], 'check.php?t=abc') && str_contains($akT2['mail'], 'Ihnen') && !preg_match('/\{[a-z]+\}/', $akT['wa'] . $akT['mail'] . $akT2['wa']));
+$akFirma = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akF]);
+$akG0 = AkquiseGate::pruefen($akFirma, 'brief');
+pruefe('Kontakt: ohne Wunsch sperrt die Reservierung Vecom aus', $akG0['status'] === AkquiseGate::NICHT && str_contains(implode(' ', $akG0['gruende']), 'kümmert sich'));
+pruefe('Kontakt: fremder Partner kann keinen Brief für diesen Betrieb wünschen', PartnerAnschreiben::briefWuenschen($akP2, $akF) === 'ak_nicht_deins');
+$akE0 = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_briefwunsch'", [], 0);
+$akW = PartnerAnschreiben::briefWuenschen($akP, $akF);
+pruefe('Kontakt: „Vecom soll anschreiben“ legt einen Wunsch an und meldet ihn Uwe; ein zweiter Klick legt nichts doppelt an',
+    $akW === 'ok' && PartnerAnschreiben::briefWuenschen($akP, $akF) === 'ak_schon'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_briefwunsch'", [], 0) === $akE0 + 1
+    && (PartnerAnschreiben::wunsch($akF)['status'] ?? '') === 'offen');
+$akG1 = AkquiseGate::pruefen($akFirma, 'brief');
+$akG2 = AkquiseGate::pruefen($akFirma, 'email');
+pruefe('Kontakt: mit Wunsch lässt das Gate einen BRIEF zu, eine E-Mail weiter nicht',
+    !str_contains(implode(' ', $akG1['gruende']), 'kümmert sich') && $akG2['status'] === AkquiseGate::NICHT && str_contains(implode(' ', $akG2['gruende']), 'kümmert sich'));
+$akPdf = AkquiseBriefdienst::pdf($akFirma, ['sprache' => 'de', 'betreff' => 'Betreff', 'text' => 'Guten Tag'], 'https://vecom-design.it/a/x', AkquiseBriefdienst::partnerFuerBrief($akF));
+pruefe('Kontakt: der Brief trägt „Empfohlen von …“ statt der Auswertung', str_contains($akPdf, 'Empfohlen von') && !str_contains($akPdf, 'Auswertung'));
+PartnerAnschreiben::verschickt($akF);
+pruefe('Kontakt: nach dem Versand „verschickt“ — der Partner sieht das Datum, das Gate sperrt wieder',
+    (PartnerAnschreiben::wunsch($akF)['status'] ?? '') === 'verschickt' && AkquiseGate::pruefen($akFirma, 'brief')['status'] === AkquiseGate::NICHT);
+$akRv = (string) file_get_contents($wurzel . '/views/partner_recherche.php');
+pruefe('Kontakt: Kontaktfeld nur bei eigenen Reservierungen, Regeln stehen dabei, Suche im Browser des Partners',
+    str_contains($akRv, "if (\$meine) { \$o .= \$kontaktFeld(\$f); }") && str_contains($akRv, "\$AK('regel')") && str_contains((string) file_get_contents($wurzel . '/src/PartnerAnschreiben.php'), 'google.com/maps/dir/')
+    && in_array('anschreiben', PartnerWerbung::WERKZEUGE, true) && in_array('brief', PartnerWerbung::WERKZEUGE, true));
+Db::run("UPDATE partner SET status = 'beendet' WHERE id IN (?, ?)", [(int) $akP['id'], (int) $akP2['id']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

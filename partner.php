@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -216,6 +216,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $selbst(array_filter(['m' => 'fe_gut', 'ck_url' => (string) ($_POST['website'] ?? '')])) . '#recherche', true, 303); exit;
                 }
                 $meldung = (string) $fe['grund'];
+            } elseif ($tat === 'ak_vecom' && $p) {
+                /* „Vecom soll anschreiben“ (27.09.2026): nur für eigene Reservierungen. */
+                $ak = PartnerAnschreiben::briefWuenschen($p, (int) ($_POST['firma'] ?? 0));
+                header('Location: ' . $selbst(['m' => $ak === 'ok' ? 'ak_gut' : $ak, 'ak' => (int) ($_POST['firma'] ?? 0)]) . '#ak_' . (int) ($_POST['firma'] ?? 0), true, 303); exit;
             } elseif ($tat === 'ck_weg' && $p) {
                 PartnerCheck::loeschen((int) $p['id'], (string) ($_POST['token'] ?? ''));
                 header('Location: ' . $selbst(['m' => 'ck_weg_gut']) . '#recherche', true, 303); exit;

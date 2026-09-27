@@ -9,9 +9,10 @@ require_once __DIR__ . '/Akquise.php';
  *
  * FIRMEN-FINDER: Der Partner sieht Betriebe aus unserer Akquise-Liste in
  * seinem Ort -- Name, Ort, Branche, Adresse und wie groß die Chance ist.
- * NICHT: Telefon, E-Mail, Ansprechpartner. Der Partner soll hingehen oder
- * jemanden fragen, der den Betrieb kennt; eine Anrufliste in fremden Händen
- * wäre eine Weitergabe von Daten, für die wir geradestehen müssten.
+ * NICHT in der Suche: Telefon, E-Mail, Ansprechpartner -- sonst entstünde
+ * eine Anrufliste über ganze Orte. Seit dem 27.09.2026 (Uwe: Ja) stehen
+ * Telefon und E-Mail aber bei den EIGENEN Reservierungen (meine()), mit
+ * Vorlagen und Regeln daneben (PartnerAnschreiben).
  *
  * RESERVIERUNG: Wer eine Firma reserviert, hat sie 60 Tage für sich -- kein
  * anderer Partner sieht sie als frei, und Vecoms eigene Akquise fasst sie
@@ -127,7 +128,11 @@ final class PartnerRecherche
             'id' => (int) $z['id'], 'name' => (string) $z['name'], 'ort' => trim(((string) ($z['plz'] ?? '')) . ' ' . ((string) ($z['stadt'] ?? ''))),
             'adresse' => (string) ($z['adresse'] ?? ''), 'branche' => Akquise::branchenName($z['branche'], $sprache),
             'chance' => self::chance($z), 'bis' => (string) $z['bis'], 'domain' => (string) ($z['domain'] ?? ''),
-        ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, r.bis
+            // Kontakt nur hier, bei eigenen Reservierungen (Uwe, 27.09.2026) -- nie in suchen().
+            'telefon' => trim((string) ($z['telefon'] ?? '')), 'email' => trim((string) ($z['email'] ?? '')),
+            'url' => trim((string) ($z['url'] ?? '')), 'land' => (string) ($z['land'] ?? 'IT'), 'stadt' => (string) ($z['stadt'] ?? ''),
+            'plz' => (string) ($z['plz'] ?? ''),
+        ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.telefon, f.email, f.land, r.bis
                       FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                      WHERE r.partner_id = ? AND r.bis >= CURDATE() ORDER BY r.bis', [$partnerId]));
     }

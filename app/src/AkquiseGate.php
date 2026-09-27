@@ -182,7 +182,17 @@ final class AkquiseGate
         if (!empty($f['id'])) {
             require_once __DIR__ . '/PartnerRecherche.php';
             $res = PartnerRecherche::reserviertVon((int) $f['id']);
-            if ($res !== null) {
+            /* Ausnahme (27.09.2026): Der reservierende Partner hat Vecom selbst
+               um einen Brief gebeten („Vecom soll anschreiben“). Dann ist es
+               seine Ansprache, nur auf unserem Papier -- ein Brief, sonst nichts. */
+            $wunsch = null;
+            if ($res !== null && $kanal === 'brief') {
+                require_once __DIR__ . '/PartnerAnschreiben.php';
+                $wunsch = PartnerAnschreiben::wunsch((int) $f['id']);
+                if ($wunsch !== null && ($wunsch['status'] !== 'offen'
+                    || $wunsch['partner_id'] !== (int) Db::wert('SELECT partner_id FROM partner_reservierungen WHERE firma_id = ?', [(int) $f['id']], 0))) { $wunsch = null; }
+            }
+            if ($res !== null && $wunsch === null) {
                 return ['status' => self::NICHT, 'gruende' => ['Partner ' . $res['name'] . ' kümmert sich (reserviert bis '
                     . date('d.m.Y', strtotime((string) $res['bis'])) . ').'], 'regel' => null, 'bedingung' => ''];
             }
