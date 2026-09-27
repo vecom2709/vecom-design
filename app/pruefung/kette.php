@@ -11787,6 +11787,76 @@ pruefe('Vecom kann in der Partnerakte zurücksetzen (mit Rückfrage)', isset(Abl
     && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_seite_zurueck':"));
 
 /* ============================================================================
+   Partner: Erste Schritte, Wochenverlauf, QR mit Foto, „Ist online“ (27.09.2026)
+   Uwe: Ja. Geprüft wird vor allem das, was schiefgehen darf nicht: Der
+   Partner sieht einen Kundennamen erst nach der Zustimmung des Kunden, der
+   Hinweis kommt genau einmal, und jeder Haken stammt aus Tatsachen.
+   ============================================================================ */
+abschnitt('Partner: Erste Schritte, Wochenverlauf, Erfolge');
+require_once $wurzel . '/src/PartnerStart.php';
+require_once $wurzel . '/src/PartnerErfolg.php';
+$esId = Partner::anlegen(['name' => 'Elena Erfolg', 'email' => 'elena@partner.example', 'status' => 'aktiv', 'code' => 'ELENAES1', 'firma' => '', 'sprache' => 'de']);
+$esP = static fn(): array => Db::one('SELECT * FROM partner WHERE id = ?', [$esId]);
+$esS = PartnerStart::schritte($esP());
+pruefe('Erste Schritte: neuer Partner, sechs offen, der nächste ist die Vereinbarung', $esS['n'] === 0 && $esS['alle'] === 6 && $esS['naechster'] === 'vereinbarung');
+Db::run("UPDATE partner SET vereinbarung_am = NOW(), profil_satz = 'Ich empfehle sie gern.' WHERE id = ?", [$esId]);
+Db::run('INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 2)', [$esId]);
+$esS = PartnerStart::schritte($esP());
+pruefe('… Haken aus Tatsachen: Vereinbarung, Satz und erster Klick zählen, der nächste offene ist der Auszahlungsweg',
+    $esS['erledigt']['vereinbarung'] && $esS['erledigt']['profil'] && $esS['erledigt']['teilen'] && !$esS['erledigt']['seite'] && $esS['naechster'] === 'weg');
+pruefe('Jeder Schritt hat einen Anker auf der Partnerseite und dreisprachige Texte', count(array_filter(PartnerStart::SCHRITTE, static fn($k) =>
+    isset(PartnerStart::ANKER[$k], Texte::PARTNER_START['schritte'][$k][0]['it'], Texte::PARTNER_START['schritte'][$k][1]['en']))) === 6
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), 'id="start"'));
+// Wochenverlauf: fester Stichtag, damit die Kette um Mitternacht nicht kippt
+$esJetzt = strtotime('2026-09-24 15:00');   // Donnerstag
+Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [$esId]);
+Db::run("INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, '2026-09-21', 4), (?, '2026-09-24', 3), (?, '2026-09-14', 5), (?, '2026-07-27', 99)", [$esId, $esId, $esId, $esId]);
+$esW = PartnerStart::wochen($esId, $esJetzt);
+pruefe('Wochenverlauf: acht Wochen, älteste zuerst, die laufende (ab Montag 21.09.) zählt mit, ältere fallen heraus',
+    count($esW) === 8 && $esW[7]['montag'] === '2026-09-21' && $esW[7]['besuche'] === 7 && $esW[6]['besuche'] === 5 && $esW[0]['montag'] === '2026-08-03'
+    && array_sum(array_column($esW, 'besuche')) === 12, json_encode($esW));
+$esSvg = PartnerStart::svg($esW, 'Besuche <je> Woche');
+pruefe('… als SVG ohne Skript, beschriftet, Beschriftung maskiert', str_starts_with($esSvg, '<svg') && str_contains($esSvg, 'role="img"')
+    && str_contains($esSvg, 'aria-label="Besuche &lt;je&gt; Woche"') && substr_count($esSvg, 'class="ws-b"') === 2);
+
+// „Ist online“: Hinweis ohne Namen, einmal; Name erst mit Zustimmung
+[$esPem, $esPunkt] = WebPush::paar(); $esAuth = random_bytes(16);
+PartnerPost::aboSpeichern($esId, 'https://push.example.org/elena', WebPush::b64($esPunkt), WebPush::b64($esAuth));
+$esPost = [];
+WebPush::$probe = static function (string $ziel, array $kopf, string $paket) use (&$esPost): int { $esPost[] = $paket; return 201; };
+$esK = Events::kundeFinden(['name' => 'Rosa Rossi', 'company' => 'Pizzeria Rossi', 'email' => 'rosa@pizzeria-rossi.example']);
+Partner::zuordnen($esK, $esId, 'link');
+$esPr = (int) Db::insert('projects', ['customer_id' => $esK, 'name' => 'Pizzeria Rossi Website', 'status' => 'veroeffentlichung']);
+Db::insert('websites', ['project_id' => $esPr, 'customer_id' => $esK, 'domain' => 'pizzeria-rossi.example', 'url' => 'https://pizzeria-rossi.example', 'status' => 'online']);
+Events::projektStatus($esPr, 'online', false);
+$esKlar = $esPost ? json_decode(WebPush::entschluesseln($esPost[0], $esPem, $esPunkt, $esAuth), true) : null;
+pruefe('Projekt online → genau ein Hinweis an den Partner, OHNE Kundennamen, Link auf #erfolge',
+    count($esPost) === 1 && is_array($esKlar) && !str_contains(json_encode($esKlar, JSON_UNESCAPED_UNICODE), 'Rossi') && str_ends_with((string) $esKlar['link'], '#erfolge'),
+    json_encode($esKlar, JSON_UNESCAPED_UNICODE));
+Events::projektStatus($esPr, 'aenderungen', false); Events::projektStatus($esPr, 'online', false);
+pruefe('… wieder zurück und erneut online: kein zweiter Hinweis', count($esPost) === 1);
+$esL = PartnerErfolg::liste($esId);
+pruefe('Dashboard ohne Zustimmung: „wartet“, kein Name, keine Adresse', count($esL) === 1 && !$esL[0]['zeigen'] && $esL[0]['firma'] === '' && $esL[0]['url'] === '');
+PartnerErfolg::zeigenSetzen($esK, true);
+$esL = PartnerErfolg::liste($esId);
+$esB = PartnerErfolg::beitrag($esP(), $esL[0]['firma'], $esL[0]['url'], 'de');
+pruefe('Kunde stimmt zu → Hinweis an den Partner, Name und Adresse sichtbar, Beitrag mit Empfehlungslink (Kanal erfolg)',
+    count($esPost) === 2 && $esL[0]['zeigen'] && $esL[0]['firma'] === 'Pizzeria Rossi' && $esL[0]['url'] === 'https://pizzeria-rossi.example'
+    && str_contains($esB, 'Pizzeria Rossi') && str_contains($esB, 'https://pizzeria-rossi.example') && str_ends_with($esB, '/p/ELENAES1/erfolg'), $esB);
+PartnerErfolg::zeigenSetzen($esK, true);
+pruefe('… zweimal Ja: kein zweiter Hinweis', count($esPost) === 2);
+PartnerErfolg::zeigenSetzen($esK, false);
+$esL = PartnerErfolg::liste($esId);
+pruefe('Widerruf: Name und Adresse sofort wieder weg', !$esL[0]['zeigen'] && $esL[0]['firma'] === '' && $esL[0]['url'] === '');
+pruefe('Kundenseite: die Frage steht dort, Partner nur mit Anzeigenamen', (PartnerErfolg::fuerKunde($esK)['partner'] ?? '') === Partner::anzeigeName($esP())
+    && str_contains((string) file_get_contents($wurzel . '/../kunde.php'), "\$tat === 'partner_zeigen'"));
+WebPush::$probe = null;
+$esJs = (string) file_get_contents($wurzel . '/../assets/js/partner-medien.js');
+pruefe('QR mit Foto: eigenes Format mit Fehlerkorrektur H; Motiv- und Formatwahl lesen data-motiv/data-format',
+    str_contains($esJs, "qrfoto: [1000, 1000]") && str_contains($esJs, "qrFeld(x, D.links.karte, 60, 60, 880, 'H')")
+    && str_contains($esJs, 'wahl[schluessel] = b.dataset[schluessel]') && !str_contains($esJs, 'dataset.wert'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

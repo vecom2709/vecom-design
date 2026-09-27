@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -380,6 +380,39 @@ if ($p && isset($_GET['karte'])) {
   .emp .st.bezahlt,.emp .st.online{border-color:rgba(241,211,139,.5);color:var(--cyan)}
   .geld{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.07);border-radius:12px;padding:12px 14px;margin:0 0 14px;
         display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14.5px}
+  /* Erste Schritte (27.09.2026): alles sichtbar, nur der nächste offene hervorgehoben. */
+  .es{border:1px solid var(--linie2);border-radius:14px;padding:14px;margin:0 0 14px}
+  .es__kopf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+  .es__kopf b{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan)}
+  .es__kopf span{font-size:13px;color:var(--leise)}
+  .es__balken{height:6px;border-radius:99px;background:var(--linie);overflow:hidden;margin-bottom:10px}
+  .es__balken i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#b98a31,#f7e6ae 60%,#c49438)}
+  .es ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+  .es li{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:10px;font-size:14px;line-height:1.4}
+  .es li .haken{flex:0 0 22px;height:22px;border-radius:50%;border:1.5px solid var(--linie2);display:grid;place-items:center;font-size:12px}
+  .es li.ok{color:var(--leise)}
+  .es li.ok .haken{border-color:rgba(241,211,139,.6);color:var(--cyan)}
+  .es li.ok .was{text-decoration:line-through;text-decoration-color:rgba(180,173,162,.45)}
+  .es li.jetzt{background:rgba(241,211,139,.07);border:1px solid rgba(241,211,139,.35)}
+  .es li .was{flex:1;min-width:0}
+  .es li .was small{display:block;color:var(--leise);font-size:12.5px}
+  .es li a.knopf{min-height:36px;padding:6px 14px}
+  .es li a.leise{font-size:13px;color:var(--dim)}
+  /* Wochenverlauf */
+  .ws{margin-top:14px}
+  .ws-svg{display:block;color:var(--text);max-width:480px}
+  .ws-b{fill:rgba(241,211,139,.22)}
+  .ws-k{fill:#e7c476}
+  .ws-z{font-size:11px;fill:var(--dim)}
+  .ws-v{font-size:11px;fill:#f1d38b;font-weight:700}
+  .ws-d{font-size:10px;fill:var(--leise)}
+  .ws-legende{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--leise);margin-top:4px}
+  .ws-legende i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  /* Erfolge */
+  .erfolg{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;margin-top:10px}
+  .erfolg.frei{border-color:rgba(241,211,139,.45)}
+  .erfolg h3{font-size:15.5px;margin:0 0 4px}
+  .erfolg textarea{width:100%;box-sizing:border-box;font-size:14px;line-height:1.5;padding:10px 12px;margin-top:8px}
   /* Schmale Handys: „auszahlungsbereit“ schob die Provisionstabelle 3 px über den Rand. */
   @media (max-width:520px){.pt .zahlen{grid-template-columns:repeat(2,1fr)}.pt table{font-size:13px}.pt td,.pt th{padding:8px 4px;word-break:break-word}}
 </style>
@@ -440,7 +473,7 @@ if ($p && isset($_GET['karte'])) {
   $auszahl = Db::all('SELECT * FROM partner_auszahlungen WHERE partner_id = ? ORDER BY id DESC LIMIT 50', [(int) $p['id']]);
   $link = Partner::link($p);
 ?>
-  <div class="block pt">
+  <div class="block pt" id="start">
     <h1><?= $h($T('p_titel')) ?></h1>
     <p class="lead"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
     <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler'], true); ?>
@@ -455,7 +488,25 @@ if ($p && isset($_GET['karte'])) {
     ?>
     <?php /* Geld liegt bereit, der Weg fehlt -- dann ist DAS der naechste Schritt, mit Betrag (26.09.2026). */
           $bereitCents = !empty($p['vereinbarung_am']) && $naechst === 'n_weg' ? Partner::auszahlbar((int) $p['id']) : 0; ?>
-    <?php if ($bereitCents <= 0): ?><div class="naechst"><b><?= $h($T('n_titel')) ?></b><?= $h($T($naechst)) ?></div><?php endif; ?>
+    <?php $es = PartnerStart::schritte($p); $ST = static fn(array $t): string => Texte::h($t, $sprache); ?>
+    <?php if ($bereitCents <= 0 && $es['naechster'] === null): ?><div class="naechst"><b><?= $h($T('n_titel')) ?></b><?= $h($T($naechst)) ?></div><?php endif; ?>
+    <?php if ($es['naechster'] !== null): /* Erste Schritte (27.09.2026): verschwindet, sobald alles erledigt ist. */ ?>
+      <div class="es" role="region" aria-labelledby="es_titel">
+        <div class="es__kopf"><b id="es_titel"><?= $h($ST(Texte::PARTNER_START['s_titel'])) ?></b>
+          <span><?= $h(strtr($ST(Texte::PARTNER_START['s_stand']), ['{n}' => (string) $es['n'], '{alle}' => (string) $es['alle']])) ?></span></div>
+        <div class="es__balken" aria-hidden="true"><i style="width:<?= (int) round(100 * $es['n'] / $es['alle']) ?>%"></i></div>
+        <ol>
+          <?php foreach (PartnerStart::SCHRITTE as $sk): $ok = $es['erledigt'][$sk]; $jetzt = $sk === $es['naechster']; $sd = Texte::PARTNER_START['schritte'][$sk]; ?>
+            <li class="<?= $ok ? 'ok' : ($jetzt ? 'jetzt' : '') ?>">
+              <span class="haken" aria-hidden="true"><?= $ok ? '✓' : '' ?></span>
+              <span class="was"><?= $h($ST($sd[0])) ?><?php if (!$ok): ?><small><?= $h($ST($sd[1])) ?></small><?php endif; ?>
+                <span class="wabe"><?= $ok ? '✓' : '' ?></span></span>
+              <?php if (!$ok): ?><a class="<?= $jetzt ? ($bereitCents > 0 ? 'knopf' : 'knopf haupt') : 'leise' ?>" href="#<?= PartnerStart::ANKER[$sk] ?>"><?= $h($ST(Texte::PARTNER_START[$jetzt ? 's_jetzt' : 's_los'])) ?></a><?php endif; ?>
+            </li>
+          <?php endforeach; ?>
+        </ol>
+      </div>
+    <?php endif; ?>
     <?php if ($bereitCents > 0): ?>
       <div class="geld" role="status"><span><?= $h(strtr($T('geld_bereit'), ['{betrag}' => Fmt::geld($bereitCents)])) ?></span>
         <a class="knopf haupt" href="#wege"><?= $h($T('geld_knopf')) ?></a></div>
@@ -494,6 +545,21 @@ if ($p && isset($_GET['karte'])) {
       <div class="zahl"><b><?= (int) $k['verkaeufe'] ?></b><span><?= $h($T('verkaeufe')) ?></span><small><?= $h($T('z_verkaeufe')) ?></small></div>
       <div class="zahl"><b><?= $h(Fmt::geld((int) $k['provision'])) ?></b><span><?= $h($T('provision')) ?></span><small><?= $h($T('z_provision')) ?></small></div>
     </div>
+    <?php $wo = PartnerStart::wochen((int) $p['id']); $PSt = Texte::PARTNER_START; ?>
+    <div class="ws">
+      <h2 style="margin-bottom:6px"><?= $h($ST($PSt['w_titel'])) ?></h2>
+      <?php if (array_sum(array_column($wo, 'besuche')) + array_sum(array_column($wo, 'kunden')) === 0): ?>
+        <p class="klein" style="margin-top:0"><?= $h($ST($PSt['w_leer'])) ?></p>
+      <?php else: ?>
+        <?= PartnerStart::svg($wo, $ST($PSt['w_aria'])) ?>
+        <div class="ws-legende"><span><i style="background:rgba(241,211,139,.3)"></i><?= $h($ST($PSt['w_besuche'])) ?></span>
+          <span><i style="background:#e7c476"></i><?= $h($ST($PSt['w_kunden'])) ?></span><span style="color:#f1d38b">★ <?= $h($ST($PSt['w_verkaeufe'])) ?></span></div>
+        <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--cyan);font-size:13.5px"><?= $h($ST($PSt['w_zahlen'])) ?></summary>
+          <table><thead><tr><th><?= $h($ST($PSt['w_woche'])) ?></th><th class="r"><?= $h($ST($PSt['w_besuche'])) ?></th><th class="r"><?= $h($ST($PSt['w_kunden'])) ?></th><th class="r"><?= $h($ST($PSt['w_verkaeufe'])) ?></th></tr></thead><tbody>
+          <?php foreach (array_reverse($wo) as $w): ?><tr><td><?= $h(Fmt::datum($w['montag'])) ?></td><td class="r"><?= $w['besuche'] ?></td><td class="r"><?= $w['kunden'] ?></td><td class="r"><?= $w['verkaeufe'] ?></td></tr><?php endforeach; ?>
+          </tbody></table></details>
+      <?php endif; ?>
+    </div>
     <?php $stand = Partner::stufeStand($p); if ($stand['stufe'] !== null): ?>
       <div class="stufe">★ <?= $h(strtr($T('st_text'), ['{stufe}' => $T('st_' . $stand['stufe']), '{satz}' => Partner::satzWort(Partner::satzFuer($p), true), '{n}' => (string) $stand['verkaeufe']])) ?></div>
       <p class="klein" style="margin-top:6px"><?= $h($stand['naechste'] !== null
@@ -521,6 +587,29 @@ if ($p && isset($_GET['karte'])) {
           <?php else: ?>—<?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table>
+  </div>
+  <?php endif; ?>
+
+  <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge): $PE = Texte::PARTNER_ERFOLG; ?>
+  <div class="block pt" id="erfolge">
+    <h2><?= $h($ST($PE['e_titel'])) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h($ST($PE['e_text'])) ?></p>
+    <?php foreach ($erfolge as $i => $e): $datum = $e['seit'] !== '' ? Fmt::datum($e['seit']) : ''; ?>
+      <?php if (!$e['zeigen']): ?>
+        <div class="erfolg"><p class="klein" style="margin:0"><?= $h(strtr($ST($PE['e_wartet']), ['{datum}' => $datum])) ?></p></div>
+      <?php else: $post = PartnerErfolg::beitrag($p, $e['firma'], $e['url'], $sprache); ?>
+        <div class="erfolg frei">
+          <h3><?= $h($e['firma']) ?> <small style="color:var(--leise);font-weight:400;font-size:12.5px">· <?= $h(strtr($ST($PE['e_seit']), ['{datum}' => $datum])) ?></small></h3>
+          <textarea id="erfolg_<?= $i ?>" readonly rows="5" data-wachsen><?= $h($post) ?></textarea>
+          <div class="knoepfe">
+            <button class="knopf haupt" type="button" data-kopie="erfolg_<?= $i ?>"><?= $h($ST($PE['e_kopieren'])) ?></button>
+            <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($post) ?>"><?= $h($ST($PE['e_wa'])) ?></a>
+            <button class="knopf" type="button" data-teilen="erfolg_<?= $i ?>" hidden><?= $h($ST($PE['e_teilen'])) ?></button>
+            <?php if ($e['url'] !== ''): ?><a class="knopf" target="_blank" rel="noopener" href="<?= $h($e['url']) ?>"><?= $h($ST($PE['e_ansehen'])) ?></a><?php endif; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+    <?php endforeach; ?>
   </div>
   <?php endif; ?>
 

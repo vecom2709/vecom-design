@@ -16,7 +16,7 @@
 
   var FARBE = { grund: '#0a0908', grund2: '#15120d', text: '#f7f3ea', leise: '#b4ada2', gold: '#f1d38b' };
   var FORMATE = {
-    quadrat: [1080, 1080], hoch: [1080, 1350], story: [1080, 1920], quer: [1200, 630], banner: [1200, 400], qr: [1000, 1000]
+    quadrat: [1080, 1080], hoch: [1080, 1350], story: [1080, 1920], quer: [1200, 630], banner: [1200, 400], qr: [1000, 1000], qrfoto: [1000, 1000]
   };
 
   /* ---------- Bausteine ---------- */
@@ -32,7 +32,11 @@
   var alles = Promise.all([schriften, bereit(logo), bereit(foto)]);
 
   var qrCache = {};
-  function qrMatrix(t) { if (!qrCache[t]) { var q = qrcode(0, 'M'); q.addData(t); q.make(); qrCache[t] = q; } return qrCache[t]; }
+  /* stufe 'H' (30 % Reserve) nur für den QR mit Foto -- die Mitte deckt das Foto ab. */
+  function qrMatrix(t, stufe) {
+    var s = stufe || 'M', k = s + t;
+    if (!qrCache[k]) { var q = qrcode(0, s); q.addData(t); q.make(); qrCache[k] = q; } return qrCache[k];
+  }
   function gold(x, x0, x1) {
     var g = x.createLinearGradient(x0, 0, x1, 0);
     g.addColorStop(0, '#b98a31'); g.addColorStop(0.45, '#f7e6ae'); g.addColorStop(1, '#c49438'); return g;
@@ -76,8 +80,8 @@
     x.fillStyle = FARBE.text; x.fillText(wort2, sx + lb + groesse * 0.3 + b1, py + lh / 2);
     x.textBaseline = 'alphabetic';
   }
-  function qrFeld(x, link, px, py, groesse) {
-    var q = qrMatrix(link), n = q.getModuleCount(), rand = groesse * 0.07, z = (groesse - 2 * rand) / n;
+  function qrFeld(x, link, px, py, groesse, stufe) {
+    var q = qrMatrix(link, stufe), n = q.getModuleCount(), rand = groesse * 0.07, z = (groesse - 2 * rand) / n;
     x.fillStyle = '#fff'; rund(x, px, py, groesse, groesse, groesse * 0.06); x.fill();
     x.fillStyle = '#0a0908';
     for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (q.isDark(r, c)) { x.fillRect(px + rand + c * z, py + rand + r * z, Math.ceil(z), Math.ceil(z)); }
@@ -105,6 +109,24 @@
     var link = D.links.bild;
     if (format === 'qr') {
       x.fillStyle = '#fff'; x.fillRect(0, 0, b, h); qrFeld(x, D.links.karte, 60, 60, 880); return;
+    }
+    if (format === 'qrfoto') {
+      /* QR mit Foto (27.09.2026): Fehlerkorrektur H, das runde Foto deckt
+         gut 4 % der Fläche -- weit unter den 30 %, die H verkraftet. Ohne
+         Foto sitzt das Vecom-Zeichen in der Mitte. */
+      x.fillStyle = '#fff'; x.fillRect(0, 0, b, h); qrFeld(x, D.links.karte, 60, 60, 880, 'H');
+      var cx = b / 2, cy = h / 2, r = 104, mitFoto = foto && foto.complete && foto.naturalWidth;
+      x.fillStyle = '#fff'; x.beginPath(); x.arc(cx, cy, r + 16, 0, Math.PI * 2); x.fill();
+      if (mitFoto) {
+        var q = Math.min(foto.naturalWidth, foto.naturalHeight);
+        x.save(); x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.clip();
+        x.drawImage(foto, (foto.naturalWidth - q) / 2, (foto.naturalHeight - q) / 2, q, q, cx - r, cy - r, r * 2, r * 2); x.restore();
+      } else {
+        x.fillStyle = '#0a0908'; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+        if (logo.complete && logo.naturalWidth) { x.drawImage(logo, cx - r * 0.66, cy - r * 0.52, r * 1.32, r * 1.05); }
+      }
+      x.strokeStyle = gold(x, cx - r, cx + r); x.lineWidth = 9; x.beginPath(); x.arc(cx, cy, r + 4, 0, Math.PI * 2); x.stroke();
+      return;
     }
     grund(x, b, h, 0);
     if (format === 'story') {
@@ -219,7 +241,7 @@
   function chips(sel, schluessel) {
     [].forEach.call(document.querySelectorAll(sel), function (b) {
       b.addEventListener('click', function () {
-        wahl[schluessel] = b.dataset.wert;
+        wahl[schluessel] = b.dataset[schluessel];   // data-motiv / data-format (bis 27.09. las die Zeile ein Feld, das es nicht gab -- jeder Klick auf ein Motiv oder Format warf einen Fehler)
         [].forEach.call(document.querySelectorAll(sel), function (a) { a.setAttribute('aria-pressed', a === b ? 'true' : 'false'); });
         neu(); vidZuruck();
       });

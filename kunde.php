@@ -247,6 +247,12 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke dir!');
                 }
 
+            } elseif ($tat === 'partner_zeigen') {
+                /* Darf der Empfehler die neue Website zeigen? (27.09.2026) Nur der Kunde selbst entscheidet. */
+                foreach (['Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerErfolg', 'WebPush'] as $pk) { require_once __DIR__ . "/app/src/$pk.php"; }
+                PartnerErfolg::zeigenSetzen((int) $kunde['id'], ($_POST['wert'] ?? '') === 'ja');
+                $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke!');
+
             } elseif ($tat === 'am_telefon') {
                 /* Kein Formular, kein Umleiten: Die Seite meldet im
                    Hintergrund, dass dieser Kunde gerade das Sprachfenster
@@ -935,6 +941,26 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php endif; ?>
     </details>
   <?php endif; ?>
+
+  <?php /* ---------- Darf der Empfehler die Website zeigen? (27.09.2026) ---------- */
+  if ($kunde && in_array($stufe, ['online', 'fertig'], true)):
+    foreach (['Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerErfolg'] as $pk) { require_once __DIR__ . "/app/src/$pk.php"; }
+    $empfehler = sicherLesen(fn() => PartnerErfolg::fuerKunde((int) $kunde['id']), null);
+    if ($empfehler): $PE = Texte::PARTNER_ERFOLG; $PEn = static fn(string $k) => strtr(Texte::h($PE[$k], $sprache), ['{partner}' => $empfehler['partner']]); ?>
+    <?php /* Offen erst, wenn die Stimme abgegeben ist -- sonst stünden zwei Hauptknöpfe untereinander. */ ?>
+    <details class="klapp" <?= !$empfehler['zeigen'] && $stimme ? 'open' : '' ?>>
+      <summary><?= $h($PEn('k_titel')) ?></summary>
+      <?php if ($empfehler['zeigen']): ?>
+        <p class="mini" style="margin-top:10px"><?= $h($PEn('k_ist_ja')) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_zeigen"><input type="hidden" name="wert" value="nein">
+          <button class="knopf"><?= $h($PEn('k_zurueck')) ?></button></form>
+      <?php else: ?>
+        <p class="mini" style="margin-top:10px"><?= $h($PEn('k_text')) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:12px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_zeigen"><input type="hidden" name="wert" value="ja">
+          <button class="knopf haupt"><?= $h($PEn('k_ja')) ?></button></form>
+      <?php endif; ?>
+    </details>
+  <?php endif; endif; ?>
 
   <?php /* ---------- Deine Betreuung: der zweite Vertrag ---------- */ ?>
   <?php $abo = $kunde ? sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null) : null; ?>

@@ -852,6 +852,14 @@ final class Events
             }
         }
 
+        // Kam der Kunde über einen Partner, erfährt der es jetzt -- ohne Namen (27.09.2026).
+        if ($neu === 'online') {
+            try {
+                foreach (['Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerErfolg', 'WebPush', 'Texte'] as $k) { require_once __DIR__ . "/$k.php"; }
+                PartnerErfolg::beiOnline($projektId);
+            } catch (Throwable $e) { /* ein Hinweis weniger, kein Statuswechsel weniger */ }
+        }
+
         self::protokoll('projekt_status', 'Projektstatus: ' . Status::PROJEKT[$neu] . ' — ' . $p['name'],
             (int) $p['customer_id'], $p['order_id'] !== null ? (int) $p['order_id'] : null, $projektId,
             ['von' => $p['status'], 'nach' => $neu]);

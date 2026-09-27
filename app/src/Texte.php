@@ -3095,6 +3095,7 @@ final class Texte
         'bf_quer'     => ['it' => 'Facebook / LinkedIn', 'de' => 'Facebook / LinkedIn', 'en' => 'Facebook / LinkedIn'],
         'bf_banner'   => ['it' => 'Banner e-mail', 'de' => 'E-Mail-Banner', 'en' => 'Email banner'],
         'bf_qr'       => ['it' => 'Solo QR', 'de' => 'Nur QR-Code', 'en' => 'QR code only'],
+        'bf_qrfoto'   => ['it' => 'QR con foto', 'de' => 'QR mit Foto', 'en' => 'QR with photo'],
         'bild_laden'  => ['it' => 'Scarica immagine', 'de' => 'Bild laden', 'en' => 'Download image'],
         'bild_teilen' => ['it' => 'Condividi immagine', 'de' => 'Bild teilen', 'en' => 'Share image'],
         'video_titel' => ['it' => 'Video breve per Reel e TikTok', 'de' => 'Kurzvideo für Reels und TikTok', 'en' => 'Short video for Reels and TikTok'],
@@ -3245,6 +3246,7 @@ final class Texte
             'karte' => ['it' => 'Cartolina', 'de' => 'Karte', 'en' => 'Card'], 'flyer' => 'Flyer',
             'bild' => ['it' => 'Immagini', 'de' => 'Bilder', 'en' => 'Images'], 'video' => 'Video',
             'check' => ['it' => 'Verifica veloce', 'de' => 'Schnellcheck', 'en' => 'Quick check'],
+            'erfolg' => ['it' => 'Post «È online»', 'de' => 'Beitrag „Ist online“', 'en' => '“It’s live” post'],
         ],
         'tipps' => [
             'whatsapp'  => ['it' => 'Il messaggio personale funziona meglio del testo generico: scriva a chi le ha detto di recente che gli serve un sito.', 'de' => 'Die persönliche Nachricht wirkt stärker als der allgemeine Text: Schreiben Sie denen, die kürzlich erwähnt haben, dass sie eine Website brauchen.', 'en' => 'The personal message works better than the general text: write to people who recently mentioned they need a website.'],
@@ -3556,5 +3558,57 @@ final class Texte
         'wa_nummer' => ['it' => 'Il numero WhatsApp deve iniziare con + e il prefisso del paese.', 'de' => 'Die WhatsApp-Nummer muss mit + und Ländervorwahl beginnen.', 'en' => 'The WhatsApp number must start with + and the country code.'],
         'bild_gross' => ['it' => 'L’immagine è troppo grande (max. 10 MB).', 'de' => 'Das Bild ist zu groß (höchstens 10 MB).', 'en' => 'The image is too large (max. 10 MB).'],
         'bild_art' => ['it' => 'Per favore una foto JPG, PNG o WebP di almeno 400 px di larghezza.', 'de' => 'Bitte ein Foto als JPG, PNG oder WebP, mindestens 400 px breit.', 'en' => 'Please a JPG, PNG or WebP photo at least 400 px wide.'],
+    ];
+
+    /** Erste Schritte und Wochenverlauf im Partner-Dashboard (27.09.2026). */
+    public const PARTNER_START = [
+        's_titel' => ['it' => 'Primi passi', 'de' => 'Erste Schritte', 'en' => 'First steps'],
+        's_stand' => ['it' => '{n} di {alle} fatti', 'de' => '{n} von {alle} erledigt', 'en' => '{n} of {alle} done'],
+        's_jetzt' => ['it' => 'Adesso', 'de' => 'Jetzt', 'en' => 'Now'],
+        's_los' => ['it' => 'Vai', 'de' => 'Los', 'en' => 'Go'],
+        'schritte' => [
+            'vereinbarung' => [['it' => 'Confermare l’accordo', 'de' => 'Vereinbarung bestätigen', 'en' => 'Accept the agreement'], ['it' => 'Senza non possiamo pagare le provvigioni.', 'de' => 'Ohne sie können wir keine Provision auszahlen.', 'en' => 'Without it we can’t pay commissions.']],
+            'weg' => [['it' => 'Scegliere come ricevere il denaro', 'de' => 'Auszahlungsweg festlegen', 'en' => 'Choose how you get paid'], ['it' => 'Bonifico, PayPal o Stripe — due minuti.', 'de' => 'Überweisung, PayPal oder Stripe — zwei Minuten.', 'en' => 'Bank transfer, PayPal or Stripe — two minutes.']],
+            'profil' => [['it' => 'Foto e una frase', 'de' => 'Foto und ein Satz', 'en' => 'Photo and one sentence'], ['it' => 'Chi la conosce si fida di più quando vede il suo volto.', 'de' => 'Wer Sie kennt, vertraut mehr, wenn er Ihr Gesicht sieht.', 'en' => 'People who know you trust more when they see your face.']],
+            'seite' => [['it' => 'Personalizzare la pagina', 'de' => 'Seite gestalten', 'en' => 'Design your page'], ['it' => 'Colore, immagine e testi a suo gusto.', 'de' => 'Farbe, Bild und Texte nach Ihrem Geschmack.', 'en' => 'Colour, image and texts to your taste.']],
+            'teilen' => [['it' => 'Condividere il link la prima volta', 'de' => 'Link zum ersten Mal teilen', 'en' => 'Share your link for the first time'], ['it' => 'Testi pronti per WhatsApp, Instagram e altri.', 'de' => 'Fertige Texte für WhatsApp, Instagram und mehr.', 'en' => 'Ready texts for WhatsApp, Instagram and more.']],
+            'app' => [['it' => 'Attivare gli avvisi', 'de' => 'Hinweise einschalten', 'en' => 'Turn on notifications'], ['it' => 'Così sa subito quando arriva un cliente.', 'de' => 'Dann wissen Sie sofort, wenn ein Kunde kommt.', 'en' => 'So you know right away when a customer arrives.']],
+        ],
+        'w_titel' => ['it' => 'La sua pagina nelle ultime 8 settimane', 'de' => 'Ihre Seite in den letzten 8 Wochen', 'en' => 'Your page over the last 8 weeks'],
+        'w_besuche' => ['it' => 'Visite', 'de' => 'Besuche', 'en' => 'Visits'],
+        'w_kunden' => ['it' => 'Nuovi clienti', 'de' => 'Neue Kunden', 'en' => 'New customers'],
+        'w_verkaeufe' => ['it' => 'Vendite', 'de' => 'Verkäufe', 'en' => 'Sales'],
+        'w_woche' => ['it' => 'Settimana dal', 'de' => 'Woche ab', 'en' => 'Week from'],
+        'w_zahlen' => ['it' => 'Vedere i numeri', 'de' => 'Zahlen ansehen', 'en' => 'See the numbers'],
+        'w_leer' => ['it' => 'Ancora nessuna visita. Condivida il suo link — qui compariranno le prime barre.', 'de' => 'Noch keine Besuche. Teilen Sie Ihren Link — dann erscheinen hier die ersten Balken.', 'en' => 'No visits yet. Share your link — the first bars will appear here.'],
+        'w_aria' => ['it' => 'Visite e nuovi clienti per settimana', 'de' => 'Besuche und neue Kunden je Woche', 'en' => 'Visits and new customers per week'],
+    ];
+
+    /** „Ihre Empfehlung ist online“ -- Hinweis, Zustimmung des Kunden, fertiger Beitrag (27.09.2026). */
+    public const PARTNER_ERFOLG = [
+        'push_online_t' => ['it' => 'Una sua segnalazione è online!', 'de' => 'Eine Ihrer Empfehlungen ist jetzt online!', 'en' => 'One of your referrals is now live!'],
+        'push_online_x' => ['it' => 'Se il cliente è d’accordo, riceve un post pronto da condividere.', 'de' => 'Stimmt der Kunde zu, bekommen Sie einen fertigen Beitrag zum Teilen.', 'en' => 'If the customer agrees, you get a ready-made post to share.'],
+        'push_zeigen_t' => ['it' => 'Può mostrare il nuovo sito', 'de' => 'Sie dürfen die neue Website zeigen', 'en' => 'You may show the new website'],
+        'push_zeigen_x' => ['it' => 'Il post è pronto nella sua area.', 'de' => 'Der Beitrag liegt fertig in Ihrem Dashboard.', 'en' => 'The post is ready in your dashboard.'],
+        'e_titel' => ['it' => 'Le sue segnalazioni online', 'de' => 'Ihre Empfehlungen, die online sind', 'en' => 'Your referrals that are live'],
+        'e_text' => ['it' => 'Un risultato convince più di qualsiasi pubblicità. Se il cliente è d’accordo, il post è già pronto.', 'de' => 'Ein Ergebnis überzeugt mehr als jede Werbung. Stimmt der Kunde zu, ist der Beitrag schon fertig.', 'en' => 'A result convinces more than any advert. If the customer agrees, the post is ready.'],
+        'e_wartet' => ['it' => 'Online dal {datum} — in attesa del consenso del cliente. Senza non mostriamo nomi.', 'de' => 'Online seit {datum} — wartet auf die Zustimmung des Kunden. Ohne sie zeigen wir keinen Namen.', 'en' => 'Live since {datum} — waiting for the customer’s consent. Without it we show no names.'],
+        'e_seit' => ['it' => 'online dal {datum}', 'de' => 'online seit {datum}', 'en' => 'live since {datum}'],
+        'e_kopieren' => ['it' => 'Copiare il post', 'de' => 'Beitrag kopieren', 'en' => 'Copy the post'],
+        'e_wa' => ['it' => 'Condividere su WhatsApp', 'de' => 'Per WhatsApp teilen', 'en' => 'Share on WhatsApp'],
+        'e_teilen' => ['it' => 'Condividere …', 'de' => 'Teilen …', 'en' => 'Share …'],
+        'e_ansehen' => ['it' => 'Vedere il sito', 'de' => 'Website ansehen', 'en' => 'View the website'],
+        'post_text' => ['it' => "Guardate cosa è nato per {firma}: {url}\nRealizzato da Vecom Design — li consiglio di cuore.",
+                        'de' => "Seht, was für {firma} entstanden ist: {url}\nGemacht von Vecom Design — ich kann sie nur empfehlen.",
+                        'en' => "Look what was created for {firma}: {url}\nMade by Vecom Design — I can only recommend them."],
+        'post_link' => ['it' => 'Anche voi volete un sito così? Da qui:', 'de' => 'Auch so eine Website? Hier entlang:', 'en' => 'Want a site like this? Start here:'],
+        // Kundenseite
+        'k_titel' => ['it' => '{partner} può mostrare il suo nuovo sito?', 'de' => 'Darf {partner} Ihre neue Website zeigen?', 'en' => 'May {partner} show your new website?'],
+        'k_text' => ['it' => '{partner} l’ha portata da noi. Se è d’accordo, {partner} può condividere il nome della sua attività e il link al sito — per esempio su WhatsApp o Instagram. Può ritirare il consenso quando vuole.',
+                     'de' => '{partner} hat Sie zu uns gebracht. Wenn Sie zustimmen, darf {partner} den Namen Ihres Betriebs und den Link zur Website teilen — zum Beispiel auf WhatsApp oder Instagram. Sie können das jederzeit zurücknehmen.',
+                     'en' => '{partner} brought you to us. If you agree, {partner} may share your business name and a link to the site — for example on WhatsApp or Instagram. You can withdraw this at any time.'],
+        'k_ja' => ['it' => 'Sì, volentieri', 'de' => 'Ja, gern', 'en' => 'Yes, gladly'],
+        'k_ist_ja' => ['it' => 'Ha dato il consenso — {partner} può mostrare il suo sito.', 'de' => 'Sie haben zugestimmt — {partner} darf Ihre Website zeigen.', 'en' => 'You agreed — {partner} may show your website.'],
+        'k_zurueck' => ['it' => 'Ritirare il consenso', 'de' => 'Zustimmung zurücknehmen', 'en' => 'Withdraw consent'],
     ];
 }

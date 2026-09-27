@@ -153,7 +153,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   </div>
   <p class="md-l"><?= $h($T('bild_format')) ?></p>
   <div class="chips">
-    <?php foreach (['quadrat', 'hoch', 'story', 'quer', 'banner', 'qr'] as $i => $fk): ?>
+    <?php foreach (['quadrat', 'hoch', 'story', 'quer', 'banner', 'qr', 'qrfoto'] as $i => $fk): ?>
       <button type="button" data-format="<?= $fk ?>" aria-pressed="<?= $i === 0 ? 'true' : 'false' ?>"><?= $h($T('bf_' . $fk)) ?></button>
     <?php endforeach; ?>
   </div>
