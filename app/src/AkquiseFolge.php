@@ -41,34 +41,34 @@ final class AkquiseFolge
     /** Höchstens so viele Folge-Mails je Lauf -- die Grenzen der Akquise gelten zusätzlich. */
     public const JE_LAUF = 10;
 
-    public const PLATZHALTER = ['{firma}', '{website}', '{analyse}', '{bedarf}', '{beispiele}', '{termin}', '{inhaber}', '{absender}', '{telefon}'];
+    public const PLATZHALTER = ['{anrede}', '{firma}', '{website}', '{analyse}', '{bedarf}', '{beispiele}', '{termin}', '{inhaber}', '{absender}', '{telefon}'];
 
     /** Ausgangstexte. Keine Zahl, keine Behauptung, die nicht aus der Analyse selbst kommt. */
     public const TEXTE = [
         1 => [
-            'de' => ['Die Analyse Ihrer Website', "Guten Tag,\n\ndanke für Ihre Bestätigung. Hier finden Sie die Analyse Ihrer Website {website}:\n\n{analyse}\n\nDort steht, was wir gemessen haben – mit der Ansicht auf dem Handy und den Punkten, die Besucher und Google zuerst bemerken.\n\nWenn Sie Fragen dazu haben, antworten Sie einfach auf diese Mail.\n\nViele Grüße\n{inhaber}\n{absender}{telefon}"],
-            'it' => ['L’analisi del suo sito', "Buongiorno,\n\ngrazie per la conferma. Qui trova l’analisi del suo sito {website}:\n\n{analyse}\n\nC’è quello che abbiamo misurato, con la vista da telefono e i punti che visitatori e Google notano per primi.\n\nSe ha domande, risponda semplicemente a questa e-mail.\n\nCordiali saluti\n{inhaber}\n{absender}{telefon}"],
-            'en' => ['The analysis of your website', "Hello,\n\nthank you for confirming. Here is the analysis of your website {website}:\n\n{analyse}\n\nIt shows what we measured – including the mobile view and the points visitors and Google notice first.\n\nIf you have any questions, simply reply to this email.\n\nKind regards\n{inhaber}\n{absender}{telefon}"],
+            'de' => ['Die Analyse Ihrer Website', "{anrede}\n\ndanke für Ihre Bestätigung. Hier finden Sie die Analyse Ihrer Website {website}:\n\n{analyse}\n\nDort steht, was wir gemessen haben – mit der Ansicht auf dem Handy und den Punkten, die Besucher und Google zuerst bemerken.\n\nWenn Sie Fragen dazu haben, antworten Sie einfach auf diese Mail.\n\nViele Grüße\n{inhaber}\n{absender}{telefon}"],
+            'it' => ['L’analisi del suo sito', "{anrede}\n\ngrazie per la conferma. Qui trova l’analisi del suo sito {website}:\n\n{analyse}\n\nC’è quello che abbiamo misurato, con la vista da telefono e i punti che visitatori e Google notano per primi.\n\nSe ha domande, risponda semplicemente a questa e-mail.\n\nCordiali saluti\n{inhaber}\n{absender}{telefon}"],
+            'en' => ['The analysis of your website', "{anrede}\n\nthank you for confirming. Here is the analysis of your website {website}:\n\n{analyse}\n\nIt shows what we measured – including the mobile view and the points visitors and Google notice first.\n\nIf you have any questions, simply reply to this email.\n\nKind regards\n{inhaber}\n{absender}{telefon}"],
         ],
         2 => [
-            'de' => ['Kurze Frage zu {website}', "Guten Tag,\n\nhaben Sie schon in die Analyse geschaut?\n\n{analyse}\n\nWenn Sie möchten, zeige ich Ihnen, wie wir die Startseite von {firma} anders aufbauen würden – als Skizze, unverbindlich. Eine kurze Antwort „Ja, gern“ genügt.\n\nViele Grüße\n{inhaber}"],
-            'it' => ['Una breve domanda su {website}', "Buongiorno,\n\nha già dato un’occhiata all’analisi?\n\n{analyse}\n\nSe vuole, le mostro come imposteremmo la pagina iniziale di {firma}: una bozza, senza impegno. Basta rispondere «Sì, volentieri».\n\nCordiali saluti\n{inhaber}"],
-            'en' => ['A quick question about {website}', "Hello,\n\nhave you had a chance to look at the analysis?\n\n{analyse}\n\nIf you like, I can show you how we would build the home page of {firma} differently – as a sketch, with no obligation. A short “Yes, please” is enough.\n\nKind regards\n{inhaber}"],
+            'de' => ['Kurze Frage zu {website}', "{anrede}\n\nhaben Sie schon in die Analyse geschaut?\n\n{analyse}\n\nWenn Sie möchten, zeige ich Ihnen, wie wir die Startseite von {firma} anders aufbauen würden – als Skizze, unverbindlich. Eine kurze Antwort „Ja, gern“ genügt.\n\nViele Grüße\n{inhaber}"],
+            'it' => ['Una breve domanda su {website}', "{anrede}\n\nha già dato un’occhiata all’analisi?\n\n{analyse}\n\nSe vuole, le mostro come imposteremmo la pagina iniziale di {firma}: una bozza, senza impegno. Basta rispondere «Sì, volentieri».\n\nCordiali saluti\n{inhaber}"],
+            'en' => ['A quick question about {website}', "{anrede}\n\nhave you had a chance to look at the analysis?\n\n{analyse}\n\nIf you like, I can show you how we would build the home page of {firma} differently – as a sketch, with no obligation. A short “Yes, please” is enough.\n\nKind regards\n{inhaber}"],
         ],
         3 => [
-            'de' => ['Wie das aussehen kann', "Guten Tag,\n\nBeispiele unserer Arbeit finden Sie hier:\n{beispiele}\n\nUnd was eine neue Seite für {firma} kosten würde, sehen Sie in zwei Minuten – den Preis kennen Sie, bevor Sie sich entscheiden:\n{bedarf}\n\nViele Grüße\n{inhaber}"],
-            'it' => ['Come può essere', "Buongiorno,\n\nqui trova alcuni esempi del nostro lavoro:\n{beispiele}\n\nE quanto costerebbe un sito nuovo per {firma} lo vede in due minuti, con il prezzo prima di decidere:\n{bedarf}\n\nCordiali saluti\n{inhaber}"],
-            'en' => ['What it can look like', "Hello,\n\nyou can find examples of our work here:\n{beispiele}\n\nAnd what a new site for {firma} would cost, you can see in two minutes – with the price before you decide:\n{bedarf}\n\nKind regards\n{inhaber}"],
+            'de' => ['Wie das aussehen kann', "{anrede}\n\nBeispiele unserer Arbeit finden Sie hier:\n{beispiele}\n\nUnd was eine neue Seite für {firma} kosten würde, sehen Sie in zwei Minuten – den Preis kennen Sie, bevor Sie sich entscheiden:\n{bedarf}\n\nViele Grüße\n{inhaber}"],
+            'it' => ['Come può essere', "{anrede}\n\nqui trova alcuni esempi del nostro lavoro:\n{beispiele}\n\nE quanto costerebbe un sito nuovo per {firma} lo vede in due minuti, con il prezzo prima di decidere:\n{bedarf}\n\nCordiali saluti\n{inhaber}"],
+            'en' => ['What it can look like', "{anrede}\n\nyou can find examples of our work here:\n{beispiele}\n\nAnd what a new site for {firma} would cost, you can see in two minutes – with the price before you decide:\n{bedarf}\n\nKind regards\n{inhaber}"],
         ],
         4 => [
-            'de' => ['Ein kurzes Gespräch?', "Guten Tag,\n\nwenn Sie mögen, sprechen wir 15 Minuten über Ihre Website – am Telefon oder per Video, unverbindlich. Antworten Sie einfach mit einem Zeitpunkt, der Ihnen passt.{termin}\n\nViele Grüße\n{inhaber}{telefon}"],
-            'it' => ['Una breve chiacchierata?', "Buongiorno,\n\nse le va, parliamo 15 minuti del suo sito, al telefono o in video, senza impegno. Mi risponda semplicemente con un orario che le fa comodo.{termin}\n\nCordiali saluti\n{inhaber}{telefon}"],
-            'en' => ['A short call?', "Hello,\n\nif you like, we can talk about your website for 15 minutes – by phone or video, with no obligation. Just reply with a time that suits you.{termin}\n\nKind regards\n{inhaber}{telefon}"],
+            'de' => ['Ein kurzes Gespräch?', "{anrede}\n\nwenn Sie mögen, sprechen wir 15 Minuten über Ihre Website – am Telefon oder per Video, unverbindlich. Antworten Sie einfach mit einem Zeitpunkt, der Ihnen passt.{termin}\n\nViele Grüße\n{inhaber}{telefon}"],
+            'it' => ['Una breve chiacchierata?', "{anrede}\n\nse le va, parliamo 15 minuti del suo sito, al telefono o in video, senza impegno. Mi risponda semplicemente con un orario che le fa comodo.{termin}\n\nCordiali saluti\n{inhaber}{telefon}"],
+            'en' => ['A short call?', "{anrede}\n\nif you like, we can talk about your website for 15 minutes – by phone or video, with no obligation. Just reply with a time that suits you.{termin}\n\nKind regards\n{inhaber}{telefon}"],
         ],
         5 => [
-            'de' => ['Meine letzte Nachricht dazu', "Guten Tag,\n\nich möchte Ihnen nicht zur Last fallen – deshalb ist das meine letzte Nachricht zu diesem Thema. Die Analyse bleibt hier abrufbar:\n{analyse}\n\nWenn Sie später einmal an Ihrer Website arbeiten möchten, antworten Sie einfach auf diese Mail.\n\nViele Grüße\n{inhaber}\n{absender}"],
-            'it' => ['Il mio ultimo messaggio', "Buongiorno,\n\nnon voglio disturbarla oltre: questo è il mio ultimo messaggio sull’argomento. L’analisi resta disponibile qui:\n{analyse}\n\nSe in futuro vorrà lavorare al suo sito, risponda semplicemente a questa e-mail.\n\nCordiali saluti\n{inhaber}\n{absender}"],
-            'en' => ['My last message on this', "Hello,\n\nI don’t want to be a bother, so this is my last message on the subject. The analysis remains available here:\n{analyse}\n\nIf you’d like to work on your website at some point, simply reply to this email.\n\nKind regards\n{inhaber}\n{absender}"],
+            'de' => ['Meine letzte Nachricht dazu', "{anrede}\n\nich möchte Ihnen nicht zur Last fallen – deshalb ist das meine letzte Nachricht zu diesem Thema. Die Analyse bleibt hier abrufbar:\n{analyse}\n\nWenn Sie später einmal an Ihrer Website arbeiten möchten, antworten Sie einfach auf diese Mail.\n\nViele Grüße\n{inhaber}\n{absender}"],
+            'it' => ['Il mio ultimo messaggio', "{anrede}\n\nnon voglio disturbarla oltre: questo è il mio ultimo messaggio sull’argomento. L’analisi resta disponibile qui:\n{analyse}\n\nSe in futuro vorrà lavorare al suo sito, risponda semplicemente a questa e-mail.\n\nCordiali saluti\n{inhaber}\n{absender}"],
+            'en' => ['My last message on this', "{anrede}\n\nI don’t want to be a bother, so this is my last message on the subject. The analysis remains available here:\n{analyse}\n\nIf you’d like to work on your website at some point, simply reply to this email.\n\nKind regards\n{inhaber}\n{absender}"],
         ],
     ];
 
@@ -163,6 +163,7 @@ final class AkquiseFolge
         $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
         $pfad = ['it' => '/', 'de' => '/de/', 'en' => '/en/'][$sprache] ?? '/';
         return strtr($s, [
+            '{anrede}' => self::anrede($f, $sprache),
             '{firma}' => (string) $f['name'],
             '{website}' => (string) ($f['domain'] ?: ($f['url'] ?: $f['name'])),
             '{analyse}' => self::analyseLink($f, $sprache),
@@ -173,6 +174,34 @@ final class AkquiseFolge
             '{absender}' => (string) $abs['firma'],
             '{telefon}' => trim((string) $abs['telefon']) !== '' ? "\n" . trim((string) $abs['telefon']) : '',
         ]);
+    }
+
+    /**
+     * Anrede mit Namen (27.09.2026, Uwe: „Anrede mit Namen einbauen“). Wie in
+     * den Erstansprachen: „Guten Tag Maria Rossi,“ / „Buongiorno …,“ / „Hello …,“ --
+     * ohne Herr/Frau, weil das Geschlecht nicht bekannt ist. Der Name kommt vom
+     * Ansprechpartner an der Firma, sonst von dem, der den Website-Check
+     * angefragt hat. Ohne brauchbaren Namen bleibt es beim bloßen Gruß.
+     */
+    public static function anrede(array $f, string $sprache): string
+    {
+        $name = self::name(trim((string) ($f['ansprechpartner'] ?? '')));
+        if ($name === '' && !empty($f['id'])) {
+            try { $name = self::name((string) Db::wert('SELECT name FROM akq_checks WHERE firma_id = ? AND name IS NOT NULL ORDER BY id DESC LIMIT 1', [(int) $f['id']], '')); }
+            catch (Throwable $e) { $name = ''; }
+        }
+        $gruss = ['de' => 'Guten Tag', 'it' => 'Buongiorno', 'en' => 'Hello'][$sprache] ?? 'Buongiorno';
+        return $gruss . ($name !== '' ? ' ' . $name : '') . ',';
+    }
+
+    /** Ein Name, der in eine Anrede passt -- oder ''. Keine Adressen, keine Ziffern, nichts Überlanges. */
+    public static function name(string $roh): string
+    {
+        $n = trim((string) preg_replace('~\s+~u', ' ', $roh));
+        if (mb_strlen($n) < 2 || mb_strlen($n) > 60 || preg_match('~[0-9@/:<>{}]|www\.~u', $n)) { return ''; }
+        /* Ganz klein oder ganz groß eingetippt: „maria rossi“ → „Maria Rossi“. */
+        if ($n === mb_strtolower($n) || $n === mb_strtoupper($n)) { $n = mb_convert_case(mb_strtolower($n), MB_CASE_TITLE, 'UTF-8'); }
+        return $n;
     }
 
     /** Eingeschaltete Analyse-Seite, sonst der letzte Website-Check, sonst der Check selbst. */

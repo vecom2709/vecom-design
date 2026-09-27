@@ -73,7 +73,7 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
 
 <h2 class="akq-kat" style="margin-top:22px">Die fünf Texte</h2>
 <p class="fo-platz">Platzhalter werden beim Versand gefüllt:
-  <?php foreach (['{firma}' => 'Name des Betriebs', '{website}' => 'seine Domain', '{analyse}' => 'Analyse-Seite oder Website-Check', '{bedarf}' => 'Bedarf & Preis', '{beispiele}' => 'Arbeiten auf der Startseite', '{termin}' => 'Satz mit Buchungslink (leer, solange keine freien Zeiten)', '{inhaber}' => 'dein Name', '{absender}' => 'Vecom Design', '{telefon}' => 'deine Nummer'] as $p => $w): ?>
+  <?php foreach (['{anrede}' => '„Guten Tag Maria Rossi,“ (ohne Namen nur „Guten Tag,“)', '{firma}' => 'Name des Betriebs', '{website}' => 'seine Domain', '{analyse}' => 'Analyse-Seite oder Website-Check', '{bedarf}' => 'Bedarf & Preis', '{beispiele}' => 'Arbeiten auf der Startseite', '{termin}' => 'Satz mit Buchungslink (leer, solange keine freien Zeiten)', '{inhaber}' => 'dein Name', '{absender}' => 'Vecom Design', '{telefon}' => 'deine Nummer'] as $p => $w): ?>
     <code><?= Fmt::h($p) ?></code><?= Fmt::h($w) ?> ·
   <?php endforeach; ?> Der Abmeldelink kommt automatisch darunter.</p>
 <?php foreach (AkquiseFolge::TAGE as $schritt => $tag): $je = $vorlagen[$schritt] ?? [];

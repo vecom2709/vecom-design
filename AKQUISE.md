@@ -203,3 +203,7 @@ Uwe: „ja, erweitere auf E-Mail oder WhatsApp“. Eine Einwilligung deckt nur d
 - An der Firma öffnet „WhatsApp-Nachricht öffnen“ WhatsApp mit einem vorgefüllten Text: Gruß, Analyse-Link falls vorhanden und der Hinweis „STOPP“. Das System schickt selbst nichts per WhatsApp; Uwe liest und sendet. „Als geschrieben vermerken“ trägt es ins Versandprotokoll ein.
 - Beim Sperren kommt die WhatsApp-Nummer mit auf die Sperrliste.
 - Der Assistent fragt jetzt „Wer darf per E-Mail oder WhatsApp?“, und die Spalte zeigt die Nummer oder „nur E-Mail“.
+
+### Folge-Mails mit Anrede (27.09.2026)
+
+Uwe: „Anrede mit Namen einbauen, dann freigeben“. Alle 15 Ausgangstexte beginnen mit `{anrede}`: „Guten Tag Maria Rossi,“ / „Buongiorno …,“ / „Hello …,“. Herr/Frau fällt weg, weil das Geschlecht nicht bekannt ist; so machen es auch die Erstansprachen. Der Name kommt vom Ansprechpartner an der Firma, sonst von der Person, die den Website-Check angefragt hat. Ohne brauchbaren Namen (Adresse, Ziffern, zu lang) bleibt es beim bloßen Gruß. Migration 090 setzt die erste Zeile in schon angelegten Entwürfen um; freigegebene Texte bleiben unangetastet.

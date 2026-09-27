@@ -13044,6 +13044,37 @@ pruefe('Formulare: WhatsApp-Häkchen und Nummernfeld im Website-Check und auf de
     substr_count($waSeiten, 'name="wa"') === 2 && substr_count($waSeiten, 'name="whatsapp"') === 2
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), 'WhatsApp-Nachricht öffnen'));
 
+abschnitt('Folge-Mails: Anrede mit Namen');
+/* 27.09.2026, Uwe: „Anrede mit Namen einbauen, dann freigeben“. */
+pruefe('Anrede: Ansprechpartner wird zur Anrede, klein Getipptes groß geschrieben, ohne Namen der bloße Gruß',
+    AkquiseFolge::anrede(['ansprechpartner' => 'maria rossi'], 'de') === 'Guten Tag Maria Rossi,'
+    && AkquiseFolge::anrede(['ansprechpartner' => 'Giuseppe  La Rosa'], 'it') === 'Buongiorno Giuseppe La Rosa,'
+    && AkquiseFolge::anrede(['ansprechpartner' => ''], 'en') === 'Hello,'
+    && AkquiseFolge::anrede([], 'it') === 'Buongiorno,');
+pruefe('Anrede: Adressen, Ziffern und Überlanges kommen nicht in die Anrede',
+    AkquiseFolge::name('info@bar.example') === '' && AkquiseFolge::name('Bar 2000') === '' && AkquiseFolge::name('www.bar.it') === ''
+    && AkquiseFolge::name(str_repeat('Anna ', 20)) === '' && AkquiseFolge::name('X') === '' && AkquiseFolge::name('McDonald') === 'McDonald');
+$anF = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $wcF['id']]);
+pruefe('Anrede: ohne Ansprechpartner kommt der Name aus dem Website-Check', trim((string) ($anF['ansprechpartner'] ?? '')) === ''
+    && AkquiseFolge::anrede($anF, 'it') === 'Buongiorno Maria Rossi,', AkquiseFolge::anrede($anF, 'it'));
+$anAlle = true;
+foreach (AkquiseFolge::TEXTE as $anJe) { foreach ($anJe as [$anB, $anT]) { $anAlle = $anAlle && str_starts_with($anT, "{anrede}\n\n"); } }
+pruefe('Alle 15 Ausgangstexte beginnen mit {anrede}, und beim Füllen bleibt kein Platzhalter stehen', $anAlle
+    && str_starts_with(AkquiseFolge::fuellen(AkquiseFolge::TEXTE[1]['de'][1], $anF, 'de'), "Guten Tag Maria Rossi,\n\ndanke")
+    && !str_contains(AkquiseFolge::fuellen(AkquiseFolge::TEXTE[4]['en'][1], $anF, 'en'), '{'));
+$anV = Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 2 AND sprache = 'de'");
+$anAltText = (string) $anV['text']; $anAltStatus = (string) $anV['status']; $anAltFass = (int) $anV['fassung'];
+Db::run("UPDATE akq_folge_vorlagen SET text = ?, status = 'entwurf' WHERE id = ?", ["Guten Tag,\n\nalter Gruß im Entwurf", (int) $anV['id']]);
+foreach (array_filter(array_map('trim', explode(';', (string) preg_replace('~^--.*$~m', '', (string) file_get_contents($wurzel . '/migrations/090_akquise_folge_anrede.sql'))))) as $anSql) { Db::run($anSql); }
+$anNach = Db::one('SELECT * FROM akq_folge_vorlagen WHERE id = ?', [(int) $anV['id']]);
+pruefe('Migration 090: ein Entwurf mit altem Gruß bekommt {anrede} und eine neue Fassung', $anNach['text'] === "{anrede}\n\nalter Gruß im Entwurf"
+    && (int) $anNach['fassung'] === $anAltFass + 1, (string) $anNach['text']);
+Db::run('UPDATE akq_folge_vorlagen SET text = ?, status = ?, fassung = ? WHERE id = ?', [$anAltText, $anAltStatus, $anAltFass, (int) $anV['id']]);
+$anFehler = null;
+try { AkquiseFolge::vorlageSpeichern((int) $anV['id'], (string) $anV['betreff'], "{anrede}\n\nkurzer Testtext mit Anrede."); } catch (Throwable $e) { $anFehler = $e->getMessage(); }
+pruefe('{anrede} ist ein erlaubter Platzhalter beim Speichern', $anFehler === null, (string) $anFehler);
+Db::run('UPDATE akq_folge_vorlagen SET text = ?, status = ?, fassung = ?, freigegeben_von = NULL WHERE id = ?', [$anAltText, $anAltStatus, $anAltFass, (int) $anV['id']]);
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
