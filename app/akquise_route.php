@@ -126,7 +126,7 @@ if ($post) {
 
             case 'akq_senden':
                 AkquiseVersand::senden((int) $_POST['vorlage'], (string) ($_POST['pruefvermerk'] ?? ''));
-                $_SESSION['gut'] = 'Die E-Mail ist raus.';
+                $_SESSION['gut'] = AkquiseGate::testbetrieb() ? 'Testbetrieb: Die E-Mail wurde nur simuliert — nichts ging raus. Umschalten unter Regeln & Versand.' : 'Die E-Mail ist raus.';
                 weiter('akquise/' . $fid);
 
             case 'akq_von_hand':
@@ -258,6 +258,42 @@ if ($post) {
                 AkquiseAuswertung::wochenzielSetzen((int) ($_POST['ziel'] ?? 0));
                 $_SESSION['gut'] = 'Wochenziel gespeichert.';
                 weiter('akquise/auswertung');
+
+            case 'akq_schalter_speichern':
+                $vorher = ['testbetrieb' => AkquiseGate::testbetrieb()];
+                foreach (array_keys(AkquiseGate::SCHALTER) as $k) {
+                    $vorher[$k] = AkquiseGate::schalterSelbst($k);
+                    AkquiseGate::schalterSetzen($k, !empty($_POST['schalter'][$k]));
+                }
+                $test = ($_POST['testbetrieb'] ?? '1') !== '0';
+                if ($test !== $vorher['testbetrieb']) { AkquiseGate::testbetriebSetzen($test); }
+                Events::pruefspur('akquise_schalter', 'settings', null, $vorher, ['testbetrieb' => $test] + array_map(static fn($k) => !empty($_POST['schalter'][$k]), array_combine(array_keys(AkquiseGate::SCHALTER), array_keys(AkquiseGate::SCHALTER))));
+                $_SESSION['gut'] = 'Schalter gespeichert.' . ($test ? ' Testbetrieb: Akquise-Mails werden nur simuliert.' : ' Echtbetrieb: freigegebene Akquise-Mails gehen wirklich raus.');
+                $zu('regeln#schalter');
+
+            case 'akq_folge_vorlage_speichern':
+                require_once __DIR__ . '/src/AkquiseFolge.php';
+                AkquiseFolge::vorlageSpeichern((int) ($_POST['id'] ?? 0), (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''));
+                $_SESSION['gut'] = 'Text gespeichert — er ist wieder Entwurf, bis du ihn freigibst.';
+                weiter('akquise/folgen#v' . (int) ($_POST['id'] ?? 0));
+
+            case 'akq_folge_freigeben':
+                require_once __DIR__ . '/src/AkquiseFolge.php';
+                AkquiseFolge::freigeben((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Text freigegeben — er geht ab jetzt automatisch raus, wenn der Schritt fällig ist.';
+                weiter('akquise/folgen#v' . (int) ($_POST['id'] ?? 0));
+
+            case 'akq_folge_pausieren':
+            case 'akq_folge_fortsetzen':
+            case 'akq_folge_beenden':
+                require_once __DIR__ . '/src/AkquiseFolge.php';
+                $foId = (int) ($_POST['folge'] ?? 0);
+                match ($tat) {
+                    'akq_folge_pausieren' => AkquiseFolge::pausieren($foId),
+                    'akq_folge_fortsetzen' => AkquiseFolge::fortsetzen($foId),
+                    default => AkquiseFolge::beenden($foId),
+                };
+                weiter('akquise/folgen#laufend');
 
             case 'akq_check_erledigt':
                 require_once __DIR__ . '/src/AkquiseCheck.php';
@@ -421,6 +457,18 @@ if ($teil === 'auswertung' || $teil === 'karte') {
 if ($teil === 'briefe') {
     require_once __DIR__ . '/src/AkquiseBriefserie.php';
     ansicht('akquise_briefe', ['kandidaten' => AkquiseBriefserie::kandidaten(), 'offen' => AkquiseBriefserie::offen(), 'bereit' => AkquiseBriefdienst::bereit()]);
+    exit;
+}
+
+if ($teil === 'folgen') {
+    require_once __DIR__ . '/src/AkquiseFolge.php';
+    ansicht('akquise_folgen', [
+        'vorlagen' => AkquiseFolge::vorlagen(),
+        'folgen' => AkquiseFolge::liste(),
+        'an' => AkquiseGate::schalter('folge'),
+        'test' => AkquiseGate::testbetrieb(),
+        'versandAn' => AkquiseGate::grenzen()['versand_an'],
+    ]);
     exit;
 }
 

@@ -135,7 +135,8 @@ weiter über `AkquiseGate::pruefen` und `versandSperre`.
 
 ### Reihenfolge
 
-A (fertig, 27.09.2026) → B nach Entscheidung → E → C nach Entscheidung → D nach Entscheidung → G.
+A (fertig, 27.09.2026) → B und E (fertig, 27.09.2026) → D (Assistent ohne KI-Kosten) → C (Terminbuchung) → G.
+Uwes Entscheidungen vom 27.09.2026: Folge-Mails „Texte freigeben, dann automatisch“, Assistent ohne KI-Kosten, Terminbuchung mit eigenem Kalender.
 Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
 
 ### Modul A: Website-Check (27.09.2026)
@@ -152,3 +153,13 @@ Jede Stufe endet mit Kette, Prüfung im Browser, Uwes Ja und Live-Prüfung.
   - Die Bestätigungsmails sind zusätzlich begrenzt.
 - Aufbewahrung: Name, E-Mail, Telefon und IP-Hash werden nach 180 Tagen geleert, wenn keine Einwilligung und kein Auftrag daraus wurde (Cron `akquise_checks`).
 - Schalter „Website-Check an/aus“ unter Regeln & Versand.
+
+### Module B und E: Folge-Mails, Schalter, Testbetrieb (27.09.2026)
+
+- **Schalter** unter Regeln & Versand: Automatik (Hauptschalter), Betriebe suchen, Websites prüfen, Texte von Claude, Folge-Mails. Der Worker-Endpunkt gibt bei ausgeschaltetem Teil keine Arbeit heraus. Die Notbremse steht über allem.
+- **Testbetrieb** (ab Werk an): Jede Akquise-Mail durchläuft Gate, Freigabe und Grenzen wie echt, am Ende steht nur „simuliert“. Ein gemeinsamer Versandweg `AkquiseVersand::rausschicken` bedient Einzelmail und Folge-Mails.
+- **Folge-Mails** (`AkquiseFolge`, Reiter „Folge-Mails“):
+  - Fünf Schritte je Sprache (Tag 0/3/7/14/30), jeder Text wird einmal freigegeben. Jede Änderung macht ihn wieder zum Entwurf.
+  - Start mit dem Klick in der Bestätigungsmail.
+  - Vor jeder Mail wird neu geprüft: Gate „Ja, erlaubt“, `versandSperre` (ohne Domain-Abstand, weil der Betrieb eingewilligt hat) und Hindernisse (Antwort pausiert; Abmeldung, Sperre, Kunde oder fehlende Einwilligung beenden).
+  - Der Testbetrieb schiebt die echte Folge nie weiter.

@@ -329,6 +329,59 @@ final class AkquiseGate
         Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, $v]);
     }
 
+    /* ==================================================================
+       SCHALTER UND TESTBETRIEB (27.09.2026, Auftrag Punkte 28 und 29)
+
+       „Automatik“ ist der Hauptschalter für alles, was ohne Uwes Klick
+       läuft. Ist er aus, gelten die einzelnen als aus, egal wie sie stehen.
+       Die Notbremse bleibt darüber: Sie stoppt auch, was von Hand geht.
+
+       Testbetrieb: Jede Akquise-Mail durchläuft Gate, Freigabe und Grenzen
+       wie echt -- statt Brevo steht am Ende ein Eintrag „simuliert“. Ab Werk
+       AN: Der Wechsel in den Echtbetrieb ist eine bewusste Handlung, kein
+       Zustand, in den man hineinrutscht. Bestätigungsmails des Double-Opt-in
+       sind keine Werbung (der Mensch hat sie gerade selbst angefordert) und
+       gehen auch im Testbetrieb raus.
+       ================================================================== */
+    public const SCHALTER = [
+        'automatik' => ['akq_schalter_automatik', '1', 'Automatik (Hauptschalter)', 'Alles, was ohne deinen Klick läuft. Aus = die Punkte darunter ruhen.'],
+        'recherche' => ['akq_schalter_recherche', '1', 'Betriebe suchen', 'Dein PC holt nachts neue Betriebe zu den Suchaufträgen.'],
+        'audit'     => ['akq_schalter_audit', '1', 'Websites prüfen', 'Dein PC prüft die Websites der gefundenen Betriebe.'],
+        'ki'        => ['akq_schalter_ki', '1', 'Texte von Claude', 'Deutung der Befunde und Textvorschläge (kostet Claude-Guthaben am PC).'],
+        'folge'     => ['akq_schalter_folge', '0', 'Folge-Mails', 'Die freigegebenen Folge-Mails an Betriebe mit bestätigter Einwilligung.'],
+    ];
+
+    /** Ist dieser Teil der Automatik an? Der Hauptschalter geht vor. */
+    public static function schalter(string $k): bool
+    {
+        if (!isset(self::SCHALTER[$k])) { return false; }
+        $an = static fn(string $x): bool => self::einstellung(self::SCHALTER[$x][0], self::SCHALTER[$x][1]) === '1';
+        return $k === 'automatik' ? $an('automatik') : ($an('automatik') && $an($k));
+    }
+
+    /** Wie der Schalter selbst steht (für die Anzeige), ohne den Hauptschalter. */
+    public static function schalterSelbst(string $k): bool
+    {
+        return isset(self::SCHALTER[$k]) && self::einstellung(self::SCHALTER[$k][0], self::SCHALTER[$k][1]) === '1';
+    }
+
+    public static function schalterSetzen(string $k, bool $an): void
+    {
+        if (!isset(self::SCHALTER[$k])) { throw new InvalidArgumentException('Unbekannter Schalter.'); }
+        self::setzen(self::SCHALTER[$k][0], $an ? '1' : '0');
+    }
+
+    public static function testbetrieb(): bool
+    {
+        return self::einstellung('akq_testbetrieb', '1') === '1';
+    }
+
+    public static function testbetriebSetzen(bool $an): void
+    {
+        self::setzen('akq_testbetrieb', $an ? '1' : '0');
+        Akquise::protokoll(null, 'testbetrieb', $an ? 'Testbetrieb eingeschaltet — Akquise-Mails werden nur simuliert' : 'Echtbetrieb — Akquise-Mails gehen wirklich raus');
+    }
+
     public static function grenzen(): array
     {
         return [
@@ -349,7 +402,12 @@ final class AkquiseGate
      * Die Grenzen zaehlen, was wirklich rausging -- aus akq_versand, nicht
      * aus einem Zaehler, der sich verzaehlen koennte.
      */
-    public static function versandSperre(array $f): ?string
+    /**
+     * @param bool $folge Folge-Mail an einen Betrieb mit bestätigter Einwilligung:
+     *        Der Domain-Abstand gilt dann nicht -- er schützt vor einer zweiten
+     *        KALTEN Ansprache, nicht vor der Folge, in die der Betrieb eingewilligt hat.
+     */
+    public static function versandSperre(array $f, bool $folge = false): ?string
     {
         $g = self::grenzen();
         if ($g['stop'])        { return 'Die Notbremse ist gezogen — alle Aussendungen stehen.'; }
@@ -366,7 +424,7 @@ final class AkquiseGate
         if ($fehler >= $g['fehler']) { return "Zu viele Fehlschläge in 24 Stunden ($fehler) — erst nachsehen."; }
         $bounce = (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'bounce' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
         if ($bounce >= $g['bounce']) { return "Zu viele unzustellbare Adressen in 7 Tagen ($bounce) — Adressqualität prüfen."; }
-        if (!empty($f['domain'])) {
+        if (!empty($f['domain']) && !($folge && trim((string) ($f['einwilligung'] ?? '')) !== '')) {
             $d = (int) Db::wert("SELECT COUNT(*) FROM akq_versand v JOIN akq_firmen f ON f.id = v.firma_id
                                    WHERE f.domain = ? AND v.status IN ('gesendet','von_hand')
                                      AND v.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)", [$f['domain'], $g['domain_tage']]);

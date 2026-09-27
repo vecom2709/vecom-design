@@ -39,7 +39,9 @@ foreach ($raster as &$k) { foreach ($k as &$z) { uksort($z, static fn($a, $b) =>
 uksort($laender, static fn($a, $b) => ($a === 'IT' ? 0 : 1) <=> ($b === 'IT' ? 0 : 1) ?: strcmp($a, $b));
 
 /* "Auf einen Blick": je Punkt Ampel, Satz und Sprungziel. */
+$testAn = AkquiseGate::testbetrieb();
 $blick = [
+    ['Testbetrieb', $testAn ? 'gelb' : 'gruen', $testAn ? 'An · Akquise-Mails werden nur simuliert.' : 'Aus · freigegebene Mails gehen wirklich raus.', '#schalter'],
     ['E-Mail-Versand', $grenzen['stop'] ? 'rot' : ($grenzen['versand_an'] ? 'gruen' : 'gelb'),
         $grenzen['stop'] ? 'Notbremse gezogen — es geht nichts raus.' : ($grenzen['versand_an'] ? 'An · höchstens ' . (int) $grenzen['tag'] . ' Mails am Tag.' : 'Aus · keine Mail geht automatisch raus.'), '#versand'],
     ['Briefe per Post', $bdDa ? ($bdTest ? 'gelb' : 'gruen') : '',
@@ -102,6 +104,27 @@ $blick = [
   <?php foreach ($blick as [$titel, $ampel, $satz, $ziel]): ?>
     <a href="<?= Fmt::h($ziel) ?>"><b><?= Fmt::h($titel) ?></b><span class="akq-ampel <?= $ampel ?>"><i aria-hidden="true"></i><span><?= Fmt::h($satz) ?></span></span></a>
   <?php endforeach; ?>
+</div>
+
+<div class="block" id="schalter">
+  <h2>Schalter</h2>
+  <p class="rg-erkl">Was ohne deinen Klick laufen darf. Die Notbremse oben rechts stoppt zusätzlich alles, auch was du von Hand verschickst.</p>
+  <form method="post" action="<?= Fmt::h(url('akquise')) ?>" data-frage="Schalter speichern? Im Echtbetrieb gehen freigegebene Akquise-Mails und Folge-Mails wirklich raus." data-ja="Ja, speichern">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_schalter_speichern">
+    <div class="rg-grenzen" style="gap:0 18px">
+      <?php foreach (AkquiseGate::SCHALTER as $sk => [, , $sName, $sText]): ?>
+        <label class="akq-haken"><input type="checkbox" name="schalter[<?= $sk ?>]" value="1"<?= AkquiseGate::schalterSelbst($sk) ? ' checked' : '' ?>>
+          <span><b><?= Fmt::h($sName) ?></b><br><span class="akq-klein"><?= Fmt::h($sText) ?><?= $sk !== 'automatik' && AkquiseGate::schalterSelbst($sk) && !AkquiseGate::schalter($sk) ? ' — ruht, weil die Automatik aus ist.' : '' ?></span></span></label>
+      <?php endforeach; ?>
+    </div>
+    <div class="rg-an" style="margin:6px 0 12px">
+      <label class="akq-haken" style="margin:0 0 8px"><input type="radio" name="testbetrieb" value="1"<?= $testAn ? ' checked' : '' ?>>
+        <span><b>Testbetrieb</b><br><span class="akq-klein">Alles läuft wie echt — Gate, Freigabe, Grenzen —, aber statt einer Mail steht „simuliert“ im Protokoll.</span></span></label>
+      <label class="akq-haken" style="margin:0"><input type="radio" name="testbetrieb" value="0"<?= $testAn ? '' : ' checked' ?>>
+        <span><b>Echtbetrieb</b><br><span class="akq-klein">Freigegebene Mails gehen wirklich raus (nur an Betriebe mit „Ja“ und nur bei eingeschaltetem E-Mail-Versand).</span></span></label>
+    </div>
+    <button class="knopf haupt">Speichern</button>
+  </form>
 </div>
 
 <div class="block" id="regeln">

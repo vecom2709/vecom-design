@@ -180,23 +180,60 @@ final class AkquiseVersand
         $sperre = AkquiseGate::versandSperre($f);
         if ($sperre !== null) { self::blockiert($f, $vorlageId, 'email', $gate['status'], $sperre); }
 
+        $r = self::rausschicken($f, (string) $v['betreff'], (string) $v['text'], (string) $v['sprache'], $vorlageId, $gate['status'],
+            $gate['status'] === AkquiseGate::PRUEFEN ? 'Prüfvermerk: ' . trim($pruefvermerk) : null);
+        $versandId = $r['id'];
+        if ($r['simuliert']) { return $versandId; }
+        Db::update('akq_vorlagen', $vorlageId, ['status' => 'gesendet']);
+        Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'gesendet', 'kontakt_status' => 'kontaktiert']);
+        Akquise::protokoll((int) $f['id'], 'versand', 'Kontakt per E-Mail versendet an ' . $f['email'], ['versand' => $versandId]);
+        Events::pruefspur('akquise_versand', 'akq_versand', $versandId, [], ['an' => $f['email'], 'compliance' => $gate['status']]);
+        require_once __DIR__ . '/AkquiseSignal.php';
+        AkquiseSignal::vormerken((int) $f['id'], 'email');
+        return $versandId;
+    }
+
+    /**
+     * Der eine Weg, auf dem eine Akquise-Mail das Haus verlässt -- für die
+     * freigegebene Einzelmail und für die Folge-Mails (27.09.2026). Gate und
+     * Grenzen prüft der Aufrufer vorher; hier kommen Abmeldelink, List-
+     * Unsubscribe und der Testbetrieb dazu. Im Testbetrieb entsteht ein
+     * Eintrag „simuliert“ -- nichts geht an Brevo, am Kontaktstand ändert
+     * sich nichts. Scheitert Brevo, wirft die Methode.
+     *
+     * @return array{id:int, simuliert:bool}
+     */
+    /** @var null|callable(string $an, string $betreff, string $text): bool  Austauschbar für die Kette (dort gibt es kein Brevo). */
+    public static $postbote = null;
+
+    public static function rausschicken(array $f, string $betreff, string $text, string $sprache, ?int $vorlageId, string $gate, ?string $grund = null): array
+    {
+        require_once __DIR__ . '/Mail.php';
         $token = bin2hex(random_bytes(20));
+        $actor = class_exists('Auth', false) && Auth::angemeldet() ? Auth::name() : 'System';   // im Cron gibt es keine Anmeldung
+        if (AkquiseGate::testbetrieb()) {
+            $id = (int) Db::insert('akq_versand', [
+                'firma_id' => (int) $f['id'], 'vorlage_id' => $vorlageId, 'kanal' => 'email', 'an' => $f['email'],
+                'status' => 'simuliert', 'compliance' => $gate, 'grund' => mb_substr('Testbetrieb — nicht verschickt' . ($grund ? ' · ' . $grund : ''), 0, 255),
+                'abmelde_token' => $token, 'actor' => $actor,
+            ]);
+            Akquise::protokoll((int) $f['id'], 'testbetrieb', 'Testbetrieb: E-Mail an ' . $f['email'] . ' nur simuliert — „' . mb_substr($betreff, 0, 80) . '“', ['versand' => $id]);
+            return ['id' => $id, 'simuliert' => true];
+        }
         $abmelden = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/widerspruch.php?t=' . $token;
         $zusatz = [
             'de' => "\n\nKeine weiteren Nachrichten: $abmelden",
             'it' => "\n\nNon ricevere altri messaggi: $abmelden",
             'en' => "\n\nNo further messages: $abmelden",
-        ][(string) $v['sprache']] ?? "\n\n$abmelden";
-
-        $versandId = Db::insert('akq_versand', [
+        ][$sprache] ?? "\n\n$abmelden";
+        $versandId = (int) Db::insert('akq_versand', [
             'firma_id' => (int) $f['id'], 'vorlage_id' => $vorlageId, 'kanal' => 'email', 'an' => $f['email'],
-            'status' => 'fehler', 'compliance' => $gate['status'],
-            'grund' => $gate['status'] === AkquiseGate::PRUEFEN ? mb_substr('Prüfvermerk: ' . trim($pruefvermerk), 0, 255) : null,
-            'abmelde_token' => $token, 'actor' => Auth::angemeldet() ? Auth::name() : 'System',
+            'status' => 'fehler', 'compliance' => $gate, 'grund' => $grund !== null ? mb_substr($grund, 0, 255) : null,
+            'abmelde_token' => $token, 'actor' => $actor,
         ]);
-        $ok = Mail::senden('akquise', (string) $f['email'], (string) $v['betreff'], (string) $v['text'] . $zusatz, [
+        $ok = self::$postbote ? (bool) (self::$postbote)((string) $f['email'], $betreff, $text . $zusatz) : Mail::senden('akquise', (string) $f['email'], $betreff, $text . $zusatz, [
             'kopfzeilen' => ['List-Unsubscribe' => '<' . $abmelden . '>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'],
-            'sprache' => (string) $v['sprache'],
+            'sprache' => $sprache,
             'nurText' => true,
         ]);
         if (!$ok) {
@@ -206,13 +243,7 @@ final class AkquiseVersand
             throw new RuntimeException('Der Versand ist gescheitert. Einzelheiten im E-Mail-Protokoll.');
         }
         Db::update('akq_versand', $versandId, ['status' => 'gesendet']);
-        Db::update('akq_vorlagen', $vorlageId, ['status' => 'gesendet']);
-        Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'gesendet', 'kontakt_status' => 'kontaktiert']);
-        Akquise::protokoll((int) $f['id'], 'versand', 'Kontakt per E-Mail versendet an ' . $f['email'], ['versand' => $versandId]);
-        Events::pruefspur('akquise_versand', 'akq_versand', $versandId, [], ['an' => $f['email'], 'compliance' => $gate['status']]);
-        require_once __DIR__ . '/AkquiseSignal.php';
-        AkquiseSignal::vormerken((int) $f['id'], 'email');
-        return $versandId;
+        return ['id' => $versandId, 'simuliert' => false];
     }
 
     /**

@@ -167,6 +167,8 @@ final class AkquiseEinwilligung
         Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', (int) $f['id'], $alt, ['einwilligung' => $beleg, 'email' => $e['email']]);
         Akquise::protokoll((int) $f['id'], 'einwilligung', 'Einwilligung bestätigt: ' . $e['email']);
         AkquiseGate::statusSpeichern((int) $f['id']);
+        /* Folge-Mails vormerken (27.09.2026). Ob und wann sie rausgehen, entscheiden Schalter, freigegebene Texte und das Gate. */
+        try { require_once __DIR__ . '/AkquiseFolge.php'; AkquiseFolge::starten((int) $f['id']); } catch (Throwable $x) { }
         try { Events::melden('akquise_einwilligung', 'Akquise: ' . $f['name'] . ' hat eingewilligt — E-Mail erlaubt', 'gut', $e['email'], 'akquise/' . $f['id']); }
         catch (Throwable $x) { }
         return ['ok' => true, 'firma' => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $f['id']]) ?? $f, 'sprache' => (string) $e['sprache']];

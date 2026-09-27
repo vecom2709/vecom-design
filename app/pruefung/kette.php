@@ -10841,6 +10841,16 @@ $akGrund = $akSend($akV1);
 pruefe('die Notbremse hält jeden Versand an', $akGrund !== null && str_contains($akGrund, 'Notbremse'), (string) $akGrund);
 AkquiseGate::notbremse(false);
 AkquiseGate::setzen('akq_pause_sekunden', '0');
+/* Testbetrieb (27.09.2026, ab Werk an): alles läuft wie echt, am Ende nur „simuliert“. */
+pruefe('Testbetrieb ist ab Werk an', AkquiseGate::testbetrieb());
+$akSimVorher = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise'", [], 0);
+$akGrund = $akSend($akV1);
+pruefe('Testbetrieb: mit allem erlaubt entsteht nur ein Eintrag „simuliert“ — keine Mail, Vorlage und Kontaktstand unverändert',
+    $akGrund === null && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status = 'simuliert'", [$akA['id']]) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'akquise'", [], 0) === $akSimVorher
+    && Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$akV1], '') === 'freigegeben'
+    && Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [$akA['id']], '') !== 'kontaktiert', (string) $akGrund);
+AkquiseGate::testbetriebSetzen(false);
 $akGrund = $akSend($akV1);
 pruefe('mit allem erlaubt geht es bis zum Postausgang — ohne Brevo scheitert es ehrlich', $akGrund !== null && str_contains($akGrund, 'gescheitert'), (string) $akGrund);
 pruefe('ein gescheiterter Versand macht die Firma nicht zu „kontaktiert"',
@@ -12643,6 +12653,115 @@ $wcI18n = [];
 foreach (['it', 'de', 'en'] as $wcSp) { $wcJs = (string) file_get_contents($wurzel . "/../assets/js/i18n-$wcSp.js");
     foreach (['cta_check: "', ' check: "', 'l6: "'] as $wcKey) { if (substr_count($wcJs, $wcKey) !== 1) { $wcI18n[] = "$wcSp:$wcKey"; } } }
 pruefe('Startseite: die drei neuen Texte je Sprache genau einmal (kein doppelter Schlüssel)', $wcI18n === [], implode(', ', $wcI18n));
+
+/* ============================================================================
+   Schalter, Testbetrieb und Folge-Mails (27.09.2026)
+   Der Hauptschalter geht vor; der Testbetrieb schiebt die echte Folge nie
+   weiter; vor jeder Folge-Mail entscheiden Gate, Text-Freigabe und Grenzen.
+   ============================================================================ */
+abschnitt('Schalter, Testbetrieb und Folge-Mails');
+require_once $wurzel . '/src/AkquiseFolge.php';
+require_once $wurzel . '/src/AkquiseWorker.php';
+pruefe('Schalter ab Werk: Automatik, Suche, Prüfung, Texte an — Folge-Mails aus',
+    AkquiseGate::schalter('automatik') && AkquiseGate::schalter('recherche') && AkquiseGate::schalter('audit') && AkquiseGate::schalter('ki') && !AkquiseGate::schalter('folge'));
+AkquiseGate::schalterSetzen('folge', true);
+AkquiseGate::schalterSetzen('automatik', false);
+pruefe('Hauptschalter aus: alle Teile ruhen, obwohl sie selbst an stehen',
+    !AkquiseGate::schalter('folge') && !AkquiseGate::schalter('audit') && AkquiseGate::schalterSelbst('folge'));
+pruefe('Worker: bei ausgeschalteter Automatik keine Suchaufträge, keine Prüfungen, keine Texte',
+    AkquiseWorker::ausfuehren('lauf_holen', [])['lauf'] === null && AkquiseWorker::ausfuehren('audits_holen', [])['firmen'] === []
+    && AkquiseWorker::ausfuehren('texte_holen', [])['firmen'] === [] && AkquiseWorker::ausfuehren('hallo', [])['schalter']['audit'] === false);
+AkquiseGate::schalterSetzen('automatik', true);
+pruefe('Folge-Mails: fünf Schritte in drei Sprachen als Entwurf, jeder Ausgangstext ohne fremden Platzhalter',
+    AkquiseFolge::vorlagenAnlegen() === 15 && (int) Db::wert("SELECT COUNT(*) FROM akq_folge_vorlagen WHERE status = 'entwurf'", [], 0) === 15
+    && AkquiseFolge::vorlagenAnlegen() === 0);
+$foFremd = [];
+foreach (AkquiseFolge::TEXTE as $foS => $foJe) { foreach ($foJe as $foSp => [$foB, $foT]) { preg_match_all('~\{[a-z_]+\}~', $foB . $foT, $foM); foreach (array_diff($foM[0], AkquiseFolge::PLATZHALTER) as $x) { $foFremd[] = "$foS.$foSp:$x"; } } }
+pruefe('Folge-Mails: Ausgangstexte nur mit bekannten Platzhaltern', $foFremd === [], implode(', ', $foFremd));
+$foA = Akquise::firmaMelden(['name' => 'Enoteca Folge', 'land' => 'IT', 'stadt' => 'Sciacca', 'url' => 'https://enoteca-folge.example/', 'quelle' => 'test:folge1']);
+$foF = (int) $foA['id'];
+pruefe('ohne Einwilligung beginnt keine Folge', AkquiseFolge::starten($foF) === false);
+$foEw = AkquiseEinwilligung::link($foF, 'link');
+AkquiseEinwilligung::anfragen((string) $foEw['link_token'], 'titolare@enoteca-folge.example', true, 'it');
+$foDoi = (string) Db::wert("SELECT doi_token FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt' ORDER BY id DESC LIMIT 1", [$foF], '');
+AkquiseEinwilligung::bestaetigen($foDoi);
+$foZ = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [$foF]);
+Db::run("UPDATE akq_folgen SET status = 'beendet' WHERE firma_id <> ?", [$foF]);   // Folgen aus früheren Abschnitten stören die Zählung
+pruefe('Klick in der Bestätigungsmail startet die Folge (Italienisch, Schritt 1 fällig) — nur einmal',
+    $foZ && $foZ['status'] === 'laeuft' && (int) $foZ['schritt'] === 0 && $foZ['sprache'] === 'it' && AkquiseFolge::starten($foF) === false);
+AkquiseGate::schalterSetzen('folge', false);
+pruefe('Schalter „Folge-Mails“ aus: der Lauf tut nichts', (AkquiseFolge::lauf()['hinweis'] ?? '') === 'Folge-Mails sind ausgeschaltet.');
+AkquiseGate::schalterSetzen('folge', true);
+$foL = AkquiseFolge::lauf();
+pruefe('ohne freigegebenen Text wartet die Folge (mit Grund)', $foL['wartet'] >= 1 && $foL['geschickt'] === 0
+    && str_contains((string) Db::wert('SELECT grund FROM akq_folgen WHERE firma_id = ?', [$foF], ''), 'nicht freigegeben'));
+$foV1 = (int) Db::wert("SELECT id FROM akq_folge_vorlagen WHERE schritt = 1 AND sprache = 'it'", [], 0);
+AkquiseFolge::freigeben($foV1);
+AkquiseGate::testbetriebSetzen(true);
+AkquiseGate::setzen('akq_versand_an', '1'); AkquiseGate::setzen('akq_fehler_grenze', '50'); AkquiseGate::setzen('akq_pause_sekunden', '0'); AkquiseGate::setzen('akq_limit_stunde', '50');
+$foPost = [];
+AkquiseVersand::$postbote = static function (string $an, string $b, string $t) use (&$foPost): bool { $foPost[] = [$an, $b, $t]; return true; };
+$foL = AkquiseFolge::lauf();
+$foZ = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [$foF]);
+pruefe('Testbetrieb: Schritt 1 wird einmal simuliert — keine Mail, die echte Folge bleibt bei 0',
+    $foL['simuliert'] === 1 && $foPost === [] && (int) $foZ['schritt'] === 0 && (int) $foZ['simuliert'] === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status = 'simuliert'", [$foF], 0) === 1);
+pruefe('Testbetrieb: derselbe Schritt wird nicht jede Stunde neu simuliert', AkquiseFolge::lauf()['simuliert'] === 0);
+AkquiseGate::testbetriebSetzen(false);
+$foL = AkquiseFolge::lauf();
+$foZ = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [$foF]);
+pruefe('Echtbetrieb: Schritt 1 geht raus — gefüllt, mit Abmeldelink, nächster Schritt in 3 Tagen',
+    $foL['geschickt'] === 1 && count($foPost) === 1 && $foPost[0][0] === 'titolare@enoteca-folge.example'
+    && str_contains($foPost[0][2], 'enoteca-folge.example') && !preg_match('~\{[a-z_]+\}~', $foPost[0][1] . $foPost[0][2])
+    && str_contains($foPost[0][2], '/widerspruch.php?t=') && (int) $foZ['schritt'] === 1
+    && abs(strtotime((string) $foZ['naechst_am']) - (time() + 3 * 86400)) < 120, json_encode($foPost[0][1] ?? ''));
+pruefe('Folge-Mail 2 ist noch nicht fällig — nichts geht raus', AkquiseFolge::lauf()['geschickt'] === 0 && count($foPost) === 1);
+Db::run('UPDATE akq_folgen SET naechst_am = ? WHERE firma_id = ?', [date('Y-m-d H:i:s'), $foF]);
+$foL = AkquiseFolge::lauf();
+pruefe('Schritt 2 fällig, aber sein Text nicht freigegeben: wartet, auch wenn Schritt 1 frei ist', $foL['wartet'] === 1 && count($foPost) === 1);
+AkquiseFolge::vorlageSpeichern($foV1, 'Nuovo oggetto {firma}', "Testo nuovo per {firma}, abbastanza lungo.");
+pruefe('geänderter Text ist wieder Entwurf (neue Fassung)', Db::one('SELECT status, fassung FROM akq_folge_vorlagen WHERE id = ?', [$foV1]) === ['status' => 'entwurf', 'fassung' => 2]);
+$foFehler = null; try { AkquiseFolge::vorlageSpeichern($foV1, 'Oggetto', 'Testo con {rabatt} sconosciuto e lungo.'); } catch (RuntimeException $e) { $foFehler = $e->getMessage(); }
+pruefe('unbekannter Platzhalter wird abgelehnt', $foFehler !== null && str_contains($foFehler, '{rabatt}'));
+foreach (Db::all("SELECT id FROM akq_folge_vorlagen WHERE sprache = 'it'") as $foX) { AkquiseFolge::freigeben((int) $foX['id']); }
+Db::run('UPDATE akq_folgen SET gestartet_am = DATE_SUB(gestartet_am, INTERVAL 1 MINUTE) WHERE firma_id = ?', [$foF]);
+AkquiseVersand::antwortEintragen($foF, 'titolare@enoteca-folge.example', 'Re: analisi', 'Grazie, ci sentiamo.');
+$foL = AkquiseFolge::lauf();
+pruefe('eine Antwort pausiert die Folge — keine weitere Mail', $foL['pausiert'] === 1 && count($foPost) === 1
+    && Db::wert('SELECT status FROM akq_folgen WHERE firma_id = ?', [$foF], '') === 'pausiert');
+$foId = (int) Db::wert('SELECT id FROM akq_folgen WHERE firma_id = ?', [$foF], 0);
+AkquiseFolge::fortsetzen($foId);
+$foL = AkquiseFolge::lauf();
+pruefe('von Hand fortgesetzt: die alte Antwort hält nicht mehr an, Schritt 2 geht raus', $foL['geschickt'] === 1 && count($foPost) === 2
+    && (int) Db::wert('SELECT schritt FROM akq_folgen WHERE id = ?', [$foId], 0) === 2, json_encode($foL) . ' ' . Db::wert('SELECT CONCAT(status, \' / \', COALESCE(grund, \'\')) FROM akq_folgen WHERE id = ?', [$foId], ''));
+AkquiseGate::sperren($foF, 'Test: abgemeldet', 'abmeldung');
+Db::run('UPDATE akq_folgen SET naechst_am = ? WHERE id = ?', [date('Y-m-d H:i:s'), $foId]);
+$foL = AkquiseFolge::lauf();
+pruefe('Abmeldung beendet die Folge — keine weitere Mail', $foL['beendet'] === 1 && count($foPost) === 2
+    && Db::wert('SELECT status FROM akq_folgen WHERE id = ?', [$foId], '') === 'beendet');
+$foB = Akquise::firmaMelden(['name' => 'Bar Kunde Folge', 'land' => 'IT', 'url' => 'https://bar-kunde-folge.example/', 'quelle' => 'test:folge2']);
+Db::run("UPDATE akq_firmen SET einwilligung = 'Test-Beleg', email = 'bar@bar-kunde-folge.example' WHERE id = ?", [(int) $foB['id']]);
+AkquiseFolge::starten((int) $foB['id']);
+Db::run("UPDATE akq_firmen SET kontakt_status = 'kunde' WHERE id = ?", [(int) $foB['id']]);
+$foL = AkquiseFolge::lauf();
+pruefe('Kunde geworden: Folge endet, der Kundenweg übernimmt', Db::wert('SELECT status FROM akq_folgen WHERE firma_id = ?', [(int) $foB['id']], '') === 'beendet' && count($foPost) === 2);
+$foC = Akquise::firmaMelden(['name' => 'Hotel Grenze Folge', 'land' => 'IT', 'url' => 'https://hotel-grenze-folge.example/', 'quelle' => 'test:folge3']);
+Db::run("UPDATE akq_firmen SET einwilligung = 'Test-Beleg', email = 'info@hotel-grenze-folge.example' WHERE id = ?", [(int) $foC['id']]);
+AkquiseFolge::starten((int) $foC['id']);
+AkquiseGate::notbremse(true);
+pruefe('Notbremse: der Lauf tut nichts', (AkquiseFolge::lauf()['hinweis'] ?? '') === 'Notbremse gezogen.' && count($foPost) === 2);
+AkquiseGate::notbremse(false);
+AkquiseGate::setzen('akq_versand_an', '0');
+$foL = AkquiseFolge::lauf();
+pruefe('E-Mail-Versand aus: die Folge wartet mit Grund', $foL['wartet'] === 1 && count($foPost) === 2
+    && str_contains((string) Db::wert('SELECT grund FROM akq_folgen WHERE firma_id = ?', [(int) $foC['id']], ''), 'ausgeschaltet'));
+AkquiseVersand::$postbote = null;
+AkquiseGate::schalterSetzen('folge', false); AkquiseGate::testbetriebSetzen(true); AkquiseGate::setzen('akq_fehler_grenze', '3'); AkquiseGate::setzen('akq_limit_stunde', '3');
+$foSeite = (string) file_get_contents($wurzel . '/views/akquise_folgen.php');
+pruefe('Verwaltung: Reiter „Folge-Mails“, Freigabe je Text mit Rückfrage, Schalter unter Regeln & Versand, Cron-Lauf',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_reiter.php'), "'folgen' => 'Folge-Mails'") && str_contains($foSeite, 'value="akq_folge_freigeben"')
+    && str_contains($foSeite, 'data-frage="Diesen Text freigeben?') && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'value="akq_schalter_speichern"')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_folgen' =>"));
 
 /* ============================================================================
    Aufräumen und Bilanz

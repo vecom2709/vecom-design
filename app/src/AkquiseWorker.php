@@ -70,7 +70,8 @@ final class AkquiseWorker
             'lauf_holen'     => self::laufHolen(),
             'lauf_melden'    => self::laufMelden($d),
             'firmen_melden'  => self::firmenMelden($d),
-            'audits_holen'   => ['ok' => true, 'firmen' => Akquise::naechsteAudits((int) ($d['anzahl'] ?? 10))],
+            'audits_holen'   => AkquiseGate::schalter('audit') ? ['ok' => true, 'firmen' => Akquise::naechsteAudits((int) ($d['anzahl'] ?? 10))]
+                                                              : ['ok' => true, 'firmen' => [], 'hinweis' => 'Websites prüfen ist ausgeschaltet.'],
             'audit_melden'   => self::auditMelden($d),
             'texte_holen'    => self::texteHolen($d),
             'deutung_melden' => self::deutungMelden($d),
@@ -86,6 +87,7 @@ final class AkquiseWorker
             'ok' => true,
             'zeit' => date('c'),
             'stop' => $g['stop'],
+            'schalter' => array_combine(array_keys(AkquiseGate::SCHALTER), array_map([AkquiseGate::class, 'schalter'], array_keys(AkquiseGate::SCHALTER))),
             'branchen_stand' => substr(hash_file('sha256', __DIR__ . '/akquise_branchen.json') ?: '', 0, 12),
             'kennzahlen' => Akquise::kennzahlen(),
         ];
@@ -94,6 +96,7 @@ final class AkquiseWorker
     private static function laufHolen(): array
     {
         if (AkquiseGate::grenzen()['stop']) { return ['ok' => true, 'lauf' => null, 'hinweis' => 'Notbremse gezogen.']; }
+        if (!AkquiseGate::schalter('recherche')) { return ['ok' => true, 'lauf' => null, 'hinweis' => 'Betriebe suchen ist ausgeschaltet.']; }
         // Haengengebliebene Laeufe (Worker abgestuerzt) nach sechs Stunden freigeben.
         Db::run("UPDATE akq_laeufe SET status = 'wartet' WHERE status = 'laeuft' AND gestartet_am < DATE_SUB(NOW(), INTERVAL 6 HOUR)");
         $l = Db::one("SELECT * FROM akq_laeufe WHERE status = 'wartet' ORDER BY id LIMIT 1");
@@ -188,6 +191,7 @@ final class AkquiseWorker
      */
     private static function texteHolen(array $d): array
     {
+        if (!AkquiseGate::schalter('ki')) { return ['ok' => true, 'firmen' => [], 'hinweis' => 'Texte von Claude sind ausgeschaltet.']; }
         $min = max(0, min(100, (int) ($d['score_min'] ?? 51)));
         $anzahl = max(1, min(20, (int) ($d['anzahl'] ?? 5)));
         $firmen = Db::all("SELECT f.* FROM akq_firmen f

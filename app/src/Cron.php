@@ -255,6 +255,11 @@ final class Cron
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquisePostfach'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return AkquisePostfach::lauf();
             },
+            /* Folge-Mails (27.09.2026): fällige Schritte, soweit Schalter, Texte, Gate und Grenzen es zulassen. */
+            'akquise_folgen' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseFolge'] as $k) { require_once __DIR__ . "/$k.php"; }
+                return AkquiseFolge::lauf();
+            },
             /* Website-Checks: persönliche Felder nach der Frist leeren (einmal am Tag). */
             'akquise_checks' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseCheck'] as $k) { require_once __DIR__ . "/$k.php"; }
