@@ -102,20 +102,30 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <?php endif; ?>
 </div>
 
-<?php $ausw = array_values(array_filter($auswertung ?? [], static fn($z) => (int) $z['klicks'] + (int) $z['kunden'] > 0)); if ($ausw): ?>
-<div class="block">
-  <h2 style="font-size:15px;margin:0 0 6px">Lohnt es sich? <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate, beste zuerst</span></h2>
+<?php /* Rangliste (27.09.2026): alle aktiven und pausierten, sortierbar, stille markiert. */
+  $sortWort = ['umsatz' => 'Umsatz', 'kunden' => 'Kunden', 'klicks' => 'Klicks', 'letzte' => 'Letzte Aktivität', 'name' => 'Name'];
+  $sortLink = static fn(string $k, string $wort) => '<a href="' . Fmt::h(url('partner') . '?sort=' . $k) . '#rangliste"' . (($sortierung ?? 'umsatz') === $k ? ' style="color:var(--text);font-weight:700" aria-current="true"' : ' style="color:inherit"') . '>' . Fmt::h($wort) . (($sortierung ?? 'umsatz') === $k ? ' ↓' : '') . '</a>';
+  $stille = count(array_filter($rangliste ?? [], static fn($z) => $z['still'])); ?>
+<?php if (!empty($rangliste)): ?>
+<div class="block" id="rangliste">
+  <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?></span>
+    <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px">Vorlagen pflegen</a></h2>
   <div class="tabellenrahmen"><table>
-    <thead><tr><th>Partner</th><th style="text-align:right">Klicks</th><th style="text-align:right">Kunden</th><th style="text-align:right">Umsatz (netto)</th>
-               <th style="text-align:right">Provision</th><th style="text-align:right">je Kunde</th><th>Kanäle</th></tr></thead><tbody>
-    <?php foreach ($ausw as $z): ?>
-      <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $z['id'])) ?>"><?= Fmt::h($z['name']) ?></a></td>
-          <td style="text-align:right"><?= (int) $z['klicks'] ?></td><td style="text-align:right"><?= (int) $z['kunden'] ?></td>
+    <thead><tr><th><?= $sortLink('name', 'Partner') ?></th><th style="text-align:right"><?= $sortLink('klicks', 'Klicks') ?></th><th style="text-align:right">30 Tage</th>
+               <th style="text-align:right"><?= $sortLink('kunden', 'Kunden') ?></th><th style="text-align:right"><?= $sortLink('umsatz', 'Umsatz (netto)') ?></th>
+               <th style="text-align:right">Provision</th><th><?= $sortLink('letzte', 'Letzte Aktivität') ?></th><th>Kanäle</th></tr></thead><tbody>
+    <?php foreach ($rangliste as $z): ?>
+      <tr<?= $z['still'] ? ' style="background:rgba(255,159,90,.05)"' : '' ?>>
+          <td><a href="<?= Fmt::h(url('partner/' . (int) $z['id'])) ?>"><?= Fmt::h($z['name']) ?></a>
+            <?php if ($z['status'] === 'pausiert'): ?><span class="marke2 warnung" style="margin-left:4px">pausiert</span><?php endif; ?>
+            <?php if ($z['still']): ?><span class="marke2 warnung" style="margin-left:4px" title="<?= $z['weckruf_am'] ? 'Weckruf zuletzt ' . Fmt::h(Fmt::datum((string) $z['weckruf_am'])) : ($z['push'] ? 'Weckruf kommt automatisch' : 'Hinweise aus — kein Weckruf möglich') ?>">still</span><?php endif; ?></td>
+          <td style="text-align:right"><?= (int) $z['klicks'] ?></td><td style="text-align:right"><?= (int) $z['klicks30'] ?></td><td style="text-align:right"><?= (int) $z['kunden'] ?></td>
           <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['umsatz'])) ?></td><td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['provision'])) ?></td>
-          <td style="text-align:right"><?= (int) $z['kunden'] > 0 ? Fmt::h(Fmt::geld((int) $z['je_kunde'])) : '—' ?></td>
+          <td style="font-size:12.5px;color:var(--dim);white-space:nowrap"><?= $z['letzte'] ? Fmt::h(Fmt::datum((string) $z['letzte'])) : '—' ?></td>
           <td style="font-size:12px;color:var(--dim)"><?= Fmt::h(implode(' · ', array_map(static fn($k) => $k['kanal'] . ' ' . $k['klicks'] . '/' . $k['kunden'], $z['kanaele']))) ?: '—' ?></td></tr>
     <?php endforeach; ?></tbody></table></div>
-  <p style="color:var(--leise);font-size:12px;margin-top:6px">Kanäle: Klicks/Kunden. Umsatz = bezahlte Beträge der Kunden dieses Partners (netto), ohne Erstattetes.</p>
+  <p style="color:var(--leise);font-size:12px;margin-top:6px">Kanäle: Klicks/Kunden. Umsatz = bezahlte Beträge der Kunden dieses Partners (netto), ohne Erstattetes.
+    „Still“: aktiv, älter als 30 Tage, kein Klick in 30 Tagen — bekommt automatisch höchstens einmal im Monat einen Weckruf aufs Handy (wenn Hinweise an).</p>
 </div>
 <?php endif; ?>
 

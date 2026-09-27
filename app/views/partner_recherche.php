@@ -139,8 +139,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
 
   <div class="leitfaden" style="margin-top:22px">
     <h3 class="md-h"><?= $h($T('lf_titel')) ?></h3>
-    <?php foreach (Texte::PARTNER_LEITFADEN as $abschnitt): ?>
-      <details><summary><?= $h(Texte::h($abschnitt['titel'], $sprache)) ?></summary><pre><?= $h(Texte::h($abschnitt['text'], $sprache)) ?></pre></details>
+    <?php foreach (Texte::PARTNER_LEITFADEN as $li => $abschnitt): ?>
+      <details><summary><?= $h(PartnerVorlagen::text("leitfaden.$li.titel", $sprache, Texte::h($abschnitt['titel'], $sprache))) ?></summary><pre><?= $h(PartnerVorlagen::text("leitfaden.$li.text", $sprache, Texte::h($abschnitt['text'], $sprache))) ?></pre></details>
     <?php endforeach; ?>
   </div>
 </div>

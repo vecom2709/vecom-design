@@ -439,7 +439,7 @@ if ($p && isset($_GET['karte'])) {
       <h2><?= $h($T('so_titel')) ?></h2>
       <?= $so() ?>
       <details class="faq" style="margin:14px 0"><summary style="cursor:pointer;color:var(--cyan)"><?= $h($T('faq_titel')) ?></summary>
-        <pre><?= $h($Tp('faq')) ?></pre></details>
+        <pre><?= $h(strtr(PartnerVorlagen::text('faq', $sprache, $T('faq')), $platz)) ?></pre></details>
       <?php if (!$offen): ?>
         <div class="hinweis"><?= $h($T('zu')) ?></div>
       <?php else: ?>
@@ -542,7 +542,7 @@ if ($p && isset($_GET['karte'])) {
     <details style="margin-top:14px"<?= $naechst === 'n_teilen' ? ' open' : '' ?>><summary style="cursor:pointer;color:var(--cyan);font-size:14px"><?= $h($T('so_titel')) ?></summary>
       <?= $so() ?>
       <details class="faq" style="margin-top:10px"><summary style="cursor:pointer;color:var(--cyan);font-size:13.5px"><?= $h($T('faq_titel')) ?></summary>
-        <pre><?= $h($Tp('faq')) ?></pre></details>
+        <pre><?= $h(strtr(PartnerVorlagen::text('faq', $sprache, $T('faq')), $platz)) ?></pre></details>
     </details>
   </div>
 

@@ -12030,6 +12030,63 @@ pruefe('Landeseite: Stimmen, Rückruf (nur wenn eingeschaltet, zurück mit n=1) 
     && str_contains($rrLp, "'n' => 1] + \$extra") && str_contains($rrLp, 'type="range"') && str_contains($rrLp, "\$PS['vn_regler']"));
 
 /* ============================================================================
+   Partner steuern: Rangliste, Weckruf, Vorlagen im Admin (27.09.2026, Uwe: Ja)
+   ============================================================================ */
+abschnitt('Partner steuern: Rangliste, Weckruf, Vorlagen');
+require_once $wurzel . '/src/PartnerSteuerung.php';
+require_once $wurzel . '/src/PartnerVorlagen.php';
+$stA = Partner::anlegen(['name' => 'Anton Aktiv', 'email' => 'anton@partner.example', 'status' => 'aktiv', 'code' => 'ANTONST1', 'firma' => '', 'sprache' => 'it']);
+$stB = Partner::anlegen(['name' => 'Berta Still', 'email' => 'berta@partner.example', 'status' => 'aktiv', 'code' => 'BERTAST1', 'firma' => '', 'sprache' => 'de']);
+$stC = Partner::anlegen(['name' => 'Carla Neu', 'email' => 'carla@partner.example', 'status' => 'aktiv', 'code' => 'CARLAST1', 'firma' => '', 'sprache' => 'de']);
+Db::run("UPDATE partner SET created_at = NOW() - INTERVAL 90 DAY, vereinbarung_am = NOW() - INTERVAL 80 DAY WHERE id IN (?, ?)", [$stA, $stB]);
+Db::run("UPDATE partner SET vereinbarung_am = NOW() WHERE id = ?", [$stC]);
+Db::run('INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE() - INTERVAL 3 DAY, 12), (?, CURDATE() - INTERVAL 50 DAY, 40)', [$stA, $stB]);
+$stR = PartnerSteuerung::rangliste('klicks');
+$stZ = static fn(int $id) => array_values(array_filter($stR, static fn($z) => (int) $z['id'] === $id))[0] ?? null;
+pruefe('Rangliste: alle aktiven, auch ohne Klicks und Kunden', $stZ($stA) !== null && $stZ($stB) !== null && $stZ($stC) !== null);
+pruefe('… „still“ = älter als 30 Tage und 30 Tage kein Klick (neue Partner nicht)', $stZ($stB)['still'] && !$stZ($stA)['still'] && !$stZ($stC)['still']
+    && $stZ($stA)['klicks30'] === 12 && $stZ($stB)['klicks30'] === 0);
+pruefe('… letzte Aktivität aus den Spuren (hier: der letzte Klicktag)', substr((string) $stZ($stB)['letzte'], 0, 10) === date('Y-m-d', strtotime('-50 days')));
+$stNamen = array_column(PartnerSteuerung::rangliste('name'), 'name');
+$stSortiert = $stNamen; sort($stSortiert, SORT_FLAG_CASE | SORT_STRING);
+pruefe('… sortierbar (Name, Klicks, Kunden, Umsatz, letzte Aktivität); Unbekanntes fällt auf Umsatz', $stNamen === $stSortiert
+    && (int) PartnerSteuerung::rangliste('klicks')[0]['klicks'] >= (int) PartnerSteuerung::rangliste('klicks')[1]['klicks'] && PartnerSteuerung::rangliste('; DROP') !== []);
+foreach ([$stA, $stB, $stC] as $stP) {
+    [, $stPunkt] = WebPush::paar();
+    PartnerPost::aboSpeichern($stP, 'https://push.example.org/st' . $stP, WebPush::b64($stPunkt), WebPush::b64(random_bytes(16)));
+}
+$stPost = [];
+WebPush::$probe = static function (string $z) use (&$stPost): int { $stPost[] = $z; return 201; };
+pruefe('Weckruf: nachts nicht', PartnerSteuerung::weckruf(strtotime('today 23:00')) === 0 && $stPost === []);
+$stN = PartnerSteuerung::weckruf(strtotime('today 11:00'));
+pruefe('Weckruf: nur an die stille Berta (nicht an aktive, nicht an neue)', in_array('https://push.example.org/st' . $stB, $stPost, true)
+    && !in_array('https://push.example.org/st' . $stA, $stPost, true) && !in_array('https://push.example.org/st' . $stC, $stPost, true));
+$stVor = count($stPost);
+PartnerSteuerung::weckruf(strtotime('today 11:00') + 86400 * 5);
+pruefe('Weckruf: höchstens einmal im Monat', count($stPost) === $stVor);
+WebPush::$probe = null;
+pruefe('Weckruf läuft im Partner-Cron', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'weckrufe' => PartnerSteuerung::weckruf()"));
+
+$stKat = PartnerVorlagen::katalog();
+pruefe('Vorlagen: jede Werbevorlage, die FAQ und jeder Leitfaden-Abschnitt ist pflegbar', isset($stKat['werbung.whatsapp.status.text'], $stKat['faq'], $stKat['leitfaden.0.text'])
+    && count(array_filter(array_keys($stKat), static fn($k) => str_starts_with($k, 'werbung.'))) >= 10);
+pruefe('Vorlagen: ohne {link} wird nicht gespeichert', PartnerVorlagen::speichern('werbung.whatsapp.status.text', 'de', 'Kennt ihr jemanden? Meldet euch!') === 'platzhalter:{link}');
+pruefe('Vorlagen: unbekannte Vorlage oder Sprache → abgelehnt', PartnerVorlagen::speichern('werbung.gibtsnicht.x.text', 'de', 'x {link}') === 'unbekannt'
+    && PartnerVorlagen::speichern('faq', 'fr', 'x') === 'unbekannt');
+PartnerVorlagen::speichern('werbung.whatsapp.status.text', 'de', "Neu: Websites mit klarem Preis 👉 {link}\n#Werbung");
+$stPa = Db::one('SELECT * FROM partner WHERE id = ?', [$stB]);
+$stV = array_values(array_filter(PartnerWerbung::vorlagen($stPa, 'de')['whatsapp'], static fn($v) => $v['id'] === 'whatsapp_status'))[0] ?? null;
+pruefe('Vorlagen: Uwes Fassung erscheint beim Partner, mit seinem Link; andere Sprachen bleiben Standard',
+    $stV !== null && str_starts_with($stV['text'], 'Neu: Websites mit klarem Preis') && str_contains($stV['text'], '/p/BERTAST1/whatsapp')
+    && !str_contains((string) (array_values(array_filter(PartnerWerbung::vorlagen($stPa, 'it')['whatsapp'], static fn($v) => $v['id'] === 'whatsapp_status'))[0]['text'] ?? ''), 'Neu: Websites'));
+pruefe('Vorlagen: Vorschau füllt Beispielwerte', str_contains(PartnerVorlagen::vorschau('werbung.whatsapp.status.text', '{name}: {link}'), 'Maria Rossi: https://vecom-design.it/p/MARIA26/whatsapp'));
+PartnerVorlagen::speichern('werbung.whatsapp.status.text', 'de', '');
+$stV2 = array_values(array_filter(PartnerWerbung::vorlagen($stPa, 'de')['whatsapp'], static fn($v) => $v['id'] === 'whatsapp_status'))[0] ?? null;
+pruefe('Vorlagen: leeren = zurück zum Standard', (int) Db::wert('SELECT COUNT(*) FROM partner_vorlagen_text', [], 0) === 0 && str_starts_with((string) $stV2['text'], 'Kennst du jemanden'));
+pruefe('Admin: Seite /partner/vorlagen und Tat partner_vorlage', str_contains((string) file_get_contents($wurzel . '/index.php'), "if (\$unter === 'vorlagen')")
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_vorlage':") && is_file($wurzel . '/views/partner_vorlagen.php'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

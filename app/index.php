@@ -584,6 +584,23 @@ if ($post) {
                 } catch (InvalidArgumentException $e) { $_SESSION['fehler'] = 'Die Nachricht ist leer.'; }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0) . '#nachrichten');
 
+            case 'partner_vorlage':
+                /* Werbevorlage, FAQ oder Leitfaden in Uwes Fassung (27.09.2026). Leer = Standard. */
+                require_once __DIR__ . '/src/PartnerVorlagen.php';
+                $pvS = (string) ($_POST['schluessel'] ?? '');
+                $pvFehler = [];
+                foreach (['it', 'de', 'en'] as $pvL) {
+                    $pvR = PartnerVorlagen::speichern($pvS, $pvL, (string) ($_POST['text'][$pvL] ?? ''));
+                    if ($pvR !== 'ok') {
+                        $pvFehler[] = strtoupper($pvL) . ': ' . (str_starts_with($pvR, 'platzhalter:') ? substr($pvR, 12) . ' fehlt — ohne ihn fehlt dem Partner der Link oder sein Name'
+                            : ($pvR === 'zu_lang' ? 'zu lang (höchstens ' . PartnerVorlagen::MAX . ' Zeichen)' : 'unbekannte Vorlage'));
+                    }
+                }
+                if ($pvFehler) { $_SESSION['fehler'] = 'Nicht alles gespeichert — ' . implode(' · ', $pvFehler); }
+                else { $_SESSION['gut'] = 'Gespeichert. Die Partner sehen die neue Fassung sofort.'; }
+                Events::protokoll('partner_vorlage', 'Partner-Vorlage bearbeitet: ' . $pvS, null, null, null, ['schluessel' => $pvS]);
+                weiter('partner/vorlagen#v-' . preg_replace('~[^a-z0-9]+~', '-', $pvS));
+
             case 'partner_seite_zurueck':
                 require_once __DIR__ . '/src/PartnerSeite.php';
                 PartnerSeite::zuruecksetzen((int) ($_POST['id'] ?? 0));
@@ -3104,6 +3121,11 @@ switch ($route) {
 
     case 'partner':
         require_once __DIR__ . '/src/Partner.php';
+        if ($unter === 'vorlagen') {
+            require_once __DIR__ . '/src/PartnerVorlagen.php';
+            ansicht('partner_vorlagen', ['katalog' => PartnerVorlagen::katalog()]);
+            break;
+        }
         if ($id !== null && isset($_GET['beleg'])) {
             $a = Db::one('SELECT id FROM partner_auszahlungen WHERE id = ? AND partner_id = ?', [(int) $_GET['beleg'], $id]);
             $pdf = $a ? Partner::belegPdf((int) $a['id']) : null;
@@ -3151,6 +3173,8 @@ switch ($route) {
                   WHERE a.status = 'offen' ORDER BY a.id"), []),
             'handarbeit' => sicher(static fn() => PartnerWege::handarbeit(), []),
             'auswertung' => sicher(static fn() => Partner::auswertung(12), []),
+            'rangliste' => sicher(static function () { require_once __DIR__ . '/src/PartnerSteuerung.php'; return PartnerSteuerung::rangliste((string) ($_GET['sort'] ?? 'umsatz')); }, []),
+            'sortierung' => (string) ($_GET['sort'] ?? 'umsatz'),
             'liste' => sicher(static fn() => Db::all(
                 "SELECT p.*,
                         (SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks k WHERE k.partner_id = p.id) AS klicks,

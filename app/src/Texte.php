@@ -2940,6 +2940,7 @@ final class Texte
         'n_weg'      => ['it' => 'Indichi come vuole ricevere il denaro (sezione «Come ricevere i pagamenti»).', 'de' => 'Legen Sie fest, wie Sie Ihr Geld bekommen (Abschnitt „Wie Sie Ihr Geld bekommen“).', 'en' => 'Choose how you want to be paid (section “How you get paid”).'],
         'n_teilen'   => ['it' => 'Tutto pronto. Ora condivida il suo link — per esempio via WhatsApp.', 'de' => 'Alles eingerichtet. Jetzt Ihren Link teilen — zum Beispiel per WhatsApp.', 'en' => 'All set. Now share your link — for example on WhatsApp.'],
         'n_laeuft'   => ['it' => 'Tutto a posto. Le provvigioni arrivano da sole appena pronte.', 'de' => 'Alles läuft. Provisionen kommen von selbst, sobald sie fällig sind.', 'en' => 'All good. Commissions arrive by themselves as soon as they’re due.'],
+        'weck_titel' => ['it' => 'Il suo link aspetta da un mese', 'de' => 'Ihr Link wartet seit einem Monat', 'en' => 'Your link has been waiting a month'],
         'teilen_mehr' => ['it' => 'Condividere …', 'de' => 'Teilen …', 'en' => 'Share …'],
         'teilen_mail' => ['it' => 'Per e-mail', 'de' => 'Per E-Mail', 'en' => 'By email'],
         'teilen_ansehen' => ['it' => 'Vedere la pagina', 'de' => 'Seite ansehen', 'en' => 'View the page'],

@@ -18,6 +18,8 @@ declare(strict_types=1);
  * UWG in Deutschland). Ein Partner, der das vergisst, riskiert eine
  * Abmahnung — und wir mit ihm, weil der Text von uns stammt.
  */
+require_once __DIR__ . '/PartnerVorlagen.php';
+
 final class PartnerWerbung
 {
     /** Kanäle mit Vorlagen, in der Reihenfolge der Reiter. */
@@ -50,8 +52,10 @@ final class PartnerWerbung
         foreach (self::KANAELE as $k) {
             $link = self::link($p, $k);
             foreach (Texte::PARTNER_WERBUNG['vorlagen'][$k] ?? [] as $id => $v) {
-                $fuell = static fn(?array $t): string => $t === null ? '' : strtr(Texte::h($t, $sprache), ['{link}' => $link, '{name}' => $name]);
-                $text = $fuell($v['text']); $betreff = $fuell($v['betreff'] ?? null);
+                // Uwes eigene Fassung aus dem Admin geht vor (PartnerVorlagen, 27.09.2026).
+                $fuell = static fn(?array $t, string $teil): string => $t === null ? '' : strtr(
+                    PartnerVorlagen::text("werbung.$k.$id.$teil", $sprache, Texte::h($t, $sprache)), ['{link}' => $link, '{name}' => $name]);
+                $text = $fuell($v['text'], 'text'); $betreff = $fuell($v['betreff'] ?? null, 'betreff');
                 $aus[$k][] = ['id' => $k . '_' . $id, 'titel' => Texte::h($v['titel'], $sprache), 'betreff' => $betreff,
                     'text' => $text, 'teilen' => self::teilen($k, $text, $betreff, $link), 'link' => $link];
             }
