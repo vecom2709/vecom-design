@@ -549,6 +549,9 @@ final class Akquise
      * NEUPRUEFUNG_TAGE zurueckliegt. Gesperrte nie -- wer nicht angesprochen
      * werden will, dessen Seite braucht auch kein Gutachten.
      */
+    /** Ab so vielen geprüften Websites entsteht eine Branchen-Seite (= BranchenStatistik::MIN). */
+    public const GRUPPE_MIN = 15;
+
     public static function naechsteAudits(int $anzahl = 10): array
     {
         $anzahl = max(1, min(50, $anzahl));
@@ -556,10 +559,41 @@ final class Akquise
            abgestuerzt. Dann darf ein neuer Lauf die Firma wieder nehmen. */
         Db::run("UPDATE akq_firmen SET audit_status = 'offen'
                   WHERE audit_status = 'laeuft' AND updated_at < DATE_SUB(NOW(), INTERVAL 2 HOUR)");
-        $zeilen = Db::all(
+        /* Gezielt nach Branche + Ort (29.09.2026, Uwe: Ja): zuerst die größten
+           Gruppen, die noch keine 15 geprüften Websites haben -- dann entsteht
+           die Branchen-Seite (W1) nach wenigen Nächten statt verstreut über
+           Monate. Eine GROUP-BY-Abfrage je Abruf, danach wie bisher. */
+        // Wer über den Website-Check die ausführliche Analyse will, geht allem vor
+        $zeilen = Db::all("SELECT f.id, f.kennung, f.name, f.url, f.domain, f.land, f.branche, f.stadt, f.sprache, f.tourismus
+                             FROM akq_firmen f JOIN akq_checks c ON c.firma_id = f.id AND c.ausfuehrlich = 1 AND c.status = 'neu'
+                            WHERE f.gesperrt = 0 AND f.url IS NOT NULL AND f.domain IS NOT NULL AND f.audit_status = 'offen'
+                         GROUP BY f.id ORDER BY MIN(c.id) LIMIT " . $anzahl);
+        try {
+            $ziele = Db::all("SELECT land, branche, stadt, SUM(audit_status = 'fertig') AS fertig, SUM(audit_status = 'laeuft') AS laeuft
+                                FROM akq_firmen
+                               WHERE gesperrt = 0 AND url IS NOT NULL AND domain IS NOT NULL AND branche IS NOT NULL AND stadt IS NOT NULL AND stadt <> ''
+                            GROUP BY land, branche, stadt
+                              HAVING COUNT(*) >= ? AND fertig < ? AND SUM(audit_status = 'offen') > 0
+                            ORDER BY COUNT(*) DESC LIMIT 12", [self::GRUPPE_MIN, self::GRUPPE_MIN]);
+            foreach ($ziele as $zg) {
+                if (count($zeilen) >= $anzahl) { break; }
+                $weg = array_map(static fn($z) => (int) $z['id'], $zeilen);
+                $fehlt = min($anzahl - count($zeilen), self::GRUPPE_MIN + 3 - (int) $zg['fertig'] - (int) $zg['laeuft']);
+                if ($fehlt < 1) { continue; }   // drei mehr, falls Websites tot sind
+                $zeilen = array_merge($zeilen, Db::all(
+                    "SELECT id, kennung, name, url, domain, land, branche, stadt, sprache, tourismus
+                       FROM akq_firmen
+                      WHERE gesperrt = 0 AND url IS NOT NULL AND domain IS NOT NULL AND audit_status = 'offen'
+                        AND land = ? AND branche = ? AND stadt = ?" . ($weg ? ' AND id NOT IN (' . implode(',', $weg) . ')' : '') . "
+                   ORDER BY recherchiert_am ASC, id ASC LIMIT " . max(1, (int) $fehlt), [$zg['land'], $zg['branche'], $zg['stadt']]));
+            }
+        } catch (Throwable $e) { $zeilen = []; }
+        $schon = array_map(static fn($z) => (int) $z['id'], $zeilen);
+        $rest = $anzahl - count($zeilen);
+        $zeilen = array_merge($zeilen, $rest <= 0 ? [] : Db::all(
             "SELECT id, kennung, name, url, domain, land, branche, stadt, sprache, tourismus
                FROM akq_firmen
-              WHERE gesperrt = 0 AND url IS NOT NULL AND domain IS NOT NULL
+              WHERE gesperrt = 0 AND url IS NOT NULL AND domain IS NOT NULL" . ($schon ? ' AND id NOT IN (' . implode(',', $schon) . ')' : '') . "
                 AND (audit_status = 'offen'
                      OR (audit_status = 'fertig' AND geprueft_am < DATE_SUB(NOW(), INTERVAL " . self::NEUPRUEFUNG_TAGE . " DAY))
                      -- Ein Fehler ist oft voruebergehend (Seite kurz weg, Zeitueberschreitung):
@@ -572,7 +606,7 @@ final class Akquise
                        -- Wer über den Website-Check die ausführliche Analyse will, wartet nicht hinter der Recherche.
                        EXISTS (SELECT 1 FROM akq_checks c WHERE c.firma_id = akq_firmen.id AND c.ausfuehrlich = 1 AND c.status = 'neu') DESC,
                        recherchiert_am ASC, id ASC
-              LIMIT $anzahl");
+              LIMIT $rest"));
         foreach ($zeilen as $z) {
             Db::update('akq_firmen', (int) $z['id'], ['audit_status' => 'laeuft']);
         }

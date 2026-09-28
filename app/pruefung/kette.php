@@ -14692,6 +14692,28 @@ pruefe('W4: Trichter „Weg zum Dashboard“ mit allen Stufen und je Weg',
     array_keys($wjT['stufen']) === array_keys(AkquiseAuswertung::WEG_STUFEN) && $wjT['stufen']['verwaltung'] >= count($wjIds) && $wjT['stufen']['geprueft'] >= count($wjIds)
     && is_array($wjT['wege']) && str_contains((string) file_get_contents($wurzel . '/views/akquise_auswertung.php'), 'Weg zum Dashboard'));
 foreach ($wjIds as $fid) { Db::run('DELETE FROM akq_befunde WHERE firma_id = ?', [$fid]); Db::run('DELETE FROM akq_audits WHERE firma_id = ?', [$fid]); }
+/* Prüfung gezielt nach Branche + Ort (29.09.2026, Uwe: Ja) */
+$gzIds = [];
+for ($i = 0; $i < 30; $i++) {
+    $gzIds[] = (int) Db::insert('akq_firmen', ['kennung' => 'GZ' . str_pad((string) $i, 8, '0', STR_PAD_LEFT), 'name' => 'Palestra Ziel ' . $i, 'name_norm' => 'palestra ziel ' . $i,
+        'land' => 'IT', 'branche' => 'fitness', 'stadt' => 'Sciacca', 'kreis' => 'Agrigento', 'url' => "https://ziel-$i.example", 'domain' => "ziel-$i.example",
+        'audit_status' => 'offen', 'quelle' => 'gz-kette-' . $i, 'recherchiert_am' => date('Y-m-d H:i:s')]);
+}
+$gzEinzel = (int) Db::insert('akq_firmen', ['kennung' => 'GZ99999999', 'name' => 'Einzeln Alt', 'name_norm' => 'einzeln alt', 'land' => 'IT', 'branche' => 'friseur',
+    'stadt' => 'Lampedusa', 'url' => 'https://einzeln-alt.example', 'domain' => 'einzeln-alt.example', 'audit_status' => 'offen', 'quelle' => 'gz-kette-einzeln', 'recherchiert_am' => '2020-01-01 00:00:00']);
+$gzA = Akquise::naechsteAudits(10);
+$gzB = Akquise::naechsteAudits(20);
+$gzC = Akquise::naechsteAudits(50);
+$gzInGruppe = static fn(array $l): int => count(array_filter($l, static fn($z) => $z['branche'] === 'fitness' && $z['stadt'] === 'Sciacca'));
+pruefe('Prüfung gezielt: zuerst die größte Gruppe ohne 15 geprüfte Websites (bis 15 + 3), danach wie bisher; nichts doppelt',
+    $gzInGruppe($gzA) >= 5 && $gzInGruppe($gzA) + $gzInGruppe($gzB) === 18 && in_array($gzEinzel, array_map(static fn($z) => (int) $z['id'], array_merge($gzB, $gzC)), true)
+    && count(array_unique(array_map(static fn($z) => (int) $z['id'], array_merge($gzA, $gzB, $gzC)))) === count($gzA) + count($gzB) + count($gzC),
+    json_encode([$gzInGruppe($gzA), $gzInGruppe($gzB), count($gzC), in_array($gzEinzel, array_map(static fn($z) => (int) $z['id'], array_merge($gzB, $gzC)), true),
+        count(array_unique(array_map(static fn($z) => (int) $z['id'], array_merge($gzA, $gzB, $gzC)))), count($gzA) + count($gzB) + count($gzC)]));
+pruefe('Prüfung: der Worker holt in Paketen zu 50 bis zur Zahl je Nacht (Vorgabe 300)',
+    str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "Math.min(50, ziel - geprueft)")
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/konfig.ts'), "zahl('AKQUISE_AUDITS_PRO_LAUF', 300)"));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (' . implode(',', array_merge($gzIds, [$gzEinzel])) . ')');
 
 /* ============================================================================
    Aufräumen und Bilanz

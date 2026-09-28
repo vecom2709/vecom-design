@@ -36,7 +36,7 @@ export const konfig = {
   modell: wert('AKQUISE_CLAUDE_MODELL', 'claude-sonnet-5'),
   kiMaxToken: zahl('AKQUISE_KI_MAX_TOKEN', 250_000),
   psiKey: wert('AKQUISE_PSI_SCHLUESSEL'),
-  auditsProLauf: zahl('AKQUISE_AUDITS_PRO_LAUF', 20),
+  auditsProLauf: zahl('AKQUISE_AUDITS_PRO_LAUF', 300),
   texteProLauf: zahl('AKQUISE_TEXTE_PRO_LAUF', 5),
   scoreMinText: zahl('AKQUISE_SCORE_MIN_TEXT', 51),
   overpass: wert('AKQUISE_OVERPASS', 'https://overpass-api.de/api/interpreter,https://overpass.private.coffee/api/interpreter,https://overpass.kumi.systems/api/interpreter'),

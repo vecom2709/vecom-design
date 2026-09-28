@@ -65,18 +65,34 @@ async function recherche(): Promise<void> {
 }
 
 async function audits(): Promise<void> {
-  const r = await api('audits_holen', { anzahl: konfig.auditsProLauf });
-  const firmen = (r.firmen ?? []) as FirmaKurz[];
-  log.info('audit', `${firmen.length} Website(s) zu prüfen`);
+  /* Die Verwaltung gibt höchstens 50 auf einmal heraus. Mehr pro Nacht
+     (29.09.2026: 300) heißt: in Paketen nachholen, bis die Zahl erreicht
+     oder nichts mehr offen ist. */
+  const ziel = Math.max(1, konfig.auditsProLauf);
+  let geprueft = 0;
+  while (geprueft < ziel) {
+    const r = await api('audits_holen', { anzahl: Math.min(50, ziel - geprueft) });
+    const paket = (r.firmen ?? []) as FirmaKurz[];
+    if (paket.length === 0) { if (geprueft === 0) { log.info('audit', '0 Website(s) zu prüfen'); } break; }
+    const weiter = await auditPaket(paket, geprueft, ziel);
+    geprueft += paket.length;
+    if (!weiter) { break; }
+  }
+  await browserZu();
+}
+
+/** Prüft ein Paket. Gibt false zurück, wenn der Lauf anhalten soll (Notbremse, Browser kaputt). */
+async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Promise<boolean> {
+  log.info('audit', `${firmen.length} Website(s) zu prüfen (${vorher + 1}–${vorher + firmen.length} von höchstens ${ziel})`);
   for (const [i, f] of firmen.entries()) {
     const h = await api('hallo');
-    if (h.stop) { log.warn('audit', 'Notbremse gezogen — Audits angehalten.'); break; }
+    if (h.stop) { log.warn('audit', 'Notbremse gezogen — Audits angehalten.'); return false; }
     const t0 = Date.now();
     try {
       const e = await auditieren(f);
       const antwort = await api('audit_melden', { firma_id: f.id, ...e });
       const belegt = e.befunde.filter((b) => b.status === 'VERIFIED').length;
-      log.info('audit', `[${i + 1}/${firmen.length}] ${f.name} (${f.domain}): ${e.befunde.length} Befunde, ${belegt} belegt · Score ${antwort.score ?? '—'} · ${Math.round((Date.now() - t0) / 1000)} s`);
+      log.info('audit', `[${vorher + i + 1}/${ziel}] ${f.name} (${f.domain}): ${e.befunde.length} Befunde, ${belegt} belegt · Score ${antwort.score ?? '—'} · ${Math.round((Date.now() - t0) / 1000)} s`);
     } catch (e) {
       const text = (e as Error).message;
       /* Liegt der Fehler bei UNS (Browser fehlt, Playwright kaputt), ist
@@ -87,13 +103,13 @@ async function audits(): Promise<void> {
       if (/browserType\.launch|Executable doesn't exist|playwright install/i.test(text)) {
         log.fehler('audit', `Der Browser auf diesem Rechner startet nicht — Lauf angehalten, nichts gemeldet. Abhilfe: npx playwright install chromium. (${text.split('\n')[0].slice(0, 160)})`);
         process.exitCode = 1;
-        break;
+        return false;
       }
       log.fehler('audit', `${f.name}: ${text}`);
       await api('audit_melden', { firma_id: f.id, status: 'fehler', befunde: [], messwerte: { fehler: text.slice(0, 300) } }).catch(() => {});
     }
   }
-  await browserZu();
+  return true;
 }
 
 async function einzel(): Promise<void> {
