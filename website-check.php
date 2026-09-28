@@ -38,7 +38,7 @@ $zitat = static fn(string $t) => ['it' => '«', 'de' => '„', 'en' => '“'][$s
 
 $fehler = '';
 $werte = ['url' => '', 'firma' => '', 'name' => '', 'email' => '', 'telefon' => '', 'land' => $sprache === 'de' ? 'DE' : 'IT',
-          'antwort' => $sprache, 'ausfuehrlich' => false, 'marketing' => false, 'wa' => false, 'whatsapp' => ''];
+          'antwort' => $sprache, 'ausfuehrlich' => true, 'marketing' => false, 'wa' => false, 'whatsapp' => ''];
 $check = null;
 $an = true;
 try {

@@ -73,6 +73,13 @@ final class AkquiseKurz
                 Partner::vormerken((int) $partner[0]['id'], (string) $e['email'], $wa, 'check', 'link', $partner[1] ?? null);
             } catch (Throwable $x) { /* Zuordnung ist nachtragbar */ }
         }
+        /* Er hat die Analyse und seinen persönlichen Bereich angefordert (28.09.2026): der kommt sofort,
+           als eigene Mail -- getrennt von der Bestätigungsmail, die keine weiteren Inhalte tragen darf. */
+        try {
+            require_once __DIR__ . '/Zugang.php';
+            $f = Db::one('SELECT name FROM akq_firmen WHERE id = ?', [$b['id']]);
+            if (AkquiseGate::schalterSelbst('bereich')) Zugang::bereichSchicken((string) $e['email'], (string) ($e['sprache'] ?? 'it'), $b['id'], (string) ($f['name'] ?? ''));
+        } catch (Throwable $x) { }
         Akquise::protokoll($b['id'], 'einwilligung', 'Kurz-Check mit Einwilligung (' . ['check' => 'vecom-design.it', 'partner' => 'Partnerseite', 'anzeige' => 'Werbeformular', 'whatsapp' => 'WhatsApp'][$quelle]
             . ') — Bestätigungsmail an ' . mb_strtolower(trim((string) $e['email'])));
         try { Events::melden('akquise_kurzcheck', 'Kurz-Check mit Einwilligung: ' . $b['host'], 'gut', 'Wartet auf den Klick in der Bestätigungsmail', 'akquise/' . $b['id']); } catch (Throwable $x) { }

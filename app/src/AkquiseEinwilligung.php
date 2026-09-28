@@ -195,8 +195,20 @@ final class AkquiseEinwilligung
         AkquiseGate::statusSpeichern((int) $f['id']);
         /* Folge-Mails vormerken (27.09.2026). Ob und wann sie rausgehen, entscheiden Schalter, freigegebene Texte und das Gate. */
         try { require_once __DIR__ . '/AkquiseFolge.php'; AkquiseFolge::starten((int) $f['id']); } catch (Throwable $x) { }
+        /* Gleich nach dem Klick: der persönliche Bereich per Mail (28.09.2026). Das hat er angefordert --
+           es wartet nicht auf Folge-Schalter oder Testbetrieb. Schritt 1 der Folge sagte dasselbe;
+           er gilt damit als erledigt, Schritt 2 kommt nach drei Tagen. */
+        $bereich = null;
+        try {
+            require_once __DIR__ . '/Zugang.php';
+            $bereich = !AkquiseGate::schalterSelbst('bereich') ? null : Zugang::bereichSchicken((string) $e['email'], (string) $e['sprache'], (int) $f['id'], (string) $f['name']);
+            if ($bereich !== null) {
+                Db::run("UPDATE akq_folgen SET schritt = 1, letzte_am = NOW(), naechst_am = DATE_ADD(NOW(), INTERVAL 3 DAY), grund = 'Schritt 1: persönlicher Bereich direkt nach der Bestätigung geschickt'
+                          WHERE firma_id = ? AND schritt = 0 AND status = 'laeuft'", [(int) $f['id']]);
+            }
+        } catch (Throwable $x) { }
         try { Events::melden('akquise_einwilligung', 'Akquise: ' . $f['name'] . ' hat eingewilligt — E-Mail' . (!empty($e['whatsapp']) ? ' und WhatsApp' : '') . ' erlaubt', 'gut', $e['email'], 'akquise/' . $f['id']); }
         catch (Throwable $x) { }
-        return ['ok' => true, 'firma' => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $f['id']]) ?? $f, 'sprache' => (string) $e['sprache']];
+        return ['ok' => true, 'firma' => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $f['id']]) ?? $f, 'sprache' => (string) $e['sprache'], 'bereich' => $bereich];
     }
 }

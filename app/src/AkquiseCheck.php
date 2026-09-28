@@ -190,6 +190,15 @@ final class AkquiseCheck
             Db::update('akq_checks', $id, ['einwilligung_stand' => $stand]);
         }
 
+        /* Ausführliche Analyse angefordert (28.09.2026): gleich der persönliche Bereich per Mail --
+           das ist die Antwort auf seine Anfrage, keine Werbung. Dort liegt die Analyse, sobald sie fertig ist. */
+        if (!empty($e['ausfuehrlich']) && !$gesperrt && $firmaId !== null && AkquiseGate::schalterSelbst('bereich')) {
+            try {
+                require_once __DIR__ . '/Zugang.php';
+                if (Zugang::bereichSchicken($email, $sprache, $firmaId, $firma, $name) !== null) { Db::update('akq_checks', $id, ['bereich_am' => date('Y-m-d H:i:s')]); }
+            } catch (Throwable $x) { }
+        }
+
         if ($firmaId !== null) {
             Akquise::protokoll($firmaId, 'anfrage', 'Website-Check über vecom-design.it: ' . $hostNorm . ' · '
                 . (!empty($e['ausfuehrlich']) ? 'ausführliche Analyse gewünscht' : 'nur Kurz-Check')

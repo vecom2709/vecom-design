@@ -12724,9 +12724,9 @@ pruefe('Website-Check: nach ' . AkquiseCheck::FRIST_TAGE . ' Tagen ohne Einwilli
     && $wcMitEw['email'] === 'inhaber@pizzeria-check.example' && AkquiseCheck::aufraeumen() === 0);
 PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
 $wcSeite = (string) file_get_contents($wurzel . '/../website-check.php');
-pruefe('Website-Check-Seite: ohne Skript, Formular nur an uns, Ergebnis nie im Index, beide Häkchen ab Werk leer, Lockfeld und Zeitstempel',
+pruefe('Website-Check-Seite: ohne Skript, Formular nur an uns, Ergebnis nie im Index, „Analyse + Bereich“ ab Werk an (seine Anfrage), Werbe-Häkchen ab Werk leer, Lockfeld und Zeitstempel',
     !str_contains($wcSeite, '<script') && str_contains($wcSeite, "default-src 'none'") && str_contains($wcSeite, "form-action 'self'")
-    && str_contains($wcSeite, '<meta name="robots" content="noindex, nofollow">') && str_contains($wcSeite, "'ausfuehrlich' => false, 'marketing' => false")
+    && str_contains($wcSeite, '<meta name="robots" content="noindex, nofollow">') && str_contains($wcSeite, "'ausfuehrlich' => true, 'marketing' => false")
     && str_contains($wcSeite, 'name="homepage"') && str_contains($wcSeite, 'AkquiseCheck::stempelGut(') && str_contains($wcSeite, "Sprache::legal(\$sprache, 'privacy')"));
 $wcOhneT = [];
 foreach (Texte::AKQ_CHECK as $wcK => $wcT) { foreach (['it', 'de', 'en'] as $wcSp) { if (trim((string) ($wcT[$wcSp] ?? '')) === '') { $wcOhneT[] = "$wcK.$wcSp"; } } }
@@ -12774,6 +12774,7 @@ $foFremd = [];
 foreach (AkquiseFolge::TEXTE as $foS => $foJe) { foreach ($foJe as $foSp => [$foB, $foT]) { preg_match_all('~\{[a-z_]+\}~', $foB . $foT, $foM); foreach (array_diff($foM[0], AkquiseFolge::PLATZHALTER) as $x) { $foFremd[] = "$foS.$foSp:$x"; } } }
 pruefe('Folge-Mails: Ausgangstexte nur mit bekannten Platzhaltern', $foFremd === [], implode(', ', $foFremd));
 AkquiseGate::schalterSetzen('autofrei', false);   // die Freigabe von Hand prüfen; die automatische hat ihren eigenen Abschnitt (28.09.2026)
+AkquiseGate::schalterSetzen('bereich', false);    // Schritt 1 der Folge hier prüfen; der sofortige Bereich hat seinen eigenen Abschnitt (28.09.2026)
 AkquiseGate::schalterSetzen('whatsapp', false);
 $foA = Akquise::firmaMelden(['name' => 'Enoteca Folge', 'land' => 'IT', 'stadt' => 'Sciacca', 'url' => 'https://enoteca-folge.example/', 'quelle' => 'test:folge1']);
 $foF = (int) $foA['id'];
@@ -14140,6 +14141,7 @@ pruefe('Seite: Video stumm, inline, lädt erst bei Bedarf, Ton-Knopf; CSP erlaub
    Schritt, QR-Karte, Beiträge, Werbeformular, Knopf „Analisi gratuita“.
    ============================================================================ */
 abschnitt('Wege zum Ja (Z1–Z6)');
+AkquiseGate::schalterSetzen('bereich', true);   // wie ab Werk: wer anfordert, bekommt sofort seinen Bereich
 foreach (['AkquiseKurz', 'MetaSeite', 'WhatsAppCloud', 'PartnerCheck', 'PartnerSeite'] as $k) { require_once $wurzel . "/src/$k.php"; }
 PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
 PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 700, 'url' => 'https://' . parse_url($url, PHP_URL_HOST) . '/', 'ssl_tage' => 80, 'fehler' => '',
@@ -14152,10 +14154,11 @@ pruefe('Z2: ohne Häkchen kein Ja, Unsinn ist keine Adresse',
     && AkquiseKurz::einwilligen(['url' => 'kein punkt', 'email' => 'oste@osteria-zumja.example', 'ja' => true, 'sprache' => 'it', 'quelle' => 'check']) === 'adresse');
 $zR = AkquiseKurz::einwilligen(['url' => 'https://www.osteria-zumja.example/menu', 'email' => 'Oste@Osteria-Zumja.example', 'ja' => true, 'sprache' => 'it', 'quelle' => 'check']);
 $zF = Db::one("SELECT * FROM akq_firmen WHERE domain = 'osteria-zumja.example'");
-pruefe('Z2: mit Häkchen: Betrieb angelegt (Name aus der Adresse), Einwilligung angefragt, genau eine Bestätigungsmail — erlaubt ist noch nichts',
+pruefe('Z2: mit Häkchen: Betrieb angelegt (Name aus der Adresse), Einwilligung angefragt, sofort der persönliche Bereich + die Bestätigungsmail — erlaubt ist noch nichts',
     $zR === 'ok' && $zF && $zF['name'] === 'Osteria Zumja' && trim((string) $zF['einwilligung']) === ''
     && Db::wert("SELECT status FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'check'", [(int) ($zF['id'] ?? 0)], '') === 'angefragt'
-    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 1, json_encode([$zR, $zF['name'] ?? null]));
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 2 && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'zugang_akquise' AND empfaenger = 'oste@osteria-zumja.example'", [], 0) === 1
+    && (int) Db::wert('SELECT akq_firma_id FROM zugaenge WHERE email = ?', ['oste@osteria-zumja.example'], 0) === (int) ($zF['id'] ?? -1), json_encode([$zR, $zF['name'] ?? null]));
 $zSeite = (string) file_get_contents($wurzel . '/../analisi.php');
 pruefe('Z2: analisi.php ohne Skript, Ampel und darunter das Ja mit Wortlaut, Lockfeld; Partnerseiten haben dasselbe Formular',
     str_contains($zSeite, "default-src 'none'") && !str_contains($zSeite, '<script') && str_contains($zSeite, "'quelle' => 'check'") && str_contains($zSeite, 'name="ja"')
@@ -14278,11 +14281,11 @@ $zF5 = Db::one("SELECT * FROM akq_firmen WHERE domain = 'gelateria-zumja.example
 pruefe('Z5: ausgefülltes Formular mit Häkchen → Betrieb, Einwilligung (Quelle Werbeformular) angefragt, Bestätigungsmail — sonst nichts',
     $zV === 1 && $zF5 && Db::wert("SELECT status FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'anzeige'", [(int) ($zF5['id'] ?? 0)], '') === 'angefragt'
     && Db::wert("SELECT whatsapp FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'anzeige'", [(int) ($zF5['id'] ?? 0)], '') !== ''
-    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 1 && trim((string) $zF5['einwilligung']) === '');
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 2 && trim((string) $zF5['einwilligung']) === '');
 pruefe('Z5: dieselbe Meldung zweimal wird nur einmal verarbeitet; fremde Seite wird ignoriert',
     MetaSeite::lead('9001', '111') === 'doppelt' && MetaSeite::lead('9003', '999') === 'fremd');
 pruefe('Z5: ohne Häkchen wird nichts gespeichert außer dem Hinweis', MetaSeite::lead('9002', '111') === 'ohne_haken'
-    && Db::wert("SELECT status FROM akq_meta_leads WHERE lead_id = '9002'", [], '') === 'ohne_haken' && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 1);
+    && Db::wert("SELECT status FROM akq_meta_leads WHERE lead_id = '9002'", [], '') === 'ohne_haken' && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 2);
 pruefe('Z5: der Webhook verteilt Seiten-Meldungen an MetaSeite, WhatsApp an WhatsAppCloud',
     str_contains((string) file_get_contents($wurzel . '/../wa-webhook.php'), "(\$nutzlast['object'] ?? '') === 'page'"));
 MetaSeite::$netz = null;
@@ -14337,7 +14340,7 @@ $d3R = GoogleLead::verarbeiten($d3Lead('L3', 'Ja, einverstanden'));
 $d3F = Db::one("SELECT * FROM akq_firmen WHERE domain = 'tischlerei-google.de'");
 pruefe('D3: „Ja“ → Betrieb (Land DE), Einwilligung angefragt, deutsche Bestätigungsmail; dieselbe Meldung zweimal nur einmal',
     $d3R === 'ok' && $d3F && $d3F['land'] === 'DE' && Db::wert("SELECT sprache FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'anzeige'", [(int) $d3F['id']], '') === 'de'
-    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $d3M0 + 1 && GoogleLead::verarbeiten($d3Lead('L3', 'Ja, einverstanden')) === 'doppelt', json_encode([$d3R, $d3F['land'] ?? null]));
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $d3M0 + 2 && GoogleLead::verarbeiten($d3Lead('L3', 'Ja, einverstanden')) === 'doppelt', json_encode([$d3R, $d3F['land'] ?? null]));
 PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
 pruefe('D3: google-lead.php nimmt nur POST, antwortet mit {} und 403 bei falschem Schlüssel', (static function () use ($wurzel): bool {
     $g = (string) file_get_contents($wurzel . '/../google-lead.php'); return str_contains($g, "!== 'POST'") && str_contains($g, "=== 'schluessel' ? 403 : 200") && str_contains($g, "echo '{}'"); })());
@@ -14383,6 +14386,51 @@ pruefe('D5: Abo-Formular auf der Startseite (Sprache dreht mit) und auf analisi.
     str_contains($d5Idx, 'action="/tipp.php?lang=it"') && str_contains((string) file_get_contents($wurzel . '/../de/index.html'), 'action="/tipp.php?lang=de"')
     && str_contains((string) file_get_contents($wurzel . '/../assets/js/i18n-de.js'), WebTipp::wortlaut('de'))
     && str_contains((string) file_get_contents($wurzel . '/../analisi.php'), 'WebTipp::wortlaut($sprache)'));
+
+/* ============================================================================
+   Persönlicher Bereich sofort (28.09.2026, Uwe: „wer den Bericht anfordert,
+   bekommt keine E-Mail, um sein persönliches Dashboard zu holen — darum
+   geht es schlussendlich“)
+   ============================================================================ */
+abschnitt('Persönlicher Bereich sofort');
+foreach (['AkquiseCheck', 'AkquiseEinwilligung', 'AkquiseFolge', 'Zugang', 'PartnerCheck'] as $k) { require_once $wurzel . "/src/$k.php"; }
+AkquiseGate::schalterSetzen('bereich', true);
+pruefe('Schalter „Persönlicher Bereich sofort“ ab Werk an', AkquiseGate::SCHALTER['bereich'][1] === '1');
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 700, 'url' => 'https://' . parse_url($url, PHP_URL_HOST) . '/', 'ssl_tage' => 80, 'fehler' => '',
+    'inhalt' => '<html><head><title>Prova</title></head><body>© 2019</body></html>'];
+$pbM0 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$pbR = AkquiseCheck::anlegen(['url' => 'gelateria-bereich.example', 'firma' => 'Gelateria Bereich', 'name' => 'Giulia Test', 'email' => 'giulia@gelateria-bereich.example',
+    'sprache' => 'it', 'land' => 'IT', 'ausfuehrlich' => true, 'marketing' => false], '198.51.100.' . random_int(1, 250));
+$pbF = Db::one("SELECT * FROM akq_firmen WHERE domain = 'gelateria-bereich.example'");
+$pbZ = Db::one("SELECT * FROM zugaenge WHERE email = 'giulia@gelateria-bereich.example'");
+pruefe('Website-Check mit „ausführliche Analyse“: sofort genau eine Mail mit dem Link zum persönlichen Bereich (mit dem Betrieb verknüpft) — ohne Werbe-Häkchen keine Einwilligung',
+    !empty($pbR['ok']) && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $pbM0 + 1
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'zugang_akquise' AND empfaenger = 'giulia@gelateria-bereich.example'", [], 0) === 1
+    && $pbZ && (int) $pbZ['akq_firma_id'] === (int) ($pbF['id'] ?? 0) && trim((string) ($pbF['einwilligung'] ?? '')) === '', json_encode($pbR));
+$pbM1 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+pruefe('Derselbe Link zweimal am selben Tag: keine zweite Mail, derselbe Zugang',
+    Zugang::bereichSchicken('giulia@gelateria-bereich.example', 'it', (int) $pbF['id'], 'Gelateria Bereich') === Zugang::link((string) $pbZ['token'], 'it')
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $pbM1);
+/* Einwilligung bestätigt → Bereich sofort, Schritt 1 erledigt */
+$pbA = Akquise::firmaMelden(['name' => 'Panificio Bereich', 'land' => 'IT', 'url' => 'https://panificio-bereich.example/', 'quelle' => 'test:bereich']);
+$pbL = AkquiseEinwilligung::link((int) $pbA['id'], 'analyse');
+AkquiseEinwilligung::anfragen((string) $pbL['link_token'], 'forno@panificio-bereich.example', true, 'it', '203.0.113.9');
+$pbB = AkquiseEinwilligung::bestaetigen((string) Db::wert("SELECT doi_token FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt'", [(int) $pbA['id']], ''));
+$pbFo = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [(int) $pbA['id']]);
+pruefe('Klick in der Bestätigungsmail: Bereich sofort per Mail, Link auf der Bestätigungsseite; Schritt 1 der Folge gilt als erledigt, Schritt 2 in drei Tagen',
+    $pbB['ok'] && str_contains((string) ($pbB['bereich'] ?? ''), '/zugang.php?t=')
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'zugang_akquise' AND empfaenger = 'forno@panificio-bereich.example'", [], 0) === 1
+    && $pbFo && (int) $pbFo['schritt'] === 1 && strtotime((string) $pbFo['naechst_am']) > time() + 2 * 86400
+    && str_contains((string) file_get_contents($wurzel . '/../einwilligung.php'), "\$r['bereich']"), json_encode([$pbB['bereich'] ?? null, $pbFo]));
+AkquiseGate::schalterSetzen('bereich', false);
+$pbM2 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+AkquiseCheck::anlegen(['url' => 'bar-bereich.example', 'firma' => 'Bar Bereich', 'name' => 'Marco Test', 'email' => 'marco@bar-bereich.example', 'sprache' => 'it', 'land' => 'IT', 'ausfuehrlich' => true], '198.51.100.' . random_int(1, 250));
+pruefe('Schalter aus: keine Bereich-Mail', (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $pbM2);
+AkquiseGate::schalterSetzen('bereich', true);
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+pruefe('Bereich-Mail in drei Sprachen mit Link und ohne Preise', count(Zugang::BEREICH_MAIL) === 3
+    && !array_filter(Zugang::BEREICH_MAIL, static fn($m) => !str_contains($m[1], '{link}') || preg_match('~\d+\s*€~u', $m[1])));
 
 /* ============================================================================
    Aufräumen und Bilanz

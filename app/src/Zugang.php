@@ -108,6 +108,47 @@ final class Zugang
         return self::link((string) $z['token'], $sprache);
     }
 
+    /** Texte der Mail „Ihre Analyse und Ihr persönlicher Bereich“ (28.09.2026). */
+    public const BEREICH_MAIL = [
+        'it' => ['L’analisi di {firma} e il suo spazio personale', "{gruss}\n\necco il suo spazio personale su Vecom Design, già pronto per {firma}:\n\n{link}\n\nLì trova l’analisi del suo sito, esempi del nostro lavoro e, in un minuto e mezzo, il prezzo indicativo. Nessun account, nessuna password: basta questo link (valido {tage} giorni).\n\nPer domande risponda semplicemente a questa e-mail.\n\n{inhaber} · Vecom Design"],
+        'de' => ['Die Analyse für {firma} und Ihr persönlicher Bereich', "{gruss}\n\nhier ist Ihr persönlicher Bereich bei Vecom Design, schon vorbereitet für {firma}:\n\n{link}\n\nDort finden Sie die Analyse Ihrer Website, Beispiele unserer Arbeit und in anderthalb Minuten Ihre Preisspanne. Kein Konto, kein Passwort: Dieser Link genügt ({tage} Tage gültig).\n\nBei Fragen antworten Sie einfach auf diese Mail.\n\n{inhaber} · Vecom Design"],
+        'en' => ['The analysis for {firma} and your personal area', "{gruss}\n\nhere is your personal area at Vecom Design, already set up for {firma}:\n\n{link}\n\nThere you find the analysis of your website, examples of our work and, in a minute and a half, your price range. No account, no password: this link is all you need (valid for {tage} days).\n\nFor questions, simply reply to this email.\n\n{inhaber} · Vecom Design"],
+    ];
+
+    /**
+     * Persönlichen Bereich schicken (28.09.2026, Uwe: „Wenn jemand auf der
+     * Webseite den Website-Bericht anfordert, bekommt er keine E-Mail, um sein
+     * persönliches Dashboard zu holen — darum geht es schlussendlich“).
+     *
+     * Die Antwort auf eine Anfrage, die der Betrieb gerade selbst gestellt
+     * hat (ausführliche Analyse bzw. bestätigter Klick) -- keine Werbung,
+     * darum unabhängig von Folge-Schalter und Testbetrieb. Legt den Zugang an
+     * (verknüpft mit dem Betrieb der Akquise) und schickt den Link. Dieselbe
+     * Adresse bekommt die Mail höchstens einmal am Tag.
+     * @return string|null der Link, null wenn nichts geschickt werden durfte
+     */
+    public static function bereichSchicken(string $email, string $sprache, int $akqFirmaId, string $firma = '', string $name = ''): ?string
+    {
+        $email = mb_strtolower(trim($email));
+        $link = self::vorbereiten($email, $sprache, $akqFirmaId, $name);
+        if ($link === null) { return null; }
+        $sprache = self::spr($sprache);
+        $schluessel = 'bereich_mail_' . substr(hash('sha256', $email), 0, 32);
+        if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '') === date('Y-m-d')) { return $link; }
+        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schluessel, date('Y-m-d')]);
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/Firma.php';
+        $firma = trim($firma) !== '' ? trim($firma) : ['it' => 'la sua attività', 'de' => 'Ihren Betrieb', 'en' => 'your business'][$sprache];
+        $gruss = ['it' => 'Buongiorno', 'de' => 'Guten Tag', 'en' => 'Hello'][$sprache] . (trim($name) !== '' ? ' ' . trim($name) : '') . ',';
+        [$b, $t] = self::BEREICH_MAIL[$sprache];
+        $w = ['{firma}' => $firma, '{gruss}' => $gruss, '{link}' => $link, '{tage}' => (string) self::GUELTIG_TAGE, '{inhaber}' => Firma::get('inhaber', 'Uwe Vetter')];
+        Mail::senden('zugang_akquise', $email, strtr($b, $w), strtr($t, $w), ['nurText' => true, 'sprache' => $sprache]);
+        if ($akqFirmaId > 0) {
+            try { require_once __DIR__ . '/Akquise.php'; Akquise::protokoll($akqFirmaId, 'dashboard', 'Persönlicher Bereich per Mail geschickt an ' . $email); } catch (Throwable $e) { }
+        }
+        return $link;
+    }
+
     public static function anfordern(string $email, string $sprache, array $extra = []): array
     {
         $email = mb_strtolower(trim($email));

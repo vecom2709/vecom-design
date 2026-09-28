@@ -53,6 +53,7 @@ if (is_file(__DIR__ . '/app/config.local.php')) {
                 if ($post) {
                     $r = AkquiseEinwilligung::bestaetigen($b);
                     $zustand = $r['ok'] ? 'bestaetigt' : ($r['grund'] === 'abgelaufen' ? 'abgelaufen' : 'falsch');
+                    $bereich = (string) ($r['bereich'] ?? '');
                     $firma = (string) ($r['firma']['name'] ?? '');
                 } else {
                     $zustand = $e['status'] === 'bestaetigt' ? 'bestaetigt' : 'bestaetigen';
@@ -154,6 +155,10 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
     <div class="hinweis gut" role="status"><?= $h($T['gesendet']) ?></div>
   <?php elseif ($zustand === 'bestaetigt'): ?>
     <div class="hinweis gut" role="status"><?= $h($T['bestaetigt']) ?></div>
+    <?php if (($bereich ?? '') !== ''): ?>
+      <p style="margin:18px 0 0"><a href="<?= $h($bereich) ?>" style="display:inline-flex;align-items:center;min-height:52px;padding:0 22px;border-radius:12px;background:#e8c874;color:#16120b;font-weight:700;text-decoration:none"><?= $h(['it' => 'Aprire il mio spazio personale →', 'de' => 'Zu meinem persönlichen Bereich →', 'en' => 'Open my personal area →'][$sprache] ?? 'Zu meinem persönlichen Bereich →') ?></a></p>
+      <p style="margin:8px 0 0;font-size:14px;opacity:.75"><?= $h(['it' => 'Il link è anche nell’e-mail che le abbiamo appena mandato.', 'de' => 'Den Link haben wir Ihnen auch gerade per Mail geschickt.', 'en' => 'We also just emailed you the link.'][$sprache] ?? '') ?></p>
+    <?php endif; ?>
   <?php elseif ($zustand === 'bestaetigen'): ?>
     <p><?= $h($T['bestaetigen']) ?></p>
     <p style="font-size:14.5px;color:#e9e2d5">„<?= $h($wortlaut) ?>“</p>
