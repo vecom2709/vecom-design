@@ -301,6 +301,16 @@ final class Bedarf
         ]);
     }
 
+    /** Antworten von außen (Live-Preis, R1): nur bekannte Fragen, nur vorgesehene Werte. */
+    public static function bereinigen(array $roh): array
+    {
+        $aus = [];
+        foreach ($roh as $k => $w) {
+            if (is_string($k) && isset(Baukasten::FRAGEN[$k])) { $aus[$k] = self::saubern($k, $w); }
+        }
+        return $aus;
+    }
+
     /**
      * Nimmt nur an, was in der Frage auch vorgesehen ist.
      *

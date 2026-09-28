@@ -15,6 +15,8 @@ require_once __DIR__ . '/Akquise.php';
  * Gezählt wird je BETRIEB, nicht je Versand: Ein Betrieb, der auf den Brief
  * antwortet, zählt einmal, auch wenn danach drei Mails hin und her gingen.
  */
+require_once __DIR__ . '/Baukasten.php';
+
 final class AkquiseAuswertung
 {
     public const STUFEN = ['gefunden', 'geprueft', 'angesprochen', 'geoeffnet', 'antwort', 'interesse', 'kunde'];
@@ -63,6 +65,46 @@ final class AkquiseAuswertung
         $aus = [];
         foreach ($gruppen as $g => $w) { $aus[] = ['gruppe' => (string) $g, 'werte' => $w]; }
         return $aus;
+    }
+
+    /* ----------------------------------------------------------------------
+       W4 (28.09.2026): Der Weg zum Dashboard -- von den Betrieben in der
+       Verwaltung bis zum Angebot, und je Weg (Quelle des Zugangs), wo sie
+       abspringen. Gezählt wird, was wirklich passiert ist, nicht was
+       verschickt wurde.
+       ---------------------------------------------------------------------- */
+    public const WEG_STUFEN = ['verwaltung' => 'In der Verwaltung', 'geprueft' => 'Website geprüft', 'ja' => 'Ja gesagt (bestätigt)',
+        'bericht' => 'Bericht aufgerufen', 'link' => 'Dashboard-Link bekommen', 'offen' => 'Dashboard geöffnet',
+        'preis' => 'Richtpreis gesehen', 'angebot' => 'Angebot erhalten'];
+
+    /** @return array{stufen:array<string,int>, wege:list<array{quelle:string,link:int,offen:int,preis:int,angebot:int}>} */
+    public static function wegZumDashboard(int $tage = 90): array
+    {
+        $seit = date('Y-m-d H:i:s', strtotime('-' . max(1, $tage) . ' days'));
+        $z = static fn(string $sql, array $a = []): int => (int) Db::wert($sql, $a, 0);
+        $letzter = count(Baukasten::SCHRITTE) + 1;
+        $st = [
+            'verwaltung' => $z('SELECT COUNT(*) FROM akq_firmen'),
+            'geprueft'   => $z("SELECT COUNT(*) FROM akq_firmen WHERE audit_status = 'fertig'"),
+            'ja'         => $z("SELECT COUNT(DISTINCT COALESCE(firma_id, -id)) FROM akq_einwilligungen WHERE status = 'bestaetigt' AND bestaetigt_am >= ?", [$seit]),
+            'bericht'    => $z('SELECT COUNT(*) FROM web_berichte WHERE aufrufe > 0 AND created_at >= ?', [$seit]),
+            'link'       => $z('SELECT COUNT(*) FROM zugaenge WHERE created_at >= ?', [$seit]),
+            'offen'      => $z('SELECT COUNT(*) FROM zugaenge WHERE geoeffnet_am IS NOT NULL AND created_at >= ?', [$seit]),
+            'preis'      => $z("SELECT COUNT(DISTINCT z.id) FROM zugaenge z JOIN bedarf b ON b.customer_id = z.customer_id
+                                WHERE z.created_at >= ? AND (b.status <> 'offen' OR b.schritt >= ?)", [$seit, $letzter]),
+            'angebot'    => $z("SELECT COUNT(DISTINCT z.id) FROM zugaenge z JOIN angebote a ON a.customer_id = z.customer_id
+                                WHERE z.created_at >= ? AND a.gesendet_am IS NOT NULL", [$seit]),
+        ];
+        // Der Weg: Partnerlink vor allem anderen; bei Akquise-Zugängen die Quelle der Einwilligung (Check, Anzeige, WhatsApp …)
+        $wege = Db::all("SELECT CASE WHEN COALESCE(z.partner_code, '') <> '' THEN 'partner'
+                                     WHEN z.quelle = 'akquise' THEN COALESCE((SELECT e.quelle FROM akq_einwilligungen e WHERE e.firma_id = z.akq_firma_id ORDER BY e.id DESC LIMIT 1), 'akquise')
+                                     ELSE COALESCE(NULLIF(z.quelle, ''), '—') END AS quelle, COUNT(*) AS link,
+                                SUM(z.geoeffnet_am IS NOT NULL) AS offen,
+                                SUM(EXISTS(SELECT 1 FROM bedarf b WHERE b.customer_id = z.customer_id AND (b.status <> 'offen' OR b.schritt >= ?))) AS preis,
+                                SUM(EXISTS(SELECT 1 FROM angebote a WHERE a.customer_id = z.customer_id AND a.gesendet_am IS NOT NULL)) AS angebot
+                           FROM zugaenge z WHERE z.created_at >= ? GROUP BY quelle ORDER BY link DESC", [$letzter, $seit]);
+        return ['stufen' => $st, 'wege' => array_map(static fn(array $w): array => ['quelle' => (string) $w['quelle'], 'link' => (int) $w['link'],
+            'offen' => (int) $w['offen'], 'preis' => (int) $w['preis'], 'angebot' => (int) $w['angebot']], $wege)];
     }
 
     /** Summe über alle Gruppen. @param list<array{gruppe:string,werte:array<string,int>}> $zeilen */

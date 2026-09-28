@@ -35,6 +35,35 @@ $wt = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
   .akq-wahl a.an{background:var(--flaeche2);color:var(--text);border-color:var(--linie2)}
 </style>
 
+<?php if (!empty($wegDash)): $wd = $wegDash['stufen']; $wdMax = max(1, (int) $wd['verwaltung']);
+      $wegName = ['check' => 'Website-Check', 'kurzcheck' => 'Kurz-Check (Analyse)', 'partner' => 'Partner', 'anzeige' => 'Facebook/Instagram-Anzeige',
+                  'google' => 'Google-Anzeige', 'whatsapp' => 'WhatsApp', 'telefon' => 'Telefonassistent', 'seite' => 'Website (E-Mail-Einstieg)',
+                  'akquise' => 'Akquise (nach Ja)', 'tipp' => 'Website-Tipp', 'vorort' => 'Vor Ort', 'wa' => 'WhatsApp', 'kurz' => 'Kurz-Check (Analyse)',
+                  'analisi' => 'Kurz-Check (Analyse)', 'link' => 'Einwilligungs-Link', 'vorschau' => 'Website-Vorschau', 'analyse' => 'Analyse-Seite']; ?>
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 4px">Weg zum Dashboard <span class="akq-klein">(letzte <?= (int) $tage ?> Tage; Verwaltung und Prüfung insgesamt)</span></h2>
+  <div class="tabellenrahmen"><table class="akq-tr"><tbody>
+    <?php $wv = null; foreach (AkquiseAuswertung::WEG_STUFEN as $wk => $wn): $n = (int) $wd[$wk]; ?>
+      <tr><td><?= Fmt::h($wn) ?></td>
+        <td style="width:45%"><span style="display:block;height:10px;border-radius:999px;background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);width:<?= max(1, (int) round(sqrt($n / $wdMax) * 100)) ?>%"></span></td>
+        <td><?= number_format($n, 0, ',', '.') ?><?php if ($wv !== null && in_array($wk, ['offen', 'preis', 'angebot'], true)): ?><small><?= $anteil($n, (int) $wd[$wv]) ?></small><?php endif; ?></td></tr>
+    <?php $wv = $wk; endforeach; ?>
+  </tbody></table></div>
+  <?php if ($wegDash['wege']): ?>
+    <h3 style="font-size:14px;margin:14px 0 6px">Je Weg: wo abgesprungen wird</h3>
+    <div class="tabellenrahmen"><table class="akq-tr"><thead><tr><th>Weg</th><th>Link bekommen</th><th>Geöffnet</th><th>Preis gesehen</th><th>Angebot</th></tr></thead><tbody>
+      <?php foreach ($wegDash['wege'] as $w): ?>
+        <tr><td><?= Fmt::h($wegName[$w['quelle']] ?? $w['quelle']) ?></td><td><?= $w['link'] ?></td>
+          <td><?= $w['offen'] ?><small><?= $anteil($w['offen'], $w['link']) ?></small></td>
+          <td><?= $w['preis'] ?><small><?= $anteil($w['preis'], $w['offen']) ?></small></td>
+          <td><?= $w['angebot'] ?><small><?= $anteil($w['angebot'], $w['preis']) ?></small></td></tr>
+      <?php endforeach; ?>
+    </tbody></table></div>
+    <p class="akq-klein" style="margin-top:8px">Der Balken ist wurzelskaliert, damit auch kleine Stufen sichtbar bleiben. Die kleine Zahl ist der Anteil an der Stufe davor. Der schwächste Übergang ist die Stelle, an der ein Weg nachgebessert werden sollte.</p>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 10px">Wochenziel: Betriebe ansprechen</h2>
   <div class="akq-ziel">

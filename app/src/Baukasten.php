@@ -552,6 +552,76 @@ final class Baukasten
         return !empty($antworten['zweck']);
     }
 
+    /* ----------------------------------------------------------------------
+       Der Live-Richtpreis (28.09.2026, Uwe: Ja zu R1–R4 — „jedes Ausgefüllte
+       zeigt direkt den Richtpreis, z. B. 1 Seite zeigt Preis, 2 Sprachen
+       erhöht den Preis“).
+
+       KEINE ZWEITE FORMEL: Auch die laufende Zahl geht durch rechnen() und
+       spanne(), wie Ergebnisseite und Angebot. Neu ist nur, welche Antworten
+       hineingehen: Was der Kunde schon gesehen hat, zählt so, wie er es
+       beantwortet hat (auch leer). Was noch kommt, zählt als günstigste Wahl.
+       So beginnt der Preis beim kleinsten Wert und wächst nur mit dem, was
+       er wirklich wählt -- und auf der letzten Seite ist er genau die Zahl,
+       die auch das Ergebnis zeigt.
+       ---------------------------------------------------------------------- */
+    public const GUENSTIGST = [
+        'zweck' => [], 'umfang' => 'eine', 'sprachen' => '1', 'material' => ['texte', 'fotos', 'logo'],
+        'bestand' => 'neu', 'zeit' => 'offen', 'betreuung' => 'nein',
+    ];
+
+    /** Die Antworten für den Live-Preis. $gesehenBis: bis zu welchem Schritt der Kunde die Fragen schon vor sich hatte. */
+    public static function liveAntworten(array $antworten, int $gesehenBis): array
+    {
+        $aus = [];
+        foreach (self::SCHRITTE as $i => $namen) {
+            foreach ($namen as $n) {
+                $da = array_key_exists($n, $antworten) && $antworten[$n] !== '' && $antworten[$n] !== [];
+                if ($i + 1 <= $gesehenBis) {
+                    if (array_key_exists($n, $antworten)) { $aus[$n] = $antworten[$n]; }
+                } elseif ($da) {
+                    $aus[$n] = $antworten[$n];          // schon einmal beantwortet und zurückgeblättert
+                } elseif (array_key_exists($n, self::GUENSTIGST)) {
+                    $aus[$n] = self::GUENSTIGST[$n];
+                }
+            }
+        }
+        return $aus;
+    }
+
+    /** @return array{von_cents:int, bis_cents:int, monatlich_cents:int} gerundet wie überall */
+    public static function live(array $antworten, int $gesehenBis, ?array $katalog = null): array
+    {
+        $r = self::rechnen(self::liveAntworten($antworten, $gesehenBis), $katalog);
+        $s = self::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
+        return ['von_cents' => $s['von_cents'], 'bis_cents' => $s['bis_cents'], 'monatlich_cents' => (int) $r['monatlich_cents']];
+    }
+
+    /** Geldbetrag wie auf der Ergebnisseite: 1.500 € (it/de), €1,500 (en). */
+    public static function geldText(int $cents, string $sprache): string
+    {
+        return $sprache === 'en' ? '€' . number_format($cents / 100, 0, '.', ',') : number_format($cents / 100, 0, ',', '.') . ' €';
+    }
+
+    /** Die Antwort des Live-Preises für die Seite, mit fertigen Texten in der Sprache des Kunden. */
+    public static function liveAntwort(array $r, int $abCents, string $sprache): array
+    {
+        $T = static fn(string $k): string => Texte::h(Texte::BEDARF[$k] ?? [], $sprache);
+        return [
+            'zeigen' => true,
+            'von' => (int) $r['von_cents'], 'bis' => (int) $r['bis_cents'], 'monat' => (int) $r['monatlich_cents'],
+            'text' => self::geldText((int) $r['von_cents'], $sprache) . ' – ' . self::geldText((int) $r['bis_cents'], $sprache),
+            'monatText' => (int) $r['monatlich_cents'] > 0 ? strtr($T('liveMonat'), ['{betrag}' => self::geldText((int) $r['monatlich_cents'], $sprache)]) : '',
+            'ab' => strtr($T('liveAb'), ['{betrag}' => self::geldText($abCents, $sprache)]),
+        ];
+    }
+
+    /** Der kleinste mögliche Preis einer Website („ab …“, R3) — dieselbe Rechnung mit nur günstigsten Antworten. */
+    public static function ab(?array $katalog = null): int
+    {
+        return self::live([], 0, $katalog)['von_cents'];
+    }
+
     /**
      * Rundet die Spanne nach aussen auf volle fuenfzig Euro.
      *

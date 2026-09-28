@@ -1,0 +1,9 @@
+Schriften in diesem Ordner
+
+archivo-semibold.ttf    Archivo, SIL Open Font License 1.1
+montserrat-500/600/700  Montserrat, Copyright 2011 The Montserrat Project Authors
+                        (https://github.com/JulietaUla/Montserrat), SIL Open Font License 1.1
+                        (lateinischer Zeichensatz, aus @fontsource/montserrat 5.3.0 nach TTF gewandelt)
+
+Die SIL Open Font License erlaubt Nutzung, Einbettung und Weitergabe, auch kommerziell;
+die Schriften dürfen nur nicht einzeln verkauft werden. Volltext: https://openfontlicense.org

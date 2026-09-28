@@ -131,7 +131,7 @@ final class PartnerRecherche
             // Kontakt nur hier, bei eigenen Reservierungen (Uwe, 27.09.2026) -- nie in suchen().
             'telefon' => trim((string) ($z['telefon'] ?? '')), 'email' => trim((string) ($z['email'] ?? '')),
             'url' => trim((string) ($z['url'] ?? '')), 'land' => (string) ($z['land'] ?? 'IT'), 'stadt' => (string) ($z['stadt'] ?? ''),
-            'plz' => (string) ($z['plz'] ?? ''),
+            'plz' => (string) ($z['plz'] ?? ''), 'branche_key' => (string) ($z['branche'] ?? ''),
         ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.telefon, f.email, f.land, r.bis
                       FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                      WHERE r.partner_id = ? AND r.bis >= CURDATE() ORDER BY r.bis', [$partnerId]));

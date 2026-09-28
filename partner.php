@@ -390,6 +390,37 @@ if ($p && isset($_GET['fl'])) {
     echo $flDaten;
     exit;
 }
+/* ---------- Visitenkarten in vier Stilen (28.09.2026) ----------
+   ?vk=a|b|c|d&f=vorschau|vorn|hinten|pdf|bogen&ks=email|vecom&vks=it|de|en */
+if ($p && isset($_GET['vk'])) {
+    require_once __DIR__ . '/app/src/PartnerKarten.php';
+    $vkStil = (string) $_GET['vk'];
+    $vkArt = (string) ($_GET['f'] ?? 'vorschau');
+    $vkKontakt = in_array((string) ($_GET['ks'] ?? ''), PartnerKarten::KONTAKTE, true) ? (string) $_GET['ks'] : 'email';
+    $vkSprache = in_array((string) ($_GET['vks'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['vks'] : $sprache;
+    if (!PartnerKarten::gibt($vkStil) || !in_array($vkArt, ['vorschau', 'vorn', 'hinten', 'pdf', 'bogen'], true)) { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    if ($vkArt === 'pdf' || $vkArt === 'bogen') {
+        $vkDaten = PartnerKarten::pdf($p, $vkStil, $vkSprache, $vkKontakt, $vkArt === 'bogen' ? 'bogen' : 'einzeln');
+        $vkTyp = 'application/pdf';
+        $vkName = PartnerKarten::dateiname($p, $vkStil, $vkArt === 'bogen' ? 'a4-bogen' : 'druckerei', 'pdf');
+    } elseif ($vkArt === 'vorschau') {
+        $vkDaten = PartnerKarten::vorschau($p, $vkStil, $vkSprache, $vkKontakt);
+        $vkTyp = 'image/jpeg'; $vkName = '';
+    } else {
+        $vkDaten = PartnerKarten::bild($p, $vkStil, $vkArt, $vkSprache, $vkKontakt, false);
+        $vkTyp = 'image/jpeg';
+        $vkName = PartnerKarten::dateiname($p, $vkStil, $vkArt === 'vorn' ? 'vorderseite' : 'rueckseite', 'jpg');
+    }
+    if ($vkDaten === '') { http_response_code(503); exit('—'); }
+    header('Content-Type: ' . $vkTyp);
+    header('Cache-Control: private, max-age=3600');
+    if ($vkName !== '') { header('Content-Disposition: attachment; filename="' . $vkName . '"'); }
+    header('Content-Length: ' . strlen($vkDaten));
+    echo $vkDaten;
+    exit;
+}
 /* ---------- Druck-Paket: Visitenkarten, Flyer, Aufsteller, Aufkleber ---------- */
 if ($p && in_array((string) ($_GET['druck'] ?? ''), ['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'], true)) {
     header('X-Robots-Tag: noindex');

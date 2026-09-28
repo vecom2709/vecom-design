@@ -45,6 +45,9 @@ RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
 RewriteRule ^p/([A-Za-z0-9]{5,16})/?$ p.php?c=$1 [L,QSA]
 # Kanal-Links: /p/ROSSK4M2/instagram -- derselbe Partner, der Kanal wird mitgezaehlt.
 RewriteRule ^p/([A-Za-z0-9]{5,16})/([A-Za-z0-9-]{1,20})/?$ p.php?c=$1&k=$2 [L,QSA]
+# Branchen-Stadt-Seiten (28.09.2026, W1): anonyme Zahlen je Branche und Ort
+RewriteRule ^siti-web/?$ branchen.php [L,QSA]
+RewriteRule ^siti-web/([a-z0-9-]{3,190})/?$ branchen.php?s=$1 [L,QSA]
 
 # /pakete.html gibt es nicht mehr.
 #

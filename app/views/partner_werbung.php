@@ -56,6 +56,12 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .md-video{display:block;max-width:100%;max-height:440px;margin:10px auto;border-radius:10px;background:#000}
   .druckliste{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px}
   .druckliste .knopf{justify-content:flex-start;text-align:left}
+  .vk-raster{list-style:none;margin:8px 0 6px;padding:0;display:grid;gap:14px}
+  .vk-karte{display:grid;gap:8px;border:1px solid var(--linie);border-radius:14px;padding:10px}
+  .vk-karte img{width:100%;height:auto;border-radius:8px;display:block;background:#0d0b08}
+  .vk-karte b{font-size:14.5px;color:var(--text);font-weight:600}
+  .vk-knoepfe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .vk-knoepfe .knopf{min-height:42px;justify-content:center;font-size:13.5px;padding:6px 10px}
   .fl-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
   .fl-chips button{min-height:38px;padding:6px 12px;border-radius:999px;border:1px solid var(--linie2);background:transparent;color:var(--dim);font:inherit;font-size:13.5px;cursor:pointer}
   .fl-chips button span{color:var(--leise);font-size:12px;margin-left:2px}
@@ -224,6 +230,44 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
     <?php endforeach; ?>
     <a class="knopf" href="<?= $h($selbst(['karte' => 1])) ?>" target="_blank" rel="noopener"><?= $h($T('dr_karte')) ?></a>
   </div>
+
+  <?php require_once dirname(__DIR__) . '/src/PartnerKarten.php';
+        $vkK = in_array((string) ($_GET['ks'] ?? ''), PartnerKarten::KONTAKTE, true) ? (string) $_GET['ks'] : 'email';
+        $vkS = in_array((string) ($_GET['vks'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['vks'] : $sprache;
+        $vkL = static fn(array $x): string => $selbst(array_merge(['ks' => $vkK, 'vks' => $vkS], $x)); ?>
+  <section class="vk" id="visitenkarten" aria-labelledby="vk_titel">
+    <h3 class="md-h" id="vk_titel" style="margin-top:26px"><?= $h($T('vk_titel')) ?></h3>
+    <p class="klein" style="margin-top:0"><?= $h(strtr($T('vk_text'), ['{link}' => PartnerKarten::kurz($p), '{name}' => PartnerKarten::name($p)])) ?></p>
+    <div class="fl-chips" role="group" aria-label="<?= $h($T('vk_kontakt')) ?>">
+      <span class="klein" style="align-self:center"><?= $h($T('vk_kontakt')) ?>:</span>
+      <?php foreach (['email' => PartnerKarten::kontakt($p, 'email'), 'vecom' => PartnerKarten::VECOM_MAIL] as $kk => $kt): ?>
+        <a class="knopf" style="min-height:38px;border-radius:999px;<?= $kk === $vkK ? 'border-color:rgba(241,211,139,.7);color:var(--text)' : '' ?>" aria-current="<?= $kk === $vkK ? 'true' : 'false' ?>"
+           href="<?= $h($selbst(['ks' => $kk, 'vks' => $vkS]) . '#visitenkarten') ?>"><?= $h($kt) ?></a>
+      <?php endforeach; ?>
+    </div>
+    <div class="fl-chips" role="group" aria-label="<?= $h($T('vk_sprache')) ?>">
+      <span class="klein" style="align-self:center"><?= $h($T('vk_sprache')) ?>:</span>
+      <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $ls => $lw): ?>
+        <a class="knopf" style="min-height:38px;border-radius:999px;<?= $ls === $vkS ? 'border-color:rgba(241,211,139,.7);color:var(--text)' : '' ?>" aria-current="<?= $ls === $vkS ? 'true' : 'false' ?>"
+           href="<?= $h($selbst(['ks' => $vkK, 'vks' => $ls]) . '#visitenkarten') ?>"><?= $h($lw) ?></a>
+      <?php endforeach; ?>
+    </div>
+    <ul class="vk-raster">
+      <?php foreach (PartnerKarten::STILE as $vs => $vn): if (!PartnerKarten::gibt($vs)) { continue; } $vName = $vn[$sprache] ?? $vn['de']; ?>
+        <li class="vk-karte">
+          <img src="<?= $h($vkL(['vk' => $vs, 'f' => 'vorschau'])) ?>" alt="<?= $h(strtr($T('vk_alt'), ['{name}' => $vName])) ?>" width="720" height="231" loading="lazy" decoding="async">
+          <b><?= $h($vName) ?></b>
+          <span class="vk-knoepfe">
+            <a class="knopf haupt" href="<?= $h($vkL(['vk' => $vs, 'f' => 'pdf'])) ?>" download><?= $h($T('vk_pdf')) ?></a>
+            <a class="knopf" href="<?= $h($vkL(['vk' => $vs, 'f' => 'bogen'])) ?>" download><?= $h($T('vk_bogen')) ?></a>
+            <a class="knopf" href="<?= $h($vkL(['vk' => $vs, 'f' => 'vorn'])) ?>" download><?= $h($T('vk_vorn')) ?></a>
+            <a class="knopf" href="<?= $h($vkL(['vk' => $vs, 'f' => 'hinten'])) ?>" download><?= $h($T('vk_hinten')) ?></a>
+          </span>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+    <p class="klein"><?= $h($T('vk_hinweis')) ?></p>
+  </section>
 
   <?php require_once dirname(__DIR__) . '/src/PartnerFlyer.php'; $flGruppen = PartnerFlyer::gruppiert(); ?>
   <?php if ($flGruppen): ?>

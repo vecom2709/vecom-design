@@ -59,6 +59,23 @@ final class PartnerFlyer
         return (string) ($n[$sprache] ?? $n['de'] ?? $slug);
     }
 
+    /** Welcher Flyer zu einer Branche aus der Akquise-Liste passt (W2, 28.09.2026). Unbekannt: der allgemeine. */
+    public const ZU_BRANCHE = [
+        'restaurant' => 'restaurant', 'bar_cafe' => 'restaurant', 'baeckerei' => 'restaurant',
+        'hotel' => 'hotel', 'ferienwohnung' => 'hotel', 'agriturismo' => 'hotel', 'tourismus' => 'tourismus',
+        'handwerk' => 'handwerk', 'bau' => 'handwerk', 'immobilien' => 'architektur',
+        'autohaus' => 'autohaus', 'werkstatt' => 'autohaus',
+        'friseur' => 'kosmetik', 'beauty' => 'kosmetik', 'fitness' => 'fitness', 'medizin' => 'arztpraxis',
+        'einzelhandel' => 'shop', 'produzent' => 'shop', 'industrie' => 'logistik',
+        'kanzlei' => 'kanzlei', 'beratung' => 'steuerberater', 'dienstleister' => 'allgemein',
+    ];
+
+    public static function fuerBranche(?string $akqBranche): string
+    {
+        $s = self::ZU_BRANCHE[(string) $akqBranche] ?? 'allgemein';
+        return isset(self::liste()[$s]) ? $s : 'allgemein';
+    }
+
     /** Der Link hinter dem QR-Code: zählt als Kanal „flyer“ in der Auswertung. */
     public static function link(array $p): string
     {

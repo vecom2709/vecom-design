@@ -142,7 +142,7 @@ header('X-Content-Type-Options: nosniff');
 /* Sicherheit (27.09.2026, Uwe: Ja): wie Website-Check und Termin. Skript nur
    aus eigener Datei; eingebettet werden darf die Seite nur bei uns selbst
    (Vorschau im Partnerbereich). */
-header("Content-Security-Policy: default-src 'none'; img-src 'self'; media-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'self'");
+header("Content-Security-Policy: default-src 'none'; img-src 'self'; media-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'self'");
 if ($p === null) { header('Location: ' . $ziel, true, 302); exit; }
 
 $g = PartnerSeite::gestaltung($p);
@@ -590,6 +590,48 @@ foreach ($g['reihenfolge'] as $baustein):
   <section class="block ld lp" id="preise"><h2><?= $h($S($PS['preise_titel'])) ?></h2>
     <dl class="lp-preise"><?php foreach ($pr['faelle'] as $fk2 => $fp): ?><div><dt><?= $h($S($PS['preise_faelle'][$fk2])) ?></dt><dd><?= $h($fp) ?></dd></div><?php endforeach; ?></dl>
     <p class="klein" style="margin:12px 0 0"><?= $h($S($PS['preise_hinweis'])) ?><?php if ($pr['betreuung'] !== ''): ?> <?= $h(strtr($S($PS['preise_betreuung']), ['{preis}' => $pr['betreuung']])) ?><?php endif; ?></p>
+    <?php /* Mini-Rechner mit Live-Preis (28.09.2026, R4): drei Fragen aus dem echten
+             Konfigurator, gerechnet über richtpreis.php -- dieselbe Formel. */
+          require_once __DIR__ . '/app/src/Baukasten.php';
+          $lpT = static fn(string $k): string => Texte::h(Texte::BEDARF[$k] ?? [], $sprache);
+          $lpAb = 0; try { $lpAb = Baukasten::ab(); } catch (Throwable $e) { $lpAb = 0; }
+          $lpZeig = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'bedarf_spanne_zeigen'", [], '1') === '1';
+          if ($lpAb > 0 && $lpZeig): ?>
+    <form class="lp-rechner" action="<?= $h($wegAdresse('preis')) ?>" method="get">
+      <h3 style="font-size:17px;margin:18px 0 8px"><?= $h($S($PS['preise_selbst'])) ?></h3>
+      <?php foreach (['zweck' => ['zeigen', 'termine', 'shop'], 'umfang' => null, 'sprachen' => null] as $lpF => $lpNur): $lpFr = Baukasten::FRAGEN[$lpF]; $lpMehr = $lpFr['art'] === 'mehrfach'; ?>
+        <fieldset style="border:0;padding:0;margin:0 0 12px"><legend style="font-weight:600;margin-bottom:6px"><?= $h(Texte::h($lpFr['frage'], $sprache)) ?></legend>
+          <div class="lp-wahl">
+          <?php foreach ($lpFr['optionen'] as $lpW => $lpTx): $lpW = (string) $lpW; if ($lpNur !== null && !in_array($lpW, $lpNur, true)) { continue; } ?>
+            <label><input type="<?= $lpMehr ? 'checkbox' : 'radio' ?>" name="<?= $h($lpF) ?><?= $lpMehr ? '[]' : '' ?>" value="<?= $h($lpW) ?>"> <span class="wort"><?= $h(Texte::h($lpTx, $sprache)) ?></span></label>
+          <?php endforeach; ?>
+          </div>
+        </fieldset>
+      <?php endforeach; ?>
+      <div class="livepreis" id="livepreis" role="status" aria-live="polite">
+        <span class="lp-t"><?= $h($lpT('liveTitel')) ?></span>
+        <span class="lp-z" id="lp_zahl"><?= $h(strtr($lpT('liveAb'), ['{betrag}' => Baukasten::geldText($lpAb, $sprache)])) ?></span>
+        <span class="lp-d" id="lp_delta"><?= $h($lpT('liveStart')) ?></span>
+        <span class="lp-m" id="lp_monat"></span>
+      </div>
+      <script type="application/json" id="livepreis_daten"><?= json_encode(['antworten' => (object) [], 'schritt' => 2, 'lang' => $sprache, 'von' => $lpAb, 'monat' => 0,
+          'fragen' => ['zweck', 'umfang', 'sprachen'],
+          't' => ['plus' => $lpT('livePlus'), 'minus' => $lpT('liveMinus'), 'gleich' => $lpT('liveGleich'), 'offen' => $lpT('liveOffen'), 'monat' => $lpT('liveMonatPlus'), 'monatWeg' => $lpT('liveMonatWeg')]],
+          JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+      <script src="/assets/js/richtpreis-live.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/richtpreis-live.js') ?>" defer></script>
+    </form>
+    <style>
+      .lp-wahl{display:flex;flex-wrap:wrap;gap:6px}
+      .lp-wahl label{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border:1px solid rgba(241,211,139,.25);border-radius:10px;cursor:pointer;font-size:15px}
+      .lp-wahl label:has(input:checked){border-color:rgba(241,211,139,.8);background:rgba(241,211,139,.08)}
+      .lp-wahl input{accent-color:#d6a849;width:18px;height:18px}
+      .lp-rechner .livepreis{margin-top:8px;padding:12px 16px;border:1px solid rgba(241,211,139,.45);border-radius:14px;display:grid;gap:2px;background:rgba(0,0,0,.25)}
+      .lp-rechner .lp-t{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+      .lp-rechner .lp-z{font-size:clamp(22px,6vw,28px);font-weight:700;line-height:1.2}
+      .lp-rechner .lp-d{font-size:14px;color:#f1d38b;min-height:1.2em}
+      .lp-rechner .lp-m{font-size:12.5px;opacity:.75}
+    </style>
+    <?php endif; ?>
     <a class="lp-wa" style="margin-top:14px" href="<?= $h($wegAdresse('preis')) ?>"><?= $h($S($PS['preise_knopf'])) ?> →</a>
   </section>
 <?php break;

@@ -69,7 +69,7 @@ $kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $
     }
     return $o . '</div></details>';
 };
-$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf, $kontaktFeld): string {
+$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf, $kontaktFeld, $sprache): string {
     $o = '<li class="firma"><div class="firma__kopf"><b>' . $h($f['name']) . '</b><span class="chance ' . $h($f['chance']) . '">' . $h($T('fi_chance_' . $f['chance'])) . '</span></div>'
        . '<small>' . $h($f['branche']) . ' · ' . $h(trim($f['adresse'] !== '' ? $f['adresse'] . ', ' . $f['ort'] : $f['ort'], ', ')) . ($f['domain'] !== '' ? ' · ' . $h($f['domain']) : '') . '</small>';
     $o .= '<div class="firma__tat">';
@@ -79,6 +79,14 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             . '<form method="post" action="' . $h($selbst(['fi_ort' => $fiOrt, 'fi_branche' => $fiBranche, 'fi_nz' => 1])) . '#recherche">'
             . '<input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tat" value="fi_frei">'
             . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_frei')) . '</button></form></span>';
+        /* W2 (28.09.2026): der Flyer zur Branche dieses Betriebs, mit eigenem QR-Code -- zum Mitnehmen */
+        if ($meine) {
+            require_once dirname(__DIR__) . '/src/PartnerFlyer.php';
+            $fs = PartnerFlyer::fuerBranche((string) ($f['branche_key'] ?? ''));
+            $o .= '<span class="ck-knoepfe" style="width:100%"><span class="klein" style="margin:0">' . $h(strtr($T('fi_flyer'), ['{name}' => PartnerFlyer::name($fs, $sprache)])) . '</span>'
+                . '<a class="knopf klein-knopf" download href="' . $h($selbst(['fl' => $fs, 'f' => 'pdf'])) . '">PDF</a>'
+                . '<a class="knopf klein-knopf" download href="' . $h($selbst(['fl' => $fs, 'f' => 'jpg'])) . '">' . $h($T('fl_jpg')) . '</a></span>';
+        }
     } elseif (($f['stand'] ?? '') === 'vecom') {
         $o .= '<span class="klein" style="margin:0">' . $h($T('fi_vecom')) . '</span>';
     } else {

@@ -14576,6 +14576,124 @@ pruefe('Favicon: goldenes V auch als /favicon.ico und in 48/96 px (Google verlan
     && str_contains((string) file_get_contents($wurzel . '/../index.html'), 'favicon-96.png') && str_contains((string) file_get_contents($wurzel . '/../index.html'), '"logo": "https://vecom-design.it/assets/img/app-icon-512.png"'));
 
 /* ============================================================================
+   Live-Richtpreis (28.09.2026, Uwe: Ja zu R1–R4)
+   ============================================================================ */
+abschnitt('Live-Richtpreis');
+require_once $wurzel . '/src/Baukasten.php';
+require_once $wurzel . '/src/Bedarf.php';
+$lpKat = Baukasten::katalog();
+$lpVoll = ['zweck' => ['shop', 'termine'], 'umfang' => 'wenige', 'sprachen' => '2', 'material' => ['texte'], 'bestand' => 'erneuern', 'zeit' => 'schnell', 'betreuung' => 'ja', 'branche' => 'gastro'];
+$lpR = Baukasten::rechnen($lpVoll, $lpKat);
+$lpS = Baukasten::spanne((int) $lpR['von_cents'], (int) $lpR['bis_cents']);
+$lpL = Baukasten::live($lpVoll, Baukasten::schrittZahl(), $lpKat);
+pruefe('Live-Preis: nach allen Fragen genau die Zahl der Ergebnisseite (keine zweite Formel)',
+    $lpL['von_cents'] === $lpS['von_cents'] && $lpL['bis_cents'] === $lpS['bis_cents'] && $lpL['monatlich_cents'] === (int) $lpR['monatlich_cents'], json_encode([$lpL, $lpS]));
+$lpAb = Baukasten::ab($lpKat);
+$lpF1 = Baukasten::spanne(...array_values(array_intersect_key(Baukasten::rechnen(['zweck' => ['zeigen'], 'umfang' => 'eine', 'sprachen' => 1] + PartnerSeite::PREIS_GRUND, $lpKat), ['von_cents' => 1, 'bis_cents' => 1])));
+pruefe('Live-Preis: Startwert „ab“ ist der kleinste Preis (= Preisbeispiel „Eine Seite, eine Sprache“)', $lpAb > 0 && $lpAb === $lpF1['von_cents'], $lpAb . ' / ' . $lpF1['von_cents']);
+$lp1 = Baukasten::live(['zweck' => ['zeigen']], 1, $lpKat)['von_cents'];
+$lp2 = Baukasten::live(['zweck' => ['zeigen'], 'umfang' => 'eine', 'sprachen' => '2'], 2, $lpKat)['von_cents'];
+$lp3 = Baukasten::live(['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => '2'], 2, $lpKat)['von_cents'];
+pruefe('Live-Preis: noch nicht gezeigte Fragen zählen günstig, jede teurere Antwort erhöht (2 Sprachen, mehr Seiten)',
+    $lp1 === $lpAb && $lp2 > $lp1 && $lp3 > $lp2, "$lp1 < $lp2 < $lp3");
+pruefe('Live-Preis: Antworten von außen werden bereinigt (unbekannte Fragen und Werte fallen weg)',
+    Bedarf::bereinigen(['zweck' => ['shop', '<x>'], 'umfang' => 'riesig', 'boese' => 1, 'sprachen' => 3]) === ['zweck' => ['shop'], 'umfang' => '', 'sprachen' => '3']);
+$lpA = Baukasten::liveAntwort($lpL, $lpAb, 'de');
+pruefe('Live-Preis: fertige Texte in der Sprache des Kunden (Spanne, ab, Betreuung im Monat)',
+    $lpA['zeigen'] && str_contains($lpA['text'], ' – ') && str_starts_with($lpA['ab'], 'ab ') && str_contains($lpA['monatText'], 'im Monat')
+    && Baukasten::geldText(150000, 'en') === '€1,500' && Baukasten::geldText(150000, 'it') === '1.500 €');
+$lpBed = (string) file_get_contents($wurzel . '/../bedarf.php');
+$lpPs = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Live-Preis: im Konfigurator (auch im Dashboard) und auf der Partnerseite, abschaltbar, CSP erlaubt die Abfrage',
+    str_contains($lpBed, 'id="livepreis"') && str_contains($lpBed, 'Baukasten::live(') && str_contains($lpBed, "bedarf_spanne_zeigen")
+    && str_contains($lpPs, 'id="livepreis"') && str_contains($lpPs, "connect-src 'self'")
+    && str_contains((string) file_get_contents($wurzel . '/../richtpreis.php'), 'Baukasten::live(')
+    && is_file($wurzel . '/../assets/js/richtpreis-live.js'));
+
+/* ============================================================================
+   Visitenkarten in vier Stilen (28.09.2026)
+   ============================================================================ */
+abschnitt('Visitenkarten');
+require_once $wurzel . '/src/PartnerKarten.php';
+$vkP = ['id' => 1, 'code' => 'KARTE123', 'token' => 'x', 'name' => 'Giuseppe Lombardo', 'email' => 'giuseppe@example.com', 'firma' => ''];
+$vkFehler = [];
+foreach (array_keys(PartnerKarten::STILE) as $vs) {
+    foreach (['vorn', 'hinten-it', 'hinten-de', 'hinten-en'] as $vt) {
+        $g = @getimagesize($wurzel . "/karten/$vs-$vt.jpg");
+        if (!$g || abs($g[0] / $g[1] - 91 / 61) > 0.01) { $vkFehler[] = "$vs-$vt"; }
+    }
+}
+$vkLay = require $wurzel . '/karten/layout.php';
+foreach ($vkLay as $vs => $L) {
+    [$qx, $qy, $qs] = $L['qr'];
+    if ($qx < 30 || $qy < 30 || $qx + $qs > 880 || $qy + $qs > 580 || $qs < 150) { $vkFehler[] = "$vs-qr"; }
+    foreach (['name', 'link', 'kontakt'] as $f) { if ($L[$f]['x'] < 30 || $L[$f]['x'] + $L[$f]['max'] > 880) { $vkFehler[] = "$vs-$f"; } }
+}
+pruefe('Visitenkarten: 4 Stile × Vorderseite und Rückseite in drei Sprachen, 91 × 61 mm; Texte und QR im Endformat (3 mm Beschnitt frei)',
+    count(PartnerKarten::STILE) === 4 && $vkFehler === [], implode(', ', $vkFehler));
+$vkB = PartnerKarten::bild($vkP, 'a', 'hinten', 'de', 'email', false);
+$vkV = PartnerKarten::vorschau($vkP, 'd', 'it');
+$vkPdf = PartnerKarten::pdf($vkP, 'b', 'de');
+$vkBogen = PartnerKarten::pdf($vkP, 'c', 'en', 'vecom', 'bogen');
+pruefe('Visitenkarten: Bild, Vorschau, Druck-PDF (2 Seiten 91 × 61 mm) und A4-Bogen (2 Seiten A4) entstehen',
+    strlen($vkB) > 50000 && strlen($vkV) > 5000 && str_starts_with($vkPdf, '%PDF') && str_contains($vkPdf, '/Count 2') && str_contains($vkPdf, '257.953 172.913')
+    && str_contains($vkBogen, '/Count 2') && str_contains($vkBogen, '595.276 841.890'));
+pruefe('Visitenkarten: QR auf /p/CODE/karte, Name, Link und Kontakt des Partners (oder kontakt@vecom-design.it)',
+    str_ends_with(PartnerKarten::link($vkP), '/p/KARTE123/karte') && PartnerKarten::name($vkP) === 'Giuseppe Lombardo'
+    && PartnerKarten::kontakt($vkP, 'email') === 'giuseppe@example.com' && PartnerKarten::kontakt($vkP, 'vecom') === PartnerKarten::VECOM_MAIL
+    && PartnerKarten::kontakt(['email' => ''], 'email') === PartnerKarten::VECOM_MAIL && str_ends_with(PartnerKarten::kurz($vkP), '/p/KARTE123'));
+pruefe('Visitenkarten: Hintergründe nicht öffentlich, Abruf nur mit eigenem Schlüssel, Schriften mit Lizenz',
+    str_contains((string) @file_get_contents($wurzel . '/karten/.htaccess'), 'Require all denied') && str_contains($flSeite, "if (\$p && isset(\$_GET['vk']))")
+    && is_file($wurzel . '/schrift/montserrat-600.ttf') && str_contains((string) @file_get_contents($wurzel . '/schrift/LIZENZ.txt'), 'Open Font License')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbung.php'), 'id="visitenkarten"'));
+
+/* ============================================================================
+   Wege zum Ja (28.09.2026, Uwe: Ja zu W1–W4)
+   ============================================================================ */
+abschnitt('Wege zum Ja (W1–W4)');
+require_once $wurzel . '/src/BranchenStatistik.php';
+require_once $wurzel . '/src/AkquiseAuswertung.php';
+$wjIds = [];
+for ($i = 0; $i < BranchenStatistik::MIN + 3; $i++) {
+    $wjIds[] = $fid = (int) Db::insert('akq_firmen', ['kennung' => 'WJ' . str_pad((string) $i, 8, '0', STR_PAD_LEFT), 'name' => 'Trattoria Geheim ' . $i, 'name_norm' => 'trattoria geheim ' . $i,
+        'land' => 'IT', 'branche' => 'restaurant', 'stadt' => 'AGRIGENTO', 'kreis' => 'Agrigento', 'url' => "https://geheim-$i.example", 'domain' => "geheim-$i.example",
+        'audit_status' => 'fertig', 'quelle' => 'wj-kette-' . $i]);
+    $aid = (int) Db::insert('akq_audits', ['firma_id' => $fid, 'status' => 'fertig', 'gestartet_am' => date('Y-m-d H:i:s')]);
+    if ($i % 3 !== 0) { Db::insert('akq_befunde', ['audit_id' => $aid, 'firma_id' => $fid, 'kategorie' => 'performance', 'code' => 'langsam_lcp', 'schwere' => 3, 'titel' => 'x', 'status' => 'offen', 'erkannt_am' => date('Y-m-d H:i:s')]); }
+}
+// zu kleine Gruppe: darf nie erscheinen
+for ($i = 0; $i < 3; $i++) {
+    Db::insert('akq_firmen', ['kennung' => 'WK' . str_pad((string) $i, 8, '0', STR_PAD_LEFT), 'name' => 'Kleinort ' . $i, 'name_norm' => 'kleinort ' . $i, 'land' => 'IT',
+        'branche' => 'restaurant', 'stadt' => 'Favara', 'kreis' => 'Favara Kreis', 'url' => "https://k-$i.example", 'audit_status' => 'fertig', 'quelle' => 'wk-kette-' . $i]);
+}
+BranchenStatistik::rechnen();
+$wjS = BranchenStatistik::laden('restaurant-agrigento');
+pruefe('W1: Branchen-Stadt-Zahlen anonym: Anteile ab ' . BranchenStatistik::MIN . ' geprüften Betrieben, kleine Gruppen erscheinen nicht, Stadt vor Kreis',
+    $wjS !== null && $wjS['ort_art'] === 'stadt' && $wjS['geprueft'] >= BranchenStatistik::MIN && $wjS['werte']['langsam'] === (int) round(12 / 18 * 100)
+    && BranchenStatistik::laden('restaurant-favara') === null && !str_contains(json_encode(BranchenStatistik::liste()), 'Geheim'), json_encode($wjS));
+$wjSeite = (string) file_get_contents($wurzel . '/../branchen.php');
+pruefe('W1: öffentliche Seite /siti-web/… mit Sitemap, ohne Namen, mit Weg zur eigenen Analyse',
+    str_contains((string) file_get_contents($wurzel . '/../.htaccess'), 'RewriteRule ^siti-web/([a-z0-9-]{3,190})/?$ branchen.php?s=$1')
+    && str_contains((string) file_get_contents($wurzel . '/../robots.txt'), 'sitemap-branchen.php') && str_contains($wjSeite, "'/analisi.php?lang='")
+    && !preg_match('~\$s\[.name.\]|f\.name|domain~', $wjSeite) && BranchenStatistik::in('Agrigento', 'it') === 'ad Agrigento' && BranchenStatistik::in('Palermo', 'it') === 'a Palermo');
+$wjA = BranchenStatistik::anzeige($wjS, 'it');
+$wjLang = array_filter(array_merge($wjA['google']['titel'], [$wjA['meta']['ueberschrift']]), static fn($t) => mb_strlen($t) > 40)
+    + array_filter($wjA['google']['titel'], static fn($t) => mb_strlen($t) > 30) + array_filter($wjA['google']['texte'], static fn($t) => mb_strlen($t) > 90);
+pruefe('W3: Anzeigen-Entwürfe mit echten Zahlen, in den Grenzen von Meta und Google, nie abgeschnitten, nichts wird geschaltet',
+    $wjLang === [] && str_contains($wjA['meta']['text'], '67 %') && str_contains($wjA['meta']['text'], 'ristoranti ad Agrigento') && !str_contains(json_encode($wjA), '…')
+    && BranchenStatistik::anzeigenPlanen() > 0 && BranchenStatistik::anzeigenPlanen() === 0
+    && !preg_match('~graph\.facebook|googleads|curl_~', (string) file_get_contents($wurzel . '/src/BranchenStatistik.php')), json_encode($wjLang));
+pruefe('W2: passender Flyer zur Branche des reservierten Betriebs (sonst der allgemeine)',
+    PartnerFlyer::fuerBranche('restaurant') === 'restaurant' && PartnerFlyer::fuerBranche('friseur') === 'kosmetik' && PartnerFlyer::fuerBranche('gibtsnicht') === 'allgemein'
+    && !array_diff(array_values(PartnerFlyer::ZU_BRANCHE), array_keys(PartnerFlyer::liste()))
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'PartnerFlyer::fuerBranche('));
+$wjT = AkquiseAuswertung::wegZumDashboard(365);
+pruefe('W4: Trichter „Weg zum Dashboard“ mit allen Stufen und je Weg',
+    array_keys($wjT['stufen']) === array_keys(AkquiseAuswertung::WEG_STUFEN) && $wjT['stufen']['verwaltung'] >= count($wjIds) && $wjT['stufen']['geprueft'] >= count($wjIds)
+    && is_array($wjT['wege']) && str_contains((string) file_get_contents($wurzel . '/views/akquise_auswertung.php'), 'Weg zum Dashboard'));
+foreach ($wjIds as $fid) { Db::run('DELETE FROM akq_befunde WHERE firma_id = ?', [$fid]); Db::run('DELETE FROM akq_audits WHERE firma_id = ?', [$fid]); }
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

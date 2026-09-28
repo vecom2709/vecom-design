@@ -386,6 +386,18 @@ if ($post) {
                 $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['ok'] ? 'Gepostet.' : 'Nicht gepostet: ' . $r['grund'];
                 $zu('beitraege');
 
+            case 'akq_anzeige_erledigt':
+                Db::run("UPDATE akq_anzeigen SET status = IF(status = 'erledigt', 'entwurf', 'erledigt') WHERE id = ?", [(int) ($_POST['anzeige'] ?? 0)]);
+                $zu('anzeigen');
+
+            case 'akq_anzeigen_jetzt':
+                require_once __DIR__ . '/src/BranchenStatistik.php';
+                $nSeiten = BranchenStatistik::rechnen();
+                Db::run('DELETE FROM akq_anzeigen WHERE woche = ? AND status = ?', [BranchenStatistik::woche(), 'entwurf']);
+                $nAnz = BranchenStatistik::anzeigenPlanen();
+                $_SESSION['gut'] = "Neu gerechnet: $nSeiten Branchen-Seiten, $nAnz Anzeigen-Entwürfe.";
+                $zu('anzeigen');
+
             case 'akq_beitrag_verwerfen':
                 Db::run("UPDATE akq_beitraege SET status = 'verworfen' WHERE id = ? AND status IN ('entwurf','fehler')", [(int) ($_POST['beitrag'] ?? 0)]);
                 $zu('beitraege');
@@ -535,6 +547,17 @@ if ($teil === 'beitraege') {
     exit;
 }
 
+if ($teil === 'anzeigen') {
+    /* W1/W3 (28.09.2026): Branchen-Seiten und Anzeigen-Entwürfe mit echten Zahlen. */
+    require_once __DIR__ . '/src/BranchenStatistik.php';
+    ansicht('akquise_anzeigen', [
+        'anzeigen' => sicher(static fn() => Db::all("SELECT * FROM akq_anzeigen WHERE woche >= ? ORDER BY woche DESC, FIELD(status,'entwurf','erledigt'), slug, kanal LIMIT 60",
+            [BranchenStatistik::woche(strtotime('-21 days'))]), []),
+        'seiten' => sicher(static fn() => BranchenStatistik::liste(null, 200), []),
+    ]);
+    exit;
+}
+
 if ($teil === 'qrkarte') {
     /* Allgemeine QR-Karte (28.09.2026, Z3): führt auf analisi.php. */
     require_once __DIR__ . '/src/QrBild.php';
@@ -568,7 +591,8 @@ if ($teil === 'auswertung' || $teil === 'karte') {
     if ($teil === 'karte') { ansicht('akquise_karte', ['punkte' => AkquiseAuswertung::kartenpunkte()]); exit; }
     $nach = in_array($_GET['nach'] ?? '', ['branche', 'kanal', 'variante'], true) ? (string) $_GET['nach'] : 'branche';
     $tage = in_array((int) ($_GET['tage'] ?? 90), [30, 90, 365], true) ? (int) ($_GET['tage'] ?? 90) : 90;
-    ansicht('akquise_auswertung', ['trichter' => AkquiseAuswertung::trichter($nach, $tage), 'nach' => $nach, 'tage' => $tage, 'woche' => AkquiseAuswertung::woche()]);
+    $wegDash = null; try { $wegDash = AkquiseAuswertung::wegZumDashboard($tage); } catch (Throwable $e) { $wegDash = null; }
+    ansicht('akquise_auswertung', ['trichter' => AkquiseAuswertung::trichter($nach, $tage), 'nach' => $nach, 'tage' => $tage, 'woche' => AkquiseAuswertung::woche(), 'wegDash' => $wegDash]);
     exit;
 }
 

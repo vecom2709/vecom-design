@@ -287,6 +287,23 @@ if ($b && $schritt === $anzahl) {
     } catch (Throwable $e) { $spanne = null; }
 }
 
+/* Der Live-Richtpreis (28.09.2026, Uwe: Ja zu R1–R3). Vorher stand hier
+   bewusst keine Zahl vor dem Ende; Uwe will jetzt, dass jede Antwort den
+   Preis sofort zeigt. Ohne Skript rechnet der Server ihn bei jedem Schritt,
+   mit Skript bei jedem Klick (richtpreis.php) -- beide über Baukasten::live,
+   also dieselbe Rechnung wie Ergebnis und Angebot. Abschaltbar mit derselben
+   Einstellung wie die Spanne. */
+$live = null; $liveAb = 0;
+if ($b && !$fertig && $schritt < $anzahl) {
+    try {
+        if ((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'bedarf_spanne_zeigen'", [], '1') === '1') {
+            $liveKat = Baukasten::katalog();
+            $live = Baukasten::live($antworten, $schritt - 1, $liveKat);
+            $liveAb = Baukasten::ab($liveKat);
+        }
+    } catch (Throwable $e) { $live = null; }
+}
+
 /* Wie viele Plaetze zum Einfuehrungspreis noch offen sind. Echte Zahl aus
    voll bezahlten Bestellungen — kein erfundener Countdown. Faellt sie aus,
    steht dort einfach nichts. */
@@ -366,6 +383,16 @@ $geld = static function (int $cents) use ($sprache): string {
   .erkannt{margin:4px 0 0;padding:10px 14px;border-radius:10px;
     background:rgba(192,136,24,.09);border:1px solid rgba(192,136,24,.28);
     font-size:13.5px;color:var(--dim)}
+  /* Live-Richtpreis: unten angeheftet, damit er bei jedem Klick sichtbar bleibt */
+  .livepreis{position:sticky;bottom:0;z-index:5;margin:14px -4px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    border:1px solid rgba(192,136,24,.45);border-radius:14px 14px 0 0;background:rgba(14,12,9,.96);
+    box-shadow:0 -10px 30px rgba(0,0,0,.45);display:grid;gap:2px}
+  .livepreis .lp-t{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
+  .livepreis .lp-z{font-size:clamp(22px,6vw,28px);font-weight:600;line-height:1.2;color:var(--text);transition:color .3s}
+  .livepreis .lp-z.neu{color:var(--cyan)}
+  .livepreis .lp-d{font-size:14px;color:var(--cyan);min-height:1.2em}
+  .livepreis .lp-m,.livepreis .lp-h{font-size:12.5px;color:var(--leise);line-height:1.5}
+  @media (prefers-reduced-motion:reduce){.livepreis .lp-z{transition:none}}
   .leiste2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .leiste2 .rechts{margin-left:auto}
   .leiste2 .knopf{flex:0 1 auto;padding-left:26px;padding-right:26px}
@@ -571,6 +598,22 @@ $geld = static function (int $cents) use ($sprache): string {
       </div>
       <p class="beiseite"><?= $h($T('autoOk')) ?></p>
     </div>
+    <?php if ($live !== null): $leer = $schritt === 1 && empty($antworten['zweck']); ?>
+      <div class="livepreis" id="livepreis" role="status" aria-live="polite">
+        <span class="lp-t"><?= $h($T('liveTitel')) ?></span>
+        <span class="lp-z" id="lp_zahl"><?= $h($leer ? strtr($T('liveAb'), ['{betrag}' => Baukasten::geldText($liveAb, $sprache)])
+            : Baukasten::geldText($live['von_cents'], $sprache) . ' – ' . Baukasten::geldText($live['bis_cents'], $sprache)) ?></span>
+        <span class="lp-d" id="lp_delta"><?= $leer ? $h($T('liveStart')) : '' ?></span>
+        <span class="lp-m" id="lp_monat"><?= $live['monatlich_cents'] > 0 ? $h(strtr($T('liveMonat'), ['{betrag}' => Baukasten::geldText($live['monatlich_cents'], $sprache)])) : '' ?></span>
+        <span class="lp-h"><?= $h($T('liveHinweis')) ?></span>
+      </div>
+      <script type="application/json" id="livepreis_daten"><?= json_encode([
+          'antworten' => (object) $antworten, 'schritt' => $schritt, 'lang' => $sprache, 'von' => $leer ? $liveAb : $live['von_cents'], 'monat' => $live['monatlich_cents'],
+          'fragen' => array_values(Baukasten::SCHRITTE[$schritt - 1] ?? []),
+          't' => ['plus' => $T('livePlus'), 'minus' => $T('liveMinus'), 'gleich' => $T('liveGleich'), 'offen' => $T('liveOffen'), 'monat' => $T('liveMonatPlus'), 'monatWeg' => $T('liveMonatWeg')],
+      ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+      <script src="/assets/js/richtpreis-live.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/richtpreis-live.js') ?>" defer></script>
+    <?php endif; ?>
   </form>
 
   <div class="sprachen">

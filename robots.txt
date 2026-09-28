@@ -3,3 +3,4 @@ Allow: /
 Disallow: /cockpit/
 
 Sitemap: https://vecom-design.it/sitemap.xml
+Sitemap: https://vecom-design.it/sitemap-branchen.php
