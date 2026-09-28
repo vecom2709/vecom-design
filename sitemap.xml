@@ -339,4 +339,31 @@
     <lastmod>2026-09-26</lastmod><priority>0.7</priority>
   </url>
   <!-- landeseiten:ende -->
+  <!-- deutschland:anfang (build.mjs) -->
+  <url>
+    <loc>https://vecom-design.it/de/website-friseur.html</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/website-friseur.html"/>
+    <lastmod>2026-09-28</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/website-handwerker.html</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/website-handwerker.html"/>
+    <lastmod>2026-09-28</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/website-restaurant-cafe.html</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/website-restaurant-cafe.html"/>
+    <lastmod>2026-09-28</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/website-pension-ferienwohnung.html</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/website-pension-ferienwohnung.html"/>
+    <lastmod>2026-09-28</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/website-kfz-werkstatt.html</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/website-kfz-werkstatt.html"/>
+    <lastmod>2026-09-28</lastmod><priority>0.7</priority>
+  </url>
+  <!-- deutschland:ende -->
 </urlset>

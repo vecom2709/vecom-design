@@ -647,6 +647,8 @@ masz: {
       sigNote: "Sprechen wir darüber.", nav: "Über mich"
     },
     footer: {
+      tipp_t: "Der Website-Tipp der Woche", tipp_d: "Einmal pro Woche ein kurzer, praktischer Tipp für Ihre Website. Kostenlos, mit einem Klick abbestellbar.", tipp_email: "Ihre E-Mail-Adresse", tipp_knopf: "Eintragen",
+      tipp_wort: "Vecom Design (Uwe Vetter) darf mir einmal pro Woche per E-Mail einen Tipp für meine Website schicken, mit dem Link zur kostenlosen Analyse. Ich kann das jederzeit mit einem Klick abbestellen.",
       claim: "Websites, Marken und Online-Shops. Projekte auf Italienisch, Deutsch und Englisch — Italien und Deutschland.",
       h1: "Studio", h2: "Rechtliches",
       l1: "Leistungen", l2: "Arbeiten", l3: "Ablauf", l4: "Kontakt",

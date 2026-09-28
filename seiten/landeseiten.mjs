@@ -411,11 +411,11 @@ export const LANDESEITEN = [
 /* Wörter rund um die Seiten, je Sprache. */
 export const LANDESEITEN_WORTE = {
   it: { faq: 'Domande frequenti', cta_titel: 'Vuole sapere quanto costa il suo?', cta_text: 'Inserisca la sua e-mail: riceve il link alla sua dashboard e in un minuto e mezzo vede la sua fascia di prezzo. Nessun account, nessun impegno.',
-        cta_knopf: 'Iniziare', preise: 'Vedere tutti i prezzi', demo: 'Vedere la demo sulla pagina iniziale', auch: 'Siti anche per', guida: 'Leggere la guida', branche: 'Il sito per il suo B&B', home: 'Pagina iniziale' },
+        cta_knopf: 'Iniziare', analisi: 'Analisi gratuita del sito', preise: 'Vedere tutti i prezzi', demo: 'Vedere la demo sulla pagina iniziale', auch: 'Siti anche per', guida: 'Leggere la guida', branche: 'Il sito per il suo B&B', home: 'Pagina iniziale' },
   de: { faq: 'Häufige Fragen', cta_titel: 'Wissen, was Ihre kostet?', cta_text: 'E-Mail eintragen: Sie bekommen den Link zu Ihrem Bereich und sehen in anderthalb Minuten Ihre Preisspanne. Kein Konto, keine Verpflichtung.',
-        cta_knopf: 'Loslegen', preise: 'Alle Preise ansehen', demo: 'Demo auf der Startseite ansehen', auch: 'Websites auch für', guida: 'Zum Ratgeber', branche: 'Die Website für Ihre Ferienwohnung', home: 'Startseite' },
+        cta_knopf: 'Loslegen', analisi: 'Kostenlose Website-Analyse', preise: 'Alle Preise ansehen', demo: 'Demo auf der Startseite ansehen', auch: 'Websites auch für', guida: 'Zum Ratgeber', branche: 'Die Website für Ihre Ferienwohnung', home: 'Startseite' },
   en: { faq: 'Frequently asked questions', cta_titel: 'Want to know what yours costs?', cta_text: 'Enter your e-mail: you get the link to your dashboard and see your price range in a minute and a half. No account, no commitment.',
-        cta_knopf: 'Get started', preise: 'See all prices', demo: 'See the demo on the home page', auch: 'Websites also for', guida: 'Read the guide', branche: 'The website for your B&B', home: 'Home page' },
+        cta_knopf: 'Get started', analisi: 'Free website analysis', preise: 'See all prices', demo: 'See the demo on the home page', auch: 'Websites also for', guida: 'Read the guide', branche: 'The website for your B&B', home: 'Home page' },
 };
 
 /* Kurznamen für die Querverweise „Siti anche per …“ */

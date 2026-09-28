@@ -361,6 +361,13 @@ if ($post) {
                 $_SESSION['gut'] = 'Facebook/Instagram gespeichert.';
                 $zu('regeln#wege');
 
+            case 'akq_google_schluessel':
+                require_once __DIR__ . '/src/GoogleLead.php';
+                GoogleLead::schluesselNeu();
+                Events::pruefspur('google_lead_schluessel', 'settings', null, [], ['neu' => true]);
+                $_SESSION['gut'] = 'Neuer Schlüssel für Google Ads erzeugt — jetzt in Google Ads eintragen.';
+                $zu('regeln#google');
+
             case 'akq_meta_abo':
                 require_once __DIR__ . '/src/MetaSeite.php';
                 $r = MetaSeite::formulareAbonnieren();

@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { LANDESEITEN, LANDESEITEN_WORTE, LANDESEITEN_KURZ, LANDESEITEN_STAND } from './seiten/landeseiten.mjs';
+import { DEUTSCHLAND_SEITEN, DEUTSCHLAND_WORTE, DEUTSCHLAND_STAND } from './seiten/deutschland.mjs';
 
 const BASE = 'https://vecom-design.it';
 
@@ -450,6 +451,12 @@ function build(lang, seite) {
   h = h.replace(/(href|action)="(?:\/|\.\.\/)?zugang\.php(?:\?lang=[a-z]{2})?"/g, (_, attr) => `${attr}="/zugang.php?lang=${lang}"`);
   /* Der Website-Check (27.09.2026) spricht die Sprache ebenfalls nur ueber ?lang=. */
   h = h.replace(/href="(?:\/|\.\.\/)?website-check\.php(?:\?lang=[a-z]{2})?"/g, `href="/website-check.php?lang=${lang}"`);
+  /* Branchen-Seiten für Deutschland (28.09.2026, D4): nur die deutsche Fassung zeigt sie. */
+  if (lang === 'de') { h = h.replace(' hidden data-nur="de"', ' data-nur="de"'); }
+  else if (lang !== 'it') { h = h.replace(/\s*<!-- nur-de:anfang[\s\S]*?<!-- nur-de:ende -->/, ''); }
+  /* Website-Tipp der Woche (28.09.2026, D5): Formular und Sprache der Bestätigungsmail. */
+  h = h.replace(/action="\/tipp\.php\?lang=[a-z]{2}"/g, `action="/tipp.php?lang=${lang}"`);
+  h = h.replace(/name="lang" value="[a-z]{2}" data-tipp-lang/g, `name="lang" value="${lang}" data-tipp-lang`);
   /* Die kostenlose Analyse (28.09.2026, Z6) ebenso. */
   h = h.replace(/href="(?:\/|\.\.\/)?analisi\.php(?:\?lang=[a-z]{2})?"/g, `href="/analisi.php?lang=${lang}"`);
   // Dieselbe Regel fuer die Solo-Hosting-Seite: Auch sie kennt die Sprache
@@ -798,6 +805,7 @@ for (const seite of SEITEN) {
         <p class="antwort__titel">${esc(W.cta_titel)}</p>
         <p class="antwort__text">${esc(W.cta_text)}</p>
         <p class="landeseite__knoepfe"><a class="btn btn--primary" href="./#contact">${esc(W.cta_knopf)}</a>
+          <a class="btn" href="/analisi.php?lang=${lang}">${esc(W.analisi)}</a>
           <a class="btn" href="${gleichesVerz(preis.ziele[lang])}">${esc(W.preise)}</a></p>
       </div>
       <h2>${esc(W.faq)}</h2>
@@ -833,4 +841,93 @@ ${['it', 'de', 'en'].map((x) => `    <xhtml:link rel="alternate" hreflang="${x}"
   const vor = sm.slice(0, sm.indexOf(ANF) + ANF.length), nach = sm.slice(sm.indexOf(END));
   const neu = `${vor}\n${eintraege}\n  ${nach}`;
   if (neu !== readFileSync('sitemap.xml', 'utf8')) { writeFileSync('sitemap.xml', neu); console.log('geschrieben: sitemap.xml (Landeseiten)'); }
+}
+
+/* --------------------------------------------------------------------------
+   BRANCHEN-SEITEN FÜR DEUTSCHLAND (28.09.2026, Uwe: Ja zu D4)
+
+   Nur Deutsch, Gerüst der deutschen Preisseite wie bei den Landeseiten. Der
+   erste Knopf ist die kostenlose Analyse. Keine hreflang-Geschwister (es
+   gibt keine), Sprachwahl führt auf die Startseite der anderen Sprache.
+   Eigener Abschnitt in der Sitemap zwischen eigenen Marken.
+   -------------------------------------------------------------------------- */
+{
+  const preis = SEITEN.find((x) => x.quelle === 'prezzi.html');
+  const W = DEUTSCHLAND_WORTE;
+  const vorlage = readFileSync(preis.ziele.de, 'utf8');
+  for (const ds of DEUTSCHLAND_SEITEN) {
+    let h = vorlage;
+    const url = `${BASE}/${ds.ziel}`;
+    h = h.replace(/<html([^>]*)>/, (m, a) => `<html${a.replace(/\s+data-(?:title|desc)-key="[^"]*"/g, '')} data-title-key="keiner" data-desc-key="keiner">`);
+    h = h.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(ds.titel)}</title>`);
+    h = h.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escAttr(ds.desc)}">`);
+    h = h.replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url}">`);
+    h = h.replace(/\s*<link rel="alternate" hreflang="[^"]*" href="[^"]*">/g, '');
+    h = h.replace(/(<link rel="canonical" href="[^"]*">)/, `$1\n<link rel="alternate" hreflang="de" href="${url}">`);
+    for (const [k, v] of [['og:url', url], ['og:title', ds.titel], ['og:description', ds.desc]]) {
+      h = h.replace(new RegExp(`<meta property="${k}" content="[^"]*">`), `<meta property="${k}" content="${escAttr(v)}">`);
+    }
+    h = h.replace(/<meta name="twitter:title" content="[^"]*">/, `<meta name="twitter:title" content="${escAttr(ds.titel)}">`);
+    h = h.replace(/<meta name="twitter:description" content="[^"]*">/, `<meta name="twitter:description" content="${escAttr(ds.desc)}">`);
+    h = h.replace(/\s*<script type="application\/ld\+json">[\s\S]*?<\/script>/g, '');
+    h = h.replace(/\s*<script[^>]*preise-live\.js[^>]*><\/script>/g, '');
+    const ld = [
+      { '@context': 'https://schema.org', '@type': 'Service', name: ds.h1, description: ds.desc, inLanguage: 'de', url,
+        provider: { '@id': `${BASE}/#studio` }, areaServed: [{ '@type': 'Country', name: 'Deutschland' }] },
+      { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: 'de',
+        mainEntity: ds.faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+    ];
+    h = h.replace('</head>', ld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`).join('\n') + '\n</head>');
+    h = h.replace(/(<div class="lang lang--links"[\s\S]*?<\/div>)/, (block) =>
+      block.replace(/href="[^"]*"(\s+hreflang="(it|en)")/g, (m, rest, l) => `href="${l === 'it' ? '../' : '../en/'}"${rest}`));
+    const blocchi = ds.blocchi.map(([kopf, text, liste]) => `
+      <h2>${esc(kopf)}</h2>
+      ${text ? `<p>${esc(text)}</p>` : ''}${liste ? `<ul class="landeseite__liste">${liste.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('\n');
+    const auch = DEUTSCHLAND_SEITEN.filter((x) => x !== ds).map((x) => `<a href="${x.ziel.split('/').pop()}">${esc(x.kurz)}</a>`).join('');
+    const main = `<main id="inhalt" class="preisseite landeseite">
+  <section class="section preis-kopf">
+    <div class="wrap">
+      <p class="eyebrow">${esc(ds.kicker)}</p>
+      <h1>${esc(ds.h1)}</h1>
+      <p class="preis-lead">${esc(ds.lead)}</p>
+      <p class="landeseite__knoepfe"><a class="hero__analisi" href="/analisi.php?lang=de"><span class="hero__ampel" aria-hidden="true"><i></i><i></i><i></i></span><span>${esc(W.analyse_knopf)}</span><span aria-hidden="true">→</span></a></p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="wrap"><div class="landeseite__text">${blocchi}
+      <div class="antwort framed landeseite__cta">
+        <p class="antwort__titel">${esc(W.analyse_titel)}</p>
+        <p class="antwort__text">${esc(W.analyse_text)}</p>
+        <p class="landeseite__knoepfe"><a class="btn btn--primary" href="/analisi.php?lang=de">${esc(W.analyse_knopf)}</a></p>
+      </div>
+      <div class="antwort framed landeseite__cta">
+        <p class="antwort__titel">${esc(W.cta_titel)}</p>
+        <p class="antwort__text">${esc(W.cta_text)}</p>
+        <p class="landeseite__knoepfe"><a class="btn btn--primary" href="./#contact">${esc(W.cta_knopf)}</a>
+          <a class="btn" href="${preis.ziele.de.split('/').pop()}">${esc(W.preise)}</a></p>
+      </div>
+      <h2>${esc(W.faq)}</h2>
+      ${ds.faq.map(([q, a]) => `<details class="landeseite__faq"><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('\n      ')}
+      <nav class="landeseite__auch" aria-label="${escAttr(W.auch)}"><span>${esc(W.auch)}:</span>${auch}</nav>
+    </div></div>
+  </section>
+</main>`;
+    h = h.replace(/<main[\s\S]*?<\/main>/, main);
+    h = h.replace(/<body class="seite-preise">/, '<body class="seite-preise seite-landeseite">');
+    mkdirSync('de', { recursive: true });
+    pruefen(h, 'de', ds.ziel);
+    writeFileSync(ds.ziel, h);
+    console.log(`geschrieben: ${ds.ziel} (Deutschland)`);
+  }
+  const ANF = '<!-- deutschland:anfang (build.mjs) -->', END = '<!-- deutschland:ende -->';
+  let sm = readFileSync('sitemap.xml', 'utf8');
+  if (!sm.includes(ANF)) { sm = sm.replace('</urlset>', `  ${ANF}\n  ${END}\n</urlset>`); }
+  const eintraege = DEUTSCHLAND_SEITEN.map((ds) => `  <url>
+    <loc>${BASE}/${ds.ziel}</loc>
+    <xhtml:link rel="alternate" hreflang="de" href="${BASE}/${ds.ziel}"/>
+    <lastmod>${DEUTSCHLAND_STAND}</lastmod><priority>0.7</priority>
+  </url>`).join('\n');
+  const vor = sm.slice(0, sm.indexOf(ANF) + ANF.length), nach = sm.slice(sm.indexOf(END));
+  const neu = `${vor}\n${eintraege}\n  ${nach}`;
+  if (neu !== readFileSync('sitemap.xml', 'utf8')) { writeFileSync('sitemap.xml', neu); console.log('geschrieben: sitemap.xml (Deutschland)'); }
 }

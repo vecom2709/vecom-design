@@ -21,7 +21,7 @@ header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src '
 
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 if (!is_file(__DIR__ . '/app/config.local.php')) { http_response_code(503); exit('Il servizio non è disponibile. · Der Dienst ist nicht verfügbar.'); }
-foreach (['Config', 'Db', 'Status', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseCheck', 'AkquiseEinwilligung', 'AkquiseKurz', 'PartnerSeite', 'Partner'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+foreach (['Config', 'Db', 'Status', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseCheck', 'AkquiseEinwilligung', 'AkquiseKurz', 'PartnerSeite', 'Partner', 'WebTipp'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaetig(false); } catch (Throwable $e) { }
 
@@ -175,6 +175,17 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
   <?php endif; ?>
   <?php endif; ?>
   <?php if ($waLink !== '' && $gesendet === ''): ?><a class="wa" href="<?= $h($waLink) ?>" target="_blank" rel="noopener"><?= $h($T['waLink']) ?></a><?php endif; ?>
+  <?php $TT = ['it' => ['Il consiglio della settimana', 'Una volta alla settimana un consiglio breve per il suo sito, gratis.', 'Iscrivermi'],
+               'de' => ['Der Website-Tipp der Woche', 'Einmal pro Woche ein kurzer Tipp für Ihre Website, kostenlos.', 'Eintragen'],
+               'en' => ['The website tip of the week', 'Once a week, one short tip for your website, free.', 'Sign up']][$sprache]; ?>
+  <form class="karte ja" method="post" action="/tipp.php?lang=<?= $h($sprache) ?>">
+    <h2><?= $h($TT[0]) ?></h2><p style="margin:0;color:var(--d)"><?= $h($TT[1]) ?></p>
+    <input type="hidden" name="tat" value="abo"><input type="hidden" name="lang" value="<?= $h($sprache) ?>"><input type="hidden" name="quelle" value="analisi">
+    <div class="lock" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></div>
+    <div><label class="t" for="tp_email"><?= $h($T['email']) ?></label><input id="tp_email" type="email" name="email" required autocomplete="email" inputmode="email"></div>
+    <label class="haken"><input type="checkbox" name="ja" value="1" required><span><?= $h(WebTipp::wortlaut($sprache)) ?></span></label>
+    <button class="knopf leise" type="submit"><?= $h($TT[2]) ?></button>
+  </form>
   <p class="fuss">Vecom Design · Aragona (AG) · <a href="<?= $h(Sprache::legal($sprache, 'privacy')) ?>" style="color:var(--l)">Privacy</a></p>
 </main>
 </body>

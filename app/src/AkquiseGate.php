@@ -365,6 +365,8 @@ final class AkquiseGate
         'folge'     => ['akq_schalter_folge', '0', 'Folge-Mails', 'Die freigegebenen Folge-Mails an Betriebe mit bestätigter Einwilligung.'],
         'whatsapp'  => ['akq_schalter_whatsapp', '1', 'Folge per WhatsApp', 'Wer auch WhatsApp erlaubt hat, bekommt die Folge-Schritte als genehmigte WhatsApp-Vorlage statt als Mail (sobald WhatsApp Business eingerichtet ist).'],
         'wa_assistent' => ['akq_schalter_wa_assistent', '1', 'WhatsApp-Assistent', 'Antwortet Betrieben, die selbst schreiben: fragt nach der Website, schickt die Ampel und holt per Knopf das Ja. Schreibt nie jemanden von sich aus an.'],
+        'tipp'      => ['akq_schalter_tipp', '1', 'Website-Tipp der Woche', 'Dienstags der nächste Tipp an alle, die ihn abonniert und per Klick bestätigt haben (Abo auf der Startseite und der Analyse-Seite).'],
+        'autofrei_de' => ['akq_auto_freigabe_de', '1', 'Deutsche Texte automatisch freigeben', 'Deutsche Folge-Texte, die die Textprüfung ohne Beanstandung bestehen, gelten als freigegeben — wie bei Italien. Jede Änderung prüft neu.'],
         'autofrei'  => ['akq_auto_freigabe_it', '1', 'Italienische Texte automatisch freigeben', 'Italienische Folge-Texte, die die Textprüfung ohne Beanstandung bestehen, gelten als freigegeben. Jede Änderung prüft neu.'],
     ];
 

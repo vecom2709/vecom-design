@@ -399,3 +399,18 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .rueckruf__form .btn { margin-top: .8rem; justify-self: start; min-height: 48px; }
 .rueckruf__ok { margin: .4rem 0 0; color: var(--c-text); }
 .rueckruf__form.ist-gesendet input, .rueckruf__form.ist-gesendet select, .rueckruf__form.ist-gesendet textarea { opacity: .5; }
+
+/* Website-Tipp der Woche (28.09.2026, D5) in der Fußzeile. */
+.tipp-abo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: .9rem 2rem; align-items: start;
+  margin: 2rem 0 0; padding: 1.4rem 0 0; border-top: 1px solid var(--c-line, rgba(255,255,255,.08)); }
+.tipp-abo__t { margin: 0 0 .3rem; font-family: var(--f-display, inherit); font-size: 1.15rem; color: var(--c-text); }
+.tipp-abo__d { margin: 0; font-size: var(--t-sm, .9rem); color: var(--c-text-dim); line-height: 1.55; }
+.tipp-abo__feld { display: flex; gap: .5rem; }
+.tipp-abo__feld input { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0 1rem; border-radius: 999px; border: 1px solid rgba(241,211,139,.35);
+  background: rgba(255,255,255,.03); color: var(--c-text); font: inherit; }
+.tipp-abo__feld input:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 2px; }
+.tipp-abo__feld .btn { min-height: 48px; white-space: nowrap; }
+.tipp-abo__haken { grid-column: 2; display: flex; gap: .6rem; align-items: flex-start; font-size: .78rem; line-height: 1.5; color: var(--c-text-faint); cursor: pointer; }
+.tipp-abo__haken input { width: 18px; height: 18px; flex: none; margin-top: .1rem; accent-color: #d9b25e; }
+.tipp-abo__lock { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+@media (max-width: 760px) { .tipp-abo { grid-template-columns: 1fr; } .tipp-abo__haken { grid-column: 1; } .tipp-abo__feld { flex-wrap: wrap; } .tipp-abo__feld .btn { flex: 1 1 100%; } }

@@ -648,6 +648,8 @@ masz: {
       sigNote: "Parliamone.", nav: "Chi sono"
     },
     footer: {
+      tipp_t: "Il consiglio della settimana", tipp_d: "Una volta alla settimana un consiglio breve e pratico per il suo sito. Gratis, annullabile con un clic.", tipp_email: "La sua e-mail", tipp_knopf: "Iscrivermi",
+      tipp_wort: "Vecom Design (Uwe Vetter) può inviarmi una volta alla settimana via e-mail un consiglio per il mio sito, con il link all’analisi gratuita. Posso annullare in qualsiasi momento con un clic.",
       claim: "Siti, marchi ed e-commerce. Progetti in italiano, tedesco e inglese — Italia e Germania.",
       h1: "Studio", h2: "Legale",
       l1: "Servizi", l2: "Lavori", l3: "Metodo", l4: "Contatti",

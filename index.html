@@ -55,7 +55,7 @@
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
 <link rel="stylesheet" href="assets/css/app.css?v=a7e6f7d5">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
-<link rel="stylesheet" href="assets/css/edel.css?v=c66a2ba9">
+<link rel="stylesheet" href="assets/css/edel.css?v=b09873c8">
 <link rel="stylesheet" href="assets/css/vorschau.css?v=d4f9bf8a">
 
 
@@ -1592,7 +1592,31 @@
         <a href="siti-web-agrigento.html" data-i18n="settori.provinz">Provincia di Agrigento</a>
         <a href="sito-o-booking.html" data-i18n="settori.booking">Sito o Booking?</a>
       </nav>
+      <!-- nur-de:anfang -- Branchen-Seiten für Deutschland (28.09.2026, D4): nur in
+           der deutschen Fassung sichtbar; build.mjs nimmt „hidden“ dort weg und
+           streicht den Block in der englischen. -->
+      <nav class="footer__settori" aria-label="Für Betriebe in Deutschland" hidden data-nur="de">
+        <span>Für Betriebe in Deutschland</span>
+        <a href="website-friseur.html">Friseure &amp; Kosmetik</a>
+        <a href="website-handwerker.html">Handwerk</a>
+        <a href="website-restaurant-cafe.html">Restaurants &amp; Cafés</a>
+        <a href="website-pension-ferienwohnung.html">Pensionen &amp; Ferienwohnungen</a>
+        <a href="website-kfz-werkstatt.html">Kfz-Werkstätten</a>
+      </nav>
+      <!-- nur-de:ende -->
     </div>
+
+    <!-- Website-Tipp der Woche (28.09.2026, D5): nur Bestätigungsmail, aktiv erst nach dem Klick darin (tipp.php). -->
+    <form class="tipp-abo" method="post" action="/tipp.php?lang=it">
+      <input type="hidden" name="tat" value="abo"><input type="hidden" name="lang" value="it" data-tipp-lang><input type="hidden" name="quelle" value="start">
+      <div class="tipp-abo__kopf"><p class="tipp-abo__t" data-i18n="footer.tipp_t">Il consiglio della settimana</p>
+        <p class="tipp-abo__d" data-i18n="footer.tipp_d">Una volta alla settimana un consiglio breve e pratico per il suo sito. Gratis, annullabile con un clic.</p></div>
+      <div class="tipp-abo__feld"><label class="sr-only" for="tipp_email" data-i18n="footer.tipp_email">La sua e-mail</label>
+        <input id="tipp_email" type="email" name="email" required autocomplete="email" inputmode="email" data-i18n-attr="placeholder:footer.tipp_email" placeholder="La sua e-mail">
+        <button class="btn" type="submit" data-i18n="footer.tipp_knopf">Iscrivermi</button></div>
+      <span class="tipp-abo__lock" aria-hidden="true"><input type="text" name="website" tabindex="-1" autocomplete="off"></span>
+      <label class="tipp-abo__haken"><input type="checkbox" name="ja" value="1" required><span data-i18n="footer.tipp_wort">Vecom Design (Uwe Vetter) può inviarmi una volta alla settimana via e-mail un consiglio per il mio sito, con il link all’analisi gratuita. Posso annullare in qualsiasi momento con un clic.</span></label>
+    </form>
 
     <div class="footer__bottom">
       <span>© <span data-year>2026</span> Vecom Design — <span data-i18n="footer.rights">Tutti i diritti riservati.</span></span>
@@ -1638,7 +1662,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=e9ab0546" defer></script>
+<script src="assets/js/i18n-it.js?v=d689de8e" defer></script>
 <script src="assets/js/app.js?v=e53d1352" defer></script>
 <script src="assets/js/sprachhinweis.js?v=5448b330" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>

@@ -66,7 +66,7 @@ final class MetaSeite
             'seite_id' => AkquiseGate::einstellung('meta_seite_id', ''),
             'ig_id' => AkquiseGate::einstellung('meta_ig_id', ''),
             'token' => self::geheim() !== '',
-            'sprache' => AkquiseGate::einstellung('meta_sprache', 'it'),
+            'sprache' => AkquiseGate::einstellung('meta_sprache', 'beide'),   // beide | it | de (D1, 28.09.2026)
         ];
     }
 
@@ -82,7 +82,7 @@ final class MetaSeite
             $v = preg_replace('~\D~', '', (string) ($d[$feld] ?? '')) ?? '';
             if ($v !== '' || !empty($d['leeren'])) { AkquiseGate::setzen($k, mb_substr($v, 0, 30)); }
         }
-        if (isset($d['sprache']) && in_array($d['sprache'], ['it', 'de'], true)) { AkquiseGate::setzen('meta_sprache', (string) $d['sprache']); }
+        if (isset($d['sprache']) && in_array($d['sprache'], ['beide', 'it', 'de'], true)) { AkquiseGate::setzen('meta_sprache', (string) $d['sprache']); }
         $t = trim((string) ($d['token'] ?? ''));
         if ($t !== '') {
             require_once __DIR__ . '/Hosting.php';
@@ -129,10 +129,10 @@ final class MetaSeite
     }
 
     /** Welches Thema ist dran: das, das am längsten nicht vorkam. */
-    public static function naechstesThema(): string
+    public static function naechstesThema(string $sprache = 'it'): string
     {
         $zuletzt = [];
-        foreach (Db::all('SELECT code, MAX(created_at) AS am FROM akq_beitraege GROUP BY code') as $z) { $zuletzt[(string) $z['code']] = (string) $z['am']; }
+        foreach (Db::all('SELECT code, MAX(created_at) AS am FROM akq_beitraege WHERE sprache = ? GROUP BY code', [$sprache]) as $z) { $zuletzt[(string) $z['code']] = (string) $z['am']; }
         $wahl = null; $alt = null;
         foreach (array_keys(self::THEMEN) as $c) {
             $am = $zuletzt[$c] ?? '';
@@ -144,12 +144,33 @@ final class MetaSeite
     /** Einen Entwurf anlegen. @return int id */
     public static function entwurf(?string $code = null, ?string $sprache = null): int
     {
-        $sprache = in_array($sprache, ['it', 'de'], true) ? $sprache : self::einstellungen()['sprache'];
-        $code = isset(self::THEMEN[(string) $code]) ? (string) $code : self::naechstesThema();
+        $sprache = in_array($sprache, ['it', 'de'], true) ? $sprache : self::spracheAm();
+        $code = isset(self::THEMEN[(string) $code]) ? (string) $code : self::naechstesThema($sprache);
         [$titel, $text] = self::THEMEN[$code][$sprache];
         return Db::insert('akq_beitraege', ['code' => $code, 'sprache' => $sprache, 'titel' => $titel,
             'text' => $text . "\n" . self::analyseLink($sprache) . "\n\n" . ($sprache === 'de' ? '#website #kleinunternehmen #vecomdesign' : '#sitoweb #piccoleimprese #vecomdesign'),
             'token' => bin2hex(random_bytes(16)), 'status' => 'entwurf']);
+    }
+
+    /**
+     * Welche Sprache ein Beitrag bekommt (D1, 28.09.2026, Uwe: „Beiträge IT + DE“):
+     * bei „beide“ montags Italienisch, donnerstags Deutsch -- Italien und
+     * Deutschland bekommen je einen Beitrag die Woche. Sonst die feste Sprache.
+     */
+    public static function spracheAm(?int $jetzt = null): string
+    {
+        $s = self::einstellungen()['sprache'];
+        if (in_array($s, ['it', 'de'], true)) { return $s; }
+        return (int) date('N', $jetzt ?? time()) === 4 ? 'de' : 'it';
+    }
+
+    /** Sprache einer Formular-Meldung: fest eingestellt, sonst nach der Endung der Website. */
+    public static function leadSprache(string $url): string
+    {
+        $s = self::einstellungen()['sprache'];
+        if (in_array($s, ['it', 'de'], true)) { return $s; }
+        $host = (string) (parse_url(str_contains($url, '://') ? $url : 'https://' . $url, PHP_URL_HOST) ?? '');
+        return preg_match('~\.(de|at|ch)$~i', $host) ? 'de' : 'it';
     }
 
     /** Montag und Donnerstag je ein Entwurf, nie zwei offene Entwürfe desselben Tages. */
@@ -161,7 +182,7 @@ final class MetaSeite
         AkquiseGate::setzen('meta_geplant_am', date('Y-m-d', $jetzt));
         $offen = (int) Db::wert("SELECT COUNT(*) FROM akq_beitraege WHERE status = 'entwurf'", [], 0);
         if ($offen >= 4) { return null; }   // Uwe kommt nicht nach -- nicht weiter stapeln
-        $id = self::entwurf();
+        $id = self::entwurf(null, self::spracheAm($jetzt));
         try { Events::melden('akquise_beitrag', 'Neuer Beitrag für Facebook/Instagram wartet auf dein Freigeben', 'info', null, 'akquise/beitraege'); } catch (Throwable $e) { }
         return $id;
     }
@@ -298,7 +319,7 @@ final class MetaSeite
         }
         require_once __DIR__ . '/AkquiseKurz.php';
         $s = AkquiseKurz::einwilligen(['url' => $x['url'], 'betrieb' => $x['betrieb'], 'email' => $x['email'], 'whatsapp' => $x['whatsapp'] !== '' ? $x['whatsapp'] : null,
-            'ja' => true, 'sprache' => $e['sprache'], 'quelle' => 'anzeige']);
+            'ja' => true, 'sprache' => self::leadSprache($x['url']), 'quelle' => 'anzeige']);
         Db::update('akq_meta_leads', $zeile, ['status' => $s, 'grund' => $s === 'ok' ? null : 'Einwilligung: ' . $s]);
         return $s;
     }

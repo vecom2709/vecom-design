@@ -227,11 +227,13 @@ final class AkquiseFolge
     /** Freigabe ohne Klick, wenn erlaubt und ohne Beanstandung. @return bool freigegeben */
     public static function autoFreigeben(array $v): bool
     {
-        if ((string) $v['sprache'] !== 'it' || $v['status'] === 'freigegeben' || !AkquiseGate::schalterSelbst('autofrei')) { return false; }
+        /* Italienisch (V4) und seit 28.09.2026 auch Deutsch (D2), je mit eigenem Schalter. Englisch bleibt Handarbeit. */
+        $schalter = ['it' => 'autofrei', 'de' => 'autofrei_de'][(string) $v['sprache']] ?? null;
+        if ($schalter === null || $v['status'] === 'freigegeben' || !AkquiseGate::schalterSelbst($schalter)) { return false; }
         if (self::autoMaengel($v) !== []) { return false; }
         Db::update('akq_folge_vorlagen', (int) $v['id'], ['status' => 'freigegeben', 'freigegeben_von' => 'System (automatisch, Prüfung ohne Beanstandung)', 'freigegeben_am' => date('Y-m-d H:i:s')]);
         Events::pruefspur('akquise_folge_freigabe', 'akq_folge_vorlagen', (int) $v['id'], [], ['schritt' => $v['schritt'], 'sprache' => $v['sprache'], 'fassung' => $v['fassung'], 'automatisch' => true]);
-        Akquise::protokoll(null, 'folge', 'Folge-Mail automatisch freigegeben: Schritt ' . $v['schritt'] . ' (IT), Fassung ' . $v['fassung'] . ' — die Textprüfung fand nichts');
+        Akquise::protokoll(null, 'folge', 'Folge-Mail automatisch freigegeben: Schritt ' . $v['schritt'] . ' (' . strtoupper((string) $v['sprache']) . '), Fassung ' . $v['fassung'] . ' — die Textprüfung fand nichts');
         return true;
     }
 

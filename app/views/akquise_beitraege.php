@@ -70,12 +70,12 @@ $btWort = ['entwurf' => 'wartet auf dich', 'gepostet' => 'gepostet', 'fehler' =>
 </div>
 
 <div class="block" id="formular">
-  <h2>Werbeformular — letzte Meldungen</h2>
+  <h2>Werbeformulare (Facebook/Instagram und Google) — letzte Meldungen</h2>
   <?php if (!$leads): ?><p class="akq-klein">Noch keine. Sobald jemand das Formular deiner Werbeanzeige ausfüllt, steht es hier — und die Bestätigungsmail ist schon unterwegs.</p>
   <?php else: ?>
     <table><thead><tr><th>Wann</th><th>Ergebnis</th></tr></thead><tbody>
       <?php foreach ($leads as $l): ?><tr><td class="akq-klein"><?= Fmt::h(Fmt::datum((string) $l['created_at'])) ?></td>
-        <td class="akq-klein" style="color:<?= $l['status'] === 'ok' ? 'var(--gruen)' : ($l['status'] === 'neu' ? 'inherit' : 'var(--rot)') ?>"><?= Fmt::h($l['status'] === 'ok' ? 'Bestätigungsmail verschickt' : ((string) ($l['grund'] ?: $l['status']))) ?></td></tr>
+        <td class="akq-klein" style="color:<?= $l['status'] === 'ok' ? 'var(--gruen)' : ($l['status'] === 'neu' ? 'inherit' : 'var(--rot)') ?>"><?= Fmt::h($l['status'] === 'ok' ? 'Bestätigungsmail verschickt' . (str_starts_with((string) $l['lead_id'], 'g:') ? ' · Google' : ' · Facebook/Instagram') : ((string) ($l['grund'] ?: $l['status']))) ?></td></tr>
       <?php endforeach; ?>
     </tbody></table>
   <?php endif; ?>

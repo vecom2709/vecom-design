@@ -12881,10 +12881,18 @@ AkquiseGate::schalterSetzen('autofrei', false);
 pruefe('V4: Schalter aus — keine automatische Freigabe', AkquiseFolge::autoFreigeben(Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'")) === false);
 AkquiseGate::schalterSetzen('autofrei', true);
 Db::run("UPDATE akq_folge_vorlagen SET text = ?, betreff = ? WHERE schritt = 3 AND sprache = 'it'", [AkquiseFolge::TEXTE[3]['it'][1], AkquiseFolge::TEXTE[3]['it'][0]]);
-pruefe('V4: Schalter an — italienischer Text ohne Beanstandung wird freigegeben (mit Vermerk), der deutsche nicht',
+AkquiseGate::schalterSetzen('autofrei_de', false);
+pruefe('V4: Schalter an — italienischer Text ohne Beanstandung wird freigegeben (mit Vermerk), der deutsche nicht (Schalter DE aus)',
     AkquiseFolge::autoFreigeben(Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'")) === true
     && str_contains((string) Db::wert("SELECT freigegeben_von FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'", [], ''), 'automatisch')
     && AkquiseFolge::autoFreigeben(Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'de'")) === false);
+AkquiseGate::schalterSetzen('autofrei_de', true);
+Db::run("UPDATE akq_folge_vorlagen SET text = ?, betreff = ?, status = 'entwurf' WHERE schritt = 3 AND sprache = 'de'", [AkquiseFolge::TEXTE[3]['de'][1], AkquiseFolge::TEXTE[3]['de'][0]]);
+$d2V = Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'de'");
+pruefe('D2: Schalter DE an (ab Werk) — deutscher Text ohne Beanstandung wird freigegeben, englischer nie automatisch',
+    AkquiseGate::SCHALTER['autofrei_de'][1] === '1' && $d2V !== null && AkquiseFolge::autoFreigeben($d2V) === true
+    && AkquiseFolge::autoFreigeben(['sprache' => 'en', 'status' => 'entwurf', 'id' => 0, 'schritt' => 3, 'fassung' => 1]) === false,
+    json_encode($d2V ? AkquiseFolge::autoMaengel($d2V) : 'fehlt', JSON_UNESCAPED_UNICODE));
 pruefe('V4: Schalter ab Werk an, „Folge per WhatsApp“ ab Werk an', AkquiseGate::SCHALTER['autofrei'][1] === '1' && AkquiseGate::SCHALTER['whatsapp'][1] === '1');
 
 /* V2: Dashboard vorbereitet */
@@ -14287,6 +14295,94 @@ pruefe('Z6: Startseite führt dreimal auf analisi.php (Menü, Pille im Hero, Fu�
     substr_count($zIdx, 'href="/analisi.php?lang=it"') === 3 && str_contains($zIdx, 'class="hero__analisi"')
     && str_contains((string) file_get_contents($wurzel . '/../build.mjs'), 'analisi\\.php') && str_contains((string) file_get_contents($wurzel . '/../assets/js/i18n-de.js'), 'Kostenlose Analyse Ihrer Website')
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'id="wege"'));
+
+/* ============================================================================
+   Deutschland und beide Länder (28.09.2026, Uwe: Ja zu D1–D5)
+   ============================================================================ */
+abschnitt('Deutschland (D1–D5)');
+foreach (['MetaSeite', 'GoogleLead', 'WebTipp', 'PartnerCheck'] as $k) { require_once $wurzel . "/src/$k.php"; }
+
+/* D1 */
+Db::run("DELETE FROM settings WHERE skey IN ('meta_sprache','meta_geplant_am')");
+Db::run('DELETE FROM akq_beitraege');
+$d1Mo = strtotime('next monday 10:00'); $d1Do = strtotime('next thursday 10:00');
+$d1A = MetaSeite::planen($d1Mo); $d1B = MetaSeite::planen($d1Do);
+pruefe('D1: ab Werk „beide“ — montags ein italienischer, donnerstags ein deutscher Beitrag',
+    MetaSeite::einstellungen()['sprache'] === 'beide' && $d1A !== null && $d1B !== null
+    && Db::wert('SELECT sprache FROM akq_beitraege WHERE id = ?', [$d1A], '') === 'it' && Db::wert('SELECT sprache FROM akq_beitraege WHERE id = ?', [$d1B], '') === 'de'
+    && str_contains((string) Db::wert('SELECT text FROM akq_beitraege WHERE id = ?', [$d1B], ''), '/analisi.php?lang=de'));
+pruefe('D1: Formular-Meldungen nach Endung der Website: .de/.at/.ch deutsch, sonst italienisch; feste Sprache geht vor',
+    MetaSeite::leadSprache('baeckerei-muster.de') === 'de' && MetaSeite::leadSprache('https://www.x.at/') === 'de' && MetaSeite::leadSprache('trattoria.it') === 'it'
+    && (static function (): bool { MetaSeite::speichern(['sprache' => 'de']); $r = MetaSeite::leadSprache('trattoria.it') === 'de'; MetaSeite::speichern(['sprache' => 'beide']); return $r; })());
+Db::run('DELETE FROM akq_beitraege');
+pruefe('D1: Anleitung mit deutschem Einwilligungstext und deutscher Analyse-Adresse', str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), "wortlaut('de', 'der oben angegebenen Nummer')"));
+
+/* D3 */
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 700, 'url' => 'https://' . parse_url($url, PHP_URL_HOST) . '/', 'ssl_tage' => 80, 'fehler' => '',
+    'inhalt' => '<html><head><title>Prova</title></head><body>© 2019</body></html>'];
+$d3K = GoogleLead::schluesselNeu();
+$d3Lead = static fn(string $id, string $antwort, bool $test = false, string $key = '') => ['lead_id' => $id, 'google_key' => $key !== '' ? $key : $d3K, 'is_test' => $test, 'user_column_data' => [
+    ['column_id' => 'EMAIL', 'column_name' => 'User Email', 'string_value' => 'chef@tischlerei-google.de'],
+    ['column_id' => 'PHONE_NUMBER', 'column_name' => 'User Phone', 'string_value' => '+49 171 2345678'],
+    ['column_id' => 'QUESTION_1', 'column_name' => 'Adresse Ihrer Website', 'string_value' => 'tischlerei-google.de'],
+    ['column_id' => 'QUESTION_2', 'column_name' => 'Einwilligung: Darf Vecom Design (Uwe Vetter) Ihnen per E-Mail und WhatsApp schreiben?', 'string_value' => $antwort]]];
+pruefe('D3: Schlüssel verschlüsselt abgelegt; falscher Schlüssel → abgewiesen; Testmeldung legt nichts an',
+    (int) Db::wert("SELECT COUNT(*) FROM settings WHERE svalue LIKE ?", ['%' . $d3K . '%'], 0) === 0
+    && GoogleLead::verarbeiten($d3Lead('L1', 'Ja, einverstanden', false, 'falsch')) === 'schluessel'
+    && GoogleLead::verarbeiten($d3Lead('L1', 'Ja, einverstanden', true)) === 'test' && Db::one("SELECT id FROM akq_firmen WHERE domain = 'tischlerei-google.de'") === null);
+$d3M0 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+pruefe('D3: „Nein“ bei der Einwilligungsfrage → nichts gespeichert', GoogleLead::verarbeiten($d3Lead('L2', 'Nein')) === 'ohne_haken' && Db::one("SELECT id FROM akq_firmen WHERE domain = 'tischlerei-google.de'") === null);
+$d3R = GoogleLead::verarbeiten($d3Lead('L3', 'Ja, einverstanden'));
+$d3F = Db::one("SELECT * FROM akq_firmen WHERE domain = 'tischlerei-google.de'");
+pruefe('D3: „Ja“ → Betrieb (Land DE), Einwilligung angefragt, deutsche Bestätigungsmail; dieselbe Meldung zweimal nur einmal',
+    $d3R === 'ok' && $d3F && $d3F['land'] === 'DE' && Db::wert("SELECT sprache FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'anzeige'", [(int) $d3F['id']], '') === 'de'
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $d3M0 + 1 && GoogleLead::verarbeiten($d3Lead('L3', 'Ja, einverstanden')) === 'doppelt', json_encode([$d3R, $d3F['land'] ?? null]));
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+pruefe('D3: google-lead.php nimmt nur POST, antwortet mit {} und 403 bei falschem Schlüssel', (static function () use ($wurzel): bool {
+    $g = (string) file_get_contents($wurzel . '/../google-lead.php'); return str_contains($g, "!== 'POST'") && str_contains($g, "=== 'schluessel' ? 403 : 200") && str_contains($g, "echo '{}'"); })());
+
+/* D4 */
+$d4Daten = (string) file_get_contents($wurzel . '/../seiten/deutschland.mjs');
+$d4Texte = preg_replace('~/\*.*?\*/~s', '', $d4Daten);
+pruefe('D4: fünf Branchen-Seiten für Deutschland, ohne Euro-Beträge und ohne erfundene Zahlen/Kunden',
+    substr_count($d4Daten, "ziel: 'de/website-") === 5 && preg_match('~\d[\d.,]*\s*(€|euro|prozent|%)~iu', $d4Texte) === 0 && !preg_match('~kunden sagen|bewertung(en)? von|sterne~iu', $d4Texte));
+$d4Sm = (string) file_get_contents($wurzel . '/../sitemap.xml');
+preg_match('~<!-- deutschland:anfang \(build\.mjs\) -->(.*?)<!-- deutschland:ende -->~s', $d4Sm, $d4M);
+$d4Seite = is_file($wurzel . '/../de/website-friseur.html') ? (string) file_get_contents($wurzel . '/../de/website-friseur.html') : '';
+pruefe('D4: gebaut, in der Sitemap, erster Knopf die kostenlose Analyse, Gebiet Deutschland; deutsche Startseite verlinkt sie, englische nicht',
+    substr_count($d4M[1] ?? '', '<loc>') === 5 && str_contains($d4Seite, 'href="/analisi.php?lang=de"') && str_contains($d4Seite, '"name":"Deutschland"')
+    && str_contains((string) file_get_contents($wurzel . '/../de/index.html'), 'href="website-friseur.html"')
+    && !str_contains((string) file_get_contents($wurzel . '/../en/index.html'), 'website-friseur.html'));
+pruefe('D4: auch die Landeseiten (IT/DE/EN) haben den Analyse-Knopf', str_contains((string) file_get_contents($wurzel . '/../siti-web-ristoranti.html'), 'href="/analisi.php?lang=it"'));
+
+/* D5 */
+Db::run('DELETE FROM akq_tipp_abos');
+$d5M0 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+pruefe('D5: ohne Häkchen kein Abo', WebTipp::anmelden('leser@beispiel-tipp.de', false, 'de') === 'email' && (int) Db::wert('SELECT COUNT(*) FROM akq_tipp_abos', [], 0) === 0);
+$d5R = WebTipp::anmelden('Leser@Beispiel-Tipp.de', true, 'de', 'start', '198.51.100.77');
+$d5A = Db::one("SELECT * FROM akq_tipp_abos WHERE email = 'leser@beispiel-tipp.de'");
+pruefe('D5: Anmelden → nur Bestätigungsmail mit Wortlaut, Abo noch nicht aktiv', $d5R === 'ok' && $d5A && $d5A['status'] === 'angefragt'
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $d5M0 + 1 && str_contains((string) $d5A['wortlaut'], 'einmal pro Woche'));
+pruefe('D5: dienstags vor der Bestätigung geht nichts raus', WebTipp::lauf(strtotime('next tuesday 09:00'))['geschickt'] === 0);
+pruefe('D5: Bestätigen per Knopf macht das Abo aktiv', WebTipp::bestaetigen((string) $d5A['doi_token'])['ok'] === true
+    && Db::wert("SELECT status FROM akq_tipp_abos WHERE id = ?", [(int) $d5A['id']], '') === 'aktiv');
+$d5Di = strtotime('next tuesday 09:00');
+pruefe('D5: montags nichts, dienstags ein Tipp; derselbe Dienstag nicht doppelt',
+    WebTipp::lauf(strtotime('next monday 09:00'))['geschickt'] === 0 && WebTipp::lauf($d5Di)['geschickt'] === 1 && WebTipp::lauf($d5Di)['geschickt'] === 0);
+[$d5B, $d5T] = WebTipp::mail(Db::one('SELECT * FROM akq_tipp_abos WHERE id = ?', [(int) $d5A['id']]), 0);
+pruefe('D5: Tipp-Mail mit Analyse-Link, persönlichem Bereich und Abbestell-Link', str_starts_with($d5B, 'Tipp der Woche: ')
+    && str_contains($d5T, '/analisi.php?lang=de') && str_contains($d5T, '/zugang.php?t=') && str_contains($d5T, '/tipp.php?ab=' . $d5A['token']));
+$d5Zahl = [];
+foreach (WebTipp::TIPPS as $d5S => $d5L) { if (count($d5L) !== 10) { $d5Zahl[] = "$d5S: " . count($d5L); } foreach ($d5L as [$d5x, $d5y]) { if (preg_match('~\d~', $d5x . $d5y)) { $d5Zahl[] = $d5x; } } }
+pruefe('D5: zehn Tipps je Sprache (IT/DE/EN), ohne Zahlen', $d5Zahl === [], implode(', ', $d5Zahl));
+pruefe('D5: Abbestellen mit einem Klick', WebTipp::abmelden((string) $d5A['token']) === 'de' && Db::wert("SELECT status FROM akq_tipp_abos WHERE id = ?", [(int) $d5A['id']], '') === 'abgemeldet'
+    && WebTipp::lauf(strtotime('+7 days', $d5Di))['geschickt'] === 0);
+$d5Idx = (string) file_get_contents($wurzel . '/../index.html');
+pruefe('D5: Abo-Formular auf der Startseite (Sprache dreht mit) und auf analisi.php, Wortlaut gleich dem, der gespeichert wird',
+    str_contains($d5Idx, 'action="/tipp.php?lang=it"') && str_contains((string) file_get_contents($wurzel . '/../de/index.html'), 'action="/tipp.php?lang=de"')
+    && str_contains((string) file_get_contents($wurzel . '/../assets/js/i18n-de.js'), WebTipp::wortlaut('de'))
+    && str_contains((string) file_get_contents($wurzel . '/../analisi.php'), 'WebTipp::wortlaut($sprache)'));
 
 /* ============================================================================
    Aufräumen und Bilanz

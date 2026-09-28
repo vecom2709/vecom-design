@@ -351,15 +351,15 @@ $blick = [
       Ab da läuft es automatisch bis in seinen persönlichen Bereich. Niemand wird angeschrieben, der nicht gefragt hat.</p>
 
     <h3 style="margin:18px 0 6px;font-size:15px">1 · Der Knopf „Analisi gratuita“</h3>
-    <p class="akq-klein" style="margin:0">Die Seite zum Verlinken (auf deiner Website ist er schon überall eingebaut):</p>
-    <?= $kopier($analisi) ?>
+    <p class="akq-klein" style="margin:0">Die Seite zum Verlinken (auf deiner Website ist er schon überall eingebaut) — italienisch und deutsch:</p>
+    <?= $kopier($analisi) ?><?= $kopier($basis . '/analisi.php?lang=de') ?>
     <?php if ($waKlick !== ''): ?><p class="akq-klein" style="margin:0">Link „Schreib uns auf WhatsApp“ (der Assistent antwortet):</p><?= $kopier($waKlick) ?><?php endif; ?>
     <details><summary class="akq-klein" style="cursor:pointer">Wo du ihn von Hand einträgst (je 2 Minuten)</summary>
       <ol class="akq-klein" style="line-height:1.7">
         <li><b>Facebook-Seite</b>: Seite öffnen → unter dem Titelbild <b>„Button hinzufügen“</b> (oder „Button bearbeiten“) → <b>„Mehr erfahren“</b> bzw. „Registrieren“ → Website-Link: oben die Adresse einfügen → Speichern.</li>
         <li><b>Instagram</b>: Profil → <b>„Profil bearbeiten“</b> → <b>„Links“ → „Externen Link hinzufügen“</b> → Adresse einfügen, Titel „Analisi gratuita del sito“ → Fertig. In die Bio: „Analisi gratuita del suo sito 👇“.</li>
         <li><b>Google-Unternehmensprofil</b>: in Google nach „Vecom Design“ suchen → <b>„Profil bearbeiten“</b> → Website bleibt vecom-design.it; unter <b>„Beitrag hinzufügen“</b> einen Beitrag mit Schaltfläche <b>„Weitere Informationen“</b> und der Adresse oben anlegen.</li>
-        <li><b>E-Mail-Signatur</b> (Gmail: Einstellungen → Alle Einstellungen → Signatur): diese Zeile ans Ende setzen und die Adresse oben als Link hinterlegen:<br><code>▸ Analisi gratuita del suo sito in 10 secondi: vecom-design.it/analisi.php</code></li>
+        <li><b>E-Mail-Signatur</b> (Gmail: Einstellungen → Alle Einstellungen → Signatur): diese Zeile ans Ende setzen und die Adresse oben als Link hinterlegen:<br><code>▸ Analisi gratuita del suo sito in 10 secondi: vecom-design.it/analisi.php</code><br>Deutsch: <code>▸ Kostenlose Analyse Ihrer Website in 10 Sekunden: vecom-design.it/analisi.php?lang=de</code></li>
         <li><b>WhatsApp-Business-App</b>: Einstellungen → Unternehmenstools → Profil → Website: die Adresse oben.</li>
       </ol></details>
 
@@ -385,7 +385,7 @@ $blick = [
       <div><label class="akq-klein" for="me_seite">Seiten-ID</label><input id="me_seite" name="seite_id" inputmode="numeric" value="<?= Fmt::h($me['seite_id']) ?>"></div>
       <div><label class="akq-klein" for="me_ig">Instagram-Konto-ID (leer = nur Facebook)</label><input id="me_ig" name="ig_id" inputmode="numeric" value="<?= Fmt::h($me['ig_id']) ?>"></div>
       <div><label class="akq-klein" for="me_token">Dauerhafter Schlüssel <?= $me['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="me_token" name="token" type="password" autocomplete="off"></div>
-      <div><label class="akq-klein" for="me_sp">Sprache der Beiträge und des Formulars</label><select id="me_sp" name="sprache"><option value="it"<?= $me['sprache'] === 'it' ? ' selected' : '' ?>>Italienisch</option><option value="de"<?= $me['sprache'] === 'de' ? ' selected' : '' ?>>Deutsch</option></select></div>
+      <div><label class="akq-klein" for="me_sp">Sprache der Beiträge und des Formulars</label><select id="me_sp" name="sprache"><option value="beide"<?= $me['sprache'] === 'beide' ? ' selected' : '' ?>>Beide: montags Italienisch, donnerstags Deutsch</option><option value="it"<?= $me['sprache'] === 'it' ? ' selected' : '' ?>>Nur Italienisch</option><option value="de"<?= $me['sprache'] === 'de' ? ' selected' : '' ?>>Nur Deutsch</option></select></div>
       <button class="knopf" style="justify-self:start">Speichern</button>
     </form>
     <?php if (MetaSeite::bereit()): ?>
@@ -398,12 +398,39 @@ $blick = [
       <ol class="akq-klein" style="line-height:1.7">
         <li><b>adsmanager.facebook.com</b> → Erstellen → Ziel <b>„Leads“</b> → Conversion-Ort <b>„Sofortformulare“</b>.</li>
         <li>Anzeige: das Bild eines Beitrags (unter Beiträge antippen und speichern), Text z. B. „Com’è messo il suo sito? Analisi gratuita, senza impegno.“</li>
-        <li>Formular → <b>Neues Formular</b>, Typ „Mehr Volumen“. <b>Fragen</b>: „E-Mail“ und „Telefonnummer“ (vorausgefüllt), dazu eine <b>eigene Frage</b> „Kurze Antwort“ mit dem Text <code>Indirizzo del suo sito</code>.</li>
+        <li>Formular → <b>Neues Formular</b>, Typ „Mehr Volumen“. <b>Fragen</b>: „E-Mail“ und „Telefonnummer“ (vorausgefüllt), dazu eine <b>eigene Frage</b> „Kurze Antwort“ mit dem Text <code>Indirizzo del suo sito</code> (für Deutschland: <code>Adresse Ihrer Website</code>). Für Deutschland ein eigenes Formular in deutscher Sprache anlegen.</li>
         <li><b>Datenschutz</b>: Link <code><?= Fmt::h($basis) ?>/legal.html?lang=it#privacy</code>. Dann <b>„Eigener Haftungsausschluss“</b> einschalten, <b>ein Kontrollkästchen</b> hinzufügen, als <b>Pflicht</b> markieren, mit genau diesem Text:
-          <?= $kopier(AkquiseEinwilligung::wortlaut('it', 'indicato sopra')) ?>Ohne dieses Häkchen nimmt das System die Meldung nicht an.</li>
-        <li>Abschluss-Bildschirm: „Grazie! Le abbiamo mandato un’e-mail: tocchi il link di conferma per ricevere l’analisi.“ → Link auf <code><?= Fmt::h($analisi) ?></code>.</li>
+          <?= $kopier(AkquiseEinwilligung::wortlaut('it', 'indicato sopra')) ?>Für Deutschland:<?= $kopier(AkquiseEinwilligung::wortlaut('de', 'der oben angegebenen Nummer')) ?>Ohne dieses Häkchen nimmt das System die Meldung nicht an. Die Sprache der Bestätigungsmail richtet sich nach der Website-Endung (.de/.at/.ch → Deutsch), wenn oben „Beide“ eingestellt ist.</li>
+        <li>Abschluss-Bildschirm: „Grazie! Le abbiamo mandato un’e-mail: tocchi il link di conferma per ricevere l’analisi.“ → Link auf <code><?= Fmt::h($analisi) ?></code>. Deutsch: „Danke! Wir haben Ihnen eine E-Mail geschickt: Tippen Sie auf den Bestätigungslink, dann kommt die Analyse.“ → <code><?= Fmt::h($basis) ?>/analisi.php?lang=de</code>.</li>
         <li>Veröffentlichen. Jede ausgefüllte Anfrage erscheint unter <a href="<?= Fmt::h(url('akquise/beitraege#formular')) ?>">Beiträge → Werbeformular</a>.</li>
       </ol></details>
+
+    <?php require_once dirname(__DIR__) . '/src/GoogleLead.php'; $gk = GoogleLead::schluessel(); ?>
+    <h3 id="google" style="margin:18px 0 6px;font-size:15px">5 · Google-Anzeige mit Formular (Italien und Deutschland)</h3>
+    <p class="akq-klein" style="margin:0 0 6px">Ein ausgefülltes Formular in deiner Google-Anzeige kommt hier automatisch an; mit „Sì/Ja“ bei der Einwilligungsfrage geht die Bestätigungsmail raus, sonst nichts. Budget und Gebiet legst du in Google Ads fest.</p>
+    <p class="akq-klein" style="margin:0">Webhook-URL:</p><?= $kopier(GoogleLead::adresse()) ?>
+    <?php if ($gk !== ''): ?><p class="akq-klein" style="margin:0">Schlüssel:</p><?= $kopier($gk) ?><?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0 0 8px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_google_schluessel">
+      <button class="knopf"><?= $gk === '' ? 'Schlüssel für Google Ads erzeugen' : 'Neuen Schlüssel erzeugen (der alte gilt dann nicht mehr)' ?></button></form>
+    <details><summary class="akq-klein" style="cursor:pointer">Schritt für Schritt</summary>
+      <ol class="akq-klein" style="line-height:1.7">
+        <li><b>ads.google.com</b> → Kampagne (Suche oder Performance Max) → <b>Assets → Lead-Formular</b> hinzufügen. Für Italien und Deutschland je ein eigenes Formular in der Landessprache.</li>
+        <li>Fragen: <b>E-Mail</b> und <b>Telefonnummer</b>. Eigene Frage „Kurze Antwort“: <code>Indirizzo del suo sito</code> bzw. <code>Adresse Ihrer Website</code>.</li>
+        <li>Eigene Frage „Mehrfachauswahl“ mit genau diesem Text und den Antworten <code>Sì, acconsento</code> / <code>No</code> (Deutsch: <code>Ja, einverstanden</code> / <code>Nein</code>):
+          <?= $kopier('Consenso: Vecom Design (Uwe Vetter) può scriverle via e-mail e WhatsApp sul suo sito e su offerte adatte? Può revocare in qualsiasi momento.') ?>
+          <?= $kopier('Einwilligung: Darf Vecom Design (Uwe Vetter) Ihnen per E-Mail und WhatsApp zu Ihrer Website und passenden Angeboten schreiben? Widerruf jederzeit möglich.') ?></li>
+        <li>Datenschutz-Link: <code><?= Fmt::h($basis) ?>/legal.html?lang=it#privacy</code> (Deutsch: <code>?lang=de#privacy</code>).</li>
+        <li>Unten im Formular → <b>Lead-Bereitstellung → Webhook</b>: die URL und den Schlüssel von oben eintragen → <b>„Testdaten senden“</b>. Ein Test legt nichts an; er muss nur „erfolgreich“ zeigen.</li>
+        <li>Bietet Google dir keine eigenen Fragen an, nimm eine normale Suchanzeige mit dem Ziel <code><?= Fmt::h($analisi) ?></code> bzw. <code>…?lang=de</code> — dort steht dasselbe Formular mit Häkchen.</li>
+      </ol></details>
+
+    <?php require_once dirname(__DIR__) . '/src/WebTipp.php';
+          $tpZ = sicher(static fn() => Db::all("SELECT status, sprache, COUNT(*) AS n FROM akq_tipp_abos GROUP BY status, sprache"), []);
+          $tpA = []; foreach ($tpZ as $z) { $tpA[$z['status']][$z['sprache']] = (int) $z['n']; } ?>
+    <h3 id="tipp" style="margin:18px 0 6px;font-size:15px">6 · Website-Tipp der Woche</h3>
+    <p class="akq-klein" style="margin:0 0 6px">Abo auf der Startseite (unten) und auf der Analyse-Seite, mit Bestätigungsklick. Dienstags geht der nächste von zehn Tipps raus (IT/DE/EN), mit Link zur Analyse und zum persönlichen Bereich; Abbestellen mit einem Klick. Schalter „Website-Tipp der Woche“ oben.</p>
+    <p class="akq-klein" style="margin:0">Aktiv: <b><?= array_sum($tpA['aktiv'] ?? []) ?></b> (<?php foreach (['it', 'de', 'en'] as $l): ?><?= strtoupper($l) ?> <?= (int) ($tpA['aktiv'][$l] ?? 0) ?> <?php endforeach; ?>) · wartet auf Bestätigung: <?= array_sum($tpA['angefragt'] ?? []) ?> · abbestellt: <?= array_sum($tpA['abgemeldet'] ?? []) ?></p>
+    <p class="akq-klein" style="margin:4px 0 0">Link zum Teilen:</p><?= $kopier($basis . '/tipp.php?lang=it') ?><?= $kopier($basis . '/tipp.php?lang=de') ?>
   </div>
 
   <div class="block" id="postfach">
