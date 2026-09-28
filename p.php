@@ -253,6 +253,20 @@ $wegIcon = [
   .lp-arbeiten figcaption{padding:10px 12px;font-size:13.5px;line-height:1.45}
   .lp-arbeiten figcaption b{display:block;font-size:14.5px}
   .lp-arbeiten figcaption span{color:var(--dim)}
+  /* Projekt-Beispiele anklickbar (28.09.2026): Der Link liegt am Namen und
+     deckt per ::after die ganze Karte ab -- ein Ziel, ein Link für Vorleser. */
+  .lp-arbeiten figure{position:relative;transition:border-color .18s cubic-bezier(.16,1,.3,1)}
+  .lp-arbeiten figure:has(.lp-ar-a):hover,.lp-arbeiten figure:focus-within{border-color:var(--akzent)}
+  .lp-arbeiten figure img{transition:transform .52s cubic-bezier(.16,1,.3,1)}
+  .lp-arbeiten figure:has(.lp-ar-a):hover img{transform:scale(1.025)}
+  .lp-arbeiten figure:last-child:nth-child(odd):not(:first-child){grid-column:1/-1}   /* drei Arbeiten: die dritte breit statt Lücke */
+  .lp-ar-a{color:inherit;text-decoration:none}
+  .lp-ar-a::after{content:"";position:absolute;inset:0;border-radius:inherit}
+  .lp-ar-a:focus-visible{outline:none}
+  .lp-arbeiten figure:has(.lp-ar-a:focus-visible){outline:2px solid var(--akzent);outline-offset:2px}
+  .lp-arbeiten figcaption .lp-ar-los{display:flex;width:fit-content;align-items:center;gap:5px;margin-top:6px;color:var(--akzent);font-weight:600;font-size:13px}
+  .lp-ar-los svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  @media (prefers-reduced-motion:reduce){.lp-arbeiten figure img{transition:none}.lp-arbeiten figure:has(.lp-ar-a):hover img{transform:none}}
   .lp-schritte{list-style:none;padding:0;margin:0;display:grid;gap:14px;counter-reset:s}
   .lp-schritte li{display:flex;gap:14px;align-items:flex-start;counter-increment:s}
   .lp-schritte li::before{content:counter(s);flex:0 0 32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:var(--akzent);color:var(--knopftext);margin-top:0}
@@ -377,7 +391,7 @@ foreach ($g['reihenfolge'] as $baustein):
 <?php break;
     case 'arbeiten': ?>
   <section class="block ld lp"><h2><?= $h($S($PS['arbeiten_titel'])) ?></h2>
-    <div class="lp-arbeiten"><?php foreach ($g['arbeiten'] as $aid): $a = $PS['arbeiten'][$aid] ?? null; if (!$a) { continue; } ?>
+    <div class="lp-arbeiten"><?php foreach ($g['arbeiten'] as $aid): $a = $PS['arbeiten'][$aid] ?? null; if (!$a || !is_file(__DIR__ . '/assets/img/arbeiten/' . $aid . '/an.webp')) { continue; } ?>
       <?php $vor = PartnerSeite::vorher($aid); ?>
       <figure><?php if ($vor): ?>
         <div class="vn"><img src="/assets/img/arbeiten/<?= $h($aid) ?>/an.webp" alt="<?= $h($a['name'] . ' — ' . $S($PS['vn_nachher'])) ?>" width="2400" height="1350" loading="lazy" decoding="async">
@@ -385,7 +399,9 @@ foreach ($g['reihenfolge'] as $baustein):
           <span class="vn-linie" aria-hidden="true"></span><span class="vn-tag l"><?= $h($S($PS['vn_vorher'])) ?></span><span class="vn-tag r"><?= $h($S($PS['vn_nachher'])) ?></span>
           <input type="range" min="0" max="100" value="50" aria-label="<?= $h($S($PS['vn_regler']) . ' — ' . $a['name']) ?>" data-vn></div>
       <?php else: ?><img src="/assets/img/arbeiten/<?= $h($aid) ?>/an.webp" alt="<?= $h($a['name']) ?>" width="2400" height="1350" loading="lazy" decoding="async"><?php endif; ?>
-        <figcaption><b><?= $h($a['name']) ?></b><span><?= $h(Texte::h($a, $sprache)) ?></span></figcaption></figure>
+        <?php $aUrl = PartnerSeite::arbeitUrl($aid); ?>
+        <figcaption><b><?php if ($aUrl): ?><a class="<?= $vor ? '' : 'lp-ar-a' ?>" href="<?= $h($aUrl) ?>" target="_blank" rel="noopener"><?= $h($a['name']) ?><span class="sr"> <?= $h($S($PS['neuer_tab'])) ?></span></a><?php else: ?><?= $h($a['name']) ?><?php endif; ?></b><span><?= $h(Texte::h($a, $sprache)) ?></span>
+          <?php if ($aUrl): ?><span class="lp-ar-los" aria-hidden="true"><?= $h($S($PS['arbeiten_ansehen'])) ?> <svg viewBox="0 0 12 12"><path d="M4 2h6v6M10 2L2.5 9.5"/></svg></span><?php endif; ?></figcaption></figure>
     <?php endforeach; ?></div>
     <a class="weiter2" href="<?= $h($ziel . '#work') ?>"><?= $h($S($PS['arbeiten_mehr'])) ?></a>
   </section>

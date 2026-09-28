@@ -353,6 +353,9 @@ final class Partner
             Db::run("UPDATE partner_provisionen SET status = 'storniert', grund = 'Partner gelöscht' WHERE partner_id = ? AND status IN ('wartet','freigabe')", [$id]);
             Db::run('DELETE FROM partner_zuordnungen WHERE partner_id = ?', [$id]);
             Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [$id]);
+            Db::run('DELETE FROM partner_kanal_klicks WHERE partner_id = ?', [$id]);
+            self::still(static fn() => Db::run('DELETE FROM partner_klicks_archiv WHERE partner_id = ?', [$id]), null);
+            self::still(static fn() => Db::run('DELETE FROM partner_kanal_klicks_archiv WHERE partner_id = ?', [$id]), null);
             if ($belege === 0) {
                 Db::run('DELETE FROM partner_provisionen WHERE partner_id = ?', [$id]);
                 Db::run('DELETE FROM partner WHERE id = ?', [$id]);
@@ -456,6 +459,54 @@ final class Partner
     }
 
     /** Ein Klick auf den Link, gezählt je Tag — ohne IP, ohne Cookie. */
+    /* ==================================================================== */
+    /*  Klicks auf 0 (28.09.2026, Uwe: „Nur Besuche und Kanal-Klicks“)      */
+    /* ==================================================================== */
+
+    /** Stichtag des letzten Zurücksetzens (Y-m-d) oder null. */
+    public static function klicksSeit(): ?string
+    {
+        $v = self::einstellung('partner_klicks_seit');
+        return preg_match('~^\d{4}-\d{2}-\d{2}$~', $v) ? $v : null;
+    }
+
+    /** Wurden die Klicks vor weniger als $tage Tagen zurückgesetzt? (Ruhe-Hinweise dürfen dann nicht „nichts geteilt“ schließen.) */
+    public static function klicksFrisch(int $tage = 30): bool
+    {
+        $seit = self::klicksSeit();
+        return $seit !== null && (int) self::still(static fn() => Db::wert('SELECT DATEDIFF(CURDATE(), ?)', [$seit], 999), 999) < $tage;
+    }
+
+    /**
+     * Besuche und Kanal-Klicks aller Partner ins Archiv und auf 0. Knopf-
+     * Ereignisse, Check-Aufrufe, Anfragen und Provisionen bleiben unberührt.
+     * @return array{besuche:int, kanal:int, seit:string}
+     */
+    public static function klicksZuruecksetzen(string $wer): array
+    {
+        $r = Db::transaktion(static function (): array {
+            $b = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks', [], 0);
+            $k = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_kanal_klicks', [], 0);
+            Db::run('INSERT INTO partner_klicks_archiv (partner_id, tag, anzahl, archiviert_am) SELECT partner_id, tag, anzahl, NOW() FROM partner_klicks');
+            Db::run('INSERT INTO partner_kanal_klicks_archiv (partner_id, kanal, tag, anzahl, archiviert_am) SELECT partner_id, kanal, tag, anzahl, NOW() FROM partner_kanal_klicks');
+            Db::run('DELETE FROM partner_klicks');
+            Db::run('DELETE FROM partner_kanal_klicks');
+            $seit = (string) Db::wert('SELECT CURDATE()', [], date('Y-m-d'));
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', ['partner_klicks_seit', $seit]);
+            return ['besuche' => $b, 'kanal' => $k, 'seit' => $seit];
+        });
+        self::still(static fn() => Events::protokoll('partner_klicks_null', 'Partner-Klicks auf 0 gesetzt von ' . $wer . ': ' . $r['besuche'] . ' Besuche und '
+            . $r['kanal'] . ' Kanal-Klicks archiviert, gezählt ab ' . $r['seit']), null);
+        return $r;
+    }
+
+    /** Besuche insgesamt, auch vor dem Zurücksetzen (für Meilensteine und den Mini-Kurs). */
+    public static function klicksImmer(int $partnerId): int
+    {
+        return (int) self::still(static fn() => Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ?', [$partnerId], 0), 0)
+             + (int) self::still(static fn() => Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks_archiv WHERE partner_id = ?', [$partnerId], 0), 0);
+    }
+
     public static function klick(int $partnerId, ?string $kanal = null): void
     {
         self::still(static fn() => Db::run(

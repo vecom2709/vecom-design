@@ -56,14 +56,30 @@ final class PartnerSeite
     /** Reihenfolge ab Werk (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“). */
     public const REIHENFOLGE = ['wege', 'stimmen', 'ablauf', 'arbeiten', 'faq', 'rueckruf', 'whatsapp'];
     /** Arbeiten, aus denen der Partner wählt (Texte in Texte::PARTNER_SEITE['arbeiten']); höchstens drei. */
-    public const ARBEITEN = ['cavaleri', 'jonika', 'mensaena', 'trendonix'];
+    public const ARBEITEN = ['trendonix', 'jonika', 'drehesum', 'cavaleri', 'mensaena'];
     public const ARBEITEN_MAX = 3;
+    /* Projekt-Beispiele (28.09.2026, Uwe: „Alle Partnerseiten“): Diese drei
+       stehen ab Werk auf jeder Partnerseite, anklickbar zur echten Website. */
+    public const ARBEITEN_STANDARD = ['trendonix', 'jonika', 'drehesum'];
+    /** Die echten Websites der Arbeiten (öffnen in neuem Tab). */
+    public const ARBEITEN_URL = [
+        'trendonix' => 'https://www.trendonix-buecher.de/',
+        'jonika' => 'https://www.jonika-venturis.com/',
+        'drehesum' => 'https://www.dreh-es-um.de/',
+        'cavaleri' => 'https://cavaleri-trasporti.netlify.app/',
+        'mensaena' => 'https://mensaena.de/',
+    ];
+    /* Stand der Gestaltung: Gespeicherte Seiten vor Stand 2 bekommen einmalig
+       die Beispielarbeiten eingeschaltet (auch wer sie früher abgewählt hatte
+       -- Uwe wollte sie auf allen Seiten). Speichert der Partner danach, gilt
+       wieder genau seine Wahl. */
+    public const STAND = 2;
     /** Knopftext des Anfrageformulars: fertige Varianten (Texte::PARTNER_SEITE['knoepfe']). */
     public const KNOEPFE = ['loslegen', 'angebot', 'preis', 'beratung'];
     /* Kundenstimmen und Rückruf (27.09.2026) sind an, bis der Partner sie
        ausschaltet: Beide zeigen nur, was es gibt (freigegebene Stimmen,
        Vecoms Rückruf) -- und die meisten Partner öffnen den Gestalter nie. */
-    public const STANDARD_AN = ['stimmen', 'rueckruf', 'wege'];
+    public const STANDARD_AN = ['stimmen', 'rueckruf', 'wege', 'arbeiten'];
     public const TEXT_MAX = ['titel' => 80, 'lead' => 320, 'p1' => 100, 'p2' => 100, 'p3' => 100];
     public const BILD_MAX_BYTE = 10 * 1024 * 1024;
 
@@ -95,7 +111,8 @@ final class PartnerSeite
         $reihe = array_values(array_unique(array_filter(array_map('strval', (array) ($roh['reihenfolge'] ?? [])), static fn($b) => in_array($b, self::BAUSTEINE, true))));
         foreach (self::REIHENFOLGE as $b) { if (!in_array($b, $reihe, true)) { $reihe[] = $b; } }
         $arbeiten = array_slice(array_values(array_unique(array_filter(array_map('strval', (array) ($roh['arbeiten'] ?? [])), static fn($a) => in_array($a, self::ARBEITEN, true)))), 0, self::ARBEITEN_MAX);
-        if ($arbeiten === []) { $arbeiten = array_slice(self::ARBEITEN, 0, self::ARBEITEN_MAX); }
+        if ((int) ($roh['stand'] ?? 0) < self::STAND) { $bausteine['arbeiten'] = true; $arbeiten = []; }
+        if ($arbeiten === []) { $arbeiten = self::ARBEITEN_STANDARD; }
         $knopf = in_array($roh['knopf'] ?? '', self::KNOEPFE, true) ? (string) $roh['knopf'] : 'loslegen';
         return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
                 'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf];
@@ -142,6 +159,7 @@ final class PartnerSeite
             'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
             'reihenfolge' => array_keys($pos), 'arbeiten' => $arbeiten ?: $alt['arbeiten'],
             'knopf' => in_array($d['knopf'] ?? '', self::KNOEPFE, true) ? (string) $d['knopf'] : $alt['knopf'],
+            'stand' => self::STAND,
         ];
         Db::run('UPDATE partner SET seite_json = ?, seite_am = NOW() WHERE id = ?', [json_encode($neu, JSON_UNESCAPED_UNICODE), $partnerId]);
         return 'ok';
@@ -382,6 +400,12 @@ final class PartnerSeite
         ob_start(); imagejpeg($bild, null, 84); $jpg = (string) ob_get_clean();
         imagedestroy($bild);
         return $jpg !== '' ? $jpg : null;
+    }
+
+    /** Echte Website einer Arbeit oder null. */
+    public static function arbeitUrl(string $arbeit): ?string
+    {
+        return self::ARBEITEN_URL[$arbeit] ?? null;
     }
 
     /** Arbeiten mit echtem Vorher-Bild (assets/img/arbeiten/ID/vorher.webp). Ohne echtes Bild kein Vergleich -- ein nachgestelltes Vorher wäre erfunden. */

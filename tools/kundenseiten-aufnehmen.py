@@ -12,7 +12,7 @@ verborgen (nichts wird angeklickt)."""
 import asyncio, os, sys
 from playwright.async_api import async_playwright
 from PIL import Image
-SEITEN = {'cavaleri':'https://cavaleri-trasporti.netlify.app/', 'jonika':'https://jonika-venturis.com/', 'mensaena':'https://mensaena.de/', 'trendonix':'https://www.trendonix-buecher.de/'}
+SEITEN = {'cavaleri':'https://cavaleri-trasporti.netlify.app/', 'jonika':'https://jonika-venturis.com/', 'mensaena':'https://mensaena.de/', 'trendonix':'https://www.trendonix-buecher.de/', 'drehesum':'https://www.dreh-es-um.de/'}
 WAHL = sys.argv[1:] or list(SEITEN)
 BANNER_WEG = """() => {
   for (const el of document.querySelectorAll('body *')) {
@@ -34,7 +34,9 @@ async def main():
         b = await p.chromium.launch(proxy={'server': prox} if prox else None)
         for k in WAHL:
             for name, vp, dsf in (('laptop', {'width':1440,'height':824}, 2), ('handy', {'width':390,'height':727}, 3)):
-                ctx = await b.new_context(viewport=vp, device_scale_factor=dsf, ignore_https_errors=True, is_mobile=(name=='handy'), has_touch=(name=='handy'))
+                ctx = await b.new_context(viewport=vp, device_scale_factor=dsf, ignore_https_errors=True, is_mobile=(name=='handy'), has_touch=(name=='handy'),
+                                          # dreh-es-um bietet sonst per Hinweis die englische Fassung an
+                                          **({'locale': 'de-DE'} if k == 'drehesum' else {}))
                 pg = await ctx.new_page()
                 await pg.goto(SEITEN[k], wait_until='load', timeout=60000)
                 await pg.wait_for_timeout(3500)

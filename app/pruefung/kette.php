@@ -11771,8 +11771,8 @@ require_once $wurzel . '/src/PartnerSeite.php';
 $psId = Partner::anlegen(['name' => 'Gianni Gestalter', 'email' => 'gianni@partner.example', 'status' => 'aktiv', 'code' => 'GIANNIPS1', 'firma' => '', 'sprache' => 'it']);
 $psP = static fn(): array => Db::one('SELECT * FROM partner WHERE id = ?', [$psId]);
 $psG = PartnerSeite::gestaltung($psP());
-pruefe('Ohne Gestaltung: Standard (Gold dunkel, kein Bild, keine Zusatz-Bausteine außer Kundenstimmen und Rückruf)', $psG['vorlage'] === 'gold' && $psG['akzent'] === 'gold' && $psG['bild'] === ''
-    && !in_array(true, array_intersect_key($psG['bausteine'], array_flip(['arbeiten', 'ablauf', 'faq', 'whatsapp'])), true) && $psG['bausteine']['stimmen'] && $psG['bausteine']['rueckruf']);
+pruefe('Ohne Gestaltung: Standard (Gold dunkel, kein Bild, keine Zusatz-Bausteine außer Kundenstimmen, Rückruf und Beispielarbeiten)', $psG['vorlage'] === 'gold' && $psG['akzent'] === 'gold' && $psG['bild'] === ''
+    && !in_array(true, array_intersect_key($psG['bausteine'], array_flip(['ablauf', 'faq', 'whatsapp'])), true) && $psG['bausteine']['stimmen'] && $psG['bausteine']['rueckruf'] && $psG['bausteine']['arbeiten']);
 pruefe('Texte mit Adressen werden abgewiesen, WhatsApp nur international',
     PartnerSeite::speichern($psId, ['texte' => ['de' => ['lead' => 'Mehr auf meinseite.de']]]) === 'text_link'
     && PartnerSeite::speichern($psId, ['texte' => ['it' => ['titel' => 'Scrivimi a me@x.it']]]) === 'text_link'
@@ -13142,16 +13142,31 @@ pruefe('Website-Check über die Partnerseite: am Check steht der Partner, er zä
 
 /* Gestaltung: Reihenfolge, Arbeiten, Knopftext */
 $lsG = PartnerSeite::gestaltung($lsPa);
-pruefe('Gestaltung ab Werk: Werksreihenfolge, drei Arbeiten, Knopf „Loslegen“, die drei Wege an',
-    $lsG['reihenfolge'] === PartnerSeite::REIHENFOLGE && $lsG['arbeiten'] === ['cavaleri', 'jonika', 'mensaena'] && $lsG['knopf'] === 'loslegen' && $lsG['bausteine']['wege']);
+pruefe('Gestaltung ab Werk: Werksreihenfolge, die drei Beispielarbeiten (Trendonix, Jonika, Dreh es um), Knopf „Loslegen“, die drei Wege an',
+    $lsG['reihenfolge'] === PartnerSeite::REIHENFOLGE && $lsG['arbeiten'] === ['trendonix', 'jonika', 'drehesum'] && $lsG['knopf'] === 'loslegen' && $lsG['bausteine']['wege'] && $lsG['bausteine']['arbeiten']);
 PartnerSeite::speichern($lsP, ['bausteine' => ['wege' => '1', 'rueckruf' => '1', 'arbeiten' => '1'], 'pos' => ['rueckruf' => 1, 'wege' => 2, 'stimmen' => 7],
     'arbeiten' => ['trendonix' => '1', 'cavaleri' => '1'], 'knopf' => 'preis']);
 $lsG = PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]));
 pruefe('Gestaltung gespeichert: Rückruf nach oben, eigene Arbeiten (auch Trendonix), eigener Knopftext',
     array_slice($lsG['reihenfolge'], 0, 2) === ['rueckruf', 'wege'] && array_search('stimmen', $lsG['reihenfolge'], true) > array_search('faq', $lsG['reihenfolge'], true)
     && count($lsG['reihenfolge']) === count(PartnerSeite::BAUSTEINE)
-    && $lsG['arbeiten'] === ['cavaleri', 'trendonix'] && $lsG['knopf'] === 'preis', json_encode($lsG['reihenfolge']));
-Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode(['reihenfolge' => ['<script>', 'faq', 'faq'], 'arbeiten' => ['../x', 'jonika', 'mensaena', 'cavaleri', 'trendonix'], 'knopf' => 'boese']), $lsP]);
+    && $lsG['arbeiten'] === ['trendonix', 'cavaleri'] && $lsG['knopf'] === 'preis', json_encode($lsG['reihenfolge']));
+pruefe('Gespeicherte Gestaltung trägt den Stand -- die eigene Wahl bleibt, auch Beispielarbeiten aus',
+    (int) (json_decode((string) Db::wert('SELECT seite_json FROM partner WHERE id = ?', [$lsP], ''), true)['stand'] ?? 0) === PartnerSeite::STAND
+    && (PartnerSeite::speichern($lsP, ['bausteine' => ['wege' => '1'], 'arbeiten' => ['cavaleri' => '1']]) === 'ok')
+    && !PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]))['bausteine']['arbeiten']);
+/* Alte Gestaltung (vor Stand 2) mit abgewählten Arbeiten: einmalig an, die drei Beispiele */
+Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode(['bausteine' => ['arbeiten' => false, 'wege' => true], 'arbeiten' => ['cavaleri', 'mensaena']]), $lsP]);
+$lsG3 = PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]));
+pruefe('Alte Gestaltung ohne Stand: Beispielarbeiten an, genau Trendonix, Jonika, Dreh es um',
+    $lsG3['bausteine']['arbeiten'] && $lsG3['arbeiten'] === PartnerSeite::ARBEITEN_STANDARD && $lsG3['bausteine']['wege']);
+pruefe('Jede Arbeit hat Text und eine echte https-Website; die drei Beispiele zeigen auf die gewünschten Adressen',
+    array_diff(PartnerSeite::ARBEITEN, array_keys(Texte::PARTNER_SEITE['arbeiten'])) === []
+    && count(array_filter(PartnerSeite::ARBEITEN, static fn($a) => str_starts_with((string) PartnerSeite::arbeitUrl($a), 'https://'))) === count(PartnerSeite::ARBEITEN)
+    && PartnerSeite::arbeitUrl('trendonix') === 'https://www.trendonix-buecher.de/' && PartnerSeite::arbeitUrl('jonika') === 'https://www.jonika-venturis.com/'
+    && PartnerSeite::arbeitUrl('drehesum') === 'https://www.dreh-es-um.de/' && PartnerSeite::arbeitUrl('../x') === null
+    && count(array_filter(PartnerSeite::ARBEITEN, static fn($a) => is_file($wurzel . '/../assets/img/arbeiten/' . $a . '/an.webp'))) === count(PartnerSeite::ARBEITEN));
+Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode(['stand' => PartnerSeite::STAND, 'reihenfolge' => ['<script>', 'faq', 'faq'], 'arbeiten' => ['../x', 'jonika', 'mensaena', 'cavaleri', 'trendonix'], 'knopf' => 'boese']), $lsP]);
 $lsG2 = PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]));
 pruefe('Gestaltung: Unbekanntes fällt weg, jeder Abschnitt genau einmal, höchstens drei Arbeiten',
     $lsG2['reihenfolge'][0] === 'faq' && count($lsG2['reihenfolge']) === count(array_unique($lsG2['reihenfolge'])) && count($lsG2['reihenfolge']) === count(PartnerSeite::BAUSTEINE)
@@ -13790,6 +13805,67 @@ pruefe('Gutschein, Kundenstimme und Meilenstein als Bild: im Browser gezeichnet,
 pruefe('Lauf: Nachhaken, Kurs und Meilensteine hängen im Partner-Lauf, jede Aufgabe fällt für sich',
     str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), 'PartnerMarketing::lauf()') && is_array(PartnerMarketing::lauf()));
 WebPush::$probe = null;
+
+/* ============================================================================
+   Partner: Klicks auf 0 und Beispielarbeiten (28.09.2026, Uwe: „Resete alle
+   Klicks auf 0“ -- nur Besuche und Kanal-Klicks -- und „Baue die gemachten
+   Seiten klickbar ein“). Geprüft wird: nichts geht verloren (Archiv), Knopf-
+   Ereignisse bleiben, danach wird neu gezählt, verdiente Meilensteine bleiben,
+   und „still“/Weckruf schließen nicht aus dem Zurücksetzen auf Untätigkeit.
+   ============================================================================ */
+abschnitt('Partner: Klicks auf 0 und Beispielarbeiten');
+$knId = Partner::anlegen(['name' => 'Nora Null', 'email' => 'nora@partner.example', 'status' => 'aktiv', 'code' => 'KLICKNULL1', 'firma' => '', 'sprache' => 'de']);
+Db::run("UPDATE partner SET created_at = NOW() - INTERVAL 90 DAY, vereinbarung_am = NOW() - INTERVAL 90 DAY WHERE id = ?", [$knId]);
+foreach (['instagram', 'instagram', 'whatsapp', null] as $knK) { Partner::klick($knId, $knK); }
+Db::run('INSERT INTO partner_ereignisse (partner_id, art, tag, anzahl) VALUES (?, ?, CURDATE(), 2) ON DUPLICATE KEY UPDATE anzahl = anzahl + 2', [$knId, 'wa']);
+$knAlleVor = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks', [], 0);
+$knKanalVor = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_kanal_klicks', [], 0);
+$knArchVor = (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks_archiv', [], 0);
+$knMsVor = PartnerMarketing::meilensteine(Partner::laden($knId));
+$knR = Partner::klicksZuruecksetzen('Kette');
+pruefe('Klicks auf 0: Besuche und Kanal-Klicks aller Partner leer, alles im Archiv, Zahlen stimmen',
+    (int) Db::wert('SELECT COUNT(*) FROM partner_klicks', [], -1) === 0 && (int) Db::wert('SELECT COUNT(*) FROM partner_kanal_klicks', [], -1) === 0
+    && $knR['besuche'] === $knAlleVor && $knR['kanal'] === $knKanalVor && $knAlleVor >= 4
+    && (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks_archiv', [], 0) === $knArchVor + $knAlleVor
+    && (int) Db::wert("SELECT COALESCE(SUM(anzahl),0) FROM partner_kanal_klicks_archiv WHERE partner_id = ? AND kanal = 'instagram'", [$knId], 0) === 2);
+pruefe('… Knopf-Ereignisse bleiben, Stichtag steht (heute, Datenbankzeit), Protokoll geschrieben',
+    (int) Db::wert("SELECT anzahl FROM partner_ereignisse WHERE partner_id = ? AND art = 'wa'", [$knId], 0) >= 2
+    && Partner::klicksSeit() === (string) Db::wert('SELECT CURDATE()', [], '') && Partner::klicksFrisch()
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'partner_klicks_null'", [], 0) >= 1);
+$knMsNach = PartnerMarketing::meilensteine(Partner::laden($knId));
+pruefe('… schon verdiente Meilensteine und der geteilte Link zählen weiter (Archiv mitgerechnet), Statistik zeigt 0',
+    $knMsVor['klick1'] && $knMsNach['klick1'] && Partner::klicksImmer($knId) === 4 && PartnerStart::schritte(Partner::laden($knId))['erledigt']['teilen']
+    && Partner::trichter($knId, 30)['besuche'] === 0);
+Partner::klick($knId, 'instagram');
+pruefe('Danach wird neu gezählt: ein Besuch, ein Kanal-Klick; das Archiv bleibt unberührt',
+    (int) Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ?', [$knId], 0) === 1
+    && (int) Db::wert("SELECT COALESCE(SUM(anzahl),0) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal = 'instagram'", [$knId], 0) === 1
+    && Partner::klicksImmer($knId) === 5 && Partner::trichter($knId, 30)['besuche'] === 1);
+Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [$knId]);
+Db::run('INSERT INTO partner_push (partner_id, endpoint, endpoint_hash, p256dh, auth) VALUES (?, ?, ?, ?, ?)', [$knId, 'https://push.example/kn', hash('sha256', 'https://push.example/kn'), 'x', 'y']);
+$knRang = array_values(array_filter(PartnerSteuerung::rangliste('name'), static fn($z) => (int) $z['id'] === $knId));
+pruefe('In den 30 Tagen nach dem Zurücksetzen: niemand gilt als „still“, kein Weckruf',
+    $knRang && !$knRang[0]['still'] && PartnerSteuerung::weckruf(strtotime('today 10:00')) === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM partner WHERE id = ? AND weckruf_am IS NULL', [$knId], 0) === 1);
+Db::run("UPDATE settings SET svalue = DATE_FORMAT(CURDATE() - INTERVAL 40 DAY, '%Y-%m-%d') WHERE skey = 'partner_klicks_seit'");
+$knRang = array_values(array_filter(PartnerSteuerung::rangliste('name'), static fn($z) => (int) $z['id'] === $knId));
+pruefe('… nach 30 Tagen gilt wieder: 30 Tage ohne Besuch = still', !Partner::klicksFrisch() && $knRang && $knRang[0]['still']);
+$knIdx = (string) file_get_contents($wurzel . '/index.php'); $knAd = (string) file_get_contents($wurzel . '/views/partner.php');
+pruefe('Verwaltung: Knopf „Klicks auf 0 setzen“ mit schwerer Rückfrage, Stichtag in Liste und Partnerbereich',
+    str_contains($knAd, 'value="partner_klicks_null"') && str_contains($knIdx, "case 'partner_klicks_null':") && str_contains($knIdx, 'Partner::klicksZuruecksetzen(')
+    && (Ablauf::TRAGWEITE['partner_klicks_null'][0] ?? null) === Ablauf::SCHWER && str_contains($knAd, 'Partner::klicksSeit()')
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$PSt['w_seit']"));
+$knB = PartnerMarketing::arbeitenBeitrag(Partner::laden($knId), 'de');
+pruefe('Beitrag „Unsere Arbeiten“: die drei Websites und der Partnerlink mit Kanal „arbeiten“, in allen drei Sprachen',
+    str_contains($knB, 'https://www.trendonix-buecher.de') && str_contains($knB, 'https://www.jonika-venturis.com') && str_contains($knB, 'https://www.dreh-es-um.de')
+    && str_contains($knB, '/p/KLICKNULL1/arbeiten') && !str_contains($knB, '{')
+    && str_contains(PartnerMarketing::arbeitenBeitrag(Partner::laden($knId), 'it'), 'Vecom Design') && str_contains(PartnerMarketing::arbeitenBeitrag(Partner::laden($knId), 'en'), 'Start here'));
+$knPp = (string) file_get_contents($wurzel . '/../p.php'); $knWb = (string) file_get_contents($wurzel . '/views/partner_plus_werben.php');
+pruefe('Partnerseite: Beispielarbeiten verlinkt (neuer Tab, noopener, Hinweis für Vorleser), fehlendes Bild blendet die Karte aus; Werben-Reiter mit Teilen-Block',
+    str_contains($knPp, 'PartnerSeite::arbeitUrl($aid)') && str_contains($knPp, 'target="_blank" rel="noopener"') && str_contains($knPp, "\$PS['neuer_tab']")
+    && str_contains($knPp, "is_file(__DIR__ . '/assets/img/arbeiten/'") && str_contains($knWb, 'id="arbeiten-teilen"') && str_contains($knWb, 'PartnerMarketing::arbeitenBeitrag($p, $bl)'));
+Db::run("DELETE FROM settings WHERE skey = 'partner_klicks_seit'");
+Db::run('DELETE FROM partner_push WHERE partner_id = ?', [$knId]);
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -25,6 +25,9 @@ final class PartnerSteuerung
     public static function rangliste(string $sort = 'umsatz', int $monate = 12): array
     {
         $sort = in_array($sort, self::SORTIERUNG, true) ? $sort : 'umsatz';
+        /* Nach „Klicks auf 0“ fehlen die alten Besuche -- „still“ hieße dann nur
+           „seit dem Zurücksetzen nichts“, nicht „30 Tage nichts“. */
+        $frisch = Partner::klicksFrisch(self::STILL_TAGE);
         $zeilen = array_values(array_filter(Partner::auswertung($monate), static fn($z) => in_array($z['status'], ['aktiv', 'pausiert'], true)));
         foreach ($zeilen as &$z) {
             $id = (int) $z['id'];
@@ -33,6 +36,7 @@ final class PartnerSteuerung
             $p = Db::one('SELECT created_at, seite_am, foto_am, weckruf_am FROM partner WHERE id = ?', [$id]) ?? [];
             $spuren = array_filter([
                 self::still(static fn() => Db::wert('SELECT MAX(tag) FROM partner_klicks WHERE partner_id = ?', [$id], null)),
+                self::still(static fn() => Db::wert('SELECT MAX(tag) FROM partner_klicks_archiv WHERE partner_id = ?', [$id], null)),
                 self::still(static fn() => Db::wert('SELECT MAX(created_at) FROM partner_zuordnungen WHERE partner_id = ?', [$id], null)),
                 self::still(static fn() => Db::wert("SELECT MAX(created_at) FROM partner_nachrichten WHERE partner_id = ? AND von = 'partner'", [$id], null)),
                 self::still(static fn() => Db::wert('SELECT MAX(created_at) FROM partner_checks WHERE partner_id = ?', [$id], null)),
@@ -41,7 +45,7 @@ final class PartnerSteuerung
             ]);
             $z['letzte'] = $spuren ? (string) max(array_map('strval', $spuren)) : null;
             $alt = !empty($p['created_at']) && strtotime((string) $p['created_at']) < strtotime('-' . self::STILL_TAGE . ' days');
-            $z['still'] = $z['status'] === 'aktiv' && $z['klicks30'] === 0 && $alt;
+            $z['still'] = $z['status'] === 'aktiv' && $z['klicks30'] === 0 && $alt && !$frisch;
             $z['weckruf_am'] = $p['weckruf_am'] ?? null;
             $z['push'] = (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM partner_push WHERE partner_id = ?', [$id], 0), 0) > 0;
         }
@@ -64,6 +68,7 @@ final class PartnerSteuerung
         $jetzt ??= time();
         $stunde = (int) date('G', $jetzt);
         if ($stunde < 9 || $stunde >= 20) { return 0; }
+        if (Partner::klicksFrisch(self::STILL_TAGE)) { return 0; }   // nach „Klicks auf 0“ erst 30 Tage zählen
         require_once __DIR__ . '/Texte.php';
         $grenze = date('Y-m-d H:i:s', $jetzt - self::STILL_TAGE * 86400);
         $n = 0;

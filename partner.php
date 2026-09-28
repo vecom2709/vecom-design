@@ -544,6 +544,12 @@ if ($p && isset($_GET['karte'])) {
   .pp-warum,.pp-satz{margin:0 0 10px;font-size:14.5px;line-height:1.6}
   .pp-satz{font-style:italic;color:var(--text)}
   .pp-args{margin:0 0 10px;padding-left:20px;display:grid;gap:4px;font-size:14.5px;line-height:1.5}
+  .pp-bw{list-style:none;margin:10px 0 4px;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .pp-bw a{display:flex;flex-direction:column;gap:2px;border:1px solid var(--linie);border-radius:12px;overflow:hidden;color:inherit;text-decoration:none;background:var(--flaeche);padding-bottom:8px}
+  .pp-bw a:hover,.pp-bw a:focus-visible{border-color:var(--cyan)}
+  .pp-bw img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;display:block;margin-bottom:6px}
+  .pp-bw b,.pp-bw small{padding:0 10px}.pp-bw b{font-size:13.5px}.pp-bw small{color:var(--dim);font-size:12px;overflow-wrap:anywhere}
+  @media (max-width:520px){.pp-bw{grid-template-columns:1fr 1fr}}
   .pp-stimme{margin:12px 0 0;border:1px solid var(--linie);border-radius:14px;padding:14px;background:var(--flaeche)}
   .pp-stimme blockquote{margin:6px 0;font-size:15px;line-height:1.6}
   .pp-stimme figcaption{color:var(--dim);font-size:13px}
@@ -794,7 +800,8 @@ if ($p && isset($_GET['karte'])) {
       <div class="zahl"><b><?= (int) $k['verkaeufe'] ?></b><span><?= $h($T('verkaeufe')) ?></span><small><?= $h($T('z_verkaeufe')) ?></small></div>
       <div class="zahl"><b><?= $h(Fmt::geld((int) $k['provision'])) ?></b><span><?= $h($T('provision')) ?></span><small><?= $h($T('z_provision')) ?></small></div>
     </div>
-    <?php $wo = PartnerStart::wochen((int) $p['id']); $PSt = Texte::PARTNER_START; ?>
+    <?php $wo = PartnerStart::wochen((int) $p['id']); $PSt = Texte::PARTNER_START; $klSeit = Partner::klicksSeit(); ?>
+    <?php if ($klSeit): ?><p class="klein" style="margin:6px 0 0"><?= $h(strtr($ST($PSt['w_seit']), ['{datum}' => date('d.m.Y', (int) strtotime($klSeit))])) ?></p><?php endif; ?>
     <div class="ws">
       <h2 style="margin-bottom:6px"><?= $h($ST($PSt['w_titel'])) ?></h2>
       <?php if (array_sum(array_column($wo, 'besuche')) + array_sum(array_column($wo, 'kunden')) === 0): ?>

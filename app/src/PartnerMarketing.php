@@ -221,6 +221,19 @@ final class PartnerMarketing
     }
 
     /** Fertiger Beitrag zur Aktion mit dem Link des Partners (Kanal „aktion“). */
+    /** Beitrag mit den drei Beispielarbeiten und dem Partnerlink (Kanal „arbeiten“). */
+    public static function arbeitenBeitrag(array $p, string $sprache): string
+    {
+        require_once __DIR__ . '/PartnerWerbung.php';
+        require_once __DIR__ . '/PartnerSeite.php';
+        $zeilen = [];
+        foreach (PartnerSeite::ARBEITEN_STANDARD as $aid) {
+            $a = Texte::PARTNER_SEITE['arbeiten'][$aid];
+            $zeilen[] = '• ' . $a['name'] . ' (' . Texte::h($a, $sprache) . '): ' . rtrim((string) PartnerSeite::arbeitUrl($aid), '/');
+        }
+        return strtr(Texte::h(Texte::PARTNER_PLUS['bw_beitrag'], $sprache), ['{liste}' => implode("\n", $zeilen), '{link}' => PartnerWerbung::link($p, 'arbeiten')]);
+    }
+
     public static function aktionBeitrag(array $p, array $a, string $sprache): string
     {
         require_once __DIR__ . '/PartnerWerbung.php';
@@ -286,8 +299,9 @@ final class PartnerMarketing
         $auto = [
             1 => !empty($p['foto_am']) && trim((string) ($p['profil_satz'] ?? '')) !== '',
             2 => !empty($p['seite_am']),
-            3 => $zahl('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ?') > 0
-                 || $zahl('SELECT COUNT(*) FROM partner_kanal_klicks WHERE partner_id = ?') > 0,
+            3 => Partner::klicksImmer($id) > 0
+                 || $zahl('SELECT COUNT(*) FROM partner_kanal_klicks WHERE partner_id = ?') > 0
+                 || $zahl('SELECT COUNT(*) FROM partner_kanal_klicks_archiv WHERE partner_id = ?') > 0,
             4 => false,
             5 => $zahl('SELECT COUNT(*) FROM partner_checks WHERE partner_id = ?') > 0,
             6 => $zahl('SELECT COUNT(*) FROM partner_reservierungen WHERE partner_id = ?') > 0,
@@ -345,7 +359,7 @@ final class PartnerMarketing
     {
         $id = (int) $p['id'];
         $zahl = static fn(string $sql) => (int) self::still(static fn() => Db::wert($sql, [$id], 0), 0);
-        $klicks = $zahl('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ?');
+        $klicks = Partner::klicksImmer($id);     // auch vor dem Zurücksetzen verdient
         $kunden = $zahl("SELECT COUNT(DISTINCT customer_id) FROM partner_provisionen WHERE partner_id = ? AND status NOT IN ('storniert','zurueckgeholt','rueckforderung')");
         return [
             'profil'   => !empty($p['foto_am']) && trim((string) ($p['profil_satz'] ?? '')) !== '' && !empty($p['seite_am']),

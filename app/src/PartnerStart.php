@@ -35,7 +35,7 @@ final class PartnerStart
             'weg' => $weg !== null && PartnerWege::bereit($p, $weg),
             'profil' => !empty($p['foto_am']) || trim((string) ($p['profil_satz'] ?? '')) !== '',
             'seite' => !empty($p['seite_am']),
-            'teilen' => (int) self::still(static fn() => Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks WHERE partner_id = ?', [$id], 0), 0) > 0
+            'teilen' => Partner::klicksImmer($id) > 0     // auch Besuche vor „Klicks auf 0“
                         || (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ?', [$id], 0), 0) > 0,
             'app' => (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM partner_push WHERE partner_id = ?', [$id], 0), 0) > 0,
         ];

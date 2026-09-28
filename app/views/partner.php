@@ -99,11 +99,17 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 
 <div class="block">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px">
-    <h2 style="font-size:15px;margin:0">Alle Partner</h2>
+    <h2 style="font-size:15px;margin:0">Alle Partner<?php $klSeit = Partner::klicksSeit(); if ($klSeit): ?> <span style="font-weight:400;color:var(--leise);font-size:12.5px">Klicks gezählt seit <?= Fmt::h(Fmt::datum($klSeit)) ?></span><?php endif; ?></h2>
+    <span style="display:flex;gap:8px;flex-wrap:wrap">
+    <?php if ($uebrige): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_klicks_null">
+        <button class="knopf" title="Besuche und Kanal-Klicks aller Partnerseiten auf 0 setzen; die alten Zahlen kommen ins Archiv.">Klicks auf 0 setzen</button></form>
+    <?php endif; ?>
     <?php if (array_filter($uebrige, static fn($p) => !empty($p['stripe_konto']))): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_stripe_alle_pruefen">
         <button class="knopf" title="Holt den Stand aller Partnerkonten bei Stripe ab. Nur lesen — es wird nichts geändert.">Stripe-Stand aller Konten abholen</button></form>
     <?php endif; ?>
+    </span>
   </div>
   <?php if (!$uebrige): ?>
     <p style="color:var(--leise);font-size:13px">Noch keine. Bewerbungen kommen über
@@ -142,7 +148,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   $stille = count(array_filter($rangliste ?? [], static fn($z) => $z['still'])); ?>
 <?php if (!empty($rangliste)): ?>
 <div class="block" id="rangliste">
-  <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?></span>
+  <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?><?= !empty($klSeit) ? ' · Klicks seit ' . Fmt::h(Fmt::datum($klSeit)) : '' ?></span>
     <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px">Vorlagen pflegen</a></h2>
   <div class="tabellenrahmen"><table>
     <thead><tr><th><?= $sortLink('name', 'Partner') ?></th><th style="text-align:right"><?= $sortLink('klicks', 'Klicks') ?></th><th style="text-align:right">30 Tage</th>

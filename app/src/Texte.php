@@ -3771,7 +3771,10 @@ final class Texte
             'jonika' => ['name' => 'Jonika Venturis', 'it' => 'Autrice · libri per bambini', 'de' => 'Autorin · Kinderbücher', 'en' => 'Author · children’s books'],
             'mensaena' => ['name' => 'Mensaena', 'it' => 'Piattaforma senza scopo di lucro · aiuto tra vicini', 'de' => 'Gemeinnützige Plattform · Nachbarschaftshilfe', 'en' => 'Non-profit platform · neighbourhood help'],
             'trendonix' => ['name' => 'Trendonix', 'it' => 'Casa editrice · serie di libri illustrati', 'de' => 'Buchverlag · illustrierte Buchreihe', 'en' => 'Publisher · illustrated book series'],
+            'drehesum' => ['name' => 'Dreh es um', 'it' => 'Progetto di ricerca · informazione per i consumatori', 'de' => 'Recherche-Projekt · Verbraucheraufklärung', 'en' => 'Research project · consumer information'],
         ],
+        'arbeiten_ansehen' => ['it' => 'Vedere il sito', 'de' => 'Website ansehen', 'en' => 'View the website'],
+        'neuer_tab' => ['it' => '(si apre in una nuova scheda)', 'de' => '(öffnet in neuem Tab)', 'en' => '(opens in a new tab)'],
         /* Ausbau 27.09.2026 (Uwe: Ja zu 15 Vorschlägen) */
         'knoepfe' => [
             'loslegen' => ['it' => 'Iniziare', 'de' => 'Loslegen', 'en' => 'Get started'],
@@ -4014,6 +4017,13 @@ final class Texte
         'st_beitrag' => ['it' => "«{text}»\n— {wer}\n\nConsiglio Vecom Design anch’io: {link}", 'de' => "„{text}“\n— {wer}\n\nIch kann Vecom Design auch empfehlen: {link}", 'en' => "“{text}”\n— {wer}\n\nI recommend Vecom Design too: {link}"],
         'st_bild'    => ['it' => 'Immagine con la recensione', 'de' => 'Bild mit dieser Stimme', 'en' => 'Image with this review'],
         'st_check'   => ['it' => 'Cosa dicono i clienti', 'de' => 'Was Kunden sagen', 'en' => 'What customers say'],
+        // Beispielarbeiten zum Teilen (28.09.2026, Uwe: Ja)
+        'bw_titel'   => ['it' => 'I nostri lavori da condividere', 'de' => 'Unsere Arbeiten zum Teilen', 'en' => 'Our work to share'],
+        'bw_text'    => ['it' => 'Tre siti veri realizzati da Vecom Design. Chi vede cosa costruiamo, chiede prima. Gli stessi esempi sono sulla sua pagina, cliccabili.', 'de' => 'Drei echte Websites von Vecom Design. Wer sieht, was wir bauen, fragt eher an. Dieselben Beispiele stehen auch auf Ihrer Empfehlungsseite, anklickbar.', 'en' => 'Three real websites built by Vecom Design. People who see what we build ask sooner. The same examples are on your page, clickable.'],
+        'bw_sprache' => ['it' => 'Lingua del post', 'de' => 'Sprache des Beitrags', 'en' => 'Language of the post'],
+        'bw_beitrag' => ['it' => "Questi siti li ha realizzati Vecom Design, dia un’occhiata:\n\n{liste}\n\nVuole qualcosa del genere per la sua attività? Si parte da qui: {link}",
+                         'de' => "Diese Websites hat Vecom Design gebaut, schauen Sie selbst:\n\n{liste}\n\nSo etwas für Ihren Betrieb? Hier geht es los: {link}",
+                         'en' => "Vecom Design built these websites, take a look:\n\n{liste}\n\nWant something like this for your business? Start here: {link}"],
         // Mini-Kurs
         'ku_titel'   => ['it' => 'Il suo primo cliente in 7 giorni', 'de' => 'Ihr erster Kunde in 7 Tagen', 'en' => 'Your first customer in 7 days'],
         'ku_text'    => ['it' => 'Ogni giorno un piccolo compito da 5 minuti. Si sblocca un giorno alla volta.', 'de' => 'Jeden Tag eine kleine Aufgabe von 5 Minuten. Jeden Tag wird eine freigeschaltet.', 'en' => 'Every day a small 5-minute task. One unlocks each day.'],
@@ -4359,6 +4369,7 @@ final class Texte
         ],
         'w_titel' => ['it' => 'La sua pagina nelle ultime 8 settimane', 'de' => 'Ihre Seite in den letzten 8 Wochen', 'en' => 'Your page over the last 8 weeks'],
         'w_besuche' => ['it' => 'Visite', 'de' => 'Besuche', 'en' => 'Visits'],
+        'w_seit' => ['it' => 'Visite e clic contati dal {datum}.', 'de' => 'Besuche und Klicks gezählt seit {datum}.', 'en' => 'Visits and clicks counted since {datum}.'],
         'w_kunden' => ['it' => 'Nuovi clienti', 'de' => 'Neue Kunden', 'en' => 'New customers'],
         'w_verkaeufe' => ['it' => 'Vendite', 'de' => 'Verkäufe', 'en' => 'Sales'],
         'w_woche' => ['it' => 'Settimana dal', 'de' => 'Woche ab', 'en' => 'Week from'],

@@ -585,6 +585,13 @@ if ($post) {
                 if ($r === 'ok') { Events::protokoll('partner_aktion', 'Partner-Aktion ' . (!empty($_POST['an']) ? 'gespeichert bis ' . (string) ($_POST['bis'] ?? '') : 'ausgeschaltet')); }
                 weiter('partner#aktion');
 
+            case 'partner_klicks_null':
+                /* Uwe, 28.09.2026: „Resete alle Klicks auf 0 … dann zählen erst weitere Klicks“ -- nur Besuche und Kanal-Klicks. */
+                require_once __DIR__ . '/src/Partner.php';
+                $r = Partner::klicksZuruecksetzen(Auth::name() ?: 'Vecom');
+                $_SESSION['gut'] = 'Klicks auf 0: ' . $r['besuche'] . ' Besuche und ' . $r['kanal'] . ' Kanal-Klicks archiviert. Gezählt wird ab heute.';
+                weiter('partner');
+
             case 'partner_stripe_alle_pruefen':
                 /* Den Stand aller angefangenen Partnerkonten bei Stripe abholen -- nur lesen. */
                 require_once __DIR__ . '/src/Partner.php';

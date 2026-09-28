@@ -27,6 +27,15 @@
     if (chip) { chip.click(); }
   });
 
+  /* Beispielarbeiten: Sprache des Beitrags */
+  var bwKnoepfe = document.querySelectorAll('[data-bw-sprache]');
+  [].forEach.call(bwKnoepfe, function (b) {
+    b.addEventListener('click', function () {
+      [].forEach.call(bwKnoepfe, function (a) { a.setAttribute('aria-pressed', a === b ? 'true' : 'false'); });
+      [].forEach.call(document.querySelectorAll('[data-bw-feld]'), function (f) { f.hidden = f.getAttribute('data-bw-feld') !== b.getAttribute('data-bw-sprache'); });
+    });
+  });
+
   /* ---------- 2. Angeschrieben ---------- */
   var csrfFeld = document.querySelector('input[name=_csrf]');
   document.addEventListener('click', function (e) {

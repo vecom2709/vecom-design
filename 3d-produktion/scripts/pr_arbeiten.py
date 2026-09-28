@@ -11,7 +11,7 @@ wie mit einer 50-mm-Optik bei f/2,8.
 
 Aufruf (Blender, Hintergrund):
   blender -b -P pr_arbeiten.py -- <projekt>,<modus>[,prozent=..,samples=..]
-  projekt: cavaleri | jonika | mensaena | trendonix
+  projekt: cavaleri | jonika | mensaena | trendonix | drehesum
   modus:   probe  -- ein kleines Bild zum Ansehen
            voll   -- Standbild 2400 x 1350 (an), dazu dasselbe mit dunklem
                      Bildschirm (aus, für den Glanz über dem Live-Bild) und
@@ -373,6 +373,87 @@ def lampe(name, ort, farbe_k=2700, staerke=18.0):
     lo.location = (ort[0] + 0.10, ort[1], TISCH_Z + 0.39)
 
 
+def apfel(name, ort, dreh=0.0):
+    """Roter Apfel (Durchmesser 81 mm, Höhe 72 mm): Deckfarbe mit senkrechten
+    Streifen, Lentizellen als helle Pünktchen, Wachsschicht (Coat) und etwas
+    Subsurface -- ein glatter roter Kunststoffball wäre sofort erkennbar."""
+    m = bpy.data.materials.new(name + ' Schale'); m.use_nodes = True
+    nt = m.node_tree; b = nt.nodes['Principled BSDF']
+    ko = nt.nodes.new('ShaderNodeTexCoord')
+    abb = nt.nodes.new('ShaderNodeMapping'); abb.inputs['Scale'].default_value = (38.0, 38.0, 3.0)
+    nt.links.new(ko.outputs['Object'], abb.inputs['Vector'])
+    streif = nt.nodes.new('ShaderNodeTexNoise'); streif.inputs['Scale'].default_value = 1.0
+    streif.inputs['Detail'].default_value = 6.0; streif.inputs['Roughness'].default_value = 0.62
+    nt.links.new(abb.outputs['Vector'], streif.inputs['Vector'])
+    gross = nt.nodes.new('ShaderNodeTexNoise'); gross.inputs['Scale'].default_value = 9.0; gross.inputs['Detail'].default_value = 3.0
+    nt.links.new(ko.outputs['Object'], gross.inputs['Vector'])
+    mix1 = nt.nodes.new('ShaderNodeMix'); mix1.data_type = 'RGBA'
+    mix1.inputs['A'].default_value = (0.15, 0.005, 0.009, 1); mix1.inputs['B'].default_value = (0.36, 0.018, 0.02, 1)
+    nt.links.new(streif.outputs['Fac'], mix1.inputs['Factor'])
+    # Sonnenabgewandte Seite heller, gelblich-rot
+    mix2 = nt.nodes.new('ShaderNodeMix'); mix2.data_type = 'RGBA'
+    kurve = nt.nodes.new('ShaderNodeMapRange'); kurve.inputs['From Min'].default_value = 0.55; kurve.inputs['From Max'].default_value = 0.72
+    nt.links.new(gross.outputs['Fac'], kurve.inputs['Value'])
+    nt.links.new(kurve.outputs['Result'], mix2.inputs['Factor'])
+    nt.links.new(mix1.outputs['Result'], mix2.inputs['A']); mix2.inputs['B'].default_value = (0.48, 0.12, 0.025, 1)
+    # Lentizellen
+    vor = nt.nodes.new('ShaderNodeTexVoronoi'); vor.feature = 'F1'; vor.inputs['Scale'].default_value = 260.0
+    nt.links.new(ko.outputs['Object'], vor.inputs['Vector'])
+    pk = nt.nodes.new('ShaderNodeMapRange'); pk.inputs['From Min'].default_value = 0.10; pk.inputs['From Max'].default_value = 0.0
+    nt.links.new(vor.outputs['Distance'], pk.inputs['Value'])
+    mix3 = nt.nodes.new('ShaderNodeMix'); mix3.data_type = 'RGBA'
+    nt.links.new(pk.outputs['Result'], mix3.inputs['Factor']); nt.links.new(mix2.outputs['Result'], mix3.inputs['A'])
+    mix3.inputs['B'].default_value = (0.70, 0.52, 0.30, 1)
+    nt.links.new(mix3.outputs['Result'], b.inputs['Base Color'])
+    rr = nt.nodes.new('ShaderNodeMapRange'); rr.inputs['To Min'].default_value = 0.26; rr.inputs['To Max'].default_value = 0.42
+    nt.links.new(gross.outputs['Fac'], rr.inputs['Value']); nt.links.new(rr.outputs['Result'], b.inputs['Roughness'])
+    b.inputs['Coat Weight'].default_value = 0.35; b.inputs['Coat Roughness'].default_value = 0.18
+    for k, v in (('Subsurface Weight', 0.08), ('Subsurface Scale', 0.004)):
+        if k in b.inputs:
+            b.inputs[k].default_value = v
+    buckel = nt.nodes.new('ShaderNodeBump'); buckel.inputs['Strength'].default_value = 0.06; buckel.inputs['Distance'].default_value = 0.0004
+    nt.links.new(gross.outputs['Fac'], buckel.inputs['Height']); nt.links.new(buckel.outputs['Normal'], b.inputs['Normal'])
+    prof = [(0.0, 0.0062), (0.006, 0.0045), (0.013, 0.0012), (0.021, 0.0004), (0.029, 0.0042), (0.035, 0.0118), (0.0395, 0.0235),
+            (0.0405, 0.0360), (0.0395, 0.0480), (0.0355, 0.0585), (0.0285, 0.0665), (0.0195, 0.0712), (0.0115, 0.0700),
+            (0.0055, 0.0655), (0.0, 0.0612)]
+    a = B.drehkoerper(name, prof, 96, [m])
+    a.scale = (1.035, 0.985, 1.0)
+    a.location = (ort[0], ort[1], TISCH_Z); a.rotation_euler = (math.radians(2.5), math.radians(-3.0), dreh)
+    stiel_m = rausch_rauheit(B.stoff(name + ' Stiel', (0.10, 0.06, 0.03), rau=0.75), 0.75, 0.1, 300)
+    st = B.rohr(name + '_stiel', [(0, 0, 0.060), (0.0006, 0, 0.070), (0.0028, 0.0004, 0.079), (0.0052, 0.0008, 0.085)], 0.0014, [stiel_m])
+    st.location = a.location; st.rotation_euler = a.rotation_euler
+    return a
+
+
+def kapsel(name, ort, dreh, farben=((0.86, 0.84, 0.78), (0.56, 0.36, 0.10))):
+    """Hartkapsel Größe 0 (21,7 x 7,6 mm), zweifarbig, liegend."""
+    teile = []
+    r = 0.0038; hl = 0.0070
+    for i, (f, z0, z1) in enumerate(((farben[0], -hl, 0.0006), (farben[1], -0.0004, hl))):
+        m = B.stoff(f'{name} Gelatine {i}', f, rau=0.22, coat=0.5, coat_rau=0.08)
+        if z0 < 0:          # Körper: Halbkugel unten, dann Zylinder
+            prof = [(0.0, z0 - r)] + [(r * math.sin(math.radians(a)), z0 - r * math.cos(math.radians(a))) for a in range(15, 91, 15)] + [(r, z1), (0.0, z1)]
+        else:               # Kappe, etwas weiter, greift über den Körper
+            prof = [(0.0, z0), (r * 1.02, z0)] + [(r * 1.02 * math.cos(math.radians(a)), z1 + r * math.sin(math.radians(a))) for a in range(0, 76, 15)] + [(0.0, z1 + r)]
+        o = B.drehkoerper(f'{name}_{i}', prof, 40, [m]); teile.append(o)
+    w0 = bpy.data.objects.new(name, None); bpy.context.scene.collection.objects.link(w0)
+    for o in teile:
+        o.parent = w0
+    w0.location = (ort[0], ort[1], TISCH_Z + r); w0.rotation_euler = (math.radians(90), 0, dreh)
+
+
+def dose(name, ort, s=1.0):
+    """Braunglasflasche (Apothekenglas 100 ml) mit weißem Schraubdeckel, ohne
+    Etikett -- keine erfundene Marke auf dem Tisch."""
+    glas = B.stoff(name + ' Braunglas', (0.30, 0.10, 0.015), rau=0.03, trans=1.0, ior=1.52)
+    prof = [(0.0, 0.0), (0.0215, 0.0), (0.0228, 0.0015), (0.0230, 0.070), (0.0215, 0.080), (0.0150, 0.088), (0.0125, 0.091),
+            (0.0125, 0.100), (0.0110, 0.100), (0.0110, 0.092), (0.0135, 0.089), (0.0200, 0.080), (0.0214, 0.070), (0.0214, 0.0030), (0.0, 0.0030)]
+    f = B.drehkoerper(name, prof, 72, [glas]); f.location = (ort[0], ort[1], TISCH_Z); f.scale = (s, s, s)
+    pp = rausch_rauheit(B.stoff(name + ' Deckel', (0.82, 0.81, 0.78), rau=0.45), 0.45, 0.06, 500)
+    d = B.drehkoerper(name + '_deckel', [(0.0, 0.0), (0.0140, 0.0), (0.0142, 0.0165), (0.0132, 0.0180), (0.0, 0.0180)], 96, [pp])
+    d.location = (ort[0], ort[1], TISCH_Z + 0.0905 * s); d.scale = (s, s, s)
+
+
 # ------------------------------------------------------------------ Projekte
 PROJEKTE = {
     # Spedition in Sizilien: Tag, Lieferscheine, Espresso, draußen der Sattelzug
@@ -383,6 +464,9 @@ PROJEKTE = {
     'mensaena': dict(stil='tag', laptop=(0.0, 0.02, -0.05), telefon=(0.285, -0.01, -0.12)),
     # Sachbuchreihe: Arbeitszimmer am Abend, Bücherstapel
     'trendonix': dict(stil='abend', laptop=(0.0, 0.02, 0.03), telefon=(0.285, -0.01, -0.12)),
+    # Recherche über Zusatzstoffe (dreh-es-um.de): Abend, Apfel als Motiv der
+    # Seite, Braunglas mit Kapseln, Notizen -- die Arbeit hinter der Recherche
+    'drehesum': dict(stil='abend', laptop=(0.0, 0.02, 0.04), telefon=(0.285, -0.01, -0.12)),
 }
 
 
@@ -431,6 +515,17 @@ def dinge(proj):
         tasse('tasse', (0.36, 0.22), (0.12, 0.12, 0.13))
         lampe('lampe', (-0.66, 0.44), 2600, 14.0)
         stift('fueller', (-0.18, -0.10), math.radians(25), (0.02, 0.02, 0.02))
+    elif proj == 'drehesum':
+        # Apfel links neben dem Laptop im Bild (Motiv der Seite), dahinter das
+        # Braunglas (250 ml), davor verstreute Kapseln, hinten Notizen
+        apfel('apfel', (-0.215, 0.125), math.radians(30))
+        dose('braunglas', (-0.345, 0.255), 1.25)
+        for i, (dx, dy, dr) in enumerate(((-0.245, 0.045, 20), (-0.228, 0.028, -35), (-0.268, 0.022, 75), (-0.30, 0.16, 5))):
+            kapsel(f'kapsel{i}', (dx, dy), math.radians(dr))
+        papierstapel('notizen', (-0.30, 0.40), math.radians(-14), n=4, farbe=(0.84, 0.83, 0.79))
+        stift('stift', (-0.20, 0.36), math.radians(-52), (0.02, 0.02, 0.022))
+        tasse('tasse', (0.36, 0.22), (0.12, 0.12, 0.13))
+        lampe('lampe', (-0.64, 0.44), 2600, 15.0)
 
 
 # ------------------------------------------------------------------ Kamera

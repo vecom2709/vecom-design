@@ -82,6 +82,33 @@ $plusDaten = [
   </div>
 </div>
 
+<div class="block pt" id="arbeiten-teilen" data-reiter="werben">
+  <h2><?= $h($PP('bw_titel')) ?></h2>
+  <p class="klein" style="margin-top:0"><?= $h($PP('bw_text')) ?></p>
+  <ul class="pp-bw">
+    <?php foreach (PartnerSeite::ARBEITEN_STANDARD as $bwA): $bwT = Texte::PARTNER_SEITE['arbeiten'][$bwA]; $bwU = (string) PartnerSeite::arbeitUrl($bwA); ?>
+      <li><a href="<?= $h($bwU) ?>" target="_blank" rel="noopener"><img src="/assets/img/arbeiten/<?= $h($bwA) ?>/an.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+        <b><?= $h($bwT['name']) ?></b><small><?= $h(preg_replace('~^www\.~', '', (string) parse_url($bwU, PHP_URL_HOST))) ?></small></a></li>
+    <?php endforeach; ?>
+  </ul>
+  <p class="md-l"><?= $h($PP('bw_sprache')) ?></p>
+  <div class="chips" role="group" aria-label="<?= $h($PP('bw_sprache')) ?>">
+    <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $bl => $bn): ?>
+      <button type="button" data-bw-sprache="<?= $bl ?>" aria-pressed="<?= $bl === 'it' ? 'true' : 'false' ?>"><?= $bn ?></button>
+    <?php endforeach; ?>
+  </div>
+  <?php foreach (['it', 'de', 'en'] as $bl): $bwB = PartnerMarketing::arbeitenBeitrag($p, $bl); ?>
+    <div data-bw-feld="<?= $bl ?>"<?= $bl === 'it' ? '' : ' hidden' ?>>
+      <textarea id="bw_<?= $bl ?>" readonly rows="10" lang="<?= $bl ?>"><?= $h($bwB) ?></textarea>
+      <div class="knoepfe">
+        <a class="knopf haupt" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($bwB) ?>">WhatsApp</a>
+        <button class="knopf" type="button" data-kopie="bw_<?= $bl ?>"><?= $h($PP('ak_kopieren')) ?></button>
+        <button class="knopf" type="button" data-teilen-text="<?= $h($bwB) ?>" hidden><?= $h($T('teilen_mehr')) ?></button>
+      </div>
+    </div>
+  <?php endforeach; ?>
+</div>
+
 <?php if ($stListe): ?>
 <div class="block pt" id="stimmen-teilen" data-reiter="werben">
   <h2><?= $h($PP('st_titel')) ?></h2>

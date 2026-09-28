@@ -115,7 +115,8 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
 
     <p class="gs-h"><?= $h($W($PS['g_arbeiten'])) ?></p>
     <?php foreach (PartnerSeite::ARBEITEN as $ak): $ar = $PS['arbeiten'][$ak]; ?>
-      <label class="gs-haken"><input type="checkbox" name="arbeiten[<?= $h($ak) ?>]" value="1" <?= in_array($ak, $gs['arbeiten'], true) ? 'checked' : '' ?>> <span><b><?= $h($ar['name']) ?></b> <span style="color:var(--leise)">· <?= $h(Texte::h($ar, $sprache)) ?></span></span></label>
+      <label class="gs-haken"><input type="checkbox" name="arbeiten[<?= $h($ak) ?>]" value="1" <?= in_array($ak, $gs['arbeiten'], true) ? 'checked' : '' ?>> <span><b><?= $h($ar['name']) ?></b> <span style="color:var(--leise)">· <?= $h(Texte::h($ar, $sprache)) ?></span>
+        <?php $arUrl = PartnerSeite::arbeitUrl($ak); if ($arUrl): ?><a href="<?= $h($arUrl) ?>" target="_blank" rel="noopener" style="color:var(--leise);text-decoration:underline"><?= $h(preg_replace('~^www\.~', '', (string) parse_url($arUrl, PHP_URL_HOST))) ?></a><?php endif; ?></span></label>
     <?php endforeach; ?>
     <label for="gs_wa"><?= $h($W($PS['g_wa'])) ?></label>
     <input id="gs_wa" type="text" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20" value="<?= $h($gs['whatsapp']) ?>" placeholder="+39 …">
