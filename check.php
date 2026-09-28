@@ -18,13 +18,20 @@ header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src '
 $token = (string) ($_GET['t'] ?? '');
 $z = null; $p = null; $sprache = 'it';
 if (preg_match('~^[a-f0-9]{32}$~', $token) && is_file(__DIR__ . '/app/config.local.php')) {
-    foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerCheck'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+    foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerCheck', 'PartnerMarketing', 'PartnerSeite'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
     date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
     try {
         $z = Db::one('SELECT * FROM partner_checks WHERE token = ?', [$token]) ?: null;
         if ($z) {
-            Db::run('UPDATE partner_checks SET aufrufe = aufrufe + 1 WHERE id = ?', [(int) $z['id']]);
             $p = Db::one("SELECT * FROM partner WHERE id = ? AND status = 'aktiv'", [(int) $z['partner_id']]) ?: null;
+            /* Heißer Kontakt (28.09.2026): Zählt nur, wenn ein Mensch den Bericht
+               öffnet, der nicht der Partner selbst ist (Keks aus seinem
+               Partnerbereich) -- dann Hinweis aufs Handy des Partners.
+               Vorschau-Abrufe von WhatsApp & Co. sind Programme und zählen nicht. */
+            $selbstKeks = strtoupper((string) ($_COOKIE[Partner::KEKS_SELBST] ?? ''));
+            if (!Partner::istRoboter((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')) && !($p && $selbstKeks === strtoupper((string) $p['code']))) {
+                try { PartnerMarketing::checkAufruf($z); } catch (Throwable $e) { error_log('check heiss: ' . $e->getMessage()); }
+            }
             // Sprache: ausdrücklich gewählt, sonst die des Partners (er schreibt seinen Bekannten in seiner Sprache).
             $sprache = isset($_GET['lang']) ? Sprache::ausAnfrage() : (in_array((string) ($p['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $p['sprache'] : Sprache::ausAnfrage());
         }
@@ -81,6 +88,11 @@ $foto = $p ? PartnerWerbung::fotoAdresse($p) : null;
   .wl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;font-size:14.5px}
   .wl a{display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;border:1px solid var(--li);border-radius:10px;color:var(--t);text-decoration:none}
   .wl a:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+  .stimme{margin:16px 0 0;border:1px solid var(--li);border-radius:14px;padding:14px 16px;background:var(--f)}
+  .stimme .st-kopf{font-size:12.5px;color:var(--l);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+  .stimme .sterne{color:var(--a);letter-spacing:2px}
+  .stimme blockquote{margin:6px 0;font-size:15.5px;line-height:1.6}
+  .stimme figcaption{color:var(--d);font-size:13.5px}
 </style>
 </head>
 <body>
@@ -103,6 +115,14 @@ $foto = $p ? PartnerWerbung::fotoAdresse($p) : null;
     <p><?= $h($C('empf_text')) ?></p>
     <a class="knopf" href="<?= $h($ziel) ?>"><?= $h($C('knopf')) ?> →</a>
   </div>
+  <?php /* Eine echte Kundenstimme unter der Empfehlung (28.09.2026, Uwe: Ja zu Kundenstimmen). */
+        $stimme = $p ? (PartnerSeite::stimmen($p, $sprache, 1)[0] ?? null) : null; if ($stimme): ?>
+  <figure class="stimme"><figcaption class="st-kopf"><?= $h(Texte::h(Texte::PARTNER_PLUS['st_check'], $sprache)) ?></figcaption>
+    <?php if ($stimme['sterne']): ?><div class="sterne" aria-label="<?= (int) $stimme['sterne'] ?>/5"><?= str_repeat('★', (int) $stimme['sterne']) ?></div><?php endif; ?>
+    <blockquote>„<?= $h($stimme['text']) ?>“</blockquote>
+    <figcaption>— <?= $h($stimme['name']) ?><?= $stimme['firma'] !== '' ? ', ' . $h($stimme['firma']) : '' ?><?= $stimme['ort'] !== '' ? ' · ' . $h($stimme['ort']) : '' ?></figcaption>
+  </figure>
+  <?php endif; ?>
   <?php /* Weiterleiten ohne Skript (CSP default-src 'none'): nur Links. */
         $wlBericht = PartnerCheck::link((string) $z['token']); $wlT = strtr($C('wl_nachricht'), ['{host}' => (string) $z['host']]) . $wlBericht; ?>
   <div class="wl"><b><?= $h($C('wl_titel')) ?></b>

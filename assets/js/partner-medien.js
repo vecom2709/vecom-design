@@ -378,5 +378,118 @@
     }
     kNeu();
   }
-  window.__vecomMedien = { zeichne: zeichne, bild: bild, FORMATE: FORMATE, bereit: alles, zeichneKachel: zeichneKachel };
+
+  /* ---------- Gutschein, Kundenstimme, Meilenstein (28.09.2026) ----------
+     Dieselben Bausteine wie die Bilder oben; Daten aus #plus_daten
+     (partner_plus_werben.php). Alles im Browser -- nichts geht zu uns. */
+  var plusEl = document.getElementById('plus_daten');
+  var P = plusEl ? JSON.parse(plusEl.textContent) : null;
+  function datei(canvas, name) {
+    return new Promise(function (ok) { canvas.toBlob(function (bl) { ok(new File([bl], name, { type: 'image/png' })); }, 'image/png'); });
+  }
+  function ausgeben(canvas, name) {
+    return datei(canvas, name).then(function (d) {
+      if (teilenMoeglich(d)) { return navigator.share({ files: [d], text: D.kurz }).catch(function () { laden(d, d.name); }); }
+      laden(d, d.name);
+    });
+  }
+  function karteGrund(x, b, h) {
+    grund(x, b, h, 0.3);
+    x.strokeStyle = gold(x, 0, b); x.lineWidth = 6; rund(x, 36, 36, b - 72, h - 72, 34); x.stroke();
+  }
+
+  function zeichneGutschein(canvas, sprache, firma) {
+    var G = P.gutschein, T = G.texte[sprache] || G.texte.it, b = 1080, h = 1350, x = canvas.getContext('2d');
+    canvas.width = b; canvas.height = h;
+    karteGrund(x, b, h);
+    marke(x, b / 2, 96, 66, true);
+    x.textAlign = 'center';
+    x.font = '800 118px Archivo, sans-serif'; var kb = x.measureText(T.kopf).width;
+    x.fillStyle = gold(x, b / 2 - kb / 2, b / 2 + kb / 2); x.fillText(T.kopf, b / 2, 330);
+    x.fillStyle = FARBE.text;
+    var fuer = T.fuer.replace('{firma}', firma || T.betrieb);
+    var f1 = passend(x, fuer, 900, 54, 34, 2, '600', 'Inter, sans-serif'); var y = schreibe(x, f1, b / 2, 410, f1.groesse * 1.2);
+    x.fillStyle = FARBE.text;
+    var t1 = passend(x, T.titel, 880, 78, 52, 3, '800', 'Archivo, sans-serif'); y = schreibe(x, t1, b / 2, y + 70, t1.groesse * 1.1);
+    x.fillStyle = FARBE.leise; x.font = '400 36px Inter, sans-serif'; y = schreibe(x, { zeilen: zeilen(x, T.unter, 860) }, b / 2, y + 26, 48);
+    /* QR, Scan-Hinweis und Absender stehen fest im unteren Drittel -- sie dürfen nie zusammenrutschen. */
+    var qy = Math.max(y + 36, 800), qg = Math.max(200, Math.min(290, 1150 - qy));
+    qrFeld(x, G.link, (b - qg) / 2, qy, qg);
+    x.textAlign = 'center'; x.font = '700 38px Inter, sans-serif'; var sb = x.measureText(T.scan).width;
+    x.fillStyle = gold(x, b / 2 - sb / 2, b / 2 + sb / 2); x.fillText(T.scan, b / 2, qy + qg + 58);
+    x.fillStyle = FARBE.text; x.font = '600 34px Inter, sans-serif'; x.fillText(T.von.replace('{name}', G.name), b / 2, h - 84);
+  }
+  var gsV = document.getElementById('gs_vorschau');
+  if (P && gsV) {
+    var gsSprache = 'it', gsFirma = document.getElementById('gs_firma'), gsText = document.getElementById('gs_text'), gsWa = document.getElementById('gs_wa');
+    var gsNeu = function () {
+      var T = P.gutschein.texte[gsSprache] || P.gutschein.texte.it, f = gsFirma.value.trim();
+      alles.then(function () { zeichneGutschein(gsV, gsSprache, f); });
+      var t = T.begleit.replace('{firma}', f || T.betrieb).replace('{link}', P.gutschein.link);
+      gsText.value = t; gsWa.href = gsWa.getAttribute('data-basis') + encodeURIComponent(t);   // Adresse steht im HTML: dieses Skript kennt keine fremde
+    };
+    [].forEach.call(document.querySelectorAll('[data-gs-sprache]'), function (k) {
+      k.addEventListener('click', function () {
+        gsSprache = k.getAttribute('data-gs-sprache');
+        [].forEach.call(document.querySelectorAll('[data-gs-sprache]'), function (a) { a.setAttribute('aria-pressed', a === k ? 'true' : 'false'); });
+        gsNeu();
+      });
+    });
+    gsFirma.addEventListener('input', gsNeu);
+    var gsName = function () { return 'vecom-gutschein-' + (gsFirma.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || D.code.toLowerCase()) + '.png'; };
+    document.getElementById('gs_laden').addEventListener('click', function () { alles.then(function () { return datei(gsV, gsName()); }).then(function (d) { laden(d, d.name); }); });
+    var gsT = document.getElementById('gs_teilen');
+    if (teilenMoeglich(new File([new Blob(['x'], { type: 'image/png' })], 'probe.png', { type: 'image/png' }))) { gsT.hidden = false; }
+    gsT.addEventListener('click', function () { datei(gsV, gsName()).then(function (d) { return navigator.share({ files: [d], text: gsText.value }); }).catch(function () {}); });
+    gsNeu();
+  }
+
+  function zeichneStimme(canvas, s) {
+    var b = 1080, h = 1080, x = canvas.getContext('2d'), rand = 90;
+    canvas.width = b; canvas.height = h;
+    karteGrund(x, b, h);
+    marke(x, rand, rand, 56, false);
+    x.textAlign = 'left';
+    if (s.sterne) { x.font = '700 52px Inter, sans-serif'; x.fillStyle = gold(x, rand, rand + 320); x.fillText(new Array(s.sterne + 1).join('★'), rand, 270); }
+    x.fillStyle = gold(x, rand, rand + 120); x.font = '800 180px Archivo, sans-serif'; x.fillText('“', rand - 10, 420);
+    x.fillStyle = FARBE.text;
+    var t = passend(x, s.text, b - 2 * rand, 60, 34, 6, '700', 'Archivo, sans-serif'); var y = schreibe(x, t, rand, 430, t.groesse * 1.22);
+    x.fillStyle = FARBE.leise; x.font = '600 34px Inter, sans-serif'; schreibe(x, { zeilen: zeilen(x, '— ' + s.wer, b - 2 * rand - 280) }, rand, Math.min(y + 50, h - 250), 44);
+    var qg = 220; qrFeld(x, P.stimme_link, b - rand - qg, h - rand - qg - 30, qg);
+    empfehlung(x, rand, h - rand - 20, 30, false, FARBE.leise);
+  }
+  var stV = document.getElementById('st_vorschau');
+  if (P && stV) {
+    document.addEventListener('click', function (e) {
+      var k = e.target.closest('[data-stimme-bild]'); if (!k) { return; }
+      var s = P.stimmen[parseInt(k.getAttribute('data-stimme-bild'), 10)]; if (!s) { return; }
+      alles.then(function () { zeichneStimme(stV, s); return ausgeben(stV, 'vecom-kundenstimme-' + D.code.toLowerCase() + '.png'); });
+    });
+  }
+
+  function zeichneMeilenstein(canvas, schluessel) {
+    var b = 1080, h = 1080, x = canvas.getContext('2d'), titel = P.meilensteine[schluessel] || '';
+    canvas.width = b; canvas.height = h;
+    karteGrund(x, b, h);
+    marke(x, b / 2, 110, 60, true);
+    x.textAlign = 'center';
+    x.strokeStyle = gold(x, b / 2 - 150, b / 2 + 150); x.lineWidth = 10; x.beginPath(); x.arc(b / 2, 360, 120, 0, Math.PI * 2); x.stroke();
+    x.fillStyle = gold(x, b / 2 - 60, b / 2 + 60); x.beginPath();
+    for (var i = 0; i < 10; i++) { var w = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 34 : 78; x.lineTo(b / 2 + Math.cos(w) * r, 360 + Math.sin(w) * r); }
+    x.closePath(); x.fill();
+    x.fillStyle = FARBE.leise; x.font = '600 38px Inter, sans-serif'; x.fillText(P.ms_karte.toUpperCase(), b / 2, 560);
+    x.fillStyle = FARBE.text; var t = passend(x, titel, 900, 96, 60, 2, '800', 'Archivo, sans-serif'); var y = schreibe(x, t, b / 2, 660, t.groesse * 1.1);
+    x.fillStyle = FARBE.leise; x.font = '400 32px Inter, sans-serif'; schreibe(x, { zeilen: zeilen(x, P.ms_unter, 700) }, b / 2, y + 16, 44);
+    var qg = 170; qrFeld(x, P.ms_link, b - 90 - qg, h - 90 - qg, qg);
+    empfehlung(x, 90, h - 120, 30, false, FARBE.leise);
+  }
+  var msV = document.getElementById('ms_vorschau');
+  if (P && msV) {
+    document.addEventListener('click', function (e) {
+      var k = e.target.closest('[data-meilenstein]'); if (!k) { return; }
+      var m = k.getAttribute('data-meilenstein');
+      alles.then(function () { zeichneMeilenstein(msV, m); return ausgeben(msV, 'vecom-meilenstein-' + m + '.png'); });
+    });
+  }
+  window.__vecomMedien = { zeichne: zeichne, bild: bild, FORMATE: FORMATE, bereit: alles, zeichneKachel: zeichneKachel, zeichneGutschein: zeichneGutschein, zeichneStimme: zeichneStimme, zeichneMeilenstein: zeichneMeilenstein };
 })();

@@ -3530,6 +3530,9 @@ final class Texte
             'laden' => ['name' => ['it' => 'Negozi & beauty', 'de' => 'Laden & Beauty', 'en' => 'Shops & beauty'],
                 'titel' => ['it' => 'Il tuo negozio, visibile anche online.', 'de' => 'Dein Laden, jetzt auch online sichtbar.', 'en' => 'Your shop, visible online too.'],
                 'unter' => ['it' => 'Per negozi, parrucchieri ed estetiste.', 'de' => 'Für Geschäfte, Friseure und Kosmetik.', 'en' => 'For shops, hairdressers and beauty salons.']],
+            'praxis' => ['name' => ['it' => 'Studi & professionisti', 'de' => 'Praxen & Studios', 'en' => 'Practices & studios'],
+                'titel' => ['it' => 'Fiducia prima del primo incontro.', 'de' => 'Vertrauen vor dem ersten Termin.', 'en' => 'Trust before the first appointment.'],
+                'unter' => ['it' => 'Per studi, ambulatori, palestre e professionisti.', 'de' => 'Für Praxen, Studios und Selbstständige.', 'en' => 'For practices, studios and professionals.']],
         ],
         'punkte' => [
             ['it' => 'Dici cosa ti serve.', 'de' => 'Du sagst, was du brauchst.', 'en' => 'You say what you need.'],
@@ -3937,6 +3940,204 @@ final class Texte
     ];
 
     /** Marketing im Partner-Dashboard (27.09.2026, Uwe: Ja zu Posting-Kalender, Mappe, Stufen & Monatswettbewerb, Erfolge als Kacheln). */
+    /**
+     * Marketing-Ausbau der Partnerseite (28.09.2026, Uwe: Ja zu Heißer
+     * Kontakt, Nachfass-Erinnerung, Meine Kontakte, Gutschein, Zentrale
+     * Aktion, Branchen-Pakete, Kundenstimmen, Mini-Kurs, Meilensteine).
+     * Oberfläche in der Anrede des Partnerbereichs (Sie); Texte an Betriebe
+     * wie die Anschreiben (it: Lei/voi, de: Sie); Texte an eigene Kontakte
+     * (Freunde, Bekannte) per du.
+     */
+    public const PARTNER_PLUS = [
+        // Heißer Kontakt
+        'hk_titel'   => ['it' => 'Contatti caldi', 'de' => 'Heiße Kontakte', 'en' => 'Hot contacts'],
+        'hk_text'    => ['it' => 'Queste attività hanno aperto la verifica che ha mandato loro. È il momento giusto per chiamare o scrivere due righe.', 'de' => 'Diese Betriebe haben den Schnellcheck geöffnet, den Sie ihnen geschickt haben. Jetzt ist der richtige Moment für einen Anruf oder zwei Zeilen.', 'en' => 'These businesses opened the quick check you sent them. Now is the right moment to call or write a line.'],
+        'hk_vor'     => ['it' => 'aperto {zeit} fa', 'de' => 'vor {zeit} geöffnet', 'en' => 'opened {zeit} ago'],
+        'hk_min'     => ['it' => '{n} min', 'de' => '{n} Min.', 'en' => '{n} min'],
+        'hk_std'     => ['it' => '{n} ore', 'de' => '{n} Std.', 'en' => '{n} h'],
+        'hk_push_t'  => ['it' => '{host} sta guardando la sua verifica', 'de' => '{host} sieht sich gerade Ihren Schnellcheck an', 'en' => '{host} is looking at your quick check'],
+        'hk_push_x'  => ['it' => 'Ora è il momento giusto per una chiamata o un messaggio.', 'de' => 'Jetzt ist ein guter Moment für einen Anruf oder eine kurze Nachricht.', 'en' => 'Now is a good moment for a call or a short message.'],
+        // Nachfassen
+        'nf_titel'   => ['it' => 'Da ricontattare', 'de' => 'Nachhaken', 'en' => 'Follow up'],
+        'nf_text'    => ['it' => 'Chi non risponde subito spesso ha solo dimenticato. Un messaggio breve dopo qualche giorno porta più clienti di qualsiasi post.', 'de' => 'Wer nicht gleich antwortet, hat es oft nur vergessen. Eine kurze Nachricht nach ein paar Tagen bringt mehr Kunden als jeder Beitrag.', 'en' => 'People who don’t reply right away have often just forgotten. A short message after a few days brings more customers than any post.'],
+        'nf_check'   => ['it' => 'Verifica inviata {tage} giorni fa', 'de' => 'Schnellcheck vor {tage} Tagen geschickt', 'en' => 'Quick check sent {tage} days ago'],
+        'nf_firma'   => ['it' => 'Scritto {tage} giorni fa', 'de' => 'Vor {tage} Tagen angeschrieben', 'en' => 'Contacted {tage} days ago'],
+        'nf_gesehen' => ['it' => 'aperta {n}×', 'de' => '{n}× geöffnet', 'en' => 'opened {n}×'],
+        'nf_ok'      => ['it' => 'Fatto', 'de' => 'Erledigt', 'en' => 'Done'],
+        'nf_wa'      => ['it' => 'Scrivi su WhatsApp', 'de' => 'Per WhatsApp schreiben', 'en' => 'Write on WhatsApp'],
+        'nf_push_t'  => ['it' => 'Da ricontattare: {n}', 'de' => 'Zum Nachhaken: {n}', 'en' => 'To follow up: {n}'],
+        'nf_push_x'  => ['it' => 'Un messaggio breve adesso: il testo è pronto nella sua pagina.', 'de' => 'Jetzt kurz nachhaken — der Text liegt fertig auf Ihrer Seite.', 'en' => 'A short follow-up now — the text is ready on your page.'],
+        'nf_msg_check' => [
+            'it' => "Buongiorno, sono {name}. Qualche giorno fa le ho mandato la verifica gratuita del sito {host}: {check}\n\nHa avuto modo di guardarla? Se vuole le mostro in due minuti cosa si può migliorare subito, senza impegno: {link}",
+            'de' => "Guten Tag, hier ist {name}. Vor ein paar Tagen habe ich Ihnen den kostenlosen Check der Website {host} geschickt: {check}\n\nKonnten Sie schon reinschauen? Wenn Sie mögen, zeige ich Ihnen in zwei Minuten, was sich schnell verbessern lässt, unverbindlich: {link}",
+            'en' => "Hello, this is {name}. A few days ago I sent you the free check of the website {host}: {check}\n\nHave you had a chance to look? If you like, I can show you in two minutes what could be improved quickly, no obligation: {link}"],
+        'nf_msg_firma' => [
+            'it' => "Buongiorno, sono di nuovo {name}. Le avevo scritto qualche giorno fa per {firma}: ha avuto modo di dare un’occhiata? Qui c’è tutto, senza impegno: {link}\n\nSe preferisce, la chiamo io due minuti quando le va bene.",
+            'de' => "Guten Tag, hier noch einmal {name}. Ich hatte Ihnen vor ein paar Tagen wegen {firma} geschrieben — konnten Sie schon einen Blick darauf werfen? Hier ist alles, unverbindlich: {link}\n\nWenn es Ihnen lieber ist, rufe ich kurz an, wann es Ihnen passt.",
+            'en' => "Hello, it’s {name} again. I wrote to you a few days ago about {firma} — have you had a chance to take a look? Everything is here, no obligation: {link}\n\nIf you prefer, I can give you a quick call whenever suits you."],
+        // Zentrale Aktion
+        'ak_titel'   => ['it' => 'Promozione in corso', 'de' => 'Aktuelle Aktion', 'en' => 'Current promotion'],
+        'ak_rest'    => ['it' => 'Ancora {n} giorni (fino al {datum})', 'de' => 'Noch {n} Tage (bis {datum})', 'en' => '{n} days left (until {datum})'],
+        'ak_rest1'   => ['it' => 'Ultimo giorno!', 'de' => 'Letzter Tag!', 'en' => 'Last day!'],
+        'ak_beitrag' => ['it' => 'Post pronto per la promozione', 'de' => 'Fertiger Beitrag zur Aktion', 'en' => 'Ready-made post for the promotion'],
+        'ak_kopieren'=> ['it' => 'Copia', 'de' => 'Kopieren', 'en' => 'Copy'],
+        // Branchen-Pakete
+        'br_titel'   => ['it' => 'Pacchetti per settore', 'de' => 'Branchen-Pakete', 'en' => 'Industry packs'],
+        'br_text'    => ['it' => 'Scelga il settore: argomenti, messaggio e post sono pronti. Il link porta sempre alla sua pagina.', 'de' => 'Branche wählen: Argumente, Nachricht und Beitrag liegen fertig bereit. Der Link führt immer auf Ihre Seite.', 'en' => 'Choose the industry: arguments, message and post are ready. The link always leads to your page.'],
+        'br_warum'   => ['it' => 'Perché serve a loro', 'de' => 'Warum sie das brauchen', 'en' => 'Why they need it'],
+        'br_args'    => ['it' => 'Tre argomenti', 'de' => 'Drei Argumente', 'en' => 'Three arguments'],
+        'br_satz'    => ['it' => 'Per iniziare a voce', 'de' => 'Zum Einstieg im Gespräch', 'en' => 'Opening line in person'],
+        'br_wa'      => ['it' => 'Messaggio a un’attività', 'de' => 'Nachricht an einen Betrieb', 'en' => 'Message to a business'],
+        'br_post'    => ['it' => 'Post per i social', 'de' => 'Beitrag für soziale Netze', 'en' => 'Social media post'],
+        'br_bild'    => ['it' => 'Immagine per questo settore', 'de' => 'Bild für diese Branche', 'en' => 'Image for this industry'],
+        // Gutschein
+        'gs_titel'   => ['it' => 'Buono da regalare', 'de' => 'Gutschein zum Verschenken', 'en' => 'Gift voucher'],
+        'gs_text'    => ['it' => 'Un buono personale per un’attività precisa: verifica del sito e consulenza gratuite. Arriva come un regalo, non come pubblicità.', 'de' => 'Ein persönlicher Gutschein für einen bestimmten Betrieb: Website-Check und Beratung gratis. Kommt an wie ein Geschenk, nicht wie Werbung.', 'en' => 'A personal voucher for a specific business: free website check and consultation. It lands like a gift, not like an ad.'],
+        'gs_fuer'    => ['it' => 'Per quale attività? (facoltativo)', 'de' => 'Für welchen Betrieb? (freiwillig)', 'en' => 'For which business? (optional)'],
+        'gs_sprache' => ['it' => 'Lingua del buono', 'de' => 'Sprache des Gutscheins', 'en' => 'Voucher language'],
+        'gs_laden'   => ['it' => 'Scarica il buono', 'de' => 'Gutschein herunterladen', 'en' => 'Download voucher'],
+        'gs_teilen'  => ['it' => 'Condividi il buono', 'de' => 'Gutschein teilen', 'en' => 'Share voucher'],
+        'gs_begleit' => ['it' => 'Testo da mandare insieme', 'de' => 'Text zum Mitschicken', 'en' => 'Text to send along'],
+        'gs_karte' => [
+            'kopf'   => ['it' => 'BUONO', 'de' => 'GUTSCHEIN', 'en' => 'VOUCHER'],
+            'fuer'   => ['it' => 'per {firma}', 'de' => 'für {firma}', 'en' => 'for {firma}'],
+            'titel'  => ['it' => 'Verifica del sito e consulenza gratuite', 'de' => 'Website-Check und Beratung gratis', 'en' => 'Free website check and consultation'],
+            'unter'  => ['it' => 'Senza impegno. Il prezzo di ogni proposta lo conosce prima.', 'de' => 'Unverbindlich. Den Preis jedes Vorschlags kennen Sie vorher.', 'en' => 'No obligation. You know the price of every proposal upfront.'],
+            'von'    => ['it' => 'Un regalo di {name}', 'de' => 'Ein Geschenk von {name}', 'en' => 'A gift from {name}'],
+            'scan'   => ['it' => 'Inquadra per riscattare', 'de' => 'Scannen und einlösen', 'en' => 'Scan to redeem'],
+            'begleit'=> ['it' => "Buongiorno! Ho un piccolo regalo per {firma}: una verifica del sito e una consulenza gratuite con Vecom Design. Basta inquadrare il codice o aprire il link: {link}", 'de' => "Guten Tag! Ich habe ein kleines Geschenk für {firma}: einen kostenlosen Website-Check mit Beratung bei Vecom Design. Einfach den Code scannen oder den Link öffnen: {link}", 'en' => "Hello! I have a small gift for {firma}: a free website check and consultation with Vecom Design. Just scan the code or open the link: {link}"],
+            'betrieb'=> ['it' => 'la sua attività', 'de' => 'Ihren Betrieb', 'en' => 'your business'],
+        ],
+        // Kundenstimmen
+        'st_titel'   => ['it' => 'Parlano i clienti', 'de' => 'Kundenstimmen zum Teilen', 'en' => 'Customer voices to share'],
+        'st_text'    => ['it' => 'Recensioni vere di clienti Vecom che hanno dato il permesso. Una frase di un cliente convince più di dieci post.', 'de' => 'Echte Bewertungen von Vecom-Kunden, die zugestimmt haben. Ein Satz eines Kunden überzeugt mehr als zehn Beiträge.', 'en' => 'Real reviews from Vecom customers who gave permission. One sentence from a customer convinces more than ten posts.'],
+        'st_beitrag' => ['it' => "«{text}»\n— {wer}\n\nConsiglio Vecom Design anch’io: {link}", 'de' => "„{text}“\n— {wer}\n\nIch kann Vecom Design auch empfehlen: {link}", 'en' => "“{text}”\n— {wer}\n\nI recommend Vecom Design too: {link}"],
+        'st_bild'    => ['it' => 'Immagine con la recensione', 'de' => 'Bild mit dieser Stimme', 'en' => 'Image with this review'],
+        'st_check'   => ['it' => 'Cosa dicono i clienti', 'de' => 'Was Kunden sagen', 'en' => 'What customers say'],
+        // Mini-Kurs
+        'ku_titel'   => ['it' => 'Il suo primo cliente in 7 giorni', 'de' => 'Ihr erster Kunde in 7 Tagen', 'en' => 'Your first customer in 7 days'],
+        'ku_text'    => ['it' => 'Ogni giorno un piccolo compito da 5 minuti. Si sblocca un giorno alla volta.', 'de' => 'Jeden Tag eine kleine Aufgabe von 5 Minuten. Jeden Tag wird eine freigeschaltet.', 'en' => 'Every day a small 5-minute task. One unlocks each day.'],
+        'ku_tag'     => ['it' => 'Giorno {n}', 'de' => 'Tag {n}', 'en' => 'Day {n}'],
+        'ku_stand'   => ['it' => '{n} di 7 fatti', 'de' => '{n} von 7 erledigt', 'en' => '{n} of 7 done'],
+        'ku_morgen'  => ['it' => 'Domani', 'de' => 'Morgen', 'en' => 'Tomorrow'],
+        'ku_gesperrt'=> ['it' => 'Si sblocca il giorno {n}', 'de' => 'Wird an Tag {n} freigeschaltet', 'en' => 'Unlocks on day {n}'],
+        'ku_los'     => ['it' => 'Vai', 'de' => 'Los', 'en' => 'Go'],
+        'ku_ok'      => ['it' => 'Fatto', 'de' => 'Erledigt', 'en' => 'Done'],
+        'ku_fertig'  => ['it' => 'Corso completato — complimenti! Ora vale una cosa sola: restare costanti.', 'de' => 'Kurs geschafft — Glückwunsch! Jetzt zählt nur noch eins: dranbleiben.', 'en' => 'Course completed — congratulations! Now only one thing counts: keep going.'],
+        'ku_push'    => ['it' => 'Giorno {n} di 7: {titel}', 'de' => 'Tag {n} von 7: {titel}', 'en' => 'Day {n} of 7: {titel}'],
+        'ku_push_x'  => ['it' => '5 minuti oggi — il compito è pronto nella sua pagina.', 'de' => 'Heute 5 Minuten — die Aufgabe liegt auf Ihrer Seite bereit.', 'en' => '5 minutes today — the task is waiting on your page.'],
+        'kurs' => [
+            1 => ['titel' => ['it' => 'Foto e una frase personale', 'de' => 'Foto und ein persönlicher Satz', 'en' => 'Photo and a personal sentence'],
+                  'text'  => ['it' => 'La gente si fida delle persone, non dei loghi. Una foto e una frase su perché consiglia Vecom rendono ogni suo link più credibile.', 'de' => 'Menschen vertrauen Menschen, nicht Logos. Ein Foto und ein Satz, warum Sie Vecom empfehlen, machen jeden Ihrer Links glaubwürdiger.', 'en' => 'People trust people, not logos. A photo and a sentence about why you recommend Vecom make every link of yours more credible.']],
+            2 => ['titel' => ['it' => 'Personalizzi la sua pagina', 'de' => 'Ihre Empfehlungsseite gestalten', 'en' => 'Design your recommendation page'],
+                  'text'  => ['it' => 'Colore, immagine, due righe con parole sue. Chi apre il suo link deve sentire lei, non una pubblicità.', 'de' => 'Farbe, Bild, zwei Zeilen in Ihren Worten. Wer Ihren Link öffnet, soll Sie spüren, nicht eine Werbung.', 'en' => 'Colour, image, two lines in your own words. Whoever opens your link should feel you, not an ad.']],
+            3 => ['titel' => ['it' => 'Il primo post', 'de' => 'Der erste Beitrag', 'en' => 'The first post'],
+                  'text'  => ['it' => 'Scelga un testo pronto e lo pubblichi nello stato di WhatsApp o in una storia. Basta una volta per iniziare.', 'de' => 'Nehmen Sie eine fertige Vorlage und stellen Sie sie in Ihren WhatsApp-Status oder eine Story. Einmal reicht für den Anfang.', 'en' => 'Pick a ready-made text and put it in your WhatsApp status or a story. Once is enough to start.']],
+            4 => ['titel' => ['it' => 'Cinque persone da contattare', 'de' => 'Fünf Leute notieren', 'en' => 'Note down five people'],
+                  'text'  => ['it' => 'Pensi a cinque persone con un’attività: parenti, amici, il suo parrucchiere. Le annoti in «I miei contatti».', 'de' => 'Denken Sie an fünf Leute mit einem Betrieb: Familie, Freunde, Ihr Friseur. Notieren Sie sie unter „Meine Kontakte“.', 'en' => 'Think of five people with a business: family, friends, your hairdresser. Note them down under “My contacts”.']],
+            5 => ['titel' => ['it' => 'Una verifica veloce', 'de' => 'Ein Schnellcheck', 'en' => 'One quick check'],
+                  'text'  => ['it' => 'Inserisca il sito di un’attività che conosce: in un minuto ha un rapporto da mandare. È il modo più facile per iniziare una conversazione.', 'de' => 'Geben Sie die Website eines Betriebs ein, den Sie kennen: In einer Minute haben Sie einen Bericht zum Schicken. Der leichteste Gesprächseinstieg.', 'en' => 'Enter the website of a business you know: in a minute you have a report to send. The easiest way to start a conversation.']],
+            6 => ['titel' => ['it' => 'Un’attività nella sua zona', 'de' => 'Ein Betrieb in Ihrer Nähe', 'en' => 'A business near you'],
+                  'text'  => ['it' => 'Cerchi nel trova-attività un’azienda della sua città e la prenoti: per 60 giorni è solo sua.', 'de' => 'Suchen Sie im Firmen-Finder einen Betrieb in Ihrem Ort und reservieren Sie ihn: 60 Tage gehört er Ihnen.', 'en' => 'Search the business finder for a company in your town and reserve it: it’s yours for 60 days.']],
+            7 => ['titel' => ['it' => 'Ricontattare', 'de' => 'Nachhaken', 'en' => 'Follow up'],
+                  'text'  => ['it' => 'Scriva di nuovo a chi non ha ancora risposto. Il testo è pronto in «Da ricontattare». Qui nascono i primi clienti.', 'de' => 'Schreiben Sie allen noch einmal, die noch nicht geantwortet haben. Der Text liegt unter „Nachhaken“. Hier entstehen die ersten Kunden.', 'en' => 'Write again to everyone who hasn’t replied yet. The text is under “Follow up”. This is where first customers come from.']],
+        ],
+        // Meilensteine
+        'ms_titel'   => ['it' => 'Traguardi', 'de' => 'Meilensteine', 'en' => 'Milestones'],
+        'ms_text'    => ['it' => 'Ogni traguardo raggiunto si può condividere come immagine.', 'de' => 'Jeden erreichten Meilenstein können Sie als Bild teilen.', 'en' => 'You can share every milestone you reach as an image.'],
+        'ms_teilen'  => ['it' => 'Immagine da condividere', 'de' => 'Bild zum Teilen', 'en' => 'Image to share'],
+        'ms_push_t'  => ['it' => 'Traguardo raggiunto: {titel}', 'de' => 'Meilenstein erreicht: {titel}', 'en' => 'Milestone reached: {titel}'],
+        'ms_push_x'  => ['it' => 'Complimenti! Lo trova nella sua pagina, anche come immagine da condividere.', 'de' => 'Glückwunsch! Sie finden ihn auf Ihrer Seite, auch als Bild zum Teilen.', 'en' => 'Congratulations! You’ll find it on your page, also as an image to share.'],
+        'ms_karte'   => ['it' => 'Traguardo', 'de' => 'Meilenstein', 'en' => 'Milestone'],
+        'ms_karte_unter' => ['it' => 'Consiglio Vecom Design — siti web con prezzo chiaro prima.', 'de' => 'Ich empfehle Vecom Design — Websites mit klarem Preis vorher.', 'en' => 'I recommend Vecom Design — websites with a clear price upfront.'],
+        'meilensteine' => [
+            'profil'  => ['it' => 'Profilo completo', 'de' => 'Profil komplett', 'en' => 'Profile complete'],
+            'klick1'  => ['it' => 'Prima visita', 'de' => 'Erster Besuch', 'en' => 'First visit'],
+            'klick10' => ['it' => '10 visite', 'de' => '10 Besuche', 'en' => '10 visits'],
+            'klick100'=> ['it' => '100 visite', 'de' => '100 Besuche', 'en' => '100 visits'],
+            'check5'  => ['it' => '5 verifiche inviate', 'de' => '5 Schnellchecks', 'en' => '5 quick checks'],
+            'anfrage1'=> ['it' => 'Prima richiesta', 'de' => 'Erste Anfrage', 'en' => 'First enquiry'],
+            'kunde1'  => ['it' => 'Primo cliente', 'de' => 'Erster Kunde', 'en' => 'First customer'],
+            'kunde5'  => ['it' => '5 clienti', 'de' => '5 Kunden', 'en' => '5 customers'],
+            'geld1'   => ['it' => 'Primo pagamento', 'de' => 'Erste Auszahlung', 'en' => 'First payout'],
+            'kurs'    => ['it' => 'Corso di 7 giorni', 'de' => '7-Tage-Kurs', 'en' => '7-day course'],
+        ],
+        // Meine Kontakte
+        'mk_titel'   => ['it' => 'I miei contatti', 'de' => 'Meine Kontakte', 'en' => 'My contacts'],
+        'mk_text'    => ['it' => 'Persone della sua cerchia con un’attività. Resta solo su questo telefono — noi non vediamo nulla.', 'de' => 'Leute aus Ihrem Umfeld mit einem Betrieb. Bleibt nur auf diesem Gerät gespeichert — wir sehen davon nichts.', 'en' => 'People you know who run a business. Stored only on this device — we see none of it.'],
+        'mk_name'    => ['it' => 'Nome', 'de' => 'Name', 'en' => 'Name'],
+        'mk_branche' => ['it' => 'Settore', 'de' => 'Branche', 'en' => 'Industry'],
+        'mk_notiz'   => ['it' => 'Nota (facoltativa)', 'de' => 'Notiz (freiwillig)', 'en' => 'Note (optional)'],
+        'mk_neu'     => ['it' => 'Aggiungi', 'de' => 'Hinzufügen', 'en' => 'Add'],
+        'mk_leer'    => ['it' => 'Ancora nessuno. Inizi con cinque persone.', 'de' => 'Noch niemand. Fangen Sie mit fünf Leuten an.', 'en' => 'Nobody yet. Start with five people.'],
+        'mk_nachricht'=> ['it' => 'Messaggio', 'de' => 'Nachricht', 'en' => 'Message'],
+        'mk_weg'     => ['it' => 'Rimuovi', 'de' => 'Entfernen', 'en' => 'Remove'],
+        'mk_voll'    => ['it' => 'Massimo 30 contatti.', 'de' => 'Höchstens 30 Kontakte.', 'en' => 'At most 30 contacts.'],
+        'mk_nachhaken'=> ['it' => 'Scritto {n} giorni fa — ricontattare?', 'de' => 'Vor {n} Tagen angeschrieben — nachhaken?', 'en' => 'Contacted {n} days ago — follow up?'],
+        'mk_andere'  => ['it' => 'Altro', 'de' => 'Andere', 'en' => 'Other'],
+        'mk_status'  => [
+            'neu'          => ['it' => 'Da contattare', 'de' => 'Noch anschreiben', 'en' => 'To contact'],
+            'angeschrieben'=> ['it' => 'Scritto', 'de' => 'Angeschrieben', 'en' => 'Contacted'],
+            'interessiert' => ['it' => 'Interessato', 'de' => 'Interessiert', 'en' => 'Interested'],
+            'kunde'        => ['it' => 'Cliente', 'de' => 'Kunde', 'en' => 'Customer'],
+            'nein'         => ['it' => 'Non ora', 'de' => 'Gerade nicht', 'en' => 'Not now'],
+        ],
+        'mk_msg' => ['it' => "Ciao {name}! Ti scrivo perché collaboro con Vecom Design: fanno siti web per attività come la tua, e il prezzo lo sai prima. {satz}\n\nDai un’occhiata, senza impegno: {link}", 'de' => "Hallo {name}! Ich schreibe dir, weil ich mit Vecom Design zusammenarbeite: Die machen Websites für Betriebe wie deinen, und den Preis kennst du vorher. {satz}\n\nSchau mal rein, ganz unverbindlich: {link}", 'en' => "Hi {name}! I’m writing because I work with Vecom Design: they build websites for businesses like yours, and you know the price upfront. {satz}\n\nHave a look, no obligation: {link}"],
+    ];
+
+    /**
+     * Branchen-Pakete (28.09.2026, Uwe: Ja). Schlüssel wie die Motive in
+     * PARTNER_MEDIEN, damit das passende Bild dazugehört. {link} ist der
+     * Partnerlink mit Kanal „branche“.
+     */
+    public const PARTNER_BRANCHEN = [
+        'gastro' => [
+            'warum' => ['it' => 'Chi cerca dove mangiare guarda sul telefono: menu, foto, orari, prenotazione. Senza sito decide Google Maps o la concorrenza.', 'de' => 'Wer essen gehen will, schaut aufs Handy: Karte, Fotos, Öffnungszeiten, Reservierung. Ohne Website entscheidet Google Maps — oder die Konkurrenz.', 'en' => 'People looking for a place to eat check their phone: menu, photos, opening hours, booking. Without a website, Google Maps — or the competition — decides.'],
+            'args'  => [['it' => 'Menu sempre aggiornato, anche in inglese e tedesco per i turisti.', 'de' => 'Speisekarte immer aktuell, auch auf Englisch und Deutsch für Touristen.', 'en' => 'Menu always up to date, also in English and German for tourists.'],
+                        ['it' => 'Prenotazioni e WhatsApp con un tocco, senza commissioni ai portali.', 'de' => 'Reservierung und WhatsApp mit einem Tippen — ohne Provision an Portale.', 'en' => 'Bookings and WhatsApp with one tap — no commission to portals.'],
+                        ['it' => 'Foto vere del locale che fanno venire fame.', 'de' => 'Echte Fotos vom Lokal, die Hunger machen.', 'en' => 'Real photos of the place that make people hungry.']],
+            'satz'  => ['it' => 'I turisti la trovano su Google? E vedono subito il menu?', 'de' => 'Finden Touristen Sie auf Google — und sehen sie gleich die Karte?', 'en' => 'Do tourists find you on Google — and see the menu right away?'],
+            'wa'    => ['it' => "Buongiorno, sono {name}. Lavoro con Vecom Design, che fa siti per ristoranti e bar: menu sempre aggiornato, anche per i turisti, e prenotazioni con un tocco. Il prezzo lo conoscete prima.\n\nQui trovate tutto: {link}", 'de' => "Guten Tag, hier ist {name}. Ich arbeite mit Vecom Design zusammen — die bauen Websites für Restaurants und Bars: Karte immer aktuell, auch für Touristen, Reservierung mit einem Tippen. Den Preis kennen Sie vorher.\n\nHier ist alles: {link}", 'en' => "Hello, this is {name}. I work with Vecom Design, who build websites for restaurants and bars: menu always up to date, also for tourists, and bookings with one tap. You know the price upfront.\n\nEverything is here: {link}"],
+            'post'  => ['it' => "Conosci un ristorante o un bar che merita di più online? Vecom Design fa siti con menu, foto e prenotazioni — e il prezzo lo sai prima. {link}", 'de' => "Kennst du ein Restaurant oder eine Bar, die online mehr verdient? Vecom Design baut Websites mit Karte, Fotos und Reservierung — und den Preis kennst du vorher. {link}", 'en' => "Know a restaurant or bar that deserves more online? Vecom Design builds websites with menu, photos and booking — and you know the price upfront. {link}"],
+        ],
+        'unterkunft' => [
+            'warum' => ['it' => 'Ogni prenotazione diretta risparmia la commissione di Booking. Un bel sito trasforma chi guarda in chi prenota.', 'de' => 'Jede Direktbuchung spart die Provision von Booking. Eine schöne Website macht aus Schauenden Buchende.', 'en' => 'Every direct booking saves the Booking.com commission. A beautiful website turns lookers into bookers.'],
+            'args'  => [['it' => 'Prenotazioni dirette: meno commissioni ai portali.', 'de' => 'Direktbuchungen: weniger Provision an Portale.', 'en' => 'Direct bookings: less commission to portals.'],
+                        ['it' => 'Camere, dintorni e prezzi in tre lingue.', 'de' => 'Zimmer, Umgebung und Preise in drei Sprachen.', 'en' => 'Rooms, surroundings and prices in three languages.'],
+                        ['it' => 'Una struttura che si presenta bene si può permettere prezzi migliori.', 'de' => 'Wer sich schön zeigt, kann bessere Preise nehmen.', 'en' => 'A place that presents itself well can charge better prices.']],
+            'satz'  => ['it' => 'Quanto paga di commissioni ai portali ogni anno?', 'de' => 'Wie viel Provision zahlen Sie im Jahr an die Portale?', 'en' => 'How much commission do you pay the portals each year?'],
+            'wa'    => ['it' => "Buongiorno, sono {name}. Lavoro con Vecom Design, che fa siti per hotel, B&B e case vacanza: più prenotazioni dirette, meno commissioni. Il prezzo lo conoscete prima.\n\nQui trovate tutto: {link}", 'de' => "Guten Tag, hier ist {name}. Ich arbeite mit Vecom Design zusammen — die bauen Websites für Hotels, B&Bs und Ferienwohnungen: mehr Direktbuchungen, weniger Provision. Den Preis kennen Sie vorher.\n\nHier ist alles: {link}", 'en' => "Hello, this is {name}. I work with Vecom Design, who build websites for hotels, B&Bs and holiday homes: more direct bookings, less commission. You know the price upfront.\n\nEverything is here: {link}"],
+            'post'  => ['it' => "Hai un B&B o una casa vacanza? Con un sito tuo arrivano prenotazioni dirette, senza commissioni. Vecom Design lo fa con prezzo chiaro prima: {link}", 'de' => "Du hast ein B&B oder eine Ferienwohnung? Mit einer eigenen Website kommen Direktbuchungen — ohne Provision. Vecom Design macht das mit klarem Preis vorher: {link}", 'en' => "Run a B&B or holiday home? With your own website, direct bookings come in — no commission. Vecom Design does it with a clear price upfront: {link}"],
+        ],
+        'handwerk' => [
+            'warum' => ['it' => 'Chi cerca un artigiano vuole vedere lavori fatti e un numero da chiamare. Il passaparola funziona meglio se c’è un sito da mostrare.', 'de' => 'Wer einen Handwerker sucht, will fertige Arbeiten sehen und eine Nummer zum Anrufen. Mundpropaganda wirkt besser, wenn es eine Seite zum Zeigen gibt.', 'en' => 'People looking for a tradesperson want to see finished work and a number to call. Word of mouth works better with a website to show.'],
+            'args'  => [['it' => 'Galleria di lavori fatti: la prova migliore.', 'de' => 'Galerie fertiger Arbeiten: der beste Beweis.', 'en' => 'Gallery of finished work: the best proof.'],
+                        ['it' => 'Richieste di preventivo direttamente dal telefono.', 'de' => 'Angebotsanfragen direkt vom Handy.', 'en' => 'Quote requests straight from the phone.'],
+                        ['it' => 'Trovati da chi cerca «idraulico» o «elettricista» in zona.', 'de' => 'Gefunden von allen, die „Elektriker“ oder „Maler“ in der Nähe suchen.', 'en' => 'Found by everyone searching “electrician” or “plumber” nearby.']],
+            'satz'  => ['it' => 'Se un cliente nuovo vuole vedere i suoi lavori, cosa gli mostra?', 'de' => 'Wenn ein neuer Kunde Ihre Arbeiten sehen will — was zeigen Sie ihm?', 'en' => 'When a new customer wants to see your work — what do you show them?'],
+            'wa'    => ['it' => "Buongiorno, sono {name}. Lavoro con Vecom Design, che fa siti per artigiani e imprese: lavori fatti in galleria e richieste di preventivo dal telefono. Il prezzo lo conoscete prima.\n\nQui trovate tutto: {link}", 'de' => "Guten Tag, hier ist {name}. Ich arbeite mit Vecom Design zusammen — die bauen Websites für Handwerk und Bau: fertige Arbeiten in der Galerie, Angebotsanfragen vom Handy. Den Preis kennen Sie vorher.\n\nHier ist alles: {link}", 'en' => "Hello, this is {name}. I work with Vecom Design, who build websites for tradespeople and builders: finished work in a gallery and quote requests from the phone. You know the price upfront.\n\nEverything is here: {link}"],
+            'post'  => ['it' => "Il lavoro buono si vede. Conosci un artigiano senza sito? Vecom Design gli fa vedere i lavori online, prezzo chiaro prima: {link}", 'de' => "Gute Arbeit soll man sehen. Kennst du einen Handwerker ohne Website? Vecom Design zeigt seine Arbeiten online — klarer Preis vorher: {link}", 'en' => "Good work should be seen. Know a tradesperson without a website? Vecom Design shows their work online — clear price upfront: {link}"],
+        ],
+        'laden' => [
+            'warum' => ['it' => 'Prima di entrare in un negozio o prenotare un appuntamento, i clienti guardano online. Chi non si trova, non esiste.', 'de' => 'Bevor jemand in einen Laden geht oder einen Termin bucht, schaut er online. Wer nicht zu finden ist, existiert nicht.', 'en' => 'Before walking into a shop or booking an appointment, customers look online. If you can’t be found, you don’t exist.'],
+            'args'  => [['it' => 'Orari, prodotti e servizi sempre visibili.', 'de' => 'Öffnungszeiten, Produkte und Leistungen immer sichtbar.', 'en' => 'Opening hours, products and services always visible.'],
+                        ['it' => 'Appuntamenti prenotabili online, anche la sera.', 'de' => 'Termine online buchbar, auch abends.', 'en' => 'Appointments bookable online, even in the evening.'],
+                        ['it' => 'Una vetrina che lavora 24 ore su 24.', 'de' => 'Ein Schaufenster, das rund um die Uhr arbeitet.', 'en' => 'A shop window that works around the clock.']],
+            'satz'  => ['it' => 'I clienti possono prenotare da lei anche la sera, dal divano?', 'de' => 'Können Kunden bei Ihnen auch abends vom Sofa aus buchen?', 'en' => 'Can customers book with you in the evening, from the sofa?'],
+            'wa'    => ['it' => "Buongiorno, sono {name}. Lavoro con Vecom Design, che fa siti per negozi, parrucchieri ed estetiste: orari, servizi e appuntamenti online. Il prezzo lo conoscete prima.\n\nQui trovate tutto: {link}", 'de' => "Guten Tag, hier ist {name}. Ich arbeite mit Vecom Design zusammen — die bauen Websites für Läden, Friseure und Kosmetik: Öffnungszeiten, Leistungen und Termine online. Den Preis kennen Sie vorher.\n\nHier ist alles: {link}", 'en' => "Hello, this is {name}. I work with Vecom Design, who build websites for shops, hairdressers and beauty salons: opening hours, services and online appointments. You know the price upfront.\n\nEverything is here: {link}"],
+            'post'  => ['it' => "Il tuo parrucchiere, il negozio sotto casa: si trovano online? Vecom Design fa siti con appuntamenti online, prezzo chiaro prima: {link}", 'de' => "Dein Friseur, der Laden um die Ecke — findet man sie online? Vecom Design baut Websites mit Online-Terminen, klarer Preis vorher: {link}", 'en' => "Your hairdresser, the shop around the corner — can people find them online? Vecom Design builds websites with online booking, clear price upfront: {link}"],
+        ],
+        'praxis' => [
+            'warum' => ['it' => 'Pazienti e clienti vogliono capire subito chi sei, cosa offri e come prenotare. Un sito serio crea fiducia prima del primo incontro.', 'de' => 'Patienten und Kunden wollen sofort sehen, wer Sie sind, was Sie anbieten und wie sie einen Termin bekommen. Eine seriöse Website schafft Vertrauen vor dem ersten Treffen.', 'en' => 'Patients and clients want to see right away who you are, what you offer and how to book. A serious website builds trust before the first meeting.'],
+            'args'  => [['it' => 'Servizi, orari e contatti chiari.', 'de' => 'Leistungen, Zeiten und Kontakt klar auf einen Blick.', 'en' => 'Services, hours and contact clear at a glance.'],
+                        ['it' => 'Prenotazione di appuntamenti senza telefonate.', 'de' => 'Terminbuchung ohne Telefonschleife.', 'en' => 'Appointment booking without phone tag.'],
+                        ['it' => 'Un’immagine professionale che rassicura.', 'de' => 'Ein professioneller Auftritt, der beruhigt.', 'en' => 'A professional presence that reassures.']],
+            'satz'  => ['it' => 'Quante chiamate al giorno sono solo per chiedere orari o appuntamenti?', 'de' => 'Wie viele Anrufe am Tag sind nur Fragen nach Zeiten oder Terminen?', 'en' => 'How many calls a day are just about hours or appointments?'],
+            'wa'    => ['it' => "Buongiorno, sono {name}. Lavoro con Vecom Design, che fa siti per studi, ambulatori e professionisti: servizi chiari e appuntamenti online. Il prezzo lo conoscete prima.\n\nQui trovate tutto: {link}", 'de' => "Guten Tag, hier ist {name}. Ich arbeite mit Vecom Design zusammen — die bauen Websites für Praxen, Studios und Selbstständige: klare Leistungen und Online-Termine. Den Preis kennen Sie vorher.\n\nHier ist alles: {link}", 'en' => "Hello, this is {name}. I work with Vecom Design, who build websites for practices, studios and professionals: clear services and online appointments. You know the price upfront.\n\nEverything is here: {link}"],
+            'post'  => ['it' => "Studi, palestre, professionisti: un sito chiaro fa arrivare clienti e toglie telefonate. Vecom Design, prezzo chiaro prima: {link}", 'de' => "Praxen, Studios, Selbstständige: Eine klare Website bringt Kunden und spart Anrufe. Vecom Design, klarer Preis vorher: {link}", 'en' => "Practices, studios, professionals: a clear website brings clients and saves calls. Vecom Design, clear price upfront: {link}"],
+        ],
+    ];
+
     public const PARTNER_MARKETING = [
         // Posting-Kalender
         'ka_titel'    => ['it' => 'Da pubblicare oggi', 'de' => 'Heute posten', 'en' => 'Post today'],

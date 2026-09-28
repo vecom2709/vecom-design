@@ -35,7 +35,7 @@ if (!isset($_GET['c']) && preg_match('~^/p/([A-Za-z0-9]{5,16})(?:/([A-Za-z0-9-]{
 $p = null; $sprache = 'it'; $zaehlen = false;
 if (is_file($konfig)) {
     try {
-        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerSeite'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerSeite', 'PartnerMarketing'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
         /* Das Foto der Empfehlungsseite (siehe PartnerWerbung). Nur aktive
            Partner; die Adresse trägt einen Versionsanhang, also darf lange
            zwischengespeichert werden. */
@@ -210,6 +210,9 @@ $wegIcon = [
   .lp-kopf .bild{flex:0 0 96px;width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--akzent);display:grid;place-items:center;
                  font-family:var(--f-display);font-size:34px;background:var(--flaeche2);color:var(--akzent)}
   .lp-kopf b{display:block;font-size:19px;line-height:1.25}
+  .lp-aktion{margin:0 0 16px;padding:12px 14px;border-radius:12px;border:1px solid var(--akzent);background:color-mix(in oklab, var(--akzent) 12%, transparent);display:flex;flex-direction:column;gap:3px}
+  .lp-aktion b{font-size:16px;line-height:1.4}
+  .lp-aktion span{font-size:13.5px;color:var(--dim)}
   .lp-kopf span{display:block;color:var(--dim);font-size:14.5px;margin-top:3px}
   .ld blockquote{margin:0 0 20px;padding:12px 16px;border-left:2px solid rgba(241,211,139,.6);font-size:16px;line-height:1.6;color:var(--text)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
@@ -316,6 +319,10 @@ $wegIcon = [
       <div><b><?= $h($name) ?></b><span>★ <?= $h($S($PS['empfiehlt'])) ?></span></div>
     </div>
     <?php if ($satz !== ''): ?><blockquote><?= $h($zit($satz)) ?></blockquote><?php endif; ?>
+    <?php /* Zentrale Aktion (28.09.2026, Uwe: Ja): einmal in der Verwaltung angelegt, auf allen Partnerseiten. */
+          $aktion = PartnerMarketing::aktion(); if ($aktion): ?>
+      <p class="lp-aktion" role="note"><b><?= $h(PartnerMarketing::aktionText($aktion, $sprache)) ?></b><span><?= $h(PartnerMarketing::aktionRest($aktion, $sprache)) ?></span></p>
+    <?php endif; ?>
     <h1><?= $h($L('titel')) ?></h1>
     <p class="lead"><?= $h($L('lead')) ?></p>
     <ul><li><?= $h($L('p1')) ?></li><li><?= $h($L('p2')) ?></li><li><?= $h($L('p3')) ?></li></ul>

@@ -11404,7 +11404,7 @@ pruefe('Kurzvideo: MP4 (H.264) bevorzugt, WebM nur als Rückfall mit Hinweis',
     strpos($pmJs, "'video/mp4;codecs=avc1.42E01E'") < strpos($pmJs, "'video/webm") && str_contains($pmJs, 'D.t.video_webm'));
 $pmTexte = true;
 foreach (Texte::PARTNER_MEDIEN['motive'] as $pmM) { foreach (['name', 'titel', 'unter'] as $pmF) { foreach (['it', 'de', 'en'] as $pmL) { $pmTexte = $pmTexte && trim((string) ($pmM[$pmF][$pmL] ?? '')) !== ''; } } }
-pruefe('Motive für Bilder und Video in allen drei Sprachen', $pmTexte && count(Texte::PARTNER_MEDIEN['motive']) === 5);
+pruefe('Motive für Bilder und Video in allen drei Sprachen', $pmTexte && count(Texte::PARTNER_MEDIEN['motive']) === 6);   // 28.09.2026: + Praxen & Studios (Branchen-Pakete)
 
 /* ============================================================================
    Partner: Kunden finden — Schnellcheck, Firmen-Finder, Vorstellung,
@@ -13635,6 +13635,161 @@ pruefe('Migration 093: neue Spalten, bestehende bleiben (nur ADD COLUMN)',
     (int) Db::wert("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'partner'
                     AND COLUMN_NAME IN ('stripe_details_submitted','stripe_charges_enabled','stripe_payouts_enabled','stripe_onboarding_status','stripe_fehlt','stripe_status_am','stripe_status_fehler','stripe_konto_alt')", [], 0) === 8
     && !preg_match('/\b(DROP|MODIFY|CHANGE|UPDATE)\b/i', preg_replace('/--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/093_partner_stripe_status.sql'))));
+
+abschnitt('Partner: Marketing-Ausbau (heiße Kontakte, Nachhaken, Aktion, Branchen, Kurs, Meilensteine)');
+/* 28.09.2026, Uwe: Ja zu 9 Vorschlägen. */
+require_once $wurzel . '/src/PartnerMarketing.php';
+require_once $wurzel . '/src/PartnerRecherche.php';
+require_once $wurzel . '/src/PartnerCheck.php';
+$mpP = Partner::laden(Partner::anlegen(['name' => 'Mara Marketing', 'email' => 'mara@partner-mp.example', 'status' => 'aktiv', 'sprache' => 'de']));
+$mpId = (int) $mpP['id'];
+require_once $wurzel . '/src/PartnerPost.php';
+require_once $wurzel . '/src/WebPush.php';
+[, $mpPunkt] = WebPush::paar();
+PartnerPost::aboSpeichern($mpId, 'https://push.example.org/abo/mp', WebPush::b64($mpPunkt), WebPush::b64(random_bytes(16)));
+$mpPush = [];
+WebPush::$probe = static function (string $ziel, array $kopf, string $paket) use (&$mpPush): int { $mpPush[] = $ziel; return 201; };
+$mpCheck = static function (string $host, int $tage) use ($mpId): array {
+    $t = bin2hex(random_bytes(16));
+    Db::run('INSERT INTO partner_checks (partner_id, token, url, host, ergebnis, created_at) VALUES (?, ?, ?, ?, ?, NOW() - INTERVAL ' . $tage . ' DAY)',
+        [$mpId, $t, 'https://' . $host, $host, '{"punkte":[]}']);
+    return Db::one('SELECT * FROM partner_checks WHERE token = ?', [$t]);
+};
+/* Heißer Kontakt */
+$mpC0 = $mpCheck('pizzeria-heiss.example', 0);
+$mpH1 = PartnerMarketing::checkAufruf($mpC0);
+$mpH2 = PartnerMarketing::checkAufruf($mpC0);
+$mpC0n = Db::one('SELECT * FROM partner_checks WHERE id = ?', [(int) $mpC0['id']]);
+pruefe('Heißer Kontakt: der erste fremde Aufruf zählt und löst den Hinweis aus, der zweite binnen 6 Stunden keinen zweiten',
+    $mpH1 && !$mpH2 && count($mpPush) === 1 && (int) $mpC0n['aufrufe'] === 2 && $mpC0n['zuletzt_am'] !== null && $mpC0n['heiss_am'] !== null);
+$mpHeiss = PartnerMarketing::heisse($mpId);
+pruefe('… und steht unter „Heiße Kontakte“ (mit Minuten seit dem Aufruf)', count($mpHeiss) === 1 && $mpHeiss[0]['host'] === 'pizzeria-heiss.example' && $mpHeiss[0]['minuten'] <= 1);
+Db::run('UPDATE partner_checks SET zuletzt_am = NOW() - INTERVAL 3 DAY WHERE id = ?', [(int) $mpC0['id']]);
+pruefe('… nach 48 Stunden nicht mehr', PartnerMarketing::heisse($mpId) === []);
+$mpCk = (string) file_get_contents($wurzel . '/../check.php');
+pruefe('check.php: der Partner selbst und Programme (WhatsApp-Vorschau) zählen nicht, sonst Hinweis über PartnerMarketing',
+    str_contains($mpCk, 'Partner::istRoboter(') && str_contains($mpCk, 'Partner::KEKS_SELBST') && str_contains($mpCk, 'PartnerMarketing::checkAufruf($z)')
+    && !str_contains($mpCk, "SET aufrufe = aufrufe + 1"));
+pruefe('check.php zeigt eine echte Kundenstimme unter der Empfehlung', str_contains($mpCk, 'PartnerSeite::stimmen($p, $sprache, 1)'));
+
+/* Nachhaken */
+Db::run('DELETE FROM partner_checks WHERE partner_id = ?', [$mpId]);
+$mpC4 = $mpCheck('bar-vier.example', 4);
+$mpC8 = $mpCheck('hotel-acht.example', 8);
+$mpCheck('alt-25.example', 25);
+$mpCheck('neu-1.example', 1);
+$mpF = (int) Db::insert('akq_firmen', ['kennung' => 'MP00000095', 'name' => 'Salone Nachfass', 'name_norm' => 'salone nachfass', 'land' => 'IT',
+    'stadt' => 'Sciacca', 'plz' => '92019', 'adresse' => 'Via Mare 1', 'branche' => 'friseur', 'url' => null, 'telefon' => '0925 111222', 'email' => 'info@salone.example']);
+PartnerRecherche::reservieren($mpId, $mpF);
+pruefe('Angeschrieben: nur eigene, gültige Reservierung', PartnerMarketing::angeschrieben($mpId, $mpF) && !PartnerMarketing::angeschrieben($mpId + 999, $mpF));
+Db::run('UPDATE partner_reservierungen SET angeschrieben_am = NOW() - INTERVAL 3 DAY WHERE firma_id = ?', [$mpF]);
+$mpNf = PartnerMarketing::faellig($mpId);
+$mpNfK = array_map(static fn($e) => $e['titel'] . ':' . $e['stufe'], $mpNf);
+pruefe('Nachhaken: Schnellchecks ab 3 Tagen (Stufe 1), ab 7 Tagen Stufe 2, angeschriebene Betriebe ab 3 Tagen; zu neu und zu alt nicht',
+    count($mpNf) === 3 && in_array('bar-vier.example:1', $mpNfK, true) && in_array('hotel-acht.example:2', $mpNfK, true) && in_array('Salone Nachfass:1', $mpNfK, true),
+    implode(', ', $mpNfK));
+$mpFirmaE = array_values(array_filter($mpNf, static fn($e) => $e['art'] === 'firma'))[0];
+$mpTxt = PartnerMarketing::nachfassText($mpP, $mpFirmaE, PartnerMarketing::betriebSprache($mpFirmaE['land']));
+$mpTxtC = PartnerMarketing::nachfassText($mpP, array_values(array_filter($mpNf, static fn($e) => $e['art'] === 'check'))[0], 'it');
+pruefe('Nachfass-Text: an den Betrieb in SEINER Sprache (Italien → it), mit Partnerlink; beim Check mit dem Bericht',
+    str_starts_with($mpTxt, 'Buongiorno') && str_contains($mpTxt, 'Salone Nachfass') && str_contains($mpTxt, '/p/' . $mpP['code'])
+    && str_contains($mpTxtC, '/check.php?t=') && PartnerMarketing::betriebSprache('AT') === 'de' && PartnerMarketing::betriebSprache('FR') === 'en');
+$mpUm11 = strtotime(date('Y-m-d') . ' 11:00');
+$mpPush = [];
+PartnerMarketing::nachfassErinnern($mpUm11);
+$mpPushNf = count($mpPush);
+$mpNach = PartnerMarketing::faellig($mpId);
+pruefe('Erinnerung: gemerkt, zu welcher Stufe erinnert wurde (kein zweiter Hinweis für dieselbe Stufe); nachts gar nicht',
+    $mpPushNf === 1 && !array_filter($mpNach, static fn($e) => $e['stufe'] > $e['gemeldet']) && PartnerMarketing::nachfassErinnern($mpUm11) === 0
+    && PartnerMarketing::nachfassErinnern(strtotime(date('Y-m-d') . ' 23:00')) === 0);
+PartnerMarketing::erledigt($mpId, 'check', (int) $mpC4['id']);
+PartnerMarketing::erledigt($mpId, 'firma', $mpF);
+pruefe('„Erledigt“: nur Eigenes, verschwindet aus der Liste', count(PartnerMarketing::faellig($mpId)) === 1 && !PartnerMarketing::erledigt($mpId + 999, 'check', (int) $mpC8['id']));
+$mpRe = (string) file_get_contents($wurzel . '/views/partner_recherche.php');
+pruefe('Anschreiben-Knöpfe melden „angeschrieben“ (WhatsApp, E-Mail, Kopieren)', substr_count($mpRe, 'data-angeschrieben=') === 4
+    && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-plus.js'), "d.append('tat', 'angeschrieben')"));
+
+/* Zentrale Aktion */
+Db::run("DELETE FROM settings WHERE skey = 'partner_aktion'");
+pruefe('Aktion: ohne Eintrag keine', PartnerMarketing::aktion() === null);
+$mpHeute = date('Y-m-d');
+pruefe('Aktion speichern: Datum und Text sind Pflicht', PartnerMarketing::aktionSpeichern(true, '', ['it' => 'x']) === 'datum' && PartnerMarketing::aktionSpeichern(true, $mpHeute, []) === 'text');
+PartnerMarketing::aktionSpeichern(true, date('Y-m-d', strtotime('+4 days')), ['it' => 'Autunno: verifica gratuita', 'de' => 'Herbst: Check gratis']);
+$mpAk = PartnerMarketing::aktion();
+pruefe('Aktion läuft: Text je Sprache (sonst Italienisch), „Noch 5 Tage“, fertiger Beitrag mit Partnerlink',
+    $mpAk !== null && $mpAk['tage'] === 5 && PartnerMarketing::aktionText($mpAk, 'en') === 'Autunno: verifica gratuita'
+    && str_starts_with(PartnerMarketing::aktionRest($mpAk, 'de'), 'Noch 5 Tage') && str_contains(PartnerMarketing::aktionBeitrag($mpP, $mpAk, 'de'), '/p/' . $mpP['code'] . '/aktion'));
+PartnerMarketing::aktionSpeichern(true, $mpHeute, ['de' => 'Heute letzter Tag']);
+pruefe('Letzter Tag: „Letzter Tag!“; gestern abgelaufen: keine Aktion',
+    PartnerMarketing::aktionRest(PartnerMarketing::aktion(), 'de') === 'Letzter Tag!' && PartnerMarketing::aktion(strtotime('+1 day')) === null);
+PartnerMarketing::aktionSpeichern(false, '', []);
+pruefe('Ausgeschaltet: keine Aktion', PartnerMarketing::aktion() === null);
+pruefe('Aktion erscheint auf der Partnerseite, im Kalender und im Partnerbereich; Verwaltung kann sie setzen',
+    str_contains((string) file_get_contents($wurzel . '/../p.php'), 'PartnerMarketing::aktion()') && str_contains((string) file_get_contents($wurzel . '/views/partner_kalender.php'), 'PartnerMarketing::aktion()')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_plus_start.php'), 'PartnerMarketing::aktionBeitrag(') && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_aktion':"));
+
+/* Branchen-Pakete */
+$mpBrOk = true;
+foreach (PartnerMarketing::BRANCHEN as $mpB) {
+    foreach (['warum', 'satz', 'wa', 'post'] as $mpF2) { foreach (['it', 'de', 'en'] as $mpL) { $mpBrOk = $mpBrOk && trim((string) (Texte::PARTNER_BRANCHEN[$mpB][$mpF2][$mpL] ?? '')) !== ''; } }
+    $mpBrOk = $mpBrOk && count(Texte::PARTNER_BRANCHEN[$mpB]['args']) === 3 && isset(Texte::PARTNER_MEDIEN['motive'][$mpB]);
+}
+$mpBr = PartnerMarketing::branche($mpP, 'gastro', 'de');
+pruefe('Branchen-Pakete: 5 Branchen dreisprachig, je 3 Argumente, passendes Bild-Motiv; Texte tragen Namen und Link (Kanal „branche“)',
+    $mpBrOk && str_contains($mpBr['wa'], Partner::anzeigeName($mpP)) && str_contains($mpBr['wa'], '/p/' . $mpP['code'] . '/branche') && str_contains($mpBr['post'], '/branche')
+    && !str_contains($mpBr['wa'], '{'));
+
+/* Mini-Kurs */
+$mpK = PartnerMarketing::kurs($mpP);
+$mpPn = Partner::laden($mpId);
+pruefe('Kurs: startet beim ersten Aufruf mit Tag 1; Schnellcheck und Reservierung gelten schon als erledigt (aus der Datenbank)',
+    $mpPn['kurs_start'] !== null && $mpK['tag'] === 1 && $mpK['erledigt'][5] && $mpK['erledigt'][6] && !$mpK['erledigt'][4] && !$mpK['fertig']);
+pruefe('Kurs: nur freigeschaltete Tage lassen sich abhaken', !PartnerMarketing::kursAbhaken($mpPn, 4));
+Db::run('UPDATE partner SET kurs_start = CURDATE() - INTERVAL 6 DAY WHERE id = ?', [$mpId]);
+$mpPn = Partner::laden($mpId);
+PartnerMarketing::kursAbhaken($mpPn, 4); PartnerMarketing::kursAbhaken(Partner::laden($mpId), 7);
+Db::run("UPDATE partner SET foto_am = NOW(), profil_satz = 'Ich kenne Uwe persönlich.', seite_am = NOW() WHERE id = ?", [$mpId]);
+Db::run('INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 12) ON DUPLICATE KEY UPDATE anzahl = 12', [$mpId]);
+$mpK = PartnerMarketing::kurs(Partner::laden($mpId));
+pruefe('Kurs: an Tag 7 alles frei; Profil, Seite, Beitrag automatisch, 4 und 7 von Hand → geschafft', $mpK['tag'] === 7 && $mpK['fertig'] && $mpK['n'] === 7, json_encode($mpK));
+
+/* Meilensteine */
+Db::run('UPDATE partner SET meilensteine = NULL WHERE id = ?', [$mpId]);
+$mpMs = PartnerMarketing::meilensteine(Partner::laden($mpId));
+pruefe('Meilensteine aus Tatsachen: Profil, erster Besuch, 10 Besuche, Kurs; noch kein Kunde, keine Auszahlung',
+    $mpMs['profil'] && $mpMs['klick1'] && $mpMs['klick10'] && !$mpMs['klick100'] && $mpMs['kurs'] && !$mpMs['kunde1'] && !$mpMs['geld1'] && count($mpMs) === count(PartnerMarketing::MEILENSTEINE));
+PartnerMarketing::meilensteineMelden();
+pruefe('Meilensteine melden: beim ersten Mal nur vermerken (kein Hinweis-Schwall für Altes)',
+    Partner::laden($mpId)['meilensteine'] === 'profil,klick1,klick10,kurs');
+Db::run('UPDATE partner_klicks SET anzahl = 150 WHERE partner_id = ?', [$mpId]);
+$mpPush = [];
+PartnerMarketing::meilensteineMelden();
+pruefe('… danach wird der neue gemerkt (100 Besuche) und gemeldet', str_contains((string) Partner::laden($mpId)['meilensteine'], 'klick100') && count($mpPush) === 1);
+$mpTx = true;
+foreach (['kurs'] as $_) { foreach (Texte::PARTNER_PLUS['kurs'] as $mpKd) { foreach (['titel', 'text'] as $mpF3) { foreach (['it', 'de', 'en'] as $mpL) { $mpTx = $mpTx && trim((string) ($mpKd[$mpF3][$mpL] ?? '')) !== ''; } } } }
+foreach (Texte::PARTNER_PLUS['meilensteine'] as $mpMt) { foreach (['it', 'de', 'en'] as $mpL) { $mpTx = $mpTx && trim((string) ($mpMt[$mpL] ?? '')) !== ''; } }
+foreach (Texte::PARTNER_PLUS as $mpKey => $mpVal) {
+    if (is_array($mpVal) && isset($mpVal['de'])) { foreach (['it', 'de', 'en'] as $mpL) { $mpTx = $mpTx && trim((string) ($mpVal[$mpL] ?? '')) !== ''; } }
+}
+pruefe('Alle neuen Texte in drei Sprachen; 7 Kurstage; Meilensteine = Liste im Code',
+    $mpTx && count(Texte::PARTNER_PLUS['kurs']) === 7 && array_keys(Texte::PARTNER_PLUS['meilensteine']) === PartnerMarketing::MEILENSTEINE);
+
+/* Oberfläche */
+$mpPa = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerbereich: alle neuen Blöcke eingebunden, Skript geladen, Handlungen nur für den eigenen Zugang',
+    str_contains($mpPa, "partner_plus_start.php") && str_contains($mpPa, "partner_meilensteine.php") && str_contains($mpPa, "partner_plus_werben.php")
+    && str_contains($mpPa, "partner_kontakte.php") && str_contains($mpPa, 'partner-plus.js') && str_contains($mpPa, "PartnerMarketing::erledigt((int) \$p['id']")
+    && str_contains($mpPa, "PartnerMarketing::angeschrieben((int) \$p['id']"));
+$mpKo = (string) file_get_contents($wurzel . '/views/partner_kontakte.php') . (string) file_get_contents($wurzel . '/../assets/js/partner-plus.js');
+pruefe('Meine Kontakte: nur im Browser gespeichert (localStorage), kein Senden an den Server, höchstens 30',
+    str_contains($mpKo, 'localStorage.setItem(D.speicher') && !preg_match('~fetch\([^)]*kontakt|sendBeacon\([^)]*kontakt~i', $mpKo) && str_contains($mpKo, "'max' => 30"));
+$mpMj = (string) file_get_contents($wurzel . '/../assets/js/partner-medien.js');
+pruefe('Gutschein, Kundenstimme und Meilenstein als Bild: im Browser gezeichnet, mit QR zum Partnerlink',
+    str_contains($mpMj, 'function zeichneGutschein') && str_contains($mpMj, 'function zeichneStimme') && str_contains($mpMj, 'function zeichneMeilenstein')
+    && str_contains($mpMj, 'qrFeld(x, G.link') && !preg_match('~fetch\(|XMLHttpRequest|https?://~', $mpMj));
+pruefe('Lauf: Nachhaken, Kurs und Meilensteine hängen im Partner-Lauf, jede Aufgabe fällt für sich',
+    str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), 'PartnerMarketing::lauf()') && is_array(PartnerMarketing::lauf()));
+WebPush::$probe = null;
 
 /* ============================================================================
    Aufräumen und Bilanz

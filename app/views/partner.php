@@ -22,6 +22,31 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     Erstattet der Kunde, entfällt sie.</p>
 </div>
 
+<?php /* Zentrale Aktion (28.09.2026, Uwe: Ja): einmal hier, dann auf allen
+         Partnerseiten, im Partnerbereich und im Posting-Kalender, mit Countdown. */
+  require_once dirname(__DIR__) . '/src/PartnerMarketing.php';
+  $akRoh = json_decode(Partner::einstellung('partner_aktion'), true) ?: [];
+  $akLaeuft = PartnerMarketing::aktion(); ?>
+<details class="block" id="aktion"<?= $akLaeuft ? ' open' : '' ?>>
+  <summary style="cursor:pointer;font-size:15px;font-weight:600">Aktion für alle Partner
+    <?php if ($akLaeuft): ?><span class="marke2 gut" style="margin-left:6px">läuft — <?= Fmt::h(PartnerMarketing::aktionRest($akLaeuft, 'de')) ?></span>
+    <?php else: ?><span class="marke2" style="margin-left:6px">keine</span><?php endif; ?></summary>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"><?= Csrf::feld() ?>
+    <input type="hidden" name="tat" value="partner_aktion">
+    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Ein Satz, der auf jeder Partnerseite oben steht und den Partner als fertigen Beitrag bekommen — mit Enddatum und „Noch X Tage“. Nur versprechen, was es wirklich gibt.</p>
+    <div class="reihe">
+      <div class="feld"><label><input type="checkbox" name="an" value="1" style="width:auto"<?= !empty($akRoh['an']) ? ' checked' : '' ?>> Aktion zeigen</label></div>
+      <div class="feld"><label>Läuft bis einschließlich</label><input type="date" name="bis" value="<?= Fmt::h((string) ($akRoh['bis'] ?? '')) ?>"></div>
+    </div>
+    <?php foreach (['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'] as $akL => $akW): ?>
+      <div class="feld"><label>Text <?= $akW ?><?= $akL === 'it' ? ' (Pflicht, wenn die anderen leer sind)' : '' ?></label>
+        <input type="text" name="texte[<?= $akL ?>]" maxlength="240" value="<?= Fmt::h((string) ($akRoh['texte'][$akL] ?? '')) ?>"
+               placeholder="<?= $akL === 'it' ? 'Autunno: verifica del sito + consulenza gratuite' : ($akL === 'de' ? 'Herbst: Website-Check + Beratung gratis' : 'Autumn: free website check + consultation') ?>"></div>
+    <?php endforeach; ?>
+    <button class="knopf haupt">Speichern</button>
+  </form>
+</details>
+
 <?php if ($bewerbungen): ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 10px">Bewerbungen<span class="mehr"><?= count($bewerbungen) ?></span></h2>

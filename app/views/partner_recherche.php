@@ -49,11 +49,11 @@ $kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $
         $mailLink = 'mailto:' . rawurlencode($f['email']) . '?subject=' . rawurlencode($t['betreff']) . '&body=' . rawurlencode($t['mail']);
         $o .= '<div class="ak-text" data-ak-text="' . $id . '-' . $l . '"' . ($l === $spB ? '' : ' hidden') . '>'
             . '<textarea id="ak_' . $id . '_' . $l . '_wa" readonly rows="6">' . $h($t['wa']) . '</textarea>'
-            . '<div class="ck-knoepfe"><a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="' . $h($waLink) . '">' . $h($AK('wa')) . '</a>'
-            . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_wa">' . $h($AK('kopieren')) . '</button></div>'
+            . '<div class="ck-knoepfe"><a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="' . $h($waLink) . '" data-angeschrieben="' . $id . '">' . $h($AK('wa')) . '</a>'
+            . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_wa" data-angeschrieben="' . $id . '">' . $h($AK('kopieren')) . '</button></div>'
             . '<textarea id="ak_' . $id . '_' . $l . '_mail" readonly rows="7" style="margin-top:10px">' . $h($t['betreff'] . "\n\n" . $t['mail']) . '</textarea>'
-            . '<div class="ck-knoepfe"><a class="knopf klein-knopf" href="' . $h($mailLink) . '">' . $h($AK('mail_neu')) . '</a>'
-            . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_mail">' . $h($AK('kopieren')) . '</button></div></div>';
+            . '<div class="ck-knoepfe"><a class="knopf klein-knopf" href="' . $h($mailLink) . '" data-angeschrieben="' . $id . '">' . $h($AK('mail_neu')) . '</a>'
+            . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_mail" data-angeschrieben="' . $id . '">' . $h($AK('kopieren')) . '</button></div></div>';
     }
     $w = PartnerAnschreiben::wunsch($id);
     /* Briefversand ausgeschaltet (27.09.2026): „Vecom soll anschreiben“ gibt es dann nicht -- außer ein früherer Wunsch hat einen Stand zu zeigen. */

@@ -576,6 +576,15 @@ if ($post) {
                 $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['text'];
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_aktion':
+                /* Zentrale Aktion für alle Partnerseiten (28.09.2026). */
+                require_once __DIR__ . '/src/Partner.php';
+                require_once __DIR__ . '/src/PartnerMarketing.php';
+                $r = PartnerMarketing::aktionSpeichern(!empty($_POST['an']), (string) ($_POST['bis'] ?? ''), (array) ($_POST['texte'] ?? []));
+                $_SESSION[$r === 'ok' ? 'gut' : 'fehler'] = ['ok' => 'Aktion gespeichert.', 'datum' => 'Bitte ein Enddatum wählen.', 'text' => 'Bitte mindestens einen Text eintragen.'][$r];
+                if ($r === 'ok') { Events::protokoll('partner_aktion', 'Partner-Aktion ' . (!empty($_POST['an']) ? 'gespeichert bis ' . (string) ($_POST['bis'] ?? '') : 'ausgeschaltet')); }
+                weiter('partner#aktion');
+
             case 'partner_stripe_alle_pruefen':
                 /* Den Stand aller angefangenen Partnerkonten bei Stripe abholen -- nur lesen. */
                 require_once __DIR__ . '/src/Partner.php';

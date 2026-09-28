@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -92,6 +92,16 @@ if ($p && isset($_GET['manifest'])) {
         ],
     ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
+}
+
+/* Angeschrieben (28.09.2026): Klick auf WhatsApp/E-Mail/Kopieren bei einem
+   reservierten Betrieb, per sendBeacon aus partner-plus.js. Nur eigene,
+   gültige Reservierungen -- daraus wird die Nachfass-Erinnerung. */
+if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'angeschrieben') {
+    if (hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
+        try { PartnerMarketing::angeschrieben((int) $p['id'], (int) ($_POST['f'] ?? 0)); } catch (Throwable $e) { error_log('angeschrieben: ' . $e->getMessage()); }
+    }
+    http_response_code(204); exit;
 }
 
 /* Hinweise ein/aus -- vom Skript der Seite per fetch, mit demselben CSRF-Schluessel. */
@@ -272,6 +282,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'seite_standard' && $p) {
                 PartnerSeite::zuruecksetzen((int) $p['id']);
                 header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;
+            } elseif ($tat === 'nachfass_ok' && $p) {
+                PartnerMarketing::erledigt((int) $p['id'], (string) ($_POST['art'] ?? ''), (int) ($_POST['id'] ?? 0));
+                header('Location: ' . $selbst() . '#nachhaken', true, 303); exit;
+            } elseif ($tat === 'kurs_ok' && $p) {
+                PartnerMarketing::kursAbhaken($p, (int) ($_POST['nr'] ?? 0));
+                header('Location: ' . $selbst() . '#kurs', true, 303); exit;
             } elseif ($tat === 'foto_weg' && $p) {
                 PartnerWerbung::fotoLoeschen((int) $p['id']);
                 header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;
@@ -491,6 +507,58 @@ if ($p && isset($_GET['karte'])) {
   #stripe-form{margin-top:12px}
   .konto-wechsel-ok{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--text);margin:0}
   .konto-wechsel-ok[hidden]{display:none}
+  /* Marketing-Ausbau (28.09.2026) */
+  .pp-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .pp-kopf h2{margin-bottom:6px}
+  .pp-aktion{border-color:rgba(241,211,139,.45);background:linear-gradient(160deg,rgba(241,211,139,.10),rgba(241,211,139,.02))}
+  .pp-marke{margin:0 0 6px;font-size:13px;color:var(--cyan);letter-spacing:.02em}
+  .pp-aktion h2{font-size:clamp(19px,4.6vw,23px);line-height:1.3}
+  .pp-liste{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+  .pp-liste li{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;border:1px solid var(--linie);border-radius:12px;padding:10px 12px;background:var(--flaeche)}
+  .pp-punkt{width:10px;height:10px;border-radius:50%;background:#ff8a4c;box-shadow:0 0 0 4px rgba(255,138,76,.18);flex:none}
+  .pp-was{flex:1 1 170px;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .pp-was b{font-size:15px;overflow-wrap:anywhere}
+  .pp-was small{color:var(--dim);font-size:13px;line-height:1.5}
+  .pp-nf{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;margin-top:10px;background:var(--flaeche)}
+  .pp-nf summary{cursor:pointer;display:flex;flex-direction:column;gap:2px}
+  .pp-nf summary small{color:var(--dim);font-size:13px}
+  .pp-nf textarea{margin-top:10px;font-size:13.5px}
+  .leise-knopf{background:transparent!important;color:var(--dim)!important;border-color:var(--linie)!important}
+  .pp-kurs{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+  .pp-kurs li{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid var(--linie);border-radius:12px}
+  .pp-kurs li.jetzt{border-color:rgba(241,211,139,.55);background:rgba(241,211,139,.05)}
+  .pp-kurs li.zu{opacity:.55}
+  .pp-kurs li.ok b{color:var(--dim)}
+  .pp-tag{font-size:12px;color:var(--cyan);letter-spacing:.03em;text-transform:uppercase}
+  .pp-i{width:22px;height:22px;flex:none;margin-top:1px;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;stroke:var(--leise)}
+  .pp-kurs li.ok .pp-i{stroke:var(--gut)} .pp-kurs li.ok .pp-i circle{fill:var(--gut-grund)}
+  .pp-kurs li:not(.ok) .pp-i{stroke-dasharray:3 3}
+  .pp-ms{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .pp-ms li{border:1px solid var(--linie);border-radius:14px;padding:14px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:13.5px}
+  .pp-ms svg{width:34px;height:34px;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .pp-ms li.ja{border-color:rgba(241,211,139,.45);background:rgba(241,211,139,.06)}
+  .pp-ms li.ja svg{stroke:var(--cyan)}
+  .pp-ms li.nein{color:var(--leise)} .pp-ms li.nein svg{stroke:var(--leise);opacity:.6}
+  .pp-ms-teilen{background:none;border:0;color:var(--cyan);font-size:12.5px;text-decoration:underline;cursor:pointer;padding:2px}
+  .pp-br{margin-top:12px}
+  .pp-warum,.pp-satz{margin:0 0 10px;font-size:14.5px;line-height:1.6}
+  .pp-satz{font-style:italic;color:var(--text)}
+  .pp-args{margin:0 0 10px;padding-left:20px;display:grid;gap:4px;font-size:14.5px;line-height:1.5}
+  .pp-stimme{margin:12px 0 0;border:1px solid var(--linie);border-radius:14px;padding:14px;background:var(--flaeche)}
+  .pp-stimme blockquote{margin:6px 0;font-size:15px;line-height:1.6}
+  .pp-stimme figcaption{color:var(--dim);font-size:13px}
+  .pp-sterne{color:var(--cyan);letter-spacing:2px}
+  .pp-mk-zeile{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:520px){.pp-mk-zeile{grid-template-columns:1fr}}
+  .pp-mk{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+  .pp-mk-leer{color:var(--leise);font-size:14px}
+  .pp-mk-k{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;background:var(--flaeche)}
+  .pp-mk-k.st-kunde{border-color:rgba(52,211,155,.4)} .pp-mk-k.st-interessiert{border-color:rgba(241,211,139,.45)} .pp-mk-k.st-nein{opacity:.6}
+  .pp-mk-kopf{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .pp-mk-wer{display:flex;flex-direction:column;min-width:0}
+  .pp-mk-wer small{color:var(--dim);font-size:13px}
+  .pp-mk-kopf select{width:auto;min-height:38px;padding:6px 10px;font-size:14px}
+  .pp-mk-nach{margin:8px 0 0;color:var(--cyan);font-size:13.5px}
   .konto-wechsel-ok input{width:auto;margin-top:3px}
   .konto-land-keins{margin:6px 0 0;font-size:13px;color:var(--schlecht)}
   .konto-ck{margin:12px 0 14px;border:1px solid var(--linie);border-radius:12px;padding:12px 14px;background:var(--flaeche)}
@@ -717,6 +785,8 @@ if ($p && isset($_GET['karte'])) {
     </details>
   </div>
 
+  <?php require __DIR__ . '/app/views/partner_plus_start.php'; ?>
+
   <div class="block pt" id="zahlen" data-reiter="start">
     <div class="zahlen">
       <div class="zahl"><b><?= (int) $k['klicks'] ?></b><span><?= $h($T('klicks')) ?></span><small><?= $h($T('z_klicks')) ?></small></div>
@@ -780,6 +850,8 @@ if ($p && isset($_GET['karte'])) {
   </div>
 
   <?php require __DIR__ . '/app/views/partner_wettbewerb.php'; ?>
+
+  <?php require __DIR__ . '/app/views/partner_meilensteine.php'; ?>
 
   <?php $emp = PartnerPost::empfehlungen((int) $p['id']); if ($emp): ?>
   <div class="block pt" id="empfehlungen" data-reiter="start">
@@ -955,6 +1027,8 @@ if ($p && isset($_GET['karte'])) {
 
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
 
+  <?php require __DIR__ . '/app/views/partner_plus_werben.php'; ?>
+
   <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge || $kacheln): $PE = Texte::PARTNER_ERFOLG; $MKe = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache); ?>
   <div class="block pt" id="erfolge" data-reiter="werben">
     <h2><?= $h($ST($PE['e_titel'])) ?></h2>
@@ -1000,6 +1074,8 @@ if ($p && isset($_GET['karte'])) {
         if ($ckZ) { $checkNeu = ['token' => (string) $ckZ['token'], 'ergebnis' => json_decode((string) $ckZ['ergebnis'], true) ?: ['host' => '', 'punkte' => []]]; }
     }
     require __DIR__ . '/app/views/partner_recherche.php'; ?>
+
+  <?php require __DIR__ . '/app/views/partner_kontakte.php'; ?>
 
   <?php $neuNachr = PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
   <div class="block pt" id="nachrichten" data-reiter="profil"<?= $neuNachr > 0 ? ' data-punkt="1"' : '' ?>>
@@ -1165,6 +1241,7 @@ if ($p && isset($_GET['karte'])) {
 
   <script src="/assets/js/qrcode.js"></script>
   <script src="/assets/js/partner-medien.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-medien.js') ?>" defer></script>
+  <script src="/assets/js/partner-plus.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-plus.js') ?>" defer></script>
 <?php endif; ?>
 
   <div class="sprachen">

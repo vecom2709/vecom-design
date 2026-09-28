@@ -12,6 +12,15 @@ $kaDatum = static fn(string $d): string => $kaWt[(int) date('w', strtotime($d))]
 <div class="block pt" id="kalender" data-reiter="werben">
   <h2><?= $h($MK('ka_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($MK('ka_text')) ?></p>
+  <?php /* Laufende Aktion (28.09.2026): steht über dem Tagesbeitrag, solange sie läuft. */
+        $kaAktion = PartnerMarketing::aktion(); if ($kaAktion): $kaAkB = PartnerMarketing::aktionBeitrag($p, $kaAktion, $sprache); ?>
+    <div class="ka-heute" style="margin-bottom:12px">
+      <div class="ka-kopf"><span class="ka-tag"><?= $h(Texte::h(Texte::PARTNER_PLUS['ak_titel'], $sprache)) ?> · <?= $h(PartnerMarketing::aktionRest($kaAktion, $sprache)) ?></span></div>
+      <textarea id="ka_aktion" readonly rows="4" data-wachsen><?= $h($kaAkB) ?></textarea>
+      <div class="knoepfe"><button class="knopf haupt" type="button" data-kopie="ka_aktion"><?= $h($MK('ka_kopieren')) ?></button>
+        <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($kaAkB) ?>"><?= $h($MK('ka_wa')) ?></a></div>
+    </div>
+  <?php endif; ?>
   <div class="ka-heute">
     <div class="ka-kopf"><span class="ka-tag"><?= $h($MK('ka_heute')) ?> · <?= $h($kaDatum($kaHeute['datum'])) ?></span>
       <b><?= $h($kaHeute['titel']) ?></b><?php if ($kaHeute['anlass']): ?> <span class="ka-marke"><?= $h($MK('ka_anlass')) ?></span><?php endif; ?></div>

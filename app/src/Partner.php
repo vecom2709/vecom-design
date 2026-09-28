@@ -1692,6 +1692,10 @@ final class Partner
             $r['jahr'] = self::still(static fn() => self::jahresmails(), 0);
         }
 
+        /* Marketing-Hinweise (28.09.2026): Nachhaken, Kurstag, Meilensteine -- je mit eigener Drosselung. */
+        require_once __DIR__ . '/PartnerMarketing.php';
+        foreach ((array) self::still(static fn() => PartnerMarketing::lauf(), []) as $mk => $mv) { $r['marketing_' . $mk] = (int) $mv; }
+
         require_once __DIR__ . '/PartnerWege.php';
 
         /* Was nie von allein geht (SEPA, Verrechnung): einmal am Tag sagen, dass es fällig ist. */
