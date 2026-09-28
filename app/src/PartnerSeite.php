@@ -95,9 +95,10 @@ final class PartnerSeite
     ];
 
     /* „wege“ (27.09.2026): Website prüfen · Preis in 2 Minuten · Gespräch buchen. */
-    public const BAUSTEINE = ['wege', 'film', 'arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
+    /* „kurzcheck“ und „preise“ (28.09.2026, Uwe: Ja zu R7 und R4). */
+    public const BAUSTEINE = ['wege', 'kurzcheck', 'preise', 'film', 'arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
     /** Reihenfolge ab Werk (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“). */
-    public const REIHENFOLGE = ['wege', 'film', 'stimmen', 'ablauf', 'arbeiten', 'faq', 'rueckruf', 'whatsapp'];
+    public const REIHENFOLGE = ['wege', 'kurzcheck', 'preise', 'film', 'stimmen', 'ablauf', 'arbeiten', 'faq', 'rueckruf', 'whatsapp'];
     /** Arbeiten, aus denen der Partner wählt (Texte in Texte::PARTNER_SEITE['arbeiten']); höchstens drei. */
     public const ARBEITEN = ['trendonix', 'jonika', 'drehesum', 'cavaleri', 'mensaena'];
     public const ARBEITEN_MAX = 3;
@@ -128,7 +129,27 @@ final class PartnerSeite
     /* Kundenstimmen und Rückruf (27.09.2026) sind an, bis der Partner sie
        ausschaltet: Beide zeigen nur, was es gibt (freigegebene Stimmen,
        Vecoms Rückruf) -- und die meisten Partner öffnen den Gestalter nie. */
-    public const STANDARD_AN = ['stimmen', 'rueckruf', 'wege', 'arbeiten'];
+    public const STANDARD_AN = ['stimmen', 'rueckruf', 'wege', 'arbeiten', 'kurzcheck', 'preise'];
+    /* Branchentexte (28.09.2026, Uwe: Ja zu R1): welche Textgruppe zu welchem
+       Titelbild passt. Die Texte selbst stehen in Texte::SEITE_BRANCHEN. */
+    public const BILD_BRANCHE = [
+        'gastro' => 'gastro', 'gastro_hell' => 'gastro', 'hotel' => 'hotel', 'villa_garten' => 'hotel', 'agriturismo' => 'hotel',
+        'friseur' => 'beauty', 'salon_modern' => 'beauty', 'salon_klassisch' => 'beauty',
+        'auto' => 'auto', 'autohaus' => 'auto', 'chauffeur' => 'auto', 'kueche' => 'handwerk', 'holz' => 'handwerk',
+        'wein' => 'produkte', 'weisswein' => 'produkte', 'olio' => 'produkte', 'mode' => 'laden', 'schmuck' => 'laden', 'uhren' => 'laden',
+        'transport' => 'transport', 'spedition' => 'transport',
+    ];
+    /** Sprachnachricht (R6): höchstens so groß; der Rekorder im Gestalter hält nach 30 Sekunden an. */
+    public const GRUSS_MAX_BYTE = 1024 * 1024;
+    public const GRUSS_TYPEN = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg', 'audio/x-m4a', 'audio/aac'];
+    /** Preisbeispiele (R4) -- dieselben Antworten wie preise-daten.php; die Kette prüft, dass beide dieselbe Zahl ergeben. */
+    public const PREIS_FAELLE = [
+        'f1' => ['zweck' => ['zeigen'], 'umfang' => 'eine',   'sprachen' => 1],
+        'f2' => ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 1],
+        'f3' => ['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 3],
+        'f4' => ['zweck' => ['zeigen', 'shop'], 'umfang' => 'wenige', 'sprachen' => 1],
+    ];
+    public const PREIS_GRUND = ['material' => ['texte', 'fotos', 'logo'], 'bestand' => 'neu', 'zeit' => 'offen', 'betreuung' => 'nein'];
     public const TEXT_MAX = ['titel' => 80, 'lead' => 320, 'p1' => 100, 'p2' => 100, 'p3' => 100];
     public const BILD_MAX_BYTE = 10 * 1024 * 1024;
 
@@ -263,10 +284,115 @@ final class PartnerSeite
         Db::run('UPDATE partner SET seite_bild = NULL, seite_bild_am = NULL, seite_am = NOW() WHERE id = ?', [$partnerId]);
     }
 
-    /** Zurück auf den Standard (Vecom in der Partnerakte oder der Partner selbst). Foto und Satz bleiben. */
+    /** Zurück auf den Standard (Vecom in der Partnerakte oder der Partner selbst). Foto und Satz bleiben; die Sprachnachricht geht mit -- so kann Vecom sie mit einem Klick entfernen. */
     public static function zuruecksetzen(int $partnerId): void
     {
         Db::run('UPDATE partner SET seite_json = NULL, seite_bild = NULL, seite_bild_am = NULL, seite_am = NOW() WHERE id = ?', [$partnerId]);
+        try { self::grussLoeschen($partnerId); } catch (Throwable $e) { /* vor Migration 097 gibt es die Spalten nicht */ }
+    }
+
+    /**
+     * Sprachnachricht des Partners speichern (28.09.2026, Uwe: Ja zu R6).
+     * Nur echte Audiodateien bis 1 MB; der Typ kommt aus dem Inhalt, nicht
+     * aus dem Namen. Gespeichert wird, was der Browser aufgenommen hat.
+     * @return string ok|gruss_gross|gruss_art
+     */
+    public static function grussSpeichern(int $partnerId, string $pfad, int $groesse): string
+    {
+        if ($groesse <= 0 || $groesse > self::GRUSS_MAX_BYTE) { return 'gruss_gross'; }
+        $typ = function_exists('finfo_open') ? (string) (new finfo(FILEINFO_MIME_TYPE))->file($pfad) : '';
+        if ($typ === 'video/webm') { $typ = 'audio/webm'; }   // Chrome nimmt Ton als WebM auf; finfo sieht nur den Behälter
+        if ($typ === 'video/mp4' || $typ === 'audio/x-m4a') { $typ = 'audio/mp4'; }
+        if ($typ === 'application/ogg') { $typ = 'audio/ogg'; }
+        if (!in_array($typ, self::GRUSS_TYPEN, true)) { return 'gruss_art'; }
+        $daten = (string) file_get_contents($pfad);
+        if ($daten === '') { return 'gruss_art'; }
+        Db::run('UPDATE partner SET seite_gruss = ?, seite_gruss_typ = ?, seite_gruss_am = NOW(), seite_am = NOW() WHERE id = ?', [$daten, $typ, $partnerId]);
+        return 'ok';
+    }
+
+    public static function grussLoeschen(int $partnerId): void
+    {
+        Db::run('UPDATE partner SET seite_gruss = NULL, seite_gruss_typ = NULL, seite_gruss_am = NULL, seite_am = NOW() WHERE id = ?', [$partnerId]);
+    }
+
+    /** Adresse der Sprachnachricht mit Versionsanhang, oder null. */
+    public static function grussAdresse(array $p): ?string
+    {
+        return !empty($p['seite_gruss_am']) ? '/p.php?gruss=' . rawurlencode((string) $p['code']) . '&v=' . substr(md5((string) $p['seite_gruss_am']), 0, 8) : null;
+    }
+
+    /** Die nächsten freien Gesprächszeiten (R2): höchstens $n, als ['slot' => 'Y-m-d H:i', 'datum' => 'Y-m-d', 'zeit' => 'H:i']. */
+    public static function naechsteTermine(int $n = 3, ?int $jetzt = null): array
+    {
+        try {
+            foreach (['Akquise', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }
+            $aus = [];
+            foreach (AkquiseTermin::freie($jetzt) as $datum => $zeiten) {
+                foreach ($zeiten as $z) {
+                    $aus[] = ['slot' => $datum . ' ' . $z, 'datum' => $datum, 'zeit' => $z];
+                    if (count($aus) >= $n) { return $aus; }
+                }
+            }
+            return $aus;
+        } catch (Throwable $e) { return []; }
+    }
+
+    /**
+     * Preisbeispiele für den Baustein „Was kostet es?“ (R4), durch denselben
+     * Rechenweg wie Angebot und Preisseite. Fehlt der Baukasten: leer, und der
+     * Baustein erscheint nicht -- lieber keine Zahl als eine falsche.
+     * @return array{faelle:array<string,string>, betreuung:string}
+     */
+    public static function preise(string $sprache): array
+    {
+        try {
+            require_once __DIR__ . '/Baukasten.php';
+            $katalog = Baukasten::katalog();
+            if (!$katalog) { return ['faelle' => [], 'betreuung' => '']; }
+            $text = static function (int $von, int $bis) use ($sprache): string {
+                $z = static fn(int $c): string => $sprache === 'en' ? number_format((int) round($c / 100), 0, '.', ',') : number_format((int) round($c / 100), 0, ',', '.');
+                $s = $z($von) . ($bis > $von ? ' – ' . $z($bis) : '');
+                return $sprache === 'en' ? '€' . $s : $s . ' €';
+            };
+            $faelle = [];
+            foreach (self::PREIS_FAELLE as $k => $antworten) {
+                try { $r = Baukasten::rechnen($antworten + self::PREIS_GRUND, $katalog); } catch (Throwable $e) { continue; }
+                if ((int) $r['von_cents'] <= 0) { continue; }
+                $gs = Baukasten::spanne((int) $r['von_cents'], (int) $r['bis_cents']);
+                $faelle[$k] = $text((int) $gs['von_cents'], (int) $gs['bis_cents']);
+            }
+            $betreuung = isset($katalog['betreuung_basis']) ? $text((int) $katalog['betreuung_basis']['preis_cents'], 0) : '';
+            return ['faelle' => $faelle, 'betreuung' => $betreuung];
+        } catch (Throwable $e) { return ['faelle' => [], 'betreuung' => '']; }
+    }
+
+    /**
+     * Kurz-Check auf der Partnerseite (R7): nur die Ampel der sechs Punkte,
+     * ohne Namen, ohne E-Mail, ohne Speichern. Gebremst je Adresse (alle 15
+     * Sekunden, höchstens 8 am Tag) und insgesamt (300 am Tag).
+     * @return array{ok:bool, grund?:string, host?:string, url?:string, punkte?:list<array{was:string,stand:string}>}
+     */
+    public static function kurzcheck(string $roh, ?string $ip = null): array
+    {
+        /* Die Adresse des Besuchers nur als Tages-Prüfsumme für die Bremse -- nie gespeichert, nie gezählt. */
+        $ip ??= (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        foreach (['Domainpruefung', 'PartnerCheck'] as $k) { require_once __DIR__ . "/$k.php"; }
+        $url = PartnerCheck::adresse($roh);
+        if ($url === null) { return ['ok' => false, 'grund' => 'adresse']; }
+        $ordner = sys_get_temp_dir();
+        $tag = date('Ymd');
+        $wer = $ordner . '/vecomkurz_' . md5($ip . '|' . $tag);
+        $alle = $ordner . '/vecomkurz_alle_' . $tag;
+        $meine = is_file($wer) ? (int) file_get_contents($wer) : 0;
+        if (is_file($wer) && time() - filemtime($wer) < 15) { return ['ok' => false, 'grund' => 'warten']; }
+        if ($meine >= 8 || (is_file($alle) && (int) file_get_contents($alle) >= 300)) { return ['ok' => false, 'grund' => 'zuviel']; }
+        @file_put_contents($wer, (string) ($meine + 1));
+        @file_put_contents($alle, (string) ((is_file($alle) ? (int) file_get_contents($alle) : 0) + 1));
+        $e = PartnerCheck::pruefen($url);
+        if (($e['fehler'] ?? '') === 'adresse') { return ['ok' => false, 'grund' => 'adresse']; }
+        return ['ok' => true, 'host' => (string) ($e['host'] ?? parse_url($url, PHP_URL_HOST)), 'url' => (string) ($e['url'] ?? $url),
+                'punkte' => array_map(static fn($p) => ['was' => (string) $p['was'], 'stand' => (string) $p['stand']], $e['punkte'] ?? [])];
     }
 
     /** Adresse des Titelbilds (eigenes mit Versionsanhang, sonst aus der Auswahl) oder null. */
@@ -337,12 +463,17 @@ final class PartnerSeite
     }
 
     /** Ziel eines Weges in der Sprache der Seite. */
-    public static function wegZiel(string $weg, string $sprache): ?string
+    public static function wegZiel(string $weg, string $sprache, array $extra = []): ?string
     {
+        /* Mitgegeben werden nur geprüfte Werte: ein freier Termin (R2) und die
+           Adresse aus dem Kurz-Check (R7), damit der Besucher nichts zweimal tippt. */
+        $slot = preg_match('~^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$~', (string) ($extra['slot'] ?? '')) ? (string) $extra['slot'] : '';
+        $url = mb_substr(trim((string) ($extra['url'] ?? '')), 0, 200);
+        if ($url !== '' && !preg_match('/^[\p{L}\p{N}.:\/_\-?=&%#~+]+$/u', $url)) { $url = ''; }
         return match ($weg) {
-            'check' => '/website-check.php?lang=' . $sprache,
+            'check' => '/website-check.php?lang=' . $sprache . ($url !== '' ? '&url=' . rawurlencode($url) : ''),
             'preis' => '/bedarf.php?lang=' . $sprache,
-            'termin' => '/termin.php?lang=' . $sprache,
+            'termin' => '/termin.php?lang=' . $sprache . ($slot !== '' ? '&slot=' . rawurlencode($slot) : ''),
             default => null,
         };
     }

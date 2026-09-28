@@ -75,9 +75,30 @@
     tag.addEventListener('change', sperren); sperren();
   }
 
-  /* Mitlaufende Leiste: weg, solange das Formular oben zu sehen ist */
+  /* Mitlaufende Leiste: weg, solange das Formular oben zu sehen ist. Am
+     Computer (28.09.2026, R5) steht sie oben und erscheint nur mit Skript. */
   var leiste = $('lp_leiste'), form = $('lp_form');
   if (leiste && form && 'IntersectionObserver' in window) {
+    leiste.classList.add('weg');
     new IntersectionObserver(function (e) { leiste.classList.toggle('weg', e[0].isIntersecting); }, { threshold: 0.2 }).observe(form);
+    requestAnimationFrame(function () { leiste.classList.add('bereit'); });
+  }
+
+  /* Anfrage in zwei Schritten (28.09.2026, R3): erst „Was brauchen Sie?“,
+     dann die E-Mail. Ohne Skript stehen beide Schritte zugleich da. */
+  if (form) {
+    var wahl = form.querySelectorAll('input[name="wunsch"]'), weiter = form.querySelector('.lp-wunsch-weiter');
+    var mail = $('ld_email');
+    if (wahl.length && mail && !mail.value) {
+      form.classList.add('zweistufig');
+      Array.prototype.forEach.call(wahl, function (r) {
+        r.addEventListener('change', function () {
+          var erstes = !form.classList.contains('gewaehlt');
+          form.classList.add('gewaehlt');
+          if (weiter) { weiter.hidden = false; }
+          if (erstes) { mail.focus({ preventScroll: false }); }
+        });
+      });
+    }
   }
 })();

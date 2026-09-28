@@ -76,6 +76,9 @@ try {
                 $fehler = (string) $r['grund'];
             }
         }
+    } elseif (isset($_GET['url']) && !isset($_GET['t'])) {
+        /* Aus dem Kurz-Check der Partnerseite (28.09.2026, R7): die Adresse steht schon im Feld. */
+        $werte['url'] = mb_substr(trim((string) $_GET['url']), 0, 200);
     } elseif (isset($_GET['t'])) {
         $check = AkquiseCheck::laden((string) $_GET['t']);
         if ($check === null) {

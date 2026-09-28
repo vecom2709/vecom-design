@@ -73,6 +73,14 @@ final class Zugang
         return in_array($roh, self::QUELLEN, true) ? $roh : 'seite';
     }
 
+    /** Was der Besucher auf der Partnerseite angetippt hat (28.09.2026, R3) -- Schlüssel => Wortlaut für die Akte. */
+    public const WUENSCHE = ['neu' => 'neue Website', 'ueberarbeitung' => 'bestehende Website überarbeiten', 'shop' => 'Online-Shop', 'unsicher' => 'noch unsicher'];
+
+    public static function wunsch(mixed $roh): ?string
+    {
+        return is_string($roh) && isset(self::WUENSCHE[$roh]) ? $roh : null;
+    }
+
     public static function anfordern(string $email, string $sprache, array $extra = []): array
     {
         $email = mb_strtolower(trim($email));
@@ -110,7 +118,8 @@ final class Zugang
             [$email, date('Y-m-d H:i:s', time() - self::GUELTIG_TAGE * 86400)]);
         if (!$z) {
             $code = strtoupper(trim((string) ($extra['empfehl_code'] ?? '')));
-            $id = Db::insert('zugaenge', [
+            /* wunsch nur, wenn es einen gibt: zwischen Deploy und Migration 097 fehlt die Spalte noch. */
+            $id = Db::insert('zugaenge', array_filter(['wunsch' => self::wunsch($extra['wunsch'] ?? null)], static fn($v) => $v !== null) + [
                 'token'        => bin2hex(random_bytes(24)),
                 'email'        => $email,
                 'name'         => mb_substr(trim((string) ($extra['name'] ?? '')), 0, 120) ?: null,
@@ -127,6 +136,7 @@ final class Zugang
             if ((string) $z['sprache'] !== $sprache) { $aend['sprache'] = $sprache; }
             // Kam er beim zweiten Mal über einen Partner, und beim ersten nicht: jetzt merken.
             if (($z['partner_code'] ?? null) === null && ($pc = self::partnerCode($extra)) !== null) { $aend['partner_code'] = $pc; }
+            if (($w = self::wunsch($extra['wunsch'] ?? null)) !== null) { $aend['wunsch'] = $w; }
             if ($aend) { Db::update('zugaenge', (int) $z['id'], $aend); }
         }
 
@@ -200,7 +210,8 @@ final class Zugang
             'name'    => (string) ($z['name'] ?? ''),
             'email'   => (string) $z['email'],
             'sprache' => $sprache,
-            'notes'   => 'Über den E-Mail-Einstieg der Website gekommen.',
+            'notes'   => 'Über den E-Mail-Einstieg der Website gekommen.'
+                . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' Wunsch laut Partnerseite: ' . self::WUENSCHE[(string) $z['wunsch']] . '.' : ''),
         ]);
         require_once __DIR__ . '/Onboarding.php';
         /* Die Sprache kam aus der Fassung der Seite, auf der er die Adresse
@@ -230,7 +241,7 @@ final class Zugang
 
         Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
         Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
-            (string) $z['email'], '/kunden/' . $kid);
+            (string) $z['email'] . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' · Wunsch: ' . self::WUENSCHE[(string) $z['wunsch']] : ''), '/kunden/' . $kid);
 
         return ['ok' => true, 'kunde_id' => $kid, 'neu' => true,
                 'link' => Kundenzugang::linkFuer($kid, $sprache)];

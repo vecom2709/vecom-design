@@ -7137,6 +7137,12 @@ Zugang::anfordern($zgMail, 'de');
 pruefe('zweimal gedrückt: derselbe Zugang, kein zweiter',
     (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ?', [$zgMail], 0) === 1);
 pruefe('… und dieselbe Mail noch einmal', $zgMails('zugang', $zgMail) === 2);
+Zugang::anfordern($zgMail, 'de', ['wunsch' => 'shop']);
+Zugang::anfordern('wunsch-unsinn@pruefung.example', 'de', ['wunsch' => '<b>alles</b>']);
+pruefe('Wunsch von der Partnerseite (R3) hängt am Zugang; Unbekanntes wird nicht gespeichert',
+    (string) Db::wert('SELECT wunsch FROM zugaenge WHERE email = ?', [$zgMail], '') === 'shop'
+    && (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ? AND wunsch IS NULL', ['wunsch-unsinn@pruefung.example'], 0) === 1);
+Db::run('DELETE FROM zugaenge WHERE email = ?', ['wunsch-unsinn@pruefung.example']);
 
 /* E2: Der Link steht nie auf dem Bildschirm. zugang.php antwortet dem Feld
    nur mit ok und einem Satz -- der Satz ist für jede Adresse derselbe. */
@@ -7155,6 +7161,8 @@ $zgO = Zugang::oeffnen($zgToken);
 $zgK = (int) ($zgO['kunde_id'] ?? 0);
 pruefe('beim Öffnen entsteht der Kunde', $zgO['ok'] === true && $zgK > 0 && !empty($zgO['neu']), json_encode($zgO));
 pruefe('der Weg führt ins Dashboard', str_contains((string) ($zgO['link'] ?? ''), 'kunde.php?t='));
+pruefe('… und in der Kundenakte steht, was er auf der Partnerseite angetippt hat',
+    str_contains((string) Db::wert('SELECT notes FROM customers WHERE id = ?', [$zgK], ''), 'Wunsch laut Partnerseite: Online-Shop'));
 pruefe('die Sprache der Seite hängt am Kunden',
     (string) Db::wert('SELECT sprache FROM customers WHERE id = ?', [$zgK], '') === 'de');
 pruefe('für das Vorhaben liegt ein Bedarf bereit',
@@ -11834,6 +11842,60 @@ pruefe('Schrift und Titelbild-Art werden gespeichert; die Schrift gilt nur den �
 PartnerSeite::speichern($psId, ['schrift' => 'comic sans', 'kopf' => '<b>']);
 $psG = PartnerSeite::gestaltung($psP());
 pruefe('Unbekannte Schrift oder Titelbild-Art ändert nichts', $psG['schrift'] === 'elegant' && $psG['kopf'] === 'buehne');
+/* Runde 2 (28.09.2026, Uwe: Ja zu R1–R7). */
+$r2F = [];
+foreach (PartnerSeite::BILDER as $psK => $psD) {
+    $r2G = PartnerSeite::BILD_BRANCHE[$psK] ?? '';
+    if (!isset(Texte::SEITE_BRANCHEN[$r2G])) { $r2F[] = "$psK ohne Branchentexte"; continue; }
+}
+foreach (Texte::SEITE_BRANCHEN as $r2G => $r2T) {
+    foreach (['it', 'de', 'en'] as $r2L) {
+        foreach (PartnerSeite::TEXT_MAX as $r2K => $r2M) {
+            $r2V = (string) ($r2T[$r2L][$r2K] ?? '');
+            if ($r2V === '' || mb_strlen($r2V) > $r2M) { $r2F[] = "$r2G/$r2L/$r2K"; }
+        }
+    }
+    if (PartnerSeite::speichern($psId, ['texte' => ['it' => $r2T['it'], 'de' => $r2T['de'], 'en' => $r2T['en']]]) !== 'ok') { $r2F[] = "$r2G scheitert an der Link-Sperre"; }
+}
+pruefe('Branchentexte: jedes Titelbild hat eine Gruppe, jede Gruppe alle Texte in drei Sprachen innerhalb der Längen, und sie lassen sich speichern', $r2F === [], implode(', ', $r2F));
+pruefe('Wege: freier Termin und Adresse reisen geprüft mit, Unsinn fällt weg',
+    PartnerSeite::wegZiel('termin', 'de', ['slot' => '2026-10-02 10:30']) === '/termin.php?lang=de&slot=2026-10-02%2010%3A30'
+    && PartnerSeite::wegZiel('termin', 'de', ['slot' => '<script>']) === '/termin.php?lang=de'
+    && PartnerSeite::wegZiel('check', 'it', ['url' => 'trattoria-rossi.it']) === '/website-check.php?lang=it&url=trattoria-rossi.it'
+    && PartnerSeite::wegZiel('check', 'it', ['url' => '"><b>']) === '/website-check.php?lang=it');
+pruefe('Preis-Baustein rechnet mit denselben Antworten wie preise-daten.php',
+    PartnerSeite::PREIS_FAELLE === $spRezepte && PartnerSeite::PREIS_GRUND === $spGrund);
+$r2Pr = PartnerSeite::preise('de'); [$r2V1, $r2B1] = $spStueck($spRezepte['f1'], Baukasten::katalog());
+pruefe('… und zeigt dieselbe Zahl wie Preisseite und Angebot', ($r2Pr['faelle']['f1'] ?? '') === $spSchreib((int) $r2V1, (int) $r2B1, false)
+    && str_starts_with((string) (PartnerSeite::preise('en')['faelle']['f1'] ?? ''), '€'), json_encode($r2Pr, JSON_UNESCAPED_UNICODE));
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 600, 'url' => 'https://kurz.example/', 'ssl_tage' => 80, 'fehler' => '',
+    'inhalt' => '<html><head><title>Kurz</title><meta name="viewport" content="width=device-width"></head><body>© ' . date('Y') . '</body></html>'];
+$r2Ip = '198.51.100.' . random_int(1, 250);
+$r2K = PartnerSeite::kurzcheck('kurz.example', $r2Ip);
+$r2K2 = PartnerSeite::kurzcheck('kurz.example', $r2Ip);
+pruefe('Kurz-Check: Ampel der sechs Punkte ohne Namen und E-Mail; gleich danach noch einmal wird gebremst; Unsinn ist keine Adresse',
+    $r2K['ok'] && count($r2K['punkte']) === 6 && $r2K['host'] === 'kurz.example' && $r2K2['grund'] === 'warten'
+    && PartnerSeite::kurzcheck('kein punkt', '198.51.100.251')['grund'] === 'adresse', json_encode([$r2K, $r2K2]));
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+$r2Datei = tempnam(sys_get_temp_dir(), 'gruss');
+file_put_contents($r2Datei, 'nur Text, kein Ton');
+$r2A = PartnerSeite::grussSpeichern($psId, $r2Datei, (int) filesize($r2Datei));
+file_put_contents($r2Datei, "ID3\x03\x00\x00\x00\x00\x00\x00" . str_repeat("\xFF\xFB\x90\x64" . str_repeat("\x00", 413), 40));
+$r2B = PartnerSeite::grussSpeichern($psId, $r2Datei, (int) filesize($r2Datei));
+$r2Adr = PartnerSeite::grussAdresse($psP());
+pruefe('Sprachnachricht: Text abgelehnt, zu groß abgelehnt, echte Tondatei gespeichert und mit Versionsanhang erreichbar',
+    $r2A === 'gruss_art' && PartnerSeite::grussSpeichern($psId, $r2Datei, PartnerSeite::GRUSS_MAX_BYTE + 1) === 'gruss_gross'
+    && $r2B === 'ok' && str_contains((string) $r2Adr, '/p.php?gruss=GIANNIPS1&v='), "$r2A $r2B " . (string) $r2Adr);
+@unlink($r2Datei);
+PartnerSeite::zuruecksetzen($psId);
+pruefe('Zurücksetzen nimmt die Sprachnachricht mit (so kann Vecom sie mit einem Klick entfernen)', PartnerSeite::grussAdresse($psP()) === null);
+pruefe('Freie Termine für die Partnerseite: höchstens drei, jeder als Datum und Uhrzeit',
+    count(PartnerSeite::naechsteTermine(3)) <= 3 && array_filter(PartnerSeite::naechsteTermine(3), static fn($t) => !preg_match('~^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$~', $t['slot'])) === []);
+$r2Pq = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Partnerseite: Wunsch-Knöpfe im Formular, Kurz-Check und Preise als Bausteine, Ton mit Bereichsabfragen, Leiste am Computer',
+    str_contains($r2Pq, 'name="wunsch"') && str_contains($r2Pq, "case 'kurzcheck':") && str_contains($r2Pq, "case 'preise':")
+    && str_contains($r2Pq, 'http_response_code(206)') && str_contains($r2Pq, '.lp-leiste.bereit'));
 $psPq = (string) file_get_contents($wurzel . '/../p.php');
 pruefe('Partnerseite: Bühne und breites Layout nur über CSS, Einblenden nur ohne „weniger Bewegung“',
     str_contains($psPq, "\$g['kopf'] === 'buehne'") && str_contains($psPq, '@media (min-width:980px)')
@@ -13168,7 +13230,7 @@ pruefe('Website-Check über die Partnerseite: am Check steht der Partner, er zä
 $lsG = PartnerSeite::gestaltung($lsPa);
 pruefe('Gestaltung ab Werk: Werksreihenfolge, die drei Beispielarbeiten (Trendonix, Jonika, Dreh es um), Knopf „Loslegen“, die drei Wege an',
     $lsG['reihenfolge'] === PartnerSeite::REIHENFOLGE && $lsG['arbeiten'] === ['trendonix', 'jonika', 'drehesum'] && $lsG['knopf'] === 'loslegen' && $lsG['bausteine']['wege'] && $lsG['bausteine']['arbeiten']);
-PartnerSeite::speichern($lsP, ['bausteine' => ['wege' => '1', 'rueckruf' => '1', 'arbeiten' => '1'], 'pos' => ['rueckruf' => 1, 'wege' => 2, 'stimmen' => 7],
+PartnerSeite::speichern($lsP, ['bausteine' => ['wege' => '1', 'rueckruf' => '1', 'arbeiten' => '1'], 'pos' => ['rueckruf' => 1, 'wege' => 2, 'stimmen' => 9],   /* 9 statt 7 seit Kurz-Check und Preise (28.09.2026): wieder hinter FAQ */
     'arbeiten' => ['trendonix' => '1', 'cavaleri' => '1'], 'knopf' => 'preis']);
 $lsG = PartnerSeite::gestaltung(Db::one('SELECT * FROM partner WHERE id = ?', [$lsP]));
 pruefe('Gestaltung gespeichert: Rückruf nach oben, eigene Arbeiten (auch Trendonix), eigener Knopftext',

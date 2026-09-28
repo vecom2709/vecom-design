@@ -3333,6 +3333,60 @@ final class Texte
     ];
 
     /** Die Landeseite hinter /p/CODE (26.09.2026). {name} = wie der Partner genannt werden will. */
+    /* Branchentexte für die Partnerseite (28.09.2026, Uwe: Ja zu R1). Der Gestalter
+       setzt sie auf Klick in die Felder; danach sind es die Texte des Partners.
+       Ohne Adressen und ohne {name}: eigene Texte werden nicht ersetzt. */
+    public const SEITE_BRANCHEN = [
+        'gastro' => [
+            'name' => ['it' => 'Ristorante & bar', 'de' => 'Restaurant & Bar', 'en' => 'Restaurant & bar'],
+            'it' => ['titel' => 'Siti web per ristoranti e bar in Sicilia', 'lead' => 'Menù, orari e prenotazione del tavolo in un unico posto, facili da trovare sul telefono. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Menù e orari ben leggibili sul telefono.', 'p2' => 'Prenotazione del tavolo direttamente sul sito, se lo desidera.', 'p3' => 'Su richiesta in italiano, tedesco e inglese per i suoi ospiti.'],
+            'de' => ['titel' => 'Websites für Restaurants und Bars in Sizilien', 'lead' => 'Speisekarte, Öffnungszeiten und Tischreservierung an einem Ort, auf dem Handy schnell gefunden. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Speisekarte und Öffnungszeiten, gut lesbar auf dem Handy.', 'p2' => 'Tischreservierung direkt auf der Website, wenn Sie möchten.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch für Ihre Gäste.'],
+            'en' => ['titel' => 'Websites for restaurants and bars in Sicily', 'lead' => 'Menu, opening hours and table booking in one place, easy to find on a phone. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Menu and opening hours, easy to read on a phone.', 'p2' => 'Table booking right on the website, if you like.', 'p3' => 'In Italian, German and English for your guests, on request.'],
+        ],
+        'hotel' => [
+            'name' => ['it' => 'Hotel & case vacanza', 'de' => 'Hotel & Ferienhaus', 'en' => 'Hotel & holiday home'],
+            'it' => ['titel' => 'Siti web per hotel e case vacanza in Sicilia', 'lead' => 'Mostri camere, posizione e prezzi in modo che gli ospiti chiedano direttamente a lei. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Camere e dintorni in immagini grandi e tranquille.', 'p2' => 'Richieste direttamente da lei, su richiesta con sistema di prenotazione.', 'p3' => 'Su richiesta in italiano, tedesco e inglese.'],
+            'de' => ['titel' => 'Websites für Hotels und Ferienhäuser in Sizilien', 'lead' => 'Zeigen Sie Zimmer, Lage und Preise so, dass Gäste direkt bei Ihnen anfragen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Zimmer und Umgebung in großen, ruhigen Bildern.', 'p2' => 'Anfragen direkt bei Ihnen, auf Wunsch mit Buchungssystem.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch.'],
+            'en' => ['titel' => 'Websites for hotels and holiday homes in Sicily', 'lead' => 'Show rooms, location and prices so guests ask you directly. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Rooms and surroundings in large, calm images.', 'p2' => 'Enquiries come straight to you, with a booking system if you like.', 'p3' => 'In Italian, German and English on request.'],
+        ],
+        'beauty' => [
+            'name' => ['it' => 'Parrucchiere & estetica', 'de' => 'Friseur & Kosmetik', 'en' => 'Hair & beauty'],
+            'it' => ['titel' => 'Siti web per parrucchieri ed estetica in Sicilia', 'lead' => 'Servizi, prezzi e appuntamenti liberi a colpo d’occhio, così i nuovi clienti trovano la strada da lei. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Servizi e prezzi chiari, anche sul telefono.', 'p2' => 'Prenotazione degli appuntamenti online, se lo desidera.', 'p3' => 'I suoi lavori in belle immagini.'],
+            'de' => ['titel' => 'Websites für Friseure und Kosmetik in Sizilien', 'lead' => 'Leistungen, Preise und freie Termine auf einen Blick, damit neue Kundinnen und Kunden den Weg zu Ihnen finden. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Leistungen und Preise übersichtlich, auch auf dem Handy.', 'p2' => 'Terminbuchung online, wenn Sie möchten.', 'p3' => 'Ihre Arbeiten in schönen Bildern.'],
+            'en' => ['titel' => 'Websites for hair and beauty salons in Sicily', 'lead' => 'Services, prices and free appointments at a glance, so new clients find their way to you. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Services and prices laid out clearly, also on a phone.', 'p2' => 'Online appointment booking, if you like.', 'p3' => 'Your work shown in beautiful images.'],
+        ],
+        'auto' => [
+            'name' => ['it' => 'Auto & officina', 'de' => 'Auto & Werkstatt', 'en' => 'Cars & garage'],
+            'it' => ['titel' => 'Siti web per concessionarie e officine in Sicilia', 'lead' => 'Veicoli, servizi e contatti mostrati in modo che i clienti chiamino subito o prendano un appuntamento. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Veicoli e servizi chiari, anche sul telefono.', 'p2' => 'Appuntamenti online, se lo desidera.', 'p3' => 'Il prezzo lo sa prima che iniziamo.'],
+            'de' => ['titel' => 'Websites für Autohäuser und Werkstätten in Sizilien', 'lead' => 'Fahrzeuge, Leistungen und Kontakt so gezeigt, dass Kunden sofort anrufen oder einen Termin machen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Fahrzeuge und Leistungen übersichtlich, auch auf dem Handy.', 'p2' => 'Termine online vereinbaren, wenn Sie möchten.', 'p3' => 'Den Preis kennen Sie, bevor wir anfangen.'],
+            'en' => ['titel' => 'Websites for car dealers and garages in Sicily', 'lead' => 'Vehicles, services and contact shown so customers call right away or book an appointment. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Vehicles and services laid out clearly, also on a phone.', 'p2' => 'Online appointments, if you like.', 'p3' => 'You know the price before we start.'],
+        ],
+        'handwerk' => [
+            'name' => ['it' => 'Artigianato & cucine', 'de' => 'Handwerk & Küchen', 'en' => 'Craft & kitchens'],
+            'it' => ['titel' => 'Siti web per artigiani e cucine in Sicilia', 'lead' => 'I suoi lavori in immagini grandi, così i clienti vedono cosa sa fare e chiedono direttamente. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Referenze e lavori in immagini grandi.', 'p2' => 'Le richieste arrivano direttamente a lei.', 'p3' => 'Il prezzo lo sa prima che iniziamo.'],
+            'de' => ['titel' => 'Websites für Handwerk und Küchenbau in Sizilien', 'lead' => 'Ihre Arbeiten in großen Bildern, damit Kunden sehen, was Sie können, und direkt anfragen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Referenzen und Arbeiten in großen Bildern.', 'p2' => 'Anfragen kommen direkt zu Ihnen.', 'p3' => 'Den Preis kennen Sie, bevor wir anfangen.'],
+            'en' => ['titel' => 'Websites for craftspeople and kitchen makers in Sicily', 'lead' => 'Your work in large images, so customers see what you can do and get in touch directly. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'References and projects in large images.', 'p2' => 'Enquiries come straight to you.', 'p3' => 'You know the price before we start.'],
+        ],
+        'produkte' => [
+            'name' => ['it' => 'Vino, olio & gastronomia', 'de' => 'Wein, Öl & Feinkost', 'en' => 'Wine, oil & fine food'],
+            'it' => ['titel' => 'Siti web e negozi online per vino, olio e gastronomia', 'lead' => 'Racconti la storia dei suoi prodotti e, se vuole, venda direttamente online, anche all’estero. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'I suoi prodotti in immagini tranquille e curate.', 'p2' => 'Su richiesta con negozio online.', 'p3' => 'In italiano, tedesco e inglese per i clienti all’estero.'],
+            'de' => ['titel' => 'Websites und Online-Shops für Wein, Öl und Feinkost', 'lead' => 'Erzählen Sie die Geschichte Ihrer Produkte und verkaufen Sie auf Wunsch direkt online, auch ins Ausland. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Ihre Produkte in ruhigen, hochwertigen Bildern.', 'p2' => 'Auf Wunsch mit Online-Shop.', 'p3' => 'Auf Italienisch, Deutsch und Englisch für Kunden im Ausland.'],
+            'en' => ['titel' => 'Websites and online shops for wine, oil and fine food', 'lead' => 'Tell the story of your products and, if you like, sell directly online, also abroad. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Your products in calm, high-quality images.', 'p2' => 'With an online shop, if you like.', 'p3' => 'In Italian, German and English for customers abroad.'],
+        ],
+        'laden' => [
+            'name' => ['it' => 'Moda & gioielli', 'de' => 'Mode & Schmuck', 'en' => 'Fashion & jewellery'],
+            'it' => ['titel' => 'Siti web e negozi online per moda e gioielli', 'lead' => 'Mostri i suoi pezzi come appaiono in negozio e, se vuole, venda anche online. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'I suoi pezzi in immagini grandi e precise.', 'p2' => 'Su richiesta con negozio online.', 'p3' => 'Il prezzo lo sa prima che iniziamo.'],
+            'de' => ['titel' => 'Websites und Online-Shops für Mode und Schmuck', 'lead' => 'Zeigen Sie Ihre Stücke so, wie sie im Laden wirken, und verkaufen Sie auf Wunsch auch online. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Ihre Stücke in großen, genauen Bildern.', 'p2' => 'Auf Wunsch mit Online-Shop.', 'p3' => 'Den Preis kennen Sie, bevor wir anfangen.'],
+            'en' => ['titel' => 'Websites and online shops for fashion and jewellery', 'lead' => 'Show your pieces the way they look in the shop and, if you like, sell online too. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Your pieces in large, precise images.', 'p2' => 'With an online shop, if you like.', 'p3' => 'You know the price before we start.'],
+        ],
+        'transport' => [
+            'name' => ['it' => 'Trasporti & logistica', 'de' => 'Transport & Logistik', 'en' => 'Transport & logistics'],
+            'it' => ['titel' => 'Siti web per trasporti e logistica in Sicilia', 'lead' => 'Servizi, mezzi e zona di lavoro mostrati con chiarezza, così i clienti aziendali chiedono in fretta. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Servizi e zona di lavoro a colpo d’occhio.', 'p2' => 'Le richieste arrivano direttamente a lei.', 'p3' => 'Su richiesta in italiano, tedesco e inglese.'],
+            'de' => ['titel' => 'Websites für Transport und Logistik in Sizilien', 'lead' => 'Leistungen, Fahrzeuge und Einsatzgebiet klar gezeigt, damit Geschäftskunden schnell anfragen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Leistungen und Einsatzgebiet auf einen Blick.', 'p2' => 'Anfragen kommen direkt zu Ihnen.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch.'],
+            'en' => ['titel' => 'Websites for transport and logistics in Sicily', 'lead' => 'Services, vehicles and area clearly shown, so business customers get in touch quickly. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Services and area at a glance.', 'p2' => 'Enquiries come straight to you.', 'p3' => 'In Italian, German and English on request.'],
+        ],
+    ];
+
     public const PARTNER_LANDE = [
         'titel'  => ['it' => 'Siti web per chi lavora in Sicilia', 'de' => 'Websites für Betriebe in Sizilien', 'en' => 'Websites for businesses in Sicily'],
         'marke'  => ['it' => 'Consigliato da {name}', 'de' => 'Empfohlen von {name}', 'en' => 'Recommended by {name}'],
@@ -3783,6 +3837,45 @@ final class Texte
         'koepfe' => ['karte' => ['it' => 'Immagine sopra il testo', 'de' => 'Bild über dem Text', 'en' => 'Image above the text'], 'buehne' => ['it' => 'Titolo sull’immagine', 'de' => 'Überschrift auf dem Bild', 'en' => 'Heading on the image']],
         'g_vorschlag' => ['it' => 'Si abbina a questa immagine:', 'de' => 'Passt zu diesem Bild:', 'en' => 'Goes with this image:'],
         'g_uebernehmen' => ['it' => 'Applica', 'de' => 'Übernehmen', 'en' => 'Apply'],
+        /* Runde 2 (28.09.2026, Uwe: Ja zu R1–R7) */
+        'g_branche' => ['it' => 'Testi per questo settore:', 'de' => 'Texte für diese Branche:', 'en' => 'Texts for this sector:'],
+        'g_branche_knopf' => ['it' => 'Inserire in tutte e tre le lingue', 'de' => 'In alle drei Sprachen einsetzen', 'en' => 'Fill in all three languages'],
+        'g_branche_ersetzen' => ['it' => 'Sostituire davvero i suoi testi?', 'de' => 'Eigene Texte wirklich ersetzen?', 'en' => 'Really replace your texts?'],
+        'g_branche_fertig' => ['it' => 'Inseriti. Controlli e salvi.', 'de' => 'Eingesetzt. Bitte ansehen und speichern.', 'en' => 'Filled in. Please check and save.'],
+        'g_b_kurzcheck' => ['it' => 'Verifica del sito direttamente sulla pagina', 'de' => 'Website-Check direkt auf der Seite', 'en' => 'Website check right on the page'],
+        'g_b_preise' => ['it' => 'Quanto costa un sito? (prezzi veri)', 'de' => 'Was kostet eine Website? (echte Preise)', 'en' => 'What does a website cost? (real prices)'],
+        'g_gruss' => ['it' => 'Messaggio vocale personale (fino a 30 secondi)', 'de' => 'Persönliche Sprachnachricht (bis 30 Sekunden)', 'en' => 'Personal voice message (up to 30 seconds)'],
+        'g_gruss_hilfe' => ['it' => 'Dica con parole sue perché consiglia Vecom Design. Appare accanto alla sua foto.', 'de' => 'Sagen Sie in eigenen Worten, warum Sie Vecom Design empfehlen. Erscheint neben Ihrem Foto.', 'en' => 'Say in your own words why you recommend Vecom Design. It appears next to your photo.'],
+        'g_gruss_auf' => ['it' => 'Registrare', 'de' => 'Aufnehmen', 'en' => 'Record'],
+        'g_gruss_stop' => ['it' => 'Fermare', 'de' => 'Aufnahme beenden', 'en' => 'Stop recording'],
+        'g_gruss_neu' => ['it' => 'Registrazione pronta: premere «Salvare».', 'de' => 'Aufnahme fertig: jetzt „Speichern“ drücken.', 'en' => 'Recording ready: now press “Save”.'],
+        'g_gruss_datei' => ['it' => 'Oppure scegliere un file audio (MP3, M4A, OGG, WebM)', 'de' => 'Oder Audiodatei wählen (MP3, M4A, OGG, WebM)', 'en' => 'Or choose an audio file (MP3, M4A, OGG, WebM)'],
+        'g_gruss_jetzt' => ['it' => 'Il suo messaggio attuale:', 'de' => 'Ihre aktuelle Nachricht:', 'en' => 'Your current message:'],
+        'g_gruss_weg' => ['it' => 'Eliminare il messaggio vocale', 'de' => 'Sprachnachricht löschen', 'en' => 'Delete voice message'],
+        'gruss_gross' => ['it' => 'Il messaggio vocale è troppo lungo o troppo grande (al massimo 30 secondi, 1 MB).', 'de' => 'Die Sprachnachricht ist zu lang oder zu groß (höchstens 30 Sekunden, 1 MB).', 'en' => 'The voice message is too long or too large (30 seconds, 1 MB at most).'],
+        'gruss_art' => ['it' => 'Questo file non è una registrazione audio. Usi MP3, M4A, OGG o WebM.', 'de' => 'Diese Datei ist keine Tonaufnahme. Bitte MP3, M4A, OGG oder WebM.', 'en' => 'This file is not an audio recording. Please use MP3, M4A, OGG or WebM.'],
+        'gruss_titel' => ['it' => 'Un messaggio di {name}', 'de' => 'Eine Nachricht von {name}', 'en' => 'A message from {name}'],
+        'wunsch_frage' => ['it' => 'Di cosa ha bisogno?', 'de' => 'Was brauchen Sie?', 'en' => 'What do you need?'],
+        'wuensche' => ['neu' => ['it' => 'Nuovo sito', 'de' => 'Neue Website', 'en' => 'New website'], 'ueberarbeitung' => ['it' => 'Rinnovare il sito', 'de' => 'Bestehende überarbeiten', 'en' => 'Redo my site'],
+                       'shop' => ['it' => 'Negozio online', 'de' => 'Online-Shop', 'en' => 'Online shop'], 'unsicher' => ['it' => 'Non so ancora', 'de' => 'Noch unsicher', 'en' => 'Not sure yet']],
+        'wunsch_weiter' => ['it' => 'Bene. Dove le mandiamo il link?', 'de' => 'Gut. Wohin dürfen wir den Link schicken?', 'en' => 'Great. Where should we send the link?'],
+        'termine_frage' => ['it' => 'Preferisce parlarne? Prossimi orari liberi:', 'de' => 'Lieber sprechen? Nächste freie Termine:', 'en' => 'Rather talk? Next free times:'],
+        'kc_titel' => ['it' => 'Com’è messo il suo sito attuale?', 'de' => 'Wie steht Ihre jetzige Website da?', 'en' => 'How is your current website doing?'],
+        'kc_text' => ['it' => 'Inserisca l’indirizzo: in pochi secondi vede sei punti con semaforo. Senza nome, senza e-mail.', 'de' => 'Adresse eingeben: In wenigen Sekunden sehen Sie sechs Punkte als Ampel. Ohne Namen, ohne E-Mail.', 'en' => 'Enter the address: in a few seconds you see six points as traffic lights. No name, no email.'],
+        'kc_feld' => ['it' => 'Indirizzo del sito, per es. trattoria-rossi.it', 'de' => 'Adresse der Website, z. B. trattoria-rossi.it', 'en' => 'Website address, e.g. trattoria-rossi.it'],
+        'kc_knopf' => ['it' => 'Verificare', 'de' => 'Prüfen', 'en' => 'Check'],
+        'kc_ergebnis' => ['it' => 'Risultato per {host}', 'de' => 'Ergebnis für {host}', 'en' => 'Result for {host}'],
+        'kc_stand' => ['gut' => ['it' => 'va bene', 'de' => 'gut', 'en' => 'good'], 'hinweis' => ['it' => 'da migliorare', 'de' => 'verbesserbar', 'en' => 'could be better'], 'schlecht' => ['it' => 'problema', 'de' => 'Problem', 'en' => 'problem']],
+        'kc_mehr' => ['it' => 'Ricevere il risultato completo con spiegazioni', 'de' => 'Ausführliches Ergebnis mit Erklärungen erhalten', 'en' => 'Get the full result with explanations'],
+        'kc_fehler' => ['adresse' => ['it' => 'Questo indirizzo non sembra un sito raggiungibile. Lo controlli.', 'de' => 'Diese Adresse sieht nicht nach einer erreichbaren Website aus. Bitte prüfen.', 'en' => 'This address doesn’t look like a reachable website. Please check it.'],
+                        'warten' => ['it' => 'Un attimo: può verificare di nuovo tra pochi secondi.', 'de' => 'Einen Moment: In ein paar Sekunden können Sie wieder prüfen.', 'en' => 'One moment: you can check again in a few seconds.'],
+                        'zuviel' => ['it' => 'Per oggi sono state fatte molte verifiche. Usi la verifica completa qui sotto.', 'de' => 'Für heute wurde schon oft geprüft. Nutzen Sie den ausführlichen Check darunter.', 'en' => 'Many checks have been run today. Please use the full check below.']],
+        'preise_titel' => ['it' => 'Quanto costa un sito?', 'de' => 'Was kostet eine Website?', 'en' => 'What does a website cost?'],
+        'preise_faelle' => ['f1' => ['it' => 'Una pagina, una lingua', 'de' => 'Eine Seite, eine Sprache', 'en' => 'One page, one language'], 'f2' => ['it' => 'Cinque pagine', 'de' => 'Fünf Seiten', 'en' => 'Five pages'],
+                            'f3' => ['it' => 'Cinque pagine in tre lingue', 'de' => 'Fünf Seiten in drei Sprachen', 'en' => 'Five pages in three languages'], 'f4' => ['it' => 'Cinque pagine con negozio online', 'de' => 'Fünf Seiten mit Online-Shop', 'en' => 'Five pages with online shop']],
+        'preise_hinweis' => ['it' => 'Prezzi una tantum, se testi e immagini li fornisce lei. Il suo prezzo esatto lo vede dopo poche domande.', 'de' => 'Einmalpreise, wenn Texte und Bilder von Ihnen kommen. Ihren genauen Preis sehen Sie nach ein paar Fragen.', 'en' => 'One-off prices when you supply the texts and images. You’ll see your exact price after a few questions.'],
+        'preise_betreuung' => ['it' => 'Assistenza su richiesta: {preis} al mese', 'de' => 'Betreuung auf Wunsch: {preis} im Monat', 'en' => 'Care on request: {preis} a month'],
+        'preise_knopf' => ['it' => 'Calcolare il mio prezzo', 'de' => 'Meinen Preis berechnen', 'en' => 'Work out my price'],
         'arbeiten_titel' => ['it' => 'Alcuni nostri lavori', 'de' => 'Einige unserer Arbeiten', 'en' => 'Some of our work'],
         'arbeiten' => [
             'cavaleri' => ['name' => 'Cavaleri Srl', 'it' => 'Trasporti e logistica · Caltanissetta, dal 1974', 'de' => 'Transport & Logistik · Caltanissetta, seit 1974', 'en' => 'Transport & logistics · Caltanissetta, since 1974'],

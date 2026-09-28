@@ -271,11 +271,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        : ($datei['error'] === UPLOAD_ERR_OK && is_uploaded_file((string) $datei['tmp_name'])
                           ? PartnerSeite::bildSpeichern((int) $p['id'], (string) $datei['tmp_name'], (int) $datei['size']) : 'bild_art');
                 }
+                /* Sprachnachricht (28.09.2026, Uwe: Ja zu R6) -- aufgenommen im Gestalter oder als Datei. */
+                $ton = $_FILES['gruss'] ?? null;
+                if ($f === 'ok' && is_array($ton) && ($ton['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                    $f = in_array($ton['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true) ? 'gruss_gross'
+                       : ($ton['error'] === UPLOAD_ERR_OK && is_uploaded_file((string) $ton['tmp_name'])
+                          ? PartnerSeite::grussSpeichern((int) $p['id'], (string) $ton['tmp_name'], (int) $ton['size']) : 'gruss_art');
+                    if ($f === 'ok') { Events::melden('partner_gruss', 'Partner hat eine Sprachnachricht auf seine Seite gestellt: ' . $p['name'], 'info', 'Anhören und bei Bedarf in der Akte zurücksetzen.', '/partner/' . (int) $p['id']); }
+                }
                 if ($f === 'ok') {
                     Events::melden('partner_seite', 'Partner hat seine Empfehlungsseite gestaltet: ' . $p['name'], 'info', null, '/partner/' . (int) $p['id']);
                     header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;
                 }
                 $meldung = $f;
+            } elseif ($tat === 'seite_gruss_weg' && $p) {
+                PartnerSeite::grussLoeschen((int) $p['id']);
+                header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;
             } elseif ($tat === 'seite_bild_weg' && $p) {
                 PartnerSeite::bildLoeschen((int) $p['id']);
                 header('Location: ' . $selbst(['m' => 'g_gut']) . '#seite', true, 303); exit;

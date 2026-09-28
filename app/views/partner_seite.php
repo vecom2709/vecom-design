@@ -8,7 +8,8 @@
 $gs = PartnerSeite::gestaltung($p);
 $PS = Texte::PARTNER_SEITE;
 $W = static fn(array $t): string => Texte::h($t, $sprache);
-$gFehler = in_array($meldung, ['text_link', 'wa_nummer', 'bild_gross', 'bild_art'], true) ? $meldung : '';
+$gFehler = in_array($meldung, ['text_link', 'wa_nummer', 'bild_gross', 'bild_art', 'gruss_gross', 'gruss_art'], true) ? $meldung : '';
+$grussJetzt = PartnerSeite::grussAdresse($p);
 $vorschau = '/p.php?' . http_build_query(['c' => $p['code'], 'lang' => $sprache, 'n' => 1, 'v' => substr(md5((string) ($p['seite_am'] ?? '') . (string) ($p['foto_am'] ?? '')), 0, 6)]);
 $eigenesBild = !empty($p['seite_bild_am']) ? '/p.php?' . http_build_query(['titel' => $p['code'], 'v' => substr(md5((string) $p['seite_bild_am']), 0, 8)]) : null;
 $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($datei, 'haar/') ? $datei : preg_replace('~\.webp$~', '-800.webp', $datei));
@@ -41,6 +42,10 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   .gs-vorschlag{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 0;padding:10px 12px;border:1px solid var(--cyan);border-radius:12px;font-size:14px}
   .gs-vorschlag .gs-muster{width:44px;height:30px}
   .gs-vorschlag button{min-height:40px}
+  .gs-gruss{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .gs-gruss audio{width:100%;max-width:420px}
+  .gs-gruss-zeit{font-variant-numeric:tabular-nums;color:var(--dim);font-size:14px}
+  .gs-gruss [data-aufnahme].laeuft{border-color:#e5534b;color:#e5534b}
   .gs-vorschau{margin-top:16px;border:1px solid var(--linie);border-radius:16px;overflow:hidden;background:var(--flaeche2);height:560px;position:relative}
   .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
   @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}
@@ -79,7 +84,7 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
         <label><input type="radio" name="bild" value="eigen" <?= $gs['bild'] === 'eigen' ? 'checked' : '' ?>><img class="gs-bild" src="<?= $h($eigenesBild) ?>" alt=""><?= $h($W($PS['bilder']['eigen'])) ?></label>
       <?php endif; ?>
       <?php foreach (PartnerSeite::BILDER as $bk => $datei): [$bfV, $bfA] = PartnerSeite::BILD_FARBE[$bk] ?? ['', '']; ?>
-        <label><input type="radio" name="bild" value="<?= $h($bk) ?>" <?= $gs['bild'] === $bk ? 'checked' : '' ?> data-vorlage="<?= $h($bfV) ?>" data-akzent="<?= $h($bfA) ?>"><img class="gs-bild" src="<?= $h($daumen($datei)) ?>" alt="" loading="lazy"><?= $h($W($PS['bilder'][$bk])) ?></label>
+        <label><input type="radio" name="bild" value="<?= $h($bk) ?>" <?= $gs['bild'] === $bk ? 'checked' : '' ?> data-vorlage="<?= $h($bfV) ?>" data-akzent="<?= $h($bfA) ?>" data-branche="<?= $h(PartnerSeite::BILD_BRANCHE[$bk] ?? '') ?>"><img class="gs-bild" src="<?= $h($daumen($datei)) ?>" alt="" loading="lazy"><?= $h($W($PS['bilder'][$bk])) ?></label>
       <?php endforeach; ?>
     </div>
     <?php /* Farbvorschlag zum Bild (28.09.2026, Uwe: Ja zu L5) -- erscheint per Skript, ohne Skript bleibt alles wählbar. */ ?>
@@ -88,8 +93,27 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       <span class="gs-muster" aria-hidden="true"><i></i><i></i></span><span><?= $h($W($PS['g_vorschlag'])) ?> <b data-was></b></span>
       <button class="knopf" type="button" data-uebernehmen><?= $h($W($PS['g_uebernehmen'])) ?></button>
     </div>
+    <?php /* Branchentexte (28.09.2026, Uwe: Ja zu R1) -- setzt die Texte in alle drei Sprachen, gespeichert wird erst mit „Speichern“. */ ?>
+    <div class="gs-vorschlag" id="gs_branche" hidden aria-live="polite"
+         data-ersetzen="<?= $h($W($PS['g_branche_ersetzen'])) ?>" data-fertig="<?= $h($W($PS['g_branche_fertig'])) ?>" data-knopf="<?= $h($W($PS['g_branche_knopf'])) ?>">
+      <span><?= $h($W($PS['g_branche'])) ?> <b data-was></b></span>
+      <button class="knopf" type="button" data-einsetzen><?= $h($W($PS['g_branche_knopf'])) ?></button>
+    </div>
     <label for="gs_bild" style="margin-top:10px"><?= $h($W($PS['g_bild_hoch'])) ?></label>
     <input id="gs_bild" type="file" name="titelbild" accept="image/jpeg,image/png,image/webp">
+
+    <?php /* Sprachnachricht (28.09.2026, Uwe: Ja zu R6) */ ?>
+    <p class="gs-h"><?= $h($W($PS['g_gruss'])) ?></p>
+    <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['g_gruss_hilfe'])) ?></p>
+    <?php if ($grussJetzt): ?><p class="klein" style="margin:0 0 4px"><?= $h($W($PS['g_gruss_jetzt'])) ?></p><audio controls preload="none" src="<?= $h($grussJetzt) ?>" style="width:100%;max-width:420px;margin-bottom:8px"></audio><?php endif; ?>
+    <div class="gs-gruss" id="gs_gruss" data-auf="<?= $h($W($PS['g_gruss_auf'])) ?>" data-stop="<?= $h($W($PS['g_gruss_stop'])) ?>" data-neu="<?= $h($W($PS['g_gruss_neu'])) ?>">
+      <button class="knopf" type="button" data-aufnahme hidden><?= $h($W($PS['g_gruss_auf'])) ?></button>
+      <span class="gs-gruss-zeit" data-zeit hidden>0:00 / 0:30</span>
+      <audio data-probe controls hidden></audio>
+      <p class="klein" data-hinweis hidden></p>
+    </div>
+    <label for="gs_gruss_datei" style="margin-top:8px"><?= $h($W($PS['g_gruss_datei'])) ?></label>
+    <input id="gs_gruss_datei" type="file" name="gruss" accept="audio/*">
 
     <p class="gs-h"><?= $h($W($PS['g_kopf'])) ?></p>
     <div class="gs-wahl gs-reihe" role="radiogroup">
@@ -163,6 +187,10 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       <form method="post" action="<?= $h($selbst()) ?>#seite"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="seite_bild_weg">
         <button class="knopf" type="submit"><?= $h($W($PS['g_bild_weg'])) ?></button></form>
     <?php endif; ?>
+    <?php if ($grussJetzt): ?>
+      <form method="post" action="<?= $h($selbst()) ?>#seite"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="seite_gruss_weg">
+        <button class="knopf" type="submit"><?= $h($W($PS['g_gruss_weg'])) ?></button></form>
+    <?php endif; ?>
     <?php if (PartnerSeite::eigen($p)): ?>
       <form method="post" action="<?= $h($selbst()) ?>#seite"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="seite_standard">
         <button class="knopf" type="submit"><?= $h($W($PS['g_standard'])) ?></button></form>
@@ -180,5 +208,6 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   <p class="gs-h"><?= $h($W($PS['g_vorschau'])) ?></p>
   <div class="gs-vorschau"><iframe src="<?= $h($vorschau) ?>" title="<?= $h($W($PS['g_vorschau'])) ?>" loading="lazy"></iframe></div>
 </div>
+<script type="application/json" id="gs_branchen"><?= json_encode(array_map(static fn($b) => ['name' => Texte::h($b['name'], $sprache)] + array_intersect_key($b, ['it' => 1, 'de' => 1, 'en' => 1]), Texte::SEITE_BRANCHEN), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 <script type="application/json" id="gs_farben"><?= json_encode(array_map(static fn($v) => ['grund' => $v['grund'], 'hell' => $v['hell']], PartnerSeite::VORLAGEN) + ['_akzente' => PartnerSeite::AKZENTE], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 <script src="/assets/js/partner-gestalter.js?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/js/partner-gestalter.js') ?>" defer></script>

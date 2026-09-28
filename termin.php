@@ -63,6 +63,10 @@ try {
             }
         }
         $frei = AkquiseTermin::freie();
+        /* Von der Partnerseite mit schon gewählter Zeit (28.09.2026, R2) -- nur, wenn sie noch frei ist. */
+        if (!$post && preg_match('~^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$~', (string) ($_GET['slot'] ?? ''), $gs) && in_array($gs[2], $frei[$gs[1]] ?? [], true)) {
+            $werte['slot'] = $gs[0];
+        }
     }
 } catch (Throwable $e) { $fehler = 'formular'; }
 $T = static fn(string $k) => Texte::h(Texte::AKQ_TERMIN[$k] ?? [], $sprache);
