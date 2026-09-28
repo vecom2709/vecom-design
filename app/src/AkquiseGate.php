@@ -364,6 +364,7 @@ final class AkquiseGate
         'ki'        => ['akq_schalter_ki', '1', 'Texte von Claude', 'Deutung der Befunde und Textvorschläge (kostet Claude-Guthaben am PC).'],
         'folge'     => ['akq_schalter_folge', '0', 'Folge-Mails', 'Die freigegebenen Folge-Mails an Betriebe mit bestätigter Einwilligung.'],
         'whatsapp'  => ['akq_schalter_whatsapp', '1', 'Folge per WhatsApp', 'Wer auch WhatsApp erlaubt hat, bekommt die Folge-Schritte als genehmigte WhatsApp-Vorlage statt als Mail (sobald WhatsApp Business eingerichtet ist).'],
+        'wa_assistent' => ['akq_schalter_wa_assistent', '1', 'WhatsApp-Assistent', 'Antwortet Betrieben, die selbst schreiben: fragt nach der Website, schickt die Ampel und holt per Knopf das Ja. Schreibt nie jemanden von sich aus an.'],
         'autofrei'  => ['akq_auto_freigabe_it', '1', 'Italienische Texte automatisch freigeben', 'Italienische Folge-Texte, die die Textprüfung ohne Beanstandung bestehen, gelten als freigegeben. Jede Änderung prüft neu.'],
     ];
 

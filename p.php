@@ -161,6 +161,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'kurzchec
     $kcUrl = mb_substr(trim((string) ($_POST['url'] ?? '')), 0, 200);
     try { $kc = PartnerSeite::kurzcheck($kcUrl); } catch (Throwable $e) { $kc = ['ok' => false, 'grund' => 'adresse']; }
 }
+/* Ja in einem Schritt (28.09.2026, Uwe: Ja zu Z2): unter der Ampel E-Mail + Häkchen → nur die Bestätigungsmail. */
+$kcJa = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'kurzcheck_ja' && $g['bausteine']['kurzcheck']) {
+    $kcUrl = mb_substr(trim((string) ($_POST['url'] ?? '')), 0, 200);
+    try {
+        foreach (['Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseCheck', 'AkquiseEinwilligung', 'AkquiseKurz'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        if (trim((string) ($_POST['homepage'] ?? '')) !== '' || !AkquiseCheck::stempelGut((string) ($_POST['z'] ?? ''))) {
+            $kcJa = 'zeit';
+        } else {
+            $kcJa = AkquiseKurz::einwilligen(['url' => $kcUrl, 'email' => (string) ($_POST['email'] ?? ''), 'whatsapp' => !empty($_POST['wa']) ? (string) ($_POST['whatsapp'] ?? '') : null,
+                'ja' => !empty($_POST['ja']), 'sprache' => $sprache, 'quelle' => 'partner', 'partner' => [$p, Partner::kanal((string) ($_GET['k'] ?? ''))]]);
+        }
+    } catch (Throwable $e) { $kcJa = 'zeit'; }
+    $kcJaMail = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+}
 /* Eigene Texte des Partners gehen vor, sonst der Standard (Texte::PARTNER_LANDE). */
 $L = static fn(string $k): string => in_array($k, ['titel', 'lead', 'p1', 'p2', 'p3'], true)
     ? PartnerSeite::text($g, $sprache, $k, strtr(Texte::h(Texte::PARTNER_LANDE[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]))
@@ -387,6 +402,12 @@ $wegIcon = [
   .lp-ampel .st-schlecht i{background:#e5534b;box-shadow:0 0 0 3px color-mix(in oklab,#e5534b 25%,transparent)}
   .lp-ampel b{font-size:14.5px}
   .lp-ampel span{font-size:13px;color:var(--dim)}
+  .ld .lp-kc-ja{display:grid;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--linie)}
+  .lp-kc-ja input[type=email],.lp-kc-ja input[type=tel]{font-size:16px;padding:13px 14px;min-height:50px;border-radius:12px;width:100%}
+  .kc-nurwa{display:none}
+  .lp-kc-ja:has(#kc_wa:checked) .kc-nurwa{display:block}
+  .lp-kc-ja:has(#kc_wa:checked) .kc-nuremail{display:none}
+  .lp-kc-ja .falle{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
   .lp-preise{margin:0;display:grid;gap:0}
   .lp-preise div{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 0;border-bottom:1px solid var(--linie)}
   .lp-preise div:first-child{border-top:1px solid var(--linie)}
@@ -540,8 +561,25 @@ foreach ($g['reihenfolge'] as $baustein):
         <ul class="lp-ampel"><?php foreach ($kc['punkte'] as $kp): if (!isset($kcP[$kp['was']])) { continue; } ?>
           <li class="st-<?= $h($kp['stand']) ?>"><i aria-hidden="true"></i><b><?= $h($S($kcP[$kp['was']]['titel'])) ?></b><span><?= $h($S($PS['kc_stand'][$kp['stand']] ?? $PS['kc_stand']['hinweis'])) ?></span></li>
         <?php endforeach; ?></ul>
-        <a class="knopf haupt" href="<?= $h($wegAdresse('check', ['url' => $kc['url']])) ?>"><?= $h($S($PS['kc_mehr'])) ?></a>
       </div>
+      <?php foreach (['Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseCheck', 'AkquiseEinwilligung'] as $k) { require_once __DIR__ . "/app/src/$k.php"; } ?>
+      <form method="post" action="<?= $h($hier()) ?>#check" class="lp-kc-ja">
+        <input type="hidden" name="tat" value="kurzcheck_ja"><input type="hidden" name="url" value="<?= $h($kc['url']) ?>"><input type="hidden" name="z" value="<?= $h(AkquiseCheck::stempel()) ?>">
+        <span class="falle" aria-hidden="true"><label>Homepage <input type="text" name="homepage" tabindex="-1" autocomplete="off"></label></span>
+        <p class="lp-kc-kopf"><?= $h($S($PS['kc_ja_titel'])) ?></p>
+        <p class="klein" style="margin:0"><?= $h($S($PS['kc_ja_text'])) ?></p>
+        <label for="kc_email" class="sr"><?= $h($S($PS['kc_ja_email'])) ?></label>
+        <input id="kc_email" type="email" name="email" required autocomplete="email" inputmode="email" placeholder="<?= $h($S($PS['kc_ja_email'])) ?>">
+        <label class="lp-werbung"><input id="kc_wa" type="checkbox" name="wa" value="1"><span><?= $h($S($PS['kc_ja_wa'])) ?></span></label>
+        <div class="kc-nurwa"><label for="kc_wanr" class="sr">WhatsApp</label><input id="kc_wanr" type="tel" name="whatsapp" inputmode="tel" autocomplete="tel" placeholder="+39 …"></div>
+        <label class="lp-werbung"><input type="checkbox" name="ja" value="1" required><span><span class="kc-nuremail"><?= $h(AkquiseEinwilligung::wortlaut($sprache)) ?></span><span class="kc-nurwa"><?= $h(AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de' => 'der oben angegebenen Nummer', 'en' => 'the number given above'][$sprache] ?? 'indicato sopra')) ?></span></span></label>
+        <button class="knopf haupt" type="submit"><?= $h($S($PS['kc_ja_knopf'])) ?></button>
+      </form>
+    <?php endif; ?>
+    <?php if ($kcJa === 'ok'): ?>
+      <p class="gut lp-kc-hinweis" role="status" style="border-color:var(--akzent)"><?= $h(strtr($S($PS['kc_ja_ok']), ['{email}' => $kcJaMail])) ?></p>
+    <?php elseif ($kcJa !== ''): ?>
+      <p class="schlecht lp-kc-hinweis" role="alert"><?= $h($S($PS['kc_ja_fehler'][$kcJa] ?? $PS['kc_ja_fehler']['zeit'])) ?></p>
     <?php endif; ?>
   </section>
 <?php break;

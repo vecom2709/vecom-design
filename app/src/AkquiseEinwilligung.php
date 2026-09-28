@@ -180,7 +180,7 @@ final class AkquiseEinwilligung
         $jetzt = date('Y-m-d H:i:s');
         Db::update('akq_einwilligungen', (int) $e['id'], ['status' => 'bestaetigt', 'bestaetigt_am' => $jetzt]);
         $beleg = mb_substr('Double-Opt-in ' . date('d.m.Y H:i', strtotime($jetzt)) . ' für ' . $e['email'] . (!empty($e['whatsapp']) ? ' + WhatsApp ' . $e['whatsapp'] : '')
-            . ' über ' . (['analyse' => 'Analyse-Seite', 'check' => 'Website-Check', 'partner' => 'Empfehlungsseite eines Partners', 'vorort' => 'Besuch vor Ort (selbst eingetippt)'][$e['quelle']] ?? 'Einwilligungs-Link') . ', Wortlaut ' . $e['wortlaut_version']
+            . ' über ' . (['analyse' => 'Analyse-Seite', 'check' => 'Website-Check', 'partner' => 'Empfehlungsseite eines Partners', 'vorort' => 'Besuch vor Ort (selbst eingetippt)', 'anzeige' => 'Werbeformular (Facebook/Instagram)', 'whatsapp' => 'WhatsApp-Chat mit dem Assistenten'][$e['quelle']] ?? 'Einwilligungs-Link') . ', Wortlaut ' . $e['wortlaut_version']
             . ' (Nachweis #' . $e['id'] . ')', 0, 255);
         $alt = ['einwilligung' => $f['einwilligung'], 'email' => $f['email'], 'einwilligung_kanaele' => $f['einwilligung_kanaele'] ?? null, 'whatsapp' => $f['whatsapp'] ?? null];
         /* Wege zusammenführen: eine neue reine E-Mail-Einwilligung nimmt eine frühere WhatsApp-Einwilligung nicht weg. */

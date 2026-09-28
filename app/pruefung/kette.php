@@ -14127,6 +14127,168 @@ pruefe('Seite: Video stumm, inline, lädt erst bei Bedarf, Ton-Knopf; CSP erlaub
     && str_contains($fiPp, 'muted') && str_contains($fiPp, 'lp-ton') && str_contains($fiJs, 'prefers-reduced-motion') && str_contains($fiJs, 'IntersectionObserver'));
 
 /* ============================================================================
+   Wege zum Ja (28.09.2026, Uwe: Ja zu Z1–Z6)
+   Der Betrieb kommt selbst: WhatsApp-Assistent, Kurz-Check mit Ja in einem
+   Schritt, QR-Karte, Beiträge, Werbeformular, Knopf „Analisi gratuita“.
+   ============================================================================ */
+abschnitt('Wege zum Ja (Z1–Z6)');
+foreach (['AkquiseKurz', 'MetaSeite', 'WhatsAppCloud', 'PartnerCheck', 'PartnerSeite'] as $k) { require_once $wurzel . "/src/$k.php"; }
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 700, 'url' => 'https://' . parse_url($url, PHP_URL_HOST) . '/', 'ssl_tage' => 80, 'fehler' => '',
+    'inhalt' => '<html><head><title>Prova</title></head><body>© 2019</body></html>'];
+
+/* Z2: Kurz-Check und Ja in einem Schritt */
+$zM0 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+pruefe('Z2: ohne Häkchen kein Ja, Unsinn ist keine Adresse',
+    AkquiseKurz::einwilligen(['url' => 'osteria-zumja.example', 'email' => 'oste@osteria-zumja.example', 'ja' => false, 'sprache' => 'it', 'quelle' => 'check']) === 'email'
+    && AkquiseKurz::einwilligen(['url' => 'kein punkt', 'email' => 'oste@osteria-zumja.example', 'ja' => true, 'sprache' => 'it', 'quelle' => 'check']) === 'adresse');
+$zR = AkquiseKurz::einwilligen(['url' => 'https://www.osteria-zumja.example/menu', 'email' => 'Oste@Osteria-Zumja.example', 'ja' => true, 'sprache' => 'it', 'quelle' => 'check']);
+$zF = Db::one("SELECT * FROM akq_firmen WHERE domain = 'osteria-zumja.example'");
+pruefe('Z2: mit Häkchen: Betrieb angelegt (Name aus der Adresse), Einwilligung angefragt, genau eine Bestätigungsmail — erlaubt ist noch nichts',
+    $zR === 'ok' && $zF && $zF['name'] === 'Osteria Zumja' && trim((string) $zF['einwilligung']) === ''
+    && Db::wert("SELECT status FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'check'", [(int) ($zF['id'] ?? 0)], '') === 'angefragt'
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 1, json_encode([$zR, $zF['name'] ?? null]));
+$zSeite = (string) file_get_contents($wurzel . '/../analisi.php');
+pruefe('Z2: analisi.php ohne Skript, Ampel und darunter das Ja mit Wortlaut, Lockfeld; Partnerseiten haben dasselbe Formular',
+    str_contains($zSeite, "default-src 'none'") && !str_contains($zSeite, '<script') && str_contains($zSeite, "'quelle' => 'check'") && str_contains($zSeite, 'name="ja"')
+    && str_contains((string) file_get_contents($wurzel . '/../p.php'), 'kurzcheck_ja'));
+
+/* Z1: WhatsApp-Assistent */
+pruefe('Z1: Schalter „WhatsApp-Assistent“ ab Werk an', (AkquiseGate::SCHALTER['wa_assistent'][1] ?? '') === '1' && AkquiseGate::schalterSelbst('wa_assistent'));
+$zNetz = [];
+WhatsAppCloud::$netz = static function (string $m, string $url, ?array $body, string $token) use (&$zNetz): array {
+    $zNetz[] = $body; return ['status' => 200, 'json' => ['messages' => [['id' => 'wamid.Z' . count($zNetz)]]]];
+};
+$zNr = '39333' . random_int(1000000, 9999999);
+$zWa = static function (string $nr, array $m): void { WhatsAppCloud::verarbeiten(['entry' => [['changes' => [['value' => ['messages' => [['from' => $nr, 'id' => 'wamid.IN' . random_int(1, 99999)] + $m]]]]]]]); };
+$zWa($zNr, ['type' => 'text', 'text' => ['body' => 'Buongiorno, vorrei l’analisi gratuita']]);
+pruefe('Z1: unbekannte Nummer schreibt — der Assistent fragt nach der Website (italienisch)',
+    count($zNetz) === 1 && str_contains((string) ($zNetz[0]['text']['body'] ?? ''), 'indirizzo del suo sito') && Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr], '') === 'url');
+$zWa($zNr, ['type' => 'text', 'text' => ['body' => 'ecco: pizzeria-zumja.example']]);
+$zAmpel = (string) ($zNetz[1]['text']['body'] ?? ''); $zFrage = $zNetz[2] ?? [];
+pruefe('Z1: Adresse → Ampel der sechs Punkte, dann die Frage mit vollem Wortlaut und zwei Knöpfen',
+    str_contains($zAmpel, 'pizzeria-zumja.example') && substr_count($zAmpel, "\n") >= 6 && str_contains($zAmpel, '🔴')
+    && ($zFrage['type'] ?? '') === 'interactive' && count($zFrage['interactive']['action']['buttons'] ?? []) === 2 && str_contains((string) ($zFrage['interactive']['body']['text'] ?? ''), 'STOP')
+    && Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr], '') === 'ja', $zAmpel);
+$zWa($zNr, ['type' => 'interactive', 'interactive' => ['type' => 'button_reply', 'button_reply' => ['id' => 'ja', 'title' => 'Sì, volentieri']]]);
+$zF1 = Db::one("SELECT * FROM akq_firmen WHERE domain = 'pizzeria-zumja.example'");
+pruefe('Z1: Knopf „Sì“ → Betrieb angelegt, Einwilligung WhatsApp mit Beleg (Chat, Nummer, Nachweis), Gate erlaubt WhatsApp — E-Mail nicht',
+    $zF1 && str_contains((string) $zF1['einwilligung'], 'WhatsApp-Chat') && AkquiseGate::einwilligungDeckt($zF1, 'whatsapp') && !AkquiseGate::einwilligungDeckt($zF1, 'email')
+    && Db::wert("SELECT wortlaut_version FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'whatsapp'", [(int) ($zF1['id'] ?? 0)], '') === 'v3wachat'
+    && Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr], '') === 'email', json_encode($zF1['einwilligung'] ?? null));
+$zWa($zNr, ['type' => 'text', 'text' => ['body' => 'salta']]);
+$zFo = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [(int) $zF1['id']]);
+$zF1 = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $zF1['id']]);
+pruefe('Z1: „salta“ → fertig; die Folge läuft auch ohne E-Mail (nur WhatsApp gedeckt) und wird nicht als „ohne Einwilligung“ beendet',
+    Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr], '') === 'fertig' && $zFo && $zFo['status'] === 'laeuft'
+    && AkquiseFolge::hindernis($zFo, $zF1) === null);
+$zNr2 = '39334' . random_int(1000000, 9999999);
+$zWa($zNr2, ['type' => 'text', 'text' => ['body' => 'Guten Tag, ich möchte die kostenlose Analyse: baeckerei-zumja.example']]);
+sleep(0);
+$zWa($zNr2, ['type' => 'interactive', 'interactive' => ['type' => 'button_reply', 'button_reply' => ['id' => 'ja', 'title' => 'Ja, gern']]]);
+$zWa($zNr2, ['type' => 'text', 'text' => ['body' => 'meister@baeckerei-zumja.example']]);
+$zLetzte = (string) (end($zNetz)['text']['body'] ?? '');
+$zF2 = Db::one("SELECT * FROM akq_firmen WHERE domain = 'baeckerei-zumja.example'");
+pruefe('Z1: deutsch erkannt, Adresse schon in der ersten Nachricht; E-Mail → persönlicher Bereich vorbereitet und als Link geschickt',
+    Db::wert('SELECT sprache FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr2], '') === 'de' && str_contains($zLetzte, '/zugang.php?t=') && str_contains($zLetzte, 'persönlicher Bereich')
+    && $zF2 && $zF2['email'] === 'meister@baeckerei-zumja.example' && !AkquiseGate::einwilligungDeckt($zF2, 'email'), $zLetzte);
+$zN = count($zNetz);
+$zNr3 = '39335' . random_int(1000000, 9999999);
+$zWa($zNr3, ['type' => 'text', 'text' => ['body' => 'ciao']]);
+$zWa($zNr3, ['type' => 'text', 'text' => ['body' => 'STOP']]);
+pruefe('Z1: „STOP“ im Gespräch beendet es sofort', Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr3], '') === 'beendet'
+    && str_contains((string) (end($zNetz)['text']['body'] ?? ''), 'non le scriveremo'));
+AkquiseGate::schalterSetzen('wa_assistent', false);
+$zN = count($zNetz);
+$zWa('39336' . random_int(1000000, 9999999), ['type' => 'text', 'text' => ['body' => 'ciao']]);
+pruefe('Z1: Schalter aus — der Assistent schweigt', count($zNetz) === $zN);
+AkquiseGate::schalterSetzen('wa_assistent', true);
+WhatsAppCloud::$netz = null;
+
+/* Z3: QR-Karte */
+$zRoute = (string) file_get_contents($wurzel . '/akquise_route.php'); $zKarte = (string) file_get_contents($wurzel . '/views/akquise_qrkarte.php');
+pruefe('Z3: QR-Karte — allgemein auf analisi.php, persönlich auf die eigene Analyse; der Knopf schaltet die Analyse-Seite ein; vier A6 auf A4',
+    str_contains($zRoute, "\$teil === 'qrkarte'") && str_contains($zRoute, "/analisi.php?lang=") && str_contains($zRoute, "case 'akq_karte':") && str_contains($zRoute, 'AkquiseAnalyse::umschalten((int) $an[\'id\'], true)')
+    && str_contains($zKarte, 'QrBild::svg($ziel') && str_contains($zKarte, '@page{size:A4') && str_contains($zKarte, '$eine . $eine . $eine . $eine')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), 'value="akq_karte"'));
+$zQr = QrBild::svg('https://vecom-design.it/analisi.php?lang=it', 300);
+pruefe('Z3: der Code wird auf dem Server gerechnet (SVG, kein fremder Dienst)', str_starts_with($zQr, '<svg') && str_contains($zQr, '<path'));
+
+/* Z4: Beiträge */
+Db::run('DELETE FROM akq_beitraege');
+$zB = MetaSeite::entwurf('tempo', 'it');
+$zBz = Db::one('SELECT * FROM akq_beitraege WHERE id = ?', [$zB]);
+$zPng = MetaSeite::bild($zBz); $zGr = getimagesizefromstring($zPng);
+pruefe('Z4: Entwurf mit Satz, Text, Link auf die kostenlose Analyse; Bild 1080×1080 PNG',
+    $zBz['status'] === 'entwurf' && str_contains((string) $zBz['text'], '/analisi.php?lang=it') && $zGr !== false && $zGr[0] === 1080 && $zGr[1] === 1080 && $zGr['mime'] === 'image/png');
+$zUnbelegt = [];
+foreach (MetaSeite::THEMEN as $zC => $zT) { foreach ($zT as $zSp => [$zTi, $zTx]) {
+    if (preg_match('~\d~', $zTi . $zTx) || preg_match('~(garant|perd\w* clienti|verlier)~iu', $zTx)) { $zUnbelegt[] = "$zC/$zSp"; }
+    if (mb_strlen($zTi) > 60) { $zUnbelegt[] = "$zC/$zSp zu lang"; }
+} }
+pruefe('Z4: alle Themen in IT und DE, ohne Zahlen und ohne Angstsätze, Titel passen aufs Bild', $zUnbelegt === [] && count(MetaSeite::THEMEN) === 7, implode(', ', $zUnbelegt));
+Db::run('DELETE FROM akq_beitraege');
+$zMo = strtotime('next monday 10:00'); $zDi = strtotime('next tuesday 10:00');
+$zPl = [MetaSeite::planen($zMo), MetaSeite::planen($zMo), MetaSeite::planen($zDi)];
+pruefe('Z4: Montag entsteht ein Entwurf, derselbe Tag kein zweiter, dienstags keiner', $zPl[0] !== null && $zPl[1] === null && $zPl[2] === null, json_encode([$zPl, date('N', $zMo)]));
+pruefe('Z4: ohne verbundene Seite wird nicht gepostet', MetaSeite::posten($zB)['ok'] === false);
+$zB = MetaSeite::entwurf('handy', 'de');
+$zMeta = [];
+MetaSeite::$netz = static function (string $m, string $url, ?array $body, string $token) use (&$zMeta): array {
+    $zMeta[] = [$m, $url, $body, $token];
+    if (str_ends_with($url, '/photos')) { return ['status' => 200, 'json' => ['id' => '555', 'post_id' => '111_555']]; }
+    if (str_ends_with($url, '/media')) { return ['status' => 200, 'json' => ['id' => 'c77']]; }
+    if (str_ends_with($url, '/media_publish')) { return ['status' => 200, 'json' => ['id' => 'ig99']]; }
+    if (str_contains($url, '/subscribed_apps')) { return ['status' => 200, 'json' => ['success' => true]]; }
+    if (str_contains($url, 'fields=field_data')) {
+        $haken = !str_contains($url, '/9002');
+        return ['status' => 200, 'json' => ['field_data' => [['name' => 'email', 'values' => ['info@gelateria-zumja.example']], ['name' => 'phone_number', 'values' => ['+39 347 552 1199']],
+            ['name' => 'indirizzo_del_suo_sito', 'values' => ['gelateria-zumja.example']]], 'custom_disclaimer_responses' => $haken ? [['checkbox_key' => 'c1', 'is_checked' => '1']] : []]];
+    }
+    return ['status' => 404, 'json' => null];
+};
+MetaSeite::speichern(['seite_id' => '111', 'ig_id' => '222', 'token' => 'EAAP-seiten-test', 'sprache' => 'it']);
+pruefe('Z4: Seite verbunden — Schlüssel verschlüsselt, nie im Klartext', MetaSeite::bereit() && (int) Db::wert("SELECT COUNT(*) FROM settings WHERE svalue LIKE '%EAAP-seiten%'", [], 0) === 0);
+$zP = MetaSeite::posten($zB, "Testo modificato da Uwe\nhttps://vecom-design.it/analisi.php?lang=de");
+$zBz = Db::one('SELECT * FROM akq_beitraege WHERE id = ?', [$zB]);
+pruefe('Z4: „Freigeben & posten“ → Facebook-Foto und Instagram (Container + Veröffentlichen) mit Uwes Text und dem Bild über beitrag.php',
+    $zP['ok'] && $zBz['status'] === 'gepostet' && $zBz['fb_id'] === '111_555' && $zBz['ig_id'] === 'ig99' && str_starts_with((string) $zBz['text'], 'Testo modificato')
+    && str_ends_with($zMeta[0][1], '/111/photos') && str_contains((string) $zMeta[0][2]['url'], '/beitrag.php?t=' . $zBz['token'])
+    && str_ends_with($zMeta[1][1], '/222/media') && ($zMeta[2][2]['creation_id'] ?? '') === 'c77', json_encode($zP));
+pruefe('Z4: schon gepostet → nicht noch einmal', MetaSeite::posten($zB)['ok'] === false && count($zMeta) === 3);
+$zBild = (string) file_get_contents($wurzel . '/../beitrag.php');
+pruefe('Z4: Bildadresse nur mit langem Schlüssel, nie für verworfene, nicht im Index', str_contains($zBild, "~^[a-f0-9]{32}$~") && str_contains($zBild, "status <> 'verworfen'") && str_contains($zBild, 'noindex'));
+
+/* Z5: Werbeformular */
+pruefe('Z5: Formular-Meldungen einschalten', MetaSeite::formulareAbonnieren()['ok'] === true && str_contains((string) end($zMeta)[1], 'subscribed_fields=leadgen'));
+$zX = MetaSeite::felder(['field_data' => [['name' => 'E-mail', 'values' => ['a@b.example']], ['name' => 'Indirizzo del suo sito', 'values' => ['x.example']], ['name' => 'phone_number', 'values' => ['+39 1']]],
+    'custom_disclaimer_responses' => [['is_checked' => true]]]);
+pruefe('Z5: Felder werden auch mit Uwes eigenen Namen erkannt', $zX['email'] === 'a@b.example' && $zX['url'] === 'x.example' && $zX['whatsapp'] === '+39 1' && $zX['ja'] === true);
+$zM0 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$zV = MetaSeite::verarbeiten(['object' => 'page', 'entry' => [['changes' => [['field' => 'leadgen', 'value' => ['leadgen_id' => '9001', 'page_id' => '111']]]]]]);
+$zF5 = Db::one("SELECT * FROM akq_firmen WHERE domain = 'gelateria-zumja.example'");
+pruefe('Z5: ausgefülltes Formular mit Häkchen → Betrieb, Einwilligung (Quelle Werbeformular) angefragt, Bestätigungsmail — sonst nichts',
+    $zV === 1 && $zF5 && Db::wert("SELECT status FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'anzeige'", [(int) ($zF5['id'] ?? 0)], '') === 'angefragt'
+    && Db::wert("SELECT whatsapp FROM akq_einwilligungen WHERE firma_id = ? AND quelle = 'anzeige'", [(int) ($zF5['id'] ?? 0)], '') !== ''
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 1 && trim((string) $zF5['einwilligung']) === '');
+pruefe('Z5: dieselbe Meldung zweimal wird nur einmal verarbeitet; fremde Seite wird ignoriert',
+    MetaSeite::lead('9001', '111') === 'doppelt' && MetaSeite::lead('9003', '999') === 'fremd');
+pruefe('Z5: ohne Häkchen wird nichts gespeichert außer dem Hinweis', MetaSeite::lead('9002', '111') === 'ohne_haken'
+    && Db::wert("SELECT status FROM akq_meta_leads WHERE lead_id = '9002'", [], '') === 'ohne_haken' && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $zM0 + 1);
+pruefe('Z5: der Webhook verteilt Seiten-Meldungen an MetaSeite, WhatsApp an WhatsAppCloud',
+    str_contains((string) file_get_contents($wurzel . '/../wa-webhook.php'), "(\$nutzlast['object'] ?? '') === 'page'"));
+MetaSeite::$netz = null;
+Db::run("DELETE FROM settings WHERE skey IN ('meta_seite_id','meta_ig_id','meta_seiten_token')");
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+
+/* Z6: Knopf „Analisi gratuita“ überall */
+$zIdx = (string) file_get_contents($wurzel . '/../index.html');
+pruefe('Z6: Startseite führt dreimal auf analisi.php (Menü, Pille im Hero, Fußzeile), Sprachen drehen mit, Anleitungen für Facebook/Instagram/Google/Signatur',
+    substr_count($zIdx, 'href="/analisi.php?lang=it"') === 3 && str_contains($zIdx, 'class="hero__analisi"')
+    && str_contains((string) file_get_contents($wurzel . '/../build.mjs'), 'analisi\\.php') && str_contains((string) file_get_contents($wurzel . '/../assets/js/i18n-de.js'), 'Kostenlose Analyse Ihrer Website')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'id="wege"'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

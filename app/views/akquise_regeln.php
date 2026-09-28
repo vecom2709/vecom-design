@@ -316,6 +316,7 @@ $blick = [
     <form method="post" action="<?= Fmt::h(url('akquise')) ?>" class="rg-grenzen" style="margin-top:10px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_wa_speichern">
       <div><label class="akq-klein" for="wa_nummer">Telefonnummer-ID</label><input id="wa_nummer" name="nummer_id" inputmode="numeric" value="<?= Fmt::h($wa['nummer_id']) ?>"></div>
+      <div><label class="akq-klein" for="wa_anzeige">Deine WhatsApp-Nummer (für den Knopf „Scrivici su WhatsApp“, z. B. 393801907017)</label><input id="wa_anzeige" name="anzeige" inputmode="numeric" value="<?= Fmt::h($wa['anzeige']) ?>"></div>
       <div><label class="akq-klein" for="wa_konto">WhatsApp-Business-Konto-ID</label><input id="wa_konto" name="konto_id" inputmode="numeric" value="<?= Fmt::h($wa['konto_id']) ?>"></div>
       <div><label class="akq-klein" for="wa_token">Dauerhafter Schlüssel <?= $wa['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_token" name="token" type="password" autocomplete="off"></div>
       <div><label class="akq-klein" for="wa_geheim">App-Geheimnis <?= $wa['app_geheim'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_geheim" name="app_geheim" type="password" autocomplete="off"></div>
@@ -335,6 +336,74 @@ $blick = [
         </div>
       <?php endif; ?>
     <?php endif; ?>
+  </div>
+
+  <?php require_once dirname(__DIR__) . '/src/MetaSeite.php';
+        $me = MetaSeite::einstellungen();
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $analisi = $basis . '/analisi.php?lang=it';
+        $waNr = preg_replace('~\D~', '', (string) $wa['anzeige']) ?? '';
+        $waKlick = $waNr !== '' ? 'https://wa.me/' . $waNr . '?text=' . rawurlencode('Buongiorno, vorrei l’analisi gratuita del mio sito') : '';
+        $kopier = static fn(string $s): string => '<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 8px"><code style="flex:1;min-width:0;overflow-wrap:anywhere">' . Fmt::h($s) . '</code><button class="knopf klein" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(' . Fmt::h(json_encode($s, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . ');this.textContent=\'✓\'">Kopieren</button></span>'; ?>
+  <div class="block" id="wege">
+    <h2>Wege zum Ja <span class="akq-klein" style="font-weight:400">· der Betrieb kommt selbst</span></h2>
+    <p class="rg-erkl">Alles hier führt auf dasselbe: Der Betrieb sieht die Ampel seiner Website, trägt selbst E-Mail (und auf Wunsch WhatsApp) ein und bestätigt per Klick.
+      Ab da läuft es automatisch bis in seinen persönlichen Bereich. Niemand wird angeschrieben, der nicht gefragt hat.</p>
+
+    <h3 style="margin:18px 0 6px;font-size:15px">1 · Der Knopf „Analisi gratuita“</h3>
+    <p class="akq-klein" style="margin:0">Die Seite zum Verlinken (auf deiner Website ist er schon überall eingebaut):</p>
+    <?= $kopier($analisi) ?>
+    <?php if ($waKlick !== ''): ?><p class="akq-klein" style="margin:0">Link „Schreib uns auf WhatsApp“ (der Assistent antwortet):</p><?= $kopier($waKlick) ?><?php endif; ?>
+    <details><summary class="akq-klein" style="cursor:pointer">Wo du ihn von Hand einträgst (je 2 Minuten)</summary>
+      <ol class="akq-klein" style="line-height:1.7">
+        <li><b>Facebook-Seite</b>: Seite öffnen → unter dem Titelbild <b>„Button hinzufügen“</b> (oder „Button bearbeiten“) → <b>„Mehr erfahren“</b> bzw. „Registrieren“ → Website-Link: oben die Adresse einfügen → Speichern.</li>
+        <li><b>Instagram</b>: Profil → <b>„Profil bearbeiten“</b> → <b>„Links“ → „Externen Link hinzufügen“</b> → Adresse einfügen, Titel „Analisi gratuita del sito“ → Fertig. In die Bio: „Analisi gratuita del suo sito 👇“.</li>
+        <li><b>Google-Unternehmensprofil</b>: in Google nach „Vecom Design“ suchen → <b>„Profil bearbeiten“</b> → Website bleibt vecom-design.it; unter <b>„Beitrag hinzufügen“</b> einen Beitrag mit Schaltfläche <b>„Weitere Informationen“</b> und der Adresse oben anlegen.</li>
+        <li><b>E-Mail-Signatur</b> (Gmail: Einstellungen → Alle Einstellungen → Signatur): diese Zeile ans Ende setzen und die Adresse oben als Link hinterlegen:<br><code>▸ Analisi gratuita del suo sito in 10 secondi: vecom-design.it/analisi.php</code></li>
+        <li><b>WhatsApp-Business-App</b>: Einstellungen → Unternehmenstools → Profil → Website: die Adresse oben.</li>
+      </ol></details>
+
+    <h3 style="margin:18px 0 6px;font-size:15px">2 · QR-Karte zum Hinlegen</h3>
+    <p class="akq-klein" style="margin:0 0 8px">Vier Karten auf A4 zum Ausschneiden — für Tresen, Rezeption, Messe. Der Code führt auf die kostenlose Analyse.
+      Die persönliche Karte für einen Betrieb (Code führt auf SEINE Analyse) druckst du auf seiner Seite unter „Einwilligung“.</p>
+    <p style="margin:0"><a class="knopf" href="<?= Fmt::h(url('akquise/qrkarte')) ?>">Allgemeine QR-Karte drucken</a></p>
+
+    <h3 style="margin:18px 0 6px;font-size:15px">3 · Facebook-Seite und Instagram (Beiträge und Werbeformular)</h3>
+    <p class="akq-klein" style="margin:0 0 8px">Zweimal die Woche liegt ein fertiger Beitrag unter <a href="<?= Fmt::h(url('akquise/beitraege')) ?>">Beiträge</a>; dein Klick postet ihn.
+      Ein ausgefülltes Werbeformular löst automatisch die Bestätigungsmail aus. Dafür braucht es einmal die Verbindung:</p>
+    <details<?= MetaSeite::bereit() ? '' : ' open' ?>><summary class="akq-klein" style="cursor:pointer">So verbindest du die Seite (einmal, etwa 15 Minuten — dieselbe App wie bei WhatsApp)</summary>
+      <ol class="akq-klein" style="line-height:1.7">
+        <li>Auf <b>business.facebook.com</b> → Unternehmenseinstellungen: deine <b>Facebook-Seite</b> und dein <b>Instagram-Konto</b> (muss ein Business-Konto sein, mit der Seite verknüpft) zum Unternehmen „Vecom Design“ hinzufügen.</li>
+        <li>Auf <b>developers.facebook.com</b> in derselben App wie bei WhatsApp: Produkte <b>„Facebook Login for Business“</b> und <b>„Instagram“</b> hinzufügen.</li>
+        <li>Beim <b>Systembenutzer</b> (wie bei WhatsApp) die Seite und das Instagram-Konto zuweisen und einen dauerhaften Schlüssel erzeugen mit: <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code>, <code>pages_manage_metadata</code>, <code>leads_retrieval</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>business_management</code>.</li>
+        <li>Die <b>Seiten-ID</b> steht auf der Seite unter Info → Seitentransparenz; die <b>Instagram-Konto-ID</b> im Business Manager unter Instagram-Konten. Beides unten eintragen, dazu den Schlüssel.</li>
+        <li>In der App → <b>Webhooks</b> → oben „Page“ wählen → Rückruf-URL <code><?= Fmt::h($wa['webhook']) ?></code>, Überprüfungsschlüssel <code><?= Fmt::h($wa['pruefwort']) ?></code> → Feld <b>leadgen</b> abonnieren.</li>
+        <li>Hier „Werbeformular-Meldungen einschalten“ drücken.</li>
+      </ol></details>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" class="rg-grenzen" style="margin-top:10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_meta_speichern">
+      <div><label class="akq-klein" for="me_seite">Seiten-ID</label><input id="me_seite" name="seite_id" inputmode="numeric" value="<?= Fmt::h($me['seite_id']) ?>"></div>
+      <div><label class="akq-klein" for="me_ig">Instagram-Konto-ID (leer = nur Facebook)</label><input id="me_ig" name="ig_id" inputmode="numeric" value="<?= Fmt::h($me['ig_id']) ?>"></div>
+      <div><label class="akq-klein" for="me_token">Dauerhafter Schlüssel <?= $me['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="me_token" name="token" type="password" autocomplete="off"></div>
+      <div><label class="akq-klein" for="me_sp">Sprache der Beiträge und des Formulars</label><select id="me_sp" name="sprache"><option value="it"<?= $me['sprache'] === 'it' ? ' selected' : '' ?>>Italienisch</option><option value="de"<?= $me['sprache'] === 'de' ? ' selected' : '' ?>>Deutsch</option></select></div>
+      <button class="knopf" style="justify-self:start">Speichern</button>
+    </form>
+    <?php if (MetaSeite::bereit()): ?>
+      <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin-top:8px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_meta_abo"><button class="knopf">Werbeformular-Meldungen einschalten</button></form>
+    <?php endif; ?>
+
+    <h3 style="margin:18px 0 6px;font-size:15px">4 · Werbeanzeige mit Formular</h3>
+    <p class="akq-klein" style="margin:0 0 6px">Das Budget legst du fest (z. B. 5 € am Tag, Gebiet Provinz Agrigento, Zielgruppe „Inhaber kleiner Unternehmen“). So baust du das Formular im Werbeanzeigenmanager:</p>
+    <details><summary class="akq-klein" style="cursor:pointer">Schritt für Schritt</summary>
+      <ol class="akq-klein" style="line-height:1.7">
+        <li><b>adsmanager.facebook.com</b> → Erstellen → Ziel <b>„Leads“</b> → Conversion-Ort <b>„Sofortformulare“</b>.</li>
+        <li>Anzeige: das Bild eines Beitrags (unter Beiträge antippen und speichern), Text z. B. „Com’è messo il suo sito? Analisi gratuita, senza impegno.“</li>
+        <li>Formular → <b>Neues Formular</b>, Typ „Mehr Volumen“. <b>Fragen</b>: „E-Mail“ und „Telefonnummer“ (vorausgefüllt), dazu eine <b>eigene Frage</b> „Kurze Antwort“ mit dem Text <code>Indirizzo del suo sito</code>.</li>
+        <li><b>Datenschutz</b>: Link <code><?= Fmt::h($basis) ?>/legal.html?lang=it#privacy</code>. Dann <b>„Eigener Haftungsausschluss“</b> einschalten, <b>ein Kontrollkästchen</b> hinzufügen, als <b>Pflicht</b> markieren, mit genau diesem Text:
+          <?= $kopier(AkquiseEinwilligung::wortlaut('it', 'indicato sopra')) ?>Ohne dieses Häkchen nimmt das System die Meldung nicht an.</li>
+        <li>Abschluss-Bildschirm: „Grazie! Le abbiamo mandato un’e-mail: tocchi il link di conferma per ricevere l’analisi.“ → Link auf <code><?= Fmt::h($analisi) ?></code>.</li>
+        <li>Veröffentlichen. Jede ausgefüllte Anfrage erscheint unter <a href="<?= Fmt::h(url('akquise/beitraege#formular')) ?>">Beiträge → Werbeformular</a>.</li>
+      </ol></details>
   </div>
 
   <div class="block" id="postfach">

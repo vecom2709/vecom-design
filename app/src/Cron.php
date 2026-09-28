@@ -268,6 +268,8 @@ final class Cron
                         $wa = ['whatsapp_stand' => WhatsAppCloud::standAbrufen()];
                     }
                 } catch (Throwable $e) { $wa = ['whatsapp_fehler' => mb_substr($e->getMessage(), 0, 120)]; }
+                /* Beiträge (28.09.2026, Z4): Montag und Donnerstag ein Entwurf -- gepostet wird erst nach Uwes Klick. */
+                try { require_once __DIR__ . '/MetaSeite.php'; if (MetaSeite::planen() !== null) { $wa['beitrag_entwurf'] = 1; } } catch (Throwable $e) { $wa['beitrag_fehler'] = mb_substr($e->getMessage(), 0, 120); }
                 return AkquiseFolge::lauf() + $wa;
             },
             /* Termine (27.09.2026): Erinnerung am Vortag, genau einmal. */

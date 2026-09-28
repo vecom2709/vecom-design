@@ -142,7 +142,7 @@ final class AkquiseFolge
     public static function starten(int $firmaId): bool
     {
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
-        if (!$f || (int) $f['gesperrt'] === 1 || trim((string) $f['einwilligung']) === '' || empty($f['email'])) { return false; }
+        if (!$f || (int) $f['gesperrt'] === 1 || trim((string) $f['einwilligung']) === '' || (empty($f['email']) && !AkquiseGate::einwilligungDeckt($f, 'whatsapp'))) { return false; }
         if (Db::wert('SELECT id FROM akq_folgen WHERE firma_id = ?', [$firmaId], null) !== null) { return false; }
         $sprache = AkquiseText::spracheFuer($f);
         $ew = Db::one("SELECT sprache FROM akq_einwilligungen WHERE firma_id = ? AND status = 'bestaetigt' ORDER BY id DESC LIMIT 1", [$firmaId]);
@@ -164,7 +164,7 @@ final class AkquiseFolge
         if ((int) $f['gesperrt'] === 1 || in_array((string) $f['kontakt_status'], ['abgelehnt', 'gesperrt'], true)) { return ['beendet', 'Abgemeldet oder gesperrt']; }
         if ((string) $f['kontakt_status'] === 'kunde' || (int) $f['bestandskunde'] === 1) { return ['beendet', 'Kunde geworden — der Kundenweg übernimmt']; }
         if (!empty($f['dashboard_am'])) { return ['beendet', 'Persönlichen Bereich geöffnet — der Kundenweg übernimmt']; }
-        if (trim((string) $f['einwilligung']) === '' || empty($f['email'])) { return ['beendet', 'Keine Einwilligung mehr']; }
+        if (trim((string) $f['einwilligung']) === '' || (empty($f['email']) && !AkquiseGate::einwilligungDeckt($f, 'whatsapp'))) { return ['beendet', 'Keine Einwilligung mehr']; }
         $antwort = Db::wert('SELECT COUNT(*) FROM akq_antworten WHERE firma_id = ? AND eingang_am > ?', [(int) $f['id'], (string) $folge['gestartet_am']], 0);
         if ((int) $antwort > 0) { return ['pausiert', 'Antwort erhalten — ab jetzt schreibst du selbst']; }
         return null;
@@ -295,7 +295,7 @@ final class AkquiseFolge
         /* Erst aufräumen -- auch bei ausgeschaltetem Schalter: Eine Antwort
            pausiert sofort, eine Abmeldung beendet sofort, nicht erst, wenn
            der nächste Schritt fällig wäre. Das verschickt nichts. */
-        foreach (Db::all("SELECT fo.*, f.gesperrt, f.kontakt_status, f.bestandskunde, f.einwilligung, f.email, f.dashboard_am, f.id AS fid
+        foreach (Db::all("SELECT fo.*, f.gesperrt, f.kontakt_status, f.bestandskunde, f.einwilligung, f.einwilligung_kanaele, f.whatsapp, f.email, f.dashboard_am, f.id AS fid
                             FROM akq_folgen fo JOIN akq_firmen f ON f.id = fo.firma_id WHERE fo.status = 'laeuft'") as $fo) {
             $h = self::hindernis($fo, ['id' => $fo['fid']] + $fo);
             if ($h === null) { continue; }

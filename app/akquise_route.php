@@ -354,6 +354,35 @@ if ($post) {
                 $_SESSION['gut'] = 'WhatsApp-Einstellungen gespeichert.';
                 $zu('regeln#whatsapp');
 
+            case 'akq_meta_speichern':
+                require_once __DIR__ . '/src/MetaSeite.php';
+                MetaSeite::speichern($_POST);
+                Events::pruefspur('meta_einstellungen', 'settings', null, [], ['seite_id' => MetaSeite::einstellungen()['seite_id'], 'ig_id' => MetaSeite::einstellungen()['ig_id']]);
+                $_SESSION['gut'] = 'Facebook/Instagram gespeichert.';
+                $zu('regeln#wege');
+
+            case 'akq_meta_abo':
+                require_once __DIR__ . '/src/MetaSeite.php';
+                $r = MetaSeite::formulareAbonnieren();
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['ok'] ? 'Die Seite meldet ausgefüllte Werbeformulare jetzt automatisch.' : 'Anmelden bei Meta gescheitert: ' . $r['grund'];
+                $zu('regeln#wege');
+
+            case 'akq_beitrag_neu':
+                require_once __DIR__ . '/src/MetaSeite.php';
+                MetaSeite::entwurf((string) ($_POST['code'] ?? '') ?: null, (string) ($_POST['sprache'] ?? '') ?: null);
+                $_SESSION['gut'] = 'Neuer Entwurf liegt oben.';
+                $zu('beitraege');
+
+            case 'akq_beitrag_posten':
+                require_once __DIR__ . '/src/MetaSeite.php';
+                $r = MetaSeite::posten((int) ($_POST['beitrag'] ?? 0), (string) ($_POST['text'] ?? ''));
+                $_SESSION[$r['ok'] ? 'gut' : 'fehler'] = $r['ok'] ? 'Gepostet.' : 'Nicht gepostet: ' . $r['grund'];
+                $zu('beitraege');
+
+            case 'akq_beitrag_verwerfen':
+                Db::run("UPDATE akq_beitraege SET status = 'verworfen' WHERE id = ? AND status IN ('entwurf','fehler')", [(int) ($_POST['beitrag'] ?? 0)]);
+                $zu('beitraege');
+
             case 'akq_wa_anmelden':
                 require_once __DIR__ . '/src/WhatsAppCloud.php';
                 $r = WhatsAppCloud::anmelden();
@@ -370,6 +399,14 @@ if ($post) {
                 $_SESSION['akq_einw_link'][$fid] = AkquiseEinwilligung::adresse($e);
                 Akquise::protokoll($fid, 'einwilligung', 'Einwilligungs-Link erzeugt');
                 weiter('akquise/' . $fid . '#einwilligung');
+
+            case 'akq_karte':
+                /* Karte drucken: Analyse-Seite anlegen und einschalten (Uwes Klick). */
+                try {
+                    $an = AkquiseAnalyse::anlegen($fid);
+                    if ((int) ($an['aktiv'] ?? 0) !== 1 || ($an['gueltig_bis'] !== null && strtotime((string) $an['gueltig_bis']) < strtotime('today'))) { AkquiseAnalyse::umschalten((int) $an['id'], true); }
+                } catch (RuntimeException $e) { $_SESSION['fehler'] = $e->getMessage(); weiter('akquise/' . $fid . '#einwilligung'); }
+                weiter('akquise/' . $fid . '/qrkarte');
 
             case 'akq_analyse_anlegen':
                 AkquiseAnalyse::anlegen($fid);
@@ -481,6 +518,27 @@ if ($teil === 'recherche') {
     exit;
 }
 
+if ($teil === 'beitraege') {
+    require_once __DIR__ . '/src/MetaSeite.php';
+    ansicht('akquise_beitraege', [
+        'beitraege' => sicher(static fn() => Db::all("SELECT * FROM akq_beitraege WHERE status <> 'verworfen' OR created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY) ORDER BY FIELD(status,'entwurf','fehler','gepostet','verworfen'), id DESC LIMIT 40"), []),
+        'leads' => sicher(static fn() => Db::all('SELECT * FROM akq_meta_leads ORDER BY id DESC LIMIT 20'), []),
+        'meta' => ['bereit' => MetaSeite::bereit()],
+    ]);
+    exit;
+}
+
+if ($teil === 'qrkarte') {
+    /* Allgemeine QR-Karte (28.09.2026, Z3): führt auf analisi.php. */
+    require_once __DIR__ . '/src/QrBild.php';
+    require_once __DIR__ . '/src/AkquiseAnalyse.php';
+    $f = null; $analyse = null;
+    $sp = in_array($_GET['sprache'] ?? '', ['it', 'de', 'en'], true) ? (string) $_GET['sprache'] : 'it';
+    $ziel = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/analisi.php?lang=' . $sp;
+    require __DIR__ . '/views/akquise_qrkarte.php';
+    exit;
+}
+
 if ($teil === 'regeln') {
     $einmal = $_SESSION['akq_schluessel_einmal'] ?? null;
     unset($_SESSION['akq_schluessel_einmal']);
@@ -582,6 +640,16 @@ if ($teil !== '' && ctype_digit($teil)) {
         $audit = Akquise::letzterAudit($fid);
         $befunde = $audit ? Akquise::befunde((int) $audit['id']) : [];
         require __DIR__ . '/views/akquise_vorort.php';
+        exit;
+    }
+    if ($zusatz === 'qrkarte') {
+        /* QR-Karte zum Hinlegen (28.09.2026, Z3): führt auf die eigene Analyse-Seite. */
+        foreach (['AkquiseAnalyse', 'QrBild'] as $k) { require_once __DIR__ . "/src/$k.php"; }
+        $analyse = Db::one('SELECT * FROM akq_analysen WHERE firma_id = ? AND aktiv = 1 AND (gueltig_bis IS NULL OR gueltig_bis >= CURDATE()) ORDER BY id DESC LIMIT 1', [$fid]);
+        if (!$analyse) { $_SESSION['fehler'] = 'Für die Karte braucht es eine eingeschaltete Analyse-Seite — Knopf „Karte drucken“ schaltet sie ein.'; weiter('akquise/' . $fid . '#einwilligung'); }
+        $sp = in_array($_GET['sprache'] ?? '', ['it', 'de', 'en'], true) ? (string) $_GET['sprache'] : AkquiseText::spracheFuer($f);
+        $ziel = AkquiseAnalyse::adresse($analyse);
+        require __DIR__ . '/views/akquise_qrkarte.php';
         exit;
     }
     if ($zusatz === 'anruf') {

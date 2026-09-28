@@ -24,7 +24,7 @@ window.VECOM_I18N.de = {
       desc: "Maßgeschneiderte Websites und Online-Shops aus Sizilien, deutschsprachig. Dreisprachig IT/DE/EN, für Google gebaut. Preise offen gelegt, Angebot in 90 Sekunden.",
       locale: "de_DE"
     },
-    nav: { betrieb: "Beispiele", services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", erlebnis: "Erlebnis",  check: "Website-Check", cta: "Dashboard anfordern" },
+    nav: { betrieb: "Beispiele", services: "Leistungen", work: "Arbeiten", process: "Ablauf", plans: "Preise", faq: "Fragen", contact: "Kontakt", erlebnis: "Erlebnis",  check: "Kostenlose Analyse", cta: "Dashboard anfordern" },
     buehne: { echt: "Aufnahmen der laufenden Seite" },
     hero: {
       eyebrow: "Webdesign aus Sizilien",
@@ -34,7 +34,7 @@ window.VECOM_I18N.de = {
       lead: "Für Betriebe mit Anspruch — Restaurant, Salon, Autohaus, Manufaktur. Ihre Kunden erleben Ihr Angebot schon auf der Website. Maßgefertigt, zum Festpreis, den Sie vorher freigeben.",
       cta1: "Anfrage stellen",
       cta2: "oder erst Beispiele ansehen",
-      cta_check: "oder Ihre Website kostenlos prüfen",
+      cta_check: "Kostenlose Analyse Ihrer Website",
       cta3: "In die 3D-Welt eintreten",
       m1t: "Zeitrahmen", m1d: "nach Aufwand, nicht nach Schema",
       m2t: "Preise", m2d: "nach Bedarf, nicht nach Paket",
@@ -652,7 +652,7 @@ masz: {
       l1: "Leistungen", l2: "Arbeiten", l3: "Ablauf", l4: "Kontakt",
       g1: "Impressum", g2: "Datenschutz", g3: "AGB", g4: "Widerruf",
       l5: "Preise",
-      l6: "Kostenloser Website-Check",
+      l6: "Kostenlose Website-Analyse",
       rights: "Alle Rechte vorbehalten.",
       made: "Gestaltet und gebaut in Aragona. Von mir."
     },

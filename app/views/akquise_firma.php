@@ -330,6 +330,9 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
         <p class="akq-klein" style="margin-bottom:8px">Hat der Betrieb gesagt „schicken Sie mir das per Mail“? Dann schick ihm diesen Link (per SMS, WhatsApp oder vor Ort als QR). Er trägt seine Adresse ein, auf Wunsch auch seine WhatsApp-Nummer, und bestätigt per Klick — danach ist die E-Mail erlaubt (und WhatsApp, wenn er es angekreuzt hat), mit Beleg.</p>
         <p style="margin:0 0 10px"><a class="knopf" href="<?= Fmt::h(url('akquise/' . $fid . '/vorort')) ?>">Vor Ort zeigen (Handy)</a>
           <span class="akq-klein">Beim Besuch: Analyse in seiner Sprache zeigen, er tippt selbst E-Mail und WhatsApp ein.</span></p>
+        <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0 0 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_karte"><input type="hidden" name="firma" value="<?= $fid ?>">
+          <button class="knopf">QR-Karte drucken</button><span class="akq-klein">Zum Dalassen: der Code führt auf seine Analyse, dort trägt er selbst E-Mail/WhatsApp ein. Schaltet die Analyse-Seite ein.</span></form>
         <?php if ($einwLink): ?>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= Fmt::h($einwLink) ?></code>
             <button class="knopf" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(<?= Fmt::h(json_encode($einwLink)) ?>);this.textContent='✓'">Kopieren</button></div>

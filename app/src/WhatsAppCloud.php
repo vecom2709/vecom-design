@@ -66,6 +66,7 @@ final class WhatsAppCloud
     {
         return [
             'nummer_id' => AkquiseGate::einstellung('wa_nummer_id', ''),
+            'anzeige' => AkquiseGate::einstellung('wa_anzeige', ''),
             'konto_id' => AkquiseGate::einstellung('wa_konto_id', ''),
             'token' => self::geheim('wa_token') !== '',
             'app_geheim' => self::geheim('wa_app_geheim') !== '',
@@ -83,7 +84,7 @@ final class WhatsAppCloud
     /** Leere Felder lassen den gespeicherten Wert stehen -- so muss niemand den Schlüssel ein zweites Mal eintippen. */
     public static function speichern(array $d): void
     {
-        foreach (['wa_nummer_id' => 'nummer_id', 'wa_konto_id' => 'konto_id'] as $k => $feld) {
+        foreach (['wa_nummer_id' => 'nummer_id', 'wa_konto_id' => 'konto_id', 'wa_anzeige' => 'anzeige'] as $k => $feld) {
             $v = preg_replace('~\D~', '', (string) ($d[$feld] ?? '')) ?? '';
             if ($v !== '' || !empty($d['leeren'])) { AkquiseGate::setzen($k, mb_substr($v, 0, 30)); }
         }
@@ -250,6 +251,169 @@ final class WhatsAppCloud
         return $ok ? ['ok' => true, 'id' => $id] : ['ok' => false, 'id' => $id, 'grund' => 'Meta hat die Nachricht nicht angenommen.'];
     }
 
+    /* ------------------------------ Antworten im Gespräch ------------------- */
+
+    /** Freier Text -- nur als Antwort, solange der Betrieb in den letzten 24 Stunden selbst geschrieben hat (Metas Regel). */
+    public static function textSenden(string $an, string $text): bool
+    {
+        $r = self::anfrage('POST', self::API . '/' . AkquiseGate::einstellung('wa_nummer_id') . '/messages',
+            ['messaging_product' => 'whatsapp', 'to' => $an, 'type' => 'text', 'text' => ['body' => mb_substr($text, 0, 4000), 'preview_url' => true]]);
+        return $r['status'] >= 200 && $r['status'] < 300;
+    }
+
+    /** Zwei oder drei Antwortknöpfe. @param array<string,string> $knoepfe id => Beschriftung (höchstens 20 Zeichen) */
+    public static function knoepfeSenden(string $an, string $text, array $knoepfe): bool
+    {
+        $b = [];
+        foreach (array_slice($knoepfe, 0, 3, true) as $id => $titel) { $b[] = ['type' => 'reply', 'reply' => ['id' => (string) $id, 'title' => mb_substr($titel, 0, 20)]]; }
+        $r = self::anfrage('POST', self::API . '/' . AkquiseGate::einstellung('wa_nummer_id') . '/messages',
+            ['messaging_product' => 'whatsapp', 'to' => $an, 'type' => 'interactive', 'interactive' => ['type' => 'button', 'body' => ['text' => mb_substr($text, 0, 1024)], 'action' => ['buttons' => $b]]]);
+        return $r['status'] >= 200 && $r['status'] < 300;
+    }
+
+    /** Sätze des Assistenten. */
+    public const ASSISTENT = [
+        'it' => ['hallo' => 'Buongiorno da Vecom Design! Mi scriva l’indirizzo del suo sito (per es. trattoria-rossi.it): le mando subito una prima analisi gratuita.',
+                 'adresse' => 'Non riesco a leggere l’indirizzo. Me lo riscriva così: trattoria-rossi.it', 'warten' => 'Un attimo, riprovo tra pochi secondi: mi riscriva l’indirizzo.',
+                 'ergebnis' => 'Ecco la prima analisi di {host}:', 'stand' => ['gut' => 'va bene', 'hinweis' => 'da migliorare', 'schlecht' => 'problema'],
+                 'frage' => 'Vuole l’analisi completa con i consigli e il suo spazio personale su Vecom Design? Con «Sì» accetta che Vecom Design (Uwe Vetter) le scriva su WhatsApp a questo numero sul suo sito e su offerte adatte. Può revocare in qualsiasi momento scrivendo STOP.',
+                 'ja' => 'Sì, volentieri', 'nein' => 'No, grazie', 'email' => 'Grazie! Per aprire il suo spazio personale mi scriva la sua e-mail. Se preferisce di no, scriva «salta».',
+                 'emailFalsch' => 'Questa e-mail non mi sembra giusta. Me la riscriva, oppure «salta».', 'fertig' => 'Ecco il suo spazio personale su Vecom Design, già pronto: {link}' . "\n\n" . 'L’analisi completa arriva a breve. Per domande risponda qui.',
+                 'fertigOhne' => 'Perfetto! L’analisi completa arriva a breve qui su WhatsApp. Per domande risponda qui.', 'nichtJa' => 'Va bene, nessun problema. Se cambia idea, ci scriva quando vuole.', 'stop' => 'Va bene, non le scriveremo più.'],
+        'de' => ['hallo' => 'Guten Tag von Vecom Design! Schreiben Sie mir die Adresse Ihrer Website (z. B. trattoria-rossi.it), dann schicke ich Ihnen sofort eine erste kostenlose Analyse.',
+                 'adresse' => 'Die Adresse kann ich nicht lesen. Bitte so schreiben: trattoria-rossi.it', 'warten' => 'Einen Moment, bitte in ein paar Sekunden die Adresse noch einmal schicken.',
+                 'ergebnis' => 'Hier die erste Analyse von {host}:', 'stand' => ['gut' => 'gut', 'hinweis' => 'verbesserbar', 'schlecht' => 'Problem'],
+                 'frage' => 'Möchten Sie die ausführliche Analyse mit Tipps und Ihren persönlichen Bereich bei Vecom Design? Mit „Ja“ erlauben Sie, dass Vecom Design (Uwe Vetter) Ihnen per WhatsApp an diese Nummer Nachrichten zu Ihrer Website und zu passenden Angeboten schickt. Sie können das jederzeit mit STOP widerrufen.',
+                 'ja' => 'Ja, gern', 'nein' => 'Nein, danke', 'email' => 'Danke! Für Ihren persönlichen Bereich schreiben Sie mir bitte Ihre E-Mail-Adresse. Wenn Sie das nicht möchten, schreiben Sie „weiter“.',
+                 'emailFalsch' => 'Die E-Mail-Adresse sieht nicht richtig aus. Bitte noch einmal, oder „weiter“.', 'fertig' => 'Hier ist Ihr persönlicher Bereich bei Vecom Design, schon vorbereitet: {link}' . "\n\n" . 'Die ausführliche Analyse kommt in Kürze. Bei Fragen einfach hier antworten.',
+                 'fertigOhne' => 'Prima! Die ausführliche Analyse kommt in Kürze hier per WhatsApp. Bei Fragen einfach hier antworten.', 'nichtJa' => 'In Ordnung. Wenn Sie es sich anders überlegen, schreiben Sie uns jederzeit.', 'stop' => 'In Ordnung, wir schreiben Ihnen nicht mehr.'],
+        'en' => ['hallo' => 'Hello from Vecom Design! Send me your website address (e.g. trattoria-rossi.it) and I will send you a first free analysis right away.',
+                 'adresse' => 'I cannot read the address. Please write it like this: trattoria-rossi.it', 'warten' => 'One moment, please send the address again in a few seconds.',
+                 'ergebnis' => 'Here is the first analysis of {host}:', 'stand' => ['gut' => 'good', 'hinweis' => 'could be better', 'schlecht' => 'problem'],
+                 'frage' => 'Would you like the full analysis with tips and your personal area at Vecom Design? With “Yes” you agree that Vecom Design (Uwe Vetter) may message you on WhatsApp at this number about your website and suitable offers. You can withdraw at any time by writing STOP.',
+                 'ja' => 'Yes, please', 'nein' => 'No, thanks', 'email' => 'Thank you! For your personal area, please send me your email address. If you’d rather not, write “skip”.',
+                 'emailFalsch' => 'That email doesn’t look right. Please send it again, or “skip”.', 'fertig' => 'Here is your personal area at Vecom Design, already set up: {link}' . "\n\n" . 'The full analysis follows shortly. Reply here with any questions.',
+                 'fertigOhne' => 'Great! The full analysis follows shortly here on WhatsApp. Reply here with any questions.', 'nichtJa' => 'All right. If you change your mind, write to us any time.', 'stop' => 'All right, we will not write to you again.'],
+    ];
+    public const WORTLAUT_CHAT = 'v3wachat';
+
+    private static function sprache(string $text, string $vorher): string
+    {
+        $t = mb_strtolower($text);
+        if (preg_match('~\b(analyse|kostenlos|guten tag|hallo|ich|website)\b~u', $t) && !preg_match('~\b(analisi|sito|buongiorno)\b~u', $t)) { return 'de'; }
+        if (preg_match('~\b(analysis|free|hello|would like|my website)\b~u', $t) && !preg_match('~\b(analisi|sito)\b~u', $t)) { return 'en'; }
+        return $vorher !== '' ? $vorher : 'it';
+    }
+
+    /**
+     * Der WhatsApp-Assistent (28.09.2026, Uwe: Ja zu Z1). Nur Antworten auf
+     * jemanden, der gerade selbst geschrieben hat. Die Einwilligung entsteht
+     * erst mit dem Knopf „Sì“ unter dem vollständigen Wortlaut -- die Nachricht
+     * mit Zeitstempel und Nachrichten-ID ist der Beleg.
+     */
+    private static function assistent(array $m, string $ziffern, ?array $g): bool
+    {
+        $text = trim((string) ($m['text']['body'] ?? $m['button']['text'] ?? $m['interactive']['button_reply']['title'] ?? ''));
+        $knopf = (string) ($m['interactive']['button_reply']['id'] ?? '');
+        if (!$g) {
+            Db::run('INSERT IGNORE INTO akq_wa_gespraeche (nummer, sprache, stand) VALUES (?, ?, ?)', [$ziffern, self::sprache($text, ''), 'neu']);
+            $g = Db::one('SELECT * FROM akq_wa_gespraeche WHERE nummer = ?', [$ziffern]);
+        }
+        $sp = (string) $g['sprache'];
+        $A = self::ASSISTENT[$sp] ?? self::ASSISTENT['it'];
+        $setzen = static fn(array $w) => Db::update('akq_wa_gespraeche', (int) $g['id'], $w + ['letzte_am' => date('Y-m-d H:i:s')]);
+        $klein = mb_strtolower($text);
+        foreach (self::STOP as $w) {
+            if ($klein === $w || str_starts_with($klein, $w . ' ')) {
+                $setzen(['stand' => 'beendet']);
+                if (!empty($g['firma_id'])) { AkquiseGate::sperren((int) $g['firma_id'], 'Im WhatsApp-Assistenten „' . mb_substr($text, 0, 30) . '“ geschrieben', 'abmeldung'); }
+                self::textSenden($ziffern, $A['stop']);
+                return true;
+            }
+        }
+        /* Eine Adresse im Text? Dann gleich prüfen -- auch schon in der ersten Nachricht. */
+        $adresse = preg_match('~((?:https?://)?(?:www\.)?[a-z0-9][a-z0-9\-]*(?:\.[a-z0-9\-]+)*\.[a-z]{2,}(?:/\S*)?)~iu', $text, $am) ? $am[1] : '';
+        if (in_array($g['stand'], ['neu', 'url'], true)) {
+            if ($adresse === '') {
+                $setzen(['stand' => 'url']);
+                self::textSenden($ziffern, $g['stand'] === 'neu' ? $A['hallo'] : $A['adresse']);
+                return true;
+            }
+            require_once __DIR__ . '/PartnerSeite.php';
+            $kc = PartnerSeite::kurzcheck($adresse, 'wa:' . $ziffern);
+            if (!$kc['ok']) { $setzen(['stand' => 'url']); self::textSenden($ziffern, $kc['grund'] === 'adresse' ? $A['adresse'] : $A['warten']); return true; }
+            $P = Texte::PARTNER_CHECK['punkte'];
+            $zeilen = [];
+            foreach ($kc['punkte'] as $p) {
+                if (!isset($P[$p['was']])) { continue; }
+                $zeilen[] = ['gut' => '🟢', 'hinweis' => '🟡', 'schlecht' => '🔴'][$p['stand']] . ' ' . Texte::h($P[$p['was']]['titel'], $sp) . ': ' . ($A['stand'][$p['stand']] ?? '');
+            }
+            $setzen(['stand' => 'ja', 'url' => mb_substr((string) $kc['url'], 0, 255), 'ampel' => json_encode($kc['punkte'])]);
+            self::textSenden($ziffern, strtr($A['ergebnis'], ['{host}' => $kc['host']]) . "\n\n" . implode("\n", $zeilen));
+            self::knoepfeSenden($ziffern, $A['frage'], ['ja' => $A['ja'], 'nein' => $A['nein']]);
+            return true;
+        }
+        if ($g['stand'] === 'ja') {
+            $ja = $knopf === 'ja' || in_array($klein, ['sì', 'si', 'sì volentieri', 'ja', 'yes', 'ok'], true);
+            if (!$ja) {
+                $setzen(['stand' => 'beendet']);
+                self::textSenden($ziffern, $A['nichtJa']);
+                return true;
+            }
+            require_once __DIR__ . '/AkquiseKurz.php';
+            $b = AkquiseKurz::betrieb((string) $g['url']);
+            if ($b === null) { $setzen(['stand' => 'url']); self::textSenden($ziffern, $A['adresse']); return true; }
+            $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$b['id']]);
+            if (!$f || (int) $f['gesperrt'] === 1 || AkquiseGate::trifftSperrliste(['telefon' => '+' . $ziffern] + $f) !== null) {
+                $setzen(['stand' => 'beendet']);
+                self::textSenden($ziffern, $A['nichtJa']);
+                return true;
+            }
+            $jetzt = date('Y-m-d H:i:s');
+            $wortlaut = $A['frage'];
+            $ewId = (int) Db::insert('akq_einwilligungen', ['firma_id' => $b['id'], 'link_token' => bin2hex(random_bytes(20)), 'quelle' => 'whatsapp', 'sprache' => $sp,
+                'status' => 'bestaetigt', 'whatsapp' => '+' . $ziffern, 'wortlaut' => $wortlaut, 'wortlaut_version' => self::WORTLAUT_CHAT,
+                'angefragt_am' => $jetzt, 'bestaetigt_am' => $jetzt]);
+            $beleg = mb_substr('WhatsApp-Chat ' . date('d.m.Y H:i') . ': Knopf „' . ($text ?: 'Sì') . '“ unter dem Wortlaut, von +' . $ziffern . ' (Nachricht ' . mb_substr((string) ($m['id'] ?? ''), 0, 40) . ', Nachweis #' . $ewId . ')', 0, 255);
+            $kanaele = array_filter(array_map('trim', explode(',', (string) ($f['einwilligung_kanaele'] ?? ''))));
+            if (trim((string) $f['einwilligung']) === '') { $kanaele = []; }
+            $kanaele[] = 'whatsapp';
+            $neu = ['einwilligung' => $beleg, 'einwilligung_kanaele' => implode(',', array_values(array_unique($kanaele))), 'whatsapp' => '+' . $ziffern];
+            Db::update('akq_firmen', $b['id'], $neu);
+            Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', $b['id'], ['einwilligung' => $f['einwilligung']], $neu);
+            Akquise::protokoll($b['id'], 'einwilligung', 'Einwilligung im WhatsApp-Assistenten: WhatsApp an +' . $ziffern);
+            AkquiseGate::statusSpeichern($b['id']);
+            $setzen(['stand' => 'email', 'firma_id' => $b['id']]);
+            try { Events::melden('akquise_einwilligung', 'WhatsApp-Assistent: ' . $f['name'] . ' hat eingewilligt', 'gut', '+' . $ziffern, 'akquise/' . $b['id']); } catch (Throwable $e) { }
+            self::textSenden($ziffern, $A['email']);
+            return true;
+        }
+        if ($g['stand'] === 'email') {
+            $fid = (int) $g['firma_id'];
+            $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
+            if (!$f) { $setzen(['stand' => 'beendet']); return true; }
+            $ueberspringen = in_array($klein, ['salta', 'weiter', 'skip', 'no'], true);
+            $email = Akquise::normEmail($text);
+            if (!$ueberspringen && $email === null) { self::textSenden($ziffern, $A['emailFalsch']); return true; }
+            require_once __DIR__ . '/AkquiseFolge.php';
+            if ($email !== null) {
+                /* Die E-Mail dient dem persönlichen Bereich, den er gerade verlangt hat. Werbung per E-Mail
+                   deckt sie nicht (Kanäle bleiben „whatsapp“) -- dafür bräuchte es die Bestätigungsmail. */
+                Db::update('akq_firmen', $fid, ['email' => $email]);
+                $f['email'] = $email;
+                require_once __DIR__ . '/Zugang.php';
+                $link = Zugang::vorbereiten($email, $sp, $fid, (string) $f['name']);
+                self::textSenden($ziffern, strtr($A['fertig'], ['{link}' => (string) $link]));
+            } else {
+                self::textSenden($ziffern, $A['fertigOhne']);
+            }
+            $setzen(['stand' => 'fertig']);
+            try { AkquiseFolge::starten($fid); } catch (Throwable $e) { }
+            return true;
+        }
+        return false;
+    }
+
     /* ------------------------------ Webhook ------------------------------- */
 
     public static function signaturGut(string $roh, string $kopf): bool
@@ -290,7 +454,14 @@ final class WhatsAppCloud
 
     private static function nachricht(array $m): bool
     {
-        $f = self::firmaZurNummer((string) ($m['from'] ?? ''));
+        /* Der Assistent (Z1) zuerst: ein laufendes Gespräch, oder jemand ohne
+           Betrieb bei uns schreibt -- dann fragt der Assistent nach der Website. */
+        $ziffern = preg_replace('~\D~', '', (string) ($m['from'] ?? '')) ?? '';
+        $gespraech = Db::one('SELECT * FROM akq_wa_gespraeche WHERE nummer = ?', [$ziffern]);
+        $f = self::firmaZurNummer($ziffern);
+        if (AkquiseGate::schalterSelbst('wa_assistent') && (($gespraech && !in_array($gespraech['stand'], ['fertig', 'beendet'], true)) || (!$f && !$gespraech))) {
+            return self::assistent($m, $ziffern, $gespraech);
+        }
         if (!$f) { return false; }
         $text = trim((string) ($m['text']['body'] ?? $m['button']['text'] ?? $m['interactive']['button_reply']['title'] ?? ''));
         $klein = mb_strtolower($text);

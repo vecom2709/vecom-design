@@ -66,6 +66,22 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 }
 .hero__leise:hover { color: #fff; border-color: var(--c-cyan); }
 .hero__leise-zeile { display: flex; flex-wrap: wrap; gap: .6rem 1.6rem; align-items: baseline; }
+/* „Analisi gratuita“ (28.09.2026, Z6): die sichtbarste zweite Tür. Eine
+   Pille mit Ampel -- sie verspricht genau, was dahinter passiert. */
+.hero__analisi {
+  display: inline-flex; align-items: center; gap: .7rem; min-height: 48px; padding: .55rem 1.15rem .55rem .9rem;
+  border: 1px solid rgba(241,211,139,.55); border-radius: 999px; background: rgba(241,211,139,.07);
+  color: var(--c-text); font-weight: 600; font-size: 1.02rem; letter-spacing: .005em; text-decoration: none;
+  transition: background var(--d-ui, .18s) ease, border-color var(--d-ui, .18s) ease, transform var(--d-ui, .18s) cubic-bezier(.16,1,.3,1);
+}
+.hero__analisi:hover { background: rgba(241,211,139,.14); border-color: var(--c-cyan); transform: translateY(-1px); }
+.hero__analisi:focus-visible { outline: 2px solid var(--c-cyan); outline-offset: 3px; }
+.hero__ampel { display: inline-flex; gap: 4px; }
+.hero__ampel i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+.hero__ampel i:nth-child(1) { background: #6fcf8f; } .hero__ampel i:nth-child(2) { background: #f5c542; } .hero__ampel i:nth-child(3) { background: #ef8a7a; }
+@media (prefers-reduced-motion: reduce) { .hero__analisi:hover { transform: none; } }
+/* Auf schmalen Handys steht der Scroll-Hinweis sonst auf der Pille. */
+@media (max-width: 480px) { .scrollcue { display: none; } }
 /* Der Website-Check im Menü nur, wenn das Menü eine Liste ist (Handy). */
 @media (min-width: 901px) { .nav a.nav__mobil { display: none; } }
 
