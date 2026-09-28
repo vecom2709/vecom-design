@@ -104,7 +104,7 @@ $foto = $p ? PartnerWerbung::fotoAdresse($p) : null;
   <ul>
     <?php foreach ($e['punkte'] as $pk):
       $K = Texte::PARTNER_CHECK['punkte'][$pk['was']] ?? null; if (!$K) { continue; }
-      $satzK = $pk['was'] === 'aktuell' && $pk['stand'] === 'hinweis' && $pk['wert'] === '' ? 'hinweis_leer' : $pk['stand'];
+      $satzK = ($pk['k'] ?? '') !== '' ? (string) $pk['k'] : ($pk['was'] === 'aktuell' && $pk['stand'] === 'hinweis' && $pk['wert'] === '' ? 'hinweis_leer' : $pk['stand']);
       $satz = strtr(Texte::h($K[$satzK] ?? $K[$pk['stand']] ?? [], $sprache), ['{wert}' => (string) $pk['wert']]); ?>
       <li><span class="ampel <?= $h($pk['stand']) ?>" aria-hidden="true"></span><div><b><?= $h(Texte::h($K['titel'], $sprache)) ?></b><span class="t"><?= $h($satz) ?></span></div></li>
     <?php endforeach; ?>

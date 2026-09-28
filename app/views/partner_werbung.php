@@ -110,6 +110,21 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       <textarea id="web_code" readonly rows="4" style="font-family:ui-monospace,monospace;font-size:12.5px"><?= $h($knopf) ?></textarea>
       <div class="knoepfe"><button class="knopf" type="button" data-kopie="web_code"><?= $h($T('code_kopieren')) ?></button></div>
     </div>
+
+    <?php /* Check-Knopf (28.09.2026, W2): die kostenlose Analyse auf der Website des Partners. */
+          $akW = ['it' => ['Analisi gratuita sul suo sito', 'Inserisca questo pulsante o riquadro sul suo sito (associazione, studio, negozio). Chi lo usa vede subito l’analisi del proprio sito — ed è registrato a suo nome.', 'Pulsante', 'Riquadro'],
+                  'de' => ['Kostenlose Analyse auf Ihrer Website', 'Bauen Sie diesen Knopf oder Kasten auf Ihrer Website ein (Verein, Büro, Geschäft). Wer ihn nutzt, sieht sofort die Analyse seiner eigenen Website — und wird Ihnen zugeordnet.', 'Knopf', 'Kasten'],
+                  'en' => ['Free analysis on your website', 'Put this button or box on your website (club, office, shop). Anyone using it sees the analysis of their own website right away — and is credited to you.', 'Button', 'Box']][$sprache] ?? null;
+          if ($akW): foreach (['knopf' => $akW[2], 'kasten' => $akW[3]] as $akArt => $akName): $akCode = PartnerWerbung::analyseKnopf($p, $sprache, $akArt); ?>
+      <?php if ($akArt === 'knopf'): ?><h3 style="font-size:15px;margin:20px 0 4px"><?= $h($akW[0]) ?></h3><p class="klein" style="margin:0"><?= $h($akW[1]) ?></p><?php endif; ?>
+      <p class="klein" style="margin:12px 0 0;font-weight:600"><?= $h($akName) ?></p>
+      <div class="web-vorschau"><?= $akCode ?></div>
+      <div class="vorlage" style="padding:10px">
+        <label class="sr" for="ak_<?= $akArt ?>"><?= $h($akW[0] . ' · ' . $akName) ?></label>
+        <textarea id="ak_<?= $akArt ?>" readonly rows="4" style="font-family:ui-monospace,monospace;font-size:12.5px"><?= $h($akCode) ?></textarea>
+        <div class="knoepfe"><button class="knopf" type="button" data-kopie="ak_<?= $akArt ?>"><?= $h($T('code_kopieren')) ?></button></div>
+      </div>
+    <?php endforeach; endif; ?>
   </details>
 
   <h2 style="margin-top:22px"><?= $h($T('aw_titel')) ?></h2>

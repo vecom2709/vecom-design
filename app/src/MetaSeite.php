@@ -11,7 +11,7 @@ require_once __DIR__ . '/AkquiseGate.php';
  *
  * Z4 BEITRÄGE
  * Zweimal die Woche (Montag und Donnerstag) legt das System einen Beitrag als
- * ENTWURF an: ein Thema aus den sechs Punkten des Kurz-Checks, ein Bild
+ * ENTWURF an: ein Thema aus den zwölf Punkten des Kurz-Checks, ein Bild
  * 1080×1080 mit dem Satz darauf, darunter der Link auf die kostenlose
  * Analyse. Nichts geht von selbst raus: Uwe drückt „Freigeben & posten“,
  * dann postet das System auf die Facebook-Seite und auf Instagram.
@@ -32,7 +32,7 @@ final class MetaSeite
     /** @var null|callable(string $methode, string $url, ?array $body, string $token): array{status:int, json:?array} Für die Kette. */
     public static $netz = null;
 
-    /** Themen: die sechs Punkte des Kurz-Checks und ein allgemeiner. Titel = Satz auf dem Bild. */
+    /** Themen: die zwölf Punkte des Kurz-Checks und ein allgemeiner. Titel = Satz auf dem Bild. */
     public const THEMEN = [
         'tempo' => [
             'it' => ['Il suo sito si apre in fretta sul telefono?', "Chi cerca un ristorante, un hotel o un negozio dal telefono non aspetta a lungo: se la pagina tarda, torna indietro e sceglie il risultato successivo.\n\nVuole sapere com’è messo il suo sito? Lo verifichi gratis in pochi secondi, senza registrazione:"],
@@ -53,8 +53,8 @@ final class MetaSeite
             'it' => ['Condiviso su WhatsApp, appare un’immagine?', "Quando un cliente manda il suo sito a un amico su WhatsApp o Facebook, un’anteprima con immagine invita a toccare. Senza, resta solo un link grigio.\n\nVeda gratis se il suo sito ha l’anteprima:"],
             'de' => ['Erscheint beim Teilen in WhatsApp ein Bild?', "Schickt ein Kunde Ihre Website per WhatsApp oder Facebook weiter, lädt eine Vorschau mit Bild zum Antippen ein. Ohne bleibt nur ein grauer Link.\n\nSehen Sie kostenlos, ob Ihre Website eine Vorschau hat:"]],
         'allgemein' => [
-            'it' => ['Analisi gratuita del suo sito', "Velocità, sicurezza, telefono, Google, aggiornamento e anteprima: sei punti con semaforo, in pochi secondi. Gratis, senza registrazione. Se vuole, poi le mandiamo l’analisi completa.\n\nProvi qui:"],
-            'de' => ['Kostenlose Analyse Ihrer Website', "Ladezeit, Sicherheit, Handy, Google, Aktualität und Vorschau: sechs Punkte als Ampel, in wenigen Sekunden. Kostenlos, ohne Anmeldung. Wenn Sie möchten, schicken wir Ihnen danach die ausführliche Analyse.\n\nHier ausprobieren:"]],
+            'it' => ['Analisi gratuita del suo sito', "Velocità, sicurezza, telefono, Google, orari, immagini e altro: dodici punti con semaforo, in pochi secondi. Gratis, senza registrazione. Se vuole, poi le mandiamo l’analisi completa.\n\nProvi qui:"],
+            'de' => ['Kostenlose Analyse Ihrer Website', "Ladezeit, Sicherheit, Handy, Google, Öffnungszeiten, Bilder und mehr: zwölf Punkte als Ampel, in wenigen Sekunden. Kostenlos, ohne Anmeldung. Wenn Sie möchten, schicken wir Ihnen danach die ausführliche Analyse.\n\nHier ausprobieren:"]],
     ];
     public const TAGE = [1, 4];   // Montag, Donnerstag
 

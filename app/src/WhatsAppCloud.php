@@ -349,7 +349,15 @@ final class WhatsAppCloud
                 $zeilen[] = ['gut' => '🟢', 'hinweis' => '🟡', 'schlecht' => '🔴'][$p['stand']] . ' ' . Texte::h($P[$p['was']]['titel'], $sp) . ': ' . ($A['stand'][$p['stand']] ?? '');
             }
             $setzen(['stand' => 'ja', 'url' => mb_substr((string) $kc['url'], 0, 255), 'ampel' => json_encode($kc['punkte'])]);
-            self::textSenden($ziffern, strtr($A['ergebnis'], ['{host}' => $kc['host']]) . "\n\n" . implode("\n", $zeilen));
+            /* Note und ausführlicher Bericht zum Anschauen (28.09.2026, A1–A10). */
+            $zusatz = '';
+            try {
+                require_once __DIR__ . '/WebBericht.php';
+                $tok = WebBericht::speichern($kc, null, 'whatsapp');
+                $zusatz = "\n\n" . ['it' => 'Voto: ', 'de' => 'Note: ', 'en' => 'Score: '][$sp] . WebBericht::note($kc['punkte']) . '/100 · ' . WebBericht::stufe(WebBericht::note($kc['punkte']), $sp)
+                    . "\n" . ['it' => 'Rapporto completo, con spiegazioni: ', 'de' => 'Ausführlicher Bericht mit Erklärungen: ', 'en' => 'Full report with explanations: '][$sp] . WebBericht::adresse($tok, $sp);
+            } catch (Throwable $e) { }
+            self::textSenden($ziffern, strtr($A['ergebnis'], ['{host}' => $kc['host']]) . "\n\n" . implode("\n", $zeilen) . $zusatz);
             self::knoepfeSenden($ziffern, $A['frage'], ['ja' => $A['ja'], 'nein' => $A['nein']]);
             return true;
         }
@@ -384,6 +392,7 @@ final class WhatsAppCloud
             Akquise::protokoll($b['id'], 'einwilligung', 'Einwilligung im WhatsApp-Assistenten: WhatsApp an +' . $ziffern);
             AkquiseGate::statusSpeichern($b['id']);
             $setzen(['stand' => 'email', 'firma_id' => $b['id']]);
+            try { Db::run("UPDATE web_berichte SET firma_id = ? WHERE host = ? AND firma_id IS NULL AND quelle = 'whatsapp' ORDER BY id DESC LIMIT 1", [$b['id'], $b['host']]); } catch (Throwable $e) { }
             try { Events::melden('akquise_einwilligung', 'WhatsApp-Assistent: ' . $f['name'] . ' hat eingewilligt', 'gut', '+' . $ziffern, 'akquise/' . $b['id']); } catch (Throwable $e) { }
             self::textSenden($ziffern, $A['email']);
             return true;

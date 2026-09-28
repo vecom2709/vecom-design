@@ -102,7 +102,8 @@ if (is_file($konfig)) {
             /* ECHTE BESUCHER (27.09.2026): Vorschau-Programme, der Partner
                selbst und derselbe Browser im selben Besuch zählen nicht.
                Der Sprachwechsel und die Vorschau im Gestalter (n=1) nie. */
-            $zaehlen = !isset($_GET['n']) && !isset($_GET['weg'])
+            /* Der Check-Knopf auf fremden Websites (W2) ist ein echter Besuch: gezählt, dann weiter zur Analyse. */
+            $zaehlen = !isset($_GET['n']) && (!isset($_GET['weg']) || $_GET['weg'] === 'analisi')
                 && Partner::echterBesuch($p, (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), $_COOKIE);
             if ($zaehlen) { Partner::klick((int) $p['id'], $kanal); }
             setcookie(Partner::KEKS, (string) $p['code'] . ($kanal !== null ? ':' . $kanal : ''), [

@@ -4,7 +4,7 @@ declare(strict_types=1);
    analisi.php — Kurz-Check und Ja in einem Schritt (28.09.2026, Uwe: Ja zu
    Z2 und Z6 „Knopf ‚Analisi gratuita‘ überall“).
 
-     Schritt 1  Adresse eingeben → sofort die Ampel der sechs Punkte
+     Schritt 1  Adresse eingeben → sofort die Ampel der zwölf Punkte
      Schritt 2  darunter: E-Mail, auf Wunsch WhatsApp, Häkchen → nur die
                 Bestätigungsmail. Ab dem Klick darin läuft alles automatisch
                 (Folge-Nachrichten, persönlicher Bereich).
@@ -21,28 +21,28 @@ header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src '
 
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 if (!is_file(__DIR__ . '/app/config.local.php')) { http_response_code(503); exit('Il servizio non è disponibile. · Der Dienst ist nicht verfügbar.'); }
-foreach (['Config', 'Db', 'Status', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseCheck', 'AkquiseEinwilligung', 'AkquiseKurz', 'PartnerSeite', 'Partner', 'WebTipp'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+foreach (['Config', 'Db', 'Status', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Akquise', 'AkquiseGate', 'AkquiseText', 'AkquiseCheck', 'AkquiseEinwilligung', 'AkquiseKurz', 'PartnerSeite', 'Partner', 'WebTipp', 'WebBericht'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaetig(false); } catch (Throwable $e) { }
 
 $sprache = Sprache::ausAnfrage();
 if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 $T = [
-    'it' => ['meta' => 'Analisi gratuita del suo sito — Vecom Design', 'zeile' => 'Analisi gratuita', 'h1' => 'Com’è messo il suo sito?', 'lead' => 'Inserisca l’indirizzo: in pochi secondi vede sei punti con semaforo. Gratis, senza registrazione.',
+    'it' => ['meta' => 'Analisi gratuita del suo sito — Vecom Design', 'zeile' => 'Analisi gratuita', 'h1' => 'Com’è messo il suo sito?', 'lead' => 'Inserisca l’indirizzo: in pochi secondi vede dodici punti con semaforo. Gratis, senza registrazione.',
              'feld' => 'Indirizzo del sito, per es. trattoria-rossi.it', 'pruefen' => 'Verificare', 'ergebnis' => 'Risultato per {host}', 'stand' => ['gut' => 'va bene', 'hinweis' => 'da migliorare', 'schlecht' => 'problema'],
              'jaTitel' => 'Vuole l’analisi completa e il suo spazio personale?', 'jaText' => 'Le mandiamo subito il link al suo spazio personale su Vecom Design, con l’analisi dettagliata e i consigli.',
              'betrieb' => 'Nome dell’attività (facoltativo)', 'email' => 'La sua e-mail', 'wa' => 'Anche su WhatsApp', 'waNr' => 'Numero WhatsApp', 'knopf' => 'Ricevere l’analisi completa',
              'gesendet' => 'Fatto! Le abbiamo mandato a {email} il link al suo spazio personale, dove trova l’analisi. In una seconda e-mail le chiediamo di confermare il consenso con un clic.',
              'waLink' => 'Preferisce WhatsApp? Ci scriva e riceve l’analisi lì.', 'fehler' => ['adresse' => 'Questo indirizzo non sembra un sito raggiungibile. Lo controlli.', 'warten' => 'Un attimo: può verificare di nuovo tra pochi secondi.', 'zuviel' => 'Per oggi sono state fatte molte verifiche. Riprovi domani.',
              'email' => 'Controlli l’indirizzo e-mail e la spunta.', 'whatsapp' => 'Il numero WhatsApp non è leggibile.', 'gesperrt' => 'Per questo indirizzo non è possibile.', 'zeit' => 'Ci è sfuggito qualcosa: riprovi.'], 'waText' => 'Buongiorno, vorrei l’analisi gratuita del mio sito'],
-    'de' => ['meta' => 'Kostenlose Analyse Ihrer Website — Vecom Design', 'zeile' => 'Kostenlose Analyse', 'h1' => 'Wie steht Ihre Website da?', 'lead' => 'Adresse eingeben: In wenigen Sekunden sehen Sie sechs Punkte als Ampel. Kostenlos, ohne Anmeldung.',
+    'de' => ['meta' => 'Kostenlose Analyse Ihrer Website — Vecom Design', 'zeile' => 'Kostenlose Analyse', 'h1' => 'Wie steht Ihre Website da?', 'lead' => 'Adresse eingeben: In wenigen Sekunden sehen Sie zwölf Punkte als Ampel. Kostenlos, ohne Anmeldung.',
              'feld' => 'Adresse der Website, z. B. trattoria-rossi.it', 'pruefen' => 'Prüfen', 'ergebnis' => 'Ergebnis für {host}', 'stand' => ['gut' => 'gut', 'hinweis' => 'verbesserbar', 'schlecht' => 'Problem'],
              'jaTitel' => 'Möchten Sie die ausführliche Analyse und Ihren persönlichen Bereich?', 'jaText' => 'Wir schicken Ihnen sofort den Link zu Ihrem persönlichen Bereich bei Vecom Design, mit der ausführlichen Analyse und Tipps.',
              'betrieb' => 'Name des Betriebs (freiwillig)', 'email' => 'Ihre E-Mail-Adresse', 'wa' => 'Auch per WhatsApp', 'waNr' => 'WhatsApp-Nummer', 'knopf' => 'Ausführliche Analyse erhalten',
              'gesendet' => 'Erledigt! An {email} ging der Link zu Ihrem persönlichen Bereich, dort liegt die Analyse. In einer zweiten Mail bitten wir Sie, Ihre Einwilligung mit einem Klick zu bestätigen.',
              'waLink' => 'Lieber WhatsApp? Schreiben Sie uns, dann bekommen Sie die Analyse dort.', 'fehler' => ['adresse' => 'Diese Adresse sieht nicht nach einer erreichbaren Website aus. Bitte prüfen.', 'warten' => 'Einen Moment: In ein paar Sekunden können Sie wieder prüfen.', 'zuviel' => 'Für heute wurde schon oft geprüft. Bitte morgen noch einmal.',
              'email' => 'Bitte E-Mail-Adresse und Häkchen prüfen.', 'whatsapp' => 'Die WhatsApp-Nummer ist nicht lesbar.', 'gesperrt' => 'Für diese Adresse nicht möglich.', 'zeit' => 'Da ist etwas schiefgegangen: bitte noch einmal.'], 'waText' => 'Guten Tag, ich möchte die kostenlose Analyse meiner Website'],
-    'en' => ['meta' => 'Free analysis of your website — Vecom Design', 'zeile' => 'Free analysis', 'h1' => 'How is your website doing?', 'lead' => 'Enter the address: in a few seconds you see six points as traffic lights. Free, no sign-up.',
+    'en' => ['meta' => 'Free analysis of your website — Vecom Design', 'zeile' => 'Free analysis', 'h1' => 'How is your website doing?', 'lead' => 'Enter the address: in a few seconds you see twelve points as traffic lights. Free, no sign-up.',
              'feld' => 'Website address, e.g. trattoria-rossi.it', 'pruefen' => 'Check', 'ergebnis' => 'Result for {host}', 'stand' => ['gut' => 'good', 'hinweis' => 'could be better', 'schlecht' => 'problem'],
              'jaTitel' => 'Would you like the full analysis and your personal area?', 'jaText' => 'We immediately send you the link to your personal area at Vecom Design, with the detailed analysis and tips.',
              'betrieb' => 'Business name (optional)', 'email' => 'Your email address', 'wa' => 'Also on WhatsApp', 'waNr' => 'WhatsApp number', 'knopf' => 'Get the full analysis',
@@ -54,26 +54,34 @@ $P = Texte::PARTNER_CHECK['punkte'];
 
 $post = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
 $url = mb_substr(trim((string) ($_POST['url'] ?? $_GET['url'] ?? '')), 0, 200);
-$kc = null; $fehler = ''; $gesendet = '';
+$kc = null; $fehler = ''; $gesendet = ''; $bericht = null;
+$bTok = (string) ($_POST['b'] ?? $_GET['b'] ?? '');
 try {
     if ($post && ($_POST['tat'] ?? '') === 'pruefen') {
         $kc = PartnerSeite::kurzcheck($url);
         if (!$kc['ok']) { $fehler = (string) $kc['grund']; $kc = null; }
+        else {
+            /* Der ausführliche Bericht bekommt eine feste Adresse (28.09.2026, A1–A10) -- und die Seite
+               leitet dorthin um, damit Neuladen nicht noch einmal prüft und der Rechner mit GET arbeitet. */
+            $tok = WebBericht::speichern($kc, null, 'analisi');
+            header('Location: analisi.php?lang=' . $sprache . '&b=' . $tok . '#wb', true, 303);
+            exit;
+        }
     } elseif ($post && ($_POST['tat'] ?? '') === 'ja') {
-        $kc = json_decode((string) ($_POST['ampel'] ?? ''), true);
-        $kc = is_array($kc) && isset($kc['host'], $kc['punkte']) ? $kc : null;
         if (trim((string) ($_POST['homepage'] ?? '')) !== '' || !AkquiseCheck::stempelGut((string) ($_POST['z'] ?? ''))) {
             $fehler = 'zeit';
         } else {
             $r = AkquiseKurz::einwilligen(['url' => $url, 'betrieb' => (string) ($_POST['betrieb'] ?? ''), 'email' => (string) ($_POST['email'] ?? ''),
                 'whatsapp' => !empty($_POST['wa']) ? (string) ($_POST['whatsapp'] ?? '') : null, 'ja' => !empty($_POST['ja']), 'sprache' => $sprache,
-                'quelle' => 'check', 'partner' => AkquiseCheck::partnerAusBesuch(), 'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? '')]);
+                'quelle' => 'check', 'partner' => AkquiseCheck::partnerAusBesuch(), 'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''), 'bericht' => $bTok]);
             if ($r === 'ok') { $gesendet = mb_strtolower(trim((string) $_POST['email'])); } else { $fehler = $r; }
         }
     }
+    if ($bTok !== '' && ($bericht = WebBericht::laden($bTok, !$post)) !== null) {
+        $kc = $bericht['kc'];
+        if ($url === '') { $url = (string) ($kc['url'] ?? $kc['host'] ?? ''); }
+    }
 } catch (Throwable $e) { $fehler = 'zeit'; }
-/* Der Ampel-Stand reist unverändert mit ins zweite Formular -- nur zur Anzeige, nichts davon wird gespeichert. */
-$ampelJson = $kc ? json_encode(['host' => (string) $kc['host'], 'punkte' => array_values(array_filter(array_map(static fn($p) => ['was' => (string) ($p['was'] ?? ''), 'stand' => (string) ($p['stand'] ?? '')], (array) $kc['punkte']), static fn($p) => isset($P[$p['was']])))], JSON_UNESCAPED_UNICODE) : '';
 $waNummer = AkquiseGate::einstellung('wa_anzeige', '');
 $waLink = $waNummer !== '' ? 'https://wa.me/' . $waNummer . '?text=' . rawurlencode($T['waText']) : '';
 $wortEmail = AkquiseEinwilligung::wortlaut($sprache);
@@ -151,17 +159,14 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
   <?php if ($fehler !== ''): ?><p class="hinweis schlecht" role="alert"><?= $h($T['fehler'][$fehler] ?? $T['fehler']['zeit']) ?></p><?php endif; ?>
 
   <?php if ($kc): ?>
-    <div class="karte" role="status">
-      <h2><?= $h(strtr($T['ergebnis'], ['{host}' => (string) $kc['host']])) ?></h2>
-      <ul class="ampel"><?php foreach ((array) $kc['punkte'] as $p): if (!isset($P[$p['was'] ?? ''])) { continue; } ?>
-        <li class="st-<?= $h((string) $p['stand']) ?>"><i aria-hidden="true"></i><b><?= $h(Texte::h($P[$p['was']]['titel'], $sprache)) ?></b><span><?= $h($T['stand'][$p['stand']] ?? $T['stand']['hinweis']) ?></span></li>
-      <?php endforeach; ?></ul>
-    </div>
-    <div class="karte">
+    <p style="margin:14px 0 0"><a class="knopf leise" href="#ja"><?= $h($T['jaTitel']) ?> ↓</a></p>
+    <?php $wb = ['kc' => $kc, 'sprache' => $sprache, 'token' => $bericht['token'] ?? null, 'seite' => 'analisi.php?lang=' . $sprache . '&b=' . ($bericht['token'] ?? '')];
+          require __DIR__ . '/app/views/web_bericht.php'; ?>
+    <div class="karte" id="ja">
       <h2><?= $h($T['jaTitel']) ?></h2>
       <p style="margin:0 0 14px;color:var(--d)"><?= $h($T['jaText']) ?></p>
       <form class="ja" method="post" action="analisi.php?lang=<?= $h($sprache) ?>">
-        <input type="hidden" name="tat" value="ja"><input type="hidden" name="url" value="<?= $h($url) ?>"><input type="hidden" name="ampel" value="<?= $h($ampelJson) ?>">
+        <input type="hidden" name="tat" value="ja"><input type="hidden" name="url" value="<?= $h($url) ?>"><input type="hidden" name="b" value="<?= $h((string) ($bericht['token'] ?? '')) ?>">
         <input type="hidden" name="z" value="<?= $h(AkquiseCheck::stempel()) ?>">
         <div class="lock" aria-hidden="true"><label>Homepage <input type="text" name="homepage" tabindex="-1" autocomplete="off"></label></div>
         <div><label class="t" for="a_betrieb"><?= $h($T['betrieb']) ?></label><input id="a_betrieb" type="text" name="betrieb" maxlength="190" autocomplete="organization"></div>

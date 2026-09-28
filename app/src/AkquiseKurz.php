@@ -62,6 +62,10 @@ final class AkquiseKurz
         $quelle = in_array($e['quelle'] ?? '', self::QUELLEN, true) ? (string) $e['quelle'] : 'check';
         $b = self::betrieb((string) ($e['url'] ?? ''), (string) ($e['betrieb'] ?? ''));
         if ($b === null) { return 'adresse'; }
+        /* Den ausführlichen Bericht dem Betrieb zuordnen (28.09.2026) -- dann steht er in seinem persönlichen Bereich. */
+        if (preg_match('~^[a-f0-9]{32}$~', (string) ($e['bericht'] ?? ''))) {
+            try { Db::run('UPDATE web_berichte SET firma_id = ? WHERE token = ? AND firma_id IS NULL', [$b['id'], (string) $e['bericht']]); } catch (Throwable $x) { }
+        }
         try { $link = AkquiseEinwilligung::link($b['id'], $quelle); } catch (RuntimeException $x) { return 'gesperrt'; }
         $wa = isset($e['whatsapp']) && $e['whatsapp'] !== null && trim((string) $e['whatsapp']) !== '' ? (string) $e['whatsapp'] : null;
         $r = AkquiseEinwilligung::anfragen((string) $link['link_token'], (string) ($e['email'] ?? ''), !empty($e['ja']), (string) ($e['sprache'] ?? 'it'), (string) ($e['ip'] ?? ''), $wa);

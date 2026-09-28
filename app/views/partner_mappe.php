@@ -105,7 +105,7 @@ $ersetze = static fn(string $t): string => strtr($t, ['{name}' => $name]);
       <ul class="zwei">
         <?php foreach ($mappe['punkte'] as $pk):
           $K = Texte::PARTNER_CHECK['punkte'][$pk['was']] ?? null; if (!$K) { continue; }
-          $satzK = $pk['was'] === 'aktuell' && $pk['stand'] === 'hinweis' && $pk['wert'] === '' ? 'hinweis_leer' : $pk['stand']; ?>
+          $satzK = ($pk['k'] ?? '') !== '' ? (string) $pk['k'] : ($pk['was'] === 'aktuell' && $pk['stand'] === 'hinweis' && $pk['wert'] === '' ? 'hinweis_leer' : $pk['stand']); ?>
           <li><span class="ampel <?= $h($pk['stand']) ?>" aria-hidden="true"></span><div><b><?= $h(Texte::h($K['titel'], $ms)) ?></b>
             <?= $h(strtr(Texte::h($K[$satzK] ?? $K[$pk['stand']] ?? [], $ms), ['{wert}' => (string) $pk['wert']])) ?></div></li>
         <?php endforeach; ?>

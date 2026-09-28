@@ -19,13 +19,13 @@ $wa = preg_replace('~\D~', '', AkquiseGate::einstellung('wa_anzeige', '')) ?? ''
 $waZeige = $wa !== '' ? '+' . substr($wa, 0, 2) . ' ' . trim(chunk_split(substr($wa, 2), 3, ' ')) : '';
 $W = [
     'it' => ['fuer' => 'Per {name}', 'titelF' => 'Abbiamo guardato il suo sito.', 'textF' => 'Inquadri il codice con la fotocamera: vede cosa abbiamo notato e cosa proponiamo. Gratis e senza impegno.',
-             'titelA' => 'Analisi gratuita del suo sito', 'textA' => 'Inquadri il codice e inserisca l’indirizzo del sito: in pochi secondi vede sei punti con semaforo. Gratis, senza registrazione.',
+             'titelA' => 'Analisi gratuita del suo sito', 'textA' => 'Inquadri il codice e inserisca l’indirizzo del sito: in pochi secondi vede dodici punti con semaforo. Gratis, senza registrazione.',
              'wa' => 'Oppure su WhatsApp', 'scan' => 'Inquadri'],
     'de' => ['fuer' => 'Für {name}', 'titelF' => 'Wir haben uns Ihre Website angesehen.', 'textF' => 'Halten Sie die Kamera auf den Code: Sie sehen, was uns aufgefallen ist und was wir vorschlagen. Kostenlos und unverbindlich.',
-             'titelA' => 'Kostenlose Analyse Ihrer Website', 'textA' => 'Halten Sie die Kamera auf den Code und geben Sie die Adresse ein: In wenigen Sekunden sehen Sie sechs Punkte als Ampel. Kostenlos, ohne Anmeldung.',
+             'titelA' => 'Kostenlose Analyse Ihrer Website', 'textA' => 'Halten Sie die Kamera auf den Code und geben Sie die Adresse ein: In wenigen Sekunden sehen Sie zwölf Punkte als Ampel. Kostenlos, ohne Anmeldung.',
              'wa' => 'Oder per WhatsApp', 'scan' => 'Scannen'],
     'en' => ['fuer' => 'For {name}', 'titelF' => 'We took a look at your website.', 'textF' => 'Point your camera at the code: you see what we noticed and what we suggest. Free, no obligation.',
-             'titelA' => 'Free analysis of your website', 'textA' => 'Point your camera at the code and enter the address: in a few seconds you see six points as traffic lights. Free, no sign-up.',
+             'titelA' => 'Free analysis of your website', 'textA' => 'Point your camera at the code and enter the address: in a few seconds you see twelve points as traffic lights. Free, no sign-up.',
              'wa' => 'Or on WhatsApp', 'scan' => 'Scan'],
 ][$sp];
 $istFirma = $f !== null;

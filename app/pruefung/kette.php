@@ -11440,11 +11440,12 @@ PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' 
 $prE = PartnerCheck::pruefen('alt.example');
 $prSt = array_column($prE['punkte'], 'stand', 'was');
 pruefe('Schnellcheck: alte Seite — langsam, ohne https, ohne Handy-Ansicht, © 2016 veraltet, Titel ohne Beschreibung',
-    $prSt === ['tempo' => 'schlecht', 'sicher' => 'schlecht', 'handy' => 'schlecht', 'google' => 'hinweis', 'aktuell' => 'schlecht', 'teilen' => 'hinweis'], json_encode($prSt));
+    $prSt === ['tempo' => 'schlecht', 'sicher' => 'schlecht', 'handy' => 'schlecht', 'google' => 'hinweis', 'aktuell' => 'schlecht', 'teilen' => 'hinweis',
+               'rechtlich' => 'schlecht', 'telefon' => 'schlecht', 'adresse' => 'hinweis', 'bilder' => 'gut', 'alt' => 'gut', 'zeiten' => 'hinweis'], json_encode($prSt));
 PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 600, 'url' => 'https://neu.example/', 'ssl_tage' => 80, 'fehler' => '',
-    'inhalt' => '<html><head><title>Hotel Neu</title><meta name="viewport" content="width=device-width"><meta name="description" content="Das schöne Hotel am Meer in Cefalù."><meta property="og:image" content="x.jpg"></head><body>© 2025–' . date('Y') . '</body></html>'];
+    'inhalt' => '<html><head><title>Hotel Neu</title><meta name="viewport" content="width=device-width"><meta name="description" content="Das schöne Hotel am Meer in Cefalù."><meta property="og:image" content="x.jpg"><script type="application/ld+json">{"@type":"Hotel","openingHours":"Mo-Su 00:00-23:59","address":{"@type":"PostalAddress"}}</script></head><body><a href="tel:+390921123456">0921 123456</a> <img src="a.webp" alt="Terrasse mit Meerblick"> Impressum · Datenschutz © 2025–' . date('Y') . '</body></html>'];
 $prSt2 = array_column(PartnerCheck::pruefen('neu.example')['punkte'], 'stand', 'was');
-pruefe('Schnellcheck: gepflegte Seite — alle sechs Punkte grün', count(array_filter($prSt2, static fn($s) => $s === 'gut')) === 6, json_encode($prSt2));
+pruefe('Schnellcheck: gepflegte Seite — alle zwölf Punkte grün', count($prSt2) === 12 && count(array_filter($prSt2, static fn($s) => $s === 'gut')) === 12, json_encode($prSt2));
 $prOhne = [];
 foreach (Texte::PARTNER_CHECK['punkte'] as $prK => $prT) { foreach ($prT as $prStand => $prSatz) { foreach (['it', 'de', 'en'] as $prL) { if (trim((string) ($prSatz[$prL] ?? '')) === '') { $prOhne[] = "$prK.$prStand.$prL"; } } } }
 pruefe('Schnellcheck: jeder Satz des Berichts in allen drei Sprachen', $prOhne === [], implode(', ', $prOhne));
@@ -11874,8 +11875,8 @@ PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' 
 $r2Ip = '198.51.100.' . random_int(1, 250);
 $r2K = PartnerSeite::kurzcheck('kurz.example', $r2Ip);
 $r2K2 = PartnerSeite::kurzcheck('kurz.example', $r2Ip);
-pruefe('Kurz-Check: Ampel der sechs Punkte ohne Namen und E-Mail; gleich danach noch einmal wird gebremst; Unsinn ist keine Adresse',
-    $r2K['ok'] && count($r2K['punkte']) === 6 && $r2K['host'] === 'kurz.example' && $r2K2['grund'] === 'warten'
+pruefe('Kurz-Check: Ampel der zwölf Punkte ohne Namen und E-Mail; gleich danach noch einmal wird gebremst; Unsinn ist keine Adresse',
+    $r2K['ok'] && count($r2K['punkte']) === 12 && $r2K['host'] === 'kurz.example' && $r2K2['grund'] === 'warten'
     && PartnerSeite::kurzcheck('kein punkt', '198.51.100.251')['grund'] === 'adresse', json_encode([$r2K, $r2K2]));
 PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
 $r2Datei = tempnam(sys_get_temp_dir(), 'gruss');
@@ -12690,7 +12691,7 @@ pruefe('Website-Check: nur die Anfrage -- keine Bestätigungsmail, keine Einwill
     && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND schritt = 'anfrage'", [(int) $wcF['id']], 0) === 1);
 $wcL = AkquiseCheck::laden((string) $wcA['token']);
 pruefe('Website-Check: die Ergebnis-Adresse zeigt weder Name noch E-Mail noch Telefon', $wcL && !isset($wcL['email']) && !isset($wcL['name']) && !isset($wcL['telefon'])
-    && count($wcL['ergebnis']['punkte']) === 6 && str_contains(AkquiseCheck::link((string) $wcA['token']), '/website-check.php?t='));
+    && count($wcL['ergebnis']['punkte']) === 12 && str_contains(AkquiseCheck::link((string) $wcA['token']), '/website-check.php?t='));
 $wcB = AkquiseCheck::anlegen(['marketing' => true, 'email' => 'inhaber@pizzeria-check.example', 'sprache_seite' => 'de'] + $wcBasis, '198.51.100.4');
 $wcZ2 = Db::one('SELECT * FROM akq_checks WHERE token = ?', [(string) $wcB['token']]);
 $wcE = $wcZ2 && $wcZ2['einwilligung_id'] ? Db::one('SELECT * FROM akq_einwilligungen WHERE id = ?', [(int) $wcZ2['einwilligung_id']]) : null;
@@ -14177,7 +14178,7 @@ pruefe('Z1: unbekannte Nummer schreibt — der Assistent fragt nach der Website 
     count($zNetz) === 1 && str_contains((string) ($zNetz[0]['text']['body'] ?? ''), 'indirizzo del suo sito') && Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr], '') === 'url');
 $zWa($zNr, ['type' => 'text', 'text' => ['body' => 'ecco: pizzeria-zumja.example']]);
 $zAmpel = (string) ($zNetz[1]['text']['body'] ?? ''); $zFrage = $zNetz[2] ?? [];
-pruefe('Z1: Adresse → Ampel der sechs Punkte, dann die Frage mit vollem Wortlaut und zwei Knöpfen',
+pruefe('Z1: Adresse → Ampel der zwölf Punkte, dann die Frage mit vollem Wortlaut und zwei Knöpfen',
     str_contains($zAmpel, 'pizzeria-zumja.example') && substr_count($zAmpel, "\n") >= 6 && str_contains($zAmpel, '🔴')
     && ($zFrage['type'] ?? '') === 'interactive' && count($zFrage['interactive']['action']['buttons'] ?? []) === 2 && str_contains((string) ($zFrage['interactive']['body']['text'] ?? ''), 'STOP')
     && Db::wert('SELECT stand FROM akq_wa_gespraeche WHERE nummer = ?', [$zNr], '') === 'ja', $zAmpel);
@@ -14431,6 +14432,112 @@ AkquiseGate::schalterSetzen('bereich', true);
 PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
 pruefe('Bereich-Mail in drei Sprachen mit Link und ohne Preise', count(Zugang::BEREICH_MAIL) === 3
     && !array_filter(Zugang::BEREICH_MAIL, static fn($m) => !str_contains($m[1], '{link}') || preg_match('~\d+\s*€~u', $m[1])));
+
+/* ============================================================================
+   Ausführlicher Website-Bericht (28.09.2026, Uwe: Ja zu A1–A10 und W2)
+   ============================================================================ */
+abschnitt('Website-Bericht (A1–A10, W2)');
+foreach (['WebBericht', 'PartnerCheck', 'PartnerWerbung', 'AkquiseKurz', 'AkquiseCheck', 'Baukasten'] as $k) { require_once $wurzel . "/src/$k.php"; }
+$abGut = array_map(static fn($w) => ['was' => $w, 'stand' => 'gut', 'wert' => ''], WebBericht::REIHE);
+$abAlt = [['was' => 'tempo', 'stand' => 'schlecht', 'wert' => '4,2 s'], ['was' => 'handy', 'stand' => 'schlecht', 'wert' => ''], ['was' => 'google', 'stand' => 'hinweis', 'wert' => 'Trattoria'],
+          ['was' => 'sicher', 'stand' => 'gut', 'wert' => '80'], ['was' => 'telefon', 'stand' => 'hinweis', 'wert' => '0922 123456'], ['was' => 'zeiten', 'stand' => 'hinweis', 'wert' => '', 'k' => 'hinweis_leer']];
+pruefe('A1: Note 0–100 aus den gewichteten Punkten: alles gut = 100, nicht erreichbar = 0, alte Seite dazwischen',
+    WebBericht::note($abGut) === 100 && WebBericht::note([['was' => 'erreichbar', 'stand' => 'schlecht', 'wert' => '']]) === 0
+    && WebBericht::note($abAlt) > 0 && WebBericht::note($abAlt) < 60, (string) WebBericht::note($abAlt));
+pruefe('A1: der eine Satz nennt die zwei gewichtigsten Punkte in Alltagssprache; ohne Befund die solide Grundlage',
+    WebBericht::satz($abAlt, 'de') === 'Das fällt zuerst auf: Die Seite lädt sehr langsam, und auf dem Handy ist sie kaum lesbar.'
+    && WebBericht::satz($abGut, 'it') === WebBericht::WORTE['it']['alles'], WebBericht::satz($abAlt, 'de'));
+$abFehlt = [];
+foreach (array_merge(WebBericht::REIHE, ['erreichbar']) as $w) {
+    foreach (['it', 'de', 'en'] as $l) {
+        if (trim((string) (WebBericht::HEISST[$w][$l] ?? '')) === '') { $abFehlt[] = "heisst.$w.$l"; }
+        if (trim((string) (WebBericht::WARUM[$w][$l] ?? '')) === '') { $abFehlt[] = "warum.$w.$l"; }
+        if (!isset(Texte::PARTNER_CHECK['punkte'][$w]['titel'][$l])) { $abFehlt[] = "titel.$w.$l"; }
+    }
+    if (!str_contains(WebBericht::symbol($w), '<path') && !str_contains(WebBericht::symbol($w), '<rect') && !str_contains(WebBericht::symbol($w), '<circle')) { $abFehlt[] = "symbol.$w"; }
+}
+foreach (WebBericht::KURZ as $w => $st) { foreach ($st as $x) { foreach (['it', 'de', 'en'] as $l) { if (trim((string) ($x[$l] ?? '')) === '') { $abFehlt[] = "kurz.$w.$l"; } } } }
+foreach (WebBericht::WORTE as $l => $wo) { foreach (array_keys(WebBericht::WORTE['de']) as $k) { if (!isset($wo[$k])) { $abFehlt[] = "worte.$l.$k"; } } }
+pruefe('A8: jeder der zwölf Punkte mit Symbol, Titel, „Was heißt das für Sie?“ und „Warum wichtig?“ in IT/DE/EN', $abFehlt === [], implode(', ', $abFehlt));
+$abZahl = [];
+foreach ([WebBericht::HEISST, WebBericht::WARUM] as $abT) { foreach ($abT as $w => $x) { foreach ($x as $l => $t) {
+    if (preg_match('~\d+\s*%|\d+\s*(prozent|per cento|percent)|garant|verlier\w* (jeden|täglich)|perd\w+ ogni~iu', $t)) { $abZahl[] = "$w.$l"; } } } }
+pruefe('A8: keine erfundenen Prozentzahlen, keine Garantien, keine Angstsätze', $abZahl === [], implode(', ', $abZahl));
+$abKc = ['host' => 'trattoria-bericht.example', 'url' => 'https://trattoria-bericht.example/', 'punkte' => $abAlt, 'meta' => ['titel' => 'Trattoria', 'beschreibung' => '', 'og' => false, 'ms' => 4200, 'name' => '']];
+$abG = WebBericht::google($abKc, 'de', ['name' => 'Trattoria Bericht', 'branche' => 'restaurant', 'stadt' => 'Favara']);
+pruefe('A3: Google heute (echter Titel, fehlende Beschreibung sichtbar) und Vorschlag mit Name, Branche und Ort',
+    $abG['jetzt']['titel'] === 'Trattoria' && $abG['jetzt']['beschreibung'] === '' && str_contains($abG['vorschlag']['titel'], 'Trattoria Bericht')
+    && str_contains($abG['vorschlag']['titel'], 'Favara') && $abG['og'] === false && mb_strlen($abG['vorschlag']['beschreibung']) <= 160, json_encode($abG, JSON_UNESCAPED_UNICODE));
+pruefe('A4: Ladezeit aus der Messung (4200 ms → 4,2 s), sonst aus dem Punkt', WebBericht::sekunden($abKc) === 4.2
+    && WebBericht::sekunden(['punkte' => [['was' => 'tempo', 'stand' => 'hinweis', 'wert' => '2,7 s']]]) === 2.7);
+/* A5 */
+$abIds = [];
+foreach ([['Trattoria Alfeo', 20], ['Pizzeria Bruno', 45], ['Osteria Carmela', 60], ['Bistro Donato', 70], ['Taverna Enzo', 35]] as [$abN, $abS]) {
+    $abF = Akquise::firmaMelden(['name' => $abN, 'land' => 'IT', 'stadt' => 'Canicattì', 'branche' => 'restaurant', 'url' => 'https://' . strtolower(str_replace(' ', '-', $abN)) . '.example/', 'quelle' => 'test:a5:' . $abN]);
+    Db::run("UPDATE akq_firmen SET score = ?, audit_status = 'fertig', branche = 'restaurant', stadt = 'Canicattì' WHERE id = ?", [$abS, (int) $abF['id']]);
+    $abIds[] = (int) $abF['id'];
+}
+$abV = WebBericht::vergleich($abIds[3], 'de');
+pruefe('A5: Vergleich mit gleicher Branche im selben Ort, anonym; wer die meisten Probleme hat, steht hinten',
+    $abV !== null && $abV['von'] === 5 && $abV['platz'] === 5 && $abV['ort'] === 'Canicattì' && count(array_filter($abV['liste'], static fn($z) => $z['selbst'])) === 1
+    && WebBericht::vergleich($abIds[0], 'de')['platz'] === 1, json_encode($abV, JSON_UNESCAPED_UNICODE));
+Db::run('UPDATE akq_firmen SET stadt = ? WHERE id IN (' . implode(',', array_slice($abIds, 0, 2)) . ')', ['Licata']);
+pruefe('A5: weniger als vier Vergleiche — kein Vergleich', WebBericht::vergleich($abIds[3], 'de') === null);
+pruefe('A6: Rechner mit seinen Zahlen: 150 € × 2 Kunden im Monat = 24 Kunden, 3.600 € im Jahr; Grenzen gelten',
+    WebBericht::rechnen(150, 2) === ['wert' => 150, 'mehr' => 2, 'jahr' => 24, 'summe' => 3600] && WebBericht::rechnen(-5, 99)['mehr'] === 30
+    && WebBericht::euro(360000, 'de') === '3.600 €' && WebBericht::euro(360000, 'en') === '€3,600');
+Baukasten::sicherstellen();
+$abPl = WebBericht::plan($abAlt, 'de');
+$abR = Baukasten::rechnen(['bestand' => 'erneuern', 'material' => ['texte'], 'umfang' => '', 'sprachen' => 1]);
+pruefe('A7: Maßnahmenplan nur für Punkte, die nicht passen, mit Bausteinen und Preisen aus der Preisliste; Summe = Rechner der Preisseite',
+    count($abPl['zeilen']) === 5 && $abPl['von'] === (int) $abR['von_cents'] && $abPl['bis'] === (int) $abR['bis_cents']
+    && str_contains($abPl['zeilen'][0]['preis'], '€') && in_array(WebBericht::WORTE['de']['plan_gespraech'], array_column($abPl['zeilen'], 'loesung'), true), json_encode($abPl, JSON_UNESCAPED_UNICODE));
+pruefe('A7: Preise nur im persönlichen Bereich, nie auf den öffentlichen Seiten',
+    str_contains((string) file_get_contents($wurzel . '/../kunde.php'), "'preise' => true") && !str_contains((string) file_get_contents($wurzel . '/../analisi.php'), "'preise' => true")
+    && !str_contains((string) file_get_contents($wurzel . '/../bericht.php'), "'preise' => true") && !str_contains((string) file_get_contents($wurzel . '/../analyse.php'), "'preise' => true"));
+/* Speichern, Laden, PDF */
+$abTok = WebBericht::speichern($abKc, null, 'analisi');
+$abL = WebBericht::laden($abTok);
+pruefe('Bericht mit fester Adresse: gespeichert ohne Name/E-Mail, wieder ladbar, fremder Schlüssel nicht',
+    $abL !== null && $abL['kc']['host'] === 'trattoria-bericht.example' && WebBericht::laden(str_repeat('0', 32)) === null && WebBericht::laden('x') === null
+    && (int) Db::wert('SELECT note FROM web_berichte WHERE token = ?', [$abTok], 0) === WebBericht::note($abAlt));
+$abPdf = WebBericht::pdf($abL, 'de');
+pruefe('A9: Bericht als PDF (eine Seite A4 mit Note, Punkten und QR)', str_starts_with($abPdf, '%PDF') && str_contains($abPdf, 'trattoria-bericht.example') && strlen($abPdf) > 3000, (string) strlen($abPdf));
+/* Zuordnung beim Ja auf analisi.php */
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static fn(string $url): array => ['ok' => true, 'status' => 200, 'ms' => 700, 'url' => 'https://' . parse_url($url, PHP_URL_HOST) . '/', 'ssl_tage' => 80, 'fehler' => '', 'inhalt' => '<html><head><title>Prova</title></head><body>x</body></html>'];
+AkquiseKurz::einwilligen(['url' => 'trattoria-bericht.example', 'email' => 'oste@trattoria-bericht.example', 'ja' => true, 'sprache' => 'it', 'quelle' => 'check', 'bericht' => $abTok]);
+$abFid = (int) Db::wert("SELECT id FROM akq_firmen WHERE domain = 'trattoria-bericht.example'", [], 0);
+pruefe('Ja auf analisi.php: der Bericht gehört ab dann zum Betrieb (persönlicher Bereich)', $abFid > 0 && (int) Db::wert('SELECT firma_id FROM web_berichte WHERE token = ?', [$abTok], 0) === $abFid
+    && WebBericht::fuerFirma($abFid)['token'] === $abTok);
+$abC = AkquiseCheck::anlegen(['url' => 'enoteca-bericht.example', 'firma' => 'Enoteca Bericht', 'name' => 'Paolo Test', 'email' => 'paolo@enoteca-bericht.example', 'sprache' => 'it', 'land' => 'IT', 'ausfuehrlich' => false], '198.51.100.' . random_int(1, 250));
+$abCz = Db::one('SELECT * FROM akq_checks WHERE token = ?', [(string) ($abC['token'] ?? '')]);
+pruefe('Website-Check legt denselben ausführlichen Bericht an (mit Betrieb), die Ergebnisseite zeigt ihn', !empty($abCz['bericht']) && WebBericht::laden((string) $abCz['bericht'])['firma_id'] === (int) $abCz['firma_id']
+    && str_contains((string) file_get_contents($wurzel . '/../website-check.php'), "require __DIR__ . '/app/views/web_bericht.php'"));
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+/* A2 */
+pruefe('A2: Markierungen nur mit bekannten Arten und innerhalb des Handyfotos',
+    WebBericht::marken(['marken' => json_encode([['art' => 'schrift', 'x' => 8, 'y' => 40, 'b' => 374, 'h' => 4], ['art' => 'boese', 'x' => 1, 'y' => 1, 'b' => 5, 'h' => 5], ['art' => 'bild', 'x' => 10, 'y' => 900, 'b' => 5, 'h' => 5]])])
+        === [['art' => 'schrift', 'x' => 8.0, 'y' => 40.0, 'b' => 374.0, 'h' => 8.0]] && WebBericht::marken(null) === []);
+$abAud = Akquise::auditMelden($abFid, ['status' => 'fertig', 'befunde' => [], 'seiten' => 1, 'marken' => [['art' => 'telefon', 'x' => 0, 'y' => 62, 'b' => 390, 'h' => 15], ['art' => '<script>', 'x' => 0, 'y' => 0, 'b' => 1, 'h' => 1]]]);
+pruefe('A2: der Worker meldet Markierungen mit dem Audit, nur geprüfte werden gespeichert',
+    json_decode((string) Db::wert('SELECT marken FROM akq_audits WHERE firma_id = ? ORDER BY id DESC LIMIT 1', [$abFid], ''), true) === [['art' => 'telefon', 'x' => 0, 'y' => 62, 'b' => 390, 'h' => 15]]
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/audit/browser.ts'), "merken('telefon'"));
+/* Seiten */
+$abSeiten = ['analisi.php', 'website-check.php', 'bericht.php', 'analyse.php', 'kunde.php'];
+$abOhne = array_values(array_filter($abSeiten, static fn($s) => !str_contains((string) file_get_contents($wurzel . '/../' . $s), 'views/web_bericht.php')));
+pruefe('Der ausführliche Bericht steht auf allen fünf Seiten (Analyse, Website-Check, Bericht, persönliche Analyse, persönlicher Bereich)', $abOhne === [], implode(', ', $abOhne));
+$abView = (string) file_get_contents($wurzel . '/views/web_bericht.php');
+pruefe('Bericht ohne fremde Dateien, Rechner geht auch ohne Skript (GET), weniger Bewegung wird beachtet',
+    !preg_match('~https?://(?!wa\.me)[a-z]~i', preg_replace('~wb-serp|https://<\?=~', '', $abView) ?? '') && str_contains($abView, 'method="get"') && str_contains($abView, 'prefers-reduced-motion')
+    && str_contains((string) file_get_contents($wurzel . '/../website-check.php'), "script-src 'self'"));
+/* W2 */
+$abP = ['id' => 1, 'code' => 'KNOPF123', 'name' => 'Verein Test'];
+$abK = PartnerWerbung::analyseKnopf($abP, 'de', 'kasten');
+pruefe('W2: Check-Knopf/Kasten für die Website des Partners: nur HTML mit festen Stilen, Link über /p/CODE/analyse zur Analyse',
+    str_contains($abK, '/p/KNOPF123/analyse?weg=analisi') && !str_contains($abK, '<script') && str_contains($abK, 'Wie gut ist Ihre Website?')
+    && str_contains(PartnerWerbung::analyseKnopf($abP, 'it'), 'Analisi gratuita del sito') && PartnerSeite::wegZiel('analisi', 'it') === '/analisi.php?lang=it'
+    && str_contains((string) file_get_contents($wurzel . '/../p.php'), "\$_GET['weg'] === 'analisi'"));
 
 /* ============================================================================
    Aufräumen und Bilanz

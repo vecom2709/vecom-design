@@ -29,7 +29,7 @@ export const DEUTSCHLAND_SEITEN = [
       ['So läuft es', null, ['Sie tragen Ihre E-Mail ein und bekommen den Link zu Ihrem persönlichen Bereich — kein Konto, kein Passwort.', 'Acht kurze Fragen, dann sehen Sie sofort Ihre Preisspanne.', 'Sie bekommen ein Angebot zum festen Preis. Erst nach Ihrem Ja geht es los.', 'Fotos, Logo und Texte laden Sie in Ihrem Bereich hoch. Online geht die Seite erst, wenn Sie sagen: So passt es.']],
     ],
     faq: [
-      ['Ich habe schon eine Website. Lohnt sich eine neue?', 'Das sehen Sie selbst: Die kostenlose Analyse zeigt in wenigen Sekunden sechs Punkte als Ampel — Ladezeit, Sicherheit, Handy, Google, Aktualität und Vorschau beim Teilen. Oft reicht es, einzelne Punkte zu verbessern.'],
+      ['Ich habe schon eine Website. Lohnt sich eine neue?', 'Das sehen Sie selbst: Die kostenlose Analyse zeigt in wenigen Sekunden zwölf Punkte als Ampel — Ladezeit, Sicherheit, Handy, Google, Aktualität und Vorschau beim Teilen. Oft reicht es, einzelne Punkte zu verbessern.'],
       ['Kann ich mein Buchungsprogramm behalten?', 'Ja. Die Seite verlinkt darauf oder bindet es ein, wenn das Programm das anbietet. Sie müssen nichts umstellen.'],
       ['Sie sitzen in Sizilien — geht das?', 'Ja. Ich bin Deutscher, und alles läuft über Ihren persönlichen Bereich, per Telefon, Video oder WhatsApp. Einen Termin vor Ort braucht es nicht.'],
     ],
@@ -98,7 +98,7 @@ export const DEUTSCHLAND_SEITEN = [
     ],
     faq: [
       ['Ich bin Partner einer Werkstattkette.', 'Dann klären wir vorab, was die Kette vorgibt — Logo, Farben, Pflichtangaben — und bauen die Seite so, dass sie dazu passt.'],
-      ['Ich habe schon eine Seite.', 'Die kostenlose Analyse zeigt in wenigen Sekunden sechs Punkte als Ampel. Oft reicht es, einzelne davon zu verbessern.'],
+      ['Ich habe schon eine Seite.', 'Die kostenlose Analyse zeigt in wenigen Sekunden zwölf Punkte als Ampel. Oft reicht es, einzelne davon zu verbessern.'],
       ['Wer pflegt die Seite danach?', 'Wenn Sie möchten, ich — mit der monatlichen Betreuung als eigenem, freiwilligem Vertrag. Ohne sie läuft die Seite trotzdem und gehört Ihnen.'],
     ],
   },
@@ -107,7 +107,7 @@ export const DEUTSCHLAND_SEITEN = [
 /* Wörter rund um die Seiten. */
 export const DEUTSCHLAND_WORTE = {
   analyse_titel: 'Wie steht Ihre Website heute da?',
-  analyse_text: 'Adresse eingeben: In wenigen Sekunden sehen Sie sechs Punkte als Ampel. Kostenlos, ohne Anmeldung. Darunter können Sie die ausführliche Analyse anfordern.',
+  analyse_text: 'Adresse eingeben: In wenigen Sekunden sehen Sie zwölf Punkte als Ampel. Kostenlos, ohne Anmeldung. Darunter können Sie die ausführliche Analyse anfordern.',
   analyse_knopf: 'Kostenlose Analyse',
   cta_titel: 'Noch keine Website — oder eine neue?',
   cta_text: 'E-Mail eintragen: Sie bekommen den Link zu Ihrem persönlichen Bereich und sehen in anderthalb Minuten Ihre Preisspanne. Kein Konto, keine Verpflichtung.',

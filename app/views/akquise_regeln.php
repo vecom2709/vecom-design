@@ -249,7 +249,7 @@ $blick = [
   <div class="block" id="check">
     <h2>Website-Check auf deiner Seite</h2>
     <p class="rg-erkl">Betriebe prüfen ihre Website selbst unter <a href="/website-check.php" target="_blank" rel="noopener" style="text-decoration:underline">vecom-design.it/website-check.php</a>.
-      Sie sehen sofort sechs Punkte und wählen getrennt: ausführliche Analyse (dann darfst du antworten) und Werbe-Einwilligung (erst nach Bestätigung per Mail).</p>
+      Sie sehen sofort zwölf Punkte und wählen getrennt: ausführliche Analyse (dann darfst du antworten) und Werbe-Einwilligung (erst nach Bestätigung per Mail).</p>
     <p class="rg-stand"><span class="akq-ampel <?= $ckAn ? 'gruen' : '' ?>"><i aria-hidden="true"></i>
       <?= $ckAn ? 'An · ' . $ckZahl . ' Checks in 30 Tagen' . ($ckOffen ? ', ' . $ckOffen . ' offen' : '') : 'Aus' ?></span></p>
     <form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_check_schalten">

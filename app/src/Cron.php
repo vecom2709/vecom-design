@@ -270,6 +270,9 @@ final class Cron
                 } catch (Throwable $e) { $wa = ['whatsapp_fehler' => mb_substr($e->getMessage(), 0, 120)]; }
                 /* Beiträge (28.09.2026, Z4): Montag und Donnerstag ein Entwurf -- gepostet wird erst nach Uwes Klick. */
                 try { require_once __DIR__ . '/MetaSeite.php'; if (MetaSeite::planen() !== null) { $wa['beitrag_entwurf'] = 1; } } catch (Throwable $e) { $wa['beitrag_fehler'] = mb_substr($e->getMessage(), 0, 120); }
+                /* Ausführliche Berichte (28.09.2026, A1–A10): für Betriebe mit Bereich nachholen, alte anonyme löschen. */
+                try { require_once __DIR__ . '/WebBericht.php'; $wbN = WebBericht::nachholen(2); if ($wbN > 0) { $wa['berichte'] = $wbN; }
+                      if ((int) date('G') === 4) { WebBericht::aufraeumen(); } } catch (Throwable $e) { }
                 /* Website-Tipp der Woche (28.09.2026, D5): dienstags, nur bestätigte Abos. */
                 try { require_once __DIR__ . '/WebTipp.php'; $tp = WebTipp::lauf(); if ($tp['geschickt'] > 0) { $wa['tipps'] = $tp['geschickt']; } } catch (Throwable $e) { $wa['tipp_fehler'] = mb_substr($e->getMessage(), 0, 120); }
                 return AkquiseFolge::lauf() + $wa;

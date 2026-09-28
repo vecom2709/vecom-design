@@ -585,13 +585,30 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
             if ($x !== null) { $zeilen[] = $x; }
         }
         $an = Db::one('SELECT * FROM akq_analysen WHERE firma_id = ? AND aktiv = 1 AND (gueltig_bis IS NULL OR gueltig_bis >= CURDATE()) ORDER BY id DESC LIMIT 1', [(int) $af['id']]);
-        return $zeilen || $an ? ['firma' => (string) $af['name'], 'zeilen' => $zeilen, 'analyse' => $an ? AkquiseAnalyse::adresse($an) : null] : null;
+        /* Der ausführliche Bericht (28.09.2026, A1–A10) mit Maßnahmenplan und Preisen (A7). */
+        require_once __DIR__ . '/app/src/WebBericht.php';
+        $wbB = WebBericht::fuerFirma((int) $af['id'], 180);
+        return $zeilen || $an || $wbB ? ['firma' => (string) $af['name'], 'zeilen' => $zeilen, 'analyse' => $an ? AkquiseAnalyse::adresse($an) : null,
+                                         'bericht' => $wbB, 'af' => $af, 'audit' => $au] : null;
     }, null);
     $akqW = ['it' => ['titel' => 'La sua analisi', 'text' => 'Cosa abbiamo notato sul sito di {firma} e cosa proponiamo.', 'loes' => 'La nostra proposta', 'ganz' => 'Vedere l’analisi completa'],
              'de' => ['titel' => 'Ihre Analyse', 'text' => 'Was uns auf der Website von {firma} aufgefallen ist und was wir vorschlagen.', 'loes' => 'Unser Vorschlag', 'ganz' => 'Vollständige Analyse ansehen'],
              'en' => ['titel' => 'Your analysis', 'text' => 'What we noticed on the {firma} website and what we propose.', 'loes' => 'Our proposal', 'ganz' => 'See the full analysis']][$sprache] ?? [];
   ?>
-  <?php if ($akqKarte && $akqW): ?>
+  <?php if ($akqKarte && $akqW && !empty($akqKarte['bericht'])): $wbB = $akqKarte['bericht']; $wbAu = $akqKarte['audit'] ?? null;
+          $wbMarken = WebBericht::marken(is_array($wbAu) ? $wbAu : null); ?>
+  <div class="block" id="analyse">
+    <h2><?= $h($akqW['titel']) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h(strtr($akqW['text'], ['{firma}' => $akqKarte['firma']])) ?></p>
+    <?php $wb = ['kc' => $wbB['kc'], 'sprache' => $sprache, 'token' => $wbB['token'], 'firma' => $akqKarte['af'],
+                 'bild' => $wbMarken && !empty($wbAu['screenshot_mobil']) ? '/bericht.php?b=' . $wbB['token'] . '&bild=1' : null, 'marken' => $wbMarken,
+                 'vergleich' => WebBericht::vergleich((int) $akqKarte['af']['id'], $sprache), 'preise' => true,
+                 'preisLink' => !empty($seite['bedarf']['token']) ? '/bedarf.php?t=' . rawurlencode((string) $seite['bedarf']['token']) . '&lang=' . $sprache : '/bedarf.php?lang=' . $sprache,
+                 'seite' => strtok((string) ($_SERVER['REQUEST_URI'] ?? '/kunde.php'), '#')];
+          require __DIR__ . '/app/views/web_bericht.php'; ?>
+    <?php if ($akqKarte['analyse']): ?><p style="margin-top:14px"><a class="knopf" href="<?= $h($akqKarte['analyse']) ?>" target="_blank" rel="noopener"><?= $h($akqW['ganz']) ?></a></p><?php endif; ?>
+  </div>
+  <?php elseif ($akqKarte && $akqW): ?>
   <div class="block" id="analyse">
     <h2><?= $h($akqW['titel']) ?></h2>
     <p class="klein" style="margin-top:0"><?= $h(strtr($akqW['text'], ['{firma}' => $akqKarte['firma']])) ?></p>

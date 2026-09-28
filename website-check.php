@@ -18,14 +18,14 @@ declare(strict_types=1);
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
-header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
 
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 if (!is_file(__DIR__ . '/app/config.local.php')) {
     http_response_code(503);
     exit('Il servizio non è disponibile. · Der Dienst ist nicht verfügbar.');
 }
-foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Texte', 'Sprache', 'AkquiseCheck', 'AkquiseEinwilligung'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Texte', 'Sprache', 'AkquiseCheck', 'AkquiseEinwilligung', 'WebBericht'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaetig(false); } catch (Throwable $e) { }
 
@@ -178,16 +178,14 @@ $sprachLinks = array_map(static fn($l) => ['l' => $l, 'href' => 'website-check.p
   <h1><?= $h($titel) ?></h1>
   <p class="lead"><?= $h(strtr($T('r_lead'), ['{datum}' => date('d.m.Y', strtotime((string) $check['created_at']))])) ?></p>
   <p class="fazit"><?= $h($fazit) ?></p>
-  <ul class="punkte">
-    <?php foreach ($e['punkte'] ?? [] as $pk):
-      $K = Texte::PARTNER_CHECK['punkte'][$pk['was']] ?? null; if (!$K) { continue; }
-      $satzK = $pk['was'] === 'aktuell' && $pk['stand'] === 'hinweis' && $pk['wert'] === '' ? 'hinweis_leer' : $pk['stand'];
-      $satz = strtr(Texte::h($K[$satzK] ?? $K[$pk['stand']] ?? [], $sprache), ['{wert}' => (string) $pk['wert']]); ?>
-      <li><span class="ampel <?= $h($pk['stand']) ?>" aria-hidden="true"></span><div><b><?= $h(Texte::h($K['titel'], $sprache)) ?></b><span class="t"><?= $h($satz) ?></span></div></li>
-    <?php endforeach; ?>
-  </ul>
   <?php if ($neu): ?>
     <?php if ((int) $check['ausfuehrlich'] === 1): ?><p class="notiz"><?= $h($T('n_ausf')) ?></p><?php endif; ?>
+  <?php endif; ?>
+  <?php /* Der ausführliche Bericht (28.09.2026, A1–A10) statt der schlichten Liste. */
+        $wb = ['kc' => $e + ['geprueft' => (string) $check['created_at']], 'sprache' => $sprache, 'token' => ($check['bericht'] ?? '') !== '' ? (string) $check['bericht'] : null,
+               'seite' => 'website-check.php?t=' . $check['token'] . '&lang=' . $sprache];
+        require __DIR__ . '/app/views/web_bericht.php'; ?>
+  <?php if ($neu): ?>
     <?php if ((int) $check['marketing'] === 1 && $check['einwilligung_stand'] === 'ok'): ?><p class="notiz"><?= $h($T('n_mkt')) ?></p>
     <?php elseif ((int) $check['marketing'] === 1 && $check['einwilligung_stand'] === 'zuviel'): ?><p class="notiz"><?= $h($T('n_mkt_zuviel')) ?></p><?php endif; ?>
   <?php endif; ?>

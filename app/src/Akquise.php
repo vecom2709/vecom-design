@@ -650,6 +650,15 @@ final class Akquise
             }
             return $auditId;
         }, 3);
+        /* Markierungen auf dem Handyfoto (28.09.2026, A2): nur geprüfte Zahlen, höchstens sechs. Vor Migration 102 fehlt die Spalte. */
+        if (!empty($e['marken']) && is_array($e['marken'])) {
+            $marken = [];
+            foreach (array_slice($e['marken'], 0, 6) as $m) {
+                if (!is_array($m) || !preg_match('~^[a-z]{3,12}$~', (string) ($m['art'] ?? ''))) { continue; }
+                $marken[] = ['art' => (string) $m['art'], 'x' => round((float) ($m['x'] ?? 0), 1), 'y' => round((float) ($m['y'] ?? 0), 1), 'b' => round((float) ($m['b'] ?? 0), 1), 'h' => round((float) ($m['h'] ?? 0), 1)];
+            }
+            if ($marken) { try { Db::update('akq_audits', $auditId, ['marken' => json_encode($marken)]); } catch (Throwable $x) { } }
+        }
 
         $top = array_map(static fn($b) => $b['titel'], array_slice(AkquiseScore::topBefunde($befunde), 0, 3));
         $upd = [

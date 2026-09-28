@@ -100,7 +100,7 @@ final class PartnerCheck
     }
 
     /**
-     * Die sechs Punkte. stand: gut | hinweis | schlecht; schluessel für die
+     * Die zwölf Punkte (bis 28.09.2026 sechs). stand: gut | hinweis | schlecht; schluessel für die
      * dreisprachigen Texte in Texte::PARTNER_CHECK.
      * @return array{ok:bool, url:string, host:string, fehler:string, punkte:list<array{was:string,stand:string,wert:string}>}
      */
@@ -142,7 +142,55 @@ final class PartnerCheck
         $p[] = ['was' => 'aktuell', 'stand' => $jahr === 0 ? 'hinweis' : ($jahr >= $jetzt - 1 ? 'gut' : ($jahr >= $jetzt - 3 ? 'hinweis' : 'schlecht')), 'wert' => $jahr ? (string) $jahr : ''];
         $og = (bool) preg_match('~<meta[^>]+property=["\']og:image["\']~i', $html);
         $p[] = ['was' => 'teilen', 'stand' => $og ? 'gut' : 'hinweis', 'wert' => ''];
-        return ['ok' => true, 'url' => (string) $a['url'], 'host' => $host, 'fehler' => '', 'punkte' => $p];
+        foreach (self::mehrPunkte($html) as $x) { $p[] = $x; }
+        $beschText = preg_match('~<meta[^>]+name=["\']description["\'][^>]*content=["\']([^"\']*)~i', $html, $bm) || preg_match('~<meta[^>]+content=["\']([^"\']*)["\'][^>]*name=["\']description~i', $html, $bm)
+            ? trim(html_entity_decode($bm[1], ENT_QUOTES, 'UTF-8')) : '';
+        $site = preg_match('~<meta[^>]+property=["\']og:site_name["\'][^>]*content=["\']([^"\']+)~i', $html, $sm) ? trim(html_entity_decode($sm[1], ENT_QUOTES, 'UTF-8')) : '';
+        return ['ok' => true, 'url' => (string) $a['url'], 'host' => $host, 'fehler' => '', 'punkte' => $p,
+                'meta' => ['titel' => mb_substr($titel, 0, 120), 'beschreibung' => mb_substr($beschText, 0, 300), 'og' => $og, 'ms' => $ms, 'name' => mb_substr($site, 0, 80)]];
+    }
+
+    /**
+     * Die Punkte 7 bis 12 (28.09.2026, Uwe: Ja zu A10) -- alle aus der
+     * Startseite selbst gemessen, ohne weitere Abrufe. „k“ wählt, wo nötig,
+     * den genaueren Satz (Texte::PARTNER_CHECK); ältere Anzeigen nehmen den
+     * Satz des Stands, der für beide Fälle stimmt.
+     * @return list<array{was:string,stand:string,wert:string,k?:string}>
+     */
+    public static function mehrPunkte(string $html): array
+    {
+        $p = [];
+        $klein = mb_strtolower($html);
+        $text = mb_strtolower(trim(preg_replace('~\s+~u', ' ', html_entity_decode(strip_tags(preg_replace('~<(script|style)[^>]*>.*?</\1>~is', ' ', $html) ?? ''), ENT_QUOTES, 'UTF-8')) ?? ''));
+        /* Pflichtangaben: Impressum/Partita IVA und Datenschutz. */
+        $impr = (bool) preg_match('~impressum|note legali|legal notice|imprint|p\.\s?iva|partita\s+iva|\bvat\s*(n[or.]|number|id)|ust-?id|mentions l~iu', $klein);
+        $priv = (bool) preg_match('~datenschutz|privacy|informativa|datenschutzerkl|politique de confidentialit~iu', $klein);
+        $p[] = ['was' => 'rechtlich', 'stand' => $impr && $priv ? 'gut' : ($impr || $priv ? 'hinweis' : 'schlecht'), 'wert' => ''];
+        /* Telefon antippbar? */
+        $tel = preg_match('~href=["\']tel:([^"\']+)~i', $html, $tm) ? trim(urldecode($tm[1])) : '';
+        $nummer = preg_match('~(?:\+|00)\s?(?:39|49|43|41)[\s./-]*\(?\d{2,4}\)?[\s./-]?\d{3,4}[\s./-]?\d{2,7}|\b0\d{2,4}[\s./-]\d{3,4}[\s./-]?\d{2,7}\b|\b3\d{2}[\s./]\d{3}[\s./]?\d{3,4}\b~u', $text, $nm) ? trim($nm[0]) : '';
+        $p[] = $tel !== '' ? ['was' => 'telefon', 'stand' => 'gut', 'wert' => mb_substr($tel, 0, 30)]
+             : ($nummer !== '' ? ['was' => 'telefon', 'stand' => 'hinweis', 'wert' => mb_substr($nummer, 0, 30)]
+             : ['was' => 'telefon', 'stand' => 'schlecht', 'wert' => '']);
+        /* Adresse oder Karte */
+        $adr = (bool) preg_match('~google\.[a-z.]+/maps|maps\.google|maps\.app\.goo|openstreetmap|postaladdress|streetaddress|"address"~i', $html)
+            || (bool) preg_match('~\b(via|viale|piazza|corso|largo|contrada|c\.da)\s+[\p{L}\'. ]{2,40}[, ]+\d{1,4}\b|\b[\p{L}-]{3,}(stra(ß|ss)e|str\.|weg|platz|allee|gasse|ring)\s*\d{1,4}\b|\b\d{5}\s+[\p{L}][\p{L}\- ]{2,}~u', $text);
+        $p[] = ['was' => 'adresse', 'stand' => $adr ? 'gut' : 'hinweis', 'wert' => ''];
+        /* Bilder: moderne Formate oder Größen fürs Handy; Beschreibungen */
+        preg_match_all('~<img\b[^>]*>~i', $html, $im);
+        $bilder = array_values(array_filter($im[0], static fn($t) => !preg_match('~src=["\']data:|\.svg(["\'?#])|width=["\']?(1|2|16|24|32)["\'\s>]~i', $t)));
+        $n = count($bilder);
+        $modern = preg_match('~\.(webp|avif)\b|type=["\']image/(webp|avif)~i', $html) ? 1 : 0;
+        $srcset = count(array_filter($bilder, static fn($t) => stripos($t, 'srcset=') !== false));
+        $p[] = ['was' => 'bilder', 'stand' => ($n === 0 || $modern || $srcset * 2 >= $n) ? 'gut' : 'hinweis', 'wert' => (string) $n, 'k' => $n === 0 ? 'gut_leer' : ''];
+        $mitAlt = count(array_filter($bilder, static fn($t) => (bool) preg_match('~\balt=["\'][^"\']{2,}~i', $t)));
+        $anteil = $n > 0 ? $mitAlt / $n : 1.0;
+        $p[] = ['was' => 'alt', 'stand' => $anteil >= 0.8 ? 'gut' : ($anteil >= 0.4 ? 'hinweis' : 'schlecht'), 'wert' => $n > 0 ? ($n - $mitAlt) . '/' . $n : '', 'k' => $n === 0 ? 'gut_leer' : ''];
+        /* Öffnungszeiten für Google lesbar */
+        $zeitenMaschine = (bool) preg_match('~openinghours|openinghoursspecification~i', $html);
+        $zeitenText = (bool) preg_match('~orari|orario d|öffnungszeiten|oeffnungszeiten|opening hours|ore di apertura|geöffnet|aperto dal|lun(edì|\.)?\s*[-–]\s*(ven|sab)|mo(ntag|\.)?\s*[-–]\s*(fr|sa)~iu', $text);
+        $p[] = ['was' => 'zeiten', 'stand' => $zeitenMaschine ? 'gut' : 'hinweis', 'wert' => '', 'k' => $zeitenMaschine ? '' : ($zeitenText ? '' : 'hinweis_leer')];
+        return array_map(static function (array $x): array { if (($x['k'] ?? '') === '') { unset($x['k']); } return $x; }, $p);
     }
 
     /**

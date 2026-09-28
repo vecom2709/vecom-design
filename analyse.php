@@ -18,7 +18,7 @@ header('Referrer-Policy: no-referrer');
 $token = (string) ($_GET['t'] ?? '');
 $daten = null;
 if (preg_match('~^[a-f0-9]{40}$~', $token) && is_file(__DIR__ . '/app/config.local.php')) {
-    foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Sprache', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablage'] as $k) {
+    foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Sprache', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablage', 'Texte', 'WebBericht'] as $k) {
         require_once __DIR__ . "/app/src/$k.php";
     }
     date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -132,6 +132,17 @@ $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' 
   <h1><?= $h($T['kopf']) ?>: <?= $h((string) $f['name']) ?></h1>
   <p class="unter"><?= $h($T['fuer']) ?> <?= $h((string) $f['name']) ?> · <?= $h((string) ($f['domain'] ?? '')) ?> ·
     <?= $h($T['stand']) ?> <?= $h(date('d.m.Y', strtotime((string) $a['beendet_am']))) ?></p>
+
+  <?php /* Der ausführliche Bericht (28.09.2026, A1–A10): Note, Ladezeit, zwölf Punkte, Google, Vergleich, Rechner.
+           Das Handyfoto mit Markierungen nur, wenn der PC Stellen gemessen hat -- sonst steht es rechts wie bisher. */
+        $wbB = WebBericht::fuerFirma((int) $f['id'], 60);
+        if ($wbB !== null):
+          $wbMarken = WebBericht::marken($a);
+          $wb = ['kc' => $wbB['kc'], 'sprache' => $s, 'token' => $wbB['token'], 'firma' => $f,
+                 'bild' => $wbMarken && !empty($a['screenshot_mobil']) ? 'analyse.php?t=' . $token . '&bild=1' : null, 'marken' => $wbMarken,
+                 'vergleich' => WebBericht::vergleich((int) $f['id'], $s), 'seite' => 'analyse.php?t=' . $token];
+          require __DIR__ . '/app/views/web_bericht.php'; ?>
+  <?php endif; ?>
 
   <div class="raster">
     <div>

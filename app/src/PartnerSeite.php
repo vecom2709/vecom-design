@@ -368,7 +368,7 @@ final class PartnerSeite
     }
 
     /**
-     * Kurz-Check auf der Partnerseite (R7): nur die Ampel der sechs Punkte,
+     * Kurz-Check auf der Partnerseite (R7): nur die Ampel der zwölf Punkte,
      * ohne Namen, ohne E-Mail, ohne Speichern. Gebremst je Adresse (alle 15
      * Sekunden, höchstens 8 am Tag) und insgesamt (300 am Tag).
      * @return array{ok:bool, grund?:string, host?:string, url?:string, punkte?:list<array{was:string,stand:string}>}
@@ -392,7 +392,8 @@ final class PartnerSeite
         $e = PartnerCheck::pruefen($url);
         if (($e['fehler'] ?? '') === 'adresse') { return ['ok' => false, 'grund' => 'adresse']; }
         return ['ok' => true, 'host' => (string) ($e['host'] ?? parse_url($url, PHP_URL_HOST)), 'url' => (string) ($e['url'] ?? $url),
-                'punkte' => array_map(static fn($p) => ['was' => (string) $p['was'], 'stand' => (string) $p['stand']], $e['punkte'] ?? [])];
+                'punkte' => array_map(static fn($p) => ['was' => (string) $p['was'], 'stand' => (string) $p['stand'], 'wert' => (string) ($p['wert'] ?? '')] + (isset($p['k']) ? ['k' => (string) $p['k']] : []), $e['punkte'] ?? []),
+                'meta' => (array) ($e['meta'] ?? [])];
     }
 
     /** Adresse des Titelbilds (eigenes mit Versionsanhang, sonst aus der Auswahl) oder null. */
@@ -472,6 +473,7 @@ final class PartnerSeite
         if ($url !== '' && !preg_match('/^[\p{L}\p{N}.:\/_\-?=&%#~+]+$/u', $url)) { $url = ''; }
         return match ($weg) {
             'check' => '/website-check.php?lang=' . $sprache . ($url !== '' ? '&url=' . rawurlencode($url) : ''),
+            'analisi' => '/analisi.php?lang=' . $sprache,   // Check-Knopf auf fremden Websites (W2, 28.09.2026)
             'preis' => '/bedarf.php?lang=' . $sprache,
             'termin' => '/termin.php?lang=' . $sprache . ($slot !== '' ? '&slot=' . rawurlencode($slot) : ''),
             default => null,

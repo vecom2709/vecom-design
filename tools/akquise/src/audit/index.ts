@@ -37,6 +37,7 @@ export interface AuditErgebnis {
   email?: string;
   telefon?: string;
   bilder?: { mobil?: string; desktop?: string };
+  marken?: { art: string; x: number; y: number; b: number; h: number }[];
   grund?: string;
 }
 
@@ -123,5 +124,6 @@ export async function auditieren(firma: FirmaKurz): Promise<AuditErgebnis> {
     sprache: m ? spracheErkennen(m.lang, m.text) : undefined,
     email, telefon,
     bilder: { mobil: roh.browser?.screenshotMobil ?? undefined, desktop: roh.browser?.screenshotDesktop ?? undefined },
+    marken: roh.browser?.mobil?.marken ?? [],   // A2 (28.09.2026): Stellen auf dem Handyfoto
   };
 }

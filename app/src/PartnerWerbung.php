@@ -146,6 +146,39 @@ final class PartnerWerbung
             . 'text-decoration:none">&#9733; ' . $h(Texte::h(Texte::PARTNER_WERBUNG['sig']['website'], $sprache)) . '</a>';
     }
 
+    /**
+     * Check-Knopf für die eigene Website des Partners (28.09.2026, Uwe: Ja zu W2).
+     * Vereine, Verbände, Steuerbüros, Druckereien bauen ihn ein; wer darauf
+     * klickt, landet auf der kostenlosen Analyse und ist dem Partner
+     * zugeordnet (Besuchs-Keks über /p/CODE/analyse). Nur HTML mit festen
+     * Stilen -- kein Skript, keine fremde Datei, passt in jedes Baukasten-System.
+     * @param string $art knopf | kasten
+     */
+    public const ANALYSE_KNOPF = [
+        'it' => ['knopf' => 'Analisi gratuita del sito', 'titel' => 'Com’è messo il suo sito?', 'text' => 'Dodici punti con semaforo in pochi secondi. Gratis, senza registrazione.'],
+        'de' => ['knopf' => 'Kostenlose Website-Analyse', 'titel' => 'Wie gut ist Ihre Website?', 'text' => 'Zwölf Punkte als Ampel, in wenigen Sekunden. Kostenlos, ohne Anmeldung.'],
+        'en' => ['knopf' => 'Free website analysis', 'titel' => 'How good is your website?', 'text' => 'Twelve points as traffic lights, in seconds. Free, no sign-up.'],
+    ];
+
+    public static function analyseLink(array $p): string
+    {
+        return self::link($p, 'analyse') . '?weg=analisi';
+    }
+
+    public static function analyseKnopf(array $p, string $sprache, string $art = 'knopf'): string
+    {
+        $h = static fn(string $s): string => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+        $W = self::ANALYSE_KNOPF[$sprache] ?? self::ANALYSE_KNOPF['it'];
+        $ampel = '<span style="display:inline-flex;gap:3px;vertical-align:middle"><span style="width:8px;height:8px;border-radius:50%;background:#3fb56b;display:inline-block"></span>'
+            . '<span style="width:8px;height:8px;border-radius:50%;background:#e0b341;display:inline-block"></span><span style="width:8px;height:8px;border-radius:50%;background:#e5534b;display:inline-block"></span></span>';
+        $knopf = '<a href="' . $h(self::analyseLink($p)) . '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:10px;background:#0f0d0a;color:#f7f3ea;'
+            . 'border:1px solid #c9a24b;border-radius:999px;padding:11px 20px;font:600 15px/1.2 Arial,Helvetica,sans-serif;text-decoration:none">' . $ampel . ' ' . $h($W['knopf']) . ' &rarr;</a>';
+        if ($art !== 'kasten') { return $knopf; }
+        return '<div style="max-width:360px;background:#14110d;border:1px solid #3a3226;border-radius:16px;padding:18px 20px;font:15px/1.5 Arial,Helvetica,sans-serif;color:#f7f3ea">'
+            . '<div style="font-weight:700;font-size:18px;margin:0 0 6px">' . $h($W['titel']) . '</div><div style="color:#b8b0a4;margin:0 0 14px">' . $h($W['text']) . '</div>'
+            . $knopf . '<div style="color:#8b847a;font-size:12px;margin-top:10px">Vecom Design</div></div>';
+    }
+
     /* ==================================================================== */
     /*  Persönliche Empfehlungsseite: Foto und ein Satz                     */
     /* ==================================================================== */

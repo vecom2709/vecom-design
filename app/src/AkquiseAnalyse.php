@@ -39,6 +39,8 @@ final class AkquiseAnalyse
             'gueltig_bis' => date('Y-m-d', strtotime('+' . self::GUELTIG_TAGE . ' days')),
         ]);
         Akquise::protokoll($firmaId, 'analyse', 'Analyse-Seite vorbereitet (noch nicht sichtbar)');
+        /* Den ausführlichen Bericht gleich mit prüfen (28.09.2026) -- dann muss der Betrieb beim Öffnen nicht warten. */
+        try { require_once __DIR__ . '/WebBericht.php'; WebBericht::sicherFuerFirma($firmaId, 'analyse'); } catch (Throwable $e) { }
         return Db::one('SELECT * FROM akq_analysen WHERE id = ?', [$id]) ?? [];
     }
 
@@ -46,6 +48,7 @@ final class AkquiseAnalyse
     {
         $x = Db::one('SELECT * FROM akq_analysen WHERE id = ?', [$analyseId]);
         if (!$x) { throw new RuntimeException('Analyse-Seite nicht gefunden.'); }
+        if ($an) { try { require_once __DIR__ . '/WebBericht.php'; WebBericht::sicherFuerFirma((int) $x['firma_id'], 'analyse'); } catch (Throwable $e) { } }
         Db::update('akq_analysen', $analyseId, ['aktiv' => $an ? 1 : 0,
             'gueltig_bis' => $an ? date('Y-m-d', strtotime('+' . self::GUELTIG_TAGE . ' days')) : $x['gueltig_bis']]);
         Akquise::protokoll((int) $x['firma_id'], 'analyse', $an ? 'Analyse-Seite eingeschaltet' : 'Analyse-Seite ausgeschaltet');

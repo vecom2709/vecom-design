@@ -161,6 +161,12 @@ final class AkquiseCheck
             'schlecht' => $schlecht, 'ip_hash' => $ipHash, 'created_at' => date('Y-m-d H:i:s'),
         ]);
 
+        /* Ausführlicher Bericht mit fester Adresse (28.09.2026, A1–A10): PDF, Weitergeben, persönlicher Bereich. */
+        try {
+            require_once __DIR__ . '/WebBericht.php';
+            Db::update('akq_checks', $id, ['bericht' => WebBericht::speichern($erg, $firmaId, 'check')]);
+        } catch (Throwable $x) { /* vor Migration 102 fehlt die Spalte -- das Ergebnis steht trotzdem */ }
+
         /* Über eine Partnerseite gekommen (Besuchs-Keks, 27.09.2026)? Dann
            zählt der Check für den Partner, und E-Mail/Telefon werden ihm
            vorgemerkt -- wird daraus ein Kunde, gehört er ihm. */
@@ -234,6 +240,7 @@ final class AkquiseCheck
         if (!$z) { return null; }
         if ($zaehlen) { Db::run('UPDATE akq_checks SET aufrufe = aufrufe + 1 WHERE id = ?', [(int) $z['id']]); }
         $z['ergebnis'] = json_decode((string) $z['ergebnis'], true) ?: ['punkte' => []];
+        try { $z['bericht'] = (string) Db::wert('SELECT bericht FROM akq_checks WHERE id = ?', [(int) $z['id']], ''); } catch (Throwable $e) { $z['bericht'] = ''; }
         return $z;
     }
 

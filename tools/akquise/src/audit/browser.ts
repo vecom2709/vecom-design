@@ -52,6 +52,8 @@ export interface SeitenSignale {
   viewportHoehe: number;
   seitenHoehe: number;
   inhaltsBreite: number;
+  /** Stellen im ersten Bildschirm, an denen etwas hakt (A2, 28.09.2026) -- Pixel im Handyfoto 390 × 844. */
+  marken?: { art: 'schrift' | 'tippen' | 'telefon' | 'bild' | 'breite'; x: number; y: number; b: number; h: number }[];
 }
 
 export interface BrowserBild {
@@ -131,6 +133,48 @@ function auswerten(): Omit<SeitenSignale, 'url'> {
   const inhaltsBilder = bilder.filter((b) => b.naturalWidth >= 200 || b.width >= 200);
   const jahre = Array.from(text.matchAll(/(?:©|&copy;|copyright)\s*(?:\d{4}\s*[-–]\s*)?(\d{4})/gi)).map((m) => Number(m[1])).filter((y) => y > 1995 && y < 2100);
 
+  /* Markierungen (A2): je Art die erste Stelle, die im ersten Bildschirm sichtbar ist. Gemessen an
+     derselben Stelle wie die Zahlen oben -- nur, was der Befund auch zählt. */
+  type Marke = { art: 'schrift' | 'tippen' | 'telefon' | 'bild' | 'breite'; x: number; y: number; b: number; h: number };
+  const marken: Marke[] = [];
+  const imBild = (el: Element): DOMRect | null => {
+    const r = (el as HTMLElement).getBoundingClientRect();
+    if (r.width < 4 || r.height < 4 || r.bottom <= 0 || r.top >= vh || r.right <= 0 || r.left >= window.innerWidth) return null;
+    return r;
+  };
+  const merken = (art: Marke['art'], r: DOMRect | null) => {
+    if (!r || marken.some((m) => m.art === art)) return;
+    /* In Pixel des Handyfotos umrechnen: Ohne viewport-Angabe legt das Handy die Seite 980 px breit an
+       und verkleinert sie -- das Foto ist aber 390 × 844. */
+    const sx = 390 / Math.max(1, window.innerWidth), sy = 844 / Math.max(1, vh);
+    const x = Math.max(0, r.left), y = Math.max(0, r.top);
+    marken.push({ art, x: Math.round(x * sx), y: Math.round(y * sy), b: Math.round((Math.min(window.innerWidth, r.right) - x) * sx), h: Math.round((Math.min(vh, r.bottom) - y) * sy) });
+  };
+  try {
+    const w2 = document.createTreeWalker(document.body ?? document.documentElement, NodeFilter.SHOW_TEXT);
+    let k2: Node | null; let z2 = 0;
+    while ((k2 = w2.nextNode()) && z2 < 3000) {
+      z2++;
+      const t = (k2.textContent ?? '').trim();
+      if (t.length < 3 || !k2.parentElement || !sichtbar(k2.parentElement)) continue;
+      if (parseFloat(getComputedStyle(k2.parentElement).fontSize) < 12) { merken('schrift', imBild(k2.parentElement)); break; }
+    }
+    for (const el of kleineZiele) { const r = imBild(el); if (r) { merken('tippen', r); break; } }
+    if (!links.some((l) => l.href.startsWith('tel:'))) {
+      const nummer = /(?:\+|00)\s?(?:39|49)[\s./-]*\d{2,4}[\s./-]?\d{3,4}[\s./-]?\d{2,7}|\b0\d{2,4}[\s./-]\d{3,4}[\s./-]?\d{2,7}\b|\b3\d{2}[\s./]\d{3}[\s./]?\d{3,4}\b/;
+      const w3 = document.createTreeWalker(document.body ?? document.documentElement, NodeFilter.SHOW_TEXT);
+      let k3: Node | null; let z3 = 0;
+      while ((k3 = w3.nextNode()) && z3 < 3000) {
+        z3++;
+        if (k3.parentElement && nummer.test(k3.textContent ?? '') && sichtbar(k3.parentElement)) { const r = imBild(k3.parentElement); if (r) { merken('telefon', r); break; } }
+      }
+    }
+    for (const b of inhaltsBilder) { if (!(b.getAttribute('alt') ?? '').trim()) { const r = imBild(b); if (r) { merken('bild', r); break; } } }
+    if (document.documentElement.scrollWidth > window.innerWidth + 2) {
+      for (const el of q('body *')) { const r = (el as HTMLElement).getBoundingClientRect(); if (r.right > window.innerWidth + 2 && r.top < vh && r.bottom > 0 && r.width > 40) { merken('breite', new DOMRect(Math.max(0, window.innerWidth - 60), Math.max(0, r.top), 60, Math.min(r.height, vh - Math.max(0, r.top)))); break; } }
+    }
+  } catch { /* Markierungen sind Zugabe */ }
+
   const main = document.querySelector('main, #main, .main, #content, .content, .container, body > div') as HTMLElement | null;
   return {
     titel: (document.title ?? '').trim(),
@@ -180,6 +224,7 @@ function auswerten(): Omit<SeitenSignale, 'url'> {
     viewportHoehe: vh,
     seitenHoehe: document.documentElement.scrollHeight,
     inhaltsBreite: main ? Math.round(main.getBoundingClientRect().width) : 0,
+    marken,
   };
 }
 
