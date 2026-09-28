@@ -1,0 +1,25 @@
+{
+    "name":  "kurz-en",
+    "stimme":  "Algenib",
+    "sprache":  "en",
+    "tempo":  0.92,
+    "mindestens":  10,
+    "saetze":  [
+                   "Your customers decide online.",
+                   "In seconds.",
+                   "Vecom Design makes your business visible.",
+                   "Get seen."
+               ],
+    "zeiten":  [
+                   0.6,
+                   3.4,
+                   5.6,
+                   10.8
+               ],
+    "modell":  "google/gemini-3-1-flash-tts",
+    "temperatur":  0.6,
+    "gangart":  "Natural",
+    "stil":  "Newscaster",
+    "szene":  "Cinematic movie trailer for a small Italian old town at night. Deep, calm, resonant narrator, deliberate and meaningful, dramatic but restrained, never shouting. Spoken in English.",
+    "profil":  "Deep male movie-trailer narrator, native English speaker, warm and resonant bass voice"
+}

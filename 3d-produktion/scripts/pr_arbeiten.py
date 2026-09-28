@@ -677,4 +677,6 @@ def main():
     print('FERTIG ARBEITEN', PROJ, MODUS)
 
 
-main()
+# Nur als Skript ausführen -- film_sichtbar.py leiht sich Telefon und Laptop aus.
+if __name__ == '__main__':
+    main()

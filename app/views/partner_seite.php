@@ -106,13 +106,19 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
 
     <?php /* An/aus und Reihenfolge (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“) -- ohne Ziehen, mit Positionsnummer. */ ?>
     <p class="gs-h"><?= $h($W($PS['g_reihenfolge'])) ?></p>
-    <?php $nB = count(PartnerSeite::BAUSTEINE); foreach ($gs['reihenfolge'] as $i => $bs): ?>
+    <?php $nB = count(PartnerSeite::BAUSTEINE); $gsFilm = PartnerSeite::film() !== null; foreach ($gs['reihenfolge'] as $i => $bs): if ($bs === 'film' && !$gsFilm) { continue; } ?>
       <div class="gs-zeile">
         <label class="gs-haken"><input type="checkbox" name="bausteine[<?= $bs ?>]" value="1" <?= $gs['bausteine'][$bs] ? 'checked' : '' ?>> <?= $h($W($PS['g_b_' . $bs])) ?></label>
         <select name="pos[<?= $bs ?>]" aria-label="<?= $h($W($PS['g_reihenfolge']) . ' — ' . $W($PS['g_b_' . $bs])) ?>"><?php for ($n = 1; $n <= $nB; $n++): ?><option value="<?= $n ?>"<?= $n === $i + 1 ? ' selected' : '' ?>><?= $n ?></option><?php endfor; ?></select>
       </div>
     <?php endforeach; ?>
 
+    <?php $gsFilme = PartnerSeite::filme(); if (count($gsFilme) > 1): ?>
+      <p class="gs-h"><?= $h($W($PS['g_film_wahl'])) ?></p>
+      <?php foreach ($gsFilme as $fid): ?>
+        <label class="gs-haken"><input type="radio" name="film" value="<?= $h($fid) ?>" <?= $gs['film'] === $fid ? 'checked' : '' ?>> <?= $h($W($PS['g_film_' . str_replace('-', '_', $fid)])) ?></label>
+      <?php endforeach; ?>
+    <?php endif; ?>
     <p class="gs-h"><?= $h($W($PS['g_arbeiten'])) ?></p>
     <?php foreach (PartnerSeite::ARBEITEN as $ak): $ar = $PS['arbeiten'][$ak]; ?>
       <label class="gs-haken"><input type="checkbox" name="arbeiten[<?= $h($ak) ?>]" value="1" <?= in_array($ak, $gs['arbeiten'], true) ? 'checked' : '' ?>> <span><b><?= $h($ar['name']) ?></b> <span style="color:var(--leise)">· <?= $h(Texte::h($ar, $sprache)) ?></span>

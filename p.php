@@ -121,7 +121,7 @@ header('X-Content-Type-Options: nosniff');
 /* Sicherheit (27.09.2026, Uwe: Ja): wie Website-Check und Termin. Skript nur
    aus eigener Datei; eingebettet werden darf die Seite nur bei uns selbst
    (Vorschau im Partnerbereich). */
-header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'self'");
+header("Content-Security-Policy: default-src 'none'; img-src 'self'; media-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'self'");
 if ($p === null) { header('Location: ' . $ziel, true, 302); exit; }
 
 $g = PartnerSeite::gestaltung($p);
@@ -255,6 +255,12 @@ $wegIcon = [
   .lp-arbeiten figcaption span{color:var(--dim)}
   /* Projekt-Beispiele anklickbar (28.09.2026): Der Link liegt am Namen und
      deckt per ::after die ganze Karte ab -- ein Ziel, ein Link für Vorleser. */
+  .lp-film{position:relative;border-radius:14px;overflow:hidden;background:#000;border:1px solid var(--linie)}
+  .lp-film video{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#000}
+  .lp-film.hoch video{aspect-ratio:9/16;max-height:78vh;width:auto;max-width:100%;margin:0 auto}
+  .lp-ton{position:absolute;right:12px;top:12px;min-height:40px;padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);
+          background:rgba(0,0,0,.55);color:#fff;font:600 14px/1 var(--f-text,inherit);cursor:pointer}
+  .lp-ton:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
   .lp-arbeiten figure{position:relative;transition:border-color .18s cubic-bezier(.16,1,.3,1)}
   .lp-arbeiten figure:has(.lp-ar-a):hover,.lp-arbeiten figure:focus-within{border-color:var(--akzent)}
   .lp-arbeiten figure img{transition:transform .52s cubic-bezier(.16,1,.3,1)}
@@ -370,6 +376,26 @@ foreach ($g['reihenfolge'] as $baustein):
       <?php foreach ($wege as $w): [$wt, $wx] = $PS['wege'][$w]; ?>
         <a href="<?= $h($wegAdresse($w)) ?>"><i aria-hidden="true"><?= $wegIcon[$w] ?></i><div><b><?= $h($S($wt)) ?></b><span><?= $h($S($wx)) ?></span></div></a>
       <?php endforeach; ?>
+    </div>
+  </section>
+<?php break;
+    case 'film':
+      /* Werbefilm (28.09.2026): stumm, spielt, sobald er sichtbar ist, Ton auf
+         Knopfdruck. Hochformat auf schmalen Bildschirmen (Skript wählt). Ohne
+         Skript: Standbild mit Bedienelementen. */
+      $film = PartnerSeite::film($g['film'] ?: null, $sprache);
+      if ($film === null) { break; }
+      $fq = $film['quer'] ?? $film['hoch']; $fh = $film['hoch'] ?? null; ?>
+  <?php $fk = $film['id'] === 'showreel' ? 'showreel_' : 'film_'; ?>
+  <section class="block ld lp lp-filmblock" id="film"><h2><?= $h($S($PS[$fk . 'titel'])) ?></h2>
+    <p class="klein" style="margin:0 0 12px"><?= $h($S($PS[$fk . 'text'])) ?></p>
+    <div class="lp-film<?= isset($film['quer']) ? '' : ' hoch' ?>" data-film>
+      <video controls playsinline muted loop preload="none" poster="<?= $h($fq['poster']) ?>" aria-label="<?= $h($S($PS['film_alt_' . str_replace('-', '_', $film['id'])] ?? $PS['film_alt'])) ?>"
+             <?php if ($fh && isset($film['quer'])): ?>data-hoch-mp4="<?= $h($fh['mp4']) ?>" data-hoch-webm="<?= $h((string) $fh['webm']) ?>" data-hoch-poster="<?= $h($fh['poster']) ?>"<?php endif; ?>>
+        <?php if ($fq['webm']): ?><source src="<?= $h($fq['webm']) ?>" type="video/webm"><?php endif; ?>
+        <source src="<?= $h($fq['mp4']) ?>" type="video/mp4">
+      </video>
+      <button type="button" class="lp-ton" hidden data-an="<?= $h($S($PS['film_ton_an'])) ?>" data-aus="<?= $h($S($PS['film_ton_aus'])) ?>"><?= $h($S($PS['film_ton_an'])) ?></button>
     </div>
   </section>
 <?php break;

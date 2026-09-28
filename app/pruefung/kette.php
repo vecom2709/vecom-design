@@ -13868,6 +13868,56 @@ Db::run("DELETE FROM settings WHERE skey = 'partner_klicks_seit'");
 Db::run('DELETE FROM partner_push WHERE partner_id = ?', [$knId]);
 
 /* ============================================================================
+   Partnerseite: Baustein „Film“ (28.09.2026, Uwe: Werbefilm + Showreel zur Auswahl)
+   ============================================================================ */
+abschnitt('Partnerseite: Film');
+$fiD = $wurzel . '/../assets/video/';
+$fiSr = PartnerSeite::film('showreel', 'it');
+$fiSrDe = PartnerSeite::film('showreel', 'de'); $fiSrEn = PartnerSeite::film('showreel', 'en');
+pruefe('Showreel liegt in allen drei Sprachen vor (MP4, WebM, Standbild) und jede Seite bekommt ihre Sprache',
+    in_array('showreel', PartnerSeite::filme(), true) && $fiSr !== null && ($fiSr['hoch']['mp4'] ?? '') === '/assets/video/showreel-hoch-it.mp4'
+    && ($fiSr['hoch']['webm'] ?? '') === '/assets/video/showreel-hoch-it.webm' && ($fiSr['hoch']['poster'] ?? '') === '/assets/video/showreel-hoch-poster.webp'
+    && ($fiSrDe['hoch']['mp4'] ?? '') === '/assets/video/showreel-hoch-de.mp4' && ($fiSrEn['hoch']['mp4'] ?? '') === '/assets/video/showreel-hoch-en.mp4'
+    && !isset($fiSr['quer']) && filesize($fiD . 'showreel-hoch-it.mp4') < 12 * 1024 * 1024);
+/* Sprachwahl des Werbefilms mit Probe-Dateien (werden sofort wieder entfernt) */
+$fiNeu = [];
+$fiSw = PartnerSeite::film('sichtbar-werden', 'de');
+if ($fiSw === null) {
+    foreach (['sichtbar-werden-quer-it.mp4', 'sichtbar-werden-quer-en.mp4', 'sichtbar-werden-hoch-it.mp4', 'sichtbar-werden-quer-poster.webp', 'sichtbar-werden-hoch-poster.webp', 'sichtbar-werden-kurz-en.mp4'] as $fiF) {
+        if (!is_file($fiD . $fiF)) { file_put_contents($fiD . $fiF, 'probe'); $fiNeu[] = $fiD . $fiF; }
+    }
+    $fiEn = PartnerSeite::film('sichtbar-werden', 'en'); $fiDe = PartnerSeite::film('sichtbar-werden', 'de');
+    pruefe('Werbefilm: englische Seite bekommt quer -en, hoch fällt auf -it zurück, Kurzfassung -en; deutsche Seite ohne -de-Datei bekommt -it',
+        ($fiEn['quer']['mp4'] ?? '') === '/assets/video/sichtbar-werden-quer-en.mp4' && ($fiEn['hoch']['mp4'] ?? '') === '/assets/video/sichtbar-werden-hoch-it.mp4'
+        && ($fiEn['kurz'] ?? '') === '/assets/video/sichtbar-werden-kurz-en.mp4' && ($fiDe['quer']['mp4'] ?? '') === '/assets/video/sichtbar-werden-quer-it.mp4'
+        && is_array($fiDe) && array_key_exists('kurz', $fiDe) && $fiDe['kurz'] === null && array_key_exists('webm', $fiEn['quer'] ?? []) && $fiEn['quer']['webm'] === null);
+    @unlink($fiD . 'sichtbar-werden-hoch-poster.webp');
+    pruefe('… fehlt ein Standbild, gilt der Film als unvollständig und wird nicht angeboten', PartnerSeite::film('sichtbar-werden', 'it') === null
+        && !in_array('sichtbar-werden', PartnerSeite::filme(), true));
+    foreach ($fiNeu as $fiF) { @unlink($fiF); }
+} else {
+    pruefe('Werbefilm liegt vollständig vor (quer + hoch)', isset($fiSw['quer'], $fiSw['hoch']));
+}
+/* Auswahl speichern: gültige Kennung bleibt, unbekannte fällt auf die alte zurück */
+$fiP = (int) Db::wert("SELECT id FROM partner ORDER BY id LIMIT 1", [], 0);
+if ($fiP > 0) {
+    $fiAlt = Db::wert('SELECT seite_json FROM partner WHERE id = ?', [$fiP], null);
+    $fiGs = PartnerSeite::gestaltung((array) Db::one('SELECT * FROM partner WHERE id = ?', [$fiP]));
+    $fiForm = ['bausteine' => ['film' => 1, 'wege' => 1], 'film' => 'showreel', 'vorlage' => $fiGs['vorlage'], 'akzent' => $fiGs['akzent']];
+    $fiOk = PartnerSeite::speichern($fiP, $fiForm);
+    $fiG1 = PartnerSeite::gestaltung((array) Db::one('SELECT * FROM partner WHERE id = ?', [$fiP]));
+    PartnerSeite::speichern($fiP, ['bausteine' => ['film' => 1], 'film' => '../../etc/passwd']);
+    $fiG2 = PartnerSeite::gestaltung((array) Db::one('SELECT * FROM partner WHERE id = ?', [$fiP]));
+    pruefe('Gestaltung: Film-Baustein an, Auswahl „showreel“ gespeichert; fremde Kennung wird verworfen (alte Wahl bleibt)',
+        $fiOk === 'ok' && $fiG1['bausteine']['film'] === true && $fiG1['film'] === 'showreel' && $fiG2['film'] === 'showreel');
+    Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [$fiAlt, $fiP]);
+}
+$fiPp = (string) file_get_contents($wurzel . '/../p.php'); $fiJs = (string) file_get_contents($wurzel . '/../assets/js/partnerseite.js');
+pruefe('Seite: Video stumm, inline, lädt erst bei Bedarf, Ton-Knopf; CSP erlaubt nur eigene Medien; Autoplay achtet auf „weniger Bewegung“',
+    str_contains($fiPp, "case 'film':") && str_contains($fiPp, "media-src 'self'") && str_contains($fiPp, 'playsinline') && str_contains($fiPp, 'preload="none"')
+    && str_contains($fiPp, 'muted') && str_contains($fiPp, 'lp-ton') && str_contains($fiJs, 'prefers-reduced-motion') && str_contains($fiJs, 'IntersectionObserver'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -10,6 +10,39 @@
     r.addEventListener('input', function () { r.parentNode.style.setProperty('--pos', r.value + '%'); });
   });
 
+  /* Werbefilm: Hochformat auf schmalen Bildschirmen, spielt stumm, sobald er
+     zu sehen ist (nicht bei „Bewegung reduzieren“), Ton per Knopf. */
+  document.querySelectorAll('[data-film]').forEach(function (box) {
+    var v = box.querySelector('video'), ton = box.querySelector('.lp-ton');
+    if (!v) { return; }
+    var hoch = window.matchMedia('(max-width: 640px) and (orientation: portrait)').matches;
+    if (hoch && v.dataset.hochMp4) {
+      box.classList.add('hoch');
+      while (v.firstChild) { v.removeChild(v.firstChild); }
+      [['hochWebm', 'video/webm'], ['hochMp4', 'video/mp4']].forEach(function (q) {
+        if (v.dataset[q[0]]) { var s = document.createElement('source'); s.src = v.dataset[q[0]]; s.type = q[1]; v.appendChild(s); }
+      });
+      v.poster = v.dataset.hochPoster; v.load();
+    }
+    var ruhig = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!ruhig && 'IntersectionObserver' in window) {
+      v.removeAttribute('controls');
+      new IntersectionObserver(function (e) {
+        e.forEach(function (x) {
+          if (x.isIntersecting && x.intersectionRatio > 0.4) { v.preload = 'auto'; var p = v.play(); if (p && p.catch) { p.catch(function () { v.setAttribute('controls', ''); }); } }
+          else { v.pause(); }
+        });
+      }, { threshold: [0, 0.4, 0.8] }).observe(v);
+    }
+    if (ton) {
+      ton.hidden = false;
+      ton.addEventListener('click', function () {
+        v.muted = !v.muted; ton.textContent = v.muted ? ton.dataset.an : ton.dataset.aus;
+        if (!v.muted && v.paused) { v.play().catch(function () {}); }
+      });
+    }
+  });
+
   /* Weiterleiten: Link kopieren, Teilen-Menü */
   var k = $('wl_kopieren'), t = $('wl_teilen');
   if (k && navigator.clipboard) {

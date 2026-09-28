@@ -52,9 +52,9 @@ final class PartnerSeite
     ];
 
     /* „wege“ (27.09.2026): Website prüfen · Preis in 2 Minuten · Gespräch buchen. */
-    public const BAUSTEINE = ['wege', 'arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
+    public const BAUSTEINE = ['wege', 'film', 'arbeiten', 'ablauf', 'faq', 'whatsapp', 'stimmen', 'rueckruf'];
     /** Reihenfolge ab Werk (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“). */
-    public const REIHENFOLGE = ['wege', 'stimmen', 'ablauf', 'arbeiten', 'faq', 'rueckruf', 'whatsapp'];
+    public const REIHENFOLGE = ['wege', 'film', 'stimmen', 'ablauf', 'arbeiten', 'faq', 'rueckruf', 'whatsapp'];
     /** Arbeiten, aus denen der Partner wählt (Texte in Texte::PARTNER_SEITE['arbeiten']); höchstens drei. */
     public const ARBEITEN = ['trendonix', 'jonika', 'drehesum', 'cavaleri', 'mensaena'];
     public const ARBEITEN_MAX = 3;
@@ -74,6 +74,12 @@ final class PartnerSeite
        -- Uwe wollte sie auf allen Seiten). Speichert der Partner danach, gilt
        wieder genau seine Wahl. */
     public const STAND = 2;
+    /* Werbefilm „Sichtbar werden" (28.09.2026, Uwe: Ja) -- der Partner kann ihn
+       auf seiner Seite zeigen (Baustein „film", ab Werk aus). Erscheint nur,
+       wenn die Dateien wirklich da sind. */
+    /** Filme zur Auswahl: Kennung => vorhandene Formate. Der Showreel (Uwe,
+        28.09.2026) gibt es nur hochkant. */
+    public const FILME = ['sichtbar-werden' => ['quer', 'hoch'], 'showreel' => ['hoch']];
     /** Knopftext des Anfrageformulars: fertige Varianten (Texte::PARTNER_SEITE['knoepfe']). */
     public const KNOEPFE = ['loslegen', 'angebot', 'preis', 'beratung'];
     /* Kundenstimmen und Rückruf (27.09.2026) sind an, bis der Partner sie
@@ -105,6 +111,9 @@ final class PartnerSeite
             $bausteine[$b] = is_array($roh['bausteine'] ?? null) && array_key_exists($b, $roh['bausteine'])
                 ? !empty($roh['bausteine'][$b]) : in_array($b, self::STANDARD_AN, true);
         }
+        $filme = self::filme();
+        if ($filme === []) { $bausteine['film'] = false; }
+        $film = in_array($roh['film'] ?? '', $filme, true) ? (string) $roh['film'] : ($filme[0] ?? '');
         $wa = preg_match('~^\+[1-9]\d{7,14}$~', (string) ($roh['whatsapp'] ?? '')) ? (string) $roh['whatsapp'] : '';
         if ($wa === '') { $bausteine['whatsapp'] = false; }
         /* Reihenfolge: gespeicherte zuerst (nur bekannte, jeder einmal), was fehlt, in der Werksreihenfolge dahinter. */
@@ -115,7 +124,7 @@ final class PartnerSeite
         if ($arbeiten === []) { $arbeiten = self::ARBEITEN_STANDARD; }
         $knopf = in_array($roh['knopf'] ?? '', self::KNOEPFE, true) ? (string) $roh['knopf'] : 'loslegen';
         return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
-                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf];
+                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film];
     }
 
     /** Gibt es überhaupt eine eigene Gestaltung? */
@@ -160,6 +169,7 @@ final class PartnerSeite
             'reihenfolge' => array_keys($pos), 'arbeiten' => $arbeiten ?: $alt['arbeiten'],
             'knopf' => in_array($d['knopf'] ?? '', self::KNOEPFE, true) ? (string) $d['knopf'] : $alt['knopf'],
             'stand' => self::STAND,
+            'film' => in_array($d['film'] ?? '', self::filme(), true) ? (string) $d['film'] : $alt['film'],
         ];
         Db::run('UPDATE partner SET seite_json = ?, seite_am = NOW() WHERE id = ?', [json_encode($neu, JSON_UNESCAPED_UNICODE), $partnerId]);
         return 'ok';
@@ -400,6 +410,41 @@ final class PartnerSeite
         ob_start(); imagejpeg($bild, null, 84); $jpg = (string) ob_get_clean();
         imagedestroy($bild);
         return $jpg !== '' ? $jpg : null;
+    }
+
+    /**
+     * Der Werbefilm, wenn alle Dateien da sind: quer und hoch (MP4, dazu WebM,
+     * falls vorhanden), Standbilder. Sonst null -- dann gibt es den Baustein nicht.
+     * @return ?array{quer:array{mp4:string,webm:?string,poster:string}, hoch:array{mp4:string,webm:?string,poster:string}, kurz:?string}
+     */
+    public static function film(?string $id = null, string $sprache = 'it'): ?array
+    {
+        $ids = $id !== null && isset(self::FILME[$id]) ? [$id] : array_keys(self::FILME);
+        $d = dirname(__DIR__, 2) . '/assets/video/'; $w = '/assets/video/';
+        foreach ($ids as $n) {
+            $aus = ['id' => $n];
+            foreach (self::FILME[$n] as $f) {
+                /* Tonspur in der Sprache der Seite (sichtbar-werden-quer-it.mp4), sonst die allgemeine */
+                $stamm = null;
+                foreach (["$n-$f-$sprache", "$n-$f-it", "$n-$f-de", "$n-$f"] as $k) {
+                    if (preg_match('~^[a-z0-9-]+$~', $k) && is_file($d . "$k.mp4")) { $stamm = $k; break; }
+                }
+                if ($stamm === null || !is_file($d . "$n-$f-poster.webp")) { continue 2; }
+                $aus[$f] = ['mp4' => $w . "$stamm.mp4", 'webm' => is_file($d . "$stamm.webm") ? $w . "$stamm.webm" : null, 'poster' => $w . "$n-$f-poster.webp"];
+            }
+            foreach (["$n-kurz-$sprache", "$n-kurz"] as $k) {
+                if (is_file($d . "$k.mp4")) { $aus['kurz'] = $w . "$k.mp4"; break; }
+            }
+            $aus['kurz'] ??= null;
+            return $aus;
+        }
+        return null;
+    }
+
+    /** Kennungen der Filme, deren Dateien vollständig da sind. @return list<string> */
+    public static function filme(): array
+    {
+        return array_values(array_filter(array_keys(self::FILME), static fn($n) => self::film($n) !== null));
     }
 
     /** Echte Website einer Arbeit oder null. */
