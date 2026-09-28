@@ -34,6 +34,13 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   .gs-zeile select{width:auto;font-size:14px;padding:6px 10px}
   .gs-marke{font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--linie2);color:var(--leise);margin-left:6px}
   .gs-marke.an{border-color:var(--cyan);color:var(--cyan)}
+  .gs-schrift{font-size:22px;line-height:1.1;color:var(--text)}
+  .gs-wahl.gs-reihe label{flex-direction:row;gap:10px;border:1px solid var(--linie2);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px}
+  .gs-wahl.gs-reihe label:has(input:checked){border-color:var(--cyan);box-shadow:0 0 0 2px rgba(241,211,139,.35)}
+  .gs-wahl.gs-reihe label:has(input:focus-visible){outline:2px solid var(--cyan);outline-offset:2px}
+  .gs-vorschlag{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 0;padding:10px 12px;border:1px solid var(--cyan);border-radius:12px;font-size:14px}
+  .gs-vorschlag .gs-muster{width:44px;height:30px}
+  .gs-vorschlag button{min-height:40px}
   .gs-vorschau{margin-top:16px;border:1px solid var(--linie);border-radius:16px;overflow:hidden;background:var(--flaeche2);height:560px;position:relative}
   .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
   @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}
@@ -71,12 +78,33 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       <?php if ($eigenesBild): ?>
         <label><input type="radio" name="bild" value="eigen" <?= $gs['bild'] === 'eigen' ? 'checked' : '' ?>><img class="gs-bild" src="<?= $h($eigenesBild) ?>" alt=""><?= $h($W($PS['bilder']['eigen'])) ?></label>
       <?php endif; ?>
-      <?php foreach (PartnerSeite::BILDER as $bk => $datei): ?>
-        <label><input type="radio" name="bild" value="<?= $h($bk) ?>" <?= $gs['bild'] === $bk ? 'checked' : '' ?>><img class="gs-bild" src="<?= $h($daumen($datei)) ?>" alt="" loading="lazy"><?= $h($W($PS['bilder'][$bk])) ?></label>
+      <?php foreach (PartnerSeite::BILDER as $bk => $datei): [$bfV, $bfA] = PartnerSeite::BILD_FARBE[$bk] ?? ['', '']; ?>
+        <label><input type="radio" name="bild" value="<?= $h($bk) ?>" <?= $gs['bild'] === $bk ? 'checked' : '' ?> data-vorlage="<?= $h($bfV) ?>" data-akzent="<?= $h($bfA) ?>"><img class="gs-bild" src="<?= $h($daumen($datei)) ?>" alt="" loading="lazy"><?= $h($W($PS['bilder'][$bk])) ?></label>
       <?php endforeach; ?>
+    </div>
+    <?php /* Farbvorschlag zum Bild (28.09.2026, Uwe: Ja zu L5) -- erscheint per Skript, ohne Skript bleibt alles wählbar. */ ?>
+    <div class="gs-vorschlag" id="gs_vorschlag" hidden aria-live="polite"
+         data-namen="<?= $h(json_encode(['v' => array_map($W, $PS['vorlagen']), 'a' => array_map($W, $PS['akzente'])], JSON_UNESCAPED_UNICODE)) ?>">
+      <span class="gs-muster" aria-hidden="true"><i></i><i></i></span><span><?= $h($W($PS['g_vorschlag'])) ?> <b data-was></b></span>
+      <button class="knopf" type="button" data-uebernehmen><?= $h($W($PS['g_uebernehmen'])) ?></button>
     </div>
     <label for="gs_bild" style="margin-top:10px"><?= $h($W($PS['g_bild_hoch'])) ?></label>
     <input id="gs_bild" type="file" name="titelbild" accept="image/jpeg,image/png,image/webp">
+
+    <p class="gs-h"><?= $h($W($PS['g_kopf'])) ?></p>
+    <div class="gs-wahl gs-reihe" role="radiogroup">
+      <?php foreach (PartnerSeite::KOEPFE as $kk): ?>
+        <label><input type="radio" name="kopf" value="<?= $h($kk) ?>" <?= $gs['kopf'] === $kk ? 'checked' : '' ?>><?= $h($W($PS['koepfe'][$kk])) ?></label>
+      <?php endforeach; ?>
+    </div>
+
+    <p class="gs-h"><?= $h($W($PS['g_schrift'])) ?></p>
+    <div class="gs-wahl gs-reihe" role="radiogroup">
+      <?php foreach (PartnerSeite::SCHRIFTEN as $sk => $sd): ?>
+        <label><input type="radio" name="schrift" value="<?= $h($sk) ?>" <?= $gs['schrift'] === $sk ? 'checked' : '' ?>>
+          <span class="gs-schrift" style="font-family:<?= $h($sd['familie']) ?>;font-weight:<?= (int) $sd['gewicht'] ?>">Aa</span><?= $h($W($PS['schriften'][$sk])) ?></label>
+      <?php endforeach; ?>
+    </div>
 
     <p class="gs-h"><?= $h($W($PS['g_texte'])) ?></p>
     <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['g_sprache_hinweis'])) ?></p>
@@ -152,3 +180,5 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   <p class="gs-h"><?= $h($W($PS['g_vorschau'])) ?></p>
   <div class="gs-vorschau"><iframe src="<?= $h($vorschau) ?>" title="<?= $h($W($PS['g_vorschau'])) ?>" loading="lazy"></iframe></div>
 </div>
+<script type="application/json" id="gs_farben"><?= json_encode(array_map(static fn($v) => ['grund' => $v['grund'], 'hell' => $v['hell']], PartnerSeite::VORLAGEN) + ['_akzente' => PartnerSeite::AKZENTE], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+<script src="/assets/js/partner-gestalter.js?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/js/partner-gestalter.js') ?>" defer></script>

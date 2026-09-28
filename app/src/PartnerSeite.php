@@ -30,6 +30,13 @@ final class PartnerSeite
         'hell'       => ['hell' => true,  'grund' => '#f7f3ec', 'grund2' => '#efe9df', 'flaeche' => '#ffffff', 'flaeche2' => '#f3eee6', 'text' => '#1a1714', 'dim' => '#57514a', 'leise' => '#6f685f', 'linie' => 'rgba(40,30,15,.12)', 'linie2' => 'rgba(40,30,15,.22)', 'akzent' => 'gold'],
         'mediterran' => ['hell' => true,  'grund' => '#f3ece2', 'grund2' => '#ebe2d5', 'flaeche' => '#fffaf3', 'flaeche2' => '#f6efe4', 'text' => '#1d2a36', 'dim' => '#4f5c68', 'leise' => '#66727d', 'linie' => 'rgba(29,42,54,.12)', 'linie2' => 'rgba(29,42,54,.22)', 'akzent' => 'terrakotta'],
         'minimal'    => ['hell' => true,  'grund' => '#ffffff', 'grund2' => '#fafafa', 'flaeche' => '#f6f6f6', 'flaeche2' => '#efefef', 'text' => '#111111', 'dim' => '#4d4d4d', 'leise' => '#666666', 'linie' => 'rgba(0,0,0,.1)', 'linie2' => 'rgba(0,0,0,.2)', 'akzent' => 'graphit'],
+        /* Sechs weitere (28.09.2026, Uwe: Ja zu V1–V6 im Musterbuch). */
+        'nacht'      => ['hell' => false, 'grund' => '#0b111c', 'grund2' => '#0f1624', 'flaeche' => '#131b2b', 'flaeche2' => '#1b2538', 'text' => '#eef2f8', 'dim' => '#a9b4c6', 'leise' => '#8f9bb0', 'linie' => 'rgba(169,191,245,.14)', 'linie2' => 'rgba(169,191,245,.28)', 'akzent' => 'nachtblau'],
+        'espresso'   => ['hell' => false, 'grund' => '#130e0b', 'grund2' => '#18120e', 'flaeche' => '#1d1611', 'flaeche2' => '#2a2019', 'text' => '#f6efe6', 'dim' => '#bfb1a2', 'leise' => '#a4968a', 'linie' => 'rgba(238,171,114,.14)', 'linie2' => 'rgba(238,171,114,.28)', 'akzent' => 'kupfer'],
+        'bordeaux'   => ['hell' => false, 'grund' => '#14090c', 'grund2' => '#1a0d11', 'flaeche' => '#211116', 'flaeche2' => '#2e1820', 'text' => '#f8eef0', 'dim' => '#c4adb3', 'leise' => '#a9939a', 'linie' => 'rgba(232,154,168,.14)', 'linie2' => 'rgba(232,154,168,.28)', 'akzent' => 'bordeaux'],
+        'salbei'     => ['hell' => true,  'grund' => '#eef1ea', 'grund2' => '#e5e9df', 'flaeche' => '#fbfcf8', 'flaeche2' => '#f1f4ec', 'text' => '#1b2419', 'dim' => '#4c5849', 'leise' => '#626d5f', 'linie' => 'rgba(27,36,25,.12)', 'linie2' => 'rgba(27,36,25,.22)', 'akzent' => 'salbei'],
+        'limone'     => ['hell' => true,  'grund' => '#fbf6e4', 'grund2' => '#f4edd4', 'flaeche' => '#fffdf5', 'flaeche2' => '#f8f2de', 'text' => '#221f14', 'dim' => '#565040', 'leise' => '#6d6756', 'linie' => 'rgba(34,31,20,.12)', 'linie2' => 'rgba(34,31,20,.22)', 'akzent' => 'zitrone'],
+        'marmor'     => ['hell' => true,  'grund' => '#f2f2f0', 'grund2' => '#e9e9e6', 'flaeche' => '#ffffff', 'flaeche2' => '#f5f5f3', 'text' => '#16181c', 'dim' => '#4a4e56', 'leise' => '#62666e', 'linie' => 'rgba(22,24,28,.12)', 'linie2' => 'rgba(22,24,28,.22)', 'akzent' => 'petrol'],
     ];
 
     /** Akzentfarben je Grundhelligkeit -- alle auf Lesbarkeit geprüft (Knopftext ≥ 4,5:1). */
@@ -40,7 +47,24 @@ final class PartnerSeite
         'salbei'     => ['dunkel' => '#a3d0ad', 'hell' => '#35643f'],
         'rose'       => ['dunkel' => '#eeaabb', 'hell' => '#9c3e57'],
         'graphit'    => ['dunkel' => '#e8e3da', 'hell' => '#262626'],
+        /* Sechs weitere (28.09.2026, Uwe: Ja zu A1–A6). */
+        'bordeaux'   => ['dunkel' => '#e89aa8', 'hell' => '#7e2236'],
+        'zitrone'    => ['dunkel' => '#ecd66a', 'hell' => '#6b5a00'],
+        'petrol'     => ['dunkel' => '#79cfc4', 'hell' => '#0e5c58'],
+        'lavendel'   => ['dunkel' => '#c4b5f2', 'hell' => '#5a449e'],
+        'kupfer'     => ['dunkel' => '#eeab72', 'hell' => '#94480f'],
+        'nachtblau'  => ['dunkel' => '#a9bff5', 'hell' => '#233a7e'],
     ];
+
+    /* Schrift der Überschriften (28.09.2026, Uwe: Ja zu L2). Nur Schriften, die
+       schon auf der Website liegen (fonts.css) -- keine fremden Server. */
+    public const SCHRIFTEN = [
+        'modern'    => ['familie' => "'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif", 'gewicht' => 800, 'groesse' => 1],
+        'klassisch' => ['familie' => "'Marcellus', Georgia, 'Times New Roman', serif", 'gewicht' => 400, 'groesse' => 1.04],
+        'elegant'   => ['familie' => "'Cormorant', Georgia, 'Times New Roman', serif", 'gewicht' => 500, 'groesse' => 1.16],
+    ];
+    /** Kopf der Seite (L3): Bild über dem Text oder Überschrift auf dem Bild. */
+    public const KOEPFE = ['karte', 'buehne'];
 
     /** Titelbilder aus unserer Auswahl (dieselben Renders wie auf der Website). */
     public const BILDER = [
@@ -49,6 +73,25 @@ final class PartnerSeite
         'kueche' => 'erlebnis/branchen/kueche-modern.webp', 'wein' => 'erlebnis/branchen/wein-rosso.webp',
         'mode' => 'erlebnis/branchen/schuh-rose.webp', 'schmuck' => 'erlebnis/branchen/schmuck-gelbgold.webp',
         'transport' => 'erlebnis/branchen/lkw-rot.webp',
+        /* Zwölf weitere aus den vorhandenen Renderings (28.09.2026, Uwe: Ja zu L4). */
+        'holz' => 'erlebnis/branchen/kueche-nussbaum.webp', 'salon_modern' => 'erlebnis/branchen/salon-petrol.webp',
+        'salon_klassisch' => 'erlebnis/branchen/salon-cognac.webp', 'weisswein' => 'erlebnis/branchen/wein-bianco.webp',
+        'olio' => 'erlebnis/branchen/wein-olio.webp', 'uhren' => 'erlebnis/branchen/schmuck-rosegold.webp',
+        'autohaus' => 'erlebnis/branchen/auto-perl.webp', 'spedition' => 'erlebnis/branchen/lkw-blau.webp',
+        'chauffeur' => 'erlebnis/branchen/mittelklasse-blunotte.webp', 'gastro_hell' => 'erlebnis/branchen/gastro-weiss.webp',
+        'villa_garten' => 'erlebnis/villa/ruhe-garten-abend.webp', 'agriturismo' => 'erlebnis/villa/ruhe-essen-abend.webp',
+    ];
+
+    /* Passende Vorlage und Farbe zum Titelbild (28.09.2026, Uwe: Ja zu L5) --
+       der Gestalter schlägt sie vor, der Partner übernimmt mit einem Klick. */
+    public const BILD_FARBE = [
+        'gastro' => ['mediterran', 'terrakotta'], 'hotel' => ['nacht', 'gold'], 'friseur' => ['espresso', 'kupfer'],
+        'auto' => ['gold', 'terrakotta'], 'kueche' => ['marmor', 'graphit'], 'wein' => ['bordeaux', 'bordeaux'],
+        'mode' => ['hell', 'rose'], 'schmuck' => ['gold', 'gold'], 'transport' => ['minimal', 'terrakotta'],
+        'holz' => ['espresso', 'kupfer'], 'salon_modern' => ['marmor', 'petrol'], 'salon_klassisch' => ['espresso', 'kupfer'],
+        'weisswein' => ['limone', 'zitrone'], 'olio' => ['salbei', 'salbei'], 'uhren' => ['gold', 'gold'],
+        'autohaus' => ['marmor', 'graphit'], 'spedition' => ['nacht', 'nachtblau'], 'chauffeur' => ['nacht', 'nachtblau'],
+        'gastro_hell' => ['hell', 'gold'], 'villa_garten' => ['nacht', 'gold'], 'agriturismo' => ['mediterran', 'terrakotta'],
     ];
 
     /* „wege“ (27.09.2026): Website prüfen · Preis in 2 Minuten · Gespräch buchen. */
@@ -123,8 +166,10 @@ final class PartnerSeite
         if ((int) ($roh['stand'] ?? 0) < self::STAND) { $bausteine['arbeiten'] = true; $arbeiten = []; }
         if ($arbeiten === []) { $arbeiten = self::ARBEITEN_STANDARD; }
         $knopf = in_array($roh['knopf'] ?? '', self::KNOEPFE, true) ? (string) $roh['knopf'] : 'loslegen';
+        $schrift = isset(self::SCHRIFTEN[$roh['schrift'] ?? '']) ? (string) $roh['schrift'] : 'modern';
+        $kopf = in_array($roh['kopf'] ?? '', self::KOEPFE, true) ? (string) $roh['kopf'] : 'karte';
         return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
-                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film];
+                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film, 'schrift' => $schrift, 'kopf' => $kopf];
     }
 
     /** Gibt es überhaupt eine eigene Gestaltung? */
@@ -170,6 +215,8 @@ final class PartnerSeite
             'knopf' => in_array($d['knopf'] ?? '', self::KNOEPFE, true) ? (string) $d['knopf'] : $alt['knopf'],
             'stand' => self::STAND,
             'film' => in_array($d['film'] ?? '', self::filme(), true) ? (string) $d['film'] : $alt['film'],
+            'schrift' => isset(self::SCHRIFTEN[$d['schrift'] ?? '']) ? (string) $d['schrift'] : $alt['schrift'],
+            'kopf' => in_array($d['kopf'] ?? '', self::KOEPFE, true) ? (string) $d['kopf'] : $alt['kopf'],
         ];
         Db::run('UPDATE partner SET seite_json = ?, seite_am = NOW() WHERE id = ?', [json_encode($neu, JSON_UNESCAPED_UNICODE), $partnerId]);
         return 'ok';
@@ -237,9 +284,12 @@ final class PartnerSeite
         $v = self::VORLAGEN[$g['vorlage']];
         $a = self::AKZENTE[$g['akzent']][$v['hell'] ? 'hell' : 'dunkel'];
         $knopfText = $v['hell'] ? '#ffffff' : '#16120b';
+        /* Eigene Variable für die Überschriften: --f-display trägt auch die Vecom-Wortmarke, die bleibt. */
+        $sf = self::SCHRIFTEN[$g['schrift'] ?? 'modern'] ?? self::SCHRIFTEN['modern'];
         return ':root{--grund:' . $v['grund'] . ';--grund2:' . $v['grund2'] . ';--flaeche:' . $v['flaeche'] . ';--flaeche2:' . $v['flaeche2']
             . ';--text:' . $v['text'] . ';--dim:' . $v['dim'] . ';--leise:' . $v['leise'] . ';--linie:' . $v['linie'] . ';--linie2:' . $v['linie2']
-            . ';--cyan:' . $a . ';--akzent:' . $a . ';--knopftext:' . $knopfText . ';color-scheme:' . ($v['hell'] ? 'light' : 'dark') . '}';
+            . ';--cyan:' . $a . ';--akzent:' . $a . ';--knopftext:' . $knopfText . ';color-scheme:' . ($v['hell'] ? 'light' : 'dark')
+            . ';--f-titel:' . $sf['familie'] . ';--f-titel-w:' . $sf['gewicht'] . ';--f-titel-w2:' . min(700, $sf['gewicht']) . ';--f-titel-s:' . $sf['groesse'] . '}';
     }
 
     /** Ein Text der Seite: eigener, sonst Standard (Texte::PARTNER_LANDE). */

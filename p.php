@@ -194,7 +194,7 @@ $wegIcon = [
   .ld{max-width:560px;margin:0 auto}
   .ld .marke{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--linie2);border-radius:999px;padding:6px 14px;
              font-size:13px;color:var(--cyan);margin:0 0 16px}
-  .ld h1{font-family:var(--f-display);font-size:clamp(28px,7vw,40px);line-height:1.12;margin:0 0 14px}
+  .ld h1{font-family:var(--f-titel,var(--f-display));font-weight:var(--f-titel-w,800);font-size:calc(clamp(28px,7vw,40px) * var(--f-titel-s,1));line-height:1.12;margin:0 0 14px}
   .ld .lead{color:var(--dim);font-size:16.5px;line-height:1.65;margin:0 0 20px}
   .ld ul{list-style:none;padding:0;margin:0 0 22px;display:grid;gap:10px}
   .ld li{display:flex;gap:10px;font-size:15px;line-height:1.55}
@@ -238,7 +238,7 @@ $wegIcon = [
   .lp-held{position:relative;margin:0 0 18px;border-radius:18px;overflow:hidden;aspect-ratio:16/9;background:var(--flaeche2)}
   .lp-held img{width:100%;height:100%;object-fit:cover;display:block}
   .lp-held::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.28))}
-  .lp h2{font-family:var(--f-display);font-size:20px;margin:0 0 14px}
+  .lp h2{font-family:var(--f-titel,var(--f-display));font-weight:var(--f-titel-w2,700);font-size:calc(20px * var(--f-titel-s,1));margin:0 0 14px}
   /* Drei Wege (27.09.2026) */
   .lp-wege{display:grid;gap:10px}
   .lp-wege a{display:flex;gap:14px;align-items:center;padding:14px 16px;border:1px solid var(--linie2);border-radius:14px;text-decoration:none;color:var(--text);background:var(--flaeche2)}
@@ -323,6 +323,44 @@ $wegIcon = [
   }
   <?php if ($metall): ?>.lp-leiste a.haupt{background:var(--metall);color:#16120b;border-color:transparent}<?php endif; ?>
   @media (prefers-reduced-motion:reduce){.lp-leiste{transition:none}}
+  /* Titelbild als Bühne (28.09.2026, Uwe: Ja zu L3): Überschrift auf dem Bild, Abdunklung für die Lesbarkeit. */
+  .lp-buehne{aspect-ratio:auto;min-height:min(118vw,540px);display:flex;align-items:flex-end}
+  .lp-buehne img{position:absolute;inset:0}
+  .lp-buehne::after{background:linear-gradient(180deg,rgba(0,0,0,.05) 20%,rgba(0,0,0,.55) 55%,rgba(0,0,0,.82))}
+  .lp-buehne-text{position:relative;z-index:1;padding:22px 20px 20px}
+  .lp-buehne-text h1{color:#fff;margin:0 0 10px;text-shadow:0 2px 18px rgba(0,0,0,.35)}
+  .lp-buehne-text .lead{color:rgba(255,255,255,.88);margin:0}
+  /* Breites Layout am Computer (28.09.2026, Uwe: Ja zu L1). Auf dem Handy bleibt alles wie bisher. */
+  @media (min-width:980px){
+    .seite{max-width:1160px}
+    .ld{max-width:1080px}
+    .ld .lead{max-width:62ch}
+    .lp-start.mit-bild:not(.buehne){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:44px;align-items:start;padding:34px}
+    .lp-start.mit-bild:not(.buehne) .lp-held{order:2;margin:0;aspect-ratio:4/3;position:sticky;top:24px}
+    .lp-start:not(.mit-bild) .lp-inhalt,.lp-start.buehne .lp-inhalt{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:44px;align-items:start}
+    .lp-start.buehne{padding:18px 18px 30px}
+    .lp-start.buehne .lp-inhalt{padding:10px 16px 0}
+    .lp-buehne{min-height:0;aspect-ratio:21/9;margin-bottom:26px}
+    .lp-buehne-text{padding:34px 38px 32px;max-width:760px}
+    .lp-start:not(.mit-bild) .lp-b,.lp-start.buehne .lp-b{padding:22px;border:1px solid var(--linie2);border-radius:16px;background:var(--flaeche2)}
+    .lp-wege{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .lp-wege a{flex-direction:column;align-items:flex-start;text-align:left}
+    .lp-wege i{flex:none;width:38px;height:38px}
+    .lp-wege a::after{margin-left:0;margin-top:auto}
+    .lp-stimmen{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+    .lp-arbeiten{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .lp-arbeiten figure:last-child:nth-child(odd):not(:first-child){grid-column:auto}
+    .lp details,.lp-rr form,.lp-rr > p,.lp-schritte,.wl > p{max-width:720px}
+    #whatsapp .lp-wa{max-width:420px}
+  }
+  /* Sanftes Einblenden beim Scrollen (28.09.2026, Uwe: Ja zu L6): nur CSS, ohne
+     Skript; wo der Browser es nicht kann oder „weniger Bewegung“ gilt, steht alles still da. */
+  @keyframes lp-auf{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+  @supports (animation-timeline:view()){
+    @media (prefers-reduced-motion:no-preference){
+      .lp{animation:lp-auf linear both;animation-timeline:view();animation-range:entry 0% entry 38%}
+    }
+  }
 </style>
 </head>
 <body>
@@ -331,8 +369,11 @@ $wegIcon = [
     <img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="58" height="46">
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
-  <div class="block ld" id="start">
-    <?php if ($titelbild): ?><div class="lp-held"><img src="<?= $h($titelbild) ?>"<?php if ($titelKlein): ?> srcset="<?= $h($titelKlein) ?> 800w, <?= $h($titelbild) ?> 1600w" sizes="(max-width:600px) 100vw, 560px"<?php endif; ?> alt="" width="1600" height="900" fetchpriority="high"></div><?php endif; ?>
+  <?php $buehne = $titelbild && $g['kopf'] === 'buehne'; ?>
+  <div class="block ld lp-start<?= $titelbild ? ' mit-bild' : '' ?><?= $buehne ? ' buehne' : '' ?>" id="start">
+    <?php if ($titelbild): ?><div class="lp-held<?= $buehne ? ' lp-buehne' : '' ?>"><img src="<?= $h($titelbild) ?>"<?php if ($titelKlein): ?> srcset="<?= $h($titelKlein) ?> 800w, <?= $h($titelbild) ?> 1600w" sizes="<?= $buehne ? '(min-width:980px) 1080px, 100vw' : '(max-width:600px) 100vw, (min-width:980px) 540px, 560px' ?>"<?php endif; ?> alt="" width="1600" height="900" fetchpriority="high">
+      <?php if ($buehne): ?><div class="lp-buehne-text"><h1><?= $h($L('titel')) ?></h1><p class="lead"><?= $h($L('lead')) ?></p></div><?php endif; ?></div><?php endif; ?>
+    <div class="lp-inhalt"><div class="lp-a">
     <div class="lp-kopf">
       <?php if ($foto): ?><img class="bild" src="<?= $h($foto) ?>" alt="<?= $h($L('foto_alt')) ?>" width="96" height="96">
       <?php else: ?><span class="bild" aria-hidden="true"><?= $h($initialen) ?></span><?php endif; ?>
@@ -343,9 +384,10 @@ $wegIcon = [
           $aktion = PartnerMarketing::aktion(); if ($aktion): ?>
       <p class="lp-aktion" role="note"><b><?= $h(PartnerMarketing::aktionText($aktion, $sprache)) ?></b><span><?= $h(PartnerMarketing::aktionRest($aktion, $sprache)) ?></span></p>
     <?php endif; ?>
-    <h1><?= $h($L('titel')) ?></h1>
-    <p class="lead"><?= $h($L('lead')) ?></p>
+    <?php if (!$buehne): ?><h1><?= $h($L('titel')) ?></h1>
+    <p class="lead"><?= $h($L('lead')) ?></p><?php endif; ?>
     <ul><li><?= $h($L('p1')) ?></li><li><?= $h($L('p2')) ?></li><li><?= $h($L('p3')) ?></li></ul>
+    </div><div class="lp-b">
     <form method="post" action="/zugang.php?lang=<?= $h($sprache) ?>" id="lp_form">
       <input type="hidden" name="quelle" value="seite"><input type="hidden" name="von_partner" value="1">
       <label for="ld_email" class="sr"><?= $h($L('feld')) ?></label>
@@ -362,6 +404,7 @@ $wegIcon = [
     </form>
     <p class="klein"><?= $h($L('klein')) ?> <?= $h($S($PS['ds'])) ?> <a href="<?= $h($datenschutz) ?>"><?= $h($S($PS['ds_link'])) ?></a></p>
     <a class="weiter" href="<?= $h($ziel) ?>"><?= $h($L('weiter')) ?></a>
+    </div></div>
   </div>
 
 <?php

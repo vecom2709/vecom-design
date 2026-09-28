@@ -11814,6 +11814,30 @@ foreach (PartnerSeite::VORLAGEN as $psV => $psW) {
     if ($psKontrast($psW['dim'], $psW['flaeche']) < 4.5) { $psSchwach[] = "$psV Nebentext " . round($psKontrast($psW['dim'], $psW['flaeche']), 2); }
 }
 pruefe('Jede Kombination aus Vorlage und Farbe ist lesbar (Knopftext ≥ 4,5:1, Akzent auf Fläche ≥ 3:1, Text ≥ 7:1)', $psSchwach === [], implode(', ', $psSchwach));
+/* Musterbuch 28.09.2026 (Uwe: Ja zu V1–V6, A1–A6, L1–L6). */
+$psBf = [];
+foreach (PartnerSeite::BILDER as $psK => $psD) {
+    [$psBv, $psBa] = PartnerSeite::BILD_FARBE[$psK] ?? ['', ''];
+    if (!isset(PartnerSeite::VORLAGEN[$psBv], PartnerSeite::AKZENTE[$psBa])) { $psBf[] = "$psK ohne gültigen Farbvorschlag"; }
+    if (!str_contains($psD, 'haar/') && !is_file($wurzel . '/../assets/img/' . preg_replace('~\.webp$~', '-800.webp', $psD))) { $psBf[] = "$psK ohne Handy-Fassung"; }
+    if (!isset(Texte::PARTNER_SEITE['bilder'][$psK]['it'])) { $psBf[] = "$psK ohne Namen"; }
+}
+foreach (PartnerSeite::VORLAGEN as $psK => $psW) { if (!isset(Texte::PARTNER_SEITE['vorlagen'][$psK]['de'], PartnerSeite::AKZENTE[$psW['akzent']])) { $psBf[] = "Vorlage $psK"; } }
+foreach (PartnerSeite::AKZENTE as $psK => $psA) { if (!isset(Texte::PARTNER_SEITE['akzente'][$psK]['en'])) { $psBf[] = "Akzent $psK ohne Namen"; } }
+pruefe('Musterbuch: 10 Vorlagen, 12 Akzente, 21 Titelbilder -- jedes mit Namen in drei Sprachen, Handy-Fassung und gültigem Farbvorschlag',
+    $psBf === [] && count(PartnerSeite::VORLAGEN) === 10 && count(PartnerSeite::AKZENTE) === 12 && count(PartnerSeite::BILDER) === 21, implode(', ', $psBf));
+PartnerSeite::speichern($psId, ['vorlage' => 'limone', 'akzent' => 'zitrone', 'schrift' => 'elegant', 'kopf' => 'buehne', 'bild' => 'olio']);
+$psG = PartnerSeite::gestaltung($psP()); $psCss = PartnerSeite::css($psG);
+pruefe('Schrift und Titelbild-Art werden gespeichert; die Schrift gilt nur den Überschriften, die Vecom-Wortmarke behält ihre',
+    $psG['schrift'] === 'elegant' && $psG['kopf'] === 'buehne' && $psG['vorlage'] === 'limone' && str_contains($psCss, "--f-titel:'Cormorant'")
+    && str_contains($psCss, '--akzent:#6b5a00') && !str_contains($psCss, '--f-display:'), $psCss);
+PartnerSeite::speichern($psId, ['schrift' => 'comic sans', 'kopf' => '<b>']);
+$psG = PartnerSeite::gestaltung($psP());
+pruefe('Unbekannte Schrift oder Titelbild-Art ändert nichts', $psG['schrift'] === 'elegant' && $psG['kopf'] === 'buehne');
+$psPq = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Partnerseite: Bühne und breites Layout nur über CSS, Einblenden nur ohne „weniger Bewegung“',
+    str_contains($psPq, "\$g['kopf'] === 'buehne'") && str_contains($psPq, '@media (min-width:980px)')
+    && (bool) preg_match('~@supports \(animation-timeline:view\(\)\)\{\s*@media \(prefers-reduced-motion:no-preference\)~', $psPq));
 $psDatei = tempnam(sys_get_temp_dir(), 'pstitel');
 $psBild = imagecreatetruecolor(2000, 1400); imagefill($psBild, 0, 0, imagecolorallocate($psBild, 30, 90, 140)); imagejpeg($psBild, $psDatei, 85); imagedestroy($psBild);
 $psE = PartnerSeite::bildSpeichern($psId, $psDatei, (int) filesize($psDatei));
