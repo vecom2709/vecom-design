@@ -51,7 +51,7 @@ final class AkquiseGate
     ];
 
     /** Kanaele, ueber die das System selbst etwas verschicken koennte. */
-    public const AUTOMATISIERBAR = ['email'];
+    public const AUTOMATISIERBAR = ['email', 'whatsapp'];   // WhatsApp nur mit Einwilligung (28.09.2026, V3) -- die Regel „ohne“ sagt weiter Nein
 
     /* ================================================================== */
     /*  Sperrliste                                                        */
@@ -363,6 +363,8 @@ final class AkquiseGate
         'audit'     => ['akq_schalter_audit', '1', 'Websites prüfen', 'Dein PC prüft die Websites der gefundenen Betriebe.'],
         'ki'        => ['akq_schalter_ki', '1', 'Texte von Claude', 'Deutung der Befunde und Textvorschläge (kostet Claude-Guthaben am PC).'],
         'folge'     => ['akq_schalter_folge', '0', 'Folge-Mails', 'Die freigegebenen Folge-Mails an Betriebe mit bestätigter Einwilligung.'],
+        'whatsapp'  => ['akq_schalter_whatsapp', '1', 'Folge per WhatsApp', 'Wer auch WhatsApp erlaubt hat, bekommt die Folge-Schritte als genehmigte WhatsApp-Vorlage statt als Mail (sobald WhatsApp Business eingerichtet ist).'],
+        'autofrei'  => ['akq_auto_freigabe_it', '1', 'Italienische Texte automatisch freigeben', 'Italienische Folge-Texte, die die Textprüfung ohne Beanstandung bestehen, gelten als freigegeben. Jede Änderung prüft neu.'],
     ];
 
     /** Ist dieser Teil der Automatik an? Der Hauptschalter geht vor. */

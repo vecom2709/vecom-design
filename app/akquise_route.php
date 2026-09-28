@@ -339,6 +339,32 @@ if ($post) {
                 AkquiseSignal::erledigen((int) ($_POST['signal'] ?? 0));
                 weiter('akquise#signale');
 
+            case 'akq_vorort':
+                /* Vor-Ort-Modus (28.09.2026, V1): Der Inhaber tippt selbst auf Uwes Handy. */
+                $sp = in_array($_POST['sprache'] ?? '', ['it', 'de', 'en'], true) ? (string) $_POST['sprache'] : 'it';
+                $e = AkquiseEinwilligung::link($fid, 'vorort');
+                $r = AkquiseEinwilligung::anfragen((string) $e['link_token'], (string) ($_POST['email'] ?? ''), !empty($_POST['ja']), $sp,
+                    (string) ($_SERVER['REMOTE_ADDR'] ?? ''), !empty($_POST['wa']) ? (string) ($_POST['whatsapp'] ?? '') : null);
+                weiter('akquise/' . $fid . '/vorort?sprache=' . $sp . ($r === 'ok' ? '' : '&f=' . rawurlencode($r)));
+
+            case 'akq_wa_speichern':
+                require_once __DIR__ . '/src/WhatsAppCloud.php';
+                WhatsAppCloud::speichern($_POST);
+                Events::pruefspur('whatsapp_einstellungen', 'settings', null, [], ['nummer_id' => WhatsAppCloud::einstellungen()['nummer_id'], 'konto_id' => WhatsAppCloud::einstellungen()['konto_id']]);
+                $_SESSION['gut'] = 'WhatsApp-Einstellungen gespeichert.';
+                $zu('regeln#whatsapp');
+
+            case 'akq_wa_anmelden':
+                require_once __DIR__ . '/src/WhatsAppCloud.php';
+                $r = WhatsAppCloud::anmelden();
+                $_SESSION[$r['fehler'] ? 'fehler' : 'gut'] = $r['eingereicht'] . ' Vorlage(n) bei Meta eingereicht.' . ($r['fehler'] ? ' Probleme: ' . implode(' · ', array_slice($r['fehler'], 0, 3)) : ' Die Genehmigung dauert meist Minuten bis wenige Stunden.');
+                $zu('regeln#whatsapp');
+
+            case 'akq_wa_stand':
+                require_once __DIR__ . '/src/WhatsAppCloud.php';
+                $_SESSION['gut'] = WhatsAppCloud::standAbrufen() . ' Vorlage(n) mit neuem Stand.';
+                $zu('regeln#whatsapp');
+
             case 'akq_einwilligung_link':
                 $e = AkquiseEinwilligung::link($fid, 'link');
                 $_SESSION['akq_einw_link'][$fid] = AkquiseEinwilligung::adresse($e);
@@ -548,6 +574,14 @@ if ($teil !== '' && ctype_digit($teil)) {
         $audit = Akquise::letzterAudit($fid);
         $befunde = $audit ? Akquise::befunde((int) $audit['id']) : [];
         require __DIR__ . '/views/akquise_brief.php';
+        exit;
+    }
+    if ($zusatz === 'vorort') {
+        /* Vor-Ort-Modus (28.09.2026, V1): eigene Seite ohne Menü, für den Kunden lesbar. */
+        require_once __DIR__ . '/src/AkquiseScore.php';
+        $audit = Akquise::letzterAudit($fid);
+        $befunde = $audit ? Akquise::befunde((int) $audit['id']) : [];
+        require __DIR__ . '/views/akquise_vorort.php';
         exit;
     }
     if ($zusatz === 'anruf') {

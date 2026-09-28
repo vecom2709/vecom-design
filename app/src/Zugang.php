@@ -65,7 +65,7 @@ final class Zugang
     /** Woher die Adresse kam. Nur bekannte Werte -- ein Formularfeld ist
         Besuchereingabe und landet sonst ungeprüft in der Auswertung.
         'vorschau' = „Ihre Seite in 30 Sekunden" (N1, 24.09.2026). */
-    public const QUELLEN = ['seite', 'vorschau'];
+    public const QUELLEN = ['seite', 'vorschau', 'akquise'];
 
     public static function quelle(?string $roh): string
     {
@@ -79,6 +79,33 @@ final class Zugang
     public static function wunsch(mixed $roh): ?string
     {
         return is_string($roh) && isset(self::WUENSCHE[$roh]) ? $roh : null;
+    }
+
+    /**
+     * Dashboard vorbereiten (28.09.2026, Uwe: Ja zu V2): für einen Betrieb aus
+     * der Akquise, der eingewilligt hat. Legt den Zugang an (oder nimmt den
+     * noch gültigen), schickt aber KEINE Mail -- der Link steht in der
+     * Folge-Nachricht. Ist er schon Kunde, der Link in sein Dashboard.
+     * @return string|null Adresse zum Öffnen, null bei unbrauchbarer E-Mail
+     */
+    public static function vorbereiten(string $email, string $sprache, int $akqFirmaId, string $name = ''): ?string
+    {
+        $email = mb_strtolower(trim($email));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { return null; }
+        $sprache = self::spr($sprache);
+        require_once __DIR__ . '/Kundenzugang.php';
+        $kunde = Db::one('SELECT id, sprache FROM customers WHERE email = ?', [$email]);
+        if ($kunde) { return Kundenzugang::linkFuer((int) $kunde['id'], self::spr((string) ($kunde['sprache'] ?? $sprache))); }
+        $z = Db::one('SELECT * FROM zugaenge WHERE email = ? AND customer_id IS NULL AND created_at >= ? ORDER BY id DESC LIMIT 1',
+            [$email, date('Y-m-d H:i:s', time() - self::GUELTIG_TAGE * 86400)]);
+        if (!$z) {
+            $id = Db::insert('zugaenge', ['token' => bin2hex(random_bytes(24)), 'email' => $email, 'name' => mb_substr(trim($name), 0, 120) ?: null,
+                'sprache' => $sprache, 'quelle' => 'akquise', 'akq_firma_id' => $akqFirmaId]);
+            $z = (array) Db::one('SELECT * FROM zugaenge WHERE id = ?', [$id]);
+        } elseif ((int) ($z['akq_firma_id'] ?? 0) === 0) {
+            Db::update('zugaenge', (int) $z['id'], ['akq_firma_id' => $akqFirmaId]);
+        }
+        return self::link((string) $z['token'], $sprache);
     }
 
     public static function anfordern(string $email, string $sprache, array $extra = []): array
@@ -239,6 +266,15 @@ final class Zugang
             else { Partner::ausBesuch($kid); }
         } catch (Throwable $e) { /* nachtragbar: von Hand zuordnen */ }
 
+        /* Aus der Akquise (V2): Der Betrieb ist angekommen -- die Folge-Nachrichten
+           hören auf, ab jetzt übernimmt der Kundenweg. */
+        if ((int) ($z['akq_firma_id'] ?? 0) > 0) {
+            try {
+                Db::run('UPDATE akq_firmen SET customer_id = ?, dashboard_am = COALESCE(dashboard_am, NOW()) WHERE id = ?', [$kid, (int) $z['akq_firma_id']]);
+                require_once __DIR__ . '/Akquise.php';
+                Akquise::protokoll((int) $z['akq_firma_id'], 'dashboard', 'Persönliches Dashboard zum ersten Mal geöffnet (Kunde #' . $kid . ')');
+            } catch (Throwable $e) { /* nachtragbar */ }
+        }
         Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
         Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
             (string) $z['email'] . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' · Wunsch: ' . self::WUENSCHE[(string) $z['wunsch']] : ''), '/kunden/' . $kid);

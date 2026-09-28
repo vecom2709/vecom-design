@@ -12773,6 +12773,8 @@ pruefe('Folge-Mails: fünf Schritte in drei Sprachen als Entwurf, jeder Ausgangs
 $foFremd = [];
 foreach (AkquiseFolge::TEXTE as $foS => $foJe) { foreach ($foJe as $foSp => [$foB, $foT]) { preg_match_all('~\{[a-z_]+\}~', $foB . $foT, $foM); foreach (array_diff($foM[0], AkquiseFolge::PLATZHALTER) as $x) { $foFremd[] = "$foS.$foSp:$x"; } } }
 pruefe('Folge-Mails: Ausgangstexte nur mit bekannten Platzhaltern', $foFremd === [], implode(', ', $foFremd));
+AkquiseGate::schalterSetzen('autofrei', false);   // die Freigabe von Hand prüfen; die automatische hat ihren eigenen Abschnitt (28.09.2026)
+AkquiseGate::schalterSetzen('whatsapp', false);
 $foA = Akquise::firmaMelden(['name' => 'Enoteca Folge', 'land' => 'IT', 'stadt' => 'Sciacca', 'url' => 'https://enoteca-folge.example/', 'quelle' => 'test:folge1']);
 $foF = (int) $foA['id'];
 pruefe('ohne Einwilligung beginnt keine Folge', AkquiseFolge::starten($foF) === false);
@@ -12857,6 +12859,127 @@ pruefe('Verwaltung: Reiter „Folge-Mails“, Freigabe je Text mit Rückfrage, S
     str_contains((string) file_get_contents($wurzel . '/views/akquise_reiter.php'), "'folgen' => 'Folge-Mails'") && str_contains($foSeite, 'value="akq_folge_freigeben"')
     && str_contains($foSeite, 'data-frage="Diesen Text freigeben?') && str_contains((string) file_get_contents($wurzel . '/views/akquise_regeln.php'), 'value="akq_schalter_speichern"')
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'akquise_folgen' =>"));
+
+/* ============================================================================
+   Italienische Betriebe mit Einwilligung (28.09.2026, Uwe: Ja zu V1–V4)
+   V1 Vor-Ort-Modus · V2 Dashboard vorbereitet · V3 WhatsApp nach Ja · V4 automatische Freigabe
+   ============================================================================ */
+abschnitt('Einwilligung: vor Ort, Dashboard, WhatsApp, automatische Freigabe');
+require_once $wurzel . '/src/WhatsAppCloud.php';
+require_once $wurzel . '/src/Zugang.php';
+$v4M = [];
+foreach (Db::all("SELECT * FROM akq_folge_vorlagen WHERE sprache = 'it'") as $v4Z) {
+    $v4Z['text'] = AkquiseFolge::TEXTE[(int) $v4Z['schritt']]['it'][1]; $v4Z['betreff'] = AkquiseFolge::TEXTE[(int) $v4Z['schritt']]['it'][0];
+    foreach (AkquiseFolge::autoMaengel($v4Z) as $m) { $v4M[] = $v4Z['schritt'] . ': ' . $m; }
+}
+pruefe('V4: alle fünf italienischen Ausgangstexte bestehen die Textprüfung (sonst gäbe es nie eine automatische Freigabe)', $v4M === [], implode(' · ', $v4M));
+$v4X = Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'");
+$v4Bad = ['text' => "{anrede}\n\ncon un sito nuovo avrà il 40% di clienti in più. Scriva a vecom-design.it\n\n{inhaber}"] + $v4X;
+pruefe('V4: ein Text mit erfundener Zahl wird nicht freigegeben', AkquiseFolge::autoMaengel($v4Bad) !== []);
+Db::run("UPDATE akq_folge_vorlagen SET status = 'entwurf' WHERE schritt = 3");
+AkquiseGate::schalterSetzen('autofrei', false);
+pruefe('V4: Schalter aus — keine automatische Freigabe', AkquiseFolge::autoFreigeben(Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'")) === false);
+AkquiseGate::schalterSetzen('autofrei', true);
+Db::run("UPDATE akq_folge_vorlagen SET text = ?, betreff = ? WHERE schritt = 3 AND sprache = 'it'", [AkquiseFolge::TEXTE[3]['it'][1], AkquiseFolge::TEXTE[3]['it'][0]]);
+pruefe('V4: Schalter an — italienischer Text ohne Beanstandung wird freigegeben (mit Vermerk), der deutsche nicht',
+    AkquiseFolge::autoFreigeben(Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'")) === true
+    && str_contains((string) Db::wert("SELECT freigegeben_von FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'it'", [], ''), 'automatisch')
+    && AkquiseFolge::autoFreigeben(Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = 3 AND sprache = 'de'")) === false);
+pruefe('V4: Schalter ab Werk an, „Folge per WhatsApp“ ab Werk an', AkquiseGate::SCHALTER['autofrei'][1] === '1' && AkquiseGate::SCHALTER['whatsapp'][1] === '1');
+
+/* V2: Dashboard vorbereitet */
+$v2A = Akquise::firmaMelden(['name' => 'Trattoria Dashboard', 'land' => 'IT', 'stadt' => 'Favara', 'url' => 'https://trattoria-dashboard.example/', 'quelle' => 'test:v2']);
+$v2F = (int) $v2A['id'];
+Db::run("UPDATE akq_firmen SET einwilligung = 'Test-Beleg', email = 'titolare@trattoria-dashboard.example' WHERE id = ?", [$v2F]);
+$v2Z0 = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$v2L = AkquiseFolge::dashboardLink(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$v2F]), 'it');
+$v2L2 = AkquiseFolge::dashboardLink(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$v2F]), 'it');
+$v2Tok = (string) Db::wert('SELECT token FROM zugaenge WHERE email = ?', ['titolare@trattoria-dashboard.example'], '');
+pruefe('V2: {dashboard} ist ein vorbereiteter Zugang für genau diese Adresse — ohne eigene Mail, beim zweiten Mal derselbe',
+    str_contains($v2L, '/zugang.php?t=') && $v2L === $v2L2 && $v2Tok !== '' && (int) Db::wert('SELECT akq_firma_id FROM zugaenge WHERE token = ?', [$v2Tok], 0) === $v2F
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $v2Z0, $v2L);
+AkquiseFolge::starten($v2F);
+$v2O = Zugang::oeffnen($v2Tok);
+$v2Fi = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$v2F]);
+pruefe('V2: Öffnen legt den Kunden an und verknüpft ihn mit dem Betrieb der Akquise', $v2O['ok'] && (int) $v2Fi['customer_id'] === (int) $v2O['kunde_id'] && !empty($v2Fi['dashboard_am']));
+AkquiseGate::schalterSetzen('folge', true);
+AkquiseFolge::lauf();
+pruefe('V2: Wer seinen Bereich geöffnet hat, bekommt keine Folge-Nachrichten mehr', Db::wert('SELECT status FROM akq_folgen WHERE firma_id = ?', [$v2F], '') === 'beendet'
+    && str_contains((string) Db::wert('SELECT grund FROM akq_folgen WHERE firma_id = ?', [$v2F], ''), 'Persönlichen Bereich'));
+pruefe('V2: Schritt 1 enthält den persönlichen Bereich in allen drei Sprachen', str_contains(AkquiseFolge::TEXTE[1]['it'][1], '{dashboard}')
+    && str_contains(AkquiseFolge::TEXTE[1]['de'][1], '{dashboard}') && str_contains(AkquiseFolge::TEXTE[1]['en'][1], '{dashboard}'));
+pruefe('V2: das Dashboard zeigt die Analyse des Betriebs', str_contains((string) file_get_contents($wurzel . '/../kunde.php'), 'SELECT * FROM akq_firmen WHERE customer_id = ?'));
+
+/* V3: WhatsApp nach Ja */
+$v3Anfragen = [];
+WhatsAppCloud::$netz = static function (string $m, string $url, ?array $body, string $token) use (&$v3Anfragen): array {
+    $v3Anfragen[] = [$m, $url, $body, $token];
+    if (str_ends_with($url, '/message_templates') && $m === 'POST') { return ['status' => 200, 'json' => ['id' => 'tpl' . count($v3Anfragen), 'status' => 'PENDING']]; }
+    if (str_contains($url, '/message_templates?')) { return ['status' => 200, 'json' => ['data' => [['name' => 'vecom_folge1_it', 'language' => 'it', 'status' => 'APPROVED'], ['name' => 'vecom_folge2_it', 'language' => 'it', 'status' => 'REJECTED', 'rejected_reason' => 'PROMOTIONAL']]]]; }
+    if (str_ends_with($url, '/messages')) { return ['status' => 200, 'json' => ['messages' => [['id' => 'wamid.TEST' . count($v3Anfragen)]]]]; }
+    return ['status' => 404, 'json' => null];
+};
+pruefe('V3: ohne Einrichtung ist WhatsApp nicht bereit', WhatsAppCloud::bereit() === false);
+WhatsAppCloud::speichern(['nummer_id' => '1234567890', 'konto_id' => '9876543210', 'token' => 'EAAG-test-schluessel', 'app_geheim' => 'app-geheimnis-test']);
+$v3E = WhatsAppCloud::einstellungen();
+pruefe('V3: eingerichtet — Schlüssel verschlüsselt abgelegt, nie im Klartext in settings',
+    WhatsAppCloud::bereit() && $v3E['token'] && $v3E['app_geheim'] && (int) Db::wert("SELECT COUNT(*) FROM settings WHERE svalue LIKE '%EAAG-test%'", [], 0) === 0);
+$v3R = WhatsAppCloud::anmelden();
+pruefe('V3: 15 Vorlagen (5 Schritte × 3 Sprachen) bestehen die Textprüfung und gehen als MARKETING mit Abmeldehinweis an Meta',
+    $v3R['eingereicht'] === 15 && $v3R['fehler'] === [] && ($v3Anfragen[0][2]['category'] ?? '') === 'MARKETING'
+    && ($v3Anfragen[0][2]['components'][1]['type'] ?? '') === 'FOOTER' && str_contains((string) $v3Anfragen[0][2]['components'][1]['text'], 'STOP'), json_encode($v3R));
+WhatsAppCloud::standAbrufen();
+pruefe('V3: Genehmigung abgerufen — Schritt 1 genehmigt, Schritt 2 abgelehnt mit Grund',
+    Db::wert("SELECT meta_status FROM akq_wa_vorlagen WHERE name = 'vecom_folge1_it'", [], '') === 'APPROVED'
+    && Db::wert("SELECT meta_grund FROM akq_wa_vorlagen WHERE name = 'vecom_folge2_it'", [], '') === 'PROMOTIONAL');
+$v3OhneWa = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $foC['id']]);
+pruefe('V3: ohne WhatsApp-Einwilligung geht keine WhatsApp raus — auch nicht über die Methode selbst',
+    WhatsAppCloud::folgeSenden($v3OhneWa, 1, 'it', 'https://vecom-design.it/zugang.php?t=x')['ok'] === false);
+$v3A = Akquise::firmaMelden(['name' => 'Pasticceria WhatsApp', 'land' => 'IT', 'stadt' => 'Licata', 'url' => 'https://pasticceria-wa.example/', 'quelle' => 'test:v3']);
+$v3F = (int) $v3A['id'];
+$v3Ew = AkquiseEinwilligung::link($v3F, 'vorort');
+pruefe('V1: Einwilligung vor Ort mit E-Mail und WhatsApp: nur die Bestätigungsmail geht raus',
+    AkquiseEinwilligung::anfragen((string) $v3Ew['link_token'], 'titolare@pasticceria-wa.example', true, 'it', '203.0.113.7', '+39 333 123 4567') === 'ok'
+    && trim((string) Db::wert("SELECT einwilligung FROM akq_firmen WHERE id = ?", [$v3F], '')) === '');
+AkquiseEinwilligung::bestaetigen((string) Db::wert("SELECT doi_token FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt'", [$v3F], ''));
+$v3Fi = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$v3F]);
+pruefe('V1: nach dem Klick: Beleg „Besuch vor Ort“, E-Mail und WhatsApp erlaubt, Folge gestartet',
+    str_contains((string) $v3Fi['einwilligung'], 'Besuch vor Ort') && AkquiseGate::einwilligungDeckt($v3Fi, 'whatsapp')
+    && AkquiseGate::pruefen($v3Fi, 'whatsapp')['status'] === AkquiseGate::ERLAUBT && Db::wert('SELECT status FROM akq_folgen WHERE firma_id = ?', [$v3F], '') === 'laeuft');
+Db::run("UPDATE akq_folgen SET status = 'beendet' WHERE firma_id <> ?", [$v3F]);
+AkquiseGate::schalterSetzen('whatsapp', true); AkquiseGate::testbetriebSetzen(false);
+AkquiseGate::setzen('akq_versand_an', '1'); AkquiseGate::setzen('akq_fehler_grenze', '50'); AkquiseGate::setzen('akq_pause_sekunden', '0'); AkquiseGate::setzen('akq_limit_stunde', '50');
+$v3Post = [];
+AkquiseVersand::$postbote = static function (string $an, string $b, string $t) use (&$v3Post): bool { $v3Post[] = [$an, $b, $t]; return true; };
+$v3N = count($v3Anfragen);
+$v3L = AkquiseFolge::lauf();
+$v3Msg = array_values(array_filter(array_slice($v3Anfragen, $v3N), static fn($x) => str_ends_with($x[1], '/messages')));
+pruefe('V3: Schritt 1 geht per WhatsApp statt per Mail — genehmigte Vorlage, Name und persönlicher Bereich als Werte',
+    $v3L['geschickt'] === 1 && $v3Post === [] && count($v3Msg) === 1 && ($v3Msg[0][2]['to'] ?? '') === '393331234567'
+    && ($v3Msg[0][2]['template']['name'] ?? '') === 'vecom_folge1_it' && ($v3Msg[0][2]['template']['components'][0]['parameters'][0]['text'] ?? '') === 'Pasticceria WhatsApp'
+    && str_contains((string) ($v3Msg[0][2]['template']['components'][0]['parameters'][1]['text'] ?? ''), '/zugang.php?t=')
+    && (int) Db::wert('SELECT wa_schritt FROM akq_folgen WHERE firma_id = ?', [$v3F], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND kanal = 'whatsapp' AND status = 'gesendet'", [$v3F], 0) === 1, json_encode($v3L));
+Db::run('UPDATE akq_folgen SET naechst_am = ? WHERE firma_id = ?', [date('Y-m-d H:i:s'), $v3F]);
+Db::run("UPDATE akq_folge_vorlagen SET status = 'freigegeben' WHERE schritt = 2 AND sprache = 'it'");
+$v3L = AkquiseFolge::lauf();
+pruefe('V3: Schritt 2 ist bei Meta abgelehnt — dann geht die Mail', $v3L['geschickt'] === 1 && count($v3Post) === 1 && $v3Post[0][0] === 'titolare@pasticceria-wa.example');
+$v3Body = json_encode(['entry' => [['changes' => [['value' => ['messages' => [['from' => '393331234567', 'type' => 'text', 'text' => ['body' => 'Sì, mi interessa, mi chiami']]]]]]]]]);
+pruefe('V3: Webhook nur mit gültiger Signatur', WhatsAppCloud::signaturGut($v3Body, 'sha256=' . hash_hmac('sha256', $v3Body, 'app-geheimnis-test'))
+    && !WhatsAppCloud::signaturGut($v3Body, 'sha256=' . hash_hmac('sha256', $v3Body, 'falsch')) && !WhatsAppCloud::signaturGut($v3Body, ''));
+WhatsAppCloud::verarbeiten(json_decode($v3Body, true));
+pruefe('V3: eine Antwort per WhatsApp landet bei den Antworten und pausiert die Folge',
+    (int) Db::wert("SELECT COUNT(*) FROM akq_antworten WHERE firma_id = ? AND betreff = 'WhatsApp'", [$v3F], 0) === 1
+    && Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [$v3F], '') === 'geantwortet');
+WhatsAppCloud::verarbeiten(['entry' => [['changes' => [['value' => ['messages' => [['from' => '393331234567', 'type' => 'text', 'text' => ['body' => 'STOP']]]]]]]]]);
+pruefe('V3: „STOP“ sperrt den Betrieb sofort für alle Kanäle', (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$v3F], 0) === 1
+    && AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$v3F]), 'whatsapp')['status'] === AkquiseGate::NICHT);
+WhatsAppCloud::$netz = null; AkquiseVersand::$postbote = null;
+AkquiseGate::schalterSetzen('folge', false); AkquiseGate::testbetriebSetzen(true); AkquiseGate::setzen('akq_fehler_grenze', '3'); AkquiseGate::setzen('akq_limit_stunde', '3'); AkquiseGate::setzen('akq_versand_an', '0');
+$v1Seite = (string) file_get_contents($wurzel . '/views/akquise_vorort.php');
+pruefe('V1: Vor-Ort-Seite in drei Sprachen, Formular mit E-Mail, WhatsApp und Wortlaut, Knopf in der Firmenansicht',
+    str_contains($v1Seite, 'value="akq_vorort"') && str_contains($v1Seite, 'name="ja"') && str_contains($v1Seite, 'name="whatsapp"')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "/vorort'") && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_vorort':"));
 
 /* ============================================================================
    Assistent ohne KI-Kosten (27.09.2026)

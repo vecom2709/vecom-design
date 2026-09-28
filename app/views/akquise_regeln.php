@@ -294,6 +294,49 @@ $blick = [
   </div>
   <?php endif; ?>
 
+  <?php /* WhatsApp Business (28.09.2026, Uwe: Ja zu V3) -- nur an Betriebe mit WhatsApp-Einwilligung. */
+        require_once dirname(__DIR__) . '/src/WhatsAppCloud.php';
+        $wa = WhatsAppCloud::einstellungen();
+        $waV = sicher(static fn() => WhatsAppCloud::vorlagen(), []);
+        $waFarbe = ['APPROVED' => 'var(--gut)', 'REJECTED' => 'var(--schlecht, #e5534b)', 'fehler' => 'var(--schlecht, #e5534b)']; ?>
+  <div class="block" id="whatsapp">
+    <h2>WhatsApp Business <span class="akq-klein" style="font-weight:400">· nur mit Einwilligung</span></h2>
+    <p class="rg-erkl">Betriebe, die ausdrücklich auch WhatsApp erlaubt haben, bekommen die Folge-Schritte als von Meta genehmigte WhatsApp-Vorlage statt als Mail.
+      Ohne diese Einwilligung geht nie etwas per WhatsApp raus. „STOP“ als Antwort sperrt den Betrieb sofort; jede andere Antwort landet bei den Antworten.</p>
+    <details<?= WhatsAppCloud::bereit() ? '' : ' open' ?>><summary class="akq-klein" style="cursor:pointer">So richtest du es ein (einmal, etwa 20 Minuten)</summary>
+      <ol class="akq-klein" style="line-height:1.7">
+        <li>Auf <b>business.facebook.com</b> das Unternehmen „Vecom Design“ anlegen bzw. wählen und unter <b>WhatsApp-Konten</b> ein Konto erstellen.</li>
+        <li>Auf <b>developers.facebook.com</b> eine App vom Typ „Business“ anlegen und das Produkt <b>WhatsApp</b> hinzufügen. Dort die Telefonnummer verbinden. Achtung: Eine Nummer, die in der normalen WhatsApp-Business-App läuft, geht nur über „Coexistence“ gleichzeitig — sonst eine zweite Nummer nehmen.</li>
+        <li>Unter WhatsApp → <b>API-Einrichtung</b> die <b>Telefonnummer-ID</b> und die <b>WhatsApp-Business-Konto-ID</b> abschreiben und unten eintragen.</li>
+        <li>Unter <b>Unternehmenseinstellungen → Systembenutzer</b> einen Systembenutzer anlegen, ihm App und WhatsApp-Konto zuweisen und einen <b>dauerhaften Schlüssel</b> mit <code>whatsapp_business_messaging</code> und <code>whatsapp_business_management</code> erzeugen. Unten eintragen.</li>
+        <li>In der App unter <b>Einstellungen → Allgemein</b> das <b>App-Geheimnis</b> kopieren und unten eintragen.</li>
+        <li>WhatsApp → <b>Konfiguration → Webhook</b>: Rückruf-URL <code><?= Fmt::h($wa['webhook']) ?></code>, Überprüfungsschlüssel <code><?= Fmt::h($wa['pruefwort']) ?></code>, dann das Feld <b>messages</b> abonnieren.</li>
+        <li>Hier „Vorlagen bei Meta anmelden“ drücken, nach einiger Zeit „Stand abrufen“. Sobald Schritte auf <b>APPROVED</b> stehen, gehen sie raus (Schalter „Folge per WhatsApp“ und „Folge-Mails“ an).</li>
+      </ol></details>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" class="rg-grenzen" style="margin-top:10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_wa_speichern">
+      <div><label class="akq-klein" for="wa_nummer">Telefonnummer-ID</label><input id="wa_nummer" name="nummer_id" inputmode="numeric" value="<?= Fmt::h($wa['nummer_id']) ?>"></div>
+      <div><label class="akq-klein" for="wa_konto">WhatsApp-Business-Konto-ID</label><input id="wa_konto" name="konto_id" inputmode="numeric" value="<?= Fmt::h($wa['konto_id']) ?>"></div>
+      <div><label class="akq-klein" for="wa_token">Dauerhafter Schlüssel <?= $wa['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_token" name="token" type="password" autocomplete="off"></div>
+      <div><label class="akq-klein" for="wa_geheim">App-Geheimnis <?= $wa['app_geheim'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_geheim" name="app_geheim" type="password" autocomplete="off"></div>
+      <button class="knopf" style="justify-self:start">Speichern</button>
+    </form>
+    <?php if ($waV): ?>
+      <table style="margin-top:12px"><thead><tr><th>Schritt</th><th>Vorlage</th><th>Stand bei Meta</th></tr></thead><tbody>
+        <?php foreach ($waV as $wS => $wJe): foreach ($wJe as $wSp => $wZ): ?>
+          <tr><td class="akq-klein"><?= (int) $wS ?> · <?= strtoupper(Fmt::h($wSp)) ?></td><td class="akq-klein" title="<?= Fmt::h($wZ['text']) ?>"><code><?= Fmt::h($wZ['name']) ?></code></td>
+            <td class="akq-klein" style="color:<?= $waFarbe[$wZ['meta_status']] ?? 'inherit' ?>"><?= Fmt::h($wZ['meta_status']) ?><?= $wZ['meta_grund'] ? ' — ' . Fmt::h((string) $wZ['meta_grund']) : '' ?></td></tr>
+        <?php endforeach; endforeach; ?>
+      </tbody></table>
+      <?php if (WhatsAppCloud::bereit()): ?>
+        <div class="knoepfe" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_wa_anmelden"><button class="knopf">Vorlagen bei Meta anmelden</button></form>
+          <form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_wa_stand"><button class="knopf">Stand abrufen</button></form>
+        </div>
+      <?php endif; ?>
+    <?php endif; ?>
+  </div>
+
   <div class="block" id="postfach">
     <h2>Antworten automatisch einlesen</h2>
     <p class="rg-erkl">Vecom schaut alle 10 Minuten in dein Postfach und ordnet Antworten dem richtigen Betrieb zu.

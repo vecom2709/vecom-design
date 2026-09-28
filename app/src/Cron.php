@@ -258,7 +258,17 @@ final class Cron
             /* Folge-Mails (27.09.2026): fällige Schritte, soweit Schalter, Texte, Gate und Grenzen es zulassen. */
             'akquise_folgen' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseFolge'] as $k) { require_once __DIR__ . "/$k.php"; }
-                return AkquiseFolge::lauf();
+                /* WhatsApp-Vorlagen (28.09.2026): Genehmigungsstand bei Meta höchstens stündlich nachsehen, solange etwas wartet. */
+                $wa = [];
+                try {
+                    require_once __DIR__ . '/WhatsAppCloud.php';
+                    if (WhatsAppCloud::bereit() && (int) Db::wert("SELECT COUNT(*) FROM akq_wa_vorlagen WHERE meta_status = 'PENDING'", [], 0) > 0
+                        && (int) AkquiseGate::einstellung('wa_stand_am', '0') < time() - 3600) {
+                        AkquiseGate::setzen('wa_stand_am', (string) time());
+                        $wa = ['whatsapp_stand' => WhatsAppCloud::standAbrufen()];
+                    }
+                } catch (Throwable $e) { $wa = ['whatsapp_fehler' => mb_substr($e->getMessage(), 0, 120)]; }
+                return AkquiseFolge::lauf() + $wa;
             },
             /* Termine (27.09.2026): Erinnerung am Vortag, genau einmal. */
             'akquise_termine' => static function () {

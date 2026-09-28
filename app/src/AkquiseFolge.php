@@ -41,14 +41,15 @@ final class AkquiseFolge
     /** Höchstens so viele Folge-Mails je Lauf -- die Grenzen der Akquise gelten zusätzlich. */
     public const JE_LAUF = 10;
 
-    public const PLATZHALTER = ['{anrede}', '{firma}', '{website}', '{analyse}', '{bedarf}', '{beispiele}', '{termin}', '{inhaber}', '{absender}', '{telefon}'];
+    public const PLATZHALTER = ['{anrede}', '{firma}', '{website}', '{analyse}', '{bedarf}', '{beispiele}', '{termin}', '{inhaber}', '{absender}', '{telefon}', '{dashboard}'];
 
     /** Ausgangstexte. Keine Zahl, keine Behauptung, die nicht aus der Analyse selbst kommt. */
     public const TEXTE = [
         1 => [
-            'de' => ['Die Analyse Ihrer Website', "{anrede}\n\ndanke für Ihre Bestätigung. Hier finden Sie die Analyse Ihrer Website {website}:\n\n{analyse}\n\nDort steht, was wir gemessen haben – mit der Ansicht auf dem Handy und den Punkten, die Besucher und Google zuerst bemerken.\n\nWenn Sie Fragen dazu haben, antworten Sie einfach auf diese Mail.\n\nViele Grüße\n{inhaber}\n{absender}{telefon}"],
-            'it' => ['L’analisi del suo sito', "{anrede}\n\ngrazie per la conferma. Qui trova l’analisi del suo sito {website}:\n\n{analyse}\n\nC’è quello che abbiamo misurato, con la vista da telefono e i punti che visitatori e Google notano per primi.\n\nSe ha domande, risponda semplicemente a questa e-mail.\n\nCordiali saluti\n{inhaber}\n{absender}{telefon}"],
-            'en' => ['The analysis of your website', "{anrede}\n\nthank you for confirming. Here is the analysis of your website {website}:\n\n{analyse}\n\nIt shows what we measured – including the mobile view and the points visitors and Google notice first.\n\nIf you have any questions, simply reply to this email.\n\nKind regards\n{inhaber}\n{absender}{telefon}"],
+            /* Mit dem persönlichen Bereich (28.09.2026, Uwe: Ja zu V2 „Dashboard vorbereitet“). */
+            'de' => ['Die Analyse Ihrer Website', "{anrede}\n\ndanke für Ihre Bestätigung. Hier finden Sie die Analyse Ihrer Website {website}:\n\n{analyse}\n\nDort steht, was wir gemessen haben – mit der Ansicht auf dem Handy und den Punkten, die Besucher und Google zuerst bemerken.\n\nIhr persönlicher Bereich bei uns ist schon vorbereitet, mit der Analyse und unserem Vorschlag für {firma}. Ein Klick öffnet ihn:\n\n{dashboard}\n\nWenn Sie Fragen dazu haben, antworten Sie einfach auf diese Mail.\n\nViele Grüße\n{inhaber}\n{absender}{telefon}"],
+            'it' => ['L’analisi del suo sito', "{anrede}\n\ngrazie per la conferma. Qui trova l’analisi del suo sito {website}:\n\n{analyse}\n\nC’è quello che abbiamo misurato, con la vista da telefono e i punti che visitatori e Google notano per primi.\n\nIl suo spazio personale da noi è già pronto, con l’analisi e la nostra proposta per {firma}. Si apre con un clic:\n\n{dashboard}\n\nSe ha domande, risponda semplicemente a questa e-mail.\n\nCordiali saluti\n{inhaber}\n{absender}{telefon}"],
+            'en' => ['The analysis of your website', "{anrede}\n\nthank you for confirming. Here is the analysis of your website {website}:\n\n{analyse}\n\nIt shows what we measured – including the mobile view and the points visitors and Google notice first.\n\nYour personal area with us is already set up, with the analysis and our proposal for {firma}. One click opens it:\n\n{dashboard}\n\nIf you have any questions, simply reply to this email.\n\nKind regards\n{inhaber}\n{absender}{telefon}"],
         ],
         2 => [
             'de' => ['Kurze Frage zu {website}', "{anrede}\n\nhaben Sie schon in die Analyse geschaut?\n\n{analyse}\n\nWenn Sie möchten, zeige ich Ihnen, wie wir die Startseite von {firma} anders aufbauen würden – als Skizze, unverbindlich. Eine kurze Antwort „Ja, gern“ genügt.\n\nViele Grüße\n{inhaber}"],
@@ -74,10 +75,22 @@ final class AkquiseFolge
 
     public const SCHRITT_NAME = [1 => 'Analyse zusenden', 2 => 'Kurze Nachfrage', 3 => 'Beispiele und Preis', 4 => 'Einladung zum Gespräch', 5 => 'Letzte Nachricht'];
 
-    /** Fehlende Ausgangstexte als Entwurf anlegen. Vorhandene bleiben unangetastet. */
+    /** Der alte Wortlaut von Schritt 1 (ohne persönlichen Bereich): Wer ihn nie geändert hat, bekommt den neuen. */
+    private const SCHRITT1_ALT = [
+        'de' => '9d63a652', 'it' => 'dde5575e', 'en' => 'fea4d86a',
+    ];
+
+    /** Fehlende Ausgangstexte als Entwurf anlegen. Vorhandene bleiben unangetastet -- außer Schritt 1 im unveränderten alten Wortlaut. */
     public static function vorlagenAnlegen(): int
     {
         $n = 0;
+        foreach (Db::all("SELECT * FROM akq_folge_vorlagen WHERE schritt = 1 AND text NOT LIKE '%{dashboard}%'") as $z) {
+            $sp = (string) $z['sprache'];
+            if (!isset(self::TEXTE[1][$sp]) || substr(hash('crc32b', (string) $z['text']), 0, 8) !== (self::SCHRITT1_ALT[$sp] ?? '')) { continue; }
+            Db::update('akq_folge_vorlagen', (int) $z['id'], ['text' => self::TEXTE[1][$sp][1], 'status' => 'entwurf', 'fassung' => (int) $z['fassung'] + 1,
+                'freigegeben_von' => null, 'freigegeben_am' => null]);
+            Akquise::protokoll(null, 'folge', 'Folge-Mail Schritt 1 (' . strtoupper($sp) . '): Link zum persönlichen Bereich ergänzt, neue Fassung ' . ((int) $z['fassung'] + 1));
+        }
         foreach (self::TEXTE as $schritt => $je) {
             foreach ($je as $sp => [$betreff, $text]) {
                 $n += Db::run('INSERT IGNORE INTO akq_folge_vorlagen (schritt, sprache, betreff, text) VALUES (?, ?, ?, ?)', [$schritt, $sp, $betreff, $text])->rowCount();
@@ -150,6 +163,7 @@ final class AkquiseFolge
     {
         if ((int) $f['gesperrt'] === 1 || in_array((string) $f['kontakt_status'], ['abgelehnt', 'gesperrt'], true)) { return ['beendet', 'Abgemeldet oder gesperrt']; }
         if ((string) $f['kontakt_status'] === 'kunde' || (int) $f['bestandskunde'] === 1) { return ['beendet', 'Kunde geworden — der Kundenweg übernimmt']; }
+        if (!empty($f['dashboard_am'])) { return ['beendet', 'Persönlichen Bereich geöffnet — der Kundenweg übernimmt']; }
         if (trim((string) $f['einwilligung']) === '' || empty($f['email'])) { return ['beendet', 'Keine Einwilligung mehr']; }
         $antwort = Db::wert('SELECT COUNT(*) FROM akq_antworten WHERE firma_id = ? AND eingang_am > ?', [(int) $f['id'], (string) $folge['gestartet_am']], 0);
         if ((int) $antwort > 0) { return ['pausiert', 'Antwort erhalten — ab jetzt schreibst du selbst']; }
@@ -173,7 +187,52 @@ final class AkquiseFolge
             '{inhaber}' => (string) $abs['inhaber'],
             '{absender}' => (string) $abs['firma'],
             '{telefon}' => trim((string) $abs['telefon']) !== '' ? "\n" . trim((string) $abs['telefon']) : '',
+            '{dashboard}' => str_contains($s, '{dashboard}') ? self::dashboardLink($f, $sprache) : '',
         ]);
+    }
+
+    /** Der persönliche Bereich (V2): vorbereitet für genau diese Adresse; ohne E-Mail der Analyse-Link. */
+    public static function dashboardLink(array $f, string $sprache): string
+    {
+        try {
+            require_once __DIR__ . '/Zugang.php';
+            $l = !empty($f['email']) && !empty($f['id']) ? Zugang::vorbereiten((string) $f['email'], $sprache, (int) $f['id'], (string) ($f['name'] ?? '')) : null;
+            if ($l !== null) { return $l; }
+        } catch (Throwable $e) { }
+        return self::analyseLink($f, $sprache);
+    }
+
+    /**
+     * Automatische Freigabe (28.09.2026, Uwe: Ja zu V4): nur Italienisch, nur
+     * wenn der Schalter an ist und derselbe Prüfer wie bei jeder Erstansprache
+     * nichts findet. Geprüft wird mit neutralen Beispielwerten statt echter
+     * Daten -- sonst zählte eine Uhrzeit aus {termin} als unbelegte Zahl.
+     * @return list<string> Beanstandungen, leer = freigabefähig
+     */
+    public static function autoMaengel(array $v): array
+    {
+        $sp = (string) $v['sprache'];
+        $abs = AkquiseText::absender();
+        $bsp = ['{anrede}' => 'Buongiorno Maria Rossi,', '{firma}' => 'Trattoria Esempio', '{website}' => 'trattoriaesempio.it',
+                '{analyse}' => 'https://vecom-design.it/analyse.php?t=esempio', '{bedarf}' => 'https://vecom-design.it/bedarf.php?lang=' . $sp,
+                '{beispiele}' => 'https://vecom-design.it/#work', '{termin}' => '', '{inhaber}' => (string) $abs['inhaber'], '{absender}' => (string) $abs['firma'],
+                '{telefon}' => "\n" . (string) $abs['telefon'], '{dashboard}' => 'https://vecom-design.it/zugang.php?t=esempio'];
+        $zusatz = ['de' => "\n\nKeine weiteren Nachrichten: https://vecom-design.it/widerspruch.php", 'it' => "\n\nNon ricevere altri messaggi (non desiderate): https://vecom-design.it/widerspruch.php",
+                   'en' => "\n\nNo further messages (unsubscribe): https://vecom-design.it/widerspruch.php"][$sp] ?? '';
+        /* „15 minuti“ ist keine Behauptung über den Betrieb -- die einzige Zahl, die ein Folge-Text ohne Beleg tragen darf. */
+        $text = (string) preg_replace('~\b15 (minuti|Minuten|minutes)\b~u', 'un quarto d’ora', strtr((string) $v['text'], $bsp)) . $zusatz;
+        return AkquiseText::pruefen(strtr((string) $v['betreff'], $bsp), $text, $sp, [], 'email');
+    }
+
+    /** Freigabe ohne Klick, wenn erlaubt und ohne Beanstandung. @return bool freigegeben */
+    public static function autoFreigeben(array $v): bool
+    {
+        if ((string) $v['sprache'] !== 'it' || $v['status'] === 'freigegeben' || !AkquiseGate::schalterSelbst('autofrei')) { return false; }
+        if (self::autoMaengel($v) !== []) { return false; }
+        Db::update('akq_folge_vorlagen', (int) $v['id'], ['status' => 'freigegeben', 'freigegeben_von' => 'System (automatisch, Prüfung ohne Beanstandung)', 'freigegeben_am' => date('Y-m-d H:i:s')]);
+        Events::pruefspur('akquise_folge_freigabe', 'akq_folge_vorlagen', (int) $v['id'], [], ['schritt' => $v['schritt'], 'sprache' => $v['sprache'], 'fassung' => $v['fassung'], 'automatisch' => true]);
+        Akquise::protokoll(null, 'folge', 'Folge-Mail automatisch freigegeben: Schritt ' . $v['schritt'] . ' (IT), Fassung ' . $v['fassung'] . ' — die Textprüfung fand nichts');
+        return true;
     }
 
     /**
@@ -236,7 +295,7 @@ final class AkquiseFolge
         /* Erst aufräumen -- auch bei ausgeschaltetem Schalter: Eine Antwort
            pausiert sofort, eine Abmeldung beendet sofort, nicht erst, wenn
            der nächste Schritt fällig wäre. Das verschickt nichts. */
-        foreach (Db::all("SELECT fo.*, f.gesperrt, f.kontakt_status, f.bestandskunde, f.einwilligung, f.email, f.id AS fid
+        foreach (Db::all("SELECT fo.*, f.gesperrt, f.kontakt_status, f.bestandskunde, f.einwilligung, f.email, f.dashboard_am, f.id AS fid
                             FROM akq_folgen fo JOIN akq_firmen f ON f.id = fo.firma_id WHERE fo.status = 'laeuft'") as $fo) {
             $h = self::hindernis($fo, ['id' => $fo['fid']] + $fo);
             if ($h === null) { continue; }
@@ -269,6 +328,38 @@ final class AkquiseFolge
             }
             if ($test && (int) $fo['simuliert'] >= $schritt) { continue; }   // diesen Schritt schon durchgespielt
             $v = Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = ? AND sprache = ? AND status = 'freigegeben'", [$schritt, (string) $fo['sprache']]);
+            if (!$v && ($roh = Db::one('SELECT * FROM akq_folge_vorlagen WHERE schritt = ? AND sprache = ?', [$schritt, (string) $fo['sprache']])) && self::autoFreigeben($roh)) {
+                $v = Db::one('SELECT * FROM akq_folge_vorlagen WHERE id = ?', [(int) $roh['id']]);
+            }
+            /* WhatsApp statt Mail (28.09.2026, V3): wer auch WhatsApp erlaubt hat und für
+               den Schritt eine bei Meta genehmigte Vorlage da ist. Sonst die Mail. */
+            $wa = null;
+            if (AkquiseGate::schalter('whatsapp') && (int) ($fo['wa_schritt'] ?? 0) < $schritt && AkquiseGate::einwilligungDeckt($f, 'whatsapp')) {
+                require_once __DIR__ . '/WhatsAppCloud.php';
+                if (WhatsAppCloud::bereit() && AkquiseGate::versandSperre($f, true) === null) {
+                    $wa = WhatsAppCloud::folgeSenden($f, $schritt, (string) $fo['sprache'],
+                        $schritt === 4 ? rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/termin.php?lang=' . $fo['sprache'] : self::dashboardLink($f, (string) $fo['sprache']));
+                }
+            }
+            if ($wa !== null && $wa['ok']) {
+                if (!empty($wa['simuliert'])) {
+                    Db::update('akq_folgen', (int) $fo['id'], ['simuliert' => $schritt, 'grund' => 'Testbetrieb: Schritt ' . $schritt . ' per WhatsApp simuliert']);
+                    $bilanz['simuliert']++;
+                    continue;
+                }
+                $jetzt = time(); $naechster = $schritt + 1;
+                Db::update('akq_folgen', (int) $fo['id'], [
+                    'schritt' => $schritt, 'wa_schritt' => $schritt, 'letzte_am' => date('Y-m-d H:i:s', $jetzt), 'grund' => isset(self::TAGE[$naechster]) ? null : 'Alle Schritte verschickt',
+                    'status' => isset(self::TAGE[$naechster]) ? 'laeuft' : 'beendet',
+                    'naechst_am' => isset(self::TAGE[$naechster]) ? date('Y-m-d H:i:s', $jetzt + (self::TAGE[$naechster] - self::TAGE[$schritt]) * 86400) : null,
+                ]);
+                Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'gesendet', 'kontakt_status' => in_array((string) $f['kontakt_status'], ['geantwortet', 'kunde'], true) ? $f['kontakt_status'] : 'kontaktiert']);
+                Akquise::protokoll((int) $f['id'], 'folge', 'Folge ' . $schritt . '/5 per WhatsApp verschickt: „' . self::SCHRITT_NAME[$schritt] . '“', ['versand' => $wa['id'] ?? null]);
+                $bilanz['geschickt']++;
+                $geschickt++;
+                continue;
+            }
+            if ($wa !== null && !empty($wa['grund'])) { Akquise::protokoll((int) $f['id'], 'folge', 'WhatsApp für Schritt ' . $schritt . ' nicht möglich (' . $wa['grund'] . ') — es geht die Mail.'); }
             if (!$v) {
                 Db::update('akq_folgen', (int) $fo['id'], ['grund' => 'Wartet: Text für Schritt ' . $schritt . ' (' . strtoupper((string) $fo['sprache']) . ') ist nicht freigegeben']);
                 $bilanz['wartet']++;

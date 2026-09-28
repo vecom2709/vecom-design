@@ -570,6 +570,42 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   <?php if ($abbuchungNeu === false): ?><div class="hinweis schlecht"><?= $h($T('abbuchungNicht')) ?></div><?php endif; ?>
   <?php if ($willkommen): ?><div class="hinweis gut"><?= $h($T('willkommen')) ?></div><?php endif; ?>
 
+  <?php /* ---------- Seine Analyse (28.09.2026, Uwe: Ja zu V2 „Dashboard vorbereitet“) ----------
+           Kommt er aus der Akquise (Einwilligung, dann Link in der Folge-Nachricht),
+           steht hier gleich, was wir auf seiner Website gefunden haben und was wir
+           vorschlagen -- dieselben belegten Sätze wie in der Analyse. */
+    $akqKarte = sicherLesen(static function () use ($kunde, $sprache) {
+        foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseAnalyse'] as $ak) { require_once __DIR__ . "/app/src/$ak.php"; }
+        $af = Db::one('SELECT * FROM akq_firmen WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [(int) $kunde['id']]);
+        if (!$af) { return null; }
+        $au = Akquise::letzterAudit((int) $af['id']);
+        $zeilen = [];
+        foreach (array_slice(AkquiseScore::topBefunde($au ? Akquise::befunde((int) $au['id']) : []), 0, 3) as $b) {
+            $x = AkquiseText::saetze($b, $af, $sprache);
+            if ($x !== null) { $zeilen[] = $x; }
+        }
+        $an = Db::one('SELECT * FROM akq_analysen WHERE firma_id = ? AND aktiv = 1 AND (gueltig_bis IS NULL OR gueltig_bis >= CURDATE()) ORDER BY id DESC LIMIT 1', [(int) $af['id']]);
+        return $zeilen || $an ? ['firma' => (string) $af['name'], 'zeilen' => $zeilen, 'analyse' => $an ? AkquiseAnalyse::adresse($an) : null] : null;
+    }, null);
+    $akqW = ['it' => ['titel' => 'La sua analisi', 'text' => 'Cosa abbiamo notato sul sito di {firma} e cosa proponiamo.', 'loes' => 'La nostra proposta', 'ganz' => 'Vedere l’analisi completa'],
+             'de' => ['titel' => 'Ihre Analyse', 'text' => 'Was uns auf der Website von {firma} aufgefallen ist und was wir vorschlagen.', 'loes' => 'Unser Vorschlag', 'ganz' => 'Vollständige Analyse ansehen'],
+             'en' => ['titel' => 'Your analysis', 'text' => 'What we noticed on the {firma} website and what we propose.', 'loes' => 'Our proposal', 'ganz' => 'See the full analysis']][$sprache] ?? [];
+  ?>
+  <?php if ($akqKarte && $akqW): ?>
+  <div class="block" id="analyse">
+    <h2><?= $h($akqW['titel']) ?></h2>
+    <p class="klein" style="margin-top:0"><?= $h(strtr($akqW['text'], ['{firma}' => $akqKarte['firma']])) ?></p>
+    <?php foreach ($akqKarte['zeilen'] as [$beob, $wirk]): ?>
+      <p style="margin:0 0 10px"><b><?= $h($beob) ?></b><br><span class="klein"><?= $h($wirk) ?></span></p>
+    <?php endforeach; ?>
+    <?php $akqLoes = array_values(array_unique(array_map(static fn($z) => $z[2], $akqKarte['zeilen']))); if ($akqLoes): ?>
+      <p style="margin:14px 0 6px;font-weight:600"><?= $h($akqW['loes']) ?></p>
+      <ul style="margin:0 0 12px;padding-left:20px"><?php foreach ($akqLoes as $l): ?><li><?= $h($l) ?></li><?php endforeach; ?></ul>
+    <?php endif; ?>
+    <?php if ($akqKarte['analyse']): ?><a class="knopf" href="<?= $h($akqKarte['analyse']) ?>" target="_blank" rel="noopener"><?= $h($akqW['ganz']) ?></a><?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <?php /* ---------- Wo er steht ---------- */ ?>
   <?php
     /* EIN FRAGEBOGEN, EIN FELD AUF DER LEISTE (26.09.2026)

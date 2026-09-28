@@ -328,6 +328,8 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
         <p class="akq-klein">Gilt für: <?= AkquiseGate::einwilligungDeckt($f, 'whatsapp') ? 'E-Mail und WhatsApp (' . Fmt::h((string) $f['whatsapp']) . ')' : 'E-Mail' ?>.</p>
       <?php elseif (!$gesperrt): ?>
         <p class="akq-klein" style="margin-bottom:8px">Hat der Betrieb gesagt „schicken Sie mir das per Mail“? Dann schick ihm diesen Link (per SMS, WhatsApp oder vor Ort als QR). Er trägt seine Adresse ein, auf Wunsch auch seine WhatsApp-Nummer, und bestätigt per Klick — danach ist die E-Mail erlaubt (und WhatsApp, wenn er es angekreuzt hat), mit Beleg.</p>
+        <p style="margin:0 0 10px"><a class="knopf" href="<?= Fmt::h(url('akquise/' . $fid . '/vorort')) ?>">Vor Ort zeigen (Handy)</a>
+          <span class="akq-klein">Beim Besuch: Analyse in seiner Sprache zeigen, er tippt selbst E-Mail und WhatsApp ein.</span></p>
         <?php if ($einwLink): ?>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><code style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= Fmt::h($einwLink) ?></code>
             <button class="knopf" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(<?= Fmt::h(json_encode($einwLink)) ?>);this.textContent='✓'">Kopieren</button></div>
@@ -342,7 +344,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
           <?php foreach ($einw as $e): ?>
             <tr><td class="akq-klein" style="width:110px"><?= Fmt::h(date('d.m.Y', strtotime((string) ($e['bestaetigt_am'] ?? $e['angefragt_am'] ?? $e['created_at'])))) ?></td>
               <td class="akq-klein"><?= Fmt::h(['offen' => 'Link erzeugt, noch nicht benutzt', 'angefragt' => 'Bestätigungsmail an ' . $e['email'] . (!empty($e['whatsapp']) ? ' (+ WhatsApp ' . $e['whatsapp'] . ')' : '') . ' — wartet auf Klick', 'bestaetigt' => 'Bestätigt: ' . $e['email'] . (!empty($e['whatsapp']) ? ' + WhatsApp ' . $e['whatsapp'] : ''), 'widerrufen' => 'Widerrufen', 'abgelaufen' => 'Nicht bestätigt (abgelaufen)'][$e['status']] ?? $e['status']) ?>
-                · <?= $e['quelle'] === 'analyse' ? 'über die Analyse-Seite' : 'über den Link' ?></td></tr>
+                · <?= ['analyse' => 'über die Analyse-Seite', 'vorort' => 'vor Ort', 'check' => 'über den Website-Check', 'partner' => 'über eine Partnerseite'][$e['quelle']] ?? 'über den Link' ?></td></tr>
           <?php endforeach; ?>
         </tbody></table>
       <?php endif; ?>
