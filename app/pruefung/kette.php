@@ -14540,6 +14540,42 @@ pruefe('W2: Check-Knopf/Kasten für die Website des Partners: nur HTML mit feste
     && str_contains((string) file_get_contents($wurzel . '/../p.php'), "\$_GET['weg'] === 'analisi'"));
 
 /* ============================================================================
+   Branchen-Flyer mit eigenem QR-Code (28.09.2026)
+   ============================================================================ */
+abschnitt('Branchen-Flyer');
+require_once $wurzel . '/src/PartnerFlyer.php';
+$flL = PartnerFlyer::liste();
+$flFehler = [];
+foreach ($flL as $flS => $flF) {
+    [$fx, $fy, $fb, $fh] = $flF['q'];
+    $flGr = @getimagesize($wurzel . '/flyer/' . $flS . '.jpg');
+    if (!$flGr || $flGr[0] !== $flF['b'] || $flGr[1] !== $flF['h'] || $fx < 0 || $fy < 0 || $fx + $fb > $flF['b'] || $fy + $fh > $flF['h']
+        || abs($fb - $fh) > 0.15 * max($fb, $fh) || !isset(PartnerFlyer::GRUPPEN[$flF['g']]) || !isset($flF['n']['it'], $flF['n']['de'], $flF['n']['en'])) { $flFehler[] = $flS; }
+}
+pruefe('Flyer: jede Vorlage da, Größe stimmt, QR-Fläche quadratisch und im Bild, Gruppe und Namen in drei Sprachen',
+    count($flL) >= 29 && $flFehler === [] && isset(PartnerFlyer::gruppiert()['allgemein']), implode(', ', $flFehler));
+pruefe('Flyer: Vorlagen nicht öffentlich, kein Pfad über den Namen', str_contains((string) @file_get_contents($wurzel . '/flyer/.htaccess'), 'Require all denied')
+    && !PartnerFlyer::gibt('../config.local') && !PartnerFlyer::gibt('handwerk.jpg') && PartnerFlyer::gibt('handwerk'));
+$flP = ['id' => 1, 'code' => 'FLYER123', 'token' => 'x'];
+$flJ = PartnerFlyer::jpg($flP, 'allgemein');
+$flV = PartnerFlyer::jpg($flP, 'allgemein', 0.34, 78);
+$flPd = PartnerFlyer::pdf($flP, 'handwerk');
+$flGj = $flJ !== '' ? getimagesizefromstring($flJ) : false;
+pruefe('Flyer: Bild in doppelter Größe, Vorschau klein, Druck-PDF 148 mm breit mit der kurzen Adresse',
+    $flGj && $flGj[0] === 2 * $flL['allgemein']['b'] && strlen($flV) > 1000 && strlen($flV) < strlen($flJ)
+    && str_starts_with($flPd, '%PDF') && str_contains($flPd, '419.53') && str_contains($flPd, '/p/FLYER123'));
+pruefe('Flyer: der Code führt auf den eigenen Kanal-Link /p/CODE/flyer', str_ends_with(PartnerFlyer::link($flP), '/p/FLYER123/flyer')
+    && in_array('flyer', PartnerWerbung::WERKZEUGE, true) && PartnerFlyer::dateiname($flP, 'handwerk', 'pdf') === 'vecom-flyer-handwerk-flyer123.pdf');
+$flSeite = (string) file_get_contents($wurzel . '/../partner.php');
+$flView = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+pruefe('Flyer: nur mit eigenem Schlüssel abrufbar, Werbe-Paket zeigt sie nach Branche mit Bild und PDF',
+    str_contains($flSeite, "if (\$p && isset(\$_GET['fl']))") && str_contains($flView, "PartnerFlyer::gruppiert()") && str_contains($flView, "'f' => 'pdf'")
+    && str_contains($flView, 'data-flgruppe'));
+pruefe('Favicon: goldenes V auch als /favicon.ico und in 48/96 px (Google verlangt Vielfache von 48)',
+    is_file($wurzel . '/../favicon.ico') && is_file($wurzel . '/../assets/img/favicon-48.png') && is_file($wurzel . '/../assets/img/favicon-96.png')
+    && str_contains((string) file_get_contents($wurzel . '/../index.html'), 'favicon-96.png') && str_contains((string) file_get_contents($wurzel . '/../index.html'), '"logo": "https://vecom-design.it/assets/img/app-icon-512.png"'));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

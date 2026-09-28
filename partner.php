@@ -366,6 +366,30 @@ if ($p && ($_GET['druck'] ?? '') === 'mappe') {
     require __DIR__ . '/app/views/partner_mappe.php';
     exit;
 }
+/* ---------- Branchen-Flyer mit eigenem QR-Code (28.09.2026) ----------
+   ?fl=slug&f=jpg|pdf|vorschau — nur mit dem eigenen Schlüssel, nie im Index. */
+if ($p && isset($_GET['fl'])) {
+    require_once __DIR__ . '/app/src/PartnerFlyer.php';
+    $flSlug = (string) $_GET['fl'];
+    $flArt = (string) ($_GET['f'] ?? 'jpg');
+    if (!PartnerFlyer::gibt($flSlug) || !in_array($flArt, ['jpg', 'pdf', 'vorschau'], true)) { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    if ($flArt === 'pdf') {
+        $flDaten = PartnerFlyer::pdf($p, $flSlug);
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . PartnerFlyer::dateiname($p, $flSlug, 'pdf') . '"');
+    } else {
+        $flDaten = $flArt === 'vorschau' ? PartnerFlyer::jpg($p, $flSlug, 0.34, 78) : PartnerFlyer::jpg($p, $flSlug);
+        if ($flDaten === '') { http_response_code(503); exit('—'); }
+        header('Content-Type: image/jpeg');
+        header('Cache-Control: private, max-age=86400');
+        if ($flArt === 'jpg') { header('Content-Disposition: attachment; filename="' . PartnerFlyer::dateiname($p, $flSlug, 'jpg') . '"'); }
+    }
+    header('Content-Length: ' . strlen($flDaten));
+    echo $flDaten;
+    exit;
+}
 /* ---------- Druck-Paket: Visitenkarten, Flyer, Aufsteller, Aufkleber ---------- */
 if ($p && in_array((string) ($_GET['druck'] ?? ''), ['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'], true)) {
     header('X-Robots-Tag: noindex');
@@ -425,6 +449,8 @@ if ($p && isset($_GET['karte'])) {
 <?php if ($p): ?>
 <link rel="manifest" href="<?= $h($selbst(['manifest' => 1])) ?>">
 <meta name="theme-color" content="#0a0908">
+<link rel="icon" href="/assets/img/favicon-96.png" sizes="96x96">
+<link rel="icon" href="/assets/img/favicon-48.png" sizes="48x48">
 <link rel="apple-touch-icon" href="/assets/img/app-icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Vecom Partner">

@@ -56,6 +56,18 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .md-video{display:block;max-width:100%;max-height:440px;margin:10px auto;border-radius:10px;background:#000}
   .druckliste{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px}
   .druckliste .knopf{justify-content:flex-start;text-align:left}
+  .fl-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+  .fl-chips button{min-height:38px;padding:6px 12px;border-radius:999px;border:1px solid var(--linie2);background:transparent;color:var(--dim);font:inherit;font-size:13.5px;cursor:pointer}
+  .fl-chips button span{color:var(--leise);font-size:12px;margin-left:2px}
+  .fl-chips button[aria-pressed=true]{border-color:rgba(241,211,139,.7);color:var(--text);background:rgba(241,211,139,.09)}
+  .fl-chips button:focus-visible,.fl-karte .knopf:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .fl-gruppe[hidden]{display:none}
+  .fl-raster{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .fl-karte{display:flex;flex-direction:column;gap:7px;border:1px solid var(--linie);border-radius:12px;padding:8px;min-width:0}
+  .fl-karte img{width:100%;height:auto;aspect-ratio:5/8;object-fit:contain;border-radius:7px;background:#0d0b08;display:block}
+  .fl-karte b{font-size:14px;line-height:1.3;color:var(--text);font-weight:600}
+  .fl-knoepfe{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto}
+  .fl-knoepfe .knopf{min-height:40px;padding:6px 8px;font-size:13.5px;justify-content:center}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 
@@ -212,6 +224,52 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
     <?php endforeach; ?>
     <a class="knopf" href="<?= $h($selbst(['karte' => 1])) ?>" target="_blank" rel="noopener"><?= $h($T('dr_karte')) ?></a>
   </div>
+
+  <?php require_once dirname(__DIR__) . '/src/PartnerFlyer.php'; $flGruppen = PartnerFlyer::gruppiert(); ?>
+  <?php if ($flGruppen): ?>
+  <section class="fl" id="flyer" aria-labelledby="fl_titel">
+    <h3 class="md-h" id="fl_titel" style="margin-top:26px"><?= $h($T('fl_titel')) ?></h3>
+    <p class="klein" style="margin-top:0"><?= $h(strtr($T('fl_text'), ['{link}' => PartnerFlyer::kurz($p)])) ?></p>
+    <div class="fl-chips" role="group" aria-label="<?= $h($T('fl_filter')) ?>">
+      <button type="button" data-flg="" aria-pressed="true"><?= $h($T('fl_alle')) ?> <span><?= count(PartnerFlyer::liste()) ?></span></button>
+      <?php foreach ($flGruppen as $gk => $gl): ?>
+        <button type="button" data-flg="<?= $h($gk) ?>" aria-pressed="false"><?= $h(PartnerFlyer::GRUPPEN[$gk][$sprache] ?? $gk) ?> <span><?= count($gl) ?></span></button>
+      <?php endforeach; ?>
+    </div>
+    <?php foreach ($flGruppen as $gk => $gl): ?>
+      <div class="fl-gruppe" data-flgruppe="<?= $h($gk) ?>">
+        <p class="md-l"><?= $h(PartnerFlyer::GRUPPEN[$gk][$sprache] ?? $gk) ?></p>
+        <ul class="fl-raster">
+          <?php foreach ($gl as $fs => $ff): $fn = PartnerFlyer::name($fs, $sprache); ?>
+            <li class="fl-karte">
+              <img src="<?= $h($selbst(['fl' => $fs, 'f' => 'vorschau'])) ?>" alt="<?= $h(strtr($T('fl_alt'), ['{name}' => $fn])) ?>"
+                   width="<?= (int) round($ff['b'] * 0.34) ?>" height="<?= (int) round($ff['h'] * 0.34) ?>" loading="lazy" decoding="async">
+              <b><?= $h($fn) ?></b>
+              <span class="fl-knoepfe">
+                <a class="knopf" href="<?= $h($selbst(['fl' => $fs, 'f' => 'jpg'])) ?>" download aria-label="<?= $h($fn . ': ' . $T('fl_jpg')) ?>"><?= $h($T('fl_jpg')) ?></a>
+                <a class="knopf" href="<?= $h($selbst(['fl' => $fs, 'f' => 'pdf'])) ?>" download aria-label="<?= $h($fn . ': ' . $T('fl_pdf')) ?>"><?= $h($T('fl_pdf')) ?></a>
+              </span>
+            </li>
+          <?php endforeach; ?>
+        </ul>
+      </div>
+    <?php endforeach; ?>
+    <p class="klein"><?= $h($T('fl_hinweis')) ?></p>
+  </section>
+  <script>
+  (function () {
+    var s = document.getElementById('flyer'); if (!s) { return; }
+    var k = s.querySelectorAll('.fl-chips button'), g = s.querySelectorAll('.fl-gruppe');
+    k.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var w = b.getAttribute('data-flg');
+        k.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+        g.forEach(function (x) { x.hidden = w !== '' && x.getAttribute('data-flgruppe') !== w; });
+      });
+    });
+  })();
+  </script>
+  <?php endif; ?>
 </div>
 
 <?php $foto = PartnerWerbung::fotoAdresse($p); $pfFehler = in_array($meldung, ['satz_link', 'satz_lang', 'foto_gross', 'foto_art'], true); ?>
