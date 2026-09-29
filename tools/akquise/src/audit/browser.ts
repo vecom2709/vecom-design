@@ -22,6 +22,8 @@ export interface SeitenSignale {
   viewport: string | null;
   generator: string | null;
   jsonLdTypen: string[];
+  /** Rohdaten zu Öffnungszeiten (JSON-LD/Microdata) -- gelesen wird in audit/zeiten.ts (29.09.2026, D3). */
+  oeffnungRoh?: unknown[];
   hreflang: string[];
   text: string;                    // sichtbarer Text, gekuerzt
   links: { href: string; text: string }[];
@@ -193,6 +195,15 @@ function auswerten(): Omit<SeitenSignale, 'url'> {
         return alle.map((x: any) => String(x?.['@type'] ?? '')).filter(Boolean);
       } catch { return []; }
     }),
+    oeffnungRoh: [
+      ...q('script[type="application/ld+json"]').flatMap((s) => {
+        const roh = s.textContent ?? '';
+        if (!/opening/i.test(roh) || roh.length > 200000) return [];
+        try { return [JSON.parse(roh)]; } catch { return []; }
+      }),
+      ...(() => { const w = q('[itemprop="openingHours"]').map((el) => (el.getAttribute('content') ?? (el as HTMLElement).innerText ?? '').trim()).filter(Boolean).slice(0, 14);
+        return w.length ? [{ openingHours: w }] : []; })(),
+    ].slice(0, 10),
     hreflang: q('link[rel="alternate"][hreflang]').map((l) => l.getAttribute('hreflang') ?? ''),
     text: text.slice(0, 20000),
     links: links.slice(0, 400),

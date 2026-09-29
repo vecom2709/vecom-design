@@ -14679,6 +14679,43 @@ pruefe('W1: öffentliche Seite /siti-web/… mit Sitemap, ohne Namen, mit Weg zu
 pruefe('Branchen-Seite: gestalteter Fußbereich (Marke, Rechtliches, Sprachen) statt loser Links — Stil für .rechtsfuss steht auf der Seite selbst',
     str_contains($wjSeite, 'class="fussbereich"') && str_contains($wjSeite, '.rechtsfuss a{') && str_contains($wjSeite, 'Fuss::html($sprache)')
     && substr_count($wjSeite, 'class="sprachen"') === 1 && str_contains($wjSeite, 'min-height:44px'));
+/* D1–D4 (29.09.2026): Steckbrief, Öffnungszeiten laut Website, beste Anrufzeit, Analyse in der Anrufliste */
+require_once $wurzel . '/src/PartnerSteckbrief.php';
+$sbOz = Akquise::oeffnungPruefen(['quelle' => 'daten', 'zeiten' => [['t' => [2, 3, 4, 5, 6, 7], 'v' => '12:00', 'b' => '15:00'], ['t' => [5, 6], 'v' => '19:00', 'b' => '01:00'], ['t' => [9], 'v' => '25:00', 'b' => 'x']]]);
+$sbZt = PartnerSteckbrief::zeitenText($sbOz['z'] ?? [], 'de');
+pruefe('D3: Öffnungszeiten vom Worker werden geprüft (Unsinn fällt weg) und lesbar zusammengefasst', $sbOz !== null && count($sbOz['z']) === 2 && $sbOz['q'] === 'daten'
+    && Akquise::oeffnungPruefen(['zeiten' => [['t' => [1], 'v' => '9:00', 'b' => '18:00']]]) === null && Akquise::oeffnungPruefen('x') === null
+    && $sbZt === 'Di–Do 12:00–15:00 · Fr–Sa 12:00–15:00, 19:00–01:00 · So 12:00–15:00', $sbZt);
+$sbT = static fn(string $s) => new DateTimeImmutable($s, new DateTimeZone('Europe/Rome'));
+pruefe('D3: „jetzt geöffnet“ stimmt auch über Mitternacht (Sa 00:30 nach Freitagabend offen, Mo zu)',
+    PartnerSteckbrief::offen($sbOz['z'], $sbT('2026-10-02 13:00')) && !PartnerSteckbrief::offen($sbOz['z'], $sbT('2026-10-02 16:00'))
+    && PartnerSteckbrief::offen($sbOz['z'], $sbT('2026-10-03 00:30')) && !PartnerSteckbrief::offen($sbOz['z'], $sbT('2026-10-05 00:30'))
+    && !PartnerSteckbrief::offen($sbOz['z'], $sbT('2026-09-28 13:00')));
+$sbA = PartnerSteckbrief::anrufzeit(['branche' => 'restaurant', 'land' => 'IT'], 'it', $sbT('2026-09-29 16:00'));
+$sbA2 = PartnerSteckbrief::anrufzeit(['branche' => 'agriturismo', 'land' => 'IT'], 'de', $sbT('2026-10-04 11:00'));
+pruefe('D4: beste Anrufzeit je Branche (Restaurant nie im Service, Agriturismo wie Hotel), nie sonntags',
+    $sbA['jetzt'] && str_contains($sbA['gut'], '15:00–18:00') && str_contains($sbA['nicht'], 'servizio') && str_contains($sbA['nicht'], 'domenica')
+    && !$sbA2['jetzt'] && str_contains($sbA2['nicht'], 'Check-out')
+    && str_contains(PartnerSteckbrief::anrufzeit(['branche' => 'einzelhandel', 'land' => 'IT'], 'de', $sbT('2026-09-29 18:00'))['gut'], '17:00–19:00'));
+$sbAn = PartnerSteckbrief::analyse(['score' => 61], ['status' => 'fertig', 'beendet_am' => '2026-09-29 10:00:00'], [
+    ['code' => 'langsam_lcp', 'status' => 'VERIFIED', 'schwere' => 4, 'messwert' => '{"wert":7.8,"einheit":"s"}'],
+    ['code' => 'fcp_langsam', 'status' => 'VERIFIED', 'schwere' => 3, 'messwert' => null],
+    ['code' => 'tel_nicht_klickbar', 'status' => 'VERIFIED', 'schwere' => 4, 'messwert' => null],
+    ['code' => 'design_veraltet', 'status' => 'UNVERIFIED', 'schwere' => 5, 'messwert' => null],
+    ['code' => 'jquery_alt', 'status' => 'VERIFIED', 'schwere' => 1, 'messwert' => null]], 'de');
+pruefe('D2: Analyse in einfachen Worten — je Gruppe einmal, mit Messwert, nur belegte Befunde, Rest als Zahl',
+    $sbAn['geprueft'] && $sbAn['score'] === 61 && $sbAn['am'] === '29.09.2026'
+    && $sbAn['punkte'] === ['Langsam am Handy (7,8 Sekunden)', 'Anrufen oder Anfragen schwer', 'Weitere technische Punkte: 1'], json_encode($sbAn['punkte'], JSON_UNESCAPED_UNICODE))
+    ;
+pruefe('D2: ohne Prüfung steht „noch nicht geprüft“, tote Domain = „keine funktionierende Website“',
+    PartnerSteckbrief::analyse([], null, [], 'it') === ['geprueft' => false]
+    && PartnerSteckbrief::analyse(['score' => 80], ['status' => 'fertig'], [['code' => 'domain_tot', 'status' => 'VERIFIED', 'schwere' => 5, 'messwert' => null]], 'it')['ohne_web'] === true);
+$sbS = PartnerSteckbrief::steckbrief(['name' => 'Bar Sole', 'adresse' => 'Via Roma 1', 'plz' => '92021', 'stadt' => 'ARAGONA', 'url' => null, 'domain' => 'barsole.it', 'ansprechpartner' => null]);
+$sbV = (string) file_get_contents($wurzel . '/views/partner_recherche.php');
+pruefe('D1: Steckbrief mit Adresse, Kartenlink und Website-Link; in der Anrufliste des Partners sichtbar',
+    $sbS['adresse'] === 'Via Roma 1, 92021 Aragona' && str_starts_with($sbS['karte'], 'https://www.google.com/maps/search/?api=1&query=Bar%20Sole')
+    && $sbS['url'] === 'https://barsole.it/' && $sbS['url_zeigen'] === 'barsole.it'
+    && str_contains($sbV, 'class="al-sb"') && str_contains($sbV, 'PartnerSteckbrief::analyse(') && str_contains($sbV, 'rel="noopener nofollow"'));
 $wjA = BranchenStatistik::anzeige($wjS, 'it');
 $wjLang = array_filter(array_merge($wjA['google']['titel'], [$wjA['meta']['ueberschrift']]), static fn($t) => mb_strlen($t) > 40)
     + array_filter($wjA['google']['titel'], static fn($t) => mb_strlen($t) > 30) + array_filter($wjA['google']['texte'], static fn($t) => mb_strlen($t) > 90);

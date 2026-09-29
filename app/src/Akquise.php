@@ -694,6 +694,10 @@ final class Akquise
             if ($marken) { try { Db::update('akq_audits', $auditId, ['marken' => json_encode($marken)]); } catch (Throwable $x) { } }
         }
 
+        /* Öffnungszeiten laut Website (29.09.2026, D3) -- nur geprüfte Werte; vor Migration 107 fehlt die Spalte. */
+        $oz = self::oeffnungPruefen($e['oeffnungszeiten'] ?? null);
+        if ($oz !== null) { try { Db::update('akq_firmen', $firmaId, ['oeffnungszeiten' => json_encode($oz)]); } catch (Throwable $x) { } }
+
         $top = array_map(static fn($b) => $b['titel'], array_slice(AkquiseScore::topBefunde($befunde), 0, 3));
         $upd = [
             'geprueft_am'  => $jetzt,
@@ -728,6 +732,27 @@ final class Akquise
         }
         AkquiseGate::statusSpeichern($firmaId);
         return ['audit_id' => $auditId, 'score' => $rechnung['score'], 'stufe' => $rechnung['stufe'], 'befunde' => count($befunde)];
+    }
+
+    /**
+     * Öffnungszeiten vom Worker: {quelle, zeiten:[{t,v,b}]} → {q, z, am} oder null.
+     * Alles, was nicht genau passt, fällt weg -- ein falsches „jetzt geöffnet“
+     * ist schlimmer als keins.
+     */
+    public static function oeffnungPruefen(mixed $o): ?array
+    {
+        if (!is_array($o) || !is_array($o['zeiten'] ?? null)) { return null; }
+        $z = [];
+        foreach (array_slice($o['zeiten'], 0, 14) as $x) {
+            if (!is_array($x) || !is_array($x['t'] ?? null)) { continue; }
+            $tage = array_values(array_unique(array_filter(array_map('intval', $x['t']), static fn($d) => $d >= 1 && $d <= 7)));
+            sort($tage);
+            $v = (string) ($x['v'] ?? ''); $b = (string) ($x['b'] ?? '');
+            if (!$tage || !preg_match('~^([01]\d|2[0-3]):[0-5]\d$~', $v) || !preg_match('~^([01]\d|2[0-3]):[0-5]\d$~', $b)) { continue; }
+            $z[] = ['t' => $tage, 'v' => $v, 'b' => $b];
+        }
+        if (!$z) { return null; }
+        return ['q' => ($o['quelle'] ?? '') === 'daten' ? 'daten' : 'text', 'z' => $z, 'am' => date('Y-m-d')];
     }
 
     private static function zeit(mixed $w): ?string

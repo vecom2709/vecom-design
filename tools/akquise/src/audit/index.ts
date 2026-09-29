@@ -22,6 +22,7 @@ import { seo } from './regeln/seo.js';
 import { conversion } from './regeln/conversion.js';
 import { vertrauen } from './regeln/vertrauen.js';
 import { design, experience } from './regeln/design.js';
+import { oeffnungLesen, type Oeffnung } from './zeiten.js';
 import { alleSeiten, type Befund, type FirmaKurz, type Rohdaten } from './typen.js';
 
 export interface AuditErgebnis {
@@ -38,6 +39,8 @@ export interface AuditErgebnis {
   telefon?: string;
   bilder?: { mobil?: string; desktop?: string };
   marken?: { art: string; x: number; y: number; b: number; h: number }[];
+  /** Öffnungszeiten laut Website (D3, 29.09.2026) -- nur wenn eindeutig gefunden. */
+  oeffnungszeiten?: Oeffnung;
   grund?: string;
 }
 
@@ -125,5 +128,6 @@ export async function auditieren(firma: FirmaKurz): Promise<AuditErgebnis> {
     email, telefon,
     bilder: { mobil: roh.browser?.screenshotMobil ?? undefined, desktop: roh.browser?.screenshotDesktop ?? undefined },
     marken: roh.browser?.mobil?.marken ?? [],   // A2 (28.09.2026): Stellen auf dem Handyfoto
+    oeffnungszeiten: oeffnungLesen(seiten.flatMap((s) => s.oeffnungRoh ?? []), seiten.map((s) => s.text)) ?? undefined,
   };
 }

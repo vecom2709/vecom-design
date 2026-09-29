@@ -131,6 +131,22 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .al{border:1px solid rgba(241,211,139,.55);border-radius:14px;padding:14px 14px 12px;margin:0 0 22px;background:rgba(241,211,139,.06);scroll-margin-top:90px}
   .al-liste{margin-top:10px}
   .al-knoepfe{margin-top:8px}
+  .al-sb{display:grid;grid-template-columns:max-content 1fr;align-items:baseline;gap:6px 14px;margin:12px 0 0;font-size:14.5px;line-height:1.5}
+  .al-sb dt{color:var(--dim);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;padding-top:2px}
+  .al-sb dd{margin:0;color:var(--text);min-width:0;overflow-wrap:anywhere}
+  .al-sb a{color:var(--gold, #f1d38b);display:inline-flex;align-items:center;min-height:32px}
+  .al-sb-leise{color:var(--dim)}
+  .al-sb-marke{display:inline-block;margin-left:6px;padding:1px 9px;border-radius:999px;font-size:12.5px;font-weight:600;border:1px solid}
+  .al-sb-marke.gruen{color:#34d39b;border-color:rgba(52,211,155,.5);background:rgba(52,211,155,.08)}
+  .al-sb-marke.grau{color:var(--dim);border-color:var(--linie)}
+  .al-sb-marke.gold{color:#f1d38b;border-color:rgba(241,211,139,.45);background:rgba(241,211,139,.07)}
+  .al-an{margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid var(--linie)}
+  .al-an p{margin:0}
+  .al-an-kopf{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:14.5px}
+  .al-an-kopf .al-sb-marke{margin-left:0}
+  .al-an-ohne{margin-top:6px!important;font-size:14.5px;color:#f1d38b}
+  .al-an ul{margin:8px 0 0;padding-left:20px;display:grid;gap:3px;font-size:14.5px;line-height:1.45;color:var(--text)}
+  @media (max-width:520px){.al-sb{grid-template-columns:1fr;gap:2px}.al-sb dd{margin-bottom:8px}}
   .al-sagen{margin-top:8px}
   .al-sagen summary{cursor:pointer;font-size:14px;color:var(--text)}
   .al-skript{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
@@ -166,7 +182,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   <h2><?= $h($T('re_titel')) ?></h2>
 
   <?php /* Anrufliste (29.09.2026, Uwe: Ja zu T1–T4): Betriebe, die Vecom zum Abtelefonieren gegeben hat */
-        require_once dirname(__DIR__) . '/src/PartnerAnrufliste.php';
+        require_once dirname(__DIR__) . '/src/PartnerAnrufliste.php'; require_once dirname(__DIR__) . '/src/PartnerSteckbrief.php';
         $alListe = PartnerAnrufliste::liste((int) $p['id']); $alErl = PartnerAnrufliste::erledigt((int) $p['id']);
         $alMeld = preg_match('~^al_[a-z_]+$~', (string) ($_GET['al'] ?? '')) ? (string) $_GET['al'] : '';
         if ($alListe || array_sum($alErl) > 0 || $alMeld !== '' || PartnerAnrufliste::wiedervorlage((int) $p['id'])['n'] > 0): $alSatz = Partner::satzWort(PartnerAnrufliste::satz($p), true); ?>
@@ -185,7 +201,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
       <ol class="firmen al-liste">
         <?php foreach ($alListe as $af):
           $alAudit = Akquise::letzterAudit((int) $af['id']);   /* Problem und Lösung aus der Fehler-Analyse dieses Betriebs */
-          $alP = AkquiseAnsprechen::paket($af, $alAudit ? Akquise::befunde((int) $alAudit['id']) : [], null, '', (string) $p['name']);
+          $alBef = $alAudit ? Akquise::befunde((int) $alAudit['id']) : [];
+          $alP = AkquiseAnsprechen::paket($af, $alBef, null, '', (string) $p['name']);
           $alWege = PartnerAnrufliste::wege($af);
           $alTel = (string) preg_replace('~[^\d+]~', '', (string) $af['telefon']);
           $alWa = preg_match('~^(\+39|0039)?3\d{8,9}$~', (string) preg_replace('~[\s./-]~', '', (string) $af['telefon'])) ? (string) $af['telefon'] : '';
@@ -194,10 +211,40 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
           <li class="firma al-firma">
             <div class="firma__kopf"><b><?= $h((string) $af['name']) ?></b>
               <?php if ((int) $af['versuche'] > 0): ?><span class="chance mittel"><?= $h(strtr($T('al_versuche'), ['{n}' => (string) (int) $af['versuche']])) ?></span><?php endif; ?></div>
-            <small><?= $h(implode(' · ', array_filter([(string) $af['branche'] !== '' ? Akquise::branchenName((string) $af['branche'], $sprache) : '', trim(((string) ($af['plz'] ?? '')) . ' ' . ((string) ($af['stadt'] ?? ''))),
-                  trim((string) ($af['domain'] ?? '')) !== '' ? (string) $af['domain'] : $T('ap_ohne_web')]))) ?></small>
+            <small><?= $h(implode(' · ', array_filter([(string) $af['branche'] !== '' ? Akquise::branchenName((string) $af['branche'], $sprache) : '', trim(((string) ($af['plz'] ?? '')) . ' ' . ((string) ($af['stadt'] ?? '')))]))) ?></small>
             <div class="al-knoepfe">
               <a class="knopf haupt" href="tel:<?= $h($alTel) ?>"><?= $h($T('al_anrufen')) ?>: <?= $h((string) $af['telefon']) ?></a>
+            </div>
+            <?php /* D1–D4 (29.09.2026): Steckbrief, Öffnungszeiten laut Website, beste Anrufzeit, Ergebnis der Prüfung */
+              $sbW = static fn(string $k): string => PartnerSteckbrief::wort($k, $sprache);
+              $sb = PartnerSteckbrief::steckbrief($af);
+              $sbJetzt = PartnerSteckbrief::ortszeit($af);
+              $sbZ = PartnerSteckbrief::zeiten($af);
+              $sbA = PartnerSteckbrief::anrufzeit($af, $sprache, $sbJetzt);
+              $sbAn = PartnerSteckbrief::analyse($af, $alAudit, $alBef, $sprache); ?>
+            <dl class="al-sb">
+              <?php if ($sb['adresse'] !== ''): ?><dt><?= $h($sbW('adresse')) ?></dt>
+                <dd><?= $h($sb['adresse']) ?> <a href="<?= $h($sb['karte']) ?>" target="_blank" rel="noopener"><?= $h($sbW('karte')) ?> ↗</a></dd><?php endif; ?>
+              <dt><?= $h($sbW('web')) ?></dt>
+              <dd><?php if ($sb['url'] !== ''): ?><a href="<?= $h($sb['url']) ?>" target="_blank" rel="noopener nofollow"><?= $h($sb['url_zeigen']) ?> ↗</a><?php else: ?><span class="al-sb-leise"><?= $h($sbW('ohne_web')) ?></span><?php endif; ?></dd>
+              <?php if ($sb['person'] !== ''): ?><dt><?= $h($sbW('person')) ?></dt><dd><?= $h($sb['person']) ?></dd><?php endif; ?>
+              <dt><?= $h($sbW('zeiten')) ?></dt>
+              <dd><?php if ($sbZ): $sbOffen = PartnerSteckbrief::offen($sbZ['z'], $sbJetzt); ?><?= $h(PartnerSteckbrief::zeitenText($sbZ['z'], $sprache)) ?>
+                  <span class="al-sb-marke <?= $sbOffen ? 'gruen' : 'grau' ?>"><?= $h($sbW($sbOffen ? 'offen' : 'zu')) ?></span>
+                <?php else: ?><span class="al-sb-leise"><?= $h($sbW('zeiten_leer')) ?></span><?php endif; ?></dd>
+              <dt><?= $h($sbW('beste')) ?></dt>
+              <dd><b><?= $h($sbA['gut']) ?></b><?php if ($sbA['jetzt']): ?> <span class="al-sb-marke gruen"><?= $h($sbW('gut_jetzt')) ?></span><?php endif; ?>
+                <br><span class="al-sb-leise"><?= $h($sbA['nicht']) ?></span></dd>
+            </dl>
+            <div class="al-an">
+              <?php if (!$sbAn['geprueft']): ?><p class="al-sb-leise"><?= $h($sbW('nie')) ?></p>
+              <?php else: ?>
+                <p class="al-an-kopf"><b><?= $h($sbW('analyse')) ?></b>
+                  <?php if ($sbAn['score'] !== null): ?><span class="al-sb-marke gold"><?= $h(strtr($sbW('chance'), ['{n}' => (string) $sbAn['score']])) ?></span><?php endif; ?>
+                  <?php if ($sbAn['am'] !== ''): ?><span class="al-sb-leise"><?= $h(strtr($sbW('am'), ['{d}' => $sbAn['am']])) ?></span><?php endif; ?></p>
+                <?php if ($sbAn['ohne_web']): ?><p class="al-an-ohne"><?= $h($sbW('kein_web_analyse')) ?></p><?php endif; ?>
+                <?php if ($sbAn['punkte']): ?><ul><?php foreach ($sbAn['punkte'] as $pt): ?><li><?= $h($pt) ?></li><?php endforeach; ?></ul><?php elseif (!$sbAn['ohne_web']): ?><p class="al-sb-leise" style="margin-top:6px"><?= $h($sbW('keine')) ?></p><?php endif; ?>
+              <?php endif; ?>
             </div>
             <details class="al-sagen"><summary><?= $h($T('al_sagen')) ?></summary>
               <ol class="al-skript" lang="<?= $h($alP['sprache']) ?>">
