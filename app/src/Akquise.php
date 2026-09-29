@@ -353,9 +353,14 @@ final class Akquise
         if ($z === '' || strlen(ltrim($z, '+')) < 6) { return null; }
         if (str_starts_with($z, '00')) { $z = '+' . substr($z, 2); }
         if (!str_starts_with($z, '+')) {
+            /* Ländervorwahl ohne Plus (29.09.2026): Overture liefert oft „4940619121“ oder
+               „390922…“. Ohne „+“ wählt das Telefon des Partners eine falsche Nummer.
+               In Italien hat eine Nummer ohne Vorwahl höchstens 10 Ziffern und beginnt nie
+               mit 39 + weiterer Ziffer so lang -- deshalb erst ab 11 Ziffern als Vorwahl deuten. */
             $land = strtoupper((string) $land);
-            if ($land === 'IT') { $z = '+39' . $z; }
+            if ($land === 'IT') { $z = (str_starts_with($z, '39') && strlen($z) >= 11 ? '+' : '+39') . $z; }
             elseif ($land === 'DE' && str_starts_with($z, '0')) { $z = '+49' . substr($z, 1); }
+            elseif ($land === 'DE' && preg_match('~^49[1-9]\d{6,11}$~', $z)) { $z = '+' . $z; }
         }
         return $z;
     }

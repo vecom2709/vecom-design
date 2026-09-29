@@ -14679,6 +14679,11 @@ pruefe('W1: öffentliche Seite /siti-web/… mit Sitemap, ohne Namen, mit Weg zu
 pruefe('Branchen-Seite: gestalteter Fußbereich (Marke, Rechtliches, Sprachen) statt loser Links — Stil für .rechtsfuss steht auf der Seite selbst',
     str_contains($wjSeite, 'class="fussbereich"') && str_contains($wjSeite, '.rechtsfuss a{') && str_contains($wjSeite, 'Fuss::html($sprache)')
     && substr_count($wjSeite, 'class="sprachen"') === 1 && str_contains($wjSeite, 'min-height:44px'));
+pruefe('Telefon: Ländervorwahl ohne „+“ wird erkannt (DE 4940… → +4940…, IT 390922… nicht doppelt), echte Handynummer 393… bleibt',
+    Akquise::normTelefon('4940619121', 'DE') === '+4940619121' && Akquise::normTelefon('040 619121', 'DE') === '+4940619121'
+    && Akquise::normTelefon('390922660602', 'IT') === '+390922660602' && Akquise::normTelefon('3931234567', 'IT') === '+393931234567'
+    && Akquise::normTelefon('0922 660602', 'IT') === '+390922660602'
+    && str_contains((string) file_get_contents($wurzel . '/migrations/108_telefon_vorwahl.sql'), "REGEXP '^\\\\+3939[0-9]{9,}$'"));
 /* D1–D4 (29.09.2026): Steckbrief, Öffnungszeiten laut Website, beste Anrufzeit, Analyse in der Anrufliste */
 require_once $wurzel . '/src/PartnerSteckbrief.php';
 $sbOz = Akquise::oeffnungPruefen(['quelle' => 'daten', 'zeiten' => [['t' => [2, 3, 4, 5, 6, 7], 'v' => '12:00', 'b' => '15:00'], ['t' => [5, 6], 'v' => '19:00', 'b' => '01:00'], ['t' => [9], 'v' => '25:00', 'b' => 'x']]]);
