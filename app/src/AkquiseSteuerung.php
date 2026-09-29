@@ -47,9 +47,18 @@ final class AkquiseSteuerung
     public static function statusMelden(array $d): array
     {
         $art = in_array($d['art'] ?? '', ['audit', 'recherche', 'frei'], true) ? (string) $d['art'] : 'frei';
+        $stand = max(0, (int) ($d['stand'] ?? 0));
+        /* Beginn des Laufs merken (für „noch etwa …“): neu, wenn vorher etwas anderes lief,
+           der Stand zurückging oder die letzte Meldung über 20 Minuten her ist. */
+        $alt = json_decode(AkquiseGate::einstellung(self::STATUS, ''), true);
+        $beginn = date('Y-m-d H:i:s');
+        if (is_array($alt) && ($alt['art'] ?? '') === $art && $stand >= (int) ($alt['stand'] ?? 0)
+            && strtotime((string) ($alt['zeit'] ?? '')) > time() - 1200 && !empty($alt['beginn'])) {
+            $beginn = (string) $alt['beginn'];
+        }
         AkquiseGate::setzen(self::STATUS, (string) json_encode([
-            'art' => $art, 'stand' => max(0, (int) ($d['stand'] ?? 0)), 'ziel' => max(0, (int) ($d['ziel'] ?? 0)),
-            'text' => mb_substr(trim((string) ($d['text'] ?? '')), 0, 160), 'zeit' => date('Y-m-d H:i:s'),
+            'art' => $art, 'stand' => $stand, 'ziel' => max(0, (int) ($d['ziel'] ?? 0)),
+            'text' => mb_substr(trim((string) ($d['text'] ?? '')), 0, 160), 'zeit' => date('Y-m-d H:i:s'), 'beginn' => $beginn,
         ], JSON_UNESCAPED_UNICODE));
         return ['ok' => true];
     }
@@ -66,12 +75,67 @@ final class AkquiseSteuerung
             'pc_wach' => $wach, 'pc_alter' => $alter,
             'art' => $wach ? (string) ($pc['art'] ?? 'frei') : 'aus',
             'stand' => (int) ($pc['stand'] ?? 0), 'ziel' => (int) ($pc['ziel'] ?? 0), 'text' => (string) ($pc['text'] ?? ''),
+            'rest_min' => self::restMinuten($pc),
             'audit_an' => AkquiseGate::schalter('audit'), 'recherche_an' => AkquiseGate::schalter('recherche'),
             'jetzt' => AkquiseGate::einstellung(self::JETZT, '') !== '',
             'stop' => AkquiseGate::grenzen()['stop'],
             'suche' => $suche ?: null,
             'suche_wartend' => (int) Db::wert("SELECT COUNT(*) FROM akq_laeufe WHERE status = 'wartet'", [], 0),
         ];
+    }
+
+    /** Geschätzte Restzeit des laufenden Prüflaufs in Minuten (null = noch zu früh). */
+    public static function restMinuten(?array $pc): ?int
+    {
+        if (!$pc || ($pc['art'] ?? '') !== 'audit' || empty($pc['beginn'])) { return null; }
+        $stand = (int) ($pc['stand'] ?? 0); $ziel = (int) ($pc['ziel'] ?? 0);
+        $dauer = strtotime((string) $pc['zeit']) - strtotime((string) $pc['beginn']);
+        if ($stand < 3 || $dauer <= 0 || $ziel <= $stand) { return null; }
+        return (int) ceil($dauer / $stand * ($ziel - $stand) / 60);
+    }
+
+    /* ---------------- Fortschritt (29.09.2026, Uwe: Ja zu F1–F4) ---------------- */
+
+    private const CACHE = 'akq_fortschritt_cache';
+
+    /**
+     * Gesamtstand und Weg zu den Branchen-Seiten -- teure Zählungen, darum fünf
+     * Minuten zwischengespeichert. @return array{zeit:string,gesamt:array,gebiete:list<array>,gruppen:list<array>}
+     */
+    public static function fortschritt(bool $frisch = false): array
+    {
+        $c = json_decode(AkquiseGate::einstellung(self::CACHE, ''), true);
+        if (!$frisch && is_array($c) && strtotime((string) ($c['zeit'] ?? '')) > time() - 300) { return $c; }
+        $mitWeb = "gesperrt = 0 AND url IS NOT NULL AND url <> ''";
+        $g = Db::one("SELECT COUNT(*) AS n, SUM(audit_status = 'fertig') AS geprueft, SUM(audit_status IN ('fehler','uebersprungen')) AS nicht FROM akq_firmen WHERE $mitWeb") ?: [];
+        $gebiete = array_map(static fn(array $z): array => ['land' => (string) $z['land'], 'gebiet' => (string) $z['gebiet'], 'n' => (int) $z['n'], 'geprueft' => (int) $z['geprueft']],
+            Db::all("SELECT land, COALESCE(NULLIF(region, ''), NULLIF(kreis, ''), 'ohne Angabe') AS gebiet, COUNT(*) AS n, SUM(audit_status = 'fertig') AS geprueft
+                       FROM akq_firmen WHERE $mitWeb GROUP BY land, gebiet ORDER BY n DESC LIMIT 8"));
+        require_once __DIR__ . '/BranchenStatistik.php';
+        $fertig = [];
+        foreach ((array) Db::all('SELECT slug FROM akq_statistik') as $z) { $fertig[(string) $z['slug']] = true; }
+        $gruppen = [];
+        foreach (Db::all("SELECT land, branche, stadt, COUNT(*) AS n, SUM(audit_status = 'fertig') AS geprueft
+                            FROM akq_firmen WHERE $mitWeb AND stadt IS NOT NULL AND stadt <> '' AND branche IS NOT NULL AND branche <> ''
+                        GROUP BY land, branche, stadt HAVING n >= " . BranchenStatistik::MIN . "
+                        ORDER BY (SUM(audit_status = 'fertig') >= " . BranchenStatistik::MIN . "), SUM(audit_status = 'fertig') DESC, n DESC LIMIT 10") as $z) {
+            $slug = BranchenStatistik::slug((string) $z['branche'], (string) $z['stadt']);
+            $gruppen[] = ['land' => (string) $z['land'], 'branche' => (string) $z['branche'], 'stadt' => (string) $z['stadt'], 'n' => (int) $z['n'],
+                          'geprueft' => (int) $z['geprueft'], 'seite' => isset($fertig[$slug]) ? $slug : null];
+        }
+        $c = ['zeit' => date('Y-m-d H:i:s'), 'gesamt' => ['n' => (int) ($g['n'] ?? 0), 'geprueft' => (int) ($g['geprueft'] ?? 0), 'nicht' => (int) ($g['nicht'] ?? 0)],
+              'gebiete' => $gebiete, 'gruppen' => $gruppen, 'seiten' => count($fertig)];
+        AkquiseGate::setzen(self::CACHE, (string) json_encode($c, JSON_UNESCAPED_UNICODE));
+        return $c;
+    }
+
+    /** Die letzten geprüften Websites (live). @return list<array<string,mixed>> */
+    public static function zuletzt(int $n = 5): array
+    {
+        return Db::all("SELECT f.id, f.name, f.domain, a.beendet_am, a.score, a.status,
+                               (SELECT COUNT(*) FROM akq_befunde b WHERE b.audit_id = a.id) AS befunde
+                          FROM akq_audits a JOIN akq_firmen f ON f.id = a.firma_id
+                         WHERE a.beendet_am IS NOT NULL ORDER BY a.id DESC LIMIT " . max(1, min(20, $n)));
     }
 
     public static function pruefungStarten(): void

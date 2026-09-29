@@ -566,6 +566,14 @@ if (!$akqBereit) {
 
 $teil = $teile[1] ?? '';
 
+if ($teil === 'steuerung') {
+    /* Nur der Block „Dein PC“ (29.09.2026) -- für die Aktualisierung alle 30 Sekunden. */
+    header('Content-Type: text/html; charset=utf-8');
+    header('Cache-Control: no-store');
+    require __DIR__ . '/views/akquise_steuerung.php';
+    exit;
+}
+
 if ($teil === 'bild') {
     /* Bildschirmfoto eines Audits -- aus dem gesperrten Ordner, nur angemeldet. */
     $aid = (int) ($teile[2] ?? 0);

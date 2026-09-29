@@ -117,7 +117,25 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-st-teil p b{color:var(--text)}
   .akq-st-knoepfe{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .akq-st-balken{height:6px;border-radius:3px;background:var(--linie);overflow:hidden;margin-top:8px}
-  .akq-st-balken span{display:block;height:100%;background:linear-gradient(90deg,#b8923f,#f1d38b)}
+  .akq-st-balken.gross{height:12px;border-radius:6px}
+  .akq-st-balken span{display:block;height:100%;background:linear-gradient(90deg,#b8923f,#f1d38b);transition:width .6s cubic-bezier(.16,1,.3,1)}
+  .akq-st-gross{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .akq-st-gross b{font-size:28px;line-height:1;color:#f1d38b;font-variant-numeric:tabular-nums}
+  .akq-st-gross span{font-size:14px;color:var(--dim)}
+  .akq-st-jetzt{margin-top:6px!important;font-size:12.5px!important;color:var(--leise)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .akq-st-liste{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:7px}
+  .akq-st-liste li{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) auto;gap:10px;align-items:center;font-size:13.5px}
+  .akq-st-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .akq-st-name small{color:var(--leise);font-size:12px}
+  .akq-st-mini{height:6px;border-radius:3px;background:var(--linie);overflow:hidden}
+  .akq-st-mini span{display:block;height:100%;background:linear-gradient(90deg,#b8923f,#f1d38b)}
+  .akq-st-liste li.fertig .akq-st-mini span{background:var(--gruen)}
+  .akq-st-zahl{font-variant-numeric:tabular-nums;color:var(--dim);font-size:12.5px;white-space:nowrap}
+  .akq-st-zahl a{color:var(--gruen)}
+  .akq-st-zuletzt{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+  .akq-st-zuletzt li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
+  .akq-st-zuletzt a{color:var(--text)}
+  .akq-st-zz{margin-left:auto;color:var(--dim);font-size:12.5px}
   @media (max-width:700px){ .akq-st-reihe{grid-template-columns:1fr} }
   .akq-wahl{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
   .akq-wahl input{width:18px;height:18px;margin-top:2px;flex:none}

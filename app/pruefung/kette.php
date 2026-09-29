@@ -14975,8 +14975,24 @@ pruefe('Worker: „steuern“ alle fünf Minuten (leise), hört bei „Stoppen�
     str_contains($stCli, "if (befehl === 'steuern') return steuern();") && str_contains($stCli, "h.schalter.audit === false") && str_contains($stCli, "await status('audit', vorher + i, ziel")
     && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/package.json'), '"steuern": "tsx src/cli.ts steuern"')
     && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/recherche/overture.ts'), 'if (r.gestoppt)')
-    && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), "'akq_pruefung_stop'") && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), "'akq_suche_stop'")
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_steuerung.php'), "'akq_pruefung_stop'") && str_contains((string) file_get_contents($wurzel . '/views/akquise_steuerung.php'), "'akq_suche_stop'")
     && in_array('befehl_holen', AkquiseWorker::AKTIONEN, true));
+$fsA = AkquiseSteuerung::fortschritt(true);
+$fsB = AkquiseSteuerung::fortschritt();
+AkquiseGate::setzen('akq_worker_status', (string) json_encode(['art' => 'audit', 'stand' => 30, 'ziel' => 300, 'text' => 'x.it', 'zeit' => date('Y-m-d H:i:s'), 'beginn' => date('Y-m-d H:i:s', time() - 30 * 60)]));
+$fsRest = AkquiseSteuerung::stand()['rest_min'];
+AkquiseWorker::ausfuehren('status_melden', ['art' => 'audit', 'stand' => 31, 'ziel' => 300]);
+$fsBeginn = json_decode(AkquiseGate::einstellung('akq_worker_status', ''), true)['beginn'] ?? '';
+AkquiseWorker::ausfuehren('status_melden', ['art' => 'audit', 'stand' => 0, 'ziel' => 300]);
+$fsNeu = json_decode(AkquiseGate::einstellung('akq_worker_status', ''), true)['beginn'] ?? '';
+$fsZ = AkquiseSteuerung::zuletzt(5);
+pruefe('Fortschritt (F1–F4): Prozent und Restzeit des Laufs, Gesamtstand mit Gebieten, Weg zur Branchen-Seite, zuletzt geprüft; alle 30 Sekunden nur der Block',
+    $fsA['gesamt']['n'] > 0 && $fsA['gesamt']['geprueft'] > 0 && $fsA['gebiete'] !== [] && is_array($fsA['gruppen']) && $fsB['zeit'] === $fsA['zeit']
+    && (bool) array_filter($fsA['gruppen'], static fn($g) => $g['seite'] === 'restaurant-agrigento' && $g['geprueft'] >= BranchenStatistik::MIN)
+    && $fsRest === 270 && $fsBeginn === date('Y-m-d H:i:s', time() - 30 * 60) && $fsNeu !== $fsBeginn
+    && count($fsZ) >= 1 && array_key_exists('befunde', $fsZ[0])
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "if (\$teil === 'steuerung')")
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), 'setInterval(neu, 30000)'), json_encode([$fsA['gesamt'], $fsRest, $fsBeginn, $fsNeu]));
 AkquiseSteuerung::pruefungStarten(); AkquiseWorker::ausfuehren('befehl_holen', []);
 
 /* ============================================================================
