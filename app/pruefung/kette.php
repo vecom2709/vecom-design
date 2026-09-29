@@ -14993,6 +14993,17 @@ pruefe('Fortschritt (F1–F4): Prozent und Restzeit des Laufs, Gesamtstand mit G
     && count($fsZ) >= 1 && array_key_exists('befunde', $fsZ[0])
     && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "if (\$teil === 'steuerung')")
     && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), 'setInterval(neu, 30000)'), json_encode([$fsA['gesamt'], $fsRest, $fsBeginn, $fsNeu]));
+AkquiseGate::setzen('akq_branchen_neu', '');
+AkquiseWorker::ausfuehren('status_melden', ['art' => 'audit', 'stand' => 5, 'ziel' => 300]);
+$ngVor = AkquiseSteuerung::zuletztGerechnet();
+AkquiseWorker::ausfuehren('status_melden', ['art' => 'frei']);
+$ngNach = AkquiseSteuerung::zuletztGerechnet();
+AkquiseWorker::ausfuehren('status_melden', ['art' => 'frei']);
+$ngNochmal = AkquiseSteuerung::zuletztGerechnet();
+pruefe('Nach jedem Prüflauf werden die Branchen-Seiten automatisch neu gerechnet (nur beim Wechsel von „prüft“ zu „frei“)',
+    $ngVor === null && is_array($ngNach) && $ngNach['seiten'] >= 1 && $ngNochmal == $ngNach
+    && BranchenStatistik::laden('restaurant-agrigento') !== null
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_steuerung.php'), 'automatisch neu gerechnet'), json_encode($ngNach));
 AkquiseSteuerung::pruefungStarten(); AkquiseWorker::ausfuehren('befehl_holen', []);
 
 /* ============================================================================

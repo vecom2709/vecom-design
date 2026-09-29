@@ -56,6 +56,11 @@ final class AkquiseSteuerung
             && strtotime((string) ($alt['zeit'] ?? '')) > time() - 1200 && !empty($alt['beginn'])) {
             $beginn = (string) $alt['beginn'];
         }
+        /* Prüflauf zu Ende (29.09.2026, Uwe: „mache es automatisch nach jedem Prüflauf“):
+           Branchen-Seiten und Anzeigen-Entwürfe gleich neu rechnen. */
+        if ($art === 'frei' && is_array($alt) && ($alt['art'] ?? '') === 'audit') {
+            try { self::nachPruefung(); } catch (Throwable $e) { /* nachts rechnet der Cron ohnehin */ }
+        }
         AkquiseGate::setzen(self::STATUS, (string) json_encode([
             'art' => $art, 'stand' => $stand, 'ziel' => max(0, (int) ($d['ziel'] ?? 0)),
             'text' => mb_substr(trim((string) ($d['text'] ?? '')), 0, 160), 'zeit' => date('Y-m-d H:i:s'), 'beginn' => $beginn,
@@ -82,6 +87,30 @@ final class AkquiseSteuerung
             'suche' => $suche ?: null,
             'suche_wartend' => (int) Db::wert("SELECT COUNT(*) FROM akq_laeufe WHERE status = 'wartet'", [], 0),
         ];
+    }
+
+    private const NACH = 'akq_branchen_neu';
+
+    /** Branchen-Seiten und Anzeigen-Entwürfe neu rechnen (wie „Jetzt neu rechnen“). @return array{zeit:string,seiten:int,anzeigen:int} */
+    public static function nachPruefung(): array
+    {
+        require_once __DIR__ . '/BranchenStatistik.php';
+        require_once __DIR__ . '/Akquise.php';
+        $seiten = BranchenStatistik::rechnen();
+        Db::run('DELETE FROM akq_anzeigen WHERE woche = ? AND status = ?', [BranchenStatistik::woche(), 'entwurf']);
+        $anzeigen = BranchenStatistik::anzeigenPlanen();
+        $r = ['zeit' => date('Y-m-d H:i:s'), 'seiten' => $seiten, 'anzeigen' => $anzeigen];
+        AkquiseGate::setzen(self::NACH, (string) json_encode($r));
+        AkquiseGate::setzen(self::CACHE, '');
+        Akquise::protokoll(null, 'branchen', 'Nach dem Prüflauf neu gerechnet: ' . $seiten . ' Branchen-Seiten, ' . $anzeigen . ' Anzeigen-Entwürfe');
+        return $r;
+    }
+
+    /** Wann zuletzt nach einem Prüflauf gerechnet wurde. @return array{zeit:string,seiten:int,anzeigen:int}|null */
+    public static function zuletztGerechnet(): ?array
+    {
+        $r = json_decode(AkquiseGate::einstellung(self::NACH, ''), true);
+        return is_array($r) ? $r : null;
     }
 
     /** Geschätzte Restzeit des laufenden Prüflaufs in Minuten (null = noch zu früh). */

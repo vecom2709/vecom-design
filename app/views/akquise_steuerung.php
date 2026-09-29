@@ -79,6 +79,8 @@ $landName = static fn(string $l): string => ['IT' => 'Italien', 'DE' => 'Deutsch
   </div>
   <div class="akq-st-teil">
     <h3>Weg zur Branchen-Seite <small class="akq-klein" style="font-weight:400">· ab <?= BranchenStatistik::MIN ?> geprüften Websites · <?= (int) $fs['seiten'] ?> fertig</small></h3>
+    <?php $ng = AkquiseSteuerung::zuletztGerechnet(); ?>
+    <p class="akq-klein" style="margin:0 0 4px">Wird nach jedem Prüflauf automatisch neu gerechnet<?= $ng ? ' · zuletzt ' . Fmt::h(date('d.m. H:i', strtotime((string) $ng['zeit']))) . ' (' . (int) $ng['seiten'] . ' Seiten)' : '' ?>.</p>
     <?php if (!$fs['gruppen']): ?><p>Noch keine Branche mit <?= BranchenStatistik::MIN ?> Websites in einem Ort.</p><?php endif; ?>
     <ul class="akq-st-liste">
       <?php foreach ($fs['gruppen'] as $gr): $x = $pz(min($gr['geprueft'], BranchenStatistik::MIN), BranchenStatistik::MIN); $ok = $gr['geprueft'] >= BranchenStatistik::MIN; ?>
