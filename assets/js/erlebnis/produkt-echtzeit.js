@@ -855,6 +855,11 @@ export async function erstellen({
 
   let spiegel = null;
   function spiegelBauen(an) {
+    /* Am echten Ort spiegelt der Boden nicht (Asphalt, Pflaster) -- und der
+       Spiegel schaltete den Studioboden vor jedem Bild wieder sichtbar: Das
+       Auto stand auf einer hellen Flaeche statt auf der Strasse (Probe
+       29.09.2026, Stufe HIGH). */
+    if (ORT) an = false;
     if (!!spiegel === an) return;
     if (!an) { szene.remove(spiegel); spiegel.dispose(); spiegel = null; einmal(); return; }
     const w = Math.max(2, Math.round((behaelter.clientWidth || 800) * 0.5));

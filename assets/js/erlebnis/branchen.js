@@ -41,17 +41,17 @@ const TEXTE = {
     keinWebgl: 'Dieses Gerät zeigt die gerechneten Bilder. Drehen und Zerlegen brauchen WebGL.',
     teile: { tueren: 'Türen', haube: 'Fronthaube', heck: 'Heck mit Rückleuchten', dach: 'Dach', raeder: 'Räder', bremse: 'Bremsscheibe und Sattel', antrieb: 'Antrieb', fahrwerk: 'Fahrwerk', sitze: 'Sitze', obermaterial: 'Obermaterial aus Strick', zwischensohle: 'Zwischensohle aus Schaum', schnuerung: 'Schnürung', himmel: 'Dachhimmel', lenkrad: 'Lenkrad', cockpit: 'Armaturentafel', zylinderkopf: 'Zylinderkopf', turbo: 'Turbolader', getriebe: 'Getriebe', kuehler: 'Kühler', abgas: 'Abgasanlage', rohbau: 'Rohbau, grundiert', kiste: 'Holzkiste – fertig als Geschenk', kapsel: 'Kapsel – schützt den Korken', kork: 'Naturkorken – der Wein atmet', einschenken: 'Im Bordeauxglas – so schmeckt er am besten', pasta: 'Spaghetti al pomodoro – frisch angerichtet', dessert: 'Panna cotta – mit Himbeer-Coulis', glas: 'Saphirglas – praktisch kratzfest', luenette: 'Lünette – schützt das Glas', krone: 'Verschraubte Krone – dicht bis 10 bar', zeiger: 'Zeiger mit Leuchtmasse – ablesbar im Dunkeln', blatt: 'Zifferblatt – Indizes einzeln gesetzt', rotor: 'Rotor – zieht die Uhr beim Tragen auf', unruh: 'Unruh – schlägt 28.800-mal pro Stunde', platine: 'Platine – trägt das ganze Werk', boden: 'Gehäuseboden – Platz für Ihre Gravur', bruecke: 'Brücken – halten die Räder', rad: 'Räderwerk – überträgt die Kraft', tuer: 'Tür mit Topfscharnier', auszug: 'Vollauszug', platte: 'Arbeitsplatte 40 mm', kochfeld: 'Induktionskochfeld', armatur: 'Armatur', becken: 'Unterbaubecken', stuhl: 'Hydraulik, drehbar', plane: 'Schiebeplane – Seitenladung in Minuten', kabine: 'Kippkabine – Motor schnell erreichbar', zwilling: 'Zwillingsbereifung – mehr Traglast', achsen: 'Dreiachsaggregat – 24 t Achslast' },
     modelle: {
-      kleinwagen: { alt: 'Kleinwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
+      kleinwagen: { alt: 'Kleinwagen auf einer Wohnstraße am Ortsrand, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,07 m · Breite 1,76 m · Höhe 1,45 m · Radstand 2,57 m',
         bau: 'Dreizylinder quer, Frontantrieb · McPherson vorn, Verbundlenker hinten',
         lacke: { azzurro: 'Azurblau Metallic', bianco: 'Uni-Weiß', salvia: 'Salbeigrün Metallic' },
-        innen: { 'stoff-anthrazit': 'Stoff Anthrazit', 'stoff-grau-blau': 'Stoff Grau-Blau', 'kunstleder-hell': 'Kunstleder Hell' }, innenAlt: 'Fahrerplatz des Kleinwagens, gerechnet mit Blender Cycles' },
-      mittelklasse: { alt: 'Mittelklasse-Limousine in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
+        innen: { 'stoff-anthrazit': 'Stoff Anthrazit', 'stoff-grau-blau': 'Stoff Grau-Blau', 'kunstleder-hell': 'Kunstleder Hell' }, innenAlt: 'Fahrerplatz des Kleinwagens bei Tageslicht, gerechnet mit Blender Cycles' },
+      mittelklasse: { alt: 'Mittelklasse-Limousine in einer Altstadtstraße von Palermo, gerechnet mit Blender Cycles',
         daten: 'Eigener Entwurf · Länge 4,76 m · Breite 1,83 m · Höhe 1,44 m · Radstand 2,85 m',
         bau: 'Vierzylinder längs, Hinterradantrieb · Federbeine vorn, Mehrlenker hinten',
         lacke: { blunotte: 'Nachtblau Metallic', argento: 'Silber Metallic', rosso: 'Rot Metallic' },
-        innen: { 'stoff-anthrazit': 'Stoff Anthrazit', 'leder-cognac': 'Leder Cognac', 'leder-elfenbein': 'Leder Elfenbein' }, innenAlt: 'Fahrerplatz der Limousine, gerechnet mit Blender Cycles' },
-      auto: { alt: 'Karminroter Sportwagen in einem dunklen Fotostudio, gerechnet mit Blender Cycles',
+        innen: { 'stoff-anthrazit': 'Stoff Anthrazit', 'leder-cognac': 'Leder Cognac', 'leder-elfenbein': 'Leder Elfenbein' }, innenAlt: 'Fahrerplatz der Limousine bei Tageslicht, gerechnet mit Blender Cycles' },
+      auto: { alt: 'Karminroter Sportwagen auf einer Bergstraße, gerechnet mit Blender Cycles',
         daten: 'Designstudie · Länge 4,36 m · Höhe 1,31 m', bau: 'Konzeptauto „CarConcept“ von Khronos (CC BY 4.0)',
         lacke: { karmin: 'Karminrot', perl: 'Perlweiß', graphit: 'Graphit' } },
     },
@@ -78,17 +78,17 @@ const TEXTE = {
     keinWebgl: 'Questo dispositivo mostra le immagini calcolate. Girare e scomporre richiedono WebGL.',
     teile: { tueren: 'Portiere', haube: 'Cofano', heck: 'Coda con fanali', dach: 'Tetto', raeder: 'Ruote', bremse: 'Disco e pinza', antrieb: 'Motore', fahrwerk: 'Sospensioni', sitze: 'Sedili', obermaterial: 'Tomaia in maglia', zwischensohle: 'Intersuola in schiuma', schnuerung: 'Allacciatura', himmel: 'Cielo', lenkrad: 'Volante', cockpit: 'Plancia', zylinderkopf: 'Testata', turbo: 'Turbocompressore', getriebe: 'Cambio', kuehler: 'Radiatore', abgas: 'Scarico', rohbau: 'Scocca con fondo', kiste: 'Cassetta in legno – già pronta da regalare', kapsel: 'Capsula – protegge il tappo', kork: 'Tappo in sughero – il vino respira', einschenken: 'Nel calice Bordeaux – così dà il meglio', pasta: 'Spaghetti al pomodoro – impiattati al momento', dessert: 'Panna cotta – con coulis di lamponi', glas: 'Vetro zaffiro – quasi antigraffio', luenette: 'Lunetta – protegge il vetro', krone: 'Corona a vite – tenuta 10 bar', zeiger: 'Lancette luminescenti – leggibili al buio', blatt: 'Quadrante – indici applicati uno a uno', rotor: 'Rotore – carica l’orologio mentre lo indossa', unruh: 'Bilanciere – 28.800 alternanze l’ora', platine: 'Platina – porta tutto il movimento', boden: 'Fondello – spazio per la sua incisione', bruecke: 'Ponti – tengono le ruote', rad: 'Ruotismo – trasmette la forza', tuer: 'Anta con cerniera a scomparsa', auszug: 'Cassetto a estrazione totale', platte: 'Piano 40 mm', kochfeld: 'Piano a induzione', armatur: 'Miscelatore', becken: 'Lavello sottotop', stuhl: 'Idraulica, girevole', plane: 'Telone scorrevole – carico laterale in pochi minuti', kabine: 'Cabina ribaltabile – motore subito accessibile', zwilling: 'Ruote gemellate – più portata', achsen: 'Gruppo a tre assi – 24 t sugli assi' },
     modelle: {
-      kleinwagen: { alt: 'Utilitaria in uno studio fotografico scuro, calcolata con Blender Cycles',
+      kleinwagen: { alt: 'Utilitaria su una strada residenziale di periferia, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,07 m · larghezza 1,76 m · altezza 1,45 m · passo 2,57 m',
         bau: 'Tre cilindri trasversale, trazione anteriore · McPherson davanti, ponte torcente dietro',
         lacke: { azzurro: 'Azzurro metallizzato', bianco: 'Bianco pastello', salvia: 'Verde salvia metallizzato' },
-        innen: { 'stoff-anthrazit': 'Tessuto antracite', 'stoff-grau-blau': 'Tessuto grigio-blu', 'kunstleder-hell': 'Similpelle chiara' }, innenAlt: 'Posto guida dell’utilitaria, calcolato con Blender Cycles' },
-      mittelklasse: { alt: 'Berlina media in uno studio fotografico scuro, calcolata con Blender Cycles',
+        innen: { 'stoff-anthrazit': 'Tessuto antracite', 'stoff-grau-blau': 'Tessuto grigio-blu', 'kunstleder-hell': 'Similpelle chiara' }, innenAlt: 'Posto guida dell’utilitaria alla luce del giorno, calcolato con Blender Cycles' },
+      mittelklasse: { alt: 'Berlina media in una via del centro storico di Palermo, calcolata con Blender Cycles',
         daten: 'Progetto proprio · lunghezza 4,76 m · larghezza 1,83 m · altezza 1,44 m · passo 2,85 m',
         bau: 'Quattro cilindri longitudinale, trazione posteriore · montanti davanti, multilink dietro',
         lacke: { blunotte: 'Blu notte metallizzato', argento: 'Argento metallizzato', rosso: 'Rosso metallizzato' },
-        innen: { 'stoff-anthrazit': 'Tessuto antracite', 'leder-cognac': 'Pelle cognac', 'leder-elfenbein': 'Pelle avorio' }, innenAlt: 'Posto guida della berlina, calcolato con Blender Cycles' },
-      auto: { alt: 'Auto sportiva rosso carminio in uno studio fotografico scuro, calcolata con Blender Cycles',
+        innen: { 'stoff-anthrazit': 'Tessuto antracite', 'leder-cognac': 'Pelle cognac', 'leder-elfenbein': 'Pelle avorio' }, innenAlt: 'Posto guida della berlina alla luce del giorno, calcolato con Blender Cycles' },
+      auto: { alt: 'Auto sportiva rosso carminio su una strada di montagna, calcolata con Blender Cycles',
         daten: 'Studio di design · lunghezza 4,36 m · altezza 1,31 m', bau: 'Concept car «CarConcept» di Khronos (CC BY 4.0)',
         lacke: { karmin: 'Rosso carminio', perl: 'Bianco perla', graphit: 'Grafite' } },
     },
@@ -115,17 +115,17 @@ const TEXTE = {
     keinWebgl: 'This device shows the rendered images. Turning and taking apart need WebGL.',
     teile: { tueren: 'Doors', haube: 'Bonnet', heck: 'Rear with tail lights', dach: 'Roof', raeder: 'Wheels', bremse: 'Disc and caliper', antrieb: 'Drivetrain', fahrwerk: 'Suspension', sitze: 'Seats', obermaterial: 'Knit upper', zwischensohle: 'Foam midsole', schnuerung: 'Laces', himmel: 'Headliner', lenkrad: 'Steering wheel', cockpit: 'Dashboard', zylinderkopf: 'Cylinder head', turbo: 'Turbocharger', getriebe: 'Gearbox', kuehler: 'Radiator', abgas: 'Exhaust', rohbau: 'Body shell, primed', kiste: 'Wooden case – ready to give', kapsel: 'Capsule – protects the cork', kork: 'Natural cork – lets the wine breathe', einschenken: 'In a Bordeaux glass – where it tastes best', pasta: 'Spaghetti al pomodoro – freshly plated', dessert: 'Panna cotta – with raspberry coulis', glas: 'Sapphire crystal – virtually scratch-proof', luenette: 'Bezel – protects the crystal', krone: 'Screw-down crown – sealed to 10 bar', zeiger: 'Luminous hands – readable in the dark', blatt: 'Dial – indices set one by one', rotor: 'Rotor – winds the watch as you wear it', unruh: 'Balance – 28,800 beats an hour', platine: 'Main plate – carries the movement', boden: 'Case back – room for your engraving', bruecke: 'Bridges – hold the wheels', rad: 'Gear train – passes on the power', tuer: 'Door with concealed hinge', auszug: 'Full-extension drawer', platte: 'Worktop 40 mm', kochfeld: 'Induction hob', armatur: 'Tap', becken: 'Undermount sink', stuhl: 'Hydraulic, swivelling', plane: 'Sliding curtain – side loading in minutes', kabine: 'Tilting cab – engine within reach', zwilling: 'Twin tyres – more payload', achsen: 'Tri-axle bogie – 24 t axle load' },
     modelle: {
-      kleinwagen: { alt: 'Small car in a dark photo studio, rendered with Blender Cycles',
+      kleinwagen: { alt: 'Small car on a suburban residential street, rendered with Blender Cycles',
         daten: 'Our own design · length 4.07 m · width 1.76 m · height 1.45 m · wheelbase 2.57 m',
         bau: 'Transverse three-cylinder, front-wheel drive · MacPherson front, twist beam rear',
         lacke: { azzurro: 'Azure blue metallic', bianco: 'Solid white', salvia: 'Sage green metallic' },
-        innen: { 'stoff-anthrazit': 'Anthracite cloth', 'stoff-grau-blau': 'Grey-blue cloth', 'kunstleder-hell': 'Light leatherette' }, innenAlt: 'Driver’s seat of the small car, rendered with Blender Cycles' },
-      mittelklasse: { alt: 'Mid-size saloon in a dark photo studio, rendered with Blender Cycles',
+        innen: { 'stoff-anthrazit': 'Anthracite cloth', 'stoff-grau-blau': 'Grey-blue cloth', 'kunstleder-hell': 'Light leatherette' }, innenAlt: 'Driver’s seat of the small car in daylight, rendered with Blender Cycles' },
+      mittelklasse: { alt: 'Mid-size saloon in an old-town street in Palermo, rendered with Blender Cycles',
         daten: 'Our own design · length 4.76 m · width 1.83 m · height 1.44 m · wheelbase 2.85 m',
         bau: 'Longitudinal four-cylinder, rear-wheel drive · struts front, multi-link rear',
         lacke: { blunotte: 'Midnight blue metallic', argento: 'Silver metallic', rosso: 'Red metallic' },
-        innen: { 'stoff-anthrazit': 'Anthracite cloth', 'leder-cognac': 'Cognac leather', 'leder-elfenbein': 'Ivory leather' }, innenAlt: 'Driver’s seat of the saloon, rendered with Blender Cycles' },
-      auto: { alt: 'Carmine red sports car in a dark photo studio, rendered with Blender Cycles',
+        innen: { 'stoff-anthrazit': 'Anthracite cloth', 'leder-cognac': 'Cognac leather', 'leder-elfenbein': 'Ivory leather' }, innenAlt: 'Driver’s seat of the saloon in daylight, rendered with Blender Cycles' },
+      auto: { alt: 'Carmine red sports car on a mountain road, rendered with Blender Cycles',
         daten: 'Design study · length 4.36 m · height 1.31 m', bau: 'Khronos “CarConcept” concept car (CC BY 4.0)',
         lacke: { karmin: 'Carmine red', perl: 'Pearl white', graphit: 'Graphite' } },
     },
@@ -179,19 +179,19 @@ const $$ = (s, w = document) => [...w.querySelectorAll(s)];
 /* Stand der gerechneten Bilder: JavaScript setzt diese Adressen, nicht
    build.mjs -- wer neu rechnet, zählt hier hoch (der Server gibt Bildern
    dreißig Tage). */
-const BILD_STAND = '5';
+const BILD_STAND = '6';
 /* Dasselbe für Modelle, Umgebungen und Kameradaten unter assets/3d/branchen. */
-const MODELL_STAND = '11';
+const MODELL_STAND = '12';
 const PFAD = '/assets/img/erlebnis/branchen/';
 /* Modelle der Automotive-Demo: Lackschluessel (= Dateiname der Fotos und
    Reihenfolge der Varianten im GLB), Farbe des Punkts, gemessene Uebertragung
    (gzip, samt three.js) und Dreiecke der Echtzeitfassung. */
 const MODELLE = {
-  kleinwagen: { mb: 3.2, dreiecke: 387222, lacke: [['azzurro', '#2a64ad'], ['bianco', '#ebeae5'], ['salvia', '#8a9d8c']],
+  kleinwagen: { mb: 4.0, dreiecke: 387222, lacke: [['azzurro', '#2a64ad'], ['bianco', '#ebeae5'], ['salvia', '#8a9d8c']],
     innen: [['stoff-anthrazit', '#2b2c30'], ['stoff-grau-blau', '#3d5578'], ['kunstleder-hell', '#b9b8b3']] },
-  mittelklasse: { mb: 3.2, dreiecke: 384108, lacke: [['blunotte', '#1f2c52'], ['argento', '#b8bbbf'], ['rosso', '#8f1519']],
+  mittelklasse: { mb: 4.3, dreiecke: 384108, lacke: [['blunotte', '#1f2c52'], ['argento', '#b8bbbf'], ['rosso', '#8f1519']],
     innen: [['stoff-anthrazit', '#2b2c30'], ['leder-cognac', '#8a4a22'], ['leder-elfenbein', '#d8cdb4']] },
-  auto: { mb: 2.9, dreiecke: 213347, lacke: [['karmin', '#b3121c'], ['perl', '#e6e8ec'], ['graphit', '#55595f']] },
+  auto: { mb: 4.7, dreiecke: 213347, lacke: [['karmin', '#b3121c'], ['perl', '#e6e8ec'], ['graphit', '#55595f']] },
 };
 
 /* Stufe aus dem Erlebnisteil (erlebnis.js misst das Gerät). Die Spiegelung

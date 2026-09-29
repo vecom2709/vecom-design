@@ -53,12 +53,37 @@ ORTE = {
     # fb1), bei 40 m wurde er zur endlosen Flaeche vor einer Wand wie im
     # Leerraum (fb2) -- 16 m endet etwa dort, wo in der Aufnahme die Wand
     # auf den Boden trifft.
+    # Autos (29.09.2026): Sportwagen auf der Bergstrasse (red_hill_curve,
+    # Drehung 225), Mittelklasse in einer Altstadtstrasse Palermos
+    # (quattro_canti, 270), Kleinwagen auf der Wohnstrasse
+    # (suburban_parking_area, 240); alle CC0. Andere Drehungen der Reihe
+    # verworfen: Hecken, Denkmaeler oder parkende Autos direkt vor der Kamera.
+    'auto': dict(hdri='red_hill_curve_4k.exr', dreh=225.0, staerke=1.0, aufhellung=0.4, schatten_m=11.0,
+                 kamera=dict(winkel=-35.0, hoehe=1.5, lens=85.0, ziel_hoehe=0.55, fuellung=0.62, blende=5.6),
+                 belichtung=0.0),
+    'mittelklasse': dict(hdri='quattro_canti_4k.exr', dreh=270.0, staerke=1.0,
+                         kamera=dict(winkel=-35.0, hoehe=1.15, lens=70.0, ziel_hoehe=0.65, fuellung=0.62, blende=5.6),
+                         belichtung=0.0),
+    'kleinwagen': dict(hdri='suburban_parking_area_4k.exr', dreh=240.0, staerke=1.0,
+                       kamera=dict(winkel=-35.0, hoehe=1.15, lens=70.0, ziel_hoehe=0.65, fuellung=0.62, blende=5.6),
+                       belichtung=0.0),
     'kueche': dict(hdri='lebombo_4k.exr', dreh=45.0, staerke=1.0,
                    kamera=dict(winkel=-28.0, hoehe=1.55, lens=50.0, ziel_hoehe=0.55, fuellung=0.5, blende=4.0),
                    fussboden=dict(ordner=r'polyhaven\laminate_floor_02', farbe='laminate_floor_02_diff_2k.jpg',
                                   rauheit='laminate_floor_02_rough_2k.jpg', normal='laminate_floor_02_nor_gl_2k.jpg',
                                   groesse=16.0, kachel_m=2.0),
                    belichtung=0.3),
+    # Schuh: auf einem Betonblock (Sitzbank aus Waschbeton) am Potsdamer
+    # Platz, bedeckter Himmel -- weiches Licht wie eine riesige Softbox,
+    # Strasse und Passanten in der Unschaerfe (Drehung 45, Reihe 29.09.2026).
+    # Beton granular_concrete (CC0, 2,4 m je Kachel); smooth_concrete_floor
+    # war rotbraun wie Granit.
+    'schuh': dict(hdri='potsdamer_platz_4k.exr', dreh=45.0, staerke=1.0,
+                  kamera=dict(winkel=-35.0, hoehe=0.16, lens=85.0, ziel_hoehe=0.06, fuellung=0.6, blende=5.6),
+                  stein=dict(ordner=r'polyhaven\granular_concrete', farbe='granular_concrete_diff_2k.jpg',
+                             rauheit='granular_concrete_rough_2k.jpg', normal='granular_concrete_nor_gl_2k.jpg',
+                             groesse=(1.6, 0.5, 0.45), kachel_m=2.4, rau=(0.55, 0.9), fase=0.006),
+                  belichtung=0.0),
     # LKW: Sattelzug auf einem asphaltierten Hof mit Halle (driving_school,
     # Drehung 315; tank_farm und Landstrasse verworfen, Reihe 29.09.2026).
     'lkw': dict(hdri='driving_school_4k.exr', dreh=315.0, staerke=1.0,
@@ -68,7 +93,7 @@ ORTE = {
 O = ORTE[WAS]
 if 'hdri' in EXTRA:              # Ortsvergleich: andere Aufnahme probeweise
     O['hdri'] = EXTRA['hdri']
-for k in ('dreh', 'staerke', 'belichtung'):
+for k in ('dreh', 'staerke', 'belichtung', 'aufhellung'):
     if k in EXTRA:
         O[k] = float(EXTRA[k])
 K = dict(O['kamera'])
@@ -88,7 +113,10 @@ def status(**k):
 # ------------------------------------------------------------------ Modell
 bpy.ops.wm.read_factory_settings(use_empty=True)
 sc = bpy.context.scene
-bpy.ops.import_scene.gltf(filepath=os.path.join(P, 'quelle', f'{WAS}.glb'))
+# Quelle wie im Studio (branchen_studio.py): der Sportwagen ohne Fremdlogos
+QUELLE = {'auto': 'auto-ohne-logos.glb'}.get(WAS, f'{WAS}.glb')
+AUTO = WAS in ('auto', 'kleinwagen', 'mittelklasse')
+bpy.ops.import_scene.gltf(filepath=os.path.join(P, 'quelle', QUELLE))
 for _o in [o for o in sc.objects if o.name.startswith('varianten_traeger')]:
     bpy.data.objects.remove(_o, do_unlink=True)
 # Das Foto zeigt den gedeckten Tisch; Speisen kommen nur im Web (nur_web)
@@ -122,7 +150,9 @@ def tiefster_punkt(objs):
     return z
 
 lo, hi = huelle(modell)
-boden_z = tiefster_punkt(modell)
+# Auto: Aufstandspunkt sind die Reifen, nicht Unterboden oder Achsen
+_reifen = [o for o in modell if any(sl.material and sl.material.name == 'Tiretread' for sl in o.material_slots)] if AUTO else []
+boden_z = tiefster_punkt(_reifen or modell)
 mitte = (lo + hi) / 2
 groesse = hi - lo
 print('BODEN', round(boden_z, 4), 'MASSE', [round(x, 3) for x in groesse])
@@ -268,6 +298,32 @@ faenger.is_shadow_catcher = True
 mf = bpy.data.materials.new('Faenger'); mf.use_nodes = True
 mf.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value = 0.6
 faenger.data.materials.append(mf)
+
+# Aufhellung nur fuer den Schattenfaenger (Autos, 29.09.2026): Unter klarem
+# Himmel ist die Sonne der Aufnahme so stark, dass der Faenger den Schatten
+# vor dem Sportwagen fast schwarz machte (Probe auto-b: 8 gegen 88 in sRGB,
+# gemessen; echter Asphalt im Schatten liegt bei 15-25 % des Sonnenlichts).
+# Ein Sonnenlicht von oben, das per Lichtverknuepfung NUR den Faenger trifft
+# und von nichts verdeckt wird, geht mit und ohne Auto gleich ein -- es hebt
+# nur das Verhaeltnis, Auto und Hintergrund bleiben unberuehrt. Staerke als
+# Anteil der gemessenen Bestrahlung der Aufnahme auf eine waagerechte Flaeche
+# (auto: 0,4 ergibt 18 % im Schatten, gemessen in Probe auto-e).
+if O.get('aufhellung'):
+    import numpy as np
+    im_ = env.image; bw_, bh_ = im_.size
+    px_ = np.empty(bw_ * bh_ * 4, dtype=np.float32); im_.pixels.foreach_get(px_)
+    px_ = px_.reshape(bh_, bw_, 4)[:, :, :3] @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    # Blender-Bilder beginnen unten: Zeile 0 = Nadir. Obere Haelfte = Himmel.
+    th_ = (np.arange(bh_) + 0.5) / bh_ * math.pi - math.pi / 2       # Hoehenwinkel
+    oben_ = th_ > 0
+    gew_ = np.sin(th_) * np.cos(th_) * (math.pi / bh_) * (2 * math.pi / bw_)
+    E_ = float((px_[oben_].sum(axis=1) * gew_[oben_]).sum()) * O['staerke']
+    ls_ = bpy.data.lights.new('FaengerAufhellung', 'SUN'); ls_.energy = E_ * float(O['aufhellung']); ls_.angle = math.radians(60)
+    lo_ = bpy.data.objects.new('FaengerAufhellung', ls_); sc.collection.objects.link(lo_)
+    kf_ = bpy.data.collections.new('NurFaenger'); kf_.objects.link(faenger)
+    lo_.light_linking.receiver_collection = kf_
+    lo_.light_linking.blocker_collection = kf_
+    print('AUFHELLUNG Bestrahlung', round(E_, 3), 'Sonne', round(ls_.energy, 3))
 
 # Grosse Stuecke (Kochinsel) brauchen einen echten Fussboden: Der Boden
 # eines Rundumbilds liegt fuer die Kamera in unendlicher Ferne -- eine 2 m
@@ -539,6 +595,27 @@ if FL and 'flagge=aus' not in argv:
     flagge.visible_camera = False; flagge.visible_diffuse = False; flagge.visible_shadow = False
     flagge.visible_transmission = True; flagge.visible_glossy = True; flagge.visible_volume_scatter = False
 
+# ------------------------------------------------------------------ Fahrerplatz
+# Modus innen (29.09.2026): Die Ausstattungsbilder vom Fahrerplatz entstanden
+# im dunklen Studio -- durch die Scheiben sah man Schwarz. Am Ort faellt das
+# Tageslicht der Aufnahme durch die Scheiben, draussen liegt die Strasse.
+# Dieselbe Kamera wie branchen_studio.py (Augpunkt nach SAE J941, 20 mm),
+# damit Standbild und Kamerafahrt im Web (kamera-innen.json) sich decken.
+KAMERA_INNEN = {
+    'kleinwagen': dict(auge=(0.30, 2.42, 1.12), ziel=(0.08, 1.78, 0.86), lens=20.0),
+    'mittelklasse': dict(auge=(0.31, 2.76, 1.10), ziel=(0.08, 2.15, 0.85), lens=20.0),
+}
+INNEN = MODUS == 'innen' or (MODUS == 'probe' and EXTRA.get('kamera') == 'innen')
+if INNEN:
+    KI = KAMERA_INNEN[WAS]
+    lo_m, hi_m = huelle(modell)
+    y0 = lo_m.y                   # Vorderkante in Blender (-Y), wie im Studio
+    auge = Vector((KI['auge'][0], y0 + KI['auge'][1], boden_z + KI['auge'][2]))
+    ziel_i = Vector((KI['ziel'][0], y0 + KI['ziel'][1], boden_z + KI['ziel'][2]))
+    cam.location = auge
+    cam.rotation_euler = (ziel_i - auge).to_track_quat('-Z', 'Y').to_euler()
+    cam_d.lens = KI['lens']; cam_d.dof.use_dof = False
+
 # ------------------------------------------------------------------ Render
 r = sc.render
 r.engine = 'CYCLES'
@@ -611,6 +688,10 @@ for _look in (EXTRA.get('look', 'AgX - Base Contrast'), 'None'):
     except TypeError:
         pass
 sc.view_settings.exposure = O['belichtung']
+if INNEN:
+    # Im Wagen ist es dunkler als draussen -- wie ein Fotograf eine Blende
+    # mehr (innen_belichtung=... zum Probieren)
+    sc.view_settings.exposure = O['belichtung'] + float(EXTRA.get('innen_belichtung', O.get('innen_belichtung', 1.0)))
 r.image_settings.file_format = 'PNG'; r.image_settings.color_mode = 'RGB'; r.image_settings.color_depth = '8'
 r.film_transparent = False
 
@@ -713,6 +794,10 @@ if MODUS == 'web':
     _mitmoebel = [o for o in stuhl_objs if o is not fussboden]
     gr = 2 * max(1.2, max(abs(v) for o in _mitmoebel for c in o.bound_box
                           for v in ((o.matrix_world @ Vector(c)).x - mitte.x, (o.matrix_world @ Vector(c)).y - mitte.y)) + 0.25) if _mitmoebel else 2 * max(1.2, max(groesse.x, groesse.y) / 2 + 0.6)
+    # Tiefe Sonne wirft lange Schatten: Beim Sportwagen (klarer Himmel) lief
+    # der Schatten ueber den Rand der 5,6-m-Flaeche hinaus und wurde im Web
+    # weich ausgeblendet -- vorn fehlte er (Probe 29.09.2026). Je Ort groesser.
+    gr = float(EXTRA.get('schatten_m', O.get('schatten_m', gr)))
     schatten = schatten_backen(gr)
     schatten_oben = None
     if unterlage_box:
@@ -801,13 +886,20 @@ elif MODUS == 'reihe':
         status(was=WAS, modus=MODUS, fertig=fertig)
 else:
     liste = list(range(len(namen))) or [0]
+    # Lacke fuer die Aussenbilder, Ausstattungen ("Innen: ...") nur vom
+    # Fahrerplatz -- aussen saehen sie gleich aus (vorher 6 statt 3 Poster)
+    liste = [i for i in liste if not namen or namen[i].startswith('Innen') == bool(INNEN)]
     if NUR:
-        liste = [i for i in liste if namen and namen[i] in NUR]
+        # auch als Kurzname (stoff-anthrazit): Namen mit Leerzeichen kamen
+        # ueber Start-Process zerlegt an (Probe innen 29.09.2026)
+        _kurz = lambda n: n.lower().replace(' ', '-').replace('innen:-', '')
+        liste = [i for i in liste if namen and (namen[i] in NUR or _kurz(namen[i]) in NUR)]
     for i in liste:
         if namen:
             variante_setzen(i)
-        name = (namen[i] if namen else 'standard').lower().replace(' ', '-')
-        pfad = os.path.join(AUSGABE, f"{'probe' if PROBE else 'poster'}-{name}{EXTRA.get('name', '')}.png")
+        name = (namen[i] if namen else 'standard').lower().replace(' ', '-').replace('innen:-', '')
+        art = 'probe' if PROBE else ('innen' if INNEN else 'poster')
+        pfad = os.path.join(AUSGABE, f"{art}-{name}{EXTRA.get('name', '')}.png")
         status(was=WAS, modus=MODUS, variante=name, schritt='rendert', fertig=fertig)
         t0 = time.time(); r.filepath = pfad
         bpy.ops.render.render(write_still=True)

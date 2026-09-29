@@ -6565,6 +6565,18 @@ pruefe('Klavierlack-Fronten sind gueltige Planungscodes',
 pruefe('Klavierlack steht lesbar in der Anfrage',
     str_contains(Bedarf::planText('z-300-270-240_lackschwarz-oro-grifflos-0_a60t40__', 'de'), 'Klavierlack Schwarz')
     && str_contains(Bedarf::planText('i-300-270-240_lackweiss-nero-messing-1_a60__t60', 'it'), 'laccate bianco lucido'));
+// Autos und Laufschuh am echten Ort (29.09.2026): Ort-Block mit Hintergrund und Schatten
+// vorhanden, Dateien liegen daneben; am Ort kein Bodenspiegel
+$ortAutos = true;
+foreach (['auto', 'kleinwagen', 'mittelklasse', 'schuh'] as $m_) {
+    $k_ = json_decode((string) @file_get_contents("$oben/assets/3d/branchen/$m_/kamera.json"), true);
+    $o_ = $k_['ort'] ?? null;
+    $ortAutos = $ortAutos && is_array($o_) && is_file("$oben/assets/3d/branchen/$m_/" . ($o_['hintergrund'] ?? '-'))
+        && is_file("$oben/assets/3d/branchen/$m_/" . ($o_['schatten']['datei'] ?? '-'));
+}
+pruefe('Autos und Laufschuh stehen am echten Ort (Hintergrund und Kontaktschatten vorhanden)', $ortAutos);
+pruefe('am echten Ort baut die Echtzeit keinen Bodenspiegel',
+    str_contains((string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js"), 'if (ORT) an = false;'));
 pruefe('die neuen Automodelle werden angenommen', Bedarf::demoPruefen('kleinwagen-azzurro') === 'kleinwagen-azzurro'
     && Bedarf::demoPruefen('mittelklasse-blunotte') === 'mittelklasse-blunotte');
 pruefe('fremde Lacke der Automodelle werden abgewiesen', Bedarf::demoPruefen('kleinwagen-karmin') === ''

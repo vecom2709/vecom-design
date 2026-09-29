@@ -1,28 +1,28 @@
 {
  "objekt": "mittelklasse",
  "sensor_breite_mm": 36.0,
- "brennweite_mm": 85.0,
+ "brennweite_mm": 70.0,
  "position": [
-  -8.949603080749512,
-  1.0499999523162842,
-  12.318072319030762
+  8.584115982055664,
+  1.149999976158142,
+  12.259387969970703
  ],
  "ziel": [
   0.0,
-  0.550000011920929,
+  0.6499999761581421,
   -0.0
  ],
- "blende": 8.0,
- "fokus_m": 15.234182357788086,
- "hdri": "studio_small_03",
- "hdri_drehung_grad": 205.0,
- "hdri_staerke": 0.55,
+ "blende": 5.599999904632568,
+ "fokus_m": 14.974299430847168,
+ "hdri": "quattro_canti_4k.exr",
+ "hdri_drehung_grad": 270.0,
+ "hdri_staerke": 1.0,
  "hdri_schwelle": 0.0,
  "boden_hoehe": 0.0,
- "belichtung": -2.0,
+ "belichtung": 0.0,
  "aufloesung": [
-  1600,
-  900
+  3840,
+  2160
  ],
  "varianten": [
   "Blu Notte",
@@ -33,15 +33,15 @@
   "Innen: Leder Elfenbein"
  ],
  "umgebung": {
-  "datei": "umgebung.hdr",
+  "datei": "ort-umgebung.hdr",
   "ort": [
    0.0,
-   0.6480350494384766,
+   1.1520622968673706,
    -0.0
   ]
  },
  "umgebung_boden": {
-  "datei": "umgebung-boden.hdr"
+  "datei": "ort-umgebung.hdr"
  },
  "boden": {
   "datei": "boden-licht.webp",
@@ -70,11 +70,11 @@
   "licht_skala": 0.07036009569659588
  },
  "look": {
-  "kontrast": 1.3,
+  "kontrast": 1.0,
   "pivot": 0.606,
-  "saettigung": 1.25
+  "saettigung": 1.0
  },
- "web_belichtung": 0.6,
+ "web_belichtung": 1.15,
  "web_spiegel": {
   "staerke": 0.22,
   "lod": 4.5
@@ -340,5 +340,19 @@
    "Innen: Leder Elfenbein"
   ]
  },
- "dreiecke": 384108
+ "dreiecke": 384108,
+ "ort": {
+  "hintergrund": "ort-hintergrund.webp",
+  "schatten": {
+   "datei": "schatten.webp",
+   "groesse_m": 5.971999835968018,
+   "mitte": [
+    0.0,
+    0.0,
+    -0.0
+   ]
+  },
+  "abend": 0.1,
+  "quelle": "Poly Haven, quattro_canti (CC0)"
+ }
 }
