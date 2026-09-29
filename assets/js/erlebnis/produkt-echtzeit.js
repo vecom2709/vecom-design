@@ -211,6 +211,39 @@ export async function erstellen({
   szene.environmentIntensity = 1;
   const lichter = [];
 
+  /* ------------------------------------------------------ Echter Ort (R3)
+     Seit 29.09.2026 stehen Demos an einem echten Ort (branchen_ort.py): eine
+     HDRI-Aufnahme ist Licht UND Hintergrund. Hier dasselbe -- der Hintergrund
+     ist das Rundumbild des Ortes von der Kamera aus, in Blender schon mit AgX
+     belichtet (sRGB, deshalb nicht noch einmal getont), leicht weichgezeichnet
+     wie die offene Blende im Foto. Licht und Spiegelungen kommen aus
+     "umgebung" (dasselbe Rundumbild, linear, aus der Tischmitte). */
+  const ORT = K.ort || null;
+  const _kugelOrt = new THREE.Vector3();
+  let ortHintergrund = null;
+  if (ORT) {
+    ortHintergrund = await new THREE.TextureLoader().loadAsync(ordner + ORT.hintergrund + stand);
+    ortHintergrund.colorSpace = THREE.SRGBColorSpace;
+    ortHintergrund.anisotropy = 4;
+    /* Als Innenseite einer grossen Kugel statt ueber scene.background: Der
+       eingebaute Weg rechnet das Rundumbild erst in eine 8-Bit-Wuerfelkarte
+       um -- das Bild kam heller und flauer heraus als im Poster (Probe
+       29.09.2026). So wird jedes Texel genau so ausgegeben, wie Blender es
+       belichtet hat. Die Kugel folgt der Kamera (unendlich fern). */
+    const kugel = new THREE.Mesh(new THREE.SphereGeometry(80, 96, 48),
+      new THREE.MeshBasicMaterial({ map: ortHintergrund, side: THREE.BackSide, toneMapped: false, depthWrite: false, fog: false }));
+    /* Die Kugel laeuft in u andersherum als three.js' Equirect-Abbildung
+       (u_equirect = 1 - u_kugel) -- gespiegelt ausgelesen passt sie genau:
+       Bildmitte = +X wie beim Blender-Rundumbild. */
+    ortHintergrund.wrapS = THREE.RepeatWrapping; ortHintergrund.repeat.x = -1; ortHintergrund.offset.x = 1;
+    kugel.renderOrder = -10; kugel.frustumCulled = false;
+    // Unendlich fern: vor dem Zeichnen auf die Kamera setzen (vor modelViewMatrix)
+    kugel.onBeforeRender = (_r, _s, cam) => { kugel.matrixWorld.setPosition(cam.getWorldPosition(_kugelOrt)); };
+    kugel.name = 'ort_hintergrund';
+    szene.add(kugel);
+    ortHintergrund.userData.kugel = kugel;
+  }
+
   /* --------------------------------------------------------------- Modell */
   const lader = new GLTFLoader(); lader.setMeshoptDecoder(MeshoptDecoder);
   const gltf = await lader.loadAsync(glb);
@@ -252,6 +285,28 @@ export async function erstellen({
     }
   });
   const leuchtStaerke = new Map([...leuchtend].map((m) => [m, m.emissiveIntensity]));
+
+  /* Echter Ort: die gefallene Tischdecke (Stoffsimulation in Blender), die
+     Stuehle an ihrem Platz und die Holzfarbe wie im Foto. Die Decke behaelt
+     ihr Material und damit die Varianten -- getauscht wird nur die Form. */
+  if (ORT) {
+    const zusatz = [];
+    if (ORT.decke) zusatz.push(lader.loadAsync(ordner + ORT.decke + stand).then((g) => {
+      let neu = null; g.scene.traverse((o) => { if (o.isMesh && !neu) neu = o.geometry; });
+      if (!neu) return;
+      /* Die neue Form traegt die gebackene Verdeckung als Punktfarbe --
+         assignFinalMaterial legt dafuer die Materialkopie mit vertexColors an
+         (auch bei jedem spaeteren Variantenwechsel). */
+      modell.traverse((o) => { if (o.isMesh && /^decke/.test(o.name || o.parent?.name || '')) { o.geometry.dispose(); o.geometry = neu; parser.assignFinalMaterial(o); } });
+    }));
+    if (ORT.stuehle) zusatz.push(lader.loadAsync(ordner + ORT.stuehle + stand).then((g) => { szene.add(g.scene); }));
+    await Promise.all(zusatz);
+    if (ORT.tisch_farbe) {
+      const f = new THREE.Color(...ORT.tisch_farbe);
+      const gesehen = new Set();
+      modell.traverse((o) => { const m = o.material; if (m && /^Tisch/.test(m.name || '') && !gesehen.has(m)) { gesehen.add(m); m.color.multiply(f); } });
+    }
+  }
   /* Lichtquellen im Modell (Empties "kerzenlicht", Gastronomie): Punktlicht,
      das nur am Abend brennt -- die Flamme selbst leuchtet, aber sie wirft
      in three.js kein Licht auf Tisch und Glaeser. */
@@ -761,6 +816,23 @@ export async function erstellen({
   szene.add(boden);
   schattenFlaeche.position.set(B.mitte[0], B.mitte[1] + 0.001, B.mitte[2]);
 
+  /* Echter Ort: kein Studioboden -- der Boden ist der des Hintergrunds. Darauf
+     liegt der Kontaktschatten aus Blender (Schattenfaenger von oben gerechnet):
+     schwarz mit der Schattenstaerke als Deckkraft, genau wie Cycles ihn ueber
+     den Hintergrund legt (Hintergrund x (1 - Alpha)). */
+  let ortSchatten = null;
+  if (ORT && ORT.schatten) {
+    boden.visible = false;
+    const S = ORT.schatten;
+    const sTex = await new THREE.TextureLoader().loadAsync(ordner + S.datei + stand);
+    sTex.colorSpace = THREE.NoColorSpace;
+    const sGeo = new THREE.PlaneGeometry(S.groesse_m, S.groesse_m); sGeo.rotateX(-Math.PI / 2);
+    ortSchatten = new THREE.Mesh(sGeo, new THREE.MeshBasicMaterial({ color: 0x000000, alphaMap: sTex, transparent: true, depthWrite: false, toneMapped: false }));
+    ortSchatten.position.set(S.mitte[0], S.mitte[1] + 0.0008, S.mitte[2]);
+    ortSchatten.renderOrder = -1;
+    szene.add(ortSchatten);
+  }
+
   let spiegel = null;
   function spiegelBauen(an) {
     if (!!spiegel === an) return;
@@ -1250,6 +1322,8 @@ export async function erstellen({
        am hellen Studiobild nichts sichtbar verändert. */
     licht(an) {
       szene.environmentIntensity = an ? 0.07 : 1;
+      // Am echten Ort wird es mit dem Raum Abend, nicht nur am Modell
+      if (ORT) ortHintergrund.userData.kugel.material.color.setScalar(an ? (ORT.abend ?? 0.1) : 1);
       bodenMat.envMapIntensity = (K.web_boden?.umgebung ?? 1) * (an ? 0.15 : 1);
       bodenMat.lightMapIntensity = bodenLichtStaerke * (an ? 0.08 : 1);
       for (const [m, s] of leuchtStaerke) m.emissiveIntensity = an ? s * 2.2 : s;
@@ -1299,7 +1373,7 @@ export async function erstellen({
       if (o.bodenGlanz !== undefined) bodenMat.specularIntensity = o.bodenGlanz;
       einmal();
     },
-    entsorgen() { anhalten(); ro.disconnect(); r.dispose(); umgebung.dispose(); umgebungBoden.dispose(); leinwand.remove(); },
+    entsorgen() { anhalten(); ro.disconnect(); r.dispose(); umgebung.dispose(); umgebungBoden.dispose(); if (ortHintergrund) ortHintergrund.dispose(); leinwand.remove(); },
   };
   return api;
 }
