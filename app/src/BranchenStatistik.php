@@ -91,6 +91,94 @@ final class BranchenStatistik
         return (preg_match('~^[aA]~u', $ort) ? 'ad ' : 'a ') . $ort;
     }
 
+    /* ----------------------------------------------------------------------
+       Für Google, Maps und KI-Suche (29.09.2026, Uwe: Ja zu „Google-Profile
+       der Betriebe“): typischer Richtpreis je Branche, Folgen je Kennzahl
+       und Fragen/Antworten -- alles aus echten Zahlen, nichts erfunden.
+       ---------------------------------------------------------------------- */
+    /** Was eine typische Website dieser Branche braucht (für den Richtpreis „ab …“). */
+    public const TYPISCH = [
+        'restaurant' => ['speisekarte', 'termine'], 'bar_cafe' => ['speisekarte'], 'baeckerei' => ['speisekarte'],
+        'hotel' => ['buchung'], 'ferienwohnung' => ['buchung'], 'agriturismo' => ['buchung', 'speisekarte'], 'tourismus' => ['buchung'],
+        'friseur' => ['termine'], 'beauty' => ['termine'], 'fitness' => ['termine'], 'medizin' => ['termine'],
+        'einzelhandel' => ['shop'], 'produzent' => ['shop'],
+    ];
+
+    public static function typischerPreis(string $branche, ?array $katalog = null): int
+    {
+        require_once __DIR__ . '/Baukasten.php';
+        $zweck = array_merge(['zeigen', 'kontakt'], self::TYPISCH[$branche] ?? []);
+        $mehr = in_array($branche, ['hotel', 'ferienwohnung', 'agriturismo', 'tourismus'], true) ? '2' : '1';
+        return Baukasten::live(['zweck' => $zweck, 'umfang' => 'wenige', 'sprachen' => $mehr, 'material' => ['texte', 'fotos', 'logo'],
+                                'bestand' => 'neu', 'zeit' => 'offen', 'betreuung' => 'nein'], Baukasten::schrittZahl(), $katalog)['von_cents'];
+    }
+
+    /** Was die Schwäche für den Betrieb bedeutet (ein Satz, ohne Drohung). */
+    public const FOLGE = [
+        'ohne'    => ['it' => 'Chi cerca su Google trova solo i concorrenti che un sito ce l’hanno.', 'de' => 'Wer bei Google sucht, findet nur die Mitbewerber, die eine Website haben.', 'en' => 'People searching on Google only find the competitors who have a website.'],
+        'langsam' => ['it' => 'Oltre la metà delle visite arriva dal telefono: se la pagina tarda, molti tornano indietro prima di vederla.', 'de' => 'Über die Hälfte der Besuche kommt vom Handy: Lädt die Seite lange, gehen viele zurück, bevor sie sie sehen.', 'en' => 'More than half of all visits come from phones: if the page is slow, many leave before they see it.'],
+        'handy'   => ['it' => 'Testi minuscoli e pulsanti troppo vicini fanno chiudere la pagina sul telefono.', 'de' => 'Winzige Schrift und zu enge Knöpfe lassen Besucher am Handy wieder abspringen.', 'en' => 'Tiny text and cramped buttons make phone visitors leave.'],
+        'https'   => ['it' => 'Il browser segnala il sito come «non sicuro» — e molti non inviano più una richiesta.', 'de' => 'Der Browser meldet die Seite als „nicht sicher“ — und viele schicken dann keine Anfrage mehr.', 'en' => 'The browser flags the site as “not secure” — and many stop sending enquiries.'],
+        'kontakt' => ['it' => 'Se telefono o richiesta non sono a portata di dito, il cliente chiama il prossimo.', 'de' => 'Sind Anruf oder Anfrage nicht mit einem Tipp erreichbar, ruft der Kunde den Nächsten an.', 'en' => 'If calling or enquiring isn’t one tap away, the customer calls the next business.'],
+        'google'  => ['it' => 'Senza titolo, descrizione e luogo chiari, Google mostra il sito più in basso o non lo mostra.', 'de' => 'Ohne klaren Titel, Beschreibung und Ort zeigt Google die Seite weiter unten oder gar nicht.', 'en' => 'Without a clear title, description and location, Google ranks the site lower or not at all.'],
+        'veraltet' => ['it' => 'Un aspetto datato fa pensare che anche l’attività sia ferma.', 'de' => 'Ein veralteter Auftritt lässt vermuten, dass auch der Betrieb stehen geblieben ist.', 'en' => 'A dated look suggests the business has stood still too.'],
+    ];
+
+    /** @return list<array{0:string,1:string}> Fragen und Antworten für Seite und FAQPage */
+    public static function faq(array $s, string $sprache, int $abCents): array
+    {
+        require_once __DIR__ . '/Baukasten.php';
+        $mz = self::mehrzahl($s['branche'], $sprache); $in = self::in($s['ort'], $sprache);
+        [$k, $p] = self::staerkste($s);
+        $ab = Baukasten::geldText($abCents, $sprache);
+        $w = self::WORTE[$k][$sprache];
+        $F = [
+            'it' => [["Quanto costa un sito per {$mz} {$in}?", "Un sito tipico per {$mz}, con le funzioni che servono di solito, parte da {$ab}. Il prezzo indicativo esatto lo vede in 90 secondi con otto domande, senza impegno."],
+                     ["Qual è il problema più frequente dei siti di {$mz} {$in}?", "Nelle nostre analisi automatiche di {$s['geprueft']} siti il {$p} % {$w}. " . self::FOLGE[$k]['it']],
+                     ['Come posso controllare il mio sito?', 'Con l’analisi gratuita su vecom-design.it: inserisca l’indirizzo e in 30 secondi vede velocità, lettura sul telefono, sicurezza, contatto e Google, con un rapporto chiaro.']],
+            'de' => [["Was kostet eine Website für {$mz} {$in}?", "Eine typische Website für {$mz} mit den üblichen Funktionen beginnt bei {$ab}. Ihren genauen Richtpreis sehen Sie in 90 Sekunden mit acht Fragen, unverbindlich."],
+                     ["Was ist das häufigste Problem der Websites von {$mz} {$in}?", "In unseren automatischen Prüfungen von {$s['geprueft']} Websites: {$p} % {$w}. " . self::FOLGE[$k]['de']],
+                     ['Wie kann ich meine Website prüfen lassen?', 'Mit der kostenlosen Analyse auf vecom-design.it: Adresse eingeben, in 30 Sekunden sehen Sie Tempo, Lesbarkeit am Handy, Sicherheit, Kontakt und Google — mit einem klaren Bericht.']],
+            'en' => [["How much does a website for {$mz} {$in} cost?", "A typical website for {$mz} with the usual features starts at {$ab}. You'll see your exact guide price in 90 seconds with eight questions, no obligation."],
+                     ["What is the most common problem of {$mz} websites {$in}?", "In our automated checks of {$s['geprueft']} websites, {$p} % {$w}. " . self::FOLGE[$k]['en']],
+                     ['How can I check my website?', 'With the free analysis on vecom-design.it: enter the address and in 30 seconds you see speed, phone readability, security, contact and Google — with a clear report.']],
+        ];
+        return $F[$sprache];
+    }
+
+    /**
+     * Neue oder geänderte Seiten an Bing & Co. melden (IndexNow). Die KI-Suchen
+     * (ChatGPT-Suche, Copilot) lesen aus diesem Index. Google meldet sich über
+     * die Sitemap. Fehler sind egal -- beim nächsten Lauf wieder.
+     * @param list<string> $urls
+     */
+    public static function indexNow(array $urls): bool
+    {
+        if (!$urls || !function_exists('curl_init')) { return false; }
+        $key = self::indexNowKey();
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $host = (string) parse_url($basis, PHP_URL_HOST);
+        if ($host === '' || str_starts_with($host, '127.') || $host === 'localhost') { return false; }
+        $ch = curl_init('https://api.indexnow.org/indexnow');
+        curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json; charset=utf-8'],
+            CURLOPT_POSTFIELDS => json_encode(['host' => $host, 'key' => $key, 'keyLocation' => $basis . '/indexnow-key.php', 'urlList' => array_values(array_slice($urls, 0, 10000))])]);
+        curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return $code >= 200 && $code < 300;
+    }
+
+    public static function indexNowKey(): string
+    {
+        $k = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'indexnow_key'", [], '');
+        if (!preg_match('~^[a-f0-9]{32}$~', $k)) {
+            $k = bin2hex(random_bytes(16));
+            Db::run("INSERT INTO settings (skey, svalue) VALUES ('indexnow_key', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$k]);
+        }
+        return $k;
+    }
+
     public static function slug(string $branche, string $ort): string
     {
         $o = strtolower((string) (iconv('UTF-8', 'ASCII//TRANSLIT', $ort) ?: $ort));
@@ -154,6 +242,17 @@ final class BranchenStatistik
                      ON DUPLICATE KEY UPDATE land = VALUES(land), branche = VALUES(branche), ort = VALUES(ort), ort_art = VALUES(ort_art),
                      n = VALUES(n), geprueft = VALUES(geprueft), werte = VALUES(werte), aktualisiert = NOW()',
                 [$slug, $g['land'], $g['branche'], self::ortSchoen($g['ort']), $g['ort_art'], $g['n'], $g['geprueft'], json_encode($werte)]);
+        }
+        // Neue Seiten an die Suchmaschinen melden (IndexNow), höchstens einmal je Seite und Woche
+        $melden = [];
+        foreach (array_keys($behalten) as $sl) {
+            $z = Db::one('SELECT land, slug FROM akq_statistik WHERE slug = ?', [$sl]);
+            if ($z) { foreach (['it', 'de', 'en'] as $l) { $melden[] = self::adresse($z, $l); } }
+        }
+        $gemeldet = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'indexnow_am'", [], '');
+        if ($melden && ($gemeldet === '' || $gemeldet < date('Y-m-d', strtotime('-7 days')) || (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'indexnow_anzahl'", [], 0) !== count($melden))) {
+            try { self::indexNow($melden); } catch (Throwable $e) { }
+            Db::run("INSERT INTO settings (skey, svalue) VALUES ('indexnow_am', ?), ('indexnow_anzahl', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [date('Y-m-d'), (string) count($melden)]);
         }
         // Was die Schwelle nicht mehr erreicht, verschwindet
         $alle = array_keys($behalten);

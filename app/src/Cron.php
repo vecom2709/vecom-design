@@ -145,7 +145,9 @@ final class Cron
                 require_once __DIR__ . '/PartnerSteuerung.php';
                 // Weckruf nach 30 stillen Tagen, höchstens monatlich (27.09.2026).
                 return Partner::lauf() + ['berichte' => Partner::monatsberichte(), 'weg_erinnert' => PartnerPost::wegErinnern(), 'impulse' => PartnerPost::wochenImpuls(),
-                                          'weckrufe' => PartnerSteuerung::weckruf()];
+                                          'weckrufe' => PartnerSteuerung::weckruf(), 'autopilot' => (static function (): int {
+                                              try { require_once __DIR__ . '/PartnerAutopilot.php'; return PartnerAutopilot::morgen(); } catch (Throwable $e) { return -1; }
+                                          })()];
             },
             /* Meldungen, deren Anlass die Datenbank als vorbei belegt, gelten
                als gelesen (26.09.2026). Nie auf Verdacht -- siehe Meldungen. */

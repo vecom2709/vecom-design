@@ -37,6 +37,7 @@ $T = [
              'cta' => 'E il suo sito? Lo scopra in 30 secondi.', 'ctaText' => 'Analisi gratuita dello stesso tipo, con un rapporto chiaro su cosa migliorare. Senza impegno.',
              'knopf' => 'Analisi gratuita', 'preis' => 'Prezzo indicativo in 90 secondi', 'weitere' => 'Altre città', 'andere' => 'Altri settori {in}',
              'methode' => 'Come contiamo: un programma controlla ogni sito come lo vede un cliente al telefono (velocità, leggibilità, sicurezza, contatto, Google). Mostriamo solo percentuali e solo quando i siti analizzati sono almeno {min}. Nessuna attività viene nominata.',
+             'bedeutet' => 'Che cosa significa per i clienti', 'preisTitel' => 'Un sito per {mz}: prezzo indicativo', 'preisAb' => 'da {ab}', 'preisText' => 'Con le funzioni che servono di solito a {mz}. Il suo prezzo esatto in 90 secondi, senza impegno.', 'faq' => 'Domande frequenti', 'start' => 'Inizio',
              'nichts' => 'Questa pagina non è (più) disponibile.', 'uebersicht' => 'Tutti i settori e le città', 'leer' => 'Le prime pagine arrivano appena le analisi bastano.'],
     'de' => ['ueber' => 'Wie steht es um die Websites? Nach Branche und Ort', 'ueberText' => 'Anonyme Werte aus unseren automatischen Prüfungen. Wählen Sie Ihre Branche und Ihren Ort.',
              'titel' => '{Mz} {in}: Wie gut sind die Websites?', 'kern' => '{p} % {wort}.', 'grund' => 'Wir haben {g} Websites geprüft ({n} Betriebe insgesamt) — anonym, Stand {datum}.',
@@ -44,6 +45,7 @@ $T = [
              'cta' => 'Und Ihre Website? In 30 Sekunden wissen Sie es.', 'ctaText' => 'Dieselbe Analyse kostenlos, mit einem klaren Bericht, was sich verbessern lässt. Unverbindlich.',
              'knopf' => 'Kostenlose Analyse', 'preis' => 'Richtpreis in 90 Sekunden', 'weitere' => 'Weitere Orte', 'andere' => 'Andere Branchen {in}',
              'methode' => 'So zählen wir: Ein Programm prüft jede Website so, wie ein Kunde sie am Handy sieht (Tempo, Lesbarkeit, Sicherheit, Kontakt, Google). Wir zeigen nur Anteile und nur, wenn mindestens {min} Websites geprüft sind. Kein Betrieb wird genannt.',
+             'bedeutet' => 'Was das für die Kunden bedeutet', 'preisTitel' => 'Website für {mz}: Richtpreis', 'preisAb' => 'ab {ab}', 'preisText' => 'Mit den Funktionen, die {mz} üblicherweise brauchen. Ihren genauen Preis sehen Sie in 90 Sekunden, unverbindlich.', 'faq' => 'Häufige Fragen', 'start' => 'Start',
              'nichts' => 'Diese Seite ist nicht (mehr) verfügbar.', 'uebersicht' => 'Alle Branchen und Orte', 'leer' => 'Die ersten Seiten erscheinen, sobald genug Prüfungen vorliegen.'],
     'en' => ['ueber' => 'How are local websites doing? By industry and town', 'ueberText' => 'Anonymous figures from our automated checks. Pick your industry and town.',
              'titel' => '{Mz} {in}: how good are their websites?', 'kern' => '{p} % {wort}.', 'grund' => 'We checked {g} websites ({n} businesses in total) — anonymous, as of {datum}.',
@@ -51,6 +53,7 @@ $T = [
              'cta' => 'And your website? Find out in 30 seconds.', 'ctaText' => 'The same analysis for free, with a clear report on what to improve. No obligation.',
              'knopf' => 'Free analysis', 'preis' => 'Guide price in 90 seconds', 'weitere' => 'Other towns', 'andere' => 'Other industries {in}',
              'methode' => 'How we count: a program checks each website the way a customer sees it on a phone (speed, readability, security, contact, Google). We only show percentages, and only when at least {min} websites were checked. No business is named.',
+             'bedeutet' => 'What this means for customers', 'preisTitel' => 'A website for {mz}: guide price', 'preisAb' => 'from {ab}', 'preisText' => 'With the features {mz} usually need. See your exact price in 90 seconds, no obligation.', 'faq' => 'Frequently asked questions', 'start' => 'Home',
              'nichts' => 'This page is not (or no longer) available.', 'uebersicht' => 'All industries and towns', 'leer' => 'The first pages appear as soon as there are enough checks.'],
 ][$sprache];
 $W = static fn(string $k): string => BranchenStatistik::WORTE[$k][$sprache];
@@ -138,6 +141,30 @@ $preisLink = '/zugang.php?lang=' . $sprache;
     <?php endforeach; ?>
   </ul>
 
+  <?php /* Für Google, Maps und KI-Suche (29.09.2026): Folgen, typischer Preis, Fragen & Antworten -- aus echten Zahlen */
+        $top = array_slice(array_keys(array_filter($zeilen, static fn($p) => $p > 0)), 0, 3);
+        $abTyp = 0; try { $abTyp = BranchenStatistik::typischerPreis($s['branche']); } catch (Throwable $e) { $abTyp = 0; }
+        $faq = $abTyp > 0 ? BranchenStatistik::faq($s, $sprache, $abTyp) : []; ?>
+  <?php if ($top): ?>
+    <h2><?= $h($T['bedeutet']) ?></h2>
+    <ul style="margin:0;padding-left:20px;color:#d8d0c1;line-height:1.65">
+      <?php foreach ($top as $k): ?><li style="margin-bottom:8px"><b style="color:#f7f3ea"><?= $h(BranchenStatistik::LABEL[$k][$sprache]) ?>:</b> <?= $h(BranchenStatistik::FOLGE[$k][$sprache]) ?></li><?php endforeach; ?>
+    </ul>
+  <?php endif; ?>
+  <?php if ($abTyp > 0): require_once __DIR__ . '/app/src/Baukasten.php'; ?>
+    <div class="cta" style="margin-top:26px">
+      <b style="font:800 20px/1.25 'Archivo',sans-serif"><?= $h(strtr($T['preisTitel'], ['{mz}' => $mz])) ?></b>
+      <p style="font:800 30px/1.2 'Archivo',sans-serif;color:#f7e6ae;margin:8px 0 4px"><?= $h(strtr($T['preisAb'], ['{ab}' => Baukasten::geldText($abTyp, $sprache)])) ?></p>
+      <p><?= $h(strtr($T['preisText'], ['{mz}' => $mz])) ?></p>
+      <div class="knoepfe"><a class="neben" href="<?= $h($preisLink) ?>"><?= $h($T['preis']) ?> →</a></div>
+    </div>
+  <?php endif; ?>
+  <?php if ($faq): ?>
+    <h2><?= $h($T['faq']) ?></h2>
+    <?php foreach ($faq as [$fq, $fa]): ?>
+      <details style="border-top:1px solid rgba(255,255,255,.1);padding:12px 0"><summary style="cursor:pointer;font-weight:600;font-size:16.5px"><?= $h($fq) ?></summary><p style="margin:8px 0 0;color:#d8d0c1"><?= $h($fa) ?></p></details>
+    <?php endforeach; ?>
+  <?php endif; ?>
   <?php $gleich = array_values(array_filter($alle, static fn($x) => $x['branche'] === $s['branche'] && $x['slug'] !== $s['slug']));
         $ortAndere = array_values(array_filter($alle, static fn($x) => $x['ort'] === $s['ort'] && $x['slug'] !== $s['slug'])); ?>
   <?php if ($gleich): ?>
@@ -152,6 +179,17 @@ $preisLink = '/zugang.php?lang=' . $sprache;
   <script type="application/ld+json"><?= json_encode(['@context' => 'https://schema.org', '@type' => 'WebPage', 'name' => $titel, 'description' => $beschreibung, 'url' => $kanon,
       'inLanguage' => $sprache, 'dateModified' => date('c', strtotime($s['aktualisiert'])), 'publisher' => ['@id' => 'https://vecom-design.it/#studio']],
       JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
+  <script type="application/ld+json"><?= json_encode(array_values(array_filter([
+      $faq ? ['@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array_map(static fn($q) => ['@type' => 'Question', 'name' => $q[0],
+          'acceptedAnswer' => ['@type' => 'Answer', 'text' => $q[1]]], $faq)] : null,
+      ['@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => [
+          ['@type' => 'ListItem', 'position' => 1, 'name' => $T['start'], 'item' => $basis . '/'],
+          ['@type' => 'ListItem', 'position' => 2, 'name' => $T['uebersicht'], 'item' => $adr(null, $sprache)],
+          ['@type' => 'ListItem', 'position' => 3, 'name' => $titel, 'item' => $kanon]]],
+      $abTyp > 0 ? ['@context' => 'https://schema.org', '@type' => 'Service', 'name' => $titel, 'serviceType' => 'Web design',
+          'provider' => ['@id' => 'https://vecom-design.it/#studio'], 'areaServed' => ['@type' => 'City', 'name' => $s['ort']],
+          'offers' => ['@type' => 'Offer', 'priceCurrency' => 'EUR', 'price' => number_format($abTyp / 100, 2, '.', ''), 'url' => $basis . $preisLink]] : null,
+  ])), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 <?php elseif ($slug !== ''): ?>
   <h1><?= $h($T['nichts']) ?></h1>
   <p><a href="<?= $h($adr(null, $sprache)) ?>"><?= $h($T['uebersicht']) ?></a></p>

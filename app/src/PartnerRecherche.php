@@ -49,6 +49,9 @@ final class PartnerRecherche
         if (mb_strlen($ort) < 2) { return ['ok' => false, 'grund' => 'fi_ort', 'treffer' => []]; }
         if ($branche !== '' && !isset(Akquise::branchen()[$branche])) { $branche = ''; }
         if ($zaehlen && !self::zaehlen($partnerId, 'suche', self::SUCHEN_JE_TAG)) { return ['ok' => false, 'grund' => 'fi_genug', 'treffer' => []]; }
+        if ($zaehlen) {   // Partner-Autopilot (29.09.2026): die erste Suche verrät, wo er unterwegs ist
+            try { require_once __DIR__ . '/PartnerAutopilot.php'; PartnerAutopilot::ortMerken($partnerId, $ort); } catch (Throwable $e) { }
+        }
         $webErg = null; $gebietName = '';
         if ($web) {
             require_once __DIR__ . '/PartnerWebsuche.php';

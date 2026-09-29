@@ -128,6 +128,12 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .ck-ergebnis ul{list-style:none;padding:0;margin:6px 0 10px;display:grid;gap:4px;font-size:14px}
   .ampel{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
   .ampel.gut{background:#34d39b}.ampel.hinweis{background:#e8b64c}.ampel.schlecht{background:#ef6b5b}
+  .ap{border:1px solid rgba(241,211,139,.45);border-radius:14px;padding:14px 14px 12px;margin:0 0 22px;background:rgba(241,211,139,.04);scroll-margin-top:90px}
+  #heute form.ap-ort{display:flex;flex-direction:row;align-items:stretch;gap:8px;flex-wrap:wrap;max-width:560px;margin-top:10px}
+  #heute form.ap-ort input{flex:1 1 220px;min-width:0}
+  #heute form.ap-ort button{flex:0 0 auto}
+  .ap-liste{margin-top:10px}
+  #leitfaden{scroll-margin-top:90px}
   .leitfaden details{border-top:1px solid var(--linie);padding:10px 0}
   .leitfaden summary{cursor:pointer;font-size:14.5px;color:var(--text)}
   .leitfaden pre{white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.65;color:var(--dim);margin:8px 0 0}
@@ -135,6 +141,51 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
 
 <div class="block pt" id="recherche" data-reiter="finden">
   <h2><?= $h($T('re_titel')) ?></h2>
+
+  <?php /* Partner-Autopilot (29.09.2026): jeden Morgen fünf Betriebe zum Vorbeigehen */
+        require_once dirname(__DIR__) . '/src/PartnerAutopilot.php'; require_once dirname(__DIR__) . '/src/PartnerFlyer.php';
+        $apOrt = PartnerAutopilot::ort($p); $apListe = $apOrt !== '' ? PartnerAutopilot::heute($p, $sprache) : []; ?>
+  <section class="ap" id="heute" aria-labelledby="ap_titel">
+    <h3 class="md-h" id="ap_titel" style="margin-top:4px"><?= $h($apOrt !== '' ? strtr($T('ap_titel'), ['{n}' => (string) count($apListe), '{ort}' => $apOrt]) : $T('ap_titel_leer')) ?></h3>
+    <p class="klein" style="margin-top:0"><?= $h($T('ap_text')) ?></p>
+    <?php if ($apOrt === ''): ?>
+      <form method="post" action="<?= $h($selbst()) ?>#heute" class="ap-ort">
+        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="ap_ort">
+        <input type="text" name="ort" maxlength="80" required placeholder="<?= $h($T('ap_ort_ph')) ?>" aria-label="<?= $h($T('ap_ort_frage')) ?>">
+        <button class="knopf haupt" type="submit"><?= $h($T('ap_ort_knopf')) ?></button>
+      </form>
+    <?php elseif (!$apListe): ?>
+      <p class="klein"><?= $h($T('ap_leer')) ?></p>
+    <?php else: ?>
+      <ol class="firmen ap-liste">
+        <?php foreach ($apListe as $af): $afFl = PartnerFlyer::fuerBranche($af['branche_key']); $afL = PartnerAnschreiben::links($af); ?>
+          <li class="firma">
+            <div class="firma__kopf"><b><?= $h($af['name']) ?></b><span class="chance <?= $h($af['chance']) ?>"><?= $h($T('fi_chance_' . $af['chance'])) ?></span></div>
+            <small><?= $h($af['branche']) ?> · <?= $h(trim($af['adresse'] !== '' ? $af['adresse'] . ', ' . $af['ort'] : $af['ort'], ', ')) ?><?= $af['domain'] !== '' ? ' · ' . $h($af['domain']) : ' · ' . $h($T('ap_ohne_web')) ?></small>
+            <div class="ck-knoepfe" style="margin-top:6px">
+              <?php if (!$af['meine']): ?>
+                <form method="post" action="<?= $h($selbst()) ?>#heute" style="display:inline"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+                  <input type="hidden" name="tat" value="fi_reserv"><input type="hidden" name="firma" value="<?= (int) $af['id'] ?>">
+                  <button class="knopf klein-knopf" type="submit"><?= $h($T('fi_reserv')) ?></button></form>
+              <?php else: ?><span class="klein" style="margin:0"><?= $h($T('ap_reserviert')) ?></span><?php endif; ?>
+              <a class="knopf klein-knopf" download href="<?= $h($selbst(['fl' => $afFl, 'f' => 'pdf'])) ?>"><?= $h(strtr($T('ap_flyer'), ['{name}' => PartnerFlyer::name($afFl, $sprache)])) ?></a>
+              <a class="knopf klein-knopf" target="_blank" rel="noopener" href="<?= $h($afL['route']) ?>"><?= $h($AK('route')) ?></a>
+            </div>
+          </li>
+        <?php endforeach; ?>
+      </ol>
+      <div class="knoepfe" style="margin-top:8px">
+        <a class="knopf haupt" target="_blank" rel="noopener" href="<?= $h(PartnerAutopilot::route($apListe)) ?>"><?= $h($T('ap_route')) ?></a>
+        <a class="knopf" href="#leitfaden"><?= $h($T('ap_leitfaden')) ?></a>
+      </div>
+      <details style="margin-top:8px"><summary class="klein" style="cursor:pointer"><?= $h(strtr($T('ap_ort_aendern'), ['{ort}' => $apOrt])) ?></summary>
+        <form method="post" action="<?= $h($selbst()) ?>#heute" class="ap-ort" style="margin-top:6px">
+          <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="ap_ort">
+          <input type="text" name="ort" maxlength="80" required value="<?= $h($apOrt) ?>" aria-label="<?= $h($T('ap_ort_frage')) ?>">
+          <button class="knopf" type="submit"><?= $h($T('ap_ort_knopf')) ?></button>
+        </form></details>
+    <?php endif; ?>
+  </section>
 
   <h3 class="md-h" style="margin-top:4px"><?= $h($T('ck_titel')) ?></h3>
   <p class="klein" style="margin-top:0"><?= $h($T('ck_text')) ?></p>
@@ -245,7 +296,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
     <ul class="firmen"><?php foreach ($fiMeine as $f) { echo $firmaZeile($f, true); } ?></ul>
   <?php endif; ?>
 
-  <div class="leitfaden" style="margin-top:22px">
+  <div class="leitfaden" id="leitfaden" style="margin-top:22px">
     <h3 class="md-h"><?= $h($T('lf_titel')) ?></h3>
     <?php foreach (Texte::PARTNER_LEITFADEN as $li => $abschnitt): ?>
       <details><summary><?= $h(PartnerVorlagen::text("leitfaden.$li.titel", $sprache, Texte::h($abschnitt['titel'], $sprache))) ?></summary><pre><?= $h(PartnerVorlagen::text("leitfaden.$li.text", $sprache, Texte::h($abschnitt['text'], $sprache))) ?></pre></details>

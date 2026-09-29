@@ -14682,7 +14682,9 @@ $wjLang = array_filter(array_merge($wjA['google']['titel'], [$wjA['meta']['ueber
 pruefe('W3: Anzeigen-Entwürfe mit echten Zahlen, in den Grenzen von Meta und Google, nie abgeschnitten, nichts wird geschaltet',
     $wjLang === [] && str_contains($wjA['meta']['text'], '67 %') && str_contains($wjA['meta']['text'], 'ristoranti ad Agrigento') && !str_contains(json_encode($wjA), '…')
     && BranchenStatistik::anzeigenPlanen() > 0 && BranchenStatistik::anzeigenPlanen() === 0
-    && !preg_match('~graph\.facebook|googleads|curl_~', (string) file_get_contents($wurzel . '/src/BranchenStatistik.php')), json_encode($wjLang));
+    && !preg_match('~graph\.facebook|googleads|adwords~', (string) file_get_contents($wurzel . '/src/BranchenStatistik.php'))
+    && preg_match_all('~https://[a-z0-9.-]+~', (string) file_get_contents($wurzel . '/src/BranchenStatistik.php'), $wjHosts) >= 1
+    && !array_diff(array_unique($wjHosts[0]), ['https://api.indexnow.org', 'https://vecom-design.it']), json_encode($wjLang));
 pruefe('W2: passender Flyer zur Branche des reservierten Betriebs (sonst der allgemeine)',
     PartnerFlyer::fuerBranche('restaurant') === 'restaurant' && PartnerFlyer::fuerBranche('friseur') === 'kosmetik' && PartnerFlyer::fuerBranche('gibtsnicht') === 'allgemein'
     && !array_diff(array_values(PartnerFlyer::ZU_BRANCHE), array_keys(PartnerFlyer::liste()))
@@ -14714,6 +14716,61 @@ pruefe('Prüfung: der Worker holt in Paketen zu 50 bis zur Zahl je Nacht (Vorgab
     str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "Math.min(50, ziel - geprueft)")
     && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/konfig.ts'), "zahl('AKQUISE_AUDITS_PRO_LAUF', 300)"));
 Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (' . implode(',', array_merge($gzIds, [$gzEinzel])) . ')');
+
+/* Partner-Autopilot + Branchen-Seiten für Google/KI-Suche (29.09.2026, Uwe: Ja) */
+abschnitt('Partner-Autopilot und Google-Profil der Branchen');
+require_once $wurzel . '/src/PartnerAutopilot.php';
+$apP = Partner::laden(Partner::anlegen(['name' => 'Aldo Autopilot', 'email' => 'aldo@partner-ap.example', 'status' => 'aktiv', 'sprache' => 'it']));
+$apAnder = Partner::laden(Partner::anlegen(['name' => 'Berta Andere', 'email' => 'berta@partner-ap.example', 'status' => 'aktiv', 'sprache' => 'it']));
+$apIds = [];
+for ($i = 0; $i < 9; $i++) {
+    $apIds[] = (int) Db::insert('akq_firmen', ['kennung' => 'AP' . str_pad((string) $i, 8, '0', STR_PAD_LEFT), 'name' => 'Bottega Autopilot ' . $i, 'name_norm' => 'bottega autopilot ' . $i,
+        'land' => 'IT', 'branche' => $i % 2 ? 'restaurant' : 'friseur', 'stadt' => 'Montevago', 'plz' => '92010', 'adresse' => 'Via Roma ' . ($i + 1),
+        'url' => $i < 3 ? "https://bottega-$i.example" : null, 'domain' => $i < 3 ? "bottega-$i.example" : null, 'score' => $i * 5, 'quelle' => 'ap-kette-' . $i]);
+}
+PartnerRecherche::reservieren((int) $apAnder['id'], $apIds[8]);                           // gehört einem anderen Partner
+Db::insert('akq_versand', ['firma_id' => $apIds[7], 'kanal' => 'email', 'status' => 'gesendet', 'compliance' => 'ok']);   // schon von Vecom angeschrieben
+pruefe('Autopilot: ohne Heimatort keine Liste, Ort wird gespeichert (auch aus der ersten Suche)',
+    PartnerAutopilot::heute($apP, 'it') === [] && !PartnerAutopilot::ortSetzen((int) $apP['id'], 'x')
+    && (PartnerAutopilot::ortMerken((int) $apP['id'], 'Montevago') || true) && PartnerAutopilot::ort(Partner::laden((int) $apP['id'])) === 'Montevago'
+    && (PartnerAutopilot::ortMerken((int) $apP['id'], 'Palermo') || true) && PartnerAutopilot::ort(Partner::laden((int) $apP['id'])) === 'Montevago');
+$apP = Partner::laden((int) $apP['id']);
+$apH = PartnerAutopilot::heute($apP, 'it', '2026-10-01');
+$apHIds = array_column($apH, 'id');
+pruefe('Autopilot: 5 Betriebe im Ort, zuerst ohne Website, nie reserviert von anderen oder schon angeschrieben',
+    count($apH) === PartnerAutopilot::JE_TAG && !in_array($apIds[8], $apHIds, true) && !in_array($apIds[7], $apHIds, true)
+    && count(array_filter($apH, static fn($f) => $f['domain'] === '')) === 4 && $apH[4]['domain'] === 'bottega-2.example' && $apH[0]['id'] === $apIds[6]
+    && PartnerAutopilot::heute($apP, 'it', '2026-10-01') === $apH, json_encode($apHIds));
+$apH2 = PartnerAutopilot::heute($apP, 'it', '2026-10-02');
+pruefe('Autopilot: am nächsten Tag andere Betriebe (30 Tage Pause je Betrieb), danach mit Website',
+    !array_intersect(array_column($apH2, 'id'), $apHIds) && count($apH2) >= 1 && count($apH2) <= 3, json_encode(array_column($apH2, 'id')));
+$apR = PartnerAutopilot::route($apH);
+pruefe('Autopilot: Route für alle fünf (Google Maps, Ziel + Zwischenstopps), Flyer passt zur Branche, Knopf „Reservieren“',
+    str_starts_with($apR, 'https://www.google.com/maps/dir/?api=1') && substr_count(rawurldecode($apR), '|') === 3 && PartnerAutopilot::route([]) === ''
+    && PartnerFlyer::fuerBranche($apH[0]['branche_key']) !== '' && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'id="heute"')
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "'ap_ort'"));
+Db::run('UPDATE partner SET heimatort = NULL WHERE id <> ?', [(int) $apP['id']]);
+Db::run('DELETE FROM partner_tagesliste WHERE partner_id = ?', [(int) $apP['id']]);
+pruefe('Autopilot: morgens eine Meldung je Partner, nur einmal am Tag, nie nachts, keine Mail an Betriebe',
+    PartnerAutopilot::morgen(strtotime('2026-10-03 03:00:00')) === 0 && (PartnerAutopilot::morgen(strtotime(date('Y-m-d') . ' 08:00:00')) || true)
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_tagesliste WHERE partner_id = ? AND datum = CURDATE() AND gemeldet = 1', [(int) $apP['id']], 0) >= 1
+    && PartnerAutopilot::morgen(strtotime(date('Y-m-d') . ' 09:00:00')) === 0
+    && !preg_match('~Mailer|mail\(|WhatsApp::~', (string) file_get_contents($wurzel . '/src/PartnerAutopilot.php')));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (' . implode(',', $apIds) . ')');
+$apS = BranchenStatistik::laden('restaurant-agrigento');
+$apPreis = BranchenStatistik::typischerPreis('restaurant');
+$apFaq = BranchenStatistik::faq($apS, 'it', $apPreis);
+$apHtml = (string) file_get_contents($wurzel . '/../branchen.php');
+pruefe('Branchen-Seite für Google/KI-Suche: 3 Fragen mit echten Zahlen, typischer Preis aus dem Baukasten, was die Schwäche bedeutet',
+    count($apFaq) === 3 && str_contains($apFaq[1][1], (string) $apS['geprueft']) && $apPreis > 0 && $apPreis === BranchenStatistik::typischerPreis('restaurant')
+    && BranchenStatistik::typischerPreis('hotel') >= BranchenStatistik::typischerPreis('bar_cafe')
+    && count(BranchenStatistik::faq($apS, 'de', $apPreis)) === 3 && count(BranchenStatistik::faq($apS, 'en', $apPreis)) === 3
+    && !array_filter(BranchenStatistik::FOLGE, static fn($t) => count($t) !== 3), json_encode($apFaq));
+pruefe('Branchen-Seite: FAQPage, BreadcrumbList und Service mit Ort und Preis als strukturierte Daten; IndexNow-Schlüssel öffentlich',
+    str_contains($apHtml, "'FAQPage'") && str_contains($apHtml, "'BreadcrumbList'") && str_contains($apHtml, "'Service'") && str_contains($apHtml, "'areaServed'")
+    && preg_match('~^[a-f0-9]{32}$~', BranchenStatistik::indexNowKey()) === 1 && BranchenStatistik::indexNowKey() === BranchenStatistik::indexNowKey()
+    && str_contains((string) file_get_contents($wurzel . '/../indexnow-key.php'), 'indexNowKey()')
+    && BranchenStatistik::indexNow([]) === false);
 
 /* ============================================================================
    Aufräumen und Bilanz

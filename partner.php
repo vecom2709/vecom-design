@@ -252,6 +252,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'ck_weg' && $p) {
                 PartnerCheck::loeschen((int) $p['id'], (string) ($_POST['token'] ?? ''));
                 header('Location: ' . $selbst(['m' => 'ck_weg_gut']) . '#recherche', true, 303); exit;
+            } elseif ($tat === 'ap_ort' && $p) {
+                /* Partner-Autopilot (29.09.2026): der Ort für die fünf Betriebe am Morgen */
+                require_once __DIR__ . '/app/src/PartnerAutopilot.php';
+                if (PartnerAutopilot::ortSetzen((int) $p['id'], (string) ($_POST['ort'] ?? ''))) {
+                    Db::run('DELETE FROM partner_tagesliste WHERE partner_id = ? AND datum = CURDATE()', [(int) $p['id']]);
+                    header('Location: ' . $selbst() . '#heute', true, 303); exit;
+                }
+                $meldung = 'fi_ort';
             } elseif (($tat === 'fi_reserv' || $tat === 'fi_frei') && $p) {
                 $fid = (int) ($_POST['firma'] ?? 0);
                 $f = 'ok';
