@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Akquise.php';
+require_once __DIR__ . '/AkquiseSteuerung.php';
 require_once __DIR__ . '/AkquiseGate.php';
 require_once __DIR__ . '/AkquiseVersand.php';
 
@@ -20,7 +21,7 @@ require_once __DIR__ . '/AkquiseVersand.php';
 final class AkquiseWorker
 {
     public const AKTIONEN = ['hallo', 'lauf_holen', 'lauf_melden', 'firmen_melden', 'audits_holen',
-                             'audit_melden', 'texte_holen', 'deutung_melden', 'vorlage_melden'];
+                             'audit_melden', 'texte_holen', 'deutung_melden', 'vorlage_melden', 'befehl_holen', 'status_melden'];
 
     private const SCHLUESSEL = 'akq_worker_schluessel';
     private const DROSSEL_PRO_MINUTE = 240;
@@ -76,6 +77,8 @@ final class AkquiseWorker
             'texte_holen'    => self::texteHolen($d),
             'deutung_melden' => self::deutungMelden($d),
             'vorlage_melden' => self::vorlageMelden($d),
+            'befehl_holen'   => AkquiseSteuerung::befehl(),
+            'status_melden'  => AkquiseSteuerung::statusMelden($d),
             default          => throw new InvalidArgumentException('Unbekannte Aktion.'),
         };
     }
@@ -112,6 +115,7 @@ final class AkquiseWorker
         $id = (int) ($d['lauf_id'] ?? 0);
         $l = Db::one('SELECT * FROM akq_laeufe WHERE id = ?', [$id]);
         if (!$l) { throw new RuntimeException('Lauf nicht gefunden.'); }
+        if ((string) $l['status'] === 'gestoppt') { return ['ok' => true, 'gestoppt' => true]; }   // Uwe hat gestoppt -- so bleibt es
         $status = in_array($d['status'] ?? '', ['fertig', 'fehler', 'laeuft'], true) ? (string) $d['status'] : 'fertig';
         Db::update('akq_laeufe', $id, [
             'status' => $status,
@@ -129,6 +133,10 @@ final class AkquiseWorker
     private static function firmenMelden(array $d): array
     {
         $laufId = isset($d['lauf_id']) ? (int) $d['lauf_id'] : null;
+        /* In der Verwaltung gestoppt (29.09.2026): nichts mehr übernehmen, der Worker hört auf. */
+        if ($laufId && (string) Db::wert('SELECT status FROM akq_laeufe WHERE id = ?', [$laufId], '') === 'gestoppt') {
+            return ['ok' => true, 'gestoppt' => true, 'neu' => 0, 'dubletten' => 0, 'fehler' => 0, 'ergebnisse' => []];
+        }
         $liste = array_slice((array) ($d['firmen'] ?? []), 0, 200);
         $neu = $dubletten = $fehler = 0;
         $ergebnisse = [];

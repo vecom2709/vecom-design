@@ -31,6 +31,52 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   <li><b>3 · Er sagt Ja</b><span>„Hat zugestimmt“ eintragen — dann bekommt er sein Dashboard, und die Folge-Mails laufen automatisch.</span></li>
 </ol>
 
+<?php /* Starten und Stoppen (29.09.2026, Uwe) */ require_once dirname(__DIR__) . '/src/AkquiseSteuerung.php'; $st = AkquiseSteuerung::stand();
+  $stPost = static fn(string $tat, string $wort, string $klasse = 'knopf') => '<form method="post" action="' . Fmt::h(url('akquise')) . '" style="display:inline;margin:0">' . Csrf::feld()
+      . '<input type="hidden" name="tat" value="' . $tat . '"><button class="' . $klasse . '">' . Fmt::h($wort) . '</button></form>';
+  $stPrueft = $st['art'] === 'audit'; $stSucht = $st['art'] === 'recherche'; ?>
+<div class="block akq-steuer" id="steuerung">
+  <div class="akq-st-kopf"><h2>Dein PC</h2>
+    <span class="akq-ampel <?= $st['pc_wach'] ? 'gruen' : 'grau' ?>"><i></i><?= $st['pc_wach'] ? 'an — meldet sich alle 5 Minuten' : ($st['pc_alter'] === null ? 'hat sich noch nie gemeldet' : 'aus oder im Schlafmodus (zuletzt vor ' . Fmt::h($st['pc_alter'] >= 120 ? round($st['pc_alter'] / 60) . ' Std.' : $st['pc_alter'] . ' Min.') . ')') ?></span></div>
+  <?php if ($st['stop']): ?><div class="hinweis schlecht" style="margin:8px 0 0">Die Notbremse ist gezogen — der PC tut nichts, bis du sie oben löst.</div><?php endif; ?>
+  <div class="akq-st-reihe">
+    <div class="akq-st-teil">
+      <h3>Websites prüfen</h3>
+      <?php if ($stPrueft): ?>
+        <p><b>Läuft:</b> <?= (int) $st['stand'] ?> von <?= (int) $st['ziel'] ?> geprüft<?= $st['text'] !== '' ? ' · ' . Fmt::h($st['text']) : '' ?></p>
+        <div class="akq-st-balken"><span style="width:<?= $st['ziel'] > 0 ? min(100, round($st['stand'] / $st['ziel'] * 100)) : 0 ?>%"></span></div>
+      <?php elseif (!$st['audit_an']): ?>
+        <p><b>Aus.</b> Es wird nichts geprüft — auch nachts nicht.</p>
+      <?php elseif ($st['jetzt']): ?>
+        <p><b>Startet gleich:</b> in den nächsten fünf Minuten<?= $st['pc_wach'] ? '' : ', sobald dein PC an ist' ?>.</p>
+      <?php else: ?>
+        <p><b>An.</b> Nächster Lauf heute Nacht um 02:30 (bis zu 300 Websites).</p>
+      <?php endif; ?>
+      <div class="akq-st-knoepfe">
+        <?php if ($st['audit_an'] && !$stPrueft && !$st['jetzt']): ?><?= $stPost('akq_pruefung_start', 'Jetzt starten', 'knopf haupt') ?><?php endif; ?>
+        <?php if (!$st['audit_an']): ?><?= $stPost('akq_pruefung_start', 'Starten', 'knopf haupt') ?><?php endif; ?>
+        <?php if ($st['audit_an']): ?><?= $stPost('akq_pruefung_stop', $stPrueft ? 'Stoppen' : 'Ausschalten (auch nachts nicht)') ?><?php endif; ?>
+      </div>
+    </div>
+    <div class="akq-st-teil">
+      <h3>Betriebe suchen</h3>
+      <?php if ($stSucht || ($st['suche'] && $st['suche']['status'] === 'laeuft')): ?>
+        <p><b>Sucht gerade:</b> <?= Fmt::h((string) ($st['suche']['gebiet'] ?? $st['text'])) ?><?= $st['suche'] ? ' (' . Fmt::h((string) $st['suche']['land']) . ')' : '' ?> — bisher <?= (int) ($st['suche']['neu'] ?? 0) ?> neue Betriebe</p>
+      <?php elseif (!$st['recherche_an']): ?>
+        <p><b>Aus.</b> Suchaufträge bleiben liegen.</p>
+      <?php elseif ($st['suche_wartend'] > 0): ?>
+        <p><b>Wartet:</b> <?= Fmt::h((string) $st['suche']['gebiet']) ?><?= $st['suche_wartend'] > 1 ? ' und ' . ($st['suche_wartend'] - 1) . ' weitere' : '' ?> — startet in den nächsten fünf Minuten<?= $st['pc_wach'] ? '' : ', sobald dein PC an ist' ?>.</p>
+      <?php else: ?>
+        <p><b>Nichts zu tun.</b> Unten einen Ort eintragen und „Jetzt suchen“.</p>
+      <?php endif; ?>
+      <div class="akq-st-knoepfe">
+        <?php if ($st['suche']): ?><?= $stPost('akq_suche_stop', 'Suche stoppen') ?><?php endif; ?>
+        <?php if (!$st['recherche_an']): ?><?= $stPost('akq_suche_an', 'Einschalten', 'knopf haupt') ?><?php endif; ?>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="block akq-suchen">
   <form method="post" action="<?= Fmt::h(url('akquise')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_suchen">
@@ -49,9 +95,9 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
     </details>
   </form>
   <p class="akq-klein" style="margin-top:8px">
-    <?php if ($suchen): ?>Vorgemerkt für heute Nacht:
+    <?php if ($suchen): ?>Vorgemerkt:
       <?php foreach ($suchen as $s): ?><span class="akq-chip"><?= Fmt::h((string) $s['gebiet']) ?><?= $s['status'] === 'laeuft' ? ' · läuft' : '' ?></span><?php endforeach; ?>
-    <?php else: ?>Dein Rechner sucht nachts: erst die Betriebe, dann prüft er jede Website. Morgens stehen sie hier.<?php endif; ?>
+    <?php else: ?>Dein PC fängt binnen fünf Minuten an: erst die Betriebe, dann prüft er ihre Websites (nachts um 02:30).<?php endif; ?>
   </p>
 </div>
 

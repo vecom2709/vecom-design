@@ -47,6 +47,43 @@ function sperren(): boolean {
 }
 const freigeben = () => { try { rmSync(SPERRE); } catch { /* schon weg */ } };
 
+/** Läuft schon ein Worker? (ohne die Sperre zu nehmen) */
+function gesperrt(): boolean {
+  if (!existsSync(SPERRE)) return false;
+  try {
+    const { pid, zeit } = JSON.parse(readFileSync(SPERRE, 'utf8'));
+    process.kill(pid, 0);
+    return Date.now() - zeit < 6 * 3600_000;
+  } catch { return false; }
+}
+
+/** Der Verwaltung sagen, was der PC gerade tut (Knopf „Starten/Stoppen“, 29.09.2026). */
+async function status(art: 'audit' | 'recherche' | 'frei', stand = 0, ziel = 0, text = ''): Promise<void> {
+  await api('status_melden', { art, stand, ziel, text }).catch(() => {});
+}
+
+/* „steuern“ (alle fünf Minuten, Windows-Aufgabe „VECOM Akquise Abruf“):
+   In der Verwaltung auf „Starten“ gedrückt? Wartet ein Suchauftrag? Dann
+   jetzt loslegen -- sonst nur kurz melden, dass der PC an ist. Leise: Wenn
+   nichts zu tun ist, steht nichts im Protokoll. */
+async function steuern(): Promise<void> {
+  if (gesperrt()) return;                       // ein Lauf ist schon unterwegs und meldet selbst
+  const b = await api('befehl_holen');
+  if (b.jetzt && b.audit) {
+    if (!sperren()) return;
+    try { log.info('steuern', 'In der Verwaltung gestartet: Websites prüfen'); await audits(); }
+    finally { freigeben(); await browserZu(); await status('frei'); }
+    return;
+  }
+  if (b.suche_wartet && b.recherche) {
+    if (!sperren()) return;
+    try { log.info('steuern', 'Suchauftrag wartet: Betriebe suchen'); await recherche(); }
+    finally { freigeben(); await status('frei'); }
+    return;
+  }
+  await status('frei');
+}
+
 async function pruefen(): Promise<boolean> {
   const h = await api('hallo');
   log.info('pruefen', `Verwaltung erreichbar · ${h.kennzahlen?.gesamt ?? 0} Firmen · Notbremse: ${h.stop ? 'GEZOGEN' : 'nein'} · Worker ${VERSION}`);
@@ -59,6 +96,7 @@ async function recherche(): Promise<void> {
   for (let i = 0; i < 20; i++) {
     const r = await api('lauf_holen');
     if (!r.lauf) { if (i === 0) log.info('recherche', 'Kein wartender Auftrag.'); return; }
+    await status('recherche', 0, 0, `${r.lauf.gebiet} (${r.lauf.land})`);
     if (r.lauf.quelle === 'overture') { await (await import('./recherche/overture.js')).overtureLauf(r.lauf); continue; }
     await laufAbarbeiten(r.lauf);
   }
@@ -89,6 +127,8 @@ async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Pr
   for (const [i, f] of firmen.entries()) {
     const h = await api('hallo');
     if (h.stop) { log.warn('audit', 'Notbremse gezogen — Audits angehalten.'); return false; }
+    if (h.schalter && h.schalter.audit === false) { log.warn('audit', 'In der Verwaltung gestoppt — Prüfung angehalten.'); return false; }
+    await status('audit', vorher + i, ziel, f.domain ?? '');
     const t0 = Date.now();
     try {
       /* Höchstens 5 Minuten je Website (29.09.2026): Der Nachtlauf blieb am
@@ -200,6 +240,7 @@ async function main(): Promise<void> {
   if (befehl === 'overture') return overture();
   if (befehl === 'verbinden') return verbinden();
   if (befehl === 'import') return importieren(process.argv[3]);
+  if (befehl === 'steuern') return steuern();
   if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
   try {
     if (!(await pruefen())) { log.warn('start', 'Notbremse gezogen — es wird nichts getan.'); return; }
@@ -210,6 +251,7 @@ async function main(): Promise<void> {
   } finally {
     freigeben();
     await browserZu();
+    await status('frei');
   }
 }
 

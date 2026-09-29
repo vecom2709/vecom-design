@@ -29,6 +29,7 @@ async function melden(laufId: number, firmen: GefundeneFirma[]): Promise<{ neu: 
   let neu = 0, dubletten = 0;
   for (let i = 0; i < firmen.length; i += 100) {
     const r = await api('firmen_melden', { lauf_id: laufId, firmen: firmen.slice(i, i + 100) });
+    if (r.gestoppt) { throw new Error('In der Verwaltung gestoppt'); }
     neu += r.neu ?? 0; dubletten += r.dubletten ?? 0;
   }
   return { neu, dubletten };

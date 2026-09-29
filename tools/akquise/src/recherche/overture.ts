@@ -163,6 +163,7 @@ export async function overtureLauf(lauf: { id: number; land: 'IT' | 'DE'; ebene:
     for (let i = 0; i < firmen.length; i += 100) {
       if (i > 0 && i % 2000 === 0 && (await api('hallo')).stop) { log.warn('overture', 'Notbremse gezogen — angehalten.'); break; }
       const r = await api('firmen_melden', { lauf_id: lauf.id, firmen: firmen.slice(i, i + 100) });
+      if (r.gestoppt) { throw new Error('In der Verwaltung gestoppt'); }
       neu += r.neu ?? 0;
     }
     await api('lauf_melden', { lauf_id: lauf.id, status: 'fertig' });

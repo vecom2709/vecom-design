@@ -107,6 +107,18 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-reiter-menue a{border:0!important;border-radius:9px!important;padding:9px 12px!important;color:var(--text)!important}
   .akq-reiter-menue a:hover,.akq-reiter-menue a:focus-visible{background:var(--flaeche2)}
   .akq-mehr{margin:0 0 16px}
+  .akq-steuer{border-color:rgba(241,211,139,.45)}
+  .akq-st-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .akq-st-kopf h2{margin:0;font-size:16px}
+  .akq-st-reihe{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .akq-st-teil{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;background:var(--flaeche2)}
+  .akq-st-teil h3{margin:0 0 6px;font-size:14.5px}
+  .akq-st-teil p{margin:0;font-size:14px;line-height:1.5;color:var(--dim)}
+  .akq-st-teil p b{color:var(--text)}
+  .akq-st-knoepfe{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .akq-st-balken{height:6px;border-radius:3px;background:var(--linie);overflow:hidden;margin-top:8px}
+  .akq-st-balken span{display:block;height:100%;background:linear-gradient(90deg,#b8923f,#f1d38b)}
+  @media (max-width:700px){ .akq-st-reihe{grid-template-columns:1fr} }
   .akq-wahl{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
   .akq-wahl input{width:18px;height:18px;margin-top:2px;flex:none}
   .akq-uebergabe{position:sticky;bottom:12px;z-index:15;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:12px 14px;

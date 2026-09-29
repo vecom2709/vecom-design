@@ -14943,6 +14943,42 @@ pruefe('Sprechtext (S1–S4): nie ein Preis, erst um 30 Sekunden bitten, Aufhän
     && str_contains($ahSatz($alAg['anruf'], 'Echte Zahl'), '67 %'), json_encode($alAg['saetze']));
 Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?, ?, ?, ?, ?)', [$alA, $alB, $alC, $alD, $alE, $alF, $alW]);
 
+/* Starten und Stoppen aus der Verwaltung (29.09.2026, Uwe) */
+abschnitt('PC steuern: Prüfung und Suche starten/stoppen');
+require_once $wurzel . '/src/AkquiseSteuerung.php';
+AkquiseSteuerung::pruefungStoppen();
+$stB0 = AkquiseWorker::ausfuehren('befehl_holen', []);
+$stLeer = AkquiseWorker::ausfuehren('audits_holen', ['anzahl' => 5]);
+AkquiseSteuerung::pruefungStarten();
+$stStand = AkquiseSteuerung::stand();
+$stB1 = AkquiseWorker::ausfuehren('befehl_holen', []);
+$stB2 = AkquiseWorker::ausfuehren('befehl_holen', []);
+pruefe('Stoppen: Schalter aus, nichts wird herausgegeben; Starten: an + „jetzt“, das der PC genau einmal abholt',
+    $stB0['audit'] === false && $stLeer['firmen'] === [] && $stStand['audit_an'] && $stStand['jetzt']
+    && $stB1['audit'] === true && $stB1['jetzt'] === true && $stB2['jetzt'] === false, json_encode([$stB0, $stB1, $stB2]));
+AkquiseWorker::ausfuehren('status_melden', ['art' => 'audit', 'stand' => 12, 'ziel' => 300, 'text' => 'beispiel.it']);
+$stS = AkquiseSteuerung::stand();
+Db::run("UPDATE settings SET svalue = JSON_SET(svalue, '$.zeit', ?) WHERE skey = 'akq_worker_status'", [date('Y-m-d H:i:s', time() - 3600)]);
+$stAlt = AkquiseSteuerung::stand();
+pruefe('Der PC meldet, was er tut (12 von 300); meldet er sich länger nicht, gilt er als aus',
+    $stS['pc_wach'] && $stS['art'] === 'audit' && $stS['stand'] === 12 && $stS['ziel'] === 300 && !$stAlt['pc_wach'] && $stAlt['art'] === 'aus' && $stAlt['pc_alter'] >= 59);
+$stL = (int) Db::insert('akq_laeufe', ['land' => 'IT', 'ebene' => 'auto', 'gebiet' => 'Steuerort', 'angelegt_von' => 'Kette']);
+$stW = AkquiseWorker::ausfuehren('befehl_holen', [])['suche_wartet'];
+$stN = AkquiseSteuerung::sucheStoppen();
+$stM = AkquiseWorker::ausfuehren('firmen_melden', ['lauf_id' => $stL, 'firmen' => [['name' => 'Nach dem Stopp', 'land' => 'IT', 'stadt' => 'Steuerort', 'quelle' => 'st-kette-1']]]);
+AkquiseWorker::ausfuehren('lauf_melden', ['lauf_id' => $stL, 'status' => 'fehler', 'fehler' => 'In der Verwaltung gestoppt']);
+pruefe('Suche stoppen: wartende/laufende Aufträge enden, danach gemeldete Betriebe werden nicht mehr übernommen, der Stand bleibt „gestoppt“',
+    $stW === true && $stN >= 1 && !empty($stM['gestoppt']) && Db::wert("SELECT id FROM akq_firmen WHERE quelle = 'st-kette-1'", [], null) === null
+    && Db::wert('SELECT status FROM akq_laeufe WHERE id = ?', [$stL], '') === 'gestoppt' && AkquiseWorker::ausfuehren('befehl_holen', [])['suche_wartet'] === false);
+$stCli = (string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts');
+pruefe('Worker: „steuern“ alle fünf Minuten (leise), hört bei „Stoppen“ vor der nächsten Website auf, meldet den Stand; Knöpfe in der Verwaltung',
+    str_contains($stCli, "if (befehl === 'steuern') return steuern();") && str_contains($stCli, "h.schalter.audit === false") && str_contains($stCli, "await status('audit', vorher + i, ziel")
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/package.json'), '"steuern": "tsx src/cli.ts steuern"')
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/recherche/overture.ts'), 'if (r.gestoppt)')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), "'akq_pruefung_stop'") && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), "'akq_suche_stop'")
+    && in_array('befehl_holen', AkquiseWorker::AKTIONEN, true));
+AkquiseSteuerung::pruefungStarten(); AkquiseWorker::ausfuehren('befehl_holen', []);
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

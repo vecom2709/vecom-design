@@ -117,7 +117,7 @@ if ($post) {
                 $lid = Db::insert('akq_laeufe', ['land' => $land, 'ebene' => 'auto', 'gebiet' => $gebiet,
                     'branchen' => $branchen ? json_encode($branchen) : null, 'angelegt_von' => Auth::name()]);
                 Akquise::protokoll(null, 'lauf', 'Suche angelegt: ' . $gebiet . ' (' . $land . ')', ['branchen' => $branchen], $lid);
-                $_SESSION['gut'] = '„' . $gebiet . '“ ist vorgemerkt. Dein Rechner sucht heute Nacht — morgen früh stehen die geprüften Betriebe hier.';
+                $_SESSION['gut'] = '„' . $gebiet . '“ ist vorgemerkt. Dein PC fängt in den nächsten fünf Minuten an zu suchen (wenn er an ist), sonst beim nächsten Start.';
                 weiter('akquise');
 
             case 'akq_vorlage_verwerfen':
@@ -143,6 +143,31 @@ if ($post) {
                 $_SESSION['gut'] = 'Zustimmung gespeichert. ' . implode(' und ', $r['wege']) . (count($r['wege']) > 1 ? ' sind' : ' ist') . ' jetzt frei, die Folge-Mails laufen automatisch'
                     . ($r['bereich'] !== null ? ', und der persönliche Bereich ist per Mail unterwegs.' : '.');
                 weiter('akquise/' . $fid . '#ansprechen');
+
+            /* Starten und Stoppen (29.09.2026): der PC holt sich das binnen fünf Minuten ab */
+            case 'akq_pruefung_start':
+                require_once __DIR__ . '/src/AkquiseSteuerung.php';
+                AkquiseSteuerung::pruefungStarten();
+                $_SESSION['gut'] = 'Prüfung gestartet — dein PC fängt in den nächsten fünf Minuten an (wenn er an ist).';
+                weiter('akquise#steuerung');
+
+            case 'akq_pruefung_stop':
+                require_once __DIR__ . '/src/AkquiseSteuerung.php';
+                AkquiseSteuerung::pruefungStoppen();
+                $_SESSION['gut'] = 'Prüfung gestoppt — der PC hört nach der Website auf, die er gerade prüft, und prüft auch nachts nicht, bis du wieder startest.';
+                weiter('akquise#steuerung');
+
+            case 'akq_suche_stop':
+                require_once __DIR__ . '/src/AkquiseSteuerung.php';
+                $n = AkquiseSteuerung::sucheStoppen();
+                $_SESSION['gut'] = $n > 0 ? 'Suche gestoppt — was schon gefunden wurde, bleibt in der Liste.' : 'Es lief keine Suche.';
+                weiter('akquise#steuerung');
+
+            case 'akq_suche_an':
+                require_once __DIR__ . '/src/AkquiseSteuerung.php';
+                AkquiseSteuerung::sucheEinschalten();
+                $_SESSION['gut'] = 'Betriebe suchen ist eingeschaltet — wartende Aufträge startet dein PC in den nächsten fünf Minuten.';
+                weiter('akquise#steuerung');
 
             case 'akq_an_partner':
                 require_once __DIR__ . '/src/PartnerAnrufliste.php';
