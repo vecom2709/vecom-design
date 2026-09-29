@@ -160,7 +160,7 @@ window.VECOM_I18N.de = {
       demo_auto_b: "Automotive", demo_auto_t: "Drei Autos, innen und außen", demo_auto_x: "Echtzeit · ab 2,9 MB",
       demo_shop_b: "Onlineshop", demo_shop_t: "Laufschuh mit Warenkorb", demo_shop_x: "Echtzeit · 1,2 MB",
       demo_wein_b: "Wein & Naturprodukte", demo_wein_t: "Flasche und Geschenkkiste", demo_wein_x: "Echtzeit · 2,9 MB",
-      demo_schmuck_b: "Schmuck & Uhren", demo_schmuck_t: "Uhr zum Öffnen", demo_schmuck_x: "Echtzeit · 1,2 MB",
+      demo_schmuck_b: "Schmuck & Uhren", demo_schmuck_t: "Uhr zum Öffnen", demo_schmuck_x: "Echtzeit · 2,7 MB",
       demo_kueche_b: "Küchenbau", demo_kueche_t: "Küche selbst planen", demo_kueche_x: "Echtzeit · Maße nach Norm",
       kp_kicker: "Küchenbau · Planer", kp_h: "Planen Sie Ihre Küche — auf den Zentimeter.", kp_lead: "Form wählen, Wandmaße eingeben, Schränke setzen. Die Küche entsteht maßstäblich nach Küchennorm, und die Planungsprüfung sagt sofort, was passt.", kp_griff: "Ziehen dreht · Strg + Rad oder zwei Finger zoomen · Schrank antippen zum Bearbeiten",
       demo_gastro_b: "Gastronomie", demo_gastro_t: "Tisch für zwei, gedeckt", demo_gastro_x: "Echtzeit · 4,3 MB",

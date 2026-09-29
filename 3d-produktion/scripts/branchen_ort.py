@@ -35,6 +35,16 @@ ORTE = {
     'wein': dict(hdri='castle_zavelstein_cellar_4k.hdr', dreh=0.0, staerke=1.0,
                  kamera=dict(winkel=-24.0, hoehe=0.40, lens=85.0, ziel_hoehe=0.17, fuellung=0.46, blende=2.8),
                  unterlage='WoodenTable_01', unterlage_versatz=(0.0, 0.10), unterlage_hoehe=0.76, behalten=('weinglas_wein',), flagge=dict(breite=5.0, hoehe=1.6, abstand=0.25), belichtung=0.0),
+    # Schmuck: beim Juwelier auf einer polierten Marmorplatte, Tageslicht
+    # durchs Fenster (cayley_interior, Drehung 315: Fenster links hinten,
+    # Reihe 29.09.2026). Makro 100 mm, erhoehter Blick.
+    'schmuck': dict(hdri='cayley_interior_4k.exr', dreh=315.0, staerke=1.0,
+                    kamera=dict(winkel=-12.0, hoehe=0.30, lens=100.0, ziel_hoehe=0.008, fuellung=0.78, blende=5.6),
+                    wb=(0.85, 1.056, 1.18),
+                    unterlage='WoodenTable_01', unterlage_hoehe=0.76,
+                    stein=dict(ordner=r'ambientcg\Marble012', farbe='Marble012_2K-JPG_Color.jpg', rauheit='Marble012_2K-JPG_Roughness.jpg',
+                               normal='Marble012_2K-JPG_NormalGL.jpg', groesse=(0.42, 0.30, 0.022), kachel_m=0.5, rau=(0.04, 0.18)),
+                    belichtung=0.6),
 }
 O = ORTE[WAS]
 for k in ('dreh', 'staerke', 'belichtung'):
@@ -137,6 +147,72 @@ if O.get('unterlage'):
     stuhl_objs += tm
     print('UNTERLAGE', O['unterlage'], 'Platte', round(platte, 3), 'Masse', [round(x, 3) for x in (ht - lt)])
 
+# Kleine Stuecke (Schmuck) liegen beim Juwelier auf einer Steinplatte: eine
+# echte Platte mit Fase und Marmortextur (Poly Haven, CC0) auf dem Tisch,
+# das Produkt darauf. UV nach realer Groesse, damit die Aederung stimmt.
+# (Erst marble_01 von Poly Haven: das sind Bodenfliesen mit Fugen -- auf
+# einer Platte sah man das Fugenraster, Probe 29.09.2026. Jetzt ambientCG
+# Marble012, durchgehender grauer Marmor, CC0.)
+if O.get('stein'):
+    import bmesh
+    ST = O['stein']
+    sw, sd, sh = ST['groesse']
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    for v in bm.verts:
+        v.co.x *= sw; v.co.y *= sd; v.co.z = (v.co.z + 0.5) * sh
+    bmesh.ops.bevel(bm, geom=list(bm.edges), offset=ST.get('fase', 0.0015), segments=3, affect='EDGES', profile=0.5)
+    uvl = bm.loops.layers.uv.new('UVMap')
+    kachel = ST.get('kachel_m', 0.6)
+    for f in bm.faces:
+        n = f.normal
+        for l in f.loops:
+            c = l.vert.co
+            if abs(n.z) > 0.5:
+                l[uvl].uv = (c.x / kachel + 0.37, c.y / kachel + 0.21)
+            elif abs(n.x) > abs(n.y):
+                l[uvl].uv = (c.y / kachel + 0.21, c.z / kachel)
+            else:
+                l[uvl].uv = (c.x / kachel + 0.37, c.z / kachel)
+    me = bpy.data.meshes.new('stein'); bm.to_mesh(me); bm.free()
+    for poly in me.polygons:
+        poly.use_smooth = True
+    stein = bpy.data.objects.new('stein', me); sc.collection.objects.link(stein)
+    vx, vy = ST.get('versatz', (0.0, 0.0))
+    stein.location = (mitte.x + vx, mitte.y + vy, basis_z)
+    stein.rotation_euler.z = math.radians(ST.get('drehung', 0.0))
+    ms = bpy.data.materials.new('Stein'); ms.use_nodes = True
+    nts = ms.node_tree; bs = nts.nodes.get('Principled BSDF')
+    def _bild(n, farbe=False):
+        im = bpy.data.images.load(os.path.join(os.path.dirname(Q), ST['ordner'], n), check_existing=True)
+        if not farbe:
+            im.colorspace_settings.name = 'Non-Color'
+        t = nts.nodes.new('ShaderNodeTexImage'); t.image = im
+        return t
+    t_d = _bild(ST['farbe'], True)
+    t_r = _bild(ST['rauheit'])
+    t_n = _bild(ST['normal'])
+    nm = nts.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 0.35
+    nts.links.new(t_d.outputs['Color'], bs.inputs['Base Color'])
+    # Polierter Stein: die Textur-Rauheit ist fuer den Boden gedacht --
+    # hier poliert (0,06 .. 0,16), die Variation bleibt erhalten.
+    kr = nts.nodes.new('ShaderNodeMapRange')
+    kr.inputs['To Min'].default_value = ST.get('rau', (0.06, 0.16))[0]; kr.inputs['To Max'].default_value = ST.get('rau', (0.06, 0.16))[1]
+    nts.links.new(t_r.outputs['Color'], kr.inputs['Value']); nts.links.new(kr.outputs['Result'], bs.inputs['Roughness'])
+    nts.links.new(t_n.outputs['Color'], nm.inputs['Color']); nts.links.new(nm.outputs['Normal'], bs.inputs['Normal'])
+    bs.inputs['Coat Weight'].default_value = 0.0
+    stein.data.materials.append(ms)
+    bpy.context.view_layer.update()
+    lt, ht = huelle([stein])
+    for w_ in produkt_wurzeln:
+        w_.location.z += ht.z - basis_z
+    bpy.context.view_layer.update()
+    lo, hi = huelle(modell); mitte = (lo + hi) / 2; groesse = hi - lo
+    basis_z = ht.z
+    unterlage_box = (lt, ht)          # Kontaktschatten liegt auf dem Stein
+    stuhl_objs.append(stein)
+    print('STEIN', ST['ordner'], 'Oberkante', round(basis_z, 3))
+
 # ------------------------------------------------------------------ Welt = der Ort
 welt = bpy.data.worlds.new('Ort'); sc.world = welt
 welt.use_nodes = True
@@ -150,7 +226,16 @@ dreh.inputs['Rotation'].default_value[2] = math.radians(O['dreh'])
 nt.links.new(kopp.outputs['Generated'], dreh.inputs['Vector'])
 nt.links.new(dreh.outputs['Vector'], env.inputs['Vector'])
 hg = nt.nodes.new('ShaderNodeBackground'); hg.inputs['Strength'].default_value = O['staerke']
-nt.links.new(env.outputs['Color'], hg.inputs['Color'])
+# Weissabgleich wie an der Kamera: Das Abendlicht in cayley_interior machte
+# den grauen Marmor rosa-braun (Probe schmuck-b: R/B 1,17 in sRGB; c: noch
+# leicht magenta, G 0,97). Die
+# Korrektur sitzt am Licht selbst, damit Foto und Web-Rundumbild gleich sind.
+if O.get('wb'):
+    wbn = nt.nodes.new('ShaderNodeVectorMath'); wbn.operation = 'MULTIPLY'
+    wbn.inputs[1].default_value = tuple(O['wb'])
+    nt.links.new(env.outputs['Color'], wbn.inputs[0]); nt.links.new(wbn.outputs['Vector'], hg.inputs['Color'])
+else:
+    nt.links.new(env.outputs['Color'], hg.inputs['Color'])
 nt.links.new(hg.outputs['Background'], aus.inputs['Surface'])
 
 # ------------------------------------------------------------------ Boden (Schattenfaenger)

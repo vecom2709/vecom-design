@@ -162,7 +162,7 @@ window.VECOM_I18N.it = {
       demo_auto_b: "Automotive", demo_auto_t: "Tre auto, dentro e fuori", demo_auto_x: "Tempo reale · da 2,9 MB",
       demo_shop_b: "Negozio online", demo_shop_t: "Scarpa con carrello", demo_shop_x: "Tempo reale · 1,2 MB",
       demo_wein_b: "Vino e prodotti naturali", demo_wein_t: "Bottiglia e cassetta regalo", demo_wein_x: "Tempo reale · 2,9 MB",
-      demo_schmuck_b: "Gioielli e orologi", demo_schmuck_t: "Orologio da aprire", demo_schmuck_x: "Tempo reale · 1,2 MB",
+      demo_schmuck_b: "Gioielli e orologi", demo_schmuck_t: "Orologio da aprire", demo_schmuck_x: "Tempo reale · 2,7 MB",
       demo_kueche_b: "Cucine su misura", demo_kueche_t: "Progetti la sua cucina", demo_kueche_x: "Tempo reale · misure a norma",
       kp_kicker: "Cucine su misura · progettatore", kp_h: "Progetti la sua cucina — al centimetro.", kp_lead: "Scelga la forma, inserisca le misure delle pareti, disponga i mobili. La cucina nasce in scala secondo la norma, e il controllo del progetto le dice subito cosa funziona.", kp_griff: "Trascini per girare · Ctrl + rotella o due dita per ingrandire · tocchi un mobile per modificarlo",
       demo_gastro_b: "Ristorazione", demo_gastro_t: "Tavolo per due, apparecchiato", demo_gastro_x: "Tempo reale · 4,3 MB",

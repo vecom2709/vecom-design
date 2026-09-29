@@ -61,13 +61,17 @@ BRANCHEN = {
 # 1600er-Poster): Die Uhr liegt im Poster unten rechts -- in der Kachel lag
 # sie unter der Beschriftung, zu sehen war nur das Band (23.09.2026).
 KACHEL = {
-    'schmuck/poster-stahl.png': ('schmuck-kachel', (470, 348, 1450, 899)),
+    # 29.09.2026: Marmorplatte am Fenster, Uhr und Ring in der Bildmitte
+    'schmuck/poster-stahl.png': ('schmuck-kachel', (433, 338, 1153, 743)),
     'salon/poster-cognac.png': ('salon-kachel', (430, 330, 1290, 814)),
 }
 
 
 def kachel_schreiben(quelle, ziel_stamm, box, webp=False):
-    bild = Image.open(quelle).convert('RGB').crop(box).resize((800, 450), Image.LANCZOS)
+    bild = Image.open(quelle).convert('RGB')
+    # Ausschnitt gilt im 1600er-Poster; seit 29.09.2026 kommen 4K-Poster
+    f = bild.width / 1600
+    bild = bild.crop(tuple(round(v * f) for v in box)).resize((800, 450), Image.LANCZOS)
     bild.save(f'{ziel_stamm}-800.avif', 'AVIF', quality=AVIF_Q_KLEIN, speed=3)
     if webp:
         bild.save(f'{ziel_stamm}-800.webp', 'WEBP', quality=WEBP_Q, method=6)

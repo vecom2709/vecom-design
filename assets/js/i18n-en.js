@@ -160,7 +160,7 @@ window.VECOM_I18N.en = {
       demo_auto_b: "Automotive", demo_auto_t: "Three cars, inside and out", demo_auto_x: "Real time · from 2.9 MB",
       demo_shop_b: "Online shop", demo_shop_t: "Running shoe with cart", demo_shop_x: "Real time · 1.2 MB",
       demo_wein_b: "Wine & natural products", demo_wein_t: "Bottle and gift case", demo_wein_x: "Real time · 2.9 MB",
-      demo_schmuck_b: "Jewellery & watches", demo_schmuck_t: "A watch that opens", demo_schmuck_x: "Real time · 1.2 MB",
+      demo_schmuck_b: "Jewellery & watches", demo_schmuck_t: "A watch that opens", demo_schmuck_x: "Real time · 2.7 MB",
       demo_kueche_b: "Kitchen design", demo_kueche_t: "Plan your own kitchen", demo_kueche_x: "Real time · standard dimensions",
       kp_kicker: "Kitchen design · planner", kp_h: "Plan your kitchen — to the centimetre.", kp_lead: "Pick a layout, enter the wall lengths, place the cabinets. The kitchen is built to scale to kitchen standards, and the plan check tells you at once what works.", kp_griff: "Drag to turn · Ctrl + wheel or two fingers to zoom · tap a cabinet to edit it",
       demo_gastro_b: "Restaurants", demo_gastro_t: "A table for two, laid", demo_gastro_x: "Real time · 4.3 MB",
