@@ -149,6 +149,15 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   </form>
 </div>
 
+<?php require_once dirname(__DIR__) . '/src/PartnerAnrufliste.php'; $akqAl = PartnerAnrufliste::ueberblick(); if ($akqAl): ?>
+<div class="block" id="anrufliste">
+  <h2 style="font-size:15px;margin:0 0 8px">Beim Partner zum Anrufen</h2>
+  <div class="tabellenrahmen"><table><thead><tr><th>Partner</th><th>offen</th><th>zugestimmt</th><th>kein Interesse</th></tr></thead><tbody>
+    <?php foreach ($akqAl as $al): ?><tr><td><?= Fmt::h((string) $al['name']) ?></td><td><?= (int) $al['offen'] ?></td><td><?= (int) $al['zugestimmt'] ?></td><td><?= (int) $al['kein_interesse'] ?></td></tr><?php endforeach; ?>
+  </tbody></table></div>
+  <p class="akq-klein" style="margin-top:6px">Kauft ein Betrieb, der beim Partner zugestimmt hat, gehört er diesem Partner — mit mindestens <?= Fmt::h(Partner::satzWort(['art' => 'prozent', 'wert' => Partner::zahl('partner_anruf_bp')])) ?> Provision.</p>
+</div>
+<?php endif; ?>
 <?php $akqSchnell = ['' => 'Alle', 'darf' => 'Haben zugestimmt', 'ohne_web' => 'Ohne Website', 'stark' => 'Starke Chancen'];
   $akqSchnellAn = !empty($filter['darf']) ? 'darf' : (!empty($filter['ohne_web']) ? 'ohne_web' : (!empty($filter['stark']) ? 'stark' : '')); ?>
 <nav class="akq-schnell" aria-label="Schnellauswahl">
@@ -167,6 +176,10 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
       <?php endif; ?>
     </div>
   <?php else: ?>
+  <?php /* Anrufliste (29.09.2026, T1): anhaken und einem Partner zum Abtelefonieren geben */
+    $akqPartner = sicher(static fn() => Db::all("SELECT id, name FROM partner WHERE status = 'aktiv' ORDER BY name"), []); ?>
+  <form method="post" action="<?= Fmt::h(url('akquise')) ?>" id="uebergabe">
+  <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_an_partner">
   <div class="tabellenrahmen"><table class="akq-tab">
     <thead><tr><th>Betrieb</th><th>Ort</th><th>Was fehlt</th><th>Ansprechen</th></tr></thead>
     <tbody>
@@ -177,7 +190,8 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
         $score = $z['score'] !== null ? (int) $z['score'] : null;
         $ohneWeb = trim((string) ($z['url'] ?? '')) === ''; ?>
       <tr>
-        <td><a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a>
+        <td><label class="akq-wahl"><?php if ($akqPartner && $stand['farbe'] === 'grau' && trim((string) ($z['telefon'] ?? '')) !== ''): ?><input type="checkbox" name="firmen[]" value="<?= (int) $z['id'] ?>" aria-label="<?= Fmt::h((string) $z['name']) ?> auswählen"><?php endif; ?>
+          <a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a></label>
           <div class="akq-klein"><?= Fmt::h(Akquise::branchenName($z['branche'])) ?><?= !$ohneWeb ? ' · ' . Fmt::h((string) ($z['domain'] ?? '')) : '' ?></div>
           <?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>" style="margin-top:5px" title="Wie gut passt Vecom hier? 0–100"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span><?php endif; ?>
           <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?></td>
@@ -194,6 +208,26 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
       </tr>
     <?php endforeach; ?>
     </tbody></table></div>
+  <?php if ($akqPartner): ?>
+  <div class="akq-uebergabe" hidden>
+    <b><span data-zahl>0</span> ausgewählt</b>
+    <select name="partner" required aria-label="Partner"><option value="">Partner wählen …</option>
+      <?php foreach ($akqPartner as $ap): ?><option value="<?= (int) $ap['id'] ?>"><?= Fmt::h((string) $ap['name']) ?></option><?php endforeach; ?></select>
+    <label class="akq-haken" style="margin:0"><input type="checkbox" name="vermerk" value="Geprüft: italienische Nummern nicht im Registro Pubblico delle Opposizioni; bei deutschen Betrieben konkreter Anlass für Interesse (keine oder schwache Website)." required>
+      Geprüft: IT-Nummern nicht im Registro delle Opposizioni, bei DE ein Anlass (keine/schwache Website)</label>
+    <button class="knopf haupt">Zum Abtelefonieren übergeben</button>
+  </div>
+  <?php endif; ?>
+  </form>
+  <p class="akq-klein" style="margin-top:8px">Häkchen vor dem Namen: nur bei Betrieben mit Telefonnummer, die noch nicht zugestimmt haben. Der Partner sieht sie in seiner Anrufliste.</p>
+  <script>
+  (function () {
+    var f = document.getElementById('uebergabe'); if (!f) return;
+    var leiste = f.querySelector('.akq-uebergabe'); if (!leiste) return;
+    function neu() { var n = f.querySelectorAll('input[name="firmen[]"]:checked').length; leiste.hidden = n === 0; leiste.querySelector('[data-zahl]').textContent = n; }
+    f.addEventListener('change', neu); neu();
+  })();
+  </script>
     <?php if ($liste['seiten'] > 1): ?>
       <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
         <?php for ($s = 1; $s <= $liste['seiten']; $s++): ?>

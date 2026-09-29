@@ -226,7 +226,7 @@ final class AkquiseEinwilligung
      * @return array{beleg:string,bereich:?string,nachweis:int,wege:list<string>}
      */
     public static function muendlich(int $firmaId, string $weg, string $person, string $email, string $whatsapp,
-                                     bool $perMail, bool $perWhatsapp, bool $vorgelesen, bool $bereich = true): array
+                                     bool $perMail, bool $perWhatsapp, bool $vorgelesen, bool $bereich = true, ?int $partnerId = null, ?string $durch = null): array
     {
         require_once __DIR__ . '/AkquiseAnsprechen.php';
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
@@ -235,7 +235,8 @@ final class AkquiseEinwilligung
         if (!$vorgelesen) { throw new RuntimeException('Bitte bestätigen, dass du den Satz vorgelesen oder gezeigt hast und er Ja gesagt hat.'); }
         $person = trim(mb_substr(strip_tags($person), 0, 80));
         if (mb_strlen($person) < 2) { throw new RuntimeException('Bitte eintragen, wer zugestimmt hat (Name oder z. B. „Inhaberin“).'); }
-        if (!$perMail && !$perWhatsapp) { throw new RuntimeException('Bitte mindestens einen Weg ankreuzen: E-Mail oder WhatsApp.'); }
+        if (AkquiseAnsprechen::nurMail($f)) { $perWhatsapp = false; }   // deutsche Betriebe: nur E-Mail
+        if (!$perMail && !$perWhatsapp) { throw new RuntimeException(AkquiseAnsprechen::nurMail($f) ? 'Bei deutschen Betrieben bitte die E-Mail-Adresse eintragen.' : 'Bitte mindestens einen Weg ankreuzen: E-Mail oder WhatsApp.'); }
         $mail = $perMail ? Akquise::normEmail($email) : null;
         if ($perMail && $mail === null) { throw new RuntimeException('Die E-Mail-Adresse ist nicht lesbar.'); }
         $wa = $perWhatsapp ? trim((string) preg_replace('~[^\d+ ]~', '', $whatsapp)) : '';
@@ -245,17 +246,20 @@ final class AkquiseEinwilligung
         }
         require_once __DIR__ . '/PartnerRecherche.php';
         $res = PartnerRecherche::reserviertVon($firmaId);
+        /* Anrufliste (T2): Der Partner, dem Vecom den Betrieb übergeben hat, trägt selbst ein. */
+        if ($res !== null && $partnerId !== null
+            && (int) Db::wert('SELECT partner_id FROM partner_reservierungen WHERE firma_id = ? AND bis >= CURDATE()', [$firmaId], 0) === $partnerId) { $res = null; }
         if ($res !== null) { throw new RuntimeException('Partner ' . $res['name'] . ' kümmert sich um diesen Betrieb (reserviert bis ' . date('d.m.Y', strtotime((string) $res['bis'])) . ').'); }
         $sp = AkquiseText::spracheFuer($f);
         $jetzt = date('Y-m-d H:i:s');
         $nachweis = (int) Db::insert('akq_einwilligungen', [
             'firma_id' => $firmaId, 'link_token' => bin2hex(random_bytes(20)), 'email' => $mail, 'whatsapp' => $wa !== '' ? $wa : null,
-            'sprache' => $sp, 'quelle' => $weg, 'wortlaut' => AkquiseAnsprechen::wortlaut($sp), 'wortlaut_version' => AkquiseAnsprechen::WORTLAUT_VERSION,
+            'sprache' => $sp, 'quelle' => $weg, 'wortlaut' => AkquiseAnsprechen::wortlaut($sp, AkquiseAnsprechen::nurMail($f)), 'wortlaut_version' => AkquiseAnsprechen::WORTLAUT_VERSION,
             'status' => 'bestaetigt', 'angefragt_am' => $jetzt, 'bestaetigt_am' => $jetzt,
         ]);
         $wege = implode(' + ', array_filter([$mail !== null ? 'E-Mail ' . $mail : null, $wa !== '' ? 'WhatsApp ' . $wa : null]));
         $beleg = mb_substr(($weg === 'anruf' ? 'Am Telefon' : 'Beim Besuch') . ' am ' . date('d.m.Y H:i', strtotime($jetzt)) . ': ' . $person
-            . ' hat zugestimmt (' . $wege . '), Satz vorgelesen von ' . (Auth::angemeldet() ? Auth::name() : 'Uwe') . ', Wortlaut ' . AkquiseAnsprechen::WORTLAUT_VERSION
+            . ' hat zugestimmt (' . $wege . '), Frage vorgelesen von ' . ($durch ?? (Auth::angemeldet() ? Auth::name() : 'Uwe')) . ', Wortlaut ' . AkquiseAnsprechen::WORTLAUT_VERSION
             . ' (Nachweis #' . $nachweis . ')', 0, 255);
         $kanaele = trim((string) ($f['einwilligung'] ?? '')) !== '' ? array_filter(array_map('trim', explode(',', (string) (($f['einwilligung_kanaele'] ?? '') ?: 'email')))) : [];
         if ($mail !== null) { $kanaele[] = 'email'; }

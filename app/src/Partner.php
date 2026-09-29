@@ -70,6 +70,9 @@ final class Partner
         'partner_bewerbung_offen' => '1', 'partner_einbehalt_bp' => '0',
         'partner_stufen_an' => '1', 'partner_silber_ab' => '5', 'partner_silber_bp' => '1200',
         'partner_gold_ab' => '10', 'partner_gold_bp' => '1500',
+        /* Anrufliste (29.09.2026, Uwe: Ja zu T4): Kauft ein Betrieb, der beim
+           Anruf des Partners zugestimmt hat, gilt mindestens dieser Satz. */
+        'partner_anruf_bp' => '1500',
     ];
 
     public static function einstellung(string $k): string
@@ -706,7 +709,7 @@ final class Partner
 
         try {
             Db::insert('partner_zuordnungen', ['customer_id' => $kundeId, 'partner_id' => $partnerId,
-                'quelle' => in_array($quelle, ['link', 'code', 'hand', 'partner', 'telefon'], true) ? $quelle : 'link',
+                'quelle' => in_array($quelle, ['link', 'code', 'hand', 'partner', 'telefon', 'anruf'], true) ? $quelle : 'link',
                 'bedarf_id' => $bedarfId, 'kanal' => self::kanal((string) $kanal)]);
         } catch (Throwable $e) {
             if (Db::andrang($e)) { return 'schon'; }        // zwei Anfragen gleichzeitig: die erste gewinnt
@@ -797,6 +800,8 @@ final class Partner
 
         $s = self::satzFuer($p);
         if (empty($s[$art])) { return ['ok' => false, 'grund' => 'art_aus']; }
+        /* Anrufliste (T4): am Telefon gewonnen → mindestens 15 %, nie weniger als der eigene Satz. */
+        if ((string) $zu['quelle'] === 'anruf' && $s['art'] === 'prozent') { $s['wert'] = max((int) $s['wert'], self::zahl('partner_anruf_bp')); }
 
         $bezahltAm = (string) ($z['paid_at'] ?: date('Y-m-d H:i:s'));
         $laufzeit = self::zahl('partner_zuordnung_monate');

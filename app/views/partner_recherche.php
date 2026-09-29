@@ -128,6 +128,27 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .ck-ergebnis ul{list-style:none;padding:0;margin:6px 0 10px;display:grid;gap:4px;font-size:14px}
   .ampel{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
   .ampel.gut{background:#34d39b}.ampel.hinweis{background:#e8b64c}.ampel.schlecht{background:#ef6b5b}
+  .al{border:1px solid rgba(241,211,139,.55);border-radius:14px;padding:14px 14px 12px;margin:0 0 22px;background:rgba(241,211,139,.06);scroll-margin-top:90px}
+  .al-liste{margin-top:10px}
+  .al-knoepfe{margin-top:8px}
+  .al-sagen{margin-top:8px}
+  .al-sagen summary{cursor:pointer;font-size:14px;color:var(--text)}
+  .al-skript{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+  .al-skript li{border-left:3px solid var(--linie);padding:2px 0 2px 12px}
+  .al-skript li.satz{border-left-color:rgba(241,211,139,.8)}
+  .al-skript small{display:block;font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .al-skript p{margin:2px 0 0;font-size:15px;line-height:1.55;color:var(--text)}
+  #anrufliste .al-erg{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+  #anrufliste .al-erg form{display:inline-flex;flex-direction:row;gap:0;margin:0}
+  #anrufliste .al-ja{flex:1 1 100%}
+  #anrufliste .al-ja > summary{list-style:none;display:inline-flex;border-color:rgba(52,211,155,.6);color:#34d39b}
+  #anrufliste .al-ja > summary::-webkit-details-marker{display:none}
+  #anrufliste .al-ja[open] > summary{margin-bottom:10px}
+  #anrufliste .al-ja form{display:flex;flex-direction:column;gap:10px;max-width:520px}
+  .al-feld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim)}
+  .al-haken{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--text)}
+  .al-haken input{width:auto;margin-top:3px}
+  #anrufliste blockquote{margin:0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.04);font-size:14px;line-height:1.5}
   .ap{border:1px solid rgba(241,211,139,.45);border-radius:14px;padding:14px 14px 12px;margin:0 0 22px;background:rgba(241,211,139,.04);scroll-margin-top:90px}
   #heute form.ap-ort{display:flex;flex-direction:row;align-items:stretch;gap:8px;flex-wrap:wrap;max-width:560px;margin-top:10px}
   #heute form.ap-ort input{flex:1 1 220px;min-width:0}
@@ -141,6 +162,64 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
 
 <div class="block pt" id="recherche" data-reiter="finden">
   <h2><?= $h($T('re_titel')) ?></h2>
+
+  <?php /* Anrufliste (29.09.2026, Uwe: Ja zu T1–T4): Betriebe, die Vecom zum Abtelefonieren gegeben hat */
+        require_once dirname(__DIR__) . '/src/PartnerAnrufliste.php';
+        $alListe = PartnerAnrufliste::liste((int) $p['id']); $alErl = PartnerAnrufliste::erledigt((int) $p['id']);
+        $alMeld = preg_match('~^al_[a-z_]+$~', (string) ($_GET['al'] ?? '')) ? (string) $_GET['al'] : '';
+        if ($alListe || array_sum($alErl) > 0 || $alMeld !== ''): $alSatz = Partner::satzWort(PartnerAnrufliste::satz($p), true); ?>
+  <section class="al" id="anrufliste" aria-labelledby="al_titel">
+    <h3 class="md-h" id="al_titel" style="margin-top:4px"><?= $h(strtr($T('al_titel'), ['{n}' => (string) count($alListe)])) ?></h3>
+    <p class="klein" style="margin-top:0"><?= $h(strtr($T('al_text'), ['{satz}' => $alSatz])) ?></p>
+    <p class="klein" style="margin-top:0"><?= $h($T('al_regel')) ?></p>
+    <?php if ($alMeld !== ''): ?><div class="hinweis <?= in_array($alMeld, ['al_danke', 'al_ok'], true) ? 'gut' : 'schlecht' ?>" role="status"><?= $h($T($alMeld)) ?></div><?php endif; ?>
+    <?php if (array_sum($alErl) > 0): ?><p class="klein"><?= $h(strtr($T('al_erledigt'), ['{z}' => (string) $alErl['zugestimmt'], '{k}' => (string) $alErl['kein_interesse']])) ?></p><?php endif; ?>
+    <?php if (!$alListe): ?>
+      <p class="klein"><?= $h($T('al_leer')) ?></p>
+    <?php else: ?>
+      <ol class="firmen al-liste">
+        <?php foreach ($alListe as $af):
+          $alP = AkquiseAnsprechen::paket($af, [], null, '', (string) $p['name']);
+          $alWege = PartnerAnrufliste::wege($af);
+          $alTel = (string) preg_replace('~[^\d+]~', '', (string) $af['telefon']);
+          $alWa = preg_match('~^(\+39|0039)?3\d{8,9}$~', (string) preg_replace('~[\s./-]~', '', (string) $af['telefon'])) ? (string) $af['telefon'] : '';
+          $alForm = static fn(string $erg, string $inhalt) => '<form method="post" action="' . $h($selbst()) . '#anrufliste"><input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '">'
+              . '<input type="hidden" name="tat" value="al_ergebnis"><input type="hidden" name="firma" value="' . (int) $af['id'] . '"><input type="hidden" name="ergebnis" value="' . $erg . '">' . $inhalt . '</form>'; ?>
+          <li class="firma al-firma">
+            <div class="firma__kopf"><b><?= $h((string) $af['name']) ?></b>
+              <?php if ((int) $af['versuche'] > 0): ?><span class="chance mittel"><?= $h(strtr($T('al_versuche'), ['{n}' => (string) (int) $af['versuche']])) ?></span><?php endif; ?></div>
+            <small><?= $h(implode(' · ', array_filter([(string) $af['branche'] !== '' ? Akquise::branchenName((string) $af['branche'], $sprache) : '', trim(((string) ($af['plz'] ?? '')) . ' ' . ((string) ($af['stadt'] ?? ''))),
+                  trim((string) ($af['domain'] ?? '')) !== '' ? (string) $af['domain'] : $T('ap_ohne_web')]))) ?></small>
+            <div class="al-knoepfe">
+              <a class="knopf haupt" href="tel:<?= $h($alTel) ?>"><?= $h($T('al_anrufen')) ?>: <?= $h((string) $af['telefon']) ?></a>
+            </div>
+            <details class="al-sagen"><summary><?= $h($T('al_sagen')) ?></summary>
+              <ol class="al-skript" lang="<?= $h($alP['sprache']) ?>">
+                <?php foreach (['hallo' => 'al_s_hallo', 'anlass' => 'al_s_anlass', 'frage' => 'al_s_frage', 'ja' => 'al_s_ja', 'nein' => 'al_s_nein'] as $k => $w): ?>
+                  <li class="<?= $k === 'ja' ? 'satz' : '' ?>"><small lang="<?= $h($sprache) ?>"><?= $h($T($w)) ?></small><p><?= $h($alP['saetze'][$k]) ?></p></li>
+                <?php endforeach; ?>
+              </ol>
+            </details>
+            <div class="al-erg">
+              <details class="al-ja"><summary class="knopf"><?= $h($T('al_zugestimmt')) ?></summary>
+                <?= $alForm('zugestimmt', '
+                  <label class="al-feld"><span>' . $h($T('al_person')) . '</span><input name="person" required minlength="2" maxlength="80" placeholder="' . $h($T('al_person_ph')) . '"></label>
+                  <label class="al-feld"><span>' . $h($T('al_email')) . '</span><input name="email" type="email" maxlength="190"' . ($alWege === ['email'] ? ' required' : '') . ' value="' . $h((string) ($af['email'] ?? '')) . '"></label>'
+                  . (in_array('whatsapp', $alWege, true) ? '<label class="al-feld"><span>' . $h($T('al_wa')) . '</span><input name="whatsapp" inputmode="tel" maxlength="40" value="' . $h($alWa) . '" placeholder="+39 3…"></label>
+                  <p class="klein" style="margin:0">' . $h($T('al_eins_hinweis')) . '</p>' : '') . '
+                  <blockquote lang="' . $h($alP['sprache']) . '">' . $h($alP['wortlaut']) . '</blockquote>
+                  <label class="al-haken"><input type="checkbox" name="vorgelesen" value="1" required> ' . $h($T('al_haken')) . '</label>
+                  <button class="knopf haupt" type="submit">' . $h($T('al_speichern')) . '</button>') ?>
+              </details>
+              <?= $alForm('kein_interesse', '<button class="knopf" type="submit">' . $h($T('al_kein')) . '</button>') ?>
+              <?= $alForm('nicht_erreicht', '<button class="knopf" type="submit">' . $h($T('al_nicht')) . '</button>') ?>
+            </div>
+          </li>
+        <?php endforeach; ?>
+      </ol>
+    <?php endif; ?>
+  </section>
+  <?php endif; ?>
 
   <?php /* Partner-Autopilot (29.09.2026): jeden Morgen fünf Betriebe zum Vorbeigehen */
         require_once dirname(__DIR__) . '/src/PartnerAutopilot.php'; require_once dirname(__DIR__) . '/src/PartnerFlyer.php';

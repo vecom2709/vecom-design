@@ -144,6 +144,13 @@ if ($post) {
                     . ($r['bereich'] !== null ? ', und der persönliche Bereich ist per Mail unterwegs.' : '.');
                 weiter('akquise/' . $fid . '#ansprechen');
 
+            case 'akq_an_partner':
+                require_once __DIR__ . '/src/PartnerAnrufliste.php';
+                $r = PartnerAnrufliste::uebergeben((array) ($_POST['firmen'] ?? []), (int) ($_POST['partner'] ?? 0), (string) ($_POST['vermerk'] ?? ''), Auth::name() ?: 'Uwe');
+                $_SESSION['gut'] = $r['ok'] . ' Betrieb' . ($r['ok'] === 1 ? '' : 'e') . ' übergeben — der Partner sieht sie in seiner Anrufliste.'
+                    . ($r['weg'] ? ' Nicht übergeben: ' . implode('; ', array_map(static fn($n, $g) => $n . ' (' . $g . ')', array_keys(array_slice($r['weg'], 0, 5, true)), array_slice($r['weg'], 0, 5, true))) . (count($r['weg']) > 5 ? ' …' : '') . '.' : '');
+                weiter('akquise#anrufliste');
+
             case 'akq_manuell':
                 require_once __DIR__ . '/src/AkquiseAnsprechen.php';
                 $ok = AkquiseAnsprechen::vermerken($fid, (string) ($_POST['kanal'] ?? ''));

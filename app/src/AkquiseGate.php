@@ -197,6 +197,13 @@ final class AkquiseGate
                 if ($wunsch !== null && ($wunsch['status'] !== 'offen'
                     || $wunsch['partner_id'] !== (int) Db::wert('SELECT partner_id FROM partner_reservierungen WHERE firma_id = ?', [(int) $f['id']], 0))) { $wunsch = null; }
             }
+            /* Anrufliste (29.09.2026, T3): Hat der Betrieb beim Anruf des Partners
+               zugestimmt, laufen Mail/WhatsApp von Vecom (Dashboard, Folge-Mails)
+               trotz Reservierung -- der Kunde bleibt dem Partner zugeordnet. */
+            if ($res !== null && $wunsch === null && in_array($kanal, ['email', 'whatsapp'], true) && self::einwilligungDeckt($f, $kanal)
+                && self::anrufZugestimmt((int) $f['id'])) {
+                $res = null;
+            }
             if ($res !== null && $wunsch === null) {
                 return ['status' => self::NICHT, 'gruende' => ['Partner ' . $res['name'] . ' kümmert sich (reserviert bis '
                     . date('d.m.Y', strtotime((string) $res['bis'])) . ').'], 'regel' => null, 'bedingung' => ''];
@@ -389,6 +396,14 @@ final class AkquiseGate
     {
         if (!isset(self::SCHALTER[$k])) { throw new InvalidArgumentException('Unbekannter Schalter.'); }
         self::setzen(self::SCHALTER[$k][0], $an ? '1' : '0');
+    }
+
+    /** Anrufliste: hat der Betrieb beim Anruf des Partners zugestimmt? */
+    public static function anrufZugestimmt(int $firmaId): bool
+    {
+        try {
+            return (string) Db::wert("SELECT anruf_status FROM partner_reservierungen WHERE firma_id = ? AND herkunft = 'vecom'", [$firmaId], '') === 'zugestimmt';
+        } catch (Throwable $e) { return false; }   // Spalte noch nicht da (Migration läuft gleich)
     }
 
     /**

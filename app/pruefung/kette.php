@@ -11072,7 +11072,7 @@ foreach (['akq_anruf', 'akq_brief_verschickt', 'akq_vorlage_freigeben'] as $akTa
 /* Liste und Suche */
 $akL = Akquise::liste(['kontakt' => 'kontaktiert'], 1);
 pruefe('Filter „Kontaktiert" findet den Brief-Betrieb', in_array($akE['id'], array_map(static fn($z) => (int) $z['id'], $akL['zeilen']), true));
-pruefe('die Liste hat vier Spalten (29.09.2026, K1: Betrieb, Ort, Was fehlt, Ansprechen)', substr_count((string) file_get_contents($wurzel . '/views/akquise.php'), '<th>') === 4);
+pruefe('die Liste hat vier Spalten (29.09.2026, K1: Betrieb, Ort, Was fehlt, Ansprechen)', preg_match('~<table class="akq-tab">\s*<thead>(.*?)</thead>~s', (string) file_get_contents($wurzel . '/views/akquise.php'), $akTh) === 1 && substr_count($akTh[1], '<th>') === 4);
 pruefe('„Jetzt suchen" legt einen Auftrag mit Ebene „auto" an, und der Worker kennt sie',
     str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "'ebene' => 'auto'")
     && str_contains((string) file_get_contents($oben . '/tools/akquise/src/recherche/lauf.ts'), "lauf.ebene === 'auto'"));
@@ -14826,6 +14826,71 @@ pruefe('K1: Liste mit „Ansprechen“ für jeden, Schnellauswahl „Haben zuges
     && Ablauf::rueckfrage('akq_manuell') === null
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_ansprechen.php'"));
 Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?)', [$ahF, $ahDe, $ahRes]);
+
+/* Anrufliste: Betriebe an Partner zum Abtelefonieren (29.09.2026, Uwe: Ja zu T1–T4) */
+abschnitt('Anrufliste für Partner (T1–T4)');
+require_once $wurzel . '/src/PartnerAnrufliste.php';
+$alP = Partner::laden(Partner::anlegen(['name' => 'Tina Telefon', 'email' => 'tina@partner-al.example', 'status' => 'aktiv', 'sprache' => 'it']));
+$alP2 = Partner::laden(Partner::anlegen(['name' => 'Otto Anders', 'email' => 'otto@partner-al.example', 'status' => 'aktiv', 'sprache' => 'de']));
+$alNeu = static fn(string $k, array $x): int => (int) Db::insert('akq_firmen', $x + ['kennung' => $k, 'name_norm' => mb_strtolower($x['name']), 'quelle' => 'al-kette-' . $k]);
+$alA = $alNeu('AL00000001', ['name' => 'Pasticceria Anruf', 'land' => 'IT', 'branche' => 'baeckerei', 'stadt' => 'Aragona', 'telefon' => '+39 333 4445556']);
+$alB = $alNeu('AL00000002', ['name' => 'Senza Numero', 'land' => 'IT', 'branche' => 'bar_cafe', 'stadt' => 'Aragona']);
+$alC = $alNeu('AL00000003', ['name' => 'Metzgerei Anruf', 'land' => 'DE', 'branche' => 'einzelhandel', 'stadt' => 'Bad Kreuznach', 'telefon' => '+49 671 998877']);
+$alD = $alNeu('AL00000004', ['name' => 'Schon Vergeben', 'land' => 'IT', 'branche' => 'restaurant', 'stadt' => 'Aragona', 'telefon' => '+39 0922 111222']);
+$alE = $alNeu('AL00000005', ['name' => 'Gesperrt Anruf', 'land' => 'IT', 'branche' => 'restaurant', 'stadt' => 'Aragona', 'telefon' => '+39 0922 333444', 'gesperrt' => 1]);
+PartnerRecherche::reservieren((int) $alP2['id'], $alD);
+$alVermerk = 'Geprüft: IT-Nummern nicht im Registro delle Opposizioni, DE mit Anlass (keine Website).';
+$alOhne = false; try { PartnerAnrufliste::uebergeben([$alA], (int) $alP['id'], 'kurz'); } catch (RuntimeException $e) { $alOhne = true; }
+$alU = PartnerAnrufliste::uebergeben([$alA, $alB, $alC, $alD, $alE], (int) $alP['id'], $alVermerk, 'Kette');
+$alL = array_map(static fn($z) => (int) $z['id'], PartnerAnrufliste::liste((int) $alP['id']));
+pruefe('T1: nur mit Prüfvermerk; übergeben werden Betriebe mit Nummer, nicht gesperrt, nicht bei einem anderen Partner',
+    $alOhne && $alU['ok'] === 2 && isset($alU['weg']['Senza Numero'], $alU['weg']['Schon Vergeben'], $alU['weg']['Gesperrt Anruf'])
+    && $alL === [$alA, $alC] && (int) Db::wert('SELECT partner_id FROM partner_reservierungen WHERE firma_id = ?', [$alD], 0) === (int) $alP2['id']
+    && !in_array($alA, array_column(PartnerRecherche::meine((int) $alP['id'], 'it'), 'id'), true)
+    && AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alA]), 'email')['status'] === AkquiseGate::NICHT, json_encode($alU));
+$alFa = static fn(array $d) => PartnerAnrufliste::ergebnis($alP, $alA, 'zugestimmt', $d + ['person' => 'Rosa', 'vorgelesen' => true]);
+pruefe('T2: DE nur E-Mail (Pflicht), IT E-Mail und/oder WhatsApp; ohne Haken oder Namen nichts gespeichert',
+    PartnerAnrufliste::wege(['land' => 'DE']) === ['email'] && PartnerAnrufliste::wege(['land' => 'IT']) === ['email', 'whatsapp']
+    && !str_contains(AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alC]), [])['wortlaut'], 'WhatsApp')
+    && str_contains(AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alA]), [])['wortlaut'], 'WhatsApp')
+    && PartnerAnrufliste::ergebnis($alP, $alC, 'zugestimmt', ['whatsapp' => '+49 171 1234567', 'person' => 'Hans', 'vorgelesen' => true]) === 'al_mail'
+    && $alFa([]) === 'al_eins' && $alFa(['email' => 'kaputt']) === 'al_mail' && $alFa(['whatsapp' => '12']) === 'al_wa'
+    && $alFa(['email' => 'rosa@pasticceria.example', 'vorgelesen' => false]) === 'al_haken' && $alFa(['email' => 'rosa@pasticceria.example', 'person' => 'R']) === 'al_person'
+    && PartnerAnrufliste::ergebnis($alP2, $alA, 'nicht_erreicht') === 'al_weg'
+    && trim((string) Db::wert('SELECT einwilligung FROM akq_firmen WHERE id = ?', [$alA], '')) === '');
+$alOk = $alFa(['email' => 'Rosa@Pasticceria.example', 'whatsapp' => '+39 333 4445556']);
+$alFz = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alA]);
+pruefe('T3: „Zugestimmt“ speichert den Nachweis (durch den Partner), Mail und WhatsApp von Vecom laufen trotz Reservierung, Folge-Mails starten',
+    $alOk === 'ok' && str_contains((string) $alFz['einwilligung'], 'Partner Tina Telefon') && (string) $alFz['einwilligung_kanaele'] === 'email,whatsapp'
+    && Db::wert('SELECT anruf_status FROM partner_reservierungen WHERE firma_id = ?', [$alA], '') === 'zugestimmt'
+    && in_array(AkquiseGate::pruefen($alFz, 'email')['status'], [AkquiseGate::ERLAUBT, AkquiseGate::PRUEFEN], true)
+    && in_array(AkquiseGate::pruefen($alFz, 'whatsapp')['status'], [AkquiseGate::ERLAUBT, AkquiseGate::PRUEFEN], true)
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_folgen WHERE firma_id = ?', [$alA], 0) === 1
+    && Db::wert("SELECT quelle FROM partner_vormerkungen WHERE partner_id = ? AND email = 'rosa@pasticceria.example'", [(int) $alP['id']], '') === 'anruf'
+    && PartnerAnrufliste::liste((int) $alP['id']) !== [] && $alFa(['email' => 'x@y.example']) === 'al_weg', json_encode([$alOk, $alFz['einwilligung']]));
+pruefe('T2: „Kein Interesse“ sperrt für immer, „Nicht erreicht“ bleibt in der Liste und zählt mit',
+    PartnerAnrufliste::ergebnis($alP, $alC, 'nicht_erreicht') === 'ok' && (int) Db::wert('SELECT versuche FROM partner_reservierungen WHERE firma_id = ?', [$alC], 0) === 1
+    && in_array($alC, array_map(static fn($z) => (int) $z['id'], PartnerAnrufliste::liste((int) $alP['id'])), true)
+    && PartnerAnrufliste::ergebnis($alP, $alC, 'kein_interesse') === 'ok' && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$alC], 0) === 1
+    && PartnerAnrufliste::erledigt((int) $alP['id']) === ['zugestimmt' => 1, 'kein_interesse' => 1]
+    && (int) (array_values(array_filter(PartnerAnrufliste::ueberblick(), static fn($u) => (int) $u['id'] === (int) $alP['id']))[0]['zugestimmt'] ?? 0) === 1);
+$alK = Events::kundeFinden(['name' => 'Rosa Pasticceria', 'email' => 'rosa@pasticceria.example']);
+$alBest = Events::bestellungAnlegen($alK, $paketId, 'Anrufliste-Prüfung', 100000);
+$alRate = Db::all('SELECT * FROM payments WHERE order_id = ? ORDER BY id', [$alBest]);
+Events::zahlungBestaetigen((int) $alRate[0]['id'], 'pi_kette_anrufliste_1', 'stripe');
+$alPr = Db::one('SELECT * FROM partner_provisionen WHERE payment_id = ?', [(int) $alRate[0]['id']]);
+pruefe('T4: kauft der Betrieb, gehört er dem Partner, der angerufen hat — mit 15 % statt 10 %',
+    Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$alK], 0) == (int) $alP['id']
+    && Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$alK], '') === 'anruf'
+    && $alPr && (int) $alPr['provision_cents'] === (int) round((int) $alRate[0]['amount_cents'] * 0.15) && $alPr['satz'] === '15 %'
+    && PartnerAnrufliste::satz($alP)['wert'] === 1500 && Partner::satzFuer($alP)['wert'] === 1000, json_encode($alPr));
+$alView = (string) file_get_contents($wurzel . '/views/partner_recherche.php') . (string) file_get_contents($wurzel . '/views/akquise.php');
+pruefe('T1/T2: Häkchen und „Zum Abtelefonieren übergeben“ in der Verwaltung (mit Rückfrage), Anrufliste mit Anruf-Knopf und Text im Partner-Dashboard',
+    str_contains($alView, 'name="firmen[]"') && str_contains($alView, 'Zum Abtelefonieren übergeben') && Ablauf::rueckfrage('akq_an_partner') !== null
+    && str_contains($alView, 'id="anrufliste"') && str_contains($alView, 'href="tel:') && str_contains($alView, "'al_s_ja'")
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$tat === 'al_ergebnis'")
+    && !array_filter(array_keys(Texte::PARTNER), static fn($k) => str_starts_with($k, 'al_') && count(Texte::PARTNER[$k]) !== 3));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?, ?, ?)', [$alA, $alB, $alC, $alD, $alE]);
 
 /* ============================================================================
    Aufräumen und Bilanz

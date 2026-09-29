@@ -140,8 +140,10 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
           <input id="an-person" name="person" required minlength="2" maxlength="80" value="<?= $anH((string) ($f['ansprechpartner'] ?? '')) ?>" placeholder="z. B. Maria Rossi, Inhaberin"></div>
         <label class="kanal"><input type="checkbox" name="per_email" value="1" checked data-an-schalter="an-mail"> per E-Mail</label>
         <div class="an-feld"><input id="an-mail" name="email" type="email" maxlength="190" value="<?= $anH((string) ($f['email'] ?? '')) ?>" placeholder="E-Mail-Adresse, die er genannt hat" aria-label="E-Mail-Adresse"></div>
+        <?php if (!AkquiseAnsprechen::nurMail($f)): ?>
         <label class="kanal"><input type="checkbox" name="per_whatsapp" value="1"<?= $anWaVor !== '' ? ' checked' : '' ?> data-an-schalter="an-wa"> per WhatsApp</label>
         <div class="an-feld"><input id="an-wa" name="whatsapp" inputmode="tel" maxlength="40" value="<?= $anH($anWaVor) ?>" placeholder="+39 3…" aria-label="WhatsApp-Nummer"></div>
+        <?php else: ?><p class="akq-klein" style="margin:4px 0 0">Deutscher Betrieb: nur E-Mail.</p><?php endif; ?>
         <p class="akq-klein" style="margin:10px 0 0">Diese Frage hast du vorgelesen oder gezeigt, und er hat Ja gesagt (wird so gespeichert):</p>
         <blockquote lang="<?= $anH($an['sprache']) ?>"><?= $anH($an['wortlaut']) ?></blockquote>
         <label class="akq-haken"><input type="checkbox" name="vorgelesen" value="1" required> Ja — vorgelesen oder gezeigt, und er hat zugestimmt.</label>

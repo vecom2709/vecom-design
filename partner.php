@@ -252,6 +252,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'ck_weg' && $p) {
                 PartnerCheck::loeschen((int) $p['id'], (string) ($_POST['token'] ?? ''));
                 header('Location: ' . $selbst(['m' => 'ck_weg_gut']) . '#recherche', true, 303); exit;
+            } elseif ($tat === 'al_ergebnis' && $p) {
+                /* Anrufliste (29.09.2026, T2): Ergebnis des Anrufs */
+                require_once __DIR__ . '/app/src/PartnerAnrufliste.php';
+                $erg = (string) ($_POST['ergebnis'] ?? '');
+                $r = PartnerAnrufliste::ergebnis($p, (int) ($_POST['firma'] ?? 0), $erg, [
+                    'email' => (string) ($_POST['email'] ?? ''), 'whatsapp' => (string) ($_POST['whatsapp'] ?? ''),
+                    'person' => (string) ($_POST['person'] ?? ''), 'vorgelesen' => !empty($_POST['vorgelesen'])]);
+                $key = $r === 'ok' ? ($erg === 'zugestimmt' ? (trim((string) ($_POST['email'] ?? '')) !== '' ? 'al_danke' : 'al_danke_wa') : 'al_ok') : ['al_wa' => 'al_wa_fehler', 'al_person' => 'al_person_fehler', 'al_haken' => 'al_haken_fehler'][$r] ?? $r;
+                header('Location: ' . $selbst(['al' => $key]) . '#anrufliste', true, 303); exit;
             } elseif ($tat === 'ap_ort' && $p) {
                 /* Partner-Autopilot (29.09.2026): der Ort für die fünf Betriebe am Morgen */
                 require_once __DIR__ . '/app/src/PartnerAutopilot.php';

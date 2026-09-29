@@ -107,6 +107,12 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-reiter-menue a{border:0!important;border-radius:9px!important;padding:9px 12px!important;color:var(--text)!important}
   .akq-reiter-menue a:hover,.akq-reiter-menue a:focus-visible{background:var(--flaeche2)}
   .akq-mehr{margin:0 0 16px}
+  .akq-wahl{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+  .akq-wahl input{width:18px;height:18px;margin-top:2px;flex:none}
+  .akq-uebergabe{position:sticky;bottom:12px;z-index:15;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:12px 14px;
+    border:1px solid rgba(241,211,139,.55);border-radius:14px;background:var(--flaeche);box-shadow:0 14px 36px rgba(0,0,0,.5)}
+  .akq-uebergabe select{width:auto;min-width:180px}
+  .akq-uebergabe .akq-haken{font-size:12.5px;max-width:440px}
   .akq-weg3{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .akq-weg3 li{border:1px solid var(--linie);border-radius:14px;padding:14px 16px;background:var(--flaeche);display:grid;gap:4px}
   .akq-weg3 b{font-size:15px;color:var(--cyan)}

@@ -110,7 +110,7 @@ final class PartnerRecherche
             $r = Db::one('SELECT partner_id, bis FROM partner_reservierungen WHERE firma_id = ? FOR UPDATE', [$firmaId]);
             if ($r && (int) $r['partner_id'] !== $partnerId && strtotime((string) $r['bis']) >= strtotime('today')) { return 'fi_weg'; }
             if (!$r || (int) $r['partner_id'] !== $partnerId) {
-                $aktiv = (int) Db::wert('SELECT COUNT(*) FROM partner_reservierungen WHERE partner_id = ? AND bis >= CURDATE()', [$partnerId], 0);
+                $aktiv = (int) Db::wert("SELECT COUNT(*) FROM partner_reservierungen WHERE partner_id = ? AND bis >= CURDATE() AND (herkunft IS NULL OR herkunft <> 'vecom')", [$partnerId], 0);
                 if ($aktiv >= self::MAX_AKTIV) { return 'fi_voll'; }
             }
             Db::run('INSERT INTO partner_reservierungen (firma_id, partner_id, bis) VALUES (?, ?, DATE_ADD(CURDATE(), INTERVAL ' . self::TAGE . ' DAY))
@@ -137,7 +137,8 @@ final class PartnerRecherche
             'plz' => (string) ($z['plz'] ?? ''), 'branche_key' => (string) ($z['branche'] ?? ''),
         ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.telefon, f.email, f.land, r.bis
                       FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
-                     WHERE r.partner_id = ? AND r.bis >= CURDATE() ORDER BY r.bis', [$partnerId]));
+                     WHERE r.partner_id = ? AND r.bis >= CURDATE() AND (r.herkunft IS NULL OR r.herkunft <> \'vecom\' OR r.anruf_status = \'zugestimmt\')
+                     ORDER BY r.bis', [$partnerId]));
     }
 
     /** Für AkquiseGate: Reserviert gerade ein Partner diese Firma? Dann Name und Datum. */

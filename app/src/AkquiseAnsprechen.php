@@ -74,6 +74,7 @@ final class AkquiseAnsprechen
             'a_grund_ohne' => 'Ho visto che {firma} non ha ancora un sito proprio – chi cerca {branche} {in} su Google trova soprattutto gli altri.',
             'a_frage' => 'Posso mandarle un’analisi gratuita, con due o tre proposte concrete? Per e-mail o su WhatsApp, come preferisce.',
             'a_nein' => 'Nessun problema, grazie e buona giornata.',
+            'p_hallo' => 'Buongiorno, sono {sprecher} e collaboro con {absender}, web design in provincia di Agrigento. Parlo con il titolare di {firma}?',
             'b_hallo' => 'Buongiorno, sono {inhaber} di {absender}, web designer qui in zona. Posso rubarle un minuto?',
             'b_frage' => 'Le lascio volentieri il nostro volantino con il codice QR: lì vede l’analisi e il prezzo indicativo. Oppure gliela mando per e-mail o su WhatsApp?',
         ],
@@ -99,6 +100,7 @@ final class AkquiseAnsprechen
             'a_grund_ohne' => 'Ich habe gesehen, dass {firma} noch keine eigene Website hat – wer {branche} {in} bei Google sucht, findet vor allem die anderen.',
             'a_frage' => 'Darf ich Ihnen eine kostenlose Analyse mit zwei, drei konkreten Vorschlägen schicken? Per E-Mail oder WhatsApp, wie Sie mögen.',
             'a_nein' => 'Kein Problem, vielen Dank und einen schönen Tag.',
+            'p_hallo' => 'Guten Tag, hier ist {sprecher}, ich arbeite mit {absender} zusammen, Webdesign. Spreche ich mit dem Inhaber von {firma}?',
             'b_hallo' => 'Guten Tag, ich bin {inhaber} von {absender}, Webdesign hier aus der Gegend. Haben Sie eine Minute?',
             'b_frage' => 'Ich lasse Ihnen gern unseren Flyer mit QR-Code da: Darüber sehen Sie die Analyse und den Richtpreis. Oder soll ich sie Ihnen per E-Mail oder WhatsApp schicken?',
         ],
@@ -124,6 +126,7 @@ final class AkquiseAnsprechen
             'a_grund_ohne' => 'I noticed that {firma} doesn’t have its own website yet – people searching for {branche} {in} on Google mostly find the others.',
             'a_frage' => 'May I send you a free analysis with two or three concrete suggestions? By email or WhatsApp, whichever you prefer.',
             'a_nein' => 'No problem at all, thank you and have a nice day.',
+            'p_hallo' => 'Hello, this is {sprecher}, I work with {absender}, web design. Am I speaking with the owner of {firma}?',
             'b_hallo' => 'Hello, I’m {inhaber} from {absender}, a local web designer. Do you have a minute?',
             'b_frage' => 'I’m happy to leave our flyer with the QR code: it shows the analysis and the guide price. Or shall I send it by email or WhatsApp?',
         ],
@@ -135,12 +138,25 @@ final class AkquiseAnsprechen
         'de' => 'Ist es in Ordnung, wenn {absender} ({inhaber}) Ihnen per E-Mail und/oder WhatsApp Nachrichten zu Ihrer Website und zu passenden Angeboten schickt? Sie können das jederzeit mit einem einfachen „STOPP“ widerrufen.',
         'en' => 'Is it all right if {absender} ({inhaber}) sends you messages about your website and suitable offers by email and/or WhatsApp? You can withdraw this at any time with a simple “STOP”.',
     ];
+    /* Deutsche Betriebe nur per E-Mail (Uwe, 29.09.2026) -- die Frage nennt dann auch nur die E-Mail. */
+    public const WORTLAUT_MAIL = [
+        'it' => 'Va bene se {absender} ({inhaber}) le invia per e-mail messaggi sul suo sito e su offerte adatte? Può revocare il consenso in qualsiasi momento con un semplice «STOP».',
+        'de' => 'Ist es in Ordnung, wenn {absender} ({inhaber}) Ihnen per E-Mail Nachrichten zu Ihrer Website und zu passenden Angeboten schickt? Sie können das jederzeit mit einem einfachen „STOPP“ widerrufen.',
+        'en' => 'Is it all right if {absender} ({inhaber}) sends you messages about your website and suitable offers by email? You can withdraw this at any time with a simple “STOP”.',
+    ];
     public const WORTLAUT_VERSION = 'v3m-2909';
 
-    public static function wortlaut(string $sprache): string
+    public static function wortlaut(string $sprache, bool $nurMail = false): string
     {
         $abs = AkquiseText::absender();
-        return strtr(self::WORTLAUT[$sprache] ?? self::WORTLAUT['it'], ['{absender}' => $abs['firma'], '{inhaber}' => $abs['inhaber']]);
+        $v = $nurMail ? self::WORTLAUT_MAIL : self::WORTLAUT;
+        return strtr($v[$sprache] ?? $v['it'], ['{absender}' => $abs['firma'], '{inhaber}' => $abs['inhaber']]);
+    }
+
+    /** Deutsche Betriebe: nur E-Mail. */
+    public static function nurMail(array $f): bool
+    {
+        return strtoupper((string) ($f['land'] ?? '')) === 'DE';
     }
 
     /**
@@ -150,7 +166,7 @@ final class AkquiseAnsprechen
      * @return array{sprache:string,email:array{betreff:string,text:string,link:?string},whatsapp:array{text:string,link:?string},
      *               anruf:list<array{0:string,1:string}>,besuch:list<array{0:string,1:string}>,wortlaut:string,frei:array{email:bool,whatsapp:bool},tel:?string}
      */
-    public static function paket(array $f, array $befunde, ?string $sprache = null, string $analyse = ''): array
+    public static function paket(array $f, array $befunde, ?string $sprache = null, string $analyse = '', ?string $sprecher = null): array
     {
         $sp = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : AkquiseText::spracheFuer($f);
         $W = self::W[$sp];
@@ -208,8 +224,8 @@ final class AkquiseAnsprechen
 
         /* ---- Anruf und Besuch: Gesprächsleitfaden in seiner Sprache, Regieanweisungen auf Deutsch ---- */
         $grund = !$hatWeb ? $t('a_grund_ohne') : ($punkte ? $t('a_grund_web', ['{punkt}' => $punkte[0]]) : $t('a_grund_web_x'));
-        $satz = self::wortlaut($sp);
-        $anruf = [['Begrüßen', $t('a_hallo')], ['Anlass', $grund], ['Frage', $t('a_frage')],
+        $satz = self::wortlaut($sp, self::nurMail($f));
+        $anruf = [['Begrüßen', $sprecher !== null && trim($sprecher) !== '' ? $t('p_hallo', ['{sprecher}' => trim($sprecher)]) : $t('a_hallo')], ['Anlass', $grund], ['Frage', $t('a_frage')],
                   ['Wenn ja: diese Frage vorlesen', $satz], ['Dann', 'E-Mail oder WhatsApp-Nummer notieren und unten „Hat zugestimmt“ ausfüllen.'],
                   ['Wenn nein', $t('a_nein') . ' → unten „Kein Interesse“ antippen: Der Betrieb wird nie mehr angesprochen.']];
         $besuch = [['Begrüßen', $t('b_hallo')], ['Anlass', $grund], ['Frage', $t('b_frage')],
@@ -224,6 +240,7 @@ final class AkquiseAnsprechen
                         'link' => $frei['email'] && $mail !== null ? 'mailto:' . rawurlencode($mail) . '?subject=' . rawurlencode($betreff) . '&body=' . rawurlencode($mailText) : null],
             'whatsapp' => ['text' => $waText, 'link' => $frei['whatsapp'] && strlen($waNr) >= 8 ? 'https://wa.me/' . $waNr . '?text=' . rawurlencode($waText) : null],
             'anruf' => $anruf, 'besuch' => $besuch, 'wortlaut' => $satz, 'frei' => $frei,
+            'saetze' => ['hallo' => $anruf[0][1], 'anlass' => $grund, 'frage' => $t('a_frage'), 'ja' => $satz, 'nein' => $t('a_nein')],
             'tel' => strlen((string) preg_replace('~\D~', '', $tel)) >= 6 ? 'tel:' . $tel : null,
         ];
     }
