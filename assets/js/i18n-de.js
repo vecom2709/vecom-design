@@ -869,7 +869,7 @@ masz: {
       band1t: "Die Uhr öffnet sich Teil für Teil — so sieht der Kunde, wofür er bezahlt.",
       band2k: "Küchenstudio",
       band2t: "Geplant mit den eigenen Wandmaßen — der Plan kommt mit der Anfrage bei Ihnen an.",
-      band2alt: "Moderne Küche: Insel mit Keramikplatte Calacatta Oro, Hochschränke in Eiche, Nachmittagslicht",
+      band2alt: "Moderne Küche mit Meerblick: Insel in schwarzem Klavierlack mit Keramikplatte Calacatta Oro, Hochschränke in Eiche, Nachmittagssonne",
       wa: "Schreiben Sie mir",
       waAria: "Uwe über WhatsApp schreiben",
       technik: "Für Technikinteressierte: Qualitätsstufen, Vergleich und Streaming",

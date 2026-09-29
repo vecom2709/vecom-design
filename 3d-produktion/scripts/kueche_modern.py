@@ -46,6 +46,20 @@ KAMS = (ARGS[1] if len(ARGS) > 1 else 'gesamt').split(',')
 EV = float(ARGS[2]) if len(ARGS) > 2 else 0.0
 
 BASIS = r'C:\Users\manue\Desktop\Vecom Design\3d-produktion\branchen'
+QUELLEN = r'C:\Users\manue\Desktop\Vecom Design\3d-produktion\quellen\polyhaven'
+# 29.09.2026, Uwe: „hochmodern mit Klavierlack … der Hintergrund realistischer,
+# in einer modernen Wohnung“. Draussen jetzt eine echte Aufnahme statt
+# Terrasse/Mauer/Meer aus Kloetzen: Balkon einer Wohnung ueber dem Meer
+# (Poly Haven illovo_beach_balcony, CC0). Sie ist zugleich Himmel und Sonne --
+# Licht und Aussicht kommen aus demselben Foto. VD_ORT=0 schaltet zurueck.
+ORT_HDRI = os.path.join(QUELLEN, 'illovo_beach_balcony_4k.hdr') if os.environ.get('VD_ORT', '1') != '0' else None
+# Drehung gemessen (Proben a-d): Sonnen-Azimut in der Welt = -36 - Drehung
+# (Sonne im Bild bei u 0,600, Hoehe 25 Grad). Das Fenster sieht von der Kamera
+# aus Azimut 9..42 und liest dort das Bild bei (Azimut + Drehung). Bei -90
+# kam die Sonne aus Azimut 54 durchs Fenster, draussen Meer statt Hauswand,
+# aber kein Sonnenfleck im Bild. -75 (Probe f): Sonne aus Azimut 39, Flecken
+# auf Hockern und Platte, draussen Palmen und Meer. Belichtung +1,4 EV.
+ORT_DREH = float(os.environ.get('VD_ORT_DREH', '-75'))
 TEX = os.environ.get('VD_TEX') or os.path.join(BASIS, 'quelle', 'tex', 'modern')
 AUS = os.environ.get('VD_AUS') or os.path.join(BASIS, 'render', 'kueche-modern')
 UE_AUS = os.environ.get('VD_UE') or os.path.join(BASIS, 'render', 'arbeiten', 'kueche-modern', 'unreal')
@@ -385,12 +399,48 @@ def kelvin(k):
 
 
 # ====================================================================== Materialien
+def orangenhaut(m, staerke=0.01, feinheit=900.0):
+    """Feine Welligkeit nur in der Klarschicht (Coat Normal)."""
+    nt = m.node_tree
+    b = nt.nodes['Principled BSDF']
+    tk = nt.nodes.new('ShaderNodeTexCoord')
+    rausch = nt.nodes.new('ShaderNodeTexNoise')
+    rausch.inputs['Scale'].default_value = feinheit
+    rausch.inputs['Detail'].default_value = 2.0
+    bump = nt.nodes.new('ShaderNodeBump')
+    bump.inputs['Strength'].default_value = staerke
+    nt.links.new(tk.outputs['Object'], rausch.inputs['Vector'])
+    nt.links.new(rausch.outputs['Fac'], bump.inputs['Height'])
+    nt.links.new(bump.outputs['Normal'], b.inputs['Coat Normal'])
+
+
 def materialien():
     M = {}
     M['eiche'] = stoff('Eiche furniert', (1, 1, 1), 0.45, karte='eiche-farbe.jpg', rau_karte='eiche-rau-matt.jpg',
                        normal='eiche-normal.jpg', nstaerke=0.35, kachel=1.83)
-    M['matt'] = stoff('Supermatt Schwarz', (0.018, 0.018, 0.019), 0.52, rau_karte='matt-rau.jpg',
-                      normal='matt-normal.jpg', nstaerke=0.12, kachel=1.0, spec=0.42)
+    # Klavierlack (29.09.2026): Polyesterlack, tiefschwarz, spiegelnd. Unter
+    # der Klarschicht ein fast schwarzer Grund; die Klarschicht bekommt eine
+    # kaum sichtbare Orangenhaut -- perfekt glatter Lack liest sich als CGI.
+    # VD_FRONT waehlt die Front von Insel und Zeile -- dieselbe Kueche fuer die
+    # Kochinsel-Bilder (Varianten salbei/weiss/nussbaum, Partnerseiten).
+    front = os.environ.get('VD_FRONT', 'schwarz')
+    lack = {'schwarz': ('Klavierlack Schwarz', (0.006, 0.006, 0.0065), 0.18),
+            'weiss': ('Klavierlack Weiss', (0.80, 0.80, 0.78), 0.22),
+            'salbei': ('Klavierlack Salbei', (0.16, 0.21, 0.17), 0.2)}
+    if front in lack:
+        n_, f_, r_ = lack[front]
+        M['matt'] = stoff(n_, f_, r_, spec=0.35, coat=1.0, coat_rau=0.012)
+        orangenhaut(M['matt'], staerke=0.012, feinheit=900.0)
+    else:
+        # Nussbaum: das Eichenfurnier dunkel getoent, seidenmatt lackiert
+        M['matt'] = stoff('Nussbaum furniert', (1, 1, 1), 0.42, karte='eiche-farbe.jpg', rau_karte='eiche-rau-matt.jpg',
+                          normal='eiche-normal.jpg', nstaerke=0.35, kachel=1.83, coat=0.25, coat_rau=0.2)
+        nt_ = M['matt'].node_tree; b_ = nt_.nodes['Principled BSDF']
+        quelle_ = b_.inputs['Base Color'].links[0].from_socket
+        mix_ = nt_.nodes.new('ShaderNodeMix'); mix_.data_type = 'RGBA'; mix_.blend_type = 'MULTIPLY'
+        mix_.inputs['Factor'].default_value = 1.0
+        mix_.inputs[7].default_value = (0.42, 0.28, 0.19, 1.0)
+        nt_.links.new(quelle_, mix_.inputs[6]); nt_.links.new(mix_.outputs[2], b_.inputs['Base Color'])
     M['oro'] = stoff('Keramik Calacatta Oro', (1, 1, 1), 0.28, karte='oro-farbe.jpg', rau_karte='oro-rau-seide.jpg',
                      normal='oro-normal.jpg', nstaerke=0.10, kachel=1.60, spec=0.5)
     M['gold'] = stoff('Champagner gebuerstet', (0.80, 0.64, 0.40), 0.27, metall=1.0, aniso=0.6)
@@ -458,6 +508,8 @@ def raum(M):
         yb = F0 + 0.05 + (i + 1) * b - (0.02 if i < 2 else 0.0)
         for (za, zb, t) in ((0.03, 2.13, 'u'), (2.17, FZ - 0.05, 'o')):
             kasten('fensterglas_%d%s' % (i, t), xr0 + 0.026, xr0 + 0.034, ya, yb, za, zb, M['fensterglas'], fase=0)
+    if ORT_HDRI:
+        return
     # draussen: Terrasse, Brüstungsmauer, Hecke -- nur als Licht- und Tiefenkulisse
     kasten('terrasse', X_R + 0.30, X_R + 14.0, -12.0, 12.0, -0.08, -0.02, M['terrasse'], fase=0)
     kasten('mauer', X_R + 6.0, X_R + 6.4, -12.0, 12.0, -0.02, 0.95, M['aussenwand'], fase=0.01)
@@ -783,6 +835,39 @@ def dinge(M, xm):
                             (0.0, 0.285)], M['keramik_dunkel'], n=48, versatz=(1.30, Y_H - 0.12, ARBEIT))
 
 
+def pflanze(M):
+    """Grosse Zimmerpflanze in der Ecke zwischen Zeile und Fenster -- ohne
+    Pflanzen und Alltagsdinge wirkt eine Wohnung wie ein Ausstellungsraum.
+    Poly Haven potted_plant_02 (CC0); der Terrakottatopf wird zu mattem
+    Graphit-Steingut, passend zur Kueche."""
+    pfad = os.path.join(QUELLEN, 'potted_plant_02', 'potted_plant_02_2k.gltf')
+    if not os.path.exists(pfad):
+        log('Pflanze fehlt', pfad)
+        return
+    vorher = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=pfad)
+    neu = [o for o in bpy.data.objects if o not in vorher]
+    netze = [o for o in neu if o.type == 'MESH']
+    bpy.context.view_layer.update()
+    ecken = [o.matrix_world @ Vector(c) for o in netze for c in o.bound_box]
+    lo = Vector([min(e[i] for e in ecken) for i in range(3)])
+    hi = Vector([max(e[i] for e in ecken) for i in range(3)])
+    halter = bpy.data.objects.new('pflanze', None)
+    bpy.context.scene.collection.objects.link(halter)
+    for o in neu:
+        if o.parent is None:
+            o.parent = halter
+    k = 1.15 / max(0.01, hi.z - lo.z)          # rund 1,15 m hoch
+    halter.scale = (k, k, k)
+    halter.rotation_euler.z = math.radians(35)
+    halter.location = (X_R - 0.36 - (lo.x + hi.x) / 2 * k, Y_H - 0.34 - (lo.y + hi.y) / 2 * k, -lo.z * k)
+    for o in netze:
+        for sl in o.material_slots:
+            if sl.material and 'pot' in sl.material.name.lower():
+                sl.material = M['keramik_dunkel']
+    log('Pflanze', len(netze), 'Netze, Hoehe', round((hi.z - lo.z) * k, 2))
+
+
 # ====================================================================== Licht, Kamera, Render
 SONNE = {'hoehe': 24.0, 'azimut': -18.0}   # Grad; Azimut 0 = Sonne genau im Osten (+X)
 
@@ -824,6 +909,18 @@ def licht():
     sky.sun_rotation = math.atan2(zs.y, zs.x) - math.pi / 2
     nt.links.new(sky.outputs['Color'], bg.inputs['Color'])
     bg.inputs['Strength'].default_value = float(os.environ.get('VD_HIMMEL', '0.35'))
+    if ORT_HDRI:
+        # Die Aufnahme ersetzt Himmel und Sonnenlampe (sonst zwei Sonnen).
+        env = nt.nodes.new('ShaderNodeTexEnvironment')
+        env.image = bpy.data.images.load(ORT_HDRI, check_existing=True)
+        env.interpolation = 'Cubic'
+        tk = nt.nodes.new('ShaderNodeTexCoord'); mp = nt.nodes.new('ShaderNodeMapping')
+        mp.inputs['Rotation'].default_value[2] = math.radians(ORT_DREH)
+        nt.links.new(tk.outputs['Generated'], mp.inputs['Vector']); nt.links.new(mp.outputs['Vector'], env.inputs['Vector'])
+        nt.links.new(env.outputs['Color'], bg.inputs['Color'])
+        bg.inputs['Strength'].default_value = float(os.environ.get('VD_HIMMEL', '1.0'))
+        ld.energy = 0.0
+        so.hide_render = True
     return so, sky
 
 
@@ -832,6 +929,9 @@ KAMERAS = {
     'gesamt': ((-1.55, -2.45, 1.32), (0.35, 1.20, 1.02), 24.0, 8.0),
     'insel':  ((2.45, -1.10, 1.45), (-1.10, 1.25, 0.98), 35.0, 5.6),
     'detail': ((0.05, -0.80, 1.14), (-0.72, 0.22, 1.11), 50.0, 2.8),
+    # Kochinsel (29.09.2026): die Insel schraeg von vorn, dahinter Zeile,
+    # Eichenwand und das Fenster mit Meer
+    'kochinsel': ((-2.25, -2.30, 1.38), (0.55, 0.15, 0.80), 30.0, 6.3),
 }
 
 
@@ -1000,6 +1100,7 @@ def main():
     for x in (-0.85, 0.0, 0.85):
         hocker(M, x + random.uniform(-0.02, 0.02), INSEL_Y0 - 0.26 + random.uniform(-0.03, 0.02))
     dinge(M, xm)
+    pflanze(M)
     so, sky = licht()
     for name in KAMERAS:
         kamera(name)

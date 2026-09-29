@@ -39,11 +39,16 @@ export function materialien(renderer) {
   const K = (n, f, k) => karte(PFAD + n, f, k, an);
   /* Moderne Küche (24.09.2026, K1): dieselben Oberflächen wie im Render --
      Eiche furniert, Kaschmir und Tiefschwarz supermatt, Keramik Calacatta Oro
+     (seit 29.09.2026 dazu Klavierlack Schwarz/Weiss, Standard wie im Render)
      und Nero, Griffmulde in Champagner. Steinkarten laden erst, wenn die
      Platte gewählt wird (spaet), damit der Planer nicht 0,5 MB vorab zieht. */
   const spaet = (mat, laden) => { mat.userData.laden = laden; return mat; };
   const m = {
     front: {
+      /* Klavierlack: fast schwarzer bzw. weisser Grund unter einer spiegelnden
+         Klarschicht -- die Spiegelung kommt aus der Raumumgebung. */
+      lackschwarz: new THREE.MeshPhysicalMaterial({ color: 0x050506, roughness: 0.16, clearcoat: 1, clearcoatRoughness: 0.035, envMapIntensity: 2.2 }),
+      lackweiss: new THREE.MeshPhysicalMaterial({ color: 0xf0efec, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.035, envMapIntensity: 1.4 }),
       furnier: new THREE.MeshPhysicalMaterial({ map: K('furnier-farbe.webp', true, 1.83), normalMap: K('furnier-normal.webp', false, 1.83), normalScale: new THREE.Vector2(0.3, 0.3), roughness: 0.46, sheen: 0.15, sheenRoughness: 0.6, sheenColor: 0x6b4a2c }),
       kaschmir: new THREE.MeshPhysicalMaterial({ color: 0xb5aa9a, roughness: 0.62 }),
       tiefschwarz: new THREE.MeshPhysicalMaterial({ color: 0x19191a, roughness: 0.55 }),
@@ -186,7 +191,7 @@ export async function starten(buehne, plan, mitteilen) {
     if (p.form !== form) { form = p.form; soll.az = HEIM[form].az; soll.pol = HEIM[form].pol; }
     entsorgenGruppe(kueche); kueche = new THREE.Group(); szene.add(kueche);
     fronten = []; module = []; masse = []; etiketten.replaceChildren();
-    const F = mat.front[p.front] || mat.front.furnier, PL = mat.bereit(mat.platte[p.platte] || mat.platte.oro), G = mat.griff[p.griff] || mat.griff.grifflos;
+    const F = mat.front[p.front] || mat.front.lackschwarz, PL = mat.bereit(mat.platte[p.platte] || mat.platte.oro), G = mat.griff[p.griff] || mat.griff.grifflos;
     const grifflos = p.griff === 'grifflos';
 
     // Raum: Boden, Wände

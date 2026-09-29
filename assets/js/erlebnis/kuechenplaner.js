@@ -44,7 +44,8 @@ const PT = 62, GANG = 120;   // Plattentiefe und Gang in cm (wie im 3D-Modul)
    Blender/Unreal-Render. Alte Schlüssel aus geteilten Links werden beim Lesen
    auf die nächstliegenden neuen gelegt (ALT). */
 const STIL = {
-  front: { furnier: '#9c7650', kaschmir: '#b5aa9a', tiefschwarz: '#1b1b1c', weiss: '#e6e4df' },
+  // Klavierlack (29.09.2026, Uwe: „hochmodern mit Klavierlack“) zuerst -- so wie im Render
+  front: { lackschwarz: '#070708', lackweiss: '#f4f3f0', furnier: '#9c7650', kaschmir: '#b5aa9a', tiefschwarz: '#1b1b1c', weiss: '#e6e4df' },
   platte: { oro: '#e3d8c6', nero: '#2a2a2b', keramik: '#8d8a84', eiche: '#b88d5e' },
   griff: { grifflos: '#c9a86a', messing: '#d8bb86', edelstahl: '#c9c9c6', schwarz: '#151516' },
 };
@@ -62,7 +63,7 @@ const TEXTE = {
     typen: { auszug: 'Auszugschrank', tuer: 'Türschrank', spuele: 'Spülenschrank', kochfeld: 'Kochfeldschrank', gs: 'Geschirrspüler', backofen_u: 'Backofen unter der Platte', blende: 'Passblende', eck: 'Eckschrank', hoch_backofen: 'Hochschrank Backofen', hoch_kuehl: 'Hochschrank Kühlen', hoch_vorrat: 'Vorratsschrank' },
     nutzen: { auszug: 'Vollauszug – alles auf einen Blick', tuer: 'Einlegeboden, Scharnier mit Dämpfung', spuele: 'Unterbaubecken, Platz für Mülltrennung', kochfeld: 'Induktion, Töpfe direkt darunter', gs: 'Vollintegriert – unsichtbar hinter der Front', backofen_u: 'Backofen unter dem Kochfeld', blende: 'Gleicht Wandmaße aus', eck: 'Nutzt die Ecke mit Karussell', hoch_backofen: 'Backofen auf Augenhöhe – kein Bücken', hoch_kuehl: 'Kühl-Gefrier-Kombination, integriert', hoch_vorrat: 'Hoher Auszug für Vorräte' },
     stil: 'Ausführung', fronten: 'Fronten', platte: 'Arbeitsplatte', griffe: 'Griffe', ober: 'Hängeschränke', oberAn: 'Mit Hängeschränken',
-    frontNamen: { furnier: 'Eiche furniert', kaschmir: 'Kaschmir matt', tiefschwarz: 'Tiefschwarz matt', weiss: 'Weiß seidenmatt' },
+    frontNamen: { lackschwarz: 'Klavierlack Schwarz', lackweiss: 'Klavierlack Weiß', furnier: 'Eiche furniert', kaschmir: 'Kaschmir matt', tiefschwarz: 'Tiefschwarz matt', weiss: 'Weiß seidenmatt' },
     platteNamen: { oro: 'Keramik Calacatta Oro', nero: 'Keramik Nero', keramik: 'Keramik Beton', eiche: 'Eiche geölt' },
     griffNamen: { grifflos: 'Grifflos, Mulde Champagner', messing: 'Griffleiste Champagner', edelstahl: 'Edelstahl', schwarz: 'Schwarz matt' },
     ansicht: 'Ansicht', ansichten: { '3d': '3D', oben: 'Von oben' }, oeffnen: 'Türen & Auszüge öffnen', masseZeigen: 'Maße zeigen',
@@ -102,7 +103,7 @@ const TEXTE = {
     typen: { auszug: 'Cassettiera', tuer: 'Base a anta', spuele: 'Base lavello', kochfeld: 'Base piano cottura', gs: 'Lavastoviglie', backofen_u: 'Forno sotto il piano', blende: 'Compensatore', eck: 'Base ad angolo', hoch_backofen: 'Colonna forno', hoch_kuehl: 'Colonna frigo', hoch_vorrat: 'Colonna dispensa' },
     nutzen: { auszug: 'Estrazione totale – tutto sotto gli occhi', tuer: 'Ripiano, cerniera con ammortizzatore', spuele: 'Vasca sottotop, spazio per la differenziata', kochfeld: 'Induzione, pentole subito sotto', gs: 'Totalmente integrata – invisibile dietro l’anta', backofen_u: 'Forno sotto il piano cottura', blende: 'Assorbe le tolleranze del muro', eck: 'Sfrutta l’angolo con il carosello', hoch_backofen: 'Forno all’altezza degli occhi – senza chinarsi', hoch_kuehl: 'Frigo-congelatore integrato', hoch_vorrat: 'Estraibile alto per la dispensa' },
     stil: 'Finiture', fronten: 'Ante', platte: 'Piano di lavoro', griffe: 'Maniglie', ober: 'Pensili', oberAn: 'Con pensili',
-    frontNamen: { furnier: 'Rovere impiallacciato', kaschmir: 'Cashmere opaco', tiefschwarz: 'Nero profondo opaco', weiss: 'Bianco satinato' },
+    frontNamen: { lackschwarz: 'Laccato nero lucido', lackweiss: 'Laccato bianco lucido', furnier: 'Rovere impiallacciato', kaschmir: 'Cashmere opaco', tiefschwarz: 'Nero profondo opaco', weiss: 'Bianco satinato' },
     platteNamen: { oro: 'Ceramica Calacatta Oro', nero: 'Ceramica Nero', keramik: 'Ceramica effetto cemento', eiche: 'Rovere oliato' },
     griffNamen: { grifflos: 'Senza maniglie, gola champagne', messing: 'Maniglia champagne', edelstahl: 'Acciaio', schwarz: 'Nero opaco' },
     ansicht: 'Vista', ansichten: { '3d': '3D', oben: 'Dall’alto' }, oeffnen: 'Apri ante e cassetti', masseZeigen: 'Mostra misure',
@@ -142,7 +143,7 @@ const TEXTE = {
     typen: { auszug: 'Drawer unit', tuer: 'Door unit', spuele: 'Sink unit', kochfeld: 'Hob unit', gs: 'Dishwasher', backofen_u: 'Oven under the worktop', blende: 'Filler panel', eck: 'Corner unit', hoch_backofen: 'Tall oven unit', hoch_kuehl: 'Tall fridge unit', hoch_vorrat: 'Larder unit' },
     nutzen: { auszug: 'Full extension – everything in view', tuer: 'Shelf, soft-close hinge', spuele: 'Undermount sink, room for recycling', kochfeld: 'Induction, pans right below', gs: 'Fully integrated – hidden behind the front', backofen_u: 'Oven under the hob', blende: 'Takes up wall tolerances', eck: 'Uses the corner with a carousel', hoch_backofen: 'Oven at eye level – no bending', hoch_kuehl: 'Integrated fridge-freezer', hoch_vorrat: 'Tall pull-out for supplies' },
     stil: 'Finish', fronten: 'Fronts', platte: 'Worktop', griffe: 'Handles', ober: 'Wall cabinets', oberAn: 'With wall cabinets',
-    frontNamen: { furnier: 'Oak veneer', kaschmir: 'Cashmere matt', tiefschwarz: 'Deep black matt', weiss: 'Satin white' },
+    frontNamen: { lackschwarz: 'Piano black gloss', lackweiss: 'Piano white gloss', furnier: 'Oak veneer', kaschmir: 'Cashmere matt', tiefschwarz: 'Deep black matt', weiss: 'Satin white' },
     platteNamen: { oro: 'Calacatta Oro ceramic', nero: 'Nero ceramic', keramik: 'Concrete ceramic', eiche: 'Oiled oak' },
     griffNamen: { grifflos: 'Handleless, champagne channel', messing: 'Champagne pull', edelstahl: 'Stainless steel', schwarz: 'Matt black' },
     ansicht: 'View', ansichten: { '3d': '3D', oben: 'From above' }, oeffnen: 'Open doors & drawers', masseZeigen: 'Show dimensions',
@@ -309,7 +310,7 @@ function codieren(p) {
   const w = (x) => String(x).padStart(3, '0');
   return `${f}-${w(p.waende.a)}-${w(p.waende.b)}-${w(p.waende.insel)}_${p.front}-${p.platte}-${p.griff}-${p.oberschraenke ? 1 : 0}_${r(p.reihen.a)}_${r(p.form === 'l' ? p.reihen.b : [])}_${r(p.form === 'insel' ? p.reihen.insel : [])}`;
 }
-const CODE_RE = /^([zli])-(\d{3})-(\d{3})-(\d{3})_(furnier|kaschmir|tiefschwarz|weiss|salbei|nussbaum|graphit)-(oro|nero|keramik|eiche|marmor)-(messing|edelstahl|schwarz|grifflos)-([01])_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})$/;
+const CODE_RE = /^([zli])-(\d{3})-(\d{3})-(\d{3})_(lackschwarz|lackweiss|furnier|kaschmir|tiefschwarz|weiss|salbei|nussbaum|graphit)-(oro|nero|keramik|eiche|marmor)-(messing|edelstahl|schwarz|grifflos)-([01])_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})$/;
 function decodieren(code) {
   const t = CODE_RE.exec(code || ''); if (!t) return null;
   const reihe = (s) => [...s.matchAll(/([a-z])(\d+)/g)].map(([, c, b]) => m(AUS_CODE[c], Number(b))).filter((x) => TYPEN[x.typ].breiten.includes(x.breite));
@@ -420,7 +421,7 @@ const sek = document.getElementById('kuechenplaner');
 if (sek) {
   const fig = $('.kp-buehne', sek), panel = $('.kp-panel', sek), kennung = $('.kennung__text', fig);
   const start = decodieren(new URLSearchParams(location.search).get('plan'));
-  const plan = start || { form: 'l', waende: { a: 300, b: 270, insel: 240 }, reihen: { a: [], b: [], insel: [] }, front: 'furnier', platte: 'oro', griff: 'grifflos', oberschraenke: false };
+  const plan = start || { form: 'l', waende: { a: 300, b: 270, insel: 240 }, reihen: { a: [], b: [], insel: [] }, front: 'lackschwarz', platte: 'oro', griff: 'grifflos', oberschraenke: false };
   if (!start) automatisch(plan);
   const kopf = document.createElement('div'), rumpf = document.createElement('div');
   kopf.className = 'kp-kopf'; rumpf.className = 'kp-rumpf'; panel.append(kopf, rumpf);

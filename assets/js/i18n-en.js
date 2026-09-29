@@ -869,7 +869,7 @@ masz: {
       band1t: "The watch opens part by part — so the customer sees what they are paying for.",
       band2k: "Kitchen studio",
       band2t: "Planned to the customer’s own wall measurements — the plan arrives with the enquiry.",
-      band2alt: "Modern kitchen: island in Calacatta Oro ceramic, oak tall units, afternoon light",
+      band2alt: "Modern kitchen with sea view: piano black gloss island with Calacatta Oro ceramic top, oak tall units, afternoon sun",
       wa: "Message me",
       waAria: "Message Uwe on WhatsApp",
       technik: "For the technically curious: quality levels, comparison and streaming",

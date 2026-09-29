@@ -6556,6 +6556,15 @@ pruefe('unbekannte oder freie Demo-Angaben kommen nicht durch',
     Bedarf::demoPruefen('schuh-rose-99') === '' && Bedarf::demoPruefen('auto-lila') === ''
     && Bedarf::demoPruefen('auto-karmin-42') === '' && Bedarf::demoPruefen('<b>x</b>') === '');
 pruefe('die Demo legt den Zweck nahe', Bedarf::demoZweck('schuh-blau') === ['shop']);
+// Klavierlack im Kuechenplaner (29.09.2026): neuer Code gueltig und lesbar, alte bleiben gueltig
+pruefe('Klavierlack-Fronten sind gueltige Planungscodes',
+    Bedarf::planPruefen('z-300-270-240_lackschwarz-oro-grifflos-0_a60t40__') !== ''
+    && Bedarf::planPruefen('i-300-270-240_lackweiss-nero-messing-1_a60_ _t60') === ''
+    && Bedarf::planPruefen('i-300-270-240_lackweiss-nero-messing-1_a60__t60') !== ''
+    && Bedarf::planPruefen('z-300-270-240_furnier-oro-grifflos-0_a60__') !== '');
+pruefe('Klavierlack steht lesbar in der Anfrage',
+    str_contains(Bedarf::planText('z-300-270-240_lackschwarz-oro-grifflos-0_a60t40__', 'de'), 'Klavierlack Schwarz')
+    && str_contains(Bedarf::planText('i-300-270-240_lackweiss-nero-messing-1_a60__t60', 'it'), 'laccate bianco lucido'));
 pruefe('die neuen Automodelle werden angenommen', Bedarf::demoPruefen('kleinwagen-azzurro') === 'kleinwagen-azzurro'
     && Bedarf::demoPruefen('mittelklasse-blunotte') === 'mittelklasse-blunotte');
 pruefe('fremde Lacke der Automodelle werden abgewiesen', Bedarf::demoPruefen('kleinwagen-karmin') === ''

@@ -157,15 +157,17 @@ final class Bedarf
        Code steht, sondern eine Kueche.
        Seit 24.09.2026 (moderne Kueche, K1): neue Fronten furnier/kaschmir/
        tiefschwarz und Platten oro/nero. Die alten Schluessel bleiben gueltig --
-       Links aus Anfragen davor muessen weiter lesbar sein. */
-    private const PLAN_RE = '/^([zli])-(\d{3})-(\d{3})-(\d{3})_(furnier|kaschmir|tiefschwarz|weiss|salbei|nussbaum|graphit)-(oro|nero|keramik|eiche|marmor)-(messing|edelstahl|schwarz|grifflos)-([01])_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})$/';
+       Links aus Anfragen davor muessen weiter lesbar sein.
+       Seit 29.09.2026: Klavierlack lackschwarz/lackweiss (Uwe). */
+    private const PLAN_RE = '/^([zli])-(\d{3})-(\d{3})-(\d{3})_(lackschwarz|lackweiss|furnier|kaschmir|tiefschwarz|weiss|salbei|nussbaum|graphit)-(oro|nero|keramik|eiche|marmor)-(messing|edelstahl|schwarz|grifflos)-([01])_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})_((?:[atskgobehcv]\d{1,3}){0,24})$/';
     private const PLAN_WOERTER = [
         'form'  => ['z' => ['it' => 'lineare', 'de' => 'Küchenzeile', 'en' => 'single wall'], 'l' => ['it' => 'ad angolo', 'de' => 'L-Form', 'en' => 'L-shaped'], 'i' => ['it' => 'con isola', 'de' => 'mit Insel', 'en' => 'with island']],
         'wand'  => ['it' => 'parete', 'de' => 'Wand', 'en' => 'wall'],
         'insel' => ['it' => 'isola', 'de' => 'Insel', 'en' => 'island'],
         'moebel'=> ['it' => 'mobili', 'de' => 'Schränke', 'en' => 'cabinets'],
         'ober'  => ['it' => 'con pensili', 'de' => 'mit Hängeschränken', 'en' => 'with wall cabinets'],
-        'stil'  => ['furnier' => ['it' => 'ante rovere impiallacciato', 'de' => 'Fronten Eiche furniert', 'en' => 'oak veneer fronts'], 'kaschmir' => ['it' => 'ante cashmere opaco', 'de' => 'Fronten Kaschmir matt', 'en' => 'cashmere matt fronts'], 'tiefschwarz' => ['it' => 'ante nero profondo', 'de' => 'Fronten Tiefschwarz matt', 'en' => 'deep black matt fronts'],
+        'stil'  => ['lackschwarz' => ['it' => 'ante laccate nero lucido', 'de' => 'Fronten Klavierlack Schwarz', 'en' => 'piano black gloss fronts'], 'lackweiss' => ['it' => 'ante laccate bianco lucido', 'de' => 'Fronten Klavierlack Weiß', 'en' => 'piano white gloss fronts'],
+                    'furnier' => ['it' => 'ante rovere impiallacciato', 'de' => 'Fronten Eiche furniert', 'en' => 'oak veneer fronts'], 'kaschmir' => ['it' => 'ante cashmere opaco', 'de' => 'Fronten Kaschmir matt', 'en' => 'cashmere matt fronts'], 'tiefschwarz' => ['it' => 'ante nero profondo', 'de' => 'Fronten Tiefschwarz matt', 'en' => 'deep black matt fronts'],
                     'oro' => ['it' => 'piano ceramica Calacatta Oro', 'de' => 'Keramikplatte Calacatta Oro', 'en' => 'Calacatta Oro ceramic worktop'], 'nero' => ['it' => 'piano ceramica Nero', 'de' => 'Keramikplatte Nero', 'en' => 'Nero ceramic worktop'],
                     'salbei' => ['it' => 'ante salvia', 'de' => 'Fronten Salbei', 'en' => 'sage fronts'], 'weiss' => ['it' => 'ante bianche', 'de' => 'Fronten Weiß', 'en' => 'white fronts'], 'nussbaum' => ['it' => 'ante noce', 'de' => 'Fronten Nussbaum', 'en' => 'walnut fronts'], 'graphit' => ['it' => 'ante grafite', 'de' => 'Fronten Graphit', 'en' => 'graphite fronts'],
                     'eiche' => ['it' => 'piano rovere', 'de' => 'Platte Eiche', 'en' => 'oak worktop'], 'marmor' => ['it' => 'piano marmo', 'de' => 'Platte Marmor', 'en' => 'marble worktop'], 'keramik' => ['it' => 'piano ceramica', 'de' => 'Platte Keramik', 'en' => 'ceramic worktop'],

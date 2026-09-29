@@ -870,7 +870,7 @@ masz: {
       band1t: "L’orologio si apre pezzo per pezzo — così il cliente vede che cosa sta pagando.",
       band2k: "Cucine",
       band2t: "Progettata con le misure delle proprie pareti — il progetto arriva insieme alla richiesta.",
-      band2alt: "Cucina moderna: isola in ceramica Calacatta Oro, colonne in rovere, luce del pomeriggio",
+      band2alt: "Cucina moderna vista mare: isola laccata nero lucido con piano in ceramica Calacatta Oro, colonne in rovere, sole del pomeriggio",
       wa: "Mi scriva",
       waAria: "Scrivere a Uwe su WhatsApp",
       technik: "Per chi ama la tecnica: livelli di qualità, confronto e streaming",
