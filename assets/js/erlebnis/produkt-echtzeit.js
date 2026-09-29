@@ -219,7 +219,6 @@ export async function erstellen({
      wie die offene Blende im Foto. Licht und Spiegelungen kommen aus
      "umgebung" (dasselbe Rundumbild, linear, aus der Tischmitte). */
   const ORT = K.ort || null;
-  const _kugelOrt = new THREE.Vector3();
   let ortHintergrund = null;
   if (ORT) {
     ortHintergrund = await new THREE.TextureLoader().loadAsync(ordner + ORT.hintergrund + stand);
@@ -229,16 +228,37 @@ export async function erstellen({
        eingebaute Weg rechnet das Rundumbild erst in eine 8-Bit-Wuerfelkarte
        um -- das Bild kam heller und flauer heraus als im Poster (Probe
        29.09.2026). So wird jedes Texel genau so ausgegeben, wie Blender es
-       belichtet hat. Die Kugel folgt der Kamera (unendlich fern). */
-    const kugel = new THREE.Mesh(new THREE.SphereGeometry(80, 96, 48),
-      new THREE.MeshBasicMaterial({ map: ortHintergrund, side: THREE.BackSide, toneMapped: false, depthWrite: false, fog: false }));
-    /* Die Kugel laeuft in u andersherum als three.js' Equirect-Abbildung
-       (u_equirect = 1 - u_kugel) -- gespiegelt ausgelesen passt sie genau:
-       Bildmitte = +X wie beim Blender-Rundumbild. */
-    ortHintergrund.wrapS = THREE.RepeatWrapping; ortHintergrund.repeat.x = -1; ortHintergrund.offset.x = 1;
+       belichtet hat.
+
+       Mit Boden (30.09.2026, Uwe: „die Objekte schieben sich durch die
+       Landschaft“): Die Kugel folgte vorher der Kamera, der Boden des Ortes
+       lag damit unendlich fern -- beim Drehen glitt die Strasse unter dem
+       Auto weg. Jetzt steht sie fest in der Welt, ihre untere Haelfte ist zu
+       einer ebenen Flaeche auf Bodenhoehe gedrueckt (wie GroundedSkybox aus
+       three.js), Mittelpunkt ist die Kamera des Fotos: Von dort sieht die
+       Startansicht genau aus wie das Poster, und beim Drehen bleibt der
+       Boden unter dem Objekt liegen -- wie der Betonblock beim Schuh. */
+    const R_KUGEL = 100;
+    const mitteKugel = new THREE.Vector3(...K.position);
+    const bodenY = ORT.schatten ? ORT.schatten.mitte[1] : (K.boden_hoehe || 0);
+    const hoch = Math.max(0.2, mitteKugel.y - bodenY);          // Kamerahoehe ueber dem Boden
+    const kGeo = new THREE.SphereGeometry(R_KUGEL, 192, 96);
+    kGeo.scale(1, 1, -1);          // von innen richtig herum (Bildmitte = +X wie beim Blender-Rundumbild)
+    const kPos = kGeo.getAttribute('position'); const kV = new THREE.Vector3();
+    const y1 = -hoch * 1.5;
+    for (let i = 0; i < kPos.count; i++) {
+      kV.fromBufferAttribute(kPos, i);
+      if (kV.y < 0) {
+        // unterhalb von y1 genau auf die Bodenebene, dazwischen weicher Uebergang
+        const f = kV.y < y1 ? -hoch / kV.y : (1 - (kV.y * kV.y) / (3 * y1 * y1));
+        kV.multiplyScalar(f); kPos.setXYZ(i, kV.x, kV.y, kV.z);
+      }
+    }
+    kPos.needsUpdate = true; kGeo.computeBoundingSphere();
+    const kugel = new THREE.Mesh(kGeo,
+      new THREE.MeshBasicMaterial({ map: ortHintergrund, toneMapped: false, depthWrite: false, fog: false }));
+    kugel.position.copy(mitteKugel);
     kugel.renderOrder = -10; kugel.frustumCulled = false;
-    // Unendlich fern: vor dem Zeichnen auf die Kamera setzen (vor modelViewMatrix)
-    kugel.onBeforeRender = (_r, _s, cam) => { kugel.matrixWorld.setPosition(cam.getWorldPosition(_kugelOrt)); };
     kugel.name = 'ort_hintergrund';
     szene.add(kugel);
     ortHintergrund.userData.kugel = kugel;
