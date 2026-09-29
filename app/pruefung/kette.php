@@ -14676,6 +14676,9 @@ pruefe('W1: öffentliche Seite /siti-web/… mit Sitemap, ohne Namen, mit Weg zu
     str_contains((string) file_get_contents($wurzel . '/../.htaccess'), 'RewriteRule ^siti-web/([a-z0-9-]{3,190})/?$ branchen.php?s=$1')
     && str_contains((string) file_get_contents($wurzel . '/../robots.txt'), 'sitemap-branchen.php') && str_contains($wjSeite, "'/analisi.php?lang='")
     && !preg_match('~\$s\[.name.\]|f\.name|domain~', $wjSeite) && BranchenStatistik::in('Agrigento', 'it') === 'ad Agrigento' && BranchenStatistik::in('Palermo', 'it') === 'a Palermo');
+pruefe('Branchen-Seite: gestalteter Fußbereich (Marke, Rechtliches, Sprachen) statt loser Links — Stil für .rechtsfuss steht auf der Seite selbst',
+    str_contains($wjSeite, 'class="fussbereich"') && str_contains($wjSeite, '.rechtsfuss a{') && str_contains($wjSeite, 'Fuss::html($sprache)')
+    && substr_count($wjSeite, 'class="sprachen"') === 1 && str_contains($wjSeite, 'min-height:44px'));
 $wjA = BranchenStatistik::anzeige($wjS, 'it');
 $wjLang = array_filter(array_merge($wjA['google']['titel'], [$wjA['meta']['ueberschrift']]), static fn($t) => mb_strlen($t) > 40)
     + array_filter($wjA['google']['titel'], static fn($t) => mb_strlen($t) > 30) + array_filter($wjA['google']['texte'], static fn($t) => mb_strlen($t) > 90);

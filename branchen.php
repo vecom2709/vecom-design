@@ -90,8 +90,9 @@ $preisLink = '/zugang.php?lang=' . $sprache;
 <meta property="og:image" content="<?= $h($basis) ?>/assets/img/og-image.jpg"><meta property="og:url" content="<?= $h($kanon) ?>">
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <style>
-  body{margin:0;background:radial-gradient(1200px 600px at 50% -200px,rgba(241,211,139,.09),transparent 70%),#0a0908;color:#f7f3ea;font:17px/1.6 'Inter',system-ui,sans-serif}
-  main{max-width:780px;margin:0 auto;padding:28px 16px 56px}
+  html{background:#0a0908}
+  body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -200px,rgba(241,211,139,.09),transparent 70%),#0a0908;color:#f7f3ea;font:17px/1.6 'Inter',system-ui,sans-serif}
+  main{max-width:780px;margin:0 auto;padding:28px 16px 44px}
   a{color:#f1d38b}
   .marke{display:inline-flex;font:800 14px/1 'Archivo',sans-serif;letter-spacing:.08em;color:#f7f3ea;text-decoration:none;margin-bottom:26px}.marke b{color:#f1d38b}
   h1{font:800 clamp(28px,6.4vw,42px)/1.12 'Archivo',sans-serif;margin:0 0 10px}
@@ -113,7 +114,21 @@ $preisLink = '/zugang.php?lang=' . $sprache;
   .links{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
   .links a{display:inline-flex;min-height:44px;align-items:center;padding:0 14px;border:1px solid rgba(255,255,255,.14);border-radius:999px;color:#f7f3ea;text-decoration:none;font-size:15px}
   .methode{margin-top:34px;color:#a39b8d;font-size:14px;line-height:1.6}
-  .sprachen{margin-top:26px;display:flex;gap:14px;font-size:14px}
+  /* Fußbereich (29.09.2026): Marke, Rechtliches und Sprachen in einer ruhigen Leiste statt loser Links am Rand */
+  .fussbereich{max-width:780px;margin:0 auto;padding:0 16px 36px}
+  .fb-innen{border-top:1px solid rgba(241,211,139,.22);padding-top:22px;display:grid;gap:14px}
+  .fb-kopf{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 24px}
+  .fb-marke{font:800 13px/1.4 'Archivo',sans-serif;letter-spacing:.08em;color:#f7f3ea;text-decoration:none}.fb-marke b{color:#f1d38b}
+  .fb-marke span{display:block;font:400 13.5px/1.5 'Inter',system-ui,sans-serif;letter-spacing:0;color:#a39b8d;margin-top:3px}
+  .rechtsfuss{display:flex;flex-wrap:wrap;gap:0 20px;margin:0;padding:0;border:0;font-size:14.5px}
+  .rechtsfuss a{color:#c9c1b3;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+  .rechtsfuss a:hover,.rechtsfuss a:focus-visible,.sprachen a:hover{color:#f1d38b;text-decoration:underline;text-underline-offset:4px}
+  .rechtsfuss span{display:none}
+  .fb-fuss{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 24px;font-size:13.5px;color:#8a8275}
+  .sprachen{display:flex;gap:6px;margin:0 -12px}
+  .sprachen a{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border-radius:999px;color:#a39b8d;text-decoration:none;border:1px solid transparent}
+  .sprachen a[aria-current]{color:#f7f3ea;border-color:rgba(241,211,139,.35);background:rgba(241,211,139,.06)}
+  .rechtsfuss a:focus-visible,.sprachen a:focus-visible,.fb-marke:focus-visible{outline:3px solid #f1d38b;outline-offset:3px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -205,8 +220,16 @@ $preisLink = '/zugang.php?lang=' . $sprache;
   <div class="cta"><b style="font:800 21px/1.25 'Archivo',sans-serif"><?= $h($T['cta']) ?></b><p><?= $h($T['ctaText']) ?></p>
     <div class="knoepfe"><a class="haupt" href="<?= $h($cta) ?>"><?= $h($T['knopf']) ?> →</a></div></div>
 <?php endif; ?>
-  <div class="sprachen"><?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $w): ?><a href="<?= $h($adr($s, $l)) ?>"<?= $l === $sprache ? ' aria-current="true"' : '' ?>><?= $h($w) ?></a><?php endforeach; ?></div>
 </main>
-<?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
+<div class="fussbereich"><div class="fb-innen">
+  <div class="fb-kopf">
+    <a class="fb-marke" href="/<?= $sprache === 'it' ? '' : $h($sprache) . '/' ?>"><b>VECOM</b>&nbsp;DESIGN<span><?= $h(['it' => 'Siti web · Aragona (AG), Sicilia', 'de' => 'Websites · Aragona (AG), Sizilien', 'en' => 'Websites · Aragona (AG), Sicily'][$sprache] ?? 'Aragona (AG)') ?></span></a>
+    <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
+  </div>
+  <div class="fb-fuss">
+    <span>© <?= date('Y') ?> Vecom Design</span>
+    <nav class="sprachen" aria-label="<?= $h(['it' => 'Lingua', 'de' => 'Sprache', 'en' => 'Language'][$sprache] ?? 'Lingua') ?>"><?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $w): ?><a href="<?= $h($adr($s, $l)) ?>" hreflang="<?= $l ?>" lang="<?= $l ?>"<?= $l === $sprache ? ' aria-current="true"' : '' ?>><?= $h($w) ?></a><?php endforeach; ?></nav>
+  </div>
+</div></div>
 </body>
 </html>
