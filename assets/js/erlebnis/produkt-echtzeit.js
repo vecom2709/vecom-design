@@ -248,6 +248,10 @@ export async function erstellen({
   const lader = new GLTFLoader(); lader.setMeshoptDecoder(MeshoptDecoder);
   const gltf = await lader.loadAsync(glb);
   const modell = gltf.scene; szene.add(modell);
+  /* Steht das Produkt am echten Ort auf einem Moebel (Wein auf dem Holztisch),
+     hebt branchen_ort.py es in Blender auf die Platte -- hier genauso, bevor
+     irgendetwas die Masse des Modells ausliest. */
+  if (ORT && ORT.basis_hoehe) { modell.position.y += ORT.basis_hoehe; modell.updateMatrixWorld(true); }
   const parser = gltf.parser;
   const json = parser.json;
   const namen = (json.extensions && json.extensions.KHR_materials_variants && json.extensions.KHR_materials_variants.variants || []).map((v) => v.name);
@@ -299,7 +303,10 @@ export async function erstellen({
          (auch bei jedem spaeteren Variantenwechsel). */
       modell.traverse((o) => { if (o.isMesh && /^decke/.test(o.name || o.parent?.name || '')) { o.geometry.dispose(); o.geometry = neu; parser.assignFinalMaterial(o); } });
     }));
-    if (ORT.stuehle) zusatz.push(lader.loadAsync(ordner + ORT.stuehle + stand).then((g) => { szene.add(g.scene); }));
+    // Moebel am Ort (Stuehle, Tisch): frueher "stuehle", seit dem Wein "zubehoer"
+    for (const datei of [ORT.stuehle, ORT.zubehoer].filter(Boolean)) {
+      zusatz.push(lader.loadAsync(ordner + datei + stand).then((g) => { szene.add(g.scene); }));
+    }
     await Promise.all(zusatz);
     if (ORT.tisch_farbe) {
       const f = new THREE.Color(...ORT.tisch_farbe);
@@ -831,6 +838,19 @@ export async function erstellen({
     ortSchatten.position.set(S.mitte[0], S.mitte[1] + 0.0008, S.mitte[2]);
     ortSchatten.renderOrder = -1;
     szene.add(ortSchatten);
+  }
+  /* Zweiter Kontaktschatten: das Produkt auf der Tischplatte (nur wenn es auf
+     einem Moebel steht). Gleiche Rechnung wie am Boden. */
+  if (ORT && ORT.schatten_oben) {
+    const S = ORT.schatten_oben;
+    const sTex = await new THREE.TextureLoader().loadAsync(ordner + S.datei + stand);
+    sTex.colorSpace = THREE.NoColorSpace;
+    const sGeo = new THREE.PlaneGeometry(S.groesse_m, S.groesse_m); sGeo.rotateX(-Math.PI / 2);
+    const oben = new THREE.Mesh(sGeo, new THREE.MeshBasicMaterial({ color: 0x000000, alphaMap: sTex, transparent: true, depthWrite: false, toneMapped: false }));
+    oben.position.set(S.mitte[0], S.mitte[1] + 0.0006, S.mitte[2]);
+    oben.renderOrder = 1;
+    oben.name = 'ort_schatten_oben';
+    szene.add(oben);
   }
 
   let spiegel = null;

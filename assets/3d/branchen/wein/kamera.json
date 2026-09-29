@@ -3,26 +3,26 @@
  "sensor_breite_mm": 36.0,
  "brennweite_mm": 85.0,
  "position": [
-  1.1567308902740479,
-  0.2598734498023987,
-  2.597860097885132
+  0.9048663377761841,
+  1.1598734855651855,
+  2.032163143157959
  ],
  "ziel": [
   -0.0018460974097251892,
-  0.1698734313249588,
+  0.9298734664916992,
   -0.004346095025539398
  ],
- "blende": 11.0,
- "fokus_m": 2.849890947341919,
- "hdri": "studio_small_03",
- "hdri_drehung_grad": 150.0,
- "hdri_staerke": 0.55,
+ "blende": 2.799999952316284,
+ "fokus_m": 2.241070508956909,
+ "hdri": "castle_zavelstein_cellar_4k.hdr",
+ "hdri_drehung_grad": 0.0,
+ "hdri_staerke": 1.0,
  "hdri_schwelle": 0.0,
  "boden_hoehe": -0.00012656250328291208,
  "belichtung": 0.0,
  "aufloesung": [
-  1600,
-  900
+  3840,
+  2160
  ],
  "varianten": [
   "Rosso",
@@ -30,15 +30,15 @@
   "Olio"
  ],
  "umgebung": {
-  "datei": "umgebung.hdr",
+  "datei": "ort-umgebung.hdr",
   "ort": [
    -0.0018460974097251892,
-   0.15518039464950562,
+   1.0359746217727661,
    -0.004346095025539398
   ]
  },
  "umgebung_boden": {
-  "datei": "umgebung-boden.hdr"
+  "datei": "ort-umgebung.hdr"
  },
  "boden": {
   "datei": "boden-licht.webp",
@@ -67,11 +67,11 @@
   "licht_skala": 0.27467731206038465
  },
  "look": {
-  "kontrast": 1.3,
+  "kontrast": 1.0,
   "pivot": 0.606,
-  "saettigung": 1.25
+  "saettigung": 1.0
  },
- "web_belichtung": 0.6,
+ "web_belichtung": 1.15,
  "web_spiegel": {
   "staerke": 0,
   "lod": 4.0
@@ -168,5 +168,30 @@
    ]
   }
  ],
- "dreiecke": 25548
+ "dreiecke": 25548,
+ "ort": {
+  "hintergrund": "ort-hintergrund.webp",
+  "zubehoer": "zubehoer.glb",
+  "schatten": {
+   "datei": "schatten.webp",
+   "groesse_m": 2.4,
+   "mitte": [
+    -0.0018460974097251892,
+    -0.00012656250328291208,
+    -0.004346095025539398
+   ]
+  },
+  "schatten_oben": {
+   "datei": "schatten-oben.webp",
+   "groesse_m": 1.7996479272842407,
+   "mitte": [
+    -0.0018460750579833984,
+    0.7598734498023987,
+    -0.10434609651565552
+   ]
+  },
+  "basis_hoehe": 0.7600000123056816,
+  "abend": 0.1,
+  "quelle": "Poly Haven, castle_zavelstein_cellar und WoodenTable_01 (CC0)"
+ }
 }

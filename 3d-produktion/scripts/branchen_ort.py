@@ -30,6 +30,11 @@ ORTE = {
     'gastro': dict(hdri='bush_restaurant_4k.exr', hdri_web='bush_restaurant_2k.hdr', dreh=120.0, staerke=1.0,
                    kamera=dict(winkel=-30.0, hoehe=1.45, lens=50.0, ziel_hoehe=0.78, fuellung=0.62, blende=2.8),
                    stuehle='dining_chair_02', stoff='rough_linen', belichtung=0.0),
+    # Wein: im Gewoelbekeller auf einem alten Holztisch. Kamerahoehen gelten
+    # ab der Tischplatte (Unterlage), nicht ab dem Boden.
+    'wein': dict(hdri='castle_zavelstein_cellar_4k.hdr', dreh=0.0, staerke=1.0,
+                 kamera=dict(winkel=-24.0, hoehe=0.40, lens=85.0, ziel_hoehe=0.17, fuellung=0.46, blende=2.8),
+                 unterlage='WoodenTable_01', unterlage_versatz=(0.0, 0.10), unterlage_hoehe=0.76, behalten=('weinglas_wein',), flagge=dict(breite=5.0, hoehe=1.6, abstand=0.25), belichtung=0.0),
 }
 O = ORTE[WAS]
 for k in ('dreh', 'staerke', 'belichtung'):
@@ -56,9 +61,18 @@ bpy.ops.import_scene.gltf(filepath=os.path.join(P, 'quelle', f'{WAS}.glb'))
 for _o in [o for o in sc.objects if o.name.startswith('varianten_traeger')]:
     bpy.data.objects.remove(_o, do_unlink=True)
 # Das Foto zeigt den gedeckten Tisch; Speisen kommen nur im Web (nur_web)
-for _o in [o for o in sc.objects if o.get('nur_web')]:
+# Ausnahme je Ort: Wein im Glas bleibt -- ein leeres Glas vor der unscharfen
+# Kellerwand las sich wie Milch im Glas (Probe 29.09.2026).
+_behalten = tuple(ORTE.get(WAS, {}).get('behalten', ())) or ('\0',)
+for _o in [o for o in sc.objects if o.get('nur_web') and not o.name.startswith(_behalten)]:
     bpy.data.objects.remove(_o, do_unlink=True)
+# Nur zur Fehlersuche: verstecke=name1+name2 blendet Objekte fuer die Kamera aus
+for _n in filter(None, EXTRA.get('verstecke', '').split('+')):
+    for _o in sc.objects:
+        if _o.name.startswith(_n):
+            _o.visible_camera = False
 modell = [o for o in sc.objects if o.type == 'MESH']
+produkt_wurzeln = [o for o in sc.objects if o.parent is None]
 
 def huelle(objs):
     lo = Vector((1e9,) * 3); hi = Vector((-1e9,) * 3)
@@ -81,6 +95,47 @@ boden_z = tiefster_punkt(modell)
 mitte = (lo + hi) / 2
 groesse = hi - lo
 print('BODEN', round(boden_z, 4), 'MASSE', [round(x, 3) for x in groesse])
+
+# ------------------------------------------------------------------ Unterlage (Tisch, Poly Haven)
+# Kleine Produkte stehen nicht auf dem Boden, sondern auf einem Tisch. Der
+# Tisch kommt als echtes Modell (CC0) an seinen Platz, das Produkt wird auf
+# die Platte gehoben. Kamerahoehen gelten dann ab der Platte (basis_z).
+def gltf_laden(name):
+    vorher = set(sc.objects)
+    bpy.ops.import_scene.gltf(filepath=os.path.join(Q, name, f'{name}_2k.gltf'))
+    neu = [o for o in sc.objects if o not in vorher]
+    return neu, [o for o in neu if o.parent is None]
+
+stuhl_objs = []            # Zubehoer: Stuehle, Tisch ... (im Web: zubehoer.glb)
+basis_z = boden_z
+unterlage_box = None
+if O.get('unterlage'):
+    neu, wurzel = gltf_laden(O['unterlage'])
+    tm = [o for o in neu if o.type == 'MESH']
+    halter_t = bpy.data.objects.new('unterlage', None); sc.collection.objects.link(halter_t)
+    for w_ in wurzel:
+        w_.parent = halter_t
+    bpy.context.view_layer.update()
+    lt, ht = huelle(tm)
+    # Tischhoehe wie ein echter Esstisch: Das Modell ist ein niedriger Tisch
+    # (55 cm); nur in der Hoehe gestreckt, die Platte bleibt wie sie ist.
+    if O.get('unterlage_hoehe'):
+        halter_t.scale.z = O['unterlage_hoehe'] / max(0.01, ht.z - lt.z)
+        bpy.context.view_layer.update()
+        lt, ht = huelle(tm)
+    vx, vy = O.get('unterlage_versatz', (0.0, 0.0))
+    halter_t.location = (mitte.x - (lt.x + ht.x) / 2 + vx, mitte.y - (lt.y + ht.y) / 2 + vy, boden_z - lt.z)
+    bpy.context.view_layer.update()
+    lt, ht = huelle(tm)
+    platte = ht.z
+    for w_ in produkt_wurzeln:
+        w_.location.z += platte - boden_z
+    bpy.context.view_layer.update()
+    lo, hi = huelle(modell); mitte = (lo + hi) / 2; groesse = hi - lo
+    basis_z = platte
+    unterlage_box = (lt, ht)
+    stuhl_objs += tm
+    print('UNTERLAGE', O['unterlage'], 'Platte', round(platte, 3), 'Masse', [round(x, 3) for x in (ht - lt)])
 
 # ------------------------------------------------------------------ Welt = der Ort
 welt = bpy.data.worlds.new('Ort'); sc.world = welt
@@ -263,13 +318,8 @@ for m in bpy.data.materials:
 
 # ------------------------------------------------------------------ Stuehle (Poly Haven, CC0)
 def stuhl_laden():
-    vorher = set(sc.objects)
-    bpy.ops.import_scene.gltf(filepath=os.path.join(Q, O['stuehle'], f"{O['stuehle']}_2k.gltf"))
-    neu = [o for o in sc.objects if o not in vorher]
-    wurzel = [o for o in neu if o.parent is None]
-    return neu, wurzel
+    return gltf_laden(O['stuehle'])
 
-stuhl_objs = []
 if O.get('stuehle'):
     # Gedecke finden: die zwei grossen Teller (Speiseteller) zeigen die Plaetze
     teller = [o for o in modell if 'teller' in o.name and not o.name.startswith('gang') and 'brot' not in o.name]
@@ -313,19 +363,40 @@ if O.get('stuehle'):
 cam_d = bpy.data.cameras.new('Kamera'); cam_d.sensor_fit = 'HORIZONTAL'
 cam_d.sensor_width = 36.0; cam_d.lens = K['lens']
 cam = bpy.data.objects.new('Kamera', cam_d); sc.collection.objects.link(cam); sc.camera = cam
-ziel = Vector((mitte.x, mitte.y, boden_z + K['ziel_hoehe']))
+ziel = Vector((mitte.x, mitte.y, basis_z + K['ziel_hoehe']))
 L = max(groesse.x, groesse.y)
 hfov = 2 * math.atan(18.0 / K['lens'])
 abstand = (L / K['fuellung'] / 2) / math.tan(hfov / 2)
 w = math.radians(K['winkel'])
 ort = ziel + Vector((-math.sin(w), -math.cos(w), 0)) * abstand
-ort.z = boden_z + K['hoehe']
+ort.z = basis_z + K['hoehe']
 cam.location = ort
 cam.rotation_euler = (ziel - ort).to_track_quat('-Z', 'Y').to_euler()
 cam_d.dof.use_dof = True
 cam_d.dof.focus_distance = (ziel - ort).length
 cam_d.dof.aperture_fstop = K['blende']
 cam_d.dof.aperture_blades = 9            # runde Unschaerfescheiben wie ein echtes Objektiv
+
+# Schwarze Flagge hinter der Kamera, wie sie jeder Produktfotograf aufstellt:
+# Dunkles Flaschenglas spiegelte den hellen Kellerteil hinter der Kamera als
+# gleichmaessigen grauen Schleier -- die volle Flasche las sich wie leer
+# (Probe d0e: ohne Inhalt sah sie genauso aus). Eine runde Flasche spiegelt
+# fast den halben Raum -- deshalb eine breite Flagge (Probe d0f: 1,4 m
+# dunkelte nur einen Streifen). Die Flagge ist nur fuer
+# Spiegelungen sichtbar; Licht, Schatten und das Rundumbild bleiben unberuehrt.
+FL = ORTE.get(WAS, {}).get('flagge')
+if FL and 'flagge=aus' not in argv:
+    bpy.ops.mesh.primitive_plane_add(size=1, location=ort + (ort - ziel).normalized() * float(FL.get('abstand', 0.25)))
+    flagge = bpy.context.active_object; flagge.name = 'Flagge'
+    flagge.scale = (float(FL['breite']), float(FL['hoehe']), 1)
+    flagge.rotation_euler = (ziel - ort).to_track_quat('Z', 'Y').to_euler()
+    mfl = bpy.data.materials.new('Flagge'); mfl.use_nodes = True
+    bfl = mfl.node_tree.nodes.get('Principled BSDF')
+    bfl.inputs['Base Color'].default_value = (0.004, 0.004, 0.004, 1); bfl.inputs['Roughness'].default_value = 1.0
+    bfl.inputs['Specular IOR Level'].default_value = 0.0
+    flagge.data.materials.append(mfl)
+    flagge.visible_camera = False; flagge.visible_diffuse = False; flagge.visible_shadow = False
+    flagge.visible_transmission = True; flagge.visible_glossy = True; flagge.visible_volume_scatter = False
 
 # ------------------------------------------------------------------ Render
 r = sc.render
@@ -356,7 +427,41 @@ for m in bpy.data.materials:
         if b_ and b_.inputs['Transmission Weight'].default_value > 0.5:
             b_.inputs['Base Color'].default_value = (0.93, 0.975, 0.955, 1)
             b_.inputs['Roughness'].default_value = 0.004
+# Fluessigkeit in der Flasche: Zwischen Glas (IOR 1,5) und Wein (1,33) wird
+# kaum Licht gespiegelt. Das Modell hatte eine normale Oberflaeche -- die
+# volle Rotweinflasche glaenzte dadurch grau wie leer (Probe d0d, Messung
+# Flaschenmitte 41-55 neutralgrau statt fast schwarz).
+for m in bpy.data.materials:
+    if m.name.startswith('Inhalt') and m.use_nodes:
+        b_ = next((n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+        if b_:
+            b_.inputs['Specular IOR Level'].default_value = 0.04
+            b_.inputs['Roughness'].default_value = 0.02
 sc.cycles.caustics_reflective = False; sc.cycles.caustics_refractive = False
+# Ohne Kaustik wirft Glas einen schwarzen Schatten -- unter dem Weinglas lag
+# ein dunkler Fleck wie verschuettete Tinte (Probe d0b, 29.09.2026). Echtes
+# Glas laesst fast alles Licht durch. Deshalb sehen Schattenstrahlen das Glas
+# als getoente Durchsicht (Glas hell, Wein tiefrot); alle anderen Strahlen
+# bleiben unveraendert physikalisch. Nur fuer helles Glas.
+for m in bpy.data.materials:
+    if not m.use_nodes:
+        continue
+    nt = m.node_tree
+    b_ = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+    aus = next((n for n in nt.nodes if n.type == 'OUTPUT_MATERIAL' and n.is_active_output), None)
+    if not b_ or not aus or b_.inputs['Transmission Weight'].default_value <= 0.5 or not aus.inputs['Surface'].links:
+        continue
+    # Dunkles Flaschenglas (Rotwein, Oel) laesst in echt kaum Licht auf den
+    # Inhalt -- mit Durchsicht glaenzte der Wein darin grau (Probe d0c).
+    if max(b_.inputs['Base Color'].default_value[:3]) < 0.6:
+        continue
+    quelle = aus.inputs['Surface'].links[0].from_socket
+    lp = nt.nodes.new('ShaderNodeLightPath'); tr = nt.nodes.new('ShaderNodeBsdfTransparent'); mx = nt.nodes.new('ShaderNodeMixShader')
+    f_ = b_.inputs['Base Color'].default_value
+    tr.inputs['Color'].default_value = (f_[0] * 0.82, f_[1] * 0.82, f_[2] * 0.82, 1)
+    nt.links.new(lp.outputs['Is Shadow Ray'], mx.inputs[0])
+    nt.links.new(quelle, mx.inputs[1]); nt.links.new(tr.outputs[0], mx.inputs[2])
+    nt.links.new(mx.outputs[0], aus.inputs['Surface'])
 sc.cycles.blur_glossy = 0.3
 sc.view_settings.view_transform = 'AgX'
 for _look in (EXTRA.get('look', 'AgX - Base Contrast'), 'None'):
@@ -454,7 +559,9 @@ if MODUS == 'web':
         o.hide_render = True
     faenger.hide_render = True
     pano('ort-hintergrund.png', cam.location.copy(), 4096, False)
-    ort_env = Vector((mitte.x, mitte.y, boden_z + groesse.z * 0.8))
+    # Licht dort einfangen, wo das Produkt steht -- auf dem Tisch, nicht am
+    # Boden darunter (Wein: 0,28 m statt 1,04 m, Web-Lauf 29.09.2026)
+    ort_env = Vector((mitte.x, mitte.y, basis_z + groesse.z * 0.8))
     pano('ort-umgebung.exr', ort_env, 1024, True)
     for o in modell + stuhl_objs:
         o.hide_render = False
@@ -463,6 +570,31 @@ if MODUS == 'web':
     gr = 2 * max(1.2, max(abs(v) for o in stuhl_objs for c in o.bound_box
                           for v in ((o.matrix_world @ Vector(c)).x - mitte.x, (o.matrix_world @ Vector(c)).y - mitte.y)) + 0.25) if stuhl_objs else 2.4
     schatten = schatten_backen(gr)
+    schatten_oben = None
+    if unterlage_box:
+        # Schatten des Produkts auf der Tischplatte: eigener Faenger knapp ueber
+        # der Platte, der Tisch selbst ist fuer die Kamera unsichtbar.
+        lt, ht = unterlage_box
+        bpy.ops.mesh.primitive_plane_add(size=1, location=((lt.x + ht.x) / 2, (lt.y + ht.y) / 2, basis_z + 0.0004))
+        fo = bpy.context.active_object; fo.name = 'FaengerOben'; fo.is_shadow_catcher = True
+        fo.scale = (ht.x - lt.x, ht.y - lt.y, 1)
+        faenger.hide_render = True
+        gr_o = max(ht.x - lt.x, ht.y - lt.y)
+        ob = bpy.data.objects.new('ObenT', bpy.data.cameras.new('ObenT')); ob.data.type = 'ORTHO'; ob.data.ortho_scale = gr_o
+        sc.collection.objects.link(ob); ob.location = ((lt.x + ht.x) / 2, (lt.y + ht.y) / 2, basis_z + 5)
+        for o in modell + stuhl_objs:
+            o.visible_camera = False
+        alt = (sc.camera, r.resolution_x, r.resolution_y, r.film_transparent, r.image_settings.color_mode, r.image_settings.color_depth, sc.cycles.samples)
+        sc.camera = ob; r.resolution_x = r.resolution_y = 1024; r.film_transparent = True
+        r.image_settings.color_mode = 'RGBA'; r.image_settings.file_format = 'PNG'; r.image_settings.color_depth = '16'; sc.cycles.samples = 256
+        r.filepath = os.path.join(AUSGABE, 'schatten-oben.png'); bpy.ops.render.render(write_still=True)
+        (sc.camera, r.resolution_x, r.resolution_y, r.film_transparent, r.image_settings.color_mode, r.image_settings.color_depth, sc.cycles.samples) = alt
+        for o in modell + stuhl_objs:
+            o.visible_camera = True
+        faenger.hide_render = False
+        bpy.data.objects.remove(fo); bpy.data.objects.remove(ob)
+        schatten_oben = {'datei': 'schatten-oben.webp', 'groesse_m': gr_o,
+                         'mitte': [(lt.x + ht.x) / 2, basis_z, -(lt.y + ht.y) / 2]}
     # Stuhltexturen auf 1024 fuers Web
     for o in stuhl_objs:
         for s in o.material_slots:
@@ -493,7 +625,7 @@ if MODUS == 'web':
             d_.color = (w_, w_, w_, 1.0)
         nur_exportieren([decke], 'decke-ort.glb', False, farben=True)
     if stuhl_objs:
-        nur_exportieren(stuhl_objs, 'stuehle.glb', True)
+        nur_exportieren(stuhl_objs, 'zubehoer.glb', True)
     web = {
         'ort': {'hintergrund': 'ort-hintergrund.webp', 'hdri': O['hdri'], 'drehung_grad': O['dreh'],
                 'kamera_ort': [cam.location.x, cam.location.z, -cam.location.y]},
@@ -501,7 +633,9 @@ if MODUS == 'web':
         'umgebung_boden': {'datei': 'ort-umgebung.hdr'},
         'schatten': schatten,
         'decke_ort': 'decke-ort.glb' if decke is not None else None,
-        'stuehle': 'stuehle.glb' if stuhl_objs else None,
+        'zubehoer': 'zubehoer.glb' if stuhl_objs else None,
+        'basis_hoehe': basis_z - boden_z,
+        'schatten_oben': schatten_oben,
         'tisch_farbe': TISCH_FARBE,
     }
     with open(os.path.join(AUSGABE, 'web.json'), 'w', encoding='utf-8') as f:
@@ -539,7 +673,7 @@ else:
             break                           # Probe: nur die erste Variante
 
 kam = {
-    'objekt': WAS, 'ort': O['hdri'], 'ort_web': O['hdri_web'], 'hdri_drehung_grad': O['dreh'], 'hdri_staerke': O['staerke'],
+    'objekt': WAS, 'ort': O['hdri'], 'ort_web': O.get('hdri_web'), 'hdri_drehung_grad': O['dreh'], 'hdri_staerke': O['staerke'],
     'sensor_breite_mm': 36.0, 'brennweite_mm': cam_d.lens,
     'position': [cam.location.x, cam.location.z, -cam.location.y], 'ziel': [ziel.x, ziel.z, -ziel.y],
     'blende': cam_d.dof.aperture_fstop, 'fokus_m': cam_d.dof.focus_distance,
