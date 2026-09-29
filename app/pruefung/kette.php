@@ -14683,6 +14683,7 @@ pruefe('Telefon: Ländervorwahl ohne „+“ wird erkannt (DE 4940… → +4940�
     Akquise::normTelefon('4940619121', 'DE') === '+4940619121' && Akquise::normTelefon('040 619121', 'DE') === '+4940619121'
     && Akquise::normTelefon('390922660602', 'IT') === '+390922660602' && Akquise::normTelefon('3931234567', 'IT') === '+393931234567'
     && Akquise::normTelefon('0922 660602', 'IT') === '+390922660602'
+    && Akquise::normTelefon('+49491723890040', 'DE') === '+491723890040' && Akquise::normTelefon('+49 491 1234567', 'DE') === '+494911234567'
     && str_contains((string) file_get_contents($wurzel . '/migrations/108_telefon_vorwahl.sql'), "REGEXP '^\\\\+3939[0-9]{9,}$'"));
 /* D1–D4 (29.09.2026): Steckbrief, Öffnungszeiten laut Website, beste Anrufzeit, Analyse in der Anrufliste */
 require_once $wurzel . '/src/PartnerSteckbrief.php';

@@ -362,6 +362,9 @@ final class Akquise
             elseif ($land === 'DE' && str_starts_with($z, '0')) { $z = '+49' . substr($z, 1); }
             elseif ($land === 'DE' && preg_match('~^49[1-9]\d{6,11}$~', $z)) { $z = '+' . $z; }
         }
+        /* Doppelte 49 vor einer Handynummer (29.09.2026, live gesehen: „+49491723890040“). Nach
+           +49 folgt bei Handys 15x/16x/17x mit 10–11 Ziffern; „49“ davor ist die Vorwahl ein zweites Mal. */
+        if (preg_match('~^\+49(49)(1[5-7]\d{8,9})$~', $z, $m)) { $z = '+49' . $m[2]; }
         return $z;
     }
 
