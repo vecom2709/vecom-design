@@ -111,6 +111,7 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-wahl input{width:18px;height:18px;margin-top:2px;flex:none}
   .akq-uebergabe{position:sticky;bottom:12px;z-index:15;display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding:12px 14px;
     border:1px solid rgba(241,211,139,.55);border-radius:14px;background:var(--flaeche);box-shadow:0 14px 36px rgba(0,0,0,.5)}
+  .akq-uebergabe[hidden]{display:none}
   .akq-uebergabe select{width:auto;min-width:180px}
   .akq-uebergabe .akq-haken{font-size:12.5px;max-width:440px}
   .akq-weg3{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
