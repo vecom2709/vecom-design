@@ -135,6 +135,27 @@ if ($post) {
                 $_SESSION['gut'] = 'Vermerkt. Eine zweite Ansprache ist damit gesperrt.';
                 weiter('akquise/' . $fid);
 
+            /* Ansprechen von Hand (29.09.2026, K2/K3) */
+            case 'akq_zugestimmt':
+                $r = AkquiseEinwilligung::muendlich($fid, (string) ($_POST['weg'] ?? ''), (string) ($_POST['person'] ?? ''),
+                    (string) ($_POST['email'] ?? ''), (string) ($_POST['whatsapp'] ?? ''), !empty($_POST['per_email']), !empty($_POST['per_whatsapp']),
+                    !empty($_POST['vorgelesen']), !empty($_POST['bereich']));
+                $_SESSION['gut'] = 'Zustimmung gespeichert. ' . implode(' und ', $r['wege']) . (count($r['wege']) > 1 ? ' sind' : ' ist') . ' jetzt frei, die Folge-Mails laufen automatisch'
+                    . ($r['bereich'] !== null ? ', und der persönliche Bereich ist per Mail unterwegs.' : '.');
+                weiter('akquise/' . $fid . '#ansprechen');
+
+            case 'akq_manuell':
+                require_once __DIR__ . '/src/AkquiseAnsprechen.php';
+                $ok = AkquiseAnsprechen::vermerken($fid, (string) ($_POST['kanal'] ?? ''));
+                if (!empty($_POST['still'])) { http_response_code($ok ? 204 : 200); exit; }
+                $_SESSION['gut'] = $ok ? 'Vermerkt.' : 'Schon vermerkt.';
+                weiter('akquise/' . $fid . '#ansprechen');
+
+            case 'akq_kein_interesse':
+                AkquiseVersand::antwortEintragen($fid, trim((string) ($_POST['person'] ?? '')) ?: 'Betrieb', 'Ansprechen', 'Kein Interesse (' . (($_POST['weg'] ?? '') === 'besuch' ? 'Besuch' : 'Anruf') . ').', 'NOT_INTERESTED');
+                $_SESSION['gut'] = 'Vermerkt und gesperrt — dieser Betrieb wird nie mehr angesprochen.';
+                weiter('akquise/' . $fid);
+
             case 'akq_antwort':
                 $r = AkquiseVersand::antwortEintragen($fid, (string) ($_POST['von'] ?? ''), (string) ($_POST['betreff'] ?? ''),
                     (string) ($_POST['text'] ?? ''), (string) ($_POST['klasse'] ?? ''));
@@ -727,7 +748,7 @@ if ($teil !== '' && ctype_digit($teil)) {
 }
 
 $filter = array_intersect_key($_GET, array_flip(['land', 'region', 'kreis', 'stadt', 'branche', 'kontakt', 'compliance', 'audit',
-                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark']));
+                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web']));
 ansicht('akquise', [
     'liste' => Akquise::liste($filter, max(1, (int) ($_GET['seite'] ?? 1))),
     'filter' => $filter,

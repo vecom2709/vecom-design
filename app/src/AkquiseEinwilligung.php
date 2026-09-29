@@ -211,4 +211,80 @@ final class AkquiseEinwilligung
         catch (Throwable $x) { }
         return ['ok' => true, 'firma' => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $f['id']]) ?? $f, 'sprache' => (string) $e['sprache'], 'bereich' => $bereich];
     }
+
+    /**
+     * Zustimmung am Telefon oder im Laden (29.09.2026, Uwe: Ja zu K3).
+     *
+     * Uwe hat den Satz aus AkquiseAnsprechen::WORTLAUT vorgelesen oder
+     * gezeigt, der Betrieb hat Ja gesagt und Adresse oder Nummer genannt.
+     * Gespeichert wird genau das: wer, wann, wie, welche Wege, welcher
+     * Wortlaut -- als Nachweis in akq_einwilligungen (Quelle anruf/besuch)
+     * und als Beleg am Betrieb. Danach sind E-Mail und WhatsApp frei, die
+     * Folge-Mails laufen automatisch, und auf Wunsch geht der persönliche
+     * Bereich gleich per Mail raus (wie nach dem Klick im Double-Opt-in).
+     *
+     * @return array{beleg:string,bereich:?string,nachweis:int,wege:list<string>}
+     */
+    public static function muendlich(int $firmaId, string $weg, string $person, string $email, string $whatsapp,
+                                     bool $perMail, bool $perWhatsapp, bool $vorgelesen, bool $bereich = true): array
+    {
+        require_once __DIR__ . '/AkquiseAnsprechen.php';
+        $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
+        if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
+        if (!in_array($weg, ['anruf', 'besuch'], true)) { throw new RuntimeException('Bitte wählen: Anruf oder Besuch.'); }
+        if (!$vorgelesen) { throw new RuntimeException('Bitte bestätigen, dass du den Satz vorgelesen oder gezeigt hast und er Ja gesagt hat.'); }
+        $person = trim(mb_substr(strip_tags($person), 0, 80));
+        if (mb_strlen($person) < 2) { throw new RuntimeException('Bitte eintragen, wer zugestimmt hat (Name oder z. B. „Inhaberin“).'); }
+        if (!$perMail && !$perWhatsapp) { throw new RuntimeException('Bitte mindestens einen Weg ankreuzen: E-Mail oder WhatsApp.'); }
+        $mail = $perMail ? Akquise::normEmail($email) : null;
+        if ($perMail && $mail === null) { throw new RuntimeException('Die E-Mail-Adresse ist nicht lesbar.'); }
+        $wa = $perWhatsapp ? trim((string) preg_replace('~[^\d+ ]~', '', $whatsapp)) : '';
+        if ($perWhatsapp && strlen((string) preg_replace('~\D~', '', $wa)) < 8) { throw new RuntimeException('Die WhatsApp-Nummer ist nicht lesbar.'); }
+        if ((int) $f['gesperrt'] === 1 || AkquiseGate::trifftSperrliste(($mail !== null ? ['email' => $mail] : []) + $f) !== null) {
+            throw new RuntimeException('Dieser Betrieb oder diese Adresse steht auf der Sperrliste.');
+        }
+        require_once __DIR__ . '/PartnerRecherche.php';
+        $res = PartnerRecherche::reserviertVon($firmaId);
+        if ($res !== null) { throw new RuntimeException('Partner ' . $res['name'] . ' kümmert sich um diesen Betrieb (reserviert bis ' . date('d.m.Y', strtotime((string) $res['bis'])) . ').'); }
+        $sp = AkquiseText::spracheFuer($f);
+        $jetzt = date('Y-m-d H:i:s');
+        $nachweis = (int) Db::insert('akq_einwilligungen', [
+            'firma_id' => $firmaId, 'link_token' => bin2hex(random_bytes(20)), 'email' => $mail, 'whatsapp' => $wa !== '' ? $wa : null,
+            'sprache' => $sp, 'quelle' => $weg, 'wortlaut' => AkquiseAnsprechen::wortlaut($sp), 'wortlaut_version' => AkquiseAnsprechen::WORTLAUT_VERSION,
+            'status' => 'bestaetigt', 'angefragt_am' => $jetzt, 'bestaetigt_am' => $jetzt,
+        ]);
+        $wege = implode(' + ', array_filter([$mail !== null ? 'E-Mail ' . $mail : null, $wa !== '' ? 'WhatsApp ' . $wa : null]));
+        $beleg = mb_substr(($weg === 'anruf' ? 'Am Telefon' : 'Beim Besuch') . ' am ' . date('d.m.Y H:i', strtotime($jetzt)) . ': ' . $person
+            . ' hat zugestimmt (' . $wege . '), Satz vorgelesen von ' . (Auth::angemeldet() ? Auth::name() : 'Uwe') . ', Wortlaut ' . AkquiseAnsprechen::WORTLAUT_VERSION
+            . ' (Nachweis #' . $nachweis . ')', 0, 255);
+        $kanaele = trim((string) ($f['einwilligung'] ?? '')) !== '' ? array_filter(array_map('trim', explode(',', (string) (($f['einwilligung_kanaele'] ?? '') ?: 'email')))) : [];
+        if ($mail !== null) { $kanaele[] = 'email'; }
+        if ($wa !== '') { $kanaele[] = 'whatsapp'; }
+        $alt = ['einwilligung' => $f['einwilligung'], 'email' => $f['email'], 'einwilligung_kanaele' => $f['einwilligung_kanaele'] ?? null, 'whatsapp' => $f['whatsapp'] ?? null];
+        $neu = ['einwilligung' => $beleg, 'einwilligung_kanaele' => implode(',', array_values(array_unique($kanaele)))]
+             + ($mail !== null ? ['email' => $mail] : []) + ($wa !== '' ? ['whatsapp' => $wa] : [])
+             + (trim((string) ($f['ansprechpartner'] ?? '')) === '' && ($ap = trim(explode(',', $person)[0])) !== ''
+                && !preg_match('~^(der |die |la |il |the )?(inhaber|inhaberin|chef|chefin|titolare|proprietari[oa]|owner|manager)~iu', $ap) ? ['ansprechpartner' => $ap] : []);
+        Db::update('akq_firmen', $firmaId, $neu);
+        Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', $firmaId, $alt, $neu);
+        Akquise::protokoll($firmaId, 'einwilligung', 'Zustimmung ' . ($weg === 'anruf' ? 'am Telefon' : 'beim Besuch') . ': ' . $person . ' — ' . $wege);
+        require_once __DIR__ . '/AkquiseVersand.php';
+        AkquiseVersand::antwortEintragen($firmaId, $person, $weg === 'anruf' ? 'Anruf' : 'Besuch', 'Hat zugestimmt: ' . $wege, 'MORE_INFO');
+        AkquiseGate::statusSpeichern($firmaId);
+        try { require_once __DIR__ . '/AkquiseFolge.php'; AkquiseFolge::starten($firmaId); } catch (Throwable $x) { }
+        $link = null;
+        if ($bereich && $mail !== null) {
+            try {
+                require_once __DIR__ . '/Zugang.php';
+                $link = !AkquiseGate::schalterSelbst('bereich') ? null : Zugang::bereichSchicken($mail, $sp, $firmaId, (string) $f['name'], $person);
+                if ($link !== null) {
+                    Db::run("UPDATE akq_folgen SET schritt = 1, letzte_am = NOW(), naechst_am = DATE_ADD(NOW(), INTERVAL 3 DAY), grund = 'Schritt 1: persönlicher Bereich direkt nach der Zustimmung geschickt'
+                              WHERE firma_id = ? AND schritt = 0 AND status = 'laeuft'", [$firmaId]);
+                }
+            } catch (Throwable $x) { }
+        }
+        try { Events::melden('akquise_einwilligung', 'Akquise: ' . $f['name'] . ' hat ' . ($weg === 'anruf' ? 'am Telefon' : 'beim Besuch') . ' zugestimmt — ' . $wege, 'gut', $mail ?? $wa, 'akquise/' . $firmaId); }
+        catch (Throwable $x) { }
+        return ['beleg' => $beleg, 'bereich' => $link, 'nachweis' => $nachweis, 'wege' => array_values(array_filter([$mail !== null ? 'E-Mail' : null, $wa !== '' ? 'WhatsApp' : null]))];
+    }
 }

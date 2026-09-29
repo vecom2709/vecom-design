@@ -11072,7 +11072,7 @@ foreach (['akq_anruf', 'akq_brief_verschickt', 'akq_vorlage_freigeben'] as $akTa
 /* Liste und Suche */
 $akL = Akquise::liste(['kontakt' => 'kontaktiert'], 1);
 pruefe('Filter „Kontaktiert" findet den Brief-Betrieb', in_array($akE['id'], array_map(static fn($z) => (int) $z['id'], $akL['zeilen']), true));
-pruefe('die Liste hat fünf Spalten', substr_count((string) file_get_contents($wurzel . '/views/akquise.php'), '<th>') === 5);
+pruefe('die Liste hat vier Spalten (29.09.2026, K1: Betrieb, Ort, Was fehlt, Ansprechen)', substr_count((string) file_get_contents($wurzel . '/views/akquise.php'), '<th>') === 4);
 pruefe('„Jetzt suchen" legt einen Auftrag mit Ebene „auto" an, und der Worker kennt sie',
     str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "'ebene' => 'auto'")
     && str_contains((string) file_get_contents($oben . '/tools/akquise/src/recherche/lauf.ts'), "lauf.ebene === 'auto'"));
@@ -14771,6 +14771,61 @@ pruefe('Branchen-Seite: FAQPage, BreadcrumbList und Service mit Ort und Preis al
     && preg_match('~^[a-f0-9]{32}$~', BranchenStatistik::indexNowKey()) === 1 && BranchenStatistik::indexNowKey() === BranchenStatistik::indexNowKey()
     && str_contains((string) file_get_contents($wurzel . '/../indexnow-key.php'), 'indexNowKey()')
     && BranchenStatistik::indexNow([]) === false);
+
+/* Ansprechen von Hand: fertige Texte, Zustimmung nach Anruf/Besuch (29.09.2026, Uwe: Ja zu K1–K3) */
+abschnitt('Ansprechen von Hand (K1–K3)');
+require_once $wurzel . '/src/AkquiseAnsprechen.php';
+require_once $wurzel . '/src/AkquiseEinwilligung.php';
+$ahF = (int) Db::insert('akq_firmen', ['kennung' => 'AH00000001', 'name' => 'Forno Hand', 'name_norm' => 'forno hand', 'land' => 'IT', 'branche' => 'baeckerei',
+    'stadt' => 'Aragona', 'plz' => '92021', 'adresse' => 'Via Roma 1', 'telefon' => '+39 347 1112223', 'quelle' => 'ah-kette-1']);
+$ahZ = static fn(): array => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$ahF]);
+$ahP = AkquiseAnsprechen::paket($ahZ(), [], null, '');
+pruefe('K2: ohne Zustimmung keine Mail und keine WhatsApp — dafür Anruf und Besuch mit fertigem Text in seiner Sprache',
+    AkquiseAnsprechen::stand($ahZ())['farbe'] === 'grau' && $ahP['frei'] === ['email' => false, 'whatsapp' => false]
+    && $ahP['email']['link'] === null && $ahP['whatsapp']['link'] === null && $ahP['sprache'] === 'it' && $ahP['tel'] === 'tel:+393471112223'
+    && str_contains($ahP['anruf'][0][1], 'Forno Hand') && str_contains($ahP['anruf'][1][1], 'ad Aragona') && str_contains($ahP['anruf'][3][1], 'STOP')
+    && $ahP['anruf'][3][1] === AkquiseAnsprechen::wortlaut('it') && count($ahP['besuch']) >= 4
+    && !AkquiseAnsprechen::vermerken($ahF, 'email') && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$ahF], 0) === 0, json_encode($ahP['anruf']));
+$ahFehler = [];
+foreach ([['anruf', 'Maria', 'maria@forno.example', '', true, false, false], ['anruf', 'Maria', '', '', false, false, true], ['anruf', 'Maria', 'kaputt', '', true, false, true],
+          ['anruf', 'M', 'maria@forno.example', '', true, false, true], ['telefax', 'Maria', 'maria@forno.example', '', true, false, true], ['besuch', 'Maria', '', '12', false, true, true]] as $x) {
+    try { AkquiseEinwilligung::muendlich($ahF, ...array_merge($x, [false])); $ahFehler[] = 'durchgelassen: ' . json_encode($x); } catch (RuntimeException $e) { }
+}
+pruefe('K3: Zustimmung nur mit Haken „vorgelesen“, Name, mindestens einem Weg und lesbarer Adresse/Nummer', $ahFehler === [] && trim((string) $ahZ()['einwilligung']) === '', json_encode($ahFehler));
+$ahR = AkquiseEinwilligung::muendlich($ahF, 'anruf', 'Maria Rossi, titolare', 'Maria@Forno.example', '+39 347 1112223', true, true, true, false);
+$ahE = Db::one('SELECT * FROM akq_einwilligungen WHERE id = ?', [$ahR['nachweis']]);
+$ahP2 = AkquiseAnsprechen::paket($ahZ(), [], null, 'https://vecom-design.it/analisi/x');
+pruefe('K3: gespeichert mit Nachweis (wer, wann, Weg, Wortlaut) — danach Mail und WhatsApp frei, Folge-Mails laufen',
+    $ahE && $ahE['quelle'] === 'anruf' && $ahE['status'] === 'bestaetigt' && $ahE['wortlaut_version'] === AkquiseAnsprechen::WORTLAUT_VERSION && $ahE['wortlaut'] === AkquiseAnsprechen::wortlaut('it')
+    && str_contains($ahR['beleg'], 'Maria Rossi') && str_contains($ahR['beleg'], 'Am Telefon') && $ahR['wege'] === ['E-Mail', 'WhatsApp']
+    && $ahZ()['email'] === 'maria@forno.example' && $ahZ()['ansprechpartner'] === 'Maria Rossi' && AkquiseGate::einwilligungDeckt($ahZ(), 'whatsapp')
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_folgen WHERE firma_id = ?', [$ahF], 0) === 1
+    && $ahP2['frei'] === ['email' => true, 'whatsapp' => true] && AkquiseAnsprechen::stand($ahZ())['farbe'] === 'gruen'
+    && str_starts_with((string) $ahP2['email']['link'], 'mailto:maria%40forno.example?subject=') && str_starts_with((string) $ahP2['whatsapp']['link'], 'https://wa.me/393471112223?text=')
+    && str_contains($ahP2['email']['text'], 'Buongiorno Maria Rossi,') && str_contains($ahP2['email']['text'], 'https://vecom-design.it/analisi/x') && str_contains($ahP2['email']['text'], '«STOP»')
+    && str_contains($ahP2['whatsapp']['text'], 'https://vecom-design.it/analisi/x'), json_encode([$ahR, $ahP2['frei']]));
+pruefe('K2: Öffnen von Mail/WhatsApp wird einmal als „selbst gemacht“ vermerkt (nicht doppelt binnen 30 Minuten)',
+    AkquiseAnsprechen::vermerken($ahF, 'email') && !AkquiseAnsprechen::vermerken($ahF, 'email') && AkquiseAnsprechen::vermerken($ahF, 'whatsapp')
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status = 'von_hand'", [$ahF], 0) === 2 && !AkquiseAnsprechen::vermerken($ahF, 'brief'));
+$ahDe = (int) Db::insert('akq_firmen', ['kennung' => 'AH00000002', 'name' => 'Salon Hand', 'name_norm' => 'salon hand', 'land' => 'DE', 'branche' => 'friseur',
+    'stadt' => 'Bad Kreuznach', 'url' => 'https://salon-hand.example', 'domain' => 'salon-hand.example', 'quelle' => 'ah-kette-2']);
+$ahPd = AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$ahDe]), [], null, '');
+$ahRes = (int) Db::insert('akq_firmen', ['kennung' => 'AH00000003', 'name' => 'Partnerladen', 'name_norm' => 'partnerladen', 'land' => 'IT', 'branche' => 'restaurant', 'stadt' => 'Aragona', 'quelle' => 'ah-kette-3']);
+$ahPartner = Partner::laden(Partner::anlegen(['name' => 'Paola Hand', 'email' => 'paola@partner-ah.example', 'status' => 'aktiv', 'sprache' => 'it']));
+PartnerRecherche::reservieren((int) $ahPartner['id'], $ahRes);
+$ahResOk = false; try { AkquiseEinwilligung::muendlich($ahRes, 'besuch', 'Luca', 'luca@partner.example', '', true, false, true, false); } catch (RuntimeException $e) { $ahResOk = str_contains($e->getMessage(), 'Paola'); }
+pruefe('K2/K3: deutscher Betrieb bekommt deutsche Texte; reserviert ein Partner, trägt Vecom keine Zustimmung ein',
+    $ahPd['sprache'] === 'de' && str_contains($ahPd['anruf'][0][1], 'Salon Hand') && str_contains($ahPd['anruf'][1][1], 'salon-hand.example') && str_contains($ahPd['anruf'][3][1], 'STOPP')
+    && $ahPd['tel'] === null && $ahResOk && AkquiseAnsprechen::stand(['gesperrt' => 1])['farbe'] === 'rot');
+$ahListe = Akquise::liste(['darf' => '1'], 1, 500);
+$ahView = (string) file_get_contents($wurzel . '/views/akquise.php') . (string) file_get_contents($wurzel . '/views/akquise_reiter.php');
+pruefe('K1: Liste mit „Ansprechen“ für jeden, Schnellauswahl „Haben zugestimmt“, vier Reiter + „Mehr“, Rückfrage beim Eintragen',
+    in_array($ahF, array_map(static fn($z) => (int) $z['id'], $ahListe['zeilen']), true) && !in_array($ahDe, array_map(static fn($z) => (int) $z['id'], $ahListe['zeilen']), true)
+    && str_contains($ahView, "'#ansprechen'") && str_contains($ahView, "'darf' => 'Haben zugestimmt'") && str_contains($ahView, "\$akqHaupt = ['', 'folgen', 'termine', 'karte']")
+    && str_contains($ahView, '<summary>Mehr</summary>') && Ablauf::rueckfrage('akq_zugestimmt') !== null && Ablauf::rueckfrage('akq_kein_interesse') !== null
+    && Ablauf::rueckfrage('akq_manuell') === null
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_ansprechen.php'"));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?)', [$ahF, $ahDe, $ahRes]);
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -98,13 +98,43 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-filter .akq-stark{display:flex;align-items:flex-end} .akq-filter .akq-stark .akq-haken{margin:0 0 10px;text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--dim)}
   .akq-kacheln a.karte{color:inherit;transition:border-color .18s var(--e)} .akq-kacheln a.karte:hover{border-color:var(--linie2)}
   .akq-tab td:last-child{min-width:220px}
+  .akq-reiter-mehr{position:relative}
+  .akq-reiter-mehr > summary{list-style:none;cursor:pointer;padding:7px 13px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13.5px}
+  .akq-reiter-mehr > summary::-webkit-details-marker{display:none}
+  .akq-reiter-mehr > summary::after{content:" ▾";font-size:11px}
+  .akq-reiter-mehr[open] > summary{color:var(--text);border-color:var(--linie2)}
+  .akq-reiter-menue{position:absolute;z-index:20;top:calc(100% + 6px);left:0;min-width:250px;display:grid;padding:6px;border-radius:14px;border:1px solid var(--linie2);background:var(--flaeche);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+  .akq-reiter-menue a{border:0!important;border-radius:9px!important;padding:9px 12px!important;color:var(--text)!important}
+  .akq-reiter-menue a:hover,.akq-reiter-menue a:focus-visible{background:var(--flaeche2)}
+  .akq-mehr{margin:0 0 16px}
+  .akq-weg3{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .akq-weg3 li{border:1px solid var(--linie);border-radius:14px;padding:14px 16px;background:var(--flaeche);display:grid;gap:4px}
+  .akq-weg3 b{font-size:15px;color:var(--cyan)}
+  .akq-weg3 span{font-size:13.5px;line-height:1.5;color:var(--dim)}
+  .akq-schnell{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+  .akq-schnell a{padding:7px 13px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13.5px}
+  .akq-schnell a.an{background:var(--flaeche2);color:var(--text);border-color:rgba(241,211,139,.5)}
+  @media (max-width:800px){ .akq-weg3{grid-template-columns:1fr} }
+  .akq-mehr > summary{cursor:pointer;font-size:13.5px;color:var(--dim);padding:12px 16px;border:1px solid var(--linie);border-radius:14px;background:var(--flaeche)}
+  .akq-mehr[open] > summary{margin-bottom:12px}
   @media (max-width:700px){ .akq-filter .breit{grid-column:span 1} .akq-reiter .rechts{margin-left:0;width:100%}
     .akq-suchzeile{grid-template-columns:1fr} .akq-schritt{align-items:flex-start} }
 </style>
+<?php /* Einfacher (29.09.2026, Uwe: Ja zu K1): vier Reiter für jeden Tag, der Rest unter „Mehr“. */
+  $akqHaupt = ['', 'folgen', 'termine', 'karte'];
+  $akqMehr = array_diff_key($reiter, array_flip($akqHaupt)); ?>
 <nav class="akq-reiter" aria-label="Akquise">
-  <?php foreach ($reiter as $ziel => $wort): ?>
-    <a href="<?= Fmt::h(url('akquise' . ($ziel !== '' ? '/' . $ziel : ''))) ?>" class="<?= $akqTeil === $ziel ? 'an' : '' ?>"><?= Fmt::h($wort) ?></a>
+  <?php foreach ($akqHaupt as $ziel): if (!isset($reiter[$ziel])) { continue; } ?>
+    <a href="<?= Fmt::h(url('akquise' . ($ziel !== '' ? '/' . $ziel : ''))) ?>" class="<?= $akqTeil === $ziel ? 'an' : '' ?>"<?= $akqTeil === $ziel ? ' aria-current="page"' : '' ?>><?= Fmt::h($reiter[$ziel]) ?></a>
   <?php endforeach; ?>
+  <?php if (isset($akqMehr[$akqTeil])): ?><a href="<?= Fmt::h(url('akquise/' . $akqTeil)) ?>" class="an" aria-current="page"><?= Fmt::h($akqMehr[$akqTeil]) ?></a><?php endif; ?>
+  <details class="akq-reiter-mehr"><summary>Mehr</summary>
+    <div class="akq-reiter-menue">
+      <?php foreach ($akqMehr as $ziel => $wort): ?>
+        <a href="<?= Fmt::h(url('akquise/' . $ziel)) ?>"><?= Fmt::h($ziel === 'assistent' ? 'Assistent (Fragen an deine Daten)' : $wort) ?></a>
+      <?php endforeach; ?>
+    </div>
+  </details>
   <div class="rechts">
     <?php if ($akqG['stop']): ?>
       <span class="marke2 schlecht">Notbremse gezogen — nichts geht raus</span>

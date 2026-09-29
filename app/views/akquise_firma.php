@@ -89,13 +89,17 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
     <?php endforeach; ?>
   </div>
 </div>
+<?php if ($schritt === null && !$gesperrt): ?>
+  <div class="akq-schritt"><span class="akq-klein">Nächster Schritt</span><a class="knopf haupt" href="#ansprechen">Ansprechen</a></div>
+<?php endif; ?>
 <?php if ($schritt !== null): ?>
   <div class="akq-schritt">
     <span class="akq-klein">Nächster Schritt</span>
     <?php if ($schritt['art'] === 'post'): ?>
       <?= $post($schritt['ziel'], '<input type="hidden" name="zurueck" value="akquise/' . $fid . '"><button class="knopf haupt">' . Fmt::h($schritt['wort']) . '</button>') ?>
     <?php elseif ($schritt['art'] === 'still'): ?>
-      <span class="knopf" aria-disabled="true"><?= Fmt::h($schritt['wort']) ?> …</span>
+      <?php if (!$gesperrt): ?><a class="knopf haupt" href="#ansprechen">Ansprechen</a><?php endif; ?>
+      <span class="akq-klein"><?= Fmt::h($schritt['wort']) ?> …</span>
     <?php else: ?>
       <a class="knopf haupt" href="<?= Fmt::h(url($schritt['ziel'])) ?>"<?= str_ends_with($schritt['ziel'], '/brief') || str_ends_with($schritt['ziel'], '/anruf') ? ' target="_blank" rel="noopener"' : '' ?>><?= Fmt::h($schritt['wort']) ?></a>
     <?php endif; ?>
@@ -160,6 +164,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
   </div>
 
   <div>
+    <?php require __DIR__ . '/akquise_ansprechen.php'; /* K2/K3 (29.09.2026): fertige Texte für alle Wege */ ?>
     <!-- ====== Kontakt: genau ein Weg, je nach Stand ====== -->
     <?php if ($kontaktiert && !$gesperrt): ?>
     <div class="block akq-fokus" id="antwort">
@@ -176,8 +181,9 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
     </div>
     <?php endif; ?>
 
+    <?php if ($aktiv === null): ?><details class="akq-mehr"><summary>Mehr: Text für den automatischen Versand · Regeln · Einwilligungs-Link</summary><?php endif; ?>
     <div class="block" id="kontakt">
-      <h2>Ansprechen</h2>
+      <h2>Text für den automatischen Versand</h2>
       <?php if ($gesperrt): ?>
         <div class="leer">Nicht ansprechen — der Betrieb steht auf der Sperrliste.</div>
       <?php elseif ($kontaktiert && !$aktiv): ?>
@@ -352,6 +358,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
         </tbody></table>
       <?php endif; ?>
     </div>
+    <?php if ($aktiv === null): ?></details><?php endif; ?>
 
     <div class="block">
       <h2>Betrieb</h2>

@@ -7,6 +7,7 @@
    unter „Mehr Filter“ und auf der Firmenseite --, aber es steht nicht mehr
    zwischen Uwe und der Frage „wen spreche ich heute an?“. */
 $akqTeil = '';
+require_once dirname(__DIR__) . '/src/AkquiseAnsprechen.php';
 $wert = static fn(string $k): string => (string) ($filter[$k] ?? '');
 $gewaehlt = static fn(string $k, string $v): string => (($filter[$k] ?? '') === $v) ? ' selected' : '';
 $seitenUrl = static function (int $s) use ($filter): string {
@@ -18,11 +19,17 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
 ?>
 <div class="kopf"><div><h1>Neue Kunden finden</h1>
   <p style="color:var(--leise);font-size:13px;margin-top:6px">
-    Betriebe, deren Website nachweislich Schwächen hat — gefunden und geprüft von deinem Rechner, nachts.
-    Du entscheidest, wer angesprochen wird.</p></div>
+    Betriebe ohne Website oder mit schwacher Website — dein Rechner findet und prüft sie nachts. Du sprichst sie an.</p></div>
 </div>
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
+
+<?php /* So läuft es (29.09.2026, Uwe: Ja zu K1) */ ?>
+<ol class="akq-weg3" aria-label="So läuft es">
+  <li><b>1 · Betrieb aussuchen</b><span>Unten in der Liste — zuerst die ohne Website oder mit großer Chance.</span></li>
+  <li><b>2 · Ansprechen</b><span>Knopf „Ansprechen“: fertige Texte für Anruf, Besuch, E-Mail und WhatsApp. Mail und WhatsApp gehen erst, wenn er zugestimmt hat.</span></li>
+  <li><b>3 · Er sagt Ja</b><span>„Hat zugestimmt“ eintragen — dann bekommt er sein Dashboard, und die Folge-Mails laufen automatisch.</span></li>
+</ol>
 
 <div class="block akq-suchen">
   <form method="post" action="<?= Fmt::h(url('akquise')) ?>">
@@ -142,6 +149,14 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   </form>
 </div>
 
+<?php $akqSchnell = ['' => 'Alle', 'darf' => 'Haben zugestimmt', 'ohne_web' => 'Ohne Website', 'stark' => 'Starke Chancen'];
+  $akqSchnellAn = !empty($filter['darf']) ? 'darf' : (!empty($filter['ohne_web']) ? 'ohne_web' : (!empty($filter['stark']) ? 'stark' : '')); ?>
+<nav class="akq-schnell" aria-label="Schnellauswahl">
+  <?php foreach ($akqSchnell as $k => $w): ?>
+    <a href="<?= Fmt::h(url('akquise') . ($k !== '' ? '?' . $k . '=1' : '')) ?>" class="<?= $akqSchnellAn === $k && count(array_filter($filter, static fn($v) => $v !== '')) <= 1 ? 'an' : '' ?>"><?= Fmt::h($w) ?></a>
+  <?php endforeach; ?>
+  <a href="<?= Fmt::h(url('akquise') . '?kontakt=kontaktiert') ?>" class="<?= ($filter['kontakt'] ?? '') === 'kontaktiert' ? 'an' : '' ?>">Warten auf Antwort</a>
+</nav>
 <div class="block">
   <?php if (!$liste['zeilen']): ?>
     <div class="leer">
@@ -153,34 +168,27 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
     </div>
   <?php else: ?>
   <div class="tabellenrahmen"><table class="akq-tab">
-    <thead><tr><th>Betrieb</th><th>Ort</th><th>Chance</th><th>Hauptproblem</th><th>Nächster Schritt</th></tr></thead>
+    <thead><tr><th>Betrieb</th><th>Ort</th><th>Was fehlt</th><th>Ansprechen</th></tr></thead>
     <tbody>
     <?php foreach ($liste['zeilen'] as $z):
         $top = json_decode((string) ($z['top_probleme'] ?? '[]'), true) ?: [];
-        $amp = AkquiseGate::ampel($z);
-        $schritt = Akquise::naechsterSchritt($z);
+        $stand = AkquiseAnsprechen::stand($z);
         $stufe = (int) $z['gesperrt'] === 1 ? 'erledigt' : Akquise::stufe5((string) $z['kontakt_status']);
-        $score = $z['score'] !== null ? (int) $z['score'] : null; ?>
+        $score = $z['score'] !== null ? (int) $z['score'] : null;
+        $ohneWeb = trim((string) ($z['url'] ?? '')) === ''; ?>
       <tr>
         <td><a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a>
-          <div class="akq-klein"><?= Fmt::h((string) ($z['domain'] ?? 'keine Website')) ?> · <?= Fmt::h(Akquise::branchenName($z['branche'])) ?></div>
+          <div class="akq-klein"><?= Fmt::h(Akquise::branchenName($z['branche'])) ?><?= !$ohneWeb ? ' · ' . Fmt::h((string) ($z['domain'] ?? '')) : '' ?></div>
+          <?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>" style="margin-top:5px" title="Wie gut passt Vecom hier? 0–100"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span><?php endif; ?>
           <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?></td>
         <td><?= Fmt::h((string) ($z['stadt'] ?? '—')) ?><div class="akq-klein"><?= Fmt::h((string) $z['land']) ?></div></td>
-        <td><?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span>
-            <?php else: ?><span class="akq-klein"><?= Fmt::h(Akquise::AUDIT_STATUS[(string) $z['audit_status']] ?? '—') ?></span><?php endif; ?></td>
-        <td><?php if ($top): ?><?= Fmt::h((string) $top[0]) ?><?= count($top) > 1 ? ' <span class="akq-klein">+' . (count($top) - 1) . '</span>' : '' ?>
-            <?php else: ?><span class="akq-klein">—</span><?php endif; ?></td>
+        <td><?php if ($ohneWeb): ?><b>Keine Website</b>
+            <?php elseif ($top): ?><?= Fmt::h((string) $top[0]) ?><?= count($top) > 1 ? ' <span class="akq-klein">+' . (count($top) - 1) . ' weitere</span>' : '' ?>
+            <?php else: ?><span class="akq-klein"><?= Fmt::h((string) $z['audit_status'] === 'fertig' ? 'Nichts Schlimmes gefunden' : 'Website wird noch geprüft') ?></span><?php endif; ?></td>
         <td><div class="akq-los-zeile">
-          <span class="akq-ampel klein <?= Fmt::h($amp['farbe']) ?>" title="<?= Fmt::h($amp['wort']) ?>"><i></i><span><?= Fmt::h($amp['wort']) ?></span></span>
-          <?php if ($schritt === null): ?>
-          <?php elseif ($schritt['art'] === 'post'): ?>
-            <form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?>
-              <input type="hidden" name="tat" value="<?= Fmt::h($schritt['ziel']) ?>"><input type="hidden" name="firma" value="<?= (int) $z['id'] ?>">
-              <input type="hidden" name="zurueck" value="akquise"><button class="knopf akq-los"><?= Fmt::h($schritt['wort']) ?></button></form>
-          <?php elseif ($schritt['art'] === 'still'): ?>
-            <span class="akq-klein"><?= Fmt::h($schritt['wort']) ?> …</span>
-          <?php else: ?>
-            <a class="knopf akq-los" href="<?= Fmt::h(url($schritt['ziel'])) ?>"<?= str_ends_with($schritt['ziel'], '/brief') ? ' target="_blank" rel="noopener"' : '' ?>><?= Fmt::h($schritt['wort']) ?></a>
+          <span class="akq-ampel klein <?= Fmt::h($stand['farbe']) ?>"><i></i><span><?= Fmt::h($stand['wort']) ?></span></span>
+          <?php if ($stand['farbe'] !== 'rot'): ?>
+            <a class="knopf akq-los" href="<?= Fmt::h(url('akquise/' . (int) $z['id']) . '#ansprechen') ?>">Ansprechen</a>
           <?php endif; ?>
         </div></td>
       </tr>

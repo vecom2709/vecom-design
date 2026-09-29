@@ -808,6 +808,9 @@ final class Akquise
             $wo[] = 'f.kontakt_status = ?'; $args[] = $k5;
         }
         if (!empty($f['stark'])) { $wo[] = 'f.score >= 71'; }
+        /* Schnellfilter (29.09.2026, K1): wer hat zugestimmt, wer hat keine Website */
+        if (!empty($f['darf'])) { $wo[] = "(f.einwilligung IS NOT NULL AND f.einwilligung <> '')"; }
+        if (!empty($f['ohne_web'])) { $wo[] = "(f.url IS NULL OR f.url = '')"; }
         foreach ($gleich as $k => $spalte) {
             $w = trim((string) ($f[$k] ?? ''));
             if ($w !== '') { $wo[] = "$spalte = ?"; $args[] = $w; }
