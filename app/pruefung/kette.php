@@ -14715,6 +14715,9 @@ pruefe('Prüfung gezielt: zuerst die größte Gruppe ohne 15 geprüfte Websites 
 pruefe('Prüfung: der Worker holt in Paketen zu 50 bis zur Zahl je Nacht (Vorgabe 300)',
     str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "Math.min(50, ziel - geprueft)")
     && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/konfig.ts'), "zahl('AKQUISE_AUDITS_PRO_LAUF', 300)"));
+pruefe('Prüfung: eine hängende Website hält den Nachtlauf nicht mehr auf (5 Minuten je Seite, danach weiter)',
+    str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), 'const AUDIT_ZEITLIMIT_MS = 5 * 60_000;')
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "if (text.startsWith('Zeitlimit')) { await browserZu()"));
 Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (' . implode(',', array_merge($gzIds, [$gzEinzel])) . ')');
 
 /* Partner-Autopilot + Branchen-Seiten für Google/KI-Suche (29.09.2026, Uwe: Ja) */

@@ -81,6 +81,8 @@ async function audits(): Promise<void> {
   await browserZu();
 }
 
+const AUDIT_ZEITLIMIT_MS = 5 * 60_000;
+
 /** Prüft ein Paket. Gibt false zurück, wenn der Lauf anhalten soll (Notbremse, Browser kaputt). */
 async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Promise<boolean> {
   log.info('audit', `${firmen.length} Website(s) zu prüfen (${vorher + 1}–${vorher + firmen.length} von höchstens ${ziel})`);
@@ -89,7 +91,15 @@ async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Pr
     if (h.stop) { log.warn('audit', 'Notbremse gezogen — Audits angehalten.'); return false; }
     const t0 = Date.now();
     try {
-      const e = await auditieren(f);
+      /* Höchstens 5 Minuten je Website (29.09.2026): Der Nachtlauf blieb am
+         28./29.09. an der ersten Seite hängen und wurde Stunden später ohne
+         ein einziges Ergebnis beendet. Hängt eine Seite, wird sie als Fehler
+         gemeldet, der Browser neu gestartet, und es geht mit der nächsten weiter. */
+      let wecker: NodeJS.Timeout | undefined;
+      const e = await Promise.race([
+        auditieren(f),
+        new Promise<never>((_, nein) => { wecker = setTimeout(() => nein(new Error('Zeitlimit: Prüfung dauerte länger als 5 Minuten')), AUDIT_ZEITLIMIT_MS); }),
+      ]).finally(() => clearTimeout(wecker));
       const antwort = await api('audit_melden', { firma_id: f.id, ...e });
       const belegt = e.befunde.filter((b) => b.status === 'VERIFIED').length;
       log.info('audit', `[${vorher + i + 1}/${ziel}] ${f.name} (${f.domain}): ${e.befunde.length} Befunde, ${belegt} belegt · Score ${antwort.score ?? '—'} · ${Math.round((Date.now() - t0) / 1000)} s`);
@@ -106,6 +116,7 @@ async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Pr
         return false;
       }
       log.fehler('audit', `${f.name}: ${text}`);
+      if (text.startsWith('Zeitlimit')) { await browserZu().catch(() => {}); }
       await api('audit_melden', { firma_id: f.id, status: 'fehler', befunde: [], messwerte: { fehler: text.slice(0, 300) } }).catch(() => {});
     }
   }
