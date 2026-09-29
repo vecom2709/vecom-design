@@ -14783,11 +14783,12 @@ $ahF = (int) Db::insert('akq_firmen', ['kennung' => 'AH00000001', 'name' => 'For
     'stadt' => 'Aragona', 'plz' => '92021', 'adresse' => 'Via Roma 1', 'telefon' => '+39 347 1112223', 'quelle' => 'ah-kette-1']);
 $ahZ = static fn(): array => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$ahF]);
 $ahP = AkquiseAnsprechen::paket($ahZ(), [], null, '');
+$ahSatz = static fn(array $liste, string $vorne): string => (string) (array_values(array_filter($liste, static fn($x) => str_starts_with($x[0], $vorne)))[0][1] ?? '');
 pruefe('K2: ohne Zustimmung keine Mail und keine WhatsApp — dafür Anruf und Besuch mit fertigem Text in seiner Sprache',
     AkquiseAnsprechen::stand($ahZ())['farbe'] === 'grau' && $ahP['frei'] === ['email' => false, 'whatsapp' => false]
     && $ahP['email']['link'] === null && $ahP['whatsapp']['link'] === null && $ahP['sprache'] === 'it' && $ahP['tel'] === 'tel:+393471112223'
-    && str_contains($ahP['anruf'][0][1], 'Forno Hand') && str_contains($ahP['anruf'][1][1], 'ad Aragona') && str_contains($ahP['anruf'][4][1], 'STOP')
-    && $ahP['anruf'][4][1] === AkquiseAnsprechen::wortlaut('it') && count($ahP['besuch']) >= 4
+    && str_contains($ahP['anruf'][0][1], 'Forno Hand') && str_contains($ahSatz($ahP['anruf'], 'Aufhänger'), 'ad Aragona') && str_contains($ahSatz($ahP['anruf'], 'Wenn ja'), 'STOP')
+    && $ahSatz($ahP['anruf'], 'Wenn ja') === AkquiseAnsprechen::wortlaut('it') && count($ahP['besuch']) >= 4
     && !AkquiseAnsprechen::vermerken($ahF, 'email') && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$ahF], 0) === 0, json_encode($ahP['anruf']));
 $ahFehler = [];
 foreach ([['anruf', 'Maria', 'maria@forno.example', '', true, false, false], ['anruf', 'Maria', '', '', false, false, true], ['anruf', 'Maria', 'kaputt', '', true, false, true],
@@ -14818,7 +14819,7 @@ $ahPartner = Partner::laden(Partner::anlegen(['name' => 'Paola Hand', 'email' =>
 PartnerRecherche::reservieren((int) $ahPartner['id'], $ahRes);
 $ahResOk = false; try { AkquiseEinwilligung::muendlich($ahRes, 'besuch', 'Luca', 'luca@partner.example', '', true, false, true, false); } catch (RuntimeException $e) { $ahResOk = str_contains($e->getMessage(), 'Paola'); }
 pruefe('K2/K3: deutscher Betrieb bekommt deutsche Texte; reserviert ein Partner, trägt Vecom keine Zustimmung ein',
-    $ahPd['sprache'] === 'de' && str_contains($ahPd['anruf'][0][1], 'Salon Hand') && str_contains($ahPd['anruf'][1][1], 'salon-hand.example') && str_contains($ahPd['anruf'][4][1], 'STOPP')
+    $ahPd['sprache'] === 'de' && str_contains($ahPd['anruf'][0][1], 'Salon Hand') && str_contains($ahSatz($ahPd['anruf'], 'Problem'), 'salon-hand.example') && str_contains($ahSatz($ahPd['anruf'], 'Wenn ja'), 'STOPP')
     && $ahPd['tel'] === null && $ahResOk && AkquiseAnsprechen::stand(['gesperrt' => 1])['farbe'] === 'rot');
 $ahListe = Akquise::liste(['darf' => '1'], 1, 500);
 $ahView = (string) file_get_contents($wurzel . '/views/akquise.php') . (string) file_get_contents($wurzel . '/views/akquise_reiter.php');
@@ -14927,11 +14928,19 @@ $alWb = [['code' => 'langsam_lcp', 'status' => 'VERIFIED', 'schwere' => 4, 'kate
 $alSw = AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alW]), $alWb, null, '', 'Tina')['saetze'];
 $alSo = AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alA]), [], null, '', 'Tina')['saetze'];
 $alSd = AkquiseAnsprechen::paket(['name' => 'Laden X', 'land' => 'DE', 'branche' => 'friseur', 'stadt' => 'Mainz', 'url' => '', 'telefon' => '+49 6131 1'], [], null, '')['saetze'];
-pruefe('Sprechtext: Problem und Lösung aus der Analyse bzw. ohne Website, mit Preis, unverbindlich, E-Mail erfragen (IT auch WhatsApp)',
+pruefe('Sprechtext: Problem und Lösung aus der Analyse bzw. ohne Website, ohne Preis, unverbindlich, E-Mail erfragen (IT auch WhatsApp)',
     str_contains($alSw['problem'], 'hotel-lento.example') && str_contains($alSw['problem'], '7,4 secondi') && str_starts_with($alSw['loesung'], 'La nostra proposta:')
-    && str_contains($alSw['loesung'], 'Senza impegno') && str_contains($alSw['frage'], 'senza impegno') && str_contains($alSw['hallo'], 'Tina')
-    && str_contains($alSo['problem'], 'non ha ancora un sito') && str_contains($alSo['loesung'], '€') && str_contains($alSo['email'], 'e-mail') && str_contains($alSo['email'], 'WhatsApp')
-    && str_contains($alSd['frage'], 'unverbindlich') && str_contains($alSd['loesung'], 'Ganz unverbindlich') && !str_contains($alSd['email'], 'WhatsApp'), json_encode([$alSw, $alSd]));
+    && str_contains($alSw['loesung'], 'Senza impegno') && str_contains($alSw['frage'], 'gratuita') && str_contains($alSw['frage'], 'non deve decidere') && str_contains($alSw['hallo'], 'Tina')
+    && str_contains($alSo['problem'], 'non ha ancora un sito') && str_contains($alSo['email'], 'e-mail') && str_contains($alSo['email'], 'WhatsApp')
+    && str_contains($alSd['frage'], 'nichts entscheiden') && str_contains($alSd['loesung'], 'Ganz unverbindlich') && !str_contains($alSd['email'], 'WhatsApp'), json_encode([$alSw, $alSd]));
+$alFlach = static fn(array $x): string => implode(' ', array_map(static fn($v) => is_array($v) ? implode(' ', array_map(static fn($w) => is_array($w) ? implode(' ', $w) : (string) $w, $v)) : (string) $v, $x));
+$alAg = AkquiseAnsprechen::paket(['name' => 'Osteria Vera', 'land' => 'IT', 'branche' => 'restaurant', 'stadt' => 'Agrigento', 'url' => '', 'telefon' => '+39 0922 1'], [], null, '', 'Tina');
+pruefe('Sprechtext (S1–S4): nie ein Preis, erst um 30 Sekunden bitten, Aufhänger, kleine Bitte, Wahlfrage, vier Einwand-Antworten, echte Zahl aus dem Ort nur wenn geprüft',
+    !preg_match('~€|\\bEUR\\b|prezzo|Richtpreis|Preis:|guide price~iu', $alFlach($alSw) . $alFlach($alSo) . $alFlach($alSd) . $alFlach($alAg['saetze']) . $alFlach($alAg['anruf']) . $alFlach($alAg['besuch']))
+    && str_contains($alSo['hallo'], 'trenta secondi') && str_contains($alSd['hallo'], '30 Sekunden') && $alSo['lob'] !== '' && count($alSo['einwaende']) === 4
+    && str_contains($alSo['einwaende'][1][0], 'Facebook') && str_contains($alSw['einwaende'][1][0], 'sito') && str_contains($alSo['email'], 'o basta l’e-mail')
+    && $alSo['zahl'] === '' && str_contains($alAg['saetze']['zahl'], '67 %') && str_contains($alAg['saetze']['zahl'], 'ristoranti ad Agrigento')
+    && str_contains($ahSatz($alAg['anruf'], 'Echte Zahl'), '67 %'), json_encode($alAg['saetze']));
 Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?, ?, ?, ?, ?)', [$alA, $alB, $alC, $alD, $alE, $alF, $alW]);
 
 /* ============================================================================

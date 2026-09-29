@@ -138,6 +138,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .al-skript li.satz{border-left-color:rgba(241,211,139,.8)}
   .al-skript small{display:block;font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
   .al-skript p{margin:2px 0 0;font-size:15px;line-height:1.55;color:var(--text)}
+  .al-skript li.al-einw p{margin-top:6px}
+  .al-skript li.al-einw b{color:var(--gold, #f1d38b);font-weight:600}
   #anrufliste .al-erg{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
   #anrufliste .al-erg form{display:inline-flex;flex-direction:row;gap:0;margin:0}
   #anrufliste .al-ja{flex:1 1 100%}
@@ -199,9 +201,13 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             </div>
             <details class="al-sagen"><summary><?= $h($T('al_sagen')) ?></summary>
               <ol class="al-skript" lang="<?= $h($alP['sprache']) ?>">
-                <?php foreach (['hallo' => 'al_s_hallo', 'problem' => 'al_s_problem', 'loesung' => 'al_s_loesung', 'frage' => 'al_s_frage', 'ja' => 'al_s_ja', 'email' => 'al_s_email', 'nein' => 'al_s_nein'] as $k => $w): ?>
+                <?php foreach (['hallo' => 'al_s_hallo', 'lob' => 'al_s_lob', 'problem' => 'al_s_problem', 'zahl' => 'al_s_zahl', 'loesung' => 'al_s_loesung', 'frage' => 'al_s_frage', 'ja' => 'al_s_ja', 'email' => 'al_s_email'] as $k => $w):
+                  if ((string) ($alP['saetze'][$k] ?? '') === '') { continue; } ?>
                   <li class="<?= in_array($k, ['ja', 'email'], true) ? 'satz' : '' ?>"><small lang="<?= $h($sprache) ?>"><?= $h($T($w)) ?></small><p><?= $h($alP['saetze'][$k]) ?></p></li>
                 <?php endforeach; ?>
+                <li class="al-einw"><small lang="<?= $h($sprache) ?>"><?= $h($T('al_s_einwaende')) ?></small>
+                  <?php foreach ($alP['saetze']['einwaende'] as [$eq, $ea]): ?><p><b><?= $h($eq) ?></b> <?= $h($ea) ?></p><?php endforeach; ?></li>
+                <li><small lang="<?= $h($sprache) ?>"><?= $h($T('al_s_nein')) ?></small><p><?= $h($alP['saetze']['nein']) ?></p></li>
               </ol>
             </details>
             <div class="al-erg">
