@@ -128,6 +128,13 @@ if ($tabellenVorher > 0) {
     exit(2);
 }
 
+/* Uhr der Datenbank = Uhr der Anwendung (29.09.2026): PHP rechnet hier in
+   Europe/Rome, die Testdatenbank (CI, Werkstatt) in UTC. Zwischen 22 und
+   24 Uhr UTC lieferte CURDATE() noch den Vortag, date() schon den neuen
+   Tag -- zwei Pruefungen (Autopilot, Anrufliste T2) rissen jede Nacht und
+   hielten den Deploy auf. Gilt nur fuer diese Verbindung. */
+Db::run('SET time_zone = ?', [date('P')]);
+
 $bilanz = Einrichtung::selbsttaetig(false);      // ohne Beispieldaten
 pruefe('Migrationen laufen durch', empty($bilanz['fehler']), (string) ($bilanz['fehler'] ?? ''));
 pruefe('Migrationen sind eingespielt', count($bilanz['migrationen'] ?? []) > 0,
