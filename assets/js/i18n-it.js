@@ -168,7 +168,7 @@ window.VECOM_I18N.it = {
       demo_gastro_b: "Ristorazione", demo_gastro_t: "Tavolo per due, apparecchiato", demo_gastro_x: "Tempo reale · 4,3 MB",
       demo_salon_b: "Parrucchieri e saloni", demo_salon_t: "Il colore dei sogni, da ogni lato", demo_salon_x: "6 colori · senza scheda grafica",
       hf_kicker: "Parrucchieri e saloni · consulenza colore", hf_h: "Il nuovo colore — prima di sedersi in poltrona.", hf_text: "Chi vuole cambiare colore si chiede come starà da dietro, di lato, alla luce. Qui si vede su capelli veri calcolati ciocca per ciocca, si sceglie il colore e si prenota con quello.", ar_knopf: "Nella sua stanza (AR)", hf_kunde: "Come lo vede la cliente: prenoti con il colore", hf_cta: "La consulenza colore per il mio salone", hf_farbe: "Colore", hf_ziehen: "Trascini per girare la testa", hf_alt: "Capelli castani lunghi visti da dietro su una testa da esercizio, calcolati con Blender Cycles", hf_nachweis: "Capelli, testa e mantellina modellati da Vecom Design: 110.000 ciocche come curve, shader fisico per capelli (melanina), calcolati con Blender Cycles.",
-      demo_lkw_b: "Logistica", demo_lkw_t: "Autoarticolato con carico", demo_lkw_x: "Tempo reale · 1,1 MB",
+      demo_lkw_b: "Logistica", demo_lkw_t: "Autoarticolato con carico", demo_lkw_x: "Tempo reale · 2,5 MB",
       pd_auswahl: "Prodotto", pd_ansicht: "Vista", pd_nachweis: "Modelli ed etichette progettati da Vecom Design, calcolati con Blender Cycles. Luoghi, luce e arredi: Poly Haven (CC0).",
       demo_tisch_b: "Mobili", demo_tisch_t: "Tavolo da girare", demo_tisch_x: "36 immagini · senza scheda grafica",
       tiefer_t: "Tecnica, confronto, streaming",

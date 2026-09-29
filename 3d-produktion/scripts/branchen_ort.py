@@ -45,8 +45,29 @@ ORTE = {
                     stein=dict(ordner=r'ambientcg\Marble012', farbe='Marble012_2K-JPG_Color.jpg', rauheit='Marble012_2K-JPG_Roughness.jpg',
                                normal='Marble012_2K-JPG_NormalGL.jpg', groesse=(0.42, 0.30, 0.022), kachel_m=0.5, rau=(0.04, 0.18)),
                     belichtung=0.6),
+    # Kueche: die Kochinsel steht in einem hellen Wohnraum mit Holzboden,
+    # Tageslicht (Auswahl per Reihe unter drei Aufnahmen).
+    # Loft und Kueche mit Hintergrundraum liessen die Insel schweben; im
+    # hellen, leeren Haus (lebombo) steht sie mit echtem Eichenboden.
+    # Boden 16 m: Bei 10 m sah man links seine Kante vor der Wand (Probe
+    # fb1), bei 40 m wurde er zur endlosen Flaeche vor einer Wand wie im
+    # Leerraum (fb2) -- 16 m endet etwa dort, wo in der Aufnahme die Wand
+    # auf den Boden trifft.
+    'kueche': dict(hdri='lebombo_4k.exr', dreh=45.0, staerke=1.0,
+                   kamera=dict(winkel=-28.0, hoehe=1.55, lens=50.0, ziel_hoehe=0.55, fuellung=0.5, blende=4.0),
+                   fussboden=dict(ordner=r'polyhaven\laminate_floor_02', farbe='laminate_floor_02_diff_2k.jpg',
+                                  rauheit='laminate_floor_02_rough_2k.jpg', normal='laminate_floor_02_nor_gl_2k.jpg',
+                                  groesse=16.0, kachel_m=2.0),
+                   belichtung=0.3),
+    # LKW: Sattelzug auf einem asphaltierten Hof mit Halle (driving_school,
+    # Drehung 315; tank_farm und Landstrasse verworfen, Reihe 29.09.2026).
+    'lkw': dict(hdri='driving_school_4k.exr', dreh=315.0, staerke=1.0,
+                kamera=dict(winkel=-26.0, hoehe=2.2, lens=50.0, ziel_hoehe=1.8, fuellung=0.9, blende=8.0),
+                belichtung=0.0),
 }
 O = ORTE[WAS]
+if 'hdri' in EXTRA:              # Ortsvergleich: andere Aufnahme probeweise
+    O['hdri'] = EXTRA['hdri']
 for k in ('dreh', 'staerke', 'belichtung'):
     if k in EXTRA:
         O[k] = float(EXTRA[k])
@@ -247,6 +268,41 @@ faenger.is_shadow_catcher = True
 mf = bpy.data.materials.new('Faenger'); mf.use_nodes = True
 mf.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value = 0.6
 faenger.data.materials.append(mf)
+
+# Grosse Stuecke (Kochinsel) brauchen einen echten Fussboden: Der Boden
+# eines Rundumbilds liegt fuer die Kamera in unendlicher Ferne -- eine 2 m
+# lange Insel schwebte davor (Proben kueche kia90/loft90, 29.09.2026).
+# Ein echter Dielenboden (CC0) traegt Kontaktschatten und Spiegelung; die
+# Aufnahme bleibt Licht und Hintergrund. Im Foto ersetzt er den Faenger.
+fussboden = None
+if O.get('fussboden'):
+    FB = O['fussboden']
+    bpy.ops.mesh.primitive_plane_add(size=1, location=(mitte.x, mitte.y, boden_z))
+    fussboden = bpy.context.active_object; fussboden.name = 'fussboden'
+    fussboden.scale = (FB['groesse'], FB['groesse'], 1)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    k_ = FB['groesse'] / FB.get('kachel_m', 2.0)
+    for lp in fussboden.data.uv_layers.active.data:
+        lp.uv = (lp.uv[0] * k_, lp.uv[1] * k_)
+    mfb = bpy.data.materials.new('Fussboden'); mfb.use_nodes = True
+    nfb = mfb.node_tree; bfb = nfb.nodes.get('Principled BSDF')
+    def _fb(n, farbe=False):
+        im = bpy.data.images.load(os.path.join(os.path.dirname(Q), FB['ordner'], n), check_existing=True)
+        if not farbe:
+            im.colorspace_settings.name = 'Non-Color'
+        t = nfb.nodes.new('ShaderNodeTexImage'); t.image = im
+        return t
+    t1 = _fb(FB['farbe'], True); t2 = _fb(FB['rauheit']); t3 = _fb(FB['normal'])
+    nm_ = nfb.nodes.new('ShaderNodeNormalMap'); nm_.inputs['Strength'].default_value = 0.6
+    mr_ = nfb.nodes.new('ShaderNodeMapRange')
+    mr_.inputs['To Min'].default_value, mr_.inputs['To Max'].default_value = FB.get('rau', (0.28, 0.55))
+    nfb.links.new(t1.outputs['Color'], bfb.inputs['Base Color'])
+    nfb.links.new(t2.outputs['Color'], mr_.inputs['Value']); nfb.links.new(mr_.outputs['Result'], bfb.inputs['Roughness'])
+    nfb.links.new(t3.outputs['Color'], nm_.inputs['Color']); nfb.links.new(nm_.outputs['Normal'], bfb.inputs['Normal'])
+    fussboden.data.materials.append(mfb)
+    stuhl_objs.append(fussboden)
+    if MODUS != 'web':
+        faenger.hide_render = True
 
 # ------------------------------------------------------------------ Stoff: echte Leinenstruktur
 def textur(name, farbe=False):
@@ -652,8 +708,11 @@ if MODUS == 'web':
         o.hide_render = False
     faenger.hide_render = False
     status(was=WAS, modus='web', schritt='schatten')
-    gr = 2 * max(1.2, max(abs(v) for o in stuhl_objs for c in o.bound_box
-                          for v in ((o.matrix_world @ Vector(c)).x - mitte.x, (o.matrix_world @ Vector(c)).y - mitte.y)) + 0.25) if stuhl_objs else 2.4
+    # Der Fussboden zaehlt nicht mit -- sonst lag der Kontaktschatten mit
+    # 1024 Pixeln auf 16 m (Kueche, 29.09.2026) und war nur noch ein Hauch.
+    _mitmoebel = [o for o in stuhl_objs if o is not fussboden]
+    gr = 2 * max(1.2, max(abs(v) for o in _mitmoebel for c in o.bound_box
+                          for v in ((o.matrix_world @ Vector(c)).x - mitte.x, (o.matrix_world @ Vector(c)).y - mitte.y)) + 0.25) if _mitmoebel else 2 * max(1.2, max(groesse.x, groesse.y) / 2 + 0.6)
     schatten = schatten_backen(gr)
     schatten_oben = None
     if unterlage_box:
@@ -736,7 +795,7 @@ elif MODUS == 'reihe':
     variante_setzen(0) if namen else None
     for grad in range(0, 360, 45):
         dreh.inputs['Rotation'].default_value[2] = math.radians(grad)
-        r.filepath = os.path.join(AUSGABE, f'reihe-{grad:03d}.png')
+        r.filepath = os.path.join(AUSGABE, f"reihe{EXTRA.get('name', '')}-{grad:03d}.png")
         t0 = time.time(); bpy.ops.render.render(write_still=True)
         fertig.append({'dreh': grad, 'sekunden': round(time.time() - t0, 1)})
         status(was=WAS, modus=MODUS, fertig=fertig)

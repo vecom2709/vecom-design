@@ -166,7 +166,7 @@ window.VECOM_I18N.de = {
       demo_gastro_b: "Gastronomie", demo_gastro_t: "Tisch für zwei, gedeckt", demo_gastro_x: "Echtzeit · 4,3 MB",
       demo_salon_b: "Friseur & Salon", demo_salon_t: "Wunschfarbe von allen Seiten", demo_salon_x: "6 Farben · ohne Grafikkarte",
       hf_kicker: "Friseur & Salon · Farbberatung", hf_h: "Die neue Haarfarbe — bevor man im Stuhl sitzt.", hf_text: "Wer die Farbe wechseln will, fragt sich: Wie wirkt das von hinten, von der Seite, im Licht? Hier sieht man es an echten, Strähne für Strähne gerechneten Haaren, wählt die Wunschfarbe und bucht gleich damit.", ar_knopf: "Im eigenen Raum ansehen (AR)", hf_kunde: "So sieht es Ihre Kundin: Termin mit Wunschfarbe", hf_cta: "Farbberatung für meinen Salon", hf_farbe: "Farbe", hf_ziehen: "Ziehen dreht den Kopf", hf_alt: "Lange kastanienbraune Haare von hinten auf einem Übungskopf, gerechnet mit Blender Cycles", hf_nachweis: "Haare, Kopf und Umhang modelliert von Vecom Design: 110.000 Strähnen als Kurven, physikalischer Haarshader (Melanin), gerechnet mit Blender Cycles.",
-      demo_lkw_b: "Logistik", demo_lkw_t: "Sattelzug mit Ladung", demo_lkw_x: "Echtzeit · 1,1 MB",
+      demo_lkw_b: "Logistik", demo_lkw_t: "Sattelzug mit Ladung", demo_lkw_x: "Echtzeit · 2,5 MB",
       pd_auswahl: "Produkt", pd_ansicht: "Ansicht", pd_nachweis: "Modelle und Etiketten entworfen von Vecom Design, gerechnet mit Blender Cycles. Orte, Licht und Möbel: Poly Haven (CC0).",
       demo_tisch_b: "Möbel", demo_tisch_t: "Tisch zum Drehen", demo_tisch_x: "36 Bilder · ohne Grafikkarte",
       tiefer_t: "Technik, Vergleich, Streaming",
