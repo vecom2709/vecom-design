@@ -14783,8 +14783,8 @@ $ahP = AkquiseAnsprechen::paket($ahZ(), [], null, '');
 pruefe('K2: ohne Zustimmung keine Mail und keine WhatsApp — dafür Anruf und Besuch mit fertigem Text in seiner Sprache',
     AkquiseAnsprechen::stand($ahZ())['farbe'] === 'grau' && $ahP['frei'] === ['email' => false, 'whatsapp' => false]
     && $ahP['email']['link'] === null && $ahP['whatsapp']['link'] === null && $ahP['sprache'] === 'it' && $ahP['tel'] === 'tel:+393471112223'
-    && str_contains($ahP['anruf'][0][1], 'Forno Hand') && str_contains($ahP['anruf'][1][1], 'ad Aragona') && str_contains($ahP['anruf'][3][1], 'STOP')
-    && $ahP['anruf'][3][1] === AkquiseAnsprechen::wortlaut('it') && count($ahP['besuch']) >= 4
+    && str_contains($ahP['anruf'][0][1], 'Forno Hand') && str_contains($ahP['anruf'][1][1], 'ad Aragona') && str_contains($ahP['anruf'][4][1], 'STOP')
+    && $ahP['anruf'][4][1] === AkquiseAnsprechen::wortlaut('it') && count($ahP['besuch']) >= 4
     && !AkquiseAnsprechen::vermerken($ahF, 'email') && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$ahF], 0) === 0, json_encode($ahP['anruf']));
 $ahFehler = [];
 foreach ([['anruf', 'Maria', 'maria@forno.example', '', true, false, false], ['anruf', 'Maria', '', '', false, false, true], ['anruf', 'Maria', 'kaputt', '', true, false, true],
@@ -14815,7 +14815,7 @@ $ahPartner = Partner::laden(Partner::anlegen(['name' => 'Paola Hand', 'email' =>
 PartnerRecherche::reservieren((int) $ahPartner['id'], $ahRes);
 $ahResOk = false; try { AkquiseEinwilligung::muendlich($ahRes, 'besuch', 'Luca', 'luca@partner.example', '', true, false, true, false); } catch (RuntimeException $e) { $ahResOk = str_contains($e->getMessage(), 'Paola'); }
 pruefe('K2/K3: deutscher Betrieb bekommt deutsche Texte; reserviert ein Partner, trägt Vecom keine Zustimmung ein',
-    $ahPd['sprache'] === 'de' && str_contains($ahPd['anruf'][0][1], 'Salon Hand') && str_contains($ahPd['anruf'][1][1], 'salon-hand.example') && str_contains($ahPd['anruf'][3][1], 'STOPP')
+    $ahPd['sprache'] === 'de' && str_contains($ahPd['anruf'][0][1], 'Salon Hand') && str_contains($ahPd['anruf'][1][1], 'salon-hand.example') && str_contains($ahPd['anruf'][4][1], 'STOPP')
     && $ahPd['tel'] === null && $ahResOk && AkquiseAnsprechen::stand(['gesperrt' => 1])['farbe'] === 'rot');
 $ahListe = Akquise::liste(['darf' => '1'], 1, 500);
 $ahView = (string) file_get_contents($wurzel . '/views/akquise.php') . (string) file_get_contents($wurzel . '/views/akquise_reiter.php');
@@ -14854,7 +14854,7 @@ pruefe('T2: DE nur E-Mail (Pflicht), IT E-Mail und/oder WhatsApp; ohne Haken ode
     && !str_contains(AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alC]), [])['wortlaut'], 'WhatsApp')
     && str_contains(AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alA]), [])['wortlaut'], 'WhatsApp')
     && PartnerAnrufliste::ergebnis($alP, $alC, 'zugestimmt', ['whatsapp' => '+49 171 1234567', 'person' => 'Hans', 'vorgelesen' => true]) === 'al_mail'
-    && $alFa([]) === 'al_eins' && $alFa(['email' => 'kaputt']) === 'al_mail' && $alFa(['whatsapp' => '12']) === 'al_wa'
+    && $alFa([]) === 'al_mail' && $alFa(['whatsapp' => '+39 333 4445556']) === 'al_mail' && $alFa(['email' => 'kaputt']) === 'al_mail' && $alFa(['whatsapp' => '12']) === 'al_wa'
     && $alFa(['email' => 'rosa@pasticceria.example', 'vorgelesen' => false]) === 'al_haken' && $alFa(['email' => 'rosa@pasticceria.example', 'person' => 'R']) === 'al_person'
     && PartnerAnrufliste::ergebnis($alP2, $alA, 'nicht_erreicht') === 'al_weg'
     && trim((string) Db::wert('SELECT einwilligung FROM akq_firmen WHERE id = ?', [$alA], '')) === '');
@@ -14868,12 +14868,32 @@ pruefe('T3: „Zugestimmt“ speichert den Nachweis (durch den Partner), Mail un
     && (int) Db::wert('SELECT COUNT(*) FROM akq_folgen WHERE firma_id = ?', [$alA], 0) === 1
     && Db::wert("SELECT quelle FROM partner_vormerkungen WHERE partner_id = ? AND email = 'rosa@pasticceria.example'", [(int) $alP['id']], '') === 'anruf'
     && PartnerAnrufliste::liste((int) $alP['id']) !== [] && $alFa(['email' => 'x@y.example']) === 'al_weg', json_encode([$alOk, $alFz['einwilligung']]));
-pruefe('T2: „Kein Interesse“ sperrt für immer, „Nicht erreicht“ bleibt in der Liste und zählt mit',
-    PartnerAnrufliste::ergebnis($alP, $alC, 'nicht_erreicht') === 'ok' && (int) Db::wert('SELECT versuche FROM partner_reservierungen WHERE firma_id = ?', [$alC], 0) === 1
-    && in_array($alC, array_map(static fn($z) => (int) $z['id'], PartnerAnrufliste::liste((int) $alP['id'])), true)
-    && PartnerAnrufliste::ergebnis($alP, $alC, 'kein_interesse') === 'ok' && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$alC], 0) === 1
+$alF = $alNeu('AL00000006', ['name' => 'Trattoria Squilla', 'land' => 'IT', 'branche' => 'restaurant', 'stadt' => 'Aragona', 'telefon' => '+39 0922 555666']);
+PartnerAnrufliste::uebergeben([$alF], (int) $alP['id'], $alVermerk, 'Kette');
+$alIn = static fn(int $fid): bool => in_array($fid, array_map(static fn($z) => (int) $z['id'], PartnerAnrufliste::liste((int) $alP['id'])), true);
+$alNe1 = PartnerAnrufliste::ergebnis($alP, $alF, 'nicht_erreicht');
+$alNv = (string) Db::wert('SELECT naechster_versuch FROM partner_reservierungen WHERE firma_id = ?', [$alF], '');
+$alWeg1 = !$alIn($alF) && PartnerAnrufliste::wiedervorlage((int) $alP['id'])['n'] === 1;
+Db::run('UPDATE partner_reservierungen SET naechster_versuch = CURDATE() WHERE firma_id = ?', [$alF]);
+$alRr = PartnerAnrufliste::morgen(strtotime(date('Y-m-d') . ' 09:00:00')) >= 1 && PartnerAnrufliste::morgen(strtotime(date('Y-m-d') . ' 10:00:00')) === 0
+    && PartnerAnrufliste::morgen(strtotime(date('Y-m-d') . ' 03:00:00')) === 0;
+$alWieder = $alIn($alF);
+$alNe2 = PartnerAnrufliste::ergebnis($alP, $alF, 'nicht_erreicht');
+Db::run('UPDATE partner_reservierungen SET naechster_versuch = CURDATE() WHERE firma_id = ?', [$alF]);
+$alNe3 = PartnerAnrufliste::ergebnis($alP, $alF, 'nicht_erreicht');
+$alSonntag = true;
+for ($d = 0; $d < 14; $d++) { $x = strtotime(PartnerAnrufliste::naechsterVersuch(1 + $d % 2, strtotime('2026-10-05 +' . $d . ' days'))); $diff = ($x - strtotime('2026-10-05 +' . $d . ' days')) / 86400;
+    if ((int) date('N', $x) === 7 || $diff < 2 || $diff > 4) { $alSonntag = false; } }
+pruefe('T2: „Nicht erreicht“ → Wiedervorlage in 2–3 Tagen (nie sonntags, Erinnerung morgens), nach dem 3. Mal automatisch aus der Liste und wieder frei',
+    $alNe1 === 'ok' && $alNv > date('Y-m-d') && $alWeg1 && $alRr && $alWieder && $alNe2 === 'ok' && $alNe3 === 'al_raus' && !$alIn($alF)
+    && Db::wert('SELECT anruf_status FROM partner_reservierungen WHERE firma_id = ?', [$alF], '') === 'nicht_erreichbar'
+    && PartnerRecherche::reserviertVon($alF) === null && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$alF], 1) === 0 && $alSonntag,
+    json_encode([$alNe1, $alNv, $alWeg1, $alRr, $alWieder, $alNe2, $alNe3, $alSonntag]));
+pruefe('T2: „Kein Interesse“ sperrt für immer',
+    PartnerAnrufliste::ergebnis($alP, $alC, 'kein_interesse') === 'ok' && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$alC], 0) === 1
     && PartnerAnrufliste::erledigt((int) $alP['id']) === ['zugestimmt' => 1, 'kein_interesse' => 1]
-    && (int) (array_values(array_filter(PartnerAnrufliste::ueberblick(), static fn($u) => (int) $u['id'] === (int) $alP['id']))[0]['zugestimmt'] ?? 0) === 1);
+    && (int) (array_values(array_filter(PartnerAnrufliste::ueberblick(), static fn($u) => (int) $u['id'] === (int) $alP['id']))[0]['zugestimmt'] ?? 0) === 1
+    && (int) (array_values(array_filter(PartnerAnrufliste::ueberblick(), static fn($u) => (int) $u['id'] === (int) $alP['id']))[0]['nicht_erreichbar'] ?? 0) === 1);
 $alK = Events::kundeFinden(['name' => 'Rosa Pasticceria', 'email' => 'rosa@pasticceria.example']);
 $alBest = Events::bestellungAnlegen($alK, $paketId, 'Anrufliste-Prüfung', 100000);
 $alRate = Db::all('SELECT * FROM payments WHERE order_id = ? ORDER BY id', [$alBest]);
@@ -14890,7 +14910,26 @@ pruefe('T1/T2: Häkchen und „Zum Abtelefonieren übergeben“ in der Verwaltun
     && str_contains($alView, 'id="anrufliste"') && str_contains($alView, 'href="tel:') && str_contains($alView, "'al_s_ja'")
     && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$tat === 'al_ergebnis'")
     && !array_filter(array_keys(Texte::PARTNER), static fn($k) => str_starts_with($k, 'al_') && count(Texte::PARTNER[$k]) !== 3));
-Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?, ?, ?)', [$alA, $alB, $alC, $alD, $alE]);
+/* Kauf erst nach Monaten: die Vormerkung aus dem Anruf gilt 12 Monate, eine gewöhnliche nur 90 Tage */
+Db::insert('partner_vormerkungen', ['partner_id' => (int) $alP['id'], 'email' => 'spaet@anruf.example', 'telefon' => null, 'quelle' => 'anruf', 'art' => 'anruf', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 months'))]);
+Db::insert('partner_vormerkungen', ['partner_id' => (int) $alP['id'], 'email' => 'spaet@link.example', 'telefon' => null, 'quelle' => 'link', 'art' => 'rueckruf', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 months'))]);
+$alSp1 = Events::kundeFinden(['name' => 'Spät Anruf', 'email' => 'spaet@anruf.example']);
+$alSp2 = Events::kundeFinden(['name' => 'Spät Link', 'email' => 'spaet@link.example']);
+pruefe('T4: wer erst nach Monaten kommt, gehört trotzdem dem Partner, der angerufen hat (12 Monate)',
+    Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$alSp1], '') === 'anruf' && Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$alSp2], null) === null
+    && str_contains((string) file_get_contents($wurzel . '/src/Zugang.php'), "Partner::zuordnen(\$kid, \$alPid, 'anruf')"));
+/* Sprechtext passend zum Betrieb: Problem und Lösung aus der Fehler-Analyse, ohne Website Problem + Lösung + Preis, immer unverbindlich */
+$alW = $alNeu('AL00000007', ['name' => 'Hotel Lento', 'land' => 'IT', 'branche' => 'hotel', 'stadt' => 'Aragona', 'url' => 'https://hotel-lento.example', 'domain' => 'hotel-lento.example', 'telefon' => '+39 0922 777888']);
+$alWb = [['code' => 'langsam_lcp', 'status' => 'VERIFIED', 'schwere' => 4, 'kategorie' => 'performance', 'messwert' => json_encode(['wert' => 7.4, 'einheit' => 's']), 'titel' => 'x']];
+$alSw = AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alW]), $alWb, null, '', 'Tina')['saetze'];
+$alSo = AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$alA]), [], null, '', 'Tina')['saetze'];
+$alSd = AkquiseAnsprechen::paket(['name' => 'Laden X', 'land' => 'DE', 'branche' => 'friseur', 'stadt' => 'Mainz', 'url' => '', 'telefon' => '+49 6131 1'], [], null, '')['saetze'];
+pruefe('Sprechtext: Problem und Lösung aus der Analyse bzw. ohne Website, mit Preis, unverbindlich, E-Mail erfragen (IT auch WhatsApp)',
+    str_contains($alSw['problem'], 'hotel-lento.example') && str_contains($alSw['problem'], '7,4 secondi') && str_starts_with($alSw['loesung'], 'La nostra proposta:')
+    && str_contains($alSw['loesung'], 'Senza impegno') && str_contains($alSw['frage'], 'senza impegno') && str_contains($alSw['hallo'], 'Tina')
+    && str_contains($alSo['problem'], 'non ha ancora un sito') && str_contains($alSo['loesung'], '€') && str_contains($alSo['email'], 'e-mail') && str_contains($alSo['email'], 'WhatsApp')
+    && str_contains($alSd['frage'], 'unverbindlich') && str_contains($alSd['loesung'], 'Ganz unverbindlich') && !str_contains($alSd['email'], 'WhatsApp'), json_encode([$alSw, $alSd]));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (?, ?, ?, ?, ?, ?, ?)', [$alA, $alB, $alC, $alD, $alE, $alF, $alW]);
 
 /* ============================================================================
    Aufräumen und Bilanz

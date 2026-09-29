@@ -72,11 +72,18 @@ final class AkquiseAnsprechen
             'a_grund_web' => 'Ho guardato il vostro sito {domain} e ho notato una cosa: {punkt}',
             'a_grund_web_x' => 'Ho guardato il vostro sito {domain} e ho due o tre spunti concreti per migliorarlo.',
             'a_grund_ohne' => 'Ho visto che {firma} non ha ancora un sito proprio – chi cerca {branche} {in} su Google trova soprattutto gli altri.',
-            'a_frage' => 'Posso mandarle un’analisi gratuita, con due o tre proposte concrete? Per e-mail o su WhatsApp, come preferisce.',
+            'a_frage' => 'Posso mandarle un’analisi gratuita e senza impegno, con queste proposte e un prezzo indicativo? Non deve decidere niente adesso.',
+            'a_problem2' => 'E ancora: {punkt}',
+            'a_loesung' => 'La nostra proposta: {loesung}. Senza impegno — prima vede tutto e poi decide lei.',
+            'a_loesung_web_x' => 'La nostra proposta: un sito veloce sul telefono, facile da trovare su Google e con un tocco per chiamare o scrivere. Senza impegno — prima vede tutto e poi decide lei.',
+            'a_loesung_ohne' => 'La nostra proposta: un sito semplice e curato per {firma}, che si trova su Google, mostra orari, foto e mappa, e con un tocco la chiamano o le scrivono. {preis_satz} Senza impegno — prima vede tutto e poi decide lei.',
+            'preis_satz' => 'Per {mz} parte di solito da {preis}.',
+            'a_email' => 'Perfetto, grazie! A quale indirizzo e-mail le mando l’analisi? Me lo detta lettera per lettera?',
+            'a_wa' => 'E se preferisce, gliela mando anche su WhatsApp: è questo il numero giusto?',
             'a_nein' => 'Nessun problema, grazie e buona giornata.',
             'p_hallo' => 'Buongiorno, sono {sprecher} e collaboro con {absender}, web design in provincia di Agrigento. Parlo con il titolare di {firma}?',
             'b_hallo' => 'Buongiorno, sono {inhaber} di {absender}, web designer qui in zona. Posso rubarle un minuto?',
-            'b_frage' => 'Le lascio volentieri il nostro volantino con il codice QR: lì vede l’analisi e il prezzo indicativo. Oppure gliela mando per e-mail o su WhatsApp?',
+            'b_frage' => 'Le lascio volentieri il nostro volantino con il codice QR: lì vede l’analisi e il prezzo indicativo, gratis e senza impegno. Oppure gliela mando per e-mail?',
         ],
         'de' => [
             'hallo' => 'Guten Tag', 'gruss' => 'Viele Grüße',
@@ -98,11 +105,18 @@ final class AkquiseAnsprechen
             'a_grund_web' => 'Ich habe mir Ihre Website {domain} angesehen, und mir ist etwas aufgefallen: {punkt}',
             'a_grund_web_x' => 'Ich habe mir Ihre Website {domain} angesehen und habe zwei, drei konkrete Ideen, wie sie mehr bringt.',
             'a_grund_ohne' => 'Ich habe gesehen, dass {firma} noch keine eigene Website hat – wer {branche} {in} bei Google sucht, findet vor allem die anderen.',
-            'a_frage' => 'Darf ich Ihnen eine kostenlose Analyse mit zwei, drei konkreten Vorschlägen schicken? Per E-Mail oder WhatsApp, wie Sie mögen.',
+            'a_frage' => 'Darf ich Ihnen eine kostenlose und unverbindliche Analyse mit diesen Vorschlägen und einem Richtpreis schicken? Sie müssen jetzt nichts entscheiden.',
+            'a_problem2' => 'Außerdem: {punkt}',
+            'a_loesung' => 'Unser Vorschlag: {loesung}. Ganz unverbindlich — Sie sehen erst alles und entscheiden dann selbst.',
+            'a_loesung_web_x' => 'Unser Vorschlag: eine Website, die am Handy schnell lädt, bei Google gut gefunden wird und mit einem Tipp anrufen oder schreiben lässt. Ganz unverbindlich — Sie sehen erst alles und entscheiden dann selbst.',
+            'a_loesung_ohne' => 'Unser Vorschlag: eine schlichte, gepflegte Website für {firma}, die bei Google gefunden wird, Öffnungszeiten, Fotos und Karte zeigt und mit einem Tipp anrufen oder schreiben lässt. {preis_satz} Ganz unverbindlich — Sie sehen erst alles und entscheiden dann selbst.',
+            'preis_satz' => 'Für {mz} beginnt das meist bei {preis}.',
+            'a_email' => 'Danke! An welche E-Mail-Adresse darf ich Ihnen die Analyse schicken? Buchstabieren Sie sie mir bitte kurz?',
+            'a_wa' => 'Gern auch zusätzlich per WhatsApp: Ist das die richtige Nummer?',
             'a_nein' => 'Kein Problem, vielen Dank und einen schönen Tag.',
             'p_hallo' => 'Guten Tag, hier ist {sprecher}, ich arbeite mit {absender} zusammen, Webdesign. Spreche ich mit dem Inhaber von {firma}?',
             'b_hallo' => 'Guten Tag, ich bin {inhaber} von {absender}, Webdesign hier aus der Gegend. Haben Sie eine Minute?',
-            'b_frage' => 'Ich lasse Ihnen gern unseren Flyer mit QR-Code da: Darüber sehen Sie die Analyse und den Richtpreis. Oder soll ich sie Ihnen per E-Mail oder WhatsApp schicken?',
+            'b_frage' => 'Ich lasse Ihnen gern unseren Flyer mit QR-Code da: Darüber sehen Sie die Analyse und den Richtpreis, kostenlos und unverbindlich. Oder soll ich sie Ihnen per E-Mail schicken?',
         ],
         'en' => [
             'hallo' => 'Hello', 'gruss' => 'Kind regards',
@@ -124,11 +138,18 @@ final class AkquiseAnsprechen
             'a_grund_web' => 'I had a look at your website {domain} and noticed something: {punkt}',
             'a_grund_web_x' => 'I had a look at your website {domain} and have two or three concrete ideas to make it work harder.',
             'a_grund_ohne' => 'I noticed that {firma} doesn’t have its own website yet – people searching for {branche} {in} on Google mostly find the others.',
-            'a_frage' => 'May I send you a free analysis with two or three concrete suggestions? By email or WhatsApp, whichever you prefer.',
+            'a_frage' => 'May I send you a free, no-obligation analysis with these suggestions and a guide price? You don’t need to decide anything now.',
+            'a_problem2' => 'Also: {punkt}',
+            'a_loesung' => 'Our suggestion: {loesung}. No obligation — you see everything first and then decide.',
+            'a_loesung_web_x' => 'Our suggestion: a website that loads fast on phones, is easy to find on Google and lets people call or write with one tap. No obligation — you see everything first and then decide.',
+            'a_loesung_ohne' => 'Our suggestion: a simple, well-made website for {firma} that shows up on Google, shows opening hours, photos and a map, and lets people call or write with one tap. {preis_satz} No obligation — you see everything first and then decide.',
+            'preis_satz' => 'For {mz} it usually starts at {preis}.',
+            'a_email' => 'Thank you! Which email address should I send the analysis to? Could you spell it for me?',
+            'a_wa' => 'Happy to send it on WhatsApp too: is this the right number?',
             'a_nein' => 'No problem at all, thank you and have a nice day.',
             'p_hallo' => 'Hello, this is {sprecher}, I work with {absender}, web design. Am I speaking with the owner of {firma}?',
             'b_hallo' => 'Hello, I’m {inhaber} from {absender}, a local web designer. Do you have a minute?',
-            'b_frage' => 'I’m happy to leave our flyer with the QR code: it shows the analysis and the guide price. Or shall I send it by email or WhatsApp?',
+            'b_frage' => 'I’m happy to leave our flyer with the QR code: it shows the analysis and the guide price, free and without obligation. Or shall I send it by email?',
         ],
     ];
 
@@ -186,16 +207,16 @@ final class AkquiseAnsprechen
             try { require_once __DIR__ . '/Baukasten.php'; $preis = Baukasten::geldText(BranchenStatistik::typischerPreis((string) $f['branche']), $sp); } catch (Throwable $e) { $preis = ''; }
         }
         /* Die Punkte: nur geprüfte Befunde mit gepflegtem Satz (dieselben wie auf der Analyse-Seite). */
-        $punkte = [];
+        $punkte = []; $wirkungen = []; $loesungen = [];
         foreach (AkquiseScore::topBefunde($befunde) as $b) {
             if (($b['status'] ?? '') !== 'VERIFIED') { continue; }
             $x = AkquiseText::saetze($b, $f, $sp);
-            if ($x !== null) { $punkte[] = $x[0]; }
+            if ($x !== null) { $punkte[] = $x[0]; $wirkungen[] = $x[1]; $loesungen[] = $x[2]; }
             if (count($punkte) >= 2) { break; }
         }
         $r = ['{firma}' => $firma, '{inhaber}' => $abs['inhaber'], '{absender}' => $abs['firma'], '{branche}' => $branche, '{in}' => $in,
               '{mz}' => $mz, '{preis}' => $preis, '{domain}' => (string) ($f['domain'] ?? ''), '{telefon}' => (string) $abs['telefon']];
-        $t = static fn(string $k, array $mehr = []): string => trim((string) preg_replace('~\s+([.,:;])~u', '$1', strtr($W[$k], $mehr + $r)));
+        $t = static fn(string $k, array $mehr = []): string => trim((string) preg_replace(['~\s+([.,:;])~u', '~ {2,}~u'], ['$1', ' '], strtr($W[$k], $mehr + $r)));
         $anrede = trim((string) ($f['ansprechpartner'] ?? ''));
 
         /* ---- E-Mail ---- */
@@ -223,13 +244,28 @@ final class AkquiseAnsprechen
         $waNr = (string) preg_replace('~\D~', '', (string) ($f['whatsapp'] ?? ''));
 
         /* ---- Anruf und Besuch: Gesprächsleitfaden in seiner Sprache, Regieanweisungen auf Deutsch ---- */
-        $grund = !$hatWeb ? $t('a_grund_ohne') : ($punkte ? $t('a_grund_web', ['{punkt}' => $punkte[0]]) : $t('a_grund_web_x'));
+        /* Problem und Lösung passend zum Betrieb (29.09.2026, Uwe): aus der Fehler-Analyse
+           (geprüfte Befunde: was wir gesehen haben, was es bedeutet, was wir vorschlagen)
+           oder -- ohne Website -- warum ihm Kunden entgehen und was wir bauen. Immer unverbindlich. */
+        if (!$hatWeb) {
+            $problem = $t('a_grund_ohne');
+            $loesung = $t('a_loesung_ohne', ['{preis_satz}' => $preis !== '' ? $t('preis_satz') : '']);
+        } elseif ($punkte) {
+            $problem = $t('a_grund_web', ['{punkt}' => $punkte[0]]) . ' ' . $wirkungen[0] . (isset($punkte[1]) ? ' ' . $t('a_problem2', ['{punkt}' => $punkte[1]]) : '');
+            $loesung = $t('a_loesung', ['{loesung}' => implode($sp === 'en' ? ' and ' : ($sp === 'de' ? ' und ' : ' e '), array_values(array_unique($loesungen)))]);
+        } else {
+            $problem = $t('a_grund_web_x');
+            $loesung = $t('a_loesung_web_x');
+        }
+        $grund = $problem;
         $satz = self::wortlaut($sp, self::nurMail($f));
-        $anruf = [['Begrüßen', $sprecher !== null && trim($sprecher) !== '' ? $t('p_hallo', ['{sprecher}' => trim($sprecher)]) : $t('a_hallo')], ['Anlass', $grund], ['Frage', $t('a_frage')],
-                  ['Wenn ja: diese Frage vorlesen', $satz], ['Dann', 'E-Mail oder WhatsApp-Nummer notieren und unten „Hat zugestimmt“ ausfüllen.'],
+        $email = $t('a_email') . (self::nurMail($f) ? '' : ' ' . $t('a_wa'));
+        $hallo = $sprecher !== null && trim($sprecher) !== '' ? $t('p_hallo', ['{sprecher}' => trim($sprecher)]) : $t('a_hallo');
+        $anruf = [['Begrüßen', $hallo], ['Problem', $problem], ['Lösung', $loesung], ['Frage (unverbindlich)', $t('a_frage')],
+                  ['Wenn ja: diese Frage vorlesen', $satz], ['Dann E-Mail erfragen und eintragen', $email],
                   ['Wenn nein', $t('a_nein') . ' → unten „Kein Interesse“ antippen: Der Betrieb wird nie mehr angesprochen.']];
-        $besuch = [['Begrüßen', $t('b_hallo')], ['Anlass', $grund], ['Frage', $t('b_frage')],
-                   ['Wenn ja: diese Frage vorlesen oder zeigen', $satz], ['Dann', 'Adresse oder Nummer notieren und unten „Hat zugestimmt“ ausfüllen — oder „Vor Ort zeigen“: Er tippt sie selbst ein.'],
+        $besuch = [['Begrüßen', $t('b_hallo')], ['Problem', $problem], ['Lösung', $loesung], ['Frage (unverbindlich)', $t('b_frage')],
+                   ['Wenn ja: diese Frage vorlesen oder zeigen', $satz], ['Dann E-Mail erfragen und eintragen', $email . ' — oder „Vor Ort zeigen“: Er tippt sie selbst ein.'],
                    ['Wenn nein', $t('a_nein')]];
 
         $frei = ['email' => self::frei($f, 'email'), 'whatsapp' => self::frei($f, 'whatsapp')];
@@ -240,7 +276,7 @@ final class AkquiseAnsprechen
                         'link' => $frei['email'] && $mail !== null ? 'mailto:' . rawurlencode($mail) . '?subject=' . rawurlencode($betreff) . '&body=' . rawurlencode($mailText) : null],
             'whatsapp' => ['text' => $waText, 'link' => $frei['whatsapp'] && strlen($waNr) >= 8 ? 'https://wa.me/' . $waNr . '?text=' . rawurlencode($waText) : null],
             'anruf' => $anruf, 'besuch' => $besuch, 'wortlaut' => $satz, 'frei' => $frei,
-            'saetze' => ['hallo' => $anruf[0][1], 'anlass' => $grund, 'frage' => $t('a_frage'), 'ja' => $satz, 'nein' => $t('a_nein')],
+            'saetze' => ['hallo' => $hallo, 'problem' => $problem, 'loesung' => $loesung, 'frage' => $t('a_frage'), 'ja' => $satz, 'email' => $email, 'nein' => $t('a_nein')],
             'tel' => strlen((string) preg_replace('~\D~', '', $tel)) >= 6 ? 'tel:' . $tel : null,
         ];
     }

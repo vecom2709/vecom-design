@@ -32,6 +32,8 @@ final class PartnerAnrufliste
 {
     public const TAGE = 60;
     public const JE_UEBERGABE = 50;
+    /** Nach so vielen „Nicht erreicht“ fällt der Betrieb aus der Liste (Uwe, 29.09.2026). */
+    public const MAX_VERSUCHE = 3;
 
     /**
      * Betriebe einem Partner übergeben.
@@ -61,7 +63,7 @@ final class PartnerAnrufliste
             Db::run('INSERT INTO partner_reservierungen (firma_id, partner_id, bis, herkunft, anruf_status, versuche, vermerk)
                      VALUES (?, ?, DATE_ADD(CURDATE(), INTERVAL ' . self::TAGE . " DAY), 'vecom', 'offen', 0, ?)
                      ON DUPLICATE KEY UPDATE partner_id = VALUES(partner_id), bis = VALUES(bis), herkunft = 'vecom', anruf_status = 'offen',
-                                             versuche = 0, anruf_am = NULL, vermerk = VALUES(vermerk), created_at = NOW()",
+                                             versuche = 0, anruf_am = NULL, naechster_versuch = NULL, vermerk = VALUES(vermerk), created_at = NOW()",
                 [$fid, $partnerId, mb_substr($vermerk . ' (' . $wer . ', ' . date('d.m.Y') . ')', 0, 255)]);
             Akquise::protokoll($fid, 'anrufliste', 'An Partner ' . $p['name'] . ' zum Abtelefonieren übergeben — Prüfvermerk: ' . $vermerk);
             $ok++;
@@ -83,9 +85,52 @@ final class PartnerAnrufliste
             return Db::all("SELECT f.*, r.anruf_status, r.versuche, r.anruf_am, r.bis
                               FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                              WHERE r.partner_id = ? AND r.herkunft = 'vecom' AND r.bis >= CURDATE() AND f.gesperrt = 0
-                               AND r.anruf_status IN ('offen','nicht_erreicht')
-                          ORDER BY r.versuche, r.created_at, f.id LIMIT 200", [$partnerId]);
+                               AND r.anruf_status IN ('offen','nicht_erreicht') AND (r.naechster_versuch IS NULL OR r.naechster_versuch <= CURDATE())
+                          ORDER BY r.naechster_versuch IS NULL, r.naechster_versuch, r.created_at, f.id LIMIT 200", [$partnerId]);
         } catch (Throwable $e) { return []; }
+    }
+
+    /** Wiedervorlage: wie viele warten noch, und wann ist der nächste dran? @return array{n:int,naechster:?string} */
+    public static function wiedervorlage(int $partnerId): array
+    {
+        try {
+            $z = Db::one("SELECT COUNT(*) AS n, MIN(naechster_versuch) AS naechster FROM partner_reservierungen
+                           WHERE partner_id = ? AND herkunft = 'vecom' AND anruf_status = 'nicht_erreicht' AND naechster_versuch > CURDATE() AND bis >= CURDATE()", [$partnerId]);
+            return ['n' => (int) ($z['n'] ?? 0), 'naechster' => $z['naechster'] ?? null];
+        } catch (Throwable $e) { return ['n' => 0, 'naechster' => null]; }
+    }
+
+    /** Nächster Versuch in 2–3 Tagen, nie an einem Sonntag. */
+    public static function naechsterVersuch(int $versuche, ?int $heute = null): string
+    {
+        $t = strtotime('+' . ($versuche % 2 === 1 ? 2 : 3) . ' days', $heute ?? time());
+        if ((int) date('N', $t) === 7) { $t = strtotime('+1 day', $t); }
+        return date('Y-m-d', $t);
+    }
+
+    /** Morgens (8–11 Uhr) einmal: Partnern mit fälligen Rückrufen Bescheid geben. */
+    public static function morgen(?int $jetzt = null): int
+    {
+        $jetzt ??= time();
+        $h = (int) date('G', $jetzt);
+        if ($h < 8 || $h > 11) { return 0; }
+        $n = 0;
+        try {
+            foreach (Db::all("SELECT r.partner_id, COUNT(*) AS n FROM partner_reservierungen r
+                               WHERE r.herkunft = 'vecom' AND r.anruf_status = 'nicht_erreicht' AND r.naechster_versuch = ? AND r.bis >= ?
+                            GROUP BY r.partner_id", [date('Y-m-d', $jetzt), date('Y-m-d', $jetzt)]) as $z) {
+                $k = 'al_rueckruf_' . (int) $z['partner_id'];
+                if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$k], '') === date('Y-m-d', $jetzt)) { continue; }
+                Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, date('Y-m-d', $jetzt)]);
+                $p = Partner::laden((int) $z['partner_id']);
+                if (!$p || $p['status'] !== 'aktiv') { continue; }
+                $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
+                $T = static fn(string $x): string => Texte::h(Texte::PARTNER[$x] ?? [], $sp);
+                try { PartnerPost::push((int) $p['id'], $T('al_rr_titel'), strtr($T('al_rr_text'), ['{n}' => (string) (int) $z['n']]), Partner::portalLink($p) . '#anrufliste'); } catch (Throwable $e) { }
+                $n++;
+            }
+        } catch (Throwable $e) { }
+        return $n;
     }
 
     /** @return array{zugestimmt:int,kein_interesse:int} */
@@ -129,8 +174,18 @@ final class PartnerAnrufliste
         $wer = 'Partner ' . $p['name'];
 
         if ($ergebnis === 'nicht_erreicht') {
-            Db::run("UPDATE partner_reservierungen SET anruf_status = 'nicht_erreicht', versuche = LEAST(versuche + 1, 250), anruf_am = NOW() WHERE firma_id = ?", [$firmaId]);
-            Akquise::protokoll($firmaId, 'anrufliste', $wer . ': angerufen, nicht erreicht');
+            /* Wiedervorlage in 2–3 Tagen; nach dem dritten Mal fällt der Betrieb heraus
+               (die Reservierung endet, er ist in der Verwaltung wieder frei). */
+            $v = (int) $r['versuche'] + 1;
+            if ($v >= self::MAX_VERSUCHE) {
+                Db::run("UPDATE partner_reservierungen SET anruf_status = 'nicht_erreichbar', versuche = ?, anruf_am = NOW(), naechster_versuch = NULL,
+                          bis = DATE_SUB(CURDATE(), INTERVAL 1 DAY) WHERE firma_id = ?", [$v, $firmaId]);
+                Akquise::protokoll($firmaId, 'anrufliste', $wer . ': ' . $v . '× nicht erreicht — aus der Anrufliste genommen');
+                return 'al_raus';
+            }
+            Db::run("UPDATE partner_reservierungen SET anruf_status = 'nicht_erreicht', versuche = ?, anruf_am = NOW(), naechster_versuch = ? WHERE firma_id = ?",
+                [$v, self::naechsterVersuch($v), $firmaId]);
+            Akquise::protokoll($firmaId, 'anrufliste', $wer . ': angerufen, nicht erreicht (' . $v . '. Versuch) — Wiedervorlage');
             return 'ok';
         }
         if ($ergebnis === 'kein_interesse') {
@@ -147,8 +202,9 @@ final class PartnerAnrufliste
         $person = trim((string) ($d['person'] ?? ''));
         if ($mail !== '' && Akquise::normEmail($mail) === null) { return 'al_mail'; }
         if ($wa !== '' && strlen((string) preg_replace('~\D~', '', $wa)) < 8) { return 'al_wa'; }
-        if ($wege === ['email'] && $mail === '') { return 'al_mail'; }
-        if ($mail === '' && $wa === '') { return 'al_eins'; }
+        /* Die E-Mail ist Pflicht (Uwe, 29.09.2026): nur so geht der persönliche Bereich sofort automatisch raus
+           und der Betrieb bleibt über seine Adresse dem Partner zugeordnet. WhatsApp (nur IT) zusätzlich. */
+        if ($mail === '') { return 'al_mail'; }
         if (mb_strlen($person) < 2) { return 'al_person'; }
         if (empty($d['vorgelesen'])) { return 'al_haken'; }
 
@@ -172,7 +228,8 @@ final class PartnerAnrufliste
             return Db::all("SELECT p.id, p.name,
                                    SUM(r.anruf_status IN ('offen','nicht_erreicht') AND r.bis >= CURDATE()) AS offen,
                                    SUM(r.anruf_status = 'zugestimmt') AS zugestimmt,
-                                   SUM(r.anruf_status = 'kein_interesse') AS kein_interesse
+                                   SUM(r.anruf_status = 'kein_interesse') AS kein_interesse,
+                                   SUM(r.anruf_status = 'nicht_erreichbar') AS nicht_erreichbar
                               FROM partner_reservierungen r JOIN partner p ON p.id = r.partner_id
                              WHERE r.herkunft = 'vecom' GROUP BY p.id, p.name ORDER BY offen DESC, p.name");
         } catch (Throwable $e) { return []; }

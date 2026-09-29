@@ -312,6 +312,10 @@ final class Zugang
         if ((int) ($z['akq_firma_id'] ?? 0) > 0) {
             try {
                 Db::run('UPDATE akq_firmen SET customer_id = ?, dashboard_am = COALESCE(dashboard_am, NOW()) WHERE id = ?', [$kid, (int) $z['akq_firma_id']]);
+                /* Anrufliste: hat der Betrieb beim Anruf eines Partners zugestimmt, gehört er diesem
+                   Partner -- auch wenn er mit einer anderen Adresse kommt (zuordnen gilt nur beim ersten Mal). */
+                $alPid = (int) Db::wert("SELECT partner_id FROM partner_reservierungen WHERE firma_id = ? AND herkunft = 'vecom' AND anruf_status = 'zugestimmt'", [(int) $z['akq_firma_id']], 0);
+                if ($alPid > 0) { require_once __DIR__ . '/Partner.php'; Partner::zuordnen($kid, $alPid, 'anruf'); }
                 require_once __DIR__ . '/Akquise.php';
                 Akquise::protokoll((int) $z['akq_firma_id'], 'dashboard', 'Persönliches Dashboard zum ersten Mal geöffnet (Kunde #' . $kid . ')');
             } catch (Throwable $e) { /* nachtragbar */ }

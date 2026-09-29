@@ -167,19 +167,23 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
         require_once dirname(__DIR__) . '/src/PartnerAnrufliste.php';
         $alListe = PartnerAnrufliste::liste((int) $p['id']); $alErl = PartnerAnrufliste::erledigt((int) $p['id']);
         $alMeld = preg_match('~^al_[a-z_]+$~', (string) ($_GET['al'] ?? '')) ? (string) $_GET['al'] : '';
-        if ($alListe || array_sum($alErl) > 0 || $alMeld !== ''): $alSatz = Partner::satzWort(PartnerAnrufliste::satz($p), true); ?>
+        if ($alListe || array_sum($alErl) > 0 || $alMeld !== '' || PartnerAnrufliste::wiedervorlage((int) $p['id'])['n'] > 0): $alSatz = Partner::satzWort(PartnerAnrufliste::satz($p), true); ?>
   <section class="al" id="anrufliste" aria-labelledby="al_titel">
     <h3 class="md-h" id="al_titel" style="margin-top:4px"><?= $h(strtr($T('al_titel'), ['{n}' => (string) count($alListe)])) ?></h3>
     <p class="klein" style="margin-top:0"><?= $h(strtr($T('al_text'), ['{satz}' => $alSatz])) ?></p>
-    <p class="klein" style="margin-top:0"><?= $h($T('al_regel')) ?></p>
-    <?php if ($alMeld !== ''): ?><div class="hinweis <?= in_array($alMeld, ['al_danke', 'al_ok'], true) ? 'gut' : 'schlecht' ?>" role="status"><?= $h($T($alMeld)) ?></div><?php endif; ?>
+    <p class="klein" style="margin-top:0"><?= $h($T('al_regel')) ?> <?= $h($T('al_wv_hinweis')) ?></p>
+    <?php if ($alMeld !== ''): ?><div class="hinweis <?= in_array($alMeld, ['al_danke', 'al_danke_wa', 'al_ok', 'al_raus'], true) ? 'gut' : 'schlecht' ?>" role="status"><?= $h($T($alMeld)) ?></div><?php endif; ?>
+    <?php $alWv = PartnerAnrufliste::wiedervorlage((int) $p['id']); if ($alWv['n'] > 0): ?>
+      <p class="klein"><?= $h(strtr($T('al_wv'), ['{n}' => (string) $alWv['n'], '{datum}' => date('d.m.', strtotime((string) $alWv['naechster']))])) ?></p>
+    <?php endif; ?>
     <?php if (array_sum($alErl) > 0): ?><p class="klein"><?= $h(strtr($T('al_erledigt'), ['{z}' => (string) $alErl['zugestimmt'], '{k}' => (string) $alErl['kein_interesse']])) ?></p><?php endif; ?>
     <?php if (!$alListe): ?>
       <p class="klein"><?= $h($T('al_leer')) ?></p>
     <?php else: ?>
       <ol class="firmen al-liste">
         <?php foreach ($alListe as $af):
-          $alP = AkquiseAnsprechen::paket($af, [], null, '', (string) $p['name']);
+          $alAudit = Akquise::letzterAudit((int) $af['id']);   /* Problem und Lösung aus der Fehler-Analyse dieses Betriebs */
+          $alP = AkquiseAnsprechen::paket($af, $alAudit ? Akquise::befunde((int) $alAudit['id']) : [], null, '', (string) $p['name']);
           $alWege = PartnerAnrufliste::wege($af);
           $alTel = (string) preg_replace('~[^\d+]~', '', (string) $af['telefon']);
           $alWa = preg_match('~^(\+39|0039)?3\d{8,9}$~', (string) preg_replace('~[\s./-]~', '', (string) $af['telefon'])) ? (string) $af['telefon'] : '';
@@ -195,8 +199,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             </div>
             <details class="al-sagen"><summary><?= $h($T('al_sagen')) ?></summary>
               <ol class="al-skript" lang="<?= $h($alP['sprache']) ?>">
-                <?php foreach (['hallo' => 'al_s_hallo', 'anlass' => 'al_s_anlass', 'frage' => 'al_s_frage', 'ja' => 'al_s_ja', 'nein' => 'al_s_nein'] as $k => $w): ?>
-                  <li class="<?= $k === 'ja' ? 'satz' : '' ?>"><small lang="<?= $h($sprache) ?>"><?= $h($T($w)) ?></small><p><?= $h($alP['saetze'][$k]) ?></p></li>
+                <?php foreach (['hallo' => 'al_s_hallo', 'problem' => 'al_s_problem', 'loesung' => 'al_s_loesung', 'frage' => 'al_s_frage', 'ja' => 'al_s_ja', 'email' => 'al_s_email', 'nein' => 'al_s_nein'] as $k => $w): ?>
+                  <li class="<?= in_array($k, ['ja', 'email'], true) ? 'satz' : '' ?>"><small lang="<?= $h($sprache) ?>"><?= $h($T($w)) ?></small><p><?= $h($alP['saetze'][$k]) ?></p></li>
                 <?php endforeach; ?>
               </ol>
             </details>
@@ -204,9 +208,9 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
               <details class="al-ja"><summary class="knopf"><?= $h($T('al_zugestimmt')) ?></summary>
                 <?= $alForm('zugestimmt', '
                   <label class="al-feld"><span>' . $h($T('al_person')) . '</span><input name="person" required minlength="2" maxlength="80" placeholder="' . $h($T('al_person_ph')) . '"></label>
-                  <label class="al-feld"><span>' . $h($T('al_email')) . '</span><input name="email" type="email" maxlength="190"' . ($alWege === ['email'] ? ' required' : '') . ' value="' . $h((string) ($af['email'] ?? '')) . '"></label>'
-                  . (in_array('whatsapp', $alWege, true) ? '<label class="al-feld"><span>' . $h($T('al_wa')) . '</span><input name="whatsapp" inputmode="tel" maxlength="40" value="' . $h($alWa) . '" placeholder="+39 3…"></label>
-                  <p class="klein" style="margin:0">' . $h($T('al_eins_hinweis')) . '</p>' : '') . '
+                  <label class="al-feld"><span>' . $h($T('al_email')) . '</span><input name="email" type="email" maxlength="190" required value="' . $h((string) ($af['email'] ?? '')) . '"></label>
+                  <p class="klein" style="margin:0">' . $h($T('al_eins_hinweis')) . '</p>'
+                  . (in_array('whatsapp', $alWege, true) ? '<label class="al-feld"><span>' . $h($T('al_wa_zusatz')) . '</span><input name="whatsapp" inputmode="tel" maxlength="40" value="' . $h($alWa) . '" placeholder="+39 3…"></label>' : '') . '
                   <blockquote lang="' . $h($alP['sprache']) . '">' . $h($alP['wortlaut']) . '</blockquote>
                   <label class="al-haken"><input type="checkbox" name="vorgelesen" value="1" required> ' . $h($T('al_haken')) . '</label>
                   <button class="knopf haupt" type="submit">' . $h($T('al_speichern')) . '</button>') ?>

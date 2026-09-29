@@ -147,6 +147,8 @@ final class Cron
                 return Partner::lauf() + ['berichte' => Partner::monatsberichte(), 'weg_erinnert' => PartnerPost::wegErinnern(), 'impulse' => PartnerPost::wochenImpuls(),
                                           'weckrufe' => PartnerSteuerung::weckruf(), 'autopilot' => (static function (): int {
                                               try { require_once __DIR__ . '/PartnerAutopilot.php'; return PartnerAutopilot::morgen(); } catch (Throwable $e) { return -1; }
+                                          })(), 'rueckrufe' => (static function (): int {
+                                              try { require_once __DIR__ . '/PartnerAnrufliste.php'; return PartnerAnrufliste::morgen(); } catch (Throwable $e) { return -1; }
                                           })()];
             },
             /* Meldungen, deren Anlass die Datenbank als vorbei belegt, gelten

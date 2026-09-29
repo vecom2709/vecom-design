@@ -630,9 +630,13 @@ final class Partner
             $email = $email !== null ? mb_strtolower(trim($email)) : '';
             $tel = self::telefonSchluessel($telefon) ?? '';
             if ($email === '' && $tel === '') { return 'leer'; }
-            $v = Db::one('SELECT * FROM partner_vormerkungen WHERE eingeloest_am IS NULL AND created_at >= ?
-                            AND ((email IS NOT NULL AND email = ?) OR (telefon IS NOT NULL AND telefon = ?)) ORDER BY id LIMIT 1',
-                [date('Y-m-d H:i:s', strtotime('-' . self::VORMERKUNG_TAGE . ' days')), $email, $tel]);
+            /* Zustimmung am Telefon (Anrufliste, 29.09.2026): gilt so lange wie eine Zuordnung
+               (12 Monate) -- wer erst nach Wochen oder Monaten kauft, gehört trotzdem dem Partner. */
+            $v = Db::one("SELECT * FROM partner_vormerkungen WHERE eingeloest_am IS NULL
+                            AND (created_at >= ? OR (quelle = 'anruf' AND created_at >= ?))
+                            AND ((email IS NOT NULL AND email = ?) OR (telefon IS NOT NULL AND telefon = ?)) ORDER BY id LIMIT 1",
+                [date('Y-m-d H:i:s', strtotime('-' . self::VORMERKUNG_TAGE . ' days')),
+                 date('Y-m-d H:i:s', strtotime('-' . max(1, self::zahl('partner_zuordnung_monate')) . ' months')), $email, $tel]);
             if (!$v) { return 'keine'; }
             $r = self::zuordnen($kundeId, (int) $v['partner_id'], (string) $v['quelle'], null, $v['kanal'] !== null ? (string) $v['kanal'] : null);
             Db::run('UPDATE partner_vormerkungen SET eingeloest_am = NOW(), customer_id = ? WHERE id = ?', [$kundeId, (int) $v['id']]);

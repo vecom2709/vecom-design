@@ -152,10 +152,11 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
 <?php require_once dirname(__DIR__) . '/src/PartnerAnrufliste.php'; $akqAl = PartnerAnrufliste::ueberblick(); if ($akqAl): ?>
 <div class="block" id="anrufliste">
   <h2 style="font-size:15px;margin:0 0 8px">Beim Partner zum Anrufen</h2>
-  <div class="tabellenrahmen"><table><thead><tr><th>Partner</th><th>offen</th><th>zugestimmt</th><th>kein Interesse</th></tr></thead><tbody>
-    <?php foreach ($akqAl as $al): ?><tr><td><?= Fmt::h((string) $al['name']) ?></td><td><?= (int) $al['offen'] ?></td><td><?= (int) $al['zugestimmt'] ?></td><td><?= (int) $al['kein_interesse'] ?></td></tr><?php endforeach; ?>
+  <div class="tabellenrahmen"><table><thead><tr><th>Partner</th><th>offen</th><th>zugestimmt</th><th>kein Interesse</th><th>nicht erreichbar</th></tr></thead><tbody>
+    <?php foreach ($akqAl as $al): ?><tr><td><?= Fmt::h((string) $al['name']) ?></td><td><?= (int) $al['offen'] ?></td><td><?= (int) $al['zugestimmt'] ?></td><td><?= (int) $al['kein_interesse'] ?></td><td><?= (int) $al['nicht_erreichbar'] ?></td></tr><?php endforeach; ?>
   </tbody></table></div>
-  <p class="akq-klein" style="margin-top:6px">Kauft ein Betrieb, der beim Partner zugestimmt hat, gehört er diesem Partner — mit mindestens <?= Fmt::h(Partner::satzWort(['art' => 'prozent', 'wert' => Partner::zahl('partner_anruf_bp')])) ?> Provision.</p>
+  <p class="akq-klein" style="margin-top:6px">„Nicht erreicht“ kommt nach 2–3 Tagen wieder auf die Liste, nach dem dritten Mal ist der Betrieb wieder frei.
+    Kauft ein Betrieb, der beim Partner zugestimmt hat (auch erst Monate später), gehört er diesem Partner — mit mindestens <?= Fmt::h(Partner::satzWort(['art' => 'prozent', 'wert' => Partner::zahl('partner_anruf_bp')])) ?> Provision.</p>
 </div>
 <?php endif; ?>
 <?php $akqSchnell = ['' => 'Alle', 'darf' => 'Haben zugestimmt', 'ohne_web' => 'Ohne Website', 'stark' => 'Starke Chancen'];
