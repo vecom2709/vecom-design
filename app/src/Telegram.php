@@ -285,7 +285,10 @@ final class Telegram
         }
         $name = (string) ($chat['result']['username'] ?? '');
         if ($link === '' && $name !== '') { $link = 'https://t.me/' . $name; }
-        self::setzen('tg_kanal_id', (string) ($chat['result']['id'] ?? $wer));
+        $neueId = (string) ($chat['result']['id'] ?? $wer);
+        // Ein anderer Kanal: Der gemerkte Menü-Beitrag gehört zum alten.
+        if ($neueId !== self::einstellung('tg_kanal_id')) { self::setzen('tg_kanal_menue_id', ''); }
+        self::setzen('tg_kanal_id', $neueId);
         self::setzen('tg_kanal_titel', mb_substr((string) ($chat['result']['title'] ?? ''), 0, 120));
         self::setzen('tg_kanal_link', $link);
         // Mehr Rechte als nötig sind kein Fehler, aber ein Hinweis wert.
@@ -325,6 +328,51 @@ final class Telegram
         if (!$r['ok']) { return ['ok' => false, 'text' => 'Telegram hat den Beitrag nicht angenommen: ' . $r['beschreibung']]; }
         self::setzen('tg_kanal_zuletzt', date('Y-m-d H:i:s'));
         return ['ok' => true, 'text' => 'Der Beitrag steht im Kanal.'];
+    }
+
+    /**
+     * Der Menü-Beitrag im Kanal: dieselben Punkte wie im Bot-Menü, als Knöpfe.
+     *
+     * Ein Kanal kann keine Unterhaltung führen — ein Knopf dort öffnet den
+     * Bot (t.me/BOT?start=kanal-preis) und springt direkt zum Punkt. Der
+     * Beitrag wird einmal gesendet und angeheftet; danach wird DERSELBE
+     * Beitrag bearbeitet statt ein zweiter gesendet, damit oben im Kanal
+     * immer genau ein Menü steht.
+     *
+     * @return array{ok:bool, text:string}
+     */
+    public static function kanalMenue(string $sp = 'de'): array
+    {
+        require_once __DIR__ . '/Texte.php';
+        $k = self::kanal();
+        if ($k['id'] === '') { return ['ok' => false, 'text' => 'Es ist noch kein Kanal hinterlegt.']; }
+        if (self::einstellung('tg_name') === '') { return ['ok' => false, 'text' => 'Der Bot ist nicht eingerichtet.']; }
+        $T = Texte::TELEGRAM[$sp] ?? Texte::TELEGRAM['de'];
+        $l = static fn(string $wort): string => self::link('kanal-' . $wort);
+        $knoepfe = [
+            [['text' => $T['k_preis'], 'url' => $l('preis')]],
+            [['text' => $T['k_neu'], 'url' => $l('neu')], ['text' => $T['k_besser'], 'url' => $l('besser')]],
+            [['text' => $T['k_pruefen'], 'url' => $l('pruefen')], ['text' => $T['k_hosting'], 'url' => $l('hosting')]],
+            [['text' => $T['k_logo'], 'url' => $l('logo')], ['text' => $T['k_3d'], 'url' => $l('dreid')]],
+            [['text' => $T['k_mensch'], 'url' => $l('mensch')], ['text' => $T['k_kunde'], 'url' => $l('kunde')]],
+        ];
+        $daten = ['chat_id' => $k['id'], 'text' => $T['kanalMenue'], 'reply_markup' => ['inline_keyboard' => $knoepfe]];
+
+        $alt = (int) self::einstellung('tg_kanal_menue_id', '0');
+        if ($alt > 0) {
+            $r = self::rufen('editMessageText', $daten + ['message_id' => $alt]);
+            // „not modified“ heißt: steht schon genau so da — auch gut.
+            if ($r['ok'] || str_contains($r['beschreibung'], 'not modified')) {
+                return ['ok' => true, 'text' => 'Der Menü-Beitrag im Kanal ist aktuell.'];
+            }
+            // Gelöscht oder zu alt zum Bearbeiten: neu senden.
+        }
+        $r = self::rufen('sendMessage', $daten);
+        if (!$r['ok']) { return ['ok' => false, 'text' => 'Telegram hat den Menü-Beitrag nicht angenommen: ' . $r['beschreibung']]; }
+        $id = (int) ($r['result']['message_id'] ?? 0);
+        self::setzen('tg_kanal_menue_id', (string) $id);
+        $p = self::rufen('pinChatMessage', ['chat_id' => $k['id'], 'message_id' => $id, 'disable_notification' => true]);
+        return ['ok' => true, 'text' => 'Der Menü-Beitrag steht im Kanal' . ($p['ok'] ? ' und ist oben angeheftet.' : ' — anheften bitte von Hand (' . $p['beschreibung'] . ').')];
     }
 
     /* ------------------------------ Senden ----------------------------- */

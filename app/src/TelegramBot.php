@@ -175,6 +175,16 @@ final class TelegramBot
         return 'verstehe';
     }
 
+    /**
+     * Wohin ein Knopf im Kanal-Menü springen darf (?start=kanal-WORT).
+     * Links das Wort im Link, rechts der Menüpunkt. Nur Buchstaben, weil
+     * das Wort durch dieselbe Prüfung geht wie jede andere Quelle.
+     */
+    public const SPRUENGE = [
+        'neu' => 'neu', 'besser' => 'besser', 'preis' => 'preis', 'pruefen' => 'pruefen',
+        'logo' => 'logo', 'dreid' => '3d', 'hosting' => 'hosting', 'kunde' => 'kunde', 'mensch' => 'mensch',
+    ];
+
     private static function befehl(array $c, string $cmd, string $arg): string
     {
         switch ($cmd) {
@@ -188,12 +198,25 @@ final class TelegramBot
                 if ($arg !== '' && preg_match('/^[pe]_[A-Za-z0-9]{5,16}$/', $arg) && empty($c['quelle_code'])) {
                     $c = self::setzen($c, ['quelle_code' => strtolower($arg[0]) . '_' . strtoupper(substr($arg, 2))]);
                 }
+                // Knopf aus dem Menü-Beitrag im Kanal: ?start=kanal-preis — Quelle
+                // „kanal“, und der Bot springt direkt zu diesem Punkt (30.09.2026).
+                $sprung = null;
+                if (preg_match('/^([a-z]{2,12})-([a-z]{2,10})$/', $arg, $sm) && isset(self::SPRUENGE[$sm[2]])) {
+                    $arg = $sm[1];
+                    $sprung = self::SPRUENGE[$sm[2]];
+                }
                 // Ein einfaches Wort (?start=web, ?start=kanal) sagt, woher jemand kam.
-                elseif ($arg !== '' && preg_match('/^[a-z]{2,12}$/', $arg) && empty($c['quelle_code'])) {
+                if ($arg !== '' && preg_match('/^[a-z]{2,12}$/', $arg) && empty($c['quelle_code'])) {
                     $c = self::setzen($c, ['quelle_code' => $arg]);
                 }
-                if ($c['sprache'] === null) { self::zeigeSprachwahl($c); return 'sprache'; }
+                if ($c['sprache'] === null) {
+                    // Die Sprache wählt der Mensch — der Sprung wartet so lange.
+                    if ($sprung !== null) { $c = self::setzen($c, ['stand' => 'sp_' . $sprung]); }
+                    self::zeigeSprachwahl($c);
+                    return 'sprache';
+                }
                 $c = self::setzen($c, ['stand' => 'menu']);
+                if ($sprung !== null) { return self::menuPunkt($c, $sprung, null); }
                 self::zeigeMenu($c);
                 return 'menu';
             case 'menu': case 'menue': case 'abbrechen': case 'annulla': case 'cancel':
@@ -239,7 +262,10 @@ final class TelegramBot
             $c = self::setzen($c, ['sprache' => $rest]);
             // Mitten im Fragebogen: dieselbe Frage in der neuen Sprache.
             if ($war !== null && $c['stand'] === 'frage') { self::zeigeFrage($c, $msgId); return 'sprache_gesetzt'; }
+            // Kam jemand über einen Knopf im Kanal, geht es nach der Sprache dorthin.
+            $warteSprung = str_starts_with((string) $c['stand'], 'sp_') ? substr((string) $c['stand'], 3) : '';
             $c = self::setzen($c, ['stand' => 'menu']);
+            if ($war === null && in_array($warteSprung, self::SPRUENGE, true)) { return self::menuPunkt($c, $warteSprung, $msgId); }
             self::zeigeMenu($c, $msgId, $war !== null ? self::t($c, 'spracheGesetzt') . "\n\n" : '');
             return 'sprache_gesetzt';
         }
@@ -984,7 +1010,9 @@ final class TelegramBot
 
     private static function zeigeSprachwahl(array $c, ?int $msgId = null): void
     {
-        $c = self::setzen($c, ['stand' => $c['sprache'] === null ? 'sprache' : $c['stand']]);
+        // Ein wartender Sprung aus dem Kanal (sp_…) bleibt stehen, bis die Sprache gewählt ist.
+        $warte = $c['sprache'] === null && !str_starts_with((string) $c['stand'], 'sp_');
+        $c = self::setzen($c, ['stand' => $warte ? 'sprache' : $c['stand']]);
         // Der Vorschlag (Oberflächensprache von Telegram) steht oben.
         $reihe = self::SPRACHEN;
         $vor = $c['sprache'] ?? $c['sprache_vorschlag'];

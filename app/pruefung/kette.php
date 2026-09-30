@@ -15635,6 +15635,35 @@ $tgAus($tgKnopf($tqW, 'l:de'));
 pruefe('Kanal: im Menü steht der Knopf „Neuigkeiten im Kanal“ mit dem hinterlegten Link',
     in_array('url:https://t.me/+2XCcnCJj_F9lMTEy', $tgZuletzt()['knoepfe'], true), implode(' ', $tgZuletzt()['knoepfe']));
 pruefe('Kanal: der Knopf ist dreisprachig', isset(Texte::TELEGRAM['it']['k_kanal'], Texte::TELEGRAM['de']['k_kanal'], Texte::TELEGRAM['en']['k_kanal']));
+/* Menü-Beitrag im Kanal: Knöpfe öffnen den Bot direkt am Punkt (30.09.2026, Uwe: „wo der Nutzer Buttons anklicken kann“) */
+$tgNetz = [];
+$tkM = Telegram::kanalMenue('de');
+$tkMS = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
+$tkUrls = [];
+foreach ((array) ($tkMS['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $b) { $tkUrls[] = (string) ($b['url'] ?? ''); } }
+pruefe('Kanal-Menü: gesendet, angeheftet (still), neun Knöpfe, alle als Link in den Bot mit ?start=kanal-…', $tkM['ok']
+    && in_array('pinChatMessage', array_column($tgNetz, 0), true) && count($tkUrls) === 9
+    && !array_filter($tkUrls, static fn($u) => !preg_match('~^https://t\.me/[A-Za-z0-9_]+\?start=kanal-[a-z]+$~', $u))
+    && $tkMS['text'] === Texte::TELEGRAM['de']['kanalMenue']);
+$tgNetz = [];
+pruefe('Kanal-Menü: ein zweiter Klick bearbeitet denselben Beitrag statt einen neuen zu senden',
+    Telegram::kanalMenue('de')['ok'] && array_column($tgNetz, 0) === ['editMessageText']);
+pruefe('Kanal-Menü: fragt vorher nach (TRAGWEITE)', Ablauf::wiegt('telegram_kanal_menue') === Ablauf::RAUS);
+pruefe('Kanal-Menü: jedes Sprungwort führt zu einem Punkt, den das Bot-Menü kennt',
+    !array_diff(array_values(TelegramBot::SPRUENGE), ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch'])
+    && !array_filter($tkUrls, static fn($u) => !isset(TelegramBot::SPRUENGE[substr($u, strrpos($u, '-') + 1)])));
+$tkNeu = 555300222;
+$tgAus($tgText($tkNeu, '/start kanal-preis', 'de'));
+pruefe('Kanal-Knopf bei einem Neuen: erst die Sprachwahl (nie automatisch), Quelle „kanal“ gemerkt',
+    in_array('l:de', $tgZuletzt()['knoepfe'], true) && $tgChat($tkNeu)['quelle_code'] === 'kanal' && $tgChat($tkNeu)['stand'] === 'sp_preis');
+$tgAus($tgKnopf($tkNeu, 'l:de'));
+pruefe('… nach der Sprache geht es direkt in den Fragebogen, nicht ins Menü', $tgChat($tkNeu)['stand'] === 'frage');
+$tgAus($tgText($tkNeu, '/start kanal-mensch', 'de'));
+pruefe('Kanal-Knopf bei einem Bekannten: sofort am Punkt (persönliche Beratung)', in_array('b:allgemein', $tgZuletzt()['knoepfe'], true)
+    && $tgZuletzt()['text'] === TelegramBot::T['de']['menschText']);
+pruefe('… die erste Quelle bleibt', $tgChat($tkNeu)['quelle_code'] === 'kanal');
+$tgAus($tgText($tkNeu, '/start kanal-gibtsnicht', 'de'));
+pruefe('Ein unbekanntes Sprungwort springt nirgendwohin (Menü)', in_array('m:preis', $tgZuletzt()['knoepfe'], true));
 pruefe('Kanal: leer = gelöst, der Menüknopf verschwindet', Telegram::kanalSetzen('', '')['ok'] && Telegram::kanal()['id'] === ''
     && (function () use ($tgAus, $tgText, $tqW, $tgZuletzt) { $tgAus($tgText($tqW, '/start', 'de')); return !array_filter($tgZuletzt()['knoepfe'], static fn($k) => str_contains($k, 't.me/+')); })());
 Telegram::$netz = null;

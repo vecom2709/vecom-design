@@ -2307,6 +2307,13 @@ if ($post) {
                 $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
                 weiter('einstellungen?b=telegram');
 
+            case 'telegram_kanal_menue':
+                require_once __DIR__ . '/src/Telegram.php';
+                $e = Telegram::kanalMenue('de');
+                if ($e['ok']) { Events::protokoll('telegram_kanal', 'Menü-Beitrag im Telegram-Kanal veröffentlicht oder aktualisiert'); }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram');
+
             case 'telegram_kanal_posten':
                 require_once __DIR__ . '/src/Telegram.php';
                 $tgText = (string) ($_POST['text'] ?? '');

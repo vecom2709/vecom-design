@@ -96,6 +96,16 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
       !empty($tgK['link']) ? ' — <a href="' . Fmt::h((string) $tgK['link']) . '" target="_blank" rel="noopener">' . Fmt::h((string) $tgK['link']) . '</a>' : '' ?>.
       <?php if (!empty($tg['kanal_zuletzt'])): ?>Letzter Beitrag: <?= Fmt::h((string) $tg['kanal_zuletzt']) ?>.<?php endif; ?></div>
 
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:12px 0 8px">
+      <b>Menü im Kanal:</b> ein angehefteter Beitrag mit denselben Knöpfen wie im Bot (Preis-Richtwert, neue Website,
+      Website prüfen, Beratung …). Ein Tipp öffnet den Bot direkt an dieser Stelle.
+      <?= Telegram::einstellung('tg_kanal_menue_id') !== '' ? 'Steht im Kanal — erneut klicken aktualisiert denselben Beitrag.' : 'Noch nicht veröffentlicht.' ?>
+    </p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 6px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_kanal_menue">
+      <button class="knopf<?= Telegram::einstellung('tg_kanal_menue_id') === '' ? ' haupt' : '' ?>"><?= Telegram::einstellung('tg_kanal_menue_id') === '' ? 'Menü im Kanal veröffentlichen' : 'Menü im Kanal aktualisieren' ?></button>
+    </form>
+
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_kanal_posten">
       <div class="feld"><label>Neuer Beitrag
@@ -104,7 +114,7 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
       <div class="feld"><label>Knopf unter dem Beitrag
         <span style="color:var(--leise);font-weight:400">— führt in den Bot; leer lassen für keinen Knopf</span></label>
         <input name="knopf" maxlength="40" value="💬 Preis-Richtwert im Bot"></div>
-      <button class="knopf haupt">Im Kanal veröffentlichen</button>
+      <button class="knopf<?= Telegram::einstellung('tg_kanal_menue_id') !== '' ? ' haupt' : '' ?>">Im Kanal veröffentlichen</button>
     </form>
   <?php else: ?>
     <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:0 0 14px">

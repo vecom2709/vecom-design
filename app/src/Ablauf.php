@@ -109,6 +109,10 @@ final class Ablauf
             'Der Beitrag erscheint sofort im Telegram-Kanal — bei allen Abonnenten und für jeden mit dem Link. '
             . 'Zurücknehmen geht nur in Telegram selbst.',
             'Ja, veröffentlichen'],
+        'telegram_kanal_menue' => [self::RAUS,
+            'Der Menü-Beitrag mit den Knöpfen in den Bot erscheint im Telegram-Kanal und wird oben angeheftet '
+            . '(steht er schon da, wird er nur aktualisiert).',
+            'Ja, Menü veröffentlichen'],
         'kunde_loeschen' => [self::SCHWER,
             'Der Kunde und alles, was an ihm hängt, wird gelöscht. Das lässt sich nicht rückgängig machen.',
             'Ja, endgültig löschen'],
