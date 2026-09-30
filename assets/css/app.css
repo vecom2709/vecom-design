@@ -648,13 +648,16 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
    Ersatzteile (Leuchtmarke, Lichtkegel, Streifen, Raster) wuerden daneben
    ein zweites V malen und entfallen. */
 .hero-marke {
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  position: absolute; inset: 0 0 auto 0; z-index: 0; pointer-events: none;
+  /* nie hoeher als der erste Schirm: sonst wuerde das V in hohen Heros
+     riesig aufgezogen und angeschnitten */
+  height: min(100%, max(100svh, 560px));
   -webkit-mask-image: linear-gradient(180deg, #000 72%, rgba(0,0,0,.6) 88%, transparent 100%);
           mask-image: linear-gradient(180deg, #000 72%, rgba(0,0,0,.6) 88%, transparent 100%);
 }
 .hero-marke img {
   display: block; width: 100%; height: 100%;
-  object-fit: cover; object-position: 62% 48%;
+  object-fit: cover; object-position: 62% 22%; /* niedrige Fenster schneiden unten (Boden) statt oben (V) */
 }
 .hero-marke ~ .hero__mark,
 .hero-marke ~ .hero__light,
