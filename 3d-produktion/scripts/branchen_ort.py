@@ -86,7 +86,7 @@ ORTE = {
                   belichtung=0.0),
     # LKW: Sattelzug auf einem asphaltierten Hof mit Halle (driving_school,
     # Drehung 315; tank_farm und Landstrasse verworfen, Reihe 29.09.2026).
-    'lkw': dict(hdri='driving_school_4k.exr', dreh=315.0, staerke=1.0,
+    'lkw': dict(hdri='driving_school_4k.exr', dreh=315.0, staerke=1.0, schmutz=dict(staerke=1.0, bis=1.25),
                 kamera=dict(winkel=-26.0, hoehe=2.2, lens=50.0, ziel_hoehe=1.8, fuellung=0.9, blende=8.0),
                 belichtung=0.0),
 }
@@ -565,6 +565,12 @@ L = max(groesse.x, groesse.y)
 hfov = 2 * math.atan(18.0 / K['lens'])
 abstand = (L / K['fuellung'] / 2) / math.tan(hfov / 2)
 w = math.radians(K['winkel'])
+# Nahansicht zur Pruefung (Probe): ziel_y verschiebt den Blickpunkt entlang
+# der Laengsachse, abstand setzt die Entfernung fest (LKW-Front, 30.09.2026)
+if 'ziel_y' in EXTRA:
+    ziel.y = float(EXTRA['ziel_y'])
+if 'abstand' in EXTRA:
+    abstand = float(EXTRA['abstand'])
 ort = ziel + Vector((-math.sin(w), -math.cos(w), 0)) * abstand
 ort.z = basis_z + K['hoehe']
 cam.location = ort
@@ -681,6 +687,67 @@ for m in bpy.data.materials:
     nt.links.new(quelle, mx.inputs[1]); nt.links.new(tr.outputs[0], mx.inputs[2])
     nt.links.new(mx.outputs[0], aus.inputs['Surface'])
 sc.cycles.blur_glossy = 0.3
+
+# Strassenstaub (LKW, 30.09.2026): Nutzfahrzeuge sind nie steril sauber.
+# Unten, wo Spritzwasser und Staub hinkommen, liegt ein matter Film, nach
+# oben auslaufend, mit Wolken statt als gleichmaessiger Verlauf; Reifen
+# stark, Lack und Alu schwach. Nur im Foto -- im Web bleibt das Material
+# des GLB (der Unterschied liegt unter dem, was man beim Ueberblenden sieht).
+SM = O.get('schmutz')
+if SM:
+    import re as _re
+    for m in bpy.data.materials:
+        if not m.use_nodes:
+            continue
+        stark = {'Reifen': 0.55, 'Rahmen': 0.45, 'Kunststoff genarbt': 0.40, 'Riffelblech': 0.35, 'Felge': 0.22,
+                 'Aluminium': 0.25, 'Lack': 0.22, 'Plane': 0.12, 'Nabe': 0.3}
+        f_st = next((v for k_, v in stark.items() if m.name.startswith(k_)), None)
+        if f_st is None:
+            continue
+        nt = m.node_tree
+        b_ = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+        if not b_:
+            continue
+        geo = nt.nodes.new('ShaderNodeNewGeometry'); sep = nt.nodes.new('ShaderNodeSeparateXYZ')
+        nt.links.new(geo.outputs['Position'], sep.inputs[0])
+        hoehe = nt.nodes.new('ShaderNodeMapRange'); hoehe.interpolation_type = 'SMOOTHSTEP'
+        hoehe.inputs['From Min'].default_value = float(SM.get('bis', 1.25)); hoehe.inputs['From Max'].default_value = 0.10
+        nt.links.new(sep.outputs['Z'], hoehe.inputs['Value'])
+        rausch = nt.nodes.new('ShaderNodeTexNoise'); rausch.inputs['Scale'].default_value = 2.2; rausch.inputs['Detail'].default_value = 6.0
+        nt.links.new(geo.outputs['Position'], rausch.inputs['Vector'])
+        wolke = nt.nodes.new('ShaderNodeMapRange'); wolke.inputs['From Min'].default_value = 0.35; wolke.inputs['From Max'].default_value = 0.70
+        nt.links.new(rausch.outputs['Fac'], wolke.inputs['Value'])
+        mal = nt.nodes.new('ShaderNodeMath'); mal.operation = 'MULTIPLY'
+        nt.links.new(hoehe.outputs['Result'], mal.inputs[0]); nt.links.new(wolke.outputs['Result'], mal.inputs[1])
+        fak = nt.nodes.new('ShaderNodeMath'); fak.operation = 'MULTIPLY'; fak.inputs[1].default_value = f_st * float(SM.get('staerke', 1.0))
+        nt.links.new(mal.outputs[0], fak.inputs[0])
+        # Farbe: bisherige Farbe (Karte oder Wert) mit Staubton mischen
+        mix = nt.nodes.new('ShaderNodeMix'); mix.data_type = 'RGBA'
+        nt.links.new(fak.outputs[0], mix.inputs['Factor'])
+        ein = b_.inputs['Base Color']
+        if ein.links:
+            nt.links.new(ein.links[0].from_socket, mix.inputs['A'])
+        else:
+            mix.inputs['A'].default_value = ein.default_value
+        mix.inputs['B'].default_value = (0.30, 0.26, 0.21, 1.0)
+        nt.links.new(mix.outputs['Result'], ein)
+        # Rauheit Richtung matt
+        rr = nt.nodes.new('ShaderNodeMix'); rr.data_type = 'FLOAT'
+        nt.links.new(fak.outputs[0], rr.inputs['Factor'])
+        re_ = b_.inputs['Roughness']
+        if re_.links:
+            nt.links.new(re_.links[0].from_socket, rr.inputs['A'])
+        else:
+            rr.inputs['A'].default_value = re_.default_value
+        rr.inputs['B'].default_value = 0.85
+        nt.links.new(rr.outputs['Result'], re_)
+        # Klarlack wird unter Staub stumpf
+        if b_.inputs['Coat Weight'].default_value > 0:
+            cr = nt.nodes.new('ShaderNodeMix'); cr.data_type = 'FLOAT'
+            nt.links.new(fak.outputs[0], cr.inputs['Factor'])
+            cr.inputs['A'].default_value = b_.inputs['Coat Roughness'].default_value; cr.inputs['B'].default_value = 0.5
+            nt.links.new(cr.outputs['Result'], b_.inputs['Coat Roughness'])
+    print('SCHMUTZ gesetzt')
 sc.view_settings.view_transform = 'AgX'
 for _look in (EXTRA.get('look', 'AgX - Base Contrast'), 'None'):
     try:
