@@ -476,6 +476,46 @@ if ($post) {
                                     'partner_ablehnen' => 'Abgelehnt. Es ging keine Mail raus.'][$tat];
                 weiter('partner/' . $pid);
 
+            /* Schutz der Vecom-Unterlagen (30.09.2026, Uwe: ja) */
+            case 'partner_freischalten':
+                require_once __DIR__ . '/src/PartnerSchutz.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $r = PartnerSchutz::freischalten($pid, Auth::name() !== '' ? Auth::name() : 'Verwaltung');
+                $_SESSION[$r === 'ok' ? 'gut' : 'fehler'] = ['ok' => 'Freigeschaltet — der Partner sieht seinen Bereich wieder und bekommt eine kurze Mail.',
+                    'fehlt' => 'Er hat der aktuellen Fassung noch nicht mit beiden Haken zugestimmt — erst dann geht das.',
+                    'kein_partner' => 'Partner nicht gefunden.'][$r];
+                if (($_POST['zurueck'] ?? '') === 'liste') { weiter('partner#schutz'); }
+                weiter('partner/' . $pid . '#schutz');
+
+            case 'partner_sperren':
+                require_once __DIR__ . '/src/PartnerSchutz.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $ok = PartnerSchutz::sperren($pid, (string) ($_POST['grund'] ?? ''), Auth::name() !== '' ? Auth::name() : 'Verwaltung');
+                $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Gesperrt: Der Partner sieht nur noch die Sperrseite. Sein Link zählt weiter, bis du ihn pausierst.' : 'Partner nicht gefunden.';
+                weiter('partner/' . $pid . '#schutz');
+
+            case 'partner_verstoss':
+                require_once __DIR__ . '/src/PartnerSchutz.php';
+                $pid = (int) ($_POST['id'] ?? 0);
+                $f = Partner::laden($pid) ? PartnerSchutz::verstossErfassen($pid, $_POST, Auth::name() !== '' ? Auth::name() : 'Verwaltung') : 'Partner nicht gefunden.';
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Festgehalten — steht jetzt in der Akte für den Anwalt.';
+                weiter('partner/' . $pid . '#schutz');
+
+            case 'partner_schutz_einstellungen':
+                require_once __DIR__ . '/src/PartnerSchutz.php';
+                $scPen = Partner::centsAusEingabe((string) ($_POST['partner_penale'] ?? ''));
+                $scMon = (int) ($_POST['partner_kundenschutz_monate'] ?? 0);
+                $scDom = mb_strtolower(trim((string) ($_POST['partner_fallen_domain'] ?? '')));
+                if ($scPen === null || $scPen < 10000 || $scPen > 5000000) { $_SESSION['fehler'] = 'Vertragsstrafe zwischen 100 € und 50.000 €, bitte.'; weiter('partner#schutz'); }
+                if ($scMon < 1 || $scMon > 60) { $_SESSION['fehler'] = 'Kundenschutz zwischen 1 und 60 Monaten (gesetzlich höchstens 5 Jahre).'; weiter('partner#schutz'); }
+                if ($scDom !== '' && !preg_match('~^(?=.{4,190}$)([a-z0-9-]+\.)+[a-z]{2,}$~', $scDom)) { $_SESSION['fehler'] = 'Die Domain sieht nicht gültig aus (z. B. vecom-kontrolle.it).'; weiter('partner#schutz'); }
+                $scVor = ['partner_penale_cents' => Partner::einstellung('partner_penale_cents'), 'partner_kundenschutz_monate' => Partner::einstellung('partner_kundenschutz_monate'), 'partner_fallen_domain' => Partner::einstellung('partner_fallen_domain')];
+                $scNeu = ['partner_penale_cents' => (string) $scPen, 'partner_kundenschutz_monate' => (string) $scMon, 'partner_fallen_domain' => $scDom];
+                foreach ($scNeu as $k => $v) { Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, $v]); }
+                Events::pruefspur('partner_schutz', 'settings', null, $scVor, $scNeu);
+                $_SESSION['gut'] = 'Gespeichert. Neue Zustimmungen bekommen diese Zahlen in den Wortlaut.';
+                weiter('partner#schutz');
+
             case 'partner_bedingungen':
                 require_once __DIR__ . '/src/Partner.php';
                 $pid = (int) ($_POST['id'] ?? 0);
@@ -3260,6 +3300,15 @@ switch ($route) {
             require_once __DIR__ . '/src/PartnerVorlagen.php';
             ansicht('partner_vorlagen', ['katalog' => PartnerVorlagen::katalog()]);
             break;
+        }
+        if ($id !== null && isset($_GET['akte'])) {   // Akte für den Anwalt (30.09.2026)
+            require_once __DIR__ . '/src/PartnerSchutz.php';
+            $pdf = PartnerSchutz::aktePdf($id, (string) $_GET['akte'] === 'de' ? 'de' : 'it');
+            if ($pdf === null) { http_response_code(404); exit('Partner nicht gefunden.'); }
+            Events::protokoll('partner_akte', 'Akte für den Anwalt erstellt', null, null, null, ['partner_id' => $id]);
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="akte-partner-' . $id . '-' . date('Y-m-d') . '.pdf"');
+            echo $pdf; exit;
         }
         if ($id !== null && isset($_GET['beleg'])) {
             $a = Db::one('SELECT id FROM partner_auszahlungen WHERE id = ? AND partner_id = ?', [(int) $_GET['beleg'], $id]);

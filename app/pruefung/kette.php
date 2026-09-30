@@ -9648,7 +9648,17 @@ Db::run("DELETE FROM settings WHERE skey IN ('chef_codewort','chef_pin','chef_ge
    ============================================================================ */
 abschnitt('Partnerprogramm');
 require_once $wurzel . '/src/Partner.php';
+require_once $wurzel . '/src/PartnerSchutz.php';
 require_once $wurzel . '/src/Empfehlung.php';
+/* Seit 30.09.2026 ist jeder Partnerbereich zu, bis zugestimmt und freigeschaltet
+   (PartnerSchutz). Prüfungen, die Läufe an Partner testen, schalten ihre Partner so frei. */
+function partnerFrei(int ...$ids): void
+{
+    foreach ($ids as $id) {
+        Db::run('UPDATE partner SET vereinbarung_version = ?, vereinbarung_am = COALESCE(vereinbarung_am, NOW()), vereinbarung_klauseln_am = COALESCE(vereinbarung_klauseln_am, NOW()),
+                 freigeschaltet_am = COALESCE(freigeschaltet_am, NOW()), gesperrt_am = NULL WHERE id = ?', [Partner::VEREINBARUNG_VERSION, $id]);
+    }
+}
 require_once $wurzel . '/src/Abo.php';
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
 Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_%'");
@@ -9662,14 +9672,14 @@ $paV = Partner::vereinbarungText('de');
 pruefe('Partner: Vereinbarung nennt die Standardwerte 10 % und 50 €', str_contains($paV, '10 %') && str_contains($paV, '50,00'), mb_substr($paV, 0, 300));
 pruefe('Partner: ohne Zustimmung zur Vereinbarung keine Bewerbung',
     Partner::bewerben(['name' => 'Rosa Rossi', 'email' => 'rosa@partner.example'], 'it', $paV)['grund'] === 'vereinbarung');
-$paB = Partner::bewerben(['name' => 'Rosa Rossi', 'email' => 'Rosa@Partner.example', 'kanal' => 'Instagram', 'vereinbarung' => '1'], 'it', $paV);
+$paB = Partner::bewerben(['name' => 'Rosa Rossi', 'email' => 'Rosa@Partner.example', 'kanal' => 'Instagram', 'vereinbarung' => '1', 'klauseln' => '1'], 'it', $paV);
 $paId = (int) $paB['id'];
 $paP = Partner::laden($paId);
 pruefe('Partner: Bewerbung steht als „bewerbung“, Code und Zugang vergeben, Wortlaut gespeichert',
     $paP['status'] === 'bewerbung' && preg_match('/^ROSA[A-Z2-9]{4}$/', $paP['code']) === 1 && strlen($paP['token']) === 48
-    && $paP['vereinbarung_text'] === $paV && $paP['email'] === 'rosa@partner.example', $paP['code']);
+    && $paP['vereinbarung_text'] === PartnerSchutz::wortlaut('it', $paP) && $paP['email'] === 'rosa@partner.example', $paP['code']);
 pruefe('Partner: dieselbe E-Mail bewirbt sich nicht doppelt',
-    !empty(Partner::bewerben(['name' => 'Rosa', 'email' => 'rosa@partner.example', 'vereinbarung' => '1'], 'it', $paV)['schon'])
+    !empty(Partner::bewerben(['name' => 'Rosa', 'email' => 'rosa@partner.example', 'vereinbarung' => '1', 'klauseln' => '1'], 'it', $paV)['schon'])
     && (int) Db::wert('SELECT COUNT(*) FROM partner', [], 0) === 1);
 pruefe('Partner: ein Bewerbungscode öffnet noch nichts', Partner::ausCode($paP['code']) === null && Partner::ausToken($paP['token']) === null);
 Partner::statusSetzen($paId, 'aktiv', $paSenden);
@@ -11529,7 +11539,7 @@ pruefe('Reservierung: abgelaufen → wieder frei, Otto darf', PartnerRecherche::
     && PartnerRecherche::meine($prPid, 'de') === [] && count(PartnerRecherche::meine($prPid2, 'de')) === 1);
 PartnerRecherche::freigeben($prPid2, $prF1);
 pruefe('Reservierung: freigegeben → Gate prüft wieder normal', !str_contains(implode(' ', AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$prF1]), 'brief')['gruende']), 'kümmert sich'));
-for ($i = 0; $i < PartnerRecherche::MAX_AKTIV; $i++) { PartnerRecherche::reservieren($prPid, $prF(sprintf('KV%08d', $i), 'Voll ' . $i, null, null, 'Voll')); }
+for ($i = 0; $i < PartnerRecherche::MAX_AKTIV; $i++) { Db::run("DELETE FROM partner_zaehler WHERE art = 'reserv'"); PartnerRecherche::reservieren($prPid, $prF(sprintf('KV%08d', $i), 'Voll ' . $i, null, null, 'Voll')); }
 pruefe('Reservierung: höchstens ' . PartnerRecherche::MAX_AKTIV . ' gleichzeitig', PartnerRecherche::reservieren($prPid, $prF2) === 'fi_voll');
 
 // Vorstellung durch Vecom
@@ -11542,6 +11552,7 @@ pruefe('Vorstellung: Vorlage in drei Sprachen mit {partner} und {link}',
     count(array_filter(['it', 'de', 'en'], static fn($l) => str_contains(Texte::MAILS['partner_vorstellung'][$l][1], '{partner}') && str_contains(Texte::MAILS['partner_vorstellung'][$l][1], '{link}'))) === 3);
 
 // Wochen-Impuls
+partnerFrei($prPid, $prPid2);
 [, $prPunkt] = WebPush::paar();
 PartnerPost::aboSpeichern($prPid, 'https://push.example.org/rita', WebPush::b64($prPunkt), WebPush::b64(random_bytes(16)));
 $prGesendet = [];
@@ -12231,6 +12242,7 @@ foreach ([$stA, $stB, $stC] as $stP) {
     PartnerPost::aboSpeichern($stP, 'https://push.example.org/st' . $stP, WebPush::b64($stPunkt), WebPush::b64(random_bytes(16)));
 }
 $stPost = [];
+partnerFrei($stA, $stB, $stC);
 WebPush::$probe = static function (string $z) use (&$stPost): int { $stPost[] = $z; return 201; };
 pruefe('Weckruf: nachts nicht', PartnerSteuerung::weckruf(strtotime('today 23:00')) === 0 && $stPost === []);
 $stN = PartnerSteuerung::weckruf(strtotime('today 11:00'));
@@ -14880,6 +14892,7 @@ pruefe('Autopilot: Route für alle fünf (Google Maps, Ziel + Zwischenstopps), F
     && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "'ap_ort'"));
 Db::run('UPDATE partner SET heimatort = NULL WHERE id <> ?', [(int) $apP['id']]);
 Db::run('DELETE FROM partner_tagesliste WHERE partner_id = ?', [(int) $apP['id']]);
+partnerFrei((int) $apP['id']);
 pruefe('Autopilot: morgens eine Meldung je Partner, nur einmal am Tag, nie nachts, keine Mail an Betriebe',
     PartnerAutopilot::morgen(strtotime('2026-10-03 03:00:00')) === 0 && (PartnerAutopilot::morgen(strtotime(date('Y-m-d') . ' 08:00:00')) || true)
     && (int) Db::wert('SELECT COUNT(*) FROM partner_tagesliste WHERE partner_id = ? AND datum = CURDATE() AND gemeldet = 1', [(int) $apP['id']], 0) >= 1
@@ -15005,6 +15018,7 @@ $alNe1 = PartnerAnrufliste::ergebnis($alP, $alF, 'nicht_erreicht');
 $alNv = (string) Db::wert('SELECT naechster_versuch FROM partner_reservierungen WHERE firma_id = ?', [$alF], '');
 $alWeg1 = !$alIn($alF) && PartnerAnrufliste::wiedervorlage((int) $alP['id'])['n'] === 1;
 Db::run('UPDATE partner_reservierungen SET naechster_versuch = CURDATE() WHERE firma_id = ?', [$alF]);
+partnerFrei((int) $alP['id']);
 $alRr = PartnerAnrufliste::morgen(strtotime(date('Y-m-d') . ' 09:00:00')) >= 1 && PartnerAnrufliste::morgen(strtotime(date('Y-m-d') . ' 10:00:00')) === 0
     && PartnerAnrufliste::morgen(strtotime(date('Y-m-d') . ' 03:00:00')) === 0;
 $alWieder = $alIn($alF);
@@ -15769,6 +15783,174 @@ Db::update('bausteine', (int) $sieB['id'], ['text_de' => $sieB['text_de']]);
 pruefe('Die Fußzeile der Website führt zum öffentlichen Telegram-Kanal (ein Symbol, nicht Kanal und Bot)',
     str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  'https://t.me/vecomdesign'")
     && !str_contains((string) file_get_contents($oben . '/assets/js/social.js'), 'VecomDesignBot'));
+
+/* ============================================================================
+   Schutz der Vecom-Unterlagen im Partnerbereich (30.09.2026, Uwe: „ja perfekt,
+   aber statt Unterschrift ein Haken“)
+   ============================================================================ */
+abschnitt('Partner: Vereinbarung, Sperre, Beweise');
+require_once $wurzel . '/src/PartnerSchutz.php';
+require_once $wurzel . '/src/PartnerRecherche.php';
+require_once $wurzel . '/src/PartnerFlyer.php';
+require_once $wurzel . '/src/AkquisePostfach.php';
+require_once $wurzel . '/src/Pdf.php';
+Db::run("DELETE FROM settings WHERE skey IN ('partner_penale_cents','partner_kundenschutz_monate','partner_fallen_domain')");
+$scTexte = array_map(static fn($l) => Partner::vereinbarungText($l), ['it' => 'it', 'de' => 'de', 'en' => 'en']);
+pruefe('Schutz: neue Fassung 2026-10-01 in drei Sprachen, je 16 Punkte, Strafe 2.500 € und 24 Monate eingesetzt',
+    Partner::VEREINBARUNG_VERSION === '2026-10-01'
+    && count(array_filter($scTexte, static fn($t) => preg_match('/\n16\. /', $t) === 1 && str_contains($t, '2.500,00') && str_contains($t, '24') && !str_contains($t, '{'))) === 3,
+    mb_substr($scTexte['de'], 0, 200));
+pruefe('Schutz: Vertraulichkeit (Art. 98–99), Kundenschutz, Logo unverändert, DSGVO, Strafe (1382), Auflösung (1456), Agrigento, keine Exklusivität',
+    str_contains($scTexte['de'], 'Art. 98–99') && str_contains($scTexte['de'], 'Kundenschutz') && str_contains($scTexte['de'], 'unverändert')
+    && str_contains($scTexte['de'], 'Art. 28–29 DSGVO') && str_contains($scTexte['de'], 'Art. 1382') && str_contains($scTexte['de'], 'Art. 1456')
+    && str_contains($scTexte['de'], 'Agrigento') && str_contains($scTexte['de'], 'nicht exklusiv') && str_contains($scTexte['de'], 'Kontrolleinträge')
+    && !str_contains($scTexte['de'], 'nie Kundendaten') && str_contains($scTexte['it'], 'Registro delle Opposizioni'));
+pruefe('Schutz: der zweite Haken nennt die belastenden Klauseln (Art. 1341/1342) mit Zahlen',
+    str_contains(PartnerSchutz::klauselText('it'), 'artt. 1341 e 1342') && str_contains(PartnerSchutz::klauselText('de'), '24 Monate') && str_contains(PartnerSchutz::klauselText('en'), '2.500,00'));
+
+$scMails = [];
+$scSenden = static function (string $anlass, string $an, string $betreff, string $text) use (&$scMails): bool { $scMails[] = [$anlass, $an, $betreff, $text]; return true; };
+$scId = Partner::anlegen(['name' => 'Sara Schutz', 'email' => 'sara@schutz.example', 'status' => 'aktiv', 'sprache' => 'de']);
+$scP = Partner::laden($scId);
+pruefe('Schutz: ein neuer Partner (von Hand angelegt) ist gesperrt, bis er zustimmt', PartnerSchutz::stand($scP) === 'zustimmen' && !PartnerSchutz::freigeschaltet($scP));
+pruefe('Schutz: ein Haken allein reicht nicht', PartnerSchutz::zustimmen($scP, 'de', true, false) === 'haken' && PartnerSchutz::zustimmen($scP, 'de', false, true) === 'haken'
+    && Partner::laden($scId)['vereinbarung_klauseln_am'] === null);
+Db::run("DELETE FROM notifications WHERE type = 'partner_freigabe'");
+$scOk = PartnerSchutz::zustimmen($scP, 'de', true, true, '203.0.113.9');
+$scP = Partner::laden($scId);
+pruefe('Schutz: beide Haken → Wortlaut mit Klausel, Prüfsumme, IP nur als Hash, wartet auf Uwe (Meldung)',
+    $scOk === 'ok' && PartnerSchutz::stand($scP) === 'wartet' && str_contains((string) $scP['vereinbarung_text'], '[X] Gemäß Art. 1341')
+    && $scP['vereinbarung_hash'] === hash('sha256', (string) $scP['vereinbarung_text']) && strlen((string) $scP['vereinbarung_ip_hash']) === 64
+    && !str_contains((string) $scP['vereinbarung_ip_hash'], '203.0') && $scP['vereinbarung_version'] === '2026-10-01'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_freigabe'", [], 0) === 1);
+$scF = PartnerSchutz::freischalten($scId, 'Kette', $scSenden);
+$scP = Partner::laden($scId);
+pruefe('Schutz: Uwe schaltet frei → Bereich offen, Partner bekommt eine Mail', $scF === 'ok' && PartnerSchutz::freigeschaltet($scP)
+    && count($scMails) === 1 && $scMails[0][0] === 'partner_freigeschaltet' && $scP['freigeschaltet_von'] === 'Kette');
+$scOhne = Partner::anlegen(['name' => 'Olaf Ohne', 'email' => 'olaf@schutz.example', 'status' => 'aktiv', 'sprache' => 'it']);
+pruefe('Schutz: ohne Zustimmung lässt sich nicht freischalten', PartnerSchutz::freischalten($scOhne, 'Kette', $scSenden) === 'fehlt' && PartnerSchutz::stand(Partner::laden($scOhne)) === 'zustimmen');
+Db::run("UPDATE partner SET vereinbarung_version = '2026-09-26' WHERE id = ?", [$scId]);
+$scAlt = PartnerSchutz::stand(Partner::laden($scId));
+Db::run("DELETE FROM notifications WHERE type = 'partner_freigabe'");
+PartnerSchutz::zustimmen(Partner::laden($scId), 'de', true, true);
+pruefe('Schutz: neue Fassung → erneut zustimmen; die frühere Freischaltung bleibt, keine neue Meldung',
+    $scAlt === 'zustimmen' && PartnerSchutz::freigeschaltet(Partner::laden($scId)) && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_freigabe'", [], 0) === 0);
+PartnerSchutz::sperren($scId, 'Liste weitergegeben', 'Kette');
+$scGes = PartnerSchutz::stand(Partner::laden($scId));
+PartnerSchutz::freischalten($scId, 'Kette', $scSenden);
+pruefe('Schutz: sperren schließt den Bereich, freischalten hebt die Sperre auf', $scGes === 'gesperrt' && PartnerSchutz::stand(Partner::laden($scId)) === 'frei');
+pruefe('Schutz: Läufe an Partner (Impuls, Weckruf, Autopilot) nur für freigeschaltete',
+    (int) Db::wert('SELECT COUNT(*) FROM partner p WHERE p.id IN (?, ?) AND ' . PartnerSchutz::sqlFrei('p'), [$scId, $scOhne], 0) === 1
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerPost.php'), 'PartnerSchutz::sqlFrei')
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerSteuerung.php'), 'PartnerSchutz::sqlFrei')
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerAutopilot.php'), 'PartnerSchutz::sqlFrei')
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerAnrufliste.php'), 'PartnerSchutz::freigeschaltet($p)'));
+
+// Bewerbung: zwei Haken, Annehmen = Freischalten
+$scB = Partner::bewerben(['name' => 'Bea Bewerbung', 'email' => 'bea@schutz.example', 'vereinbarung' => '1'], 'it', '');
+$scB2 = Partner::bewerben(['name' => 'Bea Bewerbung', 'email' => 'bea@schutz.example', 'vereinbarung' => '1', 'klauseln' => '1'], 'it', '');
+$scBw = Partner::laden((int) $scB2['id']);
+Partner::statusSetzen((int) $scB2['id'], 'aktiv', $scSenden);
+pruefe('Schutz: Bewerbung braucht beide Haken; Annehmen schaltet frei',
+    ($scB['grund'] ?? '') === 'vereinbarung' && $scB2['ok'] && PartnerSchutz::stand($scBw) === 'wartet'
+    && PartnerSchutz::freigeschaltet(Partner::laden((int) $scB2['id'])) && Partner::laden((int) $scB2['id'])['freigeschaltet_von'] === 'Annahme der Bewerbung');
+
+// Hinweis-Mail einmal an alle, die noch nicht zugestimmt haben
+Db::run('UPDATE partner SET neufassung_hinweis_am = NOW() WHERE id NOT IN (?, ?)', [$scOhne, $scId]);
+$scMails = [];
+$scH1 = PartnerSchutz::hinweiseVersenden($scSenden);
+$scH2 = PartnerSchutz::hinweiseVersenden($scSenden);
+pruefe('Schutz: Hinweis zur neuen Vereinbarung genau einmal, nur an Partner ohne Zustimmung, mit Link',
+    $scH1 === 1 && $scH2 === 0 && count($scMails) === 1 && $scMails[0][1] === 'olaf@schutz.example' && $scMails[0][0] === 'partner_neufassung'
+    && str_contains($scMails[0][3], 'partner.php?t='), json_encode([$scH1, $scH2, array_column($scMails, 1)]));
+
+// Sperrseite: vor allem anderen in partner.php
+$scSeite = (string) file_get_contents($wurzel . '/../partner.php');
+$scTor = strpos($scSeite, 'if ($p && !PartnerSchutz::freigeschaltet($p)) {');
+pruefe('Schutz: partner.php sperrt vor Manifest, Formularen, Downloads und Seite; nur die Zustimmung geht durch',
+    $scTor !== false && $scTor < strpos($scSeite, "isset(\$_GET['manifest'])") && $scTor < strpos($scSeite, '---------- Formulare')
+    && $scTor < strpos($scSeite, "isset(\$_GET['fl'])") && $scTor < strpos($scSeite, "isset(\$_GET['karte'])") && $scTor < strpos($scSeite, '?><!doctype html>')
+    && str_contains($scSeite, "'schutz_zustimmen'") && str_contains($scSeite, "require __DIR__ . '/app/views/partner_sperre.php';")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_sperre.php'), 'name="klauseln"'));
+
+// Tagesgrenze der Reservierungen
+$scRes = [];
+Db::run("DELETE FROM partner_zaehler WHERE partner_id = ?", [$scId]);
+for ($i = 0; $i < 17; $i++) {
+    $scRes[] = PartnerRecherche::reservieren($scId, (int) Db::insert('akq_firmen', ['kennung' => sprintf('SC%08d', $i), 'name' => 'Schutz ' . $i, 'name_norm' => 'schutz ' . $i,
+        'land' => 'IT', 'stadt' => 'Sambuca', 'branche' => 'restaurant', 'quelle' => 'kette-schutz-' . $i]));
+}
+pruefe('Schutz: höchstens 15 neue Reservierungen am Tag', count(array_filter($scRes, static fn($r) => $r === 'ok')) === 15 && $scRes[15] === 'fi_tag', json_encode(array_count_values($scRes)));
+
+// Kontrolleinträge
+$scOhneDomain = PartnerRecherche::suchen($scId, 'Sambuca', '', 'it', false);
+pruefe('Schutz: ohne Kontroll-Domain keine Kontrolleinträge', $scOhneDomain['ok'] && count(array_filter($scOhneDomain['treffer'], static fn($t) => $t['id'] < 0)) === 0);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_fallen_domain', 'kontrolle-kette.example') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+Db::run('DELETE FROM partner_reservierungen WHERE partner_id = ?', [$scId]);
+$scS1 = PartnerRecherche::suchen($scId, 'Sambuca', '', 'it', true);
+$scS2 = PartnerRecherche::suchen($scId, 'Sambuca', '', 'it', false);
+$scFalle = array_values(array_filter($scS1['treffer'], static fn($t) => $t['id'] < 0))[0] ?? null;
+$scFalle2 = array_values(array_filter($scS2['treffer'], static fn($t) => $t['id'] < 0))[0] ?? null;
+pruefe('Schutz: ein Kontrolleintrag je Partner und Ort, mitten in der Liste, bei jeder Suche derselbe, sieht aus wie ein Betrieb ohne Website',
+    $scFalle !== null && $scFalle2 !== null && $scFalle['id'] === $scFalle2['id'] && $scFalle['chance'] === 'hoch' && $scFalle['stand'] === 'frei'
+    && array_search($scFalle, $scS1['treffer'], true) > 0 && (int) Db::wert('SELECT COUNT(*) FROM partner_fallen WHERE partner_id = ?', [$scId], 0) === 1,
+    json_encode($scFalle));
+$scAnderer = PartnerRecherche::suchen($scOhne, 'Sambuca', '', 'it', false);
+$scFA = array_values(array_filter($scAnderer['treffer'], static fn($t) => $t['id'] < 0))[0] ?? null;
+pruefe('Schutz: ein anderer Partner bekommt einen eigenen Kontrolleintrag (eigene Adresse)',
+    $scFA !== null && $scFA['id'] !== $scFalle['id']
+    && Db::wert('SELECT email FROM partner_fallen WHERE id = ?', [-$scFA['id']]) !== Db::wert('SELECT email FROM partner_fallen WHERE id = ?', [-$scFalle['id']]));
+$scRv = PartnerRecherche::reservieren($scId, $scFalle['id']);
+$scMeine = array_values(array_filter(PartnerRecherche::meine($scId, 'it'), static fn($m) => $m['id'] === $scFalle['id']))[0] ?? null;
+$scAdr = (string) Db::wert('SELECT email FROM partner_fallen WHERE id = ?', [-$scFalle['id']]);
+pruefe('Schutz: Kontrolleintrag reservierbar, dann mit Kontrolladresse bei „Meine“, Mappe geht',
+    $scRv === 'ok' && $scMeine !== null && $scMeine['email'] === $scAdr && str_ends_with($scAdr, '@kontrolle-kette.example')
+    && PartnerMappe::laden(Partner::laden($scId), ['firma' => $scFalle['id']], 'it')['titel'] === $scFalle['name']
+    && PartnerRecherche::reservieren($scOhne, $scFalle['id']) === 'fi_weg');
+$scRoh = static fn(string $von, string $an, string $id): string => "From: $von\r\nTo: $an\r\nSubject: Proposta sito web\r\nMessage-ID: <$id>\r\nDate: " . date('r') . "\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nBuongiorno, le proponiamo un sito web.";
+Db::run("DELETE FROM notifications WHERE type = 'partner_falle'");
+$scT1 = AkquisePostfach::verarbeiten($scRoh('Agenzia Fremd <info@agenzia-fremd.example>', $scAdr, 'falle1@kette'));
+$scT2 = AkquisePostfach::verarbeiten($scRoh('Agenzia Fremd <info@agenzia-fremd.example>', $scAdr, 'falle1@kette'));
+$scT3 = AkquisePostfach::verarbeiten($scRoh('Sara <sara@schutz.example>', 'Trattoria <' . $scAdr . '>', 'falle2@kette'));
+pruefe('Schutz: Mail an eine Kontrolladresse → Treffer beim Partner, fremder Absender = Alarm, eigener = Hinweis, jede Mail nur einmal',
+    $scT1 === 'falle' && $scT2 === 'falle' && $scT3 === 'falle' && count(PartnerSchutz::fallenTreffer($scId)) === 2
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_falle' AND level = 'schlecht'", [], 0) === 1
+    && (int) Db::wert('SELECT treffer FROM partner_fallen WHERE id = ?', [-$scFalle['id']], 0) === 2, json_encode([$scT1, $scT2, $scT3]));
+
+// Protokoll
+Db::run('DELETE FROM partner_zugriffe WHERE partner_id = ?', [$scId]);
+PartnerSchutz::protokoll($scId, 'seite'); PartnerSchutz::protokoll($scId, 'seite');
+PartnerRecherche::suchen($scId, 'Sambuca', 'restaurant', 'it', true);
+$scZ = PartnerSchutz::zugriffZahlen($scId);
+pruefe('Schutz: Zugriffe werden protokolliert (Seite höchstens alle 10 Minuten, jede Suche mit den gezeigten Betrieben)',
+    ($scZ['seite'] ?? 0) === 1 && ($scZ['suche'] ?? 0) === 1 && str_contains((string) Db::wert("SELECT info FROM partner_zugriffe WHERE partner_id = ? AND art = 'suche'", [$scId], ''), 'Treffer')
+    && str_contains($scSeite, "PartnerSchutz::protokoll((int) \$p['id'], 'download'") && str_contains($scSeite, "'reserviert' : 'freigegeben'"), json_encode($scZ));
+
+// Verstöße, Kennung, Akte
+pruefe('Schutz: Verstoß braucht Art und Beschreibung', PartnerSchutz::verstossErfassen($scId, ['art' => 'x', 'beschreibung' => 'Lang genug beschrieben'], 'Kette') !== null
+    && PartnerSchutz::verstossErfassen($scId, ['art' => 'daten', 'beschreibung' => 'kurz'], 'Kette') !== null
+    && PartnerSchutz::verstossErfassen($scId, ['art' => 'daten', 'beschreibung' => 'Die Liste aus Sambuca liegt bei einer fremden Agentur.', 'beleg' => 'Mail vom 30.09.', 'festgestellt_am' => '2026-09-30'], 'Kette') === null
+    && count(PartnerSchutz::verstoesse($scId)) === 1);
+$scK = PartnerSchutz::kennung(Partner::laden($scId));
+pruefe('Schutz: Kennung führt zum Partner zurück, gefälscht nicht', PartnerSchutz::ausKennung('gefunden: ' . $scK)['id'] == $scId
+    && PartnerSchutz::ausKennung(substr($scK, 0, -1) . (substr($scK, -1) === 'A' ? 'B' : 'A')) === null && PartnerSchutz::ausKennung('VDP9') === null);
+$scFl = PartnerFlyer::pdf(Partner::laden($scId), PartnerFlyer::fuerBranche('restaurant'));
+pruefe('Schutz: jeder Flyer aus dem Partnerbereich trägt die Kennung unsichtbar im PDF', $scFl !== '' && str_contains($scFl, '/Keywords (' . $scK . ')') && str_contains($scFl, '/Info '));
+$scAkte = (string) PartnerSchutz::aktePdf($scId, 'it');
+$scAkteDe = (string) PartnerSchutz::aktePdf($scId, 'de');
+pruefe('Schutz: Akte für den Anwalt (IT/DE) — mehrseitig, mit Wortlaut, Verstoß, Treffern, Merkblatt und Entwurf der Diffida',
+    str_starts_with($scAkte, '%PDF-1.4') && preg_match('~/Count (\d+)~', $scAkte, $scC) === 1 && (int) $scC[1] >= 2
+    && str_contains($scAkte, 'VIOLAZIONI ACCERTATE') && str_contains($scAkte, 'Sambuca') && str_contains($scAkte, 'agenzia-fremd')
+    && str_contains($scAkte, '20945/2026') && str_contains($scAkte, 'Diffida e messa in mora') && str_contains($scAkte, '/Subject (' . $scK . ')')
+    && str_contains($scAkteDe, 'Abmahnung') && str_contains($scAkteDe, 'FESTGESTELLTE') && PartnerSchutz::aktePdf(999999) === null, 'Seiten: ' . ($scC[1] ?? '?'));
+$scEin = new Pdf(); $scEin->text(50, 50, 'Beleg'); $scEinPdf = $scEin->fertig();
+pruefe('Schutz: einseitige Belege bleiben wie bisher (eine Seite, ohne Info)', str_contains($scEinPdf, '/Count 1') && !str_contains($scEinPdf, '/Info'));
+$scIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Schutz: Verwaltung — Freischalten, Sperren, Verstoß, Einstellungen, Akte als PDF',
+    str_contains($scIdx, "case 'partner_freischalten':") && str_contains($scIdx, "case 'partner_sperren':") && str_contains($scIdx, "case 'partner_verstoss':")
+    && str_contains($scIdx, "case 'partner_schutz_einstellungen':") && str_contains($scIdx, "isset(\$_GET['akte'])")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'id="schutz"') && str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'Schutz der Unterlagen'));
+Db::run("DELETE FROM settings WHERE skey = 'partner_fallen_domain'");
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -28,6 +28,12 @@ final class PartnerMappe
                     'ohne_website' => false];
         }
         $id = (int) ($q['firma'] ?? 0);
+        if ($id < 0) {   // Kontrolleintrag (PartnerSchutz): dieselbe Mappe wie bei jedem Betrieb
+            $f = Db::one('SELECT * FROM partner_fallen WHERE id = ? AND partner_id = ? AND reserviert_bis >= CURDATE()', [-$id, (int) $p['id']]);
+            if (!$f) { return null; }
+            return ['art' => 'firma', 'id' => $id, 'titel' => (string) $f['name'], 'ort' => (string) $f['ort'], 'stadt' => (string) $f['ort'],
+                    'branche' => Akquise::branchenName((string) $f['branche'], $sprache), 'ohne_website' => true];
+        }
         if ($id > 0) {
             $f = Db::one('SELECT f.id, f.name, f.stadt, f.plz, f.branche, f.url FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                            WHERE r.partner_id = ? AND r.firma_id = ? AND r.bis >= CURDATE()', [(int) $p['id'], $id]);

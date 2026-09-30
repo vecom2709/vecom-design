@@ -25,7 +25,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <?php if ($p['firma'] !== ''): ?><div><span style="color:var(--leise)">Firma</span><br><?= Fmt::h($p['firma']) ?></div><?php endif; ?>
     <?php if ($p['steuer_nr'] !== ''): ?><div><span style="color:var(--leise)">P. IVA / CF</span><br><?= Fmt::h($p['steuer_nr']) ?></div><?php endif; ?>
     <div><span style="color:var(--leise)">Link</span><br><code><?= Fmt::h(Partner::link($p)) ?></code></div>
-    <div><span style="color:var(--leise)">Vereinbarung</span><br><?= $p['vereinbarung_am'] ? 'bestätigt ' . Fmt::h(Fmt::datum((string) $p['vereinbarung_am'])) : '<span class="marke2 warnung">noch nicht</span>' ?></div>
+    <div><span style="color:var(--leise)">Vereinbarung</span><br><a href="#schutz"><?= $p['vereinbarung_am'] ? 'Fassung ' . Fmt::h((string) $p['vereinbarung_version']) . ' · ' . Fmt::h(Fmt::datum((string) $p['vereinbarung_am'])) : 'noch nicht' ?></a></div>
     <div><span style="color:var(--leise)">Auszahlung über</span><br><?= $weg !== null ? Fmt::h(PartnerWege::WEGE[$weg]) : '—' ?>
       <?= $weg !== null ? (PartnerWege::bereit($p, $weg) ? '<span class="marke2 gut">bereit</span>' : '<span class="marke2 warnung">Angaben fehlen</span>') : '' ?>
       <?php if (in_array($weg, ['sepa', 'wise'], true) && (string) $p['iban_ende'] !== ''): ?><div style="font-size:12px;color:var(--leise)"><?= Fmt::h((string) $p['kontoinhaber']) ?> · IBAN …<?= Fmt::h((string) $p['iban_ende']) ?></div><?php endif; ?>
@@ -91,6 +91,78 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     </div>
   <?php endif; ?>
 </div>
+
+<?php /* Schutz der Vecom-Unterlagen (30.09.2026, Uwe: ja) */
+  require_once dirname(__DIR__) . '/src/PartnerSchutz.php';
+  $scStand = PartnerSchutz::stand($p);
+  $scWort = ['frei' => ['gut', 'freigeschaltet'], 'wartet' => ['warnung', 'wartet auf deine Freischaltung'], 'zustimmen' => ['warnung', 'noch nicht zugestimmt — Bereich gesperrt'], 'gesperrt' => ['schlecht', 'gesperrt']][$scStand];
+  $scVs = PartnerSchutz::verstoesse((int) $p['id']);
+  $scTr = PartnerSchutz::fallenTreffer((int) $p['id']);
+  $scZ = PartnerSchutz::zugriffZahlen((int) $p['id']);
+  $scZu = PartnerSchutz::zugriffe((int) $p['id'], 40); ?>
+<?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>
+<div class="block" id="schutz"<?= $scTr || $scStand === 'gesperrt' ? ' style="border-color:rgba(255,138,138,.35)"' : '' ?>>
+  <h2 style="font-size:15px;margin:0 0 8px">Vereinbarung und Schutz <span class="marke2 <?= $scWort[0] ?>" style="margin-left:6px"><?= Fmt::h($scWort[1]) ?></span></h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px 20px;font-size:13px;line-height:1.55">
+    <div><span style="color:var(--leise)">Fassung</span><br><?= Fmt::h((string) ($p['vereinbarung_version'] ?? '—')) ?><?= (string) ($p['vereinbarung_version'] ?? '') !== Partner::VEREINBARUNG_VERSION ? ' <span class="marke2 warnung">alt</span>' : '' ?></div>
+    <div><span style="color:var(--leise)">Zugestimmt (beide Haken)</span><br><?= !empty($p['vereinbarung_klauseln_am']) ? Fmt::h(date('d.m.Y H:i', strtotime((string) $p['vereinbarung_klauseln_am']))) . ' · ' . Fmt::h(strtoupper((string) $p['vereinbarung_sprache'])) : '—' ?></div>
+    <div><span style="color:var(--leise)">Freigeschaltet</span><br><?= !empty($p['freigeschaltet_am']) ? Fmt::h(date('d.m.Y H:i', strtotime((string) $p['freigeschaltet_am']))) . ' · ' . Fmt::h((string) $p['freigeschaltet_von']) : '—' ?></div>
+    <div><span style="color:var(--leise)">Kennung in seinen PDFs</span><br><code><?= Fmt::h(PartnerSchutz::kennung($p)) ?></code></div>
+    <?php if (!empty($p['vereinbarung_hash'])): ?><div style="grid-column:1/-1"><span style="color:var(--leise)">Prüfsumme des Wortlauts (SHA-256)</span><br><code style="font-size:11.5px;word-break:break-all"><?= Fmt::h((string) $p['vereinbarung_hash']) ?></code></div><?php endif; ?>
+    <?php if (!empty($p['gesperrt_am'])): ?><div style="grid-column:1/-1;color:var(--rot)">Gesperrt am <?= Fmt::h(date('d.m.Y H:i', strtotime((string) $p['gesperrt_am']))) ?>: <?= Fmt::h((string) $p['gesperrt_grund']) ?></div><?php endif; ?>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center">
+    <?php if ($scStand === 'wartet' || $scStand === 'gesperrt'): ?>
+      <?= $scStand === 'gesperrt' && ((string) $p['vereinbarung_version'] !== Partner::VEREINBARUNG_VERSION || empty($p['vereinbarung_klauseln_am'])) ? '' : $hin('partner_freischalten', $scStand === 'gesperrt' ? 'Sperre aufheben' : 'Freischalten', true) ?>
+    <?php endif; ?>
+    <?php if ($scStand !== 'gesperrt'): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:6px;align-items:center"><?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="partner_sperren"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <input name="grund" placeholder="Grund der Sperre" maxlength="255" style="width:220px"><button class="knopf">Sperren</button></form>
+    <?php endif; ?>
+    <a class="knopf" href="<?= Fmt::h(url('partner/' . (int) $p['id']) . '?akte=it') ?>" target="_blank" rel="noopener">Akte für den Anwalt (IT)</a>
+    <a class="knopf" href="<?= Fmt::h(url('partner/' . (int) $p['id']) . '?akte=de') ?>" target="_blank" rel="noopener">Akte (deutsch)</a>
+  </div>
+
+  <?php if ($scTr): ?>
+    <h3 style="font-size:13.5px;margin:16px 0 6px;color:var(--rot)">Kontrolleinträge angeschrieben (<?= count($scTr) ?>)</h3>
+    <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.6">
+      <?php foreach ($scTr as $t): ?><li><?= Fmt::h(date('d.m.Y H:i', strtotime((string) ($t['eingang_am'] ?: $t['created_at'])))) ?> · an <code><?= Fmt::h($t['email']) ?></code> (<?= Fmt::h($t['name'] . ', ' . $t['ort']) ?>) von <?= Fmt::h($t['von']) ?> — <?= Fmt::h($t['betreff']) ?></li><?php endforeach; ?>
+    </ul>
+  <?php endif; ?>
+
+  <h3 style="font-size:13.5px;margin:16px 0 6px">Verstöße (<?= count($scVs) ?>)</h3>
+  <?php foreach ($scVs as $v): ?>
+    <div style="border-top:1px solid var(--linie);padding:8px 0;font-size:13px;line-height:1.55">
+      <b><?= Fmt::h(date('d.m.Y', strtotime((string) $v['festgestellt_am']))) ?> · <?= Fmt::h(PartnerSchutz::VERSTOSS_ARTEN[$v['art']] ?? $v['art']) ?></b>
+      <span style="color:var(--leise)"> · <?= Fmt::h((string) $v['erfasst_von']) ?></span><br><?= nl2br(Fmt::h((string) $v['beschreibung'])) ?>
+      <?php if ((string) $v['beleg'] !== ''): ?><br><span style="color:var(--leise)">Beleg: <?= nl2br(Fmt::h((string) $v['beleg'])) ?></span><?php endif; ?>
+    </div>
+  <?php endforeach; ?>
+  <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--cyan);font-size:13.5px">Verstoß festhalten</summary>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px"><?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="partner_verstoss"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div class="feld" style="flex:1 1 260px"><label>Art</label><select name="art" required><option value="">— wählen —</option>
+          <?php foreach (PartnerSchutz::VERSTOSS_ARTEN as $vk => $vw): ?><option value="<?= Fmt::h($vk) ?>"><?= Fmt::h($vw) ?></option><?php endforeach; ?></select></div>
+        <div class="feld" style="flex:0 0 170px"><label>Festgestellt am</label><input type="date" name="festgestellt_am" value="<?= date('Y-m-d') ?>"></div>
+      </div>
+      <div class="feld"><label>Was ist passiert?</label><textarea name="beschreibung" rows="3" required minlength="10" placeholder="z. B. Betrieb X aus seiner Reservierung hat jetzt eine Website vom Partner selbst (gefunden am …)"></textarea></div>
+      <div class="feld"><label>Beleg (Links, Screenshots-Ablage, Zeugen)</label><textarea name="beleg" rows="2"></textarea></div>
+      <button class="knopf">Festhalten</button>
+    </form>
+  </details>
+
+  <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--cyan);font-size:13.5px">Zugriffe (30 Tage: <?= Fmt::h(implode(', ', array_map(static fn($k, $n) => $n . '× ' . $k, array_keys($scZ), $scZ)) ?: 'keine') ?>)</summary>
+    <table class="tabelle" style="margin-top:8px;font-size:12.5px"><tbody>
+      <?php foreach ($scZu as $z): ?>
+        <tr><td style="white-space:nowrap"><?= Fmt::h(date('d.m. H:i', strtotime((string) $z['created_at']))) ?></td><td><?= Fmt::h((string) $z['art']) ?></td>
+          <td><?= (int) $z['firma_id'] !== 0 ? Fmt::h(((int) $z['firma_id'] < 0 ? 'Kontrolleintrag #' . -(int) $z['firma_id'] : ($z['firma'] ? $z['firma'] . ' (' . $z['stadt'] . ')' : '#' . $z['firma_id']))) : '' ?> <?= Fmt::h((string) $z['info']) ?></td></tr>
+      <?php endforeach; ?>
+    </tbody></table>
+  </details>
+</div>
+<?php endif; ?>
 
 <div class="block">
   <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px">

@@ -196,6 +196,7 @@ final class PartnerKarten
         $h = self::leinwand($p, $stil, 'hinten', $sprache, $kontakt, false);
         if (!$v || !$h) { return ''; }
         $pdf = new KartenPdf();
+        if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->kennung = PartnerSchutz::kennung($p); }   // unsichtbar im PDF (30.09.2026)
         $iv = $pdf->bild(self::jpeg($v, 93), imagesx($v), imagesy($v));
         $ih = $pdf->bild(self::jpeg($h, 93), imagesx($h), imagesy($h));
         $mm = 72 / 25.4;
@@ -270,6 +271,9 @@ final class KartenPdf
     /** @var list<array{0:float,1:float,2:string}> */
     private array $seiten = [];
 
+    /** Kennung des Partners als Dokumenteigenschaft (PartnerSchutz). Leer = keine. */
+    public string $kennung = '';
+
     /** Nimmt ein JPEG auf und gibt seinen Namen zurück (/Im1 …). */
     public function bild(string $jpeg, int $breite, int $hoehe): string
     {
@@ -301,12 +305,17 @@ final class KartenPdf
             $obj[] = sprintf("<< /Length %d >>\nstream\n%s\nendstream", strlen($inhalt), $inhalt);
         }
         $obj[1] = sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", implode(' ', $kids), $ns);
+        $info = '';
+        if ($this->kennung !== '') {
+            $obj[] = '<< /Author (Vecom Design) /Keywords (' . preg_replace('~[^A-Za-z0-9-]~', '', $this->kennung) . ') >>';
+            $info = ' /Info ' . count($obj) . ' 0 R';
+        }
         $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
         $stellen = [];
         foreach ($obj as $i => $o) { $stellen[] = strlen($pdf); $pdf .= ($i + 1) . " 0 obj\n$o\nendobj\n"; }
         $xref = strlen($pdf);
         $pdf .= "xref\n0 " . (count($obj) + 1) . "\n0000000000 65535 f \n";
         foreach ($stellen as $s) { $pdf .= sprintf("%010d 00000 n \n", $s); }
-        return $pdf . "trailer\n<< /Size " . (count($obj) + 1) . " /Root 1 0 R >>\nstartxref\n$xref\n%%EOF\n";
+        return $pdf . "trailer\n<< /Size " . (count($obj) + 1) . " /Root 1 0 R$info >>\nstartxref\n$xref\n%%EOF\n";
     }
 }

@@ -87,7 +87,7 @@ final class AkquisePostfach
         Db::run("INSERT INTO settings (skey, svalue) VALUES ('akq_postfach_lauf', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [date('Y-m-d H:i:s', $jetzt)]);
 
         $stand = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_postfach_stand'", [], ''), true) ?: [];
-        $ergebnis = ['gelesen' => 0, 'zugeordnet' => 0, 'doppelt' => 0, 'plattform' => 0];
+        $ergebnis = ['gelesen' => 0, 'zugeordnet' => 0, 'doppelt' => 0, 'plattform' => 0, 'falle' => 0];
         try { require_once __DIR__ . '/AkquisePlattform.php'; AkquisePlattform::aufraeumen($jetzt); } catch (Throwable $e) { }
         try {
             if (self::$holer) {
@@ -112,7 +112,7 @@ final class AkquisePostfach
                 $hoechste = max($hoechste, (int) $m['uid']);
                 $ergebnis['gelesen']++;
                 $r = self::verarbeiten((string) $m['inhalt']);
-                if ($r === 'zugeordnet') { $ergebnis['zugeordnet']++; } elseif ($r === 'doppelt') { $ergebnis['doppelt']++; } elseif ($r === 'plattform') { $ergebnis['plattform']++; }
+                if ($r === 'zugeordnet') { $ergebnis['zugeordnet']++; } elseif ($r === 'doppelt') { $ergebnis['doppelt']++; } elseif ($r === 'plattform') { $ergebnis['plattform']++; } elseif ($r === 'falle') { $ergebnis['falle']++; }
             }
             Db::run("INSERT INTO settings (skey, svalue) VALUES ('akq_postfach_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
                 [json_encode(['uv' => $uv, 'uid' => $hoechste, 'am' => date('Y-m-d H:i:s', $jetzt)])]);
@@ -131,6 +131,8 @@ final class AkquisePostfach
         $m = self::lesen($roh);
         $nid = mb_substr($m['id'] !== '' ? $m['id'] : sha1($roh), 0, 190);
         if ((int) Db::wert('SELECT COUNT(*) FROM akq_antworten WHERE nachricht_id = ?', [$nid], 0) > 0) { return 'doppelt'; }
+        /* Ging die Mail an einen Kontrolleintrag eines Partners? (PartnerSchutz, 30.09.2026) */
+        try { require_once __DIR__ . '/PartnerSchutz.php'; if (PartnerSchutz::falleTreffer($m, $nid)) { return 'falle'; } } catch (Throwable $e) { }
         $firma = self::zuordnen($m);
         if ($firma === null) {
             /* Keinem angeschriebenen Betrieb zugeordnet -- vielleicht eine Anfrage von einem Portal
@@ -188,7 +190,9 @@ final class AkquisePostfach
         $adresse = trim($a[1] ?? (preg_match('~[^\s<>"]+@[^\s<>"]+~', $von, $b) ? $b[0] : ''));
         $datum = isset($kopf['date']) && strtotime($kopf['date']) ? date('Y-m-d H:i:s', (int) strtotime($kopf['date'])) : null;
         return ['id' => trim((string) ($kopf['message-id'] ?? ''), " <>\t"), 'von' => mb_substr($von, 0, 190), 'von_adresse' => mb_strtolower($adresse),
-                'betreff' => mb_substr(self::kopfDekodieren($kopf['subject'] ?? ''), 0, 255), 'datum' => $datum, 'text' => self::textTeil($kopf, $rumpf)];
+                'betreff' => mb_substr(self::kopfDekodieren($kopf['subject'] ?? ''), 0, 255), 'datum' => $datum, 'text' => self::textTeil($kopf, $rumpf),
+                // Empfänger (30.09.2026): Kontrolladressen der Partner erkennen (PartnerSchutz::falleTreffer)
+                'an' => mb_substr(implode(' ', array_filter([$kopf['to'] ?? '', $kopf['cc'] ?? '', $kopf['delivered-to'] ?? '', $kopf['x-original-to'] ?? '', $kopf['envelope-to'] ?? ''])), 0, 2000)];
     }
 
     /** @return array{0:array<string,string>, 1:string} */

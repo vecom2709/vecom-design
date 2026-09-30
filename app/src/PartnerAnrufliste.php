@@ -123,7 +123,8 @@ final class PartnerAnrufliste
                 if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$k], '') === date('Y-m-d', $jetzt)) { continue; }
                 Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, date('Y-m-d', $jetzt)]);
                 $p = Partner::laden((int) $z['partner_id']);
-                if (!$p || $p['status'] !== 'aktiv') { continue; }
+                require_once __DIR__ . '/PartnerSchutz.php';
+                if (!$p || $p['status'] !== 'aktiv' || !PartnerSchutz::freigeschaltet($p)) { continue; }
                 $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
                 $T = static fn(string $x): string => Texte::h(Texte::PARTNER[$x] ?? [], $sp);
                 try { PartnerPost::push((int) $p['id'], $T('al_rr_titel'), strtr($T('al_rr_text'), ['{n}' => (string) (int) $z['n']]), Partner::portalLink($p) . '#anrufliste'); } catch (Throwable $e) { }

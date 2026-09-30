@@ -27,6 +27,12 @@ final class Pdf
     /** Eingebettete Bilder: je Eintrag [daten, breite, hoehe, farbraum]. */
     private array $bilder = [];
 
+    /** Fertige Seiten davor (30.09.2026, Akte für den Anwalt); die laufende steht in $teile. */
+    private array $seiten = [];
+
+    /** Dokumenteigenschaften (/Info), z. B. Titel und eine unsichtbare Kennung. */
+    private array $info = [];
+
     public function __construct(
         private float $breite = self::A4_BREIT,
         private float $hoehe  = self::A4_HOCH,
@@ -182,9 +188,27 @@ final class Pdf
         return null;
     }
 
+    /** Beginnt eine neue Seite. Alles Weitere landet auf ihr. */
+    public function neueSeite(): void
+    {
+        $this->seiten[] = $this->teile;
+        $this->teile = [];
+    }
+
+    public function seitenzahl(): int { return count($this->seiten) + 1; }
+
+    /** Dokumenteigenschaften: Title, Author, Subject, Keywords. */
+    public function info(array $werte): void
+    {
+        foreach ($werte as $k => $v) {
+            if (in_array($k, ['Title', 'Author', 'Subject', 'Keywords', 'Creator'], true)) { $this->info[$k] = (string) $v; }
+        }
+    }
+
     /** Fertiges PDF als Zeichenkette. */
     public function fertig(): string
     {
+        if ($this->seiten !== [] || $this->info !== []) { return $this->fertigMehrseitig(); }
         $inhalt = implode("\n", $this->teile);
 
         // Die Bilder bekommen die Nummern nach den beiden Schriften.
@@ -226,6 +250,64 @@ final class Pdf
         $pdf .= "xref\n0 " . (count($objekte) + 1) . "\n0000000000 65535 f \n";
         foreach ($stellen as $s) { $pdf .= sprintf("%010d 00000 n \n", $s); }
         $pdf .= "trailer\n<< /Size " . (count($objekte) + 1) . " /Root 1 0 R >>\n"
+              . "startxref\n$xref\n%%EOF\n";
+        return $pdf;
+    }
+
+    /**
+     * Mehrere Seiten und/oder Dokumenteigenschaften. Eigener Weg, damit die
+     * einseitigen Belege Byte für Byte bleiben, wie sie sind.
+     * Nummern: 1 Katalog, 2 Seitenbaum, 3/4 Schriften, dann Bilder, dann je
+     * Seite Seite + Inhalt, zuletzt /Info.
+     */
+    private function fertigMehrseitig(): string
+    {
+        $alle = array_merge($this->seiten, [$this->teile]);
+        $nBild = count($this->bilder);
+        $xobjekte = '';
+        foreach ($this->bilder as $nr => $_) { $xobjekte .= sprintf('/Im%d %d 0 R ', $nr + 1, 5 + $nr); }
+        $mittel = '/Font << /F1 3 0 R /F2 4 0 R >>' . ($xobjekte !== '' ? ' /XObject << ' . $xobjekte . '>>' : '');
+        $ersteSeite = 5 + $nBild;
+        $kids = [];
+        foreach ($alle as $i => $_) { $kids[] = ($ersteSeite + 2 * $i) . ' 0 R'; }
+
+        $objekte = [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", implode(' ', $kids), count($alle)),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+        ];
+        foreach ($this->bilder as [$daten, $bb, $bh, $farbraum]) {
+            $objekte[] = sprintf(
+                "<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /%s "
+                . "/BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n%s\nendstream",
+                $bb, $bh, $farbraum, strlen($daten) + 1, $daten
+            );
+        }
+        foreach ($alle as $i => $teile) {
+            $inhalt = implode("\n", $teile);
+            $objekte[] = sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2F %.2F] /Resources << %s >> /Contents %d 0 R >>",
+                $this->breite, $this->hoehe, $mittel, $ersteSeite + 2 * $i + 1);
+            $objekte[] = sprintf("<< /Length %d >>\nstream\n%s\nendstream", strlen($inhalt) + 1, $inhalt);
+        }
+        $infoNr = 0;
+        if ($this->info !== []) {
+            $felder = '';
+            foreach ($this->info as $k => $v) { $felder .= '/' . $k . ' (' . $this->maskieren($this->kodieren($v)) . ') '; }
+            $objekte[] = '<< ' . $felder . '>>';
+            $infoNr = count($objekte);
+        }
+
+        $pdf = "%PDF-1.4\n";
+        $stellen = [];
+        foreach ($objekte as $i => $o) {
+            $stellen[] = strlen($pdf);
+            $pdf .= ($i + 1) . " 0 obj\n$o\nendobj\n";
+        }
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 " . (count($objekte) + 1) . "\n0000000000 65535 f \n";
+        foreach ($stellen as $st) { $pdf .= sprintf("%010d 00000 n \n", $st); }
+        $pdf .= "trailer\n<< /Size " . (count($objekte) + 1) . " /Root 1 0 R" . ($infoNr ? " /Info $infoNr 0 R" : '') . " >>\n"
               . "startxref\n$xref\n%%EOF\n";
         return $pdf;
     }

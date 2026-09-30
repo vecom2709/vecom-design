@@ -144,7 +144,10 @@ final class Cron
                 // Geld liegt bereit, der Auszahlungsweg fehlt: hoechstens alle 14 Tage erinnern (26.09.2026).
                 require_once __DIR__ . '/PartnerSteuerung.php';
                 // Weckruf nach 30 stillen Tagen, höchstens monatlich (27.09.2026).
+                // Neue Partnervereinbarung (30.09.2026): einmal Bescheid, dass der Bereich bis zur Zustimmung gesperrt ist.
+                require_once __DIR__ . '/PartnerSchutz.php';
                 return Partner::lauf() + ['berichte' => Partner::monatsberichte(), 'weg_erinnert' => PartnerPost::wegErinnern(), 'impulse' => PartnerPost::wochenImpuls(),
+                                          'neufassung' => (static function (): int { try { return PartnerSchutz::hinweiseVersenden(); } catch (Throwable $e) { return -1; } })(),
                                           'weckrufe' => PartnerSteuerung::weckruf(), 'autopilot' => (static function (): int {
                                               try { require_once __DIR__ . '/PartnerAutopilot.php'; return PartnerAutopilot::morgen(); } catch (Throwable $e) { return -1; }
                                           })(), 'rueckrufe' => (static function (): int {

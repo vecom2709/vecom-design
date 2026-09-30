@@ -294,3 +294,45 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     „Überweisungen (Recipient)“ für Italien/EU freischalten. Ob ein Steuereinbehalt (Ritenuta) nötig ist, sagt dein
     Commercialista — Standard ist 0 %. Die Vereinbarung ist ein Entwurf: bitte einmal rechtlich lesen lassen.</p>
 </div>
+
+<?php /* Schutz der Vecom-Unterlagen (30.09.2026, Uwe: ja) */
+  require_once dirname(__DIR__) . '/src/PartnerSchutz.php';
+  $sStand = ['frei' => [], 'zustimmen' => [], 'wartet' => [], 'gesperrt' => []];
+  foreach ($uebrige as $sp0) { if (in_array($sp0['status'], ['aktiv', 'pausiert'], true)) { $sStand[PartnerSchutz::stand($sp0)][] = $sp0; } }
+  $sPen = $e('partner_penale_cents'); $sDom = PartnerSchutz::fallenDomain(); ?>
+<div class="block" id="schutz">
+  <h2 style="font-size:15px;margin:0 0 6px">Schutz der Unterlagen</h2>
+  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+    Jeder Partnerbereich ist zu, bis der Partner der Vereinbarung (Fassung <?= Fmt::h(Partner::VEREINBARUNG_VERSION) ?>) mit beiden Haken
+    zugestimmt hat <b>und</b> du ihn freischaltest. Sein Link zählt die ganze Zeit weiter.</p>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;margin-bottom:12px">
+    <div><b style="font-size:20px"><?= count($sStand['frei']) ?></b><br><span style="color:var(--leise)">freigeschaltet</span></div>
+    <div><b style="font-size:20px"><?= count($sStand['wartet']) ?></b><br><span style="color:var(--leise)">warten auf dich</span></div>
+    <div><b style="font-size:20px"><?= count($sStand['zustimmen']) ?></b><br><span style="color:var(--leise)">noch nicht zugestimmt</span></div>
+    <div><b style="font-size:20px"><?= count($sStand['gesperrt']) ?></b><br><span style="color:var(--leise)">gesperrt</span></div>
+  </div>
+  <?php if ($sStand['wartet']): ?>
+    <table class="tabelle" style="margin-bottom:12px"><tbody>
+    <?php foreach ($sStand['wartet'] as $sw): ?>
+      <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $sw['id'])) ?>"><?= Fmt::h($sw['name']) ?></a></td>
+        <td style="color:var(--leise);font-size:12.5px">zugestimmt <?= Fmt::h(Fmt::datum((string) $sw['vereinbarung_klauseln_am'])) ?></td>
+        <td style="text-align:right"><form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
+          <input type="hidden" name="tat" value="partner_freischalten"><input type="hidden" name="id" value="<?= (int) $sw['id'] ?>"><input type="hidden" name="zurueck" value="liste">
+          <button class="knopf haupt">Freischalten</button></form></td></tr>
+    <?php endforeach; ?>
+    </tbody></table>
+  <?php endif; ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?>
+    <input type="hidden" name="tat" value="partner_schutz_einstellungen">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div class="feld" style="flex:0 0 170px"><label>Vertragsstrafe je Verstoß (€)</label><input name="partner_penale" value="<?= Fmt::h($eu((int) $sPen)) ?>"></div>
+      <div class="feld" style="flex:0 0 170px"><label>Kundenschutz (Monate)</label><input name="partner_kundenschutz_monate" value="<?= Fmt::h($e('partner_kundenschutz_monate')) ?>"></div>
+      <div class="feld" style="flex:1 1 240px"><label>Domain der Kontrolladressen (leer = aus)</label><input name="partner_fallen_domain" value="<?= Fmt::h($e('partner_fallen_domain')) ?>" placeholder="z. B. vecom-kontrolle.it"></div>
+    </div>
+    <p style="color:var(--leise);font-size:12px;line-height:1.6;margin:4px 0 10px">
+      Strafe und Monate stehen in der Vereinbarung. Wer schon zugestimmt hat, behält seine Fassung, bis es eine neue gibt.
+      Kontrolleinträge brauchen eine Domain, deren Sammeladresse (Catch-all) ins Akquise-Postfach läuft
+      <?= $sDom !== '' ? '— <span class="marke2 gut">an: @' . Fmt::h($sDom) . '</span>' : '— <span class="marke2 warnung">aus</span>' ?>.</p>
+    <button class="knopf">Speichern</button>
+  </form>
+</div>

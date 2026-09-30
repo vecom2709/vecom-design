@@ -200,6 +200,8 @@ final class PartnerFlyer
         $k = $breite / $f['b'];
         $hoehe = $f['h'] * $k;
         $pdf = new Pdf($breite, $hoehe);
+        /* Unsichtbare Kennung des Partners (PartnerSchutz, 30.09.2026): Taucht ein Flyer irgendwo auf, sagt sie, aus wessen Bereich er stammt. */
+        if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->info(['Title' => 'Vecom Design', 'Author' => 'Vecom Design', 'Keywords' => PartnerSchutz::kennung($p)]); }
         $pdf->bild((string) file_get_contents(self::datei($slug)), 0, 0, $breite, $hoehe);
 
         [$qx, $qy, $qb, $qh] = $f['q'];

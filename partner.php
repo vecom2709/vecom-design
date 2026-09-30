@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -73,6 +73,26 @@ $selbst = static fn(array $extra = []) => '/partner.php?' . http_build_query(arr
     $p ? ['t' => $p['token']] : ['lang' => $sprache], $extra));
 
 $meldung = ''; $gut = false;
+
+/* ---------- Gesperrt, bis zugestimmt und freigeschaltet (30.09.2026) ----------
+   Uwe: „alle Partner-Dashboards sollen direkt gesperrt werden und erst mit
+   Zustimmung aktiviert werden“. Solange der Partner der aktuellen Fassung
+   nicht mit beiden Haken zugestimmt hat oder Uwe ihn nicht freigeschaltet
+   hat, gibt es hier NUR die Sperrseite: keine Zahlen, keine Betriebe, keine
+   Downloads, keine anderen Formulare. Der Empfehlungslink (p.php) zählt weiter. */
+if ($p && !PartnerSchutz::freigeschaltet($p)) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'schutz_zustimmen'
+        && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? '')) && PartnerSchutz::stand($p) === 'zustimmen') {
+        $r = PartnerSchutz::zustimmen($p, $sprache, !empty($_POST['ganz']), !empty($_POST['klauseln']), (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        if ($r === 'ok') { header('Location: ' . $selbst(), true, 303); exit; }
+        $meldung = $r;
+    }
+    $stand = PartnerSchutz::stand($p);
+    http_response_code(200);
+    require __DIR__ . '/app/views/partner_sperre.php';
+    exit;
+}
+if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
 
 /* ---------- Die Partnerseite als App (26.09.2026) ----------
    Das Manifest traegt die persoenliche Adresse als start_url: Wer die Seite
@@ -194,9 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $gut = $r['ok'];
                 }
             } elseif ($tat === 'vereinbarung' && $p) {
-                if (!empty($_POST['ok'])) {
-                    Partner::vereinbarungMerken((int) $p['id'], Partner::vereinbarungText($sprache, $p));
-                }
+                /* Zugestimmt wird seit 30.09.2026 nur noch auf der Sperrseite (zwei Haken,
+                   PartnerSchutz) -- ein alter Knopf darf den festgehaltenen Wortlaut nicht überschreiben. */
                 header('Location: ' . $selbst(), true, 303); exit;
             } elseif ($tat === 'melden' && $p) {
                 $r = Partner::kundeMelden((int) $p['id'], $_POST, $sprache);
@@ -259,6 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $r = PartnerAnrufliste::ergebnis($p, (int) ($_POST['firma'] ?? 0), $erg, [
                     'email' => (string) ($_POST['email'] ?? ''), 'whatsapp' => (string) ($_POST['whatsapp'] ?? ''),
                     'person' => (string) ($_POST['person'] ?? ''), 'vorgelesen' => !empty($_POST['vorgelesen'])]);
+                PartnerSchutz::protokoll((int) $p['id'], 'anruf', (int) ($_POST['firma'] ?? 0), $erg . ' → ' . $r);
                 $key = $r === 'ok' ? ($erg === 'zugestimmt' ? (trim((string) ($_POST['email'] ?? '')) !== '' ? 'al_danke' : 'al_danke_wa') : 'al_ok') : ['al_wa' => 'al_wa_fehler', 'al_person' => 'al_person_fehler', 'al_haken' => 'al_haken_fehler'][$r] ?? $r;
                 header('Location: ' . $selbst(['al' => $key]) . '#anrufliste', true, 303); exit;
             } elseif ($tat === 'ap_ort' && $p) {
@@ -273,6 +293,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $fid = (int) ($_POST['firma'] ?? 0);
                 $f = 'ok';
                 if ($tat === 'fi_reserv') { $f = PartnerRecherche::reservieren((int) $p['id'], $fid); } else { PartnerRecherche::freigeben((int) $p['id'], $fid); }
+                if ($f === 'ok') { PartnerSchutz::protokoll((int) $p['id'], $tat === 'fi_reserv' ? 'reserviert' : 'freigegeben', $fid); }
                 if ($f === 'ok') {
                     $zurueck = array_filter(['fi_ort' => (string) ($_GET['fi_ort'] ?? ''), 'fi_branche' => (string) ($_GET['fi_branche'] ?? ''), 'fi_nz' => 1], static fn($v) => $v !== '');
                     header('Location: ' . $selbst($zurueck) . '#recherche', true, 303); exit;
@@ -377,6 +398,7 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
     '<a href="$2" target="_blank" rel="noopener">$1</a>', htmlspecialchars($s, ENT_QUOTES, 'UTF-8'));
 /* ---------- Mappe zum Vorbeibringen (27.09.2026): nur eigener Check oder eigene Reservierung ---------- */
 if ($p && ($_GET['druck'] ?? '') === 'mappe') {
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'mappe');
     $mappe = PartnerMappe::laden($p, $_GET, in_array((string) ($_GET['sp'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['sp'] : 'it');
     if ($mappe === null) { http_response_code(404); exit('—'); }
     header('X-Robots-Tag: noindex');
@@ -386,6 +408,7 @@ if ($p && ($_GET['druck'] ?? '') === 'mappe') {
 /* ---------- Branchen-Flyer mit eigenem QR-Code (28.09.2026) ----------
    ?fl=slug&f=jpg|pdf|vorschau — nur mit dem eigenen Schlüssel, nie im Index. */
 if ($p && isset($_GET['fl'])) {
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'flyer');
     require_once __DIR__ . '/app/src/PartnerFlyer.php';
     $flSlug = (string) $_GET['fl'];
     $flArt = (string) ($_GET['f'] ?? 'jpg');
@@ -410,6 +433,7 @@ if ($p && isset($_GET['fl'])) {
 /* ---------- Visitenkarten in vier Stilen (28.09.2026) ----------
    ?vk=a|b|c|d&f=vorschau|vorn|hinten|pdf|bogen&ks=email|vecom&vks=it|de|en */
 if ($p && isset($_GET['vk'])) {
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'visitenkarte');
     require_once __DIR__ . '/app/src/PartnerKarten.php';
     $vkStil = (string) $_GET['vk'];
     $vkArt = (string) ($_GET['f'] ?? 'vorschau');
@@ -440,12 +464,14 @@ if ($p && isset($_GET['vk'])) {
 }
 /* ---------- Druck-Paket: Visitenkarten, Flyer, Aufsteller, Aufkleber ---------- */
 if ($p && in_array((string) ($_GET['druck'] ?? ''), ['visitenkarten', 'flyer', 'aufsteller', 'aufkleber'], true)) {
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'druck');
     header('X-Robots-Tag: noindex');
     require __DIR__ . '/app/views/partner_druck.php';
     exit;
 }
 /* ---------- Die Karte zum Ausdrucken (QR + Link), A6 ---------- */
 if ($p && isset($_GET['karte'])) {
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'karte');
     $kLink = Partner::link($p) . '/karte';
     ?><!doctype html><html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>><head><meta charset="utf-8">
 <?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -785,6 +811,8 @@ if ($p && isset($_GET['karte'])) {
         <details><summary><?= $h($T('lesen')) ?></summary><pre><?= $h(Partner::vereinbarungText($sprache)) ?></pre></details>
         <label style="display:flex;gap:8px;align-items:flex-start;color:var(--text)">
           <input type="checkbox" name="vereinbarung" value="1" required style="margin-top:3px"> <?= $h($T('ok')) ?></label>
+        <label style="display:flex;gap:8px;align-items:flex-start;color:var(--text)">
+          <input type="checkbox" name="klauseln" value="1" required style="margin-top:3px"> <?= $h(PartnerSchutz::klauselText($sprache)) ?></label>
         <button class="knopf haupt" type="submit"><?= $h($T('knopf')) ?></button>
       </form>
       <?php endif; ?>
@@ -845,18 +873,9 @@ if ($p && isset($_GET['karte'])) {
         <a class="knopf haupt" href="#wege"><?= $h($T('geld_knopf')) ?></a></div>
     <?php endif; ?>
 
-    <?php if (empty($p['vereinbarung_am'])): ?>
-      <div class="hinweis" style="margin-bottom:14px">
-        <?= $h($T('v_fehlt')) ?>
-        <details style="margin:8px 0"><summary><?= $h($T('lesen')) ?></summary><pre><?= $h(Partner::vereinbarungText($sprache, $p)) ?></pre></details>
-        <form method="post" action="<?= $h($selbst()) ?>" style="flex-direction:row;align-items:center;gap:10px;flex-wrap:wrap">
-          <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
-          <input type="hidden" name="tat" value="vereinbarung">
-          <label style="display:flex;gap:8px;color:var(--text)"><input type="checkbox" name="ok" value="1" required> <?= $h($T('ok')) ?></label>
-          <button class="knopf haupt"><?= $h($T('v_knopf')) ?></button>
-        </form>
-      </div>
-    <?php endif; ?>
+    <?php /* Die angenommene Vereinbarung, jederzeit nachzulesen (30.09.2026, PartnerSchutz) */ ?>
+    <details class="klein" style="margin:0 0 14px"><summary style="cursor:pointer;color:var(--cyan)"><?= $h(strtr($T('sp_ihre'), ['{fassung}' => (string) $p['vereinbarung_version'], '{datum}' => date($sprache === 'de' ? 'd.m.Y' : 'd/m/Y', strtotime((string) ($p['vereinbarung_klauseln_am'] ?: $p['vereinbarung_am'])))])) ?></summary>
+      <pre><?= $h((string) $p['vereinbarung_text']) ?></pre></details>
 
     <label for="p_link"><?= $h($T('p_link')) ?></label>
     <div class="kopie"><input id="p_link" type="text" readonly value="<?= $h($link) ?>">

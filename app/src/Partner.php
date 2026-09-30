@@ -51,7 +51,7 @@ final class Partner
     public const ARTEN = ['website', 'betreuung', 'hosting'];
 
     /** Fassung der Vereinbarung — hochzählen, wenn sich der Text ändert. */
-    public const VEREINBARUNG_VERSION = '2026-09-26';
+    public const VEREINBARUNG_VERSION = '2026-10-01';
 
     /** Nur für die Prüfkette: ersetzt jeden Stripe-Aufruf. @var (Closure(string,string,array,string):array)|null */
     public static ?Closure $stripeProbe = null;
@@ -73,6 +73,9 @@ final class Partner
         /* Anrufliste (29.09.2026, Uwe: Ja zu T4): Kauft ein Betrieb, der beim
            Anruf des Partners zugestimmt hat, gilt mindestens dieser Satz. */
         'partner_anruf_bp' => '1500',
+        /* Schutz der Vecom-Unterlagen (30.09.2026, Uwe: ja): Zahlen der Vereinbarung
+           und die Domain der Kontrolladressen (leer = keine Kontrolleinträge). */
+        'partner_penale_cents' => '250000', 'partner_kundenschutz_monate' => '24', 'partner_fallen_domain' => '',
     ];
 
     public static function einstellung(string $k): string
@@ -230,7 +233,7 @@ final class Partner
         $name  = mb_substr(trim((string) ($d['name'] ?? '')), 0, 160);
         $email = mb_strtolower(trim((string) ($d['email'] ?? '')));
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { return ['ok' => false, 'grund' => 'angaben']; }
-        if (empty($d['vereinbarung'])) { return ['ok' => false, 'grund' => 'vereinbarung']; }
+        if (empty($d['vereinbarung']) || empty($d['klauseln'])) { return ['ok' => false, 'grund' => 'vereinbarung']; }
 
         $schon = Db::one("SELECT id, status FROM partner WHERE email = ? AND status <> 'abgelehnt' ORDER BY id DESC LIMIT 1", [$email]);
         if ($schon) { return ['ok' => true, 'id' => (int) $schon['id'], 'schon' => true]; }
@@ -241,7 +244,11 @@ final class Partner
             'kanal' => (string) ($d['kanal'] ?? ''), 'bewerbung_text' => mb_substr(trim((string) ($d['text'] ?? '')), 0, 2000),
             'sprache' => $sprache, 'status' => 'bewerbung',
         ]);
-        self::vereinbarungMerken($id, $vereinbarungText);
+        /* Beide Haken, gleicher Beleg wie im Partnerbereich (PartnerSchutz, 30.09.2026).
+           Freigeschaltet wird mit dem Annehmen der Bewerbung. */
+        require_once __DIR__ . '/PartnerSchutz.php';
+        $neu = self::laden($id);
+        if ($neu) { PartnerSchutz::zustimmen($neu, $sprache, true, true, (string) ($_SERVER['REMOTE_ADDR'] ?? ''), false); }
         Events::melden('partner_bewerbung', 'Neue Partner-Bewerbung: ' . $name, 'hinweis',
             $email . ((string) ($d['kanal'] ?? '') !== '' ? ' — ' . mb_substr((string) $d['kanal'], 0, 200) : ''), '/partner/' . $id);
         return ['ok' => true, 'id' => $id];
@@ -293,6 +300,10 @@ final class Partner
         Db::run('UPDATE partner SET status = ? WHERE id = ?', [$neu, $id]);
         Events::pruefspur('partner_status', 'partner', $id, ['status' => $p['status']], ['status' => $neu]);
         if ($neu === 'aktiv' && $p['status'] === 'bewerbung') {
+            /* Annehmen = Freischalten, wenn der Bewerber der aktuellen Fassung mit beiden Haken zugestimmt hat. */
+            if ((string) $p['vereinbarung_version'] === self::VEREINBARUNG_VERSION && !empty($p['vereinbarung_klauseln_am'])) {
+                Db::run("UPDATE partner SET freigeschaltet_am = NOW(), freigeschaltet_von = 'Annahme der Bewerbung' WHERE id = ?", [$id]);
+            }
             self::schreiben($id, 'partner_willkommen', [], $senden);
         }
         return true;
@@ -2087,11 +2098,12 @@ final class Partner
         if ($sprache !== 'de') {
             $satz = $s['art'] === 'fest' ? Fmt::geld($s['wert']) . ($sprache === 'it' ? ' per vendita' : ' per sale') : $satz;
         }
+        require_once __DIR__ . '/PartnerSchutz.php';
         return strtr(Texte::PARTNER_VEREINBARUNG[$sprache] ?? Texte::PARTNER_VEREINBARUNG['it'], [
             '{satz}' => $satz, '{min}' => Fmt::geld(self::zahl('partner_mindest_cents')),
             '{tage}' => (string) max(14, self::zahl('partner_sperrtage')),
             '{zuordnung}' => (string) self::zahl('partner_zuordnung_monate'), '{monate}' => (string) $s['monate'],
-        ]);
+        ] + PartnerSchutz::werte($sprache));
     }
 
     /** Der Beleg einer Auszahlung als PDF, in der Sprache des Partners. */

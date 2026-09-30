@@ -72,7 +72,8 @@ final class PartnerSteuerung
         require_once __DIR__ . '/Texte.php';
         $grenze = date('Y-m-d H:i:s', $jetzt - self::STILL_TAGE * 86400);
         $n = 0;
-        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL AND p.created_at < ?
+        require_once __DIR__ . '/PartnerSchutz.php';
+        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL AND " . PartnerSchutz::sqlFrei('p') . " AND p.created_at < ?
                             AND EXISTS (SELECT 1 FROM partner_push pp WHERE pp.partner_id = p.id)
                             AND (p.weckruf_am IS NULL OR p.weckruf_am < ?)
                             AND NOT EXISTS (SELECT 1 FROM partner_klicks k WHERE k.partner_id = p.id AND k.tag >= ?)",

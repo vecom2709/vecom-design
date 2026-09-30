@@ -112,7 +112,8 @@ final class PartnerAutopilot
         $heute = date('Y-m-d', $jetzt);
         require_once __DIR__ . '/PartnerPost.php';
         $n = 0;
-        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.heimatort IS NOT NULL AND p.heimatort <> ''
+        require_once __DIR__ . '/PartnerSchutz.php';
+        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND " . PartnerSchutz::sqlFrei('p') . " AND p.heimatort IS NOT NULL AND p.heimatort <> ''
                             AND NOT EXISTS (SELECT 1 FROM partner_tagesliste t WHERE t.partner_id = p.id AND t.datum = ? AND t.gemeldet = 1)
                           LIMIT 200", [$heute]) as $p) {
             $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';

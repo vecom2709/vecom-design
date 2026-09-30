@@ -59,7 +59,7 @@ final class PartnerRecherche
             $gebietName = (string) ($webErg['gebiet'] ?? '');
         }
         $wie = '%' . addcslashes($ort, '%_\\') . '%';
-        $zeilen = Db::all("SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score,
+        $zeilen = Db::all("SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.land,
                                   r.partner_id AS res_partner, r.bis AS res_bis,
                                   (SELECT COUNT(*) FROM akq_versand v WHERE v.firma_id = f.id AND v.status IN ('gesendet','von_hand')) AS angeschrieben
                              FROM akq_firmen f
@@ -87,6 +87,24 @@ final class PartnerRecherche
                 'stand' => $stand, 'bis' => $z['res_bis'],
             ];
         }
+        /* Kontrolleintrag (30.09.2026, PartnerSchutz): ab drei echten Treffern
+           steht einer dieses Partners mitten in der Liste. Die Vereinbarung
+           sagt es (Nr. 9). Ohne eingestellte Kontroll-Domain: keiner. */
+        if (count($treffer) >= 3) {
+            try {
+                require_once __DIR__ . '/PartnerSchutz.php';
+                $falle = PartnerSchutz::falleFuer($partnerId, $ort, $branche, (string) ($zeilen[0]['land'] ?? 'IT'));
+                if ($falle) {
+                    $pos = 1 + ((int) $falle['id'] * 7) % (count($treffer) - 1);
+                    array_splice($treffer, $pos, 0, [PartnerSchutz::falleAlsTreffer($falle, $partnerId, $sprache)]);
+                }
+            } catch (Throwable $e) { }
+        }
+        if ($zaehlen) {
+            require_once __DIR__ . '/PartnerSchutz.php';
+            PartnerSchutz::protokoll($partnerId, 'suche', null, mb_substr($ort . ($branche !== '' ? ' · ' . $branche : '') . ' · ' . count($treffer) . ' Treffer: '
+                . implode(',', array_map(static fn($t) => (string) $t['id'], $treffer)), 0, 255));
+        }
         return ['ok' => true, 'treffer' => $treffer, 'web' => $webErg];
     }
 
@@ -99,9 +117,20 @@ final class PartnerRecherche
         return $s >= 51 ? 'hoch' : ($s >= 31 ? 'mittel' : 'gering');
     }
 
-    /** @return string ok|fi_weg|fi_vecom|fi_voll */
+    /** @return string ok|fi_weg|fi_vecom|fi_voll|fi_tag */
     public static function reservieren(int $partnerId, int $firmaId): string
     {
+        if ($firmaId < 0) {   // Kontrolleintrag (PartnerSchutz) -- sieht für den Partner aus wie jeder andere
+            require_once __DIR__ . '/PartnerSchutz.php';
+            return PartnerSchutz::falleReservieren($partnerId, -$firmaId, self::TAGE);
+        }
+        /* Höchstens 15 neue Reservierungen am Tag (30.09.2026): Wer Daten
+           absaugen will, braucht dafür Wochen -- und steht im Protokoll. */
+        $schon = (int) Db::wert('SELECT COUNT(*) FROM partner_reservierungen WHERE firma_id = ? AND partner_id = ? AND bis >= CURDATE()', [$firmaId, $partnerId], 0) > 0;
+        if (!$schon) {
+            require_once __DIR__ . '/PartnerSchutz.php';
+            if (!self::zaehlen($partnerId, 'reserv', PartnerSchutz::RESERVIERUNGEN_JE_TAG)) { return 'fi_tag'; }
+        }
         return Db::transaktion(static function () use ($partnerId, $firmaId): string {
             $f = Db::one("SELECT id FROM akq_firmen WHERE id = ? AND gesperrt = 0 AND bestandskunde = 0
                             AND kontakt_status NOT IN ('abgelehnt','gesperrt','kunde','geantwortet') FOR UPDATE", [$firmaId]);
@@ -121,13 +150,16 @@ final class PartnerRecherche
 
     public static function freigeben(int $partnerId, int $firmaId): void
     {
+        if ($firmaId < 0) { require_once __DIR__ . '/PartnerSchutz.php'; PartnerSchutz::falleFreigeben($partnerId, -$firmaId); return; }
         Db::run('DELETE FROM partner_reservierungen WHERE firma_id = ? AND partner_id = ?', [$firmaId, $partnerId]);
     }
 
     /** @return list<array<string,mixed>> Die eigenen, noch gültigen Reservierungen. */
     public static function meine(int $partnerId, string $sprache): array
     {
-        return array_map(static fn(array $z): array => [
+        $fallen = [];
+        try { require_once __DIR__ . '/PartnerSchutz.php'; $fallen = PartnerSchutz::fallenMeine($partnerId, $sprache); } catch (Throwable $e) { }
+        return array_merge($fallen, array_map(static fn(array $z): array => [
             'id' => (int) $z['id'], 'name' => (string) $z['name'], 'ort' => trim(((string) ($z['plz'] ?? '')) . ' ' . ((string) ($z['stadt'] ?? ''))),
             'adresse' => (string) ($z['adresse'] ?? ''), 'branche' => Akquise::branchenName($z['branche'], $sprache),
             'chance' => self::chance($z), 'bis' => (string) $z['bis'], 'domain' => (string) ($z['domain'] ?? ''),
@@ -138,7 +170,7 @@ final class PartnerRecherche
         ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.telefon, f.email, f.land, r.bis
                       FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                      WHERE r.partner_id = ? AND r.bis >= CURDATE() AND (r.herkunft IS NULL OR r.herkunft <> \'vecom\' OR r.anruf_status = \'zugestimmt\')
-                     ORDER BY r.bis', [$partnerId]));
+                     ORDER BY r.bis', [$partnerId])));
     }
 
     /** Für AkquiseGate: Reserviert gerade ein Partner diese Firma? Dann Name und Datum. */

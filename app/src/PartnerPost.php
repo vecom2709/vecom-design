@@ -197,7 +197,8 @@ final class PartnerPost
         $liste = Texte::PARTNER_IMPULSE;
         $i = $liste[(int) date('W', $jetzt) % count($liste)];
         $n = 0;
-        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL
+        require_once __DIR__ . '/PartnerSchutz.php';
+        foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL AND " . PartnerSchutz::sqlFrei('p') . "
                             AND EXISTS (SELECT 1 FROM partner_push pp WHERE pp.partner_id = p.id)
                             AND (p.impuls_am IS NULL OR p.impuls_am < ?)", [date('Y-m-d H:i:s', $jetzt - 6 * 86400)]) as $p) {
             // Erst vermerken, dann schicken: Ein hängender Push-Dienst darf keine Serie auslösen.
