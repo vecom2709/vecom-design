@@ -27,10 +27,16 @@ TEXTUREN = {
     'kueche': [['^kueche-(eiche|marmor)', 2048], ['^kueche-', 1024], ['^(holz|innen)', 1024]],
     'gastro': [['^innen-stoff', 512], ['^(kueche|holz)', 512]],
     'salon': [['^innen-', 512], ['^(kueche|holz)', 512]],
-    'lkw': [['^lkw-plane', 2048], ['^holz', 512]],
+    # LKW HD (30.09.2026): Reifenflanke mit Schrift 1024, Kennzeichen 512,
+    # feine Normalkarten (Lack, Narbung, Riffel, Waben) 256 -- sie kacheln
+    'lkw': [['^lkw-plane', 2048], ['^holz', 512], ['^lkw-reifen', 1024], ['^lkw-kennzeichen', 512],
+            ['^lkw-(lack|kunststoff|riffel|waben|gewebe)', 256]],
 }
 # Materialanpassungen im Web (Name -> {'umgebung': Staerke der Rundumkarte})
-WEB_MATERIAL = {'salon': {'Spiegel': {'umgebung': 0.6, 'spiegel_dunkel': 0.04}}}
+WEB_MATERIAL = {'salon': {'Spiegel': {'umgebung': 0.6, 'spiegel_dunkel': 0.04}},
+                # LKW: Innenraum ohne Verdeckung im Browser gedaempft, Scheinwerferglas klar
+                'lkw': {'Glas Leuchte': {'klarglas': 0.12}, 'Innenverkleidung': {'umgebung': 0.22}, 'Dachhimmel': {'umgebung': 0.22},
+                        'Sitzbezug': {'umgebung': 0.25}, 'Armatur Oberseite': {'umgebung': 0.3}, 'Innenraum': {'umgebung': 0.25}}}
 # Tischkarte (Gastronomie): Beispielname und Gerichte, im Web ueberschreibbar
 KARTE = {'gastro': {'netz': 'menukarte_vorn', 'name': 'Trattoria Aurora',
                     'gerichte': [['Spaghetti al pomodoro', 'basilico, parmigiano'], ['Panna cotta', 'coulis di lamponi']]}}

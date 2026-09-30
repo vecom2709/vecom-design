@@ -63,7 +63,8 @@ BRANCHEN = {
 KACHEL = {
     # 29.09.2026: Marmorplatte am Fenster, Uhr und Ring in der Bildmitte
     'schmuck/poster-stahl.png': ('schmuck-kachel', (433, 338, 1153, 743)),
-    'salon/poster-cognac.png': ('salon-kachel', (430, 330, 1290, 814)),
+    # 30.09.2026: Salon im hellen Laden, Stuhl und Platz zusammen
+    'salon/poster-cognac.png': ('salon-kachel', (160, 60, 1440, 780)),
 }
 
 

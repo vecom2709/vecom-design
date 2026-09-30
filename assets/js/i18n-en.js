@@ -166,7 +166,7 @@ window.VECOM_I18N.en = {
       demo_gastro_b: "Restaurants", demo_gastro_t: "A table for two, laid", demo_gastro_x: "Real time · 4.3 MB",
       demo_salon_b: "Hair & salon", demo_salon_t: "Your new colour from every side", demo_salon_x: "6 colours · no graphics card needed",
       hf_kicker: "Hair & salon · colour advice", hf_h: "The new hair colour — before you sit in the chair.", hf_text: "Anyone changing colour wonders how it looks from behind, from the side, in the light. Here you see it on real hair rendered strand by strand, pick your colour and book with it straight away.", ar_knopf: "See it in your room (AR)", hf_kunde: "What your client sees: book with this colour", hf_cta: "Colour advice for my salon", hf_farbe: "Colour", hf_ziehen: "Drag to turn the head", hf_alt: "Long chestnut hair seen from behind on a training head, rendered with Blender Cycles", hf_nachweis: "Hair, head and cape modelled by Vecom Design: 110,000 strands as curves, physical hair shader (melanin), rendered with Blender Cycles.",
-      demo_lkw_b: "Logistics", demo_lkw_t: "Articulated lorry", demo_lkw_x: "Real time · 2.5 MB",
+      demo_lkw_b: "Logistics", demo_lkw_t: "Articulated lorry", demo_lkw_x: "Real time · 3.3 MB",
       pd_auswahl: "Product", pd_ansicht: "View", pd_nachweis: "Models and labels designed by Vecom Design, rendered with Blender Cycles. Locations, light and furniture: Poly Haven (CC0).",
       demo_tisch_b: "Furniture", demo_tisch_t: "Table to turn", demo_tisch_x: "36 images · no graphics card",
       tiefer_t: "Technology, comparison, streaming",

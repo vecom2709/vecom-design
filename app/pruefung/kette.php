@@ -6592,6 +6592,10 @@ pruefe('das goldene V steht ab dem ersten Bild im Hero (Endbild des Intros, vorr
 $echtzeit_ = (string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js");
 pruefe('am echten Ort wird die Sonne aus dem Rundumbild geloest und als eigenes Licht mit Schatten gesetzt (kein fleckiger Lack)',
     str_contains($echtzeit_, 'function sonneAbtrennen(') && str_contains($echtzeit_, 'sonnenLicht.castShadow = true;'));
+$lkwK_ = json_decode((string) @file_get_contents("$oben/assets/3d/branchen/lkw/kamera.json"), true);
+pruefe('LKW im Web: Scheinwerferglas klar, Innenraum gedaempft (keine milchigen Leuchten, kein ausgeleuchtetes Fahrerhaus)',
+    ($lkwK_['web_material']['Glas Leuchte']['klarglas'] ?? null) !== null && ($lkwK_['web_material']['Innenverkleidung']['umgebung'] ?? 1) < 0.5
+    && str_contains($echtzeit_, 'wm.klarglas'));
 pruefe('die neuen Automodelle werden angenommen', Bedarf::demoPruefen('kleinwagen-azzurro') === 'kleinwagen-azzurro'
     && Bedarf::demoPruefen('mittelklasse-blunotte') === 'mittelklasse-blunotte');
 pruefe('fremde Lacke der Automodelle werden abgewiesen', Bedarf::demoPruefen('kleinwagen-karmin') === ''

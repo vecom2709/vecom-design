@@ -84,6 +84,16 @@ ORTE = {
                              rauheit='granular_concrete_rough_2k.jpg', normal='granular_concrete_nor_gl_2k.jpg',
                              groesse=(1.6, 0.5, 0.45), kachel_m=2.4, rau=(0.55, 0.9), fase=0.006),
                   belichtung=0.0),
+    # Salon (30.09.2026): Friseurstuhl in einem hellen Laden statt im Studio.
+    # Reihe decor_shop (dunkel, Ziegel, wirkte altmodisch) gegen comfy_cafe:
+    # gewaehlt comfy_cafe, Drehung 315 -- weisse Ziegelwand, Fenster mit
+    # Gruen. Boden echt (Marmor), damit der Stuhl steht statt schwebt.
+    'salon': dict(hdri='comfy_cafe_4k.exr', dreh=315.0, staerke=1.0,
+                  kamera=dict(winkel=-32.0, hoehe=1.25, lens=50.0, ziel_hoehe=0.55, fuellung=0.55, blende=4.0),
+                  fussboden=dict(ordner=r'polyhaven\marble_01', farbe='marble_01_diff_2k.jpg',
+                                 rauheit='marble_01_rough_2k.jpg', normal='marble_01_nor_gl_2k.jpg',
+                                 groesse=12.0, kachel_m=1.2),
+                  belichtung=0.0),
     # LKW: Sattelzug auf einem asphaltierten Hof mit Halle (driving_school,
     # Drehung 315; tank_farm und Landstrasse verworfen, Reihe 29.09.2026).
     'lkw': dict(hdri='driving_school_4k.exr', dreh=315.0, staerke=1.0, schmutz=dict(staerke=1.0, bis=1.25),

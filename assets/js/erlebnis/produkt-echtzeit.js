@@ -376,6 +376,13 @@ export async function erstellen({
        der Umgebung (wie eine Flagge am Set). */
     const wm = K.web_material && m && K.web_material[m.name];
     if (wm && wm.umgebung !== undefined) m.envMapIntensity = wm.umgebung;
+    /* "klarglas": duenne Deckscheiben (LKW-Scheinwerfer) als leicht
+       getoentes Glas statt Transmission -- die Transmission rechnet aus
+       einem unscharfen Zwischenbild und machte die Scheibe milchig grau
+       (Probe 30.09.2026). Wert = Deckkraft. */
+    if (wm && wm.klarglas !== undefined) {
+      m.transmission = 0; m.transparent = true; m.opacity = wm.klarglas; m.depthWrite = false; m.needsUpdate = true;
+    }
     /* "spiegel_dunkel": Die Softboxen der Echtzeit sind Flaechenlichter --
        ein Metallspiegel zeigt sie als weisses Viereck, und three.js kann ein
        Licht nicht fuer ein Material ausnehmen. Das Foto zeigt den Spiegel
