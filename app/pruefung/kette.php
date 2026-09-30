@@ -6584,6 +6584,11 @@ foreach (['auto', 'kleinwagen', 'mittelklasse', 'schuh'] as $m_) {
 pruefe('Autos und Laufschuh stehen am echten Ort (Hintergrund und Kontaktschatten vorhanden)', $ortAutos);
 pruefe('am echten Ort baut die Echtzeit keinen Bodenspiegel',
     str_contains((string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js"), 'if (ORT) an = false;'));
+$heroHtml_ = (string) @file_get_contents("$oben/index.html");
+pruefe('das goldene V steht ab dem ersten Bild im Hero (Endbild des Intros, vorrangig geladen)',
+    str_contains($heroHtml_, '<picture class="hero-marke"') && str_contains($heroHtml_, 'fetchpriority="high"')
+    && is_file("$oben/assets/img/3d/hero-marke-quer.avif") && is_file("$oben/assets/img/3d/hero-marke-hoch.avif")
+    && str_contains((string) @file_get_contents("$oben/assets/css/app.css"), 'html.im-hero .stage { opacity: 0 !important; }'));
 pruefe('die neuen Automodelle werden angenommen', Bedarf::demoPruefen('kleinwagen-azzurro') === 'kleinwagen-azzurro'
     && Bedarf::demoPruefen('mittelklasse-blunotte') === 'mittelklasse-blunotte');
 pruefe('fremde Lacke der Automodelle werden abgewiesen', Bedarf::demoPruefen('kleinwagen-karmin') === ''

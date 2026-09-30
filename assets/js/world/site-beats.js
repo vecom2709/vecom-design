@@ -158,13 +158,25 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
 
   /* Eröffnungsflug: einmal beim Laden von weit außen an die Marke heran.
      Danach übernimmt das Scrollen. */
-  applyTween(OPENING, true);
-
-  /* Aufbau der Bühne: Die Marke materialisiert sich, statt einfach da zu sein.
-     Zwei Sekunden, die den Ton setzen. */
-  w.logo.scale.setScalar(0.55);
-  gsap.to(w.logo.scale, { x: 1.75, y: 1.75, z: 1.75, duration: 2.2, ease: 'expo.out', delay: 0.15 });
-  gsap.fromTo(w.mat, { emissiveIntensity: 1.4 }, { emissiveIntensity: 0, duration: 1.9, ease: 'power2.out', delay: 0.15 });
+  /* SOFORT IM HERO (30.09.2026, Uwe: „das goldene V wird nicht direkt am
+     Anfang so dargestellt“). Vorher flog die Kamera 3,4 s von weit ausserhalb
+     des Nebels heran, die Marke wuchs von 0,55 auf 1,75, drehte sich
+     zweieinhalbmal und zersprang -- das fertige Bild stand erst nach rund
+     4,6 s. Jetzt steht es im ersten Bild: dieselbe Kamera, dieselbe Lage
+     wie das gerechnete Standbild, das bis dahin im Hero liegt (app.css,
+     .buehne-standbild). Die Leinwand blendet darueber ein, ohne Sprung. */
+  applyTween(BEATS[0], true);
+  {
+    const b0 = BEATS[0];
+    w.camGoal.set(b0.cam[0] * k, b0.cam[1], b0.cam[2] * zk);
+    w.lookGoal.set(b0.look[0] * k, b0.look[1], b0.look[2]);
+    w.camera.position.copy(w.camGoal);
+    w.camTarget.copy(w.lookGoal);
+    w.camera.lookAt(w.camTarget);
+    w.logoRig.position.set(b0.pos[0] * k, b0.pos[1], b0.pos[2]);
+    w.logoRig.rotation.set(b0.rotX, b0.rotY, 0);
+    w.scene.fog.density = b0.fog;
+  }
 
   /* --------------------------------------------------------------------
      Der Auftakt. Die Marke fährt heran, zieht an, zerspringt — und setzt
@@ -187,7 +199,9 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
   };
 
   const opening = gsap.timeline();
-  opening.call(() => applyOpening(), null, 0.25);
+  opening.call(() => applyOpening(), null, 0);
+  /* Der Bruch-Auftakt bleibt im Code, laeuft aber nicht mehr beim Laden (s. oben). */
+  const AUFTAKT = false;
 
   /* Lief der Film, hat der Besucher den Bruch gerade gesehen. Dann faellt die
      Echtzeit-Fassung aus: sonst zerspringt die Marke zweimal hintereinander,
@@ -197,7 +211,7 @@ export function bindSiteBeats({ world, gsap, ScrollTrigger }) {
     try { return sessionStorage.getItem('vd-auftakt') === '1'; } catch (e) { return false; }
   })();
 
-  if (!filmLief && w.bruchMesh && w.bruchU) {
+  if (AUFTAKT && !filmLief && w.bruchMesh && w.bruchU) {
     const U = w.bruchU;
     opening
       /* Anziehen. Eigener Griff, nicht extraRot: den setzt der Schluss-Trigger

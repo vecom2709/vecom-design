@@ -20,6 +20,23 @@ const saveData = navigator.connection && navigator.connection.saveData;
 const coarse = window.matchMedia('(pointer: coarse)').matches;
 const weak = coarse && ((navigator.deviceMemory || 4) < 4 || (navigator.hardwareConcurrency || 4) < 6);
 
+/* DER HERO GEHOERT DEM GERECHNETEN V (30.09.2026)
+   Auf der Startseite steht im Hero das Bild aus dem Intro-Film (.hero-marke).
+   Solange der Hero ueberwiegend im Bild ist, bleibt die Echtzeit-Buehne
+   dahinter unsichtbar (app.css: html.im-hero .stage) und blendet erst ein,
+   wenn man weiterscrollt. Die Klasse setzt schon der Kopf der Seite, damit
+   im allerersten Bild kein zweites V aufblitzt. */
+{
+  const marke = document.querySelector('.hero-marke');
+  const heroEl = marke && marke.closest('.hero');
+  if (heroEl && 'IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => root.classList.toggle('im-hero', e.intersectionRatio > 0.42),
+      { threshold: [0, 0.2, 0.42, 0.6, 1] }).observe(heroEl);
+  } else {
+    root.classList.remove('im-hero');
+  }
+}
+
 function off(reason) {
   root.setAttribute('data-world', reason);
   if (canvas) canvas.hidden = true;

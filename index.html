@@ -46,6 +46,8 @@
    und nicht öfter als einmal in 30 Tagen. ?intro=1 erzwingt, ?intro=0 nicht. */
 (function () { try {
   var q = location.search, d = document.documentElement, n = navigator, c = n.connection || {};
+  /* Hero mit dem gerechneten V: Echtzeit-Buehne bis zum Weiterscrollen aus (site-world.js) */
+  d.classList.add('im-hero');
   var zwang = /[?&]intro=1/.test(q);
   var an = zwang || (!/[?&]intro=0/.test(q) && !location.hash
     && !matchMedia('(prefers-reduced-motion: reduce)').matches && !c.saveData
@@ -57,7 +59,7 @@
 } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=a7e6f7d5">
+<link rel="stylesheet" href="assets/css/app.css?v=57b144c0">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
 <link rel="stylesheet" href="assets/css/edel.css?v=b09873c8">
 <link rel="stylesheet" href="assets/css/vorschau.css?v=d4f9bf8a">
@@ -340,10 +342,6 @@
      versteht nicht jeder Browser, und wer es nicht versteht, bekam gar
      kein Bild -- ausgerechnet in dem Zustand, der fuer die schwachen
      Geraete gedacht ist. Ein <picture> kann jeder. -->
-<picture class="buehne-standbild" aria-hidden="true">
-  <source srcset="assets/img/3d/buehne-standbild.avif?v=8faafe55" type="image/avif">
-  <img src="assets/img/3d/buehne-standbild.webp?v=3c438ac4" alt="" width="1920" height="1080" decoding="async">
-</picture>
 <div class="world-scrim" aria-hidden="true"></div>
 <div class="world-cut" aria-hidden="true"></div>
 
@@ -401,6 +399,17 @@
 
 <!-- ===================== Hero ===================== -->
 <section class="hero hero--b">
+  <!-- DAS GOLDENE V AB DEM ERSTEN BILD (30.09.2026, Uwe: „das goldene V wird
+       nicht direkt am Anfang so dargestellt“). Letztes Bild des Intro-Films
+       „Gegossenes Gold“ (Cycles), als Bild im Hero: steht ohne JavaScript und
+       ohne WebGL sofort da, der Film endet genau darauf. Die Echtzeit-Marke
+       uebernimmt erst unterhalb des Hero. -->
+  <picture class="hero-marke" aria-hidden="true">
+    <source media="(max-width: 899px)" type="image/avif" srcset="assets/img/3d/hero-marke-hoch.avif?v=f23c7280">
+    <source media="(max-width: 899px)" type="image/webp" srcset="assets/img/3d/hero-marke-hoch.webp?v=fa71bce7">
+    <source type="image/avif" srcset="assets/img/3d/hero-marke-quer.avif?v=a7c5a2a2">
+    <img src="assets/img/3d/hero-marke-quer.webp?v=d7d72e3b" alt="" width="1920" height="1080" fetchpriority="high" decoding="async">
+  </picture>
   <div class="hero__light" aria-hidden="true"></div>
 
   <!-- AUFMACHER (Umbau 24.09.2026, Richtung B „Magazin“ in Blau): eine
@@ -1677,7 +1686,7 @@
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
 <script src="assets/js/start.js?v=85b25e6a" defer></script>
-<script type="module" src="assets/js/world/site-world.js?v=b6944826"></script>
+<script type="module" src="assets/js/world/site-world.js?v=f5ca8fc0"></script>
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
      Vorrang, und auf schwachen Geraeten laeuft er gar nicht erst an. -->
