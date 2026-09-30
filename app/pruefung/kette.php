@@ -15682,8 +15682,9 @@ pruefe('Migration 113: alter Wortlaut wird gesiezt, selbst geänderte Texte blei
     && Db::wert("SELECT text_de FROM bausteine WHERE slug = 'express'") === 'Eigener Text von Uwe, du bleibst.'
     && (!$siePaket || str_contains((string) json_decode((string) Db::wert('SELECT texte FROM packages WHERE id = ?', [(int) $siePaket['id']]), true)['de']['features'][0], 'Sie schreiben mir')));
 Db::update('bausteine', (int) $sieB['id'], ['text_de' => $sieB['text_de']]);
-pruefe('Die Fußzeile der Website führt zum Telegram-Bot (mit ?start=web)',
-    str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  'https://t.me/VecomDesignBot?start=web'"));
+pruefe('Die Fußzeile der Website führt zum öffentlichen Telegram-Kanal (ein Symbol, nicht Kanal und Bot)',
+    str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  'https://t.me/vecomdesign'")
+    && !str_contains((string) file_get_contents($oben . '/assets/js/social.js'), 'VecomDesignBot'));
 
 /* ============================================================================
    Aufräumen und Bilanz

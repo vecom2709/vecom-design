@@ -1275,9 +1275,10 @@ window.VECOM_SOCIAL = {
   tiktok:    '',
   x:         'https://x.com/vecomdesign',
   youtube:   'https://www.youtube.com/@vecomdesign',
-  // Der Bot (30.09.2026): Preis-Richtwert, Anfrage, persönliche Beratung.
-  // ?start=web: In der Verwaltung ist sichtbar, dass jemand über die Website kam.
-  telegram:  'https://t.me/VecomDesignBot?start=web',
+  // Der Kanal (30.09.2026): Die Symbole hier sind Profile zum Folgen —
+  // der Bot wäre auf der Website doppelt (der Baukasten steht schon hier).
+  // Jeder Kanalbeitrag trägt einen Knopf in den Bot, die Beschreibung auch.
+  telegram:  'https://t.me/vecomdesign',
 };
 
 (function () {
