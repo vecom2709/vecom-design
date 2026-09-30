@@ -4320,6 +4320,15 @@ switch ($route) {
         ]);
         break;
 
+    case 'marketing':   // Marketing · Überblick (Growth Engine Phase 2, 30.09.2026, Uwe: „Alles ja“)
+        require_once __DIR__ . '/src/MkKennzahlen.php';
+        $mkZ = MkKennzahlen::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
+        ansicht('marketing', [
+            'z' => $mkZ, 'd' => MkKennzahlen::ueberblick($mkZ),
+            'sicht' => ($_GET['sicht'] ?? '') === 'chef' ? 'chef' : 'alles',
+        ]);
+        break;
+
     case 'statistiken':
         require_once __DIR__ . '/src/Statistik.php';
         require_once __DIR__ . '/src/Zugang.php';

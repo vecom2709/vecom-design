@@ -5256,14 +5256,16 @@ pruefe('die Rückfragen gehen an den Browser',
 pruefe('und werden über das Feld „tat“ zugeordnet',
     str_contains($rfLayout, "f.querySelector('input[name=\"tat\"]')"));
 
-/* ---------- Die fünf Türen ---------------------------------------------- */
+/* ---------- Die Türen ----------------------------------------------------
+   Fünf seit dem 13.09.2026, sechs seit dem 30.09.2026: „Marketing“ (Growth
+   Engine, Uwe: „Alles ja“) steht zwischen „Kunden“ und „Geld“. */
 preg_match('~\$menue = \[(.*?)\n\];~s', $rfLayout, $mM);
 $mText = $mM[1] ?? '';
 preg_match_all("~^  \['([a-z]+)', '([^']+)'~m", $mText, $mT);
 $mTueren = $mT[2] ?? [];
-pruefe('es sind fünf Türen', count($mTueren) === 5, implode(' · ', $mTueren));
+pruefe('es sind sechs Türen', count($mTueren) === 6, implode(' · ', $mTueren));
 pruefe('und sie heißen nach dem, was man tut',
-    $mTueren === ['Heute', 'Kunden', 'Geld', 'Bauen', 'Einstellungen'],
+    $mTueren === ['Heute', 'Kunden', 'Marketing', 'Geld', 'Bauen', 'Einstellungen'],
     implode(' · ', $mTueren));
 
 /* Jede Seite, die es vorher im Menue gab, muss hinter genau einer Tuer
@@ -5274,7 +5276,7 @@ $mFrueher = ['heute', 'vorgaenge', 'nachrichten', 'werkstatt', 'bedarf', 'angebo
              'rechnungen', 'empfehlungen', 'anfragen', 'standard', 'muster', 'onboarding',
              'zahlungen', 'ausgaben', 'abos', 'finanzamt', 'pakete', 'baukasten',
              'stimmen', 'dateien', 'dashboard', 'monitoring', 'telefon', 'aktivitaeten',
-             'benachrichtigungen', 'einstellungen', 'kunden', 'partner', 'bereit'];
+             'benachrichtigungen', 'einstellungen', 'kunden', 'partner', 'bereit', 'marketing'];
 
 /* ---------- Jeder Menüpunkt muss auch ankommen --------------------------
    Am 13.09.2026 beim Durchrendern gefunden: „Ausgaben", „Betreuung",
@@ -16246,6 +16248,156 @@ pruefe('Tracking: Geo-Daten liegen geschützt unter app/data (nicht aus dem Netz
     is_file($wurzel . '/data/geo.bin') && trim((string) file_get_contents($wurzel . '/data/.htaccess')) === 'Require all denied' && str_contains((string) file_get_contents($wurzel . '/data/LIESMICH.txt'), 'Creative Commons') && str_contains((string) file_get_contents($wurzel . '/data/LIESMICH.txt'), 'DB-IP'));
 [$_COOKIE, $spSn] = $spAlt; if ($spSn === null) { unset($_SERVER['SCRIPT_NAME']); } else { $_SERVER['SCRIPT_NAME'] = $spSn; }
 Spur::vergessen();
+
+/* ============================================================================
+   Marketing · Überblick (Growth Engine Phase 2, 30.09.2026, Uwe: „Alles ja“)
+   Nur vorhandene Daten: Zeitraum mit Vergleich, Aufrufe aus der CSV, Leads
+   einmal je Adresse beim ersten Auftauchen, Umsatz ohne Beispieldaten,
+   Kosten aus den Ausgaben „Werbung“, Hinweise nur aus Regeln mit Zahlen.
+   ============================================================================ */
+abschnitt('Marketing: Überblick aus vorhandenen Daten');
+require_once $wurzel . '/src/MkKennzahlen.php';
+
+/* Zeitraum und Vergleich */
+$mkT = '2026-09-30';
+pruefe('Marketing: 30 Tage mit gleich langem Vergleich direkt davor',
+    MkKennzahlen::zeitraum('30', '', '', $mkT) === ['2026-09-01', '2026-09-30', '30', '2026-08-02', '2026-08-31']);
+pruefe('Marketing: Quartal und Jahr beginnen am richtigen Tag',
+    MkKennzahlen::zeitraum('quartal', '', '', $mkT)[0] === '2026-07-01' && MkKennzahlen::zeitraum('jahr', '', '', $mkT)[0] === '2026-01-01'
+    && MkKennzahlen::zeitraum('quartal', '', '', '2026-02-10')[0] === '2026-01-01');
+pruefe('Marketing: letzter Monat vergleicht mit dem Monat davor (gleich viele Tage zurück)',
+    MkKennzahlen::zeitraum('vormonat', '', '', $mkT) === ['2026-08-01', '2026-08-31', 'vormonat', '2026-07-01', '2026-07-31']);
+pruefe('Marketing: freier Zeitraum wird geordnet, Unsinn fällt auf 30 Tage zurück',
+    array_slice(MkKennzahlen::zeitraum('frei', '2026-09-20', '2026-09-10', $mkT), 0, 3) === ['2026-09-10', '2026-09-20', 'frei']
+    && MkKennzahlen::zeitraum('frei', "x' OR 1", '', $mkT)[0] === '2026-09-01'
+    && MkKennzahlen::zeitraum('quatsch', '', '', $mkT)[2] === '30');
+
+/* Wer hat verwiesen? */
+$mkP = static fn(string $h): string => MkKennzahlen::plattform($h)[0];
+pruefe('Marketing: Herkunft wird zur Plattform — Instagram, Facebook, Google, KI-Assistent, E-Mail, direkt',
+    $mkP('l.instagram.com') === 'Instagram' && $mkP('lm.facebook.com') === 'Facebook' && $mkP('google.de') === 'Google'
+    && $mkP('gemini.google.com') === 'KI-Assistent' && $mkP('chatgpt.com') === 'KI-Assistent' && $mkP('com.google.android.gm') === 'E-Mail'
+    && $mkP('') === 'Direkt / unbekannt' && $mkP('t.me') === 'Telegram' && $mkP('beispiel.it') === 'beispiel.it'
+    && MkKennzahlen::plattform('beispiel.it')[1] === 'verweis');
+pruefe('Marketing: Branchenseiten werden erkannt, die Startseite nicht',
+    MkKennzahlen::istLandingpage('/siti-web-ristoranti.html') && MkKennzahlen::istLandingpage('/de/website-friseur.html')
+    && MkKennzahlen::istLandingpage('/en/websites-transport.html') && MkKennzahlen::istLandingpage('/siti-web/ristoranti-agrigento')
+    && !MkKennzahlen::istLandingpage('/de/') && !MkKennzahlen::istLandingpage('/prezzi.html'));
+
+/* Aufrufe aus der Zähldatei — alte Zeilen mit vier Spalten zählen mit */
+$mkW = sys_get_temp_dir() . '/vd-mk-' . getmypid();
+@mkdir($mkW);
+file_put_contents($mkW . '/besuche.csv',
+    "2026-08-20\t10\tgoogle.it\tHandy\n"                                          // Vergleichszeitraum
+  . "2026-09-02\t09\t\tRechner\n"                                                 // alte Zeile, direkt
+  . "2026-09-10\t11\tl.instagram.com\tHandy\t/siti-web-ristoranti.html\tinsta01\n"
+  . "2026-09-10\t12\tl.instagram.com\tHandy\t/prezzi.html\tinsta01\n"
+  . "2026-09-29\t15\tgoogle.it\tRechner\t/de/website-friseur.html\t\n"
+  . "2026-09-30\t08\tchatgpt.com\tRechner\t/\t\n"
+  . "kaputt\n"
+  . "2026-10-01\t08\tgoogle.it\tRechner\t/\t\n");                                // Zukunft: nie
+file_put_contents($mkW . '/demo.csv', "2026-09-10\t10\tzugang-hero\tHandy\n2026-09-11\t10\tzugang-hero\tRechner\n2026-09-12\t10\twhatsapp\tHandy\n2026-09-12\t10\tvilla-licht\tHandy\n");
+$mkZ = MkKennzahlen::zeitraum('30', '', '', $mkT);
+$mkA = MkKennzahlen::aufrufe($mkZ, $mkW, $mkT);
+pruefe('Marketing: Aufrufe im Zeitraum, im Vergleich, heute, 7 und 30 Tage — Zukunft und kaputte Zeilen zählen nicht',
+    $mkA['summe'] === 5 && $mkA['vorher'] === 1 && $mkA['heute'] === 1 && $mkA['tage7'] === 2 && $mkA['tage30'] === 5, json_encode([$mkA['summe'], $mkA['vorher'], $mkA['heute'], $mkA['tage7'], $mkA['tage30']]));
+pruefe('Marketing: Aufschlüsselung nach Plattform, Branchenseite und Kampagnen-Kennung',
+    $mkA['plattformen']['Instagram'] === 2 && $mkA['plattformen']['Direkt / unbekannt'] === 1 && $mkA['plattformen']['KI-Assistent'] === 1
+    && array_key_first($mkA['plattformen']) === 'Instagram' && count($mkA['landing']) === 2 && $mkA['kampagnen'] === ['insta01' => 2] && $mkA['mit_kampagne'] === 2);
+pruefe('Marketing: ohne Zähldatei leer statt Fehler', MkKennzahlen::aufrufe($mkZ, $mkW . '/gibtsnicht', $mkT)['da'] === false);
+pruefe('Marketing: Knöpfe zum Kontakt aus demo.csv, Demo-Ereignisse zählen nicht mit',
+    MkKennzahlen::knoepfe('2026-09-01', '2026-09-30', $mkW) === ['zugang-hero' => 2, 'whatsapp' => 1]);
+@unlink($mkW . '/besuche.csv'); @unlink($mkW . '/demo.csv'); @rmdir($mkW);
+
+/* Der Erste — mit dem Hinweis, ob die Menge reicht */
+$mkE = MkKennzahlen::erster(['a' => 3, 'b' => 7, 'c' => 0]);
+pruefe('Marketing: „der Beste“ nennt Zweiten, Summe und „wenige Daten“; eine leere Liste hat keinen Besten',
+    $mkE['name'] === 'b' && $mkE['zweiter'] === 'a' && $mkE['summe'] === 10 && $mkE['wenig'] === true
+    && MkKennzahlen::erster(['x' => 0]) === null && MkKennzahlen::erster(['x' => 25])['wenig'] === false);
+pruefe('Marketing: Trend und Anteil ohne Basis sind leer, nicht unendlich',
+    MkKennzahlen::trend(5, 0) === null && MkKennzahlen::trend(15, 10) === 50.0 && MkKennzahlen::quote(1, 0) === null && MkKennzahlen::quote(1, 4) === 25.0);
+
+/* Leads: einmal je Adresse, beim ersten Auftauchen; Beispieldaten nie */
+$mkZj = MkKennzahlen::zeitraum('30');
+$mkVor = MkKennzahlen::leads($mkZj);
+$mkJetzt = static fn(int $tage): string => date('Y-m-d H:i:s', time() - $tage * 86400);
+Db::insert('zugaenge', ['token' => bin2hex(random_bytes(24)), 'email' => 'mk-a@probe.example', 'quelle' => 'seite', 'created_at' => $mkJetzt(5)]);
+Db::insert('anfragen', ['name' => 'MK A', 'email' => 'MK-A@probe.example ', 'sprache' => 'de', 'created_at' => $mkJetzt(2)]);
+Db::insert('akq_checks', ['token' => bin2hex(random_bytes(16)), 'firma' => 'MK B', 'url' => 'https://b.example', 'host' => 'b.example', 'email' => 'mk-b@probe.example', 'ergebnis' => '{}', 'created_at' => $mkJetzt(3)]);
+Db::insert('bedarf', ['token' => bin2hex(random_bytes(24)), 'email' => 'mk-c@probe.example', 'demo' => 1, 'created_at' => $mkJetzt(3)]);
+Db::insert('zugaenge', ['token' => bin2hex(random_bytes(24)), 'email' => 'mk-d@probe.example', 'quelle' => 'vorschau', 'created_at' => $mkJetzt(200)]);
+Db::insert('anfragen', ['name' => 'MK D', 'email' => 'mk-d@probe.example', 'sprache' => 'de', 'created_at' => $mkJetzt(1)]);
+Db::insert('akq_termine', ['token' => bin2hex(random_bytes(16)), 'beginn' => date('Y-m-d 09:00:00', time() + 86400 * 40), 'ende' => date('Y-m-d 09:30:00', time() + 86400 * 40),
+    'belegt' => 1, 'thema' => 'sonst', 'email' => 'mk-e@probe.example', 'created_at' => $mkJetzt(4)]);
+$mkNach = MkKennzahlen::leads($mkZj);
+$mkWeg = static fn(string $w): int => (int) ($mkNach['wege'][$w] ?? 0) - (int) ($mkVor['wege'][$w] ?? 0);
+pruefe('Marketing: drei neue Leads — dieselbe Adresse in zwei Formularen einmal, Beispieldaten nie, ein alter Kontakt ist kein neuer Lead',
+    $mkNach['neu'] - $mkVor['neu'] === 3, ($mkNach['neu'] - $mkVor['neu']) . ' statt 3');
+pruefe('Marketing: qualifiziert ist, wer weiter ging (Anfrage, Termin) — der Website-Check allein nicht',
+    $mkNach['qualifiziert'] - $mkVor['qualifiziert'] === 2, ($mkNach['qualifiziert'] - $mkVor['qualifiziert']) . ' statt 2');
+pruefe('Marketing: ein Lead zählt unter dem Weg, auf dem er zuerst kam',
+    $mkWeg('E-Mail auf der Website') === 1 && $mkWeg('Website-Check') === 1 && $mkWeg('Terminbuchung') === 1 && $mkWeg('Kontaktformular') === 0);
+
+/* Geld: Umsatz ohne Beispieldaten, neue Kunden bei der ersten Zahlung, Kosten aus „Werbung“ */
+$mkGv = MkKennzahlen::geld($mkZj);
+$mkK = (int) Db::insert('customers', ['name' => 'MK Kunde', 'email' => 'mk-kunde@probe.example', 'industry' => 'Ristorante MK', 'city' => 'Sciacca']);
+$mkO = (int) Db::insert('orders', ['order_no' => 'MK-' . random_int(10000, 99999), 'customer_id' => $mkK, 'package_name' => 'Probe', 'price_cents' => 340000, 'status' => 'bezahlt']);
+Db::insert('payments', ['order_id' => $mkO, 'amount_cents' => 170000, 'status' => 'bezahlt', 'paid_at' => $mkJetzt(1)]);
+Db::insert('payments', ['order_id' => $mkO, 'amount_cents' => 99900, 'status' => 'bezahlt', 'paid_at' => $mkJetzt(1), 'demo' => 1]);
+Db::insert('ausgaben', ['beleg_nr' => 'MK-1', 'datum' => date('Y-m-d', time() - 86400), 'lieferant' => 'Meta Ads MK', 'kategorie' => 'werbung', 'netto_cents' => 10000, 'steuer_cents' => 2200, 'brutto_cents' => 12200]);
+Db::insert('ausgaben', ['beleg_nr' => 'MK-2', 'datum' => date('Y-m-d', time() - 86400), 'lieferant' => 'Adobe MK', 'kategorie' => 'software', 'netto_cents' => 5000, 'brutto_cents' => 6100]);
+$mkGn = MkKennzahlen::geld($mkZj);
+pruefe('Marketing: Umsatz zählt bezahlte Zahlungen, Beispieldaten nie',
+    $mkGn['umsatz'] - $mkGv['umsatz'] === 170000, (string) ($mkGn['umsatz'] - $mkGv['umsatz']));
+pruefe('Marketing: neuer Kunde ab der ersten bezahlten Zahlung; Auftragswert aus den Aufträgen',
+    $mkGn['kunden'] - $mkGv['kunden'] === 1 && $mkGn['auftraege'] - $mkGv['auftraege'] === 1);
+pruefe('Marketing: Marketingkosten nur aus Ausgaben „Werbung“, netto',
+    $mkGn['kosten'] - $mkGv['kosten'] === 10000 && in_array('Meta Ads MK', array_column($mkGn['kosten_je_anbieter'], 'wert'), true)
+    && !in_array('Adobe MK', array_column($mkGn['kosten_je_anbieter'], 'wert'), true));
+$mkNa = MkKennzahlen::umsatzNach($mkZj[0], $mkZj[1]);
+pruefe('Marketing: Umsatz nach Branche und Ort aus der Kundenakte',
+    in_array('Ristorante MK', array_column($mkNa['branche'], 'wert'), true) && in_array('Sciacca', array_column($mkNa['ort'], 'wert'), true));
+
+/* Hinweise: nur Regeln, jede mit ihrer Zahl */
+$mkLeer = ['aufrufe' => ['summe' => 0, 'vorher' => 0, 'mit_kampagne' => 0, 'plattformen' => []],
+    'schritte' => ['rechner_begonnen' => 0, 'rechner_fertig' => 0, 'checks' => 0, 'checks_kontakt' => 0],
+    'leads' => ['neu' => 0, 'qualifiziert' => 0], 'geld' => ['kosten' => 0],
+    'offen' => ['anfragen' => 0, 'angebote' => 0, 'bedarf' => 0, 'termine_morgen' => 0]];
+pruefe('Marketing: ohne Daten keine erfundenen Hinweise', MkKennzahlen::hinweise($mkLeer) === ['probleme' => [], 'empfehlungen' => []]);
+$mkH = $mkLeer;
+$mkH['schritte']['rechner_begonnen'] = 10; $mkH['schritte']['rechner_fertig'] = 2;
+$mkH['aufrufe'] = ['summe' => 200, 'vorher' => 400, 'mit_kampagne' => 4, 'plattformen' => ['Google' => 200]];
+$mkH['geld']['kosten'] = 5000; $mkH['offen']['anfragen'] = 2;
+$mkHi = MkKennzahlen::hinweise($mkH);
+$mkHp = implode(' | ', $mkHi['probleme']); $mkHe = implode(' | ', $mkHi['empfehlungen']);
+pruefe('Marketing: Probleme nennen ihre Zahl — Rechner-Abbruch, Einbruch der Aufrufe, Kosten ohne Lead, offene Anfragen',
+    str_contains($mkHp, '10 begonnen, 2 abgeschlossen — 80 %') && str_contains($mkHp, '50 % unter dem Vergleichszeitraum')
+    && str_contains($mkHp, 'aber kein neuer Lead') && str_contains($mkHp, '2 Kontaktanfragen'), $mkHp);
+pruefe('Marketing: Empfehlungen nennen ihre Zahl — Kampagnen-Kennung, keine sozialen Netzwerke',
+    str_contains($mkHe, 'Nur 4 von 200 Aufrufen') && str_contains($mkHe, 'sozialen Netzwerken'), $mkHe);
+pruefe('Marketing: keine KI, kein Zufall — dieselben Zahlen ergeben dieselben Sätze', MkKennzahlen::hinweise($mkH) === $mkHi);
+
+/* Die Seite selbst */
+$mkIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Marketing: eigene Tür, nur hinter der Anmeldung, nur lesen (keine Aktion im POST-Teil)',
+    str_contains($mkIdx, "case 'marketing':") && strpos($mkIdx, "case 'marketing':") > strpos($mkIdx, 'Auth::nurAdmin()')
+    && preg_match("~case 'marketing_[a-z]+':~", $mkIdx) === 0
+    && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['marketing', 'Marketing', 'marketing', []]"));
+pruefe('Marketing: Hilfesatz vorhanden', Hilfe::satz('marketing') !== '');
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$mkRender = static function (string $sicht) use ($wurzel): string {
+    $z = MkKennzahlen::zeitraum('30'); $d = MkKennzahlen::ueberblick($z);
+    ob_start(); require $wurzel . '/views/marketing.php'; return (string) ob_get_clean();
+};
+$mkFehler = null; set_error_handler(static function (int $n, string $m) use (&$mkFehler): bool { $mkFehler = $m; return true; });
+$mkHtmlA = $mkRender('alles'); $mkHtmlC = $mkRender('chef');
+restore_error_handler();
+pruefe('Marketing: die Seite rendert ohne Warnung — in beiden Ansichten', $mkFehler === null && str_contains($mkHtmlA, 'Weg zum Kunden') && str_contains($mkHtmlA, 'Das Beste im Zeitraum'), (string) $mkFehler);
+pruefe('Marketing: die Chef-Ansicht zeigt Umsatz, Leads, Kunden, Conversion, Kosten, Probleme und Empfehlungen — keine Technik',
+    str_contains($mkHtmlC, 'Chef-Ansicht') && str_contains($mkHtmlC, 'Neue Leads') && str_contains($mkHtmlC, 'Marketingkosten') && str_contains($mkHtmlC, 'Was klemmt')
+    && !str_contains($mkHtmlC, 'Weg zum Kunden') && !str_contains($mkHtmlC, 'Woher diese Zahlen kommen') && !str_contains($mkHtmlC, 'Kampagnen-Kennung (utm_source)'));
+pruefe('Marketing: keine Platzhaltertexte, keine erfundenen Zahlen im Quelltext der Seite',
+    !preg_match('~lorem|ipsum|TODO|beispielwert~i', (string) file_get_contents($wurzel . '/views/marketing.php')));
 
 /* ============================================================================
    Aufräumen und Bilanz

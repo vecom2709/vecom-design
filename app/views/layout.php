@@ -90,6 +90,9 @@ $aktiv = $route ?: 'heute';
 
    NICHTS IST VERSCHWUNDEN. Jede Seite hat ihre Adresse behalten, jede steht
    unter genau einer Tuer, und die Suche oben findet sie ohnehin alle.
+
+   SEIT DEM 30.09.2026 SECHS: „Marketing“ zwischen „Kunden“ und „Geld“
+   (Growth Engine). Siehe dort.
    ========================================================================= */
 
 /* Aufbau: [Ziel, Wort, Schluessel fuer die Zahl, [Unterpunkte]].
@@ -122,6 +125,15 @@ $menue = [
     ['nachrichten', 'Posteingang', 'nachrichten'],
     ['empfehlungen', 'Weiterempfehlung', 'empfehlungen'],
   ]],
+
+  /* MARKETING (30.09.2026, Uwe: „Alles ja“ zur Growth Engine)
+     Die sechste Tuer, und bewusst eine eigene: „Kunden“ ist, wer schon da
+     ist oder gerade gefunden wird; „Marketing“ ist die Frage davor --
+     welche Massnahme bringt Besucher, und wer davon wird Kunde. Die Tuer
+     fuehrt auf den Ueberblick; die weiteren Reiter (Kampagnen, Inhalte,
+     Kanaele …) kommen mit ihren Phasen dazu, keiner als leere Seite vorab.
+     Keine Zahl an der Tuer: Kennzahlen sind Bestand, keine Handlung. */
+  ['marketing', 'Marketing', 'marketing', []],
 
   ['rechnungen', 'Geld', 'rechnungen', [
     ['angebote', 'Angebote', 'angebote'],

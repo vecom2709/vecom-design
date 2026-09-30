@@ -45,6 +45,7 @@ final class Hilfe
         'pakete'             => 'Hier legst du die Pakete an, die Kunden kaufen können.',
         'baukasten'          => 'Hier stellst du die Preise ein, aus denen der Preisrechner den Preis ausrechnet.',
         'telefon'            => 'Hier siehst du Manuelas Gespräche, Rückrufwünsche und Termine — und stellst sie ein.',
+        'marketing'          => 'Hier siehst du, welche Maßnahme Besucher bringt und wer davon Kunde wird — Aufrufe, Leads, Kunden, Umsatz und Kosten aus den vorhandenen Daten, mit dem, was klemmt, und dem, was du tun kannst.',
         'tracking'           => 'Hier siehst du, welcher Partner wen gebracht hat und was daraus wurde — vom Klick über Preisrechner und Anfrage bis zur Zahlung. Anonym, bis jemand selbst seine E-Mail einträgt.',
         'statistiken'        => 'Hier siehst du, wie viele Besucher kommen, woher, auf welche Seite — und was sie anklicken. Ohne IP, ohne Cookie.',
         'suche'              => 'Hier findest du Kunden, Bestellungen und Angebote über Name, Nummer oder E-Mail.',
