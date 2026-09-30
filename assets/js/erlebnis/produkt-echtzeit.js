@@ -153,6 +153,73 @@ const SPIEGEL = {
     }`,
 };
 
+/* SONNE AUS DEM RUNDUMBILD LÖSEN (30.09.2026)
+   Am echten Ort steckt die Sonne in wenigen Texeln des Rundumbilds: beim
+   Sportwagen 15 von 524 288 Texeln mit 69 % der gesamten Beleuchtung
+   (gemessen, Spitze 9920). PMREM filtert das mit einer festen Zahl von
+   Stichproben je Rauheitsstufe -- ein so heller Punkt zerfällt dabei in
+   Flecken, und genau die lagen als fleckiger Lack auf der Karosserie. Das
+   Foto aus Cycles hat sie nicht, weil Cycles die Sonne als eigene
+   Lichtquelle abtastet.
+
+   Also dasselbe hier: Was um den hellsten Punkt über der Schwelle liegt,
+   wird herausgenommen und als gerichtetes Licht mit genau dieser Energie
+   (Summe L·dω, je Farbkanal) wieder hinzugefügt; das Rundumbild behält den
+   Himmel bis zur Schwelle. Die Gesamtbeleuchtung bleibt gleich, die
+   Spiegelung der Sonne wird ein scharfer Punkt statt eines Flecks, und das
+   Licht wirft einen Schatten wie im Foto. Kein Eingriff, wenn keine
+   kompakte Sonne da ist (bedeckter Himmel, Innenraum, Studio). */
+function sonneAbtrennen(bild, { schwelle = 16, radiusGrad = 6, mindestAnteil = 0.15 } = {}) {
+  const { width: w, height: h, data: d } = bild;
+  const lum = (i) => 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+  let maxL = 0; let maxI = 0; let gesamt = 0;
+  const dOmega = (2 * Math.PI / w) * (Math.PI / h);
+  for (let y = 0; y < h; y++) {
+    const cosB = Math.cos(((y + 0.5) / h - 0.5) * Math.PI);
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4; const l = lum(i);
+      gesamt += l * cosB;
+      if (l > maxL) { maxL = l; maxI = y * w + x; }
+    }
+  }
+  if (maxL < schwelle * 10) return null;
+  // Richtung eines Texels -- dieselbe Abbildung wie equirectUv() in three.js
+  // (flipY: Zeile 0 ist oben)
+  const richtung = (x, y, z = new THREE.Vector3()) => {
+    const u = (x + 0.5) / w; const v = 1 - (y + 0.5) / h;
+    const b = (v - 0.5) * Math.PI; const phi = (u - 0.5) * 2 * Math.PI;
+    return z.set(Math.cos(b) * Math.cos(phi), Math.sin(b), Math.cos(b) * Math.sin(phi));
+  };
+  const kern = richtung(maxI % w, Math.floor(maxI / w));
+  const cosR = Math.cos(THREE.MathUtils.degToRad(radiusGrad));
+  const energie = [0, 0, 0]; const summeR = new THREE.Vector3(); const t = new THREE.Vector3();
+  let entnommen = 0; const treffer = [];
+  for (let y = 0; y < h; y++) {
+    const cosB = Math.cos(((y + 0.5) / h - 0.5) * Math.PI);
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4; const l = lum(i);
+      if (l <= schwelle) continue;
+      if (richtung(x, y, t).dot(kern) < cosR) continue;
+      const k = 1 - schwelle / l;                    // Anteil, der ins Licht wandert
+      const g = dOmega * cosB;
+      for (let c = 0; c < 3; c++) energie[c] += d[i + c] * k * g;
+      summeR.addScaledVector(t, l * k * g); entnommen += l * k * cosB;
+      treffer.push(i, schwelle / l);
+    }
+  }
+  if (entnommen / gesamt < mindestAnteil) return null;
+  for (let j = 0; j < treffer.length; j += 2) {
+    const i = treffer[j]; const f = treffer[j + 1];
+    d[i] *= f; d[i + 1] *= f; d[i + 2] *= f;
+  }
+  const staerke = Math.max(energie[0], energie[1], energie[2]);
+  return {
+    richtung: summeR.normalize(),
+    farbe: new THREE.Color(energie[0] / staerke, energie[1] / staerke, energie[2] / staerke),
+    staerke, anteil: entnommen / gesamt,
+  };
+}
+
 export async function erstellen({
   behaelter, glb, kameraUrl, bodenUrl, einstellungen = { pixel: 1.5, schatten: 0 },
   bezeichnung, beiBewegung, beiRuhe, beiBild, beiAnker, variante = 0, belichtung,
@@ -195,13 +262,24 @@ export async function erstellen({
   const ordner = kameraUrl.replace(/[^/]+$/, '');
   const stand = new URL(kameraUrl, location.href).search;
   const hdrLader = new HDRLoader();
-  async function umgebungLaden(datei) {
+  let sonne = null;
+  async function umgebungLaden(datei, mitSonne = false) {
+    /* Am echten Ort als 32 Bit gelesen, damit die Sonne gemessen und
+       herausgelöst werden kann (siehe sonneAbtrennen); danach wieder auf
+       16 Bit, weil nicht jedes Gerät 32-Bit-Texturen filtern kann. */
+    hdrLader.setDataType(mitSonne ? THREE.FloatType : THREE.HalfFloatType);
     const t = await hdrLader.loadAsync(ordner + datei + stand);
+    if (mitSonne) {
+      sonne = sonneAbtrennen(t.image);
+      const halb = new Uint16Array(t.image.data.length);
+      for (let i = 0; i < halb.length; i++) halb[i] = THREE.DataUtils.toHalfFloat(t.image.data[i]);
+      t.image.data = halb; t.type = THREE.HalfFloatType; t.needsUpdate = true;
+    }
     t.mapping = THREE.EquirectangularReflectionMapping;
     const u = pmrem.fromEquirectangular(t).texture; t.dispose();
     return u;
   }
-  const umgebung = await umgebungLaden(K.umgebung.datei);
+  const umgebung = await umgebungLaden(K.umgebung.datei, !!K.ort && K.web_sonne !== false);
   /* Der Boden sieht die Modelllichter nicht (Lichtverknüpfung in Blender) --
      er bekommt die Umgebung OHNE sie. Mit der vollen Umgebung spiegelte er
      den Deckendiffusor und wurde hellgrau (erster Vergleich am Poster). */
@@ -392,6 +470,33 @@ export async function erstellen({
   const Z_BREITE = (K.zerlegen && K.zerlegen.breite) || 0.34;
   const gesamt = new THREE.Box3().setFromObject(modell);
   const mitte = gesamt.getCenter(new THREE.Vector3());
+
+  /* Die herausgelöste Sonne (siehe sonneAbtrennen). Sie wirft Schatten nur
+     am Modell selbst -- in den Innenraum, in die Radkästen, unter die
+     Schweller --, den Schatten auf dem Boden liefert weiter der gebackene
+     Kontaktschatten aus Blender. Die Schattenkarte wird nur neu gerechnet,
+     wenn sich am Modell etwas bewegt: Die Kamera fährt, das Auto steht. */
+  let sonnenLicht = null; let sonnenStaerke = 0; let nacht = false;
+  if (sonne) {
+    const radius = gesamt.getBoundingSphere(new THREE.Sphere()).radius * 1.6;
+    sonnenStaerke = sonne.staerke * (K.web_sonne_staerke ?? 1);
+    sonnenLicht = new THREE.DirectionalLight(sonne.farbe, sonnenStaerke);
+    sonnenLicht.position.copy(mitte).addScaledVector(sonne.richtung, radius * 3);
+    sonnenLicht.target.position.copy(mitte);
+    sonnenLicht.castShadow = true;
+    Object.assign(sonnenLicht.shadow.camera, { left: -radius, right: radius, top: radius, bottom: -radius, near: radius, far: radius * 5 });
+    sonnenLicht.shadow.bias = -0.0003; sonnenLicht.shadow.normalBias = 0.015; sonnenLicht.shadow.radius = 2;
+    szene.add(sonnenLicht, sonnenLicht.target);
+    modell.traverse((o) => {
+      if (!o.isMesh) return;
+      const m = Array.isArray(o.material) ? o.material[0] : o.material;
+      // Glas laesst die Sonne durch -- sonst laege der Innenraum im Dunkeln
+      const durch = m && (m.transmission > 0 || (m.transparent && m.opacity < 0.95));
+      o.castShadow = !durch; o.receiveShadow = true;
+    });
+    // Nachtansicht und Lichtzelt haben keine Sonne
+    szene.onBeforeRender = () => { sonnenLicht.intensity = (nacht || szene.environment !== umgebung) ? 0 : sonnenStaerke; };
+  }
   const teile = [];
   const anker = new Map();           // Beschriftung -> Teil
   {
@@ -598,7 +703,7 @@ export async function erstellen({
   }
   function ladungSetzen(n) {
     ladePlaetze.forEach((p, i) => { for (const o of p) o.visible = i < n; });
-    if (schattenErlaubt) r.shadowMap.needsUpdate = true;
+    if (r.shadowMap.enabled) r.shadowMap.needsUpdate = true;
     einmal();
   }
   // Start ohne ladungSetzen: dort wird der Schatten angestoßen, und den gibt es hier noch nicht
@@ -1119,14 +1224,20 @@ export async function erstellen({
   function stufeSetzen(e) {
     r.setPixelRatio(Math.min(window.devicePixelRatio || 1, e.pixel));
     // Echtzeitschatten der zerlegten Teile: wie die Spiegelung erst ab HIGH.
-    schattenErlaubt = !!e.spiegel && teile.length > 0;
-    if (schattenErlaubt !== r.shadowMap.enabled) {
-      r.shadowMap.enabled = schattenErlaubt; r.shadowMap.type = THREE.PCFShadowMap;   // PCFSoft ist in r185 abgekuendigt
+    schattenErlaubt = !!e.spiegel && teile.length > 0 && !sonnenLicht;
+    const schattenAn = schattenErlaubt || !!sonnenLicht;
+    if (schattenAn !== r.shadowMap.enabled) {
+      r.shadowMap.enabled = schattenAn; r.shadowMap.type = THREE.PCFShadowMap;   // PCFSoft ist in r185 abgekuendigt
       r.shadowMap.autoUpdate = false; r.shadowMap.needsUpdate = true;
       schattenLicht.castShadow = schattenErlaubt;
       schattenLicht.shadow.mapSize.set(e.pixel >= 2 ? 2048 : 1024, e.pixel >= 2 ? 2048 : 1024);
       schattenFlaeche.material.needsUpdate = true;
     }
+    /* Mit Sonne empfaengt die Schattenflaeche nichts: Sie saehe den ganzen
+       Wagen im Sonnenschatten, und der liegt schon gebacken am Boden. */
+    schattenFlaeche.visible = !sonnenLicht;
+    // 2048 reichen fuer ein Auto (gut 4 mm je Texel); 4096 kostete 64 MB
+    if (sonnenLicht) sonnenLicht.shadow.mapSize.set(2048, 2048);
     // Die Spiegelung rendert das Modell ein zweites Mal -- erst ab HIGH, und
     // nur, wo das Poster eine zeigt (Schuh: rauer Boden, keine Spiegelung).
     spiegelBauen(!!e.spiegel && (K.web_spiegel?.staerke ?? 0.3) > 0);
@@ -1226,7 +1337,7 @@ export async function erstellen({
       else if (T_ZUERST || tablett === 0 || tablettSoll > 0) zerlegt = zerlegtSoll > zerlegt ? Math.min(zerlegtSoll, zerlegt + schritt) : Math.max(zerlegtSoll, zerlegt - schritt);
       zerlegenAnwenden(); rest += Math.abs(zerlegtSoll - zerlegt) + Math.abs(tablettSoll - tablett) + 0.01;
       letzteBewegung = performance.now();
-      if (schattenErlaubt) r.shadowMap.needsUpdate = true;
+      if (r.shadowMap.enabled) r.shadowMap.needsUpdate = true;
     }
     if (weinGlas) {
       // Einschenken: erst wenn die Flasche über dem Glas steht
@@ -1366,7 +1477,7 @@ export async function erstellen({
        Scheinwerfer sind im Modell ohnehin an; ein Schalter "Licht an" hätte
        am hellen Studiobild nichts sichtbar verändert. */
     licht(an) {
-      szene.environmentIntensity = an ? 0.07 : 1;
+      szene.environmentIntensity = an ? 0.07 : 1; nacht = an;
       // Am echten Ort wird es mit dem Raum Abend, nicht nur am Modell
       if (ORT) ortHintergrund.userData.kugel.material.color.setScalar(an ? (ORT.abend ?? 0.1) : 1);
       bodenMat.envMapIntensity = (K.web_boden?.umgebung ?? 1) * (an ? 0.15 : 1);
@@ -1393,7 +1504,7 @@ export async function erstellen({
     karte(name) { karteName = name; kartenAnwenden(); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
     get modellObjekt() { return modell; },
     get hatLogo() { return LOGO.length > 0 || !!KARTE; },
-    gruppe(name, wert) { gruppeSetzen(name, wert); ruhtGemeldet = false; letzteBewegung = performance.now(); if (schattenErlaubt) r.shadowMap.needsUpdate = true; starten(); },
+    gruppe(name, wert) { gruppeSetzen(name, wert); ruhtGemeldet = false; letzteBewegung = performance.now(); if (r.shadowMap.enabled) r.shadowMap.needsUpdate = true; starten(); },
     ladung(n) { ladungSetzen(n); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },
     get ladePlaetze() { return ladePlaetze.length; },
     stein(karat) { steinSetzen(karat); ruhtGemeldet = false; letzteBewegung = performance.now(); starten(); },

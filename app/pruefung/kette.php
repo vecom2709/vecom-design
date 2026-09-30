@@ -6589,6 +6589,9 @@ pruefe('das goldene V steht ab dem ersten Bild im Hero (Endbild des Intros, vorr
     str_contains($heroHtml_, '<picture class="hero-marke"') && str_contains($heroHtml_, 'fetchpriority="high"')
     && is_file("$oben/assets/img/3d/hero-marke-quer.avif") && is_file("$oben/assets/img/3d/hero-marke-hoch.avif")
     && str_contains((string) @file_get_contents("$oben/assets/css/app.css"), 'html.im-hero .stage { opacity: 0 !important; }'));
+$echtzeit_ = (string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js");
+pruefe('am echten Ort wird die Sonne aus dem Rundumbild geloest und als eigenes Licht mit Schatten gesetzt (kein fleckiger Lack)',
+    str_contains($echtzeit_, 'function sonneAbtrennen(') && str_contains($echtzeit_, 'sonnenLicht.castShadow = true;'));
 pruefe('die neuen Automodelle werden angenommen', Bedarf::demoPruefen('kleinwagen-azzurro') === 'kleinwagen-azzurro'
     && Bedarf::demoPruefen('mittelklasse-blunotte') === 'mittelklasse-blunotte');
 pruefe('fremde Lacke der Automodelle werden abgewiesen', Bedarf::demoPruefen('kleinwagen-karmin') === ''
