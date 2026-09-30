@@ -65,6 +65,9 @@ body{display:grid;place-items:center}</style>
   var t = null;
   try { t = localStorage.getItem('vd_tg_bedarf'); } catch (e) { }
   var ok = typeof t === 'string' && /^[0-9a-f]{48}$/.test(t);
+  // Telegram Web zeigt das Fenster erst nach „fertig“ vom ERSTEN Dokument im Rahmen
+  // (gesehen am 30.09.2026: kam das „fertig“ erst von bedarf.php, blieb der Ladekreis).
+  try { window.Telegram.WebApp.ready(); } catch (e) { }
   // Der Teil hinter dem # geht mit — er bleibt im Gerät, der Server sieht ihn nie.
   location.replace((ok ? <?= json_encode($weiter, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?> + t : <?= json_encode($neu, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>) + location.hash);
 })();
