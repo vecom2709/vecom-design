@@ -369,7 +369,17 @@ final class WebBericht
         if (!preg_match('~^[a-f0-9]{32}$~', $token)) { return null; }
         $r = Db::one('SELECT * FROM web_berichte WHERE token = ?', [$token]);
         if (!$r) { return null; }
-        if ($zaehlen) { try { Db::run('UPDATE web_berichte SET aufrufe = aufrufe + 1 WHERE id = ?', [(int) $r['id']]); } catch (Throwable $e) { } }
+        if ($zaehlen) {
+            try { Db::run('UPDATE web_berichte SET aufrufe = aufrufe + 1 WHERE id = ?', [(int) $r['id']]); } catch (Throwable $e) { }
+            /* Heißer Lead (30.09.2026): Der Bericht eines bekannten Betriebs zum dritten Mal geöffnet. */
+            if ($r['firma_id'] !== null && (int) ($r['aufrufe'] ?? 0) + 1 === 3) {
+                try {
+                    require_once __DIR__ . '/AkquiseAnalyse.php';
+                    $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $r['firma_id']]);
+                    if ($f) { AkquiseAnalyse::heissMelden($f, '3× ausführlichen Bericht geöffnet'); }
+                } catch (Throwable $e) { }
+            }
+        }
         $kc = json_decode((string) $r['daten'], true) ?: [];
         return ['token' => (string) $r['token'], 'firma_id' => $r['firma_id'] !== null ? (int) $r['firma_id'] : null, 'kc' => $kc, 'created_at' => (string) $r['created_at']];
     }

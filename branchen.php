@@ -35,7 +35,7 @@ $T = [
              'titel' => '{Mz} {in}: com\'è il loro sito web?', 'kern' => 'Il {p} % {wort}.', 'grund' => 'Abbiamo analizzato {g} siti ({n} attività in totale) — dati anonimi, aggiornati il {datum}.',
              'balken' => 'Che cosa abbiamo trovato', 'ohneAnteil' => 'di tutte le attività',
              'cta' => 'E il suo sito? Lo scopra in 30 secondi.', 'ctaText' => 'Analisi gratuita dello stesso tipo, con un rapporto chiaro su cosa migliorare. Senza impegno.',
-             'knopf' => 'Analisi gratuita', 'preis' => 'Prezzo indicativo in 90 secondi', 'weitere' => 'Altre città', 'andere' => 'Altri settori {in}',
+             'ohneWeb' => 'Non ha ancora un sito? Veda subito una bozza con il suo nome →', 'knopf' => 'Analisi gratuita', 'preis' => 'Prezzo indicativo in 90 secondi', 'weitere' => 'Altre città', 'andere' => 'Altri settori {in}',
              'methode' => 'Come contiamo: un programma controlla ogni sito come lo vede un cliente al telefono (velocità, leggibilità, sicurezza, contatto, Google). Mostriamo solo percentuali e solo quando i siti analizzati sono almeno {min}. Nessuna attività viene nominata.',
              'bedeutet' => 'Che cosa significa per i clienti', 'preisTitel' => 'Un sito per {mz}: prezzo indicativo', 'preisAb' => 'da {ab}', 'preisText' => 'Con le funzioni che servono di solito a {mz}. Il suo prezzo esatto in 90 secondi, senza impegno.', 'faq' => 'Domande frequenti', 'start' => 'Inizio',
              'nichts' => 'Questa pagina non è (più) disponibile.', 'uebersicht' => 'Tutti i settori e le città', 'leer' => 'Le prime pagine arrivano appena le analisi bastano.'],
@@ -43,7 +43,7 @@ $T = [
              'titel' => '{Mz} {in}: Wie gut sind die Websites?', 'kern' => '{p} % {wort}.', 'grund' => 'Wir haben {g} Websites geprüft ({n} Betriebe insgesamt) — anonym, Stand {datum}.',
              'balken' => 'Was wir gefunden haben', 'ohneAnteil' => 'aller Betriebe',
              'cta' => 'Und Ihre Website? In 30 Sekunden wissen Sie es.', 'ctaText' => 'Dieselbe Analyse kostenlos, mit einem klaren Bericht, was sich verbessern lässt. Unverbindlich.',
-             'knopf' => 'Kostenlose Analyse', 'preis' => 'Richtpreis in 90 Sekunden', 'weitere' => 'Weitere Orte', 'andere' => 'Andere Branchen {in}',
+             'ohneWeb' => 'Noch keine Website? Sehen Sie sofort eine Skizze mit Ihrem Namen →', 'knopf' => 'Kostenlose Analyse', 'preis' => 'Richtpreis in 90 Sekunden', 'weitere' => 'Weitere Orte', 'andere' => 'Andere Branchen {in}',
              'methode' => 'So zählen wir: Ein Programm prüft jede Website so, wie ein Kunde sie am Handy sieht (Tempo, Lesbarkeit, Sicherheit, Kontakt, Google). Wir zeigen nur Anteile und nur, wenn mindestens {min} Websites geprüft sind. Kein Betrieb wird genannt.',
              'bedeutet' => 'Was das für die Kunden bedeutet', 'preisTitel' => 'Website für {mz}: Richtpreis', 'preisAb' => 'ab {ab}', 'preisText' => 'Mit den Funktionen, die {mz} üblicherweise brauchen. Ihren genauen Preis sehen Sie in 90 Sekunden, unverbindlich.', 'faq' => 'Häufige Fragen', 'start' => 'Start',
              'nichts' => 'Diese Seite ist nicht (mehr) verfügbar.', 'uebersicht' => 'Alle Branchen und Orte', 'leer' => 'Die ersten Seiten erscheinen, sobald genug Prüfungen vorliegen.'],
@@ -51,7 +51,7 @@ $T = [
              'titel' => '{Mz} {in}: how good are their websites?', 'kern' => '{p} % {wort}.', 'grund' => 'We checked {g} websites ({n} businesses in total) — anonymous, as of {datum}.',
              'balken' => 'What we found', 'ohneAnteil' => 'of all businesses',
              'cta' => 'And your website? Find out in 30 seconds.', 'ctaText' => 'The same analysis for free, with a clear report on what to improve. No obligation.',
-             'knopf' => 'Free analysis', 'preis' => 'Guide price in 90 seconds', 'weitere' => 'Other towns', 'andere' => 'Other industries {in}',
+             'ohneWeb' => 'No website yet? See a sketch with your name right away →', 'knopf' => 'Free analysis', 'preis' => 'Guide price in 90 seconds', 'weitere' => 'Other towns', 'andere' => 'Other industries {in}',
              'methode' => 'How we count: a program checks each website the way a customer sees it on a phone (speed, readability, security, contact, Google). We only show percentages, and only when at least {min} websites were checked. No business is named.',
              'bedeutet' => 'What this means for customers', 'preisTitel' => 'A website for {mz}: guide price', 'preisAb' => 'from {ab}', 'preisText' => 'With the features {mz} usually need. See your exact price in 90 seconds, no obligation.', 'faq' => 'Frequently asked questions', 'start' => 'Home',
              'nichts' => 'This page is not (or no longer) available.', 'uebersicht' => 'All industries and towns', 'leer' => 'The first pages appear as soon as there are enough checks.'],
@@ -73,6 +73,8 @@ if ($s) {
     $titel = $T['ueber']; $beschreibung = $T['ueberText']; $kanon = $adr(null, $sprache);
 }
 $cta = '/analisi.php?lang=' . $sprache;
+/* Kundenfinder (30.09.2026): Wer noch keine Website hat, sieht auf der Startseite sofort eine Skizze mit seinem Namen. */
+$ohneWeb = ($sprache === 'it' ? '/' : '/' . $sprache . '/') . '#vorschau';
 $preisLink = '/zugang.php?lang=' . $sprache;
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
@@ -143,6 +145,7 @@ $preisLink = '/zugang.php?lang=' . $sprache;
     <b style="font:800 21px/1.25 'Archivo',sans-serif"><?= $h($T['cta']) ?></b>
     <p><?= $h($T['ctaText']) ?></p>
     <div class="knoepfe"><a class="haupt" href="<?= $h($cta) ?>"><?= $h($T['knopf']) ?> →</a><a class="neben" href="<?= $h($preisLink) ?>"><?= $h($T['preis']) ?></a></div>
+    <p style="margin:12px 0 0"><a href="<?= $h($ohneWeb) ?>" style="color:inherit"><?= $h($T['ohneWeb']) ?></a></p>
   </div>
 
   <h2><?= $h($T['balken']) ?></h2>

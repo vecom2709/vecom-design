@@ -207,3 +207,16 @@ Uwe: „ja, erweitere auf E-Mail oder WhatsApp“. Eine Einwilligung deckt nur d
 ### Folge-Mails mit Anrede (27.09.2026)
 
 Uwe: „Anrede mit Namen einbauen, dann freigeben“. Alle 15 Ausgangstexte beginnen mit `{anrede}`: „Guten Tag Maria Rossi,“ / „Buongiorno …,“ / „Hello …,“. Herr/Frau fällt weg, weil das Geschlecht nicht bekannt ist; so machen es auch die Erstansprachen. Der Name kommt vom Ansprechpartner an der Firma, sonst von der Person, die den Website-Check angefragt hat. Ohne brauchbaren Namen (Adresse, Ziffern, zu lang) bleibt es beim bloßen Gruß. Migration 090 setzt die erste Zeile in schon angelegten Entwürfen um; freigegebene Texte bleiben unangetastet.
+
+### Kundenfinder: drei Wege zur Einwilligung (30.09.2026)
+
+Uwe: „ja“ zum Kundenfinder. E-Mails ohne Einwilligung bleiben ausgeschlossen (Art. 130 Codice Privacy, § 7 UWG). Auch eine Mail, die nur um Zustimmung bittet, gilt als Werbung. Die Liste wird deshalb nicht angeschrieben, sondern analysiert. Kontakt entsteht dort, wo der Betrieb selbst kommt:
+
+1. **Plattform-Anfragen** (`AkquisePlattform`, Migration 114): Meldungen von ProntoPro, Instapro, Habitissimo, StarOfService, MyHammer, Blauarbeit und Check24, die im Akquise-Postfach landen, werden erkannt. Das geht über die Absender-Domain oder eine weitergeleitete Mail mit der Portal-Adresse im Text. Jede Anfrage erscheint einmal im Kasten „Anfragen von Portalen“, mit Meldung und Zuruf. Dazu kommt eine vorbereitete Antwort (IT/DE: Analyse, Skizze, Bedarf, keine Preise), die Uwe im Portal selbst abschickt. „Erledigt“ räumt die Anfrage weg, und nach 90 Tagen wird der Text geleert. Weitere Portale lassen sich über die Einstellung `akq_plattformen` ergänzen.
+2. **Verbände**: Ein Verband wird als Partner mit 0 % Provision angelegt und teilt seinen Link `/p/CODE` (weg = analisi) mit den Mitgliedern. Wer den Check macht, willigt dort selbst ein (Double-Opt-in, Quelle `check`).
+3. **Check-Seiten**: `branchen.php` (Städte-Seiten `/siti-web/`) verweist zusätzlich Betriebe ohne Website auf die Skizze (`#vorschau`). Betriebe mit Website gehen zum Website-Check.
+
+Danach gilt der bestehende Ablauf: bestätigte Einwilligung → Folge-Mails 0/3/7/14/30 (freigegebene Texte, Testbetrieb aus) → Termin.
+
+- **Heißer Betrieb**: Wird die Analyse-Seite oder der ausführliche Bericht zum dritten Mal geöffnet (`AkquiseAnalyse::HEISS_AB`), kommt genau eine Meldung „Jetzt anrufen“ mit Zuruf aufs Handy. Der Zuruf nennt weder Name noch Nummer. Ausgenommen sind Kunden sowie abgelehnte und gesperrte Betriebe.
+- **Nachtlauf größer**: Der Worker prüft 1500 Websites je Nacht, 3 gleichzeitig (`AKQUISE_AUDITS_PRO_LAUF`, `AKQUISE_AUDITS_PARALLEL`). Lighthouse läuft lokal weiter einzeln, eine Seite darf höchstens 5 Minuten brauchen, und die Notbremse wird vor jeder Seite geprüft.

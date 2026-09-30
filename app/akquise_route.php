@@ -387,6 +387,11 @@ if ($post) {
                 $_SESSION['gut'] = !empty($_POST['an']) ? 'Website-Check ist eingeschaltet.' : 'Website-Check ist ausgeschaltet — die Seite nimmt keine Anfragen an.';
                 $zu('regeln#check');
 
+            case 'akq_plattform_erledigt':
+                require_once __DIR__ . '/src/AkquisePlattform.php';
+                AkquisePlattform::erledigen((int) ($_POST['anfrage'] ?? 0));
+                weiter('akquise#plattform');
+
             case 'akq_signal_erledigt':
                 require_once __DIR__ . '/src/AkquiseSignal.php';
                 AkquiseSignal::erledigen((int) ($_POST['signal'] ?? 0));
@@ -800,5 +805,6 @@ ansicht('akquise', [
     'branchen' => Akquise::branchen(),
     'signale' => sicher(static function () { require_once __DIR__ . '/src/AkquiseSignal.php'; return AkquiseSignal::offen(); }, []),
     'checks' => sicher(static function () { require_once __DIR__ . '/src/AkquiseCheck.php'; return AkquiseCheck::liste(10); }, []),
+    'plattform' => sicher(static function () { require_once __DIR__ . '/src/AkquisePlattform.php'; return AkquisePlattform::offen(20); }, []),
 ]);
 exit;

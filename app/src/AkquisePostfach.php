@@ -87,7 +87,8 @@ final class AkquisePostfach
         Db::run("INSERT INTO settings (skey, svalue) VALUES ('akq_postfach_lauf', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [date('Y-m-d H:i:s', $jetzt)]);
 
         $stand = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_postfach_stand'", [], ''), true) ?: [];
-        $ergebnis = ['gelesen' => 0, 'zugeordnet' => 0, 'doppelt' => 0];
+        $ergebnis = ['gelesen' => 0, 'zugeordnet' => 0, 'doppelt' => 0, 'plattform' => 0];
+        try { require_once __DIR__ . '/AkquisePlattform.php'; AkquisePlattform::aufraeumen($jetzt); } catch (Throwable $e) { }
         try {
             if (self::$holer) {
                 $nachrichten = (self::$holer)((int) ($stand['uid'] ?? 0), $jetzt - self::ERSTER_LAUF_TAGE * 86400);
@@ -111,7 +112,7 @@ final class AkquisePostfach
                 $hoechste = max($hoechste, (int) $m['uid']);
                 $ergebnis['gelesen']++;
                 $r = self::verarbeiten((string) $m['inhalt']);
-                if ($r === 'zugeordnet') { $ergebnis['zugeordnet']++; } elseif ($r === 'doppelt') { $ergebnis['doppelt']++; }
+                if ($r === 'zugeordnet') { $ergebnis['zugeordnet']++; } elseif ($r === 'doppelt') { $ergebnis['doppelt']++; } elseif ($r === 'plattform') { $ergebnis['plattform']++; }
             }
             Db::run("INSERT INTO settings (skey, svalue) VALUES ('akq_postfach_stand', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
                 [json_encode(['uv' => $uv, 'uid' => $hoechste, 'am' => date('Y-m-d H:i:s', $jetzt)])]);
@@ -124,14 +125,24 @@ final class AkquisePostfach
         return $ergebnis;
     }
 
-    /** @return string zugeordnet|doppelt|fremd */
+    /** @return string zugeordnet|doppelt|plattform|fremd */
     public static function verarbeiten(string $roh): string
     {
         $m = self::lesen($roh);
         $nid = mb_substr($m['id'] !== '' ? $m['id'] : sha1($roh), 0, 190);
         if ((int) Db::wert('SELECT COUNT(*) FROM akq_antworten WHERE nachricht_id = ?', [$nid], 0) > 0) { return 'doppelt'; }
         $firma = self::zuordnen($m);
-        if ($firma === null) { return 'fremd'; }
+        if ($firma === null) {
+            /* Keinem angeschriebenen Betrieb zugeordnet -- vielleicht eine Anfrage von einem Portal
+               (30.09.2026, Kundenfinder Eingang 3). Alles andere wird weiterhin nicht gespeichert. */
+            try {
+                require_once __DIR__ . '/AkquisePlattform.php';
+                $p = AkquisePlattform::aufnehmen($m, $nid);
+                if ($p === 'neu') { return 'plattform'; }
+                if ($p === 'doppelt') { return 'doppelt'; }
+            } catch (Throwable $e) { }
+            return 'fremd';
+        }
         $text = self::zitatWeg($m['text']);
         $r = AkquiseVersand::antwortEintragen($firma, $m['von'], $m['betreff'], mb_substr($text, 0, 20000), $firma === self::$bounceFirma ? 'INVALID_ADDRESS' : '');
         Db::run("UPDATE akq_antworten SET nachricht_id = ?, klasse_quelle = IF(klasse_quelle = 'hand', 'postfach', klasse_quelle), eingang_am = COALESCE(?, eingang_am) WHERE id = ?",

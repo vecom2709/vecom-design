@@ -121,20 +121,26 @@ async function audits(): Promise<void> {
 
 const AUDIT_ZEITLIMIT_MS = 5 * 60_000;
 
-/** Prüft ein Paket. Gibt false zurück, wenn der Lauf anhalten soll (Notbremse, Browser kaputt). */
+/** Prüft ein Paket. Gibt false zurück, wenn der Lauf anhalten soll (Notbremse, Browser kaputt).
+    Seit 30.09.2026 mehrere Websites gleichzeitig (konfig.auditsParallel): Bei 300 je Nacht
+    hätte die Liste von 176.000 Betrieben Jahre gebraucht. Jede Website hat weiter ihr eigenes
+    Zeitlimit; ein hängender Browser wird erst neu gestartet, wenn das Paket durch ist -- sonst
+    risse der Neustart die anderen, noch laufenden Prüfungen mit. */
 async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Promise<boolean> {
-  log.info('audit', `${firmen.length} Website(s) zu prüfen (${vorher + 1}–${vorher + firmen.length} von höchstens ${ziel})`);
-  for (const [i, f] of firmen.entries()) {
-    const h = await api('hallo');
-    if (h.stop) { log.warn('audit', 'Notbremse gezogen — Audits angehalten.'); return false; }
-    if (h.schalter && h.schalter.audit === false) { log.warn('audit', 'In der Verwaltung gestoppt — Prüfung angehalten.'); return false; }
-    await status('audit', vorher + i, ziel, f.domain ?? '');
+  const parallel = Math.max(1, Math.min(6, Math.floor(konfig.auditsParallel)));
+  log.info('audit', `${firmen.length} Website(s) zu prüfen (${vorher + 1}–${vorher + firmen.length} von höchstens ${ziel}, ${parallel} gleichzeitig)`);
+  let naechster = 0;
+  let fertig = 0;
+  let weiter = true;
+  let neustart = false;
+
+  const eine = async (f: FirmaKurz): Promise<void> => {
     const t0 = Date.now();
     try {
       /* Höchstens 5 Minuten je Website (29.09.2026): Der Nachtlauf blieb am
          28./29.09. an der ersten Seite hängen und wurde Stunden später ohne
          ein einziges Ergebnis beendet. Hängt eine Seite, wird sie als Fehler
-         gemeldet, der Browser neu gestartet, und es geht mit der nächsten weiter. */
+         gemeldet, und es geht mit der nächsten weiter. */
       let wecker: NodeJS.Timeout | undefined;
       const e = await Promise.race([
         auditieren(f),
@@ -142,8 +148,10 @@ async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Pr
       ]).finally(() => clearTimeout(wecker));
       const antwort = await api('audit_melden', { firma_id: f.id, ...e });
       const belegt = e.befunde.filter((b) => b.status === 'VERIFIED').length;
-      log.info('audit', `[${vorher + i + 1}/${ziel}] ${f.name} (${f.domain}): ${e.befunde.length} Befunde, ${belegt} belegt · Score ${antwort.score ?? '—'} · ${Math.round((Date.now() - t0) / 1000)} s`);
+      fertig++;
+      log.info('audit', `[${vorher + fertig}/${ziel}] ${f.name} (${f.domain}): ${e.befunde.length} Befunde, ${belegt} belegt · Score ${antwort.score ?? '—'} · ${Math.round((Date.now() - t0) / 1000)} s`);
     } catch (e) {
+      fertig++;
       const text = (e as Error).message;
       /* Liegt der Fehler bei UNS (Browser fehlt, Playwright kaputt), ist
          keine Website schuld. Frueher wurde das als Audit-Fehler gemeldet --
@@ -153,14 +161,29 @@ async function auditPaket(firmen: FirmaKurz[], vorher: number, ziel: number): Pr
       if (/browserType\.launch|Executable doesn't exist|playwright install/i.test(text)) {
         log.fehler('audit', `Der Browser auf diesem Rechner startet nicht — Lauf angehalten, nichts gemeldet. Abhilfe: npx playwright install chromium. (${text.split('\n')[0].slice(0, 160)})`);
         process.exitCode = 1;
-        return false;
+        weiter = false;
+        return;
       }
       log.fehler('audit', `${f.name}: ${text}`);
-      if (text.startsWith('Zeitlimit')) { await browserZu().catch(() => {}); }
+      if (text.startsWith('Zeitlimit')) { neustart = true; }
       await api('audit_melden', { firma_id: f.id, status: 'fehler', befunde: [], messwerte: { fehler: text.slice(0, 300) } }).catch(() => {});
     }
-  }
-  return true;
+  };
+
+  const arbeiter = async (): Promise<void> => {
+    while (weiter) {
+      const i = naechster++;
+      if (i >= firmen.length) { return; }
+      const h = await api('hallo');
+      if (h.stop) { log.warn('audit', 'Notbremse gezogen — Audits angehalten.'); weiter = false; return; }
+      if (h.schalter && h.schalter.audit === false) { log.warn('audit', 'In der Verwaltung gestoppt — Prüfung angehalten.'); weiter = false; return; }
+      await status('audit', vorher + fertig, ziel, firmen[i].domain ?? '');
+      await eine(firmen[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(parallel, firmen.length) }, () => arbeiter()));
+  if (neustart) { await browserZu().catch(() => {}); }
+  return weiter;
 }
 
 async function einzel(): Promise<void> {

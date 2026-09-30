@@ -98,13 +98,26 @@ async function lokal(url: string): Promise<Leistung> {
   }
 }
 
+/* Die lokale Messung laeuft nie gleichzeitig mit einer zweiten (30.09.2026):
+   Seit die Websites parallel geprueft werden, teilten sich sonst mehrere
+   Lighthouse-Laeufe den Prozessor -- jede Seite wirkte langsamer, als sie
+   ist, und ein falscher Befund „langsam“ darf nie in einem Brief stehen.
+   Netz, Browserbilder und Linkcheck laufen parallel, gemessen wird einzeln.
+   Mit PSI-Schluessel misst Google, dann darf es parallel sein. */
+let lokalKette: Promise<unknown> = Promise.resolve();
+function lokalEinzeln(url: string): Promise<Leistung> {
+  const lauf = lokalKette.then(() => lokal(url), () => lokal(url));
+  lokalKette = lauf.catch(() => undefined);
+  return lauf;
+}
+
 export async function leistungMessen(url: string): Promise<Leistung | null> {
   try {
-    return konfig.psiKey ? await psi(url) : await lokal(url);
+    return konfig.psiKey ? await psi(url) : await lokalEinzeln(url);
   } catch (e) {
     log.warn('lighthouse', `${url}: ${(e as Error).message.slice(0, 160)}`);
     if (konfig.psiKey) {
-      try { return await lokal(url); } catch { /* fallthrough */ }
+      try { return await lokalEinzeln(url); } catch { /* fallthrough */ }
     }
     return null;
   }

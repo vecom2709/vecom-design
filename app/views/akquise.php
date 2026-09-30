@@ -1,6 +1,6 @@
 <?php
 /** @var array $liste @var array $filter @var array $werte @var array $kz @var array $grenzen @var int $wartend
- *  @var array $suchen @var array $branchen @var array $signale @var array $checks */
+ *  @var array $suchen @var array $branchen @var array $signale @var array $checks @var array $plattform */
 /* DIE LISTE (26.09.2026, einfacher gemacht)
    Fuenf Spalten statt sieben, vier Filter sichtbar statt vierzehn, und in
    jeder Zeile genau ein naechster Schritt. Alles andere ist noch da --
@@ -107,6 +107,24 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
             <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Erledigt</button></form></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
+</div>
+<?php endif; ?>
+
+<?php if (!empty($plattform)): /* Plattform-Anfragen (30.09.2026, Kundenfinder Eingang 3): Der Betrieb hat selbst gefragt. */ require_once dirname(__DIR__) . '/src/AkquisePlattform.php'; ?>
+<div class="block" id="plattform">
+  <h2 style="font-size:15px;margin:0 0 8px">Plattform-Anfragen — Betriebe suchen selbst einen Webdesigner</h2>
+  <p class="akq-klein" style="margin:0 0 8px">Aus dem Akquise-Postfach. Antworten darfst du, weil der Betrieb um Angebote gebeten hat — aber im Portal selbst (dort oft gegen Guthaben). Die Antwort unten ist fertig: kopieren, im Portal einfügen, senden, dann „Erledigt“.</p>
+  <?php foreach ($plattform as $pa): ?>
+    <details style="border-top:1px solid var(--linie,#333);padding:8px 0">
+      <summary style="cursor:pointer"><b><?= Fmt::h((string) $pa['plattform']) ?></b> · <?= Fmt::h((string) $pa['betreff']) ?> <span class="akq-klein"><?= Fmt::h(date('d.m. H:i', strtotime((string) ($pa['eingang_am'] ?? 'now')))) ?></span></summary>
+      <div class="akq-klein" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin:8px 0"><?= Fmt::h(mb_substr((string) $pa['text'], 0, 1500)) ?></div>
+      <label class="akq-klein" for="pa<?= (int) $pa['id'] ?>">Fertige Antwort (<?= $pa['sprache'] === 'de' ? 'Deutsch' : 'Italienisch' ?>)</label>
+      <textarea id="pa<?= (int) $pa['id'] ?>" readonly rows="9" style="width:100%;font:13px/1.45 inherit"><?= Fmt::h(AkquisePlattform::antwort((string) $pa['sprache'])) ?></textarea>
+      <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin-top:6px"><?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="akq_plattform_erledigt"><input type="hidden" name="anfrage" value="<?= (int) $pa['id'] ?>">
+        <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Im Portal beantwortet — erledigt</button></form>
+    </details>
+  <?php endforeach; ?>
 </div>
 <?php endif; ?>
 

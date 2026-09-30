@@ -72,6 +72,27 @@ final class AkquiseAnalyse
         return self::SKIZZE[(string) $branche] ?? null;
     }
 
+    /** Ab so vielen Aufrufen ist ein Betrieb heiß: Jetzt anrufen (30.09.2026, Uwe: Ja zum Kundenfinder). */
+    public const HEISS_AB = 3;
+
+    /**
+     * Heißer Lead -- sofort, nicht erst im Wochenbericht: Meldung in der
+     * Verwaltung (mit Name) und ein Zuruf aufs Handy (ohne Name, der Weg läuft
+     * über einen fremden Dienst). Genau einmal je Betrieb und Anlass: Die
+     * Meldung zählt beim dritten Aufruf, nicht bei jedem weiteren.
+     */
+    public static function heissMelden(array $f, string $grund): void
+    {
+        $offen = !in_array((string) ($f['kontakt_status'] ?? ''), ['kunde', 'abgelehnt', 'gesperrt'], true) && (int) ($f['gesperrt'] ?? 0) === 0;
+        if (!$offen) { return; }
+        try { Akquise::protokoll((int) $f['id'], 'analyse', 'Heißer Lead: ' . $grund); } catch (Throwable $e) { }
+        try { Events::melden('akquise_heiss', 'Jetzt anrufen: ' . $f['name'], 'gut', $grund, 'akquise/' . $f['id']); } catch (Throwable $e) { }
+        try {
+            require_once __DIR__ . '/Zuruf.php';
+            Zuruf::vormerken('akquise_heiss', "Neue Kunden finden: Ein Betrieb ist heiß ($grund). Jetzt anrufen — Name und Nummer stehen in der Verwaltung.", 30);
+        } catch (Throwable $e) { }
+    }
+
     public static function adresse(array $x): string
     {
         return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/analyse.php?t=' . $x['token'];
@@ -101,6 +122,7 @@ final class AkquiseAnalyse
             try { Events::melden('akquise_analyse', 'Akquise: Analyse-Seite geöffnet — ' . $f['name'], 'info', null, 'akquise/' . $f['id']); }
             catch (Throwable $e) { }
         }
+        if ((int) $x['aufrufe'] + 1 === self::HEISS_AB) { self::heissMelden($f, self::HEISS_AB . '× Analyse-Seite geöffnet'); }
         return ['analyse' => $x, 'firma' => $f, 'audit' => $a, 'befunde' => array_slice($befunde, 0, 3)];
     }
 }

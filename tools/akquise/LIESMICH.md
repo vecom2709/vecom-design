@@ -19,6 +19,11 @@ npm.cmd run pruefen
 
 `.env`: `AKQUISE_SCHLUESSEL` aus der Verwaltung (Neue Kunden finden → Compliance & Versand →
 Worker-Schlüssel), optional `ANTHROPIC_API_KEY` und `AKQUISE_PSI_SCHLUESSEL`.
+Menge und Tempo der Website-Prüfung: `AKQUISE_AUDITS_PRO_LAUF` (Standard 1500) und
+`AKQUISE_AUDITS_PARALLEL` (Standard 3, höchstens 6). Mehrere Seiten laden gleichzeitig in
+einem Browser; die lokale Lighthouse-Messung läuft trotzdem nacheinander, damit die Zahlen
+vergleichbar bleiben. Hängt eine Seite länger als 5 Minuten, wird sie übersprungen.
+Steht in einer älteren `.env` noch `AKQUISE_AUDITS_PRO_LAUF=20`, gilt diese Zahl.
 Die `.env` und der Ordner `daten/` kommen nie ins Repository.
 
 ## Befehle
@@ -29,7 +34,7 @@ Die `.env` und der Ordner `daten/` kommen nie ins Repository.
 | `npm run import -- daten/lead-scout.json` | Firmenliste übernehmen (Datei bleibt in `daten/`, nie im Repository) |
 | `npm run pruefen` | Verbindung zur Verwaltung, Notbremse, Schlüssel |
 | `npm run recherche` | wartende Rechercheaufträge abarbeiten (Gemeinde für Gemeinde, fortsetzbar) |
-| `npm run audit` | nächste Websites prüfen (Standard 20 je Lauf) |
+| `npm run audit` | nächste Websites prüfen (Standard 1500 je Lauf, 3 gleichzeitig) |
 | `npm run texte` | Claude: Deutung + Vorlage für Leads ab Score 51 (Token-Obergrenze je Lauf) |
 | `npm run alles` | alle drei nacheinander |
 | `npm run einzel -- https://beispiel.it restaurant IT Aragona` | eine Seite prüfen, nichts melden |

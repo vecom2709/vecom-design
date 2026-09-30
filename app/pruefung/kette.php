@@ -12314,6 +12314,41 @@ pruefe('Fremde Mails werden nicht gespeichert; Eingang = Datum der Mail; Quelle 
 $pfMails[] = ['uid' => 16, 'inhalt' => $pfMail('Chef <chef@bar-dominio.example>', 'Re: Sito', 'Mi chiami domani.', 'e5@dominio.example')];
 $pfR2 = AkquisePostfach::lauf(true);
 pruefe('Nächster Lauf liest nur Neues (ab UID 16)', ($pfR2['gelesen'] ?? 0) === 1 && ($pfR2['zugeordnet'] ?? 0) === 1);
+// Plattform-Anfragen (30.09.2026, Kundenfinder Eingang 3)
+require_once $wurzel . '/src/AkquisePlattform.php';
+$pfMails[] = ['uid' => 17, 'inhalt' => $pfMail('ProntoPro <notifiche@mail.prontopro.it>', 'Nuova richiesta: Realizzazione sito web — Sciacca', "Giulia cerca un web designer per il suo B&B a Sciacca.\nBudget da definire.", 'f6@prontopro.example')];
+$pfMails[] = ['uid' => 18, 'inhalt' => $pfMail('Uwe <kontakt@vecom-design.it>', 'I: Nuova richiesta per te', "---------- Messaggio inoltrato ----------\nDa: Instapro <no-reply@instapro.it>\nCerco qualcuno per un sito per parrucchiere a Favara.", 'g7@instapro.example')];
+$pfMails[] = ['uid' => 19, 'inhalt' => $pfMail('Freund <freund@gmail.com>', 'Fwd: Witz', 'Schau mal: https://youtube.example', 'h8@gmail.example')];
+$pfR3 = AkquisePostfach::lauf(true);
+pruefe('Postfach: Portal-Benachrichtigung (auch Subdomain) und Weiterleitung mit Portal-Adresse werden Plattform-Anfragen, alles andere bleibt ungespeichert',
+    ($pfR3['gelesen'] ?? 0) === 3 && ($pfR3['plattform'] ?? 0) === 2 && (int) Db::wert("SELECT COUNT(*) FROM akq_plattform WHERE status = 'offen'", [], 0) === 2
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_plattform WHERE betreff LIKE '%Witz%'", [], 0) === 0
+    && (string) Db::wert("SELECT plattform FROM akq_plattform WHERE nachricht_id = 'g7@instapro.example'", [], '') === 'Instapro', json_encode($pfR3));
+pruefe('Plattform-Anfrage: Meldung in der Verwaltung, dieselbe Nachricht nicht zweimal',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_plattform'", [], 0) >= 1
+    && AkquisePlattform::aufnehmen(AkquisePostfach::lesen($pfMails[6]['inhalt']), 'f6@prontopro.example') === 'doppelt');
+$paIt = AkquisePlattform::antwort('it'); $paDe = AkquisePlattform::antwort('de');
+pruefe('Plattform-Antwort: Analyse, Skizze ohne Website und Konfigurator verlinkt, keine Preise, Sprache nach Portal',
+    str_contains($paIt, '/analisi.php?lang=it') && str_contains($paIt, '#vorschau') && str_contains($paIt, '/bedarf.php?lang=it')
+    && str_contains($paDe, '/analisi.php?lang=de') && !preg_match('~€|\beuro\b|\d+\s*EUR~i', $paIt . $paDe)
+    && (string) Db::wert("SELECT sprache FROM akq_plattform WHERE nachricht_id = 'f6@prontopro.example'", [], '') === 'it');
+$paId = (int) Db::wert("SELECT id FROM akq_plattform WHERE nachricht_id = 'f6@prontopro.example'", [], 0);
+AkquisePlattform::erledigen($paId);
+Db::run("UPDATE akq_plattform SET created_at = DATE_SUB(NOW(), INTERVAL 100 DAY) WHERE id = ?", [$paId]);
+AkquisePlattform::aufraeumen();
+pruefe('Plattform-Anfrage: erledigt verschwindet aus der Liste, Text nach 90 Tagen geleert',
+    count(array_filter(AkquisePlattform::offen(), static fn($z) => (int) $z['id'] === $paId)) === 0
+    && (int) Db::wert('SELECT text IS NULL FROM akq_plattform WHERE id = ?', [$paId], 0) === 1);
+// Heißer Lead: der Bericht eines bekannten Betriebs zum dritten Mal geöffnet -- genau eine Meldung
+require_once $wurzel . '/src/WebBericht.php';
+$hlTok = bin2hex(random_bytes(16));
+Db::insert('web_berichte', ['token' => $hlTok, 'firma_id' => $pfB, 'host' => 'bar-dominio.example', 'url' => 'https://bar-dominio.example/', 'daten' => '{}']);
+Db::update('akq_firmen', $pfB, ['kontakt_status' => 'kontaktiert']);
+$hlVor = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_heiss'", [], 0);
+for ($i = 0; $i < 5; $i++) { WebBericht::laden($hlTok, true); }
+pruefe('Heißer Lead: beim dritten Öffnen genau eine Meldung „Jetzt anrufen“, danach keine weitere',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_heiss'", [], 0) === $hlVor + 1
+    && str_contains((string) Db::wert("SELECT title FROM notifications WHERE type = 'akquise_heiss' ORDER BY id DESC LIMIT 1", [], ''), 'Bar Dominio'));
 pruefe('Ohne sofort: gedrosselt auf ' . AkquisePostfach::TAKT_MINUTEN . ' Minuten', isset(AkquisePostfach::lauf(false)['uebersprungen']));
 AkquisePostfach::$holer = null;
 pruefe('Ohne Zugang: aus, kein Fehler', (AkquisePostfach::lauf(true)['aus'] ?? 0) === 1);
@@ -14798,12 +14833,17 @@ pruefe('Prüfung gezielt: zuerst die größte Gruppe ohne 15 geprüfte Websites 
     && count(array_unique(array_map(static fn($z) => (int) $z['id'], array_merge($gzA, $gzB, $gzC)))) === count($gzA) + count($gzB) + count($gzC),
     json_encode([$gzInGruppe($gzA), $gzInGruppe($gzB), count($gzC), in_array($gzEinzel, array_map(static fn($z) => (int) $z['id'], array_merge($gzB, $gzC)), true),
         count(array_unique(array_map(static fn($z) => (int) $z['id'], array_merge($gzA, $gzB, $gzC)))), count($gzA) + count($gzB) + count($gzC)]));
-pruefe('Prüfung: der Worker holt in Paketen zu 50 bis zur Zahl je Nacht (Vorgabe 300)',
+pruefe('Prüfung: der Worker holt in Paketen zu 50 bis zur Zahl je Nacht (Vorgabe seit 30.09.2026: 1500, 3 gleichzeitig, höchstens 6)',
     str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "Math.min(50, ziel - geprueft)")
-    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/konfig.ts'), "zahl('AKQUISE_AUDITS_PRO_LAUF', 300)"));
-pruefe('Prüfung: eine hängende Website hält den Nachtlauf nicht mehr auf (5 Minuten je Seite, danach weiter)',
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/konfig.ts'), "zahl('AKQUISE_AUDITS_PRO_LAUF', 1500)")
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/konfig.ts'), "zahl('AKQUISE_AUDITS_PARALLEL', 3)")
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), 'Math.min(6, Math.floor(konfig.auditsParallel))'));
+pruefe('Prüfung: eine hängende Website hält den Nachtlauf nicht mehr auf (5 Minuten je Seite; Browser-Neustart erst nach dem Paket, damit parallele Prüfungen nicht mitreißen)',
     str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), 'const AUDIT_ZEITLIMIT_MS = 5 * 60_000;')
-    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "if (text.startsWith('Zeitlimit')) { await browserZu()"));
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), "if (text.startsWith('Zeitlimit')) { neustart = true; }")
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts'), 'if (neustart) { await browserZu().catch(() => {}); }'));
+pruefe('Prüfung: lokales Lighthouse läuft auch bei parallelen Audits nur einzeln (vergleichbare Messwerte)',
+    str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/audit/lighthouse.ts'), 'lokalEinzeln('));
 Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id IN (' . implode(',', array_merge($gzIds, [$gzEinzel])) . ')');
 
 /* Partner-Autopilot + Branchen-Seiten für Google/KI-Suche (29.09.2026, Uwe: Ja) */
@@ -15058,7 +15098,7 @@ pruefe('Suche stoppen: wartende/laufende Aufträge enden, danach gemeldete Betri
     && Db::wert('SELECT status FROM akq_laeufe WHERE id = ?', [$stL], '') === 'gestoppt' && AkquiseWorker::ausfuehren('befehl_holen', [])['suche_wartet'] === false);
 $stCli = (string) file_get_contents($wurzel . '/../tools/akquise/src/cli.ts');
 pruefe('Worker: „steuern“ alle fünf Minuten (leise), hört bei „Stoppen“ vor der nächsten Website auf, meldet den Stand; Knöpfe in der Verwaltung',
-    str_contains($stCli, "if (befehl === 'steuern') return steuern();") && str_contains($stCli, "h.schalter.audit === false") && str_contains($stCli, "await status('audit', vorher + i, ziel")
+    str_contains($stCli, "if (befehl === 'steuern') return steuern();") && str_contains($stCli, "h.schalter.audit === false") && str_contains($stCli, "await status('audit', vorher + fertig, ziel")
     && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/package.json'), '"steuern": "tsx src/cli.ts steuern"')
     && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/recherche/overture.ts'), 'if (r.gestoppt)')
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_steuerung.php'), "'akq_pruefung_stop'") && str_contains((string) file_get_contents($wurzel . '/views/akquise_steuerung.php'), "'akq_suche_stop'")
