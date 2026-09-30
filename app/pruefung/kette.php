@@ -15702,6 +15702,8 @@ pruefe('Mini-App: Telegram Web darf einbetten (frame-ancestors), Sitzung mit Sam
     && str_contains($maEinstieg, 'TelegramApp::EINBETTEN') && str_contains(TelegramApp::EINBETTEN, 'https://web.telegram.org'));
 pruefe('Mini-App: die Startdaten von Telegram (tgWebAppData/initData) werden nirgends gelesen',
     !str_contains($maBedarf . $maEinstieg, 'initData') && !str_contains($maBedarf . $maEinstieg, 'tgWebAppData'));
+pruefe('Mini-App: Einstieg lädt das Telegram-Skript und reicht den Teil hinter dem # weiter (sonst bleibt Telegram Web beim Ladekreis)',
+    str_contains($maEinstieg, 'telegram-web-app.js') && str_contains($maEinstieg, '+ location.hash);'));
 pruefe('Mini-App: „Zurück zu Telegram“ dreisprachig', isset(Texte::BEDARF['tgZurueck']['it'], Texte::BEDARF['tgZurueck']['de'], Texte::BEDARF['tgZurueck']['en']));
 $maLegal = true;
 foreach (['it' => 'mini app', 'de' => 'Mini-App', 'en' => 'mini app'] as $maSp => $maWort) {

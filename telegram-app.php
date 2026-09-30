@@ -49,6 +49,12 @@ $neu = '/telegram-app.php?' . $q(['neu' => 1, 's' => $param, 'lang' => $start['s
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Vecom Design</title>
+<?php /* Das Telegram-Skript schon HIER: Es merkt sich beim ersten Laden die
+         Startdaten im Sitzungsspeicher des Fensters. Fehlen sie auf den
+         folgenden Seiten, kennt Telegram Web das Fenster nicht als fertig
+         und zeigt ewig den Ladekreis (gesehen am 30.09.2026: Inhalt geladen,
+         Rahmen blieb auf opacity 0). */ ?>
+<script src="https://telegram.org/js/telegram-web-app.js?59"></script>
 <style>html,body{margin:0;height:100%;background:#0e0c09;color:#c9b27a;font:15px system-ui,sans-serif}
 body{display:grid;place-items:center}</style>
 </head>
@@ -59,7 +65,8 @@ body{display:grid;place-items:center}</style>
   var t = null;
   try { t = localStorage.getItem('vd_tg_bedarf'); } catch (e) { }
   var ok = typeof t === 'string' && /^[0-9a-f]{48}$/.test(t);
-  location.replace(ok ? <?= json_encode($weiter, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?> + t : <?= json_encode($neu, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>);
+  // Der Teil hinter dem # geht mit — er bleibt im Gerät, der Server sieht ihn nie.
+  location.replace((ok ? <?= json_encode($weiter, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?> + t : <?= json_encode($neu, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>) + location.hash);
 })();
 </script>
 <noscript><a href="<?= htmlspecialchars($neu, ENT_QUOTES) ?>">→ Vecom Design</a></noscript>
