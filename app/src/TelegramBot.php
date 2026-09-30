@@ -230,6 +230,11 @@ final class TelegramBot
             case 'preis': case 'prezzo': case 'price':
                 if ($c['sprache'] === null) { self::zeigeSprachwahl($c); return 'sprache'; }
                 return self::frageStarten($c, 'preis', null);
+            case 'heute':
+                // Nur für die Verwaltung (zwei Schlösser). Für alle anderen gibt es
+                // diesen Befehl nicht — sie landen wie bei jedem unbekannten im Menü.
+                if (TelegramAdmin::darfChat($c)) { self::zeigeHeute($c); return 'heute'; }
+                break;
             case 'hilfe': case 'aiuto': case 'help':
                 if ($c['sprache'] === null) { self::zeigeSprachwahl($c); return 'sprache'; }
                 self::zeigen($c, self::t($c, 'hilfe'), self::menuKnoepfe($c));
@@ -841,15 +846,47 @@ final class TelegramBot
             self::zeigen($c, 'Die Verwaltung ist von diesem Chat getrennt. Neu verbinden: Einstellungen → Telegram.', self::menuKnoepfe($c), $msgId);
             return 'admin_getrennt';
         }
+        if ($was === 'heute') { self::zeigeHeute($c, $msgId); return 'heute'; }
         self::zeigeLage($c, $msgId);
         return 'lage';
+    }
+
+    /** /heute — die Tagesübersicht der Chef-Zentrale (nur lesen, Zahlen aus TelegramAdmin::heute). */
+    private static function zeigeHeute(array $c, ?int $msgId = null): void
+    {
+        $h = TelegramAdmin::heute();
+        $a = $h['akquise']; $v = $h['verwaltung']; $s = $h['schalter'];
+        $n = static fn(?int $x): string => $x === null ? '–' : (string) $x;
+        $f = static fn(?int $x): string => $x === null ? '–' : ($x > 0 ? '<b>' . $x . '</b>' : '0');
+        $b = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . rtrim(Config::basis(), '/');
+        $versand = $s['stop'] ? '🛑 Notbremse gezogen' : (!$s['versand_an'] ? '⏸ Versand aus' : ($s['testbetrieb'] ? '🧪 Testbetrieb (nur simuliert)' : '✉️ Echtbetrieb'));
+        $text = "📊 <b>Heute</b> · " . self::h($h['stand']) . "\n\n"
+              . "<b>Akquise</b>\n"
+              . "Neue Betriebe: " . $f($a['neu']) . "\n"
+              . "Geprüft: " . $f($a['geprueft']) . "\n"
+              . "Entwürfe zur Freigabe: " . $f($a['entwuerfe']) . "\n"
+              . "Freigegeben, noch nicht raus: " . $n($a['freigegeben']) . "\n"
+              . "Versendet: " . $f($a['versendet']) . ($a['blockiert'] ? " · von der Prüfung aufgehalten: " . $n($a['blockiert']) : '') . "\n"
+              . "Antworten heute: " . $f($a['antworten']) . " · offen: " . $n($a['offen']) . "\n"
+              . "Mit Interesse, offen: " . $f($a['interesse']) . "\n"
+              . "Widersprüche heute: " . $n($a['widerspruch']) . "\n"
+              . "Wiedervorlagen fällig: " . $f($a['wiedervorlage']) . "\n"
+              . "Portal-Anfragen offen: " . $n($a['portal']) . " · Website-Checks neu: " . $n($a['checks']) . "\n"
+              . "Versand: " . $versand . "\n\n"
+              . "<b>Verwaltung</b>\n"
+              . "Du bist dran: " . $f($v['du']) . " · Anfragen: " . $f($v['anfragen']) . " · Nachrichten: " . $f($v['nachrichten']);
+        self::zeigen($c, $text, [
+            [['text' => '👥 Betriebe', 'url' => $b . '/akquise'], ['text' => '📋 Heute (Verwaltung)', 'url' => $b . '/heute']],
+            [['text' => '🔄 Aktualisieren', 'callback_data' => 'v:heute'], ['text' => '🏠 Übersicht', 'callback_data' => 'v:lage']],
+            [self::k($c, 'k_menu', 'm:menu')],
+        ], $msgId);
     }
 
     private static function zeigeLage(array $c, ?int $msgId = null): void
     {
         $l = TelegramAdmin::lage();
         $b = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . rtrim(Config::basis(), '/');
-        $text = "🛠 <b>Lage in der Verwaltung</b> · " . date('d.m. H:i') . "\n\n"
+        $text = "🏠 <b>Übersicht</b> — Lage in der Verwaltung · " . date('d.m. H:i') . "\n\n"
               . "Du bist dran: <b>" . $l['du'] . "</b>\n"
               . "Wartet auf Kunden: " . $l['kunde'] . "\n"
               . "Offene Anfragen: <b>" . $l['anfragen'] . "</b>\n"
@@ -857,6 +894,7 @@ final class TelegramBot
               . "Neue Dateien (24 h): " . $l['dateien'] . "\n"
               . "Ungelesene Meldungen: " . $l['meldungen'];
         self::zeigen($c, $text, [
+            [['text' => '📊 Heute (Akquise + Verwaltung)', 'callback_data' => 'v:heute']],
             [['text' => '📋 Heute', 'url' => $b . '/heute'], ['text' => '📥 Anfragen', 'url' => $b . '/anfragen']],
             [['text' => '💬 Nachrichten', 'url' => $b . '/nachrichten'], ['text' => '🔄 Aktualisieren', 'callback_data' => 'v:lage']],
             [['text' => '🔌 Verwaltung trennen', 'callback_data' => 'v:trennen'], self::k($c, 'k_menu', 'm:menu')],

@@ -77,6 +77,7 @@ final class TelegramAdmin
             Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE admin_verbunden = ? AND id <> ?', [$uid, $chatZeile]);
             Db::run('UPDATE telegram_chats SET admin_verbunden = ? WHERE id = ?', [$uid, $chatZeile]);
         }, 3);
+        self::befehleSetzen((int) Db::wert('SELECT chat_id FROM telegram_chats WHERE id = ?', [$chatZeile], 0), true);
         try {
             require_once __DIR__ . '/Events.php';
             Events::protokoll('telegram_admin', 'Telegram mit einem Zugang der Verwaltung verbunden (Zugang #' . $uid . ')');
@@ -87,6 +88,10 @@ final class TelegramAdmin
 
     public static function trennen(int $userId): bool
     {
+        // Erst die Befehle /heute … aus dem Chat nehmen, solange wir ihn noch kennen.
+        try {
+            foreach (Db::all('SELECT chat_id FROM telegram_chats WHERE admin_verbunden = ?', [$userId]) as $r) { self::befehleSetzen((int) $r['chat_id'], false); }
+        } catch (Throwable $e) { }
         $n = Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE admin_verbunden = ?', [$userId])->rowCount();
         if ($n > 0) {
             try {
@@ -176,6 +181,82 @@ final class TelegramAdmin
             'du'          => $du,
             'kunde'       => $kunde,
         ];
+    }
+
+    /* ==================== /heute (01.10.2026, Uwe: „Ja mach“) ===================
+
+       Die Tagesübersicht der Chef-Zentrale. Nur lesen — gezählt wird mit
+       denselben Tabellen, aus denen Akquise-Liste, Auswertung und „Heute“ in
+       der Verwaltung ihre Zahlen holen; hier entsteht keine zweite Rechnung.
+       „Heute“ heißt: seit Mitternacht in der Zeitzone der Anwendung.
+
+       Lässt sich eine Zahl nicht lesen (Tabelle fehlt, Datenbank hakt),
+       steht dort null und im Bot „–“, nie eine erfundene Null. */
+
+    /** Die Klassen, die bei einer Antwort „ein Mensch meldet sich“ auslösen (AkquiseVersand). */
+    public const INTERESSE = ['INTERESTED', 'CALL_REQUEST', 'PRICE_REQUEST', 'MORE_INFO'];
+
+    /** @return array{akquise: array<string,?int>, verwaltung: array<string,?int>, schalter: array<string,bool>, stand: string} */
+    public static function heute(): array
+    {
+        $ab = date('Y-m-d 00:00:00');
+        $z = static function (string $sql, array $p = []): ?int {
+            try { return (int) Db::wert($sql, $p, 0); } catch (Throwable $e) { return null; }
+        };
+        $in = "'" . implode("','", self::INTERESSE) . "'";
+        $akquise = [
+            'neu'          => $z('SELECT COUNT(*) FROM akq_firmen WHERE created_at >= ?', [$ab]),
+            'geprueft'     => $z('SELECT COUNT(*) FROM akq_audits WHERE created_at >= ?', [$ab]),
+            'entwuerfe'    => $z("SELECT COUNT(*) FROM akq_vorlagen v JOIN akq_firmen f ON f.id = v.firma_id WHERE v.status = 'entwurf' AND f.gesperrt = 0"),
+            'freigegeben'  => $z("SELECT COUNT(*) FROM akq_vorlagen v JOIN akq_firmen f ON f.id = v.firma_id WHERE v.status = 'freigegeben' AND f.gesperrt = 0"),
+            'versendet'    => $z("SELECT COUNT(*) FROM akq_versand WHERE status IN ('gesendet','von_hand') AND created_at >= ?", [$ab]),
+            'blockiert'    => $z("SELECT COUNT(*) FROM akq_versand WHERE status = 'blockiert' AND created_at >= ?", [$ab]),
+            'antworten'    => $z('SELECT COUNT(*) FROM akq_antworten WHERE created_at >= ?', [$ab]),
+            'offen'        => $z('SELECT COUNT(*) FROM akq_antworten WHERE erledigt = 0'),
+            'interesse'    => $z("SELECT COUNT(*) FROM akq_antworten WHERE erledigt = 0 AND klasse IN ($in)"),
+            'widerspruch'  => $z("SELECT COUNT(*) FROM akq_sperrliste WHERE quelle IN ('abmeldung','antwort') AND created_at >= ?", [$ab]),
+            'wiedervorlage'=> null,
+            'portal'       => $z("SELECT COUNT(*) FROM akq_plattform WHERE status = 'offen'"),
+            'checks'       => $z("SELECT COUNT(*) FROM akq_checks WHERE status = 'neu'"),
+        ];
+        // Fällig heißt: heute oder früher und noch nicht gemeldet — plus die schon
+        // gemeldeten, die noch niemand angesehen hat (AkquiseSignal::wiedervorlagen
+        // leert das Datum, sobald es die Meldung schreibt).
+        $wvOffen = $z('SELECT COUNT(*) FROM akq_firmen WHERE gesperrt = 0 AND wiedervorlage_am IS NOT NULL AND wiedervorlage_am <= ?', [date('Y-m-d')]);
+        $wvGemeldet = $z("SELECT COUNT(*) FROM notifications WHERE type = 'akquise_wiedervorlage' AND read_at IS NULL");
+        $akquise['wiedervorlage'] = $wvOffen === null || $wvGemeldet === null ? null : $wvOffen + $wvGemeldet;
+        $l = self::lage();
+        $schalter = ['testbetrieb' => true, 'versand_an' => false, 'stop' => false];
+        try {
+            require_once __DIR__ . '/Akquise.php';
+            require_once __DIR__ . '/AkquiseGate.php';
+            $g = AkquiseGate::grenzen();
+            $schalter = ['testbetrieb' => AkquiseGate::testbetrieb(), 'versand_an' => (bool) $g['versand_an'], 'stop' => (bool) $g['stop']];
+        } catch (Throwable $e) { }
+        return [
+            'akquise' => $akquise,
+            'verwaltung' => ['du' => $l['du'], 'anfragen' => $l['anfragen'], 'nachrichten' => $l['nachrichten']],
+            'schalter' => $schalter,
+            'stand' => date('d.m.Y H:i'),
+        ];
+    }
+
+    /**
+     * Die Befehle neben dem Eingabefeld — NUR in diesem Chat. Kunden und
+     * Interessenten sehen /heute nie: Telegram zeigt Befehle mit Geltung
+     * „chat“ ausschließlich dort (BotCommandScopeChat).
+     */
+    public static function befehleSetzen(int $chatId, bool $an): void
+    {
+        if ($chatId <= 0) { return; }
+        try {
+            $scope = ['type' => 'chat', 'chat_id' => $chatId];
+            if (!$an) { Telegram::rufen('deleteMyCommands', ['scope' => $scope]); return; }
+            Telegram::rufen('setMyCommands', ['scope' => $scope, 'commands' => [
+                ['command' => 'heute', 'description' => 'Tagesübersicht: Akquise und Verwaltung'],
+                ['command' => 'menu', 'description' => 'Menü'],
+            ]]);
+        } catch (Throwable $e) { /* das Menü neben dem Eingabefeld ist Komfort, kein Muss */ }
     }
 
     /**

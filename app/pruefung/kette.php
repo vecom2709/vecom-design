@@ -15758,6 +15758,38 @@ $tgAus($tgText($tzChat, '/menu', 'de'));
 pruefe('Kanalbesitzer + Admin der Verwaltung: Menü mit „🛠 Verwaltung“', in_array('v:lage', $tgZuletzt()['knoepfe'], true));
 $tkPerson = 'administrator'; TelegramAdmin::vergessen();
 pruefe('Auch ein Kanal-Admin (nicht nur der Besitzer) zählt', TelegramAdmin::darfChat($tgChat($tzChat)));
+
+/* /heute — Tagesübersicht der Chef-Zentrale (01.10.2026, Uwe: „Ja mach“). Gezählt
+   wird aus denselben Tabellen wie in der Verwaltung; geprüft über den Unterschied
+   vorher/nachher, damit ältere Prüfdaten nicht stören. */
+pruefe('/heute: Beim Verbinden bekommt NUR dieser Chat die Befehle /heute und /menu (Geltung „chat“)',
+    (bool) array_filter($tgNetz, static fn($x) => $x[0] === 'setMyCommands' && (int) ($x[1]['scope']['chat_id'] ?? 0) === $tzChat
+        && in_array('heute', array_column((array) $x[1]['commands'], 'command'), true)));
+require_once $wurzel . '/src/Akquise.php';
+$hvor = TelegramAdmin::heute();
+$hF = Db::insert('akq_firmen', ['kennung' => 'L-HEUTE001', 'name' => 'Heute Prüfbetrieb', 'name_norm' => 'heute pruefbetrieb', 'land' => 'IT', 'wiedervorlage_am' => date('Y-m-d')]);
+Db::insert('akq_vorlagen', ['firma_id' => $hF, 'sprache' => 'it', 'text' => 'Prova', 'fingerabdruck' => hash('sha256', 'heute-' . $hF), 'status' => 'entwurf']);
+Db::insert('akq_antworten', ['firma_id' => $hF, 'eingang_am' => date('Y-m-d H:i:s'), 'klasse' => 'PRICE_REQUEST', 'erledigt' => 0]);
+Db::insert('akq_sperrliste', ['art' => 'domain', 'wert' => 'heute-widerspruch.example', 'grund' => 'Prüfung', 'quelle' => 'abmeldung']);
+$hnach = TelegramAdmin::heute();
+$hd = static fn(string $k) => ($hnach['akquise'][$k] ?? -99) - ($hvor['akquise'][$k] ?? 99);
+pruefe('/heute zählt richtig: +1 neu, +1 Entwurf, +1 Antwort heute, +1 offen mit Interesse, +1 Widerspruch, +1 Wiedervorlage',
+    $hd('neu') === 1 && $hd('entwuerfe') === 1 && $hd('antworten') === 1 && $hd('interesse') === 1 && $hd('widerspruch') === 1 && $hd('wiedervorlage') === 1,
+    json_encode(array_map($hd, ['neu' => 'neu', 'entwuerfe' => 'entwuerfe', 'antworten' => 'antworten', 'interesse' => 'interesse', 'widerspruch' => 'widerspruch', 'wiedervorlage' => 'wiedervorlage'])));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id = ?', [$hF]);
+pruefe('/heute: Entwürfe gesperrter Betriebe zählen nicht als „zur Freigabe“', TelegramAdmin::heute()['akquise']['entwuerfe'] === $hvor['akquise']['entwuerfe']);
+Db::run('DELETE FROM akq_antworten WHERE firma_id = ?', [$hF]); Db::run('DELETE FROM akq_vorlagen WHERE firma_id = ?', [$hF]);
+Db::run('DELETE FROM akq_firmen WHERE id = ?', [$hF]); Db::run("DELETE FROM akq_sperrliste WHERE wert = 'heute-widerspruch.example'");
+$tgAus($tgText($tzChat, '/heute', 'de'));
+$hz = $tgZuletzt();
+pruefe('/heute beim Kanalbesitzer + Admin: Tagesübersicht mit Akquise, Verwaltung und Versandstand, Knopf in die Betriebe',
+    str_contains($hz['text'], 'Entwürfe zur Freigabe') && str_contains($hz['text'], 'Du bist dran') && str_contains($hz['text'], 'Versand:')
+    && in_array('url:https://pruefung.example/app/akquise', $hz['knoepfe'], true) && in_array('v:heute', $hz['knoepfe'], true), $hz['text']);
+$tgAus($tgKnopf($tzChat, 'v:lage'));
+pruefe('Die Übersicht hat den Knopf „📊 Heute“', in_array('v:heute', $tgZuletzt()['knoepfe'], true));
+$tgAus($tgText($tqW, '/heute', 'de'));
+pruefe('/heute bei einem normalen Nutzer: keine Zahlen, nur das normale Menü', !str_contains($tgZuletzt()['text'], 'Entwürfe zur Freigabe') && in_array('m:preis', $tgZuletzt()['knoepfe'], true));
+
 $tkPerson = 'left'; TelegramAdmin::vergessen();
 $tgAus($tgText($tzChat, '/menu', 'de'));
 $tzMenu = $tgZuletzt()['knoepfe'];
@@ -15773,7 +15805,9 @@ $tgNetz = []; TelegramAdmin::vergessen();
 $tgAus($tgKnopf($tkNeu, 'v:lage'));
 pruefe('Ein normaler Nutzer (ohne Verbindung) kommt nicht hinein — und Telegram wird dafür nicht einmal gefragt',
     !str_contains($tgZuletzt()['text'], 'Lage in der Verwaltung') && !in_array('getChatMember', array_column($tgNetz, 0), true));
+$tgNetz = [];
 TelegramAdmin::trennen($tzUid);
+pruefe('Beim Trennen verschwinden /heute und /menu wieder aus diesem Chat', (bool) array_filter($tgNetz, static fn($x) => $x[0] === 'deleteMyCommands' && (int) ($x[1]['scope']['chat_id'] ?? 0) === $tzChat));
 
 $tgNetz = [];
 Telegram::kanalSetzen('-1004410953446', 'https://t.me/+2XCcnCJj_F9lMTEy');
