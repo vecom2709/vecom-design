@@ -157,6 +157,14 @@ final class Telegram
             self::rufen('setMyShortDescription', ['short_description' => $T['kurz']] + $sprache);
             self::rufen('setMyDescription', ['description' => mb_substr($beschreibung, 0, 512)] + $sprache);
         }
+        // Verbundene Verwaltungs-Chats behalten ihre eigenen Befehle (/heute …) —
+        // auch die, die schon verbunden waren, bevor es /heute gab.
+        try {
+            require_once __DIR__ . '/TelegramAdmin.php';
+            foreach (Db::all('SELECT chat_id, admin_verbunden FROM telegram_chats WHERE admin_verbunden IS NOT NULL') as $r) {
+                if (TelegramAdmin::darf((int) $r['admin_verbunden'])) { TelegramAdmin::befehleSetzen((int) $r['chat_id'], true); }
+            }
+        } catch (Throwable $e) { }
     }
 
     /** @return array{ok:bool, text:string} */

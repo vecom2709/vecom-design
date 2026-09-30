@@ -15805,6 +15805,10 @@ $tgNetz = []; TelegramAdmin::vergessen();
 $tgAus($tgKnopf($tkNeu, 'v:lage'));
 pruefe('Ein normaler Nutzer (ohne Verbindung) kommt nicht hinein — und Telegram wird dafür nicht einmal gefragt',
     !str_contains($tgZuletzt()['text'], 'Lage in der Verwaltung') && !in_array('getChatMember', array_column($tgNetz, 0), true));
+$tkPerson = 'creator'; TelegramAdmin::vergessen(); $tgNetz = [];
+Telegram::texteSetzen();
+pruefe('Auch schon früher verbundene Verwaltungs-Chats bekommen /heute, sobald die Bot-Texte neu gesetzt werden',
+    (bool) array_filter($tgNetz, static fn($x) => $x[0] === 'setMyCommands' && (int) ($x[1]['scope']['chat_id'] ?? 0) === $tzChat));
 $tgNetz = [];
 TelegramAdmin::trennen($tzUid);
 pruefe('Beim Trennen verschwinden /heute und /menu wieder aus diesem Chat', (bool) array_filter($tgNetz, static fn($x) => $x[0] === 'deleteMyCommands' && (int) ($x[1]['scope']['chat_id'] ?? 0) === $tzChat));
